@@ -27,6 +27,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          fetch-depth: 1
+          filter: tree:0
 
       - name: Install Packages (cpp)
         if: ${{ matrix.language == 'cpp' }}

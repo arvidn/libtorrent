@@ -29,6 +29,8 @@ jobs:
         uses: actions/checkout@v4
         with:
            submodules: true
+           fetch-depth: 1
+           filter: tree:0
 
       - uses: Chocobo1/setup-ccache-action@v1
         with:
@@ -62,6 +64,8 @@ jobs:
         uses: actions/checkout@v4
         with:
            submodules: true
+           fetch-depth: 1
+           filter: tree:0
 
       - uses: Chocobo1/setup-ccache-action@v1
         with:
@@ -94,6 +98,8 @@ jobs:
         uses: actions/checkout@v4
         with:
            submodules: true
+           fetch-depth: 1
+           filter: tree:0
 
       - uses: Chocobo1/setup-ccache-action@v1
         with:
@@ -121,6 +127,8 @@ jobs:
         uses: actions/checkout@v4
         with:
            submodules: true
+           fetch-depth: 1
+           filter: tree:0
 
       - name: install boost
         run: |
