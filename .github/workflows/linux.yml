@@ -32,7 +32,11 @@ jobs:
 
       strategy:
          matrix:
-            config: [ asio-debugging=on picker-debugging=on, extensions=off logging=off streaming=off super-seeding=off share-mode=off predictive-pieces=off dht=off alert-msg=off encryption=off mutable-torrents=off deprecated-functions=off, crypto=gcrypt, mmap-disk-io=off ]
+            include:
+              - config: asio-debugging=on picker-debugging=on
+              - config: extensions=off logging=off streaming=off super-seeding=off share-mode=off predictive-pieces=off dht=off alert-msg=off encryption=off mutable-torrents=off deprecated-functions=off
+              - config: crypto=gcrypt
+              - config: mmap-disk-io=off
 
       steps:
       - name: checkout
