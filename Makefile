@@ -569,7 +569,6 @@ HEADERS = \
   xml_parse.hpp                \
   \
   aux_/alert_manager.hpp            \
-  aux_/aligned_storage.hpp          \
   aux_/aligned_union.hpp            \
   aux_/alloca.hpp                   \
   aux_/allocating_handler.hpp       \
