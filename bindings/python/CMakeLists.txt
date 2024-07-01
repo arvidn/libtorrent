@@ -126,3 +126,22 @@ if (python-egg-info)
 
 	install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/libtorrent.egg-info" DESTINATION "${_PYTHON3_SITE_ARCH}")
 endif()
+
+if (python-dist-info)
+	set(SETUP_PY_IN "${CMAKE_CURRENT_SOURCE_DIR}/setup.py.cmake.in")
+	set(SETUP_PY    "${CMAKE_CURRENT_BINARY_DIR}/setup.py")
+	set(OUTPUT      "${CMAKE_CURRENT_BINARY_DIR}/timestamp")
+	set(DEPS        python-libtorrent "${SETUP_PY}")
+
+	configure_file(${SETUP_PY_IN} ${SETUP_PY} @ONLY)
+
+	add_custom_command(OUTPUT ${OUTPUT}
+		COMMAND CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} ${Python3_EXECUTABLE} ${SETUP_PY} dist_info
+		COMMAND echo 'libtorrent' > "${CMAKE_CURRENT_BINARY_DIR}/libtorrent-${CMAKE_PROJECT_VERSION}.dist-info/top_level.txt"
+		COMMAND ${CMAKE_COMMAND} -E touch ${OUTPUT}
+		DEPENDS ${DEPS}
+	)
+
+	add_custom_target(python_bindings ALL DEPENDS ${OUTPUT})
+	install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/libtorrent-${CMAKE_PROJECT_VERSION}.dist-info" DESTINATION "${_PYTHON3_SITE_ARCH}")
+endif()
