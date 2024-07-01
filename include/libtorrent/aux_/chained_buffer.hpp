@@ -35,7 +35,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_CHAINED_BUFFER_HPP_INCLUDED
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/aux_/aligned_storage.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/aux_/buffer.hpp"
 
@@ -113,7 +112,8 @@ namespace aux {
 #if TORRENT_CPP98_DEQUE
 			move_construct_holder_fun move_holder;
 #endif
-			aux::aligned_storage<32>::type holder;
+			alignas(alignof(std::max_align_t)) std::array<std::uint8_t, 32> holder;
+
 			char* buf = nullptr; // the first byte of the buffer
 			int size = 0; // the total size of the buffer
 			int used_size = 0; // this is the number of bytes to send/receive
