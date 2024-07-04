@@ -839,8 +839,7 @@ if (webtorrent)
 		target_compile_options(datachannel-static PRIVATE
 			-Wno-pedantic
 			-Wno-unused-parameter
-			-Wno-unused-variable
-			-Wno-format-nonliteral)
+			-Wno-unused-variable)
 	endif()
 endif()
 
