@@ -588,6 +588,12 @@ void http_connection::connect()
 		}
 	}
 
+	if (m_proxy.send_host_in_connect
+		&& boost::get<http_stream>(&*m_sock))
+	{
+		boost::get<http_stream>(*m_sock).set_host(m_hostname);
+	}
+
 	TORRENT_ASSERT(m_next_ep < int(m_endpoints.size()));
 	if (m_next_ep >= int(m_endpoints.size())) return;
 

@@ -86,6 +86,10 @@ namespace aux {
 
 		// if true, tracker connections are subject to the proxy settings
 		bool proxy_tracker_connections = true;
+
+		// when proxying non plain HTTP over an HTTP proxy (SSL or peer
+		// connections), also tell the proxy which hostname we're connecting to
+		bool send_host_in_connect = false;
 	};
 
 }}
