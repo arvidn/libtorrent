@@ -1014,6 +1014,14 @@ namespace aux {
 			// protocol may not be valid from the proxy's point of view.
 			socks5_udp_send_local_ep,
 
+			// When using HTTP proxy (in proxy_type), libtorrent will connect
+			// to peers and trackers using the `CONNECT` proxy command. In this
+			// command it's possible to reveal the hostname of the server we're
+			// connecting to. When this option is true, the hostname will be
+			// sent. This feature can be useful if the proxy is used to
+			// man-in-the-middle connections.
+			proxy_send_host_in_connect,
+
 			max_bool_setting_internal
 		};
 

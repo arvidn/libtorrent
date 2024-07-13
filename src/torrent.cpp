@@ -6658,11 +6658,11 @@ namespace {
 		aux::socket_type s = instantiate_connection(m_ses.get_context()
 			, m_ses.proxy(), userdata, nullptr, true, false);
 
-		if (boost::get<http_stream>(&s))
+		if (auto* inner = boost::get<http_stream>(&s))
 		{
 			// the web seed connection will talk immediately to
 			// the proxy, without requiring CONNECT support
-			boost::get<http_stream>(s).set_no_connect(true);
+			inner->set_no_connect(true);
 		}
 
 		std::string hostname;
@@ -6722,6 +6722,21 @@ namespace {
 		if (is_ip) a.address(make_address(hostname, ec));
 		bool const proxy_hostnames = settings().get_bool(settings_pack::proxy_hostnames)
 			&& !is_ip;
+
+		if (!is_ip
+			&& settings().get_bool(settings_pack::proxy_send_host_in_connect))
+		{
+			if (auto* inner1 = boost::get<http_stream>(&s))
+			{
+				inner1->set_host(hostname);
+			}
+#if TORRENT_USE_SSL
+			else if (auto* inner2 = boost::get<ssl_stream<http_stream>>(&s))
+			{
+				inner2->next_layer().set_host(hostname);
+			}
+#endif
+		}
 
 		if (proxy_hostnames
 			&& (boost::get<socks5_stream>(&s)
