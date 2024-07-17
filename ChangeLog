@@ -5,6 +5,7 @@
 	* fix issue where set_piece_deadline() did not correctly post read_piece_alert
 	* fix integer overflow in piece picker
 	* torrent_status::num_pieces counts pieces passed hash check, as documented
+	* announce port=1025 instead of port=1, when there is no listen port
 
 2.0.10 released
 
