@@ -1280,7 +1280,7 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 namespace {
 
 	std::uint16_t make_announce_port(std::uint16_t const p)
-	{ return p == 0 ? 1 : p; }
+	{ return p == 0 ? 1025 : p; }
 }
 
 	void session_impl::queue_tracker_request(tracker_request req
