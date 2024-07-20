@@ -12,7 +12,7 @@ task:
     CIBW_SKIP: pp* cp38-* # cp38-* has problem with x86_64 / arm64 confusion
     CIBW_BUILD: cp39-* cp310-* cp311-* cp312-*
   install_script: |
-    pkg install -y boost-build boost-libs openssl cmake ninja py39-pip
+    pkg install -y boost-build boost-libs openssl cmake ninja py311-pip
     echo "using clang ;" > ~/user-config.jam
   build_cmake_script: |
     cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-Werror" -DCMAKE_CXX_STANDARD=14 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dpython-bindings=OFF -G Ninja .
