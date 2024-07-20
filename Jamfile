@@ -355,14 +355,7 @@ rule building ( properties * )
 			# https://learn.microsoft.com/en-us/cpp/build/reference/permissive-standards-conformance?view=msvc-170
 			result += <cxxflags>/permissive- ;
 		}
-
-		# ask the compiler to correctly set __cplusplus version
-		if <toolset>msvc in $(properties)
-		{
-			result += <msvc-version-macro>on ;
-		}
 	}
-
 
 	if <toolset>gcc in $(properties) && <target-os>windows in $(properties)
 	{
