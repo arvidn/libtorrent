@@ -15,7 +15,6 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/aux_/aligned_storage.hpp"
 
 #include "libtorrent/aux_/debug.hpp" // for TORRENT_ASSERT
 
@@ -134,7 +133,7 @@ namespace libtorrent::aux {
 		static constexpr std::size_t size = Size;
 		static constexpr HandlerName name = Name;
 
-		typename aux::aligned_storage<Size, alignof(std::max_align_t)>::type bytes;
+		alignas(alignof(std::max_align_t)) std::array<std::uint8_t, Size> bytes;
 #if TORRENT_USE_ASSERTS
 		bool used = false;
 #endif
@@ -202,7 +201,7 @@ namespace libtorrent::aux {
 #ifdef TORRENT_ASIO_DEBUGGING
 			record_handler_allocation<T>(static_cast<int>(Name), Size);
 #endif
-			return reinterpret_cast<T*>(&m_storage->bytes);
+			return reinterpret_cast<T*>(m_storage->bytes.data());
 		}
 
 		void deallocate(T* ptr, std::size_t size)
@@ -212,7 +211,7 @@ namespace libtorrent::aux {
 
 			TORRENT_ASSERT_VAL(size == 1, size);
 			TORRENT_ASSERT_VAL(sizeof(T) <= Size, sizeof(T));
-			TORRENT_ASSERT(ptr == reinterpret_cast<T*>(&m_storage->bytes));
+			TORRENT_ASSERT(ptr == reinterpret_cast<T*>(m_storage->bytes.data()));
 			TORRENT_ASSERT(m_storage->used);
 #if TORRENT_USE_ASSERTS
 			m_storage->used = false;

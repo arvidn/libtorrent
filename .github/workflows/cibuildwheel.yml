@@ -45,10 +45,10 @@ jobs:
       MATRIX_PULL_REQUEST: |
         {
           "include": [
-            {"os": "ubuntu-latest", "CIBW_BUILD": "cp37-manylinux_*", "CIBW_ARCHS": "x86_64"},
-            {"os": "ubuntu-latest", "CIBW_BUILD": "cp37-musllinux_*", "CIBW_ARCHS": "x86_64"},
-            {"os": "macos-12", "CIBW_BUILD": "cp37-*", "CIBW_ARCHS": "x86_64"},
-            {"os": "windows-2022", "CIBW_BUILD": "cp37-*", "CIBW_ARCHS": "AMD64"}
+            {"os": "ubuntu-latest", "CIBW_BUILD": "cp39-manylinux_*", "CIBW_ARCHS": "x86_64"},
+            {"os": "ubuntu-latest", "CIBW_BUILD": "cp39-musllinux_*", "CIBW_ARCHS": "x86_64"},
+            {"os": "macos-12", "CIBW_BUILD": "cp39-*", "CIBW_ARCHS": "x86_64"},
+            {"os": "windows-2022", "CIBW_BUILD": "cp39-*", "CIBW_ARCHS": "AMD64"}
           ]
         }
       MATRIX_WORKFLOW_DISPATCH: |
@@ -94,6 +94,8 @@ jobs:
     - uses: actions/checkout@v4
       with:
         submodules: true
+        fetch-depth: 1
+        filter: tree:0
 
     - uses: actions/cache@v4
       id: cache-wheel
@@ -104,7 +106,7 @@ jobs:
     - uses: docker/setup-qemu-action@v3
       if: steps.cache-wheel.outputs.cache-hit != 'true' && runner.os == 'Linux'
 
-    - uses: pypa/cibuildwheel@v2.17.0
+    - uses: pypa/cibuildwheel@v2.19.2
       if: steps.cache-wheel.outputs.cache-hit != 'true'
 
     - uses: actions/upload-artifact@v3

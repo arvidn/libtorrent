@@ -528,7 +528,6 @@ HEADERS = \
   write_resume_data.hpp        \
   \
   aux_/alert_manager.hpp            \
-  aux_/aligned_storage.hpp          \
   aux_/alloca.hpp                   \
   aux_/allocating_handler.hpp       \
   aux_/announce_entry.hpp           \

@@ -27,20 +27,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          fetch-depth: 1
+          filter: tree:0
 
       - name: Install Packages (cpp)
         if: ${{ matrix.language == 'cpp' }}
         run: |
           sudo apt-get update
           sudo apt-get install --yes libboost-all-dev libssl-dev ninja-build
-
-      - name: After Prepare (cpp)
-        if: ${{ matrix.language == 'cpp' }}
-        run: 'wget -q "https://github.com/Kitware/CMake/releases/download/v3.21.2/cmake-3.21.2-linux-x86_64.tar.gz"
-
-  tar xzf cmake-3.21.2-linux-x86_64.tar.gz
-
-  '
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
@@ -50,11 +44,9 @@ jobs:
 
       - name: Build cpp
         if: ${{ matrix.language == 'cpp' }}
-        run: './cmake-3.21.2-linux-x86_64/bin/cmake -Dbuild_examples=ON -Dbuild_tests=ON -Dbuild_tools=ON -GNinja .
-
-  ./cmake-3.21.2-linux-x86_64/bin/cmake --build .
-
-  '
+        run: |
+          cmake -Dbuild_examples=ON -Dbuild_tests=ON -Dbuild_tools=ON -GNinja .
+          cmake --build .
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3

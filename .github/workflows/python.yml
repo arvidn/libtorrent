@@ -58,6 +58,8 @@ jobs:
     - uses: actions/checkout@v4
       with:
         submodules: true
+        fetch-depth: 1
+        filter: tree:0
 
     # Note:
     #  - on mac and linux images, 'python' is python2 and 'python3' is

@@ -135,7 +135,6 @@ set(libtorrent_extensions_include_files
 
 set(libtorrent_aux_include_files
 	alert_manager.hpp
-	aligned_storage.hpp
 	alloca.hpp
 	allocating_handler.hpp
 	apply_pad_files.hpp
