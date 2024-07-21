@@ -8,6 +8,7 @@ Copyright (c) 2017, Falcosc
 Copyright (c) 2018, Steven Siloti
 Copyright (c) 2019, Andrei Kurushin
 Copyright (c) 2019, ghbplayer
+Copyright (c) 2023, Joris Carrier
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -356,9 +357,9 @@ namespace libtorrent {
 	{ async_call(&torrent::set_sequential_download, sd); }
 #endif
 
-	void torrent_handle::flush_cache() const
+	void torrent_handle::flush_cache(callback_t<cache_flushed_alert>::type callback) const
 	{
-		async_call(&torrent::flush_cache);
+		async_call(&torrent::flush_cache, callback);
 	}
 
 	void torrent_handle::set_ssl_certificate(
@@ -742,9 +743,9 @@ namespace libtorrent {
 		async_call(&torrent::add_piece_async, piece, std::move(data), flags);
 	}
 
-	void torrent_handle::read_piece(piece_index_t piece) const
+	void torrent_handle::read_piece(piece_index_t piece, callback_t<read_piece_alert>::type callback) const
 	{
-		async_call(&torrent::read_piece, piece);
+		async_call(&torrent::read_piece, piece, callback);
 	}
 
 	bool torrent_handle::have_piece(piece_index_t piece) const
@@ -926,7 +927,7 @@ namespace libtorrent {
 #else
 		TORRENT_UNUSED(deadline);
 		if (flags & alert_when_available)
-			async_call(&torrent::read_piece, index);
+			async_call(&torrent::read_piece, index, callback_t<read_piece_alert>::type{});
 #endif
 	}
 
