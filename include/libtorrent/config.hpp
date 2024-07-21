@@ -91,6 +91,10 @@ see LICENSE file.
 	|| defined __FreeBSD_kernel__
 #define TORRENT_BSD
 
+#ifdef __NetBSD__
+#define TORRENT_HAS_FSYNC_RANGE 1
+#endif
+
 #if defined __APPLE__
 
 #include <AvailabilityMacros.h>
@@ -356,6 +360,11 @@ see LICENSE file.
 #define TORRENT_USE_IFCONF 1
 #define TORRENT_USE_GRTTABLE 1
 
+#ifndef TORRENT_HAVE_PREAD
+#define TORRENT_HAVE_PREAD 0
+#endif
+
+
 // ==== GNU/Hurd ===
 #elif defined __GNU__
 #define TORRENT_HURD
@@ -470,6 +479,11 @@ see LICENSE file.
 #define TORRENT_HAVE_MMAP 0
 #endif
 
+#ifndef TORRENT_HAVE_PREAD
+#define TORRENT_HAVE_PREAD 1
+#endif
+
+
 #ifndef TORRENT_HAVE_MAP_VIEW_OF_FILE
 #define TORRENT_HAVE_MAP_VIEW_OF_FILE 0
 #endif
@@ -548,6 +562,10 @@ see LICENSE file.
 
 #ifndef TORRENT_HAS_COPYFILE
 #define TORRENT_HAS_COPYFILE 0
+#endif
+
+#ifndef TORRENT_HAS_FSYNC_RANGE
+#define TORRENT_HAS_FSYNC_RANGE 0
 #endif
 
 // debug builds have asserts enabled by default, release

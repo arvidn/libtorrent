@@ -30,6 +30,7 @@
 
 #include <libtorrent/mmap_disk_io.hpp>
 #include <libtorrent/posix_disk_io.hpp>
+#include <libtorrent/pread_disk_io.hpp>
 
 namespace boost
 {
@@ -882,6 +883,8 @@ namespace
 #endif
         if (disk_io == "posix_disk_io_constructor")
             s.disk_io_constructor = &lt::posix_disk_io_constructor;
+        else if (disk_io == "pread_disk_io_constructor")
+            s.disk_io_constructor = &lt::pread_disk_io_constructor;
         else
             s.disk_io_constructor = &lt::default_disk_io_constructor;
     }
