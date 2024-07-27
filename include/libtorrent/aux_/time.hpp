@@ -48,6 +48,9 @@ namespace libtorrent { namespace aux {
 
 	TORRENT_EXTRA_EXPORT std::time_t to_time_t(time_point32 tp);
 	TORRENT_EXTRA_EXPORT time_point32 from_time_t(std::time_t t);
+
+	// returns the current posix time (UTC)
+	TORRENT_EXTRA_EXPORT time_t posix_time();
 } }
 
 #endif

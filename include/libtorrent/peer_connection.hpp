@@ -686,7 +686,7 @@ namespace aux {
 		int max_out_request_queue() const;
 
 		std::time_t last_seen_complete() const { return m_last_seen_complete; }
-		void set_last_seen_complete(int ago) { m_last_seen_complete = ::time(nullptr) - ago; }
+		void set_last_seen_complete(int ago) { m_last_seen_complete = aux::posix_time() - ago; }
 
 		std::int64_t uploaded_in_last_round() const
 		{ return m_statistics.total_payload_upload() - m_uploaded_at_last_round; }
