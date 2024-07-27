@@ -1503,7 +1503,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 	// for non MTU-probes, use the conservative packet size
 	int const effective_mtu = mtu_probe ? m_mtu : m_mtu_floor;
 
-	auto const close_reason = static_cast<std::uint32_t>(m_close_reason);
+	auto close_reason = static_cast<std::uint32_t>(m_close_reason);
 
 	int sack = 0;
 	if (m_inbuf.size())
@@ -1605,7 +1605,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 
 		int const packet_size = header_size + payload_size;
 		p->size = std::uint16_t(packet_size);
-		p->header_size = std::uint16_t(packet_size - payload_size);
+		p->header_size = std::uint16_t(header_size);
 		p->num_transmissions = 0;
 #if TORRENT_USE_ASSERTS
 		p->num_fast_resend = 0;
@@ -1662,6 +1662,10 @@ bool utp_socket_impl::send_pkt(int const flags)
 		else
 			sack = 0;
 
+		// we should not add or update a close reason extension header on a
+		// nagle packet. It's a bit tricky to get all the cases right.
+		close_reason = 0;
+
 		std::int32_t const size_left = std::min({
 			p->allocated - p->size
 			, m_write_buffer_size
@@ -1708,6 +1712,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 		*ptr++ = utp_no_extension;
 		*ptr++ = 4;
 		aux::write_uint32(close_reason, ptr);
+		TORRENT_ASSERT(ptr <= p->buf + p->header_size);
 	}
 
 	if (m_bytes_in_flight > 0
