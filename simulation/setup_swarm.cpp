@@ -54,6 +54,11 @@ using namespace sim;
 
 #define DEBUG_SWARM 0
 
+#if DEBUG_SWARM
+#include <cstdio>
+#include "libtorrent/aux_/file_pointer.hpp"
+#endif
+
 constexpr swarm_test_t swarm_test::download;
 constexpr swarm_test_t swarm_test::upload;
 constexpr swarm_test_t swarm_test::no_auto_stop;
@@ -332,6 +337,12 @@ void setup_swarm(int num_nodes
 				// line
 #if DEBUG_SWARM == 0
 				if (i != 0) return;
+#else
+				char path[200];
+				lt::error_code ignore;
+				lt::create_directory("logs", ignore);
+				std::snprintf(path, sizeof(path), "logs/node-%d.log", i);
+				lt::aux::file_pointer log_output(::fopen(path, "a"));
 #endif
 
 				for (lt::alert* a : alerts)
@@ -341,24 +352,26 @@ void setup_swarm(int num_nodes
 					std::uint32_t const millis = std::uint32_t(
 						lt::duration_cast<lt::milliseconds>(d).count());
 
+#if DEBUG_SWARM != 0
+					std::fprintf(log_output.file(),
+						"%4u.%03u: %-25s %s\n"
+						, millis / 1000, millis % 1000
+						, a->what()
+						, a->message().c_str());
+
+					// the behavior of the test itself should not be affected by
+					// whether we're printing logs for all nodes
+					if (i != 0) continue;
+#endif
+					// when debugging, we print *all* alerts to the log
 					if (should_print(a))
 					{
 						std::printf(
-#if DEBUG_SWARM != 0
-							"[%d] "
-#endif
 							"%4u.%03u: %-25s %s\n"
-#if DEBUG_SWARM != 0
-							, i
-#endif
 							, millis / 1000, millis % 1000
 							, a->what()
 							, a->message().c_str());
 					}
-
-#if DEBUG_SWARM != 0
-					if (i != 0) continue;
-#endif
 
 					// if a torrent was added save the torrent handle
 					if (lt::add_torrent_alert* at = lt::alert_cast<lt::add_torrent_alert>(a))
