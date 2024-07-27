@@ -5,6 +5,7 @@
 	* fix issue where set_piece_deadline() did not correctly post read_piece_alert
 	* fix integer overflow in piece picker
 	* torrent_status::num_pieces counts pieces passed hash check, as documented
+	* check settings_pack::max_out_request_queue before performance alert
 
 2.0.10 released
 
