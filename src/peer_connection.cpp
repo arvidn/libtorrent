@@ -5103,8 +5103,7 @@ namespace libtorrent {
 
 		update_desired_queue_size();
 
-		if (m_desired_queue_size == m_max_out_request_queue
-			&& m_desired_queue_size >= m_settings.get_int(settings_pack::max_out_request_queue)
+		if (m_desired_queue_size >= m_settings.get_int(settings_pack::max_out_request_queue)
 			&& t->alerts().should_post<performance_alert>())
 		{
 			t->alerts().emplace_alert<performance_alert>(t->get_handle()
