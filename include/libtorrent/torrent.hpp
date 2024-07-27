@@ -1135,8 +1135,8 @@ namespace libtorrent {
 
 		void write_resume_data(resume_data_flags_t const flags, add_torrent_params& ret) const;
 
-		void seen_complete() { m_last_seen_complete = ::time(nullptr); }
-		int time_since_complete() const { return int(::time(nullptr) - m_last_seen_complete); }
+		void seen_complete() { m_last_seen_complete = aux::posix_time(); }
+		int time_since_complete() const { return int(aux::posix_time() - m_last_seen_complete); }
 		time_t last_seen_complete() const { return m_last_seen_complete; }
 
 		template <typename Fun, typename... Args>

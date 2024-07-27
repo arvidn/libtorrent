@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/session.hpp" // for default_disk_io_constructor
 #include "libtorrent/aux_/directory.hpp"
+#include "libtorrent/aux_/time.hpp" // for posix_time
 #include "libtorrent/disk_interface.hpp"
 
 #include <sys/types.h>
@@ -393,7 +394,7 @@ namespace {
 	create_torrent::create_torrent(file_storage& fs, int piece_size
 		, create_flags_t const flags)
 		: m_files(fs)
-		, m_creation_date(::time(nullptr))
+		, m_creation_date(aux::posix_time())
 		, m_multifile(fs.num_files() > 1)
 		, m_private(false)
 		, m_include_mtime(bool(flags & create_torrent::modification_time))
@@ -466,7 +467,7 @@ namespace {
 
 	create_torrent::create_torrent(torrent_info const& ti)
 		: m_files(ti.files())
-		, m_creation_date(::time(nullptr))
+		, m_creation_date(aux::posix_time())
 		, m_multifile(ti.num_files() > 1)
 		, m_private(ti.priv())
 		, m_include_mtime(false)

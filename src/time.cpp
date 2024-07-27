@@ -71,4 +71,12 @@ namespace libtorrent { namespace aux {
 		return std::chrono::time_point_cast<seconds32>(r + milliseconds(500));
 	}
 
+	time_t posix_time()
+	{
+#ifdef TORRENT_BUILD_SIMULATOR
+		return 1722056360 + clock_type::now().time_since_epoch().count();
+#else
+		return ::time(nullptr);
+#endif
+	}
 } }
