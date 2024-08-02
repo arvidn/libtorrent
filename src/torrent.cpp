@@ -6722,6 +6722,13 @@ namespace {
 		bool const proxy_hostnames = settings().get_bool(settings_pack::proxy_hostnames)
 			&& !is_ip;
 
+		if (!is_ip
+			&& settings().get_bool(settings_pack::proxy_send_host_in_connect)
+			&& boost::get<http_stream>(&s))
+		{
+			boost::get<http_stream>(s).set_host(hostname);
+		}
+
 		if (proxy_hostnames
 			&& (boost::get<socks5_stream>(&s)
 #if TORRENT_USE_SSL
