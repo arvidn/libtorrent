@@ -2055,85 +2055,70 @@ namespace {
 
 		// if we don't proxy peer connections, don't apply the special logic for
 		// proxies
-		if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none
-			&& m_settings.get_bool(settings_pack::proxy_peer_connections))
+		
+
+		std::vector<ip_interface> const ifs = enum_net_interfaces(m_io_context, ec);
+		if (ec && m_alerts.should_post<listen_failed_alert>())
 		{
-			// we will be able to accept incoming connections over UDP. so use
-			// one of the ports the user specified to use a consistent port
-			// across sessions. If the user did not specify any ports, pick one
-			// at random
-			int const port = m_listen_interfaces.empty()
-				? int(random(63000) + 2000)
-				: m_listen_interfaces.front().port;
-			listen_endpoint_t ep(address_v4::any(), port, {}
-				, transport::plaintext, listen_socket_t::proxy);
-			eps.emplace_back(ep);
+			m_alerts.emplace_alert<listen_failed_alert>(""
+				, operation_t::enum_if, ec, socket_type_t::tcp);
 		}
-		else
+		auto const routes = enum_routes(m_io_context, ec);
+		if (ec && m_alerts.should_post<listen_failed_alert>())
 		{
-			std::vector<ip_interface> const ifs = enum_net_interfaces(m_io_context, ec);
-			if (ec && m_alerts.should_post<listen_failed_alert>())
-			{
-				m_alerts.emplace_alert<listen_failed_alert>(""
-					, operation_t::enum_if, ec, socket_type_t::tcp);
-			}
-			auto const routes = enum_routes(m_io_context, ec);
-			if (ec && m_alerts.should_post<listen_failed_alert>())
-			{
-				m_alerts.emplace_alert<listen_failed_alert>(""
-					, operation_t::enum_route, ec, socket_type_t::tcp);
-			}
+			m_alerts.emplace_alert<listen_failed_alert>(""
+				, operation_t::enum_route, ec, socket_type_t::tcp);
+		}
 
-			// expand device names and populate eps
-			for (auto const& iface : m_listen_interfaces)
-			{
+		// expand device names and populate eps
+		for (auto const& iface : m_listen_interfaces)
+		{
 #if !TORRENT_USE_SSL
-				if (iface.ssl)
-				{
-#ifndef TORRENT_DISABLE_LOGGING
-					session_log("attempted to listen ssl with no library support on device: \"%s\""
-						, iface.device.c_str());
-#endif
-					if (m_alerts.should_post<listen_failed_alert>())
-					{
-						m_alerts.emplace_alert<listen_failed_alert>(iface.device
-							, operation_t::sock_open
-							, boost::asio::error::operation_not_supported
-							, socket_type_t::tcp_ssl);
-					}
-					continue;
-				}
-#endif
-
-				// now we have a device to bind to. This device may actually just be an
-				// IP address or a device name. In case it's a device name, we want to
-				// (potentially) end up binding a socket for each IP address associated
-				// with that device.
-				interface_to_endpoints(iface, listen_socket_t::accept_incoming, ifs, eps);
-			}
-
-			if (eps.empty())
+			if (iface.ssl)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
-				session_log("no listen sockets");
+				session_log("attempted to listen ssl with no library support on device: \"%s\""
+					, iface.device.c_str());
 #endif
+				if (m_alerts.should_post<listen_failed_alert>())
+				{
+					m_alerts.emplace_alert<listen_failed_alert>(iface.device
+						, operation_t::sock_open
+						, boost::asio::error::operation_not_supported
+						, socket_type_t::tcp_ssl);
+				}
+				continue;
 			}
+#endif
+
+			// now we have a device to bind to. This device may actually just be an
+			// IP address or a device name. In case it's a device name, we want to
+			// (potentially) end up binding a socket for each IP address associated
+			// with that device.
+			interface_to_endpoints(iface, listen_socket_t::accept_incoming, ifs, eps);
+		}
+
+		if (eps.empty())
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			session_log("no listen sockets");
+#endif
+		}
 
 #if defined TORRENT_ANDROID && __ANDROID_API__ >= 24
-			// For Android API >= 24, enum_routes with the current NETLINK based
-			// implementation is unsupported (maybe in the future the operation
-			// will be restore using another implementation). If routes is empty,
-			// allow using unspecified address is a best effort approach that
-			// seems to work. The issue with this approach is with the DHTs,
-			// because for IPv6 this is not following BEP 32 and BEP 45. See:
-			// https://www.bittorrent.org/beps/bep_0032.html
-			// https://www.bittorrent.org/beps/bep_0045.html
-			if (!routes.empty()) expand_unspecified_address(ifs, routes, eps);
+		// For Android API >= 24, enum_routes with the current NETLINK based
+		// implementation is unsupported (maybe in the future the operation
+		// will be restore using another implementation). If routes is empty,
+		// allow using unspecified address is a best effort approach that
+		// seems to work. The issue with this approach is with the DHTs,
+		// because for IPv6 this is not following BEP 32 and BEP 45. See:
+		// https://www.bittorrent.org/beps/bep_0032.html
+		// https://www.bittorrent.org/beps/bep_0045.html
+		if (!routes.empty()) expand_unspecified_address(ifs, routes, eps);
 #else
-			expand_unspecified_address(ifs, routes, eps);
+		expand_unspecified_address(ifs, routes, eps);
 #endif
-			expand_devices(ifs, eps);
-		}
+		expand_devices(ifs, eps);
 
 		auto remove_iter = partition_listen_sockets(eps, m_listen_sockets);
 
@@ -2819,14 +2804,8 @@ namespace {
 		}
 		async_accept(listener, ssl);
 
-		// don't accept any connections from our local listen sockets if we're
-		// using a proxy. We should only accept peers via the proxy, never
-		// directly.
 		// This path is only for accepting incoming TCP sockets. The udp_socket
 		// class also restricts incoming packets based on proxy settings.
-		if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none
-			&& m_settings.get_bool(settings_pack::proxy_peer_connections))
-			return;
 
 		auto listen = std::find_if(m_listen_sockets.begin(), m_listen_sockets.end()
 			, [&listener](std::shared_ptr<listen_socket_t> const& l)
@@ -5522,12 +5501,8 @@ namespace {
 		if (m_listen_sockets.empty()) return 0;
 		if (sock)
 		{
-			// if we're using a proxy, we won't be able to accept any TCP
-			// connections. Not even uTP connections via the port we know about.
 			// The DHT may use the implied port to make it work, but the port we
 			// announce here has no relevance for that.
-			if (sock->flags & listen_socket_t::proxy)
-				return 0;
 
 			if (!(sock->flags & listen_socket_t::accept_incoming))
 				return 0;
@@ -5566,9 +5541,6 @@ namespace {
 			return std::uint16_t(sock->tcp_external_port());
 		}
 
-		if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none
-			&& m_settings.get_bool(settings_pack::proxy_peer_connections))
-			return 0;
 
 		for (auto const& s : m_listen_sockets)
 		{
@@ -5661,21 +5633,6 @@ namespace {
 		// they can't be reached from outside of the local network anyways
 		if (is_v6(s->local_endpoint) && is_local(s->local_endpoint.address()))
 			return;
-
-		if (!s->natpmp_mapper
-			&& !(s->flags & listen_socket_t::local_network)
-			&& !(s->flags & listen_socket_t::proxy))
-		{
-			// the natpmp constructor may fail and call the callbacks
-			// into the session_impl.
-			s->natpmp_mapper = std::make_shared<natpmp>(m_io_context, *this, listen_socket_handle(s));
-			ip_interface ip;
-			ip.interface_address = s->local_endpoint.address();
-			ip.netmask = s->netmask;
-			std::strncpy(ip.name, s->device.c_str(), sizeof(ip.name) - 1);
-			ip.name[sizeof(ip.name) - 1] = '\0';
-			s->natpmp_mapper->start(ip);
-		}
 	}
 
 	void session_impl::on_port_mapping(port_mapping_t const mapping
@@ -6890,8 +6847,7 @@ namespace {
 		// there's no point in starting the UPnP mapper for a network that isn't
 		// connected to the internet. The whole point is to forward ports through
 		// the gateway
-		if ((s->flags & listen_socket_t::local_network)
-			|| (s->flags & listen_socket_t::proxy))
+		if ((s->flags & listen_socket_t::local_network))
 			return;
 
 		if (!s->upnp_mapper)
