@@ -658,7 +658,7 @@ void bind_alert()
         ;
 
 #if TORRENT_ABI_VERSION == 1
-    enum_<listen_succeeded_alert::socket_type_t>("listen_succeded_alert_socket_type_t")
+    enum_<listen_succeeded_alert::socket_type_t>("listen_succeeded_alert_socket_type_t")
        .value("tcp", listen_succeeded_alert::socket_type_t::tcp)
        .value("tcp_ssl", listen_succeeded_alert::socket_type_t::tcp_ssl)
        .value("udp", listen_succeeded_alert::socket_type_t::udp)

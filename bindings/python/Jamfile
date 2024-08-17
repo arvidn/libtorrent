@@ -28,7 +28,7 @@ feature.compose <libtorrent-python-pic>on : <cxxflags>-fPIC ;
 feature python-install-path : : free path ;
 
 # when not specifying a custom install path, this controls whether to install
-# the python module in the system directory or user-specifc directory
+# the python module in the system directory or user-specific directory
 feature python-install-scope : user system : ;
 
 # copied from boost 1.63's boost python jamfile

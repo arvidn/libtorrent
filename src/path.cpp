@@ -714,7 +714,7 @@ namespace {
 		// count number of path elements left in base, and prepend that number of
 		// "../" to target
 
-		// base alwaus points to a directory. There's an implied directory
+		// base always points to a directory. There's an implied directory
 		// separator at the end of it
 		int const num_steps = static_cast<int>(std::count(
 			base.begin(), base.end(), TORRENT_SEPARATOR_CHAR)) + (base.empty() ? 0 : 1);

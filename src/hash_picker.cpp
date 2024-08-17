@@ -62,7 +62,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 {
 	// limit the size of the base layer to something reasonable
 	// Blocks are requested for an entire piece so this limit
-	// effectivly caps the piece size we can handle. A limit of 8192
+	// effectively caps the piece size we can handle. A limit of 8192
 	// corresponds to a piece size of 128MB.
 
 	if (hr.file < file_index_t{0}

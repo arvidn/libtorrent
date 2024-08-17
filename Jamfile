@@ -187,7 +187,7 @@ rule linking ( properties * )
 	else if [ version.version-less $(jam-version) : 1990 0 ]
 	{
 		# the visibility feature was introduced in boost-1.69. This was close to
-		# when the verisoning scheme changed from year to (low) version numbers.
+		# when the versioning scheme changed from year to (low) version numbers.
 		# in boost-1.70
 		result += <visibility>hidden ;
 	}

@@ -43,7 +43,7 @@
  *                      - Use pointers instead of long to specify source and
  *                        destination sizes to avoid arbitrary 4 GB limits
  * 1.2  17 Mar 2002     - Add faster version of decode(), doubles speed (!),
- *                        but leave simple version for readabilty
+ *                        but leave simple version for readability
  *                      - Make sure invalid distances detected if pointers
  *                        are 16 bits
  *                      - Fix fixed codes table error

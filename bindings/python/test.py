@@ -238,7 +238,7 @@ class test_torrent_handle(unittest.TestCase):
         self.setup()
         self.h.clear_piece_deadlines()
 
-    def test_status_last_uploaded_dowloaded(self):
+    def test_status_last_uploaded_downloaded(self):
         # we want to check at seconds precision but can't control session
         # time, wait for next full second to prevent second increment
         time.sleep(1 - datetime.datetime.now().microsecond / 1000000.0)

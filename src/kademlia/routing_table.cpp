@@ -678,7 +678,7 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 				existing->update_rtt(e.rtt);
 				existing->last_queried = e.last_queried;
 			}
-			// if this was a replacement node it may be elligible for
+			// if this was a replacement node it may be eligible for
 			// promotion to the live bucket
 			fill_from_replacements(existing_bucket);
 			prune_empty_bucket();

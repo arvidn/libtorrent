@@ -124,7 +124,7 @@ namespace libtorrent {
 	// if we're inserting the hash N, the uncle hashes provide proof of it being
 	// valid by containing 0, 1 and two (as marked in the tree above)
 	// Any non-zero hash encountered in target_tree is assumed to be valid, and
-	// will termiate the validation early, either successful (if there's a
+	// will terminate the validation early, either successful (if there's a
 	// match) or unsuccessful (if there's a mismatch).
 	TORRENT_EXTRA_EXPORT
 	bool merkle_validate_and_insert_proofs(span<sha256_hash> target_tree
