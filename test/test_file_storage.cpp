@@ -1056,7 +1056,7 @@ TORRENT_TEST(file_first_piece_node)
 	// the size of the merkle tree is implied by the size of the file.
 	// 0x500000 / 0x10000 = 80 pieces
 	// a merkle tree must have a power of 2 number of leaves, so that's 128,
-	// thats 7 layers
+	// that's 7 layers
 	TEST_EQUAL(first_piece_node(0x10000, 0x500000), 127);
 	TEST_EQUAL(first_piece_node(0x8000, 0x500000), 255);
 	TEST_EQUAL(first_piece_node(0x4000, 0x500000), 511);

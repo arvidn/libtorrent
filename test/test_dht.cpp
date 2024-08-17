@@ -812,7 +812,7 @@ TORRENT_TEST(invalid_message)
 	}
 }
 
-TORRENT_TEST(node_id_testng)
+TORRENT_TEST(node_id_testing)
 {
 	node_id rnd = generate_secret_id();
 	TEST_CHECK(verify_secret_id(rnd));

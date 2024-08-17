@@ -170,7 +170,7 @@
 2.0 released
 
 	* dropped dependency on iconv
-	* deprecate set_file_hash() in torrent creator, as it's superceded by v2 torrents
+	* deprecate set_file_hash() in torrent creator, as it's superseded by v2 torrents
 	* deprecate mutable access to info_section in torrent_info
 	* removed deprecated lazy_entry/lazy_bdecode
 	* stats_alert deprecated

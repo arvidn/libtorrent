@@ -218,7 +218,7 @@ namespace libtorrent
 
 		// this is for a future per-block request feature
 #if 0
-		// blocks are only added to this list if there is a time critial block which
+		// blocks are only added to this list if there is a time critical block which
 		// has been downloaded but we don't have its hash or if the initial request
 		// for the hash was rejected
 		// this block hash will be requested from every peer possible until the hash

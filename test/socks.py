@@ -106,7 +106,7 @@ class SocksHandler(StreamRequestHandler):
             sys.stdout.flush()
 
     def inner_handle(self):
-        # IMRPOVEMENT: Report who requests are from in logging
+        # IMPROVEMENT: Report who requests are from in logging
         # IMPROVEMENT: Timeout on client
         debug('Connection - authenticating')
         version = self.read(1)

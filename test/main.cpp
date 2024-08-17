@@ -551,7 +551,7 @@ int EXPORT main(int argc, char const* argv[])
 
 	if (!tests_to_run.empty())
 	{
-		std::printf("\x1b[1mUNKONWN tests:\x1b[0m\n");
+		std::printf("\x1b[1mUNKNOWN tests:\x1b[0m\n");
 		for (std::set<std::string>::iterator i = tests_to_run.begin()
 			, end(tests_to_run.end()); i != end; ++i)
 		{

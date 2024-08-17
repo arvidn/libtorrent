@@ -576,7 +576,7 @@ TORRENT_TEST(urlseed_timeout)
 // check for correct handle of unexpected http status response.
 // with disabled "close_redundant_connections" alive web server connection
 // may be closed in such manner.
-TORRENT_TEST(no_close_redudant_webseed)
+TORRENT_TEST(no_close_redundant_webseed)
 {
 	using namespace lt;
 

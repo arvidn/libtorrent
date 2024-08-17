@@ -443,7 +443,7 @@ TORRENT_TEST(xml_tag_no_attribute_whitespace)
 	test_parse("<?xml  ?>", "Dxml");
 }
 
-TORRENT_TEST(attribute_missing_qoute)
+TORRENT_TEST(attribute_missing_quote)
 {
 	test_parse("<a f=1>foo</a f='b>"
 		, "BaPunquoted attribute valueSfooFaPmissing end quote on attribute");
@@ -473,7 +473,7 @@ TORRENT_TEST(unterminated_tag)
 	test_parse("<foo", "Punexpected end of file");
 }
 
-TORRENT_TEST(unqouted_attribute_value)
+TORRENT_TEST(unquoted_attribute_value)
 {
 	// test unquoted attribute values
 	test_parse("<foo a=bar>", "BfooPunquoted attribute value");

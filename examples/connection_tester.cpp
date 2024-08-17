@@ -78,7 +78,7 @@ void generate_block(span<std::uint32_t> buffer, piece_index_t const piece
 	for (auto& w : buffer) w = fill;
 }
 
-// in order to circumvent the restricton of only
+// in order to circumvent the restriction of only
 // one connection per IP that most clients implement
 // all sockets created by this tester are bound to
 // unique local IPs in the range (127.0.0.1 - 127.255.255.255)
