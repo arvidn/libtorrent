@@ -167,15 +167,6 @@ private:
 	netlink::socket m_socket;
 	std::array<char, 4096> m_buf;
 
-	struct local_address
-	{
-		int family;
-		std::array<char, 16> data;
-	};
-	// maps if_index to the most recently advertised local address
-	// this is used to filter duplicate updates
-	std::unordered_map<std::uint32_t, local_address> m_state;
-
 	void on_notify(int len, std::function<void(error_code const& ec)> cb)
 	{
 		bool pertinent = false;
@@ -184,33 +175,10 @@ private:
 			nlmsg_ok (nh, len);
 			nh = nlmsg_next(nh, len))
 		{
-			if (nh->nlmsg_type != RTM_NEWADDR)
+			if (nh->nlmsg_type != RTM_NEWADDR &&
+				nh->nlmsg_type != RTM_DELADDR)
 				continue;
-
-			auto const* addr_msg = static_cast<ifaddrmsg const*>(nlmsg_data(nh));
-			std::uint32_t const index = addr_msg->ifa_index;
-			int const family = addr_msg->ifa_family;
-			std::size_t attr_len = ifa_payload(nh);
-			auto const* rta_ptr = ifa_rta(addr_msg);
-
-			for (; rta_ok(rta_ptr, attr_len); rta_ptr = rta_next(rta_ptr, attr_len))
-			{
-				auto* const ptr = rta_data(rta_ptr);
-				if (rta_ptr->rta_type != IFA_LOCAL)
-					continue;
-
-				auto& existing = m_state[index];
-				std::size_t const address_len = family == AF_INET ? 4 : 16;
-				if (existing.family == family
-					&& std::memcmp(&existing.data, ptr, address_len) == 0)
-				{
-					break;
-				}
-
-				existing.family = family;
-				std::memcpy(existing.data.data(), ptr, address_len);
-				pertinent = true;
-			}
+			pertinent = true;
 		}
 
 		if (!pertinent)
