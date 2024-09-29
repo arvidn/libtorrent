@@ -292,8 +292,7 @@ static_assert(int(job_action_name.size()) == static_cast<int>(job_action_t::num_
 #endif
 
 cached_piece_entry::cached_piece_entry()
-	: num_dirty(0)
-	, num_blocks(0)
+	: piece_refcount(0)
 	, hashing(0)
 	, hashing_done(0)
 	, marked_for_deletion(false)
@@ -790,7 +789,7 @@ bool block_cache::blocks_flushed(cached_piece_entry* pe, int const* flushed, int
 
 	m_write_cache_size -= num_flushed;
 	m_read_cache_size += num_flushed;
-	pe->num_dirty -= num_flushed;
+	pe->num_dirty = aux::numeric_cast<std::uint16_t>(pe->num_dirty - num_flushed);
 
 	update_cache_state(pe);
 	return maybe_free_piece(pe);

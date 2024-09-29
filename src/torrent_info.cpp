@@ -1027,9 +1027,14 @@ namespace {
 
 		// extract piece length
 		std::int64_t piece_length = info.dict_find_int_value("piece length", -1);
-		if (piece_length <= 0 || piece_length > std::numeric_limits<int>::max())
+		if (piece_length <= 0)
 		{
 			ec = errors::torrent_missing_piece_length;
+			return false;
+		}
+		if (piece_length > std::numeric_limits<int>::max())
+		{
+			ec = errors::invalid_piece_size;
 			return false;
 		}
 		file_storage files;

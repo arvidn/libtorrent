@@ -235,40 +235,36 @@ namespace aux {
 		// bitfield
 		std::uint16_t blocks_in_piece = 0;
 
+		// the number of blocks in the cache for this piece
+		std::uint16_t num_blocks = 0;
+
+		// the number of dirty blocks in this piece
+		std::uint16_t num_dirty = 0;
+
 		// this is the number of threads that are currently holding
 		// a reference to this piece. A piece may not be removed from
 		// the cache while this is > 0
-		std::uint8_t piece_refcount = 0;
-
-		// 8 bytes padding
-
-		// ---- 64 bit boundary ----
-
-		// the number of dirty blocks in this piece
-		std::uint32_t num_dirty:14;
-
-		// the number of blocks in the cache for this piece
-		std::uint32_t num_blocks:14;
+		std::uint16_t piece_refcount:8;
 
 		// while we have an outstanding async hash operation
 		// working on this piece, 'hashing' is set to 1
 		// When the operation returns, this is set to 0.
-		std::uint32_t hashing:1;
+		std::uint16_t hashing:1;
 
 		// if we've completed at least one hash job on this
 		// piece, and returned it. This is set to one
-		std::uint32_t hashing_done:1;
+		std::uint16_t hashing_done:1;
 
 		// if this is true, whenever refcount hits 0,
 		// this piece should be deleted from the cache
 		// (not just demoted)
-		std::uint32_t marked_for_deletion:1;
+		std::uint16_t marked_for_deletion:1;
 
 		// this is set to true once we flush blocks past
 		// the hash cursor. Once this happens, there's
 		// no point in keeping cache blocks around for
 		// it in avoid_readback mode
-		std::uint32_t need_readback:1;
+		std::uint16_t need_readback:1;
 
 		// indicates which LRU list this piece is chained into
 		enum cache_state_t
