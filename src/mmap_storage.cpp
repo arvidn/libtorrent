@@ -160,8 +160,9 @@ error_code translate_error(std::error_code const& err, bool const write)
 			if (fs.pad_file_at(i)) continue;
 
 			download_priority_t const old_prio = m_file_priority[i];
-			download_priority_t new_prio = prio[i];
-			if (old_prio == dont_download && new_prio != dont_download)
+			m_file_priority[i] = prio[i];
+
+			if (old_prio == dont_download && m_file_priority[i] != dont_download)
 			{
 				// move stuff out of the part file
 				std::shared_ptr<aux::file_mapping> f = open_file(sett, i, aux::open_mode::write, ec);
@@ -216,7 +217,7 @@ error_code translate_error(std::error_code const& err, bool const write)
 					}
 				}
 			}
-			else if (old_prio != dont_download && new_prio == dont_download)
+			else if (old_prio != dont_download && m_file_priority[i] == dont_download)
 			{
 				// move stuff into the part file
 				// this is not implemented yet.
@@ -266,7 +267,6 @@ error_code translate_error(std::error_code const& err, bool const write)
 */
 			}
 			ec.ec.clear();
-			m_file_priority[i] = new_prio;
 
 			if (m_file_priority[i] == dont_download && use_partfile(i))
 			{
