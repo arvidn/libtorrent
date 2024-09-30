@@ -206,6 +206,8 @@ namespace libtorrent {
 		// The ``piece_size`` is the size of each piece in bytes. It must be a
 		// power of 2 and a minimum of 16 kiB. If a piece size of 0 is
 		// specified, a piece_size will be set automatically.
+		// Piece sizes greater than 128 MiB are considered unreasonable and will
+		// be rejected (with an lt::system_error exception).
 		//
 		// The ``flags`` arguments specifies options for the torrent creation. It can
 		// be any combination of the flags defined by create_flags_t.

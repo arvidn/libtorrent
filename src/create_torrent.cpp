@@ -455,6 +455,12 @@ namespace {
 			aux::throw_ex<system_error>(errors::invalid_piece_size);
 		}
 
+		// this is an unreasonably large piece size. Some clients don't support
+		// pieces this large.
+		if (piece_size > 128 * 1024 * 1024) {
+			aux::throw_ex<system_error>(errors::invalid_piece_size);
+		}
+
 		fs.set_piece_length(piece_size);
 		if (!(flags & v1_only)
 			|| (flags & canonical_files)
