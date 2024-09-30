@@ -539,6 +539,120 @@ void test_rename(std::string const& test_path)
 	TEST_EQUAL(s->files().file_path(0_file), "new_filename");
 }
 
+namespace {
+std::int64_t file_size_on_disk(std::string const& path)
+{
+#ifdef TORRENT_WINDOWS
+	native_path_string f = convert_to_native_path_string(path);
+	// in order to open a directory, we need the FILE_FLAG_BACKUP_SEMANTICS
+	HANDLE h = CreateFileW(f.c_str(), 0, FILE_SHARE_DELETE | FILE_SHARE_READ
+		| FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, nullptr);
+	TEST_CHECK(h != INVALID_HANDLE_VALUE);
+	FILE_STANDARD_INFO Standard;
+	TEST_CHECK(GetFileInformationByHandleEx(h, FILE_INFO_BY_HANDLE_CLASS::FileStandardInfo, &Standard, sizeof(FILE_STANDARD_INFO)));
+	CloseHandle(h);
+	return Standard.AllocationSize.QuadPart;
+#else
+	struct ::stat st{};
+	TEST_EQUAL(::stat(path.c_str(), &st), 0);
+	return std::int64_t(st.st_blocks) * 512;
+#endif
+}
+}
+
+template <typename StorageType>
+void test_pre_allocate()
+{
+	std::string const test_path = complete("pre_allocate_test_path");
+	delete_dirs(combine_path(test_path, "temp_storage"));
+
+	file_storage fs;
+	std::vector<char> buf;
+	typename file_pool_type<StorageType>::type fp;
+	io_context ios;
+
+	aux::session_settings set;
+	std::shared_ptr<torrent_info> info = setup_torrent_info(fs, buf);
+
+	aux::vector<download_priority_t, file_index_t> priorities{
+		lt::dont_download,
+		lt::default_priority,
+		lt::default_priority,
+		lt::default_priority,
+		lt::default_priority,
+	};
+	sha1_hash info_hash;
+	storage_params p{
+		fs,
+		nullptr,
+		test_path,
+		storage_mode_allocate,
+		priorities,
+		info_hash
+	};
+	auto s = make_storage<StorageType>(p, fp);
+
+	// allocate the files and create the directories
+	storage_error se;
+	s->initialize(set, se);
+	if (se)
+	{
+		TEST_ERROR(se.ec.message().c_str());
+		std::printf("storage::initialize %s: %d\n"
+			, se.ec.message().c_str(), static_cast<int>(se.file()));
+		throw system_error(se.ec);
+	}
+
+	std::vector<char> piece1 = new_piece(0x4000);
+	span<char> iov = span<char>(piece1);
+
+	// ensure all files, except the first one, have been allocated
+	for (auto i : fs.file_range())
+	{
+		if (fs.file_size(i) > 0)
+		{
+			int ret = write(s, set, iov, fs.piece_index_at_file(i), 0, aux::open_mode::write, se);
+			TEST_EQUAL(ret, int(iov.size()));
+			TEST_CHECK(!se.ec);
+		}
+
+		error_code ec;
+		file_status st;
+		std::string const path = fs.file_path(i, test_path);
+		stat_file(path, &st, ec);
+		if (i == file_index_t{0})
+		{
+			// the first file has priority 0, and so should not be created
+			TEST_EQUAL(ec, boost::system::errc::no_such_file_or_directory);
+		}
+		else
+		{
+			TEST_CHECK(!ec);
+			std::cerr << "error: " << ec.message() << std::endl;
+			TEST_EQUAL(st.file_size, fs.file_size(i));
+			TEST_CHECK(file_size_on_disk(path) >= fs.file_size(i));
+		}
+	}
+
+	std::cerr << "set file priority" << std::endl;
+	// set priority of file 0 to non-zero, and make sure we create the file now
+	priorities[0_file] = lt::default_priority;
+	s->set_file_priority(set, priorities, se);
+	TEST_CHECK(!se.ec);
+
+	for (auto i : fs.file_range())
+	{
+		error_code ec;
+		file_status st;
+		std::string const path = fs.file_path(i, test_path);
+		stat_file(path, &st, ec);
+		std::cerr<< "error: " << ec.message() << std::endl;
+		TEST_CHECK(!ec);
+
+		TEST_CHECK(file_size_on_disk(path) >= fs.file_size(i));
+	}
+}
+
 using lt::operator""_bit;
 using check_files_flag_t = lt::flags::bitfield_flag<std::uint64_t, struct check_files_flag_type_tag>;
 
@@ -709,10 +823,14 @@ TORRENT_TEST(check_files_oversized_mmap)
 	test_check_files(sparse | test_oversized, lt::mmap_disk_io_constructor);
 }
 
-
 TORRENT_TEST(check_files_allocate_mmap)
 {
 	test_check_files(zero_prio, lt::mmap_disk_io_constructor);
+}
+
+TORRENT_TEST(test_pre_allocate_mmap)
+{
+	test_pre_allocate<mmap_storage>();
 }
 #endif
 TORRENT_TEST(check_files_sparse_posix)
@@ -735,6 +853,14 @@ TORRENT_TEST(check_files_allocate_posix)
 {
 	test_check_files(zero_prio, lt::posix_disk_io_constructor);
 }
+
+// posix_storage doesn't support pre-allocating files on non-windows
+/*
+TORRENT_TEST(test_pre_allocate_posix)
+{
+	test_pre_allocate<posix_storage>();
+}
+*/
 
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 TORRENT_TEST(rename_mmap_disk_io)

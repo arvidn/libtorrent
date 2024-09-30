@@ -406,7 +406,6 @@ namespace aux {
 				if (int(bytes_read) != block_to_copy)
 					ec.assign(errno, generic_category());
 
-				TORRENT_ASSERT(!ec);
 				if (ec) return;
 
 				f(file_offset, {buf.get(), block_to_copy});

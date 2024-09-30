@@ -358,7 +358,7 @@ namespace {
 		{
 			posix_storage* st = m_torrents[storage].get();
 			storage_error error;
-			st->set_file_priority(prio, error);
+			st->set_file_priority(m_settings, prio, error);
 			post(m_ios, [p = std::move(prio), h = std::move(handler), error] () mutable
 				{ h(error, std::move(p)); });
 		}

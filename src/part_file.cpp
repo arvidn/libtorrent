@@ -370,7 +370,6 @@ namespace libtorrent {
 				span<char> v = {buf.get(), block_to_copy};
 				auto bytes_read = aux::pread_all(file.fd(), v, slot_offset(slot) + piece_offset, ec);
 				v = v.first(static_cast<std::ptrdiff_t>(bytes_read));
-				TORRENT_ASSERT(!ec);
 				if (ec || v.empty()) return;
 
 				f(file_offset, {buf.get(), block_to_copy});
