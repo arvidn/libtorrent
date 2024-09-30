@@ -114,7 +114,7 @@ jobs:
 
       - name: build library
         run: |
-          b2 ${{ matrix.config }} -l400 warnings-as-errors=on cxxstd=14
+          b2 ${{ matrix.config }} -l400 warnings-as-errors=on cxxstd=14,17,20
 
 
    ios_build:
