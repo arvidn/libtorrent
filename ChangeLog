@@ -1,3 +1,4 @@
+	* fix piece size check when loading torrents
 	* back-port fix last_upload and last_download resume data fields to use posix time
 	* back-port treat CGNAT address range as local IPs
 

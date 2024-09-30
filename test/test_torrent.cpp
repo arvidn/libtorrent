@@ -167,7 +167,7 @@ void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_
 	TEST_CHECK(h.get_file_priorities() == prio);
 }
 
-void test_large_piece_size(int const size)
+void test_large_piece_size(std::int64_t const size)
 {
 	entry torrent;
 	entry& info = torrent["info"];
@@ -179,7 +179,15 @@ void test_large_piece_size(int const size)
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), torrent);
 	add_torrent_params atp;
-	atp.ti = std::make_shared<torrent_info>(buf, from_span);
+	try
+	{
+		atp.ti = std::make_shared<torrent_info>(buf, from_span);
+	}
+	catch (lt::system_error const& e)
+	{
+		TEST_CHECK(e.code() == error_code(lt::errors::invalid_piece_size));
+		return;
+	}
 	atp.save_path = ".";
 
 	lt::session ses;
@@ -212,9 +220,12 @@ TORRENT_TEST(long_names)
 
 TORRENT_TEST(large_piece_size)
 {
-	test_large_piece_size(32768 * 16 * 1024);
-	test_large_piece_size(65536 * 16 * 1024);
-	test_large_piece_size(65537 * 16 * 1024);
+	test_large_piece_size(0xfffc000 + 0x4000);
+	test_large_piece_size(0x10000000);
+	test_large_piece_size(0x20000000);
+	test_large_piece_size(0x40000000);
+	test_large_piece_size(0x80000000);
+	test_large_piece_size(0x100000000);
 }
 
 TORRENT_TEST(total_wanted)
