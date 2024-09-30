@@ -84,7 +84,8 @@ namespace aux {
 			, files().num_pieces(), files().piece_length());
 	}
 
-	void posix_storage::set_file_priority(aux::vector<download_priority_t, file_index_t>& prio
+	void posix_storage::set_file_priority(settings_interface const&
+		, aux::vector<download_priority_t, file_index_t>& prio
 		, storage_error& ec)
 	{
 		// extend our file priorities in case it's truncated
