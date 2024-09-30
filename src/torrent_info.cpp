@@ -53,6 +53,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/aux_/numeric_cast.hpp"
+#include "libtorrent/piece_picker.hpp"
+#include "libtorrent/disk_interface.hpp" // for default_block_size
 
 #if TORRENT_ABI_VERSION == 1
 #include "libtorrent/lazy_entry.hpp"
@@ -1027,9 +1029,14 @@ namespace {
 
 		// extract piece length
 		std::int64_t piece_length = info.dict_find_int_value("piece length", -1);
-		if (piece_length <= 0 || piece_length > std::numeric_limits<int>::max())
+		if (piece_length <= 0)
 		{
 			ec = errors::torrent_missing_piece_length;
+			return false;
+		}
+		if (piece_length > piece_picker::max_blocks_per_piece * default_block_size)
+		{
+			ec = errors::invalid_piece_size;
 			return false;
 		}
 		file_storage files;
