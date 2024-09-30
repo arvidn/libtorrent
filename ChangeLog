@@ -1,6 +1,7 @@
 
 2.0.11 not released
 
+	* limit piece size in torrent creator
 	* fix file pre-allocation when changing file priority (HanabishiRecca)
 	* fix uTP issue where closing the connection could corrupt the payload
 	* apply DSCP/TOS to sockets before initiating the TCP connection

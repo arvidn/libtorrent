@@ -119,6 +119,7 @@ int test_piece_size(int const piece_size, lt::create_flags_t const f = {})
 
 TORRENT_TEST(piece_size_restriction_16kB)
 {
+	// v2 torrents must have piece sizes of at least 16 kiB
 	TEST_EQUAL(test_piece_size(15000), 16 * 1024);
 	TEST_EQUAL(test_piece_size(500), 16 * 1024);
 	TEST_THROW(test_piece_size(15000, lt::create_torrent::v1_only));
@@ -128,12 +129,21 @@ TORRENT_TEST(piece_size_restriction_16kB)
 
 TORRENT_TEST(piece_size_quanta)
 {
+	// v2 torrents must have power-of-two piece sizes
 	TEST_EQUAL(test_piece_size(32 * 1024), 32 * 1024);
 	TEST_EQUAL(test_piece_size(32 * 1024, lt::create_torrent::v1_only), 32 * 1024);
 	TEST_THROW(test_piece_size(48 * 1024));
 	TEST_EQUAL(test_piece_size(48 * 1024, lt::create_torrent::v1_only), 48 * 1024);
 	TEST_THROW(test_piece_size(47 * 1024, lt::create_torrent::v1_only));
 	TEST_THROW(test_piece_size(47 * 1024));
+}
+
+TORRENT_TEST(piece_size_limit)
+{
+	// the max piece size is determined by piece_picker::max_blocks_per_piece
+	TEST_EQUAL(test_piece_size(0x8000000), 0x8000000);
+	TEST_THROW(test_piece_size(0x8000001, lt::create_torrent::v1_only));
+	TEST_THROW(test_piece_size(0x10000000));
 }
 
 TORRENT_TEST(create_torrent_round_trip)
