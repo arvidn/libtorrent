@@ -108,8 +108,15 @@ namespace libtorrent {
 					offset = std::max(i + 1, size_t(5));
 				else if (i > offset)
 				{
+#if defined __GNUC__ && __GNUC__ >= 7
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 					b1[i] &= 0x55;
 					b2[i] &= 0x55;
+#if defined __GNUC__ && __GNUC__ >= 7
+#pragma GCC diagnostic pop
+#endif
 				}
 			}
 			std::uint64_t addrbuf[4];
