@@ -144,35 +144,35 @@ class EnumTest(unittest.TestCase):
                 continue
             self.assertIsInstance(lt.operation_name(value), str)
 
-    def test_listen_succeded_alert_socket_type_t(self) -> None:
+    def test_listen_succeeded_alert_socket_type_t(self) -> None:
         if lt.api_version < 2:
-            self.assertIsInstance(lt.listen_succeded_alert_socket_type_t.tcp, int)
-            self.assertIsInstance(lt.listen_succeded_alert_socket_type_t.tcp_ssl, int)
-            self.assertIsInstance(lt.listen_succeded_alert_socket_type_t.udp, int)
-            self.assertIsInstance(lt.listen_succeded_alert_socket_type_t.i2p, int)
-            self.assertIsInstance(lt.listen_succeded_alert_socket_type_t.socks5, int)
-            self.assertIsInstance(lt.listen_succeded_alert_socket_type_t.utp_ssl, int)
+            self.assertIsInstance(lt.listen_succeeded_alert_socket_type_t.tcp, int)
+            self.assertIsInstance(lt.listen_succeeded_alert_socket_type_t.tcp_ssl, int)
+            self.assertIsInstance(lt.listen_succeeded_alert_socket_type_t.udp, int)
+            self.assertIsInstance(lt.listen_succeeded_alert_socket_type_t.i2p, int)
+            self.assertIsInstance(lt.listen_succeeded_alert_socket_type_t.socks5, int)
+            self.assertIsInstance(lt.listen_succeeded_alert_socket_type_t.utp_ssl, int)
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
-    def test_listen_succeded_alert_socket_type_t_deprecated(self) -> None:
+    def test_listen_succeeded_alert_socket_type_t_deprecated(self) -> None:
         if lt.api_version < 2:
             with self.assertWarns(DeprecationWarning):
-                self.assertIsInstance(lt.listen_succeded_alert_socket_type_t.tcp, int)
+                self.assertIsInstance(lt.listen_succeeded_alert_socket_type_t.tcp, int)
             with self.assertWarns(DeprecationWarning):
                 self.assertIsInstance(
-                    lt.listen_succeded_alert_socket_type_t.tcp_ssl, int
+                    lt.listen_succeeded_alert_socket_type_t.tcp_ssl, int
                 )
             with self.assertWarns(DeprecationWarning):
-                self.assertIsInstance(lt.listen_succeded_alert_socket_type_t.udp, int)
+                self.assertIsInstance(lt.listen_succeeded_alert_socket_type_t.udp, int)
             with self.assertWarns(DeprecationWarning):
-                self.assertIsInstance(lt.listen_succeded_alert_socket_type_t.i2p, int)
+                self.assertIsInstance(lt.listen_succeeded_alert_socket_type_t.i2p, int)
             with self.assertWarns(DeprecationWarning):
                 self.assertIsInstance(
-                    lt.listen_succeded_alert_socket_type_t.socks5, int
+                    lt.listen_succeeded_alert_socket_type_t.socks5, int
                 )
             with self.assertWarns(DeprecationWarning):
                 self.assertIsInstance(
-                    lt.listen_succeded_alert_socket_type_t.utp_ssl, int
+                    lt.listen_succeeded_alert_socket_type_t.utp_ssl, int
                 )
 
     def test_listen_failed_alert_socket_type_t(self) -> None:
@@ -1283,7 +1283,7 @@ class ListenSucceededAlertTest(AlertTest):
         if lt.api_version < 2:
             self.assertEqual(alert.endpoint, ("127.0.0.1", self.session.listen_port()))
             self.assertIsInstance(
-                alert.sock_type, lt.listen_succeded_alert_socket_type_t
+                alert.sock_type, lt.listen_succeeded_alert_socket_type_t
             )
         self.assertEqual(alert.address, "127.0.0.1")
         self.assertEqual(alert.port, self.session.listen_port())

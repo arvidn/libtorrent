@@ -854,21 +854,21 @@ class listen_on_flags_t(int):
     names: Mapping[str, listen_on_flags_t]
     values: Mapping[int, listen_on_flags_t]
 
-class listen_succeded_alert_socket_type_t(int):
-    i2p: listen_succeded_alert_socket_type_t
-    names: Mapping[str, listen_succeded_alert_socket_type_t]
-    socks5: listen_succeded_alert_socket_type_t
-    tcp: listen_succeded_alert_socket_type_t
-    tcp_ssl: listen_succeded_alert_socket_type_t
-    udp: listen_succeded_alert_socket_type_t
-    utp_ssl: listen_succeded_alert_socket_type_t
-    values: Mapping[int, listen_succeded_alert_socket_type_t]
+class listen_succeeded_alert_socket_type_t(int):
+    i2p: listen_succeeded_alert_socket_type_t
+    names: Mapping[str, listen_succeeded_alert_socket_type_t]
+    socks5: listen_succeeded_alert_socket_type_t
+    tcp: listen_succeeded_alert_socket_type_t
+    tcp_ssl: listen_succeeded_alert_socket_type_t
+    udp: listen_succeeded_alert_socket_type_t
+    utp_ssl: listen_succeeded_alert_socket_type_t
+    values: Mapping[int, listen_succeeded_alert_socket_type_t]
 
 class listen_succeeded_alert(alert):
     address: str
     endpoint: Tuple[str, int]
     port: int
-    sock_type: listen_succeded_alert_socket_type_t
+    sock_type: listen_succeeded_alert_socket_type_t
     socket_type: socket_type_t
 
 class log_alert(alert):
