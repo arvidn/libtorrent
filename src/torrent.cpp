@@ -3084,11 +3084,18 @@ namespace {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-braces"
 #endif
+#if defined __GNUC__ && __GNUC__ == 12
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 		aux::array<bool const, num_protocols, protocol_version> const supports_protocol
 		{ {
 			m_info_hash.has_v1(),
 			m_info_hash.has_v2()
 		} };
+#if defined __GNUC__ && __GNUC__ == 12
+#pragma GCC diagnostic pop
+#endif
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif

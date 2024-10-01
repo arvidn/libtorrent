@@ -195,8 +195,15 @@ namespace libtorrent {
 			if (b == nullptr) std::terminate();
 #endif
 			b[0] = aux::numeric_cast<std::uint32_t>(bits);
+#if defined __GNUC__ && __GNUC__ == 12
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 			if (m_buf) std::memcpy(&b[1], buf()
 				, aux::numeric_cast<std::size_t>(std::min(new_size_words, cur_size_words) * 4));
+#if defined __GNUC__ && __GNUC__ == 12
+#pragma GCC diagnostic pop
+#endif
 			if (new_size_words > cur_size_words)
 			{
 				std::memset(&b[1 + cur_size_words], 0

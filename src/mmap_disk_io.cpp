@@ -1801,7 +1801,14 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			j->callback_called = true;
 #endif
 			j->call_callback();
+#if defined __GNUC__ && __GNUC__ == 12
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
 			to_delete[cnt++] = j;
+#if defined __GNUC__ && __GNUC__ == 12
+#pragma GCC diagnostic pop
+#endif
 			j = next;
 			if (cnt == int(to_delete.size()))
 			{
