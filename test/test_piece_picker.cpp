@@ -2472,7 +2472,7 @@ TORRENT_TEST(mark_as_pad_pick_short_last_piece)
 	// there is no block 3 in this piece
 }
 
-TORRENT_TEST(mark_as_pad_pick_short_last_piece_prefer_contiguos)
+TORRENT_TEST(mark_as_pad_pick_short_last_piece_prefer_contiguous)
 {
 	auto p = std::make_shared<piece_picker>(
 		3 * default_piece_size - default_block_size, default_piece_size);

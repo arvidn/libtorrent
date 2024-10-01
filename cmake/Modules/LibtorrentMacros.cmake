@@ -15,7 +15,7 @@ endmacro()
 # target_optional_compile_definitions(<target> [FEATURE]
 #   NAME <name> DESCRIPTION <description> DEFAULT <default_value>
 #   [ENABLED [enabled_compile_definitions...]]
-#   [DISABLED [disabled_compile_defnitions...]]
+#   [DISABLED [disabled_compile_definitions...]]
 # )
 # NAME, DESCRIPTION and DEFAULT are passed to option() call
 # if FEATURE is given, they are passed to add_feature_info()

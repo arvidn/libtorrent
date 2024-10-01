@@ -41,6 +41,7 @@ see LICENSE file.
 #include "libtorrent/aux_/stat_cache.hpp"
 #include "libtorrent/aux_/readwrite.hpp"
 #include "libtorrent/hex.hpp" // to_hex
+#include "libtorrent/aux_/scope_end.hpp"
 
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 
@@ -139,15 +140,22 @@ error_code translate_error(std::error_code const& err, bool const write)
 
 			download_priority_t const old_prio = m_file_priority[i];
 			download_priority_t new_prio = prio[i];
+
+			m_file_priority[i] = new_prio;
+
+			// in case there's an error, we make sure m_file_priority is only
+			// updated for the successful files. By leaving failed files as
+			// priority 0, we allow re-trying them.
+			auto restore_prio = aux::scope_end([&] {
+				m_file_priority[i] = old_prio;
+				prio = m_file_priority;
+			});
+
 			if (old_prio == dont_download && new_prio != dont_download)
 			{
 				// move stuff out of the part file
 				std::shared_ptr<aux::file_mapping> f = open_file(sett, i, aux::open_mode::write, ec);
-				if (ec)
-				{
-					prio = m_file_priority;
-					return;
-				}
+				if (ec) return;
 
 				if (m_part_file && use_partfile(i))
 				{
@@ -174,7 +182,6 @@ error_code translate_error(std::error_code const& err, bool const write)
 						{
 							ec.file(i);
 							ec.operation = operation_t::partfile_write;
-							prio = m_file_priority;
 							return;
 						}
 					}
@@ -206,7 +213,6 @@ error_code translate_error(std::error_code const& err, bool const write)
 				{
 					ec.file(i);
 					ec.operation = operation_t::file_stat;
-					prio = m_file_priority;
 					return;
 				}
 				use_partfile(i, !file_exists);
@@ -214,11 +220,7 @@ error_code translate_error(std::error_code const& err, bool const write)
 				auto f = open_file(sett, i, aux::open_mode::read_only, ec);
 				if (ec.ec != boost::system::errc::no_such_file_or_directory)
 				{
-					if (ec)
-					{
-						prio = m_file_priority;
-						return;
-					}
+					if (ec) return;
 
 					need_partfile();
 
@@ -227,7 +229,6 @@ error_code translate_error(std::error_code const& err, bool const write)
 					{
 						ec.file(i);
 						ec.operation = operation_t::partfile_read;
-						prio = m_file_priority;
 						return;
 					}
 					// remove the file
@@ -237,14 +238,13 @@ error_code translate_error(std::error_code const& err, bool const write)
 					{
 						ec.file(i);
 						ec.operation = operation_t::file_remove;
-						prio = m_file_priority;
 						return;
 					}
 				}
 */
 			}
 			ec.ec.clear();
-			m_file_priority[i] = new_prio;
+			restore_prio.disarm();
 
 			if (m_file_priority[i] == dont_download && use_partfile(i))
 			{

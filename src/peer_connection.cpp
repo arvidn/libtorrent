@@ -347,6 +347,20 @@ namespace {
 			init();
 		}
 
+		if (m_settings.get_int(settings_pack::peer_dscp) != 0)
+		{
+			int const value = m_settings.get_int(settings_pack::peer_dscp);
+			error_code ec;
+			aux::set_traffic_class(m_socket, value, ec);
+#ifndef TORRENT_DISABLE_LOGGING
+			if (ec && should_log(peer_log_alert::outgoing))
+			{
+				peer_log(peer_log_alert::outgoing, "SET_DSCP", "value: %d e: %s"
+					, value, ec.message().c_str());
+			}
+#endif
+		}
+
 		// if this is an incoming connection, we're done here
 		if (!m_connecting)
 		{
@@ -5078,7 +5092,7 @@ namespace {
 
 		update_desired_queue_size();
 
-		if (m_desired_queue_size == m_max_out_request_queue
+		if (m_desired_queue_size >= m_settings.get_int(settings_pack::max_out_request_queue)
 			&& t->alerts().should_post<performance_alert>())
 		{
 			t->alerts().emplace_alert<performance_alert>(t->get_handle()
@@ -6362,19 +6376,6 @@ namespace {
 		{
 			disconnect(errors::self_connection, operation_t::bittorrent, failure);
 			return;
-		}
-
-		if (m_settings.get_int(settings_pack::peer_dscp) != 0)
-		{
-			int const value = m_settings.get_int(settings_pack::peer_dscp);
-			aux::set_traffic_class(m_socket, value, ec);
-#ifndef TORRENT_DISABLE_LOGGING
-			if (ec && should_log(peer_log_alert::outgoing))
-			{
-				peer_log(peer_log_alert::outgoing, "SET_DSCP", "value: %d e: %s"
-					, value, ec.message().c_str());
-			}
-#endif
 		}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS

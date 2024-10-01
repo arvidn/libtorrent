@@ -15,10 +15,15 @@
 
 2.0.11 not released
 
+	* limit piece size in torrent creator
+	* fix file pre-allocation when changing file priority (HanabishiRecca)
+	* fix uTP issue where closing the connection could corrupt the payload
+	* apply DSCP/TOS to sockets before initiating the TCP connection
 	* assume copy_file_range() exists on linux (unless old glibc)
 	* fix issue where set_piece_deadline() did not correctly post read_piece_alert
 	* fix integer overflow in piece picker
 	* torrent_status::num_pieces counts pieces passed hash check, as documented
+	* check settings_pack::max_out_request_queue before performance alert
 
 2.0.10 released
 
@@ -182,7 +187,7 @@
 2.0 released
 
 	* dropped dependency on iconv
-	* deprecate set_file_hash() in torrent creator, as it's superceded by v2 torrents
+	* deprecate set_file_hash() in torrent creator, as it's superseded by v2 torrents
 	* deprecate mutable access to info_section in torrent_info
 	* removed deprecated lazy_entry/lazy_bdecode
 	* stats_alert deprecated

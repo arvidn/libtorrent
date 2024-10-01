@@ -489,7 +489,7 @@ TORRENT_TEST(item_limit)
 }
 
 // test unexpected EOF
-TORRENT_TEST(unepected_eof)
+TORRENT_TEST(unexpected_eof)
 {
 	char b[] = "l2:.."; // expected terminating 'e'
 
@@ -502,7 +502,7 @@ TORRENT_TEST(unepected_eof)
 }
 
 // test unexpected EOF in string length
-TORRENT_TEST(unepected_eof2)
+TORRENT_TEST(unexpected_eof2)
 {
 	char b[] = "l2:..0"; // expected ':' delimiter instead of EOF
 

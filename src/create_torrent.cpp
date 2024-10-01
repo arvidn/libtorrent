@@ -23,6 +23,7 @@ see LICENSE file.
 #include "libtorrent/session.hpp" // for default_disk_io_constructor
 #include "libtorrent/aux_/directory.hpp"
 #include "libtorrent/aux_/bencoder.hpp"
+#include "libtorrent/aux_/time.hpp" // for posix_time
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -559,7 +560,7 @@ TORRENT_VERSION_NAMESPACE_4
 		, create_flags_t const flags)
 		: m_files(std::move(files))
 		, m_total_size(compute_total_size(m_files))
-		, m_creation_date(::time(nullptr))
+		, m_creation_date(aux::posix_time())
 		, m_multifile(m_files.size() > 1)
 		, m_private(false)
 		, m_include_mtime(bool(flags & create_torrent::modification_time))
@@ -628,6 +629,12 @@ TORRENT_VERSION_NAMESPACE_4
 			aux::throw_ex<system_error>(errors::invalid_piece_size);
 		}
 
+		// this is an unreasonably large piece size. Some clients don't support
+		// pieces this large.
+		if (piece_size > 128 * 1024 * 1024) {
+			aux::throw_ex<system_error>(errors::invalid_piece_size);
+		}
+
 		m_piece_length = piece_size;
 		TORRENT_ASSERT(m_piece_length > 0);
 		if (!(flags & v1_only)
@@ -644,7 +651,7 @@ TORRENT_VERSION_NAMESPACE_4
 		, m_piece_length(ti.piece_length())
 		, m_num_pieces(ti.num_pieces())
 		, m_name(ti.name())
-		, m_creation_date(::time(nullptr))
+		, m_creation_date(aux::posix_time())
 		, m_multifile(ti.num_files() > 1)
 		, m_private(ti.priv())
 		, m_include_mtime(false)
