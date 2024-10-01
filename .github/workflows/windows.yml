@@ -26,6 +26,7 @@ jobs:
              - config: address-model=32 crypto=built-in
              - config: address-model=64
              - config: release
+             - config: address-sanitizer=on
 
       steps:
       - name: checkout
@@ -37,7 +38,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.78.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.86.0 https://github.com/boostorg/boost.git
           cd boost
           bootstrap.bat
 
@@ -72,7 +73,7 @@ jobs:
 
    simulations:
       name: Simulations
-      runs-on: windows-2019
+      runs-on: windows-latest
 
       steps:
       - name: checkout
@@ -84,7 +85,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.78.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.86.0 https://github.com/boostorg/boost.git
           cd boost
           bootstrap.bat
 
@@ -122,13 +123,14 @@ jobs:
 
    build:
       name: Build
-      runs-on: windows-2019
+      runs-on: windows-latest
       continue-on-error: true
 
       strategy:
          matrix:
            include:
              - config: asio-debugging=on picker-debugging=on windows-version=vista
+             - config: asio-debugging=on picker-debugging=on windows-version=win10
              - config: windows-api=store windows-version=win10
              - config: deprecated-functions=off
 
@@ -142,7 +144,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.78.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.86.0 https://github.com/boostorg/boost.git
           cd boost
           bootstrap.bat
 
@@ -193,7 +195,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.78.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.86.0 https://github.com/boostorg/boost.git
           cd boost
           bootstrap.bat
 
