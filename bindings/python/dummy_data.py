@@ -22,13 +22,13 @@ DICT = {
 }
 
 
-def get_infohash_bytes():
+def get_infohash_bytes() -> bytes:
     return hashlib.sha1(lt.bencode(INFO_DICT)).digest()
 
 
-def get_infohash():
+def get_infohash() -> str:
     return get_infohash_bytes().hex()
 
 
-def get_sha1_hash():
+def get_sha1_hash() -> lt.sha1_hash:
     return lt.sha1_hash(get_infohash_bytes())

@@ -170,6 +170,22 @@ repos:
               tools/run_benchmark.py|
               tools/update_copyright.py
           )$
+- repo: local
+  hooks:
+  - id: flake8-pyi-install
+    name: Install flake8-pyi
+    entry: pip install flake8-pyi
+    language: system
+    pass_filenames: false
+    always_run: true
+  - id: flake8-pyi-run
+    name: Run flake8-pyi
+    entry: flake8
+    # Ignore rationale: 1. Allow Black to do formatting;
+    #                   2. Detect archaic typing.
+    args: ["--ignore=E301,E302,E305,E501,E701,E704,Y015,Y021,Y053"]
+    language: system
+    types: [pyi]
 - repo: https://github.com/PyCQA/flake8
   rev: 7.3.0
   hooks:
