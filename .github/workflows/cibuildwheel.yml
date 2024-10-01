@@ -166,6 +166,26 @@ jobs:
         path: wheelhouse/*.whl
         name: wheels-${{ matrix.os }}-${{ matrix.CIBW_BUILD }}
 
+  check_wheel_type_exposure:
+    needs: build_wheels
+    runs-on: ubuntu-latest
+    if: needs.build_wheels.result == 'success'
+
+    steps:
+    - uses: actions/download-artifact@v4
+      with:
+        pattern: wheels-ubuntu-24.04-cp39-manylinux_x86_64
+        path: wheelhouse
+        merge-multiple: true
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
+    - name: test wheel type issues
+      run: |
+        python3 -m pip install --upgrade pip mypy
+        python3 -m pip install ./wheelhouse/*_x86_64.whl
+        python3 -m mypy.stubtest libtorrent
+
   upload_pypi:
     needs: build_wheels
     runs-on: ubuntu-latest

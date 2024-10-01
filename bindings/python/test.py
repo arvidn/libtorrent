@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
+from __future__ import annotations
 
+import ast
+from typing import cast, Generator
 
 import libtorrent as lt
 
@@ -17,7 +20,6 @@ import threading
 import tempfile
 import socket
 import select
-import logging
 import ssl
 import http.server
 import functools
@@ -26,13 +28,18 @@ import dummy_data
 
 # include terminal interface for travis parallel executions of scripts which use
 # terminal features: fix multiple stdin assignment at termios.tcgetattr
-if os.name != 'nt':
+if os.name != "nt":
     import pty
 
-settings = {
-    'alert_mask': lt.alert.category_t.all_categories,
-    'enable_dht': False, 'enable_lsd': False, 'enable_natpmp': False,
-    'enable_upnp': False, 'listen_interfaces': '0.0.0.0:0', 'file_pool_size': 1}
+settings: "lt.settings_pack" = {
+    "alert_mask": lt.alert.category_t.all_categories,
+    "enable_dht": False,
+    "enable_lsd": False,
+    "enable_natpmp": False,
+    "enable_upnp": False,
+    "listen_interfaces": "0.0.0.0:0",
+    "file_pool_size": 1
+}
 
 
 def has_deprecated():
@@ -371,7 +378,7 @@ class TestAddPiece(unittest.TestCase):
         self.wait_for(lambda: self.handle.status().progress == 1.0, msg="progress")
 
         def file_written():
-            with open(os.path.join(self.dir.name.encode(), dummy_data.NAME), mode="rb") as f:
+            with open(os.path.join(self.dir.name, dummy_data.NAME.decode()), mode="rb") as f:
                 return f.read() == dummy_data.DATA
 
         self.wait_for(file_written, msg="file write")
@@ -570,7 +577,7 @@ class test_alerts(unittest.TestCase):
         alerts = ses.pop_alerts()
         for a in alerts:
             if a.what() == 'add_torrent_alert':
-                self.assertEqual(a.torrent_name, 'temp')
+                self.assertEqual(cast(lt.add_torrent_alert, a).torrent_name, 'temp')
             print(a.message())
             for field_name in dir(a):
                 if field_name.startswith('__'):
@@ -712,17 +719,17 @@ class test_info_hash(unittest.TestCase):
         s1 = lt.sha1_hash(b'a' * 20)
         s2 = lt.sha256_hash(b'b' * 32)
 
-        ih1 = lt.info_hash_t(s1);
+        ih1 = lt.info_hash_t(s1)
         self.assertTrue(ih1.has_v1())
         self.assertFalse(ih1.has_v2())
         self.assertEqual(ih1.v1, s1)
 
-        ih2 = lt.info_hash_t(s2);
+        ih2 = lt.info_hash_t(s2)
         self.assertFalse(ih2.has_v1())
         self.assertTrue(ih2.has_v2())
         self.assertEqual(ih2.v2, s2)
 
-        ih12 = lt.info_hash_t(s1, s2);
+        ih12 = lt.info_hash_t(s1, s2)
         self.assertTrue(ih12.has_v1())
         self.assertTrue(ih12.has_v2())
         self.assertEqual(ih12.v1, s1)
@@ -845,20 +852,20 @@ class test_ip_filter(unittest.TestCase):
 class test_session(unittest.TestCase):
 
     def test_settings(self):
-        sett = { 'alert_mask': lt.alert.category_t.all_categories }
+        sett: "lt.settings_pack" = {'alert_mask': lt.alert.category_t.all_categories }
         s = lt.session(sett)
         sett = s.get_settings()
         self.assertEqual(sett['alert_mask'] & 0x7fffffff, 0x7fffffff)
 
     def test_session_params(self):
         sp = lt.session_params()
-        sp.settings = { 'alert_mask': lt.alert.category_t.all_categories }
+        sp.settings = {'alert_mask': lt.alert.category_t.all_categories }
         s = lt.session(sp)
         sett = s.get_settings()
         self.assertEqual(sett['alert_mask'] & 0x7fffffff, 0x7fffffff)
 
     def test_session_params_constructor(self):
-        sp = lt.session_params({ 'alert_mask': lt.alert.category_t.all_categories })
+        sp = lt.session_params({'alert_mask': lt.alert.category_t.all_categories })
         s = lt.session(sp)
         sett = s.get_settings()
         self.assertEqual(sett['alert_mask'] & 0x7fffffff, 0x7fffffff)
@@ -882,7 +889,7 @@ class test_session(unittest.TestCase):
     def test_session_params_roundtrip_entry(self):
 
         sp = lt.session_params()
-        sp.settings = { 'alert_mask': lt.alert.category_t.all_categories }
+        sp.settings = {'alert_mask': lt.alert.category_t.all_categories }
 
         ent = lt.write_session_params(sp)
         print(ent)
@@ -972,9 +979,10 @@ class test_session(unittest.TestCase):
             alerts = s.pop_alerts()
         a = alerts.pop(0)
         print(a)
+        values = cast(lt.session_stats_alert, a).values
         self.assertTrue(isinstance(a, lt.session_stats_alert))
-        self.assertTrue(isinstance(a.values, dict))
-        self.assertTrue(len(a.values) > 0)
+        self.assertTrue(isinstance(values, dict))
+        self.assertTrue(len(values) > 0)
 
     def test_post_dht_stats(self):
         s = lt.session({'alert_mask': 0, 'enable_dht': False})
@@ -990,8 +998,8 @@ class test_session(unittest.TestCase):
                 sys.exit(1)
         a = alerts.pop(0)
         self.assertTrue(isinstance(a, lt.dht_stats_alert))
-        self.assertTrue(isinstance(a.active_requests, list))
-        self.assertTrue(isinstance(a.routing_table, list))
+        self.assertTrue(isinstance(cast(lt.dht_stats_alert, a).active_requests, list))
+        self.assertTrue(isinstance(cast(lt.dht_stats_alert, a).routing_table, list))
 
     def test_unknown_settings(self):
         try:
@@ -1155,9 +1163,9 @@ class test_peer_info(unittest.TestCase):
 class test_dht_settings(unittest.TestCase):
 
     def test_dht_get_peers(self):
-        session = lt.session();
+        session = lt.session()
         info_hash = lt.sha1_hash(b"a" * 20)
-        session.dht_get_peers(info_hash);
+        session.dht_get_peers(info_hash)
 
     def test_construct(self):
 
@@ -1183,7 +1191,7 @@ class test_dht_settings(unittest.TestCase):
         print(ds.item_lifetime)
 
 
-def get_isolated_settings():
+def get_isolated_settings() -> "lt.settings_pack":
     return {
         "enable_dht": False,
         "enable_lsd": False,
@@ -1335,6 +1343,103 @@ class SSLTrackerAlertTest(unittest.TestCase):
         self.assertNotEqual(alert.message(), "")
         self.assertEqual(str(alert), alert.message())
         self.assertEqual(alert.external_address, "1.2.3.4")
+
+
+class TestTypeStubs(unittest.TestCase):
+    """
+    One of the shortcomings of the Python type stubs is the lack of function signature matching.
+    So, next best thing: we match the Boost signature that the Python stub was made for.
+
+    Caveat: the "C++ signature" bit of the docstring differs between builds, depending on where and how it was built.
+    """
+
+    def _get_name(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
+        name = node.name
+        while hasattr(node, "parent"):
+            parent = node.parent
+            if not isinstance(parent, ast.Module):
+                name = f"{parent.name}.{name}"
+            node = parent
+        return name
+
+    def _attempt_import(self, qualname: str) -> object | None:
+        base = lt
+        for part in qualname.split("."):
+            if not hasattr(base, part):
+                return None
+            if hasattr(base, "__dict__") and isinstance(vars(base).get(part), property):
+                return None
+            base = getattr(base, part)
+            if isinstance(base, int):
+                return None
+        return base
+
+    def _special_src_doc(self, qualname: str, src_doc: str) -> str:
+        if qualname == "session.__init__":
+            # Special case: inserts object memory address into docstring.
+            while (start_bad := src_doc.find("<libtorrent.fingerprint object at")) != -1:
+                end_bad = src_doc.find(">", start_bad + 1)
+                src_doc = src_doc[:start_bad] + "<libtorrent.fingerprint object" + src_doc[end_bad:]
+        elif qualname in ["write_session_params_buf", "read_session_params", "write_session_params"]:
+            # Special case: the typical flags=0xffffffff is not used for "all".
+            # Instead flags=save_state_flags_t::all() takes on 4294967295 or 2147483647, depending on the platform.
+            src_doc = src_doc.replace("2147483647", "4294967295")
+        elif sys.platform != "linux":
+            # The linux binding has looser typing, adapt the other platforms to it.
+            if qualname == "file_storage.__iter__":
+                # Linux does not have as narrow a type as other platforms.
+                src_doc = src_doc.replace("(file_storage)arg1", "(object)arg1")
+            elif qualname == "torrent_info.trackers":
+                # Ditto.
+                src_doc = src_doc.replace("(torrent_info)arg1", "(object)arg1")
+            elif qualname in ["session.dht_proxy", "session.i2p_proxy", "session.peer_proxy", "session.proxy",
+                              "session.set_dht_proxy", "session.set_i2p_proxy", "session.set_peer_proxy",
+                              "session.set_proxy", "session.set_tracker_proxy", "session.set_web_seed_proxy",
+                              "session.tracker_proxy", "session.web_seed_proxy"]:
+                # Special case: other platforms refer to proxy_settings as proxy_type_t.proxy_settings.
+                src_doc = src_doc.replace("proxy_type_t.proxy_settings", "proxy_settings")
+        return src_doc
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        """
+        Parse the libtorrent AST once for this class.
+        """
+        filename = "libtorrent/__init__.pyi"
+        with open(filename) as file_handle:
+            root = ast.parse(file_handle.read(), "__init__.pyi", type_comments=True)
+        for node in ast.walk(root):
+            for child in ast.iter_child_nodes(node):
+                child.parent = node
+        cls.libtorrent_ast_root = root
+
+    def _yield_next_signature(self) -> Generator[ast.FunctionDef | ast.AsyncFunctionDef]:
+        for node in ast.walk(self.libtorrent_ast_root):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                yield node
+
+    def test_signatures(self):
+        """
+        Test if the function signature in the stubs matches that of the binding.
+
+        If this test fails, either:
+         a. You accidentally changed the cpp binding. Change it back!
+         b. The binding generation changed. Double-check whatever changed and update the binding docstring in the stubs.
+         c. You knowingly changed the binding. Update the binding docstring in the stubs.
+        """
+        for node in self._yield_next_signature():
+            stub_doc = ast.get_docstring(node, True)
+            qualname = self._get_name(node)
+            runtime_obj = self._attempt_import(qualname)
+            if runtime_obj is None:
+                continue  # Skip typing-only constructions
+            src_doc = runtime_obj.__doc__
+            if src_doc is None:
+                continue  # Skip bindings without a signature
+            with self.subTest(qualname.replace(".", " | ")):
+                self.assertIsNotNone(stub_doc, f"{qualname} @ line {node.lineno} missing docstring!")
+                self.assertIn(stub_doc.strip(), self._special_src_doc(qualname, src_doc),
+                              f"\n> Stub function docstring of {qualname} differs from implementation!")
 
 
 if __name__ == '__main__':
