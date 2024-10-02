@@ -5633,6 +5633,20 @@ namespace {
 		// they can't be reached from outside of the local network anyways
 		if (is_v6(s->local_endpoint) && is_local(s->local_endpoint.address()))
 			return;
+
+		if (!s->natpmp_mapper
+			&& !(s->flags & listen_socket_t::local_network))
+		{
+			// the natpmp constructor may fail and call the callbacks
+			// into the session_impl.
+			s->natpmp_mapper = std::make_shared<natpmp>(m_io_context, *this, listen_socket_handle(s));
+			ip_interface ip;
+			ip.interface_address = s->local_endpoint.address();
+			ip.netmask = s->netmask;
+			std::strncpy(ip.name, s->device.c_str(), sizeof(ip.name) - 1);
+			ip.name[sizeof(ip.name) - 1] = '\0';
+			s->natpmp_mapper->start(ip);
+		}
 	}
 
 	void session_impl::on_port_mapping(port_mapping_t const mapping
