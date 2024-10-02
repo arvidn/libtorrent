@@ -76,7 +76,7 @@ Linux::
 
 Mac OS::
 
-	brew install boost-build boost openssl@1.1
+	brew install boost-build boost openssl@3
 	echo "using darwin ;" >>~/user-config.jam
 	b2 crypto=openssl cxxstd=14 release
 
