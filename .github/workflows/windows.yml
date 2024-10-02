@@ -155,7 +155,7 @@ jobs:
         run: |
           set BOOST_ROOT=%CD%\boost
           set PATH=%BOOST_ROOT%;%PATH%
-          b2 ${{ matrix.config }} cxxstd=14 msvc-version-macro=on address-model=64 warnings=all warnings-as-errors=on
+          b2 ${{ matrix.config }} cxxstd=14,17,20 msvc-version-macro=on address-model=64 warnings=all warnings-as-errors=on
 
       - name: build examples
         if: ${{ ! contains(matrix.config, 'windows-api=store') }}
