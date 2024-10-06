@@ -200,6 +200,7 @@ run test_remap_files.cpp ;
 run test_similar_torrent.cpp ;
 run test_truncate.cpp ;
 run test_copy_file.cpp ;
+run test_disk_cache.cpp ;
 
 # turn these tests into simulations
 run test_resume.cpp ;
@@ -223,6 +224,7 @@ run test_web_seed_http_pw.cpp ;
 run test_web_seed_chunked.cpp ;
 run test_web_seed_ban.cpp ;
 run test_pe_crypto.cpp ;
+run test_disk_io.cpp ;
 
 run test_rtc.cpp ;
 run test_utp.cpp ;
@@ -322,4 +324,5 @@ alias deterministic-tests :
 	test_similar_torrent
 	test_truncate
 	test_vector_utils
+	test_disk_io
 	;

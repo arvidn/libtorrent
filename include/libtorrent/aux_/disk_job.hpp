@@ -44,6 +44,7 @@ namespace libtorrent::aux {
 		, file_priority
 		, clear_piece
 		, partial_read
+		, kick_hasher
 		, num_job_ids
 	};
 
@@ -234,6 +235,12 @@ namespace job {
 		// the piece to clear
 		piece_index_t piece;
 	};
+
+	struct kick_hasher
+	{
+		// the piece whose hasher to kick
+		piece_index_t piece;
+	};
 }
 
 	// disk_job is a generic base class to disk io subsystem-specifit jobs (e.g.
@@ -285,6 +292,7 @@ namespace job {
 			, job::file_priority
 			, job::clear_piece
 			, job::partial_read
+			, job::kick_hasher
 		> action;
 
 		// the type of job this is

@@ -11,7 +11,11 @@ see LICENSE file.
 #define TORRENT_FLAGS_HPP_INCLUDED
 
 #include <type_traits> // for enable_if
+
+#if TORRENT_USE_IOSTREAM
 #include <iosfwd>
+#include <iomanip>
+#endif
 
 namespace libtorrent {
 
@@ -105,7 +109,7 @@ struct bitfield_flag
 
 #if TORRENT_USE_IOSTREAM
 	friend std::ostream& operator<<(std::ostream& os, bitfield_flag val)
-	{ return os << static_cast<UnderlyingType>(val); }
+	{ return os << std::hex << std::uint64_t(static_cast<UnderlyingType>(val)); }
 #endif
 
 private:
