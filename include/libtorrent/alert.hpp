@@ -4,6 +4,7 @@ Copyright (c) 2003, Daniel Wallin
 Copyright (c) 2004-2005, 2008-2009, 2013-2020, 2022, Arvid Norberg
 Copyright (c) 2004, Magnus Jonsson
 Copyright (c) 2016, Alden Torres
+Copyright (c) 2023, Joris Carrier
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,6 +38,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_ALERT_HPP_INCLUDED
 
 #include <string>
+#include <functional>
 
 // OVERVIEW
 //
@@ -185,6 +187,24 @@ namespace alert_category {
 } // namespace alert_category
 
 #include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
+
+	template<typename T>
+	struct TORRENT_EXPORT callback_t {
+		using type = std::function<void(const T*)>;
+
+		callback_t(type func) : m_callback(std::move(func)) {}
+
+		bool has_callback() const {
+			return static_cast<bool>(m_callback);
+		}
+
+		void callback() const {
+			m_callback(static_cast<const T*>(this));
+		}
+
+	private:
+		type m_callback;
+	};
 
 	// The ``alert`` class is the base class that specific messages are derived from.
 	// alert types are not copyable, and cannot be constructed by the client. The
