@@ -1146,13 +1146,19 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		}
 		::close(s);
 */
+#define nelems(_a)	(sizeof((_a)) / sizeof((_a)[0]))
+
+#ifdef __OpenBSD__
+	int mib[7] = {CTL_NET, PF_ROUTE, 0, AF_UNSPEC, NET_RT_DUMP, 0, getrtable()};
+#else
 	int mib[6] = {CTL_NET, PF_ROUTE, 0, AF_UNSPEC, NET_RT_DUMP, 0};
+#endif
 
 	std::size_t needed = 0;
 #ifdef TORRENT_OS2
-	if (__libsocket_sysctl(mib, 6, 0, &needed, 0, 0) < 0)
+	if (__libsocket_sysctl(mib, nelems(mib), 0, &needed, 0, 0) < 0)
 #else
-	if (sysctl(mib, 6, nullptr, &needed, nullptr, 0) < 0)
+	if (sysctl(mib, nelems(mib), nullptr, &needed, nullptr, 0) < 0)
 #endif
 	{
 		ec = error_code(errno, system_category());
@@ -1172,9 +1178,9 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 	}
 
 #ifdef TORRENT_OS2
-	if (__libsocket_sysctl(mib, 6, buf.get(), &needed, 0, 0) < 0)
+	if (__libsocket_sysctl(mib, nelems(mib), buf.get(), &needed, 0, 0) < 0)
 #else
-	if (sysctl(mib, 6, buf.get(), &needed, nullptr, 0) < 0)
+	if (sysctl(mib, nelems(mib), buf.get(), &needed, nullptr, 0) < 0)
 #endif
 	{
 		ec = error_code(errno, system_category());
@@ -1204,6 +1210,8 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		ip_route r;
 		if (parse_route(s, rtm, &r)) ret.push_back(r);
 	}
+#undef nelems
+
 #elif TORRENT_USE_GETIPFORWARDTABLE
 /*
 	move this to enum_net_interfaces
