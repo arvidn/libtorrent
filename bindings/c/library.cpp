@@ -99,7 +99,7 @@ TORRENT_EXPORT void* session_create(int tag, ...)
 	va_list lp;
 	va_start(lp, tag);
 
-	fingerprint fing("LT", lt::version_major, lt::version_minor, lt::version_tiny, 0);
+	fingerprint find("LT", lt::version_major, lt::version_minor, lt::version_tiny, 0);
 	std::pair<int, int> listen_range(-1, -1);
 	char const* listen_interface = "0.0.0.0";
 	int flags = session::start_default_features | session::add_default_plugins;
@@ -112,8 +112,8 @@ TORRENT_EXPORT void* session_create(int tag, ...)
 			case SES_FINGERPRINT:
 			{
 				char const* f = va_arg(lp, char const*);
-				fing.name[0] = f[0];
-				fing.name[1] = f[1];
+				find.name[0] = f[0];
+				find.name[1] = f[1];
 				break;
 			}
 			case SES_LISTENPORT:
@@ -123,16 +123,16 @@ TORRENT_EXPORT void* session_create(int tag, ...)
 				listen_range.second = va_arg(lp, int);
 				break;
 			case SES_VERSION_MAJOR:
-				fing.major_version = va_arg(lp, int);
+				find.major_version = va_arg(lp, int);
 				break;
 			case SES_VERSION_MINOR:
-				fing.minor_version = va_arg(lp, int);
+				find.minor_version = va_arg(lp, int);
 				break;
 			case SES_VERSION_TINY:
-				fing.revision_version = va_arg(lp, int);
+				find.revision_version = va_arg(lp, int);
 				break;
 			case SES_VERSION_TAG:
-				fing.tag_version = va_arg(lp, int);
+				find.tag_version = va_arg(lp, int);
 				break;
 			case SES_FLAGS:
 				flags = va_arg(lp, int);
@@ -157,7 +157,7 @@ TORRENT_EXPORT void* session_create(int tag, ...)
 		|| listen_range.second < listen_range.first))
 		listen_range.second = listen_range.first;
 
-	return new (std::nothrow) session(fing, listen_range, listen_interface, flags, alert_mask);
+	return new (std::nothrow) session(find, listen_range, listen_interface, flags, alert_mask);
 }
 
 TORRENT_EXPORT void session_close(void* ses)

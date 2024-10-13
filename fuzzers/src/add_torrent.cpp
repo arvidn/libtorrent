@@ -58,9 +58,9 @@ std::vector<sha256_hash> g_tree;
 int const piece_size = 1024 * 1024;
 int const blocks_per_piece = piece_size / lt::default_block_size;
 int const num_pieces = 10;
-int const num_leafs = merkle_num_leafs(num_pieces * blocks_per_piece);
-int const num_nodes = merkle_num_nodes(num_leafs);
-int const first_leaf = merkle_first_leaf(num_leafs);
+int const num_leaves = merkle_num_leaves(num_pieces * blocks_per_piece);
+int const num_nodes = merkle_num_nodes(num_leaves);
+int const first_leaf = merkle_first_leaf(num_leaves);
 
 extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv)
 {
@@ -113,7 +113,7 @@ extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv)
 		t.set_hash2(file_index_t{0}, piece_index_t::diff_type(i), r);
 	}
 
-	merkle_fill_tree(g_tree, num_leafs);
+	merkle_fill_tree(g_tree, num_leaves);
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
@@ -159,7 +159,7 @@ lt::add_torrent_params generate_atp(std::uint8_t const* data, size_t size)
 		ret.merkle_trees.resize(1);
 		ret.merkle_tree_mask.resize(1);
 		ret.verified_leaf_hashes.resize(1);
-		ret.verified_leaf_hashes[0].resize(num_leafs, true);
+		ret.verified_leaf_hashes[0].resize(num_leaves, true);
 
 		auto& t = ret.merkle_trees[0];
 		auto& mask = ret.merkle_tree_mask[0];

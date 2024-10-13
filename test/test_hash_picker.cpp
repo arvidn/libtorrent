@@ -96,9 +96,9 @@ TORRENT_TEST(pick_piece_layer)
 
 	aux::vector<aux::merkle_tree, file_index_t> trees;
 
-	trees.push_back(aux::merkle_tree(merkle_num_nodes(merkle_num_leafs(4 * 512))));
+	trees.push_back(aux::merkle_tree(merkle_num_nodes(merkle_num_leaves(4 * 512))));
 	aux::from_hex("0000000000000000000000000000000000000000000000000000000000000001", trees.back()[0].data());
-	trees.push_back(aux::merkle_tree(merkle_num_nodes(merkle_num_leafs(4 * 512))));
+	trees.push_back(aux::merkle_tree(merkle_num_nodes(merkle_num_leaves(4 * 512))));
 	aux::from_hex("0000000000000000000000000000000000000000000000000000000000000001", trees.back()[0].data());
 
 	hash_picker picker(fs, trees);
@@ -208,7 +208,7 @@ TORRENT_TEST(add_leaf_hashes)
 	hash_picker picker(fs, trees);
 
 	std::vector<sha256_hash> hashes;
-	auto const pieces_start = full_tree.end_index() - merkle_num_leafs(4 * 512);
+	auto const pieces_start = full_tree.end_index() - merkle_num_leaves(4 * 512);
 	for (int i = 0; i < 512; ++i) hashes.push_back(full_tree[pieces_start + i]);
 	for (int i = 3; i > 0; i = merkle_get_parent(i))
 	{
@@ -219,7 +219,7 @@ TORRENT_TEST(add_leaf_hashes)
 	TEST_CHECK(result.valid);
 
 	result = picker.add_hashes(hash_request(0_file, 0, 512, 512, 0)
-		, span<sha256_hash const>(full_tree).last(merkle_num_leafs(4 * 512) - 512).first(512));
+		, span<sha256_hash const>(full_tree).last(merkle_num_leaves(4 * 512) - 512).first(512));
 	TEST_CHECK(result.valid);
 
 	hashes.clear();
@@ -234,7 +234,7 @@ TORRENT_TEST(add_leaf_hashes)
 	TEST_CHECK(result.valid);
 
 	result = picker.add_hashes(hash_request(0_file, 0, 1536, 512, 0)
-		, span<sha256_hash const>(full_tree).last(merkle_num_leafs(4 * 512) - 1536).first(512));
+		, span<sha256_hash const>(full_tree).last(merkle_num_leaves(4 * 512) - 1536).first(512));
 	TEST_CHECK(result.valid);
 
 	TEST_CHECK(trees.front().build_vector() == full_tree);
@@ -285,7 +285,7 @@ TORRENT_TEST(add_piece_hashes_padded)
 
 	hash_picker picker(fs, trees);
 
-	auto pieces_start = merkle_num_nodes(merkle_num_leafs(1029)) - merkle_num_leafs(1029);
+	auto pieces_start = merkle_num_nodes(merkle_num_leaves(1029)) - merkle_num_leaves(1029);
 
 	std::vector<sha256_hash> hashes;
 	// 5 hashes left after 1024 rounds up to 8, 1024 + 8 = 1032
@@ -315,7 +315,7 @@ TORRENT_TEST(add_piece_hashes_unpadded)
 
 	hash_picker picker(fs, trees);
 
-	auto pieces_start = merkle_num_nodes(merkle_num_leafs(1029)) - merkle_num_leafs(1029);
+	auto pieces_start = merkle_num_nodes(merkle_num_leaves(1029)) - merkle_num_leaves(1029);
 
 	std::vector<sha256_hash> hashes;
 	std::copy(full_tree.begin() + pieces_start + 1024, full_tree.begin() + pieces_start + 1029
@@ -379,8 +379,8 @@ TORRENT_TEST(bad_block_hash)
 	hash_picker picker(fs, trees);
 
 	std::vector<sha256_hash> hashes;
-	auto leafs_start = full_tree.end() - merkle_num_leafs(4 * 512);
-	std::copy(leafs_start, leafs_start + 512, std::back_inserter(hashes));
+	auto leaves_start = full_tree.end() - merkle_num_leaves(4 * 512);
+	std::copy(leaves_start, leaves_start + 512, std::back_inserter(hashes));
 	for (int i = 3; i > 0; i = merkle_get_parent(i))
 	{
 		hashes.push_back(full_tree[merkle_get_sibling(i)]);
@@ -401,9 +401,9 @@ TORRENT_TEST(set_block_hash)
 	aux::vector<aux::merkle_tree, file_index_t> trees;
 	auto const full_tree = build_tree(4 * 512);
 	trees.emplace_back(4 * 512, 4, full_tree[0].data());
-	trees.front().load_tree(full_tree, std::vector<bool>(std::size_t(merkle_num_leafs(4 * 512)), false));
+	trees.front().load_tree(full_tree, std::vector<bool>(std::size_t(merkle_num_leaves(4 * 512)), false));
 
-	int const first_leaf = full_tree.end_index() - merkle_num_leafs(4 * 512);
+	int const first_leaf = full_tree.end_index() - merkle_num_leaves(4 * 512);
 
 	hash_picker picker(fs, trees);
 	auto result = picker.set_block_hash(1_piece, default_block_size
@@ -433,13 +433,13 @@ TORRENT_TEST(set_block_hash_fail)
 	// zero out the inner nodes for a piece along with a single leaf node
 	// then add a bogus hash for the leaf
 
-	int const first_leaf = full_tree.end_index() - merkle_num_leafs(4 * 512);
+	int const first_leaf = full_tree.end_index() - merkle_num_leaves(4 * 512);
 
 	full_tree[merkle_get_parent(first_leaf + 12)].clear();
 	full_tree[merkle_get_parent(first_leaf + 14)].clear();
 	full_tree[first_leaf + 13].clear();
 
-	trees.front().load_tree(full_tree, std::vector<bool>(std::size_t(merkle_num_leafs(4 * 512)), false));
+	trees.front().load_tree(full_tree, std::vector<bool>(std::size_t(merkle_num_leaves(4 * 512)), false));
 
 	hash_picker picker(fs, trees);
 
@@ -473,14 +473,14 @@ TORRENT_TEST(set_block_hash_pass)
 	// zero out the inner nodes for a piece along with a single leaf node
 	// then add a bogus hash for the leaf
 
-	int const first_leaf = full_tree.end_index() - merkle_num_leafs(4 * 512);
+	int const first_leaf = full_tree.end_index() - merkle_num_leaves(4 * 512);
 
 	full_tree[merkle_get_parent(first_leaf + 12)].clear();
 	full_tree[merkle_get_parent(first_leaf + 14)].clear();
 	auto const orig_hash = full_tree[first_leaf + 13];
 	full_tree[first_leaf + 13].clear();
 
-	trees.front().load_tree(full_tree, std::vector<bool>(std::size_t(merkle_num_leafs(4 * 512)), false));
+	trees.front().load_tree(full_tree, std::vector<bool>(std::size_t(merkle_num_leaves(4 * 512)), false));
 
 	hash_picker picker(fs, trees);
 
@@ -510,7 +510,7 @@ TORRENT_TEST(pass_piece)
 
 	hash_picker picker(fs, trees);
 
-	int const first_leaf = full_tree.end_index() - merkle_num_leafs(4 * 512);
+	int const first_leaf = full_tree.end_index() - merkle_num_leaves(4 * 512);
 
 	for (int i = 0; i < 4; ++i)
 	{
@@ -573,7 +573,7 @@ TORRENT_TEST(validate_hash_request)
 	fs.add_file("test/tmp1", 2048 * 16 * 1024);
 
 	// the merkle tree for this file has 2048 blocks
-	int const num_leaves = merkle_num_leafs(2048);
+	int const num_leaves = merkle_num_leaves(2048);
 	int const num_layers = merkle_num_layers(num_leaves);
 
 	int const max = std::numeric_limits<int>::max();

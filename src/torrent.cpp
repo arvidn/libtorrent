@@ -7211,7 +7211,7 @@ namespace {
 				std::tie(sparse_tree, mask) = t.build_sparse_vector();
 				ret.merkle_trees.emplace_back(std::move(sparse_tree));
 				ret.merkle_tree_mask.emplace_back(std::move(mask));
-				ret.verified_leaf_hashes.emplace_back(t.verified_leafs());
+				ret.verified_leaf_hashes.emplace_back(t.verified_leaves());
 			}
 
 			if (!has_hash_picker() && !m_have_all)

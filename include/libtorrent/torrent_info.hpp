@@ -714,7 +714,7 @@ TORRENT_VERSION_NAMESPACE_3
 
 #if TORRENT_ABI_VERSION <= 2
 		// if this is a merkle torrent, this is the merkle
-		// tree. It has space for merkle_num_nodes(merkle_num_leafs(num_pieces))
+		// tree. It has space for merkle_num_nodes(merkle_num_leaves(num_pieces))
 		// hashes
 		aux::vector<sha1_hash> m_merkle_tree;
 #endif

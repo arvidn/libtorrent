@@ -191,19 +191,19 @@ namespace {
 				TORRENT_ASSERT(file_size > 0);
 				auto const file_blocks = st->ct.files().file_num_blocks(current_file);
 				auto const piece_blocks = st->ct.files().blocks_in_piece2(piece);
-				int const num_leafs = merkle_num_leafs(file_blocks);
+				int const num_leaves = merkle_num_leaves(file_blocks);
 				// If the file is smaller than one piece then the block hashes
 				// should be padded to the next power of two instead of the next
 				// piece boundary.
-				int const padded_leafs = file_size < st->ct.piece_length()
-					? num_leafs
+				int const padded_leaves = file_size < st->ct.piece_length()
+					? num_leaves
 					: st->ct.piece_length() / default_block_size;
 
-				TORRENT_ASSERT(padded_leafs <= int(v2_blocks.size()));
-				for (auto i = piece_blocks; i < padded_leafs; ++i)
+				TORRENT_ASSERT(padded_leaves <= int(v2_blocks.size()));
+				for (auto i = piece_blocks; i < padded_leaves; ++i)
 					v2_blocks[i].clear();
 				sha256_hash const piece_root = merkle_root(
-					span<sha256_hash>(v2_blocks).first(padded_leafs));
+					span<sha256_hash>(v2_blocks).first(padded_leaves));
 				st->ct.set_hash2(current_file, file_piece_offset, piece_root);
 			}
 		}

@@ -83,9 +83,9 @@ namespace {
 					layer.emplace_back(bytes.data() + i);
 
 				int const full_size = merkle_num_nodes(
-					merkle_num_leafs(fs.file_num_blocks(f)));
+					merkle_num_leaves(fs.file_num_blocks(f)));
 				int const num_pieces = fs.file_num_pieces(f);
-				int const piece_layer_size = merkle_num_leafs(num_pieces);
+				int const piece_layer_size = merkle_num_leaves(num_pieces);
 
 				if (!layer.empty())
 				{

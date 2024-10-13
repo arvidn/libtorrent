@@ -1110,7 +1110,7 @@ namespace {
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
 		TORRENT_ASSERT_PRECOND(m_piece_length > 0);
-		int const piece_layer_size = merkle_num_leafs(file_num_pieces(index));
+		int const piece_layer_size = merkle_num_leaves(file_num_pieces(index));
 		return merkle_num_nodes(piece_layer_size) - piece_layer_size;
 	}
 
@@ -1118,7 +1118,7 @@ namespace {
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
 		TORRENT_ASSERT_PRECOND(m_piece_length > 0);
-		int const leaf_layer_size = merkle_num_leafs(file_num_blocks(index));
+		int const leaf_layer_size = merkle_num_leaves(file_num_blocks(index));
 		return merkle_num_nodes(leaf_layer_size) - leaf_layer_size;
 	}
 

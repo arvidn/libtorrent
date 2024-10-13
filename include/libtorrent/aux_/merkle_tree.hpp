@@ -108,7 +108,7 @@ struct TORRENT_EXTRA_EXPORT merkle_tree
 	std::pair<std::vector<sha256_hash>, aux::vector<bool>> build_sparse_vector() const;
 
 	// get bits indicating if each leaf hash is verified
-	std::vector<bool> verified_leafs() const;
+	std::vector<bool> verified_leaves() const;
 
 	// returns true if the entire tree is known and verified
 	bool is_complete() const;
@@ -118,7 +118,7 @@ struct TORRENT_EXTRA_EXPORT merkle_tree
 
 	bool load_piece_layer(span<char const> piece_layer);
 
-	// the leafs in "tree" must be block hashes (i.e. leaf hashes in the this
+	// the leaves in "tree" must be block hashes (i.e. leaf hashes in the this
 	// tree). This function inserts those hashes as well as the nodes up the
 	// tree. The destination start index is the index, in this tree, to the first leaf
 	// where "tree" will be inserted.
@@ -161,7 +161,7 @@ private:
 	int block_layer_start() const;
 	int piece_layer_start() const;
 	int num_pieces() const;
-	int num_leafs() const;
+	int num_leaves() const;
 
 	void optimize_storage();
 	void optimize_storage_piece_layer();
@@ -181,7 +181,7 @@ private:
 	// yet
 	bitfield m_block_verified;
 
-	// number of blocks in the file this tree represents. The number of leafs in
+	// number of blocks in the file this tree represents. The number of leaves in
 	// the tree is rounded up to an even power of 2.
 	int m_num_blocks = 0;
 

@@ -79,27 +79,27 @@ namespace libtorrent {
 		return ((tree_node + 1) << depth) - 1;
 	}
 
-	int merkle_num_nodes(int const leafs)
+	int merkle_num_nodes(int const leaves)
 	{
-		TORRENT_ASSERT(leafs > 0);
-		TORRENT_ASSERT(leafs <= (std::numeric_limits<int>::max() / 2) + 1);
-		TORRENT_ASSERT((leafs & (leafs - 1)) == 0);
-		// This is a way to calculate: (leafs << 1) - 1 without requiring an extra
+		TORRENT_ASSERT(leaves > 0);
+		TORRENT_ASSERT(leaves <= (std::numeric_limits<int>::max() / 2) + 1);
+		TORRENT_ASSERT((leaves & (leaves - 1)) == 0);
+		// This is a way to calculate: (leaves << 1) - 1 without requiring an extra
 		// bit in the far left. The first 1 we subtract is worth 2 after we
 		// multiply by 2, so by just adding back one, we have effectively
 		// subtracted one from the result of multiplying by 2
-		return ((leafs - 1) << 1) + 1;
+		return ((leaves - 1) << 1) + 1;
 	}
 
-	int merkle_first_leaf(int num_leafs)
+	int merkle_first_leaf(int num_leaves)
 	{
-		// num_leafs must be a power of 2
-		TORRENT_ASSERT(((num_leafs - 1) & num_leafs) == 0);
-		TORRENT_ASSERT(num_leafs > 0);
-		return num_leafs - 1;
+		// num_leaves must be a power of 2
+		TORRENT_ASSERT(((num_leaves - 1) & num_leaves) == 0);
+		TORRENT_ASSERT(num_leaves > 0);
+		return num_leaves - 1;
 	}
 
-	int merkle_num_leafs(int const blocks)
+	int merkle_num_leaves(int const blocks)
 	{
 		TORRENT_ASSERT(blocks > 0);
 		TORRENT_ASSERT(blocks <= std::numeric_limits<int>::max() / 2);
@@ -122,17 +122,17 @@ namespace libtorrent {
 		return layers;
 	}
 
-	void merkle_fill_tree(span<sha256_hash> tree, int const num_leafs)
+	void merkle_fill_tree(span<sha256_hash> tree, int const num_leaves)
 	{
-		merkle_fill_tree(tree, num_leafs, merkle_num_nodes(num_leafs) - num_leafs);
+		merkle_fill_tree(tree, num_leaves, merkle_num_nodes(num_leaves) - num_leaves);
 	}
 
-	void merkle_fill_tree(span<sha256_hash> tree, int const num_leafs, int level_start)
+	void merkle_fill_tree(span<sha256_hash> tree, int const num_leaves, int level_start)
 	{
 		TORRENT_ASSERT(level_start >= 0);
-		TORRENT_ASSERT(num_leafs >= 1);
+		TORRENT_ASSERT(num_leaves >= 1);
 
-		int level_size = num_leafs;
+		int level_size = num_leaves;
 		while (level_size > 1)
 		{
 			int parent = merkle_get_parent(level_start);
@@ -159,9 +159,9 @@ namespace libtorrent {
 		// "interior" hashes. Then to clear all the ones that don't have a
 		// parent (i.e. "orphan" hashes). We clear them since we can't validate
 		// them against the root, which mean they may be incorrect.
-		int const num_leafs = (num_nodes + 1) / 2;
-		int level_size = num_leafs;
-		int level_start = merkle_first_leaf(num_leafs);
+		int const num_leaves = (num_nodes + 1) / 2;
+		int level_size = num_leaves;
+		int level_start = merkle_first_leaf(num_leaves);
 		while (level_size > 1)
 		{
 			level_start = merkle_get_parent(level_start);
@@ -204,16 +204,16 @@ namespace libtorrent {
 		}
 	}
 
-	void merkle_clear_tree(span<sha256_hash> tree, int const num_leafs, int level_start)
+	void merkle_clear_tree(span<sha256_hash> tree, int const num_leaves, int level_start)
 	{
-		TORRENT_ASSERT(num_leafs >= 1);
+		TORRENT_ASSERT(num_leaves >= 1);
 		TORRENT_ASSERT(level_start >= 0);
 		TORRENT_ASSERT(level_start < tree.size());
-		TORRENT_ASSERT(level_start + num_leafs <= tree.size());
+		TORRENT_ASSERT(level_start + num_leaves <= tree.size());
 		// the range of nodes must be within a single level
-		TORRENT_ASSERT(merkle_get_layer(level_start) == merkle_get_layer(level_start + num_leafs - 1));
+		TORRENT_ASSERT(merkle_get_layer(level_start) == merkle_get_layer(level_start + num_leaves - 1));
 
-		int level_size = num_leafs;
+		int level_size = num_leaves;
 		for (;;)
 		{
 			for (int i = level_start; i < level_start + level_size; ++i)
@@ -229,25 +229,25 @@ namespace libtorrent {
 	// padding
 	sha256_hash merkle_root(span<sha256_hash const> const leaves, sha256_hash const& pad)
 	{
-		int const num_leafs = merkle_num_leafs(int(leaves.size()));
+		int const num_leaves = merkle_num_leaves(int(leaves.size()));
 		aux::vector<sha256_hash> merkle_tree;
-		return merkle_root_scratch(leaves, num_leafs, pad, merkle_tree);
+		return merkle_root_scratch(leaves, num_leaves, pad, merkle_tree);
 	}
 
 	// compute the merkle tree root, given the leaves and the has to use for
 	// padding
 	sha256_hash merkle_root_scratch(span<sha256_hash const> leaves
-		, int num_leafs, sha256_hash pad
+		, int num_leaves, sha256_hash pad
 		, std::vector<sha256_hash>& scratch_space)
 	{
-		TORRENT_ASSERT(((num_leafs - 1) & num_leafs) == 0);
+		TORRENT_ASSERT(((num_leaves - 1) & num_leaves) == 0);
 
 		scratch_space.resize(std::size_t(leaves.size() + 1) / 2);
-		TORRENT_ASSERT(num_leafs > 0);
+		TORRENT_ASSERT(num_leaves > 0);
 
-		if (num_leafs == 1) return leaves[0];
+		if (num_leaves == 1) return leaves[0];
 
-		while (num_leafs > 1)
+		while (num_leaves > 1)
 		{
 			int i = 0;
 			for (; i < int(leaves.size()) / 2; ++i)
@@ -273,7 +273,7 @@ namespace libtorrent {
 
 			// step one level up
 			leaves = span<sha256_hash const>(scratch_space.data(), i);
-			num_leafs /= 2;
+			num_leaves /= 2;
 		}
 
 		return scratch_space[0];
@@ -366,14 +366,14 @@ namespace libtorrent {
 
 	void merkle_validate_copy(span<sha256_hash const> const src
 		, span<sha256_hash> const dst, sha256_hash const& root
-		, bitfield& verified_leafs)
+		, bitfield& verified_leaves)
 	{
 		TORRENT_ASSERT(src.size() == dst.size());
-		int const num_leafs = int((dst.size() + 1) / 2);
+		int const num_leaves = int((dst.size() + 1) / 2);
 		if (src.empty()) return;
 		if (src[0] != root) return;
 		dst[0] = src[0];
-		int const leaf_layer_start = int(src.size() - num_leafs);
+		int const leaf_layer_start = int(src.size() - num_leaves);
 		for (int i = 0; i < leaf_layer_start; ++i)
 		{
 			if (dst[i].is_all_zeros()) continue;
@@ -385,13 +385,13 @@ namespace libtorrent {
 				dst[right_child] = src[right_child];
 				int const block_idx = left_child - leaf_layer_start;
 				if (left_child >= leaf_layer_start
-					&& block_idx < verified_leafs.size())
+					&& block_idx < verified_leaves.size())
 				{
-					verified_leafs.set_bit(block_idx);
+					verified_leaves.set_bit(block_idx);
 					// the right child may be the first block of padding hash,
 					// in which case it's not part of the verified bitfield
-					if (block_idx + 1 < verified_leafs.size())
-						verified_leafs.set_bit(block_idx + 1);
+					if (block_idx + 1 < verified_leaves.size())
+						verified_leaves.set_bit(block_idx + 1);
 				}
 			}
 		}
@@ -400,11 +400,11 @@ namespace libtorrent {
 	bool merkle_validate_single_layer(span<sha256_hash const> tree)
 	{
 		if (tree.size() == 1) return true;
-		int const num_leafs = int((tree.size() + 1) / 2);
+		int const num_leaves = int((tree.size() + 1) / 2);
 		int const end = int(tree.size());
-		TORRENT_ASSERT((num_leafs & (num_leafs - 1)) == 0);
+		TORRENT_ASSERT((num_leaves & (num_leaves - 1)) == 0);
 
-		int idx = merkle_first_leaf(num_leafs);
+		int idx = merkle_first_leaf(num_leaves);
 		TORRENT_ASSERT(idx >= 1);
 
 		while (idx < end)
@@ -417,38 +417,38 @@ namespace libtorrent {
 	}
 
 	std::tuple<int, int, int> merkle_find_known_subtree(span<sha256_hash const> const tree
-		, int const block_index, int const num_valid_leafs)
+		, int const block_index, int const num_valid_leaves)
 	{
-		// find the largest block of leafs from a single subtree we know the hashes of
-		int leafs_start = block_index;
-		int leafs_size = 1;
+		// find the largest block of leaves from a single subtree we know the hashes of
+		int leaves_start = block_index;
+		int leaves_size = 1;
 		int const first_leaf = int(tree.size() / 2);
 		int root_index = merkle_get_sibling(first_leaf + block_index);
 		for (int i = block_index;; i >>= 1)
 		{
-			int const first_check_index = leafs_start + ((i & 1) ? -leafs_size : leafs_size);
-			for (int j = 0; j < std::min(leafs_size, num_valid_leafs - first_check_index); ++j)
+			int const first_check_index = leaves_start + ((i & 1) ? -leaves_size : leaves_size);
+			for (int j = 0; j < std::min(leaves_size, num_valid_leaves - first_check_index); ++j)
 			{
 				if (tree[first_leaf + first_check_index + j].is_all_zeros())
-					return std::make_tuple(leafs_start, leafs_size, root_index);
+					return std::make_tuple(leaves_start, leaves_size, root_index);
 			}
-			if (i & 1) leafs_start -= leafs_size;
-			leafs_size *= 2;
+			if (i & 1) leaves_start -= leaves_size;
+			leaves_size *= 2;
 			root_index = merkle_get_parent(root_index);
 			// if an inner node is known then its parent must be known too
 			// so if the root is known the next sibling subtree should already
-			// be computed if all of its leafs have valid hashes
+			// be computed if all of its leaves have valid hashes
 			if (!tree[root_index].is_all_zeros()) break;
 			TORRENT_ASSERT(root_index != 0);
-			TORRENT_ASSERT(leafs_start >= 0);
-			TORRENT_ASSERT(leafs_size <= merkle_num_leafs(num_valid_leafs));
+			TORRENT_ASSERT(leaves_start >= 0);
+			TORRENT_ASSERT(leaves_size <= merkle_num_leaves(num_valid_leaves));
 		}
 
-		TORRENT_ASSERT(leafs_start >= 0);
-		TORRENT_ASSERT(leafs_start < merkle_num_leafs(num_valid_leafs));
-		TORRENT_ASSERT(leafs_start + leafs_size > block_index);
+		TORRENT_ASSERT(leaves_start >= 0);
+		TORRENT_ASSERT(leaves_start < merkle_num_leaves(num_valid_leaves));
+		TORRENT_ASSERT(leaves_start + leaves_size > block_index);
 
-		return std::make_tuple(leafs_start, leafs_size, root_index);
+		return std::make_tuple(leaves_start, leaves_size, root_index);
 	}
 }
 

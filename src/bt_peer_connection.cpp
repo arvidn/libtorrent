@@ -1293,7 +1293,7 @@ namespace {
 
 		// subtract one because the the base layer doesn't count
 		int const proof_hashes = std::max(0
-			, proof_layers - (merkle_num_layers(merkle_num_leafs(count)) - 1));
+			, proof_layers - (merkle_num_layers(merkle_num_leaves(count)) - 1));
 
 		if (m_recv_buffer.packet_size() != header_size
 			+ (count + proof_hashes) * int(sha256_hash::size()))
