@@ -80,17 +80,17 @@ using namespace lt;
 
 aux::vector<sha256_hash> build_tree(int const size)
 {
-	int const num_leafs = merkle_num_leafs(size);
-	aux::vector<sha256_hash> full_tree(merkle_num_nodes(num_leafs));
+	int const num_leaves = merkle_num_leaves(size);
+	aux::vector<sha256_hash> full_tree(merkle_num_nodes(num_leaves));
 
 	for (int i = 0; i < size; i++)
 	{
 		std::uint32_t hash[32 / 4];
 		std::fill(std::begin(hash), std::end(hash), i + 1);
-		full_tree[full_tree.end_index() - num_leafs + i] = sha256_hash(reinterpret_cast<char*>(hash));
+		full_tree[full_tree.end_index() - num_leaves + i] = sha256_hash(reinterpret_cast<char*>(hash));
 	}
 
-	merkle_fill_tree(full_tree, num_leafs);
+	merkle_fill_tree(full_tree, num_leaves);
 	return full_tree;
 }
 

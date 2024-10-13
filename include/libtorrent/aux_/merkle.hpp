@@ -54,14 +54,14 @@ namespace libtorrent {
 
 	// given the number of blocks, how many leaves do we need? this rounds up to
 	// an even power of 2
-	TORRENT_EXTRA_EXPORT int merkle_num_leafs(int);
+	TORRENT_EXTRA_EXPORT int merkle_num_leaves(int);
 
 	// returns the number of nodes in the tree, given the number of leaves
 	TORRENT_EXTRA_EXPORT int merkle_num_nodes(int);
 
-	// given the number of leafs in the tree, returns the index to the first
+	// given the number of leaves in the tree, returns the index to the first
 	// leaf
-	TORRENT_EXTRA_EXPORT int merkle_first_leaf(int num_leafs);
+	TORRENT_EXTRA_EXPORT int merkle_first_leaf(int num_leaves);
 
 	// takes the number of leaves and returns the height of the merkle tree.
 	// does not include the root node in the layer count. i.e. if there's only a
@@ -75,8 +75,8 @@ namespace libtorrent {
 
 	// given a tree and the number of leaves, expect all leaf hashes to be set and
 	// compute all other hashes starting with the leaves.
-	TORRENT_EXTRA_EXPORT void merkle_fill_tree(span<sha256_hash> tree, int num_leafs, int level_start);
-	TORRENT_EXTRA_EXPORT void merkle_fill_tree(span<sha256_hash> tree, int num_leafs);
+	TORRENT_EXTRA_EXPORT void merkle_fill_tree(span<sha256_hash> tree, int num_leaves, int level_start);
+	TORRENT_EXTRA_EXPORT void merkle_fill_tree(span<sha256_hash> tree, int num_leaves);
 
 	// fills in nodes that can be computed from a tree with arbitrary nodes set
 	// all "orphan" hashes, i.e ones that do not contribute towards computing
@@ -84,10 +84,10 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT void merkle_fill_partial_tree(span<sha256_hash> tree);
 
 	// given a merkle tree (`tree`), clears all hashes in the range of nodes:
-	// [ level_start, level_start+ num_leafs), as well as all of their parents,
+	// [ level_start, level_start+ num_leaves), as well as all of their parents,
 	// within the sub-tree. It does not clear the root of the sub-tree.
 	// see unit test for examples.
-	TORRENT_EXTRA_EXPORT void merkle_clear_tree(span<sha256_hash> tree, int num_leafs, int level_start);
+	TORRENT_EXTRA_EXPORT void merkle_clear_tree(span<sha256_hash> tree, int num_leaves, int level_start);
 
 	// given the leaf hashes, computes the merkle root hash. The pad is the hash
 	// to use for the right-side padding, in case the number of leaves is not a
@@ -95,7 +95,7 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT sha256_hash merkle_root(span<sha256_hash const> leaves, sha256_hash const& pad = {});
 
 	TORRENT_EXTRA_EXPORT
-	sha256_hash merkle_root_scratch(span<sha256_hash const> leaves, int num_leafs
+	sha256_hash merkle_root_scratch(span<sha256_hash const> leaves, int num_leaves
 		, sha256_hash pad, std::vector<sha256_hash>& scratch_space);
 
 	// given a flat index, return which layer the node is in
@@ -103,7 +103,7 @@ namespace libtorrent {
 	// given a flat index, return the offset in the layer
 	TORRENT_EXTRA_EXPORT int merkle_get_layer_offset(int idx);
 
-	// given "blocks" number of leafs in the full tree (i.e. at the block level)
+	// given "blocks" number of leaves in the full tree (i.e. at the block level)
 	// and given "pieces" nodes in the piece layer, compute the pad hash for the
 	// piece layer
 	TORRENT_EXTRA_EXPORT sha256_hash merkle_pad(int blocks, int pieces);
@@ -141,22 +141,22 @@ namespace libtorrent {
 	// hashes in dst that are invalid in src.
 	TORRENT_EXTRA_EXPORT
 	void merkle_validate_copy(span<sha256_hash const> src, span<sha256_hash> dst
-		, sha256_hash const& root, bitfield& verified_leafs);
+		, sha256_hash const& root, bitfield& verified_leaves);
 
 	TORRENT_EXTRA_EXPORT
 	bool merkle_validate_single_layer(span<sha256_hash const> tree);
 
 	// given a leaf index (0-based index in the leaf layer) and a tree, return
-	// the leafs_start, leafs_size and root_index representing a subtree that
+	// the leaves_start, leaves_size and root_index representing a subtree that
 	// can be validated. The block_index and leaf_size is the range of the leaf
 	// layer that can be verified, and the root_index is the node that needs to
-	// be known in (tree) to do so. The num_valid_leafs specifies how many of
-	// the leafs that are actually *supposed* to be non-zero. Any leafs beyond
+	// be known in (tree) to do so. The num_valid_leaves specifies how many of
+	// the leaves that are actually *supposed* to be non-zero. Any leaves beyond
 	// these are padding and expected to be zero.
 	// The caller must validate the hash at root_index.
 	TORRENT_EXTRA_EXPORT
 	std::tuple<int, int, int> merkle_find_known_subtree(span<sha256_hash const> const tree
-		, int block_index, int num_valid_leafs);
+		, int block_index, int num_valid_leaves);
 }
 
 #endif
