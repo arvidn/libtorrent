@@ -191,6 +191,7 @@ void set_proxy(lt::session& ses, int proxy_type, test_transfer_flags_t const fla
 	else
 		p.set_str(settings_pack::proxy_hostname, "50.50.50.50");
 	p.set_bool(settings_pack::proxy_hostnames, true);
+	p.set_bool(settings_pack::listen_on_proxy, false);
 	p.set_bool(settings_pack::proxy_peer_connections, bool(flags & tx::proxy_peers));
 	p.set_bool(settings_pack::proxy_tracker_connections, proxy_peers);
 	p.set_bool(settings_pack::socks5_udp_send_local_ep, true);

@@ -880,6 +880,9 @@ namespace aux {
 			// any). This is only supported by SOCKS5 and HTTP.
 			proxy_hostnames,
 
+			// if true, listening on the defined port will be enabled while using proxy
+			listen_on_proxy,
+
 			// if true, peer connections are made (and accepted) over the
 			// configured proxy, if any. Web seeds as well as regular bittorrent
 			// peer connections are considered "peer connections". Anything

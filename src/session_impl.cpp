@@ -830,6 +830,8 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 					if (val) s.set_int(settings_pack::proxy_type, int(val.int_value()));
 					val = settings.dict_find_int("proxy_hostnames");
 					if (val) s.set_bool(settings_pack::proxy_hostnames, val.int_value() != 0);
+					val = settings.dict_find_int("listen_on_proxy");
+					if (val) s.set_bool(settings_pack::listen_on_proxy, val.int_value() != 0);
 					val = settings.dict_find_int("proxy_peer_connections");
 					if (val) s.set_bool(settings_pack::proxy_peer_connections, val.int_value() != 0);
 					val = settings.dict_find_string("hostname");
