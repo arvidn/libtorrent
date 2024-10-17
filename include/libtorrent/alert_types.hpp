@@ -1379,7 +1379,7 @@ TORRENT_VERSION_NAMESPACE_3
 	//
 	// .. code:: c++
 	//
-	//	torrent_handle h = alert->handle();
+	//	torrent_handle h = alert->handle;
 	//	std::shared_ptr<torrent_info const> ti = h.torrent_file();
 	//	create_torrent ct(*ti);
 	//	entry te = ct.generate();
