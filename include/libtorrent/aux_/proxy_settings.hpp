@@ -79,6 +79,10 @@ namespace aux {
 		// This is only supported by SOCKS5 and HTTP.
 		bool proxy_hostnames = true;
 
+		// defaults to false for integration compatibility. It means that the
+		// torrent port is listening with tcp and udp while there is a proxy configured.
+		bool listen_on_proxy = false;
+
 		// determines whether or not to exempt peer and web seed connections
 		// from using the proxy. This defaults to true, i.e. peer connections are
 		// proxied by default.
