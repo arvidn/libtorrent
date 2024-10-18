@@ -20,6 +20,7 @@ Copyright (c) 2020, Paul-Louis Ageneau
 Copyright (c) 2021, AdvenT
 Copyright (c) 2021, Joris CARRIER
 Copyright (c) 2021, thrnz
+Copyright (c) 2024, Elyas EL IDRISSI
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -8160,8 +8161,11 @@ namespace {
 		// if we're paused, obviously we're not connecting to peers
 		if (is_paused() || m_abort || m_graceful_pause_mode) return false;
 
+		// if metadata are valid and we are either checking files or checking resume data without no_verify_files flag,
+		// we don't want peers
 		if ((m_state == torrent_status::checking_files
-			|| m_state == torrent_status::checking_resume_data)
+			|| (m_state == torrent_status::checking_resume_data
+				&& !(m_add_torrent_params && m_add_torrent_params->flags & torrent_flags::no_verify_files)))
 			&& valid_metadata())
 			return false;
 
