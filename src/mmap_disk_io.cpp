@@ -142,7 +142,7 @@ namespace {
 	aux::open_mode_t file_mode_for_job(aux::mmap_disk_job* j)
 	{
 		aux::open_mode_t ret = aux::open_mode::read_only;
-		if (!(j->flags & disk_interface::sequential_access)) ret |= aux::open_mode::random_access;
+		if (j->flags & disk_interface::sequential_access) ret |= aux::open_mode::sequential_access;
 		return ret;
 	}
 

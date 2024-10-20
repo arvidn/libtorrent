@@ -107,8 +107,8 @@ namespace file_open_mode {
 	// this generally improves disk performance.
 	constexpr file_open_mode_t no_atime = 3_bit;
 
-	// open the file for random access. This disables read-ahead
-	// logic
+	// When this is not set, the kernel is hinted that access to this file will
+	// be made sequentially.
 	constexpr file_open_mode_t random_access = 5_bit;
 
 #if TORRENT_ABI_VERSION == 1

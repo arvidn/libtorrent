@@ -1,6 +1,7 @@
 
 2.0.11 not released
 
+	* don't hint FADV_RANDOM on posix systems. May improve seeding performance
 	* allow boost connect while checking resume data if no_verify_files flag is set
 	* fix BEP-40 peer priority for IPv6
 	* limit piece size in torrent creator

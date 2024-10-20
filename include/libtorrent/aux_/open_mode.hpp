@@ -48,7 +48,7 @@ namespace aux {
 		constexpr open_mode_t no_cache = 1_bit;
 		constexpr open_mode_t truncate = 2_bit;
 		constexpr open_mode_t no_atime = 3_bit;
-		constexpr open_mode_t random_access = 4_bit;
+		constexpr open_mode_t sequential_access = 4_bit;
 		constexpr open_mode_t hidden = 5_bit;
 		constexpr open_mode_t sparse = 6_bit;
 		constexpr open_mode_t executable = 7_bit;
