@@ -41,23 +41,23 @@ inline std::string print_job(aux::disk_job const& j)
 		explicit print_visitor(std::stringstream& s) : m_ss(s) {}
 
 		void operator()(job::read const& j) const {
-			m_ss << "read ( size:" << j.buffer_size << " piece:" << j.piece << " offset:" << j.offset << " )";
+			m_ss << "read ( size: " << j.buffer_size << " piece: " << j.piece << " offset: " << j.offset << " )";
 		}
 
 		void operator()(job::write const& j) const {
-			m_ss << "write( size:" << j.buffer_size << " piece:" << j.piece << " offset:" << j.offset << " )";
+			m_ss << "write( size: " << j.buffer_size << " piece: " << j.piece << " offset: " << j.offset << " )";
 		}
 
 		void operator()(job::hash const& j) const {
-			m_ss << "hash( piece:" << j.piece << " )";
+			m_ss << "hash( piece: " << j.piece << " )";
 		}
 
 		void operator()(job::hash2 const& j) const {
-			m_ss << "hash( piece:" << j.piece << " offset:" << j.offset << " )";
+			m_ss << "hash( piece: " << j.piece << " offset: " << j.offset << " )";
 		}
 
 		void operator()(job::move_storage const& j) const {
-			m_ss << "move-storage( path:" << j.path << " flags:" << int(j.move_flags) << " )";
+			m_ss << "move-storage( path: " << j.path << " flags: " << int(j.move_flags) << " )";
 		}
 
 		void operator()(job::release_files const&) const {
@@ -65,7 +65,7 @@ inline std::string print_job(aux::disk_job const& j)
 		}
 
 		void operator()(job::delete_files const& j) const {
-			m_ss << "delete-files ( flags:" << j.flags << " )";
+			m_ss << "delete-files ( flags: " << j.flags << " )";
 		}
 
 		void operator()(job::check_fastresume const&) const {
@@ -73,7 +73,7 @@ inline std::string print_job(aux::disk_job const& j)
 		}
 
 		void operator()(job::rename_file const& j) const {
-			m_ss << "rename-file( file:" << j.file_index << " name:" << j.name << " )";
+			m_ss << "rename-file( file: " << j.file_index << " name: " << j.name << " )";
 		}
 
 		void operator()(job::stop_torrent const&) const {
@@ -89,8 +89,8 @@ inline std::string print_job(aux::disk_job const& j)
 		}
 
 		void operator()(job::partial_read const& j) const {
-			m_ss << "partial-read( piece:" << j.piece << " offset:" << j.offset
-				<< " buf-offset:" << j.buffer_offset << " size:" << j.buffer_size << " )";
+			m_ss << "partial-read( piece: " << j.piece << " offset: " << j.offset
+				<< " buf-offset: " << j.buffer_offset << " size: " << j.buffer_size << " )";
 		}
 
 	private:
