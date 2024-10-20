@@ -315,7 +315,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 	DWORD file_flags(open_mode_t const mode)
 	{
 		return ((mode & open_mode::no_cache) ? FILE_FLAG_WRITE_THROUGH : 0)
-			| ((mode & open_mode::random_access) ? 0 : FILE_FLAG_SEQUENTIAL_SCAN)
+			| ((mode & open_mode::sequential_access) ? FILE_FLAG_SEQUENTIAL_SCAN : 0)
 			;
 	}
 
@@ -349,7 +349,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		// http://support.microsoft.com/kb/2549369
 		return ((mode & open_mode::hidden) ? FILE_ATTRIBUTE_HIDDEN : FILE_ATTRIBUTE_NORMAL)
 			| ((mode & open_mode::no_cache) ? FILE_FLAG_WRITE_THROUGH : 0)
-			| ((mode & open_mode::random_access) ? 0 : FILE_FLAG_SEQUENTIAL_SCAN)
+			| ((mode & open_mode::sequential_access) ? FILE_FLAG_SEQUENTIAL_SCAN : 0)
 			;
 	}
 
@@ -563,11 +563,11 @@ file_handle::file_handle(string_view name, std::int64_t const size
 	}
 #endif
 
-#if (TORRENT_HAS_FADVISE && defined POSIX_FADV_RANDOM)
-	if (mode & aux::open_mode::random_access)
+#if (TORRENT_HAS_FADVISE && defined POSIX_FADV_SEQUENTIAL)
+	if (mode & aux::open_mode::sequential_access)
 	{
 		// disable read-ahead
-		::posix_fadvise(m_fd, 0, 0, POSIX_FADV_RANDOM);
+		::posix_fadvise(m_fd, 0, 0, POSIX_FADV_SEQUENTIAL);
 	}
 #endif
 }

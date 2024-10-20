@@ -187,7 +187,7 @@ file_mapping::file_mapping(file_handle file, open_mode_t const mode, std::int64_
 #if TORRENT_USE_MADVISE
 	if (file_size > 0)
 	{
-		int const advise = ((mode & open_mode::random_access) ? 0 : MADV_SEQUENTIAL)
+		int const advise = ((mode & open_mode::sequential_access) ? MADV_SEQUENTIAL : 0)
 #ifdef MADV_DONTDUMP
 		// on versions of linux that support it, ask for this region to not be
 		// included in coredumps (mostly to make the coredumps more manageable
