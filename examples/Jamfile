@@ -44,6 +44,7 @@ exe make_torrent : make_torrent.cpp ;
 exe connection_tester : connection_tester.cpp ;
 exe upnp_test : upnp_test.cpp ;
 exe check_files : check_files.cpp ;
+exe dht_scrape : dht_scrape.cpp ;
 
 explicit stage_client_test ;
 explicit stage_connection_tester ;
