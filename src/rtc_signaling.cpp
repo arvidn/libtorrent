@@ -287,7 +287,7 @@ rtc_signaling::connection& rtc_signaling::create_connection(rtc_offer_id const& 
 	});
 
 	pc->onGatheringStateChange([weak_this = weak_from_this(), weak_pc = make_weak_ptr(pc), offer_id
-			, handler = std::move(handler)]
+			, handler_ = std::move(handler)]
 		(rtc::PeerConnection::GatheringState state)
 	{
 		// Warning: this is called from another thread
@@ -299,7 +299,7 @@ rtc_signaling::connection& rtc_signaling::create_connection(rtc_offer_id const& 
 		{
 			auto& io_context = self->m_io_context;
 			auto description = *pc_->localDescription();
-			post(io_context, std::bind(std::move(handler), error_code{}, description));
+			post(io_context, std::bind(std::move(handler_), error_code{}, description));
 		}
 	});
 
