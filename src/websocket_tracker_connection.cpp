@@ -155,13 +155,13 @@ void websocket_tracker_connection::send_pending()
 	auto [msg, callback] = std::move(m_pending.front());
 	m_pending.pop();
 
-	std::visit([this, callback = callback](auto const& m)
+	std::visit([this, cb = callback](auto const& m)
 		{
 			// Update requester and store callback
-			if (callback.lock())
+			if (cb.lock())
 			{
-				m_requester = callback;
-				m_callbacks[m.info_hash] = std::move(callback);
+				m_requester = cb;
+				m_callbacks[m.info_hash] = std::move(cb);
 			}
 
 			do_send(m);
