@@ -1338,7 +1338,7 @@ TORRENT_VERSION_NAMESPACE_3
 	// handle, like this:
 	// .. code:: c++
 	//
-	//	torrent_handle h = alert->handle();
+	//	torrent_handle h = alert->handle;
 	//	h.save_resume_data(torrent_handle::save_info_dict);
 	//
 	// In the handler for the save_resume_alert, you can save the resume data
