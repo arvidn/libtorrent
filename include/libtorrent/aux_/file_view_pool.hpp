@@ -23,12 +23,15 @@ namespace libtorrent::aux {
 
 	struct file_view_entry
 	{
+		using mutex_type = std::shared_ptr<std::mutex>;
+		using lock_type = std::unique_lock<std::mutex>;
+
 		file_view_entry(file_id k
 			, string_view name
 			, open_mode_t const m
 			, std::int64_t const size
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
-			, std::shared_ptr<std::mutex> open_unmap_lock
+			, mutex_type open_unmap_lock
 #endif
 			)
 			: key(k)

@@ -40,7 +40,7 @@ namespace libtorrent::aux {
 		, file_index_t const file_index, file_storage const& fs
 		, open_mode_t const m
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
-		, std::shared_ptr<std::mutex> open_unmap_lock
+		, typename FileEntry::mutex_type open_unmap_lock
 #endif
 		)
 	{
@@ -232,13 +232,14 @@ namespace libtorrent::aux {
 		, file_index_t const file_index, file_storage const& fs
 		, open_mode_t const m, file_id const file_key
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
-		, std::shared_ptr<std::mutex> open_unmap_lock
+		, typename FileEntry::mutex_type open_unmap_lock
 #endif
 		)
 	{
 		std::string const file_path = fs.file_path(file_index, p);
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
-		std::unique_lock<std::mutex> lou(*open_unmap_lock);
+		typename FileEntry::lock_type lou(*open_unmap_lock);
+		TORRENT_UNUSED(lou);
 #endif
 		try
 		{
