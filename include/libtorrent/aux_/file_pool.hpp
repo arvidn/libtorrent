@@ -19,12 +19,17 @@ namespace libtorrent::aux {
 
 	struct file_pool_entry
 	{
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+		using mutex_type = int*;
+		using lock_type = int;
+#endif
+
 		file_pool_entry(file_id k
 			, string_view name
 			, open_mode_t const m
 			, std::int64_t const size
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
-			, std::shared_ptr<std::mutex>
+			, mutex_type
 #endif
 			)
 			: key(k)
