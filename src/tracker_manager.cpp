@@ -309,26 +309,26 @@ namespace libtorrent::aux {
 			{
 				// when we're shutting down, we don't really want to
 				// re-establish the persistent websocket connection just to
-				// announce "stopped", and advertize 0 offers. It may hang
+				// announce "stopped", and advertise 0 offers. It may hang
 				// shutdown.
 				post(ios, std::bind(&request_callback::tracker_request_error, cb, std::move(req)
 					, errors::torrent_aborted, operation_t::connect
 					, "", seconds32(0)));
 			}
 			cb->generate_rtc_offers(req.num_want
-				, [this, &ios, req = std::move(req), c](error_code const& ec
+				, [this, &ios, request = std::move(req), c](error_code const& ec
 					, std::vector<aux::rtc_offer> offers) mutable
 			{
-				if (!ec) req.offers = std::move(offers);
+				if (!ec) request.offers = std::move(offers);
 
-				auto it = m_websocket_conns.find(req.url);
+				auto it = m_websocket_conns.find(request.url);
 				if (it != m_websocket_conns.end() && it->second->is_started()) {
-					it->second->queue_request(std::move(req), c);
+					it->second->queue_request(std::move(request), c);
 				} else {
 					auto con = std::make_shared<aux::websocket_tracker_connection>(
-							ios, *this, std::move(req), c);
+							ios, *this, std::move(request), c);
 					con->start();
-					m_websocket_conns[req.url] = con;
+					m_websocket_conns[request.url] = con;
 				}
 			});
 			return;
