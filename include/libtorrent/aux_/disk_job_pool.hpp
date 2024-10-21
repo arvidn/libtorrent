@@ -79,7 +79,9 @@ namespace aux {
 	};
 
 	struct mmap_disk_job;
+	struct pread_disk_job;
 	extern template struct disk_job_pool<aux::mmap_disk_job>;
+	extern template struct disk_job_pool<aux::pread_disk_job>;
 }
 }
 
