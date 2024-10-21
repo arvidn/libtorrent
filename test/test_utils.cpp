@@ -43,6 +43,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <fcntl.h> // for _O_WRONLY
 #endif
 
+#ifdef TORRENT_LINUX
+#include <sys/statfs.h>
+#include <linux/magic.h>
+#endif
+
+#ifndef TORRENT_WINDOWS
+#include <sys/mount.h>
+#endif
+
 namespace libtorrent
 {
 	std::string time_now_string()
@@ -147,3 +156,89 @@ lt::file_storage make_files(std::vector<file_ent> const files, int const piece_s
 	return fs;
 }
 
+#if defined TORRENT_WINDOWS
+bool fs_supports_sparse_files()
+{
+#ifdef TORRENT_WINRT
+	HANDLE test = ::CreateFile2(L"test"
+			, GENERIC_WRITE
+			, FILE_SHARE_READ
+			, OPEN_ALWAYS
+			, nullptr);
+#else
+	HANDLE test = ::CreateFileA("test"
+			, GENERIC_WRITE
+			, FILE_SHARE_READ
+			, nullptr
+			, OPEN_ALWAYS
+			, FILE_FLAG_SEQUENTIAL_SCAN
+			, nullptr);
+#endif
+	TEST_CHECK(test != INVALID_HANDLE_VALUE);
+	DWORD fs_flags = 0;
+	wchar_t fs_name[50];
+	TEST_CHECK(::GetVolumeInformationByHandleW(test, nullptr, 0, nullptr, nullptr
+		, &fs_flags, fs_name, sizeof(fs_name)) != 0);
+	::CloseHandle(test);
+	printf("filesystem: %S\n", fs_name);
+	return (fs_flags & FILE_SUPPORTS_SPARSE_FILES) != 0;
+}
+
+#else
+
+bool fs_supports_sparse_files()
+{
+	int test = ::open("test", O_RDWR | O_CREAT, 0755);
+	TEST_CHECK(test >= 0);
+	struct statfs st{};
+	TEST_CHECK(fstatfs(test, &st) == 0);
+	::close(test);
+#ifdef TORRENT_LINUX
+	using fsword_t = decltype(statfs::f_type);
+	static fsword_t const ufs = 0x00011954;
+	static fsword_t const zfs = 0x2fc12fc1;
+	static const std::set<fsword_t> sparse_filesystems{
+		EXT4_SUPER_MAGIC, EXT3_SUPER_MAGIC, XFS_SUPER_MAGIC, fsword_t(BTRFS_SUPER_MAGIC)
+			, ufs, zfs, REISERFS_SUPER_MAGIC, TMPFS_MAGIC, OVERLAYFS_SUPER_MAGIC
+	};
+	printf("filesystem: %ld\n", long(st.f_type));
+	return sparse_filesystems.count(st.f_type);
+#else
+	printf("filesystem: (%d) %s\n", int(st.f_type), st.f_fstypename);
+	static const std::set<std::string> sparse_filesystems{
+		"ufs", "zfs", "ext4", "xfs", "apfs", "btrfs"};
+	return sparse_filesystems.count(st.f_fstypename);
+#endif
+}
+
+#endif
+bool fs_supports_prealloc()
+{
+#ifdef TORRENT_WINDOWS
+	return true;
+#else
+	int test = ::open("__test__", O_RDWR | O_CREAT, 0755);
+	TEST_CHECK(test >= 0);
+	struct statfs st{};
+	TEST_CHECK(fstatfs(test, &st) == 0);
+	::close(test);
+	// notably, ZFS does not support fallocate(). Even if glibc implements it to
+	// write zeroes, ZFS (when compression is enabled) will not write them to
+	// disk.
+#ifdef TORRENT_LINUX
+	using fsword_t = decltype(statfs::f_type);
+	static fsword_t const ufs = 0x00011954;
+	static const std::set<fsword_t> prealloc_filesystems{
+		EXT4_SUPER_MAGIC, EXT3_SUPER_MAGIC, XFS_SUPER_MAGIC, fsword_t(BTRFS_SUPER_MAGIC)
+			, ufs, REISERFS_SUPER_MAGIC, TMPFS_MAGIC, OVERLAYFS_SUPER_MAGIC
+	};
+	printf("filesystem: %ld\n", long(st.f_type));
+	return prealloc_filesystems.count(st.f_type);
+#else
+	printf("filesystem: (%d) %s\n", int(st.f_type), st.f_fstypename);
+	static const std::set<std::string> prealloc_filesystems{
+		"ufs", "ext4", "xfs", "apfs", "btrfs"};
+	return prealloc_filesystems.count(st.f_fstypename);
+#endif
+#endif
+}
