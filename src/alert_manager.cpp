@@ -103,7 +103,7 @@ namespace aux {
 #ifndef TORRENT_DISABLE_EXTENSIONS
 	void alert_manager::add_extension(std::shared_ptr<plugin> ext)
 	{
-		m_ses_extensions.push_back(ext);
+		m_ses_extensions.push_back(std::move(ext));
 	}
 #endif
 
