@@ -1480,19 +1480,20 @@ bool is_downloading_state(int const st)
 
 	void torrent::add_extension(std::shared_ptr<torrent_plugin> ext)
 	{
-		m_extensions.push_back(ext);
+		m_extensions.push_back(std::move(ext));
+		auto& ext_ref = m_extensions.back();
 
 		for (auto p : m_connections)
 		{
 			TORRENT_INCREMENT(m_iterating_connections);
-			std::shared_ptr<peer_plugin> pp(ext->new_connection(peer_connection_handle(p->self())));
+			std::shared_ptr<peer_plugin> pp(ext_ref->new_connection(peer_connection_handle(p->self())));
 			if (pp) p->add_extension(std::move(pp));
 		}
 
 		// if files are checked for this torrent, call the extension
 		// to let it initialize itself
 		if (m_connections_initialized)
-			ext->on_files_checked();
+			ext_ref->on_files_checked();
 	}
 
 	void torrent::remove_extension(std::shared_ptr<torrent_plugin> ext)
@@ -1508,7 +1509,7 @@ bool is_downloading_state(int const st)
 		std::shared_ptr<torrent_plugin> tp(ext(get_handle(), userdata));
 		if (!tp) return;
 
-		add_extension(tp);
+		add_extension(std::move(tp));
 	}
 
 #endif
