@@ -401,7 +401,8 @@ constexpr int DISK_WRITE_MODE = settings_pack::enable_os_cache;
 		SET(i2p_inbound_quantity, 3, nullptr),
 		SET(i2p_outbound_quantity, 3, nullptr),
 		SET(i2p_inbound_length, 3, nullptr),
-		SET(i2p_outbound_length, 3, nullptr)
+		SET(i2p_outbound_length, 3, nullptr),
+		SET(announce_port, 0, nullptr)
 	}});
 
 #undef SET

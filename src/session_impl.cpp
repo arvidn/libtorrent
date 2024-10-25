@@ -1301,9 +1301,11 @@ namespace {
 #endif
 			req.ssl_ctx = &m_ssl_ctx;
 #endif
-
-		auto ls = req.outgoing_socket.get();
-		if (ls)
+		if (const auto announce_port = std::uint16_t(m_settings.get_int(settings_pack::announce_port)))
+		{
+			req.listen_port = announce_port;
+		}
+		else if (auto ls = req.outgoing_socket.get())
 		{
 			req.listen_port =
 #ifdef TORRENT_SSL_PEERS

@@ -361,6 +361,90 @@ void on_alert_notify(lt::session* ses)
 	});
 }
 
+void test_announce()
+{
+	using sim::asio::ip::address_v4;
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+
+	sim::asio::io_context web_server(sim, make_address_v4("2.2.2.2"));
+
+	// listen on port 8080
+	sim::http_server http(web_server, 8080);
+
+	int announces = 0;
+
+	// expect announced IP & port
+	std::string const expect_port = "&port=1234";
+	std::string const expect_ip = "&ip=1.2.3.4";
+
+	http.register_handler("/announce"
+	, [&announces, expect_port, expect_ip](std::string method, std::string req
+		, std::map<std::string, std::string>&)
+	{
+		++announces;
+		TEST_EQUAL(method, "GET");
+		TEST_CHECK(req.find(expect_port) != std::string::npos);
+		TEST_CHECK(req.find(expect_ip) != std::string::npos);
+		char response[500];
+		int const size = std::snprintf(response, sizeof(response), "d8:intervali1800e5:peers0:e");
+		return sim::send_response(200, "OK", size) + response;
+	});
+
+	{
+		lt::session_proxy zombie;
+
+		std::vector<asio::ip::address> ips;
+		ips.push_back(make_address("123.0.0.3"));
+
+		asio::io_context ios(sim, ips);
+		lt::settings_pack sett = settings();
+		sett.set_str(settings_pack::listen_interfaces, "0.0.0.0:6881");
+		sett.set_str(settings_pack::announce_ip, "1.2.3.4");
+		sett.set_int(settings_pack::announce_port, 1234);
+
+		auto ses = std::make_unique<lt::session>(sett, ios);
+
+		ses->set_alert_notify(std::bind(&on_alert_notify, ses.get()));
+
+		lt::add_torrent_params p;
+		p.name = "test-torrent";
+		p.save_path = ".";
+		p.info_hashes.v1.assign("abababababababababab");
+
+		p.trackers.push_back("http://2.2.2.2:8080/announce");
+		ses->async_add_torrent(p);
+
+		// stop the torrent 5 seconds in
+		sim::timer t1(sim, lt::seconds(5)
+			, [&ses](boost::system::error_code const&)
+		{
+			std::vector<lt::torrent_handle> torrents = ses->get_torrents();
+			for (auto const& t : torrents)
+			{
+				t.pause();
+			}
+		});
+
+		// then shut down 10 seconds in
+		sim::timer t2(sim, lt::seconds(10)
+			, [&ses,&zombie](boost::system::error_code const&)
+		{
+			zombie = ses->abort();
+			ses.reset();
+		});
+
+		sim.run();
+	}
+
+	TEST_EQUAL(announces, 2);
+}
+
+// this test makes sure that a seed can overwrite its announced IP & port
+TORRENT_TEST(announce_ip_port) {
+	test_announce();
+}
+
 static const int num_interfaces = 3;
 
 void test_ipv6_support(char const* listen_interfaces
