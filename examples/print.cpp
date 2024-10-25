@@ -89,7 +89,8 @@ std::string const& progress_bar(int progress, int width, color_code c
 	bar.clear();
 	bar.reserve(size_t(width + 10));
 
-	auto const progress_chars = static_cast<std::size_t>((progress * width + 500) / 1000);
+	assert(progress <= 1000);
+	auto const progress_chars = static_cast<std::size_t>(progress * width) / 1000;
 
 	if (caption.empty())
 	{
@@ -170,7 +171,7 @@ std::string const& piece_bar(lt::bitfield const& p, int width)
 		for (int k = int(piece); k < end; ++k, ++num_pieces)
 			if (p[k]) ++num_have;
 		int const denom = (std::max)(num_pieces, 1);
-		int const c = (num_have + denom - 1) / denom * (table_size - 1);
+		int const c = (std::int64_t((num_have)) * (table_size - 1) + denom - 1)/ denom;
 
 #ifndef _WIN32
 		color[i & 1] = c;
