@@ -2229,6 +2229,9 @@ bool is_downloading_state(int const st)
 						continue;
 					}
 
+					if (has_piece_passed(piece))
+						continue;
+
 					// being in seed mode and missing a piece is not compatible.
 					// Leave seed mode if that happens
 					if (m_seed_mode) leave_seed_mode(seed_mode_t::skip_checking);
@@ -11506,6 +11509,12 @@ namespace {
 		file_storage const& fs = m_torrent_file->files();
 		for (auto const& dp : q)
 		{
+			if (has_piece_passed(dp.index))
+			{
+				// in this case this piece has already been accounted for in fp
+				continue;
+			}
+
 			std::int64_t offset = std::int64_t(static_cast<int>(dp.index))
 				* m_torrent_file->piece_length();
 			file_index_t file = fs.file_index_at_offset(offset);
@@ -11561,6 +11570,7 @@ namespace {
 						TORRENT_ASSERT(offset <= fs.file_offset(file) + fs.file_size(file));
 						std::int64_t const slice = std::min(fs.file_offset(file) + fs.file_size(file) - offset
 							, block);
+						TORRENT_ASSERT(fp[file] <= fs.file_size(file) - slice);
 						fp[file] += slice;
 						offset += slice;
 						block -= slice;
@@ -11582,6 +11592,7 @@ namespace {
 				}
 				else
 				{
+					TORRENT_ASSERT(fp[file] <= fs.file_size(file) - block);
 					fp[file] += block;
 					offset += block_size();
 				}
