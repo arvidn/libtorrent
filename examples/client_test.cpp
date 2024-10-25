@@ -2229,6 +2229,9 @@ done:
 				// TODO: ti may be nullptr here, we should check
 
 				auto const& file_progress = client_state.file_progress;
+				// if there are a lot of files in the torrent, the less space we use to print each file
+				int const num_files = ti->files().num_files();
+				int const file_width = num_files < 10 ? 75 : num_files < 20 ? 65 : num_files < 30 ? 55 : num_files < 40 ? 45 : 35;
 				int p = 0; // this is horizontal position
 				for (file_index_t const i : ti->files().file_range())
 				{
@@ -2240,6 +2243,7 @@ done:
 
 					if (idx >= file_progress.size()) break;
 
+					// 0-sized files are always fully downloaded
 					int const progress = ti->files().file_size(i) > 0
 						? int(file_progress[idx] * 1000 / ti->files().file_size(i)) : 1000;
 					TORRENT_ASSERT(file_progress[idx] <= ti->files().file_size(i));
@@ -2256,24 +2260,25 @@ done:
 					if (f != file_status.end() && f->file_index == i)
 					{
 						title += " [ ";
-						if ((f->open_mode & lt::file_open_mode::rw_mask) == lt::file_open_mode::read_write) title += "read/write ";
-						else if ((f->open_mode & lt::file_open_mode::rw_mask) == lt::file_open_mode::read_only) title += "read ";
-						else if ((f->open_mode & lt::file_open_mode::rw_mask) == lt::file_open_mode::write_only) title += "write ";
-						if (f->open_mode & lt::file_open_mode::random_access) title += "random_access ";
-						if (f->open_mode & lt::file_open_mode::sparse) title += "sparse ";
-						if (f->open_mode & lt::file_open_mode::mmapped) title += "mmapped ";
+						if ((f->open_mode & lt::file_open_mode::rw_mask) == lt::file_open_mode::read_write) title += "rw ";
+						else if ((f->open_mode & lt::file_open_mode::rw_mask) == lt::file_open_mode::read_only) title += "r ";
+						else if ((f->open_mode & lt::file_open_mode::rw_mask) == lt::file_open_mode::write_only) title += "w ";
+						if (!(f->open_mode & lt::file_open_mode::random_access)) title += "seq ";
+						if (!(f->open_mode & lt::file_open_mode::sparse)) title += "alloc ";
+						if (f->open_mode & lt::file_open_mode::mmapped) title += "mm ";
 						title += "]";
 						++f;
 					}
 
-					const int file_progress_width = pad_file ? 10 : 65;
+					const int file_progress_width = pad_file ? 10 : file_width;
 
 					// do we need to line-break?
-					if (p + file_progress_width + 13 > terminal_width)
+					if (p + file_progress_width + 14 > terminal_width)
 					{
 						out += "\x1b[K\n";
 						pos += 1;
 						p = 0;
+						if (pos + 1 >= terminal_height) break;
 					}
 
 					std::snprintf(str, sizeof(str), "%s %7s p: %d ",
@@ -2284,7 +2289,7 @@ done:
 						, add_suffix(file_progress[idx]).c_str()
 						, static_cast<std::uint8_t>(file_prio[idx]));
 
-					p += file_progress_width + 13;
+					p += file_progress_width + 14;
 					out += str;
 				}
 
