@@ -507,6 +507,7 @@ namespace libtorrent {
 		// specified info-hash, advertising the specified port. If the port is
 		// left at its default, 0, the port will be implied by the DHT message's
 		// source port (which may improve connectivity through a NAT).
+		// ``dht_announce()`` is not affected by the ``announce_port`` override setting.
 		//
 		// Both these functions are exposed for advanced custom use of the DHT.
 		// All torrents eligible to be announce to the DHT will be automatically,
