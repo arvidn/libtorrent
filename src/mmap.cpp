@@ -178,7 +178,7 @@ file_mapping::file_mapping(file_handle file, open_mode_t const mode, std::int64_
 #endif
 		;
 		if (advise != 0)
-			madvise(m_mapping, static_cast<std::size_t>(m_size), advise);
+			::madvise(m_mapping, static_cast<std::size_t>(m_size), advise);
 	}
 #endif
 }
@@ -204,7 +204,7 @@ file_mapping::file_mapping(file_handle file, open_mode_t const mode
 	, std::shared_ptr<std::mutex> open_unmap_lock)
 	: m_size(memory_map_size(mode, file_size, file))
 	, m_file(std::move(file), mode, m_size)
-	, m_open_unmap_lock(open_unmap_lock)
+	, m_open_unmap_lock(std::move(open_unmap_lock))
 	, m_mapping((mode & open_mode::no_mmap) ? nullptr
 		: MapViewOfFile(m_file.handle(), map_access(mode), 0, 0, static_cast<std::size_t>(m_size)))
 {

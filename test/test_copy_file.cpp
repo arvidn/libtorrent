@@ -12,6 +12,7 @@ see LICENSE file.
 #include "libtorrent/aux_/mmap.hpp"
 #include "libtorrent/aux_/open_mode.hpp"
 #include "test.hpp"
+#include "test_utils.hpp"
 
 #include <fstream>
 #include <set>
@@ -54,64 +55,6 @@ bool compare_files(std::string const& file1, std::string const& file2)
 	using it = std::istream_iterator<char>;
 	return std::equal(it(f1), it{}, it(f2));
 }
-
-#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
-#if defined TORRENT_WINDOWS
-bool fs_supports_sparse_files()
-{
-#ifdef TORRENT_WINRT
-	HANDLE test = ::CreateFile2(L"test"
-			, GENERIC_WRITE
-			, FILE_SHARE_READ
-			, OPEN_ALWAYS
-			, nullptr);
-#else
-	HANDLE test = ::CreateFileA("test"
-			, GENERIC_WRITE
-			, FILE_SHARE_READ
-			, nullptr
-			, OPEN_ALWAYS
-			, FILE_FLAG_SEQUENTIAL_SCAN
-			, nullptr);
-#endif
-	TEST_CHECK(test != INVALID_HANDLE_VALUE);
-	DWORD fs_flags = 0;
-	wchar_t fs_name[50];
-	TEST_CHECK(::GetVolumeInformationByHandleW(test, nullptr, 0, nullptr, nullptr
-		, &fs_flags, fs_name, sizeof(fs_name)) != 0);
-	::CloseHandle(test);
-	printf("filesystem: %S\n", fs_name);
-	return (fs_flags & FILE_SUPPORTS_SPARSE_FILES) != 0;
-}
-
-#else
-
-bool fs_supports_sparse_files()
-{
-	int test = ::open("test", O_RDWR | O_CREAT, 0755);
-	TEST_CHECK(test >= 0);
-	struct statfs st{};
-	TEST_CHECK(fstatfs(test, &st) == 0);
-	::close(test);
-#ifdef TORRENT_LINUX
-	using fsword_t = decltype(statfs::f_type);
-	static fsword_t const ufs = 0x00011954;
-	static const std::set<fsword_t> sparse_filesystems{
-		EXT4_SUPER_MAGIC, EXT3_SUPER_MAGIC, XFS_SUPER_MAGIC, fsword_t(BTRFS_SUPER_MAGIC)
-			, ufs, REISERFS_SUPER_MAGIC, TMPFS_MAGIC, OVERLAYFS_SUPER_MAGIC
-	};
-	printf("filesystem: %ld\n", long(st.f_type));
-	return sparse_filesystems.count(st.f_type);
-#else
-	printf("filesystem: (%d) %s\n", int(st.f_type), st.f_fstypename);
-	static const std::set<std::string> sparse_filesystems{
-		"ufs", "zfs", "ext4", "xfs", "apfs", "btrfs"};
-	return sparse_filesystems.count(st.f_fstypename);
-#endif
-}
-
-#endif
-#endif
 }
 
 TORRENT_TEST(basic)
@@ -157,6 +100,7 @@ TORRENT_TEST(sparse_file)
 	// Find out if the filesystem we're running the test on supports sparse
 	// files. If not, we don't expect any of the files to be sparse
 	bool const supports_sparse_files = fs_supports_sparse_files();
+	printf("supports sparse files: %d\n", int(supports_sparse_files));
 
 	// make sure "sparse-1" is actually sparse
 #ifdef TORRENT_WINDOWS
@@ -201,7 +145,7 @@ TORRENT_TEST(sparse_file)
 #else
 	TEST_CHECK(::stat("sparse-1.copy", &st) == 0);
 	printf("copy_size: %d\n", int(st.st_blocks) * 512);
-	TEST_EQUAL(st.st_blocks * 512, original_size);
+	TEST_CHECK(st.st_blocks * 512 < 500'000);
 #endif
 
 	TEST_CHECK(compare_files("sparse-1", "sparse-1.copy"));

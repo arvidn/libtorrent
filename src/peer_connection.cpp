@@ -573,7 +573,7 @@ namespace {
 	void peer_connection::add_extension(std::shared_ptr<peer_plugin> ext)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		m_extensions.push_back(ext);
+		m_extensions.push_back(std::move(ext));
 	}
 
 	peer_plugin const* peer_connection::find_plugin(string_view type)

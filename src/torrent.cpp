@@ -1486,19 +1486,20 @@ bool is_downloading_state(int const st)
 
 	void torrent::add_extension(std::shared_ptr<torrent_plugin> ext)
 	{
-		m_extensions.push_back(ext);
+		m_extensions.push_back(std::move(ext));
+		auto& ext_ref = m_extensions.back();
 
 		for (auto* p : m_connections)
 		{
 			TORRENT_INCREMENT(m_iterating_connections);
-			std::shared_ptr<peer_plugin> pp(ext->new_connection(peer_connection_handle(p->self())));
+			std::shared_ptr<peer_plugin> pp(ext_ref->new_connection(peer_connection_handle(p->self())));
 			if (pp) p->add_extension(std::move(pp));
 		}
 
 		// if files are checked for this torrent, call the extension
 		// to let it initialize itself
 		if (m_connections_initialized)
-			ext->on_files_checked();
+			ext_ref->on_files_checked();
 	}
 
 	void torrent::remove_extension(std::shared_ptr<torrent_plugin> ext)
@@ -1514,7 +1515,7 @@ bool is_downloading_state(int const st)
 		std::shared_ptr<torrent_plugin> tp(ext(get_handle(), userdata));
 		if (!tp) return;
 
-		add_extension(tp);
+		add_extension(std::move(tp));
 	}
 
 #endif
@@ -2238,6 +2239,9 @@ bool is_downloading_state(int const st)
 					{
 						continue;
 					}
+
+					if (has_piece_passed(piece))
+						continue;
 
 					// being in seed mode and missing a piece is not compatible.
 					// Leave seed mode if that happens
@@ -11565,6 +11569,12 @@ namespace {
 		file_storage const& fs = m_torrent_file->files();
 		for (auto const& dp : q)
 		{
+			if (has_piece_passed(dp.index))
+			{
+				// in this case this piece has already been accounted for in fp
+				continue;
+			}
+
 			std::int64_t offset = std::int64_t(static_cast<int>(dp.index))
 				* m_torrent_file->piece_length();
 			file_index_t file = fs.file_index_at_offset(offset);
@@ -11620,6 +11630,7 @@ namespace {
 						TORRENT_ASSERT(offset <= fs.file_offset(file) + fs.file_size(file));
 						std::int64_t const slice = std::min(fs.file_offset(file) + fs.file_size(file) - offset
 							, block);
+						TORRENT_ASSERT(fp[file] <= fs.file_size(file) - slice);
 						fp[file] += slice;
 						offset += slice;
 						block -= slice;
@@ -11641,6 +11652,7 @@ namespace {
 				}
 				else
 				{
+					TORRENT_ASSERT(fp[file] <= fs.file_size(file) - block);
 					fp[file] += block;
 					offset += block_size();
 				}

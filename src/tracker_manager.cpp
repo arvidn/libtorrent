@@ -249,7 +249,7 @@ namespace libtorrent::aux {
 	{
 		TORRENT_ASSERT(is_single_thread());
 		m_udp_conns.erase(c->transaction_id());
-		m_udp_conns[tid] = c;
+		m_udp_conns[tid] = std::move(c);
 	}
 
 	void tracker_manager::queue_request(

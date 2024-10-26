@@ -104,7 +104,7 @@ namespace {
 		if (m_exceeded_max_size)
 		{
 			exceeded = true;
-			if (o) m_observers.push_back(o);
+			if (o) m_observers.push_back(std::move(o));
 		}
 		return ret;
 	}

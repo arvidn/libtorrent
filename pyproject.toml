@@ -1,5 +1,5 @@
 [project]
-requires-python = ">=3.7"
+requires-python = ">=3.9"
 
 [tool.cibuildwheel]
 manylinux-i686-image = "manylinux2014"
@@ -25,8 +25,7 @@ test-command = [
 [tool.cibuildwheel.macos.environment]
 BOOST_BUILD_PATH = "/tmp/boost/tools/build"
 BOOST_ROOT = "/tmp/boost"
-BOOST_VERSION = "1.81.0"
-MACOSX_DEPLOYMENT_TARGET = "12"
+BOOST_VERSION = "1.83.0"
 PATH = "/tmp/boost:$PATH"
 
 [[tool.cibuildwheel.overrides]]
@@ -48,7 +47,7 @@ test-command = [
 [tool.cibuildwheel.overrides.environment] # sub-table of previous block!
 BOOST_BUILD_PATH = "/tmp/boost/tools/build"
 BOOST_ROOT = "/tmp/boost"
-BOOST_VERSION = "1.81.0"
+BOOST_VERSION = "1.83.0"
 PATH = "/usr/local/ccache/bin:/tmp/boost:$PATH"
 
 [[tool.cibuildwheel.overrides]]
@@ -69,7 +68,7 @@ test-command = [
 [tool.cibuildwheel.overrides.environment] # sub-table of previous block!
 BOOST_BUILD_PATH = "/tmp/boost/tools/build"
 BOOST_ROOT = "/tmp/boost"
-BOOST_VERSION = "1.81.0"
+BOOST_VERSION = "1.83.0"
 PATH = "/usr/lib/ccache/bin:/tmp/boost:$PATH"
 
 [[tool.cibuildwheel.overrides]]
@@ -90,7 +89,7 @@ test-command = '''bash -c "cd '{project}/bindings/python' && python -m pip insta
 [tool.cibuildwheel.windows.environment]
 BOOST_BUILD_PATH = 'c:/boost/tools/build'
 BOOST_ROOT = 'c:/boost'
-BOOST_VERSION = "1.81.0"
+BOOST_VERSION = "1.83.0"
 PATH = 'c:/boost;$PATH'
 
 [tool.isort]

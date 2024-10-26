@@ -541,6 +541,7 @@ void test_pre_allocate()
 	std::string const test_path = complete("pre_allocate_test_path");
 	delete_dirs(combine_path(test_path, "temp_storage"));
 
+	bool const supports_prealloc = fs_supports_prealloc();
 	std::vector<char> buf;
 	typename file_pool_type<StorageType>::type fp;
 	io_context ios;
@@ -606,7 +607,15 @@ void test_pre_allocate()
 			TEST_CHECK(!ec);
 			std::cerr << "error: " << ec.message() << std::endl;
 			TEST_EQUAL(st.file_size, fs.file_size(i));
-			TEST_CHECK(file_size_on_disk(path) >= fs.file_size(i));
+
+			if (supports_prealloc || fs.file_size(i) == 0)
+			{
+				TEST_CHECK(file_size_on_disk(path) >= fs.file_size(i));
+			}
+			else
+			{
+				TEST_CHECK(file_size_on_disk(path) <= fs.file_size(i));
+			}
 		}
 	}
 
@@ -622,10 +631,17 @@ void test_pre_allocate()
 		file_status st;
 		std::string const path = fs.file_path(i, test_path);
 		stat_file(path, &st, ec);
-		std::cerr<< "error: " << ec.message() << std::endl;
+		std::cerr << "error: " << ec.message() << std::endl;
 		TEST_CHECK(!ec);
 
-		TEST_CHECK(file_size_on_disk(path) >= fs.file_size(i));
+		if (supports_prealloc || fs.file_size(i) == 0)
+		{
+			TEST_CHECK(file_size_on_disk(path) >= fs.file_size(i));
+		}
+		else
+		{
+			TEST_CHECK(file_size_on_disk(path) <= fs.file_size(i));
+		}
 	}
 }
 

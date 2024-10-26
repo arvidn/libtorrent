@@ -137,7 +137,7 @@ namespace libtorrent::aux {
 		{
 			FileEntry e = open_file_impl(p, file_index, fs, m, file_key
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
-				, open_unmap_lock
+				, std::move(open_unmap_lock)
 #endif
 				);
 

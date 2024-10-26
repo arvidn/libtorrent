@@ -6,7 +6,7 @@ name: cibuildwheel
 # sample.
 
 # The full list of cibuildwheel's build targets can be found here:
-# https://github.com/pypa/cibuildwheel/blob/v2.16.5/cibuildwheel/resources/build-platforms.toml
+# https://github.com/pypa/cibuildwheel/blob/v2.21.3/cibuildwheel/resources/build-platforms.toml
 
 # Notes on build targets we (don't) support:
 # - pypy: libtorrent doesn't build with pypy as of writing
@@ -45,22 +45,31 @@ jobs:
       MATRIX_PULL_REQUEST: |
         {
           "include": [
-            {"os": "ubuntu-latest", "CIBW_BUILD": "cp39-manylinux_*", "CIBW_ARCHS": "x86_64"},
-            {"os": "ubuntu-latest", "CIBW_BUILD": "cp39-musllinux_*", "CIBW_ARCHS": "x86_64"},
-            {"os": "macos-12", "CIBW_BUILD": "cp39-*", "CIBW_ARCHS": "x86_64"},
-            {"os": "windows-2022", "CIBW_BUILD": "cp39-*", "CIBW_ARCHS": "AMD64"}
+            {"os": "ubuntu-latest", "CIBW_BUILD": "cp39-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"os": "ubuntu-latest", "CIBW_BUILD": "cp39-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"os": "ubuntu-latest", "CIBW_BUILD": "cp39-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"os": "ubuntu-latest", "CIBW_BUILD": "cp39-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"os": "macos-12", "CIBW_BUILD": "cp39-macosx_x86_64", "CIBW_ARCHS_MACOS": "x86_64", "MACOSX_DEPLOYMENT_TARGET": "12"},
+            {"os": "macos-13", "CIBW_BUILD": "cp39-macosx_x86_64", "CIBW_ARCHS_MACOS": "x86_64", "MACOSX_DEPLOYMENT_TARGET": "13"},
+            {"os": "macos-14", "CIBW_BUILD": "cp39-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "14"},
+            {"os": "macos-15", "CIBW_BUILD": "cp39-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "15"},
+            {"os": "windows-latest", "CIBW_BUILD": "cp39-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"os": "windows-latest", "CIBW_BUILD": "cp39-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"}
           ]
         }
       MATRIX_WORKFLOW_DISPATCH: |
         {
           "include": [
-            {"os": "ubuntu-latest", "CIBW_BUILD": "cp*-manylinux_*", "CIBW_ARCHS": "x86_64"},
-            {"os": "ubuntu-latest", "CIBW_BUILD": "cp*-manylinux_*", "CIBW_ARCHS": "aarch64"},
-            {"os": "ubuntu-latest", "CIBW_BUILD": "cp*-musllinux_*", "CIBW_ARCHS": "x86_64"},
-            {"os": "ubuntu-latest", "CIBW_BUILD": "cp*-musllinux_*", "CIBW_ARCHS": "aarch64"},
-            {"os": "macos-12", "CIBW_BUILD": "cp*", "CIBW_ARCHS": "x86_64"},
-            {"os": "windows-2022", "CIBW_BUILD": "cp*", "CIBW_ARCHS": "x86"},
-            {"os": "windows-2022", "CIBW_BUILD": "cp*", "CIBW_ARCHS": "AMD64"}
+            {"os": "ubuntu-latest", "CIBW_BUILD": "cp*-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"os": "ubuntu-latest", "CIBW_BUILD": "cp*-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"os": "ubuntu-latest", "CIBW_BUILD": "cp*-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"os": "ubuntu-latest", "CIBW_BUILD": "cp*-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"os": "macos-12", "CIBW_BUILD": "cp*-macosx_x86_64", "CIBW_ARCHS_MACOS": "x86_64", "MACOSX_DEPLOYMENT_TARGET": "12"},
+            {"os": "macos-13", "CIBW_BUILD": "cp*-macosx_x86_64", "CIBW_ARCHS_MACOS": "x86_64", "MACOSX_DEPLOYMENT_TARGET": "13"},
+            {"os": "macos-14", "CIBW_BUILD": "cp*-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "14"},
+            {"os": "macos-15", "CIBW_BUILD": "cp*-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "15"},
+            {"os": "windows-latest", "CIBW_BUILD": "cp*-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"os": "windows-latest", "CIBW_BUILD": "cp*-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"}
           ]
         }
 
@@ -87,7 +96,11 @@ jobs:
     env:
       CIBW_BUILD_VERBOSITY: 1
       CIBW_BUILD: ${{ matrix.CIBW_BUILD }}
-      CIBW_ARCHS: ${{ matrix.CIBW_ARCHS }}
+      CIBW_ARCHS_LINUX:  ${{ matrix.CIBW_ARCHS_LINUX }}
+      CIBW_ARCHS_WINDOWS:  ${{ matrix.CIBW_ARCHS_WINDOWS }}
+      CIBW_ARCHS_MACOS:  ${{ matrix.CIBW_ARCHS_MACOS }}
+      MACOSX_DEPLOYMENT_TARGET: ${{ matrix.MACOSX_DEPLOYMENT_TARGET }}
+      CIBW_SKIP: pp*
       CIBW_TEST_SKIP: "*-win32"
 
     steps:
@@ -101,18 +114,25 @@ jobs:
       id: cache-wheel
       with:
         path: wheelhouse
-        key: wheel-${{ matrix.CIBW_BUILD }}-${{ matrix.CIBW_ARCHS }}-${{ github.sha }}
+        key: wheel-${{ matrix.os }}-${{ matrix.CIBW_BUILD }}
 
     - uses: docker/setup-qemu-action@v3
       if: steps.cache-wheel.outputs.cache-hit != 'true' && runner.os == 'Linux'
 
-    - uses: pypa/cibuildwheel@v2.19.2
+    - name: Install OpenSSL (win32)
+      if: ${{ endsWith(matrix.CIBW_BUILD, 'win32') }}
+      run: |
+        Remove-Item -Path "C:\Program Files\OpenSSL" -Force -Recurse
+        vcpkg install openssl:x86-windows
+        New-Item -Path "C:\Program Files\OpenSSL" -ItemType SymbolicLink -Value "C:\vcpkg\packages\openssl_x86-windows\"
+
+    - uses: pypa/cibuildwheel@v2.21.3
       if: steps.cache-wheel.outputs.cache-hit != 'true'
 
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         path: wheelhouse/*.whl
-        name: wheels
+        name: wheels-${{ matrix.os }}-${{ matrix.CIBW_BUILD }}
 
   upload_pypi:
     needs: build_wheels
@@ -120,16 +140,16 @@ jobs:
     if: needs.build_wheels.result == 'success' && github.event.inputs.publish == 'PUBLISH'
 
     steps:
-    - uses: actions/download-artifact@v3
+    - uses: actions/download-artifact@v4
       with:
-        name: wheels
+        name: wheels-${{ matrix.os }}-${{ matrix.CIBW_BUILD }}
         path: wheelhouse
 
     - uses: pypa/gh-action-pypi-publish@release/v1
       with:
         password: ${{ secrets.PYPI_API_TOKEN }}
-        packages_dir: wheelhouse
-        skip_existing: true
+        packages-dir: wheelhouse
+        skip-existing: true
 
   upload_pypi_test:
     needs: build_wheels
@@ -137,14 +157,14 @@ jobs:
     if: needs.build_wheels.result == 'success' && github.event.inputs.publish_test == 'PUBLISH_TEST'
 
     steps:
-    - uses: actions/download-artifact@v3
+    - uses: actions/download-artifact@v4
       with:
-        name: wheels
+        name: wheels-${{ matrix.os }}-${{ matrix.CIBW_BUILD }}
         path: wheelhouse
 
     - uses: pypa/gh-action-pypi-publish@release/v1
       with:
         password: ${{ secrets.TEST_PYPI_API_TOKEN }}
-        packages_dir: wheelhouse
-        skip_existing: true
+        packages-dir: wheelhouse
+        skip-existing: true
         repository_url: https://test.pypi.org/legacy/
