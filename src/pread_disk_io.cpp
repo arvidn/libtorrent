@@ -1352,7 +1352,7 @@ int pread_disk_io::flush_cache_blocks(bitfield& flushed
 		ret += count;
 
 		if (error) {
-			int i = start_idx + count;
+			TORRENT_ASSERT(i == start_idx + count);
 			// if there was a failure, fail the remaining jobs as well
 			for (aux::cached_block_entry const& blk : blocks.subspan(start_idx + count))
 			{

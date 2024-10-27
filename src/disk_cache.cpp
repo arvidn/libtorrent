@@ -163,7 +163,7 @@ bool disk_cache::try_clear_piece(piece_location const loc, pread_disk_job* j, jo
 	TORRENT_ASSERT(!i->hashing);
 	if (i->hashing)
 	{
-		// postpone the clearing until we're done flushing
+		// postpone the clearing until we're done hashing
 		view.modify(i, [&](cached_piece_entry& e) { e.clear_piece = j; });
 		return false;
 	}
