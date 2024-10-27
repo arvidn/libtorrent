@@ -505,13 +505,60 @@ namespace {
 		, disk_job_flags_t const flags
 		, storage_error& error)
 	{
-		for (auto const& buf : buffers)
+		auto const write_mode = sett.get_int(settings_pack::disk_io_write_mode);
+		return readwrite_vec(files(), buffers, piece, offset, error
+			, [this, mode, &sett, write_mode](file_index_t const file_index
+				, std::int64_t const file_offset
+				, span<span<char const> const> buf, storage_error& ec)
 		{
-			write(sett, buf, piece, offset, mode, flags, error);
-			offset += int(buf.size());
-			if (error) return offset;
-		}
-		return offset;
+			// writing to a pad-file is a no-op
+			if (files().pad_file_at(file_index))
+				return bufs_size(buffers);
+
+			if (file_index < m_file_priority.end_index()
+				&& m_file_priority[file_index] == dont_download
+				&& use_partfile(file_index))
+			{
+				TORRENT_ASSERT(m_part_file);
+
+				error_code e;
+				peer_request map = files().map_file(file_index
+					, file_offset, 0);
+				int const ret = m_part_file->write(buf, map.piece, map.start, e);
+
+				if (e)
+				{
+					ec.ec = e;
+					ec.file(file_index);
+					ec.operation = operation_t::partfile_write;
+					return -1;
+				}
+				return ret;
+			}
+
+			// invalidate our stat cache for this file, since
+			// we're writing to it
+			m_stat_cache.set_dirty(file_index);
+
+			auto handle = open_file(sett, file_index, open_mode::write | mode, ec);
+			if (ec) return -1;
+			TORRENT_ASSERT(handle);
+
+			// set this unconditionally in case the upper layer would like to treat
+			// short reads as errors
+			ec.operation = operation_t::file_write;
+
+			int const ret = pwrite_all(handle->fd(), buf, file_offset, ec.ec);
+			if (ec.ec)
+			{
+				ec.file(file_index);
+				ec.operation = operation_t::file_write;
+				return ret;
+			}
+			if (write_mode == settings_pack::write_through)
+				sync_file(handle->fd(), file_offset, buf.size());
+			return ret;
+		});
 	}
 
 	int pread_storage::write(settings_interface const& sett

@@ -1906,3 +1906,19 @@ TORRENT_TEST(posix_unaligned_read_both_store_buffer)
 	test_unaligned_read(lt::posix_disk_io_constructor, second_side_from_store_buffer);
 	test_unaligned_read(lt::posix_disk_io_constructor, none_from_store_buffer);
 }
+
+TORRENT_TEST(span<span<char const>> const bufs)
+{
+	iovec_t iov[10];
+
+	for (int i = 1; i < 10; ++i)
+	{
+		alloc_iov(iov, i);
+
+		int expected_size = 0;
+		for (int k = 0; k < i; ++k) expected_size += i * (k + 1);
+		TEST_EQUAL(bufs_size({iov, i}), expected_size);
+
+		free_iov(iov, i);
+	}
+}
