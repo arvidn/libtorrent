@@ -33,6 +33,7 @@ see LICENSE file.
 #include "libtorrent/aux_/storage_array.hpp"
 #include "libtorrent/aux_/disk_completed_queue.hpp"
 #include "libtorrent/aux_/debug_disk_thread.hpp"
+#include "libtorrent/aux_/scope_end.hpp"
 
 #include <functional>
 
@@ -387,6 +388,9 @@ void pread_disk_io::perform_job(aux::pread_disk_job* j, jobqueue_t& completed_jo
 	std::shared_ptr<aux::pread_storage> storage = j->storage;
 
 	m_stats_counters.inc_stats_counter(counters::num_running_disk_jobs, 1);
+	auto se = aux::scope_end([&] {
+		m_stats_counters.inc_stats_counter(counters::num_running_disk_jobs, -1);
+	});
 
 	// call disk function
 	// TODO: in the future, propagate exceptions back to the handlers
@@ -397,8 +401,6 @@ void pread_disk_io::perform_job(aux::pread_disk_job* j, jobqueue_t& completed_jo
 	// note that -2 errors are OK
 	TORRENT_ASSERT(j->ret != disk_status::fatal_disk_error
 		|| (j->error.ec && j->error.operation != operation_t::unknown));
-
-	m_stats_counters.inc_stats_counter(counters::num_running_disk_jobs, -1);
 
 	completed_jobs.push_back(j);
 }
@@ -1307,6 +1309,12 @@ int pread_disk_io::flush_cache_blocks(bitfield& flushed
 	// blocks may be sparse. We need to skip any block entry where write_job is null
 	m_stats_counters.inc_stats_counter(counters::num_running_disk_jobs, 1);
 	m_stats_counters.inc_stats_counter(counters::num_writing_threads, 1);
+
+	auto se = aux::scope_end([&] {
+		m_stats_counters.inc_stats_counter(counters::num_writing_threads, -1);
+		m_stats_counters.inc_stats_counter(counters::num_running_disk_jobs, -1);
+	});
+
 	time_point const start_time = clock_type::now();
 
 	bool failed = false;
@@ -1344,14 +1352,19 @@ int pread_disk_io::flush_cache_blocks(bitfield& flushed
 		ret += count;
 
 		if (error) {
+			int i = start_idx + count;
 			// if there was a failure, fail the remaining jobs as well
 			for (aux::cached_block_entry const& blk : blocks.subspan(start_idx + count))
 			{
 				auto* j2 = blk.write_job;
-				if (j2 == nullptr) continue;
-				j2->error = error;
-				// TODO: should we free the job's buffer here?
-				completed_jobs.push_back(j2);
+				if (j2)
+				{
+					j2->error = error;
+					flushed.set_bit(i);
+					completed_jobs.push_back(j2);
+					++ret;
+				}
+				++i;
 			}
 			failed = true;
 		}
@@ -1367,10 +1380,6 @@ int pread_disk_io::flush_cache_blocks(bitfield& flushed
 		m_stats_counters.inc_stats_counter(counters::disk_write_time, write_time);
 		m_stats_counters.inc_stats_counter(counters::disk_job_time, write_time);
 	}
-
-	// TODO: put this in an RAII object
-	m_stats_counters.inc_stats_counter(counters::num_writing_threads, -1);
-	m_stats_counters.inc_stats_counter(counters::num_running_disk_jobs, -1);
 
 	return ret;
 }

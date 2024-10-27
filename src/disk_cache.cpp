@@ -446,22 +446,22 @@ Iter disk_cache::flush_piece_impl(View& view
 		if (!flushed_blocks.get_bit(i)) continue;
 		cached_block_entry& blk = blocks[i];
 
-		auto* j = blk.write_job;
+		auto* j = std::exchange(blk.write_job, nullptr);
 		TORRENT_ASSERT(j);
 		TORRENT_ASSERT(j->get_type() == aux::job_action_t::write);
 		blk.buf_holder = std::move(std::get<aux::job::write>(j->action).buf);
-		blk.flushed_to_disk = true;
+		if (!j->error.ec)
+			blk.flushed_to_disk = true;
 		TORRENT_ASSERT(blk.buf_holder);
 		// TODO: free these in bulk at the end, or something
 		if (i < hash_cursor)
 			blk.buf_holder.reset();
 
-		blk.write_job = nullptr;
 		++jobs;
 	}
 	auto next_iter = std::next(piece_iter);
-	view.modify(piece_iter, [&blocks, jobs](cached_piece_entry& e) {
-		span<cached_block_entry> const all_blocks = e.get_blocks();
+	view.modify(piece_iter, [jobs](cached_piece_entry& e) {
+		span<cached_block_entry const> const all_blocks = e.get_blocks();
 		e.flushed_cursor = compute_flushed_cursor(all_blocks);
 		e.ready_to_flush = compute_ready_to_flush(all_blocks);
 		TORRENT_ASSERT(e.num_jobs >= jobs);
@@ -688,7 +688,21 @@ void disk_cache::check_invariant() const
 			// a block holds either a write job or buffer, never both
 			TORRENT_ASSERT(!(bool(be.write_job) && bool(be.buf_holder)));
 			if (be.write_job)
+			{
 				TORRENT_ASSERT(be.write_job->get_type() == aux::job_action_t::write);
+				if (!piece_entry.flushing)
+				{
+					// while a piece is being written to
+					// disk, the corresponding thread owns
+					// the piece entry and it will move
+					// write jobs onto a completed queue
+					// before clearing this pointer. From a
+					// separate thread's point of view,
+					// this invariant may be violated while
+					// this is happening
+					TORRENT_ASSERT(be.write_job->next == nullptr);
+				}
+			}
 
 			if (idx < piece_entry.flushed_cursor)
 				TORRENT_ASSERT(be.write_job == nullptr);
