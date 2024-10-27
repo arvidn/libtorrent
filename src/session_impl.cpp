@@ -830,8 +830,8 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 					if (val) s.set_int(settings_pack::proxy_type, int(val.int_value()));
 					val = settings.dict_find_int("proxy_hostnames");
 					if (val) s.set_bool(settings_pack::proxy_hostnames, val.int_value() != 0);
-					val = settings.dict_find_int("listen_on_proxy");
-					if (val) s.set_bool(settings_pack::listen_on_proxy, val.int_value() != 0);
+					val = settings.dict_find_int("proxy_accept_incoming");
+					if (val) s.set_bool(settings_pack::proxy_accept_incoming, val.int_value() != 0);
 					val = settings.dict_find_int("proxy_peer_connections");
 					if (val) s.set_bool(settings_pack::proxy_peer_connections, val.int_value() != 0);
 					val = settings.dict_find_string("hostname");
@@ -2059,7 +2059,7 @@ namespace {
 		// proxies
 		if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none
 			&& m_settings.get_bool(settings_pack::proxy_peer_connections)
-			&& !m_settings.get_bool(settings_pack::listen_on_proxy))
+			&& !m_settings.get_bool(settings_pack::proxy_accept_incoming))
 		{
 			// we will be able to accept incoming connections over UDP. so use
 			// one of the ports the user specified to use a consistent port
@@ -2828,7 +2828,7 @@ namespace {
 		// class also restricts incoming packets based on proxy settings.
 		if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none
 			&& m_settings.get_bool(settings_pack::proxy_peer_connections)
-			&& !m_settings.get_bool(settings_pack::listen_on_proxy))
+			&& !m_settings.get_bool(settings_pack::proxy_accept_incoming))
 			return;
 
 		auto listen = std::find_if(m_listen_sockets.begin(), m_listen_sockets.end()
@@ -5529,7 +5529,7 @@ namespace {
 			// announce here has no relevance for that.
 
 			if (sock->flags & listen_socket_t::proxy
-				&& !m_settings.get_bool(settings_pack::listen_on_proxy))
+				&& !m_settings.get_bool(settings_pack::proxy_accept_incoming))
 				return 0;
 
 			if (!(sock->flags & listen_socket_t::accept_incoming))
@@ -5540,7 +5540,7 @@ namespace {
 
 		if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none
 			&& m_settings.get_bool(settings_pack::proxy_peer_connections)
-			&& !m_settings.get_bool(settings_pack::listen_on_proxy))
+			&& !m_settings.get_bool(settings_pack::proxy_accept_incoming))
 			return 0;
 
 #ifdef TORRENT_SSL_PEERS
@@ -5669,7 +5669,7 @@ namespace {
 
 		if (!s->natpmp_mapper
 			&& !(s->flags & listen_socket_t::local_network)
-			&& m_settings.get_bool(settings_pack::listen_on_proxy))
+			&& m_settings.get_bool(settings_pack::proxy_accept_incoming))
 		{
 			// the natpmp constructor may fail and call the callbacks
 			// into the session_impl.
@@ -6896,7 +6896,7 @@ namespace {
 		// connected to the internet. The whole point is to forward ports through
 		// the gateway
 		if ((s->flags & listen_socket_t::local_network)
-			|| (s->flags & !m_settings.get_bool(settings_pack::listen_on_proxy)))
+			|| (s->flags & !m_settings.get_bool(settings_pack::proxy_accept_incoming)))
 			return;
 
 		if (!s->upnp_mapper)

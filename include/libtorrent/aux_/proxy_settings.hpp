@@ -81,7 +81,7 @@ namespace aux {
 
 		// defaults to false for integration compatibility. It means that the
 		// torrent port is listening with tcp and udp while there is a proxy configured.
-		bool listen_on_proxy = false;
+		bool proxy_accept_incoming = false;
 
 		// determines whether or not to exempt peer and web seed connections
 		// from using the proxy. This defaults to true, i.e. peer connections are
