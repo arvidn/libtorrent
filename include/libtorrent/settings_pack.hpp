@@ -881,7 +881,7 @@ namespace aux {
 			proxy_hostnames,
 
 			// if true, listening on the defined port will be enabled while using proxy
-			listen_on_proxy,
+			proxy_accept_incoming,
 
 			// if true, peer connections are made (and accepted) over the
 			// configured proxy, if any. Web seeds as well as regular bittorrent

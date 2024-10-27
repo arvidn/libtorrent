@@ -1063,7 +1063,7 @@ namespace {
 		p.set_int(settings_pack::proxy_type, s.type);
 		p.set_int(settings_pack::proxy_port, s.port);
 		p.set_bool(settings_pack::proxy_hostnames,s.proxy_hostnames);
-		p.set_bool(settings_pack::listen_on_proxy,s.listen_on_proxy);
+		p.set_bool(settings_pack::proxy_accept_incoming,s.proxy_accept_incoming);
 		p.set_bool(settings_pack::proxy_peer_connections, s.proxy_peer_connections);
 
 		apply_settings(std::move(p));
