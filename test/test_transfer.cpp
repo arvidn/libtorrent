@@ -16,6 +16,8 @@ see LICENSE file.
 #include "libtorrent/time.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/mmap_disk_io.hpp"
+#include "libtorrent/posix_disk_io.hpp"
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -59,10 +61,12 @@ using transfer_flags_t = lt::flags::bitfield_flag<std::uint8_t, transfer_tag>;
 constexpr transfer_flags_t delete_files = 2_bit;
 constexpr transfer_flags_t move_storage = 3_bit;
 constexpr transfer_flags_t piece_deadline = 4_bit;
+constexpr transfer_flags_t large_piece_size = 5_bit;
 
-void test_transfer(int proxy_type, settings_pack const& sett
+void test_transfer(int const proxy_type, settings_pack const& sett
 	, transfer_flags_t flags = {}
-	, storage_mode_t storage_mode = storage_mode_sparse)
+	, storage_mode_t const storage_mode = storage_mode_sparse
+	, disk_io_constructor_type disk_io = mmap_disk_io_constructor)
 {
 	char const* test_name[] = {"no", "SOCKS4", "SOCKS5", "SOCKS5 password", "HTTP", "HTTP password"};
 
@@ -95,10 +99,13 @@ void test_transfer(int proxy_type, settings_pack const& sett
 	pack.set_bool(settings_pack::rate_limit_utp, true);
 #endif
 
-	lt::session ses1(pack);
+	lt::session_params sp(pack);
+	sp.disk_io_constructor = disk_io;
+	lt::session ses1(sp);
 
 	pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
-	lt::session ses2(pack);
+	sp.settings = pack;
+	lt::session ses2(sp);
 
 	int proxy_port = 0;
 	if (proxy_type)
@@ -165,17 +172,25 @@ void test_transfer(int proxy_type, settings_pack const& sett
 	torrent_handle tor1;
 	torrent_handle tor2;
 
+	int piece_size = 32 * 1024;
+	int timeout = 10;
+	if (flags & large_piece_size)
+	{
+		piece_size = 1024 * 1024;
+		timeout = 60;
+	}
+
 	create_directory("tmp1_transfer", ec);
 	std::ofstream file("tmp1_transfer/temporary");
-	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 32 * 1024, 13, false);
+	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", piece_size, 13, false);
 	file.close();
 
 	TEST_CHECK(exists(combine_path("tmp1_transfer", "temporary")));
 
-	add_torrent_params params;
-	params.storage_mode = storage_mode;
-	params.flags &= ~torrent_flags::paused;
-	params.flags &= ~torrent_flags::auto_managed;
+	add_torrent_params atp;
+	atp.storage_mode = storage_mode;
+	atp.flags &= ~torrent_flags::paused;
+	atp.flags &= ~torrent_flags::auto_managed;
 
 	wait_for_listen(ses1, "ses1");
 	wait_for_listen(ses2, "ses2");
@@ -185,7 +200,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 
 	// test using piece sizes smaller than 16kB
 	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, nullptr
-		, true, false, true, "_transfer", 1024 * 1024, &t, false, &params);
+		, true, false, true, "_transfer", 1024 * 1024, &t, false, &atp);
 
 	int num_pieces = tor2.torrent_file()->num_pieces();
 	std::vector<int> priorities(std::size_t(num_pieces), 1);
@@ -208,7 +223,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 
 	for (int i = 0; i < 20000; ++i)
 	{
-		if (lt::clock_type::now() - start_time > seconds(10))
+		if (lt::clock_type::now() - start_time > seconds(timeout))
 		{
 			std::cout << "timeout\n";
 			break;
@@ -334,10 +349,17 @@ TORRENT_TEST(i2p)
 	cleanup();
 }
 */
-TORRENT_TEST(move_storage)
+TORRENT_TEST(move_storage_mmap)
 {
 	using namespace lt;
-	test_transfer(0, settings_pack(), move_storage);
+	test_transfer(0, settings_pack(), move_storage, storage_mode_sparse, mmap_disk_io_constructor);
+	cleanup();
+}
+
+TORRENT_TEST(move_storage_posix)
+{
+	using namespace lt;
+	test_transfer(0, settings_pack(), move_storage, storage_mode_sparse, posix_disk_io_constructor);
 	cleanup();
 }
 
@@ -348,12 +370,21 @@ TORRENT_TEST(piece_deadline)
 	cleanup();
 }
 
-TORRENT_TEST(delete_files)
+TORRENT_TEST(delete_files_mmap)
 {
 	using namespace lt;
 	settings_pack p = settings_pack();
 	p.set_int(settings_pack::aio_threads, 10);
-	test_transfer(0, p, delete_files);
+	test_transfer(0, p, delete_files, storage_mode_sparse, mmap_disk_io_constructor);
+	cleanup();
+}
+
+TORRENT_TEST(delete_files_posix)
+{
+	using namespace lt;
+	settings_pack p = settings_pack();
+	p.set_int(settings_pack::aio_threads, 10);
+	test_transfer(0, p, delete_files, storage_mode_sparse, posix_disk_io_constructor);
 	cleanup();
 }
 
@@ -368,12 +399,40 @@ TORRENT_TEST(allow_fast)
 	cleanup();
 }
 
-TORRENT_TEST(allocate)
+TORRENT_TEST(large_pieces_mmap)
+{
+	using namespace lt;
+	std::printf("large pieces\n");
+	test_transfer(0, settings_pack(), large_piece_size, storage_mode_sparse, mmap_disk_io_constructor);
+
+	cleanup();
+}
+
+TORRENT_TEST(large_pieces_posix)
+{
+	using namespace lt;
+	std::printf("large pieces\n");
+	test_transfer(0, settings_pack(), large_piece_size, storage_mode_sparse, posix_disk_io_constructor);
+
+	cleanup();
+}
+
+TORRENT_TEST(allocate_mmap)
 {
 	using namespace lt;
 	// test storage_mode_allocate
 	std::printf("full allocation mode\n");
-	test_transfer(0, settings_pack(), {}, storage_mode_allocate);
+	test_transfer(0, settings_pack(), {}, storage_mode_allocate, mmap_disk_io_constructor);
+
+	cleanup();
+}
+
+TORRENT_TEST(allocate_posix)
+{
+	using namespace lt;
+	// test storage_mode_allocate
+	std::printf("full allocation mode\n");
+	test_transfer(0, settings_pack(), {}, storage_mode_allocate, posix_disk_io_constructor);
 
 	cleanup();
 }
@@ -388,23 +447,42 @@ TORRENT_TEST(suggest)
 	cleanup();
 }
 
-TORRENT_TEST(disable_os_cache)
+TORRENT_TEST(disable_os_cache_mmap)
 {
 	using namespace lt;
 	settings_pack p = settings();
 	p.set_int(settings_pack::disk_io_write_mode, settings_pack::disable_os_cache);
-	test_transfer(0, p, {}, storage_mode_allocate);
+	test_transfer(0, p, {}, storage_mode_allocate, mmap_disk_io_constructor);
 
 	cleanup();
 }
 
+TORRENT_TEST(disable_os_cache_posix)
+{
+	using namespace lt;
+	settings_pack p = settings();
+	p.set_int(settings_pack::disk_io_write_mode, settings_pack::disable_os_cache);
+	test_transfer(0, p, {}, storage_mode_allocate, posix_disk_io_constructor);
 
-TORRENT_TEST(write_through)
+	cleanup();
+}
+
+TORRENT_TEST(write_through_mmap)
 {
 	using namespace lt;
 	settings_pack p = settings();
 	p.set_int(settings_pack::disk_io_write_mode, settings_pack::write_through);
-	test_transfer(0, p, {}, storage_mode_allocate);
+	test_transfer(0, p, {}, storage_mode_allocate, mmap_disk_io_constructor);
+
+	cleanup();
+}
+
+TORRENT_TEST(write_through_posix)
+{
+	using namespace lt;
+	settings_pack p = settings();
+	p.set_int(settings_pack::disk_io_write_mode, settings_pack::write_through);
+	test_transfer(0, p, {}, storage_mode_allocate, posix_disk_io_constructor);
 
 	cleanup();
 }
