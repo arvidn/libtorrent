@@ -48,11 +48,7 @@ namespace libtorrent::aux {
 #elif TORRENT_USE_CNG
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
 #elif defined TORRENT_USE_LIBCRYPTO
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
 		m_context = EVP_MD_CTX_new();
-#else
-		m_context = EVP_MD_CTX_create();
-#endif
 		EVP_DigestInit_ex(m_context, EVP_sha512(), nullptr);
 #else
 		SHA512_init(&m_context);
@@ -176,11 +172,7 @@ namespace libtorrent::aux {
 #if defined TORRENT_USE_LIBGCRYPT
 		gcry_md_close(m_context);
 #elif defined TORRENT_USE_LIBCRYPTO
-#if OPENSSL_VERSION_NUMBER >= 0x10100000L
 		if (m_context) EVP_MD_CTX_free(m_context);
-#else
-		if (m_context) EVP_MD_CTX_destroy(m_context);
-#endif
 #endif
 	}
 

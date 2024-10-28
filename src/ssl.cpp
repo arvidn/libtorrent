@@ -155,32 +155,11 @@ namespace {
 	{
 		lifecycle()
 		{
-			// this is needed for openssl < 1.0 to decrypt keys created by openssl 1.0+
-#if !defined(OPENSSL_API_COMPAT) || (OPENSSL_API_COMPAT < 0x10100000L)
-			OpenSSL_add_all_algorithms();
-#else
 			OPENSSL_init_crypto(OPENSSL_INIT_ADD_ALL_CIPHERS | OPENSSL_INIT_ADD_ALL_DIGESTS, nullptr);
-#endif
 		}
 
-		~lifecycle()
-		{
-// by openssl changelog at https://www.openssl.org/news/changelog.html
-// Changes between 1.0.2h and 1.1.0  [25 Aug 2016]
-// - Most global cleanup functions are no longer required because they are handled
-//   via auto-deinit. Affected function CRYPTO_cleanup_all_ex_data()
-#if !defined(OPENSSL_API_COMPAT) || OPENSSL_API_COMPAT < 0x10100000L
-#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
-			// openssl requires this to clean up internal structures it allocates
-			CRYPTO_cleanup_all_ex_data();
-#ifdef TORRENT_MACOS_DEPRECATED_LIBCRYPTO
-#pragma clang diagnostic pop
-#endif
-#endif
-		}
+		// put openssl cleanup code here if necessary
+		~lifecycle() = default;
 	} global;
 }
 #endif
