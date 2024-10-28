@@ -133,6 +133,29 @@ namespace libtorrent::aux {
 
 		return int(bytes_written);
 	}
+
+	int pwritev_all(handle_type const handle
+		, span<span<char const> const> bufs
+		, std::int64_t file_offset
+		, error_code& ec)
+	{
+		TORRENT_ASSERT(bufs.size() > 0);
+		if (bufs.size() == 1)
+			return pwrite_all(handle, bufs[0], file_offset, ec);
+
+		int ret = 0;
+		// TODO: if we have more than 1 buffer, coalesce into a single buffer
+		// and a single call
+		for (auto const b : bufs)
+		{
+			int r = pwrite_all(handle, b, file_offset, ec);
+			if (ec) return -1;
+			TORRENT_ASSERT(r > 0);
+			file_offset += r;
+			ret += r;
+		}
+		return ret;
+	}
 #else
 
 	int pread_all(handle_type const handle
