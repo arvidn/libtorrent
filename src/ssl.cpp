@@ -157,9 +157,6 @@ namespace {
 		{
 			OPENSSL_init_crypto(OPENSSL_INIT_ADD_ALL_CIPHERS | OPENSSL_INIT_ADD_ALL_DIGESTS, nullptr);
 		}
-
-		// put openssl cleanup code here if necessary
-		~lifecycle() = default;
 	} global;
 }
 #endif
