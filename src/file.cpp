@@ -91,6 +91,10 @@ see LICENSE file.
 
 #endif // posix part
 
+#if TORRENT_USE_PWRITEV && defined TORRENT_BSD
+#include <sys/uio.h> // for pwritev() and iovec
+#endif
+
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/aux_/alloca.hpp"
@@ -99,11 +103,11 @@ namespace libtorrent::aux {
 
 #if TORRENT_USE_PWRITEV
 namespace {
-	span<iovec> advance_iovec(span<iovec> bufs, std::size_t advance_bytes)
+	span<iovec> advance_iovec(span<iovec> bufs, ssize_t advance_bytes)
 	{
 		while (advance_bytes > 0)
 		{
-			if (bufs.front().iov_len <= advance_bytes)
+			if (static_cast<ssize_t>(bufs.front().iov_len) <= advance_bytes)
 			{
 				advance_bytes -= bufs.front().iov_len;
 				bufs = bufs.subspan(1);
@@ -128,11 +132,11 @@ namespace {
 		for (int i = 0; i < bufs.size(); ++i)
 		{
 			vec[i].iov_base = const_cast<char*>(bufs[i].data());
-			vec[i].iov_len = bufs[i].size();
+			vec[i].iov_len = static_cast<size_t>(bufs[i].size());
 		}
 
 		do {
-			auto const r = ::pwritev(handle, vec.data(), vec.size(), file_offset);
+			ssize_t const r = ::pwritev(handle, vec.data(), vec.size(), file_offset);
 			if (r == 0)
 			{
 				ec = boost::asio::error::eof;
@@ -162,7 +166,7 @@ namespace {
 		int ret = 0;
 		// TODO: if we have more than 1 buffer, coalesce into a single buffer
 		// and a single call
-		for (auto const b : bufs)
+		for (auto const& b : bufs)
 		{
 			int r = pwrite_all(handle, b, file_offset, ec);
 			if (ec) return -1;
