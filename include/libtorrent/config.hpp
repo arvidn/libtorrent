@@ -129,7 +129,7 @@ see LICENSE file.
 #endif
 
 // Mac platforms added support for preadv()/pwritev() in MacOS 11, iOS 14 etc.
-#if defined MAC_OS_X_VERSION_MIN_REQUIRED && MAC_OS_X_VERSION_MIN_REQUIRED >= 110000
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= 110000
 # define TORRENT_USE_PWRITEV 1
 #endif
 
@@ -152,6 +152,7 @@ see LICENSE file.
 // non-Apple BSD
 #define TORRENT_USE_GETRANDOM 1
 #define TORRENT_HAS_PTHREAD_SET_NAME 1
+#define TORRENT_USE_PWRITEV 1
 
 #endif // __APPLE__
 
@@ -167,7 +168,6 @@ see LICENSE file.
 #define TORRENT_USE_IFADDRS 1
 #define TORRENT_USE_SYSCTL 1
 #define TORRENT_USE_IFCONF 1
-#define TORRENT_USE_PWRITEV 1
 
 
 // ==== LINUX ===

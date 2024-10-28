@@ -92,7 +92,9 @@ see LICENSE file.
 #endif // posix part
 
 #if TORRENT_USE_PWRITEV && defined TORRENT_BSD
+#include <unistd.h>
 #include <sys/uio.h> // for pwritev() and iovec
+#include <sys/types.h> // for pwritev() and iovec
 #endif
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -115,7 +117,7 @@ namespace {
 			}
 
 			bufs.front().iov_base = static_cast<char*>(bufs.front().iov_base) + advance_bytes;
-			bufs.front().iov_len -= advance_bytes;
+			bufs.front().iov_len -= static_cast<size_t>(advance_bytes);
 			return bufs;
 		}
 		return bufs;
@@ -127,6 +129,8 @@ namespace {
 		, std::int64_t file_offset
 		, error_code& ec)
 	{
+		// TODO: if bufs.size() > UIO_MAXIOV, we need to split up the call
+		// into multiple ones
 		int ret = 0;
 		TORRENT_ALLOCA(vec, iovec, bufs.size());
 		for (int i = 0; i < bufs.size(); ++i)
@@ -136,7 +140,7 @@ namespace {
 		}
 
 		do {
-			ssize_t const r = ::pwritev(handle, vec.data(), vec.size(), file_offset);
+			ssize_t const r = ::pwritev(handle, vec.data(), static_cast<int>(vec.size()), file_offset);
 			if (r == 0)
 			{
 				ec = boost::asio::error::eof;

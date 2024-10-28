@@ -37,10 +37,6 @@ see LICENSE file.
 #define _GNU_SOURCE
 #endif
 
-#ifndef _XOPEN_SOURCE
-#define _XOPEN_SOURCE 600
-#endif
-
 #include <unistd.h>
 #include <sys/uio.h>
 #include <fcntl.h>
