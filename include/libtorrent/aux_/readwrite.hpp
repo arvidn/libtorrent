@@ -182,8 +182,8 @@ inline span<span<Char>> advance_bufs(span<span<Char>> bufs, int const bytes)
 			return bufs;
 		}
 		bufs = bufs.subspan(1);
+		if (bufs.empty()) return bufs;
 	}
-	return bufs;
 }
 
 template <typename Char>
