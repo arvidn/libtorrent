@@ -128,6 +128,23 @@ see LICENSE file.
 #define TORRENT_USE_SC_NETWORK_REACHABILITY 1
 #endif
 
+// Mac platforms added support for preadv()/pwritev() in MacOS 11, iOS 14 etc.
+#if defined MAC_OS_X_VERSION_MIN_REQUIRED && MAC_OS_X_VERSION_MIN_REQUIRED >= 110000
+# define TORRENT_USE_PWRITEV 1
+#endif
+
+#if defined __IPHONE_OS_VERSION_MIN_REQUIRED && __IPHONE_OS_VERSION_MIN_REQUIRED >= 140000
+# define TORRENT_USE_PWRITEV 1
+#endif
+
+#if defined __TV_OS_VERSION_MIN_REQUIRED && __TV_OS_VERSION_MIN_REQUIRED >= 140000
+# define TORRENT_USE_PWRITEV 1
+#endif
+
+#if defined __WATCH_OS_VERSION_MIN_REQUIRED && __WATCH_OS_VERSION_MIN_REQUIRED >= 70000
+# define TORRENT_USE_PWRITEV 1
+#endif
+
 #define TORRENT_USE_DEV_RANDOM 1
 
 #else
@@ -150,6 +167,7 @@ see LICENSE file.
 #define TORRENT_USE_IFADDRS 1
 #define TORRENT_USE_SYSCTL 1
 #define TORRENT_USE_IFCONF 1
+#define TORRENT_USE_PWRITEV 1
 
 
 // ==== LINUX ===
@@ -158,6 +176,12 @@ see LICENSE file.
 
 #ifndef TORRENT_HAVE_MMAP
 #define TORRENT_HAVE_MMAP 1
+#endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30) && !defined __ANDROID__
+# define TORRENT_USE_PWRITEV 1
+#else
+# define TORRENT_USE_PWRITEV 0
 #endif
 
 #if defined __GLIBC__ && (__GLIBC__ < 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ < 27))
@@ -566,6 +590,11 @@ see LICENSE file.
 
 #ifndef TORRENT_HAS_FSYNC_RANGE
 #define TORRENT_HAS_FSYNC_RANGE 0
+#endif
+
+// if pwritev() exists
+#ifndef TORRENT_USE_PWRITEV
+#define TORRENT_USE_PWRITEV 0
 #endif
 
 // debug builds have asserts enabled by default, release

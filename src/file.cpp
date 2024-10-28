@@ -97,117 +97,7 @@ see LICENSE file.
 
 namespace libtorrent::aux {
 
-#ifdef TORRENT_WINDOWS
-	int pread_all(handle_type const fd
-		, span<char> const buf
-		, std::int64_t const offset
-		, error_code& ec)
-	{
-		OVERLAPPED ol{};
-		ol.Offset = offset & 0xffffffff;
-		ol.OffsetHigh = offset >> 32;
-		DWORD bytes_read = 0;
-		if (ReadFile(fd, buf.data(), DWORD(buf.size()), &bytes_read, &ol) == FALSE)
-		{
-			ec = error_code(::GetLastError(), system_category());
-			return -1;
-		}
-
-		return int(bytes_read);
-	}
-
-	int pwrite_all(handle_type const fd
-		, span<char const> const buf
-		, std::int64_t const offset
-		, error_code& ec)
-	{
-		OVERLAPPED ol{};
-		ol.Offset = offset & 0xffffffff;
-		ol.OffsetHigh = offset >> 32;
-		DWORD bytes_written = 0;
-		if (WriteFile(fd, buf.data(), DWORD(buf.size()), &bytes_written, &ol) == FALSE)
-		{
-			ec = error_code(::GetLastError(), system_category());
-			return -1;
-		}
-
-		return int(bytes_written);
-	}
-
-	int pwritev_all(handle_type const handle
-		, span<span<char const> const> bufs
-		, std::int64_t file_offset
-		, error_code& ec)
-	{
-		TORRENT_ASSERT(bufs.size() > 0);
-		if (bufs.size() == 1)
-			return pwrite_all(handle, bufs[0], file_offset, ec);
-
-		int ret = 0;
-		// TODO: if we have more than 1 buffer, coalesce into a single buffer
-		// and a single call
-		for (auto const b : bufs)
-		{
-			int r = pwrite_all(handle, b, file_offset, ec);
-			if (ec) return -1;
-			TORRENT_ASSERT(r > 0);
-			file_offset += r;
-			ret += r;
-		}
-		return ret;
-	}
-#else
-
-	int pread_all(handle_type const handle
-		, span<char> buf
-		, std::int64_t file_offset
-		, error_code& ec)
-	{
-		int ret = 0;
-		do {
-			auto const r = ::pread(handle, buf.data(), std::size_t(buf.size()), file_offset);
-			if (r == 0)
-			{
-				ec = boost::asio::error::eof;
-				return ret;
-			}
-			if (r < 0)
-			{
-				ec = error_code(errno, system_category());
-				return ret;
-			}
-			ret += r;
-			file_offset += r;
-			buf = buf.subspan(r);
-		} while (buf.size() > 0);
-		return ret;
-	}
-
-	int pwrite_all(handle_type const handle
-		, span<char const> buf
-		, std::int64_t file_offset
-		, error_code& ec)
-	{
-		int ret = 0;
-		do {
-			auto const r = ::pwrite(handle, buf.data(), std::size_t(buf.size()), file_offset);
-			if (r == 0)
-			{
-				ec = boost::asio::error::eof;
-				return ret;
-			}
-			if (r < 0)
-			{
-				ec = error_code(errno, system_category());
-				return -1;
-			}
-			ret += r;
-			file_offset += r;
-			buf = buf.subspan(r);
-		} while (buf.size() > 0);
-		return ret;
-	}
-
+#if TORRENT_USE_PWRITEV
 namespace {
 	span<iovec> advance_iovec(span<iovec> bufs, std::size_t advance_bytes)
 	{
@@ -257,6 +147,119 @@ namespace {
 			file_offset += r;
 			vec = advance_iovec(vec, r);
 		} while (vec.size() > 0);
+		return ret;
+	}
+#else
+	int pwritev_all(handle_type const handle
+		, span<span<char const> const> bufs
+		, std::int64_t file_offset
+		, error_code& ec)
+	{
+		TORRENT_ASSERT(bufs.size() > 0);
+		if (bufs.size() == 1)
+			return pwrite_all(handle, bufs[0], file_offset, ec);
+
+		int ret = 0;
+		// TODO: if we have more than 1 buffer, coalesce into a single buffer
+		// and a single call
+		for (auto const b : bufs)
+		{
+			int r = pwrite_all(handle, b, file_offset, ec);
+			if (ec) return -1;
+			TORRENT_ASSERT(r > 0);
+			file_offset += r;
+			ret += r;
+		}
+		return ret;
+	}
+#endif
+
+#ifdef TORRENT_WINDOWS
+	int pread_all(handle_type const fd
+		, span<char> const buf
+		, std::int64_t const offset
+		, error_code& ec)
+	{
+		OVERLAPPED ol{};
+		ol.Offset = offset & 0xffffffff;
+		ol.OffsetHigh = offset >> 32;
+		DWORD bytes_read = 0;
+		if (ReadFile(fd, buf.data(), DWORD(buf.size()), &bytes_read, &ol) == FALSE)
+		{
+			ec = error_code(::GetLastError(), system_category());
+			return -1;
+		}
+
+		return int(bytes_read);
+	}
+
+	int pwrite_all(handle_type const fd
+		, span<char const> const buf
+		, std::int64_t const offset
+		, error_code& ec)
+	{
+		OVERLAPPED ol{};
+		ol.Offset = offset & 0xffffffff;
+		ol.OffsetHigh = offset >> 32;
+		DWORD bytes_written = 0;
+		if (WriteFile(fd, buf.data(), DWORD(buf.size()), &bytes_written, &ol) == FALSE)
+		{
+			ec = error_code(::GetLastError(), system_category());
+			return -1;
+		}
+
+		return int(bytes_written);
+	}
+
+#else
+
+	int pread_all(handle_type const handle
+		, span<char> buf
+		, std::int64_t file_offset
+		, error_code& ec)
+	{
+		int ret = 0;
+		do {
+			auto const r = ::pread(handle, buf.data(), std::size_t(buf.size()), file_offset);
+			if (r == 0)
+			{
+				ec = boost::asio::error::eof;
+				return ret;
+			}
+			if (r < 0)
+			{
+				ec = error_code(errno, system_category());
+				return ret;
+			}
+			ret += r;
+			file_offset += r;
+			buf = buf.subspan(r);
+		} while (buf.size() > 0);
+		return ret;
+	}
+
+	int pwrite_all(handle_type const handle
+		, span<char const> buf
+		, std::int64_t file_offset
+		, error_code& ec)
+	{
+		int ret = 0;
+		do {
+			auto const r = ::pwrite(handle, buf.data(), std::size_t(buf.size()), file_offset);
+			if (r == 0)
+			{
+				ec = boost::asio::error::eof;
+				return ret;
+			}
+			if (r < 0)
+			{
+				ec = error_code(errno, system_category());
+				return -1;
+			}
+			ret += r;
+			file_offset += r;
+			buf = buf.subspan(r);
+		} while (buf.size() > 0);
 		return ret;
 	}
 #endif
