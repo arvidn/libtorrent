@@ -1241,6 +1241,19 @@ void fill_pattern(span<char> buf)
 	}
 }
 
+void fill_pattern(span<span<char> const> bufs)
+{
+	int counter = 0;
+	for (auto const& buf : bufs)
+	{
+		for (char& v : buf)
+		{
+			v = char(counter & 0xff);
+			++counter;
+		}
+	}
+}
+
 bool check_pattern(std::vector<char> const& buf, int counter)
 {
 	unsigned char const* p = reinterpret_cast<unsigned char const*>(buf.data());
@@ -1252,7 +1265,85 @@ bool check_pattern(std::vector<char> const& buf, int counter)
 	return true;
 }
 
+template <typename Char>
+void alloc_iov(span<Char>* iov, int num_bufs)
+{
+	for (std::size_t i = 0; i < static_cast<size_t>(num_bufs); ++i)
+	{
+		std::size_t const len = static_cast<std::size_t>(num_bufs) * (i + 1);
+		iov[i] = { new char[len], static_cast<std::ptrdiff_t>(len) };
+	}
+}
+
+// TODO: this should take a span
+template <typename Char>
+void free_iov(span<Char>* iov, int num_bufs)
+{
+       for (int i = 0; i < num_bufs; ++i)
+       {
+               delete[] iov[i].data();
+               iov[i] = { nullptr, 0 };
+       }
+}
+
 } // anonymous namespace
+
+TORRENT_TEST(iovec_advance_bufs)
+{
+	span<char> iov1[10];
+	span<char const> iov2[10];
+	alloc_iov(iov1, 10);
+	fill_pattern({iov1, 10});
+
+	memcpy(iov2, iov1, sizeof(iov1));
+
+	span<span<char const>> iov = iov2;
+
+	// advance iov 13 bytes. Make sure what's left fits pattern 1 shifted
+	// 13 bytes
+	iov = aux::advance_bufs(iov, 13);
+
+	// make sure what's in
+	int counter = 13;
+	for (auto buf : iov)
+	{
+		for (char v : buf)
+		{
+			TEST_EQUAL(v, static_cast<char>(counter));
+			++counter;
+		}
+	}
+
+	free_iov(iov1, 10);
+}
+
+TORRENT_TEST(iovec_copy_bufs)
+{
+	span<char> iov1[10];
+	span<char> iov2[10];
+
+	alloc_iov(iov1, 10);
+	fill_pattern({iov1, 10});
+
+	// copy exactly 106 bytes from iov1 to iov2
+	int num_bufs = aux::copy_bufs(span<span<char> const>(iov1), 106, span<span<char>>(iov2));
+
+	// verify that the first 100 bytes is pattern 1
+	// and that the remaining bytes are pattern 2
+
+	int counter = 0;
+	for (int i = 0; i < num_bufs; ++i)
+	{
+		for (char v : iov2[i])
+		{
+			TEST_EQUAL(int(v), (counter & 0xff));
+			++counter;
+		}
+	}
+	TEST_EQUAL(counter, 106);
+
+	free_iov(iov1, 10);
+}
 
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 TORRENT_TEST(mmap_disk_io) { run_test<mmap_storage>(); }
@@ -1907,9 +1998,9 @@ TORRENT_TEST(posix_unaligned_read_both_store_buffer)
 	test_unaligned_read(lt::posix_disk_io_constructor, none_from_store_buffer);
 }
 
-TORRENT_TEST(span<span<char const>> const bufs)
+TORRENT_TEST(iovec_bufs)
 {
-	iovec_t iov[10];
+	span<char const> iov[10];
 
 	for (int i = 1; i < 10; ++i)
 	{
@@ -1917,7 +2008,7 @@ TORRENT_TEST(span<span<char const>> const bufs)
 
 		int expected_size = 0;
 		for (int k = 0; k < i; ++k) expected_size += i * (k + 1);
-		TEST_EQUAL(bufs_size({iov, i}), expected_size);
+		TEST_EQUAL(aux::bufs_size(span<span<char const> const>(&iov[0], i)), expected_size);
 
 		free_iov(iov, i);
 	}

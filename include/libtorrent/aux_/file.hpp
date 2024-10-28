@@ -70,6 +70,11 @@ namespace libtorrent::aux {
 		, std::int64_t file_offset
 		, error_code& ec);
 
+	int pwritev_all(handle_type handle
+		, span<span<char const> const> bufs
+		, std::int64_t file_offset
+		, error_code& ec);
+
 	int pread_all(handle_type handle
 		, span<char> buf
 		, std::int64_t file_offset

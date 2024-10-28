@@ -93,6 +93,8 @@ see LICENSE file.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
+#include "libtorrent/aux_/alloca.hpp"
+
 namespace libtorrent::aux {
 
 #ifdef TORRENT_WINDOWS
@@ -180,6 +182,58 @@ namespace libtorrent::aux {
 			file_offset += r;
 			buf = buf.subspan(r);
 		} while (buf.size() > 0);
+		return ret;
+	}
+
+namespace {
+	span<iovec> advance_iovec(span<iovec> bufs, std::size_t advance_bytes)
+	{
+		while (advance_bytes > 0)
+		{
+			if (bufs.front().iov_len <= advance_bytes)
+			{
+				advance_bytes -= bufs.front().iov_len;
+				bufs = bufs.subspan(1);
+				continue;
+			}
+
+			bufs.front().iov_base = static_cast<char*>(bufs.front().iov_base) + advance_bytes;
+			bufs.front().iov_len -= advance_bytes;
+			return bufs;
+		}
+		return bufs;
+	}
+}
+
+	int pwritev_all(handle_type const handle
+		, span<span<char const> const> bufs
+		, std::int64_t file_offset
+		, error_code& ec)
+	{
+		int ret = 0;
+		TORRENT_ALLOCA(vec, iovec, bufs.size());
+		for (int i = 0; i < bufs.size(); ++i)
+		{
+			vec[i].iov_base = const_cast<char*>(bufs[i].data());
+			vec[i].iov_len = bufs[i].size();
+		}
+
+		do {
+			auto const r = ::pwritev(handle, vec.data(), vec.size(), file_offset);
+			if (r == 0)
+			{
+				ec = boost::asio::error::eof;
+				return ret;
+			}
+			if (r < 0)
+			{
+				ec = error_code(errno, system_category());
+				return -1;
+			}
+			ret += r;
+			file_offset += r;
+			vec = advance_iovec(vec, r);
+		} while (vec.size() > 0);
 		return ret;
 	}
 #endif

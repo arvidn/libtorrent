@@ -19,6 +19,7 @@ see LICENSE file.
 #include "libtorrent/span.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/socket.hpp"
+#include "libtorrent/aux_/alloca.hpp"
 
 namespace libtorrent::aux {
 
@@ -69,7 +70,7 @@ int readwrite_vec(file_storage const& files, span<span<char const> const> bufs
 #if TORRENT_USE_ASSERTS
 namespace {
 
-	int count_bufs(span<span<char const> const> bufs, int bytes)
+	inline int count_bufs(span<span<char const> const> bufs, int bytes)
 	{
 		std::ptrdiff_t size = 0;
 		int count = 0;
@@ -167,6 +168,52 @@ int readwrite_impl(file_storage const& files, span<Char> buf
 	return ret;
 }
 
+template <typename Char>
+inline span<span<Char>> advance_bufs(span<span<Char>> bufs, int const bytes)
+{
+	TORRENT_ASSERT(bytes >= 0);
+	std::ptrdiff_t size = 0;
+	for (;;)
+	{
+		size += bufs.front().size();
+		if (size >= bytes)
+		{
+			bufs.front() = bufs.front().last(size - bytes);
+			return bufs;
+		}
+		bufs = bufs.subspan(1);
+	}
+	return bufs;
+}
+
+template <typename Char>
+int copy_bufs(span<span<Char> const> src_bufs, int bytes
+	, span<span<Char>> target)
+{
+	TORRENT_ASSERT(bytes >= 0);
+	auto dst = target.begin();
+	int ret = 0;
+	if (bytes == 0) return ret;
+	for (span<Char> const& src : src_bufs)
+	{
+		auto const to_copy = std::min(src.size(), std::ptrdiff_t(bytes));
+		*dst = src.first(to_copy);
+		bytes -= int(to_copy);
+		++ret;
+		++dst;
+		if (bytes <= 0) return ret;
+	}
+	return ret;
+}
+
+template <typename Char>
+int bufs_size(span<span<Char> const> bufs)
+{
+	std::ptrdiff_t size = 0;
+	for (auto buf : bufs) size += buf.size();
+	return int(size);
+}
+
 template <typename Char, typename Fun>
 int readwrite_vec_impl(file_storage const& files, span<span<Char> const> bufs
 	, piece_index_t const piece, const int offset
@@ -199,11 +246,14 @@ int readwrite_vec_impl(file_storage const& files, span<span<Char> const> bufs
 	// copy the iovec array so we can use it to keep track of our current
 	// location by updating the head base pointer and size. (see
 	// advance_bufs())
-	TORRENT_ALLOCA(current_buf, iovec_t, bufs.size());
+
+	// TODO: is it really necessary to make two copies of the iovecs? The low-level
+	// system call will need to make its own copy as well
+	TORRENT_ALLOCA(current_buf, span<Char>, bufs.size());
 	copy_bufs(bufs, size, current_buf);
 	TORRENT_ASSERT(count_bufs(current_buf, size) == int(bufs.size()));
 
-	TORRENT_ALLOCA(tmp_buf, iovec_t, bufs.size());
+	TORRENT_ALLOCA(tmp_buf, span<Char>, bufs.size());
 	while (bytes_left > 0)
 	{
 		// the number of bytes left to read in the current file (specified by
@@ -233,7 +283,7 @@ int readwrite_vec_impl(file_storage const& files, span<span<Char> const> bufs
 
 		// make a copy of the iovec array that _just_ covers the next
 		// file_bytes_left bytes, i.e. just this one operation
-		int const tmp_bufs_used = copy_bufs(current_buf, file_bytes_left, tmp_buf);
+		int const tmp_bufs_used = copy_bufs(span<span<char const> const>(current_buf), file_bytes_left, tmp_buf);
 
 		int const bytes_transferred = op(file_index, file_offset
 			, tmp_buf.first(tmp_bufs_used), ec);

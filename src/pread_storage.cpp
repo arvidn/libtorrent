@@ -502,18 +502,18 @@ namespace {
 		, span<span<char const> const> buffers
 		, piece_index_t const piece, int offset
 		, open_mode_t const mode
-		, disk_job_flags_t const flags
+		, disk_job_flags_t
 		, storage_error& error)
 	{
 		auto const write_mode = sett.get_int(settings_pack::disk_io_write_mode);
 		return readwrite_vec(files(), buffers, piece, offset, error
 			, [this, mode, &sett, write_mode](file_index_t const file_index
 				, std::int64_t const file_offset
-				, span<span<char const> const> buf, storage_error& ec)
+				, span<span<char const> const> const bufs, storage_error& ec)
 		{
 			// writing to a pad-file is a no-op
 			if (files().pad_file_at(file_index))
-				return bufs_size(buffers);
+				return bufs_size(bufs);
 
 			if (file_index < m_file_priority.end_index()
 				&& m_file_priority[file_index] == dont_download
@@ -524,7 +524,8 @@ namespace {
 				error_code e;
 				peer_request map = files().map_file(file_index
 					, file_offset, 0);
-				int const ret = m_part_file->write(buf, map.piece, map.start, e);
+				TORRENT_ASSERT(bufs.size() == 1);
+				int const ret = m_part_file->write(bufs.front(), map.piece, map.start, e);
 
 				if (e)
 				{
@@ -548,7 +549,7 @@ namespace {
 			// short reads as errors
 			ec.operation = operation_t::file_write;
 
-			int const ret = pwrite_all(handle->fd(), buf, file_offset, ec.ec);
+			int const ret = pwritev_all(handle->fd(), bufs, file_offset, ec.ec);
 			if (ec.ec)
 			{
 				ec.file(file_index);
@@ -556,7 +557,7 @@ namespace {
 				return ret;
 			}
 			if (write_mode == settings_pack::write_through)
-				sync_file(handle->fd(), file_offset, buf.size());
+				sync_file(handle->fd(), file_offset, bufs_size(bufs));
 			return ret;
 		});
 	}
