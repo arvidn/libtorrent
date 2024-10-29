@@ -106,7 +106,8 @@ namespace libtorrent::aux {
 			mi::indexed_by<
 			// look up files by (torrent, file) key
 			mi::ordered_unique<mi::member<FileEntry, file_id, &FileEntry::key>>,
-			// look up files by least recently used
+			// look up files by least recently used. New items are added to the
+			// back, and old items are removed from the front.
 			mi::sequenced<>
 			>
 		>;
