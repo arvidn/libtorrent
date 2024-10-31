@@ -58,7 +58,7 @@ TORRENT_TEST(init)
 	for (auto const idx : fs.piece_range())
 	{
 		piece_picker picker(fs.total_size(), fs.piece_length());
-		picker.we_have(idx);
+		picker.piece_flushed(idx);
 
 		aux::file_progress fp;
 		fp.init(picker, fs);
@@ -90,7 +90,7 @@ TORRENT_TEST(init2)
 	for (auto const idx : fs.piece_range())
 	{
 		piece_picker picker(fs.total_size(), fs.piece_length());
-		picker.we_have(idx);
+		picker.piece_flushed(idx);
 
 		aux::vector<std::int64_t, file_index_t> vec;
 		aux::file_progress fp;

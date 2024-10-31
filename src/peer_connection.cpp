@@ -542,7 +542,7 @@ namespace libtorrent {
 			{
 				if (m_have_piece[j]
 					&& t->piece_priority(j) > dont_download
-					&& !p.has_piece_passed(j))
+					&& !p.have_piece(j))
 				{
 					interested = true;
 #ifndef TORRENT_DISABLE_LOGGING
@@ -2084,7 +2084,7 @@ namespace libtorrent {
 		// it's important to update whether we're interested in this peer before
 		// calling disconnect_if_redundant, otherwise we may disconnect even if
 		// we are interested
-		if (!t->has_piece_passed(index)
+		if (!t->have_piece(index)
 			&& !t->is_upload_only()
 			&& !is_interesting()
 			&& (!t->has_picker() || t->picker().piece_priority(index) != dont_download))
@@ -2418,7 +2418,7 @@ namespace libtorrent {
 					, valid_piece_index
 						? t->torrent_file().piece_size(r.piece) : -1
 					, t->torrent_file().num_pieces()
-					, valid_piece_index ? t->has_piece_passed(r.piece) : 0
+					, valid_piece_index ? t->have_piece(r.piece) : 0
 					, static_cast<int>(m_superseed_piece[0])
 					, static_cast<int>(m_superseed_piece[1]));
 			}
@@ -2433,7 +2433,7 @@ namespace libtorrent {
 				bool const peer_interested = bool(m_peer_interested);
 				t->alerts().emplace_alert<invalid_request_alert>(
 					t->get_handle(), m_remote, m_peer_id, r
-					, t->has_piece_passed(r.piece), peer_interested, true);
+					, t->user_have_piece(r.piece), peer_interested, true);
 			}
 			return;
 		}
@@ -2502,7 +2502,7 @@ namespace libtorrent {
 			{
 				t->alerts().emplace_alert<invalid_request_alert>(
 					t->get_handle(), m_remote, m_peer_id, r
-					, t->has_piece_passed(r.piece)
+					, t->user_have_piece(r.piece)
 					, false, false);
 			}
 
@@ -2515,7 +2515,7 @@ namespace libtorrent {
 		// is not choked
 		if (r.piece < piece_index_t(0)
 			|| r.piece >= t->torrent_file().end_piece()
-			|| (!t->has_piece_passed(r.piece)
+			|| (!t->user_have_piece(r.piece)
 #ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
 				&& !t->is_predictive_piece(r.piece)
 #endif
@@ -2537,7 +2537,7 @@ namespace libtorrent {
 					, valid_piece_index
 						? t->torrent_file().piece_size(r.piece) : -1
 					, ti.num_pieces()
-					, t->has_piece_passed(r.piece)
+					, t->user_have_piece(r.piece)
 					, t->block_size());
 			}
 #endif
@@ -2553,7 +2553,7 @@ namespace libtorrent {
 				bool const peer_interested = bool(m_peer_interested);
 				t->alerts().emplace_alert<invalid_request_alert>(
 					t->get_handle(), m_remote, m_peer_id, r
-					, t->has_piece_passed(r.piece), peer_interested, false);
+					, t->user_have_piece(r.piece), peer_interested, false);
 			}
 
 			// every ten invalid request, remind the peer that it's choked
@@ -3516,7 +3516,7 @@ namespace libtorrent {
 		// to download it, request it
 		if (index < m_have_piece.end_index()
 			&& m_have_piece[index]
-			&& !t->has_piece_passed(index)
+			&& !t->have_piece(index)
 			&& t->valid_metadata()
 			&& t->has_picker()
 			&& t->picker().piece_priority(index) > dont_download)
@@ -4001,7 +4001,7 @@ namespace libtorrent {
 		{
 			std::shared_ptr<torrent> t = m_torrent.lock();
 			TORRENT_ASSERT(t);
-			TORRENT_ASSERT(t->has_piece_passed(piece));
+			TORRENT_ASSERT(t->have_piece(piece));
 			TORRENT_ASSERT(piece < t->torrent_file().end_piece());
 		}
 #endif
@@ -5354,7 +5354,7 @@ namespace libtorrent {
 				continue;
 			}
 
-			if (!t->has_piece_passed(r.piece) && !seed_mode)
+			if (!t->have_piece(r.piece) && !seed_mode)
 			{
 #ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
 				// we don't have this piece yet, but we anticipate to have
