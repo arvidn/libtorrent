@@ -631,7 +631,8 @@ bool pread_disk_io::async_write(storage_index_t const storage, peer_request cons
 		std::uint16_t(r.length)
 	);
 
-	DLOG("async_write: piece: %d offset: %d\n", int(r.piece), int(r.start));
+//#error take flush_piece flag into account. Record a list of force-flush pieces in the cache to be the top candidate
+	DLOG("async_write: piece: %d offset: %d flags: %x\n", int(r.piece), int(r.start), static_cast<std::uint8_t>(flags));
 	bool const need_kick = m_cache.insert({j->storage->storage_index(), r.piece}, r.start / default_block_size, j);
 
 	if (need_kick)
@@ -1459,7 +1460,7 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 
 		// if we need to flush the cache, let one of the generic threads do
 		// that
-		if (m_flush_target/* && &pool == &m_generic_threads*/)
+		if (m_flush_target && &pool == &m_generic_threads)
 		{
 			int const target_cache_size = *std::exchange(m_flush_target, std::nullopt);
 			DLOG("try_flush_cache(%d)\n", target_cache_size);
