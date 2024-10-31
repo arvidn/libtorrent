@@ -197,7 +197,7 @@ std::shared_ptr<piece_picker> setup_picker(
 	for (auto i = 0_piece; i < piece_index_t(num_pieces); ++i)
 	{
 		if (!have[i]) continue;
-		p->we_have(i);
+		p->piece_flushed(i);
 		for (int j = 0; j < blocks_per_piece; ++j)
 			TEST_CHECK(p->is_finished(piece_block(i, j)));
 	}
@@ -579,12 +579,12 @@ TORRENT_TEST(we_dont_have)
 {
 	// make sure we_dont_have works
 	auto p = setup_picker("1111111", "*******", "0100000", "");
-	TEST_CHECK(p->have_piece(1_piece));
-	TEST_CHECK(p->have_piece(2_piece));
+	TEST_CHECK(p->is_piece_flushed(1_piece));
+	TEST_CHECK(p->is_piece_flushed(2_piece));
 	p->we_dont_have(1_piece);
 	p->we_dont_have(2_piece);
-	TEST_CHECK(!p->have_piece(1_piece));
-	TEST_CHECK(!p->have_piece(2_piece));
+	TEST_CHECK(!p->is_piece_flushed(1_piece));
+	TEST_CHECK(!p->is_piece_flushed(2_piece));
 	auto picked = pick_pieces(p, "*** ** ", 1, 0, nullptr, options, empty_vector);
 	TEST_CHECK(int(picked.size()) > 0);
 	TEST_CHECK(picked.front().piece_index == 1_piece);
@@ -639,7 +639,7 @@ TORRENT_TEST(resize)
 	TEST_EQUAL(p->have().num_pieces, 0);
 	TEST_EQUAL(p->have().pad_bytes, 0);
 
-	p->we_have(0_piece);
+	p->piece_flushed(0_piece);
 
 	TEST_EQUAL(p->want().num_pieces, 6);
 	TEST_EQUAL(p->want().pad_bytes, 20);
@@ -855,13 +855,13 @@ TORRENT_TEST(priority_sequential_download)
 
 TORRENT_TEST(cursors_sweep_up_we_have)
 {
-	// sweep up, we_have()
+	// sweep up, piece_flushed()
 	auto p = setup_picker("7654321", "       ", "", "");
 	for (auto i = 0_piece; i < 7_piece; ++i)
 	{
 		TEST_EQUAL(p->cursor(), i);
 		TEST_EQUAL(p->reverse_cursor(), 7_piece);
-		p->we_have(i);
+		p->piece_flushed(i);
 	}
 	TEST_CHECK(p->is_finished());
 	TEST_CHECK(p->is_seeding());
@@ -887,13 +887,13 @@ TORRENT_TEST(cursors_sweep_up_set_piece_priority)
 
 TORRENT_TEST(cursors_sweep_down_we_have)
 {
-	// sweep down, we_have()
+	// sweep down, piece_flushed()
 	auto p = setup_picker("7654321", "       ", "", "");
 	for (auto i = 6_piece; i >= 0_piece; --i)
 	{
 		TEST_EQUAL(p->cursor(), 0_piece);
 		TEST_EQUAL(p->reverse_cursor(), next(i));
-		p->we_have(i);
+		p->piece_flushed(i);
 	}
 	TEST_CHECK(p->is_finished());
 	TEST_CHECK(p->is_seeding());
@@ -937,15 +937,15 @@ TORRENT_TEST(cursors_sweep_in_set_priority)
 
 TORRENT_TEST(cursors_sweep_in_we_have)
 {
-	// sweep in, we_have()
+	// sweep in, piece_flushed()
 	auto p = setup_picker("7654321", "       ", "", "");
 	for (piece_index_t left(0), right(6); left <= 3_piece
 		&& right >= 3_piece; ++left, --right)
 	{
 		TEST_EQUAL(p->cursor(), left);
 		TEST_EQUAL(p->reverse_cursor(), next(right));
-		p->we_have(left);
-		p->we_have(right);
+		p->piece_flushed(left);
+		p->piece_flushed(right);
 	}
 	TEST_CHECK(p->is_finished());
 	TEST_CHECK(p->is_seeding());
@@ -1019,21 +1019,21 @@ TORRENT_TEST(cursors)
 	auto p = setup_picker("7654321", "       ", "", "");
 	TEST_EQUAL(p->cursor(), 0_piece);
 	TEST_EQUAL(p->reverse_cursor(), 7_piece);
-	p->we_have(1_piece);
+	p->piece_flushed(1_piece);
 	TEST_EQUAL(p->cursor(), 0_piece);
 	TEST_EQUAL(p->reverse_cursor(), 7_piece);
-	p->we_have(0_piece);
+	p->piece_flushed(0_piece);
 	TEST_EQUAL(p->cursor(), 2_piece);
 	TEST_EQUAL(p->reverse_cursor(), 7_piece);
-	p->we_have(5_piece);
+	p->piece_flushed(5_piece);
 	TEST_EQUAL(p->cursor(), 2_piece);
 	TEST_EQUAL(p->reverse_cursor(), 7_piece);
-	p->we_have(6_piece);
+	p->piece_flushed(6_piece);
 	TEST_EQUAL(p->cursor(), 2_piece);
 	TEST_EQUAL(p->reverse_cursor(), 5_piece);
-	p->we_have(4_piece);
-	p->we_have(3_piece);
-	p->we_have(2_piece);
+	p->piece_flushed(4_piece);
+	p->piece_flushed(3_piece);
+	p->piece_flushed(2_piece);
 	TEST_EQUAL(p->cursor(), 7_piece);
 	TEST_EQUAL(p->reverse_cursor(), 0_piece);
 
@@ -1072,7 +1072,7 @@ TORRENT_TEST(piece_priorities)
 	TEST_EQUAL(p->want().num_pieces, 6);
 	TEST_EQUAL(p->have_want().num_pieces, 0);
 	p->mark_as_finished({0_piece, 0}, nullptr);
-	p->we_have(0_piece);
+	p->piece_flushed(0_piece);
 	TEST_EQUAL(p->want().num_pieces, 6);
 	TEST_EQUAL(p->have_want().num_pieces, 0);
 	TEST_EQUAL(p->have().num_pieces, 1);
@@ -1088,7 +1088,7 @@ TORRENT_TEST(piece_priorities)
 		TEST_CHECK(picked[std::size_t(i)] == piece_block(piece_index_t(i / blocks_per_piece), i % blocks_per_piece));
 
 	// test changing priority on a piece we have
-	p->we_have(0_piece);
+	p->piece_flushed(0_piece);
 	p->set_piece_priority(0_piece, dont_download);
 	p->set_piece_priority(0_piece, low_priority);
 	p->set_piece_priority(0_piece, dont_download);
@@ -1238,7 +1238,7 @@ TORRENT_TEST(random_pick)
 	for (int i = 0; i < 7; ++i)
 	{
 		piece_index_t const piece = test_pick(p, {});
-		p->we_have(piece);
+		p->piece_flushed(piece);
 		random_pieces.insert(piece);
 	}
 	TEST_CHECK(random_pieces.size() == 7);
@@ -1694,49 +1694,50 @@ TORRENT_TEST(piece_passed)
 {
 	auto p = setup_picker("1111111", "*      ", "", "0300000");
 
-	TEST_EQUAL(p->has_piece_passed(0_piece), true);
-	TEST_EQUAL(p->has_piece_passed(1_piece), false);
-	TEST_EQUAL(p->num_passed(), 1);
+	TEST_EQUAL(p->have_piece(0_piece), true);
+	TEST_EQUAL(p->have_piece(1_piece), false);
+	TEST_EQUAL(p->num_have(), 1);
 	TEST_EQUAL(p->have().num_pieces, 1);
 
 	p->piece_passed(1_piece);
-	TEST_EQUAL(p->num_passed(), 2);
-	TEST_EQUAL(p->have().num_pieces, 1);
+	TEST_EQUAL(p->num_have(), 2);
+	TEST_EQUAL(p->have().num_pieces, 2);
 
-	p->we_have(1_piece);
+	p->piece_flushed(1_piece);
 	TEST_EQUAL(p->have().num_pieces, 2);
 
 	p->mark_as_finished({2_piece, 0}, &tmp1);
 	p->piece_passed(2_piece);
-	TEST_EQUAL(p->num_passed(), 3);
-	// just because the hash check passed doesn't mean
-	// we "have" the piece. We need to write it to disk first
-	TEST_EQUAL(p->have().num_pieces, 2);
+	TEST_EQUAL(p->num_have(), 3);
+	// since the hash check passed we "have" the piece.
+	TEST_EQUAL(p->have().num_pieces, 3);
+	TEST_EQUAL(p->is_piece_flushed(0_piece), true);
+	TEST_EQUAL(p->is_piece_flushed(1_piece), true);
+	TEST_EQUAL(p->is_piece_flushed(2_piece), false);
 
 	// piece 2 already passed the hash check, as soon as we've
 	// written all the blocks to disk, we should have that piece too
 	p->mark_as_finished({2_piece, 1}, &tmp1);
 	p->mark_as_finished({2_piece, 2}, &tmp1);
 	p->mark_as_finished({2_piece, 3}, &tmp1);
-	TEST_EQUAL(p->have().num_pieces, 3);
-	TEST_EQUAL(p->have_piece(2_piece), true);
+	TEST_EQUAL(p->is_piece_flushed(2_piece), true);
 }
 
 TORRENT_TEST(piece_passed_causing_we_have)
 {
 	auto p = setup_picker("1111111", "*      ", "", "0700000");
 
-	TEST_EQUAL(p->has_piece_passed(0_piece), true);
-	TEST_EQUAL(p->has_piece_passed(1_piece), false);
-	TEST_EQUAL(p->num_passed(), 1);
+	TEST_EQUAL(p->have_piece(0_piece), true);
+	TEST_EQUAL(p->have_piece(1_piece), false);
+	TEST_EQUAL(p->num_have(), 1);
 	TEST_EQUAL(p->have().num_pieces, 1);
 
 	p->mark_as_finished({1_piece, 3}, &tmp1);
-	TEST_EQUAL(p->num_passed(), 1);
+	TEST_EQUAL(p->num_have(), 1);
 	TEST_EQUAL(p->have().num_pieces, 1);
 
 	p->piece_passed(1_piece);
-	TEST_EQUAL(p->num_passed(), 2);
+	TEST_EQUAL(p->num_have(), 2);
 	TEST_EQUAL(p->have().num_pieces, 2);
 }
 
@@ -1760,38 +1761,38 @@ TORRENT_TEST(break_one_seed)
 TORRENT_TEST(we_dont_have2)
 {
 	auto p = setup_picker("1111111", "* *    ", "1101111", "");
-	TEST_EQUAL(p->has_piece_passed(0_piece), true);
-	TEST_EQUAL(p->has_piece_passed(1_piece), false);
-	TEST_EQUAL(p->has_piece_passed(2_piece), true);
-	TEST_EQUAL(p->num_passed(), 2);
+	TEST_EQUAL(p->have_piece(0_piece), true);
+	TEST_EQUAL(p->have_piece(1_piece), false);
+	TEST_EQUAL(p->have_piece(2_piece), true);
+	TEST_EQUAL(p->num_have(), 2);
 	TEST_EQUAL(p->have().num_pieces, 2);
 	TEST_EQUAL(p->have_want().num_pieces, 1);
 	TEST_EQUAL(p->want().num_pieces, 6);
 
 	p->we_dont_have(0_piece);
 
-	TEST_EQUAL(p->has_piece_passed(0_piece), false);
-	TEST_EQUAL(p->has_piece_passed(1_piece), false);
-	TEST_EQUAL(p->has_piece_passed(2_piece), true);
-	TEST_EQUAL(p->num_passed(), 1);
+	TEST_EQUAL(p->have_piece(0_piece), false);
+	TEST_EQUAL(p->have_piece(1_piece), false);
+	TEST_EQUAL(p->have_piece(2_piece), true);
+	TEST_EQUAL(p->num_have(), 1);
 	TEST_EQUAL(p->have().num_pieces, 1);
 	TEST_EQUAL(p->have_want().num_pieces, 0);
 
 	p = setup_picker("1111111", "* *    ", "1101111", "");
-	TEST_EQUAL(p->has_piece_passed(0_piece), true);
-	TEST_EQUAL(p->has_piece_passed(1_piece), false);
-	TEST_EQUAL(p->has_piece_passed(2_piece), true);
-	TEST_EQUAL(p->num_passed(), 2);
+	TEST_EQUAL(p->have_piece(0_piece), true);
+	TEST_EQUAL(p->have_piece(1_piece), false);
+	TEST_EQUAL(p->have_piece(2_piece), true);
+	TEST_EQUAL(p->num_have(), 2);
 	TEST_EQUAL(p->have().num_pieces, 2);
 	TEST_EQUAL(p->have_want().num_pieces, 1);
 	TEST_EQUAL(p->want().num_pieces, 6);
 
 	p->we_dont_have(2_piece);
 
-	TEST_EQUAL(p->has_piece_passed(0_piece), true);
-	TEST_EQUAL(p->has_piece_passed(1_piece), false);
-	TEST_EQUAL(p->has_piece_passed(2_piece), false);
-	TEST_EQUAL(p->num_passed(), 1);
+	TEST_EQUAL(p->have_piece(0_piece), true);
+	TEST_EQUAL(p->have_piece(1_piece), false);
+	TEST_EQUAL(p->have_piece(2_piece), false);
+	TEST_EQUAL(p->num_have(), 1);
 	TEST_EQUAL(p->have().num_pieces, 1);
 	TEST_EQUAL(p->have_want().num_pieces, 1);
 	TEST_EQUAL(p->want().num_pieces, 6);
@@ -1801,44 +1802,44 @@ TORRENT_TEST(dont_have_but_passed_hash_check)
 {
 	auto p = setup_picker("1111111", "* *    ", "1101111", "0200000");
 
-	TEST_EQUAL(p->has_piece_passed(0_piece), true);
-	TEST_EQUAL(p->has_piece_passed(1_piece), false);
 	TEST_EQUAL(p->have_piece(0_piece), true);
 	TEST_EQUAL(p->have_piece(1_piece), false);
+	TEST_EQUAL(p->is_piece_flushed(0_piece), true);
+	TEST_EQUAL(p->is_piece_flushed(1_piece), false);
 
 	p->piece_passed(1_piece);
 
-	TEST_EQUAL(p->has_piece_passed(0_piece), true);
-	TEST_EQUAL(p->has_piece_passed(1_piece), true);
-	TEST_EQUAL(p->have_piece(1_piece), false);
+	TEST_EQUAL(p->have_piece(0_piece), true);
+	TEST_EQUAL(p->have_piece(1_piece), true);
+	TEST_EQUAL(p->is_piece_flushed(1_piece), false);
 
 	p->we_dont_have(1_piece);
 
-	TEST_EQUAL(p->has_piece_passed(0_piece), true);
-	TEST_EQUAL(p->has_piece_passed(1_piece), false);
+	TEST_EQUAL(p->have_piece(0_piece), true);
 	TEST_EQUAL(p->have_piece(1_piece), false);
+	TEST_EQUAL(p->is_piece_flushed(1_piece), false);
 }
 
 TORRENT_TEST(write_failed)
 {
 	auto p = setup_picker("1111111", "* *    ", "1101111", "0200000");
 
-	TEST_EQUAL(p->has_piece_passed(0_piece), true);
-	TEST_EQUAL(p->has_piece_passed(1_piece), false);
+	TEST_EQUAL(p->have_piece(0_piece), true);
 	TEST_EQUAL(p->have_piece(1_piece), false);
+	TEST_EQUAL(p->is_piece_flushed(1_piece), false);
 
 	p->piece_passed(1_piece);
 
-	TEST_EQUAL(p->has_piece_passed(0_piece), true);
-	TEST_EQUAL(p->has_piece_passed(1_piece), true);
-	TEST_EQUAL(p->have_piece(1_piece), false);
+	TEST_EQUAL(p->have_piece(0_piece), true);
+	TEST_EQUAL(p->have_piece(1_piece), true);
+	TEST_EQUAL(p->is_piece_flushed(1_piece), false);
 
 	p->mark_as_writing({1_piece, 0}, &tmp1);
 	p->write_failed({1_piece, 0});
 
-	TEST_EQUAL(p->has_piece_passed(0_piece), true);
-	TEST_EQUAL(p->has_piece_passed(1_piece), false);
+	TEST_EQUAL(p->have_piece(0_piece), true);
 	TEST_EQUAL(p->have_piece(1_piece), false);
+	TEST_EQUAL(p->is_piece_flushed(1_piece), false);
 
 	// make sure write_failed() and lock_piece() actually
 	// locks the piece, and that it won't be picked.
@@ -2164,7 +2165,7 @@ TORRENT_TEST(num_pad_bytes_want_filter)
 TORRENT_TEST(num_pad_bytes_want_have)
 {
 	auto p = setup_picker("111", "   ", "444", "");
-	p->we_have(1_piece);
+	p->piece_flushed(1_piece);
 	TEST_CHECK((p->want() == piece_count{3, 0, true}));
 	TEST_CHECK((p->have_want() == piece_count{1, 0, false}));
 	TEST_CHECK((p->have() == piece_count{1, 0, false}));
@@ -2193,7 +2194,7 @@ TORRENT_TEST(num_pad_bytes_we_have)
 	p->set_pad_bytes(1_piece, 2);
 	p->set_pad_bytes(0_piece, 0x4000);
 
-	p->we_have(1_piece);
+	p->piece_flushed(1_piece);
 	TEST_CHECK((p->want() == piece_count{3, 0x4003, true}));
 	TEST_CHECK((p->have_want() == piece_count{1, 2, false}));
 	TEST_CHECK((p->have() == piece_count{1, 2, false}));
@@ -2208,7 +2209,7 @@ TORRENT_TEST(num_pad_bytes_dont_want_have)
 	p->set_pad_bytes(0_piece, 0x4000);
 
 	p->set_piece_priority(1_piece, dont_download);
-	p->we_have(1_piece);
+	p->piece_flushed(1_piece);
 	TEST_CHECK((p->want() == piece_count{2, 0x4001, true}));
 	TEST_CHECK((p->have_want() == piece_count{0, 0, false}));
 	TEST_CHECK((p->have() == piece_count{1, 2, false}));
@@ -2222,7 +2223,7 @@ TORRENT_TEST(num_pad_bytes_have_dont_want)
 	p->set_pad_bytes(1_piece, 2);
 	p->set_pad_bytes(0_piece, 0x4000);
 
-	p->we_have(1_piece);
+	p->piece_flushed(1_piece);
 	p->set_piece_priority(1_piece, dont_download);
 	TEST_CHECK((p->want() == piece_count{2, 0x4001, true}));
 	TEST_CHECK((p->have_want() == piece_count{0, 0, false}));
@@ -2233,7 +2234,7 @@ TORRENT_TEST(num_pad_bytes_have_dont_want)
 TORRENT_TEST(have_dont_want_pad_bytes)
 {
 	auto p = setup_picker("111", "   ", "444", "");
-	p->we_have(1_piece);
+	p->piece_flushed(1_piece);
 	p->set_piece_priority(1_piece, dont_download);
 	p->set_pad_bytes(2_piece, 1);
 	p->set_pad_bytes(1_piece, 2);
@@ -2250,38 +2251,38 @@ TORRENT_TEST(pad_bytes_have)
 	{
 		auto p = setup_picker("1111111", "       ", "4444444", "");
 		p->set_pad_bytes(2_piece, 10);
-		TEST_CHECK(!p->have_piece(0_piece));
-		TEST_CHECK(!p->have_piece(1_piece));
-		TEST_CHECK(!p->have_piece(2_piece));
-		TEST_CHECK(!p->have_piece(3_piece));
+		TEST_CHECK(!p->is_piece_flushed(0_piece));
+		TEST_CHECK(!p->is_piece_flushed(1_piece));
+		TEST_CHECK(!p->is_piece_flushed(2_piece));
+		TEST_CHECK(!p->is_piece_flushed(3_piece));
 	}
 
 	{
 		auto p = setup_picker("1111111", "       ", "4444444", "");
 		p->set_pad_bytes(2_piece, default_block_size);
-		TEST_CHECK(!p->have_piece(0_piece));
-		TEST_CHECK(!p->have_piece(1_piece));
-		TEST_CHECK(!p->have_piece(2_piece));
-		TEST_CHECK(!p->have_piece(3_piece));
+		TEST_CHECK(!p->is_piece_flushed(0_piece));
+		TEST_CHECK(!p->is_piece_flushed(1_piece));
+		TEST_CHECK(!p->is_piece_flushed(2_piece));
+		TEST_CHECK(!p->is_piece_flushed(3_piece));
 	}
 
 	{
 		auto p = setup_picker("1111111", "       ", "4444444", "");
 		p->set_pad_bytes(2_piece, blocks_per_piece * default_block_size);
-		TEST_CHECK(!p->have_piece(0_piece));
-		TEST_CHECK(!p->have_piece(1_piece));
-		TEST_CHECK(p->have_piece(2_piece));
-		TEST_CHECK(!p->have_piece(3_piece));
+		TEST_CHECK(!p->is_piece_flushed(0_piece));
+		TEST_CHECK(!p->is_piece_flushed(1_piece));
+		TEST_CHECK(p->is_piece_flushed(2_piece));
+		TEST_CHECK(!p->is_piece_flushed(3_piece));
 	}
 
 	{
 		auto p = setup_picker("1111111", "       ", "4444444", "");
 		p->set_pad_bytes(2_piece, blocks_per_piece * default_block_size);
 		p->set_pad_bytes(1_piece, default_block_size);
-		TEST_CHECK(!p->have_piece(0_piece));
-		TEST_CHECK(!p->have_piece(1_piece));
-		TEST_CHECK(p->have_piece(2_piece));
-		TEST_CHECK(!p->have_piece(3_piece));
+		TEST_CHECK(!p->is_piece_flushed(0_piece));
+		TEST_CHECK(!p->is_piece_flushed(1_piece));
+		TEST_CHECK(p->is_piece_flushed(2_piece));
+		TEST_CHECK(!p->is_piece_flushed(3_piece));
 	}
 }
 
@@ -2431,7 +2432,7 @@ TORRENT_TEST(pad_blocks_some_wanted_odd_blocks)
 	auto p = std::make_shared<piece_picker>(
 		3 * piece_size, piece_size);
 
-	p->we_have(1_piece);
+	p->piece_flushed(1_piece);
 	p->set_piece_priority(1_piece, dont_download);
 	p->set_pad_bytes(2_piece, 1);
 	p->set_pad_bytes(1_piece, 2);
@@ -2484,7 +2485,7 @@ TORRENT_TEST(mark_as_pad_whole_piece_seeding)
 {
 	auto p = setup_picker("11", "  ", "44", "");
 	p->set_pad_bytes(0_piece, 0x4000 * 4);
-	TEST_CHECK(p->have_piece(0_piece));
+	TEST_CHECK(p->is_piece_flushed(0_piece));
 
 	TEST_CHECK(!p->is_seeding());
 
@@ -2772,8 +2773,8 @@ TORRENT_TEST(piece_extent_affinity_clear_done)
 
 	// now all 5 extents are in use, if we finish a whole extent, it should be
 	// removed from the list
-	p->we_have(0_piece);
-	p->we_have(1_piece);
+	p->piece_flushed(0_piece);
+	p->piece_flushed(1_piece);
 
 	// we need to invoke the piece picker once to detect and reap this full
 	// extent

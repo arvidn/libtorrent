@@ -88,6 +88,20 @@ namespace libtorrent {
 		bool last_piece;
 	};
 
+	// the piece picker tracks:
+	// 1. The blocks in which pieces we have sent requests for
+	// 2. Which peers we sent the requests to
+	// 3. The availability of each piece
+	// 4. The priority of each piece
+	// 5. Which blocks and pieces have been written to disk (versus being in the cache)
+	// 6. Which pieces have passed the hash check (i.e. we have them)
+	// 7. Cursors for sequential download
+	// 8. The number of pad-bytes in each piece
+	// All this in a data structure to make it cheap to pick the next piece to
+	// request from a peer.
+	// If we "have" a piece, it means it has passed the hash check. If a piece
+	// has been "flushed", it means it's been stored to disk.
+	// When saving resume data, we only care about "flushed" pieces.
 	struct TORRENT_EXTRA_EXPORT piece_picker
 	{
 		// only defined when TORRENT_PICKER_LOG is defined, used for debugging
@@ -247,11 +261,13 @@ namespace libtorrent {
 		// seed
 		void we_have_all();
 
-		// This indicates that we just received this piece
-		// it means that the refcounter will indicate that
+		// A piece completes when it has passed the hash check *and* been
+		// completely written to disk. The piece picker no longer need to track
+		// the state of individual blocks
+		// The refcounter will indicate that
 		// we are not interested in this piece anymore
 		// (i.e. we don't have to maintain a refcount)
-		void we_have(piece_index_t);
+		void piece_flushed(piece_index_t);
 		void we_dont_have(piece_index_t);
 
 		// the lowest piece index we do not have
@@ -264,7 +280,13 @@ namespace libtorrent {
 		void resize(std::int64_t total_size, int piece_size);
 		int num_pieces() const { return int(m_piece_map.size()); }
 
+		// returns true if we have the piece or if the piece
+		// has passed the hash check
 		bool have_piece(piece_index_t) const;
+
+		// returns true if the piece has been completely downloaded and
+		// successfully flushed to disk (i.e. "finished").
+		bool is_piece_flushed(piece_index_t) const;
 
 		bool is_downloading(piece_index_t const index) const
 		{
@@ -403,10 +425,6 @@ namespace libtorrent {
 		// only valid for v2 torrents
 		bool is_hashing(piece_index_t piece) const;
 
-		// returns true if we have the piece or if the piece
-		// has passed the hash check
-		bool has_piece_passed(piece_index_t) const;
-
 		// returns the number of blocks there is in the given piece
 		int blocks_in_piece(piece_index_t) const;
 
@@ -457,7 +475,7 @@ namespace libtorrent {
 
 		// number of pieces whose hash has passed (but haven't necessarily
 		// been flushed to disk yet)
-		int num_passed() const { return m_num_passed; }
+		int num_have() const { return m_num_have; }
 
 		// return true if all the pieces we want have passed the hash check (but
 		// may not have been written to disk yet)
@@ -471,11 +489,11 @@ namespace libtorrent {
 			// finished. Note that any piece we *have* implies it's both passed the
 			// hash check *and* been written to disk.
 			// num_pieces() - m_num_filtered - m_num_have_filtered
-			//   <= (num_passed() - m_num_have_filtered)
+			//   <= (m_num_have - m_num_have_filtered)
 			// this can be simplified. Note how m_num_have_filtered appears on both
 			// side of the equation.
 			//
-			return num_pieces() - m_num_filtered <= num_passed();
+			return num_pieces() - m_num_filtered <= m_num_have;
 		}
 
 		bool is_seeding() const { return m_num_have == num_pieces(); }
@@ -534,6 +552,9 @@ namespace libtorrent {
 		}
 		int blocks_per_piece() const;
 		int piece_size(piece_index_t p) const;
+
+		void account_have(piece_index_t);
+		void account_lost(piece_index_t);
 
 		piece_extent_t extent_for(piece_index_t) const;
 		index_range<piece_index_t> extent_for(piece_extent_t) const;
@@ -830,9 +851,6 @@ namespace libtorrent {
 		// the availability counters of the pieces
 		int m_seeds = 0;
 
-		// the number of pieces that have passed the hash check
-		int m_num_passed = 0;
-
 		// this vector contains all piece indices that are pickable
 		// sorted by priority. Pieces are in random random order
 		// among pieces with the same priority
@@ -890,7 +908,7 @@ namespace libtorrent {
 		// all the subsequent pieces
 		piece_index_t m_reverse_cursor{0};
 
-		// the number of pieces we have (i.e. passed + flushed).
+		// the number of pieces we have (i.e. passed hash check).
 		// This includes pieces that we have filtered but still have
 		int m_num_have = 0;
 
