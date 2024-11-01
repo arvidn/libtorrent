@@ -160,7 +160,6 @@ namespace libtorrent::aux {
 		m_have_pad_bytes = 0;
 		m_filtered_pad_bytes += m_have_filtered_pad_bytes;
 		m_have_filtered_pad_bytes = 0;
-		m_num_passed = 0;
 		m_dirty = true;
 		for (auto& m : m_piece_map)
 		{
@@ -607,31 +606,42 @@ namespace libtorrent::aux {
 		{
 			piece_pos const& p = *i;
 
+			int const pad_bytes = pad_bytes_in_piece(piece);
 			if (p.filtered())
 			{
-				if (p.index != piece_pos::we_have_index)
+				if (p.downloading())
 				{
-					++num_filtered;
-					num_filtered_pad_bytes += pad_bytes_in_piece(piece);
+					auto dl = find_dl_piece(p.download_queue(), piece);
+					if (dl->passed_hash_check)
+					{
+						++num_have_filtered;
+						num_have_filtered_pad_bytes += pad_bytes;
+					}
+					else
+					{
+						++num_filtered;
+						num_filtered_pad_bytes += pad_bytes;
+					}
+				}
+				else if (p.have())
+				{
+					++num_have_filtered;
+					num_have_filtered_pad_bytes += pad_bytes;
 				}
 				else
 				{
-					++num_have_filtered;
-					num_have_filtered_pad_bytes += pad_bytes_in_piece(piece);
+					++num_filtered;
+					num_filtered_pad_bytes += pad_bytes;
 				}
 			}
 
 #ifdef TORRENT_DEBUG_REFCOUNTS
 			TORRENT_ASSERT(int(p.have_peers.size()) == p.peer_count + m_seeds);
 #endif
-			if (p.index == piece_pos::we_have_index)
+			if (p.have())
 			{
 				++num_have;
-				num_have_pad_bytes += pad_bytes_in_piece(piece);
-			}
-
-			if (p.index == piece_pos::we_have_index)
-			{
+				num_have_pad_bytes += pad_bytes;
 				TORRENT_ASSERT(t == nullptr || t->have_piece(piece));
 				TORRENT_ASSERT(p.downloading() == false);
 			}
@@ -643,6 +653,12 @@ namespace libtorrent::aux {
 
 			if (p.downloading())
 			{
+				auto dl = find_dl_piece(p.download_queue(), piece);
+				if (dl->passed_hash_check)
+				{
+					++num_have;
+					num_have_pad_bytes += pad_bytes;
+				}
 				if (p.reverse())
 					TORRENT_ASSERT(prio == -1 || (prio % piece_picker::prio_factor == 2));
 				else
@@ -1589,11 +1605,12 @@ namespace libtorrent::aux {
 
 		TORRENT_ASSERT(!i->passed_hash_check);
 		i->passed_hash_check = true;
-		++m_num_passed;
+
+		account_have(index);
 
 		if (i->finished < blocks_in_piece(index)) return;
 
-		we_have(index);
+		piece_flushed(index);
 	}
 
 	void piece_picker::we_dont_have(piece_index_t const index)
@@ -1606,7 +1623,8 @@ namespace libtorrent::aux {
 			<< index << ")" << std::endl;
 #endif
 
-		if (!p.have())
+		bool have_piece = p.have();
+		if (!have_piece)
 		{
 			// even though we don't have the piece, it
 			// might still have passed hash check
@@ -1614,29 +1632,14 @@ namespace libtorrent::aux {
 			if (download_state == piece_pos::piece_open) return;
 
 			auto const i = find_dl_piece(download_state, index);
-			if (i->passed_hash_check)
-			{
-				i->passed_hash_check = false;
-				TORRENT_ASSERT(m_num_passed > 0);
-				--m_num_passed;
-			}
+			have_piece = i->passed_hash_check;
 			erase_download_piece(i);
-			return;
 		}
 
-		TORRENT_ASSERT(m_num_passed > 0);
-		--m_num_passed;
-		if (p.filtered())
-		{
-			m_filtered_pad_bytes += pad_bytes_in_piece(index);
-			++m_num_filtered;
+		if (have_piece)
+			account_lost(index);
 
-			TORRENT_ASSERT(m_have_filtered_pad_bytes >= pad_bytes_in_piece(index));
-			m_have_filtered_pad_bytes -= pad_bytes_in_piece(index);
-			TORRENT_ASSERT(m_num_have_filtered > 0);
-			--m_num_have_filtered;
-		}
-		else
+		if (!p.filtered())
 		{
 			// update cursors
 			if (m_reverse_cursor == m_cursor)
@@ -1646,9 +1649,6 @@ namespace libtorrent::aux {
 			}
 		}
 
-		--m_num_have;
-		m_have_pad_bytes -= pad_bytes_in_piece(index);
-		TORRENT_ASSERT(m_have_pad_bytes >= 0);
 		p.set_not_have();
 
 		if (m_dirty) return;
@@ -1659,13 +1659,11 @@ namespace libtorrent::aux {
 	// downloaded a piece, and that no further attempts
 	// to pick that piece should be made. The piece will
 	// be removed from the available piece list.
-	void piece_picker::we_have(piece_index_t const index)
+	void piece_picker::piece_flushed(piece_index_t const index)
 	{
-#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		INVARIANT_CHECK;
-#endif
 #ifdef TORRENT_PICKER_LOG
-		std::cerr << "[" << this << "] " << "piece_picker::we_have("
+		std::cerr << "[" << this << "] " << "piece_picker::piece_flushed("
 			<< index << ")" << std::endl;
 #endif
 		piece_pos& p = m_piece_map[index];
@@ -1676,31 +1674,27 @@ namespace libtorrent::aux {
 		if (p.have()) return;
 
 		auto const state = p.download_queue();
-		if (state != piece_pos::piece_open)
+		bool passed_hash_check = false;
+		if (p.downloading())
 		{
 			auto const i = find_dl_piece(state, index);
 			TORRENT_ASSERT(i != m_downloads[state].end());
 			TORRENT_ASSERT(i->hashing == 0);
-			// decrement num_passed here to compensate
-			// for the unconditional increment further down
-			if (i->passed_hash_check) --m_num_passed;
+			passed_hash_check = i->passed_hash_check;
+			TORRENT_ASSERT(i->locked == false);
+			if (i->locked) return;
 			erase_download_piece(i);
 		}
 
-		if (p.filtered())
+		if (!passed_hash_check)
 		{
-			TORRENT_ASSERT(m_filtered_pad_bytes >= pad_bytes_in_piece(index));
-			m_filtered_pad_bytes -= pad_bytes_in_piece(index);
-			TORRENT_ASSERT(m_num_filtered > 0);
-			--m_num_filtered;
-
-			m_have_filtered_pad_bytes += pad_bytes_in_piece(index);
-			++m_num_have_filtered;
+			// if we go straight from open to flushed, we need to make sure we
+			// maintain the accounting as-if we had downloaded it and checked
+			// the hash first. e.g. when we load resume data, we set up the
+			// piece states to indicate they're already on disk
+			account_have(index);
 		}
-		++m_num_have;
-		++m_num_passed;
-		m_have_pad_bytes += pad_bytes_in_piece(index);
-		TORRENT_ASSERT(m_have_pad_bytes <= num_pad_bytes());
+
 		p.set_have();
 		if (m_cursor == prev(m_reverse_cursor)
 			&& m_cursor == index)
@@ -1755,7 +1749,6 @@ namespace libtorrent::aux {
 		m_filtered_pad_bytes = 0;
 		m_cursor = m_piece_map.end_index();
 		m_reverse_cursor = piece_index_t{0};
-		m_num_passed = num_pieces();
 		m_num_have = num_pieces();
 
 		for (auto& queue : m_downloads) queue.clear();
@@ -2502,12 +2495,13 @@ get_out:
 		return ret;
 	}
 
-	// have piece means that the piece passed hash check
-	// AND has been successfully written to disk
-	bool piece_picker::have_piece(piece_index_t const index) const
+	bool piece_picker::is_piece_flushed(piece_index_t const index) const
 	{
+		TORRENT_ASSERT(index < m_piece_map.end_index());
+		TORRENT_ASSERT(index >= piece_index_t(0));
+
 		piece_pos const& p = m_piece_map[index];
-		return p.index == piece_pos::we_have_index;
+		return p.have();
 	}
 
 	int piece_picker::blocks_in_piece(piece_index_t const index) const
@@ -2869,13 +2863,13 @@ get_out:
 		return i->hashing > 0;
 	}
 
-	bool piece_picker::has_piece_passed(piece_index_t const index) const
+	bool piece_picker::have_piece(piece_index_t const index) const
 	{
 		TORRENT_ASSERT(index < m_piece_map.end_index());
 		TORRENT_ASSERT(index >= piece_index_t(0));
 
 		piece_pos const& p = m_piece_map[index];
-		if (p.index == piece_pos::we_have_index) return true;
+		if (p.have()) return true;
 
 		auto const state = p.download_queue();
 		if (state == piece_pos::piece_open)
@@ -3431,8 +3425,7 @@ get_out:
 			// but it seems reasonable to not break the
 			// accounting over it.
 			i->passed_hash_check = false;
-			TORRENT_ASSERT(m_num_passed > 0);
-			--m_num_passed;
+			account_lost(piece);
 		}
 
 		// prevent this piece from being picked until it's restored
@@ -3440,7 +3433,7 @@ get_out:
 	}
 
 	// TODO: 2 it would be nice if this could be folded into lock_piece()
-	// the main distinction is that this also maintains the m_num_passed
+	// the main distinction is that this also maintains the m_num_have
 	// counter and the passed_hash_check member
 	// Is there ever a case where we call write failed without also locking
 	// the piece? Perhaps write_failed() should imply locking it.
@@ -3483,8 +3476,7 @@ get_out:
 			// some of the blocks to disk, which means we
 			// can't consider the piece complete
 			i->passed_hash_check = false;
-			TORRENT_ASSERT(m_num_passed > 0);
-			--m_num_passed;
+			account_lost(block.piece_index);
 		}
 
 		// prevent this hash job from actually completing
@@ -3654,7 +3646,7 @@ get_out:
 				return;
 
 			if (i->passed_hash_check && i->hashing == 0)
-				we_have(i->index);
+				piece_flushed(i->index);
 		}
 
 #if TORRENT_USE_INVARIANT_CHECKS
@@ -3672,6 +3664,8 @@ get_out:
 		TORRENT_ASSERT(bytes <= piece_size(piece));
 
 		m_num_pad_bytes += bytes;
+		// We don't support *changing* the number of pad bytes in a piece
+		TORRENT_ASSERT(m_pads_in_piece.count(piece) == 0);
 		m_pads_in_piece[piece] = bytes;
 
 		piece_pos& p = m_piece_map[piece];
@@ -3691,7 +3685,7 @@ get_out:
 		if (piece_size(piece) == bytes)
 		{
 			// the entire piece is a pad file
-			we_have(piece);
+			piece_flushed(piece);
 		}
 	}
 
@@ -3888,4 +3882,44 @@ get_out:
 		return ret;
 	}
 
+	void piece_picker::account_have(piece_index_t const index)
+	{
+		++m_num_have;
+		piece_pos& p = m_piece_map[index];
+		TORRENT_ASSERT(!p.have());
+		int const pad_bytes = pad_bytes_in_piece(index);
+		if (p.filtered())
+		{
+			TORRENT_ASSERT(m_filtered_pad_bytes >= pad_bytes);
+			m_filtered_pad_bytes -= pad_bytes;
+			TORRENT_ASSERT(m_num_filtered > 0);
+			--m_num_filtered;
+
+			m_have_filtered_pad_bytes += pad_bytes;
+			++m_num_have_filtered;
+		}
+		m_have_pad_bytes += pad_bytes;
+		TORRENT_ASSERT(m_have_pad_bytes <= num_pad_bytes());
+	}
+
+	void piece_picker::account_lost(piece_index_t const index)
+	{
+		TORRENT_ASSERT(m_num_have > 0);
+		--m_num_have;
+		piece_pos& p = m_piece_map[index];
+		int const pad_bytes = pad_bytes_in_piece(index);
+		if (p.filtered())
+		{
+			m_filtered_pad_bytes += pad_bytes;
+			TORRENT_ASSERT(m_filtered_pad_bytes <= num_pad_bytes());
+			++m_num_filtered;
+
+			TORRENT_ASSERT(m_have_filtered_pad_bytes >= pad_bytes);
+			m_have_filtered_pad_bytes -= pad_bytes;
+			TORRENT_ASSERT(m_num_have_filtered > 0);
+			--m_num_have_filtered;
+		}
+		TORRENT_ASSERT(m_have_pad_bytes >= pad_bytes);
+		m_have_pad_bytes -= pad_bytes;
+	}
 }

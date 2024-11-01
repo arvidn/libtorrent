@@ -836,6 +836,7 @@ namespace libtorrent::aux {
 #endif
 
 		// returns true if we have downloaded the given piece
+		// but not necessarily flushed it to disk
 		bool have_piece(piece_index_t index) const
 		{
 			if (!valid_metadata()) return false;
@@ -850,15 +851,6 @@ namespace libtorrent::aux {
 			if (index < piece_index_t{0} || index >= m_torrent_file->end_piece()) return false;
 			if (!has_picker()) return m_have_all;
 			return m_picker->have_piece(index);
-		}
-
-		// returns true if we have downloaded the given piece
-		bool has_piece_passed(piece_index_t index) const
-		{
-			if (!valid_metadata()) return false;
-			if (index < piece_index_t(0) || index >= torrent_file().end_piece()) return false;
-			if (!has_picker()) return m_have_all;
-			return m_picker->has_piece_passed(index);
 		}
 
 #ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
@@ -883,21 +875,14 @@ namespace libtorrent::aux {
 
 	public:
 
+		// the number of pieces that have passed
+		// hash check, but aren't necessarily
+		// flushed to disk yet
 		int num_have() const
 		{
 			// pretend we have every piece when in seed mode
 			if (m_seed_mode) return m_torrent_file->num_pieces();
 			if (has_picker()) return m_picker->have().num_pieces;
-			if (m_have_all) return m_torrent_file->num_pieces();
-			return 0;
-		}
-
-		// the number of pieces that have passed
-		// hash check, but aren't necessarily
-		// flushed to disk yet
-		int num_passed() const
-		{
-			if (has_picker()) return m_picker->num_passed();
 			if (m_have_all) return m_torrent_file->num_pieces();
 			return 0;
 		}
