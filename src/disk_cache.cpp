@@ -687,33 +687,34 @@ void disk_cache::check_invariant() const
 			if (be.write_job) ++dirty_blocks;
 			// a block holds either a write job or buffer, never both
 			TORRENT_ASSERT(!(bool(be.write_job) && bool(be.buf_holder)));
-			if (be.write_job)
+
+			if (!piece_entry.flushing)
 			{
-				TORRENT_ASSERT(be.write_job->get_type() == aux::job_action_t::write);
-				if (!piece_entry.flushing)
+				// while a piece is being written to
+				// disk, the corresponding thread owns
+				// the piece entry and it will move
+				// write jobs onto a completed queue
+				// before clearing this pointer. From a
+				// separate thread's point of view,
+				// this invariant may be violated while
+				// this is happening
+				if (be.write_job)
 				{
-					// while a piece is being written to
-					// disk, the corresponding thread owns
-					// the piece entry and it will move
-					// write jobs onto a completed queue
-					// before clearing this pointer. From a
-					// separate thread's point of view,
-					// this invariant may be violated while
-					// this is happening
+					TORRENT_ASSERT(be.write_job->get_type() == aux::job_action_t::write);
 					TORRENT_ASSERT(be.write_job->next == nullptr);
 				}
+
+				if (idx < piece_entry.flushed_cursor)
+					TORRENT_ASSERT(be.write_job == nullptr);
+				else if (idx == piece_entry.flushed_cursor)
+					TORRENT_ASSERT(!be.buf_holder);
+
+//				if (idx < piece_entry.hasher_cursor)
+//					TORRENT_ASSERT(!be.buf_holder);
+
+				if (piece_entry.ready_to_flush)
+					TORRENT_ASSERT(be.write_job != nullptr || be.flushed_to_disk);
 			}
-
-			if (idx < piece_entry.flushed_cursor)
-				TORRENT_ASSERT(be.write_job == nullptr);
-			else if (idx == piece_entry.flushed_cursor)
-				TORRENT_ASSERT(!be.buf_holder);
-
-//			if (idx < piece_entry.hasher_cursor)
-//				TORRENT_ASSERT(!be.buf_holder);
-
-			if (piece_entry.ready_to_flush)
-				TORRENT_ASSERT(be.write_job != nullptr || be.flushed_to_disk);
 			++idx;
 		}
 	}
