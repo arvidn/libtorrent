@@ -623,6 +623,10 @@ reports = [
     ('queued_trackers', 'number of queued tracker announces', '', '', [ \
         'tracker.num_queued_tracker_announces' \
     ]),
+    ('disk_cache', 'disk cache size', '', '', [ \
+        'disk.disk_cache_pieces', \
+        'disk.disk_blocks_in_use', \
+    ]),
 
     # ('picker_full_partials_distribution', 'full pieces', '', '', ['num full partial pieces'],
     #  {'type': histogram, 'binwidth': 5, 'numbins': 120}),

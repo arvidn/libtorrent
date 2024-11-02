@@ -1145,6 +1145,7 @@ void pread_disk_io::update_stats_counters(counters& c) const
 
 	// gauges
 	c.set_value(counters::disk_blocks_in_use, m_buffer_pool.in_use());
+	c.set_value(counters::disk_cache_pieces, m_cache.size());
 }
 
 status_t pread_disk_io::do_job(aux::job::file_priority& a, aux::pread_disk_job* j)
