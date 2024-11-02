@@ -7025,7 +7025,7 @@ namespace {
 
 			if (m_picker
 				&& m_picker->is_downloading(p)
-				&& !m_picker->has_piece_passed(p)
+				&& !m_picker->have_piece(p)
 				&& !m_picker->is_hashing(p))
 			{
 				piece_passed(p);
