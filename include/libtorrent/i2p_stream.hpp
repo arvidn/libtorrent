@@ -113,9 +113,6 @@ struct i2p_stream : proxy_base
 {
 	explicit i2p_stream(io_context& io_context);
 	i2p_stream(i2p_stream&&) noexcept = default;
-#if TORRENT_USE_ASSERTS
-	~i2p_stream();
-#endif
 	// explicitly disallow assignment, to silence msvc warning
 	i2p_stream& operator=(i2p_stream const&) = delete;
 
@@ -479,9 +476,6 @@ private:
 
 	command_t m_command;
 	state_t m_state;
-#if TORRENT_USE_ASSERTS
-	int m_magic = 0x1337;
-#endif
 };
 
 class i2p_connection
