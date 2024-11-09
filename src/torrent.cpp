@@ -5094,6 +5094,10 @@ namespace {
 #ifndef TORRENT_DISABLE_STREAMING
 	void torrent::cancel_non_critical()
 	{
+		// if we don't have a piece picker, there's nothing to cancel.
+		// e.g. We may have become a seed already.
+		if (!has_picker()) return;
+
 		std::set<piece_index_t> time_critical;
 		for (auto const& p : m_time_critical_pieces)
 			time_critical.insert(p.piece);
@@ -5948,6 +5952,8 @@ namespace {
 	bool torrent::choke_peer(peer_connection& c)
 	{
 		INVARIANT_CHECK;
+
+		TORRENT_ASSERT(has_picker());
 
 		TORRENT_ASSERT(!c.is_choked());
 		TORRENT_ASSERT(!c.ignore_unchoke_slots());
