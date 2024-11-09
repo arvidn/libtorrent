@@ -121,14 +121,6 @@ namespace libtorrent {
 		, m_state(read_hello_response)
 	{}
 
-#if TORRENT_USE_ASSERTS
-	i2p_stream::~i2p_stream()
-	{
-		TORRENT_ASSERT(m_magic == 0x1337);
-		m_magic = 0;
-	}
-#endif
-
 	static_assert(std::is_nothrow_move_constructible<i2p_stream>::value
 		, "should be nothrow move constructible");
 }
