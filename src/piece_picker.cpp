@@ -3829,8 +3829,6 @@ get_out:
 		TORRENT_ASSERT(info.peer == nullptr || info.peer->in_use);
 		TORRENT_ASSERT(info.piece_index == block.piece_index);
 
-		TORRENT_ASSERT(info.state != block_info::state_none);
-
 		if (info.state != block_info::state_requested) return;
 
 		piece_pos const& p = m_piece_map[block.piece_index];
