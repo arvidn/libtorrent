@@ -249,6 +249,9 @@ struct temp_disk_io final : lt::disk_interface
 		// never free any buffer. We only return buffers owned by the storage
 		// object
 	}
+#if TORRENT_DEBUG_BUFFER_POOL
+	void rename_buffer(char*, char const*) override {}
+#endif
 
 	void update_stats_counters(lt::counters&) const override {}
 

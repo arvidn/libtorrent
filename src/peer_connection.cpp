@@ -3173,9 +3173,11 @@ namespace {
 			{
 				// if any other peer has a busy request to this block, we need
 				// to cancel it too
-				t->cancel_block(block_finished);
 				if (t->has_picker())
+				{
+					t->cancel_block(block_finished);
 					t->picker().write_failed(block_finished);
+				}
 
 				if (t->has_storage())
 				{
@@ -3724,6 +3726,7 @@ namespace {
 		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
 		TORRENT_ASSERT(block.piece_index < t->torrent_file().end_piece());
 		TORRENT_ASSERT(block.block_index < t->torrent_file().piece_size(block.piece_index));
+		TORRENT_ASSERT(t->has_picker());
 
 		// if all the peers that requested this block has been
 		// cancelled, then just ignore the cancel.

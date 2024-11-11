@@ -725,6 +725,9 @@ feature.compose <export-extra>on : <define>TORRENT_EXPORT_EXTRA ;
 feature debug-disk-thread : off on : composite propagated ;
 feature.compose <debug-disk-thread>on : <define>DEBUG_DISK_THREAD=1 ;
 
+feature debug-disk-pool : off on : composite propagated ;
+feature.compose <debug-disk-pool>on : <define>TORRENT_DEBUG_BUFFER_POOL=1 ;
+
 feature msvc-version-macro : off on : composite propagated link-incompatible ;
 # ask the compiler to correctly set __cplusplus version
 feature.compose <msvc-version-macro>on : <cxxflags>/Zc\:__cplusplus ;
