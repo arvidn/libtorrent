@@ -15,6 +15,10 @@ see LICENSE file.
 #include "libtorrent/assert.hpp"
 #include <utility>
 
+#ifndef TORRENT_DEBUG_BUFFER_POOL
+#define TORRENT_DEBUG_BUFFER_POOL 0
+#endif
+
 namespace libtorrent {
 
 	// the interface for freeing disk buffers, used by the disk_buffer_holder.
@@ -23,6 +27,9 @@ namespace libtorrent {
 	struct TORRENT_EXPORT buffer_allocator_interface
 	{
 		virtual void free_disk_buffer(char* b) = 0;
+#if TORRENT_DEBUG_BUFFER_POOL
+		virtual void rename_buffer(char* buf, char const* category) = 0;
+#endif
 	protected:
 		~buffer_allocator_interface() = default;
 	};
@@ -77,6 +84,9 @@ namespace libtorrent {
 
 		std::ptrdiff_t size() const { return m_size; }
 
+#if TORRENT_DEBUG_BUFFER_POOL
+		void rename(char const* category);
+#endif
 	private:
 
 		buffer_allocator_interface* m_allocator = nullptr;

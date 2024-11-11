@@ -436,7 +436,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 	status_t mmap_disk_io::do_job(aux::job::read& a, aux::mmap_disk_job* j)
 	{
-		a.buf = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"), default_block_size);
+		a.buf = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer (cache miss)"), default_block_size);
 		if (!a.buf)
 		{
 			j->error.ec = error::no_memory;
@@ -476,6 +476,10 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		aux::open_mode_t const file_mode = file_mode_for_job(j);
 
 		m_stats_counters.inc_stats_counter(counters::num_writing_threads, 1);
+
+#if TORRENT_DEBUG_BUFFER_POOL
+		buffer.rename("flushing");
+#endif
 
 		// the actual write operation
 		int const ret = j->storage->write(m_settings, b
@@ -554,7 +558,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			int const ret = m_store_buffer.get2(loc1, loc2, [&](char const* buf1, char const* buf2)
 			{
 				buffer = disk_buffer_holder(m_buffer_pool
-					, m_buffer_pool.allocate_buffer("send buffer")
+					, m_buffer_pool.allocate_buffer("send buffer (cache hit)")
 					, r.length);
 				if (!buffer)
 				{
@@ -605,7 +609,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		{
 			if (m_store_buffer.get({ storage, r.piece, block_offset }, [&](char const* buf)
 			{
-				buffer = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"), r.length);
+				buffer = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer (cache hit)"), r.length);
 				if (!buffer)
 				{
 					ec.ec = error::no_memory;
@@ -641,7 +645,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		TORRENT_ASSERT(valid_flags(flags));
 		bool exceeded = false;
 		disk_buffer_holder buffer(m_buffer_pool, m_buffer_pool.allocate_buffer(
-			exceeded, o, "receive buffer"), default_block_size);
+			exceeded, o, "store buffer"), default_block_size);
 		if (!buffer) aux::throw_ex<std::bad_alloc>();
 		std::memcpy(buffer.data(), buf, aux::numeric_cast<std::size_t>(r.length));
 

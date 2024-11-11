@@ -38,5 +38,13 @@ namespace libtorrent {
 		m_size = 0;
 	}
 
+#if TORRENT_DEBUG_BUFFER_POOL
+	void disk_buffer_holder::rename(char const* category)
+	{
+		if (m_buf != nullptr)
+			m_allocator->rename_buffer(m_buf, category);
+	}
+#endif
+
 	disk_buffer_holder::~disk_buffer_holder() { reset(); }
 }

@@ -14,8 +14,12 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 
-#if TORRENT_USE_INVARIANT_CHECKS
-#include <set>
+#ifndef TORRENT_DEBUG_BUFFER_POOL
+#define TORRENT_DEBUG_BUFFER_POOL 0
+#endif
+
+#if TORRENT_DEBUG_BUFFER_POOL
+#include <map>
 #endif
 #include <vector>
 #include <mutex>
@@ -56,6 +60,9 @@ namespace aux {
 
 		void set_settings(settings_interface const& sett);
 
+#if TORRENT_DEBUG_BUFFER_POOL
+		void rename_buffer(char* buf, char const* category) override;
+#endif
 	private:
 
 		void free_buffer_impl(char* buf, std::unique_lock<std::mutex>& l);
@@ -94,8 +101,12 @@ namespace aux {
 		// this is specifically exempt from release_asserts
 		// since it's a quite costly check. Only for debug
 		// builds.
-#if TORRENT_USE_INVARIANT_CHECKS
-		std::set<char*> m_buffers_in_use;
+#if TORRENT_DEBUG_BUFFER_POOL
+		std::map<char*, char const*> m_buffers_in_use;
+		std::map<std::string, int> m_histogram;
+		time_t m_last_log = std::time(nullptr);
+
+		void maybe_log();
 #endif
 #if TORRENT_USE_ASSERTS
 		int m_magic = 0x1337;

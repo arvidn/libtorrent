@@ -156,6 +156,9 @@ struct TORRENT_EXTRA_EXPORT disabled_disk_io final
 	// since we just have a single zeroed buffer, we don't need to free anything
 	// here. The buffer is owned by the disabled_disk_io object itself
 	void free_disk_buffer(char*) override {}
+#if TORRENT_DEBUG_BUFFER_POOL
+	void rename_buffer(char*, char const*) override {}
+#endif
 
 	std::vector<open_file_state> get_status(storage_index_t) const override
 	{ return {}; }
