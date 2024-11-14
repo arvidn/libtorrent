@@ -36,11 +36,18 @@ namespace libtorrent {
 
 	proxy_base::proxy_base(io_context& io_context)
 		: m_sock(io_context)
-		, m_port(0)
 		, m_resolver(io_context)
 	{}
 
+#if TORRENT_USE_ASSERTS
+	proxy_base::~proxy_base()
+	{
+		TORRENT_ASSERT(m_magic == 0x1337);
+		m_magic = 0;
+	}
+#else
 	proxy_base::~proxy_base() = default;
+#endif
 
 	static_assert(std::is_nothrow_move_constructible<proxy_base>::value
 		, "should be nothrow move constructible");
