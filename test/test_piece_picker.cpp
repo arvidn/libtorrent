@@ -303,6 +303,38 @@ TORRENT_TEST(piece_block)
 	TEST_CHECK(!(piece_block(zero, 1) < piece_block(zero, 1)));
 }
 
+TORRENT_TEST(abort_download_states)
+{
+	auto p = setup_picker("1111111", "       ", "7110000", "");
+
+	//aborting a block that isn't being downloaded is a no-op
+	TEST_CHECK(p->is_requested({3_piece, 0}) == false);
+	p->abort_download({3_piece, 0}, tmp_peer);
+	p->abort_download({3_piece, 1}, tmp_peer);
+	TEST_CHECK(p->is_requested({3_piece, 0}) == false);
+
+	// aborting a block that's downloading
+	p->mark_as_downloading({3_piece, 0}, tmp_peer);
+	TEST_CHECK(p->is_downloaded({3_piece, 0}) == false);
+	p->abort_download({3_piece, 0}, tmp_peer);
+	p->abort_download({3_piece, 1}, tmp_peer);
+	TEST_CHECK(p->is_downloaded({3_piece, 0}) == false);
+
+	// aborting a block that's finished is a no-op
+	p->mark_as_writing({3_piece, 0}, tmp_peer);
+	TEST_CHECK(p->is_downloaded({3_piece, 0}) == true);
+	p->abort_download({3_piece, 0}, tmp_peer);
+	p->abort_download({3_piece, 1}, tmp_peer);
+	TEST_CHECK(p->is_downloaded({3_piece, 0}) == true);
+
+	// aborting a block that's written is a no-op
+	p->mark_as_finished({3_piece, 0}, tmp_peer);
+	TEST_CHECK(p->is_finished({3_piece, 0}) == true);
+	p->abort_download({3_piece, 0}, tmp_peer);
+	p->abort_download({3_piece, 1}, tmp_peer);
+	TEST_CHECK(p->is_finished({3_piece, 0}) == true);
+}
+
 TORRENT_TEST(abort_download)
 {
 	// test abort_download

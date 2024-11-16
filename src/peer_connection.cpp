@@ -4010,7 +4010,7 @@ namespace {
 		INVARIANT_CHECK;
 
 		auto t = m_torrent.lock();
-		TORRENT_ASSERT(t);
+		if (!t) return;
 
 		if (m_disconnecting) return;
 

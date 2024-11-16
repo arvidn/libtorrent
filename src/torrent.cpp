@@ -2815,15 +2815,17 @@ bool is_downloading_state(int const st)
 		// If this is an SSL torrent the announce needs to specify an SSL
 		// listen port. DHT nodes only operate on non-SSL ports so SSL
 		// torrents cannot use implied_port.
-		// if we allow incoming uTP connections, set the implied_port
-		// argument in the announce, this will make the DHT node use
+		// if we allow incoming uTP connections and don't overwrite
+		// the announced port, set the implied_port argument
+		// in the announce, this will make the DHT node use
 		// our source port in the packet as our listen port, which is
 		// likely more accurate when behind a NAT
+		const auto announce_port = std::uint16_t(settings().get_int(settings_pack::announce_port));
 		if (is_ssl_torrent())
 		{
 			flags |= dht::announce::ssl_torrent;
 		}
-		else if (settings().get_bool(settings_pack::enable_incoming_utp))
+		else if (!announce_port && settings().get_bool(settings_pack::enable_incoming_utp))
 		{
 			flags |= dht::announce::implied_port;
 		}
@@ -2831,7 +2833,7 @@ bool is_downloading_state(int const st)
 		std::weak_ptr<torrent> self(shared_from_this());
 		m_torrent_file->info_hashes().for_each([&](sha1_hash const& ih, protocol_version v)
 		{
-			m_ses.dht()->announce(ih, 0, flags
+			m_ses.dht()->announce(ih, announce_port, flags
 				, std::bind(&torrent::on_dht_announce_response_disp, self, v, _1));
 		});
 	}
@@ -5178,6 +5180,10 @@ namespace {
 #ifndef TORRENT_DISABLE_STREAMING
 	void torrent::cancel_non_critical()
 	{
+		// if we don't have a piece picker, there's nothing to cancel.
+		// e.g. We may have become a seed already.
+		if (!has_picker()) return;
+
 		std::set<piece_index_t> time_critical;
 		for (auto const& p : m_time_critical_pieces)
 			time_critical.insert(p.piece);
@@ -6014,6 +6020,8 @@ namespace {
 	void torrent::cancel_block(piece_block block)
 	{
 		INVARIANT_CHECK;
+
+		TORRENT_ASSERT(has_picker());
 
 		for (auto* p : m_connections)
 		{

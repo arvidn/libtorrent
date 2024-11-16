@@ -16,6 +16,7 @@
 
 2.0.11 not released
 
+	* fix race condition when cancelling requests after becoming a seed
 	* fix performance bug in the file pool, evicting MRU instead of LRU (HanabishiRecca)
 	* fix bug where file_progress could sometimes be reported as >100%
 	* don't hint FADV_RANDOM on posix systems. May improve seeding performance
@@ -30,6 +31,7 @@
 	* fix integer overflow in piece picker
 	* torrent_status::num_pieces counts pieces passed hash check, as documented
 	* check settings_pack::max_out_request_queue before performance alert
+	* add announce_port setting to override the port announced to trackers
 
 2.0.10 released
 

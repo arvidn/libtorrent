@@ -2050,6 +2050,20 @@ namespace aux {
 			i2p_inbound_length,
 			i2p_outbound_length,
 
+			// ``announce_port`` is the port passed along as the ``port`` parameter
+			// to remote trackers such as HTTP or DHT. This setting does not affect
+			// the effective listening port nor local service discovery announcements.
+			// If left as zero (default), the listening port value is used.
+			//
+			// .. note::
+			//    This setting is only meant for very special cases where a
+			//    seed's listening port differs from the external port. As an
+			//    example, if a local proxy is used and that the proxy supports
+			//    reverse tunnels through NAT-PMP, the tracker must connect to
+			//    the external NAT-PMP port (configured using ``announce_port``)
+			//    instead of the actual local listening port.
+			announce_port,
+
 			// this is the minimum allowed announce interval for a WebSocket
 			// tracker used by WebTorrent to signal WebRTC connections. This is
 			// specified in seconds and is used as a sanity check on what is

@@ -222,6 +222,7 @@ int settings_key(int const tag)
 		case SET_I2P_OUTBOUND_QUANTITY: return sp::i2p_outbound_quantity;
 		case SET_I2P_INBOUND_LENGTH: return sp::i2p_inbound_length;
 		case SET_I2P_OUTBOUND_LENGTH: return sp::i2p_outbound_length;
+		case SET_ANNOUNCE_PORT: return sp::announce_port;
 		case SET_MIN_WEBSOCKET_ANNOUNCE_INTERVAL: return sp::min_websocket_announce_interval;
 		case SET_WEBTORRENT_CONNECTION_TIMEOUT: return sp::webtorrent_connection_timeout;
 		default:
