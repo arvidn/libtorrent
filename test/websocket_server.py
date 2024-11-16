@@ -17,7 +17,7 @@ logger.setLevel(logging.INFO)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 
 
-async def handle(websocket, path):
+async def handle(websocket):
     try:
         while True:
             message = await websocket.recv()
@@ -40,10 +40,9 @@ async def handle(websocket, path):
         print(e)
 
 
-if __name__ == '__main__':
+async def main() -> None:
     port = int(sys.argv[1])
     use_ssl = sys.argv[2] != '0'
-    min_interval = sys.argv[3]
     print('python version: %s' % sys.version_info.__str__())
 
     if use_ssl:
@@ -52,6 +51,9 @@ if __name__ == '__main__':
     else:
         ssl_context = None
 
-    start_server = websockets.serve(handle, '127.0.0.1', port, ssl=ssl_context)
-    asyncio.get_event_loop().run_until_complete(start_server)
+    await websockets.serve(handle, '127.0.0.1', port, ssl=ssl_context)
+
+if __name__ == '__main__':
+    loop = asyncio.get_event_loop()
+    asyncio.get_event_loop().run_until_complete(main())
     asyncio.get_event_loop().run_forever()
