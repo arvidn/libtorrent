@@ -18,6 +18,7 @@ see LICENSE file.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/mmap_disk_io.hpp"
 #include "libtorrent/posix_disk_io.hpp"
+#include "libtorrent/pread_disk_io.hpp"
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -417,6 +418,15 @@ TORRENT_TEST(large_pieces_posix)
 	cleanup();
 }
 
+TORRENT_TEST(large_pieces_pread)
+{
+	using namespace lt;
+	std::printf("large pieces\n");
+	test_transfer(0, settings_pack(), large_piece_size, storage_mode_sparse, pread_disk_io_constructor);
+
+	cleanup();
+}
+
 TORRENT_TEST(allocate_mmap)
 {
 	using namespace lt;
@@ -433,6 +443,16 @@ TORRENT_TEST(allocate_posix)
 	// test storage_mode_allocate
 	std::printf("full allocation mode\n");
 	test_transfer(0, settings_pack(), {}, storage_mode_allocate, posix_disk_io_constructor);
+
+	cleanup();
+}
+
+TORRENT_TEST(allocate_pread)
+{
+	using namespace lt;
+	// test storage_mode_allocate
+	std::printf("full allocation mode\n");
+	test_transfer(0, settings_pack(), {}, storage_mode_allocate, pread_disk_io_constructor);
 
 	cleanup();
 }
@@ -467,6 +487,16 @@ TORRENT_TEST(disable_os_cache_posix)
 	cleanup();
 }
 
+TORRENT_TEST(disable_os_cache_pread)
+{
+	using namespace lt;
+	settings_pack p = settings();
+	p.set_int(settings_pack::disk_io_write_mode, settings_pack::disable_os_cache);
+	test_transfer(0, p, {}, storage_mode_allocate, pread_disk_io_constructor);
+
+	cleanup();
+}
+
 TORRENT_TEST(write_through_mmap)
 {
 	using namespace lt;
@@ -483,6 +513,16 @@ TORRENT_TEST(write_through_posix)
 	settings_pack p = settings();
 	p.set_int(settings_pack::disk_io_write_mode, settings_pack::write_through);
 	test_transfer(0, p, {}, storage_mode_allocate, posix_disk_io_constructor);
+
+	cleanup();
+}
+
+TORRENT_TEST(write_through_pread)
+{
+	using namespace lt;
+	settings_pack p = settings();
+	p.set_int(settings_pack::disk_io_write_mode, settings_pack::write_through);
+	test_transfer(0, p, {}, storage_mode_allocate, pread_disk_io_constructor);
 
 	cleanup();
 }

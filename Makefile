@@ -323,6 +323,7 @@ SOURCES = \
   disabled_disk_io.cpp            \
   disk_buffer_holder.cpp          \
   disk_buffer_pool.cpp            \
+  disk_cache.cpp                  \
   disk_completed_queue.cpp        \
   disk_io_thread_pool.cpp         \
   disk_job_fence.cpp              \
@@ -381,6 +382,8 @@ SOURCES = \
   posix_disk_io.cpp               \
   posix_part_file.cpp             \
   posix_storage.cpp               \
+  pread_disk_io.cpp               \
+  pread_storage.cpp               \
   proxy_base.cpp                  \
   proxy_settings.cpp              \
   puff.cpp                        \
@@ -497,6 +500,7 @@ HEADERS = \
   piece_block.hpp              \
   portmap.hpp                  \
   posix_disk_io.hpp            \
+  pread_disk_io.hpp            \
   read_resume_data.hpp         \
   session.hpp                  \
   session_handle.hpp           \
@@ -561,6 +565,8 @@ HEADERS = \
   aux_/disable_warnings_pop.hpp     \
   aux_/disable_warnings_push.hpp    \
   aux_/disk_buffer_pool.hpp         \
+  aux_/disk_cache.hpp               \
+  aux_/visit_block_iovecs.hpp       \
   aux_/disk_completed_queue.hpp     \
   aux_/disk_io_thread_pool.hpp      \
   aux_/disk_job_fence.hpp           \
@@ -627,6 +633,8 @@ HEADERS = \
   aux_/portmap.hpp                  \
   aux_/posix_part_file.hpp          \
   aux_/posix_storage.hpp            \
+  aux_/pread_disk_job.hpp           \
+  aux_/pread_storage.hpp            \
   aux_/proxy_base.hpp               \
   aux_/proxy_settings.hpp           \
   aux_/puff.hpp                     \
@@ -892,6 +900,8 @@ TEST_SOURCES = \
   test_dht.cpp \
   test_dht_storage.cpp \
   test_direct_dht.cpp \
+  test_disk_cache.cpp \
+  test_disk_io.cpp \
   test_dos_blocker.cpp \
   test_ed25519.cpp \
   test_enum_net.cpp \

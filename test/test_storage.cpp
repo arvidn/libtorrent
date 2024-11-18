@@ -19,7 +19,9 @@ see LICENSE file.
 
 #include "libtorrent/aux_/mmap_storage.hpp"
 #include "libtorrent/aux_/posix_storage.hpp"
+#include "libtorrent/aux_/pread_storage.hpp"
 #include "libtorrent/aux_/file_view_pool.hpp"
+#include "libtorrent/aux_/file_pool.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_params.hpp"
@@ -45,20 +47,13 @@ see LICENSE file.
 using namespace std::placeholders;
 using namespace lt;
 
-#if ! TORRENT_HAVE_MMAP && ! TORRENT_HAVE_MAP_VIEW_OF_FILE
-namespace libtorrent {
-namespace aux {
-	struct file_view_pool {};
-}
-}
-#endif
-
 namespace {
 
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 using lt::aux::mmap_storage;
 #endif
 using lt::aux::posix_storage;
+using lt::aux::pread_storage;
 
 constexpr int piece_size = 16 * 1024 * 16;
 constexpr int half = piece_size / 2;
@@ -186,6 +181,12 @@ struct file_pool_type<posix_storage>
 	using type = int;
 };
 
+template <>
+struct file_pool_type<pread_storage>
+{
+	using type = aux::file_pool;
+};
+
 template <typename StorageType>
 std::shared_ptr<StorageType> make_storage(storage_params const& p
 	, typename file_pool_type<StorageType>::type& fp);
@@ -204,6 +205,13 @@ std::shared_ptr<posix_storage> make_storage(storage_params const& p
 	, int&)
 {
 	return std::make_shared<posix_storage>(p);
+}
+
+template <>
+std::shared_ptr<pread_storage> make_storage(storage_params const& p
+	, aux::file_pool& fp)
+{
+	return std::make_shared<pread_storage>(p, fp);
 }
 
 template <typename StorageType, typename FilePool>
@@ -294,6 +302,33 @@ int read(std::shared_ptr<posix_storage> s
 }
 
 void release_files(std::shared_ptr<posix_storage>, storage_error&) {}
+
+int write(std::shared_ptr<pread_storage> s
+	, aux::session_settings const& sett
+	, span<char> buf
+	, piece_index_t const piece
+	, int const offset
+	, aux::open_mode_t mode
+	, storage_error& error)
+{
+	return s->write(sett, buf, piece, offset, mode, disk_job_flags_t{}, error);
+}
+
+int read(std::shared_ptr<pread_storage> s
+	, aux::session_settings const& sett
+	, span<char> buf
+	, piece_index_t piece
+	, int offset
+	, aux::open_mode_t mode
+	, storage_error& ec)
+{
+	return s->read(sett, buf, piece, offset, mode, disk_job_flags_t{}, ec);
+}
+
+void release_files(std::shared_ptr<pread_storage> s, storage_error& ec)
+{
+	s->release_files(ec);
+}
 
 std::vector<char> new_piece(std::size_t const size)
 {
@@ -875,6 +910,17 @@ TORRENT_TEST(remove_posix_disk_io)
 	test_remove<posix_storage>(current_working_directory());
 }
 
+TORRENT_TEST(rename_pread_disk_io)
+{
+	test_rename<pread_storage>(current_working_directory());
+}
+
+TORRENT_TEST(remove_pread_disk_io)
+{
+	test_remove<pread_storage>(current_working_directory());
+}
+
+
 void test_fastresume(bool const test_deprecated)
 {
 	std::string test_path = current_working_directory();
@@ -912,6 +958,7 @@ void test_fastresume(bool const test_deprecated)
 		{
 			print_alerts(ses, "ses");
 			s = h.status();
+			std::cout << "progress: " << s.progress << std::endl;
 			if (s.progress == 1.0f)
 			{
 				std::cout << "progress: 1.0f" << std::endl;
@@ -1205,6 +1252,19 @@ void fill_pattern(span<char> buf)
 	}
 }
 
+void fill_pattern(span<span<char> const> bufs)
+{
+	int counter = 0;
+	for (auto const& buf : bufs)
+	{
+		for (char& v : buf)
+		{
+			v = char(counter & 0xff);
+			++counter;
+		}
+	}
+}
+
 bool check_pattern(std::vector<char> const& buf, int counter)
 {
 	unsigned char const* p = reinterpret_cast<unsigned char const*>(buf.data());
@@ -1216,12 +1276,91 @@ bool check_pattern(std::vector<char> const& buf, int counter)
 	return true;
 }
 
+template <typename Char>
+void alloc_iov(span<Char>* iov, int num_bufs)
+{
+	for (std::size_t i = 0; i < static_cast<size_t>(num_bufs); ++i)
+	{
+		std::size_t const len = static_cast<std::size_t>(num_bufs) * (i + 1);
+		iov[i] = { new char[len], static_cast<std::ptrdiff_t>(len) };
+	}
+}
+
+// TODO: this should take a span
+template <typename Char>
+void free_iov(span<Char>* iov, int num_bufs)
+{
+       for (int i = 0; i < num_bufs; ++i)
+       {
+               delete[] iov[i].data();
+               iov[i] = { nullptr, 0 };
+       }
+}
+
 } // anonymous namespace
+
+TORRENT_TEST(iovec_advance_bufs)
+{
+	span<char> iov1[10];
+	span<char const> iov2[10];
+	alloc_iov(iov1, 10);
+	fill_pattern({iov1, 10});
+
+	memcpy(iov2, iov1, sizeof(iov1));
+
+	span<span<char const>> iov = iov2;
+
+	// advance iov 13 bytes. Make sure what's left fits pattern 1 shifted
+	// 13 bytes
+	iov = aux::advance_bufs(iov, 13);
+
+	// make sure what's in
+	int counter = 13;
+	for (auto buf : iov)
+	{
+		for (char v : buf)
+		{
+			TEST_EQUAL(v, static_cast<char>(counter));
+			++counter;
+		}
+	}
+
+	free_iov(iov1, 10);
+}
+
+TORRENT_TEST(iovec_copy_bufs)
+{
+	span<char> iov1[10];
+	span<char> iov2[10];
+
+	alloc_iov(iov1, 10);
+	fill_pattern({iov1, 10});
+
+	// copy exactly 106 bytes from iov1 to iov2
+	int num_bufs = aux::copy_bufs(span<span<char> const>(iov1), 106, span<span<char>>(iov2));
+
+	// verify that the first 100 bytes is pattern 1
+	// and that the remaining bytes are pattern 2
+
+	int counter = 0;
+	for (int i = 0; i < num_bufs; ++i)
+	{
+		for (char v : iov2[i])
+		{
+			TEST_EQUAL(int(v), (counter & 0xff));
+			++counter;
+		}
+	}
+	TEST_EQUAL(counter, 106);
+
+	free_iov(iov1, 10);
+}
 
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 TORRENT_TEST(mmap_disk_io) { run_test<mmap_storage>(); }
 #endif
 TORRENT_TEST(posix_disk_io) { run_test<posix_storage>(); }
+TORRENT_TEST(pread_disk_io) { run_test<pread_storage>(); }
 
 namespace {
 
@@ -1576,6 +1715,22 @@ TORRENT_TEST(move_posix_storage_reset)
 	test_move_storage_reset<posix_storage>(move_flags_t::reset_save_path_unchecked);
 }
 
+TORRENT_TEST(move_pread_storage_to_self)
+{
+	test_move_storage_to_self<pread_storage>();
+}
+
+TORRENT_TEST(move_pread_storage_into_self)
+{
+	test_move_storage_into_self<pread_storage>();
+}
+
+TORRENT_TEST(move_pread_storage_reset)
+{
+	test_move_storage_reset<pread_storage>(move_flags_t::reset_save_path);
+	test_move_storage_reset<pread_storage>(move_flags_t::reset_save_path_unchecked);
+}
+
 TORRENT_TEST(storage_paths_string_pooling)
 {
 	file_storage file_storage;
@@ -1850,4 +2005,20 @@ TORRENT_TEST(posix_unaligned_read_both_store_buffer)
 	test_unaligned_read(lt::posix_disk_io_constructor, first_side_from_store_buffer);
 	test_unaligned_read(lt::posix_disk_io_constructor, second_side_from_store_buffer);
 	test_unaligned_read(lt::posix_disk_io_constructor, none_from_store_buffer);
+}
+
+TORRENT_TEST(iovec_bufs)
+{
+	span<char const> iov[10];
+
+	for (int i = 1; i < 10; ++i)
+	{
+		alloc_iov(iov, i);
+
+		int expected_size = 0;
+		for (int k = 0; k < i; ++k) expected_size += i * (k + 1);
+		TEST_EQUAL(aux::bufs_size(span<span<char const> const>(&iov[0], i)), expected_size);
+
+		free_iov(iov, i);
+	}
 }

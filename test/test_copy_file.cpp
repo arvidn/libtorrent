@@ -11,6 +11,7 @@ see LICENSE file.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/mmap.hpp"
 #include "libtorrent/aux_/open_mode.hpp"
+#include "libtorrent/aux_/storage_utils.hpp"
 #include "test.hpp"
 #include "test_utils.hpp"
 

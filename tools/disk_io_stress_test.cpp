@@ -10,6 +10,7 @@ see LICENSE file.
 #include "libtorrent/session.hpp" // for default_disk_io_constructor
 #include "libtorrent/disabled_disk_io.hpp"
 #include "libtorrent/mmap_disk_io.hpp"
+#include "libtorrent/pread_disk_io.hpp"
 #include "libtorrent/posix_disk_io.hpp"
 
 #include "libtorrent/disk_interface.hpp"
@@ -167,6 +168,8 @@ int run_test(test_case const& t)
 	{
 		if (t.disk_backend  == "posix"_sv)
 			disk_io = lt::posix_disk_io_constructor(ioc, pack, cnt);
+		else if (t.disk_backend  == "pread"_sv)
+			disk_io = lt::pread_disk_io_constructor(ioc, pack, cnt);
 		else if (t.disk_backend  == "disabled"_sv)
 			disk_io = lt::disabled_disk_io_constructor(ioc, pack, cnt);
 		else
@@ -262,7 +265,7 @@ int run_test(test_case const& t)
 		{
 			if ((job_counter & 0x1fff) == 0)
 			{
-				printf("o: %d w: %d r: %d\r"
+				printf("o: %d w: %d r: %d  \r"
 					, outstanding
 					, int(blocks_to_write.size())
 					, int(blocks_to_read.size()));

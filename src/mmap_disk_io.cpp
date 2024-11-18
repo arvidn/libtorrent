@@ -136,6 +136,7 @@ struct TORRENT_EXTRA_EXPORT mmap_disk_io final
 	// this submits all queued up jobs to the thread
 	void submit_jobs() override;
 
+	status_t do_job(aux::job::kick_hasher&, aux::mmap_disk_job*) { return status_t{}; }
 	status_t do_job(aux::job::partial_read& a, aux::mmap_disk_job* j);
 	status_t do_job(aux::job::read& a, aux::mmap_disk_job* j);
 	status_t do_job(aux::job::write& a, aux::mmap_disk_job* j);

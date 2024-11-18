@@ -165,6 +165,8 @@ set(libtorrent_aux_include_files
 	disable_warnings_pop.hpp
 	disable_warnings_push.hpp
 	disk_buffer_pool.hpp
+	disk_cache.hpp
+	visit_block_iovecs.hpp
 	disk_completed_queue.hpp
 	mmap_disk_job.hpp
 	disk_job.hpp
@@ -225,6 +227,7 @@ set(libtorrent_aux_include_files
 	portmap.hpp
 	posix_part_file.hpp
 	posix_storage.hpp
+	pread_disk_job.hpp
 	proxy_base.hpp
 	proxy_settings.hpp
 	puff.hpp
@@ -326,6 +329,7 @@ set(sources
 	disabled_disk_io.cpp
 	disk_buffer_holder.cpp
 	disk_buffer_pool.cpp
+	disk_cache.cpp
 	disk_completed_queue.cpp
 	disk_io_thread_pool.cpp
 	disk_job_fence.cpp
@@ -383,6 +387,8 @@ set(sources
 	posix_disk_io.cpp
 	posix_part_file.cpp
 	posix_storage.cpp
+	pread_disk_io.cpp
+	pread_storage.cpp
 	proxy_base.cpp
 	proxy_settings.cpp
 	puff.cpp

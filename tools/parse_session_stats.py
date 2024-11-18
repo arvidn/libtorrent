@@ -130,7 +130,8 @@ for i in range(0, 6):
 
 def plot_fun(script):
     try:
-        ret = os.system('gnuplot "%s" 2>/dev/null' % script)
+        print('gnuplot "%s"' % script)
+        ret = os.system('gnuplot "%s"' % script)
     except Exception as e:
         print('please install gnuplot: sudo apt install gnuplot')
         raise e
@@ -621,6 +622,10 @@ reports = [
     ]),
     ('queued_trackers', 'number of queued tracker announces', '', '', [ \
         'tracker.num_queued_tracker_announces' \
+    ]),
+    ('disk_cache', 'disk cache size', '', '', [ \
+        'disk.disk_cache_pieces', \
+        'disk.disk_blocks_in_use', \
     ]),
 
     # ('picker_full_partials_distribution', 'full pieces', '', '', ['num full partial pieces'],
