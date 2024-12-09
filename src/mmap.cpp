@@ -185,7 +185,7 @@ file_mapping::file_mapping(file_handle file, open_mode_t const mode, std::int64_
 	}
 
 #if TORRENT_USE_MADVISE
-	if (file_size > 0)
+	if (m_mapping != nullptr && m_mapping != map_failed)
 	{
 		int const advise = ((mode & open_mode::sequential_access) ? MADV_SEQUENTIAL : 0)
 #ifdef MADV_DONTDUMP
