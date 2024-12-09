@@ -172,7 +172,7 @@ file_mapping_handle::file_mapping_handle(file_handle file, open_mode_t const mod
 file_mapping::file_mapping(file_handle file, open_mode_t const mode, std::int64_t const file_size)
 	: m_size(memory_map_size(mode, file_size, file))
 	, m_file(std::move(file))
-	, m_mapping((mode & open_mode::no_mmap) ? nullptr
+	, m_mapping((mode & open_mode::no_mmap) || m_size == 0 ? nullptr
 		: mmap(nullptr, static_cast<std::size_t>(m_size)
 			, mmap_prot(mode), mmap_flags(mode), m_file.fd(), 0))
 {
@@ -185,7 +185,7 @@ file_mapping::file_mapping(file_handle file, open_mode_t const mode, std::int64_
 	}
 
 #if TORRENT_USE_MADVISE
-	if (file_size > 0)
+	if (m_mapping != nullptr && m_mapping != map_failed)
 	{
 		int const advise = ((mode & open_mode::sequential_access) ? MADV_SEQUENTIAL : 0)
 #ifdef MADV_DONTDUMP
