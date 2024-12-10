@@ -177,12 +177,12 @@ list file_priorities(torrent_handle& handle)
     return ret;
 }
 
-download_priority_t file_prioritity0(torrent_handle& h, file_index_t index)
+download_priority_t file_priority0(torrent_handle& h, file_index_t index)
 {
    return h.file_priority(index);
 }
 
-void file_prioritity1(torrent_handle& h, file_index_t index, download_priority_t prio)
+void file_priority1(torrent_handle& h, file_index_t index, download_priority_t prio)
 {
    return h.file_priority(index, prio);
 }
@@ -532,8 +532,8 @@ void bind_torrent_handle()
         .def("get_piece_priorities", &piece_priorities)
         .def("prioritize_files", &prioritize_files)
         .def("get_file_priorities", &file_priorities)
-        .def("file_priority", &file_prioritity0)
-        .def("file_priority", &file_prioritity1)
+        .def("file_priority", &file_priority0)
+        .def("file_priority", &file_priority1)
         .def("file_status", _(file_status0))
         .def("save_resume_data", _(&torrent_handle::save_resume_data), arg("flags") = 0)
         .def("need_save_resume_data", _(need_save_resume_data0))
