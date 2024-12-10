@@ -113,7 +113,7 @@ void test_checking(int const flags)
 	auto const file_sizes = (flags & single_file)
 		? std::vector<int>{500000}
 		: std::vector<int>{0, 5, 16 - 5, 16000, 17, 10, 8000, 8000, 1,1,1,1,1,100,1,1,1,1,100,1,1,1,1,1,1
-		,1,1,1,1,1,1,13,65000,34,75,2,30,400,50000,73000,900,43000,400,4300,6, 4 };
+		,1,1,1,1,1,1,13,65000,34,75,2,30,400,50000,73000,900,43000,400,4300,6, 4, 16384 * 100, 16384 * 200, 16384 * 100};
 
 	create_random_files("test_torrent_dir", file_sizes, &fs);
 
@@ -137,7 +137,7 @@ void test_checking(int const flags)
 	{
 		for (std::size_t i = 0; i < file_sizes.size(); ++i)
 		{
-			if ((i & 1) == 1) continue;
+			if ((i % 3) == 2) continue;
 			char name[1024];
 			std::snprintf(name, sizeof(name), "test%d", int(i));
 			char dirname[200];
@@ -147,7 +147,7 @@ void test_checking(int const flags)
 
 			std::int64_t const new_len = (flags & extended_files)
 				? file_sizes[i] + 10
-				: file_sizes[i] * 2 / 3;
+				: file_sizes[i] * static_cast<int>(i % 3) / 2;
 
 			int const ret = ::truncate(path.c_str(), new_len);
 			if (ret < 0)
