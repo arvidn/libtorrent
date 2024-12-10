@@ -61,6 +61,7 @@ struct proxy_base
 
 	void set_proxy(std::string hostname, int port)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		m_hostname = std::move(hostname);
 		m_port = port;
 	}
@@ -71,18 +72,21 @@ struct proxy_base
 	template <class Mutable_Buffers, class Handler>
 	void async_read_some(Mutable_Buffers const& buffers, Handler handler)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		m_sock.async_read_some(buffers, std::move(handler));
 	}
 
 	template <class Mutable_Buffers>
 	std::size_t read_some(Mutable_Buffers const& buffers, error_code& ec)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		return m_sock.read_some(buffers, ec);
 	}
 
 	template <class Const_Buffers>
 	std::size_t write_some(Const_Buffers const& buffers, error_code& ec)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		return m_sock.write_some(buffers, ec);
 	}
 
@@ -96,18 +100,21 @@ struct proxy_base
 	template <class Mutable_Buffers>
 	std::size_t read_some(Mutable_Buffers const& buffers)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		return m_sock.read_some(buffers);
 	}
 
 	template <class Const_Buffers>
 	std::size_t write_some(Const_Buffers const& buffers)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		return m_sock.write_some(buffers);
 	}
 
 	template <class IO_Control_Command>
 	void io_control(IO_Control_Command& ioc)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		m_sock.io_control(ioc);
 	}
 #endif
@@ -115,12 +122,14 @@ struct proxy_base
 	template <class IO_Control_Command>
 	void io_control(IO_Control_Command& ioc, error_code& ec)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		m_sock.io_control(ioc, ec);
 	}
 
 	template <class Const_Buffers, class Handler>
 	void async_write_some(Const_Buffers const& buffers, Handler handler)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		m_sock.async_write_some(buffers, std::move(handler));
 	}
 
@@ -134,6 +143,7 @@ struct proxy_base
 	template <class Handler>
 	void async_wait(tcp::socket::wait_type type, Handler handler)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		m_sock.async_wait(type, std::move(handler));
 	}
 #endif
@@ -141,12 +151,14 @@ struct proxy_base
 #ifndef BOOST_NO_EXCEPTIONS
 	void non_blocking(bool b)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		m_sock.non_blocking(b);
 	}
 #endif
 
 	void non_blocking(bool b, error_code& ec)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		m_sock.non_blocking(b, ec);
 	}
 
@@ -154,6 +166,7 @@ struct proxy_base
 	template <class SettableSocketOption>
 	void set_option(SettableSocketOption const& opt)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		m_sock.set_option(opt);
 	}
 #endif
@@ -161,6 +174,7 @@ struct proxy_base
 	template <class SettableSocketOption>
 	void set_option(SettableSocketOption const& opt, error_code& ec)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		m_sock.set_option(opt, ec);
 	}
 
@@ -168,6 +182,7 @@ struct proxy_base
 	template <class GettableSocketOption>
 	void get_option(GettableSocketOption& opt)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		m_sock.get_option(opt);
 	}
 #endif
@@ -175,28 +190,33 @@ struct proxy_base
 	template <class GettableSocketOption>
 	void get_option(GettableSocketOption& opt, error_code& ec)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		m_sock.get_option(opt, ec);
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
 	void bind(endpoint_type const& /* endpoint */)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 //		m_sock.bind(endpoint);
 	}
 #endif
 
 	void cancel()
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		m_sock.cancel();
 	}
 
 	void cancel(error_code& ec)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		m_sock.cancel(ec);
 	}
 
 	void bind(endpoint_type const& /* endpoint */, error_code& /* ec */)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		// the reason why we ignore binds here is because we don't
 		// (necessarily) yet know what address family the proxy
 		// will resolve to, and binding to the wrong one would
@@ -211,12 +231,14 @@ struct proxy_base
 #ifndef BOOST_NO_EXCEPTIONS
 	void open(protocol_type const&)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 //		m_sock.open(p);
 	}
 #endif
 
 	void open(protocol_type const&, error_code&)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		// we need to ignore this for the same reason as stated
 		// for ignoring bind()
 //		m_sock.open(p, ec);
@@ -225,6 +247,7 @@ struct proxy_base
 #ifndef BOOST_NO_EXCEPTIONS
 	void close()
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		m_remote_endpoint = endpoint_type();
 		m_sock.close();
 		m_resolver.cancel();
@@ -233,6 +256,7 @@ struct proxy_base
 
 	void close(error_code& ec)
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		m_remote_endpoint = endpoint_type();
 		m_sock.close(ec);
 		m_resolver.cancel();
@@ -241,12 +265,14 @@ struct proxy_base
 #ifndef BOOST_NO_EXCEPTIONS
 	endpoint_type remote_endpoint() const
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		return m_remote_endpoint;
 	}
 #endif
 
 	endpoint_type remote_endpoint(error_code& ec) const
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		if (!m_sock.is_open()) ec = boost::asio::error::not_connected;
 		return m_remote_endpoint;
 	}
@@ -254,12 +280,14 @@ struct proxy_base
 #ifndef BOOST_NO_EXCEPTIONS
 	endpoint_type local_endpoint() const
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		return m_sock.local_endpoint();
 	}
 #endif
 
 	endpoint_type local_endpoint(error_code& ec) const
 	{
+		TORRENT_ASSERT(m_magic == 0x1337);
 		return m_sock.local_endpoint(ec);
 	}
 
@@ -280,9 +308,15 @@ protected:
 	// The handler must be taken as lvalue reference here since we may not call
 	// it. But if we do, we want the call operator to own the function object.
 	template <typename Handler>
-	bool handle_error(error_code const& e, Handler&& h)
+	bool handle_error(error_code e, Handler&& h)
 	{
-		if (!e) return false;
+		TORRENT_ASSERT(m_magic == 0x1337);
+		if (!e)
+		{
+			if (m_sock.is_open())
+				return false;
+			e = boost::asio::error::connection_aborted;
+		}
 		std::forward<Handler>(h)(e);
 		error_code ec;
 		close(ec);
@@ -291,12 +325,16 @@ protected:
 
 	aux::noexcept_movable<tcp::socket> m_sock;
 	std::string m_hostname; // proxy host
-	int m_port;             // proxy port
+	int m_port = 0;         // proxy port
 
 	aux::noexcept_movable<endpoint_type> m_remote_endpoint;
 
 	// TODO: 2 use the resolver interface that has a built-in cache
 	aux::noexcept_move_only<tcp::resolver> m_resolver;
+
+#if TORRENT_USE_ASSERTS
+	int m_magic = 0x1337;
+#endif
 };
 
 template <typename Handler, typename UnderlyingHandler>
