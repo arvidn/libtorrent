@@ -46,7 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define LIBTORRENT_VERSION_NUM ((LIBTORRENT_VERSION_MAJOR * 10000) + (LIBTORRENT_VERSION_MINOR * 100) + LIBTORRENT_VERSION_TINY)
 
 #define LIBTORRENT_VERSION "2.0.11.0"
-#define LIBTORRENT_REVISION "74bc93a37"
+#define LIBTORRENT_REVISION "6e1587799"
 
 namespace libtorrent {
 
@@ -59,7 +59,7 @@ namespace libtorrent {
 	constexpr char const* version_str = "2.0.11.0";
 
 	// the git commit of this libtorrent version
-	constexpr std::uint64_t version_revision = 0x74bc93a37;
+	constexpr std::uint64_t version_revision = 0x6e1587799;
 
 	// returns the libtorrent version as string form in this format:
 	// "<major>.<minor>.<tiny>.<tag>"
