@@ -79,6 +79,7 @@ else
 
 	local boost-include-path =
 		<include>/opt/local/include
+		<include>/opt/homebrew/include
 		<include>/usr/local/include
 		<include>/usr/sfw/include
 	;
