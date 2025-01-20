@@ -43,11 +43,7 @@ else
 		<include>/opt/homebrew/include
 	;
 
-	# the names are decorated in MacPorts.
-	lib boost_system : : <target-os>darwin <name>boost_system-mt $(boost-lib-search-path)
-		: : $(boost-include-path) ;
-
-	lib boost_system : : <name>boost_system ;
+	lib boost_system : : <name>boost_system $(boost-lib-search-path) : : $(boost-include-path) ;
 }
 
 use-project /try_signal : ./deps/try_signal ;
