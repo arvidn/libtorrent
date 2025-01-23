@@ -14,7 +14,7 @@
 	* libtorrent now requires C++17 to build
 	* added support for WebTorrent
 
-2.0.11 not released
+2.0.11 released
 
 	* fix race condition when cancelling requests after becoming a seed
 	* fix performance bug in the file pool, evicting MRU instead of LRU (HanabishiRecca)

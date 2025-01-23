@@ -13,7 +13,7 @@ jobs:
 
    docs:
       name: Docs
-      runs-on: ubuntu-20.04
+      runs-on: ubuntu-24.04
 
       steps:
       - name: checkout
@@ -29,8 +29,8 @@ jobs:
 
       - name: install dependencies
         run: |
-          sudo apt install python-docutils python-pygments python-pil gsfonts inkscape icoutils graphviz hunspell imagemagick
-          python -m pip install aafigure
+          sudo apt install python3-docutils python3-pygments python3-pil gsfonts inkscape icoutils graphviz hunspell imagemagick
+          python3 -m pip install aafigure
           ~/.local/bin/aafigure --version
 
       - name: spell-check
