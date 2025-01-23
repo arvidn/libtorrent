@@ -406,7 +406,7 @@ namespace {
 				else if (in == '1')
 					inbuf[j] = 'I' - 'A';
 				else
-					return std::string();
+					return {};
 				TORRENT_ASSERT(inbuf[j] == (inbuf[j] & 0x1f));
 			}
 

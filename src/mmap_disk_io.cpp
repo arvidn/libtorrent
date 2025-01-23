@@ -275,7 +275,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		auto storage = std::make_shared<aux::mmap_storage>(params, m_file_pool);
 		storage->set_owner(owner);
 		storage_index_t const idx = m_torrents.add(std::move(storage));
-		return storage_holder(idx, *this);
+		return {idx, *this};
 	}
 
 	void mmap_disk_io::remove_torrent(storage_index_t const idx)

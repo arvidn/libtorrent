@@ -18,7 +18,7 @@ namespace libtorrent::dht {
 
 	node_ids_t extract_node_ids(bdecode_node const& e, string_view key)
 	{
-		if (e.type() != bdecode_node::dict_t) return node_ids_t();
+		if (e.type() != bdecode_node::dict_t) return {};
 		node_ids_t ret;
 		// first look for an old-style nid
 		auto const old_nid = e.dict_find_string_value(key);

@@ -855,7 +855,7 @@ namespace aux {
 	sha1_hash file_storage::hash(file_index_t const index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t{} && index < end_file());
-		if (index >= m_file_hashes.end_index()) return sha1_hash();
+		if (index >= m_file_hashes.end_index()) return {};
 		return sha1_hash(m_file_hashes[index]);
 	}
 #endif
@@ -863,7 +863,7 @@ namespace aux {
 	sha256_hash file_storage::root(file_index_t const index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t{} && index < end_file());
-		if (m_files[index].root == nullptr) return sha256_hash();
+		if (m_files[index].root == nullptr) return {};
 		return sha256_hash(m_files[index].root);
 	}
 

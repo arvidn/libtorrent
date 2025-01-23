@@ -133,10 +133,10 @@ namespace aux {
 		INVARIANT_CHECK;
 		// TODO: use compare_less_wrap for this comparison as well
 		if (idx >= m_first + m_capacity)
-			return packet_ptr();
+			return {};
 
 		if (compare_less_wrap(idx, m_first, 0xffff))
-			return packet_ptr();
+			return {};
 
 		std::size_t const mask = m_capacity - 1;
 		packet_ptr old_value = std::move(m_storage[idx & mask]);

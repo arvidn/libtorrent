@@ -243,7 +243,7 @@ namespace libtorrent::aux {
 	{
 		std::string const fn = combine_path(m_path, m_name);
 		try {
-			return aux::file_handle(fn, 0, mode);
+			return {fn, 0, mode};
 		}
 		catch (storage_error const& e)
 		{
@@ -255,7 +255,7 @@ namespace libtorrent::aux {
 				ec.clear();
 				create_directories(m_path, ec);
 				if (ec) return {};
-				return aux::file_handle(fn, 0, mode);
+				return {fn, 0, mode};
 			}
 			return {};
 		}

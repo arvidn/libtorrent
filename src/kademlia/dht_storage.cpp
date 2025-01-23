@@ -86,7 +86,7 @@ namespace {
 	struct dht_mutable_item : dht_immutable_item
 	{
 		signature sig{};
-		sequence_number seq{};
+		sequence_number seq;
 		public_key key{};
 		std::string salt;
 	};

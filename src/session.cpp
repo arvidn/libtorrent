@@ -462,7 +462,7 @@ namespace {
 		// stop calling the alert notify function now, to avoid it thinking the
 		// session is still alive
 		m_impl->alerts().set_notify_function({});
-		return session_proxy(m_io_service, m_thread, m_impl);
+		return {m_io_service, m_thread, m_impl};
 	}
 
 	session_proxy::session_proxy() = default;

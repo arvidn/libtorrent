@@ -576,7 +576,7 @@ namespace {
 		}
 
 		if (f[std::size_t(len)] == '/' || f[std::size_t(len)] == '\\') ++len;
-		return std::string(f.c_str(), std::size_t(len));
+		return {f.c_str(), std::size_t(len)};
 	}
 
 	std::string filename(std::string const& f)
@@ -603,13 +603,13 @@ namespace {
 					|| *sep == '\\'
 #endif
 					)
-					return std::string(sep + 1, std::size_t(len));
+					return {sep + 1, std::size_t(len)};
 				++len;
 			}
-			return std::string(first, std::size_t(len));
+			return {first, std::size_t(len)};
 
 		}
-		return std::string(sep + 1);
+		return {sep + 1};
 	}
 
 	void append_path(std::string& branch, string_view leaf)

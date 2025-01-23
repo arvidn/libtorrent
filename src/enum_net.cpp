@@ -1352,7 +1352,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		if (sock < 0)
 		{
 			ec = error_code(errno, system_category());
-			return std::vector<ip_route>();
+			return {};
 		}
 		socket_closer c1(sock);
 
@@ -1360,7 +1360,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		if (dgram_sock < 0)
 		{
 			ec = error_code(errno, system_category());
-			return std::vector<ip_route>();
+			return {};
 		}
 		socket_closer c2(dgram_sock);
 
@@ -1380,7 +1380,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			}) != 0)
 		{
 			ec = error_code(errno, system_category());
-			return std::vector<ip_route>();
+			return {};
 		}
 #elif TORRENT_USE_GRTTABLE
 

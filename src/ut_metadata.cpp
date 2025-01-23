@@ -163,8 +163,7 @@ namespace {
 
 		ut_metadata_peer_plugin(aux::torrent& t, aux::bt_peer_connection& pc
 			, ut_metadata_plugin& tp)
-			: m_message_index(0)
-			, m_request_limit(min_time())
+			: m_request_limit(min_time())
 			, m_torrent(t)
 			, m_pc(pc)
 			, m_tp(tp)
@@ -432,7 +431,7 @@ namespace {
 
 		// this is the message index the remote peer uses
 		// for metadata extension messages.
-		int m_message_index;
+		int m_message_index = 0;
 
 		// this is set to the next time we can request pieces
 		// again. It is updated every time we get a

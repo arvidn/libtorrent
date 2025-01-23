@@ -48,7 +48,7 @@ namespace {
 			|| (id[3] < '0') || (id[4] < '0')
 			|| (id[5] < '0') || (id[6] < '0')
 			|| id[7] != '-')
-			return std::optional<fingerprint>();
+			return {};
 
 		ret.name[0] = char(id[1]);
 		ret.name[1] = char(id[2]);
@@ -57,7 +57,7 @@ namespace {
 		ret.revision_version = decode_digit(id[5]);
 		ret.tag_version = decode_digit(id[6]);
 
-		return std::optional<fingerprint>(ret);
+		return {ret};
 	}
 
 	// checks if a peer id can possibly contain a shadow-style
@@ -67,13 +67,13 @@ namespace {
 		fingerprint ret("..", 0, 0, 0, 0);
 
 		if (!aux::is_alpha(char(id[0])) && !aux::is_digit(char(id[0])))
-			return std::optional<fingerprint>();
+			return {};
 
 		if (std::equal(id.begin() + 4, id.begin() + 6, "--"))
 		{
 			if ((id[1] < '0') || (id[2] < '0')
 				|| (id[3] < '0'))
-				return std::optional<fingerprint>();
+				return {};
 			ret.major_version = decode_digit(id[1]);
 			ret.minor_version = decode_digit(id[2]);
 			ret.revision_version = decode_digit(id[3]);
@@ -81,7 +81,7 @@ namespace {
 		else
 		{
 			if (id[8] != 0 || id[1] > 127 || id[2] > 127 || id[3] > 127)
-				return std::optional<fingerprint>();
+				return {};
 			ret.major_version = id[1];
 			ret.minor_version = id[2];
 			ret.revision_version = id[3];
@@ -91,7 +91,7 @@ namespace {
 		ret.name[1] = 0;
 
 		ret.tag_version = 0;
-		return std::optional<fingerprint>(ret);
+		return {ret};
 	}
 
 	// checks if a peer id can possibly contain a mainline-style
@@ -107,9 +107,9 @@ namespace {
 		if (std::sscanf(ids, "%1c%3d-%3d-%3d--", &ret.name[0], &ret.major_version, &ret.minor_version
 			, &ret.revision_version) != 4
 			|| !aux::is_print(ret.name[0]))
-			return std::optional<fingerprint>();
+			return {};
 
-		return std::optional<fingerprint>(ret);
+		return {ret};
 	}
 
 	struct map_entry

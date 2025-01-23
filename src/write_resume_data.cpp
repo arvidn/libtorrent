@@ -51,7 +51,7 @@ namespace {
 
 	std::string to_string(bitfield const& b)
 	{
-		return std::string(b.data(), std::size_t(b.num_bytes()));
+		return {b.data(), std::size_t(b.num_bytes())};
 	}
 }
 

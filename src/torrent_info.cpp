@@ -1496,7 +1496,7 @@ namespace {
 			error_code ec;
 			bdecode(m_info_section.get(), m_info_section.get()
 				+ m_info_section_size, m_info_dict, ec);
-			if (ec) return bdecode_node();
+			if (ec) return {};
 		}
 		return m_info_dict.dict_find(key);
 	}

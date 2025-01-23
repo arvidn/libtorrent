@@ -58,10 +58,10 @@ error_code translate_error(std::error_code const& err, bool const write)
 	{
 #ifdef TORRENT_WINDOWS
 		if (err == std::error_code(sig::seh_errors::in_page_error))
-			return error_code(boost::system::errc::no_space_on_device, generic_category());
+			return {boost::system::errc::no_space_on_device, generic_category()};
 #else
 		if (err == std::error_code(sig::errors::bus))
-			return error_code(boost::system::errc::no_space_on_device, generic_category());
+			return {boost::system::errc::no_space_on_device, generic_category()};
 #endif
 	}
 
@@ -69,16 +69,16 @@ error_code translate_error(std::error_code const& err, bool const write)
 
 #ifdef TORRENT_WINDOWS
 	if (err == std::error_code(sig::seh_errors::in_page_error))
-		return error_code(boost::system::errc::io_error, generic_category());
+		return {boost::system::errc::io_error, generic_category()};
 #else
 	if (err == std::error_code(sig::errors::bus))
-		return error_code(boost::system::errc::io_error, generic_category());
+		return {boost::system::errc::io_error, generic_category()};
 #endif
 
 	return err;
 #else
 
-	return error_code(boost::system::errc::io_error, generic_category());
+	return {boost::system::errc::io_error, generic_category()};
 
 #endif
 }

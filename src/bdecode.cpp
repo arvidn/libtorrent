@@ -272,7 +272,7 @@ namespace aux {
 
 		// otherwise, return a reference to this node, but without
 		// being an owning root node
-		return bdecode_node(&m_tokens[0], m_buffer, m_buffer_size, m_token_idx);
+		return {&m_tokens[0], m_buffer, m_buffer_size, m_token_idx};
 	}
 
 	void bdecode_node::clear()
@@ -443,7 +443,7 @@ namespace aux {
 		m_last_token = token;
 		m_last_index = i;
 
-		return bdecode_node(tokens, m_buffer, m_buffer_size, token);
+		return {tokens, m_buffer, m_buffer_size, token};
 	}
 
 	string_view bdecode_node::list_string_value_at(int i
@@ -611,7 +611,7 @@ namespace aux {
 				token += t.next_item;
 				TORRENT_ASSERT(tokens[token].type != bdecode_token::end);
 
-				return bdecode_node(tokens, m_buffer, m_buffer_size, token);
+				return {tokens, m_buffer, m_buffer_size, token};
 			}
 
 			// skip key
@@ -622,7 +622,7 @@ namespace aux {
 			token += tokens[token].next_item;
 		}
 
-		return bdecode_node();
+		return {};
 	}
 
 	bdecode_node bdecode_node::dict_find_list(string_view key) const
@@ -630,7 +630,7 @@ namespace aux {
 		bdecode_node ret = dict_find(key);
 		if (ret.type() == bdecode_node::list_t)
 			return ret;
-		return bdecode_node();
+		return {};
 	}
 
 	bdecode_node bdecode_node::dict_find_dict(string_view key) const
@@ -638,7 +638,7 @@ namespace aux {
 		bdecode_node ret = dict_find(key);
 		if (ret.type() == bdecode_node::dict_t)
 			return ret;
-		return bdecode_node();
+		return {};
 	}
 
 	bdecode_node bdecode_node::dict_find_string(string_view key) const
@@ -646,7 +646,7 @@ namespace aux {
 		bdecode_node ret = dict_find(key);
 		if (ret.type() == bdecode_node::string_t)
 			return ret;
-		return bdecode_node();
+		return {};
 	}
 
 	bdecode_node bdecode_node::dict_find_int(string_view key) const
@@ -654,7 +654,7 @@ namespace aux {
 		bdecode_node ret = dict_find(key);
 		if (ret.type() == bdecode_node::int_t)
 			return ret;
-		return bdecode_node();
+		return {};
 	}
 
 	string_view bdecode_node::dict_find_string_value(string_view key
@@ -702,7 +702,7 @@ namespace aux {
 		TORRENT_ASSERT(t.type == bdecode_token::string
 			|| t.type == bdecode_token::long_string);
 
-		return string_view(m_buffer + t.offset + t.start_offset(), size);
+		return {m_buffer + t.offset + t.start_offset(), size};
 	}
 
 	std::ptrdiff_t bdecode_node::string_offset() const

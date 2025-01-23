@@ -199,11 +199,11 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 				int const piece_tree_num_layers
 					= num_layers - piece_tree_root_layer - m_piece_layer;
 
-				return hash_request(fidx
+				return {fidx
 					, m_piece_layer
 					, i * 512
 					, std::min(512, merkle_num_leafs(int(m_files.file_num_pieces(fidx) - i * 512)))
-					, layers_to_verify({ fidx, piece_tree_root }) + piece_tree_num_layers);
+					, layers_to_verify({ fidx, piece_tree_root }) + piece_tree_num_layers};
 			}
 		}
 

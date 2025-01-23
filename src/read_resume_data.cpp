@@ -444,7 +444,7 @@ namespace {
 		int pos;
 		bdecode_node rd = bdecode(buffer, ec, &pos, cfg.max_decode_depth
 			, cfg.max_decode_tokens);
-		if (ec) return add_torrent_params();
+		if (ec) return {};
 
 		return read_resume_data(rd, ec, cfg.max_pieces);
 	}

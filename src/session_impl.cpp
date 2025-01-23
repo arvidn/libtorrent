@@ -4547,7 +4547,7 @@ retry:
 		TORRENT_UNUSED(pc);
 		TORRENT_UNUSED(info_hash);
 #endif
-		return std::shared_ptr<torrent>();
+		return {};
 	}
 
 	// the return value from this function is valid only as long as the
@@ -4568,7 +4568,7 @@ retry:
 		}
 #endif
 		if (i != nullptr) return i->shared_from_this();
-		return std::weak_ptr<torrent>();
+		return {};
 	}
 
 	void session_impl::insert_torrent(info_hash_t const& ih, std::shared_ptr<torrent> const& t)

@@ -334,10 +334,9 @@ namespace libtorrent::dht {
 	{
 		explicit get_immutable_item_ctx(int traversals)
 			: active_traversals(traversals)
-			, item_posted(false)
 		{}
 		int active_traversals;
-		bool item_posted;
+		bool item_posted = false;
 	};
 
 	// these functions provide a slightly higher level
@@ -384,11 +383,10 @@ namespace libtorrent::dht {
 	{
 		explicit put_item_ctx(int traversals)
 			: active_traversals(traversals)
-			, response_count(0)
 		{}
 
 		int active_traversals;
-		int response_count;
+		int response_count = 0;
 	};
 
 	void put_immutable_item_callback(int responses, std::shared_ptr<put_item_ctx> ctx

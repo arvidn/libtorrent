@@ -2164,8 +2164,7 @@ namespace {
 
 	lsd_error_alert::lsd_error_alert(aux::stack_allocator&, error_code const& ec
 		, address const& local)
-		: alert()
-		, local_address(local)
+		: local_address(local)
 		, error(ec)
 	{}
 
@@ -2253,8 +2252,7 @@ namespace {
 		, std::vector<dht_routing_bucket> table
 		, std::vector<dht_lookup> requests
 			, sha1_hash id, udp::endpoint ep)
-		: alert()
-		, active_requests(std::move(requests))
+		: active_requests(std::move(requests))
 		, routing_table(std::move(table))
 		, nid(id)
 		, local_endpoint(ep)
@@ -2549,7 +2547,7 @@ namespace {
 
 	bdecode_node dht_direct_response_alert::response() const
 	{
-		if (m_response_size == 0) return bdecode_node();
+		if (m_response_size == 0) return {};
 		char const* start = m_alloc.get().ptr(m_response_idx);
 		char const* end = start + m_response_size;
 		error_code ec;

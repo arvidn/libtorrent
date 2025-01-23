@@ -42,7 +42,7 @@ struct TORRENT_EXTRA_EXPORT disabled_disk_io final
 	storage_holder new_torrent(storage_params const&
 		, std::shared_ptr<void> const&) override
 	{
-		return storage_holder(storage_index_t(0), *this);
+		return {storage_index_t(0), *this};
 	}
 
 	void remove_torrent(storage_index_t) override {}

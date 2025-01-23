@@ -639,7 +639,7 @@ namespace {
 					: block_layer_start();
 
 				if (m_mode == mode_t::piece_layer && idx >= merkle_get_first_child(start))
-					return sha256_hash();
+					return {};
 
 				int layer_size = 1;
 				while (idx < start)
@@ -758,16 +758,16 @@ namespace {
 		{
 			case mode_t::uninitialized_tree:
 			case mode_t::empty_tree:
-				return bitfield(m_num_blocks, m_num_blocks == 1);
+				return {m_num_blocks, m_num_blocks == 1};
 			case mode_t::piece_layer:
-				return bitfield(m_num_blocks, piece_levels() == 0);
+				return {m_num_blocks, piece_levels() == 0};
 			case mode_t::block_layer:
-				return bitfield(m_num_blocks, true);
+				return {m_num_blocks, true};
 			case mode_t::full_tree:
 				return m_block_verified;
 		}
 		TORRENT_ASSERT_FAIL();
-		return bitfield();
+		return {};
 	}
 
 	bool merkle_tree::is_complete() const

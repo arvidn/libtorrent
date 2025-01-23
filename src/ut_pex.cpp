@@ -60,8 +60,7 @@ namespace libtorrent { namespace {
 		// delay the rebuilding
 		explicit ut_pex_plugin(aux::torrent& t)
 			: m_torrent(t)
-			, m_last_msg(min_time())
-			, m_peers_in_message(0) {}
+			, m_last_msg(min_time()) {}
 
 		// explicitly disallow assignment, to silence msvc warning
 		ut_pex_plugin& operator=(ut_pex_plugin const&) = delete;
@@ -200,7 +199,7 @@ namespace libtorrent { namespace {
 		std::set<tcp::endpoint> m_old_peers;
 		time_point m_last_msg;
 		std::vector<char> m_ut_pex_msg;
-		int m_peers_in_message;
+		int m_peers_in_message = 0;
 	};
 
 	struct ut_pex_peer_plugin final
@@ -211,8 +210,6 @@ namespace libtorrent { namespace {
 			, m_pc(pc)
 			, m_tp(tp)
 			, m_last_msg(min_time())
-			, m_message_index(0)
-			, m_first_time(true)
 		{
 			const int num_pex_timers = sizeof(m_last_pex) / sizeof(m_last_pex[0]);
 			for (int i = 0; i < num_pex_timers; ++i)
@@ -585,13 +582,13 @@ namespace libtorrent { namespace {
 		time_point m_last_pex[6];
 
 		time_point m_last_msg;
-		int m_message_index;
+		int m_message_index = 0;
 
 		// this is initialized to true, and set to
 		// false after the first pex message has been sent.
 		// it is used to know if a diff message or a) ful
 		// message should be sent.
-		bool m_first_time;
+		bool m_first_time = true;
 	};
 
 	std::shared_ptr<peer_plugin> ut_pex_plugin::new_connection(peer_connection_handle const& pc)
