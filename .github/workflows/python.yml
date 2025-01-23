@@ -48,7 +48,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-24.04
-            python-version: 3.8
+            python-version: "3.12"
           - os: macos-latest
             python-version: "3.12"
           - os: windows-2022
@@ -130,6 +130,7 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         cd bindings/python
+        python3 -m pip install setuptools
         python3 setup.py build_ext --b2-args "deprecated-functions=off"
 
     - name: tests (Linux)

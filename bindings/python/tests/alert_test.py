@@ -1843,11 +1843,11 @@ class TorrentDeleteFailedAlertTest(TorrentAlertTest):
         self.assert_torrent_alert(alert, handle)
         if lt.api_version < 2:
             self.assertEqual(alert.msg, alert.error.message())
-        errno_value = alert.error.value()
+        error_value = alert.error.value()
         # On non-Windows, the error value is an errno. On Windows it's a
         # "winerror" value. This uses python's winerror-to-errno translation on
         # Windows only.
-        errno_value = OSError(errno_value, "", None, errno_value).errno
+        errno_value = OSError(error_value, "", None, error_value).errno
         self.assertEqual(errno_value, errno.ENOTEMPTY)
         self.assertEqual(alert.error.category(), lt.system_category())
         if lt.api_version < 3:
