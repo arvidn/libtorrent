@@ -34,7 +34,6 @@ libtool
 *.exp
 
 *.m4
-*.in
 *.pc
 *.libs
 *.deps
