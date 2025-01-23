@@ -38,8 +38,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent { namespace aux {
 
-#if __cplusplus >= 202302L || defined __GNUC__ && __GNUC__ < 5 && !defined(_LIBCPP_VERSION)
-
 constexpr std::size_t max(std::size_t a)
 { return a; }
 
@@ -61,12 +59,6 @@ struct aligned_union
 			char buffer[max(Len, max(sizeof(Types)...))];
 	};
 };
-
-#else
-
-using std::aligned_union;
-
-#endif
 
 }}
 
