@@ -90,7 +90,7 @@ jobs:
 
    fuzzers:
       name: Fuzzers
-      runs-on: ubuntu-20.04
+      runs-on: ubuntu-24.04
       continue-on-error: true
 
       steps:
@@ -132,7 +132,7 @@ jobs:
 
    check_headers:
       name: check headers
-      runs-on: ubuntu-20.04
+      runs-on: ubuntu-24.04
 
       steps:
       - name: checkout
@@ -167,7 +167,7 @@ jobs:
 
    clang_tidy:
       name: clang-tidy
-      runs-on: ubuntu-20.04
+      runs-on: ubuntu-24.04
 
       steps:
       - name: checkout
@@ -275,7 +275,7 @@ jobs:
 
    sim:
       name: Simulations
-      runs-on: ubuntu-20.04
+      runs-on: ubuntu-24.04
 
       steps:
       - name: checkout
@@ -319,7 +319,7 @@ jobs:
 
       strategy:
          matrix:
-            os: [ubuntu-20.04, ubuntu-22.04]
+            os: [ubuntu-24.04, ubuntu-22.04]
 
       steps:
       - name: checkout
