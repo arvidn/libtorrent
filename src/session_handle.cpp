@@ -377,6 +377,9 @@ namespace {
 	{
 		TORRENT_ASSERT_PRECOND(!params.save_path.empty());
 
+		if (params.save_path.empty())
+			aux::throw_ex<system_error>(error_code(errors::invalid_save_path));
+
 		// the internal torrent object keeps and mutates state in the
 		// torrent_info object. We can't let that leak back to the client
 		if (params.ti)
@@ -401,6 +404,9 @@ namespace {
 	torrent_handle session_handle::add_torrent(add_torrent_params&& params, error_code& ec)
 	{
 		TORRENT_ASSERT_PRECOND(!params.save_path.empty());
+
+		if (params.save_path.empty())
+			aux::throw_ex<system_error>(error_code(errors::invalid_save_path));
 
 		// the internal torrent object keeps and mutates state in the
 		// torrent_info object. We can't let that leak back to the client
@@ -428,6 +434,9 @@ namespace {
 	void session_handle::async_add_torrent(add_torrent_params&& params)
 	{
 		TORRENT_ASSERT_PRECOND(!params.save_path.empty());
+
+		if (params.save_path.empty())
+			aux::throw_ex<system_error>(error_code(errors::invalid_save_path));
 
 		// the internal torrent object keeps and mutates state in the
 		// torrent_info object. We can't let that leak back to the client

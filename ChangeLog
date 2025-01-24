@@ -1,3 +1,4 @@
+	* validate add_torrent_params::save_path at run-time
 	* use stricter rules for what filenames are valid on Android
 	* fix piece size check when loading torrents
 	* back-port fix last_upload and last_download resume data fields to use posix time
