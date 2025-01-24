@@ -76,7 +76,7 @@ jobs:
 
    android_arm32_webtorrent_build:
       name: Build Android Arm 32bits with WebTorrent
-      runs-on: ubuntu-20.04
+      runs-on: ubuntu-24.04
 
       steps:
       - name: checkout
