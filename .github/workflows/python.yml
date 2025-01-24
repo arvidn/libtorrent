@@ -50,7 +50,7 @@ jobs:
           - os: ubuntu-24.04
             python-version: "3.12"
           - os: macos-latest
-            python-version: "3.12"
+            python-version: "3.13"
           - os: windows-2022
             python-version: 3.6
 
