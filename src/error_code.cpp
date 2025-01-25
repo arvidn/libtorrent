@@ -206,7 +206,7 @@ namespace libtorrent {
 			"invalid piece index in slot list",
 			"pieces needs to be reordered",
 			"fastresume not modified since last save",
-			"",
+			"invalid save_path",
 			"",
 			"",
 			"",

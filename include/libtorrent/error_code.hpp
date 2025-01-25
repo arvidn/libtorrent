@@ -389,6 +389,8 @@ namespace errors {
 		// specifying the flag to only save when there's anything new to save
 		// (torrent_handle::only_if_modified) and there wasn't anything changed.
 		resume_data_not_modified,
+		// the save_path in add_torrent_params is not valid
+		invalid_save_path,
 
 
 		// The HTTP header was not correctly formatted
