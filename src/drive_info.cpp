@@ -41,8 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/vfs.h>
 #include <linux/magic.h>
 #include <sys/stat.h>
-#include <sys/fcntl.h>
 #include <sys/sysmacros.h> // for major()/minor()
+#include <fcntl.h>
 #include <dirent.h>
 #include <unistd.h>
 
