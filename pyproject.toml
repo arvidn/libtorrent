@@ -24,8 +24,7 @@ PATH = "/tmp/boost:$PATH"
 before-all = [
   "./tools/cibuildwheel/setup_boost.sh $BOOST_VERSION $BOOST_ROOT",
   "./tools/cibuildwheel/setup_ccache_on_manylinux.sh",
-  # perl-IPC-Cmd is needed to build OpenSSL
-  "yum install -y perl-IPC-Cmd && ./tools/cibuildwheel/setup_openssl.sh",
+  "yum install -y openssl-devel",
   "yum install -y glibc-static", # needed for libutil.a and libdl.a
 ]
 before-test = "ccache -s"
