@@ -85,10 +85,22 @@ namespace libtorrent {
 
 	namespace {
 
+	// Which characters are valid is primarily determined by the
+	// filesystem, so this logic is an approximation. Note that forward- and
+	// backslash are filtered unconditionally and separately from this function.
 	bool valid_path_character(std::int32_t const c)
 	{
 #ifdef TORRENT_WINDOWS
+		// On windows, both the filesystem and the operating system impose
+		// restrictions.
 		static const char invalid_chars[] = "?<>\"|\b*:";
+#elif defined TORRENT_ANDROID
+		// The Android kernel probably has similar restrictions as Linux (i.e.
+		// very few) but it appears some user-space system libraries impose
+		// additional restrictions, and it's probably more common to use FAT32
+		// style filesystems, which also further restricts valid characters
+		// https://cs.android.com/android/platform/superproject/+/master:frameworks/base/core/java/android/os/FileUtils.java;l=997?q=isValidFatFilenameChar
+		static const char invalid_chars[] = "\"*:<>?|";
 #else
 		static const char invalid_chars[] = "";
 #endif
