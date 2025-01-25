@@ -126,6 +126,23 @@ TORRENT_TEST(async_add_torrent_deprecated_magnet)
 }
 #endif
 
+TORRENT_TEST(async_add_torrent_no_save_path)
+{
+	settings_pack p = settings();
+	p.set_int(settings_pack::alert_mask, ~0);
+	lt::session ses(p);
+
+	add_torrent_params atp;
+	atp.info_hashes.v1.assign("abababababababababab");
+	atp.save_path = "";
+	TEST_THROW(ses.add_torrent(atp));
+	TEST_THROW(ses.async_add_torrent(atp));
+
+	lt::error_code ec;
+	ses.add_torrent(atp, ec);
+	TORRENT_ASSERT(ec == error_code(lt::errors::invalid_save_path));
+}
+
 TORRENT_TEST(async_add_torrent_duplicate_error)
 {
 	settings_pack p = settings();

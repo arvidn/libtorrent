@@ -405,7 +405,12 @@ namespace {
 #ifndef BOOST_NO_EXCEPTIONS
 	torrent_handle session_handle::add_torrent(add_torrent_params&& params)
 	{
+#ifndef BOOST_NO_EXCEPTIONS
+		if (params.save_path.empty())
+			aux::throw_ex<system_error>(error_code(errors::invalid_save_path));
+#else
 		TORRENT_ASSERT_PRECOND(!params.save_path.empty());
+#endif
 
 #if TORRENT_ABI_VERSION < 3
 		if (!params.info_hashes.has_v1() && !params.info_hashes.has_v2() && !params.ti)
@@ -435,7 +440,11 @@ namespace {
 
 	torrent_handle session_handle::add_torrent(add_torrent_params&& params, error_code& ec)
 	{
-		TORRENT_ASSERT_PRECOND(!params.save_path.empty());
+		if (params.save_path.empty())
+		{
+			ec = error_code(errors::invalid_save_path);
+			return {};
+		}
 
 #if TORRENT_ABI_VERSION < 3
 		if (!params.info_hashes.has_v1() && !params.info_hashes.has_v2() && !params.ti)
@@ -467,7 +476,12 @@ namespace {
 
 	void session_handle::async_add_torrent(add_torrent_params&& params)
 	{
+#ifndef BOOST_NO_EXCEPTIONS
+		if (params.save_path.empty())
+			aux::throw_ex<system_error>(error_code(errors::invalid_save_path));
+#else
 		TORRENT_ASSERT_PRECOND(!params.save_path.empty());
+#endif
 
 #if TORRENT_ABI_VERSION < 3
 		if (!params.info_hashes.has_v1() && !params.info_hashes.has_v2() && !params.ti)
@@ -528,7 +542,12 @@ namespace {
 		, bool const add_paused
 		, client_data_t userdata)
 	{
+#ifndef BOOST_NO_EXCEPTIONS
+		if (save_path.empty())
+			aux::throw_ex<system_error>(error_code(errors::invalid_save_path));
+#else
 		TORRENT_ASSERT_PRECOND(!save_path.empty());
+#endif
 
 		add_torrent_params p;
 		p.trackers.push_back(tracker_url);
