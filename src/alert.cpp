@@ -200,16 +200,20 @@ namespace libtorrent {
 
 	read_piece_alert::read_piece_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h
-		, piece_index_t p, boost::shared_array<char> d, int s)
+		, piece_index_t p, boost::shared_array<char> d, int s
+		, callback_t<read_piece_alert>::type c)
 		: torrent_alert(alloc, h)
+		, callback_t<read_piece_alert>(std::move(c))
 		, buffer(std::move(d))
 		, piece(p)
 		, size(s)
 	{}
 
 	read_piece_alert::read_piece_alert(aux::stack_allocator& alloc
-		, torrent_handle h, piece_index_t p, error_code e)
+		, torrent_handle h, piece_index_t p, error_code e
+		, callback_t<read_piece_alert>::type c)
 		: torrent_alert(alloc, h)
+		, callback_t<read_piece_alert>(std::move(c))
 		, error(e)
 		, piece(p)
 		, size(0)
@@ -1561,8 +1565,9 @@ namespace {
 #endif // TORRENT_ABI_VERSION
 
 	cache_flushed_alert::cache_flushed_alert(aux::stack_allocator& alloc
-		, torrent_handle const& h)
-		: torrent_alert(alloc, h) {}
+		, torrent_handle const& h, callback_t<cache_flushed_alert>::type c)
+		: torrent_alert(alloc, h)
+		, callback_t<cache_flushed_alert>(std::move(c)) {}
 
 #if TORRENT_ABI_VERSION == 1
 	anonymous_mode_alert::anonymous_mode_alert(aux::stack_allocator& alloc
