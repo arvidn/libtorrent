@@ -3627,10 +3627,13 @@ namespace {
 					ADD_OUTSTANDING_ASYNC("torrent::on_i2p_resolve");
 					r.i2pconn->async_name_lookup(i.hostname.c_str()
 						, [self = shared_from_this()] (error_code const& ec, char const* dest)
-						{ self->torrent::on_i2p_resolve(ec, dest); });
+						{ self->torrent::on_i2p_resolve(ec, dest, peer_info::tracker); });
 				}
 				else
 				{
+					// TODO: the destination string should be base64 decoded and
+					// sha256 hashed to form the destination address and store
+					// that in the i2p_peer object directly
 					torrent_state st = get_peer_list_state();
 					need_peer_list();
 					if (m_peer_list->add_i2p_peer(i.hostname, peer_info::tracker, {}, &st))
@@ -3652,15 +3655,7 @@ namespace {
 		{
 			for (auto const& i : resp.i2p_peers)
 			{
-				torrent_state st = get_peer_list_state();
-				peer_entry p;
-				std::string destination = base32encode_i2p(i.destination);
-				destination += ".b32.i2p";
-
-				ADD_OUTSTANDING_ASYNC("torrent::on_i2p_resolve");
-				r.i2pconn->async_name_lookup(destination.c_str()
-					, [self = shared_from_this()] (error_code const& ec, char const* dest)
-					{ self->torrent::on_i2p_resolve(ec, dest); });
+				add_i2p_peer(i.destination, peer_info::tracker);
 			}
 		}
 #endif
@@ -3923,7 +3918,25 @@ namespace {
 #endif
 
 #if TORRENT_USE_I2P
-	void torrent::on_i2p_resolve(error_code const& ec, char const* dest) try
+	void torrent::add_i2p_peer(sha256_hash const& dest, peer_source_flags_t const source)
+	{
+		// TODO: store i2p addresses as a 32 byte sha256 hash in the
+		// i2p_peer object, rather than resolving it into the full vase64
+		// destination. We should keep the full destination as a cache in the
+		// i2p_peer object still.
+		i2p_connection& i2pconn = session().i2p_conn();
+		if (!i2pconn.is_open()) return;
+
+		std::string destination = base32encode_i2p(dest);
+		destination += ".b32.i2p";
+
+		ADD_OUTSTANDING_ASYNC("torrent::on_i2p_resolve");
+		i2pconn.async_name_lookup(destination.c_str()
+			, [self = shared_from_this(), source] (error_code const& ec, char const* d)
+			{ self->torrent::on_i2p_resolve(ec, d, source); });
+	}
+
+	void torrent::on_i2p_resolve(error_code const& ec, char const* dest, peer_source_flags_t const source) try
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -3938,7 +3951,7 @@ namespace {
 
 		need_peer_list();
 		torrent_state st = get_peer_list_state();
-		if (m_peer_list->add_i2p_peer(dest, peer_info::tracker, {}, &st))
+		if (m_peer_list->add_i2p_peer(dest, source, {}, &st))
 			state_updated();
 		peers_erased(st.erased);
 

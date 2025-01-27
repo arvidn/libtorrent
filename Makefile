@@ -427,6 +427,7 @@ SOURCES = \
   upnp.cpp                        \
   ut_metadata.cpp                 \
   ut_pex.cpp                      \
+  i2p_pex.cpp                     \
   utf8.cpp                        \
   utp_socket_manager.cpp          \
   utp_stream.cpp                  \
@@ -702,6 +703,7 @@ HEADERS = \
   extensions/smart_ban.hpp          \
   extensions/ut_metadata.hpp        \
   extensions/ut_pex.hpp             \
+  extensions/i2p_pex.hpp            \
   \
   kademlia/announce_flags.hpp       \
   kademlia/dht_observer.hpp         \

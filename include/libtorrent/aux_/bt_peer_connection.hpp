@@ -79,10 +79,12 @@ namespace libtorrent::aux {
 			// metadata_msg = 2,
 			upload_only_msg = 3,
 			holepunch_msg = 4,
-			// recommend_msg = 5,
-			// comment_msg = 6,
+			// i2p_pex_msg = 5,
 			dont_have_msg = 7,
 			share_mode_msg = 8
+
+			// recommend_msg = x,
+			// comment_msg = x,
 		};
 
 		~bt_peer_connection() override;

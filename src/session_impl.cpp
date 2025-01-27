@@ -5620,7 +5620,7 @@ retry:
 		std::shared_ptr<torrent> t = find_torrent(info_hash_t(ih)).lock();
 		if (!t) return;
 		// don't add peers from lsd to private torrents
-		if (t->torrent_file().priv() || (t->torrent_file().is_i2p()
+		if (t->torrent_file().priv() || (t->is_i2p()
 			&& !m_settings.get_bool(settings_pack::allow_i2p_mixed))) return;
 
 		protocol_version const v = ih == t->torrent_file().info_hashes().v1

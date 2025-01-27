@@ -131,6 +131,7 @@ set(libtorrent_extensions_include_files
 	smart_ban.hpp
 	ut_metadata.hpp
 	ut_pex.hpp
+	i2p_pex.hpp
 )
 
 set(libtorrent_aux_include_files
@@ -443,6 +444,7 @@ set(sources
 # -- extensions --
 	smart_ban.cpp
 	ut_pex.cpp
+	i2p_pex.cpp
 	ut_metadata.cpp
 )
 

@@ -454,7 +454,7 @@ private:
 	state_t m_state;
 };
 
-class i2p_connection
+class TORRENT_EXTRA_EXPORT i2p_connection
 {
 public:
 	explicit i2p_connection(io_context& ios);

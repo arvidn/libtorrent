@@ -10,6 +10,7 @@ see LICENSE file.
 
 #include "libtorrent/aux_/peer_list.hpp"
 #include "setup_transfer.hpp" // for supports_ipv6()
+#include "libtorrent/hex.hpp"
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/crc.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"

@@ -456,6 +456,8 @@ TORRENT_VERSION_NAMESPACE_3
 		// or not it has a tracker whose URL domain name ends with ".i2p". i2p
 		// torrents disable the DHT and local peer discovery as well as talking
 		// to peers over anything other than the i2p network.
+		// This is not reliably set for torrents created via resume data or
+		// magnet links. Prefer using torrent::is_i2p() instead.
 		bool is_i2p() const { return bool(m_flags & i2p); }
 
 		// internal
