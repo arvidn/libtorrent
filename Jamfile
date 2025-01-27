@@ -920,6 +920,7 @@ SOURCES =
 
 # -- extensions --
 	ut_pex
+	i2p_pex
 	ut_metadata
 	smart_ban
 	;

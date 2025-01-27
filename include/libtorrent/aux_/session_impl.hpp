@@ -708,6 +708,7 @@ namespace aux {
 #endif
 
 #if TORRENT_USE_I2P
+			i2p_connection& i2p_conn() override { return m_i2p_conn; }
 			char const* i2p_session() const override { return m_i2p_conn.session_id(); }
 			std::string const& local_i2p_endpoint() const override { return m_i2p_conn.local_endpoint(); }
 

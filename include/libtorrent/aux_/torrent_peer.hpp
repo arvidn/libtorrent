@@ -219,6 +219,9 @@ namespace libtorrent::aux {
 		i2p_peer(i2p_peer&&) = default;
 		i2p_peer& operator=(i2p_peer&&) & = default;
 
+		// TODO: This destination should probably be kept in binary form (rather than
+		// base64). The peers should primarily be handled by their sha256 hash
+		// of the destination, that should be kept in here as well.
 		aux::string_ptr destination;
 	};
 #endif

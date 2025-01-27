@@ -60,7 +60,12 @@ TORRENT_TEST(default_plugins)
 {
 	session_params p1;
 #ifndef TORRENT_DISABLE_EXTENSIONS
+#if TORRENT_USE_I2P
+	// this also has i2p_pex
+	TEST_EQUAL(int(p1.extensions.size()), 4);
+#else
 	TEST_EQUAL(int(p1.extensions.size()), 3);
+#endif
 #else
 	TEST_EQUAL(int(p1.extensions.size()), 0);
 #endif

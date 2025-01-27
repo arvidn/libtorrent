@@ -48,6 +48,7 @@ namespace libtorrent { namespace {
 		// don't send out peers that we haven't successfully connected to
 		if (p.is_connecting()) return false;
 		if (p.in_handshake()) return false;
+		if (p.type() != connection_type::bittorrent) return false;
 		return true;
 	}
 
@@ -125,10 +126,7 @@ namespace libtorrent { namespace {
 					// don't write too big of a package
 					if (num_added >= max_peer_entries) break;
 
-					// only send proper bittorrent peers
-					if (peer->type() != connection_type::bittorrent)
-						continue;
-
+					TORRENT_ASSERT(peer->type() == connection_type::bittorrent);
 					auto const* const p = static_cast<aux::bt_peer_connection const*>(peer);
 
 					// if the peer has told us which port its listening on,
@@ -434,7 +432,7 @@ namespace libtorrent { namespace {
 		{
 			if (m_torrent.flags() & torrent_flags::disable_pex) return;
 
-			// if there's no change in out peer set, don't send anything
+			// if there's no change in our peer set, don't send anything
 			if (m_tp.peers_in_msg() == 0) return;
 
 			std::vector<char> const& pex_msg = m_tp.get_ut_pex_msg();
@@ -502,10 +500,7 @@ namespace libtorrent { namespace {
 				// don't write too big of a package
 				if (num_added >= max_peer_entries) break;
 
-				// only send proper bittorrent peers
-				if (peer->type() != connection_type::bittorrent)
-					continue;
-
+				TORRENT_ASSERT(peer->type() == connection_type::bittorrent);
 				auto const* const p = static_cast<aux::bt_peer_connection const*>(peer);
 
 				// no supported flags to set yet
@@ -586,7 +581,7 @@ namespace libtorrent { namespace {
 
 		// this is initialized to true, and set to
 		// false after the first pex message has been sent.
-		// it is used to know if a diff message or a) ful
+		// it is used to know if a diff message or a full
 		// message should be sent.
 		bool m_first_time = true;
 	};
@@ -607,7 +602,7 @@ namespace libtorrent {
 	std::shared_ptr<torrent_plugin> create_ut_pex_plugin(torrent_handle const& th, client_data_t)
 	{
 		aux::torrent* t = th.native_handle().get();
-		if (t->torrent_file().priv() || (t->torrent_file().is_i2p()
+		if (t->torrent_file().priv() || (t->is_i2p()
 			&& !t->settings().get_bool(settings_pack::allow_i2p_mixed)))
 		{
 			return {};

@@ -189,6 +189,7 @@ TORRENT_TEST(to_string)
 	TEST_CHECK(to_string(-999999999999999999).data() == std::string("-999999999999999999"));
 }
 
+#if TORRENT_USE_I2P
 namespace {
 
 template <size_t N>
@@ -214,6 +215,7 @@ std::string transcode_alphabet(std::string in)
 	return ret;
 }
 }
+#endif
 
 TORRENT_TEST(base64)
 {

@@ -12,6 +12,7 @@ see LICENSE file.
 
 #include "libtorrent/session_params.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
+#include "libtorrent/extensions/i2p_pex.hpp"
 #include "libtorrent/extensions/ut_pex.hpp"
 #include "libtorrent/extensions/ut_metadata.hpp"
 #include "libtorrent/extensions/smart_ban.hpp"
@@ -27,6 +28,9 @@ std::vector<std::shared_ptr<plugin>> default_plugins(
 	if (empty) return {};
 	using wrapper = aux::session_impl::session_plugin_wrapper;
 	return {
+#if TORRENT_USE_I2P
+		std::make_shared<wrapper>(create_i2p_pex_plugin),
+#endif
 		std::make_shared<wrapper>(create_ut_pex_plugin),
 		std::make_shared<wrapper>(create_ut_metadata_plugin),
 		std::make_shared<wrapper>(create_smart_ban_plugin)

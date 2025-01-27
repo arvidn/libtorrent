@@ -44,6 +44,7 @@ namespace libtorrent::aux {
 	};
 
 #if TORRENT_USE_I2P
+	// TODO: it seems unnecessary to wrap this i2p address in a struct
 	struct i2p_peer_entry
 	{
 		sha256_hash destination;

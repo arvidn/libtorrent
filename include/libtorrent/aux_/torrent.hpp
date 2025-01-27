@@ -921,8 +921,11 @@ namespace libtorrent::aux {
 		void completed();
 
 #if TORRENT_USE_I2P
-		void on_i2p_resolve(error_code const& ec, char const* dest);
+		void on_i2p_resolve(error_code const& ec, char const* dest, peer_source_flags_t const source);
+		void add_i2p_peer(sha256_hash const& dest, peer_source_flags_t source);
 		bool is_i2p() const { return m_i2p; }
+#else
+		bool is_i2p() const { return false; }
 #endif
 
 		// this is the asio callback that is called when a name
