@@ -347,12 +347,8 @@ namespace {
 #ifndef BOOST_NO_EXCEPTIONS
 	torrent_handle session_handle::add_torrent(add_torrent_params&& params)
 	{
-#ifndef BOOST_NO_EXCEPTIONS
 		if (params.save_path.empty())
 			aux::throw_ex<system_error>(error_code(errors::invalid_save_path));
-#else
-		TORRENT_ASSERT_PRECOND(!params.save_path.empty());
-#endif
 
 #if TORRENT_ABI_VERSION < 3
 		if (!params.info_hashes.has_v1() && !params.info_hashes.has_v2() && !params.ti)
