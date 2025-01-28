@@ -176,8 +176,9 @@ jobs:
     steps:
     - uses: actions/download-artifact@v4
       with:
-        name: wheels-${{ matrix.os }}-${{ matrix.CIBW_BUILD }}
+        pattern: wheels-*
         path: wheelhouse
+        merge-multiple: true
 
     - uses: pypa/gh-action-pypi-publish@release/v1
       with:
@@ -193,8 +194,9 @@ jobs:
     steps:
     - uses: actions/download-artifact@v4
       with:
-        name: wheels-${{ matrix.os }}-${{ matrix.CIBW_BUILD }}
+        pattern: wheels-*
         path: wheelhouse
+        merge-multiple: true
 
     - uses: pypa/gh-action-pypi-publish@release/v1
       with:
