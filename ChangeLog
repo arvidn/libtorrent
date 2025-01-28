@@ -1,3 +1,5 @@
+1.2.20 released
+
 	* validate add_torrent_params::save_path at run-time
 	* use stricter rules for what filenames are valid on Android
 	* fix piece size check when loading torrents

@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <type_traits>
 #include <limits>
+#include <cstdint> // for int64_t
 
 #include "libtorrent/assert.hpp"
 

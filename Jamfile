@@ -870,7 +870,7 @@ rule generate-pkg-config ( properties * )
 	local libname = [ $(props[2]).name ] ;
 	props = $(props[1]) ;
 
-	local FULL_VERSION = 1.2.19 ;
+	local FULL_VERSION = 1.2.20 ;
 
 	p = [ install-paths $(properties) ] ;
 
