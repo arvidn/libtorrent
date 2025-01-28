@@ -11249,17 +11249,6 @@ namespace {
 
 		TORRENT_ASSERT(info_hash().has_v2() || !(flags & pex_lt_v2));
 
-#ifndef TORRENT_DISABLE_DHT
-		if (source != peer_info::resume_data)
-		{
-			// try to send a DHT ping to this peer
-			// as well, to figure out if it supports
-			// DHT (uTorrent and BitComet don't
-			// advertise support)
-			session().add_dht_node({adr.address(), adr.port()});
-		}
-#endif
-
 		if (m_apply_ip_filter
 			&& m_ip_filter
 			&& m_ip_filter->access(adr.address()) & ip_filter::blocked)
@@ -11307,6 +11296,17 @@ namespace {
 #endif
 			return nullptr;
 		}
+
+#ifndef TORRENT_DISABLE_DHT
+		if (source != peer_info::resume_data)
+		{
+			// try to send a DHT ping to this peer
+			// as well, to figure out if it supports
+			// DHT (uTorrent and BitComet don't
+			// advertise support)
+			session().add_dht_node({adr.address(), adr.port()});
+		}
+#endif
 
 		if (!torrent_file().info_hashes().has_v1())
 			flags |= pex_lt_v2;

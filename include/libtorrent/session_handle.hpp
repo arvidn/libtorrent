@@ -241,6 +241,12 @@ namespace aux { struct torrent; }
 		// immediately, without waiting for the torrent to add. Notification of
 		// the torrent being added is sent as add_torrent_alert.
 		//
+		// The ``save_path`` field in add_torrent_params must be set to a valid
+		// path where the files for the torrent will be saved. Even when using a
+		// custom storage, this needs to be set to something. If the save_path
+		// is empty, the call to add_torrent() will throw a system_error
+		// exception.
+		//
 		// The overload that does not take an error_code throws an exception on
 		// error and is not available when building without exception support.
 		// The torrent_handle returned by add_torrent() can be used to retrieve

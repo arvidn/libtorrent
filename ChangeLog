@@ -16,6 +16,9 @@
 
 2.0.11 released
 
+	* validate add_torrent_params::save_path at run-time
+	* use stricter rules for what filenames are valid on Android
+	* fix applying IP filter to DHT traffic (HanabishiRecca)
 	* fix race condition when cancelling requests after becoming a seed
 	* fix performance bug in the file pool, evicting MRU instead of LRU (HanabishiRecca)
 	* fix bug where file_progress could sometimes be reported as >100%

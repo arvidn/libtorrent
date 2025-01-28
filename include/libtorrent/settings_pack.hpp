@@ -363,6 +363,10 @@ namespace aux {
 			//
 			// Changing these after the DHT has been started may not have any
 			// effect until the DHT is restarted.
+			// Here are some other bootstrap nodes that may work:
+			// ``router.bittorrent.com:6881``,
+			// ``dht.transmissionbt.com:6881``
+			// ``router.bt.ouinet.work:6881``,
 			dht_bootstrap_nodes,
 
 			// This is the STUN server used by WebTorrent to enable ICE NAT
