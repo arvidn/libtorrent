@@ -39,6 +39,10 @@ see LICENSE file.
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp" // for is_v4
 
+#ifndef TORRENT_DISABLE_ALERT_MSG
+#include "libtorrent/info_hash.hpp"
+#endif
+
 #if TORRENT_ABI_VERSION == 1
 #include "libtorrent/write_resume_data.hpp"
 #endif
@@ -90,8 +94,12 @@ namespace libtorrent {
 #ifdef TORRENT_DISABLE_ALERT_MSG
 		return {};
 #else
-		if (!handle.is_valid()) return " - ";
-		return torrent_name();
+		info_hash_t const ih = handle.info_hashes();
+		if (ih.has_v2())
+			return aux::to_hex(span<char const>(ih.v2).first(3));
+		if (ih.has_v1())
+			return aux::to_hex(span<char const>(ih.v1).first(3));
+		return "------";
 #endif
 	}
 
