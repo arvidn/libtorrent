@@ -31,11 +31,6 @@ repos:
     -   id: debug-statements
     -   id: check-symlinks
     -   id: check-toml
-- repo: https://github.com/pappasam/toml-sort
-  rev: v0.24.2
-  hooks:
-  - id: toml-sort
-    args: [--all, --in-place]
 - repo: https://github.com/pre-commit/pygrep-hooks
   rev: v1.10.0
   hooks:
