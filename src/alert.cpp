@@ -58,6 +58,7 @@ namespace libtorrent {
 		: handle(h)
 		, m_alloc(alloc)
 	{
+#if TORRENT_ABI_VERSION < 4
 		auto t = h.native_handle();
 		if (t)
 		{
@@ -78,16 +79,19 @@ namespace libtorrent {
 		{
 			m_name_idx = alloc.copy_string("");
 		}
+#endif
 
 #if TORRENT_ABI_VERSION == 1
 		name = m_alloc.get().ptr(m_name_idx);
 #endif
 	}
 
+#if TORRENT_ABI_VERSION < 4
 	char const* torrent_alert::torrent_name() const
 	{
 		return m_alloc.get().ptr(m_name_idx);
 	}
+#endif
 
 	std::string torrent_alert::message() const
 	{

@@ -1,5 +1,6 @@
 2.1.0 not released
 
+	* deprecate torrent_alert::torrent_name()
 	* requires OpenSSL minimum version 1.1.0 with SNI support
 	* try harder to bind TCP and UDP sockets to the same port
 	* made disk_interface's status_t type a flags type
