@@ -363,6 +363,13 @@ TORRENT_TEST(move_storage_posix)
 	cleanup();
 }
 
+TORRENT_TEST(move_storage_pread)
+{
+	using namespace lt;
+	test_transfer(0, settings_pack(), move_storage, storage_mode_sparse, pread_disk_io_constructor);
+	cleanup();
+}
+
 TORRENT_TEST(piece_deadline)
 {
 	using namespace lt;
@@ -387,6 +394,16 @@ TORRENT_TEST(delete_files_posix)
 	test_transfer(0, p, delete_files, storage_mode_sparse, posix_disk_io_constructor);
 	cleanup();
 }
+
+TORRENT_TEST(delete_files_pread)
+{
+	using namespace lt;
+	settings_pack p = settings_pack();
+	p.set_int(settings_pack::aio_threads, 10);
+	test_transfer(0, p, delete_files, storage_mode_sparse, pread_disk_io_constructor);
+	cleanup();
+}
+
 
 TORRENT_TEST(allow_fast)
 {
