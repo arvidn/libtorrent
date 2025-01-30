@@ -103,7 +103,7 @@ namespace libtorrent {
 		int last_active;
 	};
 
-TORRENT_VERSION_NAMESPACE_3
+TORRENT_VERSION_NAMESPACE_4
 
 	// This is a base class for alerts that are associated with a
 	// specific torrent. It contains a handle to the torrent.
@@ -127,12 +127,16 @@ TORRENT_VERSION_NAMESPACE_3
 		// alert is associated with.
 		torrent_handle handle;
 
-		char const* torrent_name() const;
+#if TORRENT_ABI_VERSION < 4
+		TORRENT_DEPRECATED char const* torrent_name() const;
+#endif
 
 	protected:
 		std::reference_wrapper<aux::stack_allocator const> m_alloc;
 	private:
+#if TORRENT_ABI_VERSION < 4
 		aux::allocation_slot m_name_idx;
+#endif
 #if TORRENT_ABI_VERSION == 1
 	public:
 		TORRENT_DEPRECATED std::string name;
@@ -2952,7 +2956,7 @@ TORRENT_VERSION_NAMESPACE_3
 		operation_t op;
 	};
 
-TORRENT_VERSION_NAMESPACE_3_END
+TORRENT_VERSION_NAMESPACE_4_END
 
 	// this alert may be posted when the initial checking of resume data and files
 	// on disk (just existence, not piece hashes) completes. If a file belonging

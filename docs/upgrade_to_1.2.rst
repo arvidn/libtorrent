@@ -156,6 +156,14 @@ libtorrent session plugins no longer have all callbacks called unconditionally.
 The plugin has to register which callbacks it's interested in receiving by returning a bitmask from ``feature_flags_t implemented_features()``.
 The return value is documented in the plugin class.
 
+torrent_alert deprecation
+=========================
+
+torrent_alert::torrent_name() was deprecated. When ABI version < 4 (controlled
+by the ``deprecated-functions`` feature in the Jamfile), the ABI of
+torrent_alert is changed. The name of the torrent is no longer allocated and
+copied into every alert deriving from torrent_alert.
+
 RSS functions removed
 =====================
 
