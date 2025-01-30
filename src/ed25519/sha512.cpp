@@ -190,41 +190,51 @@ int SHA512_init(sha512_ctx* md) {
    @param inlen  The length of the data (octets)
    @return 0 if successful
 */
-int SHA512_update(sha512_ctx* md, std::uint8_t const* in, std::size_t inlen)
+int SHA512_update(sha512_ctx* md, const std::uint8_t* in, std::size_t inlen)
 {
-    if (md == nullptr || in == nullptr) {
+    // Basic sanity checks
+    if (!md || !in) {
         return 1;
     }
-
+    // If buffer state is corrupted
     if (md->curlen > sizeof(md->buf)) {
         return 1;
     }
 
-    while (inlen > 0) {
-        if (md->curlen == 0 && inlen >= 128) {
-            if (sha512_compress(md, const_cast<unsigned char*>(in)) != 0) {
-                return 1;
-            }
-            md->length += 1024;
-            in             += 128;
-            inlen          -= 128;
-        } else {
-
-            std::size_t n = std::min(inlen, static_cast<std::size_t>(128 - md->curlen));
-
-            std::memcpy(md->buf + md->curlen, in, n);
-
-            md->curlen += n;
-            in             += n;
-            inlen          -= n;
-            if (md->curlen == 128) {
-                if (sha512_compress(md, md->buf) != 0) {
-                    return 1;
-                }
-                md->length += 1024;
-                md->curlen = 0;
-            }
+    // If there's already some data in the buffer, try to fill it first.
+    if (md->curlen > 0) {
+        const size_t to_fill = 128 - md->curlen;
+        // If incoming data doesn’t even fill the buffer, just copy and return
+        if (inlen < to_fill) {
+            std::memcpy(md->buf + md->curlen, in, inlen);
+            md->curlen += inlen;
+            return 0;
         }
+        // Otherwise, fill up the buffer, compress it, and advance.
+        std::memcpy(md->buf + md->curlen, in, to_fill);
+        if (sha512_compress(md, md->buf) != 0) {
+            return 1;
+        }
+        md->length  += 128ULL << 3;  // add 128 bytes in bits
+        md->curlen   = 0;
+        in          += to_fill;
+        inlen       -= to_fill;
+    }
+
+    // Process as many full 128-byte blocks as possible from the input directly.
+    while (inlen >= 128) {
+        if (sha512_compress(md, in) != 0) {
+            return 1;
+        }
+        md->length  += 128ULL << 3;
+        in          += 128;
+        inlen       -= 128;
+    }
+
+    // If anything remains (less than one block), store it in the buffer.
+    if (inlen > 0) {
+        std::memcpy(md->buf, in, inlen);
+        md->curlen = inlen;
     }
     return 0;
 }
