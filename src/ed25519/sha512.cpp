@@ -192,41 +192,39 @@ int SHA512_init(sha512_ctx* md) {
 */
 int SHA512_update(sha512_ctx* md, std::uint8_t const* in, std::size_t inlen)
 {
-    std::size_t n;
-    std::size_t i;
-    int           err;
-    if (md == nullptr) return 1;
-    if (in == nullptr) return 1;
-    if (md->curlen > sizeof(md->buf)) {
-       return 1;
+    if (md == nullptr || in == nullptr) {
+        return 1;
     }
+
+    if (md->curlen > sizeof(md->buf)) {
+        return 1;
+    }
+
     while (inlen > 0) {
         if (md->curlen == 0 && inlen >= 128) {
-           if ((err = sha512_compress (md, (unsigned char *)in)) != 0) {
-              return err;
-           }
-           md->length += 128 * 8;
-           in             += 128;
-           inlen          -= 128;
+            if (sha512_compress(md, const_cast<unsigned char*>(in)) != 0) {
+                return 1;
+            }
+            md->length += 1024;
+            in             += 128;
+            inlen          -= 128;
         } else {
-           n = MIN(inlen, (128 - md->curlen));
 
-           for (i = 0; i < n; i++) {
-            md->buf[i + md->curlen] = in[i];
-           }
+            std::size_t n = std::min(inlen, static_cast<std::size_t>(128 - md->curlen));
 
+            std::memcpy(md->buf + md->curlen, in, n);
 
-           md->curlen += n;
-           in             += n;
-           inlen          -= n;
-           if (md->curlen == 128) {
-              if ((err = sha512_compress (md, md->buf)) != 0) {
-                 return err;
-              }
-              md->length += 8*128;
-              md->curlen = 0;
-           }
-       }
+            md->curlen += n;
+            in             += n;
+            inlen          -= n;
+            if (md->curlen == 128) {
+                if (sha512_compress(md, md->buf) != 0) {
+                    return 1;
+                }
+                md->length += 1024;
+                md->curlen = 0;
+            }
+        }
     }
     return 0;
 }
@@ -241,8 +239,10 @@ int SHA512_final(std::uint8_t* out, sha512_ctx* md)
 {
     int i;
 
-    if (md == nullptr) return 1;
-    if (out == nullptr) return 1;
+
+    if (md == nullptr || out == nullptr) {
+        return 1;
+    }
 
     if (md->curlen >= sizeof(md->buf)) {
         return 1;
