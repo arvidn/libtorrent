@@ -17,6 +17,7 @@ from typing import Tuple
 from typing import Type
 from typing import TypeVar
 import unittest
+import time
 
 import libtorrent as lt
 
@@ -412,7 +413,8 @@ def wait_for(
 
 def wait_until_done_checking(handle: lt.torrent_handle, *, timeout: float) -> None:
     for _ in lib.loop_until_timeout(5, msg="checking"):
-        if handle.status().state not in (
+        st = handle.status().state
+        if st not in (
             lt.torrent_status.checking_files,
             lt.torrent_status.checking_resume_data,
         ):
@@ -625,7 +627,7 @@ class PeerAlertTest(TorrentAlertTest):
         self.session.apply_settings({"close_redundant_connections": False})
 
         self.peer = lt.session(lib.get_isolated_settings())
-        self.peer.apply_settings({"close_redundant_connections": False})
+        self.peer.apply_settings({"close_redundant_connections": False, "alert_mask": 0xffffffff})
         self.peer_dir = tempfile.TemporaryDirectory()
         self.peer_atp = self.torrent.atp()
         self.peer_atp.save_path = self.peer_dir.name
@@ -909,7 +911,7 @@ class PieceFinishedAlertTest(TorrentAlertTest):
 
 
 class BlockFinishedAlertTest(PeerAlertTest):
-    ALERT_MASK = lt.alert_category.block_progress
+    ALERT_MASK = lt.alert_category.block_progress | 0xffffffffff
 
     def test_block_finished_alert(self) -> None:
         handle = self.session.add_torrent(self.atp)
@@ -917,9 +919,14 @@ class BlockFinishedAlertTest(PeerAlertTest):
         # add_piece() doesn't work in checking state
         wait_until_done_checking(peer_handle, timeout=5)
         peer_handle.add_piece(0, self.torrent.pieces[0], 0)
+        wait_for(self.peer, lt.piece_finished_alert, timeout=10, prefix="PEER")
         handle.connect_peer(self.peer_endpoint)
+        for i in range(10):
+            for alert in self.peer.pop_alerts():
+                logging.debug("PEER: %s: %s", alert.what(), alert.message())
+            time.sleep(1.0)
 
-        alert = wait_for(self.session, lt.block_finished_alert, timeout=10)
+        alert = wait_for(self.session, lt.block_finished_alert, timeout=10, prefix="MAIN")
 
         self.assert_alert(
             alert,

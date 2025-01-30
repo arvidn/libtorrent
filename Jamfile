@@ -801,6 +801,7 @@ SOURCES =
 	directory
 	disk_buffer_holder
 	disk_buffer_pool
+	disk_cache
 	disk_completed_queue
 	disk_io_thread_pool
 	disabled_disk_io
@@ -905,6 +906,8 @@ SOURCES =
 	mmap
 	mmap_disk_io
 	mmap_storage
+	pread_disk_io
+	pread_storage
 	posix_disk_io
 	posix_part_file
 	posix_storage
