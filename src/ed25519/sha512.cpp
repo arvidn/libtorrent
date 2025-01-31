@@ -249,10 +249,8 @@ int SHA512_final(std::uint8_t* out, sha512_ctx* md)
 {
     int i;
 
-
-    if (md == nullptr || out == nullptr) {
-        return 1;
-    }
+    if (md == nullptr) return 1;
+    if (out == nullptr) return 1;
 
     if (md->curlen >= sizeof(md->buf)) {
         return 1;
