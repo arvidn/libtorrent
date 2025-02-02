@@ -536,9 +536,9 @@ namespace libtorrent::aux {
 #ifndef TORRENT_DISABLE_LOGGING
 		bool should_log(peer_log_alert::direction_t direction) const final;
 		void peer_log(peer_log_alert::direction_t direction
-			, char const* event, char const* fmt, ...) const noexcept final TORRENT_FORMAT(4,5);
+			, peer_log_alert::event_t event, char const* fmt, ...) const noexcept final TORRENT_FORMAT(4,5);
 		void peer_log(peer_log_alert::direction_t direction
-			, char const* event) const noexcept;
+			, peer_log_alert::event_t event) const noexcept;
 #endif
 
 		// the message handlers are called

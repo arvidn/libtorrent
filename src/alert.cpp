@@ -37,6 +37,7 @@ see LICENSE file.
 #include "libtorrent/session_stats.hpp"
 #include "libtorrent/socket_type.hpp"
 #include "libtorrent/peer_info.hpp"
+#include "libtorrent/span.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp" // for is_v4
 
 #ifndef TORRENT_DISABLE_ALERT_MSG
@@ -124,8 +125,7 @@ namespace libtorrent {
 #ifdef TORRENT_DISABLE_ALERT_MSG
 		return {};
 #else
-		return torrent_alert::message() + " peer [ " + print_endpoint(endpoint)
-			+ " client: " + aux::identify_client_impl(pid) + " ]";
+		return torrent_alert::message() + " peer " + aux::to_hex(span<char const>(pid));
 #endif
 	}
 
@@ -2143,7 +2143,7 @@ namespace {
 		, torrent_handle const& h
 		, tcp::endpoint const& i, peer_id const& pi
 		, peer_log_alert::direction_t dir
-		, char const* event, char const* fmt, va_list v)
+		, event_t const event, char const* fmt, va_list v)
 		: peer_alert(alloc, h, i, pi)
 		, event_type(event)
 		, direction(dir)
@@ -2169,8 +2169,163 @@ namespace {
 #else
 		static aux::array<char const*, 5, direction_t> const mode{
 		{ "<==", "==>", "<<<", ">>>", "***" }};
-		return peer_alert::message() + " [" + print_endpoint(endpoint) + "] "
-			+ mode[direction] + " " + event_type + " [ " + log_message() + " ]";
+		static aux::array<char const*, 145, event_t> const event_name{{
+			"TRACKER_RESPONSE",
+			"ALLOWED",
+			"SEED",
+			"CANCEL_ALL_REQUESTS",
+			"SHORT_LIVED_DISCONNECT",
+			"GRACEFUL_PAUSE",
+			"REQUEST_TIME",
+			"CONNECTION",
+			"SET_PEER_CLASS",
+			"PEER_CLASS",
+			"LOCAL_ENDPOINT",
+			"UPDATE_INTEREST",
+			"INIT",
+			"RECEIVED",
+			"ATTACH",
+			"CONSTRUCT",
+			"ENCRYPTION",
+			"EXTENSIONS",
+			"UPLOAD_ONLY",
+			"SHARE_MODE",
+			"SEND_BARRIER",
+			"PIECE_PICKER",
+			"DUPLICATE_PEER",
+			"DUPLICATE_PEER_RESOLUTION",
+			"SUPER_SEEDING",
+			"MERGING_REQUESTS",
+			"PREDICTIVE_HAVE",
+			"BANNING_PEER",
+			"CHOKING_PEER",
+			"TORRENT",
+			"OPTIMISTIC_UNCHOKE",
+			"MAX_OUT_QUEUE_SIZE",
+			"UPDATE_QUEUE_SIZE",
+			"LAST_ACTIVITY",
+			"MUTUAL_NO_INTEREST",
+			"SLOW_START",
+			"SEND_BUFFER_WATERMARK",
+			"TORRENT_ABORTED",
+			"PIECE_FAILED",
+			"REQUEST_BANDWIDTH",
+			"ASSIGN_BANDWIDTH",
+			"WAITING_FOR_DISK",
+			"CLOSE_REASON",
+
+			// protocol errors
+			"PEER_ERROR",
+			"NO_HANDSHAKE",
+			"NO_REQUEST",
+			"PIECE_REQUEST_TIMED_OUT",
+			"INVALID_CANCEL",
+			"INVALID_REQUEST",
+			"INVALID_PIECE",
+			"INVALID_SUGGEST",
+			"INVALID_HAVE",
+			"INVALID_ALLOWED_FAST",
+			"EXCEPTION",
+
+			// NAT hole punching
+			"HOLEPUNCH",
+			"HOLEPUNCH_MODE",
+
+			// socket buffers
+			"SEND_BUFFER_DEPLETED",
+			"AVAILABLE",
+			"GROW_BUFFER",
+
+			// socket I/O
+			"ASYNC_WRITE",
+			"ASYNC_READ",
+			"SYNC_READ",
+			"CANNOT_WRITE",
+			"CANNOT_READ",
+			"ON_RECEIVE_DATA",
+			"ON_SEND_DATA",
+			"WROTE",
+			"READ",
+			"CORKED_WRITE",
+
+			// file I/O
+			"FILE_ASYNC_WRITE",
+			"FILE_ASYNC_WRITE_COMPLETE",
+			"FILE_ASYNC_READ",
+			"FILE_ASYNC_READ_COMPLETE",
+			"SEED_MODE_FILE_ASYNC_HASH",
+			"SEED_MODE_FILE_HASH",
+			"DISK_BUFFER",
+			"ON_FILES_CHECKED",
+
+			// socket level
+			"OPEN",
+			"BIND",
+			"SOCKET_BUFFER",
+			"SET_NON_BLOCKING",
+			"SET_DSCP",
+			"ASYNC_CONNECT",
+			"CONNECTION_FAILED",
+			"CONNECTION_CLOSED",
+			"CLOSING_CONNECTION",
+			"CONNECT_FAILED",
+			"ON_CONNECTED",
+			"CONNECTION_ESTABLISHED",
+
+			// metadata transfer
+			"UT_METADATA",
+			"ON_METADATA",
+
+			// peer exchange
+			"PEX",
+			"PEX_DIFF",
+			"PEX_FULL",
+			"I2P_PEX",
+			"I2P_PEX_DIFF",
+			"I2P_PEX_FULL",
+
+			// web seed
+			"WEB_SEED",
+			"SAVE_RESTART_DATA",
+			"RESTART_DATA",
+			"LOCATION",
+			"MISSING_FILE",
+			"RECEIVE_BYTES",
+			"STATUS",
+			"INVALID_HTTP_RESPONSE",
+			"CHUNKED_ENCODING",
+			"INCOMING_PAYLOAD",
+			"INCOMING_ZEROES",
+			"POP_REQUEST",
+			"HANDLE_PADFILE",
+
+			// messages
+			"ALLOWED_FAST",
+			"HAVE_NONE",
+			"HAVE_ALL",
+			"HAVE",
+			"DONT_HAVE",
+			"DHT_PORT",
+			"CANCEL",
+			"REJECT",
+			"INTERESTED",
+			"NOT_INTERESTED",
+			"KEEPALIVE",
+			"CHOKE",
+			"UNCHOKE",
+			"SUGGEST_PIECE",
+			"BITFIELD",
+			"REQUEST",
+			"HANDSHAKE",
+			"HASH_REQUEST",
+			"HASHES",
+			"HASH_REJECT",
+			"EXTENSION_MESSAGE",
+			"EXTENDED_HANDSHAKE",
+			"PIECE"
+		}};
+		return peer_alert::message() + " "
+			+ mode[direction] + " " + event_name[event_type] + " [ " + log_message() + " ]";
 #endif
 	}
 
