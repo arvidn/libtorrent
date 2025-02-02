@@ -284,6 +284,21 @@ list get_dropped_alerts(alerts_dropped_alert const& alert)
     return ret;
 }
 
+object ep_variant(peer_alert const& pa)
+{
+	if (auto ip = std::get_if<peer_alert::ip_endpoint>(&pa.ep))
+	{
+		return boost::python::make_tuple(ip->address().to_string(), ip->port());
+	}
+
+	if (auto h = std::get_if<peer_alert::i2p_endpoint>(&pa.ep))
+	{
+		return object(bytes(h->data(), h->size()));
+	}
+	TORRENT_ASSERT_FAIL();
+	return object();
+}
+
 void bind_alert()
 {
     using boost::noncopyable;
@@ -454,7 +469,10 @@ void bind_alert()
 #if TORRENT_ABI_VERSION == 1
         .add_property("ip", make_getter(&peer_alert::ip, by_value()))
 #endif
+#if TORRENT_ABI_VERSION < 4
         .add_property("endpoint", make_getter(&peer_alert::endpoint, by_value()))
+#endif
+        .add_property("ep", &ep_variant)
         .def_readonly("pid", &peer_alert::pid)
     ;
     class_<tracker_error_alert, bases<tracker_alert>, noncopyable>(

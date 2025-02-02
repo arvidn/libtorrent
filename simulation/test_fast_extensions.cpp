@@ -217,7 +217,7 @@ TORRENT_TEST(allow_fast)
 			}
 			else if (auto l = lt::alert_cast<lt::peer_log_alert>(a))
 			{
-				if (l->event_type != "ALLOWED_FAST"_sv) return;
+				if (l->event_type != lt::peer_log_alert::allowed_fast) return;
 
 				int const piece = atoi(l->log_message());
 				// make sure we don't get the same allowed piece more than once
@@ -279,7 +279,7 @@ TORRENT_TEST(allow_fast_stress)
 		}
 		else if (auto l = lt::alert_cast<lt::peer_log_alert>(a))
 		{
-			if (l->event_type != "ALLOWED_FAST"_sv) return;
+			if (l->event_type != lt::peer_log_alert::allowed_fast) return;
 
 			int const piece = atoi(l->log_message());
 

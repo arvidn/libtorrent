@@ -68,6 +68,8 @@ namespace libtorrent {
 	TORRENT_DEPRECATED_EXPORT char const* operation_name(int op);
 #endif
 
+	using peer_endpoint_t = std::variant<aux::noexcept_movable<tcp::endpoint>, sha256_hash>;
+
 	// internal
 	TORRENT_EXPORT char const* alert_name(int alert_type);
 
@@ -149,7 +151,7 @@ TORRENT_VERSION_NAMESPACE_4
 	{
 		// internal
 		TORRENT_UNEXPORT peer_alert(aux::stack_allocator& alloc, torrent_handle const& h,
-			tcp::endpoint const& i, peer_id const& pi);
+			peer_endpoint_t ep_, peer_id const& pi);
 		TORRENT_UNEXPORT peer_alert(peer_alert&& rhs) noexcept = default;
 
 #if TORRENT_ABI_VERSION == 1
@@ -158,11 +160,22 @@ TORRENT_VERSION_NAMESPACE_4
 
 		std::string message() const override;
 
-		// The peer's IP address and port.
-		aux::noexcept_movable<tcp::endpoint> endpoint;
+		enum endpoint_type_t : unsigned
+		{
+			ip_endpoint,
+			i2p_endpoint,
+		};
+
+		// The peer's endpoint, either IP address and port or i2p destination
+		// hash.
+		peer_endpoint_t ep;
 
 		// the peer ID, if known.
 		peer_id pid;
+
+#if TORRENT_ABI_VERSION < 4
+		aux::noexcept_movable<tcp::endpoint> endpoint;
+#endif
 
 #if TORRENT_ABI_VERSION == 1
 		// The peer's IP address and port.
@@ -721,7 +734,7 @@ TORRENT_VERSION_NAMESPACE_4
 	{
 		// internal
 		TORRENT_UNEXPORT peer_ban_alert(aux::stack_allocator& alloc, torrent_handle h
-			, tcp::endpoint const& ep, peer_id const& peer_id);
+			, peer_endpoint_t const& ep, peer_id const& peer_id);
 
 		TORRENT_DEFINE_ALERT(peer_ban_alert, 19)
 
@@ -735,7 +748,7 @@ TORRENT_VERSION_NAMESPACE_4
 	{
 		// internal
 		TORRENT_UNEXPORT peer_unsnubbed_alert(aux::stack_allocator& alloc, torrent_handle h
-			, tcp::endpoint const& ep, peer_id const& peer_id);
+			, peer_endpoint_t const& ep, peer_id const& peer_id);
 
 		TORRENT_DEFINE_ALERT(peer_unsnubbed_alert, 20)
 
@@ -749,7 +762,7 @@ TORRENT_VERSION_NAMESPACE_4
 	{
 		// internal
 		TORRENT_UNEXPORT peer_snubbed_alert(aux::stack_allocator& alloc, torrent_handle h
-			, tcp::endpoint const& ep, peer_id const& peer_id);
+			, peer_endpoint_t const& ep, peer_id const& peer_id);
 
 		TORRENT_DEFINE_ALERT(peer_snubbed_alert, 21)
 
@@ -763,7 +776,7 @@ TORRENT_VERSION_NAMESPACE_4
 	{
 		// internal
 		TORRENT_UNEXPORT peer_error_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, tcp::endpoint const& ep, peer_id const& peer_id, operation_t op
+			, peer_endpoint_t const& ep, peer_id const& peer_id, operation_t op
 			, error_code const& e);
 
 		TORRENT_DEFINE_ALERT(peer_error_alert, 22)
@@ -794,7 +807,7 @@ TORRENT_VERSION_NAMESPACE_4
 
 		// internal
 		TORRENT_UNEXPORT peer_connect_alert(aux::stack_allocator& alloc, torrent_handle h
-			, tcp::endpoint const& ep, peer_id const& peer_id, socket_type_t type, direction_t direction);
+			, peer_endpoint_t const& ep, peer_id const& peer_id, socket_type_t type, direction_t direction);
 
 		TORRENT_DEFINE_ALERT(peer_connect_alert, 23)
 
@@ -813,7 +826,7 @@ TORRENT_VERSION_NAMESPACE_4
 	{
 		// internal
 		TORRENT_UNEXPORT peer_disconnected_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, tcp::endpoint const& ep
+			, torrent_handle const& h, peer_endpoint_t const& ep
 			, peer_id const& peer_id, operation_t op, socket_type_t type, error_code const& e
 			, close_reason_t r);
 
@@ -848,7 +861,7 @@ TORRENT_VERSION_NAMESPACE_4
 	{
 		// internal
 		TORRENT_UNEXPORT invalid_request_alert(aux::stack_allocator& alloc
-			, torrent_handle const& h, tcp::endpoint const& ep
+			, torrent_handle h, peer_endpoint_t const& ep
 			, peer_id const& peer_id, peer_request const& r
 			, bool we_have, bool peer_interested, bool withheld);
 
@@ -920,7 +933,7 @@ TORRENT_VERSION_NAMESPACE_4
 	{
 		// internal
 		TORRENT_UNEXPORT request_dropped_alert(aux::stack_allocator& alloc, torrent_handle h
-			, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
+			, peer_endpoint_t const& ep, peer_id const& peer_id, int block_num
 			, piece_index_t piece_num);
 
 		TORRENT_DEFINE_ALERT(request_dropped_alert, 28)
@@ -944,7 +957,7 @@ TORRENT_VERSION_NAMESPACE_4
 	{
 		// internal
 		TORRENT_UNEXPORT block_timeout_alert(aux::stack_allocator& alloc, torrent_handle h
-			, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
+			, peer_endpoint_t const& ep, peer_id const& peer_id, int block_num
 			, piece_index_t piece_num);
 
 		TORRENT_DEFINE_ALERT(block_timeout_alert, 29)
@@ -968,7 +981,7 @@ TORRENT_VERSION_NAMESPACE_4
 	{
 		// internal
 		TORRENT_UNEXPORT block_finished_alert(aux::stack_allocator& alloc, torrent_handle h
-			, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
+			, peer_endpoint_t const& ep, peer_id const& peer_id, int block_num
 			, piece_index_t piece_num);
 
 		TORRENT_DEFINE_ALERT(block_finished_alert, 30)
@@ -991,7 +1004,7 @@ TORRENT_VERSION_NAMESPACE_4
 	{
 		// internal
 		TORRENT_UNEXPORT block_downloading_alert(aux::stack_allocator& alloc, torrent_handle h
-			, tcp::endpoint const& ep
+			, peer_endpoint_t const& ep
 			, peer_id const& peer_id, int block_num, piece_index_t piece_num);
 
 		TORRENT_DEFINE_ALERT(block_downloading_alert, 31)
@@ -1017,7 +1030,7 @@ TORRENT_VERSION_NAMESPACE_4
 	{
 		// internal
 		TORRENT_UNEXPORT unwanted_block_alert(aux::stack_allocator& alloc, torrent_handle h
-			, tcp::endpoint const& ep
+			, peer_endpoint_t const& ep
 			, peer_id const& peer_id, int block_num, piece_index_t piece_num);
 
 		TORRENT_DEFINE_ALERT(unwanted_block_alert, 32)
@@ -1740,7 +1753,7 @@ TORRENT_VERSION_NAMESPACE_4
 	{
 		// internal
 		TORRENT_UNEXPORT peer_blocked_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, tcp::endpoint const& ep, int r);
+			, peer_endpoint_t const& ep, int r);
 
 		TORRENT_DEFINE_ALERT(peer_blocked_alert, 54)
 
@@ -1913,7 +1926,7 @@ TORRENT_VERSION_NAMESPACE_4
 	{
 		// internal
 		TORRENT_UNEXPORT lsd_peer_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, tcp::endpoint const& i);
+			, peer_endpoint_t const& i);
 
 		TORRENT_DEFINE_ALERT(lsd_peer_alert, 60)
 
@@ -2565,7 +2578,7 @@ TORRENT_VERSION_NAMESPACE_4
 
 		// internal
 		TORRENT_UNEXPORT peer_log_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, tcp::endpoint const& i, peer_id const& pi
+			, peer_endpoint_t const& ep, peer_id const& pi
 			, peer_log_alert::direction_t dir
 			, event_t event, char const* fmt, va_list v);
 
@@ -2699,7 +2712,7 @@ TORRENT_VERSION_NAMESPACE_4
 		// internal
 		TORRENT_UNEXPORT incoming_request_alert(aux::stack_allocator& alloc
 			, peer_request r, torrent_handle h
-			, tcp::endpoint const& ep, peer_id const& peer_id);
+			, peer_endpoint_t const& ep, peer_id const& peer_id);
 
 		static inline constexpr alert_category_t static_category = alert_category::incoming_request;
 		TORRENT_DEFINE_ALERT(incoming_request_alert, 84)
@@ -2858,7 +2871,7 @@ TORRENT_VERSION_NAMESPACE_4
 	{
 		// internal
 		TORRENT_UNEXPORT picker_log_alert(aux::stack_allocator& alloc, torrent_handle const& h
-			, tcp::endpoint const& ep, peer_id const& peer_id, picker_flags_t flags
+			, peer_endpoint_t const& ep, peer_id const& peer_id, picker_flags_t flags
 			, span<piece_block const> blocks);
 
 		TORRENT_DEFINE_ALERT(picker_log_alert, 89)
@@ -3031,7 +3044,7 @@ TORRENT_VERSION_NAMESPACE_4
 	{
 		// internal
 		TORRENT_UNEXPORT block_uploaded_alert(aux::stack_allocator& alloc, torrent_handle h
-			, tcp::endpoint const& ep, peer_id const& peer_id, int block_num
+			, peer_endpoint_t const& ep, peer_id const& peer_id, int block_num
 			, piece_index_t piece_num);
 
 		TORRENT_DEFINE_ALERT(block_uploaded_alert, 94)
