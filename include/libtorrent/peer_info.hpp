@@ -13,6 +13,8 @@ see LICENSE file.
 #ifndef TORRENT_PEER_INFO_HPP_INCLUDED
 #define TORRENT_PEER_INFO_HPP_INCLUDED
 
+#include <variant>
+
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/deadline_timer.hpp"
 #include "libtorrent/peer_id.hpp"
@@ -41,7 +43,7 @@ namespace libtorrent {
 
 	using connection_type_t = flags::bitfield_flag<std::uint8_t, struct connection_type_tag>;
 
-TORRENT_VERSION_NAMESPACE_2
+TORRENT_VERSION_NAMESPACE_4
 
 	// holds information and statistics about one peer
 	// that libtorrent is connected to
@@ -365,18 +367,33 @@ TORRENT_VERSION_NAMESPACE_2
 		TORRENT_DEPRECATED int estimated_reciprocation_rate;
 #endif
 
+#if TORRENT_ABI_VERSION < 4
+		TORRENT_DEPRECATED tcp::endpoint ip;
+#endif
+
+		private:
+
+		struct ip_endpoint {
+			tcp::endpoint remote;
+			tcp::endpoint local;
+		};
+		// the sha256_hash is the hash of the i2p destination
+		std::variant<ip_endpoint, sha256_hash> m_endpoint;
+
+		public:
+
 		// the IP-address to this peer. The type is an asio endpoint. For
 		// more info, see the asio_ documentation. This field is not valid for
 		// i2p peers. Instead use the i2p_destination() function.
 		//
 		// .. _asio: http://asio.sourceforge.net/asio-0.3.8/doc/asio/reference.html
-		tcp::endpoint ip;
+		tcp::endpoint remote_endpoint() const;
 
 		// the IP and port pair the socket is bound to locally. i.e. the IP
 		// address of the interface it's going out over. This may be useful for
 		// multi-homed clients with multiple interfaces to the internet.
 		// This field is not valid for i2p peers.
-		tcp::endpoint local_endpoint;
+		tcp::endpoint local_endpoint() const;
 
 		// The peer is not waiting for any external events to
 		// send or receive data.
@@ -401,6 +418,9 @@ TORRENT_VERSION_NAMESPACE_2
 		// class.
 		bandwidth_state_flags_t read_state;
 		bandwidth_state_flags_t write_state;
+
+		// internal
+		void set_endpoints(tcp::endpoint const& local, tcp::endpoint const& remote);
 
 #if TORRENT_USE_I2P
 		// If this peer is an i2p peer, this function returns the destination
@@ -430,7 +450,7 @@ TORRENT_VERSION_NAMESPACE_2
 #endif
 	};
 
-TORRENT_VERSION_NAMESPACE_2_END
+TORRENT_VERSION_NAMESPACE_4_END
 
 #if TORRENT_ABI_VERSION == 1
 	// internal
