@@ -2398,7 +2398,7 @@ TORRENT_VERSION_NAMESPACE_4
 	{
 		// describes whether this log refers to in-flow or out-flow of the
 		// peer. The exception is ``info`` which is neither incoming or outgoing.
-		enum direction_t
+		enum direction_t : std::uint8_t
 		{
 			incoming_message,
 			outgoing_message,
@@ -2407,20 +2407,176 @@ TORRENT_VERSION_NAMESPACE_4
 			info
 		};
 
+		enum event_t : std::uint8_t {
+			tracker_response, // responses from trackers
+			allowed, // log related to sending the ALLOWED (fast) message
+			seed,
+			cancel_all_requests,
+			short_lived_disconnect,
+			graceful_pause,
+			request_time,
+			connection,
+			set_peer_class,
+			peer_class,
+			local_endpoint,
+			update_interest,
+			init,
+			received, // incoming piece
+			attach,
+			construct,
+			encryption,
+			extensions,
+			upload_only,
+			share_mode,
+			send_barrier,
+			piece_picker,
+			duplicate_peer,
+			duplicate_peer_resolution,
+			super_seeding,
+			merging_requests,
+			predictive_have,
+			banning_peer,
+			choking_peer,
+			torrent,
+			optimistic_unchoke,
+			max_out_queue_size,
+			update_queue_size,
+			last_activity,
+			mutual_no_interest,
+			slow_start,
+			send_buffer_watermark,
+			torrent_aborted,
+			piece_failed,
+			request_bandwidth,
+			assign_bandwidth,
+			waiting_for_disk,
+			close_reason,
+
+			// protocol errors
+			peer_error,
+			no_handshake,
+			no_request,
+			piece_request_timed_out,
+			invalid_cancel,
+			invalid_request,
+			invalid_piece,
+			invalid_suggest,
+			invalid_have,
+			invalid_allowed_fast,
+			exception,
+
+			// NAT hole punching
+			holepunch,
+			holepunch_mode,
+
+			// socket buffers
+			send_buffer_depleted,
+			available,
+			grow_buffer,
+
+			// socket I/O
+			async_write,
+			async_read,
+			sync_read,
+			cannot_write,
+			cannot_read,
+			on_receive_data,
+			on_send_data,
+			wrote,
+			read,
+			corked_write,
+
+			// file I/O
+			file_async_write,
+			file_async_write_complete,
+			file_async_read,
+			file_async_read_complete,
+			seed_mode_file_async_hash,
+			seed_mode_file_hash,
+			disk_buffer, // disk write buffer
+			on_files_checked,
+
+			// socket level
+			open,
+			bind,
+			socket_buffer,
+			set_non_blocking,
+			set_dscp,
+			async_connect,
+			connection_failed,
+			connection_closed,
+			closing_connection,
+			connect_failed,
+			on_connected,
+			connection_established,
+
+			// metadata transfer
+			ut_metadata,
+			on_metadata,
+
+			// peer exchange
+			pex,
+			pex_diff,
+			pex_full,
+			i2p_pex,
+			i2p_pex_diff,
+			i2p_pex_full,
+
+			// web seed
+			web_seed,
+			save_restart_data,
+			restart_data,
+			location,
+			missing_file,
+			receive_bytes,
+			status,
+			invalid_http_response,
+			chunked_encoding,
+			incoming_payload,
+			incoming_zeroes,
+			pop_request,
+			handle_padfile,
+
+			// messages
+			allowed_fast,
+			have_none,
+			have_all,
+			have,
+			dont_have,
+			dht_port,
+			cancel,
+			reject,
+			interested,
+			not_interested,
+			keepalive,
+			choke,
+			unchoke,
+			suggest_piece,
+			bitfield,
+			request,
+			handshake,
+			hash_request,
+			hashes,
+			hash_reject,
+			extension_message,
+			extended_handshake,
+			piece,
+		};
+
 		// internal
 		TORRENT_UNEXPORT peer_log_alert(aux::stack_allocator& alloc, torrent_handle const& h
 			, tcp::endpoint const& i, peer_id const& pi
 			, peer_log_alert::direction_t dir
-			, char const* event, char const* fmt, va_list v);
+			, event_t event, char const* fmt, va_list v);
 
 		TORRENT_DEFINE_ALERT(peer_log_alert, 81)
 
 		static inline constexpr alert_category_t static_category = alert_category::peer_log;
 		std::string message() const override;
 
-		// string literal indicating the kind of event. For messages, this is the
+		// enum indicating the kind of event. For messages, this is the
 		// message name.
-		char const* event_type;
+		event_t event_type;
 
 		direction_t direction;
 

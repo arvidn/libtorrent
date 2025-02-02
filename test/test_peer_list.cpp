@@ -68,7 +68,7 @@ struct mock_peer_connection
 	bool should_log(peer_log_alert::direction_t) const noexcept override
 	{ return true; }
 
-	void peer_log(peer_log_alert::direction_t, char const* /*event*/
+	void peer_log(peer_log_alert::direction_t, peer_log_alert::event_t
 		, char const* fmt, ...) const noexcept override
 	{
 		va_list v;

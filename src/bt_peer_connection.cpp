@@ -140,7 +140,7 @@ namespace {
 		, m_our_peer_id(pack.our_peer_id)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::info, "CONSTRUCT", "bt_peer_connection");
+		peer_log(peer_log_alert::info, peer_log_alert::construct, "bt_peer_connection");
 #endif
 
 		m_reserved_bits.fill(0);
@@ -181,7 +181,7 @@ namespace {
 		if (t->graceful_pause())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "ON_CONNECTED", "graceful-paused");
+			peer_log(peer_log_alert::info, peer_log_alert::on_connected, "graceful-paused");
 #endif
 			disconnect(errors::torrent_paused, operation_t::bittorrent);
 			return;
@@ -209,7 +209,7 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 		static char const* policy_name[] = {"forced", "enabled", "disabled", "invalid-setting"};
 		int const policy_name_idx = out_policy > 3 ? 3 : out_policy;
-		peer_log(peer_log_alert::info, "ENCRYPTION"
+		peer_log(peer_log_alert::info, peer_log_alert::encryption
 			, "outgoing encryption policy: %s", policy_name[policy_name_idx]);
 #endif
 
@@ -274,7 +274,7 @@ namespace {
 	void bt_peer_connection::on_metadata()
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::info, "ON_METADATA");
+		peer_log(peer_log_alert::info, peer_log_alert::on_metadata);
 #endif
 
 		disconnect_if_redundant();
@@ -334,7 +334,7 @@ namespace {
 		TORRENT_ASSERT(m_sent_bitfield);
 
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::outgoing_message, "DHT_PORT", "%d", listen_port);
+		peer_log(peer_log_alert::outgoing_message, peer_log_alert::dht_port, "%d", listen_port);
 #endif
 		char msg[] = {0,0,0,3, msg_dht_port, 0, 0};
 		char* ptr = msg + 5;
@@ -361,7 +361,7 @@ namespace {
 
 		m_sent_bitfield = true;
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::outgoing_message, "HAVE_ALL");
+		peer_log(peer_log_alert::outgoing_message, peer_log_alert::have_all);
 #endif
 		send_message(msg_have_all, counters::num_outgoing_have_all);
 
@@ -375,7 +375,7 @@ namespace {
 		INVARIANT_CHECK;
 		m_sent_bitfield = true;
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::outgoing_message, "HAVE_NONE");
+		peer_log(peer_log_alert::outgoing_message, peer_log_alert::have_none);
 #endif
 		send_message(msg_have_none, counters::num_outgoing_have_none);
 
@@ -393,7 +393,7 @@ namespace {
 		if (!m_supports_fast) return;
 
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::outgoing_message, "REJECT_PIECE"
+		peer_log(peer_log_alert::outgoing_message, peer_log_alert::reject
 			, "piece: %d | s: %d | l: %d", static_cast<int>(r.piece)
 			, r.start, r.length);
 #endif
@@ -413,7 +413,7 @@ namespace {
 		if (!m_supports_fast) return;
 
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::outgoing_message, "ALLOWED_FAST", "%d"
+		peer_log(peer_log_alert::outgoing_message, peer_log_alert::allowed_fast, "%d"
 			, static_cast<int>(piece));
 #endif
 
@@ -445,7 +445,7 @@ namespace {
 #if !TORRENT_USE_ASSERTS
 			auto t = associated_torrent().lock();
 #endif
-			peer_log(peer_log_alert::outgoing_message, "SUGGEST"
+			peer_log(peer_log_alert::outgoing_message, peer_log_alert::suggest_piece
 				, "piece: %d num_peers: %d", static_cast<int>(piece)
 				, t->has_picker() ? t->picker().get_availability(piece) : -1);
 		}
@@ -532,7 +532,7 @@ namespace {
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (is_outgoing())
-			peer_log(peer_log_alert::info, "ENCRYPTION", "initiating encrypted handshake");
+			peer_log(peer_log_alert::info, peer_log_alert::encryption, "initiating encrypted handshake");
 #endif
 
 		m_dh_key_exchange.reset(new (std::nothrow) dh_key_exchange);
@@ -545,7 +545,7 @@ namespace {
 		int const pad_size = int(random(512));
 
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::info, "ENCRYPTION", "pad size: %d", pad_size);
+		peer_log(peer_log_alert::info, peer_log_alert::encryption, "pad size: %d", pad_size);
 #endif
 
 		char msg[dh_key_len + 512];
@@ -560,7 +560,7 @@ namespace {
 		send_buffer({msg, buf_size});
 
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::info, "ENCRYPTION", "sent DH key");
+		peer_log(peer_log_alert::info, peer_log_alert::encryption, "sent DH key");
 #endif
 	}
 
@@ -596,7 +596,7 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::info))
 		{
-			peer_log(peer_log_alert::info, "ENCRYPTION"
+			peer_log(peer_log_alert::info, peer_log_alert::encryption
 				, "writing synchash");
 		}
 #endif
@@ -620,7 +620,7 @@ namespace {
 		// Discard DH key exchange data, setup RC4 keys
 		m_rc4 = init_pe_rc4_handler(secret_key, info_hash, is_outgoing());
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::info, "ENCRYPTION", "computed RC4 keys");
+		peer_log(peer_log_alert::info, peer_log_alert::encryption, "computed RC4 keys");
 #endif
 		m_dh_key_exchange.reset(); // secret should be invalid at this point
 
@@ -635,7 +635,7 @@ namespace {
 
 #ifndef TORRENT_DISABLE_LOGGING
 		static char const* level[] = {"plaintext", "rc4", "plaintext rc4"};
-		peer_log(peer_log_alert::info, "ENCRYPTION"
+		peer_log(peer_log_alert::info, peer_log_alert::encryption
 			, "%s", level[crypto_provide - 1]);
 #endif
 
@@ -672,7 +672,7 @@ namespace {
 			m_rc4_encrypted = false;
 
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::info, "ENCRYPTION", " crypto select: %s"
+		peer_log(peer_log_alert::info, peer_log_alert::encryption, " crypto select: %s"
 			, (crypto_select == 0x01) ? "plaintext" : "rc4");
 #endif
 	}
@@ -770,7 +770,7 @@ namespace {
 					else bitmask += '0';
 				}
 			}
-			peer_log(peer_log_alert::outgoing_message, "EXTENSIONS"
+			peer_log(peer_log_alert::outgoing_message, peer_log_alert::extensions
 				, "%s", bitmask.c_str());
 		}
 #endif
@@ -788,13 +788,13 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::outgoing))
 		{
-			peer_log(peer_log_alert::outgoing, "HANDSHAKE"
+			peer_log(peer_log_alert::outgoing, peer_log_alert::handshake
 				, "sent peer_id: %s client: %s"
 				, aux::to_hex(m_our_peer_id).c_str(), identify_client(m_our_peer_id).c_str());
 		}
 		if (should_log(peer_log_alert::outgoing_message))
 		{
-			peer_log(peer_log_alert::outgoing_message, "HANDSHAKE"
+			peer_log(peer_log_alert::outgoing_message, peer_log_alert::handshake
 				, "ih: %s", aux::to_hex(ih).c_str());
 		}
 #endif
@@ -1113,7 +1113,7 @@ namespace {
 		if (recv_pos < header_size) return;
 
 #ifndef TORRENT_DISABLE_LOGGING
-//			peer_log(peer_log_alert::incoming_message, "PIECE_FRAGMENT", "p: %d start: %d length: %d"
+//			peer_log(peer_log_alert::incoming_message, peer_log_alert::piece_fragment, "p: %d start: %d length: %d"
 //				, p.piece, p.start, p.length);
 #endif
 
@@ -1200,7 +1200,7 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::incoming_message))
 		{
-			peer_log(peer_log_alert::incoming_message, "HASH_REQUEST"
+			peer_log(peer_log_alert::incoming_message, peer_log_alert::hash_request
 				, "file: %d base: %d idx: %d cnt: %d proofs: %d"
 				, static_cast<int>(hr.file), hr.base, hr.index, hr.count, hr.proof_layers);
 		}
@@ -1302,7 +1302,7 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::incoming_message))
 		{
-			peer_log(peer_log_alert::incoming_message, "HASHES"
+			peer_log(peer_log_alert::incoming_message, peer_log_alert::hashes
 				, "file: %d base: %d idx: %d cnt: %d proofs: %d"
 				, static_cast<int>(hr.file), hr.base, hr.index, hr.count, hr.proof_layers);
 		}
@@ -1355,7 +1355,7 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::incoming_message))
 		{
-			peer_log(peer_log_alert::incoming_message, "HASH_REJECT"
+			peer_log(peer_log_alert::incoming_message, peer_log_alert::hash_reject
 				, "file: %d base: %d idx: %d cnt: %d proofs: %d"
 				, static_cast<int>(hr.file), hr.base, hr.index, hr.count, hr.proof_layers);
 		}
@@ -1544,7 +1544,7 @@ namespace {
 			if (should_log(peer_log_alert::incoming_message))
 			{
 				static const char* hp_msg_name[] = {"rendezvous", "connect", "failed"};
-				peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
+				peer_log(peer_log_alert::incoming_message, peer_log_alert::holepunch
 					, "msg: %s from %s to: unknown address type"
 					, (static_cast<int>(msg_type) < 3
 						? hp_msg_name[static_cast<int>(msg_type)]
@@ -1561,7 +1561,7 @@ namespace {
 		{
 			if (should_log(peer_log_alert::incoming_message))
 			{
-				peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
+				peer_log(peer_log_alert::incoming_message, peer_log_alert::holepunch
 					, "msg: unknown message type (%d) to: %s"
 					, static_cast<int>(msg_type)
 					, print_address(ep.address()).c_str());
@@ -1580,7 +1580,7 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 				if (should_log(peer_log_alert::incoming_message))
 				{
-					peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
+					peer_log(peer_log_alert::incoming_message, peer_log_alert::holepunch
 						, "msg: rendezvous to: %s", print_address(ep.address()).c_str());
 				}
 #endif
@@ -1617,7 +1617,7 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 					if (should_log(peer_log_alert::incoming_message))
 					{
-						peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
+						peer_log(peer_log_alert::incoming_message, peer_log_alert::holepunch
 							, "msg:connect to: %s ERROR: failed to add peer"
 							, print_address(ep.address()).c_str());
 					}
@@ -1631,7 +1631,7 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 					if (should_log(peer_log_alert::incoming_message))
 					{
-						peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
+						peer_log(peer_log_alert::incoming_message, peer_log_alert::holepunch
 							, "msg:connect to: %s ERROR: peer banned", print_address(ep.address()).c_str());
 					}
 #endif
@@ -1652,7 +1652,7 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 				if (should_log(peer_log_alert::incoming_message))
 				{
-					peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
+					peer_log(peer_log_alert::incoming_message, peer_log_alert::holepunch
 						, "msg:connect to: %s"
 						, print_address(ep.address()).c_str());
 				}
@@ -1666,7 +1666,7 @@ namespace {
 				if (should_log(peer_log_alert::incoming_message))
 				{
 					static char const* err_msg[] = {"no such peer", "not connected", "no support", "no self"};
-					peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
+					peer_log(peer_log_alert::incoming_message, peer_log_alert::holepunch
 						, "msg:failed ERROR: %d msg: %s", error
 						, ((error > 0 && error < 5)?err_msg[error-1]:"unknown message id"));
 				}
@@ -1692,7 +1692,7 @@ namespace {
 		{
 			static const char* hp_msg_name[] = {"rendezvous", "connect", "failed"};
 			static const char* hp_error_string[] = {"", "no such peer", "not connected", "no support", "no self"};
-			peer_log(peer_log_alert::outgoing_message, "HOLEPUNCH"
+			peer_log(peer_log_alert::outgoing_message, peer_log_alert::holepunch
 				, "msg: %s to: %s ERROR: %s"
 				, (static_cast<std::uint8_t>(type) < 3
 					? hp_msg_name[static_cast<std::uint8_t>(type)]
@@ -1750,7 +1750,7 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::outgoing_message))
 		{
-			peer_log(peer_log_alert::outgoing_message, "HASH_REQUEST"
+			peer_log(peer_log_alert::outgoing_message, peer_log_alert::hash_request
 				, "file: %d base: %d idx: %d cnt: %d proofs: %d"
 				, int(req.file), req.base, req.index, req.count, req.proof_layers);
 		}
@@ -1792,7 +1792,7 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::outgoing_message))
 		{
-			peer_log(peer_log_alert::outgoing_message, "HASHES"
+			peer_log(peer_log_alert::outgoing_message, peer_log_alert::hashes
 				, "file: %d base: %d idx: %d cnt: %d proofs: %d"
 				, static_cast<int>(req.file), req.base, req.index, req.count, req.proof_layers);
 		}
@@ -1824,7 +1824,7 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::outgoing_message))
 		{
-			peer_log(peer_log_alert::outgoing_message, "HASH_REJECT"
+			peer_log(peer_log_alert::outgoing_message, peer_log_alert::hash_reject
 				, "base: %d idx: %d cnt: %d proofs: %d"
 				, req.base, req.index, req.count, req.proof_layers);
 		}
@@ -1890,14 +1890,14 @@ namespace {
 			if (m_recv_buffer.packet_size() != 3)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::incoming_message, "UPLOAD_ONLY"
+				peer_log(peer_log_alert::incoming_message, peer_log_alert::upload_only
 					, "ERROR: unexpected packet size: %d", m_recv_buffer.packet_size());
 #endif
 				return;
 			}
 			bool const ul = aux::read_uint8(recv_buffer) != 0;
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::incoming_message, "UPLOAD_ONLY"
+			peer_log(peer_log_alert::incoming_message, peer_log_alert::upload_only
 				, "%s", (ul?"true":"false"));
 #endif
 			set_upload_only(ul);
@@ -1911,14 +1911,14 @@ namespace {
 			if (m_recv_buffer.packet_size() != 3)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::incoming_message, "SHARE_MODE"
+				peer_log(peer_log_alert::incoming_message, peer_log_alert::share_mode
 					, "ERROR: unexpected packet size: %d", m_recv_buffer.packet_size());
 #endif
 				return;
 			}
 			bool sm = aux::read_uint8(recv_buffer) != 0;
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::incoming_message, "SHARE_MODE"
+			peer_log(peer_log_alert::incoming_message, peer_log_alert::share_mode
 				, "%s", (sm?"true":"false"));
 #endif
 			set_share_mode(sm);
@@ -1930,7 +1930,7 @@ namespace {
 		{
 			if (!m_recv_buffer.packet_finished()) return;
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::incoming_message, "HOLEPUNCH");
+			peer_log(peer_log_alert::incoming_message, peer_log_alert::holepunch);
 #endif
 			on_holepunch();
 			return;
@@ -1942,7 +1942,7 @@ namespace {
 			if (m_recv_buffer.packet_size() != 6)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::incoming_message, "DONT_HAVE"
+				peer_log(peer_log_alert::incoming_message, peer_log_alert::dont_have
 					, "ERROR: unexpected packet size: %d", m_recv_buffer.packet_size());
 #endif
 				return;
@@ -1954,7 +1954,7 @@ namespace {
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (m_recv_buffer.packet_finished())
-			peer_log(peer_log_alert::incoming_message, "EXTENSION_MESSAGE"
+			peer_log(peer_log_alert::incoming_message, peer_log_alert::extension_message
 				, "msg: %d size: %d", extended_id, m_recv_buffer.packet_size());
 #endif
 
@@ -1987,7 +1987,7 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log(peer_log_alert::info))
 			{
-				peer_log(peer_log_alert::info, "EXTENSION_MESSAGE"
+				peer_log(peer_log_alert::info, peer_log_alert::extension_message
 					, "invalid extended handshake. pos: %d %s"
 					, pos, print_error(ec).c_str());
 			}
@@ -1998,7 +1998,7 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::incoming_message))
 		{
-			peer_log(peer_log_alert::incoming_message, "EXTENDED_HANDSHAKE"
+			peer_log(peer_log_alert::incoming_message, peer_log_alert::extended_handshake
 				, "%s", print_entry(root, true).c_str());
 		}
 #endif
@@ -2294,7 +2294,7 @@ namespace {
 		if (t->super_seeding())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "BITFIELD", "not sending bitfield, super seeding");
+			peer_log(peer_log_alert::info, peer_log_alert::bitfield, "not sending bitfield, super seeding");
 #endif
 			if (m_supports_fast) write_have_none();
 
@@ -2325,7 +2325,7 @@ namespace {
 		{
 			// don't send a bitfield if we don't have any pieces
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "BITFIELD", "not sending bitfield, have none");
+			peer_log(peer_log_alert::info, peer_log_alert::bitfield, "not sending bitfield, have none");
 #endif
 			m_sent_bitfield = true;
 			return;
@@ -2388,7 +2388,7 @@ namespace {
 				if (msg[5 + int(k) / CHAR_BIT] & (char_top_bit >> (k % CHAR_BIT))) bitfield_string[k] = '1';
 				else bitfield_string[k] = '0';
 			}
-			peer_log(peer_log_alert::outgoing_message, "BITFIELD"
+			peer_log(peer_log_alert::outgoing_message, peer_log_alert::bitfield
 				, "%s", bitfield_string.c_str());
 		}
 #endif
@@ -2522,7 +2522,7 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::outgoing_message))
 		{
-			peer_log(peer_log_alert::outgoing_message, "EXTENDED_HANDSHAKE"
+			peer_log(peer_log_alert::outgoing_message, peer_log_alert::extended_handshake
 				, "%s", handshake.to_string(true).c_str());
 		}
 #endif
@@ -2692,7 +2692,7 @@ namespace {
 			int const consumed = m_enc_handler.decrypt(m_recv_buffer, bytes_transferred);
 #ifndef TORRENT_DISABLE_LOGGING
 			if (consumed + int(bytes_transferred) > 0)
-				peer_log(peer_log_alert::incoming_message, "ENCRYPTION"
+				peer_log(peer_log_alert::incoming_message, peer_log_alert::encryption
 					, "decrypted block s = %d", consumed + int(bytes_transferred));
 #endif
 			if (bytes_transferred == SIZE_MAX)
@@ -2756,7 +2756,7 @@ namespace {
 			rc4_decrypt(remaining);
 
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "ENCRYPTION"
+			peer_log(peer_log_alert::info, peer_log_alert::encryption
 				, "decrypted remaining %d bytes", int(remaining.size()));
 #endif
 		}
@@ -2808,7 +2808,7 @@ namespace {
 				reinterpret_cast<std::uint8_t const*>(recv_buffer.data()));
 
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "ENCRYPTION", "received DH key");
+			peer_log(peer_log_alert::info, peer_log_alert::encryption, "received DH key");
 #endif
 
 			// PadA/B can be a max of 512 bytes, and 20 bytes more for
@@ -2877,7 +2877,7 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 				if (should_log(peer_log_alert::info))
 				{
-					peer_log(peer_log_alert::info, "ENCRYPTION"
+					peer_log(peer_log_alert::info, peer_log_alert::encryption
 						, "looking for synchash %s secret: %s"
 						, aux::to_hex(*m_sync_hash).c_str()
 						, aux::to_hex(buffer).c_str());
@@ -2911,7 +2911,7 @@ namespace {
 			{
 				int const bytes_processed = syncoffset + 20;
 #ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::info, "ENCRYPTION"
+				peer_log(peer_log_alert::info, peer_log_alert::encryption
 					, "sync point (hash) found at offset %d"
 					, m_sync_bytes_read + bytes_processed - 20);
 #endif
@@ -2980,8 +2980,8 @@ namespace {
 				m_rc4 = init_pe_rc4_handler(m_dh_key_exchange->get_secret()
 					, associated_info_hash(), is_outgoing());
 #ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::info, "ENCRYPTION", "computed RC4 keys");
-				peer_log(peer_log_alert::info, "ENCRYPTION", "stream key found, torrent located");
+				peer_log(peer_log_alert::info, peer_log_alert::encryption, "computed RC4 keys");
+				peer_log(peer_log_alert::info, peer_log_alert::encryption, "stream key found, torrent located");
 #endif
 			}
 
@@ -3002,7 +3002,7 @@ namespace {
 			}
 
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "ENCRYPTION", "verification constant found");
+			peer_log(peer_log_alert::info, peer_log_alert::encryption, "verification constant found");
 #endif
 			m_state = state_t::read_pe_cryptofield;
 			m_recv_buffer.reset(4 + 2);
@@ -3066,7 +3066,7 @@ namespace {
 			{
 				int const bytes_processed = syncoffset + 8;
 #ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::info, "ENCRYPTION"
+				peer_log(peer_log_alert::info, peer_log_alert::encryption
 					, "sync point (verification constant) found at offset %d"
 					, m_sync_bytes_read + bytes_processed - 8);
 #endif
@@ -3105,7 +3105,7 @@ namespace {
 			std::uint32_t crypto_field = aux::read_uint32(recv_buffer);
 
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "ENCRYPTION", "crypto %s : [%s%s ]"
+			peer_log(peer_log_alert::info, peer_log_alert::encryption, "crypto %s : [%s%s ]"
 				, is_outgoing() ? "select" : "provide"
 				, (crypto_field & 1) ? " plaintext" : ""
 				, (crypto_field & 2) ? " rc4" : "");
@@ -3210,7 +3210,7 @@ namespace {
 				int const len_ia = aux::read_int16(recv_buffer);
 
 #ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::info, "ENCRYPTION", "len(IA) : %d", len_ia);
+				peer_log(peer_log_alert::info, peer_log_alert::encryption, "len(IA) : %d", len_ia);
 #endif
 				if (len_ia < 0 || len_ia > 68)
 				{
@@ -3257,7 +3257,7 @@ namespace {
 			rc4_decrypt(m_recv_buffer.mutable_buffer().first(m_recv_buffer.packet_size()));
 
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "ENCRYPTION"
+			peer_log(peer_log_alert::info, peer_log_alert::encryption
 				, "decrypted ia : %d bytes", m_recv_buffer.packet_size());
 #endif
 
@@ -3299,7 +3299,7 @@ namespace {
 			{
 #if !defined TORRENT_DISABLE_ENCRYPTION
 #ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::info, "ENCRYPTION"
+				peer_log(peer_log_alert::info, peer_log_alert::encryption
 					, "unrecognized protocol header");
 #endif
 
@@ -3307,7 +3307,7 @@ namespace {
 				if (is_ssl(get_socket()))
 				{
 #ifndef TORRENT_DISABLE_LOGGING
-					peer_log(peer_log_alert::info, "ENCRYPTION"
+					peer_log(peer_log_alert::info, peer_log_alert::encryption
 						, "SSL peers are not allowed to use any other encryption");
 #endif
 					disconnect(errors::invalid_info_hash, operation_t::bittorrent, failure);
@@ -3334,7 +3334,7 @@ namespace {
 				}
 
 #ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::info, "ENCRYPTION", "attempting encrypted connection");
+				peer_log(peer_log_alert::info, peer_log_alert::encryption, "attempting encrypted connection");
 #endif
 				m_state = state_t::read_pe_dhkey;
 				// we're "cutting" off 0 bytes from the receive buffer here
@@ -3366,7 +3366,7 @@ namespace {
 #endif
 
 #ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::incoming_message, "HANDSHAKE", "BitTorrent protocol");
+				peer_log(peer_log_alert::incoming_message, peer_log_alert::handshake, "BitTorrent protocol");
 #endif
 			}
 
@@ -3394,7 +3394,7 @@ namespace {
 
 			if (should_log(peer_log_alert::incoming_message))
 			{
-				peer_log(peer_log_alert::incoming_message, "EXTENSIONS", "%s ext: %s%s%s%s"
+				peer_log(peer_log_alert::incoming_message, peer_log_alert::extensions, "%s ext: %s%s%s%s"
 					, extensions.c_str()
 					, (recv_buffer[7] & 0x01) ? "DHT " : ""
 					, (recv_buffer[7] & 0x04) ? "FAST " : ""
@@ -3461,14 +3461,14 @@ namespace {
 					|| associated_info_hash().is_all_zeros())
 				{
 #ifndef TORRENT_DISABLE_LOGGING
-					peer_log(peer_log_alert::info, "ERROR", "received invalid info_hash");
+					peer_log(peer_log_alert::info, peer_log_alert::peer_error, "received invalid info_hash");
 #endif
 					disconnect(errors::invalid_info_hash, operation_t::bittorrent, failure);
 					return;
 				}
 
 #ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::incoming, "HANDSHAKE", "info_hash received");
+				peer_log(peer_log_alert::incoming, peer_log_alert::handshake, "info_hash received");
 #endif
 			}
 
@@ -3511,7 +3511,7 @@ namespace {
 				for (int i = 0; i != 20; ++i)
 					ascii_pid[i] = (is_print(recv_buffer[i])) ? recv_buffer[i] : '.';
 
-				peer_log(peer_log_alert::incoming, "HANDSHAKE", "received peer_id: %s client: %s ascii: \"%s\""
+				peer_log(peer_log_alert::incoming, peer_log_alert::handshake, "received peer_id: %s client: %s ascii: \"%s\""
 					, hex_pid, identify_client(peer_id(recv_buffer.data())).c_str(), ascii_pid);
 			}
 #endif
@@ -3574,7 +3574,7 @@ namespace {
 			if (m_supports_extensions) write_extensions();
 
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::incoming_message, "HANDSHAKE", "connection ready");
+			peer_log(peer_log_alert::incoming_message, peer_log_alert::handshake, "connection ready");
 #endif
 			// consider this a successful connection, reset the failcount
 			if (peer_info_struct())
@@ -3724,7 +3724,7 @@ namespace {
 		auto const [next_barrier, out_iovec] = m_enc_handler.encrypt(iovec);
 #ifndef TORRENT_DISABLE_LOGGING
 		if (next_barrier != 0)
-			peer_log(peer_log_alert::outgoing, "SEND_BARRIER"
+			peer_log(peer_log_alert::outgoing, peer_log_alert::send_barrier
 				, "encrypted block s = %d", next_barrier);
 #endif
 		return std::make_tuple(next_barrier, out_iovec);

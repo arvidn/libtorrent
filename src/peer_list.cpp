@@ -669,13 +669,13 @@ namespace libtorrent::aux {
 #if TORRENT_USE_I2P
 				if (!i2p_dest.empty())
 				{
-					c.peer_log(peer_log_alert::info, "DUPLICATE PEER", "destination: \"%s\""
+					c.peer_log(peer_log_alert::info, peer_log_alert::duplicate_peer, "destination: \"%s\""
 						, i2p_dest.c_str());
 				}
 				else
 #endif
 				{
-					c.peer_log(peer_log_alert::info, "DUPLICATE PEER", "this: \"%s\" that: \"%s\""
+					c.peer_log(peer_log_alert::info, peer_log_alert::duplicate_peer, "this: \"%s\" that: \"%s\""
 						, print_address(c.remote().address()).c_str()
 						, print_address(i->address()).c_str());
 				}
@@ -737,10 +737,10 @@ namespace libtorrent::aux {
 #ifndef TORRENT_DISABLE_LOGGING
 					if (c.should_log(peer_log_alert::info))
 					{
-						c.peer_log(peer_log_alert::info, "DUPLICATE_PEER_RESOLUTION"
+						c.peer_log(peer_log_alert::info, peer_log_alert::duplicate_peer_resolution
 							, "our: %s other: %s disconnecting: %s"
 							, i2p_dest.c_str(), other_dest.c_str(), disconnect1 ? "yes" : "no");
-						i->connection->peer_log(peer_log_alert::info, "DUPLICATE_PEER_RESOLUTION"
+						i->connection->peer_log(peer_log_alert::info, peer_log_alert::duplicate_peer_resolution
 							, "our: %s other: %s disconnecting: %s"
 							, other_dest.c_str(), i2p_dest.c_str(), disconnect1 ? "no" : "yes");
 					}
@@ -786,10 +786,10 @@ namespace libtorrent::aux {
 #ifndef TORRENT_DISABLE_LOGGING
 					if (c.should_log(peer_log_alert::info))
 					{
-						c.peer_log(peer_log_alert::info, "DUPLICATE_PEER_RESOLUTION"
+						c.peer_log(peer_log_alert::info, peer_log_alert::duplicate_peer_resolution
 							, "our: %d other: %d disconnecting: %s"
 							, our_port, other_port, disconnect1 ? "yes" : "no");
-						i->connection->peer_log(peer_log_alert::info, "DUPLICATE_PEER_RESOLUTION"
+						i->connection->peer_log(peer_log_alert::info, peer_log_alert::duplicate_peer_resolution
 							, "our: %d other: %d disconnecting: %s"
 							, our_port, other_port, disconnect1 ? "no" : "yes");
 					}

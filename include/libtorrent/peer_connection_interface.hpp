@@ -64,7 +64,7 @@ namespace libtorrent {
 #ifndef TORRENT_DISABLE_LOGGING
 		virtual bool should_log(peer_log_alert::direction_t direction) const = 0;
 		virtual void peer_log(peer_log_alert::direction_t direction
-			, char const* event, char const* fmt = "", ...) const noexcept TORRENT_FORMAT(4,5) = 0;
+			, peer_log_alert::event_t event, char const* fmt = "", ...) const noexcept TORRENT_FORMAT(4,5) = 0;
 #endif
 	protected:
 		~peer_connection_interface() {}

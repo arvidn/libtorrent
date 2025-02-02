@@ -4206,7 +4206,7 @@ retry:
 			if (pi->optimistically_unchoked)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
-					p->peer_log(peer_log_alert::info, "OPTIMISTIC UNCHOKE"
+					p->peer_log(peer_log_alert::info, peer_log_alert::optimistic_unchoke
 						, "already unchoked | session-time: %d"
 						, pi->last_optimistically_unchoked);
 #endif
@@ -4231,7 +4231,7 @@ retry:
 					m_stats_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic);
 					pi->last_optimistically_unchoked = std::uint16_t(session_time());
 #ifndef TORRENT_DISABLE_LOGGING
-					p->peer_log(peer_log_alert::info, "OPTIMISTIC UNCHOKE"
+					p->peer_log(peer_log_alert::info, peer_log_alert::optimistic_unchoke
 						, "session-time: %d", pi->last_optimistically_unchoked);
 #endif
 				}
