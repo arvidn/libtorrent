@@ -28,13 +28,22 @@ std::int64_t get_download_queue_time(peer_info const& pi)
 
 tuple get_local_endpoint(peer_info const& pi)
 {
-    return boost::python::make_tuple(pi.local_endpoint.address().to_string(), pi.local_endpoint.port());
+    auto const ep = pi.local_endpoint();
+    return boost::python::make_tuple(ep.address().to_string(), ep.port());
 }
 
+tuple get_remote_endpoint(peer_info const& pi)
+{
+    auto const ep = pi.remote_endpoint();
+    return boost::python::make_tuple(ep.address().to_string(), ep.port());
+}
+
+#if TORRENT_ABI_VERSION < 4
 tuple get_ip(peer_info const& pi)
 {
     return boost::python::make_tuple(pi.ip.address().to_string(), pi.ip.port());
 }
+#endif
 
 list get_pieces(peer_info const& pi)
 {
@@ -50,7 +59,7 @@ list get_pieces(peer_info const& pi)
 
 bytes get_peer_info_client(peer_info const& pi)
 {
-	return pi.client;
+    return pi.client;
 }
 
 using by_value = return_value_policy<return_by_value>;
@@ -61,7 +70,9 @@ void bind_peer_info()
         .add_property("source", make_getter(&peer_info::source, by_value()))
         .add_property("read_state", make_getter(&peer_info::read_state, by_value()))
         .add_property("write_state", make_getter(&peer_info::write_state, by_value()))
+#if TORRENT_ABI_VERSION < 4
         .add_property("ip", get_ip)
+#endif
         .def_readonly("up_speed", &peer_info::up_speed)
         .def_readonly("down_speed", &peer_info::down_speed)
         .def_readonly("payload_up_speed", &peer_info::payload_up_speed)
@@ -107,10 +118,11 @@ void bind_peer_info()
 #if TORRENT_ABI_VERSION == 1
         .def_readonly("estimated_reciprocation_rate", &peer_info::estimated_reciprocation_rate)
 #endif
-        .add_property("local_endpoint", get_local_endpoint)
 #if TORRENT_USE_I2P
         .def("i2p_destination", &peer_info::i2p_destination)
 #endif
+        .def("local_endpoint", get_local_endpoint)
+        .def("remote_endpoint", get_remote_endpoint)
         ;
 
     // flags

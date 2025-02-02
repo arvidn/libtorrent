@@ -304,7 +304,7 @@ int peer_index(lt::tcp::endpoint addr, std::vector<lt::peer_info> const& peers)
 {
 	using namespace lt;
 	auto i = std::find_if(peers.begin(), peers.end()
-		, [&addr](peer_info const& pi) { return pi.ip == addr; });
+		, [&addr](peer_info const& pi) { return pi.remote_endpoint() == addr; });
 	if (i == peers.end()) return -1;
 
 	return int(i - peers.begin());
@@ -401,7 +401,7 @@ int print_peer_info(std::string& out
 			else
 #endif
 			{
-				std::snprintf(str, sizeof(str), "%-30s ", ::print_endpoint(i->ip).c_str());
+				std::snprintf(str, sizeof(str), "%-30s ", ::print_endpoint(i->remote_endpoint()).c_str());
 				out += str;
 			}
 		}
@@ -413,7 +413,7 @@ int print_peer_info(std::string& out
 			else
 #endif
 			{
-				std::snprintf(str, sizeof(str), "%-30s ", ::print_endpoint(i->local_endpoint).c_str());
+				std::snprintf(str, sizeof(str), "%-30s ", ::print_endpoint(i->local_endpoint()).c_str());
 				out += str;
 			}
 		}
