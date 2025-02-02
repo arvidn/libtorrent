@@ -17,26 +17,46 @@ namespace libtorrent {
 	peer_info::peer_info(peer_info&&) = default;
 	peer_info& peer_info::operator=(peer_info const&) = default;
 
+	tcp::endpoint peer_info::remote_endpoint() const
+	{
+#if TORRENT_USE_I2P
+		if (flags & i2p_socket) return {};
+#endif
+		TORRENT_ASSERT(std::holds_alternative<ip_endpoint>(m_endpoint));
+		return std::get<ip_endpoint>(m_endpoint).remote;
+	}
+
+	tcp::endpoint peer_info::local_endpoint() const
+	{
+#if TORRENT_USE_I2P
+		if (flags & i2p_socket) return {};
+#endif
+		TORRENT_ASSERT(std::holds_alternative<ip_endpoint>(m_endpoint));
+		return std::get<ip_endpoint>(m_endpoint).local;
+	}
+
+	void peer_info::set_endpoints(tcp::endpoint const& local, tcp::endpoint const& remote)
+	{
+		TORRENT_ASSERT(!(flags & i2p_socket));
+		m_endpoint = ip_endpoint{remote, local};
+#if TORRENT_ABI_VERSION < 4
+		ip = remote;
+#endif
+	}
+
 #if TORRENT_USE_I2P
 	sha256_hash peer_info::i2p_destination() const
 	{
 		sha256_hash ret;
 		if (!(flags & i2p_socket)) return ret;
-
-		char const* destination = reinterpret_cast<char const*>(&ip);
-		static_assert(sizeof(tcp::endpoint) * 2 >= sizeof(sha256_hash), "tcp::endpoint is smaller than expected");
-
-		std::memcpy(ret.data(), destination, ret.size());
-		return ret;
+		TORRENT_ASSERT(std::holds_alternative<sha256_hash>(m_endpoint));
+		return std::get<sha256_hash>(m_endpoint);
 	}
 
 	void peer_info::set_i2p_destination(sha256_hash dest)
 	{
 		flags |= i2p_socket;
-		char* destination = reinterpret_cast<char*>(&ip);
-		static_assert(sizeof(tcp::endpoint) * 2 >= sizeof(sha256_hash), "tcp::endpoint is smaller than expected");
-
-		std::memcpy(destination, dest.data(), dest.size());
+		m_endpoint = dest;
 	}
 #endif
 }

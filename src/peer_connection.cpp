@@ -4642,9 +4642,8 @@ namespace {
 		if (!(p.flags & peer_info::i2p_socket))
 #endif
 		{
-			p.ip = remote();
 			error_code ec;
-			p.local_endpoint = get_socket().local_endpoint(ec);
+			p.set_endpoints(get_socket().local_endpoint(ec), remote());
 		}
 
 		if (m_snubbed) p.flags |= peer_info::snubbed;

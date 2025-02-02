@@ -219,9 +219,9 @@ struct peer_connection_handle;
 struct bt_peer_connection_handle;
 
 // include/libtorrent/peer_info.hpp
-TORRENT_VERSION_NAMESPACE_2
+TORRENT_VERSION_NAMESPACE_4
 struct peer_info;
-TORRENT_VERSION_NAMESPACE_2_END
+TORRENT_VERSION_NAMESPACE_4_END
 
 // include/libtorrent/peer_request.hpp
 struct peer_request;
