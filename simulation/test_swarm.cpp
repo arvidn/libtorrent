@@ -181,7 +181,7 @@ TORRENT_TEST(suggest)
 			if (auto pl = alert_cast<peer_log_alert>(a))
 			{
 				if (pl->direction == peer_log_alert::outgoing_message
-					&& pl->event_type == std::string("SUGGEST"))
+					&& pl->event_type == peer_log_alert::suggest_piece)
 				{
 					++num_suggests;
 				}
@@ -963,8 +963,11 @@ TORRENT_TEST(pex)
 						// if node 0 was connected to 50.0.0.3, we're done
 						if (lt::peer_connect_alert* ca = lt::alert_cast<lt::peer_connect_alert>(a))
 						{
-							if (ca->endpoint.address() == addr("50.0.0.3"))
-								done = true;
+							if (auto i = std::get_if<peer_alert::ip_endpoint>(&ca->ep))
+							{
+								if (i->address() == addr("50.0.0.3"))
+									done = true;
+							}
 						}
 						if (lt::incoming_connection_alert* ca = lt::alert_cast<lt::incoming_connection_alert>(a))
 						{

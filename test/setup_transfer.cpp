@@ -367,6 +367,23 @@ int load_file(std::string const& filename, std::vector<char>& v
 	return 0;
 }
 
+namespace {
+
+std::string print_endpoint(peer_endpoint_t const& ep)
+{
+	if (auto i = std::get_if<peer_alert::ip_endpoint>(&ep))
+	{
+		return print_endpoint(*i);
+	}
+	else if (auto i2p = std::get_if<peer_alert::i2p_endpoint>(&ep))
+	{
+		return lt::aux::to_hex(*i2p);
+	}
+	TORRENT_ASSERT_FAIL();
+	return {};
+}
+}
+
 bool print_alerts(lt::session& ses, char const* name
 	, bool allow_no_torrents, bool allow_failed_fastresume
 	, std::function<bool(lt::alert const*)> predicate, bool no_output)
@@ -380,7 +397,7 @@ bool print_alerts(lt::session& ses, char const* name
 		{
 			std::printf("%s: %s: [%s] (%s): %s\n", time_to_string(a->timestamp()).c_str()
 				, name, a->what()
-				, print_endpoint(p->endpoint).c_str(), p->message().c_str());
+				, print_endpoint(p->ep).c_str(), p->message().c_str());
 		}
 		else if (a->type() == invalid_request_alert::alert_type)
 		{

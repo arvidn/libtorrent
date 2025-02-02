@@ -2659,7 +2659,7 @@ namespace {
 		if (t->alerts().should_post<block_uploaded_alert>())
 		{
 			t->alerts().emplace_alert<block_uploaded_alert>(t->get_handle(),
-				remote(), pid(), r.start / t->block_size() , r.piece);
+				remote_endpoint(), pid(), r.start / t->block_size() , r.piece);
 		}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS

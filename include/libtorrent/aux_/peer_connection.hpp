@@ -462,6 +462,10 @@ namespace libtorrent::aux {
 		tcp::endpoint const& remote() const override { return m_remote; }
 		tcp::endpoint local_endpoint() const override { return m_local; }
 
+		// this is for peer_alerts. It's either an IP endpoint or an i2p
+		// destination hash
+		peer_endpoint_t remote_endpoint() const;
+
 #if TORRENT_USE_I2P
 		std::string const& destination() const override;
 		std::string const& local_i2p_endpoint() const override;
