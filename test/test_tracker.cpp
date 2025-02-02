@@ -314,8 +314,11 @@ bool connect_alert(lt::alert const* a, tcp::endpoint& ep)
 {
 	if (peer_connect_alert const* pc = alert_cast<peer_connect_alert>(a))
 	{
-		ep = pc->endpoint;
-		return true;
+		if (auto i = std::get_if<peer_alert::ip_endpoint>(&pc->ep))
+		{
+			ep = *i;
+			return true;
+		}
 	}
 	return false;
 }

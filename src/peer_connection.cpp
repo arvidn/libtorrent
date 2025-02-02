@@ -561,7 +561,7 @@ namespace {
 		if (t) h = t->get_handle();
 
 		m_ses.alerts().emplace_alert<peer_log_alert>(
-			h, m_remote, m_peer_id, direction, event, fmt, v);
+			h, remote_endpoint(), m_peer_id, direction, event, fmt, v);
 
 		va_end(v);
 
@@ -1165,6 +1165,19 @@ namespace {
 		t->received_synack(ipv6);
 	}
 
+	peer_endpoint_t peer_connection::remote_endpoint() const
+	{
+#if TORRENT_USE_I2P
+		if (auto s = std::get_if<i2p_stream>(&m_socket))
+		{
+			// TODO: store the sah256 hash of the destination in the
+			// i2p_peer struct, so we don't have to recompute it every time
+			return hasher256(base64decode_i2p(s->destination())).final();
+		}
+#endif
+		return m_remote;
+	}
+
 #if TORRENT_USE_I2P
 	std::string const& peer_connection::destination() const
 	{
@@ -1360,7 +1373,7 @@ namespace {
 		if (t && t->alerts().should_post<peer_connect_alert>())
 		{
 			t->alerts().emplace_alert<peer_connect_alert>(
-				t->get_handle(), remote(), pid(), socket_type_idx(m_socket), peer_connect_alert::direction_t::in);
+				t->get_handle(), remote_endpoint(), pid(), socket_type_idx(m_socket), peer_connect_alert::direction_t::in);
 		}
 
 		if (t->info_hash().has_v2() && (t->info_hash().get(protocol_version::V2) == ih.v1
@@ -2398,7 +2411,7 @@ namespace {
 				// incorrectly for bool temporaries. So, create a dummy instance
 				bool const peer_interested = bool(m_peer_interested);
 				t->alerts().emplace_alert<invalid_request_alert>(
-					t->get_handle(), m_remote, m_peer_id, r
+					t->get_handle(), remote_endpoint(), m_peer_id, r
 					, t->user_have_piece(r.piece), peer_interested, true);
 			}
 			return;
@@ -2467,7 +2480,7 @@ namespace {
 			if (t->alerts().should_post<invalid_request_alert>())
 			{
 				t->alerts().emplace_alert<invalid_request_alert>(
-					t->get_handle(), m_remote, m_peer_id, r
+					t->get_handle(), remote_endpoint(), m_peer_id, r
 					, t->user_have_piece(r.piece)
 					, false, false);
 			}
@@ -2518,7 +2531,7 @@ namespace {
 				// incorrectly for bool temporaries. So, create a dummy instance
 				bool const peer_interested = bool(m_peer_interested);
 				t->alerts().emplace_alert<invalid_request_alert>(
-					t->get_handle(), m_remote, m_peer_id, r
+					t->get_handle(), remote_endpoint(), m_peer_id, r
 					, t->user_have_piece(r.piece), peer_interested, false);
 			}
 
@@ -2595,7 +2608,7 @@ namespace {
 			if (t->alerts().should_post<incoming_request_alert>())
 			{
 				t->alerts().emplace_alert<incoming_request_alert>(r, t->get_handle()
-					, m_remote, m_peer_id);
+					, remote_endpoint(), m_peer_id);
 			}
 
 			m_last_incoming_request.set(m_connect, aux::time_now());
@@ -2701,7 +2714,7 @@ namespace {
 				if (t->alerts().should_post<unwanted_block_alert>())
 				{
 					t->alerts().emplace_alert<unwanted_block_alert>(t->get_handle()
-						, m_remote, m_peer_id, b.block_index, b.piece_index);
+						, remote_endpoint(), m_peer_id, b.block_index, b.piece_index);
 				}
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log(peer_log_alert::info, peer_log_alert::invalid_request
