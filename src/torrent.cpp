@@ -4594,7 +4594,7 @@ namespace {
 		{
 			TORRENT_INCREMENT(m_iterating_connections);
 #ifndef TORRENT_DISABLE_LOGGING
-			p->peer_log(peer_log_alert::outgoing, "PREDICTIVE_HAVE", "piece: %d expected in %d ms"
+			p->peer_log(peer_log_alert::outgoing, peer_log_alert::predictive_have, "piece: %d expected in %d ms"
 				, static_cast<int>(index), static_cast<int>(total_milliseconds(duration)));
 #else
 			TORRENT_UNUSED(duration);
@@ -4800,7 +4800,7 @@ namespace {
 						debug_log("*** BANNING PEER: \"%s\" Too many corrupt pieces"
 							, print_endpoint(p->ip()).c_str());
 					}
-					peer->peer_log(peer_log_alert::info, "BANNING_PEER", "Too many corrupt pieces");
+					peer->peer_log(peer_log_alert::info, peer_log_alert::banning_peer, "Too many corrupt pieces");
 #endif
 					peer->disconnect(errors::too_many_corrupt_pieces, operation_t::bittorrent);
 				}
@@ -8501,7 +8501,7 @@ namespace {
 				if (p->upload_only() && p->can_disconnect(errors::torrent_finished))
 				{
 #ifndef TORRENT_DISABLE_LOGGING
-					p->peer_log(peer_log_alert::info, "SEED", "CLOSING CONNECTION");
+					p->peer_log(peer_log_alert::info, peer_log_alert::seed, "CLOSING CONNECTION");
 #endif
 					seeds.push_back(p);
 				}
@@ -8694,7 +8694,7 @@ namespace {
 			}
 
 #ifndef TORRENT_DISABLE_LOGGING
-			pc->peer_log(peer_log_alert::info, "ON_FILES_CHECKED");
+			pc->peer_log(peer_log_alert::info, peer_log_alert::on_files_checked);
 #endif
 			if (pc->is_interesting() && !pc->has_peer_choked())
 			{
@@ -9752,7 +9752,7 @@ namespace {
 				if (p->outstanding_bytes() > 0)
 				{
 #ifndef TORRENT_DISABLE_LOGGING
-					p->peer_log(peer_log_alert::info, "CHOKING_PEER", "torrent graceful paused");
+					p->peer_log(peer_log_alert::info, peer_log_alert::choking_peer, "torrent graceful paused");
 #endif
 					// remove any un-sent requests from the queue
 					p->clear_request_queue();
@@ -9765,7 +9765,7 @@ namespace {
 				// disconnect (assuming all peers end up begin disconnected here)
 				// will post the torrent_paused_alert
 #ifndef TORRENT_DISABLE_LOGGING
-				p->peer_log(peer_log_alert::info, "CLOSING_CONNECTION", "torrent_paused");
+				p->peer_log(peer_log_alert::info, peer_log_alert::closing_connection, "torrent_paused");
 #endif
 				p->disconnect(errors::torrent_paused, operation_t::bittorrent);
 			}
@@ -9787,7 +9787,7 @@ namespace {
 			for (auto const* p : m_connections)
 			{
 				TORRENT_INCREMENT(m_iterating_connections);
-				p->peer_log(peer_log_alert::info, "TORRENT", "%s", message);
+				p->peer_log(peer_log_alert::info, peer_log_alert::torrent, "%s", message);
 			}
 		}
 

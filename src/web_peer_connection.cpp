@@ -104,7 +104,7 @@ web_peer_connection::web_peer_connection(peer_connection_args& pack
 	request_large_blocks(true);
 
 #ifndef TORRENT_DISABLE_LOGGING
-	peer_log(peer_log_alert::info, "URL", "web_peer_connection %s", m_url.c_str());
+	peer_log(peer_log_alert::info, peer_log_alert::web_seed, "web_peer_connection %s", m_url.c_str());
 #endif
 }
 
@@ -132,7 +132,7 @@ void web_peer_connection::on_connected()
 		incoming_have_none();
 		m_web->interesting = false;
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::info, "WEB-SEED", "have no files, not interesting. %s", m_url.c_str());
+		peer_log(peer_log_alert::info, peer_log_alert::web_seed, "have no files, not interesting. %s", m_url.c_str());
 #endif
 	}
 	else
@@ -164,7 +164,7 @@ void web_peer_connection::on_connected()
 			incoming_have_none();
 			m_web->interesting = false;
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "WEB-SEED", "have no pieces, not interesting. %s", m_url.c_str());
+			peer_log(peer_log_alert::info, peer_log_alert::web_seed, "have no pieces, not interesting. %s", m_url.c_str());
 #endif
 		}
 		else
@@ -198,7 +198,7 @@ void web_peer_connection::disconnect(error_code const& ec
 		// us bailing out and failing the entire request just because our
 		// write-end was closed, ignore it and keep reading until the read-end
 		// also is closed.
-		peer_log(peer_log_alert::info, "WRITE_DIRECTION", "CLOSED");
+		peer_log(peer_log_alert::info, peer_log_alert::web_seed, "CLOSED");
 #endif
 
 		// prevent the peer from trying to send anything more
@@ -243,7 +243,7 @@ void web_peer_connection::disconnect(error_code const& ec
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::info))
 		{
-			peer_log(peer_log_alert::info, "SAVE_RESTART_DATA"
+			peer_log(peer_log_alert::info, peer_log_alert::save_restart_data
 				, "data: %d req: %d off: %d"
 				, int(m_piece.size()), int(m_requests.front().piece)
 				, m_requests.front().start);
@@ -351,7 +351,7 @@ void web_peer_connection::write_request(peer_request const& r)
 			TORRENT_ASSERT(front.length > int(m_piece.size()));
 
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "RESTART_DATA",
+			peer_log(peer_log_alert::info, peer_log_alert::restart_data,
 				"data: %d req: (%d, %d) size: %d"
 					, int(m_piece.size()), static_cast<int>(front.piece), front.start
 					, front.start + front.length - 1);
@@ -377,7 +377,7 @@ void web_peer_connection::write_request(peer_request const& r)
 	}
 
 #ifndef TORRENT_DISABLE_LOGGING
-	peer_log(peer_log_alert::outgoing_message, "REQUESTING", "(piece: %d start: %d) - (piece: %d end: %d)"
+	peer_log(peer_log_alert::outgoing_message, peer_log_alert::request, "(piece: %d start: %d) - (piece: %d end: %d)"
 		, static_cast<int>(r.piece), r.start
 		, static_cast<int>(pr.piece), pr.start + pr.length);
 #endif
@@ -494,7 +494,7 @@ void web_peer_connection::write_request(peer_request const& r)
 	}
 
 #ifndef TORRENT_DISABLE_LOGGING
-	peer_log(peer_log_alert::outgoing_message, "REQUEST", "%s", request.c_str());
+	peer_log(peer_log_alert::outgoing_message, peer_log_alert::request, "%s", request.c_str());
 #endif
 
 	send_buffer(request);
@@ -670,7 +670,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		// work-around for buggy HTTP servers, that fail to encode the redirect URL
 		location = maybe_url_encode(location);
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::info, "LOCATION", "%s", location.c_str());
+		peer_log(peer_log_alert::info, peer_log_alert::location, "%s", location.c_str());
 #endif
 		// TODO: 3 this could be made more efficient for the case when we use an
 		// HTTP proxy. Then we wouldn't need to add new web seeds to the torrent,
@@ -729,7 +729,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		{
 			m_web->have_files.clear_bit(file_index);
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, "MISSING_FILE", "redirection | file: %d"
+			peer_log(peer_log_alert::info, peer_log_alert::missing_file, "redirection | file: %d"
 				, static_cast<int>(file_index));
 #endif
 		}
@@ -742,7 +742,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		// work-around for buggy HTTP servers, that fail to encode the redirect URL
 		location = maybe_url_encode(location);
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::info, "LOCATION", "%s", location.c_str());
+		peer_log(peer_log_alert::info, peer_log_alert::location, "%s", location.c_str());
 #endif
 		t->add_web_seed(location, m_external_auth, m_extra_headers
 			, web_seed_flags);
@@ -767,7 +767,7 @@ void web_peer_connection::on_receive(error_code const& error
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::info))
 		{
-			peer_log(peer_log_alert::info, "ERROR"
+			peer_log(peer_log_alert::info, peer_log_alert::peer_error
 				, "web_peer_connection error: %s", error.message().c_str());
 		}
 #endif
@@ -801,7 +801,7 @@ void web_peer_connection::on_receive(error_code const& error
 #ifndef TORRENT_DISABLE_LOGGING
 				if (should_log(peer_log_alert::info))
 				{
-					peer_log(peer_log_alert::info, "RECEIVE_BYTES"
+					peer_log(peer_log_alert::info, peer_log_alert::receive_bytes
 						, "%*s", int(recv_buffer.size()), recv_buffer.data());
 				}
 #endif
@@ -844,11 +844,11 @@ void web_peer_connection::on_receive(error_code const& error
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log(peer_log_alert::info))
 			{
-				peer_log(peer_log_alert::info, "STATUS"
+				peer_log(peer_log_alert::info, peer_log_alert::status
 					, "%d %s", m_parser.status_code(), m_parser.message().c_str());
 				auto const& headers = m_parser.headers();
 				for (auto const &i : headers)
-					peer_log(peer_log_alert::info, "STATUS", "   %s: %s", i.first.c_str(), i.second.c_str());
+					peer_log(peer_log_alert::info, peer_log_alert::status, "   %s: %s", i.first.c_str(), i.second.c_str());
 			}
 #endif
 
@@ -862,7 +862,7 @@ void web_peer_connection::on_receive(error_code const& error
 					m_web->have_files.clear_bit(file_req.file_index);
 
 #ifndef TORRENT_DISABLE_LOGGING
-					peer_log(peer_log_alert::info, "MISSING_FILE", "http-code: %d | file: %d"
+					peer_log(peer_log_alert::info, peer_log_alert::missing_file, "http-code: %d | file: %d"
 						, m_parser.status_code(), static_cast<int>(file_req.file_index));
 #endif
 				}
@@ -914,7 +914,7 @@ void web_peer_connection::on_receive(error_code const& error
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log(peer_log_alert::incoming))
 			{
-				peer_log(peer_log_alert::incoming, "INVALID HTTP RESPONSE"
+				peer_log(peer_log_alert::incoming, peer_log_alert::invalid_http_response
 					, "in=(%d, %" PRId64 "-%" PRId64 ") expected=(%d, %" PRId64 "-%" PRId64 ") ]"
 					, static_cast<int>(file_req.file_index), range_start, range_end
 					, static_cast<int>(file_req.file_index), file_req.start, file_req.start + file_req.length - 1);
@@ -946,7 +946,7 @@ void web_peer_connection::on_receive(error_code const& error
 						received_bytes(0, int(recv_buffer.size()));
 
 #ifndef TORRENT_DISABLE_LOGGING
-						peer_log(peer_log_alert::incoming, "INVALID HTTP RESPONSE"
+						peer_log(peer_log_alert::incoming, peer_log_alert::invalid_http_response
 							, "received body: %d request size: %d"
 							, m_received_body, file_req.length);
 #endif
@@ -976,7 +976,7 @@ void web_peer_connection::on_receive(error_code const& error
 					goto done;
 				}
 #ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::info, "CHUNKED_ENCODING"
+				peer_log(peer_log_alert::info, peer_log_alert::chunked_encoding
 					, "parsed chunk: %" PRId64 " header_size: %d"
 					, chunk_size, header_size);
 #endif
@@ -1008,7 +1008,7 @@ void web_peer_connection::on_receive(error_code const& error
 						received_bytes(0, int(recv_buffer.size()));
 
 #ifndef TORRENT_DISABLE_LOGGING
-						peer_log(peer_log_alert::incoming, "INVALID HTTP RESPONSE"
+						peer_log(peer_log_alert::incoming, peer_log_alert::invalid_http_response
 							, "received body: %d request size: %d"
 							, m_received_body, file_req.length);
 #endif
@@ -1077,7 +1077,7 @@ void web_peer_connection::incoming_payload(char const* buf, int len)
 	if (is_disconnecting()) return;
 
 #ifndef TORRENT_DISABLE_LOGGING
-	peer_log(peer_log_alert::incoming_message, "INCOMING_PAYLOAD", "%d bytes", len);
+	peer_log(peer_log_alert::incoming_message, peer_log_alert::incoming_payload, "%d bytes", len);
 #endif
 
 	// deliver all complete bittorrent requests to the bittorrent engine
@@ -1117,7 +1117,7 @@ void web_peer_connection::incoming_payload(char const* buf, int len)
 void web_peer_connection::incoming_zeroes(int len)
 {
 #ifndef TORRENT_DISABLE_LOGGING
-	peer_log(peer_log_alert::incoming_message, "INCOMING_ZEROES", "%d bytes", len);
+	peer_log(peer_log_alert::incoming_message, peer_log_alert::incoming_zeroes, "%d bytes", len);
 #endif
 
 	// deliver all complete bittorrent requests to the bittorrent engine
@@ -1156,7 +1156,7 @@ void web_peer_connection::maybe_harvest_piece()
 	TORRENT_ASSERT(t);
 
 #ifndef TORRENT_DISABLE_LOGGING
-	peer_log(peer_log_alert::incoming_message, "POP_REQUEST"
+	peer_log(peer_log_alert::incoming_message, peer_log_alert::pop_request
 		, "piece: %d start: %d len: %d"
 		, static_cast<int>(front_request.piece)
 		, front_request.start, front_request.length);
@@ -1213,7 +1213,7 @@ void web_peer_connection::handle_padfile()
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log(peer_log_alert::info))
 			{
-				peer_log(peer_log_alert::info, "HANDLE_PADFILE"
+				peer_log(peer_log_alert::info, peer_log_alert::handle_padfile
 					, "file: %d start: %" PRId64 " len: %d"
 					, static_cast<int>(m_file_requests.front().file_index)
 					, m_file_requests.front().start

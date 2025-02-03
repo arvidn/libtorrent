@@ -386,7 +386,7 @@ namespace libtorrent { namespace {
 				}
 			}
 #ifndef TORRENT_DISABLE_LOGGING
-			m_pc.peer_log(peer_log_alert::incoming_message, "PEX", "dropped: %d added: %d"
+			m_pc.peer_log(peer_log_alert::incoming_message, peer_log_alert::pex, "dropped: %d added: %d"
 				, num_dropped, num_added);
 #endif
 
@@ -407,7 +407,7 @@ namespace libtorrent { namespace {
 			if (now - seconds(60) < m_last_msg)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
-//				m_pc.peer_log(peer_log_alert::info, "PEX", "waiting: %d seconds to next msg"
+//				m_pc.peer_log(peer_log_alert::info, peer_log_alert::pex, "waiting: %d seconds to next msg"
 //					, int(total_seconds(seconds(60) - (now - m_last_msg))));
 #endif
 				return;
@@ -468,7 +468,7 @@ namespace libtorrent { namespace {
 				if (e) num_added += e.string_length() / 18;
 				e = m.dict_find_string("dropped6");
 				if (e) num_dropped += e.string_length() / 18;
-				m_pc.peer_log(peer_log_alert::outgoing_message, "PEX_DIFF", "dropped: %d added: %d msg_size: %d"
+				m_pc.peer_log(peer_log_alert::outgoing_message, peer_log_alert::pex_diff, "dropped: %d added: %d msg_size: %d"
 					, num_dropped, num_added, int(pex_msg.size()));
 			}
 #endif
@@ -558,7 +558,7 @@ namespace libtorrent { namespace {
 			m_pc.stats_counters().inc_stats_counter(counters::num_outgoing_pex);
 
 #ifndef TORRENT_DISABLE_LOGGING
-			m_pc.peer_log(peer_log_alert::outgoing_message, "PEX_FULL"
+			m_pc.peer_log(peer_log_alert::outgoing_message, peer_log_alert::pex_full
 				, "added: %d msg_size: %d", num_added, int(pex_msg.size()));
 #endif
 		}

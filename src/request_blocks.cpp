@@ -72,7 +72,7 @@ namespace libtorrent::aux {
 #ifndef TORRENT_DISABLE_LOGGING
 		if (c.should_log(peer_log_alert::info))
 		{
-			c.peer_log(peer_log_alert::info, "PIECE_PICKER"
+			c.peer_log(peer_log_alert::info, peer_log_alert::piece_picker
 				, "dlq: %d rqq: %d target: %d req: %d endgame: %d"
 				, int(c.download_queue().size()), int(c.request_queue().size())
 				, desired_queue_size, num_requests, c.endgame());
@@ -164,7 +164,7 @@ namespace libtorrent::aux {
 			t.alerts().emplace_alert<picker_log_alert>(t.get_handle(), c.remote()
 				, c.pid(), flags, interesting_pieces);
 		}
-		c.peer_log(peer_log_alert::info, "PIECE_PICKER"
+		c.peer_log(peer_log_alert::info, peer_log_alert::piece_picker
 			, "prefer_contiguous: %d picked: %d"
 			, prefer_contiguous_blocks, int(interesting_pieces.size()));
 #else
@@ -222,7 +222,7 @@ namespace libtorrent::aux {
 				if (j != dq.end()) TORRENT_ASSERT(j->timed_out || j->not_wanted);
 #endif
 #ifndef TORRENT_DISABLE_LOGGING
-				c.peer_log(peer_log_alert::info, "PIECE_PICKER"
+				c.peer_log(peer_log_alert::info, peer_log_alert::piece_picker
 					, "not_picking: %d,%d already in queue"
 					, static_cast<int>(pb.piece_index), pb.block_index);
 #endif

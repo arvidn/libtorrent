@@ -74,7 +74,7 @@ struct TORRENT_EXPORT peer_connection_handle
 
 	bool should_log(peer_log_alert::direction_t direction) const;
 	void peer_log(peer_log_alert::direction_t direction
-		, char const* event, char const* fmt = "", ...) const TORRENT_FORMAT(4,5);
+		, peer_log_alert::event_t event, char const* fmt = "", ...) const TORRENT_FORMAT(4,5);
 
 	bool can_disconnect(error_code const& ec) const;
 

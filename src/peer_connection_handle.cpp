@@ -212,7 +212,7 @@ bool peer_connection_handle::should_log(peer_log_alert::direction_t direction) c
 
 TORRENT_FORMAT(4,5)
 void peer_connection_handle::peer_log(peer_log_alert::direction_t direction
-	, char const* event, char const* fmt, ...) const
+	, peer_log_alert::event_t event, char const* fmt, ...) const
 {
 #ifndef TORRENT_DISABLE_LOGGING
 	std::shared_ptr<aux::peer_connection> pc = native_handle();

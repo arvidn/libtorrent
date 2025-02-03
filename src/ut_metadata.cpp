@@ -208,7 +208,7 @@ namespace {
 			static char const* names[] = {"request", "data", "dont-have"};
 			char const* n = "";
 			if (type >= msg_t::request && type <= msg_t::dont_have) n = names[static_cast<int>(type)];
-			m_pc.peer_log(peer_log_alert::outgoing_message, "UT_METADATA"
+			m_pc.peer_log(peer_log_alert::outgoing_message, peer_log_alert::ut_metadata
 				, "type: %d (%s) piece: %d", static_cast<int>(type), n, piece);
 #endif
 
@@ -274,7 +274,7 @@ namespace {
 			if (length > 17 * 1024)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
-				m_pc.peer_log(peer_log_alert::incoming_message, "UT_METADATA"
+				m_pc.peer_log(peer_log_alert::incoming_message, peer_log_alert::ut_metadata
 					, "packet too big %d", length);
 #endif
 				m_pc.disconnect(errors::invalid_metadata_message, operation_t::bittorrent, peer_connection_interface::peer_error);
@@ -288,7 +288,7 @@ namespace {
 			if (msg.type() != bdecode_node::dict_t)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
-				m_pc.peer_log(peer_log_alert::incoming_message, "UT_METADATA"
+				m_pc.peer_log(peer_log_alert::incoming_message, peer_log_alert::ut_metadata
 					, "not a dictionary");
 #endif
 				m_pc.disconnect(errors::invalid_metadata_message, operation_t::bittorrent, peer_connection_interface::peer_error);
@@ -300,7 +300,7 @@ namespace {
 			if (!type_ent || !piece_ent)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
-				m_pc.peer_log(peer_log_alert::incoming_message, "UT_METADATA"
+				m_pc.peer_log(peer_log_alert::incoming_message, peer_log_alert::ut_metadata
 					, "missing or invalid keys");
 #endif
 				m_pc.disconnect(errors::invalid_metadata_message, operation_t::bittorrent, peer_connection_interface::peer_error);
@@ -310,7 +310,7 @@ namespace {
 			auto const piece = static_cast<int>(piece_ent.int_value());
 
 #ifndef TORRENT_DISABLE_LOGGING
-			m_pc.peer_log(peer_log_alert::incoming_message, "UT_METADATA"
+			m_pc.peer_log(peer_log_alert::incoming_message, peer_log_alert::ut_metadata
 				, "type: %d piece: %d", static_cast<int>(type), piece);
 #endif
 
@@ -324,7 +324,7 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 						if (m_pc.should_log(peer_log_alert::info))
 						{
-							m_pc.peer_log(peer_log_alert::info, "UT_METADATA"
+							m_pc.peer_log(peer_log_alert::info, peer_log_alert::ut_metadata
 								, "have: %d invalid piece %d metadata size: %d"
 								, int(m_torrent.valid_metadata()), piece
 								, m_torrent.valid_metadata()
@@ -351,7 +351,7 @@ namespace {
 					if (i == m_sent_requests.end())
 					{
 #ifndef TORRENT_DISABLE_LOGGING
-						m_pc.peer_log(peer_log_alert::info, "UT_METADATA"
+						m_pc.peer_log(peer_log_alert::info, peer_log_alert::ut_metadata
 							, "UNWANTED / TIMED OUT");
 #endif
 						return true;
@@ -502,7 +502,7 @@ namespace {
 		if (m_torrent.valid_metadata())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			source.m_pc.peer_log(peer_log_alert::info, "UT_METADATA"
+			source.m_pc.peer_log(peer_log_alert::info, peer_log_alert::ut_metadata
 				, "already have metadata");
 #endif
 			m_torrent.add_redundant_bytes(static_cast<int>(buf.size()), aux::waste_reason::piece_unknown);
@@ -515,7 +515,7 @@ namespace {
 			if (total_size <= 0 || total_size > m_torrent.session().settings().get_int(settings_pack::max_metadata_size))
 			{
 #ifndef TORRENT_DISABLE_LOGGING
-				source.m_pc.peer_log(peer_log_alert::info, "UT_METADATA"
+				source.m_pc.peer_log(peer_log_alert::info, peer_log_alert::ut_metadata
 					, "metadata size too big: %d", total_size);
 #endif
 // #error post alert
@@ -529,7 +529,7 @@ namespace {
 		if (piece < 0 || piece >= m_requested_metadata.end_index())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			source.m_pc.peer_log(peer_log_alert::info, "UT_METADATA"
+			source.m_pc.peer_log(peer_log_alert::info, peer_log_alert::ut_metadata
 				, "piece: %d INVALID", piece);
 #endif
 			return false;
@@ -538,7 +538,7 @@ namespace {
 		if (total_size != m_metadata.end_index())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			source.m_pc.peer_log(peer_log_alert::info, "UT_METADATA"
+			source.m_pc.peer_log(peer_log_alert::info, peer_log_alert::ut_metadata
 				, "total_size: %d INCONSISTENT WITH: %d"
 				, total_size, int(metadata().size()));
 #endif
