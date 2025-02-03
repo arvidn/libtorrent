@@ -50,7 +50,7 @@ using namespace libtorrent::flags; // for flag operators
 // on this platform. It's supposed to make file
 // related functions support 64-bit offsets.
 #if TORRENT_HAS_FTELLO
-static_assert(sizeof(ftello(nullptr)) >= 8, "64 bit file operations are required");
+static_assert(sizeof(ftello(std::declval<FILE*>())) >= 8, "64 bit file operations are required");
 #endif
 static_assert(sizeof(off_t) >= 8, "64 bit file operations are required");
 #endif

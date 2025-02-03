@@ -620,7 +620,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define __has_builtin(x) 0  // for non-clang compilers
 #endif
 
-#ifdef __cpp_guaranteed_copy_elision
+#if defined __cpp_guaranteed_copy_elision || (defined __GNUC__ && __GNUC__ >= 9)
 #define TORRENT_RVO(x) x
 #else
 #define TORRENT_RVO(x) std::move(x)
