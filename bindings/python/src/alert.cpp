@@ -421,6 +421,7 @@ void bind_alert()
 #endif
         .add_property("local_endpoint", make_getter(&tracker_alert::local_endpoint, by_value()))
         .def("tracker_url", &tracker_alert::tracker_url)
+        .def_readonly("version", &tracker_error_alert::version)
         ;
 
 #if TORRENT_ABI_VERSION == 1
@@ -466,28 +467,20 @@ void bind_alert()
         .def("failure_reason", &tracker_error_alert::failure_reason)
         .def_readonly("times_in_row", &tracker_error_alert::times_in_row)
         .def_readonly("error", &tracker_error_alert::error)
-        // TODO: move this to tracker_alert
-        .def_readonly("version", &tracker_error_alert::version)
         ;
 
     class_<tracker_warning_alert, bases<tracker_alert>, noncopyable>(
         "tracker_warning_alert", no_init)
-        // TODO: move this to tracker_alert
-        .def_readonly("version", &tracker_warning_alert::version)
         ;
 
     class_<tracker_reply_alert, bases<tracker_alert>, noncopyable>(
         "tracker_reply_alert", no_init)
         .def_readonly("num_peers", &tracker_reply_alert::num_peers)
-        // TODO: move this to tracker_alert
-        .def_readonly("version", &tracker_reply_alert::version)
         ;
 
     class_<tracker_announce_alert, bases<tracker_alert>, noncopyable>(
         "tracker_announce_alert", no_init)
         .def_readonly("event", &tracker_announce_alert::event)
-        // TODO: move this to tracker_alert
-        .def_readonly("version", &tracker_announce_alert::version)
         ;
 
     class_<hash_failed_alert, bases<torrent_alert>, noncopyable>(
