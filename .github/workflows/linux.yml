@@ -211,11 +211,11 @@ jobs:
       strategy:
          matrix:
             include:
-               - config: webtorrent=on address-sanitizer=norecover undefined-sanitizer=norecover crypto=openssl
-               - config: toolset=clang logging=off address-sanitizer=norecover undefined-sanitizer=norecover
+               - config: webtorrent=on address-sanitizer=norecover undefined-sanitizer=norecover crypto=openssl invariant-checks=full
+               - config: toolset=clang logging=off address-sanitizer=norecover undefined-sanitizer=norecover invariant-checks=full
                - config: thread-sanitizer=norecover crypto=openssl release debug-symbols=on cxxflags=-Wno-tsan
-               - config: crypto=gnutls
-               - config: deprecated-functions=off
+               - config: crypto=gnutls invariant-checks=full
+               - config: deprecated-functions=off invariant-checks=full
 
       steps:
       - name: checkout
@@ -262,7 +262,7 @@ jobs:
       - name: build and run tests
         run: |
           cd test
-          b2 ${{ matrix.config }} -l500 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on deterministic-tests
+          b2 ${{ matrix.config }} -l500 warnings-as-errors=on debug-iterators=on asserts=on deterministic-tests
 
       - name: run tests (flaky)
         uses: nick-fields/retry@v3
