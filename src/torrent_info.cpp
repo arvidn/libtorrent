@@ -1492,6 +1492,7 @@ namespace {
 		m_flags &= ~v2_has_piece_hashes;
 	}
 
+#if TORRENT_ABI_VERSION < 4
 	void torrent_info::internal_set_creator(string_view const c)
 	{ m_created_by = std::string(c); }
 
@@ -1500,6 +1501,7 @@ namespace {
 
 	void torrent_info::internal_set_comment(string_view const s)
 	{ m_comment = std::string(s); }
+#endif
 
 	bdecode_node torrent_info::info(char const* key) const
 	{

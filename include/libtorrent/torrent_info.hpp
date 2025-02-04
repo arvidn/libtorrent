@@ -600,10 +600,12 @@ TORRENT_VERSION_NAMESPACE_3
 		// internal torrent object.
 		void free_piece_layers();
 
+#if TORRENT_ABI_VERSION < 4
 		// internal
 		void internal_set_creator(string_view);
 		void internal_set_creation_date(std::time_t);
 		void internal_set_comment(string_view);
+#endif
 
 #if TORRENT_ABI_VERSION <= 2
 		// support for BEP 30 merkle torrents has been removed

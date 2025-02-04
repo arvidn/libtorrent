@@ -92,6 +92,12 @@ namespace {
 		if (info_hash2.size() == 32)
 			ret.info_hashes.v2.assign(info_hash2.data());
 
+		// time_t might be 32 bit if we're unlucky, but there isn't
+		// much to do about it
+		ret.creation_date = static_cast<std::time_t>(rd.dict_find_int_value("creation date", 0));
+		ret.created_by = rd.dict_find_string_value("created by", "");
+		ret.comment = rd.dict_find_string_value("comment", "");
+
 		bdecode_node const info = rd.dict_find_dict("info");
 		if (info)
 		{
@@ -115,14 +121,14 @@ namespace {
 				}
 				else
 				{
-					// time_t might be 32 bit if we're unlucky, but there isn't
-					// much to do about it
+#if TORRENT_ABI_VERSION < 4
 					ti->internal_set_creation_date(static_cast<std::time_t>(
 						rd.dict_find_int_value("creation date", 0)));
 					ti->internal_set_creator(rd.dict_find_string_value("created by", ""));
 					ti->internal_set_comment(rd.dict_find_string_value("comment", ""));
+#endif
+					ret.ti = std::move(ti);
 				}
-				ret.ti = std::move(ti);
 			}
 			else
 			{
