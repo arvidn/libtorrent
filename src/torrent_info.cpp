@@ -1043,11 +1043,9 @@ namespace {
 		*this = std::move(tmp);
 	}
 
-	boost::shared_array<char> torrent_info::metadata() const
+	boost::shared_array<char const> torrent_info::metadata() const
 	{
-		boost::shared_array<char> ret(new char[std::size_t(m_info_section_size)]);
-		std::memcpy(ret.get(), m_info_section.get(), std::size_t(m_info_section_size));
-		return ret;
+		return m_info_section;
 	}
 #endif
 
@@ -1102,9 +1100,10 @@ namespace {
 		}
 
 		// copy the info section
-		m_info_section_size = int(section.size());
-		m_info_section.reset(new char[aux::numeric_cast<std::size_t>(m_info_section_size)]);
-		std::memcpy(m_info_section.get(), section.data(), aux::numeric_cast<std::size_t>(m_info_section_size));
+		m_info_section_size = aux::numeric_cast<int>(section.size());
+		char* ptr = new char[aux::numeric_cast<std::size_t>(m_info_section_size)];
+		std::memcpy(ptr, section.data(), aux::numeric_cast<std::size_t>(section.size()));
+		m_info_section.reset(ptr);
 
 		// this is the offset from the start of the torrent file buffer to the
 		// info-dictionary (within the torrent file).

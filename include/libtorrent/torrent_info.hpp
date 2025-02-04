@@ -577,12 +577,10 @@ TORRENT_VERSION_NAMESPACE_3
 
 		// ``metadata()`` returns a the raw info section of the torrent file. The size
 		// of the metadata is returned by ``metadata_size()``.
-		// Even though the bytes returned by ``metadata()`` are not ``const``,
-		// they must not be modified.
 		TORRENT_DEPRECATED
 		int metadata_size() const { return m_info_section_size; }
 		TORRENT_DEPRECATED
-		boost::shared_array<char> metadata() const;
+		boost::shared_array<char const> metadata() const;
 #endif
 
 		// return the bytes of the piece layer hashes for the specified file. If
@@ -695,10 +693,7 @@ TORRENT_VERSION_NAMESPACE_3
 		// this is a copy of the info section from the torrent.
 		// it use maintained in this flat format in order to
 		// make it available through the metadata extension
-		// TODO: change the type to std::shared_ptr<char const> in C++17
-		// it is used as if immutable, it cannot be const for technical reasons
-		// right now.
-		boost::shared_array<char> m_info_section;
+		boost::shared_array<char const> m_info_section;
 
 		// if a comment is found in the torrent file
 		// this will be set to that comment
