@@ -626,13 +626,14 @@ TORRENT_VERSION_NAMESPACE_3
 		bool is_merkle_torrent() const { return !m_merkle_tree.empty(); }
 #endif
 
+		// internal
+		bool parse_torrent_file(bdecode_node const& torrent_file, error_code& ec
+			, load_torrent_limits const&);
+
 	private:
 
 		// populate the piece layers from the metadata
 		bool parse_piece_layers(bdecode_node const& e, error_code& ec);
-
-		bool parse_torrent_file(bdecode_node const& torrent_file, error_code& ec
-			, load_torrent_limits const&);
 
 		bool resolve_duplicate_filenames(int max_duplicate_filenames, error_code& ec);
 
