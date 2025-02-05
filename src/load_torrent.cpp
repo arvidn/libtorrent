@@ -13,6 +13,8 @@ see LICENSE file.
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/aux_/throw.hpp"
+#include "libtorrent/aux_/file_pointer.hpp"
+#include "libtorrent/aux_/path.hpp"
 
 namespace libtorrent {
 
@@ -95,6 +97,56 @@ namespace {
 		atp.info_hashes = ti->info_hashes();
 		atp.ti = std::move(ti);
 	}
+
+	void load_file(std::string const& filename, std::vector<char>& v
+		, error_code& ec, int const max_buffer_size)
+	{
+		ec.clear();
+#ifdef TORRENT_WINDOWS
+		aux::file_pointer f(::_wfopen(convert_to_native_path_string(filename).c_str(), L"rb"));
+#else
+		aux::file_pointer f(std::fopen(filename.c_str(), "rb"));
+#endif
+		if (f.file() == nullptr)
+		{
+			ec.assign(errno, generic_category());
+			return;
+		}
+
+		if (std::fseek(f.file(), 0, SEEK_END) < 0)
+		{
+			ec.assign(errno, generic_category());
+			return;
+		}
+		std::int64_t const s = std::ftell(f.file());
+		if (s < 0)
+		{
+			ec.assign(errno, generic_category());
+			return;
+		}
+		if (s > max_buffer_size)
+		{
+			ec = errors::metadata_too_large;
+			return;
+		}
+		if (std::fseek(f.file(), 0, SEEK_SET) < 0)
+		{
+			ec.assign(errno, generic_category());
+			return;
+		}
+		v.resize(std::size_t(s));
+		if (s == 0) return;
+		std::size_t const read = std::fread(v.data(), 1, v.size(), f.file());
+		if (read != std::size_t(s))
+		{
+			if (std::feof(f.file()))
+			{
+				v.resize(read);
+				return;
+			}
+			ec.assign(errno, generic_category());
+		}
+	}
 }
 
 	add_torrent_params load_torrent_file(std::string const& filename)
@@ -104,26 +156,31 @@ namespace {
 	add_torrent_params load_torrent_parsed(bdecode_node const& torrent_file)
 	{ return load_torrent_parsed(torrent_file, load_torrent_limits{}); }
 
-	// TODO: move the loading logic from torrent_info constructor into here
 	add_torrent_params load_torrent_file(std::string const& filename, load_torrent_limits const& cfg)
 	{
-		auto ti = std::make_shared<torrent_info>(filename, cfg);
-		add_torrent_params ret;
-		update_atp(std::move(ti), ret);
-		return ret;
+		std::vector<char> buf;
+		error_code ec;
+		load_file(filename, buf, ec, cfg.max_buffer_size);
+		if (ec) aux::throw_ex<system_error>(ec);
+		return load_torrent_buffer(buf, cfg);
 	}
 
 	add_torrent_params load_torrent_buffer(span<char const> buffer, load_torrent_limits const& cfg)
 	{
-		auto ti = std::make_shared<torrent_info>(buffer, cfg, from_span);
-		add_torrent_params ret;
-		update_atp(std::move(ti), ret);
-		return ret;
+		error_code ec;
+		bdecode_node e = bdecode(buffer, ec, nullptr, cfg.max_decode_depth
+			, cfg.max_decode_tokens);
+		if (ec) aux::throw_ex<system_error>(ec);
+		return load_torrent_parsed(e, cfg);
 	}
 
 	add_torrent_params load_torrent_parsed(bdecode_node const& torrent_file, load_torrent_limits const& cfg)
 	{
-		auto ti = std::make_shared<torrent_info>(torrent_file, cfg);
+		auto ti = std::make_shared<torrent_info>(info_hash_t{});
+		// TODO: move load_torrent_file logic into here
+		error_code ec;
+		ti->parse_torrent_file(torrent_file, ec, cfg);
+		if (ec) aux::throw_ex<system_error>(ec);
 		add_torrent_params ret;
 		update_atp(std::move(ti), ret);
 		return ret;
