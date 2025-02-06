@@ -25,6 +25,7 @@ see LICENSE file.
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/open_mode.hpp"
+#include "libtorrent/load_torrent.hpp"
 
 namespace {
 
@@ -100,8 +101,7 @@ void test_checking(int const flags)
 	if (ec) std::printf("ERROR: set_piece_hashes: (%d) %s\n"
 		, ec.value(), ec.message().c_str());
 
-	std::vector<char> const buf = bencode(t.generate());
-	auto ti = std::make_shared<torrent_info>(buf, ec, from_span);
+	auto ti = load_torrent_buffer(bencode(t.generate())).ti;
 	TEST_CHECK(ti->is_valid());
 
 	std::printf("generated torrent: %s test_torrent_dir\n"
@@ -377,7 +377,7 @@ TORRENT_TEST(discrete_checking)
 	if (ec) printf("ERROR: set_piece_hashes: (%d) %s\n", ec.value(), ec.message().c_str());
 
 	std::vector<char> const buf = bencode(t.generate());
-	auto ti = std::make_shared<torrent_info>(buf, ec, from_span);
+	auto ti = load_torrent_buffer(buf).ti;
 	printf("generated torrent: %s test_torrent_dir result: %s\n"
 		, aux::to_hex(ti->info_hashes().v1.to_string()).c_str()
 		, ec.message().c_str());

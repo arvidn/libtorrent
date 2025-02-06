@@ -7155,7 +7155,8 @@ namespace {
 			ret.url_seeds.push_back(ws.url);
 		}
 
-		ret.dht_nodes = m_torrent_file->nodes();
+		if (m_add_torrent_params)
+			ret.dht_nodes = m_add_torrent_params->dht_nodes;
 
 		// write have bitmask
 		// the pieces string has one byte per piece. Each

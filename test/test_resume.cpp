@@ -24,6 +24,7 @@ see LICENSE file.
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/file.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/load_torrent.hpp"
 #include "setup_transfer.hpp"
 #include "test_utils.hpp"
 
@@ -1768,11 +1769,9 @@ TORRENT_TEST(resume_data_have_pieces)
 		t.set_hash(i, ph);
 
 	std::vector<char> const buf = bencode(t.generate());
-	auto ti = std::make_shared<torrent_info>(buf, from_span);
+	lt::add_torrent_params atp = load_torrent_buffer(buf);
 
 	lt::session ses(settings());
-	lt::add_torrent_params atp;
-	atp.ti = ti;
 	atp.flags &= ~torrent_flags::paused;
 	atp.save_path = ".";
 	auto h = ses.add_torrent(atp);

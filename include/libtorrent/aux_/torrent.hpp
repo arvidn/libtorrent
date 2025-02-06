@@ -1426,7 +1426,7 @@ namespace libtorrent::aux {
 
 		// used if there is any resume data. Some of the information from the
 		// add_torrent_params struct are needed later in the torrent object's life
-		// cycle, and not in the constructor. So we need to save if away here
+		// cycle, and not in the constructor. So we need to save it here
 		std::unique_ptr<add_torrent_params> m_add_torrent_params;
 
 		// if the torrent is started without metadata, it may

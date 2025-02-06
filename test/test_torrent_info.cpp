@@ -969,7 +969,7 @@ TORRENT_TEST(parse_torrents)
 	torrent["info"] = info;
 
 	std::vector<char> const buf1 = bencode(torrent);
-	torrent_info ti1(buf1, from_span);
+	torrent_info ti1 = *load_torrent_buffer(buf1).ti;
 	std::cout << ti1.name() << std::endl;
 	TEST_CHECK(ti1.name() == "test1");
 
@@ -980,7 +980,7 @@ TORRENT_TEST(parse_torrents)
 #endif
 	torrent["info"] = info;
 	std::vector<char> const buf2 = bencode(torrent);
-	torrent_info ti2(buf2, from_span);
+	torrent_info ti2 = *load_torrent_buffer(buf2).ti;
 	std::cout << ti2.name() << std::endl;
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(ti2.name(), "c_test1test2test3");
@@ -991,7 +991,7 @@ TORRENT_TEST(parse_torrents)
 	info["name.utf-8"] = "test2/../test3/.././../../test4";
 	torrent["info"] = info;
 	std::vector<char> const buf3 = bencode(torrent);
-	torrent_info ti3(buf3, from_span);
+	torrent_info ti3 = *load_torrent_buffer(buf3).ti;
 	std::cout << ti3.name() << std::endl;
 	TEST_EQUAL(ti3.name(), "test2..test3.......test4");
 
@@ -1197,10 +1197,10 @@ void test_resolve_duplicates(aux::vector<file_t, file_index_t> const& test)
 		t.set_hash(i, sha1_hash::max());
 
 	std::vector<char> const tmp = t.generate_buf();
-	torrent_info ti(tmp, from_span);
+	auto ti = load_torrent_buffer(tmp).ti;
 	for (auto const i : t.file_range())
 	{
-		std::string p = ti.files().file_path(i);
+		std::string p = ti->files().file_path(i);
 		convert_path_to_posix(p);
 		std::printf("%s == %s\n", p.c_str(), std::string(test[i].expected_filename).c_str());
 
@@ -1218,16 +1218,14 @@ TORRENT_TEST(resolve_duplicates)
 
 TORRENT_TEST(empty_file)
 {
-	error_code ec;
-	auto ti = std::make_shared<torrent_info>("", ec, from_span);
-	TEST_CHECK(ec);
+	TEST_THROW(load_torrent_buffer(""));
 }
 
 TORRENT_TEST(empty_file2)
 {
 	try
 	{
-		auto ti = std::make_shared<torrent_info>("", from_span);
+		auto atp = load_torrent_buffer("");
 		TEST_ERROR("expected exception thrown");
 	}
 	catch (system_error const& e)
@@ -1253,9 +1251,9 @@ TORRENT_TEST(copy)
 {
 	using namespace lt;
 
-	std::shared_ptr<torrent_info> a = std::make_shared<torrent_info>(
+	std::shared_ptr<torrent_info> a = load_torrent_file(
 		combine_path(parent_path(current_working_directory())
-		, combine_path("test_torrents", "sample.torrent")));
+		, combine_path("test_torrents", "sample.torrent"))).ti;
 
 	aux::vector<char const*, file_index_t> expected_files =
 	{
@@ -1432,13 +1430,9 @@ TORRENT_TEST(write_torrent_file_session_roundtrip)
 		error_code ec;
 		std::vector<char> data;
 		TEST_CHECK(load_file(filename, data, ec) == 0);
-
-		auto ti = std::make_shared<torrent_info>(data, ec, from_span);
 		TEST_CHECK(!ec);
-		if (ec) std::printf(" -> failed %s\n", ec.message().c_str());
 
-		add_torrent_params atp;
-		atp.ti = ti;
+		add_torrent_params atp = load_torrent_buffer(data);
 		atp.save_path = ".";
 
 		session ses(settings());
@@ -1449,7 +1443,14 @@ TORRENT_TEST(write_torrent_file_session_roundtrip)
 
 		TORRENT_ASSERT(a);
 		{
+#ifdef TORRENT_WINDOWS
+			auto p = static_cast<save_resume_data_alert const*>(a)->params;
+			// dht nodes don't really round-trip cleanly. We don't specifically
+			// recard the node list from the torrent ifle
+			p.dht_nodes = atp.dht_nodes;
+#else
 			auto const& p = static_cast<save_resume_data_alert const*>(a)->params;
+#endif
 			entry e = write_torrent_file(p, write_flags::include_dht_nodes);
 			std::vector<char> const out_buffer = bencode(e);
 

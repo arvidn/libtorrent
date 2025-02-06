@@ -16,6 +16,7 @@ see LICENSE file.
 #include "libtorrent/session.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/path.hpp"
+#include "libtorrent/load_torrent.hpp"
 
 #include <iostream>
 
@@ -44,24 +45,22 @@ lt::error_code test_add_torrent(std::string file, add_torrent_test_flag_t const 
 	std::string const root_dir = lt::parent_path(lt::current_working_directory());
 	std::string const filename = lt::combine_path(lt::combine_path(root_dir, "test_torrents"), file);
 
-	lt::error_code ec;
-	std::vector<char> data;
-	TEST_CHECK(load_file(filename, data, ec) == 0);
-
-	auto ti = std::make_shared<lt::torrent_info>(data, ec, lt::from_span);
-	TEST_CHECK(!ec);
-	if (ec) std::printf(" loading(\"%s\") -> failed %s\n", filename.c_str()
-		, ec.message().c_str());
-
 	lt::add_torrent_params atp;
-	atp.ti = ti;
+	try
+	{
+		atp = lt::load_torrent_file(filename);
+	}
+	catch (lt::system_error const& e)
+	{
+		return e.code();
+	}
 	atp.save_path = ".";
 
 #if TORRENT_ABI_VERSION < 3
 	if (flags & set_info_hash) atp.info_hash = atp.ti->info_hash();
 #endif
-	if (flags & set_info_hashes_v1) atp.info_hashes.v1 = atp.ti->info_hashes().v1;
-	if (flags & set_info_hashes_v2) atp.info_hashes.v2 = atp.ti->info_hashes().v2;
+	if (!(flags & set_info_hashes_v1)) atp.info_hashes.v1.clear();
+	if (!(flags & set_info_hashes_v2)) atp.info_hashes.v2.clear();
 #if TORRENT_ABI_VERSION < 3
 	if (flags & set_invalid_info_hash) atp.info_hash = lt::sha1_hash("abababababababababab");
 #endif
@@ -85,6 +84,7 @@ lt::error_code test_add_torrent(std::string file, add_torrent_test_flag_t const 
 	{
 		if (flags & ec_add)
 		{
+			lt::error_code ec;
 			ses.add_torrent(atp, ec);
 			if (ec) return ec;
 		}

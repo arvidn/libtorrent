@@ -424,10 +424,9 @@ TORRENT_TEST(make_magnet_uri2)
 	std::vector<char> buf = bencode(torrent);
 	buf.push_back('\0');
 	std::printf("%s\n", &buf[0]);
-	error_code ec;
-	torrent_info ti(buf, ec, from_span);
+	add_torrent_params atp = load_torrent_buffer(buf);
 
-	std::string magnet = make_magnet_uri(ti);
+	std::string magnet = make_magnet_uri(atp);
 	std::printf("%s len: %d\n", magnet.c_str(), int(magnet.size()));
 	TEST_CHECK(magnet.find("&ws=http%3a%2f%2ffoo.com%2fbar") != std::string::npos);
 }
