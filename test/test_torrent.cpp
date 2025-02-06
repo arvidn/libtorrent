@@ -255,7 +255,7 @@ TORRENT_TEST(added_peers)
 	lt::create_torrent t(std::move(fs), 1024);
 	t.set_hash(0_piece, sha1_hash::max());
 	std::vector<char> const tmp = bencode(t.generate());
-	auto info = std::make_shared<torrent_info>(tmp, from_span);
+	auto info = load_torrent_buffer(tmp).ti;
 
 	settings_pack pack = settings();
 	pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
@@ -404,7 +404,7 @@ TORRENT_TEST(torrent)
 		t.set_hash2(file_index_t{ 0 }, piece_index_t::diff_type{ 0 }, lt::hasher256(piece).final());
 
 		std::vector<char> const tmp = bencode(t.generate());
-		auto info = std::make_shared<torrent_info>(tmp, from_span);
+		auto info = load_torrent_buffer(tmp).ti;
 		test_running_torrent(info, default_block_size);
 	}
 }
@@ -491,7 +491,7 @@ TORRENT_TEST(rename_file)
 	t.set_hash(0_piece, sha1_hash::max());
 
 	std::vector<char> const tmp = bencode(t.generate());
-	auto info = std::make_shared<torrent_info>(tmp, from_span);
+	auto info = load_torrent_buffer(tmp).ti;
 
 	TEST_EQUAL(info->files().file_path(0_file), combine_path("test3","tmp1"));
 
@@ -529,7 +529,7 @@ void test_queue(add_torrent_params const& atp)
 		t.set_hash(0_piece, sha1_hash::max());
 
 		std::vector<char> const buf = bencode(t.generate());
-		auto ti = std::make_shared<torrent_info>(buf, from_span);
+		auto ti = load_torrent_buffer(buf).ti;
 		add_torrent_params p = atp;
 		p.ti = ti;
 		p.save_path = ".";
@@ -775,8 +775,7 @@ TORRENT_TEST(symlinks_restore)
 {
 	// downloading test torrent with symlinks
 	std::string const work_dir = current_working_directory();
-	lt::add_torrent_params p;
-	p.ti = std::make_shared<lt::torrent_info>(combine_path(
+	lt::add_torrent_params p = load_torrent_file(combine_path(
 		combine_path(parent_path(work_dir), "test_torrents"), "symlink2.torrent"));
 	p.flags &= ~lt::torrent_flags::paused;
 	p.save_path = work_dir;

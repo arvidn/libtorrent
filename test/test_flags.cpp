@@ -15,6 +15,7 @@ see LICENSE file.
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/aux_/path.hpp"
+#include "libtorrent/load_torrent.hpp"
 #include "settings.hpp"
 #include "test_utils.hpp"
 
@@ -42,17 +43,13 @@ void print_alerts(lt::session& ses)
 void test_add_and_get_flags(torrent_flags_t const flags)
 {
 	session ses(settings());
-	add_torrent_params p;
+	add_torrent_params p = load_torrent_file(file("base.torrent"));
 	p.save_path = ".";
-	error_code ec;
-	p.ti = std::make_shared<torrent_info>(file("base.torrent"),
-		std::ref(ec));
 	if (flags & torrent_flags::seed_mode)
 	{
 		std::vector<char> temp(425);
 		ofstream("temp").write(temp.data(), std::streamsize(temp.size()));
 	}
-	TEST_CHECK(!ec);
 	p.flags = flags;
 	const torrent_handle h = ses.add_torrent(p);
 	TEST_CHECK(h.is_valid());
@@ -63,12 +60,8 @@ void test_add_and_get_flags(torrent_flags_t const flags)
 void test_set_after_add(torrent_flags_t const flags)
 {
 	session ses(settings());
-	add_torrent_params p;
+	add_torrent_params p = load_torrent_file(file("base.torrent"));
 	p.save_path = ".";
-	error_code ec;
-	p.ti = std::make_shared<torrent_info>(file("base.torrent"),
-		std::ref(ec));
-	TEST_CHECK(!ec);
 	p.flags = torrent_flags::all & ~flags;
 	const torrent_handle h = ses.add_torrent(p);
 	TEST_CHECK(h.is_valid());
@@ -81,12 +74,8 @@ void test_set_after_add(torrent_flags_t const flags)
 void test_unset_after_add(torrent_flags_t const flags)
 {
 	session ses(settings());
-	add_torrent_params p;
+	add_torrent_params p = load_torrent_file(file("base.torrent"));
 	p.save_path = ".";
-	error_code ec;
-	p.ti = std::make_shared<torrent_info>(file("base.torrent"),
-		std::ref(ec));
-	TEST_CHECK(!ec);
 	p.flags = flags;
 	const torrent_handle h = ses.add_torrent(p);
 	TEST_CHECK(h.is_valid());

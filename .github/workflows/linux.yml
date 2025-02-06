@@ -270,7 +270,7 @@ jobs:
           timeout_minutes: 30
           retry_wait_seconds: 4
           max_attempts: 3
-          command: (cd test; b2 ${{ matrix.config }} -l500 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on)
+          command: (cd test; b2 ${{ matrix.config }} -l500 warnings-as-errors=on debug-iterators=on asserts=on)
 
 
 

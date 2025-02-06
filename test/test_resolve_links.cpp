@@ -21,6 +21,7 @@ see LICENSE file.
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/load_torrent.hpp"
 
 #include "make_torrent.hpp"
 #include "setup_transfer.hpp" // for wait_for_seeding
@@ -86,11 +87,11 @@ TORRENT_TEST(resolve_links)
 
 		std::string p = combine_path(path, e.filename1) + ".torrent";
 		std::printf("loading %s\n", p.c_str());
-		std::shared_ptr<torrent_info> ti1 = std::make_shared<torrent_info>(p);
+		std::shared_ptr<torrent_info> ti1 = load_torrent_file(p).ti;
 
 		p = combine_path(path, e.filename2) + ".torrent";
 		std::printf("loading %s\n", p.c_str());
-		std::shared_ptr<torrent_info> ti2 = std::make_shared<torrent_info>(p);
+		std::shared_ptr<torrent_info> ti2 = load_torrent_file(p).ti;
 
 		std::printf("resolving\n");
 		aux::resolve_links l(ti1);
@@ -144,8 +145,8 @@ TORRENT_TEST(range_lookup_duplicated_files)
 
 	std::vector<char> const tmp1 = bencode(t1.generate());
 	std::vector<char> const tmp2 = bencode(t2.generate());
-	auto ti1 = std::make_shared<torrent_info>(tmp1, from_span);
-	auto ti2 = std::make_shared<torrent_info>(tmp2, from_span);
+	auto ti1 = load_torrent_buffer(tmp1).ti;
+	auto ti2 = load_torrent_buffer(tmp2).ti;
 
 	std::printf("resolving\n");
 	aux::resolve_links l(ti1);

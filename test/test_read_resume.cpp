@@ -23,6 +23,7 @@ see LICENSE file.
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/read_resume_data.hpp"
 #include "libtorrent/write_resume_data.hpp"
+#include "libtorrent/load_torrent.hpp"
 
 using namespace lt;
 
@@ -155,8 +156,7 @@ std::shared_ptr<torrent_info> generate_torrent()
 		t.set_hash(i, ph);
 	}
 
-	std::vector<char> const buf = bencode(t.generate());
-	return std::make_shared<torrent_info>(buf, from_span);
+	return load_torrent_buffer(bencode(t.generate())).ti;
 }
 } // anonymous namespace
 

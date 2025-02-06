@@ -27,6 +27,7 @@ see LICENSE file.
 #include "libtorrent/units.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/write_resume_data.hpp" // for write_torrent_file
+#include "libtorrent/add_torrent_params.hpp"
 
 #include <cstring>
 #include <iostream>
@@ -297,21 +298,33 @@ TORRENT_TEST(v2_only)
 
 	std::vector<char> const buffer = lt::bencode(t.generate());
 	TEST_CHECK(buffer == t.generate_buf());
-	lt::torrent_info info(buffer, lt::from_span);
-	TEST_CHECK(info.info_hashes().has_v2());
-	TEST_CHECK(!info.info_hashes().has_v1());
-	TEST_EQUAL(info.files().file_name(0_file), "A");
-	TEST_CHECK(info.files().pad_file_at(1_file));
-	TEST_EQUAL(info.files().file_name(2_file), "B");
-	TEST_EQUAL(info.name(), "test");
 
 #if TORRENT_ABI_VERSION < 4
-	lt::create_torrent t2(info);
-	std::vector<char> const buffer2 = bencode(t2.generate());
-	TEST_CHECK(buffer2 == t2.generate_buf());
+	{
+		lt::torrent_info info(buffer, lt::from_span);
+		TEST_CHECK(info.info_hashes().has_v2());
+		TEST_CHECK(!info.info_hashes().has_v1());
+		TEST_EQUAL(info.files().file_name(0_file), "A");
+		TEST_CHECK(info.files().pad_file_at(1_file));
+		TEST_EQUAL(info.files().file_name(2_file), "B");
+		TEST_EQUAL(info.name(), "test");
 
-	TEST_CHECK(buffer == buffer2);
+		lt::create_torrent t2(info);
+		std::vector<char> const buffer2 = bencode(t2.generate());
+		TEST_CHECK(buffer2 == t2.generate_buf());
+
+		TEST_CHECK(buffer == buffer2);
+	}
 #endif
+
+	std::shared_ptr<lt::torrent_info> info = lt::load_torrent_buffer(buffer).ti;
+	TEST_CHECK(info->info_hashes().has_v2());
+	TEST_CHECK(!info->info_hashes().has_v1());
+	TEST_EQUAL(info->files().file_name(0_file), "A");
+	TEST_CHECK(info->files().pad_file_at(1_file));
+	TEST_EQUAL(info->files().file_name(2_file), "B");
+	TEST_EQUAL(info->name(), "test");
+
 }
 
 TORRENT_TEST(v2_only_set_hash)
@@ -472,13 +485,24 @@ TORRENT_TEST(implicit_v2_only)
 
 	std::vector<char> const buffer = lt::bencode(t.generate());
 	TEST_CHECK(buffer == t.generate_buf());
-	lt::torrent_info info(buffer, lt::from_span);
-	TEST_CHECK(info.info_hashes().has_v2());
-	TEST_CHECK(!info.info_hashes().has_v1());
-	TEST_EQUAL(info.files().file_name(0_file), "A");
-	TEST_EQUAL(info.files().pad_file_at(1_file), true);
-	TEST_EQUAL(info.files().file_name(2_file), "B");
-	TEST_EQUAL(info.name(), "test");
+
+	{
+		lt::torrent_info info(buffer, lt::from_span);
+		TEST_CHECK(info.info_hashes().has_v2());
+		TEST_CHECK(!info.info_hashes().has_v1());
+		TEST_EQUAL(info.files().file_name(0_file), "A");
+		TEST_EQUAL(info.files().pad_file_at(1_file), true);
+		TEST_EQUAL(info.files().file_name(2_file), "B");
+		TEST_EQUAL(info.name(), "test");
+	}
+
+	auto atp = lt::load_torrent_buffer(buffer);
+	TEST_CHECK(atp.ti->info_hashes().has_v2());
+	TEST_CHECK(!atp.ti->info_hashes().has_v1());
+	TEST_EQUAL(atp.ti->files().file_name(0_file), "A");
+	TEST_EQUAL(atp.ti->files().pad_file_at(1_file), true);
+	TEST_EQUAL(atp.ti->files().file_name(2_file), "B");
+	TEST_EQUAL(atp.ti->name(), "test");
 }
 
 // if we don't specify a v1-only flag, but only set v1 hashes, the created
@@ -495,19 +519,30 @@ TORRENT_TEST(implicit_v1_only)
 
 	std::vector<char> const buffer = lt::bencode(t.generate());
 	TEST_CHECK(buffer == t.generate_buf());
-	lt::torrent_info info(buffer, lt::from_span);
-	TEST_CHECK(!info.info_hashes().has_v2());
-	TEST_CHECK(info.info_hashes().has_v1());
-	TEST_EQUAL(info.files().file_name(0_file), "A");
-	TEST_EQUAL(info.files().pad_file_at(1_file), true);
-	TEST_EQUAL(info.files().file_name(2_file), "B");
-	TEST_EQUAL(info.name(), "test");
+
+	{
+		lt::torrent_info info(buffer, lt::from_span);
+		TEST_CHECK(!info.info_hashes().has_v2());
+		TEST_CHECK(info.info_hashes().has_v1());
+		TEST_EQUAL(info.files().file_name(0_file), "A");
+		TEST_EQUAL(info.files().pad_file_at(1_file), true);
+		TEST_EQUAL(info.files().file_name(2_file), "B");
+		TEST_EQUAL(info.name(), "test");
+	}
+
+	auto info = lt::load_torrent_buffer(buffer).ti;
+	TEST_CHECK(!info->info_hashes().has_v2());
+	TEST_CHECK(info->info_hashes().has_v1());
+	TEST_EQUAL(info->files().file_name(0_file), "A");
+	TEST_EQUAL(info->files().pad_file_at(1_file), true);
+	TEST_EQUAL(info->files().file_name(2_file), "B");
+	TEST_EQUAL(info->name(), "test");
 }
 
 namespace {
 
 template <typename Fun>
-lt::torrent_info test_field(Fun f)
+lt::add_torrent_params test_field(Fun f)
 {
 	std::vector<lt::create_file_entry> fs;
 	fs.emplace_back("A", 0x4000);
@@ -519,65 +554,65 @@ lt::torrent_info test_field(Fun f)
 
 	std::vector<char> const buffer = lt::bencode(t.generate());
 	TEST_CHECK(buffer == t.generate_buf());
-	return lt::torrent_info(buffer, lt::from_span);
+	return lt::load_torrent_buffer(buffer);
 }
 }
 
 TORRENT_TEST(no_creation_date)
 {
-	auto info = test_field([](lt::create_torrent& t){
+	auto atp = test_field([](lt::create_torrent& t){
 		t.set_creation_date(0);
 	});
-	TEST_EQUAL(info.creation_date(), 0);
+	TEST_EQUAL(atp.creation_date, 0);
 }
 
 TORRENT_TEST(creation_date)
 {
-	auto info = test_field([](lt::create_torrent& t){
+	auto atp = test_field([](lt::create_torrent& t){
 		t.set_creation_date(1337);
 	});
-	TEST_EQUAL(info.creation_date(), 1337);
+	TEST_EQUAL(atp.creation_date, 1337);
 }
 
 TORRENT_TEST(comment)
 {
-	auto info = test_field([](lt::create_torrent& t){
+	auto atp = test_field([](lt::create_torrent& t){
 		t.set_comment("foobar");
 	});
-	TEST_EQUAL(info.comment(), "foobar");
+	TEST_EQUAL(atp.comment, "foobar");
 }
 
 TORRENT_TEST(creator)
 {
-	auto info = test_field([](lt::create_torrent& t){
+	auto atp = test_field([](lt::create_torrent& t){
 		t.set_creator("foobar");
 	});
-	TEST_EQUAL(info.creator(), "foobar");
+	TEST_EQUAL(atp.created_by, "foobar");
 }
 
 TORRENT_TEST(dht_nodes)
 {
-	auto info = test_field([](lt::create_torrent& t){
+	auto atp = test_field([](lt::create_torrent& t){
 		t.add_node({"foobar"s, 1337});
 	});
 	using nodes = std::vector<std::pair<std::string, int>>;
-	TEST_CHECK((info.nodes() == nodes{{"foobar", 1337}}));
+	TEST_CHECK((atp.dht_nodes == nodes{{"foobar", 1337}}));
 }
 
 TORRENT_TEST(ssl_cert)
 {
-	auto info = test_field([](lt::create_torrent& t){
+	auto atp = test_field([](lt::create_torrent& t){
 		t.set_root_cert("foobar");
 	});
-	TEST_EQUAL(info.ssl_cert(), "foobar");
+	TEST_EQUAL(atp.ti->ssl_cert(), "foobar");
 }
 
 TORRENT_TEST(priv)
 {
-	auto info = test_field([](lt::create_torrent& t){
+	auto atp = test_field([](lt::create_torrent& t){
 		t.set_priv(true);
 	});
-	TEST_CHECK(info.priv());
+	TEST_CHECK(atp.ti->priv());
 }
 
 TORRENT_TEST(piece_layer)
@@ -596,11 +631,15 @@ TORRENT_TEST(piece_layer)
 
 	std::vector<char> const buffer = lt::bencode(t.generate());
 	TEST_CHECK(buffer == t.generate_buf());
-	lt::torrent_info info(buffer, lt::from_span);
+	auto atp = lt::load_torrent_buffer(buffer);
+	TEST_CHECK(atp.merkle_trees[0_file].size() == 2);
+	TEST_CHECK(atp.merkle_trees[1_file].size() == 1);
+	TEST_CHECK(atp.merkle_trees[2_file].size() == 1);
 
-	TEST_CHECK(info.piece_layer(0_file).size() == lt::sha256_hash::size() * 2);
-	TEST_CHECK(info.piece_layer(1_file).size() == lt::sha256_hash::size());
-	TEST_CHECK(info.piece_layer(2_file).size() == lt::sha256_hash::size());
+	auto info = std::make_shared<lt::torrent_info>(buffer, lt::from_span);
+	TEST_CHECK(info->piece_layer(0_file).size() == lt::sha256_hash::size() * 2);
+	TEST_CHECK(info->piece_layer(1_file).size() == lt::sha256_hash::size());
+	TEST_CHECK(info->piece_layer(2_file).size() == lt::sha256_hash::size());
 }
 
 TORRENT_TEST(pieces_root_empty_file)
@@ -619,11 +658,10 @@ TORRENT_TEST(pieces_root_empty_file)
 	TEST_CHECK(!e["info"]["files tree"]["test"]["2-small"].find_key("pieces root"));
 	TEST_CHECK(!e["info"]["files tree"]["test"]["3-small"].find_key("pieces root"));
 
-	std::vector<char> const buffer = lt::bencode(e);
-	lt::torrent_info info(buffer, lt::from_span);
+	auto info = lt::load_torrent_buffer(lt::bencode(e)).ti;
 
-	TEST_CHECK(info.files().root(0_file).is_all_zeros());
-	TEST_CHECK(!info.files().root(1_file).is_all_zeros());
+	TEST_CHECK(info->files().root(0_file).is_all_zeros());
+	TEST_CHECK(!info->files().root(1_file).is_all_zeros());
 }
 
 namespace {

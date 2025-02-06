@@ -17,6 +17,7 @@ see LICENSE file.
 #include "libtorrent/aux_/random.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/bencode.hpp"
+#include "libtorrent/load_torrent.hpp"
 
 namespace {
 
@@ -70,8 +71,7 @@ std::array<bool, 2> test(
 		lt::set_piece_hashes(t, ".");
 		if (sflags & st::collection)
 			t.add_collection("test collection");
-		std::vector<char> const torrent = lt::bencode(t.generate());
-		return std::make_shared<lt::torrent_info>(torrent, lt::from_span);
+		return lt::load_torrent_buffer(lt::bencode(t.generate())).ti;
 	}();
 
 	lt::create_directories("test-torrent-2", ec);
@@ -109,8 +109,7 @@ std::array<bool, 2> test(
 			t.add_collection("test collection");
 		else
 			t.add_similar_torrent(t1->info_hash());
-		std::vector<char> const torrent = lt::bencode(t.generate());
-		return std::make_shared<lt::torrent_info>(torrent, lt::from_span);
+		return lt::load_torrent_buffer(lt::bencode(t.generate())).ti;
 	}();
 
 	if (sflags & st::no_files)

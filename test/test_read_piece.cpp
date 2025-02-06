@@ -20,6 +20,7 @@ see LICENSE file.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/aux_/path.hpp"
+#include "libtorrent/load_torrent.hpp"
 
 namespace {
 
@@ -63,21 +64,18 @@ void test_read_piece(int flags)
 	if (ec) std::printf("ERROR: set_piece_hashes: (%d) %s\n"
 		, ec.value(), ec.message().c_str());
 
-	std::vector<char> const buf = bencode(t.generate());
-	auto ti = std::make_shared<torrent_info>(buf, ec, from_span);
+	add_torrent_params p = lt::load_torrent_buffer(bencode(t.generate()));
 
 	std::printf("generated torrent: %s tmp1_read_piece/test_torrent\n"
-		, aux::to_hex(ti->info_hashes().v1).c_str());
+		, aux::to_hex(p.ti->info_hashes().v1).c_str());
 
 	settings_pack sett = settings();
 	sett.set_str(settings_pack::listen_interfaces, test_listen_interface());
 	lt::session ses(sett);
 
-	add_torrent_params p;
 	p.flags &= ~torrent_flags::paused;
 	p.flags &= ~torrent_flags::auto_managed;
 	p.save_path = "tmp1_read_piece";
-	p.ti = ti;
 	if (flags & flags_t::seed_mode)
 		p.flags |= torrent_flags::seed_mode;
 	torrent_handle tor1 = ses.add_torrent(p, ec);

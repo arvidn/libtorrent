@@ -36,6 +36,7 @@ see LICENSE file.
 #include "libtorrent/posix_disk_io.hpp"
 #include "libtorrent/flags.hpp"
 #include "libtorrent/aux_/readwrite.hpp"
+#include "libtorrent/load_torrent.hpp"
 
 #include <memory>
 #include <functional> // for bind
@@ -150,19 +151,8 @@ std::shared_ptr<torrent_info> setup_torrent_info(std::vector<char>& buf)
 	sha1_hash h = hasher(std::vector<char>(0x4000, 0)).final();
 	for (piece_index_t i(0); i < 6_piece; ++i) t.set_hash(i, h);
 
-	bencode(std::back_inserter(buf), t.generate());
-	error_code ec;
-
-	auto info = std::make_shared<torrent_info>(buf, ec, from_span);
-
-	if (ec)
-	{
-		std::printf("torrent_info constructor failed: %s\n"
-			, ec.message().c_str());
-		throw system_error(ec);
-	}
-
-	return info;
+	buf = bencode(t.generate());
+	return load_torrent_buffer(buf).ti;
 }
 
 // file_pool_type is a meta function returning the file pool type for a specific
@@ -687,8 +677,7 @@ void test_check_files(check_files_flag_t const flags
 	ofstream(combine_path(test_path, combine_path("temp_storage", "test3.tmp")).c_str())
 		.write(piece2.data(), std::streamsize(piece2.size()));
 
-	std::vector<char> const buf = bencode(t.generate());
-	info = std::make_shared<torrent_info>(buf, ec, from_span);
+	info = load_torrent_buffer(bencode(t.generate())).ti;
 
 	aux::session_settings set;
 	boost::asio::io_context ios;
@@ -782,8 +771,7 @@ void run_test()
 	t.set_hash(2_piece, hasher(piece2).final());
 	t.set_hash(3_piece, hasher(piece3).final());
 
-	std::vector<char> const buf = bencode(t.generate());
-	info = std::make_shared<torrent_info>(buf, from_span);
+	info = load_torrent_buffer(bencode(t.generate())).ti;
 
 	// run_storage_tests writes piece 0, 1 and 2. not 3
 	run_storage_tests<StorageType>(info, storage_mode_sparse);

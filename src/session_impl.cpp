@@ -5060,8 +5060,17 @@ retry:
 
 		if (!params.info_hashes.has_v1() && !params.info_hashes.has_v2())
 		{
-			ec = errors::missing_info_hash_in_uri;
-			return ret_t{ptr_t(), params.info_hashes, false};
+#if TORRENT_ABI_VERSION < 3
+			if (!params.info_hash.is_all_zeros())
+			{
+				params.info_hashes.v1 = params.info_hash;
+			}
+			else
+#endif
+			{
+				ec = errors::missing_info_hash_in_uri;
+				return ret_t{ptr_t(), params.info_hashes, false};
+			}
 		}
 
 		// is the torrent already active?
