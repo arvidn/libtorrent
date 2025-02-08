@@ -632,14 +632,17 @@ TORRENT_TEST(piece_layer)
 	std::vector<char> const buffer = lt::bencode(t.generate());
 	TEST_CHECK(buffer == t.generate_buf());
 	auto atp = lt::load_torrent_buffer(buffer);
-	TEST_CHECK(atp.merkle_trees[0_file].size() == 2);
-	TEST_CHECK(atp.merkle_trees[1_file].size() == 1);
-	TEST_CHECK(atp.merkle_trees[2_file].size() == 1);
+	TEST_EQUAL(atp.merkle_trees.size(), 4);
+	TEST_EQUAL(atp.merkle_trees[0_file].size(), 2);
+	TEST_EQUAL(atp.merkle_trees[1_file].size(), 0);
+	TEST_EQUAL(atp.merkle_trees[2_file].size(), 0);
+	TEST_EQUAL(atp.merkle_trees[3_file].size(), 0);
 
 	auto info = std::make_shared<lt::torrent_info>(buffer, lt::from_span);
-	TEST_CHECK(info->piece_layer(0_file).size() == lt::sha256_hash::size() * 2);
-	TEST_CHECK(info->piece_layer(1_file).size() == lt::sha256_hash::size());
-	TEST_CHECK(info->piece_layer(2_file).size() == lt::sha256_hash::size());
+	TEST_EQUAL(info->piece_layer(0_file).size(), lt::sha256_hash::size() * 2);
+	TEST_EQUAL(info->piece_layer(1_file).size(), lt::sha256_hash::size());
+	TEST_EQUAL(info->piece_layer(2_file).size(), lt::sha256_hash::size());
+	TEST_EQUAL(info->piece_layer(3_file).size(), 0);
 }
 
 TORRENT_TEST(pieces_root_empty_file)

@@ -58,7 +58,7 @@ namespace {
 			for (auto const f : fs.file_range())
 			{
 				if (fs.pad_file_at(f)) continue;
-				if (fs.file_size(f) == 0) continue;
+				if (fs.file_size(f) <= fs.piece_length()) continue;
 				auto const bytes = ti->piece_layer(f);
 				auto& layer = atp.merkle_trees[f];
 				layer.reserve(std::size_t(bytes.size() / sha256_hash::size()));
