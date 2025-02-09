@@ -2332,7 +2332,7 @@ TORRENT_TEST(immutable_put)
 				TEST_ERROR(t.error_string);
 				continue;
 			}
-			char tok[11];
+			char tok[50];
 			std::snprintf(tok, sizeof(tok), "%02d", idx);
 
 			msg_args args;
@@ -2363,7 +2363,7 @@ TORRENT_TEST(immutable_put)
 				TEST_EQUAL(put_immutable_item_keys[2].string_value(), "put");
 				span<const char> const v = put_immutable_item_keys[6].data_section();
 				TEST_EQUAL(v, span<char const>(flat_data));
-				char tok[11];
+				char tok[50];
 				std::snprintf(tok, sizeof(tok), "%02d", idx);
 				TEST_EQUAL(put_immutable_item_keys[5].string_value(), tok);
 				if (put_immutable_item_keys[0].string_value() != "q"
@@ -2437,7 +2437,7 @@ TORRENT_TEST(mutable_put)
 				TEST_ERROR(t.error_string);
 				continue;
 			}
-			char tok[11];
+			char tok[50];
 			std::snprintf(tok, sizeof(tok), "%02d", idx);
 
 			msg_args args;
@@ -2473,7 +2473,7 @@ TORRENT_TEST(mutable_put)
 					, std::string(sig.bytes.data(), signature::len));
 				span<const char> const v = put_mutable_item_keys[10].data_section();
 				TEST_CHECK(v == itemv);
-				char tok[11];
+				char tok[50];
 				std::snprintf(tok, sizeof(tok), "%02d", idx);
 				TEST_EQUAL(put_mutable_item_keys[9].string_value(), tok);
 				if (put_mutable_item_keys[0].string_value() != "q"

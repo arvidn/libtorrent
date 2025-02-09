@@ -3877,6 +3877,8 @@ namespace {
 		{
 			debug_log("*** found no tracker endpoints to announce");
 		}
+#else
+		TORRENT_UNUSED(found_one);
 #endif
 		update_tracker_timer(aux::time_now32());
 	}

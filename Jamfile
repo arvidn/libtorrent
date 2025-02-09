@@ -319,8 +319,11 @@ rule warnings ( properties * )
 		result += <cflags>-Wextra ;
 		result += <cflags>-Wpedantic ;
 		result += <cflags>-Wvla ;
-		result += <cflags>-Wno-format-zero-length ;
-		result += <cxxflags>-Wno-noexcept-type ;
+		result += <cflags>-Wno-error=format-zero-length ;
+		result += <cxxflags>-Wno-error=noexcept-type ;
+		# these warnings seem to have a lot of false positives
+		result += <cxxflags>-Wno-error=stringop-overflow ;
+		result += <cxxflags>-Wno-error=array-bounds ;
 	}
 
 	if <toolset>msvc in $(properties)
