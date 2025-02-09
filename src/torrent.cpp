@@ -185,6 +185,9 @@ bool is_downloading_state(int const st)
 		, m_last_seen_complete(p.last_seen_complete)
 		, m_swarm_last_seen_complete(p.last_seen_complete)
 		, m_info_hash(p.info_hashes)
+		, m_comment(p.comment)
+		, m_created_by(p.created_by)
+		, m_creation_date(p.creation_date)
 		, m_error_file(torrent_status::error_file_none)
 		, m_sequence_number(-1)
 		, m_peer_id(aux::generate_peer_id(settings()))
@@ -7096,10 +7099,10 @@ namespace {
 
 		ret.save_path = m_save_path;
 
-		ret.comment = torrent_file().comment();
-		ret.created_by = torrent_file().creator();
-		ret.creation_date = torrent_file().creation_date();
-		ret.info_hashes = torrent_file().info_hashes();
+		ret.comment = m_comment;
+		ret.created_by = m_created_by;
+		ret.creation_date = m_creation_date;
+		ret.info_hashes = m_info_hash;
 		if (valid_metadata()) ret.name = m_torrent_file->name();
 		else if (m_name) ret.name = *m_name;
 
