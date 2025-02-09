@@ -320,7 +320,9 @@ namespace aux
 
 		out.info_hashes = ti->info_hashes();
 
+#if TORRENT_ABI_VERSION < 4
 		ti->internal_set_creation_date(out.creation_date);
+#endif
 
 		out.ti = std::move(ti);
 	}

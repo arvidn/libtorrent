@@ -432,8 +432,10 @@ void bind_torrent_info()
 #endif
 
         .def("name", &torrent_info::name, copy)
+#if TORRENT_ABI_VERSION < 4
         .def("comment", &torrent_info::comment, copy)
         .def("creator", &torrent_info::creator, copy)
+#endif
         .def("total_size", &torrent_info::total_size)
         .def("size_on_disk", &torrent_info::size_on_disk)
         .def("piece_length", &torrent_info::piece_length)
@@ -467,9 +469,8 @@ void bind_torrent_info()
 #endif
 #if TORRENT_ABI_VERSION < 4
         .def("trackers", range(begin_trackers, end_trackers))
-#endif
-
         .def("creation_date", &torrent_info::creation_date)
+#endif
 
         .def("add_node", &add_node)
         .def("nodes", &nodes)

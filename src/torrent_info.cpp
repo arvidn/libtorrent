@@ -1447,10 +1447,10 @@ namespace {
 
 	void torrent_info::internal_set_comment(string_view const s)
 	{ m_comment = std::string(s); }
-#endif
 
 	void torrent_info::internal_set_creation_date(std::time_t const t)
 	{ m_creation_date = t; }
+#endif
 
 	bdecode_node torrent_info::info(char const* key) const
 	{
@@ -1482,9 +1482,11 @@ namespace {
 			return true;
 		}
 
+#if TORRENT_ABI_VERSION < 4
 		m_comment = atp.comment;
 		m_created_by = atp.created_by;
 		m_creation_date = atp.creation_date;
+#endif
 		int tier = 0;
 		for (std::size_t i = 0; i < atp.trackers.size(); ++i)
 		{

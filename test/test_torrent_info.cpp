@@ -135,11 +135,17 @@ static test_torrent_t const test_torrents[] =
 		}
 	},
 	{ "creation_date.torrent", [](lt::add_torrent_params atp) {
+#if TORRENT_ABI_VERSION < 4
 			TEST_EQUAL(atp.ti->creation_date(), 1234567);
+#endif
+			TEST_EQUAL(atp.creation_date, 1234567);
 		}
 	},
 	{ "no_creation_date.torrent", [](lt::add_torrent_params atp) {
+#if TORRENT_ABI_VERSION < 4
 			TEST_CHECK(!atp.ti->creation_date());
+#endif
+			TEST_CHECK(!atp.creation_date);
 		}
 	},
 	{ "url_seed.torrent", [](lt::add_torrent_params atp) {
