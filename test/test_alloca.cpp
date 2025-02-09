@@ -61,7 +61,7 @@ TORRENT_TEST(alloca_empty)
 {
 	{
 		destructed = 0;
-		TORRENT_ALLOCA(vec, B, 0);
+		TORRENT_ALLOCA(vec, B, destructed);
 	}
 	TEST_EQUAL(destructed, 0);
 }

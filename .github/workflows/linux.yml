@@ -242,22 +242,22 @@ jobs:
         run: |
           sudo apt install libgnutls28-dev
 
-      - name: install clang-12
+      - name: install clang-16
         continue-on-error: true
         run: |
-          sudo apt install clang-12
+          sudo apt install clang-16
 
-      - name: install GCC-12
+      - name: install GCC-14
         continue-on-error: true
         run: |
-          sudo apt install gcc-12
+          sudo apt install gcc-14
 
       - name: install boost
         run: |
           sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
           pip install websockets
-          echo "using gcc : 12 : g++-12 ;" >>~/user-config.jam
-          echo "using clang : 12 : clang++-12 ;" >>~/user-config.jam
+          echo "using gcc : 14 : g++-14 ;" >>~/user-config.jam
+          echo "using clang : 16 : clang++-16 ;" >>~/user-config.jam
 
       - name: build and run tests
         run: |
