@@ -133,8 +133,8 @@ int main(int argc, char const* argv[]) try
 		, atp.ti->num_pieces()
 		, atp.ti->piece_length()
 		, ih.str().c_str()
-		, atp.ti->comment().c_str()
-		, atp.ti->creator().c_str()
+		, atp.comment.c_str()
+		, atp.created_by.c_str()
 		, make_magnet_uri(atp).c_str()
 		, atp.name.c_str()
 		, atp.ti->num_files());

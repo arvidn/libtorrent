@@ -521,23 +521,28 @@ TORRENT_VERSION_NAMESPACE_3
 		// name contains UTF-8 encoded string.
 		const std::string& name() const { return m_files.name(); }
 
+#if TORRENT_ABI_VERSION < 4
 		// ``creation_date()`` returns the creation date of the torrent as time_t
 		// (`posix time`_). If there's no time stamp in the torrent file, 0 is
 		// returned.
 		// .. _`posix time`: http://www.opengroup.org/onlinepubs/009695399/functions/time.html
+		TORRENT_DEPRECATED
 		std::time_t creation_date() const
 		{ return m_creation_date; }
 
 		// ``creator()`` returns the creator string in the torrent. If there is
 		// no creator string it will return an empty string.
+		TORRENT_DEPRECATED
 		const std::string& creator() const
 		{ return m_created_by; }
 
 		// ``comment()`` returns the comment associated with the torrent. If
 		// there's no comment, it will return an empty string.
 		// comment contains UTF-8 encoded string.
+		TORRENT_DEPRECATED
 		const std::string& comment() const
 		{ return m_comment; }
+#endif
 
 		// If this torrent contains any DHT nodes, they are put in this vector in
 		// their original form (host name and port number).
@@ -608,8 +613,8 @@ TORRENT_VERSION_NAMESPACE_3
 		// internal
 		void internal_set_creator(string_view);
 		void internal_set_comment(string_view);
-#endif
 		void internal_set_creation_date(std::time_t);
+#endif
 
 		// internal
 		void internal_set_collections(std::vector<std::string> c)
@@ -713,6 +718,7 @@ TORRENT_VERSION_NAMESPACE_3
 		// make it available through the metadata extension
 		boost::shared_array<char const> m_info_section;
 
+#if TORRENT_ABI_VERSION < 4
 		// if a comment is found in the torrent file
 		// this will be set to that comment
 		std::string m_comment;
@@ -721,14 +727,15 @@ TORRENT_VERSION_NAMESPACE_3
 		// to create the torrent file
 		std::string m_created_by;
 
-		// the info section parsed. points into m_info_section
-		// parsed lazily
-		mutable bdecode_node m_info_dict;
-
 		// if a creation date is found in the torrent file
 		// this will be set to that, otherwise it'll be
 		// 1970, Jan 1
 		std::time_t m_creation_date = 0;
+#endif
+
+		// the info section parsed. points into m_info_section
+		// parsed lazily
+		mutable bdecode_node m_info_dict;
 
 		// the hash(es) that identify this torrent
 		info_hash_t m_info_hash;

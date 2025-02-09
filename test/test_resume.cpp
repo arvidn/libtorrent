@@ -310,7 +310,10 @@ TORRENT_TEST(test_non_metadata)
 
 	TEST_EQUAL(p.comment, "test comment");
 	TEST_EQUAL(p.created_by, "libtorrent test");
-	auto const creation_date = ti->creation_date();
+	auto const creation_date = p.creation_date;
+#if TORRENT_ABI_VERSION < 4
+	TEST_EQUAL(ti->creation_date(), creation_date);
+#endif
 
 	h.save_resume_data(torrent_handle::save_info_dict);
 	alert const* a = wait_for_alert(ses, save_resume_data_alert::alert_type);
@@ -327,6 +330,9 @@ TORRENT_TEST(test_non_metadata)
 		TEST_EQUAL(atp.comment, "test comment");
 		TEST_EQUAL(atp.created_by, "libtorrent test");
 		TEST_EQUAL(atp.creation_date, creation_date);
+#if TORRENT_ABI_VERSION < 4
+		TEST_EQUAL(atp.ti->creation_date(), creation_date);
+#endif
 
 		std::vector<char> resume_data = write_resume_data_buf(atp);
 		p = read_resume_data(resume_data);
@@ -343,7 +349,9 @@ TORRENT_TEST(test_non_metadata)
 	TEST_EQUAL(h.trackers().at(0).url, "http://torrent_file_tracker2.com/announce");
 	TEST_CHECK(h.url_seeds() == std::set<std::string>{"http://torrent.com/"});
 	auto t = h.status().torrent_file.lock();
-	TEST_EQUAL(ti->creation_date(), creation_date);
+#if TORRENT_ABI_VERSION < 4
+	TEST_EQUAL(t->creation_date(), creation_date);
+#endif
 }
 
 TORRENT_TEST(test_remove_trackers)
