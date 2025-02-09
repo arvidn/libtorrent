@@ -118,7 +118,7 @@ static test_torrent_t const test_torrents[] =
 			// make sure we trimmed the url
 			TEST_CHECK(atp.trackers.size() > 0);
 			if (atp.trackers.size() > 0)
-				TEST_CHECK(atp.trackers[0] == "udp://test.com/announce");
+				TEST_EQUAL(atp.trackers[0], "udp://test.com/announce");
 		}
 	},
 	{ "duplicate_files.torrent", [](lt::add_torrent_params atp) {

@@ -40,7 +40,11 @@ namespace libtorrent {
 		bdecode_node const& torrent_file, load_torrent_limits const& cfg);
 	TORRENT_EXPORT add_torrent_params load_torrent_parsed(
 		bdecode_node const& torrent_file);
+}
 
+namespace libtorrent::aux {
+	void parse_torrent_file(bdecode_node const& torrent_file
+		, error_code& ec, load_torrent_limits const& cfg, add_torrent_params& out);
 }
 
 #endif

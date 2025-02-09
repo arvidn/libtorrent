@@ -63,9 +63,11 @@ namespace aux {
 
 	// hidden
 	class from_span_t {};
+	class from_info_section_t {};
 
 	// used to disambiguate a bencoded buffer and a filename
 	extern TORRENT_EXPORT from_span_t from_span;
+	extern TORRENT_EXPORT from_info_section_t from_info_section;
 
 	// this object holds configuration options for limits to use when loading
 	// torrents. They are meant to prevent loading potentially malicious torrents
@@ -168,6 +170,10 @@ TORRENT_VERSION_NAMESPACE_3
 		torrent_info(char const* buffer, int size, error_code& ec, int)
 			: torrent_info(span<char const>{buffer, size}, ec, from_span) {}
 #endif // TORRENT_ABI_VERSION
+
+		torrent_info(bdecode_node const& info_section, error_code& ec
+			, load_torrent_limits const& cfg
+			, from_info_section_t);
 
 		// frees all storage associated with this torrent_info object
 		~torrent_info();
@@ -601,9 +607,21 @@ TORRENT_VERSION_NAMESPACE_3
 #if TORRENT_ABI_VERSION < 4
 		// internal
 		void internal_set_creator(string_view);
-		void internal_set_creation_date(std::time_t);
 		void internal_set_comment(string_view);
 #endif
+		void internal_set_creation_date(std::time_t);
+
+		// internal
+		void internal_set_collections(std::vector<std::string> c)
+		{
+			m_owned_collections = std::move(c);
+		}
+
+		// internal
+		void internal_set_similar(std::vector<sha1_hash> s)
+		{
+			m_owned_similar_torrents = std::move(s);
+		}
 
 #if TORRENT_ABI_VERSION <= 2
 		// support for BEP 30 merkle torrents has been removed
@@ -631,9 +649,6 @@ TORRENT_VERSION_NAMESPACE_3
 			, load_torrent_limits const&);
 
 	private:
-
-		// populate the piece layers from the metadata
-		bool parse_piece_layers(bdecode_node const& e, error_code& ec);
 
 		bool resolve_duplicate_filenames(int max_duplicate_filenames, error_code& ec);
 
