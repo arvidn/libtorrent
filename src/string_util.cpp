@@ -373,7 +373,7 @@ namespace libtorrent::aux {
 
 #if TORRENT_USE_I2P
 
-	bool is_i2p_url(std::string const& url)
+	bool is_i2p_url(string_view url)
 	{
 		using std::ignore;
 		std::string hostname;
