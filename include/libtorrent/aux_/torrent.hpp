@@ -1452,6 +1452,13 @@ namespace libtorrent::aux {
 		// threads, and be cheap to access from the client
 		info_hash_t m_info_hash;
 
+		// these are copied from the original .torrent file, and really just
+		// here to allow re-creating the torrent file again (by
+		// save_resume_data())
+		std::string m_comment;
+		std::string m_created_by;
+		std::time_t m_creation_date;
+
 	public:
 		// these are the lists this torrent belongs to. For more
 		// details about each list, see session_impl.hpp. Each list
