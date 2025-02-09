@@ -1,0 +1,160 @@
+name: Windows CMake build
+
+on:
+  push:
+    branches: [ RC_1_2 ]
+  pull_request:
+    types: [edited, opened, reopened, synchronize]
+    branches: [ RC_1_2 ]
+
+env:
+  # openssl: 1.1.1g#1
+  # boost: 1.73.0
+  VCPKG_COMMIT: 27a2418e91179d8607862348d7b498558e98a0ab
+  VCPKG_DEST_WIN: C:\libt_tools\vcpkg
+  VCPKG_TRIPLET: "x64-windows"
+  BUILD_VARIANT: "shared"
+  LIBT_STATIC_RT: "OFF"
+  LIBT_BSL: "ON"
+  LIBT_TESTS: "ON"
+  LIBT_DEPR_FUN: "ON"
+  LIBT_PY_BINDINGS: "ON"
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+
+  ci_windows_cmake:
+    name: win cmake
+
+    strategy:
+      matrix:
+        build_config: [rel, dbg]
+        build_variant: [shared, static]
+        deprecated_functions: [depr, nodepr]
+        build_tests: [tests, notests]
+        python_bindings: [py, nopy]
+        exclude:
+          # python bindings require building with shared libs
+          - build_variant: static
+            python_bindings: py
+          # FIXME: non-static build with python bindings is failing, presumably due to a boost port bug in vcpkg
+          # See https://github.com/microsoft/vcpkg/issues/5097
+          - build_variant: shared
+            build_config: dbg
+            python_bindings: py
+          # static debug build with tests is too big
+          - build_variant: static
+            build_config: dbg
+            build_tests: tests
+      fail-fast: false
+
+    runs-on: windows-2019
+
+    steps:
+    - name: checkout repository
+      uses: actions/checkout@v2.3.3
+
+    - name: setup environment - static build
+      if: matrix.build_variant == 'static'
+      shell: bash
+      run: |
+        echo "LIBT_STATIC_RT=ON" >> $GITHUB_ENV
+        echo "LIBT_BSL=OFF" >> $GITHUB_ENV
+        echo "VCPKG_TRIPLET=x64-windows-static" >> $GITHUB_ENV
+        echo "BUILD_VARIANT=static" >> $GITHUB_ENV
+
+    - name: setup environment - don't build with deprecated functions
+      if: matrix.deprecated_functions == 'nodepr'
+      shell: bash
+      run: |
+        echo "LIBT_DEPR_FUN=OFF" >> $GITHUB_ENV
+
+    - name: setup environment - don't build tests
+      if: matrix.build_tests == 'notests'
+      shell: bash
+      run: |
+        echo "LIBT_TESTS=OFF" >> $GITHUB_ENV
+
+    - name: setup environment - don't build with python bindings
+      if: matrix.python_bindings == 'nopy'
+      shell: bash
+      run: |
+        echo "LIBT_PY_BINDINGS=OFF" >> $GITHUB_ENV
+
+    # NOTE: MSVC tools must be in the path for the Ninja generator. Caveat: must use cmd
+    - name: setup MSVC dev cmd
+      uses: ilammy/msvc-dev-cmd@v1.4.1
+
+    # ninja is preferable, not a hard requirement
+    - name: install additional required packages with chocolatey
+      run: |
+        choco install ninja
+
+    - name: setup vcpkg (cached, if possible)
+      uses: lukka/run-vcpkg@v4.1
+      with:
+        vcpkgDirectory: ${{ env.VCPKG_DEST_WIN }}
+        vcpkgGitCommitId: ${{ env.VCPKG_COMMIT }}
+        setupOnly: true
+        appendedCacheKey: ${{ matrix.build_variant }}
+
+    # clear buildtrees to reduce disk space requirements
+    - name: install dependencies via vcpkg
+      run: |
+        ${{ env.RUNVCPKG_VCPKG_ROOT }}/vcpkg.exe install `
+          boost-asio:${{ env.VCPKG_TRIPLET }} `
+          boost-chrono:${{ env.VCPKG_TRIPLET }} `
+          boost-config:${{ env.VCPKG_TRIPLET }} `
+          boost-crc:${{ env.VCPKG_TRIPLET }} `
+          boost-date-time:${{ env.VCPKG_TRIPLET }} `
+          boost-iterator:${{ env.VCPKG_TRIPLET }} `
+          boost-multiprecision:${{ env.VCPKG_TRIPLET }} `
+          boost-pool:${{ env.VCPKG_TRIPLET }} `
+          boost-python:${{ env.VCPKG_TRIPLET }} `
+          boost-random:${{ env.VCPKG_TRIPLET }} `
+          boost-scope-exit:${{ env.VCPKG_TRIPLET }} `
+          boost-system:${{ env.VCPKG_TRIPLET }} `
+          boost-variant:${{ env.VCPKG_TRIPLET }} `
+          openssl:${{ env.VCPKG_TRIPLET }} `
+          --clean-after-build
+
+    - name: build libtorrent
+      shell: cmd
+      run: |
+        cmake -B cmake-build-dir -G "Ninja" ^
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_BUILD_TYPE=${{ matrix.build_config }} ^
+          -DCMAKE_TOOLCHAIN_FILE=${{ env.VCPKG_DEST_WIN }}\scripts\buildsystems\vcpkg.cmake ^
+          -DVCPKG_TARGET_TRIPLET=${{ env.VCPKG_TRIPLET }} ^
+          -Dbuild_examples=ON -Dbuild_tools=ON ^
+          -Dbuild_tests=${{ env.LIBT_TESTS }} -Ddeprecated-functions=${{ env.LIBT_DEPR_FUN }} ^
+          -DBUILD_SHARED_LIBS=${{ env.LIBT_BSL }} -Dstatic_runtime=${{ env.LIBT_STATIC_RT }} ^
+          -Dpython-bindings=${{ env.LIBT_PY_BINDINGS }} -Dskip-python-runtime-test=ON ^
+          -Dboost-python-module-name="python38" ^
+          --graphviz=cmake-build-dir\target_graph.dot
+        cmake --build cmake-build-dir
+
+    - name: run ctest
+      if: matrix.build_tests == 'tests'
+      run: |
+        cd cmake-build-dir && ctest --output-on-failure -j 2
+
+    - name: upload artifact as zip
+      uses: actions/upload-artifact@v2.2.0
+      with:
+        name: libtorrent_RC_1_2-CI-Windows_x64-${{ matrix.build_variant }}-${{ matrix.build_config }}-${{ matrix.deprecated_functions }}-${{ matrix.build_tests }}-${{ matrix.python_bindings }}
+        path: |
+          cmake-build-dir/compile_commands.json
+          cmake-build-dir/target_graph.dot*
+          cmake-build-dir/torrent-rasterbar*
+          cmake-build-dir/libcrypto*
+          cmake-build-dir/libssl*
+          cmake-build-dir/LibtorrentRasterbar/**
+          cmake-build-dir/tools/**
+          cmake-build-dir/examples/**
+          cmake-build-dir/bindings/**
+          !cmake-build-dir/**/CMakeFiles
+          !cmake-build-dir/**/*.cmake
+          !**/*.ilk
