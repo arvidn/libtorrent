@@ -12,6 +12,7 @@ Copyright (c) 2018, d-komarov
 Copyright (c) 2019, ghbplayer
 Copyright (c) 2020, Paul-Louis Ageneau
 Copyright (c) 2021, AdvenT
+Copyright (c) 2023, Joris Carrier
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -485,8 +486,9 @@ namespace libtorrent {
 			int blocks_left;
 			bool fail;
 			error_code error;
+			callback_t<read_piece_alert>::type callback;
 		};
-		void read_piece(piece_index_t);
+		void read_piece(piece_index_t, callback_t<read_piece_alert>::type callback = {});
 		void on_disk_read_complete(disk_buffer_holder, storage_error const&
 			, peer_request const&, std::shared_ptr<read_piece_struct>);
 
@@ -563,7 +565,7 @@ namespace libtorrent {
 		bool has_error() const { return !!m_error; }
 		error_code error() const { return m_error; }
 
-		void flush_cache();
+		void flush_cache(callback_t<cache_flushed_alert>::type callback = {});
 		void pause(pause_flags_t flags = {});
 		void resume();
 
@@ -1292,7 +1294,7 @@ namespace libtorrent {
 		void on_file_renamed(std::string const& filename
 			, file_index_t file_idx
 			, storage_error const& error);
-		void on_cache_flushed(bool manually_triggered);
+		void on_cache_flushed(bool manually_triggered, callback_t<cache_flushed_alert>::type callback = {});
 
 		// this is used when a torrent is being removed.It synchronizes with the
 		// disk thread
