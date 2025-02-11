@@ -203,4 +203,4 @@ jobs:
         password: ${{ secrets.TEST_PYPI_API_TOKEN }}
         packages-dir: wheelhouse
         skip-existing: true
-        repository_url: https://test.pypi.org/legacy/
+        repository-url: https://test.pypi.org/legacy/
