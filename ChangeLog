@@ -17,6 +17,10 @@
 	* libtorrent now requires C++17 to build
 	* added support for WebTorrent
 
+2.0.12
+
+	* fix handling of invalid filenames
+
 2.0.11 released
 
 	* validate add_torrent_params::save_path at run-time
