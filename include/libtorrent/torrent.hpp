@@ -12,6 +12,7 @@ Copyright (c) 2018, d-komarov
 Copyright (c) 2019, ghbplayer
 Copyright (c) 2020, Paul-Louis Ageneau
 Copyright (c) 2021, AdvenT
+Copyright (c) 2025, Vladimir Golovnev (glassez)
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -605,6 +606,8 @@ namespace libtorrent {
 			m_need_save_resume_data |= flag;
 			state_updated();
 		}
+
+		add_torrent_params get_resume_data(resume_data_flags_t flags) const;
 
 		bool is_auto_managed() const { return m_auto_managed; }
 		void auto_managed(bool a);

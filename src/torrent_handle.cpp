@@ -8,6 +8,7 @@ Copyright (c) 2017, Falcosc
 Copyright (c) 2018, Steven Siloti
 Copyright (c) 2019, Andrei Kurushin
 Copyright (c) 2019, ghbplayer
+Copyright (c) 2025, Vladimir Golovnev (glassez)
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -411,6 +412,11 @@ namespace libtorrent {
 	bool torrent_handle::need_save_resume_data(resume_data_flags_t const flags) const
 	{
 		return sync_call_ret<bool>(false, &torrent::need_save_resume_data, flags);
+	}
+
+	add_torrent_params torrent_handle::get_resume_data(resume_data_flags_t const flags) const
+	{
+		return sync_call_ret<add_torrent_params>({}, &torrent::get_resume_data, flags);
 	}
 
 	void torrent_handle::force_recheck() const
