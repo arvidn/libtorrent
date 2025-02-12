@@ -1081,7 +1081,9 @@ namespace libtorrent::aux {
 
 		std::shared_ptr<const torrent_info> get_torrent_file() const;
 
+#if TORRENT_ABI_VERSION < 4
 		std::shared_ptr<torrent_info> get_torrent_copy_with_hashes() const;
+#endif
 
 		std::vector<std::vector<sha256_hash>> get_piece_layers() const;
 
@@ -1674,10 +1676,12 @@ namespace libtorrent::aux {
 		// quarantine
 		bool m_pending_active_change:1;
 
+#if TORRENT_ABI_VERSION < 4
 		// this is set to true if all piece layers were successfully loaded and
 		// validated. Only for v2 torrents
 		// TODO: this member can probably be removed
 		bool m_v2_piece_layers_validated:1;
+#endif
 
 // ----
 

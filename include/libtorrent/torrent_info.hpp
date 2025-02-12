@@ -171,6 +171,9 @@ TORRENT_VERSION_NAMESPACE_3
 			: torrent_info(span<char const>{buffer, size}, ec, from_span) {}
 #endif // TORRENT_ABI_VERSION
 
+		// Construct a torrent_info object from the parsed info-section
+		// pointed to by `info_section`. The info-section buffer will be copied
+		// into torrent_info.
 		torrent_info(bdecode_node const& info_section, error_code& ec
 			, load_torrent_limits const& cfg
 			, from_info_section_t);
@@ -466,9 +469,11 @@ TORRENT_VERSION_NAMESPACE_3
 		// magnet links. Prefer using torrent::is_i2p() instead.
 		bool is_i2p() const { return bool(m_flags & i2p); }
 
+#if TORRENT_ABI_VERSION < 4
 		// internal
-		bool v2_piece_hashes_verified() const { return bool(m_flags & v2_has_piece_hashes); }
+		bool v2_piece_hashes_verified() const { return bool(m_flags & deprecated_v2_has_piece_hashes); }
 		void set_piece_layers(aux::vector<aux::vector<char>, file_index_t> pl);
+#endif
 
 		// returns the piece size of file with ``index``. This will be the same as piece_length(),
 		// except for the last piece, which may be shorter.
@@ -594,6 +599,9 @@ TORRENT_VERSION_NAMESPACE_3
 		boost::shared_array<char const> metadata() const;
 #endif
 
+#if TORRENT_ABI_VERSION < 4
+		// deprecated: use add_torrent_params instead, which has merkle_trees
+
 		// return the bytes of the piece layer hashes for the specified file. If
 		// the file doesn't have a piece layer, an empty span is returned.
 		// The span size is divisible by 32, the size of a SHA-256 hash.
@@ -601,15 +609,16 @@ TORRENT_VERSION_NAMESPACE_3
 		// the files "root hash" is the hash of the file and is not saved
 		// separately in the "piece layers" field, but this function still
 		// returns the root hash of the file in that case.
+		TORRENT_DEPRECATED
 		span<char const> piece_layer(file_index_t) const;
 
 		// clears the piece layers from the torrent_info. This is done by the
 		// session when a torrent is added, to avoid storing it twice. The piece
 		// layer (or other hashes part of the merkle tree) are stored in the
 		// internal torrent object.
+		TORRENT_DEPRECATED
 		void free_piece_layers();
 
-#if TORRENT_ABI_VERSION < 4
 		// internal
 		void internal_set_creator(string_view);
 		void internal_set_comment(string_view);
@@ -768,7 +777,13 @@ TORRENT_VERSION_NAMESPACE_3
 		// dictionary
 		static inline constexpr torrent_info_flags_t ssl_torrent = 3_bit;
 
+#if TORRENT_ABI_VERSION < 4
 		// v2 piece hashes were loaded from the torrent file and verified
+		static inline constexpr torrent_info_flags_t deprecated_v2_has_piece_hashes = 4_bit;
+#endif
+
+		// hidden
+		TORRENT_DEPRECATED
 		static inline constexpr torrent_info_flags_t v2_has_piece_hashes = 4_bit;
 
 		torrent_info_flags_t m_flags{};

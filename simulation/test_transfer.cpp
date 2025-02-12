@@ -418,12 +418,12 @@ void run_torrent_test(std::shared_ptr<lt::torrent_info> ti)
 	sim::timer t(sim, lt::seconds(10), [&](boost::system::error_code const&)
 	{
 		auto h = ses[0]->get_torrents();
+#if TORRENT_ABI_VERSION < 4
 		auto ti = h[0].torrent_file_with_hashes();
 
 		if (ti->v2())
 			TEST_EQUAL(ti->v2_piece_hashes_verified(), true);
 
-#if TORRENT_ABI_VERSION < 4
 		auto downloaded = serialize(*ti);
 		auto added = serialize(*torrent);
 		TEST_CHECK(downloaded == added);
