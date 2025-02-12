@@ -34,6 +34,7 @@ see LICENSE file.
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/disk_interface.hpp" // for default_block_size
 #include "libtorrent/aux_/ip_helpers.hpp"
+#include "libtorrent/load_torrent.hpp"
 
 #include "test.hpp"
 #include "test_utils.hpp"
@@ -56,7 +57,7 @@ using namespace lt;
 #define SEPARATOR "/"
 #endif
 
-std::shared_ptr<torrent_info> generate_torrent(bool const with_files, bool const with_hashes)
+lt::add_torrent_params generate_torrent(bool const with_files, bool const with_hashes)
 {
 	if (with_files)
 	{
@@ -106,7 +107,7 @@ std::shared_ptr<torrent_info> generate_torrent(bool const with_files, bool const
 	}
 
 	std::vector<char> const buf = bencode(t.generate());
-	return std::make_shared<torrent_info>(buf, from_span);
+	return load_torrent_buffer(buf);
 }
 
 namespace {

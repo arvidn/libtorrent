@@ -831,8 +831,7 @@ TORRENT_TEST(redundant_add_piece)
 TORRENT_TEST(test_in_session)
 {
 	lt::session ses(settings());
-	add_torrent_params p;
-	p.ti = generate_torrent();
+	add_torrent_params p = generate_torrent();
 	p.save_path = ".";
 	torrent_handle h = ses.add_torrent(std::move(p));
 	TEST_CHECK(h.in_session());

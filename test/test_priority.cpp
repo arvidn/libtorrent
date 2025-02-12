@@ -471,20 +471,18 @@ TORRENT_TEST(file_priority_multiple_calls)
 	settings_pack pack = settings();
 	lt::session ses(pack);
 
-	auto t = ::generate_torrent(true);
+	add_torrent_params addp = ::generate_torrent(true);
 
-	add_torrent_params addp;
 	addp.flags &= ~torrent_flags::paused;
 	addp.flags &= ~torrent_flags::auto_managed;
 	addp.save_path = ".";
-	addp.ti = t;
 	torrent_handle h = ses.add_torrent(addp);
 
-	for (file_index_t const i : t->files().file_range())
+	for (file_index_t const i : addp.ti->files().file_range())
 		h.file_priority(i, lt::low_priority);
 
 	std::vector<download_priority_t> const expected(
-		std::size_t(t->files().num_files()), lt::low_priority);
+		std::size_t(addp.ti->files().num_files()), lt::low_priority);
 	for (int i = 0; i < 10; ++i)
 	{
 		auto const p = h.get_file_priorities();
@@ -564,13 +562,12 @@ TORRENT_TEST(test_piece_priority_after_resume)
 {
 	auto const new_prio = lt::low_priority;
 
-	add_torrent_params p;
-	auto ti = generate_torrent();
+	add_torrent_params p = generate_torrent();
+	auto ti = p.ti;
 	{
 		auto const prio = top_priority;
 
 		p.save_path = ".";
-		p.ti = ti;
 		p.file_priorities.resize(1, prio);
 
 		lt::session ses(settings());
@@ -619,15 +616,13 @@ lt::download_priority_t rand_prio(Engine& rng)
 
 TORRENT_TEST(file_priority_stress_test)
 {
-	add_torrent_params atp;
-	auto ti = generate_torrent();
-	int const num_files = ti->num_files();
+	add_torrent_params atp = generate_torrent();
+	int const num_files = atp.ti->num_files();
 
 	lt::aux::vector<lt::download_priority_t, lt::file_index_t>
 		local_prios(static_cast<std::size_t>(num_files), lt::default_priority);
 
 	atp.save_path = ".";
-	atp.ti = ti;
 	atp.file_priorities = local_prios;
 	atp.flags &= ~torrent_flags::need_save_resume;
 
@@ -688,7 +683,7 @@ TORRENT_TEST(file_priority_stress_test)
 	TEST_CHECK(st.need_save_resume_data & torrent_handle::if_config_changed);
 
 	auto const pp = h.get_piece_priorities();
-	auto const& fs = ti->files();
+	auto const& fs = atp.ti->files();
 	lt::piece_index_t i(0);
 
 	std::cout << "piece prios:\n";
