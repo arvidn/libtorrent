@@ -21,8 +21,9 @@ see LICENSE file.
 #include "libtorrent/units.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/fwd.hpp"
+#include "libtorrent/add_torrent_params.hpp"
 
-EXPORT std::shared_ptr<lt::torrent_info> generate_torrent(bool with_files = false, bool with_hashes = false);
+EXPORT lt::add_torrent_params generate_torrent(bool with_files = false, bool with_hashes = false);
 
 EXPORT int load_file(std::string const& filename, std::vector<char>& v
 	, lt::error_code& ec, int limit = 8000000);

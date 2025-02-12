@@ -21,13 +21,11 @@ TORRENT_TEST(time_crititcal)
 
 TORRENT_TEST(time_crititcal_zero_prio)
 {
-	auto ti = generate_torrent();
+	lt::add_torrent_params atp = generate_torrent();
 
 	lt::session ses(settings());
 
-	lt::add_torrent_params atp;
-	atp.ti = ti;
-	atp.piece_priorities.resize(std::size_t(ti->num_pieces()), lt::dont_download);
+	atp.piece_priorities.resize(std::size_t(atp.ti->num_pieces()), lt::dont_download);
 	atp.save_path = ".";
 	auto h = ses.add_torrent(atp);
 

@@ -136,7 +136,7 @@ TORRENT_TEST(read_resume_missing_file_format)
 }
 
 namespace {
-std::shared_ptr<torrent_info> generate_torrent()
+add_torrent_params generate_torrent()
 {
 	std::vector<lt::create_file_entry> fs;
 	fs.emplace_back("test_resume/tmp1", 128 * 1024 * 8);
@@ -156,39 +156,39 @@ std::shared_ptr<torrent_info> generate_torrent()
 		t.set_hash(i, ph);
 	}
 
-	return load_torrent_buffer(bencode(t.generate())).ti;
+	return load_torrent_buffer(bencode(t.generate()));
 }
 } // anonymous namespace
 
 TORRENT_TEST(read_resume_torrent)
 {
-	std::shared_ptr<torrent_info> ti = generate_torrent();
+	add_torrent_params p = generate_torrent();
 
 	entry rd;
 	rd["file-format"] = "libtorrent resume file";
 	rd["file-version"] = 1;
-	rd["info-hash"] = ti->info_hashes().v1.to_string();
-	rd["info"] = bdecode(ti->info_section());
+	rd["info-hash"] = p.ti->info_hashes().v1.to_string();
+	rd["info"] = bdecode(p.ti->info_section());
 
 	// the info-hash field does not match the torrent in the "info" field, so it
 	// will be ignored
 	add_torrent_params atp = read_resume_data(bencode(rd));
 	TEST_CHECK(atp.ti);
 
-	TEST_EQUAL(atp.ti->info_hashes(), ti->info_hashes());
-	TEST_EQUAL(atp.ti->name(), ti->name());
+	TEST_EQUAL(atp.ti->info_hashes(), p.ti->info_hashes());
+	TEST_EQUAL(atp.ti->name(), p.ti->name());
 }
 
 TORRENT_TEST(mismatching_v1_hash)
 {
-	std::shared_ptr<torrent_info> ti = generate_torrent();
+	add_torrent_params p = generate_torrent();
 
 	entry rd;
 	rd["file-format"] = "libtorrent resume file";
 	rd["file-version"] = 1;
 	rd["info-hash"] = "abababababababababab";
-	rd["info-hash2"] = ti->info_hashes().v2;
-	rd["info"] = bdecode(ti->info_section());
+	rd["info-hash2"] = p.ti->info_hashes().v2;
+	rd["info"] = bdecode(p.ti->info_section());
 
 	std::vector<char> resume_data;
 	bencode(std::back_inserter(resume_data), rd);
@@ -202,14 +202,14 @@ TORRENT_TEST(mismatching_v1_hash)
 
 TORRENT_TEST(mismatching_v2_hash)
 {
-	std::shared_ptr<torrent_info> ti = generate_torrent();
+	add_torrent_params p = generate_torrent();
 
 	entry rd;
 	rd["file-format"] = "libtorrent resume file";
 	rd["file-version"] = 1;
-	rd["info-hash"] = ti->info_hashes().v1;
+	rd["info-hash"] = p.ti->info_hashes().v1;
 	rd["info-hash2"] = "abababababababababababababababab";
-	rd["info"] = bdecode(ti->info_section());
+	rd["info"] = bdecode(p.ti->info_section());
 
 	std::vector<char> resume_data;
 	bencode(std::back_inserter(resume_data), rd);
