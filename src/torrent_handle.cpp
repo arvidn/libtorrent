@@ -717,11 +717,13 @@ namespace libtorrent {
 			std::shared_ptr<const torrent_info>(), &aux::torrent::get_torrent_file);
 	}
 
+#if TORRENT_ABI_VERSION < 4
 	std::shared_ptr<torrent_info> torrent_handle::torrent_file_with_hashes() const
 	{
 		return sync_call_ret<std::shared_ptr<torrent_info>>(
 			std::shared_ptr<torrent_info>(), &aux::torrent::get_torrent_copy_with_hashes);
 	}
+#endif
 
 	std::vector<std::vector<sha256_hash>> torrent_handle::piece_layers() const
 	{

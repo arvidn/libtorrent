@@ -218,9 +218,11 @@ void test_round_trip_torrent(std::string const& name)
 	TEST_CHECK(out_torrent.dict_find("info").data_section()
 		== in_torrent.dict_find("info").data_section());
 
+#if TORRENT_ABI_VERSION < 4
 	auto in_piece_layers = in_torrent.dict_find("piece layers").data_section();
 	auto out_piece_layers = out_torrent.dict_find("piece layers").data_section();
 	TEST_CHECK(out_piece_layers == in_piece_layers);
+#endif
 }
 
 }
@@ -638,11 +640,13 @@ TORRENT_TEST(piece_layer)
 	TEST_EQUAL(atp.merkle_trees[2_file].size(), 0);
 	TEST_EQUAL(atp.merkle_trees[3_file].size(), 0);
 
+#if TORRENT_ABI_VERSION < 4
 	auto info = std::make_shared<lt::torrent_info>(buffer, lt::from_span);
 	TEST_EQUAL(info->piece_layer(0_file).size(), lt::sha256_hash::size() * 2);
 	TEST_EQUAL(info->piece_layer(1_file).size(), lt::sha256_hash::size());
 	TEST_EQUAL(info->piece_layer(2_file).size(), lt::sha256_hash::size());
 	TEST_EQUAL(info->piece_layer(3_file).size(), 0);
+#endif
 }
 
 TORRENT_TEST(pieces_root_empty_file)

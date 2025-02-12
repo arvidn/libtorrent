@@ -1037,12 +1037,14 @@ namespace {
 
 	torrent_info::~torrent_info() = default;
 
+#if TORRENT_ABI_VERSION < 4
 	// internal
 	void torrent_info::set_piece_layers(aux::vector<aux::vector<char>, file_index_t> pl)
 	{
 		m_piece_layers = pl;
-		m_flags |= v2_has_piece_hashes;
+		m_flags |= deprecated_v2_has_piece_hashes;
 	}
+#endif
 
 	sha1_hash torrent_info::hash_for_piece(piece_index_t const index) const
 	{ return sha1_hash(hash_for_piece_ptr(index)); }
@@ -1418,6 +1420,7 @@ namespace {
 		return true;
 	}
 
+#if TORRENT_ABI_VERSION < 4
 	span<char const> torrent_info::piece_layer(file_index_t f) const
 	{
 		TORRENT_ASSERT_PRECOND(f >= file_index_t(0));
@@ -1438,10 +1441,9 @@ namespace {
 		m_piece_layers.clear();
 		m_piece_layers.shrink_to_fit();
 
-		m_flags &= ~v2_has_piece_hashes;
+		m_flags &= ~deprecated_v2_has_piece_hashes;
 	}
 
-#if TORRENT_ABI_VERSION < 4
 	void torrent_info::internal_set_creator(string_view const c)
 	{ m_created_by = std::string(c); }
 
@@ -1502,6 +1504,7 @@ namespace {
 			m_flags |= i2p;
 		}
 
+#if TORRENT_ABI_VERSION < 4
 		if (v2())
 		{
 			auto& trees = atp.merkle_trees;
@@ -1547,6 +1550,7 @@ namespace {
 			}
 			set_piece_layers(v2_hashes);
 		}
+#endif
 
 		for (auto const& url : atp.url_seeds)
 		{

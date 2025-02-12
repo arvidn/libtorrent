@@ -206,6 +206,7 @@ void run_test(
 
 	sim::timer t(sim, timeout, [&](boost::system::error_code const&)
 	{
+#if TORRENT_ABI_VERSION < 4
 		auto h = ses[0]->get_torrents();
 		auto ti = h[0].torrent_file_with_hashes();
 
@@ -219,14 +220,13 @@ void run_test(
 			if (ti->v2())
 				TEST_EQUAL(ti->v2_piece_hashes_verified(), true);
 
-#if TORRENT_ABI_VERSION < 4
 			{
 				auto downloaded = serialize(*ti);
 				auto added = serialize(atp_copy);
 				TEST_CHECK(downloaded == added);
 			}
-#endif
 		}
+#endif
 
 		test(ses);
 

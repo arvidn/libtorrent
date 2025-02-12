@@ -213,7 +213,9 @@ bool is_downloading_state(int const st)
 		, m_enable_pex(!bool(p.flags & torrent_flags::disable_pex))
 		, m_apply_ip_filter(p.flags & torrent_flags::apply_ip_filter)
 		, m_pending_active_change(false)
+#if TORRENT_ABI_VERSION < 4
 		, m_v2_piece_layers_validated(false)
+#endif
 		, m_connect_boost_counter(static_cast<std::uint8_t>(settings().get_int(settings_pack::torrent_connect_boost)))
 		, m_incomplete(0xffffff)
 		, m_announce_to_dht(!(p.flags & torrent_flags::paused))
@@ -259,6 +261,7 @@ bool is_downloading_state(int const st)
 
 		if (m_torrent_file->is_valid())
 		{
+			// merkle trees are loaded from add_torrent_params below, in load_merkle_trees()
 			error_code ec = initialize_merkle_trees();
 			if (ec) throw system_error(ec);
 			m_size_on_disk = m_torrent_file->files().size_on_disk();
@@ -7036,6 +7039,7 @@ namespace {
 		return m_torrent_file;
 	}
 
+#if TORRENT_ABI_VERSION < 4
 	std::shared_ptr<torrent_info> torrent::get_torrent_copy_with_hashes() const
 	{
 		if (!m_torrent_file->is_valid()) return {};
@@ -7063,6 +7067,7 @@ namespace {
 
 		return ret;
 	}
+#endif
 
 	std::vector<std::vector<sha256_hash>> torrent::get_piece_layers() const
 	{
@@ -7761,7 +7766,9 @@ namespace {
 	{
 		if (!info_hash().has_v2()) return {};
 
+#if TORRENT_ABI_VERSION < 4
 		bool valid = m_torrent_file->v2_piece_hashes_verified();
+#endif
 
 		file_storage const& fs = m_torrent_file->orig_files();
 		m_merkle_trees.reserve(fs.num_files());
@@ -7774,6 +7781,7 @@ namespace {
 			}
 			m_merkle_trees.emplace_back(fs.file_num_blocks(i)
 				, fs.blocks_per_piece(), fs.root_ptr(i));
+#if TORRENT_ABI_VERSION < 4
 			auto const piece_layer = m_torrent_file->piece_layer(i);
 			if (piece_layer.empty())
 			{
@@ -7787,11 +7795,14 @@ namespace {
 				m_v2_piece_layers_validated = false;
 				return errors::torrent_invalid_piece_layer;
 			}
+#endif
 		}
 
+#if TORRENT_ABI_VERSION < 4
 		m_v2_piece_layers_validated = valid;
 
 		m_torrent_file->free_piece_layers();
+#endif
 		return {};
 	}
 

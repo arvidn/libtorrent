@@ -305,9 +305,11 @@ static test_torrent_t const test_torrents[] =
 			TEST_EQUAL(atp.merkle_trees.empty(), false);
 			TEST_EQUAL(atp.ti->num_files(), 5);
 			TEST_CHECK(atp.ti->v2());
+#if TORRENT_ABI_VERSION < 4
 			atp.ti->free_piece_layers();
 			TEST_CHECK(atp.ti->v2());
 			TEST_EQUAL(atp.ti->v2_piece_hashes_verified(), false);
+#endif
 		}
 	},
 	{ "v2_invalid_filename2.torrent", [](lt::add_torrent_params atp) {
@@ -1225,9 +1227,11 @@ TORRENT_TEST(parse_torrents)
 		TEST_CHECK(atp.ti->web_seeds().empty());
 #endif
 
+#if TORRENT_ABI_VERSION < 4
 		// piece layers are loaded into atp.merkle_trees and
 		// atp.merkle_trees_mask
 		TEST_CHECK(!atp.ti->v2_piece_hashes_verified());
+#endif
 
 		auto ti = atp.ti;
 		if (t.test) t.test(std::move(atp));
