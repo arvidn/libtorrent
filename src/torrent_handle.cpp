@@ -414,6 +414,11 @@ namespace libtorrent {
 		return sync_call_ret<bool>(false, &torrent::need_save_resume_data, flags);
 	}
 
+	add_torrent_params torrent_handle::get_resume_data(resume_data_flags_t const flags) const
+	{
+		return sync_call_ret<add_torrent_params>({}, &torrent::get_resume_data, flags);
+	}
+
 	void torrent_handle::force_recheck() const
 	{
 		async_call(&torrent::force_recheck);
