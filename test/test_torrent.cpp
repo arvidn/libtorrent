@@ -192,9 +192,11 @@ TORRENT_TEST(long_names)
 	info["length"] = 3245;
 
 	std::vector<char> const buf = bencode(torrent);
-	auto ti = std::make_shared<torrent_info>(buf, from_span);
 	auto atp = load_torrent_buffer(buf);
+#if TORRENT_ABI_VERSION < 4
+	auto ti = std::make_shared<torrent_info>(buf, from_span);
 	TEST_CHECK(atp.ti->info_hashes() == ti->info_hashes());
+#endif
 }
 
 TORRENT_TEST(large_piece_size)
@@ -667,11 +669,10 @@ TORRENT_TEST(test_have_piece_out_of_range)
 {
 	lt::session ses(settings());
 
-	add_torrent_params p;
 	static std::array<const int, 2> const file_sizes{{100000, 100000}};
 	int const piece_size = 0x8000;
 	auto files = create_random_files(".", file_sizes);
-	p.ti = make_torrent(std::move(files), piece_size);
+	add_torrent_params p = make_torrent(std::move(files), piece_size);
 
 	p.save_path = ".";
 	p.flags |= torrent_flags::seed_mode;
@@ -703,9 +704,8 @@ TORRENT_TEST(test_read_piece_out_of_range)
 {
 	lt::session ses(settings());
 
-	add_torrent_params p;
 	int const piece_size = 0x8000;
-	p.ti = make_torrent(make_files({{100000, false}, {100000, false}}), piece_size);
+	add_torrent_params p = make_torrent(make_files({{100000, false}, {100000, false}}), piece_size);
 	p.save_path = "save_path";
 	p.flags |= torrent_flags::seed_mode;
 	torrent_handle h = ses.add_torrent(std::move(p));

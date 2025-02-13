@@ -31,6 +31,7 @@ see LICENSE file.
 #include <deque>
 #include <mutex>
 #include <algorithm>
+#include <typeinfo>
 
 #ifdef __MACH__
 #include <mach/task_info.h>

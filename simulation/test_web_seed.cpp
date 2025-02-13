@@ -39,8 +39,8 @@ int const piece_size = 0x4000;
 add_torrent_params create_torrent(std::vector<lt::create_file_entry> files
 	, bool const v1_only = false)
 {
-	add_torrent_params ret;
-	ret.ti = ::make_torrent(std::move(files), 0, v1_only ? create_torrent::v1_only : create_flags_t{});
+	add_torrent_params ret = ::make_torrent(std::move(files)
+		, 0, v1_only ? create_torrent::v1_only : create_flags_t{});
 	ret.flags &= ~lt::torrent_flags::auto_managed;
 	ret.flags &= ~lt::torrent_flags::paused;
 	ret.save_path = ".";

@@ -24,6 +24,7 @@ see LICENSE file.
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/session.hpp" // for default_disk_io_constructor
 #include "libtorrent/disk_interface.hpp"
+#include "libtorrent/load_torrent.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include <random>
@@ -1073,13 +1074,16 @@ int main(int argc, char* argv[])
 	else if (command == "gen-data"_sv)
 	{
 		error_code ec;
-		torrent_info ti(torrent_file, ec);
-		if (ec)
+		try
 		{
-			std::fprintf(stderr, "ERROR LOADING .TORRENT: %s\n", ec.message().c_str());
+			add_torrent_params atp = load_torrent_file(torrent_file);
+			generate_data(data_path, *atp.ti);
+		}
+		catch (lt::system_error const& err)
+		{
+			std::fprintf(stderr, "ERROR LOADING .TORRENT: %s\n", err.code().message().c_str());
 			return 1;
 		}
-		generate_data(data_path, ti);
 		return 0;
 	}
 	else if (command == "gen-test-torrents"_sv)
@@ -1164,7 +1168,7 @@ int main(int argc, char* argv[])
 	}
 #endif
 
-	torrent_info ti(torrent_file, ec);
+	add_torrent_params atp = load_torrent_file(torrent_file);
 	if (ec)
 	{
 		std::fprintf(stderr, "ERROR LOADING .TORRENT: %s\n", ec.message().c_str());
@@ -1175,14 +1179,14 @@ int main(int argc, char* argv[])
 	conns.reserve(std::size_t(num_connections));
 	int const num_threads = 2;
 	io_context ios[num_threads];
-	lt::sha1_hash const ih = ti.info_hash();
+	lt::sha1_hash const ih = atp.ti->info_hash();
 	for (int i = 0; i < num_connections; ++i)
 	{
 		bool corrupt = test_corruption && (i & 1) == 0;
 		bool seed = false;
 		if (test_mode == upload_test) seed = true;
 		else if (test_mode == dual_test) seed = (i & 1);
-		conns.push_back(new peer_conn(ios[i % num_threads], ti.num_pieces(), ti.piece_length() / 16 / 1024
+		conns.push_back(new peer_conn(ios[i % num_threads], atp.ti->num_pieces(), atp.ti->piece_length() / 16 / 1024
 			, ep, ih.data(), seed, churn, corrupt));
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		ios[i % num_threads].poll_one();
@@ -1211,8 +1215,8 @@ int main(int argc, char* argv[])
 		"total sent: %.1f %% received: %.1f %%\n"
 		"rate sent: %.1f MB/s received: %.1f MB/s\n"
 		, int(num_suggest), int(num_suggested_requests)
-		, double(total_sent * 0x4000) * 100.0 / double(ti.total_size())
-		, double(total_received * 0x4000) * 100.0 / double(ti.total_size())
+		, double(total_sent * 0x4000) * 100.0 / double(atp.ti->total_size())
+		, double(total_received * 0x4000) * 100.0 / double(atp.ti->total_size())
 		, double(total_sent * 0x4000) / 1000000.0
 		, double(total_received * 0x4000) / 1000000.0);
 

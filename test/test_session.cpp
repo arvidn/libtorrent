@@ -207,14 +207,15 @@ TORRENT_TEST(async_add_torrent_duplicate_back_to_back)
 	TEST_CHECK(!(st.flags & torrent_flags::auto_managed));
 }
 
+#if TORRENT_ABI_VERSION < 4
 TORRENT_TEST(load_empty_file)
 {
 	settings_pack p = settings();
 	p.set_int(settings_pack::alert_mask, ~0);
 	lt::session ses(p);
 
-	add_torrent_params atp;
 	error_code ignore_errors;
+	add_torrent_params atp;
 	atp.ti = std::make_shared<torrent_info>("", std::ref(ignore_errors), from_span);
 	atp.save_path = ".";
 	error_code ec;
@@ -223,6 +224,7 @@ TORRENT_TEST(load_empty_file)
 	TEST_CHECK(!h.is_valid());
 	TEST_CHECK(ec == error_code(errors::no_metadata));
 }
+#endif
 
 TORRENT_TEST(session_stats)
 {

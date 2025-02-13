@@ -318,6 +318,7 @@ load_torrent_limits dict_to_limits(dict limits)
     return ret;
 }
 
+#if TORRENT_ABI_VERSION < 4
 std::shared_ptr<torrent_info> buffer_constructor0(bytes b)
 {
    return std::make_shared<torrent_info>(b.arr, from_span);
@@ -339,6 +340,7 @@ std::shared_ptr<torrent_info> file_constructor1(lt::string_view filename, dict l
 {
    return std::make_shared<torrent_info>(std::string(filename), dict_to_limits(limits));
 }
+#endif
 
 std::shared_ptr<torrent_info> sha1_constructor0(sha1_hash const& ih)
 {
@@ -350,6 +352,7 @@ std::shared_ptr<torrent_info> sha256_constructor0(sha256_hash const& ih)
     return std::make_shared<torrent_info>(info_hash_t(ih));
 }
 
+#if TORRENT_ABI_VERSION < 4
 std::shared_ptr<torrent_info> bencoded_constructor0(dict d)
 {
     entry ent = extract<entry>(d);
@@ -366,6 +369,7 @@ std::shared_ptr<torrent_info> bencoded_constructor1(dict d, dict limits)
     return std::make_shared<torrent_info>(buf, dict_to_limits(limits)
         , lt::from_span);
 }
+#endif
 
 #if TORRENT_ABI_VERSION == 1
 std::shared_ptr<file_entry> file_entry_constructor()
@@ -406,12 +410,14 @@ void bind_torrent_info()
 
     class_<torrent_info, std::shared_ptr<torrent_info>>("torrent_info", no_init)
         .def(init<info_hash_t const&>(arg("info_hash")))
+#if TORRENT_ABI_VERSION < 4
         .def("__init__", make_constructor(&bencoded_constructor0))
         .def("__init__", make_constructor(&bencoded_constructor1))
         .def("__init__", make_constructor(&buffer_constructor0))
         .def("__init__", make_constructor(&buffer_constructor1))
         .def("__init__", make_constructor(&file_constructor0))
         .def("__init__", make_constructor(&file_constructor1))
+#endif
         .def(init<torrent_info const&>((arg("ti"))))
 
         .def("__init__", make_constructor(&sha1_constructor0))

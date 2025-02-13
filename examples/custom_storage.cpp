@@ -291,9 +291,8 @@ int main(int argc, char* argv[]) try
 	lt::session_params ses_params;
 	ses_params.disk_io_constructor = temp_disk_constructor;
 	lt::session s(ses_params);
-	lt::add_torrent_params p;
+	lt::add_torrent_params p = lt::load_torrent_file(argv[1]);
 	p.save_path = "./";
-	p.ti = std::make_shared<lt::torrent_info>(argv[1]);
 	s.add_torrent(p);
 
 	// wait for the user to end

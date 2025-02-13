@@ -11,7 +11,7 @@ see LICENSE file.
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/session.hpp"
-#include "libtorrent/torrent_info.hpp"
+#include "libtorrent/load_torrent.hpp"
 
 #include <iostream>
 
@@ -24,9 +24,8 @@ int main(int argc, char* argv[]) try
 	}
 
 	lt::session s;
-	lt::add_torrent_params p;
+	lt::add_torrent_params p = lt::load_torrent_file(argv[1]);
 	p.save_path = ".";
-	p.ti = std::make_shared<lt::torrent_info>(argv[1]);
 	s.add_torrent(p);
 
 	// wait for the user to end

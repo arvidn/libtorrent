@@ -106,8 +106,7 @@ lt::add_torrent_params generate_torrent(bool const with_files, bool const with_h
 		}
 	}
 
-	std::vector<char> const buf = bencode(t.generate());
-	return load_torrent_buffer(buf);
+	return load_torrent_buffer(bencode(t.generate()));
 }
 
 namespace {
@@ -839,7 +838,7 @@ lt::file_storage make_file_storage(span<const int> const file_sizes
 	return fs;
 }
 
-std::shared_ptr<lt::torrent_info> make_torrent(std::vector<lt::create_file_entry> files
+add_torrent_params make_torrent(std::vector<lt::create_file_entry> files
 	, int piece_size,  lt::create_flags_t const flags)
 {
 	lt::create_torrent ct(std::move(files), piece_size, flags);
@@ -904,8 +903,7 @@ std::shared_ptr<lt::torrent_info> make_torrent(std::vector<lt::create_file_entry
 		}
 	}
 
-	std::vector<char> const buf = bencode(ct.generate());
-	return std::make_shared<torrent_info>(buf, from_span);
+	return load_torrent_buffer(bencode(ct.generate()));
 }
 
 std::vector<lt::create_file_entry> create_random_files(std::string const& path, span<const int> file_sizes)
@@ -1014,8 +1012,7 @@ add_torrent_params create_torrent(std::ostream* file
 		}
 	}
 
-	std::vector<char> tmp = bencode(t.generate());
-	return load_torrent_buffer(tmp);
+	return load_torrent_buffer(bencode(t.generate()));
 }
 
 std::tuple<torrent_handle, torrent_handle, torrent_handle>

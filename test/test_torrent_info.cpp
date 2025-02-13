@@ -1277,7 +1277,14 @@ TORRENT_TEST(parse_invalid_torrents)
 		std::string const filename = combine_path(combine_path(root_dir, "test_torrents")
 			, e.file);
 
-		auto ti = std::make_shared<torrent_info>(filename, ec);
+		try
+		{
+			auto add_torrent_params = load_torrent_file(filename);
+		}
+		catch (lt::system_error const& err)
+		{
+			ec = err.code();
+		}
 		std::printf("E:        \"%s\"\nexpected: \"%s\"\n", ec.message().c_str()
 			, e.error.message().c_str());
 		// Some checks only happen in the load_torrent_*() functions, not in the
@@ -1286,7 +1293,6 @@ TORRENT_TEST(parse_invalid_torrents)
 		if (e.error != errors::torrent_invalid_piece_layer || ec)
 		{
 			TEST_EQUAL(ec.message(), e.error.message());
-			TEST_EQUAL(ti->is_valid(), false);
 		}
 
 		try
