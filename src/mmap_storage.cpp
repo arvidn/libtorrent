@@ -680,7 +680,7 @@ error_code translate_error(std::error_code const& err, bool const write)
 		std::this_thread::sleep_for(milliseconds(rand() % 2000));
 #endif
 
-		char dummy;
+		char dummy = 0;
 		std::vector<char> scratch;
 
 		return readwrite(files(), span<char const>{&dummy, len}, piece, offset, error

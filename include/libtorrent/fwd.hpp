@@ -261,9 +261,9 @@ struct torrent_handle;
 
 // include/libtorrent/torrent_info.hpp
 struct load_torrent_limits;
-TORRENT_VERSION_NAMESPACE_3
+TORRENT_VERSION_NAMESPACE_4
 class torrent_info;
-TORRENT_VERSION_NAMESPACE_3_END
+TORRENT_VERSION_NAMESPACE_4_END
 
 // include/libtorrent/torrent_status.hpp
 TORRENT_VERSION_NAMESPACE_4

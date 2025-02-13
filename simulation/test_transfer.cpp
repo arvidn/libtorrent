@@ -8,6 +8,7 @@ see LICENSE file.
 */
 
 #include "transfer_sim.hpp"
+#include "libtorrent/load_torrent.hpp"
 
 using namespace sim;
 using namespace lt;
@@ -348,7 +349,7 @@ TORRENT_TEST(disk_full_recover_large_pieces)
 
 // Below is a series of tests to transfer torrents with varying pad-file related
 // traits
-void run_torrent_test(std::shared_ptr<lt::torrent_info> ti)
+void run_torrent_test(lt::add_torrent_params atp)
 {
 	using asio::ip::address;
 	address peer0 = addr("50.0.0.1");
@@ -403,15 +404,12 @@ void run_torrent_test(std::shared_ptr<lt::torrent_info> ti)
 
 	print_alerts(*ses[1], [](lt::session&, lt::alert const*){}, 1);
 
-	lt::add_torrent_params atp;
-	atp.ti = ti;
 	atp.save_path = ".";
 
 	atp.flags &= ~lt::torrent_flags::auto_managed;
 	atp.flags &= ~lt::torrent_flags::paused;
 
 	ses[1]->async_add_torrent(atp);
-	auto torrent = atp.ti;
 
 	ses[0]->async_add_torrent(atp);
 
@@ -425,7 +423,7 @@ void run_torrent_test(std::shared_ptr<lt::torrent_info> ti)
 			TEST_EQUAL(ti->v2_piece_hashes_verified(), true);
 
 		auto downloaded = serialize(*ti);
-		auto added = serialize(*torrent);
+		auto added = serialize(atp);
 		TEST_CHECK(downloaded == added);
 #endif
 
@@ -451,7 +449,7 @@ void run_torrent_test(std::shared_ptr<lt::torrent_info> ti)
 
 namespace {
 
-std::shared_ptr<lt::torrent_info> test_torrent(std::vector<lt::create_file_entry> fs
+lt::add_torrent_params test_torrent(std::vector<lt::create_file_entry> fs
 	, int const piece_size, lt::create_flags_t const flags)
 {
 	lt::create_torrent ct(std::move(fs), piece_size, flags);
@@ -460,9 +458,7 @@ std::shared_ptr<lt::torrent_info> test_torrent(std::vector<lt::create_file_entry
 	lt::set_piece_hashes(ct, "", pack, test_disk().set_files(existing_files_mode::full_valid)
 		, [](lt::piece_index_t p) { std::cout << "."; std::cout.flush();}, ec);
 
-	auto e = ct.generate();
-	std::vector<char> const buf = lt::bencode(e);
-	return std::make_shared<lt::torrent_info>(buf, lt::from_span);
+	return lt::load_torrent_buffer(lt::bencode(ct.generate()));
 }
 
 }

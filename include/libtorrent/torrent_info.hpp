@@ -95,13 +95,14 @@ namespace aux {
 
 	using torrent_info_flags_t = flags::bitfield_flag<std::uint8_t, struct torrent_info_flags_tag>;
 
-TORRENT_VERSION_NAMESPACE_3
+TORRENT_VERSION_NAMESPACE_4
 
 	// the torrent_info class holds the information found in a .torrent file.
 	class TORRENT_EXPORT torrent_info
 	{
 	public:
 
+#if TORRENT_ABI_VERSION < 4
 		// The constructor that takes an info-hash will initialize the info-hash
 		// to the given value, but leave all other fields empty. This is used
 		// internally when downloading torrents without the metadata. The
@@ -137,38 +138,45 @@ TORRENT_VERSION_NAMESPACE_3
 		// string literals. There is an object in the libtorrent namespace of this
 		// type called ``from_span``.
 #ifndef BOOST_NO_EXCEPTIONS
+		TORRENT_DEPRECATED
 		explicit torrent_info(bdecode_node const& torrent_file);
-		torrent_info(char const* buffer, int size)
-			: torrent_info(span<char const>{buffer, size}, from_span) {}
+		TORRENT_DEPRECATED
+		torrent_info(char const* buffer, int size);
+		TORRENT_DEPRECATED
 		explicit torrent_info(span<char const> buffer, from_span_t);
+		TORRENT_DEPRECATED
 		explicit torrent_info(std::string const& filename);
+		TORRENT_DEPRECATED
 		torrent_info(std::string const& filename, load_torrent_limits const& cfg);
+		TORRENT_DEPRECATED
 		torrent_info(span<char const> buffer, load_torrent_limits const& cfg, from_span_t);
+		TORRENT_DEPRECATED
 		torrent_info(bdecode_node const& torrent_file, load_torrent_limits const& cfg);
 #endif // BOOST_NO_EXCEPTIONS
-		torrent_info(torrent_info const& t);
-		explicit torrent_info(info_hash_t const& info_hash);
+		TORRENT_DEPRECATED
 		torrent_info(bdecode_node const& torrent_file, error_code& ec);
-		torrent_info(char const* buffer, int size, error_code& ec)
-			: torrent_info(span<char const>{buffer, size}, ec, from_span) {}
+		TORRENT_DEPRECATED
+		torrent_info(char const* buffer, int size, error_code& ec);
+		TORRENT_DEPRECATED
 		torrent_info(span<char const> buffer, error_code& ec, from_span_t);
+		TORRENT_DEPRECATED
 		torrent_info(std::string const& filename, error_code& ec);
+#endif
+
+		explicit torrent_info(info_hash_t const& info_hash);
+		torrent_info(torrent_info const& t);
 
 #if TORRENT_ABI_VERSION == 1
 #ifndef BOOST_NO_EXCEPTIONS
 		TORRENT_DEPRECATED
-		torrent_info(char const* buffer, int size, int)
-			: torrent_info(span<char const>{buffer, size}, from_span) {}
+		torrent_info(char const* buffer, int size, int);
 #endif
 		TORRENT_DEPRECATED
-		torrent_info(bdecode_node const& torrent_file, error_code& ec, int)
-			: torrent_info(torrent_file, ec) {}
+		torrent_info(bdecode_node const& torrent_file, error_code& ec, int);
 		TORRENT_DEPRECATED
-		torrent_info(std::string const& filename, error_code& ec, int)
-			: torrent_info(filename, ec) {}
+		torrent_info(std::string const& filename, error_code& ec, int);
 		TORRENT_DEPRECATED
-		torrent_info(char const* buffer, int size, error_code& ec, int)
-			: torrent_info(span<char const>{buffer, size}, ec, from_span) {}
+		torrent_info(char const* buffer, int size, error_code& ec, int);
 #endif // TORRENT_ABI_VERSION
 
 		// Construct a torrent_info object from the parsed info-section
@@ -780,16 +788,16 @@ TORRENT_VERSION_NAMESPACE_3
 #if TORRENT_ABI_VERSION < 4
 		// v2 piece hashes were loaded from the torrent file and verified
 		static inline constexpr torrent_info_flags_t deprecated_v2_has_piece_hashes = 4_bit;
-#endif
 
 		// hidden
 		TORRENT_DEPRECATED
 		static inline constexpr torrent_info_flags_t v2_has_piece_hashes = 4_bit;
+#endif
 
 		torrent_info_flags_t m_flags{};
 	};
 
-TORRENT_VERSION_NAMESPACE_3_END
+TORRENT_VERSION_NAMESPACE_4_END
 
 }
 

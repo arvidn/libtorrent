@@ -21,6 +21,7 @@ see LICENSE file.
 #include "libtorrent/disk_interface.hpp" // for default_block_size
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/hasher.hpp"
+#include "libtorrent/load_torrent.hpp"
 #include "libtorrent/disabled_disk_io.hpp"
 #include "read_bits.hpp"
 
@@ -28,7 +29,7 @@ using namespace lt;
 
 lt::session_params g_params;
 io_context g_ioc;
-std::shared_ptr<lt::torrent_info> g_torrent;
+lt::add_torrent_params g_torrent;
 std::vector<sha256_hash> g_tree;
 
 int const piece_size = 1024 * 1024;
@@ -93,7 +94,7 @@ extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv)
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
-	g_torrent = std::make_shared<torrent_info>(buf, from_span);
+	g_torrent = lt::load_torrent_buffer(buf);
 
 	return 0;
 }
@@ -101,9 +102,7 @@ extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv)
 lt::add_torrent_params generate_atp(std::uint8_t const* data, size_t size)
 {
 	read_bits bits(data, size);
-	lt::add_torrent_params ret;
-	ret.ti = g_torrent;
-	ret.info_hashes = g_torrent->info_hashes();
+	lt::add_torrent_params ret = g_torrent;
 	ret.save_path = ".";
 	ret.file_priorities.resize(bits.read(2));
 	for (auto& p : ret.file_priorities)

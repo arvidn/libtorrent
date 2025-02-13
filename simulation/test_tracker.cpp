@@ -24,6 +24,7 @@ see LICENSE file.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/load_torrent.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp" // for is_v4
 
 #include <boost/optional.hpp>
@@ -733,10 +734,10 @@ void tracker_test(Setup setup, Announce a, Test1 test1, Test2 test2
 	ses->set_alert_notify(std::bind(&on_alert_notify, ses.get()));
 
 	lt::add_torrent_params p;
-	p.name = "test-torrent";
-	p.save_path = ".";
 	p.info_hashes.v1.assign("abababababababababab");
 	int const delay = setup(p, *ses);
+	p.name = "test-torrent";
+	p.save_path = ".";
 	ses->async_add_torrent(p);
 
 	// run the test 5 seconds in
@@ -1301,7 +1302,7 @@ TORRENT_TEST(clear_error)
 	TEST_EQUAL(num_announces, 2);
 }
 
-std::shared_ptr<torrent_info> make_torrent(bool priv)
+lt::add_torrent_params make_torrent(bool priv)
 {
 	std::vector<lt::create_file_entry> fs;
 	fs.emplace_back("foobar", 13241);
@@ -1314,9 +1315,7 @@ std::shared_ptr<torrent_info> make_torrent(bool priv)
 
 	ct.set_priv(priv);
 
-	entry e = ct.generate();
-	std::vector<char> const buf = bencode(e);
-	return std::make_shared<torrent_info>(buf, from_span);
+	return lt::load_torrent_buffer(lt::bencode(ct.generate()));
 }
 
 // make sure we _do_ send our IPv6 address to trackers for private torrents
@@ -1332,7 +1331,7 @@ TORRENT_TEST(tracker_ipv6_argument)
 			pack.set_bool(settings_pack::anonymous_mode, false);
 			pack.set_str(settings_pack::listen_interfaces, "123.0.0.3:0,[ffff::1337]:0");
 			ses.apply_settings(pack);
-			p.ti = make_torrent(true);
+			p = make_torrent(true);
 			p.info_hashes = lt::info_hash_t{};
 			return 60;
 		},
@@ -1371,7 +1370,7 @@ TORRENT_TEST(tracker_key_argument)
 	tracker_test(
 		[](lt::add_torrent_params& p, lt::session&)
 		{
-			p.ti = make_torrent(true);
+			p = make_torrent(true);
 			p.info_hashes = lt::info_hash_t{};
 			return 60;
 		},
@@ -1402,7 +1401,7 @@ TORRENT_TEST(tracker_ipv6_argument_non_private)
 			settings_pack pack;
 			pack.set_bool(settings_pack::anonymous_mode, false);
 			ses.apply_settings(pack);
-			p.ti = make_torrent(false);
+			p = make_torrent(false);
 			p.info_hashes = lt::info_hash_t{};
 			return 60;
 		},
@@ -1431,7 +1430,7 @@ TORRENT_TEST(tracker_ipv6_argument_privacy_mode)
 			settings_pack pack;
 			pack.set_bool(settings_pack::anonymous_mode, true);
 			ses.apply_settings(pack);
-			p.ti = make_torrent(true);
+			p = make_torrent(true);
 			p.info_hashes = lt::info_hash_t{};
 			return 60;
 		},
@@ -1460,7 +1459,7 @@ TORRENT_TEST(tracker_user_agent_privacy_mode_public_torrent)
 			pack.set_bool(settings_pack::anonymous_mode, true);
 			pack.set_str(settings_pack::user_agent, "test_agent/1.2.3");
 			ses.apply_settings(pack);
-			p.ti = make_torrent(false);
+			p = make_torrent(false);
 			p.info_hashes = lt::info_hash_t{};
 			return 60;
 		},
@@ -1488,7 +1487,7 @@ TORRENT_TEST(tracker_user_agent_privacy_mode_private_torrent)
 			pack.set_bool(settings_pack::anonymous_mode, true);
 			pack.set_str(settings_pack::user_agent, "test_agent/1.2.3");
 			ses.apply_settings(pack);
-			p.ti = make_torrent(true);
+			p = make_torrent(true);
 			p.info_hashes = lt::info_hash_t{};
 			return 60;
 		},

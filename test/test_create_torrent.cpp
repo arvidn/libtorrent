@@ -374,7 +374,8 @@ TORRENT_TEST(create_torrent_symlink)
 		std::vector<char> torrent = lt::bencode(t.generate());
 
 		TEST_CHECK(torrent == t.generate_buf());
-		lt::torrent_info ti(torrent, lt::from_span);
+		lt::add_torrent_params atp = lt::load_torrent_buffer(torrent);
+		auto& ti = *atp.ti;
 
 		int found = 0;
 		for (auto i : ti.files().file_range())
@@ -489,7 +490,8 @@ TORRENT_TEST(implicit_v2_only)
 	TEST_CHECK(buffer == t.generate_buf());
 
 	{
-		lt::torrent_info info(buffer, lt::from_span);
+		lt::add_torrent_params atp = lt::load_torrent_buffer(buffer);
+		auto& info = *atp.ti;
 		TEST_CHECK(info.info_hashes().has_v2());
 		TEST_CHECK(!info.info_hashes().has_v1());
 		TEST_EQUAL(info.files().file_name(0_file), "A");
@@ -523,7 +525,8 @@ TORRENT_TEST(implicit_v1_only)
 	TEST_CHECK(buffer == t.generate_buf());
 
 	{
-		lt::torrent_info info(buffer, lt::from_span);
+		lt::add_torrent_params atp = lt::load_torrent_buffer(buffer);
+		auto& info = *atp.ti;
 		TEST_CHECK(!info.info_hashes().has_v2());
 		TEST_CHECK(info.info_hashes().has_v1());
 		TEST_EQUAL(info.files().file_name(0_file), "A");

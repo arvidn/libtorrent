@@ -68,7 +68,7 @@ EXPORT void wait_for_seeding(lt::session& ses, char const* name);
 EXPORT std::vector<char> generate_piece(lt::piece_index_t idx, int piece_size = 0x4000);
 EXPORT lt::file_storage make_file_storage(lt::span<const int> file_sizes
 	, int const piece_size, std::string base_name = "test_dir-");
-EXPORT std::shared_ptr<lt::torrent_info> make_torrent(std::vector<lt::create_file_entry> files, int piece_size, lt::create_flags_t flags = {});
+EXPORT lt::add_torrent_params make_torrent(std::vector<lt::create_file_entry> files, int piece_size, lt::create_flags_t flags = {});
 EXPORT std::vector<lt::create_file_entry> create_random_files(std::string const& path, lt::span<const int> file_sizes);
 
 EXPORT lt::add_torrent_params create_torrent(std::ostream* file = nullptr

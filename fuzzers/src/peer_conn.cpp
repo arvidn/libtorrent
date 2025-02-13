@@ -16,6 +16,7 @@ see LICENSE file.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/load_torrent.hpp"
 #include "libtorrent/aux_/random.hpp"
 
 #include "libtorrent/io_context.hpp"
@@ -82,14 +83,10 @@ extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv)
 
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
-	auto ti = std::make_shared<torrent_info>(buf, from_span);
+	add_torrent_params atp = load_torrent_buffer(buf);
 
 	// remember the info-hash to give the fuzzer a chance to connect to it
-	g_info_hash = ti->info_hashes();
-
-	// add the torrent to the session
-	add_torrent_params atp;
-	atp.ti = std::move(ti);
+	g_info_hash = atp.ti->info_hashes();
 	atp.save_path = ".";
 
 	g_ses->add_torrent(std::move(atp));

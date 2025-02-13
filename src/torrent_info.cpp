@@ -668,6 +668,7 @@ namespace {
 		return true;
 	}
 
+#if TORRENT_ABI_VERSION < 4
 	int load_file(std::string const& filename, std::vector<char>& v
 		, error_code& ec, int const max_buffer_size = 80000000)
 	{
@@ -719,10 +720,11 @@ namespace {
 		}
 		return 0;
 	}
+#endif
 
 } // anonymous namespace
 
-TORRENT_VERSION_NAMESPACE_3
+TORRENT_VERSION_NAMESPACE_4
 
 	torrent_info::torrent_info(torrent_info const&) = default;
 	torrent_info& torrent_info::operator=(torrent_info&&) = default;
@@ -893,6 +895,12 @@ namespace {
 	}
 
 #if TORRENT_ABI_VERSION == 1
+#ifndef BOOST_NO_EXCEPTIONS
+	torrent_info::torrent_info(char const* buffer, int size, int)
+		: torrent_info(span<char const>{buffer, size}, from_span)
+	{}
+#endif
+
 	// standard constructor that parses a torrent file
 	torrent_info::torrent_info(entry const& torrent_file)
 	{
@@ -918,11 +926,28 @@ namespace {
 #endif
 		INVARIANT_CHECK;
 	}
+
+	torrent_info::torrent_info(bdecode_node const& torrent_file, error_code& ec, int)
+		: torrent_info(torrent_file, ec)
+	{}
+
+	torrent_info::torrent_info(std::string const& filename, error_code& ec, int)
+		: torrent_info(filename, ec)
+	{}
+
+	torrent_info::torrent_info(char const* buffer, int size, error_code& ec, int)
+		: torrent_info(span<char const>{buffer, size}, ec, from_span)
+	{}
 #endif // TORRENT_ABI_VERSION
 
+#if TORRENT_ABI_VERSION < 4
 #ifndef BOOST_NO_EXCEPTIONS
 	torrent_info::torrent_info(bdecode_node const& torrent_file)
 		: torrent_info(torrent_file, load_torrent_limits{})
+	{}
+
+	torrent_info::torrent_info(char const* buffer, int size)
+		: torrent_info(span<char const>{buffer, size}, from_span)
 	{}
 
 	torrent_info::torrent_info(span<char const> buffer, from_span_t)
@@ -976,26 +1001,16 @@ namespace {
 	}
 #endif
 
-	file_storage const& torrent_info::orig_files() const
-	{
-		TORRENT_ASSERT(is_loaded());
-		return m_orig_files ? *m_orig_files : m_files;
-	}
-
-	void torrent_info::rename_file(file_index_t index, std::string const& new_filename)
-	{
-		TORRENT_ASSERT(is_loaded());
-		if (m_files.file_path(index) == new_filename) return;
-		copy_on_write();
-		m_files.rename_file(index, new_filename);
-	}
-
 	torrent_info::torrent_info(bdecode_node const& torrent_file
 		, error_code& ec)
 	{
 		parse_torrent_file(torrent_file, ec, load_torrent_limits{});
 		INVARIANT_CHECK;
 	}
+
+	torrent_info::torrent_info(char const* buffer, int size, error_code& ec)
+		: torrent_info(span<char const>{buffer, size}, ec, from_span)
+	{}
 
 	torrent_info::torrent_info(span<char const> buffer
 		, error_code& ec, from_span_t)
@@ -1019,6 +1034,7 @@ namespace {
 
 		INVARIANT_CHECK;
 	}
+#endif
 
 	// constructor used for creating new torrents
 	// will not contain any hashes, comments, creation date
@@ -1036,6 +1052,20 @@ namespace {
 	}
 
 	torrent_info::~torrent_info() = default;
+
+	file_storage const& torrent_info::orig_files() const
+	{
+		TORRENT_ASSERT(is_loaded());
+		return m_orig_files ? *m_orig_files : m_files;
+	}
+
+	void torrent_info::rename_file(file_index_t index, std::string const& new_filename)
+	{
+		TORRENT_ASSERT(is_loaded());
+		if (m_files.file_path(index) == new_filename) return;
+		copy_on_write();
+		m_files.rename_file(index, new_filename);
+	}
 
 #if TORRENT_ABI_VERSION < 4
 	// internal
@@ -1709,6 +1739,6 @@ namespace {
 	bool torrent_info::v1() const { return m_info_hash.has_v1(); }
 	bool torrent_info::v2() const { return m_info_hash.has_v2(); }
 
-TORRENT_VERSION_NAMESPACE_3_END
+TORRENT_VERSION_NAMESPACE_4_END
 
 }
