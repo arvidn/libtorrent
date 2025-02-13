@@ -17,6 +17,7 @@ see LICENSE file.
 #include "libtorrent/disk_observer.hpp"
 #include "libtorrent/aux_/apply_pad_files.hpp"
 #include "libtorrent/aux_/random.hpp"
+#include "libtorrent/load_torrent.hpp"
 
 #include <utility> // for exchange()
 
@@ -230,7 +231,7 @@ int pads_in_req(std::unordered_map<lt::piece_index_t, int> const& pb
 	return std::max(0, std::min(req_end - pad_start, r.length));
 }
 
-std::shared_ptr<lt::torrent_info> create_test_torrent(int const piece_size
+lt::add_torrent_params create_test_torrent(int const piece_size
 	, int const num_pieces, lt::create_flags_t const flags, int const num_files)
 {
 	std::vector<lt::create_file_entry> ifs;
@@ -308,16 +309,14 @@ std::shared_ptr<lt::torrent_info> create_test_torrent(int const piece_size
 	}
 
 	std::vector<char> const tmp = bencode(t.generate());
-	lt::error_code ec;
-	return std::make_shared<lt::torrent_info>(tmp, ec, lt::from_span);
+	return lt::load_torrent_buffer(tmp);
 }
 
 lt::add_torrent_params create_test_torrent(
 	int const num_pieces, lt::create_flags_t const flags, int const blocks_per_piece
 	, int const num_files)
 {
-	lt::add_torrent_params params;
-	params.ti = ::create_test_torrent(lt::default_block_size * blocks_per_piece, num_pieces, flags, num_files);
+	lt::add_torrent_params params = ::create_test_torrent(lt::default_block_size * blocks_per_piece, num_pieces, flags, num_files);
 	// this is unused by the test disk I/O
 	params.save_path = ".";
 	return params;

@@ -14,6 +14,8 @@ see LICENSE file.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/aux_/random.hpp"
+#include "libtorrent/write_resume_data.hpp" // for write_torrent_file_buf()
+#include "libtorrent/add_torrent_params.hpp"
 
 #ifdef _WIN32
 #include <io.h>
@@ -114,6 +116,12 @@ std::vector<char> serialize(lt::torrent_info const& ti)
 	entry e = ct.generate();
 	std::vector<char> const out_buffer = bencode(e);
 	return out_buffer;
+}
+
+std::vector<char> serialize(lt::add_torrent_params atp)
+{
+	atp.creation_date = 0;
+	return write_torrent_file_buf(atp, {});
 }
 #endif
 

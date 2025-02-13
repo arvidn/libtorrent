@@ -170,11 +170,10 @@ void test_ssl(int const test_idx, bool const use_utp)
 
 	create_directory("tmp1_ssl", ec);
 	std::ofstream file("tmp1_ssl/temporary");
-	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary"
+	add_torrent_params addp = ::create_torrent(&file, "temporary"
 		, 16 * 1024, 13, false, {}, combine_path("..", combine_path("ssl", "root_ca_cert.pem")));
 	file.close();
 
-	add_torrent_params addp;
 	addp.save_path = "tmp1_ssl";
 	addp.flags &= ~torrent_flags::paused;
 	addp.flags &= ~torrent_flags::auto_managed;
@@ -184,7 +183,7 @@ void test_ssl(int const test_idx, bool const use_utp)
 	peer_errors = 0;
 
 	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, nullptr
-		, true, false, false, "_ssl", 16 * 1024, &t, false, &addp, true);
+		, true, false, false, "_ssl", 16 * 1024, &addp, false, true);
 
 	if (test.seed_has_cert)
 	{
@@ -553,17 +552,15 @@ void test_malicious_peer()
 	// create torrent
 	create_directory("tmp3_ssl", ec);
 	std::ofstream file("tmp3_ssl/temporary");
-	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary"
+	add_torrent_params addp = ::create_torrent(&file, "temporary"
 		, 16 * 1024, 13, false, {}, combine_path("..", combine_path("ssl", "root_ca_cert.pem")));
 	file.close();
 
-	TEST_CHECK(!t->ssl_cert().empty());
+	TEST_CHECK(!addp.ti->ssl_cert().empty());
 
-	add_torrent_params addp;
 	addp.save_path = "tmp3_ssl";
 	addp.flags &= ~torrent_flags::paused;
 	addp.flags &= ~torrent_flags::auto_managed;
-	addp.ti = t;
 
 	torrent_handle tor1 = ses1.add_torrent(addp, ec);
 
@@ -583,7 +580,7 @@ void test_malicious_peer()
 
 	for (int i = 0; i < num_attacks; ++i)
 	{
-		bool const success = try_connect(ses1, port, t, attacks[i].flags);
+		bool const success = try_connect(ses1, port, addp.ti, attacks[i].flags);
 		TEST_EQUAL(success, attacks[i].expect);
 	}
 }

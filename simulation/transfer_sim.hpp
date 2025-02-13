@@ -147,9 +147,7 @@ void run_test(
 
 	int const num_files = (flags & tx::multiple_files) ? 3 : 1;
 
-	lt::add_torrent_params atp;
-
-	atp.ti = ::create_test_torrent(piece_size, num_pieces, cflags, num_files);
+	lt::add_torrent_params atp = ::create_test_torrent(piece_size, num_pieces, cflags, num_files);
 	// this is unused by the test disk I/O
 	atp.save_path = ".";
 	atp.flags &= ~lt::torrent_flags::auto_managed;
@@ -191,16 +189,18 @@ void run_test(
 	if (!(flags & tx::web_seed))
 		ses[1]->async_add_torrent(atp);
 
-	auto torrent = atp.ti;
-
 	atp.save_path = save_path(0);
+	if (flags & tx::web_seed)
+		atp.url_seeds.emplace_back("http://2.2.2.2:8080/");
+
+#if TORRENT_ABI_VERSION < 4
+	auto atp_copy = atp;
+#endif
 	if (flags & tx::magnet_download)
 	{
 		atp.info_hashes = atp.ti->info_hashes();
 		atp.ti.reset();
 	}
-	if (flags & tx::web_seed)
-		atp.url_seeds.emplace_back("http://2.2.2.2:8080/");
 
 	ses[0]->async_add_torrent(atp);
 
@@ -222,7 +222,7 @@ void run_test(
 #if TORRENT_ABI_VERSION < 4
 			{
 				auto downloaded = serialize(*ti);
-				auto added = serialize(*torrent);
+				auto added = serialize(atp_copy);
 				TEST_CHECK(downloaded == added);
 			}
 #endif

@@ -874,7 +874,7 @@ void test_fastresume(bool const test_deprecated)
 	if (ec) std::cout << "create_directory '" << combine_path(test_path, "tmp1")
 		<< "': " << ec.message() << std::endl;
 	ofstream file(combine_path(test_path, "tmp1/temporary").c_str());
-	std::shared_ptr<torrent_info> t = ::create_torrent(&file);
+	add_torrent_params atp = ::create_torrent(&file);
 	file.close();
 	TEST_CHECK(exists(complete("tmp1/temporary")));
 	if (!exists(complete("tmp1/temporary")))
@@ -885,8 +885,7 @@ void test_fastresume(bool const test_deprecated)
 		settings_pack pack = settings();
 		lt::session ses(pack);
 
-		add_torrent_params p;
-		p.ti = std::make_shared<torrent_info>(std::cref(*t));
+		add_torrent_params p = atp;
 		p.save_path = combine_path(test_path, "tmp1");
 		p.storage_mode = storage_mode_sparse;
 		error_code ignore;
@@ -951,7 +950,7 @@ void test_fastresume(bool const test_deprecated)
 
 		p.flags &= ~torrent_flags::paused;
 		p.flags &= ~torrent_flags::auto_managed;
-		p.ti = std::make_shared<torrent_info>(std::cref(*t));
+		p.ti = atp.ti;
 		p.save_path = combine_path(test_path, "tmp1");
 		p.storage_mode = storage_mode_sparse;
 		torrent_handle h = ses.add_torrent(std::move(p), ec);
@@ -1073,7 +1072,7 @@ void test_rename_file_fastresume(bool test_deprecated)
 	create_directory(combine_path(test_path, "tmp2"), ec);
 	if (ec) std::cout << "create_directory: " << ec.message() << std::endl;
 	ofstream file(combine_path(test_path, "tmp2/temporary").c_str());
-	std::shared_ptr<torrent_info> t = ::create_torrent(&file);
+	add_torrent_params atp = ::create_torrent(&file);
 	file.close();
 	TEST_CHECK(exists(combine_path(test_path, "tmp2/temporary")));
 
@@ -1083,7 +1082,7 @@ void test_rename_file_fastresume(bool test_deprecated)
 		lt::session ses(pack);
 
 		add_torrent_params p;
-		p.ti = std::make_shared<torrent_info>(std::cref(*t));
+		p.ti = atp.ti;
 		p.save_path = combine_path(test_path, "tmp2");
 		p.storage_mode = storage_mode_sparse;
 		torrent_handle h = ses.add_torrent(std::move(p), ec);
@@ -1134,7 +1133,7 @@ void test_rename_file_fastresume(bool test_deprecated)
 		{
 			p = read_resume_data(resume_data);
 		}
-		p.ti = std::make_shared<torrent_info>(std::cref(*t));
+		p.ti = atp.ti;
 		p.save_path = combine_path(test_path, "tmp2");
 		p.storage_mode = storage_mode_sparse;
 		torrent_handle h = ses.add_torrent(std::move(p), ec);

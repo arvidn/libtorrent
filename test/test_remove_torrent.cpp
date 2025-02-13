@@ -63,7 +63,7 @@ void test_remove_torrent(remove_flags_t const remove_options
 	remove_all("tmp2_remove", ec);
 	create_directory("tmp1_remove", ec);
 	std::ofstream file("tmp1_remove/temporary");
-	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary"
+	add_torrent_params atp = ::create_torrent(&file, "temporary"
 		, 8 * 1024, num_pieces, false, create_torrent::v1_only);
 	file.close();
 
@@ -72,7 +72,7 @@ void test_remove_torrent(remove_flags_t const remove_options
 
 	// test using piece sizes smaller than 16kB
 	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, nullptr
-		, true, false, true, "_remove", 8 * 1024, &t, false, nullptr, true, false, nullptr
+		, true, false, true, "_remove", 8 * 1024, &atp, false, true, false, nullptr
 		, create_torrent::v1_only);
 
 	if (test == partial_download)
@@ -84,8 +84,8 @@ void test_remove_torrent(remove_flags_t const remove_options
 	}
 	else if (test == mid_download)
 	{
-		tor1.set_upload_limit(static_cast<int>(t->total_size()));
-		tor2.set_download_limit(static_cast<int>(t->total_size()));
+		tor1.set_upload_limit(static_cast<int>(atp.ti->total_size()));
+		tor2.set_download_limit(static_cast<int>(atp.ti->total_size()));
 	}
 
 	torrent_status st1;

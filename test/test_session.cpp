@@ -252,9 +252,8 @@ TORRENT_TEST(paused_session)
 	lt::session s(settings());
 	s.pause();
 
-	lt::add_torrent_params ps;
 	std::ofstream file("temporary");
-	ps.ti = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
+	lt::add_torrent_params ps = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
 	ps.flags = lt::torrent_flags::paused;
 	ps.save_path = ".";
 

@@ -71,7 +71,7 @@ EXPORT lt::file_storage make_file_storage(lt::span<const int> file_sizes
 EXPORT std::shared_ptr<lt::torrent_info> make_torrent(std::vector<lt::create_file_entry> files, int piece_size, lt::create_flags_t flags = {});
 EXPORT std::vector<lt::create_file_entry> create_random_files(std::string const& path, lt::span<const int> file_sizes);
 
-EXPORT std::shared_ptr<lt::torrent_info> create_torrent(std::ostream* file = nullptr
+EXPORT lt::add_torrent_params create_torrent(std::ostream* file = nullptr
 	, char const* name = "temporary", int piece_size = 16 * 1024, int num_pieces = 13
 	, bool add_tracker = true, lt::create_flags_t flags = {}, std::string ssl_certificate = "");
 
@@ -81,9 +81,8 @@ EXPORT std::tuple<lt::torrent_handle
 setup_transfer(lt::session* ses1, lt::session* ses2
 	, lt::session* ses3, bool clear_files, bool use_metadata_transfer = true
 	, bool connect = true, std::string suffix = "", int piece_size = 16 * 1024
-	, std::shared_ptr<lt::torrent_info>* torrent = nullptr
+	, lt::add_torrent_params const* atp = nullptr
 	, bool super_seeding = false
-	, lt::add_torrent_params const* p = nullptr
 	, bool stop_lsd = true, bool use_ssl_ports = false
 	, std::shared_ptr<lt::torrent_info>* torrent2 = nullptr
 	, lt::create_flags_t flags = {});

@@ -182,12 +182,11 @@ void test_transfer(int const proxy_type, settings_pack const& sett
 
 	create_directory("tmp1_transfer", ec);
 	std::ofstream file("tmp1_transfer/temporary");
-	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", piece_size, 13, false);
+	add_torrent_params atp = ::create_torrent(&file, "temporary", piece_size, 13, false);
 	file.close();
 
 	TEST_CHECK(exists(combine_path("tmp1_transfer", "temporary")));
 
-	add_torrent_params atp;
 	atp.storage_mode = storage_mode;
 	atp.flags &= ~torrent_flags::paused;
 	atp.flags &= ~torrent_flags::auto_managed;
@@ -200,7 +199,7 @@ void test_transfer(int const proxy_type, settings_pack const& sett
 
 	// test using piece sizes smaller than 16kB
 	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, nullptr
-		, true, false, true, "_transfer", 1024 * 1024, &t, false, &atp);
+		, true, false, true, "_transfer", 1024 * 1024, &atp, false);
 
 	int num_pieces = tor2.torrent_file()->num_pieces();
 	std::vector<int> priorities(std::size_t(num_pieces), 1);
@@ -208,7 +207,7 @@ void test_transfer(int const proxy_type, settings_pack const& sett
 	if (flags & piece_deadline)
 	{
 		int deadline = 1;
-		for (auto const p : t->piece_range())
+		for (auto const p : atp.ti->piece_range())
 		{
 			++deadline;
 			tor2.set_piece_deadline(p, deadline, lt::torrent_handle::alert_when_available);

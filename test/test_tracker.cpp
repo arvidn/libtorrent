@@ -342,10 +342,9 @@ void test_udp_tracker(std::string const& iface, address tracker, tcp::endpoint c
 	remove_all("tmp1_tracker", ec);
 	create_directory("tmp1_tracker", ec);
 	ofstream file(combine_path("tmp1_tracker", "temporary").c_str());
-	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
+	add_torrent_params addp = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
 	file.close();
 
-	add_torrent_params addp;
 	char tracker_url[200];
 	std::snprintf(tracker_url, sizeof(tracker_url), "udp://%s:%d/announce", iface.c_str(), udp_port);
 	addp.trackers.push_back(tracker_url);
@@ -353,7 +352,6 @@ void test_udp_tracker(std::string const& iface, address tracker, tcp::endpoint c
 	addp.flags &= ~torrent_flags::paused;
 	addp.flags &= ~torrent_flags::auto_managed;
 	addp.flags |= torrent_flags::seed_mode;
-	addp.ti = t;
 	addp.save_path = "tmp1_tracker";
 	torrent_handle h = s->add_torrent(addp);
 
@@ -440,10 +438,9 @@ TORRENT_TEST(http_peers)
 	remove_all("tmp2_tracker", ec);
 	create_directory("tmp2_tracker", ec);
 	ofstream file(combine_path("tmp2_tracker", "temporary").c_str());
-	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
+	add_torrent_params addp = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
 	file.close();
 
-	add_torrent_params addp;
 	char tracker_url[200];
 	std::snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce"
 		, http_port);
@@ -452,7 +449,6 @@ TORRENT_TEST(http_peers)
 	addp.flags &= ~torrent_flags::paused;
 	addp.flags &= ~torrent_flags::auto_managed;
 	addp.flags |= torrent_flags::seed_mode;
-	addp.ti = t;
 	addp.save_path = "tmp2_tracker";
 	torrent_handle h = s->add_torrent(addp);
 
@@ -513,10 +509,9 @@ TORRENT_TEST(current_tracker)
 	remove_all("tmp3_tracker", ec);
 	create_directory("tmp3_tracker", ec);
 	ofstream file(combine_path("tmp3_tracker", "temporary").c_str());
-	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
+	add_torrent_params addp = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
 	file.close();
 
-	add_torrent_params addp;
 	char tracker_url[200];
 	std::snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce"
 		, http_port);
@@ -525,7 +520,6 @@ TORRENT_TEST(current_tracker)
 	addp.flags &= ~torrent_flags::paused;
 	addp.flags &= ~torrent_flags::auto_managed;
 	addp.flags |= torrent_flags::seed_mode;
-	addp.ti = t;
 	addp.save_path = "tmp3_tracker";
 	torrent_handle h = s->add_torrent(addp);
 
@@ -705,10 +699,9 @@ TORRENT_TEST(websocket_tracker)
 	remove_all("tmp4_tracker", ec);
 	create_directory("tmp4_tracker", ec);
 	std::ofstream file(combine_path("tmp4_tracker", "temporary").c_str());
-	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
+	add_torrent_params addp = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
 	file.close();
 
-	add_torrent_params addp;
 	char tracker_url[200];
 	std::snprintf(tracker_url, sizeof(tracker_url), "ws://127.0.0.1:%d/announce"
 		, http_port);
@@ -717,7 +710,6 @@ TORRENT_TEST(websocket_tracker)
 	addp.flags &= ~torrent_flags::paused;
 	addp.flags &= ~torrent_flags::auto_managed;
 	addp.flags |= torrent_flags::seed_mode;
-	addp.ti = t;
 	addp.save_path = "tmp4_tracker";
 	torrent_handle h = s->add_torrent(addp);
 
@@ -766,10 +758,9 @@ void test_proxy(bool proxy_trackers)
 	remove_all("tmp2_tracker", ec);
 	create_directory("tmp2_tracker", ec);
 	ofstream file(combine_path("tmp2_tracker", "temporary").c_str());
-	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
+	add_torrent_params addp = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
 	file.close();
 
-	add_torrent_params addp;
 	char tracker_url[200];
 	// and this should not be announced to (since the one before it succeeded)
 	std::snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce"
@@ -779,7 +770,6 @@ void test_proxy(bool proxy_trackers)
 	addp.flags &= ~torrent_flags::paused;
 	addp.flags &= ~torrent_flags::auto_managed;
 	addp.flags |= torrent_flags::seed_mode;
-	addp.ti = t;
 	addp.save_path = "tmp2_tracker";
 	torrent_handle h = s->add_torrent(addp);
 
@@ -867,14 +857,12 @@ void test_stop_tracker_timeout(int const timeout)
 	remove_all("tmp4_tracker", ec);
 	create_directory("tmp4_tracker", ec);
 	ofstream file(combine_path("tmp4_tracker", "temporary").c_str());
-	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
+	add_torrent_params tp = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
 	file.close();
 
-	add_torrent_params tp;
 	tp.flags &= ~torrent_flags::paused;
 	tp.flags &= ~torrent_flags::auto_managed;
 	tp.flags |= torrent_flags::seed_mode;
-	tp.ti = t;
 	tp.save_path = "tmp4_tracker";
 	torrent_handle h = s.add_torrent(tp);
 

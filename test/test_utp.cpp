@@ -80,18 +80,17 @@ void test_transfer()
 			, ec.value(), ec.message().c_str());
 	}
 	std::ofstream file("tmp1_utp/temporary");
-	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 128 * 1024, 6, false);
+	add_torrent_params atp = ::create_torrent(&file, "temporary", 128 * 1024, 6, false);
 	file.close();
 
 	// for performance testing
-	add_torrent_params atp;
 	atp.flags &= ~torrent_flags::paused;
 	atp.flags &= ~torrent_flags::auto_managed;
 //	atp.storage = &disabled_storage_constructor;
 
 	// test using piece sizes smaller than 16kB
 	std::tie(tor1, tor2, std::ignore) = setup_transfer(&ses1, &ses2, nullptr
-		, true, false, true, "_utp", 0, &t, false, &atp);
+		, true, false, true, "_utp", 0, &atp, false);
 
 	const int timeout = 16;
 
