@@ -41,6 +41,7 @@ constexpr inline lt::piece_index_t operator "" _piece(unsigned long long const p
 
 #if TORRENT_ABI_VERSION < 4
 EXPORT std::vector<char> serialize(lt::torrent_info const& ti);
+EXPORT std::vector<char> serialize(lt::add_torrent_params atp);
 #endif
 
 EXPORT lt::aux::vector<lt::sha256_hash> build_tree(int const size);

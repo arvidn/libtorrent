@@ -69,14 +69,12 @@ TORRENT_TEST(recheck)
 	create_directory("tmp1_recheck", ec);
 	if (ec) std::printf("create_directory: %s\n", ec.message().c_str());
 	std::ofstream file("tmp1_recheck/temporary");
-	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 4 * 1024 * 1024
+	add_torrent_params param = ::create_torrent(&file, "temporary", 4 * 1024 * 1024
 		, 7, false);
 	file.close();
 
-	add_torrent_params param;
 	param.flags &= ~torrent_flags::paused;
 	param.flags &= ~torrent_flags::auto_managed;
-	param.ti = t;
 	param.save_path = "tmp1_recheck";
 	param.flags |= torrent_flags::seed_mode;
 	torrent_handle tor1 = ses1.add_torrent(param, ec);

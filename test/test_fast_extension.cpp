@@ -436,9 +436,9 @@ std::shared_ptr<torrent_info> setup_peer(tcp::socket& s, io_context& ioc
 		if (ec) log("remove(): %s", ec.message().c_str());
 	}
 
-	std::shared_ptr<torrent_info> t = ::create_torrent(file);
+	add_torrent_params p = ::create_torrent(file);
 	out_file.close();
-	ih = t->info_hashes();
+	ih = p.ti->info_hashes();
 
 	settings_pack sett = settings();
 	sett.set_str(settings_pack::listen_interfaces, test_listen_interface());
@@ -455,14 +455,11 @@ std::shared_ptr<torrent_info> setup_peer(tcp::socket& s, io_context& ioc
 #endif
 	ses.reset(new lt::session(sett));
 
-	add_torrent_params p;
 	p.flags &= ~torrent_flags::paused;
 	p.flags &= ~torrent_flags::auto_managed;
 	p.flags |= flags;
 	if (magnet_link)
 		p.info_hashes = ih;
-	else
-		p.ti = t;
 	p.save_path = "tmp1_fast";
 
 	torrent_handle ret = ses->add_torrent(p);
@@ -492,7 +489,7 @@ std::shared_ptr<torrent_info> setup_peer(tcp::socket& s, io_context& ioc
 
 	print_session_log(*ses);
 
-	return t;
+	return p.ti;
 }
 
 } // anonymous namespace
@@ -794,7 +791,7 @@ TORRENT_TEST(multiple_have_all)
 	std::shared_ptr<lt::session> ses;
 	io_context ios;
 	tcp::socket s(ios);
-	std::shared_ptr<torrent_info> ti = setup_peer(s, ios, ih, ses);
+	setup_peer(s, ios, ih, ses);
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);
@@ -828,8 +825,7 @@ TORRENT_TEST(dont_have)
 	std::shared_ptr<lt::session> ses;
 	io_context ios;
 	tcp::socket s(ios);
-	std::shared_ptr<torrent_info> ti = setup_peer(s, ios, ih, ses, true
-		, false, false, torrent_flags_t{}, &th);
+	setup_peer(s, ios, ih, ses, true, false, false, torrent_flags_t{}, &th);
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);
@@ -926,7 +922,7 @@ TORRENT_TEST(extension_handshake)
 	std::shared_ptr<lt::session> ses;
 	io_context ios;
 	tcp::socket s(ios);
-	std::shared_ptr<torrent_info> ti = setup_peer(s, ios, ih, ses);
+	setup_peer(s, ios, ih, ses);
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);
@@ -969,7 +965,7 @@ TORRENT_TEST(invalid_metadata_request)
 	std::shared_ptr<lt::session> ses;
 	io_context ios;
 	tcp::socket s(ios);
-	std::shared_ptr<torrent_info> ti = setup_peer(s, ios, ih, ses);
+	setup_peer(s, ios, ih, ses);
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);

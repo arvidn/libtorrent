@@ -106,6 +106,7 @@ lt::info_hash_t setup_conflict(lt::session& seed, lt::session& downloader)
 	// add v1-only magnet link
 	atp.ti.reset();
 	atp.info_hashes.v1 = ih.v1;
+	atp.info_hashes.v2.clear();
 	downloader.async_add_torrent(atp);
 
 	// add v2-only magnet link

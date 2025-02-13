@@ -433,10 +433,10 @@ TORRENT_TEST(make_magnet_uri2)
 
 TORRENT_TEST(make_magnet_uri_v2)
 {
-	auto ti = ::create_torrent(nullptr, "temporary", 16 * 1024, 13
+	auto atp = ::create_torrent(nullptr, "temporary", 16 * 1024, 13
 		, true, lt::create_torrent::v2_only);
 
-	std::string magnet = make_magnet_uri(*ti);
+	std::string magnet = make_magnet_uri(atp);
 	std::printf("%s len: %d\n", magnet.c_str(), int(magnet.size()));
 	TEST_CHECK(magnet.find("xt=urn:btmh:1220") != std::string::npos);
 	TEST_CHECK(magnet.find("xt=urn:btih:") == std::string::npos);
@@ -444,9 +444,9 @@ TORRENT_TEST(make_magnet_uri_v2)
 
 TORRENT_TEST(make_magnet_uri_hybrid)
 {
-	auto ti = ::create_torrent(nullptr, "temporary", 16 * 1024, 13);
+	auto atp = ::create_torrent(nullptr, "temporary", 16 * 1024, 13);
 
-	std::string magnet = make_magnet_uri(*ti);
+	std::string magnet = make_magnet_uri(atp);
 	std::printf("%s len: %d\n", magnet.c_str(), int(magnet.size()));
 	TEST_CHECK(magnet.find("xt=urn:btih:") != std::string::npos);
 	TEST_CHECK(magnet.find("xt=urn:btmh:1220") != std::string::npos);
@@ -454,9 +454,9 @@ TORRENT_TEST(make_magnet_uri_hybrid)
 
 TORRENT_TEST(make_magnet_uri_v1)
 {
-	auto ti = ::create_torrent(nullptr, "temporary", 16 * 1024, 13, true, lt::create_torrent::v1_only);
+	auto atp = ::create_torrent(nullptr, "temporary", 16 * 1024, 13, true, lt::create_torrent::v1_only);
 
-	std::string magnet = make_magnet_uri(*ti);
+	std::string magnet = make_magnet_uri(atp);
 	std::printf("%s len: %d\n", magnet.c_str(), int(magnet.size()));
 	TEST_CHECK(magnet.find("xt=urn:btih:") != std::string::npos);
 	TEST_CHECK(magnet.find("xt=urn:btmh:1220") == std::string::npos);
@@ -676,15 +676,13 @@ TORRENT_TEST(hybrid_info_hashes)
 
 TORRENT_TEST(torrent_info_hash)
 {
-	auto ti = ::create_torrent(nullptr, "temporary", 16 * 1024, 13
+	auto atp = ::create_torrent(nullptr, "temporary", 16 * 1024, 13
 		, true);
 
-	add_torrent_params atp;
-	atp.ti = ti;
-
 	TEST_EQUAL(make_magnet_uri(atp), std::string{}
-		+ "magnet:?xt=urn:btih:" + aux::to_hex(ti->info_hashes().v1)
-		+ "&xt=urn:btmh:1220" + aux::to_hex(ti->info_hashes().v2));
+		+ "magnet:?xt=urn:btih:" + aux::to_hex(atp.ti->info_hashes().v1)
+		+ "&xt=urn:btmh:1220" + aux::to_hex(atp.ti->info_hashes().v2)
+		+ "&tr=http%3a&tr=foo%3a%2f%2fnon%2fexistent-name.com%2fannounce");
 }
 
 #if TORRENT_ABI_VERSION < 3

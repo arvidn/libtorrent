@@ -105,10 +105,9 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, flags_t flags)
 	remove_all("tmp1_privacy", ec);
 	create_directory("tmp1_privacy", ec);
 	std::ofstream file(combine_path("tmp1_privacy", "temporary").c_str());
-	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
+	add_torrent_params addp = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
 	file.close();
 
-	add_torrent_params addp;
 	char http_tracker_url[200];
 	std::snprintf(http_tracker_url, sizeof(http_tracker_url)
 		, "http://127.0.0.1:%d/announce", http_port);
@@ -130,7 +129,6 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, flags_t flags)
 	// seeding it, announcing to trackers and connecting to peers
 	addp.flags |= torrent_flags::seed_mode;
 
-	addp.ti = t;
 	addp.save_path = "tmp1_privacy";
 	addp.dht_nodes.push_back(std::pair<std::string, int>("127.0.0.1", dht_port));
 	torrent_handle h = s->add_torrent(addp);

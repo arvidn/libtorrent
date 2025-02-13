@@ -19,6 +19,7 @@ see LICENSE file.
 #include "libtorrent/hex.hpp"
 #include "simulator/simulator.hpp"
 #include "simulator/utils.hpp"
+#include "libtorrent/load_torrent.hpp"
 
 #include "test.hpp"
 #include "settings.hpp"
@@ -126,7 +127,7 @@ TORRENT_TEST(no_truncate_checking)
 	TEST_EQUAL(f.tellg(), std::fstream::pos_type(size));
 }
 
-std::shared_ptr<lt::torrent_info> create_multifile_torrent()
+lt::add_torrent_params create_multifile_torrent()
 {
 	// the two first files are exactly the size of a piece
 	static std::array<const int, 8> const file_sizes{{ 0x40000, 0x40000, 4300, 0, 400, 4300, 6, 4}};
@@ -140,7 +141,7 @@ std::shared_ptr<lt::torrent_info> create_multifile_torrent()
 	set_piece_hashes(t, ".");
 
 	std::vector<char> const buf = lt::bencode(t.generate());
-	return std::make_shared<lt::torrent_info>(buf, lt::from_span);
+	return lt::load_torrent_buffer(buf);
 }
 
 TORRENT_TEST(checking_first_piece_missing)
@@ -177,9 +178,9 @@ TORRENT_TEST(aligned_zero_priority)
 {
 	run_test(
 		[&](lt::add_torrent_params& atp, lt::settings_pack&) {
+			atp = create_multifile_torrent();
 			atp.file_priorities.push_back(lt::download_priority_t{1});
 			atp.file_priorities.push_back(lt::download_priority_t{0});
-			atp.ti = create_multifile_torrent();
 			atp.save_path = ".";
 		},
 		[](lt::session& ses) {
@@ -197,7 +198,7 @@ TORRENT_TEST(aligned_zero_priority_no_file)
 	std::string partfile;
 	run_test(
 		[&](lt::add_torrent_params& atp, lt::settings_pack&) {
-			atp.ti = create_multifile_torrent();
+			atp = create_multifile_torrent();
 			atp.save_path = ".";
 			atp.file_priorities.push_back(lt::download_priority_t{1});
 			atp.file_priorities.push_back(lt::download_priority_t{0});
@@ -228,10 +229,10 @@ TORRENT_TEST(aligned_zero_priority_no_file)
 // part-file for it. The checking should complete and enter download state.
 TORRENT_TEST(zero_priority_missing_partfile)
 {
-	std::shared_ptr<lt::torrent_info> ti = create_multifile_torrent();
+	lt::add_torrent_params addp = create_multifile_torrent();
 	run_test(
 		[&](lt::add_torrent_params& atp, lt::settings_pack&) {
-			atp.ti = ti;
+			atp = addp;
 			atp.save_path = ".";
 			atp.file_priorities.push_back(lt::download_priority_t{1});
 			atp.file_priorities.push_back(lt::download_priority_t{1});
@@ -247,7 +248,7 @@ TORRENT_TEST(zero_priority_missing_partfile)
 		[&](lt::session& ses) {
 			std::vector<lt::torrent_handle> tor = ses.get_torrents();
 			TEST_EQUAL(tor.size(), 1);
-			TEST_EQUAL(tor[0].status().num_pieces, ti->num_pieces() - 1);
+			TEST_EQUAL(tor[0].status().num_pieces, addp.ti->num_pieces() - 1);
 			TEST_EQUAL(tor[0].status().is_finished, false);
 		}
 	);

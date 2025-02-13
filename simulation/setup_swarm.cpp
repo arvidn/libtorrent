@@ -201,7 +201,7 @@ void setup_swarm(int num_nodes
 	int const swarm_id = unit_test::test_counter();
 	std::string path = save_path(swarm_id, 0);
 
-	std::shared_ptr<lt::torrent_info> ti;
+	lt::add_torrent_params atp;
 
 	if (type & swarm_test::real_disk)
 	{
@@ -209,11 +209,11 @@ void setup_swarm(int num_nodes
 		if (ec) std::printf("failed to create directory: \"%s\": %s\n"
 			, path.c_str(), ec.message().c_str());
 		std::ofstream file(lt::combine_path(path, "temporary").c_str());
-		ti = ::create_torrent(&file, "temporary", 0x4000, (type & swarm_test::large_torrent) ? 50 : 9, false);
+		atp = ::create_torrent(&file, "temporary", 0x4000, (type & swarm_test::large_torrent) ? 50 : 9, false);
 	}
 	else
 	{
-		ti = ::create_test_torrent(0x4000, (type & swarm_test::large_torrent) ? 50 : 9, {});
+		atp = ::create_test_torrent(0x4000, (type & swarm_test::large_torrent) ? 50 : 9, {});
 	}
 
 	if (bool(type & swarm_test::download) && bool(type & swarm_test::upload))
@@ -294,8 +294,11 @@ void setup_swarm(int num_nodes
 		{
 			p.save_path = ".";
 		}
+		p.ti = atp.ti;
+		p.merkle_trees = atp.merkle_trees;
+		p.merkle_tree_mask = atp.merkle_tree_mask;
+		p.verified_leaf_hashes = atp.verified_leaf_hashes;
 
-		p.ti = ti;
 		if (i == 0) add_torrent(p);
 		ses->async_add_torrent(p);
 

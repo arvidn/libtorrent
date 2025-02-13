@@ -102,7 +102,7 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 	error_code ec;
 	create_directory("tmp1_priority", ec);
 	ofstream file("tmp1_priority/temporary");
-	std::shared_ptr<torrent_info> t = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
+	add_torrent_params atp = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
 	file.close();
 
 	wait_for_listen(ses1, "ses1");
@@ -112,7 +112,7 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 
 	// test using piece sizes smaller than 16kB
 	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, nullptr
-		, true, false, true, "_priority", 8 * 1024, &t, false, nullptr);
+		, true, false, true, "_priority", 8 * 1024, &atp, false);
 
 	int const num_pieces = tor2.torrent_file()->num_pieces();
 	aux::vector<download_priority_t, piece_index_t> priorities(std::size_t(num_pieces), 1_pri);
@@ -290,7 +290,7 @@ done:
 	}
 	p.flags &= ~torrent_flags::paused;
 	p.flags &= ~torrent_flags::auto_managed;
-	p.ti = t;
+	p.ti = atp.ti;
 	p.save_path = "tmp2_priority";
 
 	tor2 = ses2.add_torrent(p, ec);
@@ -500,14 +500,12 @@ TORRENT_TEST(export_file_while_seed)
 	error_code ec;
 	create_directory("tmp2_priority", ec);
 	ofstream file("tmp2_priority/temporary");
-	auto t = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
+	add_torrent_params addp = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
 	file.close();
 
-	add_torrent_params addp;
 	addp.flags &= ~torrent_flags::paused;
 	addp.flags &= ~torrent_flags::auto_managed;
 	addp.save_path = ".";
-	addp.ti = t;
 	torrent_handle h = ses.add_torrent(addp);
 
 	// write to the partfile
@@ -532,7 +530,7 @@ TORRENT_TEST(export_file_while_seed)
 		&& st.state != torrent_status::checking_files);
 	TEST_CHECK(st.num_pieces == 0);
 
-	for (piece_index_t i : t->piece_range())
+	for (piece_index_t i : addp.ti->piece_range())
 		h.add_piece(i, piece.data());
 
 	TEST_CHECK(!exists("temporary"));

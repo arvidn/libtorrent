@@ -521,22 +521,25 @@ bool is_downloading_state(int const st)
 		m_was_started = true;
 #endif
 
+		update_want_tick();
+
 		// Some of these calls may log to the torrent debug log, which requires a
 		// call to get_handle(), which requires the torrent object to be fully
 		// constructed, as it relies on get_shared_from_this()
 		if (m_add_torrent_params)
 		{
+			add_torrent_params const& p = *m_add_torrent_params;
+
 #if TORRENT_ABI_VERSION == 1
-			if (m_add_torrent_params->internal_resume_data_error
+			if (p.internal_resume_data_error
 				&& m_ses.alerts().should_post<fastresume_rejected_alert>())
 			{
 				m_ses.alerts().emplace_alert<fastresume_rejected_alert>(get_handle()
-					, m_add_torrent_params->internal_resume_data_error, ""
+					, p.internal_resume_data_error, ""
 					, operation_t::unknown);
 			}
 #endif
 
-			add_torrent_params const& p = *m_add_torrent_params;
 
 			set_max_uploads(p.max_uploads, false);
 			set_max_connections(p.max_connections, false);
@@ -610,7 +613,6 @@ bool is_downloading_state(int const st)
 
 		update_want_peers();
 		update_want_scrape();
-		update_want_tick();
 		update_state_list();
 
 		if (m_torrent_file->is_valid())

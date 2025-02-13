@@ -29,7 +29,6 @@ lt::add_torrent_params create_torrent(int const idx, bool const seed
 {
 	// TODO: if we want non-seeding torrents, that could be a bit cheaper to
 	// create
-	lt::add_torrent_params params;
 	int swarm_id = unit_test::test_counter();
 	char name[200];
 	std::snprintf(name, sizeof(name), "temp-%02d", swarm_id);
@@ -39,7 +38,7 @@ lt::add_torrent_params create_torrent(int const idx, bool const seed
 	if (ec) std::printf("failed to create directory: \"%s\": %s\n"
 		, path.c_str(), ec.message().c_str());
 	std::ofstream file(lt::combine_path(path, name).c_str());
-	params.ti = ::create_torrent(&file, name, 0x4000, num_pieces + idx, false, flags);
+	lt::add_torrent_params params = ::create_torrent(&file, name, 0x4000, num_pieces + idx, false, flags);
 	file.close();
 
 	// by setting the save path to a dummy path, it won't be seeding
