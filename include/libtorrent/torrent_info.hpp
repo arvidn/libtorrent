@@ -557,17 +557,19 @@ TORRENT_VERSION_NAMESPACE_4
 		TORRENT_DEPRECATED
 		const std::string& comment() const
 		{ return m_comment; }
-#endif
 
 		// If this torrent contains any DHT nodes, they are put in this vector in
 		// their original form (host name and port number).
+		TORRENT_DEPRECATED
 		std::vector<std::pair<std::string, int>> const& nodes() const
 		{ return m_nodes; }
 
 		// This is used when creating torrent. Use this to add a known DHT node.
 		// It may be used, by the client, to bootstrap into the DHT network.
+		TORRENT_DEPRECATED
 		void add_node(std::pair<std::string, int> const& node)
 		{ m_nodes.push_back(node); }
+#endif
 
 		// populates the torrent_info by providing just the info-dict buffer.
 		// This is used when loading a torrent from a magnet link for instance,
@@ -700,9 +702,9 @@ TORRENT_VERSION_NAMESPACE_4
 		// the URLs to the trackers
 		aux::vector<announce_entry> m_urls;
 		std::vector<web_seed_entry> m_web_seeds;
-#endif
 		// dht nodes to add to the routing table/bootstrap from
 		std::vector<std::pair<std::string, int>> m_nodes;
+#endif
 
 		// the info-hashes (20 bytes each) in the "similar" key. These are offsets
 		// into the info dict buffer.

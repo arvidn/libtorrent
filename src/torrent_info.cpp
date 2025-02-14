@@ -1580,9 +1580,7 @@ namespace {
 			}
 			set_piece_layers(v2_hashes);
 		}
-#endif
 
-#if TORRENT_ABI_VERSION < 4
 		for (auto const& url : atp.url_seeds)
 		{
 			web_seed_entry ent(url);
@@ -1596,12 +1594,12 @@ namespace {
 			ent.type = web_seed_entry::http_seed;
 			m_web_seeds.push_back(std::move(ent));
 		}
-#endif
 
 		for (auto const& n : atp.dht_nodes)
 		{
 			m_nodes.emplace_back(n);
 		}
+#endif
 
 		// TODO: collections
 		// TODO: similar

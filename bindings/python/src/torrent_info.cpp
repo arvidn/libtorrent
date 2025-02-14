@@ -40,6 +40,7 @@ namespace
 #if TORRENT_ABI_VERSION < 4
     std::vector<announce_entry>::const_iterator begin_trackers(torrent_info& i)
     {
+        python_deprecated("trackers() is deprecated");
         return i.trackers().begin();
     }
 
@@ -47,15 +48,16 @@ namespace
     {
         return i.trackers().end();
     }
-#endif
 
     void add_node(torrent_info& ti, char const* hostname, int port)
     {
+        python_deprecated("add_node() is deprecated");
         ti.add_node(std::make_pair(hostname, port));
     }
 
     list nodes(torrent_info const& ti)
     {
+        python_deprecated("nodes() is deprecated");
         list result;
 
         for (auto const& i : ti.nodes())
@@ -64,9 +66,9 @@ namespace
         return result;
     }
 
-#if TORRENT_ABI_VERSION < 4
     list get_web_seeds(torrent_info const& ti)
     {
+        python_deprecated("web_seeds() is deprecated");
         std::vector<web_seed_entry> const& ws = ti.web_seeds();
         list ret;
         for (std::vector<web_seed_entry>::const_iterator i = ws.begin()
@@ -83,6 +85,7 @@ namespace
 
     void set_web_seeds(torrent_info& ti, list ws)
     {
+        python_deprecated("set_web_seeds is deprecated");
         std::vector<web_seed_entry> web_seeds;
         int const len = static_cast<int>(boost::python::len(ws));
         for (int i = 0; i < len; i++)
@@ -99,6 +102,7 @@ namespace
 #if TORRENT_ABI_VERSION <= 2
     list get_merkle_tree(torrent_info const& ti)
     {
+        python_deprecated("get_merkle_tree is deprecated");
         std::vector<sha1_hash> const& mt = ti.merkle_tree();
         list ret;
         for (std::vector<sha1_hash>::const_iterator i = mt.begin()
@@ -111,6 +115,7 @@ namespace
 
     void set_merkle_tree(torrent_info& ti, list hashes)
     {
+        python_deprecated("set_merkle_tree is deprecated");
         std::vector<sha1_hash> h;
         for (int i = 0, e = int(len(hashes)); i < e; ++i)
             h.push_back(sha1_hash(bytes(extract<bytes>(hashes[i])).arr.data()));
@@ -476,10 +481,9 @@ void bind_torrent_info()
 #if TORRENT_ABI_VERSION < 4
         .def("trackers", range(begin_trackers, end_trackers))
         .def("creation_date", &torrent_info::creation_date)
-#endif
-
         .def("add_node", &add_node)
         .def("nodes", &nodes)
+#endif
 #if TORRENT_ABI_VERSION <= 2
         .def("metadata", depr(&metadata))
         .def("metadata_size", depr(&torrent_info::metadata_size))
