@@ -1518,7 +1518,6 @@ namespace {
 		m_comment = atp.comment;
 		m_created_by = atp.created_by;
 		m_creation_date = atp.creation_date;
-#endif
 		int tier = 0;
 		for (std::size_t i = 0; i < atp.trackers.size(); ++i)
 		{
@@ -1528,6 +1527,7 @@ namespace {
 			ent.tier = std::uint8_t(tier);
 			m_urls.push_back(std::move(ent));
 		}
+#endif
 
 		if (atp.flags & torrent_flags::i2p_torrent)
 		{
@@ -1582,16 +1582,14 @@ namespace {
 		}
 #endif
 
+#if TORRENT_ABI_VERSION < 4
 		for (auto const& url : atp.url_seeds)
 		{
 			web_seed_entry ent(url);
-#if TORRENT_ABI_VERSION < 4
 			ent.type = web_seed_entry::url_seed;
-#endif
 			m_web_seeds.push_back(std::move(ent));
 		}
 
-#if TORRENT_ABI_VERSION < 4
 		for (auto const& url : atp.http_seeds)
 		{
 			web_seed_entry ent(url);

@@ -269,14 +269,16 @@ bool is_downloading_state(int const st)
 
 		// --- WEB SEEDS ---
 
+		std::vector<web_seed_t> ws;
+#if TORRENT_ABI_VERSION < 4
 		// if override web seed flag is set, don't load any web seeds from the
 		// torrent file.
-		std::vector<web_seed_t> ws;
 		if (!(p.flags & torrent_flags::deprecated_override_web_seeds))
 		{
 			for (auto const& e : m_torrent_file->internal_web_seeds())
 				ws.emplace_back(e);
 		}
+#endif
 
 		// add web seeds from add_torrent_params
 		bool const multi_file = m_torrent_file->is_valid()
@@ -300,11 +302,13 @@ bool is_downloading_state(int const st)
 
 		// --- TRACKERS ---
 
+#if TORRENT_ABI_VERSION < 4
 		// if override trackers flag is set, don't load trackers from torrent file
 		if (!(p.flags & torrent_flags::deprecated_override_trackers))
 		{
 			m_trackers.replace(m_torrent_file->internal_trackers());
 		}
+#endif
 
 		int tier = 0;
 		auto tier_iter = p.tracker_tiers.begin();

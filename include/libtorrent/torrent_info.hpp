@@ -53,12 +53,14 @@ namespace aux {
 		, string_view element, bool force_element = false);
 	TORRENT_EXTRA_EXPORT bool verify_encoding(std::string& target);
 
+#if TORRENT_ABI_VERSION < 4
 	struct internal_drained_state
 	{
 		aux::vector<lt::announce_entry> urls;
 		std::vector<web_seed_entry> web_seeds;
 		std::vector<std::pair<std::string, int>> nodes;
 	};
+#endif
 }
 
 	// hidden
@@ -264,10 +266,10 @@ TORRENT_VERSION_NAMESPACE_4
 		std::vector<announce_entry> const& trackers() const { return m_urls; }
 		TORRENT_DEPRECATED
 		void clear_trackers();
-#endif
 
 		// internal
 		std::vector<announce_entry> const& internal_trackers() const { return m_urls; }
+#endif
 
 		// These two functions are related to `BEP 38`_ (mutable torrents). The
 		// vectors returned from these correspond to the "similar" and
@@ -319,13 +321,13 @@ TORRENT_VERSION_NAMESPACE_4
 		void add_http_seed(std::string const& url
 			, std::string const& extern_auth = std::string()
 			, web_seed_entry::headers_t const& extra_headers = web_seed_entry::headers_t());
-#endif
 
 		// internal
 		aux::internal_drained_state _internal_drain() {
 			return aux::internal_drained_state{std::move(m_urls), std::move(m_web_seeds), std::move(m_nodes)};
 		}
 		std::vector<web_seed_entry> const& internal_web_seeds() const { return m_web_seeds; }
+#endif
 
 		// ``total_size()`` returns the total number of bytes the torrent-file
 		// represents. Note that this is the number of pieces times the piece
@@ -694,9 +696,11 @@ TORRENT_VERSION_NAMESPACE_4
 		// instance
 		aux::copy_ptr<const file_storage> m_orig_files;
 
+#if TORRENT_ABI_VERSION < 4
 		// the URLs to the trackers
 		aux::vector<announce_entry> m_urls;
 		std::vector<web_seed_entry> m_web_seeds;
+#endif
 		// dht nodes to add to the routing table/bootstrap from
 		std::vector<std::pair<std::string, int>> m_nodes;
 

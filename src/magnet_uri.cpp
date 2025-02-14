@@ -22,6 +22,7 @@ see LICENSE file.
 
 namespace libtorrent {
 
+#if TORRENT_ABI_VERSION < 4
 	std::string make_magnet_uri(torrent_handle const& handle)
 	{
 		if (!handle.is_valid()) return "";
@@ -76,6 +77,7 @@ namespace libtorrent {
 
 		return make_magnet_uri(atp);
 	}
+#endif
 
 	std::string make_magnet_uri(add_torrent_params const& atp)
 	{

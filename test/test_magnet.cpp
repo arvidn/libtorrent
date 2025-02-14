@@ -403,8 +403,10 @@ TORRENT_TEST(make_magnet_uri)
 
 	TEST_EQUAL(al.size(), atp.trackers.size());
 
+#if TORRENT_ABI_VERSION < 4
 	std::string magnet = make_magnet_uri(*atp.ti);
 	std::printf("%s len: %d\n", magnet.c_str(), int(magnet.size()));
+#endif
 }
 
 TORRENT_TEST(make_magnet_uri2)
