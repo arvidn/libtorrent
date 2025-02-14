@@ -732,9 +732,11 @@ TORRENT_VERSION_NAMESPACE_4
 		aux::vector<sha1_hash> m_merkle_tree;
 #endif
 
+#if TORRENT_ABI_VERSION < 4
 		// v2 merkle tree for each file
 		// the actual hash buffers are always divisible by 32 (sha256_hash::size())
 		aux::vector<aux::vector<char>, file_index_t> m_piece_layers;
+#endif
 
 		// this is a copy of the info section from the torrent.
 		// it use maintained in this flat format in order to
