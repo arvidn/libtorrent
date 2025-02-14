@@ -5033,11 +5033,13 @@ retry:
 		for (auto const& n : params.dht_nodes)
 			add_dht_node_name(n);
 
+#if TORRENT_ABI_VERSION < 4
 		if (params.ti)
 		{
 			for (auto const& n : params.ti->nodes())
 				add_dht_node_name(n);
 		}
+#endif
 #endif
 
 		INVARIANT_CHECK;
