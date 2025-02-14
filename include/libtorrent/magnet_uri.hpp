@@ -43,14 +43,18 @@ namespace libtorrent {
 	// containing an add_torrent_params object. This can then be passed to
 	// make_magnet_uri().
 	//
+	// For more information about magnet links, see magnet-links_.
+	TORRENT_EXPORT std::string make_magnet_uri(add_torrent_params const& atp);
+
+#if TORRENT_ABI_VERSION < 4
 	// The overload that takes a torrent_handle will make blocking calls to
 	// query information about the torrent. If the torrent handle is invalid,
 	// an empty string is returned.
-	//
-	// For more information about magnet links, see magnet-links_.
-	TORRENT_EXPORT std::string make_magnet_uri(add_torrent_params const& atp);
-	TORRENT_EXPORT std::string make_magnet_uri(torrent_handle const& handle);
-	TORRENT_EXPORT std::string make_magnet_uri(torrent_info const& info);
+	TORRENT_DEPRECATED_EXPORT
+	std::string make_magnet_uri(torrent_handle const& handle);
+	TORRENT_DEPRECATED_EXPORT
+	std::string make_magnet_uri(torrent_info const& info);
+#endif
 
 #if TORRENT_ABI_VERSION == 1
 #ifndef BOOST_NO_EXCEPTIONS

@@ -93,11 +93,11 @@ void run_metadata_test(int flags)
 		, [&ti](lt::add_torrent_params& params) {
 			// we want to add the torrent via magnet link
 			error_code ec;
+			add_torrent_params const p = parse_magnet_uri(
+				lt::make_magnet_uri(params), ec);
+			TEST_CHECK(!ec);
 			ti = params.ti;
 			params.ti.reset();
-			add_torrent_params const p = parse_magnet_uri(
-				lt::make_magnet_uri(*ti), ec);
-			TEST_CHECK(!ec);
 			params.name = p.name;
 			params.trackers = p.trackers;
 			params.tracker_tiers = p.tracker_tiers;

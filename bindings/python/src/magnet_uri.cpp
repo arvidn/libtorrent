@@ -91,8 +91,10 @@ namespace {
 		return p;
 	}
 
+#if TORRENT_ABI_VERSION < 4
 	std::string (*make_magnet_uri0)(torrent_handle const&) = make_magnet_uri;
 	std::string (*make_magnet_uri1)(torrent_info const&) = make_magnet_uri;
+#endif
 	std::string (*make_magnet_uri2)(add_torrent_params const&) = make_magnet_uri;
 }
 
@@ -101,8 +103,10 @@ void bind_magnet_uri()
 #if TORRENT_ABI_VERSION == 1
 	def("add_magnet_uri", &_add_magnet_uri);
 #endif
+#if TORRENT_ABI_VERSION < 4
 	def("make_magnet_uri", make_magnet_uri0);
 	def("make_magnet_uri", make_magnet_uri1);
+#endif
 	def("make_magnet_uri", make_magnet_uri2);
 	def("parse_magnet_uri", parse_magnet_uri_wrap);
 	def("parse_magnet_uri_dict", parse_magnet_uri_dict);
