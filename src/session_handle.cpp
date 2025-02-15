@@ -3,6 +3,7 @@
 Copyright (c) 2014-2018, Steven Siloti
 Copyright (c) 2015-2018, Alden Torres
 Copyright (c) 2015-2022, Arvid Norberg
+Copyright (c) 2025, Vladimir Golovnev (glassez)
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -92,12 +93,12 @@ namespace libtorrent {
 	{
 		std::shared_ptr<session_impl> s = m_impl.lock();
 		if (!s) aux::throw_ex<system_error>(errors::invalid_session_handle);
-		dispatch(s->get_context(), [=]() mutable
+		dispatch(s->get_context(), std::bind([s, f](auto&&... args) mutable
 		{
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
 #endif
-				(s.get()->*f)(std::forward<Args>(a)...);
+				(s.get()->*f)(std::forward<Args>(args)...);
 #ifndef BOOST_NO_EXCEPTIONS
 			} catch (system_error const& e) {
 				s->alerts().emplace_alert<session_error_alert>(e.code(), e.what());
@@ -107,7 +108,7 @@ namespace libtorrent {
 				s->alerts().emplace_alert<session_error_alert>(error_code(), "unknown error");
 			}
 #endif
-		});
+		}, std::forward<Args>(a)...));
 	}
 
 	template<typename Fun, typename... Args>
@@ -122,12 +123,12 @@ namespace libtorrent {
 		bool done = false;
 
 		std::exception_ptr ex;
-		dispatch(s->get_context(), [=, &done, &ex]() mutable
+		dispatch(s->get_context(), std::bind([s, f, &done, &ex](auto&&... args) mutable
 		{
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
 #endif
-				(s.get()->*f)(std::forward<Args>(a)...);
+				(s.get()->*f)(std::forward<Args>(args)...);
 #ifndef BOOST_NO_EXCEPTIONS
 			} catch (...) {
 				ex = std::current_exception();
@@ -136,7 +137,7 @@ namespace libtorrent {
 			std::unique_lock<std::mutex> l(s->mut);
 			done = true;
 			s->cond.notify_all();
-		});
+		}, std::forward<Args>(a)...));
 
 		aux::torrent_wait(done, *s);
 		if (ex) std::rethrow_exception(ex);
@@ -154,12 +155,12 @@ namespace libtorrent {
 		bool done = false;
 		Ret r;
 		std::exception_ptr ex;
-		dispatch(s->get_context(), [=, &r, &done, &ex]() mutable
+		dispatch(s->get_context(), std::bind([s, f, &r, &done, &ex](auto&&... args) mutable
 		{
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
 #endif
-				r = (s.get()->*f)(std::forward<Args>(a)...);
+				r = (s.get()->*f)(std::forward<Args>(args)...);
 #ifndef BOOST_NO_EXCEPTIONS
 			} catch (...) {
 				ex = std::current_exception();
@@ -168,7 +169,7 @@ namespace libtorrent {
 			std::unique_lock<std::mutex> l(s->mut);
 			done = true;
 			s->cond.notify_all();
-		});
+		}, std::forward<Args>(a)...));
 
 		aux::torrent_wait(done, *s);
 		if (ex) std::rethrow_exception(ex);
@@ -426,8 +427,7 @@ namespace {
 		handle_backwards_compatible_resume_data(params);
 #endif
 		error_code ec;
-		auto ecr = std::ref(ec);
-		torrent_handle r = sync_call_ret<torrent_handle>(&session_impl::add_torrent, std::move(params), ecr);
+		torrent_handle r = sync_call_ret<torrent_handle>(&session_impl::add_torrent, std::move(params), std::ref(ec));
 		if (ec) aux::throw_ex<system_error>(ec);
 		return r;
 	}
@@ -460,8 +460,7 @@ namespace {
 #if TORRENT_ABI_VERSION == 1
 		handle_backwards_compatible_resume_data(params);
 #endif
-		auto ecr = std::ref(ec);
-		return sync_call_ret<torrent_handle>(&session_impl::add_torrent, std::move(params), ecr);
+		return sync_call_ret<torrent_handle>(&session_impl::add_torrent, std::move(params), std::ref(ec));
 	}
 
 	torrent_handle session_handle::add_torrent(add_torrent_params const& params, error_code& ec)
