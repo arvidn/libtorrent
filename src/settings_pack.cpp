@@ -220,6 +220,7 @@ constexpr int DISK_WRITE_MODE = settings_pack::enable_os_cache;
 		SET(enable_dht, true, &session_impl::update_dht),
 		SET(prefer_rc4, false, nullptr),
 		SET(proxy_hostnames, true, nullptr),
+		SET(proxy_accept_incoming, false, nullptr),
 		SET(proxy_peer_connections, true, nullptr),
 		SET(auto_sequential, true, &session_impl::update_auto_sequential),
 		SET(proxy_tracker_connections, true, nullptr),
