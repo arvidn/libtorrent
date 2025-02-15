@@ -9,6 +9,7 @@ Copyright (c) 2017, 2020, AllSeeingEyeTolledEweSew
 Copyright (c) 2017, Falcosc
 Copyright (c) 2019, Andrei Kurushin
 Copyright (c) 2019, ghbplayer
+Copyright (c) 2025, Vladimir Golovnev (glassez)
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -843,6 +844,8 @@ namespace aux {
 		//	meaningful.
 		bool need_save_resume_data() const;
 		bool need_save_resume_data(resume_data_flags_t flags) const;
+
+		add_torrent_params get_resume_data(resume_data_flags_t flags = {}) const;
 
 		// Every torrent that is added is assigned a queue position exactly one
 		// greater than the greatest queue position of all existing torrents.
