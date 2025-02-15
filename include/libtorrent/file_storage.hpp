@@ -231,7 +231,7 @@ namespace aux {
 
 		// internal limitations restrict file sizes to not be larger than this
 		// We use int to index into file merkle trees, so a file may not contain more
-		// than INT_MAX entries. That means INT_MAX / 2 blocks (leafs) in each
+		// than INT_MAX entries. That means INT_MAX / 2 blocks (leaves) in each
 		// tree.
 		static constexpr std::int64_t max_file_size = (std::min)(
 			(std::int64_t(1) << 48) - 1
