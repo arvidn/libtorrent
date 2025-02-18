@@ -32,8 +32,8 @@ namespace libtorrent::aux {
 		void reserve(int num_files);
 
 		// returns the size of the file unless an error occurs, in which case ec
-		// is set to indicate the error
-		std::int64_t get_filesize(file_index_t i, file_storage const& fs
+		// is set to indicate the error.
+		std::int64_t get_filesize(file_index_t i, filenames const& fn
 			, std::string const& save_path, error_code& ec);
 
 		void set_dirty(file_index_t i);

@@ -18,6 +18,7 @@ see LICENSE file.
 #include <vector>
 #include <unordered_set>
 #include <unordered_map>
+#include <map>
 #include <ctime>
 #include <cstdint>
 
@@ -655,6 +656,7 @@ TORRENT_VERSION_NAMESPACE_4
 		void remove_tail_padding();
 
 	private:
+		friend struct renamed_files;
 
 #if TORRENT_ABI_VERSION < 4
 		// internal
@@ -686,6 +688,7 @@ TORRENT_VERSION_NAMESPACE_4
 		// v2 torrents
 		bool m_v2 = false;
 
+		// TODO: can we remove set_name?
 		void update_path_index(aux::file_entry& e, std::string const& path
 			, bool set_name = true);
 
@@ -733,7 +736,105 @@ TORRENT_VERSION_NAMESPACE_4
 		// the sum of all non-pad file sizes
 		std::int64_t m_size_on_disk = 0;
 	};
+
 TORRENT_VERSION_NAMESPACE_4_END
+
+namespace aux {
+	struct rename_entry
+	{
+		enum mode_t {
+			// the string is the full path, to be appended to the torrent name
+			full_path,
+			// the string is a full path relative to the save path, not the torrent name
+			no_root_path,
+			// the string is an absolute path
+			absolute_path
+		};
+
+		mode_t mode;
+		std::string path;
+	};
+}
+
+	// this is a wrapper around file_storage for renaming files without having
+	// to mutate the file_storage object itself.
+	struct TORRENT_EXPORT renamed_files
+	{
+		std::string file_path(file_storage const& fs, file_index_t index, std::string const& save_path = "") const;
+		string_view file_name(file_storage const& fs, file_index_t index) const;
+		bool file_absolute_path(file_storage const& fs, file_index_t index) const;
+
+		void rename_file(file_storage const& fs, file_index_t index, std::string const& new_filename);
+
+		std::map<file_index_t, std::string> export_filenames() const;
+	private:
+		std::unordered_map<file_index_t, aux::rename_entry> m_renamed_files;
+	};
+
+	struct TORRENT_EXPORT filenames
+	{
+		filenames(file_storage const& fs, renamed_files const& rf)
+			: m_files(fs)
+			, m_renames(rf)
+		{}
+
+		file_flags_t file_flags(file_index_t const index) const
+		{ return m_files.file_flags(index); }
+
+		file_index_t end_file() const noexcept { return m_files.end_file(); }
+
+		bool pad_file_at(file_index_t const index) const { return m_files.pad_file_at(index); }
+		std::int64_t file_size(file_index_t const index) const
+		{
+			return m_files.file_size(index);
+		}
+		std::int64_t file_offset(file_index_t const index) const
+		{
+			return m_files.file_offset(index);
+		}
+		std::string file_path(file_index_t const index, std::string const& save_path = "") const
+		{
+			return m_renames.file_path(m_files, index, save_path);
+		}
+		bool file_absolute_path(file_index_t const index) const
+		{
+			return m_renames.file_absolute_path(m_files, index);
+		}
+
+		index_range<file_index_t> file_range() const noexcept
+		{
+			return m_files.file_range();
+		}
+		std::string symlink(file_index_t const index) const
+		{
+			return m_files.symlink(index);
+		}
+		int num_files() const noexcept
+		{
+			return m_files.num_files();
+		}
+		int num_pieces() const
+		{
+			return m_files.num_pieces();
+		}
+		piece_index_t end_piece() const
+		{
+			return m_files.end_piece();
+		}
+		std::vector<file_slice> map_block(piece_index_t const piece, std::int64_t const offset
+			, std::int64_t const size) const
+		{
+			return m_files.map_block(piece, offset, size);
+		}
+		peer_request map_file(file_index_t const file, std::int64_t const offset, int const size) const
+		{
+			return m_files.map_file(file, offset, size);
+		}
+
+	private:
+		file_storage const& m_files;
+		renamed_files const& m_renames;
+	};
 
 namespace aux {
 

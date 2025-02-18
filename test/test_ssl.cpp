@@ -328,7 +328,7 @@ attack_t const attacks[] =
 const int num_attacks = sizeof(attacks)/sizeof(attacks[0]);
 
 bool try_connect(lt::session& ses1, int port
-	, std::shared_ptr<torrent_info> const& t, std::uint32_t flags)
+	, std::shared_ptr<torrent_info const> const& t, std::uint32_t flags)
 {
 	using aux::ssl::context;
 

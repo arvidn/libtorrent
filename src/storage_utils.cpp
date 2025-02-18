@@ -33,7 +33,7 @@ see LICENSE file.
 
 namespace libtorrent { namespace aux {
 
-	std::pair<status_t, std::string> move_storage(file_storage const& f
+	std::pair<status_t, std::string> move_storage(filenames const& f
 		, std::string save_path
 		, std::string const& destination_save_path
 		, std::function<void(std::string const&, error_code&)> const& move_partfile
@@ -239,7 +239,7 @@ namespace libtorrent { namespace aux {
 
 	}
 
-	void delete_files(file_storage const& fs, std::string const& save_path
+	void delete_files(filenames const& fs, std::string const& save_path
 		, std::string const& part_file_name, remove_flags_t const options, storage_error& ec)
 	{
 		if (options & session::delete_files)
@@ -302,7 +302,7 @@ namespace libtorrent { namespace aux {
 namespace {
 
 std::int64_t get_filesize(stat_cache& stat, file_index_t const file_index
-	, file_storage const& fs, std::string const& save_path, storage_error& ec)
+	, filenames const& fs, std::string const& save_path, storage_error& ec)
 {
 	error_code error;
 	std::int64_t const size = stat.get_filesize(file_index, fs, save_path, error);
@@ -327,7 +327,7 @@ std::int64_t get_filesize(stat_cache& stat, file_index_t const file_index
 
 	bool verify_resume_data(add_torrent_params const& rd
 		, aux::vector<std::string, file_index_t> const& links
-		, file_storage const& fs
+		, filenames const& fs
 		, aux::vector<download_priority_t, file_index_t> const& file_priority
 		, stat_cache& stat
 		, std::string const& save_path
@@ -469,7 +469,7 @@ std::int64_t get_filesize(stat_cache& stat, file_index_t const file_index
 	}
 
 	bool has_any_file(
-		file_storage const& fs
+		filenames const& fs
 		, std::string const& save_path
 		, stat_cache& cache
 		, storage_error& ec)
@@ -512,7 +512,7 @@ std::int64_t get_filesize(stat_cache& stat, file_index_t const file_index
 		return int(size);
 	}
 
-	void initialize_storage(file_storage const& fs
+	void initialize_storage(filenames const& fs
 		, std::string const& save_path
 		, stat_cache& sc
 		, aux::vector<download_priority_t, file_index_t> const& file_priority

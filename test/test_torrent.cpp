@@ -61,7 +61,13 @@ bool prioritize_files(torrent_handle const& h, aux::vector<download_priority_t, 
 	return wait_priority(h, prio);
 }
 
-void test_running_torrent(std::shared_ptr<torrent_info> info, std::int64_t file_size)
+#if TORRENT_ABI_VERSION < 4
+using torrent_info_ptr = std::shared_ptr<torrent_info>;
+#else
+using torrent_info_ptr = std::shared_ptr<torrent_info const>;
+#endif
+
+void test_running_torrent(torrent_info_ptr info, std::int64_t file_size)
 {
 	settings_pack pack = settings();
 	pack.set_int(settings_pack::alert_mask, alert_category::piece_progress | alert_category::storage);
@@ -483,6 +489,9 @@ TORRENT_TEST(torrent_total_size_zero)
 	TEST_THROW(lt::create_torrent t2(fs));
 }
 
+#if TORRENT_ABI_VERSION < 4
+// files aren't allowed to be renamed directly in the torrent_info
+// in the new API
 TORRENT_TEST(rename_file)
 {
 	std::vector<lt::create_file_entry> fs;
@@ -502,6 +511,7 @@ TORRENT_TEST(rename_file)
 
 	TEST_EQUAL(info->files().file_path(0_file), "tmp1");
 }
+#endif
 
 TORRENT_TEST(torrent_status)
 {

@@ -87,11 +87,11 @@ TORRENT_TEST(resolve_links)
 
 		std::string p = combine_path(path, e.filename1) + ".torrent";
 		std::printf("loading %s\n", p.c_str());
-		std::shared_ptr<torrent_info> ti1 = load_torrent_file(p).ti;
+		std::shared_ptr<torrent_info const> ti1 = load_torrent_file(p).ti;
 
 		p = combine_path(path, e.filename2) + ".torrent";
 		std::printf("loading %s\n", p.c_str());
-		std::shared_ptr<torrent_info> ti2 = load_torrent_file(p).ti;
+		std::shared_ptr<torrent_info const> ti2 = load_torrent_file(p).ti;
 
 		std::printf("resolving\n");
 		aux::resolve_links l(ti1);

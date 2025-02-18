@@ -934,9 +934,10 @@ void generate_data(std::string const path, torrent_info const& ti)
 
 	aux::vector<download_priority_t, file_index_t> priorities;
 	sha1_hash info_hash;
+	renamed_files rf;
 	storage_params params{
 		fs,
-		nullptr,
+		rf,
 		path,
 		storage_mode_sparse,
 		priorities,

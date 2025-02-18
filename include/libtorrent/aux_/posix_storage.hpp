@@ -31,7 +31,8 @@ namespace aux {
 	struct TORRENT_EXTRA_EXPORT posix_storage
 	{
 		explicit posix_storage(storage_params const& p);
-		file_storage const& files() const;
+		file_storage const& files() const { return m_files; }
+		filenames names() const;
 		~posix_storage();
 
 		int read(settings_interface const& sett
@@ -73,7 +74,7 @@ namespace aux {
 		void use_partfile(file_index_t index, bool b);
 
 		file_storage const& m_files;
-		std::unique_ptr<file_storage> m_mapped_files;
+		renamed_files m_renamed_files;
 		std::string m_save_path;
 		stat_cache m_stat_cache;
 

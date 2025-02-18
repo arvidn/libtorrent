@@ -147,9 +147,10 @@ void generate_files(lt::torrent_info const& ti, std::string const& path
 	, bool alternate_data)
 {
 	aux::vector<download_priority_t, file_index_t> priorities;
+	renamed_files rf;
 	storage_params params{
 		ti.files(),
-		nullptr,
+		rf,
 		path,
 		storage_mode_t::storage_mode_sparse,
 		priorities,

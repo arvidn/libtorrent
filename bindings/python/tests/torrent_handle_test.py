@@ -721,19 +721,31 @@ class RenameFileTest(TorrentHandleTest):
         self.handle.rename_file(0, path)
 
         for _ in lib.loop_until_timeout(5, msg="rename"):
-            torrent_file = self.handle.torrent_file()
-            assert torrent_file is not None
-            if torrent_file.files().file_path(0) == path:
-                break
+            self.session.wait_for_alert(1)
+            alerts = self.session.pop_alerts()
+            for a in alerts:
+                if isinstance(a, lt.file_renamed_alert):
+                    assert a.index == 0
+                    assert a.new_name() == path
+                    break
+            else:
+                continue
+            break
 
         # Test rename with bytes
         with self.assertWarns(DeprecationWarning):
             self.handle.rename_file(0, b"file2.txt")  # type: ignore
         for _ in lib.loop_until_timeout(5, msg="rename"):
-            torrent_file = self.handle.torrent_file()
-            assert torrent_file is not None
-            if torrent_file.files().file_path(0) == "file2.txt":
-                break
+            self.session.wait_for_alert(1)
+            alerts = self.session.pop_alerts()
+            for a in alerts:
+                if isinstance(a, lt.file_renamed_alert):
+                    assert a.index == 0
+                    assert a.new_name() == "file2.txt"
+                    break
+            else:
+                continue
+            break
 
     def test_bytes_deprecated(self) -> None:
         with self.assertWarns(DeprecationWarning):

@@ -928,6 +928,10 @@ namespace aux {
 		// layers. In that state, you cannot create a .torrent file from the
 		// torrent_info returned. Once the torrent completes downloading all
 		// files, becoming a seed, you can make a .torrent file from it.
+		//
+		// If any files in the torrent have been renamed, using
+		// torrent_handle::rename_file(), the new names will not be reflected
+		// in the returned torrent_info object.
 		std::shared_ptr<const torrent_info> torrent_file() const;
 #if TORRENT_ABI_VERSION < 4
 		// torrent_file_with_hashes() returns a *copy* of the internal

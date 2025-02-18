@@ -77,7 +77,11 @@ void run_metadata_test(int flags)
 		default_add_torrent.flags |= torrent_flags::upload_mode;
 	}
 
+#if TORRENT_ABI_VERSION < 4
 	std::shared_ptr<lt::torrent_info> ti;
+#else
+	std::shared_ptr<lt::torrent_info const> ti;
+#endif
 
 	// TODO: we use real_disk here because the test disk io doesn't support
 	// multiple torrents, and readd will add back the same torrent before the

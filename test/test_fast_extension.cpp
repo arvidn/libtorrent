@@ -413,7 +413,7 @@ entry read_ut_metadata_msg(tcp::socket& s, span<char> recv_buffer)
 }
 #endif // TORRENT_DISABLE_EXTENSIONS
 
-std::shared_ptr<torrent_info> setup_peer(tcp::socket& s, io_context& ioc
+std::shared_ptr<torrent_info const> setup_peer(tcp::socket& s, io_context& ioc
 	, info_hash_t& ih
 	, std::shared_ptr<lt::session>& ses, bool incoming = true
 	, bool const magnet_link = false, bool const dht = false
@@ -757,7 +757,7 @@ TORRENT_TEST(multiple_bitfields)
 	std::shared_ptr<lt::session> ses;
 	io_context ios;
 	tcp::socket s(ios);
-	std::shared_ptr<torrent_info> ti = setup_peer(s, ios, ih, ses);
+	std::shared_ptr<torrent_info const> ti = setup_peer(s, ios, ih, ses);
 	print_session_log(*ses);
 
 	char recv_buffer[1000];

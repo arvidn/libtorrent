@@ -144,13 +144,13 @@ namespace {
 
 namespace aux
 {
-	void parse_torrent_file(bdecode_node const& torrent_file
+	std::shared_ptr<torrent_info> parse_torrent_file(bdecode_node const& torrent_file
 		, error_code& ec, load_torrent_limits const& cfg, add_torrent_params& out)
 	{
 		if (torrent_file.type() != bdecode_node::dict_t)
 		{
 			ec = errors::torrent_is_no_dict;
-			return;
+			return {};
 		}
 
 		bdecode_node const info = torrent_file.dict_find_dict("info");
@@ -160,15 +160,15 @@ namespace aux
 			if (uri)
 			{
 				parse_magnet_uri(uri.string_value(), out, ec);
-				return;
+				return {};
 			}
 
 			ec = errors::torrent_missing_info;
-			return;
+			return {};
 		}
 
 		auto ti = std::make_shared<torrent_info>(info, ec, cfg, from_info_section);
-		if (ec) return;
+		if (ec) return {};
 
 		if (ti->v2())
 		{
@@ -179,7 +179,7 @@ namespace aux
 			if (e)
 			{
 				parse_piece_layers(e, ti->orig_files(), ec, out);
-				if (ec) return;
+				if (ec) return{};
 			}
 		}
 
@@ -324,7 +324,7 @@ namespace aux
 		ti->internal_set_creation_date(out.creation_date);
 #endif
 
-		out.ti = std::move(ti);
+		return ti;
 	}
 }
 
@@ -357,9 +357,9 @@ namespace aux
 	{
 		error_code ec;
 		add_torrent_params ret;
-		aux::parse_torrent_file(torrent_file, ec, cfg, ret);
+		std::shared_ptr<torrent_info> ti = aux::parse_torrent_file(torrent_file, ec, cfg, ret);
 		if (ec) aux::throw_ex<system_error>(ec);
-		//update_atp(std::move(ti), ret);
+		ret.ti = std::move(ti);
 		return ret;
 	}
 

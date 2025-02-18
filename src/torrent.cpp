@@ -251,8 +251,13 @@ bool is_downloading_state(int const st)
 			inc_stats_counter(counters::non_filter_torrents);
 		}
 
+#if TORRENT_ABI_VERSION < 4
 		if (!m_torrent_file)
 			m_torrent_file = (p.ti ? p.ti : std::make_shared<torrent_info>(m_info_hash));
+#else
+		if (!m_torrent_file)
+			m_torrent_file = (p.ti ? p.ti : std::make_shared<torrent_info const>(m_info_hash));
+#endif
 
 #if TORRENT_USE_I2P
 		if (m_torrent_file->is_i2p())
@@ -1759,9 +1764,8 @@ bool is_downloading_state(int const st)
 	void torrent::construct_storage()
 	{
 		storage_params params{
-			m_torrent_file->orig_files(),
-			&m_torrent_file->orig_files() != &m_torrent_file->files()
-				? &m_torrent_file->files() : nullptr,
+			m_torrent_file->files(),
+			m_renamed_files,
 			m_save_path,
 			static_cast<storage_mode_t>(m_storage_mode),
 			m_file_priority,
@@ -1851,7 +1855,7 @@ bool is_downloading_state(int const st)
 			for (auto const& f : m_add_torrent_params->renamed_files)
 			{
 				if (f.first < file_index_t(0) || f.first >= fs.end_file()) continue;
-				m_torrent_file->rename_file(file_index_t(f.first), f.second);
+				m_renamed_files.rename_file(fs, file_index_t(f.first), f.second);
 			}
 		}
 
@@ -5157,16 +5161,16 @@ namespace {
 
 		if (error)
 		{
-			if (alerts().should_post<file_rename_failed_alert>())
-				alerts().emplace_alert<file_rename_failed_alert>(get_handle()
-					, file_idx, error.ec);
+			//if (alerts().should_post<file_rename_failed_alert>())
+			alerts().emplace_alert<file_rename_failed_alert>(get_handle()
+				, file_idx, error.ec);
 		}
 		else
 		{
-			if (alerts().should_post<file_renamed_alert>())
-				alerts().emplace_alert<file_renamed_alert>(get_handle()
-					, filename, m_torrent_file->files().file_path(file_idx), file_idx);
-			m_torrent_file->rename_file(file_idx, filename);
+			//if (alerts().should_post<file_renamed_alert>())
+			alerts().emplace_alert<file_renamed_alert>(get_handle()
+				, filename, m_torrent_file->files().file_path(file_idx), file_idx);
+			m_renamed_files.rename_file(m_torrent_file->files(), file_idx, filename);
 
 			set_need_save_resume(torrent_handle::if_state_changed);
 		}
@@ -7212,18 +7216,8 @@ namespace {
 		}
 
 		// write renamed files
-		if (valid_metadata()
-			&& &m_torrent_file->files() != &m_torrent_file->orig_files()
-			&& m_torrent_file->files().num_files() == m_torrent_file->orig_files().num_files())
-		{
-			file_storage const& fs = m_torrent_file->files();
-			file_storage const& orig_fs = m_torrent_file->orig_files();
-			for (auto const i : fs.file_range())
-			{
-				if (fs.file_path(i) != orig_fs.file_path(i))
-					ret.renamed_files[i] = fs.file_path(i);
-			}
-		}
+		if (valid_metadata())
+			ret.renamed_files = m_renamed_files.export_filenames();
 
 		// write local peers
 		std::vector<torrent_peer const*> deferred_peers;
@@ -9398,8 +9392,8 @@ namespace {
 
 		if (m_storage && file >= file_index_t(0))
 		{
-			file_storage const& st = m_torrent_file->files();
-			return st.file_path(file, m_save_path);
+			file_storage const& fs = m_torrent_file->files();
+			return m_renamed_files.file_path(fs, file, m_save_path);
 		}
 		else
 		{

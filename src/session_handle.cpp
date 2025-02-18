@@ -361,10 +361,13 @@ namespace {
 			params.info_hashes.v1 = params.info_hash;
 #endif
 
+#if TORRENT_ABI_VERSION < 4
 		// the internal torrent object keeps and mutates state in the
 		// torrent_info object. We can't let that leak back to the client
+		// in ABI version 4, torrent_info is immutable, and we don't need to copy it
 		if (params.ti)
 			params.ti = std::make_shared<torrent_info>(*params.ti);
+#endif
 
 #if TORRENT_ABI_VERSION == 1
 		handle_backwards_compatible_resume_data(params);

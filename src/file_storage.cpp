@@ -123,6 +123,7 @@ namespace {
 	void file_storage::update_path_index(aux::file_entry& e
 		, std::string const& path, bool const set_name)
 	{
+		// TODO: at appears set_name is always true
 		if (is_complete(path))
 		{
 			TORRENT_ASSERT(set_name);
@@ -186,6 +187,107 @@ namespace {
 			return aux::path_index_t{aux::numeric_cast<std::uint32_t>(
 				p.base() - m_paths.begin() - 1)};
 		}
+	}
+
+	std::string renamed_files::file_path(
+		file_storage const& fs
+		, file_index_t const index
+		, std::string const& save_path) const
+	{
+		auto i = m_renamed_files.find(index);
+		if (i == m_renamed_files.end()) return fs.file_path(index, save_path);
+
+		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < fs.end_file());
+		aux::rename_entry const& re = i->second;
+
+		std::string ret;
+
+		switch (re.mode)
+		{
+			case aux::rename_entry::full_path:
+			{
+				ret.reserve(save_path.size() + fs.name().size() + re.path.size() + 2);
+				ret.assign(save_path);
+				append_path(ret, fs.name());
+				append_path(ret, re.path);
+				break;
+			}
+			case aux::rename_entry::no_root_path:
+			{
+				ret.reserve(save_path.size() + re.path.size() + 1);
+				ret.assign(save_path);
+				append_path(ret, re.path);
+				break;
+			}
+			case aux::rename_entry::absolute_path:
+				ret.assign(re.path);
+				break;
+		}
+		return ret;
+	}
+
+	string_view renamed_files::file_name(
+		file_storage const& fs
+		, file_index_t const index) const
+	{
+		auto i = m_renamed_files.find(index);
+		if (i == m_renamed_files.end()) return fs.file_name(index);
+
+		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < fs.end_file());
+		aux::rename_entry const& re = i->second;
+		return rsplit_path(re.path).second;
+	}
+
+	bool renamed_files::file_absolute_path(file_storage const& fs, file_index_t const index) const
+	{
+		auto i = m_renamed_files.find(index);
+		if (i == m_renamed_files.end()) return fs.file_absolute_path(index);
+		return i->second.mode == aux::rename_entry::absolute_path;
+	}
+
+	void renamed_files::rename_file(file_storage const& fs, file_index_t index, std::string const& new_filename)
+	{
+		TORRENT_ASSERT(new_filename.size() > 0);
+		if (new_filename.size() == 0)
+			return;
+
+		if (is_complete(new_filename))
+		{
+			auto& entry = m_renamed_files[index];
+			entry.path = new_filename;
+			entry.mode = aux::rename_entry::absolute_path;
+			return;
+		}
+
+		TORRENT_ASSERT(new_filename[0] != '/');
+
+		// split the string into the leaf filename
+		// and the branch path
+		auto [root_path, path] = lsplit_path(new_filename);
+
+		// if the new filename doesn't contain the name of the torrent itself,
+		// we either moved the file out of the root path, or it's a single file
+		// torrent anyway. This makes it only relative to the save path, and
+		// not include the name of the torrent.
+		if (root_path != fs.name())
+		{
+			auto& entry = m_renamed_files[index];
+			entry.path = new_filename;
+			entry.mode = aux::rename_entry::no_root_path;
+			return;
+		}
+
+		auto& entry = m_renamed_files[index];
+		entry.path = path;
+		entry.mode = aux::rename_entry::full_path;
+	}
+
+	std::map<file_index_t, std::string> renamed_files::export_filenames() const
+	{
+		std::map<file_index_t, std::string> ret;
+		for (auto [idx, ent] : m_renamed_files)
+			ret[idx] = ent.path;
+		return ret;
 	}
 
 #if TORRENT_ABI_VERSION == 1
@@ -1023,6 +1125,7 @@ namespace {
 
 		if (fe.path_index == aux::file_entry::path_is_absolute)
 		{
+			// TODO: do we still need this case?
 			ret = fe.filename();
 		}
 		else if (fe.path_index == aux::file_entry::no_path)
@@ -1163,6 +1266,7 @@ namespace {
 			| (fe.symlink_attribute ? file_storage::flag_symlink : file_flags_t{});
 	}
 
+	// TODO: deprecated this. Do we need file_storage to support absolute paths?
 	bool file_storage::file_absolute_path(file_index_t const index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());

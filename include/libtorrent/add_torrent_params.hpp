@@ -120,7 +120,11 @@ TORRENT_VERSION_NAMESPACE_3
 
 		// torrent_info object with the torrent to add. Unless the
 		// info_hash is set, this is required to be initialized.
+#if TORRENT_ABI_VERSION < 4
 		std::shared_ptr<torrent_info> ti;
+#else
+		std::shared_ptr<torrent_info const> ti;
+#endif
 
 		// If the torrent doesn't have a tracker, but relies on the DHT to find
 		// peers, the ``trackers`` can specify tracker URLs for the torrent.

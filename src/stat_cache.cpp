@@ -54,21 +54,21 @@ namespace libtorrent::aux {
 		m_stat_cache[i].file_size = not_in_cache;
 	}
 
-	std::int64_t stat_cache::get_filesize(file_index_t const i, file_storage const& fs
+	std::int64_t stat_cache::get_filesize(file_index_t const i, filenames const& fn
 		, std::string const& save_path, error_code& ec)
 	{
 		// always pretend symlinks don't exist, to trigger special logic for
 		// creating and possibly validating them. There's a risk we'll and up in a
 		// cycle of references here otherwise.
 		// Should stat_file() be changed to use lstat()?
-		if (fs.file_flags(i) & file_storage::flag_symlink)
+		if (fn.file_flags(i) & file_storage::flag_symlink)
 		{
 			ec.assign(boost::system::errc::no_such_file_or_directory, boost::system::system_category());
 			return -1;
 		}
 
 		std::lock_guard<std::mutex> l(m_mutex);
-		TORRENT_ASSERT(i < fs.end_file());
+		TORRENT_ASSERT(i < fn.end_file());
 		if (i >= m_stat_cache.end_index()) m_stat_cache.resize(static_cast<int>(i) + 1
 			, stat_cache_t{not_in_cache});
 		std::int64_t sz = m_stat_cache[i].file_size;
@@ -81,7 +81,7 @@ namespace libtorrent::aux {
 		{
 			// query the filesystem
 			file_status s;
-			std::string const file_path = fs.file_path(i, save_path);
+			std::string const file_path = fn.file_path(i, save_path);
 			stat_file(file_path, &s, ec);
 			if (ec)
 			{

@@ -1500,12 +1500,12 @@ namespace {
 		, error_code& ec, load_torrent_limits const& cfg)
 	{
 		add_torrent_params atp;
-		aux::parse_torrent_file(torrent_file, ec, cfg, atp);
+		std::shared_ptr<torrent_info> ti = aux::parse_torrent_file(torrent_file, ec, cfg, atp);
 		if (ec) return false;
 
-		if (atp.ti)
+		if (ti)
 		{
-			*this = std::move(*atp.ti);
+			*this = std::move(*ti);
 		}
 		else
 		{

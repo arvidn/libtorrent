@@ -319,7 +319,7 @@ TORRENT_TEST(v2_only)
 	}
 #endif
 
-	std::shared_ptr<lt::torrent_info> info = lt::load_torrent_buffer(buffer).ti;
+	std::shared_ptr<lt::torrent_info const> info = lt::load_torrent_buffer(buffer).ti;
 	TEST_CHECK(info->info_hashes().has_v2());
 	TEST_CHECK(!info->info_hashes().has_v1());
 	TEST_EQUAL(info->files().file_name(0_file), "A");

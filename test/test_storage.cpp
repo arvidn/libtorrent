@@ -138,7 +138,7 @@ void run_until(io_context& ios, bool const& done)
 	}
 }
 
-std::shared_ptr<torrent_info> setup_torrent_info(std::vector<char>& buf)
+lt::aux::torrent_info_ptr setup_torrent_info(std::vector<char>& buf)
 {
 	std::vector<lt::create_file_entry> fs;
 	fs.emplace_back(combine_path("temp_storage", "test1.tmp"), 0x8000);
@@ -197,19 +197,20 @@ std::shared_ptr<posix_storage> make_storage(storage_params const& p
 }
 
 template <typename StorageType, typename FilePool>
-std::pair<std::shared_ptr<StorageType>, std::shared_ptr<torrent_info>>
+std::pair<std::shared_ptr<StorageType>, std::shared_ptr<torrent_info const>>
 setup_torrent(
 	FilePool& fp
 	, std::vector<char>& buf
 	, std::string const& test_path
 	, aux::session_settings& set)
 {
-	std::shared_ptr<torrent_info> info = setup_torrent_info(buf);
+	auto info = setup_torrent_info(buf);
 
 	aux::vector<download_priority_t, file_index_t> priorities;
+	renamed_files rf;
 	storage_params p{
 		info->files(),
-		nullptr,
+		rf,
 		test_path,
 		storage_mode_allocate,
 		priorities,
@@ -293,7 +294,7 @@ std::vector<char> new_piece(std::size_t const size)
 }
 
 template <typename StorageType>
-void run_storage_tests(std::shared_ptr<torrent_info> info
+void run_storage_tests(std::shared_ptr<torrent_info const> info
 	, lt::storage_mode_t storage_mode)
 {
 	lt::file_storage const& fs = info->files();
@@ -321,9 +322,10 @@ void run_storage_tests(std::shared_ptr<torrent_info> info
 	boost::asio::io_context ios;
 	aux::vector<download_priority_t, file_index_t> priorities;
 	std::string const cwd = current_working_directory();
+	renamed_files rf;
 	storage_params p{
 		fs,
-		nullptr,
+		rf,
 		cwd,
 		storage_mode,
 		priorities,
@@ -501,7 +503,7 @@ void test_rename(std::string const& test_path)
 	}
 	TEST_CHECK(!se.ec);
 
-	TEST_EQUAL(s->files().file_path(0_file), "new_filename");
+	TEST_EQUAL(s->names().file_path(0_file), "new_filename");
 }
 
 namespace {
@@ -537,7 +539,7 @@ void test_pre_allocate()
 	io_context ios;
 
 	aux::session_settings set;
-	std::shared_ptr<torrent_info> info = setup_torrent_info(buf);
+	std::shared_ptr<torrent_info const> info = setup_torrent_info(buf);
 	file_storage const& fs = info->files();
 
 	aux::vector<download_priority_t, file_index_t> priorities{
@@ -547,9 +549,10 @@ void test_pre_allocate()
 		lt::default_priority,
 		lt::default_priority,
 	};
+	renamed_files rf;
 	storage_params p{
 		info->files(),
-		nullptr,
+		rf,
 		test_path,
 		storage_mode_allocate,
 		priorities,
@@ -646,7 +649,6 @@ void test_check_files(check_files_flag_t const flags
 	, lt::disk_io_constructor_type const disk_constructor)
 {
 	std::string const test_path = current_working_directory();
-	std::shared_ptr<torrent_info> info;
 
 	error_code ec;
 	constexpr int piece_size_check = 16 * 1024;
@@ -677,7 +679,7 @@ void test_check_files(check_files_flag_t const flags
 	ofstream(combine_path(test_path, combine_path("temp_storage", "test3.tmp")).c_str())
 		.write(piece2.data(), std::streamsize(piece2.size()));
 
-	info = load_torrent_buffer(bencode(t.generate())).ti;
+	std::shared_ptr<torrent_info const> info = load_torrent_buffer(bencode(t.generate())).ti;
 
 	aux::session_settings set;
 	boost::asio::io_context ios;
@@ -692,9 +694,10 @@ void test_check_files(check_files_flag_t const flags
 	if (flags & zero_prio)
 		priorities.resize(std::size_t(info->num_files()), download_priority_t{});
 
+	renamed_files rf;
 	storage_params p{
 		info->files(),
-		nullptr,
+		rf,
 		test_path,
 		(flags & sparse) ? storage_mode_sparse : storage_mode_allocate,
 		priorities,
@@ -738,8 +741,6 @@ void run_test()
 	std::string const test_path = current_working_directory();
 	std::cout << "\n=== " << test_path << " ===\n" << std::endl;
 
-	std::shared_ptr<torrent_info> info;
-
 	std::vector<char> piece0 = new_piece(piece_size);
 	std::vector<char> piece1 = new_piece(piece_size);
 	std::vector<char> piece2 = new_piece(piece_size);
@@ -771,7 +772,7 @@ void run_test()
 	t.set_hash(2_piece, hasher(piece2).final());
 	t.set_hash(3_piece, hasher(piece3).final());
 
-	info = load_torrent_buffer(bencode(t.generate())).ti;
+	std::shared_ptr<torrent_info const> info = load_torrent_buffer(bencode(t.generate())).ti;
 
 	// run_storage_tests writes piece 0, 1 and 2. not 3
 	run_storage_tests<StorageType>(info, storage_mode_sparse);
@@ -992,7 +993,7 @@ bool got_file_rename_alert(alert const* a)
 TORRENT_TEST(rename_file)
 {
 	std::vector<char> buf;
-	std::shared_ptr<torrent_info> info = setup_torrent_info(buf);
+	auto info = setup_torrent_info(buf);
 
 	file_storage const& fs = info->files();
 
@@ -1663,7 +1664,9 @@ void test_unaligned_read(lt::disk_io_constructor_type constructor, Fun fun)
 	delete_dirs(combine_path(save_path, "test"));
 
 	lt::aux::vector<lt::download_priority_t, lt::file_index_t> prios;
-	lt::storage_params params(fs, nullptr
+	lt::renamed_files rf;
+	lt::storage_params params(fs
+		, rf
 		, save_path
 		, lt::storage_mode_sparse
 		, prios
