@@ -23,6 +23,10 @@ see LICENSE file.
 #include "test_utils.hpp"
 #include "settings.hpp"
 
+#if TORRENT_ABI_VERSION < 4
+// files aren't allowed to be renamed directly in the torrent_info
+// in the new API
+
 #include <iostream>
 #include <fstream>
 #include <iostream>
@@ -193,3 +197,9 @@ TORRENT_TEST(remap_files)
 {
 	test_remap_files();
 }
+#else
+TORRENT_TEST(remap_files)
+{
+	// remap_files() is not available when torrent_info is immutable
+}
+#endif

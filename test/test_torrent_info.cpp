@@ -1474,7 +1474,7 @@ TORRENT_TEST(copy)
 {
 	using namespace lt;
 
-	std::shared_ptr<torrent_info> a = load_torrent_file(
+	std::shared_ptr<torrent_info const> a = load_torrent_file(
 		combine_path(parent_path(current_working_directory())
 		, combine_path("test_torrents", "sample.torrent"))).ti;
 

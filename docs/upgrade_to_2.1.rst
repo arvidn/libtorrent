@@ -54,6 +54,14 @@ add_torrent_params object by calling save_resume_data() and pass in the
 save_info_dict flag. The resulting save_resume_data_alert will contain an
 add_torrent_params object which can be saved to disk using write_torrent_file().
 
+The torrent_info class can be thought of as representing the info-section of a
+torrent file (the aspects defining the info-hash of the torrent). These are
+immutable features of the torrent.
+
+The add_torrent_params can be thought of as representing the whole torrent
+file, including the info-dictionary. This includes fields that do not define
+the *content* of the torrent. Things like trackers.
+
 Creating torrents
 =================
 
@@ -167,3 +175,17 @@ storage_params
 The storage_params type has two new fields indicating whether the torrent has v1
 and/or v2 hashes. this allows disk I/O subsystems to know in advance whether
 block-hashes (v2 torrents) or flat piece hashes (v1 torrents) will be required.
+
+As a consequence of torrent_info representing the immutable parts of the
+torrent, the file_storage class is moving towards being immutable as well. One
+step in this transition is to separate it from the torrent creation
+functionality (see `Creating torrents`_ above). The storage_params object is
+affected by no longer receiving two file_storage objects (the original and the
+ones with renamed files).
+
+Renamed files are now recorded as a separate object, renamed_files. This is an
+overlay over the file_storage of the original torrent_info.
+
+Asking a torrent_handle for the underlying torrent file (torrent_info) will
+not return a torrent whose file list represents renamed files. It will have the
+original file names in it. The resume data will contain renamed files.

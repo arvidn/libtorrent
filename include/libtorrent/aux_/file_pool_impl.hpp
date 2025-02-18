@@ -68,10 +68,10 @@ namespace libtorrent::aux {
 		using FileHandle = decltype(FileEntry::mapping);
 
 		// return an open file handle to file at ``file_index`` in the
-		// file_storage ``fs`` opened at save path ``p``. ``m`` is the
+		// filenames ``fn`` opened at save path ``p``. ``m`` is the
 		// file open mode (see file::open_mode_t).
 		FileHandle open_file(storage_index_t st, std::string const& p
-			, file_index_t file_index, file_storage const& fs, open_mode_t m
+			, file_index_t file_index, filenames const& fn, open_mode_t m
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
 			, typename FileEntry::mutex_type open_unmap_lock
 #endif
@@ -149,7 +149,7 @@ namespace libtorrent::aux {
 		void notify_file_open(opening_file_entry& ofe, FileHandle, lt::storage_error const&);
 
 		FileEntry open_file_impl(std::string const& p
-			, file_index_t file_index, file_storage const& fs
+			, file_index_t file_index, filenames const& fn
 			, open_mode_t m, file_id file_key
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
 			, typename FileEntry::mutex_type open_unmap_lock

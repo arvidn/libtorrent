@@ -249,7 +249,12 @@ namespace libtorrent::aux {
 
 		// TODO: make this a raw pointer. perhaps keep the shared_ptr
 		// around further down the object to maintain an owner
+#if TORRENT_ABI_VERSION < 4
 		std::shared_ptr<torrent_info> m_torrent_file;
+#else
+		std::shared_ptr<torrent_info const> m_torrent_file;
+#endif
+		renamed_files m_renamed_files;
 
 		// This is the sum of all non-pad file sizes. In the next major version
 		// this is stored in file_storage and no longer need to be kept here.

@@ -88,14 +88,13 @@ error_code translate_error(std::error_code const& err, bool const write)
 	mmap_storage::mmap_storage(storage_params const& params
 		, aux::file_view_pool& pool)
 		: m_files(params.files)
+		, m_renamed_files(params.renamed_files)
 		, m_file_priority(params.priorities)
 		, m_save_path(complete(params.path))
 		, m_part_file_name("." + aux::to_hex(params.info_hash) + ".parts")
 		, m_pool(pool)
 		, m_allocate_files(params.mode == storage_mode_allocate)
 	{
-		if (params.mapped_files) m_mapped_files = std::make_unique<file_storage>(*params.mapped_files);
-
 		TORRENT_ASSERT(files().num_files() > 0);
 
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
@@ -112,6 +111,11 @@ error_code translate_error(std::error_code const& err, bool const write)
 		// this may be called from a different
 		// thread than the disk thread
 		m_pool.release(storage_index());
+	}
+
+	filenames mmap_storage::names() const
+	{
+		return {m_files, m_renamed_files};
 	}
 
 	void mmap_storage::need_partfile()
@@ -132,7 +136,7 @@ error_code translate_error(std::error_code const& err, bool const write)
 		if (prio.size() > m_file_priority.size())
 			m_file_priority.resize(prio.size(), default_priority);
 
-		file_storage const& fs = files();
+		filenames const fs = names();
 		for (file_index_t i(0); i < prio.end_index(); ++i)
 		{
 			// pad files always have priority 0.
@@ -232,7 +236,7 @@ error_code translate_error(std::error_code const& err, bool const write)
 						return;
 					}
 					// remove the file
-					std::string p = fs.file_path(i, m_save_path);
+					std::string const p = fs.file_path(i, m_save_path);
 					delete_one_file(p, ec.ec);
 					if (ec)
 					{
@@ -301,7 +305,7 @@ error_code translate_error(std::error_code const& err, bool const write)
 			m_file_created.resize(files().num_files(), false);
 		}
 
-		file_storage const& fs = files();
+		filenames const fs = names();
 		status_t ret{};
 		// if some files have priority 0, we need to check if they exist on the
 		// filesystem, in which case we won't use a partfile for them.
@@ -346,7 +350,7 @@ error_code translate_error(std::error_code const& err, bool const write)
 	{
 		m_stat_cache.reserve(files().num_files());
 
-		if (aux::has_any_file(files(), m_save_path, m_stat_cache, ec))
+		if (aux::has_any_file(names(), m_save_path, m_stat_cache, ec))
 			return true;
 
 		if (ec) return false;
@@ -371,7 +375,7 @@ error_code translate_error(std::error_code const& err, bool const write)
 		, storage_error& ec)
 	{
 		if (index < file_index_t(0) || index >= files().end_file()) return;
-		std::string const old_name = files().file_path(index, m_save_path);
+		std::string const old_name = m_renamed_files.file_path(files(), index, m_save_path);
 		m_pool.release(storage_index(), index);
 
 		// if the old file doesn't exist, just succeed and change the filename
@@ -432,9 +436,7 @@ error_code translate_error(std::error_code const& err, bool const write)
 		// if old path doesn't exist, just rename the file
 		// in our file_storage, so that when it is created
 		// it will get the new name
-		if (!m_mapped_files)
-		{ m_mapped_files = std::make_unique<file_storage>(files()); }
-		m_mapped_files->rename_file(index, new_filename);
+		m_renamed_files.rename_file(files(), index, new_filename);
 	}
 
 	void mmap_storage::release_files(storage_error&)
@@ -463,14 +465,14 @@ error_code translate_error(std::error_code const& err, bool const write)
 		// delete it
 		if (m_part_file) m_part_file.reset();
 
-		aux::delete_files(files(), m_save_path, m_part_file_name, options, ec);
+		aux::delete_files(names(), m_save_path, m_part_file_name, options, ec);
 	}
 
 	bool mmap_storage::verify_resume_data(add_torrent_params const& rd
 		, aux::vector<std::string, file_index_t> const& links
 		, storage_error& ec)
 	{
-		return aux::verify_resume_data(rd, links, files()
+		return aux::verify_resume_data(rd, links, names()
 			, m_file_priority, m_stat_cache, m_save_path, ec);
 	}
 
@@ -485,7 +487,7 @@ error_code translate_error(std::error_code const& err, bool const write)
 			if (!m_part_file) return;
 			m_part_file->move_partfile(new_save_path, e);
 		};
-		std::tie(ret, m_save_path) = aux::move_storage(files(), m_save_path, std::move(save_path)
+		std::tie(ret, m_save_path) = aux::move_storage(names(), m_save_path, std::move(save_path)
 			, std::move(move_partfile), flags, ec);
 
 		// clear the stat cache in case the new location has new files
@@ -891,7 +893,7 @@ error_code translate_error(std::error_code const& err, bool const write)
 
 		try {
 			return m_pool.open_file(storage_index(), m_save_path, file
-				, files(), mode
+				, names(), mode
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
 				, std::shared_ptr<std::mutex>(m_file_open_unmap_lock
 					, &m_file_open_unmap_lock.get()[int(file)])

@@ -37,7 +37,7 @@ namespace libtorrent::aux {
 	template <typename FileEntry>
 	typename file_pool_impl<FileEntry>::FileHandle
 	file_pool_impl<FileEntry>::open_file(storage_index_t st, std::string const& p
-		, file_index_t const file_index, file_storage const& fs
+		, file_index_t const file_index, filenames const& fn
 		, open_mode_t const m
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
 		, typename FileEntry::mutex_type open_unmap_lock
@@ -139,7 +139,7 @@ namespace libtorrent::aux {
 
 		try
 		{
-			FileEntry e = open_file_impl(p, file_index, fs, m, file_key
+			FileEntry e = open_file_impl(p, file_index, fn, m, file_key
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
 				, std::move(open_unmap_lock)
 #endif
@@ -238,21 +238,21 @@ namespace libtorrent::aux {
 
 	template <typename FileEntry>
 	FileEntry file_pool_impl<FileEntry>::open_file_impl(std::string const& p
-		, file_index_t const file_index, file_storage const& fs
+		, file_index_t const file_index, filenames const& fn
 		, open_mode_t const m, file_id const file_key
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
 		, typename FileEntry::mutex_type open_unmap_lock
 #endif
 		)
 	{
-		std::string const file_path = fs.file_path(file_index, p);
+		std::string const file_path = fn.file_path(file_index, p);
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
 		typename FileEntry::lock_type lou(*open_unmap_lock);
 		TORRENT_UNUSED(lou);
 #endif
 		try
 		{
-			return FileEntry(file_key, file_path, m, fs.file_size(file_index)
+			return FileEntry(file_key, file_path, m, fn.file_size(file_index)
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
 				, open_unmap_lock
 #endif
@@ -280,7 +280,7 @@ namespace libtorrent::aux {
 			// this means the directory the file is in doesn't exist.
 			// so create it
 			se.ec.clear();
-			create_directories(parent_path(fs.file_path(file_index, p)), se.ec);
+			create_directories(parent_path(fn.file_path(file_index, p)), se.ec);
 
 			if (se.ec)
 			{
@@ -289,7 +289,7 @@ namespace libtorrent::aux {
 				throw_ex<storage_error>(se);
 			}
 
-			return FileEntry(file_key, file_path, m, fs.file_size(file_index)
+			return FileEntry(file_key, file_path, m, fn.file_size(file_index)
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
 				, open_unmap_lock
 #endif

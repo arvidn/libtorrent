@@ -476,11 +476,12 @@ namespace {
 		disk_aborter da(*disk_thread);
 
 		file_storage fs = make_file_storage(t.file_list(), t.piece_length());
+		renamed_files rf;
 
 		aux::vector<download_priority_t, file_index_t> priorities;
 		storage_params params{
 			fs,
-			nullptr,
+			rf,
 			path,
 			storage_mode_t::storage_mode_sparse,
 			priorities,

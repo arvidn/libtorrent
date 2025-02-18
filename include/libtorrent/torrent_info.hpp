@@ -696,6 +696,8 @@ TORRENT_VERSION_NAMESPACE_4
 		// filenames are preserved.
 		// the original filenames are required to build URLs for web seeds for
 		// instance
+		// TODO: rather than making a copy of the whole file_storage, record
+		// renamed files in the renamed_files type
 		aux::copy_ptr<const file_storage> m_orig_files;
 
 #if TORRENT_ABI_VERSION < 4

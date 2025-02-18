@@ -31,7 +31,7 @@ namespace libtorrent::aux {
 	// ``destination_save_path`` according to the rules defined by ``flags``.
 	// returns the status code and the new save_path.
 	TORRENT_EXTRA_EXPORT std::pair<status_t, std::string>
-	move_storage(file_storage const& f
+	move_storage(filenames const& f
 		, std::string save_path
 		, std::string const& destination_save_path
 		, std::function<void(std::string const&, lt::error_code&)> const& move_partfile
@@ -40,13 +40,13 @@ namespace libtorrent::aux {
 	// deletes the files on fs from save_path according to options. Options may
 	// opt to only delete the partfile
 	TORRENT_EXTRA_EXPORT void
-	delete_files(file_storage const& fs, std::string const& save_path
+	delete_files(filenames const& fs, std::string const& save_path
 		, std::string const& part_file_name, remove_flags_t options, storage_error& ec);
 
 	TORRENT_EXTRA_EXPORT bool
 	verify_resume_data(add_torrent_params const& rd
 		, aux::vector<std::string, file_index_t> const& links
-		, file_storage const& fs
+		, filenames const& fs
 		, aux::vector<download_priority_t, file_index_t> const& file_priority
 		, stat_cache& stat
 		, std::string const& save_path
@@ -55,7 +55,7 @@ namespace libtorrent::aux {
 	// given the save_path, stat all files on file_storage until one exists. If a
 	// file exists, return true, otherwise return false.
 	TORRENT_EXTRA_EXPORT bool has_any_file(
-		file_storage const& fs
+		filenames const& fs
 		, std::string const& save_path
 		, stat_cache& cache
 		, storage_error& ec);
@@ -65,7 +65,7 @@ namespace libtorrent::aux {
 	TORRENT_EXTRA_EXPORT int hash_zeroes(hasher& ph, std::int64_t size);
 
 	TORRENT_EXTRA_EXPORT void initialize_storage(
-		file_storage const& fs
+		filenames const& fs
 		, std::string const& save_path
 		, stat_cache& sc
 		, aux::vector<download_priority_t, file_index_t> const& file_priority

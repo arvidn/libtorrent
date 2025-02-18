@@ -37,14 +37,16 @@ namespace aux {
 
 	posix_storage::posix_storage(storage_params const& p)
 		: m_files(p.files)
+		, m_renamed_files(std::move(p.renamed_files))
 		, m_save_path(p.path)
 		, m_file_priority(p.priorities)
 		, m_part_file_name("." + to_hex(p.info_hash) + ".parts")
-	{
-		if (p.mapped_files) m_mapped_files = std::make_unique<file_storage>(*p.mapped_files);
-	}
+	{}
 
-	file_storage const& posix_storage::files() const { return m_mapped_files ? *m_mapped_files : m_files; }
+	filenames posix_storage::names() const
+	{
+		return {m_files, m_renamed_files};
+	}
 
 	posix_storage::~posix_storage()
 	{
@@ -70,7 +72,7 @@ namespace aux {
 		if (prio.size() > m_file_priority.size())
 			m_file_priority.resize(prio.size(), default_priority);
 
-		file_storage const& fs = files();
+		filenames const fs = names();
 		for (file_index_t i(0); i < prio.end_index(); ++i)
 		{
 			// pad files always have priority 0.
@@ -265,14 +267,14 @@ namespace aux {
 	bool posix_storage::has_any_file(storage_error& error)
 	{
 		m_stat_cache.reserve(files().num_files());
-		return aux::has_any_file(files(), m_save_path, m_stat_cache, error);
+		return aux::has_any_file(names(), m_save_path, m_stat_cache, error);
 	}
 
 	bool posix_storage::verify_resume_data(add_torrent_params const& rd
 		, vector<std::string, file_index_t> const& links
 		, storage_error& ec)
 	{
-		return aux::verify_resume_data(rd, links, files()
+		return aux::verify_resume_data(rd, links, names()
 			, m_file_priority, m_stat_cache, m_save_path, ec);
 	}
 
@@ -292,7 +294,7 @@ namespace aux {
 		// release the underlying part file. Otherwise we may not be able to
 		// delete it
 		if (m_part_file) m_part_file.reset();
-		aux::delete_files(files(), m_save_path, m_part_file_name, options, error);
+		aux::delete_files(names(), m_save_path, m_part_file_name, options, error);
 	}
 
 	std::pair<status_t, std::string> posix_storage::move_storage(std::string const& sp
@@ -304,7 +306,7 @@ namespace aux {
 			if (!m_part_file) return;
 			m_part_file->move_partfile(new_save_path, e);
 		};
-		std::tie(ret, m_save_path) = aux::move_storage(files(), m_save_path, sp
+		std::tie(ret, m_save_path) = aux::move_storage(names(), m_save_path, sp
 			, std::move(move_partfile), flags, ec);
 
 		// clear the stat cache in case the new location has new files
@@ -316,7 +318,7 @@ namespace aux {
 	void posix_storage::rename_file(file_index_t const index, std::string const& new_filename, storage_error& ec)
 	{
 		if (index < file_index_t(0) || index >= files().end_file()) return;
-		std::string const old_name = files().file_path(index, m_save_path);
+		std::string const old_name = m_renamed_files.file_path(m_files, index, m_save_path);
 
 		if (exists(old_name, ec.ec))
 		{
@@ -355,18 +357,14 @@ namespace aux {
 			return;
 		}
 
-		if (!m_mapped_files)
-		{
-			m_mapped_files = std::make_unique<file_storage>(files());
-		}
-		m_mapped_files->rename_file(index, new_filename);
+		m_renamed_files.rename_file(files(), index, new_filename);
 	}
 
 	status_t posix_storage::initialize(settings_interface const&, storage_error& ec)
 	{
 		m_stat_cache.reserve(files().num_files());
 
-		file_storage const& fs = files();
+		filenames const fs = names();
 		// if some files have priority 0, we need to check if they exist on the
 		// filesystem, in which case we won't use a partfile for them.
 		// this is to be backwards compatible with previous versions of
@@ -407,7 +405,7 @@ namespace aux {
 	file_pointer posix_storage::open_file(file_index_t idx, open_mode_t const mode
 		, std::int64_t const offset, storage_error& ec)
 	{
-		std::string const fn = files().file_path(idx, m_save_path);
+		std::string const fn = m_renamed_files.file_path(m_files, idx, m_save_path);
 
 		auto const* mode_str = (mode & open_mode::write)
 #ifdef TORRENT_WINDOWS

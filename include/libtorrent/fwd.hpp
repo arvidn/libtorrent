@@ -181,6 +181,8 @@ struct file_slice;
 TORRENT_VERSION_NAMESPACE_4
 class file_storage;
 TORRENT_VERSION_NAMESPACE_4_END
+struct renamed_files;
+struct filenames;
 
 // include/libtorrent/hasher.hpp
 TORRENT_CRYPTO_NAMESPACE
