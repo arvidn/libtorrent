@@ -22,7 +22,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
            submodules: recursive
 
@@ -38,7 +38,7 @@ jobs:
           echo "using darwin ;" >>~/user-config.jam
 
       - name: build and run tests
-        uses: nick-invision/retry@v2
+        uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           retry_wait_seconds: 1
@@ -53,7 +53,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
            submodules: recursive
 
@@ -85,7 +85,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
            submodules: recursive
 
