@@ -470,7 +470,7 @@ namespace libtorrent {
 			num_queued_tracker_announces,
 
 			num_counters,
-			num_gauges_counters = num_counters - num_stats_counters
+			num_gauges_counters = num_counters - static_cast<int>(num_stats_counters)
 		};
 #ifdef ATOMIC_LLONG_LOCK_FREE
 #define TORRENT_COUNTER_NOEXCEPT noexcept
