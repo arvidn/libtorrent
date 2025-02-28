@@ -13,11 +13,11 @@ jobs:
 
    docs:
       name: Docs
-      runs-on: ubuntu-20.04
+      runs-on: ubuntu-24.04
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: update package lists
         continue-on-error: true
@@ -26,7 +26,7 @@ jobs:
 
       - name: install dependencies
         run: |
-          sudo apt install python-docutils python-pygments python-pil gsfonts inkscape icoutils graphviz hunspell imagemagick
+          sudo apt install python3-docutils python3-pygments python3-pil gsfonts inkscape icoutils graphviz hunspell imagemagick
           python -m pip install aafigure
           ~/.local/bin/aafigure --version
 

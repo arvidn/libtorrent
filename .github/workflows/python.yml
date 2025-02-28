@@ -17,18 +17,18 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04, macos-latest, windows-latest ]
+        os: [ubuntu-22.04, ubuntu-24.04, macos-latest, windows-latest ]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         submodules: recursive
 
     - name: dependencies (MacOS)
       if: runner.os == 'macOS'
       run: |
-        brew install boost-build boost boost-python3 python@3.12 openssl@1.1
-        export PATH=$(brew --prefix)/opt/python@3.12/bin:$PATH
+        brew install boost-build boost boost-python3 python@3.13 openssl@3
+        export PATH=$(brew --prefix)/opt/python@3.13/bin:$PATH
 
     - name: update package lists (linux)
       if: runner.os == 'Linux'
@@ -53,7 +53,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: cmd
       run: |
-        git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.78.0 https://github.com/boostorg/boost.git
+        git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.86.0 https://github.com/boostorg/boost.git
         cd boost
         bootstrap.bat
 
@@ -66,7 +66,7 @@ jobs:
 
     - name: install openssl (windows)
       if: runner.os == 'Windows'
-      uses: nick-invision/retry@v2
+      uses: nick-fields/retry@v3
       with:
         shell: cmd
         timeout_minutes: 5
@@ -103,8 +103,8 @@ jobs:
       run: |
         # Install to Homebrew's python site-packages. no need for --user and --prefix
         cd bindings/python
-        export PATH=$(brew --prefix)/opt/python@3.12/bin:$PATH
-        python3.12 setup.py build_ext install --install-lib $(brew --prefix)/lib/python3.12/site-packages
+        export PATH=$(brew --prefix)/opt/python@3.13/bin:$PATH
+        python3.13 setup.py build_ext install --install-lib $(brew --prefix)/lib/python3.13/site-packages
 
     - name: tests (Linux)
       if: runner.os == 'Linux'
@@ -116,5 +116,5 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         cd bindings/python
-        export PATH=$(brew --prefix)/opt/python@3.12/bin:$PATH
-        python3.12 test.py
+        export PATH=$(brew --prefix)/opt/python@3.13/bin:$PATH
+        python3.13 test.py

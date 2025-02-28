@@ -15,17 +15,17 @@ jobs:
       # TODO: matrix across python version and os
       runs-on: ubuntu-latest
       steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
            submodules: recursive
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v5
         with:
-           python-version: 3.8
-      - uses: pre-commit/action@v2.0.0
+           python-version: "3"
+      - uses: pre-commit/action@v3.0.1
 
    build:
       name: build
-      runs-on: ubuntu-20.04
+      runs-on: ubuntu-24.04
       continue-on-error: true
 
       strategy:
@@ -34,7 +34,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
            submodules: recursive
 
@@ -76,12 +76,12 @@ jobs:
 
    fuzzers:
       name: Fuzzers
-      runs-on: ubuntu-20.04
+      runs-on: ubuntu-24.04
       continue-on-error: true
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
            submodules: recursive
 
@@ -116,11 +116,11 @@ jobs:
 
    check_headers:
       name: check headers
-      runs-on: ubuntu-20.04
+      runs-on: ubuntu-24.04
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
            submodules: recursive
 
@@ -149,11 +149,11 @@ jobs:
 
    clang_tidy:
       name: clang-tidy
-      runs-on: ubuntu-20.04
+      runs-on: ubuntu-24.04
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
            submodules: recursive
 
@@ -185,7 +185,7 @@ jobs:
 
    test:
       name: Tests
-      runs-on: ubuntu-20.04
+      runs-on: ubuntu-24.04
       continue-on-error: true
 
       strategy:
@@ -194,7 +194,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
            submodules: recursive
 
@@ -222,7 +222,7 @@ jobs:
           echo "using clang : 10 : clang++-10 ;" >>~/user-config.jam
 
       - name: build and run tests
-        uses: nick-invision/retry@v2
+        uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           retry_wait_seconds: 4
@@ -233,11 +233,11 @@ jobs:
 
    sim:
       name: Simulations
-      runs-on: ubuntu-20.04
+      runs-on: ubuntu-24.04
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
            submodules: recursive
 
@@ -270,11 +270,11 @@ jobs:
 
       strategy:
          matrix:
-            os: [ubuntu-20.04, ubuntu-22.04]
+            os: [ubuntu-22.04, ubuntu-24.04]
 
       steps:
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
            submodules: recursive
 
@@ -304,9 +304,9 @@ jobs:
           (cd docs; make AAFIGURE=~/.local/bin/aafigure RST2HTML=rst2html html)
           make dist
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
-          name: tarball
+          name: tarball-${{ matrix.os }}
           path: libtorrent-rasterbar-*.tar.gz
 
       - name: test-tarball (install)
@@ -317,7 +317,7 @@ jobs:
           cat test-install-root/lib/pkgconfig/libtorrent-rasterbar.pc
 
       - name: test-tarball (bjam)
-        uses: nick-invision/retry@v2
+        uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
           retry_wait_seconds: 4

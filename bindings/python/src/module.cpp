@@ -32,7 +32,6 @@ void bind_error_code();
 BOOST_PYTHON_MODULE(libtorrent)
 {
     Py_Initialize();
-    PyEval_InitThreads();
 
     bind_converters();
     bind_unicode_string_conversion();
