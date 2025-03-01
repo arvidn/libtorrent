@@ -12312,7 +12312,10 @@ namespace {
 		{
 			announce_with_tracker(r.event);
 		}
-		update_tracker_timer(aux::time_now32());
+		else
+		{
+			update_tracker_timer(aux::time_now32());
+		}
 	}
 
 #ifndef TORRENT_DISABLE_LOGGING
