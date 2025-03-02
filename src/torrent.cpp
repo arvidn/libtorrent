@@ -3114,20 +3114,20 @@ namespace {
 		// so that each one should get at least one announce
 		std::vector<announce_state> listen_socket_states;
 
+		bool announce_to_all_tiers = settings().get_bool(settings_pack::announce_to_all_tiers);
+		bool announce_to_all_trackers = settings().get_bool(settings_pack::announce_to_all_trackers);
 #ifndef TORRENT_DISABLE_LOGGING
 		int idx = -1;
 		if (should_log())
 		{
 			debug_log("*** announce: "
 				"[ announce_to_all_tiers: %d announce_to_all_trackers: %d num_trackers: %d ]"
-				, settings().get_bool(settings_pack::announce_to_all_tiers)
-				, settings().get_bool(settings_pack::announce_to_all_trackers)
+				, announce_to_all_tiers
+				, announce_to_all_trackers
 				, int(m_trackers.size()));
 		}
 #endif
 
-		bool announce_to_all_tiers = settings().get_bool(settings_pack::announce_to_all_tiers);
-		bool announce_to_all_trackers = settings().get_bool(settings_pack::announce_to_all_trackers);
 		for (auto& ae : m_trackers)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -3213,8 +3213,8 @@ namespace {
 						if (a.is_working())
 						{
 							state.sent_announce = true;
-							if (!settings().get_bool(settings_pack::announce_to_all_trackers)
-								&& !settings().get_bool(settings_pack::announce_to_all_tiers))
+							if (!announce_to_all_trackers
+								&& !announce_to_all_tiers)
 							{
 								state.done = true;
 							}
@@ -9905,19 +9905,19 @@ namespace {
 
 		std::map<std::weak_ptr<aux::listen_socket_t>, timer_state, std::owner_less<std::weak_ptr<aux::listen_socket_t>>> listen_socket_states;
 
+		bool announce_to_all_tiers = settings().get_bool(settings_pack::announce_to_all_tiers);
+		bool announce_to_all_trackers = settings().get_bool(settings_pack::announce_to_all_trackers);
 #ifndef TORRENT_DISABLE_LOGGING
 		int idx = -1;
 		if (should_log())
 		{
 			debug_log("*** update_tracker_timer: "
 				"[ announce_to_all_tiers: %d announce_to_all_trackers: %d num_trackers: %d ]"
-				, settings().get_bool(settings_pack::announce_to_all_tiers)
-				, settings().get_bool(settings_pack::announce_to_all_trackers)
+				, announce_to_all_tiers
+				, announce_to_all_trackers
 				, int(m_trackers.size()));
 		}
 #endif
-		bool announce_to_all_tiers = settings().get_bool(settings_pack::announce_to_all_tiers);
-		bool announce_to_all_trackers = settings().get_bool(settings_pack::announce_to_all_trackers);
 		for (auto const& t : m_trackers)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
