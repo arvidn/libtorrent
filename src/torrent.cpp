@@ -3114,8 +3114,8 @@ namespace {
 		// so that each one should get at least one announce
 		std::vector<announce_state> listen_socket_states;
 
-		bool announce_to_all_tiers = settings().get_bool(settings_pack::announce_to_all_tiers);
-		bool announce_to_all_trackers = settings().get_bool(settings_pack::announce_to_all_trackers);
+		bool const announce_to_all_tiers = settings().get_bool(settings_pack::announce_to_all_tiers);
+		bool const announce_to_all_trackers = settings().get_bool(settings_pack::announce_to_all_trackers);
 #ifndef TORRENT_DISABLE_LOGGING
 		int idx = -1;
 		if (should_log())
@@ -9905,8 +9905,8 @@ namespace {
 
 		std::map<std::weak_ptr<aux::listen_socket_t>, timer_state, std::owner_less<std::weak_ptr<aux::listen_socket_t>>> listen_socket_states;
 
-		bool announce_to_all_tiers = settings().get_bool(settings_pack::announce_to_all_tiers);
-		bool announce_to_all_trackers = settings().get_bool(settings_pack::announce_to_all_trackers);
+		bool const announce_to_all_tiers = settings().get_bool(settings_pack::announce_to_all_tiers);
+		bool const announce_to_all_trackers = settings().get_bool(settings_pack::announce_to_all_trackers);
 #ifndef TORRENT_DISABLE_LOGGING
 		int idx = -1;
 		if (should_log())
