@@ -281,6 +281,13 @@ rule warnings ( properties * )
 # these warnings should all be addressed. Either by transitioning to span and
 # array, or by suppressing the warning for specific code
 		result += <cxxflags>-Wno-unsafe-buffer-usage ;
+
+# different versions of clang disagree on how to warn about switch statements
+# you either get:
+# error: 'switch' missing 'default' label [-Werror,-Wswitch-default]
+# or:
+# error: default label in switch which covers all enumeration values [-Werror,-Wcovered-switch-default]
+		result += <cxxflags>-Wno-switch-default ;
 	}
 
 	if <toolset>gcc in $(properties)
