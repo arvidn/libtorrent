@@ -39,7 +39,7 @@ using test_flags_t = lt::flags::bitfield_flag<std::uint32_t, struct test_flags_t
 
 namespace test_flags
 {
-	using lt::operator "" _bit;
+	using lt::operator ""_bit;
 	constexpr test_flags_t super_seeding = 1_bit;
 	constexpr test_flags_t strict_super_seeding = 2_bit;
 	constexpr test_flags_t seed_mode = 3_bit;
