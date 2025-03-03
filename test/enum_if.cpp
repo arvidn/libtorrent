@@ -42,7 +42,7 @@ using namespace lt;
 
 namespace {
 
-std::string operator "" _s(char const* str, size_t len) { return std::string(str, len); }
+std::string operator ""_s(char const* str, size_t len) { return std::string(str, len); }
 
 std::string print_flags(interface_flags const f)
 {
