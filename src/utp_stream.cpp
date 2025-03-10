@@ -1466,6 +1466,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 
 	// TODO: this loop is not very efficient. It could be fixed by having
 	// a separate list of sequence numbers that need resending
+	if (!m_outbuf.empty())
 	for (int i = (m_acked_seq_nr + 1) & ACK_MASK; i != m_seq_nr; i = (i + 1) & ACK_MASK)
 	{
 		packet* p = m_outbuf.at(aux::numeric_cast<packet_buffer::index_type>(i));
