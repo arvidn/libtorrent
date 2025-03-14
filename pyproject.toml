@@ -63,13 +63,19 @@ PATH = "/usr/lib/ccache/bin:/tmp/boost:$PATH"
 before-all = [
   "bash -c './tools/cibuildwheel/setup_boost.sh $BOOST_VERSION $BOOST_ROOT'"
 ]
-select = "*-win32"
+select = "cp*-win32"
 
 [[tool.cibuildwheel.overrides]]
 before-all = [
   "bash -c './tools/cibuildwheel/setup_boost.sh $BOOST_VERSION $BOOST_ROOT'"
 ]
-select = "*-win_amd64"
+select = "cp*-win_amd64"
+
+[[tool.cibuildwheel.overrides]]
+before-all = [
+  "bash -c './tools/cibuildwheel/setup_boost.sh $BOOST_VERSION $BOOST_ROOT'"
+]
+select = "cp*-win_arm64"
 
 [tool.cibuildwheel.windows]
 test-command = '''bash -c "cd '{project}/bindings/python' && python test.py"'''
