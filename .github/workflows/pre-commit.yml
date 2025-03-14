@@ -1,0 +1,27 @@
+name: File health
+
+on:
+   push:
+      branches: [ RC_1_2 RC_2_0 master ]
+   pull_request:
+
+concurrency:
+   group: ${{ github.ref }}-${{ github.workflow }}-${{ github.event_name }}
+   cancel-in-progress: true
+
+jobs:
+
+   pre-commit:
+      runs-on: ubuntu-latest
+      steps:
+      - uses: actions/checkout@v4
+        with:
+           submodules: recursive
+           fetch-depth: 1
+           filter: tree:0
+
+      - uses: actions/setup-python@v5
+        with:
+           python-version: "3"
+      - uses: pre-commit/action@v3.0.1
+
