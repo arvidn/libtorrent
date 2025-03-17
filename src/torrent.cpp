@@ -563,6 +563,14 @@ bool is_downloading_state(int const st)
 				do_connect_boost();
 			}
 
+			if (!p.root_certificate.empty())
+			{
+				m_ssl_torrent = true;
+#ifdef TORRENT_SSL_PEERS
+				init_ssl(p.root_certificate);
+#endif
+			}
+
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log() && !p.peers.empty())
 			{
@@ -583,7 +591,7 @@ bool is_downloading_state(int const st)
 		if (should_log())
 		{
 			debug_log("creating torrent: %s max-uploads: %d max-connections: %d "
-				"upload-limit: %d download-limit: %d flags: %s%s%s%s%s%s%s%s%s%s%s "
+				"upload-limit: %d download-limit: %d flags: %s%s%s%s%s%s%s%s%s%s%s%s "
 				"save-path: %s"
 				, torrent_file().name().c_str()
 				, int(m_max_uploads)
@@ -611,6 +619,7 @@ bool is_downloading_state(int const st)
 					? "override-trackers "  : ""
 				, (m_add_torrent_params && m_add_torrent_params->flags & torrent_flags::deprecated_override_web_seeds)
 					? "override-web-seeds " : ""
+				, (m_ssl_torrent ? "ssl-torrent " : "")
 				, m_save_path.c_str()
 				);
 		}
@@ -1813,8 +1822,8 @@ bool is_downloading_state(int const st)
 		else if (m_add_torrent_params->flags & torrent_flags::default_dont_download)
 			m_file_priority.resize(m_torrent_file->num_files(), dont_download);
 
-		auto cert = m_torrent_file->ssl_cert();
-		if (!cert.empty())
+		auto cert = !m_add_torrent_params->root_certificate.empty() ? m_add_torrent_params->root_certificate: m_torrent_file->ssl_cert();
+		if (!is_ssl_torrent() && !cert.empty())
 		{
 			m_ssl_torrent = true;
 #ifdef TORRENT_SSL_PEERS
