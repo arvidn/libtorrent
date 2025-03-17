@@ -401,6 +401,10 @@ TORRENT_VERSION_NAMESPACE_3
 		error_code internal_resume_data_error;
 #endif // TORRENT_ABI_VERSION
 
+		// if this is an SSL torrent, specify the root certificate here.
+		// This is so that an ssl torrent can be added with only an infohash
+		// and certificate.
+		std::string root_certificate;
 	};
 
 TORRENT_VERSION_NAMESPACE_3_END
