@@ -353,7 +353,7 @@ namespace libtorrent {
 					, print_endpoint(m_target).c_str());
 			}
 #endif
-			return false;
+			// Do NOT return here; accept the response if transaction ID matches
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
