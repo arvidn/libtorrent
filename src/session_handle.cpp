@@ -266,6 +266,12 @@ namespace libtorrent {
 		return sync_call_ret<torrent_handle>(&session_impl::find_torrent_handle, info_hash);
 	}
 
+	torrent_handle session_handle::find_torrent(sha256_hash const& info_hash) const
+	{
+		return sync_call_ret<torrent_handle>(&session_impl::find_torrent_handle_v2, info_hash);
+	}
+
+
 	std::vector<torrent_handle> session_handle::get_torrents() const
 	{
 		return sync_call_ret<std::vector<torrent_handle>>(&session_impl::get_torrents);

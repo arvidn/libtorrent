@@ -4879,6 +4879,12 @@ namespace {
 		return torrent_handle(find_torrent(info_hash_t(info_hash)));
 	}
 
+	torrent_handle session_impl::find_torrent_handle_v2(sha256_hash const& info_hash)
+	{
+		return torrent_handle(find_torrent(info_hash_t(info_hash)));
+	}
+
+
 	void session_impl::async_add_torrent(add_torrent_params* params)
 	{
 		std::unique_ptr<add_torrent_params> holder(params);

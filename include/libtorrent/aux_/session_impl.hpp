@@ -714,6 +714,7 @@ namespace aux {
 			void abort_stage2() noexcept;
 
 			torrent_handle find_torrent_handle(sha1_hash const& info_hash);
+			torrent_handle find_torrent_handle_v2(sha256_hash const& info_hash);
 
 			void announce_lsd(sha1_hash const& ih, int port) override;
 
