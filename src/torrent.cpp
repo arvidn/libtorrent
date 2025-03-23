@@ -2922,7 +2922,7 @@ namespace {
 			for (auto& aep : aeps)
 			{
 				if (aep.socket != s) continue;
-				std::swap(aeps[valid_endpoints], aep);
+				if (&aeps[valid_endpoints] != &aep) std::swap(aeps[valid_endpoints], aep);
 				valid_endpoints++;
 				return;
 			}
