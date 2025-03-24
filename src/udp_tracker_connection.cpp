@@ -338,23 +338,23 @@ namespace libtorrent {
 			return false;
 		}
 
-		// ignore packet not sent from the tracker
-		// if m_target is inaddr_any, it suggests that we
-		// sent the packet through a proxy only knowing
-		// the hostname, in which case this packet might be for us
-		if (!m_target.address().is_unspecified() && m_target != ep)
-		{
-#ifndef TORRENT_DISABLE_LOGGING
-			if (cb && cb->should_log())
-			{
-				cb->debug_log("<== UDP_TRACKER [ unexpected source IP: %s "
-					"expected: %s ]"
-					, print_endpoint(ep).c_str()
-					, print_endpoint(m_target).c_str());
-			}
-#endif
-			// Do NOT return here; accept the response if transaction ID matches
+#ifndef TORRENT_DISABLE_LOGGINGs
+	// Per BEP 15, even if the source IP does not match the expected tracker
+	// IP, we must accept the response if the transaction ID is valid.
+	// This is necessary because when using a proxy (indicated by m_target
+	// being inaddr_any), we only know the hostname and the IP may differ.
+	// https://www.bittorrent.org/beps/bep_0015.html
+	if (!m_target.address().is_unspecified() && m_target != ep) {
+		if (cb && cb->should_log()) {
+			cb->debug_log(
+			"<== UDP_TRACKER [ unexpected source IP: %s "
+			"expected: %s ]",
+			print_endpoint(ep).c_str(),
+			print_endpoint(m_target).c_str());
 		}
+		// Do NOT return here; accept the response if transaction ID matches
+	}
+#endif
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (cb) cb->debug_log("<== UDP_TRACKER_PACKET [ size: %d ]"
