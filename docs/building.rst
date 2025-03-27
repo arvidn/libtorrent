@@ -586,6 +586,12 @@ Other build options are:
 | ``encryption``        | Defaults ``ON``. Support trackers and bittorrent  |
 |                       | over TLS, and obfuscated bittorrent connections.  |
 +-----------------------+---------------------------------------------------+
+| ``io_uring``          | Defaults ``OFF``. Use io_uring backend in boost   |
+|                       | asio. Requires Linux kernel >= 5.1, Boost >= 1.78,|
+|                       | `liburing library`__.                             |
++-----------------------+---------------------------------------------------+
+
+__ https://github.com/axboe/liburing
 
 Options are set on the ``cmake`` command line with the ``-D`` option or later on using ``ccmake`` or ``cmake-gui`` applications. ``cmake`` run outputs a summary of all available options and their current values.
 
