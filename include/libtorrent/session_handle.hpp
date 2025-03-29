@@ -254,6 +254,7 @@ namespace libtorrent {
 		// ``get_torrents()`` returns a vector of torrent_handles to all the
 		// torrents currently in the session.
 		torrent_handle find_torrent(sha1_hash const& info_hash) const;
+		torrent_handle find_torrent(sha256_hash const& info_hash) const;
 		std::vector<torrent_handle> get_torrents() const;
 
 		// You add torrents through the add_torrent() function where you give an
