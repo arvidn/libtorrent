@@ -338,7 +338,7 @@ namespace libtorrent {
 			return false;
 		}
 
-#ifndef TORRENT_DISABLE_LOGGINGs
+#ifndef TORRENT_DISABLE_LOGGING
 	// Per BEP 15, even if the source IP does not match the expected tracker
 	// IP, we must accept the response if the transaction ID is valid.
 	// This is necessary because when using a proxy (indicated by m_target
