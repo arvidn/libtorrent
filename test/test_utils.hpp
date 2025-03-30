@@ -30,13 +30,13 @@ namespace libtorrent
 	EXPORT std::string test_listen_interface();
 }
 
-constexpr inline lt::download_priority_t operator "" _pri(unsigned long long const p)
+constexpr inline lt::download_priority_t operator ""_pri(unsigned long long const p)
 { return lt::download_priority_t(static_cast<std::uint8_t>(p)); }
 
-constexpr inline lt::file_index_t operator "" _file(unsigned long long const p)
+constexpr inline lt::file_index_t operator ""_file(unsigned long long const p)
 { return lt::file_index_t(static_cast<int>(p)); }
 
-constexpr inline lt::piece_index_t operator "" _piece(unsigned long long const p)
+constexpr inline lt::piece_index_t operator ""_piece(unsigned long long const p)
 { return lt::piece_index_t(static_cast<int>(p)); }
 
 #if TORRENT_ABI_VERSION < 4

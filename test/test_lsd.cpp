@@ -62,7 +62,7 @@ void test_lsd()
 
 	using std::ignore;
 	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, nullptr, true, false, false, "_lsd"
-		, 16 * 1024, nullptr, false, nullptr, false);
+		, 16 * 1024, nullptr, false, false);
 
 	auto const start_time = lt::clock_type::now();
 	for (int i = 0; i < 30; ++i)

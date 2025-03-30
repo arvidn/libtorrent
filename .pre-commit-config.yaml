@@ -37,7 +37,7 @@ repos:
   - id: rst-directive-colons
   - id: rst-inline-touching-normal
 - repo: https://github.com/PyCQA/isort
-  rev: 5.13.2
+  rev: 6.0.0
   hooks:
     - id: isort
       exclude: |
@@ -67,7 +67,7 @@ repos:
     - id: autoflake
       args: [--in-place, --remove-unused-variables, --remove-all-unused-imports, --remove-duplicate-keys]
 - repo: https://github.com/psf/black
-  rev: 24.10.0
+  rev: 25.1.0
   hooks:
     - id: black
       # Avoiding PR bloat
@@ -107,7 +107,7 @@ repos:
       name: black (pyi)
       types: [pyi]
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.13.0
+  rev: v1.15.0
   hooks:
     - id: mypy
       # Avoiding PR bloat

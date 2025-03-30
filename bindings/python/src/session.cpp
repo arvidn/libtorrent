@@ -886,6 +886,9 @@ namespace
             s.disk_io_constructor = &lt::default_disk_io_constructor;
     }
 
+    torrent_handle (lt::session_handle::*find_torrent0)(sha1_hash const&) const = &lt::session_handle::find_torrent;
+    torrent_handle (lt::session_handle::*find_torrent1)(sha256_hash const&) const = &lt::session_handle::find_torrent;
+
 } // anonymous namespace
 
 struct dummy1 {};
@@ -1274,7 +1277,8 @@ void bind_session()
 #endif
         .def("set_ip_filter", allow_threads(&lt::session::set_ip_filter))
         .def("get_ip_filter", allow_threads(&lt::session::get_ip_filter))
-        .def("find_torrent", allow_threads(&lt::session::find_torrent))
+        .def("find_torrent", allow_threads(find_torrent0))
+        .def("find_torrent", allow_threads(find_torrent1))
         .def("get_torrents", &get_torrents)
         .def("get_torrent_status", &get_torrent_status, (arg("session"), arg("pred"), arg("flags") = 0))
         .def("refresh_torrent_status", &refresh_torrent_status, (arg("session"), arg("torrents"), arg("flags") = 0))

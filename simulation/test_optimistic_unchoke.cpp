@@ -71,7 +71,7 @@ TORRENT_TEST(optimistic_unchoke)
 
 	print_alerts(*ses);
 
-	sim::timer t(sim, lt::seconds(0), [&](boost::system::error_code const&)
+	sim::timer t(sim, lt::milliseconds(1), [&](boost::system::error_code const&)
 	{
 		for (int i = 0; i < num_nodes; ++i)
 		{

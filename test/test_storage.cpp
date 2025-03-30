@@ -4,7 +4,7 @@ Copyright (c) 2005, 2007-2010, 2012-2022, Arvid Norberg
 Copyright (c) 2016, 2018, 2021, Alden Torres
 Copyright (c) 2016, Andrei Kurushin
 Copyright (c) 2016-2018, Steven Siloti
-Copyright (c) 2016, Vladimir Golovnev
+Copyright (c) 2016, 2025, Vladimir Golovnev (glassez)
 Copyright (c) 2018, d-komarov
 All rights reserved.
 
@@ -890,11 +890,12 @@ void test_fastresume(bool const test_deprecated)
 		p.storage_mode = storage_mode_sparse;
 		error_code ignore;
 		torrent_handle h = ses.add_torrent(std::move(p), ignore);
-		TEST_CHECK(exists(combine_path(p.save_path, "temporary")));
-		if (!exists(combine_path(p.save_path, "temporary")))
+
+		torrent_status s = h.status();
+		TEST_CHECK(exists(combine_path(s.save_path, "temporary")));
+		if (!exists(combine_path(s.save_path, "temporary")))
 			return;
 
-		torrent_status s;
 		for (int i = 0; i < 50; ++i)
 		{
 			print_alerts(ses, "ses");

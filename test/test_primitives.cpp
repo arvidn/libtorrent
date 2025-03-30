@@ -69,12 +69,21 @@ TORRENT_TEST(error_code)
 #pragma GCC diagnostic ignored "-Wformat-truncation="
 #endif
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wformat-truncation"
+#endif
+
 TORRENT_TEST(snprintf)
 {
 	char msg[10];
 	std::snprintf(msg, sizeof(msg), "too %s format string", "long");
 	TEST_CHECK(strcmp(msg, "too long ") == 0);
 }
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 #if defined __GNUC__ && __GNUC__ >= 7
 #pragma GCC diagnostic pop
@@ -148,6 +157,11 @@ TORRENT_TEST(printf_uint64)
 #pragma GCC diagnostic ignored "-Wformat-truncation="
 #endif
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wformat-truncation"
+#endif
+
 TORRENT_TEST(printf_trunc)
 {
 	char buffer[4];
@@ -155,6 +169,10 @@ TORRENT_TEST(printf_trunc)
 	std::snprintf(buffer, sizeof(buffer), "%d %s", val, "end");
 	TEST_EQUAL(buffer, std::string("184"));
 }
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 #if defined __GNUC__ && __GNUC__ >= 7
 #pragma GCC diagnostic pop
