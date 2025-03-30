@@ -700,6 +700,8 @@ target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME mutabl
 	DESCRIPTION "Enables mutable torrent support" DISABLED TORRENT_DISABLE_MUTABLE_TORRENTS)
 target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME streaming DEFAULT ON
 	DESCRIPTION "Enables support for piece deadline" DISABLED TORRENT_DISABLE_STREAMING)
+target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME io_uring DEFAULT OFF
+	DESCRIPTION "Enables support for io_uring backend in boost asio")
 
 if(iconv)
 	find_public_dependency(Iconv)
@@ -799,6 +801,28 @@ else()
 	else (MSVC)
 		target_compile_options(torrent-rasterbar PUBLIC -fno-exceptions)
 	endif (MSVC)
+endif()
+
+if (io_uring)
+	find_public_dependency(liburing QUIET)
+	if (liburing_FOUND)
+		target_link_libraries(torrent-rasterbar PUBLIC liburing)
+	else()
+		include(FindPkgConfig)
+		pkg_check_modules(liburing REQUIRED IMPORTED_TARGET GLOBAL liburing)
+		target_link_libraries(torrent-rasterbar PUBLIC PkgConfig::liburing)
+
+		# propagate the dependency properly to help downstream project find liburing
+		set(_pkg_check_modules_calls
+			"find_dependency(PkgConfig)"
+			"pkg_check_modules(liburing REQUIRED QUIET IMPORTED_TARGET GLOBAL liburing)")
+		string(REPLACE ";" "\n" _pkg_check_modules_calls "${_pkg_check_modules_calls}")
+	endif()
+
+	target_compile_definitions(torrent-rasterbar PUBLIC
+		BOOST_ASIO_DISABLE_EPOLL
+		BOOST_ASIO_HAS_IO_URING
+		BOOST_ASIO_HAS_IO_URING_AS_DEFAULT=1)
 endif()
 
 # developer options
