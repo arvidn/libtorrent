@@ -956,13 +956,13 @@ std::shared_ptr<torrent_info> create_torrent(std::ostream* file
 	if (!(flags & create_torrent::v1_only))
 	{
 		int const blocks_in_piece = piece_size / default_block_size;
-		aux::vector<sha256_hash> v2tree(merkle_num_nodes(merkle_num_leafs(blocks_in_piece)));
+		aux::vector<sha256_hash> v2tree(merkle_num_nodes(merkle_num_leaves(blocks_in_piece)));
 		for (int i = 0; i < blocks_in_piece; ++i)
 		{
 			sha256_hash const block_hash = hasher256(span<char>(piece).subspan(i * default_block_size, default_block_size)).final();
-			v2tree[v2tree.end_index() - merkle_num_leafs(blocks_in_piece) + i] = block_hash;
+			v2tree[v2tree.end_index() - merkle_num_leaves(blocks_in_piece) + i] = block_hash;
 		}
-		merkle_fill_tree(v2tree, merkle_num_leafs(blocks_in_piece));
+		merkle_fill_tree(v2tree, merkle_num_leaves(blocks_in_piece));
 
 		for (piece_index_t i(0); i < t.end_piece(); ++i)
 			t.set_hash2(file_index_t{ 0 }, i - 0_piece, v2tree[0]);

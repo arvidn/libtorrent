@@ -74,13 +74,13 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		|| hr.proof_layers < 0)
 		return false;
 
-	int const num_leafs = merkle_num_leafs(fs.file_num_blocks(hr.file));
-	int const num_layers = merkle_num_layers(num_leafs);
+	int const num_leaves = merkle_num_leaves(fs.file_num_blocks(hr.file));
+	int const num_layers = merkle_num_layers(num_leaves);
 
 	if (hr.base >= num_layers) return false;
 
 	// the number of hashes at the specified level
-	int const level_size = num_leafs >> hr.base;
+	int const level_size = num_leaves >> hr.base;
 
 	// [index, index + count] must be within the number of nodes at the specified
 	// level
@@ -105,7 +105,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 			if (m_files.pad_file_at(f)) continue;
 
 			auto const& tree = m_merkle_trees[f];
-			auto const v = tree.verified_leafs();
+			auto const v = tree.verified_leaves();
 
 			if (m_files.file_size(f) <= m_files.piece_length())
 				continue;
@@ -113,7 +113,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 			m_piece_hash_requested[f].resize((m_files.file_num_pieces(f) + 511) / 512);
 
 			int const piece_layer_idx = merkle_num_layers(
-				merkle_num_leafs(m_files.file_num_blocks(f))) - m_piece_layer;
+				merkle_num_leaves(m_files.file_num_blocks(f))) - m_piece_layer;
 			int const piece_layer_start = merkle_layer_start(piece_layer_idx);
 
 			// check for hashes we already have and flag entries in m_piece_hash_requested
@@ -224,7 +224,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 				return hash_request(fidx
 					, m_piece_layer
 					, i * 512
-					, std::min(512, merkle_num_leafs(int(m_files.file_num_pieces(fidx) - i * 512)))
+					, std::min(512, merkle_num_leaves(int(m_files.file_num_pieces(fidx) - i * 512)))
 					, layers_to_verify({ fidx, piece_tree_root }) + piece_tree_num_layers);
 			}
 		}
@@ -237,7 +237,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		TORRENT_ASSERT(validate_hash_request(req, m_files));
 
 		int const unpadded_count = std::min(req.count, m_files.file_num_pieces(req.file) - req.index);
-		int const leaf_count = merkle_num_leafs(req.count);
+		int const leaf_count = merkle_num_leaves(req.count);
 		int const base_num_layers = merkle_num_layers(leaf_count);
 		int const num_uncle_hashes = std::max(0, req.proof_layers - base_num_layers + 1);
 
@@ -308,9 +308,9 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 
 		// TODO: use structured bindings in C++17
 		aux::merkle_tree::set_block_result result;
-		int leafs_index;
-		int leafs_size;
-		std::tie(result, leafs_index, leafs_size) = merkle_tree.set_block(block_index, h);
+		int leaves_index;
+		int leaves_size;
+		std::tie(result, leaves_index, leaves_size) = merkle_tree.set_block(block_index, h);
 
 		if (result == aux::merkle_tree::set_block_result::unknown)
 			return set_block_hash_result::unknown();
@@ -324,8 +324,8 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		int const blocks_per_piece = m_files.piece_length() / default_block_size;
 
 		return { status
-			, int(leafs_index - static_cast<int>(piece - file_first_piece) * blocks_per_piece)
-			, std::min(leafs_size, m_files.file_num_pieces(f) * blocks_per_piece - leafs_index) };
+			, int(leaves_index - static_cast<int>(piece - file_first_piece) * blocks_per_piece)
+			, std::min(leaves_size, m_files.file_num_pieces(f) * blocks_per_piece - leaves_index) };
 	}
 
 	void hash_picker::hashes_rejected(hash_request const& req)
@@ -408,7 +408,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		if (idx.node == 0) return -1;
 
 		int layers = 0;
-		int const file_internal_layers = merkle_num_layers(merkle_num_leafs(m_files.file_num_pieces(idx.file))) - 1;
+		int const file_internal_layers = merkle_num_layers(merkle_num_leaves(m_files.file_num_pieces(idx.file))) - 1;
 		auto const& tree = m_merkle_trees[idx.file];
 
 		for (;;)
@@ -424,6 +424,6 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 
 	int hash_picker::file_num_layers(file_index_t const idx) const
 	{
-		return merkle_num_layers(merkle_num_leafs(m_files.file_num_blocks(idx)));
+		return merkle_num_layers(merkle_num_leaves(m_files.file_num_blocks(idx)));
 	}
 }
