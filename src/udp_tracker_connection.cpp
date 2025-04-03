@@ -317,6 +317,9 @@ namespace libtorrent {
 	bool udp_tracker_connection::on_receive(udp::endpoint const& ep
 		, span<char const> const buf)
 	{
+		// although endpoint was used in logging, but this is
+		// unnecessary for verify.
+		TORRENT_UNUSED(ep);
 #ifndef TORRENT_DISABLE_LOGGING
 		std::shared_ptr<request_callback> cb = requester();
 #endif
