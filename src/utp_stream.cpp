@@ -2062,7 +2062,7 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 		if (p->need_resend)
 		{
 			p->need_resend = false;
-			auto entry = std::find(m_needs_resend.begin(), m_needs_resend.end(), p.get());
+			auto entry = std::find(m_needs_resend.begin(), m_needs_resend.end(), p);
 			if (entry != m_needs_resend.end()) m_needs_resend.erase(entry);
 		}
 
@@ -3482,7 +3482,7 @@ void utp_socket_impl::tick(time_point const now)
 			if (!p) continue;
 			if (p->need_resend) continue;
 			p->need_resend = true;
-			if (i != m_acked_seq_nr && i != m_seq_nr) m_needs_resend.push_back(p.get());
+			if (i != m_acked_seq_nr && i != m_seq_nr) m_needs_resend.push_back(p);
 			TORRENT_ASSERT(m_bytes_in_flight >= p->size - p->header_size);
 			m_bytes_in_flight -= p->size - p->header_size;
 			UTP_LOGV("%8p: Packet %d lost (timeout).\n", static_cast<void*>(this), i);
