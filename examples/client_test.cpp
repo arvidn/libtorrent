@@ -109,7 +109,7 @@ using lt::add_torrent_params;
 using lt::total_seconds;
 using lt::torrent_flags_t;
 using lt::seconds;
-using lt::operator "" _sv;
+using lt::operator ""_sv;
 using lt::address_v4;
 using lt::address_v6;
 using lt::make_address_v6;

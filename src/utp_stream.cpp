@@ -1484,7 +1484,6 @@ bool utp_socket_impl::send_pkt(int const flags)
 	bool const force_flush_nagle = m_out_eof && m_write_buffer_size;
 
 	// first see if we need to resend any packets
-
 	for (packet *p: m_needs_resend)
 	{
 		if (!resend_packet(p))
