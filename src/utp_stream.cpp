@@ -220,7 +220,11 @@ void utp_socket_impl::insert_packet(packet_ptr p)
 	{
 //		TORRENT_ASSERT(reinterpret_cast<utp_header*>(old->buf)->seq_nr == m_seq_nr);
 		if (old->need_resend)
-			m_needs_resend.erase(std::find(m_needs_resend.begin(), m_needs_resend.end(), &*old));
+		{
+			auto entry = std::find(m_needs_resend.begin(), m_needs_resend.end(), &*old);
+			// old should always exist in m_needs_resend, but we check just in case
+			if (entry != m_needs_resend.end()) m_needs_resend.erase(entry);
+		}
 		else m_bytes_in_flight -= old->size - old->header_size;
 		release_packet(std::move(old));
 	}
@@ -2187,7 +2191,10 @@ std::uint32_t utp_socket_impl::ack_packet(packet_ptr p, time_point const receive
 //	TORRENT_ASSERT(reinterpret_cast<utp_header*>(p->buf)->seq_nr == seq_nr);
 
 	if (p->need_resend)
-		m_needs_resend.erase(std::find(m_needs_resend.begin(), m_needs_resend.end(), p.get()));
+	{
+		auto entry = std::find(m_needs_resend.begin(), m_needs_resend.end(), p.get());
+		if (entry != m_needs_resend.end()) m_needs_resend.erase(entry);
+	}
 	else
 	{
 		TORRENT_ASSERT(m_bytes_in_flight >= p->size - p->header_size);
