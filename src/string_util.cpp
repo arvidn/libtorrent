@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdlib> // for malloc
 #include <cstring> // for strlen
 #include <algorithm> // for search
+#include <unordered_map>
 
 namespace libtorrent {
 
@@ -400,12 +401,21 @@ namespace libtorrent {
 
 	bool is_i2p_url(std::string const& url)
 	{
+		static std::unordered_map<std::string, bool> cache;
+		auto i2p = cache.find(url);
+		if (i2p != cache.end())
+		{
+			return i2p->second;
+		}
+
 		using std::ignore;
 		std::string hostname;
 		error_code ec;
 		std::tie(ignore, ignore, hostname, ignore, ignore)
 			= parse_url_components(url, ec);
-		return string_ends_with(hostname, ".i2p");
+		bool ends_with = string_ends_with(hostname, ".i2p");
+		cache.insert({url, ends_with});
+		return ends_with;
 	}
 
 #endif
