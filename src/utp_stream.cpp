@@ -1464,30 +1464,32 @@ bool utp_socket_impl::send_pkt(int const flags)
 
 	// first see if we need to resend any packets
 
-	// TODO: this loop is not very efficient. It could be fixed by having
-	// a separate list of sequence numbers that need resending
 	if (!m_outbuf.empty())
-	for (int i = (m_acked_seq_nr + 1) & ACK_MASK; i != m_seq_nr; i = (i + 1) & ACK_MASK)
 	{
-		packet* p = m_outbuf.at(aux::numeric_cast<packet_buffer::index_type>(i));
-		if (!p) continue;
-		if (!p->need_resend) continue;
-		if (!resend_packet(p))
+		// TODO: this loop is not very efficient. It could be fixed by having
+		// a separate list of sequence numbers that need resending
+		for (int i = (m_acked_seq_nr + 1) & ACK_MASK; i != m_seq_nr; i = (i + 1) & ACK_MASK)
 		{
-			// we couldn't resend the packet. It probably doesn't
-			// fit in our cwnd. If force is set, we need to continue
-			// to send our packet anyway, if we don't have force set,
-			// we might as well return
-			if (!force) return false;
-			// resend_packet might have failed
-			if (state() == state_t::error_wait || state() == state_t::deleting) return false;
-			if (m_stalled) return false;
-			break;
-		}
+			packet* p = m_outbuf.at(aux::numeric_cast<packet_buffer::index_type>(i));
+			if (!p) continue;
+			if (!p->need_resend) continue;
+			if (!resend_packet(p))
+			{
+				// we couldn't resend the packet. It probably doesn't
+				// fit in our cwnd. If force is set, we need to continue
+				// to send our packet anyway, if we don't have force set,
+				// we might as well return
+				if (!force) return false;
+				// resend_packet might have failed
+				if (state() == state_t::error_wait || state() == state_t::deleting) return false;
+				if (m_stalled) return false;
+				break;
+			}
 
-		// don't fast-resend this packet
-		if (m_fast_resend_seq_nr == i)
-			m_fast_resend_seq_nr = (m_fast_resend_seq_nr + 1) & ACK_MASK;
+			// don't fast-resend this packet
+			if (m_fast_resend_seq_nr == i)
+				m_fast_resend_seq_nr = (m_fast_resend_seq_nr + 1) & ACK_MASK;
+		}
 	}
 
 	// MTU DISCOVERY
