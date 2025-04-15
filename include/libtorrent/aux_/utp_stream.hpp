@@ -754,6 +754,10 @@ private:
 	packet_ptr acquire_packet(int const allocate);
 	void release_packet(packet_ptr p);
 
+	// insert the given packet at `m_seq_nr` in `m_outbuf`
+	// and release any packet that was there already
+	void insert_packet(packet_ptr p);
+
 	void set_state(state_t s);
 	state_t state() const { return static_cast<state_t>(m_state); }
 
@@ -1055,6 +1059,9 @@ private:
 	// packet for this connection with a correct ack_nr, confirming that the
 	// other end is not spoofing its source IP
 	bool m_confirmed:1;
+
+	// packets that need to be resent. Points to packets in m_outbuf
+	std::vector<packet*> m_needs_resend;
 };
 
 }
