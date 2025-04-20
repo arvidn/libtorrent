@@ -218,7 +218,7 @@ void utp_socket_impl::insert_packet(packet_ptr p)
 	packet_ptr old = m_outbuf.insert(m_seq_nr, std::move(p));
 	if (old)
 	{
-//		TORRENT_ASSERT(reinterpret_cast<utp_header*>(old->buf)->seq_nr == m_seq_nr);
+		TORRENT_ASSERT(reinterpret_cast<utp_header*>(old->buf)->seq_nr == m_seq_nr);
 		if (old->need_resend)
 		{
 			auto entry = std::find(m_needs_resend.begin(), m_needs_resend.end(), &*old);
@@ -2190,7 +2190,7 @@ std::uint32_t utp_socket_impl::ack_packet(packet_ptr p, time_point const receive
 
 	// verify that the packet we're removing was in fact sent
 	// with the sequence number we expect
-//	TORRENT_ASSERT(reinterpret_cast<utp_header*>(p->buf)->seq_nr == seq_nr);
+	TORRENT_ASSERT(reinterpret_cast<utp_header*>(p->buf)->seq_nr == seq_nr);
 
 	if (p->need_resend)
 	{
