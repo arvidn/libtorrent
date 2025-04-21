@@ -2005,7 +2005,7 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 #if TORRENT_USE_ASSERTS
 	if (fast_resend) ++p->num_fast_resend;
 #endif
-	bool need_resend = p->need_resend;
+	bool const need_resend = p->need_resend;
 	p->need_resend = false;
 	auto* h = reinterpret_cast<utp_header*>(p->buf);
 	// update packet header
