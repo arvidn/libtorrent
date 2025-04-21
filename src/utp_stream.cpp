@@ -1491,7 +1491,7 @@ bool utp_socket_impl::send_pkt(int const flags)
 
 	while (!m_needs_resend.empty())
 	{
-		packet *p = m_needs_resend[0];
+		packet *p = m_needs_resend.front();
 		if (!resend_packet(p))
 		{
 			// we couldn't resend the packet. It probably doesn't
