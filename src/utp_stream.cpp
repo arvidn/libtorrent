@@ -2005,6 +2005,8 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 #if TORRENT_USE_ASSERTS
 	if (fast_resend) ++p->num_fast_resend;
 #endif
+	bool need_resend = p->need_resend;
+	p->need_resend = false;
 	auto* h = reinterpret_cast<utp_header*>(p->buf);
 	// update packet header
 	h->timestamp_difference_microseconds = m_reply_micro;
@@ -2055,18 +2057,15 @@ bool utp_socket_impl::resend_packet(packet* p, bool fast_resend)
 		TORRENT_ASSERT(!m_stalled);
 		m_stalled = true;
 		m_sm.subscribe_writable(this);
-		if (!p->need_resend)
-		{
-			p->need_resend = true;
+		p->need_resend = true;
+		if (!need_resend)
 			m_needs_resend.push_back(p);
-		}
 		m_bytes_in_flight -= p->size - p->header_size;
 	}
 	else
 	{
-		if (p->need_resend)
+		if (need_resend)
 		{
-			p->need_resend = false;
 			auto entry = std::find(m_needs_resend.begin(), m_needs_resend.end(), p);
 			if (entry != m_needs_resend.end()) m_needs_resend.erase(entry);
 		}
