@@ -596,6 +596,9 @@ static_assert(!(open_mode::sparse & open_mode::attribute_mask), "internal flags 
 #endif
 
 		int open_mode = 0
+#ifdef O_CLOEXEC
+			| O_CLOEXEC
+#endif
 #ifdef O_NOATIME
 			| ((mode & open_mode::no_atime) ? O_NOATIME : 0)
 #endif

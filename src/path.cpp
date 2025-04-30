@@ -429,7 +429,12 @@ namespace {
 			ec.assign(errno, system_category());
 		copyfile_state_free(state);
 #else
-		int const infd = ::open(f1.c_str(), O_RDONLY);
+
+		int read_flags = O_RDONLY;
+#ifdef O_CLOEXEC
+		read_flags |= O_CLOEXEC;
+#endif
+		int const infd = ::open(f1.c_str(), read_flags);
 		if (infd < 0)
 		{
 			ec.assign(errno, system_category());
@@ -442,7 +447,12 @@ namespace {
 			| S_IRGRP | S_IWGRP
 			| S_IROTH | S_IWOTH;
 
-		int const outfd = ::open(f2.c_str(), O_WRONLY | O_CREAT, permissions);
+		int write_flags = O_WRONLY | O_CREAT;
+#ifdef O_CLOEXEC
+		write_flags |= O_CLOEXEC;
+#endif
+
+		int const outfd = ::open(f2.c_str(), write_flags, permissions);
 		if (outfd < 0)
 		{
 			close(infd);

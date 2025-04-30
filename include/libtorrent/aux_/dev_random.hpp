@@ -48,7 +48,11 @@ namespace libtorrent { namespace aux {
 		// https://www.mail-archive.com/cryptography@randombit.net/msg04763.html
 		// https://security.stackexchange.com/questions/3936/is-a-rand-from-dev-urandom-secure-for-a-login-key/3939#3939
 		dev_random()
+#ifdef O_CLOEXEC
+			: m_fd(::open("/dev/urandom", O_RDONLY | O_CLOEXEC))
+#else
 			: m_fd(::open("/dev/urandom", O_RDONLY))
+#endif
 		{
 			if (m_fd < 0)
 			{
