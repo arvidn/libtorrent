@@ -128,7 +128,12 @@ void truncate_files(file_storage const& fs, std::string const& save_path, storag
 		if (fs.pad_file_at(i)) continue;
 		auto const fn = fs.file_path(i, save_path);
 		native_path_string const file_path = convert_to_native_path_string(fn);
-		int const fd = ::open(file_path.c_str(), O_RDWR);
+
+		int flags = O_RDWR;
+#ifdef O_CLOEXEC
+		flags |= O_CLOEXEC;
+#endif
+		int const fd = ::open(file_path.c_str(), flags);
 
 		if (fd < 0)
 		{
