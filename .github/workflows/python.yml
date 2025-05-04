@@ -104,6 +104,7 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         # Install to Homebrew's python site-packages. no need for --user and --prefix
+        pip install wheel
         cd bindings/python
         export PATH=$(brew --prefix)/opt/python@3.13/bin:$PATH
         python3.13 setup.py build_ext install --install-lib $(brew --prefix)/lib/python3.13/site-packages
