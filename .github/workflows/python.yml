@@ -106,7 +106,7 @@ jobs:
         pip install wheel
         cd bindings/python
         export PATH=$(brew --prefix)/opt/python@3.13/bin:$PATH
-        python3.13 setup.py build_ext bdist_wheel --user --prefix=
+        python3.13 setup.py build_ext bdist_wheel
 
     - name: tests (Linux)
       if: runner.os == 'Linux'
