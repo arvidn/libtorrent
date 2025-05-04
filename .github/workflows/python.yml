@@ -79,7 +79,7 @@ jobs:
         set PATH=%BOOST_ROOT%;%PATH%
 
         cd bindings\python
-        python setup.py build_ext --b2-args "asserts=on invariant-checks=full" install --user --prefix=
+        python setup.py build_ext --b2-args "asserts=on invariant-checks=full" bdist_wheel --user --prefix=
 
     - name: tests (windows)
       if: runner.os == 'Windows'
@@ -98,7 +98,7 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         cd bindings/python
-        python3 setup.py build_ext install --user --prefix=
+        python3 setup.py build_ext bdist_wheel --user --prefix=
 
     - name: build/install (MacOS)
       if: runner.os == 'macOS'
@@ -107,7 +107,7 @@ jobs:
         pip install wheel
         cd bindings/python
         export PATH=$(brew --prefix)/opt/python@3.13/bin:$PATH
-        python3.13 setup.py build_ext install --install-lib $(brew --prefix)/lib/python3.13/site-packages
+        python3.13 setup.py build_ext bdist_wheel --install-lib $(brew --prefix)/lib/python3.13/site-packages
 
     - name: tests (Linux)
       if: runner.os == 'Linux'
