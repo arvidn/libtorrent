@@ -113,15 +113,15 @@ jobs:
           ccache_options: |
             max_size=500M
 
-      - name: install clang-14
+      - name: install clang-15
         continue-on-error: true
         run: |
-          sudo apt install clang-14
+          sudo apt install clang-15
 
       - name: install boost
         run: |
           sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
-          echo "using clang : 14 : clang++-14 ;" >>~/user-config.jam
+          echo "using clang : 15 : clang++-15 ;" >>~/user-config.jam
 
       - name: build fuzzers
         run: |
@@ -189,7 +189,7 @@ jobs:
           ccache_options: |
             max_size=500M
 
-      - name: install clang-tidy
+      - name: install clang-tidy-18
         run: sudo apt install clang-tidy libc++-dev
 
       - name: install boost
@@ -242,10 +242,10 @@ jobs:
         run: |
           sudo apt install libgnutls28-dev
 
-      - name: install clang-12
+      - name: install clang-15
         continue-on-error: true
         run: |
-          sudo apt install clang-12
+          sudo apt install clang-15
 
       - name: install GCC-12
         continue-on-error: true
@@ -256,7 +256,7 @@ jobs:
         run: |
           sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
           echo "using gcc : 12 : g++-12 ;" >>~/user-config.jam
-          echo "using clang : 12 : clang++-12 ;" >>~/user-config.jam
+          echo "using clang : 15 : clang++-15 ;" >>~/user-config.jam
 
       - name: build and run tests
         run: |
