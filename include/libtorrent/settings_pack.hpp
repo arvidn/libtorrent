@@ -2063,6 +2063,7 @@ namespace aux {
 			// Configures the SAM session
 			// quantity of I2P inbound and outbound tunnels [1..16].
 			// number of hops for I2P inbound and outbound tunnels [0..7]
+			// variance for I2P inbound and outbound tunnels [0..7]
 			// Changing these will not trigger a reconnect to the SAM bridge,
 			// they will take effect the next time the SAM connection is
 			// re-established (by restarting or changing i2p_hostname or
@@ -2071,6 +2072,8 @@ namespace aux {
 			i2p_outbound_quantity,
 			i2p_inbound_length,
 			i2p_outbound_length,
+			i2p_inbound_length_variance,
+			i2p_outbound_length_variance,
 
 			// ``announce_port`` is the port passed along as the ``port`` parameter
 			// to remote trackers such as HTTP or DHT. This setting does not affect
