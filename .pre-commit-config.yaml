@@ -17,8 +17,8 @@ repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
-    #-   id: trailing-whitespace
-    #-   id: end-of-file-fixer
+    -   id: trailing-whitespace
+    -   id: end-of-file-fixer
     -   id: check-yaml
     -   id: check-case-conflict
     -   id: check-executables-have-shebangs
@@ -31,6 +31,14 @@ repos:
     -   id: debug-statements
     -   id: check-symlinks
     -   id: check-toml
+- repo: https://github.com/codespell-project/codespell
+  rev: v2.4.1
+  hooks:
+  - id: codespell
+- repo: https://github.com/crate-ci/typos
+  rev: v1.31.2
+  hooks:
+  - id: typos
 - repo: https://github.com/pappasam/toml-sort
   rev: v0.24.2
   hooks:
@@ -42,7 +50,7 @@ repos:
   - id: rst-directive-colons
   - id: rst-inline-touching-normal
 - repo: https://github.com/PyCQA/isort
-  rev: 6.0.0
+  rev: 6.0.1
   hooks:
     - id: isort
       exclude: |
@@ -171,7 +179,7 @@ repos:
               tools/update_copyright.py
           )$
 - repo: https://github.com/PyCQA/flake8
-  rev: 7.1.1
+  rev: 7.2.0
   hooks:
   - id: flake8
     exclude: |
