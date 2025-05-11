@@ -19,6 +19,7 @@
 	* optimize tracker announcements
 	* fix handling of invalid filenames
 	* add support for I2CP inbound.lengthVariance and outbound.lengthVariance tunnel settings
+	* add nat_pmp_gateway setting to manually set the default gateway for the NAT-PMP protocol
 
 2.0.11 released
 
