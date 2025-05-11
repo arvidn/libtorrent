@@ -1,5 +1,8 @@
 2.0.12
 
+	* don't leak file descriptors to child processes (O_CLOEXEC)
+	* optimize the utp resend
+	* optimize tracker announcements
 	* fix handling of invalid filenames
 
 2.0.11 released
