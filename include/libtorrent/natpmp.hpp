@@ -91,7 +91,7 @@ struct TORRENT_EXTRA_EXPORT natpmp final
 {
 	natpmp(io_context& ios, aux::portmap_callback& cb, aux::listen_socket_handle ls);
 
-	void start(ip_interface const& ip);
+	void start(ip_interface const& ip, boost::optional<address> const& gateway);
 
 	// maps the ports, if a port is set to 0
 	// it will not be mapped
