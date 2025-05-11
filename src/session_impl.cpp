@@ -5677,8 +5677,13 @@ namespace {
 
 			error_code ignored;
 			std::string gateway = m_settings.get_str(settings_pack::nat_pmp_gateway);
-			boost::optional<address> gateway_addr = make_address(gateway, ignored);
-			s->natpmp_mapper->start(ip, gateway == "" ? boost::none : gateway_addr);
+			boost::optional<address> gateway_addr;
+			if (gateway == "") {
+				gateway_addr = boost::none;
+			} else {
+				gateway_addr = make_address(gateway, ignored);
+			}
+			s->natpmp_mapper->start(ip, gateway_addr);
 		}
 	}
 
