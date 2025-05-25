@@ -50,6 +50,10 @@ jobs:
         ccache_options: |
           max_size=500M
 
+    - name: dependencies (python)
+      run: |
+        pip install build wheel
+
     - name: dependencies (linux)
       if: runner.os == 'Linux'
       run: |
@@ -79,7 +83,7 @@ jobs:
         set PATH=%BOOST_ROOT%;%PATH%
 
         cd bindings\python
-        python setup.py build_ext --b2-args "asserts=on invariant-checks=full" install --user --prefix=
+        python -m build -n -w -C--build-option=build_ext -C--build-option=--b2-args="assertions=on invariant-checks=full"
 
     - name: tests (windows)
       if: runner.os == 'Windows'
@@ -92,13 +96,13 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         cd bindings/python
-        python3 setup.py build_ext --b2-args "deprecated-functions=off"
+        python -m build -n -w -C--build-option=build_ext -C--build-option=--b2-args="deprecated-functions=off"
 
     - name: build/install (Linux)
       if: runner.os == 'Linux'
       run: |
         cd bindings/python
-        python3 setup.py build_ext install --user --prefix=
+        python -m build -n -w -C--build-option=build_ext -C--build-option=install
 
     - name: build/install (MacOS)
       if: runner.os == 'macOS'
@@ -106,7 +110,7 @@ jobs:
         # Install to Homebrew's python site-packages. no need for --user and --prefix
         cd bindings/python
         export PATH=$(brew --prefix)/opt/python@3.13/bin:$PATH
-        python3.13 setup.py build_ext install --install-lib $(brew --prefix)/lib/python3.13/site-packages
+        python -m build -n -w -C--build-option=build_ext -C--build-option=install
 
     - name: tests (Linux)
       if: runner.os == 'Linux'
