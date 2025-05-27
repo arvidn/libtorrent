@@ -191,6 +191,9 @@ namespace aux {
 		// from this tracker.
 		bool verified:1;
 
+		// does this tracker have the `.i2p` TLD?
+		bool i2p:1;
+
 		// reset announce counters and clears the started sent flag.
 		// The announce_entry will look like we've never talked to
 		// the tracker.
