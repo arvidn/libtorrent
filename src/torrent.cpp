@@ -3176,7 +3176,7 @@ namespace {
 			req.url = ae.url;
 
 #if TORRENT_USE_I2P
-			if (req.i2p)
+			if (ae.i2p)
 			{
 				req.kind |= tracker_request::i2p;
 			}
