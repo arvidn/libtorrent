@@ -450,6 +450,11 @@ Build features
 |                          | * ``off`` - disable mmap storage, and fall back to |
 |                          |   single-threaded, portable file operations.       |
 +--------------------------+----------------------------------------------------+
+| ``torrent_auto_notify``  | * ``off`` - default. disable automatic             |
+|                          |   notification on torrent alerts                   |
+|                          | * ``on`` - enable automatic  notification on       |
+|                          |   torrent alerts                                   |
++--------------------------+----------------------------------------------------+
 
 The ``variant`` feature is *implicit*, which means you don't need to specify
 the name of the feature, just the value.
@@ -698,6 +703,14 @@ own code that compiles and links with libtorrent.
 | ``TORRENT_DISABLE_EXTENSIONS``         | When defined, libtorrent plugin support is      |
 |                                        | disabled along with support for the extension   |
 |                                        | handshake (BEP 10).                             |
++----------------------------------------+-------------------------------------------------+
+| ``TORRENT_DISABLE_TORRENT_AUTO_NOTIFY``| If this is defined, libtorrent will not notify  |
+|                                        | the torrent on a torrent alert. you can         |
+|                                        | manually notify the torrent via plugins         |
+|                                        | by calling ``torrent::notify()``                |
+|                                        | (This is set by the Jamfile when                |
+|                                        | ``torrent_auto_notify=off`` is set              |
+|                                        | (default is off)).                              |
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_USE_INVARIANT_CHECKS``       | If defined to non-zero, this will enable        |
 |                                        | internal invariant checks in libtorrent.        |
