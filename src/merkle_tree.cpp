@@ -119,18 +119,19 @@ namespace {
 		, std::vector<bool> const& verified)
 	{
 		INVARIANT_CHECK;
-		TORRENT_ASSERT(mask.size() == size());
-		if (size() != mask.size()) return;
+        TORRENT_ASSERT(mask.size() <= size());
+        if (size() < mask.size()) return;
 
 		int const first_block = block_layer_start();
 		int const end_block = first_block + m_num_blocks;
 
-		TORRENT_ASSERT(first_block < int(mask.size()));
-		TORRENT_ASSERT(end_block <= int(mask.size()));
+		TORRENT_ASSERT(first_block < int(size()));
+		TORRENT_ASSERT(end_block <= int(size()));
 
 		// if the mask covers all blocks, go straight to block_layer
 		// mode, and validate
-		if (std::all_of(mask.begin() + first_block, mask.begin() + end_block, identity()))
+		if ((first_block < int(mask.size())) && (end_block <= int(mask.size()))
+			&& std::all_of(mask.begin() + first_block, mask.begin() + end_block, identity()))
 		{
 			// the index in t that points to first_block
 			auto const block_index = std::count_if(mask.begin(), mask.begin() + first_block, identity());
@@ -156,13 +157,13 @@ namespace {
 			int const piece_count = num_pieces();
 			int const end_piece = first_piece + piece_count;
 
-			TORRENT_ASSERT(first_piece < int(mask.size()));
-			TORRENT_ASSERT(end_piece <= int(mask.size()));
+			TORRENT_ASSERT(first_piece < int(size()));
+			TORRENT_ASSERT(end_piece <= int(size()));
 
 			// if the mask covers all pieces, and nothing below that layer, go
 			// straight to piece_layer mode and validate
-			if (std::all_of(mask.begin() + first_piece, mask.begin() + end_piece, identity())
-
+			if ((first_piece < int(mask.size())) && (end_piece <= int(mask.size()))
+				&& std::all_of(mask.begin() + first_piece, mask.begin() + end_piece, identity())
 				&& std::all_of(mask.begin() + end_piece, mask.end(), std::logical_not<>()))
 			{
 				// the index in t that points to first_piece
