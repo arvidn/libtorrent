@@ -4908,11 +4908,6 @@ namespace {
 		// the scope
 		auto abort_torrent = aux::scope_end([&]{ if (torrent_ptr) torrent_ptr->abort(); });
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		auto extensions = std::move(params.extensions);
-		auto const userdata = std::move(params.userdata);
-#endif
-
 		// copy the most important fields from params to pass back in the
 		// add_torrent_alert
 		add_torrent_params alert_params;
@@ -4922,6 +4917,11 @@ namespace {
 		alert_params.save_path = params.save_path;
 		alert_params.userdata = params.userdata;
 		alert_params.trackerid = params.trackerid;
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		auto extensions = std::move(params.extensions);
+		auto const userdata = std::move(params.userdata);
+#endif
 
 		auto const flags = params.flags;
 
