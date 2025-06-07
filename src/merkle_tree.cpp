@@ -119,8 +119,12 @@ namespace {
 		, std::vector<bool> const& verified)
 	{
 		INVARIANT_CHECK;
-        TORRENT_ASSERT(mask.size() <= size());
-        if (size() < mask.size()) return;
+
+		// The size of the mask should not exceed the size of the tree, but a mask larger than
+		// the tree can be encountered in the "resume data" for some reason, perhaps there is
+		// a bug in the "resume data" generation algorithm.
+		// So we just process mask items count up to tree size.
+		int const mask_size = int(std::min(mask.size(), size()));
 
 		int const first_block = block_layer_start();
 		int const end_block = first_block + m_num_blocks;
@@ -130,7 +134,7 @@ namespace {
 
 		// if the mask covers all blocks, go straight to block_layer
 		// mode, and validate
-		if ((first_block < int(mask.size())) && (end_block <= int(mask.size()))
+		if ((first_block < mask_size) && (end_block <= mask_size)
 			&& std::all_of(mask.begin() + first_block, mask.begin() + end_block, identity()))
 		{
 			// the index in t that points to first_block
@@ -162,9 +166,9 @@ namespace {
 
 			// if the mask covers all pieces, and nothing below that layer, go
 			// straight to piece_layer mode and validate
-			if ((first_piece < int(mask.size())) && (end_piece <= int(mask.size()))
+			if ((first_piece < mask_size) && (end_piece <= mask_size)
 				&& std::all_of(mask.begin() + first_piece, mask.begin() + end_piece, identity())
-				&& std::all_of(mask.begin() + end_piece, mask.end(), std::logical_not<>()))
+				&& std::all_of(mask.begin() + end_piece, mask.begin() + mask_size, std::logical_not<>()))
 			{
 				// the index in t that points to first_piece
 				auto const piece_index = std::count_if(mask.begin(), mask.begin() + first_piece, identity());
@@ -184,12 +188,12 @@ namespace {
 		}
 
 		// if the mask has only zeros, go straight to empty tree mode
-		if (t.empty() || std::none_of(mask.begin(), mask.end(), identity()))
+		if (t.empty() || std::none_of(mask.begin(), mask.begin() + mask_size, identity()))
 			return clear();
 
 		allocate_full();
 		int cursor = 0;
-		for (std::size_t i = 0, end = mask.size(); i < end; ++i)
+        for (std::size_t i = 0, end = std::size_t(mask_size); i < end; ++i)
 		{
 			if (!mask[i]) continue;
 			if (cursor >= t.size()) break;
