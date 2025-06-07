@@ -437,7 +437,6 @@ bool is_downloading_state(int const st)
 			std::vector<bool> const& verified_bitmask = (i >= verified.end_index()) ? empty_verified : verified[i];
 			if (i < mask.end_index() && !mask[i].empty())
 			{
-				mask[i].resize(m_merkle_trees[i].size(), false);
 				m_merkle_trees[i].load_sparse_tree(trees_import[i], mask[i], verified_bitmask);
 			}
 			else
