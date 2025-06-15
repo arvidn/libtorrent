@@ -190,6 +190,18 @@ int main(int argc, char const* argv[]) try
 	for (auto const& ws : atp.url_seeds)
 		std::printf("%s\n", ws.c_str());
 
+	std::printf("exact sources:\n");
+	for (auto const& ws : atp.exact_sources)
+		std::printf("%s\n", ws.c_str());
+
+	std::printf("acceptable sources:\n");
+	for (auto const& ws : atp.acceptable_sources)
+		std::printf("%s\n", ws.c_str());
+
+	std::printf("content-addressed storages:\n");
+	for (auto const& ws : atp.content_addressed_storages)
+		std::printf("%s\n", ws.c_str());
+
 	return 0;
 }
 catch (std::exception const& e)

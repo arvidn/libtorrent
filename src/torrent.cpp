@@ -313,6 +313,27 @@ bool is_downloading_state(int const st)
 				m_torrent_file->add_http_seed(e);
 		}
 
+		for (auto const& e : p.exact_sources)
+		{
+			ws.emplace_back(e, web_seed_entry::exact_source);
+			if (!m_torrent_file->is_valid())
+				m_torrent_file->add_exact_source(e);
+		}
+
+		for (auto const& e : p.acceptable_sources)
+		{
+			ws.emplace_back(e, web_seed_entry::acceptable_source);
+			if (!m_torrent_file->is_valid())
+				m_torrent_file->add_acceptable_source(e);
+		}
+
+		for (auto const& e : p.content_addressed_storages)
+		{
+			ws.emplace_back(e, web_seed_entry::content_addressed_storage);
+			if (!m_torrent_file->is_valid())
+				m_torrent_file->add_content_addressed_storage(e);
+		}
+
 		aux::random_shuffle(ws);
 		for (auto& w : ws) m_web_seeds.emplace_back(std::move(w));
 
@@ -7074,6 +7095,12 @@ namespace {
 				ret.url_seeds.push_back(ws.url);
 			else if (ws.type == web_seed_entry::http_seed)
 				ret.http_seeds.push_back(ws.url);
+			else if (ws.type == web_seed_entry::exact_source)
+				ret.exact_sources.push_back(ws.url);
+			else if (ws.type == web_seed_entry::acceptable_source)
+				ret.acceptable_sources.push_back(ws.url);
+			else if (ws.type == web_seed_entry::content_addressed_storage)
+				ret.content_addressed_storages.push_back(ws.url);
 		}
 
 		ret.dht_nodes = m_torrent_file->nodes();

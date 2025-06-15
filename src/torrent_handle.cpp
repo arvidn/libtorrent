@@ -722,6 +722,57 @@ namespace libtorrent {
 		return sync_call_ret<std::set<std::string>>(empty, &torrent::web_seeds, web_seed_entry::http_seed);
 	}
 
+	void torrent_handle::add_exact_source(std::string const& url) const
+	{
+		async_call(&torrent::add_web_seed, url, web_seed_entry::exact_source
+			, std::string(), web_seed_entry::headers_t(), web_seed_flag_t{});
+	}
+
+	void torrent_handle::remove_exact_source(std::string const& url) const
+	{
+		async_call(&torrent::remove_web_seed, url, web_seed_entry::exact_source);
+	}
+
+	std::set<std::string> torrent_handle::exact_sources() const
+	{
+		static const std::set<std::string> empty;
+		return sync_call_ret<std::set<std::string>>(empty, &torrent::web_seeds, web_seed_entry::exact_source);
+	}
+
+	void torrent_handle::add_acceptable_source(std::string const& url) const
+	{
+		async_call(&torrent::add_web_seed, url, web_seed_entry::acceptable_source
+			, std::string(), web_seed_entry::headers_t(), web_seed_flag_t{});
+	}
+
+	void torrent_handle::remove_acceptable_source(std::string const& url) const
+	{
+		async_call(&torrent::remove_web_seed, url, web_seed_entry::acceptable_source);
+	}
+
+	std::set<std::string> torrent_handle::acceptable_sources() const
+	{
+		static const std::set<std::string> empty;
+		return sync_call_ret<std::set<std::string>>(empty, &torrent::web_seeds, web_seed_entry::acceptable_source);
+	}
+
+	void torrent_handle::add_content_addressed_storage(std::string const& url) const
+	{
+		async_call(&torrent::add_web_seed, url, web_seed_entry::content_addressed_storage
+			, std::string(), web_seed_entry::headers_t(), web_seed_flag_t{});
+	}
+
+	void torrent_handle::remove_content_addressed_storage(std::string const& url) const
+	{
+		async_call(&torrent::remove_web_seed, url, web_seed_entry::content_addressed_storage);
+	}
+
+	std::set<std::string> torrent_handle::content_addressed_storages() const
+	{
+		static const std::set<std::string> empty;
+		return sync_call_ret<std::set<std::string>>(empty, &torrent::web_seeds, web_seed_entry::content_addressed_storage);
+	}
+
 	void torrent_handle::replace_trackers(
 		std::vector<announce_entry> const& urls) const
 	{

@@ -347,6 +347,21 @@ namespace
                     extract<decltype(add_torrent_params::http_seeds)>(value);
                 continue;
             }
+            else if(key == "exact_sources")
+            {
+                p.exact_sources = extract<std::vector<std::string>>(value);
+                continue;
+            }
+            else if(key == "acceptable_sources")
+            {
+                p.acceptable_sources = extract<std::vector<std::string>>(value);
+                continue;
+            }
+            else if(key == "content_addressed_storages")
+            {
+                p.content_addressed_storages = extract<std::vector<std::string>>(value);
+                continue;
+            }
             else if(key == "dht_nodes")
             {
                 p.dht_nodes =
@@ -983,6 +998,9 @@ void bind_session()
         .def_readwrite("info_hashes", &add_torrent_params::info_hashes)
         .add_property("http_seeds", PROP(&add_torrent_params::http_seeds))
         .add_property("url_seeds", PROP(&add_torrent_params::url_seeds))
+        .add_property("exact_sources", PROP(&add_torrent_params::exact_sources))
+        .add_property("acceptable_sources", PROP(&add_torrent_params::acceptable_sources))
+        .add_property("content_addressed_storages", PROP(&add_torrent_params::content_addressed_storages))
         .add_property("peers", PROP(&add_torrent_params::peers))
         .add_property("banned_peers", PROP(&add_torrent_params::banned_peers))
         .add_property("unfinished_pieces", PROP(&add_torrent_params::unfinished_pieces))

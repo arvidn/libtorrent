@@ -57,6 +57,51 @@ namespace
       return ret;
   }
 
+  list exact_sources(torrent_handle& handle)
+  {
+      list ret;
+      std::set<std::string> urls;
+      {
+          allow_threading_guard guard;
+          urls = handle.exact_sources();
+      }
+
+      for (std::set<std::string>::iterator i(urls.begin())
+          , end(urls.end()); i != end; ++i)
+          ret.append(*i);
+      return ret;
+  }
+
+  list acceptable_sources(torrent_handle& handle)
+  {
+      list ret;
+      std::set<std::string> urls;
+      {
+          allow_threading_guard guard;
+          urls = handle.acceptable_sources();
+      }
+
+      for (std::set<std::string>::iterator i(urls.begin())
+          , end(urls.end()); i != end; ++i)
+          ret.append(*i);
+      return ret;
+  }
+
+  list content_addressed_storages(torrent_handle& handle)
+  {
+      list ret;
+      std::set<std::string> urls;
+      {
+          allow_threading_guard guard;
+          urls = handle.content_addressed_storages();
+      }
+
+      for (std::set<std::string>::iterator i(urls.begin())
+          , end(urls.end()); i != end; ++i)
+          ret.append(*i);
+      return ret;
+  }
+
   list piece_availability(torrent_handle& handle)
   {
       list ret;
@@ -501,6 +546,9 @@ void bind_torrent_handle()
         .def("add_url_seed", _(&torrent_handle::add_url_seed))
         .def("remove_url_seed", _(&torrent_handle::remove_url_seed))
         .def("url_seeds", url_seeds)
+        .def("exact_sources", exact_sources)
+        .def("acceptable_sources", acceptable_sources)
+        .def("content_addressed_storages", content_addressed_storages)
         .def("add_http_seed", _(&torrent_handle::add_http_seed))
         .def("remove_http_seed", _(&torrent_handle::remove_http_seed))
         .def("http_seeds", http_seeds)

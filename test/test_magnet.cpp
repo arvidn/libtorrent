@@ -280,6 +280,36 @@ TORRENT_TEST(parse_web_seeds)
 	TEST_EQUAL(p.url_seeds[1], "http://bar.com/foo");
 }
 
+TORRENT_TEST(parse_exact_sources)
+{
+	// parse_magnet_uri
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+		"&xs=http://foo.com/bar.torrent&xs=http://bar.com/foo.torrent");
+	TEST_EQUAL(p.exact_sources.size(), 2);
+	TEST_EQUAL(p.exact_sources[0], "http://foo.com/bar.torrent");
+	TEST_EQUAL(p.exact_sources[1], "http://bar.com/foo.torrent");
+}
+
+TORRENT_TEST(parse_acceptable_sources)
+{
+	// parse_magnet_uri
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+		"&as=http://foo.com/bar.torrent&as=http://bar.com/foo.torrent");
+	TEST_EQUAL(p.acceptable_sources.size(), 2);
+	TEST_EQUAL(p.acceptable_sources[0], "http://foo.com/bar.torrent");
+	TEST_EQUAL(p.acceptable_sources[1], "http://bar.com/foo.torrent");
+}
+
+TORRENT_TEST(parse_content_addressed_storages)
+{
+	// parse_magnet_uri
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+		"&cas=http://foo.com/cas/&cas=http://bar.com/cas/");
+	TEST_EQUAL(p.content_addressed_storages.size(), 2);
+	TEST_EQUAL(p.content_addressed_storages[0], "http://foo.com/cas/");
+	TEST_EQUAL(p.content_addressed_storages[1], "http://bar.com/cas/");
+}
+
 TORRENT_TEST(parse_missing_hash2)
 {
 	error_code ec;

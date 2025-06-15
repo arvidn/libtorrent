@@ -77,6 +77,9 @@ int main(int argc, char const* argv[]) try
 		{
 			atp.url_seeds.clear();
 			atp.http_seeds.clear();
+			atp.exact_sources.clear();
+			atp.acceptable_sources.clear();
+			atp.content_addressed_storages.clear();
 		}
 		else
 		{

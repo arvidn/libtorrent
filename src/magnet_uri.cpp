@@ -83,6 +83,24 @@ namespace libtorrent {
 			ret += escape_string(s);
 		}
 
+		for (auto const& s : handle.exact_sources())
+		{
+			ret += "&xs=";
+			ret += escape_string(s);
+		}
+
+		for (auto const& s : handle.acceptable_sources())
+		{
+			ret += "&as=";
+			ret += escape_string(s);
+		}
+
+		for (auto const& s : handle.content_addressed_storages())
+		{
+			ret += "&cas=";
+			ret += escape_string(s);
+		}
+
 		return ret;
 	}
 
@@ -99,6 +117,8 @@ namespace libtorrent {
 			if (s.type != web_seed_entry::url_seed) continue;
 			atp.url_seeds.emplace_back(s.url);
 		}
+
+		// TODO url_seeds exact_sources acceptable_sources content_addressed_storages
 
 		return make_magnet_uri(atp);
 	}
@@ -172,6 +192,24 @@ namespace libtorrent {
 		for (auto const& s : atp.url_seeds)
 		{
 			ret += "&ws=";
+			ret += escape_string(s);
+		}
+
+		for (auto const& s : atp.exact_sources)
+		{
+			ret += "&xs=";
+			ret += escape_string(s);
+		}
+
+		for (auto const& s : atp.acceptable_sources)
+		{
+			ret += "&as=";
+			ret += escape_string(s);
+		}
+
+		for (auto const& s : atp.content_addressed_storages)
+		{
+			ret += "&cas=";
 			ret += escape_string(s);
 		}
 
@@ -355,11 +393,31 @@ namespace libtorrent {
 					p.tracker_tiers.push_back(tier++);
 				}
 			}
+			// Magnet-URI Webseeding
+			// https://github.com/bittorrent/bittorrent.org/pull/171
 			else if (string_equal_no_case(name, "ws"_sv)) // web seed
 			{
 				error_code e;
 				std::string webseed = unescape_string(value, e);
 				if (!e) p.url_seeds.push_back(std::move(webseed));
+			}
+			else if (string_equal_no_case(name, "xs"_sv)) // exact source
+			{
+				error_code e;
+				std::string exact_source = unescape_string(value, e);
+				if (!e) p.exact_sources.push_back(std::move(exact_source));
+			}
+			else if (string_equal_no_case(name, "as"_sv)) // acceptable source
+			{
+				error_code e;
+				std::string acceptable_source = unescape_string(value, e);
+				if (!e) p.acceptable_sources.push_back(std::move(acceptable_source));
+			}
+			else if (string_equal_no_case(name, "cas"_sv)) // content-addressed storage
+			{
+				error_code e;
+				std::string content_addressed_storage = unescape_string(value, e);
+				if (!e) p.content_addressed_storages.push_back(std::move(content_addressed_storage));
 			}
 			else if (string_equal_no_case(name, "xt"_sv))
 			{

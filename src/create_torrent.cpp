@@ -714,6 +714,54 @@ namespace {
 			}
 		}
 
+		if (!m_exact_sources.empty())
+		{
+			if (m_exact_sources.size() == 1)
+			{
+				dict["exact sources"] = m_exact_sources.front();
+			}
+			else
+			{
+				entry& list = dict["exact sources"];
+				for (auto const& url : m_exact_sources)
+				{
+					list.list().emplace_back(url);
+				}
+			}
+		}
+
+		if (!m_acceptable_sources.empty())
+		{
+			if (m_acceptable_sources.size() == 1)
+			{
+				dict["acceptable sources"] = m_acceptable_sources.front();
+			}
+			else
+			{
+				entry& list = dict["acceptable sources"];
+				for (auto const& url : m_acceptable_sources)
+				{
+					list.list().emplace_back(url);
+				}
+			}
+		}
+
+		if (!m_content_addressed_storages.empty())
+		{
+			if (m_content_addressed_storages.size() == 1)
+			{
+				dict["content-addressed storages"] = m_content_addressed_storages.front();
+			}
+			else
+			{
+				entry& list = dict["content-addressed storages"];
+				for (auto const& url : m_content_addressed_storages)
+				{
+					list.list().emplace_back(url);
+				}
+			}
+		}
+
 		if (make_v2)
 		{
 			TORRENT_ASSERT(!m_file_piece_hash.empty());
@@ -996,6 +1044,21 @@ namespace {
 	void create_torrent::add_http_seed(string_view url)
 	{
 		m_http_seeds.emplace_back(url);
+	}
+
+	void create_torrent::add_exact_source(string_view url)
+	{
+		m_exact_sources.emplace_back(url);
+	}
+
+	void create_torrent::add_acceptable_source(string_view url)
+	{
+		m_acceptable_sources.emplace_back(url);
+	}
+
+	void create_torrent::add_content_addressed_storage(string_view url)
+	{
+		m_content_addressed_storages.emplace_back(url);
 	}
 
 	void create_torrent::set_comment(char const* str)

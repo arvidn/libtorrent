@@ -342,6 +342,42 @@ namespace {
 				atp.flags |= add_torrent_params::flag_override_web_seeds;
 		}
 
+		if (!resume_data.exact_sources.empty())
+		{
+			if (!(atp.flags & add_torrent_params::flag_merge_resume_http_seeds))
+				atp.exact_sources.clear();
+
+			atp.exact_sources.insert(atp.exact_sources.end()
+				, resume_data.exact_sources.begin()
+				, resume_data.exact_sources.end());
+			if (!(atp.flags & add_torrent_params::flag_merge_resume_http_seeds))
+				atp.flags |= add_torrent_params::flag_override_web_seeds;
+		}
+
+		if (!resume_data.acceptable_sources.empty())
+		{
+			if (!(atp.flags & add_torrent_params::flag_merge_resume_http_seeds))
+				atp.acceptable_sources.clear();
+
+			atp.acceptable_sources.insert(atp.acceptable_sources.end()
+				, resume_data.acceptable_sources.begin()
+				, resume_data.acceptable_sources.end());
+			if (!(atp.flags & add_torrent_params::flag_merge_resume_http_seeds))
+				atp.flags |= add_torrent_params::flag_override_web_seeds;
+		}
+
+		if (!resume_data.content_addressed_storages.empty())
+		{
+			if (!(atp.flags & add_torrent_params::flag_merge_resume_http_seeds))
+				atp.content_addressed_storages.clear();
+
+			atp.content_addressed_storages.insert(atp.content_addressed_storages.end()
+				, resume_data.content_addressed_storages.begin()
+				, resume_data.content_addressed_storages.end());
+			if (!(atp.flags & add_torrent_params::flag_merge_resume_http_seeds))
+				atp.flags |= add_torrent_params::flag_override_web_seeds;
+		}
+
 		atp.total_uploaded = resume_data.total_uploaded;
 		atp.total_downloaded = resume_data.total_downloaded;
 		atp.num_complete = resume_data.num_complete;

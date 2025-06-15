@@ -97,6 +97,9 @@ class test_session_stats(unittest.TestCase):
         atp.verified_pieces = []
         atp.piece_priorities = []
         atp.url_seeds = []
+        atp.exact_sources = []
+        atp.acceptable_sources = []
+        atp.content_addressed_storages = []
 
     def test_unique(self):
         metrics = lt.session_stats_metrics()
@@ -327,6 +330,9 @@ class test_torrent_handle(unittest.TestCase):
             'file_priorities': [1, 1],
             'http_seeds': ['http://test.com/file3'],
             'url_seeds': ['http://test.com/announce-url'],
+            'exact_sources': ['http://test.com/test.torrent'],
+            'acceptable_sources': ['http://test.com/test.torrent'],
+            'content_addressed_storages': ['http://test.com/cas/'],
             'peers': [('5.6.7.8', 6881)],
             'banned_peers': [('8.7.6.5', 6881)],
             'renamed_files': {0: 'test.txt', 2: 'test.txt'}
@@ -342,6 +348,9 @@ class test_torrent_handle(unittest.TestCase):
         # url_seeds was already set, test that it did not get overwritten
         self.assertEqual(self.h.url_seeds(),
                          ['http://test.com/announce-url/', 'http://test.com/file/'])
+        self.assertEqual(self.h.exact_sources(), ['http://test.com/test.torrent'])
+        self.assertEqual(self.h.acceptable_sources(), ['http://test.com/test.torrent'])
+        self.assertEqual(self.h.content_addressed_storages(), ['http://test.com/cas/'])
         # piece priorities weren't set explicitly, but they were updated by the
         # file priorities being set
         self.assertEqual(self.h.get_piece_priorities(), [1])
