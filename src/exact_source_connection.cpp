@@ -64,6 +64,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cinttypes> // for PRId64 et.al.
 
 #include "libtorrent/exact_source_connection.hpp"
+#include "libtorrent/bt_peer_connection.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
@@ -95,6 +96,16 @@ exact_source_connection::exact_source_connection(peer_connection_args& pack
 	, m_chunk_pos(0)
 	, m_partial_chunk_header(0)
 	, m_num_responses(0)
+	// web_connection_base::web_connection_base
+	// , peer_connection(pack)
+	/*
+	, m_first_request(true)
+	, m_ssl(false)
+	, m_external_auth(web.auth)
+	, m_extra_headers(web.extra_headers)
+	, m_parser(http_parser::dont_parse_chunks)
+	, m_body_start(0)
+	*/
 {
 	INVARIANT_CHECK;
 
@@ -207,6 +218,12 @@ void exact_source_connection::on_connected()
 		}
 #endif
 		if (is_disconnecting()) return;
+
+		send_block_requests_impl(); // write_request(r);
+
+
+
+		return;
 
 		if (m_bitfield_received)
 			t->peer_lost(m_have_piece, this);
@@ -338,25 +355,18 @@ void exact_source_connection::send_block_requests_impl()
 	r.start = 0;
 	r.length = 1;
 	write_request(r);
-	m_last_request.set(m_connect, aux::time_now());
+	// m_last_request is private
+	// m_last_request.set(m_connect, aux::time_now());
 }
 
+/*
 void exact_source_connection::write_request(peer_request const& r)
 {
 	INVARIANT_CHECK;
 
-	send_message(msg_request, counters::num_outgoing_request
-		, static_cast<int>(r.piece), r.start, r.length);
+	// send_message(bt_peer_connection::message_type::msg_request, counters::num_outgoing_request
+	// 	, static_cast<int>(r.piece), r.start, r.length);
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-	extension_notify(&peer_plugin::sent_request, r);
-#endif
-}
-
-void exact_source_connection::send_message(message_type const type
-	, counters::stats_counter_t const counter
-	, Args... args)
-{
 	TORRENT_ASSERT(m_sent_handshake);
 	TORRENT_ASSERT(m_sent_bitfield);
 
@@ -370,32 +380,98 @@ void exact_source_connection::send_message(message_type const type
 	TORRENT_UNUSED(tmp);
 
 	send_buffer(msg);
-	*/
+	*xxxxxxxxxxxxxxxxxxxxxxx/
 
 	// based on http_connection::get
 	// FIXME use http_connection instead of peer_connection
 
+	std::string const url = m_url;
+	// time_duration timeout
+	// aux::proxy_settings const* ps
+	// int handle_redirects
+	// std::string const& user_agent
+	// boost::optional<bind_info_t> const& bind_addr
+	// aux::resolver_flags const resolve_flags
+	// std::string const& auth_
+
+	// m_user_agent = user_agent;
+	// m_resolve_flags = resolve_flags;
+
+	std::string protocol;
+	std::string auth;
+	std::string hostname;
+	std::string path;
+	error_code ec;
+	int port;
+
+	std::tie(protocol, auth, hostname, port, path)
+		= parse_url_components(url, ec);
+
+	// if (auth.empty()) auth = auth_;
+
+	// m_auth = auth;
+
+	int default_port = protocol == "https" ? 443 : 80;
+	if (port == -1) port = default_port;
+
+	/*
+	// keep ourselves alive even if the callback function
+	// deletes this object
+	std::shared_ptr<http_connection> me(shared_from_this());
+
+	if (ec)
+	{
+		post(m_ios, std::bind(&http_connection::callback
+			, me, ec, span<char>{}));
+		return;
+	}
+
+	if (m_hostname_filter_handler && !m_hostname_filter_handler(*this, hostname))
+	{
+		error_code err(errors::blocked_by_idna);
+		post(m_ios, std::bind(&http_connection::callback
+			, me, err, span<char>{}));
+		return;
+	}
+
+	if (protocol != "http"
+#if TORRENT_USE_SSL
+		&& protocol != "https"
+#endif
+		)
+	{
+		error_code err(errors::unsupported_url_protocol);
+		post(m_ios, std::bind(&http_connection::callback
+			, me, err, span<char>{}));
+		return;
+	}
+	*xxxxxxxxxxxxxxxxxx/
+
+	bool const ssl = (protocol == "https");
+
 	std::stringstream request;
 
+	// TODO handle proxy
 	{
 		request << "GET " << path << " HTTP/1.1\r\nHost: " << hostname;
 		if (port != default_port) request << ":" << port << "\r\n";
 		else request << "\r\n";
 	}
 
-//	request << "Accept: */*\r\n";
+//	request << "Accept: *xxxxxxxxxxxxxxxxxxxxxxx/*\r\n";
 
-	if (!m_user_agent.empty())
-		request << "User-Agent: " << m_user_agent << "\r\n";
+	// if (!m_user_agent.empty())
+	// 	request << "User-Agent: " << m_user_agent << "\r\n";
 
-	if (m_bottled)
-		request << "Accept-Encoding: gzip\r\n";
+	// if (m_bottled)
+	// 	request << "Accept-Encoding: gzip\r\n";
 
-	if (!auth.empty())
-		request << "Authorization: Basic " << base64encode(auth) << "\r\n";
+	// if (!auth.empty())
+	// 	request << "Authorization: Basic " << base64encode(auth) << "\r\n";
 
 	request << "Connection: close\r\n\r\n";
 
+	/*
 	m_sendbuffer.assign(request.str());
 	m_url = url;
 	start(hostname, port, timeout
@@ -404,11 +480,19 @@ void exact_source_connection::send_message(message_type const type
 		, i2p_conn
 #endif
 		);
+	*xxxxxxxxxxxxxxxxxxxx/
 
-	send_buffer(request);
+	send_buffer(request.str());
 
-	stats_counters().inc_stats_counter(counter);
+	// stats_counters().inc_stats_counter(counter);
+
+	/*
+#ifndef TORRENT_DISABLE_EXTENSIONS
+	extension_notify(&peer_plugin::sent_request, r);
+#endif
+	*xxxxxxxxxxx/
 }
+*/
 
 void exact_source_connection::disconnect(error_code const& ec
 	, operation_t op, disconnect_severity_t const error)
@@ -1039,6 +1123,16 @@ void exact_source_connection::handle_redirect(int const bytes_left)
 void exact_source_connection::on_receive(error_code const& error
 	, std::size_t bytes_transferred)
 {
+	// TODO handle errors
+	/*
+	{
+	if (m_ses.alerts().should_post<metadata_received_alert>())
+	{
+		m_ses.alerts().emplace_alert<metadata_received_alert>(
+			get_handle());
+	}
+	*/
+
 	peer_log(peer_log_alert::info, "URL", "exact_source_connection::on_receive %s", m_url.c_str());
 	INVARIANT_CHECK;
 
@@ -1064,16 +1158,41 @@ void exact_source_connection::on_receive(error_code const& error
 	// handle_padfile();
 	if (associated_torrent().expired()) return;
 
+	/*
+	// FIXME parse http response body from recv_buffer
+	metadata_buf = recv_buffer;
+	peer_log(peer_log_alert::info, "OK", "recv_buffer:\n%s", recv_buffer);
+
+	peer_log(peer_log_alert::info, "OK", "t->set_metadata(recv_buffer)");
+	t->set_metadata(metadata_buf);
+
+	goto done;
+	*/
+
+	peer_log(peer_log_alert::incoming, "exact_source_connection::on_receive"
+		, "looping...");
+
 	for (;;)
 	{
+		peer_log(peer_log_alert::incoming, "exact_source_connection::on_receive"
+			, "loop step");
+
 		int payload;
 		int protocol;
 		bool header_finished = m_parser.header_finished();
 		if (!header_finished)
 		{
+			peer_log(peer_log_alert::incoming, "exact_source_connection::on_receive"
+				, "loop step: !header_finished");
+
+			peer_log(peer_log_alert::incoming, "exact_source_connection::on_receive"
+				, "loop step: m_parser.incoming(recv_buffer). recv_buffer:\n%s", recv_buffer);
+
 			bool failed = false;
 			std::tie(payload, protocol) = m_parser.incoming(recv_buffer, failed);
 			received_bytes(0, protocol);
+			peer_log(peer_log_alert::incoming, "exact_source_connection::on_receive"
+				, "loop step: failed: %s, payload: %s, protocol: %s", failed, payload, protocol);
 			TORRENT_ASSERT(int(recv_buffer.size()) >= protocol);
 
 			if (failed)
@@ -1096,12 +1215,21 @@ void exact_source_connection::on_receive(error_code const& error
 			// this means the entire status line hasn't been received yet
 			if (m_parser.status_code() == -1)
 			{
+				// FIXME why?!
+				// recv_buffer = "HTTP/1.1 200 OK\r\nServer: nginx\r\n..."
+				// is m_parser a http parser?
+				// FIXME use http_connection instead of peer_connection
+
+				peer_log(peer_log_alert::incoming, "exact_source_connection::on_receive"
+					, "loop step: m_parser.status_code() == -1");
 				TORRENT_ASSERT(payload == 0);
 				break;
 			}
 
 			if (!m_parser.header_finished())
 			{
+				peer_log(peer_log_alert::incoming, "exact_source_connection::on_receive"
+					, "loop step: !m_parser.header_finished()");
 				TORRENT_ASSERT(payload == 0);
 				break;
 			}
@@ -1113,6 +1241,8 @@ void exact_source_connection::on_receive(error_code const& error
 		// we just completed reading the header
 		if (!header_finished)
 		{
+			peer_log(peer_log_alert::incoming, "exact_source_connection::on_receive"
+				, "loop step: !header_finished");
 			++m_num_responses;
 
 			if (m_parser.connection_close())
@@ -1168,7 +1298,11 @@ void exact_source_connection::on_receive(error_code const& error
 		}
 
 		// we only received the header, no data
-		if (recv_buffer.empty()) break;
+		if (recv_buffer.empty()) {
+			peer_log(peer_log_alert::incoming, "exact_source_connection::on_receive"
+				, "loop step: recv_buffer.empty()");
+			break;
+		}
 
 		/*
 		// ===================================
@@ -1211,7 +1345,12 @@ void exact_source_connection::on_receive(error_code const& error
 		}
 		*/
 
-		if (m_parser.chunked_encoding())
+		peer_log(peer_log_alert::incoming, "exact_source_connection::on_receive"
+			, "m_parser.chunked_encoding() = %s"
+			, m_parser.chunked_encoding());
+
+		// if (m_parser.chunked_encoding())
+		if (false)
 		{
 
 			// =========================
@@ -1242,7 +1381,8 @@ void exact_source_connection::on_receive(error_code const& error
 						return;
 					}
 					*/
-					incoming_payload(recv_buffer.data(), copy_size);
+					//incoming_payload(recv_buffer.data(), copy_size);
+					incoming_payload(recv_buffer, copy_size);
 
 					recv_buffer = recv_buffer.subspan(copy_size);
 					m_chunk_pos -= copy_size;
@@ -1282,6 +1422,8 @@ void exact_source_connection::on_receive(error_code const& error
 				// requested. If that's not the case, we got an invalid response.
 				if (chunk_size == 0)
 				{
+					peer_log(peer_log_alert::incoming, "exact_source_connection::on_receive"
+						, "loop step: chunk_size == 0");
 					TORRENT_ASSERT_VAL(m_chunk_pos == 0, m_chunk_pos);
 
 #if TORRENT_USE_ASSERTS
@@ -1338,7 +1480,8 @@ void exact_source_connection::on_receive(error_code const& error
 			recv_buffer = recv_buffer.subspan(copy_size);
 			*/
 			int const copy_size = m_received_body;
-			incoming_payload(recv_buffer.data(), copy_size);
+			// incoming_payload(recv_buffer.data(), copy_size);
+			incoming_payload(recv_buffer, copy_size);
 			recv_buffer = recv_buffer.subspan(copy_size);
 
 			// TORRENT_ASSERT(m_received_body <= file_req.length);
@@ -1360,7 +1503,11 @@ void exact_source_connection::on_receive(error_code const& error
 			// }
 		}
 
-		if (recv_buffer.empty()) break;
+		if (recv_buffer.empty()) {
+			peer_log(peer_log_alert::incoming, "exact_source_connection::on_receive"
+				, "loop step: recv_buffer.empty()");
+			break;
+		}
 	}
 done:
 
@@ -1369,7 +1516,8 @@ done:
 		, t->block_size() + request_size_overhead);
 }
 
-void exact_source_connection::incoming_payload(char const* buf, int len)
+// void exact_source_connection::incoming_payload(char const* buf, int len)
+void exact_source_connection::incoming_payload(span<char const> buf, int len)
 {
 	peer_log(peer_log_alert::info, "URL", "exact_source_connection::incoming_payload %s", m_url.c_str());
 	received_bytes(len, 0);
@@ -1380,6 +1528,17 @@ void exact_source_connection::incoming_payload(char const* buf, int len)
 #ifndef TORRENT_DISABLE_LOGGING
 	peer_log(peer_log_alert::incoming_message, "INCOMING_PAYLOAD", "%d bytes", len);
 #endif
+
+	std::shared_ptr<torrent> t = associated_torrent().lock();
+	TORRENT_ASSERT(t);
+
+	// span<char const> metadata_buf;
+	// metadata_buf = buf;
+	// peer_log(peer_log_alert::info, "OK", "t->set_metadata(metadata_buf)");
+	// t->set_metadata(metadata_buf);
+
+	peer_log(peer_log_alert::info, "OK", "t->set_metadata(buf)");
+	t->set_metadata(buf);
 
 	/*
 	// deliver all complete bittorrent requests to the bittorrent engine

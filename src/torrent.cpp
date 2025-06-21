@@ -6860,8 +6860,8 @@ namespace {
 		}
 		// TODO implement fetching of .torrent files from http
 		// FIXME use http_connection instead of peer_connection
-		/*
-		else if (web->type == web_seed_entry::exact_source)
+		// else if (web->type == web_seed_entry::exact_source && m_state == torrent_status::downloading_metadata)
+		else if (web->type == web_seed_entry::exact_source && !valid_metadata())
 		{
 			// peer->peer_log(peer_log_alert::info, "URL", "torrent.cpp: exact_source %s", web->url.c_str());
 			// if (should_log())
@@ -6869,7 +6869,7 @@ namespace {
 			std::printf("torrent.cpp 6860: connect_web_seed web->url exact_source %s\n", web->url.c_str());
 			c = std::make_shared<exact_source_connection>(pack, *web);
 		}
-		else if (web->type == web_seed_entry::acceptable_source)
+		else if (web->type == web_seed_entry::acceptable_source && !valid_metadata())
 		{
 			// peer->peer_log(peer_log_alert::info, "URL", "torrent.cpp: acceptable_source %s", web->url.c_str());
 			// if (should_log())
@@ -6880,7 +6880,6 @@ namespace {
 			// TODO implement
 			// c = std::make_shared<acceptable_source_connection>(pack, *web);
 		}
-		*/
 		// TODO torrent_info::add_exact_source
 		// exact_source acceptable_source content_addressed_storage
 		if (!c) return;
