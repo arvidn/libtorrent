@@ -758,6 +758,7 @@ namespace libtorrent {
 
 	void torrent_handle::add_content_addressed_storage(std::string const& url) const
 	{
+		std::printf("torrent_handle.cpp: content_addressed_storage %s\n", url.c_str());
 		async_call(&torrent::add_web_seed, url, web_seed_entry::content_addressed_storage
 			, std::string(), web_seed_entry::headers_t(), web_seed_flag_t{});
 	}

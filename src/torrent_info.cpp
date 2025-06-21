@@ -1774,6 +1774,7 @@ namespace {
 				if (url.type() != bdecode_node::string_t || url.string_length() == 0) continue;
 				std::string u = maybe_url_encode(url.string_value().to_string());
 				if (!unique.insert(u).second) continue;
+				std::printf("torrent_info.cpp: parse_torrent_file exact_source %s\n", u.c_str());
 				m_web_seeds.emplace_back(std::move(u), web_seed_entry::exact_source);
 			}
 		}
@@ -1796,6 +1797,7 @@ namespace {
 				if (url.type() != bdecode_node::string_t || url.string_length() == 0) continue;
 				std::string u = maybe_url_encode(url.string_value().to_string());
 				if (!unique.insert(u).second) continue;
+				std::printf("torrent_info.cpp: parse_torrent_file acceptable_source %s\n", u.c_str());
 				m_web_seeds.emplace_back(std::move(u), web_seed_entry::acceptable_source);
 			}
 		}
@@ -1818,6 +1820,7 @@ namespace {
 				if (url.type() != bdecode_node::string_t || url.string_length() == 0) continue;
 				std::string u = maybe_url_encode(url.string_value().to_string());
 				if (!unique.insert(u).second) continue;
+				std::printf("torrent_info.cpp: parse_torrent_file content_addressed_storage %s\n", u.c_str());
 				m_web_seeds.emplace_back(std::move(u), web_seed_entry::content_addressed_storage);
 			}
 		}
@@ -1918,6 +1921,33 @@ namespace {
 		, web_seed_entry::headers_t const& extra_headers)
 	{
 		m_web_seeds.emplace_back(url, web_seed_entry::http_seed
+			, auth, extra_headers);
+	}
+
+	void torrent_info::add_exact_source(std::string const& url
+		, std::string const& auth
+		, web_seed_entry::headers_t const& extra_headers)
+	{
+		std::printf("torrent_info.cpp 1931: add_exact_source %s\n", url.c_str());
+		m_web_seeds.emplace_back(url, web_seed_entry::exact_source
+			, auth, extra_headers);
+	}
+
+	void torrent_info::add_acceptable_source(std::string const& url
+		, std::string const& auth
+		, web_seed_entry::headers_t const& extra_headers)
+	{
+		std::printf("torrent_info.cpp 1940: add_acceptable_source %s\n", url.c_str());
+		m_web_seeds.emplace_back(url, web_seed_entry::acceptable_source
+			, auth, extra_headers);
+	}
+
+	void torrent_info::add_content_addressed_storage(std::string const& url
+		, std::string const& auth
+		, web_seed_entry::headers_t const& extra_headers)
+	{
+		std::printf("torrent_info.cpp 1949: add_content_addressed_storage %s\n", url.c_str());
+		m_web_seeds.emplace_back(url, web_seed_entry::content_addressed_storage
 			, auth, extra_headers);
 	}
 

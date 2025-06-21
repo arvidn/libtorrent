@@ -30,6 +30,7 @@
 #include "libtorrent/enum_net.hpp"
 #include "libtorrent/error.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/exact_source_connection.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/extensions/smart_ban.hpp"
 #include "libtorrent/extensions/ut_metadata.hpp"

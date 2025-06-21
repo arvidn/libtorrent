@@ -78,6 +78,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bt_peer_connection.hpp"
 #include "libtorrent/web_peer_connection.hpp"
 #include "libtorrent/http_seed_connection.hpp"
+#include "libtorrent/exact_source_connection.hpp"
 #include "libtorrent/peer_connection_handle.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/identify_client.hpp"
@@ -114,6 +115,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/announce_entry.hpp"
 #include "libtorrent/ssl.hpp"
 #include "libtorrent/aux_/apply_pad_files.hpp"
+#include "libtorrent/alert.hpp"
 
 #ifdef TORRENT_SSL_PEERS
 #include "libtorrent/ssl_stream.hpp"
@@ -2310,6 +2312,7 @@ bool is_downloading_state(int const st)
 		}
 		else
 		{
+			std::printf("torrent.cpp 2315: on_resume_data_checked -> files_checked\n");
 			files_checked();
 		}
 
@@ -6324,6 +6327,8 @@ namespace {
 
 	void torrent::connect_to_url_seed(std::list<web_seed_t>::iterator web)
 	{
+		std::printf("torrent.cpp 6332: connect_to_url_seed web->url %s\n", web->url.c_str());
+
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
@@ -6448,6 +6453,7 @@ namespace {
 
 		if (!web->endpoints.empty())
 		{
+			std::printf("torrent.cpp 6455: connect_to_url_seed connect_web_seed 6455 %s\n", web->url.c_str());
 			connect_web_seed(web, web->endpoints.front());
 			return;
 		}
@@ -6474,6 +6480,7 @@ namespace {
 				|| ps.type == settings_pack::socks5_pw)
 			&& ps.proxy_peer_connections)
 		{
+			std::printf("torrent.cpp 6482: connect_to_url_seed connect_web_seed 6482 %s\n", web->url.c_str());
 			connect_web_seed(web, {address(), std::uint16_t(port)});
 		}
 		else
@@ -6653,6 +6660,7 @@ namespace {
 			|| m_ses.num_connections() >= settings().get_int(settings_pack::connections_limit))
 			return;
 
+		std::printf("torrent.cpp 6662: connect_to_url_seed connect_web_seed %s\n", web->url.c_str());
 		connect_web_seed(web, web->endpoints.front());
 	}
 	catch (...) { handle_exception(); }
@@ -6660,6 +6668,8 @@ namespace {
 	void torrent::connect_web_seed(std::list<web_seed_t>::iterator web, tcp::endpoint a)
 	{
 		INVARIANT_CHECK;
+
+		std::printf("torrent.cpp 6671: connect_web_seed web->url %s\n", web->url.c_str());
 
 		TORRENT_ASSERT(is_single_thread());
 		if (m_abort) return;
@@ -6809,6 +6819,8 @@ namespace {
 			, aux::generate_peer_id(settings())
 		};
 
+		std::printf("torrent.cpp 6820: connect_web_seed peer_connection web->url %s\n", web->url.c_str());
+
 		std::shared_ptr<peer_connection> c;
 		if (web->type == web_seed_entry::url_seed)
 		{
@@ -6818,6 +6830,59 @@ namespace {
 		{
 			c = std::make_shared<http_seed_connection>(pack, *web);
 		}
+		else if (web->type == web_seed_entry::content_addressed_storage)
+		{
+			// TODO verify: use p.info_hashes.v1 from src/magnet_uri.cpp
+			// TODO create multiple c = web_peer_connection(...) -> remove "else"
+			// if (web->url[-1] != '/') {
+			if (!web->url.empty() && web->url[web->url.size() - 1] != '/') {
+				web->url += "/";
+			}
+			// TODO? move this branching to web_peer_connection
+			if (m_torrent_file->info_hashes().has_v1()) {
+				web->url += "btih/";
+				//web->url += aux::to_hex(m_torrent_file->info_hashes().v1.to_string());
+				web->url += m_torrent_file->info_hashes().v1.to_hexstring();
+				web->url += "/";
+				c = std::make_shared<web_peer_connection>(pack, *web);
+				// TODO append f"/btih/{btih}.torrent" to exact_sources
+			}
+			// TODO use p.info_hashes.v2 from src/magnet_uri.cpp
+			else if (m_torrent_file->info_hashes().has_v2()) {
+				web->url += "btmh/";
+				//web->url += aux::to_hex(m_torrent_file->info_hashes().v2.to_string());
+				web->url += m_torrent_file->info_hashes().v2.to_hexstring();
+				web->url += "/";
+				c = std::make_shared<web_peer_connection>(pack, *web);
+				// TODO append f"/btmh/{btmh}.torrent" to exact_sources
+			}
+			std::printf("torrent.cpp 6851: connect_web_seed web->url content_addressed_storage %s\n", web->url.c_str());
+		}
+		// TODO implement fetching of .torrent files from http
+		// FIXME use http_connection instead of peer_connection
+		/*
+		else if (web->type == web_seed_entry::exact_source)
+		{
+			// peer->peer_log(peer_log_alert::info, "URL", "torrent.cpp: exact_source %s", web->url.c_str());
+			// if (should_log())
+			// 	debug_log("torrent.cpp: connect_web_seed exact_source %s", web->url.c_str());
+			std::printf("torrent.cpp 6860: connect_web_seed web->url exact_source %s\n", web->url.c_str());
+			c = std::make_shared<exact_source_connection>(pack, *web);
+		}
+		else if (web->type == web_seed_entry::acceptable_source)
+		{
+			// peer->peer_log(peer_log_alert::info, "URL", "torrent.cpp: acceptable_source %s", web->url.c_str());
+			// if (should_log())
+			// 	debug_log("torrent.cpp: acceptable_source %s", web->url.c_str());
+			std::printf("torrent.cpp 6865: connect_web_seed web->url acceptable_source %s\n", web->url.c_str());
+			// temporary: treat acceptable_source as exact_source
+			c = std::make_shared<exact_source_connection>(pack, *web);
+			// TODO implement
+			// c = std::make_shared<acceptable_source_connection>(pack, *web);
+		}
+		*/
+		// TODO torrent_info::add_exact_source
+		// exact_source acceptable_source content_addressed_storage
 		if (!c) return;
 
 #if TORRENT_USE_ASSERTS
@@ -8565,6 +8630,7 @@ namespace {
 	void torrent::files_checked()
 	{
 		TORRENT_ASSERT(is_single_thread());
+		std::printf("torrent.cpp 8620: files_checked\n");
 		TORRENT_ASSERT(m_torrent_file->is_valid());
 
 		if (m_abort)
@@ -8681,6 +8747,7 @@ namespace {
 
 		start_announcing();
 
+		std::printf("torrent.cpp 8736: files_checked -> maybe_connect_web_seeds\n");
 		maybe_connect_web_seeds();
 	}
 
@@ -10379,6 +10446,19 @@ namespace {
 	{
 		if (m_abort) return;
 
+		std::printf("torrent.cpp 10434: maybe_connect_web_seeds\n");
+
+		if (m_web_seeds.empty())
+			std::printf("torrent.cpp 10440: maybe_connect_web_seeds m_web_seeds.empty()\n");
+		if (is_finished())
+			std::printf("torrent.cpp 10440: maybe_connect_web_seeds is_finished()\n");
+		if (!m_files_checked)
+			std::printf("torrent.cpp 10440: maybe_connect_web_seeds !m_files_checked\n");
+		if (num_peers() >= int(m_max_connections))
+			std::printf("torrent.cpp 10440: maybe_connect_web_seeds num_peers() >= int(m_max_connections)\n");
+		if (m_ses.num_connections() >= settings().get_int(settings_pack::connections_limit))
+			std::printf("torrent.cpp 10440: maybe_connect_web_seeds m_ses.num_connections() >= settings().get_int(settings_pack::connections_limit)\n");
+
 		// if we have everything we want we don't need to connect to any web-seed
 		if (m_web_seeds.empty()
 			|| is_finished()
@@ -10386,6 +10466,7 @@ namespace {
 			|| num_peers() >= int(m_max_connections)
 			|| m_ses.num_connections() >= settings().get_int(settings_pack::connections_limit))
 		{
+			std::printf("torrent.cpp 10446: maybe_connect_web_seeds return\n");
 			return;
 		}
 
@@ -10407,6 +10488,7 @@ namespace {
 			if (w->peer_info.connection || w->resolving)
 				continue;
 
+			std::printf("torrent.cpp 10468: maybe_connect_web_seeds connect_to_url_seed %s\n", w->url.c_str());
 			connect_to_url_seed(w);
 		}
 	}
