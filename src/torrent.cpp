@@ -9176,13 +9176,18 @@ bool is_downloading_state(int const st)
 				if (state.done) continue;
 
 				if (settings().get_bool(settings_pack::announce_to_all_tiers)
+					&& !settings().get_bool(settings_pack::announce_to_all_trackers)
 					&& state.found_working
 					&& t.tier <= state.tier
 					&& state.tier != INT_MAX)
 					continue;
 
-				if (t.tier > state.tier && !settings().get_bool(settings_pack::announce_to_all_tiers)) break;
-				if (aep.is_working()) { state.tier = t.tier; state.found_working = false; }
+				if (t.tier > state.tier)
+				{
+					if (!settings().get_bool(settings_pack::announce_to_all_tiers)) break;
+					state.found_working = false;
+				}
+				state.tier = t.tier;
 				if (aep.fails >= t.fail_limit && t.fail_limit != 0) continue;
 				if (!aep.enabled) continue;
 
@@ -9204,8 +9209,7 @@ bool is_downloading_state(int const st)
 				else
 				{
 					time_point32 const next_tracker_announce = std::max(aep.next_announce, aep.min_announce);
-					if (next_tracker_announce < next_announce
-						&& (!state.found_working || aep.is_working()))
+					if (next_tracker_announce < next_announce)
 						next_announce = next_tracker_announce;
 				}
 				if (aep.is_working()) state.found_working = true;
