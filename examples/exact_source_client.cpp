@@ -432,7 +432,7 @@ int main(int argc, char* argv[]) try
 		// std::printf("adding magnet: %s\n", torrent.to_string().c_str());
 	}
 	else {
-		p.ti = std::make_shared<lt::torrent_info>(torrent);
+		p.ti = std::make_shared<lt::torrent_info>(torrent.to_string());
 	}
 	p.save_path = ".";
 	ses.add_torrent(p);
