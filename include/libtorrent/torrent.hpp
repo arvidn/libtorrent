@@ -208,6 +208,10 @@ namespace libtorrent {
 		// web seed from resolving to any local network IPs.
 		bool no_local_ips = false;
 
+		// this web seed was created from a redirect
+		// and the torrent name has already been appended to this URL.
+		bool path_ends_with_torrent_name = false;
+
 		// This means we want to preserve the web seed in resume data, but not
 		// use it for the remainder of this session. For example:
 		// this web seed maye have responded with a redirect. The redirected
@@ -247,6 +251,7 @@ namespace libtorrent {
 			removed = std::move(rhs.removed);
 			ephemeral = std::move(rhs.ephemeral);
 			no_local_ips = std::move(rhs.no_local_ips);
+			path_ends_with_torrent_name = std::move(rhs.path_ends_with_torrent_name);
 			disabled = std::move(rhs.disabled);
 			restart_request = std::move(rhs.restart_request);
 			restart_piece = std::move(rhs.restart_piece);
@@ -694,6 +699,8 @@ namespace libtorrent {
 		// IP on a local network. This is part of SSRF mitigation, as it may be
 		// malicious
 		static constexpr web_seed_flag_t no_local_ips = 1_bit;
+
+		static constexpr web_seed_flag_t path_ends_with_torrent_name = 2_bit;
 
 		// add_web_seed won't add duplicates. If we have already added an entry
 		// with this URL, we'll get back the existing entry

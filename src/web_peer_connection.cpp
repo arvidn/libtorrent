@@ -109,14 +109,20 @@ web_peer_connection::web_peer_connection(peer_connection_args& pack
 	{
 		// handle .torrent files that don't include the filename in the url
 		if (m_path.empty()) m_path += '/';
-		if (m_path[m_path.size() - 1] == '/')
+		if (m_path[m_path.size() - 1] == '/' && !web.path_ends_with_torrent_name)
 		{
 			m_path += escape_string(t->torrent_file().name());
+			m_path_ends_with_torrent_name = true;
 		}
 
 		if (!m_url.empty() && m_url[m_url.size() - 1] == '/')
 		{
-			m_url += escape_file_path(t->torrent_file().orig_files(), file_index_t(0));
+			auto path = escape_file_path(t->torrent_file().orig_files(), file_index_t(0));
+			if (web.path_ends_with_torrent_name) {
+				// remove first component of path
+				path = path.substr(t->torrent_file().name().size() + 1);
+			}
+			m_url += path;
 		}
 	}
 
@@ -692,7 +698,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 	// when SSRF mitigation is enabled, a web seed on the internet (is_global())
 	// is not allowed to redirect to a server on the local network, so we set
 	// the no_local_ips flag
-	auto const web_seed_flags = torrent::ephemeral
+	auto web_seed_flags = torrent::ephemeral
 		| ((m_settings.get_bool(settings_pack::ssrf_mitigation) && aux::is_global(remote().address()))
 			? torrent::no_local_ips : web_seed_flag_t{});
 
@@ -781,6 +787,11 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "LOCATION", "%s", location.c_str());
 #endif
+
+		if (m_path_ends_with_torrent_name) {
+			web_seed_flags |= torrent::path_ends_with_torrent_name;
+		}
+
 		t->add_web_seed(location, web_seed_entry::url_seed, m_external_auth
 			, m_extra_headers, web_seed_flags);
 

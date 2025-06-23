@@ -154,6 +154,7 @@ bool is_downloading_state(int const st)
 
 	constexpr web_seed_flag_t torrent::ephemeral;
 	constexpr web_seed_flag_t torrent::no_local_ips;
+	constexpr web_seed_flag_t torrent::path_ends_with_torrent_name;
 
 	web_seed_t::web_seed_t(web_seed_entry const& wse)
 		: web_seed_entry(wse)
@@ -9802,6 +9803,7 @@ namespace {
 		web_seed_t ent(url, type, auth, extra_headers);
 		ent.ephemeral = bool(flags & ephemeral);
 		ent.no_local_ips = bool(flags & no_local_ips);
+		ent.path_ends_with_torrent_name = bool(flags & path_ends_with_torrent_name);
 
 		// don't add duplicates
 		auto const it = std::find(m_web_seeds.begin(), m_web_seeds.end(), ent);
