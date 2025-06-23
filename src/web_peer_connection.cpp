@@ -112,6 +112,8 @@ web_peer_connection::web_peer_connection(peer_connection_args& pack
 		if (m_path[m_path.size() - 1] == '/' && !web.path_ends_with_torrent_name)
 		{
 			m_path += escape_string(t->torrent_file().name());
+			if (t->torrent_file().num_files() > 1)
+				m_path += "/";
 			m_path_ends_with_torrent_name = true;
 		}
 
