@@ -109,6 +109,13 @@ web_peer_connection::web_peer_connection(peer_connection_args& pack
 	{
 		// handle .torrent files that don't include the filename in the url
 		if (m_path.empty()) m_path += '/';
+
+		// BEP 19:
+		// If the "url-list" URL ends in a slash, "/"
+		// the client must add the "name" from the torrent to make the full URL.
+		// This allows .torrent generators to treat this field same
+		// for single file and multi-file torrents.
+
 		if (m_path[m_path.size() - 1] == '/' && !web.path_ends_with_torrent_name)
 		{
 			m_path += escape_string(t->torrent_file().name());
