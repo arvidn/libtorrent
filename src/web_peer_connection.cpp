@@ -193,20 +193,38 @@ void web_peer_connection::on_connected()
 			if (m_web->have_files.get_bit(i) || fs.pad_file_at(i)) {
 				next_piece = std::get<1>(range);
 				have_file = true;
+				peer_log(peer_log_alert::info, "web_peer_connection.cpp 304", "have file %d", int(i));
+				peer_log(peer_log_alert::info, "web_peer_connection.cpp 304", "have file %d: next_piece = %d", int(i), int(next_piece));
+			}
+			else {
+
+				peer_log(peer_log_alert::info, "web_peer_connection.cpp 304", "dont have file %d", int(i));
 			}
 
 			for (piece_index_t k = std::get<0>(range); k < std::get<1>(range); ++k) {
 				if (!have_file && k < next_piece) {
 					// dont clear pieces which were set by previous files
+					peer_log(peer_log_alert::info, "web_peer_connection.cpp 304", "file %d: piece %d: continue", int(i), int(k));
 					continue;
 				}
+				peer_log(peer_log_alert::info, "web_peer_connection.cpp 304", "file %d: have.get_bit(%d) = %d", int(i), int(k), have.get_bit(k));
 				if (have_file) {
 					// set pieces which were cleared by previous files
 					have.set_bit(k);
+					peer_log(peer_log_alert::info, "web_peer_connection.cpp 304", "file %d: have.set_bit(%d)", int(i), int(k));
 				}
 				else {
 					have.clear_bit(k);
+					peer_log(peer_log_alert::info, "web_peer_connection.cpp 304", "file %d: have.clear_bit(%d)", int(i), int(k));
 				}
+			}
+		}
+		peer_log(peer_log_alert::info, "web_peer_connection.cpp 304", "have.get_bit(i) = ...");
+		for (auto const i : fs.file_range())
+		{
+			auto const range = aux::file_piece_range_inclusive(fs, i);
+			for (piece_index_t k = std::get<0>(range); k < std::get<1>(range); ++k) {
+				peer_log(peer_log_alert::info, "web_peer_connection.cpp 304", "file %d: have.get_bit(%d) = %d", int(i), int(k), have.get_bit(k));
 			}
 		}
 		t->set_seed(peer_info_struct(), false);
