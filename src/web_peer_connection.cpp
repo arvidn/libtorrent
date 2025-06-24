@@ -820,7 +820,8 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 				, static_cast<int>(file_index));
 #endif
 		}
-		disconnect(errors::redirecting, operation_t::bittorrent, normal);
+		// dont use this webseed again
+		disable(errors::redirecting);
 	}
 	else
 	{
