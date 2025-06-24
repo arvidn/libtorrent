@@ -185,14 +185,29 @@ void web_peer_connection::on_connected()
 		typed_bitfield<piece_index_t> have;
 		file_storage const& fs = t->torrent_file().files();
 		have.resize(fs.num_pieces(), true);
+		piece_index_t next_piece = 0;
 		for (auto const i : fs.file_range())
 		{
-			// if we have the file, no need to do anything
-			if (m_web->have_files.get_bit(i) || fs.pad_file_at(i)) continue;
-
 			auto const range = aux::file_piece_range_inclusive(fs, i);
-			for (piece_index_t k = std::get<0>(range); k < std::get<1>(range); ++k)
-				have.clear_bit(k);
+			bool have_file = false;
+			if (m_web->have_files.get_bit(i) || fs.pad_file_at(i)) {
+				next_piece = std::get<1>(range);
+				have_file = true;
+			}
+
+			for (piece_index_t k = std::get<0>(range); k < std::get<1>(range); ++k) {
+				if (!have_file && k < next_piece) {
+					// dont clear pieces which were set by previous files
+					continue;
+				}
+				if (have_file) {
+					// set pieces which were cleared by previous files
+					have.set_bit(k);
+				}
+				else {
+					have.clear_bit(k);
+				}
+			}
 		}
 		t->set_seed(peer_info_struct(), false);
 		if (have.none_set())
