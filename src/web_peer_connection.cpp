@@ -185,6 +185,7 @@ void web_peer_connection::on_connected()
 		typed_bitfield<piece_index_t> have;
 		file_storage const& fs = t->torrent_file().files();
 		have.resize(fs.num_pieces(), true);
+		// TODO remove this block? assume that the server has all files = all pieces
 		piece_index_t next_piece = 0;
 		for (auto const i : fs.file_range())
 		{
