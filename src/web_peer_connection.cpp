@@ -59,6 +59,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/random.hpp"
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/http_parser.hpp"
+#include "libtorrent/string_util.hpp"
 
 namespace libtorrent {
 
@@ -75,6 +76,7 @@ web_peer_connection::web_peer_connection(peer_connection_args& pack
 	, m_chunk_pos(0)
 	, m_partial_chunk_header(0)
 	, m_num_responses(0)
+	, m_path_is_directory(false)
 {
 	INVARIANT_CHECK;
 
@@ -98,6 +100,9 @@ web_peer_connection::web_peer_connection(peer_connection_args& pack
 	std::shared_ptr<torrent> t = associated_torrent().lock();
 	bool const single_file_request = t->torrent_file().num_files() == 1;
 
+	// start with the first file
+	std::string first_file_path = escape_file_path(t->torrent_file().orig_files(), file_index_t(0));
+
 	if (!single_file_request)
 	{
 		// handle incorrect .torrent files which are multi-file
@@ -107,6 +112,8 @@ web_peer_connection::web_peer_connection(peer_connection_args& pack
 	}
 	else
 	{
+		std::string url_base = m_url.substr(0, m_url.size() - m_path.size());
+
 		// handle .torrent files that don't include the filename in the url
 		if (m_path.empty()) m_path += '/';
 
@@ -116,10 +123,11 @@ web_peer_connection::web_peer_connection(peer_connection_args& pack
 		// This allows .torrent generators to treat this field same
 		// for single file and multi-file torrents.
 
-		if (m_path[m_path.size() - 1] == '/' && !web.path_ends_with_torrent_name)
+		if (m_path[m_path.size() - 1] == '/')
 		{
-			m_path += escape_string(t->torrent_file().name());
-			m_path_ends_with_torrent_name = true;
+			m_path_is_directory = true;
+			m_path += first_file_path;
+			m_url = url_base + m_path;
 		}
 
 		if (!m_url.empty() && m_url[m_url.size() - 1] == '/')
@@ -743,6 +751,8 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		| ((m_settings.get_bool(settings_pack::ssrf_mitigation) && aux::is_global(remote().address()))
 			? torrent::no_local_ips : web_seed_flag_t{});
 
+	std::string first_file_path = escape_file_path(t->torrent_file().orig_files(), file_index_t(0));
+
 	// add the redirected url and remove the current one
 	if (!single_file_request)
 	{
@@ -757,6 +767,27 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "LOCATION", "%s", location.c_str());
 #endif
+
+		web_seed_t* web;
+
+		// we need to unescape the paths
+		// because the urlencoding can have a different casing:
+		// u("%3b") == u("%3B")
+		error_code ec;
+		if (string_ends_with(
+			unescape_string(location, ec),
+			unescape_string(first_file_path, ec)
+		)) {
+			// trivial case:
+			// the new file url can be reduced to a new webseed url
+			location = location.substr(0, location.size() - first_file_path.size());
+			web = t->add_web_seed(location, web_seed_entry::url_seed
+				, m_external_auth, m_extra_headers, web_seed_flags);
+		}
+		else {
+			// non-trivial case:
+			// the new file url can NOT be reduced to a new webseed url
+		// TODO indent
 		// TODO: 3 this could be made more efficient for the case when we use an
 		// HTTP proxy. Then we wouldn't need to add new web seeds to the torrent,
 		// we could just make the redirect table contain full URLs.
@@ -782,13 +813,15 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		// with base url=="http://example2.com/" and redirects[0]=="/subpath/file2").
 		// If we try to load resume with such "web_seed_t" then "web_peer_connection" will send
 		// request with wrong path "http://example2.com/file1" (cause "redirects" map is not serialized in resume)
-		web_seed_t* web = t->add_web_seed(redirect_base, web_seed_entry::url_seed
+		web = t->add_web_seed(redirect_base, web_seed_entry::url_seed
 			, m_external_auth, m_extra_headers, web_seed_flags);
+		web->redirects[file_index] = redirect_path;
+		} // the new file url can NOT be reduced to a new webseed url
+
 		web->have_files.resize(t->torrent_file().num_files(), false);
 
 		// the new web seed we're adding only has this file for now
 		// we may add more files later
-		web->redirects[file_index] = redirect_path;
 		if (web->have_files.get_bit(file_index) == false)
 		{
 			web->have_files.set_bit(file_index);
@@ -826,13 +859,28 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 	else
 	{
 		location = resolve_redirect_location(m_url, location);
+
+		if (m_path_is_directory) {
+			// first_file_path was appended to m_path
+			// remove first_file_path from location
+			error_code ec;
+			if (!string_ends_with(
+				unescape_string(location, ec),
+				unescape_string(first_file_path, ec)
+			)) {
+				peer_log(peer_log_alert::info, "ERROR"
+					, "web_peer_connection error: the redirect location does not end with the file path. redirect location: %s. file path: %s", unescape_string(location, ec).c_str(), unescape_string(first_file_path, ec).c_str());
+				// dont disable this webseed
+				// but keep using the original URL
+				// and follow redirects for each file
+				return;
+			}
+			location = location.substr(0, location.size() - first_file_path.size());
+		}
+
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "LOCATION", "%s", location.c_str());
 #endif
-
-		if (m_path_ends_with_torrent_name) {
-			web_seed_flags |= torrent::path_ends_with_torrent_name;
-		}
 
 		t->add_web_seed(location, web_seed_entry::url_seed, m_external_auth
 			, m_extra_headers, web_seed_flags);

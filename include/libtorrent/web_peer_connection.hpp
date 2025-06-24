@@ -141,6 +141,8 @@ namespace libtorrent {
 		// the number of responses we've received so far on
 		// this connection
 		int m_num_responses;
+
+		bool m_path_is_directory;
 	};
 }
 
