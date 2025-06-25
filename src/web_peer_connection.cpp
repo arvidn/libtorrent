@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdlib>
 #include <cstdio> // for snprintf
 #include <cinttypes> // for PRId64 et.al.
+#include <regex>
 
 #include "libtorrent/web_peer_connection.hpp"
 #include "libtorrent/session.hpp"
@@ -774,13 +775,20 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		// because the urlencoding can have a different casing:
 		// u("%3b") == u("%3B")
 		error_code ec;
-		if (string_ends_with(
-			unescape_string(location, ec),
-			unescape_string(first_file_path, ec)
-		)) {
+		// TODO handle errors
+		std::string location_raw = unescape_string(location, ec);
+		std::string file_path_raw = unescape_string(file_path, ec);
+		if (string_ends_with(location_raw, file_path_raw)) {
 			// trivial case:
 			// the new file url can be reduced to a new webseed url
-			location = location.substr(0, location.size() - first_file_path.size());
+			// no. we also have to unescape these
+			// location = location.substr(0, location.size() - file_path.size());
+			// FIXME dont escape ":" and "/"
+			location = escape_string(location_raw.substr(0, location_raw.size() - file_path_raw.size()));
+			// quickfix: https%3a%2f%2f -> https://
+			// #include <regex>
+			location = std::regex_replace(location, std::regex("%3a"), ":");
+			location = std::regex_replace(location, std::regex("%2f"), "/");
 			web = t->add_web_seed(location, web_seed_entry::url_seed
 				, m_external_auth, m_extra_headers, web_seed_flags);
 		}
