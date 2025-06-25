@@ -194,6 +194,7 @@ void web_peer_connection::on_connected()
 		file_storage const& fs = t->torrent_file().files();
 		have.resize(fs.num_pieces(), true);
 		// TODO remove this block? assume that the server has all files = all pieces
+		/*
 		piece_index_t next_piece = 0;
 		for (auto const i : fs.file_range())
 		{
@@ -228,6 +229,7 @@ void web_peer_connection::on_connected()
 				}
 			}
 		}
+		*/
 		peer_log(peer_log_alert::info, "web_peer_connection.cpp 304", "have.get_bit(i) = ...");
 		for (auto const i : fs.file_range())
 		{
