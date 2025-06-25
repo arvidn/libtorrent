@@ -10463,6 +10463,7 @@ namespace {
 		// if we have everything we want we don't need to connect to any web-seed
 		if (m_web_seeds.empty()
 			|| is_finished()
+			|| !m_files_checked
 			|| num_peers() >= int(m_max_connections)
 			|| m_ses.num_connections() >= settings().get_int(settings_pack::connections_limit))
 		{
