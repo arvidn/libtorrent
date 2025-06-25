@@ -135,17 +135,9 @@ web_peer_connection::web_peer_connection(peer_connection_args& pack
 		{
 			m_path_is_directory = true;
 			m_path += file_path;
-			m_url = url_base + m_path;
-		}
 
-		if (!m_url.empty() && m_url[m_url.size() - 1] == '/')
-		{
-			auto path = escape_file_path(t->torrent_file().orig_files(), file_index_t(0));
-			if (web.path_ends_with_torrent_name) {
-				// remove first component of path
-				path = path.substr(t->torrent_file().name().size() + 1);
-			}
-			m_url += path;
+			// update m_url
+			m_url = url_base + m_path;
 		}
 	}
 
