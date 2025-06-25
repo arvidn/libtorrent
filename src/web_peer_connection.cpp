@@ -230,6 +230,7 @@ void web_peer_connection::on_connected()
 			}
 		}
 		*/
+		/*
 		peer_log(peer_log_alert::info, "web_peer_connection.cpp 304", "have.get_bit(i) = ...");
 		for (auto const i : fs.file_range())
 		{
@@ -238,6 +239,7 @@ void web_peer_connection::on_connected()
 				peer_log(peer_log_alert::info, "web_peer_connection.cpp 304", "file %d: have.get_bit(%d) = %d", int(i), int(k), have.get_bit(k));
 			}
 		}
+		*/
 		t->set_seed(peer_info_struct(), false);
 		if (have.none_set())
 		{
