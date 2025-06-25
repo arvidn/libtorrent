@@ -102,7 +102,14 @@ web_peer_connection::web_peer_connection(peer_connection_args& pack
 	bool const single_file_request = t->torrent_file().num_files() == 1;
 
 	// start with the first file
-	std::string first_file_path = escape_file_path(t->torrent_file().orig_files(), file_index_t(0));
+	file_index_t file_index;
+	if (m_file_requests.empty()) {
+		file_index = 0;
+	}
+	else {
+		file_index = m_file_requests.front().file_index;
+	}
+	std::string file_path = escape_file_path(t->torrent_file().orig_files(), file_index);
 
 	if (!single_file_request)
 	{
@@ -127,7 +134,7 @@ web_peer_connection::web_peer_connection(peer_connection_args& pack
 		if (m_path[m_path.size() - 1] == '/')
 		{
 			m_path_is_directory = true;
-			m_path += first_file_path;
+			m_path += file_path;
 			m_url = url_base + m_path;
 		}
 
@@ -752,13 +759,13 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		| ((m_settings.get_bool(settings_pack::ssrf_mitigation) && aux::is_global(remote().address()))
 			? torrent::no_local_ips : web_seed_flag_t{});
 
-	std::string first_file_path = escape_file_path(t->torrent_file().orig_files(), file_index_t(0));
+	file_index_t const file_index = m_file_requests.front().file_index;
+	std::string file_path = escape_file_path(t->torrent_file().orig_files(), file_index);
 
 	// add the redirected url and remove the current one
 	if (!single_file_request)
 	{
 		TORRENT_ASSERT(!m_file_requests.empty());
-		file_index_t const file_index = m_file_requests.front().file_index;
 
 		// FIXME redirect to webseed file
 		// https://github.com/arvidn/libtorrent/issues/7682
@@ -874,16 +881,16 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 			error_code ec;
 			if (!string_ends_with(
 				unescape_string(location, ec),
-				unescape_string(first_file_path, ec)
+				unescape_string(file_path, ec)
 			)) {
 				peer_log(peer_log_alert::info, "ERROR"
-					, "web_peer_connection error: the redirect location does not end with the file path. redirect location: %s. file path: %s", unescape_string(location, ec).c_str(), unescape_string(first_file_path, ec).c_str());
+					, "web_peer_connection error: the redirect location does not end with the file path. redirect location: %s. file path: %s", unescape_string(location, ec).c_str(), unescape_string(file_path, ec).c_str());
 				// dont disable this webseed
 				// but keep using the original URL
 				// and follow redirects for each file
 				return;
 			}
-			location = location.substr(0, location.size() - first_file_path.size());
+			location = location.substr(0, location.size() - file_path.size());
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
