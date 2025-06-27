@@ -340,6 +340,9 @@ namespace aux {
 			proxy_username,
 			proxy_password,
 
+			//custom some tracker subject to proxy, not all tracker use proxy setting.
+			proxy_tracker_list, 
+
 			// sets the i2p_ SAM bridge to connect to. set the port with the
 			// ``i2p_port`` setting. Unless this is set, i2p torrents are not
 			// supported. This setting is separate from the other proxy settings
@@ -878,6 +881,9 @@ namespace aux {
 			// if true, tracker connections are made over the configured proxy, if
 			// any.
 			proxy_tracker_connections,
+
+			//if ture, the tracker only in proxy_tracker_list are subject to proxy,
+			proxy_tracker_list_enable, 
 
 			// Starts and stops the internal IP table route changes notifier.
 			//

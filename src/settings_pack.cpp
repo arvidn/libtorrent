@@ -197,6 +197,7 @@ namespace {
 		SET(proxy_peer_connections, true, nullptr),
 		SET(auto_sequential, true, &session_impl::update_auto_sequential),
 		SET(proxy_tracker_connections, true, nullptr),
+		SET(proxy_tracker_list_enable, false, nullptr),
 		SET(enable_ip_notifier, true, &session_impl::update_ip_notifier),
 		SET(dht_prefer_verified_node_ids, true, nullptr),
 		SET(dht_restrict_routing_ips, true, nullptr),

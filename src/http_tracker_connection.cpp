@@ -237,6 +237,16 @@ namespace libtorrent::aux {
 		// are that we're shutting down, and this should be a best-effort
 		// attempt. It's not worth stalling shutdown.
 		aux::proxy_settings ps(settings);
+		bool bProxy = ps.proxy_tracker_connections;
+		if (bProxy && ps.proxy_tracker_list_enable) {
+			//use tracker list to judge
+			for (std::string host : ps.proxy_tracker_list) {
+				if (url.find(host) != std::string::npos) {
+					bProxy = true;
+					break;
+				}
+			}
+		}
 		m_tracker_connection->get(url, seconds(timeout)
 			, ps.proxy_tracker_connections ? &ps : nullptr
 			, 5, user_agent, bi
