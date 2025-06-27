@@ -241,7 +241,7 @@ namespace libtorrent::aux {
 		if (bProxy && ps.proxy_tracker_list_enable) {
 			//use tracker list to judge
 			bProxy = false;
-			
+
 			for (std::string host : ps.proxy_tracker_list) {
 				if (url.find(host) != std::string::npos) {
 					bProxy = true;
@@ -250,7 +250,7 @@ namespace libtorrent::aux {
 			}
 		}
 		m_tracker_connection->get(url, seconds(timeout)
-			, ps.proxy_tracker_connections ? &ps : nullptr
+			, bProxy? &ps : nullptr
 			, 5, user_agent, bi
 			, (tracker_req().event == event_t::stopped
 				? aux::resolver_interface::cache_only : aux::resolver_flags{})
