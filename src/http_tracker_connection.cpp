@@ -240,6 +240,8 @@ namespace libtorrent::aux {
 		bool bProxy = ps.proxy_tracker_connections;
 		if (bProxy && ps.proxy_tracker_list_enable) {
 			//use tracker list to judge
+			bProxy = false;
+			
 			for (std::string host : ps.proxy_tracker_list) {
 				if (url.find(host) != std::string::npos) {
 					bProxy = true;
