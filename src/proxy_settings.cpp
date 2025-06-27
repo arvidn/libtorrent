@@ -11,8 +11,8 @@ see LICENSE file.
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 
-//#include <boost/algorithm/string.hpp> 
-//#include <boost/algorithm/string/trim.hpp>
+#include <boost/algorithm/string.hpp> 
+#include <boost/algorithm/string/trim.hpp>
 
 namespace libtorrent { namespace aux {
 
