@@ -340,9 +340,6 @@ namespace aux {
 			proxy_username,
 			proxy_password,
 
-			//custom some tracker subject to proxy, not all tracker use proxy setting.
-			proxy_tracker_list, 
-
 			// sets the i2p_ SAM bridge to connect to. set the port with the
 			// ``i2p_port`` setting. Unless this is set, i2p torrents are not
 			// supported. This setting is separate from the other proxy settings
@@ -375,6 +372,9 @@ namespace aux {
 			// This is the STUN server used by WebTorrent to enable ICE NAT
 			// traversal for WebRTC. It must have the format ``hostname:port``.
 			webtorrent_stun_server,
+
+			//custom some tracker subject to proxy, not all tracker use proxy setting.
+			proxy_tracker_list,
 
 			max_string_setting_internal
 		};
@@ -882,9 +882,6 @@ namespace aux {
 			// any.
 			proxy_tracker_connections,
 
-			//if ture, the tracker only in proxy_tracker_list are subject to proxy,
-			proxy_tracker_list_enable, 
-
 			// Starts and stops the internal IP table route changes notifier.
 			//
 			// The current implementation supports multiple platforms, and it is
@@ -1005,6 +1002,9 @@ namespace aux {
 			// between the client and the proxy, the IP address specified in the
 			// protocol may not be valid from the proxy's point of view.
 			socks5_udp_send_local_ep,
+
+			//if ture, the tracker only in proxy_tracker_list are subject to proxy,
+			proxy_tracker_list_enable, 
 
 			max_bool_setting_internal
 		};
