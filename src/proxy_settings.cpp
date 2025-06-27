@@ -11,8 +11,8 @@ see LICENSE file.
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 
-#include <boost/algorithm/string.hpp> 
-#include <boost/algorithm/string/trim.hpp>
+//#include <boost/algorithm/string.hpp> 
+//#include <boost/algorithm/string/trim.hpp>
 
 namespace libtorrent { namespace aux {
 
@@ -33,7 +33,7 @@ void init(proxy_settings& p, Settings const& sett)
 		settings_pack::proxy_tracker_connections);
 	p.proxy_tracker_list_enable = sett.get_bool(
 		settings_pack::proxy_tracker_list_enable);
-
+	/*
 	std::string source = sett.get_str(settings_pack::proxy_tracker_list);
 	if (source.length()>0) {
 		std::vector<std::string> trackers;
@@ -46,6 +46,7 @@ void init(proxy_settings& p, Settings const& sett)
 			}
 		}
 	}
+	*/
 }
 }
 
