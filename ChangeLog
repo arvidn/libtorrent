@@ -4,6 +4,7 @@
 	* optimize the utp resend
 	* optimize tracker announcements
 	* fix handling of invalid filenames
+	* add support for I2CP inbound.lengthVariance and outbound.lengthVariance tunnel settings
 
 2.0.11 released
 
