@@ -160,6 +160,10 @@ jobs:
         vcpkg install openssl:x86-windows
         New-Item -Path "C:\Program Files\OpenSSL" -ItemType SymbolicLink -Value "C:\vcpkg\packages\openssl_x86-windows\"
 
+    - name: install openssl (linux)
+      if: runner.os == 'Linux'
+      run: sudo apt-get install libssl-dev
+
     - uses: pypa/cibuildwheel@v2.22.0
       if: steps.cache-wheel.outputs.cache-hit != 'true'
 
