@@ -2915,7 +2915,7 @@ namespace {
 		, aux::announce_entry& ae)
 	{
 #if TORRENT_USE_I2P
-		if (is_i2p_url(ae.url))
+		if (ae.i2p)
 		{
 			if (ae.endpoints.size() > 1)
 			{
@@ -3175,7 +3175,7 @@ namespace {
 			req.url = ae.url;
 
 #if TORRENT_USE_I2P
-			if (is_i2p_url(req.url))
+			if (ae.i2p)
 			{
 				req.kind |= tracker_request::i2p;
 			}
@@ -3392,7 +3392,7 @@ namespace {
 		req.kind |= tracker_request::scrape_request;
 
 #if TORRENT_USE_I2P
-		if (is_i2p_url(ae.url))
+		if (ae.i2p)
 			req.kind |= tracker_request::i2p;
 		else if (is_i2p() && !settings().get_bool(settings_pack::allow_i2p_mixed))
 			return;
