@@ -2068,6 +2068,10 @@ namespace aux {
 			//    instead of the actual local listening port.
 			announce_port,
 
+			// Configures the variance for I2P inbound and outbound tunnel lengths [-7..7]
+			i2p_inbound_length_variance,
+			i2p_outbound_length_variance,
+
 			// this is the minimum allowed announce interval for a WebSocket
 			// tracker used by WebTorrent to signal WebRTC connections. This is
 			// specified in seconds and is used as a sanity check on what is

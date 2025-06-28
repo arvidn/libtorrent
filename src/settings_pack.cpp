@@ -377,6 +377,8 @@ namespace {
 		SET(i2p_inbound_length, 3, nullptr),
 		SET(i2p_outbound_length, 3, nullptr),
 		SET(announce_port, 0, nullptr),
+		SET(i2p_inbound_length_variance, 0, nullptr),
+		SET(i2p_outbound_length_variance, 0, nullptr),
 		SET(min_websocket_announce_interval, 1 * 60, nullptr),
 		SET(webtorrent_connection_timeout, 2 * 60, nullptr)
 	}});

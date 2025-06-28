@@ -113,15 +113,15 @@ jobs:
           ccache_options: |
             max_size=500M
 
-      - name: install clang-14
+      - name: install clang-15
         continue-on-error: true
         run: |
-          sudo apt install clang-14
+          sudo apt install clang-15
 
       - name: install boost
         run: |
           sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
-          echo "using clang : 14 : clang++-14 ;" >>~/user-config.jam
+          echo "using clang : 15 : clang++-15 ;" >>~/user-config.jam
 
       - name: build fuzzers
         run: |
@@ -189,13 +189,13 @@ jobs:
           ccache_options: |
             max_size=500M
 
-      - name: install clang-tidy
+      - name: install clang-tidy-18
         run: sudo apt install clang-tidy libc++-dev
 
       - name: install boost
         run: |
           sudo apt install libboost-tools-dev libboost-dev
-          echo "using clang_tidy : : clang-tidy \"-checks=-clang-analyzer-core.*,-clang-analyzer-optin.core.EnumCastOutOfRange,-clang-analyzer-unix.*\" : <cxxflags>-I/usr/local/clang-7.0.0/include/c++/v1 <cxxflags>-stdlib=libc++ <cxxflags>-Wno-unknown-warning-option <linkflags>-stdlib=libc++ ;" >> ~/user-config.jam;
+          echo "using clang_tidy : : clang-tidy \"-checks=-clang-analyzer-core.*,-clang-analyzer-optin.core.EnumCastOutOfRange,-clang-analyzer-unix.*,+android.cloexec.*\" : <cxxflags>-std=c++17 <cxxflags>-I/usr/local/clang-7.0.0/include/c++/v1 <cxxflags>-stdlib=libc++ <cxxflags>-Wno-unknown-warning-option <linkflags>-stdlib=libc++ ;" >> ~/user-config.jam;
 
       - name: analyze
         run: |

@@ -673,7 +673,7 @@ if (APPLE)
 endif()
 
 # check if we need to link with libatomic (not needed on MSVC)
-if (NOT Windows)
+if (NOT MSVC)
 	# TODO: migrate to CheckSourceCompiles in CMake >= 3.19
 	include(CheckCXXSourceCompiles)
 
