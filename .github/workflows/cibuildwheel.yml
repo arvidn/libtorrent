@@ -6,7 +6,7 @@ name: cibuildwheel
 # sample.
 
 # The full list of cibuildwheel's build targets can be found here:
-# https://github.com/pypa/cibuildwheel/blob/v2.22.0/cibuildwheel/resources/build-platforms.toml
+# https://github.com/pypa/cibuildwheel/blob/v2.23.3/cibuildwheel/resources/build-platforms.toml
 
 # Notes on build targets we (don't) support:
 # - pypy: libtorrent doesn't build with pypy as of writing
@@ -45,20 +45,63 @@ jobs:
       MATRIX_PULL_REQUEST: |
         {
           "include": [
-            {"os": "ubuntu-24.04", "CIBW_BUILD": "cp39-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
-            {"os": "ubuntu-24.04-arm", "CIBW_BUILD": "cp39-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
-            {"os": "ubuntu-24.04", "CIBW_BUILD": "cp39-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
-            {"os": "ubuntu-24.04-arm", "CIBW_BUILD": "cp39-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
-            {"os": "macos-13", "CIBW_BUILD": "cp39-macosx_x86_64", "CIBW_ARCHS_MACOS": "x86_64", "MACOSX_DEPLOYMENT_TARGET": "13"},
-            {"os": "macos-14", "CIBW_BUILD": "cp39-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "14"},
-            {"os": "macos-15", "CIBW_BUILD": "cp39-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "15"},
-            {"os": "windows-2022", "CIBW_BUILD": "cp39-win32", "CIBW_ARCHS_WINDOWS": "x86"},
-            {"os": "windows-2022", "CIBW_BUILD": "cp39-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"}
+            {"os": "ubuntu-22.04", "CIBW_BUILD": "cp314-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"os": "ubuntu-22.04-arm", "CIBW_BUILD": "cp314-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"os": "ubuntu-22.04", "CIBW_BUILD": "cp314-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"os": "ubuntu-22.04-arm", "CIBW_BUILD": "cp314-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"os": "ubuntu-24.04", "CIBW_BUILD": "cp314-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"os": "ubuntu-24.04-arm", "CIBW_BUILD": "cp314-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"os": "ubuntu-24.04", "CIBW_BUILD": "cp314-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"os": "ubuntu-24.04-arm", "CIBW_BUILD": "cp314-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"os": "macos-13", "CIBW_BUILD": "cp314-macosx_x86_64", "CIBW_ARCHS_MACOS": "x86_64", "MACOSX_DEPLOYMENT_TARGET": "13"},
+            {"os": "macos-14", "CIBW_BUILD": "cp314-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "14"},
+            {"os": "macos-15", "CIBW_BUILD": "cp314-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "15"},
+            {"os": "windows-2022", "CIBW_BUILD": "cp314-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"os": "windows-2022", "CIBW_BUILD": "cp314-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"os": "windows-2025", "CIBW_BUILD": "cp314-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"os": "windows-2025", "CIBW_BUILD": "cp314-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"os": "windows-11-arm", "CIBW_BUILD": "cp314-win_arm64", "CIBW_ARCHS_WINDOWS": "ARM64"},
+            {"os": "ubuntu-22.04", "CIBW_BUILD": "cp314t-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"os": "ubuntu-22.04-arm", "CIBW_BUILD": "cp314t-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"os": "ubuntu-22.04", "CIBW_BUILD": "cp314t-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"os": "ubuntu-22.04-arm", "CIBW_BUILD": "cp314t-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"os": "ubuntu-24.04", "CIBW_BUILD": "cp314t-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"os": "ubuntu-24.04-arm", "CIBW_BUILD": "cp314t-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"os": "ubuntu-24.04", "CIBW_BUILD": "cp314t-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"os": "ubuntu-24.04-arm", "CIBW_BUILD": "cp314t-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"os": "macos-13", "CIBW_BUILD": "cp314t-macosx_x86_64", "CIBW_ARCHS_MACOS": "x86_64", "MACOSX_DEPLOYMENT_TARGET": "13"},
+            {"os": "macos-14", "CIBW_BUILD": "cp314t-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "14"},
+            {"os": "macos-15", "CIBW_BUILD": "cp314t-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "15"},
+            {"os": "windows-2022", "CIBW_BUILD": "cp314t-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"os": "windows-2022", "CIBW_BUILD": "cp314t-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"os": "windows-2025", "CIBW_BUILD": "cp314t-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"os": "windows-2025", "CIBW_BUILD": "cp314t-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"os": "windows-11-arm", "CIBW_BUILD": "cp314t-win_arm64", "CIBW_ARCHS_WINDOWS": "ARM64"}
           ]
         }
       MATRIX_WORKFLOW_DISPATCH: |
         {
           "include": [
+            {"os": "ubuntu-22.04", "CIBW_BUILD": "cp39-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"os": "ubuntu-22.04", "CIBW_BUILD": "cp310-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"os": "ubuntu-22.04", "CIBW_BUILD": "cp311-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"os": "ubuntu-22.04", "CIBW_BUILD": "cp312-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"os": "ubuntu-22.04", "CIBW_BUILD": "cp313-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"os": "ubuntu-22.04-arm", "CIBW_BUILD": "cp39-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"os": "ubuntu-22.04-arm", "CIBW_BUILD": "cp310-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"os": "ubuntu-22.04-arm", "CIBW_BUILD": "cp311-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"os": "ubuntu-22.04-arm", "CIBW_BUILD": "cp312-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"os": "ubuntu-22.04-arm", "CIBW_BUILD": "cp313-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"os": "ubuntu-22.04", "CIBW_BUILD": "cp39-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"os": "ubuntu-22.04", "CIBW_BUILD": "cp310-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"os": "ubuntu-22.04", "CIBW_BUILD": "cp311-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"os": "ubuntu-22.04", "CIBW_BUILD": "cp312-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"os": "ubuntu-22.04", "CIBW_BUILD": "cp313-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"os": "ubuntu-22.04-arm", "CIBW_BUILD": "cp39-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"os": "ubuntu-22.04-arm", "CIBW_BUILD": "cp310-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"os": "ubuntu-22.04-arm", "CIBW_BUILD": "cp311-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"os": "ubuntu-22.04-arm", "CIBW_BUILD": "cp312-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"os": "ubuntu-22.04-arm", "CIBW_BUILD": "cp313-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
             {"os": "ubuntu-24.04", "CIBW_BUILD": "cp39-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
             {"os": "ubuntu-24.04", "CIBW_BUILD": "cp310-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
             {"os": "ubuntu-24.04", "CIBW_BUILD": "cp311-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
@@ -103,7 +146,22 @@ jobs:
             {"os": "windows-2022", "CIBW_BUILD": "cp310-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
             {"os": "windows-2022", "CIBW_BUILD": "cp311-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
             {"os": "windows-2022", "CIBW_BUILD": "cp312-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
-            {"os": "windows-2022", "CIBW_BUILD": "cp313-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"}
+            {"os": "windows-2022", "CIBW_BUILD": "cp313-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"os": "windows-2025", "CIBW_BUILD": "cp39-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"os": "windows-2025", "CIBW_BUILD": "cp310-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"os": "windows-2025", "CIBW_BUILD": "cp311-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"os": "windows-2025", "CIBW_BUILD": "cp312-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"os": "windows-2025", "CIBW_BUILD": "cp313-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"os": "windows-2025", "CIBW_BUILD": "cp39-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"os": "windows-2025", "CIBW_BUILD": "cp310-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"os": "windows-2025", "CIBW_BUILD": "cp311-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"os": "windows-2025", "CIBW_BUILD": "cp312-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"os": "windows-2025", "CIBW_BUILD": "cp313-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"os": "windows-11-arm", "CIBW_BUILD": "cp39-win_arm64", "CIBW_ARCHS_WINDOWS": "ARM64"},
+            {"os": "windows-11-arm", "CIBW_BUILD": "cp310-win_arm64", "CIBW_ARCHS_WINDOWS": "ARM64"},
+            {"os": "windows-11-arm", "CIBW_BUILD": "cp311-win_arm64", "CIBW_ARCHS_WINDOWS": "ARM64"},
+            {"os": "windows-11-arm", "CIBW_BUILD": "cp312-win_arm64", "CIBW_ARCHS_WINDOWS": "ARM64"},
+            {"os": "windows-11-arm", "CIBW_BUILD": "cp313-win_arm64", "CIBW_ARCHS_WINDOWS": "ARM64"}
           ]
         }
 
@@ -129,6 +187,7 @@ jobs:
 
     env:
       CIBW_BUILD_VERBOSITY: 1
+      CIBW_ENABLE: "cpython-prerelease cpython-freethreading"
       CIBW_BUILD: ${{ matrix.CIBW_BUILD }}
       CIBW_ARCHS_LINUX:  ${{ matrix.CIBW_ARCHS_LINUX }}
       CIBW_ARCHS_WINDOWS:  ${{ matrix.CIBW_ARCHS_WINDOWS }}
@@ -160,7 +219,7 @@ jobs:
         vcpkg install openssl:x86-windows
         New-Item -Path "C:\Program Files\OpenSSL" -ItemType SymbolicLink -Value "C:\vcpkg\packages\openssl_x86-windows\"
 
-    - uses: pypa/cibuildwheel@v2.22.0
+    - uses: pypa/cibuildwheel@v3.0.0b1
       if: steps.cache-wheel.outputs.cache-hit != 'true'
 
     - uses: actions/upload-artifact@v4
