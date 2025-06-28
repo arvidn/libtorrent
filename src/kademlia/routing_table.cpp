@@ -1099,7 +1099,7 @@ std::vector<node_entry> routing_table::find_node(node_id const& target
 
 		if (int(l.size()) > count)
 		{
-			// sort the nodes by how close they are to the target
+			// get the k nodes closest to the target
 			std::nth_element(l.begin() + unsorted_start_idx, l.begin() + count, l.end()
 				, [&target](node_entry const& lhs, node_entry const& rhs)
 				{ return compare_ref(lhs.id, rhs.id, target); });
@@ -1138,7 +1138,7 @@ std::vector<node_entry> routing_table::find_node(node_id const& target
 
 		if (int(l.size()) > count)
 		{
-			// sort the nodes by how close they are to the target
+			// get the k nodes closest to the target
 			std::nth_element(l.begin() + unsorted_start_idx, l.begin() + count, l.end()
 				, [&target](node_entry const& lhs, node_entry const& rhs)
 				{ return compare_ref(lhs.id, rhs.id, target); });
