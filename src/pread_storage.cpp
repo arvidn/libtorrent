@@ -85,6 +85,7 @@ namespace {
 	pread_storage::pread_storage(storage_params const& params
 		, file_pool& pool)
 		: m_files(params.files)
+		, m_renamed_files(params.renamed_files)
 		, m_file_priority(params.priorities)
 		, m_save_path(complete(params.path))
 		, m_part_file_name("." + to_hex(params.info_hash) + ".parts")
@@ -95,8 +96,6 @@ namespace {
 	{
 		// a torrent must be either v1 or v2 (or both)
 		TORRENT_ASSERT(m_v1 || m_v2);
-		if (params.mapped_files) m_mapped_files = std::make_unique<file_storage>(*params.mapped_files);
-
 		TORRENT_ASSERT(files().num_files() > 0);
 	}
 
@@ -108,6 +107,11 @@ namespace {
 		// this may be called from a different
 		// thread than the disk thread
 		m_pool.release(storage_index());
+	}
+
+	filenames pread_storage::names() const
+	{
+		return {m_files, m_renamed_files};
 	}
 
 	void pread_storage::need_partfile()
@@ -128,7 +132,7 @@ namespace {
 		if (prio.size() > m_file_priority.size())
 			m_file_priority.resize(prio.size(), default_priority);
 
-		file_storage const& fs = files();
+		filenames const fs = names();
 		for (file_index_t i(0); i < prio.end_index(); ++i)
 		{
 			// pad files always have priority 0.
@@ -248,7 +252,7 @@ namespace {
 			m_file_created.resize(files().num_files(), false);
 		}
 
-		file_storage const& fs = files();
+		filenames const fs = names();
 		status_t ret{};
 		// if some files have priority 0, we need to check if they exist on the
 		// filesystem, in which case we won't use a partfile for them.
@@ -293,7 +297,7 @@ namespace {
 	{
 		m_stat_cache.reserve(files().num_files());
 
-		if (aux::has_any_file(files(), m_save_path, m_stat_cache, ec))
+		if (aux::has_any_file(names(), m_save_path, m_stat_cache, ec))
 			return true;
 
 		if (ec) return false;
@@ -376,12 +380,9 @@ namespace {
 			return;
 		}
 
-		// if old path doesn't exist, just rename the file
-		// in our file_storage, so that when it is created
-		// it will get the new name
-		if (!m_mapped_files)
-		{ m_mapped_files = std::make_unique<file_storage>(files()); }
-		m_mapped_files->rename_file(index, new_filename);
+		// if old path doesn't exist, just record the rename
+		// so it will get the new name when it is created.
+		m_renamed_files.rename_file(files(), index, new_filename);
 	}
 
 	void pread_storage::release_files(storage_error&)
@@ -410,14 +411,14 @@ namespace {
 		// delete it
 		if (m_part_file) m_part_file.reset();
 
-		aux::delete_files(files(), m_save_path, m_part_file_name, options, ec);
+		aux::delete_files(names(), m_save_path, m_part_file_name, options, ec);
 	}
 
 	bool pread_storage::verify_resume_data(add_torrent_params const& rd
 		, aux::vector<std::string, file_index_t> const& links
 		, storage_error& ec)
 	{
-		return aux::verify_resume_data(rd, links, files()
+		return aux::verify_resume_data(rd, links, names()
 			, m_file_priority, m_stat_cache, m_save_path, ec);
 	}
 
@@ -432,7 +433,7 @@ namespace {
 			if (!m_part_file) return;
 			m_part_file->move_partfile(new_save_path, e);
 		};
-		std::tie(ret, m_save_path) = aux::move_storage(files(), m_save_path, std::move(save_path)
+		std::tie(ret, m_save_path) = aux::move_storage(names(), m_save_path, std::move(save_path)
 			, std::move(move_partfile), flags, ec);
 
 		// clear the stat cache in case the new location has new files
@@ -820,7 +821,7 @@ namespace {
 			int dummy = 0;
 #endif
 			return m_pool.open_file(storage_index(), m_save_path, file
-				, files(), mode
+				, names(), mode
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
 				, &dummy
 #endif

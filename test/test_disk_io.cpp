@@ -56,9 +56,10 @@ void disk_io_test_suite(lt::disk_io_constructor_type disk_io
 
 	lt::aux::vector<lt::download_priority_t, lt::file_index_t> priorities;
 	std::string const name = "test_torrent_store";
+	lt::renamed_files rf;
 	lt::storage_params params{
 		fs,
-		nullptr,
+		rf,
 		name,
 		lt::storage_mode_t::storage_mode_sparse,
 		priorities,
