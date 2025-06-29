@@ -1,5 +1,6 @@
 2.0.12
 
+	* add feature to request resume data synchronously
 	* don't leak file descriptors to child processes (O_CLOEXEC)
 	* optimize the utp resend
 	* optimize tracker announcements
