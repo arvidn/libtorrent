@@ -111,14 +111,14 @@ sha1_hash piece_hasher::final_hash()
 
 void piece_hasher::update(span<char const> const buf)
 {
-	hasher* ctx = std::get_if<hasher>(&ph);
+	auto* ctx = std::get_if<hasher>(&ph);
 	TORRENT_ASSERT(ctx != nullptr);
 	ctx->update(buf);
 }
 
 lt::hasher& piece_hasher::ctx()
 {
-	hasher* ctx = std::get_if<hasher>(&ph);
+	auto* ctx = std::get_if<hasher>(&ph);
 	TORRENT_ASSERT(ctx != nullptr);
 	return *ctx;
 }

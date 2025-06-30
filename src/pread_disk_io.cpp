@@ -296,7 +296,7 @@ storage_holder pread_disk_io::new_torrent(storage_params const& params
 	auto storage = std::make_shared<aux::pread_storage>(params, m_file_pool);
 	storage->set_owner(owner);
 	storage_index_t const idx = m_torrents.add(std::move(storage));
-	return storage_holder(idx, *this);
+	return {idx, *this};
 }
 
 void pread_disk_io::remove_torrent(storage_index_t const idx)
@@ -1145,7 +1145,7 @@ void pread_disk_io::update_stats_counters(counters& c) const
 
 	// gauges
 	c.set_value(counters::disk_blocks_in_use, m_buffer_pool.in_use());
-	c.set_value(counters::disk_cache_pieces, m_cache.size());
+	c.set_value(counters::disk_cache_pieces, std::int64_t(m_cache.size()));
 }
 
 status_t pread_disk_io::do_job(aux::job::file_priority& a, aux::pread_disk_job* j)

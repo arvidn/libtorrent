@@ -9,6 +9,7 @@ import ssl
 import sys
 import tempfile
 import threading
+import time
 from typing import Any
 from typing import Callable
 from typing import Dict
@@ -17,7 +18,6 @@ from typing import Tuple
 from typing import Type
 from typing import TypeVar
 import unittest
-import time
 
 import libtorrent as lt
 
@@ -627,7 +627,9 @@ class PeerAlertTest(TorrentAlertTest):
         self.session.apply_settings({"close_redundant_connections": False})
 
         self.peer = lt.session(lib.get_isolated_settings())
-        self.peer.apply_settings({"close_redundant_connections": False, "alert_mask": 0xffffffff})
+        self.peer.apply_settings(
+            {"close_redundant_connections": False, "alert_mask": 0xFFFFFFFF}
+        )
         self.peer_dir = tempfile.TemporaryDirectory()
         self.peer_atp = self.torrent.atp()
         self.peer_atp.save_path = self.peer_dir.name
@@ -911,7 +913,7 @@ class PieceFinishedAlertTest(TorrentAlertTest):
 
 
 class BlockFinishedAlertTest(PeerAlertTest):
-    ALERT_MASK = lt.alert_category.block_progress | 0xffffffffff
+    ALERT_MASK = lt.alert_category.block_progress | 0xFFFFFFFFFF
 
     def test_block_finished_alert(self) -> None:
         handle = self.session.add_torrent(self.atp)
@@ -926,7 +928,9 @@ class BlockFinishedAlertTest(PeerAlertTest):
                 logging.debug("PEER: %s: %s", alert.what(), alert.message())
             time.sleep(1.0)
 
-        alert = wait_for(self.session, lt.block_finished_alert, timeout=10, prefix="MAIN")
+        alert = wait_for(
+            self.session, lt.block_finished_alert, timeout=10, prefix="MAIN"
+        )
 
         self.assert_alert(
             alert,
