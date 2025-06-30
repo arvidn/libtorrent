@@ -54,7 +54,7 @@ namespace {
 	}
 }
 
-TORRENT_TEST(num_leafs)
+TORRENT_TEST(num_leaves)
 {
 	// test merkle_*() functions
 
@@ -63,26 +63,26 @@ TORRENT_TEST(num_leafs)
 	//      1              2
 	//   3      4       5       6
 	//  7 8    9 10   11 12   13 14
-	// num_leafs = 8
+	// num_leaves = 8
 
-	TEST_EQUAL(merkle_num_leafs(1), 1);
-	TEST_EQUAL(merkle_num_leafs(2), 2);
-	TEST_EQUAL(merkle_num_leafs(3), 4);
-	TEST_EQUAL(merkle_num_leafs(4), 4);
-	TEST_EQUAL(merkle_num_leafs(5), 8);
-	TEST_EQUAL(merkle_num_leafs(6), 8);
-	TEST_EQUAL(merkle_num_leafs(7), 8);
-	TEST_EQUAL(merkle_num_leafs(8), 8);
-	TEST_EQUAL(merkle_num_leafs(9), 16);
-	TEST_EQUAL(merkle_num_leafs(10), 16);
-	TEST_EQUAL(merkle_num_leafs(11), 16);
-	TEST_EQUAL(merkle_num_leafs(12), 16);
-	TEST_EQUAL(merkle_num_leafs(13), 16);
-	TEST_EQUAL(merkle_num_leafs(14), 16);
-	TEST_EQUAL(merkle_num_leafs(15), 16);
-	TEST_EQUAL(merkle_num_leafs(16), 16);
-	TEST_EQUAL(merkle_num_leafs(17), 32);
-	TEST_EQUAL(merkle_num_leafs(18), 32);
+	TEST_EQUAL(merkle_num_leaves(1), 1);
+	TEST_EQUAL(merkle_num_leaves(2), 2);
+	TEST_EQUAL(merkle_num_leaves(3), 4);
+	TEST_EQUAL(merkle_num_leaves(4), 4);
+	TEST_EQUAL(merkle_num_leaves(5), 8);
+	TEST_EQUAL(merkle_num_leaves(6), 8);
+	TEST_EQUAL(merkle_num_leaves(7), 8);
+	TEST_EQUAL(merkle_num_leaves(8), 8);
+	TEST_EQUAL(merkle_num_leaves(9), 16);
+	TEST_EQUAL(merkle_num_leaves(10), 16);
+	TEST_EQUAL(merkle_num_leaves(11), 16);
+	TEST_EQUAL(merkle_num_leaves(12), 16);
+	TEST_EQUAL(merkle_num_leaves(13), 16);
+	TEST_EQUAL(merkle_num_leaves(14), 16);
+	TEST_EQUAL(merkle_num_leaves(15), 16);
+	TEST_EQUAL(merkle_num_leaves(16), 16);
+	TEST_EQUAL(merkle_num_leaves(17), 32);
+	TEST_EQUAL(merkle_num_leaves(18), 32);
 }
 
 TORRENT_TEST(get_parent)
@@ -650,9 +650,9 @@ TORRENT_TEST(merkle_root_scratch)
 namespace {
 void print_tree(span<sha256_hash const> tree)
 {
-	int const num_leafs = static_cast<int>((tree.size() + 1) / 2);
-	int spacing = num_leafs;
-	int const num_levels = merkle_num_layers(num_leafs) + 1;
+	int const num_leaves = static_cast<int>((tree.size() + 1) / 2);
+	int spacing = num_leaves;
+	int const num_levels = merkle_num_layers(num_leaves) + 1;
 	int layer_width = 1;
 	int node = 0;
 	for (int i = 0; i < num_levels; ++i)
@@ -881,7 +881,7 @@ TORRENT_TEST(merkle_validate_copy_invalid_leaf)
 	TEST_CHECK(empty_tree == expected);
 }
 
-TORRENT_TEST(merkle_validate_copy_many_invalid_leafs)
+TORRENT_TEST(merkle_validate_copy_many_invalid_leaves)
 {
 	v const src{
 	       ah,
@@ -1078,7 +1078,7 @@ TORRENT_TEST(is_subtree_known_padding_two_levels)
 
 TORRENT_TEST(is_subtree_known_more_padding_two_levels)
 {
-	// the last two leafs are padding, they should be assumed to be correct despite
+	// the last two leaves are padding, they should be assumed to be correct despite
 	// being zero
 	v const src{
 	        ah,
