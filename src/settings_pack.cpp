@@ -123,7 +123,8 @@ namespace {
 		SET(i2p_hostname, "", &session_impl::update_i2p_bridge),
 		SET(peer_fingerprint, "-LT2100-", nullptr),
 		SET(dht_bootstrap_nodes, "dht.libtorrent.org:25401", &session_impl::update_dht_bootstrap_nodes),
-		SET(webtorrent_stun_server, "stun.l.google.com:19302", nullptr)
+		SET(webtorrent_stun_server, "stun.l.google.com:19302", nullptr), 
+		SET(proxy_tracker_list, "", nullptr)
 	}});
 
 	CONSTEXPR_SETTINGS
@@ -213,6 +214,7 @@ namespace {
 		SET(allow_idna, false, nullptr),
 		SET(enable_set_file_valid_data, false, nullptr),
 		SET(socks5_udp_send_local_ep, false, nullptr),
+		SET(proxy_tracker_list_enable, false, nullptr)
 	}});
 
 	CONSTEXPR_SETTINGS
