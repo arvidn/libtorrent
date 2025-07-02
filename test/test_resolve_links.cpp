@@ -92,10 +92,12 @@ TORRENT_TEST(resolve_links)
 		p = combine_path(path, e.filename2) + ".torrent";
 		std::printf("loading %s\n", p.c_str());
 		auto atp2 = load_torrent_file(p);
+		renamed_files rf;
+		rf.import_filenames(atp2.ti->layout(), atp2.renamed_files);
 
 		std::printf("resolving\n");
 		aux::resolve_links l(ti1);
-		l.match(*atp2.ti, atp2.ti->files(), ".");
+		l.match(*atp2.ti, filenames(atp2.ti->layout(), rf), ".");
 
 		aux::vector<std::string, file_index_t> const& links = l.get_links();
 
@@ -105,7 +107,7 @@ TORRENT_TEST(resolve_links)
 		// some debug output in case the test fails
 		if (num_matches > e.expected_matches)
 		{
-			file_storage const& fs = ti1->files();
+			file_storage const& fs = ti1->layout();
 			for (file_index_t idx{0}; idx != links.end_index(); ++idx)
 			{
 				TORRENT_ASSERT(idx < file_index_t{fs.num_files()});
@@ -144,10 +146,12 @@ TORRENT_TEST(range_lookup_duplicated_files)
 	std::vector<char> const tmp2 = bencode(t2.generate());
 	auto ti1 = load_torrent_buffer(tmp1).ti;
 	auto atp2 = load_torrent_buffer(tmp2);
+	renamed_files rf;
+	rf.import_filenames(atp2.ti->layout(), atp2.renamed_files);
 
 	std::printf("resolving\n");
 	aux::resolve_links l(ti1);
-	l.match(*atp2.ti, atp2.ti->files(), ".");
+	l.match(*atp2.ti, filenames(atp2.ti->layout(), rf), ".");
 
 	aux::vector<std::string, file_index_t> const& links = l.get_links();
 

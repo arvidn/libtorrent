@@ -1098,7 +1098,7 @@ TORRENT_TEST(merkle_trees)
 
 	auto const pl = h.piece_layers();
 
-	auto const& fs = p.ti->files();
+	auto const& fs = p.ti->layout();
 	for (file_index_t const i : fs.file_range())
 	{
 		auto const idx = std::size_t(int(i));

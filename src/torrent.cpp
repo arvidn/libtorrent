@@ -270,7 +270,7 @@ bool is_downloading_state(int const st)
 			// merkle trees are loaded from add_torrent_params below, in load_merkle_trees()
 			error_code ec = initialize_merkle_trees();
 			if (ec) throw system_error(ec);
-			m_size_on_disk = m_torrent_file->files().size_on_disk();
+			m_size_on_disk = m_torrent_file->layout().size_on_disk();
 		}
 
 		// --- WEB SEEDS ---
@@ -414,7 +414,7 @@ bool is_downloading_state(int const st)
 		, aux::vector<bitfield, file_index_t> mask
 		, aux::vector<bitfield, file_index_t> verified)
 	{
-		auto const& fs = m_torrent_file->orig_files();
+		auto const& fs = m_torrent_file->layout();
 
 		bitfield const empty_verified;
 		for (file_index_t i{0}; i < fs.end_file(); ++i)
@@ -1253,9 +1253,9 @@ bool is_downloading_state(int const st)
 			else return;
 		}
 		// find the last file in piece `first_piece`
-		auto const f = m_torrent_file->files().last_file_index_at_piece(first_piece);
+		auto const f = m_torrent_file->layout().last_file_index_at_piece(first_piece);
 		// find the last piece in file `f`
-		auto const last_piece = m_torrent_file->files().last_piece_index_at_file(f);
+		auto const last_piece = m_torrent_file->layout().last_piece_index_at_file(f);
 		TORRENT_ASSERT(first_piece <= last_piece);
 		set_sequential_range(first_piece, last_piece);
 	}
@@ -1282,7 +1282,7 @@ bool is_downloading_state(int const st)
 
 		// initialize the file progress too
 		if (m_file_progress.empty())
-			m_file_progress.init(*pp, m_torrent_file->files());
+			m_file_progress.init(*pp, m_torrent_file->layout());
 
 		m_picker = std::move(pp);
 
@@ -1305,7 +1305,7 @@ bool is_downloading_state(int const st)
 
 		//INVARIANT_CHECK;
 
-		m_hash_picker = std::make_unique<hash_picker>(m_torrent_file->orig_files()
+		m_hash_picker = std::make_unique<hash_picker>(m_torrent_file->layout()
 			, m_merkle_trees);
 	}
 
@@ -1765,7 +1765,7 @@ bool is_downloading_state(int const st)
 	void torrent::construct_storage()
 	{
 		storage_params params{
-			m_torrent_file->files(),
+			m_torrent_file->files_impl(),
 			m_renamed_files,
 			m_save_path,
 			static_cast<storage_mode_t>(m_storage_mode),
@@ -1850,14 +1850,11 @@ bool is_downloading_state(int const st)
 		}
 
 		// --- MAPPED FILES ---
-		file_storage const& fs = m_torrent_file->files();
+		file_storage const& fs = m_torrent_file->layout();
 		if (m_add_torrent_params)
 		{
-			for (auto const& f : m_add_torrent_params->renamed_files)
-			{
-				if (f.first < file_index_t(0) || f.first >= fs.end_file()) continue;
-				m_renamed_files.rename_file(fs, file_index_t(f.first), f.second);
-			}
+			m_renamed_files.import_filenames(m_torrent_file->layout()
+				, m_add_torrent_params->renamed_files);
 		}
 
 		construct_storage();
@@ -1977,7 +1974,7 @@ bool is_downloading_state(int const st)
 				if (!t->is_seed()) continue;
 
 				auto ti = t->get_torrent_file();
-				res.match(*ti, ti->files(), t->save_path());
+				res.match(*ti, filenames(ti->layout(), t->m_renamed_files), t->save_path());
 			}
 			for (auto const& c : m_torrent_file->collections())
 			{
@@ -1991,7 +1988,7 @@ bool is_downloading_state(int const st)
 					if (!t->is_seed()) continue;
 
 					auto ti = t->get_torrent_file();
-					res.match(*ti, ti->files(), t->save_path());
+					res.match(*ti, filenames(ti->layout(), t->m_renamed_files), t->save_path());
 				}
 			}
 
@@ -2352,7 +2349,7 @@ bool is_downloading_state(int const st)
 			m_picker->resize(m_torrent_file->total_size(), m_torrent_file->piece_length());
 
 			m_file_progress.clear();
-			m_file_progress.init(picker(), m_torrent_file->files());
+			m_file_progress.init(picker(), m_torrent_file->layout());
 		}
 
 		// assume that we don't have anything
@@ -2469,7 +2466,7 @@ bool is_downloading_state(int const st)
 				flags |= disk_interface::v1_hash;
 			aux::vector<sha256_hash> hashes;
 			if (torrent_file().info_hashes().has_v2())
-				hashes.resize(torrent_file().orig_files().blocks_in_piece2(m_checking_piece));
+				hashes.resize(torrent_file().layout().blocks_in_piece2(m_checking_piece));
 
 			span<sha256_hash> v2_span(hashes);
 			m_ses.disk_thread().async_hash(m_storage, m_checking_piece, v2_span, flags
@@ -2516,9 +2513,9 @@ bool is_downloading_state(int const st)
 				TORRENT_ASSERT(error.file() >= file_index_t(0));
 
 				// skip this file by updating m_checking_piece to the first piece following it
-				file_storage const& st = m_torrent_file->files();
-				std::int64_t file_size = st.file_size(error.file());
-				piece_index_t last = st.map_file(error.file(), file_size, 0).piece;
+				file_storage const& fl = m_torrent_file->layout();
+				std::int64_t file_size = fl.file_size(error.file());
+				piece_index_t last = fl.map_file(error.file(), file_size, 0).piece;
 				if (m_checking_piece < last)
 				{
 					int diff = static_cast<int>(last) - static_cast<int>(m_checking_piece);
@@ -2650,7 +2647,7 @@ bool is_downloading_state(int const st)
 			if (torrent_file().info_hashes().has_v1())
 				flags |= disk_interface::v1_hash;
 			if (torrent_file().info_hashes().has_v2())
-				block_hashes.resize(torrent_file().orig_files().blocks_in_piece2(m_checking_piece));
+				block_hashes.resize(torrent_file().layout().blocks_in_piece2(m_checking_piece));
 
 			span<sha256_hash> v2_span(block_hashes);
 			m_ses.disk_thread().async_hash(m_storage, m_checking_piece, v2_span, flags
@@ -4108,7 +4105,7 @@ namespace {
 
 		TORRENT_ASSERT(has_picker());
 
-		file_storage const& files = m_torrent_file->files();
+		file_storage const& files = m_torrent_file->layout();
 
 		st.total_wanted = std::min(m_size_on_disk, calc_bytes(files, m_picker->want()));
 		st.total_wanted_done = std::min(m_file_progress.total_on_disk()
@@ -4358,7 +4355,7 @@ namespace {
 			m_ses.alerts().emplace_alert<piece_finished_alert>(get_handle(), index);
 
 		// update m_file_progress (if we have one)
-		m_file_progress.update(m_torrent_file->files(), index
+		m_file_progress.update(m_torrent_file->layout(), index
 			, [this](file_index_t const file_index)
 			{
 				if (m_ses.alerts().should_post<file_completed_alert>())
@@ -4404,7 +4401,7 @@ namespace {
 		boost::tribool ret = boost::indeterminate;
 		need_hash_picker();
 
-		int const blocks_in_piece = torrent_file().orig_files().blocks_in_piece2(piece);
+		int const blocks_in_piece = torrent_file().layout().blocks_in_piece2(piece);
 		int const blocks_per_piece = torrent_file().blocks_per_piece();
 
 		// the blocks are guaranteed to represent exactly one piece
@@ -5159,9 +5156,10 @@ namespace {
 		}
 		else
 		{
+			file_storage const& fs = m_torrent_file->layout();
 			alerts().emplace_alert<file_renamed_alert>(get_handle()
-				, filename, m_torrent_file->files().file_path(file_idx), file_idx);
-			m_renamed_files.rename_file(m_torrent_file->files(), file_idx, filename);
+				, filename, m_renamed_files.file_path(fs, file_idx), file_idx);
+			m_renamed_files.rename_file(fs, file_idx, filename);
 
 			set_need_save_resume(torrent_handle::if_state_changed);
 		}
@@ -5713,7 +5711,7 @@ namespace {
 		INVARIANT_CHECK;
 
 		auto new_priority = fix_priorities(std::move(files)
-			, valid_metadata() ? &m_torrent_file->files() : nullptr);
+			, valid_metadata() ? &m_torrent_file->layout() : nullptr);
 
 		m_deferred_file_priorities.clear();
 
@@ -5750,7 +5748,7 @@ namespace {
 		// similar to having passed in file priorities through add_torrent_params.
 		// we store the priorities in m_file_priority until we get the metadata
 		if (index < file_index_t(0)
-			|| (valid_metadata() && index >= m_torrent_file->files().end_file()))
+			|| (valid_metadata() && index >= m_torrent_file->layout().end_file()))
 		{
 			return;
 		}
@@ -5798,7 +5796,7 @@ namespace {
 		// if we have metadata, perform additional checks
 		if (valid_metadata())
 		{
-			file_storage const& fs = m_torrent_file->files();
+			file_storage const& fs = m_torrent_file->layout();
 			TORRENT_ASSERT_PRECOND(index < fs.end_file());
 			if (index >= fs.end_file()) return dont_download;
 
@@ -5838,10 +5836,10 @@ namespace {
 		// setting higher priorities
 		aux::vector<download_priority_t, piece_index_t> pieces(aux::numeric_cast<std::size_t>(
 			m_torrent_file->num_pieces()), dont_download);
-		file_storage const& fs = m_torrent_file->files();
+		file_storage const& fs = m_torrent_file->layout();
 		for (auto const i : fs.file_range())
 		{
-			std::int64_t const size = m_torrent_file->files().file_size(i);
+			std::int64_t const size = fs.file_size(i);
 			if (size == 0) continue;
 
 			// pad files always have priority 0
@@ -6962,7 +6960,7 @@ namespace {
 	{
 		TORRENT_ASSERT(m_torrent_file->is_valid());
 		if (!m_torrent_file->is_valid()) return {};
-		TORRENT_ASSERT(validate_hash_request(req, m_torrent_file->files()));
+		TORRENT_ASSERT(validate_hash_request(req, m_torrent_file->layout()));
 
 		auto const& f = m_merkle_trees[req.file];
 
@@ -7321,7 +7319,7 @@ namespace {
 
 			if (!has_hash_picker() && !m_have_all)
 			{
-				file_storage const& fs = m_torrent_file->files();
+				file_storage const& fs = m_torrent_file->layout();
 				ret.verified_leaf_hashes.reserve(fs.num_files());
 				for (file_index_t f(0); f != fs.end_file(); ++f)
 				{
@@ -7760,7 +7758,7 @@ namespace {
 		bool valid = m_torrent_file->v2_piece_hashes_verified();
 #endif
 
-		file_storage const& fs = m_torrent_file->orig_files();
+		file_storage const& fs = m_torrent_file->layout();
 		m_merkle_trees.reserve(fs.num_files());
 		for (file_index_t i : fs.file_range())
 		{
@@ -7903,7 +7901,7 @@ namespace {
 		m_torrent_file = info;
 		m_info_hash = m_torrent_file->info_hashes();
 
-		m_size_on_disk = m_torrent_file->files().size_on_disk();
+		m_size_on_disk = m_torrent_file->layout().size_on_disk();
 
 		m_ses.update_torrent_info_hash(shared_from_this(), old_ih);
 
@@ -8757,7 +8755,7 @@ namespace {
 	{
 		INVARIANT_CHECK;
 
-		file_storage const& fs = m_torrent_file->files();
+		file_storage const& fs = m_torrent_file->layout();
 		TORRENT_ASSERT(index >= file_index_t(0));
 		TORRENT_ASSERT(index < fs.end_file());
 		TORRENT_UNUSED(fs);
@@ -9383,7 +9381,7 @@ namespace {
 
 		if (m_storage && file >= file_index_t(0))
 		{
-			file_storage const& fs = m_torrent_file->files();
+			file_storage const& fs = m_torrent_file->layout();
 			return m_renamed_files.file_path(fs, file, m_save_path);
 		}
 		else
@@ -11449,7 +11447,7 @@ namespace {
 		aux::vector<sha256_hash> hashes;
 		if (torrent_file().info_hashes().has_v2())
 		{
-			hashes.resize(torrent_file().orig_files().blocks_in_piece2(piece));
+			hashes.resize(torrent_file().layout().blocks_in_piece2(piece));
 		}
 
 		if (settings().get_bool(settings_pack::disable_hash_checks))
@@ -11562,10 +11560,10 @@ namespace {
 
 		aux::vector<std::int64_t, file_index_t> progress;
 		file_progress(progress, {});
-		file_storage const& fs = m_torrent_file->files();
+		file_storage const& fs = m_torrent_file->layout();
 		for (auto const i : fs.file_range())
 		{
-			std::int64_t file_size = m_torrent_file->files().file_size(i);
+			std::int64_t file_size = fs.file_size(i);
 			if (file_size == 0) fp[i] = 1.f;
 			else fp[i] = float(progress[i]) / float(file_size);
 		}
@@ -11596,7 +11594,7 @@ namespace {
 		if (is_seed())
 		{
 			fp.resize(m_torrent_file->num_files());
-			file_storage const& fs = m_torrent_file->files();
+			file_storage const& fs = m_torrent_file->layout();
 			for (auto const i : fs.file_range())
 				fp[i] = fs.file_size(i);
 			return;
@@ -11621,7 +11619,7 @@ namespace {
 
 		std::vector<piece_picker::downloading_piece> q = m_picker->get_download_queue();
 
-		file_storage const& fs = m_torrent_file->files();
+		file_storage const& fs = m_torrent_file->layout();
 		for (auto const& dp : q)
 		{
 			if (have_piece(dp.index))

@@ -13,6 +13,7 @@ see LICENSE file.
 #include "libtorrent/read_resume_data.hpp"
 #include "libtorrent/session_stats.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/load_torrent.hpp"
 
 #include <libtorrent.h>
 #include <stdarg.h>
@@ -104,20 +105,24 @@ lt::add_torrent_params make_add_torrent_params(int tag, va_list lp)
 		switch (tag)
 		{
 			case TOR_FILENAME:
-				params.ti = std::make_shared<lt::torrent_info>(va_arg(lp, char const*), ec);
+				params = lt::load_torrent_file(va_arg(lp, char const*));
 				break;
 			case TOR_TORRENT:
 				torrent_data = va_arg(lp, char const*);
+				if (torrent_size > 0)
+					params = lt::load_torrent_buffer({torrent_data, torrent_size});
 				break;
 			case TOR_TORRENT_SIZE:
 				torrent_size = va_arg(lp, int);
+				if (torrent_data != nullptr)
+					params = lt::load_torrent_buffer({torrent_data, torrent_size});
 				break;
 			case TOR_INFOHASH:
 				params.info_hashes.v1 = lt::sha1_hash(va_arg(lp, char const*));
 				break;
 			// TODO: add an info-hash-v2 field too
 			case TOR_MAGNETLINK:
-				parse_magnet_uri(va_arg(lp, char const*), params, ec);
+				params = lt::parse_magnet_uri(va_arg(lp, char const*), ec);
 				break;
 			case TOR_TRACKER_URL:
 				params.trackers.push_back(va_arg(lp, char const*));
@@ -156,9 +161,6 @@ lt::add_torrent_params make_add_torrent_params(int tag, va_list lp)
 		tag = va_arg(lp, int);
 	}
 	va_end(lp);
-
-	if (!params.ti && torrent_data && torrent_size)
-		params.ti = std::make_shared<lt::torrent_info>(lt::span<char const>{torrent_data, torrent_size}, lt::from_span);
 
 	return params;
 }

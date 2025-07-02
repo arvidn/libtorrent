@@ -35,7 +35,7 @@ namespace libtorrent::aux {
 		// check to see if any files are shared with this torrent
 		void match(
 			torrent_info const& ti
-			, file_storage const fs
+			, filenames const fs
 			, std::string const& save_path);
 
 		aux::vector<std::string, file_index_t> const& get_links() const&
@@ -46,9 +46,9 @@ namespace libtorrent::aux {
 
 	private:
 
-		void match_v1(torrent_info const& ti, file_storage const& fs
+		void match_v1(torrent_info const& ti, filenames const& fs
 			, std::string const& save_path);
-		void match_v2(file_storage const& fs, std::string const& save_path);
+		void match_v2(filenames const& fs, std::string const& save_path);
 
 		// this is the torrent we're trying to find files for.
 		std::shared_ptr<torrent_info const> m_torrent_file;

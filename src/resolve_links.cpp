@@ -25,7 +25,7 @@ resolve_links::resolve_links(std::shared_ptr<torrent_info const> ti)
 	bool const v1 = m_torrent_file->v1();
 	bool const v2 = m_torrent_file->v2();
 
-	file_storage const& fs = m_torrent_file->files();
+	file_storage const& fs = m_torrent_file->layout();
 	m_file_sizes.reserve(aux::numeric_cast<std::size_t>(fs.num_files()));
 	for (auto const i : fs.file_range())
 	{
@@ -45,7 +45,7 @@ resolve_links::resolve_links(std::shared_ptr<torrent_info const> ti)
 	m_links.resize(m_torrent_file->num_files());
 }
 
-void resolve_links::match(torrent_info const& ti, file_storage const fs, std::string const& save_path)
+void resolve_links::match(torrent_info const& ti, filenames const fs, std::string const& save_path)
 {
 	if (m_torrent_file->v2() && ti.v2())
 	{
@@ -60,7 +60,7 @@ void resolve_links::match(torrent_info const& ti, file_storage const fs, std::st
 
 void resolve_links::match_v1(
 	torrent_info const& ti
-	, file_storage const& fs
+	, filenames const& fs
 	, std::string const& save_path)
 {
 	// only torrents with the same piece size
@@ -85,7 +85,7 @@ void resolve_links::match_v1(
 		{
 			auto const idx = iter->second;
 			TORRENT_ASSERT(idx >= file_index_t(0));
-			TORRENT_ASSERT(idx < m_torrent_file->files().end_file());
+			TORRENT_ASSERT(idx < m_torrent_file->layout().end_file());
 
 			// if we already have found a duplicate for this file, no need
 			// to keep looking
@@ -97,7 +97,7 @@ void resolve_links::match_v1(
 			// the pieces of the incoming file
 			piece_index_t their_piece = fs.map_file(i, 0, 0).piece;
 			// the pieces of "this" file (from m_torrent_file)
-			piece_index_t our_piece = m_torrent_file->files().map_file(
+			piece_index_t our_piece = m_torrent_file->layout().map_file(
 				idx, 0, 0).piece;
 
 			int const num_pieces = int((file_size + piece_size - 1) / piece_size);
@@ -124,7 +124,7 @@ void resolve_links::match_v1(
 	}
 }
 
-void resolve_links::match_v2(file_storage const& fs, std::string const& save_path)
+void resolve_links::match_v2(filenames const& fs, std::string const& save_path)
 {
 	for (auto const i : fs.file_range())
 	{
@@ -138,7 +138,7 @@ void resolve_links::match_v2(file_storage const& fs, std::string const& save_pat
 		auto const idx = iter->second;
 
 		TORRENT_ASSERT(idx >= file_index_t(0));
-		TORRENT_ASSERT(idx < m_torrent_file->files().end_file());
+		TORRENT_ASSERT(idx < m_torrent_file->layout().end_file());
 
 		// if we already have found a duplicate for this file, no need
 		// to keep looking

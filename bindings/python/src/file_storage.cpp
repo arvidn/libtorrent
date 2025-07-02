@@ -132,13 +132,13 @@ namespace
         return fs.file_path(index, base);
     }
 
+#if TORRENT_ABI_VERSION < 4
     void rename_file0(file_storage& fs, file_index_t index, string_view const path)
     {
         file_storage_check_index(fs, index);
         fs.rename_file(index, std::string(path));
     }
 
-#if TORRENT_ABI_VERSION < 4
     void rename_file1(file_storage& fs, file_index_t index, bytes path)
     {
         python_deprecated("rename_file with bytes is deprecated");
@@ -225,9 +225,9 @@ void bind_file_storage()
         .def("piece_size", &wrap_piece_check<int, &file_storage::piece_size>)
         .def("set_name", &set_name0)
         .def("set_name", &set_name1)
-        .def("rename_file", &rename_file0)
 #if TORRENT_ABI_VERSION < 4
-        .def("rename_file", &rename_file1)
+        .def("rename_file", depr(&rename_file0))
+        .def("rename_file", depr(&rename_file1))
 #endif
         .def("name", &file_storage::name, return_value_policy<copy_const_reference>())
         ;

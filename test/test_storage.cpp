@@ -209,7 +209,7 @@ setup_torrent(
 	aux::vector<download_priority_t, file_index_t> priorities;
 	renamed_files rf;
 	storage_params p{
-		info->files(),
+		info->layout(),
 		rf,
 		test_path,
 		storage_mode_allocate,
@@ -297,7 +297,7 @@ template <typename StorageType>
 void run_storage_tests(std::shared_ptr<torrent_info const> info
 	, lt::storage_mode_t storage_mode)
 {
-	lt::file_storage const& fs = info->files();
+	lt::file_storage const& fs = info->layout();
 	TORRENT_ASSERT(fs.num_files() > 0);
 	{
 	error_code ec;
@@ -483,7 +483,7 @@ void test_rename(std::string const& test_path)
 	aux::session_settings set;
 
 	auto [s, info] = setup_torrent<StorageType>(fp, buf, test_path, set);
-	file_storage const& fs = info->files();
+	file_storage const& fs = info->layout();
 
 	// directories are not created up-front, unless they contain
 	// an empty file
@@ -540,7 +540,7 @@ void test_pre_allocate()
 
 	aux::session_settings set;
 	std::shared_ptr<torrent_info const> info = setup_torrent_info(buf);
-	file_storage const& fs = info->files();
+	file_storage const& fs = info->layout();
 
 	aux::vector<download_priority_t, file_index_t> priorities{
 		lt::dont_download,
@@ -551,7 +551,7 @@ void test_pre_allocate()
 	};
 	renamed_files rf;
 	storage_params p{
-		info->files(),
+		info->layout(),
 		rf,
 		test_path,
 		storage_mode_allocate,
@@ -696,7 +696,7 @@ void test_check_files(check_files_flag_t const flags
 
 	renamed_files rf;
 	storage_params p{
-		info->files(),
+		info->layout(),
 		rf,
 		test_path,
 		(flags & sparse) ? storage_mode_sparse : storage_mode_allocate,
@@ -995,7 +995,7 @@ TORRENT_TEST(rename_file)
 	std::vector<char> buf;
 	auto info = setup_torrent_info(buf);
 
-	file_storage const& fs = info->files();
+	file_storage const& fs = info->layout();
 
 	settings_pack pack = settings();
 	pack.set_bool(settings_pack::disable_hash_checks, true);

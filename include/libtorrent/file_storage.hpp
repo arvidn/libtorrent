@@ -341,9 +341,15 @@ TORRENT_VERSION_NAMESPACE_4
 			, std::time_t mtime = 0, string_view symlink_path = string_view()
 			, char const* root_hash = nullptr);
 
+#if TORRENT_ABI_VERSION < 4
 		// renames the file at ``index`` to ``new_filename``. Keep in mind
 		// that filenames are expected to be UTF-8 encoded.
+		TORRENT_DEPRECATED
 		void rename_file(file_index_t index, std::string const& new_filename);
+
+		// internal
+		void rename_file_impl(file_index_t index, std::string const& new_filename);
+#endif
 
 #if TORRENT_ABI_VERSION == 1
 #include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
@@ -766,6 +772,7 @@ namespace aux {
 
 		void rename_file(file_storage const& fs, file_index_t index, std::string const& new_filename);
 
+		void import_filenames(file_storage const& fs, std::map<file_index_t, std::string> const& renamed_files);
 		std::map<file_index_t, std::string> export_filenames() const;
 	private:
 		std::unordered_map<file_index_t, aux::rename_entry> m_renamed_files;
@@ -829,6 +836,14 @@ namespace aux {
 		peer_request map_file(file_index_t const file, std::int64_t const offset, int const size) const
 		{
 			return m_files.map_file(file, offset, size);
+		}
+		sha256_hash root(file_index_t const index) const
+		{
+			return m_files.root(index);
+		}
+		int piece_length() const
+		{
+			return m_files.piece_length();
 		}
 
 	private:

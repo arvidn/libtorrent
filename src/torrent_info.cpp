@@ -33,11 +33,10 @@ see LICENSE file.
 #include "libtorrent/disk_interface.hpp" // for default_block_size
 #include "libtorrent/span.hpp"
 
-#include "libtorrent/load_torrent.hpp" // for parse_torrent_file()
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/crc.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include "libtorrent/load_torrent.hpp" // for aux::parse_torrent_file()
+#if TORRENT_ABI_VERSION < 4
+#include "libtorrent/aux_/resolve_duplicate_filenames.hpp"
+#endif
 
 #include <unordered_map>
 #include <unordered_set>
@@ -733,155 +732,6 @@ TORRENT_VERSION_NAMESPACE_4
 	torrent_info::torrent_info(torrent_info const&) = default;
 	torrent_info& torrent_info::operator=(torrent_info&&) = default;
 
-	bool torrent_info::resolve_duplicate_filenames(int const max_duplicate_filenames
-		, error_code& ec)
-	{
-		INVARIANT_CHECK;
-
-		std::unordered_set<std::uint32_t> files;
-
-		std::string const empty_str;
-
-		// insert all directories first, to make sure no files
-		// are allowed to collied with them
-		m_files.all_path_hashes(files);
-		for (auto const i : m_files.file_range())
-		{
-			// as long as this file already exists
-			// increase the counter
-			std::uint32_t const h = m_files.file_path_hash(i, empty_str);
-			if (!files.insert(h).second)
-			{
-				// This filename appears to already exist!
-				// If this happens, just start over and do it the slow way,
-				// comparing full file names and come up with new names
-				return resolve_duplicate_filenames_slow(max_duplicate_filenames, ec);
-			}
-		}
-		return true;
-	}
-
-namespace {
-
-	template <class CRC>
-	void process_string_lowercase(CRC& crc, string_view str)
-	{
-		for (char const c : str)
-			crc.process_byte(aux::to_lower(c) & 0xff);
-	}
-
-	struct name_entry
-	{
-		file_index_t idx;
-		int length;
-	};
-}
-
-	bool torrent_info::resolve_duplicate_filenames_slow(
-		int const max_duplicate_filenames, error_code& ec)
-	{
-		INVARIANT_CHECK;
-
-		// maps filename hash to file index
-		// or, if the file_index is negative, maps into the paths vector
-		std::unordered_multimap<std::uint32_t, name_entry> files;
-
-		std::vector<std::string> const& paths = m_files.paths();
-		files.reserve(paths.size() + aux::numeric_cast<std::size_t>(m_files.num_files()));
-
-		// insert all directories first, to make sure no files
-		// are allowed to collied with them
-		{
-			boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
-			if (!m_files.name().empty())
-			{
-				process_string_lowercase(crc, m_files.name());
-			}
-			file_index_t path_index{-1};
-			for (auto const& path : paths)
-			{
-				auto local_crc = crc;
-				if (!path.empty()) local_crc.process_byte(TORRENT_SEPARATOR);
-				int count = 0;
-				for (char const c : path)
-				{
-					if (c == TORRENT_SEPARATOR)
-						files.insert({local_crc.checksum(), {path_index, count}});
-					local_crc.process_byte(aux::to_lower(c) & 0xff);
-					++count;
-				}
-				files.insert({local_crc.checksum(), {path_index, int(path.size())}});
-				--path_index;
-			}
-		}
-
-		// keep track of the total number of name collisions. If there are too
-		// many, it's probably a malicious torrent and we should just fail
-		int num_collisions = 0;
-		for (auto const i : m_files.file_range())
-		{
-			// as long as this file already exists
-			// increase the counter
-			std::uint32_t const hash = m_files.file_path_hash(i, "");
-			auto range = files.equal_range(hash);
-			auto const match = std::find_if(range.first, range.second, [&](std::pair<std::uint32_t, name_entry> const& o)
-			{
-				std::string const other_name = o.second.idx < file_index_t{}
-					? combine_path(m_files.name(), paths[std::size_t(-static_cast<int>(o.second.idx)-1)].substr(0, std::size_t(o.second.length)))
-					: m_files.file_path(o.second.idx);
-				return aux::string_equal_no_case(other_name, m_files.file_path(i));
-			});
-
-			if (match == range.second)
-			{
-				files.insert({hash, {i, 0}});
-				continue;
-			}
-
-			// pad files are allowed to collide with each-other, as long as they have
-			// the same size.
-			file_index_t const other_idx = match->second.idx;
-			if (other_idx >= file_index_t{}
-				&& (m_files.file_flags(i) & file_storage::flag_pad_file)
-				&& (m_files.file_flags(other_idx) & file_storage::flag_pad_file)
-				&& m_files.file_size(i) == m_files.file_size(other_idx))
-				continue;
-
-			std::string filename = m_files.file_path(i);
-			std::string base = remove_extension(filename);
-			std::string ext = extension(filename);
-			int cnt = 0;
-			for (;;)
-			{
-				++cnt;
-				char new_ext[50];
-				std::snprintf(new_ext, sizeof(new_ext), ".%d%s", cnt, ext.c_str());
-				filename = base + new_ext;
-
-				boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
-				process_string_lowercase(crc, filename);
-				std::uint32_t const new_hash = crc.checksum();
-				if (files.find(new_hash) == files.end())
-				{
-					files.insert({new_hash, {i, 0}});
-					break;
-				}
-				++num_collisions;
-				if (num_collisions > max_duplicate_filenames)
-				{
-					ec = errors::too_many_duplicate_filenames;
-					// mark the torrent as invalid
-					m_files.set_piece_length(0);
-					return false;
-				}
-			}
-
-			copy_on_write();
-			m_files.rename_file(i, filename);
-		}
-		return true;
-	}
-
 #if TORRENT_ABI_VERSION < 4
 	void torrent_info::remap_files(file_storage const& f)
 	{
@@ -900,10 +750,9 @@ namespace {
 		if (m_files.total_size() != f.total_size()) return;
 		if (m_files.v2() || f.v2()) return;
 
-		copy_on_write();
-		m_files = f;
-		m_files.set_num_pieces(m_orig_files->num_pieces());
-		m_files.set_piece_length(m_orig_files->piece_length());
+		m_modified_files.reset(new file_storage(f));
+		m_modified_files->set_num_pieces(m_files.num_pieces());
+		m_modified_files->set_piece_length(m_files.piece_length());
 	}
 #endif
 
@@ -1049,10 +898,6 @@ namespace {
 	}
 #endif
 
-	// constructor used for creating new torrents
-	// will not contain any hashes, comments, creation date
-	// just the necessary to use it with piece manager
-	// used for torrents with no metadata
 	torrent_info::torrent_info(info_hash_t const& info_hash)
 		: m_info_hash(info_hash)
 	{}
@@ -1060,27 +905,40 @@ namespace {
 	torrent_info::torrent_info(bdecode_node const& info_section, error_code& ec
 		, load_torrent_limits const& cfg, from_info_section_t)
 	{
-		if (!parse_info_section(info_section, ec, cfg.max_pieces)) return;
-		if (!resolve_duplicate_filenames(cfg.max_duplicate_filenames, ec)) return;
+		parse_info_section(info_section, ec, cfg.max_pieces);
 	}
 
 	torrent_info::~torrent_info() = default;
 
+#if TORRENT_ABI_VERSION < 4
+	file_storage const& torrent_info::files() const
+	{
+		return files_impl();
+	}
+
 	file_storage const& torrent_info::orig_files() const
 	{
 		TORRENT_ASSERT(is_loaded());
-		return m_orig_files ? *m_orig_files : m_files;
+		return m_files;
+	}
+#endif
+
+	file_storage const& torrent_info::layout() const
+	{
+		TORRENT_ASSERT(is_loaded());
+		return m_files;
 	}
 
+#if TORRENT_ABI_VERSION < 4
 	void torrent_info::rename_file(file_index_t index, std::string const& new_filename)
 	{
 		TORRENT_ASSERT(is_loaded());
 		if (m_files.file_path(index) == new_filename) return;
+
 		copy_on_write();
-		m_files.rename_file(index, new_filename);
+		m_modified_files->rename_file(index, new_filename);
 	}
 
-#if TORRENT_ABI_VERSION < 4
 	// internal
 	void torrent_info::set_piece_layers(aux::vector<aux::vector<char>, file_index_t> pl)
 	{
@@ -1092,14 +950,16 @@ namespace {
 	sha1_hash torrent_info::hash_for_piece(piece_index_t const index) const
 	{ return sha1_hash(hash_for_piece_ptr(index)); }
 
+#if TORRENT_ABI_VERSION < 4
 	void torrent_info::copy_on_write()
 	{
 		TORRENT_ASSERT(is_loaded());
 		INVARIANT_CHECK;
 
-		if (m_orig_files) return;
-		m_orig_files.reset(new file_storage(m_files));
+		if (m_modified_files) return;
+		m_modified_files.reset(new file_storage(m_files));
 	}
+#endif
 
 #if TORRENT_ABI_VERSION <= 2
 	void torrent_info::swap(torrent_info& ti)
@@ -1509,12 +1369,22 @@ namespace {
 		return m_info_dict.dict_find(key);
 	}
 
+#if TORRENT_ABI_VERSION < 4
 	bool torrent_info::parse_torrent_file(bdecode_node const& torrent_file
 		, error_code& ec, load_torrent_limits const& cfg)
 	{
 		add_torrent_params atp;
 		std::shared_ptr<torrent_info> ti = aux::parse_torrent_file(torrent_file, ec, cfg, atp);
 		if (ec) return false;
+
+		auto const renamed_files = aux::resolve_duplicate_filenames(ti->layout(), cfg.max_duplicate_filenames, ec);
+		if (ec) return false;
+		// For backwards compatibility, make sure the file_storage has updated
+		// filenames as well
+		for (auto const& entry : renamed_files)
+		{
+			ti->rename_file(entry.first, entry.second);
+		}
 
 		if (ti)
 		{
@@ -1527,7 +1397,6 @@ namespace {
 			return true;
 		}
 
-#if TORRENT_ABI_VERSION < 4
 		m_comment = atp.comment;
 		m_created_by = atp.created_by;
 		m_creation_date = atp.creation_date;
@@ -1540,14 +1409,12 @@ namespace {
 			ent.tier = std::uint8_t(tier);
 			m_urls.push_back(std::move(ent));
 		}
-#endif
 
 		if (atp.flags & torrent_flags::i2p_torrent)
 		{
 			m_flags |= i2p;
 		}
 
-#if TORRENT_ABI_VERSION < 4
 		if (v2())
 		{
 			auto& trees = atp.merkle_trees;
@@ -1556,7 +1423,7 @@ namespace {
 
 			aux::vector<aux::vector<char>, file_index_t> v2_hashes;
 
-			auto const& fs = orig_files();
+			auto const& fs = layout();
 			bitfield const empty_verified;
 			for (file_index_t i : fs.file_range())
 			{
@@ -1612,14 +1479,12 @@ namespace {
 		{
 			m_nodes.emplace_back(n);
 		}
-#endif
 
 		// TODO: collections
 		// TODO: similar
 		return true;
 	}
 
-#if TORRENT_ABI_VERSION < 4
 	void torrent_info::add_tracker(std::string const& url, int const tier)
 	{
 		add_tracker(url, tier, announce_entry::source_client);

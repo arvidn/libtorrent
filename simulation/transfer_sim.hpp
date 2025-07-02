@@ -162,7 +162,7 @@ void run_test(
 
 	if (flags & tx::web_seed)
 	{
-		auto const& fs = atp.ti->files();
+		auto const& fs = atp.ti->layout();
 		for (lt::file_index_t f : fs.file_range())
 		{
 			std::string file_path = fs.file_path(f, "/");

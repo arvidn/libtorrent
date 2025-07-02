@@ -111,10 +111,10 @@ TORRENT_TEST(no_truncate_checking)
 	int size = 0;
 	run_test(
 		[&](lt::add_torrent_params& atp, lt::settings_pack&) {
-			filename = lt::combine_path(atp.save_path, atp.ti->files().file_path(lt::file_index_t{0}));
+			filename = lt::combine_path(atp.save_path, atp.ti->layout().file_path(lt::file_index_t{0}));
 			std::ofstream f(filename);
 			// create a file that's 100 bytes larger
-			size = int(atp.ti->files().file_size(lt::file_index_t{0}) + 100);
+			size = int(atp.ti->layout().file_size(lt::file_index_t{0}) + 100);
 			std::vector<char> dummy(size);
 			f.write(dummy.data(), dummy.size());
 		},
@@ -152,7 +152,7 @@ TORRENT_TEST(checking_first_piece_missing)
 		},
 		[&](lt::add_torrent_params& atp) {
 		std::string filename = lt::combine_path(
-			atp.save_path, atp.ti->files().file_path(lt::file_index_t{0}));
+			atp.save_path, atp.ti->layout().file_path(lt::file_index_t{0}));
 			FILE* f = ::fopen(filename.c_str(), "rb+");
 			::fwrite("0000", 4, 1, f);
 			::fclose(f);
@@ -203,7 +203,7 @@ TORRENT_TEST(aligned_zero_priority_no_file)
 			atp.file_priorities.push_back(lt::download_priority_t{1});
 			atp.file_priorities.push_back(lt::download_priority_t{0});
 			std::string filename = lt::combine_path(lt::current_working_directory()
-				, lt::combine_path(atp.save_path, atp.ti->files().file_path(lt::file_index_t{1})));
+				, lt::combine_path(atp.save_path, atp.ti->layout().file_path(lt::file_index_t{1})));
 			partfile = lt::combine_path(lt::current_working_directory()
 				, lt::combine_path(atp.save_path, "." + lt::aux::to_hex(atp.ti->info_hashes().v1.to_string()) + ".parts"));
 			lt::error_code ec;
@@ -238,7 +238,7 @@ TORRENT_TEST(zero_priority_missing_partfile)
 			atp.file_priorities.push_back(lt::download_priority_t{1});
 			atp.file_priorities.push_back(lt::download_priority_t{0});
 			std::string const filename = lt::combine_path(lt::current_working_directory()
-				, lt::combine_path(atp.save_path, atp.ti->files().file_path(lt::file_index_t{2})));
+				, lt::combine_path(atp.save_path, atp.ti->layout().file_path(lt::file_index_t{2})));
 
 			std::cout << "removing: " << filename << "\n";
 			lt::error_code ec;

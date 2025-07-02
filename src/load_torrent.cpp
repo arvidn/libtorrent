@@ -18,6 +18,7 @@ see LICENSE file.
 #include "libtorrent/aux_/escape_string.hpp" // maybe_url_encode
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/aux_/string_util.hpp" // for is_i2p_url, ltrim, ensure_trailing_slash
+#include "libtorrent/aux_/resolve_duplicate_filenames.hpp"
 
 namespace libtorrent {
 
@@ -178,7 +179,7 @@ namespace aux
 			bdecode_node const& e = torrent_file.dict_find_dict("piece layers");
 			if (e)
 			{
-				parse_piece_layers(e, ti->orig_files(), ec, out);
+				parse_piece_layers(e, ti->layout(), ec, out);
 				if (ec) return{};
 			}
 		}
@@ -359,6 +360,16 @@ namespace aux
 		add_torrent_params ret;
 		std::shared_ptr<torrent_info> ti = aux::parse_torrent_file(torrent_file, ec, cfg, ret);
 		if (ec) aux::throw_ex<system_error>(ec);
+		ret.renamed_files = aux::resolve_duplicate_filenames(ti->layout(), cfg.max_duplicate_filenames, ec);
+		if (ec) aux::throw_ex<system_error>(ec);
+#if TORRENT_ABI_VERSION < 4
+		// For backwards compatibility, make sure the file_storage has updated
+		// filenames as well
+		for (auto const& entry : ret.renamed_files)
+		{
+			ti->rename_file(entry.first, entry.second);
+		}
+#endif
 		ret.ti = std::move(ti);
 		return ret;
 	}

@@ -166,6 +166,7 @@ TORRENT_VERSION_NAMESPACE_4
 #endif
 
 		explicit torrent_info(info_hash_t const& info_hash);
+
 		torrent_info(torrent_info const& t);
 
 #if TORRENT_ABI_VERSION == 1
@@ -196,21 +197,38 @@ TORRENT_VERSION_NAMESPACE_4
 		torrent_info& operator=(torrent_info&&);
 
 		// The file_storage object contains the information on how to map the
-		// pieces to files. It is separated from the torrent_info object because
-		// when creating torrents a storage object needs to be created without
-		// having a torrent file. When renaming files in a storage, the storage
-		// needs to make its own copy of the file_storage in order to make its
-		// mapping differ from the one in the torrent file.
+		// pieces to files. It is separated from the torrent_info object as the
+		// disk I/O subsystem only needs access to file names and sizes.
+		// The file_storage object is immutable, renamed files are recorded
+		// separately. ``layout()`` returns the original filenames, as found in
+		// the .torrent file. Files may be renamed to de-duplicate names, or to
+		// correct invalid filenames.
 		//
+		// For more information on the file_storage object, see the separate
+		// document on how to create torrents.
+		file_storage const& layout() const;
+
+		// internal
+		// used internally for backwards compatibility with remap_files()
+		file_storage const& files_impl() const
+		{
+#if TORRENT_ABI_VERSION < 4
+			return m_modified_files ? *m_modified_files : m_files;
+#else
+			return m_files;
+#endif
+		}
+
+#if TORRENT_ABI_VERSION < 4
 		// ``orig_files()`` returns the original (unmodified) file storage for
 		// this torrent. This is used by the web server connection, which needs
 		// to request files with the original names. Filename may be changed using
 		// ``torrent_info::rename_file()``.
 		//
-		// For more information on the file_storage object, see the separate
-		// document on how to create torrents.
-		file_storage const& files() const { return m_files; }
+		TORRENT_DEPRECATED
 		file_storage const& orig_files() const;
+		TORRENT_DEPRECATED
+		file_storage const& files() const;
 
 		// Renames the file with the specified index to the new name. The new
 		// filename is reflected by the ``file_storage`` returned by ``files()``
@@ -222,9 +240,9 @@ TORRENT_VERSION_NAMESPACE_4
 		// == true``), then the file is detached from the ``save_path`` of the
 		// torrent. In this case the file is not moved when move_storage() is
 		// invoked.
+		TORRENT_DEPRECATED
 		void rename_file(file_index_t index, std::string const& new_filename);
 
-#if TORRENT_ABI_VERSION < 4
 		// .. warning::
 		// 	Using `remap_files()` is discouraged as it's incompatible with v2
 		// 	torrents. This is because the piece boundaries and piece hashes in
@@ -394,21 +412,21 @@ TORRENT_VERSION_NAMESPACE_4
 		// (``file_entry``) using the ``file_storage::at`` function, which takes
 		// an index and an iterator.
 		TORRENT_DEPRECATED
-		file_iterator begin_files() const { return m_files.begin_deprecated(); }
+		file_iterator begin_files() const { return files_impl().begin_deprecated(); }
 		TORRENT_DEPRECATED
-		file_iterator end_files() const { return m_files.end_deprecated(); }
-		reverse_file_iterator rbegin_files() const { return m_files.rbegin_deprecated(); }
+		file_iterator end_files() const { return files_impl().end_deprecated(); }
+		reverse_file_iterator rbegin_files() const { return files_impl().rbegin_deprecated(); }
 		TORRENT_DEPRECATED
-		reverse_file_iterator rend_files() const { return m_files.rend_deprecated(); }
+		reverse_file_iterator rend_files() const { return files_impl().rend_deprecated(); }
 
 		TORRENT_DEPRECATED
 		file_iterator file_at_offset(std::int64_t offset) const
-		{ return m_files.file_at_offset_deprecated(offset); }
+		{ return files_impl().file_at_offset_deprecated(offset); }
 
 #include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 
 		TORRENT_DEPRECATED
-		file_entry file_at(int index) const { return m_files.at_deprecated(index); }
+		file_entry file_at(int index) const { return files_impl().at_deprecated(index); }
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
@@ -417,7 +435,7 @@ TORRENT_VERSION_NAMESPACE_4
 		// If you need index-access to files you can use the ``num_files()`` along
 		// with the ``file_path()``, ``file_size()``-family of functions to access
 		// files using indices.
-		int num_files() const { return m_files.num_files(); }
+		int num_files() const { return files_impl().num_files(); }
 
 		// This function will map a piece index, a byte offset within that piece
 		// and a size (in bytes) into the corresponding files with offsets where
@@ -426,7 +444,7 @@ TORRENT_VERSION_NAMESPACE_4
 			, std::int64_t offset, int size) const
 		{
 			TORRENT_ASSERT(is_loaded());
-			return m_files.map_block(piece, offset, size);
+			return files_impl().map_block(piece, offset, size);
 		}
 
 		// This function will map a range in a specific file into a range in the
@@ -440,7 +458,7 @@ TORRENT_VERSION_NAMESPACE_4
 		peer_request map_file(file_index_t const file, std::int64_t offset, int size) const
 		{
 			TORRENT_ASSERT(is_loaded());
-			return m_files.map_file(file, offset, size);
+			return files_impl().map_file(file, offset, size);
 		}
 
 #if TORRENT_ABI_VERSION == 1
@@ -531,7 +549,7 @@ TORRENT_VERSION_NAMESPACE_4
 
 		// ``name()`` returns the name of the torrent.
 		// name contains UTF-8 encoded string.
-		const std::string& name() const { return m_files.name(); }
+		const std::string& name() const { return files_impl().name(); }
 
 #if TORRENT_ABI_VERSION < 4
 		// ``creation_date()`` returns the creation date of the torrent as time_t
@@ -667,37 +685,33 @@ TORRENT_VERSION_NAMESPACE_4
 		bool is_merkle_torrent() const { return !m_merkle_tree.empty(); }
 #endif
 
+#if TORRENT_ABI_VERSION < 4
 		// internal
 		bool parse_torrent_file(bdecode_node const& torrent_file, error_code& ec
 			, load_torrent_limits const&);
+#endif
 
 	private:
-
-		bool resolve_duplicate_filenames(int max_duplicate_filenames, error_code& ec);
-
-		// the slow path, in case we detect/suspect a name collision
-		bool resolve_duplicate_filenames_slow(int max_duplicate_filenames
-			, error_code& ec);
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		friend struct ::lt::invariant_access;
 		void check_invariant() const;
 #endif
 
+#if TORRENT_ABI_VERSION < 4
 		void copy_on_write();
+#endif
 
 		file_storage m_files;
 
-		// if m_files is modified, it is first copied into
-		// m_orig_files so that the original name and
-		// filenames are preserved.
+#if TORRENT_ABI_VERSION < 4
+		// if files are renamed or remapped, we make a copy of m_files and
+		// modify the copy. The file_storage object is supposed to be immutable,
+		// so we do this to stay backwards compatible.
 		// the original filenames are required to build URLs for web seeds for
 		// instance
-		// TODO: rather than making a copy of the whole file_storage, record
-		// renamed files in the renamed_files type
-		aux::copy_ptr<const file_storage> m_orig_files;
+		aux::copy_ptr<file_storage> m_modified_files;
 
-#if TORRENT_ABI_VERSION < 4
 		// the URLs to the trackers
 		aux::vector<announce_entry> m_urls;
 		std::vector<web_seed_entry> m_web_seeds;
