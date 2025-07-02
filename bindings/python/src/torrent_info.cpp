@@ -389,7 +389,9 @@ void bind_torrent_info()
 {
     return_value_policy<copy_const_reference> copy;
 
+#if TORRENT_ABI_VERSION < 4
     void (torrent_info::*rename_file0)(file_index_t, std::string const&) = &torrent_info::rename_file;
+#endif
 
     class_<file_slice>("file_slice")
         .add_property("file_index", make_getter((&file_slice::file_index), by_value()))
@@ -464,12 +466,13 @@ void bind_torrent_info()
         .def("collections", &torrent_info::collections)
         .def("ssl_cert", &torrent_info::ssl_cert)
         .def("num_files", &torrent_info::num_files)
-        .def("rename_file", rename_file0)
 #if TORRENT_ABI_VERSION < 4
+        .def("rename_file", depr(rename_file0))
         .def("remap_files", depr(&torrent_info::remap_files))
+        .def("files", depr(&torrent_info::files), return_internal_reference<>())
+        .def("orig_files", depr(&torrent_info::orig_files), return_internal_reference<>())
 #endif
-        .def("files", &torrent_info::files, return_internal_reference<>())
-        .def("orig_files", &torrent_info::orig_files, return_internal_reference<>())
+
 #if TORRENT_ABI_VERSION == 1
         .def("file_at", depr(&torrent_info::file_at))
 #endif // TORRENT_ABI_VERSION

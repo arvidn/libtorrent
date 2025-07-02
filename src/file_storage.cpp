@@ -42,6 +42,18 @@ using namespace std::placeholders;
 
 namespace libtorrent {
 
+namespace {
+
+	bool compare_file_offset(aux::file_entry const& lhs
+		, aux::file_entry const& rhs)
+	{
+		return lhs.offset < rhs.offset;
+	}
+
+}
+
+TORRENT_VERSION_NAMESPACE_4
+
 	file_storage::file_storage() = default;
 	file_storage::~file_storage() = default;
 
@@ -74,16 +86,6 @@ namespace libtorrent {
 		else
 			return piece_length();
 	}
-
-namespace {
-
-	bool compare_file_offset(aux::file_entry const& lhs
-		, aux::file_entry const& rhs)
-	{
-		return lhs.offset < rhs.offset;
-	}
-
-}
 
 	int file_storage::piece_size2(piece_index_t const index) const
 	{
@@ -189,6 +191,8 @@ namespace {
 		}
 	}
 
+TORRENT_VERSION_NAMESPACE_4_END
+
 	std::string renamed_files::file_path(
 		file_storage const& fs
 		, file_index_t const index
@@ -288,6 +292,15 @@ namespace {
 		for (auto [idx, ent] : m_renamed_files)
 			ret[idx] = ent.path;
 		return ret;
+	}
+
+	void renamed_files::import_filenames(file_storage const& fs, std::map<file_index_t, std::string> const& renamed_files)
+	{
+		for (auto const& f : renamed_files)
+		{
+			if (f.first < file_index_t(0) || f.first >= fs.end_file()) continue;
+			rename_file(fs, file_index_t(f.first), f.second);
+		}
 	}
 
 #if TORRENT_ABI_VERSION == 1
@@ -437,6 +450,8 @@ namespace aux {
 
 } // aux namespace
 
+TORRENT_VERSION_NAMESPACE_4
+
 #if TORRENT_ABI_VERSION == 1
 
 	void file_storage::add_file_borrow(char const* filename, int filename_len
@@ -461,12 +476,20 @@ namespace aux {
 	}
 #endif // TORRENT_ABI_VERSION
 
+#if TORRENT_ABI_VERSION < 4
 	void file_storage::rename_file(file_index_t const index
+		, std::string const& new_filename)
+	{
+		rename_file_impl(index, new_filename);
+	}
+
+	void file_storage::rename_file_impl(file_index_t const index
 		, std::string const& new_filename)
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
 		update_path_index(m_files[index], new_filename);
 	}
+#endif // TORRENT_ABI_VERSION
 
 #if TORRENT_ABI_VERSION == 1
 	file_storage::iterator file_storage::file_at_offset_deprecated(std::int64_t offset) const
@@ -1656,6 +1679,8 @@ failed:
 			m_symlinks[fe.symlink_index] = internal_file_path(i);
 		}
 	}
+
+TORRENT_VERSION_NAMESPACE_4_END
 
 namespace aux {
 

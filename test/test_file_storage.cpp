@@ -97,7 +97,6 @@ TORRENT_TEST(coalesce_path)
 	TEST_EQUAL(st.paths()[1_path], "c");
 	TEST_EQUAL(st.paths()[2_path], ".pad");
 }
-#endif
 
 TORRENT_TEST(rename_file)
 {
@@ -125,6 +124,7 @@ TORRENT_TEST(rename_file)
 	TEST_EQUAL(st.file_path(file_index_t{0}, "."), combine_path(".", combine_path("test__"
 		, "a")));
 }
+#endif
 
 TORRENT_TEST(set_name)
 {
@@ -139,6 +139,7 @@ TORRENT_TEST(set_name)
 		, "a")));
 }
 
+#if TORRENT_ABI_VERSION < 4
 TORRENT_TEST(rename_file2)
 {
 	// test rename_file
@@ -163,6 +164,7 @@ TORRENT_TEST(rename_file2)
 	st.rename_file(file_index_t{0}, combine_path("tmp", "a"));
 	TEST_EQUAL(st.file_path(file_index_t{0}, "."), combine_path("tmp", "a"));
 }
+#endif
 
 TORRENT_TEST(pointer_offset)
 {

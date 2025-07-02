@@ -478,11 +478,11 @@ TORRENT_TEST(file_priority_multiple_calls)
 	addp.save_path = ".";
 	torrent_handle h = ses.add_torrent(addp);
 
-	for (file_index_t const i : addp.ti->files().file_range())
+	for (file_index_t const i : addp.ti->layout().file_range())
 		h.file_priority(i, lt::low_priority);
 
 	std::vector<download_priority_t> const expected(
-		std::size_t(addp.ti->files().num_files()), lt::low_priority);
+		std::size_t(addp.ti->num_files()), lt::low_priority);
 	for (int i = 0; i < 10; ++i)
 	{
 		auto const p = h.get_file_priorities();
@@ -681,7 +681,7 @@ TORRENT_TEST(file_priority_stress_test)
 	TEST_CHECK(st.need_save_resume_data & torrent_handle::if_config_changed);
 
 	auto const pp = h.get_piece_priorities();
-	auto const& fs = atp.ti->files();
+	auto const& fs = atp.ti->layout();
 	lt::piece_index_t i(0);
 
 	std::cout << "piece prios:\n";

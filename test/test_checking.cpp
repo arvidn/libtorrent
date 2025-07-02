@@ -230,7 +230,7 @@ void test_checking(int const flags)
 			std::printf("error: %s\n", st.errc.message().c_str());
 		std::vector<std::int64_t> const file_progress = tor1.file_progress();
 		bool one_incomplete = false;
-		file_storage const& fs1 = ti->files();
+		file_storage const& fs1 = ti->layout();
 		for (file_index_t i : fs1.file_range())
 		{
 			if (fs1.pad_file_at(i)) continue;

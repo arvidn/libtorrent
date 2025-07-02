@@ -234,6 +234,7 @@ set(libtorrent_aux_include_files
 	readwrite.hpp
 	receive_buffer.hpp
 	request_blocks.hpp
+	resolve_duplicate_filenames.hpp
 	resolve_links.hpp
 	resolver.hpp
 	resolver_interface.hpp
@@ -391,6 +392,7 @@ set(sources
 	read_resume_data.cpp
 	receive_buffer.cpp
 	request_blocks.cpp
+	resolve_duplicate_filenames.cpp
 	resolve_links.cpp
 	resolver.cpp
 	rtc_signaling.cpp

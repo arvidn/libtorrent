@@ -930,7 +930,7 @@ void generate_data(std::string const path, torrent_info const& ti)
 	settings_pack sett = default_settings();
 	std::unique_ptr<lt::disk_interface> disk = default_disk_io_constructor(ios, sett, stats_counters);
 
-	file_storage const& fs = ti.files();
+	file_storage const& fs = ti.layout();
 
 	aux::vector<download_priority_t, file_index_t> priorities;
 	sha1_hash info_hash;

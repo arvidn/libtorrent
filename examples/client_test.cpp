@@ -2230,27 +2230,28 @@ done:
 
 				auto const& file_progress = client_state.file_progress;
 				// if there are a lot of files in the torrent, the less space we use to print each file
-				int const num_files = ti->files().num_files();
+				lt::file_storage const& fs = ti->layout();
+				int const num_files = fs.num_files();
 				int const file_width = num_files < 10 ? 75 : num_files < 20 ? 65 : num_files < 30 ? 55 : num_files < 40 ? 45 : 35;
 				int p = 0; // this is horizontal position
-				for (file_index_t const i : ti->files().file_range())
+				for (file_index_t const i : fs.file_range())
 				{
 					auto const idx = std::size_t(static_cast<int>(i));
 					if (pos + 1 >= terminal_height) break;
 
-					bool const pad_file = ti->files().pad_file_at(i);
+					bool const pad_file = fs.pad_file_at(i);
 					if (pad_file && !show_pad_files) continue;
 
 					if (idx >= file_progress.size()) break;
 
 					// 0-sized files are always fully downloaded
-					int const progress = ti->files().file_size(i) > 0
-						? int(file_progress[idx] * 1000 / ti->files().file_size(i)) : 1000;
-					TORRENT_ASSERT(file_progress[idx] <= ti->files().file_size(i));
+					int const progress = fs.file_size(i) > 0
+						? int(file_progress[idx] * 1000 / fs.file_size(i)) : 1000;
+					TORRENT_ASSERT(file_progress[idx] <= fs.file_size(i));
 
-					bool const complete = file_progress[idx] == ti->files().file_size(i);
+					bool const complete = file_progress[idx] == fs.file_size(i);
 
-					std::string title{ti->files().file_name(i)};
+					std::string title{fs.file_name(i)};
 					if (!complete)
 					{
 						std::snprintf(str, sizeof(str), " (%.1f%%)", progress / 10.0);

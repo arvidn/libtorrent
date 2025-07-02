@@ -388,6 +388,7 @@ SOURCES = \
   read_resume_data.cpp            \
   receive_buffer.cpp              \
   request_blocks.cpp              \
+  resolve_duplicate_filenames.cpp \
   resolve_links.cpp               \
   resolver.cpp                    \
   session.cpp                     \
@@ -636,6 +637,7 @@ HEADERS = \
   aux_/readwrite.hpp                \
   aux_/receive_buffer.hpp           \
   aux_/request_blocks.hpp           \
+  aux_/resolve_duplicate_filenames.hpp \
   aux_/resolve_links.hpp            \
   aux_/resolver.hpp                 \
   aux_/resolver_interface.hpp       \

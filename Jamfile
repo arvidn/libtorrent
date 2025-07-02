@@ -858,6 +858,7 @@ SOURCES =
 	write_resume_data
 	receive_buffer
 	resolve_links
+	resolve_duplicate_filenames
 	session
 	session_params
 	session_handle

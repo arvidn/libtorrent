@@ -577,7 +577,7 @@ TORRENT_VERSION_NAMESPACE_4
 		torrent_flags_t flags{};
 	};
 
-TORRENT_VERSION_NAMESPACE_3_END
+TORRENT_VERSION_NAMESPACE_4_END
 } // namespace libtorrent
 
 namespace std {

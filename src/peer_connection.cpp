@@ -1576,7 +1576,7 @@ namespace {
 
 		int const block_size = t->block_size();
 		if (r.piece < piece_index_t{}
-			|| r.piece >= t->torrent_file().files().end_piece()
+			|| r.piece >= t->torrent_file().layout().end_piece()
 			|| r.start < 0
 			|| r.start >= t->torrent_file().piece_length()
 			|| (r.start % block_size) != 0
@@ -5332,7 +5332,7 @@ namespace {
 					flags |= disk_interface::v1_hash;
 				aux::vector<sha256_hash> hashes;
 				if (t->info_hash().has_v2())
-					hashes.resize(t->torrent_file().orig_files().blocks_in_piece2(r.piece));
+					hashes.resize(t->torrent_file().layout().blocks_in_piece2(r.piece));
 
 				span<sha256_hash> v2_hashes(hashes);
 				m_disk_thread.async_hash(t->storage(), r.piece, v2_hashes, flags
@@ -5448,7 +5448,7 @@ namespace {
 		{
 			hash_failed[protocol_version::V2] = false;
 
-			int const blocks_in_piece = t->torrent_file().files().blocks_in_piece2(piece);
+			int const blocks_in_piece = t->torrent_file().layout().blocks_in_piece2(piece);
 
 			TORRENT_ASSERT(blocks_in_piece == int(block_hashes.size()));
 
@@ -5537,7 +5537,7 @@ namespace {
 		case set_block_hash_result::success:
 		{
 			t->need_picker();
-			int const blocks_per_piece = t->torrent_file().files().blocks_per_piece();
+			int const blocks_per_piece = t->torrent_file().layout().blocks_per_piece();
 			for (piece_index_t verified_piece = int(r.piece) + result.first_verified_block / blocks_per_piece
 				, end = int(verified_piece) + (result.num_verified + blocks_per_piece - 1) / blocks_per_piece
 				; verified_piece < end; ++verified_piece)

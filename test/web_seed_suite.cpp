@@ -127,7 +127,7 @@ void test_transfer(lt::session& ses, lt::add_torrent_params p
 
 	std::int64_t const total_size = p.ti->total_size();
 
-	file_storage const& fs = p.ti->files();
+	file_storage const& fs = p.ti->layout();
 	int pad_file_size = 0;
 	for (auto const i : fs.file_range())
 	{
@@ -182,7 +182,7 @@ void test_transfer(lt::session& ses, lt::add_torrent_params p
 		// the url seed (i.e. banned it)
 		// torrents that don't have very many pieces will not ban the web seeds,
 		// since they won't have an opportunity to accrue enough negative points
-		if (p.ti->files().num_pieces() > 3)
+		if (p.ti->num_pieces() > 3)
 			TEST_CHECK(th.url_seeds().empty());
 	}
 	else

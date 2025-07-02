@@ -112,10 +112,12 @@ namespace {
 			if ((!ret.info_hashes.has_v1() || resume_ih.v1 == ret.info_hashes.v1)
 				&& (!ret.info_hashes.has_v2() || resume_ih.v2 == ret.info_hashes.v2))
 			{
-				auto ti = std::make_shared<torrent_info>(resume_ih);
-
 				error_code err;
-				if (!ti->parse_info_section(info, err, piece_limit))
+				load_torrent_limits cfg{};
+				cfg.max_pieces = piece_limit;
+				auto ti = std::make_shared<torrent_info>(info, err, cfg, from_info_section);
+
+				if (err)
 				{
 					ec = err;
 				}

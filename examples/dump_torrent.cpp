@@ -138,7 +138,7 @@ int main(int argc, char const* argv[]) try
 		, make_magnet_uri(atp).c_str()
 		, atp.name.c_str()
 		, atp.ti->num_files());
-	lt::file_storage const& st = atp.ti->files();
+	lt::file_storage const& st = atp.ti->layout();
 	for (auto const i : st.file_range())
 	{
 		auto const first = st.map_file(i, 0, 0).piece;
