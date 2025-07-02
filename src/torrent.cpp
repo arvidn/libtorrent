@@ -5045,15 +5045,13 @@ namespace {
 
 		if (error)
 		{
-			if (alerts().should_post<file_rename_failed_alert>())
-				alerts().emplace_alert<file_rename_failed_alert>(get_handle()
-					, file_idx, error.ec);
+			alerts().emplace_alert<file_rename_failed_alert>(get_handle()
+				, file_idx, error.ec);
 		}
 		else
 		{
-			if (alerts().should_post<file_renamed_alert>())
-				alerts().emplace_alert<file_renamed_alert>(get_handle()
-					, filename, m_torrent_file->files().file_path(file_idx), file_idx);
+			alerts().emplace_alert<file_renamed_alert>(get_handle()
+				, filename, m_torrent_file->files().file_path(file_idx), file_idx);
 			m_torrent_file->rename_file(file_idx, filename);
 
 			set_need_save_resume(torrent_handle::if_state_changed);
