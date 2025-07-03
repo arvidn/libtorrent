@@ -54,7 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef TORRENT_USE_OPENSSL
 #include <openssl/opensslv.h> // for OPENSSL_VERSION_NUMBER
-#if OPENSSL_VERSION_NUMBER < 0x1000000fL
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
 #error OpenSSL too old, use a recent version with SNI support
 #endif
 #ifdef TORRENT_WINDOWS
