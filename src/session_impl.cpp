@@ -6406,7 +6406,7 @@ namespace {
 				{
 					session_log(">>> SET_DSCP [ tcp (%s %d) value: %x e: %s ]"
 						, l->sock->local_endpoint().address().to_string().c_str()
-						, l->sock->local_endpoint().port(), value, ec.message().c_str());
+						, l->sock->local_endpoint().port(), std::uint32_t(value), ec.message().c_str());
 				}
 #endif
 			}
@@ -6422,7 +6422,7 @@ namespace {
 					session_log(">>> SET_DSCP [ udp (%s %d) value: %x e: %s ]"
 						, l->udp_sock->sock.local_endpoint().address().to_string().c_str()
 						, l->udp_sock->sock.local_port()
-						, value, ec.message().c_str());
+						, std::uint32_t(value), ec.message().c_str());
 				}
 #endif
 			}

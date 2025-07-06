@@ -377,8 +377,7 @@ namespace libtorrent {
 		if (m_transaction_id != transaction)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-		if (cb) cb->debug_log("*** UDP_TRACKER_PACKET [ tid: %x ]"
-				, int(transaction));
+		if (cb) cb->debug_log("*** UDP_TRACKER_PACKET [ tid: %x ]", transaction);
 #endif
 			return false;
 		}
@@ -404,8 +403,7 @@ namespace libtorrent {
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (cb)
-			cb->debug_log("*** UDP_TRACKER_RESPONSE [ tid: %x ]"
-				, int(transaction));
+			cb->debug_log("*** UDP_TRACKER_RESPONSE [ tid: %x ]", transaction);
 #endif
 
 		switch (m_state)

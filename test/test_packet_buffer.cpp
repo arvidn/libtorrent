@@ -110,12 +110,12 @@ TORRENT_TEST(insert)
 	{
 		int index = (i + 0xfff0) & 0xffff;
 		pb.insert(packet_buffer::index_type(index), make_pkt(pool, index + 1));
-		std::printf("insert: %u (mask: %x)\n", index, int(pb.capacity() - 1));
+		std::printf("insert: %d (mask: %x)\n", index, pb.capacity() - 1);
 		TEST_EQUAL(pb.capacity(), 512);
 		if (i >= 14)
 		{
 			index = (index - 14) & 0xffff;
-			std::printf("remove: %u\n", index);
+			std::printf("remove: %d\n", index);
 			TEST_EQUAL(get_val(pb.remove(packet_buffer::index_type(index)).get()), std::uint8_t(index + 1));
 			TEST_EQUAL(pb.size(), 14);
 		}

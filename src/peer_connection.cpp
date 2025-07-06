@@ -1583,7 +1583,7 @@ namespace libtorrent {
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::incoming_message, "REJECT_PIECE", "piece: %d s: %x l: %x"
-			, static_cast<int>(r.piece), r.start, r.length);
+			, static_cast<int>(r.piece), std::uint32_t(r.start), std::uint32_t(r.length));
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -1605,7 +1605,7 @@ namespace libtorrent {
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "REJECT_PIECE", "invalid reject message (%d, %d, %d)"
-				, int(r.piece), int(r.start), int(r.length));
+				, static_cast<int>(r.piece), r.start, r.length);
 #endif
 			return;
 		}
@@ -2399,7 +2399,7 @@ namespace libtorrent {
 			&& r.piece < t->torrent_file().end_piece();
 
 		peer_log(peer_log_alert::incoming_message, "REQUEST"
-			, "piece: %d s: %x l: %x", static_cast<int>(r.piece), r.start, r.length);
+			, "piece: %d s: %x l: %x", static_cast<int>(r.piece), std::uint32_t(r.start), std::uint32_t(r.length));
 #endif
 
 #ifndef TORRENT_DISABLE_SUPERSEEDING
@@ -2840,7 +2840,7 @@ namespace libtorrent {
 		if (should_log(peer_log_alert::incoming_message))
 		{
 			peer_log(peer_log_alert::incoming_message, "PIECE", "piece: %d s: %x l: %x ds: %d qs: %d q: %d"
-				, static_cast<int>(p.piece), p.start, p.length, statistics().download_rate()
+				, static_cast<int>(p.piece), std::uint32_t(p.start), std::uint32_t(p.length), statistics().download_rate()
 				, int(m_desired_queue_size), int(m_download_queue.size()));
 		}
 #endif
@@ -2973,7 +2973,7 @@ namespace libtorrent {
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "FILE_ASYNC_WRITE", "piece: %d s: %x l: %x"
-			, static_cast<int>(p.piece), p.start, p.length);
+			, static_cast<int>(p.piece), std::uint32_t(p.start), std::uint32_t(p.length));
 #endif
 		m_download_queue.erase(b);
 		if (m_download_queue.empty())
@@ -3154,7 +3154,7 @@ namespace libtorrent {
 		if (should_log(peer_log_alert::info))
 		{
 			peer_log(peer_log_alert::info, "FILE_ASYNC_WRITE_COMPLETE", "piece: %d s: %x l: %x e: %s"
-				, static_cast<int>(p.piece), p.start, p.length, error.ec.message().c_str());
+				, static_cast<int>(p.piece), std::uint32_t(p.start), std::uint32_t(p.length), error.ec.message().c_str());
 		}
 #endif
 
@@ -3289,7 +3289,7 @@ namespace libtorrent {
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::incoming_message, "CANCEL"
-			, "piece: %d s: %x l: %x", static_cast<int>(r.piece), r.start, r.length);
+			, "piece: %d s: %x l: %x", static_cast<int>(r.piece), std::uint32_t(r.start), std::uint32_t(r.length));
 #endif
 
 		auto const i = std::find(m_requests.begin(), m_requests.end(), r);
@@ -4169,7 +4169,7 @@ namespace libtorrent {
 			{
 				peer_log(peer_log_alert::outgoing_message, "REQUEST"
 					, "piece: %d s: %x l: %x ds: %dB/s dqs: %d rqs: %d blk: %s"
-					, static_cast<int>(r.piece), r.start, r.length, statistics().download_rate()
+					, static_cast<int>(r.piece), std::uint32_t(r.start), std::uint32_t(r.length), statistics().download_rate()
 					, int(m_desired_queue_size), int(m_download_queue.size())
 					, m_request_large_blocks?"large":"single");
 			}
@@ -5369,7 +5369,7 @@ namespace libtorrent {
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log(peer_log_alert::info, "PIECE_FAILED"
 					, "piece: %d s: %x l: %x piece failed hash check"
-					, static_cast<int>(r.piece), r.start , r.length);
+					, static_cast<int>(r.piece), std::uint32_t(r.start), std::uint32_t(r.length));
 #endif
 				write_reject_request(r);
 			}
@@ -5377,7 +5377,7 @@ namespace libtorrent {
 			{
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log(peer_log_alert::info, "FILE_ASYNC_READ"
-					, "piece: %d s: %x l: %x", static_cast<int>(r.piece), r.start, r.length);
+					, "piece: %d s: %x l: %x", static_cast<int>(r.piece), std::uint32_t(r.start), std::uint32_t(r.length));
 #endif
 				m_reading_bytes += r.length;
 #ifndef TORRENT_DISABLE_SHARE_MODE
@@ -5589,7 +5589,7 @@ namespace libtorrent {
 		{
 			peer_log(peer_log_alert::info, "FILE_ASYNC_READ_COMPLETE"
 				, "piece: %d s: %x l: %x b: %p e: %s rtt: %d us"
-				, static_cast<int>(r.piece), r.start, r.length
+				, static_cast<int>(r.piece), std::uint32_t(r.start), std::uint32_t(r.length)
 				, static_cast<void*>(buffer.data())
 				, error.ec.message().c_str(), disk_rtt);
 		}
@@ -5643,7 +5643,7 @@ namespace libtorrent {
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing_message
 			, "PIECE", "piece: %d s: %x l: %x"
-			, static_cast<int>(r.piece), r.start, r.length);
+			, static_cast<int>(r.piece), std::uint32_t(r.start), std::uint32_t(r.length));
 #endif
 
 		m_counters.blend_stats_counter(counters::request_latency, disk_rtt, 5);
