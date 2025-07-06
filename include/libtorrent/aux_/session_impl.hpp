@@ -1080,7 +1080,7 @@ namespace aux {
 			void received_synack(bool ipv6) override;
 
 #if TORRENT_ABI_VERSION == 1
-			int m_peak_up_rate = 0;
+			std::int64_t m_peak_up_rate = 0;
 #endif
 
 			void on_tick(error_code const& e);

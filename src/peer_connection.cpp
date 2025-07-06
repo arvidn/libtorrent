@@ -19,6 +19,7 @@ see LICENSE file.
 #include <vector>
 #include <functional>
 #include <cstdint>
+#include <cinttypes> // for PRId64 et.al.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/logic/tribool.hpp>
@@ -1049,7 +1050,7 @@ namespace {
 		auto t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
-		int rate = 0;
+		std::int64_t rate = 0;
 
 		// if we haven't received any data recently, the current download rate
 		// is not representative
@@ -2818,7 +2819,7 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::incoming_message))
 		{
-			peer_log(peer_log_alert::incoming_message, peer_log_alert::piece, "piece: %d s: %x l: %x ds: %d qs: %d q: %d"
+			peer_log(peer_log_alert::incoming_message, peer_log_alert::piece, "piece: %d s: %x l: %x ds: %" PRId64 " qs: %d q: %d"
 				, static_cast<int>(p.piece), std::uint32_t(p.start), std::uint32_t(p.length), statistics().download_rate()
 				, int(m_desired_queue_size), int(m_download_queue.size()));
 		}
@@ -4154,7 +4155,7 @@ namespace {
 			if (should_log(peer_log_alert::outgoing_message))
 			{
 				peer_log(peer_log_alert::outgoing_message, peer_log_alert::request
-					, "piece: %d s: %x l: %x ds: %dB/s dqs: %d rqs: %d blk: %s"
+					, "piece: %d s: %x l: %x ds: %" PRId64 "B/s dqs: %d rqs: %d blk: %s"
 					, static_cast<int>(r.piece), std::uint32_t(r.start), std::uint32_t(r.length), statistics().download_rate()
 					, int(m_desired_queue_size), int(m_download_queue.size())
 					, m_request_large_blocks?"large":"single");
@@ -4789,7 +4790,7 @@ namespace {
 		int const previous_queue_size = m_desired_queue_size;
 #endif
 
-		int const download_rate = statistics().download_payload_rate();
+		std::int64_t const download_rate = statistics().download_payload_rate();
 
 		// the desired download queue size
 		int const queue_time = m_settings.get_int(settings_pack::request_queue_time);
@@ -4822,7 +4823,7 @@ namespace {
 		if (previous_queue_size != m_desired_queue_size)
 		{
 			peer_log(peer_log_alert::info, peer_log_alert::update_queue_size
-				, "dqs: %d max: %d dl: %d qt: %d snubbed: %d slow-start: %d"
+				, "dqs: %d max: %d dl: %" PRId64 " qt: %d snubbed: %d slow-start: %d"
 				, int(m_desired_queue_size), int(m_max_out_request_queue)
 				, download_rate, queue_time, int(m_snubbed), int(m_slow_start));
 		}
@@ -4846,11 +4847,11 @@ namespace {
 		if (m_settings.get_bool(settings_pack::rate_limit_ip_overhead) && t)
 		{
 			warning |= m_ses.use_quota_overhead(*this
-				, m_statistics.download_ip_overhead()
-				, m_statistics.upload_ip_overhead());
+				, int(m_statistics.download_ip_overhead())
+				, int(m_statistics.upload_ip_overhead()));
 			warning |= m_ses.use_quota_overhead(*t
-				, m_statistics.download_ip_overhead()
-				, m_statistics.upload_ip_overhead());
+				, int(m_statistics.download_ip_overhead())
+				, int(m_statistics.upload_ip_overhead()));
 		}
 
 		if (warning && t->alerts().should_post<performance_alert>())
@@ -5082,8 +5083,8 @@ namespace {
 			if (should_log(peer_log_alert::info))
 			{
 				peer_log(peer_log_alert::info, peer_log_alert::slow_start, "exit slow start: "
-					"prev-dl: %d dl: %d"
-					, int(m_downloaded_last_second)
+					"prev-dl: %" PRId64 " dl: %" PRId64
+					, m_downloaded_last_second
 					, m_statistics.last_payload_downloaded());
 			}
 #endif
@@ -5253,7 +5254,7 @@ namespace {
 		// only add new piece-chunks if the send buffer is small enough
 		// otherwise there will be no end to how large it will be!
 
-		int buffer_size_watermark = int(std::int64_t(m_uploaded_last_second)
+		int buffer_size_watermark = int(m_uploaded_last_second
 			* m_settings.get_int(settings_pack::send_buffer_watermark_factor) / 100);
 
 		if (buffer_size_watermark < m_settings.get_int(settings_pack::send_buffer_low_watermark))
@@ -5269,12 +5270,12 @@ namespace {
 		if (should_log(peer_log_alert::outgoing))
 		{
 			peer_log(peer_log_alert::outgoing, peer_log_alert::send_buffer_watermark
-				, "current watermark: %d max: %d min: %d factor: %d uploaded: %d B/s"
+				, "current watermark: %d max: %d min: %d factor: %d uploaded: %" PRId64 " B/s"
 				, buffer_size_watermark
 				, m_ses.settings().get_int(settings_pack::send_buffer_watermark)
 				, m_ses.settings().get_int(settings_pack::send_buffer_low_watermark)
 				, m_ses.settings().get_int(settings_pack::send_buffer_watermark_factor)
-				, int(m_uploaded_last_second));
+				, m_uploaded_last_second);
 		}
 #endif
 
