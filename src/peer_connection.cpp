@@ -1562,7 +1562,7 @@ namespace {
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::incoming_message, peer_log_alert::reject, "piece: %d s: %x l: %x"
-			, static_cast<int>(r.piece), r.start, r.length);
+			, static_cast<int>(r.piece), std::uint32_t(r.start), std::uint32_t(r.length));
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -1584,7 +1584,7 @@ namespace {
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, peer_log_alert::reject, "invalid reject message (%d, %d, %d)"
-				, int(r.piece), int(r.start), int(r.length));
+				, int(r.piece), r.start, r.length);
 #endif
 			return;
 		}
@@ -2378,7 +2378,7 @@ namespace {
 			&& r.piece < t->torrent_file().end_piece();
 
 		peer_log(peer_log_alert::incoming_message, peer_log_alert::request
-			, "piece: %d s: %x l: %x", static_cast<int>(r.piece), r.start, r.length);
+			, "piece: %d s: %x l: %x", static_cast<int>(r.piece), std::uint32_t(r.start), std::uint32_t(r.length));
 #endif
 
 #ifndef TORRENT_DISABLE_SUPERSEEDING
@@ -2819,7 +2819,7 @@ namespace {
 		if (should_log(peer_log_alert::incoming_message))
 		{
 			peer_log(peer_log_alert::incoming_message, peer_log_alert::piece, "piece: %d s: %x l: %x ds: %d qs: %d q: %d"
-				, static_cast<int>(p.piece), p.start, p.length, statistics().download_rate()
+				, static_cast<int>(p.piece), std::uint32_t(p.start), std::uint32_t(p.length), statistics().download_rate()
 				, int(m_desired_queue_size), int(m_download_queue.size()));
 		}
 #endif
@@ -2952,7 +2952,7 @@ namespace {
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, peer_log_alert::file_async_write, "piece: %d s: %x l: %x"
-			, static_cast<int>(p.piece), p.start, p.length);
+			, static_cast<int>(p.piece), std::uint32_t(p.start), std::uint32_t(p.length));
 #endif
 		m_download_queue.erase(b);
 		if (m_download_queue.empty())
@@ -3140,7 +3140,7 @@ namespace {
 		if (should_log(peer_log_alert::info))
 		{
 			peer_log(peer_log_alert::info, peer_log_alert::file_async_write_complete, "piece: %d s: %x l: %x e: %s"
-				, static_cast<int>(p.piece), p.start, p.length, error.ec.message().c_str());
+				, static_cast<int>(p.piece), std::uint32_t(p.start), std::uint32_t(p.length), error.ec.message().c_str());
 		}
 #endif
 
@@ -3275,7 +3275,7 @@ namespace {
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::incoming_message, peer_log_alert::cancel
-			, "piece: %d s: %x l: %x", static_cast<int>(r.piece), r.start, r.length);
+			, "piece: %d s: %x l: %x", static_cast<int>(r.piece), std::uint32_t(r.start), std::uint32_t(r.length));
 #endif
 
 		auto const i = std::find(m_requests.begin(), m_requests.end(), r);
@@ -4155,7 +4155,7 @@ namespace {
 			{
 				peer_log(peer_log_alert::outgoing_message, peer_log_alert::request
 					, "piece: %d s: %x l: %x ds: %dB/s dqs: %d rqs: %d blk: %s"
-					, static_cast<int>(r.piece), r.start, r.length, statistics().download_rate()
+					, static_cast<int>(r.piece), std::uint32_t(r.start), std::uint32_t(r.length), statistics().download_rate()
 					, int(m_desired_queue_size), int(m_download_queue.size())
 					, m_request_large_blocks?"large":"single");
 			}
@@ -5356,7 +5356,7 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log(peer_log_alert::info, peer_log_alert::piece_failed
 					, "piece: %d s: %x l: %x piece failed hash check"
-					, static_cast<int>(r.piece), r.start , r.length);
+					, static_cast<int>(r.piece), std::uint32_t(r.start), std::uint32_t(r.length));
 #endif
 				write_reject_request(r);
 			}
@@ -5364,7 +5364,7 @@ namespace {
 			{
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log(peer_log_alert::info, peer_log_alert::file_async_read
-					, "piece: %d s: %x l: %x", static_cast<int>(r.piece), r.start, r.length);
+					, "piece: %d s: %x l: %x", static_cast<int>(r.piece), std::uint32_t(r.start), std::uint32_t(r.length));
 #endif
 				m_reading_bytes += r.length;
 #ifndef TORRENT_DISABLE_SHARE_MODE
@@ -5576,7 +5576,7 @@ namespace {
 		{
 			peer_log(peer_log_alert::info, peer_log_alert::file_async_read_complete
 				, "piece: %d s: %x l: %x b: %p e: %s rtt: %d us"
-				, static_cast<int>(r.piece), r.start, r.length
+				, static_cast<int>(r.piece), std::uint32_t(r.start), std::uint32_t(r.length)
 				, static_cast<void*>(buffer.data())
 				, error.ec.message().c_str(), disk_rtt);
 		}
@@ -5630,7 +5630,7 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing_message
 			, peer_log_alert::piece, "piece: %d s: %x l: %x"
-			, static_cast<int>(r.piece), r.start, r.length);
+			, static_cast<int>(r.piece), std::uint32_t(r.start), std::uint32_t(r.length));
 #endif
 
 		m_counters.blend_stats_counter(counters::request_latency, disk_rtt, 5);

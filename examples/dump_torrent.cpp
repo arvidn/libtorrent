@@ -149,7 +149,7 @@ int main(int argc, char const* argv[]) try
 		if (!st.root(i).is_all_zeros())
 			file_root << st.root(i);
 		std::printf(" %8" PRIx64 " %11" PRId64 " %c%c%c%c [ %5d, %5d ] %7u %s %s %s%s\n"
-			, st.file_offset(i)
+			, std::uint64_t(st.file_offset(i))
 			, st.file_size(i)
 			, ((flags & lt::file_storage::flag_pad_file)?'p':'-')
 			, ((flags & lt::file_storage::flag_executable)?'x':'-')

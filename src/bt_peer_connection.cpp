@@ -1667,7 +1667,7 @@ namespace {
 				{
 					static char const* err_msg[] = {"no such peer", "not connected", "no support", "no self"};
 					peer_log(peer_log_alert::incoming_message, peer_log_alert::holepunch
-						, "msg:failed ERROR: %d msg: %s", error
+						, "msg:failed ERROR: %u msg: %s", error
 						, ((error > 0 && error < 5)?err_msg[error-1]:"unknown message id"));
 				}
 #endif

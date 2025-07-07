@@ -211,7 +211,7 @@ struct session_mock : aux::session_interface
 			alert* a = *i;
 			time_duration d = a->timestamp() - start_time;
 			std::uint32_t millis = std::uint32_t(duration_cast<milliseconds>(d).count());
-			std::printf("%4d.%03d: %-25s %s\n", millis / 1000, millis % 1000
+			std::printf("%4u.%03u: %-25s %s\n", millis / 1000, millis % 1000
 				, a->what()
 				, a->message().c_str());
 		}

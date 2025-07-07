@@ -517,7 +517,7 @@ namespace {
 				// pad files don't need a path element, we'll just store them
 				// under the .pad directory
 				char cnt[20];
-				std::snprintf(cnt, sizeof(cnt), "%" PRIu64, file_size);
+				std::snprintf(cnt, sizeof(cnt), "%" PRIi64, file_size);
 				path = combine_path(".pad", cnt);
 			}
 			else

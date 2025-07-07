@@ -26,6 +26,7 @@ Copyright (c) 2021, Joris CARRIER
 Copyright (c) 2021, Mark Scott
 Copyright (c) 2021, thrnz
 Copyright (c) 2024, Elyas EL IDRISSI
+Copyright (c) 2025, Vladimir Golovnev (glassez)
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,
@@ -5161,13 +5162,11 @@ namespace {
 
 		if (error)
 		{
-			//if (alerts().should_post<file_rename_failed_alert>())
 			alerts().emplace_alert<file_rename_failed_alert>(get_handle()
 				, file_idx, error.ec);
 		}
 		else
 		{
-			//if (alerts().should_post<file_renamed_alert>())
 			alerts().emplace_alert<file_renamed_alert>(get_handle()
 				, filename, m_torrent_file->files().file_path(file_idx), file_idx);
 			m_renamed_files.rename_file(m_torrent_file->files(), file_idx, filename);
@@ -9594,6 +9593,20 @@ namespace {
 		add_torrent_params atp;
 		write_resume_data(flags, atp);
 		alerts().emplace_alert<save_resume_data_alert>(std::move(atp), get_handle());
+	}
+
+	add_torrent_params torrent::get_resume_data(resume_data_flags_t const flags) const
+	{
+		TORRENT_ASSERT(is_single_thread());
+		INVARIANT_CHECK;
+
+		if (m_abort)
+			return {};
+
+		add_torrent_params atp;
+		write_resume_data(flags, atp);
+
+		return atp;
 	}
 
 	bool torrent::should_check_files() const

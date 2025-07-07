@@ -616,6 +616,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 #else
 		int const flags = 0;
 #endif
+		TORRENT_UNUSED(flags);
 
 #if defined TORRENT_BUILD_SIMULATOR
 

@@ -1074,7 +1074,6 @@ int main(int argc, char* argv[])
 	}
 	else if (command == "gen-data"_sv)
 	{
-		error_code ec;
 		try
 		{
 			add_torrent_params atp = load_torrent_file(torrent_file);

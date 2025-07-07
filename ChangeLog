@@ -19,6 +19,9 @@
 
 2.0.12
 
+	* cache DNS failures for a shorter time
+	* file_renamed_alert is always posted, regardless of alert mask
+	* add feature to request resume data synchronously
 	* don't leak file descriptors to child processes (O_CLOEXEC)
 	* optimize the utp resend
 	* optimize tracker announcements

@@ -1931,8 +1931,10 @@ namespace aux {
 			max_web_seed_connections,
 
 			// the number of seconds before the internal host name resolver
-			// considers a cache value timed out, negative values are interpreted
-			// as zero.
+			// considers a cache value out of date, and removes it. Negative
+			// values are interpreted as zero. The host name cache also caches
+			// failed DNS lookups, but only for 1/8th of the time of this
+			// timeout.
 			resolver_cache_timeout,
 
 			// specify the not-sent low watermark for socket send buffers. This

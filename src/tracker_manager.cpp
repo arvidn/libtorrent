@@ -414,7 +414,7 @@ namespace libtorrent::aux {
 			// now, this may not have been meant to be a tracker response,
 			// but chances are pretty good, so it's probably worth logging
 			m_ses.session_log("incoming UDP tracker packet from %s has invalid "
-				"transaction ID (%x)", std::string(hostname).c_str(), int(transaction));
+				"transaction ID (%x)", std::string(hostname).c_str(), transaction);
 #endif
 			return false;
 		}

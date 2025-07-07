@@ -2166,7 +2166,7 @@ done:
 					lt::bitfield avail(num_pieces);
 					for (int idx = 0; idx != num_pieces; ++idx)
 					{
-						if (client_state.piece_availability[idx] > 0)
+						if (client_state.piece_availability[std::size_t(idx)] > 0)
 							avail.set_bit(idx);
 					}
 					int height_out = 0;
