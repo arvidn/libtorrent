@@ -24,6 +24,7 @@ see LICENSE file.
 #include <string>
 #include <sstream>
 #include <unordered_map>
+#include <thread>
 
 #include "libtorrent/aux_/disk_job.hpp"
 #include "libtorrent/disk_interface.hpp"
@@ -81,16 +82,20 @@ inline std::string print_job(aux::disk_job const& j)
 		}
 
 		void operator()(job::file_priority const& j) const {
-			m_ss << "file-priority( num-files:" << j.prio.size() << " )";
+			m_ss << "file-priority( num-files: " << j.prio.size() << " )";
 		}
 
 		void operator()(job::clear_piece const& j) const {
-			m_ss << "clear-piece( piece:" << j.piece << " )";
+			m_ss << "clear-piece( piece: " << j.piece << " )";
 		}
 
 		void operator()(job::partial_read const& j) const {
 			m_ss << "partial-read( piece: " << j.piece << " offset: " << j.offset
 				<< " buf-offset: " << j.buffer_offset << " size: " << j.buffer_size << " )";
+		}
+
+		void operator()(job::kick_hasher const& j) const {
+			m_ss << "kick-hasher( piece: " << j.piece << " )";
 		}
 
 	private:
