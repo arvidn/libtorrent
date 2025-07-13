@@ -1976,7 +1976,8 @@ bool is_downloading_state(int const st)
 				// complete and just look at those
 				if (!t->is_seed()) continue;
 
-				res.match(t->get_torrent_file(), t->save_path());
+				auto ti = t->get_torrent_file();
+				res.match(*ti, ti->files(), t->save_path());
 			}
 			for (auto const& c : m_torrent_file->collections())
 			{
@@ -1989,21 +1990,12 @@ bool is_downloading_state(int const st)
 					// complete and just look at those
 					if (!t->is_seed()) continue;
 
-					res.match(t->get_torrent_file(), t->save_path());
+					auto ti = t->get_torrent_file();
+					res.match(*ti, ti->files(), t->save_path());
 				}
 			}
 
-			std::vector<resolve_links::link_t> const& l = res.get_links();
-			if (!l.empty())
-			{
-				links.resize(m_torrent_file->files().num_files());
-				for (auto const& i : l)
-				{
-					if (!i.ti) continue;
-					links[i.file_idx] = combine_path(i.save_path
-						, i.ti->files().file_path(i.file_idx));
-				}
-			}
+			links = std::move(res).get_links();
 		}
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 

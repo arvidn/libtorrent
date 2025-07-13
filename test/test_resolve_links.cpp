@@ -91,16 +91,16 @@ TORRENT_TEST(resolve_links)
 
 		p = combine_path(path, e.filename2) + ".torrent";
 		std::printf("loading %s\n", p.c_str());
-		std::shared_ptr<torrent_info const> ti2 = load_torrent_file(p).ti;
+		auto atp2 = load_torrent_file(p);
 
 		std::printf("resolving\n");
 		aux::resolve_links l(ti1);
-		l.match(ti2, ".");
+		l.match(*atp2.ti, atp2.ti->files(), ".");
 
-		aux::vector<aux::resolve_links::link_t, file_index_t> const& links = l.get_links();
+		aux::vector<std::string, file_index_t> const& links = l.get_links();
 
 		auto const num_matches = std::size_t(std::count_if(links.begin(), links.end()
-			, std::bind(&aux::resolve_links::link_t::ti, _1)));
+			, [](std::string const& link) { return !link.empty(); }));
 
 		// some debug output in case the test fails
 		if (num_matches > e.expected_matches)
@@ -109,17 +109,14 @@ TORRENT_TEST(resolve_links)
 			for (file_index_t idx{0}; idx != links.end_index(); ++idx)
 			{
 				TORRENT_ASSERT(idx < file_index_t{fs.num_files()});
-				std::printf("%*s --> %s : %d\n"
+				std::printf("%*s --> %s\n"
 					, int(fs.file_name(idx).size())
 					, fs.file_name(idx).data()
-					, links[idx].ti
-					? aux::to_hex(links[idx].ti->info_hash()).c_str()
-					: "", static_cast<int>(links[idx].file_idx));
+					, links[idx].c_str());
 			}
 		}
 
 		TEST_EQUAL(num_matches, e.expected_matches);
-
 	}
 }
 
@@ -146,16 +143,16 @@ TORRENT_TEST(range_lookup_duplicated_files)
 	std::vector<char> const tmp1 = bencode(t1.generate());
 	std::vector<char> const tmp2 = bencode(t2.generate());
 	auto ti1 = load_torrent_buffer(tmp1).ti;
-	auto ti2 = load_torrent_buffer(tmp2).ti;
+	auto atp2 = load_torrent_buffer(tmp2);
 
 	std::printf("resolving\n");
 	aux::resolve_links l(ti1);
-	l.match(ti2, ".");
+	l.match(*atp2.ti, atp2.ti->files(), ".");
 
-	aux::vector<aux::resolve_links::link_t, file_index_t> const& links = l.get_links();
+	aux::vector<std::string, file_index_t> const& links = l.get_links();
 
-	auto const num_matches = std::count_if(links.begin(), links.end()
-		, std::bind(&aux::resolve_links::link_t::ti, _1));
+	auto const num_matches = std::size_t(std::count_if(links.begin(), links.end()
+		, [](std::string const& link) { return !link.empty(); }));
 
 	TEST_EQUAL(num_matches, 1);
 }
