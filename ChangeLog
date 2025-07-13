@@ -1,5 +1,6 @@
 2.1.0 not released
 
+	* deprecated remap_files(), and prevent it from breaking v2 torrents
 	* fix peer_info holding an i2p destination
 	* implement i2p_pex, peer exchange support for i2p torrents
 	* deprecate torrent_alert::torrent_name()

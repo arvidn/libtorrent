@@ -878,6 +878,7 @@ namespace {
 		return true;
 	}
 
+#if TORRENT_ABI_VERSION < 4
 	void torrent_info::remap_files(file_storage const& f)
 	{
 		INVARIANT_CHECK;
@@ -885,14 +886,22 @@ namespace {
 		TORRENT_ASSERT(is_loaded());
 		// the new specified file storage must have the exact
 		// same size as the current file storage
-		TORRENT_ASSERT(m_files.total_size() == f.total_size());
+		TORRENT_ASSERT_PRECOND(m_files.total_size() == f.total_size());
+
+		// v2 torrents cannot be remapped. The file sizes are tied to the merkle
+		// trees.
+		TORRENT_ASSERT_PRECOND(!m_files.v2());
+		TORRENT_ASSERT_PRECOND(!f.v2());
 
 		if (m_files.total_size() != f.total_size()) return;
+		if (m_files.v2() || f.v2()) return;
+
 		copy_on_write();
 		m_files = f;
 		m_files.set_num_pieces(m_orig_files->num_pieces());
 		m_files.set_piece_length(m_orig_files->piece_length());
 	}
+#endif
 
 #if TORRENT_ABI_VERSION == 1
 #ifndef BOOST_NO_EXCEPTIONS

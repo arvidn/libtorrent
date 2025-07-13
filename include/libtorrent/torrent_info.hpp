@@ -216,10 +216,6 @@ TORRENT_VERSION_NAMESPACE_4
 		// filename is reflected by the ``file_storage`` returned by ``files()``
 		// but not by the one returned by ``orig_files()``.
 		//
-		// If you want to rename the base name of the torrent (for a multi file
-		// torrent), you can copy the ``file_storage`` (see files() and
-		// orig_files() ), change the name, and then use `remap_files()`_.
-		//
 		// The ``new_filename`` can both be a relative path, in which case the
 		// file name is relative to the ``save_path`` of the torrent. If the
 		// ``new_filename`` is an absolute path (i.e. ``is_complete(new_filename)
@@ -228,6 +224,7 @@ TORRENT_VERSION_NAMESPACE_4
 		// invoked.
 		void rename_file(file_index_t index, std::string const& new_filename);
 
+#if TORRENT_ABI_VERSION < 4
 		// .. warning::
 		// 	Using `remap_files()` is discouraged as it's incompatible with v2
 		// 	torrents. This is because the piece boundaries and piece hashes in
@@ -242,9 +239,9 @@ TORRENT_VERSION_NAMESPACE_4
 		//
 		// The new specified ``file_storage`` must have the exact same size as
 		// the current one.
+		TORRENT_DEPRECATED
 		void remap_files(file_storage const& f);
 
-#if TORRENT_ABI_VERSION < 4
 		// ``add_tracker()`` adds a tracker to the announce-list. The ``tier``
 		// determines the order in which the trackers are to be tried.
 		// The ``trackers()`` function will return a sorted vector of
