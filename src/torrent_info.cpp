@@ -465,7 +465,11 @@ namespace {
 		, std::string const& root_dir, std::ptrdiff_t const info_offset
 		, char const* info_buffer, bool const top_level, error_code& ec)
 	{
-		if (dict.type() != bdecode_node::dict_t) return false;
+		if (dict.type() != bdecode_node::dict_t)
+		{
+			ec = errors::torrent_file_parse_failed;
+			return false;
+		}
 
 		file_flags_t file_flags = get_file_attributes(dict);
 
@@ -1230,7 +1234,7 @@ namespace {
 
 		bdecode_node const files_node = info.dict_find_list("files");
 
-		bdecode_node file_tree_node = info.dict_find_dict("file tree");
+		bdecode_node const file_tree_node = info.dict_find_dict("file tree");
 		if (version >= 2 && file_tree_node)
 		{
 			if (!extract_files2(file_tree_node, files, name, info_offset
