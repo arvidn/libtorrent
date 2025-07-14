@@ -905,7 +905,7 @@ TORRENT_VERSION_NAMESPACE_4
 	torrent_info::torrent_info(bdecode_node const& info_section, error_code& ec
 		, load_torrent_limits const& cfg, from_info_section_t)
 	{
-		parse_info_section(info_section, ec, cfg.max_pieces);
+		parse_info_section_impl(info_section, ec, cfg.max_pieces);
 	}
 
 	torrent_info::~torrent_info() = default;
@@ -1002,13 +1002,22 @@ TORRENT_VERSION_NAMESPACE_4
 	}
 #endif
 
+#if TORRENT_ABI_VERSION < 4
 	bool torrent_info::parse_info_section(bdecode_node const& info
+		, error_code& ec, int const max_pieces)
+	{
+		parse_info_section_impl(info, ec, max_pieces);
+		return !ec;
+	}
+#endif
+
+	void torrent_info::parse_info_section_impl(bdecode_node const& info
 		, error_code& ec, int const max_pieces)
 	{
 		if (info.type() != bdecode_node::dict_t)
 		{
 			ec = errors::torrent_info_no_dict;
-			return false;
+			return;
 		}
 
 		// hash the info-field to calculate info-hash
@@ -1018,13 +1027,13 @@ TORRENT_VERSION_NAMESPACE_4
 		if (info.data_section().size() >= std::numeric_limits<int>::max())
 		{
 			ec = errors::metadata_too_large;
-			return false;
+			return;
 		}
 
 		if (section.empty() || section[0] != 'd' || section[section.size() - 1] != 'e')
 		{
 			ec = errors::invalid_bencoding;
-			return false;
+			return;
 		}
 
 		// copy the info section
@@ -1048,13 +1057,13 @@ TORRENT_VERSION_NAMESPACE_4
 			if (info.has_soft_error(error_string))
 			{
 				ec = errors::invalid_bencoding;
-				return false;
+				return;
 			}
 
 			if (version > 2)
 			{
 				ec = errors::torrent_unknown_version;
-				return false;
+				return;
 			}
 		}
 
@@ -1070,7 +1079,7 @@ TORRENT_VERSION_NAMESPACE_4
 		if (piece_length <= 0 || piece_length > file_storage::max_piece_size)
 		{
 			ec = errors::torrent_missing_piece_length;
-			return false;
+			return;
 		}
 
 		// according to BEP 52: "It must be a power of two and at least 16KiB."
@@ -1078,7 +1087,7 @@ TORRENT_VERSION_NAMESPACE_4
 			|| (piece_length & (piece_length - 1)) != 0))
 		{
 			ec = errors::torrent_missing_piece_length;
-			return false;
+			return;
 		}
 
 		file_storage files;
@@ -1092,7 +1101,7 @@ TORRENT_VERSION_NAMESPACE_4
 			ec = errors::torrent_missing_name;
 			// mark the torrent as invalid
 			m_files.set_piece_length(0);
-			return false;
+			return;
 		}
 
 		std::string name;
@@ -1122,7 +1131,7 @@ TORRENT_VERSION_NAMESPACE_4
 			{
 				// mark the torrent as invalid
 				m_files.set_piece_length(0);
-				return false;
+				return;
 			}
 
 			files.sanitize_symlinks();
@@ -1136,14 +1145,14 @@ TORRENT_VERSION_NAMESPACE_4
 			// mark the torrent as invalid
 			m_files.set_piece_length(0);
 			ec = errors::torrent_missing_file_tree;
-			return false;
+			return;
 		}
 		else if (file_tree_node)
 		{
 			// mark the torrent as invalid
 			m_files.set_piece_length(0);
 			ec = errors::torrent_missing_meta_version;
-			return false;
+			return;
 		}
 
 		if (!files_node)
@@ -1159,7 +1168,7 @@ TORRENT_VERSION_NAMESPACE_4
 				{
 					// mark the torrent as invalid
 					m_files.set_piece_length(0);
-					return false;
+					return;
 				}
 
 				m_flags &= ~multifile;
@@ -1177,7 +1186,7 @@ TORRENT_VERSION_NAMESPACE_4
 			{
 				// mark the torrent as invalid
 				m_files.set_piece_length(0);
-				return false;
+				return;
 			}
 			m_flags |= multifile;
 		}
@@ -1186,14 +1195,14 @@ TORRENT_VERSION_NAMESPACE_4
 			ec = errors::no_files_in_torrent;
 			// mark the torrent as invalid
 			m_files.set_piece_length(0);
-			return false;
+			return;
 		}
 		if (files.name().empty())
 		{
 			ec = errors::torrent_missing_name;
 			// mark the torrent as invalid
 			m_files.set_piece_length(0);
-			return false;
+			return;
 		}
 
 		// ensure hybrid torrents have compatible v1 and v2 file storages
@@ -1211,7 +1220,7 @@ TORRENT_VERSION_NAMESPACE_4
 				// mark the torrent as invalid
 				m_files.set_piece_length(0);
 				ec = errors::torrent_inconsistent_files;
-				return false;
+				return;
 			}
 		}
 
@@ -1224,7 +1233,7 @@ TORRENT_VERSION_NAMESPACE_4
 			ec = errors::too_many_pieces_in_torrent;
 			// mark the torrent as invalid
 			m_files.set_piece_length(0);
-			return false;
+			return;
 		}
 
 		files.set_num_pieces(int((files.total_size() + files.piece_length() - 1)
@@ -1237,7 +1246,7 @@ TORRENT_VERSION_NAMESPACE_4
 			ec = errors::too_many_pieces_in_torrent;
 			// mark the torrent as invalid
 			m_files.set_piece_length(0);
-			return false;
+			return;
 		}
 
 		bdecode_node const pieces = info.dict_find_string("pieces");
@@ -1248,7 +1257,7 @@ TORRENT_VERSION_NAMESPACE_4
 				ec = errors::torrent_missing_pieces;
 				// mark the torrent as invalid
 				m_files.set_piece_length(0);
-				return false;
+				return;
 			}
 		}
 		else
@@ -1258,7 +1267,7 @@ TORRENT_VERSION_NAMESPACE_4
 				ec = errors::torrent_invalid_hashes;
 				// mark the torrent as invalid
 				m_files.set_piece_length(0);
-				return false;
+				return;
 			}
 
 			std::ptrdiff_t const hash_offset = pieces.string_offset() - info_offset;
@@ -1312,7 +1321,7 @@ TORRENT_VERSION_NAMESPACE_4
 			ec = errors::torrent_invalid_length;
 			// mark the torrent as invalid
 			m_files.set_piece_length(0);
-			return false;
+			return;
 		}
 
 		// now, commit the files structure we just parsed out
@@ -1320,7 +1329,6 @@ TORRENT_VERSION_NAMESPACE_4
 		m_files.swap(files);
 
 		TORRENT_ASSERT(m_info_hash.has_v2() == m_files.v2());
-		return true;
 	}
 
 #if TORRENT_ABI_VERSION < 4

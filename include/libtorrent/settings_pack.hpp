@@ -2020,8 +2020,7 @@ namespace aux {
 			// ``max_piece_count`` is the maximum allowed number of pieces in
 			// metadata received via magnet links. Loading large torrents (with
 			// more pieces than the default limit) may also require passing in
-			// a higher limit to read_resume_data() and
-			// torrent_info::parse_info_section(), if those are used.
+			// a higher limit to read_resume_data() and load_torrent_file().
 			max_piece_count,
 
 			// when receiving metadata (torrent file) from peers, this is the
