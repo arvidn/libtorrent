@@ -33,8 +33,8 @@ namespace libtorrent {
 	// instead configured with limits on torrent sizes via load_torrent limits.
 	//
 	// In order to support large torrents, it may also be necessary to raise the
-	// settings_pack::max_piece_count setting and pass a higher limit to calls
-	// to torrent_info::parse_info_section().
+	// settings_pack::max_piece_count setting and pass a higher limit in the cfg
+	// parameter.
 	TORRENT_EXPORT add_torrent_params read_resume_data(bdecode_node const& rd
 		, error_code& ec, int piece_limit = 0x200000);
 	TORRENT_EXPORT add_torrent_params read_resume_data(span<char const> buffer

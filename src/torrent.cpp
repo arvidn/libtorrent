@@ -7843,12 +7843,19 @@ namespace {
 
 		error_code ec;
 		int pos = 0;
+		auto const& sett = settings();
 		bdecode_node const metadata = bdecode(metadata_buf, ec, &pos, 200
-			, settings().get_int(settings_pack::metadata_token_limit));
+			, sett.get_int(settings_pack::metadata_token_limit));
 
-		auto info = std::make_shared<torrent_info>(*m_torrent_file);
-		if (ec || !info->parse_info_section(metadata, ec
-			, settings().get_int(settings_pack::max_piece_count)))
+		std::shared_ptr<torrent_info> info;
+		if (!ec)
+		{
+			load_torrent_limits cfg;
+			cfg.max_pieces = sett.get_int(settings_pack::max_piece_count);
+			info = std::make_shared<torrent_info>(metadata, ec, cfg, from_info_section);
+		}
+
+		if (ec)
 		{
 			update_gauge();
 			// this means the metadata is correct, since we

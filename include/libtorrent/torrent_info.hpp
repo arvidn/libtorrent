@@ -586,6 +586,10 @@ TORRENT_VERSION_NAMESPACE_4
 		{ m_nodes.push_back(node); }
 #endif
 
+#if TORRENT_ABI_VERSION < 4
+		// This function is deprecated. Instead use the constructor that takes a
+		// from_info_section_t.
+		//
 		// populates the torrent_info by providing just the info-dict buffer.
 		// This is used when loading a torrent from a magnet link for instance,
 		// where we only have the info-dict. The bdecode_node ``e`` points to a
@@ -596,7 +600,9 @@ TORRENT_VERSION_NAMESPACE_4
 		// the limit. To load large torrents, this limit may also need to be
 		// raised in settings_pack::max_piece_count and in calls to
 		// read_resume_data().
+		TORRENT_DEPRECATED
 		bool parse_info_section(bdecode_node const& info, error_code& ec, int max_pieces);
+#endif
 
 #if TORRENT_ABI_VERSION < 3
 		TORRENT_DEPRECATED
@@ -692,6 +698,8 @@ TORRENT_VERSION_NAMESPACE_4
 #endif
 
 	private:
+
+		void parse_info_section_impl(bdecode_node const& info, error_code& ec, int max_pieces);
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		friend struct ::lt::invariant_access;
