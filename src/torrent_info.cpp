@@ -1385,17 +1385,16 @@ TORRENT_VERSION_NAMESPACE_4
 		std::shared_ptr<torrent_info> ti = aux::parse_torrent_file(torrent_file, ec, cfg, atp);
 		if (ec) return false;
 
-		auto const renamed_files = aux::resolve_duplicate_filenames(ti->layout(), cfg.max_duplicate_filenames, ec);
-		if (ec) return false;
-		// For backwards compatibility, make sure the file_storage has updated
-		// filenames as well
-		for (auto const& entry : renamed_files)
-		{
-			ti->rename_file(entry.first, entry.second);
-		}
-
 		if (ti)
 		{
+			auto const renamed_files = aux::resolve_duplicate_filenames(ti->layout(), cfg.max_duplicate_filenames, ec);
+			if (ec) return false;
+			// For backwards compatibility, make sure the file_storage has updated
+			// filenames as well
+			for (auto const& entry : renamed_files)
+			{
+				ti->rename_file(entry.first, entry.second);
+			}
 			*this = std::move(*ti);
 		}
 		else

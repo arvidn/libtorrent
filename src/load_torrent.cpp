@@ -360,17 +360,23 @@ namespace aux
 		add_torrent_params ret;
 		std::shared_ptr<torrent_info> ti = aux::parse_torrent_file(torrent_file, ec, cfg, ret);
 		if (ec) aux::throw_ex<system_error>(ec);
-		ret.renamed_files = aux::resolve_duplicate_filenames(ti->layout(), cfg.max_duplicate_filenames, ec);
-		if (ec) aux::throw_ex<system_error>(ec);
-#if TORRENT_ABI_VERSION < 4
-		// For backwards compatibility, make sure the file_storage has updated
-		// filenames as well
-		for (auto const& entry : ret.renamed_files)
+		if (ti)
 		{
-			ti->rename_file(entry.first, entry.second);
-		}
+			ret.renamed_files = aux::resolve_duplicate_filenames(ti->layout(), cfg.max_duplicate_filenames, ec);
+			if (ec) aux::throw_ex<system_error>(ec);
+#if TORRENT_ABI_VERSION < 4
+			// For backwards compatibility, make sure the file_storage has updated
+			// filenames as well
+			for (auto const& entry : ret.renamed_files)
+			{
+				ti->rename_file(entry.first, entry.second);
+			}
 #endif
-		ret.ti = std::move(ti);
+		}
+		if (ti)
+		{
+			ret.ti = std::move(ti);
+		}
 		return ret;
 	}
 
