@@ -42,7 +42,8 @@ class TestSimpleClient(unittest.TestCase):
         self.server = http.server.HTTPServer(
             ("127.0.0.1", 0), functools.partial(Handler, serve_data=self.torrent.data)
         )
-        addr, port = self.server.server_address
+        addr = self.server.server_address[0]
+        port = self.server.server_address[1]
         self.server_thread = threading.Thread(target=self.server.serve_forever)
         self.server_thread.start()
 
