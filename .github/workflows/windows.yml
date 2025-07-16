@@ -203,10 +203,12 @@ jobs:
           .\b2 headers
 
       - name: Set up MinGW
-        uses: egor-tensin/setup-mingw@v2
+        uses: msys2/setup-msys2@v2
         with:
           static: 0
           platform: x64
+          update: true
+          install: mingw-w64-x86_64-openssl
 
       - name: tests (deterministic)
         run: |
