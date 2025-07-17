@@ -590,15 +590,14 @@ void http_connection::connect()
 
 	if (m_proxy.send_host_in_connect)
 	{
-		// For HTTP proxy with SSL, socket is ssl_stream<http_stream>
-		if (boost::get<http_stream>(&*m_sock))
+		if (auto* inner1 = boost::get<http_stream>(&*m_sock))
 		{
-			boost::get<http_stream>(*m_sock).set_host(m_hostname);
+			inner1->set_host(m_hostname);
 		}
 #if TORRENT_USE_SSL
-		else if (boost::get<ssl_stream<http_stream>>(&*m_sock))
+		else if (auto* inner2 = boost::get<ssl_stream<http_stream>>(&*m_sock))
 		{
-			boost::get<ssl_stream<http_stream>>(*m_sock).next_layer().set_host(m_hostname);
+			inner2->next_layer().set_host(m_hostname);
 		}
 #endif
 	}

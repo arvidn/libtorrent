@@ -736,7 +736,7 @@ int find_available_port()
 } // anonymous namespace
 
 // returns a port on success and -1 on failure
-int start_proxy(int proxy_type)
+int start_proxy(int proxy_type, bool const require_host)
 {
 	using namespace lt;
 
@@ -751,6 +751,7 @@ int start_proxy(int proxy_type)
 	char const* type = "";
 	char const* auth = "";
 	char const* cmd = "";
+	char const* host = require_host ? " --require-host-header" : "";
 
 	switch (proxy_type)
 	{
@@ -782,7 +783,7 @@ int start_proxy(int proxy_type)
 	for (auto const& python_exe : python_exes)
 	{
 		char buf[1024];
-		std::snprintf(buf, sizeof(buf), "%s %s --port %d%s", python_exe.c_str(), cmd, port, auth);
+		std::snprintf(buf, sizeof(buf), "%s %s --port %d%s%s", python_exe.c_str(), cmd, port, auth, host);
 
 		std::printf("%s starting proxy on port %d (%s %s)...\n", time_now_string().c_str(), port, type, auth);
 		std::printf("%s\n", buf);

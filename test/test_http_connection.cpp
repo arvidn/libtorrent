@@ -159,7 +159,8 @@ void run_test(std::string const& url, int size, int status, int connected
 enum suite_flags_t
 {
 	flag_chunked_encoding = 1,
-	flag_keepalive = 2
+	flag_keepalive = 2,
+	flag_send_host = 4,
 };
 
 void run_suite(std::string const& protocol
@@ -182,8 +183,8 @@ void run_suite(std::string const& protocol
 	ps.type = proxy_type;
 
 	if (ps.type != settings_pack::none)
-		ps.port = aux::numeric_cast<std::uint16_t>(start_proxy(ps.type));
-	ps.send_host_in_connect = true;
+		ps.port = aux::numeric_cast<std::uint16_t>(start_proxy(ps.type, flags & flag_send_host));
+	ps.send_host_in_connect = flags & flag_send_host;
 
 	using err = boost::optional<error_code>;
 
@@ -238,16 +239,14 @@ TORRENT_TEST(http_ssl) { run_suite("https", settings_pack::http); }
 TORRENT_TEST(http_pw_ssl) { run_suite("https", settings_pack::http_pw); }
 TORRENT_TEST(socks5_proxy_ssl) { run_suite("https", settings_pack::socks5); }
 TORRENT_TEST(socks5_pw_proxy_ssl) { run_suite("https", settings_pack::socks5_pw); }
-
-// This test verifies that when connecting to an HTTPS tracker via HTTP proxy,
-// the Host header is included in the CONNECT request when send_host_in_connect is enabled
-TORRENT_TEST(http_ssl_with_host_header) { run_suite("https", settings_pack::http); }
+TORRENT_TEST(http_ssl_with_host_header) { run_suite("https", settings_pack::http, flag_keepalive | flag_send_host); }
 #endif // TORRENT_USE_SSL
 
 TORRENT_TEST(http_proxy) { run_suite("http", settings_pack::http); }
 TORRENT_TEST(http_pwproxy) { run_suite("http", settings_pack::http_pw); }
 TORRENT_TEST(socks5_proxy) { run_suite("http", settings_pack::socks5); }
 TORRENT_TEST(socks5_pw_proxy) { run_suite("http", settings_pack::socks5_pw); }
+TORRENT_TEST(http_with_host_header) { run_suite("http", settings_pack::http, flag_keepalive | flag_send_host); }
 
 TORRENT_TEST(no_keepalive)
 {
