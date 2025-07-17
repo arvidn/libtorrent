@@ -588,10 +588,19 @@ void http_connection::connect()
 		}
 	}
 
-	if (m_proxy.send_host_in_connect
-		&& boost::get<http_stream>(&*m_sock))
+	if (m_proxy.send_host_in_connect)
 	{
-		boost::get<http_stream>(*m_sock).set_host(m_hostname);
+		// For HTTP proxy with SSL, socket is ssl_stream<http_stream>
+		if (boost::get<http_stream>(&*m_sock))
+		{
+			boost::get<http_stream>(*m_sock).set_host(m_hostname);
+		}
+#if TORRENT_USE_SSL
+		else if (boost::get<ssl_stream<http_stream>>(&*m_sock))
+		{
+			boost::get<ssl_stream<http_stream>>(*m_sock).next_layer().set_host(m_hostname);
+		}
+#endif
 	}
 
 	TORRENT_ASSERT(m_next_ep < int(m_endpoints.size()));
