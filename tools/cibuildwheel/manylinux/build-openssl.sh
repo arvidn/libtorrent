@@ -39,7 +39,7 @@ elif [ "${OS_ID_LIKE}" = "alpine" ]; then
 fi
 
 PREFIX=/opt/_internal/openssl-${OPENSSL_VERSION%.*}
-
+manylinux_pkg_install perl-core
 fetch_source "${OPENSSL_ROOT}.tar.gz" "${OPENSSL_DOWNLOAD_URL}"
 check_sha256sum "${OPENSSL_ROOT}.tar.gz" "${OPENSSL_HASH}"
 tar -xzf "${OPENSSL_ROOT}.tar.gz"
@@ -53,3 +53,4 @@ rm -rf "${OPENSSL_ROOT}" "${OPENSSL_ROOT}.tar.gz"
 strip_ "${PREFIX}"
 
 "${PREFIX}/bin/openssl" version
+ln -s "${PREFIX}" /usr/local/ssl
