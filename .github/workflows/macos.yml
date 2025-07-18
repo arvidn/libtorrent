@@ -132,7 +132,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.78.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.88.0 https://github.com/boostorg/boost.git
           cd boost
           ./bootstrap.sh
 
@@ -163,5 +163,8 @@ jobs:
           <linkflags>-fobjc-abi-version=2 ;" >>~/user-config.jam;
 
       - name: build library
+        env:
+          BOOST_ROOT: boost
+          BOOST_BUILD_PATH: boost/tools/build
         run: |
-          BOOST_ROOT=boost ./b2 -l400 cxxstd=14 target-os=iphone crypto=built-in darwin-ios darwin-ios_sim address-model=64  link=static
+          ./b2 -l400 cxxstd=14 target-os=iphone crypto=built-in darwin-ios darwin-ios_sim address-model=64  link=static
