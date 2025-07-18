@@ -6,7 +6,7 @@ name: cibuildwheel
 # sample.
 
 # The full list of cibuildwheel's build targets can be found here:
-# https://github.com/pypa/cibuildwheel/blob/v2.22.0/cibuildwheel/resources/build-platforms.toml
+# https://github.com/pypa/cibuildwheel/blob/v3.0.0/cibuildwheel/resources/build-platforms.toml
 
 # Notes on build targets we (don't) support:
 # - pypy: libtorrent doesn't build with pypy as of writing
@@ -134,7 +134,6 @@ jobs:
       CIBW_ARCHS_WINDOWS:  ${{ matrix.CIBW_ARCHS_WINDOWS }}
       CIBW_ARCHS_MACOS:  ${{ matrix.CIBW_ARCHS_MACOS }}
       MACOSX_DEPLOYMENT_TARGET: ${{ matrix.MACOSX_DEPLOYMENT_TARGET }}
-      CIBW_SKIP: pp*
       CIBW_TEST_SKIP: "*-win32"
 
     steps:
@@ -164,7 +163,7 @@ jobs:
       if: runner.os == 'Linux'
       run: sudo apt-get install libssl-dev
 
-    - uses: pypa/cibuildwheel@v2.22.0
+    - uses: pypa/cibuildwheel@v3.0.0
       if: steps.cache-wheel.outputs.cache-hit != 'true'
 
     - uses: actions/upload-artifact@v4
