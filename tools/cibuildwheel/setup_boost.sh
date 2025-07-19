@@ -14,7 +14,7 @@ TEMP_ARCHIVE="$(mktemp)"
 
 mkdir -p "$BOOST_ROOT"
 
-curl -L -o "$TEMP_ARCHIVE" "https://boostorg.jfrog.io/artifactory/main/release/${VERSION}/source/boost_${VUNDER}.tar.gz"
+curl -L -o "$TEMP_ARCHIVE" "https://archives.boost.io/release/${VERSION}/source/boost_${VUNDER}.tar.gz"
 
 tar -z -x -C "$BOOST_ROOT" -f "$TEMP_ARCHIVE" --strip-components 1
 rm "$TEMP_ARCHIVE"
