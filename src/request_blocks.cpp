@@ -105,10 +105,9 @@ namespace libtorrent::aux {
 			// by the piece size give us the number of (whole) pieces downloaded
 			// in the window.
 			int const contiguous_pieces =
-				std::min(c.statistics().download_payload_rate()
+				int(std::min(c.statistics().download_payload_rate()
 				* t.settings().get_int(settings_pack::whole_pieces_threshold)
-				, 8 * 1024 * 1024)
-				/ t.torrent_file().piece_length();
+				, std::int64_t(8) * 1024 * 1024) / t.torrent_file().piece_length());
 
 			int const blocks_per_piece = t.torrent_file().piece_length() / t.block_size();
 

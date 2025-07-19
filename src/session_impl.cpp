@@ -3524,7 +3524,7 @@ retry:
 							++num_peers[protocol][peer_connection::upload_channel];
 					}
 
-					int const stat_rate[] = {m_stat.upload_rate(), m_stat.download_rate() };
+					std::int64_t const stat_rate[] = {m_stat.upload_rate(), m_stat.download_rate() };
 					// never throttle below this
 					int lower_limit[] = {5000, 30000};
 
