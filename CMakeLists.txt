@@ -53,6 +53,7 @@ set(libtorrent_include_files
 	io_service.hpp
 	ip_filter.hpp
 	libtorrent.hpp
+	load_torrent.hpp
 	magnet_uri.hpp
 	mmap_disk_io.hpp
 	natpmp.hpp
