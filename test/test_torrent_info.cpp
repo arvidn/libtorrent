@@ -1315,6 +1315,27 @@ TORRENT_TEST(parse_invalid_torrents)
 	}
 }
 
+TORRENT_TEST(parse_invalid_torrents_no_throw)
+{
+	std::string const root_dir = parent_path(current_working_directory());
+	for (auto const& e : test_error_torrents)
+	{
+		error_code ec;
+		std::printf("loading %s\n", e.file);
+		std::string const filename = combine_path(combine_path(root_dir, "test_torrents")
+			, e.file);
+
+		auto const atp = load_torrent_file(filename, ec, load_torrent_limits{});
+		// minimal validation that the return value is empty
+		TEST_EQUAL(atp.name, "");
+		TORRENT_ASSERT(!atp.ti);
+
+		std::printf("E:        \"%s\"\nexpected: \"%s\"\n", ec.message().c_str()
+			, e.error.message().c_str());
+		TEST_EQUAL(ec.message(), e.error.message());
+	}
+}
+
 namespace {
 
 struct file_t
