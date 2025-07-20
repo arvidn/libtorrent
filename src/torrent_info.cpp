@@ -51,7 +51,9 @@ see LICENSE file.
 
 namespace libtorrent {
 
+#if TORRENT_ABI_VERSION < 4
 	TORRENT_EXPORT from_span_t from_span;
+#endif
 	TORRENT_EXPORT from_info_section_t from_info_section;
 
 	namespace {

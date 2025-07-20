@@ -64,11 +64,15 @@ namespace aux {
 }
 
 	// hidden
+#if TORRENT_ABI_VERSION < 4
 	class from_span_t {};
+#endif
 	class from_info_section_t {};
 
 	// used to disambiguate a bencoded buffer and a filename
+#if TORRENT_ABI_VERSION < 4
 	extern TORRENT_EXPORT from_span_t from_span;
+#endif
 	extern TORRENT_EXPORT from_info_section_t from_info_section;
 
 	// this object holds configuration options for limits to use when loading
