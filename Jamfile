@@ -265,6 +265,7 @@ rule warnings ( properties * )
 		result += <cxxflags>-Wno-alloca ;
 		result += <cxxflags>-Wno-global-constructors ;
 		result += <cxxflags>-Wno-poison-system-directories ;
+		result += <cxxflags>-Wno-missing-include-dirs ;
 # this warns on any global static object, which are used for error_category
 # objects
 		result += <cxxflags>-Wno-exit-time-destructors ;
