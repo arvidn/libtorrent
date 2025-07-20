@@ -336,34 +336,54 @@ namespace aux
 	add_torrent_params load_torrent_parsed(bdecode_node const& torrent_file)
 	{ return load_torrent_parsed(torrent_file, load_torrent_limits{}); }
 
-	add_torrent_params load_torrent_file(std::string const& filename, load_torrent_limits const& cfg)
+	add_torrent_params load_torrent_file(std::string const& filename
+		, error_code& ec, load_torrent_limits const& cfg)
 	{
 		std::vector<char> buf;
-		error_code ec;
 		load_file(filename, buf, ec, cfg.max_buffer_size);
+		if (ec) return {};
+		add_torrent_params ret = load_torrent_buffer(buf, ec, cfg);
+		if (ec) return {};
+		return ret;
+	}
+
+	add_torrent_params load_torrent_file(std::string const& filename, load_torrent_limits const& cfg)
+	{
+		error_code ec;
+		add_torrent_params ret = load_torrent_file(filename, ec, cfg);
 		if (ec) aux::throw_ex<system_error>(ec);
-		return load_torrent_buffer(buf, cfg);
+		return ret;
+	}
+
+	add_torrent_params load_torrent_buffer(span<char const> buffer
+		, error_code& ec, load_torrent_limits const& cfg)
+	{
+		bdecode_node e = bdecode(buffer, ec, nullptr, cfg.max_decode_depth
+			, cfg.max_decode_tokens);
+		if (ec) return {};
+		add_torrent_params ret = load_torrent_parsed(e, ec, cfg);
+		if (ec) return {};
+		return ret;
 	}
 
 	add_torrent_params load_torrent_buffer(span<char const> buffer, load_torrent_limits const& cfg)
 	{
 		error_code ec;
-		bdecode_node e = bdecode(buffer, ec, nullptr, cfg.max_decode_depth
-			, cfg.max_decode_tokens);
+		add_torrent_params ret = load_torrent_buffer(buffer, ec, cfg);
 		if (ec) aux::throw_ex<system_error>(ec);
-		return load_torrent_parsed(e, cfg);
+		return ret;
 	}
 
-	add_torrent_params load_torrent_parsed(bdecode_node const& torrent_file, load_torrent_limits const& cfg)
+	add_torrent_params load_torrent_parsed(bdecode_node const& torrent_file
+		, error_code& ec, load_torrent_limits const& cfg)
 	{
-		error_code ec;
 		add_torrent_params ret;
 		std::shared_ptr<torrent_info> ti = aux::parse_torrent_file(torrent_file, ec, cfg, ret);
-		if (ec) aux::throw_ex<system_error>(ec);
+		if (ec) return {};
 		if (ti)
 		{
 			ret.renamed_files = aux::resolve_duplicate_filenames(ti->layout(), cfg.max_duplicate_filenames, ec);
-			if (ec) aux::throw_ex<system_error>(ec);
+			if (ec) return {};
 #if TORRENT_ABI_VERSION < 4
 			// For backwards compatibility, make sure the file_storage has updated
 			// filenames as well
@@ -377,6 +397,14 @@ namespace aux
 		{
 			ret.ti = std::move(ti);
 		}
+		return ret;
+	}
+
+	add_torrent_params load_torrent_parsed(bdecode_node const& torrent_file, load_torrent_limits const& cfg)
+	{
+		error_code ec;
+		add_torrent_params ret = load_torrent_parsed(torrent_file, ec, cfg);
+		if (ec) aux::throw_ex<system_error>(ec);
 		return ret;
 	}
 

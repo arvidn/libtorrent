@@ -29,13 +29,19 @@ namespace libtorrent {
 	//   * saved as a .torrent_file via write_torrent_file()
 	//   * turned into a magnet link via make_magnet_uri()
 	TORRENT_EXPORT add_torrent_params load_torrent_file(
+		std::string const& filename, error_code& ec, load_torrent_limits const& cfg);
+	TORRENT_EXPORT add_torrent_params load_torrent_file(
 		std::string const& filename, load_torrent_limits const& cfg);
 	TORRENT_EXPORT add_torrent_params load_torrent_file(
 		std::string const& filename);
 	TORRENT_EXPORT add_torrent_params load_torrent_buffer(
+		span<char const> buffer, error_code& ec, load_torrent_limits const& cfg);
+	TORRENT_EXPORT add_torrent_params load_torrent_buffer(
 		span<char const> buffer, load_torrent_limits const& cfg);
 	TORRENT_EXPORT add_torrent_params load_torrent_buffer(
 		span<char const> buffer);
+	TORRENT_EXPORT add_torrent_params load_torrent_parsed(
+		bdecode_node const& torrent_file, error_code& ec, load_torrent_limits const& cfg);
 	TORRENT_EXPORT add_torrent_params load_torrent_parsed(
 		bdecode_node const& torrent_file, load_torrent_limits const& cfg);
 	TORRENT_EXPORT add_torrent_params load_torrent_parsed(
