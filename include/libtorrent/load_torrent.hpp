@@ -28,6 +28,11 @@ namespace libtorrent {
 	//   * added to a session via add_torrent() or async_add_torrent()
 	//   * saved as a .torrent_file via write_torrent_file()
 	//   * turned into a magnet link via make_magnet_uri()
+	//
+	// The overloads of these functions that accept an `error_code` parameter
+	// will not throw exceptions for I/O, general bdecode, or parsing errors.
+	// However, they may still throw `std::bad_alloc` if memory allocation
+	// fails.
 	TORRENT_EXPORT add_torrent_params load_torrent_file(
 		std::string const& filename, error_code& ec, load_torrent_limits const& cfg);
 	TORRENT_EXPORT add_torrent_params load_torrent_file(
