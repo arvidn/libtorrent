@@ -37,12 +37,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/string_view.hpp"
-#include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 
 #include <cstdarg> // for va_list
 #include <cstdio> // for vsnprintf
 #include <cstring>
+#include <vector>
 
 namespace libtorrent {
 namespace aux {
@@ -56,11 +56,12 @@ namespace aux {
 		allocation_slot& operator=(allocation_slot&&) & noexcept = default;
 		bool operator==(allocation_slot const& s) const { return m_idx == s.m_idx; }
 		bool operator!=(allocation_slot const& s) const { return m_idx != s.m_idx; }
+		bool is_valid() const { return m_idx >= 0; }
 		friend struct stack_allocator;
 	private:
-		explicit allocation_slot(int idx) noexcept : m_idx(idx) {}
-		int val() const { return m_idx; }
-		int m_idx;
+		explicit allocation_slot(std::size_t const idx) noexcept : m_idx(numeric_cast<std::int32_t>(idx)) {}
+		std::size_t val() const { return static_cast<std::size_t>(m_idx); }
+		std::int32_t m_idx;
 	};
 
 	struct TORRENT_EXTRA_EXPORT stack_allocator
@@ -87,7 +88,7 @@ namespace aux {
 
 	private:
 
-		vector<char> m_storage;
+		std::vector<char> m_storage;
 	};
 
 }

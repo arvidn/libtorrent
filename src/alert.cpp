@@ -2284,6 +2284,7 @@ namespace {
 		, m_counters_idx(alloc.allocate(sizeof(std::int64_t)
 			* counters::num_counters + sizeof(std::int64_t) - 1))
 	{
+		if (!m_counters_idx.is_valid()) return;
 		std::int64_t* ptr = align_pointer<std::int64_t>(alloc.ptr(m_counters_idx));
 		for (int i = 0; i < counters::num_counters; ++i, ++ptr)
 			*ptr = cnt[i];
@@ -2531,6 +2532,9 @@ namespace {
 		m_v4_peers_idx = alloc.allocate(m_v4_num_peers * 6);
 		m_v6_peers_idx = alloc.allocate(m_v6_num_peers * 18);
 
+		if (!m_v4_peers_idx.is_valid() || !m_v6_peers_idx.is_valid())
+			return;
+
 		char* v4_ptr = alloc.ptr(m_v4_peers_idx);
 		char* v6_ptr = alloc.ptr(m_v6_peers_idx);
 		for (auto const& endp : peers)
@@ -2774,20 +2778,23 @@ namespace {
 		aux::allocation_slot const v4_nodes_idx = alloc.allocate(v4_num_nodes * (20 + 6));
 		aux::allocation_slot const v6_nodes_idx = alloc.allocate(v6_num_nodes * (20 + 18));
 
-		char* v4_ptr = alloc.ptr(v4_nodes_idx);
-		char* v6_ptr = alloc.ptr(v6_nodes_idx);
-		for (auto const& n : nodes)
+		if (v4_nodes_idx.is_valid() && v6_nodes_idx.is_valid())
 		{
-			udp::endpoint const& endp = n.second;
-			if (aux::is_v4(endp))
+			char* v4_ptr = alloc.ptr(v4_nodes_idx);
+			char* v6_ptr = alloc.ptr(v6_nodes_idx);
+			for (auto const& n : nodes)
 			{
-				aux::write_string(n.first.to_string(), v4_ptr);
-				aux::write_endpoint(endp, v4_ptr);
-			}
-			else
-			{
-				aux::write_string(n.first.to_string(), v6_ptr);
-				aux::write_endpoint(endp, v6_ptr);
+				udp::endpoint const& endp = n.second;
+				if (aux::is_v4(endp))
+				{
+					aux::write_string(n.first.to_string(), v4_ptr);
+					aux::write_endpoint(endp, v4_ptr);
+				}
+				else
+				{
+					aux::write_string(n.first.to_string(), v6_ptr);
+					aux::write_endpoint(endp, v6_ptr);
+				}
 			}
 		}
 
@@ -2897,6 +2904,9 @@ namespace {
 		, m_num_samples(aux::numeric_cast<int>(samples.size()))
 	{
 		m_samples_idx = alloc.allocate(m_num_samples * 20);
+
+		if (!m_samples_idx.is_valid())
+			return;
 
 		char *ptr = alloc.ptr(m_samples_idx);
 		std::memcpy(ptr, samples.data(), samples.size() * 20);
