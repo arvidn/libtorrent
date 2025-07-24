@@ -1484,6 +1484,18 @@ bool is_downloading_state(int const st)
 		return "";
 	}
 
+	aux::allocation_slot torrent::name_idx(aux::stack_allocator& a)
+	{
+		return m_name_idx.copy_string(a, [this]() -> std::string {
+			if (valid_metadata()) return m_torrent_file->name();
+			if (m_name) return *m_name;
+			if (m_info_hash.has_v2())
+				return aux::to_hex(m_info_hash.v2);
+			else
+				return aux::to_hex(m_info_hash.v1);
+		});
+	}
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
 	void torrent::add_extension(std::shared_ptr<torrent_plugin> ext)
@@ -7811,6 +7823,7 @@ namespace {
 		if (failed) return true;
 		if (m_abort) return true;
 
+		m_name_idx.clear();
 		m_torrent_file = info;
 		m_info_hash = m_torrent_file->info_hashes();
 

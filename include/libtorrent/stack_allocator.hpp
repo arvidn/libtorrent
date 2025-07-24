@@ -84,11 +84,34 @@ namespace aux {
 		char* ptr(allocation_slot idx);
 		char const* ptr(allocation_slot idx) const;
 		void swap(stack_allocator& rhs);
-		void reset();
+		void reset(std::uint32_t generation);
+		std::uint32_t gen() const { return m_generation; }
 
 	private:
 
 		std::vector<char> m_storage;
+		std::uint32_t m_generation = 0;
+	};
+
+	struct cached_slot
+	{
+		template <typename F>
+		allocation_slot copy_string(stack_allocator& a, F fun)
+		{
+			if (m_generation != a.gen() || !m_idx.is_valid())
+			{
+				m_idx = a.copy_string(fun());
+				m_generation = a.gen();
+			}
+			return m_idx;
+		}
+
+		void clear() { m_idx = aux::allocation_slot(); }
+
+	private:
+
+		allocation_slot m_idx;
+		std::uint32_t m_generation = 0;
 	};
 
 }

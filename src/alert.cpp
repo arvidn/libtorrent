@@ -112,24 +112,7 @@ namespace libtorrent {
 	{
 		std::shared_ptr<torrent> t = h.native_handle();
 		if (t)
-		{
-			std::string name_str = t->name();
-			if (!name_str.empty())
-			{
-				m_name_idx = alloc.copy_string(name_str);
-			}
-			else
-			{
-				if (t->info_hash().has_v2())
-					m_name_idx = alloc.copy_string(aux::to_hex(t->info_hash().v2));
-				else
-					m_name_idx = alloc.copy_string(aux::to_hex(t->info_hash().v1));
-			}
-		}
-		else
-		{
-			m_name_idx = alloc.copy_string("");
-		}
+			m_name_idx = t->name_idx(alloc);
 
 #if TORRENT_ABI_VERSION == 1
 		name = m_alloc.get().ptr(m_name_idx);
@@ -2733,7 +2716,7 @@ namespace {
 		, error_code e, string_view error_str)
 		: error(e)
 		, m_alloc(alloc)
-		, m_msg_idx(alloc.copy_buffer(error_str))
+		, m_msg_idx(alloc.copy_string(error_str))
 	{}
 
 	std::string session_error_alert::message() const
