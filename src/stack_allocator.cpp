@@ -145,11 +145,13 @@ namespace aux {
 	void stack_allocator::swap(stack_allocator& rhs)
 	{
 		m_storage.swap(rhs.m_storage);
+		std::swap(m_generation, rhs.m_generation);
 	}
 
-	void stack_allocator::reset()
+	void stack_allocator::reset(std::uint32_t const generation)
 	{
 		m_storage.clear();
+		m_generation = generation;
 	}
 }
 }
