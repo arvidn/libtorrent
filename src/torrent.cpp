@@ -858,7 +858,8 @@ bool is_downloading_state(int const st)
 		{
 			TORRENT_INCREMENT(m_iterating_connections);
 
-			p->send_not_interested();
+			if (upload_only_enabled)
+				p->send_not_interested();
 			p->send_upload_only(upload_only_enabled);
 		}
 #endif // TORRENT_DISABLE_EXTENSIONS
@@ -8471,9 +8472,6 @@ namespace {
 		// to be in downloading state (which it will be set to shortly)
 //		INVARIANT_CHECK;
 
-		TORRENT_ASSERT(m_state != torrent_status::checking_resume_data
-			&& m_state != torrent_status::checking_files);
-
 		// we're downloading now, which means we're no longer in seed mode
 		if (m_seed_mode)
 			leave_seed_mode(seed_mode_t::check_files);
@@ -8482,6 +8480,9 @@ namespace {
 		set_state(torrent_status::downloading);
 		set_queue_position(last_pos);
 
+		// since the torrent is not complete right now, make sure we reset
+		// this timestamp to allow it to be updated once it does complete
+		// (possibly for the second time)
 		m_completed_time = 0;
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -8628,7 +8629,7 @@ namespace {
 			&& m_state != torrent_status::seeding
 			&& !m_seed_mode)
 		{
-			set_state(torrent_status::downloading);
+			resume_download();
 		}
 
 		INVARIANT_CHECK;
