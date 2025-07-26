@@ -14,12 +14,12 @@ see LICENSE file.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/string_view.hpp"
-#include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 
 #include <cstdarg> // for va_list
 #include <cstdio> // for vsnprintf
 #include <cstring>
+#include <vector>
 
 namespace libtorrent::aux {
 
@@ -32,11 +32,12 @@ namespace libtorrent::aux {
 		allocation_slot& operator=(allocation_slot&&) & noexcept = default;
 		bool operator==(allocation_slot const& s) const { return m_idx == s.m_idx; }
 		bool operator!=(allocation_slot const& s) const { return m_idx != s.m_idx; }
+		bool is_valid() const { return m_idx >= 0; }
 		friend struct stack_allocator;
 	private:
-		explicit allocation_slot(int idx) noexcept : m_idx(idx) {}
-		int val() const { return m_idx; }
-		int m_idx;
+		explicit allocation_slot(std::size_t const idx) noexcept : m_idx(numeric_cast<std::int32_t>(idx)) {}
+		std::size_t val() const { return static_cast<std::size_t>(m_idx); }
+		std::int32_t m_idx;
 	};
 
 	struct TORRENT_EXTRA_EXPORT stack_allocator
@@ -59,11 +60,34 @@ namespace libtorrent::aux {
 		char* ptr(allocation_slot idx);
 		char const* ptr(allocation_slot idx) const;
 		void swap(stack_allocator& rhs);
-		void reset();
+		void reset(std::uint32_t generation);
+		std::uint32_t gen() const { return m_generation; }
 
 	private:
 
-		vector<char> m_storage;
+		std::vector<char> m_storage;
+		std::uint32_t m_generation = 0;
+	};
+
+	struct cached_slot
+	{
+		template <typename F>
+		allocation_slot copy_string(stack_allocator& a, F fun)
+		{
+			if (m_generation != a.gen() || !m_idx.is_valid())
+			{
+				m_idx = a.copy_string(fun());
+				m_generation = a.gen();
+			}
+			return m_idx;
+		}
+
+		void clear() { m_idx = aux::allocation_slot(); }
+
+	private:
+
+		allocation_slot m_idx;
+		std::uint32_t m_generation = 0;
 	};
 
 }

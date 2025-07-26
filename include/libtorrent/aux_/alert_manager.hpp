@@ -50,7 +50,7 @@ namespace aux {
 		{
 			std::unique_lock<std::recursive_mutex> lock(m_mutex);
 
-			heterogeneous_queue<alert>& queue = m_alerts[m_generation];
+			heterogeneous_queue<alert>& queue = m_alerts[m_generation & 1];
 
 			// don't add more than this number of alerts, unless it's a
 			// high priority alert, in which case we try harder to deliver it
@@ -63,7 +63,7 @@ namespace aux {
 			}
 
 			T& alert = queue.emplace_back<T>(
-				m_allocations[m_generation], std::forward<Args>(args)...);
+				m_allocations[m_generation & 1], std::forward<Args>(args)...);
 
 			maybe_notify(&alert);
 		}
@@ -134,12 +134,12 @@ namespace aux {
 		// the alert_manager is allowed to use right now. This is swapped when
 		// the client calls get_all(), at which point all of the alert objects
 		// passed to the client will be owned by libtorrent again, and reset.
-		int m_generation = 0;
+		std::uint32_t m_generation = 0;
 
 		// this is where all alerts are queued up. There are two heterogeneous
 		// queues to double buffer the thread access. The std::mutex in the alert
-		// manager gives exclusive access to m_alerts[m_generation] and
-		// m_allocations[m_generation] whereas the other copy is exclusively
+		// manager gives exclusive access to m_alerts[m_generation & 1] and
+		// m_allocations[m_generation & 1] whereas the other copy is exclusively
 		// used by the client thread.
 		aux::array<heterogeneous_queue<alert>, 2> m_alerts;
 

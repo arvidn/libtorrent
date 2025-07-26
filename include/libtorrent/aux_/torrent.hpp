@@ -510,6 +510,7 @@ namespace libtorrent::aux {
 		void maybe_connect_web_seeds();
 
 		std::string name() const;
+		aux::allocation_slot name_idx(aux::stack_allocator& a);
 
 		stat statistics() const { return m_stat; }
 		std::optional<std::int64_t> bytes_left() const;
@@ -1400,6 +1401,7 @@ namespace libtorrent::aux {
 #endif
 
 		std::string m_save_path;
+		aux::cached_slot m_name_idx;
 
 #ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
 		// this is a list of all pieces that we have announced
@@ -1458,7 +1460,7 @@ namespace libtorrent::aux {
 		// in this swarm
 		std::time_t m_swarm_last_seen_complete = 0;
 
-		// keep a copy if the info-hash here, so it can be accessed from multiple
+		// keep a copy of the info-hash here, so it can be accessed from multiple
 		// threads, and be cheap to access from the client
 		info_hash_t m_info_hash;
 

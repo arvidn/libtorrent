@@ -83,6 +83,7 @@ int settings_key(int const tag)
 		case SET_ALLOW_IDNA: return sp::allow_idna;
 		case SET_ENABLE_SET_FILE_VALID_DATA: return sp::enable_set_file_valid_data;
 		case SET_SOCKS5_UDP_SEND_LOCAL_EP: return sp::socks5_udp_send_local_ep;
+		case SET_PROXY_SEND_HOST_IN_CONNECT: return sp::proxy_send_host_in_connect;
 		case SET_TRACKER_COMPLETION_TIMEOUT: return sp::tracker_completion_timeout;
 		case SET_TRACKER_RECEIVE_TIMEOUT: return sp::tracker_receive_timeout;
 		case SET_STOP_TRACKER_TIMEOUT: return sp::stop_tracker_timeout;

@@ -1507,6 +1507,18 @@ bool is_downloading_state(int const st)
 		return "";
 	}
 
+	aux::allocation_slot torrent::name_idx(aux::stack_allocator& a)
+	{
+		return m_name_idx.copy_string(a, [this]() -> std::string {
+			if (valid_metadata()) return m_torrent_file->name();
+			if (m_name) return *m_name;
+			if (m_info_hash.has_v2())
+				return aux::to_hex(m_info_hash.v2);
+			else
+				return aux::to_hex(m_info_hash.v1);
+		});
+	}
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
 	void torrent::add_extension(std::shared_ptr<torrent_plugin> ext)
@@ -6781,11 +6793,11 @@ namespace {
 		aux::socket_type s = instantiate_connection(m_ses.get_context()
 			, m_ses.proxy(), userdata, nullptr, true, false);
 
-		if (std::get_if<http_stream>(&s))
+		if (auto* inner = std::get_if<http_stream>(&s))
 		{
 			// the web seed connection will talk immediately to
 			// the proxy, without requiring CONNECT support
-			std::get<http_stream>(s).set_no_connect(true);
+			inner->set_no_connect(true);
 		}
 
 		std::string hostname;
@@ -6845,6 +6857,21 @@ namespace {
 		if (is_ip) a.address(make_address(hostname, ec));
 		bool const proxy_hostnames = settings().get_bool(settings_pack::proxy_hostnames)
 			&& !is_ip;
+
+		if (!is_ip
+			&& settings().get_bool(settings_pack::proxy_send_host_in_connect))
+		{
+			if (auto* inner1 = std::get_if<http_stream>(&s))
+			{
+				inner1->set_host(hostname);
+			}
+#if TORRENT_USE_SSL
+			else if (auto* inner2 = std::get_if<ssl_stream<http_stream>>(&s))
+			{
+				inner2->next_layer().set_host(hostname);
+			}
+#endif
+		}
 
 		if (proxy_hostnames
 			&& (std::get_if<socks5_stream>(&s)
@@ -7905,6 +7932,7 @@ namespace {
 		if (failed) return true;
 		if (m_abort) return true;
 
+		m_name_idx.clear();
 		m_torrent_file = info;
 		m_info_hash = m_torrent_file->info_hashes();
 

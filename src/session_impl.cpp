@@ -4905,7 +4905,7 @@ retry:
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		auto extensions = std::move(params.extensions);
-		auto const userdata = std::move(params.userdata);
+		auto const userdata = params.userdata;
 #endif
 
 		auto const flags = params.flags;

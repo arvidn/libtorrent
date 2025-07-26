@@ -137,15 +137,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.78.0 https://github.com/boostorg/boost.git
-          cd boost
-          ./bootstrap.sh
-
-      - name: boost headers
-        run: |
-          cd boost
-          ./b2 headers
-          cp b2 ..
+          brew install boost-build boost openssl@3
 
       - name: user-config
         run: |
@@ -169,4 +161,4 @@ jobs:
 
       - name: build library
         run: |
-          BOOST_ROOT=boost ./b2 -l400 cxxstd=14 target-os=iphone crypto=built-in darwin-ios darwin-ios_sim address-model=64 link=static
+          b2 -l400 cxxstd=14 target-os=iphone crypto=built-in darwin-ios darwin-ios_sim address-model=64 link=static

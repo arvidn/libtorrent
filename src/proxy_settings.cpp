@@ -28,6 +28,8 @@ void init(proxy_settings& p, Settings const& sett)
 		settings_pack::proxy_peer_connections);
 	p.proxy_tracker_connections = sett.get_bool(
 		settings_pack::proxy_tracker_connections);
+	p.send_host_in_connect = sett.get_bool(
+		settings_pack::proxy_send_host_in_connect);
 }
 
 }

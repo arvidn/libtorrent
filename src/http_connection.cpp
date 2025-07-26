@@ -557,6 +557,20 @@ void http_connection::connect()
 		}
 	}
 
+	if (m_proxy.send_host_in_connect)
+	{
+		if (auto* inner1 = std::get_if<http_stream>(&*m_sock))
+		{
+			inner1->set_host(m_hostname);
+		}
+#if TORRENT_USE_SSL
+		else if (auto* inner2 = std::get_if<ssl_stream<http_stream>>(&*m_sock))
+		{
+			inner2->next_layer().set_host(m_hostname);
+		}
+#endif
+	}
+
 	TORRENT_ASSERT(m_next_ep < int(m_endpoints.size()));
 	if (m_next_ep >= int(m_endpoints.size())) return;
 
