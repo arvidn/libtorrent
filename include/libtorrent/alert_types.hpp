@@ -3028,7 +3028,7 @@ TORRENT_VERSION_NAMESPACE_4
 
 	private:
 		std::reference_wrapper<aux::stack_allocator> m_alloc;
-		int const m_num_samples;
+		int m_num_samples;
 		aux::allocation_slot m_samples_idx;
 		int m_v4_num_nodes = 0;
 		int m_v6_num_nodes = 0;
