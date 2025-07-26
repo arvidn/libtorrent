@@ -63,6 +63,15 @@ namespace aux {
 
 		// if true, tracker connections are subject to the proxy settings
 		bool proxy_tracker_connections = true;
+
+		//defaults to false, it means that all tracker connections are subject if proxy_tracker_connections is true;
+		// if true, only in proxy_tracker_list connections are subject to the proxy settings
+		bool proxy_tracker_list_enable = false;
+
+		//if proxy_tracker_connections is true, and proxy_tracker_list_enable is true;
+		//then the proxy_tracker_list will be used, only in proxy_tracker_list ,the tracker connection are proxied
+		std::vector<std::string> proxy_tracker_list;
+
 	};
 
 }}

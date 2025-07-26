@@ -15,6 +15,21 @@ namespace libtorrent { namespace aux {
 
 namespace {
 
+std::vector<std::string> splitString(const std::string& s, char delimiter) {
+    std::vector<std::string> tokens;
+    size_t start = 0, end = s.find(delimiter);
+    
+    while (end != std::string::npos) {
+        tokens.push_back(s.substr(start, end - start));
+        start = end + 1;
+        end = s.find(delimiter, start);
+    }
+    
+    tokens.push_back(s.substr(start, end));
+    
+    return tokens;
+}
+
 template <typename Settings>
 void init(proxy_settings& p, Settings const& sett)
 {
@@ -28,8 +43,18 @@ void init(proxy_settings& p, Settings const& sett)
 		settings_pack::proxy_peer_connections);
 	p.proxy_tracker_connections = sett.get_bool(
 		settings_pack::proxy_tracker_connections);
-}
+	p.proxy_tracker_list_enable = sett.get_bool(
+		settings_pack::proxy_tracker_list_enable);
+	
+	std::string proxy_tracker_list = sett.get_str(settings_pack::proxy_tracker_list);
+	std::vector<std::string> tokens = splitString(proxy_tracker_list, ';');
+	for (std::string tracker:tokens){
+		if (tracker.length()>0) {
+			p.proxy_tracker_list.push_back(tracker);
+		}
+	}
 
+}
 }
 
 proxy_settings::proxy_settings() = default;
