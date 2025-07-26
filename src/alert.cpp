@@ -2515,8 +2515,12 @@ namespace {
 		m_v4_peers_idx = alloc.allocate(m_v4_num_peers * 6);
 		m_v6_peers_idx = alloc.allocate(m_v6_num_peers * 18);
 
-		if (!m_v4_peers_idx.is_valid() || !m_v6_peers_idx.is_valid())
+		if ((!m_v4_peers_idx.is_valid() && m_v4_num_peers > 0) || (!m_v6_peers_idx.is_valid() && m_v6_num_peers > 0))
+		{
+			m_v4_num_peers = 0;
+			m_v6_num_peers = 0;
 			return;
+		}
 
 		char* v4_ptr = alloc.ptr(m_v4_peers_idx);
 		char* v6_ptr = alloc.ptr(m_v6_peers_idx);
@@ -2761,7 +2765,7 @@ namespace {
 		aux::allocation_slot const v4_nodes_idx = alloc.allocate(v4_num_nodes * (20 + 6));
 		aux::allocation_slot const v6_nodes_idx = alloc.allocate(v6_num_nodes * (20 + 18));
 
-		if (v4_nodes_idx.is_valid() && v6_nodes_idx.is_valid())
+		if ((v4_nodes_idx.is_valid() || v4_num_nodes == 0) && (v6_nodes_idx.is_valid() || v6_num_nodes == 0))
 		{
 			char* v4_ptr = alloc.ptr(v4_nodes_idx);
 			char* v6_ptr = alloc.ptr(v6_nodes_idx);
@@ -2779,6 +2783,11 @@ namespace {
 					aux::write_endpoint(endp, v6_ptr);
 				}
 			}
+		}
+		else
+		{
+			v4_num_nodes = 0;
+			v6_num_nodes = 0;
 		}
 
 		return nodes_slot{v4_num_nodes, v4_nodes_idx, v6_num_nodes, v6_nodes_idx};
@@ -2889,7 +2898,10 @@ namespace {
 		m_samples_idx = alloc.allocate(m_num_samples * 20);
 
 		if (!m_samples_idx.is_valid())
+		{
+			m_num_samples = 0;
 			return;
+		}
 
 		char *ptr = alloc.ptr(m_samples_idx);
 		std::memcpy(ptr, samples.data(), samples.size() * 20);
