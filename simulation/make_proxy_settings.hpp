@@ -43,6 +43,7 @@ inline lt::aux::proxy_settings make_proxy_settings(
 	aux::proxy_settings ps;
 	ps.type = proxy_type;
 	ps.proxy_hostnames = false;
+	ps.proxy_accept_incoming = false;
 	// this IP and ports are specific to test_http_connection.cpp
 	if (proxy_type != settings_pack::none)
 	{
