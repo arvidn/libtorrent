@@ -5523,8 +5523,11 @@ namespace {
 	std::uint16_t session_impl::listen_port(listen_socket_t* sock) const
 	{
 		if (m_listen_sockets.empty()) return 0;
-		if (sock)
-		{
+		if (sock){
+			
+			// if we're using a proxy, the user should be able to choose 
+			// if we listen for incoming connections or not based on accept_incoming flag.
+
 			// The DHT may use the implied port to make it work, but the port we
 			// announce here has no relevance for that.
 
@@ -5668,8 +5671,7 @@ namespace {
 			return;
 
 		if (!s->natpmp_mapper
-			&& !(s->flags & listen_socket_t::local_network)
-			&& m_settings.get_bool(settings_pack::proxy_accept_incoming))
+			&& !(s->flags & listen_socket_t::local_network))
 		{
 			// the natpmp constructor may fail and call the callbacks
 			// into the session_impl.
@@ -6895,8 +6897,7 @@ namespace {
 		// there's no point in starting the UPnP mapper for a network that isn't
 		// connected to the internet. The whole point is to forward ports through
 		// the gateway
-		if ((s->flags & listen_socket_t::local_network)
-			|| (s->flags & !m_settings.get_bool(settings_pack::proxy_accept_incoming)))
+		if ((s->flags & listen_socket_t::local_network))
 			return;
 
 		if (!s->upnp_mapper)
