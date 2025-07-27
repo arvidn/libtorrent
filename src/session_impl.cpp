@@ -830,6 +830,8 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 					if (val) s.set_int(settings_pack::proxy_type, int(val.int_value()));
 					val = settings.dict_find_int("proxy_hostnames");
 					if (val) s.set_bool(settings_pack::proxy_hostnames, val.int_value() != 0);
+					val = settings.dict_find_int("proxy_accept_incoming");
+					if (val) s.set_bool(settings_pack::proxy_accept_incoming, val.int_value() != 0);
 					val = settings.dict_find_int("proxy_peer_connections");
 					if (val) s.set_bool(settings_pack::proxy_peer_connections, val.int_value() != 0);
 					val = settings.dict_find_string("hostname");
@@ -2058,7 +2060,8 @@ namespace {
 		// if we don't proxy peer connections, don't apply the special logic for
 		// proxies
 		if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none
-			&& m_settings.get_bool(settings_pack::proxy_peer_connections))
+			&& m_settings.get_bool(settings_pack::proxy_peer_connections)
+			&& !m_settings.get_bool(settings_pack::proxy_accept_incoming))
 		{
 			// we will be able to accept incoming connections over UDP. so use
 			// one of the ports the user specified to use a consistent port
@@ -2824,12 +2827,12 @@ namespace {
 		async_accept(listener, ssl);
 
 		// don't accept any connections from our local listen sockets if we're
-		// using a proxy. We should only accept peers via the proxy, never
-		// directly.
+		// using a proxy and the correct setting isn't set.
 		// This path is only for accepting incoming TCP sockets. The udp_socket
 		// class also restricts incoming packets based on proxy settings.
 		if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none
-			&& m_settings.get_bool(settings_pack::proxy_peer_connections))
+			&& m_settings.get_bool(settings_pack::proxy_peer_connections)
+			&& !m_settings.get_bool(settings_pack::proxy_accept_incoming))
 			return;
 
 		auto listen = std::find_if(m_listen_sockets.begin(), m_listen_sockets.end()
@@ -5524,13 +5527,16 @@ namespace {
 	std::uint16_t session_impl::listen_port(listen_socket_t* sock) const
 	{
 		if (m_listen_sockets.empty()) return 0;
-		if (sock)
-		{
-			// if we're using a proxy, we won't be able to accept any TCP
-			// connections. Not even uTP connections via the port we know about.
+		if (sock){
+
+			// if we're using a proxy, the user should be able to choose
+			// if we listen for incoming connections or not based on accept_incoming flag.
+
 			// The DHT may use the implied port to make it work, but the port we
 			// announce here has no relevance for that.
-			if (sock->flags & listen_socket_t::proxy)
+
+			if (sock->flags & listen_socket_t::proxy
+				&& !m_settings.get_bool(settings_pack::proxy_accept_incoming))
 				return 0;
 
 			if (!(sock->flags & listen_socket_t::accept_incoming))
@@ -5538,6 +5544,11 @@ namespace {
 
 			return std::uint16_t(sock->tcp_external_port());
 		}
+
+		if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none
+			&& m_settings.get_bool(settings_pack::proxy_peer_connections)
+			&& !m_settings.get_bool(settings_pack::proxy_accept_incoming))
+			return 0;
 
 #ifdef TORRENT_SSL_PEERS
 		for (auto const& s : m_listen_sockets)
@@ -5570,9 +5581,6 @@ namespace {
 			return std::uint16_t(sock->tcp_external_port());
 		}
 
-		if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none
-			&& m_settings.get_bool(settings_pack::proxy_peer_connections))
-			return 0;
 
 		for (auto const& s : m_listen_sockets)
 		{
@@ -5667,8 +5675,7 @@ namespace {
 			return;
 
 		if (!s->natpmp_mapper
-			&& !(s->flags & listen_socket_t::local_network)
-			&& !(s->flags & listen_socket_t::proxy))
+			&& !(s->flags & listen_socket_t::local_network))
 		{
 			// the natpmp constructor may fail and call the callbacks
 			// into the session_impl.
@@ -6894,8 +6901,7 @@ namespace {
 		// there's no point in starting the UPnP mapper for a network that isn't
 		// connected to the internet. The whole point is to forward ports through
 		// the gateway
-		if ((s->flags & listen_socket_t::local_network)
-			|| (s->flags & listen_socket_t::proxy))
+		if ((s->flags & listen_socket_t::local_network))
 			return;
 
 		if (!s->upnp_mapper)
