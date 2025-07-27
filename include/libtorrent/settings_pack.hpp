@@ -880,9 +880,6 @@ namespace aux {
 			// any). This is only supported by SOCKS5 and HTTP.
 			proxy_hostnames,
 
-			// if true, listening on the defined port will be enabled while using proxy
-			proxy_accept_incoming,
-
 			// if true, peer connections are made (and accepted) over the
 			// configured proxy, if any. Web seeds as well as regular bittorrent
 			// peer connections are considered "peer connections". Anything
@@ -1029,7 +1026,19 @@ namespace aux {
 			// man-in-the-middle connections.
 			proxy_send_host_in_connect,
 
-			max_bool_setting_internal
+			// When using HTTP proxy (in proxy_type), libtorrent will connect
+			// to peers and trackers using the `CONNECT` proxy command. In this
+			// command it's possible to reveal the hostname of the server we're
+			// connecting to. When this option is true, the hostname will be
+			// sent. This feature can be useful if the proxy is used to
+			// man-in-the-middle connections.
+			proxy_send_host_in_connect,
+
+			max_bool_setting_internal,
+
+			// if true, listening on the defined port will be enabled while using proxy
+			proxy_accept_incoming
+
 		};
 
 		// hidden
