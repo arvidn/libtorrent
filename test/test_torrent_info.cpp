@@ -255,6 +255,12 @@ static test_torrent_t const test_torrents[] =
 			TEST_EQUAL(atp.ti->num_files(), 3);
 		}
 	},
+	{ "invalid_directory_name.torrent", [](torrent_info const* ti) {
+			TEST_EQUAL(ti->num_files(), 2);
+			TEST_EQUAL(ti->files().file_path(file_index_t{0}), "test2" SEPARATOR "_" SEPARATOR "foo");
+			TEST_EQUAL(ti->files().file_path(file_index_t{1}), "test2" SEPARATOR "_" SEPARATOR "foo.1");
+		}
+	},
 	{ "overlapping_symlinks.torrent", [](lt::add_torrent_params atp) {
 			TEST_CHECK(atp.ti->num_files() > 3);
 			TEST_EQUAL(atp.ti->layout().symlink(file_index_t{0}), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "Headers");
@@ -1659,6 +1665,7 @@ TORRENT_TEST(write_torrent_file_session_roundtrip)
 		"absolute_filename.torrent",
 		"invalid_filename.torrent",
 		"invalid_filename2.torrent",
+		"invalid_directory_name.torrent",
 		"overlapping_symlinks.torrent",
 		"v2.torrent",
 		"v2_multipiece_file.torrent",
@@ -1716,12 +1723,12 @@ TORRENT_TEST(write_torrent_file_session_roundtrip)
 
 			if (out_buffer != data)
 			{
-				std::cout << "GOT:\n";
+				std::cout << "GOT: (" << out_buffer.size() << ")\n";
 				for (char b : out_buffer)
 					std::cout << (std::isprint(std::uint8_t(b)) ? b : '.');
 				std::cout << '\n';
 
-				std::cout << "EXPECTED:\n";
+				std::cout << "EXPECTED: (" << data.size() << ")\n";
 				for (char b : data)
 					std::cout << (std::isprint(std::uint8_t(b)) ? b : '.');
 				std::cout << '\n';
@@ -1738,12 +1745,12 @@ TORRENT_TEST(write_torrent_file_session_roundtrip)
 
 			if (out_buffer != data)
 			{
-				std::cout << "GOT:\n";
+				std::cout << "GOT: (" << out_buffer.size() << ")\n";
 				for (char b : out_buffer)
 					std::cout << (std::isprint(std::uint8_t(b)) ? b : '.');
 				std::cout << '\n';
 
-				std::cout << "EXPECTED:\n";
+				std::cout << "EXPECTED: (" << data.size() << ")\n";
 				for (char b : data)
 					std::cout << (std::isprint(std::uint8_t(b)) ? b : '.');
 				std::cout << '\n';

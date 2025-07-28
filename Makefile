@@ -1042,6 +1042,7 @@ TEST_TORRENTS = \
   invalid_file_size.torrent \
   invalid_filename.torrent \
   invalid_filename2.torrent \
+  invalid_directory_name.torrent \
   invalid_info.torrent \
   invalid_name.torrent \
   invalid_name2.torrent \
