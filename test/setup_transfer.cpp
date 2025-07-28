@@ -496,6 +496,45 @@ void wait_for_seeding(lt::session& ses, char const* name)
 	}
 }
 
+void wait_for_ready(lt::session& ses, char const* name)
+{
+	time_point start = clock_type::now();
+	bool done = false;
+	bool paused = true;
+	alert const* a = nullptr;
+	do
+	{
+		done = print_alerts(ses, name, true, true
+			, [&](lt::alert const* al)
+			{
+				auto const* at = alert_cast<add_torrent_alert>(al);
+				if (at && (at->params.flags & torrent_flags::paused))
+				{
+					paused = true;
+				}
+				auto const* sc = alert_cast<state_changed_alert>(al);
+				if (sc)
+				{
+					if (paused && sc->state == torrent_status::checking_files)
+						return true;
+					return sc->state == torrent_status::downloading
+						|| sc->state == torrent_status::seeding;
+				}
+				return false;
+			}, false);
+		if (done) break;
+		if (clock_type::now() - start > seconds(30)) break;
+		a = ses.wait_for_alert(seconds(5));
+	} while (a);
+	TEST_CHECK(done);
+	if (!done)
+	{
+		std::printf("%s: did not receive a seeding or downloading"
+			" alert. waited: %d ms\n"
+			, name, int(total_milliseconds(clock_type::now() - start)));
+	}
+}
+
 void print_ses_rate(float const time
 	, lt::torrent_status const* st1
 	, lt::torrent_status const* st2

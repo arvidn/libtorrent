@@ -79,7 +79,7 @@ torrent_flags_t const flags_mask
 	| torrent_flags::i2p_torrent;
 
 std::vector<char> generate_resume_data(torrent_info* ti
-	, char const* file_priorities = "")
+	, char const* file_priorities = "", torrent_flags_t const flags = torrent_flags_t{})
 {
 	entry rd;
 
@@ -97,7 +97,7 @@ std::vector<char> generate_resume_data(torrent_info* ti
 	rd["download_rate_limit"] = 1344;
 	rd["max_connections"] = 1345;
 	rd["max_uploads"] = 1346;
-	rd["seed_mode"] = 0;
+	rd["seed_mode"] = (flags & torrent_flags::seed_mode) ? 1 : 0;
 	rd["i2p"] = 0;
 	rd["super_seeding"] = 0;
 	rd["added_time"] = 1347;
@@ -116,7 +116,7 @@ std::vector<char> generate_resume_data(torrent_info* ti
 	rd["piece_priority"] = std::string(std::size_t(ti->num_pieces()), '\x01');
 	rd["auto_managed"] = 0;
 	rd["sequential_download"] = 0;
-	rd["paused"] = 0;
+	rd["paused"] = (flags & torrent_flags::paused) ? 1 : 0;
 	entry::list_type& trackers = rd["trackers"].list();
 	trackers.push_back(entry(entry::list_t));
 	trackers.back().list().push_back(entry("http://resume_data_tracker.com/announce"));
@@ -149,7 +149,7 @@ torrent_handle test_resume_flags(lt::session& ses
 	std::shared_ptr<torrent_info> ti = generate_torrent(with_files);
 
 	add_torrent_params p;
-	std::vector<char> rd = generate_resume_data(ti.get(), resume_file_prio);
+	std::vector<char> rd = generate_resume_data(ti.get(), resume_file_prio, flags);
 	TORRENT_UNUSED(test_deprecated);
 #if TORRENT_ABI_VERSION == 1
 	if (test_deprecated)
@@ -196,12 +196,13 @@ torrent_handle test_resume_flags(lt::session& ses
 	}
 
 	torrent_handle h = ses.add_torrent(p);
+	wait_for_ready(ses, "ses");
 	torrent_status s = h.status();
 	TEST_EQUAL(s.info_hashes, ti->info_hashes());
 	return h;
 }
 
-void default_tests(torrent_status const& s, lt::time_point const time_now)
+void default_tests(torrent_status const& s, lt::time_point const time_now, torrent_flags_t const flags = torrent_flags_t{})
 {
 	TORRENT_UNUSED(time_now);
 	// allow some slack in the time stamps since they are reported as
@@ -231,8 +232,17 @@ void default_tests(torrent_status const& s, lt::time_point const time_now)
 
 	TEST_CHECK(s.added_time < 1347 + 2);
 	TEST_CHECK(s.added_time >= 1347);
-	TEST_CHECK(s.completed_time < 1348 + 2);
-	TEST_CHECK(s.completed_time >= 1348);
+	std::cout << "completed_time: " << s.completed_time << std::endl;
+	if (flags & (torrent_flags::paused | torrent_flags::seed_mode))
+	{
+		TEST_CHECK(s.completed_time < 1348 + 2);
+		TEST_CHECK(s.completed_time >= 1348);
+	}
+	else
+	{
+		// since we don't actually have any files, the completed time is reset to 0
+		TEST_EQUAL(s.completed_time, 0);
+	}
 
 	auto const now = lt::clock_type::now();
 	std::cout << "now: " << now.time_since_epoch().count() << std::endl;
@@ -814,7 +824,7 @@ TORRENT_TEST(override_resume_data_deprecated)
 		, torrent_flags::override_resume_data
 		| torrent_flags::paused, "", "", true).status();
 
-	default_tests(s, now);
+	default_tests(s, now, torrent_flags::paused);
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
 #else
@@ -831,7 +841,7 @@ TORRENT_TEST(seed_mode_deprecated)
 	auto const now = lt::clock_type::now();
 	torrent_status s = test_resume_flags(ses, torrent_flags::override_resume_data
 		| torrent_flags::seed_mode, "", "", true).status();
-	default_tests(s, now);
+	default_tests(s, now, torrent_flags::seed_mode);
 	TEST_EQUAL(s.flags & flags_mask, torrent_flags::seed_mode);
 	TEST_EQUAL(s.connections_limit, 2);
 	TEST_EQUAL(s.uploads_limit, 1);
@@ -898,13 +908,13 @@ TORRENT_TEST(paused_deprecated)
 	// resume data overrides the paused flag
 	auto const now = lt::clock_type::now();
 	torrent_status s = test_resume_flags(ses, torrent_flags::paused, "", "", true).status();
-	default_tests(s, now);
+	default_tests(s, now, torrent_flags::paused);
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
 #else
 	TEST_EQUAL(s.save_path, "/add_torrent_params save_path");
 #endif
-	TEST_EQUAL(s.flags & flags_mask, torrent_flags_t{});
+	TEST_EQUAL(s.flags & flags_mask, torrent_flags::paused);
 	TEST_EQUAL(s.connections_limit, 1345);
 	TEST_EQUAL(s.uploads_limit, 1346);
 
@@ -1591,7 +1601,7 @@ TORRENT_TEST(seed_mode)
 	auto const now = lt::clock_type::now();
 	torrent_status s = test_resume_flags(ses
 		, torrent_flags::seed_mode).status();
-	default_tests(s, now);
+	default_tests(s, now, torrent_flags::seed_mode);
 	TEST_EQUAL(s.flags & flags_mask, torrent_flags::seed_mode);
 	TEST_EQUAL(s.connections_limit, 1345);
 	TEST_EQUAL(s.uploads_limit, 1346);
@@ -1603,7 +1613,7 @@ TORRENT_TEST(seed_mode_no_verify_files)
 	auto const now = lt::clock_type::now();
 	torrent_status s = test_resume_flags(ses
 		, torrent_flags::seed_mode | torrent_flags::no_verify_files).status();
-	default_tests(s, now);
+	default_tests(s, now, torrent_flags::seed_mode);
 	// note that torrent_flags::no_verify_files is NOT set here
 	TEST_EQUAL(s.flags & flags_mask, torrent_flags::seed_mode);
 	TEST_EQUAL(s.connections_limit, 1345);
@@ -1670,7 +1680,7 @@ TORRENT_TEST(paused)
 	// resume data overrides the paused flag
 	auto const now = lt::clock_type::now();
 	torrent_status s = test_resume_flags(ses, torrent_flags::paused).status();
-	default_tests(s, now);
+	default_tests(s, now, torrent_flags::paused);
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(s.save_path, "c:\\add_torrent_params save_path");
 #else
