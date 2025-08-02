@@ -287,6 +287,9 @@ void test_roundtrip(add_torrent_params input)
 	TEST_CHECK(input.tracker_tiers == output.tracker_tiers);
 	TEST_CHECK(input.info_hashes == output.info_hashes);
 	TEST_CHECK(input.url_seeds == output.url_seeds);
+	TEST_CHECK(input.exact_sources == output.exact_sources);
+	TEST_CHECK(input.acceptable_sources == output.acceptable_sources);
+	TEST_CHECK(input.content_addressed_storages == output.content_addressed_storages);
 	TEST_CHECK(input.unfinished_pieces == output.unfinished_pieces);
 	TEST_CHECK(input.verified_pieces == output.verified_pieces);
 	TEST_CHECK(input.piece_priorities == output.piece_priorities);
