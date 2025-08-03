@@ -392,9 +392,9 @@ namespace aux {
 			dht_bootstrap_nodes,
 
 			max_bool_setting_internal,
-+
-+			// if true, listening on the defined port will be enabled while using proxy
-+			proxy_accept_incoming
+
+			// if true, listening on the defined port will be enabled while using proxy
+			proxy_accept_incoming
 		};
 
 		// hidden
