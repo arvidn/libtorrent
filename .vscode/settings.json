@@ -1,9 +1,0 @@
-{
-    "files.associations": {
-        ".fantomasignore": "ignore",
-        "chrono": "cpp",
-        "system_error": "cpp",
-        "xlocale": "cpp",
-        "memory": "cpp"
-    }
-}
