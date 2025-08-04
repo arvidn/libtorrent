@@ -391,7 +391,7 @@ namespace aux {
 			// ``router.bt.ouinet.work:6881``,
 			dht_bootstrap_nodes,
 
-			max_bool_setting_internal
+			max_string_setting_internal
 
 			
 		};
