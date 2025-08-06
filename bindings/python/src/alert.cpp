@@ -91,38 +91,14 @@ list dht_stats_routing_table(dht_stats_alert const& a)
    return result;
 }
 
-dict dht_immutable_item(dht_immutable_item_alert const& alert)
+bytes dht_mutable_item_salt(dht_mutable_item_alert const& alert)
 {
-    dict d;
-    d["key"] = alert.target;
-    d["value"] = bytes(alert.item.string());
-    return d;
+    return bytes(alert.salt);
 }
 
-dict dht_mutable_item(dht_mutable_item_alert const& alert)
+bytes dht_put_alert_salt(dht_put_alert const& alert)
 {
-    dict d;
-    d["key"] = bytes(alert.key.data(), alert.key.size());
-    d["value"] = bytes(alert.item.string());
-    d["signature"] = bytes(alert.signature.data(), alert.signature.size());
-    d["seq"] = alert.seq;
-    d["salt"] = bytes(alert.salt);
-    d["authoritative"] = alert.authoritative;
-    return d;
-}
-
-dict dht_put_item(dht_put_alert const& alert)
-{
-    dict d;
-    if (alert.target.is_all_zeros()) {
-        d["public_key"] = bytes(alert.public_key.data(), alert.public_key.size());
-        d["signature"] = bytes(alert.signature.data(), alert.signature.size());
-        d["seq"] = alert.seq;
-        d["salt"] = bytes(alert.salt);
-    } else {
-        d["target"] = alert.target;
-    }
-    return d;
+    return bytes(alert.salt);
 }
 
 dict session_stats_values(session_stats_alert const& alert)
@@ -1028,8 +1004,28 @@ void bind_alert()
 
     class_<picker_log_alert, bases<peer_alert>, noncopyable>(
        "picker_log_alert", no_init)
-        .add_property("picker_flags", &picker_log_alert::picker_flags)
+        .add_property("picker_flags", make_getter(&picker_log_alert::picker_flags, by_value()))
         .def("blocks", &picker_log_alert::blocks)
+        ;
+
+    enum_<picker_flags_t>("picker_flags_t")
+        .value("partial_ratio", picker_log_alert::partial_ratio)
+        .value("prioritize_partials", picker_log_alert::prioritize_partials)
+        .value("rarest_first_partials", picker_log_alert::rarest_first_partials)
+        .value("rarest_first", picker_log_alert::rarest_first)
+        .value("reverse_rarest_first", picker_log_alert::reverse_rarest_first)
+        .value("suggested_pieces", picker_log_alert::suggested_pieces)
+        .value("prio_sequential_pieces", picker_log_alert::prio_sequential_pieces)
+        .value("sequential_pieces", picker_log_alert::sequential_pieces)
+        .value("reverse_pieces", picker_log_alert::reverse_pieces)
+        .value("time_critical", picker_log_alert::time_critical)
+        .value("random_pieces", picker_log_alert::random_pieces)
+        .value("prefer_contiguous", picker_log_alert::prefer_contiguous)
+        .value("reverse_sequential", picker_log_alert::reverse_sequential)
+        .value("backup1", picker_log_alert::backup1)
+        .value("backup2", picker_log_alert::backup2)
+        .value("end_game", picker_log_alert::end_game)
+        .value("extent_affinity", picker_log_alert::extent_affinity)
         ;
 
     class_<lsd_error_alert, bases<alert>, noncopyable>(
@@ -1056,7 +1052,7 @@ void bind_alert()
     class_<dht_immutable_item_alert, bases<alert>, noncopyable>(
        "dht_immutable_item_alert", no_init)
         .add_property("target", make_getter(&dht_immutable_item_alert::target, by_value()))
-        .add_property("item", &dht_immutable_item)
+        .add_property("item", make_getter(&dht_immutable_item_alert::item, by_value()))
         ;
 
     class_<dht_mutable_item_alert, bases<alert>, noncopyable>(
@@ -1064,8 +1060,8 @@ void bind_alert()
         .add_property("key", make_getter(&dht_mutable_item_alert::key, by_value()))
         .add_property("signature", make_getter(&dht_mutable_item_alert::signature, by_value()))
         .def_readonly("seq", &dht_mutable_item_alert::seq)
-        .def_readonly("salt", &dht_mutable_item_alert::salt)
-        .add_property("item", &dht_mutable_item)
+        .add_property("salt", &dht_mutable_item_salt)
+        .add_property("item", make_getter(&dht_mutable_item_alert::item, by_value()))
         .def_readonly("authoritative", &dht_mutable_item_alert::authoritative)
         ;
 

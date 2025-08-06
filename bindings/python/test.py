@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
-
+from typing import cast
 
 import libtorrent as lt
 
@@ -17,7 +17,6 @@ import threading
 import tempfile
 import socket
 import select
-import logging
 import ssl
 import http.server
 import functools
@@ -26,13 +25,18 @@ import dummy_data
 
 # include terminal interface for travis parallel executions of scripts which use
 # terminal features: fix multiple stdin assignment at termios.tcgetattr
-if os.name != 'nt':
+if os.name != "nt":
     import pty
 
-settings = {
-    'alert_mask': lt.alert.category_t.all_categories,
-    'enable_dht': False, 'enable_lsd': False, 'enable_natpmp': False,
-    'enable_upnp': False, 'listen_interfaces': '0.0.0.0:0', 'file_pool_size': 1}
+settings: "lt.settings_pack" = {
+    "alert_mask": lt.alert.category_t.all_categories,
+    "enable_dht": False,
+    "enable_lsd": False,
+    "enable_natpmp": False,
+    "enable_upnp": False,
+    "listen_interfaces": "0.0.0.0:0",
+    "file_pool_size": 1
+}
 
 
 def has_deprecated():
@@ -371,7 +375,7 @@ class TestAddPiece(unittest.TestCase):
         self.wait_for(lambda: self.handle.status().progress == 1.0, msg="progress")
 
         def file_written():
-            with open(os.path.join(self.dir.name.encode(), dummy_data.NAME), mode="rb") as f:
+            with open(os.path.join(self.dir.name, dummy_data.NAME.decode()), mode="rb") as f:
                 return f.read() == dummy_data.DATA
 
         self.wait_for(file_written, msg="file write")
@@ -570,7 +574,7 @@ class test_alerts(unittest.TestCase):
         alerts = ses.pop_alerts()
         for a in alerts:
             if a.what() == 'add_torrent_alert':
-                self.assertEqual(a.torrent_name, 'temp')
+                self.assertEqual(cast(lt.add_torrent_alert, a).torrent_name, 'temp')
             print(a.message())
             for field_name in dir(a):
                 if field_name.startswith('__'):
@@ -712,17 +716,17 @@ class test_info_hash(unittest.TestCase):
         s1 = lt.sha1_hash(b'a' * 20)
         s2 = lt.sha256_hash(b'b' * 32)
 
-        ih1 = lt.info_hash_t(s1);
+        ih1 = lt.info_hash_t(s1)
         self.assertTrue(ih1.has_v1())
         self.assertFalse(ih1.has_v2())
         self.assertEqual(ih1.v1, s1)
 
-        ih2 = lt.info_hash_t(s2);
+        ih2 = lt.info_hash_t(s2)
         self.assertFalse(ih2.has_v1())
         self.assertTrue(ih2.has_v2())
         self.assertEqual(ih2.v2, s2)
 
-        ih12 = lt.info_hash_t(s1, s2);
+        ih12 = lt.info_hash_t(s1, s2)
         self.assertTrue(ih12.has_v1())
         self.assertTrue(ih12.has_v2())
         self.assertEqual(ih12.v1, s1)
@@ -845,20 +849,20 @@ class test_ip_filter(unittest.TestCase):
 class test_session(unittest.TestCase):
 
     def test_settings(self):
-        sett = { 'alert_mask': lt.alert.category_t.all_categories }
+        sett: "lt.settings_pack" = {'alert_mask': lt.alert.category_t.all_categories }
         s = lt.session(sett)
         sett = s.get_settings()
         self.assertEqual(sett['alert_mask'] & 0x7fffffff, 0x7fffffff)
 
     def test_session_params(self):
         sp = lt.session_params()
-        sp.settings = { 'alert_mask': lt.alert.category_t.all_categories }
+        sp.settings = {'alert_mask': lt.alert.category_t.all_categories }
         s = lt.session(sp)
         sett = s.get_settings()
         self.assertEqual(sett['alert_mask'] & 0x7fffffff, 0x7fffffff)
 
     def test_session_params_constructor(self):
-        sp = lt.session_params({ 'alert_mask': lt.alert.category_t.all_categories })
+        sp = lt.session_params({'alert_mask': lt.alert.category_t.all_categories })
         s = lt.session(sp)
         sett = s.get_settings()
         self.assertEqual(sett['alert_mask'] & 0x7fffffff, 0x7fffffff)
@@ -882,7 +886,7 @@ class test_session(unittest.TestCase):
     def test_session_params_roundtrip_entry(self):
 
         sp = lt.session_params()
-        sp.settings = { 'alert_mask': lt.alert.category_t.all_categories }
+        sp.settings = {'alert_mask': lt.alert.category_t.all_categories }
 
         ent = lt.write_session_params(sp)
         print(ent)
@@ -972,9 +976,10 @@ class test_session(unittest.TestCase):
             alerts = s.pop_alerts()
         a = alerts.pop(0)
         print(a)
+        values = cast(lt.session_stats_alert, a).values
         self.assertTrue(isinstance(a, lt.session_stats_alert))
-        self.assertTrue(isinstance(a.values, dict))
-        self.assertTrue(len(a.values) > 0)
+        self.assertTrue(isinstance(values, dict))
+        self.assertTrue(len(values) > 0)
 
     def test_post_dht_stats(self):
         s = lt.session({'alert_mask': 0, 'enable_dht': False})
@@ -990,8 +995,8 @@ class test_session(unittest.TestCase):
                 sys.exit(1)
         a = alerts.pop(0)
         self.assertTrue(isinstance(a, lt.dht_stats_alert))
-        self.assertTrue(isinstance(a.active_requests, list))
-        self.assertTrue(isinstance(a.routing_table, list))
+        self.assertTrue(isinstance(cast(lt.dht_stats_alert, a).active_requests, list))
+        self.assertTrue(isinstance(cast(lt.dht_stats_alert, a).routing_table, list))
 
     def test_unknown_settings(self):
         try:
@@ -1155,9 +1160,9 @@ class test_peer_info(unittest.TestCase):
 class test_dht_settings(unittest.TestCase):
 
     def test_dht_get_peers(self):
-        session = lt.session();
+        session = lt.session()
         info_hash = lt.sha1_hash(b"a" * 20)
-        session.dht_get_peers(info_hash);
+        session.dht_get_peers(info_hash)
 
     def test_construct(self):
 
@@ -1183,7 +1188,7 @@ class test_dht_settings(unittest.TestCase):
         print(ds.item_lifetime)
 
 
-def get_isolated_settings():
+def get_isolated_settings() -> "lt.settings_pack":
     return {
         "enable_dht": False,
         "enable_lsd": False,

@@ -14,7 +14,7 @@
 #include "libtorrent/disk_interface.hpp" // for open_file_state
 #include "libtorrent/aux_/noexcept_movable.hpp"
 #include "libtorrent/peer_info.hpp"
-#include "libtorrent/alert_types.hpp" // for picker_flags_t
+#include "libtorrent/alert_types.hpp"
 #include "libtorrent/session_types.hpp" // for save_state_flags_t
 #include "libtorrent/file_storage.hpp" // for file_flags_t
 #include "libtorrent/alert.hpp"
@@ -38,6 +38,14 @@ struct endpoint_to_tuple
     static PyObject* convert(T const& ep)
     {
         return incref(bp::make_tuple(ep.address().to_string(), ep.port()).ptr());
+    }
+};
+
+struct piece_block_to_tuple
+{
+    static PyObject* convert(lt::piece_block const& pb)
+    {
+        return incref(bp::make_tuple(pb.piece_index, pb.block_index).ptr());
     }
 };
 
@@ -413,6 +421,7 @@ void bind_converters()
     to_python_converter<lt::address, address_to_tuple<lt::address>>();
     to_python_converter<std::pair<std::string, int>, pair_to_tuple<std::string, int>>();
     to_python_converter<std::pair<std::string, std::string>, pair_to_tuple<std::string, std::string>>();
+    to_python_converter<lt::piece_block, piece_block_to_tuple>();
 
     to_python_converter<std::vector<lt::stats_metric>, vector_to_list<std::vector<lt::stats_metric>>>();
     to_python_converter<std::vector<lt::open_file_state>, vector_to_list<std::vector<lt::open_file_state>>>();
@@ -424,6 +433,8 @@ void bind_converters()
     to_python_converter<std::vector<lt::udp::endpoint>, vector_to_list<std::vector<lt::udp::endpoint>>>();
     to_python_converter<std::vector<std::pair<std::string, int>>, vector_to_list<std::vector<std::pair<std::string, int>>>>();
     to_python_converter<std::vector<std::pair<std::string, std::string>>, vector_to_list<std::vector<std::pair<std::string, std::string>>>>();
+    to_python_converter<std::vector<lt::port_mapping_t>, vector_to_list<std::vector<lt::port_mapping_t>>>();
+    to_python_converter<std::vector<lt::piece_block>, vector_to_list<std::vector<lt::piece_block>>>();
 
     to_python_converter<lt::typed_bitfield<lt::piece_index_t>, bitfield_to_list<lt::typed_bitfield<lt::piece_index_t>>>();
     to_python_converter<lt::bitfield, bitfield_to_list<lt::bitfield>>();
@@ -440,7 +451,6 @@ void bind_converters()
     to_python_converter<lt::peer_source_flags_t, from_bitfield_flag<lt::peer_source_flags_t>>();
     to_python_converter<lt::bandwidth_state_flags_t, from_bitfield_flag<lt::bandwidth_state_flags_t>>();
     to_python_converter<lt::file_open_mode_t, from_bitfield_flag<lt::file_open_mode_t>>();
-    to_python_converter<lt::picker_flags_t, from_bitfield_flag<lt::picker_flags_t>>();
     to_python_converter<lt::status_flags_t, from_bitfield_flag<lt::status_flags_t>>();
     to_python_converter<lt::alert_category_t, from_bitfield_flag<lt::alert_category_t>>();
     to_python_converter<lt::resume_data_flags_t, from_bitfield_flag<lt::resume_data_flags_t>>();
@@ -454,7 +464,6 @@ void bind_converters()
     to_python_converter<lt::create_flags_t, from_bitfield_flag<lt::create_flags_t>>();
     to_python_converter<lt::pex_flags_t, from_bitfield_flag<lt::pex_flags_t>>();
     to_python_converter<lt::reannounce_flags_t, from_bitfield_flag<lt::reannounce_flags_t>>();
-    to_python_converter<lt::dht::announce_flags_t, from_bitfield_flag<lt::dht::announce_flags_t>>();
     to_python_converter<lt::file_progress_flags_t, from_bitfield_flag<lt::file_progress_flags_t>>();
     to_python_converter<lt::write_torrent_flags_t, from_bitfield_flag<lt::write_torrent_flags_t>>();
     to_python_converter<lt::string_view, from_string_view>();
@@ -537,7 +546,6 @@ void bind_converters()
     to_bitfield_flag<lt::peer_source_flags_t>();
     to_bitfield_flag<lt::bandwidth_state_flags_t>();
     to_bitfield_flag<lt::file_open_mode_t>();
-    to_bitfield_flag<lt::picker_flags_t>();
     to_bitfield_flag<lt::status_flags_t>();
     to_bitfield_flag<lt::alert_category_t>();
     to_bitfield_flag<lt::resume_data_flags_t>();
@@ -551,7 +559,6 @@ void bind_converters()
     to_bitfield_flag<lt::create_flags_t>();
     to_bitfield_flag<lt::pex_flags_t>();
     to_bitfield_flag<lt::reannounce_flags_t>();
-    to_bitfield_flag<lt::dht::announce_flags_t>();
     to_string_view();
     to_bitfield_flag<lt::session_flags_t>();
     to_bitfield_flag<lt::file_progress_flags_t>();

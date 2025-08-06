@@ -22,6 +22,7 @@
 #include <libtorrent/session_status.hpp>
 #include <libtorrent/peer_class_type_filter.hpp>
 #include <libtorrent/torrent_status.hpp>
+#include <libtorrent/kademlia/announce_flags.hpp>
 
 #include <libtorrent/extensions/smart_ban.hpp>
 #include <libtorrent/extensions/ut_metadata.hpp>
@@ -1018,7 +1019,6 @@ void bind_session()
 #ifndef TORRENT_DISABLE_DHT
         .def_readwrite("dht_state", &session_params::dht_state)
 #endif
-        .add_property("ext_state", PROP(&session_params::ext_state))
         .def_readwrite("ip_filter", &session_params::ip_filter)
         ;
 
@@ -1192,6 +1192,8 @@ void bind_session()
         .def(
             "add_torrent", depr(&add_torrent_depr)
           , (
+                arg("ti"),
+                arg("save"),
                 arg("resume_data") = entry(),
                 arg("storage_mode") = storage_mode_sparse,
                 arg("paused") = false
@@ -1203,6 +1205,7 @@ void bind_session()
 #if TORRENT_ABI_VERSION == 1
         .def("status", depr(&lt::session::status))
 #endif
+        .def("session_state", &lt::session::session_state, (arg("flags") = 0xffffffff))
         .def("get_settings", &session_get_settings)
         .def("apply_settings", &session_apply_settings)
 #if TORRENT_ABI_VERSION == 1
@@ -1314,6 +1317,7 @@ void bind_session()
 
     {
         scope s = class_<dummy9>("save_state_flags_t");
+        s.attr("all") = save_state_flags_t::all();
         s.attr("save_settings") = lt::session::save_settings;
 #if TORRENT_ABI_VERSION <= 2
         s.attr("save_dht_settings") = lt::session::save_dht_settings;
@@ -1374,6 +1378,12 @@ void bind_session()
     scope().attr("create_ut_metadata_plugin") = "ut_metadata";
     scope().attr("create_ut_pex_plugin") = "ut_pex";
     scope().attr("create_smart_ban_plugin") = "smart_ban";
+
+    enum_<dht::announce_flags_t>("announce_flags_t")
+        .value("seed", lt::dht::announce::seed)
+        .value("implied_port", lt::dht::announce::implied_port)
+        .value("ssl_torrent", lt::dht::announce::ssl_torrent)
+    ;
 }
 
 #ifdef _MSC_VER
