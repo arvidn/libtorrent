@@ -28,6 +28,7 @@ on:
   pull_request:
     paths:
       - .github/workflows/cibuildwheel.yml
+      - bindings/python/__init__.pyi
       - tools/cibuildwheel/**
       - pyproject.toml
 
@@ -159,7 +160,7 @@ jobs:
       run: sudo apt-get install libssl-dev
 
     - uses: pypa/cibuildwheel@v2.22.0
-      if: steps.cache-wheel.outputs.cache-hit != 'true'
+      if: ${{ steps.cache-wheel.outputs.cache-hit != 'true' || github.event_name == 'pull_request' }}
 
     - uses: actions/upload-artifact@v4
       with:
