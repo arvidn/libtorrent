@@ -392,6 +392,8 @@ namespace aux {
 			dht_bootstrap_nodes,
 
 			max_string_setting_internal
+
+			
 		};
 
 		// hidden
@@ -1026,7 +1028,12 @@ namespace aux {
 			// man-in-the-middle connections.
 			proxy_send_host_in_connect,
 
+			// if true, listening on the defined port will be enabled while using proxy
+			proxy_accept_incoming,
+
 			max_bool_setting_internal
+
+			
 		};
 
 		// hidden
