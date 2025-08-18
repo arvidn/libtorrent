@@ -196,6 +196,8 @@ PYTHON_FILES= \
   setup.py                  \
   setup.py.cmake.in         \
   simple_client.py          \
+  libtorrent/__init__.pyi   \
+  libtorrent/py.typed       \
   src/alert.cpp             \
   src/boost_python.hpp      \
   src/bytes.hpp             \

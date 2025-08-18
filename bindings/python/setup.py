@@ -515,7 +515,6 @@ setuptools.setup(
         "build_ext": LibtorrentBuildExt,
     },
     distclass=B2Distribution,
-    data_files=[
-        ("libtorrent", list(find_all_files("install_data"))),
-    ],
+    packages=["libtorrent"],
+    package_data={"libtorrent": list(find_all_files("libtorrent"))},
 )
