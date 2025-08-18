@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/byteswap.hpp"
 #include "libtorrent/aux_/ffs.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/hex.hpp" // for to_hex
 
 #if TORRENT_USE_IOSTREAM
 #include <iosfwd>
@@ -254,6 +255,11 @@ namespace libtorrent {
 		std::string to_string() const
 		{
 			return std::string(reinterpret_cast<char const*>(m_number.data()), size());
+		}
+
+		std::string to_hexstring() const
+		{
+			return aux::to_hex(this->to_string());
 		}
 
 #if TORRENT_USE_IOSTREAM

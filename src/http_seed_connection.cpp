@@ -191,6 +191,12 @@ namespace libtorrent {
 		bool using_proxy = (proxy_type == settings_pack::http
 			|| proxy_type == settings_pack::http_pw) && !m_ssl;
 
+		// https://bittorrent.org/beps/bep_0017.html
+		// HTTP Seeding
+		// Protocol
+		// The client calls the URL given, in the following format:
+		// <url>?info_hash=[hash]&piece=[piece]{&ranges=[start]-[end]{,[start]-[end]}...}
+
 		request += "GET ";
 		request += using_proxy ? m_url : m_path;
 		request += "?info_hash=";
