@@ -586,9 +586,9 @@ namespace {
 	{
 		if (f.empty()) return f;
 
-#ifdef TORRENT_WINDOWS
+		#ifdef TORRENT_WINDOWS
 		if (f == "\\\\") return "";
-#endif
+		#endif
 		if (f == "/") return "";
 
 		int len = int(f.size());
@@ -597,8 +597,11 @@ namespace {
 		while (len > 0)
 		{
 			--len;
-			if (f[std::size_t(len)] == '/' || f[std::size_t(len)] == '\\')
-				break;
+			#ifdef TORRENT_WINDOWS
+			if (f[std::size_t(len)] == '/' || f[std::size_t(len)] == '\\') break;
+			#else
+			if (f[std::size_t(len)] == '/') break;  
+			#endif		
 		}
 
 		if (f[std::size_t(len)] == '/' || f[std::size_t(len)] == '\\') ++len;
