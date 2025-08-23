@@ -724,6 +724,8 @@ namespace aux {
 			void on_i2p_open(error_code const& ec);
 			void open_new_incoming_i2p_connection();
 			void on_i2p_accept(error_code const& e);
+			void schedule_i2p_reconnect();
+			void on_i2p_reconnect_timer(error_code const& ec);
 #endif
 
 			void start_ip_notifier();
@@ -1027,6 +1029,13 @@ namespace aux {
 #if TORRENT_USE_I2P
 			i2p_connection m_i2p_conn;
 			std::optional<socket_type> m_i2p_listen_socket;
+			
+			// Timer for I2P reconnection attempts
+			deadline_timer m_i2p_reconnect_timer;
+			
+			// Exponential backoff state for I2P reconnection
+			int m_i2p_reconnect_delay = 1;  // seconds
+			bool m_i2p_reconnecting = false;
 #endif
 
 #if TORRENT_USE_SSL
