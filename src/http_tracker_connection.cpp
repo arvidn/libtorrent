@@ -312,7 +312,7 @@ namespace libtorrent {
 		auto const ls = bind_socket();
 		if (ls.get() != nullptr)
 		{
-			std::cerr << "HITHERE list of endpoints to announce" << std:endl;
+			std::cerr << "HITHERE list of endpoints to announce" << std::endl;
 			endpoints.erase(std::remove_if(endpoints.begin(), endpoints.end()
 				, [&](tcp::endpoint const& ep) { 
 					std::cerr << "    endpoint address=" << ep.address() << " interface=" << ls.device() << " local address=" << ls.get_local_endpoint() << std::endl;
