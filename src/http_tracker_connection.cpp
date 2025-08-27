@@ -314,19 +314,21 @@ namespace libtorrent {
 		{
 			endpoints.erase(std::remove_if(endpoints.begin(), endpoints.end()
 				, [&](tcp::endpoint const& ep) { 
-					std::cerr << "HITHERE endpoint" << ep.address() << std::endl;
+					std::cerr << "HITHERE endpoint " << ep.address() << " " << ls.can_route(ep.address()) << std::endl;
 					  return !ls.can_route(ep.address()); 
 				  })
 				, endpoints.end());
 		}
 
-		std::cerr << "HITHERE filtering tracker connection" << std::endl;
-
 		if (endpoints.empty())
 		{
+			std::cerr << "HITHERE announce skipped because cannot route" << std::endl;
+
 			fail(lt::errors::announce_skipped, operation_t::get_interface);
 			return;
 		}
+
+		std::cerr << "HITHERE announcing" << std::endl;
 
 		aux::session_settings const& settings = m_man.settings();
 		bool const ssrf_mitigation = settings.get_bool(settings_pack::ssrf_mitigation);
