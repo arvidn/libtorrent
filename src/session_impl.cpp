@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/config.hpp"
 
+#include <iostream>
 #include <ctime>
 #include <algorithm>
 #include <cctype>
@@ -387,6 +388,9 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		if (local_endpoint.address() == addr) return true;
 		if (local_endpoint.address().is_unspecified()) return true;
 		if (match_addr_mask(addr, local_endpoint.address(), netmask)) return true;
+
+		std::cerr << "        can_route result=" << !(flags & local_network) << std::endl:
+
 		return !(flags & local_network);
 	}
 

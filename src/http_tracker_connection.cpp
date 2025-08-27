@@ -312,9 +312,10 @@ namespace libtorrent {
 		auto const ls = bind_socket();
 		if (ls.get() != nullptr)
 		{
+			std::cerr << "HITHERE list of endpoints to announce" << std:endl;
 			endpoints.erase(std::remove_if(endpoints.begin(), endpoints.end()
 				, [&](tcp::endpoint const& ep) { 
-					std::cerr << "HITHERE endpoint " << ep.address() << " " << ls.can_route(ep.address()) << std::endl;
+					std::cerr << "    endpoint address=" << ep.address() << " interface=" << ls.device() << " local address=" << ls.get_local_endpoint() << std::endl;
 					  return !ls.can_route(ep.address()); 
 				  })
 				, endpoints.end());
@@ -322,13 +323,13 @@ namespace libtorrent {
 
 		if (endpoints.empty())
 		{
-			std::cerr << "HITHERE announce skipped because cannot route " << ls.get_external_address() << " " << ls.get_local_endpoint() << " " << ls.device() << std::endl;
+			std::cerr << "HITHERE announce skipped because cannot route to any endpoints from interface=" <<  ls.device() << " local address=" << ls.get_local_endpoint() << std::endl;
 
 			fail(lt::errors::announce_skipped, operation_t::get_interface);
 			return;
 		}
 
-		std::cerr << "HITHERE announcing" << std::endl;
+		std::cerr << "HITHERE announcing from interface=" <<  ls.device() << " local address=" << ls.get_local_endpoint() << std::endl;
 
 		aux::session_settings const& settings = m_man.settings();
 		bool const ssrf_mitigation = settings.get_bool(settings_pack::ssrf_mitigation);
