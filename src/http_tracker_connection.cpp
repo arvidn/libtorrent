@@ -322,7 +322,7 @@ namespace libtorrent {
 
 		if (endpoints.empty())
 		{
-			std::cerr << "HITHERE announce skipped because cannot route" << std::endl;
+			std::cerr << "HITHERE announce skipped because cannot route " << ls.get_external_address() << " " << ls.get_local_endpoint() << " " << ls.device() << std::endl;
 
 			fail(lt::errors::announce_skipped, operation_t::get_interface);
 			return;
