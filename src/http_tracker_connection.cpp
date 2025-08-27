@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include "libtorrent/socket_io.hpp"
 
+#include <iostream>
 #include <string>
 #include <functional>
 #include <vector>
@@ -312,9 +313,14 @@ namespace libtorrent {
 		if (ls.get() != nullptr)
 		{
 			endpoints.erase(std::remove_if(endpoints.begin(), endpoints.end()
-				, [&](tcp::endpoint const& ep) { return !ls.can_route(ep.address()); })
+				, [&](tcp::endpoint const& ep) { 
+					std::cerr << "HITHERE endpoint" << ep.address() << std::endl;
+					  return !ls.can_route(ep.address()); 
+				  })
 				, endpoints.end());
 		}
+
+		std::cerr << "HITHERE filtering tracker connection" << std::endl;
 
 		if (endpoints.empty())
 		{
