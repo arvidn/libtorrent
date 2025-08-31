@@ -104,4 +104,6 @@ EXPORT lt::address addr(char const* ip);
 EXPORT lt::address_v4 addr4(char const* ip);
 EXPORT lt::address_v6 addr6(char const* ip);
 
+EXPORT lt::settings_pack setup_https_test_settings();
+
 #endif

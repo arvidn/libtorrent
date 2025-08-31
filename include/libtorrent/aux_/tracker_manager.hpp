@@ -57,6 +57,9 @@ namespace libtorrent {
 #if TORRENT_USE_I2P
 	class i2p_connection;
 #endif
+#ifdef TORRENT_USE_LIBCURL
+	class curl_tracker_connection;
+#endif
 }
 
 namespace libtorrent::aux {
@@ -68,6 +71,9 @@ namespace libtorrent::aux {
 	struct resolver_interface;
 	class http_tracker_connection;
 	class udp_tracker_connection;
+#ifdef TORRENT_USE_LIBCURL
+	class curl_thread_manager;
+#endif
 #if TORRENT_USE_RTC
 	struct websocket_tracker_connection;
 #endif
@@ -317,6 +323,9 @@ using tracker_request_flags_t = flags::bitfield_flag<std::uint8_t, struct tracke
 #if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 			, aux::session_logger& ses
 #endif
+#ifdef TORRENT_USE_LIBCURL
+			, std::shared_ptr<aux::curl_thread_manager> curl_mgr
+#endif
 			);
 
 		~tracker_manager();
@@ -392,6 +401,9 @@ using tracker_request_flags_t = flags::bitfield_flag<std::uint8_t, struct tracke
 		aux::resolver_interface& m_host_resolver;
 		aux::session_settings const& m_settings;
 		counters& m_stats_counters;
+#ifdef TORRENT_USE_LIBCURL
+		std::shared_ptr<aux::curl_thread_manager> m_curl_thread_manager;
+#endif
 		bool m_abort = false;
 #if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 		aux::session_logger& m_ses;

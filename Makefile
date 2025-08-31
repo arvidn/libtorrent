@@ -346,6 +346,9 @@ SOURCES = \
   http_connection.cpp             \
   http_parser.cpp                 \
   http_tracker_connection.cpp     \
+  curl_tracker_connection.cpp     \
+  curl_tracker_client.cpp         \
+  curl_thread_manager.cpp         \
   i2p_stream.cpp                  \
   identify_client.cpp             \
   instantiate_connection.cpp      \
@@ -457,6 +460,9 @@ HEADERS = \
   close_reason.hpp             \
   config.hpp                   \
   create_torrent.hpp           \
+  curl_tracker_connection.hpp  \
+  deadline_timer.hpp           \
+  debug.hpp                    \
   disabled_disk_io.hpp         \
   disk_buffer_holder.hpp       \
   disk_interface.hpp           \
@@ -551,6 +557,9 @@ HEADERS = \
   aux_/copy_ptr.hpp                 \
   aux_/cpuid.hpp                    \
   aux_/crc32c.hpp                   \
+  aux_/curl_handle_wrappers.hpp     \
+  aux_/curl_thread_manager.hpp      \
+  aux_/curl_tracker_client.hpp      \
   aux_/deadline_timer.hpp           \
   aux_/debug.hpp                    \
   aux_/debug_disk_thread.hpp        \
@@ -606,6 +615,7 @@ HEADERS = \
   aux_/mmap_storage.hpp             \
   aux_/mmap_disk_job.hpp            \
   aux_/disk_job.hpp                 \
+  aux_/mock_tracker_client.hpp      \
   aux_/netlink.hpp                  \
   aux_/netlink_utils.hpp            \
   aux_/noexcept_movable.hpp         \
@@ -657,6 +667,7 @@ HEADERS = \
   aux_/socket_io.hpp                \
   aux_/socket_type.hpp              \
   aux_/ssl.hpp                      \
+  aux_/ssl_session_cache_interface.hpp \
   aux_/ssl_stream.hpp               \
   aux_/stack_allocator.hpp          \
   aux_/stat.hpp                     \

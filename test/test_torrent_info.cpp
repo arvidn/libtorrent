@@ -255,10 +255,10 @@ static test_torrent_t const test_torrents[] =
 			TEST_EQUAL(atp.ti->num_files(), 3);
 		}
 	},
-	{ "invalid_directory_name.torrent", [](torrent_info const* ti) {
-			TEST_EQUAL(ti->num_files(), 2);
-			TEST_EQUAL(ti->files().file_path(file_index_t{0}), "test2" SEPARATOR "_" SEPARATOR "foo");
-			TEST_EQUAL(ti->files().file_path(file_index_t{1}), "test2" SEPARATOR "_" SEPARATOR "foo.1");
+	{ "invalid_directory_name.torrent", [](lt::add_torrent_params atp) {
+			TEST_EQUAL(atp.ti->num_files(), 2);
+			TEST_EQUAL(atp.ti->files().file_path(file_index_t{0}), "test2" SEPARATOR "_" SEPARATOR "foo");
+			TEST_EQUAL(atp.ti->files().file_path(file_index_t{1}), "test2" SEPARATOR "_" SEPARATOR "foo.1");
 		}
 	},
 	{ "overlapping_symlinks.torrent", [](lt::add_torrent_params atp) {

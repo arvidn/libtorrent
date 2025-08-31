@@ -39,6 +39,9 @@ see LICENSE file.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/aux_/tracker_manager.hpp"
+#ifdef TORRENT_USE_LIBCURL
+#include "libtorrent/aux_/curl_thread_manager.hpp"
+#endif
 #include "libtorrent/aux_/debug.hpp"
 #include "libtorrent/aux_/piece_block_progress.hpp"
 #include "libtorrent/ip_filter.hpp"
@@ -393,6 +396,11 @@ namespace aux {
 
 			io_context& get_context() override { return m_io_context; }
 			resolver_interface& get_resolver() override { return m_host_resolver; }
+			
+#ifdef TORRENT_USE_LIBCURL
+			curl_thread_manager* get_curl_thread_manager() override 
+			{ return m_curl_thread_manager.get(); }
+#endif
 
 			aux::vector<torrent*>& torrent_list(torrent_list_index_t i) override
 			{
@@ -940,6 +948,10 @@ namespace aux {
 			peer_class_t m_local_peer_class{0};
 
 			resolver m_host_resolver;
+
+#ifdef TORRENT_USE_LIBCURL
+			std::shared_ptr<curl_thread_manager> m_curl_thread_manager;
+#endif
 
 			tracker_manager m_tracker_manager;
 

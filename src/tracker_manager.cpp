@@ -22,6 +22,10 @@ see LICENSE file.
 #include "libtorrent/aux_/tracker_manager.hpp"
 #include "libtorrent/aux_/udp_tracker_connection.hpp"
 
+#ifdef TORRENT_USE_LIBCURL
+#include "libtorrent/curl_tracker_connection.hpp"
+#endif
+
 #if TORRENT_USE_RTC
 #include "libtorrent/aux_/websocket_tracker_connection.hpp"
 #endif
@@ -172,12 +176,18 @@ namespace libtorrent::aux {
 #if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 		, aux::session_logger& ses
 #endif
+#ifdef TORRENT_USE_LIBCURL
+		, std::shared_ptr<aux::curl_thread_manager> curl_mgr
+#endif
 		)
 		: m_send_fun(std::move(send_fun))
 		, m_send_fun_hostname(std::move(send_fun_hostname))
 		, m_host_resolver(resolver)
 		, m_settings(sett)
 		, m_stats_counters(stats_counters)
+#ifdef TORRENT_USE_LIBCURL
+		, m_curl_thread_manager(std::move(curl_mgr))
+#endif
 #if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 		, m_ses(ses)
 #endif
@@ -276,7 +286,11 @@ namespace libtorrent::aux {
 		if (protocol == "http")
 #endif
 		{
+#ifdef TORRENT_USE_LIBCURL
+			auto con = std::make_shared<curl_tracker_connection>(ios, *this, std::move(req), c, m_curl_thread_manager);
+#else
 			auto con = std::make_shared<aux::http_tracker_connection>(ios, *this, std::move(req), c);
+#endif
 			if (m_http_conns.size() < std::size_t(sett.get_int(settings_pack::max_concurrent_http_announces)))
 			{
 				m_http_conns.push_back(std::move(con));
