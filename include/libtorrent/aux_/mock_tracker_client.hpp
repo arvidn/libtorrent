@@ -5,7 +5,7 @@
 #include "libtorrent/aux_/deadline_timer.hpp"
 #include "libtorrent/time.hpp"
 
-namespace libtorrent { namespace aux {
+namespace libtorrent::aux {
 
 // Mock implementation for testing
 class TORRENT_EXTRA_EXPORT mock_tracker_client {
@@ -14,21 +14,15 @@ public:
         : m_ios(ios)
         , m_settings(settings)
         , m_delay_timer(ios)
-        , m_delay(milliseconds(0))
-        , m_closed(false) {
-        m_response.interval = seconds(1800);
-        m_response.min_interval = seconds(900);
-        m_response.complete = 20;
-        m_response.incomplete = 5;
-        m_response.downloaded = 100;
-    }
+        , m_response(create_default_response())
+    {}
 
     void announce(
         tracker_request const& /*req*/,
         std::function<void(error_code const&, tracker_response const&)> handler
     ) {
         if (m_closed) {
-            post(m_ios, [handler]() {
+            post(m_ios, [handler = std::move(handler)]() mutable {
                 error_code ec;
                 ec.assign(boost::system::errc::operation_canceled, boost::system::generic_category());
                 handler(ec, {});
@@ -40,12 +34,12 @@ public:
             if (m_delay.count() > 0) {
                 m_delay_timer.expires_after(m_delay);
                 m_delay_timer.async_wait(
-                    [this, handler](error_code const& ec) {
+                    [this, handler = std::move(handler)](error_code const& ec) mutable {
                         if (ec) return;
                         handler(m_error, {});
                     });
             } else {
-                post(m_ios, [this, handler]() {
+                post(m_ios, [this, handler = std::move(handler)]() mutable {
                     handler(m_error, {});
                 });
             }
@@ -55,12 +49,12 @@ public:
         if (m_delay.count() > 0) {
             m_delay_timer.expires_after(m_delay);
             m_delay_timer.async_wait(
-                [this, handler](error_code const& ec) {
+                [this, handler = std::move(handler)](error_code const& ec) mutable {
                     if (ec) return;
                     handler({}, m_response);
                 });
         } else {
-            post(m_ios, [this, handler]() {
+            post(m_ios, [this, handler = std::move(handler)]() mutable {
                 handler({}, m_response);
             });
         }
@@ -74,7 +68,7 @@ public:
         announce(req, handler);
     }
 
-    bool can_reuse() const {
+    [[nodiscard]] bool can_reuse() const {
         return !m_closed;
     }
 
@@ -96,15 +90,25 @@ public:
     }
 
 private:
+    static tracker_response create_default_response() {
+        tracker_response resp{};
+        resp.interval = seconds(1800);
+        resp.min_interval = seconds(900);
+        resp.complete = 20;
+        resp.incomplete = 5;
+        resp.downloaded = 100;
+        return resp;
+    }
+
     io_context& m_ios;
     settings_pack m_settings;
     deadline_timer m_delay_timer;
     tracker_response m_response;
-    error_code m_error;
-    time_duration m_delay;
-    bool m_closed;
+    error_code m_error{};
+    time_duration m_delay{milliseconds(0)};
+    bool m_closed{false};
 };
 
-}} // namespace libtorrent::aux
+} // namespace libtorrent::aux
 
 #endif // TORRENT_MOCK_TRACKER_CLIENT_HPP

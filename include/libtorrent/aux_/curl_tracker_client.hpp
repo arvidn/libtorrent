@@ -44,14 +44,14 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <memory>
 #include <string>
 
-namespace libtorrent { namespace aux {
+namespace libtorrent::aux {
 
 // Tracker response parsing functions (following http_tracker_connection pattern)
-TORRENT_EXTRA_EXPORT tracker_response parse_announce_response(
+[[nodiscard]] TORRENT_EXTRA_EXPORT tracker_response parse_announce_response(
 	span<char const> data,
 	error_code& ec);
 
-TORRENT_EXTRA_EXPORT tracker_response parse_scrape_response(
+[[nodiscard]] TORRENT_EXTRA_EXPORT tracker_response parse_scrape_response(
 	span<char const> data,
 	error_code& ec);
 
@@ -78,7 +78,7 @@ public:
 		std::function<void(error_code const&, tracker_response const&)> handler);
 	
 	// libcurl handles connection pooling, always reusable
-	bool can_reuse() const { return true; }
+	[[nodiscard]] bool can_reuse() const { return true; }
 	
 	void close();
 	
@@ -96,7 +96,7 @@ private:
 	std::shared_ptr<curl_thread_manager> m_curl_thread_manager;
 };
 
-}} // namespace libtorrent::aux
+} // namespace libtorrent::aux
 
 #endif // TORRENT_USE_LIBCURL
 

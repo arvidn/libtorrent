@@ -137,7 +137,7 @@ namespace libtorrent::aux {
 		virtual aux::resolver_interface& get_resolver() = 0;
 		
 #ifdef TORRENT_USE_LIBCURL
-		virtual curl_thread_manager* get_curl_thread_manager() = 0;
+		[[nodiscard]] virtual curl_thread_manager* get_curl_thread_manager() = 0;
 #endif
 
 		virtual bool has_connection(peer_connection* p) const = 0;

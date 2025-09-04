@@ -98,22 +98,22 @@ void curl_tracker_connection::start()
 	if (m_started) return;
 	m_started = true;
 
-	std::shared_ptr<curl_tracker_connection> me = shared_from_this();
+	auto self = shared_from_this();
 
 	if (tracker_req().kind & aux::tracker_request::scrape_request)
 	{
 		m_client->scrape(tracker_req(),
-			[me](error_code const& ec, aux::tracker_response const& resp)
+			[self](error_code const& ec, aux::tracker_response const& resp)
 			{
-				me->on_response(ec, resp);
+				self->on_response(ec, resp);
 			});
 	}
 	else
 	{
 		m_client->announce(tracker_req(),
-			[me](error_code const& ec, aux::tracker_response const& resp)
+			[self](error_code const& ec, aux::tracker_response const& resp)
 			{
-				me->on_response(ec, resp);
+				self->on_response(ec, resp);
 			});
 	}
 
@@ -135,7 +135,7 @@ void curl_tracker_connection::close()
 	m_man.remove_request(static_cast<aux::http_tracker_connection const*>(this));
 }
 
-void curl_tracker_connection::on_timeout(error_code const& /* ec */)
+void curl_tracker_connection::on_timeout([[maybe_unused]] error_code const& ec)
 {
 	if (!m_client) return;
 
@@ -157,28 +157,29 @@ void curl_tracker_connection::on_response(error_code const& ec, aux::tracker_res
 		return;
 	}
 
-	std::shared_ptr<aux::request_callback> cb = requester();
-	if (!cb)
+	if (auto cb = requester(); !cb)
 	{
 		close();
 		return;
 	}
-
-	received_bytes(0); // We don't have exact byte count from curl
-
-	if (tracker_req().kind & aux::tracker_request::scrape_request)
-	{
-		cb->tracker_scrape_response(tracker_req(), resp.complete,
-			resp.incomplete, resp.downloaded, resp.downloaders);
-	}
 	else
 	{
-		// For announce, we need to provide the tracker IP and IP list
-		// Since curl doesn't give us this directly, we'll use empty values
-		address tracker_ip;
-		std::list<address> ip_list;
+		received_bytes(0); // We don't have exact byte count from curl
 
-		cb->tracker_response(tracker_req(), tracker_ip, ip_list, resp);
+		if (tracker_req().kind & aux::tracker_request::scrape_request)
+		{
+			cb->tracker_scrape_response(tracker_req(), resp.complete,
+				resp.incomplete, resp.downloaded, resp.downloaders);
+		}
+		else
+		{
+			// For announce, we need to provide the tracker IP and IP list
+			// Since curl doesn't give us this directly, we'll use empty values
+			address tracker_ip;
+			std::list<address> ip_list;
+
+			cb->tracker_response(tracker_req(), tracker_ip, ip_list, resp);
+		}
 	}
 
 	close();

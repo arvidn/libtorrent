@@ -398,7 +398,7 @@ namespace aux {
 			resolver_interface& get_resolver() override { return m_host_resolver; }
 			
 #ifdef TORRENT_USE_LIBCURL
-			curl_thread_manager* get_curl_thread_manager() override 
+			[[nodiscard]] curl_thread_manager* get_curl_thread_manager() override 
 			{ return m_curl_thread_manager.get(); }
 #endif
 

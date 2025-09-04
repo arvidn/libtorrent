@@ -77,8 +77,8 @@ public:
         return *this;
     }
     
-    CURL* get() const noexcept { return m_handle; }
-    CURL* release() noexcept { 
+    [[nodiscard]] CURL* get() const noexcept { return m_handle; }
+    [[nodiscard]] CURL* release() noexcept { 
         return std::exchange(m_handle, nullptr); 
     }
     
@@ -128,8 +128,8 @@ public:
         return *this;
     }
     
-    CURLM* get() const noexcept { return m_handle; }
-    CURLM* release() noexcept { 
+    [[nodiscard]] CURLM* get() const noexcept { return m_handle; }
+    [[nodiscard]] CURLM* release() noexcept { 
         return std::exchange(m_handle, nullptr); 
     }
     

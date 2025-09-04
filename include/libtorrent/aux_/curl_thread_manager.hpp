@@ -54,7 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <set>
 
-namespace libtorrent { namespace aux {
+namespace libtorrent::aux {
 
 // Statistics for monitoring curl thread manager
 struct curl_thread_stats {
@@ -105,14 +105,14 @@ public:
     void remove_tracker(const std::string& url);
     
     // Get current unique host count
-    size_t unique_count() const {
-        std::lock_guard<std::mutex> lock(m_mutex);
+    [[nodiscard]] size_t unique_count() const {
+        std::scoped_lock lock(m_mutex);
         return m_tracker_ref_counts.size();
     }
     
     // Clear all counts (for shutdown)
     void clear() {
-        std::lock_guard<std::mutex> lock(m_mutex);
+        std::scoped_lock lock(m_mutex);
         m_tracker_ref_counts.clear();
     }
 };
@@ -134,7 +134,7 @@ public:
     void tracker_added(const std::string& url);
     void tracker_removed(const std::string& url);
     
-    curl_thread_stats get_stats() const;
+    [[nodiscard]] curl_thread_stats get_stats() const;
     
 private:
     curl_thread_manager(io_context& ios, session_settings const& settings);
@@ -148,9 +148,9 @@ private:
     
     void schedule_retry(curl_request req);
     
-    long calculate_wait_timeout(CURLM* multi) const;
+    [[nodiscard]] long calculate_wait_timeout(CURLM* multi) const;
     
-    long calculate_optimal_connections() const;
+    [[nodiscard]] long calculate_optimal_connections() const;
     
     std::vector<curl_request> swap_pending_requests();
     
@@ -165,9 +165,9 @@ private:
     // Memory pool for response buffers with fine-grained locking
     class response_buffer_pool {
     public:
-        static constexpr size_t SMALL_BUFFER_SIZE = 2048;     // 2KB - covers 90% of tracker responses
-        static constexpr size_t MEDIUM_BUFFER_SIZE = 8192;    // 8KB - covers 8% of tracker responses
-        static constexpr size_t LARGE_BUFFER_SIZE = 65536;    // 64KB - covers 2% of tracker responses
+        inline static constexpr size_t SMALL_BUFFER_SIZE = 2048;     // 2KB - covers 90% of tracker responses
+        inline static constexpr size_t MEDIUM_BUFFER_SIZE = 8192;    // 8KB - covers 8% of tracker responses
+        inline static constexpr size_t LARGE_BUFFER_SIZE = 65536;    // 64KB - covers 2% of tracker responses
         
         std::shared_ptr<response_data> acquire(size_t expected_size) {
             if (expected_size <= SMALL_BUFFER_SIZE) {
@@ -212,9 +212,9 @@ private:
     private:
         // Pool sizes optimized for HTTP/2 (HTTP/1.1 will naturally use less)
         // With 1000 concurrent streams: 900 small + 80 medium + 20 large
-        static constexpr size_t MAX_SMALL_POOL_SIZE = 900;   // 1.8MB when full
-        static constexpr size_t MAX_MEDIUM_POOL_SIZE = 80;   // 640KB when full  
-        static constexpr size_t MAX_LARGE_POOL_SIZE = 20;    // 1.3MB when full
+        inline static constexpr size_t MAX_SMALL_POOL_SIZE = 900;   // 1.8MB when full
+        inline static constexpr size_t MAX_MEDIUM_POOL_SIZE = 80;   // 640KB when full  
+        inline static constexpr size_t MAX_LARGE_POOL_SIZE = 20;    // 1.3MB when full
         
         std::shared_ptr<response_data> acquire_from_pool(
             std::vector<std::shared_ptr<response_data>>& pool,
@@ -312,7 +312,7 @@ private:
     std::atomic<long> m_new_connection_limit{10};
 };
 
-}} // namespace libtorrent::aux
+} // namespace libtorrent::aux
 
 #endif // TORRENT_USE_LIBCURL
 

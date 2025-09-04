@@ -40,7 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 typedef struct ssl_session_st SSL_SESSION;
 #endif
 
-namespace libtorrent { namespace aux {
+namespace libtorrent::aux {
 
 // Non-template interface for SSL session caching
 // This allows C callbacks to interact with the templated connection pool
@@ -52,12 +52,12 @@ public:
 	// Takes ownership
 	virtual void store_ssl_session(std::string const& hostname, SSL_SESSION* session) = 0;
 
-	virtual SSL_SESSION* get_cached_ssl_session(std::string const& hostname) const = 0;
+	[[nodiscard]] virtual SSL_SESSION* get_cached_ssl_session(std::string const& hostname) const = 0;
 
 	virtual void remove_ssl_session(SSL_SESSION* session) = 0;
 #endif
 };
 
-}} // namespace libtorrent::aux
+} // namespace libtorrent::aux
 
 #endif // TORRENT_SSL_SESSION_CACHE_INTERFACE_HPP

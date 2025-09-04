@@ -1089,14 +1089,14 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 		// CRITICAL FIX: Explicitly shut down curl thread manager
 		// This ensures the worker thread is stopped before any member destruction begins,
 		// preventing dangling reference to m_settings
-		if (m_curl_thread_manager)
+		// C++17 style with if-initializer for cleaner scope management
+		if (auto manager = std::move(m_curl_thread_manager); manager)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			session_log(" shutting down curl thread manager");
 #endif
-			m_curl_thread_manager->shutdown();
-			// Reset the shared_ptr to ensure cleanup happens now, not during destruction
-			m_curl_thread_manager.reset();
+			manager->shutdown();
+			// manager automatically destroyed at end of scope
 		}
 #endif
 

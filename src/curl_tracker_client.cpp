@@ -45,7 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // Include bdecode after escape_string so we get the right one
 #include "libtorrent/bdecode.hpp"
 
-namespace libtorrent { namespace aux {
+namespace libtorrent::aux {
 
 namespace {
 
@@ -104,16 +104,14 @@ tracker_response parse_announce_response(
 			return resp;
 		}
 
-		bdecode_node const failure = e.dict_find_string("failure reason");
-		if (failure)
+		if (auto const failure = e.dict_find_string("failure reason"); failure)
 		{
 			resp.failure_reason = std::string(failure.string_value());
 			ec = errors::tracker_failure;
 			return resp;
 		}
 
-		bdecode_node const warning = e.dict_find_string("warning message");
-		if (warning)
+		if (auto const warning = e.dict_find_string("warning message"); warning)
 		{
 			resp.warning_message = std::string(warning.string_value());
 		}
@@ -121,8 +119,7 @@ tracker_response parse_announce_response(
 		resp.interval = seconds32{e.dict_find_int_value("interval", 1800)};
 		resp.min_interval = seconds32{e.dict_find_int_value("min interval", 30)};
 
-		bdecode_node const tracker_id = e.dict_find_string("tracker id");
-		if (tracker_id)
+		if (auto const tracker_id = e.dict_find_string("tracker id"); tracker_id)
 		{
 			resp.trackerid = std::string(tracker_id.string_value());
 		}
@@ -236,8 +233,7 @@ tracker_response parse_scrape_response(
 			return resp;
 		}
 
-				bdecode_node const failure = e.dict_find_string("failure reason");
-		if (failure)
+				if (auto const failure = e.dict_find_string("failure reason"); failure)
 		{
 			resp.failure_reason = std::string(failure.string_value());
 			ec = errors::tracker_failure;
@@ -258,10 +254,10 @@ tracker_response parse_scrape_response(
 			// Since we don't have the actual info hash here, we'll just get the first entry
 			for (int i = 0; i < files.dict_size(); ++i)
 			{
-				auto item = files.dict_at(i);
-				if (item.second.type() == bdecode_node::dict_t)
+				auto [key, value] = files.dict_at(i);
+				if (value.type() == bdecode_node::dict_t)
 				{
-					bdecode_node const scrape_data = item.second;
+					bdecode_node const scrape_data = value;
 					resp.complete = int(scrape_data.dict_find_int_value("complete", -1));
 					resp.incomplete = int(scrape_data.dict_find_int_value("incomplete", -1));
 					resp.downloaded = int(scrape_data.dict_find_int_value("downloaded", -1));
@@ -297,7 +293,7 @@ void curl_tracker_client::announce(
 	std::string url = build_announce_url(req);
 
 	m_curl_thread_manager->add_request(url,
-		[this, handler](error_code const& ec, std::vector<char> const& data) {
+		[handler = std::move(handler)](error_code const& ec, std::vector<char> const& data) {
 			if (ec) {
 				tracker_response resp;
 				resp.failure_reason = ec.message();
@@ -319,7 +315,7 @@ void curl_tracker_client::scrape(
 	std::string url = build_scrape_url(req);
 
 	m_curl_thread_manager->add_request(url,
-		[this, handler](error_code const& ec, std::vector<char> const& data) {
+		[handler = std::move(handler)](error_code const& ec, std::vector<char> const& data) {
 			if (ec) {
 				tracker_response resp;
 				resp.failure_reason = ec.message();
@@ -379,7 +375,7 @@ std::string curl_tracker_client::build_tracker_query(tracker_request const& req,
 		// Only add event parameter for valid BEP-3 events (1=completed, 2=started, 3=stopped)
 		// Skip event_t::paused (4) as it's non-standard
 		if (static_cast<int>(req.event) >= 1 && static_cast<int>(req.event) <= 3) {
-			const char* event_str[] = {"empty", "completed", "started", "stopped"};
+			constexpr const char* event_str[] = {"empty", "completed", "started", "stopped"};
 			query += "&event=";
 			query += event_str[static_cast<int>(req.event)];
 		}
@@ -435,6 +431,6 @@ std::string curl_tracker_client::scrape_url_from_announce(std::string const& ann
 	return scrape_url;
 }
 
-}} // namespace libtorrent::aux
+} // namespace libtorrent::aux
 
 #endif // TORRENT_USE_LIBCURL

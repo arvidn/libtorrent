@@ -65,7 +65,7 @@ public:
 	void close() override;
 
 private:
-	std::shared_ptr<curl_tracker_connection> shared_from_this()
+	[[nodiscard]] std::shared_ptr<curl_tracker_connection> shared_from_this()
 	{
 		return std::static_pointer_cast<curl_tracker_connection>(
 			aux::tracker_connection::shared_from_this());

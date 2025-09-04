@@ -54,7 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <sys/resource.h>
 #endif
 
-namespace libtorrent { namespace aux {
+namespace libtorrent::aux {
 
 constexpr std::chrono::milliseconds curl_thread_manager::WAKEUP_DELAY;
 
@@ -106,23 +106,20 @@ struct curl_transfer_data {
 
 void tracker_host_counter::add_tracker(const std::string& url) {
     error_code ec;
-    auto components = parse_url_components(url, ec);
-    std::string host = std::get<2>(components);
+    auto [scheme, auth, host, port, path, query, fragment] = parse_url_components(url, ec);
     if (ec || host.empty()) return;
 
-    std::lock_guard<std::mutex> lock(m_mutex);
+    std::scoped_lock lock(m_mutex);
     m_tracker_ref_counts[host]++;
 }
 
 void tracker_host_counter::remove_tracker(const std::string& url) {
     error_code ec;
-    auto components = parse_url_components(url, ec);
-    std::string host = std::get<2>(components);
+    auto [scheme, auth, host, port, path, query, fragment] = parse_url_components(url, ec);
     if (ec || host.empty()) return;
 
-    std::lock_guard<std::mutex> lock(m_mutex);
-    auto it = m_tracker_ref_counts.find(host);
-    if (it != m_tracker_ref_counts.end()) {
+    std::scoped_lock lock(m_mutex);
+    if (auto it = m_tracker_ref_counts.find(host); it != m_tracker_ref_counts.end()) {
         if (--it->second == 0) {
             m_tracker_ref_counts.erase(it);
         }
@@ -829,7 +826,7 @@ void curl_thread_manager::curl_thread_func() {
 
         // Signal that initialization is successful
         {
-            std::lock_guard<std::mutex> lock(m_init_mutex);
+            std::scoped_lock lock(m_init_mutex);
             m_init_status = InitStatus::Success;
         }
         m_init_cv.notify_one();
@@ -898,11 +895,11 @@ void curl_thread_manager::curl_thread_func() {
             }
 
             while (it != m_retry_queue.end() && it->scheduled_time <= now) {
-                // Copy the retry item (C++14 compatible)
-                retry_item item = *it;
+                // Extract with structured binding
+                auto [scheduled_time, request] = *it;
                 // Erase before processing to maintain queue consistency
                 it = m_retry_queue.erase(it);
-                curl_request req = std::move(item.request);
+                curl_request req = std::move(request);
 
 // Removed verbose debug logging
 
@@ -1104,7 +1101,7 @@ void curl_thread_manager::curl_thread_func() {
 
             // Signal initialization failure if we haven't initialized yet
             {
-                std::lock_guard<std::mutex> lock(m_init_mutex);
+                std::scoped_lock lock(m_init_mutex);
                 if (m_init_status == InitStatus::Pending) {
                     m_init_status = InitStatus::Failed;
                 }
@@ -1122,7 +1119,7 @@ void curl_thread_manager::curl_thread_func() {
 
         // Signal initialization failure if we haven't initialized yet
         {
-            std::lock_guard<std::mutex> lock(m_init_mutex);
+            std::scoped_lock lock(m_init_mutex);
             if (m_init_status == InitStatus::Pending) {
                 m_init_status = InitStatus::Failed;
             }
@@ -1370,7 +1367,7 @@ curl_thread_stats curl_thread_manager::get_stats() const {
 
     // These need mutex protection to access safely
     {
-        std::lock_guard<std::mutex> lock(m_queue_mutex);
+        std::scoped_lock lock(m_queue_mutex);
         stats.queued_requests = m_request_queue.size();
     }
     stats.active_requests = m_active_requests.size();
@@ -1378,6 +1375,6 @@ curl_thread_stats curl_thread_manager::get_stats() const {
     return stats;
 }
 
-}} // namespace libtorrent::aux
+} // namespace libtorrent::aux
 
 #endif // TORRENT_USE_LIBCURL
