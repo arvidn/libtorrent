@@ -778,16 +778,29 @@ lib gnutls : : <name>gnutls <conditional>@gnutls-lib-path : :
 lib wolfssl : : <name>wolfssl <conditional>@wolfssl-lib-path : :
 	<conditional>@wolfssl-include-path ;
 
-# Check libcurl version using pkg-config (ENFORCED when explicitly requested)
+# Check libcurl version using pkg-config (OPTIONAL by default, ENFORCED when explicitly requested)
 rule check-curl-version ( properties * )
 {
     local result ;
     local use-libcurl = [ feature.get-values <use-libcurl> : $(properties) ] ;
 
-    if $(use-libcurl) = "on"
-    {
-        local curl-version = [ SHELL "pkg-config --modversion libcurl 2>/dev/null | tr -d '\\n' || echo '0.0.0'" ] ;
+    # Three modes:
+    # - "on"  : Force libcurl, fail if not found or too old
+    # - "off" : Explicitly disable libcurl
+    # - ""    : Auto-detect (default) - use if available and version OK
 
+    if $(use-libcurl) = "off"
+    {
+        # Explicitly disabled, skip detection
+        return $(result) ;
+    }
+
+    # Check if libcurl is available
+    local curl-version = [ SHELL "pkg-config --modversion libcurl 2>/dev/null | tr -d '\\n'" ] ;
+    
+    if $(curl-version)
+    {
+        # libcurl found, check version
         local version-ok = [ SHELL "pkg-config --atleast-version=7.68.0 libcurl 2>/dev/null && echo -n 'yes' || echo -n 'no'" ] ;
 
         if $(version-ok) = "yes"
@@ -799,14 +812,26 @@ rule check-curl-version ( properties * )
             result += <source>src/curl_tracker_connection.cpp ;
             ECHO "INFO: libcurl $(curl-version) found - HTTP/2 tracker support enabled" ;
         }
-        else
+        else if $(use-libcurl) = "on"
         {
+            # Explicitly requested but version too old - fail
             EXIT "ERROR: libcurl version 7.68.0+ required (found: $(curl-version))"
                  "       libcurl 7.68.0+ is needed for curl_multi_wakeup support"
                  "       Please upgrade libcurl or build with use-libcurl=off" ;
         }
+        else
+        {
+            # Auto-detect mode, version too old - skip silently
+            ECHO "INFO: libcurl $(curl-version) found but too old (need 7.68.0+) - building without HTTP/2 tracker support" ;
+        }
     }
-    # else: use-libcurl=off or not set, build without curl (default)
+    else if $(use-libcurl) = "on"
+    {
+        # Explicitly requested but not found - fail
+        EXIT "ERROR: libcurl not found (pkg-config --modversion libcurl failed)"
+             "       Please install libcurl-dev or build with use-libcurl=off" ;
+    }
+    # else: Auto-detect mode, not found - skip silently
 
     return $(result) ;
 }

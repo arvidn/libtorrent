@@ -47,11 +47,6 @@ set(libtorrent_include_files
 	gzip.hpp
 	hasher.hpp
 	hex.hpp
-	http_connection.hpp
-	http_parser.hpp
-	http_seed_connection.hpp
-	http_stream.hpp
-	http_tracker_connection.hpp
 	curl_tracker_connection.hpp
 	i2p_stream.hpp
 	identify_client.hpp
