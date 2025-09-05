@@ -64,7 +64,8 @@ constexpr std::chrono::milliseconds curl_thread_manager::WAKEUP_DELAY;
 struct curl_transfer_data {
     curl_request request;
     std::shared_ptr<response_data> response;
-    curl_easy_handle easy_handle;
+    // Use pooled handle for reuse optimization
+    std::unique_ptr<curl_handle_pool::pooled_handle> pooled_handle;
 
     // SAFETY: Store strings that libcurl may reference after curl_easy_setopt
     // These must outlive the curl handle's lifetime
@@ -75,12 +76,31 @@ struct curl_transfer_data {
     std::string proxy_password_storage;
     std::string interface_storage;
 
+    // Legacy constructor for non-pooled handles (backward compatibility)
     explicit curl_transfer_data(curl_request&& req)
         : request(std::move(req))
         , response(request.response)
-        , easy_handle()
+        , pooled_handle(std::make_unique<curl_handle_pool::pooled_handle>())
         , url_storage(request.url)
     {}
+
+    // Constructor accepting pooled handle
+    curl_transfer_data(curl_request&& req,
+                      std::unique_ptr<curl_handle_pool::pooled_handle> handle)
+        : request(std::move(req))
+        , response(request.response)
+        , pooled_handle(std::move(handle))
+        , url_storage(request.url)
+    {}
+
+    // Accessor for easy handle
+    CURL* easy_get() const {
+        return pooled_handle ? pooled_handle->handle.get() : nullptr;
+    }
+
+    curl_easy_handle& easy() {
+        return pooled_handle->handle;
+    }
 
     ~curl_transfer_data() {
         // SECURITY: Clear sensitive data from memory using secure_clear pattern
@@ -106,7 +126,7 @@ struct curl_transfer_data {
 
 void tracker_host_counter::add_tracker(const std::string& url) {
     error_code ec;
-    auto [scheme, auth, host, port, path, query, fragment] = parse_url_components(url, ec);
+    auto [scheme, auth, host, port, path] = parse_url_components(url, ec);
     if (ec || host.empty()) return;
 
     std::scoped_lock lock(m_mutex);
@@ -115,7 +135,7 @@ void tracker_host_counter::add_tracker(const std::string& url) {
 
 void tracker_host_counter::remove_tracker(const std::string& url) {
     error_code ec;
-    auto [scheme, auth, host, port, path, query, fragment] = parse_url_components(url, ec);
+    auto [scheme, auth, host, port, path] = parse_url_components(url, ec);
     if (ec || host.empty()) return;
 
     std::scoped_lock lock(m_mutex);
@@ -695,10 +715,6 @@ bool curl_thread_manager::configure_handle(CURL* easy, curl_request const& req, 
         curl_easy_setopt(easy, CURLOPT_INTERFACE, transfer_data->interface_storage.c_str());
     }
 
-    // CRITICAL SECURITY FIX: Disable redirects to prevent SSRF attacks
-    curl_easy_setopt(easy, CURLOPT_FOLLOWLOCATION, 0L);
-    // Remove MAXREDIRS as redirects are disabled
-
     curl_easy_setopt(easy, CURLOPT_TIMEOUT, timeout_sec);
     curl_easy_setopt(easy, CURLOPT_CONNECTTIMEOUT, std::min(10L, timeout_sec));
     curl_easy_setopt(easy, CURLOPT_NOSIGNAL, 1L); // Essential for multi-threading
@@ -767,6 +783,161 @@ bool curl_thread_manager::configure_handle(CURL* easy, curl_request const& req, 
     return true;
 }
 
+// Clear all request-specific state from previous request
+void curl_thread_manager::clear_request_state(CURL* easy) {
+    // Clear HTTP headers - MUST be done to prevent header leakage
+    curl_easy_setopt(easy, CURLOPT_HTTPHEADER, nullptr);
+
+    // Clear POST/PUT state
+    curl_easy_setopt(easy, CURLOPT_POST, 0L);
+    curl_easy_setopt(easy, CURLOPT_POSTFIELDS, nullptr);
+    curl_easy_setopt(easy, CURLOPT_POSTFIELDSIZE, -1L);
+
+    // Clear custom request method
+    curl_easy_setopt(easy, CURLOPT_CUSTOMREQUEST, nullptr);
+
+    // Reset to GET (libcurl default)
+    curl_easy_setopt(easy, CURLOPT_HTTPGET, 1L);
+
+    // Clear any authentication
+    curl_easy_setopt(easy, CURLOPT_HTTPAUTH, CURLAUTH_NONE);
+    curl_easy_setopt(easy, CURLOPT_USERPWD, nullptr);
+
+    // Clear upload-related settings
+    curl_easy_setopt(easy, CURLOPT_UPLOAD, 0L);
+    curl_easy_setopt(easy, CURLOPT_INFILESIZE_LARGE, -1LL);
+}
+
+// Configure session-wide settings that rarely change
+void curl_thread_manager::configure_session_settings(CURL* easy, curl_share_handle const& share) {
+    // Attach share handle for DNS and SSL session sharing
+    curl_easy_setopt(easy, CURLOPT_SHARE, share.get());
+
+    // Basic settings that don't change between requests
+    curl_easy_setopt(easy, CURLOPT_NOSIGNAL, 1L); // Essential for multi-threading
+
+    // Safe redirect handling: Allow redirects with restrictions
+    curl_easy_setopt(easy, CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(easy, CURLOPT_MAXREDIRS, 5L);  // Limit to prevent infinite loops
+
+    // Restrict initial protocols to HTTP and HTTPS only for security
+#ifdef CURLOPT_PROTOCOLS_STR
+    // Use newer API if available (libcurl 7.85.0+)
+    curl_easy_setopt(easy, CURLOPT_PROTOCOLS_STR, "http,https");
+#else
+    // Fall back to older API - suppress deprecation warning as this is for older curl versions
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+    curl_easy_setopt(easy, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+#pragma GCC diagnostic pop
+#endif
+
+    // Restrict redirect protocols to HTTP and HTTPS only (prevents file://, ftp://, etc.)
+#ifdef CURLOPT_REDIR_PROTOCOLS_STR
+    // Use newer API if available (libcurl 7.85.0+)
+    curl_easy_setopt(easy, CURLOPT_REDIR_PROTOCOLS_STR, "http,https");
+#else
+    // Fall back to older API
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+    curl_easy_setopt(easy, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+#pragma GCC diagnostic pop
+#endif
+
+    // Prevent sending authentication credentials to redirect targets for security
+    curl_easy_setopt(easy, CURLOPT_UNRESTRICTED_AUTH, 0L);
+
+    // Enable connection reuse (TCP Keepalive)
+    curl_easy_setopt(easy, CURLOPT_TCP_KEEPALIVE, 1L);
+    curl_easy_setopt(easy, CURLOPT_TCP_KEEPIDLE, 120L);
+    curl_easy_setopt(easy, CURLOPT_TCP_KEEPINTVL, 60L);
+
+    // PERFORMANCE: Configure DNS caching to reduce lookup overhead
+    // Default to 5 minutes (300 seconds) cache timeout
+    curl_easy_setopt(easy, CURLOPT_DNS_CACHE_TIMEOUT, 300L);
+
+    // DoS protection: Set more aggressive timeouts
+    curl_easy_setopt(easy, CURLOPT_LOW_SPEED_LIMIT, 10L);  // 10 bytes/sec minimum
+    curl_easy_setopt(easy, CURLOPT_LOW_SPEED_TIME, 30L);   // For 30 seconds
+
+    // HTTP/2 support if available
+#ifdef CURL_HTTP_VERSION_2_0
+    if (m_settings.get_bool(settings_pack::enable_http2_trackers)) {
+        curl_easy_setopt(easy, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2_0);
+
+        // Enable ALPN for HTTP/2 negotiation
+        #ifdef CURLOPT_SSL_ENABLE_ALPN
+        curl_easy_setopt(easy, CURLOPT_SSL_ENABLE_ALPN, 1L);
+        #endif
+
+        // Set HTTP/2 window size for better flow control
+        #ifdef CURLOPT_HTTP2_WINDOW_SIZE
+        curl_easy_setopt(easy, CURLOPT_HTTP2_WINDOW_SIZE, 10485760L); // 10MB window
+        #endif
+
+        // Disable HTTP2 Server push
+        #ifdef CURLOPT_HTTP2_SERVER_PUSH
+        curl_easy_setopt(easy, CURLOPT_HTTP2_SERVER_PUSH, 0L);
+        #endif
+    }
+#endif
+
+    // Configure SSL/TLS settings
+    configure_ssl(easy, m_settings, m_ca_cert_path);
+}
+
+// Configure request-specific settings
+void curl_thread_manager::configure_request_settings(CURL* easy,
+                                                     curl_request const& req,
+                                                     curl_transfer_data* transfer_data) {
+    // First clear any state from previous request
+    clear_request_state(easy);
+
+    // Calculate timeout based on deadline
+    auto now = clock_type::now();
+    if (now >= req.deadline) return; // Already timed out
+
+    auto timeout_ms = std::chrono::duration_cast<milliseconds>(req.deadline - now).count();
+    long timeout_sec = std::max(1L, timeout_ms / 1000);
+
+    // Request-specific settings
+    // SAFETY: Use stored URL from transfer_data to ensure lifetime safety
+    curl_easy_setopt(easy, CURLOPT_URL, transfer_data->url_storage.c_str());
+    curl_easy_setopt(easy, CURLOPT_WRITEFUNCTION, write_callback);
+
+    curl_easy_setopt(easy, CURLOPT_TIMEOUT, timeout_sec);
+    curl_easy_setopt(easy, CURLOPT_CONNECTTIMEOUT, std::min(10L, timeout_sec));
+
+    // SECURITY FIX: Add response size limits for headers too
+    curl_easy_setopt(easy, CURLOPT_MAXFILESIZE_LARGE,
+        static_cast<curl_off_t>(req.response->max_size));
+
+    // Set user-agent for tracker requests
+    std::string user_agent = m_settings.get_str(settings_pack::user_agent);
+    if (!user_agent.empty()) {
+        // SAFETY: Store user agent for lifetime safety
+        transfer_data->user_agent_storage = std::move(user_agent);
+        curl_easy_setopt(easy, CURLOPT_USERAGENT, transfer_data->user_agent_storage.c_str());
+    }
+
+    // Network interface binding (if configured)
+    std::string outgoing_interface = m_settings.get_str(settings_pack::outgoing_interfaces);
+    if (!outgoing_interface.empty()) {
+        // Parse comma-separated list and select one
+        // (simplified - actual implementation should rotate through interfaces)
+        size_t comma_pos = outgoing_interface.find(',');
+        if (comma_pos != std::string::npos) {
+            outgoing_interface = outgoing_interface.substr(0, comma_pos);
+        }
+        // SAFETY: Store interface for lifetime safety
+        transfer_data->interface_storage = std::move(outgoing_interface);
+        curl_easy_setopt(easy, CURLOPT_INTERFACE, transfer_data->interface_storage.c_str());
+    }
+
+    // Configure Proxy settings
+    configure_proxy(easy, m_settings, transfer_data);
+}
+
 void curl_thread_manager::curl_thread_func() {
         try {
             // Set thread name for debugging (platform-specific)
@@ -778,7 +949,17 @@ void curl_thread_manager::curl_thread_func() {
             // Windows thread naming requires different approach
             #endif
 
-            // Create multi handle for this thread with RAII wrapper
+            // CRITICAL: Share handle must be created first (destroyed last via RAII)
+            curl_share_handle share;
+
+            // Configure what to share - DNS and SSL session caching
+            share.setopt(CURLSHOPT_SHARE, CURL_LOCK_DATA_DNS);
+            share.setopt(CURLSHOPT_SHARE, CURL_LOCK_DATA_SSL_SESSION);
+
+            // Create handle pool for reuse
+            curl_handle_pool pool;
+
+            // Create multi handle AFTER share handle (destroyed before share via RAII)
             curl_multi_handle multi;
             // The curl_multi_handle constructor throws on failure, so no need for explicit check
 
@@ -831,6 +1012,9 @@ void curl_thread_manager::curl_thread_func() {
         }
         m_init_cv.notify_one();
 
+        // Track last cleanup time for periodic maintenance
+        auto last_cleanup = clock_type::now();
+
         // Main event loop
         while (true) {
             // ALWAYS process pending requests from queue first (before checking stop signal)
@@ -843,7 +1027,10 @@ void curl_thread_manager::curl_thread_func() {
                 context->request = std::move(req);
 
                 try {
-                    context->transfer_data = std::make_shared<curl_transfer_data>(std::move(context->request));
+                    // Acquire handle from pool for reuse
+                    auto pooled_handle = pool.acquire();
+                    context->transfer_data = std::make_shared<curl_transfer_data>(
+                        std::move(context->request), std::move(pooled_handle));
                     context->request = std::move(context->transfer_data->request);  // Move back after transfer_data init
                 } catch (const std::exception&) {
                     // Failed to create CURL handle
@@ -853,14 +1040,19 @@ void curl_thread_manager::curl_thread_func() {
                     continue;
                 }
 
-                CURL* easy = context->transfer_data->easy_handle.get();
-                if (!configure_handle(easy, context->request, context->transfer_data.get())) {
-                    // No manual delete needed - shared_ptr handles cleanup
-                    boost::asio::post(m_ios, [handler = context->request.completion_handler]() {
-                        handler(errors::timed_out, std::vector<char>{});
-                    });
-                    continue;
+                CURL* easy = context->transfer_data->easy_get();
+
+                // Check if handle needs full configuration
+                bool needs_full_config = context->transfer_data->pooled_handle->needs_full_config;
+
+                if (needs_full_config) {
+                    // Apply session-wide settings (expensive, only when needed)
+                    configure_session_settings(easy, share);
+                    context->transfer_data->pooled_handle->needs_full_config = false;
                 }
+
+                // Always apply request-specific settings
+                configure_request_settings(easy, context->request, context->transfer_data.get());
 
                 // Pass raw buffer pointer (safe - shared_ptr keeps it alive)
                 curl_easy_setopt(easy, CURLOPT_WRITEDATA, context->transfer_data->response.get());
@@ -917,7 +1109,10 @@ void curl_thread_manager::curl_thread_func() {
                 context->request = std::move(req);
 
                 try {
-                    context->transfer_data = std::make_shared<curl_transfer_data>(std::move(context->request));
+                    // Acquire handle from pool for retry request
+                    auto pooled_handle = pool.acquire();
+                    context->transfer_data = std::make_shared<curl_transfer_data>(
+                        std::move(context->request), std::move(pooled_handle));
                     context->request = std::move(context->transfer_data->request);  // Move back after transfer_data init
                 } catch (const std::exception&) {
                     // Failed to create CURL handle
@@ -927,16 +1122,19 @@ void curl_thread_manager::curl_thread_func() {
                     continue;
                 }
 
-                CURL* easy = context->transfer_data->easy_handle.get();
-                // Configure the request using the centralized helper
-                if (!configure_handle(easy, context->request, context->transfer_data.get())) {
-                    // Configuration failed (e.g., already past deadline)
-                    // No manual delete needed - shared_ptr handles cleanup
-                    boost::asio::post(m_ios, [handler = context->request.completion_handler]() {
-                        handler(errors::timed_out, std::vector<char>{});
-                    });
-                    continue;
+                CURL* easy = context->transfer_data->easy_get();
+
+                // Check if handle needs full configuration
+                bool needs_full_config = context->transfer_data->pooled_handle->needs_full_config;
+
+                if (needs_full_config) {
+                    // Apply session-wide settings (expensive, only when needed)
+                    configure_session_settings(easy, share);
+                    context->transfer_data->pooled_handle->needs_full_config = false;
                 }
+
+                // Always apply request-specific settings
+                configure_request_settings(easy, context->request, context->transfer_data.get());
 
                 // Pass raw buffer pointer (safe - shared_ptr keeps it alive)
                 curl_easy_setopt(easy, CURLOPT_WRITEDATA, context->transfer_data->response.get());
@@ -971,7 +1169,7 @@ void curl_thread_manager::curl_thread_func() {
                 CURLMcode mc = curl_multi_perform(multi.get(), &running);
 
                 // Check for completed transfers immediately after perform
-                int completed = process_completions(multi.get());
+                int completed = process_completions(multi.get(), pool);
                 total_completions += completed;
 
                 // Process completions silently
@@ -1034,6 +1232,16 @@ void curl_thread_manager::curl_thread_func() {
 
                 // Now exit - all requests canceled
                 break;
+            }
+
+            // Periodic idle handle cleanup when we have no active requests
+            // This is the ideal time since we're not busy processing
+            if (running == 0 && m_active_requests.empty()) {
+                auto now = clock_type::now();
+                if (now - last_cleanup > seconds(30)) {
+                    pool.cleanup_idle_handles();
+                    last_cleanup = now;
+                }
             }
 
             // Calculate proper timeout to prevent 100% CPU usage
@@ -1135,7 +1343,7 @@ void curl_thread_manager::curl_thread_func() {
     }
 }
 
-int curl_thread_manager::process_completions(CURLM* multi) {
+int curl_thread_manager::process_completions(CURLM* multi, curl_handle_pool& pool) {
     CURLMsg* msg;
     int msgs_left;
     int completed_count = 0;
@@ -1171,6 +1379,11 @@ int curl_thread_manager::process_completions(CURLM* multi) {
 
         // Remove from multi handle
         curl_multi_remove_handle(multi, easy);
+
+        // Return handle to pool for reuse
+        if (context->transfer_data && context->transfer_data->pooled_handle) {
+            pool.release(std::move(context->transfer_data->pooled_handle));
+        }
 
         // Determine error code
         error_code ec = curl_error_to_libtorrent(result);
