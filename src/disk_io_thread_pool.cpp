@@ -159,7 +159,7 @@ namespace libtorrent {
 			// if this is the first thread started, start the reaper timer
 			if (m_threads.empty())
 			{
-				m_idle_timer.expires_from_now(reap_idle_threads_interval);
+				m_idle_timer.expires_after(reap_idle_threads_interval);
 				m_idle_timer.async_wait([this](error_code const& ec) { reap_idle_threads(ec); });
 			}
 
@@ -173,7 +173,7 @@ namespace libtorrent {
 			// buffer pool won't exist anymore, and crash. This prevents that.
 			m_threads.emplace_back(&pool_thread_interface::thread_fun
 				, &m_thread_iface, std::ref(*this)
-				, io_service::work(get_io_service(m_idle_timer)));
+				, boost::asio::executor_work_guard<boost::asio::io_context::executor_type>(get_io_service(m_idle_timer).get_executor()));
 		}
 	}
 
@@ -185,7 +185,7 @@ namespace libtorrent {
 		std::lock_guard<std::mutex> l(m_mutex);
 		if (m_abort) return;
 		if (m_threads.empty()) return;
-		m_idle_timer.expires_from_now(reap_idle_threads_interval);
+		m_idle_timer.expires_after(reap_idle_threads_interval);
 		m_idle_timer.async_wait([this](error_code const& e) { reap_idle_threads(e); });
 		int const min_idle = m_min_idle_threads.exchange(m_num_idle_threads);
 		if (min_idle <= 0) return;

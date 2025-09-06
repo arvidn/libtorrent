@@ -36,36 +36,47 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/config.hpp"
 #include <boost/version.hpp>
 
+#if !defined TORRENT_BUILD_SIMULATOR
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/asio/post.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#endif
+
 #if defined TORRENT_BUILD_SIMULATOR
 namespace sim { namespace asio {
 
-	struct io_service;
+	struct io_context;
 }}
 #else
 namespace boost { namespace asio {
-#if BOOST_VERSION < 106600
-	class io_service;
-#else
 	class io_context;
-	typedef io_context io_service;
-#endif
 }}
 #endif
 
 namespace libtorrent {
 
 #if defined TORRENT_BUILD_SIMULATOR
-	using io_service = sim::asio::io_service;
+	using io_service = sim::asio::io_context;
 #else
-	using io_service = boost::asio::io_service;
+	using io_service = boost::asio::io_context;
 #endif
 
-#if BOOST_VERSION >= 107000 && !defined TORRENT_BUILD_SIMULATOR
+#if !defined TORRENT_BUILD_SIMULATOR
 template <typename T>
 io_service& get_io_service(T& o) { return static_cast<io_service&>(o.get_executor().context()); }
+
+template <typename Handler>
+void post(io_service& ios, Handler&& handler) {
+	boost::asio::post(ios, std::forward<Handler>(handler));
+}
 #else
 template <typename T>
 io_service& get_io_service(T& o) { return o.get_io_service(); }
+
+template <typename Handler>
+void post(io_service& ios, Handler&& handler) {
+	ios.post(std::forward<Handler>(handler));
+}
 #endif
 
 }

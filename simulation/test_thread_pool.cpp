@@ -41,7 +41,7 @@ struct test_threads : lt::pool_thread_interface
 	test_threads() {}
 
 	void notify_all() override { m_cond.notify_all(); }
-	void thread_fun(lt::disk_io_thread_pool&, lt::io_service::work) override
+	void thread_fun(lt::disk_io_thread_pool&, boost::asio::executor_work_guard<boost::asio::io_context::executor_type>) override
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 		for (;;)

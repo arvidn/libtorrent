@@ -234,7 +234,11 @@ struct udp_tracker
 			boost::asio::buffer(buffer, int(sizeof(buffer))), from, 0
 			, std::bind(&udp_tracker::on_udp_receive, this, _1, _2, &from, &buffer[0], int(sizeof(buffer))));
 
-		m_ios.run(ec);
+		try {
+			m_ios.run();
+		} catch (boost::system::system_error const& e) {
+			ec = e.code();
+		}
 
 		if (ec)
 		{

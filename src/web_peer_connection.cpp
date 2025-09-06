@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp" // for is_hex
 #include "libtorrent/torrent.hpp"
 #include "libtorrent/http_parser.hpp"
+#include "libtorrent/io_service_fwd.hpp"
 
 namespace libtorrent {
 
@@ -281,7 +282,7 @@ void web_peer_connection::disconnect(error_code const& ec
 	{
 		// if the web server doesn't support keepalive and we were
 		// disconnected as a graceful EOF, reconnect right away
-		if (t) get_io_service().post(
+		if (t) lt::post(get_io_service(),
 			std::bind(&torrent::maybe_connect_web_seeds, t));
 	}
 
@@ -493,7 +494,7 @@ void web_peer_connection::write_request(peer_request const& r)
 
 	if (num_pad_files == int(m_file_requests.size()))
 	{
-		get_io_service().post(std::bind(
+		lt::post(get_io_service(), std::bind(
 			&web_peer_connection::on_receive_padfile,
 			std::static_pointer_cast<web_peer_connection>(self())));
 		return;

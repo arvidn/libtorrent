@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/debug.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/hasher.hpp"
+#include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/aux_/array.hpp"
 #include "libtorrent/aux_/scope_end.hpp"
 
@@ -3469,7 +3470,7 @@ constexpr disk_job_flags_t disk_interface::cache_hit;
 			// we take this lock just to make the logging prettier (non-interleaved)
 			DLOG("posting job handlers (%d)\n", m_completed_jobs.size());
 
-			m_ios.post(std::bind(&disk_io_thread::call_job_handlers, this));
+			lt::post(m_ios, std::bind(&disk_io_thread::call_job_handlers, this));
 			m_job_completions_in_flight = true;
 		}
 	}

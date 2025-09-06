@@ -77,23 +77,30 @@ namespace libtorrent {
 		return cat;
 	}
 
-	void socks5_stream::name_lookup(error_code const& e, tcp::resolver::iterator i
+	void socks5_stream::name_lookup(error_code const& e, tcp::resolver::results_type results
 		, handler_type h)
 	{
 		COMPLETE_ASYNC("socks5_stream::name_lookup");
 		if (handle_error(e, h)) return;
 
+		if (results.empty())
+		{
+			h(boost::asio::error::host_not_found);
+			return;
+		}
+
+		auto endpoint = results.begin()->endpoint();
 		error_code ec;
 		if (!m_sock.is_open())
 		{
-			m_sock.open(i->endpoint().protocol(), ec);
+			m_sock.open(endpoint.protocol(), ec);
 			if (handle_error(ec, h)) return;
 		}
 
 		// TODO: we could bind the socket here, since we know what the
 		// target endpoint is of the proxy
 		ADD_OUTSTANDING_ASYNC("socks5_stream::connected");
-		m_sock.async_connect(i->endpoint(), std::bind(
+		m_sock.async_connect(endpoint, std::bind(
 			&socks5_stream::connected, this, _1, std::move(h)));
 	}
 
@@ -281,7 +288,7 @@ namespace libtorrent {
 			write_uint8(4, p); // SOCKS VERSION 4
 			write_uint8(std::uint8_t(m_command), p); // CONNECT command
 			write_uint16(m_remote_endpoint.port(), p);
-			write_uint32(m_remote_endpoint.address().to_v4().to_ulong(), p);
+			write_uint32(m_remote_endpoint.address().to_v4().to_uint(), p);
 			std::copy(m_user.begin(), m_user.end(), p);
 			p += m_user.size();
 			write_uint8(0, p); // 0-terminator

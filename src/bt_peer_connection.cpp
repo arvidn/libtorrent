@@ -1783,9 +1783,15 @@ namespace {
 				std::copy(myip.begin(), myip.end(), bytes.begin());
 				address_v6 ipv6_address(bytes);
 				if (ipv6_address.is_v4_mapped())
+				{
+					// Convert v4-mapped v6 address back to v4
+					auto bytes = ipv6_address.to_bytes();
+					address_v4::bytes_type v4_bytes{{ bytes[12], bytes[13], bytes[14], bytes[15] }};
+					address_v4 v4_addr(v4_bytes);
 					m_ses.set_external_address(local_endpoint()
-						, ipv6_address.to_v4()
+						, v4_addr
 						, aux::session_interface::source_peer, remote().address());
+				}
 				else
 					m_ses.set_external_address(local_endpoint()
 						, ipv6_address

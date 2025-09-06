@@ -625,8 +625,8 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			}
 			return b1 == b2;
 		}
-		return (a1.to_v4().to_ulong() & mask.to_v4().to_ulong())
-			== (a2.to_v4().to_ulong() & mask.to_v4().to_ulong());
+		return (a1.to_v4().to_uint() & mask.to_v4().to_uint())
+			== (a2.to_v4().to_uint() & mask.to_v4().to_uint());
 	}
 
 	std::vector<ip_interface> enum_net_interfaces(io_service& ios, error_code& ec)

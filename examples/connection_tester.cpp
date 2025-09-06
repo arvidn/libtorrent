@@ -1059,7 +1059,7 @@ int main(int argc, char* argv[])
 #if !defined __APPLE__
 	// apparently darwin doesn't seems to let you bind to
 	// loopback on any other IP than 127.0.0.1
-	std::uint32_t const ip = addr.to_ulong();
+	std::uint32_t const ip = addr.to_uint();
 	if ((ip & 0xff000000) == 0x7f000000)
 	{
 		local_bind = true;

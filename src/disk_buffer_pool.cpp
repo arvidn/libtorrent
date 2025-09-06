@@ -35,6 +35,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/io_service.hpp"
+#include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/disk_observer.hpp"
 #include "libtorrent/platform_util.hpp" // for total_physical_ram
 #include "libtorrent/disk_interface.hpp" // for default_block_size
@@ -123,7 +124,7 @@ namespace libtorrent {
 		std::vector<std::weak_ptr<disk_observer>> cbs;
 		m_observers.swap(cbs);
 		l.unlock();
-		m_ios.post(std::bind(&watermark_callback, std::move(cbs)));
+		lt::post(m_ios, std::bind(&watermark_callback, std::move(cbs)));
 	}
 
 #if TORRENT_USE_ASSERTS

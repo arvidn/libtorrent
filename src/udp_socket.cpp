@@ -646,7 +646,7 @@ void socks5::on_name_lookup(error_code const& e, std::vector<address> const& res
 		, std::bind(&socks5::on_connected, self(), _1));
 
 	ADD_OUTSTANDING_ASYNC("socks5::on_connect_timeout");
-	m_timer.expires_from_now(seconds(10));
+	m_timer.expires_after(seconds(10));
 	m_timer.async_wait(std::bind(&socks5::on_connect_timeout
 		, self(), _1));
 }
@@ -947,7 +947,7 @@ void socks5::retry_connection()
 	// the socks connection was closed, re-open it in a bit
 	// back off exponentially
 	if (m_failures > 200) m_failures = 200;
-	m_retry_timer.expires_from_now(seconds(std::min(120, m_failures * m_failures / 2) + 5));
+	m_retry_timer.expires_after(seconds(std::min(120, m_failures * m_failures / 2) + 5));
 	m_retry_timer.async_wait(std::bind(&socks5::on_retry_socks_connect
 		, self(), _1));
 }

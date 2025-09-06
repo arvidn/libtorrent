@@ -122,18 +122,30 @@ int main(int argc, char* argv[])
 		<< " UDP: " << argv[2] << std::endl;
 
 	ios.reset();
-	ios.run(ec);
+	try {
+		ios.run();
+	} catch (boost::system::system_error const& e) {
+		ec = e.code();
+	}
 	timer.expires_from_now(seconds(2), ec);
 	timer.async_wait([&] (error_code const&) { ios.io_service::stop(); });
 	std::cout << "removing mapping " << tcp_map << std::endl;
 	natpmp_handler->delete_mapping(tcp_map);
 
 	ios.reset();
-	ios.run(ec);
+	try {
+		ios.run();
+	} catch (boost::system::system_error const& e) {
+		ec = e.code();
+	}
 	std::cout << "removing mappings" << std::endl;
 	natpmp_handler->close();
 
 	ios.reset();
-	ios.run(ec);
+	try {
+		ios.run();
+	} catch (boost::system::system_error const& e) {
+		ec = e.code();
+	}
 	std::cout << "closing" << std::endl;
 }

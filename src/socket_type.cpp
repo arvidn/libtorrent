@@ -156,7 +156,7 @@ namespace aux {
 			, t(std::make_shared<deadline_timer>(e))
 			, sock(s)
 		{
-			t->expires_from_now(seconds(3));
+			t->expires_after(seconds(3));
 			t->async_wait(*this);
 		}
 

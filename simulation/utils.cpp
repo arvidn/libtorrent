@@ -40,6 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session_stats.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/io_service.hpp"
+#include "libtorrent/io_service_fwd.hpp"
 #include "setup_swarm.hpp"
 
 using namespace lt;
@@ -127,7 +128,7 @@ void print_alerts(lt::session& ses
 	static std::vector<lt::alert*> alerts;
 
 	ses.set_alert_notify([&ses,start_time,on_alert,idx] {
-		ses.get_io_service().post([&ses,start_time,on_alert,idx] {
+		lt::post(ses.get_io_service(), [&ses,start_time,on_alert,idx] {
 
 		try {
 			alerts.clear();
