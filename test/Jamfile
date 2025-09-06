@@ -191,15 +191,15 @@ run test_ffs.cpp ;
 run test_ed25519.cpp ;
 run test_gzip.cpp ;
 run test_tracker_interface.cpp ;
-run test_curl_tracker_client.cpp : : : <library>/torrent//curl ;
-run test_curl_security.cpp : : : <library>/torrent//curl ;
-run test_curl_integration.cpp : : : <library>/torrent//curl ;
-run test_curl_thread_manager.cpp : : : <library>/torrent//curl ;
-run test_curl_handle_wrappers.cpp : : : <library>/torrent//curl ;
-run test_curl_share_integration.cpp : : : <library>/torrent//curl ;
-run test_curl_handle_pool.cpp : : : <library>/torrent//curl ;
-run test_curl_state_isolation.cpp : : : <library>/torrent//curl ;
-run test_curl_thread_manager_integration.cpp : : : <library>/torrent//curl ;
+run test_curl_tracker_client.cpp : : : <library>/torrent//curl <define>TORRENT_USE_LIBCURL ;
+run test_curl_security.cpp : : : <library>/torrent//curl <define>TORRENT_USE_LIBCURL ;
+run test_curl_integration.cpp : : : <library>/torrent//curl <define>TORRENT_USE_LIBCURL ;
+run test_curl_thread_manager.cpp : : : <library>/torrent//curl <define>TORRENT_USE_LIBCURL ;
+run test_curl_handle_wrappers.cpp : : : <library>/torrent//curl <define>TORRENT_USE_LIBCURL ;
+run test_curl_share_integration.cpp : : : <library>/torrent//curl <define>TORRENT_USE_LIBCURL ;
+run test_curl_handle_pool.cpp : : : <library>/torrent//curl <define>TORRENT_USE_LIBCURL ;
+run test_curl_state_isolation.cpp : : : <library>/torrent//curl <define>TORRENT_USE_LIBCURL ;
+run test_curl_thread_manager_integration.cpp : : : <library>/torrent//curl <define>TORRENT_USE_LIBCURL ;
 run test_http2_announces.cpp ;
 run test_idle_cpu_bug.cpp : : : <library>/torrent//curl ;
 run test_receive_buffer.cpp ;
@@ -286,6 +286,9 @@ alias deterministic-tests :
 	test_buffer
 	test_crc32
 	test_create_torrent
+	test_curl_handle_pool
+	test_curl_handle_wrappers
+	test_curl_state_isolation
 	test_dht
 	test_dos_blocker
 	test_ed25519

@@ -516,7 +516,7 @@ TORRENT_TEST(curl_thread_manager_wakeup_latency)
 
     TEST_CHECK(completed);
     // Check that the response time is fast, indicating curl_multi_wakeup worked (not the 1000ms fallback wait).
-    std::printf("Wakeup latency: %ldms\n", ms);
+    std::printf("Wakeup latency: %lldms\n", static_cast<long long>(ms));
     TEST_CHECK(ms < 100);
 }
 
@@ -647,7 +647,7 @@ TORRENT_TEST(curl_thread_manager_retry_on_500)
     auto elapsed = std::chrono::steady_clock::now() - start_time;
     auto elapsed_ms = std::chrono::duration_cast<milliseconds>(elapsed).count();
     
-    std::printf("Elapsed time: %ld ms, Finished: %d\n", elapsed_ms, finished);
+    std::printf("Elapsed time: %lld ms, Finished: %d\n", static_cast<long long>(elapsed_ms), finished);
     
     manager->shutdown();
     
@@ -658,7 +658,7 @@ TORRENT_TEST(curl_thread_manager_retry_on_500)
     TEST_CHECK(completed);
     TEST_EQUAL(result_ec, errors::http_error);
     
-    std::printf("Retry test took %ld ms\n", elapsed_ms);
+    std::printf("Retry test took %lld ms\n", static_cast<long long>(elapsed_ms));
     TEST_CHECK(elapsed_ms >= 6000);  // Allow some timing flexibility
 }
 
@@ -697,7 +697,7 @@ TORRENT_TEST(curl_thread_manager_exponential_backoff)
     TEST_CHECK(!result_ec);  // Should succeed on retry
     TEST_CHECK(result_data.size() > 0);  // Should have response data
     
-    std::printf("Exponential backoff test took %ld ms\n", elapsed_ms);
+    std::printf("Exponential backoff test took %lld ms\n", static_cast<long long>(elapsed_ms));
     TEST_CHECK(elapsed_ms >= 1900);  // At least 1900ms
     TEST_CHECK(elapsed_ms <= 2500); // But less than 2.5s to account for overhead
 }
@@ -736,7 +736,7 @@ TORRENT_TEST(curl_thread_manager_max_retries)
     TEST_CHECK(completed);
     TEST_EQUAL(result_ec, errors::http_error);
     
-    std::printf("Max retries test took %ld ms\n", elapsed_ms);
+    std::printf("Max retries test took %lld ms\n", static_cast<long long>(elapsed_ms));
     TEST_CHECK(elapsed_ms >= 13000);  // At least 13 seconds
     TEST_CHECK(elapsed_ms <= 15000); // But should complete within 15s
 }
@@ -777,7 +777,7 @@ TORRENT_TEST(curl_thread_manager_retry_deadline)
     // Could be either timeout or http_error depending on timing
     TEST_CHECK(result_ec == errors::timed_out || result_ec == errors::http_error);
     
-    std::printf("Deadline test took %ld ms\n", elapsed_ms);
+    std::printf("Deadline test took %lld ms\n", static_cast<long long>(elapsed_ms));
     TEST_CHECK(elapsed_ms <= 1500);  // Should not retry (no 1s delay)
 }
 
@@ -813,7 +813,7 @@ TORRENT_TEST(curl_thread_manager_no_retry_404)
     TEST_CHECK(completed);
     TEST_EQUAL(result_ec, errors::http_error);
     
-    std::printf("No retry on 404 test took %ld ms\n", elapsed_ms);
+    std::printf("No retry on 404 test took %lld ms\n", static_cast<long long>(elapsed_ms));
     TEST_CHECK(elapsed_ms <= 500);  // Should be fast, no retry delay
 }
 
