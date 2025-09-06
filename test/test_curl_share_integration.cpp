@@ -45,6 +45,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include <cstdio>
 
+// Disable warnings for libcurl macros in entire file
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdisabled-macro-expansion"
+#pragma clang diagnostic ignored "-Wold-style-cast"
+#endif
+
 using namespace libtorrent;
 using namespace libtorrent::aux;
 using namespace std::chrono_literals;
@@ -194,8 +201,9 @@ TORRENT_TEST(curl_share_dns_cache_hit_rate)
     }
 }
 
-// Test 1.2.3: Test SSL session sharing (if supported)
-#if CURL_VERSION_NUM >= 0x071700  // 7.23.0
+// Test 1.2.3: Test SSL session sharing
+// SSL session sharing has been available since libcurl 7.23.0
+// Our minimum is 7.68.0, so this is always available
 TORRENT_TEST(curl_share_ssl_session)
 {
     // This test would require an HTTPS server setup
@@ -225,7 +233,6 @@ TORRENT_TEST(curl_share_ssl_session)
     
     TEST_CHECK(true);
 }
-#endif
 
 // Test 1.2.4: Test that handles without sharing don't share cache
 TORRENT_TEST(curl_no_share_isolation)
@@ -258,6 +265,10 @@ TORRENT_TEST(curl_no_share_isolation)
         TEST_CHECK(true);
     }
 }
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 #else // TORRENT_USE_LIBCURL
 

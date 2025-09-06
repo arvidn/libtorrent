@@ -43,6 +43,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include <cstring>
 
+// Disable warnings for libcurl macros in entire file
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdisabled-macro-expansion"
+#pragma clang diagnostic ignored "-Wold-style-cast"
+#endif
+
 using namespace libtorrent;
 using namespace libtorrent::aux;
 
@@ -64,7 +71,7 @@ struct request_capture {
     std::string post_data;
     std::string auth;
     
-    void clear() {
+    [[maybe_unused]] void clear() {
         method.clear();
         headers.clear();
         post_data.clear();
@@ -96,7 +103,7 @@ int debug_callback(CURL* handle, curl_infotype type, char* data, size_t size, vo
 
 // Helper to get current option value
 template<typename T>
-bool get_curl_opt(CURL* handle, CURLoption opt, T& value) {
+[[maybe_unused]] bool get_curl_opt(CURL* handle, CURLoption opt, T& value) {
     CURLcode res = curl_easy_getinfo(handle, static_cast<CURLINFO>(opt), &value);
     return res == CURLE_OK;
 }
@@ -358,6 +365,10 @@ TORRENT_TEST(curl_state_isolation_rapid_cycling)
     
     TEST_CHECK(true);
 }
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 #else // TORRENT_USE_LIBCURL
 

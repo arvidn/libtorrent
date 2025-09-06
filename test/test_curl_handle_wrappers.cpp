@@ -139,14 +139,14 @@ TORRENT_TEST(curl_share_handle_setopt)
     }
     
     // Test successful setopt call for SSL session sharing
-#if CURL_VERSION_NUM >= 0x071700  // 7.23.0
+    // SSL session sharing has been available since libcurl 7.23.0
+    // Our minimum is 7.68.0, so this is always available
     try {
         share.setopt(CURLSHOPT_SHARE, CURL_LOCK_DATA_SSL_SESSION);
         TEST_CHECK(true);
     } catch (std::exception const& e) {
         TEST_ERROR(e.what());
     }
-#endif
     
     // Test error handling - invalid option value
     // Note: It's hard to force an error with valid CURLSH handle
