@@ -269,7 +269,8 @@ constexpr tracker_request_flags_t tracker_request::i2p;
 		io_context& ios
 		, tracker_request&& req
 		, aux::session_settings const& sett
-		, std::weak_ptr<request_callback> c)
+		, std::weak_ptr<request_callback> c
+		, bool priority)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(req.num_want >= 0);
@@ -278,8 +279,8 @@ constexpr tracker_request_flags_t tracker_request::i2p;
 
 #ifndef TORRENT_DISABLE_LOGGING
 		std::shared_ptr<request_callback> cb = c.lock();
-		if (cb) cb->debug_log("*** QUEUE_TRACKER_REQUEST [ listen_port: %d ]"
-			, req.listen_port);
+		if (cb) cb->debug_log("*** QUEUE_TRACKER_REQUEST [ listen_port: %d priority: %d ]"
+			, req.listen_port, priority);
 #endif
 
 		std::string const protocol = req.url.substr(0, req.url.find(':'));
@@ -291,7 +292,7 @@ constexpr tracker_request_flags_t tracker_request::i2p;
 #endif
 		{
 			auto con = std::make_shared<http_tracker_connection>(ios, *this, std::move(req), c);
-			if (m_http_conns.size() < std::size_t(sett.get_int(settings_pack::max_concurrent_http_announces)))
+			if (priority || m_http_conns.size() < std::size_t(sett.get_int(settings_pack::max_concurrent_http_announces)))
 			{
 				m_http_conns.push_back(std::move(con));
 				m_http_conns.back()->start();

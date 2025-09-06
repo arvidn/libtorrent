@@ -2976,7 +2976,7 @@ namespace {
 		};
 	}
 
-	void torrent::announce_with_tracker(event_t e)
+	void torrent::announce_with_tracker(event_t e, bool priority)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(e == event_t::stopped || state() != torrent_status::checking_files);
@@ -3283,12 +3283,12 @@ namespace {
 					if (m_abort && m_ses.should_log())
 					{
 						auto tl = std::make_shared<aux::tracker_logger>(m_ses);
-						m_ses.queue_tracker_request(req, tl);
+						m_ses.queue_tracker_request(req, tl, priority);
 					}
 					else
 #endif
 					{
-						m_ses.queue_tracker_request(req, shared_from_this());
+						m_ses.queue_tracker_request(req, shared_from_this(), priority);
 					}
 
 					a.updating = true;
@@ -3842,7 +3842,15 @@ namespace {
 			debug_log("*** found no tracker endpoints to announce");
 		}
 #endif
-		update_tracker_timer(aux::time_now32());
+		
+		if (flags & torrent_handle::priority_queue)
+		{
+			announce_with_tracker(event_t::none, true);
+		}
+		else
+		{
+			update_tracker_timer(aux::time_now32());
+		}
 	}
 
 #if TORRENT_ABI_VERSION == 1

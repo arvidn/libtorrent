@@ -348,7 +348,8 @@ enum class event_t : std::uint8_t
 			, tracker_request&& r
 			, aux::session_settings const& sett
 			, std::weak_ptr<request_callback> c
-				= std::weak_ptr<request_callback>());
+				= std::weak_ptr<request_callback>()
+			, bool priority = false);
 		void queue_request(
 			io_context& ios
 			, tracker_request const& r
