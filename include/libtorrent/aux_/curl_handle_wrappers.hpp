@@ -90,7 +90,14 @@ public:
     // Convenience setopt wrapper with type safety
     template<typename T>
     void setopt(CURLoption option, T value) {
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdisabled-macro-expansion"
+#endif
         CURLcode res = curl_easy_setopt(m_handle, option, value);
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
         if (res != CURLE_OK) {
             throw std::runtime_error("curl_easy_setopt failed: "
                 + std::string(curl_easy_strerror(res)));
@@ -139,7 +146,14 @@ public:
     }
 
     void setopt(CURLMoption option, long value) {
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdisabled-macro-expansion"
+#endif
         CURLMcode res = curl_multi_setopt(m_handle, option, value);
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
         if (res != CURLM_OK) {
             throw std::runtime_error("curl_multi_setopt failed: "
                 + std::string(curl_multi_strerror(res)));
@@ -335,7 +349,14 @@ public:
     CURLSH* get() const noexcept { return m_handle; }
 
     void setopt(CURLSHoption option, long parameter) {
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdisabled-macro-expansion"
+#endif
         CURLSHcode result = curl_share_setopt(m_handle, option, parameter);
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
         if (result != CURLSHE_OK) {
             std::string error_msg = "curl_share_setopt failed: ";
             error_msg += curl_share_strerror(result);

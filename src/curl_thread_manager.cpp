@@ -42,6 +42,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/parse_url.hpp"
 #include <boost/asio/post.hpp>
 #include <curl/curl.h>
+
+// Suppress recursive macro expansion warning from curl's own headers
+// curl defines macros like: #define curl_easy_setopt(h,o,p) curl_easy_setopt(h,o,p)
+// This is their design choice for type checking, not a code quality issue
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdisabled-macro-expansion"
+#endif
+
 #include <chrono>
 #include <algorithm>
 #include <stdexcept>
@@ -55,8 +64,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 namespace libtorrent::aux {
-
-constexpr std::chrono::milliseconds curl_thread_manager::WAKEUP_DELAY;
 
 // Structure to hold request data with proper lifetime management
 // This is allocated with new and stored via CURLOPT_PRIVATE to ensure
@@ -129,7 +136,7 @@ void tracker_host_counter::add_tracker(const std::string& url) {
     auto [scheme, auth, host, port, path] = parse_url_components(url, ec);
     if (ec || host.empty()) return;
 
-    std::scoped_lock lock(m_mutex);
+    std::scoped_lock<std::mutex> lock(m_mutex);
     m_tracker_ref_counts[host]++;
 }
 
@@ -138,7 +145,7 @@ void tracker_host_counter::remove_tracker(const std::string& url) {
     auto [scheme, auth, host, port, path] = parse_url_components(url, ec);
     if (ec || host.empty()) return;
 
-    std::scoped_lock lock(m_mutex);
+    std::scoped_lock<std::mutex> lock(m_mutex);
     if (auto it = m_tracker_ref_counts.find(host); it != m_tracker_ref_counts.end()) {
         if (--it->second == 0) {
             m_tracker_ref_counts.erase(it);
@@ -202,6 +209,10 @@ namespace {
     }
 
     error_code curl_error_to_libtorrent(CURLcode code) {
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wswitch-enum"
+#endif
         switch(code) {
             case CURLE_OK:
                 return {};
@@ -227,6 +238,9 @@ namespace {
             default:
                 return errors::http_error;
         }
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
     }
 
     bool is_retryable_error(error_code const& ec) {
@@ -605,8 +619,8 @@ void curl_thread_manager::on_timer(boost::system::error_code const& ec) {
         // Restart the timer for the next batch
         m_timer_running = true;
         m_wakeup_timer.expires_after(WAKEUP_DELAY);
-        m_wakeup_timer.async_wait([self = shared_from_this()](boost::system::error_code const& ec) {
-            self->on_timer(ec);
+        m_wakeup_timer.async_wait([self = shared_from_this()](boost::system::error_code const& timer_ec) {
+            self->on_timer(timer_ec);
         });
     }
 }
@@ -684,7 +698,7 @@ bool curl_thread_manager::configure_handle(CURL* easy, curl_request const& req, 
     if (now >= req.deadline) return false; // Already timed out
 
     auto timeout_ms = std::chrono::duration_cast<milliseconds>(req.deadline - now).count();
-    long timeout_sec = std::max(1L, timeout_ms / 1000);
+    long timeout_sec = std::max<long>(1L, static_cast<long>(timeout_ms / 1000));
 
     // Basic configuration
     // SAFETY: Use stored URL from transfer_data to ensure lifetime safety
@@ -898,7 +912,7 @@ void curl_thread_manager::configure_request_settings(CURL* easy,
     if (now >= req.deadline) return; // Already timed out
 
     auto timeout_ms = std::chrono::duration_cast<milliseconds>(req.deadline - now).count();
-    long timeout_sec = std::max(1L, timeout_ms / 1000);
+    long timeout_sec = std::max<long>(1L, static_cast<long>(timeout_ms / 1000));
 
     // Request-specific settings
     // SAFETY: Use stored URL from transfer_data to ensure lifetime safety
@@ -1007,7 +1021,7 @@ void curl_thread_manager::curl_thread_func() {
 
         // Signal that initialization is successful
         {
-            std::scoped_lock lock(m_init_mutex);
+            std::scoped_lock<std::mutex> lock(m_init_mutex);
             m_init_status = InitStatus::Success;
         }
         m_init_cv.notify_one();
@@ -1162,7 +1176,6 @@ void curl_thread_manager::curl_thread_func() {
 
             int running = 0;
             bool call_again = new_requests_added || retries_added;  // Force perform if we added any handles
-            int total_completions = 0;
 
             do {
 
@@ -1170,7 +1183,6 @@ void curl_thread_manager::curl_thread_func() {
 
                 // Check for completed transfers immediately after perform
                 int completed = process_completions(multi.get(), pool);
-                total_completions += completed;
 
                 // Process completions silently
 
@@ -1237,10 +1249,10 @@ void curl_thread_manager::curl_thread_func() {
             // Periodic idle handle cleanup when we have no active requests
             // This is the ideal time since we're not busy processing
             if (running == 0 && m_active_requests.empty()) {
-                auto now = clock_type::now();
-                if (now - last_cleanup > seconds(30)) {
+                auto cleanup_time = clock_type::now();
+                if (cleanup_time - last_cleanup > seconds(30)) {
                     pool.cleanup_idle_handles();
-                    last_cleanup = now;
+                    last_cleanup = cleanup_time;
                 }
             }
 
@@ -1309,7 +1321,7 @@ void curl_thread_manager::curl_thread_func() {
 
             // Signal initialization failure if we haven't initialized yet
             {
-                std::scoped_lock lock(m_init_mutex);
+                std::scoped_lock<std::mutex> lock(m_init_mutex);
                 if (m_init_status == InitStatus::Pending) {
                     m_init_status = InitStatus::Failed;
                 }
@@ -1327,7 +1339,7 @@ void curl_thread_manager::curl_thread_func() {
 
         // Signal initialization failure if we haven't initialized yet
         {
-            std::scoped_lock lock(m_init_mutex);
+            std::scoped_lock<std::mutex> lock(m_init_mutex);
             if (m_init_status == InitStatus::Pending) {
                 m_init_status = InitStatus::Failed;
             }
@@ -1443,8 +1455,8 @@ int curl_thread_manager::process_completions(CURLM* multi, curl_handle_pool& poo
         // Post completion handler silently
 
         boost::asio::post(m_ios,
-            [handler, ec, response = std::move(response)]() {
-                handler(ec, response);
+            [h = handler, e = ec, resp = std::move(response)]() {
+                h(e, resp);
             });
     }
 
@@ -1580,13 +1592,17 @@ curl_thread_stats curl_thread_manager::get_stats() const {
 
     // These need mutex protection to access safely
     {
-        std::scoped_lock lock(m_queue_mutex);
+        std::scoped_lock<std::mutex> lock(m_queue_mutex);
         stats.queued_requests = m_request_queue.size();
     }
     stats.active_requests = m_active_requests.size();
 
     return stats;
 }
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 } // namespace libtorrent::aux
 

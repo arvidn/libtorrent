@@ -151,7 +151,7 @@ tracker_response parse_announce_response(
 		else if (peers_ent && peers_ent.type() == bdecode_node::list_t)
 		{
 			int const len = peers_ent.list_size();
-			resp.peers.reserve(len);
+			resp.peers.reserve(static_cast<std::size_t>(len));
 
 			for (int i = 0; i < len; ++i)
 			{
@@ -177,7 +177,7 @@ tracker_response parse_announce_response(
 			else if (len > 0)
 			{
 				// Pre-allocate for efficiency
-				resp.peers.reserve(resp.peers.size() + len / 18);
+				resp.peers.reserve(resp.peers.size() + static_cast<std::size_t>(len / 18));
 
 				for (int i = 0; i < len; i += 18)
 				{
@@ -270,12 +270,11 @@ tracker_response parse_scrape_response(
 	}
 
 curl_tracker_client::curl_tracker_client(
-	io_context& ios,
+	io_context&,
 	std::string const& url,
 	settings_pack const& settings,
 	std::shared_ptr<curl_thread_manager> curl_mgr)
-	: m_ios(ios)
-	, m_tracker_url(url)
+	: m_tracker_url(url)
 	, m_settings(settings)
 	, m_curl_thread_manager(std::move(curl_mgr))
 {
@@ -293,18 +292,18 @@ void curl_tracker_client::announce(
 	std::string url = build_announce_url(req);
 
 	m_curl_thread_manager->add_request(url,
-		[handler = std::move(handler)](error_code const& ec, std::vector<char> const& data) {
+		[h = std::move(handler)](error_code const& ec, std::vector<char> const& data) {
 			if (ec) {
 				tracker_response resp;
 				resp.failure_reason = ec.message();
-				handler(ec, resp);
+				h(ec, resp);
 				return;
 			}
 
 			error_code parse_ec;
 			tracker_response resp = parse_announce_response(
-				span<char const>(data.data(), data.size()), parse_ec);
-			handler(parse_ec, resp);
+				span<char const>(data.data(), static_cast<std::ptrdiff_t>(data.size())), parse_ec);
+			h(parse_ec, resp);
 		});
 }
 
@@ -315,18 +314,18 @@ void curl_tracker_client::scrape(
 	std::string url = build_scrape_url(req);
 
 	m_curl_thread_manager->add_request(url,
-		[handler = std::move(handler)](error_code const& ec, std::vector<char> const& data) {
+		[h = std::move(handler)](error_code const& ec, std::vector<char> const& data) {
 			if (ec) {
 				tracker_response resp;
 				resp.failure_reason = ec.message();
-				handler(ec, resp);
+				h(ec, resp);
 				return;
 			}
 
 			error_code parse_ec;
 			tracker_response resp = parse_scrape_response(
-				span<char const>(data.data(), data.size()), parse_ec);
-			handler(parse_ec, resp);
+				span<char const>(data.data(), static_cast<std::ptrdiff_t>(data.size())), parse_ec);
+			h(parse_ec, resp);
 		});
 }
 

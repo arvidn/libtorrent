@@ -66,31 +66,30 @@ public:
 		std::string const& url,
 		settings_pack const& settings,
 		std::shared_ptr<curl_thread_manager> curl_mgr);
-	
+
 	~curl_tracker_client();
-	
+
 	void announce(
 		tracker_request const& req,
 		std::function<void(error_code const&, tracker_response const&)> handler);
-	
+
 	void scrape(
 		tracker_request const& req,
 		std::function<void(error_code const&, tracker_response const&)> handler);
-	
+
 	// libcurl handles connection pooling, always reusable
 	[[nodiscard]] bool can_reuse() const { return true; }
-	
+
 	void close();
-	
+
 private:
 	std::string build_announce_url(tracker_request const& req) const;
 	std::string build_scrape_url(tracker_request const& req) const;
 	std::string build_tracker_query(tracker_request const& req, bool scrape = false) const;
-	
+
 	std::string scrape_url_from_announce(std::string const& announce) const;
-	
+
 private:
-	io_context& m_ios;
 	std::string m_tracker_url;
 	settings_pack m_settings;
 	std::shared_ptr<curl_thread_manager> m_curl_thread_manager;

@@ -50,8 +50,8 @@ curl_tracker_connection::curl_tracker_connection(
 {
 	aux::session_settings const& session_sett = m_man.settings();
 	settings_pack sett;
-	
-	sett.set_bool(settings_pack::enable_http2_trackers, 
+
+	sett.set_bool(settings_pack::enable_http2_trackers,
 		session_sett.get_bool(settings_pack::enable_http2_trackers));
 	sett.set_int(settings_pack::tracker_completion_timeout,
 		session_sett.get_int(settings_pack::tracker_completion_timeout));
@@ -65,7 +65,7 @@ curl_tracker_connection::curl_tracker_connection(
 		session_sett.get_bool(settings_pack::tracker_ssl_verify_host));
 	sett.set_int(settings_pack::tracker_min_tls_version,
 		session_sett.get_int(settings_pack::tracker_min_tls_version));
-	
+
 	sett.set_int(settings_pack::proxy_type,
 		session_sett.get_int(settings_pack::proxy_type));
 	sett.set_str(settings_pack::proxy_hostname,
@@ -80,7 +80,7 @@ curl_tracker_connection::curl_tracker_connection(
 		session_sett.get_bool(settings_pack::proxy_tracker_connections));
 	sett.set_bool(settings_pack::proxy_hostnames,
 		session_sett.get_bool(settings_pack::proxy_hostnames));
-	
+
 	sett.set_str(settings_pack::user_agent,
 		session_sett.get_str(settings_pack::user_agent));
 	sett.set_int(settings_pack::connections_limit,

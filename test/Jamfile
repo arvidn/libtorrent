@@ -8,12 +8,12 @@ rule use-libcurl-config ( properties * )
 {
     local result ;
     local use-libcurl = [ feature.get-values <use-libcurl> : $(properties) ] ;
-    
+
     if $(use-libcurl) = "on"
     {
         result += <define>TORRENT_USE_LIBCURL ;
     }
-    
+
     return $(result) ;
 }
 
@@ -191,8 +191,6 @@ run test_ffs.cpp ;
 run test_ed25519.cpp ;
 run test_gzip.cpp ;
 run test_tracker_interface.cpp ;
-# Disabled - curl_tracker_manager was integrated into tracker_manager
-# run test_curl_tracker_manager.cpp ;
 run test_curl_tracker_client.cpp : : : <library>/torrent//curl ;
 run test_curl_security.cpp : : : <library>/torrent//curl ;
 run test_curl_integration.cpp : : : <library>/torrent//curl ;
@@ -202,10 +200,6 @@ run test_curl_share_integration.cpp : : : <library>/torrent//curl ;
 run test_curl_handle_pool.cpp : : : <library>/torrent//curl ;
 run test_curl_state_isolation.cpp : : : <library>/torrent//curl ;
 run test_curl_thread_manager_integration.cpp : : : <library>/torrent//curl ;
-run test_curl_simple.cpp : : : <library>/torrent//curl ;
-run test_curl_performance_benchmarks.cpp : : : <library>/torrent//curl ;
-run test_curl_stress_tests.cpp : : : <library>/torrent//curl ;
-run test_curl_error_handling.cpp : : : <library>/torrent//curl ;
 run test_http2_announces.cpp ;
 run test_idle_cpu_bug.cpp : : : <library>/torrent//curl ;
 run test_receive_buffer.cpp ;

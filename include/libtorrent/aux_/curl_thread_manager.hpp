@@ -107,13 +107,13 @@ public:
 
     // Get current unique host count
     [[nodiscard]] size_t unique_count() const {
-        std::scoped_lock lock(m_mutex);
+        std::scoped_lock<std::mutex> lock(m_mutex);
         return m_tracker_ref_counts.size();
     }
 
     // Clear all counts (for shutdown)
     void clear() {
-        std::scoped_lock lock(m_mutex);
+        std::scoped_lock<std::mutex> lock(m_mutex);
         m_tracker_ref_counts.clear();
     }
 };
