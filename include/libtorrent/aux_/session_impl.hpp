@@ -569,8 +569,9 @@ namespace aux {
 			port_filter const& get_port_filter() const override;
 			void ban_ip(address addr) override;
 
-			void queue_tracker_request(tracker_request req
-				, std::weak_ptr<request_callback> c) override;
+		void queue_tracker_request(tracker_request req
+			, std::weak_ptr<request_callback> c
+			, bool priority = false) override;
 
 			// ==== peer class operations ====
 
