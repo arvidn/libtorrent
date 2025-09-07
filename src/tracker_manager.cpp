@@ -51,6 +51,7 @@ namespace libtorrent {
 
 constexpr tracker_request_flags_t tracker_request::scrape_request;
 constexpr tracker_request_flags_t tracker_request::i2p;
+constexpr tracker_request_flags_t tracker_request::high_priority;
 
 	timeout_handler::timeout_handler(io_context& ios)
 		: m_start_time(clock_type::now())

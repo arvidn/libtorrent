@@ -3278,7 +3278,7 @@ namespace {
 							, print_endpoint(aep.local_endpoint).c_str());
 					}
 
-					req.kind |= tracker_request::high_priority;
+					if (high_priority) req.kind |= tracker_request::high_priority;
 					// if we're not logging session logs, don't bother creating an
 					// observer object just for logging
 					if (m_abort && m_ses.should_log())
