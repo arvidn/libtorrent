@@ -2976,7 +2976,7 @@ namespace {
 		};
 	}
 
-	void torrent::announce_with_tracker(event_t e, bool priority)
+	void torrent::announce_with_tracker(event_t e, bool high_priority)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(e == event_t::stopped || state() != torrent_status::checking_files);
