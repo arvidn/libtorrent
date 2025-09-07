@@ -1284,8 +1284,7 @@ namespace {
 }
 
 	void session_impl::queue_tracker_request(tracker_request req
-		, std::weak_ptr<request_callback> c
-		, bool priority)
+		, std::weak_ptr<request_callback> c)
 	{
 		req.listen_port = 0;
 #if TORRENT_USE_I2P
@@ -1320,7 +1319,7 @@ namespace {
 			TORRENT_ASSERT(req.kind == tracker_request::i2p);
 			req.listen_port = 1;
 		}
-		m_tracker_manager.queue_request(get_context(), std::move(req), m_settings, c, priority);
+		m_tracker_manager.queue_request(get_context(), std::move(req), m_settings, c);
 	}
 
 	void session_impl::set_peer_class(peer_class_t const cid, peer_class_info const& pci)
@@ -7371,3 +7370,4 @@ namespace {
 		catch (std::exception const&) {}
 #endif // TORRENT_DISABLE_LOGGING
 }}
+

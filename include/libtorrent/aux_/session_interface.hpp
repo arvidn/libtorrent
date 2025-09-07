@@ -225,8 +225,7 @@ namespace aux {
 		virtual session_settings const& settings() const = 0;
 
 		virtual void queue_tracker_request(tracker_request req
-			, std::weak_ptr<request_callback> c
-			, bool priority = false) = 0;
+			, std::weak_ptr<request_callback> c) = 0;
 
 		// peer-classes
 		virtual void set_peer_classes(peer_class_set* s, address const& a, socket_type_t st) = 0;

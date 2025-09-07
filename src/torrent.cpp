@@ -3278,17 +3278,18 @@ namespace {
 							, print_endpoint(aep.local_endpoint).c_str());
 					}
 
+					req.kind |= tracker_request::high_priority;
 					// if we're not logging session logs, don't bother creating an
 					// observer object just for logging
 					if (m_abort && m_ses.should_log())
 					{
 						auto tl = std::make_shared<aux::tracker_logger>(m_ses);
-						m_ses.queue_tracker_request(req, tl, priority);
+						m_ses.queue_tracker_request(req, tl);
 					}
 					else
 #endif
 					{
-						m_ses.queue_tracker_request(req, shared_from_this(), priority);
+						m_ses.queue_tracker_request(req, shared_from_this());
 					}
 
 					a.updating = true;
@@ -3843,7 +3844,7 @@ namespace {
 		}
 #endif
 		
-		if (flags & torrent_handle::priority_queue)
+		if (flags & torrent_handle::high_priority)
 		{
 			announce_with_tracker(event_t::none, true);
 		}

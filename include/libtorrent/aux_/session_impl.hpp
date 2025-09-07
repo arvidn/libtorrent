@@ -570,8 +570,7 @@ namespace aux {
 			void ban_ip(address addr) override;
 
 		void queue_tracker_request(tracker_request req
-			, std::weak_ptr<request_callback> c
-			, bool priority = false) override;
+			, std::weak_ptr<request_callback> c) override;
 
 			// ==== peer class operations ====
 

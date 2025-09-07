@@ -1169,7 +1169,7 @@ namespace aux {
 		// by default, force-reannounce will queue the announce normally.
 		// If this flag is set, the announce will be put at the front of the
 		// tracker queue for immediate processing.
-		static constexpr reannounce_flags_t priority_queue = 1_bit;
+		static constexpr reannounce_flags_t high_priority = 1_bit;
 
 		// ``force_reannounce()`` will force this torrent to do another tracker
 		// request, to receive new peers. The ``seconds`` argument specifies how
@@ -1184,7 +1184,7 @@ namespace aux {
 		// If set to -1 (which is the default), all trackers are re-announce.
 		//
 		// The ``flags`` argument can be used to affect the re-announce. See
-		// ignore_min_interval and priority_queue.
+		// ignore_min_interval and high_priority.
 		//
 		// ``force_dht_announce`` will announce the torrent to the DHT
 		// immediately.
