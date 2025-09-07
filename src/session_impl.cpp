@@ -7370,4 +7370,3 @@ namespace {
 		catch (std::exception const&) {}
 #endif // TORRENT_DISABLE_LOGGING
 }}
-
