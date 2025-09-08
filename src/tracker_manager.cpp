@@ -40,7 +40,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/socket_io.hpp"
-#include "libtorrent/io_service_fwd.hpp"
 
 #ifdef TORRENT_USE_OPENSSL
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -166,7 +165,7 @@ namespace libtorrent {
 		, char const* msg, seconds32 const interval, seconds32 const min_interval)
 	{
 		// we need to post the error to avoid deadlock
-		lt::post(get_io_service(), std::bind(&tracker_connection::fail_impl
+		boost::asio::post(get_io_service(), std::bind(&tracker_connection::fail_impl
 			, shared_from_this(), ec, std::string(msg), interval, min_interval));
 	}
 
@@ -316,7 +315,7 @@ namespace libtorrent {
 
 		// we need to post the error to avoid deadlock
 		if (auto r = c.lock())
-			lt::post(ios, std::bind(&request_callback::tracker_request_error, r, std::move(req)
+			boost::asio::post(ios, std::bind(&request_callback::tracker_request_error, r, std::move(req)
 				, errors::unsupported_url_protocol
 				, "", seconds32(0)));
 	}

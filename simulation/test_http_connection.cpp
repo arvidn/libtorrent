@@ -132,7 +132,7 @@ std::shared_ptr<http_connection> test_request(io_service& ios
 	std::printf(" ===== TESTING: %s =====\n", url.c_str());
 
 #ifdef TORRENT_USE_OPENSSL
-	ssl::context ssl_ctx(ssl::context::sslv23_client);
+	ssl::context ssl_ctx(ssl::context::tls_client);
 	ssl_ctx.set_verify_mode(ssl::context::verify_none);
 #endif
 
@@ -642,7 +642,7 @@ TORRENT_TEST(http_connection_ssl_proxy)
 		});
 
 #ifdef TORRENT_USE_OPENSSL
-	lt::ssl::context ssl_ctx(ssl::context::sslv23_client);
+	lt::ssl::context ssl_ctx(ssl::context::tls_client);
 	ssl_ctx.set_verify_mode(ssl::context::verify_none);
 #endif
 

@@ -45,7 +45,7 @@ namespace libtorrent {
 
 	struct socks_error_category final : boost::system::error_category
 	{
-		const char* name() const BOOST_SYSTEM_NOEXCEPT override
+		const char* name() const noexcept override
 		{ return "socks"; }
 		std::string message(int ev) const override
 		{
@@ -67,7 +67,7 @@ namespace libtorrent {
 			return messages[ev];
 		}
 		boost::system::error_condition default_error_condition(
-			int ev) const BOOST_SYSTEM_NOEXCEPT override
+			int ev) const noexcept override
 		{ return {ev, *this}; }
 	};
 
@@ -77,30 +77,23 @@ namespace libtorrent {
 		return cat;
 	}
 
-	void socks5_stream::name_lookup(error_code const& e, tcp::resolver::results_type results
+	void socks5_stream::name_lookup(error_code const& e, tcp::resolver::results_type i
 		, handler_type h)
 	{
 		COMPLETE_ASYNC("socks5_stream::name_lookup");
 		if (handle_error(e, h)) return;
 
-		if (results.empty())
-		{
-			h(boost::asio::error::host_not_found);
-			return;
-		}
-
-		auto endpoint = results.begin()->endpoint();
 		error_code ec;
 		if (!m_sock.is_open())
 		{
-			m_sock.open(endpoint.protocol(), ec);
+			m_sock.open(i.begin()->endpoint().protocol(), ec);
 			if (handle_error(ec, h)) return;
 		}
 
 		// TODO: we could bind the socket here, since we know what the
 		// target endpoint is of the proxy
 		ADD_OUTSTANDING_ASYNC("socks5_stream::connected");
-		m_sock.async_connect(endpoint, std::bind(
+		m_sock.async_connect(i.begin()->endpoint(), std::bind(
 			&socks5_stream::connected, this, _1, std::move(h)));
 	}
 

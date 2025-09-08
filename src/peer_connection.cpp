@@ -58,7 +58,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/request_blocks.hpp" // for request_a_block
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/alert_manager.hpp" // for alert_manager
-#include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/ip_voter.hpp"
 #include "libtorrent/kademlia/node_id.hpp"
@@ -137,7 +136,7 @@ namespace libtorrent {
 		, m_remote(pack.endp)
 		, m_disk_thread(*pack.disk_thread)
 		, m_ios(*pack.ios)
-		, m_work(m_ios.get_executor())
+		, m_work(boost::asio::make_work_guard(m_ios))
 		, m_outstanding_piece_verification(0)
 		, m_outgoing(!pack.tor.expired())
 		, m_received_listen_port(false)
@@ -496,7 +495,7 @@ namespace libtorrent {
 			// the update until the current message queue is
 			// flushed
 			auto conn = self();
-			lt::post(m_ios, [conn] { conn->wrap(&peer_connection::do_update_interest); });
+			boost::asio::post(m_ios, [conn] { conn->wrap(&peer_connection::do_update_interest); });
 		}
 		m_need_interest_update = true;
 	}
@@ -4160,7 +4159,7 @@ namespace libtorrent {
 				// we can't touch m_connections here, since we're likely looping
 				// over it. So defer the actual reconnection to after we've handled
 				// the existing message queue
-				lt::post(m_ses.get_io_service(), [weak_t, weak_self]()
+				boost::asio::post(m_ses.get_io_service(), [weak_t, weak_self]()
 				{
 					std::shared_ptr<torrent> tor = weak_t.lock();
 					std::shared_ptr<peer_connection> p = weak_self.lock();

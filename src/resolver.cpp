@@ -33,7 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/resolver.hpp"
 #include "libtorrent/debug.hpp"
 #include "libtorrent/aux_/time.hpp"
-#include "libtorrent/io_service_fwd.hpp"
 
 namespace libtorrent {
 
@@ -61,7 +60,7 @@ namespace {
 	}
 }
 
-	void resolver::on_lookup(error_code const& ec, tcp::resolver::results_type results
+	void resolver::on_lookup(error_code const& ec, tcp::resolver::results_type i
 		, std::string const& hostname)
 	{
 		COMPLETE_ASYNC("resolver::on_lookup");
@@ -77,7 +76,7 @@ namespace {
 		dns_cache_entry& ce = m_cache[hostname];
 		ce.last_seen = aux::time_now();
 		ce.addresses.clear();
-		for (auto const& endpoint : results)
+		for (auto const& endpoint : i)
 		{
 			ce.addresses.push_back(endpoint.endpoint().address());
 		}
@@ -112,7 +111,7 @@ namespace {
 		address const ip = make_address(host, ec);
 		if (!ec)
 		{
-			lt::post(m_ios, [=]{ callback(h, ec, std::vector<address>{ip}); });
+			boost::asio::post(m_ios, [=]{ callback(h, ec, std::vector<address>{ip}); });
 			return;
 		}
 		ec.clear();
@@ -125,7 +124,7 @@ namespace {
 				|| i->second.last_seen + m_timeout >= aux::time_now())
 			{
 				std::vector<address> ips = i->second.addresses;
-				lt::post(m_ios, [=] { callback(h, ec, ips); });
+				boost::asio::post(m_ios, [=] { callback(h, ec, ips); });
 				return;
 			}
 		}
@@ -133,7 +132,7 @@ namespace {
 		if (flags & resolver_interface::cache_only)
 		{
 			// we did not find a cache entry, fail the lookup
-			lt::post(m_ios, [=] {
+			boost::asio::post(m_ios, [=] {
 				callback(h, boost::asio::error::host_not_found, std::vector<address>{});
 			});
 			return;
@@ -148,7 +147,6 @@ namespace {
 		// called once it completes. We're done here.
 		if (done) return;
 
-		// the port is ignored
 		using namespace std::placeholders;
 		ADD_OUTSTANDING_ASYNC("resolver::on_lookup");
 		if (flags & resolver_interface::abort_on_shutdown)

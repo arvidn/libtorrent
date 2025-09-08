@@ -120,7 +120,13 @@ function(_try_generic_mode)
 
 	set(LibtorrentRasterbar_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
 
-	find_package(Boost 1.87 QUIET REQUIRED)
+	find_package(Boost QUIET REQUIRED)
+	if (Boost_MAJOR_VERSION LESS_EQUAL 1 AND Boost_MINOR_VERSION LESS 69)
+		if (NOT Boost_SYSTEM_FOUND)
+			find_package(Boost QUIET REQUIRED COMPONENTS system)
+		endif()
+		list(APPEND LibtorrentRasterbar_LIBRARIES Boost::system)
+	endif()
 
 	list(FIND LibtorrentRasterbar_DEFINITIONS -DTORRENT_USE_OPENSSL _ENCRYPTION_INDEX)
 	if(_ENCRYPTION_INDEX GREATER -1)

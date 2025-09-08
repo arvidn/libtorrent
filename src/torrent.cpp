@@ -77,7 +77,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/broadcast_socket.hpp"
 #include "libtorrent/kademlia/dht_tracker.hpp"
 #include "libtorrent/peer_info.hpp"
-#include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/http_connection.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/peer_class.hpp" // for peer_class
@@ -1726,7 +1725,6 @@ bool is_downloading_state(int const st)
 		}
 
 		ctx->set_options(context::default_workarounds
-			| boost::asio::ssl::context::no_sslv2
 			| boost::asio::ssl::context::single_dh_use);
 
 		error_code ec;
@@ -4874,7 +4872,7 @@ bool is_downloading_state(int const st)
 			// this gives the client a chance to specify multiple time-critical
 			// pieces before libtorrent cancels requests
 			auto self = shared_from_this();
-			lt::post(m_ses.get_io_service(), [self] { self->wrap(&torrent::cancel_non_critical); });
+			boost::asio::post(m_ses.get_io_service(), [self] { self->wrap(&torrent::cancel_non_critical); });
 		}
 
 		for (auto i = m_time_critical_pieces.begin()

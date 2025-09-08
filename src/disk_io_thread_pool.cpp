@@ -33,6 +33,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_io_thread_pool.hpp"
 #include "libtorrent/assert.hpp"
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/asio/executor_work_guard.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 #include <algorithm>
 
 namespace {
@@ -173,7 +177,7 @@ namespace libtorrent {
 			// buffer pool won't exist anymore, and crash. This prevents that.
 			m_threads.emplace_back(&pool_thread_interface::thread_fun
 				, &m_thread_iface, std::ref(*this)
-				, boost::asio::executor_work_guard<boost::asio::io_context::executor_type>(get_io_service(m_idle_timer).get_executor()));
+				, boost::asio::make_work_guard(get_io_service(m_idle_timer)));
 		}
 	}
 

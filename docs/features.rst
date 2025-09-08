@@ -323,7 +323,7 @@ libtorrent runs on most major operating systems, including Windows,
 macOS, Linux, BSD and Solaris.
 It uses Boost.Asio, Boost.Optional, Boost.System, Boost.Multiprecision,
 Boost.Intrusive, Boost.Pool, Boost.Python (for bindings), Boost.CRC and various
-other boost libraries. At least version 1.87 of boost is required.
+other boost libraries. At least version 1.49 of boost is required.
 
 Since libtorrent uses Boost.Asio it will take full advantage of high performance
 network APIs on the most popular platforms. I/O completion ports on windows,

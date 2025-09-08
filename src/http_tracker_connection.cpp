@@ -189,9 +189,7 @@ namespace libtorrent {
 		{
 			for (auto const& v4 : tracker_req().ipv4)
 			{
-				error_code err;
 				std::string const ip = v4.to_string();
-				if (err) continue;
 				url += "&ipv4=";
 				url += escape_string(ip);
 			}
@@ -200,9 +198,7 @@ namespace libtorrent {
 		{
 			for (auto const& v6 : tracker_req().ipv6)
 			{
-				error_code err;
 				std::string const ip = v6.to_string();
-				if (err) continue;
 				url += "&ipv6=";
 				url += escape_string(ip);
 			}

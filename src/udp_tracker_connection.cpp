@@ -46,7 +46,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/io.hpp"
 #include "libtorrent/peer.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/io_service_fwd.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/socket_io.hpp"
@@ -165,7 +164,7 @@ namespace libtorrent {
 				, m_hostname.c_str(), print_endpoint(m_target).c_str());
 		}
 #endif
-		lt::post(get_io_service(), std::bind(
+		boost::asio::post(get_io_service(), std::bind(
 			&udp_tracker_connection::start_announce, shared_from_this()));
 
 		aux::session_settings const& settings = m_man.settings();

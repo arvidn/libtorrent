@@ -123,9 +123,8 @@ void http_connection::get(std::string const& url, time_duration timeout
 	error_code ec;
 	int port;
 
-	error_code parse_ec;
 	std::tie(protocol, auth, hostname, port, path)
-		= parse_url_components(url, parse_ec);
+		= parse_url_components(url, ec);
 
 	if (auth.empty()) auth = auth_;
 
@@ -330,12 +329,12 @@ void http_connection::start(std::string const& hostname, int port
 
 		if (m_bind_addr)
 		{
-			m_sock.open(m_bind_addr->ip.is_v4() ? tcp::v4() : tcp::v6());
+			m_sock.open(m_bind_addr->ip.is_v4() ? tcp::v4() : tcp::v6(), ec);
 #if TORRENT_HAS_BINDTODEVICE
 			error_code ignore;
 			bind_device(m_sock, m_bind_addr->device.c_str(), ignore);
 #endif
-			m_sock.bind(tcp::endpoint(m_bind_addr->ip, 0));
+			m_sock.bind(tcp::endpoint(m_bind_addr->ip, 0), ec);
 			if (ec)
 			{
 				boost::asio::post(lt::get_io_service(m_timer), std::bind(&http_connection::callback
@@ -558,7 +557,7 @@ void http_connection::connect()
 		// is, ec will be represent "success". If so, don't set it as the socks5
 		// hostname, just connect to the IP
 		error_code ec;
-		address adr = make_address(m_hostname);
+		address adr = make_address(m_hostname, ec);
 
 		if (ec)
 		{

@@ -384,7 +384,6 @@ bool try_connect(lt::session& ses1, int port
 	context ctx(context::sslv23);
 
 	ctx.set_options(context::default_workarounds
-		| boost::asio::ssl::context::no_sslv2
 		| boost::asio::ssl::context::single_dh_use);
 
 	// we're a malicious peer, we don't have any interest

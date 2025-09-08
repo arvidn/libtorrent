@@ -64,7 +64,7 @@ namespace libtorrent {
 
 struct pcp_error_category final : boost::system::error_category
 {
-	const char* name() const BOOST_SYSTEM_NOEXCEPT override
+	const char* name() const noexcept override
 	{ return "pcp error"; }
 	std::string message(int ev) const override
 	{
@@ -90,7 +90,7 @@ struct pcp_error_category final : boost::system::error_category
 		return msgs[ev];
 	}
 	boost::system::error_condition default_error_condition(
-		int ev) const BOOST_SYSTEM_NOEXCEPT override
+		int ev) const noexcept override
 	{ return boost::system::error_condition(ev, *this); }
 };
 
@@ -482,12 +482,13 @@ void natpmp::send_map_request(port_mapping_t const i)
 			return;
 		}
 		auto const local_bytes = local_addr.is_v4()
-			? [&local_addr]() {
+			? [&]() {
 				auto v4_bytes = local_addr.to_v4().to_bytes();
-				address_v6::bytes_type v6_bytes{{}};
-				v6_bytes[10] = v6_bytes[11] = 0xff;
+				address_v6::bytes_type v6_bytes{};
+				v6_bytes[10] = 0xff;
+				v6_bytes[11] = 0xff;
 				std::copy(v4_bytes.begin(), v4_bytes.end(), v6_bytes.begin() + 12);
-				return address_v6(v6_bytes).to_bytes();
+				return v6_bytes;
 			}()
 			: local_addr.to_v6().to_bytes();
 		out = std::copy(local_bytes.begin(), local_bytes.end(), out);
@@ -506,10 +507,11 @@ void natpmp::send_map_request(port_mapping_t const i)
 		if (!m.external_address.is_unspecified())
 		{
 			external_addr = m.external_address.is_v4()
-				? [&m]() {
+				? [&]() {
 					auto v4_bytes = m.external_address.to_v4().to_bytes();
-					address_v6::bytes_type v6_bytes{{}};
-					v6_bytes[10] = v6_bytes[11] = 0xff;
+					address_v6::bytes_type v6_bytes{};
+					v6_bytes[10] = 0xff;
+					v6_bytes[11] = 0xff;
 					std::copy(v4_bytes.begin(), v4_bytes.end(), v6_bytes.begin() + 12);
 					return address_v6(v6_bytes);
 				}()
@@ -518,22 +520,24 @@ void natpmp::send_map_request(port_mapping_t const i)
 		else if (is_local(local_addr))
 		{
 			external_addr = local_addr.is_v4()
-				? []() {
-					address_v6::bytes_type v6_bytes{{}};
-					v6_bytes[10] = v6_bytes[11] = 0xff;
+				? [&]() {
+					address_v6::bytes_type v6_bytes{};
+					v6_bytes[10] = 0xff;
+					v6_bytes[11] = 0xff;
 					return address_v6(v6_bytes);
 				}()
 				: address_v6();
 		}
 		else if (local_addr.is_v4())
 		{
-			external_addr = [&local_addr]() {
-				auto v4_bytes = local_addr.to_v4().to_bytes();
-				address_v6::bytes_type v6_bytes{{}};
-				v6_bytes[10] = v6_bytes[11] = 0xff;
-				std::copy(v4_bytes.begin(), v4_bytes.end(), v6_bytes.begin() + 12);
-				return address_v6(v6_bytes);
-			}();
+			external_addr = [&]() {
+			auto v4_bytes = local_addr.to_v4().to_bytes();
+			address_v6::bytes_type v6_bytes{};
+			v6_bytes[10] = 0xff;
+			v6_bytes[11] = 0xff;
+			std::copy(v4_bytes.begin(), v4_bytes.end(), v6_bytes.begin() + 12);
+			return address_v6(v6_bytes);
+		}();
 		}
 		else
 		{
@@ -775,12 +779,9 @@ void natpmp::on_reply(error_code const& e
 	if (version == version_pcp)
 	{
 		external_addr = read_v6_address(in);
-		if (external_addr.to_v6().is_v4_mapped())
-		{
-			// Convert v4-mapped v6 address back to v4
-			auto bytes = external_addr.to_v6().to_bytes();
-			address_v4::bytes_type v4_bytes{{ bytes[12], bytes[13], bytes[14], bytes[15] }};
-			external_addr = address_v4(v4_bytes);
+		if (external_addr.to_v6().is_v4_mapped()) {
+			auto const bytes = external_addr.to_v6().to_bytes();
+			external_addr = address_v4(address_v4::bytes_type{{bytes[12], bytes[13], bytes[14], bytes[15]}});
 		}
 	}
 

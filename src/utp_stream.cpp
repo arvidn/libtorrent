@@ -41,7 +41,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/invariant_check.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/io_service.hpp"
-#include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/aux_/storage_utils.hpp" // for iovec_t
 #include <cstdint>
 #include <limits>
@@ -887,7 +886,7 @@ void utp_stream::on_read(void* self, std::size_t const bytes_transferred
 
 	TORRENT_ASSERT(s->m_read_handler);
 	TORRENT_ASSERT(bytes_transferred > 0 || ec || s->m_impl->m_null_buffers);
-	lt::post(s->m_io_service, std::bind<void>(std::move(s->m_read_handler), ec, bytes_transferred));
+boost::asio::post(	s->m_io_service, std::bind<void>(std::move(s->m_read_handler), ec, bytes_transferred));
 	s->m_read_handler = nullptr;
 	if (shutdown && s->m_impl)
 	{
@@ -908,7 +907,7 @@ void utp_stream::on_write(void* self, std::size_t const bytes_transferred
 
 	TORRENT_ASSERT(s->m_write_handler);
 	TORRENT_ASSERT(bytes_transferred > 0 || ec);
-	lt::post(s->m_io_service, std::bind<void>(std::move(s->m_write_handler), ec, bytes_transferred));
+boost::asio::post(	s->m_io_service, std::bind<void>(std::move(s->m_write_handler), ec, bytes_transferred));
 	s->m_write_handler = nullptr;
 	if (shutdown && s->m_impl)
 	{
@@ -927,7 +926,7 @@ void utp_stream::on_connect(void* self, error_code const& ec, bool const shutdow
 		, static_cast<void*>(s->m_impl), ec.message().c_str(), shutdown);
 
 	TORRENT_ASSERT(s->m_connect_handler);
-	lt::post(s->m_io_service, std::bind<void>(std::move(s->m_connect_handler), ec));
+boost::asio::post(	s->m_io_service, std::bind<void>(std::move(s->m_connect_handler), ec));
 	s->m_connect_handler = nullptr;
 	if (shutdown && s->m_impl)
 	{

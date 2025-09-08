@@ -122,7 +122,7 @@ void run_test(std::string const& url, int size, int status, int connected
 		<< " error: " << (ec?ec->message():"no error") << std::endl;
 
 #ifdef TORRENT_USE_OPENSSL
-	ssl::context ssl_ctx(ssl::context::sslv23_client);
+	ssl::context ssl_ctx(ssl::context::tls_client);
 	ssl_ctx.set_verify_mode(ssl::context::verify_none);
 #endif
 

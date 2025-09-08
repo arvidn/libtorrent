@@ -460,11 +460,11 @@ void setup_swarm(int num_nodes
 
 		++tick;
 
-		timer.expires_from_now(lt::seconds(1));
+		timer.expires_after(lt::seconds(1));
 		timer.async_wait(on_tick);
 	};
 
-	timer.expires_from_now(lt::seconds(1));
+	timer.expires_after(lt::seconds(1));
 	timer.async_wait(on_tick);
 
 	sim.run();

@@ -44,7 +44,6 @@ namespace libtorrent {
 
 	std::string print_address(address const& addr)
 	{
-		error_code ec;
 		return addr.to_string();
 	}
 

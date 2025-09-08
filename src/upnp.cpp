@@ -119,7 +119,7 @@ upnp::upnp(io_service& ios
 	, m_netmask(netmask)
 	, m_device(std::move(listen_device))
 #ifdef TORRENT_USE_OPENSSL
-	, m_ssl_ctx(ssl::context::sslv23_client)
+	, m_ssl_ctx(ssl::context::tls_client)
 #endif
 {
 #ifdef TORRENT_USE_OPENSSL
@@ -1220,7 +1220,7 @@ namespace {
 
 struct upnp_error_category final : boost::system::error_category
 {
-	const char* name() const BOOST_SYSTEM_NOEXCEPT override
+	const char* name() const noexcept override
 	{
 		return "upnp";
 	}
@@ -1243,7 +1243,7 @@ struct upnp_error_category final : boost::system::error_category
 	}
 
 	boost::system::error_condition default_error_condition(
-		int ev) const BOOST_SYSTEM_NOEXCEPT override
+		int ev) const noexcept override
 	{
 		return {ev, *this};
 	}

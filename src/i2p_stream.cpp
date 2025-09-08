@@ -53,7 +53,7 @@ namespace libtorrent {
 
 	struct i2p_error_category final : boost::system::error_category
 	{
-		const char* name() const BOOST_SYSTEM_NOEXCEPT override
+		const char* name() const noexcept override
 		{ return "i2p error"; }
 		std::string message(int ev) const override
 		{
@@ -74,7 +74,7 @@ namespace libtorrent {
 			return messages[ev];
 		}
 		boost::system::error_condition default_error_condition(
-			int ev) const BOOST_SYSTEM_NOEXCEPT override
+			int ev) const noexcept override
 		{ return {ev, *this}; }
 	};
 
@@ -231,20 +231,20 @@ namespace libtorrent {
 	}
 #endif
 
-	void i2p_stream::do_connect(error_code const& e, tcp::resolver::results_type results
+	void i2p_stream::do_connect(error_code const& e, tcp::resolver::results_type i
 		, handler_type h)
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
-		if (e || results.empty())
+		if (e || i.empty())
 		{
-			h(e ? e : boost::asio::error::host_not_found);
+			h(e);
 			error_code ec;
 			close(ec);
 			return;
 		}
 
 		ADD_OUTSTANDING_ASYNC("i2p_stream::connected");
-		m_sock.async_connect(results.begin()->endpoint(), std::bind(
+		m_sock.async_connect(i.begin()->endpoint(), std::bind(
 			&i2p_stream::connected, this, _1, std::move(h)));
 	}
 

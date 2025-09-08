@@ -142,7 +142,7 @@ AC_CACHE_CHECK([for __attribute__((visibility("hidden")))],
 AS_ECHO
 AS_ECHO "Checking for boost libraries:"
 
-AX_BOOST_BASE([1.87])
+AX_BOOST_BASE([1.58])
 
 AC_ARG_WITH(
   [cxx-standard],

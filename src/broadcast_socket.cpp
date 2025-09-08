@@ -122,15 +122,11 @@ namespace libtorrent {
 			return addr.to_v4() == address_v4::any();
 		else if (addr.to_v6().is_v4_mapped())
 		{
-			address_v6 const& v6_addr = addr.to_v6();
-			if (v6_addr.is_v4_mapped())
-			{
-				// Convert v4-mapped v6 address back to v4
-				auto bytes = v6_addr.to_bytes();
-				address_v4::bytes_type v4_bytes{{ bytes[12], bytes[13], bytes[14], bytes[15] }};
-				return address_v4(v4_bytes) == address_v4::any();
-			}
-			return false;
+			auto bytes = addr.to_v6().to_bytes();
+			return address_v4(((static_cast<uint32_t>(bytes[12]) << 24) |
+							  (static_cast<uint32_t>(bytes[13]) << 16) |
+							  (static_cast<uint32_t>(bytes[14]) << 8) |
+							  static_cast<uint32_t>(bytes[15]))) == address_v4::any();
 		}
 		else
 			return addr.to_v6() == address_v6::any();

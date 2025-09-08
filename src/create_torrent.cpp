@@ -340,11 +340,8 @@ namespace {
 #ifdef TORRENT_BUILD_SIMULATOR
 		sim.run();
 #else
-		try {
-			ios.run();
-		} catch (boost::system::system_error const& e) {
-			ec = e.code();
-		}
+		ios.run();
+		if (ios.stopped()) ec.clear();
 #endif
 	}
 

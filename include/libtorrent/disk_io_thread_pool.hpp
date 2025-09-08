@@ -39,6 +39,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_service_fwd.hpp"
 #include "libtorrent/error_code.hpp"
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/asio/executor_work_guard.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 #include <thread>
 #include <mutex>
 #include <atomic>

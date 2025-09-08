@@ -43,10 +43,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/aux_/allocating_handler.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/asio/dispatch.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #ifdef TORRENT_USE_OPENSSL
 #include "libtorrent/ssl_stream.hpp"
 #endif
@@ -55,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ip_voter.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/socket.hpp"
+#include <boost/asio/dispatch.hpp>
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/debug.hpp"
@@ -1232,7 +1229,7 @@ namespace aux {
 			struct work_thread_t
 			{
 				work_thread_t()
-					: work(new boost::asio::executor_work_guard<boost::asio::io_context::executor_type>(ios.get_executor()))
+					: work(new boost::asio::executor_work_guard<boost::asio::io_context::executor_type>(boost::asio::make_work_guard(ios)))
 					, thread([this] { ios.run(); })
 				{}
 				~work_thread_t()

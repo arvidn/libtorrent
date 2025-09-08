@@ -40,18 +40,12 @@ using namespace std::placeholders;
 
 namespace libtorrent {
 
-	void http_stream::name_lookup(error_code const& e, tcp::resolver::results_type results
+	void http_stream::name_lookup(error_code const& e, tcp::resolver::results_type i
 		, handler_type& h)
 	{
 		if (handle_error(e, h)) return;
 
-		if (results.empty())
-		{
-			h(boost::asio::error::host_not_found);
-			return;
-		}
-
-		m_sock.async_connect(results.begin()->endpoint(), std::bind(
+		m_sock.async_connect(i.begin()->endpoint(), std::bind(
 			&http_stream::connected, this, _1, std::move(h)));
 	}
 

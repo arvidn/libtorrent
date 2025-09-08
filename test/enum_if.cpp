@@ -42,6 +42,15 @@ namespace {
 
 std::string operator "" _s(char const* str, size_t len) { return std::string(str, len); }
 
+std::string safe_to_string(address const& addr)
+{
+	try {
+		return addr.to_string();
+	} catch (...) {
+		return "invalid-address";
+	}
+}
+
 std::string print_flags(interface_flags const f)
 {
 	return
@@ -97,11 +106,11 @@ int main()
 	for (auto const& r : routes)
 	{
 		std::printf("%-45s%-45s%-35s%-7d%-18s%s\n"
-			, r.destination.to_string(ec).c_str()
-			, r.netmask.to_string(ec).c_str()
-			, r.gateway.is_unspecified() ? "-" : r.gateway.to_string(ec).c_str()
+			, safe_to_string(r.destination).c_str()
+			, safe_to_string(r.netmask).c_str()
+			, r.gateway.is_unspecified() ? "-" : safe_to_string(r.gateway).c_str()
 			, r.mtu
-			, r.source_hint.is_unspecified() ? "-" : r.source_hint.to_string(ec).c_str()
+			, r.source_hint.is_unspecified() ? "-" : safe_to_string(r.source_hint).c_str()
 			, r.name);
 	}
 
@@ -120,10 +129,10 @@ int main()
 	{
 		boost::optional<address> const gateway = get_gateway(i, routes);
 		std::printf("%-34s%-45s%-20s%-20s%-15s%-20s%s %s\n"
-			, i.interface_address.to_string(ec).c_str()
-			, i.netmask.to_string(ec).c_str()
+			, safe_to_string(i.interface_address).c_str()
+			, safe_to_string(i.netmask).c_str()
 			, i.name
-			, gateway ? gateway->to_string(ec).c_str() : "-"
+			, gateway ? safe_to_string(*gateway).c_str() : "-"
 			, print_state(i.state)
 			, print_flags(i.flags).c_str()
 			, i.friendly_name
