@@ -70,7 +70,7 @@ bool on_alert(alert const* a)
 	else if (auto rp = alert_cast<read_piece_alert>(a))
 	{
 		++read_piece_alerts;
-		TORRENT_ASSERT(!rp->error);
+		TEST_CHECK(!rp->error);
 	}
 
 	return false;
