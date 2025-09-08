@@ -396,6 +396,27 @@ namespace libtorrent {
 			s.erase(s.begin());
 	}
 
+	std::string format_host_for_connect(std::string host, unsigned short const port)
+	{
+		// Handle edge case: if no port specified, return host as-is
+		if (port == 0) return host;
+
+		// Already bracketed IPv6 literal
+		if (!host.empty() && host.front() == '[' && host.back() == ']')
+		{
+			return host + ":" + to_string(port).data();
+		}
+
+		// Contains colons (unbracketed IPv6) - need to bracket
+		if (host.find(':') != string_view::npos)
+		{
+			return "[" + host + "]:" + to_string(port).data();
+		}
+
+		// Regular hostname or IPv4
+		return host + ":" + to_string(port).data();
+	}
+
 #if TORRENT_USE_I2P
 
 	bool is_i2p_url(std::string const& url)

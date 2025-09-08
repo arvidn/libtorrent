@@ -600,3 +600,58 @@ TORRENT_TEST(strip_string)
 	TEST_EQUAL(strip_string(" \t \t ab\t\t\t"), "ab");
 }
 
+TORRENT_TEST(format_host_for_connect)
+{
+	// Test port 0 edge case - should return host unchanged
+	TEST_EQUAL(format_host_for_connect("example.com", 0), "example.com");
+	TEST_EQUAL(format_host_for_connect("192.168.1.1", 0), "192.168.1.1");
+	TEST_EQUAL(format_host_for_connect("2001:db8::1", 0), "2001:db8::1");
+	TEST_EQUAL(format_host_for_connect("[2001:db8::1]", 0), "[2001:db8::1]");
+	TEST_EQUAL(format_host_for_connect("", 0), "");
+
+	// Test regular hostname (no colons)
+	TEST_EQUAL(format_host_for_connect("example.com", 80), "example.com:80");
+	TEST_EQUAL(format_host_for_connect("localhost", 8080), "localhost:8080");
+	TEST_EQUAL(format_host_for_connect("test-host", 443), "test-host:443");
+	TEST_EQUAL(format_host_for_connect("host.domain.tld", 9999), "host.domain.tld:9999");
+
+	// Test IPv4 addresses
+	TEST_EQUAL(format_host_for_connect("127.0.0.1", 80), "127.0.0.1:80");
+	TEST_EQUAL(format_host_for_connect("192.168.1.1", 8080), "192.168.1.1:8080");
+	TEST_EQUAL(format_host_for_connect("10.0.0.1", 443), "10.0.0.1:443");
+	TEST_EQUAL(format_host_for_connect("255.255.255.255", 65535), "255.255.255.255:65535");
+
+	// Test IPv6 addresses (unbracketed) - should get bracketed
+	TEST_EQUAL(format_host_for_connect("2001:db8::1", 80), "[2001:db8::1]:80");
+	TEST_EQUAL(format_host_for_connect("::1", 8080), "[::1]:8080");
+	TEST_EQUAL(format_host_for_connect("fe80::1%eth0", 443), "[fe80::1%eth0]:443");
+	TEST_EQUAL(format_host_for_connect("2001:0db8:85a3:0000:0000:8a2e:0370:7334", 9999), "[2001:0db8:85a3:0000:0000:8a2e:0370:7334]:9999");
+
+	// Test already bracketed IPv6 addresses - should just append port
+	TEST_EQUAL(format_host_for_connect("[2001:db8::1]", 80), "[2001:db8::1]:80");
+	TEST_EQUAL(format_host_for_connect("[::1]", 8080), "[::1]:8080");
+	TEST_EQUAL(format_host_for_connect("[fe80::1%eth0]", 443), "[fe80::1%eth0]:443");
+	TEST_EQUAL(format_host_for_connect("[2001:0db8:85a3:0000:0000:8a2e:0370:7334]", 9999), "[2001:0db8:85a3:0000:0000:8a2e:0370:7334]:9999");
+
+	// Test edge cases with empty and malformed inputs
+	TEST_EQUAL(format_host_for_connect("", 80), ":80");
+	TEST_EQUAL(format_host_for_connect(":", 80), "[:]:80"); // Single colon treated as IPv6
+	TEST_EQUAL(format_host_for_connect("::", 80), "[::]:80"); // IPv6 all zeros
+
+	// Test port edge cases
+	TEST_EQUAL(format_host_for_connect("example.com", 1), "example.com:1");
+	TEST_EQUAL(format_host_for_connect("example.com", 65535), "example.com:65535");
+
+	// Test IPv6 with interface identifier
+	TEST_EQUAL(format_host_for_connect("fe80::1234:5678:90ab:cdef%eth0", 22), "[fe80::1234:5678:90ab:cdef%eth0]:22");
+	TEST_EQUAL(format_host_for_connect("[fe80::1234:5678:90ab:cdef%eth0]", 22), "[fe80::1234:5678:90ab:cdef%eth0]:22");
+
+	// Test IPv6 compressed forms
+	TEST_EQUAL(format_host_for_connect("2001:db8::", 80), "[2001:db8::]:80");
+	TEST_EQUAL(format_host_for_connect("::ffff:192.0.2.1", 80), "[::ffff:192.0.2.1]:80");
+
+	// Test unusual but valid hostnames that might contain special characters
+	TEST_EQUAL(format_host_for_connect("test_host", 80), "test_host:80");
+	TEST_EQUAL(format_host_for_connect("123", 80), "123:80");
+}
+
