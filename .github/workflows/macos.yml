@@ -17,7 +17,7 @@ jobs:
 
    test:
       name: Tests
-      runs-on: macos-latest
+      runs-on: macos-14
       continue-on-error: true
 
       strategy:
@@ -57,7 +57,7 @@ jobs:
 
    sim:
       name: Simulations
-      runs-on: macos-latest
+      runs-on: macos-14
 
       steps:
       - name: checkout
@@ -86,7 +86,7 @@ jobs:
 
    build:
       name: Build
-      runs-on: macos-latest
+      runs-on: macos-14
       continue-on-error: true
 
       strategy:
@@ -119,7 +119,7 @@ jobs:
 
    ios_build:
       name: Build iOS
-      runs-on: macos-latest
+      runs-on: macos-14
       continue-on-error: true
 
       steps:
