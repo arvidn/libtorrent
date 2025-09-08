@@ -143,6 +143,17 @@ namespace libtorrent {
 	// removes whitespaces at the beginning of the string, in-place
 	TORRENT_EXTRA_EXPORT void ltrim(std::string& s);
 
+	// Format a hostname with port for HTTP CONNECT request per RFC 9110 Section 9.3.6.
+	// The authority component must be in the form "host:port" where IPv6 literals
+	// are enclosed in square brackets as defined in RFC 3986 Section 3.2.2.
+	// Assumes host parameter contains no port suffix.
+	// Rules:
+	// - if port == 0, return host unchanged
+	// - if host is already bracketed IPv6: [addr], append ":port"
+	// - if host contains colons (IPv6), bracket and append ":port" -> [host]:port
+	// - otherwise append ":port" for regular hostnames/IPv4
+	TORRENT_EXTRA_EXPORT std::string format_host_for_connect(std::string host, unsigned short port);
+
 #if TORRENT_USE_I2P
 
 	TORRENT_EXTRA_EXPORT bool is_i2p_url(std::string const& url);

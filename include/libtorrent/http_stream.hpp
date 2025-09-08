@@ -39,7 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/string_util.hpp"
 #include "libtorrent/aux_/escape_string.hpp" // for base64encode
 #include "libtorrent/socket_io.hpp" // for print_endpoint
-#include <cctype> // for std::isdigit
 
 namespace libtorrent {
 
@@ -99,41 +98,6 @@ public:
 
 private:
 
-	// Format a hostname with port for HTTP CONNECT request per RFC 9110 Section 9.3.6.
-	// The authority component must be in the form "host:port" where IPv6 literals
-	// are enclosed in square brackets as defined in RFC 3986 Section 3.2.2.
-	// Assumes host parameter contains no port suffix.
-	// Rules:
-	// - if port == 0, return host unchanged
-	// - if host is already bracketed IPv6: [addr], append ":port"
-	// - if host contains colons (IPv6), bracket and append ":port" -> [host]:port
-	// - otherwise append ":port" for regular hostnames/IPv4
-	static std::string format_host_for_connect(std::string host, unsigned short const port)
-	{
-		// Assert that host doesn't already contain a port suffix
-		TORRENT_ASSERT(host.empty() || 
-			((host.back() != ']' || host.find("]:") == std::string::npos) && // no [IPv6]:port
-			(host.find(':') == std::string::npos || host.find_last_of(':') == host.find(':'))));  // no host:port (unless IPv6)
-
-		// Handle edge case: if no port specified, return host as-is
-		if (port == 0) return host;
-
-		// Already bracketed IPv6 literal
-		if (!host.empty() && host.front() == '[' && host.back() == ']')
-		{
-			return host + ":" + std::to_string(port);
-		}
-
-		// Contains colons (unbracketed IPv6) - need to bracket
-		if (host.find(':') != std::string::npos)
-		{
-			return "[" + host + "]:" + std::to_string(port);
-		}
-
-		// Regular hostname or IPv4
-		return host + ":" + std::to_string(port);
-	}
-
 	template <typename Handler>
 	void name_lookup(error_code const& e, tcp::resolver::results_type ips
 		, Handler h)
@@ -167,7 +131,10 @@ private:
 		// if we were given the original host (domain or IP), prefer using it (lets proxy resolve domains)
 		if (!m_host.empty())
 		{
-			std::string const remote_host = format_host_for_connect(m_host, m_remote_endpoint.port());
+			std::string const remote_host = ::libtorrent::format_host_for_connect(
+				std::move(m_host), 
+				m_remote_endpoint.port());
+
 			write_string("CONNECT " + remote_host + " HTTP/1.0\r\n", p);
 			// Host header is required per RFC 9110 Section 7.2 and RFC 9112 Section 3.2
 			// for HTTP/1.1 compliance, virtual host support, and proper proxy routing
