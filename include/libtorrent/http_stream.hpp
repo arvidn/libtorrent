@@ -99,78 +99,39 @@ public:
 
 private:
 
-	// format a hostname (not a numeric IP) with a port for an HTTP CONNECT request.
-	// rules:
+	// Format a hostname with port for HTTP CONNECT request per RFC 9110 Section 9.3.6.
+	// The authority component must be in the form "host:port" where IPv6 literals
+	// are enclosed in square brackets as defined in RFC 3986 Section 3.2.2.
+	// Assumes host parameter contains no port suffix.
+	// Rules:
 	// - if port == 0, return host unchanged
-	// - if host is bracketed IPv6: [addr] or [addr]:port, append port only if missing
-	// - if host contains no ':', append ":port"
-	// - if host contains colon(s):
-	//     * if suffix after last ':' is all digits, assume it's already a host:port -> leave unchanged
-	//     * otherwise treat it as an (unbracketed) IPv6 literal or hostname with colons and wrap
-	//       it in brackets and append :port -> [host]:port
+	// - if host is already bracketed IPv6: [addr], append ":port"
+	// - if host contains colons (IPv6), bracket and append ":port" -> [host]:port
+	// - otherwise append ":port" for regular hostnames/IPv4
 	static std::string format_host_for_connect(std::string host, unsigned short const port)
 	{
+		// Assert that host doesn't already contain a port suffix
+		TORRENT_ASSERT(host.empty() || 
+			((host.back() != ']' || host.find("]:") == std::string::npos) && // no [IPv6]:port
+			(host.find(':') == std::string::npos || host.find_last_of(':') == host.find(':'))));  // no host:port (unless IPv6)
+
+		// Handle edge case: if no port specified, return host as-is
 		if (port == 0) return host;
 
-		if (!host.empty() && host.front() == '[')
+		// Already bracketed IPv6 literal
+		if (!host.empty() && host.front() == '[' && host.back() == ']')
 		{
-			auto const rb = host.find(']');
-			bool const has_port = (rb != std::string::npos && rb + 1 < host.size() && host[rb + 1] == ':');
-			if (!has_port) host += ":" + std::to_string(port);
-			return host;
+			return host + ":" + std::to_string(port);
 		}
 
-		auto const last_colon = host.rfind(':');
-		if (last_colon == std::string::npos)
+		// Contains colons (unbracketed IPv6) - need to bracket
+		if (host.find(':') != std::string::npos)
 		{
-			host += ":" + std::to_string(port);
-			return host;
+			return "[" + host + "]:" + std::to_string(port);
 		}
 
-		// Check whether the suffix after the last colon is all digits
-		bool suffix_digits = last_colon + 1 < host.size();
-		if (suffix_digits)
-		{
-			for (std::size_t i = last_colon + 1; i < host.size(); ++i)
-			{
-				if (!std::isdigit(static_cast<unsigned char>(host[i]))) { suffix_digits = false; break; }
-			}
-		}
-
-		// If the suffix is digits, the string may be either "host:port" or an
-		// unbracketed IPv6 literal (e.g. "2001:db8::1") where the last
-		// segment happens to be numeric. Use inet_pton to detect IPv6
-		// literals:
-		// - if the whole host parses as IPv6 -> bracket and append port
-		// - else if the head (before the last colon) parses as IPv6 -> it's
-		//   IPv6-with-port (leave unchanged)
-		// - otherwise keep current behavior (leave as host:port)
-		if (suffix_digits)
-		{
-			in6_addr addr;
-			// whole host might be an IPv6 literal (no port)
-			if (inet_pton(AF_INET6, host.c_str(), &addr) == 1)
-			{
-				host = "[" + host + "]:" + std::to_string(port);
-				return host;
-			}
-
-			// check head (before last colon) for IPv6 literal with an explicit port
-			std::string head = host.substr(0, last_colon);
-			if (inet_pton(AF_INET6, head.c_str(), &addr) == 1)
-			{
-				// Treat as already host:port (leave unchanged)
-				return host;
-			}
-
-			// not IPv6; treat as host:port (leave unchanged)
-			return host;
-		}
-
-		// suffix not all digits -> treat as unbracketed IPv6 or hostname with
-		// colons: bracket and append port
-		host = "[" + host + "]:" + std::to_string(port);
-		return host;
+		// Regular hostname or IPv4
+		return host + ":" + std::to_string(port);
 	}
 
 	template <typename Handler>
@@ -208,10 +169,16 @@ private:
 		{
 			std::string const remote_host = format_host_for_connect(m_host, m_remote_endpoint.port());
 			write_string("CONNECT " + remote_host + " HTTP/1.0\r\n", p);
+			// Host header is required per RFC 9110 Section 7.2 and RFC 9112 Section 3.2
+			// for HTTP/1.1 compliance, virtual host support, and proper proxy routing
+			write_string("Host: " + remote_host + "\r\n", p);
 		}
 		else
 		{
 			write_string("CONNECT " + endpoint + " HTTP/1.0\r\n", p);
+			// Host header is mandatory for all HTTP/1.1 requests per RFC 9110 Section 7.2
+			// to ensure protocol compliance, even when using IP addresses
+			write_string("Host: " + endpoint + "\r\n", p);
 		}
 		if (!m_user.empty())
 		{
