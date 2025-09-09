@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ip_voter.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/socket.hpp"
+#include <boost/asio/dispatch.hpp>
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/debug.hpp"
@@ -347,7 +348,7 @@ namespace aux {
 			void call_abort()
 			{
 				auto self = shared_from_this();
-				m_io_service.dispatch(make_handler([self] { self->abort(); }
+				boost::asio::dispatch(m_io_service, make_handler([self] { self->abort(); }
 					, m_abort_handler_storage, *this));
 			}
 
@@ -971,7 +972,7 @@ namespace aux {
 
 			// keep the io_service alive until we have posted the job
 			// to clear the undead peers
-			std::unique_ptr<io_service::work> m_work;
+			std::unique_ptr<boost::asio::executor_work_guard<boost::asio::io_context::executor_type>> m_work;
 
 			// this maps sockets to their peer_connection
 			// object. It is the complete list of all connected
@@ -1228,7 +1229,7 @@ namespace aux {
 			struct work_thread_t
 			{
 				work_thread_t()
-					: work(new boost::asio::io_service::work(ios))
+					: work(new boost::asio::executor_work_guard<boost::asio::io_context::executor_type>(boost::asio::make_work_guard(ios)))
 					, thread([this] { ios.run(); })
 				{}
 				~work_thread_t()
@@ -1239,8 +1240,8 @@ namespace aux {
 				work_thread_t(work_thread_t const&) = delete;
 				work_thread_t& operator=(work_thread_t const&) = delete;
 
-				boost::asio::io_service ios;
-				std::unique_ptr<boost::asio::io_service::work> work;
+				boost::asio::io_context ios;
+				std::unique_ptr<boost::asio::executor_work_guard<boost::asio::io_context::executor_type>> work;
 				std::thread thread;
 			};
 			std::unique_ptr<work_thread_t> m_torrent_load_thread;

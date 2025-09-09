@@ -1012,7 +1012,7 @@ TORRENT_TEST(pex)
 		}
 	};
 
-	timer.expires_from_now(lt::seconds(65));
+	timer.expires_after(lt::seconds(65));
 	timer.async_wait(on_done);
 
 	sim.run();

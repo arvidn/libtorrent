@@ -82,7 +82,7 @@ TORRENT_TEST(dht_bootstrap)
 	std::shared_ptr<lt::session> ses = std::make_shared<lt::session>(pack, ios);
 
 	lt::deadline_timer timer(ios);
-	timer.expires_from_now(lt::seconds(10));
+	timer.expires_after(lt::seconds(10));
 	timer.async_wait([&](lt::error_code const&) {
 		zombies.push_back(ses->abort());
 		node.close();

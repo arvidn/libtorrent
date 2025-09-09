@@ -230,7 +230,7 @@ void run_storage_tests(std::shared_ptr<torrent_info> info
 
 	{ // avoid having two storages use the same files
 	file_pool fp;
-	boost::asio::io_service ios;
+	boost::asio::io_context ios;
 	disk_buffer_pool dp(ios, std::bind(&nop));
 
 	aux::vector<download_priority_t, file_index_t> priorities;
@@ -484,7 +484,7 @@ void test_check_files(std::string const& test_path
 	info = std::make_shared<torrent_info>(buf, ec, from_span);
 
 	file_pool fp;
-	boost::asio::io_service ios;
+	boost::asio::io_context ios;
 	counters cnt;
 
 	aux::session_settings sett;

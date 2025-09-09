@@ -154,7 +154,7 @@ TORRENT_TEST(dht_rate_limit)
 		if (num_packets_sent == num_packets)
 		{
 			// we're done. shut down (a second from now, to let the dust settle)
-			timer.expires_from_now(chrono::seconds(1));
+			timer.expires_after(chrono::seconds(1));
 			timer.async_wait([&](error_code const&)
 			{
 				dht->stop();
@@ -170,10 +170,10 @@ TORRENT_TEST(dht_rate_limit)
 			, udp::endpoint(address_v4::from_string("40.30.20.10"), 8888));
 		++num_packets_sent;
 
-		timer.expires_from_now(chrono::milliseconds(10));
+		timer.expires_after(chrono::milliseconds(10));
 		timer.async_wait(sender_tick);
 	};
-	timer.expires_from_now(chrono::milliseconds(10));
+	timer.expires_after(chrono::milliseconds(10));
 	timer.async_wait(sender_tick);
 
 	udp::endpoint from;
@@ -255,7 +255,7 @@ TORRENT_TEST(dht_delete_socket)
 	// to connection_timeout will be executed right after leaving
 	// the state of cancellable
 	asio::high_resolution_timer t1(dht_ios);
-	t1.expires_from_now(chrono::seconds(2));
+	t1.expires_after(chrono::seconds(2));
 	t1.async_wait([&](error_code const&)
 		{
 			dht->delete_socket(ls);
@@ -263,7 +263,7 @@ TORRENT_TEST(dht_delete_socket)
 
 	// stop the DHT
 	asio::high_resolution_timer t2(dht_ios);
-	t2.expires_from_now(chrono::seconds(3));
+	t2.expires_after(chrono::seconds(3));
 	t2.async_wait([&](error_code const&) { dht->stop(); });
 
 	sim.run();

@@ -136,7 +136,7 @@ namespace libtorrent {
 		, m_remote(pack.endp)
 		, m_disk_thread(*pack.disk_thread)
 		, m_ios(*pack.ios)
-		, m_work(m_ios)
+		, m_work(boost::asio::make_work_guard(m_ios))
 		, m_outstanding_piece_verification(0)
 		, m_outgoing(!pack.tor.expired())
 		, m_received_listen_port(false)
@@ -495,7 +495,7 @@ namespace libtorrent {
 			// the update until the current message queue is
 			// flushed
 			auto conn = self();
-			m_ios.post([conn] { conn->wrap(&peer_connection::do_update_interest); });
+			boost::asio::post(m_ios, [conn] { conn->wrap(&peer_connection::do_update_interest); });
 		}
 		m_need_interest_update = true;
 	}
@@ -2748,7 +2748,7 @@ namespace libtorrent {
 #ifdef TORRENT_CORRUPT_DATA
 		// corrupt all pieces from certain peers
 		if (is_v4(m_remote)
-			&& (m_remote.address().to_v4().to_ulong() & 0xf) == 0)
+			&& (m_remote.address().to_v4().to_uint() & 0xf) == 0)
 		{
 			data[0] = ~data[0];
 		}
@@ -4159,7 +4159,7 @@ namespace libtorrent {
 				// we can't touch m_connections here, since we're likely looping
 				// over it. So defer the actual reconnection to after we've handled
 				// the existing message queue
-				m_ses.get_io_service().post([weak_t, weak_self]()
+				boost::asio::post(m_ses.get_io_service(), [weak_t, weak_self]()
 				{
 					std::shared_ptr<torrent> tor = weak_t.lock();
 					std::shared_ptr<peer_connection> p = weak_self.lock();
@@ -5815,7 +5815,7 @@ namespace libtorrent {
 		ADD_OUTSTANDING_ASYNC("peer_connection::on_receive_data");
 		auto conn = self();
 		m_socket->async_read_some(
-			boost::asio::mutable_buffers_1(vec.data(), std::size_t(vec.size())), make_handler(
+			boost::asio::mutable_buffer(vec.data(), std::size_t(vec.size())), make_handler(
 				std::bind(&peer_connection::on_receive_data, conn, _1, _2)
 				, m_read_handler_storage, *this));
 	}
@@ -5975,7 +5975,7 @@ namespace libtorrent {
 			{
 				span<char> const vec = m_recv_buffer.reserve(buffer_size);
 				std::size_t const bytes = m_socket->read_some(
-					boost::asio::mutable_buffers_1(vec.data(), std::size_t(vec.size())), ec);
+					boost::asio::mutable_buffer(vec.data(), std::size_t(vec.size())), ec);
 
 				// this is weird. You would imagine read_some() would do this
 				if (bytes == 0 && !ec) ec = boost::asio::error::eof;

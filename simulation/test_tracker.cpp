@@ -45,6 +45,9 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/asio/post.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <iostream>
 
@@ -328,7 +331,7 @@ struct sim_config : sim::default_config
 
 void on_alert_notify(lt::session* ses)
 {
-	ses->get_io_service().post([ses] {
+	boost::asio::post(ses->get_io_service(), [ses] {
 		std::vector<lt::alert*> alerts;
 		ses->pop_alerts(&alerts);
 
@@ -488,7 +491,7 @@ void test_udpv6_support(char const* listen_interfaces
 		// since we don't have a udp tracker to run in the sim, looking for the
 		// alerts is the closest proxy
 		ses->set_alert_notify([&]{
-			ses->get_io_service().post([&] {
+			boost::asio::post(ses->get_io_service(), [&] {
 				std::vector<lt::alert*> alerts;
 				ses->pop_alerts(&alerts);
 

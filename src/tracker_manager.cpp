@@ -83,7 +83,7 @@ namespace libtorrent {
 
 		ADD_OUTSTANDING_ASYNC("timeout_handler::timeout_callback");
 		error_code ec;
-		m_timeout.expires_at(m_read_time + seconds(timeout), ec);
+		m_timeout.expires_at(m_read_time + seconds(timeout));
 		m_timeout.async_wait(std::bind(
 			&timeout_handler::timeout_callback, shared_from_this(), _1));
 #if TORRENT_USE_ASSERTS
@@ -101,7 +101,7 @@ namespace libtorrent {
 		m_abort = true;
 		m_completion_timeout = 0;
 		error_code ec;
-		m_timeout.cancel(ec);
+		m_timeout.cancel();
 	}
 
 	void timeout_handler::timeout_callback(error_code const& error)
@@ -137,7 +137,7 @@ namespace libtorrent {
 		}
 		ADD_OUTSTANDING_ASYNC("timeout_handler::timeout_callback");
 		error_code ec;
-		m_timeout.expires_at(m_read_time + seconds(timeout), ec);
+		m_timeout.expires_at(m_read_time + seconds(timeout));
 		m_timeout.async_wait(
 			std::bind(&timeout_handler::timeout_callback, shared_from_this(), _1));
 #if TORRENT_USE_ASSERTS
@@ -165,7 +165,7 @@ namespace libtorrent {
 		, char const* msg, seconds32 const interval, seconds32 const min_interval)
 	{
 		// we need to post the error to avoid deadlock
-		get_io_service().post(std::bind(&tracker_connection::fail_impl
+		boost::asio::post(get_io_service(), std::bind(&tracker_connection::fail_impl
 			, shared_from_this(), ec, std::string(msg), interval, min_interval));
 	}
 
@@ -315,7 +315,7 @@ namespace libtorrent {
 
 		// we need to post the error to avoid deadlock
 		if (auto r = c.lock())
-			ios.post(std::bind(&request_callback::tracker_request_error, r, std::move(req)
+			boost::asio::post(ios, std::bind(&request_callback::tracker_request_error, r, std::move(req)
 				, errors::unsupported_url_protocol
 				, "", seconds32(0)));
 	}

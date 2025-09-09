@@ -39,9 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio> // for snprintf
 #include <cinttypes> // for PRId64 et.al.
 
-#ifndef BOOST_SYSTEM_NOEXCEPT
-#define BOOST_SYSTEM_NOEXCEPT throw()
-#endif
 
 namespace libtorrent {
 
@@ -186,14 +183,14 @@ namespace detail {
 
 	struct bdecode_error_category final : boost::system::error_category
 	{
-		const char* name() const BOOST_SYSTEM_NOEXCEPT override;
+		const char* name() const noexcept override;
 		std::string message(int ev) const override;
 		boost::system::error_condition default_error_condition(
-			int ev) const BOOST_SYSTEM_NOEXCEPT override
+			int ev) const noexcept override
 		{ return {ev, *this}; }
 	};
 
-	const char* bdecode_error_category::name() const BOOST_SYSTEM_NOEXCEPT
+	const char* bdecode_error_category::name() const noexcept
 	{
 		return "bdecode";
 	}

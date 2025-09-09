@@ -90,3 +90,4 @@ examples/upnp_test
 # binaries in the tests directory
 tools/dht_put
 tools/session_log_alerts
+.claude/settings.local.json
