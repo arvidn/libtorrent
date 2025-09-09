@@ -20,6 +20,7 @@
 
 2.0.12
 
+	* don't overwrite existing files when renaming
 	* add option to send host header in HTTP proxy CONNECT command
 	* cache DNS failures for a shorter time
 	* file_renamed_alert is always posted, regardless of alert mask

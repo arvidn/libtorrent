@@ -49,13 +49,13 @@ jobs:
         include:
           - os: ubuntu-24.04
             python-version: "3.12"
-          - os: macos-latest
+          - os: macos-14
             python-version: "3.13"
           - os: windows-2022
             python-version: 3.6
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         submodules: true
         fetch-depth: 1

@@ -21,7 +21,7 @@ jobs:
 
    test:
       name: Tests
-      runs-on: macos-latest
+      runs-on: macos-14
       continue-on-error: true
 
       strategy:
@@ -30,7 +30,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
            submodules: recursive
            fetch-depth: 1
@@ -62,11 +62,11 @@ jobs:
 
    sim:
       name: Simulations
-      runs-on: macos-latest
+      runs-on: macos-14
 
       steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
            submodules: true
            fetch-depth: 1
@@ -91,7 +91,7 @@ jobs:
 
    build:
       name: Build
-      runs-on: macos-latest
+      runs-on: macos-14
       continue-on-error: true
 
       strategy:
@@ -100,7 +100,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
            submodules: true
            fetch-depth: 1
@@ -124,12 +124,12 @@ jobs:
 
    ios_build:
       name: Build iOS
-      runs-on: macos-latest
+      runs-on: macos-14
       continue-on-error: true
 
       steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
            submodules: true
            fetch-depth: 1

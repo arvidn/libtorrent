@@ -392,6 +392,16 @@ error_code translate_error(std::error_code const& err, bool const write)
 			else new_path = combine_path(m_save_path, new_filename);
 			std::string new_dir = parent_path(new_path);
 
+			error_code best_effort;
+			if (exists(new_path, best_effort))
+			{
+				// We don't want to overwrite an existing file
+				ec.ec = error_code(boost::system::errc::file_exists, generic_category());
+				ec.file(index);
+				ec.operation = operation_t::file_rename;
+				return;
+			}
+
 			// create any missing directories that the new filename
 			// lands in
 			create_directories(new_dir, ec.ec);

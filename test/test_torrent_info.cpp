@@ -262,6 +262,18 @@ static test_torrent_t const test_torrents[] =
 			TEST_EQUAL(atp.ti->layout().symlink(file_index_t{2}), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "SDL2");
 		}
 	},
+	{ "invalid_directory_name.torrent", [](lt::add_torrent_params atp) {
+			TEST_EQUAL(atp.ti->num_files(), 2);
+#if TORRENT_ABI_VERSION < 4
+			// for backwards compatibility, the files() is changed when
+			// files are renamed
+			TEST_EQUAL(atp.ti->files().file_path(file_index_t{1}), "test2" SEPARATOR "_" SEPARATOR "foo.1");
+#endif
+			TEST_EQUAL(atp.ti->layout().file_path(file_index_t{0}), "test2" SEPARATOR "_" SEPARATOR "foo");
+			TEST_EQUAL(atp.ti->layout().file_path(file_index_t{1}), "test2" SEPARATOR "_" SEPARATOR "foo");
+			TEST_EQUAL(atp.renamed_files[file_index_t{1}], "test2" SEPARATOR "_" SEPARATOR "foo.1");
+		}
+	},
 	{ "v2.torrent", [](lt::add_torrent_params atp) {
 			TEST_EQUAL(atp.ti->num_files(), 1);
 			TEST_EQUAL(atp.ti->layout().file_path(file_index_t{ 0 }), "test64K"_sv);
@@ -1659,6 +1671,7 @@ TORRENT_TEST(write_torrent_file_session_roundtrip)
 		"absolute_filename.torrent",
 		"invalid_filename.torrent",
 		"invalid_filename2.torrent",
+		"invalid_directory_name.torrent",
 		"overlapping_symlinks.torrent",
 		"v2.torrent",
 		"v2_multipiece_file.torrent",
@@ -1716,12 +1729,12 @@ TORRENT_TEST(write_torrent_file_session_roundtrip)
 
 			if (out_buffer != data)
 			{
-				std::cout << "GOT:\n";
+				std::cout << "GOT: (" << out_buffer.size() << ")\n";
 				for (char b : out_buffer)
 					std::cout << (std::isprint(std::uint8_t(b)) ? b : '.');
 				std::cout << '\n';
 
-				std::cout << "EXPECTED:\n";
+				std::cout << "EXPECTED: (" << data.size() << ")\n";
 				for (char b : data)
 					std::cout << (std::isprint(std::uint8_t(b)) ? b : '.');
 				std::cout << '\n';
@@ -1738,12 +1751,12 @@ TORRENT_TEST(write_torrent_file_session_roundtrip)
 
 			if (out_buffer != data)
 			{
-				std::cout << "GOT:\n";
+				std::cout << "GOT: (" << out_buffer.size() << ")\n";
 				for (char b : out_buffer)
 					std::cout << (std::isprint(std::uint8_t(b)) ? b : '.');
 				std::cout << '\n';
 
-				std::cout << "EXPECTED:\n";
+				std::cout << "EXPECTED: (" << data.size() << ")\n";
 				for (char b : data)
 					std::cout << (std::isprint(std::uint8_t(b)) ? b : '.');
 				std::cout << '\n';

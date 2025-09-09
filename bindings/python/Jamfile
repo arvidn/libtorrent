@@ -81,6 +81,7 @@ else
 		<search>/usr/local/lib
 		<search>/sw/lib
 		<search>/usr/g++/lib
+		<search>/opt/homebrew/lib
 		;
 
 	local boost-include-path =
@@ -137,7 +138,7 @@ else
 		return ;
 	}
 
-	lib boost_python : : <tag>@boost_python_version : : $(boost-include-path) ;
+	lib boost_python : : <tag>@boost_python_version $(boost-lib-search-path) : : $(boost-include-path) ;
 	alias boost_python3 : boost_python ;
 }
 

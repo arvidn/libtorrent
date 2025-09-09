@@ -36,10 +36,12 @@ else
 	local boost-include-path =
 		<include>/usr/local/opt/boost/include
 		<include>/opt/homebrew/include
-	;
+		;
 
-	lib boost_system : : <name>boost_system $(boost-lib-search-path) : : $(boost-include-path) ;
 	lib system_boost_json : : <name>boost_json $(boost-lib-search-path) : : $(boost-include-path) ;
+
+	# boost_system is a header-only library now, but we still need to find the boost headers
+	alias boost_system : : : : $(boost-include-path) ;
 }
 
 alias shipped_boost_json : : <define>BOOST_JSON_HEADER_ONLY : : <include>./deps/json/include <define>BOOST_JSON_HEADER_ONLY ;
