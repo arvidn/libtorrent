@@ -862,7 +862,7 @@ namespace libtorrent {
 		return m_torrent.lock();
 	}
 
-	std::size_t hash_value(torrent_handle const& th)
+	TORRENT_EXPORT std::size_t hash_value(torrent_handle const& th)
 	{
 		// using the locked shared_ptr value as hash doesn't work
 		// for expired weak_ptrs. So, we're left with a hack
