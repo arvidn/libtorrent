@@ -1327,3 +1327,16 @@ lt::address_v6 addr6(char const* ip)
 	TEST_CHECK(!ec);
 	return ret;
 }
+
+lt::settings_pack setup_https_test_settings()
+{
+	lt::settings_pack settings;
+	// Point to test CA certificate for verifying test server certificates
+	// Use combine_path to correctly reference the certificate from test execution directory
+	settings.set_str(lt::settings_pack::tracker_ca_certificate, 
+		combine_path("..", combine_path("ssl", "root_ca_cert.pem")));
+	// Enable SSL verification (safe with proper CA)
+	settings.set_bool(lt::settings_pack::tracker_ssl_verify_peer, true);
+	settings.set_bool(lt::settings_pack::tracker_ssl_verify_host, true);
+	return settings;
+}

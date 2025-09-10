@@ -58,6 +58,9 @@ see LICENSE file.
 
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/announce_entry.hpp"
+#ifdef TORRENT_USE_LIBCURL
+#include "libtorrent/aux_/curl_thread_manager.hpp"
+#endif
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/aux_/parse_url.hpp"
 #include "libtorrent/bencode.hpp"
@@ -313,6 +316,14 @@ bool is_downloading_state(int const st)
 		if (!(p.flags & torrent_flags::deprecated_override_trackers))
 		{
 			m_trackers.replace(m_torrent_file->internal_trackers());
+#ifdef TORRENT_USE_LIBCURL
+			// Notify curl_thread_manager of new trackers
+			if (auto* curl_mgr = m_ses.get_curl_thread_manager())
+			{
+				for (auto const& ae : m_torrent_file->trackers())
+					curl_mgr->tracker_added(ae.url);
+			}
+#endif
 		}
 #endif
 
@@ -332,6 +343,13 @@ bool is_downloading_state(int const st)
 
 			if (!m_trackers.add_tracker(e))
 				continue;
+
+#ifdef TORRENT_USE_LIBCURL
+			// Notify curl_thread_manager of new tracker
+			// add_tracker returns false if tracker was already present
+			if (auto* curl_mgr = m_ses.get_curl_thread_manager())
+				curl_mgr->tracker_added(e.url);
+#endif
 
 #if TORRENT_ABI_VERSION < 4
 			// add the tracker to the m_torrent_file here so that the trackers
@@ -703,6 +721,15 @@ bool is_downloading_state(int const st)
 	{
 		// TODO: 3 assert there are no outstanding async operations on this
 		// torrent
+
+#ifdef TORRENT_USE_LIBCURL
+		// Notify curl_thread_manager of removed trackers
+		if (auto* curl_mgr = m_ses.get_curl_thread_manager())
+		{
+			for (auto const& ae : m_trackers)
+				curl_mgr->tracker_removed(ae.url);
+		}
+#endif
 
 #if TORRENT_USE_ASSERTS
 		for (torrent_list_index_t i{}; i != m_links.end_index(); ++i)
@@ -5992,7 +6019,28 @@ namespace {
 
 	void torrent::replace_trackers(std::vector<lt::announce_entry> const& urls)
 	{
+#ifdef TORRENT_USE_LIBCURL
+		// Notify curl_thread_manager of removed trackers before replacing
+		if (auto* curl_mgr = m_ses.get_curl_thread_manager())
+		{
+			for (auto const& ae : m_trackers)
+				curl_mgr->tracker_removed(ae.url);
+		}
+#endif
+
 		m_trackers.replace(urls);
+
+#ifdef TORRENT_USE_LIBCURL
+		// Notify curl_thread_manager of new trackers after replacing
+		if (auto* curl_mgr = m_ses.get_curl_thread_manager())
+		{
+			for (auto const& t : urls)
+			{
+				if (t.url.empty()) continue;
+				curl_mgr->tracker_added(t.url);
+			}
+		}
+#endif
 
 		if (settings().get_bool(settings_pack::prefer_udp_trackers))
 			m_trackers.prioritize_udp_trackers();
@@ -6005,6 +6053,16 @@ namespace {
 	bool torrent::add_tracker(lt::announce_entry const& url)
 	{
 		bool const added = m_trackers.add_tracker(aux::announce_entry(url));
+		
+#ifdef TORRENT_USE_LIBCURL
+		// Notify curl_thread_manager of new tracker if it was actually added
+		if (added)
+		{
+			if (auto* curl_mgr = m_ses.get_curl_thread_manager())
+				curl_mgr->tracker_added(url.url);
+		}
+#endif
+		
 		if (added) set_need_save_resume(torrent_handle::if_metadata_changed);
 		if (m_announcing && added) announce_with_tracker();
 		return added;

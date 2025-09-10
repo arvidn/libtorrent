@@ -245,6 +245,10 @@ rule linking ( properties * )
 		result += <library>$(json) ;
 	}
 
+	# libcurl support is now conditionally included via check-curl-version rule
+	# Use b2 use-libcurl=on to enable HTTP/2 tracker support
+	# This requires libcurl 7.68.0+ for curl_multi_wakeup support
+
 	if ! <target-os>windows in $(properties)
 	{
 		# MingW defines a macro called "stat" if this is set, which causes build
@@ -609,6 +613,8 @@ feature webtorrent : off on : composite propagated ;
 feature.compose <webtorrent>on : <define>TORRENT_USE_RTC=1 ;
 feature.compose <webtorrent>off : <define>TORRENT_USE_RTC=0 ;
 
+feature use-libcurl : on off : optional propagated ;
+
 feature asserts : off on production system : composite propagated ;
 feature.compose <asserts>on : <define>TORRENT_USE_ASSERTS=1 ;
 feature.compose <asserts>production : <define>TORRENT_USE_ASSERTS=1 <define>TORRENT_PRODUCTION_ASSERTS=1 ;
@@ -773,6 +779,66 @@ lib gnutls : : <name>gnutls <conditional>@gnutls-lib-path : :
 
 lib wolfssl : : <name>wolfssl <conditional>@wolfssl-lib-path : :
 	<conditional>@wolfssl-include-path ;
+
+# Check libcurl version using pkg-config (OPTIONAL by default, ENFORCED when explicitly requested)
+rule check-curl-version ( properties * )
+{
+    local result ;
+    local use-libcurl = [ feature.get-values <use-libcurl> : $(properties) ] ;
+
+    # Three modes:
+    # - "on"  : Force libcurl, fail if not found or too old
+    # - "off" : Explicitly disable libcurl
+    # - ""    : Auto-detect (default) - use if available and version OK
+
+    if $(use-libcurl) = "off"
+    {
+        # Explicitly disabled, skip detection
+        return $(result) ;
+    }
+
+    # Check if libcurl is available
+    local curl-version = [ SHELL "pkg-config --modversion libcurl 2>/dev/null | tr -d '\\n'" ] ;
+    
+    if $(curl-version)
+    {
+        # libcurl found, check version
+        local version-ok = [ SHELL "pkg-config --atleast-version=7.68.0 libcurl 2>/dev/null && echo -n 'yes' || echo -n 'no'" ] ;
+
+        if $(version-ok) = "yes"
+        {
+            result += <source>curl ;
+            result += <define>TORRENT_USE_LIBCURL ;
+            result += <source>src/curl_thread_manager.cpp ;
+            result += <source>src/curl_tracker_client.cpp ;
+            result += <source>src/curl_tracker_connection.cpp ;
+            ECHO "INFO: libcurl $(curl-version) found - HTTP/2 tracker support enabled" ;
+        }
+        else if $(use-libcurl) = "on"
+        {
+            # Explicitly requested but version too old - fail
+            EXIT "ERROR: libcurl version 7.68.0+ required (found: $(curl-version))"
+                 "       libcurl 7.68.0+ is needed for curl_multi_wakeup support"
+                 "       Please upgrade libcurl or build with use-libcurl=off" ;
+        }
+        else
+        {
+            # Auto-detect mode, version too old - skip silently
+            ECHO "INFO: libcurl $(curl-version) found but too old (need 7.68.0+) - building without HTTP/2 tracker support" ;
+        }
+    }
+    else if $(use-libcurl) = "on"
+    {
+        # Explicitly requested but not found - fail
+        EXIT "ERROR: libcurl not found (pkg-config --modversion libcurl failed)"
+             "       Please install libcurl-dev or build with use-libcurl=off" ;
+    }
+    # else: Auto-detect mode, not found - skip silently
+
+    return $(result) ;
+}
+
+lib curl : : <name>curl : : <include>/usr/include <include>/usr/local/include ;
 
 lib dbghelp : : <name>dbghelp ;
 
@@ -1022,6 +1088,7 @@ lib torrent
 	<dht>on:<source>src/ed25519/$(ED25519_SOURCES).cpp
 
 	<conditional>@building
+	<conditional>@check-curl-version
 	<conditional>@warnings
 
 	<tag>@tag

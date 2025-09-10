@@ -123,7 +123,8 @@ namespace {
 		SET(i2p_hostname, "", &session_impl::update_i2p_bridge),
 		SET(peer_fingerprint, "-LT2100-", nullptr),
 		SET(dht_bootstrap_nodes, "dht.libtorrent.org:25401", &session_impl::update_dht_bootstrap_nodes),
-		SET(webtorrent_stun_server, "stun.l.google.com:19302", nullptr)
+		SET(webtorrent_stun_server, "stun.l.google.com:19302", nullptr),
+		SET(tracker_ca_certificate, "", nullptr)
 	}});
 
 	CONSTEXPR_SETTINGS
@@ -214,6 +215,10 @@ namespace {
 		SET(enable_set_file_valid_data, false, nullptr),
 		SET(socks5_udp_send_local_ep, false, nullptr),
 		SET(proxy_send_host_in_connect, false, nullptr),
+		SET(enable_http2_trackers, true, nullptr),
+		SET(tracker_ssl_verify_peer, true, nullptr),
+		SET(tracker_ssl_verify_host, true, nullptr),
+		SET(proxy_force_internal_addresses, false, nullptr),
 	}});
 
 	CONSTEXPR_SETTINGS
@@ -381,7 +386,16 @@ namespace {
 		SET(i2p_inbound_length_variance, 0, nullptr),
 		SET(i2p_outbound_length_variance, 0, nullptr),
 		SET(min_websocket_announce_interval, 1 * 60, nullptr),
-		SET(webtorrent_connection_timeout, 2 * 60, nullptr)
+		SET(webtorrent_connection_timeout, 2 * 60, nullptr),
+		SET(http2_max_pool_size, 100, nullptr),
+		SET(http2_max_connections_per_host, 2, nullptr),
+		SET(http2_max_pending_operations, 1000, nullptr),
+		SET(http2_idle_timeout, 60, nullptr),
+		SET(http2_max_concurrent_streams, 100, nullptr),
+		SET(http2_protocol_cache_success_ttl, 168, nullptr),
+		SET(http2_protocol_cache_failure_ttl, 24, nullptr),
+		SET(max_tracker_response_size, 10485760, nullptr),
+		SET(tracker_min_tls_version, 2, nullptr)
 	}});
 
 #undef SET

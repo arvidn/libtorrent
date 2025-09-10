@@ -47,6 +47,7 @@ set(libtorrent_include_files
 	gzip.hpp
 	hasher.hpp
 	hex.hpp
+	curl_tracker_connection.hpp
 	i2p_stream.hpp
 	identify_client.hpp
 	index_range.hpp
@@ -352,6 +353,9 @@ set(sources
 	http_connection.cpp
 	http_parser.cpp
 	http_tracker_connection.cpp
+	curl_tracker_connection.cpp
+	curl_tracker_client.cpp
+	curl_thread_manager.cpp
 	i2p_stream.cpp
 	identify_client.cpp
 	instantiate_connection.cpp
@@ -767,6 +771,55 @@ if(NOT gnutls)
 				TORRENT_USE_LIBCRYPTO
 				TORRENT_SSL_PEERS
 				OPENSSL_NO_SSL2)
+	endif()
+endif()
+
+# Add libcurl for HTTP/2 tracker support
+# Requires 7.68.0+ for curl_multi_wakeup support
+find_public_dependency(CURL 7.68.0)
+set_package_properties(CURL
+	PROPERTIES
+		URL "https://curl.se/"
+		DESCRIPTION "Command line tool and library for transferring data with URLs"
+		TYPE RECOMMENDED
+		PURPOSE "Provides HTTP/2 tracker support with connection pooling and curl_multi_wakeup"
+)
+
+if(CURL_FOUND)
+	target_link_libraries(torrent-rasterbar PUBLIC CURL::libcurl)
+	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_USE_LIBCURL)
+
+	include(CheckCSourceRuns)
+	include(CheckCSourceCompiles)
+	set(CMAKE_REQUIRED_LIBRARIES ${CURL_LIBRARIES})
+	set(CMAKE_REQUIRED_INCLUDES ${CURL_INCLUDE_DIRS})
+
+	# Handle cross-compilation properly
+	if(CMAKE_CROSSCOMPILING)
+		check_c_source_compiles("
+			#include <curl/curl.h>
+			int main() {
+				#ifndef CURL_VERSION_HTTP2
+				#error \"HTTP/2 not supported\"
+				#endif
+				return 0;
+			}
+		" CURL_HAS_HTTP2)
+	else()
+		check_c_source_runs("
+			#include <curl/curl.h>
+			int main() {
+				curl_version_info_data *data = curl_version_info(CURLVERSION_NOW);
+				return (data->features & CURL_VERSION_HTTP2) ? 0 : 1;
+			}
+		" CURL_HAS_HTTP2)
+	endif()
+
+	if(CURL_HAS_HTTP2)
+		target_compile_definitions(torrent-rasterbar PUBLIC)
+		message(STATUS "libcurl has HTTP/2 support")
+	else()
+		message(WARNING "libcurl does not have HTTP/2 support")
 	endif()
 endif()
 

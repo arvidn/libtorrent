@@ -97,6 +97,9 @@ void test_transfer(lt::session& ses, lt::add_torrent_params p
 		pack.set_int(settings_pack::proxy_type, proxy);
 		pack.set_int(settings_pack::proxy_port, proxy_port);
 		pack.set_bool(settings_pack::proxy_peer_connections, proxy_peers);
+		// Force proxy for localhost connections (needed for tests using 127.0.0.1 web server)
+		// Without this, our SSRF fix makes localhost bypass the proxy by default
+		pack.set_bool(settings_pack::proxy_force_internal_addresses, true);
 	}
 	else
 	{

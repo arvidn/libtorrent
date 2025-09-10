@@ -494,6 +494,9 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 		, m_download_rate(peer_connection::download_channel)
 		, m_upload_rate(peer_connection::upload_channel)
 		, m_host_resolver(m_io_context)
+#ifdef TORRENT_USE_LIBCURL
+		, m_curl_thread_manager(curl_thread_manager::create(m_io_context, m_settings))
+#endif
 		, m_tracker_manager(
 			std::bind(&session_impl::send_udp_packet_listen, this, _1, _2, _3, _4, _5)
 			, std::bind(&session_impl::send_udp_packet_hostname_listen, this, _1, _2, _3, _4, _5, _6)
@@ -502,6 +505,9 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 			, m_settings
 #if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 			, *this
+#endif
+#ifdef TORRENT_USE_LIBCURL
+			, m_curl_thread_manager
 #endif
 			)
 		, m_work(make_work_guard(m_io_context))
@@ -1078,6 +1084,21 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 		session_log(" aborting all tracker requests");
 #endif
 		m_tracker_manager.stop();
+
+#ifdef TORRENT_USE_LIBCURL
+		// CRITICAL FIX: Explicitly shut down curl thread manager
+		// This ensures the worker thread is stopped before any member destruction begins,
+		// preventing dangling reference to m_settings
+		// C++17 style with if-initializer for cleaner scope management
+		if (auto manager = std::move(m_curl_thread_manager); manager)
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			session_log(" shutting down curl thread manager");
+#endif
+			manager->shutdown();
+			// manager automatically destroyed at end of scope
+		}
+#endif
 
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log(" aborting all connections (%d)", int(m_connections.size()));

@@ -13,6 +13,9 @@ see LICENSE file.
 #include "libtorrent/aux_/session_interface.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/aux_/resolver.hpp"
+#ifdef TORRENT_USE_LIBCURL
+#include "libtorrent/aux_/curl_thread_manager.hpp"
+#endif
 
 using namespace lt;
 using namespace lt::aux;
@@ -22,6 +25,9 @@ struct tracker_manager_handler : aux::session_logger {
 
 	tracker_manager_handler(io_context& ios, aux::session_settings& sett)
 		: m_host_resolver(ios)
+#ifdef TORRENT_USE_LIBCURL
+		, m_curl_thread_manager(aux::curl_thread_manager::create(ios, sett))
+#endif
 		, m_tracker_manager(
 			std::bind(&tracker_manager_handler::send_fn, this, _1, _2, _3, _4, _5)
 			, std::bind(&tracker_manager_handler::send_fn_hostname, this, _1, _2, _3, _4, _5, _6)
@@ -30,6 +36,9 @@ struct tracker_manager_handler : aux::session_logger {
 			, sett
 #if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 			, *this
+#endif
+#ifdef TORRENT_USE_LIBCURL
+			, m_curl_thread_manager
 #endif
 			)
 	{}
@@ -66,6 +75,9 @@ struct tracker_manager_handler : aux::session_logger {
 	io_context m_io_context;
 	counters m_stats_counters;
 	aux::resolver m_host_resolver;
+#ifdef TORRENT_USE_LIBCURL
+	std::shared_ptr<aux::curl_thread_manager> m_curl_thread_manager;
+#endif
 	tracker_manager m_tracker_manager;
 };
 
