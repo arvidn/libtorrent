@@ -6,7 +6,7 @@ name: cibuildwheel
 # sample.
 
 # The full list of cibuildwheel's build targets can be found here:
-# https://github.com/pypa/cibuildwheel/blob/v2.22.0/cibuildwheel/resources/build-platforms.toml
+# https://github.com/pypa/cibuildwheel/blob/v3.1.4/cibuildwheel/resources/build-platforms.toml
 
 # Notes on build targets we (don't) support:
 # - pypy: libtorrent doesn't build with pypy as of writing
@@ -50,6 +50,8 @@ jobs:
             {"os": "ubuntu-24.04", "CIBW_BUILD": "cp39-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
             {"os": "ubuntu-24.04-arm", "CIBW_BUILD": "cp39-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
             {"os": "macos-13", "CIBW_BUILD": "cp39-macosx_x86_64", "CIBW_ARCHS_MACOS": "x86_64", "MACOSX_DEPLOYMENT_TARGET": "13"},
+            {"os": "macos-14", "CIBW_BUILD": "cp39-macosx_universal2", "CIBW_ARCHS_MACOS": "universal2", "MACOSX_DEPLOYMENT_TARGET": "13"},
+            {"os": "macos-14", "CIBW_BUILD": "cp39-macosx_x86_64", "CIBW_ARCHS_MACOS": "x86_64", "MACOSX_DEPLOYMENT_TARGET": "13"},
             {"os": "macos-14", "CIBW_BUILD": "cp39-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "14"},
             {"os": "macos-15", "CIBW_BUILD": "cp39-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "15"},
             {"os": "windows-2022", "CIBW_BUILD": "cp39-win32", "CIBW_ARCHS_WINDOWS": "x86"},
@@ -134,7 +136,6 @@ jobs:
       CIBW_ARCHS_WINDOWS:  ${{ matrix.CIBW_ARCHS_WINDOWS }}
       CIBW_ARCHS_MACOS:  ${{ matrix.CIBW_ARCHS_MACOS }}
       MACOSX_DEPLOYMENT_TARGET: ${{ matrix.MACOSX_DEPLOYMENT_TARGET }}
-      CIBW_SKIP: pp*
       CIBW_TEST_SKIP: "*-win32"
 
     steps:
@@ -164,7 +165,7 @@ jobs:
       if: runner.os == 'Linux'
       run: sudo apt-get install libssl-dev
 
-    - uses: pypa/cibuildwheel@v2.22.0
+    - uses: pypa/cibuildwheel@v3.1.4
       if: steps.cache-wheel.outputs.cache-hit != 'true'
 
     - uses: actions/upload-artifact@v4
@@ -178,7 +179,7 @@ jobs:
     if: needs.build_wheels.result == 'success' && github.event.inputs.publish == 'PUBLISH'
 
     steps:
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@v5
       with:
         pattern: wheels-*
         path: wheelhouse
@@ -196,7 +197,7 @@ jobs:
     if: needs.build_wheels.result == 'success' && github.event.inputs.publish_test == 'PUBLISH_TEST'
 
     steps:
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@v5
       with:
         pattern: wheels-*
         path: wheelhouse
