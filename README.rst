@@ -62,3 +62,10 @@ libtorrent package versions in linux distributions, on repology_.
 .. __: docs/building.rst
 .. __: docs/python_binding.rst
 
+Experimental Features
+--------------------
+
+### Piece Cache / Fileless Operation
+
+Check out the `Piece Cache Example <examples/README_PIECE_CACHE.md>`_ for fileless torrent operation capability.
+
