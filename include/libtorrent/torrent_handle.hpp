@@ -9,6 +9,7 @@ Copyright (c) 2017, 2020, AllSeeingEyeTolledEweSew
 Copyright (c) 2017, Falcosc
 Copyright (c) 2019, Andrei Kurushin
 Copyright (c) 2019, ghbplayer
+Copyright (c) 2025, Vladimir Golovnev (glassez)
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -727,14 +728,19 @@ namespace aux {
 		// * receiving metadata for a magnet link
 		static constexpr resume_data_flags_t if_metadata_changed = 7_bit;
 
-		// ``save_resume_data()`` asks libtorrent to generate fast-resume data for
-		// this torrent. The fast resume data (stored in an add_torrent_params
-		// object) can be used to resume a torrent in the next session without
-		// having to check all files for which pieces have been downloaded. It
-		// can also be used to save a .torrent file for a torrent_handle.
+		// ``save_resume_data()`` and ``get_resume_data()`` asks libtorrent to
+		// generate fast-resume data for this torrent. The fast resume data
+		// (stored in an add_torrent_params object) can be used to resume a
+		// torrent in the next session without having to check all files for
+		// which pieces have been downloaded. It can also be used to save a
+		// .torrent file for a torrent_handle.
 		//
-		// This operation is asynchronous, ``save_resume_data`` will return
-		// immediately. The resume data is delivered when it's done through a
+		// ```get_resume_data()`` is synchronous and will block the calling
+		// thread until the resume data is ready and returned from the
+		// libtorrent main thread.
+		///
+		// ``save_resume_data()`` is asynchronous. It will return immediately
+		// and deliver the resume data is when it's done through a
 		// save_resume_data_alert.
 		//
 		// The operation will fail, and post a save_resume_data_failed_alert
@@ -824,6 +830,7 @@ namespace aux {
 		//	report that they don't need to save resume data again, and skipped by
 		//	the initial loop, and thwart the counter otherwise.
 		void save_resume_data(resume_data_flags_t flags = {}) const;
+		add_torrent_params get_resume_data(resume_data_flags_t flags = {}) const;
 
 		// This function returns true if anything that is stored in the resume
 		// data has changed since the last time resume data was saved.

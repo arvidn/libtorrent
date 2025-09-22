@@ -29,7 +29,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
            submodules: true
            fetch-depth: 1
@@ -37,7 +37,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.78.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.88.0 https://github.com/boostorg/boost.git
           cd boost
           bootstrap.bat
 
@@ -72,11 +72,11 @@ jobs:
 
    simulations:
       name: Simulations
-      runs-on: windows-2019
+      runs-on: windows-latest
 
       steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
            submodules: true
            fetch-depth: 1
@@ -84,7 +84,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.78.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.88.0 https://github.com/boostorg/boost.git
           cd boost
           bootstrap.bat
 
@@ -122,7 +122,7 @@ jobs:
 
    build:
       name: Build
-      runs-on: windows-2019
+      runs-on: windows-latest
       continue-on-error: true
 
       strategy:
@@ -134,7 +134,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
            submodules: true
            fetch-depth: 1
@@ -142,7 +142,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.78.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.88.0 https://github.com/boostorg/boost.git
           cd boost
           bootstrap.bat
 
@@ -185,7 +185,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
            submodules: true
            fetch-depth: 1
@@ -193,7 +193,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.78.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.88.0 https://github.com/boostorg/boost.git
           cd boost
           bootstrap.bat
 
@@ -203,10 +203,10 @@ jobs:
           .\b2 headers
 
       - name: Set up MinGW
-        uses: egor-tensin/setup-mingw@v2
+        uses: msys2/setup-msys2@v2
         with:
-          static: 0
-          platform: x64
+          update: true
+          install: mingw-w64-x86_64-openssl
 
       - name: tests (deterministic)
         run: |
@@ -214,4 +214,4 @@ jobs:
           set PATH=%BOOST_ROOT%;%PATH%
           set PYTHON_INTERPRETER=python
           cd test
-          b2 toolset=gcc asserts=on release target-os=windows -l400 warnings=all warnings-as-errors=on ${{ matrix.config }} cxxflags=-Wno-error=array-bounds cxxflags=-Wno-error=stringop-overflow deterministic-tests testing.execute=off
+          b2 toolset=gcc link=static asserts=on release target-os=windows -l400 warnings=all warnings-as-errors=on ${{ matrix.config }} cxxflags=-Wno-error=array-bounds cxxflags=-Wno-error=stringop-overflow deterministic-tests testing.execute=off

@@ -50,7 +50,7 @@ using namespace libtorrent::flags; // for flag operators
 // on this platform. It's supposed to make file
 // related functions support 64-bit offsets.
 #if TORRENT_HAS_FTELLO
-static_assert(sizeof(ftello(nullptr)) >= 8, "64 bit file operations are required");
+static_assert(sizeof(ftello(std::declval<FILE*>())) >= 8, "64 bit file operations are required");
 #endif
 static_assert(sizeof(off_t) >= 8, "64 bit file operations are required");
 #endif
@@ -347,6 +347,16 @@ namespace aux {
 			if (is_complete(new_filename)) new_path = new_filename;
 			else new_path = combine_path(m_save_path, new_filename);
 			std::string new_dir = parent_path(new_path);
+
+			error_code best_effort;
+			if (exists(new_path, best_effort))
+			{
+				// We don't want to overwrite an existing file
+				ec.ec = error_code(boost::system::errc::file_exists, generic_category());
+				ec.file(index);
+				ec.operation = operation_t::file_rename;
+				return;
+			}
 
 			// create any missing directories that the new filename
 			// lands in

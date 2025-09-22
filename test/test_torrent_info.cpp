@@ -120,12 +120,12 @@ static test_torrent_t const test_torrents[] =
 	{ "single_multi_file.torrent" },
 	{ "slash_path.torrent", [](torrent_info const* ti) {
 			TEST_EQUAL(ti->num_files(), 1);
-			TEST_EQUAL(ti->files().file_path(file_index_t{0}), "temp" SEPARATOR "bar");
+			TEST_EQUAL(ti->files().file_path(file_index_t{0}), "temp" SEPARATOR "_" SEPARATOR "_" SEPARATOR "bar");
 		}
 	},
 	{ "slash_path2.torrent", [](torrent_info const* ti) {
 			TEST_EQUAL(ti->num_files(), 1);
-			TEST_EQUAL(ti->files().file_path(file_index_t{0}), "temp" SEPARATOR "abc....def" SEPARATOR "bar");
+			TEST_EQUAL(ti->files().file_path(file_index_t{0}), "temp" SEPARATOR "abc....def" SEPARATOR "_" SEPARATOR "bar");
 		}
 	},
 	{ "slash_path3.torrent", [](torrent_info const* ti) {
@@ -271,6 +271,12 @@ static test_torrent_t const test_torrents[] =
 			TEST_EQUAL(ti->num_files(), 3);
 		}
 	},
+	{ "invalid_directory_name.torrent", [](torrent_info const* ti) {
+			TEST_EQUAL(ti->num_files(), 2);
+			TEST_EQUAL(ti->files().file_path(file_index_t{0}), "test2" SEPARATOR "_" SEPARATOR "foo");
+			TEST_EQUAL(ti->files().file_path(file_index_t{1}), "test2" SEPARATOR "_" SEPARATOR "foo.1");
+		}
+	},
 	{ "overlapping_symlinks.torrent", [](torrent_info const* ti) {
 			TEST_CHECK(ti->num_files() > 3);
 			TEST_EQUAL(ti->files().symlink(file_index_t{0}), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "Headers");
@@ -315,6 +321,13 @@ static test_torrent_t const test_torrents[] =
 	{ "v2_invalid_filename.torrent", [](torrent_info const* ti) {
 			TEST_EQUAL(ti->num_files(), 1);
 			TEST_EQUAL(ti->files().file_path(file_index_t{0}), "_estMB"_sv);
+		}
+	},
+	{ "v2_invalid_filename2.torrent", [](torrent_info const* ti) {
+			TEST_EQUAL(ti->num_files(), 3);
+			TEST_EQUAL(ti->files().file_path(file_index_t{0}), "test" SEPARATOR "_"_sv);
+			TEST_EQUAL(ti->files().file_path(file_index_t{1}), "test" SEPARATOR "_.1"_sv);
+			TEST_EQUAL(ti->files().file_path(file_index_t{2}), "test" SEPARATOR "stress_test2"_sv);
 		}
 	},
 	{ "v2_multiple_files.torrent", [](torrent_info* ti) {
@@ -452,6 +465,7 @@ test_failing_torrent_t test_error_torrents[] =
 	{ "v2_invalid_pad_file.torrent", errors::torrent_invalid_pad_file},
 	{ "v2_zero_root.torrent", errors::torrent_missing_pieces_root},
 	{ "v2_zero_root_small.torrent", errors::torrent_missing_pieces_root},
+	{ "v2_empty_filename.torrent", errors::torrent_file_parse_failed},
 };
 
 } // anonymous namespace
@@ -863,6 +877,194 @@ TORRENT_TEST(sanitize_path)
 	TEST_EQUAL(path, "foobar");
 }
 
+TORRENT_TEST(sanitize_path_force)
+{
+	using lt::aux::sanitize_append_path_element;
+	std::string path;
+	sanitize_append_path_element(path, "\0\0\xed\0\x80", true);
+	TEST_EQUAL(path, "_");
+
+	path.clear();
+	sanitize_append_path_element(path, "/a/", true);
+	sanitize_append_path_element(path, "b", true);
+	sanitize_append_path_element(path, "c", true);
+	TEST_EQUAL(path, "a" SEPARATOR "b" SEPARATOR "c");
+
+	path.clear();
+	sanitize_append_path_element(path, "a...b", true);
+	TEST_EQUAL(path, "a...b");
+
+	path.clear();
+	sanitize_append_path_element(path, "a", true);
+	sanitize_append_path_element(path, "..", true);
+	sanitize_append_path_element(path, "c", true);
+	TEST_EQUAL(path, "a" SEPARATOR "_" SEPARATOR "c");
+
+	path.clear();
+	sanitize_append_path_element(path, "a", true);
+	sanitize_append_path_element(path, "..", true);
+	TEST_EQUAL(path, "a" SEPARATOR "_");
+
+	path.clear();
+	sanitize_append_path_element(path, "/..", true);
+	sanitize_append_path_element(path, ".", true);
+	sanitize_append_path_element(path, "c", true);
+	TEST_EQUAL(path, "_" SEPARATOR "_" SEPARATOR "c");
+
+	path.clear();
+	sanitize_append_path_element(path, "dev:", true);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "dev_");
+#else
+	TEST_EQUAL(path, "dev:");
+#endif
+
+	path.clear();
+	sanitize_append_path_element(path, "c:", true);
+	sanitize_append_path_element(path, "b", true);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "c_" SEPARATOR "b");
+#else
+	TEST_EQUAL(path, "c:" SEPARATOR "b");
+#endif
+
+	path.clear();
+	sanitize_append_path_element(path, "c:", true);
+	sanitize_append_path_element(path, ".", true);
+	sanitize_append_path_element(path, "c", true);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "c_" SEPARATOR "_" SEPARATOR "c");
+#else
+	TEST_EQUAL(path, "c:" SEPARATOR "_" SEPARATOR "c");
+#endif
+
+	path.clear();
+	sanitize_append_path_element(path, "\\c", true);
+	sanitize_append_path_element(path, ".", true);
+	sanitize_append_path_element(path, "c", true);
+	TEST_EQUAL(path, "c" SEPARATOR "_" SEPARATOR "c");
+
+	path.clear();
+	sanitize_append_path_element(path, "\b", true);
+	TEST_EQUAL(path, "_");
+
+	path.clear();
+	sanitize_append_path_element(path, "\b", true);
+	sanitize_append_path_element(path, "filename", true);
+	TEST_EQUAL(path, "_" SEPARATOR "filename");
+
+	path.clear();
+	sanitize_append_path_element(path, "filename", true);
+	sanitize_append_path_element(path, "\b", true);
+	TEST_EQUAL(path, "filename" SEPARATOR "_");
+
+	path.clear();
+	sanitize_append_path_element(path, "abc", true);
+	sanitize_append_path_element(path, "", true);
+	TEST_EQUAL(path, "abc" SEPARATOR "_");
+
+	path.clear();
+	sanitize_append_path_element(path, "abc", true);
+	sanitize_append_path_element(path, "   ", true);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "abc" SEPARATOR "_");
+#else
+	TEST_EQUAL(path, "abc" SEPARATOR "   ");
+#endif
+
+	path.clear();
+	sanitize_append_path_element(path, "", true);
+	sanitize_append_path_element(path, "abc", true);
+	TEST_EQUAL(path, "_" SEPARATOR "abc");
+
+	path.clear();
+	sanitize_append_path_element(path, "\b?filename=4", true);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "__filename=4");
+#else
+	TEST_EQUAL(path, "_?filename=4");
+#endif
+
+	path.clear();
+	sanitize_append_path_element(path, "filename=4", true);
+	TEST_EQUAL(path, "filename=4");
+
+	// valid 2-byte sequence
+	path.clear();
+	sanitize_append_path_element(path, "filename\xc2\xa1", true);
+	TEST_EQUAL(path, "filename\xc2\xa1");
+
+	// truncated 2-byte sequence
+	path.clear();
+	sanitize_append_path_element(path, "filename\xc2", true);
+	TEST_EQUAL(path, "filename_");
+
+	// valid 3-byte sequence
+	path.clear();
+	sanitize_append_path_element(path, "filename\xe2\x9f\xb9", true);
+	TEST_EQUAL(path, "filename\xe2\x9f\xb9");
+
+	// truncated 3-byte sequence
+	path.clear();
+	sanitize_append_path_element(path, "filename\xe2\x9f", true);
+	TEST_EQUAL(path, "filename_");
+
+	// truncated 3-byte sequence
+	path.clear();
+	sanitize_append_path_element(path, "filename\xe2", true);
+	TEST_EQUAL(path, "filename_");
+
+	// valid 4-byte sequence
+	path.clear();
+	sanitize_append_path_element(path, "filename\xf0\x9f\x92\x88", true);
+	TEST_EQUAL(path, "filename\xf0\x9f\x92\x88");
+
+	// truncated 4-byte sequence
+	path.clear();
+	sanitize_append_path_element(path, "filename\xf0\x9f\x92", true);
+	TEST_EQUAL(path, "filename_");
+
+	// 5-byte utf-8 sequence (not allowed)
+	path.clear();
+	sanitize_append_path_element(path, "filename\xf8\x9f\x9f\x9f\x9f" "foobar", true);
+	TEST_EQUAL(path, "filename_foobar");
+
+	// redundant (overlong) 2-byte sequence
+	// ascii code 0x2e encoded with a leading 0
+	path.clear();
+	sanitize_append_path_element(path, "filename\xc0\xae", true);
+	TEST_EQUAL(path, "filename_");
+
+	// redundant (overlong) 3-byte sequence
+	// ascii code 0x2e encoded with two leading 0s
+	path.clear();
+	sanitize_append_path_element(path, "filename\xe0\x80\xae", true);
+	TEST_EQUAL(path, "filename_");
+
+	// redundant (overlong) 4-byte sequence
+	// ascii code 0x2e encoded with three leading 0s
+	path.clear();
+	sanitize_append_path_element(path, "filename\xf0\x80\x80\xae", true);
+	TEST_EQUAL(path, "filename_");
+
+	// a filename where every character is filtered is not replaced by an understcore
+	path.clear();
+	sanitize_append_path_element(path, "//\\", true);
+	TEST_EQUAL(path, "_");
+
+	// make sure suspicious unicode characters are filtered out
+	path.clear();
+	// that's utf-8 for U+200e LEFT-TO-RIGHT MARK
+	sanitize_append_path_element(path, "foo\xe2\x80\x8e" "bar", true);
+	TEST_EQUAL(path, "foobar");
+
+	// make sure suspicious unicode characters are filtered out
+	path.clear();
+	// that's utf-8 for U+202b RIGHT-TO-LEFT EMBEDDING
+	sanitize_append_path_element(path, "foo\xe2\x80\xab" "bar", true);
+	TEST_EQUAL(path, "foobar");
+}
+
 TORRENT_TEST(sanitize_path_zeroes)
 {
 	using lt::aux::sanitize_append_path_element;
@@ -993,7 +1195,6 @@ void sanity_check(std::shared_ptr<torrent_info> const& ti)
 TORRENT_TEST(parse_torrents)
 {
 	// test torrent parsing
-
 	entry info;
 	info["pieces"] = "aaaaaaaaaaaaaaaaaaaa";
 	info["name.utf-8"] = "test1";
@@ -1032,7 +1233,6 @@ TORRENT_TEST(parse_torrents)
 	torrent_info ti3(buf, from_span);
 	std::cout << ti3.name() << std::endl;
 	TEST_EQUAL(ti3.name(), "test2..test3.......test4");
-
 	std::string root_dir = parent_path(current_working_directory());
 	for (auto const& t : test_torrents)
 	{
@@ -1041,8 +1241,8 @@ TORRENT_TEST(parse_torrents)
 			, t.file);
 		error_code ec;
 		auto ti = std::make_shared<torrent_info>(filename, ec);
-		TEST_CHECK(!ec);
 		if (ec) std::printf(" -> failed %s\n", ec.message().c_str());
+		TEST_CHECK(!ec);
 		sanity_check(ti);
 
 		add_torrent_params atp = load_torrent_file(filename);
@@ -1435,6 +1635,7 @@ TORRENT_TEST(write_torrent_file_session_roundtrip)
 		"absolute_filename.torrent",
 		"invalid_filename.torrent",
 		"invalid_filename2.torrent",
+		"invalid_directory_name.torrent",
 		"overlapping_symlinks.torrent",
 		"v2.torrent",
 		"v2_multipiece_file.torrent",
@@ -1490,12 +1691,12 @@ TORRENT_TEST(write_torrent_file_session_roundtrip)
 
 			if (out_buffer != data)
 			{
-				std::cout << "GOT:\n";
+				std::cout << "GOT: (" << out_buffer.size() << ")\n";
 				for (char b : out_buffer)
 					std::cout << (std::isprint(std::uint8_t(b)) ? b : '.');
 				std::cout << '\n';
 
-				std::cout << "EXPECTED:\n";
+				std::cout << "EXPECTED: (" << data.size() << ")\n";
 				for (char b : data)
 					std::cout << (std::isprint(std::uint8_t(b)) ? b : '.');
 				std::cout << '\n';
@@ -1513,12 +1714,12 @@ TORRENT_TEST(write_torrent_file_session_roundtrip)
 
 			if (out_buffer != data)
 			{
-				std::cout << "GOT:\n";
+				std::cout << "GOT: (" << out_buffer.size() << ")\n";
 				for (char b : out_buffer)
 					std::cout << (std::isprint(std::uint8_t(b)) ? b : '.');
 				std::cout << '\n';
 
-				std::cout << "EXPECTED:\n";
+				std::cout << "EXPECTED: (" << data.size() << ")\n";
 				for (char b : data)
 					std::cout << (std::isprint(std::uint8_t(b)) ? b : '.');
 				std::cout << '\n';

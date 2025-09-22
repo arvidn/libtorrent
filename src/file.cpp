@@ -383,8 +383,10 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 
 	int file_flags(open_mode_t const mode)
 	{
-		return ((mode & open_mode::write)
-			? O_RDWR | O_CREAT : O_RDONLY)
+		return ((mode & open_mode::write) ? O_RDWR | O_CREAT : O_RDONLY)
+#ifdef O_CLOEXEC
+			| O_CLOEXEC
+#endif
 #ifdef O_NOATIME
 			| ((mode & open_mode::no_atime) ? O_NOATIME : 0)
 #endif

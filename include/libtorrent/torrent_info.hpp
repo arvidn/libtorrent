@@ -72,7 +72,7 @@ namespace aux {
 
 	// internal, exposed for the unit test
 	TORRENT_EXTRA_EXPORT void sanitize_append_path_element(std::string& path
-		, string_view element);
+		, string_view element, bool force_element = false);
 	TORRENT_EXTRA_EXPORT bool verify_encoding(std::string& target);
 
 	struct internal_drained_state

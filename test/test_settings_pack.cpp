@@ -325,3 +325,25 @@ TORRENT_TEST(global_constructors)
 	TEST_CHECK(g_sett.get_int(lt::settings_pack::aio_threads) > 0);
 }
 #endif
+
+TORRENT_TEST(i2p_tunnel_variance_settings)
+{
+#if TORRENT_USE_I2P
+	lt::settings_pack pack;
+
+	// Default values should be 0
+	TEST_EQUAL(pack.get_int(lt::settings_pack::i2p_inbound_length_variance), 0);
+	TEST_EQUAL(pack.get_int(lt::settings_pack::i2p_outbound_length_variance), 0);
+
+	pack.set_int(lt::settings_pack::i2p_inbound_length_variance, 2);
+	pack.set_int(lt::settings_pack::i2p_outbound_length_variance, -3);
+	TEST_EQUAL(pack.get_int(lt::settings_pack::i2p_inbound_length_variance), 2);
+	TEST_EQUAL(pack.get_int(lt::settings_pack::i2p_outbound_length_variance), -3);
+
+	// After clearing, it should go back to defaults
+	pack.clear(lt::settings_pack::i2p_inbound_length_variance);
+	pack.clear(lt::settings_pack::i2p_outbound_length_variance);
+	TEST_EQUAL(pack.get_int(lt::settings_pack::i2p_inbound_length_variance), 0);
+	TEST_EQUAL(pack.get_int(lt::settings_pack::i2p_outbound_length_variance), 0);
+#endif
+}

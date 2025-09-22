@@ -8,6 +8,7 @@ Copyright (c) 2017, Falcosc
 Copyright (c) 2018, Steven Siloti
 Copyright (c) 2019, Andrei Kurushin
 Copyright (c) 2019, ghbplayer
+Copyright (c) 2025, Vladimir Golovnev (glassez)
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -122,12 +123,12 @@ namespace libtorrent {
 		std::shared_ptr<torrent> t = m_torrent.lock();
 		if (!t) aux::throw_ex<system_error>(errors::invalid_torrent_handle);
 		auto& ses = static_cast<session_impl&>(t->session());
-		dispatch(ses.get_context(), [=,&ses] ()
+		dispatch(ses.get_context(), std::bind([t, f, &ses](auto&&... args) mutable
 		{
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
 #endif
-				(t.get()->*f)(std::move(a)...);
+				(t.get()->*f)(std::forward<Args>(args)...);
 #ifndef BOOST_NO_EXCEPTIONS
 			} catch (system_error const& e) {
 				ses.alerts().emplace_alert<torrent_error_alert>(torrent_handle(t)
@@ -140,7 +141,7 @@ namespace libtorrent {
 					, error_code(), "unknown error");
 			}
 #endif
-		} );
+		}, std::forward<Args>(a)...));
 	}
 
 	template<typename Fun, typename... Args>
@@ -154,12 +155,12 @@ namespace libtorrent {
 		bool done = false;
 
 		std::exception_ptr ex;
-		dispatch(ses.get_context(), [=,&done,&ses,&ex] ()
+		dispatch(ses.get_context(), std::bind([t, f, &done, &ses, &ex](auto&&... args) mutable
 		{
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
 #endif
-				(t.get()->*f)(std::move(a)...);
+				(t.get()->*f)(std::forward<Args>(args)...);
 #ifndef BOOST_NO_EXCEPTIONS
 			} catch (...) {
 				ex = std::current_exception();
@@ -168,7 +169,7 @@ namespace libtorrent {
 			std::unique_lock<std::mutex> l(ses.mut);
 			done = true;
 			ses.cond.notify_all();
-		} );
+		}, std::forward<Args>(a)...));
 
 		aux::torrent_wait(done, ses);
 		if (ex) std::rethrow_exception(ex);
@@ -190,12 +191,12 @@ namespace libtorrent {
 		bool done = false;
 
 		std::exception_ptr ex;
-		dispatch(ses.get_context(), [=,&r,&done,&ses,&ex] ()
+		dispatch(ses.get_context(), std::bind([t, f, &r, &done, &ses, &ex](auto&&... args) mutable
 		{
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
 #endif
-				r = (t.get()->*f)(std::move(a)...);
+				r = (t.get()->*f)(std::forward<Args>(args)...);
 #ifndef BOOST_NO_EXCEPTIONS
 			} catch (...) {
 				ex = std::current_exception();
@@ -204,7 +205,7 @@ namespace libtorrent {
 			std::unique_lock<std::mutex> l(ses.mut);
 			done = true;
 			ses.cond.notify_all();
-		} );
+		}, std::forward<Args>(a)...));
 
 		aux::torrent_wait(done, ses);
 
@@ -413,6 +414,11 @@ namespace libtorrent {
 		return sync_call_ret<bool>(false, &torrent::need_save_resume_data, flags);
 	}
 
+	add_torrent_params torrent_handle::get_resume_data(resume_data_flags_t const flags) const
+	{
+		return sync_call_ret<add_torrent_params>({}, &torrent::get_resume_data, flags);
+	}
+
 	void torrent_handle::force_recheck() const
 	{
 		async_call(&torrent::force_recheck);
@@ -511,8 +517,8 @@ namespace libtorrent {
 
 	void torrent_handle::piece_availability(std::vector<int>& avail) const
 	{
-		auto availr = std::ref(static_cast<aux::vector<int, piece_index_t>&>(avail));
-		sync_call(&torrent::piece_availability, availr);
+		auto& arg = static_cast<aux::vector<int, piece_index_t>&>(avail);
+		sync_call(&torrent::piece_availability, std::ref(arg));
 	}
 
 	void torrent_handle::piece_priority(piece_index_t index, download_priority_t priority) const
@@ -641,7 +647,8 @@ namespace libtorrent {
 #if !TORRENT_NO_FPU
 	void torrent_handle::file_progress(std::vector<float>& progress) const
 	{
-		sync_call(&torrent::file_progress_float, std::ref(static_cast<aux::vector<float, file_index_t>&>(progress)));
+		auto& arg = static_cast<aux::vector<float, file_index_t>&>(progress);
+		sync_call(&torrent::file_progress_float, std::ref(arg));
 	}
 #endif
 
@@ -796,8 +803,7 @@ namespace libtorrent {
 	entry torrent_handle::write_resume_data() const
 	{
 		add_torrent_params params;
-		auto retr = std::ref(params);
-		sync_call(&torrent::write_resume_data, resume_data_flags_t{}, retr);
+		sync_call(&torrent::write_resume_data, resume_data_flags_t{}, std::ref(params));
 		return libtorrent::write_resume_data(params);
 	}
 

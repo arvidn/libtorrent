@@ -501,6 +501,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES Clang)
 		-Wno-return-std-move-in-c++11
 		-Wno-unsafe-buffer-usage
 		-Wno-unknown-warning-option
+		-Wno-switch-default
 	)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES GNU)
 	add_compile_options(
@@ -656,7 +657,7 @@ if (APPLE)
 endif()
 
 # check if we need to link with libatomic (not needed on MSVC)
-if (NOT Windows)
+if (NOT MSVC)
 	# TODO: migrate to CheckSourceCompiles in CMake >= 3.19
 	include(CheckCXXSourceCompiles)
 

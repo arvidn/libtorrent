@@ -21,6 +21,7 @@ Copyright (c) 2021, AdvenT
 Copyright (c) 2021, Joris CARRIER
 Copyright (c) 2021, thrnz
 Copyright (c) 2024, Elyas EL IDRISSI
+Copyright (c) 2025, Vladimir Golovnev (glassez)
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -437,7 +438,6 @@ bool is_downloading_state(int const st)
 			std::vector<bool> const& verified_bitmask = (i >= verified.end_index()) ? empty_verified : verified[i];
 			if (i < mask.end_index() && !mask[i].empty())
 			{
-				mask[i].resize(m_merkle_trees[i].size(), false);
 				m_merkle_trees[i].load_sparse_tree(trees_import[i], mask[i], verified_bitmask);
 			}
 			else
@@ -1482,6 +1482,18 @@ bool is_downloading_state(int const st)
 		if (valid_metadata()) return m_torrent_file->name();
 		if (m_name) return *m_name;
 		return "";
+	}
+
+	aux::allocation_slot torrent::name_idx(aux::stack_allocator& a)
+	{
+		return m_name_idx.copy_string(a, [this]() -> std::string {
+			if (valid_metadata()) return m_torrent_file->name();
+			if (m_name) return *m_name;
+			if (m_info_hash.has_v2())
+				return aux::to_hex(m_info_hash.v2);
+			else
+				return aux::to_hex(m_info_hash.v1);
+		});
 	}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -2922,7 +2934,7 @@ namespace {
 			for (auto& aep : aeps)
 			{
 				if (aep.socket != s) continue;
-				std::swap(aeps[valid_endpoints], aep);
+				if (&aeps[valid_endpoints] != &aep) std::swap(aeps[valid_endpoints], aep);
 				valid_endpoints++;
 				return;
 			}
@@ -3114,14 +3126,16 @@ namespace {
 		// so that each one should get at least one announce
 		std::vector<announce_state> listen_socket_states;
 
+		bool const announce_to_all_tiers = settings().get_bool(settings_pack::announce_to_all_tiers);
+		bool const announce_to_all_trackers = settings().get_bool(settings_pack::announce_to_all_trackers);
 #ifndef TORRENT_DISABLE_LOGGING
 		int idx = -1;
 		if (should_log())
 		{
 			debug_log("*** announce: "
 				"[ announce_to_all_tiers: %d announce_to_all_trackers: %d num_trackers: %d ]"
-				, settings().get_bool(settings_pack::announce_to_all_tiers)
-				, settings().get_bool(settings_pack::announce_to_all_trackers)
+				, announce_to_all_tiers
+				, announce_to_all_trackers
 				, int(m_trackers.size()));
 		}
 #endif
@@ -3195,15 +3209,15 @@ namespace {
 					}
 #endif
 
-					if (settings().get_bool(settings_pack::announce_to_all_tiers)
-						&& !settings().get_bool(settings_pack::announce_to_all_trackers)
+					if (announce_to_all_tiers
+						&& !announce_to_all_trackers
 						&& state.sent_announce
 						&& ae.tier <= state.tier
 						&& state.tier != INT_MAX)
 						continue;
 
 					if (ae.tier > state.tier && state.sent_announce
-						&& !settings().get_bool(settings_pack::announce_to_all_tiers)) continue;
+						&& !announce_to_all_tiers) continue;
 					if (a.is_working()) { state.tier = ae.tier; state.sent_announce = false; }
 					if (!a.can_announce(now, is_seed(), ae.fail_limit))
 					{
@@ -3211,8 +3225,8 @@ namespace {
 						if (a.is_working())
 						{
 							state.sent_announce = true;
-							if (!settings().get_bool(settings_pack::announce_to_all_trackers)
-								&& !settings().get_bool(settings_pack::announce_to_all_tiers))
+							if (!announce_to_all_trackers
+								&& !announce_to_all_tiers)
 							{
 								state.done = true;
 							}
@@ -3289,8 +3303,8 @@ namespace {
 
 					state.sent_announce = true;
 					if (a.is_working()
-						&& !settings().get_bool(settings_pack::announce_to_all_trackers)
-						&& !settings().get_bool(settings_pack::announce_to_all_tiers))
+						&& !announce_to_all_trackers
+						&& !announce_to_all_tiers)
 					{
 						state.done = true;
 					}
@@ -5043,15 +5057,13 @@ namespace {
 
 		if (error)
 		{
-			if (alerts().should_post<file_rename_failed_alert>())
-				alerts().emplace_alert<file_rename_failed_alert>(get_handle()
-					, file_idx, error.ec);
+			alerts().emplace_alert<file_rename_failed_alert>(get_handle()
+				, file_idx, error.ec);
 		}
 		else
 		{
-			if (alerts().should_post<file_renamed_alert>())
-				alerts().emplace_alert<file_renamed_alert>(get_handle()
-					, filename, m_torrent_file->files().file_path(file_idx), file_idx);
+			alerts().emplace_alert<file_renamed_alert>(get_handle()
+				, filename, m_torrent_file->files().file_path(file_idx), file_idx);
 			m_torrent_file->rename_file(file_idx, filename);
 
 			set_need_save_resume(torrent_handle::if_state_changed);
@@ -6682,11 +6694,11 @@ namespace {
 		aux::socket_type s = instantiate_connection(m_ses.get_context()
 			, m_ses.proxy(), userdata, nullptr, true, false);
 
-		if (boost::get<http_stream>(&s))
+		if (auto* inner = boost::get<http_stream>(&s))
 		{
 			// the web seed connection will talk immediately to
 			// the proxy, without requiring CONNECT support
-			boost::get<http_stream>(s).set_no_connect(true);
+			inner->set_no_connect(true);
 		}
 
 		std::string hostname;
@@ -6746,6 +6758,21 @@ namespace {
 		if (is_ip) a.address(make_address(hostname, ec));
 		bool const proxy_hostnames = settings().get_bool(settings_pack::proxy_hostnames)
 			&& !is_ip;
+
+		if (!is_ip
+			&& settings().get_bool(settings_pack::proxy_send_host_in_connect))
+		{
+			if (auto* inner1 = boost::get<http_stream>(&s))
+			{
+				inner1->set_host(hostname);
+			}
+#if TORRENT_USE_SSL
+			else if (auto* inner2 = boost::get<ssl_stream<http_stream>>(&s))
+			{
+				inner2->next_layer().set_host(hostname);
+			}
+#endif
+		}
 
 		if (proxy_hostnames
 			&& (boost::get<socks5_stream>(&s)
@@ -7796,6 +7823,7 @@ namespace {
 		if (failed) return true;
 		if (m_abort) return true;
 
+		m_name_idx.clear();
 		m_torrent_file = info;
 		m_info_hash = m_torrent_file->info_hashes();
 
@@ -9479,6 +9507,20 @@ namespace {
 		alerts().emplace_alert<save_resume_data_alert>(std::move(atp), get_handle());
 	}
 
+	add_torrent_params torrent::get_resume_data(resume_data_flags_t const flags) const
+	{
+		TORRENT_ASSERT(is_single_thread());
+		INVARIANT_CHECK;
+
+		if (m_abort)
+			return {};
+
+		add_torrent_params atp;
+		write_resume_data(flags, atp);
+
+		return atp;
+	}
+
 	bool torrent::should_check_files() const
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -9901,16 +9943,18 @@ namespace {
 
 		time_point32 next_announce = time_point32::max();
 
-		std::vector<timer_state> listen_socket_states;
+		std::map<std::weak_ptr<aux::listen_socket_t>, timer_state, std::owner_less<std::weak_ptr<aux::listen_socket_t>>> listen_socket_states;
 
+		bool const announce_to_all_tiers = settings().get_bool(settings_pack::announce_to_all_tiers);
+		bool const announce_to_all_trackers = settings().get_bool(settings_pack::announce_to_all_trackers);
 #ifndef TORRENT_DISABLE_LOGGING
 		int idx = -1;
 		if (should_log())
 		{
 			debug_log("*** update_tracker_timer: "
 				"[ announce_to_all_tiers: %d announce_to_all_trackers: %d num_trackers: %d ]"
-				, settings().get_bool(settings_pack::announce_to_all_tiers)
-				, settings().get_bool(settings_pack::announce_to_all_trackers)
+				, announce_to_all_tiers
+				, announce_to_all_trackers
 				, int(m_trackers.size()));
 		}
 #endif
@@ -9921,14 +9965,12 @@ namespace {
 #endif
 			for (auto const& aep : t.endpoints)
 			{
-				auto aep_state_iter = std::find_if(listen_socket_states.begin(), listen_socket_states.end()
-					, [&](timer_state const& s) { return s.socket == aep.socket; });
+				auto aep_state_iter = listen_socket_states.find(aep.socket.get_ptr());
 				if (aep_state_iter == listen_socket_states.end())
 				{
-					listen_socket_states.emplace_back(aep.socket);
-					aep_state_iter = listen_socket_states.end() - 1;
+					aep_state_iter = listen_socket_states.insert({aep.socket.get_ptr(), timer_state(aep.socket)}).first;
 				}
-				timer_state& ep_state = *aep_state_iter;
+				timer_state& ep_state = aep_state_iter->second;
 
 				if (!aep.enabled) continue;
 				for (protocol_version const ih : all_versions)
@@ -9952,8 +9994,8 @@ namespace {
 					}
 #endif
 
-					if (settings().get_bool(settings_pack::announce_to_all_tiers)
-						&& !settings().get_bool(settings_pack::announce_to_all_trackers)
+					if (announce_to_all_tiers
+						&& !announce_to_all_trackers
 						&& state.found_working
 						&& t.tier <= state.tier
 						&& state.tier != INT_MAX)
@@ -9961,7 +10003,7 @@ namespace {
 
 					if (t.tier > state.tier)
 					{
-						if (!settings().get_bool(settings_pack::announce_to_all_tiers)) break;
+						if (!announce_to_all_tiers) break;
 						state.found_working = false;
 					}
 					state.tier = t.tier;
@@ -9978,17 +10020,17 @@ namespace {
 					}
 					if (a.is_working()) state.found_working = true;
 					if (state.found_working
-						&& !settings().get_bool(settings_pack::announce_to_all_trackers)
-						&& !settings().get_bool(settings_pack::announce_to_all_tiers))
+						&& !announce_to_all_trackers
+						&& !announce_to_all_tiers)
 						state.done = true;
 				}
 			}
 
 			if (std::all_of(listen_socket_states.begin(), listen_socket_states.end()
-				, [supports_protocol](timer_state const& s) {
+				, [supports_protocol](std::pair<std::weak_ptr<aux::listen_socket_t>, timer_state> const& s) {
 					for (protocol_version const ih : all_versions)
 					{
-						if (supports_protocol[ih] && !s.state[ih].done)
+						if (supports_protocol[ih] && !s.second.state[ih].done)
 							return false;
 					}
 					return true;
@@ -12310,7 +12352,10 @@ namespace {
 		{
 			announce_with_tracker(r.event);
 		}
-		update_tracker_timer(aux::time_now32());
+		else
+		{
+			update_tracker_timer(aux::time_now32());
+		}
 	}
 
 #ifndef TORRENT_DISABLE_LOGGING

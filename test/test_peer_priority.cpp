@@ -31,6 +31,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include "libtorrent/hex.hpp"
 #include "libtorrent/peer_list.hpp"
 #include "libtorrent/hasher.hpp"
 #include "setup_transfer.hpp" // for supports_ipv6()

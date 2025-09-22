@@ -1002,6 +1002,7 @@ TEST_TORRENTS = \
   invalid_file_size.torrent \
   invalid_filename.torrent \
   invalid_filename2.torrent \
+  invalid_directory_name.torrent \
   invalid_info.torrent \
   invalid_name.torrent \
   invalid_name2.torrent \
@@ -1050,9 +1051,11 @@ TEST_TORRENTS = \
   whitespace_url.torrent \
   v2.torrent \
   v2_empty_file.torrent \
+  v2_empty_filename.torrent \
   v2_multipiece_file.torrent \
   v2_only.torrent \
   v2_invalid_filename.torrent \
+  v2_invalid_filename2.torrent \
   v2_mismatching_metadata.torrent \
   v2_no_power2_piece.torrent \
   v2_invalid_file.torrent \

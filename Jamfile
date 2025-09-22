@@ -29,21 +29,17 @@ if $(BOOST_ROOT)
 	ECHO "building boost from source directory: " $(BOOST_ROOT) ;
 
 	use-project /boost : $(BOOST_ROOT) ;
-	alias boost_system : /boost/system//boost_system : : : <include>$(BOOST_ROOT) ;
+	alias boost_system : /boost/system//boost_system ;
 }
 else
 {
-	local boost-lib-search-path =
-		<search>/usr/local/opt/boost/lib
-		<search>/opt/homebrew/lib
-		;
-
 	local boost-include-path =
 		<include>/usr/local/opt/boost/include
 		<include>/opt/homebrew/include
-	;
+		;
 
-	lib boost_system : : <name>boost_system $(boost-lib-search-path) : : $(boost-include-path) ;
+	# boost_system is a header-only library now, but we still need to find the boost headers
+	alias boost_system : : : : $(boost-include-path) ;
 }
 
 use-project /try_signal : ./deps/try_signal ;
@@ -265,6 +261,7 @@ rule warnings ( properties * )
 		result += <cxxflags>-Wno-alloca ;
 		result += <cxxflags>-Wno-global-constructors ;
 		result += <cxxflags>-Wno-poison-system-directories ;
+		result += <cxxflags>-Wno-missing-include-dirs ;
 # this warns on any global static object, which are used for error_category
 # objects
 		result += <cxxflags>-Wno-exit-time-destructors ;
@@ -281,6 +278,13 @@ rule warnings ( properties * )
 # these warnings should all be addressed. Either by transitioning to span and
 # array, or by suppressing the warning for specific code
 		result += <cxxflags>-Wno-unsafe-buffer-usage ;
+
+# different versions of clang disagree on how to warn about switch statements
+# you either get:
+# error: 'switch' missing 'default' label [-Werror,-Wswitch-default]
+# or:
+# error: default label in switch which covers all enumeration values [-Werror,-Wcovered-switch-default]
+		result += <cxxflags>-Wno-switch-default ;
 	}
 
 	if <toolset>gcc in $(properties)
