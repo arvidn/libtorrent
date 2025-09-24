@@ -6,6 +6,7 @@
 #include <fstream>
 #include <regex>
 #include <algorithm> // for min()/max()
+#include <numeric>   // for std::accumulate
 
 #include "libtorrent/config.hpp"
 
@@ -197,6 +198,9 @@ std::set<lt::info_hash_t> g_initialized_torrents;
 
 // ADDED: Flag to disable original content storage
 bool disable_original_storage = false;
+
+// ADDED: Flag to seed from cache only (no original files)
+bool seed_from_cache = false;
 
 // the number of times we've asked to save resume data
 // without having received a response (successful or failure)
@@ -795,9 +799,13 @@ void set_torrent_params(lt::add_torrent_params& p)
 
     // ADDED: Use disabled disk I/O if -Z flag is set
     if (disable_original_storage) {
-        // In libtorrent 2.0.12, we need to use the session-wide disabled storage
-        // We'll handle this differently by using a dummy save path
-        p.save_path = "/tmp/dummy_save_path";
+        if (seed_from_cache) {
+            // When seeding from cache, use cache root as save path but with disabled storage
+            p.save_path = cache_root;
+        } else {
+            // Original -Z behavior: use dummy save path
+            p.save_path = "/tmp/dummy_save_path";
+        }
     } else {
         p.save_path = save_path;
     }
@@ -818,6 +826,31 @@ std::string resume_file(lt::info_hash_t const& info_hash)
     return path_append(resume_dir, to_hex(info_hash.get_best()) + ".resume");
 }
 
+// ADDED: Function to create resume data for cache-only seeding
+lt::add_torrent_params create_cache_resume_data(lt::info_hash_t const& info_hash, std::shared_ptr<const lt::torrent_info> ti)
+{
+    lt::add_torrent_params p;
+    p.info_hashes = info_hash;
+    // Use const_cast to handle the shared_ptr<const T> to shared_ptr<T> conversion
+    p.ti = std::const_pointer_cast<lt::torrent_info>(ti);
+    
+    if (cache_manager && ti) {
+        auto cached_pieces = cache_manager->get_cached_pieces(info_hash);
+        lt::bitfield pieces_bitfield(ti->num_pieces());
+        
+        for (auto piece : cached_pieces) {
+            if (static_cast<int>(piece) < pieces_bitfield.size()) {
+                pieces_bitfield.set_bit(static_cast<int>(piece));
+            }
+        }
+        
+        p.have_pieces = pieces_bitfield;
+        p.flags |= lt::torrent_flags::seed_mode;
+    }
+    
+    return p;
+}
+
 bool add_torrent(lt::session& ses, std::string torrent) try
 {
 	using lt::storage_mode_t;
@@ -835,6 +868,14 @@ bool add_torrent(lt::session& ses, std::string torrent) try
 		lt::add_torrent_params rd = lt::read_resume_data(resume_data, ec);
 		if (ec) std::printf("  failed to load resume data: %s\n", ec.message().c_str());
 		else atp = rd;
+	}
+	else if (seed_from_cache && cache_manager)
+	{
+		// For cache-only seeding, create resume data from cached pieces
+		if (atp.ti) {
+			atp = create_cache_resume_data(atp.info_hashes, atp.ti);
+			std::printf("  created resume data from cache for %s\n", atp.ti->name().c_str());
+		}
 	}
 
 	set_torrent_params(atp);
@@ -1463,7 +1504,8 @@ CLIENT OPTIONS
   -O                    print session stats counters to the log
   -1                    exit on first torrent completing (useful for benchmarks)
   -C                    cache pieces during download (not just after completion)
-  -Z                    disable original content storage (use only piece cache))"
+  -Z                    disable original content storage (use only piece cache)
+  -S                    seed from piece cache only (no original files created))"
 #ifdef TORRENT_UTP_LOG_ENABLE
 R"(
   -q                    Enable uTP transport-level verbose logging
@@ -1538,6 +1580,9 @@ void add_magnet(lt::session& ses, lt::string_view uri)
 	ses.async_add_torrent(std::move(p));
 }
 
+// ADDED: Simple storage constructor for cache-only seeding (placeholder)
+// In libtorrent 2.0.12, we'll rely on the disabled disk I/O and handle reads through alerts
+
 int main(int argc, char* argv[])
 {
 #ifndef _WIN32
@@ -1578,7 +1623,7 @@ int main(int argc, char* argv[])
 	
 	lt::session_params params;
 
-	// ADDED: Set session-wide disabled storage if -Z flag is set
+	// ADDED: Set session-wide disabled storage if -Z or -S flag is set
 	if (disable_original_storage) {
 		params.disk_io_constructor = lt::disabled_disk_io_constructor;
 	}
@@ -1666,6 +1711,7 @@ int main(int argc, char* argv[])
 			case '1': exit_on_finish = true; continue;
 			case 'C': cache_during_download = true; continue;  // ADDED: Cache during download option
 			case 'Z': disable_original_storage = true; continue;  // ADDED: Disable original content storage
+			case 'S': seed_from_cache = true; disable_original_storage = true; continue;  // ADDED: Seed from cache only
 #ifdef TORRENT_UTP_LOG_ENABLE
 			case 'q':
 				lt::set_utp_stream_logging(true);
