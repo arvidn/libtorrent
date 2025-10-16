@@ -5527,9 +5527,10 @@ namespace {
 	std::uint16_t session_impl::listen_port(listen_socket_t* sock) const
 	{
 		if (m_listen_sockets.empty()) return 0;
-		if (sock){
+		if (sock)
+		{
 
-			// if we're using a proxy, the user should be able to choose
+			// if we're using a proxy, the user chooses
 			// if we listen for incoming connections or not based on accept_incoming flag.
 
 			// The DHT may use the implied port to make it work, but the port we
@@ -5545,7 +5546,7 @@ namespace {
 			return std::uint16_t(sock->tcp_external_port());
 		}
 
-		if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none
+		if (!sock && m_settings.get_int(settings_pack::proxy_type) != settings_pack::none
 			&& m_settings.get_bool(settings_pack::proxy_peer_connections)
 			&& !m_settings.get_bool(settings_pack::proxy_accept_incoming))
 			return 0;
@@ -5578,8 +5579,19 @@ namespace {
 		if (sock)
 		{
 			if (!(sock->flags & listen_socket_t::accept_incoming)) return 0;
+
+			if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none
+			&& m_settings.get_bool(settings_pack::proxy_peer_connections)
+			&& !m_settings.get_bool(settings_pack::proxy_accept_incoming))
+			return 0;
+
 			return std::uint16_t(sock->tcp_external_port());
 		}
+
+		if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none
+			&& m_settings.get_bool(settings_pack::proxy_peer_connections)
+			&& !m_settings.get_bool(settings_pack::proxy_accept_incoming))
+			return 0;
 
 
 		for (auto const& s : m_listen_sockets)
@@ -5591,7 +5603,7 @@ namespace {
 #else
 		TORRENT_UNUSED(sock);
 #endif
-		return 0;
+		return 0; 
 	}
 
 	int session_impl::get_listen_port(transport const ssl, aux::listen_socket_handle const& s)
