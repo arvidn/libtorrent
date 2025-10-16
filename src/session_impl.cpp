@@ -5530,8 +5530,8 @@ namespace {
 		if (sock)
 		{
 
-			// if we're using a proxy, the user chooses
-			// if we listen for incoming connections or not based on accept_incoming flag.
+			// if we're using a proxy, whether we accept incoming connections on the local listen port
+			// or not is determined by the proxy_accept_incoming flag.
 
 			// The DHT may use the implied port to make it work, but the port we
 			// announce here has no relevance for that.
