@@ -81,6 +81,7 @@ namespace libtorrent {
 	constexpr pause_flags_t torrent_handle::clear_disk_cache;
 	constexpr deadline_flags_t torrent_handle::alert_when_available;
 	constexpr reannounce_flags_t torrent_handle::ignore_min_interval;
+	constexpr reannounce_flags_t torrent_handle::high_priority;
 	constexpr file_progress_flags_t torrent_handle::piece_granularity;
 
 	constexpr status_flags_t torrent_handle::query_distributed_copies;
