@@ -2360,8 +2360,8 @@ retry:
 		// Cancel any pending reconnection timer
 		m_i2p_reconnect_timer.cancel();
 		m_i2p_reconnecting = false;
-		m_i2p_reconnect_delay = int(initial_reconnect_delay.count());
-		
+		m_i2p_reconnect_delay = initial_reconnect_delay;
+
 		if (m_settings.get_str(settings_pack::i2p_hostname).empty())
 		{
 			error_code ec;
@@ -2417,11 +2417,11 @@ retry:
 			schedule_i2p_reconnect();
 			return;
 		}
-		
+
 		// Connection successful, reset backoff delay
 		m_i2p_reconnecting = false;
-		m_i2p_reconnect_delay = int(initial_reconnect_delay.count());
-		
+		m_i2p_reconnect_delay = initial_reconnect_delay;
+
 		// now that we have our i2p connection established
 		// it's OK to start torrents and use this socket to
 		// do i2p name lookups
@@ -2474,51 +2474,52 @@ retry:
 	void session_impl::schedule_i2p_reconnect()
 	{
 		if (m_abort) return;
-		
+
 		// If I2P is not configured, don't schedule reconnection
 		if (m_settings.get_str(settings_pack::i2p_hostname).empty()) return;
-		
+
 		// Already reconnecting
 		if (m_i2p_reconnecting) return;
-		
+
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
-			session_log("scheduling i2p reconnection in %d seconds", m_i2p_reconnect_delay);
+			session_log("scheduling i2p reconnection in %d seconds", m_i2p_reconnect_delay.count());
 #endif
-		
+
 		m_i2p_reconnecting = true;
-		
+
 		// Cancel any existing timer
 		m_i2p_reconnect_timer.cancel();
-		
+
 		// Schedule reconnection with current delay
-		m_i2p_reconnect_timer.expires_after(seconds(m_i2p_reconnect_delay));
+		m_i2p_reconnect_timer.expires_after(m_i2p_reconnect_delay);
 		std::weak_ptr<session_impl> self = shared_from_this();
 		m_i2p_reconnect_timer.async_wait(
 			[self](error_code const& ec) {
 				if (auto sp = self.lock()) {
-					sp->on_m_i2p_reconnect_timer(ec);
+					sp->on_i2p_reconnect_timer(ec);
 				}
 			});
-		
+
 		// Apply exponential backoff for next attempt
-		m_i2p_reconnect_delay = std::min(m_i2p_reconnect_delay * 2, int(max_reconnect_delay.count()));
+		m_i2p_reconnect_delay *= 2;
+		if (m_i2p_reconnect_delay > max_reconnect_delay) m_i2p_reconnect_delay = max_reconnect_delay;
 	}
-	
-	void session_impl::on_m_i2p_reconnect_timer(error_code const& ec)
+
+	void session_impl::on_i2p_reconnect_timer(error_code const& ec)
 	{
 		if (ec == boost::asio::error::operation_aborted) return;
 		if (m_abort) return;
-		
+
 		// Check if I2P is still configured and not already connected
 		if (m_settings.get_str(settings_pack::i2p_hostname).empty()) return;
 		if (m_i2p_conn.is_open()) return;
-		
+
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
 			session_log("attempting i2p reconnection");
 #endif
-		
+
 		// Attempt to reconnect
 		update_i2p_bridge();
 	}
