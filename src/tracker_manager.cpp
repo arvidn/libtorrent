@@ -51,6 +51,7 @@ namespace libtorrent {
 
 constexpr tracker_request_flags_t tracker_request::scrape_request;
 constexpr tracker_request_flags_t tracker_request::i2p;
+constexpr tracker_request_flags_t tracker_request::high_priority;
 
 	timeout_handler::timeout_handler(io_context& ios)
 		: m_start_time(clock_type::now())
@@ -275,11 +276,12 @@ constexpr tracker_request_flags_t tracker_request::i2p;
 		TORRENT_ASSERT(req.num_want >= 0);
 		TORRENT_ASSERT(!m_abort || req.event == event_t::stopped);
 		if (m_abort && req.event != event_t::stopped) return;
+		bool const high_priority = bool(req.kind & tracker_request::high_priority);
 
 #ifndef TORRENT_DISABLE_LOGGING
 		std::shared_ptr<request_callback> cb = c.lock();
-		if (cb) cb->debug_log("*** QUEUE_TRACKER_REQUEST [ listen_port: %d ]"
-			, req.listen_port);
+		if (cb) cb->debug_log("*** QUEUE_TRACKER_REQUEST [ listen_port: %d priority: %d ]"
+			, req.listen_port, high_priority);
 #endif
 
 		std::string const protocol = req.url.substr(0, req.url.find(':'));
@@ -298,7 +300,14 @@ constexpr tracker_request_flags_t tracker_request::i2p;
 			}
 			else
 			{
-				m_queued.push_back(std::move(con));
+				if (high_priority)
+				{
+					m_queued.push_front(std::move(con));
+				}
+				else
+				{
+					m_queued.push_back(std::move(con));
+				}
 				m_stats_counters.set_value(counters::num_queued_tracker_announces, std::int64_t(m_queued.size()));
 			}
 			return;
