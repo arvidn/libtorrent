@@ -1020,12 +1020,12 @@ namespace aux {
 #if TORRENT_USE_I2P
 			i2p_connection m_i2p_conn;
 			std::optional<socket_type> m_i2p_listen_socket;
-			
+
 			// Timer for I2P reconnection attempts
 			deadline_timer m_i2p_reconnect_timer;
-			
+
 			// Exponential backoff state for I2P reconnection
-			int m_i2p_reconnect_delay = 1;  // seconds
+			seconds32 m_i2p_reconnect_delay{1};
 			bool m_i2p_reconnecting = false;
 #endif
 
