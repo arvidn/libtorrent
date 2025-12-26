@@ -322,7 +322,7 @@ ssize_t copy_range(int const fd_in, int const fd_out, off_t in_offset
 		if (ret < 0)
 		{
 			int const err = errno;
-			if (err == EXDEV || err == ENOTSUP)
+			if (err == EXDEV || err == ENOTSUP || err == ENOSYS)
 			{
 				m->use_fallback = true;
 				return copy_range_fallback(fd_in, fd_out, in_offset, len, se);
