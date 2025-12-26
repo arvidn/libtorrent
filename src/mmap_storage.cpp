@@ -221,6 +221,16 @@ error_code translate_error(std::error_code const& err, bool const write)
 						ec.ec = err.code();
 						return;
 					}
+					catch (std::exception const& e)
+					{
+						TORRENT_UNUSED(e);
+						// this is not expected
+						TORRENT_ASSERT_FAIL_VAL(e.what());
+						ec.file(i);
+						ec.operation = operation_t::partfile_write;
+						ec.ec = error_code(boost::system::errc::io_error, generic_category());
+						return;
+					}
 				}
 			}
 			else if (old_prio != dont_download && new_prio == dont_download)
@@ -609,6 +619,14 @@ error_code translate_error(std::error_code const& err, bool const write)
 				ec.ec = translate_error(err.code(), false);
 				return -1;
 			}
+			catch (std::exception const& e)
+			{
+				TORRENT_UNUSED(e);
+				// this is not expected
+				TORRENT_ASSERT_FAIL_VAL(e.what());
+				ec.ec = error_code(boost::system::errc::io_error, generic_category());
+				return -1;
+			}
 
 			return static_cast<int>(ret);
 		});
@@ -696,6 +714,15 @@ error_code translate_error(std::error_code const& err, bool const write)
 				ec.ec = translate_error(err.code(), true);
 				return -1;
 			}
+			catch (std::exception const& e)
+			{
+				TORRENT_UNUSED(e);
+				// this is not expected
+				TORRENT_ASSERT_FAIL_VAL(e.what());
+				ec.file(file_index);
+				ec.ec = error_code(boost::system::errc::io_error, generic_category());
+				return -1;
+			}
 
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
 			m_pool.record_file_write(storage_index(), file_index, ret);
@@ -781,6 +808,15 @@ error_code translate_error(std::error_code const& err, bool const write)
 					ec.operation = operation_t::file_read;
 					return -1;
 				}
+				catch (std::exception const& e)
+				{
+					TORRENT_UNUSED(e);
+					// this is not expected
+					TORRENT_ASSERT_FAIL_VAL(e.what());
+					ec.ec = error_code(boost::system::errc::io_error, generic_category());
+					ec.operation = operation_t::file_read;
+					return -1;
+				}
 			}
 
 			return ret;
@@ -859,6 +895,15 @@ error_code translate_error(std::error_code const& err, bool const write)
 		catch (std::system_error const& err)
 		{
 			error.ec = translate_error(err.code(), false);
+			error.operation = operation_t::file_read;
+			return -1;
+		}
+		catch (std::exception const& e)
+		{
+			TORRENT_UNUSED(e);
+			// this is not expected
+			TORRENT_ASSERT_FAIL_VAL(e.what());
+			error.ec = error_code(boost::system::errc::io_error, generic_category());
 			error.operation = operation_t::file_read;
 			return -1;
 		}
