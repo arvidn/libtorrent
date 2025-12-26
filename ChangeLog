@@ -1,5 +1,6 @@
 2.0.12
 
+	* update default DSCP value and update docs
 	* fix python binding for set_notify_function()
 	* fix error handling in mmap disk I/O when hashing files
 	* improve copy_file_range() fallback
