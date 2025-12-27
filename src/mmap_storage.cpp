@@ -764,14 +764,23 @@ error_code translate_error(std::error_code const& err, bool const write)
 				file_range = file_range.subspan(std::ptrdiff_t(file_offset)
 					, std::min(buf.size(), std::ptrdiff_t(file_range.size() - file_offset)));
 
-				sig::try_signal([&]{
-					ph.update({const_cast<char const*>(file_range.data()), file_range.size()});
-				});
-				ret += static_cast<int>(file_range.size());
-				if (flags & disk_interface::volatile_read)
-					handle->dont_need(file_range);
-				if (flags & disk_interface::flush_piece)
-					handle->page_out(file_range);
+				try
+				{
+					sig::try_signal([&]{
+						ph.update({const_cast<char const*>(file_range.data()), file_range.size()});
+					});
+					ret += static_cast<int>(file_range.size());
+					if (flags & disk_interface::volatile_read)
+						handle->dont_need(file_range);
+					if (flags & disk_interface::flush_piece)
+						handle->page_out(file_range);
+				}
+				catch (std::system_error const& err)
+				{
+					ec.ec = translate_error(err.code(), false);
+					ec.operation = operation_t::file_read;
+					return -1;
+				}
 			}
 
 			return ret;
@@ -837,11 +846,22 @@ error_code translate_error(std::error_code const& err, bool const write)
 		}
 		file_range = file_range.subspan(std::ptrdiff_t(file_offset));
 		file_range = file_range.first(std::min(std::ptrdiff_t(len), file_range.size()));
-		ph.update(file_range);
-		if (flags & disk_interface::volatile_read)
-			handle->dont_need(file_range);
-		if (flags & disk_interface::flush_piece)
-			handle->page_out(file_range);
+		try
+		{
+			sig::try_signal([&]{
+				ph.update(file_range);
+			});
+			if (flags & disk_interface::volatile_read)
+				handle->dont_need(file_range);
+			if (flags & disk_interface::flush_piece)
+				handle->page_out(file_range);
+		}
+		catch (std::system_error const& err)
+		{
+			error.ec = translate_error(err.code(), false);
+			error.operation = operation_t::file_read;
+			return -1;
+		}
 
 		return static_cast<int>(file_range.size());
 	}

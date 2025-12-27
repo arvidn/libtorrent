@@ -1,5 +1,6 @@
 2.0.12
 
+	* fix error handling in mmap disk I/O when hashing files
 	* improve copy_file_range() fallback
 	* don't overwrite existing files when renaming
 	* add option to send host header in HTTP proxy CONNECT command
