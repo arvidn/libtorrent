@@ -24,7 +24,7 @@ jobs:
         os: [ubuntu-24.04, macos-14, windows-latest ]
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
       with:
         submodules: true
         fetch-depth: 1
