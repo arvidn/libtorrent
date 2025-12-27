@@ -75,7 +75,7 @@ public:
 	{
 		TORRENT_ASSERT(size < (std::numeric_limits<std::int32_t>::max)());
 
-		if (size == 0) return;
+		if (size <= 0) return;
 
 		// this rounds up the size to be 8 bytes aligned
 		// it mostly makes sense for platforms without support
