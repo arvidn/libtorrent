@@ -446,10 +446,10 @@ rule openssl-lib-path ( properties * )
 		OPENSSL_LIB += "C:/Program Files (x86)/OpenSSL-Win$(address_model)/lib" ;
 		if <toolset>msvc in $(properties) {
 			if $(address_model) = "64" {
-				OPENSSL_LIB += "C:/Program Files/OpenSSL/lib/VC/lib/x64/MT" ;
+				OPENSSL_LIB += "C:/Program Files/OpenSSL/lib/VC/x64/MT" ;
 			}
 			if $(address_model) = "32" {
-				OPENSSL_LIB += "C:/Program Files/OpenSSL/lib/VC/lib/x86/MT" ;
+				OPENSSL_LIB += "C:/Program Files/OpenSSL/lib/VC/x86/MT" ;
 			}
 		}
 	}
