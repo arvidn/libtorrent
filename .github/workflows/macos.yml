@@ -26,7 +26,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -61,7 +61,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -95,7 +95,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -124,7 +124,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1

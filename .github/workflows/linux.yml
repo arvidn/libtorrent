@@ -14,7 +14,7 @@ jobs:
    pre-commit:
       runs-on: ubuntu-latest
       steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
            submodules: recursive
            fetch-depth: 1
@@ -40,7 +40,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -95,7 +95,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -136,7 +136,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -171,7 +171,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -219,7 +219,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -279,7 +279,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -323,7 +323,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -351,7 +351,7 @@ jobs:
       - name: build tarball
         run: AAFIGURE=~/.local/bin/aafigure RST2HTML=rst2html make dist
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: tarball-${{ matrix.os }}
           path: libtorrent-rasterbar-*.tar.gz
