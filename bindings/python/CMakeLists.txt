@@ -19,7 +19,7 @@ cmake_minimum_required(VERSION 3.17.0 FATAL_ERROR) # Configurable policies: <= C
 # See https://devguide.python.org/versions/#versions for supported python versions
 function(_get_compatible_python_versions _ret)
 	if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 19 AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 20)
-		list(APPEND _tmp 3.9 3.10 3.11 3.12 3.13)
+		list(APPEND _tmp 3.9 3.10 3.11 3.12 3.13 3.14)
 	endif()
 	set(${_ret} ${_tmp} PARENT_SCOPE)
 endfunction()
