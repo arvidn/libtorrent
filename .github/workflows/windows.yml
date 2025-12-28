@@ -192,17 +192,6 @@ jobs:
            fetch-depth: 1
            filter: tree:0
 
-      - name: install boost
-        run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.88.0 https://github.com/boostorg/boost.git
-          cd boost
-          bootstrap.bat
-
-      - name: boost headers
-        run: |
-          cd boost
-          .\b2 headers
-
       - name: Set up MinGW
         uses: msys2/setup-msys2@v2
         with:
@@ -211,12 +200,12 @@ jobs:
           install: >-
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-openssl
+            mingw-w64-x86_64-boost
+            boost-build
 
       - name: tests (deterministic)
         shell: msys2 {0}
         run: |
-          export BOOST_ROOT="$PWD/boost"
-          export PATH="$BOOST_ROOT:$PATH"
           export PYTHON_INTERPRETER=python
           cd test
           b2 toolset=gcc crypto=openssl-shared link=static asserts=on release target-os=windows -l400 warnings=all warnings-as-errors=on ${{ matrix.config }} cxxflags=-Wno-error=array-bounds cxxflags=-Wno-error=stringop-overflow cxxflags=-Wno-error=clobbered deterministic-tests testing.execute=off --abbreviate-paths
