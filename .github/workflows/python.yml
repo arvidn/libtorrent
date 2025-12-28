@@ -80,6 +80,7 @@ jobs:
 
         cd bindings\python
         python setup.py build_ext --b2-args "asserts=on invariant-checks=full" install --user --prefix=
+        dir /S "C:\Users\runneradmin\AppData\Roaming\Python\Python39\site-packages"
         python -m site --user-site
         python -c "import site; print(site.getusersitepackages()); print(site.ENABLE_USER_SITE)"
         python -c "import libtorrent as lt; print(lt.version)"
