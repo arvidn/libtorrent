@@ -650,12 +650,14 @@ feature.compose <crypto>openssl
 	: <define>TORRENT_USE_LIBCRYPTO
 	<define>TORRENT_USE_OPENSSL
 	<define>TORRENT_SSL_PEERS
-	<define>OPENSSL_NO_SSL2 ;
+	<define>OPENSSL_NO_SSL2
+	<define>OPENSSL_NO_SSL3 ;
 feature.compose <crypto>openssl-shared
 	: <define>TORRENT_USE_LIBCRYPTO
 	<define>TORRENT_USE_OPENSSL
 	<define>TORRENT_SSL_PEERS
-	<define>OPENSSL_NO_SSL2 ;
+	<define>OPENSSL_NO_SSL2
+	<define>OPENSSL_NO_SSL3 ;
 feature.compose <crypto>wolfssl
 	: <define>TORRENT_USE_WOLFSSL
 	<define>TORRENT_USE_LIBCRYPTO
