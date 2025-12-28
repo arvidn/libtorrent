@@ -13,7 +13,7 @@ jobs:
 
    docs:
       name: Docs
-      runs-on: ubuntu-24.04
+      runs-on: ubuntu-slim
 
       steps:
       - name: checkout
