@@ -77,6 +77,7 @@ rule linking ( properties * )
 		result += <library>gcrypt ;
 	}
 	else if <crypto>openssl in $(properties)
+		|| <crypto>openssl-shared in $(properties)
 	{
 		result += <library>ssl ;
 		result += <library>crypto ;
@@ -456,6 +457,10 @@ rule openssl-lib-path ( properties * )
 
 	local result ;
 	result += <search>$(OPENSSL_LIB) ;
+	if <crypto>openssl-shared in $(properties)
+	{
+		result += <link>shared ;
+	}
 	return $(result) ;
 }
 
@@ -640,8 +645,13 @@ feature.compose <encryption>off : <define>TORRENT_DISABLE_ENCRYPTION ;
 feature mutable-torrents : on off : composite propagated link-incompatible ;
 feature.compose <mutable-torrents>off : <define>TORRENT_DISABLE_MUTABLE_TORRENTS ;
 
-feature crypto : openssl built-in wolfssl gnutls libcrypto gcrypt : composite propagated ;
+feature crypto : openssl openssl-shared built-in wolfssl gnutls libcrypto gcrypt : composite propagated ;
 feature.compose <crypto>openssl
+	: <define>TORRENT_USE_LIBCRYPTO
+	<define>TORRENT_USE_OPENSSL
+	<define>TORRENT_SSL_PEERS
+	<define>OPENSSL_NO_SSL2 ;
+feature.compose <crypto>openssl-shared
 	: <define>TORRENT_USE_LIBCRYPTO
 	<define>TORRENT_USE_OPENSSL
 	<define>TORRENT_SSL_PEERS
