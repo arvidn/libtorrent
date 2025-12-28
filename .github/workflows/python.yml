@@ -80,12 +80,14 @@ jobs:
 
         cd bindings\python
         python setup.py build_ext --b2-args "asserts=on invariant-checks=full" install --user --prefix=
+        python -c "import libtorrent as lt; print(lt.version)"
 
     - name: tests (windows)
       if: runner.os == 'Windows'
       shell: cmd
       run: |
         cd bindings\python
+        python -c "import libtorrent as lt; print(lt.version)"
         python test.py
 
     - name: build no-deprecated (Linux)
