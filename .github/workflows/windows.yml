@@ -206,13 +206,17 @@ jobs:
       - name: Set up MinGW
         uses: msys2/setup-msys2@v2
         with:
+          release: false
           update: true
-          install: mingw-w64-x86_64-openssl
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-openssl
 
       - name: tests (deterministic)
+        shell: msys2 {0}
         run: |
-          set BOOST_ROOT=%CD%\boost
-          set PATH=%BOOST_ROOT%;%PATH%
-          set PYTHON_INTERPRETER=python
+          export BOOST_ROOT="$PWD/boost"
+          export PATH="$BOOST_ROOT:$PATH"
+          export PYTHON_INTERPRETER=python
           cd test
           b2 toolset=gcc link=static asserts=on release target-os=windows -l400 warnings=all warnings-as-errors=on ${{ matrix.config }} cxxflags=-Wno-error=array-bounds cxxflags=-Wno-error=stringop-overflow cxxflags=-Wno-error=clobbered deterministic-tests testing.execute=off
