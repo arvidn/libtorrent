@@ -49,7 +49,7 @@ jobs:
             {"os": "ubuntu-24.04-arm", "CIBW_BUILD": "cp39-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
             {"os": "ubuntu-24.04", "CIBW_BUILD": "cp39-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
             {"os": "ubuntu-24.04-arm", "CIBW_BUILD": "cp39-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
-            {"os": "macos-13", "CIBW_BUILD": "cp39-macosx_x86_64", "CIBW_ARCHS_MACOS": "x86_64", "MACOSX_DEPLOYMENT_TARGET": "13"},
+            {"os": "macos-15-intel", "CIBW_BUILD": "cp39-macosx_x86_64", "CIBW_ARCHS_MACOS": "x86_64", "MACOSX_DEPLOYMENT_TARGET": "15"},
             {"os": "macos-14", "CIBW_BUILD": "cp39-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "14"},
             {"os": "macos-15", "CIBW_BUILD": "cp39-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "15"},
             {"os": "windows-2022", "CIBW_BUILD": "cp39-win32", "CIBW_ARCHS_WINDOWS": "x86"},
