@@ -4,7 +4,7 @@ requires-python = ">=3.9"
 version = "2.0.11"
 
 [tool.cibuildwheel]
-skip = ""
+skip = "{pp*,}"
 
 [tool.cibuildwheel.macos]
 before-all = [
