@@ -32,11 +32,12 @@ jobs:
 
       strategy:
          matrix:
-            include:
-              - config: asio-debugging=on picker-debugging=on
-              - config: extensions=off logging=off streaming=off super-seeding=off share-mode=off predictive-pieces=off dht=off alert-msg=off encryption=off mutable-torrents=off deprecated-functions=off
-              - config: crypto=gcrypt
-              - config: mmap-disk-io=off
+            std: [14, 17, 20]
+            config:
+              - asio-debugging=on picker-debugging=on
+              - extensions=off logging=off streaming=off super-seeding=off share-mode=off predictive-pieces=off dht=off alert-msg=off encryption=off mutable-torrents=off deprecated-functions=off
+              - crypto=gcrypt
+              - mmap-disk-io=off
 
       steps:
       - name: checkout
@@ -69,23 +70,23 @@ jobs:
 
       - name: build library
         run: |
-          b2 ${{ matrix.config }} cxxstd=14,17,20 warnings-as-errors=on
+          b2 ${{ matrix.config }} cxxstd=${{ matrix.std }} warnings-as-errors=on
 
       - name: build examples
         run: |
           cd examples
-          b2 ${{ matrix.config }} cxxstd=14,17,20 warnings-as-errors=on
+          b2 ${{ matrix.config }} cxxstd=${{ matrix.std }} warnings-as-errors=on
 
       - name: build tools
         run: |
           cd tools
-          b2 ${{ matrix.config }} cxxstd=14,17,20 warnings-as-errors=on
+          b2 ${{ matrix.config }} cxxstd=${{ matrix.std }} warnings-as-errors=on
 
       - name: build python bindings
         run: |
           cd bindings/python
           echo "using python ;" >>~/user-config.jam
-          BOOST_ROOT="" b2 ${{ matrix.config }} cxxstd=14,17,20 warnings-as-errors=on
+          BOOST_ROOT="" b2 ${{ matrix.config }} cxxstd=${{ matrix.std }} warnings-as-errors=on
 
 
    fuzzers:
