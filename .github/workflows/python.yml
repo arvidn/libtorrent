@@ -84,6 +84,7 @@ jobs:
         dumpbin /DEPENDENTS C:\Users\runneradmin\AppData\Roaming\Python\Python39\site-packages\libtorrent-2.0.11-py3.9-win-amd64.egg\libtorrent\__init__.cp39-win_amd64.pyd
         python -m site --user-site
         python -c "import site; print(site.getusersitepackages()); print(site.ENABLE_USER_SITE)"
+        python -c "import sys; sys.path.append(r'C:\Users\runneradmin\AppData\Roaming\Python\Python39\site-packages\libtorrent-2.0.11-py3.9-win-amd64.egg'); import libtorrent; print(lt.version)"
         python -c "import libtorrent as lt; print(lt.version)"
 
     - name: tests (windows)
