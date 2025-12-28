@@ -134,7 +134,6 @@ jobs:
       CIBW_ARCHS_WINDOWS:  ${{ matrix.CIBW_ARCHS_WINDOWS }}
       CIBW_ARCHS_MACOS:  ${{ matrix.CIBW_ARCHS_MACOS }}
       MACOSX_DEPLOYMENT_TARGET: ${{ matrix.MACOSX_DEPLOYMENT_TARGET }}
-      CIBW_SKIP: pp*
       CIBW_TEST_SKIP: "*-win32"
 
     steps:
