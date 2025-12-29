@@ -43,7 +43,7 @@ install:
   - if not defined ssl_include ( set ssl_include=c:\ )
   - if not defined ssl_root_dir ( set ssl_root_dir=c:\ )
   - cd %ROOT_DIRECTORY%
-  - set BOOST_ROOT=c:\Libraries\boost_1_83_0
+  - set BOOST_ROOT=c:\Libraries\boost_1_89_0
   - set BOOST_BUILD_PATH=%BOOST_ROOT%\tools\build
   - echo %BOOST_ROOT%
   - echo %BOOST_BUILD_PATH%
