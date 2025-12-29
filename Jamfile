@@ -467,6 +467,8 @@ rule openssl-lib-path ( properties * )
 		local address_model = [ feature.get-values <address-model> : $(properties) ] ;
 		OPENSSL_LIB += "C:/Program Files/OpenSSL-Win$(address_model)/lib" ;
 		OPENSSL_LIB += "C:/Program Files (x86)/OpenSSL-Win$(address_model)/lib" ;
+		# on appveyor, OpenSSL is installed here
+		OPENSSL_LIB += "C:/OpenSSL-Win$(address_model)/lib" ;
 		if <toolset>msvc in $(properties) {
 			if $(address_model) = "64" {
 				OPENSSL_LIB += "C:/Program Files/OpenSSL/lib/VC/x64/MT" ;
@@ -507,6 +509,8 @@ rule openssl-include-path ( properties * )
 		OPENSSL_INCLUDE += "C:/Program Files/OpenSSL-Win$(address_model)/include" ;
 		OPENSSL_INCLUDE += "C:/Program Files (x86)/OpenSSL-Win$(address_model)/include" ;
 		OPENSSL_INCLUDE += "C:/Program Files/OpenSSL/include" ;
+		# appveyor OpenSSL path
+		OPENSSL_INCLUDE += "C:/OpenSSL-Win$(address_model)/include" ;
 	}
 
 	local result ;

@@ -15,14 +15,14 @@ environment:
       lib: 1
     - cmake: 1
       crypto: openssl
-      ssl_root_dir: c:\OpenSSL-v111-Win64
+      ssl_root_dir: c:\OpenSSL-Win64
       webtorrent: on
     - variant: release
       compiler: msvc
       model: 64
       crypto: openssl
-      ssl_lib: c:\OpenSSL-v111-Win64\lib
-      ssl_include: c:\OpenSSL-v111-Win64\include
+      ssl_lib: c:\OpenSSL-Win64\lib
+      ssl_include: c:\OpenSSL-Win64\include
       webtorrent: on
       tests: 1
 
