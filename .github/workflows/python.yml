@@ -79,7 +79,9 @@ jobs:
         set PATH=%BOOST_ROOT%;%PATH%
 
         cd bindings\python
-        python setup.py build_ext --b2-args "asserts=on invariant-checks=full" install --user --prefix=
+        b2 stage_module stage_dependencies asserts=on invariant-checks=full
+        move dependencies\*.* .
+        python -c "import libtorrent as lt; print(lt.version)"
 
     - name: tests (windows)
       if: runner.os == 'Windows'
