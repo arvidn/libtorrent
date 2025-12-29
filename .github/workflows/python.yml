@@ -95,7 +95,6 @@ jobs:
       if: runner.os == 'Windows'
       shell: cmd
       run: |
-        # llvm-objdump -p C:\Users\runneradmin\AppData\Roaming\Python\Python39\site-packages\libtorrent-2.0.11-py3.9-win-amd64.egg\libtorrent\__init__.cp39-win_amd64.pyd
         where python39.dll
         where CRYPT32.dll
         where libcrypto-3-x64.dll
@@ -111,7 +110,8 @@ jobs:
         where ucrtbased.dll
         curl -L -o dependencies.zip https://github.com/lucasg/Dependencies/releases/latest/download/Dependencies_x64_Release.zip
         tar -xf dependencies.zip
-        dependencies.exe -modules "C:\Users\runneradmin\AppData\Roaming\Python\Python39\site-packages\libtorrent-2.0.11-py3.9-win-amd64.egg\libtorrent\__init__.cp39-win_amd64.pyd"
+        dependencies.exe -json -imports "C:\Users\runneradmin\AppData\Roaming\Python\Python39\site-packages\libtorrent-2.0.11-py3.9-win-amd64.egg\libtorrent\__init__.cp39-win_amd64.pyd" >deps.json
+        type deps.json
         python -c "import libtorrent as lt; print(lt.version)"
 
     - name: tests (windows)
