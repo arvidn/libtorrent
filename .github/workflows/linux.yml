@@ -14,13 +14,13 @@ jobs:
    pre-commit:
       runs-on: ubuntu-latest
       steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
            submodules: recursive
            fetch-depth: 1
            filter: tree:0
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
            python-version: "3.10"
       - uses: pre-commit/action@v3.0.1
@@ -32,15 +32,16 @@ jobs:
 
       strategy:
          matrix:
-            include:
-              - config: asio-debugging=on picker-debugging=on
-              - config: extensions=off logging=off streaming=off super-seeding=off share-mode=off predictive-pieces=off dht=off alert-msg=off encryption=off mutable-torrents=off deprecated-functions=off
-              - config: crypto=gcrypt
-              - config: mmap-disk-io=off
+            std: [17, 20]
+            config:
+              - asio-debugging=on picker-debugging=on
+              - extensions=off logging=off streaming=off super-seeding=off share-mode=off predictive-pieces=off dht=off alert-msg=off encryption=off mutable-torrents=off deprecated-functions=off
+              - crypto=gcrypt
+              - mmap-disk-io=off
 
       steps:
       - name: checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -69,23 +70,23 @@ jobs:
 
       - name: build library
         run: |
-          b2 ${{ matrix.config }} cxxstd=17,20 warnings-as-errors=on
+          b2 ${{ matrix.config }} cxxstd=${{ matrix.std }} warnings-as-errors=on
 
       - name: build examples
         run: |
           cd examples
-          b2 ${{ matrix.config }} cxxstd=17,20 warnings-as-errors=on
+          b2 ${{ matrix.config }} cxxstd=${{ matrix.std }} warnings-as-errors=on
 
       - name: build tools
         run: |
           cd tools
-          b2 ${{ matrix.config }} cxxstd=17,20 warnings-as-errors=on
+          b2 ${{ matrix.config }} cxxstd=${{ matrix.std }} warnings-as-errors=on
 
       - name: build python bindings
         run: |
           cd bindings/python
           echo "using python ;" >>~/user-config.jam
-          BOOST_ROOT="" b2 ${{ matrix.config }} cxxstd=17,20 warnings-as-errors=on
+          BOOST_ROOT="" b2 ${{ matrix.config }} cxxstd=${{ matrix.std }} warnings-as-errors=on
 
 
    fuzzers:
@@ -95,7 +96,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -136,7 +137,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -171,7 +172,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -219,7 +220,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
            submodules: recursive
            fetch-depth: 1
@@ -281,7 +282,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -325,7 +326,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -353,7 +354,7 @@ jobs:
       - name: build tarball
         run: AAFIGURE=~/.local/bin/aafigure RST2HTML=rst2html make dist
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: tarball-${{ matrix.os }}
           path: libtorrent-rasterbar-*.tar.gz

@@ -1003,10 +1003,6 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 		session_log(" *** ABORT CALLED ***");
 #endif
 
-		// at this point we cannot call the notify function anymore, since the
-		// session will become invalid.
-		m_alerts.set_notify_function({});
-
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto& ext : m_ses_extensions[plugins_all_idx])
 		{

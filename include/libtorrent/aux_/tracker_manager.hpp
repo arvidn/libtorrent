@@ -84,6 +84,11 @@ using tracker_request_flags_t = flags::bitfield_flag<std::uint8_t, struct tracke
 		// see parse_tracker_response()
 		static inline constexpr tracker_request_flags_t i2p = 1_bit;
 
+		// If set, this announce should be prioritized in the tracker queue.
+		// This does not bypass concurrency caps; it only moves the request to
+		// the front of the pending queue if we are at capacity.
+		static constexpr tracker_request_flags_t high_priority = 2_bit;
+
 		std::string url;
 		std::string trackerid;
 #if TORRENT_ABI_VERSION == 1

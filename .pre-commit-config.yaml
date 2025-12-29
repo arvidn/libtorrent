@@ -15,7 +15,7 @@ default_language_version:
     python: python3
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
     -   id: trailing-whitespace
     #-   id: end-of-file-fixer
@@ -37,7 +37,7 @@ repos:
   - id: rst-directive-colons
   - id: rst-inline-touching-normal
 - repo: https://github.com/PyCQA/isort
-  rev: 6.0.1
+  rev: 7.0.0
   hooks:
     - id: isort
       exclude: |
@@ -67,7 +67,7 @@ repos:
     - id: autoflake
       args: [--in-place, --remove-unused-variables, --remove-all-unused-imports, --remove-duplicate-keys]
 - repo: https://github.com/psf/black
-  rev: 25.1.0
+  rev: 25.12.0
   hooks:
     - id: black
       # Avoiding PR bloat
@@ -107,7 +107,7 @@ repos:
       name: black (pyi)
       types: [pyi]
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.16.1
+  rev: v1.19.1
   hooks:
     - id: mypy
       # Avoiding PR bloat

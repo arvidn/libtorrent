@@ -203,6 +203,16 @@ error_code translate_error(std::error_code const& err, bool const write)
 						ec.ec = err.code();
 						return;
 					}
+					catch (std::exception const& e)
+					{
+						TORRENT_UNUSED(e);
+						// this is not expected
+						TORRENT_ASSERT_FAIL_VAL(e.what());
+						ec.file(i);
+						ec.operation = operation_t::partfile_write;
+						ec.ec = error_code(boost::system::errc::io_error, generic_category());
+						return;
+					}
 				}
 			}
 			else if (old_prio != dont_download && new_prio == dont_download)
@@ -589,6 +599,14 @@ error_code translate_error(std::error_code const& err, bool const write)
 				ec.ec = translate_error(err.code(), false);
 				return -1;
 			}
+			catch (std::exception const& e)
+			{
+				TORRENT_UNUSED(e);
+				// this is not expected
+				TORRENT_ASSERT_FAIL_VAL(e.what());
+				ec.ec = error_code(boost::system::errc::io_error, generic_category());
+				return -1;
+			}
 
 			return static_cast<int>(ret);
 		});
@@ -676,6 +694,15 @@ error_code translate_error(std::error_code const& err, bool const write)
 				ec.ec = translate_error(err.code(), true);
 				return -1;
 			}
+			catch (std::exception const& e)
+			{
+				TORRENT_UNUSED(e);
+				// this is not expected
+				TORRENT_ASSERT_FAIL_VAL(e.what());
+				ec.file(file_index);
+				ec.ec = error_code(boost::system::errc::io_error, generic_category());
+				return -1;
+			}
 
 			return ret;
 		});
@@ -740,14 +767,32 @@ error_code translate_error(std::error_code const& err, bool const write)
 				file_range = file_range.subspan(std::ptrdiff_t(file_offset)
 					, std::min(buf.size(), std::ptrdiff_t(file_range.size() - file_offset)));
 
-				sig::try_signal([&]{
-					ph.update({const_cast<char const*>(file_range.data()), file_range.size()});
-				});
-				ret += static_cast<int>(file_range.size());
-				if (flags & disk_interface::volatile_read)
-					handle->dont_need(file_range);
-				if (flags & disk_interface::flush_piece)
-					handle->page_out(file_range);
+				try
+				{
+					sig::try_signal([&]{
+						ph.update({const_cast<char const*>(file_range.data()), file_range.size()});
+					});
+					ret += static_cast<int>(file_range.size());
+					if (flags & disk_interface::volatile_read)
+						handle->dont_need(file_range);
+					if (flags & disk_interface::flush_piece)
+						handle->page_out(file_range);
+				}
+				catch (std::system_error const& err)
+				{
+					ec.ec = translate_error(err.code(), false);
+					ec.operation = operation_t::file_read;
+					return -1;
+				}
+				catch (std::exception const& e)
+				{
+					TORRENT_UNUSED(e);
+					// this is not expected
+					TORRENT_ASSERT_FAIL_VAL(e.what());
+					ec.ec = error_code(boost::system::errc::io_error, generic_category());
+					ec.operation = operation_t::file_read;
+					return -1;
+				}
 			}
 
 			return ret;
@@ -813,11 +858,31 @@ error_code translate_error(std::error_code const& err, bool const write)
 		}
 		file_range = file_range.subspan(std::ptrdiff_t(file_offset));
 		file_range = file_range.first(std::min(std::ptrdiff_t(len), file_range.size()));
-		ph.update(file_range);
-		if (flags & disk_interface::volatile_read)
-			handle->dont_need(file_range);
-		if (flags & disk_interface::flush_piece)
-			handle->page_out(file_range);
+		try
+		{
+			sig::try_signal([&]{
+				ph.update(file_range);
+			});
+			if (flags & disk_interface::volatile_read)
+				handle->dont_need(file_range);
+			if (flags & disk_interface::flush_piece)
+				handle->page_out(file_range);
+		}
+		catch (std::system_error const& err)
+		{
+			error.ec = translate_error(err.code(), false);
+			error.operation = operation_t::file_read;
+			return -1;
+		}
+		catch (std::exception const& e)
+		{
+			TORRENT_UNUSED(e);
+			// this is not expected
+			TORRENT_ASSERT_FAIL_VAL(e.what());
+			error.ec = error_code(boost::system::errc::io_error, generic_category());
+			error.operation = operation_t::file_read;
+			return -1;
+		}
 
 		return static_cast<int>(file_range.size());
 	}

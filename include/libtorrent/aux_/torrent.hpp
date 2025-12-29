@@ -814,7 +814,7 @@ namespace libtorrent::aux {
 		void scrape_tracker(int idx, bool user_triggered);
 		void scrape_tracker_url(std::string url, bool user_triggered);
 		void scrape_tracker_impl(aux::announce_entry& ae, bool user_triggered);
-		void announce_with_tracker(event_t e = event_t::none);
+		void announce_with_tracker(event_t = event_t::none, bool high_priority = false);
 
 #ifndef TORRENT_DISABLE_DHT
 		void dht_announce();

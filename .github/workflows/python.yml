@@ -50,12 +50,12 @@ jobs:
           - os: ubuntu-24.04
             python-version: "3.12"
           - os: macos-14
-            python-version: "3.13"
+            python-version: "3.14"
           - os: windows-2022
             python-version: 3.6
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
       with:
         submodules: true
         fetch-depth: 1
@@ -80,8 +80,8 @@ jobs:
     - name: dependencies (MacOS)
       if: runner.os == 'macOS'
       run: |
-        brew install boost-build boost boost-python3 python@3.13 openssl@3 python-setuptools
-        export PATH=$(brew --prefix)/opt/python@3.13/bin:$PATH
+        brew install boost-build boost boost-python3 python@3.14 openssl@3 python-setuptools
+        export PATH=$(brew --prefix)/opt/python@3.14/bin:$PATH
 
     - name: update package lists (linux)
       if: runner.os == 'Linux'
@@ -145,5 +145,5 @@ jobs:
       run: |
         # Exporting SYSTEM_VERSION_COMPAT=0 helps pip allow install macos 11 tagged wheels. Ref https://github.com/pypa/packaging/issues/497
         export SYSTEM_VERSION_COMPAT=0
-        export PYTHON_INTERPRETER=$(brew --prefix)/opt/python@3.12/bin/python3
+        export PYTHON_INTERPRETER=$(brew --prefix)/opt/python@3.14/bin/python3
         tox -e py

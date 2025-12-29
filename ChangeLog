@@ -20,6 +20,11 @@
 
 2.0.12
 
+	* add high_priority flag to torrent_handle::force_reannounce()
+	* update default DSCP value and update docs
+	* fix python binding for set_notify_function()
+	* fix error handling in mmap disk I/O when hashing files
+	* improve copy_file_range() fallback
 	* don't overwrite existing files when renaming
 	* add option to send host header in HTTP proxy CONNECT command
 	* cache DNS failures for a shorter time
