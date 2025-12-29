@@ -81,15 +81,15 @@ jobs:
         cd bindings\python
         python setup.py build_ext --b2-args "debug asserts=on invariant-checks=full" install --user --prefix=
 
-    - name: debug python module
-      if: runner.os == 'Windows'
-      shell: powershell
-      run: |
-        try {
-            Add-Type -Path "C:\Users\runneradmin\AppData\Roaming\Python\Python39\site-packages\libtorrent-2.0.11-py3.9-win-amd64.egg\libtorrent\__init__.cp39-win_amd64.pyd"
-        } catch {
-            Write-Host $_.Exception.LoaderExceptions
-        }
+    #- name: debug python module
+    #  if: runner.os == 'Windows'
+    #  shell: powershell
+    #  run: |
+    #    try {
+    #        Add-Type -Path "C:\Users\runneradmin\AppData\Roaming\Python\Python39\site-packages\libtorrent-2.0.11-py3.9-win-amd64.egg\libtorrent\__init__.cp39-win_amd64.pyd"
+    #    } catch {
+    #        Write-Host $_.Exception.LoaderExceptions
+    #    }
 
     - name: try load python module
       if: runner.os == 'Windows'
@@ -110,11 +110,11 @@ jobs:
         where VCRUNTIME140_1D.dll
         where ucrtbased.dll
         curl -L -o sysinternals.zip https://download.sysinternals.com/files/SysinternalsSuite.zip
-        tar -xf sysinternals.zip
-        "C:\Program Files\SysinternalsSuite\Procmon64.exe" /AcceptEula /Quiet /BackingFile log.pml
+        tar -xvf sysinternals.zip
+        "SysinternalsSuite\Procmon64.exe" /AcceptEula /Quiet /BackingFile log.pml
         python -c "import libtorrent as lt; print(lt.version)"
-        "C:\Program Files\SysinternalsSuite\Procmon64.exe" /Terminate
-        "C:\Program Files\SysinternalsSuite\Procmon64.exe" /OpenLog log.pml /SaveAs log.csv
+        "SysinternalsSuite\Procmon64.exe" /Terminate
+        "SysinternalsSuite\Procmon64.exe" /OpenLog log.pml /SaveAs log.csv
         type log.csv
 
     - name: tests (windows)
