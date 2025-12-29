@@ -80,6 +80,7 @@ jobs:
 
         cd bindings\python
         python setup.py build_ext --b2-args "debug asserts=on invariant-checks=full" install --user --prefix=
+        llvm-objdump -p C:\Users\runneradmin\AppData\Roaming\Python\Python39\site-packages\libtorrent-2.0.11-py3.9-win-amd64.egg\libtorrent\__init__.cp39-win_amd64.pyd
         python -v -c "import libtorrent as lt; print(lt.version)"
 
     - name: tests (windows)
