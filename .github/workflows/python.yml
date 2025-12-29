@@ -109,13 +109,10 @@ jobs:
         where VCRUNTIME140D.dll
         where VCRUNTIME140_1D.dll
         where ucrtbased.dll
-        curl -L -o sysinternals.zip https://download.sysinternals.com/files/SysinternalsSuite.zip
-        tar -xf sysinternals.zip
-        Procmon64.exe /AcceptEula /Quiet /BackingFile log.pml
+        curl -L -o dependencies.zip https://github.com/lucasg/Dependencies/releases/latest/download/Dependencies_x64_Release.zip
+        tar -xf dependencies.zip
+        dependencies.exe -modules "C:\Users\runneradmin\AppData\Roaming\Python\Python39\site-packages\libtorrent-2.0.11-py3.9-win-amd64.egg\libtorrent\__init__.cp39-win_amd64.pyd"
         python -c "import libtorrent as lt; print(lt.version)"
-        Procmon64.exe /Terminate
-        Procmon64.exe /OpenLog log.pml /SaveAs log.csv
-        type log.csv
 
     - name: tests (windows)
       if: runner.os == 'Windows'
