@@ -95,7 +95,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: cmd
       run: |
-        llvm-objdump -p C:\Users\runneradmin\AppData\Roaming\Python\Python39\site-packages\libtorrent-2.0.11-py3.9-win-amd64.egg\libtorrent\__init__.cp39-win_amd64.pyd
+        # llvm-objdump -p C:\Users\runneradmin\AppData\Roaming\Python\Python39\site-packages\libtorrent-2.0.11-py3.9-win-amd64.egg\libtorrent\__init__.cp39-win_amd64.pyd
         where python39.dll
         where CRYPT32.dll
         where libcrypto-3-x64.dll
@@ -110,7 +110,7 @@ jobs:
         where VCRUNTIME140_1D.dll
         where ucrtbased.dll
         curl -L -o sysinternals.zip https://download.sysinternals.com/files/SysinternalsSuite.zip
-        tar -xvf sysinternals.zip
+        tar -xf sysinternals.zip
         Procmon64.exe /AcceptEula /Quiet /BackingFile log.pml
         python -c "import libtorrent as lt; print(lt.version)"
         Procmon64.exe /Terminate
