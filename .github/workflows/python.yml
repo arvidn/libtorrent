@@ -111,10 +111,10 @@ jobs:
         where ucrtbased.dll
         curl -L -o sysinternals.zip https://download.sysinternals.com/files/SysinternalsSuite.zip
         tar -xvf sysinternals.zip
-        "SysinternalsSuite\Procmon64.exe" /AcceptEula /Quiet /BackingFile log.pml
+        Procmon64.exe /AcceptEula /Quiet /BackingFile log.pml
         python -c "import libtorrent as lt; print(lt.version)"
-        "SysinternalsSuite\Procmon64.exe" /Terminate
-        "SysinternalsSuite\Procmon64.exe" /OpenLog log.pml /SaveAs log.csv
+        Procmon64.exe /Terminate
+        Procmon64.exe /OpenLog log.pml /SaveAs log.csv
         type log.csv
 
     - name: tests (windows)
