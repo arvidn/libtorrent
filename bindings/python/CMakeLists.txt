@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.17.0 FATAL_ERROR) # Configurable policies: <= CMP0102
+cmake_minimum_required(VERSION 3.21.0 FATAL_ERROR) # Configurable policies: <= CMP0102
 
 # To build python bindings we need a python executable and boost python module. Unfortunately,
 # their names might not be interlinked and we can not implement a general solution.
