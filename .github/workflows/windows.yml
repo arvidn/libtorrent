@@ -26,6 +26,7 @@ jobs:
              - config: address-model=32 crypto=built-in
              - config: address-model=64
              - config: release
+             - config: address-sanitizer=on
 
       steps:
 
@@ -38,7 +39,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.88.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.90.0 https://github.com/boostorg/boost.git
           cd boost
           bootstrap.bat
 
@@ -85,7 +86,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.88.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.90.0 https://github.com/boostorg/boost.git
           cd boost
           bootstrap.bat
 
@@ -129,7 +130,7 @@ jobs:
       strategy:
          matrix:
            include:
-             - config: asio-debugging=on picker-debugging=on windows-version=vista
+             - config: asio-debugging=on picker-debugging=on windows-version=win10
              - config: windows-api=store windows-version=win10
              - config: deprecated-functions=off
 
@@ -143,7 +144,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.88.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.90.0 https://github.com/boostorg/boost.git
           cd boost
           bootstrap.bat
 
@@ -194,7 +195,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.88.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.90.0 https://github.com/boostorg/boost.git
           cd boost
           bootstrap.bat
 
