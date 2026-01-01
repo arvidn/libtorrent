@@ -274,7 +274,7 @@ void test_transfer(int const proxy_type, settings_pack const& sett
 
 		if (peer_disconnects >= 2) break;
 
-		std::this_thread::sleep_for(lt::milliseconds(100));
+		std::this_thread::sleep_for(lt::milliseconds(200));
 	}
 
 	if (flags & piece_deadline)
