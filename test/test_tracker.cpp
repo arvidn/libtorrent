@@ -34,6 +34,7 @@ see LICENSE file.
 #include "libtorrent/aux_/socket_io.hpp"
 
 #include <array>
+#include <iostream>
 
 using namespace lt;
 
@@ -634,19 +635,23 @@ TORRENT_TEST(parse_websocket_tracker_invalid_json)
 	error_code ec;
 	auto ret = aux::parse_websocket_tracker_response({response, long(std::strlen(response))}, ec);
 
-	TEST_EQUAL(ec.value(), boost::system::errc::bad_message);
+	TEST_EQUAL(ec, error_code(errors::invalid_tracker_response));
 	TEST_CHECK(std::holds_alternative<std::string>(ret));
+	std::cout << "message: " << std::get<std::string>(ret) << std::endl;
 }
 
 TORRENT_TEST(parse_websocket_tracker_invalid_response)
 {
-	std::array<char const*, 11> responses =
+	std::array<char const*, 12> responses =
 	{
 		// not an object
 		R"([ "foo" ])",
 
 		// info_hash too short
 		R"({"complete":1,"incomplete":0,"action":"announce","interval":120,"info_hash":"tooshort"})",
+
+		// missing info_hash
+		R"({"complete":1,"incomplete":0,"action":"announce","interval":120})",
 
 		// info_hash too long
 		R"({"complete":1,"incomplete":0,"action":"announce","interval":120,"info_hash":"aaaaaaaaaaaaaaaaaaaaa"})",
@@ -676,13 +681,16 @@ TORRENT_TEST(parse_websocket_tracker_invalid_response)
 		R"({"action":"announce","answer": ["foo","bar"],"offer_id":"yyyyyyyyyyyyyyyy","peer_id":"-LT2000-p!SALH(DnYsi","info_hash":"xxxxxxxxxxxxxxxxxxxx"})"
 	};
 
-	for(char const* response : responses)
+	for(const auto& response : responses)
 	{
 		error_code ec;
 		auto ret = aux::parse_websocket_tracker_response({response, long(std::strlen(response))}, ec);
 
-		TEST_EQUAL(ec.value(), boost::system::errc::invalid_argument);
+		std::cout << "tracker response: " << response << std::endl;
+		std::cout << "error: " << ec.message() << std::endl;
+		TEST_EQUAL(ec, error_code(errors::invalid_tracker_response));
 		TEST_CHECK(std::holds_alternative<std::string>(ret));
+		std::cout << "message: " << std::get<std::string>(ret) << std::endl;
 	}
 }
 
