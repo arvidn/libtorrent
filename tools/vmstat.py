@@ -5,9 +5,6 @@ import os
 import platform
 import subprocess
 from time import monotonic
-from typing import Dict
-from typing import List
-from typing import Set
 
 
 @dataclass(frozen=True)
@@ -73,7 +70,7 @@ class Plot:
     title: str
     ylabel: str
     y2label: str
-    lines: List[str]
+    lines: list[str]
 
 
 plots = [
@@ -131,7 +128,7 @@ plots = [
 if platform.system() == "Linux":
 
     def capture_sample(
-        pid: int, start_time: int, output: Dict[str, List[float]]
+        pid: int, start_time: float, output: dict[str, list[float]]
     ) -> None:
         try:
             with open(f"/proc/{pid}/smaps_rollup") as f:
@@ -211,7 +208,7 @@ else:
     import psutil
 
     def capture_sample(
-        pid: int, start_time: int, output: Dict[str, List[float]]
+        pid: int, start_time: float, output: dict[str, list[float]]
     ) -> None:
         try:
             p = psutil.Process(pid)
@@ -281,12 +278,12 @@ else:
                 output[key].append(val)
 
 
-def print_output_to_file(out: Dict[str, List[int]], filename: str) -> List[str]:
+def print_output_to_file(out: dict[str, list[float]], filename: str) -> list[str]:
     if out == {}:
         return []
 
     with open(filename, "w+") as stats_output:
-        non_zero_keys: Set[str] = set()
+        non_zero_keys: set[str] = set()
         non_zero_keys.add("time")
         keys = out.keys()
         for key in keys:
@@ -303,7 +300,7 @@ def print_output_to_file(out: Dict[str, List[int]], filename: str) -> List[str]:
     return [k if k in non_zero_keys else "" for k in keys]
 
 
-def plot_output(filename: str, keys: List[str]) -> None:
+def plot_output(filename: str, keys: list[str]) -> None:
     if "time" not in keys:
         return
 
