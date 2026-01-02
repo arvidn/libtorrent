@@ -685,9 +685,10 @@ feature boost-link : default static shared : propagated composite ;
 # clang do not, that's why "default" is there. msvc has incorrect noexcept
 # constructors on some containers when enabling debug iterators, so it's
 # possible to turn them off
-feature debug-iterators : default off on : composite propagated link-incompatible ;
-feature.compose <debug-iterators>on : <define>_GLIBCXX_DEBUG <define>_GLIBCXX_DEBUG_PEDANTIC ;
+feature debug-iterators : default off on harden : composite propagated link-incompatible ;
+feature.compose <debug-iterators>on : <define>_GLIBCXX_DEBUG <define>_GLIBCXX_DEBUG_PEDANTIC <define>_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_DEBUG ;
 feature.compose <debug-iterators>off : <define>_ITERATOR_DEBUG_LEVEL=0 ;
+feature.compose <debug-iterators>harden : <define>_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST ;
 
 feature fpic : off on : composite propagated link-incompatible ;
 feature.compose <fpic>on : <cxxflags>-fPIC ;
