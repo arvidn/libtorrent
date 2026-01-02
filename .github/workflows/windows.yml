@@ -130,6 +130,7 @@ jobs:
          matrix:
            include:
              - config: asio-debugging=on picker-debugging=on windows-version=vista
+             - config: asio-debugging=on picker-debugging=on windows-version=win10
              - config: windows-api=store windows-version=win10
              - config: deprecated-functions=off
 
