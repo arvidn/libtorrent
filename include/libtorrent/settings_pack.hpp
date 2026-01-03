@@ -1026,6 +1026,11 @@ namespace aux {
 			// man-in-the-middle connections.
 			proxy_send_host_in_connect,
 
+			// When set, downloaded files will have the no-copy-on-write flag
+			// (``FS_NOCOW_FL``) set on Linux. This mitigates heavy
+			// fragmentation on filesystems like btrfs.
+			disk_disable_copy_on_write,
+
 			max_bool_setting_internal
 		};
 
