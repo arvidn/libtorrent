@@ -806,6 +806,9 @@ error_code translate_error(std::error_code const& err, bool const write)
 		, disk_job_flags_t const flags
 		, storage_error& error)
 	{
+#ifdef TORRENT_SIMULATE_SLOW_READ
+		std::this_thread::sleep_for(milliseconds(rand() % 2000));
+#endif
 		std::int64_t const start_offset = static_cast<int>(piece) * std::int64_t(files().piece_length()) + offset;
 		file_index_t const file_index = files().file_index_at_offset(start_offset);
 		std::int64_t const file_offset = start_offset - files().file_offset(file_index);

@@ -506,6 +506,7 @@ void test_rename(std::string const& test_path)
 	TEST_EQUAL(s->names().file_path(0_file), "new_filename");
 }
 
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 namespace {
 std::int64_t file_size_on_disk(std::string const& path)
 {
@@ -637,6 +638,7 @@ void test_pre_allocate()
 		}
 	}
 }
+#endif // TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 
 using lt::operator""_bit;
 using check_files_flag_t = lt::flags::bitfield_flag<std::uint64_t, struct check_files_flag_type_tag>;
@@ -834,7 +836,8 @@ TORRENT_TEST(check_files_allocate_posix)
 	test_check_files(zero_prio, lt::posix_disk_io_constructor);
 }
 
-// posix_storage doesn't support pre-allocating files on non-windows
+// posix_storage is meant to only use the most portable API for disk I/O, and so
+// doesn't support pre-allocating files
 /*
 TORRENT_TEST(test_pre_allocate_posix)
 {

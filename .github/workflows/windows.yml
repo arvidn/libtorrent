@@ -42,7 +42,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.88.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.90.0 https://github.com/boostorg/boost.git
           cd boost
           bootstrap.bat
 
@@ -89,7 +89,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.88.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.90.0 https://github.com/boostorg/boost.git
           cd boost
           bootstrap.bat
 
@@ -134,6 +134,7 @@ jobs:
          matrix:
            include:
              - config: asio-debugging=on picker-debugging=on windows-version=vista
+             - config: asio-debugging=on picker-debugging=on windows-version=win10
              # the Windows Store API build is disabled because boost.container
              # contains a .c file that cannot be built with /ZW in msvc
              #- config: windows-api=store windows-version=win10
@@ -149,7 +150,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.88.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.90.0 https://github.com/boostorg/boost.git
           cd boost
           bootstrap.bat
 
@@ -200,7 +201,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.88.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.90.0 https://github.com/boostorg/boost.git
           cd boost
           bootstrap.bat
 
