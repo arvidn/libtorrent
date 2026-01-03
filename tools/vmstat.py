@@ -108,16 +108,22 @@ plots = [
         ],
     ),
     Plot(
-        "io",
-        "libtorrent disk I/O",
+        "read",
+        "libtorrent disk I/O (read)",
         "Size",
         "count",
         [
-            "other_bytes",
-            "other_count",
             "read_bytes",
             "read_chars",
             "read_count",
+        ],
+    ),
+    Plot(
+        "write",
+        "libtorrent disk I/O (write)",
+        "Size",
+        "count",
+        [
             "write_bytes",
             "write_chars",
             "write_count",
@@ -135,12 +141,14 @@ if platform.system() == "Linux":
                 sample = f.read()
             with open(f"/proc/{pid}/stat") as f:
                 sample2 = f.read()
+            with open(f"/proc/{pid}/io") as f:
+                sample3 = f.read()
             timestamp = monotonic() - start_time
         except Exception:
             return
 
         if "time" not in output:
-            time_delta = timestamp - start_time
+            time_delta = 0.0
             output["time"] = [timestamp]
         else:
             time_delta = timestamp - output["time"][-1]
@@ -168,7 +176,8 @@ if platform.system() == "Linux":
             if key not in output:
                 if m.cumulative:
                     output[key + "-raw"] = [val]
-                    val = val / time_delta
+                    # we only have a single value, nothing to compare it against
+                    val = 0
                 output[key] = [val]
             else:
                 if m.cumulative:
@@ -179,6 +188,23 @@ if platform.system() == "Linux":
 
         add_counter("minor_faults", float(stats[9]))
         add_counter("major_faults", float(stats[11]))
+
+        for line in sample3.split("\n"):
+            if line == "":
+                continue
+            key, val2 = line.split(": ")
+            if key == "rchar":
+                add_counter("read_chars", float(val2))
+            elif key == "wchar":
+                add_counter("write_chars", float(val2))
+            elif key == "read_bytes":
+                add_counter("read_bytes", float(val2))
+            elif key == "write_bytes":
+                add_counter("write_bytes", float(val2))
+            elif key == "syscr":
+                add_counter("read_count", float(val2))
+            elif key == "syscw":
+                add_counter("write_count", float(val2))
 
 
 # example output:
@@ -219,7 +245,7 @@ else:
             return
 
         if "time" not in output:
-            time_delta = timestamp - start_time
+            time_delta = 0.0
             output["time"] = [timestamp]
         else:
             time_delta = timestamp - output["time"][-1]
@@ -242,7 +268,8 @@ else:
             if key not in output:
                 if m.cumulative:
                     output[key + "-raw"] = [val]
-                    val = val / time_delta
+                    # we only have a single value, nothing to compare it against
+                    val = 0
                 output[key] = [val]
             else:
                 if m.cumulative:
@@ -267,7 +294,8 @@ else:
             if key not in output:
                 if m.cumulative:
                     output[key + "-raw"] = [val]
-                    val = val / time_delta
+                    # we only have a single value, nothing to compare it against
+                    val = 0
                 output[key] = [val]
             else:
                 if m.cumulative:
@@ -292,7 +320,7 @@ def print_output_to_file(out: dict[str, list[float]], filename: str) -> list[str
         idx = 0
         while len(out["time"]) > idx:
             for key in keys:
-                stats_output.write(f"{out[key][idx]:f} ")
+                stats_output.write(f"{out[key][idx]:.2f} ")
                 if out[key][idx] != 0:
                     non_zero_keys.add(key)
             stats_output.write("\n")
@@ -312,10 +340,8 @@ def plot_output(filename: str, keys: list[str]) -> None:
 set format y '%.0f'
 set xlabel "time (s)"
 set xrange [0:*]
-set yrange [2:*]
+set yrange [0:*]
 set y2range [0:*]
-set logscale y 2
-set logscale y2 2
 set grid
 """
         )
