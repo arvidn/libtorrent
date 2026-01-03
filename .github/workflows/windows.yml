@@ -226,4 +226,4 @@ jobs:
           export PATH="$BOOST_ROOT:$PATH"
           export PYTHON_INTERPRETER=python
           cd test
-          b2 toolset=gcc crypto=openssl-shared link=static asserts=on release target-os=windows -l400 warnings=all warnings-as-errors=on ${{ matrix.config }} cxxflags=-Wno-error=array-bounds cxxflags=-Wno-error=stringop-overflow cxxflags=-Wno-error=clobbered deterministic-tests testing.execute=off --abbreviate-paths
+          b2 toolset=gcc crypto=openssl-shared link=static asserts=on release target-os=windows -l400 warnings=all warnings-as-errors=on ${{ matrix.config }} cxxflags=-Wno-error=array-bounds cxxflags=-Wno-error=stringop-overflow cxxflags=-Wno-error=clobbered deterministic-tests testing.execute=off --hash
