@@ -105,6 +105,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #ifdef TORRENT_LINUX
 // linux specifics
 
+#include <linux/fs.h>
 #include <sys/ioctl.h>
 #ifdef TORRENT_ANDROID
 #include <sys/syscall.h>
@@ -492,6 +493,19 @@ file_handle::file_handle(string_view name, std::int64_t const size
 			::close(m_fd);
 			throw_ex<storage_error>(error_code(err, system_category()), operation_t::file_truncate);
 		}
+
+#ifdef TORRENT_LINUX
+		if (mode & open_mode::no_cow)
+		{
+			int attr;
+			if (ioctl(m_fd, FS_IOC_GETFLAGS, &attr) != -1)
+			{
+				attr |= FS_NOCOW_FL;
+				// best effort, ignore errors
+				ioctl(m_fd, FS_IOC_SETFLAGS, &attr);
+			}
+		}
+#endif
 
 		if (!(mode & open_mode::sparse))
 		{

@@ -1,5 +1,6 @@
 2.0.12
 
+	* add setting to set no-copy-on-write flag on new files
 	* add performance counters to file pool
 	* add high_priority flag to torrent_handle::force_reannounce()
 	* update default DSCP value and update docs
