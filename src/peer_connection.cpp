@@ -5395,9 +5395,10 @@ namespace libtorrent {
 				if (read_mode == settings_pack::disable_os_cache)
 					flags |= disk_interface::volatile_read;
 
+				auto const issue_time = clock_type::now();
 				m_disk_thread.async_read(t->storage(), r
-					, [conn = self(), r](disk_buffer_holder buf, storage_error const& ec)
-					{ conn->wrap(&peer_connection::on_disk_read_complete, std::move(buf), ec, r, clock_type::now()); }
+					, [conn = self(), r, issue_time](disk_buffer_holder buf, storage_error const& ec)
+					{ conn->wrap(&peer_connection::on_disk_read_complete, std::move(buf), ec, r, issue_time); }
 					, flags);
 			}
 			m_last_sent_payload.set(m_connect, clock_type::now());
