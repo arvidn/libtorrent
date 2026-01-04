@@ -32,6 +32,12 @@ def main() -> None:
     p = ArgumentParser()
     p.add_argument("--toolset", default="")
     p.add_argument(
+        "-y",
+        action="store_true",
+        dest="always_yes",
+        help="don't wait for interactive input, keep running",
+    )
+    p.add_argument(
         "--download-peers", default=50, help="Number of peers to use for download test"
     )
     p.add_argument(
@@ -77,6 +83,7 @@ def main() -> None:
         ["-1", "--disk_io_write_mode=write_through"],
         args.download_peers,
         args.save_path,
+        args.always_yes,
     )
     reset_download(args.save_path)
     run_test(
@@ -85,14 +92,25 @@ def main() -> None:
         ["-1", "--disk_io_write_mode=enable_os_cache"],
         args.download_peers,
         args.save_path,
+        args.always_yes,
     )
     run_test(
-        "upload", "download", ["-G", "-e", "240"], args.upload_peers, args.save_path
+        "upload",
+        "download",
+        ["-G", "-e", "240"],
+        args.upload_peers,
+        args.save_path,
+        args.always_yes,
     )
 
 
 def run_test(
-    name: str, action: str, client_arg: list[str], num_peers: int, save_path: Path
+    name: str,
+    action: str,
+    client_arg: list[str],
+    num_peers: int,
+    save_path: Path,
+    always_yes: bool,
 ) -> None:
     output_dir = (save_path / f"logs_{name}").resolve()
 
@@ -101,15 +119,17 @@ def run_test(
 
     port = (int(time.time()) % 50000) + 2000
 
-    print('drop caches now. e.g. "echo 1 | sudo tee /proc/sys/vm/drop_caches"')
-    input("Press Enter to continue...")
+    if not always_yes:
+        print('drop caches now. e.g. "echo 1 | sudo tee /proc/sys/vm/drop_caches"')
+        input("Press Enter to continue...")
 
     start = time.monotonic()
     client_cmd = [
         str(EXAMPLES_DIR / f"client_test{exe}"),
         str(EXAMPLES_DIR / "cpu_benchmark.torrent"),
         "-k",  # high performance seed settings
-        "-O",  # enable printing stats counters (to log file)
+        "-O",  # print stats counters to specified file
+        str(output_dir / "counters.log"),
         "-T",  # max connections per torrent
         f"{num_peers*2}",
         "-f",  # print log to file
@@ -163,29 +183,34 @@ def run_test(
             c.poll()
         end = time.monotonic()
 
-        stats_filename = f"{output_dir}/memory_stats.log"
+        stats_filename = output_dir / "memory_stats.log"
         keys = print_output_to_file(out, stats_filename)
         plot_output(stats_filename, keys)
 
         t.wait()
 
     print(f"runtime {end-start:0.2f} seconds")
-    print("analyzing profile...")
-    with open(output_dir / "gprof.out", "w+") as gprof:
-        subprocess.check_call(
-            ["gprof", str(EXAMPLES_DIR / f"client_test{exe}")], stdout=gprof
-        )
-    print("generating profile graph...")
 
-    with (
-        open(output_dir / "gprof.out") as gprof,
-        open(output_dir / "gprof.dof", "w+") as dot,
-    ):
-        subprocess.check_call(["gprof2dot", "--strip"], stdin=gprof, stdout=dot)
-        with open(output_dir / "cpu_profile.png", "w+") as profile:
-            subprocess.check_call(["dot", "-Tpng"], stdin=dot, stdout=profile)
+    # MacOS no longer supports gprof
+    if platform.system() == "Linux":
+        print("analyzing profile...")
+        with open(output_dir / "gprof.out", "w+") as gprof:
+            print(f"gprof " + str(EXAMPLES_DIR / f"client_test{exe}"))
+            subprocess.check_call(
+                ["gprof", str(EXAMPLES_DIR / f"client_test{exe}")], stdout=gprof
+            )
+        print("generating profile graph...")
 
-    parse_session_stats.main(output_dir / "events.log", 8, output_dir)
+        with (
+            open(output_dir / "gprof.out") as gprof,
+            open(output_dir / "gprof.dot", "w+") as dot,
+        ):
+            subprocess.check_call(["gprof2dot", "--strip"], stdin=gprof, stdout=dot)
+            with open(output_dir / "cpu_profile.png", "w+") as profile:
+                dot.seek(0)
+                subprocess.check_call(["dot", "-Tpng"], stdin=dot, stdout=profile)
+
+    parse_session_stats.main(output_dir / "counters.log", 8, output_dir)
 
 
 def rm_file_or_dir(path: Path) -> None:
