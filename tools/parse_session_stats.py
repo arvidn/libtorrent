@@ -867,6 +867,22 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
                 ["tracker.num_queued_tracker_announces"],
                 {},
             ),
+            (
+                "file_pool_size",
+                "file pool sze",
+                "",
+                "",
+                ["disk.file_pool_size"],
+                {},
+            ),
+            (
+                "file_pool_misses",
+                "file pool cache misses",
+                "",
+                "",
+                ["disk.file_pool_misses", "disk.file_pool_thread_stall", "disk.file_pool_race"],
+                {},
+            ),
             # (
             #     "picker_full_partials_distribution",
             #     "full pieces",
