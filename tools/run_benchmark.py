@@ -128,7 +128,8 @@ def run_test(
         str(EXAMPLES_DIR / f"client_test{exe}"),
         str(EXAMPLES_DIR / "cpu_benchmark.torrent"),
         "-k",  # high performance seed settings
-        "-O",  # enable printing stats counters (to log file)
+        "-O",  # print stats counters to specified file
+        str(output_dir / "counters.log"),
         "-T",  # max connections per torrent
         f"{num_peers*2}",
         "-f",  # print log to file
@@ -189,24 +190,27 @@ def run_test(
         t.wait()
 
     print(f"runtime {end-start:0.2f} seconds")
-    print("analyzing profile...")
-    with open(output_dir / "gprof.out", "w+") as gprof:
-        print(f"gprof " + str(EXAMPLES_DIR / f"client_test{exe}"))
-        subprocess.check_call(
-            ["gprof", str(EXAMPLES_DIR / f"client_test{exe}")], stdout=gprof
-        )
-    print("generating profile graph...")
 
-    with (
-        open(output_dir / "gprof.out") as gprof,
-        open(output_dir / "gprof.dot", "w+") as dot,
-    ):
-        subprocess.check_call(["gprof2dot", "--strip"], stdin=gprof, stdout=dot)
-        with open(output_dir / "cpu_profile.png", "w+") as profile:
-            dot.seek(0)
-            subprocess.check_call(["dot", "-Tpng"], stdin=dot, stdout=profile)
+    # MacOS no longer supports gprof
+    if platform.system() == "Linux":
+        print("analyzing profile...")
+        with open(output_dir / "gprof.out", "w+") as gprof:
+            print(f"gprof " + str(EXAMPLES_DIR / f"client_test{exe}"))
+            subprocess.check_call(
+                ["gprof", str(EXAMPLES_DIR / f"client_test{exe}")], stdout=gprof
+            )
+        print("generating profile graph...")
 
-    parse_session_stats.main(output_dir / "events.log", 8, output_dir)
+        with (
+            open(output_dir / "gprof.out") as gprof,
+            open(output_dir / "gprof.dot", "w+") as dot,
+        ):
+            subprocess.check_call(["gprof2dot", "--strip"], stdin=gprof, stdout=dot)
+            with open(output_dir / "cpu_profile.png", "w+") as profile:
+                dot.seek(0)
+                subprocess.check_call(["dot", "-Tpng"], stdin=dot, stdout=profile)
+
+    parse_session_stats.main(output_dir / "counters.log", 8, output_dir)
 
 
 def rm_file_or_dir(path: Path) -> None:
