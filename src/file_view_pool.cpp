@@ -97,6 +97,7 @@ namespace libtorrent { namespace aux {
 				});
 			if (opening != m_opening_files.end())
 			{
+				m_stalls += 1;
 				wait_open_entry woe;
 				opening->waiters.push_back(woe);
 
@@ -144,6 +145,7 @@ namespace libtorrent { namespace aux {
 			// ensure the LRU index is maintained as we would expect it to be
 			TORRENT_ASSERT(lru_view.back().key == i->key);
 #endif
+			m_hits += 1;
 			return i->mapping;
 		}
 
@@ -154,6 +156,7 @@ namespace libtorrent { namespace aux {
 			defer_destruction1 = remove_oldest(l);
 		}
 
+		m_misses += 1;
 		opening_file_entry ofe;
 		ofe.file_key = file_key;
 		ofe.mode = m;
@@ -196,6 +199,7 @@ namespace libtorrent { namespace aux {
 
 				if ((m & open_mode::write) && !(i->mode & open_mode::write))
 				{
+					m_read_write_race += 1;
 					key_view.modify(i, [&](file_entry& fe)
 					{
 						defer_destruction2 = std::move(fe.mapping);

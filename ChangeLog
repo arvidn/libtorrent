@@ -1,5 +1,6 @@
 2.0.12
 
+	* add performance counters to file pool
 	* add high_priority flag to torrent_handle::force_reannounce()
 	* update default DSCP value and update docs
 	* fix python binding for set_notify_function()
