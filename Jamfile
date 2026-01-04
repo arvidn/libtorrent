@@ -191,22 +191,23 @@ rule linking ( properties * )
 		result += <visibility>hidden ;
 	}
 
-	local BOOST_VERSION_TAG = [ modules.peek boostcpp : BOOST_VERSION_TAG ] ;
 	local json ;
-	if $(BOOST_VERSION_TAG) >= 1_75
+	if $(BOOST_ROOT)
 	{
-		if $(BOOST_ROOT)
+		local BOOST_VERSION_TAG = [ modules.peek boostcpp : BOOST_VERSION_TAG ] ;
+		if $(BOOST_VERSION_TAG) >= 1_75 || $(BOOST_VERSION_TAG) = ""
 		{
 			json = /boost/json//boost_json ;
 		}
 		else
 		{
-			json = system_boost_json ;
+			ECHO "WARNING: boost version older than 1.75.0 (" $(BOOST_VERSION_TAG) "), using vendored version of boost.JSON. Please use a newer version of boost" ;
+			json = shipped_boost_json ;
 		}
 	}
 	else
 	{
-		json = shipped_boost_json ;
+		json = system_boost_json ;
 	}
 
 	if <boost-link>static in $(properties)
@@ -219,12 +220,18 @@ rule linking ( properties * )
 			# library, so that it properly exports its symbols
 			result += <define>BOOST_ALL_DYN_LINK ;
 			result += <library>boost_system/<link>static/<define>BOOST_ALL_DYN_LINK ;
-			result += <library>$(json)/<link>static/<define>BOOST_ALL_DYN_LINK ;
+			if <webtorrent>on in $(properties)
+			{
+				result += <library>$(json)/<link>static/<define>BOOST_ALL_DYN_LINK ;
+			}
 		}
 		else
 		{
 			result += <library>boost_system/<link>static ;
-			result += <library>$(json)/<link>static ;
+			if <webtorrent>on in $(properties)
+			{
+				result += <library>$(json)/<link>static ;
+			}
 		}
 
 		if <toolset>gcc in $(properties)
@@ -238,12 +245,18 @@ rule linking ( properties * )
 	else if <boost-link>shared in $(properties)
 	{
 		result += <library>boost_system/<link>shared ;
-		result += <library>$(json)/<link>shared ;
+		if <webtorrent>on in $(properties)
+		{
+			result += <library>$(json)/<link>shared ;
+		}
 	}
 	else
 	{
 		result += <library>boost_system ;
-		result += <library>$(json) ;
+		if <webtorrent>on in $(properties)
+		{
+			result += <library>$(json) ;
+		}
 	}
 
 	if ! <target-os>windows in $(properties)

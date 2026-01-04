@@ -243,6 +243,11 @@ jobs:
         run: |
           sudo apt install libgnutls28-dev
 
+      - name: install boost.json
+        if: ${{ contains(matrix.config, 'webtorrent=on') }}
+        run: |
+          sudo apt install libboost-json-dev
+
       - name: install clang-16
         continue-on-error: true
         run: |
