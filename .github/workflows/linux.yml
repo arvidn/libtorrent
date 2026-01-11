@@ -372,5 +372,5 @@ jobs:
 
       - name: test-tarball (python bindings)
         run: |
-          cd libtorrent-rasterbar-*/
-          python3 bindings/python/setup.py build
+          cd libtorrent-rasterbar-*/bindings/python/
+          python3 setup.py build
