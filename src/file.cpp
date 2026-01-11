@@ -486,15 +486,9 @@ file_handle::file_handle(string_view name, std::int64_t const size
 
 	if (mode & open_mode::truncate)
 	{
-		static_assert(sizeof(off_t) >= sizeof(size), "There seems to be a large-file issue in truncate()");
-		if (ftruncate(m_fd, static_cast<off_t>(size)) < 0)
-		{
-			int const err = errno;
-			::close(m_fd);
-			throw_ex<storage_error>(error_code(err, system_category()), operation_t::file_truncate);
-		}
-
 #ifdef TORRENT_LINUX
+		// This flag can only be set on a 0-size file. It's important to make
+		// this call before ftruncate() below.
 		if (mode & open_mode::no_cow)
 		{
 			int attr;
@@ -506,6 +500,14 @@ file_handle::file_handle(string_view name, std::int64_t const size
 			}
 		}
 #endif
+
+		static_assert(sizeof(off_t) >= sizeof(size), "There seems to be a large-file issue in truncate()");
+		if (ftruncate(m_fd, static_cast<off_t>(size)) < 0)
+		{
+			int const err = errno;
+			::close(m_fd);
+			throw_ex<storage_error>(error_code(err, system_category()), operation_t::file_truncate);
+		}
 
 		if (!(mode & open_mode::sparse))
 		{
