@@ -4,7 +4,7 @@ requires-python = ">=3.9"
 version = "2.0.11"
 
 [tool.cibuildwheel]
-skip = "{pp*,}"
+skip = ""
 
 [tool.cibuildwheel.macos]
 before-all = [
@@ -72,6 +72,12 @@ before-all = [
   "bash -c './tools/cibuildwheel/setup_boost.sh $BOOST_VERSION $BOOST_ROOT'"
 ]
 select = "*-win_amd64"
+
+[[tool.cibuildwheel.overrides]]
+before-all = [
+  "bash -c './tools/cibuildwheel/setup_boost.sh $BOOST_VERSION $BOOST_ROOT'"
+]
+select = "*-win_arm64"
 
 [tool.cibuildwheel.windows]
 # This 'ugly' before-test pulls in all OpenSSL dlls such that all (yes, multiple!) Python interpreters can find them.
