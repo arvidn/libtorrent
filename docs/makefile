@@ -115,22 +115,22 @@ epub: $(TARGETS:=.epub) $(FIGURES:=.png)
 all: html pdf favicon.ico
 
 img/logo-color-text.png: img/logo-color-text.svg
-	convert -background transparent $< -resize 400 $@
+	magick -background transparent $< -resize 400 $@
 
 img/%.png: img/%.svg
-	convert -background transparent $< -resize 128x128 $@
+	magick -background transparent $< -resize 128x128 $@
 
 favicon.ico: favicon-16.png favicon-32.png favicon-64.png
 	icotool -o $@ -c $?
 
 favicon-16.png: img/logo-color.svg
-	convert -background transparent $< -resize 16x16 $@
+	magick -background transparent $< -resize 16x16 $@
 
 favicon-32.png: img/logo-color.svg
-	convert -background transparent $< -resize 32x32 $@
+	magick -background transparent $< -resize 32x32 $@
 
 favicon-64.png: img/logo-color.svg
-	convert -background transparent $< -resize 64x64 $@
+	magick -background transparent $< -resize 64x64 $@
 
 single-page-ref.rst: gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp settings-ref.rst stats_counters.rst
 	python3 gen_reference_doc.py --single-page
@@ -146,10 +146,10 @@ manual.rst: stats_counters.rst
 	touch manual.rst
 
 %_thumb.png: %.png
-	convert $< -resize 400 $@
+	magick $< -resize 400 $@
 
 img/troubleshooting_thumb.png: img/troubleshooting.png
-	convert $< -resize 800x800 $@
+	magick $< -resize 800x800 $@
 
 todo.html:gen_todo.py ../src/*.cpp ../include/libtorrent/*.hpp
 	python3 gen_todo.py
