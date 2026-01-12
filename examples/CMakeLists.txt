@@ -25,3 +25,11 @@ add_executable(client_test
     torrent_view.cpp
     session_view.cpp)
 target_link_libraries(client_test PRIVATE torrent-rasterbar)
+
+add_executable(client_test_piece_cache
+    client_test_piece_cache.cpp
+    print.cpp
+    torrent_view.cpp
+    session_view.cpp
+    piece_cache_manager.cpp)
+target_link_libraries(client_test_piece_cache PRIVATE torrent-rasterbar)
