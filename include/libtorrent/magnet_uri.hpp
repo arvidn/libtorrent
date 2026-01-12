@@ -50,7 +50,8 @@ namespace libtorrent {
 	// magnet link. In order to not include them, they have to be cleared before
 	// calling make_magnet_uri(). These fields are used:
 	//
-	//  ``ti``, ``info_hashes``, ``url_seeds``, ``dht_nodes``,
+	//  ``ti``, ``info_hashes``, ``url_seeds``, ``exact_sources``,
+	//  ``acceptable_sources``, ``content_addressed_storages``, ``dht_nodes``,
 	//  ``file_priorities``, ``trackers``, ``name``, ``peers``.
 	//
 	// Depending on what the use case for the resulting magnet link is, clearing
