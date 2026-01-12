@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16.0 FATAL_ERROR) # Configurable policies: <= CMP0097
+cmake_minimum_required(VERSION 3.20.0 FATAL_ERROR) # Configurable policies: <= CMP0097
 
 cmake_policy(SET CMP0091 NEW)
 cmake_policy(SET CMP0092 NEW)
@@ -13,6 +13,9 @@ project(libtorrent
 	VERSION ${VER_MAJOR}.${VER_MINOR}.${VER_TINY}
 )
 set (SOVERSION "${VER_MAJOR}.${VER_MINOR}")
+
+# version requirements
+set(minOpenSSLVersion 3.0.0)
 
 include(GNUInstallDirs)
 include(GeneratePkgConfig)

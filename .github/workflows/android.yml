@@ -11,7 +11,7 @@ concurrency:
 
 env:
   NDK_VERSION: "r21d"
-  OPENSSL_VERSION: "1.1.1i"
+  OPENSSL_VERSION: "3.0.4"
   OPENSSL_OPTS: "no-deprecated no-shared no-makedepend -fvisibility=hidden -O3"
 
 jobs:
@@ -30,7 +30,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --branch=boost-1.75.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --branch=boost-1.83.0 https://github.com/boostorg/boost.git
           cd boost
           git submodule update --init --depth=1
           ./bootstrap.sh

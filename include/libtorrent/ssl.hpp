@@ -53,9 +53,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #ifdef TORRENT_USE_OPENSSL
-#include <openssl/opensslv.h> // for OPENSSL_VERSION_NUMBER
-#if OPENSSL_VERSION_NUMBER < 0x1000000fL
-#error OpenSSL too old, use a recent version with SNI support
+#include <openssl/opensslv.h> // for OPENSSL VERSION
+#define OPENSSL_API_COMPAT = 0x30000000L
 #endif
 #ifdef TORRENT_WINDOWS
 // because openssl includes winsock.h, we must include winsock2.h first
@@ -182,5 +181,3 @@ TORRENT_EXTRA_EXPORT context_handle_type get_context(stream_handle_type s);
 } // libtorrent
 
 #endif // TORRENT_USE_SSL
-
-#endif
