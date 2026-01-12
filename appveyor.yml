@@ -5,7 +5,7 @@ branches:
     - RC_2_0
     - RC_1_2
     - RC_1_1
-image: Visual Studio 2017
+image: Visual Studio 2022
 clone_depth: 1
 environment:
   matrix:
@@ -18,11 +18,11 @@ environment:
       lib: 1
     - cmake: 1
     - variant: release
-      compiler: msvc-14.1
+      compiler: msvc
       model: 64
       crypto: openssl
-      ssl_lib: c:\OpenSSL-v111-Win64\lib
-      ssl_include: c:\OpenSSL-v111-Win64\include
+      ssl_lib: c:\OpenSSL-v36-Win64\lib\VC\x64\MT
+      ssl_include: c:\OpenSSL-v36-Win64\include
       tests: 1
 
 artifacts:
@@ -39,12 +39,12 @@ install:
   - if not defined ssl_lib ( set ssl_lib=c:\ )
   - if not defined ssl_include ( set ssl_include=c:\ )
   - cd %ROOT_DIRECTORY%
-  - set BOOST_ROOT=c:\Libraries\boost_1_69_0
+  - set BOOST_ROOT=c:\Libraries\boost_1_89_0
   - set BOOST_BUILD_PATH=%BOOST_ROOT%\tools\build
   - echo %BOOST_ROOT%
   - echo %BOOST_BUILD_PATH%
   - set PATH=%PATH%;%BOOST_BUILD_PATH%
-  - ps: '"using msvc : 14.1 ;`nusing gcc ;`nusing python : 3.8 : c:\\Python38-x64 : c:\\Python38-x64\\include : c:\\Python38-x64\\libs ;`n" | Set-Content $env:HOMEDRIVE\$env:HOMEPATH\user-config.jam'
+  - ps: '"using msvc ;`nusing gcc ;`nusing python : 3.13 : c:\\Python313-x64 : c:\\Python313-x64\\include : c:\\Python313-x64\\libs ;`n" | Set-Content $env:HOMEDRIVE\$env:HOMEPATH\user-config.jam'
   - type %HOMEDRIVE%%HOMEPATH%\user-config.jam
   - cd %ROOT_DIRECTORY%
   - set PATH=c:\msys64\mingw32\bin;%PATH%
@@ -88,11 +88,11 @@ build_script:
   # and stage it for cmake to pick up
   - if defined cmake (
     cd %BOOST_ROOT% &&
-    bjam cxxstd=14 release --with-python --with-system --layout=system address-model=64 link=shared stage &&
+    b2 cxxstd=14 release --with-python --with-system --layout=system address-model=64 link=shared stage &&
     cd %ROOT_DIRECTORY% &&
     mkdir build &&
     cd build &&
-    cmake -DBOOST_LIBRARYDIR=%BOOST_ROOT%\stage\lib -DCMAKE_CXX_STANDARD=14 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dpython-bindings=%python% -Dboost-python-module-name="python" -Dskip-python-runtime-test=true -DPython_ADDITIONAL_VERSIONS="2.7" -G "Visual Studio 15 2017" -A x64 .. &&
+    cmake -DBOOST_LIBRARYDIR=%BOOST_ROOT%\stage\lib -DCMAKE_CXX_STANDARD=14 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dpython-bindings=%python% -Dboost-python-module-name="python" -Dskip-python-runtime-test=true -DPython_ADDITIONAL_VERSIONS="2.7" -G "Visual Studio 17 2022" -A x64 .. &&
     cmake --build . --config Release --parallel %NUMBER_OF_PROCESSORS% -- -verbosity:minimal
     )
 
