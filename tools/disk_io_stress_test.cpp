@@ -204,6 +204,7 @@ int run_test(test_case const& t)
 		lt::renamed_files rf;
 		lt::storage_params params(fs, rf
 			, save_path
+			, {}
 			, (t.flags & test_mode::sparse) ? lt::storage_mode_sparse : lt::storage_mode_allocate
 			, prios
 			, lt::sha1_hash("01234567890123456789"), true, true);

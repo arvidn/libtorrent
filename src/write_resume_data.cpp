@@ -105,6 +105,7 @@ namespace {
 		ret["completed_time"] = atp.completed_time;
 
 		ret["save_path"] = atp.save_path;
+		ret["part_file_dir"] = atp.part_file_dir;
 
 		if (!atp.name.empty()) ret["name"] = atp.name;
 

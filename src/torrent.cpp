@@ -180,6 +180,7 @@ bool is_downloading_state(int const st)
 		, m_inactivity_timer(ses.get_context())
 		, m_trackerid(p.trackerid)
 		, m_save_path(complete(p.save_path))
+		, m_part_file_dir(p.part_file_dir)
 		, m_stats_counters(ses.stats_counters())
 		, m_added_time(p.added_time ? p.added_time : aux::posix_time())
 		, m_completed_time(p.completed_time)
@@ -235,6 +236,8 @@ bool is_downloading_state(int const st)
 		, m_outstanding_file_priority(false)
 		, m_complete_sent(false)
 	{
+		TORRENT_ASSERT_PRECOND(!is_complete(m_part_file_dir));
+
 		if (p.flags & torrent_flags::need_save_resume)
 		{
 			m_need_save_resume_data |= torrent_handle::if_metadata_changed;
@@ -245,6 +248,7 @@ bool is_downloading_state(int const st)
 
 #if TORRENT_USE_UNC_PATHS
 		m_save_path = canonicalize_path(m_save_path);
+		m_part_file_dir = canonicalize_path(m_part_file_dir);
 #endif
 
 		if (!m_apply_ip_filter)
@@ -589,7 +593,7 @@ bool is_downloading_state(int const st)
 		{
 			debug_log("creating torrent: %s max-uploads: %d max-connections: %d "
 				"upload-limit: %d download-limit: %d flags: %s%s%s%s%s%s%s%s%s%s%s "
-				"save-path: %s"
+				"save-path: %s part-file-path: %s"
 				, torrent_file().name().c_str()
 				, int(m_max_uploads)
 				, int(m_max_connections)
@@ -617,6 +621,7 @@ bool is_downloading_state(int const st)
 				, (m_add_torrent_params && m_add_torrent_params->flags & torrent_flags::deprecated_override_web_seeds)
 					? "override-web-seeds " : ""
 				, m_save_path.c_str()
+				, m_part_file_dir.c_str()
 				);
 		}
 #endif
@@ -1780,6 +1785,7 @@ bool is_downloading_state(int const st)
 			m_torrent_file->files_impl(),
 			m_renamed_files,
 			m_save_path,
+			m_part_file_dir,
 			static_cast<storage_mode_t>(m_storage_mode),
 			m_file_priority,
 			m_info_hash.get_best(),
@@ -7141,6 +7147,7 @@ namespace {
 		ret.completed_time = m_completed_time;
 
 		ret.save_path = m_save_path;
+		ret.part_file_dir = m_part_file_dir;
 
 		ret.comment = m_comment;
 		ret.created_by = m_created_by;

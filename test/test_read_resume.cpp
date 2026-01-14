@@ -244,6 +244,7 @@ void test_roundtrip(add_torrent_params input)
 	TEST_CHECK(input.merkle_tree_mask == output.merkle_tree_mask);
 	TEST_CHECK(input.file_priorities == output.file_priorities);
 	TEST_CHECK(input.save_path == output.save_path);
+	TEST_CHECK(input.part_file_dir == output.part_file_dir);
 	TEST_CHECK(input.name == output.name);
 	TEST_CHECK(input.trackers == output.trackers);
 	TEST_CHECK(input.tracker_tiers == output.tracker_tiers);
@@ -295,6 +296,20 @@ std::vector<T> vec()
 	ret[7] = T(4);
 	return ret;
 }
+}
+
+TORRENT_TEST(round_trip_save_path)
+{
+	add_torrent_params atp;
+	atp.save_path = "abc";
+	test_roundtrip(atp);
+}
+
+TORRENT_TEST(round_trip_part_file_dir)
+{
+	add_torrent_params atp;
+	atp.part_file_dir = "def";
+	test_roundtrip(atp);
 }
 
 TORRENT_TEST(round_trip_have_pieces)

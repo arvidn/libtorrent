@@ -356,6 +356,8 @@ namespace {
 		if (params.save_path.empty())
 			aux::throw_ex<system_error>(error_code(errors::invalid_save_path));
 
+		TORRENT_ASSERT_PRECOND(!is_complete(params.part_file_dir));
+
 #if TORRENT_ABI_VERSION < 3
 		if (!params.info_hashes.has_v1() && !params.info_hashes.has_v2() && !params.ti)
 			params.info_hashes.v1 = params.info_hash;
@@ -386,6 +388,8 @@ namespace {
 
 	torrent_handle session_handle::add_torrent(add_torrent_params&& params, error_code& ec)
 	{
+		TORRENT_ASSERT_PRECOND(!is_complete(params.part_file_dir));
+
 		if (params.save_path.empty())
 		{
 			ec = error_code(errors::invalid_save_path);

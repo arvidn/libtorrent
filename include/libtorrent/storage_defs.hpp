@@ -18,6 +18,7 @@ see LICENSE file.
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/download_priority.hpp"
+#include "libtorrent/string_view.hpp"
 #include <functional>
 #include <string>
 
@@ -82,12 +83,13 @@ namespace libtorrent {
 	struct TORRENT_EXPORT storage_params
 	{
 		storage_params(file_storage const& f, lt::renamed_files const& mf
-			, std::string const& sp, storage_mode_t const sm
+			, string_view sp, string_view pfd, storage_mode_t const sm
 			, aux::vector<download_priority_t, file_index_t> const& prio
 			, sha1_hash const& ih, bool v1_torrent, bool v2_torrent)
 			: files(f)
 			, renamed_files(mf)
 			, path(sp)
+			, part_file_dir(pfd)
 			, mode(sm)
 			, priorities(prio)
 			, info_hash(ih)
@@ -96,7 +98,8 @@ namespace libtorrent {
 		{}
 		file_storage const& files;
 		lt::renamed_files const& renamed_files;
-		std::string const& path;
+		string_view path;
+		string_view part_file_dir;
 		storage_mode_t mode{storage_mode_sparse};
 		aux::vector<download_priority_t, file_index_t> const& priorities;
 		sha1_hash info_hash;

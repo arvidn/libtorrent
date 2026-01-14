@@ -39,6 +39,7 @@ namespace aux {
 		: m_files(p.files)
 		, m_renamed_files(std::move(p.renamed_files))
 		, m_save_path(p.path)
+		, m_part_file_dir(p.part_file_dir)
 		, m_file_priority(p.priorities)
 		, m_part_file_name("." + to_hex(p.info_hash) + ".parts")
 	{}
@@ -59,7 +60,8 @@ namespace aux {
 		if (m_part_file) return;
 
 		m_part_file = std::make_unique<posix_part_file>(
-			m_save_path, m_part_file_name
+			m_part_file_dir.empty() ? m_save_path : combine_path(m_save_path, m_part_file_dir)
+			, m_part_file_name
 			, files().num_pieces(), files().piece_length());
 	}
 
@@ -294,7 +296,15 @@ namespace aux {
 		// release the underlying part file. Otherwise we may not be able to
 		// delete it
 		if (m_part_file) m_part_file.reset();
-		aux::delete_files(names(), m_save_path, m_part_file_name, options, error);
+		std::string part_file = combine_path(
+			m_part_file_dir.empty() ? m_save_path : combine_path(m_save_path, m_part_file_dir)
+			, m_part_file_name);
+
+		aux::delete_files(names()
+			, m_save_path
+			, part_file
+			, options
+			, error);
 	}
 
 	std::pair<status_t, std::string> posix_storage::move_storage(std::string const& sp
@@ -304,10 +314,26 @@ namespace aux {
 		auto move_partfile = [&](std::string const& new_save_path, error_code& e)
 		{
 			if (!m_part_file) return;
-			m_part_file->move_partfile(new_save_path, e);
+			std::string new_part_file_dir;
+			if (!m_part_file_dir.empty())
+			{
+				new_part_file_dir = combine_path(new_save_path, m_part_file_dir);
+				create_directories(new_part_file_dir, e);
+				if (e) return;
+			}
+			else
+			{
+				new_part_file_dir = new_save_path;
+			}
+			m_part_file->move_partfile(new_part_file_dir, e);
 		};
-		std::tie(ret, m_save_path) = aux::move_storage(names(), m_save_path, sp
-			, std::move(move_partfile), flags, ec);
+		std::tie(ret, m_save_path) = aux::move_storage(
+			names()
+			, m_save_path
+			, sp
+			, std::move(move_partfile)
+			, flags
+			, ec);
 
 		// clear the stat cache in case the new location has new files
 		m_stat_cache.clear();

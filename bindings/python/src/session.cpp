@@ -339,6 +339,11 @@ namespace
                 p.save_path = extract<std::string>(value);
                 continue;
             }
+            else if(key == "part_file_dir")
+            {
+                p.part_file_dir = extract<std::string>(value);
+                continue;
+            }
 #if TORRENT_ABI_VERSION == 1
             else if(key == "resume_data")
             {
@@ -1006,6 +1011,7 @@ void bind_session()
         .add_property("dht_nodes", PROP(&add_torrent_params::dht_nodes))
         .def_readwrite("name", &add_torrent_params::name)
         .def_readwrite("save_path", &add_torrent_params::save_path)
+        .def_readwrite("part_file_dir", &add_torrent_params::part_file_dir)
         .def_readwrite("storage_mode", &add_torrent_params::storage_mode)
 //        .def_readwrite("storage", &add_torrent_params::storage)
         .add_property("file_priorities", PROP(&add_torrent_params::file_priorities))

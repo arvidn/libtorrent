@@ -1401,6 +1401,7 @@ namespace libtorrent::aux {
 #endif
 
 		std::string m_save_path;
+		std::string m_part_file_dir;
 		aux::cached_slot m_name_idx;
 
 #ifndef TORRENT_DISABLE_PREDICTIVE_PIECES

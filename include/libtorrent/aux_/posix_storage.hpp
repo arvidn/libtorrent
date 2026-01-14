@@ -76,6 +76,7 @@ namespace aux {
 		file_storage const& m_files;
 		renamed_files m_renamed_files;
 		std::string m_save_path;
+		std::string m_part_file_dir;
 		stat_cache m_stat_cache;
 
 		aux::vector<download_priority_t, file_index_t> m_file_priority;

@@ -91,6 +91,7 @@ error_code translate_error(std::error_code const& err, bool const write)
 		, m_renamed_files(params.renamed_files)
 		, m_file_priority(params.priorities)
 		, m_save_path(complete(params.path))
+		, m_part_file_dir(params.part_file_dir)
 		, m_part_file_name("." + aux::to_hex(params.info_hash) + ".parts")
 		, m_pool(pool)
 		, m_allocate_files(params.mode == storage_mode_allocate)
@@ -123,7 +124,8 @@ error_code translate_error(std::error_code const& err, bool const write)
 		if (m_part_file) return;
 
 		m_part_file = std::make_unique<part_file>(
-			m_save_path, m_part_file_name
+			m_part_file_dir.empty() ? m_save_path : combine_path(m_save_path, m_part_file_dir)
+			, m_part_file_name
 			, files().num_pieces(), files().piece_length());
 	}
 
@@ -366,7 +368,9 @@ error_code translate_error(std::error_code const& err, bool const write)
 		if (ec) return false;
 
 		file_status s;
-		stat_file(combine_path(m_save_path, m_part_file_name), &s, ec.ec);
+		stat_file(combine_path(
+			m_part_file_dir.empty() ? m_save_path : combine_path(m_save_path, m_part_file_dir)
+			, m_part_file_name), &s, ec.ec);
 		if (!ec) return true;
 
 		// the part file not existing is expected
@@ -484,7 +488,15 @@ error_code translate_error(std::error_code const& err, bool const write)
 		// delete it
 		if (m_part_file) m_part_file.reset();
 
-		aux::delete_files(names(), m_save_path, m_part_file_name, options, ec);
+		std::string part_file = combine_path(
+			m_part_file_dir.empty() ? m_save_path : combine_path(m_save_path, m_part_file_dir)
+			, m_part_file_name);
+
+		aux::delete_files(names()
+			, m_save_path
+			, part_file
+			, options
+			, ec);
 	}
 
 	bool mmap_storage::verify_resume_data(add_torrent_params const& rd
@@ -504,10 +516,26 @@ error_code translate_error(std::error_code const& err, bool const write)
 		auto move_partfile = [&](std::string const& new_save_path, error_code& e)
 		{
 			if (!m_part_file) return;
-			m_part_file->move_partfile(new_save_path, e);
+			std::string new_part_file_dir;
+			if (!m_part_file_dir.empty())
+			{
+				new_part_file_dir = combine_path(new_save_path, m_part_file_dir);
+				create_directories(new_part_file_dir, e);
+				if (e) return;
+			}
+			else
+			{
+				new_part_file_dir = new_save_path;
+			}
+			m_part_file->move_partfile(new_part_file_dir, e);
 		};
-		std::tie(ret, m_save_path) = aux::move_storage(names(), m_save_path, std::move(save_path)
-			, std::move(move_partfile), flags, ec);
+		std::tie(ret, m_save_path) = aux::move_storage(
+			names()
+			, m_save_path
+			, std::move(save_path)
+			, std::move(move_partfile)
+			, flags
+			, ec);
 
 		// clear the stat cache in case the new location has new files
 		m_stat_cache.clear();
