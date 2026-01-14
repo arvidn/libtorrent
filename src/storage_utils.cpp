@@ -240,7 +240,7 @@ namespace libtorrent { namespace aux {
 	}
 
 	void delete_files(filenames const& fs, std::string const& save_path
-		, std::string const& part_file_name, remove_flags_t const options, storage_error& ec)
+		, std::string const& part_file, remove_flags_t const options, storage_error& ec)
 	{
 		if (options & session::delete_files)
 		{
@@ -289,7 +289,7 @@ namespace libtorrent { namespace aux {
 			|| (options & session::delete_files))
 		{
 			error_code error;
-			remove(combine_path(save_path, part_file_name), error);
+			remove(part_file, error);
 			if (error && error != boost::system::errc::no_such_file_or_directory)
 			{
 				ec.file(file_index_t(-1));

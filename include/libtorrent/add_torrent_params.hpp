@@ -156,6 +156,15 @@ TORRENT_VERSION_NAMESPACE_3
 		// relative path.
 		std::string save_path;
 
+		// This is an optional field. If set, the part-file for this torrent
+		// will be stored in the specified directory, rather than the download
+		// directory. In this case, the part file is also not moved if the
+		// downloaded files are moved. i.e. the part file is expected to be
+		// stored in an absolute path. A part file contains partial pieces that
+		// need to be downloaded in order to verify hashes and seeding, but are
+		// part of files whose priority is zero.
+		std::string part_file_path;
+
 		// One of the values from storage_mode_t. For more information, see
 		// storage-allocation_.
 		storage_mode_t storage_mode = storage_mode_sparse;
