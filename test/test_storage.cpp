@@ -212,6 +212,7 @@ setup_torrent(
 		info->layout(),
 		rf,
 		test_path,
+		{},
 		storage_mode_allocate,
 		priorities,
 		sha1_hash{},
@@ -327,6 +328,7 @@ void run_storage_tests(std::shared_ptr<torrent_info const> info
 		fs,
 		rf,
 		cwd,
+		{},
 		storage_mode,
 		priorities,
 		sha1_hash{},
@@ -555,6 +557,7 @@ void test_pre_allocate()
 		info->layout(),
 		rf,
 		test_path,
+		{},
 		storage_mode_allocate,
 		priorities,
 		sha1_hash{},
@@ -701,6 +704,7 @@ void test_check_files(check_files_flag_t const flags
 		info->layout(),
 		rf,
 		test_path,
+		{},
 		(flags & sparse) ? storage_mode_sparse : storage_mode_allocate,
 		priorities,
 		sha1_hash{},
@@ -776,17 +780,20 @@ void run_test()
 
 	std::shared_ptr<torrent_info const> info = load_torrent_buffer(bencode(t.generate())).ti;
 
-	// run_storage_tests writes piece 0, 1 and 2. not 3
-	run_storage_tests<StorageType>(info, storage_mode_sparse);
+	for (auto storage_mode : { storage_mode_sparse, storage_mode_allocate })
+	{
+		// run_storage_tests writes piece 0, 1 and 2. not 3
+		run_storage_tests<StorageType>(info, storage_mode);
 
-	// make sure the files have the correct size
-	std::string const base = complete("temp_storage");
+		// make sure the files have the correct size
+		std::string const base = complete("temp_storage");
 
-	// these files should have been allocated as 0 size
-	TEST_CHECK(exists(combine_path(base, "test3.tmp")));
-	TEST_CHECK(exists(combine_path(base, "test4.tmp")));
+		// these files should have been allocated as 0 size
+		TEST_CHECK(exists(combine_path(base, "test3.tmp")));
+		TEST_CHECK(exists(combine_path(base, "test4.tmp")));
 
-	delete_dirs("temp_storage");
+		delete_dirs("temp_storage");
+	}
 }
 
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
@@ -1671,6 +1678,7 @@ void test_unaligned_read(lt::disk_io_constructor_type constructor, Fun fun)
 	lt::storage_params params(fs
 		, rf
 		, save_path
+		, {}
 		, lt::storage_mode_sparse
 		, prios
 		, lt::sha1_hash("01234567890123456789")
@@ -1844,4 +1852,128 @@ TORRENT_TEST(posix_unaligned_read_both_store_buffer)
 	test_unaligned_read(lt::posix_disk_io_constructor, first_side_from_store_buffer);
 	test_unaligned_read(lt::posix_disk_io_constructor, second_side_from_store_buffer);
 	test_unaligned_read(lt::posix_disk_io_constructor, none_from_store_buffer);
+}
+
+
+using part_file_flag_t = lt::flags::bitfield_flag<std::uint64_t, struct test_part_file_flag_type_tag>;
+
+constexpr part_file_flag_t custom_path = 0_bit;
+
+template <typename StorageType>
+void test_part_file(lt::storage_mode_t const storage_mode, part_file_flag_t const flags)
+{
+	static int test_index = 0;
+
+	std::cerr << "test_part_file " << test_index << " " << typeid(StorageType).name() << " storage_mode:" << storage_mode << " " << ((flags & custom_path ) ? " custom_path" : "") << std::endl;
+
+	std::vector<char> piece0 = new_piece(17 + 612);
+
+	delete_dirs("temp_storage");
+
+	std::vector<lt::create_file_entry> fs;
+	fs.emplace_back("temp_storage/test1.tmp", 17);
+	fs.emplace_back("temp_storage/test2.tmp", 612);
+
+	lt::create_torrent t(std::move(fs), piece_size, create_torrent::v1_only);
+	TEST_CHECK(t.num_pieces() == 1);
+	t.set_hash(0_piece, hasher(piece0).final());
+
+	std::shared_ptr<torrent_info const> info = load_torrent_buffer(bencode(t.generate())).ti;
+
+	aux::session_settings set;
+
+	// avoid having two storages use the same files
+	typename file_pool_type<StorageType>::type fp;
+	boost::asio::io_context ios;
+	aux::vector<download_priority_t, file_index_t> priorities = {1_pri, 0_pri};
+	std::string const cwd = current_working_directory();
+	std::string download_dir = combine_path(cwd, "part_file_test_" + std::to_string(test_index));
+	std::string const part_file_dir = combine_path(download_dir, "part_file_dir");
+	++test_index;
+
+	renamed_files rf;
+	storage_params p(
+		info->layout(),
+		rf,
+		download_dir,
+		(flags & custom_path) ? "part_file_dir" : "",
+		storage_mode,
+		priorities,
+		sha1_hash{},
+		info->v1(),
+		info->v2()
+	);
+	auto s = make_storage<StorageType>(p, fp);
+
+	storage_error ec;
+	s->initialize(set, ec);
+	TEST_CHECK(!ec);
+	if (ec) print_error("initialize", 0, ec);
+
+	int ret = 0;
+
+	// write piece 1
+	span<char> iov = span<char>(piece0);
+
+	ret = write(s, set, iov, 0_piece, 0, aux::open_mode::write, ec);
+	TEST_EQUAL(ret, int(iov.size()));
+	if (ret != int(iov.size())) print_error("write", ret, ec);
+
+	release_files(s, ec);
+
+	// make sure the part file is stored in the expected location
+	std::string const part_file_name = "." + aux::to_hex(p.info_hash) + ".parts";
+	if (flags & custom_path)
+	{
+		TEST_CHECK(exists(combine_path(part_file_dir, part_file_name)));
+		TEST_CHECK(!exists(combine_path(download_dir, part_file_name)));
+	}
+	else
+	{
+		TEST_CHECK(!exists(combine_path(part_file_dir, part_file_name)));
+		TEST_CHECK(exists(combine_path(download_dir, part_file_name)));
+	}
+
+	// now move the torrent and make sure the part file is where it's expected to be
+	std::string const new_download_dir = download_dir + "_new";
+	std::string const new_part_file_dir = combine_path(new_download_dir, "part_file_dir");
+	storage_error se;
+	s->move_storage(new_download_dir, move_flags_t::always_replace_files, se);
+	TEST_CHECK(!se);
+
+	if (flags & custom_path)
+	{
+		TEST_CHECK(exists(combine_path(new_part_file_dir, part_file_name)));
+		TEST_CHECK(!exists(combine_path(download_dir, part_file_name)));
+		TEST_CHECK(!exists(combine_path(new_download_dir, part_file_name)));
+	}
+	else
+	{
+		TEST_CHECK(!exists(combine_path(new_part_file_dir, part_file_name)));
+		TEST_CHECK(!exists(combine_path(download_dir, part_file_name)));
+		TEST_CHECK(exists(combine_path(new_download_dir, part_file_name)));
+	}
+}
+
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
+TORRENT_TEST(mmap_disk_io_part_file)
+{
+	for (auto storage_mode : { storage_mode_sparse, storage_mode_allocate })
+	{
+		for (auto flags : {part_file_flag_t{}, custom_path})
+		{
+			test_part_file<mmap_storage>(storage_mode, flags);
+		}
+	}
+}
+#endif
+TORRENT_TEST(posix_disk_io_part_file)
+{
+	for (auto storage_mode : { storage_mode_sparse, storage_mode_allocate })
+	{
+		for (auto flags : {part_file_flag_t{}, custom_path})
+		{
+			test_part_file<posix_storage>(storage_mode, flags);
+		}
+	}
 }

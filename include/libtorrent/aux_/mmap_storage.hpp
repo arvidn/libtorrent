@@ -153,6 +153,7 @@ namespace libtorrent::aux {
 
 		aux::vector<download_priority_t, file_index_t> m_file_priority;
 		std::string m_save_path;
+		std::string m_part_file_dir;
 		std::string m_part_file_name;
 
 		// this this is an array indexed by file-index. Each slot represents

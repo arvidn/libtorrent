@@ -483,6 +483,7 @@ namespace {
 			fs,
 			rf,
 			path,
+			{},
 			storage_mode_t::storage_mode_sparse,
 			priorities,
 			sha1_hash{},

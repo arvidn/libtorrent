@@ -246,6 +246,7 @@ namespace {
 		apply_flag(ret.flags, rd, "disable_pex", torrent_flags::disable_pex);
 
 		ret.save_path = rd.dict_find_string_value("save_path");
+		ret.part_file_dir = rd.dict_find_string_value("part_file_dir");
 
 #if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.2

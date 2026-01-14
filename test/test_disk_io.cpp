@@ -60,6 +60,7 @@ void disk_io_test_suite(lt::disk_io_constructor_type disk_io
 		fs,
 		rf,
 		name,
+		{},
 		lt::storage_mode_t::storage_mode_sparse,
 		priorities,
 		lt::sha1_hash{},

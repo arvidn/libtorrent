@@ -41,7 +41,7 @@ namespace libtorrent::aux {
 	// opt to only delete the partfile
 	TORRENT_EXTRA_EXPORT void
 	delete_files(filenames const& fs, std::string const& save_path
-		, std::string const& part_file_name, remove_flags_t options, storage_error& ec);
+		, std::string const& part_file, remove_flags_t options, storage_error& ec);
 
 	TORRENT_EXTRA_EXPORT bool
 	verify_resume_data(add_torrent_params const& rd
