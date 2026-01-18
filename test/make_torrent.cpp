@@ -152,6 +152,7 @@ void generate_files(lt::torrent_info const& ti, std::string const& path
 		ti.layout(),
 		rf,
 		path,
+		{},
 		storage_mode_t::storage_mode_sparse,
 		priorities,
 		sha1_hash{},

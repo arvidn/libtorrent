@@ -939,6 +939,7 @@ void generate_data(std::string const path, torrent_info const& ti)
 		fs,
 		rf,
 		path,
+		{},
 		storage_mode_sparse,
 		priorities,
 		info_hash,

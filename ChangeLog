@@ -1,5 +1,6 @@
 2.1.0 not released
 
+	* make the save path for part files configurable
 	* retry failed SAM connection (for i2p)
 	* deprecated remap_files(), and prevent it from breaking v2 torrents
 	* fix peer_info holding an i2p destination
