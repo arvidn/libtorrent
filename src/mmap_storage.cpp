@@ -957,6 +957,9 @@ error_code translate_error(std::error_code const& err, bool const write)
 		if (sett.get_bool(settings_pack::no_atime_storage))
 			mode |= aux::open_mode::no_atime;
 
+		if (sett.get_bool(settings_pack::disk_disable_copy_on_write))
+			mode |= aux::open_mode::no_cow;
+
 		if (files().file_size(file) / default_block_size
 			<= sett.get_int(settings_pack::mmap_file_size_cutoff))
 			mode |= aux::open_mode::no_mmap;

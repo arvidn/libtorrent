@@ -82,6 +82,7 @@ see LICENSE file.
 #ifdef TORRENT_LINUX
 // linux specifics
 
+#include <linux/fs.h>
 #include <sys/ioctl.h>
 #ifdef TORRENT_ANDROID
 #include <sys/syscall.h>
@@ -460,6 +461,21 @@ file_handle::file_handle(string_view name, std::int64_t const size
 
 	if (mode & open_mode::truncate)
 	{
+#ifdef TORRENT_LINUX
+		// This flag can only be set on a 0-size file. It's important to make
+		// this call before ftruncate() below.
+		if (mode & open_mode::no_cow)
+		{
+			int attr;
+			if (ioctl(m_fd, FS_IOC_GETFLAGS, &attr) != -1)
+			{
+				attr |= FS_NOCOW_FL;
+				// best effort, ignore errors
+				ioctl(m_fd, FS_IOC_SETFLAGS, &attr);
+			}
+		}
+#endif
+
 		static_assert(sizeof(off_t) >= sizeof(size), "There seems to be a large-file issue in truncate()");
 		if (ftruncate(m_fd, static_cast<off_t>(size)) < 0)
 		{

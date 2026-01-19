@@ -2,7 +2,7 @@ version: "{build}"
 branches:
   only:
     - master
-image: Visual Studio 2019
+image: Visual Studio 2022
 clone_depth: 1
 environment:
   matrix:
@@ -21,8 +21,8 @@ environment:
       compiler: msvc
       model: 64
       crypto: openssl
-      ssl_lib: c:\OpenSSL-Win64\lib
-      ssl_include: c:\OpenSSL-Win64\include
+      ssl_lib: c:\OpenSSL-v36-Win64\lib\VC\x64\MT
+      ssl_include: c:\OpenSSL-v36-Win64\include
       webtorrent: on
       tests: 1
 
@@ -48,7 +48,7 @@ install:
   - echo %BOOST_ROOT%
   - echo %BOOST_BUILD_PATH%
   - set PATH=%PATH%;%BOOST_BUILD_PATH%
-  - ps: '"using msvc ;`nusing python : 3.8 : c:\\Python38-x64 : c:\\Python38-x64\\include : c:\\Python38-x64\\libs ;`n" | Set-Content $env:HOMEDRIVE\$env:HOMEPATH\user-config.jam'
+  - ps: '"using msvc ;`nusing gcc ;`nusing python : 3.13 : c:\\Python313-x64 : c:\\Python313-x64\\include : c:\\Python313-x64\\libs ;`n" | Set-Content $env:HOMEDRIVE\$env:HOMEPATH\user-config.jam'
   - type %HOMEDRIVE%%HOMEPATH%\user-config.jam
   - cd %ROOT_DIRECTORY%
   - set PATH=c:\Python38-x64;%PATH%
@@ -95,7 +95,7 @@ build_script:
     b2.exe cxxstd=17 release --with-python --with-system --layout=system address-model=64 link=shared stage &&
     cd %ROOT_DIRECTORY% &&
     cmake -B build -DBOOST_LIBRARYDIR=%BOOST_ROOT%\stage\lib -DCMAKE_CXX_STANDARD=17 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dwebtorrent=%webtorrent% -DOPENSSL_ROOT_DIR=%ssl_root_dir% -Dpython-bindings=%python% -Dboost-python-module-name="python" -Dskip-python-runtime-test=true -DPython_ADDITIONAL_VERSIONS="2.7" -G "Ninja Multi-Config" &&
-    cmake --build build --config Release
+    cmake --build build --config Release --parallel %NUMBER_OF_PROCESSORS% -- -verbosity:minimal
     )
 
 test_script:
