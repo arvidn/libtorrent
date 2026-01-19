@@ -79,6 +79,7 @@ jobs:
         set PATH=%BOOST_ROOT%;%PATH%
 
         cd bindings\python
+        python -m pip install --upgrade setuptools
         python setup.py build_ext --b2-args "asserts=on invariant-checks=full" install --user --prefix=
 
     - name: tests (windows)
