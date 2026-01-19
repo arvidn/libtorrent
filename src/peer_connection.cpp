@@ -6863,7 +6863,7 @@ namespace libtorrent {
 		// if m_num_pieces == 0, we probably don't have the
 		// metadata yet.
 		std::shared_ptr<torrent> t = m_torrent.lock();
-		return m_num_pieces == m_have_piece.size()
+		return m_have_piece.all_set()
 			&& m_num_pieces > 0 && t && t->valid_metadata();
 	}
 
