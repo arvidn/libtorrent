@@ -66,7 +66,7 @@ constexpr transfer_flags_t large_piece_size = 5_bit;
 void test_transfer(int const proxy_type, settings_pack const& sett
 	, transfer_flags_t flags = {}
 	, storage_mode_t const storage_mode = storage_mode_sparse
-	, disk_io_constructor_type disk_io = mmap_disk_io_constructor)
+	, disk_io_constructor_type disk_io = default_disk_io_constructor)
 {
 	char const* test_name[] = {"no", "SOCKS4", "SOCKS5", "SOCKS5 password", "HTTP", "HTTP password"};
 
@@ -348,12 +348,14 @@ TORRENT_TEST(i2p)
 	cleanup();
 }
 */
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 TORRENT_TEST(move_storage_mmap)
 {
 	using namespace lt;
 	test_transfer(0, settings_pack(), move_storage, storage_mode_sparse, mmap_disk_io_constructor);
 	cleanup();
 }
+#endif
 
 TORRENT_TEST(move_storage_posix)
 {
@@ -369,6 +371,7 @@ TORRENT_TEST(piece_deadline)
 	cleanup();
 }
 
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 TORRENT_TEST(delete_files_mmap)
 {
 	using namespace lt;
@@ -377,6 +380,7 @@ TORRENT_TEST(delete_files_mmap)
 	test_transfer(0, p, delete_files, storage_mode_sparse, mmap_disk_io_constructor);
 	cleanup();
 }
+#endif
 
 TORRENT_TEST(delete_files_posix)
 {
@@ -398,6 +402,7 @@ TORRENT_TEST(allow_fast)
 	cleanup();
 }
 
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 TORRENT_TEST(large_pieces_mmap)
 {
 	using namespace lt;
@@ -406,6 +411,7 @@ TORRENT_TEST(large_pieces_mmap)
 
 	cleanup();
 }
+#endif
 
 TORRENT_TEST(large_pieces_posix)
 {
@@ -416,6 +422,7 @@ TORRENT_TEST(large_pieces_posix)
 	cleanup();
 }
 
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 TORRENT_TEST(allocate_mmap)
 {
 	using namespace lt;
@@ -425,6 +432,7 @@ TORRENT_TEST(allocate_mmap)
 
 	cleanup();
 }
+#endif
 
 TORRENT_TEST(allocate_posix)
 {
@@ -446,6 +454,7 @@ TORRENT_TEST(suggest)
 	cleanup();
 }
 
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 TORRENT_TEST(disable_os_cache_mmap)
 {
 	using namespace lt;
@@ -455,6 +464,7 @@ TORRENT_TEST(disable_os_cache_mmap)
 
 	cleanup();
 }
+#endif
 
 TORRENT_TEST(disable_os_cache_posix)
 {
@@ -466,6 +476,7 @@ TORRENT_TEST(disable_os_cache_posix)
 	cleanup();
 }
 
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 TORRENT_TEST(write_through_mmap)
 {
 	using namespace lt;
@@ -475,6 +486,7 @@ TORRENT_TEST(write_through_mmap)
 
 	cleanup();
 }
+#endif
 
 TORRENT_TEST(write_through_posix)
 {
