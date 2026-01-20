@@ -223,6 +223,7 @@ run test_web_seed_http_pw.cpp ;
 run test_web_seed_chunked.cpp ;
 run test_web_seed_ban.cpp ;
 run test_pe_crypto.cpp ;
+run test_disk_io.cpp ;
 
 run test_rtc.cpp ;
 run test_utp.cpp ;
@@ -322,4 +323,5 @@ alias deterministic-tests :
 	test_similar_torrent
 	test_truncate
 	test_vector_utils
+	test_disk_io
 	;
