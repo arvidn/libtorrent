@@ -92,7 +92,7 @@ build_script:
   # we need to build the boost libraries we use with C++17
   # and stage it for cmake to pick up
   - if defined cmake (
-    call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat" &&
+    call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat" &&
     cd %BOOST_ROOT% &&
     b2.exe cxxstd=17 release --with-python --with-system --layout=system address-model=64 link=shared stage &&
     cd %ROOT_DIRECTORY% &&
