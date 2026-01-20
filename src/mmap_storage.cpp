@@ -453,9 +453,8 @@ error_code translate_error(std::error_code const& err, bool const write)
 			return;
 		}
 
-		// if old path doesn't exist, just rename the file
-		// in our file_storage, so that when it is created
-		// it will get the new name
+		// if old path doesn't exist, just record the rename
+		// so it will get the new name when it is created.
 		m_renamed_files.rename_file(files(), index, new_filename);
 	}
 
