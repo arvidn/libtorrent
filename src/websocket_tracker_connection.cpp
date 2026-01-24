@@ -313,7 +313,7 @@ void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_r
 #endif
 
 	auto ret = parse_websocket_tracker_response({static_cast<char const*>(buf.data()), long(buf.size())}, ec);
-	if(ec)
+	if (ec)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		if (auto cb = requester())
@@ -400,17 +400,23 @@ void websocket_tracker_connection::fail(operation_t op, error_code const& ec)
 }
 
 TORRENT_EXTRA_EXPORT std::variant<websocket_tracker_response, std::string>
-	parse_websocket_tracker_response(span<char const> message, error_code& ec)
-try {
+parse_websocket_tracker_response(span<char const> message, error_code& ec) try
+{
 	json::object payload = json::parse({message.data(), size_t(message.size())}).as_object();
 
 	auto it_info_hash = payload.find("info_hash");
 	if (it_info_hash == payload.end())
-		throw std::invalid_argument("no info hash in message");
+	{
+		ec = error_code(errors::invalid_tracker_response);
+		return "no info hash in message";
+	}
 
 	auto const raw_info_hash = utf8_latin1(it_info_hash->value().as_string());
 	if (raw_info_hash.size() != 20)
-		throw std::invalid_argument("invalid info hash size " + std::to_string(raw_info_hash.size()));
+	{
+		ec = error_code(errors::invalid_tracker_response);
+		return "invalid info hash size " + std::to_string(raw_info_hash.size());
+	}
 
 	websocket_tracker_response response;
 	response.info_hash = sha1_hash(span<char const>{raw_info_hash.data(), 20});
@@ -422,7 +428,10 @@ try {
 		auto id = utf8_latin1(payload["offer_id"].as_string());
 		auto pid = utf8_latin1(payload["peer_id"].as_string());
 		if (pid.size() != 20)
-			throw std::invalid_argument("invalid peer_id size " + std::to_string(pid.size()));
+		{
+			ec = error_code(errors::invalid_tracker_response);
+			return "invalid peer_id size " + std::to_string(pid.size());
+		}
 
 		aux::rtc_offer_id oid{span<char const>(id)};
 		response.offer.emplace(aux::rtc_offer{std::move(oid), peer_id(pid), {sdp.data(), sdp.size()}, nullptr});
@@ -435,7 +444,10 @@ try {
 		auto id = utf8_latin1(payload["offer_id"].as_string());
 		auto pid = utf8_latin1(payload["peer_id"].as_string());
 		if (pid.size() != 20)
-			throw std::invalid_argument("invalid peer_id size " + std::to_string(pid.size()));
+		{
+			ec = error_code(errors::invalid_tracker_response);
+			return "invalid peer_id size " + std::to_string(pid.size());
+		}
 
 		aux::rtc_offer_id oid{span<char const>(id)};
 		response.answer.emplace(aux::rtc_answer{std::move(oid), peer_id(pid), {sdp.data(), sdp.size()}});
@@ -473,14 +485,19 @@ try {
 
 	return response;
 }
-catch(std::invalid_argument const& e)
+catch(boost::system::system_error const& e)
 {
-	ec = errc::make_error_code(errc::invalid_argument);
-	return std::string(e.what());
+	ec = error_code(errors::invalid_tracker_response);
+	return e.code().message();
+}
+catch(std::system_error const& e)
+{
+	ec = error_code(errors::invalid_tracker_response);
+	return e.code().message();
 }
 catch(std::exception const& e)
 {
-	ec = errc::make_error_code(errc::bad_message);
+	ec = error_code(errors::invalid_tracker_response);
 	return std::string(e.what());
 }
 
