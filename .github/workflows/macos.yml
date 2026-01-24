@@ -16,6 +16,8 @@ concurrency:
 env:
    HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
    HOMEBREW_NO_AUTO_UPDATE: 1
+   # this is required by libdatachannel, which is specifying a too old version of cmake
+   CMAKE_POLICY_VERSION_MINIMUM: 3.5
 
 jobs:
 
