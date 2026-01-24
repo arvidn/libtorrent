@@ -2070,7 +2070,10 @@ namespace libtorrent {
 			TORRENT_ASSERT(m_have_piece.count() == m_have_piece.size());
 			TORRENT_ASSERT(m_have_piece.size() == t->torrent_file().num_pieces());
 
-			t->seen_complete();
+			// only mark last-seen-complete if we've received actual payload data
+			// from this peer, to prevent lying peers from updating the timestamp
+			if (m_statistics.total_payload_download() > 0)
+				t->seen_complete();
 			t->set_seed(m_peer_info, true);
 			TORRENT_ASSERT(is_seed());
 
@@ -6255,7 +6258,9 @@ namespace libtorrent {
 		TORRENT_ASSERT(m_recv_buffer.pos_at_end());
 		TORRENT_ASSERT(m_recv_buffer.packet_size() > 0);
 
-		if (is_seed())
+		// only mark last-seen-complete if we've received actual payload data
+		// from this peer, to prevent lying peers from updating the timestamp
+		if (is_seed() && m_statistics.total_payload_download() > 0)
 		{
 			std::shared_ptr<torrent> t = m_torrent.lock();
 			if (t) t->seen_complete();
@@ -6863,7 +6868,7 @@ namespace libtorrent {
 		// if m_num_pieces == 0, we probably don't have the
 		// metadata yet.
 		std::shared_ptr<torrent> t = m_torrent.lock();
-		return m_have_piece.all_set()
+		return m_num_pieces == m_have_piece.size()
 			&& m_num_pieces > 0 && t && t->valid_metadata();
 	}
 
