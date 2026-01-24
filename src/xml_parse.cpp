@@ -106,6 +106,11 @@ namespace libtorrent {
 			}
 			else if (*start == '?' && *(p - 1) == '?')
 			{
+				if (start == p - 1)
+				{
+					callback(xml_parse_error, "invalid declaration tag", {});
+					break;
+				}
 				++start;
 				callback(xml_declaration_tag, {start, std::size_t(std::min(tag_name_end - start, p - start - 1))}, {});
 				tag_end = p - 1;
