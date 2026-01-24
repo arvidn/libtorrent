@@ -491,3 +491,7 @@ TORRENT_TEST(unterminated_tag_with_attribute)
 	test_parse("<foo a=\"bar", "Punexpected end of file");
 }
 
+TORRENT_TEST(invalid_declaration)
+{
+	test_parse("<?>", "Pinvalid declaration tag");
+}
