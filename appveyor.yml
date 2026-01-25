@@ -32,8 +32,6 @@ artifacts:
 
 install:
   - git submodule update --init --recursive
-  - ps: (Get-Content deps\libdatachannel\Jamfile) -replace 'Visual Studio 16 2019', 'Visual Studio 17 2022' | Set-Content deps\libdatachannel\Jamfile
-  - set CMAKE_POLICY_VERSION_MINIMUM=3.5
   - set ROOT_DIRECTORY=%CD%
   - cd %ROOT_DIRECTORY%
   - if not defined api ( set api="desktop" )
@@ -98,7 +96,7 @@ build_script:
     cd %BOOST_ROOT% &&
     b2.exe cxxstd=17 release --with-python --with-system --layout=system address-model=64 link=shared stage &&
     cd %ROOT_DIRECTORY% &&
-    cmake -B build -DBOOST_LIBRARYDIR=%BOOST_ROOT%\stage\lib -DCMAKE_CXX_STANDARD=17 -DCMAKE_POLICY_VERSION_MINIMUM="3.5" -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dwebtorrent=%webtorrent% -DOPENSSL_ROOT_DIR=%ssl_root_dir% -Dpython-bindings=%python% -Dboost-python-module-name="python" -Dskip-python-runtime-test=true -DPython_ADDITIONAL_VERSIONS="2.7" -G "Ninja Multi-Config" &&
+    cmake -B build -DBOOST_LIBRARYDIR=%BOOST_ROOT%\stage\lib -DCMAKE_CXX_STANDARD=17 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dwebtorrent=%webtorrent% -DOPENSSL_ROOT_DIR=%ssl_root_dir% -Dpython-bindings=%python% -Dboost-python-module-name="python" -Dskip-python-runtime-test=true -DPython_ADDITIONAL_VERSIONS="2.7" -G "Ninja Multi-Config" &&
     cmake --build build --config Release --parallel %NUMBER_OF_PROCESSORS%
     )
 
