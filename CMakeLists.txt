@@ -840,16 +840,16 @@ if (webtorrent)
 	else()
 		option(USE_GNUTLS "Use GnuTLS instead of OpenSSL for libdatachannel" OFF)
 	endif()
-	
+
     set(LIBDATACHANNEL_STATIC ON CACHE BOOL "" FORCE)
     set(LIBDATACHANNEL_EXPORT OFF CACHE BOOL "" FORCE)
     set(LIBDATACHANNEL_INSTALL OFF CACHE BOOL "" FORCE)
     set(PLOG_INSTALL OFF CACHE BOOL "" FORCE)
     set(JUICE_INSTALL OFF CACHE BOOL "" FORCE)
-	
+
 	add_subdirectory(deps/libdatachannel EXCLUDE_FROM_ALL)
 	set_target_properties(datachannel-static PROPERTIES POSITION_INDEPENDENT_CODE ON)
-	
+
 	if(CMAKE_CXX_COMPILER_ID MATCHES Clang|GNU)
 		target_compile_options(datachannel-static PRIVATE
 			-Wno-pedantic
