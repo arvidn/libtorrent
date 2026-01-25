@@ -121,7 +121,7 @@ namespace aux {
 		unsigned num_peers:14;
 	private:
 		// the type of the addr union
-		bool is_v6_addr:1;
+		unsigned is_v6_addr:1;
 	};
 
 	// This class holds information about pieces that have outstanding requests
