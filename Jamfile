@@ -335,6 +335,9 @@ rule warnings ( properties * )
 # or:
 # error: default label in switch which covers all enumeration values [-Werror,-Wcovered-switch-default]
 		result += <cxxflags>-Wno-switch-default ;
+
+		result += <cxxflags>-Wno-thread-safety-negative ;
+		result += <cxxflags>-Wno-nrvo ;
 	}
 
 	if <toolset>gcc in $(properties)
