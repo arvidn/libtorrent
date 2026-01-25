@@ -115,10 +115,15 @@ namespace libtorrent {
 				callback(xml_declaration_tag, {start, std::size_t(std::min(tag_name_end - start, p - start - 1))}, {});
 				tag_end = p - 1;
 			}
-			else if (start + 5 < p && std::memcmp(start, "!--", 3) == 0 && std::memcmp(p - 2, "--", 2) == 0)
+			else if ((p - start >= 3) && std::memcmp(start, "!--", 3) == 0)
 			{
+				if (start + 5 > p || std::memcmp(p - 2, "--", 2) != 0)
+				{
+					callback(xml_parse_error, "invalid comment", {});
+					break;
+				}
 				start += 3;
-				callback(xml_comment, {start, std::size_t(tag_name_end - start - 2)}, {});
+				callback(xml_comment, {start, std::size_t(p - start - 2)}, {});
 				continue;
 			}
 			else
