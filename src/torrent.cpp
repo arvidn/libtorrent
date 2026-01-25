@@ -1424,6 +1424,10 @@ bool is_downloading_state(int const st)
 			if (write_mode == settings_pack::disable_os_cache)
 				dflags |= disk_interface::flush_piece | disk_interface::volatile_read;
 
+#ifndef TORRENT_DISABLE_LOGGING
+			debug_log("*** add_piece [ piece: %d | block: %d ]"
+				, static_cast<int>(piece), i);
+#endif
 			m_ses.disk_thread().async_write(m_storage, p, data + p.start, nullptr
 				, [self, p](storage_error const& error) { self->on_disk_write_complete(error, p); }
 				, dflags);
@@ -2412,6 +2416,9 @@ bool is_downloading_state(int const st)
 			handle_disk_error("force_recheck", error);
 			return;
 		}
+#ifndef TORRENT_DISABLE_LOGGING
+		debug_log("on_force_recheck: status: %x", static_cast<std::uint8_t>(status));
+#endif
 		bool const has_error_status
 			= (status & disk_status::fatal_disk_error)
 			|| (status & disk_status::need_full_check)
@@ -2427,6 +2434,9 @@ bool is_downloading_state(int const st)
 			m_checking_piece = piece_index_t(0);
 			m_num_checked_pieces = piece_index_t(0);
 
+#ifndef TORRENT_DISABLE_LOGGING
+			debug_log("on_force_recheck: starting from 0");
+#endif
 			set_state(torrent_status::checking_files);
 			if (m_auto_managed) pause(torrent_handle::graceful_pause);
 			if (should_check_files()) start_checking();
@@ -2590,6 +2600,12 @@ bool is_downloading_state(int const st)
 			hash_passed[0] = hash_passed[1] = true;
 		}
 
+#ifndef TORRENT_DISABLE_LOGGING
+		std::stringstream hash;
+		hash << piece_hash;
+		debug_log("on_piece_hashed, piece: %d piece_hash: %s"
+			, static_cast<int>(piece), hash.str().c_str());
+#endif
 		if ((hash_passed[0] && !hash_passed[1]) || (!hash_passed[0] && hash_passed[1]))
 		{
 			handle_inconsistent_hashes(piece);
@@ -4189,6 +4205,9 @@ namespace {
 
 		if (m_abort) return;
 		if (m_deleted) return;
+
+		TORRENT_ASSERT(m_picker);
+		if (!m_picker) return;
 
 		m_picker->completed_hash_job(piece);
 
@@ -7037,7 +7056,9 @@ namespace {
 				return result.valid;
 			}
 
-			if (m_picker && m_picker->is_downloading(p) && m_picker->is_piece_finished(p)
+			if (m_picker
+				&& m_picker->is_downloading(p)
+				&& !m_picker->have_piece(p)
 				&& !m_picker->is_hashing(p))
 			{
 				piece_passed(p);

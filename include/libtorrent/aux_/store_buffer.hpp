@@ -74,6 +74,13 @@ struct store_buffer
 		auto const it = m_store_buffer.find(loc);
 		if (it != m_store_buffer.end())
 		{
+			// TODO: it would be nice if this could be called without holding
+			// the mutex. It would require a reference counter on the store
+			// buffer entries and that we potentially erases it after this call.
+			// it would also require the store buffer being able to take over
+			// ownership of the buffer when the owner erases it. Perhase erase()
+			// could be made to take a buffer_holder, which is held onto if the
+			// refcount > 0
 			f(it->second);
 			return true;
 		}

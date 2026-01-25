@@ -25,6 +25,7 @@ see LICENSE file.
 #include <mutex>
 #include <functional>
 #include <memory>
+#include <optional>
 
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/span.hpp"
@@ -58,6 +59,8 @@ namespace aux {
 			return m_in_use;
 		}
 
+		std::optional<int> flush_request() const;
+
 		void set_settings(settings_interface const& sett);
 
 #if TORRENT_DEBUG_BUFFER_POOL
@@ -74,10 +77,10 @@ namespace aux {
 		// cache size limit
 		int m_max_use;
 
-		// if we have exceeded the limit, we won't start
-		// allowing allocations again until we drop below
-		// this low watermark
+		// if we have exceeded the high watermark we start flushing blocks to
+		// disk until we're below the low watermark.
 		int m_low_watermark;
+		int m_high_watermark;
 
 		// if we exceed the max number of buffers, we start
 		// adding up callbacks to this queue. Once the number

@@ -75,7 +75,8 @@ def gradient_colors(num_colors: int) -> list[str]:
 
 def plot_fun(script: Path) -> None:
     try:
-        ret = os.system('gnuplot "%s" 2>/dev/null' % script)
+        print('gnuplot "%s"' % script)
+        ret = os.system('gnuplot "%s"' % script)
     except Exception as e:
         print("please install gnuplot: sudo apt install gnuplot")
         raise e
@@ -903,6 +904,13 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
         #     ["num downloading partial pieces"],
         #     {"type": histogram, "binwidth": 5, "numbins": 120},
         # ),
+        (
+            "disk_cache",
+            "disk cache size",
+            "",
+            "",
+            [ "disk.disk_cache_pieces", "disk.disk_blocks_in_use" ]
+        ),
     ]
 
     print("generating graphs")
