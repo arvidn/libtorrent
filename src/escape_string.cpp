@@ -406,7 +406,10 @@ namespace {
 				else if (in == '1')
 					inbuf[j] = 'I' - 'A';
 				else
-					return {};
+				{
+					ret.clear();
+					goto done;
+				}
 				TORRENT_ASSERT(inbuf[j] == (inbuf[j] & 0x1f));
 			}
 
@@ -430,6 +433,7 @@ namespace {
 			// write output
 			std::copy(outbuf.begin(), outbuf.begin() + num_out, std::back_inserter(ret));
 		}
+done:
 		return ret;
 	}
 
