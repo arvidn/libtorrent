@@ -411,30 +411,46 @@ namespace {
 		// a piece_size of 0 means automatic
 		if (piece_size == 0)
 		{
-			// size_table is computed from the following:
-			//   target_list_size = sqrt(total_size) * 2;
-			//   target_piece_size = total_size / (target_list_size / hash_size);
-			// Given hash_size = 20 bytes, target_piece_size = (16*1024 * pow(2, i))
-			// we can determine size_table = (total_size = pow(2 * target_piece_size / hash_size, 2))
-			std::array<std::int64_t, 10> const size_table{{
-				       2684355LL // ->  16kiB
-				,     10737418LL // ->  32 kiB
-				,     42949673LL // ->  64 kiB
-				,    171798692LL // -> 128 kiB
-				,    687194767LL // -> 256 kiB
-				,   2748779069LL // -> 512 kiB
-				,  10995116278LL // -> 1 MiB
-				,  43980465111LL // -> 2 MiB
-				, 175921860444LL // -> 4 MiB
-				, 703687441777LL}}; // -> 8 MiB
-
-			int i = 0;
-			for (auto const s : size_table)
+			// Calculate piece size to keep piece count between 1000-2000 pieces
+			// up to a maximum piece size of 128 MiB
+			std::int64_t const total_size = fs.total_size();
+			constexpr int max_piece_size = 128 * 1024 * 1024; // 128 MiB
+			constexpr int target_piece_count_low = 1000;
+			constexpr int target_piece_count_high = 2000;
+			
+			// Start with minimum piece size (16 KiB) and work up
+			piece_size = 16 * 1024;
+			
+			// Calculate how many pieces we would have with current piece size
+			while (piece_size < max_piece_size)
 			{
-				if (s >= fs.total_size()) break;
-				++i;
+				int const piece_count = int((total_size + piece_size - 1) / piece_size);
+				
+				// If we're in the target range, we're done
+				if (piece_count >= target_piece_count_low && piece_count <= target_piece_count_high)
+					break;
+				
+				// If we have too many pieces, double the piece size
+				if (piece_count > target_piece_count_high)
+				{
+					piece_size *= 2;
+				}
+				else
+				{
+					// We have too few pieces, but we've hit the max size limit
+					// Use the current piece size
+					break;
+				}
 			}
-			piece_size = default_block_size << i;
+			
+			// Ensure piece size is a power of 2 (required for v2 torrents)
+			// Find the next power of 2 if it's not already
+			int power_of_2 = 16 * 1024; // Start from 16 KiB minimum
+			while (power_of_2 < piece_size && power_of_2 < max_piece_size)
+			{
+				power_of_2 *= 2;
+			}
+			piece_size = power_of_2;
 		}
 
 		if (!(flags & v1_only))
