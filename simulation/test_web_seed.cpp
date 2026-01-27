@@ -30,6 +30,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+// TODO url_seeds exact_sources acceptable_sources content_addressed_storages
+
+// TODO test redirect to webseed file
+// https://github.com/arvidn/libtorrent/issues/7682
+// the redirect happens not on the webseed url, but on the file url
+
 #include "libtorrent/session.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/deadline_timer.hpp"

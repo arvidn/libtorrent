@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/hex.hpp" // to_hex, from_hex
 #include "libtorrent/socket_io.hpp" // for print_endpoint
+#include "libtorrent/alert.hpp"
 
 namespace libtorrent {
 
@@ -83,6 +84,24 @@ namespace libtorrent {
 			ret += escape_string(s);
 		}
 
+		for (auto const& s : handle.exact_sources())
+		{
+			ret += "&xs=";
+			ret += escape_string(s);
+		}
+
+		for (auto const& s : handle.acceptable_sources())
+		{
+			ret += "&as=";
+			ret += escape_string(s);
+		}
+
+		for (auto const& s : handle.content_addressed_storages())
+		{
+			ret += "&cas=";
+			ret += escape_string(s);
+		}
+
 		return ret;
 	}
 
@@ -99,6 +118,8 @@ namespace libtorrent {
 			if (s.type != web_seed_entry::url_seed) continue;
 			atp.url_seeds.emplace_back(s.url);
 		}
+
+		// TODO url_seeds exact_sources acceptable_sources content_addressed_storages
 
 		return make_magnet_uri(atp);
 	}
@@ -172,6 +193,24 @@ namespace libtorrent {
 		for (auto const& s : atp.url_seeds)
 		{
 			ret += "&ws=";
+			ret += escape_string(s);
+		}
+
+		for (auto const& s : atp.exact_sources)
+		{
+			ret += "&xs=";
+			ret += escape_string(s);
+		}
+
+		for (auto const& s : atp.acceptable_sources)
+		{
+			ret += "&as=";
+			ret += escape_string(s);
+		}
+
+		for (auto const& s : atp.content_addressed_storages)
+		{
+			ret += "&cas=";
 			ret += escape_string(s);
 		}
 
@@ -360,6 +399,123 @@ namespace libtorrent {
 				error_code e;
 				std::string webseed = unescape_string(value, e);
 				if (!e) p.url_seeds.push_back(std::move(webseed));
+
+				// TODO Magnet-URI Webseeding
+				// https://github.com/bittorrent/bittorrent.org/pull/171
+
+				// Retrieving metadata - "ws" parameter
+				// ------------------------------------
+				//
+				// The "ws" parameter SHOULD additionally be used in the
+				// following way:
+				//
+				// The URL provided by a "ws" parameter, excluding a possible,
+				// following "/" character, MUST be appended by the string
+				// ".torrent" and the result SHOULD be interpreted as an "as"
+				// parameter appended to the magnet URI.
+			}
+			else if (string_equal_no_case(name, "xs"_sv)) // exact source
+			{
+				error_code e;
+				std::string exact_source = unescape_string(value, e);
+
+				// torrent_log(torrent_log_alert::info, "URL", "magnet_uri.cpp: exact_source %s", exact_source.c_str());
+
+				// if (!alerts().should_post<torrent_log_alert>()) return;
+				// alerts().emplace_alert<torrent_log_alert>(
+				// 	const_cast<torrent*>(this)->get_handle(), fmt, v);
+
+				// TODO get_handle?
+				// if (m_ses.alerts().should_post<torrent_log_alert>())
+				// 	m_ses.alerts().emplace_alert<torrent_log_alert>(get_handle(), "magnet_uri.cpp: exact_source %s", exact_source.c_str());
+				// WONTFIX no session in this scope
+				// if (m_ses.alerts().should_post<log_alert>())
+				// 	m_ses.alerts().emplace_alert<log_alert>("magnet_uri.cpp: exact_source %s", exact_source.c_str());
+				std::printf("magnet_uri.cpp 434: exact_source %s\n", exact_source.c_str());
+
+				if (!e) p.exact_sources.push_back(std::move(exact_source));
+
+				// Retrieving metadata - "xs" parameter
+				// ------------------------------------
+				//
+				// If the "xs" parameter is present then a client SHOULD try
+				// to retrieve a .torrent file via the URL provided by the
+				// "xs" parameter.
+				//
+				// If a client does not understand the protocol in this URL
+				// then it MUST silently ignore this specific "xs" parameter
+				// with this URL.
+				//
+				// If the retrieved file is not a valid .torrent file then the
+				// .torrent file MUST be silently discarded.
+				//
+				// If the Bittorrent Info Hash provided by the magnet URI
+				// ("xt=urn:btih:") does not match the "info" section of the
+				// retrieved .torrent file then the .torrent file MUST be
+				// silently discarded.
+				//
+				// If a client is capable of BEP9 then it SHOULD use both
+				// mechanisms in parallel.
+			}
+			else if (string_equal_no_case(name, "as"_sv)) // acceptable source
+			{
+				error_code e;
+				std::string acceptable_source = unescape_string(value, e);
+				// torrent_log(torrent_log_alert::info, "URL", "magnet_uri.cpp: acceptable_source %s", acceptable_source.c_str());
+				std::printf("magnet_uri.cpp 465: acceptable_source %s\n", acceptable_source.c_str());
+				if (!e) p.acceptable_sources.push_back(std::move(acceptable_source));
+
+				// Retrieving metadata - "as" parameter
+				// ------------------------------------
+				//
+				// If no metadata could be retrieved with the mechanism
+				// specified in BEP9 <!-- TODO timeout? --> or with any provided "xs" parameter and
+				// if an "as" parameter is present then a client SHOULD try to
+				// retrieve a .torrent file via the URL provided by the "as"
+				// parameter.
+				//
+				// If a client does not understand the protocol in this URL
+				// then it MUST silently ignore this specific "as" parameter
+				// with this URL.
+				//
+				// If the retrieved file is not a valid .torrent file then the
+				// .torrent file MUST be silently discarded.
+				//
+				// If the Bittorrent Info Hash provided by the magnet URI
+				// ("xt=urn:btih:") does not match the "info" section of the
+				// retrieved .torrent file then the .torrent file MUST be
+				// silently discarded.
+			}
+			else if (string_equal_no_case(name, "cas"_sv)) // content-addressed storage
+			{
+				error_code e;
+				std::string content_addressed_storage = unescape_string(value, e);
+				// torrent_log(torrent_log_alert::info, "URL", "magnet_uri.cpp: content_addressed_storage %s", content_addressed_storage.c_str());
+				std::printf("magnet_uri.cpp 494: content_addressed_storage %s\n", content_addressed_storage.c_str());
+				if (!e) p.content_addressed_storages.push_back(std::move(content_addressed_storage));
+
+				// Retrieving metadata and payload data - "cas" parameter
+				// ------------------------------------------------------
+				//
+				// The "cas" parameter SHOULD additionally be used in the
+				// following way:
+				//
+				// The URL provided by a "cas" parameter MUST be appended by
+				//
+				// 1. A "/" character if the "cas" URL does not end with "/"
+				// 2. The Bittorrent Info Hash type:
+				//    "btih" or "btmh" in lowercase letters ("[a-z]")
+				// 3. A "/" character
+				// 4. The Bittorrent Info Hash:
+				//    40 or 64 characters in lowercase letters ("[0-9a-f]")
+				//
+				// The result SHOULD be interpreted as an "ws"
+				// parameter appended to the magnet URI.
+				//
+				// When a magnet URI has multiple hash types,
+				// then the client SHOULD use all resulting URLs.
+				//
+				// <!-- TODO should the client prefer "btmh" over "btih"? -->
 			}
 			else if (string_equal_no_case(name, "xt"_sv))
 			{
@@ -416,6 +572,8 @@ namespace libtorrent {
 					aux::from_hex(value, p.info_hashes.v2.data());
 					has_ih[1] = true;
 				}
+				// TODO handle more hash types?
+				// https://en.wikipedia.org/wiki/Magnet_URI_scheme
 			}
 			else if (string_equal_no_case(name, "so"_sv)) // select-only (files)
 			{
