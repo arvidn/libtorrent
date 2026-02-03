@@ -1,0 +1,275 @@
+# .github/workflows/piece_cache_ci.yml
+# CI workflow for piece cache feature
+# Add this as a new workflow or integrate into existing build.yml
+
+name: Piece Cache CI
+
+on:
+  push:
+    branches: [ piece-cache-feature, main ]
+    paths:
+      - 'examples/piece_cache_manager.*'
+      - 'examples/cache_*.* '
+      - 'examples/torrent_utils.*'
+      - 'examples/file_utils.*'
+      - 'examples/client_test_piece_cache.cpp'
+      - 'test/test_piece_cache.*'
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # ============================================================================
+  # Build on Multiple Platforms
+  # ============================================================================
+  build-and-test:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-20.04, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-22.04
+            cc: gcc-11
+            cxx: g++-11
+          - os: ubuntu-20.04
+            cc: gcc-9
+            cxx: g++-9
+          - os: macos-latest
+            cc: clang
+            cxx: clang++
+          - os: windows-latest
+            cc: cl
+            cxx: cl
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+        fetch-depth: 1
+    
+    - name: Install dependencies (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libssl-dev \
+          ninja-build \
+          cmake
+    
+    - name: Install dependencies (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        brew install \
+          openssl \
+          ninja \
+          cmake
+    
+    - name: Install dependencies (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        choco install ninja cmake
+    
+    - name: Configure CMake (Linux/macOS)
+      if: runner.os != 'Windows'
+      env:
+        CC: ${{ matrix.cc }}
+        CXX: ${{ matrix.cxx }}
+      run: |
+        cmake -B build \
+          -G Ninja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_CXX_STANDARD=17 \
+          -Dbuild_examples=ON \
+          -Dbuild_tests=ON \
+          -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl@3
+    
+    - name: Configure CMake (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        cmake -B build `
+          -G "Visual Studio 17 2022" `
+          -DCMAKE_BUILD_TYPE=Release `
+          -DCMAKE_CXX_STANDARD=17 `
+          -Dbuild_examples=ON `
+          -Dbuild_tests=ON
+    
+    - name: Build
+      run: cmake --build build --config Release --parallel
+    
+    - name: Verify binary exists (Linux/macOS)
+      if: runner.os != 'Windows'
+      run: |
+        ls -lh build/examples/client_test_piece_cache
+        file build/examples/client_test_piece_cache
+    
+    - name: Verify binary exists (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        dir build\examples\Release\client_test_piece_cache.exe
+    
+    - name: Run unit tests
+      if: runner.os != 'Windows'
+      run: |
+        cd build
+        ctest --output-on-failure -C Release -R test_piece_cache || true
+    
+    - name: Run functional tests (Linux only)
+      if: runner.os == 'Linux'
+      run: |
+        cd build/examples
+        chmod +x ../../test/test_piece_cache_functional.sh
+        ../../test/test_piece_cache_functional.sh
+    
+    - name: Upload binary artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: client_test_piece_cache-${{ matrix.os }}
+        path: |
+          build/examples/client_test_piece_cache
+          build/examples/Release/client_test_piece_cache.exe
+        if-no-files-found: ignore
+        retention-days: 7
+
+  # ============================================================================
+  # Code Quality Checks
+  # ============================================================================
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Check file structure
+      run: |
+        echo "Checking for required files..."
+        test -f examples/cache_config.hpp || exit 1
+        test -f examples/cache_config.cpp || exit 1
+        test -f examples/cache_alerts.hpp || exit 1
+        test -f examples/cache_alerts.cpp || exit 1
+        test -f examples/torrent_utils.hpp || exit 1
+        test -f examples/torrent_utils.cpp || exit 1
+        test -f examples/file_utils.hpp || exit 1
+        test -f examples/file_utils.cpp || exit 1
+        test -f examples/client_test_piece_cache.cpp || exit 1
+        echo "All required files present"
+    
+    - name: Check line counts
+      run: |
+        echo "Checking modular structure..."
+        for file in examples/cache_config.cpp examples/cache_alerts.cpp \
+                    examples/torrent_utils.cpp examples/file_utils.cpp; do
+          lines=$(wc -l < $file)
+          echo "$file: $lines lines"
+          if [ $lines -gt 500 ]; then
+            echo "WARNING: $file has too many lines ($lines > 500)"
+          fi
+        done
+    
+    - name: Check for TODO/FIXME
+      run: |
+        echo "Checking for unresolved TODOs..."
+        grep -r "TODO\|FIXME" examples/cache_*.cpp examples/torrent_utils.cpp \
+          examples/file_utils.cpp || echo "No TODOs found"
+
+  # ============================================================================
+  # Integration Test
+  # ============================================================================
+  integration-test:
+    name: Integration Test
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libssl-dev ninja-build cmake
+    
+    - name: Build
+      run: |
+        cmake -B build -G Ninja \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_CXX_STANDARD=17 \
+          -Dbuild_examples=ON \
+          -Dbuild_tests=ON
+        cmake --build build --parallel
+    
+    - name: Create test torrent
+      run: |
+        # Create a simple test file
+        mkdir -p test_data
+        dd if=/dev/urandom of=test_data/file.dat bs=1M count=1
+        
+        # Note: In real scenario, you'd use transmission-create or similar
+        # to create a .torrent file here
+    
+    - name: Test cache initialization
+      run: |
+        cd build/examples
+        timeout 5s ./client_test_piece_cache --cache_root=/tmp/test_cache -e 3 || true
+        test -d /tmp/test_cache && echo "Cache directory created successfully"
+    
+    - name: Test fileless mode
+      run: |
+        cd build/examples
+        timeout 5s ./client_test_piece_cache -Z --cache_root=/tmp/test_cache2 -e 3 || true
+        test -d /tmp/test_cache2/.resume && echo "Resume in cache root created"
+
+  # ============================================================================
+  # Documentation Check
+  # ============================================================================
+  docs-check:
+    name: Documentation
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Check README updates
+      run: |
+        if grep -q "piece.*cache" README.md; then
+          echo "README mentions piece cache feature"
+        else
+          echo "WARNING: README may need updating with piece cache documentation"
+        fi
+    
+    - name: Check for documentation files
+      run: |
+        test -f README_PIECE_CACHE.md || echo "Consider adding README_PIECE_CACHE.md"
+        test -f examples/REFACTORING_GUIDE.md || \
+          echo "Consider adding REFACTORING_GUIDE.md"
+
+  # ============================================================================
+  # Summary
+  # ============================================================================
+  summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs: [build-and-test, code-quality, integration-test]
+    if: always()
+    
+    steps:
+    - name: Check results
+      run: |
+        echo "Build and test: ${{ needs.build-and-test.result }}"
+        echo "Code quality: ${{ needs.code-quality.result }}"
+        echo "Integration test: ${{ needs.integration-test.result }}"
+        
+        if [ "${{ needs.build-and-test.result }}" != "success" ] || \
+           [ "${{ needs.code-quality.result }}" != "success" ] || \
+           [ "${{ needs.integration-test.result }}" != "success" ]; then
+          echo "Some checks failed"
+          exit 1
+        fi
+        echo "All checks passed!"

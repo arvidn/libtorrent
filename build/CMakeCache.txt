@@ -17,9 +17,6 @@
 //No help, variable specified on the command line.
 BOOST_ROOT:UNINITIALIZED=/usr
 
-//No help, variable specified on the command line.
-BUILDD_SHARED_LIBS:UNINITIALIZED=OFF
-
 //build libtorrent as a shared library
 BUILD_SHARED_LIBS:BOOL=OFF
 
@@ -31,8 +28,6 @@ Boost_INCLUDE_DIR:PATH=/usr/include
 
 //No help, variable specified on the command line.
 Boost_NO_SYSTEM_PATHS:UNINITIALIZED=ON
-
-Boost_PYTHON313_LIBRARY_RELEASE:STRING=/usr/lib/x86_64-linux-gnu/libboost_python313.so.1.83.0
 
 //No help, variable specified on the command line.
 Boost_USE_STATIC_LIBS:UNINITIALIZED=ON
@@ -322,14 +317,8 @@ PKG_CONFIG_ARGN:STRING=
 //pkg-config executable
 PKG_CONFIG_EXECUTABLE:FILEPATH=/usr/bin/pkg-config
 
-//Boost::python module name, e.g. 'python-3.7'
-boost-python-module-name:STRING=python313
-
 //The directory containing a CMake configuration file for boost_headers.
 boost_headers_DIR:PATH=/usr/lib/x86_64-linux-gnu/cmake/boost_headers-1.83.0
-
-//The directory containing a CMake configuration file for boost_python.
-boost_python_DIR:PATH=/usr/lib/x86_64-linux-gnu/cmake/boost_python-1.83.0
 
 //build examples
 build_examples:BOOL=ON
@@ -600,8 +589,6 @@ CMAKE_VERBOSE_MAKEFILE-ADVANCED:INTERNAL=1
 FIND_PACKAGE_MESSAGE_DETAILS_Boost:INTERNAL=[/usr/lib/x86_64-linux-gnu/cmake/Boost-1.83.0/BoostConfig.cmake][c ][v1.83.0()]
 //Details about finding OpenSSL
 FIND_PACKAGE_MESSAGE_DETAILS_OpenSSL:INTERNAL=[/usr/lib/x86_64-linux-gnu/libcrypto.so][/usr/include][c ][v3.5.4()]
-//Details about finding Python3
-FIND_PACKAGE_MESSAGE_DETAILS_Python3:INTERNAL=[/usr/bin/python3][/usr/include/python3.13][/usr/lib/x86_64-linux-gnu/libpython3.13.so][cfound components: Interpreter Development Development.Module Development.Embed ][v3.13.5()]
 //Details about finding Threads
 FIND_PACKAGE_MESSAGE_DETAILS_Threads:INTERNAL=[TRUE][v()]
 //Test HAVE_CXX_ATOMICS64_WITHOUT_LIB
@@ -663,33 +650,10 @@ _OPENSSL_openssl_INCLUDEDIR:INTERNAL=
 _OPENSSL_openssl_LIBDIR:INTERNAL=
 _OPENSSL_openssl_PREFIX:INTERNAL=
 _OPENSSL_openssl_VERSION:INTERNAL=
-//Compiler reason failure
-_Python3_Compiler_REASON_FAILURE:INTERNAL=
-_Python3_DEVELOPMENT_EMBED_SIGNATURE:INTERNAL=853744360620a5299ef518b9b9a4c67a
-_Python3_DEVELOPMENT_MODULE_SIGNATURE:INTERNAL=676ad4d449a6ca38dd8d758df91f1971
-//Development reason failure
-_Python3_Development_REASON_FAILURE:INTERNAL=
-//Path to a program.
-_Python3_EXECUTABLE:INTERNAL=/usr/bin/python3
-//Path to a file.
-_Python3_INCLUDE_DIR:INTERNAL=/usr/include/python3.13
-//Python3 Properties
-_Python3_INTERPRETER_PROPERTIES:INTERNAL=Python;3;13;5;64;<none>;cpython-313-x86_64-linux-gnu;abi3;/usr/lib/python3.13;/usr/lib/python3.13;/usr/local/lib/python3.13/dist-packages;/usr/local/lib/python3.13/dist-packages
-_Python3_INTERPRETER_SIGNATURE:INTERNAL=4c8bfa8951e99fa32e4000a94f8c04a2
-//Interpreter reason failure
-_Python3_Interpreter_REASON_FAILURE:INTERNAL=
-//Path to a library.
-_Python3_LIBRARY_RELEASE:INTERNAL=/usr/lib/x86_64-linux-gnu/libpython3.13.so
-//NumPy reason failure
-_Python3_NumPy_REASON_FAILURE:INTERNAL=
-//Test _WNO_DEPRECATED_DECLARATIONS
-_WNO_DEPRECATED_DECLARATIONS:INTERNAL=1
 __pkg_config_arguments__OPENSSL:INTERNAL=QUIET;openssl
 __pkg_config_checked__OPENSSL:INTERNAL=1
 //ADVANCED property for variable: boost_headers_DIR
 boost_headers_DIR-ADVANCED:INTERNAL=1
-//ADVANCED property for variable: boost_python_DIR
-boost_python_DIR-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: pkgcfg_lib__OPENSSL_crypto
 pkgcfg_lib__OPENSSL_crypto-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: pkgcfg_lib__OPENSSL_ssl

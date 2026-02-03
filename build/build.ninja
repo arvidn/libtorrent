@@ -56,6 +56,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/add_torrent_params.cpp.o: CXX_COMPILE
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/alert.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/alert.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -64,6 +66,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/alert.cpp.o: CXX_COMPILER__torrent-ra
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/alert_manager.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/alert_manager.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -72,6 +76,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/alert_manager.cpp.o: CXX_COMPILER__to
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/announce_entry.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/announce_entry.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -80,6 +86,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/announce_entry.cpp.o: CXX_COMPILER__t
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/assert.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/assert.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -88,6 +96,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/assert.cpp.o: CXX_COMPILER__torrent-r
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/bandwidth_limit.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/bandwidth_limit.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -96,6 +106,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/bandwidth_limit.cpp.o: CXX_COMPILER__
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/bandwidth_manager.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/bandwidth_manager.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -104,6 +116,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/bandwidth_manager.cpp.o: CXX_COMPILER
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/bandwidth_queue_entry.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/bandwidth_queue_entry.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -112,6 +126,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/bandwidth_queue_entry.cpp.o: CXX_COMP
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/bdecode.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/bdecode.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -120,6 +136,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/bdecode.cpp.o: CXX_COMPILER__torrent-
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/bitfield.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/bitfield.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -128,6 +146,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/bitfield.cpp.o: CXX_COMPILER__torrent
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/bloom_filter.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/bloom_filter.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -136,6 +156,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/bloom_filter.cpp.o: CXX_COMPILER__tor
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/bt_peer_connection.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/bt_peer_connection.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -144,6 +166,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/bt_peer_connection.cpp.o: CXX_COMPILE
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/chained_buffer.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/chained_buffer.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -152,6 +176,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/chained_buffer.cpp.o: CXX_COMPILER__t
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/choker.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/choker.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -160,6 +186,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/choker.cpp.o: CXX_COMPILER__torrent-r
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/close_reason.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/close_reason.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -168,6 +196,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/close_reason.cpp.o: CXX_COMPILER__tor
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/copy_file.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/copy_file.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -176,6 +206,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/copy_file.cpp.o: CXX_COMPILER__torren
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/cpuid.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/cpuid.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -184,6 +216,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/cpuid.cpp.o: CXX_COMPILER__torrent-ra
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/crc32c.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/crc32c.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -192,6 +226,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/crc32c.cpp.o: CXX_COMPILER__torrent-r
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/create_torrent.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/create_torrent.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -200,6 +236,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/create_torrent.cpp.o: CXX_COMPILER__t
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/directory.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/directory.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -208,6 +246,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/directory.cpp.o: CXX_COMPILER__torren
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/disabled_disk_io.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/disabled_disk_io.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -216,6 +256,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/disabled_disk_io.cpp.o: CXX_COMPILER_
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/disk_buffer_holder.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/disk_buffer_holder.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -224,6 +266,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/disk_buffer_holder.cpp.o: CXX_COMPILE
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/disk_buffer_pool.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/disk_buffer_pool.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -232,6 +276,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/disk_buffer_pool.cpp.o: CXX_COMPILER_
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/disk_interface.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/disk_interface.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -240,6 +286,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/disk_interface.cpp.o: CXX_COMPILER__t
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/disk_io_thread_pool.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/disk_io_thread_pool.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -248,6 +296,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/disk_io_thread_pool.cpp.o: CXX_COMPIL
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/disk_job_fence.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/disk_job_fence.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -256,6 +306,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/disk_job_fence.cpp.o: CXX_COMPILER__t
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/disk_job_pool.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/disk_job_pool.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -264,6 +316,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/disk_job_pool.cpp.o: CXX_COMPILER__to
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/drive_info.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/drive_info.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -272,6 +326,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/drive_info.cpp.o: CXX_COMPILER__torre
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/entry.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/entry.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -280,6 +336,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/entry.cpp.o: CXX_COMPILER__torrent-ra
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/enum_net.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/enum_net.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -288,6 +346,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/enum_net.cpp.o: CXX_COMPILER__torrent
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/error_code.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/error_code.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -296,6 +356,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/error_code.cpp.o: CXX_COMPILER__torre
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/escape_string.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/escape_string.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -304,6 +366,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/escape_string.cpp.o: CXX_COMPILER__to
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/ffs.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/ffs.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -312,6 +376,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/ffs.cpp.o: CXX_COMPILER__torrent-rast
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/file.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/file.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -320,6 +386,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/file.cpp.o: CXX_COMPILER__torrent-ras
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/file_progress.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/file_progress.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -328,6 +396,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/file_progress.cpp.o: CXX_COMPILER__to
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/file_storage.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/file_storage.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -336,6 +406,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/file_storage.cpp.o: CXX_COMPILER__tor
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/file_view_pool.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/file_view_pool.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -344,6 +416,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/file_view_pool.cpp.o: CXX_COMPILER__t
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/fingerprint.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/fingerprint.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -352,6 +426,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/fingerprint.cpp.o: CXX_COMPILER__torr
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/generate_peer_id.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/generate_peer_id.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -360,6 +436,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/generate_peer_id.cpp.o: CXX_COMPILER_
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/gzip.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/gzip.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -368,6 +446,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/gzip.cpp.o: CXX_COMPILER__torrent-ras
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/hash_picker.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/hash_picker.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -376,6 +456,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/hash_picker.cpp.o: CXX_COMPILER__torr
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/hasher.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/hasher.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -384,6 +466,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/hasher.cpp.o: CXX_COMPILER__torrent-r
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/hex.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/hex.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -392,6 +476,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/hex.cpp.o: CXX_COMPILER__torrent-rast
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/http_connection.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/http_connection.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -400,6 +486,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/http_connection.cpp.o: CXX_COMPILER__
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/http_parser.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/http_parser.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -408,6 +496,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/http_parser.cpp.o: CXX_COMPILER__torr
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/http_seed_connection.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/http_seed_connection.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -416,6 +506,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/http_seed_connection.cpp.o: CXX_COMPI
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/http_tracker_connection.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/http_tracker_connection.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -424,6 +516,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/http_tracker_connection.cpp.o: CXX_CO
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/i2p_stream.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/i2p_stream.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -432,6 +526,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/i2p_stream.cpp.o: CXX_COMPILER__torre
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/identify_client.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/identify_client.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -440,6 +536,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/identify_client.cpp.o: CXX_COMPILER__
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/instantiate_connection.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/instantiate_connection.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -448,6 +546,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/instantiate_connection.cpp.o: CXX_COM
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/ip_filter.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/ip_filter.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -456,6 +556,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/ip_filter.cpp.o: CXX_COMPILER__torren
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/ip_helpers.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/ip_helpers.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -464,6 +566,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/ip_helpers.cpp.o: CXX_COMPILER__torre
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/ip_notifier.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/ip_notifier.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -472,6 +576,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/ip_notifier.cpp.o: CXX_COMPILER__torr
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/ip_voter.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/ip_voter.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -480,6 +586,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/ip_voter.cpp.o: CXX_COMPILER__torrent
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/listen_socket_handle.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/listen_socket_handle.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -488,6 +596,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/listen_socket_handle.cpp.o: CXX_COMPI
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/load_torrent.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/load_torrent.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -496,6 +606,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/load_torrent.cpp.o: CXX_COMPILER__tor
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/lsd.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/lsd.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -504,6 +616,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/lsd.cpp.o: CXX_COMPILER__torrent-rast
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/magnet_uri.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/magnet_uri.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -512,6 +626,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/magnet_uri.cpp.o: CXX_COMPILER__torre
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/merkle.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/merkle.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -520,6 +636,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/merkle.cpp.o: CXX_COMPILER__torrent-r
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/merkle_tree.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/merkle_tree.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -528,6 +646,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/merkle_tree.cpp.o: CXX_COMPILER__torr
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/mmap.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/mmap.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -536,6 +656,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/mmap.cpp.o: CXX_COMPILER__torrent-ras
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/mmap_disk_io.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/mmap_disk_io.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -544,6 +666,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/mmap_disk_io.cpp.o: CXX_COMPILER__tor
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/mmap_disk_job.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/mmap_disk_job.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -552,6 +676,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/mmap_disk_job.cpp.o: CXX_COMPILER__to
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/mmap_storage.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/mmap_storage.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -560,6 +686,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/mmap_storage.cpp.o: CXX_COMPILER__tor
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/natpmp.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/natpmp.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -568,6 +696,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/natpmp.cpp.o: CXX_COMPILER__torrent-r
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/packet_buffer.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/packet_buffer.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -576,6 +706,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/packet_buffer.cpp.o: CXX_COMPILER__to
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/parse_url.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/parse_url.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -584,6 +716,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/parse_url.cpp.o: CXX_COMPILER__torren
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/part_file.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/part_file.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -592,6 +726,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/part_file.cpp.o: CXX_COMPILER__torren
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/path.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/path.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -600,6 +736,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/path.cpp.o: CXX_COMPILER__torrent-ras
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/peer_class.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/peer_class.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -608,6 +746,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/peer_class.cpp.o: CXX_COMPILER__torre
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/peer_class_set.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/peer_class_set.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -616,6 +756,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/peer_class_set.cpp.o: CXX_COMPILER__t
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/peer_connection.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/peer_connection.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -624,6 +766,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/peer_connection.cpp.o: CXX_COMPILER__
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/peer_connection_handle.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/peer_connection_handle.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -632,6 +776,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/peer_connection_handle.cpp.o: CXX_COM
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/peer_info.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/peer_info.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -640,6 +786,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/peer_info.cpp.o: CXX_COMPILER__torren
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/peer_list.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/peer_list.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -648,6 +796,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/peer_list.cpp.o: CXX_COMPILER__torren
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/performance_counters.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/performance_counters.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -656,6 +806,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/performance_counters.cpp.o: CXX_COMPI
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/piece_picker.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/piece_picker.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -664,6 +816,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/piece_picker.cpp.o: CXX_COMPILER__tor
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/platform_util.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/platform_util.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -672,6 +826,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/platform_util.cpp.o: CXX_COMPILER__to
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/posix_disk_io.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/posix_disk_io.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -680,6 +836,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/posix_disk_io.cpp.o: CXX_COMPILER__to
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/posix_part_file.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/posix_part_file.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -688,6 +846,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/posix_part_file.cpp.o: CXX_COMPILER__
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/posix_storage.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/posix_storage.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -696,6 +856,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/posix_storage.cpp.o: CXX_COMPILER__to
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/proxy_base.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/proxy_base.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -704,6 +866,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/proxy_base.cpp.o: CXX_COMPILER__torre
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/proxy_settings.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/proxy_settings.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -712,6 +876,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/proxy_settings.cpp.o: CXX_COMPILER__t
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/puff.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/puff.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -720,6 +886,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/puff.cpp.o: CXX_COMPILER__torrent-ras
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/random.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/random.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -728,6 +896,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/random.cpp.o: CXX_COMPILER__torrent-r
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/read_resume_data.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/read_resume_data.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -736,6 +906,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/read_resume_data.cpp.o: CXX_COMPILER_
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/receive_buffer.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/receive_buffer.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -744,6 +916,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/receive_buffer.cpp.o: CXX_COMPILER__t
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/request_blocks.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/request_blocks.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -752,6 +926,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/request_blocks.cpp.o: CXX_COMPILER__t
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/resolve_links.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/resolve_links.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -760,6 +936,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/resolve_links.cpp.o: CXX_COMPILER__to
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/resolver.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/resolver.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -768,6 +946,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/resolver.cpp.o: CXX_COMPILER__torrent
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/session.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/session.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -776,6 +956,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/session.cpp.o: CXX_COMPILER__torrent-
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/session_call.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/session_call.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -784,6 +966,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/session_call.cpp.o: CXX_COMPILER__tor
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/session_handle.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/session_handle.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -792,6 +976,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/session_handle.cpp.o: CXX_COMPILER__t
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/session_impl.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/session_impl.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -800,6 +986,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/session_impl.cpp.o: CXX_COMPILER__tor
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/session_params.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/session_params.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -808,6 +996,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/session_params.cpp.o: CXX_COMPILER__t
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/session_settings.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/session_settings.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -816,6 +1006,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/session_settings.cpp.o: CXX_COMPILER_
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/session_stats.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/session_stats.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -824,6 +1016,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/session_stats.cpp.o: CXX_COMPILER__to
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/settings_pack.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/settings_pack.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -832,6 +1026,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/settings_pack.cpp.o: CXX_COMPILER__to
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/sha1.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/sha1.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -840,6 +1036,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/sha1.cpp.o: CXX_COMPILER__torrent-ras
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/sha1_hash.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/sha1_hash.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -848,6 +1046,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/sha1_hash.cpp.o: CXX_COMPILER__torren
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/sha256.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/sha256.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -856,6 +1056,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/sha256.cpp.o: CXX_COMPILER__torrent-r
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/socket_io.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/socket_io.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -864,6 +1066,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/socket_io.cpp.o: CXX_COMPILER__torren
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/socket_type.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/socket_type.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -872,6 +1076,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/socket_type.cpp.o: CXX_COMPILER__torr
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/socks5_stream.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/socks5_stream.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -880,6 +1086,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/socks5_stream.cpp.o: CXX_COMPILER__to
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/ssl.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/ssl.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -888,6 +1096,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/ssl.cpp.o: CXX_COMPILER__torrent-rast
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/stack_allocator.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/stack_allocator.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -896,6 +1106,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/stack_allocator.cpp.o: CXX_COMPILER__
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/stat.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/stat.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -904,6 +1116,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/stat.cpp.o: CXX_COMPILER__torrent-ras
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/stat_cache.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/stat_cache.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -912,6 +1126,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/stat_cache.cpp.o: CXX_COMPILER__torre
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/storage_utils.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/storage_utils.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -920,6 +1136,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/storage_utils.cpp.o: CXX_COMPILER__to
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/string_util.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/string_util.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -928,6 +1146,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/string_util.cpp.o: CXX_COMPILER__torr
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/time.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/time.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -936,6 +1156,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/time.cpp.o: CXX_COMPILER__torrent-ras
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/timestamp_history.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/timestamp_history.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -944,6 +1166,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/timestamp_history.cpp.o: CXX_COMPILER
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/torrent.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/torrent.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -952,6 +1176,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/torrent.cpp.o: CXX_COMPILER__torrent-
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/torrent_handle.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/torrent_handle.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -960,6 +1186,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/torrent_handle.cpp.o: CXX_COMPILER__t
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/torrent_info.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/torrent_info.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -968,6 +1196,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/torrent_info.cpp.o: CXX_COMPILER__tor
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/torrent_peer.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/torrent_peer.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -976,6 +1206,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/torrent_peer.cpp.o: CXX_COMPILER__tor
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/torrent_peer_allocator.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/torrent_peer_allocator.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -984,6 +1216,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/torrent_peer_allocator.cpp.o: CXX_COM
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/torrent_status.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/torrent_status.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -992,6 +1226,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/torrent_status.cpp.o: CXX_COMPILER__t
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/tracker_manager.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/tracker_manager.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1000,6 +1236,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/tracker_manager.cpp.o: CXX_COMPILER__
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/truncate.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/truncate.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1008,6 +1246,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/truncate.cpp.o: CXX_COMPILER__torrent
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/udp_socket.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/udp_socket.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1016,6 +1256,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/udp_socket.cpp.o: CXX_COMPILER__torre
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/udp_tracker_connection.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/udp_tracker_connection.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1024,6 +1266,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/udp_tracker_connection.cpp.o: CXX_COM
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/upnp.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/upnp.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1032,6 +1276,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/upnp.cpp.o: CXX_COMPILER__torrent-ras
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/utf8.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/utf8.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1040,6 +1286,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/utf8.cpp.o: CXX_COMPILER__torrent-ras
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/utp_socket_manager.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/utp_socket_manager.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1048,6 +1296,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/utp_socket_manager.cpp.o: CXX_COMPILE
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/utp_stream.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/utp_stream.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1056,6 +1306,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/utp_stream.cpp.o: CXX_COMPILER__torre
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/version.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/version.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1064,6 +1316,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/version.cpp.o: CXX_COMPILER__torrent-
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/web_connection_base.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/web_connection_base.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1072,6 +1326,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/web_connection_base.cpp.o: CXX_COMPIL
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/web_peer_connection.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/web_peer_connection.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1080,6 +1336,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/web_peer_connection.cpp.o: CXX_COMPIL
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/write_resume_data.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/write_resume_data.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1088,6 +1346,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/write_resume_data.cpp.o: CXX_COMPILER
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/xml_parse.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/xml_parse.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1096,6 +1356,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/xml_parse.cpp.o: CXX_COMPILER__torren
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/smart_ban.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/smart_ban.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1104,6 +1366,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/smart_ban.cpp.o: CXX_COMPILER__torren
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/ut_pex.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/ut_pex.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1112,6 +1376,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/ut_pex.cpp.o: CXX_COMPILER__torrent-r
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/ut_metadata.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/ut_metadata.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1120,6 +1386,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/ut_metadata.cpp.o: CXX_COMPILER__torr
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/deps/try_signal/try_signal.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/deps/try_signal/try_signal.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1128,6 +1396,8 @@ build CMakeFiles/torrent-rasterbar.dir/deps/try_signal/try_signal.cpp.o: CXX_COM
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/deps/try_signal
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/deps/try_signal/signal_error_code.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/deps/try_signal/signal_error_code.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1136,6 +1406,8 @@ build CMakeFiles/torrent-rasterbar.dir/deps/try_signal/signal_error_code.cpp.o: 
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/deps/try_signal
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/pe_crypto.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/pe_crypto.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1144,6 +1416,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/pe_crypto.cpp.o: CXX_COMPILER__torren
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/kademlia/dht_settings.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/kademlia/dht_settings.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1152,6 +1426,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/kademlia/dht_settings.cpp.o: CXX_COMP
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src/kademlia
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/kademlia/dht_state.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/kademlia/dht_state.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1160,6 +1436,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/kademlia/dht_state.cpp.o: CXX_COMPILE
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src/kademlia
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/kademlia/dht_storage.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/kademlia/dht_storage.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1168,6 +1446,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/kademlia/dht_storage.cpp.o: CXX_COMPI
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src/kademlia
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/kademlia/dht_tracker.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/kademlia/dht_tracker.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1176,6 +1456,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/kademlia/dht_tracker.cpp.o: CXX_COMPI
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src/kademlia
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/kademlia/dos_blocker.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/kademlia/dos_blocker.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1184,6 +1466,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/kademlia/dos_blocker.cpp.o: CXX_COMPI
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src/kademlia
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/kademlia/ed25519.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/kademlia/ed25519.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1192,6 +1476,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/kademlia/ed25519.cpp.o: CXX_COMPILER_
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src/kademlia
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/kademlia/find_data.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/kademlia/find_data.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1200,6 +1486,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/kademlia/find_data.cpp.o: CXX_COMPILE
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src/kademlia
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/kademlia/get_item.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/kademlia/get_item.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1208,6 +1496,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/kademlia/get_item.cpp.o: CXX_COMPILER
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src/kademlia
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/kademlia/get_peers.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/kademlia/get_peers.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1216,6 +1506,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/kademlia/get_peers.cpp.o: CXX_COMPILE
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src/kademlia
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/kademlia/item.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/kademlia/item.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1224,6 +1516,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/kademlia/item.cpp.o: CXX_COMPILER__to
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src/kademlia
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/kademlia/msg.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/kademlia/msg.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1232,6 +1526,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/kademlia/msg.cpp.o: CXX_COMPILER__tor
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src/kademlia
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/kademlia/node.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/kademlia/node.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1240,6 +1536,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/kademlia/node.cpp.o: CXX_COMPILER__to
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src/kademlia
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/kademlia/node_entry.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/kademlia/node_entry.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1248,6 +1546,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/kademlia/node_entry.cpp.o: CXX_COMPIL
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src/kademlia
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/kademlia/node_id.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/kademlia/node_id.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1256,6 +1556,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/kademlia/node_id.cpp.o: CXX_COMPILER_
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src/kademlia
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/kademlia/put_data.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/kademlia/put_data.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1264,6 +1566,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/kademlia/put_data.cpp.o: CXX_COMPILER
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src/kademlia
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/kademlia/refresh.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/kademlia/refresh.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1272,6 +1576,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/kademlia/refresh.cpp.o: CXX_COMPILER_
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src/kademlia
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/kademlia/routing_table.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/kademlia/routing_table.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1280,6 +1586,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/kademlia/routing_table.cpp.o: CXX_COM
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src/kademlia
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/kademlia/rpc_manager.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/kademlia/rpc_manager.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1288,6 +1596,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/kademlia/rpc_manager.cpp.o: CXX_COMPI
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src/kademlia
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/kademlia/sample_infohashes.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/kademlia/sample_infohashes.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1296,6 +1606,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/kademlia/sample_infohashes.cpp.o: CXX
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src/kademlia
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/kademlia/traversal_algorithm.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/kademlia/traversal_algorithm.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1304,6 +1616,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/kademlia/traversal_algorithm.cpp.o: C
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src/kademlia
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/ed25519/add_scalar.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/ed25519/add_scalar.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1312,6 +1626,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/ed25519/add_scalar.cpp.o: CXX_COMPILE
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src/ed25519
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/ed25519/fe.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/ed25519/fe.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1320,6 +1636,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/ed25519/fe.cpp.o: CXX_COMPILER__torre
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src/ed25519
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/ed25519/ge.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/ed25519/ge.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1328,6 +1646,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/ed25519/ge.cpp.o: CXX_COMPILER__torre
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src/ed25519
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/ed25519/key_exchange.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/ed25519/key_exchange.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1336,6 +1656,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/ed25519/key_exchange.cpp.o: CXX_COMPI
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src/ed25519
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/ed25519/keypair.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/ed25519/keypair.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1344,6 +1666,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/ed25519/keypair.cpp.o: CXX_COMPILER__
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src/ed25519
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/ed25519/sc.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/ed25519/sc.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1352,6 +1676,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/ed25519/sc.cpp.o: CXX_COMPILER__torre
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src/ed25519
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/ed25519/sign.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/ed25519/sign.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1360,6 +1686,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/ed25519/sign.cpp.o: CXX_COMPILER__tor
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src/ed25519
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/ed25519/verify.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/ed25519/verify.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1368,6 +1696,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/ed25519/verify.cpp.o: CXX_COMPILER__t
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src/ed25519
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/ed25519/sha512.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/ed25519/sha512.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1376,6 +1706,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/ed25519/sha512.cpp.o: CXX_COMPILER__t
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src/ed25519
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 build CMakeFiles/torrent-rasterbar.dir/src/ed25519/hasher512.cpp.o: CXX_COMPILER__torrent-rasterbar_unscanned_Release /mnt/sdd1/dev/libtorrent/src/ed25519/hasher512.cpp || cmake_object_order_depends_target_torrent-rasterbar
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_HAS_STD_CHRONO -DBOOST_ASIO_NO_DEPRECATED -DBOOST_EXCEPTION_DISABLE -DOPENSSL_NO_SSL2 -DTORRENT_BUILDING_LIBRARY -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL -D_FILE_OFFSET_BITS=64
@@ -1384,6 +1716,8 @@ build CMakeFiles/torrent-rasterbar.dir/src/ed25519/hasher512.cpp.o: CXX_COMPILER
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include -I/mnt/sdd1/dev/libtorrent/deps/try_signal
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   OBJECT_FILE_DIR = CMakeFiles/torrent-rasterbar.dir/src/ed25519
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 
 # =============================================================================
@@ -1398,8 +1732,9 @@ build libtorrent-rasterbar.a: CXX_STATIC_LIBRARY_LINKER__torrent-rasterbar_Relea
   OBJECT_DIR = CMakeFiles/torrent-rasterbar.dir
   POST_BUILD = :
   PRE_LINK = :
+  TARGET_COMPILE_PDB = CMakeFiles/torrent-rasterbar.dir/torrent-rasterbar.pdb
   TARGET_FILE = libtorrent-rasterbar.a
-  TARGET_PDB = torrent-rasterbar.a.dbg
+  TARGET_PDB = libtorrent-rasterbar.pdb
 
 
 #############################################
@@ -1557,6 +1892,8 @@ build examples/CMakeFiles/simple_client.dir/simple_client.cpp.o: CXX_COMPILER__s
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include
   OBJECT_DIR = examples/CMakeFiles/simple_client.dir
   OBJECT_FILE_DIR = examples/CMakeFiles/simple_client.dir
+  TARGET_COMPILE_PDB = examples/CMakeFiles/simple_client.dir/
+  TARGET_PDB = examples/simple_client.pdb
 
 
 # =============================================================================
@@ -1574,8 +1911,9 @@ build examples/simple_client: CXX_EXECUTABLE_LINKER__simple_client_Release examp
   OBJECT_DIR = examples/CMakeFiles/simple_client.dir
   POST_BUILD = :
   PRE_LINK = :
+  TARGET_COMPILE_PDB = examples/CMakeFiles/simple_client.dir/
   TARGET_FILE = examples/simple_client
-  TARGET_PDB = simple_client.dbg
+  TARGET_PDB = examples/simple_client.pdb
 
 # =============================================================================
 # Object build statements for EXECUTABLE target custom_storage
@@ -1593,6 +1931,8 @@ build examples/CMakeFiles/custom_storage.dir/custom_storage.cpp.o: CXX_COMPILER_
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include
   OBJECT_DIR = examples/CMakeFiles/custom_storage.dir
   OBJECT_FILE_DIR = examples/CMakeFiles/custom_storage.dir
+  TARGET_COMPILE_PDB = examples/CMakeFiles/custom_storage.dir/
+  TARGET_PDB = examples/custom_storage.pdb
 
 
 # =============================================================================
@@ -1610,8 +1950,9 @@ build examples/custom_storage: CXX_EXECUTABLE_LINKER__custom_storage_Release exa
   OBJECT_DIR = examples/CMakeFiles/custom_storage.dir
   POST_BUILD = :
   PRE_LINK = :
+  TARGET_COMPILE_PDB = examples/CMakeFiles/custom_storage.dir/
   TARGET_FILE = examples/custom_storage
-  TARGET_PDB = custom_storage.dbg
+  TARGET_PDB = examples/custom_storage.pdb
 
 # =============================================================================
 # Object build statements for EXECUTABLE target stats_counters
@@ -1629,6 +1970,8 @@ build examples/CMakeFiles/stats_counters.dir/stats_counters.cpp.o: CXX_COMPILER_
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include
   OBJECT_DIR = examples/CMakeFiles/stats_counters.dir
   OBJECT_FILE_DIR = examples/CMakeFiles/stats_counters.dir
+  TARGET_COMPILE_PDB = examples/CMakeFiles/stats_counters.dir/
+  TARGET_PDB = examples/stats_counters.pdb
 
 
 # =============================================================================
@@ -1646,8 +1989,9 @@ build examples/stats_counters: CXX_EXECUTABLE_LINKER__stats_counters_Release exa
   OBJECT_DIR = examples/CMakeFiles/stats_counters.dir
   POST_BUILD = :
   PRE_LINK = :
+  TARGET_COMPILE_PDB = examples/CMakeFiles/stats_counters.dir/
   TARGET_FILE = examples/stats_counters
-  TARGET_PDB = stats_counters.dbg
+  TARGET_PDB = examples/stats_counters.pdb
 
 # =============================================================================
 # Object build statements for EXECUTABLE target dump_torrent
@@ -1665,6 +2009,8 @@ build examples/CMakeFiles/dump_torrent.dir/dump_torrent.cpp.o: CXX_COMPILER__dum
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include
   OBJECT_DIR = examples/CMakeFiles/dump_torrent.dir
   OBJECT_FILE_DIR = examples/CMakeFiles/dump_torrent.dir
+  TARGET_COMPILE_PDB = examples/CMakeFiles/dump_torrent.dir/
+  TARGET_PDB = examples/dump_torrent.pdb
 
 
 # =============================================================================
@@ -1682,8 +2028,9 @@ build examples/dump_torrent: CXX_EXECUTABLE_LINKER__dump_torrent_Release example
   OBJECT_DIR = examples/CMakeFiles/dump_torrent.dir
   POST_BUILD = :
   PRE_LINK = :
+  TARGET_COMPILE_PDB = examples/CMakeFiles/dump_torrent.dir/
   TARGET_FILE = examples/dump_torrent
-  TARGET_PDB = dump_torrent.dbg
+  TARGET_PDB = examples/dump_torrent.pdb
 
 # =============================================================================
 # Object build statements for EXECUTABLE target dump_bdecode
@@ -1701,6 +2048,8 @@ build examples/CMakeFiles/dump_bdecode.dir/dump_bdecode.cpp.o: CXX_COMPILER__dum
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include
   OBJECT_DIR = examples/CMakeFiles/dump_bdecode.dir
   OBJECT_FILE_DIR = examples/CMakeFiles/dump_bdecode.dir
+  TARGET_COMPILE_PDB = examples/CMakeFiles/dump_bdecode.dir/
+  TARGET_PDB = examples/dump_bdecode.pdb
 
 
 # =============================================================================
@@ -1718,8 +2067,9 @@ build examples/dump_bdecode: CXX_EXECUTABLE_LINKER__dump_bdecode_Release example
   OBJECT_DIR = examples/CMakeFiles/dump_bdecode.dir
   POST_BUILD = :
   PRE_LINK = :
+  TARGET_COMPILE_PDB = examples/CMakeFiles/dump_bdecode.dir/
   TARGET_FILE = examples/dump_bdecode
-  TARGET_PDB = dump_bdecode.dbg
+  TARGET_PDB = examples/dump_bdecode.pdb
 
 # =============================================================================
 # Object build statements for EXECUTABLE target make_torrent
@@ -1737,6 +2087,8 @@ build examples/CMakeFiles/make_torrent.dir/make_torrent.cpp.o: CXX_COMPILER__mak
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include
   OBJECT_DIR = examples/CMakeFiles/make_torrent.dir
   OBJECT_FILE_DIR = examples/CMakeFiles/make_torrent.dir
+  TARGET_COMPILE_PDB = examples/CMakeFiles/make_torrent.dir/
+  TARGET_PDB = examples/make_torrent.pdb
 
 
 # =============================================================================
@@ -1754,8 +2106,9 @@ build examples/make_torrent: CXX_EXECUTABLE_LINKER__make_torrent_Release example
   OBJECT_DIR = examples/CMakeFiles/make_torrent.dir
   POST_BUILD = :
   PRE_LINK = :
+  TARGET_COMPILE_PDB = examples/CMakeFiles/make_torrent.dir/
   TARGET_FILE = examples/make_torrent
-  TARGET_PDB = make_torrent.dbg
+  TARGET_PDB = examples/make_torrent.pdb
 
 # =============================================================================
 # Object build statements for EXECUTABLE target connection_tester
@@ -1773,6 +2126,8 @@ build examples/CMakeFiles/connection_tester.dir/connection_tester.cpp.o: CXX_COM
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include
   OBJECT_DIR = examples/CMakeFiles/connection_tester.dir
   OBJECT_FILE_DIR = examples/CMakeFiles/connection_tester.dir
+  TARGET_COMPILE_PDB = examples/CMakeFiles/connection_tester.dir/
+  TARGET_PDB = examples/connection_tester.pdb
 
 
 # =============================================================================
@@ -1790,8 +2145,9 @@ build examples/connection_tester: CXX_EXECUTABLE_LINKER__connection_tester_Relea
   OBJECT_DIR = examples/CMakeFiles/connection_tester.dir
   POST_BUILD = :
   PRE_LINK = :
+  TARGET_COMPILE_PDB = examples/CMakeFiles/connection_tester.dir/
   TARGET_FILE = examples/connection_tester
-  TARGET_PDB = connection_tester.dbg
+  TARGET_PDB = examples/connection_tester.pdb
 
 # =============================================================================
 # Object build statements for EXECUTABLE target upnp_test
@@ -1809,6 +2165,8 @@ build examples/CMakeFiles/upnp_test.dir/upnp_test.cpp.o: CXX_COMPILER__upnp_test
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include
   OBJECT_DIR = examples/CMakeFiles/upnp_test.dir
   OBJECT_FILE_DIR = examples/CMakeFiles/upnp_test.dir
+  TARGET_COMPILE_PDB = examples/CMakeFiles/upnp_test.dir/
+  TARGET_PDB = examples/upnp_test.pdb
 
 
 # =============================================================================
@@ -1826,8 +2184,9 @@ build examples/upnp_test: CXX_EXECUTABLE_LINKER__upnp_test_Release examples/CMak
   OBJECT_DIR = examples/CMakeFiles/upnp_test.dir
   POST_BUILD = :
   PRE_LINK = :
+  TARGET_COMPILE_PDB = examples/CMakeFiles/upnp_test.dir/
   TARGET_FILE = examples/upnp_test
-  TARGET_PDB = upnp_test.dbg
+  TARGET_PDB = examples/upnp_test.pdb
 
 # =============================================================================
 # Object build statements for EXECUTABLE target client_test
@@ -1845,6 +2204,8 @@ build examples/CMakeFiles/client_test.dir/client_test.cpp.o: CXX_COMPILER__clien
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include
   OBJECT_DIR = examples/CMakeFiles/client_test.dir
   OBJECT_FILE_DIR = examples/CMakeFiles/client_test.dir
+  TARGET_COMPILE_PDB = examples/CMakeFiles/client_test.dir/
+  TARGET_PDB = examples/client_test.pdb
 
 build examples/CMakeFiles/client_test.dir/print.cpp.o: CXX_COMPILER__client_test_unscanned_Release /mnt/sdd1/dev/libtorrent/examples/print.cpp || cmake_object_order_depends_target_client_test
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_NO_DEPRECATED -DOPENSSL_NO_SSL2 -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL
@@ -1853,6 +2214,8 @@ build examples/CMakeFiles/client_test.dir/print.cpp.o: CXX_COMPILER__client_test
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include
   OBJECT_DIR = examples/CMakeFiles/client_test.dir
   OBJECT_FILE_DIR = examples/CMakeFiles/client_test.dir
+  TARGET_COMPILE_PDB = examples/CMakeFiles/client_test.dir/
+  TARGET_PDB = examples/client_test.pdb
 
 build examples/CMakeFiles/client_test.dir/torrent_view.cpp.o: CXX_COMPILER__client_test_unscanned_Release /mnt/sdd1/dev/libtorrent/examples/torrent_view.cpp || cmake_object_order_depends_target_client_test
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_NO_DEPRECATED -DOPENSSL_NO_SSL2 -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL
@@ -1861,6 +2224,8 @@ build examples/CMakeFiles/client_test.dir/torrent_view.cpp.o: CXX_COMPILER__clie
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include
   OBJECT_DIR = examples/CMakeFiles/client_test.dir
   OBJECT_FILE_DIR = examples/CMakeFiles/client_test.dir
+  TARGET_COMPILE_PDB = examples/CMakeFiles/client_test.dir/
+  TARGET_PDB = examples/client_test.pdb
 
 build examples/CMakeFiles/client_test.dir/session_view.cpp.o: CXX_COMPILER__client_test_unscanned_Release /mnt/sdd1/dev/libtorrent/examples/session_view.cpp || cmake_object_order_depends_target_client_test
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_NO_DEPRECATED -DOPENSSL_NO_SSL2 -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL
@@ -1869,6 +2234,8 @@ build examples/CMakeFiles/client_test.dir/session_view.cpp.o: CXX_COMPILER__clie
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include
   OBJECT_DIR = examples/CMakeFiles/client_test.dir
   OBJECT_FILE_DIR = examples/CMakeFiles/client_test.dir
+  TARGET_COMPILE_PDB = examples/CMakeFiles/client_test.dir/
+  TARGET_PDB = examples/client_test.pdb
 
 
 # =============================================================================
@@ -1886,8 +2253,9 @@ build examples/client_test: CXX_EXECUTABLE_LINKER__client_test_Release examples/
   OBJECT_DIR = examples/CMakeFiles/client_test.dir
   POST_BUILD = :
   PRE_LINK = :
+  TARGET_COMPILE_PDB = examples/CMakeFiles/client_test.dir/
   TARGET_FILE = examples/client_test
-  TARGET_PDB = client_test.dbg
+  TARGET_PDB = examples/client_test.pdb
 
 # =============================================================================
 # Object build statements for EXECUTABLE target client_test_piece_cache
@@ -1905,6 +2273,8 @@ build examples/CMakeFiles/client_test_piece_cache.dir/client_test_piece_cache.cp
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include
   OBJECT_DIR = examples/CMakeFiles/client_test_piece_cache.dir
   OBJECT_FILE_DIR = examples/CMakeFiles/client_test_piece_cache.dir
+  TARGET_COMPILE_PDB = examples/CMakeFiles/client_test_piece_cache.dir/
+  TARGET_PDB = examples/client_test_piece_cache.pdb
 
 build examples/CMakeFiles/client_test_piece_cache.dir/print.cpp.o: CXX_COMPILER__client_test_piece_cache_unscanned_Release /mnt/sdd1/dev/libtorrent/examples/print.cpp || cmake_object_order_depends_target_client_test_piece_cache
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_NO_DEPRECATED -DOPENSSL_NO_SSL2 -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL
@@ -1913,6 +2283,8 @@ build examples/CMakeFiles/client_test_piece_cache.dir/print.cpp.o: CXX_COMPILER_
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include
   OBJECT_DIR = examples/CMakeFiles/client_test_piece_cache.dir
   OBJECT_FILE_DIR = examples/CMakeFiles/client_test_piece_cache.dir
+  TARGET_COMPILE_PDB = examples/CMakeFiles/client_test_piece_cache.dir/
+  TARGET_PDB = examples/client_test_piece_cache.pdb
 
 build examples/CMakeFiles/client_test_piece_cache.dir/torrent_view.cpp.o: CXX_COMPILER__client_test_piece_cache_unscanned_Release /mnt/sdd1/dev/libtorrent/examples/torrent_view.cpp || cmake_object_order_depends_target_client_test_piece_cache
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_NO_DEPRECATED -DOPENSSL_NO_SSL2 -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL
@@ -1921,6 +2293,8 @@ build examples/CMakeFiles/client_test_piece_cache.dir/torrent_view.cpp.o: CXX_CO
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include
   OBJECT_DIR = examples/CMakeFiles/client_test_piece_cache.dir
   OBJECT_FILE_DIR = examples/CMakeFiles/client_test_piece_cache.dir
+  TARGET_COMPILE_PDB = examples/CMakeFiles/client_test_piece_cache.dir/
+  TARGET_PDB = examples/client_test_piece_cache.pdb
 
 build examples/CMakeFiles/client_test_piece_cache.dir/session_view.cpp.o: CXX_COMPILER__client_test_piece_cache_unscanned_Release /mnt/sdd1/dev/libtorrent/examples/session_view.cpp || cmake_object_order_depends_target_client_test_piece_cache
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_NO_DEPRECATED -DOPENSSL_NO_SSL2 -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL
@@ -1929,6 +2303,8 @@ build examples/CMakeFiles/client_test_piece_cache.dir/session_view.cpp.o: CXX_CO
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include
   OBJECT_DIR = examples/CMakeFiles/client_test_piece_cache.dir
   OBJECT_FILE_DIR = examples/CMakeFiles/client_test_piece_cache.dir
+  TARGET_COMPILE_PDB = examples/CMakeFiles/client_test_piece_cache.dir/
+  TARGET_PDB = examples/client_test_piece_cache.pdb
 
 build examples/CMakeFiles/client_test_piece_cache.dir/piece_cache_manager.cpp.o: CXX_COMPILER__client_test_piece_cache_unscanned_Release /mnt/sdd1/dev/libtorrent/examples/piece_cache_manager.cpp || cmake_object_order_depends_target_client_test_piece_cache
   DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_NO_DEPRECATED -DOPENSSL_NO_SSL2 -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL
@@ -1937,6 +2313,48 @@ build examples/CMakeFiles/client_test_piece_cache.dir/piece_cache_manager.cpp.o:
   INCLUDES = -I/mnt/sdd1/dev/libtorrent/include
   OBJECT_DIR = examples/CMakeFiles/client_test_piece_cache.dir
   OBJECT_FILE_DIR = examples/CMakeFiles/client_test_piece_cache.dir
+  TARGET_COMPILE_PDB = examples/CMakeFiles/client_test_piece_cache.dir/
+  TARGET_PDB = examples/client_test_piece_cache.pdb
+
+build examples/CMakeFiles/client_test_piece_cache.dir/cache_config.cpp.o: CXX_COMPILER__client_test_piece_cache_unscanned_Release /mnt/sdd1/dev/libtorrent/examples/cache_config.cpp || cmake_object_order_depends_target_client_test_piece_cache
+  DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_NO_DEPRECATED -DOPENSSL_NO_SSL2 -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL
+  DEP_FILE = examples/CMakeFiles/client_test_piece_cache.dir/cache_config.cpp.o.d
+  FLAGS = -static-libstdc++ -static-libgcc -O3 -DNDEBUG -static-libstdc++ -static-libgcc -std=gnu++17 -Wall -Wextra -Wpedantic -Wvla -Wno-noexcept-type -Wno-format-zero-length -ftemplate-depth=512 -fexceptions
+  INCLUDES = -I/mnt/sdd1/dev/libtorrent/include
+  OBJECT_DIR = examples/CMakeFiles/client_test_piece_cache.dir
+  OBJECT_FILE_DIR = examples/CMakeFiles/client_test_piece_cache.dir
+  TARGET_COMPILE_PDB = examples/CMakeFiles/client_test_piece_cache.dir/
+  TARGET_PDB = examples/client_test_piece_cache.pdb
+
+build examples/CMakeFiles/client_test_piece_cache.dir/cache_alerts.cpp.o: CXX_COMPILER__client_test_piece_cache_unscanned_Release /mnt/sdd1/dev/libtorrent/examples/cache_alerts.cpp || cmake_object_order_depends_target_client_test_piece_cache
+  DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_NO_DEPRECATED -DOPENSSL_NO_SSL2 -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL
+  DEP_FILE = examples/CMakeFiles/client_test_piece_cache.dir/cache_alerts.cpp.o.d
+  FLAGS = -static-libstdc++ -static-libgcc -O3 -DNDEBUG -static-libstdc++ -static-libgcc -std=gnu++17 -Wall -Wextra -Wpedantic -Wvla -Wno-noexcept-type -Wno-format-zero-length -ftemplate-depth=512 -fexceptions
+  INCLUDES = -I/mnt/sdd1/dev/libtorrent/include
+  OBJECT_DIR = examples/CMakeFiles/client_test_piece_cache.dir
+  OBJECT_FILE_DIR = examples/CMakeFiles/client_test_piece_cache.dir
+  TARGET_COMPILE_PDB = examples/CMakeFiles/client_test_piece_cache.dir/
+  TARGET_PDB = examples/client_test_piece_cache.pdb
+
+build examples/CMakeFiles/client_test_piece_cache.dir/torrent_utils.cpp.o: CXX_COMPILER__client_test_piece_cache_unscanned_Release /mnt/sdd1/dev/libtorrent/examples/torrent_utils.cpp || cmake_object_order_depends_target_client_test_piece_cache
+  DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_NO_DEPRECATED -DOPENSSL_NO_SSL2 -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL
+  DEP_FILE = examples/CMakeFiles/client_test_piece_cache.dir/torrent_utils.cpp.o.d
+  FLAGS = -static-libstdc++ -static-libgcc -O3 -DNDEBUG -static-libstdc++ -static-libgcc -std=gnu++17 -Wall -Wextra -Wpedantic -Wvla -Wno-noexcept-type -Wno-format-zero-length -ftemplate-depth=512 -fexceptions
+  INCLUDES = -I/mnt/sdd1/dev/libtorrent/include
+  OBJECT_DIR = examples/CMakeFiles/client_test_piece_cache.dir
+  OBJECT_FILE_DIR = examples/CMakeFiles/client_test_piece_cache.dir
+  TARGET_COMPILE_PDB = examples/CMakeFiles/client_test_piece_cache.dir/
+  TARGET_PDB = examples/client_test_piece_cache.pdb
+
+build examples/CMakeFiles/client_test_piece_cache.dir/file_utils.cpp.o: CXX_COMPILER__client_test_piece_cache_unscanned_Release /mnt/sdd1/dev/libtorrent/examples/file_utils.cpp || cmake_object_order_depends_target_client_test_piece_cache
+  DEFINES = -DBOOST_ASIO_ENABLE_CANCELIO -DBOOST_ASIO_NO_DEPRECATED -DOPENSSL_NO_SSL2 -DTORRENT_SSL_PEERS -DTORRENT_USE_LIBCRYPTO -DTORRENT_USE_OPENSSL
+  DEP_FILE = examples/CMakeFiles/client_test_piece_cache.dir/file_utils.cpp.o.d
+  FLAGS = -static-libstdc++ -static-libgcc -O3 -DNDEBUG -static-libstdc++ -static-libgcc -std=gnu++17 -Wall -Wextra -Wpedantic -Wvla -Wno-noexcept-type -Wno-format-zero-length -ftemplate-depth=512 -fexceptions
+  INCLUDES = -I/mnt/sdd1/dev/libtorrent/include
+  OBJECT_DIR = examples/CMakeFiles/client_test_piece_cache.dir
+  OBJECT_FILE_DIR = examples/CMakeFiles/client_test_piece_cache.dir
+  TARGET_COMPILE_PDB = examples/CMakeFiles/client_test_piece_cache.dir/
+  TARGET_PDB = examples/client_test_piece_cache.pdb
 
 
 # =============================================================================
@@ -1946,7 +2364,7 @@ build examples/CMakeFiles/client_test_piece_cache.dir/piece_cache_manager.cpp.o:
 #############################################
 # Link the executable examples/client_test_piece_cache
 
-build examples/client_test_piece_cache: CXX_EXECUTABLE_LINKER__client_test_piece_cache_Release examples/CMakeFiles/client_test_piece_cache.dir/client_test_piece_cache.cpp.o examples/CMakeFiles/client_test_piece_cache.dir/print.cpp.o examples/CMakeFiles/client_test_piece_cache.dir/torrent_view.cpp.o examples/CMakeFiles/client_test_piece_cache.dir/session_view.cpp.o examples/CMakeFiles/client_test_piece_cache.dir/piece_cache_manager.cpp.o | libtorrent-rasterbar.a /usr/lib/x86_64-linux-gnu/libssl.so /usr/lib/x86_64-linux-gnu/libcrypto.so || libtorrent-rasterbar.a
+build examples/client_test_piece_cache: CXX_EXECUTABLE_LINKER__client_test_piece_cache_Release examples/CMakeFiles/client_test_piece_cache.dir/client_test_piece_cache.cpp.o examples/CMakeFiles/client_test_piece_cache.dir/print.cpp.o examples/CMakeFiles/client_test_piece_cache.dir/torrent_view.cpp.o examples/CMakeFiles/client_test_piece_cache.dir/session_view.cpp.o examples/CMakeFiles/client_test_piece_cache.dir/piece_cache_manager.cpp.o examples/CMakeFiles/client_test_piece_cache.dir/cache_config.cpp.o examples/CMakeFiles/client_test_piece_cache.dir/cache_alerts.cpp.o examples/CMakeFiles/client_test_piece_cache.dir/torrent_utils.cpp.o examples/CMakeFiles/client_test_piece_cache.dir/file_utils.cpp.o | libtorrent-rasterbar.a /usr/lib/x86_64-linux-gnu/libssl.so /usr/lib/x86_64-linux-gnu/libcrypto.so || libtorrent-rasterbar.a
   DEP_FILE = examples/CMakeFiles/client_test_piece_cache.dir/link.d
   FLAGS = -static-libstdc++ -static-libgcc -O3 -DNDEBUG -static-libstdc++ -static-libgcc
   LINK_FLAGS = -Wl,--dependency-file=examples/CMakeFiles/client_test_piece_cache.dir/link.d
@@ -1954,8 +2372,9 @@ build examples/client_test_piece_cache: CXX_EXECUTABLE_LINKER__client_test_piece
   OBJECT_DIR = examples/CMakeFiles/client_test_piece_cache.dir
   POST_BUILD = :
   PRE_LINK = :
+  TARGET_COMPILE_PDB = examples/CMakeFiles/client_test_piece_cache.dir/
   TARGET_FILE = examples/client_test_piece_cache
-  TARGET_PDB = client_test_piece_cache.dbg
+  TARGET_PDB = examples/client_test_piece_cache.pdb
 
 
 #############################################
@@ -2078,14 +2497,14 @@ build examples/all: phony examples/simple_client examples/custom_storage example
 #############################################
 # Re-run CMake if any of its inputs changed.
 
-build build.ninja: RERUN_CMAKE | /mnt/sdd1/dev/libtorrent/CMakeLists.txt /mnt/sdd1/dev/libtorrent/LibtorrentRasterbarConfig.cmake.in /mnt/sdd1/dev/libtorrent/bindings/CMakeLists.txt /mnt/sdd1/dev/libtorrent/cmake/Modules/GeneratePkgConfig.cmake /mnt/sdd1/dev/libtorrent/cmake/Modules/GeneratePkgConfig/generate-pkg-config.cmake.in /mnt/sdd1/dev/libtorrent/cmake/Modules/GeneratePkgConfig/target-compile-settings.cmake.in /mnt/sdd1/dev/libtorrent/cmake/Modules/LibtorrentMacros.cmake /mnt/sdd1/dev/libtorrent/cmake/Modules/ucm_flags.cmake /mnt/sdd1/dev/libtorrent/examples/CMakeLists.txt /usr/lib/x86_64-linux-gnu/cmake/Boost-1.83.0/BoostConfig.cmake /usr/lib/x86_64-linux-gnu/cmake/Boost-1.83.0/BoostConfigVersion.cmake /usr/lib/x86_64-linux-gnu/cmake/boost_headers-1.83.0/boost_headers-config-version.cmake /usr/lib/x86_64-linux-gnu/cmake/boost_headers-1.83.0/boost_headers-config.cmake /usr/share/cmake-3.31/Modules/BasicConfigVersion-AnyNewerVersion.cmake.in /usr/share/cmake-3.31/Modules/CMakeCInformation.cmake /usr/share/cmake-3.31/Modules/CMakeCXXInformation.cmake /usr/share/cmake-3.31/Modules/CMakeCheckCompilerFlagCommonPatterns.cmake /usr/share/cmake-3.31/Modules/CMakeCommonLanguageInclude.cmake /usr/share/cmake-3.31/Modules/CMakeGenericSystem.cmake /usr/share/cmake-3.31/Modules/CMakeInitializeConfigs.cmake /usr/share/cmake-3.31/Modules/CMakeLanguageInformation.cmake /usr/share/cmake-3.31/Modules/CMakePackageConfigHelpers.cmake /usr/share/cmake-3.31/Modules/CMakeParseArguments.cmake /usr/share/cmake-3.31/Modules/CMakeSystemSpecificInformation.cmake /usr/share/cmake-3.31/Modules/CMakeSystemSpecificInitialize.cmake /usr/share/cmake-3.31/Modules/CheckCSourceCompiles.cmake /usr/share/cmake-3.31/Modules/CheckCXXCompilerFlag.cmake /usr/share/cmake-3.31/Modules/CheckCXXSourceCompiles.cmake /usr/share/cmake-3.31/Modules/CheckIncludeFile.cmake /usr/share/cmake-3.31/Modules/CheckLibraryExists.cmake /usr/share/cmake-3.31/Modules/Compiler/CMakeCommonCompilerMacros.cmake /usr/share/cmake-3.31/Modules/Compiler/GNU-C.cmake /usr/share/cmake-3.31/Modules/Compiler/GNU-CXX.cmake /usr/share/cmake-3.31/Modules/Compiler/GNU.cmake /usr/share/cmake-3.31/Modules/FeatureSummary.cmake /usr/share/cmake-3.31/Modules/FindBoost.cmake /usr/share/cmake-3.31/Modules/FindOpenSSL.cmake /usr/share/cmake-3.31/Modules/FindPackageHandleStandardArgs.cmake /usr/share/cmake-3.31/Modules/FindPackageMessage.cmake /usr/share/cmake-3.31/Modules/FindPkgConfig.cmake /usr/share/cmake-3.31/Modules/FindThreads.cmake /usr/share/cmake-3.31/Modules/GNUInstallDirs.cmake /usr/share/cmake-3.31/Modules/Internal/CMakeCLinkerInformation.cmake /usr/share/cmake-3.31/Modules/Internal/CMakeCXXLinkerInformation.cmake /usr/share/cmake-3.31/Modules/Internal/CMakeCommonLinkerInformation.cmake /usr/share/cmake-3.31/Modules/Internal/CheckCompilerFlag.cmake /usr/share/cmake-3.31/Modules/Internal/CheckFlagCommonConfig.cmake /usr/share/cmake-3.31/Modules/Internal/CheckSourceCompiles.cmake /usr/share/cmake-3.31/Modules/Linker/GNU-C.cmake /usr/share/cmake-3.31/Modules/Linker/GNU-CXX.cmake /usr/share/cmake-3.31/Modules/Linker/GNU.cmake /usr/share/cmake-3.31/Modules/Platform/Linker/GNU.cmake /usr/share/cmake-3.31/Modules/Platform/Linker/Linux-GNU-C.cmake /usr/share/cmake-3.31/Modules/Platform/Linker/Linux-GNU-CXX.cmake /usr/share/cmake-3.31/Modules/Platform/Linker/Linux-GNU.cmake /usr/share/cmake-3.31/Modules/Platform/Linux-GNU-C.cmake /usr/share/cmake-3.31/Modules/Platform/Linux-GNU-CXX.cmake /usr/share/cmake-3.31/Modules/Platform/Linux-GNU.cmake /usr/share/cmake-3.31/Modules/Platform/Linux-Initialize.cmake /usr/share/cmake-3.31/Modules/Platform/Linux.cmake /usr/share/cmake-3.31/Modules/Platform/UnixPaths.cmake /usr/share/cmake-3.31/Modules/WriteBasicConfigVersionFile.cmake CMakeCache.txt CMakeFiles/3.31.6/CMakeCCompiler.cmake CMakeFiles/3.31.6/CMakeCXXCompiler.cmake CMakeFiles/3.31.6/CMakeSystem.cmake torrent-rasterbar-pkgconfig/compile-settings.cmake
+build build.ninja: RERUN_CMAKE | /mnt/sdd1/dev/libtorrent/CMakeLists.txt /mnt/sdd1/dev/libtorrent/LibtorrentRasterbarConfig.cmake.in /mnt/sdd1/dev/libtorrent/bindings/CMakeLists.txt /mnt/sdd1/dev/libtorrent/cmake/Modules/GeneratePkgConfig.cmake /mnt/sdd1/dev/libtorrent/cmake/Modules/GeneratePkgConfig/generate-pkg-config.cmake.in /mnt/sdd1/dev/libtorrent/cmake/Modules/GeneratePkgConfig/target-compile-settings.cmake.in /mnt/sdd1/dev/libtorrent/cmake/Modules/LibtorrentMacros.cmake /mnt/sdd1/dev/libtorrent/cmake/Modules/ucm_flags.cmake /mnt/sdd1/dev/libtorrent/examples/CMakeLists.txt /usr/lib/x86_64-linux-gnu/cmake/Boost-1.83.0/BoostConfig.cmake /usr/lib/x86_64-linux-gnu/cmake/Boost-1.83.0/BoostConfigVersion.cmake /usr/lib/x86_64-linux-gnu/cmake/boost_headers-1.83.0/boost_headers-config-version.cmake /usr/lib/x86_64-linux-gnu/cmake/boost_headers-1.83.0/boost_headers-config.cmake /usr/share/cmake-3.31/Modules/BasicConfigVersion-AnyNewerVersion.cmake.in /usr/share/cmake-3.31/Modules/CMakeCCompiler.cmake.in /usr/share/cmake-3.31/Modules/CMakeCCompilerABI.c /usr/share/cmake-3.31/Modules/CMakeCInformation.cmake /usr/share/cmake-3.31/Modules/CMakeCXXCompiler.cmake.in /usr/share/cmake-3.31/Modules/CMakeCXXCompilerABI.cpp /usr/share/cmake-3.31/Modules/CMakeCXXInformation.cmake /usr/share/cmake-3.31/Modules/CMakeCheckCompilerFlagCommonPatterns.cmake /usr/share/cmake-3.31/Modules/CMakeCommonLanguageInclude.cmake /usr/share/cmake-3.31/Modules/CMakeCompilerIdDetection.cmake /usr/share/cmake-3.31/Modules/CMakeDetermineCCompiler.cmake /usr/share/cmake-3.31/Modules/CMakeDetermineCXXCompiler.cmake /usr/share/cmake-3.31/Modules/CMakeDetermineCompiler.cmake /usr/share/cmake-3.31/Modules/CMakeDetermineCompilerABI.cmake /usr/share/cmake-3.31/Modules/CMakeDetermineCompilerId.cmake /usr/share/cmake-3.31/Modules/CMakeDetermineCompilerSupport.cmake /usr/share/cmake-3.31/Modules/CMakeDetermineSystem.cmake /usr/share/cmake-3.31/Modules/CMakeFindBinUtils.cmake /usr/share/cmake-3.31/Modules/CMakeGenericSystem.cmake /usr/share/cmake-3.31/Modules/CMakeInitializeConfigs.cmake /usr/share/cmake-3.31/Modules/CMakeLanguageInformation.cmake /usr/share/cmake-3.31/Modules/CMakeNinjaFindMake.cmake /usr/share/cmake-3.31/Modules/CMakePackageConfigHelpers.cmake /usr/share/cmake-3.31/Modules/CMakeParseArguments.cmake /usr/share/cmake-3.31/Modules/CMakeParseImplicitIncludeInfo.cmake /usr/share/cmake-3.31/Modules/CMakeParseImplicitLinkInfo.cmake /usr/share/cmake-3.31/Modules/CMakeParseLibraryArchitecture.cmake /usr/share/cmake-3.31/Modules/CMakeSystem.cmake.in /usr/share/cmake-3.31/Modules/CMakeSystemSpecificInformation.cmake /usr/share/cmake-3.31/Modules/CMakeSystemSpecificInitialize.cmake /usr/share/cmake-3.31/Modules/CMakeTestCCompiler.cmake /usr/share/cmake-3.31/Modules/CMakeTestCXXCompiler.cmake /usr/share/cmake-3.31/Modules/CMakeTestCompilerCommon.cmake /usr/share/cmake-3.31/Modules/CheckCSourceCompiles.cmake /usr/share/cmake-3.31/Modules/CheckCXXCompilerFlag.cmake /usr/share/cmake-3.31/Modules/CheckCXXSourceCompiles.cmake /usr/share/cmake-3.31/Modules/CheckIncludeFile.cmake /usr/share/cmake-3.31/Modules/CheckLibraryExists.cmake /usr/share/cmake-3.31/Modules/Compiler/ADSP-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/ARMCC-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/ARMClang-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/AppleClang-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/Borland-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/Bruce-C-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/CMakeCommonCompilerMacros.cmake /usr/share/cmake-3.31/Modules/Compiler/Clang-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/Clang-DetermineCompilerInternal.cmake /usr/share/cmake-3.31/Modules/Compiler/Compaq-C-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/Compaq-CXX-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/Cray-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/CrayClang-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/Embarcadero-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/Fujitsu-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/FujitsuClang-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/GHS-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/GNU-C-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/GNU-C.cmake /usr/share/cmake-3.31/Modules/Compiler/GNU-CXX-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/GNU-CXX.cmake /usr/share/cmake-3.31/Modules/Compiler/GNU-FindBinUtils.cmake /usr/share/cmake-3.31/Modules/Compiler/GNU.cmake /usr/share/cmake-3.31/Modules/Compiler/HP-C-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/HP-CXX-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/IAR-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/IBMCPP-C-DetermineVersionInternal.cmake /usr/share/cmake-3.31/Modules/Compiler/IBMCPP-CXX-DetermineVersionInternal.cmake /usr/share/cmake-3.31/Modules/Compiler/IBMClang-C-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/IBMClang-CXX-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/Intel-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/IntelLLVM-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/LCC-C-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/LCC-CXX-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/MSVC-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/NVHPC-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/NVIDIA-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/OpenWatcom-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/OrangeC-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/PGI-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/PathScale-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/SCO-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/SDCC-C-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/SunPro-C-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/SunPro-CXX-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/TI-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/TIClang-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/Tasking-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/TinyCC-C-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/VisualAge-C-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/VisualAge-CXX-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/Watcom-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/XL-C-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/XL-CXX-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/XLClang-C-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/XLClang-CXX-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/zOS-C-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/zOS-CXX-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/FeatureSummary.cmake /usr/share/cmake-3.31/Modules/FindBoost.cmake /usr/share/cmake-3.31/Modules/FindOpenSSL.cmake /usr/share/cmake-3.31/Modules/FindPackageHandleStandardArgs.cmake /usr/share/cmake-3.31/Modules/FindPackageMessage.cmake /usr/share/cmake-3.31/Modules/FindPkgConfig.cmake /usr/share/cmake-3.31/Modules/FindThreads.cmake /usr/share/cmake-3.31/Modules/GNUInstallDirs.cmake /usr/share/cmake-3.31/Modules/Internal/CMakeCLinkerInformation.cmake /usr/share/cmake-3.31/Modules/Internal/CMakeCXXLinkerInformation.cmake /usr/share/cmake-3.31/Modules/Internal/CMakeCommonLinkerInformation.cmake /usr/share/cmake-3.31/Modules/Internal/CMakeDetermineLinkerId.cmake /usr/share/cmake-3.31/Modules/Internal/CheckCompilerFlag.cmake /usr/share/cmake-3.31/Modules/Internal/CheckFlagCommonConfig.cmake /usr/share/cmake-3.31/Modules/Internal/CheckSourceCompiles.cmake /usr/share/cmake-3.31/Modules/Internal/FeatureTesting.cmake /usr/share/cmake-3.31/Modules/Linker/GNU-C.cmake /usr/share/cmake-3.31/Modules/Linker/GNU-CXX.cmake /usr/share/cmake-3.31/Modules/Linker/GNU.cmake /usr/share/cmake-3.31/Modules/Platform/Linker/GNU.cmake /usr/share/cmake-3.31/Modules/Platform/Linker/Linux-GNU-C.cmake /usr/share/cmake-3.31/Modules/Platform/Linker/Linux-GNU-CXX.cmake /usr/share/cmake-3.31/Modules/Platform/Linker/Linux-GNU.cmake /usr/share/cmake-3.31/Modules/Platform/Linux-Determine-CXX.cmake /usr/share/cmake-3.31/Modules/Platform/Linux-GNU-C.cmake /usr/share/cmake-3.31/Modules/Platform/Linux-GNU-CXX.cmake /usr/share/cmake-3.31/Modules/Platform/Linux-GNU.cmake /usr/share/cmake-3.31/Modules/Platform/Linux-Initialize.cmake /usr/share/cmake-3.31/Modules/Platform/Linux.cmake /usr/share/cmake-3.31/Modules/Platform/UnixPaths.cmake /usr/share/cmake-3.31/Modules/WriteBasicConfigVersionFile.cmake CMakeCache.txt CMakeFiles/3.31.6/CMakeCCompiler.cmake CMakeFiles/3.31.6/CMakeCXXCompiler.cmake CMakeFiles/3.31.6/CMakeSystem.cmake torrent-rasterbar-pkgconfig/compile-settings.cmake
   pool = console
 
 
 #############################################
 # A missing CMake input file is not an error.
 
-build /mnt/sdd1/dev/libtorrent/CMakeLists.txt /mnt/sdd1/dev/libtorrent/LibtorrentRasterbarConfig.cmake.in /mnt/sdd1/dev/libtorrent/bindings/CMakeLists.txt /mnt/sdd1/dev/libtorrent/cmake/Modules/GeneratePkgConfig.cmake /mnt/sdd1/dev/libtorrent/cmake/Modules/GeneratePkgConfig/generate-pkg-config.cmake.in /mnt/sdd1/dev/libtorrent/cmake/Modules/GeneratePkgConfig/target-compile-settings.cmake.in /mnt/sdd1/dev/libtorrent/cmake/Modules/LibtorrentMacros.cmake /mnt/sdd1/dev/libtorrent/cmake/Modules/ucm_flags.cmake /mnt/sdd1/dev/libtorrent/examples/CMakeLists.txt /usr/lib/x86_64-linux-gnu/cmake/Boost-1.83.0/BoostConfig.cmake /usr/lib/x86_64-linux-gnu/cmake/Boost-1.83.0/BoostConfigVersion.cmake /usr/lib/x86_64-linux-gnu/cmake/boost_headers-1.83.0/boost_headers-config-version.cmake /usr/lib/x86_64-linux-gnu/cmake/boost_headers-1.83.0/boost_headers-config.cmake /usr/share/cmake-3.31/Modules/BasicConfigVersion-AnyNewerVersion.cmake.in /usr/share/cmake-3.31/Modules/CMakeCInformation.cmake /usr/share/cmake-3.31/Modules/CMakeCXXInformation.cmake /usr/share/cmake-3.31/Modules/CMakeCheckCompilerFlagCommonPatterns.cmake /usr/share/cmake-3.31/Modules/CMakeCommonLanguageInclude.cmake /usr/share/cmake-3.31/Modules/CMakeGenericSystem.cmake /usr/share/cmake-3.31/Modules/CMakeInitializeConfigs.cmake /usr/share/cmake-3.31/Modules/CMakeLanguageInformation.cmake /usr/share/cmake-3.31/Modules/CMakePackageConfigHelpers.cmake /usr/share/cmake-3.31/Modules/CMakeParseArguments.cmake /usr/share/cmake-3.31/Modules/CMakeSystemSpecificInformation.cmake /usr/share/cmake-3.31/Modules/CMakeSystemSpecificInitialize.cmake /usr/share/cmake-3.31/Modules/CheckCSourceCompiles.cmake /usr/share/cmake-3.31/Modules/CheckCXXCompilerFlag.cmake /usr/share/cmake-3.31/Modules/CheckCXXSourceCompiles.cmake /usr/share/cmake-3.31/Modules/CheckIncludeFile.cmake /usr/share/cmake-3.31/Modules/CheckLibraryExists.cmake /usr/share/cmake-3.31/Modules/Compiler/CMakeCommonCompilerMacros.cmake /usr/share/cmake-3.31/Modules/Compiler/GNU-C.cmake /usr/share/cmake-3.31/Modules/Compiler/GNU-CXX.cmake /usr/share/cmake-3.31/Modules/Compiler/GNU.cmake /usr/share/cmake-3.31/Modules/FeatureSummary.cmake /usr/share/cmake-3.31/Modules/FindBoost.cmake /usr/share/cmake-3.31/Modules/FindOpenSSL.cmake /usr/share/cmake-3.31/Modules/FindPackageHandleStandardArgs.cmake /usr/share/cmake-3.31/Modules/FindPackageMessage.cmake /usr/share/cmake-3.31/Modules/FindPkgConfig.cmake /usr/share/cmake-3.31/Modules/FindThreads.cmake /usr/share/cmake-3.31/Modules/GNUInstallDirs.cmake /usr/share/cmake-3.31/Modules/Internal/CMakeCLinkerInformation.cmake /usr/share/cmake-3.31/Modules/Internal/CMakeCXXLinkerInformation.cmake /usr/share/cmake-3.31/Modules/Internal/CMakeCommonLinkerInformation.cmake /usr/share/cmake-3.31/Modules/Internal/CheckCompilerFlag.cmake /usr/share/cmake-3.31/Modules/Internal/CheckFlagCommonConfig.cmake /usr/share/cmake-3.31/Modules/Internal/CheckSourceCompiles.cmake /usr/share/cmake-3.31/Modules/Linker/GNU-C.cmake /usr/share/cmake-3.31/Modules/Linker/GNU-CXX.cmake /usr/share/cmake-3.31/Modules/Linker/GNU.cmake /usr/share/cmake-3.31/Modules/Platform/Linker/GNU.cmake /usr/share/cmake-3.31/Modules/Platform/Linker/Linux-GNU-C.cmake /usr/share/cmake-3.31/Modules/Platform/Linker/Linux-GNU-CXX.cmake /usr/share/cmake-3.31/Modules/Platform/Linker/Linux-GNU.cmake /usr/share/cmake-3.31/Modules/Platform/Linux-GNU-C.cmake /usr/share/cmake-3.31/Modules/Platform/Linux-GNU-CXX.cmake /usr/share/cmake-3.31/Modules/Platform/Linux-GNU.cmake /usr/share/cmake-3.31/Modules/Platform/Linux-Initialize.cmake /usr/share/cmake-3.31/Modules/Platform/Linux.cmake /usr/share/cmake-3.31/Modules/Platform/UnixPaths.cmake /usr/share/cmake-3.31/Modules/WriteBasicConfigVersionFile.cmake CMakeCache.txt CMakeFiles/3.31.6/CMakeCCompiler.cmake CMakeFiles/3.31.6/CMakeCXXCompiler.cmake CMakeFiles/3.31.6/CMakeSystem.cmake torrent-rasterbar-pkgconfig/compile-settings.cmake: phony
+build /mnt/sdd1/dev/libtorrent/CMakeLists.txt /mnt/sdd1/dev/libtorrent/LibtorrentRasterbarConfig.cmake.in /mnt/sdd1/dev/libtorrent/bindings/CMakeLists.txt /mnt/sdd1/dev/libtorrent/cmake/Modules/GeneratePkgConfig.cmake /mnt/sdd1/dev/libtorrent/cmake/Modules/GeneratePkgConfig/generate-pkg-config.cmake.in /mnt/sdd1/dev/libtorrent/cmake/Modules/GeneratePkgConfig/target-compile-settings.cmake.in /mnt/sdd1/dev/libtorrent/cmake/Modules/LibtorrentMacros.cmake /mnt/sdd1/dev/libtorrent/cmake/Modules/ucm_flags.cmake /mnt/sdd1/dev/libtorrent/examples/CMakeLists.txt /usr/lib/x86_64-linux-gnu/cmake/Boost-1.83.0/BoostConfig.cmake /usr/lib/x86_64-linux-gnu/cmake/Boost-1.83.0/BoostConfigVersion.cmake /usr/lib/x86_64-linux-gnu/cmake/boost_headers-1.83.0/boost_headers-config-version.cmake /usr/lib/x86_64-linux-gnu/cmake/boost_headers-1.83.0/boost_headers-config.cmake /usr/share/cmake-3.31/Modules/BasicConfigVersion-AnyNewerVersion.cmake.in /usr/share/cmake-3.31/Modules/CMakeCCompiler.cmake.in /usr/share/cmake-3.31/Modules/CMakeCCompilerABI.c /usr/share/cmake-3.31/Modules/CMakeCInformation.cmake /usr/share/cmake-3.31/Modules/CMakeCXXCompiler.cmake.in /usr/share/cmake-3.31/Modules/CMakeCXXCompilerABI.cpp /usr/share/cmake-3.31/Modules/CMakeCXXInformation.cmake /usr/share/cmake-3.31/Modules/CMakeCheckCompilerFlagCommonPatterns.cmake /usr/share/cmake-3.31/Modules/CMakeCommonLanguageInclude.cmake /usr/share/cmake-3.31/Modules/CMakeCompilerIdDetection.cmake /usr/share/cmake-3.31/Modules/CMakeDetermineCCompiler.cmake /usr/share/cmake-3.31/Modules/CMakeDetermineCXXCompiler.cmake /usr/share/cmake-3.31/Modules/CMakeDetermineCompiler.cmake /usr/share/cmake-3.31/Modules/CMakeDetermineCompilerABI.cmake /usr/share/cmake-3.31/Modules/CMakeDetermineCompilerId.cmake /usr/share/cmake-3.31/Modules/CMakeDetermineCompilerSupport.cmake /usr/share/cmake-3.31/Modules/CMakeDetermineSystem.cmake /usr/share/cmake-3.31/Modules/CMakeFindBinUtils.cmake /usr/share/cmake-3.31/Modules/CMakeGenericSystem.cmake /usr/share/cmake-3.31/Modules/CMakeInitializeConfigs.cmake /usr/share/cmake-3.31/Modules/CMakeLanguageInformation.cmake /usr/share/cmake-3.31/Modules/CMakeNinjaFindMake.cmake /usr/share/cmake-3.31/Modules/CMakePackageConfigHelpers.cmake /usr/share/cmake-3.31/Modules/CMakeParseArguments.cmake /usr/share/cmake-3.31/Modules/CMakeParseImplicitIncludeInfo.cmake /usr/share/cmake-3.31/Modules/CMakeParseImplicitLinkInfo.cmake /usr/share/cmake-3.31/Modules/CMakeParseLibraryArchitecture.cmake /usr/share/cmake-3.31/Modules/CMakeSystem.cmake.in /usr/share/cmake-3.31/Modules/CMakeSystemSpecificInformation.cmake /usr/share/cmake-3.31/Modules/CMakeSystemSpecificInitialize.cmake /usr/share/cmake-3.31/Modules/CMakeTestCCompiler.cmake /usr/share/cmake-3.31/Modules/CMakeTestCXXCompiler.cmake /usr/share/cmake-3.31/Modules/CMakeTestCompilerCommon.cmake /usr/share/cmake-3.31/Modules/CheckCSourceCompiles.cmake /usr/share/cmake-3.31/Modules/CheckCXXCompilerFlag.cmake /usr/share/cmake-3.31/Modules/CheckCXXSourceCompiles.cmake /usr/share/cmake-3.31/Modules/CheckIncludeFile.cmake /usr/share/cmake-3.31/Modules/CheckLibraryExists.cmake /usr/share/cmake-3.31/Modules/Compiler/ADSP-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/ARMCC-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/ARMClang-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/AppleClang-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/Borland-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/Bruce-C-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/CMakeCommonCompilerMacros.cmake /usr/share/cmake-3.31/Modules/Compiler/Clang-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/Clang-DetermineCompilerInternal.cmake /usr/share/cmake-3.31/Modules/Compiler/Compaq-C-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/Compaq-CXX-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/Cray-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/CrayClang-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/Embarcadero-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/Fujitsu-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/FujitsuClang-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/GHS-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/GNU-C-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/GNU-C.cmake /usr/share/cmake-3.31/Modules/Compiler/GNU-CXX-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/GNU-CXX.cmake /usr/share/cmake-3.31/Modules/Compiler/GNU-FindBinUtils.cmake /usr/share/cmake-3.31/Modules/Compiler/GNU.cmake /usr/share/cmake-3.31/Modules/Compiler/HP-C-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/HP-CXX-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/IAR-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/IBMCPP-C-DetermineVersionInternal.cmake /usr/share/cmake-3.31/Modules/Compiler/IBMCPP-CXX-DetermineVersionInternal.cmake /usr/share/cmake-3.31/Modules/Compiler/IBMClang-C-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/IBMClang-CXX-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/Intel-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/IntelLLVM-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/LCC-C-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/LCC-CXX-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/MSVC-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/NVHPC-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/NVIDIA-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/OpenWatcom-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/OrangeC-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/PGI-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/PathScale-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/SCO-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/SDCC-C-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/SunPro-C-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/SunPro-CXX-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/TI-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/TIClang-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/Tasking-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/TinyCC-C-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/VisualAge-C-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/VisualAge-CXX-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/Watcom-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/XL-C-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/XL-CXX-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/XLClang-C-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/XLClang-CXX-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/zOS-C-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/Compiler/zOS-CXX-DetermineCompiler.cmake /usr/share/cmake-3.31/Modules/FeatureSummary.cmake /usr/share/cmake-3.31/Modules/FindBoost.cmake /usr/share/cmake-3.31/Modules/FindOpenSSL.cmake /usr/share/cmake-3.31/Modules/FindPackageHandleStandardArgs.cmake /usr/share/cmake-3.31/Modules/FindPackageMessage.cmake /usr/share/cmake-3.31/Modules/FindPkgConfig.cmake /usr/share/cmake-3.31/Modules/FindThreads.cmake /usr/share/cmake-3.31/Modules/GNUInstallDirs.cmake /usr/share/cmake-3.31/Modules/Internal/CMakeCLinkerInformation.cmake /usr/share/cmake-3.31/Modules/Internal/CMakeCXXLinkerInformation.cmake /usr/share/cmake-3.31/Modules/Internal/CMakeCommonLinkerInformation.cmake /usr/share/cmake-3.31/Modules/Internal/CMakeDetermineLinkerId.cmake /usr/share/cmake-3.31/Modules/Internal/CheckCompilerFlag.cmake /usr/share/cmake-3.31/Modules/Internal/CheckFlagCommonConfig.cmake /usr/share/cmake-3.31/Modules/Internal/CheckSourceCompiles.cmake /usr/share/cmake-3.31/Modules/Internal/FeatureTesting.cmake /usr/share/cmake-3.31/Modules/Linker/GNU-C.cmake /usr/share/cmake-3.31/Modules/Linker/GNU-CXX.cmake /usr/share/cmake-3.31/Modules/Linker/GNU.cmake /usr/share/cmake-3.31/Modules/Platform/Linker/GNU.cmake /usr/share/cmake-3.31/Modules/Platform/Linker/Linux-GNU-C.cmake /usr/share/cmake-3.31/Modules/Platform/Linker/Linux-GNU-CXX.cmake /usr/share/cmake-3.31/Modules/Platform/Linker/Linux-GNU.cmake /usr/share/cmake-3.31/Modules/Platform/Linux-Determine-CXX.cmake /usr/share/cmake-3.31/Modules/Platform/Linux-GNU-C.cmake /usr/share/cmake-3.31/Modules/Platform/Linux-GNU-CXX.cmake /usr/share/cmake-3.31/Modules/Platform/Linux-GNU.cmake /usr/share/cmake-3.31/Modules/Platform/Linux-Initialize.cmake /usr/share/cmake-3.31/Modules/Platform/Linux.cmake /usr/share/cmake-3.31/Modules/Platform/UnixPaths.cmake /usr/share/cmake-3.31/Modules/WriteBasicConfigVersionFile.cmake CMakeCache.txt CMakeFiles/3.31.6/CMakeCCompiler.cmake CMakeFiles/3.31.6/CMakeCXXCompiler.cmake CMakeFiles/3.31.6/CMakeSystem.cmake torrent-rasterbar-pkgconfig/compile-settings.cmake: phony
 
 
 #############################################
