@@ -78,6 +78,11 @@ using lt::address_v6;
 using lt::make_address_v6;
 using lt::make_address_v4;
 using lt::make_address;
+using lt::torrent_status;
+using lt::operation_t;
+using lt::errors;
+using lt::tcp;
+using lt::error_code
 
 using std::chrono::duration_cast;
 using std::stoi;

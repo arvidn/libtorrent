@@ -2,8 +2,14 @@
 
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/string_view.hpp"
+
 #include <string>
 #include <vector>
+
+// Forward declarations
+namespace libtorrent {
+    class session;
+}
 
 namespace piece_cache {
 
@@ -44,7 +50,7 @@ std::vector<std::string> list_dir(
 /**
  * Scan directory for .torrent files and add them to session
  */
-void scan_dir(std::string const& dir_path, lt::session& ses);
+void scan_dir(std::string const& dir_path, libtorrent::session& ses);
 
 /**
  * Check if filename is a resume file
