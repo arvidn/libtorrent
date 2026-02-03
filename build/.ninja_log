@@ -174,3 +174,5 @@
 366871	387108	1770107737909962932	examples/CMakeFiles/client_test_piece_cache.dir/piece_cache_manager.cpp.o	dbc7fe1797b7b696
 372283	389594	1770107737909962932	examples/CMakeFiles/client_test_piece_cache.dir/cache_alerts.cpp.o	8ab078052aa26c7f
 372561	389821	1770107737909962932	examples/CMakeFiles/client_test_piece_cache.dir/torrent_utils.cpp.o	5e0f44e4fb70613b
+300	1980	1770108974806973345	libtorrent-rasterbar.a	a8ee6ffeffcc7bff
+306	4281	1770108974806973345	examples/CMakeFiles/client_test_piece_cache.dir/file_utils.cpp.o	aa32fcd137a6e23a

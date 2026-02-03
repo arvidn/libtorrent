@@ -82,7 +82,7 @@ using lt::torrent_status;
 using lt::operation_t;
 using lt::errors;
 using lt::tcp;
-using lt::error_code
+using lt::error_code;
 
 using std::chrono::duration_cast;
 using std::stoi;
