@@ -1,0 +1,60 @@
+cmake_policy(SET CMP0007 NEW)
+cmake_policy(SET CMP0011 NEW)
+
+include("/mnt/sdd1/dev/libtorrent/build/torrent-rasterbar-pkgconfig/compile-settings-expanded.cmake")
+
+function (cmake_list_to_pkg_config _result _list _prefix)
+	set(_tmp_list "${_list}")
+	list(REMOVE_ITEM _tmp_list "")
+	# remove prefix from prefixed items
+	string(REGEX REPLACE "(^|;)(${_prefix})" "\\1" _tmp_list "${_tmp_list}")
+	# append 'prefix' to each element
+	string(REGEX REPLACE "([^;]+)" "${_prefix}\\1" _tmp_list "${_tmp_list}")
+	# transform cmake list into a space delimited list
+	string(REPLACE ";" " " _tmp_list "${_tmp_list}")
+	set(${_result} "${_tmp_list}" PARENT_SCOPE)
+endfunction()
+
+# Helper function for splitting full library paths into [dir, name] and merging repetitive dir entries
+function(split_library_dirs _libraries _base_library_dir _library_dirs_var _library_names_var)
+	set(libdirs "${_base_library_dir}")
+	set(libs "")
+	foreach (l IN LISTS _libraries)
+		get_filename_component(lDir "${l}" DIRECTORY)
+		if (lDir)
+			get_filename_component(lDir "${lDir}" REALPATH)
+		endif()
+		get_filename_component(lFile "${l}" NAME_WE)
+		string(REPLACE "${_SHARED_LIBRARY_PREFIX}" "" lFile "${lFile}")
+		list(APPEND libdirs "${lDir}")
+		list(APPEND libs "${lFile}")
+	endforeach()
+	list(REMOVE_DUPLICATES libdirs)
+	list(REMOVE_AT libdirs 0) # as it is the base libdir and will be handled separately
+
+	set(${_library_dirs_var} "${libdirs}" PARENT_SCOPE)
+	set(${_library_names_var} "${libs}" PARENT_SCOPE)
+endfunction()
+
+split_library_dirs("${_TARGET_INTERFACE_LINK_LIBRARIES}" "${CMAKE_INSTALL_PREFIX}/${_INSTALL_LIBDIR}" _lib_dirs _library_names)
+set(_linker_options "${_library_names}")
+list(FILTER _linker_options INCLUDE REGEX "^-.*")
+list(FILTER _library_names EXCLUDE REGEX "^-.*")
+cmake_list_to_pkg_config(_libs "${_library_names}" "-l")
+list(JOIN _linker_options " " _linker_options)
+string(JOIN " " _libs "${_linker_options}" "${_libs}")
+list(LENGTH _lib_dirs _additional_libdirs_count)
+if (_additional_libdirs_count GREATER 0)
+	cmake_list_to_pkg_config(_additional_libdirs "${_lib_dirs}" "-L")
+	set(_interface_link_libraries "${_additional_libdirs} ${_libs}")
+else()
+	set(_interface_link_libraries "${_libs}")
+endif()
+
+cmake_list_to_pkg_config(_interface_definitions "${_TARGET_INTERFACE_DEFINITIONS}" "-D")
+cmake_list_to_pkg_config(_interface_include_dirs "${_TARGET_INTERFACE_INCLUDE_DIRS}" "-I")
+set(_interface_compile_options "${_TARGET_INTERFACE_COMPILE_OPTIONS}")
+string(REPLACE ";" " " _interface_compile_options "${_interface_compile_options}")
+
+configure_file("/mnt/sdd1/dev/libtorrent/cmake/Modules/GeneratePkgConfig/pkg-config.cmake.in" "/mnt/sdd1/dev/libtorrent/build/torrent-rasterbar-pkgconfig/libtorrent-rasterbar.pc" @ONLY)
+file(INSTALL "/mnt/sdd1/dev/libtorrent/build/torrent-rasterbar-pkgconfig/libtorrent-rasterbar.pc" DESTINATION "/usr/local/lib/pkgconfig")
