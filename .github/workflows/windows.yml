@@ -17,7 +17,7 @@ jobs:
 
    tests:
       name: Test
-      runs-on: windows-latest
+      runs-on: windows-2025-vs2026
       continue-on-error: true
 
       strategy:
@@ -73,7 +73,7 @@ jobs:
 
    simulations:
       name: Simulations
-      runs-on: windows-latest
+      runs-on: windows-2025-vs2026
 
       steps:
       - name: checkout
@@ -123,13 +123,15 @@ jobs:
 
    build:
       name: Build
-      runs-on: windows-latest
+      runs-on: windows-2025-vs2026
       continue-on-error: true
 
       strategy:
          matrix:
            include:
+             - config: asio-debugging=on picker-debugging=on windows-version=xp
              - config: asio-debugging=on picker-debugging=on windows-version=vista
+             - config: asio-debugging=on picker-debugging=on windows-version=win7
              - config: asio-debugging=on picker-debugging=on windows-version=win10
              - config: windows-api=store windows-version=win10
              - config: deprecated-functions=off
@@ -177,7 +179,7 @@ jobs:
 
    mingw:
       name: MingW
-      runs-on: windows-latest
+      runs-on: windows-2025-vs2026
       continue-on-error: true
 
       strategy:
