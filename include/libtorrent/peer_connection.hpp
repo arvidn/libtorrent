@@ -273,7 +273,8 @@ namespace aux {
 	{
 		bittorrent,
 		url_seed,
-		http_seed
+		http_seed,
+		exact_source,
 	};
 
 	using request_flags_t = flags::bitfield_flag<std::uint8_t, struct request_flags_tag>;

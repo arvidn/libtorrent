@@ -306,6 +306,9 @@ TORRENT_VERSION_NAMESPACE_3
 		// specified in `BEP 19`_.
 		aux::noexcept_movable<std::vector<std::string>> http_seeds;
 		aux::noexcept_movable<std::vector<std::string>> url_seeds;
+		aux::noexcept_movable<std::vector<std::string>> exact_sources;
+		aux::noexcept_movable<std::vector<std::string>> acceptable_sources;
+		aux::noexcept_movable<std::vector<std::string>> content_addressed_storages;
 
 		// peers to add to the torrent, to be tried to be connected to as
 		// bittorrent peers.
