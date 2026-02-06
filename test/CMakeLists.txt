@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16.0 FATAL_ERROR) # Configurable policies: <= CMP0097
+cmake_minimum_required(VERSION 3.21.0 FATAL_ERROR) # Configurable policies: <= CMP0097
 
 # Our tests contain printf formatting checks therefore we disable GCC format string errors:
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
