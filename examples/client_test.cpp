@@ -187,7 +187,7 @@ bool print_peers = false;
 bool print_peers_legend = false;
 bool print_connecting_peers = false;
 bool print_log = false;
-bool print_downloads = false;
+int print_downloads = 0;
 bool print_matrix = false;
 bool print_file_progress = false;
 bool print_piece_availability = false;
@@ -1263,6 +1263,7 @@ void print_compact_piece(lt::partial_piece_info const& pp, std::string& out)
 
 void print_piece(lt::partial_piece_info const& pp
 	, std::vector<lt::peer_info> const& peers
+	, int const rows
 	, std::string& out)
 {
 	using namespace lt;
@@ -1274,12 +1275,24 @@ void print_piece(lt::partial_piece_info const& pp
 	std::snprintf(str, sizeof(str), "%5d:[", piece);
 	out += str;
 	string_view last_color;
+	int line_len = num_blocks / rows;
 	for (int j = 0; j < num_blocks; ++j)
 	{
+		char const* color = "";
+		if (line_len == 0)
+		{
+			line_len = num_blocks / rows;
+			color = esc("0");
+			if (last_color != color)
+			{
+				out += color;
+				last_color = color;
+			}
+			out += "]\n      [";
+		}
 		int const index = peer_index(pp.blocks[j].peer(), peers) % 36;
 		bool const snubbed = index >= 0 ? bool(peers[std::size_t(index)].flags & lt::peer_info::snubbed) : false;
 		char const* chr = " ";
-		char const* color = "";
 
 		if (pp.blocks[j].bytes_progress > 0
 				&& pp.blocks[j].state == block_info::requested)
@@ -1313,6 +1326,7 @@ void print_piece(lt::partial_piece_info const& pp
 			last_color = color;
 		}
 		out += chr;
+		line_len -= 1;
 	}
 	out += esc("0");
 	out += "]";
@@ -1934,7 +1948,7 @@ int main(int argc, char* argv[])
 				if (c == 'i') print_peers = !print_peers;
 				if (c == 'I') print_peers_legend = !print_peers_legend;
 				if (c == 'l') print_log = !print_log;
-				if (c == 'd') print_downloads = !print_downloads;
+				if (c == 'd') print_downloads = (print_downloads + 1) % 3;
 				if (c == 'y') print_matrix = !print_matrix;
 				if (c == 'f') print_file_progress = !print_file_progress;
 				if (c == 'a') print_piece_availability = !print_piece_availability;
@@ -2078,7 +2092,7 @@ COLUMN OPTIONS
 				pos += 1;
 			}
 
-			if ((print_downloads && s.state != torrent_status::seeding)
+			if ((print_downloads > 0 && s.state != torrent_status::seeding)
 				|| print_peers)
 				h.post_peer_info();
 
@@ -2186,7 +2200,7 @@ done:
 				}
 			}
 
-			if (print_downloads)
+			if (print_downloads > 0)
 			{
 				h.post_download_queue();
 
@@ -2197,13 +2211,15 @@ done:
 
 					int const num_blocks = i.blocks_in_piece;
 					p += num_blocks + 8;
-					if (8 + num_blocks > terminal_width)
+					if (print_downloads == 2)
 					{
 						print_compact_piece(i, out);
 					}
 					else
 					{
-						print_piece(i, peers, out);
+						int const width = std::max((terminal_width - 8), 8);
+						int const rows = std::min(1, (num_blocks + width - 1) / width);
+						print_piece(i, peers, rows, out);
 					}
 					if (p + num_blocks + 8 > terminal_width)
 					{
