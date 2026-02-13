@@ -4059,6 +4059,7 @@ class torrent_handle(metaclass=_BoostBaseClass):
     flush_disk_cache: int
     graceful_pause: int
     ignore_min_interval: int
+    high_priority: int
     only_if_modified: int
     overwrite_existing: int
     piece_granularity: int
