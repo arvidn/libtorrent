@@ -1246,8 +1246,6 @@ namespace libtorrent::aux {
 	// they can't be negative
 	void piece_picker::break_one_seed()
 	{
-		INVARIANT_CHECK;
-
 		TORRENT_ASSERT(m_seeds > 0);
 		--m_seeds;
 

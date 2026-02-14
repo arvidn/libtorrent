@@ -332,7 +332,7 @@ rule python-install-dir ( properties * )
 	local python-path ;
 	if <python-install-scope>system in $(properties)
 	{
-		python-path = [ SHELL "$(python-interpreter) -c \"import distutils.sysconfig; import sys; sys.stdout.write(distutils.sysconfig.get_python_lib())\"" ] ;
+		python-path = [ SHELL "$(python-interpreter) -c \"import sysconfig; import sys; sys.stdout.write(sysconfig.get_path('platlib'))\"" ] ;
 	}
 	else
 	{

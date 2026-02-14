@@ -32,7 +32,7 @@ see LICENSE file.
 using disk_test_mode_t = lt::flags::bitfield_flag<std::uint8_t, struct disk_test_mode_tag>;
 
 using lt::operator""_bit;
-using lt::operator "" _sv;
+using lt::operator ""_sv;
 
 namespace test_mode {
 constexpr disk_test_mode_t sparse = 0_bit;

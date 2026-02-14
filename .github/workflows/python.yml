@@ -102,6 +102,13 @@ jobs:
       run: |
         sudo apt install libboost-tools-dev libboost-python-dev libboost-dev libboost-system-dev python3 python3-setuptools libssl-dev
 
+    - name: dependencies (windows)
+      if: runner.os == 'Windows'
+      run: |
+        python -m pip install --upgrade setuptools
+        # These dlls could be placed in a nicer location, but this mimics tool.cibuildwheel.windows for consistency.
+        python -c "import glob,shutil;[shutil.copy(f,'C:/Windows/System32') for f in glob.glob('C:/Program Files/OpenSSL/bin/*.dll')]"
+
     - name: install boost (windows)
       if: runner.os == 'Windows'
       shell: cmd

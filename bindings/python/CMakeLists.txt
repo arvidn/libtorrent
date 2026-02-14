@@ -96,8 +96,8 @@ if (python-install-system-dir)
 else()
 	execute_process(
 		COMMAND "${Python3_EXECUTABLE}" -c [=[
-import distutils.sysconfig
-print(distutils.sysconfig.get_python_lib(prefix='', plat_specific=True))
+import sysconfig
+print(sysconfig.get_path('platlib', vars={'platbase': '', 'base': ''}))
 ]=]
 		OUTPUT_VARIABLE _PYTHON3_SITE_ARCH
 		OUTPUT_STRIP_TRAILING_WHITESPACE

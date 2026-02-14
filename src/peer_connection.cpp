@@ -2049,7 +2049,10 @@ namespace {
 			TORRENT_ASSERT(m_have_piece.count() == m_have_piece.size());
 			TORRENT_ASSERT(m_have_piece.size() == t->torrent_file().num_pieces());
 
-			t->seen_complete();
+			// only mark last-seen-complete if we've received actual payload data
+			// from this peer, to prevent lying peers from updating the timestamp
+			if (m_statistics.total_payload_download() > 0)
+				t->seen_complete();
 			t->set_seed(m_peer_info, true);
 			TORRENT_ASSERT(is_seed());
 
@@ -6240,7 +6243,9 @@ namespace {
 		TORRENT_ASSERT(m_recv_buffer.pos_at_end());
 		TORRENT_ASSERT(m_recv_buffer.packet_size() > 0);
 
-		if (is_seed())
+		// only mark last-seen-complete if we've received actual payload data
+		// from this peer, to prevent lying peers from updating the timestamp
+		if (is_seed() && m_statistics.total_payload_download() > 0)
 		{
 			auto t = m_torrent.lock();
 			if (t) t->seen_complete();
