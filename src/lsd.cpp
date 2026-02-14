@@ -192,7 +192,7 @@ void lsd::announce_impl(sha1_hash const& ih, int const listen_port
 	if (m_disabled) return;
 
 	ADD_OUTSTANDING_ASYNC("lsd::resend_announce");
-	m_broadcast_timer.expires_from_now(seconds(2 * retry_count), ec);
+	m_broadcast_timer.expires_after(seconds(2 * retry_count));
 	m_broadcast_timer.async_wait(std::bind(&lsd::resend_announce, self(), _1
 		, ih, listen_port, retry_count));
 }
@@ -330,7 +330,7 @@ void lsd::close()
 {
 	error_code ec;
 	m_socket.close(ec);
-	m_broadcast_timer.cancel(ec);
+	m_broadcast_timer.cancel();
 	m_disabled = true;
 }
 

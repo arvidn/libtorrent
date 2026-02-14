@@ -1206,7 +1206,7 @@ namespace {
 #else
 		error_code ec;
 		return "UDP error: " + convert_from_native(error.message())
-			+ " from: " + endpoint.address().to_string(ec)
+			+ " from: " + endpoint.address().to_string()
 			+ " op: " + operation_name(operation);
 #endif
 	}
@@ -1222,7 +1222,7 @@ namespace {
 		return {};
 #else
 		error_code ec;
-		return "external IP received: " + external_address.to_string(ec);
+		return "external IP received: " + external_address.to_string();
 #endif
 	}
 
@@ -1427,7 +1427,7 @@ namespace {
 		error_code ec;
 		char msg[200];
 		std::snprintf(msg, sizeof(msg), "incoming dht announce: %s:%d (%s)"
-			, ip.to_string(ec).c_str(), port, aux::to_hex(info_hash).c_str());
+			, ip.to_string().c_str(), port, aux::to_hex(info_hash).c_str());
 		return msg;
 #endif
 	}

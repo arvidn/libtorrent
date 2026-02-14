@@ -62,7 +62,7 @@ utp_socket_manager man(
 	, sock
 	, cnt
 	, nullptr
-	, [](boost::shared_ptr<socket_type> const&){}
+	, [](std::shared_ptr<aux::socket_type> const&){}
 	);
 #endif
 

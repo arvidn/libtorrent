@@ -424,10 +424,10 @@ struct peer_conn
 		char ep_str[200];
 		address const& addr = s.local_endpoint(e).address();
 		if (addr.is_v6())
-			std::snprintf(ep_str, sizeof(ep_str), "[%s]:%d", addr.to_string(e).c_str()
+			std::snprintf(ep_str, sizeof(ep_str), "[%s]:%d", addr.to_string().c_str()
 				, s.local_endpoint(e).port());
 		else
-			std::snprintf(ep_str, sizeof(ep_str), "%s:%d", addr.to_string(e).c_str()
+			std::snprintf(ep_str, sizeof(ep_str), "%s:%d", addr.to_string().c_str()
 				, s.local_endpoint(e).port());
 		std::printf("%s ep: %s sent: %d received: %d duration: %d ms up: %.1fMB/s down: %.1fMB/s\n"
 			, tmp, ep_str, blocks_sent, blocks_received, time, up, down);
@@ -874,8 +874,7 @@ void generate_data(char const* path, torrent_info const& ti)
 void io_thread(io_service* ios)
 {
 	error_code ec;
-	ios->run(ec);
-	if (ec) std::fprintf(stderr, "ERROR: %s\n", ec.message().c_str());
+	ios->run();
 }
 
 int main(int argc, char* argv[])
@@ -1048,7 +1047,7 @@ int main(int argc, char* argv[])
 	}
 
 	error_code ec;
-	address_v4 addr = address_v4::from_string(destination_ip, ec);
+	address_v4 addr = boost::asio::ip::make_address_v4(destination_ip, ec);
 	if (ec)
 	{
 		std::fprintf(stderr, "ERROR RESOLVING %s: %s\n", destination_ip, ec.message().c_str());
@@ -1059,7 +1058,7 @@ int main(int argc, char* argv[])
 #if !defined __APPLE__
 	// apparently darwin doesn't seems to let you bind to
 	// loopback on any other IP than 127.0.0.1
-	std::uint32_t const ip = addr.to_ulong();
+	std::uint32_t const ip = addr.to_uint();
 	if ((ip & 0xff000000) == 0x7f000000)
 	{
 		local_bind = true;
@@ -1086,12 +1085,7 @@ int main(int argc, char* argv[])
 		conns.push_back(new peer_conn(ios[i % num_threads], ti.num_pieces(), ti.piece_length() / 16 / 1024
 			, ep, (char const*)&ti.info_hash()[0], seed, churn, corrupt));
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
-		ios[i % num_threads].poll_one(ec);
-		if (ec)
-		{
-			std::fprintf(stderr, "ERROR: %s\n", ec.message().c_str());
-			break;
-		}
+		ios[i % num_threads].poll_one();
 	}
 
 	std::thread t1(&io_thread, &ios[0]);

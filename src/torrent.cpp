@@ -652,7 +652,7 @@ bool is_downloading_state(int const st)
 				for (auto const& peer : p.peers)
 				{
 					error_code ec;
-					str += peer.address().to_string(ec);
+					str += peer.address().to_string();
 					str += ' ';
 				}
 				debug_log("add_torrent add_peer() [ %s] connect-candidates: %d"
@@ -1725,7 +1725,6 @@ bool is_downloading_state(int const st)
 		}
 
 		ctx->set_options(context::default_workarounds
-			| boost::asio::ssl::context::no_sslv2
 			| boost::asio::ssl::context::single_dh_use);
 
 		error_code ec;
@@ -2200,7 +2199,7 @@ bool is_downloading_state(int const st)
 				std::string str;
 				for (auto const& peer : m_add_torrent_params->peers)
 				{
-					str += peer.address().to_string(ec);
+					str += peer.address().to_string();
 					str += ' ';
 				}
 				debug_log("resume-checked add_peer() [ %s] connect-candidates: %d"
@@ -2872,7 +2871,7 @@ bool is_downloading_state(int const st)
 			std::string str;
 			for (auto const& peer : peers)
 			{
-				str += peer.address().to_string(ec);
+				str += peer.address().to_string();
 				str += ' ';
 			}
 			debug_log("DHT add_peer() [ %s] connect-candidates: %d"
@@ -3545,12 +3544,12 @@ bool is_downloading_state(int const st)
 			std::string str;
 			for (auto const& peer : resp.peers4)
 			{
-				str += address_v4(peer.ip).to_string(ec);
+				str += address_v4(peer.ip).to_string();
 				str += ' ';
 			}
 			for (auto const& peer : resp.peers6)
 			{
-				str += address_v6(peer.ip).to_string(ec);
+				str += address_v6(peer.ip).to_string();
 				str += ' ';
 			}
 			debug_log("tracker add_peer() [ %s] connect-candidates: %d"
@@ -3779,7 +3778,7 @@ bool is_downloading_state(int const st)
 			if (should_log())
 			{
 				error_code ec;
-				debug_log("blocked ip from tracker: %s", host.address().to_string(ec).c_str());
+				debug_log("blocked ip from tracker: %s", host.address().to_string().c_str());
 			}
 #endif
 			if (m_ses.alerts().should_post<peer_blocked_alert>())
@@ -3797,7 +3796,7 @@ bool is_downloading_state(int const st)
 			{
 				error_code ec;
 				debug_log("name-lookup add_peer() [ %s ] connect-candidates: %d"
-					, host.address().to_string(ec).c_str()
+					, host.address().to_string().c_str()
 					, m_peer_list ? m_peer_list->num_connect_candidates() : -1);
 			}
 #endif
@@ -4580,7 +4579,7 @@ bool is_downloading_state(int const st)
 		}
 
 		error_code ec;
-		m_inactivity_timer.cancel(ec);
+		m_inactivity_timer.cancel();
 
 #ifndef TORRENT_DISABLE_LOGGING
 		log_to_all_peers("aborting");
@@ -4873,7 +4872,7 @@ bool is_downloading_state(int const st)
 			// this gives the client a chance to specify multiple time-critical
 			// pieces before libtorrent cancels requests
 			auto self = shared_from_this();
-			m_ses.get_io_service().post([self] { self->wrap(&torrent::cancel_non_critical); });
+			boost::asio::post(m_ses.get_io_service(), [self] { self->wrap(&torrent::cancel_non_critical); });
 		}
 
 		for (auto i = m_time_critical_pieces.begin()
@@ -9254,12 +9253,12 @@ bool is_downloading_state(int const st)
 
 		// don't re-issue the timer if it's the same expiration time as last time
 		// if m_waiting_tracker is 0, expires_at() is undefined
-		if (m_waiting_tracker && m_tracker_timer.expires_at() == next_announce) return;
+		if (m_waiting_tracker && m_tracker_timer.expiry() == next_announce) return;
 
 		error_code ec;
 		auto self = shared_from_this();
 
-		m_tracker_timer.expires_at(next_announce, ec);
+		m_tracker_timer.expires_at(next_announce);
 		ADD_OUTSTANDING_ASYNC("tracker::on_tracker_announce");
 		++m_waiting_tracker;
 		m_tracker_timer.async_wait([self](error_code const& e)
@@ -9335,7 +9334,7 @@ bool is_downloading_state(int const st)
 		if (!m_announcing) return;
 
 		error_code ec;
-		m_tracker_timer.cancel(ec);
+		m_tracker_timer.cancel();
 
 		m_announcing = false;
 
@@ -9528,7 +9527,7 @@ bool is_downloading_state(int const st)
 			if (is_inactive != m_inactive && !m_pending_active_change)
 			{
 				int const delay = settings().get_int(settings_pack::auto_manage_startup);
-				m_inactivity_timer.expires_from_now(seconds(delay));
+				m_inactivity_timer.expires_after(seconds(delay));
 				m_inactivity_timer.async_wait([self](error_code const& ec) {
 					self->wrap(&torrent::on_inactivity_tick, ec); });
 				m_pending_active_change = true;
@@ -11089,10 +11088,10 @@ bool is_downloading_state(int const st)
 		st->download_payload_rate = m_stat.download_payload_rate();
 		st->upload_payload_rate = m_stat.upload_payload_rate();
 
-		if (is_paused() || m_tracker_timer.expires_at() < now)
+		if (is_paused() || m_tracker_timer.expiry() < now)
 			st->next_announce = seconds(0);
 		else
-			st->next_announce = m_tracker_timer.expires_at() - now;
+			st->next_announce = m_tracker_timer.expiry() - now;
 
 		if (st->next_announce.count() < 0)
 			st->next_announce = seconds(0);

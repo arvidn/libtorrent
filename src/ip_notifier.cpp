@@ -33,6 +33,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/ip_notifier.hpp"
 #include "libtorrent/assert.hpp"
 
+#if !defined TORRENT_BUILD_SIMULATOR
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/asio/post.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#endif
+
 #if defined TORRENT_BUILD_SIMULATOR
 // TODO: simulator support
 #elif TORRENT_USE_NETLINK
@@ -61,7 +67,7 @@ struct ip_change_notifier_impl final : ip_change_notifier
 
 	void async_wait(std::function<void(error_code const&)> cb) override
 	{
-		m_ios.post([cb]()
+		boost::asio::post(m_ios, [cb]()
 		{ cb(make_error_code(boost::system::errc::not_supported)); });
 	}
 
@@ -196,7 +202,7 @@ struct ip_change_notifier_impl final : ip_change_notifier
 			[](SCNetworkReachabilityRef /*target*/, SCNetworkReachabilityFlags /*flags*/, void *info)
 			{
 				auto obj = static_cast<ip_change_notifier_impl*>(info);
-				obj->m_ios.post([obj]()
+				boost::asio::post(obj->m_ios, [obj]()
 				{
 					if (!obj->m_cb) return;
 					auto cb = std::move(obj->m_cb);
@@ -222,7 +228,7 @@ struct ip_change_notifier_impl final : ip_change_notifier
 		if (m_queue)
 			m_cb = std::move(cb);
 		else
-			m_ios.post([cb]()
+			boost::asio::post(m_ios, [cb]()
 			{ cb(make_error_code(boost::system::errc::not_supported)); });
 	}
 
@@ -296,7 +302,7 @@ struct ip_change_notifier_impl final : ip_change_notifier
 			[](SCDynamicStoreRef /*store*/, CFArrayRef /*changedKeys*/, void *info)
 			{
 				auto obj = static_cast<ip_change_notifier_impl*>(info);
-				obj->m_ios.post([obj]()
+				boost::asio::post(obj->m_ios, [obj]()
 				{
 					if (!obj->m_cb) return;
 					auto cb = std::move(obj->m_cb);
@@ -322,7 +328,7 @@ struct ip_change_notifier_impl final : ip_change_notifier
 		if (m_queue)
 			m_cb = std::move(cb);
 		else
-			m_ios.post([cb]()
+			boost::asio::post(m_ios, [cb]()
 			{ cb(make_error_code(boost::system::errc::not_supported)); });
 	}
 
@@ -402,7 +408,7 @@ private:
 			cbs = std::move(impl->m_cb);
 		}
 		// TODO move cbs into the lambda with C++14
-		impl->m_ios.post([cbs]()
+		boost::asio::post(impl->m_ios, [cbs]()
 		{
 			for (auto& cb : cbs) cb(error_code());
 		});
@@ -423,7 +429,7 @@ struct ip_change_notifier_impl final : ip_change_notifier
 
 	void async_wait(std::function<void(error_code const&)> cb) override
 	{
-		m_ios.post([cb]()
+		boost::asio::post(m_ios, [cb]()
 		{ cb(make_error_code(boost::system::errc::not_supported)); });
 	}
 

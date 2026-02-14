@@ -77,7 +77,7 @@ struct deferred_handler
 	{
 		if (m_in_flight) return;
 		m_in_flight = true;
-		ios.post(handler_wrapper<Handler>(m_in_flight, std::forward<Handler>(h)));
+		boost::asio::post(ios, handler_wrapper<Handler>(m_in_flight, std::forward<Handler>(h)));
 	}
 private:
 	bool m_in_flight = false;

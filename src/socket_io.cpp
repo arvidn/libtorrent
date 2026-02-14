@@ -44,8 +44,7 @@ namespace libtorrent {
 
 	std::string print_address(address const& addr)
 	{
-		error_code ec;
-		return addr.to_string(ec);
+		return addr.to_string();
 	}
 
 	std::string address_to_bytes(address const& a)
@@ -69,9 +68,9 @@ namespace libtorrent {
 		error_code ec;
 		char buf[200];
 		if (addr.is_v6())
-			std::snprintf(buf, sizeof(buf), "[%s]:%d", addr.to_string(ec).c_str(), port);
+			std::snprintf(buf, sizeof(buf), "[%s]:%d", addr.to_string().c_str(), port);
 		else
-			std::snprintf(buf, sizeof(buf), "%s:%d", addr.to_string(ec).c_str(), port);
+			std::snprintf(buf, sizeof(buf), "%s:%d", addr.to_string().c_str(), port);
 		return buf;
 	}
 

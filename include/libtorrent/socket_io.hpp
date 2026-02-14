@@ -71,7 +71,7 @@ namespace detail {
 		{
 			if (a.is_v4())
 			{
-				write_uint32(a.to_v4().to_ulong(), out);
+				write_uint32(a.to_v4().to_uint(), out);
 			}
 			else if (a.is_v6())
 			{

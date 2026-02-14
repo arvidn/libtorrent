@@ -12,6 +12,9 @@ set(single_file_examples
 foreach(example ${single_file_examples})
     add_executable(${example} "${example}.cpp")
     target_link_libraries(${example} PRIVATE torrent-rasterbar)
+    if(WIN32)
+        target_link_libraries(${example} PRIVATE ws2_32)
+    endif()
 endforeach(example)
 
 add_executable(client_test
@@ -20,3 +23,6 @@ add_executable(client_test
     torrent_view.cpp
     session_view.cpp)
 target_link_libraries(client_test PRIVATE torrent-rasterbar)
+if(WIN32)
+    target_link_libraries(client_test PRIVATE ws2_32)
+endif()

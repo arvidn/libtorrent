@@ -500,7 +500,7 @@ namespace aux {
 			, *this
 #endif
 			)
-		, m_work(new io_service::work(m_io_service))
+		, m_work(new boost::asio::executor_work_guard<boost::asio::io_context::executor_type>(boost::asio::make_work_guard(m_io_service)))
 #if TORRENT_USE_I2P
 		, m_i2p_conn(m_io_service)
 #endif
@@ -668,7 +668,7 @@ namespace aux {
 		}
 #endif
 
-		m_io_service.post([this] { this->wrap(&session_impl::init); });
+		boost::asio::post(m_io_service, [this] { this->wrap(&session_impl::init); });
 	}
 
 	void session_impl::init()
@@ -691,14 +691,14 @@ namespace aux {
 		async_inc_threads();
 		add_outstanding_async("session_impl::on_tick");
 #endif
-		m_io_service.post([this]{ this->wrap(&session_impl::on_tick, error_code()); });
+		boost::asio::post(m_io_service, [this]{ this->wrap(&session_impl::on_tick, error_code()); });
 
 		int const lsd_announce_interval
 			= m_settings.get_int(settings_pack::local_service_announce_interval);
 		int const delay = std::max(lsd_announce_interval
 			/ std::max(static_cast<int>(m_torrents.size()), 1), 1);
 		error_code ec;
-		m_lsd_announce_timer.expires_from_now(seconds(delay), ec);
+		m_lsd_announce_timer.expires_after(seconds(delay));
 		ADD_OUTSTANDING_ASYNC("session_impl::on_lsd_announce");
 		m_lsd_announce_timer.async_wait([this](error_code const& e) {
 			this->wrap(&session_impl::on_lsd_announce, e); } );
@@ -974,9 +974,9 @@ namespace aux {
 		stop_natpmp();
 #ifndef TORRENT_DISABLE_DHT
 		stop_dht();
-		m_dht_announce_timer.cancel(ec);
+		m_dht_announce_timer.cancel();
 #endif
-		m_lsd_announce_timer.cancel(ec);
+		m_lsd_announce_timer.cancel();
 
 		for (auto const& s : m_incoming_sockets)
 		{
@@ -1048,7 +1048,7 @@ namespace aux {
 		// shutdown_stage2 from there.
 		if (m_undead_peers.empty())
 		{
-			m_io_service.post(make_handler([this] { abort_stage2(); }
+			boost::asio::post(m_io_service, make_handler([this] { abort_stage2(); }
 				, m_abort_handler_storage, *this));
 		}
 	}
@@ -1318,7 +1318,7 @@ namespace {
 	{
 		if (m_deferred_submit_disk_jobs) return;
 		m_deferred_submit_disk_jobs = true;
-		m_io_service.post([this] { this->wrap(&session_impl::submit_disk_jobs); } );
+		boost::asio::post(m_io_service, [this] { this->wrap(&session_impl::submit_disk_jobs); } );
 	}
 
 	void session_impl::submit_disk_jobs()
@@ -2668,7 +2668,7 @@ namespace {
 			if (m_alerts.should_post<listen_failed_alert>())
 			{
 				error_code err;
-				m_alerts.emplace_alert<listen_failed_alert>(ep.address().to_string(err)
+				m_alerts.emplace_alert<listen_failed_alert>(ep.address().to_string()
 					, ep, operation_t::sock_accept, e
 					, ssl == transport::ssl ? socket_type_t::tcp_ssl : socket_type_t::tcp);
 			}
@@ -2838,7 +2838,7 @@ namespace {
 				{
 					error_code err;
 					session_log("<== INCOMING CONNECTION [ rejected, local interface has incoming connections disabled: %s ]"
-						, local.address().to_string(err).c_str());
+						, local.address().to_string().c_str());
 				}
 #endif
 				if (m_alerts.should_post<peer_blocked_alert>())
@@ -2865,7 +2865,7 @@ namespace {
 				{
 					error_code err;
 					session_log("<== INCOMING CONNECTION [ rejected, not allowed local interface: %s ]"
-						, local.address().to_string(err).c_str());
+						, local.address().to_string().c_str());
 				}
 #endif
 				if (m_alerts.should_post<peer_blocked_alert>())
@@ -3211,7 +3211,7 @@ namespace {
 				// shut-down
 				if (m_abort)
 				{
-					m_io_service.post(std::bind(&session_impl::abort_stage2, this));
+					boost::asio::post(m_io_service, std::bind(&session_impl::abort_stage2, this));
 				}
 			}
 		}
@@ -3259,7 +3259,7 @@ namespace {
 
 		ADD_OUTSTANDING_ASYNC("session_impl::on_tick");
 		error_code ec;
-		m_timer.expires_at(now + milliseconds(m_settings.get_int(settings_pack::tick_interval)), ec);
+		m_timer.expires_at(now + milliseconds(m_settings.get_int(settings_pack::tick_interval)));
 		m_timer.async_wait(aux::make_handler([this](error_code const& err)
 		{ this->wrap(&session_impl::on_tick, err); }, m_tick_handler_storage, *this));
 
@@ -3624,7 +3624,7 @@ namespace {
 		{
 			ADD_OUTSTANDING_ASYNC("session_impl::on_dht_announce");
 			error_code ec;
-			m_dht_announce_timer.expires_from_now(seconds(0), ec);
+			m_dht_announce_timer.expires_after(seconds(0));
 			m_dht_announce_timer.async_wait([this](error_code const& err) {
 				this->wrap(&session_impl::on_dht_announce, err); });
 		}
@@ -3706,7 +3706,7 @@ namespace {
 		int const delay = std::max(m_settings.get_int(settings_pack::local_service_announce_interval)
 			/ std::max(int(m_torrents.size()), 1), 1);
 		error_code ec;
-		m_lsd_announce_timer.expires_from_now(seconds(delay), ec);
+		m_lsd_announce_timer.expires_after(seconds(delay));
 		m_lsd_announce_timer.async_wait([this](error_code const& err) {
 			this->wrap(&session_impl::on_lsd_announce, err); });
 
@@ -4742,7 +4742,7 @@ namespace {
 			if (!m_torrent_load_thread)
 				m_torrent_load_thread.reset(new work_thread_t());
 
-			m_torrent_load_thread->ios.post([params, this]
+			boost::asio::post(m_torrent_load_thread->ios, [params, this]
 			{
 				std::string const torrent_file_path = resolve_file_url(params->url);
 				params->url.clear();
@@ -4750,7 +4750,7 @@ namespace {
 				std::unique_ptr<add_torrent_params> holder2(params);
 				error_code ec;
 				params->ti = std::make_shared<torrent_info>(torrent_file_path, ec);
-				this->m_io_service.post(std::bind(&session_impl::on_async_load_torrent
+				boost::asio::post(this->m_io_service, std::bind(&session_impl::on_async_load_torrent
 					, this, params, ec));
 				holder2.release();
 			});
@@ -5614,7 +5614,7 @@ namespace {
 		{
 			error_code ec;
 			t->debug_log("lsd add_peer() [ %s ]"
-				, peer.address().to_string(ec).c_str());
+				, peer.address().to_string().c_str());
 		}
 #endif
 
@@ -6524,7 +6524,7 @@ namespace {
 		m_pending_auto_manage = true;
 		m_need_auto_manage = true;
 
-		m_io_service.post([this]{ this->wrap(&session_impl::on_trigger_auto_manage); });
+		boost::asio::post(m_io_service, [this]{ this->wrap(&session_impl::on_trigger_auto_manage); });
 	}
 
 	void session_impl::on_trigger_auto_manage()
@@ -6553,7 +6553,7 @@ namespace {
 			{
 				error_code err;
 				session_log("listen socket buffer size [ udp %s:%d ] %s"
-					, l->udp_sock->sock.local_endpoint().address().to_string(err).c_str()
+					, l->udp_sock->sock.local_endpoint().address().to_string().c_str()
 					, l->udp_sock->sock.local_port(), print_error(ec).c_str());
 			}
 #endif
@@ -6564,7 +6564,7 @@ namespace {
 			{
 				error_code err;
 				session_log("listen socket buffer size [ tcp %s:%d] %s"
-					, l->sock->local_endpoint().address().to_string(err).c_str()
+					, l->sock->local_endpoint().address().to_string().c_str()
 					, l->sock->local_endpoint().port(), print_error(ec).c_str());
 			}
 #endif
@@ -6605,7 +6605,7 @@ namespace {
 			delay = std::min(4, delay);
 		}
 
-		m_dht_announce_timer.expires_from_now(seconds(delay), ec);
+		m_dht_announce_timer.expires_after(seconds(delay));
 		m_dht_announce_timer.async_wait([this](error_code const& e) {
 			this->wrap(&session_impl::on_dht_announce, e); });
 #endif

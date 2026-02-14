@@ -119,7 +119,7 @@ upnp::upnp(io_service& ios
 	, m_netmask(netmask)
 	, m_device(std::move(listen_device))
 #ifdef TORRENT_USE_OPENSSL
-	, m_ssl_ctx(ssl::context::sslv23_client)
+	, m_ssl_ctx(ssl::context::tls_client)
 #endif
 {
 #ifdef TORRENT_USE_OPENSSL
@@ -262,7 +262,7 @@ void upnp::discover_device_impl()
 
 	ADD_OUTSTANDING_ASYNC("upnp::resend_request");
 	++m_retry_count;
-	m_broadcast_timer.expires_from_now(seconds(2 * m_retry_count), ec);
+	m_broadcast_timer.expires_after(seconds(2 * m_retry_count));
 	m_broadcast_timer.async_wait(std::bind(&upnp::resend_request
 		, self(), _1));
 
@@ -675,7 +675,7 @@ void upnp::on_reply(aux::socket_package& s, error_code const& ec, std::size_t co
 	// devices at one of our default routes. If not, we want to override
 	// ignoring them and use them instead (better than not working).
 	error_code ignore;
-	m_map_timer.expires_from_now(seconds(1), ignore);
+	m_map_timer.expires_after(seconds(1));
 	ADD_OUTSTANDING_ASYNC("upnp::map_timer");
 	m_map_timer.async_wait(std::bind(&upnp::map_timer, self(), _1));
 }
@@ -1153,9 +1153,9 @@ void upnp::disable(error_code const& ec)
 	// the device entry being present when they
 	// complete
 	error_code e;
-	m_broadcast_timer.cancel(e);
-	m_refresh_timer.cancel(e);
-	m_map_timer.cancel(e);
+	m_broadcast_timer.cancel();
+	m_refresh_timer.cancel();
+	m_map_timer.cancel();
 	m_unicast.socket.close(e);
 	m_multicast.socket.close(e);
 }
@@ -1220,7 +1220,7 @@ namespace {
 
 struct upnp_error_category final : boost::system::error_category
 {
-	const char* name() const BOOST_SYSTEM_NOEXCEPT override
+	const char* name() const noexcept override
 	{
 		return "upnp";
 	}
@@ -1243,7 +1243,7 @@ struct upnp_error_category final : boost::system::error_category
 	}
 
 	boost::system::error_condition default_error_condition(
-		int ev) const BOOST_SYSTEM_NOEXCEPT override
+		int ev) const noexcept override
 	{
 		return {ev, *this};
 	}
@@ -1484,12 +1484,12 @@ void upnp::on_upnp_map_response(error_code const& e
 			m.expires = now + seconds(
 				m_settings.get_int(settings_pack::upnp_lease_duration) * 3 / 4);
 
-			time_point next_expire = m_refresh_timer.expires_at();
+			time_point next_expire = m_refresh_timer.expiry();
 			if (next_expire < now || next_expire > m.expires)
 			{
 				ADD_OUTSTANDING_ASYNC("upnp::on_expire");
 				error_code ec;
-				m_refresh_timer.expires_at(m.expires, ec);
+				m_refresh_timer.expires_at(m.expires);
 				m_refresh_timer.async_wait(std::bind(&upnp::on_expire, self(), _1));
 			}
 		}
@@ -1641,7 +1641,7 @@ void upnp::on_expire(error_code const& ec)
 	{
 		ADD_OUTSTANDING_ASYNC("upnp::on_expire");
 		error_code e;
-		m_refresh_timer.expires_at(next_expire, e);
+		m_refresh_timer.expires_at(next_expire);
 		m_refresh_timer.async_wait(std::bind(&upnp::on_expire, self(), _1));
 	}
 }
@@ -1651,9 +1651,9 @@ void upnp::close()
 	TORRENT_ASSERT(is_single_thread());
 
 	error_code ec;
-	m_refresh_timer.cancel(ec);
-	m_broadcast_timer.cancel(ec);
-	m_map_timer.cancel(ec);
+	m_refresh_timer.cancel();
+	m_broadcast_timer.cancel();
+	m_map_timer.cancel();
 	m_closing = true;
 	m_unicast.socket.close(ec);
 	m_multicast.socket.close(ec);
