@@ -237,6 +237,8 @@ bool is_downloading_state(int const st)
 		, m_complete_sent(false)
 	{
 		TORRENT_ASSERT_PRECOND(!is_complete(m_part_file_dir));
+		// This is stored in 2 bits
+		TORRENT_ASSERT_PRECOND(static_cast<std::uint8_t>(p.storage_mode) < 4);
 
 		if (p.flags & torrent_flags::need_save_resume)
 		{
@@ -649,9 +651,9 @@ bool is_downloading_state(int const st)
 #endif
 	}
 
-	void torrent::set_apply_ip_filter(bool b)
+	void torrent::set_apply_ip_filter(bool const b)
 	{
-		if (b == m_apply_ip_filter) return;
+		if (b == bool(m_apply_ip_filter)) return;
 		if (b)
 		{
 			inc_stats_counter(counters::non_filter_torrents, -1);
@@ -952,9 +954,9 @@ bool is_downloading_state(int const st)
 	}
 
 #ifndef TORRENT_DISABLE_SHARE_MODE
-	void torrent::set_share_mode(bool s)
+	void torrent::set_share_mode(bool const s)
 	{
-		if (s == m_share_mode) return;
+		if (s == bool(m_share_mode)) return;
 
 		m_share_mode = s;
 		set_need_save_resume(torrent_handle::if_config_changed);
@@ -975,7 +977,7 @@ bool is_downloading_state(int const st)
 
 	void torrent::set_upload_mode(bool b)
 	{
-		if (b == m_upload_mode) return;
+		if (b == bool(m_upload_mode)) return;
 
 		m_upload_mode = b;
 #ifndef TORRENT_DISABLE_LOGGING
@@ -9467,12 +9469,12 @@ namespace {
 		update_state_list();
 	}
 
-	void torrent::auto_managed(bool a)
+	void torrent::auto_managed(bool const a)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		if (m_auto_managed == a) return;
+		if (bool(m_auto_managed) == a) return;
 		bool const checking_files = should_check_files();
 		m_auto_managed = a;
 		update_gauge();
@@ -9903,7 +9905,7 @@ namespace {
 
 	void torrent::set_session_paused(bool const b)
 	{
-		if (m_session_paused == b) return;
+		if (bool(m_session_paused) == b) return;
 		bool const paused_before = is_paused();
 		m_session_paused = b;
 
@@ -9925,7 +9927,7 @@ namespace {
 		if (num_peers() == 0)
 			flags &= ~torrent_handle::graceful_pause;
 
-		if (m_paused == b)
+		if (bool(m_paused) == b)
 		{
 			// there is one special case here. If we are
 			// currently in graceful pause mode, and we just turned into regular
@@ -10450,7 +10452,7 @@ namespace {
 
 		if (settings().get_bool(settings_pack::dont_count_slow_torrents))
 		{
-			if (is_inactive != m_inactive && !m_pending_active_change)
+			if (is_inactive != bool(m_inactive) && !m_pending_active_change)
 			{
 				int const delay = settings().get_int(settings_pack::auto_manage_startup);
 				m_inactivity_timer.expires_after(seconds(delay));
@@ -10458,7 +10460,7 @@ namespace {
 					self->wrap(&torrent::on_inactivity_tick, ec); });
 				m_pending_active_change = true;
 			}
-			else if (is_inactive == m_inactive
+			else if (is_inactive == bool(m_inactive)
 				&& m_pending_active_change)
 			{
 				m_inactivity_timer.cancel();
@@ -10487,7 +10489,7 @@ namespace {
 		if (ec) return;
 
 		bool const is_inactive = is_inactive_internal();
-		if (is_inactive == m_inactive) return;
+		if (is_inactive == bool(m_inactive)) return;
 
 		m_inactive = is_inactive;
 
