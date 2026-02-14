@@ -135,7 +135,7 @@ private:
 
 	// keep track of how much of the receive buffer we use, if we're not using
 	// enough of it we shrink it
-	sliding_average<std::ptrdiff_t, 20> m_watermark;
+	sliding_average<std::int64_t, 20> m_watermark;
 
 	buffer m_recv_buffer;
 };
