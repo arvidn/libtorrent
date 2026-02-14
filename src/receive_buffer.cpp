@@ -174,7 +174,7 @@ void receive_buffer::normalize(int const force_shrink)
 	}
 	else if (shrink_buffer)
 	{
-		buffer new_buffer(m_watermark.mean(), bytes_to_shift);
+		buffer new_buffer(numeric_cast<std::ptrdiff_t>(m_watermark.mean()), bytes_to_shift);
 		m_recv_buffer = std::move(new_buffer);
 	}
 	else if (m_recv_end > m_recv_start
