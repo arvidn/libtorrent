@@ -78,7 +78,7 @@ namespace aux {
 	struct TORRENT_EXPORT block_info
 	{
 		// this is the enum used for the block_info::state field.
-		enum block_state_t
+		enum block_state_t : std::uint8_t
 		{
 			// This block has not been downloaded or requested form any peer.
 			none,
@@ -100,28 +100,27 @@ namespace aux {
 		addr_t addr;
 
 		std::uint16_t port;
+
+		// the type of the addr union
+		std::uint16_t is_v6_addr:1;
 	public:
+		// the number of peers that is currently requesting this block. Typically
+		// this is 0 or 1, but at the end of the torrent blocks may be requested
+		// by more peers in parallel to speed things up.
+		std::uint16_t num_peers:14;
 
 		// The peer is the ip address of the peer this block was downloaded from.
 		void set_peer(tcp::endpoint const& ep);
 		tcp::endpoint peer() const;
 
 		// the number of bytes that have been received for this block
-		unsigned bytes_progress:15;
+		std::uint32_t bytes_progress:15;
 
 		// the total number of bytes in this block.
-		unsigned block_size:15;
+		std::uint32_t block_size:15;
 
 		// the state this block is in (see block_state_t)
-		unsigned state:2;
-
-		// the number of peers that is currently requesting this block. Typically
-		// this is 0 or 1, but at the end of the torrent blocks may be requested
-		// by more peers in parallel to speed things up.
-		unsigned num_peers:14;
-	private:
-		// the type of the addr union
-		unsigned is_v6_addr:1;
+		std::uint32_t state:2;
 	};
 
 	// This class holds information about pieces that have outstanding requests
