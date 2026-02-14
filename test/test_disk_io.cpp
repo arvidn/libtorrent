@@ -90,7 +90,14 @@ void disk_io_test_suite(lt::disk_io_constructor_type disk_io
 				, buffer.data() + block
 				, std::shared_ptr<lt::disk_observer>()
 				, [&](lt::storage_error const& e) {
-					TORRENT_ASSERT(!e.ec);
+					if (e.ec) {
+						std::cout << "ERROR: failed to write block (p: " << p
+							<< " b: " << block
+							<< " s: " << write_size
+							<< "): (" << e.ec.value()
+							<< ") " << e.ec.message() << std::endl;
+							std::abort();
+					}
 					++blocks_written;
 				}
 				, disk_flags);
