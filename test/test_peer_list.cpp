@@ -501,7 +501,7 @@ TORRENT_TEST(ban_peers)
 	// now, ban the peer
 	bool ok = p.ban_peer(c->peer_info_struct());
 	TEST_EQUAL(ok, true);
-	TEST_EQUAL(peer1->banned, true);
+	TEST_EQUAL(bool(peer1->banned), true);
 	// we still have it in the list
 	TEST_EQUAL(p.num_peers(), 1);
 	// it's just not a connect candidate, nor allowed to receive incoming connections

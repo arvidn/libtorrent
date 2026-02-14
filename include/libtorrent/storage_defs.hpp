@@ -27,7 +27,7 @@ namespace libtorrent {
 	using storage_index_t = aux::strong_typedef<std::uint32_t, struct storage_index_tag_t>;
 
 	// types of storage allocation used for add_torrent_params::storage_mode.
-	enum storage_mode_t
+	enum storage_mode_t : std::uint8_t
 	{
 		// All pieces will be written to their final position, all files will be
 		// allocated in full when the torrent is first started. This mode minimizes
