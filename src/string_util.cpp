@@ -404,17 +404,24 @@ namespace libtorrent {
 		// Already bracketed IPv6 literal
 		if (!host.empty() && host.front() == '[' && host.back() == ']')
 		{
-			return host + ":" + to_string(port).data();
+			host += ":";
+			host += to_string(port).data();
+			return host;
 		}
 
 		// Contains colons (unbracketed IPv6) - need to bracket
 		if (host.find(':') != string_view::npos)
 		{
-			return "[" + host + "]:" + to_string(port).data();
+			host = "[" + host;
+			host += "]:";
+			host += to_string(port).data();
+			return host;
 		}
 
 		// Regular hostname or IPv4
-		return host + ":" + to_string(port).data();
+		host += ":";
+		host += to_string(port).data();
+		return host;
 	}
 
 #if TORRENT_USE_I2P

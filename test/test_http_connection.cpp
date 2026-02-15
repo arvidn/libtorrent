@@ -183,7 +183,7 @@ void run_suite(std::string const& protocol
 	ps.type = proxy_type;
 
 	if (ps.type != settings_pack::none)
-		ps.port = aux::numeric_cast<std::uint16_t>(start_proxy(ps.type, flags & flag_send_host));
+		ps.port = aux::numeric_cast<std::uint16_t>(start_proxy(ps.type));
 	ps.send_host_in_connect = flags & flag_send_host;
 
 	using err = boost::optional<error_code>;
