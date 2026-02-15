@@ -5675,7 +5675,7 @@ namespace {
 			std::strncpy(ip.name, s->device.c_str(), sizeof(ip.name) - 1);
 			ip.name[sizeof(ip.name) - 1] = '\0';
 
-			std::string gateway = m_settings.get_str(settings_pack::nat_pmp_gateway);
+			std::string gateway = m_settings.get_str(settings_pack::natpmp_gateway);
 			boost::optional<address> gateway_addr = boost::none;
 			if (!gateway.empty())
 			{
