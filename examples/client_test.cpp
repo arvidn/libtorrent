@@ -1254,7 +1254,7 @@ void print_compact_piece(lt::partial_piece_info const& pp, std::string& out)
 	out += esc("32");
 	lt::bitfield blocks(num_blocks);
 	for (int j = 0; j < num_blocks; ++j)
-		if (pp.blocks[j].state == block_info::finished) blocks.set_bit(j);
+		if (pp.blocks[j].state >= block_info::writing) blocks.set_bit(j);
 	int height = 0;
 	out += piece_matrix(blocks, num_blocks / 8, &height);
 	out += esc("0");
@@ -2210,15 +2210,16 @@ done:
 					if (pos + 3 >= terminal_height) break;
 
 					int const num_blocks = i.blocks_in_piece;
-					p += num_blocks + 8;
 					if (print_downloads == 2)
 					{
+						p += num_blocks / 4 + 8;
 						print_compact_piece(i, out);
 					}
 					else
 					{
+						p += num_blocks + 8;
 						int const width = std::max((terminal_width - 8), 8);
-						int const rows = std::min(1, (num_blocks + width - 1) / width);
+						int const rows = std::max(1, (num_blocks + width - 1) / width);
 						print_piece(i, peers, rows, out);
 					}
 					if (p + num_blocks + 8 > terminal_width)
