@@ -165,7 +165,6 @@ void natpmp::start(ip_interface const& ip, boost::optional<address> const& gatew
 	boost::optional<address> route = gateway;
 	if (!route)
 	{
-
 		auto const routes = enum_routes(m_ioc, ec);
 		if (ec)
 		{
