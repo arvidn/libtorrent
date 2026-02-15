@@ -44,14 +44,11 @@ bool compute_force_flush(cached_piece_entry const& piece)
 	// blocks to disk
 	return (piece.hasher_cursor == piece.blocks_in_piece
 		|| piece.piece_hash_returned);
-	{
-		return true;
-	}
 }
 
-int compute_flushed_cursor(span<const cached_block_entry> blocks)
+std::uint16_t compute_flushed_cursor(span<const cached_block_entry> blocks)
 {
-	int ret = 0;
+	std::uint16_t ret = 0;
 	for (auto const& b : blocks)
 	{
 		if (!b.flushed_to_disk) return ret;
@@ -60,9 +57,9 @@ int compute_flushed_cursor(span<const cached_block_entry> blocks)
 	return ret;
 }
 
-int count_jobs(span<const cached_block_entry> blocks)
+std::uint16_t count_jobs(span<const cached_block_entry> blocks)
 {
-	return static_cast<int>(std::count_if(blocks.begin(), blocks.end()
+	return static_cast<std::uint16_t>(std::count_if(blocks.begin(), blocks.end()
 		, [](cached_block_entry const& b) { return b.write_job; }));
 }
 
@@ -124,13 +121,17 @@ lt::hasher& piece_hasher::ctx()
 	return *ctx;
 }
 
-cached_piece_entry::cached_piece_entry(piece_location const& loc, int const num_blocks, int const piece_size_v2, bool const v1, bool const v2)
+cached_piece_entry::cached_piece_entry(piece_location const& loc, std::uint16_t const num_blocks, int const piece_size_v2, bool const v1, bool const v2)
 	: piece(loc)
-	, v1_hashes(v1)
-	, v2_hashes(v2)
+	, blocks(aux::make_unique<cached_block_entry[], std::ptrdiff_t>(num_blocks))
 	, piece_size2(piece_size_v2)
 	, blocks_in_piece(num_blocks)
-	, blocks(aux::make_unique<cached_block_entry[], std::ptrdiff_t>(num_blocks))
+	, force_flush(false)
+	, hashing(false)
+	, flushing(false)
+	, piece_hash_returned(false)
+	, v1_hashes(v1)
+	, v2_hashes(v2)
 {}
 
 span<cached_block_entry> cached_piece_entry::get_blocks() const
@@ -304,10 +305,10 @@ void disk_cache::kick_hasher(piece_location const& loc, jobqueue_t& completed_jo
 	}
 
 	TORRENT_ALLOCA(blocks_storage, span<char const>, piece_iter->blocks_in_piece);
-	int cursor = piece_iter->hasher_cursor;
+	std::uint16_t cursor = piece_iter->hasher_cursor;
 keep_going:
-	int block_idx = 0;
-	int end = cursor;
+	std::uint16_t block_idx = 0;
+	std::uint16_t end = cursor;
 	while (end < piece_iter->blocks_in_piece && piece_iter->blocks[end].buf().data())
 	{
 		blocks_storage[block_idx] = piece_iter->blocks[end].buf();
@@ -393,13 +394,12 @@ keep_going:
 
 	// there's a hash job hung on this piece, post it now
 	pread_disk_job* j = nullptr;
-	span<cached_block_entry> const cached_blocks = piece_iter->get_blocks();
 
 	sha1_hash piece_hash;
 	TORRENT_ASSERT(!piece_iter->piece_hash_returned);
 
 	bool const force_flush = compute_force_flush(*piece_iter);
-	view.modify(piece_iter, [&cached_blocks, &j, &piece_hash, force_flush](cached_piece_entry& e) {
+	view.modify(piece_iter, [&j, &piece_hash, force_flush](cached_piece_entry& e) {
 		j = std::exchange(e.hash_job, nullptr);
 		e.force_flush |= force_flush;
 		e.piece_hash_returned = true;
@@ -415,7 +415,7 @@ keep_going:
 		TORRENT_ASSERT(need_v2);
 		int const to_copy = std::min(
 			piece_iter->blocks_in_piece,
-			int(job.block_hashes.size()));
+			numeric_cast<std::uint16_t>(job.block_hashes.size()));
 		for (int i = 0; i < to_copy; ++i)
 			job.block_hashes[i] = piece_iter->blocks[i].block_hash;
 	}
@@ -470,7 +470,7 @@ Iter disk_cache::flush_piece_impl(View& view
 
 	// now that we hold the mutex again, we can update the entries for
 	// all the blocks that were flushed
-	int jobs = 0;
+	std::uint16_t jobs = 0;
 
 	// note that i is not the block index in the piece. the "blocks" span may
 	// be a subspan of the whole piece. When comparing against the
@@ -833,7 +833,7 @@ void disk_cache::clear_piece_impl(cached_piece_entry& cpe, jobqueue_t& aborted)
 	INVARIANT_CHECK;
 	TORRENT_ASSERT(!cpe.flushing);
 	TORRENT_ASSERT(!cpe.hashing);
-	int jobs = 0;
+	std::uint16_t jobs = 0;
 	int const hasher_cursor = cpe.hasher_cursor;
 	for (int idx = 0; idx < cpe.blocks_in_piece; ++idx)
 	{

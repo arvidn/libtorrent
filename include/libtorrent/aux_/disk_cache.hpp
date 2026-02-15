@@ -104,6 +104,9 @@ struct cached_block_entry
 	// to free these on destruction
 	// we would still need to save the *size* of the block, to support the
 	// shorter last block of a torrent
+
+	// TODO: save space by turnig this into a union. We only ever have a write
+	// job or a buffer, never both
 	disk_buffer_holder buf_holder;
 	pread_disk_job* write_job = nullptr;
 
@@ -116,7 +119,7 @@ struct cached_block_entry
 struct cached_piece_entry
 {
 	cached_piece_entry(piece_location const& loc
-		, int const num_blocks
+		, std::uint16_t const num_blocks
 		, int const piece_size_v2
 		, bool v1
 		, bool v2);
@@ -124,59 +127,6 @@ struct cached_piece_entry
 	span<cached_block_entry> get_blocks() const;
 
 	piece_location piece;
-
-	// this is set to true when the piece has been populated with all blocks
-	// it will make it prioritized for flushing to disk
-	// it will be cleared once all blocks have been flushed
-	bool force_flush = false;
-
-	// when this is true, there is a thread currently hashing blocks and
-	// updating the hash context in "ph". Other threads may not touch "ph",
-	// "hasher_cursor", and may only read "hashing".
-	bool hashing = false;
-
-	// when a thread is writing this piece to disk, this is true. Only one
-	// thread at a time should be flushing a piece to disk.
-	bool flushing = false;
-
-	// this is set to true if the piece hash has been computed and returned
-	// to the bittorrent engine.
-	bool piece_hash_returned = false;
-
-	// this indicates that this piece belongs to a v2 torrent, and it has the
-	// block_hash member of cached_block_entry and we need to compute the block
-	// hashes as well
-	bool v1_hashes = false;
-	bool v2_hashes = false;
-
-	// if this is a v2 torrent, this is the exact size of this piece. The
-	// end-piece of each file may be truncated for v2 torrents
-	int piece_size2;
-
-	// the number of blocks in this piece. This depend on the piece size for
-	// the torrent and whether it's the last
-	int blocks_in_piece = 0;
-
-	// the number of blocks that have been hashed so far. Specifically for the
-	// v1 SHA1 hash of the piece, so all blocks are contiguous starting at block
-	// 0.
-	int hasher_cursor = 0;
-
-	// the number of contiguous blocks, starting at 0, that have been flushed to
-	// disk so far. This is used to determine how many blocks are left to flush
-	// from this piece without requiring read-back to hash them, by substracting
-	// flushed_cursor from hasher_cursor.
-	int flushed_cursor = 0;
-
-	// the number of blocks that have a write job associated with them
-	int num_jobs = 0;
-
-	// returns the number of blocks in this piece that have been hashed and
-	// ready to be flushed without requiring reading them back in the future.
-	int cheap_to_flush() const
-	{
-		return int(hasher_cursor) - int(flushed_cursor);
-	}
 
 	unique_ptr<cached_block_entry[]> blocks;
 
@@ -190,6 +140,63 @@ struct cached_piece_entry
 	// (flushing) at the time. We hang this job here to complete it once the
 	// thread currently flushing is done with it
 	pread_disk_job* clear_piece = nullptr;
+	// if this is a v2 torrent, this is the exact size of this piece. The
+	// end-piece of each file may be truncated for v2 torrents
+	int piece_size2;
+
+	// the number of blocks in this piece. This depend on the piece size for
+	// the torrent and whether it's the last
+	std::uint16_t blocks_in_piece = 0;
+
+	// the number of blocks that have been hashed so far. Specifically for the
+	// v1 SHA1 hash of the piece, so all blocks are contiguous starting at block
+	// 0.
+	std::uint16_t hasher_cursor = 0;
+
+	// the number of contiguous blocks, starting at 0, that have been flushed to
+	// disk so far. This is used to determine how many blocks are left to flush
+	// from this piece without requiring read-back to hash them, by substracting
+	// flushed_cursor from hasher_cursor.
+	std::uint16_t flushed_cursor = 0;
+
+	// the number of blocks that have a write job associated with them
+	std::uint16_t num_jobs = 0;
+
+	// this is set to true when the piece has been populated with all blocks
+	// it will make it prioritized for flushing to disk
+	// it will be cleared once all blocks have been flushed
+	bool force_flush: 1;
+
+	// when this is true, there is a thread currently hashing blocks and
+	// updating the hash context in "ph". Other threads may not touch "ph",
+	// "hasher_cursor", and may only read "hashing".
+	bool hashing: 1;
+
+	// when a thread is writing this piece to disk, this is true. Only one
+	// thread at a time should be flushing a piece to disk.
+	bool flushing: 1;
+
+	// this is set to true if the piece hash has been computed and returned
+	// to the bittorrent engine.
+	bool piece_hash_returned: 1;
+
+	// this indicates that this piece belongs to a v2 torrent, and it has the
+	// block_hash member of cached_block_entry and we need to compute the block
+	// hashes as well
+	bool v1_hashes: 1;
+	bool v2_hashes: 1;
+
+	// returns the number of blocks in this piece that have been hashed and
+	// ready to be flushed without requiring reading them back in the future.
+	int cheap_to_flush() const
+	{
+		return int(hasher_cursor) - int(flushed_cursor);
+	}
+
+	bool need_force_flush() const
+	{
+		return force_flush;
+	}
 };
 
 struct disk_cache
@@ -204,7 +211,7 @@ struct disk_cache
 		mi::ordered_non_unique<mi::const_mem_fun<cached_piece_entry, int, &cached_piece_entry::cheap_to_flush>, std::greater<void>>,
 		// ordered by whether the piece is ready to be flushed or not
 		// true is ordered before false
-		mi::ordered_non_unique<mi::member<cached_piece_entry, bool, &cached_piece_entry::force_flush>, std::greater<void>>,
+		mi::ordered_non_unique<mi::const_mem_fun<cached_piece_entry, bool, &cached_piece_entry::need_force_flush>, std::greater<void>>,
 		// hash-table lookup of individual pieces. faster than index 0
 		mi::hashed_unique<mi::member<cached_piece_entry, piece_location, &cached_piece_entry::piece>>
 		>
@@ -280,14 +287,14 @@ struct disk_cache
 		auto piece_iter = view.find(loc);
 		if (piece_iter == view.end()) return false;
 
-		int const blocks_in_piece = piece_iter->blocks_in_piece;
-		int const hasher_cursor = piece_iter->hasher_cursor;
+		std::uint16_t const blocks_in_piece = piece_iter->blocks_in_piece;
+		std::uint16_t const hasher_cursor = piece_iter->hasher_cursor;
 
 		TORRENT_ALLOCA(blocks, char const*, blocks_in_piece);
 		TORRENT_ALLOCA(v2_hashes, sha256_hash, blocks_in_piece);
 
 		int num_unhashed = 0;
-		for (int i = 0; i < blocks_in_piece; ++i)
+		for (std::uint16_t i = 0; i < blocks_in_piece; ++i)
 		{
 			char const* buf = piece_iter->blocks[i].buf().data();
 			blocks[i] = buf;
