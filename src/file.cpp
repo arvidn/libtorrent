@@ -92,7 +92,7 @@ see LICENSE file.
 
 #endif // posix part
 
-#if TORRENT_USE_PWRITEV && defined TORRENT_BSD
+#if TORRENT_USE_PWRITEV && (defined TORRENT_BSD || defined TORRENT_ANDROID)
 #include <unistd.h>
 #include <sys/uio.h> // for pwritev() and iovec
 #include <sys/types.h> // for pwritev() and iovec

@@ -178,7 +178,7 @@ see LICENSE file.
 #define TORRENT_HAVE_MMAP 1
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30) && !defined(__ANDROID__)
 #define TORRENT_USE_PWRITEV 1
 #endif
 
@@ -209,7 +209,6 @@ see LICENSE file.
 #define TORRENT_HAS_PTHREAD_SET_NAME 1
 
 #if __ANDROID_API__ >= 24
-// TODO: confirm this
 #define TORRENT_USE_PWRITEV 1
 #endif
 
