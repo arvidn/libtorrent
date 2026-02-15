@@ -625,7 +625,7 @@ void test_connection_ssl_proxy(bool const with_hostname)
 		{
 			proxy_counter++;
 			TEST_EQUAL(method, "CONNECT");
-			
+
 			// Host header is always sent to comply with RFC 9110 and RFC 9112 requirements.
 			// The send_host_in_connect setting controls the format:
 			// - true: Host header contains domain:port format

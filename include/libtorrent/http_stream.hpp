@@ -131,8 +131,8 @@ private:
 		// if we were given the original host (domain or IP), prefer using it (lets proxy resolve domains)
 		if (!m_host.empty())
 		{
-			std::string const remote_host = ::libtorrent::format_host_for_connect(
-				std::move(m_host), 
+			std::string const remote_host = format_host_for_connect(
+				m_host,
 				m_remote_endpoint.port());
 
 			write_string("CONNECT " + remote_host + " HTTP/1.0\r\n", p);
