@@ -391,6 +391,13 @@ namespace aux {
 			// ``router.bt.ouinet.work:6881``,
 			dht_bootstrap_nodes,
 
+			// Overrides the NAT-PMP service gateway. When set, libtorrent won't try
+			// to resolve the default gateway and instead will send the requests to
+			// the address specified. This only takes affect when NAT-PMP first
+			// starts. If you change this setting after NAT-PMP has been
+			// enabled, you need to disable it and re-enable it.
+			natpmp_gateway,
+
 			max_string_setting_internal
 		};
 
