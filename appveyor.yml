@@ -44,13 +44,13 @@ install:
   - echo %BOOST_ROOT%
   - echo %BOOST_BUILD_PATH%
   - set PATH=%PATH%;%BOOST_BUILD_PATH%
-  - ps: '"using msvc ;`nusing gcc ;`nusing python : 3.13 : c:\\Python313-x64 : c:\\Python313-x64\\include : c:\\Python313-x64\\libs ;`n" | Set-Content $env:HOMEDRIVE\$env:HOMEPATH\user-config.jam'
+  - ps: '"using msvc ;`nusing gcc ;`nusing python : 3.14 : c:\\Python314-x64 : c:\\Python314-x64\\include : c:\\Python314-x64\\libs ;`n" | Set-Content $env:HOMEDRIVE\$env:HOMEPATH\user-config.jam'
   - type %HOMEDRIVE%%HOMEPATH%\user-config.jam
   - cd %ROOT_DIRECTORY%
   - set PATH=c:\msys64\mingw32\bin;%PATH%
   - g++ --version
-  - set PATH=c:\Python38-x64;%PATH%
-  - set PYTHON_INTERPRETER=c:\Python38-x64\python.exe
+  - set PATH=c:\Python314-x64;%PATH%
+  - set PYTHON_INTERPRETER=c:\Python314-x64\python.exe
   - python --version
   - echo %ROOT_DIRECTORY%
   - cd %BOOST_BUILD_PATH%
@@ -80,7 +80,7 @@ build_script:
     b2.exe --hash openssl-lib=%ssl_lib% openssl-include=%ssl_include% warnings=all %compiler% address-model=%model% picker-debugging=on invariant-checks=full variant=%variant% link=shared crypto=%crypto% asserts=on export-extra=on windows-api=%api% windows-version=win10 libtorrent-link=shared stage_module stage_dependencies
     )
   - if defined python_dist (
-    c:\Python38-x64\python.exe setup.py bdist --format=msi
+    c:\Python314-x64\python.exe setup.py bdist --format=msi
     )
 
   # minimal support for cmake build
