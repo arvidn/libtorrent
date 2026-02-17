@@ -1,3 +1,5 @@
+	* back-port fix issue in retrying trackers in tiers > 0
+
 1.2.20 released
 
 	* validate add_torrent_params::save_path at run-time
