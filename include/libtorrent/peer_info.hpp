@@ -221,12 +221,12 @@ TORRENT_VERSION_NAMESPACE_4
 
 		// the current upload and download speed we have to and from this peer
 		// (including any protocol messages). updated about once per second
-		int up_speed;
-		int down_speed;
+		std::int64_t up_speed;
+		std::int64_t down_speed;
 
 		// The transfer rates of payload data only updated about once per second
-		int payload_up_speed;
-		int payload_down_speed;
+		std::int64_t payload_up_speed;
+		std::int64_t payload_down_speed;
 
 		// the peer's id as used in the bittorrent protocol. This id can be used
 		// to extract 'fingerprints' from the peer. Sometimes it can tell you
@@ -348,8 +348,8 @@ TORRENT_VERSION_NAMESPACE_4
 
 		// the highest download and upload rates seen on this connection. They
 		// are given in bytes per second. This number is reset to 0 on reconnect.
-		int download_rate_peak;
-		int upload_rate_peak;
+		std::int64_t download_rate_peak;
+		std::int64_t upload_rate_peak;
 
 		// the progress of the peer in the range [0, 1]. This is always 0 when
 		// floating point operations are disabled, instead use ``progress_ppm``.
