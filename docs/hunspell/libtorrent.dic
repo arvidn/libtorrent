@@ -639,3 +639,6 @@ ouinet
 IANA's
 NOCOW
 btrfs
+CoW
+reflinks
+reflinked
