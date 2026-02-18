@@ -230,6 +230,7 @@ set(libtorrent_aux_include_files
 	posix_part_file.hpp
 	posix_storage.hpp
 	pread_disk_job.hpp
+	pread_storage.hpp
 	proxy_base.hpp
 	proxy_settings.hpp
 	puff.hpp

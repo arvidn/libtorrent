@@ -1289,11 +1289,11 @@ void alloc_iov(span<Char>* iov, int num_bufs)
 template <typename Char>
 void free_iov(span<Char>* iov, int num_bufs)
 {
-       for (int i = 0; i < num_bufs; ++i)
-       {
-               delete[] iov[i].data();
-               iov[i] = { nullptr, 0 };
-       }
+	for (int i = 0; i < num_bufs; ++i)
+	{
+		delete[] iov[i].data();
+		iov[i] = { nullptr, 0 };
+	}
 }
 
 } // anonymous namespace

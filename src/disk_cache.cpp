@@ -40,7 +40,7 @@ bool compute_force_flush(cached_piece_entry const& piece)
 	// piece that are partial on startup won't have the flushed_cursor
 	// updated to indicate what's on disk and what's in the cache. Once
 	// the bittorrent engine asks for the piece hash, we know the piece is
-	// supposed to be complete. After hashing, we should flush any remining
+	// supposed to be complete. After hashing, we should flush any remaining
 	// blocks to disk
 	return (piece.hasher_cursor == piece.blocks_in_piece
 		|| piece.piece_hash_returned);

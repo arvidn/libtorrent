@@ -105,7 +105,7 @@ struct cached_block_entry
 	// we would still need to save the *size* of the block, to support the
 	// shorter last block of a torrent
 
-	// TODO: save space by turnig this into a union. We only ever have a write
+	// TODO: save space by turning this into a union. We only ever have a write
 	// job or a buffer, never both
 	disk_buffer_holder buf_holder;
 	pread_disk_job* write_job = nullptr;
