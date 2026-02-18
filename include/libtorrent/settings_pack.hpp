@@ -1035,7 +1035,16 @@ namespace aux {
 
 			// When set, downloaded files will have the no-copy-on-write flag
 			// (``FS_NOCOW_FL``) set on Linux. This mitigates heavy
-			// fragmentation on filesystems like btrfs.
+			// fragmentation on filesystems like btrfs, but has the unfortunate
+			// side effect of disabling useful CoW-related features including
+			// checksumming and compression, and adding additional restrictions
+			// on the use of reflinks. A NOCOW file can only be reflinked to NOCOW
+			// directories, which can be a surprising change for existing users.
+			// Therefore, this option is disabled by default.
+			//
+			// An alternative to this option is for the user to manually set the
+			// NOCOW flag on the download directory, which will cause all files
+			// created within it to have the NOCOW flag set.
 			disk_disable_copy_on_write,
 
 			max_bool_setting_internal
