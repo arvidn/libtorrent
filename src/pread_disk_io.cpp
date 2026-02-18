@@ -1154,6 +1154,12 @@ void pread_disk_io::update_stats_counters(counters& c) const
 	auto const [cache_size, num_unhashed] = m_cache.stats();
 	c.set_value(counters::cached_blocks, cache_size);
 	c.set_value(counters::num_unhashed, num_unhashed);
+	auto const [hits, misses, stalls, races, num_files] = m_file_pool.stats_counters();
+	c.set_value(counters::file_pool_hits, hits);
+	c.set_value(counters::file_pool_misses, misses);
+	c.set_value(counters::file_pool_thread_stall, stalls);
+	c.set_value(counters::file_pool_race, races);
+	c.set_value(counters::file_pool_size, num_files);
 }
 
 status_t pread_disk_io::do_job(aux::job::file_priority& a, aux::pread_disk_job* j)
