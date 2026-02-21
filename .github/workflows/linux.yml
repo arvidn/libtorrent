@@ -266,12 +266,16 @@ jobs:
           echo "using clang : 16 : clang++-16 ;" >>~/user-config.jam
 
       - name: build and run tests
+        env:
+          LSAN_OPTIONS: suppressions=${{ github.workspace }}/.asan.suppressions
         run: |
           cd test
           b2 ${{ matrix.config }} -l500 warnings-as-errors=on debug-iterators=on asserts=on deterministic-tests
           b2 ${{ matrix.config }} -l500 testing.execute=off warnings-as-errors=on debug-iterators=on asserts=on test_lsd test_hasher test_hasher512
 
       - name: run tests (flaky)
+        env:
+          LSAN_OPTIONS: suppressions=${{ github.workspace }}/.asan.suppressions
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30

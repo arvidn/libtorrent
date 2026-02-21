@@ -1,0 +1,8 @@
+# OpenSSL / libcrypto internal leaks (often global state or DRBG)
+leak:CRYPTO_zalloc
+leak:EVP_RAND_CTX_new
+leak:rand_new_drbg
+
+# Specific suppressions for libdatachannel/libtorrent context
+leak:rtc::impl::DtlsTransport::DtlsTransport
+leak:SSL_CTX_new_ex
