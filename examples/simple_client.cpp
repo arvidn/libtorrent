@@ -35,21 +35,39 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/torrent_info.hpp"
+#include "libtorrent/magnet_uri.hpp"
 
 #include <iostream>
 
 int main(int argc, char* argv[]) try
 {
 	if (argc != 2) {
-		std::cerr << "usage: ./simple_client torrent-file\n"
+		std::cerr << "usage: ./simple_client torrent-file|magnet-link\n"
 			"to stop the client, press return.\n";
 		return 1;
 	}
 
 	lt::session s;
+	lt::error_code ec;
 	lt::add_torrent_params p;
+
+	// based on client_test.cpp
+	lt::string_view torrent = argv[1];
+	if (torrent.substr(0, 7) == "magnet:") {
+		// add_magnet(s, torrent);
+		p = lt::parse_magnet_uri(torrent.to_string(), ec);
+		if (ec)
+		{
+			std::printf("invalid magnet link \"%s\": %s\n"
+				, torrent.to_string().c_str(), ec.message().c_str());
+			return 1;
+		}
+		// std::printf("adding magnet: %s\n", torrent.to_string().c_str());
+	}
+	else {
+		p.ti = std::make_shared<lt::torrent_info>(torrent);
+	}
 	p.save_path = ".";
-	p.ti = std::make_shared<lt::torrent_info>(argv[1]);
 	s.add_torrent(p);
 
 	// wait for the user to end
