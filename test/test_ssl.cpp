@@ -38,6 +38,7 @@ see LICENSE file.
 #ifdef TORRENT_UTP_LOG_ENABLE
 #include "libtorrent/aux_/utp_stream.hpp"
 #endif
+#include <libtorrent/extensions/ut_metadata.hpp>
 
 using namespace std::placeholders;
 using namespace lt;
@@ -585,12 +586,137 @@ void test_malicious_peer()
 	}
 }
 
+
+void test_ssl_magnet(bool const seed_has_cert)
+{
+	error_code ec;
+	remove_all("tmp4_ssl", ec);
+	remove_all("tmp5_ssl", ec);
+
+	// set up session
+	int port = 1024 + rand() % 50000;
+	settings_pack sett = settings();
+	sett.set_int(settings_pack::max_retry_port_bind, 100);
+
+	char listen_iface[100];
+	std::snprintf(listen_iface, sizeof(listen_iface), "0.0.0.0:%ds", port);
+	sett.set_str(settings_pack::listen_interfaces, listen_iface);
+	sett.set_bool(settings_pack::enable_dht, false);
+	sett.set_bool(settings_pack::enable_lsd, false);
+	sett.set_bool(settings_pack::enable_upnp, false);
+	sett.set_bool(settings_pack::enable_natpmp, false);
+
+	lt::session ses2(session_params{sett, {}});
+	ses2.add_extension(&lt::create_ut_metadata_plugin);
+
+	port += 20;
+	std::snprintf(listen_iface, sizeof(listen_iface), "0.0.0.0:%ds", port);
+	sett.set_str(settings_pack::listen_interfaces, listen_iface);
+
+	lt::session ses1(session_params{sett, {}});
+	ses1.add_extension(&lt::create_ut_metadata_plugin);
+
+	wait_for_listen(ses1, "ses1");
+	wait_for_listen(ses2, "ses2");
+
+	// create torrent
+	create_directory("tmp4_ssl", ec);
+	std::ofstream file("tmp4_ssl/temporary");
+	add_torrent_params addp = ::create_torrent(&file, "temporary"
+		, 16 * 1024, 13, false, {}, combine_path("..", combine_path("ssl", "root_ca_cert.pem")));
+	file.close();
+
+	TEST_CHECK(!addp.ti->ssl_cert().empty());
+
+	addp.save_path = "tmp4_ssl";
+	addp.flags &= ~torrent_flags::paused;
+	addp.flags &= ~torrent_flags::auto_managed;
+
+	torrent_handle tor1 = ses1.add_torrent(addp, ec);
+
+	if (seed_has_cert)
+	{
+		tor1.set_ssl_certificate(
+			combine_path("..", combine_path("ssl", "peer_certificate.pem"))
+			, combine_path("..", combine_path("ssl", "peer_private_key.pem"))
+			, combine_path("..", combine_path("ssl", "dhparams.pem"))
+			, "test");
+	}
+
+	alert const* a = wait_for_alert(ses1
+		, torrent_finished_alert::alert_type, "ses1");
+	TEST_CHECK(a);
+	if (a)
+	{
+		TEST_EQUAL(a->type(), torrent_finished_alert::alert_type);
+	}
+
+	// create a new session with add torrent params using the root_certificate
+	create_directory("tmp4_ssl", ec);
+	add_torrent_params addp2;
+	addp2.save_path = "tmp5_ssl";
+	addp2.info_hashes = addp.ti->info_hashes();
+	addp2.flags &= ~torrent_flags::paused;
+	addp2.flags &= ~torrent_flags::auto_managed;
+
+	std::ifstream rootf(combine_path("..", combine_path("ssl", "root_ca_cert.pem")));
+	std::stringstream buffer;
+	buffer << rootf.rdbuf();
+	addp2.root_certificate = buffer.str();
+
+	torrent_handle tor2 = ses2.add_torrent(addp2, ec);
+
+	tor2.set_ssl_certificate(
+		combine_path("..", combine_path("ssl", "peer_certificate.pem"))
+		, combine_path("..", combine_path("ssl", "peer_private_key.pem"))
+		, combine_path("..", combine_path("ssl", "dhparams.pem"))
+		, "test");
+
+	// make sure they've taken effect
+	// this will cause a round-trip to the main thread, and make sure the
+	// previous async. calls have completed
+	ses1.listen_port();
+	ses2.listen_port();
+
+	// connect the peers after setting the certificates
+	std::printf("\n\n%s: ses2: connecting peer port: %d\n\n\n"
+		, time_now_string().c_str(), port);
+	tor2.connect_peer(tcp::endpoint(make_address("127.0.0.1", ec)
+		, std::uint16_t(port)));
+
+	if (!seed_has_cert) {
+		// The downloader has a certificate, but the seed doesn't. Downloader should
+		// fail, as they expect an SSL torrent but the seed doesn't have a certificate
+		alert const* a2 = wait_for_alert(ses2
+			, peer_disconnected_alert::alert_type, "ses2");
+		TEST_CHECK(a2);
+		if (a2)
+		{
+			TEST_EQUAL(a2->type(), peer_disconnected_alert::alert_type);
+		}
+	} else {
+		wait_for_downloading(ses2, "ses2");
+		alert const* a2 = wait_for_alert(ses2
+			, torrent_finished_alert::alert_type, "ses2");
+		TEST_CHECK(a2);
+		if (a2)
+		{
+			TEST_EQUAL(a2->type(), torrent_finished_alert::alert_type);
+		}
+	}
+}
+
+
+
 } // anonymous namespace
 
 TORRENT_TEST(malicious_peer)
 {
 	test_malicious_peer();
 }
+
+TORRENT_TEST(ssl_magnet_both_certs) { test_ssl_magnet(true); }
+TORRENT_TEST(ssl_magnet_no_seed_cert) { test_ssl_magnet(false); }
 
 TORRENT_TEST(utp_config0) { test_ssl(0, true); }
 TORRENT_TEST(utp_config1) { test_ssl(1, true); }
