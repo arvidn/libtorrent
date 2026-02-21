@@ -746,7 +746,8 @@ if(NOT gnutls)
 				OPENSSL_NO_SSL2
 				OPENSSL_NO_SSL3
 				OPENSSL_NO_TLS1
-				OPENSSL_NO_TLS1_1)
+				OPENSSL_NO_TLS1_1
+				OPENSSL_NO_DTLS1)
 	endif()
 endif()
 

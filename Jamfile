@@ -654,7 +654,8 @@ feature.compose <crypto>openssl
 	<define>OPENSSL_NO_SSL2
 	<define>OPENSSL_NO_SSL3
 	<define>OPENSSL_NO_TLS1
-	<define>OPENSSL_NO_TLS1_1 ;
+	<define>OPENSSL_NO_TLS1_1
+	<define>OPENSSL_NO_DTLS1 ;
 feature.compose <crypto>openssl-shared
 	: <define>TORRENT_USE_LIBCRYPTO
 	<define>TORRENT_USE_OPENSSL
@@ -662,7 +663,8 @@ feature.compose <crypto>openssl-shared
 	<define>OPENSSL_NO_SSL2
 	<define>OPENSSL_NO_SSL3
 	<define>OPENSSL_NO_TLS1
-	<define>OPENSSL_NO_TLS1_1 ;
+	<define>OPENSSL_NO_TLS1_1
+	<define>OPENSSL_NO_DTLS1 ;
 feature.compose <crypto>wolfssl
 	: <define>TORRENT_USE_WOLFSSL
 	<define>TORRENT_USE_LIBCRYPTO
