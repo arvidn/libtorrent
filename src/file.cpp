@@ -47,6 +47,7 @@ see LICENSE file.
 #include "libtorrent/aux_/path.hpp" // for convert_to_native_path_string
 #include "libtorrent/aux_/string_util.hpp"
 #include <algorithm> // for std::min
+#include <climits> // for IOV_MAX
 #include <cstring>
 
 #include "libtorrent/assert.hpp"
@@ -140,7 +141,7 @@ namespace {
 		}
 
 		do {
-			int const iovcnt = static_cast<int>(std::min<std::ptrdiff_t>(UIO_MAXIOV, vec.size()));
+			int const iovcnt = static_cast<int>(std::min<std::ptrdiff_t>(IOV_MAX, vec.size()));
 			ssize_t const r = ::pwritev(handle, vec.data(), iovcnt, file_offset);
 			if (r == 0)
 			{
