@@ -46,6 +46,7 @@ see LICENSE file.
 #include "libtorrent/aux_/file.hpp"
 #include "libtorrent/aux_/path.hpp" // for convert_to_native_path_string
 #include "libtorrent/aux_/string_util.hpp"
+#include <algorithm> // for std::min
 #include <cstring>
 
 #include "libtorrent/assert.hpp"
@@ -130,8 +131,6 @@ namespace {
 		, std::int64_t file_offset
 		, error_code& ec)
 	{
-		// TODO: if bufs.size() > UIO_MAXIOV, we need to split up the call
-		// into multiple ones
 		int ret = 0;
 		TORRENT_ALLOCA(vec, iovec, bufs.size());
 		for (int i = 0; i < bufs.size(); ++i)
@@ -141,7 +140,8 @@ namespace {
 		}
 
 		do {
-			ssize_t const r = ::pwritev(handle, vec.data(), static_cast<int>(vec.size()), file_offset);
+			int const iovcnt = static_cast<int>(std::min<std::ptrdiff_t>(UIO_MAXIOV, vec.size()));
+			ssize_t const r = ::pwritev(handle, vec.data(), iovcnt, file_offset);
 			if (r == 0)
 			{
 				ec = boost::asio::error::eof;
