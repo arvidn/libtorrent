@@ -125,6 +125,8 @@ namespace libtorrent::aux {
 
 		T* pop_front()
 		{
+			TORRENT_ASSERT(m_size > 0);
+			TORRENT_ASSERT(m_first != nullptr);
 			TORRENT_ASSERT(m_last == nullptr || m_last->next == nullptr);
 			T* e = m_first;
 			m_first = m_first->next;

@@ -77,31 +77,32 @@ def main() -> None:
 
     rm_file_or_dir(Path("t"))
 
-    run_test(
-        "download-write-through",
-        "upload",
-        ["-1", "--disk_io_write_mode=write_through"],
-        args.download_peers,
-        args.save_path,
-        args.always_yes,
-    )
-    reset_download(args.save_path)
-    run_test(
-        "download-full-cache",
-        "upload",
-        ["-1", "--disk_io_write_mode=enable_os_cache"],
-        args.download_peers,
-        args.save_path,
-        args.always_yes,
-    )
-    run_test(
-        "upload",
-        "download",
-        ["-G", "-e", "240"],
-        args.upload_peers,
-        args.save_path,
-        args.always_yes,
-    )
+    for io_backend in ["mmap", "pread", "posix"]:
+        run_test(
+            f"download-write-through-{io_backend}",
+            "upload",
+            ["-1", "--disk_io_write_mode=write_through", "-i", io_backend],
+            args.download_peers,
+            args.save_path,
+            args.always_yes,
+        )
+        reset_download(args.save_path)
+        run_test(
+            f"download-full-cache-{io_backend}",
+            "upload",
+            ["-1", "--disk_io_write_mode=enable_os_cache", "-i", io_backend],
+            args.download_peers,
+            args.save_path,
+            args.always_yes,
+        )
+        run_test(
+            f"upload-{io_backend}",
+            "download",
+            ["-G", "-e", "240", "-i", io_backend],
+            args.upload_peers,
+            args.save_path,
+            args.always_yes,
+        )
 
 
 def run_test(
