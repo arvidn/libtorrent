@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2004, 2006-2009, 2012, 2014-2017, 2019-2021, Arvid Norberg
+Copyright (c) 2004, 2006-2009, 2012, 2014-2017, 2019-2026 Arvid Norberg
 Copyright (c) 2016, 2020-2021, Alden Torres
 All rights reserved.
 
@@ -20,7 +20,6 @@ see LICENSE file.
 #include "libtorrent/aux_/tracker_manager.hpp" // for tracker_connection
 
 namespace libtorrent {
-
 	struct bdecode_node;
 }
 
@@ -29,6 +28,7 @@ namespace libtorrent::aux {
 	struct http_connection;
 	class http_parser;
 	struct peer_entry;
+	struct session_settings;
 
 	class TORRENT_EXTRA_EXPORT http_tracker_connection
 		: public tracker_connection
@@ -72,6 +72,12 @@ namespace libtorrent::aux {
 
 	TORRENT_EXTRA_EXPORT bool extract_peer_info(bdecode_node const& info
 		, peer_entry& ret, error_code& ec);
+
+	std::string build_tracker_url(const tracker_request& req,
+		session_settings const& settings,
+		bool i2p,
+		error_code& ec);
+
 }
 
 #endif // TORRENT_HTTP_TRACKER_CONNECTION_HPP_INCLUDED

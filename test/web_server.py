@@ -52,9 +52,14 @@ class http_handler(BaseHTTPRequestHandler):
         global keepalive
 
         # if the request contains the hostname and port. strip it
-        if self.path.startswith('http://') or self.path.startswith('https://'):
-            self.path = self.path[8:]
-            self.path = self.path[self.path.find('/'):]
+        for scheme in ['http://', 'https://']:
+            if self.path.startswith(scheme):
+                self.path = self.path[len(scheme):]
+                path_start = self.path.find('/')
+                if path_start == -1:
+                    raise ValueError("request %s did not provide a path" % self.path)
+                self.path = self.path[path_start:]
+                break
 
         file_path = os.path.normpath(self.path)
         sys.stdout.flush()
@@ -89,6 +94,13 @@ class http_handler(BaseHTTPRequestHandler):
             self.send_header("Location", "../test_file")
             self.send_header("Connection", "close")
             self.end_headers()
+        elif self.path == '/10MiB':
+            b10MiB = 1024 * 1024 * 10
+            self.send_response(200)
+            self.send_header("Content-Length", "%d" % b10MiB)
+            self.end_headers()
+            self.wfile.write(bytearray(b10MiB))
+            self.request.close()
         elif self.path.startswith('/announce'):
             self.send_response(200)
             response = b'd8:intervali1800e8:completei1e10:incompletei1e' + \

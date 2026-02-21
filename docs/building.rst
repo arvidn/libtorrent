@@ -275,6 +275,10 @@ To customize the library path and include path for wolfSSL, set the features
 To disable linking against any SSL library, set the ``crypto`` build feature to
 ``built-in``. This will use an embedded version if SHA-1.
 
+When building with cURL enabled, customize the library and include paths by
+setting the features ``curl-lib`` and ``curl-include``, respectively. To enable
+logging of cURL's connection details to stderr, set ``curl_debug=on``.
+
 Build features
 ~~~~~~~~~~~~~~
 
@@ -460,6 +464,15 @@ Build features
 |                          | * ``off`` - disable mmap storage, and fall back to |
 |                          |   single-threaded, portable file operations.       |
 +--------------------------+----------------------------------------------------+
+| ``curl``                 | * ``off`` - default. HTTP connections to trackers  |
+|                          |   don't use connection- and SSL session reuse.     |
+|                          | * ``on`` - libcurl is used for HTTP connections    |
+|                          |   to trackers, enabling connection- and SSL        |
+|                          |   session reuse. This includes support for the     |
+|                          |   default libcurl HTTP features.                   |
+|                          |   Note that libcurl needs to be build against      |
+|                          |   c-aris for async DNS support.                    |
++--------------------------+----------------------------------------------------+
 
 The ``variant`` feature is *implicit*, which means you don't need to specify
 the name of the feature, just the value.
@@ -598,6 +611,10 @@ Other build options are:
 +-----------------------+---------------------------------------------------+
 
 Options are set on the ``cmake`` command line with the ``-D`` option or later on using ``ccmake`` or ``cmake-gui`` applications. ``cmake`` run outputs a summary of all available options and their current values.
+
+To link with a custom build of libcurl (or any other library), first build and install libcurl with
+custom dependencies to a custom prefix path. Then use the option ``CMAKE_PREFIX_PATH=/path/to/custom/dependencies/prefix``
+in libtorrent's cmake configuration.
 
 Step 2: Building libtorrent
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -747,6 +764,10 @@ own code that compiles and links with libtorrent.
 | ``TORRENT_SSL_PEERS``                  | Define to enable support for SSL torrents,      |
 |                                        | peers are connected over authenticated SSL      |
 |                                        | streams.                                        |
++----------------------------------------+-------------------------------------------------+
+| ``TORRENT_USE_CURL=1``                 | Libcurl is used for HTTP connections to         |
+|                                        | trackers. This will enable connection- and SSL  |
+|                                        | session reuse.                                  |
 +----------------------------------------+-------------------------------------------------+
 
 .. _`BEP 38`: https://www.bittorrent.org/beps/bep_0038.html

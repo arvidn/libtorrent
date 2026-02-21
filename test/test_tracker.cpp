@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2011-2022, Arvid Norberg
+Copyright (c) 2011-2026, Arvid Norberg
 Copyright (c) 2015, Mikhail Titov
 Copyright (c) 2016-2018, 2020-2021, Alden Torres
 Copyright (c) 2016, terry zhao
@@ -22,6 +22,7 @@ see LICENSE file.
 #include "libtorrent/alert.hpp"
 #include "libtorrent/peer_info.hpp" // for peer_list_entry
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_params.hpp"
 #include "libtorrent/error_code.hpp"
@@ -85,7 +86,7 @@ TORRENT_TEST(parse_peers4)
 
 	TEST_EQUAL(ec, error_code());
 	TEST_EQUAL(resp.peers4.size(), 2);
-	if (resp.peers.size() == 2)
+	if (resp.peers4.size() == 2)
 	{
 		aux::ipv4_peer_entry const& e0 = resp.peers4[0];
 		aux::ipv4_peer_entry const& e1 = resp.peers4[1];
@@ -888,6 +889,8 @@ void test_stop_tracker_timeout(int const timeout)
 
 	int const count = count_stopped_events(s, (timeout == 0) ? 0 : 2);
 	TEST_EQUAL(count, (timeout == 0) ? 0 : 2);
+
+	stop_web_server();
 }
 } // anonymous namespace
 
@@ -902,5 +905,165 @@ TORRENT_TEST(stop_tracker_timeout_zero_timeout)
 	std::printf("\n\nexpect to NOT get a request with &event=stopped\n\n");
 	test_stop_tracker_timeout(0);
 }
+
+namespace {
+template<typename F>
+void for_events(session& ses, F&& event_callback)
+{
+	time_point const end_time = clock_type::now() + seconds(15);
+	while (true)
+	{
+		time_point const now = clock_type::now();
+		if (now > end_time)
+		{
+			TEST_ERROR("timeout before test condition found");
+			return;
+		}
+
+		ses.wait_for_alert(end_time - now);
+		std::vector<alert*> alerts;
+		ses.pop_alerts(&alerts);
+		for (auto a : alerts)
+		{
+			if (event_callback(a))
+				return;
+		}
+	}
+}
+
+torrent_handle add_torrent_with_tracker(session& ses, const std::string& url)
+{
+	add_torrent_params p = parse_magnet_uri(
+	"magnet:?xt=urn:btih:0123456789abcdef0123456789abcdef01234567"
+	"&tr=" + url);
+	p.save_path = ".";
+	return ses.add_torrent(p);
+}
+
+bool contains(const std::string& str, std::string_view to_find)
+{
+	return str.find(to_find) != std::string::npos;
+}
+
+struct blocked_result {
+	int announce_count = 0;
+	int blocked_by_ssrf = 0;
+	int blocked_by_ip_filter = 0;
+	int unconnectable = 0;
+};
+
+blocked_result test_blocking(std::string url, ip_filter& filter, bool block_ssrf)
+{
+	settings_pack pack = settings();
+	pack.set_bool(settings_pack::apply_ip_filter_to_trackers, true);
+	pack.set_bool(settings_pack::ssrf_mitigation, block_ssrf);
+	// either block or timeout the request
+	pack.set_int(settings_pack::stop_tracker_timeout, 1);
+	pack.set_int(settings_pack::tracker_completion_timeout, 1);
+	pack.set_int(settings_pack::tracker_receive_timeout, 1);
+
+	session ses(pack);
+	add_torrent_with_tracker(ses, url);
+	ses.set_ip_filter(filter);
+
+	std::string ssfr_block = error_code(errors::ssrf_mitigation).message();
+	std::string banned = error_code(errors::banned_by_ip_filter).message();
+	std::string no_route = error_code(boost::asio::error::host_unreachable).message();
+	std::string skipped = error_code(errors::announce_skipped).message();
+	int alive_announces = 0;
+	blocked_result result;
+
+	for_events(ses,
+		[&](alert* a) -> bool {
+			if (a->type() == torrent_log_alert::alert_type)
+			{
+				const auto message = a->message();
+				if (contains(message, "QUEUE_TRACKER_REQUEST"))
+				{
+					++alive_announces;
+					++result.announce_count;
+				}
+				else if (contains(message, "tracker error:"))
+				{
+					if (contains(message, ssfr_block))
+					{
+						++result.blocked_by_ssrf;
+					}
+					else if (contains(message, banned))
+					{
+						++result.blocked_by_ip_filter;
+					}
+					else if (contains(message, no_route) || contains(message, skipped))
+					{
+						++result.unconnectable;
+					}
+					// return when all announces have failed
+					return --alive_announces == 0;
+				}
+			}
+			return false;
+	});
+
+	return result;
+}
+} // anonymous namespace
+
+TORRENT_TEST(ssrf)
+{
+	// no filter
+	ip_filter filter;
+	auto result = test_blocking("http://127.0.0.1:666/evil", filter, true);
+	TEST_CHECK(result.blocked_by_ssrf > 0);
+
+	result = test_blocking("http://127.0.0.1:666/announce", filter, true);
+	TEST_EQUAL(result.blocked_by_ssrf, 0);
+
+	result = test_blocking("http://[::1]:666/evil", filter, true);
+	TEST_CHECK(result.blocked_by_ssrf > 0);
+
+	result = test_blocking("http://[::1]:666/announce", filter, true);
+	TEST_EQUAL(result.blocked_by_ssrf, 0);
+}
+
+TORRENT_TEST(ipfilter)
+{
+	// no filter
+	ip_filter filter;
+	auto result = test_blocking("http://127.0.0.1:666/evil", filter, false);
+	TEST_EQUAL(result.blocked_by_ip_filter, 0);
+
+	// ipv4 blocked
+	filter.add_rule(addr4("10.13.0.0"), addr4("10.13.255.255"), ip_filter::blocked);
+	result = test_blocking("http://10.13.6.66:666/evil", filter, false);
+	TEST_CHECK(result.blocked_by_ip_filter > 0);
+
+	// loopback allowed
+	result = test_blocking("http://127.0.0.1:666/evil", filter, false);
+	TEST_EQUAL(result.blocked_by_ip_filter, 0);
+
+	// ipv4 loopback blocked
+	filter.add_rule(addr4("127.0.0.1"), addr4("127.0.0.1"), ip_filter::blocked);
+	result = test_blocking("http://127.0.0.1:666/evil", filter, false);
+	TEST_CHECK(result.blocked_by_ip_filter > 0);
+
+	// no ipv6 filter
+	result = test_blocking("http://[::1]:666/evil", filter, false);
+	TEST_EQUAL(result.blocked_by_ip_filter, 0);
+
+	// ipv6 blocked
+	filter.add_rule(addr6("fc00::"), addr6("fc00:ffff:ffff:ffff:ffff:ffff:ffff:ffff"), ip_filter::blocked);
+	result = test_blocking("http://[fc00::]:666/evil", filter, false);
+	TEST_CHECK(result.blocked_by_ip_filter > 0 || result.unconnectable > 0);
+
+	// ipv6 loopback allowed
+	result = test_blocking("http://[::1]:666/evil", filter, false);
+	TEST_EQUAL(result.blocked_by_ip_filter, 0);
+
+	// ipv6 loopback blocked
+	filter.add_rule(addr6("::1"), addr6("::1"), ip_filter::blocked);
+	result = test_blocking("http://[::1]:666/evil", filter, false);
+	TEST_CHECK(result.blocked_by_ip_filter > 0 || result.unconnectable > 0);
+}
+
 #endif
 #endif

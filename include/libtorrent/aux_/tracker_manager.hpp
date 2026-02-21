@@ -1,7 +1,7 @@
 /*
 
+Copyright (c) 2004-2026, Arvid Norberg
 Copyright (c) 2015, Mikhail Titov
-Copyright (c) 2004-2022, Arvid Norberg
 Copyright (c) 2016, 2020-2021, Alden Torres
 Copyright (c) 2016-2017, Steven Siloti
 Copyright (c) 2020, Paul-Louis Ageneau
@@ -49,6 +49,10 @@ see LICENSE file.
 
 #if TORRENT_USE_RTC
 #include "libtorrent/aux_/rtc_signaling.hpp"
+#endif
+
+#if TORRENT_USE_CURL
+#include "libtorrent/aux_/curl_tracker_manager.hpp"
 #endif
 
 namespace libtorrent {
@@ -377,6 +381,9 @@ using tracker_request_flags_t = flags::bitfield_flag<std::uint8_t, struct tracke
 			, udp::endpoint const& ep, span<char const> p
 			, error_code& ec, aux::udp_send_flags_t flags = {});
 
+#if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
+		aux::session_logger& get_session() const noexcept { return m_ses; }
+#endif
 	private:
 
 		// maps transactionid to the udp_tracker_connection
@@ -400,6 +407,9 @@ using tracker_request_flags_t = flags::bitfield_flag<std::uint8_t, struct tracke
 		bool m_abort = false;
 #if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 		aux::session_logger& m_ses;
+#endif
+#if TORRENT_USE_CURL
+		curl_tracker_manager m_curl_requests;
 #endif
 	};
 }

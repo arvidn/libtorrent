@@ -319,6 +319,11 @@ SOURCES = \
   cpuid.cpp                       \
   crc32c.cpp                      \
   create_torrent.cpp              \
+  curl_boost_socket.cpp           \
+  curl_pool.cpp                   \
+  curl_request.cpp                \
+  curl_tracker_manager.cpp        \
+  curl_tracker_request.cpp        \
   directory.cpp                   \
   disabled_disk_io.cpp            \
   disk_buffer_holder.cpp          \
@@ -541,6 +546,7 @@ HEADERS = \
   aux_/bandwidth_socket.hpp         \
   aux_/bencoder.hpp                 \
   aux_/bind_to_device.hpp           \
+  aux_/bitmask.hpp                  \
   aux_/buffer.hpp                   \
   aux_/byteswap.hpp                 \
   aux_/bloom_filter.hpp             \
@@ -551,6 +557,12 @@ HEADERS = \
   aux_/copy_ptr.hpp                 \
   aux_/cpuid.hpp                    \
   aux_/crc32c.hpp                   \
+  aux_/curl.hpp                     \
+  aux_/curl_boost_socket.hpp        \
+  aux_/curl_pool.hpp                \
+  aux_/curl_request.hpp             \
+  aux_/curl_tracker_manager.hpp     \
+  aux_/curl_tracker_request.hpp     \
   aux_/deadline_timer.hpp           \
   aux_/debug.hpp                    \
   aux_/debug_disk_thread.hpp        \
@@ -590,6 +602,7 @@ HEADERS = \
   aux_/http_stream.hpp              \
   aux_/http_tracker_connection.hpp  \
   aux_/instantiate_connection.hpp   \
+  aux_/intrusive_list.hpp           \
   aux_/invariant_check.hpp          \
   aux_/io.hpp                       \
   aux_/io_bytes.hpp                 \
@@ -600,6 +613,7 @@ HEADERS = \
   aux_/link.hpp                     \
   aux_/listen_socket_handle.hpp     \
   aux_/lsd.hpp                      \
+  aux_/memory.hpp                   \
   aux_/merkle.hpp                   \
   aux_/merkle_tree.hpp              \
   aux_/mmap.hpp                     \
