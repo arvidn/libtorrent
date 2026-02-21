@@ -23,6 +23,10 @@ see LICENSE file.
 #include "test_utils.hpp"
 #include "settings.hpp"
 
+#if TORRENT_ABI_VERSION < 4
+// files aren't allowed to be renamed directly in the torrent_info
+// in the new API
+
 #include <iostream>
 #include <fstream>
 #include <iostream>
@@ -46,7 +50,10 @@ void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 	// the file priorities don't break things
 	int const piece_size = 0x8000;
 	auto orig_files = make_files({{0x8000 * 2, false}, {0x8000, false}});
-	add_torrent_params params = make_torrent(std::move(orig_files), piece_size);
+
+	// v2 torrents and hybrid torrents cannot have their files remapped, that's
+	// why this has to be v1 only
+	add_torrent_params params = make_torrent(std::move(orig_files), piece_size, lt::create_torrent::v1_only);
 
 	static std::array<const int, 2> const remap_file_sizes
 		{{0x8000, 0x8000 * 2}};
@@ -193,3 +200,9 @@ TORRENT_TEST(remap_files)
 {
 	test_remap_files();
 }
+#else
+TORRENT_TEST(remap_files)
+{
+	// remap_files() is not available when torrent_info is immutable
+}
+#endif

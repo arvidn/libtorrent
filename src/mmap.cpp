@@ -172,6 +172,9 @@ file_mapping::file_mapping(file_handle file, open_mode_t const mode, std::int64_
 		// ignore errors here, since this is best-effort
 			| MADV_DONTDUMP
 #endif
+#ifdef MADV_DONTFORK
+			| MADV_DONTFORK
+#endif
 #ifdef MADV_NOCORE
 		// This is the BSD counterpart to exclude a range from core dumps
 			| MADV_NOCORE

@@ -1754,7 +1754,7 @@ class PeerDisconnectedAlertTest(PeerAlertTest):
 
         self.assert_alert(alert, lt.alert_category.connect, "peer_disconnected")
         self.assert_torrent_alert(alert, handle)
-        self.assert_peer_alert(alert, self.peer_endpoint, pid=lt.sha1_hash())
+        self.assert_peer_alert(alert, self.peer_endpoint)
         self.assertIsInstance(alert.socket_type, lt.socket_type_t)
         self.assertIsInstance(alert.op, lt.operation_t)
         self.assertIsInstance(alert.error.category(), lt.error_category)

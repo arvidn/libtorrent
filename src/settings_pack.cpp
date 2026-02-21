@@ -213,6 +213,8 @@ namespace {
 		SET(allow_idna, false, nullptr),
 		SET(enable_set_file_valid_data, false, nullptr),
 		SET(socks5_udp_send_local_ep, false, nullptr),
+		SET(proxy_send_host_in_connect, false, nullptr),
+		SET(disk_disable_copy_on_write, false, nullptr),
 	}});
 
 	CONSTEXPR_SETTINGS
@@ -258,7 +260,7 @@ namespace {
 		SET(disk_io_read_mode, settings_pack::enable_os_cache, nullptr),
 		SET(outgoing_port, 0, nullptr),
 		SET(num_outgoing_ports, 0, nullptr),
-		SET(peer_dscp, 0x04, &session_impl::update_peer_dscp),
+		SET(peer_dscp, 0x01, &session_impl::update_peer_dscp),
 		SET(active_downloads, 3, &session_impl::trigger_auto_manage),
 		SET(active_seeds, 5, &session_impl::trigger_auto_manage),
 		SET(active_checking, 1, &session_impl::trigger_auto_manage),
@@ -377,6 +379,8 @@ namespace {
 		SET(i2p_inbound_length, 3, nullptr),
 		SET(i2p_outbound_length, 3, nullptr),
 		SET(announce_port, 0, nullptr),
+		SET(i2p_inbound_length_variance, 0, nullptr),
+		SET(i2p_outbound_length_variance, 0, nullptr),
 		SET(min_websocket_announce_interval, 1 * 60, nullptr),
 		SET(webtorrent_connection_timeout, 2 * 60, nullptr)
 	}});

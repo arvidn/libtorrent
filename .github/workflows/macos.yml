@@ -16,12 +16,14 @@ concurrency:
 env:
    HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
    HOMEBREW_NO_AUTO_UPDATE: 1
+   # this is required by libdatachannel, which is specifying a too old version of cmake
+   CMAKE_POLICY_VERSION_MINIMUM: 3.5
 
 jobs:
 
    test:
       name: Tests
-      runs-on: macos-latest
+      runs-on: macos-14
       continue-on-error: true
 
       strategy:
@@ -30,7 +32,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
            submodules: recursive
            fetch-depth: 1
@@ -62,11 +64,11 @@ jobs:
 
    sim:
       name: Simulations
-      runs-on: macos-latest
+      runs-on: macos-14
 
       steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -91,7 +93,7 @@ jobs:
 
    build:
       name: Build
-      runs-on: macos-latest
+      runs-on: macos-14
       continue-on-error: true
 
       strategy:
@@ -100,7 +102,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -124,12 +126,12 @@ jobs:
 
    ios_build:
       name: Build iOS
-      runs-on: macos-latest
+      runs-on: macos-14
       continue-on-error: true
 
       steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -137,15 +139,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.78.0 https://github.com/boostorg/boost.git
-          cd boost
-          ./bootstrap.sh
-
-      - name: boost headers
-        run: |
-          cd boost
-          ./b2 headers
-          cp b2 ..
+          brew install boost-build boost openssl@3
 
       - name: user-config
         run: |
@@ -169,4 +163,4 @@ jobs:
 
       - name: build library
         run: |
-          BOOST_ROOT=boost ./b2 -l400 cxxstd=14 target-os=iphone crypto=built-in darwin-ios darwin-ios_sim address-model=64 link=static
+          b2 -l400 cxxstd=14 target-os=iphone crypto=built-in darwin-ios darwin-ios_sim address-model=64 link=static

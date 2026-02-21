@@ -610,6 +610,14 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		TORRENT_UNUSED(ios); // this may be unused depending on configuration
 		std::vector<ip_interface> ret;
 		ec.clear();
+
+#ifdef SOCK_CLOEXEC
+		int const flags = SOCK_CLOEXEC;
+#else
+		int const flags = 0;
+#endif
+		TORRENT_UNUSED(flags);
+
 #if defined TORRENT_BUILD_SIMULATOR
 
 		std::vector<address> ips = ios.get_ips();
@@ -628,7 +636,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			ret.push_back(wan);
 		}
 #elif TORRENT_USE_NETLINK
-		int const sock = ::socket(PF_ROUTE, SOCK_DGRAM, NETLINK_ROUTE);
+		int const sock = ::socket(PF_ROUTE, SOCK_DGRAM | flags, NETLINK_ROUTE);
 		if (sock < 0)
 		{
 			ec = error_code(errno, system_category());
@@ -683,7 +691,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			return ret;
 		}
 #elif TORRENT_USE_IFADDRS
-		int const s = ::socket(AF_INET, SOCK_DGRAM, 0);
+		int const s = ::socket(AF_INET, SOCK_DGRAM | flags, 0);
 		if (s < 0)
 		{
 			ec = error_code(errno, system_category());
@@ -707,7 +715,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		freeifaddrs(ifaddr);
 // MacOS X, BSD, solaris and Haiku
 #elif TORRENT_USE_IFCONF
-		int const s = ::socket(AF_INET, SOCK_DGRAM, 0);
+		int const s = ::socket(AF_INET, SOCK_DGRAM | flags, 0);
 		if (s < 0)
 		{
 			ec = error_code(errno, system_category());
@@ -901,7 +909,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		}
 #endif
 
-		SOCKET s = ::socket(AF_INET, SOCK_DGRAM, 0);
+		SOCKET s = ::socket(AF_INET, SOCK_DGRAM | flags, 0);
 		if (int(s) == SOCKET_ERROR)
 		{
 			ec = error_code(WSAGetLastError(), system_category());
@@ -995,6 +1003,13 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		TORRENT_UNUSED(ios);
 		ec.clear();
 
+#ifdef SOCK_CLOEXEC
+		int const flags = SOCK_CLOEXEC;
+#else
+		int const flags = 0;
+#endif
+		TORRENT_UNUSED(flags);  // not used in every build config
+
 #ifdef TORRENT_BUILD_SIMULATOR
 
 		TORRENT_UNUSED(ec);
@@ -1043,7 +1058,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		m.m_rtm.rtm_seq = 0;
 		m.m_rtm.rtm_msglen = len;
 
-		int s = ::socket(PF_ROUTE, SOCK_RAW, AF_UNSPEC);
+		int s = ::socket(PF_ROUTE, SOCK_RAW | flags, AF_UNSPEC);
 		if (s == -1)
 		{
 			ec = error_code(errno, system_category());
@@ -1163,7 +1178,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 
 	char* end = buf.get() + needed;
 
-	int const s = ::socket(AF_INET, SOCK_DGRAM, 0);
+	int const s = ::socket(AF_INET, SOCK_DGRAM | flags, 0);
 	if (s < 0)
 	{
 		ec = error_code(errno, system_category());
@@ -1348,7 +1363,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		// Free memory
 		free(routes);
 #elif TORRENT_USE_NETLINK
-		int const sock = ::socket(PF_ROUTE, SOCK_DGRAM, NETLINK_ROUTE);
+		int const sock = ::socket(PF_ROUTE, SOCK_DGRAM | flags, NETLINK_ROUTE);
 		if (sock < 0)
 		{
 			ec = error_code(errno, system_category());
@@ -1356,7 +1371,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		}
 		socket_closer c1(sock);
 
-		int dgram_sock = ::socket(AF_INET, SOCK_DGRAM, 0);
+		int dgram_sock = ::socket(AF_INET, SOCK_DGRAM | flags, 0);
 		if (dgram_sock < 0)
 		{
 			ec = error_code(errno, system_category());
@@ -1386,7 +1401,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 
 		for (int fam = 0; fam < 2; ++fam)
 		{
-			int const s = ::socket(fam == 0 ? AF_INET : AF_INET6, SOCK_DGRAM, 0);
+			int const s = ::socket(fam == 0 ? AF_INET : AF_INET6, SOCK_DGRAM | flags, 0);
 			if (s < 0)
 			{
 				ec = error_code(errno, system_category());

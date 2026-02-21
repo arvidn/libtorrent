@@ -306,9 +306,9 @@ TORRENT_TEST(v2_only)
 		lt::torrent_info info(buffer, lt::from_span);
 		TEST_CHECK(info.info_hashes().has_v2());
 		TEST_CHECK(!info.info_hashes().has_v1());
-		TEST_EQUAL(info.files().file_name(0_file), "A");
-		TEST_CHECK(info.files().pad_file_at(1_file));
-		TEST_EQUAL(info.files().file_name(2_file), "B");
+		TEST_EQUAL(info.layout().file_name(0_file), "A");
+		TEST_CHECK(info.layout().pad_file_at(1_file));
+		TEST_EQUAL(info.layout().file_name(2_file), "B");
 		TEST_EQUAL(info.name(), "test");
 
 		lt::create_torrent t2(info);
@@ -319,12 +319,12 @@ TORRENT_TEST(v2_only)
 	}
 #endif
 
-	std::shared_ptr<lt::torrent_info> info = lt::load_torrent_buffer(buffer).ti;
+	std::shared_ptr<lt::torrent_info const> info = lt::load_torrent_buffer(buffer).ti;
 	TEST_CHECK(info->info_hashes().has_v2());
 	TEST_CHECK(!info->info_hashes().has_v1());
-	TEST_EQUAL(info->files().file_name(0_file), "A");
-	TEST_CHECK(info->files().pad_file_at(1_file));
-	TEST_EQUAL(info->files().file_name(2_file), "B");
+	TEST_EQUAL(info->layout().file_name(0_file), "A");
+	TEST_CHECK(info->layout().pad_file_at(1_file));
+	TEST_EQUAL(info->layout().file_name(2_file), "B");
 	TEST_EQUAL(info->name(), "test");
 
 }
@@ -378,20 +378,20 @@ TORRENT_TEST(create_torrent_symlink)
 		auto& ti = *atp.ti;
 
 		int found = 0;
-		for (auto i : ti.files().file_range())
+		for (auto i : ti.layout().file_range())
 		{
-			auto const filename = ti.files().file_path(i);
+			auto const filename = ti.layout().file_path(i);
 
 			if (filename == "test-torrent/d/test-link-1"
 				|| filename == "test-torrent/test-link-2"
 				|| filename == "test-torrent/a/b/c/test-link-3")
 			{
-				TEST_EQUAL(ti.files().symlink(i), "test-torrent/a/b/c/file-1");
+				TEST_EQUAL(ti.layout().symlink(i), "test-torrent/a/b/c/file-1");
 				++found;
 			}
 			else if (filename == "test-torrent/a/b/c/test-link-4")
 			{
-				TEST_EQUAL(ti.files().symlink(i), "test-torrent/d/file-2");
+				TEST_EQUAL(ti.layout().symlink(i), "test-torrent/d/file-2");
 				++found;
 			}
 		}
@@ -494,18 +494,18 @@ TORRENT_TEST(implicit_v2_only)
 		auto& info = *atp.ti;
 		TEST_CHECK(info.info_hashes().has_v2());
 		TEST_CHECK(!info.info_hashes().has_v1());
-		TEST_EQUAL(info.files().file_name(0_file), "A");
-		TEST_EQUAL(info.files().pad_file_at(1_file), true);
-		TEST_EQUAL(info.files().file_name(2_file), "B");
+		TEST_EQUAL(info.layout().file_name(0_file), "A");
+		TEST_EQUAL(info.layout().pad_file_at(1_file), true);
+		TEST_EQUAL(info.layout().file_name(2_file), "B");
 		TEST_EQUAL(info.name(), "test");
 	}
 
 	auto atp = lt::load_torrent_buffer(buffer);
 	TEST_CHECK(atp.ti->info_hashes().has_v2());
 	TEST_CHECK(!atp.ti->info_hashes().has_v1());
-	TEST_EQUAL(atp.ti->files().file_name(0_file), "A");
-	TEST_EQUAL(atp.ti->files().pad_file_at(1_file), true);
-	TEST_EQUAL(atp.ti->files().file_name(2_file), "B");
+	TEST_EQUAL(atp.ti->layout().file_name(0_file), "A");
+	TEST_EQUAL(atp.ti->layout().pad_file_at(1_file), true);
+	TEST_EQUAL(atp.ti->layout().file_name(2_file), "B");
 	TEST_EQUAL(atp.ti->name(), "test");
 }
 
@@ -529,18 +529,18 @@ TORRENT_TEST(implicit_v1_only)
 		auto& info = *atp.ti;
 		TEST_CHECK(!info.info_hashes().has_v2());
 		TEST_CHECK(info.info_hashes().has_v1());
-		TEST_EQUAL(info.files().file_name(0_file), "A");
-		TEST_EQUAL(info.files().pad_file_at(1_file), true);
-		TEST_EQUAL(info.files().file_name(2_file), "B");
+		TEST_EQUAL(info.layout().file_name(0_file), "A");
+		TEST_EQUAL(info.layout().pad_file_at(1_file), true);
+		TEST_EQUAL(info.layout().file_name(2_file), "B");
 		TEST_EQUAL(info.name(), "test");
 	}
 
 	auto info = lt::load_torrent_buffer(buffer).ti;
 	TEST_CHECK(!info->info_hashes().has_v2());
 	TEST_CHECK(info->info_hashes().has_v1());
-	TEST_EQUAL(info->files().file_name(0_file), "A");
-	TEST_EQUAL(info->files().pad_file_at(1_file), true);
-	TEST_EQUAL(info->files().file_name(2_file), "B");
+	TEST_EQUAL(info->layout().file_name(0_file), "A");
+	TEST_EQUAL(info->layout().pad_file_at(1_file), true);
+	TEST_EQUAL(info->layout().file_name(2_file), "B");
 	TEST_EQUAL(info->name(), "test");
 }
 
@@ -670,8 +670,8 @@ TORRENT_TEST(pieces_root_empty_file)
 
 	auto info = lt::load_torrent_buffer(lt::bencode(e)).ti;
 
-	TEST_CHECK(info->files().root(0_file).is_all_zeros());
-	TEST_CHECK(!info->files().root(1_file).is_all_zeros());
+	TEST_CHECK(info->layout().root(0_file).is_all_zeros());
+	TEST_CHECK(!info->layout().root(1_file).is_all_zeros());
 }
 
 namespace {
@@ -997,7 +997,7 @@ TORRENT_TEST(canonicalize_pad)
 	files.emplace_back("s/3", 0x7001);
 
 	auto ti = make_load_torrent(files, 0x4000);
-	lt::file_storage const& fs = ti->files();
+	lt::file_storage const& fs = ti->layout();
 
 	TEST_EQUAL(fs.num_files(), 6);
 
@@ -1034,7 +1034,7 @@ TORRENT_TEST(canonicalize_path)
 	files.emplace_back("b/11", 0x4000);
 
 	auto ti = make_load_torrent(files, 0x4000);
-	lt::file_storage const& fs = ti->files();
+	lt::file_storage const& fs = ti->layout();
 
 	TEST_EQUAL(fs.num_files(), 4);
 
@@ -1057,7 +1057,7 @@ TORRENT_TEST(file_num_blocks)
 	files.emplace_back("test/5", 0);
 
 	auto ti = make_load_torrent(files, 0x8000);
-	lt::file_storage const& fs = ti->files();
+	lt::file_storage const& fs = ti->layout();
 
 	// generally the number of blocks in a file is:
 	// (file_size + lt::default_block_size - 1) / lt::default_block_size
@@ -1089,7 +1089,7 @@ TORRENT_TEST(file_num_pieces)
 	files.emplace_back("test/5", 0);
 
 	auto ti = make_load_torrent(files, 0x8000);
-	lt::file_storage const& fs = ti->files();
+	lt::file_storage const& fs = ti->layout();
 
 	// generally the number of blocks in a file is:
 	// (file_size + lt::default_block_size - 1) / lt::default_block_size
@@ -1120,7 +1120,7 @@ TORRENT_TEST(coalesce_path)
 	files.emplace_back("test/c/a", 30000);
 	files.emplace_back("test/c/b", 40000);
 	auto ti = make_load_torrent(files, 0x4000);
-	lt::file_storage const& fs = ti->files();
+	lt::file_storage const& fs = ti->layout();
 
 	// pad files should be created, to make sure the pad files also share the
 	// same path entries

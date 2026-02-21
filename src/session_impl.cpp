@@ -507,6 +507,7 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 		, m_work(make_work_guard(m_io_context))
 #if TORRENT_USE_I2P
 		, m_i2p_conn(m_io_context)
+		, m_i2p_reconnect_timer(m_io_context)
 #endif
 		, m_created(clock_type::now())
 		, m_last_tick(m_created)
@@ -1003,10 +1004,6 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 		session_log(" *** ABORT CALLED ***");
 #endif
 
-		// at this point we cannot call the notify function anymore, since the
-		// session will become invalid.
-		m_alerts.set_notify_function({});
-
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto& ext : m_ses_extensions[plugins_all_idx])
 		{
@@ -1030,6 +1027,7 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 		m_timer.cancel();
 
 #if TORRENT_USE_I2P
+		m_i2p_reconnect_timer.cancel();
 		m_i2p_conn.close(ec);
 #endif
 		stop_ip_notifier();
@@ -2342,6 +2340,16 @@ retry:
 		}
 	}
 
+#if TORRENT_USE_I2P
+
+	namespace {
+		// I2P reconnection timing constants
+		constexpr seconds initial_reconnect_delay = seconds(1);
+		constexpr seconds max_reconnect_delay = minutes(5);
+	}
+
+#endif
+
 	void session_impl::update_i2p_bridge()
 	{
 		// we need this socket to be open before we
@@ -2349,6 +2357,11 @@ retry:
 		// pause the session now and resume it once we've
 		// established the i2p SAM connection
 #if TORRENT_USE_I2P
+		// Cancel any pending reconnection timer
+		m_i2p_reconnect_timer.cancel();
+		m_i2p_reconnecting = false;
+		m_i2p_reconnect_delay = initial_reconnect_delay;
+
 		if (m_settings.get_str(settings_pack::i2p_hostname).empty())
 		{
 			error_code ec;
@@ -2361,6 +2374,8 @@ retry:
 			, m_settings.get_int(settings_pack::i2p_outbound_quantity)
 			, m_settings.get_int(settings_pack::i2p_inbound_length)
 			, m_settings.get_int(settings_pack::i2p_outbound_length)
+			, m_settings.get_int(settings_pack::i2p_inbound_length_variance)
+			, m_settings.get_int(settings_pack::i2p_outbound_length_variance)
 		};
 		m_i2p_conn.open(m_settings.get_str(settings_pack::i2p_hostname)
 			, m_settings.get_int(settings_pack::i2p_port)
@@ -2386,6 +2401,7 @@ retry:
 #endif
 
 #if TORRENT_USE_I2P
+
 	void session_impl::on_i2p_open(error_code const& ec)
 	{
 		if (ec)
@@ -2397,7 +2413,15 @@ retry:
 			if (should_log())
 				session_log("i2p open failed (%d) %s", ec.value(), ec.message().c_str());
 #endif
+			// Schedule reconnection attempt with exponential backoff
+			schedule_i2p_reconnect();
+			return;
 		}
+
+		// Connection successful, reset backoff delay
+		m_i2p_reconnecting = false;
+		m_i2p_reconnect_delay = initial_reconnect_delay;
+
 		// now that we have our i2p connection established
 		// it's OK to start torrents and use this socket to
 		// do i2p name lookups
@@ -2445,6 +2469,59 @@ retry:
 		incoming_connection(std::move(*m_i2p_listen_socket));
 		m_i2p_listen_socket.reset();
 		open_new_incoming_i2p_connection();
+	}
+
+	void session_impl::schedule_i2p_reconnect()
+	{
+		if (m_abort) return;
+
+		// If I2P is not configured, don't schedule reconnection
+		if (m_settings.get_str(settings_pack::i2p_hostname).empty()) return;
+
+		// Already reconnecting
+		if (m_i2p_reconnecting) return;
+
+#ifndef TORRENT_DISABLE_LOGGING
+		if (should_log())
+			session_log("scheduling i2p reconnection in %d seconds", m_i2p_reconnect_delay.count());
+#endif
+
+		m_i2p_reconnecting = true;
+
+		// Cancel any existing timer
+		m_i2p_reconnect_timer.cancel();
+
+		// Schedule reconnection with current delay
+		m_i2p_reconnect_timer.expires_after(m_i2p_reconnect_delay);
+		std::weak_ptr<session_impl> self = shared_from_this();
+		m_i2p_reconnect_timer.async_wait(
+			[self](error_code const& ec) {
+				if (auto sp = self.lock()) {
+					sp->on_i2p_reconnect_timer(ec);
+				}
+			});
+
+		// Apply exponential backoff for next attempt
+		m_i2p_reconnect_delay *= 2;
+		if (m_i2p_reconnect_delay > max_reconnect_delay) m_i2p_reconnect_delay = max_reconnect_delay;
+	}
+
+	void session_impl::on_i2p_reconnect_timer(error_code const& ec)
+	{
+		if (ec == boost::asio::error::operation_aborted) return;
+		if (m_abort) return;
+
+		// Check if I2P is still configured and not already connected
+		if (m_settings.get_str(settings_pack::i2p_hostname).empty()) return;
+		if (m_i2p_conn.is_open()) return;
+
+#ifndef TORRENT_DISABLE_LOGGING
+		if (should_log())
+			session_log("attempting i2p reconnection");
+#endif
+
+		// Attempt to reconnect
+		update_i2p_bridge();
 	}
 #endif
 
@@ -3465,6 +3542,22 @@ retry:
 		m_utp_socket_manager.decay();
 #ifdef TORRENT_SSL_PEERS
 		m_ssl_utp_socket_manager.decay();
+#endif
+
+#if TORRENT_USE_I2P
+		// Check I2P connection health and reconnect if needed
+		// This handles cases where the connection drops during operation
+		// (e.g., after sleep/hibernation or SAM bridge restart)
+		if (!m_settings.get_str(settings_pack::i2p_hostname).empty()
+			&& !m_i2p_conn.is_open()
+			&& !m_i2p_reconnecting)
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			if (should_log())
+				session_log("i2p connection lost, scheduling reconnection");
+#endif
+			schedule_i2p_reconnect();
+		}
 #endif
 
 		int const tick_interval_ms = aux::numeric_cast<int>(total_milliseconds(now - m_last_second_tick));
@@ -4891,11 +4984,6 @@ retry:
 		// the scope
 		auto abort_torrent = aux::scope_end([&]{ if (torrent_ptr) torrent_ptr->abort(); });
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		auto extensions = std::move(params.extensions);
-		auto const userdata = std::move(params.userdata);
-#endif
-
 		// copy the most important fields from params to pass back in the
 		// add_torrent_alert
 		add_torrent_params alert_params;
@@ -4905,6 +4993,11 @@ retry:
 		alert_params.save_path = params.save_path;
 		alert_params.userdata = params.userdata;
 		alert_params.trackerid = params.trackerid;
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		auto extensions = std::move(params.extensions);
+		auto const userdata = params.userdata;
+#endif
 
 		auto const flags = params.flags;
 
@@ -6394,7 +6487,7 @@ retry:
 				{
 					session_log(">>> SET_DSCP [ tcp (%s %d) value: %x e: %s ]"
 						, l->sock->local_endpoint().address().to_string().c_str()
-						, l->sock->local_endpoint().port(), value, ec.message().c_str());
+						, l->sock->local_endpoint().port(), std::uint32_t(value), ec.message().c_str());
 				}
 #endif
 			}
@@ -6410,7 +6503,7 @@ retry:
 					session_log(">>> SET_DSCP [ udp (%s %d) value: %x e: %s ]"
 						, l->udp_sock->sock.local_endpoint().address().to_string().c_str()
 						, l->udp_sock->sock.local_port()
-						, value, ec.message().c_str());
+						, std::uint32_t(value), ec.message().c_str());
 				}
 #endif
 			}

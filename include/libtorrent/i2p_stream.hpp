@@ -83,6 +83,8 @@ struct i2p_session_options
 	int m_outbound_quantity = 3;
 	int m_inbound_length = 3;
 	int m_outbound_length = 3;
+	int m_inbound_length_variance = 0;
+	int m_outbound_length_variance = 0;
 };
 
 struct i2p_stream : aux::proxy_base
@@ -422,9 +424,11 @@ private:
 		int size = std::snprintf(cmd, sizeof(cmd),
 			"SESSION CREATE STYLE=STREAM ID=%s "
 			"DESTINATION=TRANSIENT SIGNATURE_TYPE=7 i2cp.leaseSetEncType=4,0 "
-			"inbound.quantity=%d outbound.quantity=%d inbound.length=%d outbound.length=%d\n",
+			"inbound.quantity=%d outbound.quantity=%d inbound.length=%d outbound.length=%d "
+			"inbound.lengthVariance=%d outbound.lengthVariance=%d\n",
 			m_id, m_session_options.m_inbound_quantity, m_session_options.m_outbound_quantity,
-			m_session_options.m_inbound_length, m_session_options.m_outbound_length);
+			m_session_options.m_inbound_length, m_session_options.m_outbound_length,
+			m_session_options.m_inbound_length_variance, m_session_options.m_outbound_length_variance);
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
 		async_write(m_sock, boost::asio::buffer(cmd, std::size_t(size)), aux::wrap_allocator(
 			[this](error_code const& ec, std::size_t, Handler hn) {

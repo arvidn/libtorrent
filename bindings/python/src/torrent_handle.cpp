@@ -640,6 +640,7 @@ void bind_torrent_handle()
         ;
 
     s.attr("ignore_min_interval") = torrent_handle::ignore_min_interval;
+    s.attr("high_priority") = torrent_handle::high_priority;
     s.attr("overwrite_existing") = torrent_handle::overwrite_existing;
     s.attr("piece_granularity") = torrent_handle::piece_granularity;
     s.attr("graceful_pause") = torrent_handle::graceful_pause;

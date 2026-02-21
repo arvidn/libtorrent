@@ -81,6 +81,7 @@ else
 		<search>/usr/local/lib
 		<search>/sw/lib
 		<search>/usr/g++/lib
+		<search>/opt/homebrew/lib
 		;
 
 	local boost-include-path =
@@ -137,7 +138,7 @@ else
 		return ;
 	}
 
-	lib boost_python : : <tag>@boost_python_version : : $(boost-include-path) ;
+	lib boost_python : : <tag>@boost_python_version $(boost-lib-search-path) : : $(boost-include-path) ;
 	alias boost_python3 : boost_python ;
 }
 
@@ -331,7 +332,7 @@ rule python-install-dir ( properties * )
 	local python-path ;
 	if <python-install-scope>system in $(properties)
 	{
-		python-path = [ SHELL "$(python-interpreter) -c \"import distutils.sysconfig; import sys; sys.stdout.write(distutils.sysconfig.get_python_lib())\"" ] ;
+		python-path = [ SHELL "$(python-interpreter) -c \"import sysconfig; import sys; sys.stdout.write(sysconfig.get_path('platlib'))\"" ] ;
 	}
 	else
 	{

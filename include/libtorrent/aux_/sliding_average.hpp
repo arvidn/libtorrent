@@ -27,6 +27,7 @@ template <typename Int, Int inverted_gain>
 struct sliding_average
 {
 	static_assert(std::is_integral<Int>::value, "template argument must be integral");
+	inline constexpr static Int fixed_point = 64;
 
 	sliding_average(): m_mean(0), m_average_deviation(0), m_num_samples(0) {}
 	sliding_average(sliding_average const&) = default;
@@ -34,9 +35,18 @@ struct sliding_average
 
 	void add_sample(Int s)
 	{
-		TORRENT_ASSERT(s < std::numeric_limits<Int>::max() / 64);
-		// fixed point
-		s *= 64;
+		// avoid interger overflow. Just treat this as the maximum
+		// representable sample
+		if (s >= std::numeric_limits<Int>::max() / fixed_point / 4)
+			s = std::numeric_limits<Int>::max() / 4;
+		else if (s <= std::numeric_limits<Int>::min() / fixed_point / 4)
+			s = std::numeric_limits<Int>::min() / 4;
+		else
+		{
+			// fixed point
+			s *= fixed_point;
+		}
+
 		Int const deviation = (m_num_samples > 0) ? std::abs(m_mean - s) : 0;
 
 		if (m_num_samples < inverted_gain)
@@ -53,12 +63,12 @@ struct sliding_average
 		}
 	}
 
-	Int mean() const { return m_num_samples > 0 ? (m_mean + 32) / 64 : 0; }
-	Int avg_deviation() const { return m_num_samples > 1 ? (m_average_deviation + 32) / 64 : 0; }
+	Int mean() const { return m_num_samples > 0 ? (m_mean + 32) / fixed_point : 0; }
+	Int avg_deviation() const { return m_num_samples > 1 ? (m_average_deviation + 32) / fixed_point : 0; }
 	int num_samples() const { return m_num_samples; }
 
 private:
-	// both of these are fixed point values (* 64)
+	// both of these are fixed point values (* fixed_point)
 	Int m_mean = 0;
 	Int m_average_deviation = 0;
 	// the number of samples we have received, but no more than inverted_gain

@@ -94,9 +94,8 @@ namespace libtorrent::aux {
 			, piece_index_t piece, int offset, aux::open_mode_t mode
 			, disk_job_flags_t flags, storage_error&);
 
-		// if the files in this storage are mapped, returns the mapped
-		// file_storage, otherwise returns the original file_storage object.
-		file_storage const& files() const { return m_mapped_files ? *m_mapped_files : m_files; }
+		file_storage const& files() const { return m_files; }
+		filenames names() const;
 
 		bool set_need_tick()
 		{
@@ -135,7 +134,7 @@ namespace libtorrent::aux {
 
 		void need_partfile();
 
-		std::unique_ptr<file_storage> m_mapped_files;
+		renamed_files m_renamed_files;
 
 		// in order to avoid calling stat() on each file multiple times
 		// during startup, cache the results in here, and clear it all
@@ -154,6 +153,7 @@ namespace libtorrent::aux {
 
 		aux::vector<download_priority_t, file_index_t> m_file_priority;
 		std::string m_save_path;
+		std::string m_part_file_dir;
 		std::string m_part_file_name;
 
 		// this this is an array indexed by file-index. Each slot represents

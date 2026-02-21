@@ -302,7 +302,7 @@ namespace aux {
 #else
 #define TORRENT_SEPARATOR "/"
 #endif
-				std::snprintf(name, sizeof(name), ".pad" TORRENT_SEPARATOR "%" PRIu64, pad_size);
+				std::snprintf(name, sizeof(name), ".pad" TORRENT_SEPARATOR "%" PRId64, pad_size);
 				new_files.push_back({combine_path(top_level_name, name)
 					, pad_size, file_storage::flag_pad_file, 0, {}});
 				off += pad_size;
@@ -476,12 +476,14 @@ namespace {
 		disk_aborter da(*disk_thread);
 
 		file_storage fs = make_file_storage(t.file_list(), t.piece_length());
+		renamed_files rf;
 
 		aux::vector<download_priority_t, file_index_t> priorities;
 		storage_params params{
 			fs,
-			nullptr,
+			rf,
 			path,
+			{},
 			storage_mode_t::storage_mode_sparse,
 			priorities,
 			sha1_hash{},

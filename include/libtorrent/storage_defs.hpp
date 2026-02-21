@@ -18,6 +18,7 @@ see LICENSE file.
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/download_priority.hpp"
+#include "libtorrent/string_view.hpp"
 #include <functional>
 #include <string>
 
@@ -26,7 +27,7 @@ namespace libtorrent {
 	using storage_index_t = aux::strong_typedef<std::uint32_t, struct storage_index_tag_t>;
 
 	// types of storage allocation used for add_torrent_params::storage_mode.
-	enum storage_mode_t
+	enum storage_mode_t : std::uint8_t
 	{
 		// All pieces will be written to their final position, all files will be
 		// allocated in full when the torrent is first started. This mode minimizes
@@ -81,13 +82,14 @@ namespace libtorrent {
 	// disk_interface
 	struct TORRENT_EXPORT storage_params
 	{
-		storage_params(file_storage const& f, file_storage const* mf
-			, std::string const& sp, storage_mode_t const sm
+		storage_params(file_storage const& f, lt::renamed_files const& mf
+			, string_view sp, string_view pfd, storage_mode_t const sm
 			, aux::vector<download_priority_t, file_index_t> const& prio
 			, sha1_hash const& ih, bool v1_torrent, bool v2_torrent)
 			: files(f)
-			, mapped_files(mf)
+			, renamed_files(mf)
 			, path(sp)
+			, part_file_dir(pfd)
 			, mode(sm)
 			, priorities(prio)
 			, info_hash(ih)
@@ -95,8 +97,9 @@ namespace libtorrent {
 			, v2(v2_torrent)
 		{}
 		file_storage const& files;
-		file_storage const* mapped_files = nullptr; // optional
-		std::string const& path;
+		lt::renamed_files const& renamed_files;
+		string_view path;
+		string_view part_file_dir;
 		storage_mode_t mode{storage_mode_sparse};
 		aux::vector<download_priority_t, file_index_t> const& priorities;
 		sha1_hash info_hash;

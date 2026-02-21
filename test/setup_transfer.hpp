@@ -94,7 +94,7 @@ EXPORT void stop_web_server();
 EXPORT int start_websocket_server(bool ssl = false, int min_interval = 30);
 EXPORT void stop_websocket_server();
 
-EXPORT int start_proxy(int type);
+EXPORT int start_proxy(int type, bool require_host = false);
 EXPORT void stop_proxy(int port);
 EXPORT void stop_all_proxies();
 

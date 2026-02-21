@@ -32,8 +32,9 @@ jobs:
              - config: release
 
       steps:
+
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -41,7 +42,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.78.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.90.0 https://github.com/boostorg/boost.git
           cd boost
           bootstrap.bat
 
@@ -80,7 +81,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -88,7 +89,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.78.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.90.0 https://github.com/boostorg/boost.git
           cd boost
           bootstrap.bat
 
@@ -133,6 +134,7 @@ jobs:
          matrix:
            include:
              - config: asio-debugging=on picker-debugging=on windows-version=vista
+             - config: asio-debugging=on picker-debugging=on windows-version=win10
              # the Windows Store API build is disabled because boost.container
              # contains a .c file that cannot be built with /ZW in msvc
              #- config: windows-api=store windows-version=win10
@@ -140,7 +142,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -148,7 +150,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.78.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.90.0 https://github.com/boostorg/boost.git
           cd boost
           bootstrap.bat
 
@@ -191,7 +193,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -199,7 +201,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.78.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.90.0 https://github.com/boostorg/boost.git
           cd boost
           bootstrap.bat
 
@@ -209,15 +211,19 @@ jobs:
           .\b2 headers
 
       - name: Set up MinGW
-        uses: egor-tensin/setup-mingw@v2
+        uses: msys2/setup-msys2@v2
         with:
-          static: 0
-          platform: x64
+          release: false
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-openssl
 
       - name: tests (deterministic)
+        shell: msys2 {0}
         run: |
-          set BOOST_ROOT=%CD%\boost
-          set PATH=%BOOST_ROOT%;%PATH%
-          set PYTHON_INTERPRETER=python
+          export BOOST_ROOT="$PWD/boost"
+          export PATH="$BOOST_ROOT:$PATH"
+          export PYTHON_INTERPRETER=python
           cd test
-          b2 toolset=gcc link=static asserts=on release target-os=windows -l400 warnings=all warnings-as-errors=on ${{ matrix.config }} cxxflags=-Wno-error=array-bounds cxxflags=-Wno-error=stringop-overflow deterministic-tests testing.execute=off
+          b2 toolset=gcc crypto=openssl-shared link=static asserts=on release target-os=windows -l400 warnings=all warnings-as-errors=on ${{ matrix.config }} cxxflags=-Wno-error=array-bounds cxxflags=-Wno-error=stringop-overflow cxxflags=-Wno-error=clobbered deterministic-tests testing.execute=off --hash

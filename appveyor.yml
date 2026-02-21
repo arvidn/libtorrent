@@ -2,7 +2,7 @@ version: "{build}"
 branches:
   only:
     - master
-image: Visual Studio 2019
+image: Visual Studio 2022
 clone_depth: 1
 environment:
   matrix:
@@ -15,14 +15,14 @@ environment:
       lib: 1
     - cmake: 1
       crypto: openssl
-      ssl_root_dir: c:\OpenSSL-v111-Win64
+      ssl_root_dir: c:\OpenSSL-Win64
       webtorrent: on
     - variant: release
       compiler: msvc
       model: 64
       crypto: openssl
-      ssl_lib: c:\OpenSSL-v111-Win64\lib
-      ssl_include: c:\OpenSSL-v111-Win64\include
+      ssl_lib: c:\OpenSSL-v36-Win64\lib\VC\x64\MT
+      ssl_include: c:\OpenSSL-v36-Win64\include
       webtorrent: on
       tests: 1
 
@@ -43,14 +43,16 @@ install:
   - if not defined ssl_include ( set ssl_include=c:\ )
   - if not defined ssl_root_dir ( set ssl_root_dir=c:\ )
   - cd %ROOT_DIRECTORY%
-  - set BOOST_ROOT=c:\Libraries\boost_1_83_0
+  - set BOOST_ROOT=c:\Libraries\boost_1_89_0
   - set BOOST_BUILD_PATH=%BOOST_ROOT%\tools\build
   - echo %BOOST_ROOT%
   - echo %BOOST_BUILD_PATH%
   - set PATH=%PATH%;%BOOST_BUILD_PATH%
-  - ps: '"using msvc ;`nusing python : 3.8 : c:\\Python38-x64 : c:\\Python38-x64\\include : c:\\Python38-x64\\libs ;`n" | Set-Content $env:HOMEDRIVE\$env:HOMEPATH\user-config.jam'
+  - ps: '"using msvc ;`nusing gcc ;`nusing python : 3.13 : c:\\Python313-x64 : c:\\Python313-x64\\include : c:\\Python313-x64\\libs ;`n" | Set-Content $env:HOMEDRIVE\$env:HOMEPATH\user-config.jam'
   - type %HOMEDRIVE%%HOMEPATH%\user-config.jam
   - cd %ROOT_DIRECTORY%
+  - set PATH=c:\msys64\mingw32\bin;%PATH%
+  - g++ --version
   - set PATH=c:\Python38-x64;%PATH%
   - set PYTHON_INTERPRETER=c:\Python38-x64\python.exe
   - python --version
@@ -90,12 +92,12 @@ build_script:
   # we need to build the boost libraries we use with C++17
   # and stage it for cmake to pick up
   - if defined cmake (
-    call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat" &&
+    call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat" &&
     cd %BOOST_ROOT% &&
     b2.exe cxxstd=17 release --with-python --with-system --layout=system address-model=64 link=shared stage &&
     cd %ROOT_DIRECTORY% &&
     cmake -B build -DBOOST_LIBRARYDIR=%BOOST_ROOT%\stage\lib -DCMAKE_CXX_STANDARD=17 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dwebtorrent=%webtorrent% -DOPENSSL_ROOT_DIR=%ssl_root_dir% -Dpython-bindings=%python% -Dboost-python-module-name="python" -Dskip-python-runtime-test=true -DPython_ADDITIONAL_VERSIONS="2.7" -G "Ninja Multi-Config" &&
-    cmake --build build --config Release
+    cmake --build build --config Release --parallel %NUMBER_OF_PROCESSORS%
     )
 
 test_script:

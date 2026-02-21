@@ -36,7 +36,7 @@ namespace libtorrent::aux {
 namespace {
 
 int render_lsd_packet(char* dst, int const len, int const listen_port
-	, char const* info_hash_hex, int const cookie, char const* host)
+	, char const* info_hash_hex, std::uint32_t const cookie, char const* host)
 {
 	TORRENT_ASSERT(len > 0);
 	return std::snprintf(dst, aux::numeric_cast<std::size_t>(len),
@@ -146,7 +146,7 @@ void lsd::announce_impl(sha1_hash const& ih, int const listen_port
 			, lsd_port);
 
 #ifndef TORRENT_DISABLE_LOGGING
-		debug_log("==> LSD: ih: %s port: %u [iface: %s]", aux::to_hex(ih).c_str()
+		debug_log("==> LSD: ih: %s port: %d [iface: %s]", aux::to_hex(ih).c_str()
 			, listen_port, m_listen_address.to_string().c_str());
 #endif
 
@@ -262,7 +262,7 @@ void lsd::on_announce(error_code const& ec, std::size_t len)
 	{
 		// we expect it to be hexadecimal
 		// if it isn't, it's not our cookie anyway
-		long const cookie = std::strtol(cookie_iter->second.c_str(), nullptr, 16);
+		unsigned long const cookie = std::strtoul(cookie_iter->second.c_str(), nullptr, 16);
 		if (cookie == m_cookie)
 		{
 #ifndef TORRENT_DISABLE_LOGGING

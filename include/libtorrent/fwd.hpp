@@ -181,6 +181,8 @@ struct file_slice;
 TORRENT_VERSION_NAMESPACE_4
 class file_storage;
 TORRENT_VERSION_NAMESPACE_4_END
+struct renamed_files;
+struct filenames;
 
 // include/libtorrent/hasher.hpp
 TORRENT_CRYPTO_NAMESPACE
@@ -268,7 +270,7 @@ TORRENT_VERSION_NAMESPACE_4_END
 // include/libtorrent/torrent_status.hpp
 TORRENT_VERSION_NAMESPACE_4
 struct torrent_status;
-TORRENT_VERSION_NAMESPACE_3_END
+TORRENT_VERSION_NAMESPACE_4_END
 
 // include/libtorrent/web_seed_entry.hpp
 struct web_seed_entry;
@@ -300,10 +302,6 @@ struct pe_settings;
 // include/libtorrent/session_status.hpp
 struct utp_status;
 struct session_status;
-
-// include/libtorrent/torrent_status.hpp
-TORRENT_VERSION_NAMESPACE_4
-TORRENT_VERSION_NAMESPACE_3_END
 
 #endif // TORRENT_ABI_VERSION
 

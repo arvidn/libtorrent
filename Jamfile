@@ -36,10 +36,12 @@ else
 	local boost-include-path =
 		<include>/usr/local/opt/boost/include
 		<include>/opt/homebrew/include
-	;
+		;
 
-	lib boost_system : : <name>boost_system $(boost-lib-search-path) : : $(boost-include-path) ;
 	lib system_boost_json : : <name>boost_json $(boost-lib-search-path) : : $(boost-include-path) ;
+
+	# boost_system is a header-only library now, but we still need to find the boost headers
+	alias boost_system : : : : $(boost-include-path) ;
 }
 
 alias shipped_boost_json : : <define>BOOST_JSON_HEADER_ONLY : : <include>./deps/json/include <define>BOOST_JSON_HEADER_ONLY ;
@@ -80,6 +82,7 @@ rule linking ( properties * )
 		result += <library>gcrypt ;
 	}
 	else if <crypto>openssl in $(properties)
+		|| <crypto>openssl-shared in $(properties)
 	{
 		result += <library>ssl ;
 		result += <library>crypto ;
@@ -188,22 +191,23 @@ rule linking ( properties * )
 		result += <visibility>hidden ;
 	}
 
-	local BOOST_VERSION_TAG = [ modules.peek boostcpp : BOOST_VERSION_TAG ] ;
 	local json ;
-	if $(BOOST_VERSION_TAG) >= 1_75
+	if $(BOOST_ROOT)
 	{
-		if $(BOOST_ROOT)
+		local BOOST_VERSION_TAG = [ modules.peek boostcpp : BOOST_VERSION_TAG ] ;
+		if $(BOOST_VERSION_TAG) >= 1_75 || $(BOOST_VERSION_TAG) = ""
 		{
 			json = /boost/json//boost_json ;
 		}
 		else
 		{
-			json = system_boost_json ;
+			ECHO "WARNING: boost version older than 1.75.0 (" $(BOOST_VERSION_TAG) "), using vendored version of boost.JSON. Please use a newer version of boost" ;
+			json = shipped_boost_json ;
 		}
 	}
 	else
 	{
-		json = shipped_boost_json ;
+		json = system_boost_json ;
 	}
 
 	if <boost-link>static in $(properties)
@@ -216,12 +220,18 @@ rule linking ( properties * )
 			# library, so that it properly exports its symbols
 			result += <define>BOOST_ALL_DYN_LINK ;
 			result += <library>boost_system/<link>static/<define>BOOST_ALL_DYN_LINK ;
-			result += <library>$(json)/<link>static/<define>BOOST_ALL_DYN_LINK ;
+			if <webtorrent>on in $(properties)
+			{
+				result += <library>$(json)/<link>static/<define>BOOST_ALL_DYN_LINK ;
+			}
 		}
 		else
 		{
 			result += <library>boost_system/<link>static ;
-			result += <library>$(json)/<link>static ;
+			if <webtorrent>on in $(properties)
+			{
+				result += <library>$(json)/<link>static ;
+			}
 		}
 
 		if <toolset>gcc in $(properties)
@@ -235,12 +245,18 @@ rule linking ( properties * )
 	else if <boost-link>shared in $(properties)
 	{
 		result += <library>boost_system/<link>shared ;
-		result += <library>$(json)/<link>shared ;
+		if <webtorrent>on in $(properties)
+		{
+			result += <library>$(json)/<link>shared ;
+		}
 	}
 	else
 	{
 		result += <library>boost_system ;
-		result += <library>$(json) ;
+		if <webtorrent>on in $(properties)
+		{
+			result += <library>$(json) ;
+		}
 	}
 
 	if ! <target-os>windows in $(properties)
@@ -295,6 +311,7 @@ rule warnings ( properties * )
 		result += <cxxflags>-Wno-alloca ;
 		result += <cxxflags>-Wno-global-constructors ;
 		result += <cxxflags>-Wno-poison-system-directories ;
+		result += <cxxflags>-Wno-missing-include-dirs ;
 # this warns on any global static object, which are used for error_category
 # objects
 		result += <cxxflags>-Wno-exit-time-destructors ;
@@ -318,6 +335,9 @@ rule warnings ( properties * )
 # or:
 # error: default label in switch which covers all enumeration values [-Werror,-Wcovered-switch-default]
 		result += <cxxflags>-Wno-switch-default ;
+
+		result += <cxxflags>-Wno-thread-safety-negative ;
+		result += <cxxflags>-Wno-nrvo ;
 	}
 
 	if <toolset>gcc in $(properties)
@@ -463,11 +483,25 @@ rule openssl-lib-path ( properties * )
 		local address_model = [ feature.get-values <address-model> : $(properties) ] ;
 		OPENSSL_LIB += "C:/Program Files/OpenSSL-Win$(address_model)/lib" ;
 		OPENSSL_LIB += "C:/Program Files (x86)/OpenSSL-Win$(address_model)/lib" ;
-		OPENSSL_LIB += "C:/Program Files/OpenSSL/lib" ;
+		# on appveyor, OpenSSL is installed here
+		OPENSSL_LIB += "C:/OpenSSL-Win$(address_model)/lib" ;
+		if <toolset>msvc in $(properties) {
+			if $(address_model) = "64" {
+				OPENSSL_LIB += "C:/Program Files/OpenSSL/lib/VC/x64/MT" ;
+			}
+			if $(address_model) = "32" {
+			    OPENSSL_LIB += "C:/Program Files/OpenSSL/lib" ;
+				OPENSSL_LIB += "C:/Program Files/OpenSSL/lib/VC/x86/MT" ;
+			}
+		}
 	}
 
 	local result ;
 	result += <search>$(OPENSSL_LIB) ;
+	if <crypto>openssl-shared in $(properties)
+	{
+		result += <link>shared ;
+	}
 	return $(result) ;
 }
 
@@ -492,6 +526,8 @@ rule openssl-include-path ( properties * )
 		OPENSSL_INCLUDE += "C:/Program Files/OpenSSL-Win$(address_model)/include" ;
 		OPENSSL_INCLUDE += "C:/Program Files (x86)/OpenSSL-Win$(address_model)/include" ;
 		OPENSSL_INCLUDE += "C:/Program Files/OpenSSL/include" ;
+		# appveyor OpenSSL path
+		OPENSSL_INCLUDE += "C:/OpenSSL-Win$(address_model)/include" ;
 	}
 
 	local result ;
@@ -656,12 +692,20 @@ feature.compose <encryption>off : <define>TORRENT_DISABLE_ENCRYPTION ;
 feature mutable-torrents : on off : composite propagated link-incompatible ;
 feature.compose <mutable-torrents>off : <define>TORRENT_DISABLE_MUTABLE_TORRENTS ;
 
-feature crypto : openssl built-in wolfssl gnutls libcrypto gcrypt : composite propagated ;
+feature crypto : openssl openssl-shared built-in wolfssl gnutls libcrypto gcrypt : composite propagated ;
 feature.compose <crypto>openssl
 	: <define>TORRENT_USE_LIBCRYPTO
 	<define>TORRENT_USE_OPENSSL
 	<define>TORRENT_SSL_PEERS
 	<define>OPENSSL_NO_SSL2
+	<define>OPENSSL_NO_SSL3
+	<gnutls>off ;
+feature.compose <crypto>openssl-shared
+	: <define>TORRENT_USE_LIBCRYPTO
+	<define>TORRENT_USE_OPENSSL
+	<define>TORRENT_SSL_PEERS
+	<define>OPENSSL_NO_SSL2
+	<define>OPENSSL_NO_SSL3
 	<gnutls>off ;
 feature.compose <crypto>wolfssl
 	: <define>TORRENT_USE_WOLFSSL
@@ -705,9 +749,10 @@ feature boost-link : default static shared : propagated composite ;
 # possible to turn them off
 # TODO: it would be nice to enable BOOST_MULTI_INDEX_ENABLE_SAFE_MODE=1 with
 # debug iterators, but it seems to have problems with thread-sanitizer
-feature debug-iterators : default off on : composite propagated link-incompatible ;
-feature.compose <debug-iterators>on : <define>_GLIBCXX_DEBUG <define>_GLIBCXX_DEBUG_PEDANTIC ;
+feature debug-iterators : default off on harden : composite propagated link-incompatible ;
+feature.compose <debug-iterators>on : <define>_GLIBCXX_DEBUG <define>_GLIBCXX_DEBUG_PEDANTIC <define>_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_DEBUG ;
 feature.compose <debug-iterators>off : <define>_ITERATOR_DEBUG_LEVEL=0 ;
+feature.compose <debug-iterators>harden : <define>_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST ;
 
 feature fpic : off on : composite propagated link-incompatible ;
 feature.compose <fpic>on : <cxxflags>-fPIC ;
@@ -858,6 +903,7 @@ SOURCES =
 	write_resume_data
 	receive_buffer
 	resolve_links
+	resolve_duplicate_filenames
 	session
 	session_params
 	session_handle

@@ -441,7 +441,10 @@ class AddTorrentParamsTest(unittest.TestCase):
 
     def test_info_hash(self) -> None:
         atp = lt.add_torrent_params()
-        self.assertTrue(atp.info_hash.is_all_zeros())
+        if lt.api_version < 4:
+            self.assertTrue(atp.info_hash.is_all_zeros())
+        self.assertTrue(atp.info_hashes.v1.is_all_zeros())
+        self.assertTrue(atp.info_hashes.v2.is_all_zeros())
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5988")
     def test_http_seeds_deprecated(self) -> None:
@@ -585,8 +588,9 @@ class EnumsTest(unittest.TestCase):
         self.assertIsInstance(lt.torrent_flags.super_seeding, int)
         self.assertIsInstance(lt.torrent_flags.sequential_download, int)
         self.assertIsInstance(lt.torrent_flags.stop_when_ready, int)
-        self.assertIsInstance(lt.torrent_flags.override_trackers, int)
-        self.assertIsInstance(lt.torrent_flags.override_web_seeds, int)
+        if lt.api_version < 4:
+            self.assertIsInstance(lt.torrent_flags.override_trackers, int)
+            self.assertIsInstance(lt.torrent_flags.override_web_seeds, int)
         self.assertIsInstance(lt.torrent_flags.disable_dht, int)
         self.assertIsInstance(lt.torrent_flags.disable_lsd, int)
         self.assertIsInstance(lt.torrent_flags.disable_pex, int)
@@ -937,8 +941,9 @@ class DhtTest(unittest.TestCase):
             with self.assertWarns(DeprecationWarning):
                 self.session.add_dht_router(*endpoint)
 
-        dht_settings = self.session.get_dht_settings()
-        self.session.set_dht_settings(dht_settings)
+        if lt.api_version < 3:
+            dht_settings = self.session.get_dht_settings()
+            self.session.set_dht_settings(dht_settings)
 
     def test_bad_args(self) -> None:
         with self.assertRaises(ValueError):
@@ -1189,7 +1194,6 @@ class AddTorrentTest(unittest.TestCase):
         ti = self.torrent.torrent_info()
         atp = {
             "ti": ti,
-            "info_hash": ti.info_hashes().v1.to_bytes(),
             "info_hashes": ti.info_hashes().v1.to_bytes(),
             "save_path": self.dir.name,
             "storage_mode": lt.storage_mode_t.storage_mode_allocate,
@@ -1204,6 +1208,9 @@ class AddTorrentTest(unittest.TestCase):
             "renamed_files": {0: "renamed.txt"},
             "file_priorities": [2],
         }
+
+        if lt.api_version < 4:
+            atp["info_hash"] = ti.info_hashes().v1.to_bytes()
 
         if lt.api_version < 2:
             atp["url"] = "http://127.1.2.7/u"
@@ -1225,15 +1232,17 @@ class AddTorrentTest(unittest.TestCase):
         # TODO: can we test trackerid?
         torrent_file = handle.torrent_file()
         assert torrent_file is not None
-        self.assertEqual(torrent_file.files().file_path(0), "renamed.txt")
+        # the torrent_info object is immutable now, and renamed files are
+        # recorded in a separate object
+        # self.assertEqual(torrent_file.files().file_path(0), "renamed.txt")
         self.assertEqual(handle.get_file_priorities(), [2])
 
     def test_dict_no_torrent_info_old(self) -> None:
-        self.do_test_dict({"info_hash": b"a" * 20, "save_path": self.dir.name})
+        self.do_test_dict({"info_hashes": b"a" * 20, "save_path": self.dir.name})
 
     def test_no_torrent_info_old(self) -> None:
         atp = lt.add_torrent_params()
-        atp.info_hash = lt.sha1_hash(b"a" * 20)
+        atp.info_hashes = lt.info_hash_t(lt.sha1_hash(b"a" * 20))
         atp.save_path = self.dir.name
         self.session.add_torrent(atp)
 
@@ -1286,8 +1295,9 @@ class StateTest(unittest.TestCase):
         # we disable dht, so we don't expect b"dht state"
 
     def test_save(self) -> None:
-        self.check_state(self.session.save_state())
-        self.check_state(self.session.save_state(flags=2**32 - 1))
+        if lt.api_version < 3:
+            self.check_state(self.session.save_state())
+            self.check_state(self.session.save_state(flags=2**32 - 1))
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5988")
     def test_deprecated(self) -> None:

@@ -348,6 +348,15 @@ namespace aux {
 
 			void call_abort()
 			{
+				// at this point we cannot call the notify function anymore, since the
+				// session will become invalid. We clear the notify function on the
+				// user's thread, since it will destruct the callback function object,
+				// which might hold objects belonging to the user.
+				// Most notably, this is important for the python binding, since the
+				// callback function object needs to hold the GIL.
+				// This is safe because alert_manager has an internal mutex
+				m_alerts.set_notify_function({});
+
 				auto ptr = shared_from_this();
 				dispatch(m_io_context, make_handler([ptr] { ptr->abort(); }
 					, m_abort_handler_storage, *this));
@@ -715,6 +724,8 @@ namespace aux {
 			void on_i2p_open(error_code const& ec);
 			void open_new_incoming_i2p_connection();
 			void on_i2p_accept(error_code const& e);
+			void schedule_i2p_reconnect();
+			void on_i2p_reconnect_timer(error_code const& ec);
 #endif
 
 			void start_ip_notifier();
@@ -1018,6 +1029,13 @@ namespace aux {
 #if TORRENT_USE_I2P
 			i2p_connection m_i2p_conn;
 			std::optional<socket_type> m_i2p_listen_socket;
+
+			// Timer for I2P reconnection attempts
+			deadline_timer m_i2p_reconnect_timer;
+
+			// Exponential backoff state for I2P reconnection
+			seconds32 m_i2p_reconnect_delay{1};
+			bool m_i2p_reconnecting = false;
 #endif
 
 #if TORRENT_USE_SSL

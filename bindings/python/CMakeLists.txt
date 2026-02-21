@@ -16,10 +16,10 @@ cmake_minimum_required(VERSION 3.17.0 FATAL_ERROR) # Configurable policies: <= C
 # Sets _ret to a list of python versions (major.minor) that use the same MSVC runtime as this build does
 # assumes MSVC was detected already
 # See https://en.wikipedia.org/wiki/Microsoft_Visual_C++#Internal_version_numbering
-# See https://devguide.python.org/#status-of-python-branches for supported python versions
+# See https://devguide.python.org/versions/#versions for supported python versions
 function(_get_compatible_python_versions _ret)
 	if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 19 AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 20)
-		list(APPEND _tmp 3.6 3.7 3.8 3.9 3.10 3.11)
+		list(APPEND _tmp 3.9 3.10 3.11 3.12 3.13 3.14)
 	endif()
 	set(${_ret} ${_tmp} PARENT_SCOPE)
 endfunction()
@@ -96,8 +96,8 @@ if (python-install-system-dir)
 else()
 	execute_process(
 		COMMAND "${Python3_EXECUTABLE}" -c [=[
-import distutils.sysconfig
-print(distutils.sysconfig.get_python_lib(prefix='', plat_specific=True))
+import sysconfig
+print(sysconfig.get_path('platlib', vars={'platbase': '', 'base': ''}))
 ]=]
 		OUTPUT_VARIABLE _PYTHON3_SITE_ARCH
 		OUTPUT_STRIP_TRAILING_WHITESPACE

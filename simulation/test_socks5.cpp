@@ -126,7 +126,7 @@ TORRENT_TEST(socks5_tcp_announce)
 			}
 		},
 		[&tracker_port](sim::simulation& sim, lt::session&
-			, std::shared_ptr<lt::torrent_info> ti)
+			, std::shared_ptr<lt::torrent_info const> ti)
 		{
 			sim::asio::io_context web_server(sim, make_address_v4("2.2.2.2"));
 			// listen on port 8080
@@ -188,7 +188,7 @@ void test_udp_tracker(std::uint32_t const flags, socks_flags_t const sflags)
 				tracker_alert = true;
 		},
 		[&](sim::simulation& sim, lt::session&
-			, std::shared_ptr<lt::torrent_info> ti)
+			, std::shared_ptr<lt::torrent_info const> ti)
 		{
 			// listen on port 8080
 			udp_server tracker(sim, "2.2.2.2", 8080,

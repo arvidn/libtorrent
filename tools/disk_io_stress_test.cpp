@@ -32,7 +32,7 @@ see LICENSE file.
 using disk_test_mode_t = lt::flags::bitfield_flag<std::uint8_t, struct disk_test_mode_tag>;
 
 using lt::operator""_bit;
-using lt::operator "" _sv;
+using lt::operator ""_sv;
 
 namespace test_mode {
 constexpr disk_test_mode_t sparse = 0_bit;
@@ -201,8 +201,10 @@ int run_test(test_case const& t)
 
 		lt::aux::vector<lt::download_priority_t, lt::file_index_t> prios;
 		std::string save_path = "./scratch-area";
-		lt::storage_params params(fs, nullptr
+		lt::renamed_files rf;
+		lt::storage_params params(fs, rf
 			, save_path
+			, {}
 			, (t.flags & test_mode::sparse) ? lt::storage_mode_sparse : lt::storage_mode_allocate
 			, prios
 			, lt::sha1_hash("01234567890123456789"), true, true);

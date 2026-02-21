@@ -510,7 +510,7 @@ void natpmp::send_map_request(port_mapping_t const i)
 	if (should_log())
 	{
 		log("==> port map [ mapping: %d action: %s"
-			" transport: %s proto: %s local: %u external: %u ttl: %u ]"
+			" transport: %s proto: %s local: %d external: %d ttl: %d ]"
 			, static_cast<int>(i), to_string(m.act)
 			, version_to_string(m_version)
 			, to_string(m.protocol)
@@ -637,7 +637,7 @@ void natpmp::on_reply(error_code const& e
 	if (version != version_natpmp && version != version_pcp)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		log("unexpected version: %u", version);
+		log("unexpected version: %d", version);
 #endif
 		return;
 	}
@@ -835,7 +835,7 @@ void natpmp::update_expiration_timer()
 		if (i->expires < now)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			log("mapping %u expired", static_cast<int>(index));
+			log("mapping %d expired", static_cast<int>(index));
 #endif
 			i->act = portmap_action::add;
 			if (m_next_refresh == index) m_next_refresh = port_mapping_t{-1};
@@ -872,7 +872,7 @@ void natpmp::mapping_expired(error_code const& e, port_mapping_t const i)
 	COMPLETE_ASYNC("natpmp::mapping_expired");
 	if (e || m_abort) return;
 #ifndef TORRENT_DISABLE_LOGGING
-	log("mapping %u expired", static_cast<int>(i));
+	log("mapping %d expired", static_cast<int>(i));
 #endif
 	m_mappings[i].act = portmap_action::add;
 	if (m_next_refresh == i) m_next_refresh = port_mapping_t{-1};

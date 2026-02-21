@@ -198,6 +198,7 @@ std::vector<char> to_vec(char const (&str)[N])
 	return std::vector<char>(&str[0], &str[N - 1]);
 }
 
+#if TORRENT_USE_I2P
 std::string to_str(std::vector<char> const& v)
 {
 	return std::string(v.begin(), v.end());
@@ -214,6 +215,7 @@ std::string transcode_alphabet(std::string in)
 	});
 	return ret;
 }
+#endif
 }
 #endif
 

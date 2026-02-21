@@ -65,48 +65,43 @@ TORRENT_VERSION_NAMESPACE_4
 			// currently is another torrent that are being checked.
 			// This torrent will wait for its turn.
 			queued_for_checking TORRENT_DEPRECATED_ENUM,
-#else
-			// internal
-			unused_enum_for_backwards_compatibility,
 #endif
 
 			// The torrent has not started its download yet, and is
 			// currently checking existing files.
-			checking_files,
+			checking_files = 1,
 
 			// The torrent is trying to download metadata from peers.
 			// This implies the ut_metadata extension is in use.
-			downloading_metadata,
+			downloading_metadata = 2,
 
 			// The torrent is being downloaded. This is the state
 			// most torrents will be in most of the time. The progress
 			// meter will tell how much of the files that has been
 			// downloaded.
-			downloading,
+			downloading = 3,
 
 			// In this state the torrent has finished downloading but
 			// still doesn't have the entire torrent. i.e. some pieces
 			// are filtered and won't get downloaded.
-			finished,
+			finished = 4,
 
 			// In this state the torrent has finished downloading and
 			// is a pure seeder.
-			seeding,
+			seeding = 5,
 
 			// If the torrent was started in full allocation mode, this
 			// indicates that the (disk) storage for the torrent is
 			// allocated.
 #if TORRENT_ABI_VERSION == 1
-			allocating TORRENT_DEPRECATED_ENUM,
-#else
-			unused_enum_for_backwards_compatibility_allocating,
+			allocating TORRENT_DEPRECATED_ENUM = 6,
 #endif
 
 			// The torrent is currently checking the fast resume data and
 			// comparing it to the files on disk. This is typically
 			// completed in a fraction of a second, but if you add a
 			// large number of torrents at once, they will queue up.
-			checking_resume_data
+			checking_resume_data = 7
 		};
 
 #if TORRENT_ABI_VERSION == 1
@@ -577,7 +572,7 @@ TORRENT_VERSION_NAMESPACE_4
 		torrent_flags_t flags{};
 	};
 
-TORRENT_VERSION_NAMESPACE_3_END
+TORRENT_VERSION_NAMESPACE_4_END
 } // namespace libtorrent
 
 namespace std {

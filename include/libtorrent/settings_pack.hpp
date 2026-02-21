@@ -1000,6 +1000,19 @@ namespace aux {
 			// protocol may not be valid from the proxy's point of view.
 			socks5_udp_send_local_ep,
 
+			// When using HTTP proxy (in proxy_type), libtorrent will connect
+			// to peers and trackers using the `CONNECT` proxy command. In this
+			// command it's possible to reveal the hostname of the server we're
+			// connecting to. When this option is true, the hostname will be
+			// sent. This feature can be useful if the proxy is used to
+			// man-in-the-middle connections.
+			proxy_send_host_in_connect,
+
+			// When set, downloaded files will have the no-copy-on-write flag
+			// (``FS_NOCOW_FL``) set on Linux. This mitigates heavy
+			// fragmentation on filesystems like btrfs.
+			disk_disable_copy_on_write,
+
 			max_bool_setting_internal
 		};
 
@@ -1292,11 +1305,14 @@ namespace aux {
 
 			// ``peer_dscp`` determines the DSCP field in the IP header of every
 			// packet sent to peers (including web seeds). ``0x0`` means no marking,
-			// ``0x04`` represents Lower Effort. For more details see `RFC 8622`_.
+			// ``0x01`` represents Lower Effort. For more details see `RFC 8622`_
+			// and IANA's `dscp registry`_.
 			//
 			// .. _`RFC 8622`: http://www.faqs.org/rfcs/rfc8622.html
+			// .. _`dscp registry`: https://www.iana.org/assignments/dscp-registry/dscp-registry.xhtml
 			//
-			// ``peer_tos`` is the backwards compatible name for this setting.
+			// ``peer_tos`` is the old name for ``peer_dscp``, it's still
+			// available for backwards compatibility.
 			peer_dscp,
 
 			// hidden
@@ -1931,8 +1947,10 @@ namespace aux {
 			max_web_seed_connections,
 
 			// the number of seconds before the internal host name resolver
-			// considers a cache value timed out, negative values are interpreted
-			// as zero.
+			// considers a cache value out of date, and removes it. Negative
+			// values are interpreted as zero. The host name cache also caches
+			// failed DNS lookups, but only for 1/8th of the time of this
+			// timeout.
 			resolver_cache_timeout,
 
 			// specify the not-sent low watermark for socket send buffers. This
@@ -2018,8 +2036,7 @@ namespace aux {
 			// ``max_piece_count`` is the maximum allowed number of pieces in
 			// metadata received via magnet links. Loading large torrents (with
 			// more pieces than the default limit) may also require passing in
-			// a higher limit to read_resume_data() and
-			// torrent_info::parse_info_section(), if those are used.
+			// a higher limit to read_resume_data() and load_torrent_file().
 			max_piece_count,
 
 			// when receiving metadata (torrent file) from peers, this is the
@@ -2067,6 +2084,10 @@ namespace aux {
 			//    the external NAT-PMP port (configured using ``announce_port``)
 			//    instead of the actual local listening port.
 			announce_port,
+
+			// Configures the variance for I2P inbound and outbound tunnel lengths [-7..7]
+			i2p_inbound_length_variance,
+			i2p_outbound_length_variance,
 
 			// this is the minimum allowed announce interval for a WebSocket
 			// tracker used by WebTorrent to signal WebRTC connections. This is

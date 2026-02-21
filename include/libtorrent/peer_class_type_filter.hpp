@@ -63,7 +63,7 @@ namespace libtorrent {
 
 			TORRENT_ASSERT(st < num_socket_types);
 			if (st >= num_socket_types) return;
-			m_peer_class_type[st] &= ~(1 << static_cast<std::uint32_t>(peer_class));
+			m_peer_class_type[st] &= static_cast<std::uint32_t>(~(1 << static_cast<std::uint32_t>(peer_class)));
 		}
 
 		// ``disallow()`` and ``allow()`` adds and removes a peer class to be
@@ -78,7 +78,7 @@ namespace libtorrent {
 
 			TORRENT_ASSERT(st < num_socket_types);
 			if (st >= num_socket_types) return;
-			m_peer_class_type_mask[st] &= ~(1 << static_cast<std::uint32_t>(peer_class));
+			m_peer_class_type_mask[st] &= static_cast<std::uint32_t>(~(1 << static_cast<std::uint32_t>(peer_class)));
 		}
 		void allow(socket_type_t const st, peer_class_t const peer_class)
 		{

@@ -330,7 +330,7 @@ void upnp::delete_mapping(port_mapping_t const mapping)
 #ifndef TORRENT_DISABLE_LOGGING
 	if (should_log())
 	{
-		log("deleting port map: [ protocol: %s ext_port: %u "
+		log("deleting port map: [ protocol: %s ext_port: %d "
 			"local_ep: %s device: %s]"
 			, (m.protocol == portmap_protocol::tcp?"tcp":"udp"), m.external_port
 			, print_endpoint(m.local_ep).c_str()
@@ -523,7 +523,7 @@ void upnp::on_reply(aux::socket_package& s, error_code const& ec, std::size_t co
 		{
 			if (p.method().empty())
 			{
-				log("HTTP status %u from %s"
+				log("HTTP status %d from %s"
 					, p.status_code(), print_endpoint(from).c_str());
 			}
 			else
@@ -730,7 +730,7 @@ void upnp::create_port_mapping(aux::http_connection& c, rootdevice& d
 	{
 		TORRENT_ASSERT(d.disabled);
 #ifndef TORRENT_DISABLE_LOGGING
-		log("mapping %u aborted", static_cast<int>(i));
+		log("mapping %d aborted", static_cast<int>(i));
 #endif
 		return;
 	}
@@ -746,9 +746,9 @@ void upnp::create_port_mapping(aux::http_connection& c, rootdevice& d
 		"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
 		"<s:Body><u:%s xmlns:u=\"%s\">"
 		"<NewRemoteHost></NewRemoteHost>"
-		"<NewExternalPort>%u</NewExternalPort>"
+		"<NewExternalPort>%d</NewExternalPort>"
 		"<NewProtocol>%s</NewProtocol>"
-		"<NewInternalPort>%u</NewInternalPort>"
+		"<NewInternalPort>%d</NewInternalPort>"
 		"<NewInternalClient>%s</NewInternalClient>"
 		"<NewEnabled>1</NewEnabled>"
 		"<NewPortMappingDescription>%s</NewPortMappingDescription>"
@@ -804,7 +804,7 @@ void upnp::update_map(rootdevice& d, port_mapping_t const i)
 		|| m.protocol == portmap_protocol::none)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		log("mapping %u does not need updating, skipping", static_cast<int>(i));
+		log("mapping %d does not need updating, skipping", static_cast<int>(i));
 #endif
 		m.act = portmap_action::none;
 		next(d, i);
@@ -877,7 +877,7 @@ void upnp::delete_port_mapping(rootdevice& d, port_mapping_t const i)
 	{
 		TORRENT_ASSERT(d.disabled);
 #ifndef TORRENT_DISABLE_LOGGING
-		log("unmapping %u aborted", static_cast<int>(i));
+		log("unmapping %d aborted", static_cast<int>(i));
 #endif
 		return;
 	}
@@ -890,7 +890,7 @@ void upnp::delete_port_mapping(rootdevice& d, port_mapping_t const i)
 		"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
 		"<s:Body><u:%s xmlns:u=\"%s\">"
 		"<NewRemoteHost></NewRemoteHost>"
-		"<NewExternalPort>%u</NewExternalPort>"
+		"<NewExternalPort>%d</NewExternalPort>"
 		"<NewProtocol>%s</NewProtocol>"
 		"</u:%s></s:Body></s:Envelope>"
 		, soap_action, d.service_namespace.c_str()

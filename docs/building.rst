@@ -171,7 +171,7 @@ Note that the spaces around the semi-colons and colons are important!
 
 Also see the `boost-build documentation`_.
 
-.. _`boost-build documentation`: https://boostorg.github.io/build/
+.. _`boost-build documentation`: https://www.bfgroup.xyz/b2/manual/main/index.html
 
 
 Step 3: Building libtorrent
@@ -471,8 +471,8 @@ boost.program-options symbols.
 For more information, see the `Boost build v2 documentation`__, or more
 specifically `the section on built-in features`__.
 
-__ https://boostorg.github.io/build/manual/develop/index.html
-__ https://boostorg.github.io/build/manual/develop/index.html#bbv2.overview.builtins.features
+__ https://www.bfgroup.xyz/b2/manual/main/index.html
+__ https://www.boost.org/doc/libs/latest/tools/build/doc/html/index.html#b2.overview.builtins.features
 
 
 Step 4: Installing libtorrent
@@ -516,7 +516,7 @@ A toolset configuration is in this form:
 
 Toolset is essentially the family of compiler you're setting up, choose from `this list`__.
 
-__ https://boostorg.github.io/build/manual/master/index.html#bbv2.reference.tools.compilers
+__ https://www.bfgroup.xyz/b2/manual/main/index.html#b2.reference.tools.compilers
 
 Perhaps the most common ones would be ``gcc``, ``clang``, ``msvc`` and
 ``darwin`` (Apple's version of clang).

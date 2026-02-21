@@ -49,13 +49,13 @@ jobs:
         include:
           - os: ubuntu-24.04
             python-version: "3.12"
-          - os: macos-latest
-            python-version: "3.13"
+          - os: macos-14
+            python-version: "3.14"
           - os: windows-2022
             python-version: 3.6
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         submodules: true
         fetch-depth: 1
@@ -80,8 +80,8 @@ jobs:
     - name: dependencies (MacOS)
       if: runner.os == 'macOS'
       run: |
-        brew install boost-build boost boost-python3 python@3.13 openssl@3 python-setuptools
-        export PATH=$(brew --prefix)/opt/python@3.13/bin:$PATH
+        brew install boost-build boost boost-python3 python@3.14 openssl@3 python-setuptools
+        export PATH=$(brew --prefix)/opt/python@3.14/bin:$PATH
 
     - name: update package lists (linux)
       if: runner.os == 'Linux'
@@ -102,11 +102,18 @@ jobs:
       run: |
         sudo apt install libboost-tools-dev libboost-python-dev libboost-dev libboost-system-dev python3 python3-setuptools libssl-dev
 
+    - name: dependencies (windows)
+      if: runner.os == 'Windows'
+      run: |
+        python -m pip install --upgrade setuptools
+        # These dlls could be placed in a nicer location, but this mimics tool.cibuildwheel.windows for consistency.
+        python -c "import glob,shutil;[shutil.copy(f,'C:/Windows/System32') for f in glob.glob('C:/Program Files/OpenSSL/bin/*.dll')]"
+
     - name: install boost (windows)
       if: runner.os == 'Windows'
       shell: cmd
       run: |
-        git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.78.0 https://github.com/boostorg/boost.git
+        git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.90.0 https://github.com/boostorg/boost.git
         cd boost
         bootstrap.bat
 
@@ -145,5 +152,5 @@ jobs:
       run: |
         # Exporting SYSTEM_VERSION_COMPAT=0 helps pip allow install macos 11 tagged wheels. Ref https://github.com/pypa/packaging/issues/497
         export SYSTEM_VERSION_COMPAT=0
-        export PYTHON_INTERPRETER=$(brew --prefix)/opt/python@3.12/bin/python3
+        export PYTHON_INTERPRETER=$(brew --prefix)/opt/python@3.14/bin/python3
         tox -e py

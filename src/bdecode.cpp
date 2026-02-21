@@ -630,7 +630,8 @@ namespace aux {
 		bdecode_node ret = dict_find(key);
 		if (ret.type() == bdecode_node::list_t)
 			return ret;
-		return {};
+		ret.clear();
+		return ret;
 	}
 
 	bdecode_node bdecode_node::dict_find_dict(string_view key) const
@@ -638,7 +639,8 @@ namespace aux {
 		bdecode_node ret = dict_find(key);
 		if (ret.type() == bdecode_node::dict_t)
 			return ret;
-		return {};
+		ret.clear();
+		return ret;
 	}
 
 	bdecode_node bdecode_node::dict_find_string(string_view key) const
@@ -646,7 +648,8 @@ namespace aux {
 		bdecode_node ret = dict_find(key);
 		if (ret.type() == bdecode_node::string_t)
 			return ret;
-		return {};
+		ret.clear();
+		return ret;
 	}
 
 	bdecode_node bdecode_node::dict_find_int(string_view key) const
@@ -654,7 +657,8 @@ namespace aux {
 		bdecode_node ret = dict_find(key);
 		if (ret.type() == bdecode_node::int_t)
 			return ret;
-		return {};
+		ret.clear();
+		return ret;
 	}
 
 	string_view bdecode_node::dict_find_string_value(string_view key
@@ -1117,12 +1121,15 @@ done:
 		std::string ret;
 		switch (e.type())
 		{
-			case bdecode_node::none_t: return "none";
+			case bdecode_node::none_t:
+			{
+				ret = "none";
+				return ret;
+			}
 			case bdecode_node::int_t:
 			{
-				char str[100];
-				std::snprintf(str, sizeof(str), "%" PRId64, e.int_value());
-				return str;
+				ret = std::to_string(e.int_value());
+				return ret;
 			}
 			case bdecode_node::string_t:
 			{

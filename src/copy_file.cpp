@@ -299,7 +299,7 @@ ssize_t copy_range(int const fd_in, int const fd_out, off_t in_offset
 		if (ret < 0)
 		{
 			int const err = errno;
-			if (err == EXDEV || err == ENOTSUP)
+			if (err == EXDEV || err == ENOTSUP || err == ENOSYS)
 			{
 				m->use_fallback = true;
 				return copy_range_fallback(fd_in, fd_out, in_offset, len, se);
@@ -327,7 +327,11 @@ void copy_file(std::string const& inf, std::string const& newf, storage_error& s
 	native_path_string f1 = convert_to_native_path_string(inf);
 	native_path_string f2 = convert_to_native_path_string(newf);
 
-	aux::file_descriptor const infd = ::open(f1.c_str(), O_RDONLY);
+	int read_flags = O_RDONLY;
+#ifdef O_CLOEXEC
+	read_flags |= O_CLOEXEC;
+#endif
+	aux::file_descriptor const infd = ::open(f1.c_str(), read_flags);
 	if (infd.fd() < 0)
 	{
 		se.operation = operation_t::file_stat;
@@ -348,8 +352,11 @@ void copy_file(std::string const& inf, std::string const& newf, storage_error& s
 	// if the source file is not sparse we'll end up copying every byte anyway,
 	// there's no point in passing O_TRUNC. However, in order to preserve sparse
 	// regions, we *do* need to truncate the output file.
-	aux::file_descriptor const outfd = ::open(f2.c_str()
-		, input_is_sparse ? (O_RDWR | O_CREAT | O_TRUNC) : (O_RDWR | O_CREAT), in_stat.st_mode);
+	int write_flags = O_RDWR | O_CREAT | (input_is_sparse ? O_TRUNC : 0);
+#ifdef O_CLOEXEC
+	write_flags |= O_CLOEXEC;
+#endif
+	aux::file_descriptor const outfd = ::open(f2.c_str(), write_flags, in_stat.st_mode);
 	if (outfd.fd() < 0)
 	{
 		se.operation = operation_t::file_open;

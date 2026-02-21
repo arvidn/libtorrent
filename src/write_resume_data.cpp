@@ -105,6 +105,7 @@ namespace {
 		ret["completed_time"] = atp.completed_time;
 
 		ret["save_path"] = atp.save_path;
+		ret["part_file_dir"] = atp.part_file_dir;
 
 		if (!atp.name.empty()) ret["name"] = atp.name;
 
@@ -286,7 +287,7 @@ namespace {
 
 		if (!atp.merkle_trees.empty())
 		{
-			file_storage const& fs = atp.ti->files();
+			file_storage const& fs = atp.ti->layout();
 			auto& trees = atp.merkle_trees;
 			if (int(trees.size()) != fs.num_files())
 				aux::throw_ex<system_error>(errors::torrent_missing_piece_layer);

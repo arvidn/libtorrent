@@ -1,5 +1,7 @@
 [project]
+name = "libtorrent"
 requires-python = ">=3.9"
+version = "2.0.11"
 
 [tool.cibuildwheel]
 manylinux-i686-image = "manylinux2014"
@@ -84,6 +86,8 @@ before-all = [
 select = "*-win_amd64"
 
 [tool.cibuildwheel.windows]
+# This 'ugly' before-test pulls in all OpenSSL dlls such that all (yes, multiple!) Python interpreters can find them.
+before-test = '''python -c "import glob,shutil;[shutil.copy(f,'C:/Windows/System32') for f in glob.glob('C:/Program Files/OpenSSL/bin/*.dll')]"'''
 test-command = '''bash -c "cd '{project}/bindings/python' && python -m pip install -r test-requirements.txt && python -X dev -m pytest --log-level=DEBUG --log-cli-level=DEBUG && python -m mypy --config-file mypy-tox.ini tests"'''
 
 [tool.cibuildwheel.windows.environment]

@@ -14,13 +14,13 @@ jobs:
    pre-commit:
       runs-on: ubuntu-latest
       steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
            submodules: recursive
            fetch-depth: 1
            filter: tree:0
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
            python-version: "3.10"
       - uses: pre-commit/action@v3.0.1
@@ -32,15 +32,16 @@ jobs:
 
       strategy:
          matrix:
-            include:
-              - config: asio-debugging=on picker-debugging=on
-              - config: extensions=off logging=off streaming=off super-seeding=off share-mode=off predictive-pieces=off dht=off alert-msg=off encryption=off mutable-torrents=off deprecated-functions=off
-              - config: crypto=gcrypt
-              - config: mmap-disk-io=off
+            std: [17, 20]
+            config:
+              - asio-debugging=on picker-debugging=on
+              - extensions=off logging=off streaming=off super-seeding=off share-mode=off predictive-pieces=off dht=off alert-msg=off encryption=off mutable-torrents=off deprecated-functions=off
+              - crypto=gcrypt
+              - mmap-disk-io=off
 
       steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -69,23 +70,23 @@ jobs:
 
       - name: build library
         run: |
-          b2 ${{ matrix.config }} cxxstd=17,20 warnings-as-errors=on
+          b2 ${{ matrix.config }} cxxstd=${{ matrix.std }} warnings-as-errors=on
 
       - name: build examples
         run: |
           cd examples
-          b2 ${{ matrix.config }} cxxstd=17,20 warnings-as-errors=on
+          b2 ${{ matrix.config }} cxxstd=${{ matrix.std }} warnings-as-errors=on
 
       - name: build tools
         run: |
           cd tools
-          b2 ${{ matrix.config }} cxxstd=17,20 warnings-as-errors=on
+          b2 ${{ matrix.config }} cxxstd=${{ matrix.std }} warnings-as-errors=on
 
       - name: build python bindings
         run: |
           cd bindings/python
           echo "using python ;" >>~/user-config.jam
-          BOOST_ROOT="" b2 ${{ matrix.config }} cxxstd=17,20 warnings-as-errors=on
+          BOOST_ROOT="" b2 ${{ matrix.config }} cxxstd=${{ matrix.std }} warnings-as-errors=on
 
 
    fuzzers:
@@ -95,7 +96,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -113,15 +114,15 @@ jobs:
           ccache_options: |
             max_size=500M
 
-      - name: install clang-14
+      - name: install clang-15
         continue-on-error: true
         run: |
-          sudo apt install clang-14
+          sudo apt install clang-15
 
       - name: install boost
         run: |
           sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
-          echo "using clang : 14 : clang++-14 ;" >>~/user-config.jam
+          echo "using clang : 15 : clang++-15 ;" >>~/user-config.jam
 
       - name: build fuzzers
         run: |
@@ -136,7 +137,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -171,7 +172,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -189,13 +190,13 @@ jobs:
           ccache_options: |
             max_size=500M
 
-      - name: install clang-tidy
+      - name: install clang-tidy-18
         run: sudo apt install clang-tidy libc++-dev
 
       - name: install boost
         run: |
           sudo apt install libboost-tools-dev libboost-dev
-          echo "using clang_tidy : : clang-tidy \"-checks=-clang-analyzer-core.*,-clang-analyzer-optin.core.EnumCastOutOfRange,-clang-analyzer-unix.*\" : <cxxflags>-I/usr/local/clang-7.0.0/include/c++/v1 <cxxflags>-stdlib=libc++ <cxxflags>-Wno-unknown-warning-option <linkflags>-stdlib=libc++ ;" >> ~/user-config.jam;
+          echo "using clang_tidy : : clang-tidy \"-checks=-clang-analyzer-core.*,-clang-analyzer-optin.core.EnumCastOutOfRange,-clang-analyzer-unix.*,+android.cloexec.*\" : <cxxflags>-std=c++17 <cxxflags>-I/usr/local/clang-7.0.0/include/c++/v1 <cxxflags>-stdlib=libc++ <cxxflags>-Wno-unknown-warning-option <linkflags>-stdlib=libc++ ;" >> ~/user-config.jam;
 
       - name: analyze
         run: |
@@ -219,7 +220,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
            submodules: recursive
            fetch-depth: 1
@@ -242,6 +243,11 @@ jobs:
         run: |
           sudo apt install libgnutls28-dev
 
+      - name: install boost.json
+        if: ${{ contains(matrix.config, 'webtorrent=on') }}
+        run: |
+          sudo apt install libboost-json-dev
+
       - name: install clang-16
         continue-on-error: true
         run: |
@@ -260,12 +266,16 @@ jobs:
           echo "using clang : 16 : clang++-16 ;" >>~/user-config.jam
 
       - name: build and run tests
+        env:
+          LSAN_OPTIONS: suppressions=${{ github.workspace }}/.asan.suppressions
         run: |
           cd test
           b2 ${{ matrix.config }} -l500 warnings-as-errors=on debug-iterators=on asserts=on deterministic-tests
           b2 ${{ matrix.config }} -l500 testing.execute=off warnings-as-errors=on debug-iterators=on asserts=on test_lsd test_hasher test_hasher512
 
       - name: run tests (flaky)
+        env:
+          LSAN_OPTIONS: suppressions=${{ github.workspace }}/.asan.suppressions
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 30
@@ -281,7 +291,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -325,7 +335,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -353,7 +363,7 @@ jobs:
       - name: build tarball
         run: AAFIGURE=~/.local/bin/aafigure RST2HTML=rst2html make dist
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: tarball-${{ matrix.os }}
           path: libtorrent-rasterbar-*.tar.gz

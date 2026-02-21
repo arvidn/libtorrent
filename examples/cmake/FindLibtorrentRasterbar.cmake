@@ -130,7 +130,7 @@ function(_try_generic_mode)
 
 	list(FIND LibtorrentRasterbar_DEFINITIONS -DTORRENT_USE_OPENSSL _ENCRYPTION_INDEX)
 	if(_ENCRYPTION_INDEX GREATER -1)
-		find_package(OpenSSL QUIET REQUIRED)
+		find_package(OpenSSL 1.1.1 QUIET REQUIRED)
 		list(APPEND LibtorrentRasterbar_LIBRARIES OpenSSL::SSL)
 		if (LibtorrentRasterbar_USE_STATIC_LIBS)
 			list(APPEND LibtorrentRasterbar_LIBRARIES OpenSSL::Crypto)

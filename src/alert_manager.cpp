@@ -32,20 +32,20 @@ namespace libtorrent::aux {
 	{
 		std::unique_lock<std::recursive_mutex> lock(m_mutex);
 
-		if (!m_alerts[m_generation].empty())
-			return m_alerts[m_generation].front();
+		if (!m_alerts[m_generation & 1].empty())
+			return m_alerts[m_generation & 1].front();
 
 		// this call can be interrupted prematurely by other signals
 		m_condition.wait_for(lock, max_wait);
-		if (!m_alerts[m_generation].empty())
-			return m_alerts[m_generation].front();
+		if (!m_alerts[m_generation & 1].empty())
+			return m_alerts[m_generation & 1].front();
 
 		return nullptr;
 	}
 
 	void alert_manager::maybe_notify(alert* a)
 	{
-		if (m_alerts[m_generation].size() == 1)
+		if (m_alerts[m_generation & 1].size() == 1)
 		{
 			// we just posted to an empty queue. If anyone is waiting for
 			// alerts, we need to notify them. Also (potentially) call the
@@ -70,7 +70,7 @@ namespace libtorrent::aux {
 	{
 		std::unique_lock<std::recursive_mutex> lock(m_mutex);
 		m_notify = fun;
-		if (!m_alerts[m_generation].empty())
+		if (!m_alerts[m_generation & 1].empty())
 		{
 			if (m_notify) m_notify();
 		}
@@ -87,7 +87,7 @@ namespace libtorrent::aux {
 	{
 		std::lock_guard<std::recursive_mutex> lock(m_mutex);
 
-		if (m_alerts[m_generation].empty())
+		if (m_alerts[m_generation & 1].empty())
 		{
 			alerts.clear();
 			return;
@@ -98,19 +98,19 @@ namespace libtorrent::aux {
 			m_dropped.reset();
 		}
 
-		m_alerts[m_generation].get_pointers(alerts);
+		m_alerts[m_generation & 1].get_pointers(alerts);
 
 		// swap buffers
-		m_generation = (m_generation + 1) & 1;
+		m_generation += 1;
 		// clear the one we will start writing to now
-		m_alerts[m_generation].clear();
-		m_allocations[m_generation].reset();
+		m_alerts[m_generation & 1].clear();
+		m_allocations[m_generation & 1].reset(m_generation);
 	}
 
 	bool alert_manager::pending() const
 	{
 		std::lock_guard<std::recursive_mutex> lock(m_mutex);
-		return !m_alerts[m_generation].empty();
+		return !m_alerts[m_generation & 1].empty();
 	}
 
 	int alert_manager::set_alert_queue_size_limit(int queue_size_limit_)

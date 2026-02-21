@@ -250,7 +250,7 @@ void run_suite(lt::aux::proxy_settings ps)
 	// the try-next test in his case would test the socks proxy itself, whether
 	// it has robust retry behavior (which the simple test proxy that comes with
 	// libsimulator doesn't).
-	if (ps.proxy_hostnames == false)
+	if (ps.type != settings_pack::socks5 && ps.proxy_hostnames == false)
 	{
 		// this hostname will resolve to multiple IPs, all but one that we cannot
 		// connect to and the second one where we'll get the test file response. Make
@@ -580,9 +580,7 @@ TORRENT_TEST(http_connection_http_error)
 	test_proxy_failure(settings_pack::http);
 }
 
-// Requests a proxied SSL connection. This test just ensures that the correct CONNECT request
-// is sent to the proxy server.
-TORRENT_TEST(http_connection_ssl_proxy)
+void test_connection_ssl_proxy(bool const with_hostname)
 {
 	using sim::asio::ip::address_v4;
 	sim_config network_cfg;
@@ -595,15 +593,24 @@ TORRENT_TEST(http_connection_ssl_proxy)
 	sim::http_server http_proxy(proxy_ios, 4445);
 
 	lt::aux::proxy_settings ps = make_proxy_settings(settings_pack::http);
+	ps.send_host_in_connect = with_hostname;
 
 	int client_counter = 0;
 	int proxy_counter = 0;
 
 	http_proxy.register_handler("10.0.0.2:8080"
-		, [&proxy_counter](std::string method, std::string req, std::map<std::string, std::string>&)
+		, [&proxy_counter, with_hostname](std::string method, std::string req, std::map<std::string, std::string>& headers)
 		{
 			proxy_counter++;
 			TEST_EQUAL(method, "CONNECT");
+			if (with_hostname)
+			{
+				TEST_EQUAL(headers["host"], "10.0.0.2");
+			}
+			else
+			{
+				TEST_CHECK(headers.empty());
+			}
 			return sim::send_response(403, "Not supported", 1337);
 		});
 
@@ -635,6 +642,19 @@ TORRENT_TEST(http_connection_ssl_proxy)
 	TEST_EQUAL(client_counter, 1);
 	TEST_EQUAL(proxy_counter, 1);
 }
+
+// Requests a proxied SSL connection. This test just ensures that the correct CONNECT request
+// is sent to the proxy server.
+TORRENT_TEST(http_connection_ssl_proxy_no_hostname)
+{
+	test_connection_ssl_proxy(false);
+}
+
+TORRENT_TEST(http_connection_ssl_proxy_hostname)
+{
+	test_connection_ssl_proxy(true);
+}
+
 
 // TODO: test http proxy with password
 // TODO: test socks5 with password

@@ -5,6 +5,7 @@
 #include "boost_python.hpp"
 #include <list>
 #include <string>
+#include <optional>
 #include <libtorrent/session.hpp>
 #include <libtorrent/session_params.hpp>
 #include <libtorrent/error_code.hpp>
@@ -253,6 +254,30 @@ namespace
     }
 #endif
 #endif
+
+	struct notify_callback_wrapper
+	{
+		notify_callback_wrapper(object o): m_cb(o) {}
+		~notify_callback_wrapper()
+		{
+			lock_gil lock;
+			m_cb.reset();
+		}
+
+		void operator()() try
+		{
+			lock_gil lock;
+			(*m_cb)();
+		}
+		catch (boost::python::error_already_set const&)
+		{
+			// this callback isn't supposed to throw an error.
+			// just swallow and ignore the exception
+			TORRENT_ASSERT_FAIL_VAL("python notify callback threw exception");
+		}
+
+		std::optional<object> m_cb;
+	};
 }
 
     void dict_to_add_torrent_params(dict params, add_torrent_params& p)
@@ -312,6 +337,11 @@ namespace
             else if(key == "save_path")
             {
                 p.save_path = extract<std::string>(value);
+                continue;
+            }
+            else if(key == "part_file_dir")
+            {
+                p.part_file_dir = extract<std::string>(value);
                 continue;
             }
 #if TORRENT_ABI_VERSION == 1
@@ -488,24 +518,9 @@ namespace
     }
 #endif // TORRENT_ABI_VERSION
 
-    void alert_notify(object cb) try
-    {
-        lock_gil lock;
-        if (cb)
-        {
-            cb();
-        }
-    }
-    catch (boost::python::error_already_set const&)
-    {
-        // this callback isn't supposed to throw an error.
-        // just swallow and ignore the exception
-        TORRENT_ASSERT_FAIL_VAL("python notify callback threw exception");
-    }
-
     void set_alert_notify(lt::session& s, object cb)
     {
-        s.set_alert_notify(std::bind(&alert_notify, cb));
+        s.set_alert_notify(notify_callback_wrapper(cb));
     }
 
 #ifdef TORRENT_WINDOWS
@@ -996,6 +1011,7 @@ void bind_session()
         .add_property("dht_nodes", PROP(&add_torrent_params::dht_nodes))
         .def_readwrite("name", &add_torrent_params::name)
         .def_readwrite("save_path", &add_torrent_params::save_path)
+        .def_readwrite("part_file_dir", &add_torrent_params::part_file_dir)
         .def_readwrite("storage_mode", &add_torrent_params::storage_mode)
 //        .def_readwrite("storage", &add_torrent_params::storage)
         .add_property("file_priorities", PROP(&add_torrent_params::file_priorities))

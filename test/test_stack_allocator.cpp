@@ -44,10 +44,11 @@ TORRENT_TEST(copy_buffer)
 
 	// attempt zero size allocation
 	allocation_slot const idx2 = a.copy_buffer({});
+	TEST_CHECK(!idx2.is_valid());
 
 	// attempt to get a pointer after zero allocation
 	char* ptr = a.ptr(idx2);
-	TEST_CHECK(ptr == nullptr);
+	TEST_EQUAL(std::strlen(ptr), 0);
 }
 
 TORRENT_TEST(allocate)
@@ -67,10 +68,11 @@ TORRENT_TEST(allocate)
 
 	// attempt zero size allocation
 	allocation_slot const idx2 = a.allocate(0);
+	TEST_CHECK(!idx2.is_valid());
 
 	// attempt to get a pointer after zero allocation
 	ptr = a.ptr(idx2);
-	TEST_CHECK(ptr == nullptr);
+	TEST_EQUAL(std::strlen(ptr), 0);
 }
 
 TORRENT_TEST(swap)
@@ -117,4 +119,48 @@ TORRENT_TEST(format_string)
 	auto const idx = format_string_helper(a, "%d", 10);
 
 	TEST_EQUAL(a.ptr(idx), "10"_sv);
+}
+
+TORRENT_TEST(out_of_space)
+{
+	std::string long_string;
+	for (int i = 0; i < 100; ++i) long_string += "foobar-";
+
+	stack_allocator a;
+	// fill up the memory
+	try {
+		for (int i = 0; i < std::numeric_limits<int>::max() / 1024; ++i)
+		{
+			a.allocate(1024);
+		}
+		a.allocate(512);
+		a.allocate(256);
+	}
+	catch (std::bad_alloc const&)
+	{
+		// it's reasonable that some environments won't allocate 2 GiB of RAM
+		// willy nilly, and fail. This happens on the windows runner on github
+		// actions. Just ignore this test.
+		return;
+	}
+
+	auto slot = a.allocate(500);
+	TEST_CHECK(!slot.is_valid());
+	TEST_EQUAL(std::strlen(a.ptr(slot)), 0);
+
+	slot = a.copy_buffer(long_string);
+	TEST_CHECK(!slot.is_valid());
+	TEST_EQUAL(std::strlen(a.ptr(slot)), 0);
+
+	slot = a.copy_string(long_string.c_str());
+	TEST_CHECK(!slot.is_valid());
+	TEST_EQUAL(std::strlen(a.ptr(slot)), 0);
+
+	slot = a.copy_string(long_string);
+	TEST_CHECK(!slot.is_valid());
+	TEST_EQUAL(std::strlen(a.ptr(slot)), 0);
+
+	slot = format_string_helper(a, "test: %s", long_string.c_str());
+	TEST_CHECK(!slot.is_valid());
+	TEST_EQUAL(std::strlen(a.ptr(slot)), 0);
 }

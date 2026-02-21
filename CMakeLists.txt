@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16.0 FATAL_ERROR) # Configurable policies: <= CMP0097
+cmake_minimum_required(VERSION 3.20.0 FATAL_ERROR) # Configurable policies: <= CMP0097
 
 cmake_policy(SET CMP0091 NEW)
 cmake_policy(SET CMP0092 NEW)
@@ -53,6 +53,7 @@ set(libtorrent_include_files
 	io_service.hpp
 	ip_filter.hpp
 	libtorrent.hpp
+	load_torrent.hpp
 	magnet_uri.hpp
 	mmap_disk_io.hpp
 	natpmp.hpp
@@ -234,6 +235,7 @@ set(libtorrent_aux_include_files
 	readwrite.hpp
 	receive_buffer.hpp
 	request_blocks.hpp
+	resolve_duplicate_filenames.hpp
 	resolve_links.hpp
 	resolver.hpp
 	resolver_interface.hpp
@@ -391,6 +393,7 @@ set(sources
 	read_resume_data.cpp
 	receive_buffer.cpp
 	request_blocks.cpp
+	resolve_duplicate_filenames.cpp
 	resolve_links.cpp
 	resolver.cpp
 	rtc_signaling.cpp
@@ -673,7 +676,7 @@ if (APPLE)
 endif()
 
 # check if we need to link with libatomic (not needed on MSVC)
-if (NOT Windows)
+if (NOT MSVC)
 	# TODO: migrate to CheckSourceCompiles in CMake >= 3.19
 	include(CheckCXXSourceCompiles)
 
@@ -763,7 +766,8 @@ if(NOT gnutls)
 				TORRENT_USE_OPENSSL
 				TORRENT_USE_LIBCRYPTO
 				TORRENT_SSL_PEERS
-				OPENSSL_NO_SSL2)
+				OPENSSL_NO_SSL2
+				OPENSSL_NO_SSL3)
 	endif()
 endif()
 
@@ -836,7 +840,16 @@ if (webtorrent)
 	else()
 		option(USE_GNUTLS "Use GnuTLS instead of OpenSSL for libdatachannel" OFF)
 	endif()
+
+    set(LIBDATACHANNEL_STATIC ON CACHE BOOL "" FORCE)
+    set(LIBDATACHANNEL_EXPORT OFF CACHE BOOL "" FORCE)
+    set(LIBDATACHANNEL_INSTALL OFF CACHE BOOL "" FORCE)
+    set(PLOG_INSTALL OFF CACHE BOOL "" FORCE)
+    set(JUICE_INSTALL OFF CACHE BOOL "" FORCE)
+
 	add_subdirectory(deps/libdatachannel EXCLUDE_FROM_ALL)
+	set_target_properties(datachannel-static PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 	if(CMAKE_CXX_COMPILER_ID MATCHES Clang|GNU)
 		target_compile_options(datachannel-static PRIVATE
 			-Wno-pedantic
@@ -930,8 +943,18 @@ include(CheckCXXCompilerFlag)
 add_subdirectory(bindings)
 
 if(webtorrent)
-	target_link_libraries(torrent-rasterbar PRIVATE LibDataChannel::LibDataChannelStatic)
-
+    set(USRSCTP_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/libdatachannel/deps/usrsctp/usrsctplib")
+    target_include_directories(datachannel-static PRIVATE "${USRSCTP_INCLUDE_DIR}")
+    target_include_directories(torrent-rasterbar PRIVATE "${USRSCTP_INCLUDE_DIR}")
+    if (BUILD_SHARED_LIBS)
+        target_link_libraries(torrent-rasterbar PRIVATE datachannel-static)
+    else()
+        target_link_libraries(torrent-rasterbar PUBLIC datachannel-static)
+    endif()
+    target_include_directories(torrent-rasterbar PRIVATE
+        deps/libdatachannel/include
+        deps/libdatachannel/include/rtc
+    )
 	# Boost.JSON was added to Boost in version 1.75
 	find_package(Boost OPTIONAL_COMPONENTS json)
 	target_compile_definitions(torrent-rasterbar PRIVATE BOOST_JSON_HEADER_ONLY)
@@ -947,12 +970,27 @@ if(IS_ABSOLUTE "${CMAKE_INSTALL_LIBDIR}")
 	file(RELATIVE_PATH CMAKE_INSTALL_LIBDIR "${CMAKE_INSTALL_PREFIX}" "${CMAKE_INSTALL_LIBDIR}")
 endif()
 
-install(TARGETS torrent-rasterbar EXPORT LibtorrentRasterbarTargets
-	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+set(LIBTORRENT_EXPORT_TARGETS torrent-rasterbar)
+if (webtorrent)
+    list(APPEND LIBTORRENT_EXPORT_TARGETS datachannel-static juice-static plog usrsctp)
+	if (TARGET usrsctp)
+        set_target_properties(usrsctp PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "")
+    endif()
+endif()
+
+install(TARGETS ${LIBTORRENT_EXPORT_TARGETS}
+    EXPORT LibtorrentRasterbarTargets
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 install(DIRECTORY include/libtorrent DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} FILES_MATCHING PATTERN "*.h*")
+
+if (webtorrent)
+    install(DIRECTORY deps/libdatachannel/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+	install(DIRECTORY deps/libdatachannel/deps/plog/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+endif()
 
 # === generate a CMake Config File ===
 include(CMakePackageConfigHelpers)

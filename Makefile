@@ -388,6 +388,7 @@ SOURCES = \
   read_resume_data.cpp            \
   receive_buffer.cpp              \
   request_blocks.cpp              \
+  resolve_duplicate_filenames.cpp \
   resolve_links.cpp               \
   resolver.cpp                    \
   session.cpp                     \
@@ -636,6 +637,7 @@ HEADERS = \
   aux_/readwrite.hpp                \
   aux_/receive_buffer.hpp           \
   aux_/request_blocks.hpp           \
+  aux_/resolve_duplicate_filenames.hpp \
   aux_/resolve_links.hpp            \
   aux_/resolver.hpp                 \
   aux_/resolver_interface.hpp       \
@@ -894,6 +896,7 @@ TEST_SOURCES = \
   test_dht.cpp \
   test_dht_storage.cpp \
   test_direct_dht.cpp \
+  test_disk_io.cpp \
   test_dos_blocker.cpp \
   test_ed25519.cpp \
   test_enum_net.cpp \
@@ -1040,6 +1043,7 @@ TEST_TORRENTS = \
   invalid_file_size.torrent \
   invalid_filename.torrent \
   invalid_filename2.torrent \
+  invalid_directory_name.torrent \
   invalid_info.torrent \
   invalid_name.torrent \
   invalid_name2.torrent \

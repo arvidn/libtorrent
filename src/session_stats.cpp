@@ -316,6 +316,9 @@ namespace {
 		METRIC(disk, num_jobs)
 		METRIC(disk, blocked_disk_jobs)
 
+		// The number of open file handles kept by the file pool
+		METRIC(disk, file_pool_size)
+
 		METRIC(disk, num_writing_threads)
 		METRIC(disk, num_running_threads)
 
@@ -343,6 +346,22 @@ namespace {
 		// the number of blocks that had to be read back from disk in order to
 		// hash a piece (when verifying against the piece hash)
 		METRIC(disk, num_read_back)
+
+		// The number of file pool hits (the file we want is already open) and
+		// misses (we need to open the file).
+		METRIC(disk, file_pool_hits)
+		METRIC(disk, file_pool_misses)
+
+		// A "thread stall" is when one thread wants to open file A, but another
+		// thread is already working on opening the same file. The first thread
+		// must then wait for the second thread to complete, before returning.
+		METRIC(disk, file_pool_thread_stall)
+
+		// If one thread is opening a file for reading, and nother thread is
+		// opening the same file for writing, the file may be opened twice. This
+		// is resolved once the files are inserted into the pool. The handle
+		// opened for writing wins. Each such occurance increments this counter.
+		METRIC(disk, file_pool_race)
 
 		// cumulative time spent in various disk jobs, as well
 		// as total for all disk jobs. Measured in microseconds

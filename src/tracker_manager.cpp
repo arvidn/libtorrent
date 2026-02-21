@@ -262,10 +262,14 @@ namespace libtorrent::aux {
 		TORRENT_ASSERT(req.num_want >= 0);
 		TORRENT_ASSERT(!m_abort || req.event == event_t::stopped);
 		if (m_abort && req.event != event_t::stopped) return;
+		bool const high_priority = bool(req.kind & tracker_request::high_priority);
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (auto cb = c.lock())
-			cb->debug_log("*** QUEUE_TRACKER_REQUEST [ listen_port: %d ]", req.listen_port);
+		{
+			cb->debug_log("*** QUEUE_TRACKER_REQUEST [ listen_port: %d priority: %d ]"
+				, req.listen_port, high_priority);
+		}
 #endif
 
 		std::string const protocol = req.url.substr(0, req.url.find(':'));
@@ -284,7 +288,14 @@ namespace libtorrent::aux {
 			}
 			else
 			{
-				m_queued.push_back(std::move(con));
+				if (high_priority)
+				{
+					m_queued.push_front(std::move(con));
+				}
+				else
+				{
+					m_queued.push_back(std::move(con));
+				}
 				m_stats_counters.set_value(counters::num_queued_tracker_announces, std::int64_t(m_queued.size()));
 			}
 			return;
@@ -414,7 +425,7 @@ namespace libtorrent::aux {
 			// now, this may not have been meant to be a tracker response,
 			// but chances are pretty good, so it's probably worth logging
 			m_ses.session_log("incoming UDP tracker packet from %s has invalid "
-				"transaction ID (%x)", std::string(hostname).c_str(), int(transaction));
+				"transaction ID (%x)", std::string(hostname).c_str(), transaction);
 #endif
 			return false;
 		}

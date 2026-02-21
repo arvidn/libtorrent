@@ -1562,7 +1562,7 @@ namespace {
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::incoming_message, peer_log_alert::reject, "piece: %d s: %x l: %x"
-			, static_cast<int>(r.piece), r.start, r.length);
+			, static_cast<int>(r.piece), std::uint32_t(r.start), std::uint32_t(r.length));
 #endif
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -1576,7 +1576,7 @@ namespace {
 
 		int const block_size = t->block_size();
 		if (r.piece < piece_index_t{}
-			|| r.piece >= t->torrent_file().files().end_piece()
+			|| r.piece >= t->torrent_file().layout().end_piece()
 			|| r.start < 0
 			|| r.start >= t->torrent_file().piece_length()
 			|| (r.start % block_size) != 0
@@ -1584,7 +1584,7 @@ namespace {
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, peer_log_alert::reject, "invalid reject message (%d, %d, %d)"
-				, int(r.piece), int(r.start), int(r.length));
+				, int(r.piece), r.start, r.length);
 #endif
 			return;
 		}
@@ -2049,7 +2049,10 @@ namespace {
 			TORRENT_ASSERT(m_have_piece.count() == m_have_piece.size());
 			TORRENT_ASSERT(m_have_piece.size() == t->torrent_file().num_pieces());
 
-			t->seen_complete();
+			// only mark last-seen-complete if we've received actual payload data
+			// from this peer, to prevent lying peers from updating the timestamp
+			if (m_statistics.total_payload_download() > 0)
+				t->seen_complete();
 			t->set_seed(m_peer_info, true);
 			TORRENT_ASSERT(is_seed());
 
@@ -2378,7 +2381,7 @@ namespace {
 			&& r.piece < t->torrent_file().end_piece();
 
 		peer_log(peer_log_alert::incoming_message, peer_log_alert::request
-			, "piece: %d s: %x l: %x", static_cast<int>(r.piece), r.start, r.length);
+			, "piece: %d s: %x l: %x", static_cast<int>(r.piece), std::uint32_t(r.start), std::uint32_t(r.length));
 #endif
 
 #ifndef TORRENT_DISABLE_SUPERSEEDING
@@ -2819,7 +2822,7 @@ namespace {
 		if (should_log(peer_log_alert::incoming_message))
 		{
 			peer_log(peer_log_alert::incoming_message, peer_log_alert::piece, "piece: %d s: %x l: %x ds: %d qs: %d q: %d"
-				, static_cast<int>(p.piece), p.start, p.length, statistics().download_rate()
+				, static_cast<int>(p.piece), std::uint32_t(p.start), std::uint32_t(p.length), statistics().download_rate()
 				, int(m_desired_queue_size), int(m_download_queue.size()));
 		}
 #endif
@@ -2952,7 +2955,7 @@ namespace {
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, peer_log_alert::file_async_write, "piece: %d s: %x l: %x"
-			, static_cast<int>(p.piece), p.start, p.length);
+			, static_cast<int>(p.piece), std::uint32_t(p.start), std::uint32_t(p.length));
 #endif
 		m_download_queue.erase(b);
 		if (m_download_queue.empty())
@@ -3140,7 +3143,7 @@ namespace {
 		if (should_log(peer_log_alert::info))
 		{
 			peer_log(peer_log_alert::info, peer_log_alert::file_async_write_complete, "piece: %d s: %x l: %x e: %s"
-				, static_cast<int>(p.piece), p.start, p.length, error.ec.message().c_str());
+				, static_cast<int>(p.piece), std::uint32_t(p.start), std::uint32_t(p.length), error.ec.message().c_str());
 		}
 #endif
 
@@ -3275,7 +3278,7 @@ namespace {
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::incoming_message, peer_log_alert::cancel
-			, "piece: %d s: %x l: %x", static_cast<int>(r.piece), r.start, r.length);
+			, "piece: %d s: %x l: %x", static_cast<int>(r.piece), std::uint32_t(r.start), std::uint32_t(r.length));
 #endif
 
 		auto const i = std::find(m_requests.begin(), m_requests.end(), r);
@@ -4155,7 +4158,7 @@ namespace {
 			{
 				peer_log(peer_log_alert::outgoing_message, peer_log_alert::request
 					, "piece: %d s: %x l: %x ds: %dB/s dqs: %d rqs: %d blk: %s"
-					, static_cast<int>(r.piece), r.start, r.length, statistics().download_rate()
+					, static_cast<int>(r.piece), std::uint32_t(r.start), std::uint32_t(r.length), statistics().download_rate()
 					, int(m_desired_queue_size), int(m_download_queue.size())
 					, m_request_large_blocks?"large":"single");
 			}
@@ -5332,7 +5335,7 @@ namespace {
 					flags |= disk_interface::v1_hash;
 				aux::vector<sha256_hash> hashes;
 				if (t->info_hash().has_v2())
-					hashes.resize(t->torrent_file().orig_files().blocks_in_piece2(r.piece));
+					hashes.resize(t->torrent_file().layout().blocks_in_piece2(r.piece));
 
 				span<sha256_hash> v2_hashes(hashes);
 				m_disk_thread.async_hash(t->storage(), r.piece, v2_hashes, flags
@@ -5356,7 +5359,7 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log(peer_log_alert::info, peer_log_alert::piece_failed
 					, "piece: %d s: %x l: %x piece failed hash check"
-					, static_cast<int>(r.piece), r.start , r.length);
+					, static_cast<int>(r.piece), std::uint32_t(r.start), std::uint32_t(r.length));
 #endif
 				write_reject_request(r);
 			}
@@ -5364,7 +5367,7 @@ namespace {
 			{
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log(peer_log_alert::info, peer_log_alert::file_async_read
-					, "piece: %d s: %x l: %x", static_cast<int>(r.piece), r.start, r.length);
+					, "piece: %d s: %x l: %x", static_cast<int>(r.piece), std::uint32_t(r.start), std::uint32_t(r.length));
 #endif
 				m_reading_bytes += r.length;
 #ifndef TORRENT_DISABLE_SHARE_MODE
@@ -5382,9 +5385,10 @@ namespace {
 				if (read_mode == settings_pack::disable_os_cache)
 					flags |= disk_interface::volatile_read;
 
+				auto const issue_time = clock_type::now();
 				m_disk_thread.async_read(t->storage(), r
-					, [conn = self(), r](disk_buffer_holder buf, storage_error const& ec)
-					{ conn->wrap(&peer_connection::on_disk_read_complete, std::move(buf), ec, r, clock_type::now()); }
+					, [conn = self(), r, issue_time](disk_buffer_holder buf, storage_error const& ec)
+					{ conn->wrap(&peer_connection::on_disk_read_complete, std::move(buf), ec, r, issue_time); }
 					, flags);
 			}
 			m_last_sent_payload.set(m_connect, clock_type::now());
@@ -5448,7 +5452,7 @@ namespace {
 		{
 			hash_failed[protocol_version::V2] = false;
 
-			int const blocks_in_piece = t->torrent_file().files().blocks_in_piece2(piece);
+			int const blocks_in_piece = t->torrent_file().layout().blocks_in_piece2(piece);
 
 			TORRENT_ASSERT(blocks_in_piece == int(block_hashes.size()));
 
@@ -5537,7 +5541,7 @@ namespace {
 		case set_block_hash_result::success:
 		{
 			t->need_picker();
-			int const blocks_per_piece = t->torrent_file().files().blocks_per_piece();
+			int const blocks_per_piece = t->torrent_file().layout().blocks_per_piece();
 			for (piece_index_t verified_piece = int(r.piece) + result.first_verified_block / blocks_per_piece
 				, end = int(verified_piece) + (result.num_verified + blocks_per_piece - 1) / blocks_per_piece
 				; verified_piece < end; ++verified_piece)
@@ -5576,7 +5580,7 @@ namespace {
 		{
 			peer_log(peer_log_alert::info, peer_log_alert::file_async_read_complete
 				, "piece: %d s: %x l: %x b: %p e: %s rtt: %d us"
-				, static_cast<int>(r.piece), r.start, r.length
+				, static_cast<int>(r.piece), std::uint32_t(r.start), std::uint32_t(r.length)
 				, static_cast<void*>(buffer.data())
 				, error.ec.message().c_str(), disk_rtt);
 		}
@@ -5630,7 +5634,7 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::outgoing_message
 			, peer_log_alert::piece, "piece: %d s: %x l: %x"
-			, static_cast<int>(r.piece), r.start, r.length);
+			, static_cast<int>(r.piece), std::uint32_t(r.start), std::uint32_t(r.length));
 #endif
 
 		m_counters.blend_stats_counter(counters::request_latency, disk_rtt, 5);
@@ -6239,7 +6243,9 @@ namespace {
 		TORRENT_ASSERT(m_recv_buffer.pos_at_end());
 		TORRENT_ASSERT(m_recv_buffer.packet_size() > 0);
 
-		if (is_seed())
+		// only mark last-seen-complete if we've received actual payload data
+		// from this peer, to prevent lying peers from updating the timestamp
+		if (is_seed() && m_statistics.total_payload_download() > 0)
 		{
 			auto t = m_torrent.lock();
 			if (t) t->seen_complete();

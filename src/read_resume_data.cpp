@@ -112,10 +112,12 @@ namespace {
 			if ((!ret.info_hashes.has_v1() || resume_ih.v1 == ret.info_hashes.v1)
 				&& (!ret.info_hashes.has_v2() || resume_ih.v2 == ret.info_hashes.v2))
 			{
-				auto ti = std::make_shared<torrent_info>(resume_ih);
-
 				error_code err;
-				if (!ti->parse_info_section(info, err, piece_limit))
+				load_torrent_limits cfg{};
+				cfg.max_pieces = piece_limit;
+				auto ti = std::make_shared<torrent_info>(info, err, cfg, from_info_section);
+
+				if (err)
 				{
 					ec = err;
 				}
@@ -244,6 +246,7 @@ namespace {
 		apply_flag(ret.flags, rd, "disable_pex", torrent_flags::disable_pex);
 
 		ret.save_path = rd.dict_find_string_value("save_path");
+		ret.part_file_dir = rd.dict_find_string_value("part_file_dir");
 
 #if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.2

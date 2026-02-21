@@ -9,6 +9,7 @@ Copyright (c) 2017, 2020, AllSeeingEyeTolledEweSew
 Copyright (c) 2017, Falcosc
 Copyright (c) 2019, Andrei Kurushin
 Copyright (c) 2019, ghbplayer
+Copyright (c) 2025, Vladimir Golovnev (glassez)
 Copyright (c) 2021, Mark Scott
 All rights reserved.
 
@@ -77,7 +78,7 @@ namespace aux {
 	struct TORRENT_EXPORT block_info
 	{
 		// this is the enum used for the block_info::state field.
-		enum block_state_t
+		enum block_state_t : std::uint8_t
 		{
 			// This block has not been downloaded or requested form any peer.
 			none,
@@ -99,28 +100,27 @@ namespace aux {
 		addr_t addr;
 
 		std::uint16_t port;
+
+		// the type of the addr union
+		std::uint16_t is_v6_addr:1;
 	public:
+		// the number of peers that is currently requesting this block. Typically
+		// this is 0 or 1, but at the end of the torrent blocks may be requested
+		// by more peers in parallel to speed things up.
+		std::uint16_t num_peers:14;
 
 		// The peer is the ip address of the peer this block was downloaded from.
 		void set_peer(tcp::endpoint const& ep);
 		tcp::endpoint peer() const;
 
 		// the number of bytes that have been received for this block
-		unsigned bytes_progress:15;
+		std::uint32_t bytes_progress:15;
 
 		// the total number of bytes in this block.
-		unsigned block_size:15;
+		std::uint32_t block_size:15;
 
 		// the state this block is in (see block_state_t)
-		unsigned state:2;
-
-		// the number of peers that is currently requesting this block. Typically
-		// this is 0 or 1, but at the end of the torrent blocks may be requested
-		// by more peers in parallel to speed things up.
-		unsigned num_peers:14;
-	private:
-		// the type of the addr union
-		bool is_v6_addr:1;
+		std::uint32_t state:2;
 	};
 
 	// This class holds information about pieces that have outstanding requests
@@ -722,14 +722,19 @@ namespace aux {
 			| if_download_progress
 			| if_counters_changed;
 
-		// ``save_resume_data()`` asks libtorrent to generate fast-resume data for
-		// this torrent. The fast resume data (stored in an add_torrent_params
-		// object) can be used to resume a torrent in the next session without
-		// having to check all files for which pieces have been downloaded. It
-		// can also be used to save a .torrent file for a torrent_handle.
+		// ``save_resume_data()`` and ``get_resume_data()`` asks libtorrent to
+		// generate fast-resume data for this torrent. The fast resume data
+		// (stored in an add_torrent_params object) can be used to resume a
+		// torrent in the next session without having to check all files for
+		// which pieces have been downloaded. It can also be used to save a
+		// .torrent file for a torrent_handle.
 		//
-		// This operation is asynchronous, ``save_resume_data`` will return
-		// immediately. The resume data is delivered when it's done through a
+		// ```get_resume_data()`` is synchronous and will block the calling
+		// thread until the resume data is ready and returned from the
+		// libtorrent main thread.
+		///
+		// ``save_resume_data()`` is asynchronous. It will return immediately
+		// and deliver the resume data is when it's done through a
 		// save_resume_data_alert.
 		//
 		// The operation will fail, and post a save_resume_data_failed_alert
@@ -819,6 +824,7 @@ namespace aux {
 		//	report that they don't need to save resume data again, and skipped by
 		//	the initial loop, and thwart the counter otherwise.
 		void save_resume_data(resume_data_flags_t flags = {}) const;
+		add_torrent_params get_resume_data(resume_data_flags_t flags = {}) const;
 
 		// This function returns true if anything that is stored in the resume
 		// data has changed since the last time resume data was saved.
@@ -928,6 +934,10 @@ namespace aux {
 		// layers. In that state, you cannot create a .torrent file from the
 		// torrent_info returned. Once the torrent completes downloading all
 		// files, becoming a seed, you can make a .torrent file from it.
+		//
+		// If any files in the torrent have been renamed, using
+		// torrent_handle::rename_file(), the new names will not be reflected
+		// in the returned torrent_info object.
 		std::shared_ptr<const torrent_info> torrent_file() const;
 #if TORRENT_ABI_VERSION < 4
 		// torrent_file_with_hashes() returns a *copy* of the internal
@@ -1155,6 +1165,11 @@ namespace aux {
 		// and the tracker is announced immediately.
 		static inline constexpr reannounce_flags_t ignore_min_interval = 0_bit;
 
+		// by default, force-reannounce will queue the announce normally.
+		// If this flag is set, the announce will be put at the front of the
+		// tracker queue for immediate processing.
+		static constexpr reannounce_flags_t high_priority = 1_bit;
+
 		// ``force_reannounce()`` will force this torrent to do another tracker
 		// request, to receive new peers. The ``seconds`` argument specifies how
 		// many seconds from now to issue the tracker announces.
@@ -1168,7 +1183,7 @@ namespace aux {
 		// If set to -1 (which is the default), all trackers are re-announce.
 		//
 		// The ``flags`` argument can be used to affect the re-announce. See
-		// ignore_min_interval.
+		// ignore_min_interval and high_priority.
 		//
 		// ``force_dht_announce`` will announce the torrent to the DHT
 		// immediately.

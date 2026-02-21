@@ -1183,7 +1183,7 @@ namespace {
 		auto t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
-		auto const& files = t->torrent_file().files();
+		auto const& files = t->torrent_file().layout();
 
 		span<char const> recv_buffer = m_recv_buffer.get();
 		const char* ptr = recv_buffer.begin() + 1;
@@ -1239,7 +1239,7 @@ namespace {
 		auto t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
-		auto const& files = t->torrent_file().files();
+		auto const& files = t->torrent_file().layout();
 
 		span<char const> recv_buffer = m_recv_buffer.get();
 
@@ -1270,7 +1270,7 @@ namespace {
 
 		hash_request const hr(file_index, base, index, count, proof_layers);
 
-		if (!validate_hash_request(hr, t->torrent_file().files()))
+		if (!validate_hash_request(hr, t->torrent_file().layout()))
 		{
 			disconnect(errors::invalid_hashes, operation_t::bittorrent, peer_connection_interface::peer_error);
 			return;
@@ -1344,7 +1344,7 @@ namespace {
 		const char* ptr = recv_buffer.begin() + 1;
 
 		auto const file_root = sha256_hash(ptr);
-		file_index_t const file_index = t->torrent_file().files().file_index_for_root(file_root);
+		file_index_t const file_index = t->torrent_file().layout().file_index_for_root(file_root);
 		ptr += sha256_hash::size();
 		int const base = aux::read_int32(ptr);
 		int const index = aux::read_int32(ptr);
@@ -1667,7 +1667,7 @@ namespace {
 				{
 					static char const* err_msg[] = {"no such peer", "not connected", "no support", "no self"};
 					peer_log(peer_log_alert::incoming_message, peer_log_alert::holepunch
-						, "msg:failed ERROR: %d msg: %s", error
+						, "msg:failed ERROR: %u msg: %s", error
 						, ((error > 0 && error < 5)?err_msg[error-1]:"unknown message id"));
 				}
 #endif
@@ -1731,12 +1731,12 @@ namespace {
 		auto t = associated_torrent().lock();
 		if (!t) return;
 		auto const& ti = t->torrent_file();
-		auto const& fs = ti.files();
+		auto const& fs = ti.layout();
 		auto const root = fs.root(req.file);
 
 		ptr = std::copy(root.begin(), root.end(), ptr);
 
-		TORRENT_ASSERT(validate_hash_request(req, t->torrent_file().files()));
+		TORRENT_ASSERT(validate_hash_request(req, t->torrent_file().layout()));
 
 		aux::write_uint32(req.base, ptr);
 		aux::write_uint32(req.index, ptr);
@@ -1774,7 +1774,7 @@ namespace {
 		auto t = associated_torrent().lock();
 		if (!t) return;
 		auto const& ti = t->torrent_file();
-		auto const& fs = ti.files();
+		auto const& fs = ti.layout();
 		auto root = fs.root(req.file);
 
 		ptr = std::copy(root.begin(), root.end(), ptr);

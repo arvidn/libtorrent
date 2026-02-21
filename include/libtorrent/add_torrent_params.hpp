@@ -120,7 +120,11 @@ TORRENT_VERSION_NAMESPACE_3
 
 		// torrent_info object with the torrent to add. Unless the
 		// info_hash is set, this is required to be initialized.
+#if TORRENT_ABI_VERSION < 4
 		std::shared_ptr<torrent_info> ti;
+#else
+		std::shared_ptr<torrent_info const> ti;
+#endif
 
 		// If the torrent doesn't have a tracker, but relies on the DHT to find
 		// peers, the ``trackers`` can specify tracker URLs for the torrent.
@@ -141,7 +145,7 @@ TORRENT_VERSION_NAMESPACE_3
 		// The name out of the torrent_info object takes precedence if available.
 		std::string name;
 
-		// the path where the torrent is or will be stored.
+		// The path to the directory where the torrent is or will be stored.
 		//
 		// .. note::
 		// 	On windows this path (and other paths) are interpreted as UNC
@@ -151,6 +155,18 @@ TORRENT_VERSION_NAMESPACE_3
 		// Setting this to an absolute path performs slightly better than a
 		// relative path.
 		std::string save_path;
+
+		// This is an optional field. If set, the part-file for this torrent
+		// will be stored in the specified subdirectory, still inside its
+		// download directory. i.e. ``part_file_dir`` is a relative directory.
+		// The part file name is disambiguated by including the info-hash, in
+		// hexadecimal form. By default it's stored directly in the download
+		// directory. If the storage for a torrent is moved, the part file is
+		// also moved along with it, to the new download directory.
+		// A part file contains partial pieces that need to be downloaded in
+		// order to verify hashes and seeding, but are part of files whose
+		// priority is zero.
+		std::string part_file_dir;
 
 		// One of the values from storage_mode_t. For more information, see
 		// storage-allocation_.

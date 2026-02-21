@@ -88,14 +88,14 @@ error_code translate_error(std::error_code const& err, bool const write)
 	mmap_storage::mmap_storage(storage_params const& params
 		, aux::file_view_pool& pool)
 		: m_files(params.files)
+		, m_renamed_files(params.renamed_files)
 		, m_file_priority(params.priorities)
 		, m_save_path(complete(params.path))
+		, m_part_file_dir(params.part_file_dir)
 		, m_part_file_name("." + aux::to_hex(params.info_hash) + ".parts")
 		, m_pool(pool)
 		, m_allocate_files(params.mode == storage_mode_allocate)
 	{
-		if (params.mapped_files) m_mapped_files = std::make_unique<file_storage>(*params.mapped_files);
-
 		TORRENT_ASSERT(files().num_files() > 0);
 
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
@@ -114,12 +114,18 @@ error_code translate_error(std::error_code const& err, bool const write)
 		m_pool.release(storage_index());
 	}
 
+	filenames mmap_storage::names() const
+	{
+		return {m_files, m_renamed_files};
+	}
+
 	void mmap_storage::need_partfile()
 	{
 		if (m_part_file) return;
 
 		m_part_file = std::make_unique<part_file>(
-			m_save_path, m_part_file_name
+			m_part_file_dir.empty() ? m_save_path : combine_path(m_save_path, m_part_file_dir)
+			, m_part_file_name
 			, files().num_pieces(), files().piece_length());
 	}
 
@@ -132,7 +138,7 @@ error_code translate_error(std::error_code const& err, bool const write)
 		if (prio.size() > m_file_priority.size())
 			m_file_priority.resize(prio.size(), default_priority);
 
-		file_storage const& fs = files();
+		filenames const fs = names();
 		for (file_index_t i(0); i < prio.end_index(); ++i)
 		{
 			// pad files always have priority 0.
@@ -199,6 +205,16 @@ error_code translate_error(std::error_code const& err, bool const write)
 						ec.ec = err.code();
 						return;
 					}
+					catch (std::exception const& e)
+					{
+						TORRENT_UNUSED(e);
+						// this is not expected
+						TORRENT_ASSERT_FAIL_VAL(e.what());
+						ec.file(i);
+						ec.operation = operation_t::partfile_write;
+						ec.ec = error_code(boost::system::errc::io_error, generic_category());
+						return;
+					}
 				}
 			}
 			else if (old_prio != dont_download && new_prio == dont_download)
@@ -232,7 +248,7 @@ error_code translate_error(std::error_code const& err, bool const write)
 						return;
 					}
 					// remove the file
-					std::string p = fs.file_path(i, m_save_path);
+					std::string const p = fs.file_path(i, m_save_path);
 					delete_one_file(p, ec.ec);
 					if (ec)
 					{
@@ -301,7 +317,7 @@ error_code translate_error(std::error_code const& err, bool const write)
 			m_file_created.resize(files().num_files(), false);
 		}
 
-		file_storage const& fs = files();
+		filenames const fs = names();
 		status_t ret{};
 		// if some files have priority 0, we need to check if they exist on the
 		// filesystem, in which case we won't use a partfile for them.
@@ -346,13 +362,15 @@ error_code translate_error(std::error_code const& err, bool const write)
 	{
 		m_stat_cache.reserve(files().num_files());
 
-		if (aux::has_any_file(files(), m_save_path, m_stat_cache, ec))
+		if (aux::has_any_file(names(), m_save_path, m_stat_cache, ec))
 			return true;
 
 		if (ec) return false;
 
 		file_status s;
-		stat_file(combine_path(m_save_path, m_part_file_name), &s, ec.ec);
+		stat_file(combine_path(
+			m_part_file_dir.empty() ? m_save_path : combine_path(m_save_path, m_part_file_dir)
+			, m_part_file_name), &s, ec.ec);
 		if (!ec) return true;
 
 		// the part file not existing is expected
@@ -371,7 +389,7 @@ error_code translate_error(std::error_code const& err, bool const write)
 		, storage_error& ec)
 	{
 		if (index < file_index_t(0) || index >= files().end_file()) return;
-		std::string const old_name = files().file_path(index, m_save_path);
+		std::string const old_name = m_renamed_files.file_path(files(), index, m_save_path);
 		m_pool.release(storage_index(), index);
 
 		// if the old file doesn't exist, just succeed and change the filename
@@ -387,6 +405,16 @@ error_code translate_error(std::error_code const& err, bool const write)
 			if (is_complete(new_filename)) new_path = new_filename;
 			else new_path = combine_path(m_save_path, new_filename);
 			std::string new_dir = parent_path(new_path);
+
+			error_code best_effort;
+			if (exists(new_path, best_effort))
+			{
+				// We don't want to overwrite an existing file
+				ec.ec = error_code(boost::system::errc::file_exists, generic_category());
+				ec.file(index);
+				ec.operation = operation_t::file_rename;
+				return;
+			}
 
 			// create any missing directories that the new filename
 			// lands in
@@ -429,12 +457,9 @@ error_code translate_error(std::error_code const& err, bool const write)
 			return;
 		}
 
-		// if old path doesn't exist, just rename the file
-		// in our file_storage, so that when it is created
-		// it will get the new name
-		if (!m_mapped_files)
-		{ m_mapped_files = std::make_unique<file_storage>(files()); }
-		m_mapped_files->rename_file(index, new_filename);
+		// if old path doesn't exist, just record the rename
+		// so it will get the new name when it is created.
+		m_renamed_files.rename_file(files(), index, new_filename);
 	}
 
 	void mmap_storage::release_files(storage_error&)
@@ -463,14 +488,22 @@ error_code translate_error(std::error_code const& err, bool const write)
 		// delete it
 		if (m_part_file) m_part_file.reset();
 
-		aux::delete_files(files(), m_save_path, m_part_file_name, options, ec);
+		std::string part_file = combine_path(
+			m_part_file_dir.empty() ? m_save_path : combine_path(m_save_path, m_part_file_dir)
+			, m_part_file_name);
+
+		aux::delete_files(names()
+			, m_save_path
+			, part_file
+			, options
+			, ec);
 	}
 
 	bool mmap_storage::verify_resume_data(add_torrent_params const& rd
 		, aux::vector<std::string, file_index_t> const& links
 		, storage_error& ec)
 	{
-		return aux::verify_resume_data(rd, links, files()
+		return aux::verify_resume_data(rd, links, names()
 			, m_file_priority, m_stat_cache, m_save_path, ec);
 	}
 
@@ -483,10 +516,26 @@ error_code translate_error(std::error_code const& err, bool const write)
 		auto move_partfile = [&](std::string const& new_save_path, error_code& e)
 		{
 			if (!m_part_file) return;
-			m_part_file->move_partfile(new_save_path, e);
+			std::string new_part_file_dir;
+			if (!m_part_file_dir.empty())
+			{
+				new_part_file_dir = combine_path(new_save_path, m_part_file_dir);
+				create_directories(new_part_file_dir, e);
+				if (e) return;
+			}
+			else
+			{
+				new_part_file_dir = new_save_path;
+			}
+			m_part_file->move_partfile(new_part_file_dir, e);
 		};
-		std::tie(ret, m_save_path) = aux::move_storage(files(), m_save_path, std::move(save_path)
-			, std::move(move_partfile), flags, ec);
+		std::tie(ret, m_save_path) = aux::move_storage(
+			names()
+			, m_save_path
+			, std::move(save_path)
+			, std::move(move_partfile)
+			, flags
+			, ec);
 
 		// clear the stat cache in case the new location has new files
 		m_stat_cache.clear();
@@ -577,6 +626,14 @@ error_code translate_error(std::error_code const& err, bool const write)
 				ec.ec = translate_error(err.code(), false);
 				return -1;
 			}
+			catch (std::exception const& e)
+			{
+				TORRENT_UNUSED(e);
+				// this is not expected
+				TORRENT_ASSERT_FAIL_VAL(e.what());
+				ec.ec = error_code(boost::system::errc::io_error, generic_category());
+				return -1;
+			}
 
 			return static_cast<int>(ret);
 		});
@@ -664,6 +721,15 @@ error_code translate_error(std::error_code const& err, bool const write)
 				ec.ec = translate_error(err.code(), true);
 				return -1;
 			}
+			catch (std::exception const& e)
+			{
+				TORRENT_UNUSED(e);
+				// this is not expected
+				TORRENT_ASSERT_FAIL_VAL(e.what());
+				ec.file(file_index);
+				ec.ec = error_code(boost::system::errc::io_error, generic_category());
+				return -1;
+			}
 
 			return ret;
 		});
@@ -728,14 +794,32 @@ error_code translate_error(std::error_code const& err, bool const write)
 				file_range = file_range.subspan(std::ptrdiff_t(file_offset)
 					, std::min(buf.size(), std::ptrdiff_t(file_range.size() - file_offset)));
 
-				sig::try_signal([&]{
-					ph.update({const_cast<char const*>(file_range.data()), file_range.size()});
-				});
-				ret += static_cast<int>(file_range.size());
-				if (flags & disk_interface::volatile_read)
-					handle->dont_need(file_range);
-				if (flags & disk_interface::flush_piece)
-					handle->page_out(file_range);
+				try
+				{
+					sig::try_signal([&]{
+						ph.update({const_cast<char const*>(file_range.data()), file_range.size()});
+					});
+					ret += static_cast<int>(file_range.size());
+					if (flags & disk_interface::volatile_read)
+						handle->dont_need(file_range);
+					if (flags & disk_interface::flush_piece)
+						handle->page_out(file_range);
+				}
+				catch (std::system_error const& err)
+				{
+					ec.ec = translate_error(err.code(), false);
+					ec.operation = operation_t::file_read;
+					return -1;
+				}
+				catch (std::exception const& e)
+				{
+					TORRENT_UNUSED(e);
+					// this is not expected
+					TORRENT_ASSERT_FAIL_VAL(e.what());
+					ec.ec = error_code(boost::system::errc::io_error, generic_category());
+					ec.operation = operation_t::file_read;
+					return -1;
+				}
 			}
 
 			return ret;
@@ -749,6 +833,9 @@ error_code translate_error(std::error_code const& err, bool const write)
 		, disk_job_flags_t const flags
 		, storage_error& error)
 	{
+#ifdef TORRENT_SIMULATE_SLOW_READ
+		std::this_thread::sleep_for(milliseconds(rand() % 2000));
+#endif
 		std::int64_t const start_offset = static_cast<int>(piece) * std::int64_t(files().piece_length()) + offset;
 		file_index_t const file_index = files().file_index_at_offset(start_offset);
 		std::int64_t const file_offset = start_offset - files().file_offset(file_index);
@@ -801,11 +888,31 @@ error_code translate_error(std::error_code const& err, bool const write)
 		}
 		file_range = file_range.subspan(std::ptrdiff_t(file_offset));
 		file_range = file_range.first(std::min(std::ptrdiff_t(len), file_range.size()));
-		ph.update(file_range);
-		if (flags & disk_interface::volatile_read)
-			handle->dont_need(file_range);
-		if (flags & disk_interface::flush_piece)
-			handle->page_out(file_range);
+		try
+		{
+			sig::try_signal([&]{
+				ph.update(file_range);
+			});
+			if (flags & disk_interface::volatile_read)
+				handle->dont_need(file_range);
+			if (flags & disk_interface::flush_piece)
+				handle->page_out(file_range);
+		}
+		catch (std::system_error const& err)
+		{
+			error.ec = translate_error(err.code(), false);
+			error.operation = operation_t::file_read;
+			return -1;
+		}
+		catch (std::exception const& e)
+		{
+			TORRENT_UNUSED(e);
+			// this is not expected
+			TORRENT_ASSERT_FAIL_VAL(e.what());
+			error.ec = error_code(boost::system::errc::io_error, generic_category());
+			error.operation = operation_t::file_read;
+			return -1;
+		}
 
 		return static_cast<int>(file_range.size());
 	}
@@ -877,6 +984,9 @@ error_code translate_error(std::error_code const& err, bool const write)
 		if (sett.get_bool(settings_pack::no_atime_storage))
 			mode |= aux::open_mode::no_atime;
 
+		if (sett.get_bool(settings_pack::disk_disable_copy_on_write))
+			mode |= aux::open_mode::no_cow;
+
 		if (files().file_size(file) / default_block_size
 			<= sett.get_int(settings_pack::mmap_file_size_cutoff))
 			mode |= aux::open_mode::no_mmap;
@@ -891,7 +1001,7 @@ error_code translate_error(std::error_code const& err, bool const write)
 
 		try {
 			return m_pool.open_file(storage_index(), m_save_path, file
-				, files(), mode
+				, names(), mode
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
 				, std::shared_ptr<std::mutex>(m_file_open_unmap_lock
 					, &m_file_open_unmap_lock.get()[int(file)])

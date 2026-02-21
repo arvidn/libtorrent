@@ -635,6 +635,9 @@ DAX
 WebDAV
 transmissionbt
 ouinet
+IANA's
+NOCOW
+btrfs
 google
 WebTorrent
 webtorrent
@@ -643,3 +646,4 @@ WebSocket
 bitfields
 ofstream
 oversized
+cfg
