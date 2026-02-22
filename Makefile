@@ -319,6 +319,7 @@ SOURCES = \
   cpuid.cpp                       \
   crc32c.cpp                      \
   create_torrent.cpp              \
+  curl_basic_request.cpp          \
   curl_boost_socket.cpp           \
   curl_pool.cpp                   \
   curl_request.cpp                \
@@ -559,6 +560,7 @@ HEADERS = \
   aux_/cpuid.hpp                    \
   aux_/crc32c.hpp                   \
   aux_/curl.hpp                     \
+  aux_/curl_basic_request.hpp       \
   aux_/curl_boost_socket.hpp        \
   aux_/curl_pool.hpp                \
   aux_/curl_request.hpp             \

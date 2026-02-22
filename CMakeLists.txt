@@ -158,6 +158,7 @@ set(libtorrent_aux_include_files
 	cpuid.hpp
 	crc32c.hpp
 	curl.hpp
+	curl_basic_request.hpp
 	curl_boost_socket.hpp
 	curl_pool.hpp
 	curl_request.hpp
@@ -335,6 +336,7 @@ set(sources
 	cpuid.cpp
 	crc32c.cpp
 	create_torrent.cpp
+	curl_basic_request.cpp
 	curl_boost_socket.cpp
 	curl_pool.cpp
 	curl_request.cpp

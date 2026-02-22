@@ -892,6 +892,7 @@ SOURCES =
 	cpuid
 	crc32c
 	create_torrent
+	curl_basic_request
 	curl_boost_socket
 	curl_pool
 	curl_request
