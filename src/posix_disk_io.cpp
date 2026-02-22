@@ -40,17 +40,13 @@ namespace {
 	{
 		posix_disk_io(io_context& ios, settings_interface const& sett, counters& cnt)
 			: m_settings(sett)
-			, m_buffer_pool(ios)
 			, m_stats_counters(cnt)
 			, m_ios(ios)
 		{
 			settings_updated();
 		}
 
-		void settings_updated() override
-		{
-			m_buffer_pool.set_settings(m_settings);
-		}
+		void settings_updated() override {}
 
 		storage_holder new_torrent(storage_params const& params
 			, std::shared_ptr<void> const&) override

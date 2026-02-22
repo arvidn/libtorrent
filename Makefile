@@ -308,6 +308,7 @@ SOURCES = \
   bandwidth_limit.cpp             \
   bandwidth_manager.cpp           \
   bandwidth_queue_entry.cpp       \
+  back_pressure.cpp               \
   bdecode.cpp                     \
   bitfield.cpp                    \
   bloom_filter.cpp                \
@@ -535,6 +536,7 @@ HEADERS = \
   aux_/announce_entry.hpp           \
   aux_/apply_pad_files.hpp          \
   aux_/array.hpp                    \
+  aux_/back_pressure.hpp            \
   aux_/bandwidth_limit.hpp          \
   aux_/bandwidth_manager.hpp        \
   aux_/bandwidth_queue_entry.hpp    \

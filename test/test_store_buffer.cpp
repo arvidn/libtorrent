@@ -9,6 +9,7 @@ see LICENSE file.
 
 #include "test.hpp"
 #include "libtorrent/aux_/store_buffer.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/disk_interface.hpp" // for default_block_size
 
 using lt::aux::torrent_location;
@@ -91,7 +92,8 @@ void check2_miss(store_buffer const& sb, torrent_location l0, torrent_location l
 TORRENT_TEST(store_buffer_unique_keys)
 {
 	auto const locations = build_locations();
-	store_buffer sb;
+	lt::io_context ios;
+	store_buffer sb(ios);
 	// ensure all locations are independent
 	for (auto l1 : locations)
 	{
@@ -110,7 +112,8 @@ TORRENT_TEST(store_buffer_unique_keys)
 TORRENT_TEST(store_buffer_get)
 {
 	auto const loc = build_locations();
-	store_buffer sb;
+	lt::io_context ios;
+	store_buffer sb(ios);
 	sb.insert(loc[0], &buf1);
 	sb.insert(loc[1], &buf2);
 	sb.insert(loc[2], &buf3);
@@ -130,7 +133,8 @@ TORRENT_TEST(store_buffer_get)
 TORRENT_TEST(store_buffer_get2)
 {
 	auto const loc = build_locations();
-	store_buffer sb;
+	lt::io_context ios;
+	store_buffer sb(ios);
 	sb.insert(loc[0], &buf1);
 	sb.insert(loc[1], &buf2);
 	sb.insert(loc[2], &buf3);
