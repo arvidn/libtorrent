@@ -351,6 +351,7 @@ SOURCES = \
   http_connection.cpp             \
   http_parser.cpp                 \
   http_tracker_connection.cpp     \
+  http_tracker_request_common.cpp \
   i2p_stream.cpp                  \
   identify_client.cpp             \
   instantiate_connection.cpp      \
@@ -601,6 +602,7 @@ HEADERS = \
   aux_/http_parser.hpp              \
   aux_/http_stream.hpp              \
   aux_/http_tracker_connection.hpp  \
+  aux_/http_tracker_request_common.hpp \
   aux_/instantiate_connection.hpp   \
   aux_/intrusive_list.hpp           \
   aux_/invariant_check.hpp          \

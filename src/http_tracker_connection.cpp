@@ -23,12 +23,10 @@ see LICENSE file.
 #include <list>
 #include <cctype>
 #include <algorithm>
-#include <cstdio> // for snprintf
-#include <cinttypes> // for PRId64 et.al.
 
 #include "libtorrent/aux_/http_tracker_connection.hpp"
+#include "libtorrent/aux_/http_tracker_request_common.hpp"
 #include "libtorrent/aux_/http_connection.hpp"
-#include "libtorrent/aux_/escape_string.hpp"
 #include "libtorrent/aux_/io_bytes.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/string_util.hpp" // for is_i2p_url
@@ -36,141 +34,8 @@ see LICENSE file.
 #include "libtorrent/aux_/resolver_interface.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/aux_/parse_url.hpp"
-#include "libtorrent/aux_/array.hpp"
 
 namespace libtorrent::aux {
-
-	std::string build_tracker_url(const tracker_request& req, session_settings const& settings, bool i2p, error_code& ec) {
-		std::string url = req.url;
-
-		if (req.kind & tracker_request::scrape_request)
-		{
-			// find and replace "announce" with "scrape"
-			// in request
-			std::size_t pos = url.find("announce");
-			if (pos == std::string::npos) {
-				ec = errors::scrape_not_available;
-				return {};
-			}
-			url.replace(pos, 8, "scrape");
-		}
-
-		// if request-string already contains
-		// some parameters, append an ampersand instead
-		// of a question mark
-		auto const arguments_start = url.find('?');
-		if (arguments_start != std::string::npos)
-		{
-			// tracker URLs that come pre-baked with query string arguments will be
-			// rejected when SSRF-mitigation is enabled
-			bool const ssrf_mitigation = settings.get_bool(settings_pack::ssrf_mitigation);
-			if (ssrf_mitigation && has_tracker_query_string(string_view(url).substr(arguments_start + 1)))
-			{
-				ec = errors::ssrf_mitigation;
-				return {};
-			}
-			url += "&";
-		}
-		else
-		{
-			url += "?";
-		}
-
-		url += "info_hash=";
-		url += lt::escape_string({req.info_hash.data(), 20});
-
-		if (!(req.kind & tracker_request::scrape_request))
-		{
-			static aux::array<const char*, 4> const event_string{{{"completed", "started", "stopped", "paused"}}};
-
-			char str[1024];
-			std::snprintf(str, sizeof(str)
-				, "&peer_id=%s"
-				"&port=%d"
-				"&uploaded=%" PRId64
-				"&downloaded=%" PRId64
-				"&left=%" PRId64
-				"&corrupt=%" PRId64
-				"&key=%08X"
-				"%s%s" // event
-				"&numwant=%d"
-				"&compact=1"
-				"&no_peer_id=1"
-				, lt::escape_string({req.pid.data(), 20}).c_str()
-				// the i2p tracker seems to verify that the port is not 0,
-				// even though it ignores it otherwise
-				, req.listen_port
-				, req.uploaded
-				, req.downloaded
-				, req.left
-				, req.corrupt
-				, req.key
-				, (req.event != event_t::none) ? "&event=" : ""
-				, (req.event != event_t::none) ? event_string[static_cast<int>(req.event) - 1] : ""
-				, req.num_want);
-			url += str;
-#if !defined TORRENT_DISABLE_ENCRYPTION
-			if (settings.get_int(settings_pack::in_enc_policy) != settings_pack::pe_disabled
-				&& settings.get_bool(settings_pack::announce_crypto_support))
-				url += "&supportcrypto=1";
-#endif
-			if (settings.get_bool(settings_pack::report_redundant_bytes))
-			{
-				url += "&redundant=";
-				url += to_string(req.redundant).data();
-			}
-			if (!req.trackerid.empty())
-			{
-				url += "&trackerid=";
-				url += lt::escape_string(req.trackerid);
-			}
-
-#if TORRENT_USE_I2P
-			if (i2p && req.i2pconn)
-			{
-				if (req.i2pconn->local_endpoint().empty())
-				{
-					ec = errors::no_i2p_endpoint;
-					return {};
-				}
-				else
-				{
-					url += "&ip=" + req.i2pconn->local_endpoint () + ".i2p";
-				}
-			}
-			else
-#endif
-			if (!settings.get_bool(settings_pack::anonymous_mode))
-			{
-				std::string const& announce_ip = settings.get_str(settings_pack::announce_ip);
-				if (!announce_ip.empty())
-				{
-					url += "&ip=" + lt::escape_string(announce_ip);
-				}
-			}
-		}
-
-		if (!req.ipv4.empty() && !i2p)
-		{
-			for (auto const& v4 : req.ipv4)
-			{
-				std::string const ip = v4.to_string();
-				url += "&ipv4=";
-				url += lt::escape_string(ip);
-			}
-		}
-		if (!req.ipv6.empty() && !i2p)
-		{
-			for (auto const& v6 : req.ipv6)
-			{
-				std::string const ip = v6.to_string();
-				url += "&ipv6=";
-				url += lt::escape_string(ip);
-			}
-		}
-
-		return url;
-	}
 
 	http_tracker_connection::http_tracker_connection(
 		io_context& ios
@@ -181,6 +46,11 @@ namespace libtorrent::aux {
 		, m_ioc(ios)
 	{}
 
+	void http_tracker_connection::fail_error(http_tracker_request_common::error_type error)
+	{
+		fail(error.code, error.op, std::move(error.failure_reason), error.interval, error.min_interval);
+	}
+
 	void http_tracker_connection::start()
 	{
 #if TORRENT_USE_I2P
@@ -190,24 +60,20 @@ namespace libtorrent::aux {
 #endif
 
 		auto& settings = m_man.settings();
-		error_code ec;
-		std::string url = build_tracker_url(tracker_req(), settings, i2p, ec);
-		if (ec) {
-			if (ec == errors::no_i2p_endpoint) {
-				fail(errors::no_i2p_endpoint, operation_t::bittorrent, "Waiting for i2p acceptor from SAM bridge", seconds32(5));
-			}
-			else {
-				fail(ec, operation_t::bittorrent);
-			}
+		http_tracker_request_common common{tracker_req(), settings};
+
+		http_tracker_request_common::error_type error;
+		std::string url = common.build_tracker_url(i2p, error);
+		if (error)
+		{
+			fail_error(std::move(error));
 			return;
 		}
 
-		// i2p trackers don't use our outgoing sockets, they use the SAM
-		// connection
-		if (!i2p && !tracker_req().outgoing_socket)
+		error = common.validate_socket(i2p);
+		if (error)
 		{
-			fail(errors::invalid_listen_socket, operation_t::get_interface
-				, "outgoing socket was closed");
+			fail_error(std::move(error));
 			return;
 		}
 
@@ -223,18 +89,8 @@ namespace libtorrent::aux {
 #endif
 			);
 
-		int const timeout = tracker_req().event == event_t::stopped
-			? settings.get_int(settings_pack::stop_tracker_timeout)
-			: settings.get_int(settings_pack::tracker_completion_timeout);
-
-		// in anonymous mode we omit the user agent to mitigate fingerprinting of
-		// the client. Private torrents is an exception because some private
-		// trackers may require the user agent
-		bool const anon_user = settings.get_bool(settings_pack::anonymous_mode)
-			&& !tracker_req().private_torrent;
-		std::string const user_agent = anon_user
-			? "curl/7.81.0"
-			: settings.get_str(settings_pack::user_agent);
+		const auto timeout = common.get_timeout();
+		const auto user_agent = common.get_user_agent();
 
 		auto const ls = bind_socket();
 		bind_info_t bi = [&ls](){
@@ -269,11 +125,9 @@ namespace libtorrent::aux {
 		sent_bytes(int(url.size()) + 100);
 
 #ifndef TORRENT_DISABLE_LOGGING
-
-		std::shared_ptr<request_callback> cb = requester();
-		if (cb)
+		if (auto cb = requester())
 		{
-			cb->debug_log("==> TRACKER_REQUEST [ url: %s ]", url.c_str());
+			common.log_request(*cb, url);
 		}
 #endif
 	}
@@ -329,10 +183,10 @@ namespace libtorrent::aux {
 				return;
 			}
 
-			// this is mitigation for Server Side request forgery. Any tracker
+			// mitigation for Server Side request forgery. Any tracker
 			// announce to localhost need to look like a standard BitTorrent
 			// announce
-			if (path.substr(0, 9) != "/announce")
+			if (!is_announce_path(path))
 			{
 				for (auto i = endpoints.begin(); i != endpoints.end();)
 				{
@@ -411,14 +265,11 @@ namespace libtorrent::aux {
 		{
 			fail(error_code(parser.status_code(), http_category())
 				, operation_t::bittorrent
-				, parser.message().c_str());
+				, parser.message());
 			return;
 		}
 
 		received_bytes(static_cast<int>(data.size()) + parser.body_start());
-
-		// handle tracker response
-		error_code ecode;
 
 		std::shared_ptr<request_callback> cb = requester();
 		if (!cb)
@@ -427,42 +278,21 @@ namespace libtorrent::aux {
 			return;
 		}
 
-		tracker_response resp = parse_tracker_response(data, ecode
-			, tracker_req().kind, tracker_req().info_hash);
-
-		resp.interval = std::max(resp.interval
-				, seconds32{m_man.settings().get_int(settings_pack::min_announce_interval)});
-
-		if (!resp.warning_message.empty())
-			cb->tracker_warning(tracker_req(), resp.warning_message);
-
-		if (ecode)
+		std::list<address> ip_list;
+		if (m_tracker_connection)
 		{
-			fail(ecode, operation_t::bittorrent
-				, resp.failure_reason.c_str()
-				, resp.interval, resp.min_interval);
-			close();
-			return;
-		}
-
-		// do slightly different things for scrape requests
-		if (tracker_req().kind & tracker_request::scrape_request)
-		{
-			cb->tracker_scrape_response(tracker_req(), resp.complete
-				, resp.incomplete, resp.downloaded, resp.downloaders);
-		}
-		else
-		{
-			std::list<address> ip_list;
-			if (m_tracker_connection)
+			for (auto const& endp : m_tracker_connection->endpoints())
 			{
-				for (auto const& endp : m_tracker_connection->endpoints())
-				{
-					ip_list.push_back(endp.address());
-				}
+				ip_list.push_back(endp.address());
 			}
+		}
 
-			cb->tracker_response(tracker_req(), m_tracker_ip, ip_list, resp);
+		http_tracker_request_common common{tracker_req(), m_man.settings()};
+		auto error = common.process_response(*cb, m_tracker_ip, ip_list, data);
+		if (error)
+		{
+			fail_error(std::move(error));
+			return;
 		}
 		close();
 	}

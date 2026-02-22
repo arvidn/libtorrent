@@ -60,10 +60,7 @@ curl_socket_t curl_request::opensocket(void* clientp,
 			return CURL_SOCKET_BAD;
 
 		const auto url = request->get_url();
-		if (!request->allowed_by_ssrf(*ip, url))
-			return CURL_SOCKET_BAD;
-
-		if (!request->allowed_by_ip_filter(*ip))
+		if (!request->validate_request(*ip, url))
 			return CURL_SOCKET_BAD;
 
 		return socket(addr->family, addr->socktype, addr->protocol);
@@ -104,10 +101,7 @@ curl_socket_t curl_request::approve_curl_request(void* clientp,
 			return CURL_PREREQFUNC_ABORT;
 
 		const auto url = request->get_url();
-		if (!request->allowed_by_ssrf(ip, url))
-			return CURL_PREREQFUNC_ABORT;
-
-		if (!request->allowed_by_ip_filter(ip))
+		if (!request->validate_request(ip, url))
 			return CURL_PREREQFUNC_ABORT;
 
 		return CURL_PREREQFUNC_OK;
@@ -296,9 +290,8 @@ void curl_request::set_timeout(seconds32 timeout)
 	//
 	// A timeout constant is usually meant to deal with network conditions, and does not take queuing into account.
 	// Only curl can know how much time is spent queuing. The best "hack" we can implement is to start the timer on the
-	// first action we see (`CURLOPT_OPENSOCKETFUNCTION` or `CURLOPT_PREREQFUNCTION` when a socket is reused). This
-	// can't take into account time spend on DNS lookups. It also can't exclude time spent requeueing for redirects.
-	// Ideally this should be fixed by the curl project.
+	// first action we see (`CURLOPT_RESOLVER_START_FUNCTION`, `CURLOPT_OPENSOCKETFUNCTION` or `CURLOPT_PREREQFUNCTION`). This
+	// can't take into account time spent requeuing for redirects. Ideally this should be fixed by the curl project.
 
 	TORRENT_ASSERT(timeout >= seconds32{0});
 
@@ -327,6 +320,7 @@ span<const char> curl_request::data() const noexcept
 
 errors::http_errors curl_request::http_status() const
 {
+	// will be 0 if no response code is set.
 	auto code = getopt<long, CURLINFO_RESPONSE_CODE>();
 	return static_cast<errors::http_errors>(code);
 }
@@ -427,7 +421,10 @@ void curl_request::set_proxy(const proxy_settings& ps, const bool verify_ssl)
 
 bool curl_request::allowed_by_ip_filter(const address& ip)
 {
-	if (m_ip_filter && m_ip_filter->access(ip) == ip_filter::blocked)
+	if (!m_ip_filter)
+		return true;
+
+	if (m_ip_filter->access(ip) == ip_filter::blocked)
 	{
 		m_status = errors::banned_by_ip_filter;
 		return false;
@@ -442,39 +439,66 @@ bool curl_request::allowed_by_ip_filter(const address& ip)
 	return true;
 }
 
-bool curl_request::allowed_by_ssrf(const address& address, const string_view url)
+bool curl_request::allowed_by_ssrf(const address& ip, const std::string& path)
 {
 	if (!m_ssrf_mitigation)
 		return true;
 
-	if (address.is_loopback())
+	if (ip.is_loopback() && is_ssrf_path(path))
 	{
-		// for a loopback address, the PATH must be /announce
-		std::string path;
-		error_code ec;
-		std::tie(std::ignore, std::ignore, std::ignore, std::ignore, path)
-				= parse_url_components(std::string(url), ec);
-		if (ec)
-		{
-			m_status = ec;
-			m_error_operation = operation_t::parse_address;
-			return false;
-		}
-
-		if (path.substr(0, 9) != "/announce")
-		{
-			m_status = errors::ssrf_mitigation;
-			return false;
-		}
+		m_status = errors::ssrf_mitigation;
+		return false;
 	}
 
 	if (m_status == errors::ssrf_mitigation)
 	{
-		m_status = errors::no_error; // recovered from error
+		// recovered by using a different resolved ip address
+		m_status = errors::no_error;
 	}
 
 	return true;
 }
+
+bool curl_request::allowed_by_idna(const std::string& hostname)
+{
+	if (m_block_idna && is_idna(hostname))
+	{
+		m_status = errors::blocked_by_idna;
+		return false;
+	}
+
+	return true;
+}
+
+bool curl_request::validate_request(const address& ip, const string_view url)
+{
+	if (!allowed_by_ip_filter(ip))
+		return false;
+
+	if (!m_ssrf_mitigation && !m_block_idna)
+		return true;
+
+	std::string hostname;
+	std::string path;
+	error_code ec;
+	std::tie(std::ignore, std::ignore, hostname, std::ignore, path)
+			= parse_url_components(std::string(url), ec);
+	if (ec)
+	{
+		m_status = ec;
+		m_error_operation = operation_t::parse_address;
+		return false;
+	}
+
+	if (!allowed_by_ssrf(ip, path))
+		return false;
+
+	if (!allowed_by_idna(hostname))
+		return false;
+
+	return true;
+}
+
 
 namespace {
 constexpr string_view curl_easy_option_str(CURLoption option) noexcept

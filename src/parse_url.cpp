@@ -169,6 +169,12 @@ exit:
 		}
 	}
 
+	bool is_announce_path(string_view path)
+	{
+		const std::string announce_path = "/announce";
+		return path.substr(0, announce_path.length()) == announce_path;
+	}
+
 	bool has_tracker_query_string(string_view query_string)
 	{
 		static string_view const tracker_args[] = {

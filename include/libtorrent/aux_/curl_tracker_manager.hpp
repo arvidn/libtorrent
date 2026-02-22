@@ -13,6 +13,7 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 
 #if TORRENT_USE_CURL
+#include "libtorrent/aux_/curl.hpp"
 #include "libtorrent/aux_/curl_tracker_request.hpp"
 #include "libtorrent/aux_/intrusive_list.hpp"
 #include "libtorrent/aux_/memory.hpp"

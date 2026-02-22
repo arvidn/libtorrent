@@ -16,6 +16,7 @@ see LICENSE file.
 #include "libtorrent/aux_/curl.hpp"
 #include "libtorrent/aux_/curl_request.hpp"
 #include "libtorrent/aux_/intrusive_list.hpp"
+#include "libtorrent/aux_/http_tracker_request_common.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/time.hpp"
 
@@ -26,7 +27,7 @@ struct tracker_request;
 
 class curl_tracker_request : public unique_ptr_intrusive_list_base<curl_tracker_request> {
 public:
-	using error_type = curl_request::error_type;
+	using error_type = http_tracker_request_common::error_type;
 
 	curl_tracker_request(
 		curl_tracker_manager& owner,
@@ -47,7 +48,7 @@ public:
 #endif
 
 	void complete(CURLcode result);
-	void fail(const error_type& info) { fail(info.ec, info.op, info.message); }
+	void fail(const error_type& info) { fail(info.code, info.op, info.failure_reason, info.interval, info.min_interval); }
 
 	curl_request& get_curl_request() noexcept { return m_request; }
 	[[nodiscard]] const curl_request & get_curl_request() const noexcept { return m_request; }
@@ -59,7 +60,8 @@ private:
 	void fail(const error_code& ec,
 			operation_t op = operation_t::unknown,
 			string_view message = {},
-			seconds32 retry_delay = {});
+			seconds32 interval = {},
+			seconds32 min_interval = {});
 
 	void on_response();
 

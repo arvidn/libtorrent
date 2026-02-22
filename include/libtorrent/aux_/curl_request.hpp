@@ -40,7 +40,6 @@ public:
 		error_code ec;
 		operation_t op = operation_t::unknown;
 		std::string message;
-
 		constexpr explicit operator bool() const noexcept { return static_cast<bool>(ec); }
 	};
 
@@ -73,6 +72,7 @@ public:
 	void set_proxy(const proxy_settings& ps, bool verify_ssl);
 	void set_ip_filter(std::shared_ptr<const ip_filter> filter) noexcept { m_ip_filter = std::move(filter); }
 	void set_ssrf_mitigation(bool enabled) noexcept { m_ssrf_mitigation = enabled; }
+	void set_block_idna(bool enabled) noexcept { m_block_idna = enabled; }
 
 	void set_user_agent(const std::string& s);
 	void set_url(const std::string& s);
@@ -117,7 +117,9 @@ private:
 	[[nodiscard]] T getopt() const;
 
 	[[nodiscard]] bool allowed_by_ip_filter(const address& ip);
-	[[nodiscard]] bool allowed_by_ssrf(const address& address, string_view url);
+	[[nodiscard]] bool allowed_by_ssrf(const address& ip, const std::string& path);
+	[[nodiscard]] bool allowed_by_idna(const std::string& hostname);
+	[[nodiscard]] bool validate_request(const address& address, string_view url);
 
 	static size_t write_callback(char* ptr, size_t size, size_t nmemb, void* userdata);
 
@@ -137,6 +139,7 @@ private:
 	error_code m_status;
 	operation_t m_error_operation = operation_t::unknown;
 	bool m_ssrf_mitigation = false;
+	bool m_block_idna = false;
 };
 }
 

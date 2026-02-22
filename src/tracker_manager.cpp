@@ -138,11 +138,11 @@ namespace libtorrent::aux {
 	}
 
 	void tracker_connection::fail(error_code const& ec, operation_t const op
-		, char const* msg, seconds32 const interval, seconds32 const min_interval)
+		, std::string msg, seconds32 const interval, seconds32 const min_interval)
 	{
 		// we need to post the error to avoid deadlock
 		post(get_executor(), std::bind(&tracker_connection::fail_impl
-			, shared_from_this(), ec, op, std::string(msg), interval, min_interval));
+			, shared_from_this(), ec, op, std::move(msg), interval, min_interval));
 	}
 
 	void tracker_connection::fail_impl(error_code const& ec, operation_t const op

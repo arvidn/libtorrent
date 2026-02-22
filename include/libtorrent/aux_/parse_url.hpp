@@ -35,6 +35,8 @@ namespace libtorrent::aux {
 	// name) labels.
 	TORRENT_EXTRA_EXPORT bool is_idna(string_view hostname);
 
+	bool is_announce_path(string_view path);
+
 	// the query string is the part of the URL immediately following "?", i.e.
 	// the query string arguments. This function returns true if any of the
 	// arguments are "info_hash", "port", "key", "event", "uploaded",

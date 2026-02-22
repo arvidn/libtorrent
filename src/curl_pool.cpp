@@ -207,14 +207,13 @@ bool curl_pool::socket_event(curl_boost_socket& socket, curl_cselect_t event)
 
 void curl_pool::process_socket_action(curl_socket_t native_socket, curl_cselect_t event)
 {
-	int running_handles = 0;
+	int running_handles = 0; // also counts curl internal handles
 
 	// note: curl completely ignores the "event" parameter internally
 	auto result = curl_multi_socket_action(handle(), native_socket, static_cast<int>(event), &running_handles);
 	check_multi_returncode(result, "curl_multi_socket_action");
 
-	if (running_handles < m_active_requests)
-		process_completed_requests();
+	process_completed_requests();
 }
 
 void curl_pool::process_completed_requests()
@@ -234,7 +233,6 @@ void curl_pool::add_request(CURL* request)
 {
 	auto result = curl_multi_add_handle(handle(), request);
 	check_multi_returncode(result, "curl_multi_add_handle");
-	++m_active_requests;
 	// curl will have started a timeout of 0ms inside `curl_multi_add_handle` to process this new handle
 }
 
@@ -242,7 +240,6 @@ void curl_pool::remove_request(CURL* request)
 {
 	auto result = curl_multi_remove_handle(handle(), request);
 	check_multi_returncode(result, "curl_multi_remove_handle");
-	--m_active_requests;
 }
 
 curl_boost_socket& curl_pool::add_socket(std::unique_ptr<curl_boost_socket> socket) noexcept

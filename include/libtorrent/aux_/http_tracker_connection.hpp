@@ -18,6 +18,7 @@ see LICENSE file.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/tracker_manager.hpp" // for tracker_connection
+#include "libtorrent/aux_/http_tracker_request_common.hpp"
 
 namespace libtorrent {
 	struct bdecode_node;
@@ -45,6 +46,7 @@ namespace libtorrent::aux {
 		void start() override;
 		void close() override;
 
+		void fail_error(http_tracker_request_common::error_type error);
 	private:
 
 		std::shared_ptr<http_tracker_connection> shared_from_this()
@@ -72,11 +74,6 @@ namespace libtorrent::aux {
 
 	TORRENT_EXTRA_EXPORT bool extract_peer_info(bdecode_node const& info
 		, peer_entry& ret, error_code& ec);
-
-	std::string build_tracker_url(const tracker_request& req,
-		session_settings const& settings,
-		bool i2p,
-		error_code& ec);
 
 }
 

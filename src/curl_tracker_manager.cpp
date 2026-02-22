@@ -11,7 +11,6 @@ see LICENSE file.
 #include "libtorrent/aux_/curl_tracker_manager.hpp"
 
 #if TORRENT_USE_CURL
-#include "libtorrent/aux_/curl.hpp"
 #include "libtorrent/aux_/curl_pool.hpp"
 #include "libtorrent/aux_/curl_request.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
@@ -95,35 +94,39 @@ void curl_tracker_manager::add(io_context& ios,
 	m_pool->set_max_connections(settings().get_int(settings_pack::max_concurrent_http_announces));
 
 	auto request_ownership = std::make_unique<curl_tracker_request>(*this, std::move(req), std::move(cb));
-	curl_tracker_request::error_type result;
+	curl_tracker_request::error_type error;
 
 	try
 	{
 		// two-step initialization to avoid throwing inside constructor
 		// - protects the lifetimes of req and cb
 		// - reusable fail() function
-		result = request_ownership->initialize_request();
+		error = request_ownership->initialize_request();
 	}
-	catch (const curl_easy_error& error)
+	catch (const curl_easy_error& ex)
 	{
-		if (error.code() == CURLE_BAD_FUNCTION_ARGUMENT)
+		if (ex.code() == CURLE_BAD_FUNCTION_ARGUMENT)
 		{
 			// string too long, binding on a bad ip address
-			result.ec = boost::asio::error::invalid_argument;
+			error.code = boost::asio::error::invalid_argument;
 		}
-		else if (error.code() == CURLE_NOT_BUILT_IN || error.code() == CURLE_UNKNOWN_OPTION)
+		else if (ex.code() == CURLE_NOT_BUILT_IN || ex.code() == CURLE_UNKNOWN_OPTION)
 		{
 			// CURLE_UNKNOWN_OPTION: curl not build without feature support (IPv6, HTTP, Proxies, TLS, c-aris)
 			// CURLE_NOT_BUILT_IN: curl dependency is missing support for feature
-			result.ec = boost::asio::error::operation_not_supported;
+			error.code = boost::asio::error::operation_not_supported;
 		}
-		result.message = error.what();
+		else
+		{
+			error.code = boost::asio::error::no_recovery;
+		}
+		error.failure_reason = ex.what();
 	}
 
-	if (result.ec)
+	if (error)
 	{
 		// async to avoid recursive calls towards our caller (through the completion handler)
-		post(ios, [request_ownership = std::move(request_ownership), result = std::move(result)]() {
+		post(ios, [request_ownership = std::move(request_ownership), result = std::move(error)]() {
 			request_ownership->fail(result);
 		});
 		return;

@@ -49,7 +49,6 @@ public:
 	void set_completion_callback(completion_handler_t cb) { m_completion_handler = std::move(cb); }
 
 	[[nodiscard]] executor_type get_executor() const noexcept { return m_executor; }
-	[[nodiscard]] int count() const noexcept { return m_active_requests; }
 private:
 	template<typename T>
 	using enable_if_no_string_t = std::enable_if_t<
@@ -96,7 +95,6 @@ private:
 	curl_boost_socket* m_calling_socket = nullptr;
 	deadline_timer m_timer;
 	executor_type m_executor;
-	int m_active_requests = 0;
 	std::optional<int> m_cached_max_connections;
 };
 }

@@ -279,7 +279,7 @@ using tracker_request_flags_t = flags::bitfield_flag<std::uint8_t, struct tracke
 
 		tracker_request const& tracker_req() const { return m_req; }
 
-		void fail(error_code const& ec, operation_t op, char const* msg = ""
+		void fail(error_code const& ec, operation_t op, std::string msg = {}
 			, seconds32 interval = seconds32(0), seconds32 min_interval = seconds32(0));
 		virtual void start() = 0;
 		virtual void close() = 0;

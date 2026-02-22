@@ -111,7 +111,7 @@ namespace libtorrent::aux {
 	}
 
 	void udp_tracker_connection::fail(error_code const& ec, operation_t const op
-		, char const* msg, seconds32 const interval, seconds32 const min_interval)
+		, string_view msg, seconds32 const interval, seconds32 const min_interval)
 	{
 		// m_target failed. remove it from the endpoint list
 		auto const i = std::find(m_endpoints.begin()
@@ -123,7 +123,7 @@ namespace libtorrent::aux {
 		// fail the whole announce
 		if (m_endpoints.empty() || !tracker_req().outgoing_socket)
 		{
-			tracker_connection::fail(ec, op, msg, interval, min_interval);
+			tracker_connection::fail(ec, op, std::string(msg), interval, min_interval);
 			return;
 		}
 
@@ -363,7 +363,7 @@ namespace libtorrent::aux {
 		if (action == action_t::error)
 		{
 			fail(error_code(errors::tracker_failure), operation_t::bittorrent
-				, std::string(buf.data(), static_cast<std::size_t>(buf.size())).c_str());
+				, string_view(buf.data(), static_cast<std::size_t>(buf.size())));
 			return true;
 		}
 
@@ -633,7 +633,7 @@ namespace libtorrent::aux {
 		if (action == action_t::error)
 		{
 			fail(error_code(errors::tracker_failure), operation_t::bittorrent
-				, std::string(buf.data(), static_cast<std::size_t>(buf.size())).c_str());
+				, string_view(buf.data(), static_cast<std::size_t>(buf.size())));
 			return true;
 		}
 

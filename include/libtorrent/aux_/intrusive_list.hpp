@@ -70,6 +70,9 @@ struct unique_ptr_intrusive_list_traits {
 	static node& set_next(node& n, node_ownership next) noexcept
 	{
 		TORRENT_ASSERT_PRECOND_MSG(
+			next, "set_next(nullptr) complicates code, use take_next_ownership() instead");
+
+		TORRENT_ASSERT_PRECOND_MSG(
 			!n.next_, "Overwriting 'next' pointer risks accidentally deleting all list-items after this one recursively"
 					  " and overflowing the stack");
 		n.next_ = std::move(next);
@@ -137,9 +140,9 @@ public:
 
 	void clear() noexcept
 	{
-		while (auto h = value_traits::ptr(m_head))
+		while (!empty())
 		{
-			m_head = value_traits::take_next_ownership( *h );
+			m_head = value_traits::take_next_ownership( *head() );
 		}
 		m_size = 0;
 	}
@@ -152,17 +155,17 @@ public:
 	[[nodiscard]] bool empty() const noexcept { return value_traits::ptr(m_head) == nullptr; }
 
 	// add item to the back of the list
-	node& add(node_ownership new_tail) noexcept
+	node& add(node_ownership new_node) noexcept
 	{
-		[[maybe_unused]] auto new_tail_ptr = value_traits::ptr(new_tail);
-		TORRENT_ASSERT(new_tail_ptr);
-		TORRENT_ASSERT_PRECOND_MSG(!value_traits::get_next(*new_tail_ptr) && !value_traits::get_previous(*new_tail_ptr),
+		[[maybe_unused]] auto new_node_ptr = value_traits::ptr(new_node);
+		TORRENT_ASSERT(new_node_ptr);
+		TORRENT_ASSERT_PRECOND_MSG(!value_traits::get_next(*new_node_ptr) && !value_traits::get_previous(*new_node_ptr),
 									"Attempt to add 'dirty' item that already belongs/belonged to a list");
 
 		++m_size;
 		if (empty())
 		{
-			m_head = std::move(new_tail);
+			m_head = std::move(new_node);
 			node& new_head_ref = value_traits::ref(m_head);
 			// this must self reference the new head
 			set_tail(new_head_ref);
@@ -172,7 +175,7 @@ public:
 		{
 			node* old_tail = tail();
 			TORRENT_ASSERT(old_tail);
-			node& new_tail_ref = value_traits::set_next(*old_tail, std::move(new_tail));
+			node& new_tail_ref = value_traits::set_next(*old_tail, std::move(new_node));
 			value_traits::set_previous(new_tail_ref, old_tail);
 			set_tail(new_tail_ref);
 			return new_tail_ref;
