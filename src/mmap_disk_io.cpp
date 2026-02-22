@@ -248,9 +248,9 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	using namespace std::placeholders;
 
 	mmap_disk_io::mmap_disk_io(io_context& ios, settings_interface const& sett, counters& cnt)
-		: m_settings(sett)
+		: m_store_buffer(ios)
+		, m_settings(sett)
 		, m_file_pool(sett.get_int(settings_pack::file_pool_size))
-		, m_buffer_pool(ios)
 		, m_stats_counters(cnt)
 		, m_ios(ios)
 		, m_completed_jobs([&](aux::disk_job** j, int const n) {
@@ -342,7 +342,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	void mmap_disk_io::settings_updated()
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
-		m_buffer_pool.set_settings(m_settings);
+		m_store_buffer.set_max_size(m_settings.get_int(settings_pack::max_queued_disk_bytes) / default_block_size);
 		m_file_pool.resize(m_settings.get_int(settings_pack::file_pool_size));
 
 		int const num_threads = m_settings.get_int(settings_pack::aio_threads);
@@ -643,9 +643,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		, disk_job_flags_t const flags)
 	{
 		TORRENT_ASSERT(valid_flags(flags));
-		bool exceeded = false;
 		disk_buffer_holder buffer(m_buffer_pool, m_buffer_pool.allocate_buffer(
-			exceeded, o, "store buffer"), default_block_size);
+			"store buffer"), default_block_size);
 		if (!buffer) aux::throw_ex<std::bad_alloc>();
 		std::memcpy(buffer.data(), buf, aux::numeric_cast<std::size_t>(r.length));
 
@@ -665,9 +664,10 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			std::uint16_t(r.length)
 		);
 
-		m_store_buffer.insert({j->storage->storage_index(), r.piece, r.start}, data_ptr);
+		bool const back_pressure = m_store_buffer.insert(
+			{j->storage->storage_index(), r.piece, r.start}, data_ptr, std::move(o));
 		add_job(j);
-		return exceeded;
+		return back_pressure;
 	}
 
 	void mmap_disk_io::async_hash(storage_index_t const storage

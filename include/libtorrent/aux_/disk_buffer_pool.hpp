@@ -26,28 +26,23 @@ see LICENSE file.
 #include <functional>
 #include <memory>
 
-#include "libtorrent/io_context.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/disk_buffer_holder.hpp" // for buffer_allocator_interface
 
 namespace libtorrent {
 
-	struct settings_interface;
-	struct disk_observer;
 
 namespace aux {
 
 	struct TORRENT_EXTRA_EXPORT disk_buffer_pool final
 		: buffer_allocator_interface
 	{
-		explicit disk_buffer_pool(io_context& ios);
+		explicit disk_buffer_pool();
 		~disk_buffer_pool();
 		disk_buffer_pool(disk_buffer_pool const&) = delete;
 		disk_buffer_pool& operator=(disk_buffer_pool const&) = delete;
 
 		char* allocate_buffer(char const* category);
-		char* allocate_buffer(bool& exceeded, std::shared_ptr<disk_observer> o
-			, char const* category);
 		void free_disk_buffer(char* b) override { free_buffer(b); }
 		void free_buffer(char* buf);
 		void free_multiple_buffers(span<char*> bufvec);
@@ -58,8 +53,6 @@ namespace aux {
 			return m_in_use;
 		}
 
-		void set_settings(settings_interface const& sett);
-
 #if TORRENT_DEBUG_BUFFER_POOL
 		void rename_buffer(char* buf, char const* category) override;
 #endif
@@ -69,31 +62,8 @@ namespace aux {
 		char* allocate_buffer_impl(std::unique_lock<std::mutex>& l, char const* category);
 
 		// number of disk buffers currently allocated
-		int m_in_use;
+		int m_in_use = 0;
 
-		// cache size limit
-		int m_max_use;
-
-		// if we have exceeded the limit, we won't start
-		// allowing allocations again until we drop below
-		// this low watermark
-		int m_low_watermark;
-
-		// if we exceed the max number of buffers, we start
-		// adding up callbacks to this queue. Once the number
-		// of buffers in use drops below the low watermark,
-		// we start calling these functions back
-		std::vector<std::weak_ptr<disk_observer>> m_observers;
-
-		// set to true to throttle more allocations
-		bool m_exceeded_max_size;
-
-		// this is the main thread io_context. Callbacks are
-		// posted on this in order to have them execute in
-		// the main thread.
-		io_context& m_ios;
-
-		void check_buffer_level(std::unique_lock<std::mutex>& l);
 		void remove_buffer_in_use(char* buf);
 
 		mutable std::mutex m_pool_mutex;
@@ -110,7 +80,6 @@ namespace aux {
 #endif
 #if TORRENT_USE_ASSERTS
 		int m_magic = 0x1337;
-		bool m_settings_set = false;
 #endif
 	};
 

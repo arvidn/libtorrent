@@ -141,6 +141,7 @@ set(libtorrent_aux_include_files
 	allocating_handler.hpp
 	apply_pad_files.hpp
 	array.hpp
+	back_pressure.hpp
 	bandwidth_limit.hpp
 	bandwidth_manager.hpp
 	bandwidth_queue_entry.hpp
@@ -311,6 +312,7 @@ set(sources
 	alert_manager.cpp
 	announce_entry.cpp
 	assert.cpp
+	back_pressure.cpp
 	bandwidth_limit.cpp
 	bandwidth_manager.cpp
 	bandwidth_queue_entry.cpp

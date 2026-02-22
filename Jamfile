@@ -840,6 +840,7 @@ SOURCES =
 	alert_manager
 	announce_entry
 	assert
+	back_pressure
 	bandwidth_limit
 	bandwidth_manager
 	bandwidth_queue_entry
