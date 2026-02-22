@@ -13,13 +13,12 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 
 #if TORRENT_USE_CURL
-#include <optional>
 #include <string>
-#include "libtorrent/io_context.hpp"
 #include "libtorrent/aux_/curl.hpp"
 #include "libtorrent/aux_/curl_boost_socket.hpp"
 #include "libtorrent/aux_/deadline_timer.hpp"
 #include "libtorrent/aux_/intrusive_list.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/string_view.hpp"
 
 namespace libtorrent::aux {
@@ -35,8 +34,7 @@ public:
 	// Triggers curl processing of socket event.
 	// May call destructor of the "socket" parameter and other sockets before it returns.
 	// May call completion handler for easy handles before it returns (which may delete or remove them).
-	// Will return true, if the `socket` parameter is still alive.
-	bool socket_event(curl_boost_socket& socket, curl_cselect_t event);
+	void socket_event(curl_boost_socket& socket, curl_cselect_t event);
 
 	void add_request(CURL*);
 	void remove_request(CURL*);
@@ -92,7 +90,6 @@ private:
 	using request_list_t = unique_ptr_intrusive_list<curl_boost_socket>;
 	request_list_t m_sockets;
 	completion_handler_t m_completion_handler;
-	curl_boost_socket* m_calling_socket = nullptr;
 	deadline_timer m_timer;
 	executor_type m_executor;
 };

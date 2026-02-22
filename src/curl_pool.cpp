@@ -189,17 +189,9 @@ void curl_pool::set_max_host_connections(long value)
 }
 
 // sockets notify the pool on file descriptor event
-bool curl_pool::socket_event(curl_boost_socket& socket, curl_cselect_t event)
+void curl_pool::socket_event(curl_boost_socket& socket, curl_cselect_t event)
 {
-	m_calling_socket = &socket;
-
 	process_socket_action(socket.native_handle(), event);
-
-	// process_socket_action() may remove the socket though a curl callback, in that case `m_calling_socket` should
-	// be nullptr now
-	bool alive = m_calling_socket != nullptr;
-	m_calling_socket = nullptr;
-	return alive;
 }
 
 void curl_pool::process_socket_action(curl_socket_t native_socket, curl_cselect_t event)
@@ -246,12 +238,6 @@ curl_boost_socket& curl_pool::add_socket(std::unique_ptr<curl_boost_socket> sock
 
 void curl_pool::remove_socket(curl_boost_socket& socket) noexcept
 {
-	if (m_calling_socket == &socket)
-	{
-		// track when socket is removed while inside one of its own (write/read) event handlers
-		m_calling_socket = nullptr;
-	}
-
 	(void)m_sockets.remove(socket);
 }
 
