@@ -180,10 +180,7 @@ curl_pool::~curl_pool()
 void curl_pool::set_max_connections(int max_connections)
 {
 	max_connections = std::max(0, max_connections);
-	if (m_cached_max_connections == max_connections)
-		return;
-	m_cached_max_connections = max_connections;
-	setopt(CURLMOPT_MAX_TOTAL_CONNECTIONS, static_cast<long>(m_cached_max_connections.value()));
+	setopt(CURLMOPT_MAX_TOTAL_CONNECTIONS, static_cast<long>(max_connections));
 }
 
 void curl_pool::set_max_host_connections(long value)

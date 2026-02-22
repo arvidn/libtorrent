@@ -95,7 +95,6 @@ private:
 	curl_boost_socket* m_calling_socket = nullptr;
 	deadline_timer m_timer;
 	executor_type m_executor;
-	std::optional<int> m_cached_max_connections;
 };
 }
 #endif //TORRENT_USE_CURL
