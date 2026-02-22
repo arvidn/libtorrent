@@ -6,7 +6,7 @@ name: cibuildwheel
 # sample.
 
 # The full list of cibuildwheel's build targets can be found here:
-# https://github.com/pypa/cibuildwheel/blob/v2.22.0/cibuildwheel/resources/build-platforms.toml
+# https://github.com/pypa/cibuildwheel/blob/v3.3.1/cibuildwheel/resources/build-platforms.toml
 
 # Notes on build targets we (don't) support:
 # - pypy: libtorrent doesn't build with pypy as of writing
@@ -46,59 +46,215 @@ jobs:
       MATRIX_PULL_REQUEST: |
         {
           "include": [
-            {"os": "ubuntu-24.04", "CIBW_BUILD": "cp39-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
-            {"os": "ubuntu-24.04-arm", "CIBW_BUILD": "cp39-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
-            {"os": "ubuntu-24.04", "CIBW_BUILD": "cp39-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
-            {"os": "ubuntu-24.04-arm", "CIBW_BUILD": "cp39-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
-            {"os": "macos-14", "CIBW_BUILD": "cp39-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "14"},
-            {"os": "macos-15", "CIBW_BUILD": "cp39-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "15"},
-            {"os": "windows-2022", "CIBW_BUILD": "cp39-win32", "CIBW_ARCHS_WINDOWS": "x86"},
-            {"os": "windows-2022", "CIBW_BUILD": "cp39-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"}
+            {"OS": "ubuntu-22.04", "CIBW_BUILD": "cp39-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-22.04", "CIBW_BUILD": "cp310-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-22.04", "CIBW_BUILD": "cp311-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-22.04", "CIBW_BUILD": "cp312-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-22.04", "CIBW_BUILD": "cp313-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-22.04", "CIBW_BUILD": "cp314-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-22.04-arm", "CIBW_BUILD": "cp39-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-22.04-arm", "CIBW_BUILD": "cp310-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-22.04-arm", "CIBW_BUILD": "cp311-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-24.04-arm", "CIBW_BUILD": "cp312-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-22.04-arm", "CIBW_BUILD": "cp313-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-22.04-arm", "CIBW_BUILD": "cp314-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-22.04", "CIBW_BUILD": "cp39-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-22.04", "CIBW_BUILD": "cp310-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-22.04", "CIBW_BUILD": "cp311-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-22.04", "CIBW_BUILD": "cp312-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-22.04", "CIBW_BUILD": "cp313-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-22.04", "CIBW_BUILD": "cp314-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-22.04-arm", "CIBW_BUILD": "cp39-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-22.04-arm", "CIBW_BUILD": "cp310-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-22.04-arm", "CIBW_BUILD": "cp311-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-22.04-arm", "CIBW_BUILD": "cp312-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-22.04-arm", "CIBW_BUILD": "cp313-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-22.04-arm", "CIBW_BUILD": "cp314-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-24.04", "CIBW_BUILD": "cp39-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-24.04", "CIBW_BUILD": "cp310-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-24.04", "CIBW_BUILD": "cp311-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-24.04", "CIBW_BUILD": "cp312-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-24.04", "CIBW_BUILD": "cp313-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-24.04", "CIBW_BUILD": "cp314-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-24.04-arm", "CIBW_BUILD": "cp39-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-24.04-arm", "CIBW_BUILD": "cp310-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-24.04-arm", "CIBW_BUILD": "cp311-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-24.04-arm", "CIBW_BUILD": "cp312-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-24.04-arm", "CIBW_BUILD": "cp313-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-24.04-arm", "CIBW_BUILD": "cp314-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-24.04", "CIBW_BUILD": "cp39-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-24.04", "CIBW_BUILD": "cp310-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-24.04", "CIBW_BUILD": "cp311-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-24.04", "CIBW_BUILD": "cp312-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-24.04", "CIBW_BUILD": "cp313-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-24.04", "CIBW_BUILD": "cp314-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-24.04-arm", "CIBW_BUILD": "cp39-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-24.04-arm", "CIBW_BUILD": "cp310-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-24.04-arm", "CIBW_BUILD": "cp311-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-24.04-arm", "CIBW_BUILD": "cp312-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-24.04-arm", "CIBW_BUILD": "cp313-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-24.04-arm", "CIBW_BUILD": "cp314-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "macos-15-intel", "CIBW_BUILD": "cp39-macosx_x86_64", "CIBW_ARCHS_MACOS": "x86_64", "MACOSX_DEPLOYMENT_TARGET": "15"},
+            {"OS": "macos-15-intel", "CIBW_BUILD": "cp310-macosx_x86_64", "CIBW_ARCHS_MACOS": "x86_64", "MACOSX_DEPLOYMENT_TARGET": "15"},
+            {"OS": "macos-15-intel", "CIBW_BUILD": "cp311-macosx_x86_64", "CIBW_ARCHS_MACOS": "x86_64", "MACOSX_DEPLOYMENT_TARGET": "15"},
+            {"OS": "macos-15-intel", "CIBW_BUILD": "cp312-macosx_x86_64", "CIBW_ARCHS_MACOS": "x86_64", "MACOSX_DEPLOYMENT_TARGET": "15"},
+            {"OS": "macos-15-intel", "CIBW_BUILD": "cp313-macosx_x86_64", "CIBW_ARCHS_MACOS": "x86_64", "MACOSX_DEPLOYMENT_TARGET": "15"},
+            {"OS": "macos-15-intel", "CIBW_BUILD": "cp314-macosx_x86_64", "CIBW_ARCHS_MACOS": "x86_64", "MACOSX_DEPLOYMENT_TARGET": "15"},
+            {"OS": "macos-14", "CIBW_BUILD": "cp39-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "14"},
+            {"OS": "macos-14", "CIBW_BUILD": "cp310-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "14"},
+            {"OS": "macos-14", "CIBW_BUILD": "cp311-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "14"},
+            {"OS": "macos-14", "CIBW_BUILD": "cp312-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "14"},
+            {"OS": "macos-14", "CIBW_BUILD": "cp313-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "14"},
+            {"OS": "macos-14", "CIBW_BUILD": "cp314-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "14"},
+            {"OS": "macos-15", "CIBW_BUILD": "cp39-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "15"},
+            {"OS": "macos-15", "CIBW_BUILD": "cp310-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "15"},
+            {"OS": "macos-15", "CIBW_BUILD": "cp311-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "15"},
+            {"OS": "macos-15", "CIBW_BUILD": "cp312-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "15"},
+            {"OS": "macos-15", "CIBW_BUILD": "cp313-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "15"},
+            {"OS": "macos-15", "CIBW_BUILD": "cp314-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "15"},
+            {"OS": "macos-26", "CIBW_BUILD": "cp39-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "26"},
+            {"OS": "macos-26", "CIBW_BUILD": "cp310-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "26"},
+            {"OS": "macos-26", "CIBW_BUILD": "cp311-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "26"},
+            {"OS": "macos-26", "CIBW_BUILD": "cp312-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "26"},
+            {"OS": "macos-26", "CIBW_BUILD": "cp313-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "26"},
+            {"OS": "macos-26", "CIBW_BUILD": "cp314-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "26"},
+            {"OS": "windows-2022", "CIBW_BUILD": "cp39-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"OS": "windows-2022", "CIBW_BUILD": "cp310-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"OS": "windows-2022", "CIBW_BUILD": "cp311-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"OS": "windows-2022", "CIBW_BUILD": "cp312-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"OS": "windows-2022", "CIBW_BUILD": "cp313-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"OS": "windows-2022", "CIBW_BUILD": "cp314-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"OS": "windows-2022", "CIBW_BUILD": "cp39-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"OS": "windows-2022", "CIBW_BUILD": "cp310-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"OS": "windows-2022", "CIBW_BUILD": "cp311-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"OS": "windows-2022", "CIBW_BUILD": "cp312-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"OS": "windows-2022", "CIBW_BUILD": "cp313-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"OS": "windows-2022", "CIBW_BUILD": "cp314-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"OS": "windows-2025", "CIBW_BUILD": "cp39-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"OS": "windows-2025", "CIBW_BUILD": "cp310-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"OS": "windows-2025", "CIBW_BUILD": "cp311-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"OS": "windows-2025", "CIBW_BUILD": "cp312-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"OS": "windows-2025", "CIBW_BUILD": "cp313-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"OS": "windows-2025", "CIBW_BUILD": "cp314-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"OS": "windows-2025", "CIBW_BUILD": "cp39-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"OS": "windows-2025", "CIBW_BUILD": "cp310-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"OS": "windows-2025", "CIBW_BUILD": "cp311-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"OS": "windows-2025", "CIBW_BUILD": "cp312-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"OS": "windows-2025", "CIBW_BUILD": "cp313-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"OS": "windows-2025", "CIBW_BUILD": "cp314-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"OS": "windows-11-arm", "CIBW_BUILD": "cp39-win_arm64", "CIBW_ARCHS_WINDOWS": "ARM64"},
+            {"OS": "windows-11-arm", "CIBW_BUILD": "cp310-win_arm64", "CIBW_ARCHS_WINDOWS": "ARM64"},
+            {"OS": "windows-11-arm", "CIBW_BUILD": "cp311-win_arm64", "CIBW_ARCHS_WINDOWS": "ARM64"},
+            {"OS": "windows-11-arm", "CIBW_BUILD": "cp312-win_arm64", "CIBW_ARCHS_WINDOWS": "ARM64"},
+            {"OS": "windows-11-arm", "CIBW_BUILD": "cp313-win_arm64", "CIBW_ARCHS_WINDOWS": "ARM64"},
+            {"OS": "windows-11-arm", "CIBW_BUILD": "cp314-win_arm64", "CIBW_ARCHS_WINDOWS": "ARM64"}
           ]
         }
       MATRIX_WORKFLOW_DISPATCH: |
         {
           "include": [
-            {"os": "ubuntu-24.04", "CIBW_BUILD": "cp39-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
-            {"os": "ubuntu-24.04", "CIBW_BUILD": "cp310-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
-            {"os": "ubuntu-24.04", "CIBW_BUILD": "cp311-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
-            {"os": "ubuntu-24.04", "CIBW_BUILD": "cp312-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
-            {"os": "ubuntu-24.04", "CIBW_BUILD": "cp313-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
-            {"os": "ubuntu-24.04-arm", "CIBW_BUILD": "cp39-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
-            {"os": "ubuntu-24.04-arm", "CIBW_BUILD": "cp310-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
-            {"os": "ubuntu-24.04-arm", "CIBW_BUILD": "cp311-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
-            {"os": "ubuntu-24.04-arm", "CIBW_BUILD": "cp312-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
-            {"os": "ubuntu-24.04-arm", "CIBW_BUILD": "cp313-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
-            {"os": "ubuntu-24.04", "CIBW_BUILD": "cp39-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
-            {"os": "ubuntu-24.04", "CIBW_BUILD": "cp310-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
-            {"os": "ubuntu-24.04", "CIBW_BUILD": "cp311-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
-            {"os": "ubuntu-24.04", "CIBW_BUILD": "cp312-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
-            {"os": "ubuntu-24.04", "CIBW_BUILD": "cp313-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
-            {"os": "ubuntu-24.04-arm", "CIBW_BUILD": "cp39-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
-            {"os": "ubuntu-24.04-arm", "CIBW_BUILD": "cp310-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
-            {"os": "ubuntu-24.04-arm", "CIBW_BUILD": "cp311-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
-            {"os": "ubuntu-24.04-arm", "CIBW_BUILD": "cp312-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
-            {"os": "ubuntu-24.04-arm", "CIBW_BUILD": "cp313-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
-            {"os": "macos-14", "CIBW_BUILD": "cp39-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "14"},
-            {"os": "macos-14", "CIBW_BUILD": "cp310-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "14"},
-            {"os": "macos-14", "CIBW_BUILD": "cp311-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "14"},
-            {"os": "macos-14", "CIBW_BUILD": "cp312-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "14"},
-            {"os": "macos-14", "CIBW_BUILD": "cp313-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "14"},
-            {"os": "macos-15", "CIBW_BUILD": "cp39-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "15"},
-            {"os": "macos-15", "CIBW_BUILD": "cp310-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "15"},
-            {"os": "macos-15", "CIBW_BUILD": "cp311-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "15"},
-            {"os": "macos-15", "CIBW_BUILD": "cp312-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "15"},
-            {"os": "macos-15", "CIBW_BUILD": "cp313-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "15"},
-            {"os": "windows-2022", "CIBW_BUILD": "cp39-win32", "CIBW_ARCHS_WINDOWS": "x86"},
-            {"os": "windows-2022", "CIBW_BUILD": "cp310-win32", "CIBW_ARCHS_WINDOWS": "x86"},
-            {"os": "windows-2022", "CIBW_BUILD": "cp311-win32", "CIBW_ARCHS_WINDOWS": "x86"},
-            {"os": "windows-2022", "CIBW_BUILD": "cp312-win32", "CIBW_ARCHS_WINDOWS": "x86"},
-            {"os": "windows-2022", "CIBW_BUILD": "cp313-win32", "CIBW_ARCHS_WINDOWS": "x86"},
-            {"os": "windows-2022", "CIBW_BUILD": "cp39-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
-            {"os": "windows-2022", "CIBW_BUILD": "cp310-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
-            {"os": "windows-2022", "CIBW_BUILD": "cp311-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
-            {"os": "windows-2022", "CIBW_BUILD": "cp312-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
-            {"os": "windows-2022", "CIBW_BUILD": "cp313-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"}
+            {"OS": "ubuntu-22.04", "CIBW_BUILD": "cp39-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-22.04", "CIBW_BUILD": "cp310-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-22.04", "CIBW_BUILD": "cp311-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-22.04", "CIBW_BUILD": "cp312-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-22.04", "CIBW_BUILD": "cp313-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-22.04", "CIBW_BUILD": "cp314-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-22.04-arm", "CIBW_BUILD": "cp39-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-22.04-arm", "CIBW_BUILD": "cp310-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-22.04-arm", "CIBW_BUILD": "cp311-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-24.04-arm", "CIBW_BUILD": "cp312-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-22.04-arm", "CIBW_BUILD": "cp313-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-22.04-arm", "CIBW_BUILD": "cp314-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-22.04", "CIBW_BUILD": "cp39-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-22.04", "CIBW_BUILD": "cp310-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-22.04", "CIBW_BUILD": "cp311-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-22.04", "CIBW_BUILD": "cp312-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-22.04", "CIBW_BUILD": "cp313-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-22.04", "CIBW_BUILD": "cp314-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-22.04-arm", "CIBW_BUILD": "cp39-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-22.04-arm", "CIBW_BUILD": "cp310-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-22.04-arm", "CIBW_BUILD": "cp311-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-22.04-arm", "CIBW_BUILD": "cp312-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-22.04-arm", "CIBW_BUILD": "cp313-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-22.04-arm", "CIBW_BUILD": "cp314-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-24.04", "CIBW_BUILD": "cp39-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-24.04", "CIBW_BUILD": "cp310-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-24.04", "CIBW_BUILD": "cp311-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-24.04", "CIBW_BUILD": "cp312-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-24.04", "CIBW_BUILD": "cp313-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-24.04", "CIBW_BUILD": "cp314-manylinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-24.04-arm", "CIBW_BUILD": "cp39-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-24.04-arm", "CIBW_BUILD": "cp310-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-24.04-arm", "CIBW_BUILD": "cp311-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-24.04-arm", "CIBW_BUILD": "cp312-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-24.04-arm", "CIBW_BUILD": "cp313-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-24.04-arm", "CIBW_BUILD": "cp314-manylinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-24.04", "CIBW_BUILD": "cp39-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-24.04", "CIBW_BUILD": "cp310-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-24.04", "CIBW_BUILD": "cp311-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-24.04", "CIBW_BUILD": "cp312-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-24.04", "CIBW_BUILD": "cp313-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-24.04", "CIBW_BUILD": "cp314-musllinux_x86_64", "CIBW_ARCHS_LINUX": "x86_64"},
+            {"OS": "ubuntu-24.04-arm", "CIBW_BUILD": "cp39-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-24.04-arm", "CIBW_BUILD": "cp310-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-24.04-arm", "CIBW_BUILD": "cp311-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-24.04-arm", "CIBW_BUILD": "cp312-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-24.04-arm", "CIBW_BUILD": "cp313-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "ubuntu-24.04-arm", "CIBW_BUILD": "cp314-musllinux_aarch64", "CIBW_ARCHS_LINUX": "aarch64"},
+            {"OS": "macos-15-intel", "CIBW_BUILD": "cp39-macosx_x86_64", "CIBW_ARCHS_MACOS": "x86_64", "MACOSX_DEPLOYMENT_TARGET": "15"},
+            {"OS": "macos-15-intel", "CIBW_BUILD": "cp310-macosx_x86_64", "CIBW_ARCHS_MACOS": "x86_64", "MACOSX_DEPLOYMENT_TARGET": "15"},
+            {"OS": "macos-15-intel", "CIBW_BUILD": "cp311-macosx_x86_64", "CIBW_ARCHS_MACOS": "x86_64", "MACOSX_DEPLOYMENT_TARGET": "15"},
+            {"OS": "macos-15-intel", "CIBW_BUILD": "cp312-macosx_x86_64", "CIBW_ARCHS_MACOS": "x86_64", "MACOSX_DEPLOYMENT_TARGET": "15"},
+            {"OS": "macos-15-intel", "CIBW_BUILD": "cp313-macosx_x86_64", "CIBW_ARCHS_MACOS": "x86_64", "MACOSX_DEPLOYMENT_TARGET": "15"},
+            {"OS": "macos-15-intel", "CIBW_BUILD": "cp314-macosx_x86_64", "CIBW_ARCHS_MACOS": "x86_64", "MACOSX_DEPLOYMENT_TARGET": "15"},
+            {"OS": "macos-14", "CIBW_BUILD": "cp39-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "14"},
+            {"OS": "macos-14", "CIBW_BUILD": "cp310-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "14"},
+            {"OS": "macos-14", "CIBW_BUILD": "cp311-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "14"},
+            {"OS": "macos-14", "CIBW_BUILD": "cp312-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "14"},
+            {"OS": "macos-14", "CIBW_BUILD": "cp313-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "14"},
+            {"OS": "macos-14", "CIBW_BUILD": "cp314-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "14"},
+            {"OS": "macos-15", "CIBW_BUILD": "cp39-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "15"},
+            {"OS": "macos-15", "CIBW_BUILD": "cp310-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "15"},
+            {"OS": "macos-15", "CIBW_BUILD": "cp311-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "15"},
+            {"OS": "macos-15", "CIBW_BUILD": "cp312-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "15"},
+            {"OS": "macos-15", "CIBW_BUILD": "cp313-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "15"},
+            {"OS": "macos-15", "CIBW_BUILD": "cp314-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "15"},
+            {"OS": "macos-26", "CIBW_BUILD": "cp39-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "26"},
+            {"OS": "macos-26", "CIBW_BUILD": "cp310-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "26"},
+            {"OS": "macos-26", "CIBW_BUILD": "cp311-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "26"},
+            {"OS": "macos-26", "CIBW_BUILD": "cp312-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "26"},
+            {"OS": "macos-26", "CIBW_BUILD": "cp313-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "26"},
+            {"OS": "macos-26", "CIBW_BUILD": "cp314-macosx_arm64", "CIBW_ARCHS_MACOS": "arm64", "MACOSX_DEPLOYMENT_TARGET": "26"},
+            {"OS": "windows-2022", "CIBW_BUILD": "cp39-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"OS": "windows-2022", "CIBW_BUILD": "cp310-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"OS": "windows-2022", "CIBW_BUILD": "cp311-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"OS": "windows-2022", "CIBW_BUILD": "cp312-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"OS": "windows-2022", "CIBW_BUILD": "cp313-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"OS": "windows-2022", "CIBW_BUILD": "cp314-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"OS": "windows-2022", "CIBW_BUILD": "cp39-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"OS": "windows-2022", "CIBW_BUILD": "cp310-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"OS": "windows-2022", "CIBW_BUILD": "cp311-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"OS": "windows-2022", "CIBW_BUILD": "cp312-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"OS": "windows-2022", "CIBW_BUILD": "cp313-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"OS": "windows-2022", "CIBW_BUILD": "cp314-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"OS": "windows-2025", "CIBW_BUILD": "cp39-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"OS": "windows-2025", "CIBW_BUILD": "cp310-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"OS": "windows-2025", "CIBW_BUILD": "cp311-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"OS": "windows-2025", "CIBW_BUILD": "cp312-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"OS": "windows-2025", "CIBW_BUILD": "cp313-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"OS": "windows-2025", "CIBW_BUILD": "cp314-win32", "CIBW_ARCHS_WINDOWS": "x86"},
+            {"OS": "windows-2025", "CIBW_BUILD": "cp39-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"OS": "windows-2025", "CIBW_BUILD": "cp310-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"OS": "windows-2025", "CIBW_BUILD": "cp311-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"OS": "windows-2025", "CIBW_BUILD": "cp312-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"OS": "windows-2025", "CIBW_BUILD": "cp313-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"OS": "windows-2025", "CIBW_BUILD": "cp314-win_amd64", "CIBW_ARCHS_WINDOWS": "AMD64"},
+            {"OS": "windows-11-arm", "CIBW_BUILD": "cp39-win_arm64", "CIBW_ARCHS_WINDOWS": "ARM64"},
+            {"OS": "windows-11-arm", "CIBW_BUILD": "cp310-win_arm64", "CIBW_ARCHS_WINDOWS": "ARM64"},
+            {"OS": "windows-11-arm", "CIBW_BUILD": "cp311-win_arm64", "CIBW_ARCHS_WINDOWS": "ARM64"},
+            {"OS": "windows-11-arm", "CIBW_BUILD": "cp312-win_arm64", "CIBW_ARCHS_WINDOWS": "ARM64"},
+            {"OS": "windows-11-arm", "CIBW_BUILD": "cp313-win_arm64", "CIBW_ARCHS_WINDOWS": "ARM64"},
+            {"OS": "windows-11-arm", "CIBW_BUILD": "cp314-win_arm64", "CIBW_ARCHS_WINDOWS": "ARM64"}
           ]
         }
 
@@ -129,17 +285,16 @@ jobs:
       CIBW_ARCHS_WINDOWS:  ${{ matrix.CIBW_ARCHS_WINDOWS }}
       CIBW_ARCHS_MACOS:  ${{ matrix.CIBW_ARCHS_MACOS }}
       MACOSX_DEPLOYMENT_TARGET: ${{ matrix.MACOSX_DEPLOYMENT_TARGET }}
-      CIBW_SKIP: pp*
       CIBW_TEST_SKIP: "*-win32"
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
       with:
         submodules: true
         fetch-depth: 1
         filter: tree:0
 
-    - uses: actions/cache@v4
+    - uses: actions/cache@v5
       id: cache-wheel
       with:
         path: wheelhouse
@@ -159,10 +314,10 @@ jobs:
       if: runner.os == 'Linux'
       run: sudo apt-get install libssl-dev
 
-    - uses: pypa/cibuildwheel@v2.22.0
+    - uses: pypa/cibuildwheel@v3.3.1
       if: ${{ steps.cache-wheel.outputs.cache-hit != 'true' || github.event_name == 'pull_request' }}
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v6
       with:
         path: wheelhouse/*.whl
         name: wheels-${{ matrix.os }}-${{ matrix.CIBW_BUILD }}
@@ -193,7 +348,7 @@ jobs:
     if: needs.build_wheels.result == 'success' && github.event.inputs.publish == 'PUBLISH'
 
     steps:
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@v7
       with:
         pattern: wheels-*
         path: wheelhouse
@@ -211,7 +366,7 @@ jobs:
     if: needs.build_wheels.result == 'success' && github.event.inputs.publish_test == 'PUBLISH_TEST'
 
     steps:
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@v7
       with:
         pattern: wheels-*
         path: wheelhouse
