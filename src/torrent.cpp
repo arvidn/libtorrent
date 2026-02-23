@@ -1850,7 +1850,9 @@ bool is_downloading_state(int const st)
 		else if (m_add_torrent_params->flags & torrent_flags::default_dont_download)
 			m_file_priority.resize(m_torrent_file->num_files(), dont_download);
 
-		auto cert = !m_add_torrent_params->root_certificate.empty() ? m_add_torrent_params->root_certificate: m_torrent_file->ssl_cert();
+		std::string_view cert = !m_add_torrent_params->root_certificate.empty()
+			? m_add_torrent_params->root_certificate
+			: m_torrent_file->ssl_cert();
 		if (!is_ssl_torrent() && !cert.empty())
 		{
 			m_ssl_torrent = true;

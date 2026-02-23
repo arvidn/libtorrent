@@ -652,7 +652,7 @@ void test_ssl_magnet(bool const seed_has_cert)
 	}
 
 	// create a new session with add torrent params using the root_certificate
-	create_directory("tmp4_ssl", ec);
+	create_directory("tmp5_ssl", ec);
 	add_torrent_params addp2;
 	addp2.save_path = "tmp5_ssl";
 	addp2.info_hashes = addp.ti->info_hashes();
