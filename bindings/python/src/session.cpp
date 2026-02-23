@@ -420,6 +420,10 @@ namespace
             {
                 p.file_priorities = extract<std::vector<download_priority_t>>(value);
             }
+            else if(key == "root_certificate")
+            {
+                p.root_certificate = extract<std::string>(value);
+            }
             else
             {
                 PyErr_SetString(PyExc_KeyError,
@@ -1060,6 +1064,7 @@ void bind_session()
         .add_property("comment", PROP(&add_torrent_params::comment))
         .add_property("created_by", PROP(&add_torrent_params::created_by))
         .add_property("creation_date", PROP(&add_torrent_params::creation_date))
+        .add_property("root_certificate", PROP(&add_torrent_params::root_certificate))
       ;
 
 #ifndef TORRENT_DISABLE_DHT

@@ -247,6 +247,7 @@ namespace {
 
 		ret.save_path = rd.dict_find_string_value("save_path");
 		ret.part_file_dir = rd.dict_find_string_value("part_file_dir");
+		ret.root_certificate = rd.dict_find_string_value("root_certificate");
 
 #if TORRENT_ABI_VERSION == 1
 		// deprecated in 1.2
