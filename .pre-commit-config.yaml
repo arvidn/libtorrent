@@ -32,7 +32,7 @@ repos:
     -   id: check-symlinks
     -   id: check-toml
 - repo: https://github.com/pappasam/toml-sort
-  rev: v0.24.2
+  rev: v0.24.3
   hooks:
   - id: toml-sort
     args: [--all, --in-place]
@@ -42,7 +42,7 @@ repos:
   - id: rst-directive-colons
   - id: rst-inline-touching-normal
 - repo: https://github.com/PyCQA/isort
-  rev: 7.0.0
+  rev: 8.0.0
   hooks:
     - id: isort
       exclude: |
@@ -72,7 +72,7 @@ repos:
             tools/update_copyright.py
           )$
 - repo: https://github.com/PyCQA/autoflake
-  rev: v2.3.1
+  rev: v2.3.3
   hooks:
     - id: autoflake
       args: [--in-place, --remove-unused-variables, --remove-all-unused-imports, --remove-duplicate-keys]
@@ -86,7 +86,7 @@ repos:
                tools/libtorrent_lldb.py
           )
 - repo: https://github.com/psf/black
-  rev: 25.12.0
+  rev: 26.1.0
   hooks:
     - id: black
       # Avoiding PR bloat
