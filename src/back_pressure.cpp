@@ -56,7 +56,7 @@ bool back_pressure::has_back_pressure(int const level, std::shared_ptr<disk_obse
 
 std::optional<int> back_pressure::should_flush(int const level) const
 {
-	if (level >= m_high_watermark)
+	if (level >= m_high_watermark || m_exceeded_max_size)
 		return m_low_watermark;
 	else
 		return std::nullopt;

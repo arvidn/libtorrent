@@ -885,6 +885,7 @@ TEST_SOURCES = \
   test_alloca.cpp \
   test_apply_pad.cpp \
   test_auto_unchoke.cpp \
+  test_back_pressure.cpp \
   test_bandwidth_limiter.cpp \
   test_bdecode.cpp \
   test_bencoding.cpp \
