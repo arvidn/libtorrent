@@ -101,6 +101,9 @@ namespace libtorrent {
 		// style filesystems, which also further restricts valid characters
 		// https://cs.android.com/android/platform/superproject/+/master:frameworks/base/core/java/android/os/FileUtils.java;l=997?q=isValidFatFilenameChar
 		static const char invalid_chars[] = "\"*:<>?|";
+		// macOS does not permit use of a colon in a file or folder name
+#elif defined __APPLE__
+    static const char invalid_chars[] = ":";
 #else
 		static const char invalid_chars[] = "";
 #endif
