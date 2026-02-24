@@ -46,7 +46,6 @@ namespace libtorrent::aux {
 http_connection::http_connection(io_context& ios
 	, aux::resolver_interface& resolver
 	, http_handler handler
-	, bool bottled
 	, int max_bottled_buffer_size
 	, http_connect_handler ch
 	, http_filter_handler fh
@@ -79,7 +78,6 @@ http_connection::http_connection(io_context& ios
 	, m_rate_limit(0)
 	, m_download_quota(0)
 	, m_port(0)
-	, m_bottled(bottled)
 {
 	TORRENT_ASSERT(m_handler);
 }
@@ -177,8 +175,7 @@ void http_connection::get(std::string const& url, time_duration timeout
 	if (!m_user_agent.empty())
 		request << "User-Agent: " << m_user_agent << "\r\n";
 
-	if (m_bottled)
-		request << "Accept-Encoding: gzip\r\n";
+	request << "Accept-Encoding: gzip\r\n";
 
 	if (!auth.empty())
 		request << "Authorization: Basic " << base64encode(auth) << "\r\n";
@@ -616,10 +613,10 @@ void http_connection::on_connect(error_code const& e)
 
 void http_connection::callback(error_code e, span<char> data)
 {
-	if (m_bottled && m_called) return;
+	if (m_called) return;
 
 	std::vector<char> buf;
-	if (!data.empty() && m_bottled && m_parser.header_finished())
+	if (!data.empty() && m_parser.header_finished())
 	{
 		data = m_parser.collapse_chunk_headers(data);
 
@@ -711,7 +708,7 @@ void http_connection::on_read(error_code const& e
 		error_code ec = boost::asio::error::eof;
 		TORRENT_ASSERT(bytes_transferred == 0);
 		span<char> body;
-		if (m_bottled && m_parser.header_finished())
+		if (m_parser.header_finished())
 		{
 			body = span<char>(m_recvbuffer.data() + m_parser.body_start()
 				, m_parser.get_body().size());
@@ -730,80 +727,60 @@ void http_connection::on_read(error_code const& e
 	m_read_pos += int(bytes_transferred);
 	TORRENT_ASSERT(m_read_pos <= int(m_recvbuffer.size()));
 
-	if (m_bottled || !m_parser.header_finished())
+	span<char const> rcv_buf(m_recvbuffer);
+	bool error = false;
+	m_parser.incoming(rcv_buf.first(m_read_pos), error);
+	if (error)
 	{
-		span<char const> rcv_buf(m_recvbuffer);
-		bool error = false;
-		m_parser.incoming(rcv_buf.first(m_read_pos), error);
-		if (error)
-		{
-			// HTTP parse error
-			error_code ec = errors::http_parse_error;
-			callback(ec);
-			return;
-		}
+		// HTTP parse error
+		error_code ec = errors::http_parse_error;
+		callback(ec);
+		return;
+	}
 
-		// having a nonempty path means we should handle redirects
-		if (m_redirects && m_parser.header_finished())
-		{
-			int code = m_parser.status_code();
+	// having a nonempty path means we should handle redirects
+	if (m_redirects && m_parser.header_finished())
+	{
+		int code = m_parser.status_code();
 
-			if (aux::is_redirect(code))
+		if (aux::is_redirect(code))
+		{
+			// attempt a redirect
+			std::string const& location = m_parser.header("location");
+			if (location.empty())
 			{
-				// attempt a redirect
-				std::string const& location = m_parser.header("location");
-				if (location.empty())
-				{
-					// missing location header
-					callback(error_code(errors::http_missing_location));
-					return;
-				}
-
-				error_code ec;
-				// it would be nice to gracefully shut down SSL here
-				// but then we'd have to do all the reconnect logic
-				// in its handler. For now, just kill the connection.
-//				async_shutdown(m_sock, me);
-				m_sock->close(ec);
-
-				std::string url = aux::resolve_redirect_location(m_url, location);
-				get(url, m_completion_timeout, &m_proxy, m_redirects - 1
-					, m_user_agent, m_bind_addr, m_resolve_flags, m_auth
-#if TORRENT_USE_I2P
-					, m_i2p_conn
-#endif
-					);
+				// missing location header
+				callback(error_code(errors::http_missing_location));
 				return;
 			}
 
-			m_redirects = 0;
+			error_code ec;
+			// it would be nice to gracefully shut down SSL here
+			// but then we'd have to do all the reconnect logic
+			// in its handler. For now, just kill the connection.
+//				async_shutdown(m_sock, me);
+			m_sock->close(ec);
+
+			std::string url = aux::resolve_redirect_location(m_url, location);
+			get(url, m_completion_timeout, &m_proxy, m_redirects - 1
+				, m_user_agent, m_bind_addr, m_resolve_flags, m_auth
+#if TORRENT_USE_I2P
+				, m_i2p_conn
+#endif
+				);
+			return;
 		}
 
-		if (!m_bottled && m_parser.header_finished())
-		{
-			if (m_read_pos > m_parser.body_start())
-			{
-				callback(e, span<char>(m_recvbuffer)
-					.first(m_read_pos)
-					.subspan(m_parser.body_start()));
-			}
-			m_read_pos = 0;
-			m_last_receive = clock_type::now();
-		}
-		else if (m_bottled && m_parser.finished())
-		{
-			m_timer.cancel();
-			callback(e, span<char>(m_recvbuffer)
-				.first(m_read_pos)
-				.subspan(m_parser.body_start()));
-		}
+		m_redirects = 0;
 	}
-	else
+
+	if (m_parser.finished())
 	{
-		TORRENT_ASSERT(!m_bottled);
-		callback(e, span<char>(m_recvbuffer).first(m_read_pos));
-		m_read_pos = 0;
-		m_last_receive = clock_type::now();
+		m_timer.cancel();
+		callback(e, span<char>(m_recvbuffer)
+			.first(m_read_pos)
+			.subspan(m_parser.body_start()));
+		return;
 	}
 
 	// if we've hit the limit, double the buffer size

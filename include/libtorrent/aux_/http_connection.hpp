@@ -55,8 +55,6 @@ struct bind_info_t
 	}
 };
 
-// when bottled, the last two arguments to the handler
-// will always be 0
 struct TORRENT_EXTRA_EXPORT http_connection
 	: std::enable_shared_from_this<http_connection>
 {
@@ -64,7 +62,6 @@ struct TORRENT_EXTRA_EXPORT http_connection
 	http_connection(io_context& ios
 		, aux::resolver_interface& resolver
 		, http_handler handler
-		, bool bottled
 		, int max_bottled_buffer_size
 		, http_connect_handler ch
 		, http_filter_handler fh
@@ -203,12 +200,6 @@ private:
 	aux::resolver_flags m_resolve_flags;
 
 	std::uint16_t m_port;
-
-	// bottled means that the handler is called once, when
-	// everything is received (and buffered in memory).
-	// non bottled means that once the headers have been
-	// received, data is streamed to the handler
-	bool m_bottled;
 
 	// set to true the first time the handler is called
 	bool m_called = false;

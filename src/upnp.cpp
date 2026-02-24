@@ -419,7 +419,7 @@ void upnp::connect(rootdevice& d)
 		d.upnp_connection = std::make_shared<aux::http_connection>(m_io_service
 			, m_resolver
 			, std::bind(&upnp::on_upnp_xml, self(), _1, _2
-				, std::ref(d), _4), true, default_max_bottled_buffer_size
+				, std::ref(d), _4), default_max_bottled_buffer_size
 			, http_connect_handler()
 			, http_filter_handler()
 			, hostname_filter_handler()
@@ -831,7 +831,7 @@ void upnp::update_map(rootdevice& d, port_mapping_t const i)
 		d.upnp_connection = std::make_shared<http_connection>(m_io_service
 			, m_resolver
 			, std::bind(&upnp::on_upnp_map_response, self(), _1, _2
-				, std::ref(d), i, _4), true, default_max_bottled_buffer_size
+				, std::ref(d), i, _4), default_max_bottled_buffer_size
 			, std::bind(&upnp::create_port_mapping, self(), _1, std::ref(d), i)
 			, http_filter_handler()
 			, hostname_filter_handler()
@@ -850,7 +850,7 @@ void upnp::update_map(rootdevice& d, port_mapping_t const i)
 		d.upnp_connection = std::make_shared<aux::http_connection>(m_io_service
 			, m_resolver
 			, std::bind(&upnp::on_upnp_unmap_response, self(), _1, _2
-				, std::ref(d), i, _4), true, default_max_bottled_buffer_size
+				, std::ref(d), i, _4), default_max_bottled_buffer_size
 			, std::bind(&upnp::delete_port_mapping, self(), std::ref(d), i)
 			, http_filter_handler()
 			, hostname_filter_handler()
@@ -1073,7 +1073,7 @@ void upnp::on_upnp_xml(error_code const& e
 	d.upnp_connection = std::make_shared<http_connection>(m_io_service
 		, m_resolver
 		, std::bind(&upnp::on_upnp_get_ip_address_response, self(), _1, _2
-			, std::ref(d), _4), true, default_max_bottled_buffer_size
+			, std::ref(d), _4), default_max_bottled_buffer_size
 		, std::bind(&upnp::get_ip_address, self(), std::ref(d))
 		, http_filter_handler()
 		, hostname_filter_handler()
