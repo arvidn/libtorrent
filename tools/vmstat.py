@@ -335,26 +335,22 @@ def plot_output(filename: str, keys: list[str]) -> None:
     output_dir, in_file = os.path.split(filename)
     gnuplot_file = f"{output_dir}/plot_{in_file}.gnuplot"
     with open(gnuplot_file, "w+") as f:
-        f.write(
-            """set term png size 1200,700
+        f.write("""set term png size 1200,700
 set format y '%.0f'
 set xlabel "time (s)"
 set xrange [0:*]
 set yrange [0:*]
 set y2range [0:*]
 set grid
-"""
-        )
+""")
 
         for plot in plots:
-            f.write(
-                f"""set output "{in_file}-{plot.name}.png"
+            f.write(f"""set output "{in_file}-{plot.name}.png"
 set title "{plot.title}"
 set ylabel "{plot.ylabel} (MB)"
 set y2label "{plot.y2label}"
 {"set y2tics" if plot.y2label != "" else ""}
-"""
-            )
+""")
 
             plot_string = "plot "
             tidx = keys.index("time") + 1
