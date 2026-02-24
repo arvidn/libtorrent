@@ -33,13 +33,13 @@ struct TORRENT_EXTRA_EXPORT back_pressure
 private:
 
 	// apply back-pressure to peers when m_blocks reach this level
-	int m_max_size;
+	int m_max_size = 9;
 
 	// start flushing when m_blocks hits the high watermark
-	int m_high_watermark;
+	int m_high_watermark = 0;
 
 	// stop flushing when m_blocks hits the low watermark
-	int m_low_watermark;
+	int m_low_watermark = 0;
 
 	// after we exceed the high watermark, we set this to true and start
 	// flushing, we don't stop flushing until we hit the low watermark. Then we

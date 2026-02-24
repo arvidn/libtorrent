@@ -8,6 +8,9 @@ see LICENSE file.
 */
 
 #include "libtorrent/aux_/back_pressure.hpp"
+#include <functional>
+#include <algorithm>
+#include <limits>
 
 namespace libtorrent::aux {
 
@@ -44,6 +47,7 @@ bool back_pressure::has_back_pressure(int const level, std::shared_ptr<disk_obse
 {
 	if (level >= m_max_size)
 	{
+		m_exceeded_max_size = true;
 		if (o) m_observers.push_back(std::move(o));
 		return true;
 	}
