@@ -154,7 +154,7 @@ std::shared_ptr<lt::aux::http_connection> test_request(io_context& ios
 					&& memcmp(expected_data, data.data(), data.size()) == 0);
 			}
 		}
-		, true, 1024 * 1024
+		, 1024 * 1024
 		, [=](lt::aux::http_connection& c)
 		{
 			++*connect_handler_called;
@@ -636,7 +636,7 @@ void test_connection_ssl_proxy(bool const with_hostname)
 			client_counter++;
 			TEST_EQUAL(ec, boost::asio::error::operation_not_supported);
 		}
-		, true, 1024 * 1024, lt::aux::http_connect_handler()
+		, 1024 * 1024, lt::aux::http_connect_handler()
 		, lt::aux::http_filter_handler()
 		, lt::aux::hostname_filter_handler()
 #if TORRENT_USE_SSL

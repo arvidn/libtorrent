@@ -108,7 +108,7 @@ void run_test(std::string const& url, int size, int status, int connected
 #endif
 
 	std::shared_ptr<aux::http_connection> h = std::make_shared<aux::http_connection>(ios
-		, res, &::http_handler_test, true, 1024*1024, &::http_connect_handler_test
+		, res, &::http_handler_test, 1024*1024, &::http_connect_handler_test
 		, aux::http_filter_handler()
 		, aux::hostname_filter_handler()
 #if TORRENT_USE_SSL

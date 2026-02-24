@@ -202,7 +202,7 @@ namespace libtorrent::aux {
 		using namespace std::placeholders;
 		m_tracker_connection = std::make_shared<aux::http_connection>(m_ioc, m_man.host_resolver()
 			, std::bind(&http_tracker_connection::on_response, shared_from_this(), _1, _2, _3)
-			, true, settings.get_int(settings_pack::max_http_recv_buffer_size)
+			, settings.get_int(settings_pack::max_http_recv_buffer_size)
 			, std::bind(&http_tracker_connection::on_connect, shared_from_this(), _1)
 			, std::bind(&http_tracker_connection::on_filter, shared_from_this(), _1, _2)
 			, std::bind(&http_tracker_connection::on_filter_hostname, shared_from_this(), _1, _2)
