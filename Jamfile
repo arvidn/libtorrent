@@ -109,6 +109,11 @@ rule linking ( properties * )
 		result += <library>wolfssl ;
 	}
 
+	if <curl>on in $(properties)
+	{
+		result += <library>curl ;
+	}
+
 	if <target-os>windows in $(properties)
 		|| <target-os>cygwin in $(properties)
 	{
@@ -608,6 +613,26 @@ rule wolfssl-include-path ( properties * )
 	return $(result) ;
 }
 
+rule curl-lib-path ( properties * )
+{
+	local CURL_LIB = [ feature.get-values <curl-lib> : $(properties) ] ;
+	if $(CURL_LIB) != ""
+	{
+		return <search>$(CURL_LIB) ;
+	}
+	return ;
+}
+
+rule curl-include-path ( properties * )
+{
+	local CURL_INCLUDE = [ feature.get-values <curl-include> : $(properties) ] ;
+	if $(CURL_INCLUDE) != ""
+	{
+		return <include>$(CURL_INCLUDE) ;
+	}
+	return ;
+}
+
 path-constant blacklist-file : tools/sanitizer-blacklist.txt ;
 
 feature openssl-lib : : free path ;
@@ -641,6 +666,17 @@ feature.compose <i2p>off : <define>TORRENT_USE_I2P=0 ;
 feature webtorrent : off on : composite propagated ;
 feature.compose <webtorrent>on : <define>TORRENT_USE_RTC=1 ;
 feature.compose <webtorrent>off : <define>TORRENT_USE_RTC=0 ;
+
+feature curl : off on : composite propagated ;
+feature.compose <curl>on : <define>TORRENT_USE_CURL=1 ;
+feature.compose <curl>off : <define>TORRENT_USE_CURL=0 ;
+
+feature curl-lib : : free path ;
+feature curl-include : : free path ;
+
+feature curl_debug : off on : composite propagated ;
+feature.compose <curl_debug>on : <define>TORRENT_DEBUG_LIBCURL=1 ;
+feature.compose <curl_debug>off : <define>TORRENT_DEBUG_LIBCURL=0 ;
 
 feature asserts : off on production system : composite propagated ;
 feature.compose <asserts>on : <define>TORRENT_USE_ASSERTS=1 ;
@@ -816,6 +852,9 @@ lib gnutls : : <name>gnutls <conditional>@gnutls-lib-path : :
 lib wolfssl : : <name>wolfssl <conditional>@wolfssl-lib-path : :
 	<conditional>@wolfssl-include-path ;
 
+lib curl : : <name>curl <conditional>@curl-lib-path : :
+	<conditional>@curl-include-path ;
+
 lib dbghelp : : <name>dbghelp ;
 
 # required for networking on beos
@@ -854,6 +893,11 @@ SOURCES =
 	cpuid
 	crc32c
 	create_torrent
+	curl_boost_socket
+	curl_pool
+	curl_request
+	curl_tracker_manager
+	curl_tracker_request
 	directory
 	disk_buffer_holder
 	disk_buffer_pool

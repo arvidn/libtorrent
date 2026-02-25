@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2004-2010, 2012-2021, Arvid Norberg
+Copyright (c) 2004-2010, 2012-2026, Arvid Norberg
 Copyright (c) 2016-2017, 2020-2021, Alden Torres
 Copyright (c) 2017, Steven Siloti
 Copyright (c) 2020, Paul-Louis Ageneau
@@ -181,6 +181,9 @@ namespace libtorrent::aux {
 #if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 		, m_ses(ses)
 #endif
+#if TORRENT_USE_CURL
+		, m_curl_requests(*this)
+#endif
 	{}
 
 	tracker_manager::~tracker_manager()
@@ -280,6 +283,17 @@ namespace libtorrent::aux {
 		if (protocol == "http")
 #endif
 		{
+#if TORRENT_USE_CURL
+#if TORRENT_USE_I2P
+			const bool is_i2p = is_i2p_url(req.url);
+#else
+			const bool is_i2p = false;
+#endif
+			if (!is_i2p) {
+				m_curl_requests.add(ios, std::move(req), std::move(c));
+				return;
+			}
+#endif
 			auto con = std::make_shared<aux::http_tracker_connection>(ios, *this, std::move(req), c);
 			if (m_http_conns.size() < std::size_t(sett.get_int(settings_pack::max_concurrent_http_announces)))
 			{
@@ -523,6 +537,10 @@ namespace libtorrent::aux {
 		}
 #endif
 
+#if TORRENT_USE_CURL
+		m_curl_requests.abort_all(all);
+#endif
+
 		for (auto const& c : close_http_connections)
 			c->close();
 
@@ -542,6 +560,9 @@ namespace libtorrent::aux {
 #if TORRENT_USE_RTC
 			&& m_websocket_conns.empty()
 #endif
+#if TORRENT_USE_CURL
+			&& m_curl_requests.empty()
+#endif
 			;
 	}
 
@@ -551,6 +572,10 @@ namespace libtorrent::aux {
 		return int(m_http_conns.size() + m_udp_conns.size()
 #if TORRENT_USE_RTC
 			+ m_websocket_conns.size()
+#endif
+#if TORRENT_USE_CURL
+			// Note: we don't know if these are connections or queued inside curl
+			+ m_curl_requests.size()
 #endif
 			);
 	}

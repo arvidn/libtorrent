@@ -1,7 +1,7 @@
 /*
 
 Copyright (c) 2020-2021, Alden Torres
-Copyright (c) 2021, Arvid Norberg
+Copyright (c) 2021-2026, Arvid Norberg
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,
@@ -13,11 +13,13 @@ see LICENSE file.
 #include "libtorrent/aux_/session_interface.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/aux_/resolver.hpp"
+#include "libtorrent/aux_/session_impl.hpp"
 
 using namespace lt;
 using namespace lt::aux;
 using namespace std::placeholders;
 
+namespace {
 struct tracker_manager_handler : aux::session_logger {
 
 	tracker_manager_handler(io_context& ios, aux::session_settings& sett)
@@ -104,6 +106,23 @@ struct ws_request_callback : request_callback
 #endif
 };
 
+#if TORRENT_USE_CURL
+std::shared_ptr<aux::listen_socket_t> fake_socket(
+	char const* ip = "0.0.0.0",
+	int const port = 5555,
+	int const original_port = 5555,
+	char const* device = "lo")
+{
+	auto s = std::make_shared<aux::listen_socket_t>();
+	s->local_endpoint = tcp::endpoint(make_address(ip)
+		, aux::numeric_cast<std::uint16_t>(port));
+	s->original_port = original_port;
+	s->device = device;
+	return s;
+}
+#endif
+} // anonymous namespace
+
 TORRENT_TEST(empty_and_num_requests)
 {
 	io_context ios;
@@ -117,6 +136,12 @@ TORRENT_TEST(empty_and_num_requests)
 
 		tracker_request r;
 		r.url = "http://tracker.com";
+#if TORRENT_USE_CURL
+		// The fake socket will make curl_tracker_request think this is a valid request. Otherwise, it will reject it
+		// and it won't be counted.
+		auto listen_sock = fake_socket();
+		r.outgoing_socket = listen_sock;
+#endif
 		h.m_tracker_manager.queue_request(ios, std::move(r), sett);
 		TEST_CHECK(!h.m_tracker_manager.empty());
 		TEST_EQUAL(h.m_tracker_manager.num_requests(), 1);
@@ -154,8 +179,11 @@ TORRENT_TEST(empty_and_num_requests)
 	// for http+udp+ws
 	{
 		tracker_manager_handler h{ios, sett};
-
 		tracker_request r1;
+#if TORRENT_USE_CURL
+		auto listen_sock = fake_socket();
+		r1.outgoing_socket = listen_sock;
+#endif
 		r1.url = "http://tracker.com";
 		h.m_tracker_manager.queue_request(ios, std::move(r1), sett);
 		TEST_EQUAL(h.m_tracker_manager.num_requests(), 1);

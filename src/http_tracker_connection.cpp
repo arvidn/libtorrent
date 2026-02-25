@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2004-2022, Arvid Norberg
+Copyright (c) 2004-2026, Arvid Norberg
 Copyright (c) 2004, Magnus Jonsson
 Copyright (c) 2015, Mikhail Titov
 Copyright (c) 2016-2018, 2020-2021, Alden Torres
@@ -40,40 +40,20 @@ see LICENSE file.
 
 namespace libtorrent::aux {
 
-	http_tracker_connection::http_tracker_connection(
-		io_context& ios
-		, tracker_manager& man
-		, tracker_request req
-		, std::weak_ptr<request_callback> c)
-		: tracker_connection(man, std::move(req), ios, std::move(c))
-		, m_ioc(ios)
-	{}
+	std::string build_tracker_url(const tracker_request& req, session_settings const& settings, bool i2p, error_code& ec) {
+		std::string url = req.url;
 
-	void http_tracker_connection::start()
-	{
-		std::string url = tracker_req().url;
-
-		if (tracker_req().kind & tracker_request::scrape_request)
+		if (req.kind & tracker_request::scrape_request)
 		{
 			// find and replace "announce" with "scrape"
 			// in request
-
 			std::size_t pos = url.find("announce");
-			if (pos == std::string::npos)
-			{
-				fail(errors::scrape_not_available, operation_t::bittorrent);
-				return;
+			if (pos == std::string::npos) {
+				ec = errors::scrape_not_available;
+				return {};
 			}
 			url.replace(pos, 8, "scrape");
 		}
-
-#if TORRENT_USE_I2P
-		bool const i2p = is_i2p_url(url);
-#else
-		static const bool i2p = false;
-#endif
-
-		aux::session_settings const& settings = m_man.settings();
 
 		// if request-string already contains
 		// some parameters, append an ampersand instead
@@ -86,8 +66,8 @@ namespace libtorrent::aux {
 			bool const ssrf_mitigation = settings.get_bool(settings_pack::ssrf_mitigation);
 			if (ssrf_mitigation && has_tracker_query_string(string_view(url).substr(arguments_start + 1)))
 			{
-				fail(errors::ssrf_mitigation, operation_t::bittorrent);
-				return;
+				ec = errors::ssrf_mitigation;
+				return {};
 			}
 			url += "&";
 		}
@@ -97,9 +77,9 @@ namespace libtorrent::aux {
 		}
 
 		url += "info_hash=";
-		url += lt::escape_string({tracker_req().info_hash.data(), 20});
+		url += lt::escape_string({req.info_hash.data(), 20});
 
-		if (!(tracker_req().kind & tracker_request::scrape_request))
+		if (!(req.kind & tracker_request::scrape_request))
 		{
 			static aux::array<const char*, 4> const event_string{{{"completed", "started", "stopped", "paused"}}};
 
@@ -116,18 +96,18 @@ namespace libtorrent::aux {
 				"&numwant=%d"
 				"&compact=1"
 				"&no_peer_id=1"
-				, lt::escape_string({tracker_req().pid.data(), 20}).c_str()
+				, lt::escape_string({req.pid.data(), 20}).c_str()
 				// the i2p tracker seems to verify that the port is not 0,
 				// even though it ignores it otherwise
-				, tracker_req().listen_port
-				, tracker_req().uploaded
-				, tracker_req().downloaded
-				, tracker_req().left
-				, tracker_req().corrupt
-				, tracker_req().key
-				, (tracker_req().event != event_t::none) ? "&event=" : ""
-				, (tracker_req().event != event_t::none) ? event_string[static_cast<int>(tracker_req().event) - 1] : ""
-				, tracker_req().num_want);
+				, req.listen_port
+				, req.uploaded
+				, req.downloaded
+				, req.left
+				, req.corrupt
+				, req.key
+				, (req.event != event_t::none) ? "&event=" : ""
+				, (req.event != event_t::none) ? event_string[static_cast<int>(req.event) - 1] : ""
+				, req.num_want);
 			url += str;
 #if !defined TORRENT_DISABLE_ENCRYPTION
 			if (settings.get_int(settings_pack::in_enc_policy) != settings_pack::pe_disabled
@@ -137,26 +117,25 @@ namespace libtorrent::aux {
 			if (settings.get_bool(settings_pack::report_redundant_bytes))
 			{
 				url += "&redundant=";
-				url += to_string(tracker_req().redundant).data();
+				url += to_string(req.redundant).data();
 			}
-			if (!tracker_req().trackerid.empty())
+			if (!req.trackerid.empty())
 			{
 				url += "&trackerid=";
-				url += lt::escape_string(tracker_req().trackerid);
+				url += lt::escape_string(req.trackerid);
 			}
 
 #if TORRENT_USE_I2P
-			if (i2p && tracker_req().i2pconn)
+			if (i2p && req.i2pconn)
 			{
-				if (tracker_req().i2pconn->local_endpoint().empty())
+				if (req.i2pconn->local_endpoint().empty())
 				{
-					fail(errors::no_i2p_endpoint, operation_t::bittorrent
-						, "Waiting for i2p acceptor from SAM bridge", seconds32(5));
-					return;
+					ec = errors::no_i2p_endpoint;
+					return {};
 				}
 				else
 				{
-					url += "&ip=" + tracker_req().i2pconn->local_endpoint () + ".i2p";
+					url += "&ip=" + req.i2pconn->local_endpoint () + ".i2p";
 				}
 			}
 			else
@@ -171,23 +150,56 @@ namespace libtorrent::aux {
 			}
 		}
 
-		if (!tracker_req().ipv4.empty() && !i2p)
+		if (!req.ipv4.empty() && !i2p)
 		{
-			for (auto const& v4 : tracker_req().ipv4)
+			for (auto const& v4 : req.ipv4)
 			{
 				std::string const ip = v4.to_string();
 				url += "&ipv4=";
 				url += lt::escape_string(ip);
 			}
 		}
-		if (!tracker_req().ipv6.empty() && !i2p)
+		if (!req.ipv6.empty() && !i2p)
 		{
-			for (auto const& v6 : tracker_req().ipv6)
+			for (auto const& v6 : req.ipv6)
 			{
 				std::string const ip = v6.to_string();
 				url += "&ipv6=";
 				url += lt::escape_string(ip);
 			}
+		}
+
+		return url;
+	}
+
+	http_tracker_connection::http_tracker_connection(
+		io_context& ios
+		, tracker_manager& man
+		, tracker_request req
+		, std::weak_ptr<request_callback> c)
+		: tracker_connection(man, std::move(req), ios, std::move(c))
+		, m_ioc(ios)
+	{}
+
+	void http_tracker_connection::start()
+	{
+#if TORRENT_USE_I2P
+		bool const i2p = is_i2p_url(tracker_req().url);
+#else
+		static const bool i2p = false;
+#endif
+
+		auto& settings = m_man.settings();
+		error_code ec;
+		std::string url = build_tracker_url(tracker_req(), settings, i2p, ec);
+		if (ec) {
+			if (ec == errors::no_i2p_endpoint) {
+				fail(errors::no_i2p_endpoint, operation_t::bittorrent, "Waiting for i2p acceptor from SAM bridge", seconds32(5));
+			}
+			else {
+				fail(ec, operation_t::bittorrent);
+			}
+			return;
 		}
 
 		// i2p trackers don't use our outgoing sockets, they use the SAM
