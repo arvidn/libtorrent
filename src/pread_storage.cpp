@@ -281,7 +281,7 @@ namespace libtorrent::aux {
 		, storage_error& ec)
 	{
 		if (index < file_index_t(0) || index >= files().end_file()) return;
-		std::string const old_name = files().file_path(index, m_save_path);
+		std::string const old_name = m_renamed_files.file_path(files(), index, m_save_path);
 		m_pool.release(storage_index(), index);
 
 		// if the old file doesn't exist, just succeed and change the filename
