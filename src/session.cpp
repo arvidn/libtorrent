@@ -492,7 +492,7 @@ namespace {
 	TORRENT_EXPORT std::unique_ptr<disk_interface> default_disk_io_constructor(
 		io_context& ios, settings_interface const& sett, counters& cnt)
 	{
-		// TODO: Enabled this once it's stable enough
+		// TODO: Enable this once it's stable enough
 //#if TORRENT_HAVE_PREAD || defined TORRENT_WINDOWS
 //		return pread_disk_io_constructor(ios, sett, cnt);
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE

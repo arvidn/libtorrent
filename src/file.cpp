@@ -100,6 +100,16 @@ see LICENSE file.
 #include <sys/types.h> // for pwritev() and iovec
 #endif
 
+#if TORRENT_USE_SYNC_FILE_RANGE
+#include <fcntl.h> // for sync_file_range
+#elif defined TORRENT_WINDOWS
+#include "libtorrent/aux_/windows.hpp" // for FlushFileBuffers
+#elif TORRENT_HAS_FSYNC_RANGE
+#include <unistd.h> // for fsync_range
+#else
+#include <unistd.h> // for fsync
+#endif
+
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/aux_/alloca.hpp"
@@ -287,7 +297,7 @@ namespace {
 
 	void sync_file(handle_type handle, std::int64_t offset, std::int64_t len)
 	{
-#if defined TORRENT_LINUX && defined SYNC_FILE_RANGE_WRITE
+#if TORRENT_USE_SYNC_FILE_RANGE
 		::sync_file_range(handle, offset, len, SYNC_FILE_RANGE_WRITE);
 #elif defined TORRENT_WINDOWS
 		::FlushFileBuffers(handle);

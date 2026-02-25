@@ -37,16 +37,6 @@ see LICENSE file.
 #include <fcntl.h>
 #endif
 
-#if defined TORRENT_LINUX && defined SYNC_FILE_RANGE_WRITE
-#include <fcntl.h> // for sync_file_range
-#elif defined TORRENT_WINDOWS
-#include "libtorrent/aux_/windows.hpp" // for FlushFileBuffers
-#elif TORRENT_HAS_FSYNC_RANGE
-#include <unistd.h> // for fsync_range
-#else
-#include <unistd.h> // for fsync
-#endif
-
 namespace libtorrent::aux {
 
 	pread_storage::pread_storage(storage_params const& params
