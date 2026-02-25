@@ -285,15 +285,15 @@ TORRENT_VERSION_NAMESPACE_4
 		// the total rates for all peers for this torrent. These will usually
 		// have better precision than summing the rates from all peers. The rates
 		// are given as the number of bytes per second.
-		int download_rate = 0;
-		int upload_rate = 0;
+		std::int64_t download_rate = 0;
+		std::int64_t upload_rate = 0;
 
 		// the total transfer rate of payload only, not counting protocol
 		// chatter. This might be slightly smaller than the other rates, but if
 		// projected over a long time (e.g. when calculating ETA:s) the
 		// difference may be noticeable.
-		int download_payload_rate = 0;
-		int upload_payload_rate = 0;
+		std::int64_t download_payload_rate = 0;
+		std::int64_t upload_payload_rate = 0;
 
 		// the number of peers that are seeding that this client is
 		// currently connected to.

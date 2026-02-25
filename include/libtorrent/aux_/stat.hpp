@@ -34,7 +34,7 @@ namespace libtorrent::aux {
 
 		void operator+=(stat_channel const& s)
 		{
-			TORRENT_ASSERT(m_counter < (std::numeric_limits<std::int32_t>::max)() - s.m_counter);
+			TORRENT_ASSERT(m_counter < (std::numeric_limits<std::int64_t>::max)() - s.m_counter);
 			m_counter += s.m_counter;
 			TORRENT_ASSERT(m_total_counter < (std::numeric_limits<std::int64_t>::max)() - s.m_counter);
 			m_total_counter += s.m_counter;
@@ -44,7 +44,7 @@ namespace libtorrent::aux {
 		{
 			TORRENT_ASSERT(count >= 0);
 
-			TORRENT_ASSERT(m_counter < (std::numeric_limits<std::int32_t>::max)() - count);
+			TORRENT_ASSERT(m_counter < (std::numeric_limits<std::int64_t>::max)() - count);
 			m_counter += count;
 			TORRENT_ASSERT(m_total_counter < (std::numeric_limits<std::int64_t>::max)() - count);
 			m_total_counter += count;
@@ -52,8 +52,8 @@ namespace libtorrent::aux {
 
 		// should be called once every second
 		void second_tick(int tick_interval_ms);
-		std::int32_t rate() const { return m_5_sec_average; }
-		std::int32_t low_pass_rate() const { return m_5_sec_average; }
+		std::int64_t rate() const { return m_5_sec_average; }
+		std::int64_t low_pass_rate() const { return m_5_sec_average; }
 
 		std::int64_t total() const { return m_total_counter; }
 
@@ -63,7 +63,7 @@ namespace libtorrent::aux {
 			m_total_counter += c;
 		}
 
-		std::int32_t counter() const { return m_counter; }
+		std::int64_t counter() const { return m_counter; }
 
 		void clear()
 		{
@@ -78,10 +78,10 @@ namespace libtorrent::aux {
 		std::int64_t m_total_counter;
 
 		// the accumulator for this second.
-		std::int32_t m_counter;
+		std::int64_t m_counter;
 
 		// sliding average
-		std::int32_t m_5_sec_average;
+		std::int64_t m_5_sec_average;
 	};
 
 	class TORRENT_EXTRA_EXPORT stat
@@ -139,8 +139,8 @@ namespace libtorrent::aux {
 			m_stat[upload_ip_protocol].add(overhead);
 		}
 
-		int upload_ip_overhead() const { return m_stat[upload_ip_protocol].counter(); }
-		int download_ip_overhead() const { return m_stat[download_ip_protocol].counter(); }
+		std::int64_t upload_ip_overhead() const { return m_stat[upload_ip_protocol].counter(); }
+		std::int64_t download_ip_overhead() const { return m_stat[download_ip_protocol].counter(); }
 
 		// should be called once every second
 		void second_tick(int tick_interval_ms)
@@ -149,28 +149,28 @@ namespace libtorrent::aux {
 				m_stat[i].second_tick(tick_interval_ms);
 		}
 
-		int low_pass_upload_rate() const
+		std::int64_t low_pass_upload_rate() const
 		{
 			return m_stat[upload_payload].low_pass_rate()
 				+ m_stat[upload_protocol].low_pass_rate()
 				+ m_stat[upload_ip_protocol].low_pass_rate();
 		}
 
-		int low_pass_download_rate() const
+		std::int64_t low_pass_download_rate() const
 		{
 			return m_stat[download_payload].low_pass_rate()
 				+ m_stat[download_protocol].low_pass_rate()
 				+ m_stat[download_ip_protocol].low_pass_rate();
 		}
 
-		int upload_rate() const
+		std::int64_t upload_rate() const
 		{
 			return m_stat[upload_payload].rate()
 				+ m_stat[upload_protocol].rate()
 				+ m_stat[upload_ip_protocol].rate();
 		}
 
-		int download_rate() const
+		std::int64_t download_rate() const
 		{
 			return m_stat[download_payload].rate()
 				+ m_stat[download_protocol].rate()
@@ -191,9 +191,9 @@ namespace libtorrent::aux {
 				+ m_stat[download_ip_protocol].total();
 		}
 
-		int upload_payload_rate() const
+		std::int64_t upload_payload_rate() const
 		{ return m_stat[upload_payload].rate(); }
-		int download_payload_rate() const
+		std::int64_t download_payload_rate() const
 		{ return m_stat[download_payload].rate(); }
 
 		std::int64_t total_payload_upload() const
@@ -208,7 +208,7 @@ namespace libtorrent::aux {
 
 		std::int64_t total_transfer(int channel) const
 		{ return m_stat[channel].total(); }
-		int transfer_rate(int channel) const
+		std::int64_t transfer_rate(int channel) const
 		{ return m_stat[channel].rate(); }
 
 		// this is used to offset the statistics when a
@@ -220,13 +220,13 @@ namespace libtorrent::aux {
 			m_stat[upload_payload].offset(uploaded);
 		}
 
-		int last_payload_downloaded() const
+		std::int64_t last_payload_downloaded() const
 		{ return m_stat[download_payload].counter(); }
-		int last_payload_uploaded() const
+		std::int64_t last_payload_uploaded() const
 		{ return m_stat[upload_payload].counter(); }
-		int last_protocol_downloaded() const
+		std::int64_t last_protocol_downloaded() const
 		{ return m_stat[download_protocol].counter(); }
-		int last_protocol_uploaded() const
+		std::int64_t last_protocol_uploaded() const
 		{ return m_stat[upload_protocol].counter(); }
 
 		// these are the channels we keep stats for

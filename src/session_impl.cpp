@@ -3615,7 +3615,7 @@ retry:
 							++num_peers[protocol][peer_connection::upload_channel];
 					}
 
-					int const stat_rate[] = {m_stat.upload_rate(), m_stat.download_rate() };
+					std::int64_t const stat_rate[] = {m_stat.upload_rate(), m_stat.download_rate() };
 					// never throttle below this
 					int lower_limit[] = {5000, 30000};
 
@@ -5856,21 +5856,21 @@ retry:
 		s.has_incoming_connections = m_stats_counters[counters::has_incoming_connections] != 0;
 
 		// total
-		s.download_rate = m_stat.download_rate();
+		s.download_rate = static_cast<int>(m_stat.download_rate());
 		s.total_upload = m_stat.total_upload();
-		s.upload_rate = m_stat.upload_rate();
+		s.upload_rate = static_cast<int>(m_stat.upload_rate());
 		s.total_download = m_stat.total_download();
 
 		// payload
-		s.payload_download_rate = m_stat.transfer_rate(stat::download_payload);
+		s.payload_download_rate = static_cast<int>(m_stat.transfer_rate(stat::download_payload));
 		s.total_payload_download = m_stat.total_transfer(stat::download_payload);
-		s.payload_upload_rate = m_stat.transfer_rate(stat::upload_payload);
+		s.payload_upload_rate = static_cast<int>(m_stat.transfer_rate(stat::upload_payload));
 		s.total_payload_upload = m_stat.total_transfer(stat::upload_payload);
 
 		// IP-overhead
-		s.ip_overhead_download_rate = m_stat.transfer_rate(stat::download_ip_protocol);
+		s.ip_overhead_download_rate = static_cast<int>(m_stat.transfer_rate(stat::download_ip_protocol));
 		s.total_ip_overhead_download = m_stats_counters[counters::recv_ip_overhead_bytes];
-		s.ip_overhead_upload_rate = m_stat.transfer_rate(stat::upload_ip_protocol);
+		s.ip_overhead_upload_rate = static_cast<int>(m_stat.transfer_rate(stat::upload_ip_protocol));
 		s.total_ip_overhead_upload = m_stats_counters[counters::sent_ip_overhead_bytes];
 
 		// tracker
