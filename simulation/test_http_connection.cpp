@@ -598,18 +598,27 @@ void test_connection_ssl_proxy(bool const with_hostname)
 	int client_counter = 0;
 	int proxy_counter = 0;
 
-	http_proxy.register_handler("10.0.0.2:8080"
-		, [&proxy_counter, with_hostname](std::string method, std::string req, std::map<std::string, std::string>& headers)
+	std::string expected_target = with_hostname ? "test-hostname.com:8080" : "10.0.0.2:8080";
+
+	http_proxy.register_handler(expected_target
+		, [&proxy_counter, with_hostname, expected_target](std::string method, std::string req, std::map<std::string, std::string>& headers)
 		{
 			proxy_counter++;
 			TEST_EQUAL(method, "CONNECT");
+
+			// Host header is always sent to comply with RFC 9110 and RFC 9112 requirements.
+			// The send_host_in_connect setting controls the format:
+			// - true: Host header contains domain:port format
+			// - false: Host header contains ip:port format
 			if (with_hostname)
 			{
-				TEST_EQUAL(headers["host"], "10.0.0.2");
+				// When send_host_in_connect is true, Host header should contain domain:port
+				TEST_EQUAL(headers["host"], "test-hostname.com:8080");
 			}
 			else
 			{
-				TEST_CHECK(headers.empty());
+				// When send_host_in_connect is false, Host header should contain ip:port
+				TEST_EQUAL(headers["host"], "10.0.0.2:8080");
 			}
 			return sim::send_response(403, "Not supported", 1337);
 		});
@@ -635,7 +644,9 @@ void test_connection_ssl_proxy(bool const with_hostname)
 #endif
 		);
 
-	h->start("10.0.0.2", 8080, seconds(1), &ps, true /*ssl*/);
+	// Use hostname when testing with_hostname=true, IP when with_hostname=false
+	std::string target_host = with_hostname ? "test-hostname.com" : "10.0.0.2";
+	h->start(target_host, 8080, seconds(1), &ps, true /*ssl*/);
 
 	sim.run();
 
@@ -643,13 +654,17 @@ void test_connection_ssl_proxy(bool const with_hostname)
 	TEST_EQUAL(proxy_counter, 1);
 }
 
-// Requests a proxied SSL connection. This test just ensures that the correct CONNECT request
-// is sent to the proxy server.
+// Tests SSL proxy connection with send_host_in_connect=false.
+// Uses IP address for connection and Host header should contain ip:port format.
+// This verifies that the Host header is always present and contains the target IP:port.
 TORRENT_TEST(http_connection_ssl_proxy_no_hostname)
 {
 	test_connection_ssl_proxy(false);
 }
 
+// Tests SSL proxy connection with send_host_in_connect=true.
+// Uses hostname for connection and Host header should contain domain:port format.
+// This ensures proper hostname handling when send_host_in_connect is enabled.
 TORRENT_TEST(http_connection_ssl_proxy_hostname)
 {
 	test_connection_ssl_proxy(true);

@@ -22,7 +22,7 @@ class Sha1HashTest(unittest.TestCase):
 
     def test_init_str(self) -> None:
         with self.assertWarns(DeprecationWarning):
-            sha1 = lt.sha1_hash("a" * 20)  # type: ignore
+            sha1 = lt.sha1_hash("a" * 20)
         self.assertEqual(sha1.to_bytes(), b"a" * 20)
 
     def test_equal(self) -> None:

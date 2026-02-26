@@ -105,10 +105,24 @@ private:
 		// send CONNECT
 		std::back_insert_iterator<std::vector<char>> p(m_buffer);
 		std::string const endpoint = print_endpoint(m_remote_endpoint);
-		write_string("CONNECT " + endpoint + " HTTP/1.0\r\n", p);
+		// if we were given the original host (domain or IP), prefer using it (lets proxy resolve domains)
 		if (!m_host.empty())
 		{
-			write_string("Host: " + m_host + "\r\n", p);
+			std::string const remote_host = format_host_for_connect(
+				m_host,
+				m_remote_endpoint.port());
+
+			write_string("CONNECT " + remote_host + " HTTP/1.0\r\n", p);
+			// Host header is required per RFC 9110 Section 7.2 and RFC 9112 Section 3.2
+			// for HTTP/1.1 compliance, virtual host support, and proper proxy routing
+			write_string("Host: " + remote_host + "\r\n", p);
+		}
+		else
+		{
+			write_string("CONNECT " + endpoint + " HTTP/1.0\r\n", p);
+			// Host header is mandatory for all HTTP/1.1 requests per RFC 9110 Section 7.2
+			// to ensure protocol compliance, even when using IP addresses
+			write_string("Host: " + endpoint + "\r\n", p);
 		}
 		if (!m_user.empty())
 		{

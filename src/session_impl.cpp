@@ -5763,7 +5763,16 @@ retry:
 			ip.netmask = s->netmask;
 			std::strncpy(ip.name, s->device.c_str(), sizeof(ip.name) - 1);
 			ip.name[sizeof(ip.name) - 1] = '\0';
-			s->natpmp_mapper->start(ip);
+
+			std::string gateway = m_settings.get_str(settings_pack::natpmp_gateway);
+			std::optional<address> gateway_addr = std::nullopt;
+			if (!gateway.empty())
+			{
+				error_code ec;
+				gateway_addr = make_address(gateway, ec);
+				if (ec) gateway_addr.reset();
+			}
+			s->natpmp_mapper->start(ip, gateway_addr);
 		}
 	}
 

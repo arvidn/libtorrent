@@ -1,4 +1,5 @@
-import datetime
+from __future__ import annotations
+
 import os
 import pathlib
 import random
@@ -7,7 +8,7 @@ from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import Mapping
-from typing import Optional
+from typing import TYPE_CHECKING
 import unittest
 
 from typing_extensions import TypedDict
@@ -16,6 +17,11 @@ import libtorrent as lt
 
 from . import lib
 from . import tdummy
+
+if TYPE_CHECKING:
+    from libtorrent import AnnounceEndpointdict
+    from libtorrent import AnnounceEntrydict
+    from libtorrent import AnnounceInfohashdict
 
 
 class EnumTest(unittest.TestCase):
@@ -213,20 +219,6 @@ class ErrorCodeDict(TypedDict):
     category: str
 
 
-class AnnounceCommon(TypedDict):
-    message: str
-    last_error: ErrorCodeDict
-    next_announce: Optional[datetime.datetime]
-    min_announce: Optional[datetime.datetime]
-    scrape_incomplete: int
-    scrape_complete: int
-    scrape_downloaded: int
-    fails: int
-    updating: bool
-    start_sent: bool
-    complete_sent: bool
-
-
 class TrackersTest(TorrentHandleTest):
     def test_trackers(self) -> None:
         self.handle.add_tracker({"url": "http://127.1.2.3"})
@@ -235,7 +227,9 @@ class TrackersTest(TorrentHandleTest):
 
         # Various parts of the tracker stats conform to a particular status
         # layout
-        def check(entry: AnnounceCommon) -> None:
+        def check(
+            entry: AnnounceEntrydict | AnnounceEndpointdict | AnnounceInfohashdict,
+        ) -> None:
             self.assertIsInstance(entry["message"], str)
             self.assertIsInstance(entry["last_error"]["value"], int)
             self.assertIsInstance(entry["last_error"]["category"], str)
@@ -281,7 +275,11 @@ class TrackersTest(TorrentHandleTest):
         return {k: ae[k] for k in ("url", "tier", "fail_limit")}
 
     def test_add_tracker(self) -> None:
-        entry_dict = {"url": "http://127.1.2.3", "tier": 2, "fail_limit": 3}
+        entry_dict: AnnounceEntrydict = {
+            "url": "http://127.1.2.3",
+            "tier": 2,
+            "fail_limit": 3,
+        }
         self.handle.add_tracker(entry_dict)
         self.assertEqual(
             [self.get_input_entry(ae) for ae in self.handle.trackers()], [entry_dict]
@@ -304,7 +302,7 @@ class TrackersTest(TorrentHandleTest):
         with self.assertRaises(KeyError):
             self.handle.add_tracker({})
         with self.assertRaises(KeyError):
-            self.handle.replace_trackers([{}])
+            self.handle.replace_trackers([{}])  # type: ignore
 
 
 class UrlSeedTest(TorrentHandleTest):

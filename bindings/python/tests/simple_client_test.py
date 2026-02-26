@@ -8,11 +8,16 @@ import sys
 import tempfile
 import threading
 from typing import Any
+from typing import cast
+from typing import TYPE_CHECKING
 import unittest
 
 import libtorrent as lt
 
 from . import tdummy
+
+if TYPE_CHECKING:
+    from libtorrent import _Entry
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
@@ -48,10 +53,11 @@ class TestSimpleClient(unittest.TestCase):
         self.server_thread.start()
 
         # construct a .torrent to point to our web seed
-        self.tdict = dict(self.torrent.dict)
-        self.tdict[b"url-list"] = b"".join(
+        tdict = self.torrent.dict
+        tdict[b"url-list"] = b"".join(
             [b"http://", str(addr).encode(), b":", str(port).encode()]
         )
+        self.tdict = cast("_Entry", tdict)
         self.torrent_path = self.tempdir_path / "dummy.torrent"
         self.torrent_path.write_bytes(lt.bencode(self.tdict))
 

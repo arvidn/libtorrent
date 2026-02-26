@@ -211,11 +211,17 @@ class Handler(http.server.BaseHTTPRequestHandler):
         # CONNECT requests)
         host_header = self.headers.get("Host")
         if host_header:
-            self.log_message("CONNECT request with Host header: %s (target: %s:%s)",
-                             host_header, host, port)
+            self.log_message("CONNECT request: target=%s:%s, Host header=%s",
+                             host, port, host_header)
+            # Check if Host header matches CONNECT target
+            if host_header == f"{host}:{port}":
+                self.log_message("Host header matches CONNECT target")
+            else:
+                self.log_message("Host header differs from CONNECT target")
         else:
-            self.log_message("CONNECT request without Host header (target: %s:%s)",
-                             host, port)
+            self.log_error("CONNECT request rejected: missing Host header"
+                           " (required for HTTP/1.1 compliance)")
+            raise _HTTPError(400, explain="Host header required for CONNECT requests")
 
         # If require_host_header is set, reject requests without Host header
         if self.require_host_header and not host_header:
@@ -558,7 +564,6 @@ class Main:
             Handler.basic_auth = None
 
         Handler.timeout = self.args.timeout
-        Handler.require_host_header = self.args.require_host_header
 
         self.server = _ThreadingHTTPServer(self.address, Handler)
         self.server.serve_forever()
