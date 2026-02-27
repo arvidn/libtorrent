@@ -126,6 +126,15 @@ std::vector<char> generate_resume_data(torrent_info* ti
 	entry::list_type& httpseeds = rd["httpseeds"].list();
 	httpseeds.push_back(entry("http://resume_data_http_seed.com"));
 
+	entry::list_type& exact_sources = rd["exact sources"].list();
+	exact_sources.push_back(entry("http://resume_data_exact_source.com/x.torrent"));
+
+	entry::list_type& acceptable_sources = rd["acceptable sources"].list();
+	acceptable_sources.push_back(entry("http://resume_data_acceptable_source.com/x.torrent"));
+
+	entry::list_type& content_addressed_storages = rd["content-addressed storages"].list();
+	content_addressed_storages.push_back(entry("http://resume_data_content_addressed_storage.com/cas/"));
+
 #ifdef TORRENT_WINDOWS
 	rd["save_path"] = "c:\\resume_data save_path";
 #else
@@ -158,6 +167,11 @@ torrent_handle test_resume_flags(lt::session& ses
 
 		p.trackers.push_back("http://add_torrent_params_tracker.com/announce");
 		p.url_seeds.push_back("http://add_torrent_params_url_seed.com");
+		/*
+		p.exact_sources.push_back("http://add_torrent_params_exact_source.com/x.torrent");
+		p.acceptable_sources.push_back("http://add_torrent_params_acceptable_source.com/x.torrent");
+		p.content_addressed_storages.push_back("http://add_torrent_params_content_addressed_storage.com/cas/");
+		*/
 
 		p.max_uploads = 1;
 		p.max_connections = 2;
@@ -922,6 +936,9 @@ TORRENT_TEST(url_seed_resume_data_deprecated)
 		torrent_flags::merge_resume_http_seeds, "", "", true);
 	std::set<std::string> us = h.url_seeds();
 	std::set<std::string> ws = h.http_seeds();
+	std::set<std::string> xs = h.exact_sources();
+	std::set<std::string> as = h.acceptable_sources();
+	std::set<std::string> cs = h.content_addressed_storages();
 
 	TEST_EQUAL(us.size(), 3);
 	TEST_EQUAL(std::count(us.begin(), us.end()
@@ -934,6 +951,18 @@ TORRENT_TEST(url_seed_resume_data_deprecated)
 	TEST_EQUAL(ws.size(), 1);
 	TEST_EQUAL(std::count(ws.begin(), ws.end()
 		, "http://resume_data_http_seed.com"), 1);
+
+	TEST_EQUAL(xs.size(), 1);
+	TEST_EQUAL(std::count(xs.begin(), xs.end()
+		, "http://resume_data_exact_source.com/x.torrent"), 1);
+
+	TEST_EQUAL(as.size(), 1);
+	TEST_EQUAL(std::count(as.begin(), as.end()
+		, "http://resume_data_acceptable_source.com/x.torrent"), 1);
+
+	TEST_EQUAL(cs.size(), 1);
+	TEST_EQUAL(std::count(cs.begin(), cs.end()
+		, "http://resume_data_content_addressed_storage.com/cas/"), 1);
 }
 
 TORRENT_TEST(resume_override_torrent_deprecated)
@@ -945,6 +974,9 @@ TORRENT_TEST(resume_override_torrent_deprecated)
 		torrent_flags::merge_resume_trackers, "", "", true);
 	std::set<std::string> us = h.url_seeds();
 	std::set<std::string> ws = h.http_seeds();
+	std::set<std::string> xs = h.exact_sources();
+	std::set<std::string> as = h.acceptable_sources();
+	std::set<std::string> cs = h.content_addressed_storages();
 
 	TEST_EQUAL(ws.size(), 1);
 	TEST_EQUAL(std::count(ws.begin(), ws.end()
@@ -953,6 +985,18 @@ TORRENT_TEST(resume_override_torrent_deprecated)
 	TEST_EQUAL(us.size(), 1);
 	TEST_EQUAL(std::count(us.begin(), us.end()
 		, "http://resume_data_url_seed.com/"), 1);
+
+	TEST_EQUAL(xs.size(), 1);
+	TEST_EQUAL(std::count(xs.begin(), xs.end()
+		, "http://resume_data_exact_source.com/x.torrent"), 1);
+
+	TEST_EQUAL(as.size(), 1);
+	TEST_EQUAL(std::count(as.begin(), as.end()
+		, "http://resume_data_acceptable_source.com/x.torrent"), 1);
+
+	TEST_EQUAL(cs.size(), 1);
+	TEST_EQUAL(std::count(cs.begin(), cs.end()
+		, "http://resume_data_content_addressed_storage.com/cas/"), 1);
 }
 #endif
 

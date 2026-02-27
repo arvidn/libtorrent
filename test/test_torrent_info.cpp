@@ -168,6 +168,7 @@ static test_torrent_t const test_torrents[] =
 			TEST_CHECK(!ti->creation_date());
 		}
 	},
+	// TODO url_seeds exact_sources acceptable_sources content_addressed_storages
 	{ "url_seed.torrent", [](torrent_info const* ti) {
 			TEST_EQUAL(ti->web_seeds().size(), 1);
 			TEST_EQUAL(ti->web_seeds()[0].url, "http://test.com/file");

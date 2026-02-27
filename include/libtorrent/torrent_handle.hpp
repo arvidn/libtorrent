@@ -558,6 +558,24 @@ namespace aux {
 		void remove_http_seed(std::string const& url) const;
 		std::set<std::string> http_seeds() const;
 
+		// Magnet-URI Webseeding
+		// https://github.com/bittorrent/bittorrent.org/pull/171
+		void add_exact_source(std::string const& url) const;
+		void remove_exact_source(std::string const& url) const;
+		std::set<std::string> exact_sources() const;
+
+		// Magnet-URI Webseeding
+		// https://github.com/bittorrent/bittorrent.org/pull/171
+		void add_acceptable_source(std::string const& url) const;
+		void remove_acceptable_source(std::string const& url) const;
+		std::set<std::string> acceptable_sources() const;
+
+		// Magnet-URI Webseeding
+		// https://github.com/bittorrent/bittorrent.org/pull/171
+		void add_content_addressed_storage(std::string const& url) const;
+		void remove_content_addressed_storage(std::string const& url) const;
+		std::set<std::string> content_addressed_storages() const;
+
 		// add the specified extension to this torrent. The ``ext`` argument is
 		// a function that will be called from within libtorrent's context
 		// passing in the internal torrent object and the specified userdata

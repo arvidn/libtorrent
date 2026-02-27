@@ -91,7 +91,13 @@ namespace aux {
 		// http seeds are different from url seeds in the
 		// protocol they use. http seeds follows the original
 		// http seed spec. by John Hoffman
-		enum type_t { url_seed, http_seed };
+		enum type_t {
+			url_seed,
+			http_seed,
+			exact_source,
+			acceptable_source,
+			content_addressed_storage,
+		};
 
 		using headers_t = std::vector<std::pair<std::string, std::string>>;
 
@@ -317,6 +323,12 @@ TORRENT_VERSION_NAMESPACE_3
 		std::vector<std::string> url_seeds() const;
 		TORRENT_DEPRECATED
 		std::vector<std::string> http_seeds() const;
+		TORRENT_DEPRECATED
+		std::vector<std::string> exact_sources() const;
+		TORRENT_DEPRECATED
+		std::vector<std::string> acceptable_sources() const;
+		TORRENT_DEPRECATED
+		std::vector<std::string> content_addressed_storages() const;
 #endif // TORRENT_ABI_VERSION
 
 		// ``web_seeds()`` returns all url seeds and http seeds in the torrent.
@@ -343,6 +355,15 @@ TORRENT_VERSION_NAMESPACE_3
 			, std::string const& ext_auth = std::string()
 			, web_seed_entry::headers_t const& ext_headers = web_seed_entry::headers_t());
 		void add_http_seed(std::string const& url
+			, std::string const& extern_auth = std::string()
+			, web_seed_entry::headers_t const& extra_headers = web_seed_entry::headers_t());
+		void add_exact_source(std::string const& url
+			, std::string const& extern_auth = std::string()
+			, web_seed_entry::headers_t const& extra_headers = web_seed_entry::headers_t());
+		void add_acceptable_source(std::string const& url
+			, std::string const& extern_auth = std::string()
+			, web_seed_entry::headers_t const& extra_headers = web_seed_entry::headers_t());
+		void add_content_addressed_storage(std::string const& url
 			, std::string const& extern_auth = std::string()
 			, web_seed_entry::headers_t const& extra_headers = web_seed_entry::headers_t());
 		std::vector<web_seed_entry> const& web_seeds() const { return m_web_seeds; }

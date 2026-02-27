@@ -60,6 +60,12 @@ namespace {
 				atp.url_seeds.push_back(std::move(ws.url));
 			else if (ws.type == web_seed_entry::http_seed)
 				atp.http_seeds.push_back(std::move(ws.url));
+			else if (ws.type == web_seed_entry::exact_source)
+				atp.exact_sources.push_back(std::move(ws.url));
+			else if (ws.type == web_seed_entry::acceptable_source)
+				atp.acceptable_sources.push_back(std::move(ws.url));
+			else if (ws.type == web_seed_entry::content_addressed_storage)
+				atp.content_addressed_storages.push_back(std::move(ws.url));
 		}
 
 		atp.dht_nodes = std::move(drained_state.nodes);

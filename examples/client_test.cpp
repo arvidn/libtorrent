@@ -1828,6 +1828,8 @@ int main(int argc, char* argv[])
 						h.remove_http_seed(s);
 				}
 
+				// TODO exact_sources acceptable_sources content_addressed_storages
+
 				if (c == 'D' && h.is_valid())
 				{
 					torrent_status const& st = view.get_active_torrent();

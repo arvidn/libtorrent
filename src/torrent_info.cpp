@@ -1760,6 +1760,75 @@ namespace {
 			}
 		}
 
+		// if there are any exact sources, extract them
+		bdecode_node const exact_sources = torrent_file.dict_find("exact sources");
+		if (exact_sources && exact_sources.type() == bdecode_node::string_t
+			&& exact_sources.string_length() > 0)
+		{
+			m_web_seeds.emplace_back(maybe_url_encode(exact_sources.string_value().to_string())
+				, web_seed_entry::exact_source);
+		}
+		else if (exact_sources && exact_sources.type() == bdecode_node::list_t)
+		{
+			// only add a URL once
+			std::set<std::string> unique;
+			for (int i = 0, end(exact_sources.list_size()); i < end; ++i)
+			{
+				bdecode_node const url = exact_sources.list_at(i);
+				if (url.type() != bdecode_node::string_t || url.string_length() == 0) continue;
+				std::string u = maybe_url_encode(url.string_value().to_string());
+				if (!unique.insert(u).second) continue;
+				std::printf("torrent_info.cpp: parse_torrent_file exact_source %s\n", u.c_str());
+				m_web_seeds.emplace_back(std::move(u), web_seed_entry::exact_source);
+			}
+		}
+
+		// if there are any acceptable sources, extract them
+		bdecode_node const acceptable_sources = torrent_file.dict_find("acceptable sources");
+		if (acceptable_sources && acceptable_sources.type() == bdecode_node::string_t
+			&& acceptable_sources.string_length() > 0)
+		{
+			m_web_seeds.emplace_back(maybe_url_encode(acceptable_sources.string_value().to_string())
+				, web_seed_entry::acceptable_source);
+		}
+		else if (acceptable_sources && acceptable_sources.type() == bdecode_node::list_t)
+		{
+			// only add a URL once
+			std::set<std::string> unique;
+			for (int i = 0, end(acceptable_sources.list_size()); i < end; ++i)
+			{
+				bdecode_node const url = acceptable_sources.list_at(i);
+				if (url.type() != bdecode_node::string_t || url.string_length() == 0) continue;
+				std::string u = maybe_url_encode(url.string_value().to_string());
+				if (!unique.insert(u).second) continue;
+				std::printf("torrent_info.cpp: parse_torrent_file acceptable_source %s\n", u.c_str());
+				m_web_seeds.emplace_back(std::move(u), web_seed_entry::acceptable_source);
+			}
+		}
+
+		// if there are any content-addressed storages, extract them
+		bdecode_node const content_addressed_storages = torrent_file.dict_find("content-addressed storages");
+		if (content_addressed_storages && content_addressed_storages.type() == bdecode_node::string_t
+			&& content_addressed_storages.string_length() > 0)
+		{
+			m_web_seeds.emplace_back(maybe_url_encode(content_addressed_storages.string_value().to_string())
+				, web_seed_entry::content_addressed_storage);
+		}
+		else if (content_addressed_storages && content_addressed_storages.type() == bdecode_node::list_t)
+		{
+			// only add a URL once
+			std::set<std::string> unique;
+			for (int i = 0, end(content_addressed_storages.list_size()); i < end; ++i)
+			{
+				bdecode_node const url = content_addressed_storages.list_at(i);
+				if (url.type() != bdecode_node::string_t || url.string_length() == 0) continue;
+				std::string u = maybe_url_encode(url.string_value().to_string());
+				if (!unique.insert(u).second) continue;
+				std::printf("torrent_info.cpp: parse_torrent_file content_addressed_storage %s\n", u.c_str());
+				m_web_seeds.emplace_back(std::move(u), web_seed_entry::content_addressed_storage);
+			}
+		}
+
 		m_comment = torrent_file.dict_find_string_value("comment.utf-8").to_string();
 		if (m_comment.empty()) m_comment = torrent_file.dict_find_string_value("comment").to_string();
 		aux::verify_encoding(m_comment);
@@ -1823,6 +1892,24 @@ namespace {
 		return std::for_each(m_web_seeds.begin(), m_web_seeds.end()
 			, filter_web_seed_type(web_seed_entry::http_seed)).urls;
 	}
+
+	std::vector<std::string> torrent_info::exact_sources() const
+	{
+		return std::for_each(m_web_seeds.begin(), m_web_seeds.end()
+			, filter_web_seed_type(web_seed_entry::exact_source)).urls;
+	}
+
+	std::vector<std::string> torrent_info::acceptable_sources() const
+	{
+		return std::for_each(m_web_seeds.begin(), m_web_seeds.end()
+			, filter_web_seed_type(web_seed_entry::acceptable_source)).urls;
+	}
+
+	std::vector<std::string> torrent_info::content_addressed_storages() const
+	{
+		return std::for_each(m_web_seeds.begin(), m_web_seeds.end()
+			, filter_web_seed_type(web_seed_entry::content_addressed_storage)).urls;
+	}
 #endif // TORRENT_ABI_VERSION
 
 	void torrent_info::add_url_seed(std::string const& url
@@ -1838,6 +1925,33 @@ namespace {
 		, web_seed_entry::headers_t const& extra_headers)
 	{
 		m_web_seeds.emplace_back(url, web_seed_entry::http_seed
+			, auth, extra_headers);
+	}
+
+	void torrent_info::add_exact_source(std::string const& url
+		, std::string const& auth
+		, web_seed_entry::headers_t const& extra_headers)
+	{
+		std::printf("torrent_info.cpp 1931: add_exact_source %s\n", url.c_str());
+		m_web_seeds.emplace_back(url, web_seed_entry::exact_source
+			, auth, extra_headers);
+	}
+
+	void torrent_info::add_acceptable_source(std::string const& url
+		, std::string const& auth
+		, web_seed_entry::headers_t const& extra_headers)
+	{
+		std::printf("torrent_info.cpp 1940: add_acceptable_source %s\n", url.c_str());
+		m_web_seeds.emplace_back(url, web_seed_entry::acceptable_source
+			, auth, extra_headers);
+	}
+
+	void torrent_info::add_content_addressed_storage(std::string const& url
+		, std::string const& auth
+		, web_seed_entry::headers_t const& extra_headers)
+	{
+		std::printf("torrent_info.cpp 1949: add_content_addressed_storage %s\n", url.c_str());
+		m_web_seeds.emplace_back(url, web_seed_entry::content_addressed_storage
 			, auth, extra_headers);
 	}
 

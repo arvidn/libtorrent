@@ -125,6 +125,9 @@ void run_metadata_test(int flags)
 			params.trackers = p.trackers;
 			params.tracker_tiers = p.tracker_tiers;
 			params.url_seeds = p.url_seeds;
+			params.exact_sources = p.exact_sources;
+			params.acceptable_sources = p.acceptable_sources;
+			params.content_addressed_storages = p.content_addressed_storages;
 			params.info_hashes = p.info_hashes;
 			params.peers = p.peers;
 #ifndef TORRENT_DISABLE_DHT

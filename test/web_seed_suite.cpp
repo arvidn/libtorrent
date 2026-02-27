@@ -172,7 +172,14 @@ void test_transfer(lt::session& ses, std::shared_ptr<torrent_info> torrent_file
 		print_ses_rate(i / 10.f, &s, nullptr);
 		print_alerts(ses, "  >>  ses", false, false, &on_alert);
 
-		if (test_ban && th.url_seeds().empty() && th.http_seeds().empty())
+		if (
+			test_ban &&
+			th.url_seeds().empty() &&
+			th.http_seeds().empty() &&
+			th.exact_sources().empty() &&
+			th.acceptable_sources().empty() &&
+			th.content_addressed_storages().empty()
+		)
 		{
 			std::printf("testing ban: URL seed removed\n");
 			// when we don't have any web seeds left, we know we successfully banned it
@@ -210,6 +217,9 @@ void test_transfer(lt::session& ses, std::shared_ptr<torrent_info> torrent_file
 		{
 			TEST_CHECK(th.url_seeds().empty());
 			TEST_CHECK(th.http_seeds().empty());
+			TEST_CHECK(th.exact_sources().empty());
+			TEST_CHECK(th.acceptable_sources().empty());
+			TEST_CHECK(th.content_addressed_storages().empty());
 		}
 	}
 	else

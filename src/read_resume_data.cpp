@@ -351,7 +351,16 @@ namespace {
 		// the resume data though, keep the ones from the torrent
 		bdecode_node const url_list = rd.dict_find_list("url-list");
 		bdecode_node const httpseeds = rd.dict_find_list("httpseeds");
-		if (url_list || httpseeds)
+		bdecode_node const exact_sources = rd.dict_find_list("exact sources");
+		bdecode_node const acceptable_sources = rd.dict_find_list("acceptable sources");
+		bdecode_node const content_addressed_storages = rd.dict_find_list("content-addressed storages");
+		if (
+			url_list ||
+			httpseeds ||
+			exact_sources ||
+			acceptable_sources ||
+			content_addressed_storages
+		)
 		{
 			// since we found http seeds in the resume data, they should replace
 			// whatever web seeds are specified in the .torrent, by default
@@ -375,6 +384,36 @@ namespace {
 				auto url = httpseeds.list_string_value_at(i);
 				if (url.empty()) continue;
 				ret.http_seeds.push_back(url.to_string());
+			}
+		}
+
+		if (exact_sources)
+		{
+			for (int i = 0; i < exact_sources.list_size(); ++i)
+			{
+				auto url = exact_sources.list_string_value_at(i);
+				if (url.empty()) continue;
+				ret.exact_sources.push_back(url.to_string());
+			}
+		}
+
+		if (acceptable_sources)
+		{
+			for (int i = 0; i < acceptable_sources.list_size(); ++i)
+			{
+				auto url = acceptable_sources.list_string_value_at(i);
+				if (url.empty()) continue;
+				ret.acceptable_sources.push_back(url.to_string());
+			}
+		}
+
+		if (content_addressed_storages)
+		{
+			for (int i = 0; i < content_addressed_storages.list_size(); ++i)
+			{
+				auto url = content_addressed_storages.list_string_value_at(i);
+				if (url.empty()) continue;
+				ret.content_addressed_storages.push_back(url.to_string());
 			}
 		}
 

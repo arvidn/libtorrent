@@ -31,8 +31,10 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef TORRENT_WEB_PEER_CONNECTION_HPP_INCLUDED
-#define TORRENT_WEB_PEER_CONNECTION_HPP_INCLUDED
+// based on include/libtorrent/web_peer_connection.hpp
+
+#ifndef TORRENT_EXACT_SOURCE_CONNECTION_HPP_INCLUDED
+#define TORRENT_EXACT_SOURCE_CONNECTION_HPP_INCLUDED
 
 #include <ctime>
 #include <algorithm>
@@ -49,7 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	class TORRENT_EXTRA_EXPORT web_peer_connection
+	class TORRENT_EXTRA_EXPORT exact_source_connection
 		: public web_connection_base
 	{
 	friend struct invariant_access;
@@ -58,7 +60,7 @@ namespace libtorrent {
 		// this is the constructor where the we are the active part.
 		// The peer_connection should handshake and verify that the
 		// other end has the correct id
-		web_peer_connection(peer_connection_args& pack
+		exact_source_connection(peer_connection_args& pack
 			, web_seed_t& web);
 
 		void on_connected() override;
@@ -79,12 +81,15 @@ namespace libtorrent {
 
 		void write_request(peer_request const& r) override;
 
+		void send_block_requests_impl();
+
 		bool received_invalid_data(piece_index_t index, bool single_peer) override;
 
 	private:
 
 		void on_receive_padfile();
-		void incoming_payload(char const* buf, int len);
+		// void incoming_payload(char const* buf, int len);
+		void incoming_payload(span<char const> buf, int len);
 		void incoming_zeroes(int len);
 		void handle_redirect(int bytes_left);
 		void handle_error(int bytes_left);
@@ -141,9 +146,7 @@ namespace libtorrent {
 		// the number of responses we've received so far on
 		// this connection
 		int m_num_responses;
-
-		bool m_path_is_directory;
 	};
 }
 
-#endif // TORRENT_WEB_PEER_CONNECTION_HPP_INCLUDED
+#endif // TORRENT_EXACT_SOURCE_CONNECTION_HPP_INCLUDED

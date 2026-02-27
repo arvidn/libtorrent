@@ -216,6 +216,15 @@ namespace {
 		entry::list_type& httpseeds_list = ret["httpseeds"].list();
 		std::copy(atp.http_seeds.begin(), atp.http_seeds.end(), std::back_inserter(httpseeds_list));
 
+		entry::list_type& exact_sources_list = ret["exact sources"].list();
+		std::copy(atp.exact_sources.begin(), atp.exact_sources.end(), std::back_inserter(exact_sources_list));
+
+		entry::list_type& acceptable_sources_list = ret["acceptable sources"].list();
+		std::copy(atp.acceptable_sources.begin(), atp.acceptable_sources.end(), std::back_inserter(acceptable_sources_list));
+
+		entry::list_type& content_addressed_storages_list = ret["content-addressed storages"].list();
+		std::copy(atp.content_addressed_storages.begin(), atp.content_addressed_storages.end(), std::back_inserter(content_addressed_storages_list));
+
 		// write have bitmask
 		entry::string_type& pieces = ret["pieces"].string();
 		pieces.resize(aux::numeric_cast<std::size_t>(std::max(
@@ -379,6 +388,27 @@ namespace {
 			auto& httpseeds_list = ret["httpseeds"].list();
 			httpseeds_list.reserve(atp.http_seeds.size());
 			std::copy(atp.http_seeds.begin(), atp.http_seeds.end(), std::back_inserter(httpseeds_list));
+		}
+
+		if (!atp.exact_sources.empty() && !(flags & write_flags::no_http_seeds))
+		{
+			auto& exact_sources_list = ret["exact sources"].list();
+			exact_sources_list.reserve(atp.exact_sources.size());
+			std::copy(atp.exact_sources.begin(), atp.exact_sources.end(), std::back_inserter(exact_sources_list));
+		}
+
+		if (!atp.acceptable_sources.empty() && !(flags & write_flags::no_http_seeds))
+		{
+			auto& acceptable_sources_list = ret["acceptable sources"].list();
+			acceptable_sources_list.reserve(atp.acceptable_sources.size());
+			std::copy(atp.acceptable_sources.begin(), atp.acceptable_sources.end(), std::back_inserter(acceptable_sources_list));
+		}
+
+		if (!atp.content_addressed_storages.empty() && !(flags & write_flags::no_http_seeds))
+		{
+			auto& content_addressed_storages_list = ret["content-addressed storages"].list();
+			content_addressed_storages_list.reserve(atp.content_addressed_storages.size());
+			std::copy(atp.content_addressed_storages.begin(), atp.content_addressed_storages.end(), std::back_inserter(content_addressed_storages_list));
 		}
 
 		// save DHT nodes

@@ -1,5 +1,5 @@
 prefix=@CMAKE_INSTALL_PREFIX@
-libdir=${prefix}/@_INSTALL_LIBDIR@
+libdir=@_INSTALL_FULL_LIBDIR@
 
 Name: @_PROJECT_NAME@
 Description: @_PROJECT_DESCRIPTION@

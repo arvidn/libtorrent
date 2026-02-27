@@ -225,6 +225,8 @@ void run_test(
 	if (flags & tx::web_seed)
 		atp.url_seeds.emplace_back("http://2.2.2.2:8080/");
 
+	// TODO url_seeds exact_sources acceptable_sources content_addressed_storages
+
 	ses[0]->async_add_torrent(atp);
 
 	sim::timer t(sim, timeout, [&](boost::system::error_code const&)

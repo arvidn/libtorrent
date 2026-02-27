@@ -322,6 +322,7 @@ SOURCES = \
   enum_net.cpp                    \
   error_code.cpp                  \
   escape_string.cpp               \
+  exact_source_connection.cpp     \
   ffs.cpp                         \
   file.cpp                        \
   file_progress.cpp               \
@@ -456,6 +457,7 @@ HEADERS = \
   enum_net.hpp                 \
   error.hpp                    \
   error_code.hpp               \
+  exact_source_connection.hpp  \
   extensions.hpp               \
   file.hpp                     \
   file_storage.hpp             \
