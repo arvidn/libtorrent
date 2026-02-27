@@ -22,6 +22,7 @@ int settings_key(int const tag)
 		case SET_PEER_FINGERPRINT: return sp::peer_fingerprint;
 		case SET_DHT_BOOTSTRAP_NODES: return sp::dht_bootstrap_nodes;
 		case SET_WEBTORRENT_STUN_SERVER: return sp::webtorrent_stun_server;
+		case SET_NATPMP_GATEWAY: return sp::natpmp_gateway;
 		case SET_ALLOW_MULTIPLE_CONNECTIONS_PER_IP: return sp::allow_multiple_connections_per_ip;
 		case SET_SEND_REDUNDANT_HAVE: return sp::send_redundant_have;
 		case SET_USE_DHT_AS_FALLBACK: return sp::use_dht_as_fallback;

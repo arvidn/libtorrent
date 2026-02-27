@@ -129,31 +129,34 @@ natpmp::natpmp(io_context& ios
 	m_mappings.reserve(10);
 }
 
-void natpmp::start(aux::ip_interface const& ip)
+void natpmp::start(aux::ip_interface const& ip, std::optional<address> const& gateway)
 {
 	TORRENT_ASSERT(is_single_thread());
 
 	// assume servers support PCP and fall back to NAT-PMP
 	// if necessary
 	m_version = version_pcp;
-
+	error_code ec;
 	address const& local_address = ip.interface_address;
 
-	error_code ec;
-	auto const routes = enum_routes(m_ioc, ec);
-	if (ec)
+	std::optional<address> route = gateway;
+	if (!route)
 	{
-#ifndef TORRENT_DISABLE_LOGGING
-		if (should_log())
+		auto const routes = enum_routes(m_ioc, ec);
+		if (ec)
 		{
-			log("failed to enumerate routes: %s"
-				, ec.message().c_str());
+	#ifndef TORRENT_DISABLE_LOGGING
+			if (should_log())
+			{
+				log("failed to enumerate routes: %s"
+					, ec.message().c_str());
+			}
+	#endif
+			disable(ec);
 		}
-#endif
-		disable(ec);
-	}
 
-	auto const route = get_gateway(ip, routes);
+		route = get_gateway(ip, routes);
+	}
 
 	if (!route)
 	{

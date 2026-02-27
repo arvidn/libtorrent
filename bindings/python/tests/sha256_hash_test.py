@@ -22,7 +22,7 @@ class Sha256HashTest(unittest.TestCase):
 
     def test_init_str_deprecated(self) -> None:
         with self.assertWarns(DeprecationWarning):
-            sha256 = lt.sha256_hash("a" * 32)  # type: ignore
+            sha256 = lt.sha256_hash("a" * 32)
         self.assertEqual(sha256, lt.sha256_hash(b"a" * 32))
 
     def test_equal(self) -> None:

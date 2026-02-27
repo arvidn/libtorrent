@@ -2,14 +2,22 @@ import contextlib
 import os
 import tempfile
 from typing import AnyStr
+from typing import cast
 from typing import Iterator
 from typing import List
+from typing import TYPE_CHECKING
 import unittest
 import unittest.mock
 
 import libtorrent as lt
 
 from . import lib
+
+if TYPE_CHECKING:
+    from libtorrent import TorrentFileDict
+    from libtorrent import TorrentFileInfoDict
+else:
+    TorrentFileDict = dict
 
 
 class EnumTest(unittest.TestCase):
@@ -91,7 +99,7 @@ class FileStorageTest(unittest.TestCase):
 
         fs = lt.file_storage()
         with self.assertWarns(DeprecationWarning):
-            fs.add_file(  # type: ignore
+            fs.add_file(
                 os.path.join("path", "file.txt"),
                 1024,
                 linkpath=b"other.txt",
@@ -293,14 +301,16 @@ class FileStorageTest(unittest.TestCase):
 
 class CreateTorrentTest(unittest.TestCase):
     def test_init_torrent_info(self) -> None:
-        entry = {
-            b"info": {
-                b"name": b"test.txt",
-                b"piece length": 16384,
-                b"pieces": lib.get_random_bytes(20),
-                b"length": 1024,
+        entry = TorrentFileDict(
+            {
+                b"info": {
+                    b"name": b"test.txt",
+                    b"piece length": 16384,
+                    b"pieces": lib.get_random_bytes(20),
+                    b"length": 1024,
+                }
             }
-        }
+        )
         ti = lt.torrent_info(entry)
         with self.assertWarns(DeprecationWarning):
             ct = lt.create_torrent(ti)
@@ -348,7 +358,7 @@ class CreateTorrentTest(unittest.TestCase):
         ct = lt.create_torrent(fs)
         ct.set_hash(0, lib.get_random_bytes(20))
         entry = ct.generate()
-        self.assertEqual(len(entry[b"info"][b"files"]), 1)
+        self.assertEqual(len(cast("TorrentFileInfoDict", entry[b"info"])[b"files"]), 1)
 
     def test_files2(self) -> None:
         fs = [lt.create_file_entry(os.path.join("path", "test1.txt"), 1024)]
@@ -358,7 +368,7 @@ class CreateTorrentTest(unittest.TestCase):
         ct.set_hash(1, lib.get_random_bytes(20))
         entry = ct.generate()
         # there are 2 pad-files
-        self.assertEqual(len(entry[b"info"][b"files"]), 4)
+        self.assertEqual(len(cast("TorrentFileInfoDict", entry[b"info"])[b"files"]), 4)
 
     def test_comment(self) -> None:
         fs = [lt.create_file_entry("test1.txt", 1024)]

@@ -4,13 +4,29 @@ import socket
 import sys
 import tempfile
 from typing import Any
+from typing import cast
 from typing import Dict
+from typing import TYPE_CHECKING
 import unittest
 
 import libtorrent as lt
 
 from . import lib
 from . import tdummy
+
+if TYPE_CHECKING:
+    from libtorrent import _Entry
+    from libtorrent import AddTorrentParamsdict
+    from libtorrent import load_torrent_limits
+    from libtorrent import settings_pack
+    from libtorrent import TorrentFileDict
+else:
+    AddTorrentParamsdict, TorrentFileDict, load_torrent_limits, settings_pack = (
+        dict,
+        dict,
+        dict,
+        dict,
+    )
 
 
 class ReadWriteSessionParamsTest(unittest.TestCase):
@@ -151,7 +167,7 @@ class SessionParamsTest(unittest.TestCase):
         params = lt.session_params()
         self.assertEqual(params.dht_state, lt.dht_state())
         state = lt.dht_state()
-        state.nodes = [("127.0.0.1", 1234)]
+        state.nodes = [("127.0.0.1", 1234)]  # type: ignore[misc]
         params.dht_state = state
         self.assertEqual(params.dht_state, state)
 
@@ -159,7 +175,7 @@ class SessionParamsTest(unittest.TestCase):
     def test_dht_state_reference(self) -> None:
         params = lt.session_params()
         self.assertEqual(params.dht_state, lt.dht_state())
-        params.dht_state.nodes = [("127.0.0.1", 1234)]
+        params.dht_state.nodes = [("127.0.0.1", 1234)]  # type: ignore[misc]
         self.assertEqual(params.dht_state.nodes, [("127.0.0.1", 1234)])
 
 
@@ -173,30 +189,30 @@ class DhtStateTest(unittest.TestCase):
         a = lt.dht_state()
         b = lt.dht_state()
         self.assertEqual(a, b)
-        a.nodes = [("127.0.0.1", 1234)]
+        a.nodes = [("127.0.0.1", 1234)]  # type: ignore[misc]
         self.assertNotEqual(a, b)
-        b.nodes = [("127.0.0.1", 1234)]
+        b.nodes = [("127.0.0.1", 1234)]  # type: ignore[misc]
         self.assertNotEqual(a, b)
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/6140")
     def test_nids(self) -> None:
         state = lt.dht_state()
         self.assertEqual(state.nids, [])
-        state.nids = [("127.0.0.1", lt.sha1_hash(b"a" * 20))]
+        state.nids = [("127.0.0.1", lt.sha1_hash(b"a" * 20))]  # type: ignore[misc]
         self.assertEqual(state.nids, [("127.0.0.1", lt.sha1_hash(b"a" * 20))])
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/6140")
     def test_nodes(self) -> None:
         state = lt.dht_state()
         self.assertEqual(state.nodes, [])
-        state.nodes = [("127.0.0.1", 1234)]
+        state.nodes = [("127.0.0.1", 1234)]  # type: ignore[misc]
         self.assertEqual(state.nodes, [("127.0.0.1", 1234)])
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/6140")
     def test_nodes6(self) -> None:
         state = lt.dht_state()
         self.assertEqual(state.nodes6, [])
-        state.nodes6 = [("::1", 1234)]
+        state.nodes6 = [("::1", 1234)]  # type: ignore[misc]
         self.assertEqual(state.nodes6, [("::1", 1234)])
 
 
@@ -788,29 +804,31 @@ class ResumeDataTest(unittest.TestCase):
         atp = lt.add_torrent_params()
         buf = lt.write_resume_data_buf(atp)
         with self.assertRaises(RuntimeError):
-            lt.read_resume_data(buf, {"max_decode_depth": 1})
+            lt.read_resume_data(buf, load_torrent_limits({"max_decode_depth": 1}))
 
     def test_limit_decode_tokens(self) -> None:
         atp = lt.add_torrent_params()
         buf = lt.write_resume_data_buf(atp)
         with self.assertRaises(RuntimeError):
-            lt.read_resume_data(buf, {"max_decode_tokens": 1})
+            lt.read_resume_data(buf, load_torrent_limits({"max_decode_tokens": 1}))
 
     def test_limit_pieces(self) -> None:
         atp = lt.add_torrent_params()
         atp.ti = lt.torrent_info(
-            {
-                b"info": {
-                    b"name": b"test.txt",
-                    b"length": 1234000,
-                    b"piece length": 16384,
-                    b"pieces": b"aaaaaaaaaaaaaaaaaaaa" * (1234000 // 16384 + 1),
+            TorrentFileDict(
+                {
+                    b"info": {
+                        b"name": b"test.txt",
+                        b"length": 1234000,
+                        b"piece length": 16384,
+                        b"pieces": b"aaaaaaaaaaaaaaaaaaaa" * (1234000 // 16384 + 1),
+                    }
                 }
-            }
+            )
         )
         buf = lt.write_resume_data_buf(atp)
         with self.assertRaises(RuntimeError):
-            lt.read_resume_data(buf, {"max_pieces": 1})
+            lt.read_resume_data(buf, load_torrent_limits({"max_pieces": 1}))
 
 
 class ConstructorTest(unittest.TestCase):
@@ -842,9 +860,9 @@ class ConstructorTest(unittest.TestCase):
 
     def test_invalid_settings(self) -> None:
         with self.assertRaises(TypeError):
-            lt.session({"alert_mask": "not-an-int"})
+            lt.session({"alert_mask": "not-an-int"})  # type: ignore[call-overload]
         with self.assertRaises(KeyError):
-            lt.session({"not-a-setting": 123})
+            lt.session({"not-a-setting": 123})  # type: ignore[call-overload]
 
     def test_predefined_settings_packs(self) -> None:
         session = lt.session(lt.default_settings())
@@ -924,7 +942,7 @@ class DhtTest(unittest.TestCase):
         )
         self.assertIsInstance(self.session.dht_put_immutable_item(12345), lt.sha1_hash)
         self.assertIsInstance(
-            self.session.dht_put_immutable_item({b"a": 1}), lt.sha1_hash
+            self.session.dht_put_immutable_item(cast("_Entry", {b"a": 1})), lt.sha1_hash
         )
         self.assertIsInstance(
             self.session.dht_put_immutable_item([1, 2, 3]), lt.sha1_hash
@@ -963,13 +981,13 @@ class DhtTest(unittest.TestCase):
         with self.assertWarns(DeprecationWarning):
             self.session.set_dht_settings(dht_settings)
         with self.assertWarns(DeprecationWarning):
-            self.session.dht_get_mutable_item("a" * 32, "salt")  # type: ignore
+            self.session.dht_get_mutable_item("a" * 32, "salt")
         with self.assertWarns(DeprecationWarning):
             self.session.dht_put_mutable_item(
-                "a" * 64,  # type: ignore
-                "b" * 32,  # type: ignore
-                "data",  # type: ignore
-                "salt",  # type: ignore
+                "a" * 64,
+                "b" * 32,
+                "data",
+                "salt",
             )
 
     def test_dht_lookup(self) -> None:
@@ -1176,12 +1194,12 @@ class AddTorrentTest(unittest.TestCase):
     def test_dict_deprecated(self) -> None:
         with self.assertWarns(DeprecationWarning):
             atp = {"save_path": ".", "ti": self.torrent.torrent_info()}
-            self.session.add_torrent(atp)
+            self.session.add_torrent(atp)  # type: ignore
         with self.assertWarns(DeprecationWarning):
             atp = {"save_path": ".", "ti": self.torrent.torrent_info()}
-            self.session.async_add_torrent(atp)
+            self.session.async_add_torrent(atp)  # type: ignore
 
-    def do_test_dict(self, params: Dict[str, Any]) -> lt.torrent_handle:
+    def do_test_dict(self, params: AddTorrentParamsdict) -> lt.torrent_handle:
         with self.assertWarns(DeprecationWarning):
             self.session.async_add_torrent(params)
         with self.assertWarns(DeprecationWarning):
@@ -1192,22 +1210,24 @@ class AddTorrentTest(unittest.TestCase):
 
     def test_dict(self) -> None:
         ti = self.torrent.torrent_info()
-        atp = {
-            "ti": ti,
-            "info_hashes": ti.info_hashes().v1.to_bytes(),
-            "save_path": self.dir.name,
-            "storage_mode": lt.storage_mode_t.storage_mode_allocate,
-            "trackers": ["http://127.1.2.1/tr"],
-            "url_seeds": ["http://127.1.2.2/us"],
-            "http_seeds": ["http://127.1.2.3/hs"],
-            "dht_nodes": [("127.1.2.4", 1234)],
-            "banned_peers": [("127.1.2.5", 1234)],
-            "peers": [("127.1.2.6", 1234)],
-            "flags": lt.torrent_flags.sequential_download,
-            "trackerid": "trackerid",
-            "renamed_files": {0: "renamed.txt"},
-            "file_priorities": [2],
-        }
+        atp = AddTorrentParamsdict(
+            {
+                "ti": ti,
+                "info_hashes": ti.info_hashes().v1.to_bytes(),
+                "save_path": self.dir.name,
+                "storage_mode": lt.storage_mode_t.storage_mode_allocate,
+                "trackers": ["http://127.1.2.1/tr"],
+                "url_seeds": ["http://127.1.2.2/us"],
+                "http_seeds": ["http://127.1.2.3/hs"],
+                "dht_nodes": [("127.1.2.4", 1234)],
+                "banned_peers": [("127.1.2.5", 1234)],
+                "peers": [("127.1.2.6", 1234)],
+                "flags": lt.torrent_flags.sequential_download,
+                "trackerid": "trackerid",
+                "renamed_files": {0: "renamed.txt"},
+                "file_priorities": [2],
+            }
+        )
 
         if lt.api_version < 4:
             atp["info_hash"] = ti.info_hashes().v1.to_bytes()
@@ -1238,7 +1258,9 @@ class AddTorrentTest(unittest.TestCase):
         self.assertEqual(handle.get_file_priorities(), [2])
 
     def test_dict_no_torrent_info_old(self) -> None:
-        self.do_test_dict({"info_hashes": b"a" * 20, "save_path": self.dir.name})
+        self.do_test_dict(
+            AddTorrentParamsdict({"info_hashes": b"a" * 20, "save_path": self.dir.name})
+        )
 
     def test_no_torrent_info_old(self) -> None:
         atp = lt.add_torrent_params()
@@ -1249,20 +1271,26 @@ class AddTorrentTest(unittest.TestCase):
     def test_dict_name(self) -> None:
         # This can only be tested *without* torrent info
         handle = self.do_test_dict(
-            {"info_hashes": b"a" * 20, "save_path": self.dir.name, "name": "test-name"}
+            AddTorrentParamsdict(
+                {
+                    "info_hashes": b"a" * 20,
+                    "save_path": self.dir.name,
+                    "name": "test-name",
+                }
+            )
         )
 
         self.assertEqual(handle.status().name, "test-name")
 
     def test_dict_no_torrent_info_sha1(self) -> None:
         handle = self.do_test_dict(
-            {"info_hashes": b"a" * 20, "save_path": self.dir.name}
+            AddTorrentParamsdict({"info_hashes": b"a" * 20, "save_path": self.dir.name})
         )
         self.assertEqual(handle.info_hashes().v1.to_bytes(), b"a" * 20)
 
     def test_dict_no_torrent_info_sha256(self) -> None:
         handle = self.do_test_dict(
-            {"info_hashes": b"a" * 32, "save_path": self.dir.name}
+            AddTorrentParamsdict({"info_hashes": b"a" * 32, "save_path": self.dir.name})
         )
 
         self.assertEqual(handle.info_hashes().v2.to_bytes(), b"a" * 32)
@@ -1270,10 +1298,10 @@ class AddTorrentTest(unittest.TestCase):
     def test_dict_errors(self) -> None:
         with self.assertWarns(DeprecationWarning):
             with self.assertRaises(KeyError):
-                self.session.add_torrent({"invalid-key": None})
+                self.session.add_torrent({"invalid-key": None})  # type: ignore
         with self.assertWarns(DeprecationWarning):
             with self.assertRaises(KeyError):
-                self.session.async_add_torrent({"invalid-key": None})
+                self.session.async_add_torrent({"invalid-key": None})  # type: ignore
 
     def test_errors(self) -> None:
         atp = self.torrent.atp()
@@ -1421,9 +1449,8 @@ class SettingsTest(unittest.TestCase):
     def setUp(self) -> None:
         self.session = lt.session(lib.get_isolated_settings())
 
-    def do_test_settings_pack(self, settings: Dict[str, Any]) -> None:
-        settings = {**settings, **lib.get_isolated_settings()}
-        self.session.apply_settings(settings)
+    def do_test_settings_pack(self, settings: settings_pack) -> None:
+        self.session.apply_settings({**settings, **lib.get_isolated_settings()})
 
     def test_settings_packs(self) -> None:
         self.do_test_settings_pack(lt.default_settings())
@@ -1678,7 +1705,7 @@ class ExtensionTest(unittest.TestCase):
         self.session.add_extension(lt.create_ut_pex_plugin)
 
         # Should not raise an error
-        self.session.add_extension("does-not-exist")
+        self.session.add_extension("does-not-exist")  # type: ignore
 
         # TODO: can we test whether extensions are loaded?
 
