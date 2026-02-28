@@ -17,12 +17,13 @@ jobs:
 
    test:
       name: Tests
-      runs-on: macos-14
+      runs-on: ${{ matrix.os }}
       continue-on-error: true
 
       strategy:
          matrix:
             config: [ crypto=built-in, deprecated-functions=off ]
+            os: ["macos-15-intel", "macos-26-intel", "macos-15", "macos-26"]
 
       steps:
       - name: checkout
@@ -57,7 +58,11 @@ jobs:
 
    sim:
       name: Simulations
-      runs-on: macos-14
+      runs-on: ${{ matrix.os }}
+
+      strategy:
+         matrix:
+            os: ["macos-15-intel", "macos-26-intel", "macos-15", "macos-26"]
 
       steps:
       - name: checkout
@@ -86,12 +91,13 @@ jobs:
 
    build:
       name: Build
-      runs-on: macos-14
+      runs-on: ${{ matrix.os }}
       continue-on-error: true
 
       strategy:
          matrix:
             config: [ crypto=built-in, release ]
+            os: ["macos-15-intel", "macos-26-intel", "macos-15", "macos-26"]
 
       steps:
       - name: checkout
@@ -119,8 +125,12 @@ jobs:
 
    ios_build:
       name: Build iOS
-      runs-on: macos-14
+      runs-on: ${{ matrix.os }}
       continue-on-error: true
+
+      strategy:
+         matrix:
+            os: ["macos-15-intel", "macos-26-intel", "macos-15", "macos-26"]
 
       steps:
       - name: checkout
