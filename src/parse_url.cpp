@@ -153,6 +153,18 @@ exit:
 		return std::make_tuple(std::move(base), std::move(path));
 	}
 
+	exploded_url::exploded_url(string_view url, error_code& ec)
+	{
+		auto [protocol, auth, hostname, port, path]
+			= parse_url_components(url, ec);
+
+		m_protocol = std::move(protocol);
+		m_auth     = std::move(auth);
+		m_hostname = std::move(hostname);
+		m_port	   = port;
+		m_path	   = std::move(path);
+	}
+
 	TORRENT_EXTRA_EXPORT bool is_idna(string_view hostname)
 	{
 		for (;;)

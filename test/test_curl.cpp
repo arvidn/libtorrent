@@ -32,9 +32,9 @@ size_t ignore_data_cb(char* /*ptr*/,
 	return nmemb;
 }
 
-std::unique_ptr<curl_request> create_request(const std::string& url)
+std::unique_ptr<curl_request> create_request(const io_context::executor_type& executor, const std::string& url)
 {
-	auto request = std::make_unique<curl_request>(megabyte_buffer);
+	auto request = std::make_unique<curl_request>(megabyte_buffer, executor);
 	request->set_defaults();
 	request->set_private_data(&request);
 	request->set_timeout(seconds32(15));
@@ -47,9 +47,10 @@ template<typename F>
 void get_url(const std::string& url, F&& on_complete)
 {
 	curl_global_initializer raii;
-	auto request = create_request(url);
 
 	io_context ios;
+	auto request = create_request(ios.get_executor(), url);
+
 	curl_pool pool(ios.get_executor());
 	CURLcode resultcode = CURL_LAST;
 	pool.set_completion_callback([&resultcode](CURL*, CURLcode code) {
@@ -91,12 +92,12 @@ TORRENT_TEST(curl_connection_reuse)
 	int const http_port = start_web_server();
 	const std::string url = std::string("http://127.0.0.1:") + std::to_string(http_port) + "/10MiB";
 
+	io_context ios;
 	std::array requests = {
-		create_request(url),
-		create_request(url)
+		create_request(ios.get_executor(), url),
+		create_request(ios.get_executor(), url)
 	};
 
-	io_context ios;
 	curl_pool pool(ios.get_executor());
 
 	for (auto& entry : requests)
@@ -135,7 +136,7 @@ TORRENT_TEST(curl_parallel)
 	std::vector<std::unique_ptr<curl_request>> requests = {};
 	for (int i = 0; i < 30; ++i)
 	{
-		auto r = create_request(url);
+		auto r = create_request(ios.get_executor(), url);
 		r->set_pipewait(false);
 		pool.add_request(r->handle());
 		requests.push_back(std::move(r));

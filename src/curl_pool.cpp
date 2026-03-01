@@ -31,7 +31,7 @@ void check_multi_returncode(CURLMcode result, string_view context)
 		// our control. At best the pool can be recreated once an error occurs, which seems superfluous for hardening
 		// against programming errors.
 
-		// This will most likely lead to program termination, which is fine as long as it is logged
+		// This will most likely lead to program termination, which is fine as long as it is logged.
 		throw_ex<std::runtime_error>(message);
 	}
 }
@@ -132,18 +132,14 @@ curl_pool::curl_pool(const executor_type& executor)
 		return static_cast<curl_pool*>(pool)->set_timeout(timeout_ms);
 	});
 
-	// conservative initial limit that is used before the HTTP OPTION frame negotiation takes place
-	setopt(CURLMOPT_MAX_CONCURRENT_STREAMS, 5l);
+	// CURLMOPT_MAX_CONCURRENT_STREAMS is 100 by default, this is a global upper limit. A server negotiates their own limit
+	// using OPTION frames, until that happens the connection specific limit is 1.
 
-	// for HTTP/2, using a single connection is enough because there can be many concurrent streams
-	// for HTTP/1.1 with connection reuse it could make sense to set this to 2 and always have 1 request in flight.
-	// However, reusing a single connection with HTTP/1.1 is good enough.
-	//
-	// If this is set to anything higher than 1 it will create multiple connections instead of queuing for the
-	// reusable connection to become available. For servers that don't allow reuse, the "boost http implementation" creates
-	// multiple parallel connections, whereas this curl implementation only allows 1. Which is a performance degradation
-	// in that scenario.
-	setopt(CURLMOPT_MAX_HOST_CONNECTIONS, 1l);
+	// Libtorrent uses multiple independent connections to the same host. With CURLMOPT_MAX_HOST_CONNECTIONS set to 1,
+	// all independent connections need to wait for the first connection to close.  Which might never happen for
+	// persistent connections. Therefore, it can't be used.
+	// TODO: add new option to curl to properly control queueing and remove this line.
+	// setopt(CURLMOPT_MAX_HOST_CONNECTIONS, 1l);
 
 	// Note on asio behavior: when m_requests is empty this class will cease all asio activity. Allowing the asio
 	// thread to cleanly shutdown if necessary.
@@ -161,7 +157,7 @@ curl_pool::~curl_pool()
 {
 	// The curl_multi_cleanup destructor is allowed to:
 	// - update m_sockets with update_socket(event, socket)
-	// It's probably a good to destroy it manually in order for these callbacks to be run while the class object is
+	// It's probably a good to destroy it manually in order for this callbacks to be run while the class object is
 	// still valid.
 	//
 	// Note that it can't be a unique_ptr:
@@ -196,7 +192,7 @@ void curl_pool::socket_event(curl_boost_socket& socket, curl_cselect_t event)
 
 void curl_pool::process_socket_action(curl_socket_t native_socket, curl_cselect_t event)
 {
-	int running_handles = 0; // also counts curl internal handles
+	int running_handles = 0; // includes curl internal handles
 
 	// note: curl completely ignores the "event" parameter internally
 	auto result = curl_multi_socket_action(handle(), native_socket, static_cast<int>(event), &running_handles);
@@ -210,10 +206,9 @@ void curl_pool::process_completed_requests()
 	int msgs_in_queue = 0;
 	while (CURLMsg* msg = curl_multi_info_read(handle(), &msgs_in_queue))
 	{
-		// verify that CURLMSG_DONE is the only possible value
-		static_assert((CURLMSG_NONE + 1 == CURLMSG_DONE) && (CURLMSG_DONE == CURLMSG_LAST - 1));
+		TORRENT_ASSERT(msg->easy_handle);
 		// The easy_handle belongs to one of our requests, curl does not put internal easy_handles on the message queue
-		if (m_completion_handler)
+		if (msg->msg == CURLMSG_DONE && m_completion_handler)
 			m_completion_handler(msg->easy_handle, msg->data.result);
 	}
 }
@@ -222,13 +217,21 @@ void curl_pool::add_request(CURL* request)
 {
 	auto result = curl_multi_add_handle(handle(), request);
 	check_multi_returncode(result, "curl_multi_add_handle");
-	// curl will have started a timeout of 0ms inside `curl_multi_add_handle` to process this new handle
+	// curl creates a timeout of 0ms inside `curl_multi_add_handle` to process this new handle
 }
 
 void curl_pool::remove_request(CURL* request)
 {
 	auto result = curl_multi_remove_handle(handle(), request);
 	check_multi_returncode(result, "curl_multi_remove_handle");
+	// curl creates a timeout of 0ms inside `curl_multi_remove_handle` to process any queued items (if needed).
+
+	// workaround for https://github.com/curl/curl/pull/20502 fixed in 8.19.0
+	static bool missing_timer_bug = curl_version_lower_than(0x081300);
+	if (missing_timer_bug)
+	{
+		set_timeout(0);
+	}
 }
 
 curl_boost_socket& curl_pool::add_socket(std::unique_ptr<curl_boost_socket> socket) noexcept
@@ -251,15 +254,13 @@ int curl_pool::set_timeout(const long timeout_ms) noexcept
 			m_timer.cancel();
 			return 0;
 		}
-		// note: `expires_after` cancels older timers
+		// depending on expires_after to cancel older timers
 		m_timer.expires_after(std::chrono::milliseconds(timeout_ms));
 		ADD_OUTSTANDING_ASYNC("curl_pool::set_timeout");
 		m_timer.async_wait([this](const error_code& ec) {
 			COMPLETE_ASYNC("curl_pool::set_timeout");
 			if (ec == error::operation_aborted)
 				return;
-			// Even if an unexpected ec is set, curl should be triggered to keep the processing flow alive. The only
-			// way curl is invoked is through the timer and read/write events.
 			process_socket_action();
 		});
 	}

@@ -36,6 +36,12 @@ public:
 	// May call completion handler for easy handles before it returns (which may delete or remove them).
 	void socket_event(curl_boost_socket& socket, curl_cselect_t event);
 
+	// Default argument CURL_SOCKET_TIMEOUT can be used on timeouts but can also
+	// be used to kickstart the processing of newly added handles
+	// May call destructor of sockets before it returns
+	// May call completion handler for easy handles before it returns (which may delete or remove them)
+	void process_socket_action(curl_socket_t native_socket = CURL_SOCKET_TIMEOUT, curl_cselect_t event = curl_cselect_t::none);
+
 	void add_request(CURL*);
 	void remove_request(CURL*);
 
@@ -45,6 +51,7 @@ public:
 	using completion_handler_t = std::function<void(CURL*, CURLcode)>;
 	// completion-handler is not allowed to call curl_pool recursively
 	void set_completion_callback(completion_handler_t cb) { m_completion_handler = std::move(cb); }
+	void set_reuse_wait_callback(curl_reuse_wait_callback cb, void* data = nullptr);
 
 	[[nodiscard]] executor_type get_executor() const noexcept { return m_executor; }
 private:
@@ -58,12 +65,6 @@ private:
 	void setopt(CURLMoption option, T value);
 
 	int set_timeout(long timeout_ms) noexcept;
-
-	// Default argument CURL_SOCKET_TIMEOUT can be used on timeouts but can also
-	// be used to kickstart the processing of newly added handles
-	// May call destructor of sockets before it returns
-	// May call completion handler for easy handles before it returns (which may delete or remove them)
-	void process_socket_action(curl_socket_t native_socket = CURL_SOCKET_TIMEOUT, curl_cselect_t event = curl_cselect_t::none);
 
 	static int update_socket_shim(CURL* /* easy_handle */,
 							curl_socket_t native_socket,

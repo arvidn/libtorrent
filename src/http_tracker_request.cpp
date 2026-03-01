@@ -14,7 +14,7 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
-#include "libtorrent/aux_/http_tracker_request_common.hpp"
+#include "libtorrent/aux_/http_tracker_request.hpp"
 
 #include <string>
 #include <list>
@@ -28,11 +28,14 @@ see LICENSE file.
 #include "libtorrent/aux_/string_util.hpp"
 #include "libtorrent/aux_/tracker_manager.hpp"
 #include "libtorrent/i2p_stream.hpp"
+#include "libtorrent/ip_filter.hpp"
 #include "libtorrent/string_view.hpp"
 
 namespace libtorrent::aux {
 
-http_tracker_request_common::error_type http_tracker_request_common::validate_socket(bool i2p) const
+using error_type = http_tracker_request::error_type;
+
+error_type http_tracker_request::validate_socket(bool i2p) const
 {
 	// i2p trackers don't use our outgoing sockets, they use the SAM connection
 	if (!i2p && !m_params.outgoing_socket)
@@ -43,7 +46,7 @@ http_tracker_request_common::error_type http_tracker_request_common::validate_so
 	return {};
 }
 
-std::string http_tracker_request_common::get_user_agent() const
+std::string http_tracker_request::get_user_agent() const
 {
 	// in anonymous mode we omit the user agent to mitigate fingerprinting of
 	// the client. Private torrents is an exception because some private
@@ -55,7 +58,7 @@ std::string http_tracker_request_common::get_user_agent() const
 		: m_settings.get_str(settings_pack::user_agent);
 }
 
-seconds32 http_tracker_request_common::get_timeout() const
+seconds32 http_tracker_request::get_timeout() const
 {
 	const auto timeout = m_params.event == event_t::stopped
 		? m_settings.get_int(settings_pack::stop_tracker_timeout)
@@ -63,7 +66,7 @@ seconds32 http_tracker_request_common::get_timeout() const
 	return seconds32{timeout};
 }
 
-http_tracker_request_common::error_type http_tracker_request_common::process_response(
+error_type http_tracker_request::process_response(
 	request_callback& cb,
 	const address& tracker_ip,
 	const std::list<address>& ip_list,
@@ -102,13 +105,13 @@ http_tracker_request_common::error_type http_tracker_request_common::process_res
 }
 
 #ifndef TORRENT_DISABLE_LOGGING
-void http_tracker_request_common::log_request(request_callback& cb, const std::string& url) const
+void http_tracker_request::log_request(request_callback& cb, const std::string& url) const
 {
 	cb.debug_log("==> TRACKER_REQUEST [ url: %s ]", url.c_str());
 }
 #endif
 
-std::string http_tracker_request_common::build_tracker_url(bool i2p, error_type& error) const
+std::string http_tracker_request::build_tracker_url(bool i2p, error_type& error) const
 {
 	std::string url = m_params.url;
 
@@ -241,5 +244,107 @@ std::string http_tracker_request_common::build_tracker_url(bool i2p, error_type&
 	}
 
 	return url;
+}
+
+bool http_tracker_request::allowed_by_idna(string_view hostname) const
+{
+	if (m_settings.get_bool(settings_pack::allow_idna))
+		return true;
+	return !is_idna(hostname);
+}
+
+namespace {
+template<typename T>
+address get_address(const T& obj) {
+	if constexpr (std::is_same_v<std::decay_t<T>, address>)
+	{
+		return obj;
+	}
+	else if constexpr (std::is_same_v<std::decay_t<T>, tcp::endpoint>)
+	{
+		return obj.address();
+	}
+	else
+	{
+		static_assert(false);
+	}
+}
+} // anonymous namespace
+
+template<typename T>
+error_type http_tracker_request::filter_impl(std::weak_ptr<request_callback>& logger, std::vector<T>& endpoints, string_view url) const
+{
+	bool const ssrf_mitigation = m_settings.get_bool(settings_pack::ssrf_mitigation);
+	const bool has_loopback = std::find_if(endpoints.begin(), endpoints.end()
+		, [](auto const& ep) { return get_address(ep).is_loopback(); }) != endpoints.end();
+
+	if (ssrf_mitigation && has_loopback)
+	{
+		// there is at least one loopback address in here. If the request
+		// path for this tracker is not /announce. filter all loopback
+		// addresses.
+		std::string path;
+
+		error_code ec;
+		std::tie(std::ignore, std::ignore, std::ignore, std::ignore, path)
+			= parse_url_components(url, ec);
+		if (ec)
+		{
+			return {ec, operation_t::parse_address};
+		}
+
+		// mitigation for Server Side request forgery. Any tracker
+		// announce to localhost need to look like a standard BitTorrent
+		// announce
+		if (!is_announce_path(path))
+		{
+			for (auto i = endpoints.begin(); i != endpoints.end();)
+			{
+				if (get_address(*i).is_loopback())
+					i = endpoints.erase(i);
+				else
+					++i;
+			}
+		}
+
+		if (endpoints.empty())
+		{
+			return {errors::ssrf_mitigation, operation_t::bittorrent};
+		}
+	}
+
+	if (!m_params.filter) return {};
+
+	// remove endpoints that are filtered by the IP filter
+	for (auto i = endpoints.begin(); i != endpoints.end();)
+	{
+		if (m_params.filter->access(get_address(*i)) == ip_filter::blocked)
+			i = endpoints.erase(i);
+		else
+			++i;
+	}
+
+#ifndef TORRENT_DISABLE_LOGGING
+	if (auto cb = logger.lock())
+	{
+		cb->debug_log("*** TRACKER_FILTER");
+	}
+#endif
+
+	if (endpoints.empty())
+		return {errors::banned_by_ip_filter, operation_t::bittorrent};
+
+	return {};
+}
+
+error_type http_tracker_request::filter(std::weak_ptr<request_callback>& logger, std::vector<tcp::endpoint>& endpoints, string_view url) const
+{
+	return filter_impl(logger, endpoints, url);
+}
+
+error_type http_tracker_request::filter(std::weak_ptr<request_callback>& logger, const address& ip, string_view url) const
+{
+	std::vector endpoints = {ip};
+	return filter_impl(logger, endpoints, url);
 }
 }

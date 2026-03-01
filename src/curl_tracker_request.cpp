@@ -12,19 +12,20 @@ see LICENSE file.
 
 #if TORRENT_USE_CURL
 #include "libtorrent/aux_/curl_tracker_manager.hpp"
+#include "libtorrent/aux_/http_parser.hpp"
 #include "libtorrent/aux_/parse_url.hpp"
 #include "libtorrent/aux_/tracker_manager.hpp"
-#include "libtorrent/session_settings.hpp"
 #include "libtorrent/settings_pack.hpp"
 
 namespace libtorrent::aux {
 curl_tracker_request::curl_tracker_request(
 	curl_tracker_manager& owner,
 	tracker_request&& req,
-	std::weak_ptr<request_callback> c)
+	std::weak_ptr<request_callback> c,
+	const io_context::executor_type& executor)
 	: m_params(std::make_unique<const tracker_request>(std::move(req)))
 	, m_owner(owner)
-	, m_request(owner.settings().get_int(settings_pack::max_http_recv_buffer_size))
+	, m_request(owner.settings().get_int(settings_pack::max_http_recv_buffer_size), executor)
 	, m_callback(std::move(c))
 {
 }
@@ -38,11 +39,12 @@ curl_tracker_request::error_type curl_tracker_request::initialize_request()
 {
 	m_request.set_defaults();
 	m_request.set_private_data(this);
+	m_allowed_redirects = http_tracker_request::max_redirects;
 
 	const auto& settings = m_owner.settings();
 	constexpr bool i2p = false; // unsupported
 
-	http_tracker_request_common common{*m_params, settings};
+	http_tracker_request common{*m_params, settings};
 	auto error = common.validate_socket(i2p);
 	if (error)
 	{
@@ -75,25 +77,23 @@ curl_tracker_request::error_type curl_tracker_request::initialize_request()
 		m_request.set_ssl_verify_peer(false);
 	}
 
-	m_request.set_ssrf_mitigation(settings.get_bool(settings_pack::ssrf_mitigation));
-	m_request.set_ip_filter(m_params->filter);
+	auto [protocol, auth, hostname, port, path]
+		= parse_url_components(url, error.code);
+
+	if (error)
+	{
+		error.op = operation_t::parse_address;
+		return error;
+	}
+
+	error = filter_hostname(hostname);
+	if (error)
+		return error;
 
 #if TORRENT_ABI_VERSION == 1
-	if (!m_params->auth.empty())
+	if (!m_params->auth.empty() && auth.empty())
 	{
-		auto [protocol, auth, hostname, port, path]
-				= parse_url_components(url, error.code);
-
-		if (error)
-		{
-			error.op = operation_t::parse_address;
-			return error;
-		}
-
-		if (auth.empty())
-		{
-			m_request.set_userpwd(m_params->auth);
-		}
+		m_request.set_userpwd(m_params->auth);
 	}
 #endif
 
@@ -120,30 +120,116 @@ curl_tracker_request::error_type curl_tracker_request::initialize_request()
 	}
 #endif
 
-	return error;
+	m_request.set_filter(filter);
+	return {};
 }
 
-void curl_tracker_request::complete(CURLcode result)
+curl_tracker_request::error_type curl_tracker_request::filter_hostname(string_view hostname)
+{
+	http_tracker_request common{*m_params, m_owner.settings()};
+	if (!common.allowed_by_idna(hostname))
+	{
+		return {errors::blocked_by_idna};
+	}
+	return {};
+}
+
+bool curl_tracker_request::filter_impl(const address& ip)
+{
+	auto url = m_request.get_url();
+	http_tracker_request common{*m_params, m_owner.settings()};
+	if (auto error = common.filter(m_callback, ip, url))
+	{
+		m_error = error.code;
+		m_error_operation = error.op;
+		return false;
+	}
+
+	// recovered from previous error by resolving to a different IP
+	if (m_error)
+	{
+		m_error = errors::no_error;
+		m_error_operation = operation_t::unknown;
+	}
+
+	return true;
+}
+
+void curl_tracker_request::track_statistics()
 {
 	m_owner.sent_bytes(static_cast<int>(m_request.get_request_size()));
 
 	auto total_size = m_request.get_compressed_body_size() + m_request.get_header_size();
 	m_owner.received_bytes(static_cast<int>(total_size));
+}
 
+bool curl_tracker_request::filter(curl_request& easy, const address& ip)
+{
+	return from_handle(easy.handle())->filter_impl(ip);
+}
+
+bool curl_tracker_request::is_redirect_response() const
+{
+	return is_redirect(m_request.http_status());
+}
+
+curl_tracker_request::error_type curl_tracker_request::prepare_redirect()
+{
+	if (m_allowed_redirects <= 0)
+	{
+		return {errors::redirecting};
+	}
+
+	const std::string follow_url = m_request.get_redirect_url();
+
+	error_code ec;
+	auto parts = exploded_url(follow_url, ec);
+	if (ec)
+	{
+		return {ec, operation_t::parse_address};
+	}
+
+	if (auto error = filter_hostname(parts.hostname()))
+	{
+		return error;
+	}
+
+	--m_allowed_redirects;
+	if (auto error = m_request.redirect(follow_url, parts))
+	{
+		return {error.code, error.op, std::move(error.message)};
+	}
+
+	// track previous request, curl resets statistics at the start of the follow_url request
+	track_statistics();
+	return {};
+}
+
+void curl_tracker_request::complete(CURLcode result)
+{
 	if (result != CURLE_OK)
 	{
-		auto error = m_request.get_error(result);
-		return fail(error.ec, error.op, error.message);
+		// first consider our own error (e.g. filter error)
+		curl_basic_request::error_type error = {m_error, m_error_operation};
+		if (!error)
+		{
+			// otherwise use error mapping from lower level abstractions
+			error = m_request.get_error(result);
+		}
+		return fail(error.code, error.op, error.message);
 	}
+
 	on_response();
 }
 
 void curl_tracker_request::fail(const error_code& ec,
 								operation_t op,
-								string_view message,
+								const std::string& message,
 								seconds32 interval,
 								seconds32 min_interval)
 {
+	track_statistics();
+
 	std::shared_ptr<request_callback> cb = m_callback.lock();
 	if (!cb)
 		return;
@@ -154,14 +240,13 @@ void curl_tracker_request::fail(const error_code& ec,
 	if (op == operation_t::unknown)
 		op = operation_t::bittorrent;
 
-	const std::string msg{message};
-	cb->tracker_request_error(*m_params, ec, op, msg, interval);
+	cb->tracker_request_error(*m_params, ec, op, message, interval);
 }
 
 void curl_tracker_request::on_response()
 {
 	if (auto status = m_request.http_status(); status != errors::http_errors::ok)
-		return fail(error_code(status, http_category()), operation_t::unknown, {});
+		return fail(error_code(status, http_category()));
 
 	std::shared_ptr<request_callback> cb = m_callback.lock();
 	if (!cb)
@@ -176,8 +261,14 @@ void curl_tracker_request::on_response()
 	if (!ip_error)
 		ip_list.push_back(ip);
 
-	http_tracker_request_common common{*m_params, m_owner.settings()};
-	common.process_response(*cb, ip, ip_list, m_request.data());
+	http_tracker_request common{*m_params, m_owner.settings()};
+	auto error = common.process_response(*cb, ip, ip_list, m_request.data());
+	if (error)
+	{
+		fail(error);
+	}
+
+	track_statistics();
 }
 }
 #endif //TORRENT_USE_CURL

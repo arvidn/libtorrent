@@ -20,29 +20,21 @@ see LICENSE file.
 #include "libtorrent/aux_/memory.hpp"
 #include "libtorrent/aux_/throw.hpp"
 #include "libtorrent/error_code.hpp"
-#include "libtorrent/string_view.hpp"
-#include "libtorrent/time.hpp"
-
-namespace libtorrent {
-struct ip_filter;
-}
 
 namespace libtorrent::aux {
 struct proxy_settings;
 
-// this class is a convenience/typesafe wrapper around Curl_easy only supporting curl built-in features
+// Convenience/type-safe wrapper around Curl_easy for curl's built-in features
 class TORRENT_EXTRA_EXPORT curl_basic_request {
 public:
 	struct error_type {
-		error_code ec;
+		error_code code;
 		operation_t op = operation_t::unknown;
-		std::string message;
-		constexpr explicit operator bool() const noexcept { return static_cast<bool>(ec); }
+		std::string message = {};
+		constexpr explicit operator bool() const noexcept { return static_cast<bool>(code); }
 	};
 
-	explicit curl_basic_request();
-	~curl_basic_request() = default;
-	curl_basic_request(curl_basic_request const&) = delete;
+	curl_basic_request();
 
 	void set_defaults();
 
@@ -62,7 +54,7 @@ public:
 	[[nodiscard]] address get_ip(error_code& ec) const;
 	[[nodiscard]] error_type get_error(CURLcode result) const;
 
-	bool bind(const std::string& device, const address& local_address);
+	[[nodiscard]] bool bind(const std::string& device, const address& local_address);
 	void set_proxy(const proxy_settings& ps, bool verify_ssl);
 
 	void set_user_agent(const std::string& s);
@@ -75,10 +67,11 @@ public:
 
 	void set_pipewait(bool onoff);
 
-#if TORRENT_ABI_VERSION == 1
 	void set_userpwd(const std::string& s);
-#endif
+	void clear_userpwd();
 
+	[[nodiscard]] const char* get_url()                  const;
+	[[nodiscard]] const char* get_redirect_url()         const;
 	[[nodiscard]] long        get_num_connects()         const;
 	[[nodiscard]] std::size_t get_header_size()          const;
 	[[nodiscard]] std::size_t get_compressed_body_size() const;
@@ -87,19 +80,20 @@ public:
 	[[nodiscard]] std::size_t get_request_size()         const;
 
 	void set_write_callback(curl_write_callback cb);
-	void set_write_callback_data(const void* data);
+	void set_write_callback_data(void* data);
+
 protected:
 	void set_debug_logging(bool onoff);
-	[[nodiscard]] char* get_url() const;
 
 	void set_opensocket_callback(curl_opensocket_callback cb);
-	void set_opensocket_callback_data(const void* data);
+	void set_opensocket_callback_data(void* data);
 
 	void set_prereq_callback(curl_prereq_callback cb);
-	void set_prereq_callback_data(const void* data);
+	void set_prereq_callback_data(void* data);
 
-	void set_timeout(seconds value);
-	void set_timeout(milliseconds option);
+	void set_resolver_callback(curl_resolver_start_callback cb);
+	void set_resolver_callback_data(void* data);
+
 private:
 	template<CURLoption option>
 	void setopt(bool value);
@@ -107,16 +101,9 @@ private:
 	template<CURLoption option, typename T>
 	void setopt(const T& value);
 
-	template<typename T>
-	using enable_if_no_string_t = std::enable_if_t<
-		!std::is_same_v<std::decay_t<T>, std::string> &&
-		!std::is_same_v<std::decay_t<T>, string_view>
-	>;
-
-	template<typename T, CURLINFO option, typename = enable_if_no_string_t<T>>
+	template<typename T, CURLINFO option>
 	[[nodiscard]] T getopt() const;
 
-protected:
 	const unique_ptr_with_deleter<CURL, curl_easy_cleanup> m_curl_handle;
 };
 }

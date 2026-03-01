@@ -275,9 +275,9 @@ To customize the library path and include path for wolfSSL, set the features
 To disable linking against any SSL library, set the ``crypto`` build feature to
 ``built-in``. This will use an embedded version if SHA-1.
 
-When building with cURL enabled, customize the library and include paths by
+When building with curl enabled, customize the library and include paths by
 setting the features ``curl-lib`` and ``curl-include``, respectively. To enable
-logging of cURL's connection details to stderr, set ``curl_debug=on``.
+logging of curl's connection details to stderr, set ``curl_debug=on``.
 
 Build features
 ~~~~~~~~~~~~~~

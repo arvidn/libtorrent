@@ -27,7 +27,7 @@ void curl_boost_socket::subscribe_read()
 		if (ec == error::operation_aborted)
 			return;
 
-		// curl doesn't handle all errors for sockets, we must assume it only waits for a timeout (e.g. the error could
+		// curl can't handle all errors for sockets, we must assume it only waits for a timeout (e.g. the error could
 		// be part of boost and not related to the socket at all). If the socket keeps subscribing on a bad
 		// file descriptor, asio will keep executing the async completion-handler immediately to return the error. This
 		// will loop excessively until the timeout.

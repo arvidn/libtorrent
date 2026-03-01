@@ -63,6 +63,9 @@ private:
 	std::unique_ptr<curl_tracker_request> remove(curl_tracker_request& request);
 	void on_completed(CURL* handle, CURLcode result);
 
+	void follow_redirect(curl_tracker_request& handle);
+	static void on_timeout(curl_request& request);
+
 	// constructed first, destructed last
 	curl_global_initializer m_curl_initializer;
 

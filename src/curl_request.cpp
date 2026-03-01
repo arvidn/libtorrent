@@ -12,9 +12,10 @@ see LICENSE file.
 
 #if TORRENT_USE_CURL
 #include <optional>
+#include "libtorrent/aux_/debug.hpp"
 #include "libtorrent/aux_/parse_url.hpp"
 #include "libtorrent/aux_/proxy_settings.hpp"
-#include "libtorrent/ip_filter.hpp"
+#include "libtorrent/error.hpp"
 
 using namespace libtorrent;
 
@@ -44,6 +45,7 @@ std::optional<address> curl_addr_to_boost(const curl_sockaddr& addr)
 }
 } // anonymous namespace
 
+// To enable ip based filtering before the socket is opened, there is no special logic for opening the socket.
 curl_socket_t curl_request::opensocket(void* clientp,
 										const curlsocktype purpose,
 										curl_sockaddr* addr)
@@ -59,27 +61,32 @@ curl_socket_t curl_request::opensocket(void* clientp,
 		if (!ip)
 			return CURL_SOCKET_BAD;
 
-		const auto url = request->get_url();
-		if (!request->validate_request(*ip, url))
+		if (!request->filter(*ip))
 			return CURL_SOCKET_BAD;
+
+		request->start_timeout(request->m_timeout);
 
 		return socket(addr->family, addr->socktype, addr->protocol);
 	}
-#ifndef TORRENT_DEBUG_LIBCURL
 	catch (const std::exception& e) {
-		std::fprintf(stderr, "curl_request::opensocket exception: %s\n", e.what());
+		request->m_error = {
+			error::no_recovery,
+			operation_t::unknown,
+			std::string("curl_request::opensocket exception: ") + e.what()
+		};
 	}
-#endif
 	catch (...)
 	{
-#if TORRENT_DEBUG_LIBCURL
-		std::fprintf(stderr, "curl_request::opensocket unknown exception\n");
-#endif
+		request->m_error = {
+			error::no_recovery,
+			operation_t::unknown,
+			"curl_request::opensocket unknown exception"
+		};
 	}
 	return CURL_SOCKET_BAD;
 }
 
-curl_socket_t curl_request::approve_curl_request(void* clientp,
+curl_socket_t curl_request::before_curl_request(void* clientp,
 												char* conn_primary_ip,
 												char* conn_local_ip,
 												int conn_primary_port,
@@ -100,24 +107,60 @@ curl_socket_t curl_request::approve_curl_request(void* clientp,
 		if (ec)
 			return CURL_PREREQFUNC_ABORT;
 
-		const auto url = request->get_url();
-		if (!request->validate_request(ip, url))
+		if (!request->filter(ip))
 			return CURL_PREREQFUNC_ABORT;
+
+		request->start_timeout(request->m_timeout);
 
 		return CURL_PREREQFUNC_OK;
 	}
-#if TORRENT_DEBUG_LIBCURL
 	catch (const std::exception& e) {
-		std::fprintf(stderr, "curl_request::approve_curl_request exception: %s\n", e.what());
+		request->m_error = {
+			error::no_recovery,
+			operation_t::unknown,
+			std::string("curl_request::approve_curl_request exception: ") + e.what()
+		};
 	}
-#endif
 	catch (...)
 	{
-#if TORRENT_DEBUG_LIBCURL
-		std::fprintf(stderr, "curl_request::approve_curl_request unknown exception\n");
-#endif
+		request->m_error = {
+			error::no_recovery,
+			operation_t::unknown,
+			"curl_request::approve_curl_request unknown exception"
+		};
 	}
+
 	return CURL_PREREQFUNC_ABORT;
+}
+
+int curl_request::before_resolving(void* /*resolver_state*/, void* /*reserved*/, void* userdata)
+{
+	auto request = static_cast<curl_request*>(userdata);
+	TORRENT_ASSERT(request);
+
+	try
+	{
+		// DNS has twice the timeout in http_connection.cpp (because it can be queued behind a slow DNS request)
+		request->start_timeout(request->m_timeout * 2);
+		return 0;
+	}
+	catch (const std::exception& e) {
+		request->m_error = {
+			error::no_recovery,
+			operation_t::unknown,
+			std::string("curl_request::approve_curl_request exception: ") + e.what()
+		};
+	}
+	catch (...)
+	{
+		request->m_error = {
+			error::no_recovery,
+			operation_t::unknown,
+			"curl_request::approve_curl_request unknown exception"
+		};
+	}
+
+	return -1;
 }
 
 size_t curl_request::write_callback(
@@ -138,18 +181,19 @@ size_t curl_request::write_callback(
 	}
 	catch (std::length_error&)
 	{
-		request->m_status = make_error_code(boost::system::errc::file_too_large);
+		request->m_error.code = make_error_code(boost::system::errc::file_too_large);
 	}
 	catch (...)
 	{
-		request->m_status = errors::no_memory;
+		request->m_error.code = errors::no_memory;
 	}
 	// return a value different from nmemb to signal an error
 	return nmemb + 1;
 }
 
-curl_request::curl_request(const std::size_t max_buffer_size)
+curl_request::curl_request(const std::size_t max_buffer_size, const io_context::executor_type& executor)
 	: m_read_buffer(max_buffer_size)
+	, m_timer(executor)
 {
 }
 
@@ -160,39 +204,88 @@ void curl_request::set_defaults()
 	set_write_callback_data(this);
 	set_write_callback(write_callback);
 
-	// to validate requests before the socket is opened
+	// to filter before the socket is opened
 	set_opensocket_callback_data(this);
 	set_opensocket_callback(opensocket);
 
-	// to apply checks on each request (including redirects)
+	// to filter before request when socket is reused
 	set_prereq_callback_data(this);
-	set_prereq_callback(approve_curl_request);
+	set_prereq_callback(before_curl_request);
+
+	// to start timer as early as possible
+	set_resolver_callback_data(this);
+	set_resolver_callback(before_resolving);
 }
 
-void curl_request::set_timeout(seconds32 timeout)
+curl_request::error_type curl_request::redirect_security_settings(const exploded_url& parts)
 {
-	// Curl's CURLOPT_TIMEOUT tracks the total amount of time a request takes, including the queuing time.
-	// Requests can switch between queuing and processing more than once due to redirects (HTTP redirects, ALT-SRV,
-	// HTTPS-RR).
-	//
-	// A timeout constant is usually meant to deal with network conditions, and does not take queuing into account.
-	// Only curl can know how much time is spent queuing. The best "hack" we can implement is to start the timer on the
-	// first action we see (`CURLOPT_RESOLVER_START_FUNCTION`, `CURLOPT_OPENSOCKETFUNCTION` or `CURLOPT_PREREQFUNCTION`). This
-	// can't take into account time spent requeuing for redirects. Ideally this should be fixed by the curl project.
-
-	TORRENT_ASSERT(timeout >= seconds32{0});
-
-	// normally a timeout of 0 means no timeout at all, but the `http_connection.cpp` implementation forces the connection to
-	// timeout immediately
-	if (timeout == seconds32{0})
+	error_code ec;
+	auto [prev_protocol, prev_auth, prev_hostname, prev_port, prev_path]
+		= parse_url_components(get_url(), ec);
+	if (ec)
 	{
-		// smallest timeout curl supports
-		curl_basic_request::set_timeout(milliseconds{1});
+		return {ec, operation_t::parse_address};
+	}
+
+	// don't use auth credentials for other hosts
+	const bool same_host = parts.protocol() == prev_protocol && parts.hostname() == prev_hostname && parts.port() == prev_port;
+	if (same_host && parts.auth().empty())
+	{
+		if (!prev_auth.empty())
+		{
+			set_userpwd(prev_auth);
+		}
+		else
+		{
+			// reuse `userpwd` from previous request
+		}
 	}
 	else
 	{
-		curl_basic_request::set_timeout(seconds{timeout});
+		clear_userpwd();
 	}
+
+	// Following security settings are not (yet) needed for our use cases:
+	// - switch from POST to GET when switching from HTTPS to HTTP
+	return {};
+}
+
+curl_request::error_type curl_request::redirect(const std::string& url, const exploded_url& parts)
+{
+	if (auto error = redirect_security_settings(parts))
+		return error;
+
+	set_url(url);
+	// no referrer
+
+	m_timer.cancel();
+	m_filter_allowed = address{};
+	m_read_buffer.clear();
+
+	return {};
+}
+
+// Curl's CURLOPT_TIMEOUT tracks the total amount of time a request takes, including the queuing time.
+// Requests can switch between queuing and processing more than once due to HTTP redirects.
+//
+// Instead of using curls built-in timeout, a custom implementation is used modeled after http_connection.cpp:
+// - restart timer for each network related action (DNS resolve, connect, http request)
+// - HTTP redirects are performed manually outside of curl to stop them from requeuing.
+//
+// Note that curl has not implemented a retry mechanism for ALT-SVC. And it performs HTTPS-RR retries as part of a
+// happy-eyeballs algorithm which does not requeue. For now only HTTP redirects can cause a connection to be requeued.
+void curl_request::start_timeout(seconds32 timeout)
+{
+	if (!m_timeout_callback)
+		return;
+	m_timer.expires_after(timeout);
+	ADD_OUTSTANDING_ASYNC("curl_request::start_timer_if_needed");
+	m_timer.async_wait([request = this](const error_code& ec) {
+		COMPLETE_ASYNC("curl_request::start_timer_if_needed");
+		if (ec == error::operation_aborted)
+			return;
+		request->m_timeout_callback(*request);
+	});
 }
 
 span<const char> curl_request::data() const noexcept
@@ -205,92 +298,35 @@ span<const char> curl_request::data() const noexcept
 	};
 }
 
-bool curl_request::allowed_by_ip_filter(const address& ip)
+bool curl_request::filter(const address& ip)
 {
-	if (!m_ip_filter)
+	// This is called:
+	// 1. before opening a new socket, but not when a connection is reused.
+	// 2. before a new request is made.
+	//
+	// Essentially this function can be executed multiple times for a single request. E.g. multiple sockets can be
+	// opened when they fail.
+	if (!m_filter)
 		return true;
 
-	if (m_ip_filter->access(ip) == ip_filter::blocked)
-	{
-		m_status = errors::banned_by_ip_filter;
-		return false;
-	}
-
-	if (m_status == errors::banned_by_ip_filter)
-	{
-		// recovered by using a different resolved ip address
-		m_status = errors::no_error;
-	}
-
-	return true;
-}
-
-bool curl_request::allowed_by_ssrf(const address& ip, const std::string& path)
-{
-	if (!m_enable_ssrf_mitigation)
+	// Prevent calling filter more than once for the same IP+url combination
+	// Note: that m_filter_allowed is reset when the url changes in a redirect
+	if (ip == m_filter_allowed)
 		return true;
 
-	if (ip.is_loopback() && !is_announce_path(path))
-	{
-		m_status = errors::ssrf_mitigation;
-		return false;
-	}
-
-	if (m_status == errors::ssrf_mitigation)
-	{
-		// recovered by using a different resolved ip address
-		m_status = errors::no_error;
-	}
-
-	return true;
-}
-
-bool curl_request::allowed_by_idna(const std::string& hostname)
-{
-	if (m_block_idna && is_idna(hostname))
-	{
-		m_status = errors::blocked_by_idna;
-		return false;
-	}
-
-	return true;
-}
-
-bool curl_request::validate_request(const address& ip, const string_view url)
-{
-	if (!allowed_by_ip_filter(ip))
+	if (!m_filter(*this, ip))
 		return false;
 
-	if (!m_enable_ssrf_mitigation && !m_block_idna)
-		return true;
-
-	std::string hostname;
-	std::string path;
-	error_code ec;
-	std::tie(std::ignore, std::ignore, hostname, std::ignore, path)
-			= parse_url_components(std::string(url), ec);
-	if (ec)
-	{
-		m_status = ec;
-		m_error_operation = operation_t::parse_address;
-		return false;
-	}
-
-	if (!allowed_by_ssrf(ip, path))
-		return false;
-
-	if (!allowed_by_idna(hostname))
-		return false;
-
+	m_filter_allowed = ip;
 	return true;
 }
 
 curl_request::error_type curl_request::get_error(const CURLcode result) const
 {
 	// request has its own error conditions that curl is not aware of, in those cases the curl error
-	// will be too generic (e.g. ssrf)
-	if (m_status)
-		return {m_status, m_error_operation, {}};
+	// will be too generic (e.g. memory error in write_callback)
+	if (m_error)
+		return {m_error};
 
 	const auto errstr = curl_easy_strerror(result);
 	auto f = [](auto error, operation_t op = operation_t::unknown) {
@@ -308,13 +344,13 @@ curl_request::error_type curl_request::get_error(const CURLcode result) const
 			return f(errors::timed_out);
 		case CURLE_COULDNT_CONNECT:
 		case CURLE_PROXY:
-			return fs(boost::asio::error::host_unreachable);
+			return fs(error::host_unreachable);
 		case CURLE_REMOTE_ACCESS_DENIED:
-			return fs(boost::asio::error::access_denied);
+			return fs(error::access_denied);
 		case CURLE_COULDNT_RESOLVE_HOST:
-			return f(boost::asio::error::host_not_found);
+			return f(error::host_not_found);
 		case CURLE_COULDNT_RESOLVE_PROXY:
-			return fs(boost::asio::error::host_not_found);
+			return fs(error::host_not_found);
 		case CURLE_HTTP_RETURNED_ERROR:
 			return f(error_code(http_status(), http_category()));
 		case CURLE_TOO_MANY_REDIRECTS:
@@ -333,9 +369,9 @@ curl_request::error_type curl_request::get_error(const CURLcode result) const
 		case CURLE_UNSUPPORTED_PROTOCOL:
 			return f(errors::unsupported_url_protocol);
 		case CURLE_ABORTED_BY_CALLBACK:
-			return f(boost::asio::error::no_recovery);
+			return f(error::no_recovery);
 		default:
-			return fs(boost::asio::error::no_recovery);
+			return fs(error::no_recovery);
 	}
 }
 }

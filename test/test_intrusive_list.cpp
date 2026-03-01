@@ -39,49 +39,77 @@ TORRENT_TEST(intrusive_list)
 	list_type list;
 	std::vector<list_item*> pointers;
 
-	auto add = [&]() {
-		auto old_tail = list.tail();
-		auto item = std::make_unique<list_item>();
+	auto tail = [](auto& list)
+	{
+		// not efficient but the list doesn't track the tail
+		list_item* item{};
+		for (auto& it : list)
+		{
+			item = &it;
+		}
+		return item;
+	};
+
+	auto head = [](auto& list)
+	{
+		list_item* item = &*list.begin();
+		return item;
+	};
+
+	auto add_item = [&](std::unique_ptr<list_item> item) {
+		auto old_tail = tail(list);
 		auto item_ptr_before = item.get();
 		auto item_ptr = &list.add(std::move(item));
+
+		// test invariants
+		TEST_EQUAL(head(list), item_ptr);
+
+		// item pointer was not changed while adding
 		TEST_EQUAL(item_ptr_before, item_ptr);
-		TEST_EQUAL(list.tail(), item_ptr);
-		TEST_EQUAL(traits::get_next(*list.tail()), nullptr);
+
 		if (old_tail)
 		{
-			TEST_EQUAL(traits::get_previous(*item_ptr), old_tail);
-			TEST_EQUAL(traits::get_next(*old_tail), item_ptr);
+			TEST_EQUAL(tail(list), old_tail);
 		}
 		else
 		{
-			TEST_EQUAL(traits::get_previous(*item_ptr), item_ptr);
+			TEST_EQUAL(traits::get_next(*item_ptr), nullptr);
 		}
 		return item_ptr;
 	};
 
+	auto add = [&]() {
+		return add_item(std::make_unique<list_item>());
+	};
+
 	auto remove = [&](list_item* item) {
-		bool is_head = list.head() == item;
-		bool is_tail = list.tail() == item;
+		bool is_head = head(list) == item;
+		bool is_tail = tail(list) == item;
 		auto prev = traits::get_previous(*item);
 		auto next = traits::get_next(*item);
 
-		(void)list.remove(*item);
+		auto item_ownership = list.remove(*item);
+
+		// test invariants
+		TEST_EQUAL(traits::get_previous(*item_ownership), nullptr);
+		TEST_EQUAL(traits::get_next(*item_ownership), nullptr);
 
 		if (is_head && is_tail)
 		{
-			TEST_EQUAL(list.head(), nullptr);
-			TEST_EQUAL(list.tail(), nullptr);
+			TEST_EQUAL(head(list), nullptr);
+			TEST_EQUAL(tail(list), nullptr);
+			TEST_EQUAL(list.size(), 0);
 		}
 		else if (is_head)
 		{
-			TEST_EQUAL(list.head(), next);
-			TEST_EQUAL(traits::get_previous(*next), prev);
-			TEST_EQUAL(traits::get_next(*prev), nullptr);
+			TEST_EQUAL(prev, nullptr);
+			TEST_EQUAL(head(list), next);
+			TEST_EQUAL(traits::get_previous(*next), nullptr);
 		}
 		else if (is_tail)
 		{
 			auto new_tail = prev;
-			TEST_EQUAL(list.tail(), new_tail);
+			TEST_EQUAL(tail(list), new_tail);
 			TEST_EQUAL(traits::get_next(*new_tail), nullptr);
 		}
 		else
@@ -89,6 +117,8 @@ TORRENT_TEST(intrusive_list)
 			TEST_EQUAL(traits::get_previous(*next), prev);
 			TEST_EQUAL(traits::get_next(*prev), next);
 		}
+
+		return item_ownership;
 	};
 
 	auto create_list = [&](int size)
@@ -102,9 +132,7 @@ TORRENT_TEST(intrusive_list)
 		{
 			auto item_ptr = add();
 			TEST_EQUAL(len(list), i+1);
-
-			pointers.push_back(item_ptr);
-			TEST_EQUAL(list.head(), pointers.front());
+			pointers.insert(pointers.begin(), item_ptr);
 		}
 		return size;
 	};
@@ -119,6 +147,8 @@ TORRENT_TEST(intrusive_list)
 
 	TEST_CHECK(list.empty());
 	TEST_EQUAL(len(list), 0);
+
+	// The following tests do a series of list operations while checking invariants
 
 	// remove in reverse order
 	size = create_list(10);
@@ -149,8 +179,11 @@ TORRENT_TEST(intrusive_list)
 
 	add();
 	TEST_EQUAL(len(list), ++size);
-	remove(list.head());
+
+	auto item_ownership = remove(head(list));
 	TEST_EQUAL(len(list), --size);
-	add();
+
+	// re-add the removed item
+	add_item(std::move(item_ownership));
 	TEST_EQUAL(len(list), ++size);
 }

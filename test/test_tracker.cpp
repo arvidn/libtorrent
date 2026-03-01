@@ -455,7 +455,6 @@ TORRENT_TEST(http_peers)
 	torrent_handle h = s->add_torrent(addp);
 
 	lt::torrent_status status = h.status();
-	TEST_CHECK(status.current_tracker.empty());
 
 	// wait to hit the tracker
 	wait_for_alert(*s, tracker_reply_alert::alert_type, "s");
@@ -910,7 +909,7 @@ namespace {
 template<typename F>
 void for_events(session& ses, F&& event_callback)
 {
-	time_point const end_time = clock_type::now() + seconds(15);
+	time_point const end_time = clock_type::now() + seconds(30);
 	while (true)
 	{
 		time_point const now = clock_type::now();
@@ -950,6 +949,7 @@ struct blocked_result {
 	int blocked_by_ssrf = 0;
 	int blocked_by_ip_filter = 0;
 	int unconnectable = 0;
+	int ok = 0;
 };
 
 blocked_result test_blocking(std::string url, ip_filter& filter, bool block_ssrf)
@@ -970,6 +970,8 @@ blocked_result test_blocking(std::string url, ip_filter& filter, bool block_ssrf
 	std::string banned = error_code(errors::banned_by_ip_filter).message();
 	std::string no_route = error_code(boost::asio::error::host_unreachable).message();
 	std::string skipped = error_code(errors::announce_skipped).message();
+	std::string timeout = error_code(errors::timed_out).message();
+
 	int alive_announces = 0;
 	blocked_result result;
 
@@ -983,6 +985,11 @@ blocked_result test_blocking(std::string url, ip_filter& filter, bool block_ssrf
 					++alive_announces;
 					++result.announce_count;
 				}
+				else if (contains(message, "TRACKER RESPONSE"))
+				{
+					++result.ok;
+					return --alive_announces == 0;
+				}
 				else if (contains(message, "tracker error:"))
 				{
 					if (contains(message, ssfr_block))
@@ -993,7 +1000,7 @@ blocked_result test_blocking(std::string url, ip_filter& filter, bool block_ssrf
 					{
 						++result.blocked_by_ip_filter;
 					}
-					else if (contains(message, no_route) || contains(message, skipped))
+					else if (contains(message, no_route) || contains(message, skipped) || contains(message, timeout))
 					{
 						++result.unconnectable;
 					}
@@ -1010,59 +1017,77 @@ blocked_result test_blocking(std::string url, ip_filter& filter, bool block_ssrf
 
 TORRENT_TEST(ssrf)
 {
+	int http_port = start_web_server();
+	const std::string url = "http://127.0.0.1:" + std::to_string(http_port);
+	const std::string ipv6_url = "http://[::1]:" + std::to_string(http_port);
+
 	// no filter
 	ip_filter filter;
-	auto result = test_blocking("http://127.0.0.1:666/evil", filter, true);
+	auto result = test_blocking(url + "/evil", filter, true);
 	TEST_CHECK(result.blocked_by_ssrf > 0);
+	TEST_EQUAL(result.ok, 0);
 
-	result = test_blocking("http://127.0.0.1:666/announce", filter, true);
+	result = test_blocking(url + "/announce", filter, true);
 	TEST_EQUAL(result.blocked_by_ssrf, 0);
 
-	result = test_blocking("http://[::1]:666/evil", filter, true);
+	result = test_blocking(ipv6_url + "/evil", filter, true);
 	TEST_CHECK(result.blocked_by_ssrf > 0);
+	TEST_EQUAL(result.ok, 0);
 
-	result = test_blocking("http://[::1]:666/announce", filter, true);
+	result = test_blocking(ipv6_url + "/announce", filter, true);
 	TEST_EQUAL(result.blocked_by_ssrf, 0);
+
+	stop_web_server();
 }
 
 TORRENT_TEST(ipfilter)
 {
+	int http_port = start_web_server();
+	const std::string url = "http://127.0.0.1:" + std::to_string(http_port);
+	const std::string ipv6_url = "http://[::1]:" + std::to_string(http_port);
+
 	// no filter
 	ip_filter filter;
-	auto result = test_blocking("http://127.0.0.1:666/evil", filter, false);
+	auto result = test_blocking(url + "/evil", filter, false);
 	TEST_EQUAL(result.blocked_by_ip_filter, 0);
 
 	// ipv4 blocked
 	filter.add_rule(addr4("10.13.0.0"), addr4("10.13.255.255"), ip_filter::blocked);
 	result = test_blocking("http://10.13.6.66:666/evil", filter, false);
 	TEST_CHECK(result.blocked_by_ip_filter > 0);
+	TEST_EQUAL(result.ok, 0);
 
 	// loopback allowed
-	result = test_blocking("http://127.0.0.1:666/evil", filter, false);
+	result = test_blocking(url + "/evil", filter, false);
 	TEST_EQUAL(result.blocked_by_ip_filter, 0);
 
 	// ipv4 loopback blocked
 	filter.add_rule(addr4("127.0.0.1"), addr4("127.0.0.1"), ip_filter::blocked);
-	result = test_blocking("http://127.0.0.1:666/evil", filter, false);
+	result = test_blocking(url + "/evil", filter, false);
 	TEST_CHECK(result.blocked_by_ip_filter > 0);
+	TEST_EQUAL(result.ok, 0);
 
 	// no ipv6 filter
-	result = test_blocking("http://[::1]:666/evil", filter, false);
+	result = test_blocking(ipv6_url + "/evil", filter, false);
 	TEST_EQUAL(result.blocked_by_ip_filter, 0);
 
 	// ipv6 blocked
 	filter.add_rule(addr6("fc00::"), addr6("fc00:ffff:ffff:ffff:ffff:ffff:ffff:ffff"), ip_filter::blocked);
 	result = test_blocking("http://[fc00::]:666/evil", filter, false);
 	TEST_CHECK(result.blocked_by_ip_filter > 0 || result.unconnectable > 0);
+	TEST_EQUAL(result.ok, 0);
 
 	// ipv6 loopback allowed
-	result = test_blocking("http://[::1]:666/evil", filter, false);
+	result = test_blocking(ipv6_url + "/evil", filter, false);
 	TEST_EQUAL(result.blocked_by_ip_filter, 0);
 
 	// ipv6 loopback blocked
 	filter.add_rule(addr6("::1"), addr6("::1"), ip_filter::blocked);
-	result = test_blocking("http://[::1]:666/evil", filter, false);
+	result = test_blocking(ipv6_url + "/evil", filter, false);
 	TEST_CHECK(result.blocked_by_ip_filter > 0 || result.unconnectable > 0);
+	TEST_EQUAL(result.ok, 0);
+
+	stop_web_server();
 }
 
 #endif

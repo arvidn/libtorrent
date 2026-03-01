@@ -14,7 +14,7 @@ see LICENSE file.
 #include <optional>
 #include "libtorrent/aux_/parse_url.hpp"
 #include "libtorrent/aux_/proxy_settings.hpp"
-#include "libtorrent/ip_filter.hpp"
+#include "libtorrent/string_view.hpp"
 
 using namespace libtorrent;
 
@@ -55,12 +55,9 @@ void curl_basic_request::set_defaults()
 	// Setting SSL requirements protects from downgrading to insecure SSL configurations during a downgrade attack
 	// - CURLOPT_SSLVERSION (default = v1.2+)
 	// - CURLOPT_SSL_CIPHER_LIST (use ssl library default, this is usually a subset of the "HIGH" encryption cipher list)
-	static const bool need_ssl_requirements = []() {
-		const auto ver = curl_version_info(CURLVERSION_NOW);
-		return !ver || ver->version_num < 0x081000; // TLSv1.2 became the default in 8.16.0
-	}();
 
-	if (need_ssl_requirements)
+	static const bool has_insecure_ssl_default = curl_version_lower_than(0x081000); // TLSv1.2 became the default in 8.16.0
+	if (has_insecure_ssl_default)
 		setopt<CURLOPT_SSLVERSION, long>(CURL_SSLVERSION_TLSv1_2);
 
 	// curl can pick up certain environment variables (HTTP_PROXY, NO_PROXY ...) which can make it diverge
@@ -70,7 +67,7 @@ void curl_basic_request::set_defaults()
 	// NOSIGNAL allows curl to request the OS not to use signals on the socket operations. The os will then use an
 	// error code instead of signals to communicate certain error conditions. It also stops curl from constantly
 	// toggling the SIGPIPE signal handler through expensive syscalls. Note that this means that SIGPIPE can
-	// *potentially* be received by libtorrent and it's users. Note that curl supports many platforms and that warning
+	// *potentially* be received by libtorrent and it's users. Curl supports many platforms and that warning
 	// is not relevant to us. With NOSIGNAL the behavior should be similar to that of the boost library.
 	setopt<CURLOPT_NOSIGNAL>(true);
 
@@ -86,10 +83,17 @@ void curl_basic_request::set_defaults()
 	// Flow control
 	// - CURLOPT_CONNECTTIMEOUT (default: 300)
 	// - CURLOPT_DNS_CACHE_TIMEOUT (default: 60)
-	setopt<CURLOPT_FOLLOWLOCATION>(true);
-	setopt<CURLOPT_MAXREDIRS>(5L);
-	// prioritizes connection reuse
+	// - CURLOPT_FOLLOWLOCATION (default: off)
+	// - CURLOPT_MAXREDIRS (default: 30, depends on CURLOPT_FOLLOWLOCATION)
+	// - CURLOPT_AUTOREFERER (default: disabled)
+
+	// Queue when multiplexing connection is connecting/upgrading instead of creating new connection.
+	// This does not prevent creating multiple simultaneous connections when the multiplexing connection has reached
+	// the max number of simultaneous streams.
 	set_pipewait(true);
+
+	// prevent connecting/redirecting to a wrong scheme (e.g. file://evil/file")
+	setopt<CURLOPT_PROTOCOLS_STR>("http,https");
 
 	// HTTP headers
 	// empty string enables all built-in encodings
@@ -103,7 +107,7 @@ void curl_basic_request::set_defaults()
 bool curl_basic_request::bind(const std::string& device, const address& local_address)
 {
 	// note: curl binding network interfaces on device name is not supported on `windows`, binding on local IP works.
-	// it will quietly be ignored and won't throw an error
+	// it will quietly be ignored and won't throw an error.
 
 	// Users don't expect to leak DNS requests when explicitly binding a VPN interface.
 	// However, binding DNS is not implemented (same for the boost resolver).
@@ -115,7 +119,7 @@ bool curl_basic_request::bind(const std::string& device, const address& local_ad
 	if (device.empty() && !valid_address)
 		return false;
 
-	// unset the ipv6 scope to remove it from to_string(), which does not make sense for address binding
+	// unset the ipv6 scope to remove it from to_string(), curl does not accept it
 	address addr = local_address.is_v4() ? local_address : make_address_v6(local_address.to_v6().to_bytes());
 	const auto addr_str = addr.to_string();
 
@@ -193,41 +197,41 @@ constexpr string_view curl_easy_option_str(CURLoption option) noexcept
 {
 	switch (option)
 	{
-		case CURLOPT_VERBOSE:				return "CURLOPT_VERBOSE";
-		case CURLOPT_DEBUGFUNCTION:			return "CURLOPT_DEBUGFUNCTION";
-		case CURLOPT_DEBUGDATA:				return "CURLOPT_DEBUGDATA";
-		case CURLOPT_WRITEFUNCTION:			return "CURLOPT_WRITEFUNCTION";
-		case CURLOPT_PIPEWAIT:				return "CURLOPT_PIPEWAIT";
-		case CURLOPT_USERPWD:				return "CURLOPT_USERPWD";
-		case CURLOPT_SSL_VERIFYPEER:		return "CURLOPT_SSL_VERIFYPEER";
-		case CURLOPT_SSL_VERIFYHOST:		return "CURLOPT_SSL_VERIFYHOST";
-		case CURLOPT_IPRESOLVE:				return "CURLOPT_IPRESOLVE";
-		case CURLOPT_PRIVATE:				return "CURLOPT_PRIVATE";
-		case CURLOPT_URL:					return "CURLOPT_URL";
-		case CURLOPT_USERAGENT:				return "CURLOPT_USERAGENT";
-		case CURLOPT_PREREQFUNCTION:		return "CURLOPT_PREREQFUNCTION";
-		case CURLOPT_PREREQDATA:			return "CURLOPT_PREREQDATA";
-		case CURLOPT_OPENSOCKETFUNCTION:	return "CURLOPT_OPENSOCKETFUNCTION";
-		case CURLOPT_OPENSOCKETDATA:		return "CURLOPT_OPENSOCKETDATA";
-		case CURLOPT_WRITEDATA:				return "CURLOPT_WRITEDATA";
-		case CURLOPT_ACCEPT_ENCODING:		return "CURLOPT_ACCEPT_ENCODING";
-		case CURLOPT_MAXREDIRS:				return "CURLOPT_MAXREDIRS";
-		case CURLOPT_FOLLOWLOCATION:		return "CURLOPT_FOLLOWLOCATION";
-		case CURLOPT_NOSIGNAL:				return "CURLOPT_NOSIGNAL";
-		case CURLOPT_PROXY:					return "CURLOPT_PROXY";
-		case CURLOPT_TIMEOUT:				return "CURLOPT_TIMEOUT";
-		case CURLOPT_TIMEOUT_MS:			return "CURLOPT_TIMEOUT_MS";
-		case CURLOPT_DNS_INTERFACE:			return "CURLOPT_DNS_INTERFACE";
-		case CURLOPT_INTERFACE:				return "CURLOPT_INTERFACE";
-		case CURLOPT_DNS_LOCAL_IP4:			return "CURLOPT_DNS_LOCAL_IP4";
-		case CURLOPT_DNS_LOCAL_IP6:			return "CURLOPT_DNS_LOCAL_IP6";
-		case CURLOPT_PROXY_SSL_VERIFYHOST:	return "CURLOPT_PROXY_SSL_VERIFYHOST";
-		case CURLOPT_PROXY_SSL_VERIFYPEER:	return "CURLOPT_PROXY_SSL_VERIFYPEER";
-		case CURLOPT_PROXYUSERNAME:			return "CURLOPT_PROXYUSERNAME";
-		case CURLOPT_PROXYPASSWORD:			return "CURLOPT_PROXYPASSWORD";
-		case CURLOPT_PROXYPORT:				return "CURLOPT_PROXYPORT";
-		case CURLOPT_PROXYTYPE:				return "CURLOPT_PROXYTYPE";
-		case CURLOPT_SSLVERSION:			return "CURLOPT_SSLVERSION";
+		case CURLOPT_VERBOSE:					return "CURLOPT_VERBOSE";
+		case CURLOPT_DEBUGFUNCTION:				return "CURLOPT_DEBUGFUNCTION";
+		case CURLOPT_DEBUGDATA:					return "CURLOPT_DEBUGDATA";
+		case CURLOPT_WRITEFUNCTION:				return "CURLOPT_WRITEFUNCTION";
+		case CURLOPT_PIPEWAIT:					return "CURLOPT_PIPEWAIT";
+		case CURLOPT_USERPWD:					return "CURLOPT_USERPWD";
+		case CURLOPT_SSL_VERIFYPEER:			return "CURLOPT_SSL_VERIFYPEER";
+		case CURLOPT_SSL_VERIFYHOST:			return "CURLOPT_SSL_VERIFYHOST";
+		case CURLOPT_IPRESOLVE:					return "CURLOPT_IPRESOLVE";
+		case CURLOPT_PRIVATE:					return "CURLOPT_PRIVATE";
+		case CURLOPT_URL:						return "CURLOPT_URL";
+		case CURLOPT_USERAGENT:					return "CURLOPT_USERAGENT";
+		case CURLOPT_PREREQFUNCTION:			return "CURLOPT_PREREQFUNCTION";
+		case CURLOPT_PREREQDATA:				return "CURLOPT_PREREQDATA";
+		case CURLOPT_OPENSOCKETFUNCTION:		return "CURLOPT_OPENSOCKETFUNCTION";
+		case CURLOPT_OPENSOCKETDATA:			return "CURLOPT_OPENSOCKETDATA";
+		case CURLOPT_WRITEDATA:					return "CURLOPT_WRITEDATA";
+		case CURLOPT_ACCEPT_ENCODING:			return "CURLOPT_ACCEPT_ENCODING";
+		case CURLOPT_FOLLOWLOCATION:			return "CURLOPT_FOLLOWLOCATION";
+		case CURLOPT_NOSIGNAL:					return "CURLOPT_NOSIGNAL";
+		case CURLOPT_PROXY:						return "CURLOPT_PROXY";
+		case CURLOPT_DNS_INTERFACE:				return "CURLOPT_DNS_INTERFACE";
+		case CURLOPT_INTERFACE:					return "CURLOPT_INTERFACE";
+		case CURLOPT_DNS_LOCAL_IP4:				return "CURLOPT_DNS_LOCAL_IP4";
+		case CURLOPT_DNS_LOCAL_IP6:				return "CURLOPT_DNS_LOCAL_IP6";
+		case CURLOPT_PROXY_SSL_VERIFYHOST:		return "CURLOPT_PROXY_SSL_VERIFYHOST";
+		case CURLOPT_PROXY_SSL_VERIFYPEER:		return "CURLOPT_PROXY_SSL_VERIFYPEER";
+		case CURLOPT_PROXYUSERNAME:				return "CURLOPT_PROXYUSERNAME";
+		case CURLOPT_PROXYPASSWORD:				return "CURLOPT_PROXYPASSWORD";
+		case CURLOPT_PROXYPORT:					return "CURLOPT_PROXYPORT";
+		case CURLOPT_PROXYTYPE:					return "CURLOPT_PROXYTYPE";
+		case CURLOPT_SSLVERSION:				return "CURLOPT_SSLVERSION";
+		case CURLOPT_RESOLVER_START_FUNCTION:	return "CURLOPT_RESOLVER_START_FUNCTION";
+		case CURLOPT_RESOLVER_START_DATA:		return "CURLOPT_RESOLVER_START_DATA";
+		case CURLOPT_PROTOCOLS_STR:				return "CURLOPT_PROTOCOLS_STR";
 		default:
 			return "";
 	}
@@ -266,6 +270,20 @@ void throw_setop_ex(CURLoption option, CURLcode error, const T& value)
 	const auto option_name = std::string(curl_easy_option_str(option));
 	throw_ex<curl_easy_error>(error, option_name + value_str);
 }
+
+// Making `option` a compile time constant allows curl's typechecker
+// to verify the types (it's currently not working/enabled for C++)
+template<CURLoption option, typename T>
+CURLcode curl_easy_setopt_wrapper(CURL* easy_handle, const T value)
+{
+	return curl_easy_setopt(easy_handle, option, value);
+}
+
+template<CURLoption option>
+CURLcode curl_easy_setopt_wrapper(CURL* easy_handle, const std::string& value)
+{
+	return curl_easy_setopt_wrapper<option>(easy_handle, value.c_str());
+}
 } // anonymous namespace
 
 template<CURLoption option>
@@ -280,43 +298,41 @@ void curl_basic_request::setopt(const T& value)
 	// creates a compiler error when the option is not added the str() function
 	static_assert(!curl_easy_option_str(option).empty());
 
-	auto error = curl_easy_setopt_typechecked<option>(handle(), value);
+	auto error = curl_easy_setopt_wrapper<option>(handle(), value);
 	if (!error)
 		return;
 
 	throw_setop_ex(option, error, value);
 }
 
-void curl_basic_request::set_user_agent(const std::string& s)  { setopt<CURLOPT_USERAGENT>(s); }
-void curl_basic_request::set_url(const std::string& s)         { setopt<CURLOPT_URL>(s); }
-void curl_basic_request::set_private_data(void* const obj)     { setopt<CURLOPT_PRIVATE>(obj); }
-void curl_basic_request::set_ipresolve(const long option)      { setopt<CURLOPT_IPRESOLVE>(option); }
-void curl_basic_request::set_ssl_verify_host(const bool onoff) { setopt<CURLOPT_SSL_VERIFYHOST>(onoff); }
-void curl_basic_request::set_ssl_verify_peer(const bool onoff) { setopt<CURLOPT_SSL_VERIFYPEER>(onoff); }
-void curl_basic_request::set_pipewait(const bool onoff)        { setopt<CURLOPT_PIPEWAIT>(onoff); }
-void curl_basic_request::set_debug_logging(const bool onoff)   { setopt<CURLOPT_VERBOSE>(onoff); }
+void curl_basic_request::set_user_agent(const std::string& s)	{ setopt<CURLOPT_USERAGENT>(s); }
+void curl_basic_request::set_url(const std::string& s)			{ setopt<CURLOPT_URL>(s); }
+void curl_basic_request::set_private_data(void* const obj)		{ setopt<CURLOPT_PRIVATE>(obj); }
+void curl_basic_request::set_ipresolve(const long option)		{ setopt<CURLOPT_IPRESOLVE>(option); }
+void curl_basic_request::set_ssl_verify_host(const bool onoff)	{ setopt<CURLOPT_SSL_VERIFYHOST>(onoff); }
+void curl_basic_request::set_ssl_verify_peer(const bool onoff)	{ setopt<CURLOPT_SSL_VERIFYPEER>(onoff); }
+void curl_basic_request::set_pipewait(const bool onoff)			{ setopt<CURLOPT_PIPEWAIT>(onoff); }
+void curl_basic_request::set_debug_logging(const bool onoff)	{ setopt<CURLOPT_VERBOSE>(onoff); }
+void curl_basic_request::set_userpwd(const std::string& s)		{ setopt<CURLOPT_USERPWD>(s); }
+void curl_basic_request::clear_userpwd()						{ setopt<CURLOPT_USERPWD, const char*>(nullptr); }
 
-void curl_basic_request::set_timeout(const seconds value)      { setopt<CURLOPT_TIMEOUT>( static_cast<long>(value.count())); }
-void curl_basic_request::set_timeout(const milliseconds value) { setopt<CURLOPT_TIMEOUT_MS>( static_cast<long>(value.count())); }
+void curl_basic_request::set_prereq_callback(const curl_prereq_callback cb)	{ setopt<CURLOPT_PREREQFUNCTION>(cb); }
+void curl_basic_request::set_prereq_callback_data(void* const data)			{ setopt<CURLOPT_PREREQDATA>(data); }
 
-void curl_basic_request::set_write_callback(const curl_write_callback cb)      { setopt<CURLOPT_WRITEFUNCTION>(cb); }
-void curl_basic_request::set_write_callback_data(const void* data)             { setopt<CURLOPT_WRITEDATA>(data); }
+void curl_basic_request::set_write_callback(const curl_write_callback cb)	{ setopt<CURLOPT_WRITEFUNCTION>(cb); }
+void curl_basic_request::set_write_callback_data(void* const data)			{ setopt<CURLOPT_WRITEDATA>(data); }
 
-void curl_basic_request::set_opensocket_callback(const curl_opensocket_callback cb)  { setopt<CURLOPT_OPENSOCKETFUNCTION>(cb); }
-void curl_basic_request::set_opensocket_callback_data(const void* data)              { setopt<CURLOPT_OPENSOCKETDATA>(data); }
+void curl_basic_request::set_resolver_callback(const curl_resolver_start_callback cb) { setopt<CURLOPT_RESOLVER_START_FUNCTION>(cb); }
+void curl_basic_request::set_resolver_callback_data(void* const data)				  { setopt<CURLOPT_RESOLVER_START_DATA>(data); }
 
-void curl_basic_request::set_prereq_callback(const curl_prereq_callback cb) { setopt<CURLOPT_PREREQFUNCTION>(cb); }
-void curl_basic_request::set_prereq_callback_data(const void* data)         { setopt<CURLOPT_PREREQDATA>(data); }
+void curl_basic_request::set_opensocket_callback(const curl_opensocket_callback cb)	{ setopt<CURLOPT_OPENSOCKETFUNCTION>(cb); }
+void curl_basic_request::set_opensocket_callback_data(void* const data)				{ setopt<CURLOPT_OPENSOCKETDATA>(data); }
 
-#if TORRENT_ABI_VERSION == 1
-void curl_basic_request::set_userpwd(const std::string& s)    { setopt<CURLOPT_USERPWD>(s); }
-#endif
-
-template<typename T, CURLINFO option, typename>
+template<typename T, CURLINFO option>
 T curl_basic_request::getopt() const
 {
-	T value;
-	auto error = curl_easy_getinfo_typechecked<T, option>(handle(), value);
+	T value{};
+	auto error = curl_easy_getinfo(handle(), option, &value);
 	if (!error)
 		return value;
 	// This is not expect to return errors, possibly:
@@ -325,7 +341,8 @@ T curl_basic_request::getopt() const
 	throw_ex<curl_easy_error>(error, "curl_easy_getinfo(" + std::to_string(option) + ")");
 }
 
-char*       curl_basic_request::get_url()                  const { return getopt<char*, CURLINFO_EFFECTIVE_URL>(); }
+const char* curl_basic_request::get_redirect_url()         const { return getopt<const char*, CURLINFO_REDIRECT_URL>(); }
+const char* curl_basic_request::get_url()                  const { return getopt<const char*, CURLINFO_EFFECTIVE_URL>(); }
 long        curl_basic_request::get_num_connects()         const { return getopt<long,  CURLINFO_NUM_CONNECTS>(); }
 std::size_t curl_basic_request::get_header_size()          const { return static_cast<std::size_t>(getopt<long, CURLINFO_HEADER_SIZE>()); }
 std::size_t curl_basic_request::get_request_size()         const { return static_cast<std::size_t>(getopt<long, CURLINFO_REQUEST_SIZE>()); }

@@ -973,7 +973,7 @@ SOURCES =
 	time
 	tracker_manager
 	http_tracker_connection
-	http_tracker_request_common
+	http_tracker_request
 	udp_tracker_connection
 	timestamp_history
 	udp_socket
