@@ -262,7 +262,10 @@ namespace libtorrent::aux {
 		if (ec) return false;
 
 		file_status s;
-		stat_file(combine_path(m_save_path, m_part_file_name), &s, ec.ec);
+		std::string const part_file = combine_path(
+			m_part_file_dir.empty() ? m_save_path : m_part_file_dir
+			, m_part_file_name);
+		stat_file(part_file, &s, ec.ec);
 		if (!ec) return true;
 
 		// the part file not existing is expected
@@ -369,7 +372,7 @@ namespace libtorrent::aux {
 		// release the underlying part file. Otherwise we may not be able to
 		// delete it
 		if (m_part_file) m_part_file.reset();
-		std::string part_file = combine_path(
+		std::string const part_file = combine_path(
 			m_part_file_dir.empty() ? m_save_path : m_part_file_dir
 			, m_part_file_name);
 
