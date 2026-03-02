@@ -11,20 +11,16 @@ This project requires:
 clang
 .....
 
-A very recent version of clang that supports libFuzzer.
-clang-5.0 may not be recent enough, you may have to build head from source.
+A version of clang that supports libFuzzer (clang 6.0 or later).
 
 boost-build
 ...........
 
-Also known as ``b2``. To configure boost build with your fresh clang build,
-create a ``~/user-config.jam`` with something like this in it (example for macOS)::
+Also known as ``b2``. To configure boost build with clang, create a file named
+``user-config.jam`` in your home directory (``~/user-config.jam``) with the
+following content (adjusting for your specific version if necessary)::
 
-	using darwin : 6.0 : ~/Documents/dev/clang/build/bin/clang++ ;
-
-Or on Linux::
-
-	using clang ;
+	using clang : : clang++-18 ;
 
 corpus
 ......
@@ -40,14 +36,15 @@ Uzip the corpus in the fuzzers directory::
 
 	unzip corpus.zip
 
+
 building
 ........
 
-To build the fuzzers::
+To build the fuzzers, use the ``toolset=clang`` property::
 
-	b2 clang stage
+	b2 toolset=clang stage
 
-The fuzzers binaries are placed in a directory called `fuzzers`.
+The fuzzer binaries will be placed in the ``fuzzers`` directory.
 
 running
 .......
