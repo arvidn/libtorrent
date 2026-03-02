@@ -263,7 +263,7 @@ namespace libtorrent::aux {
 
 		file_status s;
 		std::string const part_file = combine_path(
-			m_part_file_dir.empty() ? m_save_path : m_part_file_dir
+			m_part_file_dir.empty() ? m_save_path : combine_path(m_save_path, m_part_file_dir)
 			, m_part_file_name);
 		stat_file(part_file, &s, ec.ec);
 		if (!ec) return true;
@@ -373,7 +373,7 @@ namespace libtorrent::aux {
 		// delete it
 		if (m_part_file) m_part_file.reset();
 		std::string const part_file = combine_path(
-			m_part_file_dir.empty() ? m_save_path : m_part_file_dir
+			m_part_file_dir.empty() ? m_save_path : combine_path(m_save_path, m_part_file_dir)
 			, m_part_file_name);
 
 		aux::delete_files(names()

@@ -2091,6 +2091,13 @@ void test_part_file(lt::storage_mode_t const storage_mode, part_file_flag_t cons
 
 	release_files(s, ec);
 
+	// has_any_file should return true since we wrote data
+	{
+		storage_error haf_ec;
+		TEST_CHECK(s->has_any_file(haf_ec));
+		TEST_CHECK(!haf_ec);
+	}
+
 	// make sure the part file is stored in the expected location
 	std::string const part_file_name = "." + aux::to_hex(p.info_hash) + ".parts";
 	if (flags & custom_path)
@@ -2122,6 +2129,27 @@ void test_part_file(lt::storage_mode_t const storage_mode, part_file_flag_t cons
 		TEST_CHECK(!exists(combine_path(new_part_file_dir, part_file_name)));
 		TEST_CHECK(!exists(combine_path(download_dir, part_file_name)));
 		TEST_CHECK(exists(combine_path(new_download_dir, part_file_name)));
+	}
+
+	// delete_files should remove the part file from the correct location
+	s->delete_files(session::delete_files, se);
+	if (se) print_error("delete_files", 0, se);
+	TEST_CHECK(!se);
+
+	if (flags & custom_path)
+	{
+		TEST_CHECK(!exists(combine_path(new_part_file_dir, part_file_name)));
+	}
+	else
+	{
+		TEST_CHECK(!exists(combine_path(new_download_dir, part_file_name)));
+	}
+
+	// has_any_file should return false after all files have been deleted
+	{
+		storage_error haf_ec;
+		TEST_CHECK(!s->has_any_file(haf_ec));
+		TEST_CHECK(!haf_ec);
 	}
 }
 
