@@ -383,6 +383,8 @@ namespace libtorrent {
 			request_latency,
 
 			disk_blocks_in_use,
+			cached_blocks,
+			num_unhashed,
 			queued_disk_jobs,
 			num_running_disk_jobs,
 			num_read_jobs,
