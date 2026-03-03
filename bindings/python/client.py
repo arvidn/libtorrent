@@ -1,37 +1,53 @@
 #!/usr/bin/env python3
+from __future__ import annotations
 
 # Copyright Daniel Wallin 2006. Use, modification and distribution is
 # subject to the Boost Software License, Version 1.0. (See accompanying
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-
+from abc import ABC, abstractmethod
 import atexit
-import optparse
+from typing import Mapping, Sequence, Any, castm TYPE_CHECKING
+from optparse import Values
 import os.path
 import sys
 import time
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Mapping
-from typing import Optional
-from typing import Sequence
-from typing import Union
 
 import libtorrent as lt
 
+if TYPE_CHECKING:
+    from libtorrent import settings_pack
+else:
+    settings_pack = dict
 
-class WindowsConsole:
+class ConsoleABC(ABC):
+    @abstractmethod
+    def clear(self) -> None:
+        pass
+
+    @abstractmethod
+    def write(self, line: str) -> None:
+        pass
+
+    @abstractmethod
+    def sleep_and_input(self, seconds: float) -> bytes | str | None:
+        pass
+
+
+class WindowsConsole(ConsoleABC):
     def __init__(self) -> None:
+        import Console
         self.console = Console.getconsole()
 
     def clear(self) -> None:
         self.console.page()
 
-    def write(self, msg: str) -> None:
+    def write(self, line: str) -> None:
         self.console.write(msg)
 
-    def sleep_and_input(self, seconds: float) -> Optional[bytes]:
+    def sleep_and_input(self, seconds: float) -> bytes | None:
+        import msvcrt
+
         time.sleep(seconds)
         # Helps mypy
         if sys.platform == "win32":
@@ -40,8 +56,10 @@ class WindowsConsole:
         return None
 
 
-class UnixConsole:
+class UnixConsole(ConsoleABC):
     def __init__(self) -> None:
+        import termios
+
         self.fd = sys.stdin
         self.old = termios.tcgetattr(self.fd.fileno())
         new = termios.tcgetattr(self.fd.fileno())
@@ -59,27 +77,23 @@ class UnixConsole:
         sys.stdout.write("\033[2J\033[0;0H")
         sys.stdout.flush()
 
-    def write(self, msg: str) -> None:
-        sys.stdout.write(msg)
+    def write(self, line: str) -> None:
+        sys.stdout.write(line)
         sys.stdout.flush()
 
-    def sleep_and_input(self, seconds: float) -> Optional[str]:
-        read, __, __ = select.select([self.fd.fileno()], [], [], seconds)
+    def sleep_and_input(self, seconds: float) -> str | None:
+        import select
+
+        read, __, __ = select.select(
+            [self.fd.fileno()], [], [], seconds)
         if len(read) > 0:
             return self.fd.read(1)
         return None
 
 
-ConsoleType = Union[UnixConsole, WindowsConsole]
 
-
-if os.name == "nt":
-    import msvcrt
-
-    import Console
-else:
-    import select
-    import termios
+def write_line(console: ConsoleABC, line: str) -> None:
+    console.write(line)
 
 
 def add_suffix(val: float) -> str:
@@ -101,8 +115,10 @@ def progress_bar(progress: float, width: int) -> str:
     return progress_chars * "#" + (width - progress_chars) * "-"
 
 
-def print_peer_info(console: ConsoleType, peers: List[lt.peer_info]) -> None:
-    out = " down    (total )   up     (total )" "  q  r flags  block progress  client\n"
+def print_peer_info(console: ConsoleABC, peers: list[lt.peer_info]) -> None:
+
+    out = (' down    (total )   up     (total )'
+           '  q  r flags  block progress  client\n')
 
     for p in peers:
         out += "%s/s " % add_suffix(p.down_speed)
@@ -142,9 +158,7 @@ def print_peer_info(console: ConsoleType, peers: List[lt.peer_info]) -> None:
     console.write(out)
 
 
-def print_download_queue(
-    console: ConsoleType, download_queue: Sequence[Mapping[str, Any]]
-) -> None:
+def print_download_queue(console: ConsoleABC, download_queue: Sequence[Mapping[str, Any]]) -> None:
     out = ""
 
     for e in download_queue:
@@ -164,20 +178,21 @@ def print_download_queue(
     console.write(out)
 
 
-def add_torrent(ses: lt.session, filename: str, options: optparse.Values) -> None:
+def add_torrent(ses: lt.session, filename: str, options: Values) -> None:
     atp = lt.add_torrent_params()
-    if filename.startswith("magnet:"):
+    save_path = cast(str, options.save_path)
+    if filename.startswith('magnet:'):
         atp = lt.parse_magnet_uri(filename)
     else:
         ti = lt.torrent_info(filename)
-        resume_file = os.path.join(options.save_path, ti.name() + ".fastresume")
+        resume_file = os.path.join(save_path, ti.name() + '.fastresume')
         try:
             atp = lt.read_resume_data(open(resume_file, "rb").read())
         except Exception as e:
             print('failed to open resume file "%s": %s' % (resume_file, e))
         atp.ti = ti
 
-    atp.save_path = options.save_path
+    atp.save_path = save_path
     atp.storage_mode = lt.storage_mode_t.storage_mode_sparse
     atp.flags |= (
         lt.torrent_flags.duplicate_is_error
@@ -188,6 +203,7 @@ def add_torrent(ses: lt.session, filename: str, options: optparse.Values) -> Non
 
 
 def main() -> None:
+    from optparse import OptionParser
     parser = optparse.OptionParser()
 
     parser.add_option("-p", "--port", type="int", help="set listening port")
@@ -257,31 +273,32 @@ def main() -> None:
     if options.max_download_rate <= 0:
         options.max_download_rate = -1
 
-    settings = {
+    settings = settings_pack({
         "user_agent": "python_client/" + lt.__version__,
         "listen_interfaces": "%s:%d" % (options.listen_interface, options.port),
         "download_rate_limit": int(options.max_download_rate),
         "upload_rate_limit": int(options.max_upload_rate),
         "alert_mask": lt.alert.category_t.all_categories,
         "outgoing_interfaces": options.outgoing_interface,
-    }
+    })
 
     if options.proxy_host != "":
         settings["proxy_hostname"] = options.proxy_host.split(":")[0]
         settings["proxy_type"] = lt.proxy_type_t.http
         settings["proxy_port"] = options.proxy_host.split(":")[1]
 
-    ses = lt.session(settings)
+
+    ses = lt.session(params)
 
     # map torrent_handle to torrent_status
-    torrents: Dict[lt.torrent_handle, lt.torrent_status] = {}
+    torrents: dict[lt.torrent_handle, lt.torrent_status] = {}
     alerts_log = []
 
     for filename in args:
         add_torrent(ses, filename, options)
 
-    console: ConsoleType
-    if os.name == "nt":
+    console: ConsoleABC
+    if os.name == 'nt':
         console = WindowsConsole()
     else:
         console = UnixConsole()
@@ -343,14 +360,11 @@ def main() -> None:
                 try:
                     out = "\n"
                     fp = h.file_progress()
-                    ti = t.torrent_file
-                    if ti is not None:
-                        for idx, p in enumerate(fp):
-                            out += progress_bar(
-                                p / float(ti.files().file_size(idx)), 20
-                            )
-                            out += " " + ti.files().file_path(idx) + "\n"
-                    console.write(out)
+                    ti = cast(lt.torrent_info, t.torrent_file)
+                    for idx, p in enumerate(fp):
+                        out += progress_bar(p / float(ti.files().file_size(idx)), 20)
+                        out += ' ' + ti.files().file_path(idx) + '\n'
+                    write_line(console, out)
                 except Exception:
                     pass
 
@@ -378,8 +392,8 @@ def main() -> None:
         if len(alerts_log) > 20:
             alerts_log = alerts_log[-20:]
 
-        for line in alerts_log:
-            console.write(line + "\n")
+        for a_log in alerts_log:
+            write_line(console, a_log + '\n')
 
         c = console.sleep_and_input(0.5)
 

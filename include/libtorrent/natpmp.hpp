@@ -13,6 +13,8 @@ see LICENSE file.
 #ifndef TORRENT_NATPMP_HPP
 #define TORRENT_NATPMP_HPP
 
+#include <optional>
+
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
@@ -68,7 +70,7 @@ struct TORRENT_EXTRA_EXPORT natpmp final
 {
 	natpmp(io_context& ios, aux::portmap_callback& cb, aux::listen_socket_handle ls);
 
-	void start(aux::ip_interface const& ip);
+	void start(aux::ip_interface const& ip, std::optional<address> const& gateway);
 
 	// maps the ports, if a port is set to 0
 	// it will not be mapped

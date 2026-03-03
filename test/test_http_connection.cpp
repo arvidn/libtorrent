@@ -160,7 +160,7 @@ void run_suite(std::string const& protocol
 	ps.type = proxy_type;
 
 	if (ps.type != settings_pack::none)
-		ps.port = aux::numeric_cast<std::uint16_t>(start_proxy(ps.type, flags & flag_send_host));
+		ps.port = aux::numeric_cast<std::uint16_t>(start_proxy(ps.type));
 	ps.send_host_in_connect = flags & flag_send_host;
 
 	using err = std::optional<error_code>;
@@ -216,14 +216,24 @@ TORRENT_TEST(http_ssl) { run_suite("https", settings_pack::http); }
 TORRENT_TEST(http_pw_ssl) { run_suite("https", settings_pack::http_pw); }
 TORRENT_TEST(socks5_proxy_ssl) { run_suite("https", settings_pack::socks5); }
 TORRENT_TEST(socks5_pw_proxy_ssl) { run_suite("https", settings_pack::socks5_pw); }
-TORRENT_TEST(http_ssl_with_host_header) { run_suite("https", settings_pack::http, flag_keepalive | flag_send_host); }
+
+// Test CONNECT requests with/without Host header for SSL
+// When send_host_in_connect=false (default): CONNECT should use IP:port and Host header should contain IP:port
+TORRENT_TEST(https_connect_without_host_header) { run_suite("https", settings_pack::http, flag_keepalive); }
+// When send_host_in_connect=true: CONNECT should use hostname:port and Host header should contain hostname:port
+TORRENT_TEST(https_connect_with_host_header) { run_suite("https", settings_pack::http, flag_keepalive | flag_send_host); }
 #endif // TORRENT_USE_SSL
 
 TORRENT_TEST(http_proxy) { run_suite("http", settings_pack::http); }
 TORRENT_TEST(http_pwproxy) { run_suite("http", settings_pack::http_pw); }
 TORRENT_TEST(socks5_proxy) { run_suite("http", settings_pack::socks5); }
 TORRENT_TEST(socks5_pw_proxy) { run_suite("http", settings_pack::socks5_pw); }
-TORRENT_TEST(http_with_host_header) { run_suite("http", settings_pack::http, flag_keepalive | flag_send_host); }
+
+// Test CONNECT requests with/without Host header
+// When send_host_in_connect=false (default): CONNECT should use IP:port and Host header should contain IP:port
+TORRENT_TEST(http_connect_without_host_header) { run_suite("http", settings_pack::http, flag_keepalive); }
+// When send_host_in_connect=true: CONNECT should use hostname:port and Host header should contain hostname:port
+TORRENT_TEST(http_connect_with_host_header) { run_suite("http", settings_pack::http, flag_keepalive | flag_send_host); }
 
 TORRENT_TEST(no_keepalive)
 {
