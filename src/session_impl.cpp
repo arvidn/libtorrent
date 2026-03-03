@@ -1883,6 +1883,9 @@ retry:
 
 				return ret;
 			}
+
+			if (udp_bind_ep.port() == 0)
+				udp_bind_ep = ret->udp_sock->sock.local_endpoint(ec);
 		}
 
 		if (bind_ep.port() != udp_bind_ep.port())
