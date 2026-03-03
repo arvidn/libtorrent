@@ -152,8 +152,6 @@ class Handler(http.server.BaseHTTPRequestHandler):
     close_connection = True
     timeout = 30
     basic_auth = None
-    # Set to True to require Host header in CONNECT requests
-    require_host_header = False
 
     def authorize(self):
         """Returns whether the request is authorized."""
@@ -211,15 +209,16 @@ class Handler(http.server.BaseHTTPRequestHandler):
         # CONNECT requests)
         host_header = self.headers.get("Host")
         if host_header:
-            self.log_message("CONNECT request with Host header: %s (target: %s:%s)",
-                             host_header, host, port)
+            self.log_message("CONNECT request: target=%s:%s, Host header=%s",
+                             host, port, host_header)
+            # Check if Host header matches CONNECT target
+            if host_header == f"{host}:{port}":
+                self.log_message("Host header matches CONNECT target")
+            else:
+                self.log_message("Host header differs from CONNECT target")
         else:
-            self.log_message("CONNECT request without Host header (target: %s:%s)",
-                             host, port)
-
-        # If require_host_header is set, reject requests without Host header
-        if self.require_host_header and not host_header:
-            self.log_error("CONNECT request rejected: missing Host header")
+            self.log_error("CONNECT request rejected: missing Host header"
+                           " (required for HTTP/1.1 compliance)")
             raise _HTTPError(400, explain="Host header required for CONNECT requests")
 
         try:
@@ -538,8 +537,6 @@ class Main:
         self.parser.add_argument("--basic-auth")
         self.parser.add_argument("--timeout", type=int, default=30)
         self.parser.add_argument("--bind-host", default="localhost")
-        self.parser.add_argument("--require-host-header", action="store_true",
-                                 help="Require Host header in CONNECT requests")
 
         self.args = None
         self.server = None
@@ -558,7 +555,6 @@ class Main:
             Handler.basic_auth = None
 
         Handler.timeout = self.args.timeout
-        Handler.require_host_header = self.args.require_host_header
 
         self.server = _ThreadingHTTPServer(self.address, Handler)
         self.server.serve_forever()

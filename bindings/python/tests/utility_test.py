@@ -30,12 +30,12 @@ class BencodeTest(unittest.TestCase):
     def test_deprecations(self) -> None:
         # top-level str
         with self.assertWarns(DeprecationWarning):
-            lt.bencode("abc")  # type: ignore
+            lt.bencode("abc")
 
     def test_nonstandard_types(self) -> None:
         # top-level str
         with self.assertWarns(DeprecationWarning):
-            self.assertEqual(lt.bencode("abc"), b"3:abc")  # type: ignore
+            self.assertEqual(lt.bencode("abc"), b"3:abc")
 
         # top-level float
         with self.assertWarns(DeprecationWarning):
