@@ -7,15 +7,22 @@ from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import Iterator
+from typing import TYPE_CHECKING
 from typing import TypeVar
+from typing import Union
 import unittest
+
+if TYPE_CHECKING:
+    from libtorrent import settings_pack
+else:
+    settings_pack = Dict[str, Union[int, str, bool]]
 
 
 def get_random_bytes(n: int) -> bytes:
     return bytes(random.getrandbits(8) for _ in range(n))
 
 
-def get_isolated_settings() -> Dict[str, Any]:
+def get_isolated_settings() -> settings_pack:
     return {
         "enable_dht": False,
         "enable_lsd": False,

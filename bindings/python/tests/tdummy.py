@@ -1,15 +1,21 @@
 import hashlib
 import random
-from typing import Any
-from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Type
+from typing import TYPE_CHECKING
 from typing import TypeVar
 
 from typing_extensions import TypedDict
 
 import libtorrent as lt
+
+if TYPE_CHECKING:
+    from libtorrent import TorrentFileDict
+    from libtorrent import TorrentFileFileDict
+    from libtorrent import TorrentFileInfoDict
+else:
+    TorrentFileInfoDict, TorrentFileFileDict, TorrentFileDict = dict, dict, dict
 
 
 class _FParams(TypedDict, total=False):
@@ -97,8 +103,8 @@ class Torrent:
 
         self._data: Optional[bytes] = None
         self._pieces: Optional[List[bytes]] = None
-        self._info: Optional[Dict[bytes, Any]] = None
-        self._dict: Optional[Dict[bytes, Any]] = None
+        self._info: Optional[TorrentFileInfoDict] = None
+        self._dict: Optional[TorrentFileDict] = None
         self._info_hash_bytes: Optional[bytes] = None
 
     @property
@@ -117,13 +123,15 @@ class Torrent:
         return self._pieces
 
     @property
-    def info(self) -> Dict[bytes, Any]:
+    def info(self) -> TorrentFileInfoDict:
         if self._info is None:
-            self._info = {
-                b"piece length": self.piece_length,
-                b"length": self.length,
-                b"pieces": b"".join(hashlib.sha1(p).digest() for p in self.pieces),
-            }
+            self._info = TorrentFileInfoDict(
+                {
+                    b"piece length": self.piece_length,
+                    b"length": self.length,
+                    b"pieces": b"".join(hashlib.sha1(p).digest() for p in self.pieces),
+                }
+            )
 
             if len(self.files) == 1:
                 self._info[b"name"] = self.files[0].path
@@ -131,23 +139,28 @@ class Torrent:
                 assert len({f.path_split[0] for f in self.files}) == 1
                 assert all(len(f.path_split) > 1 for f in self.files)
                 self._info[b"name"] = self.files[0].path_split[0]
-                self._info[b"files"] = []
+                files_list: list[TorrentFileFileDict] = []
                 for file_ in self.files:
-                    fdict = {
-                        b"length": file_.length,
-                        b"path": file_.path_split[1:],
-                    }
+                    fdict = TorrentFileFileDict(
+                        {
+                            b"length": file_.length,
+                            b"path": file_.path_split[1:],
+                        }
+                    )
                     if file_.attr:
                         fdict[b"attr"] = file_.attr
-                    self._info[b"files"].append(fdict)
+                    files_list.append(fdict)
+                self._info[b"files"] = files_list
         return self._info
 
     @property
-    def dict(self) -> Dict[bytes, Any]:
+    def dict(self) -> TorrentFileDict:
         if self._dict is None:
-            self._dict = {
-                b"info": self.info,
-            }
+            self._dict = TorrentFileDict(
+                {
+                    b"info": self.info,
+                }
+            )
         return self._dict
 
     @property

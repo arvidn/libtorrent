@@ -1,13 +1,23 @@
 import os
 import tempfile
 from typing import AnyStr
+from typing import cast
 from typing import List
+from typing import TYPE_CHECKING
 import unittest
 
 import libtorrent as lt
 
 from . import lib
 from . import tdummy
+
+if TYPE_CHECKING:
+    from libtorrent import _Entry
+    from libtorrent import load_torrent_limits
+    from libtorrent import TorrentFileDict
+    from libtorrent import web_seed_entry
+else:
+    _Entry, TorrentFileDict, load_torrent_limits = dict, dict, dict
 
 
 class FileEntryTest(unittest.TestCase):
@@ -105,14 +115,17 @@ class InfoHashTest(unittest.TestCase):
 
 class ConstructorTest(unittest.TestCase):
     def do_test_filename(self, name: AnyStr) -> None:
-        entry = {
-            b"info": {
-                b"name": b"test.txt",
-                b"piece length": 16384,
-                b"pieces": lib.get_random_bytes(20),
-                b"length": 1024,
-            }
-        }
+        entry = cast(
+            "_Entry",
+            {
+                b"info": {
+                    b"name": b"test.txt",
+                    b"piece length": 16384,
+                    b"pieces": lib.get_random_bytes(20),
+                    b"length": 1024,
+                }
+            },
+        )
         data = lt.bencode(entry)
         with tempfile.TemporaryDirectory() as tempdir_str:
             tempdir: AnyStr
@@ -140,28 +153,32 @@ class ConstructorTest(unittest.TestCase):
         self.do_test_filename(os.fsdecode(b"test-\xff.torrent"))
 
     def test_dict(self) -> None:
-        entry = {
-            b"info": {
-                b"name": b"test.txt",
-                b"piece length": 16384,
-                b"pieces": lib.get_random_bytes(20),
-                b"length": 1024,
+        entry = TorrentFileDict(
+            {
+                b"info": {
+                    b"name": b"test.txt",
+                    b"piece length": 16384,
+                    b"pieces": lib.get_random_bytes(20),
+                    b"length": 1024,
+                }
             }
-        }
+        )
         ti = lt.torrent_info(entry)
         self.assertEqual(ti.name(), "test.txt")
 
     def test_dict_with_str_keys(self) -> None:
         with self.assertWarns(DeprecationWarning):
             ti = lt.torrent_info(
-                {
-                    "info": {  # type: ignore
-                        "name": "test.txt",
-                        "length": 1024,
-                        "piece length": 16384,
-                        "pieces": "aaaaaaaaaaaaaaaaaaaa",
+                TorrentFileDict(
+                    {
+                        "info": {
+                            "name": "test.txt",
+                            "length": 1024,
+                            "piece length": 16384,
+                            "pieces": "aaaaaaaaaaaaaaaaaaaa",
+                        }
                     }
-                }
+                )
             )
         self.assertEqual(ti.name(), "test.txt")
 
@@ -185,44 +202,50 @@ class ConstructorWithLimitsTest(unittest.TestCase):
     def test_load_decode_depth_limit(self) -> None:
         with self.assertRaises(RuntimeError):
             lt.torrent_info(
-                {
-                    b"test": {b"test": {b"test": {b"test": {b"test": {}}}}},
-                    b"info": {
-                        b"name": b"test_torrent",
-                        b"length": 1234,
-                        b"piece length": 16 * 1024,
-                        b"pieces": b"aaaaaaaaaaaaaaaaaaaa",
-                    },
-                },
-                {"max_decode_depth": 1},
+                TorrentFileDict(
+                    {
+                        b"test": {b"test": {b"test": {b"test": {b"test": {}}}}},
+                        b"info": {
+                            b"name": b"test_torrent",
+                            b"length": 1234,
+                            b"piece length": 16 * 1024,
+                            b"pieces": b"aaaaaaaaaaaaaaaaaaaa",
+                        },
+                    }
+                ),
+                load_torrent_limits({"max_decode_depth": 1}),
             )
 
     def test_load_max_pieces_limit(self) -> None:
         with self.assertRaises(RuntimeError):
             lt.torrent_info(
-                {
-                    b"info": {
-                        b"name": b"test_torrent",
-                        b"length": 1234000,
-                        b"piece length": 16 * 1024,
-                        b"pieces": b"aaaaaaaaaaaaaaaaaaaa",
+                TorrentFileDict(
+                    {
+                        b"info": {
+                            b"name": b"test_torrent",
+                            b"length": 1234000,
+                            b"piece length": 16 * 1024,
+                            b"pieces": b"aaaaaaaaaaaaaaaaaaaa",
+                        }
                     }
-                },
-                {"max_pieces": 1},
+                ),
+                load_torrent_limits({"max_pieces": 1}),
             )
 
     def test_load_max_buffer_size_limit(self) -> None:
         with self.assertRaises(RuntimeError):
             lt.torrent_info(
-                {
-                    b"info": {
-                        b"name": b"test_torrent",
-                        b"length": 1234000,
-                        b"piece length": 16 * 1024,
-                        b"pieces": b"aaaaaaaaaaaaaaaaaaaa",
+                TorrentFileDict(
+                    {
+                        b"info": {
+                            b"name": b"test_torrent",
+                            b"length": 1234000,
+                            b"piece length": 16 * 1024,
+                            b"pieces": b"aaaaaaaaaaaaaaaaaaaa",
+                        }
                     }
-                },
-                {"max_buffer_size": 1},
+                ),
+                load_torrent_limits({"max_buffer_size": 1}),
             )
 
 
@@ -236,7 +259,7 @@ class FieldTest(unittest.TestCase):
             self.ti.add_tracker(
                 b"http://example1.com",  # type: ignore
                 1,
-                int(lt.tracker_source.source_torrent),  # type: ignore
+                int(lt.tracker_source.source_torrent),
             )
 
         self.assertEqual([t.url for t in self.ti.trackers()], ["http://example0.com"])
@@ -256,7 +279,7 @@ class FieldTest(unittest.TestCase):
 
     def test_web_seeds(self) -> None:
         # empty, and ascii str
-        web_seeds = [
+        web_seeds: list[web_seed_entry] = [
             {"url": "http://example1.com", "auth": ""},
             {"url": "http://example2.com", "auth": "password"},
         ]
@@ -264,7 +287,10 @@ class FieldTest(unittest.TestCase):
         self.assertEqual(self.ti.web_seeds(), web_seeds)
 
         def do_test(auth: AnyStr, auth_check: str) -> None:
-            self.ti.set_web_seeds([{"url": "http://example.com", "auth": auth}])
+            new_web_seeds: list[web_seed_entry] = [
+                {"url": "http://example.com", "auth": auth}
+            ]
+            self.ti.set_web_seeds(new_web_seeds)
             self.assertEqual(
                 self.ti.web_seeds(), [{"url": "http://example.com", "auth": auth_check}]
             )
@@ -284,7 +310,7 @@ class FieldTest(unittest.TestCase):
 
     @unittest.skip("need to implement default empty auth")
     def test_web_seeds_default_auth(self) -> None:
-        web_seeds = [{"url": "http://example.com"}]
+        web_seeds: list[web_seed_entry] = [{"url": "http://example.com"}]
         self.ti.set_web_seeds(web_seeds)
         self.assertEqual(self.ti.web_seeds(), web_seeds)
 
@@ -303,14 +329,16 @@ class FieldTest(unittest.TestCase):
     def test_name(self) -> None:
         def generate(name: bytes) -> lt.torrent_info:
             return lt.torrent_info(
-                {
-                    b"info": {
-                        b"name": name,
-                        b"pieces": lib.get_random_bytes(20),
-                        b"piece length": 16384,
-                        b"length": 1024,
+                TorrentFileDict(
+                    {
+                        b"info": {
+                            b"name": name,
+                            b"pieces": lib.get_random_bytes(20),
+                            b"piece length": 16384,
+                            b"length": 1024,
+                        }
                     }
-                }
+                )
             )
 
         # ascii
@@ -325,15 +353,17 @@ class FieldTest(unittest.TestCase):
     def test_creator(self) -> None:
         def generate(creator: bytes) -> lt.torrent_info:
             return lt.torrent_info(
-                {
-                    b"created by": creator,
-                    b"info": {
-                        b"name": b"test.txt",
-                        b"pieces": lib.get_random_bytes(20),
-                        b"piece length": 16384,
-                        b"length": 1024,
-                    },
-                }
+                TorrentFileDict(
+                    {
+                        b"created by": creator,
+                        b"info": {
+                            b"name": b"test.txt",
+                            b"pieces": lib.get_random_bytes(20),
+                            b"piece length": 16384,
+                            b"length": 1024,
+                        },
+                    }
+                )
             )
 
         # ascii
@@ -348,15 +378,17 @@ class FieldTest(unittest.TestCase):
     def test_comment(self) -> None:
         def generate(comment: bytes) -> lt.torrent_info:
             return lt.torrent_info(
-                {
-                    b"comment": comment,
-                    b"info": {
-                        b"name": b"test.txt",
-                        b"pieces": lib.get_random_bytes(20),
-                        b"piece length": 16384,
-                        b"length": 1024,
-                    },
-                }
+                TorrentFileDict(
+                    {
+                        b"comment": comment,
+                        b"info": {
+                            b"name": b"test.txt",
+                            b"pieces": lib.get_random_bytes(20),
+                            b"piece length": 16384,
+                            b"length": 1024,
+                        },
+                    }
+                )
             )
 
         # ascii
@@ -371,15 +403,17 @@ class FieldTest(unittest.TestCase):
     def test_collections(self) -> None:
         def generate(collection: bytes) -> lt.torrent_info:
             return lt.torrent_info(
-                {
-                    b"collections": [collection],
-                    b"info": {
-                        b"name": b"test.txt",
-                        b"pieces": lib.get_random_bytes(20),
-                        b"piece length": 16384,
-                        b"length": 1024,
-                    },
-                }
+                TorrentFileDict(
+                    {
+                        b"collections": [collection],
+                        b"info": {
+                            b"name": b"test.txt",
+                            b"pieces": lib.get_random_bytes(20),
+                            b"piece length": 16384,
+                            b"length": 1024,
+                        },
+                    }
+                )
             )
 
         # ascii
@@ -394,14 +428,16 @@ class FieldTest(unittest.TestCase):
 
     def test_hash_for_piece_invalid(self) -> None:
         ti = lt.torrent_info(
-            {
-                b"info": {
-                    b"name": b"test.txt",
-                    b"pieces": lib.get_random_bytes(20),
-                    b"piece length": 16384,
-                    b"length": 1024,
+            TorrentFileDict(
+                {
+                    b"info": {
+                        b"name": b"test.txt",
+                        b"pieces": lib.get_random_bytes(20),
+                        b"piece length": 16384,
+                        b"length": 1024,
+                    }
                 }
-            }
+            )
         )
         with self.assertRaises(IndexError):
             ti.hash_for_piece(1)
@@ -414,29 +450,34 @@ class FieldTest(unittest.TestCase):
 
     def test_is_i2p(self) -> None:
         ti = lt.torrent_info(
-            {
-                b"announce": b"http://example.i2p",
-                b"info": {
-                    b"name": b"test.txt",
-                    b"pieces": lib.get_random_bytes(20),
-                    b"piece length": 16384,
-                    b"length": 1024,
-                },
-            }
+            TorrentFileDict(
+                {
+                    b"announce": b"http://example.i2p",
+                    b"info": {
+                        b"name": b"test.txt",
+                        b"pieces": lib.get_random_bytes(20),
+                        b"piece length": 16384,
+                        b"length": 1024,
+                    },
+                }
+            )
         )
         self.assertTrue(ti.is_i2p())
 
     def test_normal_fixed_fields(self) -> None:
         piece = lib.get_random_bytes(20)
         similar = lib.get_random_bytes(20)
-        info = {
-            b"name": b"test.txt",
-            b"pieces": piece,
-            b"piece length": 16384,
-            b"length": 1024,
-            b"similar": [similar],
-        }
-        ti = lt.torrent_info({b"creation date": 12345, b"info": info})
+        info = cast(
+            "_Entry",
+            {
+                b"name": b"test.txt",
+                b"pieces": piece,
+                b"piece length": 16384,
+                b"length": 1024,
+                b"similar": [similar],
+            },
+        )
+        ti = lt.torrent_info(TorrentFileDict({b"creation date": 12345, b"info": info}))
 
         self.assertEqual(ti.total_size(), 1024)
         self.assertEqual(ti.piece_length(), 16384)
@@ -504,14 +545,16 @@ class FieldTest(unittest.TestCase):
 
     def test_files_and_remap(self) -> None:
         ti = lt.torrent_info(
-            {
-                b"info": {
-                    b"name": b"test.txt",
-                    b"pieces": lib.get_random_bytes(20),
-                    b"piece length": 16384,
-                    b"length": 1024,
-                },
-            }
+            TorrentFileDict(
+                {
+                    b"info": {
+                        b"name": b"test.txt",
+                        b"pieces": lib.get_random_bytes(20),
+                        b"piece length": 16384,
+                        b"length": 1024,
+                    },
+                }
+            )
         )
 
         self.assertEqual(ti.name(), "test.txt")

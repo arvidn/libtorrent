@@ -1,24 +1,31 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-# Copyright Daniel Wallin 2006. Use, modification and distribution is
-# subject to the Boost Software License, Version 1.0. (See accompanying
-# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-
-from abc import ABC, abstractmethod
+from abc import ABC
+from abc import abstractmethod
 import atexit
-from typing import Mapping, Sequence, Any, castm TYPE_CHECKING
 from optparse import Values
 import os.path
 import sys
 import time
+from typing import Any
+from typing import cast
+from typing import Mapping
+from typing import Sequence
+from typing import TYPE_CHECKING
 
 import libtorrent as lt
+
+# Copyright Daniel Wallin 2006. Use, modification and distribution is
+# subject to the Boost Software License, Version 1.0. (See accompanying
+# file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+
 
 if TYPE_CHECKING:
     from libtorrent import settings_pack
 else:
     settings_pack = dict
+
 
 class ConsoleABC(ABC):
     @abstractmethod
@@ -37,13 +44,14 @@ class ConsoleABC(ABC):
 class WindowsConsole(ConsoleABC):
     def __init__(self) -> None:
         import Console
+
         self.console = Console.getconsole()
 
     def clear(self) -> None:
         self.console.page()
 
     def write(self, line: str) -> None:
-        self.console.write(msg)
+        self.console.write(line)
 
     def sleep_and_input(self, seconds: float) -> bytes | None:
         import msvcrt
@@ -71,6 +79,8 @@ class UnixConsole(ConsoleABC):
         atexit.register(self._onexit)
 
     def _onexit(self) -> None:
+        import termios
+
         termios.tcsetattr(self.fd.fileno(), termios.TCSADRAIN, self.old)
 
     def clear(self) -> None:
@@ -84,12 +94,10 @@ class UnixConsole(ConsoleABC):
     def sleep_and_input(self, seconds: float) -> str | None:
         import select
 
-        read, __, __ = select.select(
-            [self.fd.fileno()], [], [], seconds)
+        read, __, __ = select.select([self.fd.fileno()], [], [], seconds)
         if len(read) > 0:
             return self.fd.read(1)
         return None
-
 
 
 def write_line(console: ConsoleABC, line: str) -> None:
@@ -117,8 +125,7 @@ def progress_bar(progress: float, width: int) -> str:
 
 def print_peer_info(console: ConsoleABC, peers: list[lt.peer_info]) -> None:
 
-    out = (' down    (total )   up     (total )'
-           '  q  r flags  block progress  client\n')
+    out = " down    (total )   up     (total )" "  q  r flags  block progress  client\n"
 
     for p in peers:
         out += "%s/s " % add_suffix(p.down_speed)
@@ -158,7 +165,9 @@ def print_peer_info(console: ConsoleABC, peers: list[lt.peer_info]) -> None:
     console.write(out)
 
 
-def print_download_queue(console: ConsoleABC, download_queue: Sequence[Mapping[str, Any]]) -> None:
+def print_download_queue(
+    console: ConsoleABC, download_queue: Sequence[Mapping[str, Any]]
+) -> None:
     out = ""
 
     for e in download_queue:
@@ -181,11 +190,11 @@ def print_download_queue(console: ConsoleABC, download_queue: Sequence[Mapping[s
 def add_torrent(ses: lt.session, filename: str, options: Values) -> None:
     atp = lt.add_torrent_params()
     save_path = cast(str, options.save_path)
-    if filename.startswith('magnet:'):
+    if filename.startswith("magnet:"):
         atp = lt.parse_magnet_uri(filename)
     else:
         ti = lt.torrent_info(filename)
-        resume_file = os.path.join(save_path, ti.name() + '.fastresume')
+        resume_file = os.path.join(save_path, ti.name() + ".fastresume")
         try:
             atp = lt.read_resume_data(open(resume_file, "rb").read())
         except Exception as e:
@@ -204,8 +213,8 @@ def add_torrent(ses: lt.session, filename: str, options: Values) -> None:
 
 def main() -> None:
     from optparse import OptionParser
-    parser = optparse.OptionParser()
 
+    parser = OptionParser()
     parser.add_option("-p", "--port", type="int", help="set listening port")
 
     parser.add_option(
@@ -273,21 +282,23 @@ def main() -> None:
     if options.max_download_rate <= 0:
         options.max_download_rate = -1
 
-    settings = settings_pack({
-        "user_agent": "python_client/" + lt.__version__,
-        "listen_interfaces": "%s:%d" % (options.listen_interface, options.port),
-        "download_rate_limit": int(options.max_download_rate),
-        "upload_rate_limit": int(options.max_upload_rate),
-        "alert_mask": lt.alert.category_t.all_categories,
-        "outgoing_interfaces": options.outgoing_interface,
-    })
+    settings = settings_pack(
+        {
+            "user_agent": "python_client/" + lt.__version__,
+            "listen_interfaces": "%s:%d" % (options.listen_interface, options.port),
+            "download_rate_limit": int(options.max_download_rate),
+            "upload_rate_limit": int(options.max_upload_rate),
+            "alert_mask": lt.alert.category_t.all_categories,
+            "outgoing_interfaces": options.outgoing_interface,
+        }
+    )
 
     if options.proxy_host != "":
         settings["proxy_hostname"] = options.proxy_host.split(":")[0]
         settings["proxy_type"] = lt.proxy_type_t.http
         settings["proxy_port"] = options.proxy_host.split(":")[1]
 
-
+    params = lt.session_params(settings)
     ses = lt.session(params)
 
     # map torrent_handle to torrent_status
@@ -298,7 +309,7 @@ def main() -> None:
         add_torrent(ses, filename, options)
 
     console: ConsoleABC
-    if os.name == 'nt':
+    if os.name == "nt":
         console = WindowsConsole()
     else:
         console = UnixConsole()
@@ -363,7 +374,7 @@ def main() -> None:
                     ti = cast(lt.torrent_info, t.torrent_file)
                     for idx, p in enumerate(fp):
                         out += progress_bar(p / float(ti.files().file_size(idx)), 20)
-                        out += ' ' + ti.files().file_path(idx) + '\n'
+                        out += " " + ti.files().file_path(idx) + "\n"
                     write_line(console, out)
                 except Exception:
                     pass
@@ -393,7 +404,7 @@ def main() -> None:
             alerts_log = alerts_log[-20:]
 
         for a_log in alerts_log:
-            write_line(console, a_log + '\n')
+            write_line(console, a_log + "\n")
 
         c = console.sleep_and_input(0.5)
 

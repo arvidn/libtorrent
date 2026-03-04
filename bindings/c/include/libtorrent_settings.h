@@ -16,6 +16,7 @@ enum settings_tags_t {
 	SET_I2P_HOSTNAME, // char const*
 	SET_PEER_FINGERPRINT, // char const*
 	SET_DHT_BOOTSTRAP_NODES, // char const*
+	SET_NATPMP_GATEWAY, // char const*
 	SET_WEBTORRENT_STUN_SERVER, // char const*
 	SET_ALLOW_MULTIPLE_CONNECTIONS_PER_IP, // int (0 or 1)
 	SET_SEND_REDUNDANT_HAVE, // int (0 or 1)

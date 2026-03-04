@@ -11,10 +11,12 @@ import tempfile
 import threading
 from typing import Any
 from typing import Callable
+from typing import cast
 from typing import Dict
 from typing import Optional
 from typing import Tuple
 from typing import Type
+from typing import TYPE_CHECKING
 from typing import TypeVar
 import unittest
 
@@ -22,6 +24,9 @@ import libtorrent as lt
 
 from . import lib
 from . import tdummy
+
+if TYPE_CHECKING:
+    from libtorrent import _Entry
 
 
 class EnumTest(unittest.TestCase):
@@ -453,10 +458,9 @@ class AlertTest(unittest.TestCase):
         self.assertEqual(str(alert), alert.message())
 
 
-if lt.api_version < 2:
-    maybe_progress_notification = lt.alert.category_t.progress_notification
-else:
-    maybe_progress_notification = 0
+maybe_progress_notification: int = (
+    lt.alert.category_t.progress_notification if lt.api_version < 2 else 0
+)
 
 
 class TorrentAlertTest(AlertTest):
@@ -2171,7 +2175,7 @@ class DhtImmutableItemAlertTest(DhtAlertTest):
 
     def test_dht_immutable_item_alert(self) -> None:
         item = {b"test": b"test"}
-        sha1 = self.session.dht_put_immutable_item(item)
+        sha1 = self.session.dht_put_immutable_item(cast("_Entry", item))
         # Wait for the put to complete, or the get will short-circuit
         wait_for(self.session, lt.dht_put_alert, timeout=5)
         self.session.dht_get_immutable_item(sha1)
@@ -2225,7 +2229,7 @@ class DhtPutAlertTest(DhtAlertTest):
 
     def test_dht_put_alert_with_immutable(self) -> None:
         item = {b"test": b"test"}
-        sha1 = self.session.dht_put_immutable_item(item)
+        sha1 = self.session.dht_put_immutable_item(cast("_Entry", item))
 
         alert = wait_for(self.session, lt.dht_put_alert, timeout=5)
 

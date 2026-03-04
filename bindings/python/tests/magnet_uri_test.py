@@ -1,11 +1,17 @@
 import tempfile
 from typing import Any
 from typing import Dict
+from typing import TYPE_CHECKING
 import unittest
 
 import libtorrent as lt
 
 from . import lib
+
+if TYPE_CHECKING:
+    from libtorrent import load_torrent_limits
+else:
+    load_torrent_limits = dict
 
 
 def filter(atp: Dict[str, Any]) -> Dict[str, Any]:
@@ -242,14 +248,18 @@ class AddMagnetUriTest(unittest.TestCase):
         if lt.api_version < 2:
             with self.assertWarns(DeprecationWarning):
                 with self.assertRaises(RuntimeError):
-                    lt.add_magnet_uri(self.session, "magnet:?", {"save_path": "."})
+                    lt.add_magnet_uri(
+                        self.session,
+                        "magnet:?",
+                        load_torrent_limits({"save_path": "."}),
+                    )
 
     def test_add(self) -> None:
         if lt.api_version < 2:
             uri = f"magnet:?xt=urn:btih:{self.info_hash_sha1}"
             with self.assertWarns(DeprecationWarning):
                 handle = lt.add_magnet_uri(
-                    self.session, uri, {"save_path": self.dir.name}
+                    self.session, uri, load_torrent_limits({"save_path": self.dir.name})
                 )
             self.assertEqual(str(handle.info_hashes().v1), self.info_hash_sha1)
 

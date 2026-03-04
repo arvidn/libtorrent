@@ -210,14 +210,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
         host_header = self.headers.get("Host")
         if host_header:
             self.log_message("CONNECT request: target=%s:%s, Host header=%s",
-                host, port, host_header)
+                             host, port, host_header)
             # Check if Host header matches CONNECT target
             if host_header == f"{host}:{port}":
                 self.log_message("Host header matches CONNECT target")
             else:
                 self.log_message("Host header differs from CONNECT target")
         else:
-            self.log_error("CONNECT request rejected: missing Host header (required for HTTP/1.1 compliance)")
+            self.log_error("CONNECT request rejected: missing Host header"
+                           " (required for HTTP/1.1 compliance)")
             raise _HTTPError(400, explain="Host header required for CONNECT requests")
 
         try:

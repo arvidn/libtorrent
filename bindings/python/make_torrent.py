@@ -49,11 +49,13 @@ t = libtorrent.create_torrent(fs, 0, 4 * 1024 * 1024)
 t.add_tracker(sys.argv[2])
 t.set_creator("libtorrent %s" % libtorrent.__version__)
 
+
 def log_piece(written_piece: int) -> None:
     sys.stdout.write(".")
 
+
 libtorrent.set_piece_hashes(t, parent_input, log_piece)
-sys.stdout.write('\n')
+sys.stdout.write("\n")
 
 with open("out.torrent", "wb+") as f_handle:
     f_handle.write(libtorrent.bencode(t.generate()))
