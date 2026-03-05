@@ -1715,14 +1715,10 @@ TORRENT_TEST(write_torrent_file_session_roundtrip)
 
 		TORRENT_ASSERT(a);
 		{
-#ifdef TORRENT_WINDOWS
 			auto p = static_cast<save_resume_data_alert const*>(a)->params;
 			// dht nodes don't really round-trip cleanly. We don't specifically
-			// recard the node list from the torrent ifle
+			// record the node list from the torrent file
 			p.dht_nodes = atp.dht_nodes;
-#else
-			auto const& p = static_cast<save_resume_data_alert const*>(a)->params;
-#endif
 			entry e = write_torrent_file(p, write_flags::include_dht_nodes);
 			std::vector<char> const out_buffer = bencode(e);
 
