@@ -3433,6 +3433,8 @@ class settings_pack(TypedDict):
     i2p_hostname: NotRequired[str]
     peer_fingerprint: NotRequired[str]
     dht_bootstrap_nodes: NotRequired[str]
+    natpmp_gateway: NotRequired[str]
+    webtorrent_stun_server: NotRequired[str]
     tracker_completion_timeout: NotRequired[int]
     tracker_receive_timeout: NotRequired[int]
     stop_tracker_timeout: NotRequired[int]
@@ -3593,6 +3595,8 @@ class settings_pack(TypedDict):
     announce_port: NotRequired[int]
     i2p_inbound_length_variance: NotRequired[int]
     i2p_outbound_length_variance: NotRequired[int]
+    min_websocket_announce_interval: NotRequired[int]
+    webtorrent_connection_timeout: NotRequired[int]
     allow_multiple_connections_per_ip: NotRequired[bool]
     ignore_limits_on_local_network: NotRequired[bool]
     send_redundant_have: NotRequired[bool]
@@ -3678,6 +3682,7 @@ class settings_pack(TypedDict):
     enable_set_file_valid_data: NotRequired[bool]
     socks5_udp_send_local_ep: NotRequired[bool]
     proxy_send_host_in_connect: NotRequired[bool]
+    disk_disable_copy_on_write: NotRequired[bool]
 
 class session_params(metaclass=_BoostBaseClass):
     __instance_size__: int
