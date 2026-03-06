@@ -880,8 +880,6 @@ void pread_disk_io::async_clear_piece(storage_index_t const storage
 
 status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 {
-	// we're not using a cache. This is the simple path
-	// just read straight from the file
 	bool const v1 = bool(j->flags & disk_interface::v1_hash);
 	bool const v2 = !a.block_hashes.empty();
 
@@ -896,22 +894,36 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 
 	int const blocks_to_read = std::max(blocks_in_piece, blocks_in_piece2);
 
-	// this creates a function object, ready to be passed to
-	// m_cache.hash_piece()
+	// Callable matching the hash_piece() protocol (see disk_cache.hpp).
+	// Completes piece hash computation using the cache snapshot passed by hash_piece(),
+	// reading any missing blocks from disk.
+	// * Copies all non-zero v2_hashes entries into a.block_hashes (capturing both
+	//   in-order hashes and any out-of-order hashes computed by kick_hasher's second
+	//   pass).
+	// * Iterates blocks [hasher_cursor, blocks_to_read): for each block, either reads
+	//   it from disk (buf == nullptr) or hashes it from the in-memory buffer. Skips
+	//   the SHA256 work for any block whose v2 hash is already pre-computed (v2_done).
+	// * Finalises the SHA1 hash into a.piece_hash.
+	//
+	// Also invoked directly as a fallback (all-null blocks, hasher_cursor=0) when the
+	// piece is not in the cache at all, in which case every block is read from disk.
 	auto hash_partial_piece = [&] (lt::aux::piece_hasher* ph
 		, int const hasher_cursor
 		, span<char const*> const blocks
 		, span<sha256_hash> const v2_hashes)
 	{
+		// ph: SHA1 hasher already fed blocks [0, hasher_cursor)
+		// hasher_cursor: first block index that still needs processing for SHA1.
+		// blocks: per-block buffer pointers from the cache snapshot.
+		// v2_hashes: SHA256 block hashes from the cache snapshot.
 		time_point const start_time = clock_type::now();
 
-		if (v2 && hasher_cursor > 0)
+		// copy all pre-computed v2 hashes, including out-of-order ones
+		if (v2)
 		{
-			for (int i = 0; i < hasher_cursor; ++i)
-			{
-				TORRENT_ASSERT(!v2_hashes[i].is_all_zeros());
-				a.block_hashes[i] = v2_hashes[i];
-			}
+			for (int i = 0; i < blocks_in_piece2; ++i)
+				if (!v2_hashes[i].is_all_zeros())
+					a.block_hashes[i] = v2_hashes[i];
 		}
 
 		int offset = hasher_cursor * default_block_size;
@@ -919,9 +931,10 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 		for (int i = hasher_cursor; i < blocks_to_read; ++i)
 		{
 			bool const v2_block = i < blocks_in_piece2;
+			bool const v2_done = v2_block && !v2_hashes[i].is_all_zeros();
 
 			std::ptrdiff_t const len = v1 ? std::min(default_block_size, piece_size - offset) : 0;
-			std::ptrdiff_t const len2 = v2_block ? std::min(default_block_size, piece_size2 - offset) : 0;
+			std::ptrdiff_t const len2 = (v2_block && !v2_done) ? std::min(default_block_size, piece_size2 - offset) : 0;
 
 			hasher256 ph2;
 			char const* buf = blocks[i];
@@ -940,14 +953,15 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 
 					j->storage->hash(m_settings, ph->ctx(), len, a.piece
 						, offset, file_mode, flags, j->error);
+					++blocks_read_from_disk;
 				}
-				if (v2_block)
+				if (v2_block && !v2_done)
 				{
 					j->storage->hash2(m_settings, ph2, len2, a.piece, offset
 						, file_mode, j->flags, j->error);
+					++blocks_read_from_disk;
 				}
 				if (j->error) break;
-				++blocks_read_from_disk;
 			}
 			else
 			{
@@ -956,12 +970,12 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 					TORRENT_ASSERT(ph);
 					ph->update({ buf, len });
 				}
-				if (v2_block)
+				if (v2_block && !v2_done)
 					ph2.update({buf, len2});
 			}
 			offset += default_block_size;
 
-			if (v2_block)
+			if (v2_block && !v2_done)
 				a.block_hashes[i] = ph2.final();
 		}
 

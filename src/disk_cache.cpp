@@ -245,7 +245,8 @@ insert_result_flags disk_cache::insert(piece_location const loc
 	if (m_back_pressure.has_back_pressure(m_blocks, std::move(o)))
 		ret |= exceeded_limit;
 
-	if (i->hasher_cursor == block_idx)
+	if (i->hasher_cursor == block_idx
+		|| (i->v2_hashes && !i->piece_hash_returned))
 		ret |= need_hasher_kick;
 
 	return ret;
@@ -287,6 +288,7 @@ disk_cache::hash_result disk_cache::try_hash_piece(piece_location const loc, pre
 			e.piece_hash_returned = true;
 
 			auto& job = std::get<aux::job::hash>(hash_job->action);
+			TORRENT_ASSERT(bool(e.ph) == e.v1_hashes);
 			job.piece_hash = e.ph ? e.ph->final_hash() : sha1_hash{};
 			if (!job.block_hashes.empty())
 			{
@@ -368,7 +370,6 @@ keep_going:
 		, piece_iter->ph.get());
 	l.unlock();
 
-	int bytes_left = piece_iter->piece_size2 - (cursor * default_block_size);
 	int count_hashed = 0;
 	for (auto& buf: blocks)
 	{
@@ -379,16 +380,24 @@ keep_going:
 			ctx.update(buf);
 		}
 
-		if (need_v2 && bytes_left > 0)
-		{
-			TORRENT_ASSERT(piece_iter->block_hashes);
-			int const this_block_size = std::min(bytes_left, default_block_size);
-			piece_iter->block_hashes[cursor] = hasher256(buf.first(this_block_size)).final();
-			bytes_left -= default_block_size;
-		}
-
 		++cursor;
 		++count_hashed;
+	}
+
+	// compute v2 hashes for any new blocks, including out-of-order ones
+	if (need_v2)
+	{
+		TORRENT_ASSERT(piece_iter->block_hashes);
+		int bytes_left = piece_iter->piece_size2;
+		for (int i = 0; i < piece_iter->blocks_in_piece; ++i, bytes_left -= default_block_size)
+		{
+			if (!piece_iter->block_hashes[i].is_all_zeros()) continue;
+			span<char const> const buf = piece_iter->blocks[i].buf();
+			if (buf.data() == nullptr) continue;
+			int const this_block_size = std::min(bytes_left, default_block_size);
+			if (this_block_size <= 0) break;
+			piece_iter->block_hashes[i] = hasher256(buf.first(this_block_size)).final();
+		}
 	}
 
 	l.lock();
@@ -446,11 +455,12 @@ keep_going:
 		e.piece_hash_returned = true;
 		// we've hashed all blocks, and there's a hash job associated with
 		// this piece, post it.
+		TORRENT_ASSERT(bool(e.ph) == e.v1_hashes);
 		piece_hash = e.ph ? e.ph->final_hash() : sha1_hash{};
 	});
 
 	auto& job = std::get<job::hash>(j->action);
-	job.piece_hash = piece_hash;
+	if (need_v1) job.piece_hash = piece_hash;
 	if (!job.block_hashes.empty())
 	{
 		TORRENT_ASSERT(need_v2);
@@ -918,6 +928,8 @@ void disk_cache::clear_piece_impl(cached_piece_entry& cpe, jobqueue_t& aborted)
 	cpe.piece_hash_returned = false;
 	cpe.hasher_cursor = 0;
 	cpe.flushed_cursor = 0;
+	if (cpe.block_hashes)
+		std::fill_n(cpe.block_hashes.get(), cpe.blocks_in_piece, sha256_hash{});
 	TORRENT_ASSERT(cpe.num_jobs >= jobs);
 	cpe.num_jobs -= jobs;
 	if (cpe.ph) *cpe.ph = piece_hasher{};

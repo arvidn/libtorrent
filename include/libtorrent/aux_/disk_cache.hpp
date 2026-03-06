@@ -256,38 +256,61 @@ struct disk_cache
 
 		auto& view = m_pieces.template get<0>();
 		auto i = view.find(loc);
-		if (i != view.end())
+		if (i == view.end())
 		{
-			if (i->hashing)
-			{
-				// TODO: it would probably be more efficient to wait here.
-				// #error we should hang the hash job onto the piece. If there is a
-				// job already, form a queue
-				l.unlock();
-				return f();
-			}
-			auto const& cbe = i->blocks[block_idx];
-			// There's nothing stopping the hash threads from hashing the blocks in
-			// parallel. This should not depend on the hasher_cursor. That's a v1
-			// concept
-			// TODO: v2 hashing should not depend on the hasher_cursor
-			if (i->hasher_cursor > block_idx)
-			{
-				TORRENT_ASSERT(i->block_hashes);
-				return i->block_hashes[block_idx];
-			}
-			if (cbe.buf().data())
-			{
-				hasher256 h;
-				h.update(cbe.buf());
-				return h.final();
-			}
+			l.unlock();
+			return f();
+		}
+		if (i->hashing)
+		{
+			// TODO: it would probably be more efficient to wait here.
+			// #error we should hang the hash job onto the piece. If there is a
+			// job already, form a queue
+			l.unlock();
+			return f();
+		}
+		auto const& cbe = i->blocks[block_idx];
+		// There's nothing stopping the hash threads from hashing the blocks in
+		// parallel. This should not depend on the hasher_cursor. That's a v1
+		// concept
+		TORRENT_ASSERT(i->block_hashes);
+		if (!i->block_hashes[block_idx].is_all_zeros())
+			return i->block_hashes[block_idx];
+		if (cbe.buf().data())
+		{
+			hasher256 h;
+			h.update(cbe.buf());
+			return h.final();
 		}
 		l.unlock();
 		return f();
 	}
 
-	// returns false if the piece is not in the cache
+	// Looks up the piece in the cache and calls f() to complete its hash computation.
+	// Returns false if the piece is not in the cache; the caller must then read all
+	// blocks from disk itself.
+	//
+	// When the piece is found, hash_piece() takes a snapshot of the cache state under
+	// the mutex, sets hashing=true (which pins all buffers at index >= hasher_cursor
+	// so flush_piece_impl cannot free them), then releases the lock and calls:
+	//
+	//   f(ph, hasher_cursor, blocks, v2_hashes)
+	//
+	//   ph            -- SHA1 piece hasher already fed blocks [0, hasher_cursor).
+	//                    Null for v2-only torrents.
+	//   hasher_cursor -- index of the first block not yet incorporated in ph.
+	//                    f() must continue feeding blocks from this index onward.
+	//   blocks        -- per-block buffer pointers (one per block in the piece).
+	//                    A null entry means the block is not in the cache and must
+	//                    be read from disk.
+	//   v2_hashes     -- per-block SHA256 hash snapshots. An all-zeros entry is the
+	//                    sentinel meaning "not yet computed"; a non-zero entry is a
+	//                    pre-computed hash that f() may use directly without re-hashing.
+	//
+	// After f() returns, hash_piece() re-acquires the mutex and finalises the piece
+	// entry: marks piece_hash_returned, clears hashing, advances hasher_cursor to
+	// blocks_in_piece, and frees any buffers that have already been flushed to disk.
+	// If all blocks are flushed, the piece entry is removed from the cache entirely.
 	template <typename Fun>
 	bool hash_piece(piece_location const loc, Fun f)
 	{
