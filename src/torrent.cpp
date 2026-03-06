@@ -7396,7 +7396,7 @@ namespace {
 				ret.verified_leaf_hashes.emplace_back(t.verified_leafs());
 			}
 
-			if (!has_hash_picker() && !m_have_all)
+			if (!has_hash_picker() && !m_have_all && valid_metadata())
 			{
 				file_storage const& fs = m_torrent_file->layout();
 				ret.verified_leaf_hashes.reserve(fs.num_files());
