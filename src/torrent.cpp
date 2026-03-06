@@ -6940,8 +6940,12 @@ namespace {
 				return result.valid;
 			}
 
+			// it's possible the piece has already passed because we finished
+			// downloading it, and we could compute the full piece hash without
+			// the underlying block hashes. It's important to not call
+			// piece_passed() twice for the same piece
 			if (m_picker && m_picker->is_downloading(p) && m_picker->is_piece_finished(p)
-				&& !m_picker->is_hashing(p))
+				&& !m_picker->is_hashing(p) && !have_piece(p))
 			{
 				piece_passed(p);
 			}
