@@ -502,14 +502,14 @@ def session_stats_metrics() -> list[stats_metric]:
 
 @overload
 def set_piece_hashes(
-    _ct: create_torrent, _path: str, _callback: Callable[[int], None]
+    _ct: create_torrent, _path: str | bytes, _callback: Callable[[int], None]
 ) -> None:
     """
     set_piece_hashes( (create_torrent)arg1, (str)arg2) -> None :
     """
 
 @overload
-def set_piece_hashes(_ct: create_torrent, _path: str) -> None:
+def set_piece_hashes(_ct: create_torrent, _path: str | bytes) -> None:
     """
     set_piece_hashes( (create_torrent)arg1, (str)arg2, (object)arg3) -> None :
     """
@@ -548,8 +548,7 @@ def write_session_params(
 
 class add_piece_flags_t(metaclass=_BoostBaseClass):
     __instance_size__: int
-    @property
-    def overwrite_existing(self) -> int: ...
+    overwrite_existing: int
 
 class alert(metaclass=_BoostBaseClass):
     __name__: str
@@ -867,6 +866,8 @@ class TorrentFileFileDict(dict):
 @type_check_only
 class TorrentFileInfoDict(dict):
     @overload
+    def __getitem__(self, key: Literal[b"collections"]) -> list[bytes]: ...
+    @overload
     def __getitem__(self, key: Literal[b"files"]) -> list[TorrentFileFileDict]: ...
     @overload
     def __getitem__(self, key: Literal[b"length"]) -> int: ...
@@ -878,6 +879,10 @@ class TorrentFileInfoDict(dict):
     def __getitem__(self, key: Literal[b"piece length"]) -> int: ...
     @overload
     def __getitem__(self, key: Literal[b"pieces"]) -> bytes: ...
+    @overload
+    def __getitem__(self, key: Literal[b"similar"]) -> list[bytes]: ...
+    @overload
+    def __getitem__(self, key: Literal[b"ssl-cert"]) -> bytes: ...
 
 @type_check_only
 class TorrentFileFileSpecV2(dict):
@@ -897,6 +902,8 @@ class TorrentFileDirectoryV2(dict):
 @type_check_only
 class TorrentFileInfoDictV2(dict):
     @overload
+    def __getitem__(self, key: Literal[b"collections"]) -> list[bytes]: ...
+    @overload
     def __getitem__(self, key: Literal[b"file tree"]) -> TorrentFileDirectoryV2: ...
     @overload
     def __getitem__(self, key: Literal[b"meta version"]) -> int: ...
@@ -904,6 +911,10 @@ class TorrentFileInfoDictV2(dict):
     def __getitem__(self, key: Literal[b"name"]) -> bytes: ...
     @overload
     def __getitem__(self, key: Literal[b"piece length"]) -> int: ...
+    @overload
+    def __getitem__(self, key: Literal[b"similar"]) -> list[bytes]: ...
+    @overload
+    def __getitem__(self, key: Literal[b"ssl-cert"]) -> bytes: ...
 
 @type_check_only
 class TorrentFileDict(dict):
@@ -934,7 +945,7 @@ class TorrentFileDict(dict):
         self, key: Literal[b"piece layers"]
     ) -> dict[bytes, bytes] | None: ...  # b"piece layers" are for v2 torrents only!
     @overload
-    def __getitem__(self, key: Literal[b"urllist"]) -> list[bytes] | None: ...
+    def __getitem__(self, key: Literal[b"url-list"]) -> list[bytes] | None: ...
 
 class create_torrent(metaclass=_BoostBaseClass):
     canonical_files: int
@@ -1736,7 +1747,7 @@ class info_hash_t(metaclass=_BoostBaseClass):
         __init__( (object)arg1, (sha1_hash)sha1_hash, (sha256_hash)sha256_hash) -> None :
         """
 
-    def get(self, _v: protocol_version) -> sha1_hash:
+    def get(self, _v: protocol_version | int) -> sha1_hash:
         """
         get( (info_hash_t)arg1, (protocol_version)arg2) -> sha1_hash :
         """
@@ -1746,7 +1757,7 @@ class info_hash_t(metaclass=_BoostBaseClass):
         get_best( (info_hash_t)arg1) -> sha1_hash :
         """
 
-    def has(self, _v: protocol_version) -> bool:
+    def has(self, _v: protocol_version | int) -> bool:
         """
         has( (info_hash_t)arg1, (protocol_version)arg2) -> bool :
         """
@@ -2170,29 +2181,37 @@ class peer_class_type_filter(metaclass=_BoostBaseClass):
     ssl_utp_socket: peer_class_type_filter_socket_type_t
     tcp_socket: peer_class_type_filter_socket_type_t
     utp_socket: peer_class_type_filter_socket_type_t
-    def add(self, _type: peer_class_type_filter_socket_type_t, _class: int) -> None:
+    def add(
+        self, _type: peer_class_type_filter_socket_type_t | int, _class: int
+    ) -> None:
         """
         add( (peer_class_type_filter)arg1, (peer_class_type_filter_socket_type_t)arg2, (object)arg3) -> None :
         """
 
-    def allow(self, _type: peer_class_type_filter_socket_type_t, _class: int) -> None:
+    def allow(
+        self, _type: peer_class_type_filter_socket_type_t | int, _class: int
+    ) -> None:
         """
         allow( (peer_class_type_filter)arg1, (peer_class_type_filter_socket_type_t)arg2, (object)arg3) -> None :
         """
 
-    def apply(self, _type: peer_class_type_filter_socket_type_t, _class: int) -> int:
+    def apply(
+        self, _type: peer_class_type_filter_socket_type_t | int, _class: int
+    ) -> int:
         """
         apply( (peer_class_type_filter)arg1, (peer_class_type_filter_socket_type_t)arg2, (int)arg3) -> int :
         """
 
     def disallow(
-        self, _type: peer_class_type_filter_socket_type_t, _class: int
+        self, _type: peer_class_type_filter_socket_type_t | int, _class: int
     ) -> None:
         """
         disallow( (peer_class_type_filter)arg1, (peer_class_type_filter_socket_type_t)arg2, (object)arg3) -> None :
         """
 
-    def remove(self, _type: peer_class_type_filter_socket_type_t, _class: int) -> None:
+    def remove(
+        self, _type: peer_class_type_filter_socket_type_t | int, _class: int
+    ) -> None:
         """
         remove( (peer_class_type_filter)arg1, (peer_class_type_filter_socket_type_t)arg2, (object)arg3) -> None :
         """
@@ -2574,7 +2593,7 @@ class proxy_type_t(int):
         port: int
         password: str
         username: str
-        type: proxy_type_t
+        type: proxy_type_t | int
         proxy_peer_connections: bool
         proxy_hostnames: bool
 
@@ -2787,9 +2806,9 @@ class session(metaclass=_BoostBaseClass):
     def add_extension(
         self,
         extension: Literal[
-            "create_smart_ban_plugin",
-            "create_ut_metadata_plugin",
-            "create_ut_pex_plugin",
+            "smart_ban",
+            "ut_metadata",
+            "ut_pex",
         ],
     ) -> None:
         """
@@ -2797,7 +2816,7 @@ class session(metaclass=_BoostBaseClass):
         """
 
     def add_port_mapping(
-        self, _proto: portmap_protocol, _int: int, _ext: int
+        self, _proto: portmap_protocol | int, _int: int, _ext: int
     ) -> list[int]:
         """
         add_port_mapping( (session)arg1, (portmap_protocol)arg2, (int)arg3, (int)arg4) -> object :
@@ -2860,7 +2879,7 @@ class session(metaclass=_BoostBaseClass):
         delete_port_mapping( (session)arg1, (object)arg2) -> None :
         """
 
-    def dht_announce(self, info_hash: sha1_hash, port: int, flags: int) -> None:
+    def dht_announce(self, info_hash: sha1_hash, port: int = 0, flags: int = 0) -> None:
         """
         dht_announce( (session)arg1, (sha1_hash)arg2, (int)arg3, (object)arg4) -> None :
         """
@@ -4609,7 +4628,7 @@ class torrent_handle(metaclass=_BoostBaseClass):
 @type_check_only
 class web_seed_entry(TypedDict):
     url: NotRequired[str]
-    auth: NotRequired[str]
+    auth: NotRequired[str | bytes]
     type: NotRequired[int]
 
 @type_check_only
@@ -4646,31 +4665,17 @@ class torrent_info(metaclass=_BoostBaseClass):
         """
 
     @overload
-    def __init__(self, _bdecoded: TorrentFileInfoDict) -> None:
+    def __init__(self, _bdecoded: TorrentFileDict) -> None:
         """
         __init__( (object)arg1, (dict)arg2) -> object :
         """
 
     @overload
     def __init__(
-        self, _bdecoded: TorrentFileInfoDict, _limits: load_torrent_limits
+        self, _bdecoded: TorrentFileDict, _limits: load_torrent_limits
     ) -> None:
         """
         __init__( (object)arg1, (dict)arg2, (dict)arg3) -> object :
-        """
-
-    @overload
-    def __init__(
-        self, _bdecoded: TorrentFileInfoDictV2, _limits: load_torrent_limits
-    ) -> None:
-        """
-        __init__( (object)arg1, (dict)arg2, (dict)arg3) -> object :
-        """
-
-    @overload
-    def __init__(self, _bdecoded: TorrentFileInfoDictV2) -> None:
-        """
-        __init__( (object)arg1, (dict)arg2) -> object :
         """
 
     @overload
