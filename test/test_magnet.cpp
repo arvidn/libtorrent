@@ -48,6 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp" // to_hex
 #include "settings.hpp"
 #include "test_utils.hpp" // for _pri
+#include "libtorrent/alert_types.hpp"
 
 using namespace lt;
 
@@ -807,6 +808,45 @@ bool test_round_trip(add_torrent_params const& atp)
 	return compare(atp, new_atp);
 }
 
+}
+
+namespace {
+
+// adding a magnet link (without metadata) and immediately calling
+// save_resume_data() should be successful. Even though the resume data can't
+// be complete with files and hashes, we support saving partial resume data.
+void test_save_resume_data_magnet(char const* uri)
+{
+	lt::session ses(settings());
+	add_torrent_params p = parse_magnet_uri(uri);
+	p.save_path = ".";
+	torrent_handle h = ses.add_torrent(p);
+
+	h.save_resume_data();
+
+	alert const* a = wait_for_alert(ses, save_resume_data_alert::alert_type);
+	TEST_CHECK(a != nullptr);
+}
+
+} // anonymous namespace
+
+TORRENT_TEST(save_resume_data_magnet_v1)
+{
+	test_save_resume_data_magnet(
+		"magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+}
+
+TORRENT_TEST(save_resume_data_magnet_hybrid)
+{
+	test_save_resume_data_magnet(
+		"magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+		"&xt=urn:btmh:1220cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
+}
+
+TORRENT_TEST(save_resume_data_magnet_v2)
+{
+	test_save_resume_data_magnet(
+		"magnet:?xt=urn:btmh:1220cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
 }
 
 TORRENT_TEST(round_trip)
