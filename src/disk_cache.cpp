@@ -245,7 +245,8 @@ insert_result_flags disk_cache::insert(piece_location const loc
 	if (m_back_pressure.has_back_pressure(m_blocks, std::move(o)))
 		ret |= exceeded_limit;
 
-	if (i->hasher_cursor == block_idx)
+	if (i->hasher_cursor == block_idx
+		|| (i->v2_hashes && !i->piece_hash_returned))
 		ret |= need_hasher_kick;
 
 	return ret;
@@ -287,6 +288,7 @@ disk_cache::hash_result disk_cache::try_hash_piece(piece_location const loc, pre
 			e.piece_hash_returned = true;
 
 			auto& job = std::get<aux::job::hash>(hash_job->action);
+			TORRENT_ASSERT(bool(e.ph) == e.v1_hashes);
 			job.piece_hash = e.ph ? e.ph->final_hash() : sha1_hash{};
 			if (!job.block_hashes.empty())
 			{
@@ -342,18 +344,19 @@ void disk_cache::kick_hasher(piece_location const& loc, jobqueue_t& completed_jo
 		return;
 	}
 
-	TORRENT_ALLOCA(blocks_storage, span<char const>, piece_iter->blocks_in_piece);
 	std::uint16_t cursor = piece_iter->hasher_cursor;
+	TORRENT_ALLOCA(blocks_storage, span<char const>, piece_iter->blocks_in_piece - int(cursor));
 keep_going:
-	std::uint16_t block_idx = 0;
+	// Snapshot all block buffer pointers from cursor onwards while holding the
+	// mutex. New blocks may be added asynchronously after we release the lock,
+	// so we must not read their buf() pointers then.
+	int const n = piece_iter->blocks_in_piece - int(cursor);
+	for (int i = 0; i < n; ++i)
+		blocks_storage[i] = piece_iter->blocks[int(cursor) + i].buf();
+	// end = first gap in the contiguous run, needed for flushed_cursor trimming
 	std::uint16_t end = cursor;
-	while (end < piece_iter->blocks_in_piece && piece_iter->blocks[end].buf().data())
-	{
-		blocks_storage[block_idx] = piece_iter->blocks[end].buf();
-		++block_idx;
+	while (end < piece_iter->blocks_in_piece && blocks_storage[end - cursor].data())
 		++end;
-	}
-	auto const blocks = blocks_storage.first(block_idx);
 
 	TORRENT_ASSERT(piece_iter->hashing == false);
 	view.modify(piece_iter, [](cached_piece_entry& e) { e.hashing = true; });
@@ -366,29 +369,42 @@ keep_going:
 		, cursor, end
 		, need_v1, need_v2
 		, piece_iter->ph.get());
+
 	l.unlock();
 
-	int bytes_left = piece_iter->piece_size2 - (cursor * default_block_size);
 	int count_hashed = 0;
-	for (auto& buf: blocks)
+	std::uint16_t const cursor_start = cursor;
+	int bytes_left = piece_iter->piece_size2 - int(cursor_start) * default_block_size;
+	bool contiguous = true;
+	for (int i = 0; i < n; ++i, bytes_left -= default_block_size)
 	{
-		if (need_v1)
+		span<char const> const buf = blocks_storage[i];
+		if (buf.data() == nullptr)
 		{
-			TORRENT_ASSERT(piece_iter->ph);
-			auto& ctx = const_cast<aux::piece_hasher&>(*piece_iter->ph);
-			ctx.update(buf);
+			contiguous = false;
+			if (!need_v2) break;
+			continue;
 		}
 
-		if (need_v2 && bytes_left > 0)
+		if (contiguous)
+		{
+			if (need_v1)
+			{
+				TORRENT_ASSERT(piece_iter->ph);
+				auto& ctx = const_cast<aux::piece_hasher&>(*piece_iter->ph);
+				ctx.update(buf);
+			}
+			++cursor;
+			++count_hashed;
+		}
+
+		if (need_v2)
 		{
 			TORRENT_ASSERT(piece_iter->block_hashes);
-			int const this_block_size = std::min(bytes_left, default_block_size);
-			piece_iter->block_hashes[cursor] = hasher256(buf.first(this_block_size)).final();
-			bytes_left -= default_block_size;
+			int const blk_idx = int(cursor_start) + i;
+			if (bytes_left > 0 && piece_iter->block_hashes[blk_idx].is_all_zeros())
+				piece_iter->block_hashes[blk_idx] = hasher256(buf.first(std::min(bytes_left, default_block_size))).final();
 		}
-
-		++cursor;
-		++count_hashed;
 	}
 
 	l.lock();
@@ -446,11 +462,12 @@ keep_going:
 		e.piece_hash_returned = true;
 		// we've hashed all blocks, and there's a hash job associated with
 		// this piece, post it.
+		TORRENT_ASSERT(bool(e.ph) == e.v1_hashes);
 		piece_hash = e.ph ? e.ph->final_hash() : sha1_hash{};
 	});
 
 	auto& job = std::get<job::hash>(j->action);
-	job.piece_hash = piece_hash;
+	if (need_v1) job.piece_hash = piece_hash;
 	if (!job.block_hashes.empty())
 	{
 		TORRENT_ASSERT(need_v2);
@@ -918,6 +935,8 @@ void disk_cache::clear_piece_impl(cached_piece_entry& cpe, jobqueue_t& aborted)
 	cpe.piece_hash_returned = false;
 	cpe.hasher_cursor = 0;
 	cpe.flushed_cursor = 0;
+	if (cpe.block_hashes)
+		std::fill_n(cpe.block_hashes.get(), cpe.blocks_in_piece, sha256_hash{});
 	TORRENT_ASSERT(cpe.num_jobs >= jobs);
 	cpe.num_jobs -= jobs;
 	if (cpe.ph) *cpe.ph = piece_hasher{};
