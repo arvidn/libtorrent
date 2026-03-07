@@ -44,7 +44,7 @@ bool compute_force_flush(cached_piece_entry const& piece)
 	// supposed to be complete. After hashing, we should flush any remaining
 	// blocks to disk
 	return (piece.hasher_cursor == piece.blocks_in_piece
-		|| piece.piece_hash_returned);
+		|| bool(piece.flags & cached_piece_entry::piece_hash_returned_flag));
 }
 
 std::uint16_t compute_flushed_cursor(span<const cached_block_entry> blocks)
@@ -129,12 +129,8 @@ cached_piece_entry::cached_piece_entry(piece_location const& loc, std::uint16_t 
 	, ph(v1 ? std::make_unique<piece_hasher>() : nullptr)
 	, piece_size2(piece_size_v2)
 	, blocks_in_piece(num_blocks)
-	, force_flush(false)
-	, hashing(false)
-	, flushing(false)
-	, piece_hash_returned(false)
-	, v1_hashes(v1)
-	, v2_hashes(v2)
+	, flags((v1 ? v1_hashes_flag : cached_piece_flags{})
+		| (v2 ? v2_hashes_flag : cached_piece_flags{}))
 {}
 
 span<cached_block_entry> cached_piece_entry::get_blocks() const
@@ -160,7 +156,7 @@ bool disk_cache::try_clear_piece(piece_location const loc, pread_disk_job* j, jo
 	auto& view = m_pieces.template get<0>();
 	auto i = view.find(loc);
 	if (i == view.end()) return true;
-	if (i->flushing)
+	if (i->flags & cached_piece_entry::flushing_flag)
 	{
 		// postpone the clearing until we're done flushing
 		view.modify(i, [&](cached_piece_entry& e) { e.clear_piece = j; });
@@ -169,8 +165,8 @@ bool disk_cache::try_clear_piece(piece_location const loc, pread_disk_job* j, jo
 
 	// we clear a piece after it fails the hash check. It doesn't make sense
 	// to be hashing still
-	TORRENT_ASSERT(!i->hashing);
-	if (i->hashing)
+	TORRENT_ASSERT(!(i->flags & cached_piece_entry::hashing_flag));
+	if (i->flags & cached_piece_entry::hashing_flag)
 	{
 		// postpone the clearing until we're done hashing
 		view.modify(i, [&](cached_piece_entry& e) { e.clear_piece = j; });
@@ -213,7 +209,7 @@ insert_result_flags disk_cache::insert(piece_location const loc
 		i = m_pieces.emplace(loc, blocks_in_piece, piece_size2, storage->v1(), storage->v2()).first;
 	}
 
-	TORRENT_ASSERT(!i->piece_hash_returned);
+	TORRENT_ASSERT(!(i->flags & cached_piece_entry::piece_hash_returned_flag));
 
 	cached_block_entry& blk = i->blocks[block_idx];
 	DLOG("disk_cache.insert: piece: %d blk: %d flushed: %d write_job: %p flushed_cursor: %d hashed_cursor: %d\n"
@@ -236,7 +232,7 @@ insert_result_flags disk_cache::insert(piece_location const loc
 
 	bool const effective_force_flush = force_flush || compute_force_flush(*i);
 	view.modify(i, [effective_force_flush](cached_piece_entry& e) {
-		e.force_flush |= effective_force_flush;
+		if (effective_force_flush) e.flags |= cached_piece_entry::force_flush_flag;
 		++e.num_jobs;
 	});
 
@@ -246,7 +242,7 @@ insert_result_flags disk_cache::insert(piece_location const loc
 		ret |= exceeded_limit;
 
 	if (i->hasher_cursor == block_idx
-		|| (i->v2_hashes && !i->piece_hash_returned))
+		|| (bool(i->flags & cached_piece_entry::v2_hashes_flag) && !(i->flags & cached_piece_entry::piece_hash_returned_flag)))
 		ret |= need_hasher_kick;
 
 	return ret;
@@ -282,17 +278,17 @@ disk_cache::hash_result disk_cache::try_hash_piece(piece_location const loc, pre
 	auto i = view.find(loc);
 	if (i == view.end()) return hash_result::post_job;
 
-	if (!i->hashing && i->hasher_cursor == i->blocks_in_piece)
+	if (!(i->flags & cached_piece_entry::hashing_flag) && i->hasher_cursor == i->blocks_in_piece)
 	{
 		view.modify(i, [&](cached_piece_entry& e) {
-			e.piece_hash_returned = true;
+			e.flags |= cached_piece_entry::piece_hash_returned_flag;
 
 			auto& job = std::get<aux::job::hash>(hash_job->action);
-			TORRENT_ASSERT(bool(e.ph) == e.v1_hashes);
+			TORRENT_ASSERT(bool(e.ph) == bool(e.flags & cached_piece_entry::v1_hashes_flag));
 			job.piece_hash = e.ph ? e.ph->final_hash() : sha1_hash{};
 			if (!job.block_hashes.empty())
 			{
-				TORRENT_ASSERT(i->v2_hashes);
+				TORRENT_ASSERT(bool(i->flags & cached_piece_entry::v2_hashes_flag));
 				TORRENT_ASSERT(e.block_hashes);
 				TORRENT_ASSERT(job.block_hashes.size() <= e.blocks_in_piece);
 				int const to_copy = std::min(int(job.block_hashes.size()), int(e.blocks_in_piece));
@@ -303,7 +299,7 @@ disk_cache::hash_result disk_cache::try_hash_piece(piece_location const loc, pre
 		return hash_result::job_completed;
 	}
 
-	if (i->hashing
+	if ((i->flags & cached_piece_entry::hashing_flag)
 		&& i->hasher_cursor < i->blocks_in_piece
 		&& have_buffers(i->get_blocks().subspan(i->hasher_cursor))
 		)
@@ -334,11 +330,11 @@ void disk_cache::kick_hasher(piece_location const& loc, jobqueue_t& completed_jo
 		return;
 
 	// some other thread beat us to it
-	if (piece_iter->hashing)
+	if (piece_iter->flags & cached_piece_entry::hashing_flag)
 		return;
 
 	// this piece is done hasing
-	if (piece_iter->piece_hash_returned)
+	if (piece_iter->flags & cached_piece_entry::piece_hash_returned_flag)
 	{
 		// TODO: should we erase the piece from the cache, if it's also done flushing?
 		return;
@@ -358,11 +354,11 @@ keep_going:
 	while (end < piece_iter->blocks_in_piece && blocks_storage[end - cursor].data())
 		++end;
 
-	TORRENT_ASSERT(piece_iter->hashing == false);
-	view.modify(piece_iter, [](cached_piece_entry& e) { e.hashing = true; });
+	TORRENT_ASSERT(!(piece_iter->flags & cached_piece_entry::hashing_flag));
+	view.modify(piece_iter, [](cached_piece_entry& e) { e.flags |= cached_piece_entry::hashing_flag; });
 
-	bool const need_v1 = piece_iter->v1_hashes;
-	bool const need_v2 = piece_iter->v2_hashes;
+	bool const need_v1 = bool(piece_iter->flags & cached_piece_entry::v1_hashes_flag);
+	bool const need_v2 = bool(piece_iter->flags & cached_piece_entry::v2_hashes_flag);
 
 	DLOG("kick_hasher: piece: %d hashed_cursor: [%d, %d] v1: %d v2: %d ctx: %p\n"
 		, static_cast<int>(piece_iter->piece.piece)
@@ -432,7 +428,7 @@ keep_going:
 
 	view.modify(piece_iter, [&](cached_piece_entry& e) {
 		e.hasher_cursor = cursor;
-		e.hashing = false;
+		e.flags &= ~cached_piece_entry::hashing_flag;
 	});
 
 	TORRENT_ASSERT(l.owns_lock());
@@ -453,16 +449,16 @@ keep_going:
 	pread_disk_job* j = nullptr;
 
 	sha1_hash piece_hash;
-	TORRENT_ASSERT(!piece_iter->piece_hash_returned);
+	TORRENT_ASSERT(!(piece_iter->flags & cached_piece_entry::piece_hash_returned_flag));
 
 	bool const force_flush = compute_force_flush(*piece_iter);
 	view.modify(piece_iter, [&j, &piece_hash, force_flush](cached_piece_entry& e) {
 		j = std::exchange(e.hash_job, nullptr);
-		e.force_flush |= force_flush;
-		e.piece_hash_returned = true;
+		if (force_flush) e.flags |= cached_piece_entry::force_flush_flag;
+		e.flags |= cached_piece_entry::piece_hash_returned_flag;
 		// we've hashed all blocks, and there's a hash job associated with
 		// this piece, post it.
-		TORRENT_ASSERT(bool(e.ph) == e.v1_hashes);
+		TORRENT_ASSERT(bool(e.ph) == bool(e.flags & cached_piece_entry::v1_hashes_flag));
 		piece_hash = e.ph ? e.ph->final_hash() : sha1_hash{};
 	});
 
@@ -491,7 +487,7 @@ Iter disk_cache::flush_piece_impl(View& view
 	, span<cached_block_entry> const blocks
 	, std::function<void(jobqueue_t, pread_disk_job*)> clear_piece_fun)
 {
-	view.modify(piece_iter, [](cached_piece_entry& e) { TORRENT_ASSERT(!e.flushing); e.flushing = true; });
+	view.modify(piece_iter, [](cached_piece_entry& e) { TORRENT_ASSERT(!(e.flags & cached_piece_entry::flushing_flag)); e.flags |= cached_piece_entry::flushing_flag; });
 	int const num_blocks = count_jobs(blocks);
 	if (num_blocks <= 0)
 		return std::next(piece_iter);
@@ -512,8 +508,8 @@ Iter disk_cache::flush_piece_impl(View& view
 		auto se = scope_end([&] {
 			l.lock();
 			view.modify(piece_iter, [](cached_piece_entry& e) {
-				TORRENT_ASSERT(e.flushing);
-				e.flushing = false;
+				TORRENT_ASSERT(bool(e.flags & cached_piece_entry::flushing_flag));
+				e.flags &= ~cached_piece_entry::flushing_flag;
 			});
 			TORRENT_ASSERT(m_flushing_blocks >= num_blocks);
 			m_flushing_blocks -= num_blocks;
@@ -552,7 +548,7 @@ Iter disk_cache::flush_piece_impl(View& view
 		// if another thread is currently hashing blocks in this piece, we
 		// can't remove the ones past the current hasher_cursor. They are in
 		// use.
-		if (block_index < hasher_cursor || !piece_iter->hashing)
+		if (block_index < hasher_cursor || !(piece_iter->flags & cached_piece_entry::hashing_flag))
 		{
 			blk.buf_holder.reset();
 			if (block_index >= hasher_cursor)
@@ -572,12 +568,12 @@ Iter disk_cache::flush_piece_impl(View& view
 	view.modify(piece_iter, [jobs, force_flush](cached_piece_entry& e) {
 		span<cached_block_entry const> const all_blocks = e.get_blocks();
 		e.flushed_cursor = compute_flushed_cursor(all_blocks);
-		e.force_flush |= force_flush;
+		if (force_flush) e.flags |= cached_piece_entry::force_flush_flag;
 		TORRENT_ASSERT(e.num_jobs >= jobs);
 		e.num_jobs -= jobs;
 	});
 	DLOG("flush_piece_impl: piece: %d flushed_cursor: %d force_flush: %d\n"
-		, static_cast<int>(piece_iter->piece.piece), piece_iter->flushed_cursor, piece_iter->force_flush);
+		, static_cast<int>(piece_iter->piece.piece), piece_iter->flushed_cursor, bool(piece_iter->flags & cached_piece_entry::force_flush_flag));
 	TORRENT_ASSERT(count <= blocks.size());
 	if (piece_iter->clear_piece)
 	{
@@ -596,7 +592,7 @@ Iter disk_cache::flush_piece_impl(View& view
 void disk_cache::free_piece(cached_piece_entry const& cpe)
 {
 #if TORRENT_USE_ASSERTS
-	if (cpe.piece_hash_returned)
+	if (cpe.flags & cached_piece_entry::piece_hash_returned_flag)
 	{
 		TORRENT_ASSERT(cpe.flushed_cursor == cpe.blocks_in_piece);
 		TORRENT_ASSERT(cpe.hasher_cursor == cpe.blocks_in_piece);
@@ -656,13 +652,13 @@ void disk_cache::flush_to_disk(
 		// when we've completely downloaded the piece and hashed it
 		// so, we don't check flush target in this loop
 
-		if (piece_iter->flushing)
+		if (piece_iter->flags & cached_piece_entry::flushing_flag)
 		{
 			++piece_iter;
 			continue;
 		}
 
-		if (!piece_iter->force_flush)
+		if (!(piece_iter->flags & cached_piece_entry::force_flush_flag))
 			break;
 
 		TORRENT_ASSERT(piece_iter->blocks_in_piece >= 0);
@@ -677,10 +673,10 @@ void disk_cache::flush_to_disk(
 			, blocks, clear_piece_fun);
 
 		if (piece_iter->flushed_cursor == piece_iter->blocks_in_piece
-			&& piece_iter->piece_hash_returned
-			&& !piece_iter->flushing)
+			&& bool(piece_iter->flags & cached_piece_entry::piece_hash_returned_flag)
+			&& !(piece_iter->flags & cached_piece_entry::flushing_flag))
 		{
-			TORRENT_ASSERT(!piece_iter->hashing);
+			TORRENT_ASSERT(!(piece_iter->flags & cached_piece_entry::hashing_flag));
 			free_piece(*piece_iter);
 			view.erase(piece_iter);
 		}
@@ -707,7 +703,7 @@ void disk_cache::flush_to_disk(
 		// if we encounter a 0, all the remaining ones will also be zero
 		if (num_eligible_blocks <= 0) break;
 
-		if (piece_iter->flushing)
+		if (piece_iter->flags & cached_piece_entry::flushing_flag)
 		{
 			++piece_iter;
 			continue;
@@ -731,7 +727,7 @@ void disk_cache::flush_to_disk(
 		if (m_blocks - m_flushing_blocks <= target_blocks)
 			return;
 
-		if (piece_iter->flushing)
+		if (piece_iter->flags & cached_piece_entry::flushing_flag)
 		{
 			++piece_iter;
 			continue;
@@ -783,7 +779,7 @@ void disk_cache::flush_storage(std::function<int(bitfield&, span<cached_block_en
 		// them later. maybe wait for them to be flushed or hang our job on
 		// them, but that would really only work if there's only one piece
 		// left
-		if (piece_iter->flushing)
+		if (piece_iter->flags & cached_piece_entry::flushing_flag)
 			continue;
 
 		int const num_blocks = piece_iter->num_jobs;
@@ -794,8 +790,8 @@ void disk_cache::flush_storage(std::function<int(bitfield&, span<cached_block_en
 		flush_piece_impl(view, piece_iter, f, l
 			, blocks, clear_piece_fun);
 
-		TORRENT_ASSERT(!piece_iter->flushing);
-		TORRENT_ASSERT(!piece_iter->hashing);
+		TORRENT_ASSERT(!(piece_iter->flags & cached_piece_entry::flushing_flag));
+		TORRENT_ASSERT(!(piece_iter->flags & cached_piece_entry::hashing_flag));
 		free_piece(*piece_iter);
 		piece_iter = view.erase(piece_iter);
 	}
@@ -836,7 +832,7 @@ void disk_cache::check_invariant() const
 	{
 		int const num_blocks = piece_entry.blocks_in_piece;
 
-		if (piece_entry.flushing)
+		if (piece_entry.flags & cached_piece_entry::flushing_flag)
 			flushing_blocks += num_blocks;
 
 		span<cached_block_entry> const blocks = piece_entry.get_blocks();
@@ -853,7 +849,7 @@ void disk_cache::check_invariant() const
 			// a block holds either a write job or buffer, never both
 			TORRENT_ASSERT(!(bool(be.write_job) && bool(be.buf_holder)));
 
-			if (!piece_entry.flushing)
+			if (!(piece_entry.flags & cached_piece_entry::flushing_flag))
 			{
 				// while a piece is being written to
 				// disk, the corresponding thread owns
@@ -874,7 +870,7 @@ void disk_cache::check_invariant() const
 				else if (idx == piece_entry.flushed_cursor)
 					TORRENT_ASSERT(!be.buf_holder);
 
-				if (piece_entry.force_flush)
+				if (piece_entry.flags & cached_piece_entry::force_flush_flag)
 					TORRENT_ASSERT(be.write_job != nullptr
 						|| be.flushed_to_disk
 						|| piece_entry.hasher_cursor == piece_entry.blocks_in_piece);
@@ -899,8 +895,8 @@ void disk_cache::check_invariant() const
 void disk_cache::clear_piece_impl(cached_piece_entry& cpe, jobqueue_t& aborted)
 {
 	INVARIANT_CHECK;
-	TORRENT_ASSERT(!cpe.flushing);
-	TORRENT_ASSERT(!cpe.hashing);
+	TORRENT_ASSERT(!(cpe.flags & cached_piece_entry::flushing_flag));
+	TORRENT_ASSERT(!(cpe.flags & cached_piece_entry::hashing_flag));
 	std::uint16_t jobs = 0;
 	int const hasher_cursor = cpe.hasher_cursor;
 	for (int idx = 0; idx < cpe.blocks_in_piece; ++idx)
@@ -931,8 +927,7 @@ void disk_cache::clear_piece_impl(cached_piece_entry& cpe, jobqueue_t& aborted)
 			--m_blocks;
 		}
 	}
-	cpe.force_flush = false;
-	cpe.piece_hash_returned = false;
+	cpe.flags &= ~(cached_piece_entry::force_flush_flag | cached_piece_entry::piece_hash_returned_flag);
 	cpe.hasher_cursor = 0;
 	cpe.flushed_cursor = 0;
 	if (cpe.block_hashes)

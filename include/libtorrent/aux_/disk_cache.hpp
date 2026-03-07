@@ -25,6 +25,7 @@ see LICENSE file.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/aux_/back_pressure.hpp"
+#include "libtorrent/flags.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/functional/hash.hpp>
@@ -48,6 +49,8 @@ namespace libtorrent {
 namespace libtorrent::aux {
 
 namespace mi = boost::multi_index;
+
+using cached_piece_flags = libtorrent::flags::bitfield_flag<std::uint8_t, struct cached_piece_flags_tag>;
 
 // uniquely identifies a torrent and piece
 struct piece_location
@@ -168,28 +171,34 @@ struct cached_piece_entry
 	// the number of blocks that have a write job associated with them
 	std::uint16_t num_jobs = 0;
 
-	// this is set to true when the piece has been populated with all blocks
-	// it will make it prioritized for flushing to disk
-	// it will be cleared once all blocks have been flushed
-	bool force_flush: 1;
+	// this is set when the piece has been populated with all blocks;
+	// it will make it prioritized for flushing to disk.
+	// it will be cleared once all blocks have been flushed.
+	static constexpr cached_piece_flags force_flush_flag = 0_bit;
 
-	// when this is true, there is a thread currently hashing blocks and
-	// updating the hash context in "ph". Other threads may not touch "ph",
-	// "hasher_cursor", and may only read "hashing".
-	bool hashing: 1;
+	// when set, there is a thread currently hashing blocks and updating the
+	// hash context in "ph". Other threads may not touch "ph",
+	// "hasher_cursor", and may only read this flag.
+	static constexpr cached_piece_flags hashing_flag = 1_bit;
 
-	// when a thread is writing this piece to disk, this is true. Only one
+	// when a thread is writing this piece to disk, this is set. Only one
 	// thread at a time should be flushing a piece to disk.
-	bool flushing: 1;
+	static constexpr cached_piece_flags flushing_flag = 2_bit;
 
-	// this is set to true if the piece hash has been computed and returned
-	// to the bittorrent engine.
-	bool piece_hash_returned: 1;
+	// set if the piece hash has been computed and returned to the bittorrent
+	// engine.
+	static constexpr cached_piece_flags piece_hash_returned_flag = 3_bit;
 
-	// this indicates that this piece belongs to a v2 torrent, and it has the
-	// block_hashes member allocated and we need to compute the block hashes as well
-	bool v1_hashes: 1;
-	bool v2_hashes: 1;
+	// set if this piece requires v1 SHA1 hashing (ph member is allocated).
+	static constexpr cached_piece_flags v1_hashes_flag = 4_bit;
+
+	// set if this piece requires v2 SHA256 block hashing (block_hashes
+	// member is allocated).
+	static constexpr cached_piece_flags v2_hashes_flag = 5_bit;
+
+	// flags are protected by the main disk cache mutex and may only be
+	// accessed while holding it
+	cached_piece_flags flags{};
 
 	// returns the number of blocks in this piece that have been hashed and
 	// ready to be flushed without requiring reading them back in the future.
@@ -200,7 +209,7 @@ struct cached_piece_entry
 
 	bool need_force_flush() const
 	{
-		return force_flush;
+		return bool(flags & force_flush_flag);
 	}
 };
 
@@ -261,7 +270,7 @@ struct disk_cache
 			l.unlock();
 			return f();
 		}
-		if (i->hashing)
+		if (i->flags & cached_piece_entry::hashing_flag)
 		{
 			// TODO: it would probably be more efficient to wait here.
 			// #error we should hang the hash job onto the piece. If there is a
@@ -322,7 +331,7 @@ struct disk_cache
 		std::uint16_t const hasher_cursor = piece_iter->hasher_cursor;
 
 		TORRENT_ALLOCA(blocks, char const*, blocks_in_piece);
-		TORRENT_ALLOCA(v2_hashes, sha256_hash, piece_iter->v2_hashes ? blocks_in_piece : 0);
+		TORRENT_ALLOCA(v2_hashes, sha256_hash, (piece_iter->flags & cached_piece_entry::v2_hashes_flag) ? blocks_in_piece : 0);
 
 		int num_unhashed = 0;
 		for (std::uint16_t i = 0; i < blocks_in_piece; ++i)
@@ -338,16 +347,15 @@ struct disk_cache
 				v2_hashes[i] = piece_iter->block_hashes[i];
 		}
 
-		TORRENT_ASSERT(piece_iter->hashing == false);
-		view.modify(piece_iter, [](cached_piece_entry& e) { e.hashing = true; });
+		TORRENT_ASSERT(!(piece_iter->flags & cached_piece_entry::hashing_flag));
+		view.modify(piece_iter, [](cached_piece_entry& e) { e.flags |= cached_piece_entry::hashing_flag; });
 		l.unlock();
 
 		auto se = scope_end([&] {
 			l.lock();
 			view.modify(piece_iter, [&](cached_piece_entry& e) {
-				e.force_flush = true;
-				e.hashing = false;
-				e.piece_hash_returned = true;
+				e.flags |= cached_piece_entry::force_flush_flag | cached_piece_entry::piece_hash_returned_flag;
+				e.flags &= ~cached_piece_entry::hashing_flag;
 				e.hasher_cursor = blocks_in_piece;
 			});
 			TORRENT_ASSERT(m_num_unhashed >= num_unhashed);
