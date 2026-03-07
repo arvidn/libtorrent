@@ -14,6 +14,7 @@ see LICENSE file.
 #include "libtorrent/posix_disk_io.hpp"
 
 #include "libtorrent/disk_interface.hpp"
+#include "libtorrent/disk_observer.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/flags.hpp"
@@ -26,6 +27,7 @@ see LICENSE file.
 
 #include <random>
 #include <algorithm>
+#include <chrono>
 #include <vector>
 #include <iostream>
 #include <iomanip>
@@ -44,6 +46,15 @@ constexpr disk_test_mode_t clear_pieces = 4_bit;
 }
 
 std::mt19937 random_engine(std::random_device{}());
+
+// disk_observer implementation used to resume write submission after back-pressure is lifted
+struct write_throttle final : lt::disk_observer
+{
+	explicit write_throttle(bool& flag) : m_exceeded(flag) {}
+	void on_disk() override { m_exceeded = false; }
+private:
+	bool& m_exceeded;
+};
 
 // TODO: in C++17, use std::filesystem
 void remove_all(std::string path)
@@ -235,25 +246,32 @@ int run_test(test_case const& t)
 
 		std::vector<char> write_buffer(lt::default_block_size);
 
-		int outstanding = 0;
+		int outstanding_read = 0;
+		int outstanding_write = 0;
 		std::set<int> in_flight;
+
+		// when async_write() returns true the disk's write queue is full;
+		// the write_throttle observer is notified (via on_disk()) once the
+		// queue has drained below the low watermark, clearing this flag.
+		bool write_exceeded = false;
+		auto observer = std::make_shared<write_throttle>(write_exceeded);
 
 		lt::add_torrent_params atp;
 
 		int job_idx = 0;
 		in_flight.insert(job_idx);
-		++outstanding;
+		++outstanding_read;
 		disk_io->async_check_files(tor, &atp, lt::aux::vector<std::string, lt::file_index_t>{}
 			, [&, job_idx](lt::status_t, lt::storage_error const&) {
 				TORRENT_ASSERT(in_flight.count(job_idx));
 				in_flight.erase(job_idx);
-				TORRENT_ASSERT(outstanding > 0);
-				--outstanding;
+				TORRENT_ASSERT(outstanding_read > 0);
+				--outstanding_read;
 			});
 		++job_idx;
 		disk_io->submit_jobs();
 
-		while (outstanding > 0)
+		while (outstanding_read > 0)
 		{
 			ioc.run_one();
 			ioc.restart();
@@ -261,33 +279,40 @@ int run_test(test_case const& t)
 
 		int job_counter = 0;
 
+		using clock = std::chrono::steady_clock;
+		auto last_print = clock::now();
+
 		while (!blocks_to_write.empty()
 			|| !blocks_to_read.empty()
-			|| outstanding > 0)
+			|| outstanding_read + outstanding_write > 0)
 		{
-			if ((job_counter & 0x1fff) == 0)
+			auto const now = clock::now();
+			if (now - last_print >= std::chrono::milliseconds(300))
 			{
-				printf("o: %d w: %d r: %d  \r"
-					, outstanding
+				last_print = now;
+				printf("w: %d (%d) r: %d(%d) %s         \r"
 					, int(blocks_to_write.size())
-					, int(blocks_to_read.size()));
+					, outstanding_write
+					, int(blocks_to_read.size())
+					, outstanding_read
+					, write_exceeded ? "wait" : "");
 				fflush(stdout);
 			}
 			for (int i = 0; i < t.read_multiplier; ++i)
 			{
-				if (!blocks_to_read.empty() && outstanding < t.queue_size)
+				if (!blocks_to_read.empty() && outstanding_read < t.queue_size)
 				{
 					auto const req = blocks_to_read.back();
 					blocks_to_read.erase(blocks_to_read.end() - 1);
 
 					in_flight.insert(job_idx);
-					++outstanding;
+					++outstanding_read;
 					disk_io->async_read(tor, req, [&, req, job_idx](lt::disk_buffer_holder h, lt::storage_error const& ec)
 					{
 						TORRENT_ASSERT(in_flight.count(job_idx));
 						in_flight.erase(job_idx);
-						TORRENT_ASSERT(outstanding > 0);
-						--outstanding;
+						TORRENT_ASSERT(outstanding_read > 0);
+						--outstanding_read;
 						++job_counter;
 						if (ec)
 						{
@@ -308,7 +333,7 @@ int run_test(test_case const& t)
 				}
 			}
 
-			if (!blocks_to_write.empty() && outstanding < t.queue_size)
+			if (!blocks_to_write.empty() && !write_exceeded)
 			{
 				auto const req = blocks_to_write.back();
 				blocks_to_write.erase(blocks_to_write.end() - 1);
@@ -316,14 +341,14 @@ int run_test(test_case const& t)
 				generate_block_fill(req, {write_buffer.data(), lt::default_block_size});
 
 				in_flight.insert(job_idx);
-				++outstanding;
-				disk_io->async_write(tor, req, write_buffer.data()
-					, {}, [&, job_idx](lt::storage_error const& ec)
+				++outstanding_write;
+				bool const exceeded = disk_io->async_write(tor, req, write_buffer.data()
+					, observer, [&, job_idx](lt::storage_error const& ec)
 					{
 						TORRENT_ASSERT(in_flight.count(job_idx));
 						in_flight.erase(job_idx);
-						TORRENT_ASSERT(outstanding > 0);
-						--outstanding;
+						TORRENT_ASSERT(outstanding_write > 0);
+						--outstanding_write;
 						++job_counter;
 						if (ec)
 						{
@@ -333,6 +358,7 @@ int run_test(test_case const& t)
 							throw std::runtime_error("async_write failed");
 						}
 					});
+				if (exceeded) write_exceeded = true;
 				++job_idx;
 				if (t.flags & test_mode::read_random_order)
 				{
@@ -355,13 +381,13 @@ int run_test(test_case const& t)
 			if ((t.flags & test_mode::flush_files) && (job_counter % 500) == 499)
 			{
 				in_flight.insert(job_idx);
-				++outstanding;
+				++outstanding_write;
 				disk_io->async_release_files(tor, [&, job_idx]()
 				{
 					TORRENT_ASSERT(in_flight.count(job_idx));
 					in_flight.erase(job_idx);
-					TORRENT_ASSERT(outstanding > 0);
-					--outstanding;
+					TORRENT_ASSERT(outstanding_write > 0);
+					--outstanding_write;
 					++job_counter;
 				});
 				++job_idx;
@@ -371,13 +397,13 @@ int run_test(test_case const& t)
 			{
 				lt::piece_index_t const p = blocks_to_write.front().piece;
 				in_flight.insert(job_idx);
-				++outstanding;
+				++outstanding_write;
 				disk_io->async_clear_piece(tor, p, [&, job_idx](lt::piece_index_t)
 					{
 					TORRENT_ASSERT(in_flight.count(job_idx));
 					in_flight.erase(job_idx);
-					TORRENT_ASSERT(outstanding > 0);
-					--outstanding;
+					TORRENT_ASSERT(outstanding_write > 0);
+					--outstanding_write;
 					++job_counter;
 					});
 				++job_idx;
@@ -393,7 +419,10 @@ int run_test(test_case const& t)
 			// TODO: add test_mode for async_set_file_priority
 
 			disk_io->submit_jobs();
-			if (outstanding >= t.queue_size)
+			// block when the disk's write queue is full (write_exceeded) so that
+			// we wait for the on_disk() callback to clear write_exceeded before
+			// submitting more writes. Also block when too many reads are in flight.
+			if (outstanding_read >= t.queue_size || write_exceeded)
 				ioc.run_one();
 			else
 				ioc.poll();
@@ -445,7 +474,8 @@ void print_usage()
 		"      specifies the number of files to use in the test torrent\n"
 		"   -q <val>\n"
 		"      specifies the job queue size. i.e. the max number of outstanding\n"
-		"      jobs to post to the disk I/O subsystem\n"
+		"      read jobs to post to the disk I/O subsystem. write jobs depend on\n"
+		"      the disk subsystem's back pressure.\n"
 		"   -t <val>\n"
 		"      specifies the number of disk I/O threads to use\n"
 		"   -r <val>\n"
