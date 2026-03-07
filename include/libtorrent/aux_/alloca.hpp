@@ -79,6 +79,8 @@ struct alloca_destructor
 #endif
 
 #if defined __GNUC__ && !defined __clang__ && __GNUC__ >= 14
+// GCC incorrectly warns about calling alloca() with 0 bytes, failing to notice
+// the chekc that n > 0.
 #define TORRENT_ALLOCA_PUSH_ALLOC_SIZE_SUPPRESS \
 	_Pragma("GCC diagnostic push") \
 	_Pragma("GCC diagnostic ignored \"-Walloc-size\"")
