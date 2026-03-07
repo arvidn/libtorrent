@@ -351,6 +351,11 @@ rule warnings ( properties * )
 		# these warnings seem to have a lot of false positives
 		result += <cxxflags>-Wno-error=stringop-overflow ;
 		result += <cxxflags>-Wno-error=array-bounds ;
+		if <address-model>32 in $(properties)
+		{
+			# mingw32 has false positives for this warning
+			result += <cxxflags>-Wno-error=alloc-size-larger-than= ;
+		}
 	}
 
 	if <toolset>msvc in $(properties)

@@ -190,6 +190,10 @@ jobs:
          matrix:
            include:
              - config: address-model=64
+               msys2_pkg: mingw-w64-x86_64
+             - config: address-model=32
+               msys2_pkg: mingw-w64-i686
+               msystem: MINGW32
 
       steps:
       - name: checkout
@@ -215,9 +219,10 @@ jobs:
         with:
           release: false
           update: true
+          msystem: ${{ matrix.msystem }}
           install: >-
-            mingw-w64-x86_64-gcc
-            mingw-w64-x86_64-openssl
+            ${{ matrix.msys2_pkg }}-gcc
+            ${{ matrix.msys2_pkg }}-openssl
 
       - name: tests (deterministic)
         shell: msys2 {0}
@@ -226,4 +231,45 @@ jobs:
           export PATH="$BOOST_ROOT:$PATH"
           export PYTHON_INTERPRETER=python
           cd test
-          b2 toolset=gcc crypto=openssl-shared link=static asserts=on release target-os=windows -l400 warnings=all warnings-as-errors=on ${{ matrix.config }} cxxflags=-Wno-error=array-bounds cxxflags=-Wno-error=stringop-overflow cxxflags=-Wno-error=clobbered deterministic-tests testing.execute=off --hash
+          b2 toolset=gcc crypto=openssl-shared link=static asserts=on release target-os=windows -l400 warnings=all warnings-as-errors=on ${{ matrix.config }} cxxflags=-Wno-error=array-bounds cxxflags=-Wno-error=stringop-overflow cxxflags=-Wno-error=clobbered deterministic-tests --hash
+
+   cmake:
+      name: cmake
+      runs-on: windows-2022
+      continue-on-error: true
+
+      steps:
+      - name: checkout
+        uses: actions/checkout@v6
+        with:
+           submodules: recursive
+           fetch-depth: 1
+           filter: tree:0
+
+      - name: install boost
+        run: |
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.90.0 https://github.com/boostorg/boost.git
+          cd boost
+          bootstrap.bat
+
+      - name: stage boost libraries
+        run: |
+          cd boost
+          b2 cxxstd=17 release --with-system --layout=system address-model=64 link=shared stage
+
+      - name: cmake configure
+        run: |
+          set BOOST_ROOT=%CD%\boost
+          cmake -B build -DBOOST_ROOT=%BOOST_ROOT% -DBOOST_LIBRARYDIR=%BOOST_ROOT%\stage\lib -DCMAKE_CXX_STANDARD=17 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dwebtorrent=on -DOPENSSL_ROOT_DIR="C:\Program Files\OpenSSL" -Dskip-python-runtime-test=true -G "Visual Studio 17 2022" -A x64
+
+      - name: cmake build
+        run: cmake --build build --config Debug --parallel %NUMBER_OF_PROCESSORS%
+
+      - name: ctest
+        uses: nick-fields/retry@v3
+        with:
+          max_attempts: 3
+          timeout_minutes: 120
+          command: |
+            cd build
+            ctest --build-config Debug --parallel %NUMBER_OF_PROCESSORS% --output-on-failure

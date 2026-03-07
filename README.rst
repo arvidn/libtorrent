@@ -12,9 +12,6 @@
 .. image:: https://github.com/arvidn/libtorrent/actions/workflows/python.yml/badge.svg
     :target: https://github.com/arvidn/libtorrent/actions/workflows/python.yml
 
-.. image:: https://ci.appveyor.com/api/projects/status/w7teauvub5813mew/branch/RC_2_0?svg=true
-    :target: https://ci.appveyor.com/project/arvidn/libtorrent/branch/RC_2_0
-
 .. image:: https://api.cirrus-ci.com/github/arvidn/libtorrent.svg?branch=RC_2_0
     :target: https://cirrus-ci.com/github/arvidn/libtorrent
 
