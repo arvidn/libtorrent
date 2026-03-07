@@ -287,8 +287,10 @@ disk_cache::hash_result disk_cache::try_hash_piece(piece_location const loc, pre
 			e.piece_hash_returned = true;
 
 			auto& job = std::get<aux::job::hash>(hash_job->action);
-			TORRENT_ASSERT(e.ph);
-			job.piece_hash = e.ph->final_hash();
+			if (e.ph)
+			{
+				job.piece_hash = e.ph->final_hash();
+			}
 			if (!job.block_hashes.empty())
 			{
 				TORRENT_ASSERT(i->v2_hashes);
@@ -445,8 +447,10 @@ keep_going:
 		e.piece_hash_returned = true;
 		// we've hashed all blocks, and there's a hash job associated with
 		// this piece, post it.
-		TORRENT_ASSERT(e.ph);
-		piece_hash = e.ph->final_hash();
+		if (e.ph)
+		{
+			piece_hash = e.ph->final_hash();
+		}
 	});
 
 	auto& job = std::get<job::hash>(j->action);

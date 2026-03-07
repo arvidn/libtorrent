@@ -988,7 +988,7 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 		// fall back to reading everything from disk
 
 		TORRENT_ALLOCA(blocks, char const*, blocks_to_read);
-		TORRENT_ALLOCA(v2_hashes, sha256_hash, blocks_in_piece2);
+		TORRENT_ALLOCA(v2_hashes, sha256_hash, v2 ? blocks_in_piece2 : 0);
 		for (char const*& b : blocks) b = nullptr;
 		lt::aux::piece_hasher ph_storage;
 		hash_partial_piece(v1 ? &ph_storage : nullptr, 0, blocks, v2_hashes);
