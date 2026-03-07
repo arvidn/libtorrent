@@ -303,7 +303,7 @@ struct disk_cache
 		std::uint16_t const hasher_cursor = piece_iter->hasher_cursor;
 
 		TORRENT_ALLOCA(blocks, char const*, blocks_in_piece);
-		TORRENT_ALLOCA(v2_hashes, sha256_hash, blocks_in_piece);
+		TORRENT_ALLOCA(v2_hashes, sha256_hash, piece_iter->v2_hashes ? blocks_in_piece : 0);
 
 		int num_unhashed = 0;
 		for (std::uint16_t i = 0; i < blocks_in_piece; ++i)
