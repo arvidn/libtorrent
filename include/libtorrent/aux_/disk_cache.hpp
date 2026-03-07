@@ -118,8 +118,6 @@ struct cached_block_entry
 
 	bool flushed_to_disk = false;
 
-	// TODO: only allocate this field for v2 torrents
-	sha256_hash block_hash;
 };
 
 struct cached_piece_entry
@@ -135,8 +133,10 @@ struct cached_piece_entry
 	piece_location piece;
 
 	unique_ptr<cached_block_entry[]> blocks;
-
-	piece_hasher ph;
+	// allocated only for v2 torrents (null for v1-only)
+	unique_ptr<sha256_hash[]> block_hashes;
+	// allocated only for v1 torrents (null for v2-only)
+	std::unique_ptr<piece_hasher> ph;
 
 	// if there is a hash_job set on this piece, whenever we complete hashing
 	// the last block, we should post this
@@ -187,8 +187,7 @@ struct cached_piece_entry
 	bool piece_hash_returned: 1;
 
 	// this indicates that this piece belongs to a v2 torrent, and it has the
-	// block_hash member of cached_block_entry and we need to compute the block
-	// hashes as well
+	// block_hashes member allocated and we need to compute the block hashes as well
 	bool v1_hashes: 1;
 	bool v2_hashes: 1;
 
@@ -273,7 +272,10 @@ struct disk_cache
 			// concept
 			// TODO: v2 hashing should not depend on the hasher_cursor
 			if (i->hasher_cursor > block_idx)
-				return cbe.block_hash;
+			{
+				TORRENT_ASSERT(i->block_hashes);
+				return i->block_hashes[block_idx];
+			}
 			if (cbe.buf().data())
 			{
 				hasher256 h;
@@ -310,7 +312,11 @@ struct disk_cache
 			blocks[i] = buf;
 			if (buf && i >= hasher_cursor)
 				++num_unhashed;
-			v2_hashes[i] = piece_iter->blocks[i].block_hash;
+		}
+		if (piece_iter->block_hashes)
+		{
+			for (std::uint16_t i = 0; i < blocks_in_piece; ++i)
+				v2_hashes[i] = piece_iter->block_hashes[i];
 		}
 
 		TORRENT_ASSERT(piece_iter->hashing == false);
@@ -344,7 +350,7 @@ struct disk_cache
 				view.erase(piece_iter);
 			}
 		});
-		f(const_cast<piece_hasher&>(piece_iter->ph), hasher_cursor, blocks, v2_hashes);
+		f(piece_iter->ph.get(), hasher_cursor, blocks, v2_hashes);
 		return true;
 	}
 

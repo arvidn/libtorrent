@@ -125,6 +125,8 @@ lt::hasher& piece_hasher::ctx()
 cached_piece_entry::cached_piece_entry(piece_location const& loc, std::uint16_t const num_blocks, int const piece_size_v2, bool const v1, bool const v2)
 	: piece(loc)
 	, blocks(aux::make_unique<cached_block_entry[], std::ptrdiff_t>(num_blocks))
+	, block_hashes(v2 ? std::make_unique<sha256_hash[]>(num_blocks) : nullptr)
+	, ph(v1 ? std::make_unique<piece_hasher>() : nullptr)
 	, piece_size2(piece_size_v2)
 	, blocks_in_piece(num_blocks)
 	, force_flush(false)
@@ -285,12 +287,14 @@ disk_cache::hash_result disk_cache::try_hash_piece(piece_location const loc, pre
 			e.piece_hash_returned = true;
 
 			auto& job = std::get<aux::job::hash>(hash_job->action);
-			job.piece_hash = e.ph.final_hash();
+			TORRENT_ASSERT(e.ph);
+			job.piece_hash = e.ph->final_hash();
 			if (!job.block_hashes.empty())
 			{
 				TORRENT_ASSERT(i->v2_hashes);
+				TORRENT_ASSERT(e.block_hashes);
 				for (int idx = 0; idx < e.blocks_in_piece; ++idx)
-					job.block_hashes[idx] = e.blocks[idx].block_hash;
+					job.block_hashes[idx] = e.block_hashes[idx];
 			}
 		});
 		return hash_result::job_completed;
@@ -360,25 +364,25 @@ keep_going:
 		, static_cast<int>(piece_iter->piece.piece)
 		, cursor, end
 		, need_v1, need_v2
-		, &piece_iter->ph);
+		, piece_iter->ph.get());
 	l.unlock();
 
 	int bytes_left = piece_iter->piece_size2 - (cursor * default_block_size);
 	int count_hashed = 0;
 	for (auto& buf: blocks)
 	{
-		cached_block_entry& cbe = piece_iter->blocks[cursor];
-
 		if (need_v1)
 		{
-			auto& ctx = const_cast<aux::piece_hasher&>(piece_iter->ph);
+			TORRENT_ASSERT(piece_iter->ph);
+			auto& ctx = const_cast<aux::piece_hasher&>(*piece_iter->ph);
 			ctx.update(buf);
 		}
 
 		if (need_v2 && bytes_left > 0)
 		{
+			TORRENT_ASSERT(piece_iter->block_hashes);
 			int const this_block_size = std::min(bytes_left, default_block_size);
-			cbe.block_hash = hasher256(buf.first(this_block_size)).final();
+			piece_iter->block_hashes[cursor] = hasher256(buf.first(this_block_size)).final();
 			bytes_left -= default_block_size;
 		}
 
@@ -441,7 +445,8 @@ keep_going:
 		e.piece_hash_returned = true;
 		// we've hashed all blocks, and there's a hash job associated with
 		// this piece, post it.
-		piece_hash = e.ph.final_hash();
+		TORRENT_ASSERT(e.ph);
+		piece_hash = e.ph->final_hash();
 	});
 
 	auto& job = std::get<job::hash>(j->action);
@@ -449,11 +454,12 @@ keep_going:
 	if (!job.block_hashes.empty())
 	{
 		TORRENT_ASSERT(need_v2);
+		TORRENT_ASSERT(piece_iter->block_hashes);
 		int const to_copy = std::min(
 			piece_iter->blocks_in_piece,
 			numeric_cast<std::uint16_t>(job.block_hashes.size()));
 		for (int i = 0; i < to_copy; ++i)
-			job.block_hashes[i] = piece_iter->blocks[i].block_hash;
+			job.block_hashes[i] = piece_iter->block_hashes[i];
 	}
 	DLOG("kick_hasher: posting attached job piece: %d\n"
 		, static_cast<int>(piece_iter->piece.piece));
@@ -914,7 +920,7 @@ void disk_cache::clear_piece_impl(cached_piece_entry& cpe, jobqueue_t& aborted)
 	cpe.flushed_cursor = 0;
 	TORRENT_ASSERT(cpe.num_jobs >= jobs);
 	cpe.num_jobs -= jobs;
-	cpe.ph = piece_hasher{};
+	if (cpe.ph) *cpe.ph = piece_hasher{};
 	DLOG("clear_piece: piece: %d\n", static_cast<int>(cpe.piece.piece));
 }
 
