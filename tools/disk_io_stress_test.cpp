@@ -22,8 +22,7 @@ see LICENSE file.
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/aux_/scope_end.hpp"
 
-// TODO: remove this dependency
-#include "libtorrent/aux_/path.hpp"
+#include <filesystem>
 
 #include <random>
 #include <algorithm>
@@ -55,49 +54,6 @@ struct write_throttle final : lt::disk_observer
 private:
 	bool& m_exceeded;
 };
-
-// TODO: in C++17, use std::filesystem
-void remove_all(std::string path)
-{
-#ifdef TORRENT_WINDOWS
-	WIN32_FIND_DATA data;
-	HANDLE list = ::FindFirstFile(path.c_str(), &data);
-	if (list == INVALID_HANDLE_VALUE)
-	{
-		::DeleteFile(path.c_str());
-		return;
-	}
-
-	do
-	{
-		if (data.cFileName != "."_sv && data.cFileName != ".."_sv)
-		{
-			remove_all(path + "\\" + data.cFileName);
-		}
-	} while(FindNextFile(list, &data));
-	FindClose(list);
-	RemoveDirectory(path.c_str());
-#else
-	DIR* handle = ::opendir(path.c_str());
-	if (handle == nullptr)
-	{
-		::remove(path.c_str());
-		return;
-	}
-
-	dirent* de = ::readdir(handle);
-	while (de != nullptr)
-	{
-		if (de->d_name != "."_sv && de->d_name != ".."_sv)
-		{
-			remove_all(path + "/" + de->d_name);
-		}
-		de = ::readdir(handle);
-	}
-	::closedir(handle);
-	::remove(path.c_str());
-#endif
-}
 
 bool check_block_fill(lt::peer_request const& req, lt::span<char const> buf)
 {
@@ -208,8 +164,7 @@ int run_test(test_case const& t)
 
 	try
 	{
-		// TODO: in C++17, use std::filesystem
-		remove_all("scratch-area");
+		std::filesystem::remove_all("scratch-area");
 
 		// TODO: add test mode where some file priorities are 0
 
