@@ -452,6 +452,8 @@ void print_usage()
 		"      specifies the read multiplier. Each block that's written, is read this many times\n"
 		"   -p <val>\n"
 		"      specifies the file pool size. This is the number of files to keep open\n"
+		"   -d <disk-backend>\n"
+		"      Specifies which disk back-end to test. options are: default, mmap, pread, posix, disabled\n"
 		;
 
 }
@@ -463,20 +465,22 @@ int main(int argc, char const* argv[])
 		// the default test suite
 		namespace tm = test_mode;
 
-		test_case tests[] = {
+		std::vector<test_case> tests;
+		for (char const* backend : {"mmap", "posix", "pread"})
+		{
 			// files, queue, threads, read-mult, pool, flags, disk_backend
-			{20, 32, 16, 3, 10, tm::sparse | tm::even_file_sizes, "default"},
-			{20, 32, 16, 3, 10, tm::sparse, "default"},
-			{20, 32, 16, 3, 10, tm::sparse | tm::read_random_order, "default"},
-			{20, 32, 16, 3, 10, tm::sparse | tm::read_random_order | tm::even_file_sizes, "default"},
-			{20, 32, 16, 3, 10, tm::flush_files | tm::sparse | tm::read_random_order | tm::even_file_sizes, "default"},
+			tests.push_back({20, 32, 16, 3, 10, tm::sparse | tm::even_file_sizes, backend});
+			tests.push_back({20, 32, 16, 3, 10, tm::sparse, backend});
+			tests.push_back({20, 32, 16, 3, 10, tm::sparse | tm::read_random_order, backend});
+			tests.push_back({20, 32, 16, 3, 10, tm::sparse | tm::read_random_order | tm::even_file_sizes, backend});
+			tests.push_back({20, 32, 16, 3, 10, tm::flush_files | tm::sparse | tm::read_random_order | tm::even_file_sizes, backend});
 
 			// test with small pool size
-			{10, 32, 16, 3, 1, tm::sparse | tm::read_random_order, "default"},
+			tests.push_back({10, 32, 16, 3, 1, tm::sparse | tm::read_random_order, backend});
 
 			// test with many threads pool size
-			{10, 32, 64, 3, 9, tm::sparse | tm::read_random_order, "default"},
-		};
+			tests.push_back({10, 32, 64, 3, 9, tm::sparse | tm::read_random_order, backend});
+		}
 
 		int ret = 0;
 		for (auto const& t : tests)
