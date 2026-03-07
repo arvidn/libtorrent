@@ -351,6 +351,11 @@ rule warnings ( properties * )
 		# these warnings seem to have a lot of false positives
 		result += <cxxflags>-Wno-error=stringop-overflow ;
 		result += <cxxflags>-Wno-error=array-bounds ;
+		if <address-model>32 in $(properties) && <target-os>windows in $(properties)
+		{
+			# mingw32 has false positives for this warning
+			result += <cxxflags>-Wno-error=alloc-size-larger-than= ;
+		}
 	}
 
 	if <toolset>msvc in $(properties)
@@ -417,6 +422,11 @@ rule building ( properties * )
 	{
 		# allow larger object files in mingw
 		result += <cxxflags>-Wa,-mbig-obj ;
+		if <address-model>32 in $(properties)
+		{
+			# mingw32's __emutls causes crashes in thread_local destructors on exit
+			result += <define>BOOST_NO_CXX11_THREAD_LOCAL ;
+		}
 	}
 
 	if ( <asserts>production in $(properties)
