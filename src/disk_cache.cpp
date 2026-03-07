@@ -292,7 +292,9 @@ disk_cache::hash_result disk_cache::try_hash_piece(piece_location const loc, pre
 			{
 				TORRENT_ASSERT(i->v2_hashes);
 				TORRENT_ASSERT(e.block_hashes);
-				for (int idx = 0; idx < e.blocks_in_piece; ++idx)
+				TORRENT_ASSERT(job.block_hashes.size() <= e.blocks_in_piece);
+				int const to_copy = std::min(int(job.block_hashes.size()), int(e.blocks_in_piece));
+				for (int idx = 0; idx < to_copy; ++idx)
 					job.block_hashes[idx] = e.block_hashes[idx];
 			}
 		});
