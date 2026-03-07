@@ -65,3 +65,9 @@ TORRENT_TEST(alloca_empty)
 	}
 	TEST_EQUAL(destructed, 0);
 }
+
+TORRENT_TEST(alloca_zero)
+{
+	TORRENT_ALLOCA(vec, A, 0);
+	TEST_EQUAL(vec.size(), 0);
+}
