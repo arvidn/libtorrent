@@ -103,7 +103,7 @@ namespace libtorrent {
 		static const char invalid_chars[] = "\"*:<>?|";
 		// macOS does not permit use of a colon in a file or folder name
 #elif defined __APPLE__
-    static const char invalid_chars[] = ":";
+		static const char invalid_chars[] = ":";
 #else
 		static const char invalid_chars[] = "";
 #endif
