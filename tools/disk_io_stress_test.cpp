@@ -196,6 +196,12 @@ int run_test(test_case const& t)
 		}
 		std::shuffle(blocks_to_write.begin(), blocks_to_write.end(), random_engine);
 
+		// count blocks per piece so we know when all writes have been submitted
+		// and can issue async_hash() to hash and flush the piece
+		std::map<lt::piece_index_t, int> blocks_per_piece;
+		for (auto const& b : blocks_to_write)
+			++blocks_per_piece[b.piece];
+
 		lt::aux::vector<lt::peer_request> blocks_to_read;
 		blocks_to_read.reserve(blocks_to_write.size());
 
@@ -331,6 +337,31 @@ int run_test(test_case const& t)
 					std::uniform_int_distribution<> d(0, blocks_to_read.end_index());
 					blocks_to_read.insert(blocks_to_read.begin() + d(random_engine), req);
 				}
+
+				// once all blocks of a piece have been submitted, issue async_hash()
+				// to verify and flush it — matching real libtorrent behaviour.
+				auto it = blocks_per_piece.find(req.piece);
+				TORRENT_ASSERT(it != blocks_per_piece.end());
+				it->second -= 1;
+				if (it->second == 0)
+				{
+					blocks_per_piece.erase(it);
+					++outstanding_write;
+					disk_io->async_hash(tor, req.piece, {}
+						, lt::disk_interface::v1_hash | lt::disk_interface::flush_piece
+						, [&](lt::piece_index_t, lt::sha1_hash const&, lt::storage_error const& ec)
+						{
+							TORRENT_ASSERT(outstanding_write > 0);
+							--outstanding_write;
+							++job_counter;
+							if (ec)
+							{
+								std::cerr << "async_hash() failed: " << ec.ec.message()
+									<< " " << lt::operation_name(ec.operation) << "\n";
+								throw std::runtime_error("async_hash failed");
+							}
+						});
+				}
 			}
 
 			if ((t.flags & test_mode::flush_files) && (job_counter % 500) == 499)
@@ -367,7 +398,6 @@ int run_test(test_case const& t)
 			}
 
 			// TODO: add test_mode for async_move_storage
-			// TODO: add test_mode for async_hash and async_hash2
 			// TODO: add test_mode for abort_hash_jobs
 			// TODO: add test_mode for async_delete_files
 			// TODO: add test_mode for async_rename_file
@@ -384,7 +414,7 @@ int run_test(test_case const& t)
 			ioc.restart();
 		}
 
-		std::cerr << "OK (" << job_counter << " jobs)\n";
+		std::cerr << "OK (" << job_counter << " jobs)   \n";
 		return 0;
 	}
 	catch (std::exception const& e)
