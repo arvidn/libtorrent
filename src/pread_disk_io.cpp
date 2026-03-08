@@ -160,7 +160,6 @@ struct TORRENT_EXTRA_EXPORT pread_disk_io final
 	status_t do_job(aux::job::stop_torrent& a, aux::pread_disk_job* j);
 	status_t do_job(aux::job::file_priority& a, aux::pread_disk_job* j);
 	status_t do_job(aux::job::clear_piece& a, aux::pread_disk_job* j);
-	status_t do_job(aux::job::kick_hasher& a, aux::pread_disk_job* j);
 
 private:
 
@@ -640,18 +639,7 @@ bool pread_disk_io::async_write(storage_index_t const storage, peer_request cons
 		, force_flush, std::move(o), j);
 
 	if (result & aux::disk_cache::need_hasher_kick)
-	{
-		// TODO: if the most recently added job to the hash thread pool is a
-		// kick-hasher job for the same piece, skip this
-		// TODO: maybe kicking the hasher shouldn't be a job, maybe it should
-		// also be a request, just like the flush request
-		aux::pread_disk_job* khj = m_job_pool.allocate_job<aux::job::kick_hasher>(
-			flags,
-			m_torrents[storage]->shared_from_this(),
-			r.piece
-		);
-		add_job(khj);
-	}
+		m_hash_threads.interrupt();
 
 	std::unique_lock<std::mutex> l(m_job_mutex);
 	if (!m_flush_target)
@@ -703,6 +691,10 @@ void pread_disk_io::async_hash(storage_index_t const storage
 	// immediately
 	if (ret == aux::disk_cache::job_completed)
 	{
+		// TODO: we may not need to do this, the cache could tell us
+		// this piece should be flushed to disk now.
+		m_generic_threads.interrupt();
+
 		jobqueue_t jobs;
 		jobs.push_back(j);
 		add_completed_jobs(std::move(jobs));
@@ -1210,13 +1202,6 @@ status_t pread_disk_io::do_job(aux::job::clear_piece&, aux::pread_disk_job*)
 	return {};
 }
 
-status_t pread_disk_io::do_job(aux::job::kick_hasher& a, aux::pread_disk_job* j)
-{
-	jobqueue_t jobs;
-	m_cache.kick_hasher({j->storage->storage_index(), a.piece}, jobs);
-	add_completed_jobs(std::move(jobs));
-	return {};
-}
 
 void pread_disk_io::add_fence_job(aux::pread_disk_job* j, bool const user_add)
 {
@@ -1514,7 +1499,31 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 
 	for (;;)
 	{
+		// before going to sleep, always flush force-flush blocks from the cache
+		if (&pool == &m_generic_threads)
+			try_flush_cache(0, true, l);
+
 		auto const res = pool.wait_for_job(l);
+
+		// if there are pieces waiting for a hasher kick, process them now
+		if (&pool == &m_hash_threads)
+		{
+			l.unlock();
+			jobqueue_t completed;
+			bool const needs_flush = m_cache.kick_pending_hashers(completed);
+			add_completed_jobs(std::move(completed));
+			l.lock();
+			// In case there are no other disk jobs triggering a flush, we need
+			// to wake up a generic thread.
+			if (needs_flush)
+				m_generic_threads.interrupt();
+			// for interrupt, there's no job to pop; for new_job, the queue may
+			// have raced to empty. In both cases loop back. For exit_thread,
+			// fall through so the thread actually exits.
+			if (res == aux::wait_result::interrupt
+				|| (res == aux::wait_result::new_job && pool.empty()))
+				continue;
+		}
 
 		// if we need to flush the cache, let one of the generic threads do
 		// that
@@ -1525,7 +1534,7 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 			try_flush_cache(target_cache_size, false, l);
 			// try_flush_cache() will release the mutex, so we may not have a
 			// job in the queue for us anymore
-			if (res == aux::wait_result::interrupt || pool.empty())
+			if (res != aux::wait_result::exit_thread && pool.empty())
 				continue;
 		}
 
@@ -1543,11 +1552,17 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 
 		auto* j = static_cast<aux::pread_disk_job*>(pool.pop_front());
 
-		if (&pool == &m_generic_threads || (j->flags & disk_interface::flush_piece))
+		if (&pool == &m_generic_threads)
 		{
 			// This will attempt to flush any pieces that have been completely
 			// downloaded, but nothing else
 			try_flush_cache(0, true, l);
+		}
+		else if (j->flags & disk_interface::flush_piece)
+		{
+			// This hash job will (or already did) set force_flush_flag.
+			// Interrupt a generic thread to do the actual flush.
+			m_generic_threads.interrupt();
 		}
 
 		l.unlock();
@@ -1589,6 +1604,11 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 		}
 
 		execute_job(j);
+
+		// If a hash job ran on the hash thread, hash_piece() may have set
+		// force_flush_flag on the piece. Wake a generic thread to flush those blocks.
+		if (&pool == &m_hash_threads && (j->flags & disk_interface::flush_piece))
+			m_generic_threads.interrupt();
 
 		l.lock();
 	}
@@ -1663,8 +1683,7 @@ aux::disk_io_thread_pool& pread_disk_io::pool_for_job(aux::pread_disk_job* j)
 {
 	if (m_hash_threads.max_threads() > 0
 		&& (j->get_type() == aux::job_action_t::hash
-			|| j->get_type() == aux::job_action_t::hash2
-			|| j->get_type() == aux::job_action_t::kick_hasher))
+			|| j->get_type() == aux::job_action_t::hash2))
 		return m_hash_threads;
 	else
 		return m_generic_threads;

@@ -97,8 +97,6 @@ namespace {
 			j.handler(std::move(j.buf), m_job.error);
 		}
 
-		void operator()(job::kick_hasher&) const {}
-
 	private:
 		disk_job& m_job;
 	};
