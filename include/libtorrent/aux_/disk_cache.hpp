@@ -197,6 +197,12 @@ struct cached_piece_entry
 	// member is allocated).
 	static constexpr cached_piece_flags v2_hashes_flag = 5_bit;
 
+	// set when a block is inserted into this piece and the hasher thread
+	// should be woken to make hashing progress. Cleared when the hasher
+	// thread picks it up. Used to coalesce multiple insertions into a
+	// single wakeup.
+	static constexpr cached_piece_flags needs_hasher_kick_flag = 6_bit;
+
 	// flags are protected by the main disk cache mutex and may only be
 	// accessed while holding it
 	cached_piece_flags flags{};
@@ -211,6 +217,11 @@ struct cached_piece_entry
 	bool need_force_flush() const
 	{
 		return bool(flags & force_flush_flag);
+	}
+
+	bool needs_hasher_kick() const
+	{
+		return bool(flags & needs_hasher_kick_flag);
 	}
 };
 
@@ -232,7 +243,10 @@ struct disk_cache
 		// true is ordered before false
 		mi::ordered_non_unique<mi::const_mem_fun<cached_piece_entry, bool, &cached_piece_entry::need_force_flush>, std::greater<void>>,
 		// hash-table lookup of individual pieces. faster than index 0
-		mi::hashed_unique<mi::member<cached_piece_entry, piece_location, &cached_piece_entry::piece>>
+		mi::hashed_unique<mi::member<cached_piece_entry, piece_location, &cached_piece_entry::piece>>,
+		// ordered by whether the piece needs its hasher kicked.
+		// true is ordered before false, so pieces needing a kick come first.
+		mi::ordered_non_unique<mi::const_mem_fun<cached_piece_entry, bool, &cached_piece_entry::needs_hasher_kick>, std::greater<void>>
 		>
 	>;
 
@@ -458,8 +472,11 @@ struct disk_cache
 
 	hash_result try_hash_piece(piece_location loc, pread_disk_job* hash_job);
 
-	// this should be called from a hasher thread
-	void kick_hasher(piece_location const& loc, jobqueue_t& completed_jobs);
+	// Called from a hasher thread when woken by interrupt. Processes all
+	// pieces marked with needs_hasher_kick_flag, calling kick_hasher on each.
+	// Returns true if force_flush_flag was set on any piece, meaning a generic
+	// thread should be woken to flush those pieces to disk.
+	bool kick_pending_hashers(jobqueue_t& completed_jobs);
 
 	// this should be called by a disk thread
 	// the callback should return the number of blocks it successfully flushed
@@ -485,6 +502,12 @@ struct disk_cache
 #endif
 
 private:
+
+	// this should be called from a hasher thread, with m_mutex held.
+	// hashing_flag must already be set on the piece by the caller.
+	// Returns true if force_flush_flag was set on the piece.
+	bool kick_hasher(piece_container::nth_index<4>::type::iterator piece_iter
+		, std::unique_lock<std::mutex>& l, jobqueue_t& completed_jobs);
 
 	void free_piece(cached_piece_entry const& cpe);
 

@@ -136,7 +136,7 @@ void disk_io_test_suite_impl(lt::disk_io_constructor_type disk_io
 					: lt::disk_job_flags_t{};
 				disk_thread->async_hash(storage, p
 					, lt::span<lt::sha256_hash>(*v2_hashes)
-					, hash_flags
+					, hash_flags | lt::disk_interface::flush_piece
 					, [&hashes_done, p, v2_hashes](lt::piece_index_t, lt::sha1_hash const&
 						, lt::storage_error const& e) {
 						if (e.ec) {
