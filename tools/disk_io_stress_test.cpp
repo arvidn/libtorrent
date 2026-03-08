@@ -209,6 +209,9 @@ int run_test(test_case const& t)
 
 		int outstanding_read = 0;
 		int outstanding_write = 0;
+		int outstanding_hash = 0;
+		int outstanding_release = 0;
+		int outstanding_clear = 0;
 		std::set<int> in_flight;
 
 		// when async_write() returns true the disk's write queue is full;
@@ -245,17 +248,21 @@ int run_test(test_case const& t)
 
 		while (!blocks_to_write.empty()
 			|| !blocks_to_read.empty()
-			|| outstanding_read + outstanding_write > 0)
+			|| outstanding_read + outstanding_write + outstanding_hash
+				+ outstanding_release + outstanding_clear > 0)
 		{
 			auto const now = clock::now();
 			if (now - last_print >= std::chrono::milliseconds(300))
 			{
 				last_print = now;
-				printf("w: %d (%d) r: %d(%d) %s         \r"
+				printf("w: %d (%d) r: %d(%d) h: %d f: %d c: %d %s         \r"
 					, int(blocks_to_write.size())
 					, outstanding_write
 					, int(blocks_to_read.size())
 					, outstanding_read
+					, outstanding_hash
+					, outstanding_release
+					, outstanding_clear
 					, write_exceeded ? "wait" : "");
 				fflush(stdout);
 			}
@@ -346,13 +353,13 @@ int run_test(test_case const& t)
 				if (it->second == 0)
 				{
 					blocks_per_piece.erase(it);
-					++outstanding_write;
+					++outstanding_hash;
 					disk_io->async_hash(tor, req.piece, {}
 						, lt::disk_interface::v1_hash | lt::disk_interface::flush_piece
 						, [&](lt::piece_index_t, lt::sha1_hash const&, lt::storage_error const& ec)
 						{
-							TORRENT_ASSERT(outstanding_write > 0);
-							--outstanding_write;
+							TORRENT_ASSERT(outstanding_hash > 0);
+							--outstanding_hash;
 							++job_counter;
 							if (ec)
 							{
@@ -367,13 +374,13 @@ int run_test(test_case const& t)
 			if ((t.flags & test_mode::flush_files) && (job_counter % 500) == 499)
 			{
 				in_flight.insert(job_idx);
-				++outstanding_write;
+				++outstanding_release;
 				disk_io->async_release_files(tor, [&, job_idx]()
 				{
 					TORRENT_ASSERT(in_flight.count(job_idx));
 					in_flight.erase(job_idx);
-					TORRENT_ASSERT(outstanding_write > 0);
-					--outstanding_write;
+					TORRENT_ASSERT(outstanding_release > 0);
+					--outstanding_release;
 					++job_counter;
 				});
 				++job_idx;
@@ -383,13 +390,13 @@ int run_test(test_case const& t)
 			{
 				lt::piece_index_t const p = blocks_to_write.front().piece;
 				in_flight.insert(job_idx);
-				++outstanding_write;
+				++outstanding_clear;
 				disk_io->async_clear_piece(tor, p, [&, job_idx](lt::piece_index_t)
 					{
 					TORRENT_ASSERT(in_flight.count(job_idx));
 					in_flight.erase(job_idx);
-					TORRENT_ASSERT(outstanding_write > 0);
-					--outstanding_write;
+					TORRENT_ASSERT(outstanding_clear > 0);
+					--outstanding_clear;
 					++job_counter;
 					});
 				++job_idx;
@@ -407,7 +414,8 @@ int run_test(test_case const& t)
 			// block when the disk's write queue is full (write_exceeded) so that
 			// we wait for the on_disk() callback to clear write_exceeded before
 			// submitting more writes. Also block when too many reads are in flight.
-			if (outstanding_read >= t.queue_size || write_exceeded)
+			if (outstanding_read >= t.queue_size || write_exceeded
+				|| (outstanding_hash > 0 && blocks_to_write.empty() && blocks_to_read.empty()))
 				ioc.run_one();
 			else
 				ioc.poll();
