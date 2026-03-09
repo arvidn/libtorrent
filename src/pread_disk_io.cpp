@@ -204,8 +204,6 @@ private:
 	// must hold the job mutex to access
 	int m_num_running_threads = 0;
 
-	aux::disk_job_pool<aux::pread_disk_job> m_job_pool;
-
 	// std::mutex to protect the m_generic_threads and m_hash_threads lists
 	mutable std::mutex m_job_mutex;
 
@@ -255,6 +253,10 @@ private:
 	// has a non-zero maximum thread count
 	aux::disk_io_thread_pool m_generic_threads;
 	aux::disk_io_thread_pool m_hash_threads;
+
+	// the jobs must be destructed first, since they will likely depend on the
+	// disk cache to free buffers and file_pool to close files
+	aux::disk_job_pool<aux::pread_disk_job> m_job_pool;
 };
 
 TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
@@ -663,6 +665,18 @@ bool pread_disk_io::async_write(storage_index_t const storage, peer_request cons
 			DLOG("async_write: set flush_target: %d\n", *m_flush_target);
 			// wake up a thread
 			m_generic_threads.interrupt();
+		}
+	}
+
+	// if no threads exist to process the interrupt, flush synchronously
+	if (m_generic_threads.max_threads() == 0)
+	{
+		// also flush any completed (force-flush) pieces
+		try_flush_cache(0, true, l);
+		if (m_flush_target)
+		{
+			int const target = *std::exchange(m_flush_target, std::nullopt);
+			try_flush_cache(target, false, l);
 		}
 	}
 
@@ -1289,6 +1303,15 @@ void pread_disk_io::immediate_execute()
 	{
 		auto* j = static_cast<aux::pread_disk_job*>(m_generic_threads.pop_front());
 		execute_job(j);
+	}
+	// mirror what thread_fun does: flush force-flush pieces and handle
+	// any pending cache flush target
+	std::unique_lock<std::mutex> l(m_job_mutex);
+	try_flush_cache(0, true, l);
+	if (m_flush_target)
+	{
+		int const target = *std::exchange(m_flush_target, std::nullopt);
+		try_flush_cache(target, false, l);
 	}
 }
 
