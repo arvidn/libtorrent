@@ -12,6 +12,7 @@ see LICENSE file.
 
 #include <unordered_map>
 #include <mutex>
+#include <thread>
 
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/aux_/scope_end.hpp"
@@ -270,13 +271,23 @@ struct disk_cache
 			l.unlock();
 			return f();
 		}
-		if (i->flags & cached_piece_entry::hashing_flag)
+
+		// Another thread may be hashing this piece right now. In this case we
+		// need to wait
+		// TODO: there may be a better way to solve this, maybe hang the job on
+		// the piece and try later. But it's a big change to do so
+		while (i->flags & cached_piece_entry::hashing_flag)
 		{
-			// TODO: it would probably be more efficient to wait here.
-			// #error we should hang the hash job onto the piece. If there is a
-			// job already, form a queue
 			l.unlock();
-			return f();
+			std::this_thread::yield();
+			l.lock();
+
+			i = view.find(loc);
+			if (i == view.end())
+			{
+				l.unlock();
+				return f();
+			}
 		}
 		auto const& cbe = i->blocks[block_idx];
 		// There's nothing stopping the hash threads from hashing the blocks in
@@ -327,6 +338,19 @@ struct disk_cache
 		auto piece_iter = view.find(loc);
 		if (piece_iter == view.end()) return false;
 
+		// Another thread may be hashing this piece right now. In this case we
+		// need to wait
+		// TODO: there may be a better way to solve this, maybe hang the job on
+		// the piece and try later. But it's a big change to do so
+		while (piece_iter->flags & cached_piece_entry::hashing_flag)
+		{
+			l.unlock();
+			std::this_thread::yield();
+			l.lock();
+			piece_iter = view.find(loc);
+			if (piece_iter == view.end()) return false;
+		}
+
 		std::uint16_t const blocks_in_piece = piece_iter->blocks_in_piece;
 		std::uint16_t const hasher_cursor = piece_iter->hasher_cursor;
 
@@ -347,7 +371,6 @@ struct disk_cache
 				v2_hashes[i] = piece_iter->block_hashes[i];
 		}
 
-		TORRENT_ASSERT(!(piece_iter->flags & cached_piece_entry::hashing_flag));
 		view.modify(piece_iter, [](cached_piece_entry& e) { e.flags |= cached_piece_entry::hashing_flag; });
 		l.unlock();
 

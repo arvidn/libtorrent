@@ -1293,7 +1293,7 @@ void pread_disk_io::add_job(aux::pread_disk_job* j, bool const user_add)
 	// immediately. If add job is called internally by the pread_disk_io,
 	// we need to defer executing it. We only want the top level to loop
 	// over the job queue (as is done below)
-	if (pool_for_job(j).max_threads() == 0 && user_add)
+	if (q.max_threads() == 0 && user_add)
 		immediate_execute();
 }
 
