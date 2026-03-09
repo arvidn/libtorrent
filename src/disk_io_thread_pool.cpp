@@ -67,8 +67,18 @@ namespace libtorrent::aux {
 		std::lock_guard<std::mutex> l(m_mutex);
 		if (i == m_max_threads) return;
 		m_max_threads = i;
-		if (int(m_threads.size()) < i) return;
-		stop_threads(int(m_threads.size()) - i);
+		if (int(m_threads.size()) > i)
+		{
+			stop_threads(int(m_threads.size()) - i);
+			return;
+		}
+		// eagerly start one thread so interrupt() always has a thread to wake
+		if (i > 0 && m_threads.empty() && !m_abort)
+		{
+			m_idle_timer.expires_after(reap_idle_threads_interval);
+			m_idle_timer.async_wait([this](error_code const& ec) { reap_idle_threads(ec); });
+			m_threads.emplace_back(m_thread_fun, std::ref(*this), make_work_guard(m_ioc));
+		}
 	}
 
 	void disk_io_thread_pool::abort(bool wait)
@@ -192,8 +202,12 @@ namespace libtorrent::aux {
 		int const min_idle = m_min_idle_threads.exchange(m_num_idle_threads);
 		if (min_idle <= 0) return;
 		// stop either the minimum number of idle threads or the number of threads
-		// which must be stopped to get below the max, whichever is larger
-		int const to_stop = std::max(min_idle, int(m_threads.size()) - m_max_threads);
+		// which must be stopped to get below the max, whichever is larger,
+		// but always leave at least one thread alive to service interrupts
+		int const to_stop = std::min(
+			std::max(min_idle, int(m_threads.size()) - m_max_threads),
+			int(m_threads.size()) - 1);
+		if (to_stop <= 0) return;
 		stop_threads(to_stop);
 	}
 
