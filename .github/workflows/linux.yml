@@ -98,7 +98,7 @@ jobs:
       - name: checkout
         uses: actions/checkout@v6
         with:
-           submodules: true
+           submodules: recursive
            fetch-depth: 1
            filter: tree:0
 
@@ -121,7 +121,7 @@ jobs:
 
       - name: install boost
         run: |
-          sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
+          sudo apt install libboost-tools-dev libboost-dev libboost-system-dev libboost-json-dev
           echo "using clang : 15 : clang++-15 ;" >>~/user-config.jam
 
       - name: build fuzzers
