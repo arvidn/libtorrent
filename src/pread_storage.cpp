@@ -435,7 +435,7 @@ namespace libtorrent::aux {
 		, storage_error& error)
 	{
 #ifdef TORRENT_SIMULATE_SLOW_READ
-		std::this_thread::sleep_for(seconds(1));
+		std::this_thread::sleep_for(milliseconds(100));
 #endif
 		return readwrite(files(), buffer, piece, offset, error
 			, [this, mode, flags, &sett](file_index_t const file_index
@@ -491,6 +491,9 @@ namespace libtorrent::aux {
 		, disk_job_flags_t
 		, storage_error& error)
 	{
+#ifdef TORRENT_SIMULATE_SLOW_WRITE
+		std::this_thread::sleep_for(milliseconds(100));
+#endif
 		auto const write_mode = sett.get_int(settings_pack::disk_io_write_mode);
 		return readwrite_vec(files(), buffers, piece, offset, error
 			, [this, mode, &sett, write_mode](file_index_t const file_index
@@ -555,6 +558,9 @@ namespace libtorrent::aux {
 		, disk_job_flags_t
 		, storage_error& error)
 	{
+#ifdef TORRENT_SIMULATE_SLOW_WRITE
+		std::this_thread::sleep_for(milliseconds(100));
+#endif
 		auto const write_mode = sett.get_int(settings_pack::disk_io_write_mode);
 		return readwrite(files(), buffer, piece, offset, error
 			, [this, mode, &sett, write_mode](file_index_t const file_index
@@ -619,7 +625,7 @@ namespace libtorrent::aux {
 		, storage_error& error)
 	{
 #ifdef TORRENT_SIMULATE_SLOW_READ
-		std::this_thread::sleep_for(seconds(1));
+		std::this_thread::sleep_for(milliseconds(100));
 #endif
 		char dummy = 0;
 
@@ -681,6 +687,9 @@ namespace libtorrent::aux {
 		, disk_job_flags_t const flags
 		, storage_error& error)
 	{
+#ifdef TORRENT_SIMULATE_SLOW_READ
+		std::this_thread::sleep_for(milliseconds(100);
+#endif
 		std::int64_t const start_offset = static_cast<int>(piece) * std::int64_t(files().piece_length()) + offset;
 		file_index_t const file_index = files().file_index_at_offset(start_offset);
 		std::int64_t const file_offset = start_offset - files().file_offset(file_index);
