@@ -551,7 +551,7 @@ error_code translate_error(std::error_code const& err, bool const write)
 		, storage_error& error)
 	{
 #ifdef TORRENT_SIMULATE_SLOW_READ
-		std::this_thread::sleep_for(milliseconds(rand() % 2000));
+		std::this_thread::sleep_for(milliseconds(100));
 #endif
 		return readwrite(files(), buffer, piece, offset, error
 			, [this, mode, flags, &sett](file_index_t const file_index
@@ -647,7 +647,7 @@ error_code translate_error(std::error_code const& err, bool const write)
 		, storage_error& error)
 	{
 #ifdef TORRENT_SIMULATE_SLOW_WRITE
-		std::this_thread::sleep_for(milliseconds(rand() % 800));
+		std::this_thread::sleep_for(milliseconds(100));
 #endif
 		return readwrite(files(), buffer, piece, offset, error
 			, [this, mode, flags, &sett](file_index_t const file_index
@@ -743,7 +743,7 @@ error_code translate_error(std::error_code const& err, bool const write)
 		, storage_error& error)
 	{
 #ifdef TORRENT_SIMULATE_SLOW_READ
-		std::this_thread::sleep_for(milliseconds(rand() % 2000));
+		std::this_thread::sleep_for(milliseconds(100));
 #endif
 
 		char dummy = 0;
@@ -834,7 +834,7 @@ error_code translate_error(std::error_code const& err, bool const write)
 		, storage_error& error)
 	{
 #ifdef TORRENT_SIMULATE_SLOW_READ
-		std::this_thread::sleep_for(milliseconds(rand() % 2000));
+		std::this_thread::sleep_for(milliseconds(100));
 #endif
 		std::int64_t const start_offset = static_cast<int>(piece) * std::int64_t(files().piece_length()) + offset;
 		file_index_t const file_index = files().file_index_at_offset(start_offset);

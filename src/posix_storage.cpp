@@ -149,7 +149,7 @@ namespace aux {
 		, storage_error& error)
 	{
 #ifdef TORRENT_SIMULATE_SLOW_READ
-		std::this_thread::sleep_for(milliseconds(rand() % 2000));
+		std::this_thread::sleep_for(milliseconds(100));
 #endif
 		return readwrite(files(), buffer, piece, offset, error
 			, [this](file_index_t const file_index
@@ -209,7 +209,7 @@ namespace aux {
 		, storage_error& error)
 	{
 #ifdef TORRENT_SIMULATE_SLOW_WRITE
-		std::this_thread::sleep_for(milliseconds(rand() % 800));
+		std::this_thread::sleep_for(milliseconds(100));
 #endif
 		return readwrite(files(), buffer, piece, offset, error
 			, [this](file_index_t const file_index
