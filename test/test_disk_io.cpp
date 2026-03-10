@@ -155,13 +155,18 @@ void disk_io_test_suite_impl(lt::disk_io_constructor_type disk_io
 	}
 
 	auto const start_time = lt::aux::time_now();
+#ifdef TORRENT_SIMULATE_SLOW_HASH
+	auto const timeout = lt::seconds(30);
+#else
+	auto const timeout = lt::seconds(20);
+#endif
 	while (blocks_written < expect_written || hashes_done < expect_hashes)
 	{
-		ios.run_for(std::chrono::milliseconds(500));
+		ios.run_for(std::chrono::seconds(1));
 		std::cout << "blocks_written: " << blocks_written << "/" << expect_written
 			<< " hashes_done: " << hashes_done << "/" << expect_hashes << std::endl;
 
-		if (lt::aux::time_now() - start_time > lt::seconds(20))
+		if (lt::aux::time_now() - start_time > timeout)
 		{
 			TEST_ERROR("timeout");
 			break;

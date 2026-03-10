@@ -20,6 +20,11 @@ see LICENSE file.
 #include <openssl/opensslv.h> // for OPENSSL_VERSION_NUMBER
 #endif
 
+#ifdef TORRENT_SIMULATE_SLOW_HASH
+#include <thread>
+#include "libtorrent/aux_/time.hpp"
+#endif
+
 namespace libtorrent {
 
 TORRENT_CRYPTO_NAMESPACE
@@ -108,6 +113,9 @@ TORRENT_CRYPTO_NAMESPACE
 
 	hasher& hasher::update(span<char const> data)
 	{
+#ifdef TORRENT_SIMULATE_SLOW_HASH
+		std::this_thread::sleep_for(milliseconds(10 + data.size() / 10));
+#endif
 		TORRENT_ASSERT(data.size() > 0);
 #ifdef TORRENT_USE_LIBGCRYPT
 		gcry_md_write(m_context, data.data(), static_cast<std::size_t>(data.size()));
@@ -257,6 +265,9 @@ TORRENT_CRYPTO_NAMESPACE
 
 	hasher256& hasher256::update(span<char const> data)
 	{
+#ifdef TORRENT_SIMULATE_SLOW_HASH
+		std::this_thread::sleep_for(milliseconds(10 + data.size() / 10));
+#endif
 		TORRENT_ASSERT(!data.empty());
 #ifdef TORRENT_USE_LIBGCRYPT
 		gcry_md_write(m_context, data.data(), data.size());
