@@ -320,9 +320,15 @@ struct disk_cache
 		return f();
 	}
 
+	enum class hash_piece_result { not_in_cache, completed, deferred };
+
 	// Looks up the piece in the cache and calls f() to complete its hash computation.
-	// Returns false if the piece is not in the cache; the caller must then read all
-	// blocks from disk itself.
+	// Returns not_in_cache if the piece is not in the cache; the caller must then read
+	// all blocks from disk itself.
+	// Returns deferred if a hasher thread is currently processing this piece; the job
+	// j has been hung on the piece and kick_hasher will retry it when
+	// done. The caller must NOT access j after receiving deferred.
+	// Returns completed when f() has been called and hashing is done.
 	//
 	// When the piece is found, hash_piece() takes a snapshot of the cache state under
 	// the mutex, sets hashing=true (which pins all buffers at index >= hasher_cursor
@@ -342,7 +348,7 @@ struct disk_cache
 	// already been flushed to disk are freed. If all blocks are flushed, the
 	// piece entry is removed from the cache entirely.
 	template <typename Fun>
-	bool hash_piece(piece_location const loc, Fun f)
+	hash_piece_result hash_piece(piece_location const loc, pread_disk_job* j, Fun f)
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 
@@ -350,19 +356,18 @@ struct disk_cache
 
 		auto& view = m_pieces.template get<0>();
 		auto piece_iter = view.find(loc);
-		if (piece_iter == view.end()) return false;
+		if (piece_iter == view.end()) return hash_piece_result::not_in_cache;
 
-		// Another thread may be hashing this piece right now. In this case we
-		// need to wait
-		// TODO: there may be a better way to solve this, maybe hang the job on
-		// the piece and try later. But it's a big change to do so
-		while (piece_iter->flags & cached_piece_entry::hashing_flag)
+		// If a hasher thread is currently processing this piece, hang the job
+		// on the piece. kick_hasher will retry it when done.
+		if (piece_iter->flags & cached_piece_entry::hashing_flag)
 		{
-			l.unlock();
-			std::this_thread::yield();
-			l.lock();
-			piece_iter = view.find(loc);
-			if (piece_iter == view.end()) return false;
+			// if this assert fires, the bittorrent layer may have called
+			// async_hash() more than once for the same piece. It's not
+			// supposed to do that.
+			TORRENT_ASSERT(piece_iter->hash_job == nullptr);
+			view.modify(piece_iter, [j](cached_piece_entry& e) { e.hash_job = j; });
+			return hash_piece_result::deferred;
 		}
 
 		std::uint16_t const blocks_in_piece = piece_iter->blocks_in_piece;
@@ -415,7 +420,7 @@ struct disk_cache
 			}
 		});
 		f(piece_iter->ph.get(), hasher_cursor, blocks, v2_hashes);
-		return true;
+		return hash_piece_result::completed;
 	}
 
 	// If the specified piece exists in the cache, and it's unlocked, clear all
@@ -476,7 +481,9 @@ struct disk_cache
 	// pieces marked with needs_hasher_kick_flag, calling kick_hasher on each.
 	// Returns true if force_flush_flag was set on any piece, meaning a generic
 	// thread should be woken to flush those pieces to disk.
-	bool kick_pending_hashers(jobqueue_t& completed_jobs);
+	// Jobs hung on a piece that stops hashing early are extracted and placed in
+	// retry_jobs so the caller can re-submit them.
+	bool kick_pending_hashers(jobqueue_t& completed_jobs, jobqueue_t& retry_jobs);
 
 	// this should be called by a disk thread
 	// the callback should return the number of blocks it successfully flushed
@@ -506,8 +513,10 @@ private:
 	// this should be called from a hasher thread, with m_mutex held.
 	// hashing_flag must already be set on the piece by the caller.
 	// Returns true if force_flush_flag was set on the piece.
+	// Jobs hung on a piece that stops hashing early are placed in retry_jobs.
 	bool kick_hasher(piece_container::nth_index<4>::type::iterator piece_iter
-		, std::unique_lock<std::mutex>& l, jobqueue_t& completed_jobs);
+		, std::unique_lock<std::mutex>& l, jobqueue_t& completed_jobs
+		, jobqueue_t& retry_jobs);
 
 	void free_piece(cached_piece_entry const& cpe);
 

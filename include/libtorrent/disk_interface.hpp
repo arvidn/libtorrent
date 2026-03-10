@@ -64,6 +64,10 @@ namespace disk_status {
 	constexpr status_t need_full_check = 1_bit;
 	constexpr status_t file_exist = 2_bit;
 	constexpr status_t oversized_file = 3_bit;
+	// Returned by do_job(hash) when the job was hung on a cache piece.
+	// kick_hasher will post it to completed_jobs once hashing finishes.
+	// perform_job() checks this flag before writing j->ret.
+	constexpr status_t job_deferred = 4_bit;
 }
 
 	// internal
