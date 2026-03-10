@@ -20,6 +20,10 @@ see LICENSE file.
 #include "libtorrent/aux_/storage_utils.hpp" // for read_zeroes, move_storage
 #include "libtorrent/aux_/readwrite.hpp"
 
+#if defined TORRENT_SIMULATE_SLOW_READ || defined TORRENT_SIMULATE_SLOW_WRITE
+#include <thread>
+#endif
+
 using namespace libtorrent::flags; // for flag operators
 
 #ifndef TORRENT_WINDOWS
