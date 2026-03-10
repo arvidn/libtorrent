@@ -328,7 +328,8 @@ disk_cache::hash_result disk_cache::try_hash_piece(piece_location const loc, pre
 // hashing_flag must already be set on the piece by the caller.
 // Returns true if force_flush_flag was set on the piece.
 bool disk_cache::kick_hasher(piece_container::nth_index<4>::type::iterator piece_iter
-	, std::unique_lock<std::mutex>& l, jobqueue_t& completed_jobs)
+	, std::unique_lock<std::mutex>& l, jobqueue_t& completed_jobs
+	, jobqueue_t& retry_jobs)
 {
 	INVARIANT_CHECK;
 	TORRENT_ASSERT(l.owns_lock());
@@ -443,10 +444,13 @@ keep_going:
 		if (piece_iter->blocks[cursor].buf().data())
 			goto keep_going;
 
-		view.modify(piece_iter, [cursor](cached_piece_entry& e) {
+		pread_disk_job* rj = nullptr;
+		view.modify(piece_iter, [&rj, cursor](cached_piece_entry& e) {
+			rj = std::exchange(e.hash_job, nullptr);
 			e.hasher_cursor = cursor;
 			e.flags &= ~cached_piece_entry::hashing_flag;
 		});
+		if (rj) retry_jobs.push_back(rj);
 
 		DLOG("kick_hasher: no attached hash job\n");
 		return false;
@@ -504,7 +508,7 @@ keep_going:
 
 // returns true if any piece finished hashing, and is ready to be flushed to
 // disk. Any such piece will also have had the force_flush_flag set.
-bool disk_cache::kick_pending_hashers(jobqueue_t& completed_jobs)
+bool disk_cache::kick_pending_hashers(jobqueue_t& completed_jobs, jobqueue_t& retry_jobs)
 {
 	bool needs_flush = false;
 	std::unique_lock<std::mutex> l(m_mutex);
@@ -531,7 +535,7 @@ bool disk_cache::kick_pending_hashers(jobqueue_t& completed_jobs)
 				| cached_piece_entry::hashing_flag;
 		});
 
-		needs_flush |= kick_hasher(it, l, completed_jobs);
+		needs_flush |= kick_hasher(it, l, completed_jobs, retry_jobs);
 	}
 	return needs_flush;
 }
@@ -654,6 +658,7 @@ void disk_cache::free_piece(cached_piece_entry const& cpe)
 		TORRENT_ASSERT(cpe.flushed_cursor == cpe.blocks_in_piece);
 		TORRENT_ASSERT(cpe.hasher_cursor == cpe.blocks_in_piece);
 	}
+	TORRENT_ASSERT(cpe.hash_job == nullptr);
 #endif
 	int idx = 0;
 	for (auto& blk : cpe.get_blocks())

@@ -60,29 +60,29 @@ bool valid_flags(disk_job_flags_t const flags)
 #endif
 
 template <typename Fun>
-void translate_error(aux::disk_job* j, Fun f)
+status_t translate_error(aux::disk_job* j, Fun f)
 {
 	try
 	{
-		j->ret = f();
+		return f();
 	}
 	catch (boost::system::system_error const& err)
 	{
-		j->ret = disk_status::fatal_disk_error;
 		j->error.ec = err.code();
 		j->error.operation = operation_t::exception;
+		return disk_status::fatal_disk_error;
 	}
 	catch (std::bad_alloc const&)
 	{
-		j->ret = disk_status::fatal_disk_error;
 		j->error.ec = errors::no_memory;
 		j->error.operation = operation_t::exception;
+		return disk_status::fatal_disk_error;
 	}
 	catch (std::exception const&)
 	{
-		j->ret = disk_status::fatal_disk_error;
 		j->error.ec = boost::asio::error::fault;
 		j->error.operation = operation_t::exception;
+		return disk_status::fatal_disk_error;
 	}
 }
 
@@ -393,11 +393,14 @@ void pread_disk_io::perform_job(aux::pread_disk_job* j, jobqueue_t& completed_jo
 		m_stats_counters.inc_stats_counter(counters::num_running_disk_jobs, -1);
 	});
 
-	// call disk function
-	// TODO: in the future, propagate exceptions back to the handlers
-	translate_error(j, [&] {
+
+	status_t const ret = translate_error(j, [&] {
 		return std::visit([this, j](auto& a) { return this->do_job(a, j); }, j->action);
 	});
+
+	if (ret & disk_status::job_deferred) return;
+
+	j->ret = ret;
 
 	// note that -2 errors are OK
 	TORRENT_ASSERT(j->ret != disk_status::fatal_disk_error
@@ -1002,8 +1005,13 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 		}
 	};
 
-	if (!m_cache.hash_piece({ j->storage->storage_index(), a.piece}
-		, hash_partial_piece))
+	auto const hpr = m_cache.hash_piece({ j->storage->storage_index(), a.piece}
+		, j, hash_partial_piece);
+
+	if (hpr == aux::disk_cache::hash_piece_result::deferred)
+		return disk_status::job_deferred;
+
+	if (hpr == aux::disk_cache::hash_piece_result::not_in_cache)
 	{
 		// fall back to reading everything from disk
 
@@ -1510,9 +1518,18 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 		{
 			l.unlock();
 			jobqueue_t completed;
-			bool const needs_flush = m_cache.kick_pending_hashers(completed);
+			jobqueue_t retry;
+			bool const needs_flush = m_cache.kick_pending_hashers(completed, retry);
 			add_completed_jobs(std::move(completed));
+
+			// TODO: this would be more efficient to do after acquiring the
+			// mutex below, but then we would need a lower-level add_job()
+			// function, that doesn't acquire the mutex itself
+			bool const submit = !retry.empty();
+			while (!retry.empty())
+				add_job(static_cast<aux::pread_disk_job*>(retry.pop_front()), false);
 			l.lock();
+			if (submit) m_generic_threads.submit_jobs();
 			// In case there are no other disk jobs triggering a flush, we need
 			// to wake up a generic thread.
 			if (needs_flush)
