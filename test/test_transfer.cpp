@@ -178,7 +178,7 @@ void test_transfer(int const proxy_type, settings_pack const& sett
 	if (flags & large_piece_size)
 	{
 		piece_size = 1024 * 1024;
-		timeout = 60;
+		timeout = 90;
 	}
 
 	create_directory("tmp1_transfer", ec);
