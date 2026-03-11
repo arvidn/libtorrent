@@ -107,7 +107,7 @@ namespace aux {
 		// the number of peers that is currently requesting this block. Typically
 		// this is 0 or 1, but at the end of the torrent blocks may be requested
 		// by more peers in parallel to speed things up.
-		std::uint16_t num_peers:14;
+		std::uint16_t num_peers:15;
 
 		// The peer is the ip address of the peer this block was downloaded from.
 		void set_peer(tcp::endpoint const& ep);
