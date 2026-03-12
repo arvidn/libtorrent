@@ -346,13 +346,19 @@ namespace libtorrent {
 				std::string tracker = unescape_string(value, e);
 				if (!e && !tracker.empty())
 				{
+					if (string_begins_no_case("http", tracker.c_str())
+						|| string_begins_no_case("https", tracker.c_str())
+						|| string_begins_no_case("udp", tracker.c_str())
+						|| string_begins_no_case("wss", tracker.c_str()))
+					{
 #if TORRENT_USE_I2P
-					if (!(p.flags & torrent_flags::i2p_torrent) && is_i2p_url(tracker))
-						p.flags |= torrent_flags::i2p_torrent;
+						if (!(p.flags & torrent_flags::i2p_torrent) && is_i2p_url(tracker))
+							p.flags |= torrent_flags::i2p_torrent;
 #endif
 
-					p.trackers.push_back(std::move(tracker));
-					p.tracker_tiers.push_back(tier++);
+						p.trackers.push_back(std::move(tracker));
+						p.tracker_tiers.push_back(tier++);
+					}
 				}
 			}
 			else if (string_equal_no_case(name, "ws"_sv)) // web seed
