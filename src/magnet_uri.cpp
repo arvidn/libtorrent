@@ -345,18 +345,15 @@ namespace libtorrent {
 					p.tracker_tiers.resize(p.trackers.size(), 0);
 				error_code e;
 				std::string tracker = unescape_string(value, e);
-				if (!e && !tracker.empty())
+				if (!e && !tracker.empty() && is_valid_tracker_url(tracker))
 				{
-					if (is_valid_tracker_url(tracker))
-					{
 #if TORRENT_USE_I2P
-						if (!(p.flags & torrent_flags::i2p_torrent) && is_i2p_url(tracker))
-							p.flags |= torrent_flags::i2p_torrent;
+					if (!(p.flags & torrent_flags::i2p_torrent) && is_i2p_url(tracker))
+						p.flags |= torrent_flags::i2p_torrent;
 #endif
 
-						p.trackers.push_back(std::move(tracker));
-						p.tracker_tiers.push_back(tier++);
-					}
+					p.trackers.push_back(std::move(tracker));
+					p.tracker_tiers.push_back(tier++);
 				}
 			}
 			else if (string_equal_no_case(name, "ws"_sv)) // web seed
