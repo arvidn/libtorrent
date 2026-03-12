@@ -892,6 +892,8 @@ TORRENT_TEST(reject_invalid_tracker_url)
 		"&tr=magnet:?xt=urn:btih:abc123"
 		"&tr=wss%3A%2F%2Ffoo"
 		"&tr=<!DOCTYPE html><html>"
+		"&tr=httpabc"
+		"&tr=udpabc"
 		"&tr=garbage");
 
 	TEST_EQUAL(p.trackers.size(), 5);
