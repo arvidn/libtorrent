@@ -1729,3 +1729,34 @@ TORRENT_TEST(write_torrent_file_session_roundtrip)
 	}
 }
 
+TORRENT_TEST(add_tracker_reject_invalid_url)
+{
+	torrent_info ti(info_hash_t(sha1_hash("                   ")));
+	TEST_EQUAL(ti.trackers().size(), 0);
+
+	ti.add_tracker("http://test.com/announce");
+	TEST_EQUAL(ti.trackers().size(), 1);
+
+	// random text is invalid
+	ti.add_tracker("invalid url");
+	TEST_EQUAL(ti.trackers().size(), 1);
+
+	ti.add_tracker("https://test.com/announce");
+	TEST_EQUAL(ti.trackers().size(), 2);
+
+	// ftp scheme is invalid
+	ti.add_tracker("ftp://test.com");
+	TEST_EQUAL(ti.trackers().size(), 2);
+
+	ti.add_tracker("udp://test.com/announce");
+	TEST_EQUAL(ti.trackers().size(), 3);
+
+	ti.add_tracker("httpfoo://test.com/announce");
+	TEST_EQUAL(ti.trackers().size(), 3);
+
+	ti.add_tracker("http://foo.com/announce");
+	TEST_EQUAL(ti.trackers().size(), 4);
+
+	ti.clear_trackers();
+	TEST_EQUAL(ti.trackers().size(), 0);
+}
