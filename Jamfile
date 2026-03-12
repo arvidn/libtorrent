@@ -1106,7 +1106,9 @@ rule generate-pkg-config ( properties * )
 				}
 				else if ( [ $(t).type ] = STATIC_LIB )
 				{
-					private_deps += [ $(t).name ] ;
+					local stripped = [ MATCH "^lib(.*)\\.a$" : [ $(t).name ] ] ;
+					stripped ?= [ $(t).name ] ;
+					private_deps += $(stripped) ;
 				}
 			}
 		}
