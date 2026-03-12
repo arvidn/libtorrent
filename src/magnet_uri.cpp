@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/hex.hpp" // to_hex, from_hex
 #include "libtorrent/socket_io.hpp" // for print_endpoint
+#include "libtorrent/parse_url.hpp" // for is_valid_tracker_url
 
 namespace libtorrent {
 
@@ -346,9 +347,7 @@ namespace libtorrent {
 				std::string tracker = unescape_string(value, e);
 				if (!e && !tracker.empty())
 				{
-					if (string_begins_no_case("http://", tracker.c_str())
-						|| string_begins_no_case("https://", tracker.c_str())
-						|| string_begins_no_case("udp://", tracker.c_str()))
+					if (is_valid_tracker_url(tracker))
 					{
 #if TORRENT_USE_I2P
 						if (!(p.flags & torrent_flags::i2p_torrent) && is_i2p_url(tracker))
