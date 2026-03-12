@@ -886,16 +886,16 @@ TORRENT_TEST(reject_invalid_tracker_url)
 	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
 		"&tr=ftp://1"
 		"&tr=HTTP://2"
-		"&tr=wss://3"
 		"&tr=udp://4"
+		"&tr=wss://4"
 		"&tr=https://5"
 		"&tr=magnet:?xt=urn:btih:abc123"
-		"&tr=wss%3A%2F%2Ffoo"
+		"&tr=http%3A%2F%2Ffoo"
 		"&tr=<!DOCTYPE html><html>"
 		"&tr=httpabc"
 		"&tr=udpabc"
 		"&tr=garbage");
 
-	TEST_EQUAL(p.trackers.size(), 5);
-	TEST_CHECK((p.trackers == std::vector<std::string>{"HTTP://2", "wss://3", "udp://4", "https://5", "wss://foo"}));
+	TEST_EQUAL(p.trackers.size(), 4);
+	TEST_CHECK((p.trackers == std::vector<std::string>{"HTTP://2", "udp://4", "https://5", "http://foo"}));
 }
