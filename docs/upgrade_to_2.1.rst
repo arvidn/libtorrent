@@ -62,6 +62,18 @@ The add_torrent_params can be thought of as representing the whole torrent
 file, including the info-dictionary. This includes fields that do not define
 the *content* of the torrent. Things like trackers.
 
+torrent_info::into()
+--------------------
+
+The torrent_info class has a member function torrent_info::info(), that looks
+up arbitrary keys from the info-section of the torrent file. It can be used for
+extensions. This function is problematic because it is not thread safe. It
+relies on lazily parsing the info section, mutating the torrent_info object,
+even if it's `const`. This function has been deprecated and is discouraged from
+being used. Instead, fetch the info section via the
+torrent_info::info_section() function, and parse it yourself.
+
+
 Creating torrents
 =================
 
