@@ -982,19 +982,10 @@ TORRENT_VERSION_NAMESPACE_4
 	string_view torrent_info::ssl_cert() const
 	{
 		if (!(m_flags & ssl_torrent)) return "";
-
-		// this is parsed lazily
-		if (!m_info_dict)
-		{
-			error_code ec;
-			bdecode(m_info_section.get(), m_info_section.get()
-				+ m_info_section_size, m_info_dict, ec);
-			TORRENT_ASSERT(!ec);
-			if (ec) return "";
-		}
-		TORRENT_ASSERT(m_info_dict.type() == bdecode_node::dict_t);
-		if (m_info_dict.type() != bdecode_node::dict_t) return "";
-		return m_info_dict.dict_find_string_value("ssl-cert");
+		TORRENT_ASSERT(m_ssl_cert_offset >= 0);
+		TORRENT_ASSERT(m_ssl_cert_offset + m_ssl_cert_size <= m_info_section_size);
+		return {m_info_section.get() + m_ssl_cert_offset
+			, static_cast<std::size_t>(m_ssl_cert_size)};
 	}
 
 #if TORRENT_ABI_VERSION < 3
@@ -1315,8 +1306,12 @@ TORRENT_VERSION_NAMESPACE_4
 		}
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 
-		if (info.dict_find_string("ssl-cert"))
+		if (bdecode_node const ssl_cert = info.dict_find_string("ssl-cert"))
+		{
 			m_flags |= ssl_torrent;
+			m_ssl_cert_offset = aux::numeric_cast<std::int32_t>(ssl_cert.string_offset() - info_offset);
+			m_ssl_cert_size = ssl_cert.string_length();
+		}
 
 		if (files.total_size() == 0)
 		{
@@ -1367,6 +1362,7 @@ TORRENT_VERSION_NAMESPACE_4
 	{ m_creation_date = t; }
 #endif
 
+#if TORRENT_ABI_VERSION < 4
 	bdecode_node torrent_info::info(char const* key) const
 	{
 		if (m_info_dict.type() == bdecode_node::none_t)
@@ -1378,6 +1374,7 @@ TORRENT_VERSION_NAMESPACE_4
 		}
 		return m_info_dict.dict_find(key);
 	}
+#endif
 
 #if TORRENT_ABI_VERSION < 4
 	bool torrent_info::parse_torrent_file(bdecode_node const& torrent_file

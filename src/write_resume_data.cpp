@@ -363,7 +363,15 @@ namespace {
 			}
 		}
 
-		if (!atp.ti->similar_torrents().empty() && !atp.ti->info("similar"))
+		bdecode_node info_dict;
+		if (!atp.ti->similar_torrents().empty() || !atp.ti->collections().empty())
+		{
+			auto const sec = atp.ti->info_section();
+			error_code ec;
+			bdecode(sec.data(), sec.data() + sec.size(), info_dict, ec);
+		}
+
+		if (!atp.ti->similar_torrents().empty() && !info_dict.dict_find("similar"))
 		{
 			auto& l = ret["similar"].list();
 			l.reserve(atp.ti->similar_torrents().size());
@@ -371,7 +379,7 @@ namespace {
 				l.emplace_back(n.to_string());
 		}
 
-		if (!atp.ti->collections().empty() && !atp.ti->info("collections"))
+		if (!atp.ti->collections().empty() && !info_dict.dict_find("collections"))
 		{
 			auto& l = ret["collections"].list();
 			l.reserve(atp.ti->collections().size());

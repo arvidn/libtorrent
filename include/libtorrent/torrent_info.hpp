@@ -613,10 +613,18 @@ TORRENT_VERSION_NAMESPACE_4
 		bool parse_info_section(bdecode_node const& info, error_code& ec);
 #endif
 
+#if TORRENT_ABI_VERSION < 4
 		// This function looks up keys from the info-dictionary of the loaded
 		// torrent file. It can be used to access extension values put in the
 		// .torrent file. If the specified key cannot be found, it returns nullptr.
+		// This function os not thread safe, because it relies on lazily
+		// parsing the infor section to find keys. For this reason it's been
+		// deprecated. As a substitute you can parse the info section yourself.
+		// It's immutable and safe to access from multiple threads. see
+		// info_section().
+		TORRENT_DEPRECATED
 		bdecode_node info(char const* key) const;
+#endif
 
 		// returns a the raw info section of the torrent file.
 		// The underlying buffer is still owned by the torrent_info object
@@ -783,9 +791,11 @@ TORRENT_VERSION_NAMESPACE_4
 		std::time_t m_creation_date = 0;
 #endif
 
+#if TORRENT_ABI_VERSION < 4
 		// the info section parsed. points into m_info_section
-		// parsed lazily
+		// parsed lazily, only used to service the deprecated info() accessor
 		mutable bdecode_node m_info_dict;
+#endif
 
 		// the hash(es) that identify this torrent
 		info_hash_t m_info_hash;
@@ -796,6 +806,11 @@ TORRENT_VERSION_NAMESPACE_4
 
 		// the number of bytes in m_info_section
 		std::int32_t m_info_section_size = 0;
+
+		// offset into m_info_section and byte-length of the "ssl-cert" string.
+		// only valid when (m_flags & ssl_torrent) is set.
+		std::int32_t m_ssl_cert_offset = 0;
+		int m_ssl_cert_size = 0;
 
 		// this is used when creating a torrent. If there's
 		// only one file there are cases where it's impossible
