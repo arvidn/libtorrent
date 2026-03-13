@@ -865,10 +865,15 @@ TORRENT_TEST(reject_invalid_tracker_url)
 		"&tr=<!DOCTYPE html><html>"
 		"&tr=httpabc"
 		"&tr=udpabc"
+		"&tr=ws://6"
 		// empty string
 		"&tr="
 		"&tr=garbage");
-
+#if TORRENT_USE_RTC
+	TEST_EQUAL(p.trackers.size(), 6);
+	TEST_CHECK((p.trackers == std::vector<std::string>{"HTTP://2", "udp://4", "wss://4", "https://5", "http://foo", "ws://6"}));
+#else
 	TEST_EQUAL(p.trackers.size(), 4);
 	TEST_CHECK((p.trackers == std::vector<std::string>{"HTTP://2", "udp://4", "https://5", "http://foo"}));
+#endif
 }
