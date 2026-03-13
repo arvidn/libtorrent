@@ -949,14 +949,22 @@ add_torrent_params create_torrent(std::ostream* file
 	char const* invalid_tracker_url = "http:";
 	char const* invalid_tracker_protocol = "foo://non/existent-name.com/announce";
 
+	char const* valid_tracker_url = "http://foo.bar";
+	char const* valid_tracker_protocol = "udp://foo.bar/announce";
+
 	std::vector<lt::create_file_entry> fs;
 	int total_size = piece_size * num_pieces;
 	fs.emplace_back(name, total_size);
 	lt::create_torrent t(std::move(fs), piece_size, flags);
 	if (add_tracker)
 	{
+		// invalid tracker urls won't be included in the generated magnet link
 		t.add_tracker(invalid_tracker_url);
 		t.add_tracker(invalid_tracker_protocol);
+
+		// valid tracker urls will be included in the generated magnet link
+		t.add_tracker(valid_tracker_url);
+		t.add_tracker(valid_tracker_protocol);
 	}
 
 	if (!ssl_certificate.empty())

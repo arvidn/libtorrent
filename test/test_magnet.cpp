@@ -685,7 +685,7 @@ TORRENT_TEST(torrent_info_hash)
 	TEST_EQUAL(make_magnet_uri(atp), std::string{}
 		+ "magnet:?xt=urn:btih:" + aux::to_hex(atp.ti->info_hashes().v1)
 		+ "&xt=urn:btmh:1220" + aux::to_hex(atp.ti->info_hashes().v2)
-		+ "&tr=http%3a&tr=foo%3a%2f%2fnon%2fexistent-name.com%2fannounce");
+		+ "&tr=http%3a%2f%2ffoo.bar&tr=udp%3a%2f%2ffoo.bar%2fannounce");
 }
 
 #if TORRENT_ABI_VERSION < 3
@@ -852,3 +852,23 @@ TORRENT_TEST(round_trip)
 	TEST_CHECK(test_round_trip(atp));
 }
 
+TORRENT_TEST(reject_invalid_tracker_url)
+{
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
+		"&tr=ftp://1"
+		"&tr=HTTP://2"
+		"&tr=udp://4"
+		"&tr=wss://4"
+		"&tr=https://5"
+		"&tr=magnet:?xt=urn:btih:abc123"
+		"&tr=http%3A%2F%2Ffoo"
+		"&tr=<!DOCTYPE html><html>"
+		"&tr=httpabc"
+		"&tr=udpabc"
+		// empty string
+		"&tr="
+		"&tr=garbage");
+
+	TEST_EQUAL(p.trackers.size(), 4);
+	TEST_CHECK((p.trackers == std::vector<std::string>{"HTTP://2", "udp://4", "https://5", "http://foo"}));
+}
