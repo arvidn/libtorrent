@@ -1,0 +1,43 @@
+inputs:
+  architecture:
+    description: the architecture to install ("x64" or "x86")
+    required: true
+  linking:
+    description: the linking type to install ("static" or "dynamic")
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check vcpkg.json
+      shell: pwsh
+      run: |
+        $f = [System.IO.File]::Exists("tools\vcpkg.json")
+        if (!$f){
+          throw "Could not find 'tools/vcpkg.json'. Did you forget to checkout libtorrent?"
+        }
+    - name: Remove Default OpenSSL
+      shell: cmd
+      run: |
+        rmdir "C:\Program Files\OpenSSL\lib" /S /Q
+        rmdir "C:\Program Files\OpenSSL\bin" /S /Q
+    - name: Compile OpenSSL
+      if: steps.cache-openssl.outputs.cache-hit != 'true'
+      shell: pwsh
+      run: |
+        cd tools
+        switch("${{ inputs.linking }}") {
+          "dynamic" { $Linking = "" }
+          default { $Linking = "-static" }
+        }
+        vcpkg install --triplet="${{ inputs.architecture }}-windows$Linking"
+        New-Item -Path "C:\Program Files\OpenSSL\lib" -ItemType SymbolicLink -Value "C:\vcpkg\packages\openssl_${{ inputs.architecture }}-windows$Linking\lib\"
+    - name: Check OpenSSL
+      shell: pwsh
+      run: |
+        dir "C:\Program Files\OpenSSL\lib"
+        $f1 = [System.IO.File]::Exists("C:\Program Files\OpenSSL\lib\libcrypto.lib")
+        $f2 = [System.IO.File]::Exists("C:\Program Files\OpenSSL\lib\libssl.lib")
+        if (!$f1 -or !$f2){
+          throw "Failed to obtain required OpenSSL lib files."
+        }
