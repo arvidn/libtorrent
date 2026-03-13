@@ -19,6 +19,7 @@ see LICENSE file.
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/hex.hpp" // to_hex, from_hex
 #include "libtorrent/aux_/socket_io.hpp" // for print_endpoint
+#include "libtorrent/aux_/parse_url.hpp" // for is_valid_tracker_url
 
 namespace libtorrent {
 
@@ -318,7 +319,7 @@ namespace libtorrent {
 					p.tracker_tiers.resize(p.trackers.size(), 0);
 				error_code e;
 				std::string tracker = unescape_string(value, e);
-				if (!e && !tracker.empty())
+				if (!e && lt::aux::is_valid_tracker_url(tracker))
 				{
 #if TORRENT_USE_I2P
 					if (!(p.flags & torrent_flags::i2p_torrent) && aux::is_i2p_url(tracker))

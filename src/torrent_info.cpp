@@ -32,6 +32,7 @@ see LICENSE file.
 #include "libtorrent/aux_/file_pointer.hpp"
 #include "libtorrent/disk_interface.hpp" // for default_block_size
 #include "libtorrent/span.hpp"
+#include "libtorrent/aux_/parse_url.hpp" // for is_valid_tracker_url
 
 #include "libtorrent/load_torrent.hpp" // for aux::parse_torrent_file()
 #if TORRENT_ABI_VERSION < 4
@@ -1503,6 +1504,7 @@ TORRENT_VERSION_NAMESPACE_4
 		auto const i = std::find_if(m_urls.begin(), m_urls.end()
 			, [&url](announce_entry const& ae) { return ae.url == url; });
 		if (i != m_urls.end()) return;
+		if (!lt::aux::is_valid_tracker_url(url)) return;
 
 		announce_entry e(url);
 		e.tier = std::uint8_t(tier);

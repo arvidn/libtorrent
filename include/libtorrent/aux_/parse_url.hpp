@@ -40,6 +40,9 @@ namespace libtorrent::aux {
 	// arguments are "info_hash", "port", "key", "event", "uploaded",
 	// "downloaded", "left" or "corrupt".
 	TORRENT_EXTRA_EXPORT bool has_tracker_query_string(string_view query_string);
+
+	// returns true if the url is a valid tracker url (http, https, udp, ws, wss)
+	TORRENT_EXTRA_EXPORT bool is_valid_tracker_url(const std::string& url);
 }
 
 #endif

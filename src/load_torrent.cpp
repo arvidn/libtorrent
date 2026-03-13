@@ -19,6 +19,7 @@ see LICENSE file.
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/aux_/string_util.hpp" // for is_i2p_url, ltrim, ensure_trailing_slash
 #include "libtorrent/aux_/resolve_duplicate_filenames.hpp"
+#include "libtorrent/aux_/parse_url.hpp" // for is_valid_tracker_url
 
 namespace libtorrent {
 
@@ -240,6 +241,7 @@ namespace aux
 #endif
 					std::string u(url);
 					aux::ltrim(u);
+					if (!aux::is_valid_tracker_url(u)) continue;
 					out.trackers.push_back(std::move(u));
 					out.tracker_tiers.push_back(j);
 				}
@@ -252,10 +254,11 @@ namespace aux
 #if TORRENT_USE_I2P
 			if (aux::is_i2p_url(url)) out.flags |= torrent_flags::i2p_torrent;
 #endif
-			if (!url.empty())
+
+			std::string u(url);
+			aux::ltrim(u);
+			if (aux::is_valid_tracker_url(u))
 			{
-				std::string u(url);
-				aux::ltrim(u);
 				out.trackers.push_back(std::move(u));
 				out.tracker_tiers.push_back(0);
 			}
