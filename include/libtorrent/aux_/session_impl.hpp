@@ -699,6 +699,7 @@ namespace aux {
 			torrent_handle find_torrent_handle(info_hash_t const& info_hash);
 
 			void announce_lsd(sha1_hash const& ih, int port) override;
+			void prioritize_lsd(std::weak_ptr<torrent> t) override;
 
 #if TORRENT_ABI_VERSION <= 2
 			void save_state(entry* e, save_state_flags_t flags) const;
@@ -844,6 +845,7 @@ namespace aux {
 
 			void update_socket_buffer_size();
 			void update_dht_announce_interval();
+			void update_lsd_announce_interval();
 			void update_download_rate();
 			void update_upload_rate();
 			void update_connections_limit();
@@ -1263,6 +1265,20 @@ namespace aux {
 			// within the LSD announce interval (which defaults to
 			// 5 minutes)
 			std::size_t m_next_lsd_torrent;
+
+			// torrents have recently been added to the session should be
+			// announced to LSD as soon as possible. Such torrents are
+			// put in this queue and get announced the next time the
+			// timer fires, instead of the next one in the round-robin
+			// sequence.
+			std::deque<std::weak_ptr<torrent>> m_lsd_torrents;
+
+			// the number of torrents there were when
+			// update_lsd_announce_interval() was last called.
+			// if the number of torrents changes significantly
+			// compared to this number, the LSD announce interval
+			// is updated again.
+			int m_lsd_interval_update_torrents = 0;
 
 #ifndef TORRENT_DISABLE_DHT
 			// torrents are announced on the DHT in a

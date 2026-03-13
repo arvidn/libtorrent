@@ -10300,7 +10300,8 @@ namespace {
 		bool const high_priority = m_connect_boost_counter > 0;
 		announce_with_tracker(event_t::none, high_priority);
 
-		lsd_announce();
+		if (m_ses.has_lsd())
+			m_ses.prioritize_lsd(shared_from_this());
 	}
 
 	void torrent::stop_announcing()
