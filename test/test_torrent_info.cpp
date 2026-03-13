@@ -554,6 +554,47 @@ TORRENT_TEST(set_web_seeds)
 	TEST_EQUAL(ti.web_seeds().size(), 2);
 	TEST_CHECK(ti.web_seeds() == seeds);
 }
+
+TORRENT_TEST(add_tracker_reject_invalid_url)
+{
+	torrent_info ti(info_hash_t(sha1_hash("                   ")));
+	TEST_EQUAL(ti.trackers().size(), 0);
+
+	ti.add_tracker("http://test.com/announce");
+	TEST_EQUAL(ti.trackers().size(), 1);
+
+	// random text is invalid
+	ti.add_tracker("invalid url");
+	TEST_EQUAL(ti.trackers().size(), 1);
+
+	ti.add_tracker("https://test.com/announce");
+	TEST_EQUAL(ti.trackers().size(), 2);
+
+	// ftp scheme is invalid
+	ti.add_tracker("ftp://test.com");
+	TEST_EQUAL(ti.trackers().size(), 2);
+
+	ti.add_tracker("udp://test.com/announce");
+	TEST_EQUAL(ti.trackers().size(), 3);
+
+	ti.add_tracker("httpfoo://test.com/announce");
+	TEST_EQUAL(ti.trackers().size(), 3);
+
+	ti.add_tracker("http://foo.com/announce");
+	TEST_EQUAL(ti.trackers().size(), 4);
+
+#if TORRENT_USE_RTC
+	ti.add_tracker("wss://foo-wss.com/announce");
+	TEST_EQUAL(ti.trackers().size(), 5);
+
+	ti.add_tracker("ws://foo-ws.com/announce");
+	TEST_EQUAL(ti.trackers().size(), 6);
+#endif
+
+	ti.clear_trackers();
+	TEST_EQUAL(ti.trackers().size(), 0);
+}
+
 #endif
 
 TORRENT_TEST(sanitize_path_truncate)
