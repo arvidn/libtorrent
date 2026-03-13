@@ -87,10 +87,9 @@ void curl_basic_request::set_defaults()
 	// - CURLOPT_MAXREDIRS (default: 30, depends on CURLOPT_FOLLOWLOCATION)
 	// - CURLOPT_AUTOREFERER (default: disabled)
 
-	// Queue when multiplexing connection is connecting/upgrading instead of creating new connection.
+	// CURLOPT_PIPEWAIT: Queue when multiplexing connection is connecting/upgrading instead of creating new connection.
 	// This does not prevent creating multiple simultaneous connections when the multiplexing connection has reached
-	// the max number of simultaneous streams.
-	set_pipewait(true);
+	// the max number of simultaneous streams. Default: false
 
 	// prevent connecting/redirecting to a wrong scheme (e.g. file://evil/file")
 	setopt<CURLOPT_PROTOCOLS_STR>("http,https");

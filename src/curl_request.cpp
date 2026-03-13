@@ -13,6 +13,7 @@ see LICENSE file.
 #if TORRENT_USE_CURL
 #include <optional>
 #include "libtorrent/aux_/debug.hpp"
+#include "libtorrent/aux_/http_parser.hpp"
 #include "libtorrent/aux_/parse_url.hpp"
 #include "libtorrent/aux_/proxy_settings.hpp"
 #include "libtorrent/error.hpp"
@@ -200,6 +201,7 @@ curl_request::curl_request(const std::size_t max_buffer_size, const io_context::
 void curl_request::set_defaults()
 {
 	curl_basic_request::set_defaults();
+	set_private_data(this);
 
 	set_write_callback_data(this);
 	set_write_callback(write_callback);
@@ -215,6 +217,11 @@ void curl_request::set_defaults()
 	// to start timer as early as possible
 	set_resolver_callback_data(this);
 	set_resolver_callback(before_resolving);
+}
+
+bool curl_request::is_redirect_response() const
+{
+	return is_redirect(http_status());
 }
 
 curl_request::error_type curl_request::redirect_security_settings(const exploded_url& parts)
@@ -250,19 +257,49 @@ curl_request::error_type curl_request::redirect_security_settings(const exploded
 	return {};
 }
 
-curl_request::error_type curl_request::redirect(const std::string& url, const exploded_url& parts)
+bool curl_request::prepare_to_follow_redirect()
 {
-	if (auto error = redirect_security_settings(parts))
-		return error;
+	if (m_allowed_redirects <= 0)
+	{
+		m_error = {errors::redirecting};
+		return false;
+	}
 
-	set_url(url);
+	const std::string follow_url = get_redirect_url();
+
+	error_code ec;
+	const auto parts = exploded_url(follow_url, ec);
+	if (ec)
+	{
+		m_error = {ec, operation_t::parse_address};
+		return false;
+	}
+
+	if (auto error = redirect_security_settings(parts))
+	{
+		m_error = error;
+		return false;
+	}
+
+	if (m_redirect_cb)
+	{
+		ec = m_redirect_cb(*this, parts);
+		if (ec)
+		{
+			m_error = {ec};
+			return false;
+		}
+	}
+
+	set_url(follow_url);
 	// no referrer
 
 	m_timer.cancel();
 	m_filter_allowed = address{};
 	m_read_buffer.clear();
 
-	return {};
+	--m_allowed_redirects;
+	return true;
 }
 
 // Curl's CURLOPT_TIMEOUT tracks the total amount of time a request takes, including the queuing time.
@@ -284,7 +321,8 @@ void curl_request::start_timeout(seconds32 timeout)
 		COMPLETE_ASYNC("curl_request::start_timer_if_needed");
 		if (ec == error::operation_aborted)
 			return;
-		request->m_timeout_callback(*request);
+		if (request->m_timeout_callback)
+			request->m_timeout_callback(*request);
 	});
 }
 

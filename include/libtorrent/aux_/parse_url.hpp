@@ -27,7 +27,7 @@ namespace libtorrent::aux {
 		, std::string, int, std::string>
 		parse_url_components(string_view url, error_code& ec);
 
-	class exploded_url {
+	class TORRENT_EXTRA_EXPORT exploded_url {
 		std::string m_protocol;
 		std::string m_auth;
 		std::string m_hostname;

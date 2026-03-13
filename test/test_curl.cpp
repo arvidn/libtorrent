@@ -17,6 +17,7 @@ see LICENSE file.
 #include "libtorrent/aux_/curl_pool.hpp"
 #include "libtorrent/aux_/curl_request.hpp"
 #include "libtorrent/aux_/curl_tracker_manager.hpp"
+#include "libtorrent/aux_/parse_url.hpp"
 
 using namespace libtorrent;
 using namespace libtorrent::aux;
@@ -36,10 +37,10 @@ std::unique_ptr<curl_request> create_request(const io_context::executor_type& ex
 {
 	auto request = std::make_unique<curl_request>(megabyte_buffer, executor);
 	request->set_defaults();
-	request->set_private_data(&request);
 	request->set_timeout(seconds32(15));
 	request->set_url(url);
 	request->set_write_callback(ignore_data_cb);
+	request->set_max_redirects(1);
 	return request;
 }
 
@@ -53,10 +54,10 @@ void get_url(const std::string& url, F&& on_complete)
 
 	curl_pool pool(ios.get_executor());
 	CURLcode resultcode = CURL_LAST;
-	pool.set_completion_callback([&resultcode](CURL*, CURLcode code) {
+	pool.set_completion_callback([&resultcode](curl_request&, CURLcode code) {
 		resultcode = code;
 	});
-	pool.add_request(request->handle());
+	pool.add_request(*request);
 	ios.run();
 
 	TEST_NE(resultcode, CURL_LAST);
@@ -102,7 +103,8 @@ TORRENT_TEST(curl_connection_reuse)
 
 	for (auto& entry : requests)
 	{
-		pool.add_request(entry->handle());
+		entry->set_pipewait(true);
+		pool.add_request(*entry);
 	}
 
 	ios.run();
@@ -118,6 +120,49 @@ TORRENT_TEST(curl_connection_reuse)
 		connection_count += entry->get_num_connects();
 	}
 	TEST_EQUAL(connection_count, 1);
+
+	// test if retrying/redoing the same connection works
+
+	for (auto& entry : requests)
+	{
+		pool.add_request(*entry);
+	}
+
+	ios.run();
+
+	for (auto& entry : requests)
+	{
+		TEST_EQUAL(entry->get_compressed_body_size() , cMiB10);
+		TEST_CHECK(entry->get_header_size() > 0);
+		TEST_CHECK(entry->get_request_size() > 0);
+		TEST_EQUAL(entry->http_status(), errors::http_errors::ok);
+	}
+
+	stop_web_server();
+}
+
+TORRENT_TEST(curl_redirect)
+{
+	int const http_port = start_web_server();
+	const std::string url = std::string("http://127.0.0.1:") + std::to_string(http_port);
+
+	get_url(url + "/redirect", [&](const curl_request&r, CURLcode code) {
+		error_code ec;
+		auto parts = exploded_url(r.get_url(), ec);
+		TEST_EQUAL(parts.path(), "/test_file");
+		TEST_EQUAL(r.http_status(), errors::http_errors::not_found);
+		TEST_EQUAL(code, CURLE_OK);
+	});
+
+	get_url(url + "/infinite_redirect", [&](const curl_request&r, CURLcode code) {
+		error_code ec;
+		auto parts = exploded_url(r.get_url(), ec);
+		TEST_EQUAL(parts.path(), "/infinite_redirect");
+		TEST_EQUAL(r.http_status(), errors::http_errors::moved_permanently);
+		TEST_NE(code, CURLE_OK);
+		auto error = r.get_error(code);
+		TEST_EQUAL(error.code, errors::redirecting);
+	});
 
 	stop_web_server();
 }
@@ -138,7 +183,7 @@ TORRENT_TEST(curl_parallel)
 	{
 		auto r = create_request(ios.get_executor(), url);
 		r->set_pipewait(false);
-		pool.add_request(r->handle());
+		pool.add_request(*r);
 		requests.push_back(std::move(r));
 	}
 

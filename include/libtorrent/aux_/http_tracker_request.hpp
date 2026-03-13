@@ -22,7 +22,7 @@ see LICENSE file.
 namespace libtorrent::aux {
 struct request_callback;
 struct tracker_request;
-class session_settings;
+struct session_settings;
 
 class http_tracker_request {
 	const tracker_request& m_params;

@@ -107,8 +107,8 @@ int curl_pool::update_socket(curl_socket_t native_socket,
 	return 0;
 }
 
-template<typename T, typename>
-void curl_pool::setopt(CURLMoption option, T value)
+template<CURLMoption option, typename T>
+void curl_pool::setopt(T value)
 {
 	check_multi_returncode(
 		curl_multi_setopt(handle(), option, value),
@@ -123,11 +123,11 @@ curl_pool::curl_pool(const executor_type& executor)
 	if (!m_curl_handle)
 		throw_ex<std::runtime_error>("curl_multi_init() returned nullptr");
 
-	setopt(CURLMOPT_SOCKETDATA, this);
-	setopt<curl_socket_callback>(CURLMOPT_SOCKETFUNCTION, update_socket_shim);
+	setopt<CURLMOPT_SOCKETDATA>(this);
+	setopt<CURLMOPT_SOCKETFUNCTION, curl_socket_callback>(update_socket_shim);
 
-	setopt(CURLMOPT_TIMERDATA, this);
-	setopt<curl_multi_timer_callback>(CURLMOPT_TIMERFUNCTION, [](CURLM*, long timeout_ms, void* pool) {
+	setopt<CURLMOPT_TIMERDATA>(this);
+	setopt<CURLMOPT_TIMERFUNCTION, curl_multi_timer_callback>([](CURLM*, long timeout_ms, void* pool) {
 		if (!pool) return 0;
 		return static_cast<curl_pool*>(pool)->set_timeout(timeout_ms);
 	});
@@ -176,12 +176,12 @@ curl_pool::~curl_pool()
 void curl_pool::set_max_connections(int max_connections)
 {
 	max_connections = std::max(0, max_connections);
-	setopt(CURLMOPT_MAX_TOTAL_CONNECTIONS, static_cast<long>(max_connections));
+	setopt<CURLMOPT_MAX_TOTAL_CONNECTIONS>(static_cast<long>(max_connections));
 }
 
 void curl_pool::set_max_host_connections(long value)
 {
-	setopt(CURLMOPT_MAX_HOST_CONNECTIONS, value);
+	setopt<CURLMOPT_MAX_HOST_CONNECTIONS>(value);
 }
 
 // sockets notify the pool on file descriptor event
@@ -207,22 +207,56 @@ void curl_pool::process_completed_requests()
 	while (CURLMsg* msg = curl_multi_info_read(handle(), &msgs_in_queue))
 	{
 		TORRENT_ASSERT(msg->easy_handle);
+		if (msg->msg != CURLMSG_DONE)
+			continue;
+
 		// The easy_handle belongs to one of our requests, curl does not put internal easy_handles on the message queue
-		if (msg->msg == CURLMSG_DONE && m_completion_handler)
-			m_completion_handler(msg->easy_handle, msg->data.result);
+		auto request = curl_request::from_handle<curl_request>(msg->easy_handle);
+		if (!request)
+			continue; // certainly not one of ours
+
+		remove_request(*request);
+		if (msg->data.result == CURLE_OK && request->is_redirect_response())
+		{
+			if (request->prepare_to_follow_redirect())
+			{
+				// restart request
+				add_request(*request);
+				continue;
+			}
+			else
+			{
+				// fail redirect with downstream error
+				msg->data.result = CURLE_ABORTED_BY_CALLBACK;
+			}
+		}
+
+		if (m_completion_handler)
+			m_completion_handler(*request, msg->data.result);
 	}
 }
 
-void curl_pool::add_request(CURL* request)
+void curl_pool::on_timeout(curl_request& request)
 {
-	auto result = curl_multi_add_handle(handle(), request);
+	remove_request(request);
+	if (m_completion_handler)
+		m_completion_handler(request, CURLE_OPERATION_TIMEDOUT);
+}
+
+void curl_pool::add_request(curl_request& request)
+{
+	request.set_timeout_callback([this](curl_request& request){ on_timeout(request); });
+
+	auto result = curl_multi_add_handle(handle(), request.handle());
 	check_multi_returncode(result, "curl_multi_add_handle");
 	// curl creates a timeout of 0ms inside `curl_multi_add_handle` to process this new handle
 }
 
-void curl_pool::remove_request(CURL* request)
+void curl_pool::remove_request(curl_request& request)
 {
-	auto result = curl_multi_remove_handle(handle(), request);
+	request.cancel_timeout();
+
+	auto result = curl_multi_remove_handle(handle(), request.handle());
 	check_multi_returncode(result, "curl_multi_remove_handle");
 	// curl creates a timeout of 0ms inside `curl_multi_remove_handle` to process any queued items (if needed).
 

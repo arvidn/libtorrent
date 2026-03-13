@@ -41,6 +41,8 @@ public:
 	template<typename T>
 	[[nodiscard]] static T* from_handle(CURL* easy_handle)
 	{
+		if (!easy_handle)
+			return nullptr;
 		T* ptr = nullptr;
 		const auto error = curl_easy_getinfo(easy_handle, CURLINFO_PRIVATE, &ptr);
 		if (error)
@@ -59,7 +61,6 @@ public:
 
 	void set_user_agent(const std::string& s);
 	void set_url(const std::string& s);
-	void set_private_data(void* obj);
 	void set_ipresolve(long option);
 
 	void set_ssl_verify_host(bool onoff);
@@ -83,6 +84,7 @@ public:
 	void set_write_callback_data(void* data);
 
 protected:
+	void set_private_data(void* obj);
 	void set_debug_logging(bool onoff);
 
 	void set_opensocket_callback(curl_opensocket_callback cb);

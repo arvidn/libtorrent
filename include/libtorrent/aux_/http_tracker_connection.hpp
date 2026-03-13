@@ -29,7 +29,6 @@ namespace libtorrent::aux {
 	struct http_connection;
 	class http_parser;
 	struct peer_entry;
-	struct session_settings;
 
 	class TORRENT_EXTRA_EXPORT http_tracker_connection
 		: public tracker_connection
@@ -49,6 +48,7 @@ namespace libtorrent::aux {
 		void fail_error(http_tracker_request::error_type& error);
 
 	private:
+
 		std::shared_ptr<http_tracker_connection> shared_from_this()
 		{
 			return std::static_pointer_cast<http_tracker_connection>(
@@ -74,7 +74,6 @@ namespace libtorrent::aux {
 
 	TORRENT_EXTRA_EXPORT bool extract_peer_info(bdecode_node const& info
 		, peer_entry& ret, error_code& ec);
-
 }
 
 #endif // TORRENT_HTTP_TRACKER_CONNECTION_HPP_INCLUDED

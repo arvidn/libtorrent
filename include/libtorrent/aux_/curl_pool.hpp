@@ -13,13 +13,13 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 
 #if TORRENT_USE_CURL
+#include <functional>
 #include <string>
 #include "libtorrent/aux_/curl.hpp"
 #include "libtorrent/aux_/curl_boost_socket.hpp"
 #include "libtorrent/aux_/deadline_timer.hpp"
 #include "libtorrent/aux_/intrusive_list.hpp"
 #include "libtorrent/io_context.hpp"
-#include "libtorrent/string_view.hpp"
 
 namespace libtorrent::aux {
 class curl_request;
@@ -42,27 +42,21 @@ public:
 	// May call completion handler for easy handles before it returns (which may delete or remove them)
 	void process_socket_action(curl_socket_t native_socket = CURL_SOCKET_TIMEOUT, curl_cselect_t event = curl_cselect_t::none);
 
-	void add_request(CURL*);
-	void remove_request(CURL*);
+	void add_request(curl_request&);
+	void remove_request(curl_request&);
 
 	void set_max_connections(int max_connections);
 	void set_max_host_connections(long value);
 
-	using completion_handler_t = std::function<void(CURL*, CURLcode)>;
-	// completion-handler is not allowed to call curl_pool recursively
+	using completion_handler_t = std::function<void(curl_request&, CURLcode)>;
+	// request gets removed before completion handler is called, callee should not try to remove the request.
 	void set_completion_callback(completion_handler_t cb) { m_completion_handler = std::move(cb); }
-	void set_reuse_wait_callback(curl_reuse_wait_callback cb, void* data = nullptr);
 
+	void on_timeout(curl_request& crequest);
 	[[nodiscard]] executor_type get_executor() const noexcept { return m_executor; }
 private:
-	template<typename T>
-	using enable_if_no_string_t = std::enable_if_t<
-		!std::is_same_v<std::decay_t<T>, std::string> &&
-		!std::is_same_v<std::decay_t<T>, string_view>
-	>;
-
-	template<typename T, typename = enable_if_no_string_t<T>>
-	void setopt(CURLMoption option, T value);
+	template<CURLMoption option, typename T>
+	void setopt(T value);
 
 	int set_timeout(long timeout_ms) noexcept;
 

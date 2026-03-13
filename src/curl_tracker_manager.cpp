@@ -56,7 +56,7 @@ void curl_tracker_manager::initialize_pool(io_context& ios)
 {
 	if (m_pool) return;
 	m_pool = std::make_unique<curl_pool>(ios.get_executor());
-	m_pool->set_completion_callback([this](CURL* request, CURLcode result) {
+	m_pool->set_completion_callback([this](curl_request& request, CURLcode result) {
 		on_completed(request, result);
 	});
 }
@@ -131,63 +131,20 @@ void curl_tracker_manager::add(io_context& ios,
 		// async to avoid recursive calls towards our caller (through the completion handler)
 		post(ios, [request_ownership = std::move(request_ownership), result = std::move(error)]() {
 			request_ownership->fail(result);
-			// request gets deleted
+			// ownership goes out of scope
 		});
 		return;
 	}
 
-	request_ownership->get_curl_request().set_timeout_callback(on_timeout);
-
 	auto& request = m_requests.add(std::move(request_ownership));
-	m_pool->add_request(request.get_curl_request().handle());
+	m_pool->add_request(request.get_curl_request());
 }
 
-std::unique_ptr<curl_tracker_request> curl_tracker_manager::remove(curl_tracker_request& request)
+void curl_tracker_manager::on_completed(curl_request& request, CURLcode result)
 {
-	TORRENT_ASSERT(m_pool);
-	m_pool->remove_request(request.get_curl_request().handle());
-	return m_requests.remove(request);
-}
-
-void curl_tracker_manager::follow_redirect(curl_tracker_request& request)
-{
-	m_pool->remove_request(request.get_curl_request().handle());
-	if (auto error = request.prepare_redirect())
-	{
-		auto request_ownership = m_requests.remove(request);
-		request_ownership->fail(error);
-		// ownership goes out of scope
-		return;
-	}
-	m_pool->add_request(request.get_curl_request().handle());
-}
-
-void curl_tracker_manager::on_completed(CURL* handle, CURLcode result)
-{
-	auto request = curl_tracker_request::from_handle(handle);
-	TORRENT_ASSERT(request);
-
-	if (result == CURLE_OK && request->is_redirect_response())
-	{
-		follow_redirect(*request);
-		return;
-	}
-
-	auto request_ownership = remove(*request);
+	auto& tracker_request = curl_tracker_request::from_request(request);
+	auto request_ownership = m_requests.remove(tracker_request);
 	request_ownership->complete(result);
-	// ownership goes out of scope
-}
-
-void curl_tracker_manager::on_timeout(curl_request& crequest)
-{
-	auto request = curl_tracker_request::from_handle(crequest.handle());
-	TORRENT_ASSERT(request);
-
-	auto& manager = request->get_owner();
-	auto request_ownership = manager.remove(*request);
-
-	curl_tracker_request::error_type error = {errors::timed_out};
-	request_ownership->fail(error);
 	// ownership goes out of scope
 }
 
@@ -202,9 +159,10 @@ void curl_tracker_manager::abort_all(bool abort_stopped_events)
 			if (rc) rc->debug_log("aborting: %s", it->get_params().url.c_str());
 #endif
 
+			// Note that this does not trigger the completion handlers
+			m_pool->remove_request(it->get_curl_request());
 			// remove() leaves all other iterators intact
-			// Note that this does not trigger the completion handlers (same as reference implementation)
-			(void) remove(*(it++));
+			m_requests.remove(*(it++));
 		}
 		else
 		{

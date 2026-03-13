@@ -23,7 +23,7 @@ namespace libtorrent::aux {
 //
 // Disadvantages:
 // - Objects not in any `ownership_intrusive_list` still incur storage overhead of next/prev pointers.
-// - Each object can belong to only one `ownership_intrusive_list` at once, or it incurs additional storage overhead for multiple lists.
+// - Each object can belong to only one `ownership_intrusive_list` when using unique_ptr.
 
 template<typename T>
 struct unique_ptr_intrusive_list_base {

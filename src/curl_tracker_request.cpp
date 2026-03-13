@@ -12,7 +12,6 @@ see LICENSE file.
 
 #if TORRENT_USE_CURL
 #include "libtorrent/aux_/curl_tracker_manager.hpp"
-#include "libtorrent/aux_/http_parser.hpp"
 #include "libtorrent/aux_/parse_url.hpp"
 #include "libtorrent/aux_/tracker_manager.hpp"
 #include "libtorrent/settings_pack.hpp"
@@ -37,14 +36,22 @@ bool curl_tracker_request::is_stopped_event() const noexcept
 
 curl_tracker_request::error_type curl_tracker_request::initialize_request()
 {
-	m_request.set_defaults();
-	m_request.set_private_data(this);
-	m_allowed_redirects = http_tracker_request::max_redirects;
-
 	const auto& settings = m_owner.settings();
-	constexpr bool i2p = false; // unsupported
-
 	http_tracker_request common{*m_params, settings};
+
+	m_request.set_defaults();
+	m_request.set_userdata(this);
+	m_request.set_max_redirects(http_tracker_request::max_redirects);
+	m_request.set_user_agent(common.get_user_agent());
+	m_request.set_timeout(common.get_timeout());
+	m_request.set_filter(on_filter);
+	m_request.set_redirect_callback(on_redirect);
+
+	const bool verify_ssl = settings.get_bool(settings_pack::validate_https_trackers);
+	m_request.set_ssl_verify_host(verify_ssl);
+	m_request.set_ssl_verify_peer(verify_ssl);
+
+	constexpr bool i2p = false; // unsupported
 	auto error = common.validate_socket(i2p);
 	if (error)
 	{
@@ -66,15 +73,6 @@ curl_tracker_request::error_type curl_tracker_request::initialize_request()
 		error.op = operation_t::get_interface;
 		error.failure_reason = "could not bind to device '"+ bind_device +"' with ip '"+ bind_address.to_string() +"'";
 		return error;
-	}
-
-	m_request.set_user_agent(common.get_user_agent());
-	m_request.set_timeout(common.get_timeout());
-
-	if (!settings.get_bool(settings_pack::validate_https_trackers))
-	{
-		m_request.set_ssl_verify_host(false);
-		m_request.set_ssl_verify_peer(false);
 	}
 
 	auto [protocol, auth, hostname, port, path]
@@ -100,7 +98,7 @@ curl_tracker_request::error_type curl_tracker_request::initialize_request()
 	proxy_settings ps(settings);
 	if (ps.proxy_tracker_connections && ps.type != settings_pack::none)
 	{
-		m_request.set_proxy(ps, settings.get_bool(settings_pack::validate_https_trackers));
+		m_request.set_proxy(ps, verify_ssl);
 
 		// assume proxy can connect to both ipv4/ipv6
 		m_request.set_ipresolve(CURL_IPRESOLVE_WHATEVER);
@@ -120,7 +118,6 @@ curl_tracker_request::error_type curl_tracker_request::initialize_request()
 	}
 #endif
 
-	m_request.set_filter(filter);
 	return {};
 }
 
@@ -134,25 +131,40 @@ curl_tracker_request::error_type curl_tracker_request::filter_hostname(string_vi
 	return {};
 }
 
-bool curl_tracker_request::filter_impl(const address& ip)
+error_code curl_tracker_request::on_redirect(const exploded_url& parts)
+{
+	if (auto error = filter_hostname(parts.hostname()))
+	{
+		m_error = error;
+		return error.code;
+	}
+
+	// track data for previous request, which is reset when following the redirect
+	track_statistics();
+	return {};
+}
+
+error_code curl_tracker_request::on_redirect(curl_request& request, const exploded_url& parts)
+{
+	return from_request(request).on_redirect(parts);
+}
+
+bool curl_tracker_request::on_filter(const address& ip)
 {
 	auto url = m_request.get_url();
 	http_tracker_request common{*m_params, m_owner.settings()};
 	if (auto error = common.filter(m_callback, ip, url))
 	{
-		m_error = error.code;
-		m_error_operation = error.op;
+		m_error = error;
 		return false;
 	}
 
-	// recovered from previous error by resolving to a different IP
-	if (m_error)
-	{
-		m_error = errors::no_error;
-		m_error_operation = operation_t::unknown;
-	}
-
 	return true;
+}
+
+bool curl_tracker_request::on_filter(curl_request& request, const address& ip)
+{
+	return from_request(request).on_filter(ip);
 }
 
 void curl_tracker_request::track_statistics()
@@ -163,59 +175,14 @@ void curl_tracker_request::track_statistics()
 	m_owner.received_bytes(static_cast<int>(total_size));
 }
 
-bool curl_tracker_request::filter(curl_request& easy, const address& ip)
-{
-	return from_handle(easy.handle())->filter_impl(ip);
-}
-
-bool curl_tracker_request::is_redirect_response() const
-{
-	return is_redirect(m_request.http_status());
-}
-
-curl_tracker_request::error_type curl_tracker_request::prepare_redirect()
-{
-	if (m_allowed_redirects <= 0)
-	{
-		return {errors::redirecting};
-	}
-
-	const std::string follow_url = m_request.get_redirect_url();
-
-	error_code ec;
-	auto parts = exploded_url(follow_url, ec);
-	if (ec)
-	{
-		return {ec, operation_t::parse_address};
-	}
-
-	if (auto error = filter_hostname(parts.hostname()))
-	{
-		return error;
-	}
-
-	--m_allowed_redirects;
-	if (auto error = m_request.redirect(follow_url, parts))
-	{
-		return {error.code, error.op, std::move(error.message)};
-	}
-
-	// track previous request, curl resets statistics at the start of the follow_url request
-	track_statistics();
-	return {};
-}
-
 void curl_tracker_request::complete(CURLcode result)
 {
 	if (result != CURLE_OK)
 	{
-		// first consider our own error (e.g. filter error)
-		curl_basic_request::error_type error = {m_error, m_error_operation};
-		if (!error)
-		{
-			// otherwise use error mapping from lower level abstractions
-			error = m_request.get_error(result);
-		}
+		if (m_error)
+			return fail(m_error);
+
+		auto error = m_request.get_error(result);
 		return fail(error.code, error.op, error.message);
 	}
 

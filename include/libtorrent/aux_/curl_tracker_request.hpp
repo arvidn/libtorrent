@@ -38,9 +38,11 @@ public:
 
 	curl_tracker_request(const curl_tracker_request&) = delete;
 
-	[[nodiscard]] static curl_tracker_request* from_handle(CURL* easy_handle)
+	[[nodiscard]] static curl_tracker_request& from_request(curl_request& request)
 	{
-		return curl_request::from_handle<curl_tracker_request>(easy_handle);
+		auto r = request.get_userdata<curl_tracker_request>();
+		TORRENT_ASSERT(r);
+		return *r;
 	}
 
 	[[nodiscard]] error_type initialize_request();
@@ -58,15 +60,7 @@ public:
 	[[nodiscard]] const tracker_request& get_params() const noexcept { return *m_params; }
 	[[nodiscard]] bool is_stopped_event() const noexcept;
 
-	// precondition: transfer is finished
-	[[nodiscard]] bool is_redirect_response() const;
-
-	// precondition: handle should be removed from pool
-	// postcondition: request is updated to the redirect location
-	[[nodiscard]] error_type prepare_redirect();
-
 	[[nodiscard]] curl_tracker_manager& get_owner() const noexcept { return m_owner; }
-
 private:
 	void fail(const error_code& ec,
 			operation_t op = operation_t::unknown,
@@ -77,8 +71,10 @@ private:
 	void on_response();
 
 	[[nodiscard]] error_type filter_hostname(string_view hostname);
-	[[nodiscard]] bool filter_impl(const address& ip);
-	[[nodiscard]] static bool filter(curl_request& request, const address& ip);
+	[[nodiscard]] error_code on_redirect(const exploded_url& parts);
+	[[nodiscard]] static error_code on_redirect(curl_request& request, const exploded_url& parts);
+	[[nodiscard]] bool on_filter(const address& ip);
+	[[nodiscard]] static bool on_filter(curl_request&, const address& ip);
 	void track_statistics();
 
 	// storing the entire tracker_request object should not be necessary
@@ -88,11 +84,7 @@ private:
 	curl_tracker_manager& m_owner;
 	curl_request m_request;
 	std::weak_ptr<request_callback> m_callback;
-
-	error_code m_error;
-	operation_t m_error_operation = operation_t::unknown;
-
-	int m_allowed_redirects = 0;
+	error_type m_error;
 };
 }
 #endif //TORRENT_USE_CURL

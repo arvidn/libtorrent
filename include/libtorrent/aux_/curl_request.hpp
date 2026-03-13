@@ -14,6 +14,7 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 
 #if TORRENT_USE_CURL
+#include <functional>
 #include <string>
 #include "libtorrent/address.hpp"
 #include "libtorrent/aux_/curl.hpp"
@@ -42,14 +43,25 @@ public:
 	using filter_t = bool (*)(curl_request& request, const address& ip);
 	void set_filter(filter_t filter) noexcept { m_filter = filter; }
 
-	using timeout_callback_t = void (*)(curl_request& request);
+	using redirect_t = error_code (*)(curl_request& request, const exploded_url& parts);
+	void set_redirect_callback(redirect_t cb) noexcept { m_redirect_cb = cb; }
+
+	using timeout_callback_t = std::function<void(curl_request& request)>;
 	// callback is called async, request object can be deleted inside the callback
 	void set_timeout_callback(timeout_callback_t cb) noexcept { m_timeout_callback = cb; }
 	void set_timeout(seconds32 timeout) { m_timeout = timeout; }
+	void cancel_timeout() { m_timer.cancel(); };
 
-	// precondition: handle should be removed from pool
-	// postcondition: internal state is ready to request the new url
-	[[nodiscard]] error_type redirect(const std::string& url, const exploded_url& parts);
+	// returns false on error
+	bool prepare_to_follow_redirect();
+
+	[[nodiscard]] bool is_redirect_response() const;
+	void set_max_redirects(int value) { m_allowed_redirects = value; }
+
+	template<typename T>
+	T* get_userdata() const { return static_cast<T*>(m_userdata); }
+	void set_userdata(void* value) { m_userdata = value; }
+
 private:
 	void start_timeout(seconds32 timeout);
 
@@ -73,11 +85,16 @@ private:
 
 	timeout_callback_t m_timeout_callback = nullptr;
 	filter_t m_filter = nullptr;
+	redirect_t m_redirect_cb = nullptr;
+	void* m_userdata = nullptr;
+
 	boost::beast::flat_buffer m_read_buffer;
 	deadline_timer m_timer;
 	seconds32 m_timeout{};
 	address m_filter_allowed;
 	error_type m_error;
+
+	int m_allowed_redirects = 0;
 };
 }
 

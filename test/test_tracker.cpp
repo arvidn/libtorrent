@@ -952,7 +952,7 @@ struct blocked_result {
 	int ok = 0;
 };
 
-blocked_result test_blocking(std::string url, ip_filter& filter, bool block_ssrf)
+blocked_result test_blocking(std::string url, ip_filter& filter, bool block_ssrf, string_view interface)
 {
 	settings_pack pack = settings();
 	pack.set_bool(settings_pack::apply_ip_filter_to_trackers, true);
@@ -961,6 +961,8 @@ blocked_result test_blocking(std::string url, ip_filter& filter, bool block_ssrf
 	pack.set_int(settings_pack::stop_tracker_timeout, 1);
 	pack.set_int(settings_pack::tracker_completion_timeout, 1);
 	pack.set_int(settings_pack::tracker_receive_timeout, 1);
+	if (!interface.empty())
+		pack.set_str(settings_pack::listen_interfaces, std::string(interface));
 
 	session ses(pack);
 	add_torrent_with_tracker(ses, url);
@@ -1019,76 +1021,109 @@ TORRENT_TEST(ssrf)
 {
 	int http_port = start_web_server();
 	const std::string url = "http://127.0.0.1:" + std::to_string(http_port);
-	const std::string ipv6_url = "http://[::1]:" + std::to_string(http_port);
+	constexpr bool enable_ssrf = true;
+	std::string lo = "127.0.0.1:0";
 
-	// no filter
-	ip_filter filter;
-	auto result = test_blocking(url + "/evil", filter, true);
-	TEST_CHECK(result.blocked_by_ssrf > 0);
-	TEST_EQUAL(result.ok, 0);
+	ip_filter empty_filter;
+	auto result = test_blocking(url + "/evil", empty_filter, enable_ssrf, lo);
+	TEST_EQUAL(result.blocked_by_ssrf, 1);
+	TEST_EQUAL(result.announce_count, 1);
 
-	result = test_blocking(url + "/announce", filter, true);
+	result = test_blocking(url + "/announce", empty_filter, enable_ssrf, lo);
 	TEST_EQUAL(result.blocked_by_ssrf, 0);
-
-	result = test_blocking(ipv6_url + "/evil", filter, true);
-	TEST_CHECK(result.blocked_by_ssrf > 0);
-	TEST_EQUAL(result.ok, 0);
-
-	result = test_blocking(ipv6_url + "/announce", filter, true);
-	TEST_EQUAL(result.blocked_by_ssrf, 0);
+	TEST_EQUAL(result.announce_count, 1);
+	TEST_EQUAL(result.ok, 1);
 
 	stop_web_server();
 }
+
+/* ( web server does not listen on ipv6 )
+TORRENT_TEST(ssrf_ipv6)
+{
+	int http_port = start_web_server();
+	const std::string ipv6_url = "http://[::1]:" + std::to_string(http_port);
+	constexpr bool enable_ssrf = true;
+
+	// webserver does not listen on ipv6, it is only used to get a free port.
+
+	ip_filter empty_filter;
+	auto result = test_blocking(ipv6_url + "/evil", empty_filter, enable_ssrf);
+	TEST_CHECK(result.blocked_by_ssrf > 0);
+	TEST_EQUAL(result.ok, 0);
+
+	result = test_blocking(ipv6_url + "/announce", empty_filter, enable_ssrf);
+	TEST_EQUAL(result.blocked_by_ssrf, 0);
+	TEST_CHECK(result.ok > 0 || result.unconnectable > 0);
+
+	stop_web_server();
+}
+*/
 
 TORRENT_TEST(ipfilter)
 {
 	int http_port = start_web_server();
-	const std::string url = "http://127.0.0.1:" + std::to_string(http_port);
-	const std::string ipv6_url = "http://[::1]:" + std::to_string(http_port);
+	const std::string url = "http://127.0.0.1:" + std::to_string(http_port) + "/announce";
+	constexpr bool enable_ssrf = false;
+	std::string lo = "127.0.0.1:0";
+	string_view any_interface;
 
-	// no filter
 	ip_filter filter;
-	auto result = test_blocking(url + "/evil", filter, false);
+	auto result = test_blocking(url, filter, enable_ssrf, lo);
 	TEST_EQUAL(result.blocked_by_ip_filter, 0);
+	TEST_EQUAL(result.ok, 1);
 
 	// ipv4 blocked
 	filter.add_rule(addr4("10.13.0.0"), addr4("10.13.255.255"), ip_filter::blocked);
-	result = test_blocking("http://10.13.6.66:666/evil", filter, false);
-	TEST_CHECK(result.blocked_by_ip_filter > 0);
+	result = test_blocking("http://10.13.6.66:666/announce", filter, enable_ssrf, any_interface);
+	TEST_EQUAL(result.blocked_by_ip_filter, result.announce_count - result.unconnectable);
 	TEST_EQUAL(result.ok, 0);
 
 	// loopback allowed
-	result = test_blocking(url + "/evil", filter, false);
+	result = test_blocking(url, filter, enable_ssrf, lo);
 	TEST_EQUAL(result.blocked_by_ip_filter, 0);
+	TEST_EQUAL(result.ok, 1);
 
 	// ipv4 loopback blocked
 	filter.add_rule(addr4("127.0.0.1"), addr4("127.0.0.1"), ip_filter::blocked);
-	result = test_blocking(url + "/evil", filter, false);
-	TEST_CHECK(result.blocked_by_ip_filter > 0);
-	TEST_EQUAL(result.ok, 0);
-
-	// no ipv6 filter
-	result = test_blocking(ipv6_url + "/evil", filter, false);
-	TEST_EQUAL(result.blocked_by_ip_filter, 0);
-
-	// ipv6 blocked
-	filter.add_rule(addr6("fc00::"), addr6("fc00:ffff:ffff:ffff:ffff:ffff:ffff:ffff"), ip_filter::blocked);
-	result = test_blocking("http://[fc00::]:666/evil", filter, false);
-	TEST_CHECK(result.blocked_by_ip_filter > 0 || result.unconnectable > 0);
-	TEST_EQUAL(result.ok, 0);
-
-	// ipv6 loopback allowed
-	result = test_blocking(ipv6_url + "/evil", filter, false);
-	TEST_EQUAL(result.blocked_by_ip_filter, 0);
-
-	// ipv6 loopback blocked
-	filter.add_rule(addr6("::1"), addr6("::1"), ip_filter::blocked);
-	result = test_blocking(ipv6_url + "/evil", filter, false);
-	TEST_CHECK(result.blocked_by_ip_filter > 0 || result.unconnectable > 0);
+	result = test_blocking(url, filter, enable_ssrf, lo);
+	TEST_EQUAL(result.blocked_by_ip_filter, 1);
 	TEST_EQUAL(result.ok, 0);
 
 	stop_web_server();
 }
+
+/*
+TORRENT_TEST(ipfilter_ipv6)
+{
+	int http_port = start_web_server();;
+	const std::string url = "http://[::1]:" + std::to_string(http_port) + "/announce";
+	constexpr bool enable_ssrf = false;
+
+	// no filter
+	ip_filter filter;
+	auto result = test_blocking(url, filter, enable_ssrf);
+	TEST_EQUAL(result.blocked_by_ip_filter, 0);
+	TEST_EQUAL(result.ok, 0);
+
+	// ipv6 blocked
+	filter.add_rule(addr6("fc00::"), addr6("fc00:ffff:ffff:ffff:ffff:ffff:ffff:ffff"), ip_filter::blocked);
+	result = test_blocking("http://[fc00::]:666/evil", filter, enable_ssrf);
+	TEST_CHECK(result.blocked_by_ip_filter > 0);
+	TEST_EQUAL(result.ok, 0);
+
+	// ipv6 loopback allowed
+	result = test_blocking(url, filter, enable_ssrf);
+	TEST_EQUAL(result.blocked_by_ip_filter, 0);
+	TEST_CHECK(result.ok > 0 || result.unconnectable > 0);
+
+	// ipv6 loopback blocked
+	filter.add_rule(addr6("::1"), addr6("::1"), ip_filter::blocked);
+	result = test_blocking(url, filter, enable_ssrf);
+	TEST_CHECK(result.blocked_by_ip_filter > 0 || result.unconnectable > 0);
+	TEST_EQUAL(result.ok, 0);
+
+	stop_web_server();
+}*/
 
 #endif
 #endif

@@ -465,7 +465,7 @@ Build features
 |                          |   single-threaded, portable file operations.       |
 +--------------------------+----------------------------------------------------+
 | ``curl``                 | * ``off`` - default. HTTP connections to trackers  |
-|                          |   don't use connection- and SSL session reuse.     |
+|                          |   don't support connection- and SSL session reuse. |
 |                          | * ``on`` - libcurl is used for HTTP connections    |
 |                          |   to trackers, enabling connection- and SSL        |
 |                          |   session reuse. This includes support for the     |

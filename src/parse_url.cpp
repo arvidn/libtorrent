@@ -121,7 +121,7 @@ exit:
 			, std::move(auth)
 			, std::move(hostname)
 			, port
-			, path_component);
+			, std::move(path_component));
 	}
 
 	// splits a url into the base url and the path
