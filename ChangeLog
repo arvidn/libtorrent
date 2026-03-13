@@ -1,4 +1,4 @@
-2.0.12
+2.0.12 released
 
 	* fix issue where file priorities could be cleared by force recheck
 	* fix issue in XML parser
