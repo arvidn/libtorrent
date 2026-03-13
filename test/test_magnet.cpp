@@ -894,6 +894,8 @@ TORRENT_TEST(reject_invalid_tracker_url)
 		"&tr=<!DOCTYPE html><html>"
 		"&tr=httpabc"
 		"&tr=udpabc"
+		// empty string
+		"&tr="
 		"&tr=garbage");
 
 	TEST_EQUAL(p.trackers.size(), 4);

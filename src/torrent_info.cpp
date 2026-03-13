@@ -1653,7 +1653,7 @@ namespace {
 				{
 					announce_entry e(tier.list_string_value_at(k).to_string());
 					ltrim(e.url);
-					if (e.url.empty() || !is_valid_tracker_url(e.url)) continue;
+					if (!is_valid_tracker_url(e.url)) continue;
 					e.tier = std::uint8_t(j);
 					e.fail_limit = 0;
 					e.source = announce_entry::source_torrent;
@@ -1683,7 +1683,7 @@ namespace {
 #if TORRENT_USE_I2P
 			if (is_i2p_url(e.url)) m_flags |= i2p;
 #endif
-			if (!e.url.empty() && is_valid_tracker_url(e.url)) m_urls.push_back(e);
+			if (is_valid_tracker_url(e.url)) m_urls.push_back(e);
 		}
 
 		bdecode_node const nodes = torrent_file.dict_find_list("nodes");

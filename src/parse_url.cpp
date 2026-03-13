@@ -215,10 +215,14 @@ exit:
 
 	bool is_valid_tracker_url(const std::string& url)
 	{
+		if (url.empty())
+		{
+			return false;
+		}
+
 		return string_begins_no_case("http://", url.c_str())
 			|| string_begins_no_case("https://", url.c_str())
 			|| string_begins_no_case("udp://", url.c_str());
-
 	}
 
 }
