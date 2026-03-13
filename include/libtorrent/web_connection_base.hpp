@@ -120,6 +120,7 @@ namespace libtorrent {
 		std::string m_basic_auth;
 		std::string m_host;
 		std::string m_path;
+		bool m_path_ends_with_torrent_name;
 
 		std::string m_external_auth;
 		web_seed_entry::headers_t m_extra_headers;

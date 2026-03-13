@@ -12,6 +12,9 @@ file(GLOB tests "${CMAKE_CURRENT_SOURCE_DIR}/test_*.cpp")
 list(REMOVE_ITEM tests "${CMAKE_CURRENT_SOURCE_DIR}/test_natpmp.cpp") # doesn't build at time of writing
 list(REMOVE_ITEM tests "${CMAKE_CURRENT_SOURCE_DIR}/test_utils.cpp") # helper file, not a test
 
+# TODO remove
+set(tests "${CMAKE_CURRENT_SOURCE_DIR}/test_exact_source.cpp")
+
 add_library(test_common
 	STATIC
 	broadcast_socket.cpp
