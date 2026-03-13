@@ -190,4 +190,20 @@ exit:
 		return false;
 	}
 
+	bool is_valid_tracker_url(const std::string& url)
+	{
+		if (url.empty())
+		{
+			return false;
+		}
+
+		return string_begins_no_case("http://", url.c_str())
+			|| string_begins_no_case("https://", url.c_str())
+#if TORRENT_USE_RTC
+			|| string_begins_no_case("wss://", url.c_str())
+			|| string_begins_no_case("ws://", url.c_str())
+#endif
+			|| string_begins_no_case("udp://", url.c_str());
+	}
+
 }
