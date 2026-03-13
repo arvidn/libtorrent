@@ -130,6 +130,7 @@ struct session_mock : aux::session_interface
 
 	bool has_lsd() const override { return false; }
 	void announce_lsd(sha1_hash const&, int) override {}
+	void prioritize_lsd(std::weak_ptr<aux::torrent>) override {}
 	aux::utp_socket_manager* utp_socket_manager() override { return nullptr; }
 #if TORRENT_USE_SSL
 	aux::utp_socket_manager* ssl_utp_socket_manager() override { return nullptr; }

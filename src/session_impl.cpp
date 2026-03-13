@@ -699,15 +699,6 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 #endif
 		post(m_io_context, [this]{ wrap(&session_impl::on_tick, error_code()); });
 
-		int const lsd_announce_interval
-			= m_settings.get_int(settings_pack::local_service_announce_interval);
-		int const delay = std::max(lsd_announce_interval
-			/ std::max(static_cast<int>(m_torrents.size()), 1), 1);
-		m_lsd_announce_timer.expires_after(seconds(delay));
-		ADD_OUTSTANDING_ASYNC("session_impl::on_lsd_announce");
-		m_lsd_announce_timer.async_wait([this](error_code const& e) {
-			wrap(&session_impl::on_lsd_announce, e); } );
-
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log(" done starting session");
 #endif
@@ -3542,6 +3533,11 @@ retry:
 			update_dht_announce_interval();
 #endif
 
+		if (has_lsd()
+			&& m_lsd_interval_update_torrents < 40
+			&& m_lsd_interval_update_torrents != int(m_torrents.size()))
+			update_lsd_announce_interval();
+
 		m_utp_socket_manager.decay();
 #ifdef TORRENT_SSL_PEERS
 		m_ssl_utp_socket_manager.decay();
@@ -3975,13 +3971,23 @@ retry:
 
 		if (m_abort) return;
 
-		ADD_OUTSTANDING_ASYNC("session_impl::on_lsd_announce");
-		// announce on local network every 5 minutes
-		int const delay = std::max(m_settings.get_int(settings_pack::local_service_announce_interval)
-			/ std::max(int(m_torrents.size()), 1), 1);
-		m_lsd_announce_timer.expires_after(seconds(delay));
-		m_lsd_announce_timer.async_wait([this](error_code const& err) {
-			wrap(&session_impl::on_lsd_announce, err); });
+		update_lsd_announce_interval();
+
+		if (!m_lsd_torrents.empty())
+		{
+			std::shared_ptr<torrent> t;
+			do
+			{
+				t = m_lsd_torrents.front().lock();
+				m_lsd_torrents.pop_front();
+			} while (!t && !m_lsd_torrents.empty());
+
+			if (t)
+			{
+				t->lsd_announce();
+				return;
+			}
+		}
 
 		if (m_torrents.empty()) return;
 
@@ -3991,6 +3997,60 @@ retry:
 		++m_next_lsd_torrent;
 		if (m_next_lsd_torrent >= m_torrents.size())
 			m_next_lsd_torrent = 0;
+	}
+
+	void session_impl::prioritize_lsd(std::weak_ptr<torrent> t)
+	{
+		TORRENT_ASSERT(!m_abort);
+		if (m_abort) return;
+
+		m_lsd_torrents.push_back(t);
+#ifndef TORRENT_DISABLE_LOGGING
+		std::shared_ptr<torrent> tor = t.lock();
+		if (tor && should_log())
+			session_log("prioritizing LSD announce: \"%s\"", tor->name().c_str());
+#endif
+		// trigger an LSD announce right away if we just added a new torrent and
+		// there's no back-log. in the timer handler, as long as there are more
+		// high priority torrents to be announced to LSD, it will keep the
+		// timer interval short until all torrents have been announced.
+		if (m_lsd_torrents.size() == 1)
+		{
+			ADD_OUTSTANDING_ASYNC("session_impl::on_lsd_announce");
+			m_lsd_announce_timer.expires_after(seconds(0));
+			m_lsd_announce_timer.async_wait([this](error_code const& err) {
+				wrap(&session_impl::on_lsd_announce, err); });
+		}
+	}
+
+	void session_impl::update_lsd_announce_interval()
+	{
+		if (!has_lsd())
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			session_log("not starting LSD announce timer: LSD disabled");
+#endif
+			return;
+		}
+
+		if (m_abort) return;
+
+		m_lsd_interval_update_torrents = int(m_torrents.size());
+
+		ADD_OUTSTANDING_ASYNC("session_impl::on_lsd_announce");
+		int delay = std::max(1000 * m_settings.get_int(settings_pack::local_service_announce_interval)
+			/ std::max(int(m_torrents.size()), 1), 1);
+
+		if (!m_lsd_torrents.empty())
+		{
+			// we have prioritized torrents that need an initial LSD announce.
+			// Don't wait too long until we announce those.
+			delay = std::min(4000, delay);
+		}
+
+		m_lsd_announce_timer.expires_after(milliseconds(delay));
+		m_lsd_announce_timer.async_wait([this](error_code const& e) {
+			wrap(&session_impl::on_lsd_announce, e); });
 	}
 
 	void session_impl::auto_manage_checking_torrents(std::vector<torrent*>& list
@@ -6954,6 +7014,7 @@ retry:
 				s->lsd.reset();
 			}
 		}
+		update_lsd_announce_interval();
 	}
 
 	void session_impl::start_natpmp()
