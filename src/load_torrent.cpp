@@ -236,12 +236,12 @@ namespace aux
 				{
 					string_view const url = tier.list_string_value_at(k);
 					if (url.empty()) continue;
-#if TORRENT_USE_I2P
-					if (aux::is_i2p_url(url)) out.flags |= torrent_flags::i2p_torrent;
-#endif
 					std::string u(url);
 					aux::ltrim(u);
 					if (!aux::is_valid_tracker_url(u)) continue;
+#if TORRENT_USE_I2P
+					if (aux::is_i2p_url(url)) out.flags |= torrent_flags::i2p_torrent;
+#endif
 					out.trackers.push_back(std::move(u));
 					out.tracker_tiers.push_back(j);
 				}
