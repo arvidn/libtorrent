@@ -7131,6 +7131,11 @@ namespace {
 		return m_torrent_file;
 	}
 
+	renamed_files torrent::get_renamed_files() const
+	{
+		return m_renamed_files;
+	}
+
 #if TORRENT_ABI_VERSION < 4
 	std::shared_ptr<torrent_info> torrent::get_torrent_copy_with_hashes() const
 	{

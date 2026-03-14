@@ -939,6 +939,22 @@ namespace aux {
 		// torrent_handle::rename_file(), the new names will not be reflected
 		// in the returned torrent_info object.
 		std::shared_ptr<const torrent_info> torrent_file() const;
+
+		// Returns a copy of the renamed_files object for this torrent. This
+		// records all file renames applied via torrent_handle::rename_file().
+		// To get a complete view of the current file layout (original names
+		// plus any renames), combine this with the file_storage from
+		// torrent_file()->layout():
+		//
+		// .. code:: c++
+		//
+		//	auto tf = handle.torrent_file();
+		//	auto renames = handle.get_renamed_files();
+		//	lt::filenames fn(tf->layout(), renames);
+		//	for (auto i : fn.file_range())
+		//		std::cout << fn.file_path(i) << "\n";
+		//
+		renamed_files get_renamed_files() const;
 #if TORRENT_ABI_VERSION < 4
 		// torrent_file_with_hashes() returns a *copy* of the internal
 		// torrent_info and piece layer hashes (if it's a v2 torrent). The piece

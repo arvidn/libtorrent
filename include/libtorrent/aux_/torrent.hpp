@@ -1089,6 +1089,7 @@ namespace libtorrent::aux {
 		void verify_block_hashes(piece_index_t index);
 
 		std::shared_ptr<const torrent_info> get_torrent_file() const;
+		renamed_files get_renamed_files() const;
 
 #if TORRENT_ABI_VERSION < 4
 		std::shared_ptr<torrent_info> get_torrent_copy_with_hashes() const;
