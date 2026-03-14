@@ -49,9 +49,4 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           TARBALL="libtorrent-rasterbar-${VERSION}.tar.gz"
-          if ! gh release view "$GITHUB_REF_NAME" &>/dev/null; then
-            gh release create "$GITHUB_REF_NAME" \
-              --title "libtorrent-rasterbar ${VERSION}" \
-              --generate-notes
-          fi
           gh release upload "$GITHUB_REF_NAME" "$TARBALL" --clobber

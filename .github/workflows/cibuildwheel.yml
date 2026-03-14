@@ -25,6 +25,10 @@ on:
       publish_test:
         description: Write 'PUBLISH_TEST' to publish to test-pypi. BEWARE! ARTIFACTS ARE IMMUTABLE AND CANNOT BE REPLACED ONCE PUBLISHED!
 
+  push:
+    tags:
+      - 'v[0-9]*.[0-9]*.[0-9]*'
+
   pull_request:
     paths:
       - .github/workflows/cibuildwheel.yml
@@ -223,3 +227,31 @@ jobs:
         packages-dir: wheelhouse
         skip-existing: true
         repository-url: https://test.pypi.org/legacy/
+
+  upload_release:
+    needs: build_wheels
+    runs-on: ubuntu-latest
+    if: always() && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/download-artifact@v4
+      with:
+        pattern: wheels-*
+        path: wheelhouse
+        merge-multiple: true
+
+    - name: upload wheels to release
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        shopt -s nullglob
+        wheels=(wheelhouse/*.whl)
+        if [ ${#wheels[@]} -eq 0 ]; then
+          echo "no wheels were built successfully, nothing to upload"
+          exit 0
+        fi
+        echo "uploading ${#wheels[@]} wheel(s)"
+        gh release upload "$GITHUB_REF_NAME" "${wheels[@]}" \
+          --clobber --repo "$GITHUB_REPOSITORY"
