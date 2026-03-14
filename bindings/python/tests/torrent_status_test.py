@@ -95,6 +95,8 @@ class TorrentStatusTest(unittest.TestCase):
 
         self.assertIsInstance(self.status.uploads_limit, int)
         self.assertIsInstance(self.status.connections_limit, int)
+        self.assertIsInstance(self.status.upload_limit, int)
+        self.assertIsInstance(self.status.download_limit, int)
 
         self.assertIsInstance(self.status.storage_mode, lt.storage_mode_t)
 

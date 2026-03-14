@@ -12166,6 +12166,8 @@ namespace {
 		st->uploads_limit = m_max_uploads == (1 << 24) - 1 ? -1 : m_max_uploads;
 		st->num_connections = num_peers();
 		st->connections_limit = m_max_connections == (1 << 24) - 1 ? -1 : m_max_connections;
+		st->upload_limit = upload_limit();
+		st->download_limit = download_limit();
 		// if we don't have any metadata, stop here
 
 		st->queue_position = queue_position();

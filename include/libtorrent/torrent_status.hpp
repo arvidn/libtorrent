@@ -384,6 +384,11 @@ TORRENT_VERSION_NAMESPACE_4
 		// the set limit of number of connections for this torrent.
 		int connections_limit = 0;
 
+		// the upload and download rate limits for this torrent, in bytes per
+		// second. A value of -1 means unlimited.
+		int upload_limit = -1;
+		int download_limit = -1;
+
 		// the number of peers in this torrent that are waiting for more
 		// bandwidth quota from the torrent rate limiter. This can determine if
 		// the rate you get from this torrent is bound by the torrents limit or
