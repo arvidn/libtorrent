@@ -278,8 +278,11 @@ void test_roundtrip(add_torrent_params input)
 	error_code ec;
 	auto const output = read_resume_data(b, ec);
 
+	TEST_CHECK(input.merkle_trees == output.merkle_trees);
 	TEST_CHECK(input.verified_leaf_hashes == output.verified_leaf_hashes);
 	TEST_CHECK(input.merkle_tree_mask == output.merkle_tree_mask);
+	TEST_CHECK(output.merkle_trees.size() == output.merkle_tree_mask.size());
+	TEST_CHECK(output.merkle_tree_mask.size() == output.verified_leaf_hashes.size());
 	TEST_CHECK(input.file_priorities == output.file_priorities);
 	TEST_CHECK(input.save_path == output.save_path);
 	TEST_CHECK(input.name == output.name);
@@ -290,7 +293,6 @@ void test_roundtrip(add_torrent_params input)
 	TEST_CHECK(input.unfinished_pieces == output.unfinished_pieces);
 	TEST_CHECK(input.verified_pieces == output.verified_pieces);
 	TEST_CHECK(input.piece_priorities == output.piece_priorities);
-	TEST_CHECK(input.merkle_trees == output.merkle_trees);
 	TEST_CHECK(input.renamed_files == output.renamed_files);
 
 	auto const compare = write_resume_data_buf(output);
@@ -431,6 +433,8 @@ TORRENT_TEST(round_trip_merkle_trees)
 		{sha256_hash{"01010101010101010101010101010101"}, sha256_hash{"21212121212121212121212121212121"}}
 		, {sha256_hash{"23232323232323232323232323232323"}, sha256_hash{"43434343434343434343434343434343"}}
 		};
+	atp.merkle_tree_mask = {{}, {}};  
+	atp.verified_leaf_hashes = {{}, {}};  
 	test_roundtrip(atp);
 }
 
@@ -441,7 +445,11 @@ TORRENT_TEST(round_trip_merkle_tree_mask)
 		{sha256_hash{"01010101010101010101010101010101"}, sha256_hash{"21212121212121212121212121212121"}}
 		, {sha256_hash{"23232323232323232323232323232323"}, sha256_hash{"43434343434343434343434343434343"}}
 		};
-	atp.merkle_tree_mask = aux::vector<std::vector<bool>, file_index_t>{{false, false, false, true, true, true, true}};
+	atp.merkle_tree_mask = aux::vector<std::vector<bool>, file_index_t>{
+		{false, false, false, true, true, true, true},
+		{false, true, false, true, true, false, true}
+	};
+	atp.verified_leaf_hashes = aux::vector<std::vector<bool>, file_index_t>{{}, {}};
 	test_roundtrip(atp);
 }
 
@@ -452,6 +460,7 @@ TORRENT_TEST(round_trip_verified_leaf_hashes)
 		{sha256_hash{"01010101010101010101010101010101"}},
 		{sha256_hash{"12121212121212121212121212121212"}}};
 
+	atp.merkle_tree_mask = aux::vector<std::vector<bool>, file_index_t>{{}, {}};
 	atp.verified_leaf_hashes = aux::vector<std::vector<bool>, file_index_t>{
 		{true, true, false, false}, {false, true, false, true}};
 	test_roundtrip(atp);
