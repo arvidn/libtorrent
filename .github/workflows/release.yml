@@ -1,0 +1,57 @@
+name: Release
+
+on:
+   push:
+      tags:
+         - 'v[0-9]*.[0-9]*.[0-9]*'
+
+jobs:
+
+   dist:
+      name: Build source package
+      runs-on: ubuntu-24.04
+      permissions:
+         contents: write
+
+      steps:
+      - name: checkout
+        uses: actions/checkout@v6
+        with:
+           fetch-depth: 1
+           filter: tree:0
+           submodules: recursive
+
+      - name: update package lists
+        continue-on-error: true
+        run: sudo apt update
+
+      - name: install dependencies
+        run: |
+          sudo apt install python3-docutils python3-pygments python3-pil gsfonts inkscape icoutils graphviz hunspell imagemagick rsync
+          python3 -m pip install aafigure
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: verify version matches tag
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          MAKEFILE_VERSION="$(grep '^VERSION=' Makefile | cut -d= -f2)"
+          if [ "$TAG_VERSION" != "$MAKEFILE_VERSION" ]; then
+            echo "error: tag version (${TAG_VERSION}) does not match Makefile VERSION (${MAKEFILE_VERSION})"
+            exit 1
+          fi
+
+      - name: build docs and source package
+        run: make dist RST2HTML=rst2html
+
+      - name: upload release asset
+        env:
+           GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          TARBALL="libtorrent-rasterbar-${VERSION}.tar.gz"
+          if ! gh release view "$GITHUB_REF_NAME" &>/dev/null; then
+            gh release create "$GITHUB_REF_NAME" \
+              --title "libtorrent-rasterbar ${VERSION}" \
+              --generate-notes
+          fi
+          gh release upload "$GITHUB_REF_NAME" "$TARBALL" --clobber
