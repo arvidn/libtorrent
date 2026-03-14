@@ -48,7 +48,7 @@ namespace libtorrent::aux {
 	TORRENT_EXTRA_EXPORT bool is_space(char c);
 	TORRENT_EXTRA_EXPORT char to_lower(char c);
 
-	TORRENT_EXTRA_EXPORT bool string_begins_no_case(char const* s1, char const* s2);
+	TORRENT_EXTRA_EXPORT bool string_begins_no_case(string_view s1, string_view s2);
 	TORRENT_EXTRA_EXPORT bool string_equal_no_case(string_view s1, string_view s2);
 
 	TORRENT_EXTRA_EXPORT void url_random(span<char> dest);
@@ -117,8 +117,8 @@ namespace libtorrent::aux {
 	TORRENT_EXTRA_EXPORT std::pair<string_view, string_view> split_string_quotes(
 		string_view last, char sep);
 
-	// removes whitespaces at the beginning of the string, in-place
-	TORRENT_EXTRA_EXPORT void ltrim(std::string& s);
+	// removes whitespaces at the beginning of the string_view
+	TORRENT_EXTRA_EXPORT string_view ltrim(string_view s);
 
 	// Format a hostname with port for HTTP CONNECT request per RFC 9110 Section 9.3.6.
 	// The authority component must be in the form "host:port" where IPv6 literals

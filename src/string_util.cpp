@@ -64,18 +64,12 @@ namespace libtorrent::aux {
 		return (c >= 'A' && c <= 'Z') ? char(c - 'A' + 'a') : c;
 	}
 
-	bool string_begins_no_case(char const* s1, char const* s2)
+	bool string_begins_no_case(string_view s1, string_view s2)
 	{
-		TORRENT_ASSERT(s1 != nullptr);
-		TORRENT_ASSERT(s2 != nullptr);
-
-		while (*s1 != 0)
-		{
-			if (to_lower(*s1) != to_lower(*s2)) return false;
-			++s1;
-			++s2;
-		}
-		return true;
+		if (s2.size() < s1.size()) return false;
+		return std::equal(s1.begin(), s1.end(), s2.begin()
+			, [](char const c1, char const c2)
+			{ return to_lower(c1) == to_lower(c2); });
 	}
 
 	bool string_equal_no_case(string_view s1, string_view s2)
@@ -365,10 +359,11 @@ namespace libtorrent::aux {
 		return {last.substr(0, pos), last.substr(pos + found_sep)};
 	}
 
-	void ltrim(std::string& s)
+	string_view ltrim(string_view s)
 	{
 		while (!s.empty() && is_space(s.front()))
-			s.erase(s.begin());
+			s.remove_prefix(1);
+		return s;
 	}
 
 	std::string format_host_for_connect(std::string host, unsigned short const port)

@@ -290,7 +290,7 @@ restart_response:
 				}
 				else if (name == "connection")
 				{
-					m_connection_close = string_begins_no_case("close", value.c_str());
+					m_connection_close = string_begins_no_case("close", value);
 				}
 				else if (name == "content-range")
 				{
@@ -301,7 +301,7 @@ restart_response:
 					// in their content-range. Don't treat it as an error
 					// if we can't find it, just assume the byte counters
 					// start immediately
-					if (string_begins_no_case("bytes ", ptr)) ptr += 6;
+					if (string_begins_no_case("bytes ", value)) ptr += 6;
 					char* end;
 					m_range_start = std::strtoll(ptr, &end, 10);
 					if (m_range_start < 0
@@ -338,7 +338,7 @@ restart_response:
 				}
 				else if (name == "transfer-encoding")
 				{
-					m_chunked_encoding = string_begins_no_case("chunked", value.c_str());
+					m_chunked_encoding = string_begins_no_case("chunked", value);
 				}
 
 				TORRENT_ASSERT(m_recv_pos <= int(recv_buffer.size()));

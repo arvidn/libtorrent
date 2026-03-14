@@ -6844,7 +6844,7 @@ namespace {
 
 		void* userdata = nullptr;
 #if TORRENT_USE_SSL
-		const bool ssl = string_begins_no_case("https://", web->url.c_str());
+		const bool ssl = string_begins_no_case("https://", web->url);
 		if (ssl)
 		{
 #ifdef TORRENT_SSL_PEERS

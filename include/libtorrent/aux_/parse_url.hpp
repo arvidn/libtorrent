@@ -42,7 +42,7 @@ namespace libtorrent::aux {
 	TORRENT_EXTRA_EXPORT bool has_tracker_query_string(string_view query_string);
 
 	// returns true if the url is a valid tracker url (http, https, udp, ws, wss)
-	TORRENT_EXTRA_EXPORT bool is_valid_tracker_url(const std::string& url);
+	TORRENT_EXTRA_EXPORT bool is_valid_tracker_url(string_view url);
 }
 
 #endif

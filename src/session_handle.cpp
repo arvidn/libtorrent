@@ -338,7 +338,7 @@ namespace {
 		}
 
 		if (atp.info_hash.is_all_zeros()
-			&& aux::string_begins_no_case("magnet:", atp.url.c_str()))
+			&& aux::string_begins_no_case("magnet:", atp.url))
 		{
 			error_code err;
 			parse_magnet_uri(atp.url, atp, err);
