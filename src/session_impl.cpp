@@ -5155,7 +5155,7 @@ retry:
 		using ret_t = std::tuple<std::shared_ptr<torrent>, info_hash_t, bool>;
 
 #if TORRENT_ABI_VERSION == 1
-		if (string_begins_no_case("magnet:", params.url.c_str()))
+		if (string_begins_no_case("magnet:", params.url))
 		{
 			parse_magnet_uri(params.url, params, ec);
 			if (ec) return ret_t{ptr_t(), params.info_hashes, false};

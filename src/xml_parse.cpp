@@ -35,12 +35,12 @@ namespace libtorrent::aux {
 
 			// skip '<'
 			++p;
-			if (p != end && p + 8 < end && string_begins_no_case("![CDATA[", p))
+			if (p != end && p + 8 < end && string_begins_no_case("![CDATA[", {p, static_cast<std::size_t>(end - p)}))
 			{
 				// CDATA. match '![CDATA['
 				p += 8;
 				start = p;
-				while (p != end && !string_begins_no_case("]]>", p - 2)) ++p;
+				while (p != end && !string_begins_no_case("]]>", {p - 2, static_cast<std::size_t>(end - p + 2)})) ++p;
 
 				// parse error
 				if (p == end)
