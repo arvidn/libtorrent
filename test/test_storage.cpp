@@ -1107,6 +1107,15 @@ TORRENT_TEST(rename_file)
 
 	TEST_CHECK(exists(info->name() + "__"));
 
+	// verify get_renamed_files() reflects all renames synchronously
+	lt::renamed_files const rf = h.get_renamed_files();
+	lt::filenames fn(fs, rf);
+	for (auto const i : fs.file_range())
+	{
+		std::string name = fs.file_path(i);
+		TEST_EQUAL(fn.file_path(i), "temp_storage__" + name.substr(12));
+	}
+
 	h.save_resume_data();
 	alert const* ra = wait_for_alert(ses, save_resume_data_alert::alert_type);
 	TEST_CHECK(ra);
