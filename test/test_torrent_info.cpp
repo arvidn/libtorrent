@@ -1803,4 +1803,3 @@ TORRENT_TEST(write_torrent_file_session_roundtrip)
 		}
 	}
 }
-

@@ -269,7 +269,7 @@ def main() -> None:
         proxy_host="",
     )
 
-    (options, args) = parser.parse_args()
+    options, args = parser.parse_args()
 
     if options.port < 0 or options.port > 65525:
         options.port = 6881

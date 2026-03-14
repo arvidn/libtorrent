@@ -22,8 +22,9 @@
 	* libtorrent now requires C++17 to build
 	* added support for WebTorrent
 
-2.0.12
+2.0.12 released
 
+	* fix issue where file priorities could be cleared by force recheck
 	* fix issue in XML parser
 	* when building against OpenSSL, require at least version 1.1.1
 	* add setting to set no-copy-on-write flag on new files

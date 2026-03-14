@@ -570,7 +570,6 @@ def write_session_params(
 
 class add_piece_flags_t(metaclass=_BoostBaseClass):
     __instance_size__: int
-
     overwrite_existing: int
 
 class alert(metaclass=_BoostBaseClass):

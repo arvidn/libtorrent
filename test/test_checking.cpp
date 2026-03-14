@@ -406,3 +406,75 @@ TORRENT_TEST(discrete_checking)
 	remove_all("test_torrent_dir", ec);
 	if (ec) fprintf(stdout, "ERROR: removing test_torrent_dir: (%d) %s\n", ec.value(), ec.message().c_str());
 }
+
+// When need_picker() re-creates the piece picker, make sure we preserve the
+// file priorities that have been set. piece priorities will not be preserved
+// since they're stored inside the piece picker.
+TORRENT_TEST(preserve_file_priorities)
+{
+	using namespace lt;
+
+	// Two files, each an exact multiple of piece_size so no piece spans a file
+	// boundary. v1_only avoids pad files. This gives us:
+	//  file 0 -> pieces 0-1  (will be set to dont_download)
+	//  file 1 -> pieces 2-3  (will be set to default_priority)
+	static char const* const test_dir = "test_torrent_dir_prio_recheck";
+	int const piece_size = 0x4000;
+	static std::array<int const, 2> const file_sizes{{ 2 * piece_size, 2 * piece_size }};
+
+	// create_random_files creates the directories and files on disk and
+	// populates fs with their paths so set_piece_hashes can hash them.
+	auto fs = create_random_files(test_dir, file_sizes);
+
+	error_code ec;
+	lt::create_torrent ct(std::move(fs), piece_size, create_torrent::v1_only);
+	set_piece_hashes(ct, ".", ec);
+
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), ct.generate());
+	add_torrent_params p = load_torrent_buffer(buf);
+	TEST_CHECK(p.ti->is_valid());
+
+	p.save_path = ".";
+	p.file_priorities = { dont_download, default_priority };
+
+	session ses(settings());
+	torrent_handle h = ses.add_torrent(p, ec);
+	TEST_CHECK(!ec);
+
+	// Both files are on disk, so the initial check finds all pieces valid.
+	// Even the dont_download file's pieces are marked "have", which makes
+	// is_seeding() true. maybe_done_flushing() then destroys the piece picker
+	// and sets m_have_all = true.
+	TEST_CHECK(wait_for_alert(ses, torrent_checked_alert::alert_type
+		, "initial check", pop_alerts::pop_all, seconds(30)));
+	TEST_CHECK(h.status().is_seeding);
+
+	// Delete file 0 before the forced recheck so its pieces won't be found.
+	// This keeps the torrent out of seeding state after the recheck,
+	// leaving the picker alive for priority inspection.
+	std::string const file0_path = combine_path(test_dir
+		, combine_path("test_dir0", "test0"));
+	remove(file0_path, ec);
+
+	// force_recheck() is called after the piece picker has been destroyed.
+	h.force_recheck();
+
+	TEST_CHECK(wait_for_alert(ses, torrent_checked_alert::alert_type
+		, "recheck after file deletion", pop_alerts::pop_all, seconds(30)));
+
+	// File 0 is gone, so the torrent must not be seeding.
+	TEST_CHECK(!h.status().is_seeding);
+
+	// Piece priorities must reflect the original file priorities:
+	//  pieces 0-1: dont_download (priority 0) - file 0 was dont_download
+	//  pieces 2-3: default_priority (4)       - file 1 was default_priority
+	auto const prios = h.get_piece_priorities();
+	TEST_EQUAL(int(prios.size()), 4);
+	TEST_EQUAL(prios[0], dont_download);
+	TEST_EQUAL(prios[1], dont_download);
+	TEST_EQUAL(prios[2], default_priority);
+	TEST_EQUAL(prios[3], default_priority);
+
+	remove_all(test_dir, ec);
+}

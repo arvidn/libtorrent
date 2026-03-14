@@ -134,6 +134,45 @@ bool is_downloading_state(int const st)
 			return false;
 	}
 }
+
+// convert file priorities into piece priorities
+aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
+	file_storage const& fs
+	, aux::vector<download_priority_t, file_index_t> const& file_prios)
+{
+	aux::vector<download_priority_t, piece_index_t> pieces(aux::numeric_cast<std::size_t>(
+		fs.num_pieces()), dont_download);
+
+	for (auto const i : fs.file_range())
+	{
+		std::int64_t const size = fs.file_size(i);
+		if (size == 0) continue;
+
+		// pad files always have priority 0
+		download_priority_t const file_prio
+			= fs.pad_file_at(i) ? dont_download
+			: i >= file_prios.end_index() ? default_priority
+			: file_prios[i];
+
+		if (file_prio == dont_download)
+		{
+			// the pieces already start out as priority 0, no need to update
+			// the pieces vector in this case
+			continue;
+		}
+
+		// mark all pieces of the file with this file's priority
+		// but only if the priority is higher than the pieces
+		// already set (to avoid problems with overlapping pieces)
+		auto const [start, end] = file_piece_range_inclusive(fs, i);
+
+		// if one piece spans several files, we might
+		// come here several times with the same start_piece, end_piece
+		for (piece_index_t p = start; p < end; ++p)
+			pieces[p] = std::max(pieces[p], file_prio);
+	}
+	return pieces;
+}
 } // anonymous namespace
 
 	web_seed_t::web_seed_t(web_seed_entry const& wse)
@@ -1299,6 +1338,19 @@ bool is_downloading_state(int const st)
 		// initialize the file progress too
 		if (m_file_progress.empty())
 			m_file_progress.init(*pp, m_torrent_file->layout());
+
+
+		if (!m_file_priority.empty())
+		{
+			auto const pieces = file_to_piece_prio(m_torrent_file->layout(), m_file_priority);
+			piece_index_t index(0);
+			for (auto prio : pieces)
+			{
+				TORRENT_ASSERT(prio <= top_priority);
+				pp->set_piece_priority(index, prio);
+				++index;
+			}
+		}
 
 		m_picker = std::move(pp);
 
@@ -5890,44 +5942,8 @@ namespace {
 
 		if (m_torrent_file->num_pieces() == 0) return;
 
-		bool need_update = false;
-		// initialize the piece priorities to 0, then only allow
-		// setting higher priorities
-		aux::vector<download_priority_t, piece_index_t> pieces(aux::numeric_cast<std::size_t>(
-			m_torrent_file->num_pieces()), dont_download);
-		file_storage const& fs = m_torrent_file->layout();
-		for (auto const i : fs.file_range())
-		{
-			std::int64_t const size = fs.file_size(i);
-			if (size == 0) continue;
-
-			// pad files always have priority 0
-			download_priority_t const file_prio
-				= fs.pad_file_at(i) ? dont_download
-				: i >= file_prios.end_index() ? default_priority
-				: file_prios[i];
-
-			if (file_prio == dont_download)
-			{
-				// the pieces already start out as priority 0, no need to update
-				// the pieces vector in this case
-				need_update = true;
-				continue;
-			}
-
-			// mark all pieces of the file with this file's priority
-			// but only if the priority is higher than the pieces
-			// already set (to avoid problems with overlapping pieces)
-			auto const [start, end] = file_piece_range_inclusive(fs, i);
-
-			// if one piece spans several files, we might
-			// come here several times with the same start_piece, end_piece
-			for (piece_index_t p = start; p < end; ++p)
-				pieces[p] = std::max(pieces[p], file_prio);
-
-			need_update = true;
-		}
-		if (need_update) prioritize_pieces(pieces);
+		auto const pieces = file_to_piece_prio(m_torrent_file->layout(), file_prios);
+		prioritize_pieces(pieces);
 	}
 
 	// this is called when piece priorities have been updated
