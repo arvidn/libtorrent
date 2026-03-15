@@ -1,3 +1,7 @@
+2.0.13
+
+	* fix issue in loading v2 resume data merkle trees
+
 2.0.12 released
 
 	* fix issue where file priorities could be cleared by force recheck
