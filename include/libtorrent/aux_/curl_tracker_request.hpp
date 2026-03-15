@@ -40,7 +40,7 @@ public:
 
 	[[nodiscard]] static curl_tracker_request& from_request(curl_request& request)
 	{
-		auto r = request.get_userdata<curl_tracker_request>();
+		auto r = static_cast<curl_tracker_request*>(request.get_userdata());
 		TORRENT_ASSERT(r);
 		return *r;
 	}

@@ -36,8 +36,8 @@ public:
 	// May call completion handler for easy handles before it returns (which may delete or remove them).
 	void socket_event(curl_boost_socket& socket, curl_cselect_t event);
 
-	// Default argument CURL_SOCKET_TIMEOUT can be used on timeouts but can also
-	// be used to kickstart the processing of newly added handles
+	// Default argument CURL_SOCKET_TIMEOUT is used for timeouts. It can also be used to kickstart curl processing but
+	// curl should already create timeouts of zero seconds when it wants to process something.
 	// May call destructor of sockets before it returns
 	// May call completion handler for easy handles before it returns (which may delete or remove them)
 	void process_socket_action(curl_socket_t native_socket = CURL_SOCKET_TIMEOUT, curl_cselect_t event = curl_cselect_t::none);
@@ -49,10 +49,10 @@ public:
 	void set_max_host_connections(long value);
 
 	using completion_handler_t = std::function<void(curl_request&, CURLcode)>;
-	// request gets removed before completion handler is called, callee should not try to remove the request.
+	// request is removed from the pool before completion handler is called, callee should not attempt to remove it.
 	void set_completion_callback(completion_handler_t cb) { m_completion_handler = std::move(cb); }
 
-	void on_timeout(curl_request& crequest);
+	void on_request_timeout(curl_request& crequest);
 	[[nodiscard]] executor_type get_executor() const noexcept { return m_executor; }
 private:
 	template<CURLMoption option, typename T>
@@ -73,7 +73,7 @@ private:
 
 	[[nodiscard]] CURLM* handle() const noexcept { return m_curl_handle; }
 
-	// May call completion handler for easy handles before it returns (which may delete or remove them)
+	// May call completion handler for easy handles before it returns
 	void process_completed_requests();
 
 	curl_boost_socket& add_socket(std::unique_ptr<curl_boost_socket> socket) noexcept;

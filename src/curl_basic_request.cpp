@@ -47,18 +47,20 @@ void curl_basic_request::set_defaults()
 	// - CURLOPT_SSL_ENABLE_ALPN (default enabled)
 	// - CURLOPT_CAPATH (unset, use system default)
 	// - CURLOPT_CAINFO (unset, use system default)
-	// - CURLOPT_ECH (default disabled, requires https-rr and is only supported with DoH resolver)
+	// - CURLOPT_ECH (default disabled, experimental, requires https-rr and is currently only supported with DoH resolver)
 	// - CURLOPT_HSTS_CTRL (default disabled, it is not port aware, and simply redirects all non-https traffic to
-	//                      port :443.)
+	//                      port :443)
 	// - CURLOPT_TCP_KEEPALIVE (default disabled, keeping connections alive when idle is not supported by curl)
 
-	// Setting SSL requirements protects from downgrading to insecure SSL configurations during a downgrade attack
-	// - CURLOPT_SSLVERSION (default = v1.2+)
+	// Setting SSL requirements protects against downgrading to insecure SSL configurations during a downgrade attack
+	// - CURLOPT_SSLVERSION (default = v1.2 or newer, note that this option is used to set a lower bound)
 	// - CURLOPT_SSL_CIPHER_LIST (use ssl library default, this is usually a subset of the "HIGH" encryption cipher list)
 
-	static const bool has_insecure_ssl_default = curl_version_lower_than(0x081000); // TLSv1.2 became the default in 8.16.0
-	if (has_insecure_ssl_default)
-		setopt<CURLOPT_SSLVERSION, long>(CURL_SSLVERSION_TLSv1_2);
+	// TLSv1.2+ became the default in 8.16.0
+	static const bool has_insecure_minimum_ssl_version = curl_version_lower_than(0x081000);
+
+	if (has_insecure_minimum_ssl_version)
+		setopt<CURLOPT_SSLVERSION, long>(CURL_SSLVERSION_TLSv1_2); // TLSv1.2 or newer
 
 	// curl can pick up certain environment variables (HTTP_PROXY, NO_PROXY ...) which can make it diverge
 	// from the settings libtorrent uses. Setting PROXY to an empty string explicitly prevents this behavior.
@@ -87,9 +89,9 @@ void curl_basic_request::set_defaults()
 	// - CURLOPT_MAXREDIRS (default: 30, depends on CURLOPT_FOLLOWLOCATION)
 	// - CURLOPT_AUTOREFERER (default: disabled)
 
-	// CURLOPT_PIPEWAIT: Queue when multiplexing connection is connecting/upgrading instead of creating new connection.
-	// This does not prevent creating multiple simultaneous connections when the multiplexing connection has reached
-	// the max number of simultaneous streams. Default: false
+	// CURLOPT_PIPEWAIT: Queue when a multiplexing connection is connecting/upgrading instead of creating a new connection.
+	// However, if the multiplexing connection is fully connected/upgraded but is unavailable due to reaching the maximum
+	// number of streams, a new connection is created instead of queuing. Default: false
 
 	// prevent connecting/redirecting to a wrong scheme (e.g. file://evil/file")
 	setopt<CURLOPT_PROTOCOLS_STR>("http,https");
@@ -106,7 +108,7 @@ void curl_basic_request::set_defaults()
 bool curl_basic_request::bind(const std::string& device, const address& local_address)
 {
 	// note: curl binding network interfaces on device name is not supported on `windows`, binding on local IP works.
-	// it will quietly be ignored and won't throw an error.
+	// No need to do anything special, device binding will quietly be ignored if not supported.
 
 	// Users don't expect to leak DNS requests when explicitly binding a VPN interface.
 	// However, binding DNS is not implemented (same for the boost resolver).

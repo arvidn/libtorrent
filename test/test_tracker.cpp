@@ -455,6 +455,7 @@ TORRENT_TEST(http_peers)
 	torrent_handle h = s->add_torrent(addp);
 
 	lt::torrent_status status = h.status();
+	TEST_CHECK(status.current_tracker.empty());
 
 	// wait to hit the tracker
 	wait_for_alert(*s, tracker_reply_alert::alert_type, "s");

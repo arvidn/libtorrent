@@ -132,16 +132,16 @@ curl_pool::curl_pool(const executor_type& executor)
 		return static_cast<curl_pool*>(pool)->set_timeout(timeout_ms);
 	});
 
-	// CURLMOPT_MAX_CONCURRENT_STREAMS is 100 by default, this is a global upper limit. A server negotiates their own limit
-	// using OPTION frames, until that happens the connection specific limit is 1.
+	// CURLMOPT_MAX_CONCURRENT_STREAMS is 100 multiplex streams by default, this is a global upper limit. A server
+	// negotiates their own limit using OPTION frames, until that happens the connection specific limit is 1.
 
 	// Libtorrent uses multiple independent connections to the same host. With CURLMOPT_MAX_HOST_CONNECTIONS set to 1,
-	// all independent connections need to wait for the first connection to close.  Which might never happen for
-	// persistent connections. Therefore, it can't be used.
+	// all independent connections to the same host need to wait for the first connection to close. Which might never
+	// happen for a persistent connection. Therefore, it can't be used for Libtorrent's connection limiting.
 	// TODO: add new option to curl to properly control queueing and remove this line.
 	// setopt(CURLMOPT_MAX_HOST_CONNECTIONS, 1l);
 
-	// Note on asio behavior: when m_requests is empty this class will cease all asio activity. Allowing the asio
+	// Note on asio behavior: when m_requests is empty, this class will cease all asio activity. Allowing the asio
 	// thread to cleanly shutdown if necessary.
 	//
 	// This behavior is implicit based on curl's implementation.
@@ -157,7 +157,7 @@ curl_pool::~curl_pool()
 {
 	// The curl_multi_cleanup destructor is allowed to:
 	// - update m_sockets with update_socket(event, socket)
-	// It's probably a good to destroy it manually in order for this callbacks to be run while the class object is
+	// It's probably a good to destroy it manually in order for this callback to be run while the class object is
 	// still valid.
 	//
 	// Note that it can't be a unique_ptr:
@@ -211,7 +211,7 @@ void curl_pool::process_completed_requests()
 			continue;
 
 		// The easy_handle belongs to one of our requests, curl does not put internal easy_handles on the message queue
-		auto request = curl_request::from_handle<curl_request>(msg->easy_handle);
+		auto request = curl_request::from_handle(msg->easy_handle);
 		if (!request)
 			continue; // certainly not one of ours
 
@@ -236,7 +236,7 @@ void curl_pool::process_completed_requests()
 	}
 }
 
-void curl_pool::on_timeout(curl_request& request)
+void curl_pool::on_request_timeout(curl_request& request)
 {
 	remove_request(request);
 	if (m_completion_handler)
@@ -245,7 +245,7 @@ void curl_pool::on_timeout(curl_request& request)
 
 void curl_pool::add_request(curl_request& request)
 {
-	request.set_timeout_callback([this](curl_request& request){ on_timeout(request); });
+	request.set_timeout_callback([this](curl_request& request){ on_request_timeout(request); });
 
 	auto result = curl_multi_add_handle(handle(), request.handle());
 	check_multi_returncode(result, "curl_multi_add_handle");

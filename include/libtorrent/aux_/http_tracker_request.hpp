@@ -62,12 +62,22 @@ public:
 	[[nodiscard]] error_type validate_socket(bool i2p) const;
 	[[nodiscard]] bool allowed_by_idna(string_view hostname) const;
 
-	[[nodiscard]] error_type filter(std::weak_ptr<request_callback>& logger, std::vector<tcp::endpoint>& endpoints, string_view url) const;
-	[[nodiscard]] error_type filter(std::weak_ptr<request_callback>& logger, const address& ip, string_view url) const;
+	[[nodiscard]] error_type filter(
+		std::weak_ptr<request_callback>& logger,
+		std::vector<tcp::endpoint>& endpoints,
+		string_view url) const;
+
+	[[nodiscard]] error_type filter(
+		std::weak_ptr<request_callback>& logger,
+		const address& ip,
+		string_view url) const;
 
 private:
 	template<typename T>
-	[[nodiscard]] error_type filter_impl(std::weak_ptr<request_callback>& logger, std::vector<T>& endpoints, string_view url) const;
+	[[nodiscard]] error_type filter_impl(
+		std::weak_ptr<request_callback>& logger,
+		std::vector<T>& endpoints,
+		string_view url) const;
 };
 }
 

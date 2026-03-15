@@ -67,10 +67,10 @@ struct unique_ptr_intrusive_list_traits {
 	static void set_previous(node& n, node* prev) noexcept { n.prev_ = prev; }
 };
 
-template<typename value_traits>
+template<typename type_trait>
 class ownership_intrusive_list {
-	using node = typename value_traits::node;
-	using node_ownership = typename value_traits::node_ownership;
+	using node = typename type_trait::node;
+	using node_ownership = typename type_trait::node_ownership;
 
 	// an exception in one of these functions would leave the list in an unspecified state
 	static_assert(
@@ -81,11 +81,11 @@ class ownership_intrusive_list {
 		&& std::is_nothrow_invocable_v<decltype(&node_ownership::get), const node_ownership&>
 		// The value trait hides the next/prev pointer implementation from the list logic
 		// Make sure these functions exist on the value trait
-		&& std::is_nothrow_invocable_v<decltype(value_traits::take_next_ownership), node&>
-		&& std::is_nothrow_invocable_v<decltype(value_traits::set_next), node&, node_ownership>
-		&& std::is_nothrow_invocable_v<decltype(value_traits::get_next), const node&>
-		&& std::is_nothrow_invocable_v<decltype(value_traits::get_previous), const node&>
-		&& std::is_nothrow_invocable_v<decltype(value_traits::set_previous), node&, node*>);
+		&& std::is_nothrow_invocable_v<decltype(type_trait::take_next_ownership), node&>
+		&& std::is_nothrow_invocable_v<decltype(type_trait::set_next), node&, node_ownership>
+		&& std::is_nothrow_invocable_v<decltype(type_trait::get_next), const node&>
+		&& std::is_nothrow_invocable_v<decltype(type_trait::get_previous), const node&>
+		&& std::is_nothrow_invocable_v<decltype(type_trait::set_previous), node&, node*>);
 
 	node_ownership m_head;
 
@@ -120,7 +120,7 @@ public:
 	node& add(node_ownership new_node) noexcept
 	{
 		TORRENT_ASSERT(new_node);
-		TORRENT_ASSERT_PRECOND_MSG(!value_traits::get_next(*new_node) && !value_traits::get_previous(*new_node),
+		TORRENT_ASSERT_PRECOND_MSG(!type_trait::get_next(*new_node) && !type_trait::get_previous(*new_node),
 									"Attempt to add 'dirty' item that already belongs/belonged to a list");
 
 		if (empty())
@@ -129,9 +129,9 @@ public:
 		}
 		else
 		{
-			auto& next = value_traits::set_next(*new_node, std::move(m_head));
+			auto& next = type_trait::set_next(*new_node, std::move(m_head));
 			m_head = std::move(new_node);
-			value_traits::set_previous(next, m_head.get());
+			type_trait::set_previous(next, m_head.get());
 		}
 
 		++m_size;
@@ -142,21 +142,21 @@ public:
 	{
 		TORRENT_ASSERT_PRECOND_MSG(m_head.get(), "cannot remove list-item from empty list");
 
-		node* next = value_traits::get_next(item);
-		node* prev = value_traits::get_previous(item);
+		node* next = type_trait::get_next(item);
+		node* prev = type_trait::get_previous(item);
 
 		node_ownership item_ownership;
 		if (prev)
 		{
 			// remove item
-			value_traits::set_previous(item, nullptr);
-			item_ownership = value_traits::take_next_ownership(*prev);
+			type_trait::set_previous(item, nullptr);
+			item_ownership = type_trait::take_next_ownership(*prev);
 
 			if (next)
 			{
 				// inner node, link neighbors
-				next = &value_traits::set_next(*prev, value_traits::take_next_ownership(*item_ownership));
-				value_traits::set_previous(*next, prev);
+				next = &type_trait::set_next(*prev, type_trait::take_next_ownership(*item_ownership));
+				type_trait::set_previous(*next, prev);
 			}
 		}
 		else
@@ -166,8 +166,8 @@ public:
 
 			if (next)
 			{
-				m_head = value_traits::take_next_ownership(*item_ownership);
-				value_traits::set_previous(*m_head, nullptr);
+				m_head = type_trait::take_next_ownership(*item_ownership);
+				type_trait::set_previous(*m_head, nullptr);
 			}
 		}
 
@@ -177,7 +177,7 @@ public:
 
 	template<bool IsConst>
 	class basic_iterator {
-		using node_t = typename value_traits::node;
+		using node_t = typename type_trait::node;
 	public:
 		using iterator_category = std::forward_iterator_tag;
 		using value_type = std::conditional_t<IsConst, const node_t, node_t>;
@@ -205,7 +205,7 @@ public:
 
 		basic_iterator& operator++() noexcept
 		{
-			m_node = value_traits::get_next(*m_node);
+			m_node = type_trait::get_next(*m_node);
 			return *this;
 		}
 

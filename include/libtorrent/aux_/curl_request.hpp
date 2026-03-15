@@ -31,6 +31,18 @@ class exploded_url;
 // extends curl_basic_request with features not natively supported by curl
 class TORRENT_EXTRA_EXPORT curl_request : public curl_basic_request {
 public:
+	struct error_type {
+		error_code code;
+		operation_t op = operation_t::unknown;
+		std::string message = {};
+		constexpr explicit operator bool() const noexcept { return static_cast<bool>(code); }
+	};
+
+	[[nodiscard]] static curl_request* from_handle(CURL* easy_handle)
+	{
+		return curl_basic_request::from_handle<curl_request>(easy_handle);
+	}
+
 	explicit curl_request(std::size_t max_buffer_size, const io_context::executor_type& executor);
 	~curl_request() = default;
 
@@ -57,8 +69,7 @@ public:
 	[[nodiscard]] bool is_redirect_response() const;
 	void set_max_redirects(int value) { m_allowed_redirects = value; }
 
-	template<typename T>
-	T* get_userdata() const { return static_cast<T*>(m_userdata); }
+	void* get_userdata() const { return m_userdata; }
 	void set_userdata(void* value) { m_userdata = value; }
 
 private:

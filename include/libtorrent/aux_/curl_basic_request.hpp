@@ -26,13 +26,6 @@ struct proxy_settings;
 // Convenience/type-safe wrapper around Curl_easy for curl's built-in features
 class TORRENT_EXTRA_EXPORT curl_basic_request {
 public:
-	struct error_type {
-		error_code code;
-		operation_t op = operation_t::unknown;
-		std::string message = {};
-		constexpr explicit operator bool() const noexcept { return static_cast<bool>(code); }
-	};
-
 	curl_basic_request();
 
 	void set_defaults();
@@ -53,7 +46,6 @@ public:
 
 	[[nodiscard]] errors::http_errors http_status() const;
 	[[nodiscard]] address get_ip(error_code& ec) const;
-	[[nodiscard]] error_type get_error(CURLcode result) const;
 
 	[[nodiscard]] bool bind(const std::string& device, const address& local_address);
 	void set_proxy(const proxy_settings& ps, bool verify_ssl);

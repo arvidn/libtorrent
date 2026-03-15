@@ -91,7 +91,11 @@ TORRENT_TEST(curl_connection_reuse)
 	curl_global_initializer raii;
 
 	int const http_port = start_web_server();
-	const std::string url = std::string("http://127.0.0.1:") + std::to_string(http_port) + "/10MiB";
+
+	const auto base_url = std::string("http://127.0.0.1:") + std::to_string(http_port);
+
+	constexpr std::size_t cMiB10 = 1024 * 1024 * 10;
+	const auto url = base_url	+ "/download?size=" + std::to_string(cMiB10);
 
 	io_context ios;
 	std::array requests = {
@@ -109,7 +113,6 @@ TORRENT_TEST(curl_connection_reuse)
 
 	ios.run();
 
-	constexpr std::size_t cMiB10 = 1024 * 1024 * 10;
 	long connection_count = 0;
 	for (auto& entry : requests)
 	{
