@@ -7276,6 +7276,7 @@ namespace {
 
 		if (m_torrent_file->info_hashes().has_v2())
 		{
+			file_storage const& fs = m_torrent_file->files();
 			auto const num_files = m_merkle_trees.size();
 			ret.merkle_trees.clear();
 			ret.merkle_trees.reserve(num_files);
@@ -7283,8 +7284,17 @@ namespace {
 			ret.merkle_tree_mask.reserve(num_files);
 			ret.verified_leaf_hashes.clear();
 			ret.verified_leaf_hashes.reserve(num_files);
-			for (auto const& t : m_merkle_trees)
+			for (auto i : m_merkle_trees.range())
 			{
+				if (fs.pad_file_at(i))
+				{
+					ret.merkle_trees.emplace_back();
+					ret.merkle_tree_mask.emplace_back();
+					ret.verified_leaf_hashes.emplace_back();
+					continue;
+				}
+
+				auto const& t = m_merkle_trees[i];
 				// use structured binding in C++17
 				aux::vector<bool> mask;
 				std::vector<sha256_hash> sparse_tree;
@@ -7296,7 +7306,6 @@ namespace {
 
 			if (!has_hash_picker() && !m_have_all && valid_metadata())
 			{
-				file_storage const& fs = m_torrent_file->files();
 				ret.verified_leaf_hashes.reserve(fs.num_files());
 				for (file_index_t f(0); f != fs.end_file(); ++f)
 				{
