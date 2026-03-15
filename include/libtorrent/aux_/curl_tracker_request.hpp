@@ -8,8 +8,8 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
-#ifndef LIBTORRENT_CURL_TRACKER_REQUEST_HPP
-#define LIBTORRENT_CURL_TRACKER_REQUEST_HPP
+#ifndef TORRENT_CURL_TRACKER_REQUEST_HPP_INCLUDED
+#define TORRENT_CURL_TRACKER_REQUEST_HPP_INCLUDED
 #include "libtorrent/config.hpp"
 
 #if TORRENT_USE_CURL
@@ -88,4 +88,4 @@ private:
 };
 }
 #endif //TORRENT_USE_CURL
-#endif //LIBTORRENT_CURL_TRACKER_REQUEST_HPP
+#endif //TORRENT_CURL_TRACKER_REQUEST_HPP_INCLUDED

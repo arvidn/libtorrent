@@ -8,8 +8,8 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
-#ifndef LIBTORRENT_MEMORY_HPP
-#define LIBTORRENT_MEMORY_HPP
+#ifndef TORRENT_MEMORY_HPP_INCLUDED
+#define TORRENT_MEMORY_HPP_INCLUDED
 
 #include <memory>
 
@@ -25,4 +25,4 @@ template<typename T, auto F>
 using unique_ptr_with_deleter = std::unique_ptr<T, unique_ptr_destructor<F> >;
 }
 
-#endif //LIBTORRENT_MEMORY_HPP
+#endif //TORRENT_MEMORY_HPP_INCLUDED

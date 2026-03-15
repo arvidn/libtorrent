@@ -8,8 +8,8 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
-#ifndef LIBTORRENT_INTRUSIVE_LIST_HPP
-#define LIBTORRENT_INTRUSIVE_LIST_HPP
+#ifndef TORRENT_INTRUSIVE_LIST_HPP_INCLUDED
+#define TORRENT_INTRUSIVE_LIST_HPP_INCLUDED
 
 #include <memory>
 #include <iterator>
@@ -241,4 +241,4 @@ template<typename T>
 using unique_ptr_intrusive_list = ownership_intrusive_list<unique_ptr_intrusive_list_traits<T>>;
 }
 
-#endif //LIBTORRENT_INTRUSIVE_LIST_HPP
+#endif //TORRENT_INTRUSIVE_LIST_HPP_INCLUDED

@@ -8,8 +8,8 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
-#ifndef LIBTORRENT_BITMASK_HPP
-#define LIBTORRENT_BITMASK_HPP
+#ifndef TORRENT_BITMASK_HPP_INCLUDED
+#define TORRENT_BITMASK_HPP_INCLUDED
 
 #include <type_traits>
 
@@ -40,4 +40,4 @@ public:
 	constexpr void unset(E e) noexcept { bits &= ~static_cast<U>(e); }
 };
 
-#endif //LIBTORRENT_BITMASK_HPP
+#endif //TORRENT_BITMASK_HPP_INCLUDED

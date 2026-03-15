@@ -8,8 +8,8 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
-#ifndef LIBTORRENT_HTTP_TRACKER_REQUEST_HPP
-#define LIBTORRENT_HTTP_TRACKER_REQUEST_HPP
+#ifndef TORRENT_HTTP_TRACKER_REQUEST_HPP_INCLUDED
+#define TORRENT_HTTP_TRACKER_REQUEST_HPP_INCLUDED
 
 #include <list>
 #include "libtorrent/address.hpp"
@@ -71,4 +71,4 @@ private:
 };
 }
 
-#endif //LIBTORRENT_HTTP_TRACKER_REQUEST_HPP
+#endif //TORRENT_HTTP_TRACKER_REQUEST_HPP_INCLUDED

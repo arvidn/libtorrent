@@ -8,8 +8,8 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
-#ifndef LIBTORRENT_CURL_HPP
-#define LIBTORRENT_CURL_HPP
+#ifndef TORRENT_CURL_HPP_INCLUDED
+#define TORRENT_CURL_HPP_INCLUDED
 #include "libtorrent/config.hpp"
 
 #if TORRENT_USE_CURL
@@ -55,4 +55,4 @@ inline bool curl_version_lower_than(unsigned int version) {
 }
 
 #endif //TORRENT_USE_CURL
-#endif //LIBTORRENT_CURL_HPP
+#endif //TORRENT_CURL_HPP_INCLUDED
