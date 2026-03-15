@@ -348,6 +348,8 @@ namespace aux {
 		// includes ``save_path``, the path to the directory the files of the
 		// torrent are saved to.
 		static inline constexpr status_flags_t query_save_path = 7_bit;
+		// includes ``renamed_files``, a map of files that have been renamed in this torrent.
+		static inline constexpr status_flags_t query_renamed_files = 8_bit;
 
 		// ``status()`` will return a structure with information about the status
 		// of this torrent. If the torrent_handle is invalid, it will throw

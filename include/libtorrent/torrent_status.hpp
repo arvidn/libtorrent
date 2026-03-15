@@ -575,6 +575,11 @@ TORRENT_VERSION_NAMESPACE_4
 		// reflects several of the torrent's flags. For more
 		// information, see ``torrent_handle::flags()``.
 		torrent_flags_t flags{};
+
+		// contains a mapping of any files that have been renamed in this
+		// torrent. It can act as an overlay over file_storage (which is
+		// immutable).
+		struct renamed_files renamed_files;
 	};
 
 TORRENT_VERSION_NAMESPACE_4_END
