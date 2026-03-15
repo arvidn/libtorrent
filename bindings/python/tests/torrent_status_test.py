@@ -167,6 +167,8 @@ class TorrentStatusTest(unittest.TestCase):
 
         self.assertIsInstance(self.status.flags, int)
 
+        self.assertIsInstance(self.status.renamed_files, lt.renamed_files)
+
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
     def test_deprecated(self) -> None:
         if lt.api_version < 2:

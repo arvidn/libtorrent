@@ -179,6 +179,12 @@ namespace
         file_storage_check_index(fs, i);
         return (fs.*fun)(i);
     }
+
+    std::string renamed_files_file_name(renamed_files const& rf, file_storage const& fs
+        , file_index_t index)
+    {
+        return std::string(rf.file_name(fs, index));
+    }
 }
 
 void bind_file_storage()
@@ -252,6 +258,18 @@ void bind_file_storage()
         , arg("predicate"), arg("flags") = 0));
 #endif
 
+    class_<renamed_files>("renamed_files")
+        .def("file_path", &renamed_files::file_path
+            , (arg("fs"), arg("index"), arg("save_path") = ""))
+        .def("file_name", &renamed_files_file_name, (arg("fs"), arg("index")))
+        .def("file_absolute_path", &renamed_files::file_absolute_path
+            , (arg("fs"), arg("index")))
+        .def("rename_file", &renamed_files::rename_file
+            , (arg("fs"), arg("index"), arg("new_filename")))
+        .def("import_filenames", &renamed_files::import_filenames
+            , (arg("fs"), arg("filenames")))
+        .def("export_filenames", &renamed_files::export_filenames)
+    ;
 }
 
 #ifdef _MSC_VER
