@@ -466,6 +466,7 @@ void bind_torrent_info()
         .def("collections", &torrent_info::collections)
         .def("ssl_cert", &torrent_info::ssl_cert)
         .def("num_files", &torrent_info::num_files)
+        .def("layout", &torrent_info::layout, return_internal_reference<>())
 #if TORRENT_ABI_VERSION < 4
         .def("rename_file", depr(rename_file0))
         .def("remap_files", depr(&torrent_info::remap_files))

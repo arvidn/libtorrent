@@ -5,6 +5,7 @@
 #include "boost_python.hpp"
 #include "gil.hpp"
 #include <libtorrent/torrent_status.hpp>
+#include <libtorrent/file_storage.hpp>
 #include <libtorrent/torrent_info.hpp>
 #include <libtorrent/bitfield.hpp>
 
@@ -127,6 +128,7 @@ void bind_torrent_status()
         .add_property("finished_duration", make_getter(&torrent_status::finished_duration, by_value()))
         .add_property("seeding_duration", make_getter(&torrent_status::seeding_duration, by_value()))
         .add_property("flags", make_getter(&torrent_status::flags, by_value()))
+        .def_readonly("renamed_files", &torrent_status::renamed_files)
         ;
 
     enum_<torrent_status::state_t>("states")

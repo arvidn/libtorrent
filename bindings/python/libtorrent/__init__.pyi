@@ -4017,6 +4017,7 @@ class status_flags_t(metaclass=_BoostBaseClass):
     query_distributed_copies: int
     query_last_seen_complete: int
     query_pieces: int
+    query_renamed_files: int
     query_verified_pieces: int
 
 class storage_moved_alert(torrent_alert):
@@ -4183,6 +4184,37 @@ class AnnounceEntrydict(TypedDict):
     endpoints: NotRequired[list[AnnounceEndpointdict]]
     send_stats: NotRequired[bool]
 
+class renamed_files(metaclass=_BoostBaseClass):
+    def file_path(self, fs: file_storage, index: int, save_path: str = "") -> str:
+        """
+        file_path( (renamed_files)arg1, (file_storage)fs, (object)index [, (str)save_path='']) -> str :
+        """
+
+    def file_name(self, fs: file_storage, index: int) -> str:
+        """
+        file_name( (renamed_files)arg1, (file_storage)fs, (object)index) -> str :
+        """
+
+    def file_absolute_path(self, fs: file_storage, index: int) -> bool:
+        """
+        file_absolute_path( (renamed_files)arg1, (file_storage)fs, (object)index) -> bool :
+        """
+
+    def rename_file(self, fs: file_storage, index: int, new_filename: str) -> None:
+        """
+        rename_file( (renamed_files)arg1, (file_storage)fs, (object)index, (str)new_filename) -> None :
+        """
+
+    def import_filenames(self, fs: file_storage, filenames: dict[int, str]) -> None:
+        """
+        import_filenames( (renamed_files)arg1, (file_storage)fs, (dict)filenames) -> None :
+        """
+
+    def export_filenames(self) -> dict[int, str]:
+        """
+        export_filenames( (renamed_files)arg1) -> dict :
+        """
+
 class torrent_handle(metaclass=_BoostBaseClass):
     __instance_size__: int
     alert_when_available: int
@@ -4197,6 +4229,7 @@ class torrent_handle(metaclass=_BoostBaseClass):
     query_distributed_copies: int
     query_last_seen_complete: int
     query_pieces: int
+    query_renamed_files: int
     query_verified_pieces: int
     save_info_dict: int
     def add_http_seed(self, _url: str) -> None:
@@ -4323,6 +4356,11 @@ class torrent_handle(metaclass=_BoostBaseClass):
     def get_piece_priorities(self) -> list[int]:
         """
         get_piece_priorities( (torrent_handle)arg1) -> list :
+        """
+
+    def get_renamed_files(self) -> renamed_files:
+        """
+        get_renamed_files( (torrent_handle)arg1) -> renamed_files :
         """
 
     def get_torrent_info(self) -> torrent_info:
@@ -4957,6 +4995,11 @@ class torrent_info(metaclass=_BoostBaseClass):
         nodes( (torrent_info)arg1) -> list :
         """
 
+    def layout(self) -> file_storage:
+        """
+        layout( (torrent_info)arg1) -> file_storage :
+        """
+
     def num_files(self) -> int:
         """
         num_files( (torrent_info)arg1) -> int :
@@ -5231,6 +5274,8 @@ class torrent_status(metaclass=_BoostBaseClass):
     def progress_ppm(self) -> int: ...
     @property
     def queue_position(self) -> int: ...
+    @property
+    def renamed_files(self) -> renamed_files: ...
     @property
     def save_path(self) -> str: ...
     @property

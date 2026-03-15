@@ -105,6 +105,7 @@ class EnumTest(unittest.TestCase):
         self.assertIsInstance(lt.status_flags_t.query_last_seen_complete, int)
         self.assertIsInstance(lt.status_flags_t.query_pieces, int)
         self.assertIsInstance(lt.status_flags_t.query_verified_pieces, int)
+        self.assertIsInstance(lt.status_flags_t.query_renamed_files, int)
 
 
 class TorrentHandleTest(unittest.TestCase):
@@ -714,6 +715,15 @@ class ForceRecheckTest(TorrentHandleTest):
 
 
 class RenameFileTest(TorrentHandleTest):
+    def wait_for_rename(self) -> None:
+        for _ in lib.loop_until_timeout(5, msg="rename"):
+            self.session.wait_for_alert(1)
+            alerts = self.session.pop_alerts()
+            for a in alerts:
+                if isinstance(a, lt.file_renamed_alert):
+                    return
+            continue
+
     def test_rename_file(self) -> None:
         path = os.path.join("dir", "file.txt")
         self.handle.rename_file(0, path)
@@ -745,9 +755,88 @@ class RenameFileTest(TorrentHandleTest):
                 continue
             break
 
+    def test_get_renamed_files(self) -> None:
+        # Before any rename, get_renamed_files() should return an empty mapping
+        rf = self.handle.get_renamed_files()
+        self.assertIsInstance(rf, lt.renamed_files)
+        self.assertEqual(rf.export_filenames(), {})
+
+        # Rename file 0 and wait for the alert
+        self.handle.rename_file(0, "renamed.txt")
+        self.wait_for_rename()
+
+        # get_renamed_files() should now reflect the rename
+        rf = self.handle.get_renamed_files()
+        self.assertIsInstance(rf, lt.renamed_files)
+        self.assertEqual(rf.export_filenames(), {0: "renamed.txt"})
+
     def test_bytes_deprecated(self) -> None:
         with self.assertWarns(DeprecationWarning):
             self.handle.rename_file(0, b"file.txt")  # type: ignore
+
+
+class RenamedFilesClassTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.torrent = tdummy.get_default()
+        self.fs = self.torrent.torrent_info().layout()
+
+    def test_initial_state(self) -> None:
+        rf = lt.renamed_files()
+        self.assertIsInstance(rf, lt.renamed_files)
+        self.assertEqual(rf.export_filenames(), {})
+
+    def test_rename_file_and_export(self) -> None:
+        rf = lt.renamed_files()
+        rf.rename_file(self.fs, 0, "new_name.txt")
+        self.assertEqual(rf.export_filenames(), {0: "new_name.txt"})
+
+    def test_file_path(self) -> None:
+        rf = lt.renamed_files()
+        rf.rename_file(self.fs, 0, "new_name.txt")
+        path = rf.file_path(self.fs, 0)
+        self.assertIsInstance(path, str)
+        self.assertIn("new_name.txt", path)
+
+    def test_file_path_with_save_path(self) -> None:
+        rf = lt.renamed_files()
+        rf.rename_file(self.fs, 0, "new_name.txt")
+        path = rf.file_path(self.fs, 0, "/save/path")
+        self.assertIsInstance(path, str)
+        self.assertIn("new_name.txt", path)
+
+    def test_file_name(self) -> None:
+        rf = lt.renamed_files()
+        rf.rename_file(self.fs, 0, "new_name.txt")
+        name = rf.file_name(self.fs, 0)
+        self.assertIsInstance(name, str)
+        self.assertEqual(name, "new_name.txt")
+
+    def test_file_name_unrenamed(self) -> None:
+        rf = lt.renamed_files()
+        # Unrenamed file: falls back to the file_storage name
+        name = rf.file_name(self.fs, 0)
+        self.assertIsInstance(name, str)
+        original_name = os.fsdecode(self.torrent.files[0].path_split[-1])
+        self.assertEqual(name, original_name)
+
+    def test_file_absolute_path(self) -> None:
+        rf = lt.renamed_files()
+        # Unrenamed file is not absolute
+        self.assertFalse(rf.file_absolute_path(self.fs, 0))
+        # Renamed with a relative path is not absolute
+        rf.rename_file(self.fs, 0, "new_name.txt")
+        self.assertFalse(rf.file_absolute_path(self.fs, 0))
+
+    def test_import_filenames(self) -> None:
+        rf = lt.renamed_files()
+        rf.import_filenames(self.fs, {0: "imported.txt"})
+        self.assertEqual(rf.export_filenames(), {0: "imported.txt"})
+
+    def test_import_then_export_roundtrip(self) -> None:
+        filenames = {0: "roundtrip.txt"}
+        rf = lt.renamed_files()
+        rf.import_filenames(self.fs, filenames)
+        self.assertEqual(rf.export_filenames(), filenames)
 
 
 class CertificateTest(TorrentHandleTest):
