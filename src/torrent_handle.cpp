@@ -725,6 +725,11 @@ namespace libtorrent {
 			std::shared_ptr<const torrent_info>(), &aux::torrent::get_torrent_file);
 	}
 
+	renamed_files torrent_handle::get_renamed_files() const
+	{
+		return sync_call_ret<renamed_files>(renamed_files{}, &aux::torrent::get_renamed_files);
+	}
+
 #if TORRENT_ABI_VERSION < 4
 	std::shared_ptr<torrent_info> torrent_handle::torrent_file_with_hashes() const
 	{

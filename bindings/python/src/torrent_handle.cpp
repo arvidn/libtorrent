@@ -7,6 +7,7 @@
 #include <boost/python/stl_iterator.hpp>
 #include "bytes.hpp"
 #include <libtorrent/torrent_handle.hpp>
+#include <libtorrent/file_storage.hpp>
 #include <libtorrent/torrent_info.hpp>
 #include <libtorrent/torrent_status.hpp>
 #include <libtorrent/entry.hpp>
@@ -601,6 +602,7 @@ void bind_torrent_handle()
         .def("info_hash", _(&torrent_handle::info_hash))
         .def("info_hashes", _(&torrent_handle::info_hashes))
         .def("force_recheck", _(&torrent_handle::force_recheck))
+        .def("get_renamed_files", _(&torrent_handle::get_renamed_files))
         .def("rename_file", &rename_file0)
         .def("rename_file", &rename_file1)
         .def("set_ssl_certificate_buffer", &torrent_handle::set_ssl_certificate_buffer, (arg("cert"), arg("private_key"), arg("dh_params")))
@@ -653,6 +655,7 @@ void bind_torrent_handle()
     s.attr("query_last_seen_complete") = torrent_handle::query_last_seen_complete;
     s.attr("query_pieces") = torrent_handle::query_pieces;
     s.attr("query_verified_pieces") = torrent_handle::query_verified_pieces;
+    s.attr("query_renamed_files") = torrent_handle::query_renamed_files;
     }
 
     class_<open_file_state>("open_file_state")
@@ -715,6 +718,7 @@ void bind_torrent_handle()
     s.attr("query_last_seen_complete") = torrent_handle::query_last_seen_complete;
     s.attr("query_pieces") = torrent_handle::query_pieces;
     s.attr("query_verified_pieces") = torrent_handle::query_verified_pieces;
+    s.attr("query_renamed_files") = torrent_handle::query_renamed_files;
 	 }
 
 }

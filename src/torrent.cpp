@@ -5273,6 +5273,7 @@ namespace {
 			m_renamed_files.rename_file(fs, file_idx, filename);
 
 			set_need_save_resume(torrent_handle::if_state_changed);
+			state_updated();
 		}
 	}
 	catch (...) { handle_exception(); }
@@ -7129,6 +7130,11 @@ namespace {
 	{
 		if (!m_torrent_file->is_valid()) return {};
 		return m_torrent_file;
+	}
+
+	renamed_files torrent::get_renamed_files() const
+	{
+		return m_renamed_files;
 	}
 
 #if TORRENT_ABI_VERSION < 4
@@ -11999,6 +12005,9 @@ namespace {
 
 		if (flags & torrent_handle::query_torrent_file)
 			st->torrent_file = m_torrent_file;
+
+		if (flags & torrent_handle::query_renamed_files)
+			st->renamed_files = m_renamed_files;
 
 		st->has_incoming = m_has_incoming;
 		st->errc = m_error;
