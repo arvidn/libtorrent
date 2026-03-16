@@ -40,6 +40,7 @@ project fuzzers
 	<export-extra>on
 	<asserts>on
 	<debug-symbols>on
+	<webtorrent>on
 	;
 
 local TARGETS ;
@@ -77,6 +78,8 @@ fuzzer parse_url ;
 fuzzer http_tracker ;
 fuzzer session_params ;
 fuzzer add_torrent ;
+fuzzer websocket_tracker ;
+fuzzer xml_parse ;
 
 local LARGE_TARGETS =
 	torrent_info
@@ -92,6 +95,7 @@ local LARGE_TARGETS =
 	http_tracker
 	session_params
 	add_torrent
+	websocket_tracker
 	;
 
 install stage : $(TARGETS) : <install-type>EXE <location>fuzzers ;
