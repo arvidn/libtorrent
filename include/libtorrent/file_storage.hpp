@@ -773,7 +773,7 @@ namespace aux {
 		void rename_file(file_storage const& fs, file_index_t index, std::string const& new_filename);
 
 		void import_filenames(file_storage const& fs, std::map<file_index_t, std::string> const& renamed_files);
-		std::map<file_index_t, std::string> export_filenames() const;
+		std::map<file_index_t, std::string> export_filenames(file_storage const& fs) const;
 	private:
 		std::unordered_map<file_index_t, aux::rename_entry> m_renamed_files;
 	};

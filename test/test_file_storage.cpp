@@ -1285,5 +1285,68 @@ TORRENT_TEST(test_renamed_files)
 }
 
 
+TORRENT_TEST(renamed_files_round_trip)
+{
+	file_storage fs;
+	fs.set_piece_length(0x8000);
+	fs.add_file("test/0", 0x8000, {}, 0, {}, "11111111111111111111111111111111");
+	fs.add_file("test/1", 0x8000, {}, 0, {}, "22222222222222222222222222222222");
+	fs.add_file("test/2/1", 0x8000, {}, 0, {}, "33333333333333333333333333333333");
+	fs.add_file("test/2/2", 0x8000, {}, 0, {}, "44444444444444444444444444444444");
+
+	renamed_files rf;
+
+	// just the filename (no_root_path mode): not under the torrent root
+	rf.rename_file(fs, 0_file, "foobar");
+
+	// root path (full_path mode): includes the torrent name as the root
+#ifdef TORRENT_WINDOWS
+	rf.rename_file(fs, 1_file, "test\\bar");
+#else
+	rf.rename_file(fs, 1_file, "test/bar");
+#endif
+
+	// absolute path
+#ifdef TORRENT_WINDOWS
+	rf.rename_file(fs, 2_file, "c:\\absolute\\path\\baz");
+#else
+	rf.rename_file(fs, 2_file, "/absolute/path/baz");
+#endif
+
+	// file 3 is not renamed
+
+	// record the original file paths
+#ifdef TORRENT_WINDOWS
+	auto const save_path = std::string("d:\\root");
+#else
+	auto const save_path = std::string("/root");
+#endif
+
+	std::string const path0 = rf.file_path(fs, 0_file, save_path);
+	std::string const path1 = rf.file_path(fs, 1_file, save_path);
+	std::string const path2 = rf.file_path(fs, 2_file, save_path);
+	std::string const path3 = rf.file_path(fs, 3_file, save_path);
+
+	// round-trip: export then import into a fresh renamed_files
+	auto const exported = rf.export_filenames(fs);
+	renamed_files rf2;
+	rf2.import_filenames(fs, exported);
+
+	TEST_EQUAL(rf2.file_path(fs, 0_file, save_path), path0);
+	TEST_EQUAL(rf2.file_path(fs, 1_file, save_path), path1);
+	TEST_EQUAL(rf2.file_path(fs, 2_file, save_path), path2);
+	TEST_EQUAL(rf2.file_path(fs, 3_file, save_path), path3);
+
+	TEST_EQUAL(rf2.file_name(fs, 0_file), rf.file_name(fs, 0_file));
+	TEST_EQUAL(rf2.file_name(fs, 1_file), rf.file_name(fs, 1_file));
+	TEST_EQUAL(rf2.file_name(fs, 2_file), rf.file_name(fs, 2_file));
+	TEST_EQUAL(rf2.file_name(fs, 3_file), rf.file_name(fs, 3_file));
+
+	TEST_EQUAL(rf2.file_absolute_path(fs, 0_file), rf.file_absolute_path(fs, 0_file));
+	TEST_EQUAL(rf2.file_absolute_path(fs, 1_file), rf.file_absolute_path(fs, 1_file));
+	TEST_EQUAL(rf2.file_absolute_path(fs, 2_file), rf.file_absolute_path(fs, 2_file));
+	TEST_EQUAL(rf2.file_absolute_path(fs, 3_file), rf.file_absolute_path(fs, 3_file));
+}
+
 // TODO: test file attributes
 // TODO: test symlinks

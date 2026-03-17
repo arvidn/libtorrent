@@ -7307,7 +7307,7 @@ namespace {
 
 		// write renamed files
 		if (valid_metadata())
-			ret.renamed_files = m_renamed_files.export_filenames();
+			ret.renamed_files = m_renamed_files.export_filenames(m_torrent_file->layout());
 
 		// write local peers
 		std::vector<torrent_peer const*> deferred_peers;
