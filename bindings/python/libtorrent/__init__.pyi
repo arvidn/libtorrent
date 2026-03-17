@@ -4210,9 +4210,9 @@ class renamed_files(metaclass=_BoostBaseClass):
         import_filenames( (renamed_files)arg1, (file_storage)fs, (dict)filenames) -> None :
         """
 
-    def export_filenames(self) -> dict[int, str]:
+    def export_filenames(self, fs: file_storage) -> dict[int, str]:
         """
-        export_filenames( (renamed_files)arg1) -> dict :
+        export_filenames( (renamed_files)arg1, (file_storage)arg2) -> dict :
         """
 
 class torrent_handle(metaclass=_BoostBaseClass):

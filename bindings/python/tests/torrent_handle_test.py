@@ -560,6 +560,39 @@ class ResumeDataTest(TorrentHandleTest):
             # This should parse as resume data
             lt.read_resume_data(lt.bencode(resume_data))
 
+    def test_renamed_files_round_trip(self) -> None:
+        # Create a multi-file torrent named "test" so that renaming with the
+        # torrent name as the root component ("test/renamed_a.txt") exercises
+        # the full_path mode in renamed_files.  The bug was that
+        # export_filenames() dropped the torrent-name prefix when serialising,
+        # so the round-trip through save_resume_data() lost the root component.
+        torrent = tdummy.Torrent(
+            piece_length=16384,
+            files=[
+                {"length": 16384, "path_split": [b"test", b"a.txt"]},
+                {"length": 16384, "path_split": [b"test", b"b.txt"]},
+            ],
+        )
+        atp = torrent.atp()
+        atp.save_path = self.dir.name
+        atp.flags |= lt.torrent_flags.auto_managed | lt.torrent_flags.paused
+        # Renaming with the torrent name as root uses full_path mode internally
+        renamed = str(pathlib.Path("test") / "renamed_a.txt")
+        atp.renamed_files = {0: renamed}
+        handle = self.session.add_torrent(atp)
+
+        handle.save_resume_data()
+        for _ in lib.loop_until_timeout(5, msg="save_resume_data"):
+            self.session.wait_for_alert(1)
+            for alert in self.session.pop_alerts():
+                if isinstance(alert, lt.save_resume_data_alert):
+                    self.assertEqual(
+                        alert.params.renamed_files,
+                        {0: renamed},
+                    )
+                    return
+        self.fail("save_resume_data_alert not received")
+
 
 class ForceReannounceTest(TorrentHandleTest):
     def test_scrape_tracker(self) -> None:
@@ -725,7 +758,7 @@ class RenameFileTest(TorrentHandleTest):
             continue
 
     def test_rename_file(self) -> None:
-        path = os.path.join("dir", "file.txt")
+        path = str(pathlib.Path("dir") / "file.txt")
         self.handle.rename_file(0, path)
 
         for _ in lib.loop_until_timeout(5, msg="rename"):
@@ -756,10 +789,14 @@ class RenameFileTest(TorrentHandleTest):
             break
 
     def test_get_renamed_files(self) -> None:
+        torrent_file = self.handle.torrent_file()
+        assert torrent_file is not None
+        fs = torrent_file.layout()
+
         # Before any rename, get_renamed_files() should return an empty mapping
         rf = self.handle.get_renamed_files()
         self.assertIsInstance(rf, lt.renamed_files)
-        self.assertEqual(rf.export_filenames(), {})
+        self.assertEqual(rf.export_filenames(fs), {})
 
         # Rename file 0 and wait for the alert
         self.handle.rename_file(0, "renamed.txt")
@@ -768,7 +805,7 @@ class RenameFileTest(TorrentHandleTest):
         # get_renamed_files() should now reflect the rename
         rf = self.handle.get_renamed_files()
         self.assertIsInstance(rf, lt.renamed_files)
-        self.assertEqual(rf.export_filenames(), {0: "renamed.txt"})
+        self.assertEqual(rf.export_filenames(fs), {0: "renamed.txt"})
 
     def test_bytes_deprecated(self) -> None:
         with self.assertWarns(DeprecationWarning):
@@ -783,12 +820,12 @@ class RenamedFilesClassTest(unittest.TestCase):
     def test_initial_state(self) -> None:
         rf = lt.renamed_files()
         self.assertIsInstance(rf, lt.renamed_files)
-        self.assertEqual(rf.export_filenames(), {})
+        self.assertEqual(rf.export_filenames(self.fs), {})
 
     def test_rename_file_and_export(self) -> None:
         rf = lt.renamed_files()
         rf.rename_file(self.fs, 0, "new_name.txt")
-        self.assertEqual(rf.export_filenames(), {0: "new_name.txt"})
+        self.assertEqual(rf.export_filenames(self.fs), {0: "new_name.txt"})
 
     def test_file_path(self) -> None:
         rf = lt.renamed_files()
@@ -800,7 +837,7 @@ class RenamedFilesClassTest(unittest.TestCase):
     def test_file_path_with_save_path(self) -> None:
         rf = lt.renamed_files()
         rf.rename_file(self.fs, 0, "new_name.txt")
-        path = rf.file_path(self.fs, 0, "/save/path")
+        path = rf.file_path(self.fs, 0, str(pathlib.Path("/") / "save" / "path"))
         self.assertIsInstance(path, str)
         self.assertIn("new_name.txt", path)
 
@@ -830,13 +867,13 @@ class RenamedFilesClassTest(unittest.TestCase):
     def test_import_filenames(self) -> None:
         rf = lt.renamed_files()
         rf.import_filenames(self.fs, {0: "imported.txt"})
-        self.assertEqual(rf.export_filenames(), {0: "imported.txt"})
+        self.assertEqual(rf.export_filenames(self.fs), {0: "imported.txt"})
 
     def test_import_then_export_roundtrip(self) -> None:
         filenames = {0: "roundtrip.txt"}
         rf = lt.renamed_files()
         rf.import_filenames(self.fs, filenames)
-        self.assertEqual(rf.export_filenames(), filenames)
+        self.assertEqual(rf.export_filenames(self.fs), filenames)
 
 
 class CertificateTest(TorrentHandleTest):

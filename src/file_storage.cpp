@@ -286,11 +286,25 @@ TORRENT_VERSION_NAMESPACE_4_END
 		entry.mode = aux::rename_entry::full_path;
 	}
 
-	std::map<file_index_t, std::string> renamed_files::export_filenames() const
+	std::map<file_index_t, std::string> renamed_files::export_filenames(file_storage const& fs) const
 	{
 		std::map<file_index_t, std::string> ret;
-		for (auto [idx, ent] : m_renamed_files)
-			ret[idx] = ent.path;
+		for (auto const& [idx, ent] : m_renamed_files)
+		{
+			if (ent.mode == aux::rename_entry::full_path)
+			{
+				// The stored path is the portion after the torrent name. Reconstruct
+				// the full user-facing path so import_filenames() can round-trip it
+				// correctly via rename_file().
+				std::string p(fs.name());
+				append_path(p, ent.path);
+				ret.emplace(idx, std::move(p));
+			}
+			else
+			{
+				ret.emplace(idx, ent.path);
+			}
+		}
 		return ret;
 	}
 
