@@ -301,7 +301,7 @@ piece_block_progress web_peer_connection::downloading_piece_progress() const
 	int const correction = m_piece.empty() ? 0 : -1;
 	auto const& pr = m_requests.front();
 	ret.block_index = (pr.start + int(m_piece.size()) + correction) / t->block_size();
-	ret.full_block_bytes = std::min(t->block_size(), t->torrent_file().piece_size_for_req(ret.piece_index) - pr.start);
+	ret.full_block_bytes = std::min(t->block_size(), t->piece_size_for_req(ret.piece_index) - pr.start);
 	return ret;
 }
 
@@ -332,7 +332,7 @@ void web_peer_connection::write_request(peer_request const& r)
 	{
 		pr.piece = cur_piece;
 		pr.start = cur_start;
-		pr.length = std::min(std::min(block_size, size), info.piece_size_for_req(pr.piece) - pr.start);
+		pr.length = std::min(std::min(block_size, size), t->piece_size_for_req(pr.piece) - pr.start);
 		TORRENT_ASSERT(validate_piece_request(pr));
 		m_requests.push_back(pr);
 
@@ -369,7 +369,7 @@ void web_peer_connection::write_request(peer_request const& r)
 #endif
 		size -= pr.length;
 		cur_start += pr.length;
-		if (cur_start >= info.piece_size_for_req(cur_piece))
+		if (cur_start >= t->piece_size_for_req(cur_piece))
 		{
 			cur_start = 0;
 			++cur_piece;

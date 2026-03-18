@@ -916,6 +916,21 @@ namespace libtorrent::aux {
 				? (std::min)(m_torrent_file->piece_length(), default_block_size)
 				: default_block_size;
 		}
+
+		bool disable_v1_hashes() const { return m_disable_v1_hashes; }
+
+		// like torrent_info::piece_size_for_req(), but when disable_v1_hashes
+		// was set at the time the torrent was added, the engine treats the torrent
+		// as v2-only and requests v2-sized blocks, so pad-file regions are never
+		// downloaded or written to disk. The flag is locked in at construct_storage()
+		// time so a later setting change cannot cause a storage/engine mismatch.
+		int piece_size_for_req(piece_index_t p) const
+		{
+			if (m_disable_v1_hashes)
+				return m_torrent_file->layout().piece_size2(p);
+			return m_torrent_file->piece_size_for_req(p);
+		}
+
 		peer_request to_req(piece_block const& p) const;
 
 		void disconnect_all(error_code const& ec, operation_t op);
@@ -1652,6 +1667,12 @@ namespace libtorrent::aux {
 		bool m_enable_lsd:1;
 
 		bool m_i2p:1;
+
+		// set once at construct_storage() time when disable_v1_hashes is
+		// enabled. locked in at that point so that changing the setting later
+		// doesn't cause a mismatch between the storage (which was set up as
+		// v2-only) and the engine's block-sizing logic.
+		bool m_disable_v1_hashes:1;
 // ----
 
 		// total time we've been available as a seed on this torrent.

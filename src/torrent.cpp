@@ -249,6 +249,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		, m_enable_dht(!bool(p.flags & torrent_flags::disable_dht))
 		, m_enable_lsd(!bool(p.flags & torrent_flags::disable_lsd))
 		, m_i2p(bool(p.flags & torrent_flags::i2p_torrent))
+		, m_disable_v1_hashes(false)
 		, m_max_uploads((1 << 24) - 1)
 		, m_num_uploads(0)
 		, m_enable_pex(!bool(p.flags & torrent_flags::disable_pex))
@@ -810,7 +811,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			return;
 		}
 
-		const int piece_size = m_torrent_file->piece_size_for_req(piece);
+		const int piece_size = piece_size_for_req(piece);
 		const int blocks_in_piece = (piece_size + block_size() - 1) / block_size();
 
 		TORRENT_ASSERT(blocks_in_piece > 0);
@@ -941,6 +942,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			ret |= torrent_flags::disable_pex;
 		if (m_i2p)
 			ret |= torrent_flags::i2p_torrent;
+		if (m_disable_v1_hashes)
+			ret |= torrent_flags::disable_v1_hashes;
 		return ret;
 	}
 
@@ -1257,7 +1260,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 		if (rp->blocks_left == 0)
 		{
-			int size = m_torrent_file->piece_size_for_req(r.piece);
+			int size = piece_size_for_req(r.piece);
 			if (rp->fail)
 			{
 				m_ses.alerts().emplace_alert<read_piece_alert>(
@@ -1413,7 +1416,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			return;
 
 		// make sure the piece size is correct
-		if (data.size() != std::size_t(m_torrent_file->piece_size_for_req(piece)))
+		if (data.size() != std::size_t(piece_size_for_req(piece)))
 			return;
 
 		add_piece(piece, data.data(), flags);
@@ -1430,7 +1433,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		if (piece >= torrent_file().end_piece())
 			return;
 
-		int const piece_size = m_torrent_file->piece_size_for_req(piece);
+		int const piece_size = piece_size_for_req(piece);
 		int const blocks_in_piece = (piece_size + block_size() - 1) / block_size();
 
 		if (m_deleted) return;
@@ -1560,7 +1563,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 	peer_request torrent::to_req(piece_block const& p) const
 	{
 		int const block_offset = p.block_index * block_size();
-		int const piece_sz = torrent_file().piece_size_for_req(p.piece_index);
+		int const piece_sz = piece_size_for_req(p.piece_index);
 		int const block = std::min(piece_sz - block_offset, block_size());
 		TORRENT_ASSERT(block > 0);
 		TORRENT_ASSERT(block <= block_size());
@@ -1848,6 +1851,12 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 	void torrent::construct_storage()
 	{
+		// lock in the v2-only mode at storage-construction time so that a later
+		// change to the disable_v1_hashes setting doesn't cause a mismatch
+		// between the storage (set up as v2-only) and the engine's block-sizing.
+		m_disable_v1_hashes = (m_add_torrent_params
+			&& bool(m_add_torrent_params->flags & torrent_flags::disable_v1_hashes))
+			&& m_torrent_file->v2();
 		storage_params params{
 			m_torrent_file->files_impl(),
 			m_renamed_files,
@@ -1856,7 +1865,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			static_cast<storage_mode_t>(m_storage_mode),
 			m_file_priority,
 			m_info_hash.get_best(),
-			m_torrent_file->v1(),
+			m_torrent_file->v1() && !m_disable_v1_hashes,
 			m_torrent_file->v2()
 		};
 
@@ -2555,7 +2564,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			if (m_checking_piece >= m_torrent_file->end_piece()) break;
 
 			auto flags = disk_interface::sequential_access | disk_interface::volatile_read;
-			if (torrent_file().info_hashes().has_v1())
+			if (torrent_file().info_hashes().has_v1() && !m_disable_v1_hashes)
 				flags |= disk_interface::v1_hash;
 			aux::vector<sha256_hash> hashes;
 			if (torrent_file().info_hashes().has_v2())
@@ -2650,7 +2659,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 		if (!settings().get_bool(settings_pack::disable_hash_checks))
 		{
-			if (torrent_file().info_hashes().has_v1())
+			if (torrent_file().info_hashes().has_v1() && !m_disable_v1_hashes)
 				hash_passed[0] = piece_hash == m_torrent_file->hash_for_piece(piece);
 
 			// if the v1 hash failed the check, don't add the v2 hashes to the
@@ -2743,7 +2752,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 			auto flags = disk_interface::sequential_access | disk_interface::volatile_read;
 
-			if (torrent_file().info_hashes().has_v1())
+			if (torrent_file().info_hashes().has_v1() && !m_disable_v1_hashes)
 				flags |= disk_interface::v1_hash;
 			if (torrent_file().info_hashes().has_v2())
 				block_hashes.resize(torrent_file().layout().blocks_in_piece2(m_checking_piece));
@@ -4271,7 +4280,6 @@ namespace {
 		if (m_abort) return;
 		if (m_deleted) return;
 
-		TORRENT_ASSERT(m_picker);
 		if (!m_picker) return;
 
 		m_picker->completed_hash_job(piece);
@@ -4289,7 +4297,7 @@ namespace {
 		}
 		else
 		{
-			if (torrent_file().info_hashes().has_v1())
+			if (torrent_file().info_hashes().has_v1() && !m_disable_v1_hashes)
 			{
 				passed = sha1_hash(piece_hash) == m_torrent_file->hash_for_piece(piece);
 			}
@@ -7085,7 +7093,7 @@ namespace {
 		}
 		for (piece_index_t p : result.hash_passed)
 		{
-			if (torrent_file().info_hashes().has_v1() && !have_piece(p))
+			if (torrent_file().info_hashes().has_v1() && !m_disable_v1_hashes && !have_piece(p))
 			{
 				handle_inconsistent_hashes(p);
 				return result.valid;
@@ -11584,7 +11592,7 @@ namespace {
 			flags |= disk_interface::flush_piece;
 		else if (write_mode == settings_pack::disable_os_cache)
 			flags |= disk_interface::flush_piece | disk_interface::volatile_read;
-		if (torrent_file().info_hashes().has_v1())
+		if (torrent_file().info_hashes().has_v1() && !m_disable_v1_hashes)
 			flags |= disk_interface::v1_hash;
 
 		aux::vector<sha256_hash> hashes;

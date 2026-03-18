@@ -73,7 +73,8 @@ EXPORT std::vector<lt::create_file_entry> create_random_files(std::string const&
 
 EXPORT lt::add_torrent_params create_torrent(std::ostream* file = nullptr
 	, char const* name = "temporary", int piece_size = 16 * 1024, int num_pieces = 13
-	, bool add_tracker = true, lt::create_flags_t flags = {}, std::string ssl_certificate = "");
+	, bool add_tracker = true, lt::create_flags_t flags = {}, std::string ssl_certificate = ""
+	, bool bad_v1_hashes = false);
 
 EXPORT std::tuple<lt::torrent_handle
 	, lt::torrent_handle

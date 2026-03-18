@@ -12,7 +12,6 @@ see LICENSE file.
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/session_params.hpp"
 #include "libtorrent/alert_types.hpp"
-#include "libtorrent/bencode.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -59,10 +58,17 @@ bool on_alert(alert const* a)
 struct transfer_tag;
 using transfer_flags_t = lt::flags::bitfield_flag<std::uint8_t, transfer_tag>;
 
+constexpr transfer_flags_t disable_v1_hashes = 0_bit;
 constexpr transfer_flags_t delete_files = 2_bit;
 constexpr transfer_flags_t move_storage = 3_bit;
 constexpr transfer_flags_t piece_deadline = 4_bit;
 constexpr transfer_flags_t large_piece_size = 5_bit;
+// bad_v1_hashes: create a hybrid torrent with wrong v1 SHA1 hashes but correct
+// v2 SHA256 hashes.
+constexpr transfer_flags_t bad_v1_hashes = 6_bit;
+// expect_inconsistent_error: expect a torrent_error_alert with
+// torrent_inconsistent_hashes instead of the torrent completing as a seed.
+constexpr transfer_flags_t expect_inconsistent_error = 7_bit;
 
 void test_transfer(int const proxy_type, settings_pack const& sett
 	, transfer_flags_t flags = {}
@@ -183,8 +189,12 @@ void test_transfer(int const proxy_type, settings_pack const& sett
 
 	create_directory("tmp1_transfer", ec);
 	std::ofstream file("tmp1_transfer/temporary");
-	add_torrent_params atp = ::create_torrent(&file, "temporary", piece_size, 13, false);
+	add_torrent_params atp = ::create_torrent(&file, "temporary", piece_size, 13, false
+		, {}, "", bool(flags & bad_v1_hashes));
 	file.close();
+
+	if (flags & disable_v1_hashes)
+		atp.flags |= torrent_flags::disable_v1_hashes;
 
 	TEST_CHECK(exists(combine_path("tmp1_transfer", "temporary")));
 
@@ -197,6 +207,8 @@ void test_transfer(int const proxy_type, settings_pack const& sett
 
 	peer_disconnects = 0;
 	read_piece_alerts = 0;
+
+	bool got_inconsistent_error = false;
 
 	// test using piece sizes smaller than 16kB
 	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, nullptr
@@ -235,7 +247,12 @@ void test_transfer(int const proxy_type, settings_pack const& sett
 		torrent_status const st2 = tor2.status();
 
 		print_alerts(ses1, "ses1", true, true, &on_alert);
-		print_alerts(ses2, "ses2", true, true, &on_alert);
+		print_alerts(ses2, "ses2", true, true, [&](alert const* a) {
+			if (auto const* te = alert_cast<torrent_error_alert>(a))
+				if (te->error == errors::torrent_inconsistent_hashes)
+					got_inconsistent_error = true;
+			return on_alert(a);
+		});
 
 		if (i % 10 == 0)
 		{
@@ -266,12 +283,16 @@ void test_transfer(int const proxy_type, settings_pack const& sett
 		// back into upload mode) before we restart it.
 
 		if (st2.is_seeding) break;
+		if ((flags & expect_inconsistent_error) && got_inconsistent_error) break;
 
-		TEST_CHECK(st1.state == torrent_status::seeding
-			|| st1.state == torrent_status::checking_files
-			|| st1.state == torrent_status::checking_resume_data);
-		TEST_CHECK(st2.state == torrent_status::downloading
-			|| st2.state == torrent_status::checking_resume_data);
+		if (!(flags & expect_inconsistent_error))
+		{
+			TEST_CHECK(st1.state == torrent_status::seeding
+				|| st1.state == torrent_status::checking_files
+				|| st1.state == torrent_status::checking_resume_data);
+			TEST_CHECK(st2.state == torrent_status::downloading
+				|| st2.state == torrent_status::checking_resume_data);
+		}
 
 		if (peer_disconnects >= 2) break;
 
@@ -283,7 +304,12 @@ void test_transfer(int const proxy_type, settings_pack const& sett
 		TEST_CHECK(read_piece_alerts > 0);
 	}
 
-	if (!(flags & delete_files))
+	if (flags & expect_inconsistent_error)
+	{
+		TEST_CHECK(got_inconsistent_error);
+		TEST_CHECK(!tor2.status().is_seeding);
+	}
+	else if (!(flags & delete_files))
 	{
 		TEST_CHECK(tor2.status().is_seeding);
 	}
@@ -552,5 +578,19 @@ TORRENT_TEST(write_through_pread)
 	p.set_int(settings_pack::disk_io_write_mode, settings_pack::write_through);
 	test_transfer(0, p, {}, storage_mode_allocate, pread_disk_io_constructor);
 
+	cleanup();
+}
+
+// flag ON + bad v1 hashes -> transfer completes (v1 validation is skipped)
+TORRENT_TEST(disable_v1_hashes_bad_v1_enabled)
+{
+	test_transfer(0, {}, bad_v1_hashes | disable_v1_hashes);
+	cleanup();
+}
+
+// flag OFF + bad v1 hashes -> torrent_error_alert with torrent_inconsistent_hashes
+TORRENT_TEST(disable_v1_hashes_bad_v1_disabled)
+{
+	test_transfer(0, {}, bad_v1_hashes | expect_inconsistent_error);
 	cleanup();
 }

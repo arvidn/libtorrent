@@ -147,7 +147,8 @@ void run_test(
 
 	int const num_files = (flags & tx::multiple_files) ? 3 : 1;
 
-	lt::add_torrent_params atp = ::create_test_torrent(piece_size, num_pieces, cflags, num_files);
+	lt::add_torrent_params atp = ::create_test_torrent(piece_size, num_pieces, cflags
+		, num_files, bool(flags & tx::bad_v1_hashes));
 	// this is unused by the test disk I/O
 	atp.save_path = ".";
 	atp.flags &= ~lt::torrent_flags::auto_managed;
@@ -184,6 +185,9 @@ void run_test(
 				});
 		}
 	}
+
+	if (flags & tx::disable_v1_hashes)
+		atp.flags |= lt::torrent_flags::disable_v1_hashes;
 
 	// if we're seeding with a web server, no need to start the second session
 	if (!(flags & tx::web_seed))
@@ -303,7 +307,7 @@ void run_all_combinations(F fun)
 	for (test_transfer_flags_t piece_size : {test_transfer_flags_t{}, tx::odd_pieces, tx::small_pieces, tx::large_pieces})
 		for (test_transfer_flags_t web_seed : {tx::web_seed, test_transfer_flags_t{}})
 			for (test_transfer_flags_t corruption : {test_transfer_flags_t{}, tx::corruption})
-				for (test_transfer_flags_t bt_version : {test_transfer_flags_t{}, tx::v2_only, tx::v1_only})
+				for (test_transfer_flags_t bt_version : {test_transfer_flags_t{}, tx::v2_only, tx::v1_only, tx::disable_v1_hashes})
 					for (test_transfer_flags_t magnet : {test_transfer_flags_t{}, tx::magnet_download})
 						for (test_transfer_flags_t multi_file : {test_transfer_flags_t{}, tx::multiple_files})
 							for (test_transfer_flags_t resume : {tx::resume_restart, test_transfer_flags_t{}})

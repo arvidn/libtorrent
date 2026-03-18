@@ -233,7 +233,8 @@ int pads_in_req(std::unordered_map<lt::piece_index_t, int> const& pb
 }
 
 lt::add_torrent_params create_test_torrent(int const piece_size
-	, int const num_pieces, lt::create_flags_t const flags, int const num_files)
+	, int const num_pieces, lt::create_flags_t const flags, int const num_files
+	, bool const bad_v1_hashes)
 {
 	std::vector<lt::create_file_entry> ifs;
 	int total_size = num_files * piece_size * num_pieces + 1234;
@@ -309,15 +310,26 @@ lt::add_torrent_params create_test_torrent(int const piece_size
 		}
 	}
 
+	if (bad_v1_hashes)
+	{
+		// Use wrong but non-zero hashes so the torrent stays hybrid
+		// (all-zero hashes would make validate_v1_hashes() return false,
+		// turning the torrent into v2-only with no inconsistency to detect)
+		lt::sha1_hash const wrong{"\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01"
+			"\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01"};
+		for (auto const i : t.piece_range())
+			t.set_hash(i, wrong);
+	}
+
 	std::vector<char> const tmp = bencode(t.generate());
 	return lt::load_torrent_buffer(tmp);
 }
 
 lt::add_torrent_params create_test_torrent(
 	int const num_pieces, lt::create_flags_t const flags, int const blocks_per_piece
-	, int const num_files)
+	, int const num_files, bool const bad_v1_hashes)
 {
-	lt::add_torrent_params params = ::create_test_torrent(lt::default_block_size * blocks_per_piece, num_pieces, flags, num_files);
+	lt::add_torrent_params params = ::create_test_torrent(lt::default_block_size * blocks_per_piece, num_pieces, flags, num_files, bad_v1_hashes);
 	// this is unused by the test disk I/O
 	params.save_path = ".";
 	return params;

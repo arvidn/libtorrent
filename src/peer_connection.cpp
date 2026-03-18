@@ -1250,7 +1250,7 @@ namespace {
 		return p.piece >= piece_index_t(0)
 			&& p.piece < ti.end_piece()
 			&& p.start >= 0
-			&& p.start < ti.piece_size_for_req(p.piece)
+			&& p.start < t->piece_size_for_req(p.piece)
 			&& t->to_req(piece_block(p.piece, p.start / t->block_size())) == p;
 	}
 
@@ -1578,9 +1578,9 @@ namespace {
 		if (r.piece < piece_index_t{}
 			|| r.piece >= t->torrent_file().layout().end_piece()
 			|| r.start < 0
-			|| r.start >= t->torrent_file().piece_size_for_req(r.piece)
+			|| r.start >= t->piece_size_for_req(r.piece)
 			|| (r.start % block_size) != 0
-			|| r.length != std::min(t->torrent_file().piece_size_for_req(r.piece) - r.start, block_size))
+			|| r.length != std::min(t->piece_size_for_req(r.piece) - r.start, block_size))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, peer_log_alert::reject, "invalid reject message (%d, %d, %d)"
@@ -4086,7 +4086,7 @@ namespace {
 
 					int const block_offset = block.block.block_index * t->block_size();
 					int const bs =
-						std::min(t->torrent_file().piece_size_for_req(block.block.piece_index)
+						std::min(t->piece_size_for_req(block.block.piece_index)
 							- block_offset, t->block_size());
 					TORRENT_ASSERT(bs > 0);
 					TORRENT_ASSERT(bs <= t->block_size());
@@ -5302,7 +5302,7 @@ namespace {
 				// this means we're in seed mode and we haven't yet
 				// verified this piece (r.piece)
 				disk_job_flags_t flags;
-				if (t->info_hash().has_v1())
+				if (t->info_hash().has_v1() && !t->disable_v1_hashes())
 					flags |= disk_interface::v1_hash;
 				aux::vector<sha256_hash> hashes;
 				if (t->info_hash().has_v2())
@@ -5413,7 +5413,7 @@ namespace {
 
 		// we're using the piece hashes here, we need the torrent to be loaded
 		if (!m_settings.get_bool(settings_pack::disable_hash_checks)
-			&& t->info_hash().has_v1())
+			&& t->info_hash().has_v1() && !t->disable_v1_hashes())
 		{
 			hash_failed[protocol_version::V1] = piece_hash != t->torrent_file().hash_for_piece(piece);
 		}
@@ -6566,7 +6566,7 @@ namespace {
 			int outstanding_bytes = 0;
 			int const bs = t->block_size();
 			piece_block last_block(ti.last_piece()
-				, (ti.piece_size_for_req(ti.last_piece()) + bs - 1) / bs);
+				, (t->piece_size_for_req(ti.last_piece()) + bs - 1) / bs);
 
 			for (std::vector<pending_block>::const_iterator i = m_download_queue.begin()
 				, end(m_download_queue.end()); i != end; ++i)

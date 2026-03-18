@@ -118,7 +118,7 @@ int num_pieces(test_transfer_flags_t const flags)
 	return 11;
 }
 
-bool run_matrix_test(test_transfer_flags_t const flags, existing_files_mode const files)
+bool run_matrix_test(test_transfer_flags_t flags, existing_files_mode const files)
 {
 	// v2 (compatible) torrents require power-of-2
 	// piece sizes
@@ -155,7 +155,10 @@ bool run_matrix_test(test_transfer_flags_t const flags, existing_files_mode cons
 			: (flags & tx::odd_pieces) ? "odd_pieces"
 			: "normal_pieces")
 		<< "-" << ((flags & tx::corruption) ? "corruption" : "valid")
-		<< "-" << ((flags & tx::v2_only) ? "v2_only" : (flags & tx::v1_only) ? "v1_only" : "hybrid")
+		<< "-" << ((flags & tx::v2_only) ? "v2_only"
+			: (flags & tx::v1_only) ? "v1_only"
+			: (flags & tx::disable_v1_hashes) ? "hybrid_disable_v1"
+			: "hybrid")
 		<< "-" << ((flags & tx::magnet_download) ? "magnet" : "torrent")
 		<< "-" << ((flags & tx::multiple_files) ? "multi_file" : "single_file")
 		<< "-" << ((flags & tx::web_seed) ? "web_seed" : "bt_peers")
@@ -175,7 +178,13 @@ bool run_matrix_test(test_transfer_flags_t const flags, existing_files_mode cons
 	if (flags & tx::resume_restart)
 		handler.add(restore_from_resume());
 
-	run_test(no_init
+	// when testing disable_v1_hashes, use bad v1 hashes to exercise
+	// that the setting actually bypasses v1 validation
+	if (flags & tx::disable_v1_hashes)
+		flags |= tx::bad_v1_hashes;
+
+	run_test(
+		no_init
 		, handler
 		, expect_seed(!(flags & tx::corruption))
 		, flags

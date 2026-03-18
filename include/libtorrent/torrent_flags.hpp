@@ -294,6 +294,13 @@ namespace torrent_flags {
 	// URL.
 	constexpr torrent_flags_t i2p_torrent = 24_bit;
 
+	// For hybrid (v1+v2) torrents, skip SHA-1 (v1) piece hash validation and
+	// only verify SHA-256 (v2) hashes. Saves CPU and disk I/O by avoiding the
+	// read-back required to compute v1 hashes for incomplete pieces, when v2
+	// validation alone is sufficient. Has no effect on v1-only or v2-only
+	// torrents. Cannot be changed after the torrent is added.
+	constexpr torrent_flags_t disable_v1_hashes = 25_bit;
+
 	// all torrent flags combined. Can conveniently be used when creating masks
 	// for flags
 	constexpr torrent_flags_t all = torrent_flags_t::all();

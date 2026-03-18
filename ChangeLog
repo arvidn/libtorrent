@@ -1,5 +1,6 @@
 2.1.0 not released
 
+	* add option to not validate v1 hashes for hybrid torrents
 	* add post_file_status() to query them asynchronously
 	* add post_file_priorities() to query them asynchronously
 	* fix local service discovery not being correctly staggered

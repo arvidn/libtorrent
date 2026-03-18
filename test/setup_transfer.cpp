@@ -943,7 +943,7 @@ std::vector<lt::create_file_entry> create_random_files(std::string const& path, 
 add_torrent_params create_torrent(std::ostream* file
 	, char const* name, int piece_size
 	, int num_pieces, bool add_tracker, lt::create_flags_t const flags
-	, std::string ssl_certificate)
+	, std::string ssl_certificate, bool const bad_v1_hashes)
 {
 	// exercise the path when encountering invalid urls
 	char const* invalid_tracker_url = "http:";
@@ -990,8 +990,9 @@ add_torrent_params create_torrent(std::ostream* file
 
 	if (!(flags & create_torrent::v2_only))
 	{
-		// calculate the hash for all pieces
-		sha1_hash ph = hasher(piece).final();
+		sha1_hash const ph = bad_v1_hashes
+			? sha1_hash("\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01")
+			: hasher(piece).final();
 		for (auto const i : t.piece_range())
 			t.set_hash(i, ph);
 	}

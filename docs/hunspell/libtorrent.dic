@@ -5,6 +5,7 @@ API
 APIs
 ABI
 SHA-1
+SHA-256
 ed25519
 const
 BEP

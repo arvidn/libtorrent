@@ -100,6 +100,7 @@ namespace {
 		ret["disable_dht"] = bool(atp.flags & torrent_flags::disable_dht);
 		ret["disable_lsd"] = bool(atp.flags & torrent_flags::disable_lsd);
 		ret["disable_pex"] = bool(atp.flags & torrent_flags::disable_pex);
+		ret["disable_v1_hashes"] = bool(atp.flags & torrent_flags::disable_v1_hashes);
 
 		ret["added_time"] = atp.added_time;
 		ret["completed_time"] = atp.completed_time;

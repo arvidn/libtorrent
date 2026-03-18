@@ -251,6 +251,36 @@ TORRENT_TEST(piece_extent_affinity)
 	);
 }
 
+// When the downloader has the flag, v1 validation is skipped and the transfer
+// succeeds. Without it, the downloader detects the hash mismatch and aborts.
+void run_disable_v1_hashes_test(bool const enable_on_downloader)
+{
+	bool got_inconsistent_error = false;
+	run_test(
+		no_init,
+		[&](lt::session&, lt::alert const* a)
+		{
+			if (auto e = lt::alert_cast<lt::torrent_error_alert>(a))
+				if (e->error == lt::errors::torrent_inconsistent_hashes)
+					got_inconsistent_error = true;
+		},
+		[&](std::shared_ptr<lt::session> ses[2])
+		{
+			TEST_EQUAL(is_seed(*ses[0]), enable_on_downloader);
+			TEST_EQUAL(got_inconsistent_error, !enable_on_downloader);
+		},
+		tx::bad_v1_hashes | (enable_on_downloader ? tx::disable_v1_hashes : test_transfer_flags_t{})
+	);
+}
+
+// setting ON + bad v1 hashes -> should succeed, v1 validation is skipped
+TORRENT_TEST(disable_v1_hashes_bad_v1_enabled)
+{ run_disable_v1_hashes_test(true); }
+
+// setting OFF + bad v1 hashes -> should fail with torrent_inconsistent_hashes
+TORRENT_TEST(disable_v1_hashes_bad_v1_disabled)
+{ run_disable_v1_hashes_test(false); }
+
 TORRENT_TEST(is_finished)
 {
 	run_test(no_init
