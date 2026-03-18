@@ -86,6 +86,7 @@ int settings_key(int const tag)
 		case SET_SOCKS5_UDP_SEND_LOCAL_EP: return sp::socks5_udp_send_local_ep;
 		case SET_PROXY_SEND_HOST_IN_CONNECT: return sp::proxy_send_host_in_connect;
 		case SET_DISK_DISABLE_COPY_ON_WRITE: return sp::disk_disable_copy_on_write;
+		case SET_HYBRID_ONLY_VALIDATES_V2: return sp::hybrid_only_validates_v2;
 		case SET_TRACKER_COMPLETION_TIMEOUT: return sp::tracker_completion_timeout;
 		case SET_TRACKER_RECEIVE_TIMEOUT: return sp::tracker_receive_timeout;
 		case SET_STOP_TRACKER_TIMEOUT: return sp::stop_tracker_timeout;

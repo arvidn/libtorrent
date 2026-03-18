@@ -1029,6 +1029,15 @@ namespace aux {
 			// created within it to have the NOCOW flag set.
 			disk_disable_copy_on_write,
 
+			// For hybrid torrents (torrents that have both v1 and v2 piece hashes),
+			// when this option is set to true, only the v2 (SHA-256) piece hashes
+			// are validated. The v1 (SHA-1) hashes are ignored. The main benefits
+			// are saving CPU by not checking v1 hashes, and disk I/O, as v2
+			// pieces are merkle trees, blocks never have to be read back from
+			// disk to compute the piece hash. This option has no effect on
+			// v1-only or v2-only torrents.
+			hybrid_only_validates_v2,
+
 			max_bool_setting_internal
 		};
 

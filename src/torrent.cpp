@@ -1848,6 +1848,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 	void torrent::construct_storage()
 	{
+		bool const hybrid_v2_only = settings().get_bool(settings_pack::hybrid_only_validates_v2)
+			&& m_torrent_file->v2();
 		storage_params params{
 			m_torrent_file->files_impl(),
 			m_renamed_files,
@@ -1856,7 +1858,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			static_cast<storage_mode_t>(m_storage_mode),
 			m_file_priority,
 			m_info_hash.get_best(),
-			m_torrent_file->v1(),
+			m_torrent_file->v1() && !hybrid_v2_only,
 			m_torrent_file->v2()
 		};
 
@@ -4289,7 +4291,9 @@ namespace {
 		}
 		else
 		{
-			if (torrent_file().info_hashes().has_v1())
+			bool const hybrid_v2_only = settings().get_bool(settings_pack::hybrid_only_validates_v2)
+				&& torrent_file().info_hashes().has_v2();
+			if (torrent_file().info_hashes().has_v1() && !hybrid_v2_only)
 			{
 				passed = sha1_hash(piece_hash) == m_torrent_file->hash_for_piece(piece);
 			}
@@ -11553,7 +11557,9 @@ namespace {
 			flags |= disk_interface::flush_piece;
 		else if (write_mode == settings_pack::disable_os_cache)
 			flags |= disk_interface::flush_piece | disk_interface::volatile_read;
-		if (torrent_file().info_hashes().has_v1())
+		bool const hybrid_v2_only = settings().get_bool(settings_pack::hybrid_only_validates_v2)
+			&& torrent_file().info_hashes().has_v2();
+		if (torrent_file().info_hashes().has_v1() && !hybrid_v2_only)
 			flags |= disk_interface::v1_hash;
 
 		aux::vector<sha256_hash> hashes;
