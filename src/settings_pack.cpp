@@ -157,7 +157,6 @@ constexpr int DISK_WRITE_MODE = settings_pack::enable_os_cache;
 	aux::array<bool_setting_entry_t, settings_pack::num_bool_settings> const bool_settings
 	({{
 		SET(allow_multiple_connections_per_ip, false, nullptr),
-		SET(allow_multiple_connections_per_pid, false, nullptr),
 		DEPRECATED_SET(ignore_limits_on_local_network, true, &session_impl::update_ignore_rate_limits_on_local_network),
 		SET(send_redundant_have, true, nullptr),
 		DEPRECATED_SET(lazy_bitfields, false, nullptr),
@@ -243,6 +242,7 @@ constexpr int DISK_WRITE_MODE = settings_pack::enable_os_cache;
 		SET(socks5_udp_send_local_ep, false, nullptr),
 		SET(proxy_send_host_in_connect, false, nullptr),
 		SET(disk_disable_copy_on_write, false, nullptr),
+		SET(allow_multiple_connections_per_pid, false, nullptr),
 	}});
 
 	CONSTEXPR_SETTINGS
