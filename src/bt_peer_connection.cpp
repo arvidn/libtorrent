@@ -3534,7 +3534,7 @@ namespace {
 			std::copy(recv_buffer.begin(), recv_buffer.begin() + 20, pid.data());
 
 			// now, let's see if this connection should be closed
-			if (!t->settings().get_bool(settings_pack::allow_multiple_connections_per_ip))
+			if (!t->settings().get_bool(settings_pack::allow_multiple_connections_per_pid))
 			{
 				peer_connection* p = t->find_peer(pid);
 				if (p)

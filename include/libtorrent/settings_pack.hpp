@@ -412,6 +412,9 @@ namespace aux {
 			// likely to fail in some edge cases. It is not recommended to enable
 			// this feature.
 			allow_multiple_connections_per_ip = bool_type_base,
+			
+			//
+			allow_multiple_connections_per_pid,
 
 #if TORRENT_ABI_VERSION == 1
 			// if set to true, upload, download and unchoke limits are ignored for
