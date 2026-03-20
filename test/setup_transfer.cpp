@@ -1016,7 +1016,11 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	if (ses3) ses3->set_peer_class_filter(f);
 
 	settings_pack pack;
-	if (ses3) pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
+	if (ses3) 
+	{
+		pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
+		pack.set_bool(settings_pack::allow_multiple_connections_per_pid, true);
+	}
 	pack.set_int(settings_pack::mixed_mode_algorithm, settings_pack::prefer_tcp);
 	pack.set_int(settings_pack::max_failcount, 1);
 	ses1->apply_settings(pack);
