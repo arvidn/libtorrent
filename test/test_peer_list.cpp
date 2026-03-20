@@ -143,7 +143,6 @@ struct mock_peer_connection
 		, operation_t op, disconnect_severity_t error = peer_connection_interface::normal) override;
 	peer_id const& pid() const override { return m_id; }
 	peer_id our_pid() const override { return m_our_id; }
-	void set_pid(peer_id const& pid) { m_id = pid; }
 	void set_holepunch_mode() override {}
 	torrent_peer* peer_info_struct() const override { return m_tp; }
 	void set_peer_info(torrent_peer* pi) override { m_tp = pi; }
@@ -202,7 +201,6 @@ torrent_state init_state()
 	st.is_finished = false;
 	st.max_peerlist_size = 1000;
 	st.allow_multiple_connections_per_ip = false;
-	st.allow_multiple_connections_per_pid = false;
 	st.port = 9999;
 	return st;
 }
@@ -1238,58 +1236,6 @@ TORRENT_TEST(clear_peers)
 	TEST_EQUAL(p.num_candidate_cache(), 0);
 	TEST_EQUAL(p.num_connect_candidates(), 0);
 	TEST_EQUAL(p.num_seeds(), 0);
-}
-
-TORRENT_TEST(allow_multiple_connections_per_pid_true)
-{
-	torrent_state st = init_state();
-	mock_torrent t(&st);
-	st.allow_multiple_connections_per_pid = true;
-	peer_list p(allocator);
-	t.m_p = &p;
-
-	peer_id pid;
-	std::fill(pid.begin(), pid.end(), 'A');
-
-	auto con1 = std::make_shared<mock_peer_connection>(&t, true, ep("10.0.0.1", 3000));
-	con1->set_pid(pid);
-	p.new_connection(*con1, 0, &st);
-
-	auto con2 = std::make_shared<mock_peer_connection>(&t, true, ep("10.0.0.2", 3000));
-	con2->set_pid(pid);
-	p.new_connection(*con2, 0, &st);
-
-	// With allow_multiple_connections_per_pid = true, duplicate peer IDs
-	// should be allowed. Both connections should stay connected.
-	TEST_EQUAL(con1->was_disconnected(), false);
-	TEST_EQUAL(con2->was_disconnected(), false);
-}
-
-TORRENT_TEST(allow_multiple_connections_per_pid_false)
-{
-	torrent_state st = init_state();
-	mock_torrent t(&st);
-	st.allow_multiple_connections_per_pid = false;
-	peer_list p(allocator);
-	t.m_p = &p;
-
-	peer_id pid;
-	std::fill(pid.begin(), pid.end(), 'B');
-
-	auto con1 = std::make_shared<mock_peer_connection>(&t, true, ep("10.0.0.1", 3000));
-	con1->set_pid(pid);
-	p.new_connection(*con1, 0, &st);
-
-	auto con2 = std::make_shared<mock_peer_connection>(&t, true, ep("10.0.0.2", 3000));
-	con2->set_pid(pid);
-	p.new_connection(*con2, 0, &st);
-
-	// With allow_multiple_connections_per_pid = false, duplicate peer IDs
-	// should not be allowed. One connection should be disconnected.
-	// Check that exactly one connection remains active.
-	bool con1_disconnected = con1->was_disconnected();
-	bool con2_disconnected = con2->was_disconnected();
-	TEST_EQUAL(con1_disconnected != con2_disconnected, true);
 }
 
 // TODO: test erasing peers
