@@ -88,42 +88,6 @@ visitor<F> allow_threads(F fn)
     return visitor<F>(fn);
 }
 
-template<typename Fn, typename Self, typename... Args,
-    typename std::enable_if<std::is_member_function_pointer<typename std::decay<Fn>::type>::value, int>::type = 0>
-auto invoke(Fn&& fn, Self&& s, Args&&... args) ->
-#if TORRENT_AUTO_RETURN_TYPES
-    decltype(auto)
-#else
-    decltype((std::forward<Self>(s).*std::forward<Fn>(fn))(std::forward<Args>(args)...))
-#endif
-{
-    return (std::forward<Self>(s).*std::forward<Fn>(fn))(std::forward<Args>(args)...);
-}
-
-template<typename Fn, typename Self,
-    typename std::enable_if<std::is_member_object_pointer<typename std::decay<Fn>::type>::value, int>::type = 0>
-auto invoke(Fn&& fn, Self&& s) ->
-#if TORRENT_AUTO_RETURN_TYPES
-    decltype(auto)
-#else
-    decltype((std::forward<Self>(s).*std::forward<Fn>)(fn))
-#endif
-{
-    return (std::forward<Self>(s).*std::forward<Fn>)(fn);
-}
-
-template<typename Fn, typename... Args,
-    typename std::enable_if<!std::is_member_pointer<typename std::decay<Fn>::type>::value, int>::type = 0>
-auto invoke(Fn&& fn, Args&&... args) ->
-#if TORRENT_AUTO_RETURN_TYPES
-    decltype(auto)
-#else
-    decltype(std::forward<Fn>(fn)(std::forward<Args>(args)...))
-#endif
-{
-    return std::forward<Fn>(fn)(std::forward<Args>(args)...);
-}
-
 template <typename F, typename R>
 struct deprecated_fun
 {
@@ -133,8 +97,7 @@ struct deprecated_fun
     {
         std::string const msg = std::string(fn_name) + "() is deprecated";
         python_deprecated(msg.c_str());
-        // TODO: in C++17 use std::invoke
-        return ::invoke(fn, std::forward<Args>(args)...);
+        return std::invoke(fn, std::forward<Args>(args)...);
     }
     F fn;
     char const* fn_name;
