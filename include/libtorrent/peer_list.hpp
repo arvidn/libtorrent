@@ -69,6 +69,7 @@ namespace libtorrent {
 	{
 		bool is_finished = false;
 		bool allow_multiple_connections_per_ip = false;
+		bool allow_multiple_connections_per_pid = false;
 
 		// this is set by peer_list::add_peer to either true or false
 		// true means the peer we just added was new, false means

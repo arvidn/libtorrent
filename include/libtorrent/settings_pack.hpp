@@ -1046,6 +1046,14 @@ namespace aux {
 			// NOCOW flag on the download directory, which will cause all files
 			// created within it to have the NOCOW flag set.
 			disk_disable_copy_on_write,
+			
+			// determines if connections from the same Peer ID as existing
+			// connections should be rejected or not. Typically, we
+			// only establish a single connection with each peer. If
+			// a peer has multiple IP addresses, enabling this feature
+			// may improve transfer efficiency, but it may also
+			// increase network load.
+			allow_multiple_connections_per_pid,
 
 			max_bool_setting_internal
 		};

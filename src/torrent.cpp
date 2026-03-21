@@ -11222,6 +11222,7 @@ namespace {
 		torrent_state ret;
 		ret.is_finished = is_finished();
 		ret.allow_multiple_connections_per_ip = settings().get_bool(settings_pack::allow_multiple_connections_per_ip);
+		ret.allow_multiple_connections_per_pid = settings().get_bool(settings_pack::allow_multiple_connections_per_pid);
 		ret.max_peerlist_size = is_paused()
 			? settings().get_int(settings_pack::max_paused_peerlist_size)
 			: settings().get_int(settings_pack::max_peerlist_size);

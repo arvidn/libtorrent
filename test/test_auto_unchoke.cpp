@@ -70,6 +70,7 @@ void test_swarm()
 	pack.set_int(settings_pack::unchoke_interval, 1);
 
 	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
+	pack.set_bool(settings_pack::allow_multiple_connections_per_pid, true);
 	pack.set_int(settings_pack::choking_algorithm, settings_pack::rate_based_choker);
 	pack.set_int(settings_pack::upload_rate_limit, int(rate_limit));
 	pack.set_int(settings_pack::unchoke_slots_limit, 1);

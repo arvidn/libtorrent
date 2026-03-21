@@ -77,6 +77,7 @@ lt::settings_pack settings()
 
 #ifndef TORRENT_BUILD_SIMULATOR
 	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
+	pack.set_bool(settings_pack::allow_multiple_connections_per_pid, true);
 #else
 	// we use 0 threads (disk I/O operations will be performed in the network
 	// thread) to be simulator friendly.
