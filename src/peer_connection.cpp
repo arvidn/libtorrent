@@ -5916,11 +5916,9 @@ namespace {
 
 		using write_handler_type = aux::handler<
 			peer_connection
-			, decltype(&peer_connection::on_send_data)
 			, &peer_connection::on_send_data
 			, &peer_connection::on_error
 			, &peer_connection::on_exception
-			, decltype(m_write_handler_storage)
 			, &peer_connection::m_write_handler_storage
 			>;
 		static_assert(sizeof(write_handler_type) == sizeof(std::shared_ptr<peer_connection>)
@@ -6010,11 +6008,9 @@ namespace {
 
 		using read_handler_type = aux::handler<
 			peer_connection
-			, decltype(&peer_connection::on_receive_data)
 			, &peer_connection::on_receive_data
 			, &peer_connection::on_error
 			, &peer_connection::on_exception
-			, decltype(m_read_handler_storage)
 			, &peer_connection::m_read_handler_storage
 			>;
 		static_assert(sizeof(read_handler_type) == sizeof(std::shared_ptr<peer_connection>)
