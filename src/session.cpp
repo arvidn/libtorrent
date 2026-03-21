@@ -496,9 +496,8 @@ namespace {
 //#if TORRENT_HAVE_PREAD || defined TORRENT_WINDOWS
 //		return pread_disk_io_constructor(ios, sett, cnt);
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
-		// TODO: In C++17. use if constexpr instead
 #include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
-		if (sizeof(void*) == 8)
+		if constexpr (sizeof(void*) == 8)
 			return mmap_disk_io_constructor(ios, sett, cnt);
 		else
 			return posix_disk_io_constructor(ios, sett, cnt);
