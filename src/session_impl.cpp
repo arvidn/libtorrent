@@ -5018,9 +5018,8 @@ retry:
 		return torrent_handle(find_torrent(info_hash));
 	}
 
-	void session_impl::async_add_torrent(add_torrent_params* params)
+	void session_impl::async_add_torrent(std::unique_ptr<add_torrent_params> params)
 	{
-		std::unique_ptr<add_torrent_params> holder(params);
 		error_code ec;
 		add_torrent(std::move(*params), ec);
 	}

@@ -35,12 +35,15 @@ namespace libtorrent {
 	{
 		std::shared_ptr<session_impl> s = m_impl.lock();
 		if (!s) aux::throw_ex<system_error>(errors::invalid_session_handle);
-		dispatch(s->get_context(), std::bind([s, f](auto&&... args) mutable
+		dispatch(s->get_context(), [s, f, packed_args = std::make_tuple(std::forward<Args>(a)...)]() mutable
 		{
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
 #endif
-				(s.get()->*f)(std::forward<Args>(args)...);
+				std::apply([&](auto&&... args)
+				{
+					(s.get()->*f)(std::forward<Args>(args)...);
+				}, packed_args);
 #ifndef BOOST_NO_EXCEPTIONS
 			} catch (system_error const& e) {
 				s->alerts().emplace_alert<session_error_alert>(e.code(), e.what());
@@ -50,7 +53,7 @@ namespace libtorrent {
 				s->alerts().emplace_alert<session_error_alert>(error_code(), "unknown error");
 			}
 #endif
-		}, std::forward<Args>(a)...));
+		});
 	}
 
 	template<typename Fun, typename... Args>
@@ -65,12 +68,15 @@ namespace libtorrent {
 		bool done = false;
 
 		std::exception_ptr ex;
-		dispatch(s->get_context(), std::bind([s, f, &done, &ex](auto&&... args) mutable
+		dispatch(s->get_context(), [s, f, &done, &ex, packed_args = std::make_tuple(std::forward<Args>(a)...)]() mutable
 		{
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
 #endif
-				(s.get()->*f)(std::forward<Args>(args)...);
+				std::apply([&](auto&&... args)
+				{
+					(s.get()->*f)(std::forward<Args>(args)...);
+				}, packed_args);
 #ifndef BOOST_NO_EXCEPTIONS
 			} catch (...) {
 				ex = std::current_exception();
@@ -79,7 +85,7 @@ namespace libtorrent {
 			std::unique_lock<std::mutex> l(s->mut);
 			done = true;
 			s->cond.notify_all();
-		}, std::forward<Args>(a)...));
+		});
 
 		aux::torrent_wait(done, *s);
 		if (ex) std::rethrow_exception(ex);
@@ -97,12 +103,15 @@ namespace libtorrent {
 		bool done = false;
 		Ret r;
 		std::exception_ptr ex;
-		dispatch(s->get_context(), std::bind([s, f, &r, &done, &ex](auto&&... args) mutable
+		dispatch(s->get_context(), [s, f, &r, &done, &ex, packed_args = std::make_tuple(std::forward<Args>(a)...)]() mutable
 		{
 #ifndef BOOST_NO_EXCEPTIONS
 			try {
 #endif
-				r = (s.get()->*f)(std::forward<Args>(args)...);
+				std::apply([&](auto&&... args)
+				{
+					r = (s.get()->*f)(std::forward<Args>(args)...);
+				}, packed_args);
 #ifndef BOOST_NO_EXCEPTIONS
 			} catch (...) {
 				ex = std::current_exception();
@@ -111,7 +120,7 @@ namespace libtorrent {
 			std::unique_lock<std::mutex> l(s->mut);
 			done = true;
 			s->cond.notify_all();
-		}, std::forward<Args>(a)...));
+		});
 
 		aux::torrent_wait(done, *s);
 		if (ex) std::rethrow_exception(ex);
@@ -442,20 +451,14 @@ namespace {
 		if (params.ti)
 			params.ti = std::make_shared<torrent_info>(*params.ti);
 
-		// we cannot capture a unique_ptr into a lambda in c++11, so we use a raw
-		// pointer for now. async_call uses a lambda expression to post the call
-		// to the main thread
-		// TODO: in C++14, use unique_ptr and move it into the lambda
-		auto* p = new add_torrent_params(std::move(params));
-		auto guard = aux::scope_end([p]{ delete p; });
+		auto p = std::make_unique<add_torrent_params>(std::move(params));
 		p->save_path = complete(p->save_path);
 
 #if TORRENT_ABI_VERSION == 1
 		handle_backwards_compatible_resume_data(*p);
 #endif
 
-		async_call(&session_impl::async_add_torrent, p);
-		guard.disarm();
+		async_call(&session_impl::async_add_torrent, std::move(p));
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
