@@ -118,9 +118,7 @@ enum : int {
 #endif
 
 #if TORRENT_USE_IFADDRS || TORRENT_USE_IFCONF || TORRENT_USE_NETLINK || TORRENT_USE_SYSCTL
-#ifdef TORRENT_BEOS
-// TODO: in C++17, use __has_include for this. Other operating systems are
-// likely to require this as well
+#if __has_include (<sys/sockio.h>)
 #include <sys/sockio.h>
 #endif
 // capture this here where warnings are disabled (the macro generates warnings)
