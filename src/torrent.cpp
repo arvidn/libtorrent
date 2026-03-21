@@ -6327,11 +6327,9 @@ namespace {
 
 			using deferred_handler_type = aux::handler<
 				torrent
-				, decltype(&torrent::on_remove_peers)
 				, &torrent::on_remove_peers
 				, &torrent::on_error
 				, &torrent::on_exception
-				, decltype(m_deferred_handler_storage)
 				, &torrent::m_deferred_handler_storage
 				>;
 			static_assert(sizeof(deferred_handler_type) == sizeof(std::shared_ptr<peer_connection>)

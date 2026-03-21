@@ -290,14 +290,11 @@ namespace libtorrent::aux {
 			std::forward<Handler>(handler), &storage, &err_handler);
 	}
 
-	// TODO: in C++17, Handler and Storage could just use "auto"
 	template <typename T
-		, typename HandlerType
-		, HandlerType Handler
+		, auto Handler
 		, void (T::*ErrorHandler)(error_code const&)
 		, void (T::*ExceptHandler)(std::exception const&)
-		, typename StorageType
-		, StorageType T::* Storage>
+		, auto Storage>
 	struct handler
 	{
 		explicit handler(std::shared_ptr<T> p) : ptr_(std::move(p)) {}
@@ -332,7 +329,8 @@ namespace libtorrent::aux {
 #endif
 		}
 
-		using allocator_type = handler_allocator<handler, StorageType::size, StorageType::name>;
+		using storage_type = std::remove_reference_t<decltype(std::declval<T>().*Storage)>;
+		using allocator_type = handler_allocator<handler, storage_type::size, storage_type::name>;
 
 		allocator_type get_allocator() const noexcept
 		{ return allocator_type{&(ptr_.get()->*Storage)}; }
