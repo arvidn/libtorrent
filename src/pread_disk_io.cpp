@@ -636,10 +636,17 @@ bool pread_disk_io::async_write(storage_index_t const storage, peer_request cons
 		, int(r.piece), int(r.start)
 		, static_cast<std::uint8_t>(flags));
 	bool const force_flush = bool(flags & flush_piece);
+	file_storage const& fs = j->storage->files();
+	aux::disk_cache::piece_entry_params const piece_params{
+		(fs.piece_size(r.piece) + default_block_size - 1) / default_block_size
+		, fs.piece_size2(r.piece)
+		, j->storage->v1()
+		, j->storage->v2()
+	};
 	auto const result = m_cache.insert(
 		{j->storage->storage_index(), r.piece}
 		, r.start / default_block_size
-		, force_flush, std::move(o), j);
+		, force_flush, std::move(o), j, piece_params);
 
 	if (result & aux::disk_cache::need_hasher_kick)
 		m_hash_threads.interrupt();
@@ -1376,8 +1383,9 @@ int pread_disk_io::flush_cache_blocks(bitfield& flushed
 		auto* j = blocks[start_idx].write_job;
 		TORRENT_ASSERT(j->get_type() == aux::job_action_t::write);
 		auto& a = std::get<aux::job::write>(j->action);
-		aux::open_mode_t const file_mode = file_mode_for_job(j);
-		aux::pread_storage* storage = j->storage.get();
+		auto* pj = static_cast<aux::pread_disk_job*>(j);
+		aux::open_mode_t const file_mode = file_mode_for_job(pj);
+		aux::pread_storage* storage = pj->storage.get();
 
 		TORRENT_ASSERT(a.piece != piece_index_t(-1));
 		int const count = static_cast<int>(iovec.size());
@@ -1455,8 +1463,8 @@ void pread_disk_io::try_flush_cache(int const target_cache_size
 			return flush_cache_blocks(flushed, blocks, completed_jobs);
 		}
 		, target_cache_size
-		, [&](jobqueue_t aborted, aux::pread_disk_job* clear) {
-			clear_piece_jobs(std::move(aborted), clear);
+		, [&](jobqueue_t aborted, aux::disk_job* clear) {
+			clear_piece_jobs(std::move(aborted), static_cast<aux::pread_disk_job*>(clear));
 		}
 		, optimistic);
 	l.lock();
@@ -1475,8 +1483,8 @@ void pread_disk_io::flush_storage(std::shared_ptr<aux::pread_storage> const& sto
 			return flush_cache_blocks(flushed, blocks, completed_jobs);
 		}
 		, torrent
-		, [&](jobqueue_t aborted, aux::pread_disk_job* clear) {
-			clear_piece_jobs(std::move(aborted), clear);
+		, [&](jobqueue_t aborted, aux::disk_job* clear) {
+			clear_piece_jobs(std::move(aborted), static_cast<aux::pread_disk_job*>(clear));
 		});
 	DLOG("flush_storage - done (%d left)\n", m_cache.size());
 	if (!completed_jobs.empty())
