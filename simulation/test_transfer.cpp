@@ -251,6 +251,37 @@ TORRENT_TEST(piece_extent_affinity)
 	);
 }
 
+// The default run_test() torrent is hybrid (both v1 and v2 hashes).
+// Verify that hybrid_only_validates_v2 works both when enabled and when
+// explicitly disabled.
+TORRENT_TEST(hybrid_only_validates_v2_enabled)
+{
+	run_test(
+		[](lt::session& ses0, lt::session&)
+		{
+			settings_pack p;
+			p.set_bool(settings_pack::hybrid_only_validates_v2, true);
+			ses0.apply_settings(p);
+		},
+		[](lt::session&, lt::alert const*) {},
+		expect_seed(true)
+	);
+}
+
+TORRENT_TEST(hybrid_only_validates_v2_disabled)
+{
+	run_test(
+		[](lt::session& ses0, lt::session&)
+		{
+			settings_pack p;
+			p.set_bool(settings_pack::hybrid_only_validates_v2, false);
+			ses0.apply_settings(p);
+		},
+		[](lt::session&, lt::alert const*) {},
+		expect_seed(true)
+	);
+}
+
 TORRENT_TEST(is_finished)
 {
 	run_test(no_init

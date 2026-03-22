@@ -554,3 +554,26 @@ TORRENT_TEST(write_through_pread)
 
 	cleanup();
 }
+
+// The default create_torrent() produces a hybrid torrent (both v1 and v2
+// hashes). These two tests verify that hybrid_only_validates_v2 works both
+// when enabled and when explicitly disabled.
+TORRENT_TEST(hybrid_only_validates_v2_enabled)
+{
+	using namespace lt;
+	settings_pack p = settings_pack();
+	p.set_bool(settings_pack::hybrid_only_validates_v2, true);
+	test_transfer(0, p);
+
+	cleanup();
+}
+
+TORRENT_TEST(hybrid_only_validates_v2_disabled)
+{
+	using namespace lt;
+	settings_pack p = settings_pack();
+	p.set_bool(settings_pack::hybrid_only_validates_v2, false);
+	test_transfer(0, p);
+
+	cleanup();
+}

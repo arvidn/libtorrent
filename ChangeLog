@@ -1,5 +1,6 @@
 2.1.0 not released
 
+	* add feature to only validate the v2 hashes for hybrid torrents
 	* fix local service discovery not being correctly staggered
 	* add an experimental multi-threaded, pread()-based, disk I/O backend (pread_disk_io)
 	* make the save path for part files configurable
