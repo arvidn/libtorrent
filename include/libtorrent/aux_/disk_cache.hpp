@@ -18,8 +18,7 @@ see LICENSE file.
 #include "libtorrent/aux_/scope_end.hpp"
 #include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/aux_/invariant_check.hpp"
-#include "libtorrent/aux_/pread_disk_job.hpp"
-#include "libtorrent/aux_/pread_storage.hpp"
+#include "libtorrent/aux_/disk_job.hpp"
 #include "libtorrent/aux_/disk_io_thread_pool.hpp" // for jobqueue_t
 #include "libtorrent/aux_/unique_ptr.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
@@ -108,7 +107,7 @@ struct cached_block_entry
 	// once the write job has been executed, and we've flushed the buffer, we
 	// move it into buf_holder, to keep the buffer alive until any hash job has
 	// completed as well. The underlying data can be accessed through buf, but
-	// the owner moves from the pread_disk_job object to this buf_holder.
+	// the owner moves from the disk_job object to this buf_holder.
 	// TODO: save space by just storing the buffer pointer here. The
 	// cached_piece_entry could hold the pointer to the buffer pool to be able
 	// to free these on destruction
@@ -118,7 +117,7 @@ struct cached_block_entry
 	// TODO: save space by turning this into a union. We only ever have a write
 	// job or a buffer, never both
 	disk_buffer_holder buf_holder;
-	pread_disk_job* write_job = nullptr;
+	disk_job* write_job = nullptr;
 
 	bool flushed_to_disk = false;
 
@@ -144,12 +143,12 @@ struct cached_piece_entry
 
 	// if there is a hash_job set on this piece, whenever we complete hashing
 	// the last block, we should post this
-	pread_disk_job* hash_job = nullptr;
+	disk_job* hash_job = nullptr;
 
 	// if the piece has been requested to be cleared, but it was locked
 	// (flushing) at the time. We hang this job here to complete it once the
 	// thread currently flushing is done with it
-	pread_disk_job* clear_piece = nullptr;
+	disk_job* clear_piece = nullptr;
 	// if this is a v2 torrent, this is the exact size of this piece. The
 	// end-piece of each file may be truncated for v2 torrents
 	int piece_size2;
@@ -348,7 +347,7 @@ struct disk_cache
 	// already been flushed to disk are freed. If all blocks are flushed, the
 	// piece entry is removed from the cache entirely.
 	template <typename Fun>
-	hash_piece_result hash_piece(piece_location const loc, pread_disk_job* j, Fun f)
+	hash_piece_result hash_piece(piece_location const loc, disk_job* j, Fun f)
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 
@@ -428,7 +427,7 @@ struct disk_cache
 	// job should be posted as complete. Returns false if the piece is locked by
 	// another thread, and the clear_piece job has been queued to be issued once
 	// the piece is unlocked.
-	bool try_clear_piece(piece_location const loc, pread_disk_job* j, jobqueue_t& aborted);
+	bool try_clear_piece(piece_location const loc, disk_job* j, jobqueue_t& aborted);
 
 	template <typename Fun>
 	int get2(piece_location const loc, int const block_idx, Fun f) const
@@ -457,6 +456,18 @@ struct disk_cache
 	// the disk cache is full and the peer needs back-pressure applied to it.
 	static constexpr insert_result_flags exceeded_limit = 1_bit;
 
+	// piece metadata required when inserting the first block of a new piece.
+	struct piece_entry_params
+	{
+		// total number of 16 KiB blocks that make up this piece
+		int blocks_in_piece;
+		// size (in bytes) of this piece according to v2 file boundaries
+		// (only meaningful for v2 torrents)
+		int piece_size2;
+		bool v1; // piece requires SHA-1 hashing
+		bool v2; // piece requires per-block SHA-256 hashing
+	};
+
 	// the return value indicates whether the piece needs its hasher kicked or
 	// whether the cache is full and the peer needs to stop downloading until
 	// we've flushed below the low watermark
@@ -464,7 +475,8 @@ struct disk_cache
 		, int block_idx
 		, bool force_flush
 		, std::shared_ptr<disk_observer> o
-		, pread_disk_job* write_job);
+		, disk_job* write_job
+		, piece_entry_params const& params);
 
 	void set_max_size(int max_size);
 
@@ -475,7 +487,7 @@ struct disk_cache
 		post_job,
 	};
 
-	hash_result try_hash_piece(piece_location loc, pread_disk_job* hash_job);
+	hash_result try_hash_piece(piece_location loc, disk_job* hash_job);
 
 	// Called from a hasher thread when woken by interrupt. Processes all
 	// pieces marked with needs_hasher_kick_flag, calling kick_hasher on each.
@@ -490,12 +502,12 @@ struct disk_cache
 	// to disk
 	void flush_to_disk(std::function<int(bitfield&, span<cached_block_entry const>)> f
 		, int target_blocks
-		, std::function<void(jobqueue_t, pread_disk_job*)> clear_piece_fun
+		, std::function<void(jobqueue_t, disk_job*)> clear_piece_fun
 		, bool optimistic = false);
 
 	void flush_storage(std::function<int(bitfield&, span<cached_block_entry const>)> f
 		, storage_index_t storage
-		, std::function<void(jobqueue_t, pread_disk_job*)> clear_piece_fun);
+		, std::function<void(jobqueue_t, disk_job*)> clear_piece_fun);
 
 	std::size_t size() const;
 	std::size_t num_flushing() const;
@@ -529,7 +541,7 @@ private:
 		, std::function<int(bitfield&, span<cached_block_entry const>)> const& f
 		, std::unique_lock<std::mutex>& l
 		, span<cached_block_entry> const blocks
-		, std::function<void(jobqueue_t, pread_disk_job*)> clear_piece_fun);
+		, std::function<void(jobqueue_t, disk_job*)> clear_piece_fun);
 
 	mutable std::mutex m_mutex;
 	piece_container m_pieces;

@@ -10,6 +10,7 @@ see LICENSE file.
 #include "libtorrent/aux_/disk_cache.hpp"
 #include "libtorrent/disk_observer.hpp"
 #include "libtorrent/aux_/debug_disk_thread.hpp"
+#include "libtorrent/bitfield.hpp"
 
 namespace libtorrent::aux {
 
@@ -147,7 +148,7 @@ disk_cache::disk_cache(io_context& ios)
 // job should be posted as complete. Returns false if the piece is locked by
 // another thread, and the clear_piece job has been queued to be issued once
 // the piece is unlocked.
-bool disk_cache::try_clear_piece(piece_location const loc, pread_disk_job* j, jobqueue_t& aborted)
+bool disk_cache::try_clear_piece(piece_location const loc, disk_job* j, jobqueue_t& aborted)
 {
 	std::unique_lock<std::mutex> l(m_mutex);
 
@@ -191,7 +192,8 @@ insert_result_flags disk_cache::insert(piece_location const loc
 	, int const block_idx
 	, bool const force_flush
 	, std::shared_ptr<disk_observer> o
-	, pread_disk_job* write_job)
+	, disk_job* write_job
+	, piece_entry_params const& params)
 {
 	TORRENT_ASSERT(write_job != nullptr);
 	std::unique_lock<std::mutex> l(m_mutex);
@@ -202,11 +204,8 @@ insert_result_flags disk_cache::insert(piece_location const loc
 	auto i = view.find(loc);
 	if (i == view.end())
 	{
-		pread_storage* storage = write_job->storage.get();
-		file_storage const& fs = storage->files();
-		int const blocks_in_piece = (storage->files().piece_size(loc.piece) + default_block_size - 1) / default_block_size;
-		int const piece_size2 = fs.piece_size2(loc.piece);
-		i = m_pieces.emplace(loc, blocks_in_piece, piece_size2, storage->v1(), storage->v2()).first;
+		i = m_pieces.emplace(loc, params.blocks_in_piece, params.piece_size2
+			, params.v1, params.v2).first;
 	}
 
 	TORRENT_ASSERT(!(i->flags & cached_piece_entry::piece_hash_returned_flag));
@@ -273,7 +272,7 @@ std::optional<int> disk_cache::flush_request() const
 //    can complete it when hashing finishes
 // 3. The piece is not in the cache and should be posted to the disk thread
 //    to read back the bytes.
-disk_cache::hash_result disk_cache::try_hash_piece(piece_location const loc, pread_disk_job* hash_job)
+disk_cache::hash_result disk_cache::try_hash_piece(piece_location const loc, disk_job* hash_job)
 {
 	std::unique_lock<std::mutex> l(m_mutex);
 
@@ -444,7 +443,7 @@ keep_going:
 		if (piece_iter->blocks[cursor].buf().data())
 			goto keep_going;
 
-		pread_disk_job* rj = nullptr;
+		disk_job* rj = nullptr;
 		view.modify(piece_iter, [&rj, cursor](cached_piece_entry& e) {
 			rj = std::exchange(e.hash_job, nullptr);
 			e.hasher_cursor = cursor;
@@ -469,7 +468,7 @@ keep_going:
 	}
 
 	// there's a hash job hung on this piece, post it now
-	pread_disk_job* j = nullptr;
+	disk_job* j = nullptr;
 
 	sha1_hash piece_hash;
 	TORRENT_ASSERT(!(piece_iter->flags & cached_piece_entry::piece_hash_returned_flag));
@@ -546,7 +545,7 @@ Iter disk_cache::flush_piece_impl(View& view
 	, std::function<int(bitfield&, span<cached_block_entry const>)> const& f
 	, std::unique_lock<std::mutex>& l
 	, span<cached_block_entry> const blocks
-	, std::function<void(jobqueue_t, pread_disk_job*)> clear_piece_fun)
+	, std::function<void(jobqueue_t, disk_job*)> clear_piece_fun)
 {
 	view.modify(piece_iter, [](cached_piece_entry& e) { TORRENT_ASSERT(!(e.flags & cached_piece_entry::flushing_flag)); e.flags |= cached_piece_entry::flushing_flag; });
 	int const num_blocks = count_jobs(blocks);
@@ -639,7 +638,7 @@ Iter disk_cache::flush_piece_impl(View& view
 	if (piece_iter->clear_piece)
 	{
 		jobqueue_t aborted;
-		pread_disk_job* clear_piece = nullptr;
+		disk_job* clear_piece = nullptr;
 		view.modify(piece_iter, [&](cached_piece_entry& e) {
 			clear_piece_impl(e, aborted);
 			clear_piece = std::exchange(e.clear_piece, nullptr);
@@ -688,7 +687,7 @@ void disk_cache::free_piece(cached_piece_entry const& cpe)
 void disk_cache::flush_to_disk(
 	std::function<int(bitfield&, span<cached_block_entry const>)> f
 	, int const target_blocks
-	, std::function<void(jobqueue_t, pread_disk_job*)> clear_piece_fun
+	, std::function<void(jobqueue_t, disk_job*)> clear_piece_fun
 	, bool const optimistic)
 {
 	std::unique_lock<std::mutex> l(m_mutex);
@@ -812,7 +811,7 @@ void disk_cache::flush_to_disk(
 
 void disk_cache::flush_storage(std::function<int(bitfield&, span<cached_block_entry const>)> f
 	, storage_index_t const storage
-	, std::function<void(jobqueue_t, pread_disk_job*)> clear_piece_fun)
+	, std::function<void(jobqueue_t, disk_job*)> clear_piece_fun)
 {
 	std::unique_lock<std::mutex> l(m_mutex);
 
