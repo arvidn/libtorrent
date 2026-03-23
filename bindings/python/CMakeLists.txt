@@ -96,7 +96,8 @@ else()
 	execute_process(
 		COMMAND "${Python3_EXECUTABLE}" -c [=[
 import sysconfig
-print(sysconfig.get_path('platlib', vars={'platbase': '', 'base': ''}))
+# Strip leading separator - cmake would otherwise treat this as an absolute path.
+print(sysconfig.get_path('platlib', vars={'platbase': '', 'base': ''}).lstrip('/\\'))
 ]=]
 		OUTPUT_VARIABLE _PYTHON3_SITE_ARCH
 		OUTPUT_STRIP_TRAILING_WHITESPACE
