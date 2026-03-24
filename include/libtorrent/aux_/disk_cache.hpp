@@ -92,7 +92,7 @@ private:
 	std::variant<hasher, sha1_hash> ph;
 };
 
-struct cached_block_entry
+struct TORRENT_EXTRA_EXPORT cached_block_entry
 {
 	// returns the buffer associated with this block. It either picks it from
 	// the write job that's hung on this block, or from the buffer in the block
@@ -226,7 +226,7 @@ struct cached_piece_entry
 
 using insert_result_flags = libtorrent::flags::bitfield_flag<std::uint8_t, struct insert_result_flags_tag>;
 
-struct disk_cache
+struct TORRENT_EXTRA_EXPORT disk_cache
 {
 	disk_cache(io_context& ios);
 
