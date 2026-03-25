@@ -46,7 +46,7 @@ namespace aux {
 		char* allocate_buffer(char const* category);
 		void free_disk_buffer(char* b) override { free_buffer(b); }
 		void free_buffer(char* buf);
-		void free_multiple_buffers(span<char*> bufvec);
+		void free_multiple_buffers(span<char*> bufvec) override;
 
 		int in_use() const
 		{

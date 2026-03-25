@@ -401,15 +401,16 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 			});
 			TORRENT_ASSERT(m_num_unhashed >= num_unhashed);
 			m_num_unhashed -= num_unhashed;
-			for (auto& cbe : piece_iter->get_blocks().subspan(0, piece_iter->flushed_cursor))
 			{
-				// TODO: free these in bulk, acquiring the mutex just once
-				// free them after releasing the mutex, l
-				if (cbe.buf_holder)
+				bulk_free_buffer to_free;
+				for (auto& cbe : piece_iter->get_blocks().subspan(0, piece_iter->flushed_cursor))
 				{
-					cbe.buf_holder.reset();
-					TORRENT_ASSERT(m_blocks > 0);
-					--m_blocks;
+					if (cbe.buf_holder)
+					{
+						to_free.add(std::move(cbe.buf_holder));
+						TORRENT_ASSERT(m_blocks > 0);
+						--m_blocks;
+					}
 				}
 			}
 			if (piece_iter->flushed_cursor == piece_iter->blocks_in_piece)

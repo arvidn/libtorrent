@@ -18,6 +18,7 @@ see LICENSE file.
 #include "libtorrent/aux_/apply_pad_files.hpp"
 #include "libtorrent/aux_/random.hpp"
 #include "libtorrent/load_torrent.hpp"
+#include "libtorrent/span.hpp"
 
 #include <utility> // for exchange()
 
@@ -624,6 +625,11 @@ struct test_disk_io final : lt::disk_interface
 	void free_disk_buffer(char* buf) override
 	{
 		delete[] buf;
+	}
+	void free_multiple_buffers(lt::span<char*> bufvec) override
+	{
+		for (auto buf : bufvec)
+			delete[] buf;
 	}
 
 	void update_stats_counters(lt::counters&) const override {}

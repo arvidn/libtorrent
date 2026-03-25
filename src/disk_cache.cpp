@@ -420,16 +420,13 @@ keep_going:
 
 	// blocks that have been flushed and hashed can be removed from the cache immediately
 	int const count = cursor - piece_iter->hasher_cursor;
+	bulk_free_buffer to_free;
 	for (auto& cbe : piece_iter->get_blocks().subspan(piece_iter->hasher_cursor, count))
 	{
-		// TODO: free these in bulk, acquiring the mutex just once
-		// free them after releasing the mutex, l
-		if (cbe.buf_holder)
-		{
-			cbe.buf_holder.reset();
-			TORRENT_ASSERT(m_blocks > 0);
-			--m_blocks;
-		}
+		if (!cbe.buf_holder) continue;
+		to_free.add(std::move(cbe.buf_holder));
+		TORRENT_ASSERT(m_blocks > 0);
+		--m_blocks;
 	}
 
 	TORRENT_ASSERT(l.owns_lock());
@@ -590,6 +587,7 @@ Iter disk_cache::flush_piece_impl(View& view
 	// note that i is not the block index in the piece. the "blocks" span may
 	// be a subspan of the whole piece. When comparing against the
 	// hasher_cursor or flushed_cursor, we need to use the block index.
+	bulk_free_buffer to_free;
 	for (int i = 0; i < blocks.size(); ++i)
 	{
 		if (!flushed_blocks.get_bit(i)) continue;
@@ -604,13 +602,12 @@ Iter disk_cache::flush_piece_impl(View& view
 			blk.flushed_to_disk = true;
 		TORRENT_ASSERT(blk.buf_holder);
 
-		// TODO: free these in bulk at the end, after releasing the mutex
 		// if another thread is currently hashing blocks in this piece, we
 		// can't remove the ones past the current hasher_cursor. They are in
 		// use.
 		if (block_index < hasher_cursor || !(piece_iter->flags & cached_piece_entry::hashing_flag))
 		{
-			blk.buf_holder.reset();
+			to_free.add(std::move(blk.buf_holder));
 			if (block_index >= hasher_cursor)
 			{
 				TORRENT_ASSERT(m_num_unhashed > 0);
@@ -659,6 +656,7 @@ void disk_cache::free_piece(cached_piece_entry const& cpe)
 	}
 	TORRENT_ASSERT(cpe.hash_job == nullptr);
 #endif
+	bulk_free_buffer to_free;
 	int idx = 0;
 	for (auto& blk : cpe.get_blocks())
 	{
@@ -670,8 +668,7 @@ void disk_cache::free_piece(cached_piece_entry const& cpe)
 				--m_num_unhashed;
 			}
 			--m_blocks;
-			// TODO: free these in bulk
-			blk.buf_holder.reset();
+			to_free.add(std::move(blk.buf_holder));
 		}
 		TORRENT_ASSERT(!blk.buf_holder || idx >= cpe.hasher_cursor);
 		TORRENT_ASSERT(blk.write_job == nullptr);
@@ -960,6 +957,7 @@ void disk_cache::clear_piece_impl(cached_piece_entry& cpe, jobqueue_t& aborted)
 	TORRENT_ASSERT(!(cpe.flags & cached_piece_entry::hashing_flag));
 	std::uint16_t jobs = 0;
 	int const hasher_cursor = cpe.hasher_cursor;
+	bulk_free_buffer to_free;
 	for (int idx = 0; idx < cpe.blocks_in_piece; ++idx)
 	{
 		auto& cbe = cpe.blocks[idx];
@@ -978,12 +976,9 @@ void disk_cache::clear_piece_impl(cached_piece_entry& cpe, jobqueue_t& aborted)
 		}
 		cbe.flushed_to_disk = false;
 
-
-		// TODO: free these in bulk, acquiring the mutex just once
-		// free them after releasing the mutex, l
 		if (cbe.buf_holder)
 		{
-			cbe.buf_holder.reset();
+			to_free.add(std::move(cbe.buf_holder));
 			TORRENT_ASSERT(m_blocks > 0);
 			--m_blocks;
 		}

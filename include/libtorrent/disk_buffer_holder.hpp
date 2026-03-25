@@ -13,7 +13,9 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/span.hpp"
 #include <utility>
+#include <vector>
 
 #ifndef TORRENT_DEBUG_BUFFER_POOL
 #define TORRENT_DEBUG_BUFFER_POOL 0
@@ -27,12 +29,15 @@ namespace libtorrent {
 	struct TORRENT_EXPORT buffer_allocator_interface
 	{
 		virtual void free_disk_buffer(char* b) = 0;
+		virtual void free_multiple_buffers(span<char*> bufs) = 0;
 #if TORRENT_DEBUG_BUFFER_POOL
 		virtual void rename_buffer(char* buf, char const* category) = 0;
 #endif
 	protected:
 		~buffer_allocator_interface() = default;
 	};
+
+	struct bulk_free_buffer;
 
 	// The disk buffer holder acts like a ``unique_ptr`` that frees a disk buffer
 	// when it's destructed
@@ -89,9 +94,31 @@ namespace libtorrent {
 #endif
 	private:
 
+		friend struct bulk_free_buffer;
+
 		buffer_allocator_interface* m_allocator = nullptr;
 		char* m_buf = nullptr;
 		int m_size = 0;
+	};
+
+	// Accumulates disk buffers to be freed in a single batch call, reducing
+	// allocator mutex acquisitions from one per buffer to one per batch.
+	// All buffers added must share the same allocator.
+	// Freeing happens in the destructor.
+	struct TORRENT_EXPORT bulk_free_buffer
+	{
+		bulk_free_buffer() = default;
+		bulk_free_buffer(bulk_free_buffer const&) = delete;
+		bulk_free_buffer& operator=(bulk_free_buffer const&) = delete;
+
+		// transfer ownership of h's buffer into this batch.
+		void add(disk_buffer_holder h);
+		~bulk_free_buffer();
+
+	private:
+
+		buffer_allocator_interface* m_allocator = nullptr;
+		std::vector<char*> m_bufs;
 	};
 
 }

@@ -47,4 +47,19 @@ namespace libtorrent {
 #endif
 
 	disk_buffer_holder::~disk_buffer_holder() { reset(); }
+
+	void bulk_free_buffer::add(disk_buffer_holder h)
+	{
+		if (!h.m_buf) return;
+		TORRENT_ASSERT(!m_allocator || m_allocator == h.m_allocator);
+		m_allocator = h.m_allocator;
+		m_bufs.push_back(std::exchange(h.m_buf, nullptr));
+		h.m_allocator = nullptr;
+		h.m_size = 0;
+	}
+
+	bulk_free_buffer::~bulk_free_buffer()
+	{
+		if (m_allocator) m_allocator->free_multiple_buffers(m_bufs);
+	}
 }

@@ -69,6 +69,10 @@ std::string join(span<span<char const>> iovec)
 struct test_allocator : buffer_allocator_interface
 {
 	void free_disk_buffer(char* b) override { delete[] b; --live; }
+	void free_multiple_buffers(span<char*> bufs) override
+	{
+		for (char* b : bufs) free_disk_buffer(b);
+	}
 
 	disk_buffer_holder alloc(int const size = default_block_size)
 	{
