@@ -48,14 +48,37 @@ namespace libtorrent {
 
 	disk_buffer_holder::~disk_buffer_holder() { reset(); }
 
-	void bulk_free_buffer::add(disk_buffer_holder h)
+	disk_buffer_ref::disk_buffer_ref(disk_buffer_holder&& h) noexcept
+		: m_buf(std::exchange(h.m_buf, nullptr))
 	{
-		if (!h.m_buf) return;
-		TORRENT_ASSERT(!m_allocator || m_allocator == h.m_allocator);
-		m_allocator = h.m_allocator;
-		m_bufs.push_back(std::exchange(h.m_buf, nullptr));
 		h.m_allocator = nullptr;
 		h.m_size = 0;
+	}
+
+	disk_buffer_ref::disk_buffer_ref(disk_buffer_ref&& h) noexcept
+		: m_buf(std::exchange(h.m_buf, nullptr))
+	{}
+
+	disk_buffer_ref& disk_buffer_ref::operator=(disk_buffer_ref&& h) noexcept
+	{
+		if (&h == this) return *this;
+		TORRENT_ASSERT(m_buf == nullptr);
+		m_buf = std::exchange(h.m_buf, nullptr);
+		return *this;
+	}
+
+	void bulk_free_buffer::add(disk_buffer_ref r)
+	{
+		if (!r.m_buf) return;
+		TORRENT_ASSERT(m_allocator != nullptr);
+		try {
+			m_bufs.push_back(r.m_buf);
+		}
+		catch (...) {
+			// bulk-free is an optimisation; if we can't batch it, free it now
+			m_allocator->free_disk_buffer(r.m_buf);
+		}
+		r.m_buf = nullptr;
 	}
 
 	bulk_free_buffer::~bulk_free_buffer()

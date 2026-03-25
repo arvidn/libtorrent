@@ -314,7 +314,7 @@ pread_disk_io::~pread_disk_io()
 	TORRENT_ASSERT(m_abort);
 
 	// there are not supposed to be any writes in-flight by now
-	//TORRENT_ASSERT(m_cache.size() == 0);
+	TORRENT_ASSERT(m_cache.size() == 0);
 
 	// all torrents are supposed to have been removed by now
 	TORRENT_ASSERT(m_torrents.empty());
@@ -637,9 +637,14 @@ bool pread_disk_io::async_write(storage_index_t const storage, peer_request cons
 		, static_cast<std::uint8_t>(flags));
 	bool const force_flush = bool(flags & flush_piece);
 	file_storage const& fs = j->storage->files();
+	// in order to compute v1 hashes, we need the full piece, including pad
+	// files. Even though v2 torrents guarantee that they are zero.
+	int const piece_size = j->storage->v1() ? fs.piece_size(r.piece) : fs.piece_size2(r.piece);
+	TORRENT_ASSERT(r.length == std::min(piece_size - r.start, default_block_size));
 	aux::disk_cache::piece_entry_params const piece_params{
-		(fs.piece_size(r.piece) + default_block_size - 1) / default_block_size
+		(piece_size + default_block_size - 1) / default_block_size
 		, fs.piece_size2(r.piece)
+		, piece_size
 		, j->storage->v1()
 		, j->storage->v2()
 	};

@@ -1413,13 +1413,10 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			return;
 
 		// make sure the piece size is correct
-		// we check against the v1 piece size as well, for backwards compatibility
-		if (data.size() == std::size_t(m_torrent_file->piece_size_for_req(piece))
-			|| data.size() == std::size_t(m_torrent_file->piece_size(piece)))
-		{
-			data.resize(std::size_t(m_torrent_file->piece_size_for_req(piece)));
-			add_piece(piece, data.data(), flags);
-		}
+		if (data.size() != std::size_t(m_torrent_file->piece_size_for_req(piece)))
+			return;
+
+		add_piece(piece, data.data(), flags);
 	}
 
 	// TODO: 3 there's some duplication between this function and

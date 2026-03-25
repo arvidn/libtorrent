@@ -351,6 +351,8 @@ struct test_disk_io final : lt::disk_interface
 		// to keep it simple
 		lt::file_storage const& fs = params.files;
 		m_files = &fs;
+		m_v1 = params.v1;
+		m_v2 = params.v2;
 		m_blocks_per_piece = fs.piece_length() / lt::default_block_size;
 		m_have.resize(m_files->num_pieces() * m_blocks_per_piece, m_state.files == existing_files_mode::full_valid);
 		m_pad_bytes = compute_pad_bytes(fs);
@@ -371,6 +373,8 @@ struct test_disk_io final : lt::disk_interface
 		TORRENT_ASSERT(m_files != nullptr);
 
 		m_files = nullptr;
+		m_v1 = false;
+		m_v2 = false;
 		m_blocks_per_piece = 0;
 		m_have.clear();
 	}
@@ -414,6 +418,16 @@ struct test_disk_io final : lt::disk_interface
 		, lt::disk_job_flags_t) override
 	{
 		TORRENT_ASSERT(m_files);
+
+		// The write buffer must be exactly the right size for this block.
+		// For v1 torrents, piece_size() (which includes pad bytes)
+		// is the effective transfer size. For v2-only torrents, piece_size2()
+		// is used (actual file data, no pad bytes), matching pread_disk_io.
+		int const effective_piece_size = m_v1
+			? m_files->piece_size(r.piece)
+			: m_files->piece_size2(r.piece);
+		TORRENT_ASSERT(r.length == std::min(lt::default_block_size
+			, effective_piece_size - r.start));
 
 		if (m_state.space_left < lt::default_block_size)
 		{
@@ -738,6 +752,8 @@ private:
 
 	// we only support a single torrent. This is set if it has been added
 	lt::file_storage const* m_files = nullptr;
+	bool m_v1 = false;
+	bool m_v2 = false;
 
 	// marks blocks as they are written (as long as the correct block is written)
 	// when computing the hash of a piece where not all blocks are written, will

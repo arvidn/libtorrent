@@ -267,9 +267,7 @@ namespace aux {
 		// won't return until the libtorrent thread has copied the data into its
 		// disk write buffer. ``data`` is expected to point to a buffer of as
 		// many bytes as the size of the specified piece.
-		// For v2 torrents, pieces at the end of files may not be full sized.
-		// For backwards compatibility, it's OK to pass a full sized piece as
-		// well.
+		// For v2-only torrents, pieces at the end of files may not be full sized.
 		//
 		// The data in the buffer is copied and passed on to the disk IO thread
 		// to be written at some later point in time.

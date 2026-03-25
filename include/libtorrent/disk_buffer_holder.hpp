@@ -16,6 +16,7 @@ see LICENSE file.
 #include "libtorrent/span.hpp"
 #include <utility>
 #include <vector>
+#include <cstdlib>
 
 #ifndef TORRENT_DEBUG_BUFFER_POOL
 #define TORRENT_DEBUG_BUFFER_POOL 0
@@ -38,6 +39,9 @@ namespace libtorrent {
 	};
 
 	struct bulk_free_buffer;
+	struct disk_buffer_ref;
+
+	namespace aux { struct disk_cache; }
 
 	// The disk buffer holder acts like a ``unique_ptr`` that frees a disk buffer
 	// when it's destructed
@@ -95,10 +99,37 @@ namespace libtorrent {
 	private:
 
 		friend struct bulk_free_buffer;
+		friend struct disk_buffer_ref;
+		friend struct aux::disk_cache;
 
 		buffer_allocator_interface* m_allocator = nullptr;
 		char* m_buf = nullptr;
 		int m_size = 0;
+	};
+
+	// Pointer-only disk buffer reference. Holds a char* but neither the allocator
+	// nor the size. Has unique_ptr-like move semantics. The destructor asserts that
+	// the pointer is null. The buffer must be transferred to a bulk_free_buffer
+	// before this goes out of scope. Since it has no allocator, it cannot free the
+	// buffer itself.
+	struct TORRENT_EXPORT disk_buffer_ref
+	{
+		disk_buffer_ref() noexcept = default;
+		explicit disk_buffer_ref(disk_buffer_holder&& h) noexcept;
+		disk_buffer_ref(disk_buffer_ref&&) noexcept;
+		disk_buffer_ref& operator=(disk_buffer_ref&&) noexcept;
+		disk_buffer_ref(disk_buffer_ref const&) = delete;
+		disk_buffer_ref& operator=(disk_buffer_ref const&) = delete;
+		~disk_buffer_ref() { TORRENT_ASSERT(m_buf == nullptr); if (m_buf != nullptr) std::abort(); }
+
+		char* data() const noexcept { return m_buf; }
+		explicit operator bool() const noexcept { return m_buf != nullptr; }
+
+	private:
+
+		friend struct bulk_free_buffer;
+
+		char* m_buf = nullptr;
 	};
 
 	// Accumulates disk buffers to be freed in a single batch call, reducing
@@ -107,12 +138,12 @@ namespace libtorrent {
 	// Freeing happens in the destructor.
 	struct TORRENT_EXPORT bulk_free_buffer
 	{
-		bulk_free_buffer() = default;
+		explicit bulk_free_buffer(buffer_allocator_interface& alloc) : m_allocator(&alloc) {}
 		bulk_free_buffer(bulk_free_buffer const&) = delete;
 		bulk_free_buffer& operator=(bulk_free_buffer const&) = delete;
 
 		// transfer ownership of h's buffer into this batch.
-		void add(disk_buffer_holder h);
+		void add(disk_buffer_ref r);
 		~bulk_free_buffer();
 
 	private:

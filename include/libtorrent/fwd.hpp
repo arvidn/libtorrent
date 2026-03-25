@@ -153,6 +153,7 @@ TORRENT_VERSION_NAMESPACE_4_END
 // include/libtorrent/disk_buffer_holder.hpp
 struct buffer_allocator_interface;
 struct disk_buffer_holder;
+struct disk_buffer_ref;
 struct bulk_free_buffer;
 
 // include/libtorrent/disk_interface.hpp

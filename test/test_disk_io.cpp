@@ -95,7 +95,7 @@ void disk_io_test_suite_impl(lt::disk_io_constructor_type disk_io
 	int const block_size = std::min(lt::default_block_size, piece_size);
 	for (lt::piece_index_t p : fs.piece_range())
 	{
-		int const len = fs.piece_size(p);
+		int const len = need_v1 ? fs.piece_size(p) : fs.piece_size2(p);
 		std::vector<char> const buffer = generate_piece(p, len);
 		for (int block = 0; block < len; block += block_size)
 		{

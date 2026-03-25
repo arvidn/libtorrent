@@ -13,8 +13,10 @@ see LICENSE file.
 #include <unordered_map>
 #include <mutex>
 #include <thread>
+#include <algorithm>
 
 #include "libtorrent/storage_defs.hpp"
+#include "libtorrent/disk_interface.hpp" // for default_block_size
 #include "libtorrent/aux_/scope_end.hpp"
 #include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/aux_/invariant_check.hpp"
@@ -94,11 +96,16 @@ private:
 
 struct TORRENT_EXTRA_EXPORT cached_block_entry
 {
-	// returns the buffer associated with this block. It either picks it from
-	// the write job that's hung on this block, or from the buffer in the block
-	// object, if it has been flushed to disk already.
+	// returns the buffer pointer for this block, regardless of whether it comes
+	// from the write job or the buf_holder. Returns nullptr if no data is available.
+	char const* data() const noexcept;
+
+	// returns a span covering the buffer for this block. block_size must be the
+	// number of bytes in this specific block (may be less than default_block_size
+	// for the last block of a piece). For write_job blocks the job's own
+	// buffer_size is used instead, so block_size only affects the buf_holder case.
 	// If there is no buffer, it returns an empty span.
-	span<char const> buf() const;
+	span<char const> buf(int block_size) const;
 
 	// returns the buffer associated with the write job hanging on this block.
 	// If there is no write job, it returns an empty span.
@@ -106,17 +113,10 @@ struct TORRENT_EXTRA_EXPORT cached_block_entry
 
 	// once the write job has been executed, and we've flushed the buffer, we
 	// move it into buf_holder, to keep the buffer alive until any hash job has
-	// completed as well. The underlying data can be accessed through buf, but
+	// completed as well. The underlying data can be accessed through buf(), but
 	// the owner moves from the disk_job object to this buf_holder.
-	// TODO: save space by just storing the buffer pointer here. The
-	// cached_piece_entry could hold the pointer to the buffer pool to be able
-	// to free these on destruction
-	// we would still need to save the *size* of the block, to support the
-	// shorter last block of a torrent
-
-	// TODO: save space by turning this into a union. We only ever have a write
-	// job or a buffer, never both
-	disk_buffer_holder buf_holder;
+	// We only ever have a write job or a buffer, never both.
+	disk_buffer_ref buf_holder;
 	disk_job* write_job = nullptr;
 
 	bool flushed_to_disk = false;
@@ -128,6 +128,7 @@ struct cached_piece_entry
 	cached_piece_entry(piece_location const& loc
 		, std::uint16_t const num_blocks
 		, int const piece_size_v2
+		, int const piece_size
 		, bool v1
 		, bool v2);
 
@@ -149,9 +150,14 @@ struct cached_piece_entry
 	// (flushing) at the time. We hang this job here to complete it once the
 	// thread currently flushing is done with it
 	disk_job* clear_piece = nullptr;
-	// if this is a v2 torrent, this is the exact size of this piece. The
-	// end-piece of each file may be truncated for v2 torrents
+	// the exact v2 size of this piece (respecting file boundaries).
+	// Used for bytes_left computation in kick_hasher's v2 path.
 	int piece_size2;
+
+	// the effective piece size for computing per-block sizes when hashing
+	// (max of v1 and v2 sizes, i.e. the v1 piece_size when v1 is active,
+	// or piece_size2 for v2-only pieces).
+	int piece_size;
 
 	// the number of blocks in this piece. This depend on the piece size for
 	// the torrent and whether it's the last
@@ -260,11 +266,13 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 		auto i = view.find(loc);
 		if (i == view.end()) return false;
 
-		if (i->blocks[block_idx].buf().data())
+		if (i->blocks[block_idx].data())
 		{
 			// TODO: it would be nice if this could be called without holding
 			// the mutex. It would require being able to lock the piece
-			f(i->blocks[block_idx].buf());
+			int const blk_size = std::min(default_block_size
+				, i->piece_size - block_idx * default_block_size);
+			f(i->blocks[block_idx].buf(blk_size));
 			return true;
 		}
 		return false;
@@ -309,10 +317,12 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 		TORRENT_ASSERT(i->block_hashes);
 		if (!i->block_hashes[block_idx].is_all_zeros())
 			return i->block_hashes[block_idx];
-		if (cbe.buf().data())
+		if (cbe.data())
 		{
+			int const blk_size = std::min(default_block_size
+				, i->piece_size2 - block_idx * default_block_size);
 			hasher256 h;
-			h.update(cbe.buf());
+			h.update(cbe.buf(blk_size));
 			return h.final();
 		}
 		l.unlock();
@@ -378,7 +388,7 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 		int num_unhashed = 0;
 		for (std::uint16_t i = 0; i < blocks_in_piece; ++i)
 		{
-			char const* buf = piece_iter->blocks[i].buf().data();
+			char const* buf = piece_iter->blocks[i].data();
 			blocks[i] = buf;
 			if (buf && i >= hasher_cursor)
 				++num_unhashed;
@@ -402,7 +412,8 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 			TORRENT_ASSERT(m_num_unhashed >= num_unhashed);
 			m_num_unhashed -= num_unhashed;
 			{
-				bulk_free_buffer to_free;
+				TORRENT_ASSERT(m_allocator);
+				bulk_free_buffer to_free(*m_allocator);
 				for (auto& cbe : piece_iter->get_blocks().subspan(0, piece_iter->flushed_cursor))
 				{
 					if (cbe.buf_holder)
@@ -441,8 +452,8 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 		auto i = view.find(loc);
 		if (i == view.end()) return 0;
 
-		char const* buf1 = i->blocks[block_idx].buf().data();
-		char const* buf2 = i->blocks[block_idx + 1].buf().data();
+		char const* buf1 = i->blocks[block_idx].data();
+		char const* buf2 = i->blocks[block_idx + 1].data();
 
 		if (buf1 == nullptr && buf2 == nullptr)
 			return 0;
@@ -465,6 +476,9 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 		// size (in bytes) of this piece according to v2 file boundaries
 		// (only meaningful for v2 torrents)
 		int piece_size2;
+		// effective piece size for per-block size computation: v1 piece_size
+		// when v1 is active, piece_size2 for v2-only pieces
+		int piece_size;
 		bool v1; // piece requires SHA-1 hashing
 		bool v2; // piece requires per-block SHA-256 hashing
 	};
@@ -546,6 +560,10 @@ private:
 
 	mutable std::mutex m_mutex;
 	piece_container m_pieces;
+
+	// allocator used for all disk buffers in this cache. Set lazily on the
+	// first insert() call. All blocks share the same allocator.
+	buffer_allocator_interface* m_allocator = nullptr;
 
 	// the number of *dirty* blocks in the cache. i.e. blocks that need to be
 	// flushed to disk. The cache may (briefly) hold more buffers than this

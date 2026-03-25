@@ -118,6 +118,7 @@ struct cache_fixture
 		return {
 			blocks_per_piece,
 			blocks_per_piece * default_block_size, // piece_size2
+			blocks_per_piece * default_block_size, // piece_size
 			bool(mode & test_mode::v1), bool(mode & test_mode::v2)
 		};
 	}
@@ -128,17 +129,18 @@ struct cache_fixture
 	pread_disk_job* make_write_job(
 		piece_index_t const piece
 		, int const block
-		, char const fill = 0x5a)
+		, char const fill
+		, int const buf_size)
 	{
 		auto j = std::make_unique<pread_disk_job>();
-		auto buf = alloc.alloc();
+		auto buf = alloc.alloc(buf_size);
 		std::memset(buf.data(), fill, std::size_t(buf.size()));
 		j->action = job::write{
 			{},
 			std::move(buf),
 			piece,
 			block * default_block_size,
-			static_cast<std::uint16_t>(default_block_size)
+			static_cast<std::uint16_t>(buf_size)
 		};
 		auto* ret = j.get();
 		live_jobs.push_back(std::move(j));
@@ -152,8 +154,21 @@ struct cache_fixture
 		, char const fill = 0x5a)
 	{
 		return cache.insert(loc(piece), block, force_flush, nullptr
-			, make_write_job(piece, block, fill)
+			, make_write_job(piece, block, fill, default_block_size)
 			, piece_params());
+	}
+
+	insert_result_flags insert(
+		piece_index_t const piece
+		, int const block
+		, disk_cache::piece_entry_params const& params
+		, int const buf_size
+		, bool const force_flush = false
+		, char const fill = 0x5a)
+	{
+		return cache.insert(loc(piece), block, force_flush, nullptr
+			, make_write_job(piece, block, fill, buf_size)
+			, params);
 	}
 
 	// Simulate flushing: marks every block that has a write_job as flushed.
@@ -801,3 +816,72 @@ TORRENT_TEST(flush_ordering)
 	for (auto const& tc : flush_cases)
 		run_flush_test(tc);
 }
+
+namespace {
+
+// Tests a piece where piece_size2 < piece_size: a v2 file boundary falls
+// inside what would be a full-sized v1 piece, truncating the v2 view.
+//
+// v2-only: the piece has 1 block of 11 bytes (piece_size == piece_size2 == 11).
+// hybrid:  the piece has 2 full v1 blocks but piece_size2 == 11, so the v2
+//          hasher only covers 11 bytes even though 2 * default_block_size bytes
+//          are written.
+void test_piece_size2_smaller_than_piece_size(test_mode_t const mode)
+{
+	constexpr int v1_piece_size = 2 * default_block_size;
+	constexpr int piece_size2   = 11;
+
+	bool const need_v1 = bool(mode & test_mode::v1);
+	bool const need_v2 = bool(mode & test_mode::v2);
+
+	// The effective piece size governs block layout: v1 size when v1 is
+	// active, v2 size (piece_size2) for v2-only pieces.
+	int const effective_piece_size = need_v1 ? v1_piece_size : piece_size2;
+	int const blocks_in_piece = (effective_piece_size + default_block_size - 1)
+		/ default_block_size;
+
+	cache_fixture f(blocks_in_piece, mode);
+
+	disk_cache::piece_entry_params const params{
+		blocks_in_piece,
+		piece_size2,
+		effective_piece_size,
+		need_v1,
+		need_v2
+	};
+
+	for (int blk = 0; blk < blocks_in_piece; ++blk)
+	{
+		int const buf_size = std::min(default_block_size,
+			effective_piece_size - blk * default_block_size);
+		f.insert(0_piece, blk, params, buf_size);
+	}
+
+	jobqueue_t completed, retry;
+	f.cache.kick_pending_hashers(completed, retry);
+
+	int const v2_blocks = (piece_size2 + default_block_size - 1) / default_block_size;
+	std::vector<sha256_hash> block_hashes(need_v2 ? v2_blocks : 0);
+	auto hash_job = std::make_unique<pread_disk_job>();
+	hash_job->action = job::hash{
+		{}, 0_piece,
+		span<sha256_hash>{block_hashes.data(), int(block_hashes.size())},
+		sha1_hash{}
+	};
+	TEST_EQUAL(f.cache.try_hash_piece(f.loc(0_piece), hash_job.get())
+		, disk_cache::hash_result::job_completed);
+	if (need_v1)
+		TEST_CHECK(!std::get<job::hash>(hash_job->action).piece_hash.is_all_zeros());
+	for (auto const& h : block_hashes)
+		TEST_CHECK(!h.is_all_zeros());
+
+	TEST_EQUAL(f.flush(), blocks_in_piece);
+	TEST_EQUAL(int(f.cache.size()), 0);
+}
+
+}
+
+TORRENT_TEST(truncated_v2_piece_v2)
+	{ test_piece_size2_smaller_than_piece_size(test_mode::v2); }
+TORRENT_TEST(truncated_v2_piece_hybrid)
+	{ test_piece_size2_smaller_than_piece_size(test_mode::v1 | test_mode::v2); }
