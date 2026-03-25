@@ -113,7 +113,7 @@ jobs:
           b2 --hash release msvc-version-macro=on address-model=64 link=static debug-iterators=off invariant-checks=on define=BOOST_ASIO_DISABLE_IOCP asserts=on testing.execute=off
 
       - name: run sims
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           max_attempts: 3
           timeout_minutes: 120

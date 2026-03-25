@@ -265,7 +265,7 @@ jobs:
           b2 ${{ matrix.config }} -l500 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on deterministic-tests
 
       - name: run tests (flaky)
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           timeout_minutes: 30
           retry_wait_seconds: 4
