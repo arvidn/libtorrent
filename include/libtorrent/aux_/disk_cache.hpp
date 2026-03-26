@@ -96,14 +96,20 @@ private:
 
 struct TORRENT_EXTRA_EXPORT cached_block_entry
 {
+	// the three mutually exclusive states a block can be in:
+	//   monostate        - no data present
+	//   disk_job*        - pending write; buffer is owned by the job
+	//   disk_buffer_ref  - write was attempted; buffer kept for the hasher (may be null)
+	using write_state_t = std::variant<std::monostate, disk_job*, disk_buffer_ref>;
+
 	// returns the buffer pointer for this block, regardless of whether it comes
-	// from the write job or the buf_holder. Returns nullptr if no data is available.
+	// from the write job or the owned buffer. Returns nullptr if no data is available.
 	char const* data() const noexcept;
 
 	// returns a span covering the buffer for this block. block_size must be the
 	// number of bytes in this specific block (may be less than default_block_size
 	// for the last block of a piece). For write_job blocks the job's own
-	// buffer_size is used instead, so block_size only affects the buf_holder case.
+	// buffer_size is used instead, so block_size only affects the owned-buffer case.
 	// If there is no buffer, it returns an empty span.
 	span<char const> buf(int block_size) const;
 
@@ -111,16 +117,19 @@ struct TORRENT_EXTRA_EXPORT cached_block_entry
 	// If there is no write job, it returns an empty span.
 	span<char const> write_buf() const;
 
-	// once the write job has been executed, and we've flushed the buffer, we
-	// move it into buf_holder, to keep the buffer alive until any hash job has
-	// completed as well. The underlying data can be accessed through buf(), but
-	// the owner moves from the disk_job object to this buf_holder.
-	// We only ever have a write job or a buffer, never both.
-	disk_buffer_ref buf_holder;
-	disk_job* write_job = nullptr;
+	// returns true if write_state is disk_buffer_ref and the buffer is non-null
+	bool has_buf() const noexcept;
+	// returns true if write_state is disk_buffer_ref (write was attempted), regardless
+	// of whether the buffer is still held (may be a null/freed ref)
+	bool is_flushed() const noexcept;
+	// returns the write job pointer, or nullptr if not in write-job state
+	disk_job* get_write_job() const noexcept;
+	// moves the buffer out and transitions to disk_buffer_ref{null}; requires has_buf()
+	disk_buffer_ref take_buf() noexcept;
+	// returns the write job and sets write_state to monostate; requires get_write_job() != nullptr
+	disk_job* take_write_job() noexcept;
 
-	bool flushed_to_disk = false;
-
+	write_state_t write_state;
 };
 
 struct cached_piece_entry
@@ -418,9 +427,9 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 				bulk_free_buffer to_free(*m_allocator);
 				for (auto& cbe : piece_iter->get_blocks().subspan(0, piece_iter->flushed_cursor))
 				{
-					if (cbe.buf_holder)
+					if (cbe.has_buf())
 					{
-						to_free.add(std::move(cbe.buf_holder));
+						to_free.add(cbe.take_buf());
 						TORRENT_ASSERT(m_blocks > 0);
 						--m_blocks;
 					}

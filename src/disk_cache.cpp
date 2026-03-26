@@ -53,7 +53,7 @@ std::uint16_t compute_flushed_cursor(span<const cached_block_entry> blocks)
 	std::uint16_t ret = 0;
 	for (auto const& b : blocks)
 	{
-		if (!b.flushed_to_disk) return ret;
+		if (!b.is_flushed()) return ret;
 		++ret;
 	}
 	return ret;
@@ -62,34 +62,34 @@ std::uint16_t compute_flushed_cursor(span<const cached_block_entry> blocks)
 std::uint16_t count_jobs(span<const cached_block_entry> blocks)
 {
 	return static_cast<std::uint16_t>(std::count_if(blocks.begin(), blocks.end()
-		, [](cached_block_entry const& b) { return b.write_job; }));
+		, [](cached_block_entry const& b) { return b.get_write_job(); }));
 }
 
 }
 
 char const* cached_block_entry::data() const noexcept
 {
-	if (buf_holder) return buf_holder.data();
-	if (write_job != nullptr)
+	if (auto const* ref = std::get_if<disk_buffer_ref>(&write_state))
+		return ref->data();
+	if (auto const* j = std::get_if<disk_job*>(&write_state))
 	{
-		TORRENT_ASSERT(write_job->get_type() == aux::job_action_t::write);
-		return std::get<job::write>(write_job->action).buf.data();
+		TORRENT_ASSERT((*j)->get_type() == aux::job_action_t::write);
+		return std::get<job::write>((*j)->action).buf.data();
 	}
 	return nullptr;
 }
 
 span<char const> cached_block_entry::buf(int const block_size) const
 {
-	if (buf_holder)
+	if (auto const* ref = std::get_if<disk_buffer_ref>(&write_state))
 	{
 		TORRENT_ASSERT(block_size > 0);
-		return {buf_holder.data(), block_size};
+		return {ref->data(), ref->data() ? block_size : 0};
 	}
-
-	if (write_job != nullptr)
+	if (auto const* j = std::get_if<disk_job*>(&write_state))
 	{
-		TORRENT_ASSERT(write_job->get_type() == aux::job_action_t::write);
-		auto const& job = std::get<job::write>(write_job->action);
+		TORRENT_ASSERT((*j)->get_type() == aux::job_action_t::write);
+		auto const& job = std::get<job::write>((*j)->action);
 		TORRENT_ASSERT(block_size == job.buffer_size);
 		return {job.buf.data(), job.buffer_size};
 	}
@@ -98,13 +98,47 @@ span<char const> cached_block_entry::buf(int const block_size) const
 
 span<char const> cached_block_entry::write_buf() const
 {
-	if (write_job != nullptr)
+	if (auto const* j = std::get_if<disk_job*>(&write_state))
 	{
-		TORRENT_ASSERT(write_job->get_type() == aux::job_action_t::write);
-		auto const& job = std::get<job::write>(write_job->action);
+		TORRENT_ASSERT((*j)->get_type() == aux::job_action_t::write);
+		auto const& job = std::get<job::write>((*j)->action);
 		return {job.buf.data(), job.buffer_size};
 	}
 	return {nullptr, 0};
+}
+
+bool cached_block_entry::has_buf() const noexcept
+{
+	auto const* ref = std::get_if<disk_buffer_ref>(&write_state);
+	return ref != nullptr && ref->data() != nullptr;
+}
+
+bool cached_block_entry::is_flushed() const noexcept
+{
+	return std::holds_alternative<disk_buffer_ref>(write_state);
+}
+
+disk_job* cached_block_entry::get_write_job() const noexcept
+{
+	auto const* p = std::get_if<disk_job*>(&write_state);
+	return p ? *p : nullptr;
+}
+
+disk_buffer_ref cached_block_entry::take_buf() noexcept
+{
+	TORRENT_ASSERT(has_buf());
+	disk_buffer_ref r = std::move(std::get<disk_buffer_ref>(write_state));
+	// leave as disk_buffer_ref{null} to preserve "was flushed" information
+	write_state = disk_buffer_ref{};
+	return r;
+}
+
+disk_job* cached_block_entry::take_write_job() noexcept
+{
+	TORRENT_ASSERT(std::holds_alternative<disk_job*>(write_state));
+	disk_job* j = std::get<disk_job*>(write_state);
+	write_state = std::monostate{};
+	return j;
 }
 
 template <typename... Type>
@@ -234,13 +268,12 @@ insert_result_flags disk_cache::insert(piece_location const loc
 	DLOG("disk_cache.insert: piece: %d blk: %d flushed: %d write_job: %p flushed_cursor: %d hashed_cursor: %d\n"
 		, static_cast<int>(i->piece.piece)
 		, block_idx
-		, blk.flushed_to_disk
-		, blk.write_job
+		, blk.is_flushed()
+		, blk.get_write_job()
 		, i->flushed_cursor
 		, i->hasher_cursor);
-	TORRENT_ASSERT(!blk.buf_holder);
-	TORRENT_ASSERT(blk.write_job == nullptr);
-	TORRENT_ASSERT(blk.flushed_to_disk == false);
+	TORRENT_ASSERT(!blk.has_buf());
+	TORRENT_ASSERT(blk.get_write_job() == nullptr);
 	TORRENT_ASSERT(block_idx >= i->flushed_cursor);
 	TORRENT_ASSERT(block_idx >= i->hasher_cursor);
 
@@ -253,7 +286,7 @@ insert_result_flags disk_cache::insert(piece_location const loc
 	else
 		TORRENT_ASSERT(m_allocator == std::get<aux::job::write>(write_job->action).buf.m_allocator);
 
-	blk.write_job = write_job;
+	blk.write_state = write_job;
 	++m_blocks;
 	++m_num_unhashed;
 
@@ -457,8 +490,8 @@ keep_going:
 	bulk_free_buffer to_free(*m_allocator);
 	for (auto& cbe : piece_iter->get_blocks().subspan(piece_iter->hasher_cursor, count))
 	{
-		if (!cbe.buf_holder) continue;
-		to_free.add(std::move(cbe.buf_holder));
+		if (!cbe.has_buf()) continue;
+		to_free.add(cbe.take_buf());
 		TORRENT_ASSERT(m_blocks > 0);
 		--m_blocks;
 	}
@@ -629,21 +662,29 @@ Iter disk_cache::flush_piece_impl(View& view
 		cached_block_entry& blk = blocks[i];
 		int const block_index = block_offset + i;
 
-		auto* j = std::exchange(blk.write_job, nullptr);
+		auto* j = blk.take_write_job();
 		TORRENT_ASSERT(j);
 		TORRENT_ASSERT(j->get_type() == aux::job_action_t::write);
 		auto& job = std::get<aux::job::write>(j->action);
-		blk.buf_holder = disk_buffer_ref(std::move(job.buf));
-		if (!j->error.ec)
-			blk.flushed_to_disk = true;
-		TORRENT_ASSERT(blk.buf_holder);
+		disk_buffer_ref ref(std::move(job.buf));
 
-		// if another thread is currently hashing blocks in this piece, we
-		// can't remove the ones past the current hasher_cursor. They are in
-		// use.
-		if (block_index < hasher_cursor || !(piece_iter->flags & cached_piece_entry::hashing_flag))
+		// if a hasher thread has captured a pointer into this buffer (it
+		// snapshotted blocks_storage before we re-acquired the lock), we
+		// must keep the buffer alive until hashing completes; kick_hasher
+		// will free it.  In every other case — including write errors —
+		// release the buffer immediately.
+		bool const needed_by_hasher = (piece_iter->flags & cached_piece_entry::hashing_flag)
+			&& block_index >= hasher_cursor;
+		if (needed_by_hasher)
 		{
-			to_free.add(std::move(blk.buf_holder));
+			blk.write_state = std::move(ref);
+		}
+		else
+		{
+			to_free.add(std::move(ref));
+			// mark as flushed (with null buffer) so compute_flushed_cursor can
+			// advance past this block even though the buffer has been freed
+			blk.write_state = disk_buffer_ref{};
 			if (block_index >= hasher_cursor)
 			{
 				TORRENT_ASSERT(m_num_unhashed > 0);
@@ -697,7 +738,7 @@ void disk_cache::free_piece(cached_piece_entry const& cpe)
 	int idx = 0;
 	for (auto& blk : cpe.get_blocks())
 	{
-		if (blk.buf_holder)
+		if (blk.has_buf())
 		{
 			if (idx >= cpe.hasher_cursor)
 			{
@@ -705,10 +746,10 @@ void disk_cache::free_piece(cached_piece_entry const& cpe)
 				--m_num_unhashed;
 			}
 			--m_blocks;
-			to_free.add(std::move(blk.buf_holder));
+			to_free.add(blk.take_buf());
 		}
-		TORRENT_ASSERT(!blk.buf_holder || idx >= cpe.hasher_cursor);
-		TORRENT_ASSERT(blk.write_job == nullptr);
+		TORRENT_ASSERT(!blk.has_buf() || idx >= cpe.hasher_cursor);
+		TORRENT_ASSERT(blk.get_write_job() == nullptr);
 		++idx;
 	}
 }
@@ -938,11 +979,8 @@ void disk_cache::check_invariant() const
 		int idx = 0;
 		for (auto& be : blocks)
 		{
-			if (be.write_job) ++dirty_blocks;
-			if (be.buf_holder) ++flushed_blocks;
-
-			// a block holds either a write job or buffer, never both
-			TORRENT_ASSERT(!(bool(be.write_job) && bool(be.buf_holder)));
+			if (be.get_write_job()) ++dirty_blocks;
+			if (be.has_buf()) ++flushed_blocks;
 
 			if (!(piece_entry.flags & cached_piece_entry::flushing_flag))
 			{
@@ -954,24 +992,24 @@ void disk_cache::check_invariant() const
 				// separate thread's point of view,
 				// this invariant may be violated while
 				// this is happening
-				if (be.write_job)
+				if (auto* j = be.get_write_job())
 				{
-					TORRENT_ASSERT(be.write_job->get_type() == aux::job_action_t::write);
-					TORRENT_ASSERT(be.write_job->next == nullptr);
+					TORRENT_ASSERT(j->get_type() == aux::job_action_t::write);
+					TORRENT_ASSERT(j->next == nullptr);
 				}
 
 				if (idx < piece_entry.flushed_cursor)
-					TORRENT_ASSERT(be.write_job == nullptr);
+					TORRENT_ASSERT(be.get_write_job() == nullptr);
 				else if (idx == piece_entry.flushed_cursor)
-					TORRENT_ASSERT(!be.buf_holder);
+					TORRENT_ASSERT(!be.is_flushed());
 
 				if (piece_entry.flags & cached_piece_entry::force_flush_flag)
-					TORRENT_ASSERT(be.write_job != nullptr
-						|| be.flushed_to_disk
+					TORRENT_ASSERT(be.get_write_job() != nullptr
+						|| be.is_flushed()
 						|| piece_entry.hasher_cursor == piece_entry.blocks_in_piece());
 			}
 
-			if (idx >= piece_entry.hasher_cursor && (bool(be.buf_holder) || be.write_job))
+			if (idx >= piece_entry.hasher_cursor && (be.has_buf() || be.get_write_job()))
 				++unhashed_blocks;
 
 			++idx;
@@ -1005,21 +1043,23 @@ void disk_cache::clear_piece_impl(cached_piece_entry& cpe, jobqueue_t& aborted)
 			--m_num_unhashed;
 		}
 
-		if (cbe.write_job)
+		if (cbe.get_write_job())
 		{
-			aborted.push_back(cbe.write_job);
-			cbe.write_job = nullptr;
+			aborted.push_back(cbe.take_write_job());
 			++jobs;
 			--m_blocks;
 		}
-		cbe.flushed_to_disk = false;
 
-		if (cbe.buf_holder)
+		if (cbe.has_buf())
 		{
-			to_free.add(std::move(cbe.buf_holder));
+			to_free.add(cbe.take_buf());
 			TORRENT_ASSERT(m_blocks > 0);
 			--m_blocks;
 		}
+		// reset any null disk_buffer_ref back to monostate so that
+		// flushed_cursor=0 is consistent after we reset it below
+		if (cbe.is_flushed())
+			cbe.write_state = std::monostate{};
 	}
 	cpe.flags &= ~(cached_piece_entry::force_flush_flag
 		| cached_piece_entry::piece_hash_returned_flag

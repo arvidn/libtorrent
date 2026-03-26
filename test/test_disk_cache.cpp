@@ -188,7 +188,7 @@ struct cache_fixture
 				int count = 0;
 				for (int i = 0; i < int(blocks.size()); ++i)
 				{
-					if (!blocks[i].write_job) continue;
+					if (!blocks[i].get_write_job()) continue;
 					flushed.set_bit(i);
 					++count;
 				}
@@ -705,7 +705,7 @@ void run_flush_test(flush_test_case tc)
 			int count = 0;
 			for (int i = 0; i < blocks.size(); ++i)
 			{
-				auto const* wj = blocks[i].write_job;
+				auto const* wj = blocks[i].get_write_job();
 				if (!wj) continue;
 				auto const& w = std::get<job::write>(wj->action);
 				auto const blk = static_cast<std::size_t>(w.offset / default_block_size);

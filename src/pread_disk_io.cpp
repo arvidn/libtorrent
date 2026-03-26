@@ -1356,9 +1356,9 @@ int pread_disk_io::flush_cache_blocks(bitfield& flushed
 		blocks_str.reserve(blocks.size());
 		for (auto const& blk : blocks)
 		{
-			blocks_str += blk.write_job ? '*' : ' ';
-			if (blk.write_job)
-				piece = std::get<aux::job::write>(blk.write_job->action).piece;
+			blocks_str += blk.get_write_job() ? '*' : ' ';
+			if (auto* wj = blk.get_write_job())
+				piece = std::get<aux::job::write>(wj->action).piece;
 		}
 		// If this assert fires, it means we were asked to flush a piece
 		// that doesn't have any jobs to flush
@@ -1384,7 +1384,7 @@ int pread_disk_io::flush_cache_blocks(bitfield& flushed
 	int ret = 0;
 
 	visit_block_iovecs(blocks, [&] (span<span<char const>> iovec, int const start_idx) {
-		auto* j = blocks[start_idx].write_job;
+		auto* j = blocks[start_idx].get_write_job();
 		TORRENT_ASSERT(j->get_type() == aux::job_action_t::write);
 		auto& a = std::get<aux::job::write>(j->action);
 		auto* pj = static_cast<aux::pread_disk_job*>(j);
@@ -1402,7 +1402,7 @@ int pread_disk_io::flush_cache_blocks(bitfield& flushed
 		int i = start_idx;
 		for (aux::cached_block_entry const& blk : blocks.subspan(start_idx, count))
 		{
-			auto* j2 = blk.write_job;
+			auto* j2 = blk.get_write_job();
 			TORRENT_ASSERT(j2);
 			TORRENT_ASSERT(j2->get_type() == aux::job_action_t::write);
 			j2->error = error;
@@ -1418,7 +1418,7 @@ int pread_disk_io::flush_cache_blocks(bitfield& flushed
 			// if there was a failure, fail the remaining jobs as well
 			for (aux::cached_block_entry const& blk : blocks.subspan(start_idx + count))
 			{
-				auto* j2 = blk.write_job;
+				auto* j2 = blk.get_write_job();
 				if (j2)
 				{
 					j2->error = error;
