@@ -119,7 +119,7 @@ namespace aux {
 		while (new_size < size)
 			new_size <<= 1;
 
-		aux::unique_ptr<packet_ptr[], index_type> new_storage(new packet_ptr[new_size]);
+		auto new_storage = aux::make_unique<packet_ptr[], index_type>(new_size);
 
 		for (index_type i = m_first; i < (m_first + m_capacity); ++i)
 			new_storage[i & (new_size - 1)] = std::move(m_storage[i & (m_capacity - 1)]);

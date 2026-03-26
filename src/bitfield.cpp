@@ -12,6 +12,7 @@ see LICENSE file.
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/aux_/cpuid.hpp"
+#include "libtorrent/aux_/unique_ptr.hpp"
 
 #ifdef _MSC_VER
 #include <intrin.h>
@@ -174,7 +175,7 @@ namespace libtorrent {
 		int const cur_size_words = num_words();
 		if (cur_size_words != new_size_words)
 		{
-			aux::unique_ptr<std::uint32_t[]> b(new std::uint32_t[std::size_t(new_size_words + 1)]);
+			auto b = aux::make_unique<std::uint32_t[], std::ptrdiff_t>(new_size_words + 1);
 #ifdef BOOST_NO_EXCEPTIONS
 			if (b == nullptr) std::terminate();
 #endif

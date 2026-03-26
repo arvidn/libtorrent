@@ -29,21 +29,42 @@ namespace libtorrent { namespace aux {
 		using underlying_index = typename underlying_index_t<IndexType>::type;
 
 		unique_ptr() = default;
+
+#if TORRENT_USE_ASSERTS
+		explicit unique_ptr(T* arr, IndexType const size) : base(arr), m_size(size) {}
+	private:
+		IndexType m_size = 0;
+	public:
+#else
 		explicit unique_ptr(T* arr) : base(arr) {}
-
 		explicit unique_ptr(base b): base(std::move(b)) {}
-
+#endif
 		decltype(auto) operator[](IndexType idx) const
 		{
 			TORRENT_ASSERT(idx >= IndexType(0));
+			TORRENT_ASSERT(idx < m_size);
 			return this->base::operator[](std::size_t(static_cast<underlying_index>(idx)));
 		}
+
+		void reset() {
+#if TORRENT_USE_ASSERTS
+			m_size = 0;
+#endif
+			base::reset();
+		}
+		// we can't track array size via a plain reset()
+		void reset(T* arr) = delete;
 	};
 
 	template <typename T, typename IndexType = std::ptrdiff_t>
 	unique_ptr<T, IndexType> make_unique(IndexType const num) {
 		static_assert(std::is_array_v<T>);
-		return unique_ptr<T, IndexType>(new std::remove_extent_t<T>[std::size_t(num)]);
+		auto const n = std::size_t(num);
+#if TORRENT_USE_ASSERTS
+		return unique_ptr<T, IndexType>(new std::remove_extent_t<T>[n], IndexType(n));
+#else
+		return unique_ptr<T, IndexType>(new std::remove_extent_t<T>[n]);
+#endif
 	}
 }}
 
