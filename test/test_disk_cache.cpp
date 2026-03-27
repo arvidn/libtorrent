@@ -86,7 +86,7 @@ struct test_allocator : buffer_allocator_interface
 };
 
 // drives disk_cache directly without any storage layer.
-// The piece metadata (blocks_per_piece, v1, v2) is specified in the
+// The piece metadata (piece_size, piece_size2, v1, v2) is specified in the
 // constructor and passed straight to disk_cache::insert() via
 // piece_entry_params - no file_storage or pread_storage involved.
 struct cache_fixture
@@ -96,13 +96,19 @@ struct cache_fixture
 	test_allocator alloc;
 	std::vector<std::unique_ptr<pread_disk_job>> live_jobs;
 
-	// All pieces created by this fixture share the same shape.
-	int const blocks_per_piece;
 	test_mode_t const mode;
+	// v1 effective piece size (determines blocks_in_piece)
+	int const piece_size;
+	// v2 piece size (may differ from piece_size for hybrid torrents)
+	int const piece_size2;
 
-	cache_fixture(int const blocks_per_piece_, test_mode_t const mode_)
-		: blocks_per_piece(blocks_per_piece_)
-		, mode(mode_)
+	// piece_size defaults to blocks_ * default_block_size;
+	// piece_size2 defaults to piece_size when not specified.
+	cache_fixture(int const blocks_, test_mode_t const mode_
+		, int const piece_size_ = 0, int const piece_size2_ = 0)
+		: mode(mode_)
+		, piece_size(piece_size_ > 0 ? piece_size_ : blocks_ * default_block_size)
+		, piece_size2(piece_size2_ > 0 ? piece_size2_ : (piece_size_ > 0 ? piece_size_ : blocks_ * default_block_size))
 	{
 		TORRENT_ASSERT(mode & (test_mode::v1 | test_mode::v2));
 		cache.set_max_size(1024); // generous; no back-pressure by default
@@ -116,14 +122,15 @@ struct cache_fixture
 	disk_cache::piece_entry_params piece_params() const
 	{
 		return {
-			blocks_per_piece,
-			blocks_per_piece * default_block_size, // piece_size2
-			blocks_per_piece * default_block_size, // piece_size
+			piece_size2,
+			piece_size,
 			bool(mode & test_mode::v1), bool(mode & test_mode::v2)
 		};
 	}
 
 	// Allocate a write-job whose buffer is filled with fill_char.
+	// The buffer is sized to the actual block size (which may be less than
+	// default_block_size for the last block of a piece with unaligned piece_size).
 	// Ownership is transferred to live_jobs; the raw pointer is returned.
 	// write_job->storage is intentionally null: disk_cache no longer needs it.
 	pread_disk_job* make_write_job(
@@ -843,7 +850,6 @@ void test_piece_size2_smaller_than_piece_size(test_mode_t const mode)
 	cache_fixture f(blocks_in_piece, mode);
 
 	disk_cache::piece_entry_params const params{
-		blocks_in_piece,
 		piece_size2,
 		effective_piece_size,
 		need_v1,

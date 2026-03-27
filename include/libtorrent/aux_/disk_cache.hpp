@@ -126,9 +126,9 @@ struct TORRENT_EXTRA_EXPORT cached_block_entry
 struct cached_piece_entry
 {
 	cached_piece_entry(piece_location const& loc
-		, std::uint16_t const num_blocks
 		, int const piece_size_v2
 		, int const piece_size
+		, int const num_blocks
 		, bool v1
 		, bool v2);
 
@@ -136,9 +136,9 @@ struct cached_piece_entry
 
 	piece_location piece;
 
-	unique_ptr<cached_block_entry[]> blocks;
+	unique_ptr<cached_block_entry[], int> blocks;
 	// allocated only for v2 torrents (null for v1-only)
-	unique_ptr<sha256_hash[]> block_hashes;
+	unique_ptr<sha256_hash[], int> block_hashes;
 	// allocated only for v1 torrents (null for v2-only)
 	std::unique_ptr<piece_hasher> ph;
 
@@ -159,9 +159,11 @@ struct cached_piece_entry
 	// or piece_size2 for v2-only pieces).
 	int piece_size;
 
-	// the number of blocks in this piece. This depend on the piece size for
-	// the torrent and whether it's the last
-	std::uint16_t blocks_in_piece = 0;
+	// the number of blocks in this piece, derived from piece_size.
+	int blocks_in_piece() const
+	{
+		return (piece_size + default_block_size - 1) / default_block_size;
+	}
 
 	// the number of blocks that have been hashed so far. Specifically for the
 	// v1 SHA1 hash of the piece, so all blocks are contiguous starting at block
@@ -379,14 +381,14 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 			return hash_piece_result::deferred;
 		}
 
-		std::uint16_t const blocks_in_piece = piece_iter->blocks_in_piece;
+		int const blocks_in_piece = piece_iter->blocks_in_piece();
 		std::uint16_t const hasher_cursor = piece_iter->hasher_cursor;
 
 		TORRENT_ALLOCA(blocks, char const*, blocks_in_piece);
 		TORRENT_ALLOCA(v2_hashes, sha256_hash, (piece_iter->flags & cached_piece_entry::v2_hashes_flag) ? blocks_in_piece : 0);
 
 		int num_unhashed = 0;
-		for (std::uint16_t i = 0; i < blocks_in_piece; ++i)
+		for (int i = 0; i < blocks_in_piece; ++i)
 		{
 			char const* buf = piece_iter->blocks[i].data();
 			blocks[i] = buf;
@@ -395,7 +397,7 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 		}
 		if (piece_iter->block_hashes)
 		{
-			for (std::uint16_t i = 0; i < blocks_in_piece; ++i)
+			for (int i = 0; i < blocks_in_piece; ++i)
 				v2_hashes[i] = piece_iter->block_hashes[i];
 		}
 
@@ -407,7 +409,7 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 			view.modify(piece_iter, [&](cached_piece_entry& e) {
 				e.flags |= cached_piece_entry::force_flush_flag | cached_piece_entry::piece_hash_returned_flag;
 				e.flags &= ~cached_piece_entry::hashing_flag;
-				e.hasher_cursor = blocks_in_piece;
+				e.hasher_cursor = static_cast<std::uint16_t>(blocks_in_piece);
 			});
 			TORRENT_ASSERT(m_num_unhashed >= num_unhashed);
 			m_num_unhashed -= num_unhashed;
@@ -424,7 +426,7 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 					}
 				}
 			}
-			if (piece_iter->flushed_cursor == piece_iter->blocks_in_piece)
+			if (piece_iter->flushed_cursor == piece_iter->blocks_in_piece())
 			{
 				free_piece(*piece_iter);
 				view.erase(piece_iter);
@@ -471,8 +473,6 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 	// piece metadata required when inserting the first block of a new piece.
 	struct piece_entry_params
 	{
-		// total number of 16 KiB blocks that make up this piece
-		int blocks_in_piece;
 		// size (in bytes) of this piece according to v2 file boundaries
 		// (only meaningful for v2 torrents)
 		int piece_size2;

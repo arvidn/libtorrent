@@ -642,8 +642,7 @@ bool pread_disk_io::async_write(storage_index_t const storage, peer_request cons
 	int const piece_size = j->storage->v1() ? fs.piece_size(r.piece) : fs.piece_size2(r.piece);
 	TORRENT_ASSERT(r.length == std::min(piece_size - r.start, default_block_size));
 	aux::disk_cache::piece_entry_params const piece_params{
-		(piece_size + default_block_size - 1) / default_block_size
-		, fs.piece_size2(r.piece)
+		fs.piece_size2(r.piece)
 		, piece_size
 		, j->storage->v1()
 		, j->storage->v2()
