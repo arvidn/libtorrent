@@ -7343,6 +7343,8 @@ namespace {
 	void torrent::get_peer_info(std::vector<peer_info>* v)
 	{
 		v->clear();
+		v->reserve(m_connections.size());
+
 		for (auto const peer : *this)
 		{
 			TORRENT_ASSERT(peer->m_in_use == 1337);
@@ -7373,6 +7375,7 @@ namespace {
 		, span<piece_picker::downloading_piece const> q
 		, std::vector<partial_piece_info>* queue)
 	{
+		queue->reserve(static_cast<std::size_t>(q.size()));
 		const int blocks_per_piece = p.blocks_in_piece(piece_index_t(0));
 		int counter = 0;
 		for (auto i = q.begin(); i != q.end(); ++i, ++counter)
