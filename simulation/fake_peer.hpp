@@ -172,6 +172,13 @@ struct fake_peer
 			});
 	}
 
+	// Set a fixed peer-id to use instead of random bytes
+	void set_peer_id(lt::peer_id const& pid)
+	{
+		m_fixed_pid = pid;
+		m_use_fixed_pid = true;
+	}
+
 private:
 
 	void send_simple_msg(std::uint8_t const msg_code)
@@ -201,7 +208,14 @@ private:
 		int const len = sizeof(handshake) - 1;
 		memcpy(m_out_buffer.data(), handshake, len);
 		memcpy(&m_out_buffer[28], ih.data(), 20);
-		lt::aux::random_bytes({&m_out_buffer[48], 20});
+		if (m_use_fixed_pid)
+		{
+			memcpy(&m_out_buffer[48], m_fixed_pid.data(), 20);
+		}
+		else
+		{
+			lt::aux::random_bytes({&m_out_buffer[48], 20});
+		}
 
 		TORRENT_ASSERT(!m_writing);
 		m_writing = true;
@@ -319,6 +333,10 @@ private:
 	// set to true while there's an outstanding asyn write operation on the
 	// socket
 	bool m_writing = false;
+
+	// fixed peer-id to use instead of random bytes
+	lt::peer_id m_fixed_pid;
+	bool m_use_fixed_pid = false;
 
 	std::vector<char> m_send_buffer;
 };
