@@ -45,6 +45,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/ssl.hpp"
+#include "libtorrent/aux_/throw.hpp"
 
 #include <boost/system/system_error.hpp>
 
@@ -90,7 +91,7 @@ struct ssl_stream
 	{
 		error_code ec;
 		set_host_name(name, ec);
-		if (ec) boost::throw_exception(boost::system::system_error(ec));
+		if (ec) aux::throw_ex<system_error>(ec);
 	}
 
 	void set_host_name(std::string const& name, error_code& ec)
@@ -101,6 +102,11 @@ struct ssl_stream
 	template <class T>
 	void set_verify_callback(T const& fun, error_code& ec)
 	{
+		if (!m_sock)
+		{
+			ec = make_error_code(boost::system::errc::bad_file_descriptor);
+			return;
+		}
 		m_sock->set_verify_callback(fun, ec);
 	}
 
@@ -111,6 +117,8 @@ struct ssl_stream
 		// 1. connect to peer
 		// 2. perform SSL client handshake
 
+		if (!m_sock)
+			aux::throw_ex<system_error>(make_error_code(boost::system::errc::bad_file_descriptor));
 		m_sock->next_layer().async_connect(endpoint, wrap_allocator(
 			[this](error_code const& ec, Handler hn) {
 				connected(ec, std::move(hn));
@@ -120,6 +128,8 @@ struct ssl_stream
 	template <class Handler>
 	void async_accept_handshake(Handler const& h)
 	{
+		if (!m_sock)
+			aux::throw_ex<system_error>(make_error_code(boost::system::errc::bad_file_descriptor));
 		// this is used for accepting SSL connections
 		m_sock->async_handshake(ssl::stream_base::server, wrap_allocator(
 			[this](error_code const& ec, Handler hn) {
@@ -129,6 +139,11 @@ struct ssl_stream
 
 	void accept_handshake(error_code& ec)
 	{
+		if (!m_sock)
+		{
+			ec = make_error_code(boost::system::errc::bad_file_descriptor);
+			return;
+		}
 		// this is used for accepting SSL connections
 		m_sock->handshake(ssl::stream_base::server, ec);
 	}
@@ -136,6 +151,8 @@ struct ssl_stream
 	template <class Handler>
 	void async_shutdown(Handler handler)
 	{
+		if (!m_sock)
+			aux::throw_ex<system_error>(make_error_code(boost::system::errc::bad_file_descriptor));
 		error_code ec;
 		m_sock->next_layer().cancel(ec);
 		m_sock->async_shutdown(std::move(handler));
@@ -143,18 +160,30 @@ struct ssl_stream
 
 	void shutdown(error_code& ec)
 	{
+		if (!m_sock)
+		{
+			ec = make_error_code(boost::system::errc::bad_file_descriptor);
+			return;
+		}
 		m_sock->shutdown(ec);
 	}
 
 	template <class Mutable_Buffers, class Handler>
 	void async_read_some(Mutable_Buffers const& buffers, Handler handler)
 	{
+		if (!m_sock)
+			aux::throw_ex<system_error>(make_error_code(boost::system::errc::bad_file_descriptor));
 		m_sock->async_read_some(buffers, std::move(handler));
 	}
 
 	template <class Mutable_Buffers>
 	std::size_t read_some(Mutable_Buffers const& buffers, error_code& ec)
 	{
+		if (!m_sock)
+		{
+			ec = make_error_code(boost::system::errc::bad_file_descriptor);
+			return 0;
+		}
 		return m_sock->read_some(buffers, ec);
 	}
 
@@ -162,13 +191,18 @@ struct ssl_stream
 	template <class SettableSocketOption>
 	void set_option(SettableSocketOption const& opt)
 	{
-		m_sock->next_layer().set_option(opt);
+		next_layer().set_option(opt);
 	}
 #endif
 
 	template <class SettableSocketOption>
 	void set_option(SettableSocketOption const& opt, error_code& ec)
 	{
+		if (!m_sock)
+		{
+			ec = make_error_code(boost::system::errc::bad_file_descriptor);
+			return;
+		}
 		m_sock->next_layer().set_option(opt, ec);
 	}
 
@@ -176,13 +210,18 @@ struct ssl_stream
 	template <class GettableSocketOption>
 	void get_option(GettableSocketOption& opt)
 	{
-		m_sock->next_layer().get_option(opt);
+		next_layer().get_option(opt);
 	}
 #endif
 
 	template <class GettableSocketOption>
 	void get_option(GettableSocketOption& opt, error_code& ec)
 	{
+		if (!m_sock)
+		{
+			ec = make_error_code(boost::system::errc::bad_file_descriptor);
+			return;
+		}
 		m_sock->next_layer().get_option(opt, ec);
 	}
 
@@ -190,38 +229,59 @@ struct ssl_stream
 	template <class Mutable_Buffers>
 	std::size_t read_some(Mutable_Buffers const& buffers)
 	{
+		if (!m_sock)
+			aux::throw_ex<system_error>(make_error_code(boost::system::errc::bad_file_descriptor));
 		return m_sock->read_some(buffers);
 	}
 
 	template <class IO_Control_Command>
 	void io_control(IO_Control_Command& ioc)
 	{
-		m_sock->next_layer().io_control(ioc);
+		next_layer().io_control(ioc);
 	}
 #endif
 
 	template <class IO_Control_Command>
 	void io_control(IO_Control_Command& ioc, error_code& ec)
 	{
+		if (!m_sock)
+		{
+			ec = make_error_code(boost::system::errc::bad_file_descriptor);
+			return;
+		}
 		m_sock->next_layer().io_control(ioc, ec);
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
-	void non_blocking(bool b) { m_sock->next_layer().non_blocking(b); }
+	void non_blocking(bool b) { next_layer().non_blocking(b); }
 #endif
 
 	void non_blocking(bool b, error_code& ec)
-	{ m_sock->next_layer().non_blocking(b, ec); }
+	{
+		if (!m_sock)
+		{
+			ec = make_error_code(boost::system::errc::bad_file_descriptor);
+			return;
+		}
+		m_sock->next_layer().non_blocking(b, ec);
+	}
 
 	template <class Const_Buffers, class Handler>
 	void async_write_some(Const_Buffers const& buffers, Handler handler)
 	{
+		if (!m_sock)
+			aux::throw_ex<system_error>(make_error_code(boost::system::errc::bad_file_descriptor));
 		m_sock->async_write_some(buffers, std::move(handler));
 	}
 
 	template <class Const_Buffers>
 	std::size_t write_some(Const_Buffers const& buffers, error_code& ec)
 	{
+		if (!m_sock)
+		{
+			ec = make_error_code(boost::system::errc::bad_file_descriptor);
+			return 0;
+		}
 		return m_sock->write_some(buffers, ec);
 	}
 
@@ -230,94 +290,139 @@ struct ssl_stream
 	// seems fine to potentially over-estimate the number of bytes available.
 #ifndef BOOST_NO_EXCEPTIONS
 	std::size_t available() const
-	{ return 17 * 1024 + const_cast<sock_type&>(*m_sock).next_layer().available(); }
+	{
+		if (!m_sock)
+			aux::throw_ex<system_error>(make_error_code(boost::system::errc::bad_file_descriptor));
+		return 17 * 1024 + const_cast<sock_type&>(*m_sock).next_layer().available();
+	}
 #endif
 
 	std::size_t available(error_code& ec) const
-	{ return 17 * 1024 + const_cast<sock_type&>(*m_sock).next_layer().available(ec); }
+	{
+		if (!m_sock)
+		{
+			ec = make_error_code(boost::system::errc::bad_file_descriptor);
+			return 0;
+		}
+		return 17 * 1024 + const_cast<sock_type&>(*m_sock).next_layer().available(ec);
+	}
 
 #ifndef BOOST_NO_EXCEPTIONS
 	void bind(endpoint_type const& endpoint)
 	{
-		m_sock->next_layer().bind(endpoint);
+		next_layer().bind(endpoint);
 	}
 #endif
 
 	void bind(endpoint_type const& endpoint, error_code& ec)
 	{
+		if (!m_sock)
+		{
+			ec = make_error_code(boost::system::errc::bad_file_descriptor);
+			return;
+		}
 		m_sock->next_layer().bind(endpoint, ec);
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
 	void open(protocol_type const& p)
 	{
-		m_sock->next_layer().open(p);
+		next_layer().open(p);
 	}
 #endif
 
 	void open(protocol_type const& p, error_code& ec)
 	{
+		if (!m_sock)
+		{
+			ec = make_error_code(boost::system::errc::bad_file_descriptor);
+			return;
+		}
 		m_sock->next_layer().open(p, ec);
 	}
 
 	bool is_open() const
 	{
+		if (!m_sock) return false;
 		return m_sock->next_layer().is_open();
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
 	void close()
 	{
-		m_sock->next_layer().close();
+		next_layer().close();
 	}
 #endif
 
 	void close(error_code& ec)
 	{
+		if (!m_sock)
+		{
+			ec = make_error_code(boost::system::errc::bad_file_descriptor);
+			return;
+		}
 		m_sock->next_layer().close(ec);
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
 	endpoint_type remote_endpoint() const
 	{
-		return m_sock->next_layer().remote_endpoint();
+		return next_layer().remote_endpoint();
 	}
 #endif
 
 	endpoint_type remote_endpoint(error_code& ec) const
 	{
+		if (!m_sock)
+		{
+			ec = make_error_code(boost::system::errc::bad_file_descriptor);
+			return {};
+		}
 		return m_sock->next_layer().remote_endpoint(ec);
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
 	endpoint_type local_endpoint() const
 	{
-		return m_sock->next_layer().local_endpoint();
+		return next_layer().local_endpoint();
 	}
 #endif
 
 	endpoint_type local_endpoint(error_code& ec) const
 	{
+		if (!m_sock)
+		{
+			ec = make_error_code(boost::system::errc::bad_file_descriptor);
+			return{};
+		}
 		return m_sock->next_layer().local_endpoint(ec);
 	}
 
 	lowest_layer_type& lowest_layer()
 	{
+		if (!m_sock)
+			aux::throw_ex<system_error>(make_error_code(boost::system::errc::bad_file_descriptor));
 		return m_sock->lowest_layer();
 	}
 
 	lowest_layer_type const& lowest_layer() const
 	{
+		if (!m_sock)
+			aux::throw_ex<system_error>(make_error_code(boost::system::errc::bad_file_descriptor));
 		return m_sock->lowest_layer();
 	}
 
 	next_layer_type& next_layer()
 	{
+		if (!m_sock)
+			aux::throw_ex<system_error>(make_error_code(boost::system::errc::bad_file_descriptor));
 		return m_sock->next_layer();
 	}
 
 	next_layer_type const& next_layer() const
 	{
+		if (!m_sock)
+			aux::throw_ex<system_error>(make_error_code(boost::system::errc::bad_file_descriptor));
 		return m_sock->next_layer();
 	}
 
