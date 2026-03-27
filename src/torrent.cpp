@@ -807,7 +807,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			return;
 		}
 
-		const int piece_size = m_torrent_file->piece_size(piece);
+		const int piece_size = m_torrent_file->piece_size_for_req(piece);
 		const int blocks_in_piece = (piece_size + block_size() - 1) / block_size();
 
 		TORRENT_ASSERT(blocks_in_piece > 0);
@@ -1254,7 +1254,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 		if (rp->blocks_left == 0)
 		{
-			int size = m_torrent_file->piece_size(r.piece);
+			int size = m_torrent_file->piece_size_for_req(r.piece);
 			if (rp->fail)
 			{
 				m_ses.alerts().emplace_alert<read_piece_alert>(
@@ -1376,10 +1376,13 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			return;
 
 		// make sure the piece size is correct
-		if (data.size() != std::size_t(m_torrent_file->piece_size(piece)))
-			return;
-
-		add_piece(piece, data.data(), flags);
+		// we check against the v1 piece size as well, for backwards compatibility
+		if (data.size() == std::size_t(m_torrent_file->piece_size_for_req(piece))
+			|| data.size() == std::size_t(m_torrent_file->piece_size(piece)))
+		{
+			data.resize(std::size_t(m_torrent_file->piece_size_for_req(piece)));
+			add_piece(piece, data.data(), flags);
+		}
 	}
 
 	// TODO: 3 there's some duplication between this function and
@@ -1393,7 +1396,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		if (piece >= torrent_file().end_piece())
 			return;
 
-		int const piece_size = m_torrent_file->piece_size(piece);
+		int const piece_size = m_torrent_file->piece_size_for_req(piece);
 		int const blocks_in_piece = (piece_size + block_size() - 1) / block_size();
 
 		if (m_deleted) return;
@@ -1519,8 +1522,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 	peer_request torrent::to_req(piece_block const& p) const
 	{
 		int const block_offset = p.block_index * block_size();
-		int const block = std::min(torrent_file().piece_size(
-			p.piece_index) - block_offset, block_size());
+		int const piece_sz = torrent_file().piece_size_for_req(p.piece_index);
+		int const block = std::min(piece_sz - block_offset, block_size());
 		TORRENT_ASSERT(block > 0);
 		TORRENT_ASSERT(block <= block_size());
 
@@ -7391,7 +7394,7 @@ namespace {
 			TORRENT_ASSERT(counter * blocks_per_piece + pi.blocks_in_piece <= int(blk.size()));
 			block_info* blocks = &blk[std::size_t(counter * blocks_per_piece)];
 			pi.blocks = blocks;
-			int const piece_size = ti.piece_size(i->index);
+			int const piece_size = ti.piece_size_for_req(i->index);
 			int idx = -1;
 			for (auto const& info : p.blocks_for_piece(*i))
 			{

@@ -321,18 +321,10 @@ piece_block_progress web_peer_connection::downloading_piece_progress() const
 	// this is used to make sure that the block_index stays within
 	// bounds. If the entire piece is downloaded, the block_index
 	// would otherwise point to one past the end
-	int correction = m_piece.empty() ? 0 : -1;
-	ret.block_index = (m_requests.front().start + int(m_piece.size()) + correction) / t->block_size();
-	TORRENT_ASSERT(ret.block_index < int(piece_block::invalid.block_index));
-	TORRENT_ASSERT(ret.piece_index < piece_block::invalid.piece_index);
-
-	ret.full_block_bytes = t->block_size();
-	piece_index_t const last_piece = t->torrent_file().last_piece();
-	if (ret.piece_index == last_piece && ret.block_index
-		== t->torrent_file().piece_size(last_piece) / t->block_size())
-	{
-		ret.full_block_bytes = t->torrent_file().piece_size(last_piece) % t->block_size();
-	}
+	int const correction = m_piece.empty() ? 0 : -1;
+	auto const& pr = m_requests.front();
+	ret.block_index = (pr.start + int(m_piece.size()) + correction) / t->block_size();
+	ret.full_block_bytes = std::min(t->block_size(), t->torrent_file().piece_size_for_req(ret.piece_index) - pr.start);
 	return ret;
 }
 
@@ -353,15 +345,17 @@ void web_peer_connection::write_request(peer_request const& r)
 
 	int size = r.length;
 	const int block_size = t->block_size();
-	const int piece_size = t->torrent_file().piece_length();
+	const int piece_size = info.piece_length();
 	peer_request pr{};
+
+	piece_index_t cur_piece = r.piece;
+	int cur_start = r.start;
 
 	while (size > 0)
 	{
-		int request_offset = r.start + r.length - size;
-		pr.start = request_offset % piece_size;
-		pr.length = std::min(std::min(block_size, size), piece_size - pr.start);
-		pr.piece = piece_index_t(static_cast<int>(r.piece) + request_offset / piece_size);
+		pr.piece = cur_piece;
+		pr.start = cur_start;
+		pr.length = std::min(std::min(block_size, size), info.piece_size_for_req(pr.piece) - pr.start);
 		TORRENT_ASSERT(validate_piece_request(pr));
 		m_requests.push_back(pr);
 
@@ -397,6 +391,12 @@ void web_peer_connection::write_request(peer_request const& r)
 			std::cerr << this << " REQ: p: " << pr.piece << " " << pr.start << std::endl;
 #endif
 		size -= pr.length;
+		cur_start += pr.length;
+		if (cur_start >= info.piece_size_for_req(cur_piece))
+		{
+			cur_start = 0;
+			++cur_piece;
+		}
 	}
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -443,8 +443,17 @@ void web_peer_connection::write_request(peer_request const& r)
 	}
 	else
 	{
+		// for v2 torrents, req.length is the sum of real-data block sizes which
+		// excludes pad bytes. map_block requires a torrent-contiguous byte span,
+		// so compute the actual span from req start to end of last block (pr).
+		int const map_length = info.v2()
+			? int(static_cast<int>(pr.piece) * std::int64_t(piece_size)
+				+ pr.start + pr.length
+				- static_cast<int>(req.piece) * std::int64_t(piece_size)
+				- req.start)
+			: req.length;
 		std::vector<file_slice> files = info.orig_files().map_block(req.piece, req.start
-			, req.length);
+			, map_length);
 
 		for (auto const &f : files)
 		{
@@ -455,8 +464,9 @@ void web_peer_connection::write_request(peer_request const& r)
 
 			if (info.orig_files().pad_file_at(f.file_index))
 			{
-				m_file_requests.push_back(file_req);
 				++num_pad_files;
+				if (!info.v2())
+					m_file_requests.push_back(file_req);
 				continue;
 			}
 

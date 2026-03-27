@@ -289,11 +289,13 @@ namespace aux {
 		// The overload taking a raw pointer to the data is a blocking call. It
 		// won't return until the libtorrent thread has copied the data into its
 		// disk write buffer. ``data`` is expected to point to a buffer of as
-		// many bytes as the size of the specified piece. See
-		// file_storage::piece_size().
+		// many bytes as the size of the specified piece.
+		// For v2 torrents, pieces at the end of files may not be full sized.
+		// For backwards compatibility, it's OK to pass a full sized piece as
+		// well.
 		//
 		// The data in the buffer is copied and passed on to the disk IO thread
-		// to be written at a later point.
+		// to be written at some later point in time.
 		//
 		// The overload taking a ``std::vector<char>`` is not blocking, it will
 		// send the buffer to the main thread and return immediately.
@@ -308,8 +310,12 @@ namespace aux {
 		// alert, read_piece_alert. Since this alert is a response to an explicit
 		// call, it will always be posted, regardless of the alert mask.
 		//
-		// Note that if you read multiple pieces, the read operations are not
-		// guaranteed to finish in the same order as you initiated them.
+		// .. note:: that if you read multiple pieces, the read operations are not
+		//    guaranteed to finish in the same order as you initiated them.
+		//
+		// .. note:: the size of the buffer passed back in the alert is not
+		//    necessarily piece_length() long. The last piece or pieces at the end
+		//    of files (in v2 and hybrid torrents) are not full size.
 		void read_piece(piece_index_t piece) const;
 
 		// Returns true if this piece has been completely downloaded and written

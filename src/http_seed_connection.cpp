@@ -150,11 +150,7 @@ namespace libtorrent {
 		// would otherwise point to one past the end
 		int const correction = ret.bytes_downloaded ? -1 : 0;
 		ret.block_index = (pr.start + ret.bytes_downloaded + correction) / t->block_size();
-		ret.full_block_bytes = t->block_size();
-		piece_index_t const last_piece = t->torrent_file().last_piece();
-		if (ret.piece_index == last_piece && ret.block_index
-			== t->torrent_file().piece_size(last_piece) / t->block_size())
-			ret.full_block_bytes = t->torrent_file().piece_size(last_piece) % t->block_size();
+		ret.full_block_bytes = std::min(t->block_size(), t->torrent_file().piece_size_for_req(ret.piece_index) - pr.start);
 		return ret;
 	}
 
