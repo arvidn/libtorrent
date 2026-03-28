@@ -1271,7 +1271,7 @@ namespace libtorrent {
 		return p.piece >= piece_index_t(0)
 			&& p.piece < ti.end_piece()
 			&& p.start >= 0
-			&& p.start < ti.piece_length()
+			&& p.start < ti.piece_size_for_req(p.piece)
 			&& t->to_req(piece_block(p.piece, p.start / t->block_size())) == p;
 	}
 
@@ -1599,9 +1599,9 @@ namespace libtorrent {
 		if (r.piece < piece_index_t{}
 			|| r.piece >= t->torrent_file().files().end_piece()
 			|| r.start < 0
-			|| r.start >= t->torrent_file().piece_length()
+			|| r.start >= t->torrent_file().piece_size_for_req(r.piece)
 			|| (r.start % block_size) != 0
-			|| r.length != std::min(t->torrent_file().piece_size(r.piece) - r.start, block_size))
+			|| r.length != std::min(t->torrent_file().piece_size_for_req(r.piece) - r.start, block_size))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "REJECT_PIECE", "invalid reject message (%d, %d, %d)"
@@ -3717,25 +3717,15 @@ namespace libtorrent {
 		{
 			piece_block const b = pb.block;
 
-			int const block_offset = b.block_index * t->block_size();
-			int const block_size
-				= std::min(t->torrent_file().piece_size(b.piece_index)-block_offset,
-					t->block_size());
-			TORRENT_ASSERT(block_size > 0);
-			TORRENT_ASSERT(block_size <= t->block_size());
-
 			// we can't cancel the piece if we've started receiving it
 			if (m_receiving_block == b) continue;
 
-			peer_request r;
-			r.piece = b.piece_index;
-			r.start = block_offset;
-			r.length = block_size;
+			peer_request const r = t->to_req(b);
 
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::outgoing_message, "CANCEL"
 				, "piece: %d s: %d l: %d b: %d"
-				, static_cast<int>(b.piece_index), block_offset, block_size, b.block_index);
+				, static_cast<int>(r.piece), r.start, r.length, b.block_index);
 #endif
 			write_cancel(r);
 		}
@@ -3784,28 +3774,18 @@ namespace libtorrent {
 			return;
 		}
 
-		int const block_offset = block.block_index * t->block_size();
-		int const block_size
-			= std::min(t->torrent_file().piece_size(block.piece_index) - block_offset,
-			t->block_size());
-		TORRENT_ASSERT(block_size > 0);
-		TORRENT_ASSERT(block_size <= t->block_size());
-
 		it->not_wanted = true;
 
 		if (force) t->picker().abort_download(block, peer_info_struct());
 
-		if (m_outstanding_bytes < block_size) return;
+		peer_request const r = t->to_req(block);
 
-		peer_request r;
-		r.piece = block.piece_index;
-		r.start = block_offset;
-		r.length = block_size;
+		if (m_outstanding_bytes < r.length) return;
 
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::outgoing_message, "CANCEL"
 				, "piece: %d s: %d l: %d b: %d"
-				, static_cast<int>(block.piece_index), block_offset, block_size, block.block_index);
+				, static_cast<int>(r.piece), r.start, r.length, block.block_index);
 #endif
 		write_cancel(r);
 	}
@@ -4081,24 +4061,14 @@ namespace libtorrent {
 				continue;
 			}
 
-			int block_offset = block.block.block_index * t->block_size();
-			int bs = std::min(t->torrent_file().piece_size(
-				block.block.piece_index) - block_offset, t->block_size());
-			TORRENT_ASSERT(bs > 0);
-			TORRENT_ASSERT(bs <= t->block_size());
-
-			peer_request r;
-			r.piece = block.block.piece_index;
-			r.start = block_offset;
-			r.length = bs;
-
+			peer_request r = t->to_req(block.block);
 			if (m_download_queue.empty())
 				m_counters.inc_stats_counter(counters::num_peers_down_requests);
 
 			TORRENT_ASSERT(validate_piece_request(t->to_req(block.block)));
 			block.send_buffer_offset = aux::numeric_cast<std::uint32_t>(m_send_buffer.size());
 			m_download_queue.push_back(block);
-			m_outstanding_bytes += bs;
+			m_outstanding_bytes += r.length;
 #if TORRENT_USE_INVARIANT_CHECKS
 			check_invariant();
 #endif
@@ -4128,9 +4098,10 @@ namespace libtorrent {
 					m_download_queue.push_back(block);
 					if (m_queued_time_critical) --m_queued_time_critical;
 
-					block_offset = block.block.block_index * t->block_size();
-					bs = std::min(t->torrent_file().piece_size(
-						block.block.piece_index) - block_offset, t->block_size());
+					int const block_offset = block.block.block_index * t->block_size();
+					int const bs =
+						std::min(t->torrent_file().piece_size_for_req(block.block.piece_index)
+							- block_offset, t->block_size());
 					TORRENT_ASSERT(bs > 0);
 					TORRENT_ASSERT(bs <= t->block_size());
 
@@ -6607,28 +6578,20 @@ namespace libtorrent {
 			// if the piece is fully downloaded, we might have popped it from the
 			// download queue already
 			int outstanding_bytes = 0;
-//			bool in_download_queue = false;
 			int const bs = t->block_size();
 			piece_block last_block(ti.last_piece()
-				, (ti.piece_size(ti.last_piece()) + bs - 1) / bs);
+				, (ti.piece_size_for_req(ti.last_piece()) + bs - 1) / bs);
+
 			for (std::vector<pending_block>::const_iterator i = m_download_queue.begin()
 				, end(m_download_queue.end()); i != end; ++i)
 			{
 				TORRENT_ASSERT(i->block.piece_index <= last_block.piece_index);
 				TORRENT_ASSERT(i->block.piece_index < last_block.piece_index
 					|| i->block.block_index <= last_block.block_index);
+
+				outstanding_bytes += t->to_req(i->block).length;
 				if (m_received_in_piece && i == m_download_queue.begin())
-				{
-//					in_download_queue = true;
-					// this assert is not correct since block may have different sizes
-					// and may not be returned in the order they were requested
-//					TORRENT_ASSERT(t->to_req(i->block).length >= m_received_in_piece);
-					outstanding_bytes += t->to_req(i->block).length - m_received_in_piece;
-				}
-				else
-				{
-					outstanding_bytes += t->to_req(i->block).length;
-				}
+					outstanding_bytes -= m_received_in_piece;
 			}
 			//if (p && p->bytes_downloaded < p->full_block_bytes) TORRENT_ASSERT(in_download_queue);
 

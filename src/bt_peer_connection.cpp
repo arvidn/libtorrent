@@ -879,23 +879,7 @@ namespace {
 			TORRENT_ASSERT(t);
 			auto const dlq = download_queue();
 			for (pending_block const& pb : dlq)
-			{
-				peer_request r;
-				r.piece = pb.block.piece_index;
-				r.start = pb.block.block_index * t->block_size();
-				r.length = t->block_size();
-				// if it's the last piece, make sure to
-				// set the length of the request to not
-				// exceed the end of the torrent. This is
-				// necessary in order to maintain a correct
-				// m_outstanding_bytes
-				if (r.piece == t->torrent_file().last_piece())
-				{
-					r.length = std::min(t->torrent_file().piece_size(
-						r.piece) - r.start, r.length);
-				}
-				incoming_reject_request(r);
-			}
+				incoming_reject_request(t->to_req(pb.block));
 		}
 	}
 
