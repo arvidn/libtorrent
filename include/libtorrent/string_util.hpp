@@ -155,9 +155,9 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT std::string format_host_for_connect(std::string host, unsigned short port);
 
 #if TORRENT_USE_I2P
-
 	TORRENT_EXTRA_EXPORT bool is_i2p_url(std::string const& url);
-
+#else
+	inline bool is_i2p_url(string_view) { return false; }
 #endif
 }
 
