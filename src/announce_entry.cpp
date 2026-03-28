@@ -183,7 +183,9 @@ namespace aux {
 		: url(u)
 		, source(0)
 		, verified(false)
+#if TORRENT_USE_I2P
 		, i2p(is_i2p_url(u))
+#endif
 	{}
 
 	announce_entry::announce_entry(lt::announce_entry const& ae)
@@ -193,7 +195,9 @@ namespace aux {
 		, fail_limit(ae.fail_limit)
 		, source(ae.source)
 		, verified(false)
+#if TORRENT_USE_I2P
 		, i2p(is_i2p_url(ae.url))
+#endif
 	{
 		if (source == 0) source = lt::announce_entry::source_client;
 	}
