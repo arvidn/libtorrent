@@ -465,8 +465,7 @@ void web_peer_connection::write_request(peer_request const& r)
 			if (info.orig_files().pad_file_at(f.file_index))
 			{
 				++num_pad_files;
-				if (!info.v2())
-					m_file_requests.push_back(file_req);
+				m_file_requests.push_back(file_req);
 				continue;
 			}
 
