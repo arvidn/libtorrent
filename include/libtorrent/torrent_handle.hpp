@@ -102,12 +102,28 @@ namespace aux {
 		std::uint16_t port;
 
 		// the type of the addr union
+		// is_v6_addr:1 and num_peers:15 together fill exactly 16 bits (one uint16_t
+		// storage unit), so bytes_progress must start a new storage unit regardless
+		// of ABI. Clang's -Wms-bitfield-padding fires on any type transition between
+		// consecutive bit-fields without checking whether the prior unit is already
+		// full, making it a false positive here.
+#if defined __clang__ && defined __has_warning
+#  if __has_warning("-Wms-bitfield-padding")
+#    pragma clang diagnostic push
+#    pragma clang diagnostic ignored "-Wms-bitfield-padding"
+#  endif
+#endif
 		std::uint16_t is_v6_addr:1;
 	public:
 		// the number of peers that is currently requesting this block. Typically
 		// this is 0 or 1, but at the end of the torrent blocks may be requested
 		// by more peers in parallel to speed things up.
 		std::uint16_t num_peers:15;
+#if defined __clang__ && defined __has_warning
+#  if __has_warning("-Wms-bitfield-padding")
+#    pragma clang diagnostic pop
+#  endif
+#endif
 
 		// The peer is the ip address of the peer this block was downloaded from.
 		void set_peer(tcp::endpoint const& ep);

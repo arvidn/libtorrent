@@ -86,7 +86,9 @@ rtc_signaling::rtc_signaling(io_context& ioc, torrent* t, rtc_stream_handler han
 	, m_torrent(t)
 	, m_rtc_stream_handler(std::move(handler))
 {
+#ifndef TORRENT_DISABLE_LOGGING
 	debug_log("*** RTC signaling created");
+#endif
 
 	static std::once_flag flag;
 #if DEBUG_RTC
@@ -210,6 +212,7 @@ void rtc_signaling::process_offer(rtc_offer const& offer)
 		conn.peer_connection->setRemoteDescription({offer.sdp, "offer"});
 	}
 	catch(std::exception const& e) {
+		TORRENT_UNUSED(e);
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("*** Failed to set remote RTC offer: %s", e.what());
 #endif
@@ -240,6 +243,7 @@ void rtc_signaling::process_answer(rtc_answer const& answer)
 		conn.peer_connection->setRemoteDescription({answer.sdp, "answer"});
 	}
 	catch(std::exception const& e) {
+		TORRENT_UNUSED(e);
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("*** Failed to set remote RTC answer: %s", e.what());
 #endif
