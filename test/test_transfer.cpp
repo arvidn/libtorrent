@@ -196,6 +196,12 @@ void test_transfer(int const proxy_type, settings_pack const& sett
 	if (flags & disable_v1_hashes)
 		atp.flags |= torrent_flags::disable_v1_hashes;
 
+	// The seeder needs disable_v1_hashes when v1 hashes are corrupted: even in
+	// seed_mode it can exit and recheck, and without the flag it would get
+	// torrent_inconsistent_hashes before the downloader can detect the inconsistency.
+	torrent_flags_t const seeder_extra = (flags & bad_v1_hashes)
+		? torrent_flags::disable_v1_hashes : torrent_flags_t{};
+
 	TEST_CHECK(exists(combine_path("tmp1_transfer", "temporary")));
 
 	atp.storage_mode = storage_mode;
@@ -212,7 +218,8 @@ void test_transfer(int const proxy_type, settings_pack const& sett
 
 	// test using piece sizes smaller than 16kB
 	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, nullptr
-		, true, false, true, "_transfer", 1024 * 1024, &atp, false);
+		, true, false, true, "_transfer", 1024 * 1024, &atp, false
+		, true, false, nullptr, {}, seeder_extra);
 
 	int num_pieces = tor2.torrent_file()->num_pieces();
 	std::vector<int> priorities(std::size_t(num_pieces), 1);
@@ -581,15 +588,15 @@ TORRENT_TEST(write_through_pread)
 	cleanup();
 }
 
-// flag ON + bad v1 hashes -> transfer completes (v1 validation is skipped)
-TORRENT_TEST(disable_v1_hashes_bad_v1_enabled)
+// bad v1 hashes + disable_v1_hashes -> transfer completes (v1 validation is skipped)
+TORRENT_TEST(corrupt_v1_hashes_disable_v1_hashes)
 {
 	test_transfer(0, {}, bad_v1_hashes | disable_v1_hashes);
 	cleanup();
 }
 
-// flag OFF + bad v1 hashes -> torrent_error_alert with torrent_inconsistent_hashes
-TORRENT_TEST(disable_v1_hashes_bad_v1_disabled)
+// bad v1 hashes -> torrent_error_alert with torrent_inconsistent_hashes
+TORRENT_TEST(corrupt_v1_hashes)
 {
 	test_transfer(0, {}, bad_v1_hashes | expect_inconsistent_error);
 	cleanup();

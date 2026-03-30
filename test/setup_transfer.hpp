@@ -86,7 +86,8 @@ setup_transfer(lt::session* ses1, lt::session* ses2
 	, bool super_seeding = false
 	, bool stop_lsd = true, bool use_ssl_ports = false
 	, std::shared_ptr<lt::torrent_info>* torrent2 = nullptr
-	, lt::create_flags_t flags = {});
+	, lt::create_flags_t flags = {}
+	, lt::torrent_flags_t seeder_extra_flags = {});
 
 EXPORT int start_web_server(bool ssl = false, bool chunked = false
 	, bool keepalive = true, int min_interval = 30);

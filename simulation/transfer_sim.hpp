@@ -186,12 +186,18 @@ void run_test(
 		}
 	}
 
-	if (flags & tx::disable_v1_hashes)
+	// The seeder needs disable_v1_hashes when v1 hashes are corrupted: its initial
+	// check would fail on the wrong v1 hashes, preventing it from becoming a seed.
+	// The downloader only gets the flag when tx::disable_v1_hashes is explicitly set.
+	if ((flags & tx::disable_v1_hashes) || (flags & tx::bad_v1_hashes))
 		atp.flags |= lt::torrent_flags::disable_v1_hashes;
 
 	// if we're seeding with a web server, no need to start the second session
 	if (!(flags & tx::web_seed))
 		ses[1]->async_add_torrent(atp);
+
+	if (!(flags & tx::disable_v1_hashes))
+		atp.flags &= ~lt::torrent_flags::disable_v1_hashes;
 
 	atp.save_path = save_path(0);
 	if (flags & tx::web_seed)

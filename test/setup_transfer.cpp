@@ -1031,7 +1031,8 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	, add_torrent_params const* atp
 	, bool super_seeding
 	, bool stop_lsd, bool use_ssl_ports
-	, std::shared_ptr<torrent_info>* torrent2, create_flags_t const flags)
+	, std::shared_ptr<torrent_info>* torrent2, create_flags_t const flags
+	, torrent_flags_t const seeder_extra_flags)
 {
 	TORRENT_ASSERT(ses1);
 	TORRENT_ASSERT(ses2);
@@ -1103,7 +1104,9 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 	param.flags &= ~torrent_flags::paused;
 	param.flags &= ~torrent_flags::auto_managed;
 	param.save_path = "tmp1" + suffix;
-	param.flags |= torrent_flags::seed_mode;
+	// save flags before ORing in seeder-only bits so we can restore them for the downloader
+	auto const downloader_flags = param.flags;
+	param.flags |= torrent_flags::seed_mode | seeder_extra_flags;
 	error_code ec;
 	torrent_handle tor1 = ses1->add_torrent(param, ec);
 	if (ec)
@@ -1116,8 +1119,9 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 		tor1.set_flags(torrent_flags::super_seeding);
 	}
 
-	// the downloader cannot use seed_mode
-	param.flags &= ~torrent_flags::seed_mode;
+	// the downloader cannot use seed_mode; restore the original flags minus seed_mode
+	// (seeder_extra_flags may overlap with downloader flags, so restore rather than mask)
+	param.flags = downloader_flags & ~torrent_flags::seed_mode;
 
 	TEST_CHECK(!ses1->get_torrents().empty());
 
