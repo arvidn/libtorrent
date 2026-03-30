@@ -613,6 +613,7 @@ namespace libtorrent::aux {
 		void on_file_priority(storage_error const& err, aux::vector<download_priority_t, file_index_t> prios);
 		void prioritize_files(aux::vector<download_priority_t, file_index_t> files);
 		void file_priorities(aux::vector<download_priority_t, file_index_t>*) const;
+		void post_file_priorities();
 
 #ifndef TORRENT_DISABLE_STREAMING
 		void cancel_non_critical();

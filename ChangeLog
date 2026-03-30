@@ -1,5 +1,6 @@
 2.1.0 not released
 
+	* add post_file_priorities() to query them asynchronously
 	* fix local service discovery not being correctly staggered
 	* add an experimental multi-threaded, pread()-based, disk I/O backend (pread_disk_io)
 	* make the save path for part files configurable

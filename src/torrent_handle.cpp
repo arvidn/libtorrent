@@ -551,6 +551,11 @@ namespace libtorrent {
 			, static_cast<aux::vector<download_priority_t, file_index_t> const&>(files));
 	}
 
+	void torrent_handle::post_file_priorities() const
+	{
+		async_call(&aux::torrent::post_file_priorities);
+	}
+
 	std::vector<download_priority_t> torrent_handle::get_file_priorities() const
 	{
 		aux::vector<download_priority_t, file_index_t> ret;

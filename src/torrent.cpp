@@ -5922,6 +5922,13 @@ namespace {
 		return m_file_priority[index];
 	}
 
+	void torrent::post_file_priorities()
+	{
+		aux::vector<download_priority_t, file_index_t> prio;
+		file_priorities(&prio);
+		alerts().emplace_alert<file_priorities_alert>(get_handle(), std::move(prio));
+	}
+
 	void torrent::file_priorities(aux::vector<download_priority_t, file_index_t>* files) const
 	{
 		INVARIANT_CHECK;

@@ -969,6 +969,7 @@ struct client_state_t
 	std::deque<std::string> events;
 	std::vector<lt::peer_info> peers;
 	std::vector<std::int64_t> file_progress;
+	std::vector<lt::download_priority_t> file_prio;
 	std::vector<lt::partial_piece_info> download_queue;
 	std::vector<lt::block_info> download_queue_block_info;
 	std::vector<int> piece_availability;
@@ -978,6 +979,7 @@ struct client_state_t
 	{
 		peers.clear();
 		file_progress.clear();
+		file_prio.clear();
 		download_queue.clear();
 		download_queue_block_info.clear();
 		piece_availability.clear();
@@ -1019,6 +1021,13 @@ bool handle_alert(client_state_t& client_state, lt::alert* a)
 	{
 		if (client_state.view.get_active_torrent().handle == p->handle)
 			client_state.file_progress = std::move(p->files);
+		return true;
+	}
+
+	if (auto* p = alert_cast<file_priorities_alert>(a))
+	{
+		if (client_state.view.get_active_torrent().handle == p->handle)
+			client_state.file_prio = std::move(p->priorities);
 		return true;
 	}
 
@@ -1472,7 +1481,7 @@ int main(int argc, char* argv[])
 	bool rate_limit_locals = false;
 
 	client_state_t client_state{
-		view, ses_view, {}, {}, {}, {}, {}, {}, {}
+		view, ses_view, {}, {}, {}, {}, {}, {}, {}, {}
 	};
 	int loop_limit = -1;
 
@@ -2253,14 +2262,15 @@ done:
 			if (print_file_progress && s.has_metadata && h.is_valid())
 			{
 				h.post_file_progress({});
+				h.post_file_priorities();
 				std::vector<lt::open_file_state> file_status = h.file_status();
-				std::vector<lt::download_priority_t> file_prio = h.get_file_priorities();
 				auto f = file_status.begin();
 				std::shared_ptr<const lt::torrent_info> ti = s.torrent_file.lock();
 
 				// TODO: ti may be nullptr here, we should check
 
 				auto const& file_progress = client_state.file_progress;
+				auto const& file_prio = client_state.file_prio;
 				// if there are a lot of files in the torrent, the less space we use to print each file
 				lt::file_storage const& fs = ti->layout();
 				int const num_files = fs.num_files();

@@ -492,6 +492,36 @@ TORRENT_TEST(file_priority_multiple_calls)
 	TEST_CHECK(false);
 }
 
+TORRENT_TEST(post_file_priorities)
+{
+	settings_pack pack = settings();
+	lt::session ses(pack);
+
+	add_torrent_params addp = ::generate_torrent(true);
+
+	addp.flags &= ~torrent_flags::paused;
+	addp.flags &= ~torrent_flags::auto_managed;
+	addp.save_path = ".";
+	torrent_handle h = ses.add_torrent(addp);
+
+	std::vector<download_priority_t> const expected(
+		std::size_t(addp.ti->num_files()), lt::low_priority);
+
+	// set all priorities in one call to ensure a single disk round-trip and
+	// one file_prio_alert
+	h.prioritize_files(expected);
+
+	// wait for priorities to be applied, then request them asynchronously
+	wait_for_alert(ses, file_prio_alert::alert_type, "ses");
+	h.post_file_priorities();
+
+	alert const* a = wait_for_alert(ses, file_priorities_alert::alert_type, "ses");
+	auto const* fpa = alert_cast<file_priorities_alert>(a);
+	TORRENT_ASSERT(fpa != nullptr);
+
+	TEST_CHECK(fpa->priorities == expected);
+}
+
 TORRENT_TEST(export_file_while_seed)
 {
 	settings_pack pack = settings();

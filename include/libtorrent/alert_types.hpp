@@ -77,7 +77,7 @@ namespace libtorrent {
 	constexpr int user_alert_id = 10000;
 
 	// this constant represents "max_alert_index" + 1
-	constexpr int num_alert_types = 105;
+	constexpr int num_alert_types = 106;
 
 	// internal
 	constexpr int abi_alert_count = 128;
@@ -3251,6 +3251,21 @@ TORRENT_VERSION_NAMESPACE_4_END
 
 		// list of trackers and their status for the torrent
 		std::vector<announce_entry> trackers;
+	};
+
+	// posted when torrent_handle::post_file_priorities() is called
+	struct TORRENT_EXPORT file_priorities_alert final : torrent_alert
+	{
+		// internal
+		TORRENT_UNEXPORT file_priorities_alert(aux::stack_allocator& alloc, torrent_handle h
+			, aux::vector<download_priority_t, file_index_t> p);
+		TORRENT_DEFINE_ALERT_PRIO(file_priorities_alert, 105, alert_priority::critical)
+
+		static constexpr alert_category_t static_category = alert_category::status;
+		std::string message() const override;
+
+		// the download priority of each file in the torrent
+		std::vector<download_priority_t> priorities;
 	};
 
 	// internal
