@@ -2132,6 +2132,10 @@ namespace aux {
 			i2p_inbound_length_variance,
 			i2p_outbound_length_variance,
 
+			// The life time of NAT-PMP and PCP port-mappings, specified in
+			// seconds.
+			natpmp_lease_duration,
+
 			max_int_setting_internal
 		};
 

@@ -1,5 +1,6 @@
 2.0.13
 
+	* add setting for NAT-PMP lease duration
 	* optimize v2 request sizes
 	* fix socks5 issues
 	* fix issue in loading v2 resume data merkle trees

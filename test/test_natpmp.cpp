@@ -132,16 +132,23 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 
+	auto const route = std::find_if(routes.begin(), routes.end(), [&](ip_route const& r)
+		{ return r.destination.is_unspecified() && string_view(iface->name) == r.name; });
+	boost::optional<address> const gateway = (route != routes.end() && !route->gateway.is_unspecified())
+		? boost::optional<address>(route->gateway)
+		: boost::optional<address>{};
+
+	aux::session_settings settings;
 	natpmp_callback cb;
-	auto natpmp_handler = std::make_shared<natpmp>(ios, cb, aux::listen_socket_handle{});
-	natpmp_handler->start(*iface);
+	auto natpmp_handler = std::make_shared<natpmp>(ios, settings, cb, aux::listen_socket_handle{});
+	natpmp_handler->start(*iface, gateway);
 
 	deadline_timer timer(ios);
 
 	auto const tcp_map = natpmp_handler->add_mapping(portmap_protocol::tcp
-		, atoi(argv[1]), tcp::endpoint({}, aux::numeric_cast<std::uint16_t>(atoi(argv[1]))));
+		, atoi(argv[1]), tcp::endpoint({}, aux::numeric_cast<std::uint16_t>(atoi(argv[1]))), iface->name);
 	natpmp_handler->add_mapping(portmap_protocol::udp, atoi(argv[2])
-		, tcp::endpoint({}, aux::numeric_cast<std::uint16_t>(atoi(argv[2]))));
+		, tcp::endpoint({}, aux::numeric_cast<std::uint16_t>(atoi(argv[2]))), iface->name);
 
 	timer.expires_after(seconds(2));
 	timer.async_wait([&] (error_code const&) { ios.io_context::stop(); });
