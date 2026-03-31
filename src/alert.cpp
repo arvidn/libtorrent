@@ -3118,7 +3118,7 @@ namespace {
 		"block_uploaded", "alerts_dropped", "socks5",
 		"file_prio", "oversized_file", "torrent_conflict",
 		"peer_info", "file_progress", "piece_info",
-		"piece_availability", "tracker_list", "file_priorities"
+		"piece_availability", "tracker_list", "file_priorities", "file_status"
 		}};
 
 		TORRENT_ASSERT(alert_type >= 0);
@@ -3294,6 +3294,21 @@ namespace {
 		return {};
 #else
 		return torrent_alert::message() + " file_priorities";
+#endif
+	}
+
+	file_status_alert::file_status_alert(aux::stack_allocator& alloc
+		, torrent_handle h, std::vector<open_file_state> s)
+		: torrent_alert(alloc, std::move(h))
+		, state(std::move(s))
+	{}
+
+	std::string file_status_alert::message() const
+	{
+#ifdef TORRENT_DISABLE_ALERT_MSG
+		return {};
+#else
+		return torrent_alert::message() + " file_status";
 #endif
 	}
 

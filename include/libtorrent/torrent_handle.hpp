@@ -485,14 +485,18 @@ namespace aux {
 		std::vector<std::int64_t> file_progress(file_progress_flags_t flags = {}) const;
 		void post_file_progress(file_progress_flags_t flags) const;
 
-		// This function returns a vector with status about files
+		// ``file_status()`` returns a vector with status about files
 		// that are open for this torrent. Any file that is not open
 		// will not be reported in the vector, i.e. it's possible that
 		// the vector is empty when returning, if none of the files in the
 		// torrent are currently open.
 		//
+		// ``post_file_status()`` will trigger a file_status_alert to be posted,
+		// containing the open-file state of all currently open files in the torrent.
+		//
 		// See open_file_state
 		std::vector<open_file_state> file_status() const;
+		void post_file_status() const;
 
 		// If the torrent is in an error state (i.e. ``torrent_status::error`` is
 		// non-empty), this will clear the error and start the torrent again.

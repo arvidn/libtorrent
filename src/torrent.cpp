@@ -7579,6 +7579,14 @@ namespace {
 	}
 }
 
+	void torrent::post_file_status()
+	{
+		std::vector<open_file_state> state;
+		if (has_storage())
+			state = m_ses.disk_thread().get_status(m_storage);
+		alerts().emplace_alert<file_status_alert>(get_handle(), std::move(state));
+	}
+
 	void torrent::post_download_queue()
 	{
 		std::vector<block_info> blk;

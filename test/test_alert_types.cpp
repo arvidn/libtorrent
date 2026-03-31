@@ -167,10 +167,11 @@ TORRENT_TEST(alerts_types)
 	TEST_ALERT_TYPE(piece_availability_alert, 103, alert_priority::critical, alert_category::status);
 	TEST_ALERT_TYPE(tracker_list_alert, 104, alert_priority::critical, alert_category::status);
 	TEST_ALERT_TYPE(file_priorities_alert, 105, alert_priority::critical, alert_category::status);
+	TEST_ALERT_TYPE(file_status_alert, 106, alert_priority::critical, alert_category::status);
 
 #undef TEST_ALERT_TYPE
 
-	TEST_EQUAL(num_alert_types, 106);
+	TEST_EQUAL(num_alert_types, 107);
 	TEST_EQUAL(num_alert_types, count_alert_types);
 }
 

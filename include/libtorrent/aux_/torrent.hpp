@@ -755,6 +755,7 @@ namespace libtorrent::aux {
 		void get_peer_info(std::vector<peer_info>* v);
 		void get_download_queue(std::vector<partial_piece_info>* queue) const;
 		void post_download_queue();
+		void post_file_status();
 
 		void update_auto_sequential();
 	private:

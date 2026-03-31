@@ -522,6 +522,36 @@ TORRENT_TEST(post_file_priorities)
 	TEST_CHECK(fpa->priorities == expected);
 }
 
+TORRENT_TEST(post_file_status)
+{
+	settings_pack pack = settings();
+	lt::session ses(pack);
+
+	error_code ec;
+	create_directory("tmp_post_file_status", ec);
+	ofstream file("tmp_post_file_status/temporary");
+	add_torrent_params addp = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
+	file.close();
+
+	addp.flags &= ~torrent_flags::paused;
+	addp.flags &= ~torrent_flags::auto_managed;
+	addp.save_path = ".";
+	torrent_handle h = ses.add_torrent(addp);
+
+	// wait for the torrent to be ready before requesting file status
+	wait_for_alert(ses, torrent_finished_alert::alert_type, "ses");
+
+	h.post_file_status();
+
+	alert const* a = wait_for_alert(ses, file_status_alert::alert_type, "ses");
+	auto const* fsa = alert_cast<file_status_alert>(a);
+	TORRENT_ASSERT(fsa != nullptr);
+
+	// the torrent has one file; entries in state (if any) must refer to it
+	for (auto const& s : fsa->state)
+		TEST_CHECK(s.file_index == file_index_t{0});
+}
+
 TORRENT_TEST(export_file_while_seed)
 {
 	settings_pack pack = settings();

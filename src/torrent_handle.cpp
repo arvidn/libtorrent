@@ -852,6 +852,11 @@ namespace libtorrent {
 		return ses.disk_thread().get_status(t->storage());
 	}
 
+	void torrent_handle::post_file_status() const
+	{
+		async_call(&aux::torrent::post_file_status);
+	}
+
 	void torrent_handle::scrape_tracker(int idx) const
 	{
 		async_call(&aux::torrent::scrape_tracker, idx, true);
