@@ -1534,14 +1534,16 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 			bool const needs_flush = m_cache.kick_pending_hashers(completed, retry);
 			add_completed_jobs(std::move(completed));
 
-			// TODO: this would be more efficient to do after acquiring the
-			// mutex below, but then we would need a lower-level add_job()
-			// function, that doesn't acquire the mutex itself
+			l.lock();
 			bool const submit = !retry.empty();
 			while (!retry.empty())
-				add_job(static_cast<aux::pread_disk_job*>(retry.pop_front()), false);
-			l.lock();
-			if (submit) m_generic_threads.submit_jobs();
+			{
+				auto j = static_cast<aux::pread_disk_job*>(retry.pop_front());
+				TORRENT_ASSERT(&pool_for_job(j) == &m_hash_threads);
+				m_hash_threads.push_back(j);
+			}
+
+			if (submit) m_hash_threads.submit_jobs();
 			// In case there are no other disk jobs triggering a flush, we need
 			// to wake up a generic thread.
 			if (needs_flush)

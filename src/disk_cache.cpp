@@ -30,13 +30,6 @@ struct compare_storage
 	}
 };
 
-bool have_buffers(span<const cached_block_entry> blocks)
-{
-	for (auto const& b : blocks)
-		if (b.data() == nullptr) return false;
-	return true;
-}
-
 bool compute_force_flush(cached_piece_entry const& piece)
 {
 	// piece that are partial on startup won't have the flushed_cursor
@@ -368,7 +361,6 @@ disk_cache::hash_result disk_cache::try_hash_piece(piece_location const loc, dis
 
 	if ((i->flags & cached_piece_entry::hashing_flag)
 		&& i->hasher_cursor < i->blocks_in_piece()
-		&& have_buffers(i->get_blocks().subspan(i->hasher_cursor))
 		)
 	{
 		// We're not done hashing yet, let the hashing thread post the
