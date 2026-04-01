@@ -909,6 +909,7 @@ TEST_SOURCES = \
   test_direct_dht.cpp \
   test_disk_cache.cpp \
   test_disk_io.cpp \
+  test_slow_hash.cpp \
   test_dos_blocker.cpp \
   test_ed25519.cpp \
   test_enum_net.cpp \
@@ -1024,6 +1025,7 @@ TEST_SOURCES = \
   web_seed_suite.hpp \
   swarm_suite.hpp \
   test_utils.hpp \
+  disk_cache_test_utils.hpp \
   settings.hpp \
   make_torrent.hpp \
   bittorrent_peer.hpp \

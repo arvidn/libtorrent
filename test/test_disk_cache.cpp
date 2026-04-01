@@ -8,35 +8,15 @@ see LICENSE file.
 */
 
 #include "libtorrent/aux_/visit_block_iovecs.hpp"
-#include "libtorrent/aux_/disk_cache.hpp"
-#include "libtorrent/aux_/pread_disk_job.hpp"
-#include "libtorrent/aux_/disk_io_thread_pool.hpp" // jobqueue_t
-#include "libtorrent/disk_buffer_holder.hpp"
-#include "libtorrent/disk_interface.hpp"  // default_block_size
-#include "libtorrent/io_context.hpp"
 #include "libtorrent/hasher.hpp"
-#include "libtorrent/bitfield.hpp"
-#include "libtorrent/span.hpp"
-#include "libtorrent/units.hpp"
 #include <array>
-#include <chrono>
-#include <cstring>
-#include <memory>
-#include <thread>
-#include <vector>
 #include "test.hpp"
 #include "test_utils.hpp"
+#include "disk_cache_test_utils.hpp"
 
 using lt::span;
 using namespace lt;
 using namespace lt::aux;
-
-using test_mode_t = lt::flags::bitfield_flag<std::uint8_t, struct test_mode_tag>;
-namespace test_mode {
-	using lt::operator ""_bit;
-	constexpr test_mode_t v1 = 0_bit;
-	constexpr test_mode_t v2 = 1_bit;
-}
 
 namespace {
 
@@ -65,150 +45,6 @@ std::string join(span<span<char const>> iovec)
 	}
 	return ret;
 }
-
-struct test_allocator : buffer_allocator_interface
-{
-	void free_disk_buffer(char* b) override { delete[] b; --live; }
-	void free_multiple_buffers(span<char*> bufs) override
-	{
-		for (char* b : bufs) free_disk_buffer(b);
-	}
-
-	disk_buffer_holder alloc(int const size = default_block_size)
-	{
-		++live;
-		return disk_buffer_holder(*this, new char[static_cast<size_t>(size)], size);
-	}
-
-	virtual ~test_allocator() = default;
-
-	int live = 0;
-};
-
-// drives disk_cache directly without any storage layer.
-// The piece metadata (piece_size, piece_size2, v1, v2) is specified in the
-// constructor and passed straight to disk_cache::insert() via
-// piece_entry_params - no file_storage or pread_storage involved.
-struct cache_fixture
-{
-	io_context ios;
-	disk_cache cache{ios};
-	test_allocator alloc;
-	std::vector<std::unique_ptr<pread_disk_job>> live_jobs;
-
-	test_mode_t const mode;
-	// v1 effective piece size (determines blocks_in_piece)
-	int const piece_size;
-	// v2 piece size (may differ from piece_size for hybrid torrents)
-	int const piece_size2;
-
-	// piece_size defaults to blocks_ * default_block_size;
-	// piece_size2 defaults to piece_size when not specified.
-	cache_fixture(int const blocks_, test_mode_t const mode_
-		, int const piece_size_ = 0, int const piece_size2_ = 0)
-		: mode(mode_)
-		, piece_size(piece_size_ > 0 ? piece_size_ : blocks_ * default_block_size)
-		, piece_size2(piece_size2_ > 0 ? piece_size2_ : (piece_size_ > 0 ? piece_size_ : blocks_ * default_block_size))
-	{
-		TORRENT_ASSERT(mode & (test_mode::v1 | test_mode::v2));
-		cache.set_max_size(1024); // generous; no back-pressure by default
-	}
-
-	piece_location loc(piece_index_t const p) const
-	{
-		return {storage_index_t{0}, p};
-	}
-
-	disk_cache::piece_entry_params piece_params() const
-	{
-		return {
-			piece_size2,
-			piece_size,
-			bool(mode & test_mode::v1), bool(mode & test_mode::v2)
-		};
-	}
-
-	// Allocate a write-job whose buffer is filled with fill_char.
-	// The buffer is sized to the actual block size (which may be less than
-	// default_block_size for the last block of a piece with unaligned piece_size).
-	// Ownership is transferred to live_jobs; the raw pointer is returned.
-	// write_job->storage is intentionally null: disk_cache no longer needs it.
-	pread_disk_job* make_write_job(
-		piece_index_t const piece
-		, int const block
-		, char const fill
-		, int const buf_size)
-	{
-		auto j = std::make_unique<pread_disk_job>();
-		auto buf = alloc.alloc(buf_size);
-		std::memset(buf.data(), fill, std::size_t(buf.size()));
-		j->action = job::write{
-			{},
-			std::move(buf),
-			piece,
-			block * default_block_size,
-			static_cast<std::uint16_t>(buf_size)
-		};
-		auto* ret = j.get();
-		live_jobs.push_back(std::move(j));
-		return ret;
-	}
-
-	insert_result_flags insert(
-		piece_index_t const piece
-		, int const block
-		, bool const force_flush = false
-		, char const fill = 0x5a)
-	{
-		return cache.insert(loc(piece), block, force_flush, nullptr
-			, make_write_job(piece, block, fill, default_block_size)
-			, piece_params());
-	}
-
-	insert_result_flags insert(
-		piece_index_t const piece
-		, int const block
-		, disk_cache::piece_entry_params const& params
-		, int const buf_size
-		, bool const force_flush = false
-		, char const fill = 0x5a)
-	{
-		return cache.insert(loc(piece), block, force_flush, nullptr
-			, make_write_job(piece, block, fill, buf_size)
-			, params);
-	}
-
-	// Simulate flushing: marks every block that has a write_job as flushed.
-	// Returns the number of blocks flushed.
-	int flush(int const target = 0, bool const optimistic = false)
-	{
-		int total = 0;
-		cache.flush_to_disk(
-			[&](bitfield& flushed, span<cached_block_entry const> blocks) -> int {
-				int count = 0;
-				for (int i = 0; i < int(blocks.size()); ++i)
-				{
-					if (!blocks[i].get_write_job()) continue;
-					flushed.set_bit(i);
-					++count;
-				}
-				total += count;
-				return count;
-			},
-			target,
-			[](jobqueue_t, disk_job*) {}
-			, optimistic);
-		return total;
-	}
-
-	// Advance the hasher for all pending pieces, discarding completed jobs.
-	void kick_hashers()
-	{
-		jobqueue_t completed, retry;
-		cache.kick_pending_hashers(completed, retry);
-	}
-
-};
 
 }
 
@@ -438,60 +274,6 @@ void test_multi_piece(test_mode_t const mode)
 	TEST_EQUAL(int(f.cache.size()), 0);
 }
 
-// try_hash_piece is called while kick_pending_hashers is mid-run:
-// the hash job is hung on the piece (job_queued) and dispatched by the hasher
-// once it completes. This exercises the concurrent path in kick_hasher where
-// hash_job is non-null when hashing finishes.
-//
-// Without TORRENT_SIMULATE_SLOW_HASH the hashing window is too narrow to
-// catch reliably; the test falls back to the sequential job_completed path.
-void test_hash_job_dispatched_by_hasher(test_mode_t const mode)
-{
-	cache_fixture f(1, mode);
-	f.insert(0_piece, 0);
-
-	std::vector<sha256_hash> block_hashes(bool(mode & test_mode::v2) ? 1 : 0);
-	auto hash_job = std::make_unique<pread_disk_job>();
-	hash_job->action = job::hash{
-		{}, 0_piece,
-		span<sha256_hash>{block_hashes.data(), int(block_hashes.size())},
-		sha1_hash{}
-	};
-
-	jobqueue_t completed, retry;
-
-#ifdef TORRENT_SIMULATE_SLOW_HASH
-	// With slow hashing each block takes ~1.6 s. Run the hasher in a thread
-	// and call try_hash_piece after a short sleep, reliably catching the
-	// window where hashing_flag is set.
-	std::thread t([&]() {
-		f.cache.kick_pending_hashers(completed, retry);
-	});
-	std::this_thread::sleep_for(std::chrono::milliseconds(50));
-
-	auto const result = f.cache.try_hash_piece(f.loc(0_piece), hash_job.get());
-	t.join();
-
-	TEST_EQUAL(result, disk_cache::hash_result::job_queued);
-	// The hasher filled in the hash values and posted the job.
-	TEST_EQUAL(completed.size(), 1);
-#else
-	// Without slow hashing the window is negligible. Run them sequentially
-	// to exercise hash value correctness via the job_completed path.
-	f.cache.kick_pending_hashers(completed, retry);
-	auto const result = f.cache.try_hash_piece(f.loc(0_piece), hash_job.get());
-	TEST_EQUAL(result, disk_cache::hash_result::job_completed);
-#endif
-
-	if (mode & test_mode::v1)
-		TEST_CHECK(!std::get<job::hash>(hash_job->action).piece_hash.is_all_zeros());
-	for (auto const& h : block_hashes)
-		TEST_CHECK(!h.is_all_zeros());
-
-	TEST_EQUAL(f.flush(), 1);
-	TEST_EQUAL(int(f.cache.size()), 0);
-}
-
 }
 
 TORRENT_TEST(disk_bottleneck_v1) { test_disk_bottleneck(test_mode::v1); }
@@ -505,10 +287,6 @@ TORRENT_TEST(hashing_bottleneck_hybrid) { test_hashing_bottleneck(test_mode::v1 
 TORRENT_TEST(multi_piece_v1) { test_multi_piece(test_mode::v1); }
 TORRENT_TEST(multi_piece_v2) { test_multi_piece(test_mode::v2); }
 TORRENT_TEST(multi_piece_hybrid) { test_multi_piece(test_mode::v1 | test_mode::v2); }
-
-TORRENT_TEST(hash_job_dispatched_v1) { test_hash_job_dispatched_by_hasher(test_mode::v1); }
-TORRENT_TEST(hash_job_dispatched_v2) { test_hash_job_dispatched_by_hasher(test_mode::v2); }
-TORRENT_TEST(hash_job_dispatched_hybrid) { test_hash_job_dispatched_by_hasher(test_mode::v1 | test_mode::v2); }
 
 // v2, hashing is the bottleneck: block 0 flushed before SHA256 is computed.
 // hash2() must invoke the fallback (read from disk).

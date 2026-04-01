@@ -10,6 +10,7 @@ see LICENSE file.
 #include <iostream>
 #include "test.hpp"
 #include "setup_transfer.hpp"
+#include "test_utils.hpp"
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/mmap_disk_io.hpp"
 #include "libtorrent/posix_disk_io.hpp"
