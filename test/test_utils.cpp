@@ -178,18 +178,23 @@ bool fs_supports_sparse_files()
 	::close(test);
 #ifdef TORRENT_LINUX
 	using fsword_t = decltype(statfs::f_type);
-	static fsword_t const ufs = 0x00011954;
-	static fsword_t const zfs = 0x2fc12fc1;
+	static fsword_t const ufs      = 0x00011954;
+	static fsword_t const zfs      = 0x2fc12fc1;
+	static fsword_t const f2fs     = 0xf2f52010;
+	static fsword_t const jfs      = 0x3153464a;
+	static fsword_t const nilfs2   = 0x3434;
+	static fsword_t const bcachefs = 0xca451a4e;
 	static const std::set<fsword_t> sparse_filesystems{
 		EXT4_SUPER_MAGIC, EXT3_SUPER_MAGIC, XFS_SUPER_MAGIC, fsword_t(BTRFS_SUPER_MAGIC)
 			, ufs, zfs, REISERFS_SUPER_MAGIC, TMPFS_MAGIC, OVERLAYFS_SUPER_MAGIC
+			, f2fs, jfs, nilfs2, bcachefs
 	};
 	printf("filesystem: %ld\n", long(st.f_type));
 	return sparse_filesystems.count(st.f_type);
 #else
 	printf("filesystem: (%d) %s\n", int(st.f_type), st.f_fstypename);
 	static const std::set<std::string> sparse_filesystems{
-		"ufs", "zfs", "ext4", "xfs", "apfs", "btrfs"};
+		"ufs", "zfs", "ext4", "xfs", "apfs", "btrfs", "f2fs", "jfs", "nilfs2", "bcachefs"};
 	return sparse_filesystems.count(st.f_fstypename);
 #endif
 }

@@ -150,10 +150,10 @@ class ZfsFilesystem:
 FILESYSTEMS: list[Filesystem] = [
     LoopFilesystem("ext4", ["mkfs.ext4", "-F"]),  # apt install e2fsprogs
     LoopFilesystem("btrfs", ["mkfs.btrfs", "-f"]),  # apt install btrfs-progs
-    # LoopFilesystem("xfs", ["mkfs.xfs", "-f"]),  # apt install xfsprogs
+    LoopFilesystem("xfs", ["mkfs.xfs", "-f"]),  # apt install xfsprogs
     LoopFilesystem("f2fs", ["mkfs.f2fs", "-f"]),  # apt install f2fs-tools
-    LoopFilesystem("jfs", ["mkfs.jfs", "-q"]),  # apt install jfsutils
-    LoopFilesystem("nilfs2", ["mkfs.nilfs2", "-f"]),  # apt install nilfs-tools
+    # LoopFilesystem("jfs", ["mkfs.jfs", "-q"]),  # apt install jfsutils
+    # LoopFilesystem("nilfs2", ["mkfs.nilfs2", "-f"]),  # apt install nilfs-tools
     LoopFilesystem("bcachefs", ["mkfs.bcachefs", "-f"]),  # apt install bcachefs-tools
     ZfsFilesystem(),  # apt install zfsutils-linux
 ]
