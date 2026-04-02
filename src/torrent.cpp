@@ -305,6 +305,11 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		if (!m_torrent_file)
 			m_torrent_file = (p.ti ? p.ti : std::make_shared<torrent_info const>(m_info_hash));
 #endif
+		if (m_torrent_file->is_valid())
+		{
+			std::lock_guard<std::mutex> l(m_torrent_file_mutex);
+			m_torrent_file_external = m_torrent_file;
+		}
 
 #if TORRENT_USE_I2P
 		if (m_torrent_file->is_i2p())
@@ -7145,6 +7150,12 @@ namespace {
 		return m_torrent_file;
 	}
 
+	std::shared_ptr<torrent_info const> torrent::get_torrent_file_external() const
+	{
+		std::lock_guard<std::mutex> l(m_torrent_file_mutex);
+		return m_torrent_file_external;
+	}
+
 	renamed_files torrent::get_renamed_files() const
 	{
 		return m_renamed_files;
@@ -8042,6 +8053,10 @@ namespace {
 		m_name_idx.clear();
 		m_torrent_file = info;
 		m_info_hash = m_torrent_file->info_hashes();
+		{
+			std::lock_guard<std::mutex> l(m_torrent_file_mutex);
+			m_torrent_file_external = m_torrent_file;
+		}
 
 		m_size_on_disk = m_torrent_file->layout().size_on_disk();
 

@@ -726,8 +726,9 @@ namespace libtorrent {
 
 	std::shared_ptr<const torrent_info> torrent_handle::torrent_file() const
 	{
-		return sync_call_ret<std::shared_ptr<const torrent_info>>(
-			std::shared_ptr<const torrent_info>(), &aux::torrent::get_torrent_file);
+		auto t = m_torrent.lock();
+		if (!t) return {};
+		return t->get_torrent_file_external();
 	}
 
 	renamed_files torrent_handle::get_renamed_files() const

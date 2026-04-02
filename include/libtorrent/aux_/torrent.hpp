@@ -31,6 +31,7 @@ see LICENSE file.
 #include <deque>
 #include <limits> // for numeric_limits
 #include <memory> // for unique_ptr
+#include <mutex>
 #include <optional>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -350,6 +351,10 @@ namespace libtorrent::aux {
 
 		// This may be called from multiple threads
 		info_hash_t const& info_hash() const { return m_info_hash; }
+
+		// This may be called from multiple threads
+		std::shared_ptr<torrent_info const> get_torrent_file_external() const;
+
 
 		bool is_deleted() const { return m_deleted; }
 
@@ -1482,6 +1487,11 @@ namespace libtorrent::aux {
 		// keep a copy of the info-hash here, so it can be accessed from multiple
 		// threads, and be cheap to access from the client
 		info_hash_t m_info_hash;
+
+		// protects m_torrent_file_external, which may be read from client
+		// threads without holding the network thread lock
+		mutable std::mutex m_torrent_file_mutex;
+		std::shared_ptr<torrent_info const> m_torrent_file_external;
 
 		// these are copied from the original .torrent file, and really just
 		// here to allow re-creating the torrent file again (by
