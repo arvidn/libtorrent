@@ -174,6 +174,24 @@ struct cache_fixture
 		cache.kick_pending_hashers(completed, retry);
 	}
 
+	// Simulate flush_storage(): marks every block with a write_job as flushed.
+	void flush_storage_for(lt::storage_index_t const storage = lt::storage_index_t{0})
+	{
+		cache.flush_storage(
+			[](lt::bitfield& flushed, lt::span<lt::aux::cached_block_entry const> blocks) -> int {
+				int count = 0;
+				for (int i = 0; i < int(blocks.size()); ++i)
+				{
+					if (!blocks[i].get_write_job()) continue;
+					flushed.set_bit(i);
+					++count;
+				}
+				return count;
+			},
+			storage,
+			[](lt::jobqueue_t, lt::aux::disk_job*) {});
+	}
+
 };
 
 #endif // TORRENT_DISK_CACHE_TEST_UTILS_HPP_INCLUDED
