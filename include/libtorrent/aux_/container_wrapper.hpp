@@ -29,7 +29,11 @@ namespace libtorrent { namespace aux {
 		// pull in constructors from Base class
 		using Base::Base;
 		container_wrapper() = default;
-		constexpr explicit container_wrapper(Base&& b) noexcept : Base(std::move(b)) {}
+		// tested to fail with _MSC_VER <= 1916. The actual version condition
+#if !defined _MSC_VER
+		constexpr
+#endif
+		explicit container_wrapper(Base&& b) noexcept : Base(std::move(b)) {}
 
 		explicit container_wrapper(IndexType const s)
 			: Base(numeric_cast<std::size_t>(static_cast<underlying_index>(s))) {}
