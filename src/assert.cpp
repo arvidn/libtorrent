@@ -355,7 +355,8 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line
 				"This indicates a bug in the client application using libtorrent\n";
 	}
 
-	assert_print("%s\n"
+	assert_print("::error file=%s,line=%d,titla=Assertion error::%s\n\n"
+		"%s\n"
 #ifdef TORRENT_PRODUCTION_ASSERTS
 		"#: %d\n"
 #endif
@@ -364,8 +365,13 @@ TORRENT_EXPORT void assert_fail(char const* expr, int line
 		"function: %s\n"
 		"expression: %s\n"
 		"%s%s\n"
+		"::group::call stack\n"
 		"stack:\n"
 		"%s\n"
+		"::endgroup::\n"
+		, file
+		, line
+		, message
 		, message
 #ifdef TORRENT_PRODUCTION_ASSERTS
 		, assert_counter.load()

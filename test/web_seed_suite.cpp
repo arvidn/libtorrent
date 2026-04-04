@@ -323,6 +323,7 @@ int EXPORT run_http_suite(int proxy, char const* protocol
 	int idx = 0;
 	for (auto const& c : test_cases)
 	{
+		std::printf("::group::case %d\n", idx);
 		std::printf("\n\n ====  test case %d ====\n\n\n", idx++);
 
 		lt::add_torrent_params atp = make_test_torrent(c);
@@ -359,6 +360,7 @@ int EXPORT run_http_suite(int proxy, char const* protocol
 					, chunked_encoding, test_ban, keepalive, proxy_peers);
 			}
 		}
+		puts("::endgroup::");
 	}
 
 	stop_web_server();

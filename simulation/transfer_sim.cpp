@@ -149,8 +149,8 @@ bool run_matrix_test(test_transfer_flags_t flags, existing_files_mode const file
 	// deterministic
 	lt::aux::random_engine().seed(0x23563a7f);
 
-	std::cout << "\n\nTEST CASE: "
-		<< ((flags & tx::small_pieces) ? "small_pieces"
+	std::stringstream test_name;
+	test_name << ((flags & tx::small_pieces) ? "small_pieces"
 			: (flags & tx::large_pieces) ? "large_pieces"
 			: (flags & tx::odd_pieces) ? "odd_pieces"
 			: "normal_pieces")
@@ -163,8 +163,10 @@ bool run_matrix_test(test_transfer_flags_t flags, existing_files_mode const file
 		<< "-" << ((flags & tx::multiple_files) ? "multi_file" : "single_file")
 		<< "-" << ((flags & tx::web_seed) ? "web_seed" : "bt_peers")
 		<< "-" << ((flags & tx::resume_restart) ? "resume_restart" : "continuous")
-		<< "-" << files
-		<< "\n\n";
+		<< "-" << files;
+
+	std::cout << "::group::case-" << test_name.str() << "\n";
+	std::cout << "\n\nTEST CASE: " << test_name.str() << "\n\n";
 
 	auto downloader_disk = test_disk().set_files(files);
 	auto seeder_disk = test_disk();
@@ -206,6 +208,7 @@ bool run_matrix_test(test_transfer_flags_t flags, existing_files_mode const file
 		TEST_EQUAL(int(passed.size()), expected_pieces);
 	}
 
+	std::cout << "::endgroup::\n";
 	return ::unit_test::g_test_failures > 0;
 }
 

@@ -77,6 +77,7 @@ void test_transfer(int const proxy_type, settings_pack const& sett
 {
 	char const* test_name[] = {"no", "SOCKS4", "SOCKS5", "SOCKS5 password", "HTTP", "HTTP password"};
 
+	std::printf("::group::%s-%s\n", test_name[proxy_type], (flags & move_storage) ? "move" : "nomove");
 	std::printf("\n\n  ==== TESTING %s proxy ==== move-storage: %s\n\n\n"
 		, test_name[proxy_type]
 		, (flags & move_storage) ? "true": "false"
@@ -326,6 +327,7 @@ void test_transfer(int const proxy_type, settings_pack const& sett
 	p2 = ses2.abort();
 
 	if (proxy_type) stop_proxy(proxy_port);
+	std::printf("::endgroup::");
 }
 
 void cleanup()

@@ -31,6 +31,7 @@ int test_counter()
 
 void report_failure(char const* err, char const* file, int line)
 {
+	std::printf("::error file=%s,line=%d,title=Check failed::%s", file, line, err);
 	char buf[2000];
 	std::snprintf(buf, sizeof(buf), "\x1b[41m***** %s:%d \"%s\" *****\x1b[0m\n", file, line, err);
 	std::printf("\n%s\n", buf);

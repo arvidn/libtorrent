@@ -86,6 +86,7 @@ void output_test_log_to_terminal()
 	}
 
 	fseek(current_test->output, 0, SEEK_SET);
+	std::printf("::group::%s\n", current_test->name);
 	std::printf("\x1b[1m[%s]\x1b[0m\n\n", current_test->name);
 	char buf[4096];
 	std::size_t size = 0;
@@ -93,6 +94,7 @@ void output_test_log_to_terminal()
 		size = fread(buf, 1, sizeof(buf), current_test->output);
 		if (size > 0) fwrite(buf, 1, size, stdout);
 	} while (size > 0);
+	std::printf("::endgroup::\n");
 }
 
 #ifdef _WIN32
