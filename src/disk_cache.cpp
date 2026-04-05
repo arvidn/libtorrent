@@ -603,7 +603,7 @@ Iter disk_cache::flush_piece_impl(View& view
 	, span<cached_block_entry> const blocks
 	, std::function<void(jobqueue_t, disk_job*)> clear_piece_fun)
 {
-	view.modify(piece_iter, [](cached_piece_entry& e) { TORRENT_ASSERT(!(e.flags & cached_piece_entry::flushing_flag)); e.flags |= cached_piece_entry::flushing_flag; });
+	TORRENT_ASSERT(l.owns_lock());
 	int const num_blocks = count_jobs(blocks);
 	if (num_blocks <= 0)
 		return std::next(piece_iter);
@@ -612,6 +612,7 @@ Iter disk_cache::flush_piece_impl(View& view
 	// TODO: pass the block offset as a parameter instead of computing it like this
 	int const block_offset = static_cast<int>(blocks.data() - piece_iter->get_blocks().data());
 
+	view.modify(piece_iter, [](cached_piece_entry& e) { TORRENT_ASSERT(!(e.flags & cached_piece_entry::flushing_flag)); e.flags |= cached_piece_entry::flushing_flag; });
 	m_flushing_blocks += num_blocks;
 
 	// we have to release the lock while flushing, but since we set the
@@ -689,6 +690,8 @@ Iter disk_cache::flush_piece_impl(View& view
 		++jobs;
 	}
 
+	// Compute next_iter before the view.modify below as the element may be
+	// moved when modified.
 	auto next_iter = std::next(piece_iter);
 	bool const force_flush = compute_force_flush(*piece_iter);
 	view.modify(piece_iter, [jobs, force_flush](cached_piece_entry& e) {
