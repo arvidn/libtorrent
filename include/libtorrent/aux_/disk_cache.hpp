@@ -11,6 +11,7 @@ see LICENSE file.
 #define TORRENT_DISK_CACHE
 
 #include <unordered_map>
+#include <condition_variable>
 #include <mutex>
 #include <thread>
 #include <algorithm>
@@ -218,6 +219,11 @@ struct cached_piece_entry
 	// thread picks it up. Used to coalesce multiple insertions into a
 	// single wakeup.
 	static constexpr cached_piece_flags needs_hasher_kick_flag = 6_bit;
+
+	// set by a thread about to wait on m_flushing_cv for flushing_flag to
+	// clear on this piece. flush_piece_impl only calls notify_all() when this
+	// flag is set, avoiding the cost of signalling.
+	static constexpr cached_piece_flags notify_flushed_flag = 7_bit;
 
 	// flags are protected by the main disk cache mutex and may only be
 	// accessed while holding it
@@ -568,6 +574,7 @@ private:
 		, std::function<void(jobqueue_t, disk_job*)> clear_piece_fun);
 
 	mutable std::mutex m_mutex;
+	std::condition_variable m_flushing_cv;
 	piece_container m_pieces;
 
 	// allocator used for all disk buffers in this cache. Set lazily on the
