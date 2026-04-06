@@ -259,6 +259,47 @@ void test_hash_job_retry_when_piece_incomplete(test_mode_t const mode)
 	TEST_EQUAL(int(f.cache.size()), 0);
 }
 
+// Regression test for the pending_free_flag mechanism.
+//
+// flush_storage() is called to tear down a storage while a hasher thread
+// holds hashing_flag (mutex released mid-hash). flush_storage() must NOT
+// free or erase the piece entry while the hasher is accessing ph and
+// block_hashes; instead it sets pending_free_flag and defers the erasure.
+// When kick_hasher() subsequently clears hashing_flag it sees
+// pending_free_flag and erases the piece itself.
+void test_flush_storage_during_hashing(test_mode_t const mode)
+{
+	// 2-block piece so the hasher has real work to do.
+	cache_fixture f(2, mode);
+	f.insert(0_piece, 0);
+	f.insert(0_piece, 1);
+
+	jobqueue_t completed, retry;
+
+	// With slow hashing each block takes ~1.6 s. Run the hasher in a
+	// background thread so flush_storage() races with it.
+	std::thread hasher_thread([&]() {
+		f.cache.kick_pending_hashers(completed, retry);
+	});
+
+	// Give the hasher time to set hashing_flag and release the mutex.
+	std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+	// flush_storage() sees hashing_flag set: it flushes the blocks to disk,
+	// sets pending_free_flag, and returns WITHOUT erasing the piece entry.
+	f.flush_storage_for();
+
+	// The hasher thread is still running; the piece entry must still exist.
+	TEST_CHECK(f.cache.size() > 0);
+
+	hasher_thread.join();
+	// kick_hasher() saw pending_free_flag when clearing hashing_flag and
+	// erased the piece itself.
+
+	TEST_EQUAL(int(f.cache.size()), 0);
+	TEST_EQUAL(f.alloc.live, 0);
+}
+
 }
 
 TORRENT_TEST(test_pread_hash_job_retry)
@@ -285,5 +326,12 @@ TORRENT_TEST(hash_job_dispatched_hybrid) { test_hash_job_dispatched_by_hasher(te
 TORRENT_TEST(hash_job_retry_incomplete_v1) { test_hash_job_retry_when_piece_incomplete(test_mode::v1); }
 TORRENT_TEST(hash_job_retry_incomplete_v2) { test_hash_job_retry_when_piece_incomplete(test_mode::v2); }
 TORRENT_TEST(hash_job_retry_incomplete_hybrid) { test_hash_job_retry_when_piece_incomplete(test_mode::v1 | test_mode::v2); }
+
+TORRENT_TEST(flush_storage_during_hashing_v1)
+	{ test_flush_storage_during_hashing(test_mode::v1); }
+TORRENT_TEST(flush_storage_during_hashing_v2)
+	{ test_flush_storage_during_hashing(test_mode::v2); }
+TORRENT_TEST(flush_storage_during_hashing_hybrid)
+	{ test_flush_storage_during_hashing(test_mode::v1 | test_mode::v2); }
 
 #endif // TORRENT_SIMULATE_SLOW_HASH

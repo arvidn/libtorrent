@@ -53,7 +53,7 @@ namespace libtorrent::aux {
 
 namespace mi = boost::multi_index;
 
-using cached_piece_flags = libtorrent::flags::bitfield_flag<std::uint8_t, struct cached_piece_flags_tag>;
+using cached_piece_flags = libtorrent::flags::bitfield_flag<std::uint16_t, struct cached_piece_flags_tag>;
 
 // uniquely identifies a torrent and piece
 struct piece_location
@@ -224,6 +224,11 @@ struct cached_piece_entry
 	// clear on this piece. flush_piece_impl only calls notify_all() when this
 	// flag is set, avoiding the cost of signalling.
 	static constexpr cached_piece_flags notify_flushed_flag = 7_bit;
+
+	// set by flush_storage() when it wants to erase a piece but a hasher
+	// thread holds hashing_flag. When kick_hasher() later clears
+	// hashing_flag it will see this flag and free+erase the piece itself.
+	static constexpr cached_piece_flags pending_free_flag = 8_bit;
 
 	// flags are protected by the main disk cache mutex and may only be
 	// accessed while holding it

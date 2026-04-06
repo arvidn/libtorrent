@@ -669,3 +669,4 @@ TORRENT_TEST(truncated_v2_piece_v2)
 	{ test_piece_size2_smaller_than_piece_size(test_mode::v2); }
 TORRENT_TEST(truncated_v2_piece_hybrid)
 	{ test_piece_size2_smaller_than_piece_size(test_mode::v1 | test_mode::v2); }
+
