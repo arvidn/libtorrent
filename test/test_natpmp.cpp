@@ -16,6 +16,7 @@ see LICENSE file.
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <optional>
 
 using namespace lt;
 
@@ -54,7 +55,6 @@ namespace
 int main(int argc, char* argv[])
 {
 	io_context ios;
-	std::string user_agent = "test agent";
 
 	if (argc < 3 || argc > 4)
 	{
@@ -63,13 +63,13 @@ int main(int argc, char* argv[])
 	}
 
 	error_code ec;
-	std::vector<ip_route> const routes = lt::enum_routes(ios, ec);
+	std::vector<aux::ip_route> const routes = aux::enum_routes(ios, ec);
 	if (ec)
 	{
 		std::cerr << "failed to enumerate routes: " << ec.message() << '\n';
 		return -1;
 	}
-	std::vector<ip_interface> const ifs = lt::enum_net_interfaces(ios, ec);
+	std::vector<aux::ip_interface> const ifs = aux::enum_net_interfaces(ios, ec);
 	if (ec)
 	{
 		std::cerr << "failed to enumerate network interfaces: " << ec.message() << '\n';
@@ -78,14 +78,14 @@ int main(int argc, char* argv[])
 	auto const iface = [&]
 	{
 		if (argc > 3)
-			return std::find_if(ifs.begin(), ifs.end(), [&](ip_interface const& ipf)
+			return std::find_if(ifs.begin(), ifs.end(), [&](aux::ip_interface const& ipf)
 				{ return ipf.name == string_view(argv[3]); });
 		else
-			return std::find_if(ifs.begin(), ifs.end(), [&](ip_interface const& face)
+			return std::find_if(ifs.begin(), ifs.end(), [&](aux::ip_interface const& face)
 				{
 				if (!face.interface_address.is_v4()) return false;
 				if (face.interface_address.is_loopback()) return false;
-				auto const route = std::find_if(routes.begin(), routes.end(), [&](ip_route const& r)
+				auto const route = std::find_if(routes.begin(), routes.end(), [&](aux::ip_route const& r)
 					{ return r.destination.is_unspecified() && string_view(face.name) == r.name; });
 				if (route == routes.end()) return false;
 				return true;
@@ -109,16 +109,18 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 
+	std::optional<address> const gateway = aux::get_gateway(*iface, routes);
+
 	natpmp_callback cb;
 	auto natpmp_handler = std::make_shared<natpmp>(ios, cb, aux::listen_socket_handle{});
-	natpmp_handler->start(*iface);
+	natpmp_handler->start(*iface, gateway);
 
-	deadline_timer timer(ios);
+	aux::deadline_timer timer(ios);
 
 	auto const tcp_map = natpmp_handler->add_mapping(portmap_protocol::tcp
-		, atoi(argv[1]), tcp::endpoint({}, aux::numeric_cast<std::uint16_t>(atoi(argv[1]))));
+		, atoi(argv[1]), tcp::endpoint({}, aux::numeric_cast<std::uint16_t>(atoi(argv[1]))), iface->name);
 	natpmp_handler->add_mapping(portmap_protocol::udp, atoi(argv[2])
-		, tcp::endpoint({}, aux::numeric_cast<std::uint16_t>(atoi(argv[2]))));
+		, tcp::endpoint({}, aux::numeric_cast<std::uint16_t>(atoi(argv[2]))), iface->name);
 
 	timer.expires_after(seconds(2));
 	timer.async_wait([&] (error_code const&) { ios.io_context::stop(); });
@@ -130,7 +132,7 @@ int main(int argc, char* argv[])
 	ios.run();
 	timer.expires_after(seconds(2));
 	timer.async_wait([&] (error_code const&) { ios.io_context::stop(); });
-	if (tcp_map >= 0)
+	if (tcp_map >= port_mapping_t{0})
 	{
 		std::cout << "removing mapping " << tcp_map << std::endl;
 		natpmp_handler->delete_mapping(tcp_map);
