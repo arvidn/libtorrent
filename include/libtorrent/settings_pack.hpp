@@ -1029,6 +1029,14 @@ namespace aux {
 			// created within it to have the NOCOW flag set.
 			disk_disable_copy_on_write,
 
+			// determines if connections from the same Peer ID as existing
+			// connections should be rejected or not. Typically, we
+			// only establish a single connection with each peer. If
+			// a peer has multiple IP addresses, enabling this feature
+			// may improve transfer efficiency, but it may also
+			// increase network load.
+			allow_multiple_connections_per_pid,
+
 			max_bool_setting_internal
 		};
 
@@ -2104,6 +2112,10 @@ namespace aux {
 			// Configures the variance for I2P inbound and outbound tunnel lengths [-7..7]
 			i2p_inbound_length_variance,
 			i2p_outbound_length_variance,
+
+			// The life time of NAT-PMP and PCP port-mappings, specified in
+			// seconds.
+			natpmp_lease_duration,
 
 			// this is the minimum allowed announce interval for a WebSocket
 			// tracker used by WebTorrent to signal WebRTC connections. This is

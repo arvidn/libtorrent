@@ -26,6 +26,7 @@ see LICENSE file.
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/enum_net.hpp" // for ip_interface
 #include "libtorrent/aux_/listen_socket_handle.hpp"
+#include "libtorrent/aux_/session_settings.hpp"
 
 namespace libtorrent {
 
@@ -68,7 +69,8 @@ struct TORRENT_EXTRA_EXPORT natpmp final
 	: std::enable_shared_from_this<natpmp>
 	, aux::single_threaded
 {
-	natpmp(io_context& ios, aux::portmap_callback& cb, aux::listen_socket_handle ls);
+	natpmp(io_context& ios, aux::session_settings const& settings
+		, aux::portmap_callback& cb, aux::listen_socket_handle ls);
 
 	void start(aux::ip_interface const& ip, std::optional<address> const& gateway);
 
@@ -142,6 +144,7 @@ private:
 	void mapping_log(char const* op, mapping_t const& m) const;
 #endif
 
+	aux::session_settings const& m_settings;
 	aux::portmap_callback& m_callback;
 
 	protocol_version m_version = version_pcp;

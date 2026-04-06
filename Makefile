@@ -795,6 +795,7 @@ SIM_SOURCES = \
   setup_dht.hpp \
   setup_swarm.cpp \
   setup_swarm.hpp \
+  test_allow_multiple_connections_per_pid.cpp \
   test_auto_manage.cpp \
   test_checking.cpp \
   test_dht.cpp \

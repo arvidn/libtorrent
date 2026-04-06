@@ -15,6 +15,7 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/settings_pack.hpp"
+#include "libtorrent/string_view.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/aux_/array.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
@@ -216,6 +217,7 @@ namespace {
 		SET(socks5_udp_send_local_ep, false, nullptr),
 		SET(proxy_send_host_in_connect, false, nullptr),
 		SET(disk_disable_copy_on_write, false, nullptr),
+		SET(allow_multiple_connections_per_pid, false, nullptr),
 	}});
 
 	CONSTEXPR_SETTINGS
@@ -382,6 +384,7 @@ namespace {
 		SET(announce_port, 0, nullptr),
 		SET(i2p_inbound_length_variance, 0, nullptr),
 		SET(i2p_outbound_length_variance, 0, nullptr),
+		SET(natpmp_lease_duration, 3600, nullptr),
 		SET(min_websocket_announce_interval, 1 * 60, nullptr),
 		SET(webtorrent_connection_timeout, 2 * 60, nullptr)
 	}});
