@@ -104,7 +104,7 @@ test_result test_allow_multiple_connections_per_pid(bool allow
 		if (pd) result.disconnects.push_back(pd->error);
 
 		auto* pa = lt::alert_cast<lt::peer_connect_alert>(a);
-		if (pa) result.connects.push_back(pa->endpoint);
+		if (pa) result.connects.push_back(std::get<lt::peer_alert::ip_endpoint>(pa->ep));
 
 		if (lt::alert_cast<lt::add_torrent_alert>(a))
 		{
