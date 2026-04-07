@@ -66,6 +66,7 @@ Python3_add_library(python-libtorrent MODULE WITH_SOABI
 	src/torrent_status.cpp
 	src/utility.cpp
 	src/version.cpp
+	src/ed25519.cpp
 )
 
 set_target_properties(python-libtorrent
