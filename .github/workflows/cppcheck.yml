@@ -1,0 +1,65 @@
+name: cppcheck
+
+on:
+   push:
+      branches: [ RC_1_2 RC_2_0 master ]
+   pull_request:
+
+concurrency:
+   group: ${{ github.ref }}-${{ github.workflow }}-${{ github.event_name }}
+   cancel-in-progress: true
+
+jobs:
+
+   cppcheck:
+      name: cppcheck (${{ matrix.platform }})
+      runs-on: ubuntu-24.04
+
+      strategy:
+         matrix:
+            include:
+               - platform: unix64
+                 defines: -D__linux__ -DBOOST_ENDIAN_LITTLE_BYTE=1
+               - platform: unix32
+                 defines: -D__linux__ -DBOOST_ENDIAN_LITTLE_BYTE=1
+               - platform: win32A
+                 defines: -D_WIN32 -D_WIN32_WINNT=0x0601 -DBOOST_ENDIAN_LITTLE_BYTE=1
+               - platform: win32W
+                 defines: -D_WIN32 -D_WIN32_WINNT=0x0601 -DUNICODE -D_UNICODE -DBOOST_ENDIAN_LITTLE_BYTE=1
+               - platform: win64
+                 defines: -D_WIN32 -D_WIN64 -D_WIN32_WINNT=0x0601 -DUNICODE -D_UNICODE -DBOOST_ENDIAN_LITTLE_BYTE=1
+               - platform: mips32
+                 defines: -D__linux__ -DBOOST_ENDIAN_BIG_BYTE=1
+
+      steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+           submodules: false
+           fetch-depth: 1
+
+      - name: install dependencies
+        run: |
+           sudo apt-get update
+           sudo apt-get install -y cppcheck
+
+      - name: run cppcheck
+        run: |
+          mkdir -p .cppcheck-dir
+          cppcheck \
+            --platform=${{ matrix.platform }} \
+            --error-exitcode=1 \
+            --enable=warning \
+            --suppress=missingIncludeSystem \
+            --suppress=noExplicitConstructor \
+            --inline-suppr \
+            --suppressions-list=.cppcheck-suppressions \
+            --cppcheck-build-dir=.cppcheck-dir \
+            ${{ matrix.defines }} \
+            -DTORRENT_USE_OPENSSL \
+            -DOPENSSL_VERSION_NUMBER=0x30000000L \
+            -DBOOST_ASIO_ENABLE_CANCELIO \
+            -I include \
+            src/ \
+            examples/ \
+            tools/

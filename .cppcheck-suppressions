@@ -1,0 +1,119 @@
+// false positive: move-and-swap idiom, h is not accessed after the move
+accessMoved:src/disk_buffer_holder.cpp
+
+// false positive: only one ternary branch executes, values are moved exactly once
+accessMoved:src/kademlia/node.cpp
+
+// false positive: `url.end() - pos < 3` guards the subsequent iterator arithmetic
+derefInvalidIteratorRedundantCheck:src/parse_url.cpp
+
+// false positive: ssl_stream holds an optional-like unique_ptr; the !m_sock
+// guards are intentional pre-conditions, not redundant
+nullPointerRedundantCheck:include/libtorrent/aux_/ssl_stream.hpp
+
+// false positive: j is guaranteed non-null here because the !hash_job early-
+// return path above handles the null case
+nullPointer:src/disk_cache.cpp
+
+// false positive: cppcheck doesn't understand allocate_job<> always returns
+// non-null; the callers check for null before this point in the call chain
+legacyUninitvar:src/mmap_disk_io.cpp
+legacyUninitvar:src/pread_disk_io.cpp
+
+// false positive: &ses is captured by reference in a lambda dispatched to the
+// session's io_context; the session outlives the lambda because t (shared_ptr)
+// keeps the torrent (and thus the session) alive
+danglingTempReference:src/torrent_handle.cpp
+
+// false positive: was_conn_cand is snapped before the state mutation; the
+// condition compares the old and new values, which can legitimately differ
+incorrectLogicOperator:src/peer_list.cpp
+
+// false positive: TORRENT_ALLOCA stores the new[] return value in the span v;
+// cppcheck sees the new[] call but not the store inside the macro expansion
+leakReturnValNotUsed:include/libtorrent/aux_/disk_cache.hpp
+leakReturnValNotUsed:src/pread_disk_io.cpp
+
+// false positive: write_buf and out are span parameters, not uninitialized locals
+uninitvar:src/bt_peer_connection.cpp
+uninitvar:src/kademlia/item.cpp
+
+// false positive: the erase at line 2202 is followed immediately by return,
+// so no further loop iteration happens after the container is modified
+invalidContainerLoop:src/piece_picker.cpp
+
+// false positive: unspecified_eps is a copy of the erased range, not an
+// iterator into eps; the loop at line 262 iterates the copy, not eps
+invalidContainer:src/session_impl.cpp
+
+// false positive: s is a char const* function parameter; callers never pass null
+ctunullpointer:src/path.cpp
+
+// false positive: cwd is guaranteed non-null here — the null branch throws
+// an exception two lines above before reaching convert_from_native_path
+nullPointerRedundantCheck:src/path.cpp
+
+// intentional: typed_bitfield provides type-safe index wrappers over bitfield
+duplInheritedMember:include/libtorrent/bitfield.hpp
+
+// intentional: proxy stream subclasses override close() with the same
+// signature to chain the operation through the derived type
+duplInheritedMember:include/libtorrent/aux_/http_stream.hpp
+duplInheritedMember:include/libtorrent/socks5_stream.hpp
+
+// intentional: covariant return type on shared_from_this() / native_handle()
+// in tracker connection and peer connection handle subclasses
+duplInheritedMember:include/libtorrent/aux_/http_tracker_connection.hpp
+duplInheritedMember:include/libtorrent/aux_/udp_tracker_connection.hpp
+duplInheritedMember:include/libtorrent/aux_/websocket_tracker_connection.hpp
+duplInheritedMember:include/libtorrent/peer_connection_handle.hpp
+duplInheritedMember:src/peer_connection_handle.cpp
+
+// intentional: bt_peer_connection::m_recv_buffer shadows peer_connection's to
+// use a crypto-capable variant of the receive buffer type
+duplInheritedMember:include/libtorrent/aux_/bt_peer_connection.hpp
+
+// intentional: alloca is used intentionally throughout as a bounded stack
+// allocation in hot paths (codebase-wide pattern)
+allocaCalled
+
+// intentional: strong_typedef<T> deliberately leaves m_val uninitialised for
+// POD-like value semantics when default-constructed
+uninitMemberVar:include/libtorrent/units.hpp
+
+// intentional: crypto key/signature types default-construct as uninitialised
+// buffers (callers fill them before use)
+uninitMemberVar:include/libtorrent/kademlia/types.hpp
+
+// intentional: buffer_t uses a placement-new pattern; destruct_holder is set
+// before the buffer is returned to callers
+uninitMemberVar:include/libtorrent/aux_/chained_buffer.hpp
+
+// intentional: m_buf / m_buffer / m_response_buffer / m_tmp_buf are raw
+// receive buffers always written before they are read
+uninitMemberVar:src/ip_notifier.cpp
+uninitMemberVar:src/lsd.cpp
+uninitMemberVar:src/natpmp.cpp
+uninitMemberVar:src/udp_socket.cpp
+uninitMemberVar:include/libtorrent/upnp.hpp
+
+// intentional: peer_info and partial_piece_info are output structs always
+// populated by the library before being exposed to callers
+uninitMemberVar:include/libtorrent/peer_info.hpp
+uninitMemberVar:include/libtorrent/torrent_handle.hpp
+
+// intentional: announce_endpoint bool fields (start_sent, complete_sent,
+// updating) are set to the correct value before first use
+uninitMemberVar:include/libtorrent/announce_entry.hpp
+
+// intentional: settings_pack deliberately shadows the base-class overload set
+// to provide a type-safe wrapper
+duplInheritedMember:include/libtorrent/settings_pack.hpp
+
+// intentional: each alert type defines its own alert_type constant; the
+// shadowing of the base-class member is by design
+duplInheritedMember:include/libtorrent/alert_types.hpp
+
+// false positive: _sv is a string_view UDL; cppcheck mistakes it for a
+// char* literal and incorrectly flags the comparison
+literalWithCharPtrCompare

@@ -205,6 +205,9 @@ namespace aux {
 	announce_entry::announce_entry()
 		: source(0)
 		, verified(false)
+#if TORRENT_USE_I2P
+		, i2p(false)
+#endif
 	{}
 
 	announce_entry::~announce_entry() = default;

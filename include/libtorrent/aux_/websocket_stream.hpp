@@ -190,7 +190,7 @@ private:
 
 	std::string m_url;
 	std::string m_hostname;
-	std::uint16_t m_port;
+	std::uint16_t m_port = 0;
 	std::string m_target;
 	std::string m_user_agent;
 	std::vector<tcp::endpoint> m_endpoints;
