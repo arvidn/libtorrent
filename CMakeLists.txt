@@ -973,8 +973,7 @@ if(webtorrent)
 	if(Boost_JSON_FOUND)
 		target_link_libraries(torrent-rasterbar PUBLIC Boost::json)
 	else()
-		# Fallback to the submodule
-		target_include_directories(torrent-rasterbar PRIVATE deps/json/include)
+		message(FATAL_ERROR "Boost.JSON library not found")
 	endif()
 endif()
 

@@ -252,7 +252,7 @@ jobs:
       - name: stage boost libraries
         run: |
           cd boost
-          b2 cxxstd=17 release --with-system --layout=system address-model=64 link=static stage
+          b2 cxxstd=17 release --with-system --with-json --layout=system address-model=64 link=static stage
 
       - name: cmake configure
         run: |
