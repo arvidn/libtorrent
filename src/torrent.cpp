@@ -3093,7 +3093,7 @@ namespace {
 			req.filter = m_ip_filter;
 		}
 
-		req.private_torrent = m_torrent_file->priv();
+		req.private_torrent = m_torrent_file && m_torrent_file->priv();
 
 		req.pid = m_peer_id;
 		req.downloaded = m_stat.total_payload_download() - m_total_failed_bytes;
@@ -3412,7 +3412,7 @@ namespace {
 #endif
 		refresh_endpoint_list(m_ses, ae.url, is_ssl_torrent(), bool(m_complete_sent), ae.endpoints);
 		req.url = ae.url;
-		req.private_torrent = m_torrent_file->priv();
+		req.private_torrent = m_torrent_file && m_torrent_file->priv();
 #if TORRENT_ABI_VERSION == 1
 		req.auth = tracker_login();
 #endif
