@@ -117,3 +117,15 @@ duplInheritedMember:include/libtorrent/alert_types.hpp
 // false positive: _sv is a string_view UDL; cppcheck mistakes it for a
 // char* literal and incorrectly flags the comparison
 literalWithCharPtrCompare
+
+// false positive: ses[] is declared as ses[2]; cppcheck misreads the size as 1
+arrayIndexOutOfBounds:simulation/test_error_handling.cpp
+
+// third-party: all warnings in the bundled Catch2 test harness are noise
+uninitMemberVar:simulation/libsimulator/test/catch.hpp
+duplInheritedMember:simulation/libsimulator/test/catch.hpp
+assertWithSideEffect:simulation/libsimulator/test/main.cpp
+nullPointerRedundantCheck:simulation/libsimulator/test/main.cpp
+incorrectStringBooleanError:simulation/libsimulator/test/main.cpp
+incorrectCharBooleanError:simulation/libsimulator/test/main.cpp
+unknownMacro:simulation/libsimulator/test/parse_request.cpp

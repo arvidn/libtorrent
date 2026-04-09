@@ -21,6 +21,7 @@ using namespace sim;
 
 #ifndef TORRENT_DISABLE_DHT
 
+namespace {
 struct sim_config : sim::default_config
 {
 	chrono::high_resolution_clock::duration hostname_lookup(
@@ -37,6 +38,7 @@ struct sim_config : sim::default_config
 		return default_config::hostname_lookup(requestor, hostname, result, ec);
 	}
 };
+} // anonymous namespace
 
 TORRENT_TEST(dht_bootstrap)
 {

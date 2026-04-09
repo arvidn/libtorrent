@@ -61,5 +61,6 @@ jobs:
             -DBOOST_ASIO_ENABLE_CANCELIO \
             -I include \
             src/ \
+            simulation/ \
             examples/ \
             tools/

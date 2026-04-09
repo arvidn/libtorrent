@@ -283,6 +283,7 @@ TORRENT_TEST(announce_interval_1200)
 	test_interval(3600);
 }
 
+namespace {
 struct sim_config : sim::default_config
 {
 	explicit sim_config(bool ipv6 = true) : ipv6(ipv6) {}
@@ -323,6 +324,7 @@ struct sim_config : sim::default_config
 
 	bool ipv6;
 };
+} // anonymous namespace
 
 void on_alert_notify(lt::session* ses)
 {

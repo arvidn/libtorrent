@@ -32,6 +32,7 @@ using socks_flags_t = lt::flags::bitfield_flag<std::uint64_t, struct socks_test_
 
 constexpr socks_flags_t proxy_hostname = 0_bit;
 
+namespace {
 struct sim_config : sim::default_config
 {
 	chrono::high_resolution_clock::duration hostname_lookup(
@@ -49,6 +50,7 @@ struct sim_config : sim::default_config
 		return default_config::hostname_lookup(requestor, hostname, result, ec);
 	}
 };
+} // anonymous namespace
 
 // this is the general template for these tests. create the session with custom
 // settings (Settings), set up the test, by adding torrents with certain

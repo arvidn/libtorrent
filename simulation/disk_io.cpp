@@ -772,7 +772,7 @@ private:
 	// fail
 	lt::bitfield m_have;
 
-	int m_blocks_per_piece;
+	int m_blocks_per_piece = 0;
 
 	// callbacks are posted on this
 	lt::io_context& m_ioc;

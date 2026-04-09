@@ -47,6 +47,7 @@ add_torrent_params create_torrent(std::vector<lt::create_file_entry> files
 	return ret;
 }
 
+namespace {
 struct sim_config : sim::default_config
 {
 	explicit sim_config() {}
@@ -87,6 +88,7 @@ struct sim_config : sim::default_config
 		return default_config::hostname_lookup(requestor, hostname, result, ec);
 	}
 };
+} // anonymous namespace
 
 // this is the general template for these tests. create the session with custom
 // settings (Settings), set up the test, by adding torrents with certain
