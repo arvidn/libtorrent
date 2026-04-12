@@ -140,7 +140,7 @@ def print_peer_info(console: ConsoleABC, peers: list[lt.peer_info]) -> None:
         out += "i" if p.flags & lt.peer_info.remote_interested else "."
         out += "c" if p.flags & lt.peer_info.remote_choked else "."
         out += "e" if p.flags & lt.peer_info.supports_extensions else "."
-        out += "l" if p.flags & lt.peer_info.local_connection else "r"
+        out += "l" if p.flags & lt.peer_info.outgoing_connection else "r"
         out += " "
 
         if p.downloading_piece_index >= 0:
