@@ -272,7 +272,7 @@ jobs:
           cd test
           b2 ${{ matrix.config }} -l500 warnings-as-errors=on debug-iterators=on asserts=on deterministic-tests
           b2 ${{ matrix.config }} -l500 testing.execute=off warnings-as-errors=on debug-iterators=on asserts=on test_lsd test_hasher test_hasher512 test_natpmp enum_if
-          b2 ${{ matrix.config }} -l500 warnings-as-errors=on debug-iterators=on asserts=on simulate-slow-hash=on test_slow_hash
+          b2 ${{ matrix.config }} -l500 warnings-as-errors=on debug-iterators=on asserts=on simulate-slow=hash test_slow_hash
 
       - name: run tests (flaky)
         env:

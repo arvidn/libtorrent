@@ -679,14 +679,10 @@ feature.compose <invariant-checks>full : <define>TORRENT_USE_INVARIANT_CHECKS=1 
 feature utp-log : off on : composite propagated link-incompatible ;
 feature.compose <utp-log>on : <define>TORRENT_UTP_LOG_ENABLE ;
 
-feature simulate-slow-read : off on : composite propagated ;
-feature.compose <simulate-slow-read>on : <define>TORRENT_SIMULATE_SLOW_READ ;
-
-feature simulate-slow-write : off on : composite propagated ;
-feature.compose <simulate-slow-write>on : <define>TORRENT_SIMULATE_SLOW_WRITE ;
-
-feature simulate-slow-hash : off on : composite propagated ;
-feature.compose <simulate-slow-hash>on : <define>TORRENT_SIMULATE_SLOW_HASH ;
+feature simulate-slow : off read write hash : composite propagated ;
+feature.compose <simulate-slow>read : <define>TORRENT_SIMULATE_SLOW_READ ;
+feature.compose <simulate-slow>write : <define>TORRENT_SIMULATE_SLOW_WRITE ;
+feature.compose <simulate-slow>hash : <define>TORRENT_SIMULATE_SLOW_HASH ;
 
 feature logging : on off : composite propagated link-incompatible ;
 feature.compose <logging>off : <define>TORRENT_DISABLE_LOGGING ;
