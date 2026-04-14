@@ -1540,6 +1540,26 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 			{
 				auto j = static_cast<aux::pread_disk_job*>(retry.pop_front());
 				TORRENT_ASSERT(&pool_for_job(j) == &m_hash_threads);
+
+				DLOG("retry_job: %s (outstanding: %d)\n"
+					, print_job(*j).c_str()
+					, j->storage ? j->storage->num_outstanding_jobs() : 0);
+
+				// Only register with the fence if this job hasn't already gone
+				// through is_blocked() (i.e. it arrived via try_hash_piece() ->
+				// job_queued, not via hash_piece() -> deferred where in_progress
+				// is already set). Calling is_blocked() on a job that already has
+				// in_progress set would double-increment m_outstanding_jobs and
+				// would deadlock any pending fence.
+				if (j->storage && !(j->flags & aux::disk_job::in_progress)
+					&& j->storage->is_blocked(j))
+				{
+					m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs);
+					DLOG("blocked job: %s (torrent: %d total: %d)\n"
+						, print_job(*j).c_str(), j->storage ? j->storage->num_blocked() : 0
+						, int(m_stats_counters[counters::blocked_disk_jobs]));
+					continue;
+				}
 				m_hash_threads.push_back(j);
 			}
 
