@@ -1410,7 +1410,7 @@ TORRENT_VERSION_NAMESPACE_4
 		int tier = 0;
 		for (std::size_t i = 0; i < atp.trackers.size(); ++i)
 		{
-			if (atp.tracker_tiers.size() < i) tier = atp.tracker_tiers[i];
+			if (i < atp.tracker_tiers.size()) tier = atp.tracker_tiers[i];
 			announce_entry ent;
 			ent.url = atp.trackers[i];
 			ent.tier = std::uint8_t(tier);

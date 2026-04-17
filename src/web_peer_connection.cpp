@@ -1184,7 +1184,7 @@ void web_peer_connection::maybe_harvest_piece()
 void web_peer_connection::get_specific_peer_info(peer_info& p) const
 {
 	web_connection_base::get_specific_peer_info(p);
-	p.flags |= peer_info::local_connection;
+	p.flags |= peer_info::outgoing_connection;
 	p.connection_type = peer_info::web_seed;
 }
 

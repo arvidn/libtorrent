@@ -86,7 +86,7 @@ namespace {
 			{
 				std::string leaf = i.file();
 				if (ignore_subdir(leaf)) continue;
-				add_files_impl(files, p, combine_path(std::move(l), std::move(leaf)), pred, flags);
+				add_files_impl(files, p, combine_path(l, std::move(leaf)), pred, flags);
 			}
 		}
 		else

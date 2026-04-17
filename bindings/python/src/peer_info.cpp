@@ -131,7 +131,9 @@ void bind_peer_info()
     pi.attr("remote_interested") = peer_info::remote_interested;
     pi.attr("remote_choked") = peer_info::remote_choked;
     pi.attr("supports_extensions") = peer_info::supports_extensions;
+#if TORRENT_ABI_VERSION < 4
     pi.attr("local_connection") = peer_info::local_connection;
+#endif
     pi.attr("outgoing_connection") = peer_info::outgoing_connection;
     pi.attr("handshake") = peer_info::handshake;
     pi.attr("connecting") = peer_info::connecting;

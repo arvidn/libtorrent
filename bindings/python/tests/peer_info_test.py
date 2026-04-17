@@ -10,7 +10,8 @@ class EnumTest(unittest.TestCase):
         self.assertIsInstance(lt.peer_info.remote_interested, int)
         self.assertIsInstance(lt.peer_info.remote_choked, int)
         self.assertIsInstance(lt.peer_info.supports_extensions, int)
-        self.assertIsInstance(lt.peer_info.local_connection, int)
+        if lt.api_version < 4:
+            self.assertIsInstance(lt.peer_info.local_connection, int)
         self.assertIsInstance(lt.peer_info.outgoing_connection, int)
         self.assertIsInstance(lt.peer_info.handshake, int)
         self.assertIsInstance(lt.peer_info.connecting, int)

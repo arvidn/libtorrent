@@ -10,6 +10,3 @@
 [submodule "deps/libdatachannel"]
 	path = deps/libdatachannel
 	url = https://github.com/paullouisageneau/libdatachannel.git
-[submodule "deps/json"]
-	path = deps/json
-	url = https://github.com/vinniefalco/json.git

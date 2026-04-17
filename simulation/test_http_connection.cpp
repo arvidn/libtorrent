@@ -35,6 +35,7 @@ using namespace sim;
 
 using chrono::duration_cast;
 
+namespace {
 struct sim_config : sim::default_config
 {
 	chrono::high_resolution_clock::duration hostname_lookup(
@@ -75,6 +76,7 @@ struct sim_config : sim::default_config
 		return default_config::hostname_lookup(requestor, hostname, result, ec);
 	}
 };
+} // anonymous namespace
 
 // takes a string of data and chunks it up using HTTP chunked encoding
 std::string chunk_string(std::string s)

@@ -449,7 +449,7 @@ int print_peer_info(std::string& out
 			, color("i", (i->flags & peer_info::remote_interested)?col_white:col_blue).c_str()
 			, color("c", (i->flags & peer_info::remote_choked)?col_white:col_blue).c_str()
 			, color("x", (i->flags & peer_info::supports_extensions)?col_white:col_blue).c_str()
-			, color("o", (i->flags & peer_info::local_connection)?col_white:col_blue).c_str()
+			, color("o", (i->flags & peer_info::outgoing_connection)?col_white:col_blue).c_str()
 			, color("p", (i->flags & peer_info::on_parole)?col_white:col_blue).c_str()
 			, color("O", (i->flags & peer_info::optimistic_unchoke)?col_white:col_blue).c_str()
 			, color("S", (i->flags & peer_info::snubbed)?col_white:col_blue).c_str()

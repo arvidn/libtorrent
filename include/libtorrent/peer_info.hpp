@@ -113,8 +113,10 @@ TORRENT_VERSION_NAMESPACE_4
 		// us.
 		static inline constexpr peer_flags_t outgoing_connection = 5_bit;
 
+#if TORRENT_ABI_VERSION < 4
 		// deprecated synonym for outgoing_connection
-		static inline constexpr peer_flags_t local_connection = 5_bit;
+		TORRENT_DEPRECATED static inline constexpr peer_flags_t local_connection = 5_bit;
+#endif
 
 		// The connection is opened, and waiting for the
 		// handshake. Until the handshake is done, the peer

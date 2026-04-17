@@ -468,7 +468,7 @@ namespace {
 		if (is_peer_interested()) p.flags |= peer_info::remote_interested;
 		if (has_peer_choked()) p.flags |= peer_info::remote_choked;
 		if (support_extensions()) p.flags |= peer_info::supports_extensions;
-		if (is_outgoing()) p.flags |= peer_info::local_connection;
+		if (is_outgoing()) p.flags |= peer_info::outgoing_connection;
 #if TORRENT_USE_I2P
 		if (is_i2p(get_socket()))
 		{
