@@ -45,7 +45,7 @@ void test_add_and_get_flags(torrent_flags_t const flags)
 	session ses(settings());
 	add_torrent_params p = load_torrent_file(file("base.torrent"));
 	p.save_path = ".";
-	if (flags & torrent_flags::seed_mode)
+	if (flags & (torrent_flags::seed_mode | torrent_flags::super_seeding))
 	{
 		std::vector<char> temp(425);
 		ofstream("temp").write(temp.data(), std::streamsize(temp.size()));

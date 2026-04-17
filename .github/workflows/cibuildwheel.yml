@@ -152,12 +152,12 @@ jobs:
     - uses: docker/setup-qemu-action@v3
       if: steps.cache-wheel.outputs.cache-hit != 'true' && runner.os == 'Linux'
 
-    - name: Install OpenSSL (win32)
-      if: ${{ endsWith(matrix.CIBW_BUILD, 'win32') }}
-      run: |
-        Remove-Item -Path "C:\Program Files\OpenSSL" -Force -Recurse
-        vcpkg install openssl:x86-windows
-        New-Item -Path "C:\Program Files\OpenSSL" -ItemType SymbolicLink -Value "C:\vcpkg\packages\openssl_x86-windows\"
+    - name: Install OpenSSL (windows)
+      if: ${{ runner.os == 'Windows' }}
+      uses: ./.github/actions/win_install_openssl
+      with:
+        architecture: ${{ case(endsWith(matrix.CIBW_BUILD, 'win32'), 'x86', 'x64') }}
+        linking: static
 
     - name: install openssl (linux)
       if: runner.os == 'Linux'
