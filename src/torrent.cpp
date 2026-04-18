@@ -4393,6 +4393,13 @@ namespace {
 
 		set_block_hash_result last_result = set_block_hash_result(set_block_hash_result::result::unknown);
 
+		// collect adjacent pieces verified as side-effects of this block's hash;
+		// defer piece_flushed()/we_have() until after the loop so we can skip
+		// them if the last block causes a piece_hash_failed (which would otherwise
+		// leave m_have_pieces set for a piece that gets we_dont_have()'d, causing
+		// a double we_have() assert on re-download)
+		std::vector<piece_index_t> adjacent_verified;
+
 		for (int i = 0; i < blocks_in_piece; ++i)
 		{
 			// if there was an enoent or eof error the block hashes array may be incomplete
@@ -4447,9 +4454,7 @@ namespace {
 						continue;
 
 					TORRENT_ASSERT(get_hash_picker().piece_verified(verified_piece));
-					m_picker->piece_flushed(verified_piece);
-					update_gauge();
-					we_have(verified_piece);
+					adjacent_verified.push_back(verified_piece);
 				}
 			}
 			else if (result.status == set_block_hash_result::result::block_hash_failed)
@@ -4476,6 +4481,17 @@ namespace {
 				m_picker->we_dont_have(verified_piece);
 				update_gauge();
 				piece_failed(verified_piece);
+			}
+		}
+
+		if (last_result.status != set_block_hash_result::result::piece_hash_failed)
+		{
+			for (piece_index_t verified_piece : adjacent_verified)
+			{
+				if (m_picker->have_piece(verified_piece)) continue;
+				m_picker->piece_flushed(verified_piece);
+				update_gauge();
+				we_have(verified_piece);
 			}
 		}
 
