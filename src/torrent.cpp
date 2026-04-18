@@ -1630,9 +1630,9 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			GENERAL_NAME* gen = sk_GENERAL_NAME_value(gens, i);
 			if (gen->type != GEN_DNS) continue;
 			ASN1_IA5STRING* domain = gen->d.dNSName;
-			if (domain->type != V_ASN1_IA5STRING || !domain->data || !domain->length) continue;
-			auto const* torrent_name = reinterpret_cast<char const*>(domain->data);
-			auto const name_length = aux::numeric_cast<std::size_t>(domain->length);
+			if (ASN1_STRING_type(domain) != V_ASN1_IA5STRING || !ASN1_STRING_get0_data(domain) || !ASN1_STRING_length(domain)) continue;
+			auto const* torrent_name = reinterpret_cast<char const*>(ASN1_STRING_get0_data(domain));
+			auto const name_length = aux::numeric_cast<std::size_t>(ASN1_STRING_length(domain));
 
 #ifndef TORRENT_DISABLE_LOGGING
 			if (i > 1) names += " | n: ";
@@ -1654,18 +1654,22 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 		// no match in the alternate names, so try the common names. We should only
 		// use the "most specific" common name, which is the last one in the list.
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+		X509_NAME const* name = X509_get_subject_name(cert);
+#else
 		X509_NAME* name = X509_get_subject_name(cert);
+#endif
 		int i = -1;
-		ASN1_STRING* common_name = nullptr;
+		ASN1_STRING const* common_name = nullptr;
 		while ((i = X509_NAME_get_index_by_NID(name, NID_commonName, i)) >= 0)
 		{
-			X509_NAME_ENTRY* name_entry = X509_NAME_get_entry(name, i);
+			X509_NAME_ENTRY const* name_entry = X509_NAME_get_entry(name, i);
 			common_name = X509_NAME_ENTRY_get_data(name_entry);
 		}
-		if (common_name && common_name->data && common_name->length)
+		if (common_name && ASN1_STRING_get0_data(common_name) && ASN1_STRING_length(common_name))
 		{
-			auto const* torrent_name = reinterpret_cast<char const*>(common_name->data);
-			auto const name_length = aux::numeric_cast<std::size_t>(common_name->length);
+			auto const* torrent_name = reinterpret_cast<char const*>(ASN1_STRING_get0_data(common_name));
+			auto const name_length = aux::numeric_cast<std::size_t>(ASN1_STRING_length(common_name));
 
 #ifndef TORRENT_DISABLE_LOGGING
 			if (!names.empty()) names += " | n: ";
