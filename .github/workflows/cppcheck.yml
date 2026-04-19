@@ -4,6 +4,12 @@ on:
    push:
       branches: [ RC_1_2 RC_2_0 master ]
    pull_request:
+      paths:
+      - src/**
+      - include/**
+      - examples/**
+      - simulations/**
+      - tools/**
 
 concurrency:
    group: ${{ github.ref }}-${{ github.workflow }}-${{ github.event_name }}
