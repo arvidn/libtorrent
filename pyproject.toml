@@ -86,7 +86,7 @@ before-all = [
 select = "*-win_amd64"
 
 [tool.cibuildwheel.windows]
-test-command = '''bash -c "cd '{project}/bindings/python' && python test.py"'''
+test-command = '''bash -c "cd '{project}/bindings/python' && python -m pip install -r test-requirements.txt && python -X dev -m pytest --log-level=DEBUG --log-cli-level=DEBUG && python -m mypy --config-file mypy-tox.ini tests"'''
 
 [tool.cibuildwheel.windows.environment]
 BOOST_BUILD_PATH = 'c:/boost/tools/build'
