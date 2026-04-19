@@ -4478,6 +4478,12 @@ namespace {
 					|| verified_piece == piece)
 					continue;
 
+#if TORRENT_USE_INVARIANT_CHECKS
+				// if we already called we_have() for this piece (via adjacent_verified)
+				// the m_file_progress bit would be orphaned after we_dont_have().
+				// The deferred approach prevents this from ever happening.
+				TORRENT_ASSERT(!m_file_progress.have_piece(verified_piece));
+#endif
 				m_picker->we_dont_have(verified_piece);
 				update_gauge();
 				piece_failed(verified_piece);
@@ -4489,6 +4495,10 @@ namespace {
 			for (piece_index_t verified_piece : adjacent_verified)
 			{
 				if (m_picker->have_piece(verified_piece)) continue;
+				// we_have() has not been called yet for this piece — confirm the bit is clear
+#if TORRENT_USE_INVARIANT_CHECKS
+				TORRENT_ASSERT(!m_file_progress.have_piece(verified_piece));
+#endif
 				m_picker->piece_flushed(verified_piece);
 				update_gauge();
 				we_have(verified_piece);
