@@ -399,6 +399,14 @@ namespace aux {
 		// with information about pieces that are partially downloaded or not
 		// downloaded but partially requested. See partial_piece_info for the
 		// fields in the returned vector.
+		//
+		// .. warning::
+		// 	``get_download_queue()`` is prone to threading errors. The
+		// 	block_info pointers its return value points to are owned by the
+		// 	session and will be cleared the next time ``get_download_queue()``
+		// 	is called. Therefore it's not safe to call this function from
+		// 	multiple threads. Using ``post_download_queue()`` is a safe
+		// 	alternative.
 		void post_download_queue() const;
 		std::vector<partial_piece_info> get_download_queue() const;
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;

@@ -54,6 +54,14 @@ namespace libtorrent::aux {
 		void update(file_storage const& fs, piece_index_t index
 			, std::function<void(file_index_t)> const& completed_cb);
 
+#if TORRENT_USE_INVARIANT_CHECKS
+		bool have_piece(piece_index_t index) const
+		{
+			if (m_have_pieces.empty()) return false;
+			return m_have_pieces.get_bit(index);
+		}
+#endif
+
 	private:
 
 		// the total number of bytes downloaded to non-pad files
