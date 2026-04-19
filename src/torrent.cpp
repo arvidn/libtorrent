@@ -1416,6 +1416,10 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 	{
 		TORRENT_ASSERT(is_single_thread());
 
+		TORRENT_ASSERT_PRECOND(piece < torrent_file().end_piece());
+		TORRENT_ASSERT_PRECOND(piece >= piece_index_t{0});
+		TORRENT_ASSERT_PRECOND(data.size() == std::size_t(m_torrent_file->piece_size_for_req(piece)));
+
 		// make sure the piece index is correct
 		if (piece >= torrent_file().end_piece())
 			return;
