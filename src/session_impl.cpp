@@ -5687,7 +5687,9 @@ namespace {
 			return;
 
 		if (!s->natpmp_mapper
-			&& !(s->flags & listen_socket_t::local_network))
+			&& !(s->flags & listen_socket_t::local_network)
+			&& ((s->flags & listen_socket_t::proxy) && m_settings.get_bool(settings_pack::proxy_accept_incoming)))
+
 		{
 			// the natpmp constructor may fail and call the callbacks
 			// into the session_impl.
@@ -6913,7 +6915,8 @@ namespace {
 		// there's no point in starting the UPnP mapper for a network that isn't
 		// connected to the internet. The whole point is to forward ports through
 		// the gateway
-		if ((s->flags & listen_socket_t::local_network))
+		if ((s->flags & listen_socket_t::local_network)
+			|| (s->flags & listen_socket_t::proxy && !m_settings.get_bool(settings_pack::proxy_accept_incoming)))
 			return;
 
 		if (!s->upnp_mapper)
