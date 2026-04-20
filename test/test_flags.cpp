@@ -72,7 +72,7 @@ void test_add_and_get_flags(torrent_flags_t const flags)
 	error_code ec;
 	p.ti = std::make_shared<torrent_info>(file("base.torrent"),
 		std::ref(ec));
-	if (flags & torrent_flags::seed_mode)
+	if (flags & (torrent_flags::seed_mode | torrent_flags::super_seeding))
 	{
 		std::vector<char> temp(425);
 		ofstream("temp").write(temp.data(), std::streamsize(temp.size()));

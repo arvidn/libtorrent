@@ -57,6 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/file_pointer.hpp"
 #include "libtorrent/disk_interface.hpp" // for default_block_size
 #include "libtorrent/span.hpp"
+#include "libtorrent/parse_url.hpp" // for is_valid_tracker_url
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/crc.hpp>
@@ -1652,7 +1653,7 @@ namespace {
 				{
 					announce_entry e(tier.list_string_value_at(k).to_string());
 					ltrim(e.url);
-					if (e.url.empty()) continue;
+					if (!is_valid_tracker_url(e.url)) continue;
 					e.tier = std::uint8_t(j);
 					e.fail_limit = 0;
 					e.source = announce_entry::source_torrent;
@@ -1682,7 +1683,7 @@ namespace {
 #if TORRENT_USE_I2P
 			if (is_i2p_url(e.url)) m_flags |= i2p;
 #endif
-			if (!e.url.empty()) m_urls.push_back(e);
+			if (is_valid_tracker_url(e.url)) m_urls.push_back(e);
 		}
 
 		bdecode_node const nodes = torrent_file.dict_find_list("nodes");
@@ -1783,6 +1784,7 @@ namespace {
 		auto const i = std::find_if(m_urls.begin(), m_urls.end()
 			, [&url](announce_entry const& ae) { return ae.url == url; });
 		if (i != m_urls.end()) return;
+		if (!is_valid_tracker_url(url)) return;
 
 		announce_entry e(url);
 		e.tier = std::uint8_t(tier);

@@ -86,6 +86,12 @@ namespace aux {
 		file_view_pool(file_view_pool const&) = delete;
 		file_view_pool& operator=(file_view_pool const&) = delete;
 
+		std::tuple<std::int64_t, std::int64_t, std::int64_t, std::int64_t, std::int64_t> stats_counters() const
+		{
+			std::unique_lock<std::mutex> l(m_mutex);
+			return {m_hits, m_misses, m_stalls, m_read_write_race, static_cast<std::int64_t>(m_files.size())};
+		}
+
 		// return an open file handle to file at ``file_index`` in the
 		// file_storage ``fs`` opened at save path ``p``. ``m`` is the
 		// file open mode (see file::open_mode_t).
@@ -231,6 +237,10 @@ namespace aux {
 		// maps storage pointer, file index pairs to the lru entry for the file
 		files_container m_files;
 		mutable std::mutex m_mutex;
+		std::int64_t m_hits = 0;
+		std::int64_t m_misses = 0;
+		std::int64_t m_stalls = 0;
+		std::int64_t m_read_write_race = 0;
 
 		// the boost.multi-index container is not no-throw move constructable. In
 		// order to destruct m_files without holding the mutex, we need this

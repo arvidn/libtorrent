@@ -120,11 +120,11 @@ namespace libtorrent {
 	{
 		// the total number of nodes and replacement nodes
 		// in the routing table
-		int num_nodes;
-		int num_replacements;
+		int num_nodes = 0;
+		int num_replacements = 0;
 
 		// number of seconds since last activity
-		int last_active;
+		int last_active = 0;
 	};
 
 TORRENT_VERSION_NAMESPACE_3

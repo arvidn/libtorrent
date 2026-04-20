@@ -318,7 +318,9 @@ std::string print_endpoint(lt::tcp::endpoint const& ep)
 
 using lt::torrent_status;
 
+auto const first_ts = lt::clock_type::now();
 FILE* g_log_file = nullptr;
+FILE* g_stats_log_file = nullptr;
 
 int peer_index(lt::tcp::endpoint addr, std::vector<lt::peer_info> const& peers)
 {
@@ -628,7 +630,6 @@ std::string monitor_dir;
 int poll_interval = 5;
 int max_connections_per_torrent = 50;
 bool seed_mode = false;
-bool stats_enabled = false;
 bool exit_on_finish = false;
 
 bool share_mode = false;
@@ -964,8 +965,6 @@ void print_alert(lt::alert const* a, std::string& str)
 	str += a->message();
 	str += esc("0");
 
-	static auto const first_ts = a->timestamp();
-
 	if (g_log_file)
 		std::fprintf(g_log_file, "[%" PRId64 "] %s\n"
 			, std::int64_t(duration_cast<std::chrono::milliseconds>(a->timestamp() - first_ts).count())
@@ -1011,7 +1010,18 @@ bool handle_alert(client_state_t& client_state, lt::alert* a)
 	if (session_stats_alert* s = alert_cast<session_stats_alert>(a))
 	{
 		client_state.ses_view.update_counters(s->counters(), s->timestamp());
-		return !stats_enabled;
+	}
+
+
+	if (alert_cast<session_stats_alert>(a) || alert_cast<session_stats_header_alert>(a))
+	{
+		if (g_stats_log_file != nullptr)
+		{
+			std::fprintf(g_stats_log_file, "[%" PRId64 "] %s\n"
+				, std::int64_t(duration_cast<std::chrono::milliseconds>(a->timestamp() - first_ts).count())
+				,  a->message().c_str());
+		}
+		return true;
 	}
 
 	if (auto* p = alert_cast<peer_info_alert>(a))
@@ -1361,7 +1371,7 @@ CLIENT OPTIONS
                         are present and check hashes on-demand)
   -e <loops>            exit client after the specified number of iterations
                         through the main loop
-  -O                    print session stats counters to the log
+  -O <log file>         print session stats counters to the specified log file
   -1                    exit on first torrent completing (useful for benchmarks))"
 #ifdef TORRENT_UTP_LOG_ENABLE
 R"(
@@ -1514,7 +1524,6 @@ int main(int argc, char* argv[])
 		{
 			case 'k': settings = lt::high_performance_seed(); continue;
 			case 'G': seed_mode = true; continue;
-			case 'O': stats_enabled = true; continue;
 			case '1': exit_on_finish = true; continue;
 #ifdef TORRENT_UTP_LOG_ENABLE
 			case 'q':
@@ -1538,6 +1547,7 @@ int main(int argc, char* argv[])
 
 		switch (argv[i][1])
 		{
+			case 'O': g_stats_log_file = std::fopen(arg, "w+"); continue;
 			case 'f': g_log_file = std::fopen(arg, "w+"); break;
 			case 's': save_path = make_absolute_path(arg); break;
 			case 'U': torrent_upload_limit = atoi(arg) * 1000; break;
@@ -2355,6 +2365,7 @@ done:
 	}
 
 	if (g_log_file) std::fclose(g_log_file);
+	if (g_stats_log_file) std::fclose(g_stats_log_file);
 
 	// we're just saving the DHT state
 #ifndef TORRENT_DISABLE_DHT

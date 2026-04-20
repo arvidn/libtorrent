@@ -1045,10 +1045,6 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 		session_log(" *** ABORT CALLED ***");
 #endif
 
-		// at this point we cannot call the notify function anymore, since the
-		// session will become invalid.
-		m_alerts.set_notify_function({});
-
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto& ext : m_ses_extensions[plugins_all_idx])
 		{
@@ -5693,13 +5689,22 @@ namespace {
 		{
 			// the natpmp constructor may fail and call the callbacks
 			// into the session_impl.
-			s->natpmp_mapper = std::make_shared<natpmp>(m_io_context, *this, listen_socket_handle(s));
+			s->natpmp_mapper = std::make_shared<natpmp>(m_io_context, m_settings, *this, listen_socket_handle(s));
 			ip_interface ip;
 			ip.interface_address = s->local_endpoint.address();
 			ip.netmask = s->netmask;
 			std::strncpy(ip.name, s->device.c_str(), sizeof(ip.name) - 1);
 			ip.name[sizeof(ip.name) - 1] = '\0';
-			s->natpmp_mapper->start(ip);
+
+			std::string gateway = m_settings.get_str(settings_pack::natpmp_gateway);
+			boost::optional<address> gateway_addr = boost::none;
+			if (!gateway.empty())
+			{
+				error_code ec;
+				gateway_addr = make_address(gateway, ec);
+				if (ec) gateway_addr.reset();
+			}
+			s->natpmp_mapper->start(ip, gateway_addr);
 		}
 	}
 

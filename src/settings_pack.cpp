@@ -148,8 +148,9 @@ constexpr int DISK_WRITE_MODE = settings_pack::enable_os_cache;
 		SET(proxy_username, "", &session_impl::update_proxy),
 		SET(proxy_password, "", &session_impl::update_proxy),
 		SET(i2p_hostname, "", &session_impl::update_i2p_bridge),
-		SET(peer_fingerprint, "-LT20B0-", nullptr),
-		SET(dht_bootstrap_nodes, "dht.libtorrent.org:25401", &session_impl::update_dht_bootstrap_nodes)
+		SET(peer_fingerprint, "-LT20C0-", nullptr),
+		SET(dht_bootstrap_nodes, "dht.libtorrent.org:25401", &session_impl::update_dht_bootstrap_nodes),
+		SET(natpmp_gateway, "", nullptr)
 	}});
 
 	CONSTEXPR_SETTINGS
@@ -241,6 +242,8 @@ constexpr int DISK_WRITE_MODE = settings_pack::enable_os_cache;
 		SET(socks5_udp_send_local_ep, false, nullptr),
 		SET(proxy_send_host_in_connect, false, nullptr),
 		SET(proxy_accept_incoming, false, nullptr),
+		SET(disk_disable_copy_on_write, false, nullptr),
+		SET(allow_multiple_connections_per_pid, false, nullptr),
 	}});
 
 	CONSTEXPR_SETTINGS
@@ -286,7 +289,7 @@ constexpr int DISK_WRITE_MODE = settings_pack::enable_os_cache;
 		SET(disk_io_read_mode, settings_pack::enable_os_cache, nullptr),
 		SET(outgoing_port, 0, nullptr),
 		SET(num_outgoing_ports, 0, nullptr),
-		SET(peer_dscp, 0x04, &session_impl::update_peer_dscp),
+		SET(peer_dscp, 0x01, &session_impl::update_peer_dscp),
 		SET(active_downloads, 3, &session_impl::trigger_auto_manage),
 		SET(active_seeds, 5, &session_impl::trigger_auto_manage),
 		SET(active_checking, 1, &session_impl::trigger_auto_manage),
@@ -406,7 +409,8 @@ constexpr int DISK_WRITE_MODE = settings_pack::enable_os_cache;
 		SET(i2p_outbound_length, 3, nullptr),
 		SET(announce_port, 0, nullptr),
 		SET(i2p_inbound_length_variance, 0, nullptr),
-		SET(i2p_outbound_length_variance, 0, nullptr)
+		SET(i2p_outbound_length_variance, 0, nullptr),
+		SET(natpmp_lease_duration, 3600, nullptr)
 	}});
 
 #undef SET

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16.0 FATAL_ERROR) # Configurable policies: <= CMP0097
+cmake_minimum_required(VERSION 3.20.0 FATAL_ERROR) # Configurable policies: <= CMP0097
 
 cmake_policy(SET CMP0091 NEW)
 cmake_policy(SET CMP0092 NEW)
@@ -743,7 +743,11 @@ if(NOT gnutls)
 				TORRENT_USE_OPENSSL
 				TORRENT_USE_LIBCRYPTO
 				TORRENT_SSL_PEERS
-				OPENSSL_NO_SSL2)
+				OPENSSL_NO_SSL2
+				OPENSSL_NO_SSL3
+				OPENSSL_NO_TLS1
+				OPENSSL_NO_TLS1_1
+				OPENSSL_NO_DTLS1)
 	endif()
 endif()
 

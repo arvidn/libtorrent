@@ -12,7 +12,7 @@ import cast ;
 
 # we need version numbers in the form X.Y.Z in order to trigger the built-in
 # support for generating symlinks to the installed library
-VERSION = 2.0.11 ;
+VERSION = 2.0.12 ;
 
 BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
 CXXFLAGS = [ modules.peek : CXXFLAGS ] ;
@@ -29,21 +29,17 @@ if $(BOOST_ROOT)
 	ECHO "building boost from source directory: " $(BOOST_ROOT) ;
 
 	use-project /boost : $(BOOST_ROOT) ;
-	alias boost_system : /boost/system//boost_system : : : <include>$(BOOST_ROOT) ;
+	alias boost_system : /boost/system//boost_system ;
 }
 else
 {
-	local boost-lib-search-path =
-		<search>/usr/local/opt/boost/lib
-		<search>/opt/homebrew/lib
-		;
-
 	local boost-include-path =
 		<include>/usr/local/opt/boost/include
 		<include>/opt/homebrew/include
-	;
+		;
 
-	lib boost_system : : <name>boost_system $(boost-lib-search-path) : : $(boost-include-path) ;
+	# boost_system is a header-only library now, but we still need to find the boost headers
+	alias boost_system : : : : $(boost-include-path) ;
 }
 
 use-project /try_signal : ./deps/try_signal ;
@@ -81,6 +77,7 @@ rule linking ( properties * )
 		result += <library>gcrypt ;
 	}
 	else if <crypto>openssl in $(properties)
+		|| <crypto>openssl-shared in $(properties)
 	{
 		result += <library>ssl ;
 		result += <library>crypto ;
@@ -449,10 +446,22 @@ rule openssl-lib-path ( properties * )
 		OPENSSL_LIB += "C:/Program Files/OpenSSL-Win$(address_model)/lib" ;
 		OPENSSL_LIB += "C:/Program Files (x86)/OpenSSL-Win$(address_model)/lib" ;
 		OPENSSL_LIB += "C:/Program Files/OpenSSL/lib" ;
+		if <toolset>msvc in $(properties) {
+			if $(address_model) = "64" {
+				OPENSSL_LIB += "C:/Program Files/OpenSSL/lib/VC/x64/MT" ;
+			}
+			if $(address_model) = "32" {
+				OPENSSL_LIB += "C:/Program Files/OpenSSL/lib/VC/x86/MT" ;
+			}
+		}
 	}
 
 	local result ;
 	result += <search>$(OPENSSL_LIB) ;
+	if <crypto>openssl-shared in $(properties)
+	{
+		result += <link>shared ;
+	}
 	return $(result) ;
 }
 
@@ -637,12 +646,25 @@ feature.compose <encryption>off : <define>TORRENT_DISABLE_ENCRYPTION ;
 feature mutable-torrents : on off : composite propagated link-incompatible ;
 feature.compose <mutable-torrents>off : <define>TORRENT_DISABLE_MUTABLE_TORRENTS ;
 
-feature crypto : openssl built-in wolfssl gnutls libcrypto gcrypt : composite propagated ;
+feature crypto : openssl openssl-shared built-in wolfssl gnutls libcrypto gcrypt : composite propagated ;
 feature.compose <crypto>openssl
 	: <define>TORRENT_USE_LIBCRYPTO
 	<define>TORRENT_USE_OPENSSL
 	<define>TORRENT_SSL_PEERS
-	<define>OPENSSL_NO_SSL2 ;
+	<define>OPENSSL_NO_SSL2
+	<define>OPENSSL_NO_SSL3
+	<define>OPENSSL_NO_TLS1
+	<define>OPENSSL_NO_TLS1_1
+	<define>OPENSSL_NO_DTLS1 ;
+feature.compose <crypto>openssl-shared
+	: <define>TORRENT_USE_LIBCRYPTO
+	<define>TORRENT_USE_OPENSSL
+	<define>TORRENT_SSL_PEERS
+	<define>OPENSSL_NO_SSL2
+	<define>OPENSSL_NO_SSL3
+	<define>OPENSSL_NO_TLS1
+	<define>OPENSSL_NO_TLS1_1
+	<define>OPENSSL_NO_DTLS1 ;
 feature.compose <crypto>wolfssl
 	: <define>TORRENT_USE_WOLFSSL
 	<define>TORRENT_USE_LIBCRYPTO
@@ -670,9 +692,10 @@ feature boost-link : default static shared : propagated composite ;
 # clang do not, that's why "default" is there. msvc has incorrect noexcept
 # constructors on some containers when enabling debug iterators, so it's
 # possible to turn them off
-feature debug-iterators : default off on : composite propagated link-incompatible ;
-feature.compose <debug-iterators>on : <define>_GLIBCXX_DEBUG <define>_GLIBCXX_DEBUG_PEDANTIC ;
+feature debug-iterators : default off on harden : composite propagated link-incompatible ;
+feature.compose <debug-iterators>on : <define>_GLIBCXX_DEBUG <define>_GLIBCXX_DEBUG_PEDANTIC <define>_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_DEBUG ;
 feature.compose <debug-iterators>off : <define>_ITERATOR_DEBUG_LEVEL=0 ;
+feature.compose <debug-iterators>harden : <define>_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST ;
 
 feature fpic : off on : composite propagated link-incompatible ;
 feature.compose <fpic>on : <cxxflags>-fPIC ;
@@ -1083,7 +1106,9 @@ rule generate-pkg-config ( properties * )
 				}
 				else if ( [ $(t).type ] = STATIC_LIB )
 				{
-					private_deps += [ $(t).name ] ;
+					local stripped = [ MATCH "^lib(.*)\\.a$" : [ $(t).name ] ] ;
+					stripped ?= [ $(t).name ] ;
+					private_deps += $(stripped) ;
 				}
 			}
 		}

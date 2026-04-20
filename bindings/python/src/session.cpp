@@ -22,6 +22,7 @@
 #include <libtorrent/session_status.hpp>
 #include <libtorrent/peer_class_type_filter.hpp>
 #include <libtorrent/torrent_status.hpp>
+#include <libtorrent/optional.hpp>
 
 #include <libtorrent/extensions/smart_ban.hpp>
 #include <libtorrent/extensions/ut_metadata.hpp>
@@ -256,6 +257,30 @@ namespace
     }
 #endif
 #endif
+
+	struct notify_callback_wrapper
+	{
+		notify_callback_wrapper(object o): m_cb(o) {}
+		~notify_callback_wrapper()
+		{
+			lock_gil lock;
+			m_cb.reset();
+		}
+
+		void operator()() try
+		{
+			lock_gil lock;
+			(*m_cb)();
+		}
+		catch (boost::python::error_already_set const&)
+		{
+			// this callback isn't supposed to throw an error.
+			// just swallow and ignore the exception
+			TORRENT_ASSERT_FAIL_VAL("python notify callback threw exception");
+		}
+
+		boost::optional<object> m_cb;
+	};
 }
 
     void dict_to_add_torrent_params(dict params, add_torrent_params& p)
@@ -486,24 +511,9 @@ namespace
     }
 #endif // TORRENT_ABI_VERSION
 
-    void alert_notify(object cb) try
-    {
-        lock_gil lock;
-        if (cb)
-        {
-            cb();
-        }
-    }
-    catch (boost::python::error_already_set const&)
-    {
-        // this callback isn't supposed to throw an error.
-        // just swallow and ignore the exception
-        TORRENT_ASSERT_FAIL_VAL("python notify callback threw exception");
-    }
-
     void set_alert_notify(lt::session& s, object cb)
     {
-        s.set_alert_notify(std::bind(&alert_notify, cb));
+        s.set_alert_notify(notify_callback_wrapper(cb));
     }
 
 #ifdef TORRENT_WINDOWS

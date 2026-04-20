@@ -17,7 +17,7 @@ jobs:
 
    test:
       name: Tests
-      runs-on: macos-latest
+      runs-on: macos-14
       continue-on-error: true
 
       strategy:
@@ -26,7 +26,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -47,7 +47,7 @@ jobs:
         run: (cd test; b2 ${{ matrix.config }} -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on deterministic-tests)
 
       - name: run tests (flaky)
-        uses: nick-fields/retry@v3
+        uses: nick-fields/retry@v4
         with:
           timeout_minutes: 30
           retry_wait_seconds: 1
@@ -57,11 +57,11 @@ jobs:
 
    sim:
       name: Simulations
-      runs-on: macos-latest
+      runs-on: macos-14
 
       steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -86,7 +86,7 @@ jobs:
 
    build:
       name: Build
-      runs-on: macos-latest
+      runs-on: macos-14
       continue-on-error: true
 
       strategy:
@@ -95,7 +95,7 @@ jobs:
 
       steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1
@@ -119,12 +119,12 @@ jobs:
 
    ios_build:
       name: Build iOS
-      runs-on: macos-latest
+      runs-on: macos-14
       continue-on-error: true
 
       steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
            submodules: true
            fetch-depth: 1

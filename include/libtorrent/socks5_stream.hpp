@@ -268,7 +268,7 @@ private:
 		int version = read_uint8(p);
 		int method = read_uint8(p);
 
-		if (version < m_version)
+		if (version != m_version)
 		{
 			std::move(h)(error_code(socks_error::unsupported_version));
 			return;
@@ -378,7 +378,12 @@ private:
 			else
 			{
 				// we either need a hostname or a valid endpoint
-				TORRENT_ASSERT(m_remote_endpoint.address() != address());
+				// MUST prevent malformed buf writes, endpoint corruption
+				if (m_remote_endpoint.address() == address())
+				{
+					std::move(h)(boost::asio::error::invalid_argument);
+					return;
+				}
 
 				write_uint8(aux::is_v4(m_remote_endpoint) ? 1 : 4, p); // address type
 				write_address(m_remote_endpoint.address(), p);
@@ -448,7 +453,7 @@ private:
 
 		if (m_version == 5)
 		{
-			if (version < m_version)
+			if (version != m_version)
 			{
 				std::move(h)(error_code(socks_error::unsupported_version));
 				return;

@@ -149,6 +149,47 @@ bool is_downloading_state(int const st)
 			return false;
 	}
 }
+
+// convert file priorities into piece priorities
+aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
+	file_storage const& fs
+	, aux::vector<download_priority_t, file_index_t> const& file_prios)
+{
+	aux::vector<download_priority_t, piece_index_t> pieces(aux::numeric_cast<std::size_t>(
+		fs.num_pieces()), dont_download);
+
+	for (auto const i : fs.file_range())
+	{
+		std::int64_t const size = fs.file_size(i);
+		if (size == 0) continue;
+
+		// pad files always have priority 0
+		download_priority_t const file_prio
+			= fs.pad_file_at(i) ? dont_download
+			: i >= file_prios.end_index() ? default_priority
+			: file_prios[i];
+
+		if (file_prio == dont_download)
+		{
+			// the pieces already start out as priority 0, no need to update
+			// the pieces vector in this case
+			continue;
+		}
+
+		// mark all pieces of the file with this file's priority
+		// but only if the priority is higher than the pieces
+		// already set (to avoid problems with overlapping pieces)
+		piece_index_t start;
+		piece_index_t end;
+		std::tie(start, end) = file_piece_range_inclusive(fs, i);
+
+		// if one piece spans several files, we might
+		// come here several times with the same start_piece, end_piece
+		for (piece_index_t p = start; p < end; ++p)
+			pieces[p] = std::max(pieces[p], file_prio);
+	}
+	return pieces;
+}
 } // anonymous namespace
 
 	constexpr web_seed_flag_t torrent::ephemeral;
@@ -766,7 +807,7 @@ bool is_downloading_state(int const st)
 			return;
 		}
 
-		const int piece_size = m_torrent_file->piece_size(piece);
+		const int piece_size = m_torrent_file->piece_size_for_req(piece);
 		const int blocks_in_piece = (piece_size + block_size() - 1) / block_size();
 
 		TORRENT_ASSERT(blocks_in_piece > 0);
@@ -1213,7 +1254,7 @@ bool is_downloading_state(int const st)
 
 		if (rp->blocks_left == 0)
 		{
-			int size = m_torrent_file->piece_size(r.piece);
+			int size = m_torrent_file->piece_size_for_req(r.piece);
 			if (rp->fail)
 			{
 				m_ses.alerts().emplace_alert<read_piece_alert>(
@@ -1260,6 +1301,19 @@ bool is_downloading_state(int const st)
 		// initialize the file progress too
 		if (m_file_progress.empty())
 			m_file_progress.init(*pp, m_torrent_file->files());
+
+
+		if (!m_file_priority.empty())
+		{
+			auto const pieces = file_to_piece_prio(m_torrent_file->files(), m_file_priority);
+			piece_index_t index(0);
+			for (auto prio : pieces)
+			{
+				TORRENT_ASSERT(prio <= top_priority);
+				pp->set_piece_priority(index, prio);
+				++index;
+			}
+		}
 
 		m_picker = std::move(pp);
 
@@ -1317,12 +1371,16 @@ bool is_downloading_state(int const st)
 	{
 		TORRENT_ASSERT(is_single_thread());
 
+		TORRENT_ASSERT_PRECOND(piece < torrent_file().end_piece());
+		TORRENT_ASSERT_PRECOND(piece >= piece_index_t{0});
+		TORRENT_ASSERT_PRECOND(data.size() == std::size_t(m_torrent_file->piece_size_for_req(piece)));
+
 		// make sure the piece index is correct
 		if (piece >= torrent_file().end_piece())
 			return;
 
 		// make sure the piece size is correct
-		if (data.size() != std::size_t(m_torrent_file->piece_size(piece)))
+		if (data.size() != std::size_t(m_torrent_file->piece_size_for_req(piece)))
 			return;
 
 		add_piece(piece, data.data(), flags);
@@ -1339,7 +1397,7 @@ bool is_downloading_state(int const st)
 		if (piece >= torrent_file().end_piece())
 			return;
 
-		int const piece_size = m_torrent_file->piece_size(piece);
+		int const piece_size = m_torrent_file->piece_size_for_req(piece);
 		int const blocks_in_piece = (piece_size + block_size() - 1) / block_size();
 
 		if (m_deleted) return;
@@ -1465,8 +1523,8 @@ bool is_downloading_state(int const st)
 	peer_request torrent::to_req(piece_block const& p) const
 	{
 		int const block_offset = p.block_index * block_size();
-		int const block = std::min(torrent_file().piece_size(
-			p.piece_index) - block_offset, block_size());
+		int const piece_sz = torrent_file().piece_size_for_req(p.piece_index);
+		int const block = std::min(piece_sz - block_offset, block_size());
 		TORRENT_ASSERT(block > 0);
 		TORRENT_ASSERT(block <= block_size());
 
@@ -1572,9 +1630,9 @@ bool is_downloading_state(int const st)
 			GENERAL_NAME* gen = sk_GENERAL_NAME_value(gens, i);
 			if (gen->type != GEN_DNS) continue;
 			ASN1_IA5STRING* domain = gen->d.dNSName;
-			if (domain->type != V_ASN1_IA5STRING || !domain->data || !domain->length) continue;
-			auto const* torrent_name = reinterpret_cast<char const*>(domain->data);
-			auto const name_length = aux::numeric_cast<std::size_t>(domain->length);
+			if (ASN1_STRING_type(domain) != V_ASN1_IA5STRING || !ASN1_STRING_get0_data(domain) || !ASN1_STRING_length(domain)) continue;
+			auto const* torrent_name = reinterpret_cast<char const*>(ASN1_STRING_get0_data(domain));
+			auto const name_length = aux::numeric_cast<std::size_t>(ASN1_STRING_length(domain));
 
 #ifndef TORRENT_DISABLE_LOGGING
 			if (i > 1) names += " | n: ";
@@ -1596,18 +1654,22 @@ bool is_downloading_state(int const st)
 
 		// no match in the alternate names, so try the common names. We should only
 		// use the "most specific" common name, which is the last one in the list.
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+		X509_NAME const* name = X509_get_subject_name(cert);
+#else
 		X509_NAME* name = X509_get_subject_name(cert);
+#endif
 		int i = -1;
-		ASN1_STRING* common_name = nullptr;
+		ASN1_STRING const* common_name = nullptr;
 		while ((i = X509_NAME_get_index_by_NID(name, NID_commonName, i)) >= 0)
 		{
-			X509_NAME_ENTRY* name_entry = X509_NAME_get_entry(name, i);
+			X509_NAME_ENTRY const* name_entry = X509_NAME_get_entry(name, i);
 			common_name = X509_NAME_ENTRY_get_data(name_entry);
 		}
-		if (common_name && common_name->data && common_name->length)
+		if (common_name && ASN1_STRING_get0_data(common_name) && ASN1_STRING_length(common_name))
 		{
-			auto const* torrent_name = reinterpret_cast<char const*>(common_name->data);
-			auto const name_length = aux::numeric_cast<std::size_t>(common_name->length);
+			auto const* torrent_name = reinterpret_cast<char const*>(ASN1_STRING_get0_data(common_name));
+			auto const name_length = aux::numeric_cast<std::size_t>(ASN1_STRING_length(common_name));
 
 #ifndef TORRENT_DISABLE_LOGGING
 			if (!names.empty()) names += " | n: ";
@@ -2976,7 +3038,7 @@ namespace {
 		};
 	}
 
-	void torrent::announce_with_tracker(event_t e)
+	void torrent::announce_with_tracker(event_t e, bool const high_priority)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(e == event_t::stopped || state() != torrent_status::checking_files);
@@ -3035,7 +3097,7 @@ namespace {
 			req.filter = m_ip_filter;
 		}
 
-		req.private_torrent = m_torrent_file->priv();
+		req.private_torrent = m_torrent_file && m_torrent_file->priv();
 
 		req.pid = m_peer_id;
 		req.downloaded = m_stat.total_payload_download() - m_total_failed_bytes;
@@ -3256,6 +3318,7 @@ namespace {
 
 					req.outgoing_socket = aep.socket;
 					req.info_hash = m_torrent_file->info_hashes().get(ih);
+					if (high_priority) req.kind |= tracker_request::high_priority;
 
 #ifndef TORRENT_DISABLE_LOGGING
 					if (should_log())
@@ -3353,7 +3416,7 @@ namespace {
 #endif
 		refresh_endpoint_list(m_ses, ae.url, is_ssl_torrent(), bool(m_complete_sent), ae.endpoints);
 		req.url = ae.url;
-		req.private_torrent = m_torrent_file->priv();
+		req.private_torrent = m_torrent_file && m_torrent_file->priv();
 #if TORRENT_ABI_VERSION == 1
 		req.auth = tracker_login();
 #endif
@@ -3842,7 +3905,15 @@ namespace {
 			debug_log("*** found no tracker endpoints to announce");
 		}
 #endif
-		update_tracker_timer(aux::time_now32());
+
+		if (flags & torrent_handle::high_priority)
+		{
+			announce_with_tracker(event_t::none, true);
+		}
+		else
+		{
+			update_tracker_timer(aux::time_now32());
+		}
 	}
 
 #if TORRENT_ABI_VERSION == 1
@@ -4322,6 +4393,13 @@ namespace {
 
 		set_block_hash_result last_result = set_block_hash_result(set_block_hash_result::result::unknown);
 
+		// collect adjacent pieces verified as side-effects of this block's hash;
+		// defer piece_flushed()/we_have() until after the loop so we can skip
+		// them if the last block causes a piece_hash_failed (which would otherwise
+		// leave m_have_pieces set for a piece that gets we_dont_have()'d, causing
+		// a double we_have() assert on re-download)
+		std::vector<piece_index_t> adjacent_verified;
+
 		for (int i = 0; i < blocks_in_piece; ++i)
 		{
 			// if there was an enoent or eof error the block hashes array may be incomplete
@@ -4376,9 +4454,7 @@ namespace {
 						continue;
 
 					TORRENT_ASSERT(get_hash_picker().piece_verified(verified_piece));
-					m_picker->piece_flushed(verified_piece);
-					update_gauge();
-					we_have(verified_piece);
+					adjacent_verified.push_back(verified_piece);
 				}
 			}
 			else if (result.status == set_block_hash_result::result::block_hash_failed)
@@ -4402,9 +4478,30 @@ namespace {
 					|| verified_piece == piece)
 					continue;
 
+#if TORRENT_USE_INVARIANT_CHECKS
+				// if we already called we_have() for this piece (via adjacent_verified)
+				// the m_file_progress bit would be orphaned after we_dont_have().
+				// The deferred approach prevents this from ever happening.
+				TORRENT_ASSERT(!m_file_progress.have_piece(verified_piece));
+#endif
 				m_picker->we_dont_have(verified_piece);
 				update_gauge();
 				piece_failed(verified_piece);
+			}
+		}
+
+		if (last_result.status != set_block_hash_result::result::piece_hash_failed)
+		{
+			for (piece_index_t verified_piece : adjacent_verified)
+			{
+				if (m_picker->have_piece(verified_piece)) continue;
+				// we_have() has not been called yet for this piece — confirm the bit is clear
+#if TORRENT_USE_INVARIANT_CHECKS
+				TORRENT_ASSERT(!m_file_progress.have_piece(verified_piece));
+#endif
+				m_picker->piece_flushed(verified_piece);
+				update_gauge();
+				we_have(verified_piece);
 			}
 		}
 
@@ -5736,46 +5833,8 @@ namespace {
 
 		if (m_torrent_file->num_pieces() == 0) return;
 
-		bool need_update = false;
-		// initialize the piece priorities to 0, then only allow
-		// setting higher priorities
-		aux::vector<download_priority_t, piece_index_t> pieces(aux::numeric_cast<std::size_t>(
-			m_torrent_file->num_pieces()), dont_download);
-		file_storage const& fs = m_torrent_file->files();
-		for (auto const i : fs.file_range())
-		{
-			std::int64_t const size = m_torrent_file->files().file_size(i);
-			if (size == 0) continue;
-
-			// pad files always have priority 0
-			download_priority_t const file_prio
-				= fs.pad_file_at(i) ? dont_download
-				: i >= file_prios.end_index() ? default_priority
-				: file_prios[i];
-
-			if (file_prio == dont_download)
-			{
-				// the pieces already start out as priority 0, no need to update
-				// the pieces vector in this case
-				need_update = true;
-				continue;
-			}
-
-			// mark all pieces of the file with this file's priority
-			// but only if the priority is higher than the pieces
-			// already set (to avoid problems with overlapping pieces)
-			piece_index_t start;
-			piece_index_t end;
-			std::tie(start, end) = file_piece_range_inclusive(fs, i);
-
-			// if one piece spans several files, we might
-			// come here several times with the same start_piece, end_piece
-			for (piece_index_t p = start; p < end; ++p)
-				pieces[p] = std::max(pieces[p], file_prio);
-
-			need_update = true;
-		}
-		if (need_update) prioritize_pieces(pieces);
+		auto const pieces = file_to_piece_prio(m_torrent_file->files(), file_prios);
+		prioritize_pieces(pieces);
 	}
 
 	// this is called when piece priorities have been updated
@@ -6931,8 +6990,12 @@ namespace {
 				return result.valid;
 			}
 
+			// it's possible the piece has already passed because we finished
+			// downloading it, and we could compute the full piece hash without
+			// the underlying block hashes. It's important to not call
+			// piece_passed() twice for the same piece
 			if (m_picker && m_picker->is_downloading(p) && m_picker->is_piece_finished(p)
-				&& !m_picker->is_hashing(p))
+				&& !m_picker->is_hashing(p) && !have_piece(p))
 			{
 				piece_passed(p);
 			}
@@ -7247,6 +7310,7 @@ namespace {
 
 		if (m_torrent_file->info_hashes().has_v2())
 		{
+			file_storage const& fs = m_torrent_file->files();
 			auto const num_files = m_merkle_trees.size();
 			ret.merkle_trees.clear();
 			ret.merkle_trees.reserve(num_files);
@@ -7254,8 +7318,17 @@ namespace {
 			ret.merkle_tree_mask.reserve(num_files);
 			ret.verified_leaf_hashes.clear();
 			ret.verified_leaf_hashes.reserve(num_files);
-			for (auto const& t : m_merkle_trees)
+			for (auto i : m_merkle_trees.range())
 			{
+				if (fs.pad_file_at(i))
+				{
+					ret.merkle_trees.emplace_back();
+					ret.merkle_tree_mask.emplace_back();
+					ret.verified_leaf_hashes.emplace_back();
+					continue;
+				}
+
+				auto const& t = m_merkle_trees[i];
 				// use structured binding in C++17
 				aux::vector<bool> mask;
 				std::vector<sha256_hash> sparse_tree;
@@ -7265,9 +7338,8 @@ namespace {
 				ret.verified_leaf_hashes.emplace_back(t.verified_leafs());
 			}
 
-			if (!has_hash_picker() && !m_have_all)
+			if (!has_hash_picker() && !m_have_all && valid_metadata())
 			{
-				file_storage const& fs = m_torrent_file->files();
 				ret.verified_leaf_hashes.reserve(fs.num_files());
 				for (file_index_t f(0); f != fs.end_file(); ++f)
 				{
@@ -7305,6 +7377,8 @@ namespace {
 	void torrent::get_peer_info(std::vector<peer_info>* v)
 	{
 		v->clear();
+		v->reserve(m_connections.size());
+
 		for (auto const peer : *this)
 		{
 			TORRENT_ASSERT(peer->m_in_use == 1337);
@@ -7335,6 +7409,7 @@ namespace {
 		, span<piece_picker::downloading_piece const> q
 		, std::vector<partial_piece_info>* queue)
 	{
+		queue->reserve(static_cast<std::size_t>(q.size()));
 		const int blocks_per_piece = p.blocks_in_piece(piece_index_t(0));
 		int counter = 0;
 		for (auto i = q.begin(); i != q.end(); ++i, ++counter)
@@ -7350,7 +7425,7 @@ namespace {
 			TORRENT_ASSERT(counter * blocks_per_piece + pi.blocks_in_piece <= int(blk.size()));
 			block_info* blocks = &blk[std::size_t(counter * blocks_per_piece)];
 			pi.blocks = blocks;
-			int const piece_size = ti.piece_size(i->index);
+			int const piece_size = ti.piece_size_for_req(i->index);
 			int idx = -1;
 			for (auto const& info : p.blocks_for_piece(*i))
 			{
@@ -8955,7 +9030,14 @@ namespace {
 				}
 				else
 				{
-					TORRENT_ASSERT(!p.is_seed());
+					// During init(), before on_metadata_impl()/pc->init() have
+					// run, valid_metadata() just became true so is_seed() can
+					// spuriously return true for peers whose have-bitmask hasn't
+					// been reconciled with the actual piece count yet. Skip this
+					// check until m_connections_initialized confirms the
+					// transition is complete.
+					if (m_connections_initialized)
+						TORRENT_ASSERT(!p.is_seed());
 				}
 			}
 
@@ -10129,7 +10211,8 @@ namespace {
 
 		update_want_tick();
 
-		announce_with_tracker();
+		bool const high_priority = m_connect_boost_counter > 0;
+		announce_with_tracker(event_t::none, high_priority);
 
 		lsd_announce();
 	}
@@ -12350,7 +12433,8 @@ namespace {
 		if ((!m_abort && !is_paused() && state() != torrent_status::checking_files)
 			|| r.event == event_t::stopped)
 		{
-			announce_with_tracker(r.event);
+			// if the tracker that failed was high-priority, make the next attempt high priority as well
+			announce_with_tracker(r.event, bool(r.kind & tracker_request::high_priority));
 		}
 		else
 		{

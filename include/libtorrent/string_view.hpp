@@ -98,7 +98,7 @@ namespace libtorrent {
 
 inline namespace literals {
 
-	constexpr string_view operator "" _sv(char const* str, std::size_t len)
+	constexpr string_view operator ""_sv(char const* str, std::size_t len)
 	{ return string_view(str, len); }
 }
 }

@@ -289,11 +289,11 @@ namespace aux {
 		// The overload taking a raw pointer to the data is a blocking call. It
 		// won't return until the libtorrent thread has copied the data into its
 		// disk write buffer. ``data`` is expected to point to a buffer of as
-		// many bytes as the size of the specified piece. See
-		// file_storage::piece_size().
+		// many bytes as the size of the specified piece.
+		// For v2-only torrents, pieces at the end of files may not be full sized.
 		//
 		// The data in the buffer is copied and passed on to the disk IO thread
-		// to be written at a later point.
+		// to be written at some later point in time.
 		//
 		// The overload taking a ``std::vector<char>`` is not blocking, it will
 		// send the buffer to the main thread and return immediately.
@@ -308,8 +308,12 @@ namespace aux {
 		// alert, read_piece_alert. Since this alert is a response to an explicit
 		// call, it will always be posted, regardless of the alert mask.
 		//
-		// Note that if you read multiple pieces, the read operations are not
-		// guaranteed to finish in the same order as you initiated them.
+		// .. note:: that if you read multiple pieces, the read operations are not
+		//    guaranteed to finish in the same order as you initiated them.
+		//
+		// .. note:: the size of the buffer passed back in the alert is not
+		//    necessarily piece_length() long. The last piece or pieces at the end
+		//    of files (in v2 and hybrid torrents) are not full size.
 		void read_piece(piece_index_t piece) const;
 
 		// Returns true if this piece has been completely downloaded and written
@@ -392,6 +396,14 @@ namespace aux {
 		// with information about pieces that are partially downloaded or not
 		// downloaded but partially requested. See partial_piece_info for the
 		// fields in the returned vector.
+		//
+		// .. warning::
+		// 	``get_download_queue()`` is prone to threading errors. The
+		// 	block_info pointers its return value points to are owned by the
+		// 	session and will be cleared the next time ``get_download_queue()``
+		// 	is called. Therefore it's not safe to call this function from
+		// 	multiple threads. Using ``post_download_queue()`` is a safe
+		// 	alternative.
 		void post_download_queue() const;
 		std::vector<partial_piece_info> get_download_queue() const;
 		void get_download_queue(std::vector<partial_piece_info>& queue) const;
@@ -1166,6 +1178,11 @@ namespace aux {
 		// and the tracker is announced immediately.
 		static constexpr reannounce_flags_t ignore_min_interval = 0_bit;
 
+		// by default, force-reannounce will queue the announce normally.
+		// If this flag is set, the announce will be put at the front of the
+		// tracker queue for immediate processing.
+		static constexpr reannounce_flags_t high_priority = 1_bit;
+
 		// ``force_reannounce()`` will force this torrent to do another tracker
 		// request, to receive new peers. The ``seconds`` argument specifies how
 		// many seconds from now to issue the tracker announces.
@@ -1179,7 +1196,7 @@ namespace aux {
 		// If set to -1 (which is the default), all trackers are re-announce.
 		//
 		// The ``flags`` argument can be used to affect the re-announce. See
-		// ignore_min_interval.
+		// ignore_min_interval and high_priority.
 		//
 		// ``force_dht_announce`` will announce the torrent to the DHT
 		// immediately.

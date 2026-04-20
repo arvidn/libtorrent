@@ -374,6 +374,15 @@ namespace aux {
 
 			void call_abort()
 			{
+				// at this point we cannot call the notify function anymore, since the
+				// session will become invalid. We clear the notify function on the
+				// user's thread, since it will destruct the callback function object,
+				// which might hold objects belonging to the user.
+				// Most notably, this is important for the python binding, since the
+				// callback function object needs to hold the GIL.
+				// This is safe because alert_manager has an internal mutex
+				m_alerts.set_notify_function({});
+
 				auto ptr = shared_from_this();
 				dispatch(m_io_context, make_handler([ptr] { ptr->abort(); }
 					, m_abort_handler_storage, *this));

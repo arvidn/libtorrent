@@ -15,7 +15,7 @@ default_language_version:
     python: python3
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
     #-   id: trailing-whitespace
     #-   id: end-of-file-fixer
@@ -32,7 +32,7 @@ repos:
     -   id: check-symlinks
     -   id: check-toml
 - repo: https://github.com/pappasam/toml-sort
-  rev: v0.24.2
+  rev: v0.24.3
   hooks:
   - id: toml-sort
     args: [--all, --in-place]
@@ -42,7 +42,7 @@ repos:
   - id: rst-directive-colons
   - id: rst-inline-touching-normal
 - repo: https://github.com/PyCQA/isort
-  rev: 6.0.1
+  rev: 8.0.0
   hooks:
     - id: isort
       exclude: |
@@ -72,7 +72,7 @@ repos:
             tools/update_copyright.py
           )$
 - repo: https://github.com/PyCQA/autoflake
-  rev: v2.3.1
+  rev: v2.3.3
   hooks:
     - id: autoflake
       args: [--in-place, --remove-unused-variables, --remove-all-unused-imports, --remove-duplicate-keys]
@@ -86,7 +86,7 @@ repos:
                tools/libtorrent_lldb.py
           )
 - repo: https://github.com/psf/black
-  rev: 25.1.0
+  rev: 26.1.0
   hooks:
     - id: black
       # Avoiding PR bloat
@@ -132,7 +132,7 @@ repos:
       name: black (pyi)
       types: [pyi]
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.16.1
+  rev: v1.19.1
   hooks:
     - id: mypy
       # Avoiding PR bloat
@@ -170,6 +170,22 @@ repos:
               tools/run_benchmark.py|
               tools/update_copyright.py
           )$
+- repo: local
+  hooks:
+  - id: flake8-pyi-install
+    name: Install flake8-pyi
+    entry: pip install flake8-pyi
+    language: system
+    pass_filenames: false
+    always_run: true
+  - id: flake8-pyi-run
+    name: Run flake8-pyi
+    entry: flake8
+    # Ignore rationale: 1. Allow Black to do formatting;
+    #                   2. Detect archaic typing.
+    args: ["--ignore=E301,E302,E305,E501,E701,E704,Y015,Y021,Y053"]
+    language: system
+    types: [pyi]
 - repo: https://github.com/PyCQA/flake8
   rev: 7.3.0
   hooks:

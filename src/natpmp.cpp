@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstring> // for memcpy
 
 #include "libtorrent/natpmp.hpp"
+#include "libtorrent/settings_pack.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/enum_net.hpp"
@@ -137,9 +138,11 @@ using namespace aux;
 using namespace std::placeholders;
 
 natpmp::natpmp(io_context& ios
+	, aux::session_settings const& settings
 	, aux::portmap_callback& cb
 	, listen_socket_handle ls)
-	: m_callback(cb)
+	: m_settings(settings)
+	, m_callback(cb)
 	, m_socket(ios)
 	, m_send_timer(ios)
 	, m_refresh_timer(ios)
@@ -152,31 +155,34 @@ natpmp::natpmp(io_context& ios
 	m_mappings.reserve(10);
 }
 
-void natpmp::start(ip_interface const& ip)
+void natpmp::start(ip_interface const& ip, boost::optional<address> const& gateway)
 {
 	TORRENT_ASSERT(is_single_thread());
 
 	// assume servers support PCP and fall back to NAT-PMP
 	// if necessary
 	m_version = version_pcp;
-
+	error_code ec;
 	address const& local_address = ip.interface_address;
 
-	error_code ec;
-	auto const routes = enum_routes(m_ioc, ec);
-	if (ec)
+	boost::optional<address> route = gateway;
+	if (!route)
 	{
-#ifndef TORRENT_DISABLE_LOGGING
-		if (should_log())
+		auto const routes = enum_routes(m_ioc, ec);
+		if (ec)
 		{
-			log("failed to enumerate routes: %s"
-				, convert_from_native(ec.message()).c_str());
+	#ifndef TORRENT_DISABLE_LOGGING
+			if (should_log())
+			{
+				log("failed to enumerate routes: %s"
+					, convert_from_native(ec.message()).c_str());
+			}
+	#endif
+			disable(ec);
 		}
-#endif
-		disable(ec);
-	}
 
-	auto const route = get_gateway(ip, routes);
+		route = get_gateway(ip, routes);
+	}
 
 	if (!route)
 	{
@@ -452,7 +458,8 @@ void natpmp::send_map_request(port_mapping_t const i)
 	TORRENT_ASSERT(m.act != portmap_action::none);
 	char buf[60];
 	char* out = buf;
-	int ttl = m.act == portmap_action::add ? 3600 : 0;
+	int const configured_ttl = m_settings.get_int(settings_pack::natpmp_lease_duration);
+	int ttl = m.act == portmap_action::add ? (configured_ttl > 0 ? configured_ttl : 3600) : 0;
 	if (m_version == version_natpmp)
 	{
 		write_uint8(m_version, out);
@@ -848,7 +855,8 @@ void natpmp::update_expiration_timer()
 	if (m_abort) return;
 
 	time_point const now = aux::time_now() + milliseconds(100);
-	time_point min_expire = now + seconds(3600);
+	int const lease_duration = m_settings.get_int(settings_pack::natpmp_lease_duration);
+	time_point min_expire = now + seconds(lease_duration > 0 ? lease_duration : 3600);
 	port_mapping_t min_index{-1};
 	for (auto i = m_mappings.begin(), end(m_mappings.end()); i != end; ++i)
 	{
