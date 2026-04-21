@@ -27,6 +27,8 @@ jobs:
         include:
           - os: ubuntu-24.04
             python-version: "3.12"
+          - os: ubuntu-24.04-arm
+            python-version: "3.12"
           - os: macos-14
             python-version: "3.14"
           - os: windows-2022
