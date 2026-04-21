@@ -10,7 +10,7 @@ libtorrent-rasterbar is a C++17 BitTorrent library (version 2.1.0). It supports 
 
 The project has **two build systems**: boost-build (b2/bjam) and CMake. **Boost-build is the preferred build system** per the contributing guidelines.
 
-### Boost-build (b2) — preferred
+### Boost-build (b2) - preferred
 
 **Never add `-j` (parallel jobs) flags to b2 commands.** b2 manages parallelism on its own.
 
