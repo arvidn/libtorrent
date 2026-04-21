@@ -2109,7 +2109,7 @@ class PickerLogAlertTest(PeerAlertTest):
         peer_handle = self.peer.add_torrent(self.peer_atp)
         wait_until_done_checking(peer_handle, timeout=5)
         for i, piece in enumerate(self.torrent.pieces):
-            peer_handle.add_piece(0, piece, 0)
+            peer_handle.add_piece(i, piece, 0)
         handle.connect_peer(self.peer_endpoint)
 
         alert = wait_for(self.session, lt.picker_log_alert, timeout=5)
@@ -2120,7 +2120,15 @@ class PickerLogAlertTest(PeerAlertTest):
             alert, self.peer_endpoint, fingerprint=self.peer_fingerprint
         )
         self.assertIsInstance(alert.picker_flags, int)
-        self.assertEqual(alert.blocks(), [(0, 0)])
+        blocks = alert.blocks()
+        self.assertGreater(len(blocks), 0)
+        num_pieces = len(self.torrent.pieces)
+        for piece_idx, block_idx in blocks:
+            self.assertIsInstance(piece_idx, int)
+            self.assertIsInstance(block_idx, int)
+            self.assertGreaterEqual(piece_idx, 0)
+            self.assertLess(piece_idx, num_pieces)
+            self.assertGreaterEqual(block_idx, 0)
 
 
 class LsdErrorAlertTest(AlertTest):
