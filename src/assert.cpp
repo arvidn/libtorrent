@@ -318,6 +318,7 @@ TORRENT_EXPORT void assert_print(char const* fmt, ...)
 	va_start(va, fmt);
 	std::vfprintf(out, fmt, va);
 	va_end(va);
+	std::fflush(out);
 
 #ifdef TORRENT_PRODUCTION_ASSERTS
 	if (out != stderr) fclose(out);

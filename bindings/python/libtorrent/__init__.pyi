@@ -2570,7 +2570,7 @@ class performance_warning_t(int):
     }
 
 class picker_log_alert(peer_alert):
-    def blocks(self) -> list[int]:
+    def blocks(self) -> list[tuple[int, int]]:
         """
         blocks( (picker_log_alert)arg1) -> object :
         """
