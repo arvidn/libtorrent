@@ -1418,14 +1418,14 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 		TORRENT_ASSERT_PRECOND(piece < torrent_file().end_piece());
 		TORRENT_ASSERT_PRECOND(piece >= piece_index_t{0});
-		TORRENT_ASSERT_PRECOND(data.size() == std::size_t(m_torrent_file->piece_size_for_req(piece)));
+		TORRENT_ASSERT_PRECOND(data.size() == std::size_t(piece_size_for_req(piece)));
 
 		// make sure the piece index is correct
 		if (piece >= torrent_file().end_piece())
 			return;
 
 		// make sure the piece size is correct
-		if (data.size() != std::size_t(m_torrent_file->piece_size_for_req(piece)))
+		if (data.size() != std::size_t(piece_size_for_req(piece)))
 			return;
 
 		add_piece(piece, data.data(), flags);
@@ -1439,10 +1439,10 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		TORRENT_ASSERT(is_single_thread());
 
 		// make sure the piece index is correct
-		if (piece >= m_torrent_file->end_piece())
+		if (piece >= torrent_file().end_piece())
 			return;
 
-		int const piece_size = m_torrent_file->piece_size_for_req(piece);
+		int const piece_size = piece_size_for_req(piece);
 		int const blocks_in_piece = (piece_size + block_size() - 1) / block_size();
 
 		if (m_deleted) return;
