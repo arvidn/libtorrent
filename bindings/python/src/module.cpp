@@ -32,6 +32,7 @@ void bind_create_torrent();
 void bind_file_storage();
 void bind_error_code();
 void bind_load_torrent();
+void bind_ed25519();
 
 BOOST_PYTHON_MODULE(libtorrent)
 {
@@ -60,4 +61,5 @@ BOOST_PYTHON_MODULE(libtorrent)
     bind_create_torrent();
     bind_file_storage();
     bind_load_torrent();
+    bind_ed25519();
 }

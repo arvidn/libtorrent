@@ -286,6 +286,7 @@ my-python-extension libtorrent
 	src/magnet_uri.cpp
 	src/error_code.cpp
 	src/load_torrent.cpp
+	src/ed25519.cpp
 	: # requirements
 	<include>src
 	# the bindings will expose deprecated functions, so there's no point in
