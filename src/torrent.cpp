@@ -3982,7 +3982,7 @@ namespace {
 		bool found_one = false;
 		if (tracker_idx == -1)
 		{
-			for (auto e : m_trackers)
+			for (auto& e : m_trackers)
 			{
 				// make sure we check for new endpoints from the listen sockets
 				refresh_endpoint_list(m_ses, is_ssl_torrent(), bool(m_complete_sent), e);
