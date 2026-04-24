@@ -32,7 +32,7 @@ repos:
     -   id: check-symlinks
     -   id: check-toml
 - repo: https://github.com/pappasam/toml-sort
-  rev: v0.24.3
+  rev: v0.24.4
   hooks:
   - id: toml-sort
     args: [--all, --in-place]
@@ -42,7 +42,7 @@ repos:
   - id: rst-directive-colons
   - id: rst-inline-touching-normal
 - repo: https://github.com/PyCQA/isort
-  rev: 8.0.0
+  rev: 8.0.1
   hooks:
     - id: isort
       exclude: |
@@ -86,7 +86,7 @@ repos:
                tools/libtorrent_lldb.py
           )
 - repo: https://github.com/psf/black
-  rev: 26.1.0
+  rev: 26.3.1
   hooks:
     - id: black
       # Avoiding PR bloat
@@ -132,7 +132,7 @@ repos:
       name: black (pyi)
       types: [pyi]
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v1.19.1
+  rev: v1.20.2
   hooks:
     - id: mypy
       # Avoiding PR bloat
