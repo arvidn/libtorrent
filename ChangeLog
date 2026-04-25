@@ -25,6 +25,7 @@
 	* use std::string_view instead of boost counterpart
 	* libtorrent now requires C++17 to build
 	* added support for WebTorrent
+	* removed support for BEP 17 web seeds (in favor of BEP 19)
 
 2.0.13
 
