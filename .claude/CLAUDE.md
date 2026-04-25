@@ -215,6 +215,7 @@ These are also run automatically by the pre-commit hooks.
 - Use a single space after a period in comments (not two spaces)
 - Declare variables `const` whenever they are not reassigned after initialization
 - C++17 throughout; no C++20 features yet
+- The code must build with standard C++ and must not require compiler language extensions; optional extensions (e.g. `__builtin_*`, platform-specific pragmas) may be used when guarded by feature detection
 - `namespace lt = libtorrent` alias is always available
 - Asserts: use `TORRENT_ASSERT(cond)` (active when `TORRENT_USE_ASSERTS` is defined, i.e. debug builds)
 - Invariant checks: expensive checks inside `#if TORRENT_USE_INVARIANT_CHECKS`
