@@ -8,6 +8,15 @@ import feature : feature ;
 
 use-project /torrent : .. ;
 
+# OSSFuzz passes webtorrent=on when building libtorrent fuzzers. WebTorrent is
+# not supported, but the build must succeed regardless. This feature is a no-op.
+feature webtorrent : off on : optional ;
+import modules ;
+if webtorrent\=on in [ modules.peek : ARGV ]
+{
+    ECHO "WARNING: webtorrent is not supported by libtorrent" ;
+}
+
 feature fuzz : off external on : composite propagated link-incompatible ;
 feature.compose <fuzz>on : <cflags>-fsanitize=fuzzer <linkflags>-fsanitize=fuzzer ;
 
