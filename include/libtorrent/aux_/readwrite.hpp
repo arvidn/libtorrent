@@ -87,6 +87,9 @@ namespace {
 }
 #endif
 
+// Simpler single-buffer specialisation of readwrite_vec_impl. Reads are always
+// single-buffer and on the hot path, so avoiding the alloca + copy_bufs
+// overhead of the vec variant is worthwhile.
 template <typename Char, typename Fun>
 int readwrite_impl(file_storage const& files, span<Char> buf
 	, piece_index_t const piece, const int offset
@@ -172,17 +175,19 @@ template <typename Char>
 inline span<span<Char>> advance_bufs(span<span<Char>> bufs, int const bytes)
 {
 	TORRENT_ASSERT(bytes >= 0);
+	TORRENT_ASSERT(!bufs.empty());
 	std::ptrdiff_t size = 0;
 	for (;;)
 	{
 		size += bufs.front().size();
-		if (size >= bytes)
+		if (size > bytes)
 		{
 			bufs.front() = bufs.front().last(size - bytes);
 			return bufs;
 		}
 		bufs = bufs.subspan(1);
-		if (bufs.empty()) return bufs;
+		if (size == bytes) return bufs;
+		TORRENT_ASSERT(!bufs.empty());
 	}
 }
 

@@ -511,11 +511,8 @@ namespace libtorrent::aux {
 				TORRENT_ASSERT(m_part_file);
 
 				error_code e;
-				peer_request map = files().map_file(file_index
-					, file_offset, 0);
-				TORRENT_ASSERT(bufs.size() == 1);
-				int const ret = m_part_file->write(bufs.front(), map.piece, map.start, e);
-
+				peer_request const map = files().map_file(file_index, file_offset, 0);
+				int const ret = m_part_file->writev(bufs, map.piece, map.start, e);
 				if (e)
 				{
 					ec.ec = e;

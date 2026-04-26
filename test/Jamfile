@@ -186,6 +186,7 @@ run test_apply_pad.cpp ;
 run test_alert_types.cpp ;
 run test_magnet.cpp ;
 run test_storage.cpp ;
+run test_readwrite.cpp ;
 run test_back_pressure.cpp ;
 run test_store_buffer.cpp ;
 run test_mmap.cpp ;
@@ -315,6 +316,7 @@ alias deterministic-tests :
 	test_span
 	test_stack_allocator
 	test_stat_cache
+	test_readwrite
 	test_storage
 	test_string
 	test_tailqueue

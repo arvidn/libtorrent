@@ -167,6 +167,24 @@ namespace libtorrent::aux {
 		return int(aux::pwrite_all(f.fd(), buf, slot_offset(slot) + offset, ec));
 	}
 
+	int part_file::writev(span<span<char const> const> bufs, piece_index_t const piece
+		, int const offset, error_code& ec)
+	{
+		TORRENT_ASSERT(offset >= 0);
+		std::unique_lock<std::mutex> l(m_mutex);
+
+		auto f = open_file(aux::open_mode::write | aux::open_mode::hidden, ec);
+		if (ec) return -1;
+
+		auto const i = m_piece_map.find(piece);
+		slot_index_t const slot = (i == m_piece_map.end())
+			? allocate_slot(piece) : i->second;
+
+		l.unlock();
+
+		return int(aux::pwritev_all(f.fd(), bufs, slot_offset(slot) + offset, ec));
+	}
+
 	int part_file::read(span<char> buf
 		, piece_index_t const piece
 		, int const offset, error_code& ec)

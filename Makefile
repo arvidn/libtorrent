@@ -952,6 +952,7 @@ TEST_SOURCES = \
   test_privacy.cpp \
   test_read_piece.cpp \
   test_read_resume.cpp \
+  test_readwrite.cpp \
   test_receive_buffer.cpp \
   test_recheck.cpp \
   test_remap_files.cpp \
