@@ -3407,7 +3407,7 @@ class session(metaclass=_BoostBaseClass):
 
     def wait_for_alert(self, _ms: int) -> alert | None:
         """
-        wait_for_alert( (session)arg1, (int)arg2) -> alert :
+        wait_for_alert( (session)arg1, (int)arg2) -> alert | None :
         """
 
     def web_seed_proxy(self) -> proxy_type_t.proxy_settings:
