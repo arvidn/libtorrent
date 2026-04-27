@@ -1603,13 +1603,16 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 
 		auto* j = static_cast<aux::pread_disk_job*>(pool.pop_front());
 
+		bool const is_flush_piece = (&pool == &m_hash_threads)
+			&& bool(j->flags & disk_interface::flush_piece);
+
 		if (&pool == &m_generic_threads)
 		{
 			// This will attempt to flush any pieces that have been completely
 			// downloaded, but nothing else
 			try_flush_cache(0, true, l);
 		}
-		else if (j->flags & disk_interface::flush_piece)
+		else if (is_flush_piece)
 		{
 			// This hash job will (or already did) set force_flush_flag.
 			// Interrupt a generic thread to do the actual flush.
@@ -1658,7 +1661,7 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 
 		// If a hash job ran on the hash thread, hash_piece() may have set
 		// force_flush_flag on the piece. Wake a generic thread to flush those blocks.
-		if (&pool == &m_hash_threads && (j->flags & disk_interface::flush_piece))
+		if (is_flush_piece)
 			m_generic_threads.interrupt();
 
 		l.lock();
