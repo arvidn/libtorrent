@@ -558,7 +558,7 @@ class FieldTest(unittest.TestCase):
         )
 
         self.assertEqual(ti.name(), "test.txt")
-        self.assertEqual(ti.files().file_path(0), "test.txt")
+        self.assertEqual(ti.layout().file_path(0), "test.txt")
         self.assertEqual(ti.orig_files().file_path(0), "test.txt")
 
         fs = lt.file_storage()
@@ -592,4 +592,4 @@ class FieldTest(unittest.TestCase):
         if lt.api_version < 2:
             with self.assertWarns(DeprecationWarning):
                 fe = self.ti.file_at(0)
-            self.assertEqual(fe.path, self.ti.files().file_path(0))
+            self.assertEqual(fe.path, self.ti.layout().file_path(0))

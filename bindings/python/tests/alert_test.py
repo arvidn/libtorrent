@@ -474,7 +474,7 @@ class TorrentAlertTest(AlertTest):
         self.atp.save_path = self.dir.name
         ti = self.atp.ti
         assert ti is not None
-        self.file_path = os.path.join(self.dir.name, ti.files().file_path(0))
+        self.file_path = os.path.join(self.dir.name, ti.layout().file_path(0))
         self.torrent_name = ti.name()
 
     def tearDown(self) -> None:
@@ -1543,7 +1543,7 @@ class FileRenamedAlertTest(TorrentAlertTest):
         self.assertEqual(alert.new_name(), "other.txt")
         ti = self.atp.ti
         assert ti is not None
-        self.assertEqual(alert.old_name(), ti.files().file_path(0))
+        self.assertEqual(alert.old_name(), ti.layout().file_path(0))
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
     def test_deprecated(self) -> None:
