@@ -53,7 +53,7 @@ namespace libtorrent {
 
 namespace errors {
 	// See RFC 6887 Section 7.4
-	enum pcp_errors
+	enum pcp_errors : int
 	{
 		pcp_success = 0,
 		pcp_unsupp_version,

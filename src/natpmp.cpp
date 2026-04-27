@@ -591,6 +591,7 @@ void natpmp::on_resend_request(port_mapping_t const i, error_code const& e)
 
 void natpmp::resend_request(port_mapping_t const i)
 {
+	TORRENT_ASSERT(i >= port_mapping_t{0});
 	if (m_currently_mapping != i) return;
 
 	// if we're shutting down, don't retry, just move on
@@ -698,7 +699,8 @@ void natpmp::on_reply(error_code const& e
 		if (m_version == version_pcp && !aux::is_v6(m_socket.local_endpoint(ec)))
 		{
 			m_version = version_natpmp;
-			resend_request(m_currently_mapping);
+			if (m_currently_mapping != port_mapping_t{-1})
+				resend_request(m_currently_mapping);
 			send_get_ip_address_request();
 		}
 		return;
@@ -713,12 +715,12 @@ void natpmp::on_reply(error_code const& e
 		return;
 	}
 
-	int lifetime = 0;
+	std::uint32_t lifetime = 0;
 	if (version == version_pcp)
 	{
-		lifetime = aux::numeric_cast<int>(read_uint32(in));
+		lifetime = read_uint32(in);
 	}
-	int const time = aux::numeric_cast<int>(read_uint32(in));
+	std::uint32_t const time = read_uint32(in);
 	if (version == version_pcp) in += 12; // reserved
 	TORRENT_UNUSED(time);
 
@@ -760,7 +762,7 @@ void natpmp::on_reply(error_code const& e
 	int const private_port = read_uint16(in);
 	int const public_port = read_uint16(in);
 	if (version == version_natpmp)
-		lifetime = aux::numeric_cast<int>(read_uint32(in));
+		lifetime = read_uint32(in);
 	address external_addr;
 	if (version == version_pcp)
 	{
@@ -779,7 +781,7 @@ void natpmp::on_reply(error_code const& e
 #ifndef TORRENT_DISABLE_LOGGING
 	char msg[200];
 	int const num_chars = std::snprintf(msg, sizeof(msg), "<== port map ["
-		" transport: %s protocol: %s local: %d external: %d ttl: %d ]"
+		" transport: %s protocol: %s local: %d external: %d ttl: %u ]"
 		, version_to_string(protocol_version(version))
 		, (protocol == portmap_protocol::udp ? "udp" : "tcp")
 		, private_port, public_port, lifetime);
