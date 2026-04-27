@@ -393,28 +393,6 @@ class EnumTest(unittest.TestCase):
 _A = TypeVar("_A", bound=lt.alert)
 
 
-def wait_for(
-    session: lt.session,
-    alert_type: Type[_A],
-    *,
-    timeout: float,
-    prefix: Optional[str] = None,
-) -> _A:
-    # Return the first alert of type _A, but log all alerts.
-    result: Optional[_A] = None
-    for _ in lib.loop_until_timeout(timeout, msg=alert_type.__name__):
-        for alert in session.pop_alerts():
-            if prefix:
-                logging.debug("%s: %s: %s", prefix, alert.what(), alert.message())
-            else:
-                logging.debug("%s: %s", alert.what(), alert.message())
-            if result is None and isinstance(alert, alert_type):
-                result = alert
-        if result is not None:
-            return result
-    raise AssertionError("unreachable")
-
-
 def wait_until_done_checking(handle: lt.torrent_handle, *, timeout: float) -> None:
     for _ in lib.loop_until_timeout(5, msg="checking"):
         if handle.status().state not in (
@@ -443,12 +421,36 @@ class AlertTest(unittest.TestCase):
         self.session = lt.session(self.settings)
         self.endpoint = ("127.0.0.1", self.session.listen_port())
         self.endpoint_str = f"{self.endpoint[0]}:{self.endpoint[1]}"
+        # Buffer of alerts fetched but not yet consumed by wait_for().
+        # Elements are non-owning pointers into the alert arena; they remain
+        # valid only until the next pop_alerts() call, so we must clear this
+        # buffer before calling pop_alerts() again.
+        self._pending_alerts: list[lt.alert] = []
 
     def tearDown(self) -> None:
         super().tearDown()
         # we do this because sessions writing data can collide with
         # cleaning up temporary directories. session.abort() isn't bound
         remove_handles_and_wait(self.session)
+
+    def wait_for(self, alert_type: Type[_A], *, timeout: float) -> _A:
+        # Return the first alert of type _A from self.session, buffering the
+        # rest so sequential calls don't discard alerts that arrive in the
+        # same pop_alerts() batch.
+        for _ in lib.loop_until_timeout(timeout, msg=alert_type.__name__):
+            for i, a in enumerate(self._pending_alerts):
+                if isinstance(a, alert_type):
+                    del self._pending_alerts[i]
+                    return a
+            # Nothing in the buffer matched; discard it (contents become stale
+            # after the next pop_alerts()) and fetch a new batch.
+            self._pending_alerts.clear()
+            self.session.wait_for_alert(100)
+            new_alerts = list(self.session.pop_alerts())
+            for a in new_alerts:
+                logging.debug("%s: %s", a.what(), a.message())
+            self._pending_alerts = new_alerts
+        raise AssertionError("unreachable")
 
     def assert_alert(self, alert: lt.alert, category: int, what: str) -> None:
         self.assertEqual(alert.category(), category)
@@ -515,7 +517,7 @@ class UseAfterFreeTest(TorrentAlertTest):
     def setUp(self) -> None:
         super().setUp()
         self.session.add_torrent(self.atp)
-        self.alert = wait_for(self.session, lt.add_torrent_alert, timeout=5)
+        self.alert = self.wait_for(lt.add_torrent_alert, timeout=5)
         self.session.pop_alerts()
         # underlying alert data has now been freed
 
@@ -538,7 +540,7 @@ class TorrentAddedAlertTest(TorrentAlertTest):
     def test_torrent_added_alert(self) -> None:
         if lt.api_version < 2:
             handle = self.session.add_torrent(self.atp)
-            alert = wait_for(self.session, lt.torrent_added_alert, timeout=5)
+            alert = self.wait_for(lt.torrent_added_alert, timeout=5)
 
             self.assert_alert(alert, lt.alert_category.status, "torrent_added")
             self.assert_torrent_alert(alert, handle)
@@ -554,7 +556,7 @@ class TorrentRemovedAlertTest(TorrentAlertTest):
     def test_torrent_removed_alert(self) -> None:
         handle = self.session.add_torrent(self.atp)
         self.session.remove_torrent(handle)
-        alert = wait_for(self.session, lt.torrent_removed_alert, timeout=5)
+        alert = self.wait_for(lt.torrent_removed_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.status, "torrent_removed")
         self.assert_torrent_alert(alert, handle)
@@ -566,7 +568,7 @@ class TorrentRemovedAlertTest(TorrentAlertTest):
     def test_deprecated(self) -> None:
         handle = self.session.add_torrent(self.atp)
         self.session.remove_torrent(handle)
-        alert = wait_for(self.session, lt.torrent_removed_alert, timeout=5)
+        alert = self.wait_for(lt.torrent_removed_alert, timeout=5)
         if lt.api_version < 3:
             with self.assertWarns(DeprecationWarning):
                 self.assertEqual(alert.info_hash, self.torrent.sha1_hash)
@@ -582,9 +584,9 @@ class ReadPieceAlertTest(TorrentAlertTest):
 
         handle.add_piece(0, self.torrent.pieces[0], 0)
         # read_piece() does not work until we have the piece
-        self.alert = wait_for(self.session, lt.piece_finished_alert, timeout=5)
+        self.alert = self.wait_for(lt.piece_finished_alert, timeout=5)
         handle.read_piece(0)
-        alert = wait_for(self.session, lt.read_piece_alert, timeout=5)
+        alert = self.wait_for(lt.read_piece_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.storage, "read_piece")
         self.assert_torrent_alert(alert, handle)
@@ -600,7 +602,7 @@ class ReadPieceAlertTest(TorrentAlertTest):
         handle.set_piece_deadline(0, 0, flags=lt.deadline_flags_t.alert_when_available)
         # setting piece priority to 0 cancels a read_piece
         handle.piece_priority(0, 0)
-        alert = wait_for(self.session, lt.read_piece_alert, timeout=5)
+        alert = self.wait_for(lt.read_piece_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.storage, "read_piece")
         self.assert_torrent_alert(alert, handle)
@@ -616,7 +618,7 @@ class ReadPieceAlertTest(TorrentAlertTest):
         handle.set_piece_deadline(0, 0, flags=lt.deadline_flags_t.alert_when_available)
         # setting piece priority to 0 cancels a read_piece
         handle.piece_priority(0, 0)
-        alert = wait_for(self.session, lt.read_piece_alert, timeout=5)
+        alert = self.wait_for(lt.read_piece_alert, timeout=5)
 
         if lt.api_version < 2:
             with self.assertWarns(DeprecationWarning):
@@ -731,7 +733,7 @@ class TrackerErrorAlertTest(TrackerAlertTest):
             b"failure reason": b"test",
         }
         handle.add_tracker({"url": self.tracker_url})
-        alert = wait_for(self.session, lt.tracker_error_alert, timeout=5)
+        alert = self.wait_for(lt.tracker_error_alert, timeout=5)
 
         self.assert_alert(
             alert, lt.alert_category.tracker | lt.alert_category.error, "tracker_error"
@@ -754,7 +756,7 @@ class TrackerErrorAlertTest(TrackerAlertTest):
             b"failure reason": b"test",
         }
         handle.add_tracker({"url": self.tracker_url})
-        alert = wait_for(self.session, lt.tracker_error_alert, timeout=5)
+        alert = self.wait_for(lt.tracker_error_alert, timeout=5)
 
         if lt.api_version < 2:
             with self.assertWarns(DeprecationWarning):
@@ -772,7 +774,7 @@ class TrackerWarningAlertTest(TrackerAlertTest):
         handle = self.session.add_torrent(self.atp)
         self.tracker_response = {b"warning message": b"test"}
         handle.add_tracker({"url": self.tracker_url})
-        alert = wait_for(self.session, lt.tracker_warning_alert, timeout=5)
+        alert = self.wait_for(lt.tracker_warning_alert, timeout=5)
 
         self.assert_alert(
             alert,
@@ -792,7 +794,7 @@ class TrackerReplyAlertTest(TrackerAlertTest):
         handle = self.session.add_torrent(self.atp)
         self.tracker_response = {b"peers": [{b"ip": b"127.0.0.1", b"port": 65535}]}
         handle.add_tracker({"url": self.tracker_url})
-        alert = wait_for(self.session, lt.tracker_reply_alert, timeout=5)
+        alert = self.wait_for(lt.tracker_reply_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.tracker, "tracker_reply")
         self.assert_torrent_alert(alert, handle)
@@ -806,7 +808,7 @@ class TrackerAnnounceAlertTest(TrackerAlertTest):
     def test_tracker_reply_alert(self) -> None:
         handle = self.session.add_torrent(self.atp)
         handle.add_tracker({"url": self.tracker_url})
-        alert = wait_for(self.session, lt.tracker_announce_alert, timeout=5)
+        alert = self.wait_for(lt.tracker_announce_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.tracker, "tracker_announce")
         self.assert_torrent_alert(alert, handle)
@@ -823,7 +825,7 @@ class HashFailedAlertTest(TorrentAlertTest):
         # add_piece() with bad data
         handle.add_piece(0, b"a" * len(self.torrent.pieces[0]), 0)
 
-        alert = wait_for(self.session, lt.hash_failed_alert, timeout=5)
+        alert = self.wait_for(lt.hash_failed_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.status, "hash_failed")
         self.assert_torrent_alert(alert, handle)
@@ -864,7 +866,7 @@ class TorrentErrorAlertTest(TorrentAlertTest):
         os.mkdir(self.file_path)
         handle = self.session.add_torrent(self.atp)
 
-        alert = wait_for(self.session, lt.torrent_error_alert, timeout=5)
+        alert = self.wait_for(lt.torrent_error_alert, timeout=5)
 
         self.assert_alert(
             alert, lt.alert_category.error | lt.alert_category.status, "torrent_error"
@@ -886,7 +888,7 @@ class TorrentFinishedAlertTest(TorrentAlertTest):
         for i, piece in enumerate(self.torrent.pieces):
             handle.add_piece(i, piece, 0)
 
-        alert = wait_for(self.session, lt.torrent_finished_alert, timeout=5)
+        alert = self.wait_for(lt.torrent_finished_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.status, "torrent_finished")
         self.assert_torrent_alert(alert, handle)
@@ -901,7 +903,7 @@ class PieceFinishedAlertTest(TorrentAlertTest):
         wait_until_done_checking(handle, timeout=5)
         handle.add_piece(0, self.torrent.pieces[0], 0)
 
-        alert = wait_for(self.session, lt.piece_finished_alert, timeout=5)
+        alert = self.wait_for(lt.piece_finished_alert, timeout=5)
 
         self.assert_alert(
             alert,
@@ -923,7 +925,7 @@ class BlockFinishedAlertTest(PeerAlertTest):
         peer_handle.add_piece(0, self.torrent.pieces[0], 0)
         handle.connect_peer(self.peer_endpoint)
 
-        alert = wait_for(self.session, lt.block_finished_alert, timeout=10)
+        alert = self.wait_for(lt.block_finished_alert, timeout=10)
 
         self.assert_alert(
             alert,
@@ -946,7 +948,7 @@ class BlockDownloadingAlertTest(PeerAlertTest):
         peer_handle.add_piece(0, self.torrent.pieces[0], 0)
         handle.connect_peer(self.peer_endpoint)
 
-        alert = wait_for(self.session, lt.block_downloading_alert, timeout=10)
+        alert = self.wait_for(lt.block_downloading_alert, timeout=10)
 
         self.assert_alert(
             alert,
@@ -968,7 +970,7 @@ class BlockDownloadingAlertTest(PeerAlertTest):
         peer_handle.add_piece(0, self.torrent.pieces[0], 0)
         handle.connect_peer(self.peer_endpoint)
 
-        alert = wait_for(self.session, lt.block_downloading_alert, timeout=10)
+        alert = self.wait_for(lt.block_downloading_alert, timeout=10)
 
         if lt.api_version < 2:
             with self.assertWarns(DeprecationWarning):
@@ -984,7 +986,7 @@ class StorageMovedAlertTest(TorrentAlertTest):
         new = os.path.join(self.dir.name, "new")
         handle.move_storage(new)
 
-        alert = wait_for(self.session, lt.storage_moved_alert, timeout=5)
+        alert = self.wait_for(lt.storage_moved_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.storage, "storage_moved")
         self.assert_torrent_alert(alert, handle)
@@ -1000,7 +1002,7 @@ class StorageMovedAlertTest(TorrentAlertTest):
         new = os.path.join(self.dir.name, "new")
         handle.move_storage(new)
 
-        alert = wait_for(self.session, lt.storage_moved_alert, timeout=5)
+        alert = self.wait_for(lt.storage_moved_alert, timeout=5)
 
         if lt.api_version < 2:
             with self.assertWarns(DeprecationWarning):
@@ -1022,7 +1024,7 @@ class StorageMovedFailedAlertTest(TorrentAlertTest):
             fp.write(b"data")
         handle.move_storage(new)
 
-        alert = wait_for(self.session, lt.storage_moved_failed_alert, timeout=5)
+        alert = self.wait_for(lt.storage_moved_failed_alert, timeout=5)
 
         print(f"{alert.error.message()} : {alert.error.category().name()}")
 
@@ -1054,7 +1056,7 @@ class StorageMovedFailedAlertTest(TorrentAlertTest):
             fp.write(b"data")
         handle.move_storage(new)
 
-        alert = wait_for(self.session, lt.storage_moved_failed_alert, timeout=5)
+        alert = self.wait_for(lt.storage_moved_failed_alert, timeout=5)
 
         with self.assertWarns(DeprecationWarning):
             self.assertEqual(alert.operation, "file_rename")
@@ -1073,7 +1075,7 @@ class TorrentDeletedAlertTest(TorrentAlertTest):
             handle, option=lt.session.delete_files | lt.session.delete_partfile
         )
 
-        alert = wait_for(self.session, lt.torrent_deleted_alert, timeout=5)
+        alert = self.wait_for(lt.torrent_deleted_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.storage, "torrent_deleted")
         self.assert_torrent_alert(alert, handle)
@@ -1092,7 +1094,7 @@ class TorrentDeletedAlertTest(TorrentAlertTest):
             handle, option=lt.session.delete_files | lt.session.delete_partfile
         )
 
-        alert = wait_for(self.session, lt.torrent_deleted_alert, timeout=5)
+        alert = self.wait_for(lt.torrent_deleted_alert, timeout=5)
 
         if lt.api_version < 2:
             with self.assertWarns(DeprecationWarning):
@@ -1106,7 +1108,7 @@ class TorrentPausedAlertTest(TorrentAlertTest):
         handle = self.session.add_torrent(self.atp)
         handle.pause()
 
-        alert = wait_for(self.session, lt.torrent_paused_alert, timeout=5)
+        alert = self.wait_for(lt.torrent_paused_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.status, "torrent_paused")
         self.assert_torrent_alert(alert, handle)
@@ -1118,7 +1120,7 @@ class TorrentCheckedAlertTest(TorrentAlertTest):
     def test_torrent_checked_alert(self) -> None:
         handle = self.session.add_torrent(self.atp)
 
-        alert = wait_for(self.session, lt.torrent_checked_alert, timeout=5)
+        alert = self.wait_for(lt.torrent_checked_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.status, "torrent_checked")
         self.assert_torrent_alert(alert, handle)
@@ -1131,7 +1133,7 @@ class UrlSeedAlertTest(TorrentAlertTest):
         handle = self.session.add_torrent(self.atp)
         handle.add_url_seed("test://test")
 
-        alert = wait_for(self.session, lt.url_seed_alert, timeout=5)
+        alert = self.wait_for(lt.url_seed_alert, timeout=5)
 
         self.assert_alert(
             alert, lt.alert_category.peer | lt.alert_category.error, "url_seed"
@@ -1151,7 +1153,7 @@ class UrlSeedAlertTest(TorrentAlertTest):
         handle = self.session.add_torrent(self.atp)
         handle.add_url_seed("test://test")
 
-        alert = wait_for(self.session, lt.url_seed_alert, timeout=5)
+        alert = self.wait_for(lt.url_seed_alert, timeout=5)
 
         if lt.api_version < 2:
             with self.assertWarns(DeprecationWarning):
@@ -1169,7 +1171,7 @@ class FileErrorAlertTest(TorrentAlertTest):
         os.mkdir(self.file_path)
         handle = self.session.add_torrent(self.atp)
 
-        alert = wait_for(self.session, lt.file_error_alert, timeout=5)
+        alert = self.wait_for(lt.file_error_alert, timeout=5)
 
         self.assert_alert(
             alert,
@@ -1194,7 +1196,7 @@ class FileErrorAlertTest(TorrentAlertTest):
         os.mkdir(self.file_path)
         self.session.add_torrent(self.atp)
 
-        alert = wait_for(self.session, lt.file_error_alert, timeout=5)
+        alert = self.wait_for(lt.file_error_alert, timeout=5)
 
         if lt.api_version < 2:
             with self.assertWarns(DeprecationWarning):
@@ -1213,7 +1215,7 @@ class MetadataFailedAlertTest(TorrentAlertTest):
         handle = self.session.add_torrent(self.atp)
         handle.set_metadata(b"invalid")
 
-        alert = wait_for(self.session, lt.metadata_failed_alert, timeout=5)
+        alert = self.wait_for(lt.metadata_failed_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.error, "metadata_failed")
         self.assert_torrent_alert(alert, handle)
@@ -1231,7 +1233,7 @@ class MetadataReceivedAlertTest(TorrentAlertTest):
         handle = self.session.add_torrent(self.atp)
         handle.set_metadata(lt.bencode(self.torrent.info))
 
-        alert = wait_for(self.session, lt.metadata_received_alert, timeout=5)
+        alert = self.wait_for(lt.metadata_received_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.status, "metadata_received")
         self.assert_torrent_alert(alert, handle)
@@ -1243,7 +1245,7 @@ class ListenFailedAlertTest(AlertTest):
     def test_listen_failed_alert(self) -> None:
         self.session.apply_settings({"listen_interfaces": "does-not-exist"})
 
-        alert = wait_for(self.session, lt.listen_failed_alert, timeout=5)
+        alert = self.wait_for(lt.listen_failed_alert, timeout=5)
 
         self.assert_alert(
             alert, lt.alert_category.status | lt.alert_category.error, "listen_failed"
@@ -1264,7 +1266,7 @@ class ListenFailedAlertTest(AlertTest):
     def test_deprecated(self) -> None:
         self.session.apply_settings({"listen_interfaces": "does-not-exist"})
 
-        alert = wait_for(self.session, lt.listen_failed_alert, timeout=5)
+        alert = self.wait_for(lt.listen_failed_alert, timeout=5)
 
         if lt.api_version < 2:
             with self.assertWarns(DeprecationWarning):
@@ -1281,7 +1283,7 @@ class ListenSucceededAlertTest(AlertTest):
     ALERT_MASK = lt.alert_category.status
 
     def test_listen_succeeded_alert(self) -> None:
-        alert = wait_for(self.session, lt.listen_succeeded_alert, timeout=5)
+        alert = self.wait_for(lt.listen_succeeded_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.status, "listen_succeeded")
         if lt.api_version < 2:
@@ -1295,7 +1297,7 @@ class ListenSucceededAlertTest(AlertTest):
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
     def test_deprecated(self) -> None:
-        alert = wait_for(self.session, lt.listen_succeeded_alert, timeout=5)
+        alert = self.wait_for(lt.listen_succeeded_alert, timeout=5)
 
         if lt.api_version < 2:
             with self.assertWarns(DeprecationWarning):
@@ -1337,7 +1339,7 @@ class FastresumeRejectedAlertTest(TorrentAlertTest):
         os.mkdir(self.file_path)
         handle = self.session.add_torrent(self.atp)
 
-        alert = wait_for(self.session, lt.fastresume_rejected_alert, timeout=5)
+        alert = self.wait_for(lt.fastresume_rejected_alert, timeout=5)
 
         self.assert_alert(
             alert,
@@ -1363,7 +1365,7 @@ class FastresumeRejectedAlertTest(TorrentAlertTest):
         os.mkdir(self.file_path)
         self.session.add_torrent(self.atp)
 
-        alert = wait_for(self.session, lt.fastresume_rejected_alert, timeout=5)
+        alert = self.wait_for(lt.fastresume_rejected_alert, timeout=5)
 
         if lt.api_version < 2:
             with self.assertWarns(DeprecationWarning):
@@ -1387,7 +1389,7 @@ class PeerBlockedAlertTest(PeerAlertTest):
         # connect us to peer
         handle.connect_peer(self.peer_endpoint)
 
-        alert = wait_for(self.session, lt.peer_blocked_alert, timeout=5)
+        alert = self.wait_for(lt.peer_blocked_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.ip_block, "peer_blocked")
         self.assert_torrent_alert(alert, handle)
@@ -1409,7 +1411,7 @@ class PeerBlockedAlertTest(PeerAlertTest):
         # connect us to peer
         handle.connect_peer(self.peer_endpoint)
 
-        alert = wait_for(self.session, lt.peer_blocked_alert, timeout=5)
+        alert = self.wait_for(lt.peer_blocked_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.ip_block, "peer_blocked")
         with self.assertWarns(DeprecationWarning):
@@ -1434,7 +1436,7 @@ class ScrapeReplyAlertTest(TrackerAlertTest):
         handle.add_tracker({"url": self.tracker_url})
         handle.scrape_tracker()
 
-        alert = wait_for(self.session, lt.scrape_reply_alert, timeout=5)
+        alert = self.wait_for(lt.scrape_reply_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.tracker, "scrape_reply")
         self.assert_torrent_alert(alert, handle)
@@ -1452,7 +1454,7 @@ class ScrapeFailedAlertTest(TrackerAlertTest):
         handle.add_tracker({"url": self.tracker_url})
         handle.scrape_tracker()
 
-        alert = wait_for(self.session, lt.scrape_failed_alert, timeout=5)
+        alert = self.wait_for(lt.scrape_failed_alert, timeout=5)
 
         self.assert_alert(
             alert, lt.alert_category.tracker | lt.alert_category.error, "scrape_failed"
@@ -1484,7 +1486,7 @@ class ExternalIpAlertTest(TrackerAlertTest):
         handle = self.session.add_torrent(self.atp)
         handle.add_tracker({"url": self.tracker_url})
 
-        alert = wait_for(self.session, lt.external_ip_alert, timeout=5)
+        alert = self.wait_for(lt.external_ip_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.status, "external_ip")
         self.assertEqual(alert.external_address, "1.2.3.4")
@@ -1495,7 +1497,7 @@ class SaveResumeDataAlertTest(TorrentAlertTest):
         handle = self.session.add_torrent(self.atp)
         handle.save_resume_data()
 
-        alert = wait_for(self.session, lt.save_resume_data_alert, timeout=5)
+        alert = self.wait_for(lt.save_resume_data_alert, timeout=5)
         self.assert_alert(alert, lt.alert_category.storage, "save_resume_data")
         self.assert_torrent_alert(alert, handle)
         self.assertIsInstance(alert.params, lt.add_torrent_params)
@@ -1515,7 +1517,7 @@ class FileCompletedAlertTest(TorrentAlertTest):
         for i, piece in enumerate(self.torrent.pieces):
             handle.add_piece(i, piece, 0)
 
-        alert = wait_for(self.session, lt.file_completed_alert, timeout=5)
+        alert = self.wait_for(lt.file_completed_alert, timeout=5)
 
         self.assert_alert(
             alert,
@@ -1533,7 +1535,7 @@ class FileRenamedAlertTest(TorrentAlertTest):
         handle = self.session.add_torrent(self.atp)
         handle.rename_file(0, "other.txt")
 
-        alert = wait_for(self.session, lt.file_renamed_alert, timeout=5)
+        alert = self.wait_for(lt.file_renamed_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.storage, "file_renamed")
         self.assert_torrent_alert(alert, handle)
@@ -1550,7 +1552,7 @@ class FileRenamedAlertTest(TorrentAlertTest):
         handle = self.session.add_torrent(self.atp)
         handle.rename_file(0, "other.txt")
 
-        alert = wait_for(self.session, lt.file_renamed_alert, timeout=5)
+        alert = self.wait_for(lt.file_renamed_alert, timeout=5)
 
         with self.assertWarns(DeprecationWarning):
             self.assertEqual(alert.name, "other.txt")
@@ -1571,7 +1573,7 @@ class FileRenameFailedAlertTest(TorrentAlertTest):
         # attempt to rename over the dir
         handle.rename_file(0, "other.txt")
 
-        alert = wait_for(self.session, lt.file_rename_failed_alert, timeout=5)
+        alert = self.wait_for(lt.file_rename_failed_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.storage, "file_rename_failed")
         self.assert_torrent_alert(alert, handle)
@@ -1590,7 +1592,7 @@ class TorrentResumedAlertTest(TorrentAlertTest):
         handle.pause()
         handle.resume()
 
-        alert = wait_for(self.session, lt.torrent_resumed_alert, timeout=5)
+        alert = self.wait_for(lt.torrent_resumed_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.status, "torrent_resumed")
         self.assert_torrent_alert(alert, handle)
@@ -1602,7 +1604,7 @@ class StateChangedAlertTest(TorrentAlertTest):
     def test_state_changed_alert(self) -> None:
         handle = self.session.add_torrent(self.atp)
 
-        alert = wait_for(self.session, lt.state_changed_alert, timeout=5)
+        alert = self.wait_for(lt.state_changed_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.status, "state_changed")
         self.assert_torrent_alert(alert, handle)
@@ -1616,7 +1618,7 @@ class StateUpdateAlertTest(TorrentAlertTest):
         handle = self.session.add_torrent(self.atp)
         self.session.post_torrent_updates()
 
-        alert = wait_for(self.session, lt.state_update_alert, timeout=5)
+        alert = self.wait_for(lt.state_update_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.status, "state_update")
         self.assertEqual(len(alert.status), 1)
@@ -1629,7 +1631,7 @@ class I2pAlertTest(AlertTest):
     def test_i2p_alert(self) -> None:
         self.session.apply_settings({"i2p_hostname": "127.1.2.3"})
 
-        alert = wait_for(self.session, lt.i2p_alert, timeout=5)
+        alert = self.wait_for(lt.i2p_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.error, "i2p")
         self.assertEqual(alert.error.category(), lt.system_category())
@@ -1649,7 +1651,15 @@ class DhtAlertTest(PeerAlertTest):
         )
         # We will ping our routers during bootstrap, so make sure we wait for
         # the peer to be done bootstrapping before we bootstrap ourselves
-        wait_for(self.peer, lt.dht_bootstrap_alert, timeout=5, prefix="peer")
+        for _ in lib.loop_until_timeout(5, msg="dht_bootstrap_alert"):
+            self.peer.wait_for_alert(100)
+            alerts = self.peer.pop_alerts()
+            done = any(isinstance(a, lt.dht_bootstrap_alert) for a in alerts)
+            for a in alerts:
+                logging.debug("peer: %s: %s", a.what(), a.message())
+            del alerts
+            if done:
+                break
 
         alert_mask = self.session.get_settings()["alert_mask"]
         self.session.apply_settings(
@@ -1660,7 +1670,7 @@ class DhtAlertTest(PeerAlertTest):
             }
         )
         # DHT functions won't work until our bootstrap is done
-        self.bootstrap_alert = wait_for(self.session, lt.dht_bootstrap_alert, timeout=5)
+        self.bootstrap_alert = self.wait_for(lt.dht_bootstrap_alert, timeout=5)
 
 
 class DhtReplyAlertTest(DhtAlertTest):
@@ -1672,7 +1682,7 @@ class DhtReplyAlertTest(DhtAlertTest):
         self.peer.add_torrent(self.peer_atp)
         handle.force_dht_announce()
 
-        alert = wait_for(self.session, lt.dht_reply_alert, timeout=5)
+        alert = self.wait_for(lt.dht_reply_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.dht, "dht_reply")
         self.assertEqual(alert.num_peers, 1)
@@ -1685,7 +1695,7 @@ class DhtAnnounceAlertTest(DhtAlertTest):
         self.session.add_torrent(self.atp)
         self.peer.add_torrent(self.peer_atp)
 
-        alert = wait_for(self.session, lt.dht_announce_alert, timeout=5)
+        alert = self.wait_for(lt.dht_announce_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.dht, "dht_announce")
         # The peer returns us as a peer, so we may get announces from ourselves
@@ -1701,7 +1711,7 @@ class DhtGetPeersAlertTest(DhtAlertTest):
         self.session.add_torrent(self.atp)
         self.peer.add_torrent(self.peer_atp)
 
-        alert = wait_for(self.session, lt.dht_get_peers_alert, timeout=5)
+        alert = self.wait_for(lt.dht_get_peers_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.dht, "dht_get_peers")
         # DHT nodes apparently send lots of get_peers requests, not always for
@@ -1729,7 +1739,7 @@ class PeerConnectAlertTest(PeerAlertTest):
     def test_peer_connect_alert(self) -> None:
         handle = self.session.add_torrent(self.atp)
         handle.connect_peer(self.peer_endpoint)
-        alert = wait_for(self.session, lt.peer_connect_alert, timeout=5)
+        alert = self.wait_for(lt.peer_connect_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.connect, "peer_connect")
         self.assert_torrent_alert(alert, handle)
@@ -1739,7 +1749,7 @@ class PeerConnectAlertTest(PeerAlertTest):
     def test_deprecated(self) -> None:
         handle = self.session.add_torrent(self.atp)
         handle.connect_peer(self.peer_endpoint)
-        alert = wait_for(self.session, lt.peer_connect_alert, timeout=5)
+        alert = self.wait_for(lt.peer_connect_alert, timeout=5)
         with self.assertWarns(DeprecationWarning):
             self.assertEqual(alert.ip, self.peer_endpoint)
 
@@ -1751,10 +1761,9 @@ class PeerDisconnectedAlertTest(PeerAlertTest):
         handle = self.session.add_torrent(self.atp)
         peer_handle = self.peer.add_torrent(self.peer_atp)
         handle.connect_peer(self.peer_endpoint)
-        wait_for(self.session, lt.peer_connect_alert, timeout=5)
+        self.wait_for(lt.peer_connect_alert, timeout=5)
         self.peer.remove_torrent(peer_handle)
-
-        alert = wait_for(self.session, lt.peer_disconnected_alert, timeout=5)
+        alert = self.wait_for(lt.peer_disconnected_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.connect, "peer_disconnected")
         self.assert_torrent_alert(alert, handle)
@@ -1776,7 +1785,7 @@ class PeerDisconnectedAlertTest(PeerAlertTest):
             handle.connect_peer(self.peer_endpoint)
             self.peer.remove_torrent(peer_handle)
 
-            alert = wait_for(self.session, lt.peer_disconnected_alert, timeout=15)
+            alert = self.wait_for(lt.peer_disconnected_alert, timeout=15)
 
             with self.assertWarns(DeprecationWarning):
                 self.assertEqual(alert.msg, alert.error.message())
@@ -1837,7 +1846,7 @@ class TorrentDeleteFailedAlertTest(TorrentAlertTest):
         # currently work.
         self.session.remove_torrent(handle, option=lt.session.delete_files)
 
-        alert = wait_for(self.session, lt.torrent_delete_failed_alert, timeout=5)
+        alert = self.wait_for(lt.torrent_delete_failed_alert, timeout=5)
 
         self.assert_alert(
             alert,
@@ -1891,7 +1900,7 @@ class TorrentDeleteFailedAlertTest(TorrentAlertTest):
         # currently work.
         self.session.remove_torrent(handle, option=lt.session.delete_files)
 
-        alert = wait_for(self.session, lt.torrent_delete_failed_alert, timeout=5)
+        alert = self.wait_for(lt.torrent_delete_failed_alert, timeout=5)
 
         with self.assertWarns(DeprecationWarning):
             self.assertEqual(alert.msg, alert.error.message())
@@ -1905,7 +1914,7 @@ class SaveResumeDataFailedAlertTest(TorrentAlertTest):
         handle.save_resume_data()
         handle.save_resume_data(flags=lt.save_resume_flags_t.only_if_modified)
 
-        alert = wait_for(self.session, lt.save_resume_data_failed_alert, timeout=5)
+        alert = self.wait_for(lt.save_resume_data_failed_alert, timeout=5)
 
         self.assert_alert(
             alert,
@@ -1924,7 +1933,7 @@ class SaveResumeDataFailedAlertTest(TorrentAlertTest):
         handle.save_resume_data()
         handle.save_resume_data(flags=lt.save_resume_flags_t.only_if_modified)
 
-        alert = wait_for(self.session, lt.save_resume_data_failed_alert, timeout=5)
+        alert = self.wait_for(lt.save_resume_data_failed_alert, timeout=5)
 
         if lt.api_version < 2:
             with self.assertWarns(DeprecationWarning):
@@ -1940,7 +1949,7 @@ class PerformanceAlertTest(AlertTest):
             {"num_optimistic_unchoke_slots": 100, "unchoke_slots_limit": 100}
         )
 
-        alert = wait_for(self.session, lt.performance_alert, timeout=5)
+        alert = self.wait_for(lt.performance_alert, timeout=5)
         self.assert_alert(alert, lt.alert_category.performance_warning, "performance")
         self.assertEqual(
             alert.warning_code,
@@ -1956,7 +1965,7 @@ class StatsAlert(TorrentAlertTest):
         if lt.api_version < 3:
             handle = self.session.add_torrent(self.atp)
 
-            alert = wait_for(self.session, lt.stats_alert, timeout=5)
+            alert = self.wait_for(lt.stats_alert, timeout=5)
 
             self.assert_alert(alert, lt.alert_category.stats, "stats")
             self.assert_torrent_alert(alert, handle)
@@ -1977,7 +1986,7 @@ class CacheFlushedAlert(TorrentAlertTest):
         handle = self.session.add_torrent(self.atp)
         handle.flush_cache()
 
-        alert = wait_for(self.session, lt.cache_flushed_alert, timeout=5)
+        alert = self.wait_for(lt.cache_flushed_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.storage, "cache_flushed")
         self.assert_torrent_alert(alert, handle)
@@ -1997,7 +2006,7 @@ class IncomingConnectionAlertTest(PeerAlertTest):
         peer_handle = self.peer.add_torrent(self.peer_atp)
         peer_handle.connect_peer(self.endpoint)
 
-        alert = wait_for(self.session, lt.incoming_connection_alert, timeout=5)
+        alert = self.wait_for(lt.incoming_connection_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.peer, "incoming_connection")
         self.assertIsInstance(alert.socket_type, lt.socket_type_t)
@@ -2011,7 +2020,7 @@ class IncomingConnectionAlertTest(PeerAlertTest):
         peer_handle = self.peer.add_torrent(self.peer_atp)
         peer_handle.connect_peer(self.endpoint)
 
-        alert = wait_for(self.session, lt.incoming_connection_alert, timeout=5)
+        alert = self.wait_for(lt.incoming_connection_alert, timeout=5)
 
         with self.assertWarns(DeprecationWarning):
             self.assertEqual(alert.ip, self.peer_endpoint)
@@ -2027,7 +2036,7 @@ class AddTorrentAlertTest(TorrentAlertTest):
     def test_torrent_alert_properties(self) -> None:
         handle = self.session.add_torrent(self.atp)
 
-        alert = wait_for(self.session, lt.add_torrent_alert, timeout=5)
+        alert = self.wait_for(lt.add_torrent_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.status, "add_torrent")
         self.assert_torrent_alert(alert, handle)
@@ -2040,7 +2049,7 @@ class DhtOutgoingGetPeersAlertTest(DhtAlertTest):
         self.session.add_torrent(self.atp)
         self.peer.add_torrent(self.peer_atp)
 
-        alert = wait_for(self.session, lt.dht_outgoing_get_peers_alert, timeout=10)
+        alert = self.wait_for(lt.dht_outgoing_get_peers_alert, timeout=10)
 
         self.assert_alert(alert, lt.alert_category.dht, "dht_outgoing_get_peers")
         self.assertIsInstance(alert.info_hash, lt.sha1_hash)
@@ -2058,7 +2067,7 @@ class DhtOutgoingGetPeersAlertTest(DhtAlertTest):
         self.session.add_torrent(self.atp)
         self.peer.add_torrent(self.peer_atp)
 
-        alert = wait_for(self.session, lt.dht_outgoing_get_peers_alert, timeout=10)
+        alert = self.wait_for(lt.dht_outgoing_get_peers_alert, timeout=10)
 
         if lt.api_version < 2:
             with self.assertWarns(DeprecationWarning):
@@ -2069,7 +2078,7 @@ class LogAlertTest(AlertTest):
     ALERT_MASK = lt.alert_category.session_log
 
     def test_log_alert(self) -> None:
-        alert = wait_for(self.session, lt.log_alert, timeout=5)
+        alert = self.wait_for(lt.log_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.session_log, "log")
         if lt.api_version < 2:
@@ -2088,7 +2097,7 @@ class PeerLogAlertTest(PeerAlertTest):
         handle = self.session.add_torrent(self.atp)
         handle.connect_peer(self.peer_endpoint)
 
-        alert = wait_for(self.session, lt.peer_log_alert, timeout=5)
+        alert = self.wait_for(lt.peer_log_alert, timeout=5)
         self.assert_alert(alert, lt.alert_category.peer_log, "peer_log")
         self.assert_torrent_alert(alert, handle)
         self.assert_peer_alert(alert, self.peer_endpoint, pid=lt.sha1_hash())
@@ -2112,7 +2121,7 @@ class PickerLogAlertTest(PeerAlertTest):
             peer_handle.add_piece(i, piece, 0)
         handle.connect_peer(self.peer_endpoint)
 
-        alert = wait_for(self.session, lt.picker_log_alert, timeout=5)
+        alert = self.wait_for(lt.picker_log_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.picker_log, "picker_log")
         self.assert_torrent_alert(alert, handle)
@@ -2141,7 +2150,7 @@ class DhtStatsAlertTest(DhtAlertTest):
     def test_dht_stats_alert(self) -> None:
         self.session.post_dht_stats()
 
-        alert = wait_for(self.session, lt.dht_stats_alert, timeout=5)
+        alert = self.wait_for(lt.dht_stats_alert, timeout=5)
         self.assert_alert(alert, 0, "dht_stats")
         self.assertEqual(alert.active_requests, [])
         self.assertEqual(alert.routing_table, [{"num_nodes": 0, "num_replacements": 0}])
@@ -2154,7 +2163,7 @@ class DhtLogAlertTest(DhtAlertTest):
         # Generate some logs
         self.session.dht_announce(lt.sha1_hash(b"a" * 20))
 
-        alert = wait_for(self.session, lt.dht_log_alert, timeout=5)
+        alert = self.wait_for(lt.dht_log_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.dht_log, "dht_log")
         self.assertIsInstance(alert.module, lt.dht_module_t)
@@ -2169,7 +2178,7 @@ class DhtPktAlertTest(DhtAlertTest):
         # Generate some packets
         self.session.dht_announce(lt.sha1_hash(b"a" * 20))
 
-        alert = wait_for(self.session, lt.dht_pkt_alert, timeout=5)
+        alert = self.wait_for(lt.dht_pkt_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.dht_log, "dht_pkt")
         self.assertIsInstance(alert.pkt_buf, bytes)
@@ -2185,10 +2194,10 @@ class DhtImmutableItemAlertTest(DhtAlertTest):
         item = {b"test": b"test"}
         sha1 = self.session.dht_put_immutable_item(cast("_Entry", item))
         # Wait for the put to complete, or the get will short-circuit
-        wait_for(self.session, lt.dht_put_alert, timeout=5)
+        self.wait_for(lt.dht_put_alert, timeout=5)
         self.session.dht_get_immutable_item(sha1)
 
-        alert = wait_for(self.session, lt.dht_immutable_item_alert, timeout=5)
+        alert = self.wait_for(lt.dht_immutable_item_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.dht, "dht_immutable_item")
         self.assertEqual(alert.target, sha1)
@@ -2212,10 +2221,10 @@ class DhtMutableItemAlertTest(DhtAlertTest):
         salt = b"salt"
         # Put the item, and wait for success
         self.session.dht_put_mutable_item(sk, pk, data, salt)
-        wait_for(self.session, lt.dht_put_alert, timeout=5)
+        self.wait_for(lt.dht_put_alert, timeout=5)
         self.session.dht_get_mutable_item(pk, salt)
 
-        alert = wait_for(self.session, lt.dht_mutable_item_alert, timeout=5)
+        alert = self.wait_for(lt.dht_mutable_item_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.dht, "dht_mutable_item")
         self.assertEqual(alert.key, pk)
@@ -2239,7 +2248,7 @@ class DhtPutAlertTest(DhtAlertTest):
         item = {b"test": b"test"}
         sha1 = self.session.dht_put_immutable_item(cast("_Entry", item))
 
-        alert = wait_for(self.session, lt.dht_put_alert, timeout=5)
+        alert = self.wait_for(lt.dht_put_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.dht, "dht_put")
         self.assertEqual(alert.target, sha1)
@@ -2267,7 +2276,7 @@ class DhtPutAlertTest(DhtAlertTest):
         salt = b"salt"
         self.session.dht_put_mutable_item(sk, pk, data, salt)
 
-        alert = wait_for(self.session, lt.dht_put_alert, timeout=5)
+        alert = self.wait_for(lt.dht_put_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.dht, "dht_put")
         self.assertEqual(alert.target, lt.sha1_hash())
@@ -2292,7 +2301,7 @@ class SessionStatsAlertTest(AlertTest):
     def test_session_stats_alert(self) -> None:
         self.session.post_session_stats()
 
-        alert = wait_for(self.session, lt.session_stats_alert, timeout=5)
+        alert = self.wait_for(lt.session_stats_alert, timeout=5)
 
         self.assert_alert(alert, 0, "session_stats")
         self.assertIsInstance(alert.values, dict)
@@ -2309,7 +2318,7 @@ class SessionStatsHeaderAlertTest(AlertTest):
     def test_session_stats_alert(self) -> None:
         self.session.post_session_stats()
 
-        alert = wait_for(self.session, lt.session_stats_header_alert, timeout=5)
+        alert = self.wait_for(lt.session_stats_header_alert, timeout=5)
 
         self.assert_alert(alert, 0, "session_stats_header")
 
@@ -2320,10 +2329,10 @@ class DhtGetPeersReplyAlertTest(DhtAlertTest):
     def test_get_peers_dht_reply_alert(self) -> None:
         self.session.add_torrent(self.atp)
         # Wait for the peer to reflect the announce back to us
-        wait_for(self.session, lt.dht_announce_alert, timeout=5)
+        self.wait_for(lt.dht_announce_alert, timeout=5)
         self.session.dht_get_peers(self.torrent.sha1_hash)
 
-        alert = wait_for(self.session, lt.dht_get_peers_reply_alert, timeout=5)
+        alert = self.wait_for(lt.dht_get_peers_reply_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.dht_operation, "dht_get_peers_reply")
         self.assertEqual(alert.info_hash, self.torrent.sha1_hash)
@@ -2342,7 +2351,7 @@ class BlockUploadedAlertTest(PeerAlertTest):
         peer_handle = self.peer.add_torrent(self.peer_atp)
         peer_handle.connect_peer(self.endpoint)
 
-        alert = wait_for(self.session, lt.block_uploaded_alert, timeout=5)
+        alert = self.wait_for(lt.block_uploaded_alert, timeout=5)
 
         self.assert_alert(
             alert,
@@ -2360,7 +2369,7 @@ class AlertsDroppedAlertTest(AlertTest):
         for _ in range(100):
             self.session.post_session_stats()
 
-        alert = wait_for(self.session, lt.alerts_dropped_alert, timeout=5)
+        alert = self.wait_for(lt.alerts_dropped_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.error, "alerts_dropped")
         # The alert types aren't mapped anywhere, but this should indicate
@@ -2381,7 +2390,7 @@ class Socks5AlertTest(AlertTest):
             }
         )
 
-        alert = wait_for(self.session, lt.socks5_alert, timeout=15)
+        alert = self.wait_for(lt.socks5_alert, timeout=15)
 
         self.assert_alert(alert, lt.alert_category.error, "socks5")
         self.assertIsInstance(alert.error.value(), int)
@@ -2398,7 +2407,7 @@ class FilePrioAlertTest(TorrentAlertTest):
         handle = self.session.add_torrent(self.atp)
         handle.file_priority(0, 0)
 
-        alert = wait_for(self.session, lt.file_prio_alert, timeout=5)
+        alert = self.wait_for(lt.file_prio_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.storage, "file_prio")
         self.assert_torrent_alert(alert, handle)
@@ -2408,7 +2417,7 @@ class DhtLiveNodesAlertTest(DhtAlertTest):
     def test_dht_live_nodes_alert(self) -> None:
         self.session.dht_live_nodes(self.torrent.sha1_hash)
 
-        alert = wait_for(self.session, lt.dht_live_nodes_alert, timeout=5)
+        alert = self.wait_for(lt.dht_live_nodes_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.dht, "dht_live_nodes")
         self.assertEqual(alert.node_id, self.torrent.sha1_hash)
@@ -2422,10 +2431,10 @@ class DhtSampleInfohashesAlertTest(DhtAlertTest):
     def test_dht_sample_infohashes_alert(self) -> None:
         self.session.add_torrent(self.peer_atp)
         # Wait for the peer to reflect the announce back to us
-        wait_for(self.session, lt.dht_announce_alert, timeout=5)
+        self.wait_for(lt.dht_announce_alert, timeout=5)
         self.session.dht_sample_infohashes(self.peer_endpoint, lt.sha1_hash())
 
-        alert = wait_for(self.session, lt.dht_sample_infohashes_alert, timeout=5)
+        alert = self.wait_for(lt.dht_sample_infohashes_alert, timeout=5)
 
         self.assert_alert(
             alert, lt.alert_category.dht_operation, "dht_sample_infohashes"
@@ -2484,7 +2493,7 @@ class SSLTrackerAlertTest(TrackerAlertTest):
         handle = self.session.add_torrent(self.atp)
         handle.add_tracker({"url": self.tracker_url})
 
-        alert = wait_for(self.session, lt.external_ip_alert, timeout=5)
+        alert = self.wait_for(lt.external_ip_alert, timeout=5)
 
         self.assert_alert(alert, lt.alert_category.status, "external_ip")
         self.assertEqual(alert.external_address, "1.2.3.4")
