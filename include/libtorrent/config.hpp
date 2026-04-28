@@ -697,6 +697,26 @@ see LICENSE file.
 #error compiling with TORRENT_USE_RTC requires TORRENT_USE_OPENSSL or TORRENT_USE_GNUTLS
 #endif
 
+#ifdef TORRENT_USE_LIBGCRYPT
+# define TORRENT_CRYPTO_NAMESPACE inline namespace gcry {
+# define TORRENT_CRYPTO_NAMESPACE_END }
+#elif TORRENT_USE_COMMONCRYPTO
+# define TORRENT_CRYPTO_NAMESPACE inline namespace cc {
+# define TORRENT_CRYPTO_NAMESPACE_END }
+#elif TORRENT_USE_CRYPTOAPI
+# define TORRENT_CRYPTO_NAMESPACE inline namespace capi {
+# define TORRENT_CRYPTO_NAMESPACE_END }
+#elif defined TORRENT_USE_WOLFSSL
+# define TORRENT_CRYPTO_NAMESPACE inline namespace wcrypto {
+# define TORRENT_CRYPTO_NAMESPACE_END }
+#elif defined TORRENT_USE_LIBCRYPTO
+# define TORRENT_CRYPTO_NAMESPACE inline namespace lcrypto {
+# define TORRENT_CRYPTO_NAMESPACE_END }
+#else
+# define TORRENT_CRYPTO_NAMESPACE inline namespace builtin {
+# define TORRENT_CRYPTO_NAMESPACE_END }
+#endif
+
 #include "libtorrent/aux_/export.hpp"
 
 namespace libtorrent {}
