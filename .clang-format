@@ -1,0 +1,123 @@
+---
+Language:        Cpp
+Standard:        c++17
+
+# Closest base style; most settings are overridden below
+BasedOnStyle:    LLVM
+
+# --- Indentation ---
+UseTab:          Always
+IndentWidth:     4
+TabWidth:        4
+ContinuationIndentWidth: 4
+
+# --- Column limit ---
+ColumnLimit:     100
+
+# --- Brace placement ---
+# Allman everywhere except namespace: 'namespace foo {' keeps brace on same line
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel:        false
+  AfterClass:            true
+  AfterControlStatement: Always
+  AfterEnum:             true
+  AfterFunction:         true
+  AfterNamespace:        false
+  AfterObjCDeclaration:  false
+  AfterStruct:           true
+  AfterUnion:            true
+  AfterExternBlock:      true
+  BeforeCatch:           true
+  BeforeElse:            true
+  BeforeLambdaBody:      false
+  BeforeWhile:           true
+  IndentBraces:          false
+  SplitEmptyFunction:    false
+  SplitEmptyRecord:      false
+  SplitEmptyNamespace:   false
+
+# --- Pointers and references ---
+# 'char const* name', 'std::string& ref' -- qualifier touches the type
+PointerAlignment: Left
+ReferenceAlignment: Left
+
+# --- Namespaces ---
+# indent namespace contents.
+NamespaceIndentation: All
+# Do not auto-add '} // namespace X' closing comments
+FixNamespaceComments: false
+
+# --- Access modifiers ---
+# 'public:', 'private:', 'protected:' are at the same indent as the
+# enclosing 'struct'/'class' keyword, one tab dedented from the body
+AccessModifierOffset: -4
+
+# --- Switch / case ---
+# 'case' labels are indented one level relative to 'switch'
+IndentCaseLabels: true
+
+# --- Short constructs ---
+AllowShortFunctionsOnASingleLine: All
+AllowShortLambdasOnASingleLine:   All
+# 'if (cond) return;' without braces is common in this codebase
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortBlocksOnASingleLine: Empty
+
+# --- Function parameter / argument wrapping ---
+# When a parameter/argument list must wrap, break after '(' and indent each
+# item by one tab.  The closing ')' goes on its own line at the call-site
+# indentation level (BlockIndent).  No column-alignment to '('.
+AlignAfterOpenBracket: BlockIndent
+BinPackParameters:     false
+BinPackArguments:      false
+
+# --- Trailing comments ---
+# Do not insert extra whitespace to column-align trailing comments; the
+# codebase uses a single space before '//' without column-alignment.
+AlignTrailingComments:
+  Kind: Never
+
+# --- Operand alignment ---
+# Don't align continuation lines to the '=' of long expressions;
+# use ContinuationIndentWidth instead
+AlignOperands: DontAlign
+
+# --- Constructor initializers ---
+# Leading-comma style: ': m_foo(a)\n, m_bar(b)'
+BreakConstructorInitializers: BeforeComma
+PackConstructorInitializers:  Never
+
+# --- Inheritance lists ---
+BreakInheritanceList: BeforeComma
+
+# --- Binary operators ---
+# '&&' and '||' appear at the start of continuation lines
+BreakBeforeBinaryOperators: NonAssignment
+
+# --- Templates ---
+AlwaysBreakTemplateDeclarations: Yes
+SpaceAfterTemplateKeyword:       true
+
+# --- Includes ---
+# Preserve existing include grouping and ordering
+SortIncludes:    false
+
+# --- Comments ---
+# Preserve comment layout (ASCII-art in headers, copyright blocks, etc.)
+ReflowComments:  false
+
+# --- Preprocessor directives ---
+IndentPPDirectives: None
+
+# --- Spaces ---
+SpaceBeforeParens:                   ControlStatements
+SpaceBeforeRangeBasedForLoopColon:   true
+SpaceInEmptyBlock:                   false
+SpaceAfterCStyleCast:                false
+Cpp11BracedListStyle:                true
+
+# --- Empty lines ---
+MaxEmptyLinesToKeep:             2
+EmptyLineBeforeAccessModifier:   LogicalBlock
+...

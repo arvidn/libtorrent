@@ -215,3 +215,9 @@ repos:
         storage.hpp|
         io_service.hpp
       )$
+  - id: git-clang-format
+    name: git-clang-format
+    language: system
+    entry: git-clang-format-18 --binary clang-format-18
+    pass_filenames: false
+    files: \.(cpp|hpp)$
