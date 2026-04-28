@@ -171,8 +171,6 @@ class http_handler(BaseHTTPRequestHandler):
                     self.send_header('Content-Encoding', 'gzip')
                 if not keepalive:
                     self.send_header("Connection", "close")
-                    if not use_ssl:
-                        self.request.shutdown(socket.SHUT_RD)
 
                 self.end_headers()
 
@@ -201,6 +199,11 @@ class http_handler(BaseHTTPRequestHandler):
                 self.send_header("Content-Length", "0")
                 try:
                     self.end_headers()
+                except Exception:
+                    pass
+            if not keepalive and not use_ssl:
+                try:
+                    self.request.shutdown(socket.SHUT_RD)
                 except Exception:
                     pass
 
