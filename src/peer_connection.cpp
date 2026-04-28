@@ -4427,24 +4427,26 @@ namespace {
 
 		m_disconnecting = true;
 
-		if (t)
-		{
-			if (ec)
-			{
-				if ((error > failure || ec.category() == socks_category())
-					&& t->alerts().should_post<peer_error_alert>())
-				{
-					t->alerts().emplace_alert<peer_error_alert>(handle, remote()
-						, pid(), op, ec);
-				}
+		aux::alert_manager& alerts = m_ses.alerts();
 
-				if (error <= failure && t->alerts().should_post<peer_disconnected_alert>())
-				{
-					t->alerts().emplace_alert<peer_disconnected_alert>(handle
-						, remote(), pid(), op, socket_type_idx(m_socket), ec, close_reason);
-				}
+		if (ec)
+		{
+			if ((error > failure || ec.category() == socks_category())
+				&& alerts.should_post<peer_error_alert>())
+			{
+				alerts.emplace_alert<peer_error_alert>(handle, remote()
+					, pid(), op, ec);
 			}
 
+			if (error <= failure && alerts.should_post<peer_disconnected_alert>())
+			{
+				alerts.emplace_alert<peer_disconnected_alert>(handle
+					, remote(), pid(), op, socket_type_idx(m_socket), ec, close_reason);
+			}
+		}
+
+		if (t)
+		{
 			// make sure we keep all the stats!
 			if (!m_ignore_stats)
 			{

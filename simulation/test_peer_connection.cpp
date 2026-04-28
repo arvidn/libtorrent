@@ -283,3 +283,55 @@ TORRENT_TEST(long_bitfield)
 		, e);
 	TEST_CHECK(e.alerts == vec{lt::errors::invalid_bitfield_size});
 }
+
+// verify that a peer_disconnected_alert is posted even when the connection
+// is torn down before being associated with a torrent (i.e. before the
+// handshake completes successfully). Here the peer sends an info-hash that
+// doesn't match any torrent in the session.
+TORRENT_TEST(disconnect_unknown_info_hash)
+{
+	sim::default_config cfg;
+	sim::simulation sim{cfg};
+	auto ios = std::make_unique<sim::asio::io_context>(sim, lt::make_address_v4("50.0.0.1"));
+	lt::session_proxy zombie;
+
+	lt::session_params sp;
+	sp.settings = settings();
+	sp.settings.set_int(lt::settings_pack::alert_mask
+		, lt::alert_category::all & ~lt::alert_category::stats);
+	sp.disk_io_constructor = lt::disabled_disk_io_constructor;
+
+	std::shared_ptr<lt::session> ses = std::make_shared<lt::session>(sp, *ios);
+
+	auto peer = std::make_unique<fake_peer>(sim, "60.0.0.1");
+
+	// add a torrent so we can use add_torrent_alert to know the session is up
+	lt::add_torrent_params params = ::create_torrent(0, false);
+	params.flags &= ~lt::torrent_flags::auto_managed;
+	params.flags &= ~lt::torrent_flags::paused;
+	ses->async_add_torrent(std::move(params));
+
+	peer_disconnects d;
+	print_alerts(*ses, [&](lt::session&, lt::alert const* a)
+	{
+		if (lt::alert_cast<lt::add_torrent_alert>(a))
+		{
+			// connect with an info-hash that doesn't match any torrent, so
+			// the connection is rejected before being attached to a torrent.
+			peer->connect_to(ep("50.0.0.1", 6881)
+				, lt::sha1_hash("01010101010101010101"));
+		}
+		d(a);
+	});
+
+	sim::timer t2(sim, lt::seconds(60)
+		, [&](boost::system::error_code const&)
+	{
+		zombie = ses->abort();
+		ses.reset();
+	});
+
+	sim.run();
+
+	TEST_CHECK(d.alerts == vec{lt::errors::invalid_info_hash});
+}
