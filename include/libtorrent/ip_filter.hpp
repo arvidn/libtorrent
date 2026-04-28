@@ -119,9 +119,9 @@ struct TORRENT_EXPORT ip_filter
 {
 	ip_filter();
 	ip_filter(ip_filter const&);
-	ip_filter(ip_filter&&);
+	ip_filter(ip_filter&&) noexcept;
 	ip_filter& operator=(ip_filter const&);
-	ip_filter& operator=(ip_filter&&);
+	ip_filter& operator=(ip_filter&&) noexcept;
 	~ip_filter();
 
 	// the flags defined for an IP range

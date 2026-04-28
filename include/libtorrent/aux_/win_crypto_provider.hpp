@@ -14,6 +14,8 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 
+#include <utility>
+
 #if TORRENT_USE_CRYPTOAPI
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/throw.hpp"
@@ -51,21 +53,32 @@ namespace libtorrent { namespace aux {
 	{
 		crypt_hash() { m_hash = create(); }
 		crypt_hash(crypt_hash const& h) { m_hash = duplicate(h); }
-		~crypt_hash() { CryptDestroyHash(m_hash); }
+		crypt_hash(crypt_hash&& h) noexcept : m_hash(h.m_hash) { h.m_hash = 0; }
+		~crypt_hash()
+		{
+			if (m_hash != 0) CryptDestroyHash(m_hash);
+		}
 
 		crypt_hash& operator=(crypt_hash const& h) &
 		{
 			if (this == &h) return *this;
 			HCRYPTHASH temp = duplicate(h);
-			CryptDestroyHash(m_hash);
+			if (m_hash != 0) CryptDestroyHash(m_hash);
 			m_hash = temp;
+			return *this;
+		}
+
+		crypt_hash& operator=(crypt_hash&& h) & noexcept
+		{
+			using std::swap;
+			swap(m_hash, h.m_hash);
 			return *this;
 		}
 
 		void reset()
 		{
 			HCRYPTHASH temp = create();
-			CryptDestroyHash(m_hash);
+			if (m_hash != 0) CryptDestroyHash(m_hash);
 			m_hash = temp;
 		}
 
@@ -114,7 +127,7 @@ namespace libtorrent { namespace aux {
 			return provider;
 		}
 
-		HCRYPTHASH m_hash;
+		HCRYPTHASH m_hash = 0;
 	};
 
 } // namespace aux

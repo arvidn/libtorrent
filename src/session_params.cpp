@@ -79,11 +79,11 @@ session_params::session_params(settings_pack const& sp // NOLINT
 	{}
 
 session_params::session_params(session_params const&) = default;
-session_params::session_params(session_params&&) = default;
+session_params::session_params(session_params&&) noexcept = default;
 session_params::~session_params() = default;
 
 session_params& session_params::operator=(session_params const&) & = default;
-session_params& session_params::operator=(session_params&&) & = default;
+session_params& session_params::operator=(session_params&&) & noexcept = default;
 
 TORRENT_VERSION_NAMESPACE_3_END
 

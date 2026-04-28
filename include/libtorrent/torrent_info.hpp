@@ -198,7 +198,7 @@ TORRENT_VERSION_NAMESPACE_4
 
 		// hidden
 		torrent_info& operator=(torrent_info const&) = delete;
-		torrent_info& operator=(torrent_info&&);
+		torrent_info& operator=(torrent_info&&) noexcept;
 
 		// The file_storage object contains the information on how to map the
 		// pieces to files. It is separated from the torrent_info object as the

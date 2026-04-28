@@ -733,7 +733,7 @@ namespace {
 TORRENT_VERSION_NAMESPACE_4
 
 	torrent_info::torrent_info(torrent_info const&) = default;
-	torrent_info& torrent_info::operator=(torrent_info&&) = default;
+	torrent_info& torrent_info::operator=(torrent_info&&) noexcept = default;
 
 #if TORRENT_ABI_VERSION < 4
 	void torrent_info::remap_files(file_storage const& f)

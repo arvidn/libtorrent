@@ -731,7 +731,7 @@ void file_handle::close()
 
 file_handle::~file_handle() { close(); }
 
-file_handle& file_handle::operator=(file_handle&& rhs) &
+file_handle& file_handle::operator=(file_handle&& rhs) & noexcept
 {
 	if (&rhs == this) return *this;
 	close();

@@ -117,13 +117,13 @@ file_mapping_handle::file_mapping_handle(file_handle file, open_mode_t const mod
 	}
 	file_mapping_handle::~file_mapping_handle() { close(); }
 
-	file_mapping_handle::file_mapping_handle(file_mapping_handle&& fm)
+	file_mapping_handle::file_mapping_handle(file_mapping_handle&& fm) noexcept
 		: m_file(std::move(fm.m_file)), m_mapping(fm.m_mapping)
 	{
 		fm.m_mapping = INVALID_HANDLE_VALUE;
 	}
 
-	file_mapping_handle& file_mapping_handle::operator=(file_mapping_handle&& fm) &
+	file_mapping_handle& file_mapping_handle::operator=(file_mapping_handle&& fm) & noexcept
 	{
 		if (&fm == this) return *this;
 		close();
@@ -235,20 +235,26 @@ void file_mapping::close()
 }
 #endif
 
-file_mapping::file_mapping(file_mapping&& rhs)
+file_mapping::file_mapping(file_mapping&& rhs) noexcept
 	: m_size(rhs.m_size)
 	, m_file(std::move(rhs.m_file))
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+	, m_open_unmap_lock(std::move(rhs.m_open_unmap_lock))
+#endif
 	, m_mapping(rhs.m_mapping)
 	{
 		TORRENT_ASSERT(m_mapping);
 		rhs.m_mapping = nullptr;
 	}
 
-file_mapping& file_mapping::operator=(file_mapping&& rhs) &
+file_mapping& file_mapping::operator=(file_mapping&& rhs) & noexcept
 {
 	if (&rhs == this) return *this;
 	close();
 	m_file = std::move(rhs.m_file);
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+	m_open_unmap_lock = std::move(rhs.m_open_unmap_lock);
+#endif
 	m_size = rhs.m_size;
 	m_mapping = rhs.m_mapping;
 	rhs.m_mapping = nullptr;

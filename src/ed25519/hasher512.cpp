@@ -93,20 +93,20 @@ namespace libtorrent::aux {
 #endif
 
 #if defined TORRENT_USE_LIBCRYPTO
-	hasher512::hasher512(hasher512&& h)
+	hasher512::hasher512(hasher512&& h) noexcept
 	{
 		std::swap(m_context, h.m_context);
 	}
 
-	hasher512& hasher512::operator=(hasher512&& h) &
+	hasher512& hasher512::operator=(hasher512&& h) & noexcept
 	{
 		if (this == &h) return *this;
 		std::swap(m_context, h.m_context);
 		return *this;
 	}
 #else
-	hasher512::hasher512(hasher512&&) = default;
-	hasher512& hasher512::operator=(hasher512&&) & = default;
+	hasher512::hasher512(hasher512&&) noexcept = default;
+	hasher512& hasher512::operator=(hasher512&&) & noexcept = default;
 #endif
 
 	hasher512& hasher512::update(span<char const> data)

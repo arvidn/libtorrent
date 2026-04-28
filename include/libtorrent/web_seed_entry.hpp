@@ -40,9 +40,9 @@ struct TORRENT_EXPORT web_seed_entry
 		, headers_t extra_headers_ = headers_t());
 
 	web_seed_entry(web_seed_entry const&);
-	web_seed_entry(web_seed_entry&&);
+	web_seed_entry(web_seed_entry&&) noexcept;
 	web_seed_entry& operator=(web_seed_entry const&);
-	web_seed_entry& operator=(web_seed_entry&&);
+	web_seed_entry& operator=(web_seed_entry&&) noexcept;
 
 	// URL and type comparison
 	bool operator==(web_seed_entry const& e) const
