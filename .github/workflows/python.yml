@@ -125,12 +125,57 @@ jobs:
         python3 -m pip install setuptools
         python3 setup.py build_ext --b2-args "deprecated-functions=off"
 
+    - name: enable core dumps (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt install -y gdb
+        # the default core_pattern on the GitHub runners pipes to apport,
+        # which swallows the dump. point it at a plain file in cwd instead.
+        echo 'core.%e.%p' | sudo tee /proc/sys/kernel/core_pattern
+
     - name: tests (Linux)
       if: runner.os == 'Linux'
       run: |
         # Exporting SYSTEM_VERSION_COMPAT=0 helps pip allow install macos 11 tagged wheels. Ref https://github.com/pypa/packaging/issues/497
         export SYSTEM_VERSION_COMPAT=0
+        # raise RLIMIT_CORE so segfaults produce a core file we can debug
+        ulimit -c unlimited
         tox -e py
+
+    - name: backtrace from core dumps (Linux)
+      if: failure() && runner.os == 'Linux'
+      run: |
+        cores=$(find bindings/python -maxdepth 4 -name 'core.*' -type f 2>/dev/null)
+        if [ -z "$cores" ]; then
+          echo "No core files found under bindings/python"
+          exit 0
+        fi
+        for core in $cores; do
+          echo "=================================================================="
+          echo "=== $core"
+          echo "=================================================================="
+          # the executable that wrote the core is recorded in the file name
+          # (core.<exe>.<pid>); recover it via 'file' so gdb can resolve symbols.
+          exe=$(file "$core" | sed -n "s/.*execfn: '\([^']*\)'.*/\1/p")
+          if [ -z "$exe" ]; then exe=$(command -v python3); fi
+          echo "executable: $exe"
+          gdb --batch \
+              -ex 'set pagination off' \
+              -ex 'set debuginfod enabled on' \
+              -ex 'thread apply all bt full' \
+              "$exe" "$core" 2>&1 || true
+        done
+
+    - name: upload core dumps (Linux)
+      if: failure() && runner.os == 'Linux'
+      uses: actions/upload-artifact@v4
+      with:
+        name: core-dumps-${{ matrix.os }}
+        path: |
+          bindings/python/**/core.*
+          bindings/python/build/**/libtorrent*.so
+          bindings/python/.tox/py/lib/**/libtorrent*.so
+        if-no-files-found: ignore
 
     - name: tests (MacOS)
       if: runner.os == 'macOS'
