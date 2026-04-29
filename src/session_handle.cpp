@@ -1209,7 +1209,7 @@ namespace {
 	{
 		std::shared_ptr<session_impl> s = m_impl.lock();
 		if (!s) aux::throw_ex<system_error>(errors::invalid_session_handle);
-		return s->wait_for_alert(max_wait);
+		return s->wait_for_alert(max_wait) ? &s->m_legacy_dummy_alert : nullptr;
 	}
 
 	void session_handle::set_alert_notify(std::function<void()> const& fun)

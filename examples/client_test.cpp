@@ -2359,8 +2359,7 @@ done:
 
 	while (num_outstanding_resume_data > 0)
 	{
-		alert const* a = ses.wait_for_alert(seconds(10));
-		if (a == nullptr) continue;
+		if (!ses.wait_for_alert(seconds(10))) continue;
 		pop_alerts(client_state, ses);
 	}
 

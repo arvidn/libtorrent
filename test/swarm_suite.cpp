@@ -203,8 +203,7 @@ void test_swarm(test_flags_t const flags)
 	// this should time out (ret == 0) and it should take
 	// about 2 seconds
 	time_point start = clock_type::now();
-	alert const* ret;
-	while ((ret = ses1.wait_for_alert(seconds(2))))
+	while (ses1.wait_for_alert(seconds(2)))
 	{
 		std::printf("wait returned: %d ms\n"
 			, int(total_milliseconds(clock_type::now() - start)));

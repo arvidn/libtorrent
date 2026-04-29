@@ -981,7 +981,9 @@ namespace libtorrent {
 		// will pop it and the second will free it.
 		//
 		// If there is no alert in the queue and no alert arrives within the
-		// specified timeout, ``wait_for_alert`` returns nullptr.
+		// specified timeout, ``wait_for_alert`` returns nullptr. If there are
+		// alerts available to be popped, the non-null pointer that's returned
+		// is of an unspecified alert.
 		//
 		// In the python binding, ``wait_for_alert`` takes the number of
 		// milliseconds to wait as an integer.

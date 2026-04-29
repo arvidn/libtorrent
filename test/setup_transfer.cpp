@@ -433,15 +433,14 @@ bool print_alerts(lt::session& ses, char const* name
 void wait_for_listen(lt::session& ses, char const* name)
 {
 	bool listen_done = false;
-	alert const* a = nullptr;
 	do
 	{
 		listen_done = print_alerts(ses, name, true, true, [](lt::alert const* al)
 			{ return alert_cast<listen_failed_alert>(al) || alert_cast<listen_succeeded_alert>(al); }
 			, false);
 		if (listen_done) break;
-		a = ses.wait_for_alert(milliseconds(500));
-	} while (a);
+	}
+	while (ses.wait_for_alert(milliseconds(500)));
 	// we din't receive a listen alert!
 	TEST_CHECK(listen_done);
 }
@@ -450,7 +449,6 @@ void wait_for_downloading(lt::session& ses, char const* name)
 {
 	time_point start = clock_type::now();
 	bool downloading_done = false;
-	alert const* a = nullptr;
 	do
 	{
 		downloading_done = print_alerts(ses, name, true, true
@@ -461,8 +459,8 @@ void wait_for_downloading(lt::session& ses, char const* name)
 			}, false);
 		if (downloading_done) break;
 		if (clock_type::now() - start > seconds(30)) break;
-		a = ses.wait_for_alert(seconds(5));
-	} while (a);
+	}
+	while (ses.wait_for_alert(seconds(5)));
 	if (!downloading_done)
 	{
 		std::printf("%s: did not receive a state_changed_alert indicating "
@@ -475,7 +473,6 @@ void wait_for_seeding(lt::session& ses, char const* name)
 {
 	time_point start = clock_type::now();
 	bool seeding = false;
-	alert const* a = nullptr;
 	do
 	{
 		seeding = print_alerts(ses, name, true, true
@@ -486,8 +483,8 @@ void wait_for_seeding(lt::session& ses, char const* name)
 			}, false);
 		if (seeding) break;
 		if (clock_type::now() - start > seconds(30)) break;
-		a = ses.wait_for_alert(seconds(5));
-	} while (a);
+	}
+	while (ses.wait_for_alert(seconds(5)));
 	if (!seeding)
 	{
 		std::printf("%s: did not receive a state_changed_alert indicating "

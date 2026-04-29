@@ -106,7 +106,7 @@ namespace aux {
 			return bool(m_alert_mask.load(std::memory_order_relaxed) & T::static_category);
 		}
 
-		alert* wait_for_alert(time_duration max_wait);
+		bool wait_for_alert(time_duration max_wait);
 
 		void set_alert_mask(alert_category_t const m) noexcept
 		{

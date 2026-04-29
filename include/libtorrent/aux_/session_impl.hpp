@@ -637,7 +637,20 @@ namespace aux {
 			std::vector<torrent_handle> get_torrents() const;
 
 			void pop_alerts(std::vector<alert*>* alerts);
-			alert* wait_for_alert(time_duration max_wait);
+			bool wait_for_alert(time_duration max_wait);
+
+			// a placeholder alert returned by the legacy session_handle::wait_for_alert
+			// signature when an alert is pending. The pointer to the head of the
+			// alert queue can't be returned because the queue may grow and reallocate
+			// concurrently, invalidating the pointer.
+			struct legacy_dummy_alert : alert
+			{
+				int type() const noexcept override { return -1; }
+				char const* what() const noexcept override { return "dummy"; }
+				std::string message() const override { return {}; }
+				alert_category_t category() const noexcept override { return {}; }
+			};
+			legacy_dummy_alert m_legacy_dummy_alert;
 
 #if TORRENT_ABI_VERSION == 1
 			TORRENT_DEPRECATED void pop_alerts();

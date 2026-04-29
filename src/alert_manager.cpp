@@ -52,19 +52,15 @@ namespace aux {
 
 	alert_manager::~alert_manager() = default;
 
-	alert* alert_manager::wait_for_alert(time_duration max_wait)
+	bool alert_manager::wait_for_alert(time_duration max_wait)
 	{
 		std::unique_lock<std::recursive_mutex> lock(m_mutex);
 
-		if (!m_alerts[m_generation & 1].empty())
-			return m_alerts[m_generation & 1].front();
+		if (!m_alerts[m_generation & 1].empty()) return true;
 
 		// this call can be interrupted prematurely by other signals
 		m_condition.wait_for(lock, max_wait);
-		if (!m_alerts[m_generation & 1].empty())
-			return m_alerts[m_generation & 1].front();
-
-		return nullptr;
+		return !m_alerts[m_generation & 1].empty();
 	}
 
 	void alert_manager::maybe_notify(alert* a)
