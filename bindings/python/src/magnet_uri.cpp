@@ -20,15 +20,14 @@ namespace {
 #if TORRENT_ABI_VERSION == 1
 	torrent_handle _add_magnet_uri(lt::session& s, std::string uri, dict params)
 	{
-        python_deprecated("add_magnet_uri() is deprecated");
+		python_deprecated("add_magnet_uri() is deprecated");
 		add_torrent_params p;
 
 		dict_to_add_torrent_params(params, p);
 
 		if (p.save_path.empty())
 		{
-			PyErr_SetString(PyExc_KeyError,
-				"save_path must be set in add_torrent_params");
+			PyErr_SetString(PyExc_KeyError, "save_path must be set in add_torrent_params");
 			throw_error_already_set();
 		}
 
@@ -57,15 +56,16 @@ namespace {
 
 		if (p.ti) ret["ti"] = p.ti;
 		list tracker_list;
-		for (std::vector<std::string>::const_iterator i = p.trackers.begin()
-			, end(p.trackers.end()); i != end; ++i)
+		for (std::vector<std::string>::const_iterator i = p.trackers.begin(), end(p.trackers.end());
+			 i != end;
+			 ++i)
 			tracker_list.append(*i);
 		ret["trackers"] = tracker_list;
 
 		list nodes_list;
 		for (auto const& i : p.dht_nodes)
 			nodes_list.append(boost::python::make_tuple(i.first, i.second));
-		ret["dht_nodes"] =  nodes_list;
+		ret["dht_nodes"] = nodes_list;
 		if (p.info_hashes.has_v2())
 			ret["info_hashes"] = bytes(p.info_hashes.v2.to_string());
 		else

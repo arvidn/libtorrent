@@ -35,29 +35,29 @@ void bind_load_torrent();
 
 BOOST_PYTHON_MODULE(libtorrent)
 {
-    Py_Initialize();
+	Py_Initialize();
 
-    bind_converters();
-    bind_unicode_string_conversion();
-    bind_error_code();
-    bind_utility();
-    bind_fingerprint();
-    bind_sha1_hash();
-    bind_sha256_hash();
-    bind_info_hash();
-    bind_entry();
-    bind_torrent_handle();
-    bind_session();
-    bind_torrent_info();
-    bind_torrent_status();
-    bind_session_settings();
-    bind_version();
-    bind_alert();
-    bind_datetime();
-    bind_peer_info();
-    bind_ip_filter();
-    bind_magnet_uri();
-    bind_create_torrent();
-    bind_file_storage();
-    bind_load_torrent();
+	bind_converters();
+	bind_unicode_string_conversion();
+	bind_error_code();
+	bind_utility();
+	bind_fingerprint();
+	bind_sha1_hash();
+	bind_sha256_hash();
+	bind_info_hash();
+	bind_entry();
+	bind_torrent_handle();
+	bind_session();
+	bind_torrent_info();
+	bind_torrent_status();
+	bind_session_settings();
+	bind_version();
+	bind_alert();
+	bind_datetime();
+	bind_peer_info();
+	bind_ip_filter();
+	bind_magnet_uri();
+	bind_create_torrent();
+	bind_file_storage();
+	bind_load_torrent();
 }
