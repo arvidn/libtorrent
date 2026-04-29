@@ -83,6 +83,12 @@ Pre-commit hooks include trailing whitespace, YAML/TOML/XML checks, RST formatti
 - `include/libtorrent/fwd.hpp` and `include/libtorrent/libtorrent.hpp` via `tools/gen_fwd.py` and `tools/gen_convenience_header.py`
 - C binding headers (`bindings/c/include/libtorrent_settings.h`, `libtorrent_alerts.h`) via `bindings/c/tools/gen_header.py` and `bindings/c/tools/gen_alert_header.py`
 
+The C++ format check (`git-clang-format-18`) is the only hook that requires a
+system install -- `apt install clang-format-18` (or platform equivalent). It
+formats only the lines that differ from HEAD, not whole files; the codebase is
+being migrated to the `.clang-format` style incrementally rather than via a
+flag-day reformat.
+
 ## Key Architecture
 
 ### Threading Model
