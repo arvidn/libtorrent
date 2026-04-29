@@ -249,10 +249,10 @@ jobs:
           cd boost
           bootstrap.bat
 
-      - name: stage boost libraries
+      - name: stage boost headers
         run: |
           cd boost
-          b2 cxxstd=17 release --with-system --with-json --layout=system address-model=64 link=static stage
+          b2 cxxstd=17 release --with-headers --layout=system address-model=64 link=static stage
 
       - name: cmake configure
         run: |
