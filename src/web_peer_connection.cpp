@@ -818,6 +818,27 @@ void web_peer_connection::on_receive(error_code const& error
 				return;
 			}
 
+			// status code 0 means the parser saw an HTTP request line instead of a
+			// response line (e.g. the remote sent garbage that the parser treated as
+			// a method name). Treat that as a parse error.
+			if (m_parser.status_code() == 0)
+			{
+				received_bytes(0, int(recv_buffer.size()));
+				disconnect(errors::http_parse_error, operation_t::bittorrent, peer_error);
+				return;
+			}
+
+			// status code -1 means the parser hasn't seen a complete status line
+			// yet. If the buffered bytes don't start with 'H' they can never form
+			// a valid HTTP response, so fail early rather than letting the assert
+			// below fire.
+			if (!recv_buffer.empty() && recv_buffer[0] != 'H')
+			{
+				received_bytes(0, int(recv_buffer.size()));
+				disconnect(errors::http_parse_error, operation_t::bittorrent, peer_error);
+				return;
+			}
+
 			TORRENT_ASSERT(recv_buffer.empty() || recv_buffer[0] == 'H');
 			TORRENT_ASSERT(int(recv_buffer.size()) <= m_recv_buffer.packet_size());
 
