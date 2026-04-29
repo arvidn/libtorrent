@@ -218,6 +218,6 @@ repos:
   - id: git-clang-format
     name: git-clang-format
     language: system
-    entry: git-clang-format-18 --binary clang-format-18
+    entry: git-clang-format-18 --binary clang-format-18 --force
     pass_filenames: false
     files: \.(cpp|hpp)$
