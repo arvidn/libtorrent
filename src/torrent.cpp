@@ -10782,13 +10782,13 @@ namespace {
 		{
 			piece_picker::piece_stats_t ps = m_picker->piece_stats(i);
 			if (ps.peer_count == 0) continue;
-			if (ps.priority == 0 && (ps.have || ps.downloading))
+			if (ps.priority == 0 && (ps.flushed || ps.downloading))
 			{
 				m_picker->set_piece_priority(i, default_priority);
 				continue;
 			}
 			// don't count pieces we already have or are trying to download
-			if (ps.priority > 0 || ps.have) continue;
+			if (ps.priority > 0 || ps.flushed) continue;
 			if (ps.peer_count > rarest_rarity) continue;
 			if (ps.peer_count == rarest_rarity)
 			{

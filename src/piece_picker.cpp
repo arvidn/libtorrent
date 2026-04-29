@@ -172,11 +172,11 @@ namespace libtorrent::aux {
 		}
 
 		for (auto i = m_piece_map.begin() + static_cast<int>(m_cursor)
-			, end(m_piece_map.end()); i != end && (i->have() || i->filtered());
+			, end(m_piece_map.end()); i != end && (i->flushed() || i->filtered());
 			++i, ++m_cursor);
 
 		for (auto i = m_piece_map.rend() - static_cast<int>(m_reverse_cursor);
-			m_reverse_cursor > piece_index_t(0) && (i->have() || i->filtered());
+			m_reverse_cursor > piece_index_t(0) && (i->flushed() || i->filtered());
 			++i, --m_reverse_cursor);
 
 		m_blocks_in_last_piece = aux::numeric_cast<std::uint16_t>(blocks_in_last_piece);
@@ -203,7 +203,7 @@ namespace libtorrent::aux {
 		st.index = index;
 		st.writing = 0;
 		st.requested = 0;
-		if (m_piece_map[index].have())
+		if (m_piece_map[index].flushed())
 		{
 			st.finished = std::uint16_t(blocks_in_piece(index));
 			return;
@@ -217,7 +217,7 @@ namespace libtorrent::aux {
 		piece_stats_t ret = {
 			int(pp.peer_count + m_seeds),
 			pp.priority(this),
-			pp.have(),
+			pp.flushed(),
 			pp.downloading()
 		};
 		return ret;
@@ -365,11 +365,11 @@ namespace libtorrent::aux {
 		m_cursor = first_piece;
 		m_reverse_cursor = next(last_piece);
 		for (auto i = m_piece_map.begin() + static_cast<int>(m_cursor)
-			, end(m_piece_map.end()); i != end && (i->have() || i->filtered());
+			, end(m_piece_map.end()); i != end && (i->flushed() || i->filtered());
 			++i, ++m_cursor);
 
 		for (auto i = m_piece_map.rend() - static_cast<int>(m_reverse_cursor);
-			m_reverse_cursor > piece_index_t(0) && (i->have() || i->filtered());
+			m_reverse_cursor > piece_index_t(0) && (i->flushed() || i->filtered());
 			++i, --m_reverse_cursor);
     }
 
@@ -420,7 +420,7 @@ namespace libtorrent::aux {
 		for (piece_block const& pb : picked)
 		{
 			TORRENT_ASSERT(bits[pb.piece_index]);
-			TORRENT_ASSERT(!m_piece_map[pb.piece_index].have());
+			TORRENT_ASSERT(!m_piece_map[pb.piece_index].flushed());
 			TORRENT_ASSERT(!m_piece_map[pb.piece_index].filtered());
 		}
 	}
@@ -584,8 +584,8 @@ namespace libtorrent::aux {
 			{
 				if (m_cursor < m_reverse_cursor)
 				{
-					TORRENT_ASSERT(!m_piece_map[m_cursor].have() && !m_piece_map[m_cursor].filtered());
-					TORRENT_ASSERT(!m_piece_map[prev(m_reverse_cursor)].have() &&
+					TORRENT_ASSERT(!m_piece_map[m_cursor].flushed() && !m_piece_map[m_cursor].filtered());
+					TORRENT_ASSERT(!m_piece_map[prev(m_reverse_cursor)].flushed() &&
 						!m_piece_map[prev(m_reverse_cursor)].filtered());
 				}
 			}
@@ -623,7 +623,7 @@ namespace libtorrent::aux {
 						num_filtered_pad_bytes += pad_bytes;
 					}
 				}
-				else if (p.have())
+				else if (p.flushed())
 				{
 					++num_have_filtered;
 					num_have_filtered_pad_bytes += pad_bytes;
@@ -638,7 +638,7 @@ namespace libtorrent::aux {
 #ifdef TORRENT_DEBUG_REFCOUNTS
 			TORRENT_ASSERT(int(p.have_peers.size()) == p.peer_count + m_seeds);
 #endif
-			if (p.have())
+			if (p.flushed())
 			{
 				++num_have;
 				num_have_pad_bytes += pad_bytes;
@@ -764,7 +764,7 @@ namespace libtorrent::aux {
 		{
 			int peer_count = int(i->peer_count);
 			// take ourself into account
-			if (i->have()) ++peer_count;
+			if (i->flushed()) ++peer_count;
 			if (min_availability > peer_count)
 			{
 				min_availability = peer_count;
@@ -811,7 +811,7 @@ namespace libtorrent::aux {
 		TORRENT_ASSERT(!m_dirty);
 		piece_pos const& p = m_piece_map[index];
 		TORRENT_ASSERT(!p.filtered());
-		TORRENT_ASSERT(!p.have());
+		TORRENT_ASSERT(!p.flushed());
 
 		int priority = p.priority(this);
 		TORRENT_ASSERT(priority >= 0);
@@ -937,7 +937,7 @@ namespace libtorrent::aux {
 		piece_index_t const index = m_pieces[elem_index];
 		// update the piece_map
 		piece_pos& p = m_piece_map[index];
-		TORRENT_ASSERT(p.index == elem_index || p.have());
+		TORRENT_ASSERT(p.index == elem_index || p.flushed());
 
 		int const new_priority = p.priority(this);
 
@@ -1621,7 +1621,7 @@ namespace libtorrent::aux {
 			<< index << ")" << std::endl;
 #endif
 
-		bool have_piece = p.have();
+		bool have_piece = p.flushed();
 		if (!have_piece)
 		{
 			// even though we don't have the piece, it
@@ -1647,7 +1647,7 @@ namespace libtorrent::aux {
 			}
 		}
 
-		p.set_not_have();
+		p.set_not_flushed();
 
 		if (m_dirty) return;
 		if (p.priority(this) >= 0) add(index);
@@ -1669,7 +1669,7 @@ namespace libtorrent::aux {
 		int const priority = p.priority(this);
 		TORRENT_ASSERT(priority < int(m_priority_boundaries.size()) || m_dirty);
 
-		if (p.have()) return;
+		if (p.flushed()) return;
 
 		auto const state = p.download_queue();
 		bool passed_hash_check = false;
@@ -1693,7 +1693,7 @@ namespace libtorrent::aux {
 			account_have(index);
 		}
 
-		p.set_have();
+		p.set_flushed();
 		if (m_cursor == prev(m_reverse_cursor)
 			&& m_cursor == index)
 		{
@@ -1705,18 +1705,18 @@ namespace libtorrent::aux {
 		{
 			++m_cursor;
 			for (auto i = m_piece_map.begin() + static_cast<int>(m_cursor)
-				, end(m_piece_map.end()); i != end && (i->have() || i->filtered());
+				, end(m_piece_map.end()); i != end && (i->flushed() || i->filtered());
 				++i, ++m_cursor);
 		}
 		else if (prev(m_reverse_cursor) == index)
 		{
 			--m_reverse_cursor;
-			TORRENT_ASSERT(m_piece_map[m_reverse_cursor].have()
+			TORRENT_ASSERT(m_piece_map[m_reverse_cursor].flushed()
 				|| m_piece_map[m_reverse_cursor].filtered());
 			for (auto i = m_piece_map.begin() + static_cast<int>(m_reverse_cursor) - 1;
-				m_reverse_cursor > piece_index_t(0) && (i->have() || i->filtered());
+				m_reverse_cursor > piece_index_t(0) && (i->flushed() || i->filtered());
 				--i, --m_reverse_cursor);
-			TORRENT_ASSERT(m_piece_map[m_reverse_cursor].have()
+			TORRENT_ASSERT(m_piece_map[m_reverse_cursor].flushed()
 				|| m_piece_map[m_reverse_cursor].filtered());
 		}
 		TORRENT_ASSERT(m_reverse_cursor > m_cursor
@@ -1752,7 +1752,7 @@ namespace libtorrent::aux {
 		for (auto& queue : m_downloads) queue.clear();
 		for (auto& p : m_piece_map)
 		{
-			p.set_have();
+			p.set_flushed();
 			p.state(piece_pos::piece_open);
 		}
 	}
@@ -1779,12 +1779,21 @@ namespace libtorrent::aux {
 		int const prev_priority = p.priority(this);
 		TORRENT_ASSERT(m_dirty || prev_priority < int(m_priority_boundaries.size()));
 
+		// a downloading piece that has passed its hash check counts as
+		// "had" for the filtered/have-filtered accounting (see how the
+		// invariant in check_invariant() classifies it). This matters when
+		// the hasher completes ahead of the last write completion, leaving
+		// the piece in m_downloads with passed_hash_check set but p.flushed()
+		// still false. Use have_piece() so the counter we increment here
+		// matches what the invariant computes.
+		bool const had = have_piece(index);
+
 		bool ret = false;
 		if (new_piece_priority == dont_download
 			&& p.piece_priority != piece_pos::filter_priority)
 		{
 			// the piece just got filtered
-			if (p.have())
+			if (had)
 			{
 				m_have_filtered_pad_bytes += pad_bytes_in_piece(index);
 				++m_num_have_filtered;
@@ -1793,8 +1802,14 @@ namespace libtorrent::aux {
 			{
 				m_filtered_pad_bytes += pad_bytes_in_piece(index);
 				++m_num_filtered;
+			}
 
-				// update m_cursor
+			// the cursor is only advanced past a piece by piece_flushed(),
+			// so it may still point at this piece in the transient
+			// passed_hash_check state. Update it whenever p.flushed() is
+			// false.
+			if (!p.flushed())
+			{
 				if (m_cursor == prev(m_reverse_cursor) && m_cursor == index)
 				{
 					m_cursor = m_piece_map.end_index();
@@ -1804,7 +1819,7 @@ namespace libtorrent::aux {
 				{
 					++m_cursor;
 					while (m_cursor < m_piece_map.end_index()
-						&& (m_piece_map[m_cursor].have()
+						&& (m_piece_map[m_cursor].flushed()
 						|| m_piece_map[m_cursor].filtered()))
 						++m_cursor;
 				}
@@ -1812,7 +1827,7 @@ namespace libtorrent::aux {
 				{
 					--m_reverse_cursor;
 					while (m_reverse_cursor > piece_index_t(0)
-						&& (m_piece_map[prev(m_reverse_cursor)].have()
+						&& (m_piece_map[prev(m_reverse_cursor)].flushed()
 						|| m_piece_map[prev(m_reverse_cursor)].filtered()))
 						--m_reverse_cursor;
 				}
@@ -1823,7 +1838,7 @@ namespace libtorrent::aux {
 			&& p.piece_priority == piece_pos::filter_priority)
 		{
 			// the piece just got unfiltered
-			if (p.have())
+			if (had)
 			{
 				TORRENT_ASSERT(m_have_filtered_pad_bytes >= pad_bytes_in_piece(index));
 				m_have_filtered_pad_bytes -= pad_bytes_in_piece(index);
@@ -1836,6 +1851,10 @@ namespace libtorrent::aux {
 				m_filtered_pad_bytes -= pad_bytes_in_piece(index);
 				TORRENT_ASSERT(m_num_filtered > 0);
 				--m_num_filtered;
+			}
+
+			if (!p.flushed())
+			{
 				// update cursors
 				if (m_reverse_cursor == m_cursor)
 				{
@@ -2185,7 +2204,7 @@ namespace {
 						bool have_all = true;
 						for (piece_index_t const p : extent_for(e))
 						{
-							if (!m_piece_map[p].have()) have_all = false;
+							if (!m_piece_map[p].flushed()) have_all = false;
 							if (!is_piece_free(p, pieces)) continue;
 							if ((options & sequential) && p >= m_cursor && p < m_reverse_cursor) continue;
 
@@ -2357,7 +2376,7 @@ get_out:
 			// if we already have the piece, obviously we should not have
 			// since this is a partial piece in the piece_downloading state, we
 			// should not already have it
-			TORRENT_ASSERT(!m_piece_map[dp.index].have());
+			TORRENT_ASSERT(!m_piece_map[dp.index].flushed());
 
 			// if it was filtered, it would be in the prio_zero queue
 			TORRENT_ASSERT(!m_piece_map[dp.index].filtered());
@@ -2499,7 +2518,7 @@ get_out:
 		TORRENT_ASSERT(index >= piece_index_t(0));
 
 		piece_pos const& p = m_piece_map[index];
-		return p.have();
+		return p.flushed();
 	}
 
 	int piece_picker::blocks_in_piece(piece_index_t const index) const
@@ -2516,7 +2535,7 @@ get_out:
 		, typed_bitfield<piece_index_t> const& bitmask) const
 	{
 		return bitmask[piece]
-			&& !m_piece_map[piece].have()
+			&& !m_piece_map[piece].flushed()
 			&& !m_piece_map[piece].filtered();
 	}
 
@@ -2524,7 +2543,7 @@ get_out:
 		, typed_bitfield<piece_index_t> const& bitmask) const
 	{
 		return bitmask[piece]
-			&& !m_piece_map[piece].have()
+			&& !m_piece_map[piece].flushed()
 			// TODO: when expanding pieces for cache stripe reasons,
 			// the !downloading condition doesn't make much sense
 			&& !m_piece_map[piece].downloading()
@@ -2820,7 +2839,7 @@ get_out:
 	bool piece_picker::is_piece_finished(piece_index_t const index) const
 	{
 		piece_pos const& p = m_piece_map[index];
-		if (p.index == piece_pos::we_have_index) return true;
+		if (p.index == piece_pos::flushed_index) return true;
 
 		auto const state = p.download_queue();
 		if (state == piece_pos::piece_open)
@@ -2861,13 +2880,14 @@ get_out:
 		return i->hashing > 0;
 	}
 
+	// returns true if the piece has passed the hash check
 	bool piece_picker::have_piece(piece_index_t const index) const
 	{
 		TORRENT_ASSERT(index < m_piece_map.end_index());
 		TORRENT_ASSERT(index >= piece_index_t(0));
 
 		piece_pos const& p = m_piece_map[index];
-		if (p.have()) return true;
+		if (p.flushed()) return true;
 
 		auto const state = p.download_queue();
 		if (state == piece_pos::piece_open)
@@ -3015,7 +3035,7 @@ get_out:
 		TORRENT_ASSERT(block.piece_index < m_piece_map.end_index());
 
 		piece_pos const& p = m_piece_map[block.piece_index];
-		if (p.index == piece_pos::we_have_index) return true;
+		if (p.index == piece_pos::flushed_index) return true;
 		auto const state = p.download_queue();
 		if (state == piece_pos::piece_open) return false;
 		auto const i = find_dl_piece(state, block.piece_index);
@@ -3034,7 +3054,7 @@ get_out:
 		TORRENT_ASSERT(block.piece_index < m_piece_map.end_index());
 
 		piece_pos const& p = m_piece_map[block.piece_index];
-		if (p.index == piece_pos::we_have_index) return true;
+		if (p.index == piece_pos::flushed_index) return true;
 		auto const state = p.download_queue();
 		if (state == piece_pos::piece_open) return false;
 		auto const i = find_dl_piece(state, block.piece_index);
@@ -3082,7 +3102,7 @@ get_out:
 		{
 			if (piece == p) continue;
 
-			if (!m_piece_map[piece].have()) have_all = false;
+			if (!m_piece_map[piece].flushed()) have_all = false;
 
 			// if at least one piece in this extent has a different priority than
 			// the one we just started downloading, don't create an affinity for
@@ -3121,7 +3141,7 @@ get_out:
 		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
 		TORRENT_ASSERT(block.piece_index < m_piece_map.end_index());
 		TORRENT_ASSERT(block.block_index < blocks_in_piece(block.piece_index));
-		TORRENT_ASSERT(!m_piece_map[block.piece_index].have());
+		TORRENT_ASSERT(!m_piece_map[block.piece_index].flushed());
 
 		piece_pos& p = m_piece_map[block.piece_index];
 		if (p.download_queue() == piece_pos::piece_open)
@@ -3667,7 +3687,16 @@ get_out:
 		m_pads_in_piece[piece] = bytes;
 
 		piece_pos& p = m_piece_map[piece];
-		if (p.have())
+		// the "had" notion used for the pad-byte and filtered counters is
+		// have_piece() (i.e. p.flushed() OR a downloading piece that has passed
+		// the hash check). check_invariant() classifies pieces this way, and
+		// account_have()/account_lost()/set_piece_priority() update the
+		// counters using this same notion, so set_pad_bytes() must agree.
+		// In practice this is called during torrent initialisation, before
+		// any piece can be in the transient passed-hash-check state, but we
+		// keep the test consistent here so the convention is uniform.
+		bool const had = have_piece(piece);
+		if (had)
 		{
 			m_have_pad_bytes += bytes;
 			if (p.filtered())
@@ -3882,7 +3911,7 @@ get_out:
 	{
 		++m_num_have;
 		piece_pos& p = m_piece_map[index];
-		TORRENT_ASSERT(!p.have());
+		TORRENT_ASSERT(!p.flushed());
 		int const pad_bytes = pad_bytes_in_piece(index);
 		if (p.filtered())
 		{
