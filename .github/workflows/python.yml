@@ -48,7 +48,7 @@ jobs:
     #  - setup-python sets up PATH so 'python' and 'python3' point to the
     #    requested version on mac and linux, but on windows it only sets up
     #    'python'.
-    - uses: actions/setup-python@v2
+    - uses: actions/setup-python@v6
       with:
          python-version: ${{ matrix.python-version }}
 
