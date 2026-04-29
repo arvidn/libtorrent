@@ -1,5 +1,6 @@
 2.0.13
 
+	* fixed piece-picker accounting issue for filtered pieces
 	* add setting for NAT-PMP lease duration
 	* optimize v2 request sizes
 	* fix socks5 issues

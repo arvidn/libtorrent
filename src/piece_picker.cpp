@@ -1807,12 +1807,21 @@ namespace libtorrent {
 		int const prev_priority = p.priority(this);
 		TORRENT_ASSERT(m_dirty || prev_priority < int(m_priority_boundaries.size()));
 
+		// a downloading piece that has passed its hash check counts as
+		// "had" for the filtered/have-filtered accounting (see how the
+		// invariant in check_invariant() classifies it). This matters when
+		// the hasher completes ahead of the last write completion, leaving
+		// the piece in m_downloads with passed_hash_check set but p.flushed()
+		// still false. Use have_piece() so the counter we increment here
+		// matches what the invariant computes.
+		bool const had = have_piece(index);
+
 		bool ret = false;
 		if (new_piece_priority == dont_download
 			&& p.piece_priority != piece_pos::filter_priority)
 		{
 			// the piece just got filtered
-			if (p.have())
+			if (had)
 			{
 				m_have_filtered_pad_bytes += pad_bytes_in_piece(index);
 				++m_num_have_filtered;
@@ -1821,8 +1830,14 @@ namespace libtorrent {
 			{
 				m_filtered_pad_bytes += pad_bytes_in_piece(index);
 				++m_num_filtered;
+			}
 
-				// update m_cursor
+			// the cursor is only advanced past a piece by piece_flushed(),
+			// so it may still point at this piece in the transient
+			// passed_hash_check state. Update it whenever p.flushed() is
+			// false.
+			if (!p.have())
+			{
 				if (m_cursor == prev(m_reverse_cursor) && m_cursor == index)
 				{
 					m_cursor = m_piece_map.end_index();
@@ -1851,7 +1866,7 @@ namespace libtorrent {
 			&& p.piece_priority == piece_pos::filter_priority)
 		{
 			// the piece just got unfiltered
-			if (p.have())
+			if (had)
 			{
 				TORRENT_ASSERT(m_have_filtered_pad_bytes >= pad_bytes_in_piece(index));
 				m_have_filtered_pad_bytes -= pad_bytes_in_piece(index);
@@ -1864,6 +1879,10 @@ namespace libtorrent {
 				m_filtered_pad_bytes -= pad_bytes_in_piece(index);
 				TORRENT_ASSERT(m_num_filtered > 0);
 				--m_num_filtered;
+			}
+
+			if (!p.have())
+			{
 				// update cursors
 				if (index < m_cursor) m_cursor = index;
 				if (index >= m_reverse_cursor) m_reverse_cursor = next(index);
@@ -3710,7 +3729,16 @@ get_out:
 		m_pads_in_piece[piece] = bytes;
 
 		piece_pos& p = m_piece_map[piece];
-		if (p.have())
+		// the "had" notion used for the pad-byte and filtered counters is
+		// have_piece() (i.e. p.flushed() OR a downloading piece that has passed
+		// the hash check). check_invariant() classifies pieces this way, and
+		// account_have()/account_lost()/set_piece_priority() update the
+		// counters using this same notion, so set_pad_bytes() must agree.
+		// In practice this is called during torrent initialisation, before
+		// any piece can be in the transient passed-hash-check state, but we
+		// keep the test consistent here so the convention is uniform.
+		bool const had = have_piece(piece);
+		if (had)
 		{
 			m_have_pad_bytes += bytes;
 			if (p.filtered())
