@@ -140,6 +140,11 @@ jobs:
         export SYSTEM_VERSION_COMPAT=0
         # raise RLIMIT_CORE so segfaults produce a core file we can debug
         ulimit -c unlimited
+        # block pytest's faulthandler plugin. otherwise faulthandler catches
+        # the original SIGSEGV, dumps a python traceback and chains via
+        # raise(), and the resulting core has only __pthread_kill at the
+        # top instead of the real crash site.
+        export PYTEST_EXTRA="-p no:faulthandler"
         tox -e py
 
     - name: backtrace from core dumps (Linux)
@@ -159,10 +164,16 @@ jobs:
           exe=$(file "$core" | sed -n "s/.*execfn: '\([^']*\)'.*/\1/p")
           if [ -z "$exe" ]; then exe=$(command -v python3); fi
           echo "executable: $exe"
+          # -iex 'set auto-load python-scripts off' disables gdb's auto-loaded
+          # Python frame filters; one of them throws ModuleNotFoundError on
+          # the runner image and aborts 'bt' after frame 0.
+          # 'bt full no-filters' bypasses any remaining filters.
           gdb --batch \
+              -iex 'set auto-load python-scripts off' \
+              -iex 'set print frame-arguments none' \
               -ex 'set pagination off' \
               -ex 'set debuginfod enabled on' \
-              -ex 'thread apply all bt full' \
+              -ex 'thread apply all bt full no-filters' \
               "$exe" "$core" 2>&1 || true
         done
 
