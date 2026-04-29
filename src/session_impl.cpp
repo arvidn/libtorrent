@@ -3508,7 +3508,8 @@ retry:
 		}
 
 		ADD_OUTSTANDING_ASYNC("session_impl::on_tick");
-		milliseconds const tick_interval(m_abort ? 100 : m_settings.get_int(settings_pack::tick_interval));
+		int const raw_tick_ms = m_settings.get_int(settings_pack::tick_interval);
+		milliseconds const tick_interval(m_abort ? 100 : std::max(1, raw_tick_ms));
 		m_timer.expires_at(now + tick_interval);
 		m_timer.async_wait(aux::make_handler([this](error_code const& err)
 		{ wrap(&session_impl::on_tick, err); }, m_tick_handler_storage, *this));
@@ -3523,8 +3524,10 @@ retry:
 		m_ssl_utp_socket_manager.tick(now);
 #endif
 
-		// only tick the following once per second
-		if (now - m_last_second_tick < seconds(1)) return;
+		// only tick the following once per second; a negative tick_interval bypasses
+		// this gate (intended for testing/fuzzing where the second_tick must fire
+		// on every fast tick)
+		if ((m_abort || raw_tick_ms >= 0) && now - m_last_second_tick < seconds(1)) return;
 
 #ifndef TORRENT_DISABLE_DHT
 		if (m_dht

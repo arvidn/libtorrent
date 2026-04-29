@@ -1597,6 +1597,12 @@ namespace aux {
 			// 1000 ms). Setting this to a low value (around 100) means higher
 			// resolution bandwidth quota distribution, setting it to a higher
 			// value saves CPU cycles.
+			//
+			// A negative value disables the once-per-second gate on the
+			// ``second_tick`` path (the heavier per-torrent work). The timer
+			// itself still fires every millisecond. This is intended for test
+			// and fuzzing scenarios that need the session to react instantly; do
+			// not use it in production.
 			tick_interval,
 
 			// ``share_mode_target`` specifies the target share ratio for share
