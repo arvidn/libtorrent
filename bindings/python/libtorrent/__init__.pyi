@@ -3405,9 +3405,9 @@ class session(metaclass=_BoostBaseClass):
         upload_rate_limit( (session)arg1) -> int :
         """
 
-    def wait_for_alert(self, _ms: int) -> alert | None:
+    def wait_for_alert(self, _ms: int) -> bool:
         """
-        wait_for_alert( (session)arg1, (int)arg2) -> alert :
+        wait_for_alert( (session)arg1, (int)arg2) -> bool :
         """
 
     def web_seed_proxy(self) -> proxy_type_t.proxy_settings:

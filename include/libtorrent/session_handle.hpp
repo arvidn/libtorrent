@@ -950,18 +950,20 @@ namespace aux { struct torrent; }
 		// between the popping threads.
 		//
 		// ``wait_for_alert`` will block the current thread for ``max_wait`` time
-		// duration, or until another alert is posted. If an alert is available
-		// at the time of the call, it returns immediately. The returned alert
-		// pointer is the head of the alert queue. ``wait_for_alert`` does not
-		// pop alerts from the queue, it merely peeks at it. The returned alert
-		// will stay valid until ``pop_alerts`` is called twice. The first time
-		// will pop it and the second will free it.
+		// duration, or until another alert is posted. If an alert is already
+		// available at the time of the call, it returns immediately. It returns
+		// ``true`` if an alert is pending (i.e. a subsequent ``pop_alerts``
+		// call would return at least one alert), and ``false`` if the timeout
+		// expired with no alert available.
 		//
-		// If there is no alert in the queue and no alert arrives within the
-		// specified timeout, ``wait_for_alert`` returns nullptr.
+		// In ``TORRENT_ABI_VERSION < 4`` the return type is ``alert*`` for
+		// backwards compatibility; the returned pointer is non-null when an
+		// alert is pending and null on timeout, but it does not point at any
+		// real alert (it is a placeholder) and must not be dereferenced. Use
+		// ``pop_alerts`` to retrieve the actual alerts.
 		//
 		// In the python binding, ``wait_for_alert`` takes the number of
-		// milliseconds to wait as an integer.
+		// milliseconds to wait as an integer and returns a ``bool``.
 		//
 		// The alert queue in the session will not grow indefinitely. Make sure
 		// to pop periodically to not miss notifications. To control the max
@@ -1001,7 +1003,11 @@ namespace aux { struct torrent; }
 		// ``alert::type()`` but can also be queries from a concrete type via
 		// ``T::alert_type``, as a static constant.
 		void pop_alerts(std::vector<alert*>* alerts);
+#if TORRENT_ABI_VERSION < 4
 		alert* wait_for_alert(time_duration max_wait);
+#else
+		bool wait_for_alert(time_duration max_wait);
+#endif
 		void set_alert_notify(std::function<void()> const& fun);
 
 #if TORRENT_ABI_VERSION == 1

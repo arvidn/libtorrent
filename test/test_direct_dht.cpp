@@ -50,11 +50,11 @@ dht_direct_response_alert* get_direct_response(lt::session& ses)
 {
 	for (;;)
 	{
-		alert* a = ses.wait_for_alert(seconds(30));
 		// it shouldn't take more than 30 seconds to get a response
 		// so fail the test and bail out if we don't get an alert in that time
-		TEST_CHECK(a);
-		if (!a) return nullptr;
+		bool const got = ses.wait_for_alert(seconds(30));
+		TEST_CHECK(got);
+		if (!got) return nullptr;
 		std::vector<alert*> alerts;
 		ses.pop_alerts(&alerts);
 		for (std::vector<alert*>::iterator i = alerts.begin(); i != alerts.end(); ++i)

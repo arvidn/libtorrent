@@ -548,14 +548,14 @@ namespace {
 		}
 	}
 
-	alert const* wait_for_alert(lt::session& s, int ms)
+	bool wait_for_alert(lt::session& s, int ms)
 	{
-		alert const* a;
-		{
-			allow_threading_guard guard;
-			a = s.wait_for_alert(milliseconds(ms));
-		}
-		return a;
+		allow_threading_guard guard;
+#if TORRENT_ABI_VERSION < 4
+		return s.wait_for_alert(milliseconds(ms)) != nullptr;
+#else
+		return s.wait_for_alert(milliseconds(ms));
+#endif
 	}
 
 	list get_torrents(lt::session& s)
@@ -1294,7 +1294,7 @@ void bind_session()
 				.def("load_state", &load_state, (arg("entry"), arg("flags") = 0xffffffff))
 				.def("save_state", &save_state, (arg("entry"), arg("flags") = 0xffffffff))
 				.def("pop_alerts", &pop_alerts)
-				.def("wait_for_alert", &wait_for_alert, return_internal_reference<>())
+				.def("wait_for_alert", &wait_for_alert)
 				.def("set_alert_notify", &set_alert_notify)
 				.def("set_alert_fd", &set_alert_fd)
 				.def("add_extension", &add_extension)

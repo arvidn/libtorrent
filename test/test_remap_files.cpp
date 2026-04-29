@@ -110,8 +110,7 @@ void test_remap_files(storage_mode_t storage_mode = storage_mode_sparse)
 
 	while (!all_of(pieces) || !all_of(passed) || !all_of(files))
 	{
-		alert* a = ses.wait_for_alert(lt::seconds(5));
-		if (a == nullptr) break;
+		if (!ses.wait_for_alert(lt::seconds(5))) break;
 
 		std::vector<alert*> alerts;
 		ses.pop_alerts(&alerts);

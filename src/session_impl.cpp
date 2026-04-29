@@ -6971,7 +6971,7 @@ retry:
 
 #endif
 
-	alert* session_impl::wait_for_alert(time_duration max_wait)
+	bool session_impl::wait_for_alert(time_duration max_wait)
 	{
 		return m_alerts.wait_for_alert(max_wait);
 	}

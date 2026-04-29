@@ -817,10 +817,8 @@ namespace aux {
 		//
 		//	while (outstanding_resume_data > 0)
 		//	{
-		//		alert const* a = ses.wait_for_alert(seconds(30));
-		//
 		//		// if we don't get an alert within 30 seconds, abort
-		//		if (a == nullptr) break;
+		//		if (!ses.wait_for_alert(seconds(30))) break;
 		//
 		//		std::vector<alert*> alerts;
 		//		ses.pop_alerts(&alerts);

@@ -1,5 +1,6 @@
 2.1.0 not released
 
+	* fix race in wait_for_alert(), and update its return value
 	* optimize torrent_handle::torrent_file()
 	* add option to not validate v1 hashes for hybrid torrents
 	* add post_file_status() to query them asynchronously
