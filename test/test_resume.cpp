@@ -119,12 +119,12 @@ std::vector<char> generate_resume_data(torrent_info* ti
 	rd["paused"] = 0;
 	entry::list_type& trackers = rd["trackers"].list();
 	trackers.push_back(entry(entry::list_t));
-	trackers.back().list().push_back(entry("http://resume_data_tracker.com/announce"));
+	trackers.back().list().push_back(entry("http://resume-data-tracker.com/announce"));
 	entry::list_type& url_list = rd["url-list"].list();
-	url_list.push_back(entry("http://resume_data_url_seed.com"));
+	url_list.push_back(entry("http://resume-data-url-seed.com"));
 
 	entry::list_type& httpseeds = rd["httpseeds"].list();
-	httpseeds.push_back(entry("http://resume_data_http_seed.com"));
+	httpseeds.push_back(entry("http://resume-data-http-seed.com"));
 
 #ifdef TORRENT_WINDOWS
 	rd["save_path"] = "c:\\resume_data save_path";
@@ -156,8 +156,8 @@ torrent_handle test_resume_flags(lt::session& ses
 	{
 		p.resume_data.swap(rd);
 
-		p.trackers.push_back("http://add_torrent_params_tracker.com/announce");
-		p.url_seeds.push_back("http://add_torrent_params_url_seed.com");
+		p.trackers.push_back("http://add-torrent-params-tracker.com/announce");
+		p.url_seeds.push_back("http://add-torrent-params-url-seed.com");
 
 		p.max_uploads = 1;
 		p.max_connections = 2;
@@ -317,10 +317,10 @@ TORRENT_TEST(test_non_metadata)
 {
 	lt::session ses(settings());
 	// this test torrent contain a tracker:
-	// http://torrent_file_tracker.com/announce
+	// http://torrent-file-tracker.com/announce
 
 	// and a URL seed:
-	// http://torrent_file_url_seed.com
+	// http://torrent-file-url-seed.com
 
 	std::shared_ptr<torrent_info> ti = generate_torrent();
 	add_torrent_params p;
@@ -328,8 +328,8 @@ TORRENT_TEST(test_non_metadata)
 	p.save_path = ".";
 	torrent_handle h = ses.add_torrent(p);
 
-	h.replace_trackers(std::vector<lt::announce_entry>{announce_entry{"http://torrent_file_tracker2.com/announce"}});
-	h.remove_url_seed("http://torrent_file_url_seed.com/");
+	h.replace_trackers(std::vector<lt::announce_entry>{announce_entry{"http://torrent-file-tracker2.com/announce"}});
+	h.remove_url_seed("http://torrent-file-url-seed.com/");
 	h.add_url_seed("http://torrent.com/");
 
 	TEST_EQUAL(ti->comment(), "test comment");
@@ -345,7 +345,7 @@ TORRENT_TEST(test_non_metadata)
 	if (ra)
 	{
 		auto const& atp = ra->params;
-		TEST_CHECK(atp.trackers == std::vector<std::string>{"http://torrent_file_tracker2.com/announce"});
+		TEST_CHECK(atp.trackers == std::vector<std::string>{"http://torrent-file-tracker2.com/announce"});
 		TEST_CHECK(atp.url_seeds == std::vector<std::string>{"http://torrent.com/"});
 		TEST_CHECK(atp.ti);
 		TEST_EQUAL(atp.ti->comment(), "test comment");
@@ -364,7 +364,7 @@ TORRENT_TEST(test_non_metadata)
 	h = ses.add_torrent(p);
 
 	TEST_EQUAL(h.trackers().size(), 1);
-	TEST_EQUAL(h.trackers().at(0).url, "http://torrent_file_tracker2.com/announce");
+	TEST_EQUAL(h.trackers().at(0).url, "http://torrent-file-tracker2.com/announce");
 	TEST_CHECK(h.url_seeds() == std::set<std::string>{"http://torrent.com/"});
 	auto t = h.status().torrent_file.lock();
 	TEST_EQUAL(ti->comment(), "test comment");
@@ -376,7 +376,7 @@ TORRENT_TEST(test_remove_trackers)
 {
 	lt::session ses(settings());
 	// this test torrent contain a tracker:
-	// http://torrent_file_tracker.com/announce
+	// http://torrent-file-tracker.com/announce
 
 	std::shared_ptr<torrent_info> ti = generate_torrent();
 	add_torrent_params p;
@@ -415,7 +415,7 @@ TORRENT_TEST(test_remove_web_seed)
 {
 	lt::session ses(settings());
 	// this test torrent contain a URL seed:
-	// http://torrent_file_url_seed.com
+	// http://torrent-file-url-seed.com
 
 	std::shared_ptr<torrent_info> ti = generate_torrent();
 	add_torrent_params p;
@@ -423,7 +423,7 @@ TORRENT_TEST(test_remove_web_seed)
 	p.save_path = ".";
 	torrent_handle h = ses.add_torrent(p);
 
-	h.remove_url_seed("http://torrent_file_url_seed.com/");
+	h.remove_url_seed("http://torrent-file-url-seed.com/");
 
 	h.save_resume_data(torrent_handle::save_info_dict);
 	alert const* a = wait_for_alert(ses, save_resume_data_alert::alert_type);
@@ -925,15 +925,15 @@ TORRENT_TEST(url_seed_resume_data_deprecated)
 
 	TEST_EQUAL(us.size(), 3);
 	TEST_EQUAL(std::count(us.begin(), us.end()
-		, "http://add_torrent_params_url_seed.com/"), 1);
+		, "http://add-torrent-params-url-seed.com/"), 1);
 	TEST_EQUAL(std::count(us.begin(), us.end()
-		, "http://torrent_file_url_seed.com/"), 1);
+		, "http://torrent-file-url-seed.com/"), 1);
 	TEST_EQUAL(std::count(us.begin(), us.end()
-		, "http://resume_data_url_seed.com/"), 1);
+		, "http://resume-data-url-seed.com/"), 1);
 
 	TEST_EQUAL(ws.size(), 1);
 	TEST_EQUAL(std::count(ws.begin(), ws.end()
-		, "http://resume_data_http_seed.com"), 1);
+		, "http://resume-data-http-seed.com"), 1);
 }
 
 TORRENT_TEST(resume_override_torrent_deprecated)
@@ -948,11 +948,11 @@ TORRENT_TEST(resume_override_torrent_deprecated)
 
 	TEST_EQUAL(ws.size(), 1);
 	TEST_EQUAL(std::count(ws.begin(), ws.end()
-		, "http://resume_data_http_seed.com"), 1);
+		, "http://resume-data-http-seed.com"), 1);
 
 	TEST_EQUAL(us.size(), 1);
 	TEST_EQUAL(std::count(us.begin(), us.end()
-		, "http://resume_data_url_seed.com/"), 1);
+		, "http://resume-data-url-seed.com/"), 1);
 }
 #endif
 
