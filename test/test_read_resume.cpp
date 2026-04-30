@@ -177,8 +177,8 @@ std::shared_ptr<torrent_info> generate_torrent()
 	fs.add_file("test_resume/tmp3", 128 * 1024);
 	lt::create_torrent t(fs, 128 * 1024);
 
-	t.add_tracker("http://torrent_file_tracker.com/announce");
-	t.add_url_seed("http://torrent_file_url_seed.com/");
+	t.add_tracker("http://torrent-file-tracker.com/announce");
+	t.add_url_seed("http://torrent-file-url-seed.com/");
 
 	int num = t.num_pieces();
 	TEST_CHECK(num > 0);

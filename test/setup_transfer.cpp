@@ -98,8 +98,8 @@ std::shared_ptr<torrent_info> generate_torrent(bool const with_files, bool const
 
 	t.set_comment("test comment");
 	t.set_creator("libtorrent test");
-	t.add_tracker("http://torrent_file_tracker.com/announce");
-	t.add_url_seed("http://torrent_file_url_seed.com/");
+	t.add_tracker("http://torrent-file-tracker.com/announce");
+	t.add_url_seed("http://torrent-file-url-seed.com/");
 
 	TEST_CHECK(t.num_pieces() > 0);
 	if (with_hashes)

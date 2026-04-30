@@ -398,6 +398,10 @@ TORRENT_TEST(http_parser)
 	TEST_CHECK(parse_url_components("http://[2001:ff00::1]:42/path/to/file", ec)
 		== std::make_tuple("http", "", "2001:ff00::1", 42, "/path/to/file"));
 
+	// RFC 6874 IPv6 zone identifier (link-local scope)
+	TEST_CHECK(parse_url_components("http://[fe80::1%25eth0]:42/path", ec)
+		== std::make_tuple("http", "", "fe80::1%25eth0", 42, "/path"));
+
 	// if there is no path component, "/" is added
 	TEST_CHECK(parse_url_components("http://test.com:42", ec)
 		== std::make_tuple("http", "", "test.com", 42, "/"));
@@ -434,6 +438,37 @@ TORRENT_TEST(http_parser)
 
 	parse_url_components("http://test.com:42abc", ec);
 	TEST_CHECK(ec == error_code(errors::invalid_port));
+
+	// hostnames must not contain CR/LF or other characters not valid in a
+	// hostname (CRLF injection)
+	parse_url_components("http://test\r\n.com/path", ec);
+	TEST_CHECK(ec == error_code(errors::invalid_hostname));
+	ec.clear();
+
+	parse_url_components("http://test\n.com/path", ec);
+	TEST_CHECK(ec == error_code(errors::invalid_hostname));
+	ec.clear();
+
+	parse_url_components("http://test com/path", ec);
+	TEST_CHECK(ec == error_code(errors::invalid_hostname));
+	ec.clear();
+
+	// underscores are not valid in hostnames (RFC 952 / RFC 1123)
+	parse_url_components("http://under_score.com/path", ec);
+	TEST_CHECK(ec == error_code(errors::invalid_hostname));
+	ec.clear();
+
+	parse_url_components("http:///path", ec);
+	TEST_CHECK(ec == error_code(errors::invalid_hostname));
+	ec.clear();
+
+	parse_url_components("http://:80/path", ec);
+	TEST_CHECK(ec == error_code(errors::invalid_hostname));
+	ec.clear();
+
+	parse_url_components("http://[]/path", ec);
+	TEST_CHECK(ec == error_code(errors::invalid_hostname));
+	ec.clear();
 
 	// test split_url
 
@@ -480,6 +515,36 @@ TORRENT_TEST(http_parser)
 	TEST_CHECK(split_url("//host.com/path?foo:bar@foo:", ec)
 		== std::make_tuple("//host.com/path?foo:bar@foo:", ""));
 	TEST_CHECK(ec == error_code(errors::unsupported_url_protocol));
+
+	// test is_valid_tracker_url
+
+	TEST_CHECK(is_valid_tracker_url("http://example.com/announce"));
+	TEST_CHECK(is_valid_tracker_url("https://example.com/announce"));
+	TEST_CHECK(is_valid_tracker_url("udp://example.com:1337"));
+	TEST_CHECK(is_valid_tracker_url("http://192.168.0.1:8080/announce"));
+	TEST_CHECK(is_valid_tracker_url("http://[2001:ff00::1]:42/announce"));
+	TEST_CHECK(is_valid_tracker_url("HTTP://EXAMPLE.COM/announce"));
+	TEST_CHECK(!is_valid_tracker_url(""));
+	TEST_CHECK(!is_valid_tracker_url("ftp://example.com/"));
+	TEST_CHECK(!is_valid_tracker_url("example.com/announce"));
+	// reject control characters in tracker URLs
+	TEST_CHECK(!is_valid_tracker_url("http://example.com/\r\nX-evil: 1"));
+	TEST_CHECK(!is_valid_tracker_url("http://example.com/\n"));
+	TEST_CHECK(!is_valid_tracker_url("http://example.com/\t"));
+	// reject spaces in any URL component
+	TEST_CHECK(!is_valid_tracker_url("http://exa mple.com/announce"));
+	TEST_CHECK(!is_valid_tracker_url("http://example.com/path with space"));
+	TEST_CHECK(!is_valid_tracker_url("http://example.com/announce key=value"));
+	TEST_CHECK(!is_valid_tracker_url(" http://example.com/announce"));
+	TEST_CHECK(!is_valid_tracker_url("http://example.com/announce "));
+	// reject URLs truncated after the scheme
+	TEST_CHECK(!is_valid_tracker_url("http://"));
+	TEST_CHECK(!is_valid_tracker_url("https://"));
+	TEST_CHECK(!is_valid_tracker_url("udp://"));
+	TEST_CHECK(!is_valid_tracker_url("http:///path"));
+	TEST_CHECK(!is_valid_tracker_url("http://:8080/path"));
+	// invalid hostname characters
+	TEST_CHECK(!is_valid_tracker_url("http://under_score.example/announce"));
 
 	// test resolve_redirect_location
 
