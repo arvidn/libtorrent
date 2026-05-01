@@ -64,6 +64,14 @@ namespace libtorrent {
 
 	// returns true if the url is a valid tracker url (http, https, udp)
 	TORRENT_EXTRA_EXPORT bool is_valid_tracker_url(const std::string& url);
+
+	// returns true if the two URLs have the same origin, i.e. the same scheme,
+	// host and (effective) port. Scheme and host are compared
+	// case-insensitively. This helper is intended for http/https URLs: a
+	// missing port is treated as 443 for "https" and 80 otherwise. Returns
+	// false if either URL fails to parse. Used to decide whether credentials
+	// may be forwarded across an HTTP redirect.
+	TORRENT_EXTRA_EXPORT bool same_origin(std::string const& a, std::string const& b);
 }
 
 #endif

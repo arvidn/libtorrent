@@ -1,5 +1,6 @@
 2.0.13
 
+	* stricter basic auth handling for web seed
 	* fix bug in tracker announcements involving i2p trackers
 	* improve performance of disk job pool
 	* fix race when removing an auto managed torrent

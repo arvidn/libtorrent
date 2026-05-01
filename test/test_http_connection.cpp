@@ -204,6 +204,21 @@ void run_suite(std::string const& protocol
 	run_test(url_base + "password_protected", 3216, 200, 1, error_code(), ps
 		, "testuser:testpass");
 
+	// same-origin redirect: the Authorization header must be forwarded so
+	// the redirect target (/password_protected) responds with 200
+	run_test(url_base + "redirect_auth", 3216, 200, 2, error_code(), ps
+		, "testuser:testpass");
+
+	// cross-origin redirect: the Authorization header must NOT be forwarded
+	// to the new origin, so /password_protected responds with 401. Only
+	// run this without a proxy -- the redirect target uses "localhost"
+	// instead of "127.0.0.1" and our test proxy can't always reach it.
+	if (ps.type == settings_pack::none)
+	{
+		run_test(url_base + "redirect_auth_external", -1, 401, 2, err(), ps
+			, "testuser:testpass");
+	}
+
 	// try a very long path
 	std::string path;
 	for (int i = 0; i < 6000; ++i)
