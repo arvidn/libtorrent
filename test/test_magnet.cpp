@@ -309,6 +309,14 @@ TORRENT_TEST(parse_space_hash)
 	TEST_EQUAL(ec, error_code(errors::invalid_info_hash));
 }
 
+TORRENT_TEST(parse_invalid_hex_hash)
+{
+	error_code ec;
+	// 40 characters, but contains non-hex characters ('z')
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz", ec);
+	TEST_EQUAL(ec, error_code(errors::invalid_info_hash));
+}
+
 TORRENT_TEST(parse_v2_hash)
 {
 	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btmh:1220cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd");
@@ -327,6 +335,14 @@ TORRENT_TEST(parse_v2_invalid_hash_prefix)
 {
 	error_code ec;
 	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btmh:1221cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd", ec);
+	TEST_EQUAL(ec, error_code(errors::invalid_info_hash));
+}
+
+TORRENT_TEST(parse_v2_invalid_hex_hash)
+{
+	error_code ec;
+	// 64 characters after the "1220" multihash prefix, but contains non-hex characters ('z')
+	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btmh:1220zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz", ec);
 	TEST_EQUAL(ec, error_code(errors::invalid_info_hash));
 }
 
