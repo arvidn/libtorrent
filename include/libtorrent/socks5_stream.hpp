@@ -477,33 +477,44 @@ private:
 			p += 1; // reserved
 			int const atyp = read_uint8(p);
 			// read the proxy IP it was bound to (this is variable length depending
-			// on address type)
+			// on address type). connect1 already read 4 bytes assuming IPv4.
+			std::size_t extra_bytes = 0;
 			if (atyp == 1)
 			{
-				std::vector<char>().swap(m_buffer);
-				std::move(h)(e);
-				return;
+				// IPv4, nothing more to read
 			}
-			std::size_t extra_bytes = 0;
-			if (atyp == 4)
+			else if (atyp == 4)
 			{
 				// IPv6
 				extra_bytes = 12;
 			}
 			else if (atyp == 3)
 			{
-				// hostname with length prefix
-				extra_bytes = read_uint8(p) - 3;
+				// hostname with length prefix; need length - 3 more bytes
+				int const host_len = read_uint8(p);
+				if (host_len < 3)
+				{
+					std::move(h)(error_code(socks_error::general_failure));
+					return;
+				}
+				extra_bytes = std::size_t(host_len - 3);
 			}
 			else
 			{
 				std::move(h)(error_code(boost::asio::error::address_family_not_supported));
 				return;
 			}
+
+			if (extra_bytes == 0)
+			{
+				std::vector<char>().swap(m_buffer);
+				std::move(h)(e);
+				return;
+			}
+
 			m_buffer.resize(m_buffer.size() + extra_bytes);
 
 			ADD_OUTSTANDING_ASYNC("socks5_stream::connect3");
-			TORRENT_ASSERT(extra_bytes > 0);
 			async_read(m_sock, boost::asio::buffer(&m_buffer[m_buffer.size() - extra_bytes], extra_bytes)
 				, wrap_allocator([this](error_code const& ec, std::size_t, Handler hn) {
 					connect3(ec, std::move(hn));
