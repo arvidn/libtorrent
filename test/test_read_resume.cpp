@@ -546,3 +546,20 @@ TORRENT_TEST(v2_trees_fields)
 	TEST_CHECK((atp.verified_leaf_hashes.at(0) == std::vector<bool>
 		{true, true, true, false, false, true, false, true, false, true, true, true, true, false, false, false}));
 }
+
+TORRENT_TEST(read_resume_banned_peers)
+{
+	add_torrent_params atp;
+	atp.info_hashes.v1 = sha1_hash("abcdefghijklmnopqrst");
+	atp.banned_peers.push_back(tcp::endpoint(make_address("1.2.3.4"), 6881));
+	atp.banned_peers.push_back(tcp::endpoint(make_address("5.6.7.8"), 6882));
+	atp.banned_peers.push_back(tcp::endpoint(make_address("::1"), 6883));
+	atp.banned_peers.push_back(tcp::endpoint(make_address("1234:5678::1"), 6884));
+
+	auto const buf = write_resume_data_buf(atp);
+	add_torrent_params const out = read_resume_data(buf);
+
+	std::set<tcp::endpoint> const expected(atp.banned_peers.begin(), atp.banned_peers.end());
+	std::set<tcp::endpoint> const actual(out.banned_peers.begin(), out.banned_peers.end());
+	TEST_CHECK(expected == actual);
+}
