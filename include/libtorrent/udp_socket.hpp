@@ -151,7 +151,6 @@ namespace aux { struct alert_manager; }
 
 		void wrap(udp::endpoint const& ep, span<char const> p, error_code& ec, udp_send_flags_t flags);
 		void wrap(char const* hostname, int port, span<char const> p, error_code& ec, udp_send_flags_t flags);
-		bool unwrap(udp_socket::packet& pack);
 
 		udp::socket m_socket;
 
@@ -169,6 +168,17 @@ namespace aux { struct alert_manager; }
 
 		bool m_abort:1;
 	};
+
+namespace aux {
+
+	// unwrap a SOCKS5-wrapped UDP datagram in-place. Returns false if the packet
+	// is malformed or truncated and should be ignored. On success, ``pack.data``
+	// is updated to point to the unwrapped payload, and either ``pack.from`` (for
+	// IPv4/IPv6 destinations and resolvable hostnames) or ``pack.hostname`` (for
+	// unresolvable hostnames) is populated.
+	TORRENT_EXTRA_EXPORT bool socks5_unwrap(udp_socket::packet& pack);
+
+}
 }
 
 #endif

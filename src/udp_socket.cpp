@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/socks5_stream.hpp" // for socks_error
 #include "libtorrent/aux_/keepalive.hpp"
 #include "libtorrent/aux_/resolver_interface.hpp"
+#include "libtorrent/string_view.hpp"
 
 #include <cstdlib>
 #include <functional>
@@ -238,7 +239,7 @@ int udp_socket::read(span<packet> pkts, error_code& ec)
 				// if the source IP doesn't match the proxy's, ignore the packet
 				if (p.from != m_socks5_connection->target()) continue;
 				// if we failed to unwrap, silently ignore the packet
-				if (!unwrap(p)) continue;
+				if (!aux::socks5_unwrap(p)) continue;
 			}
 			else
 			{
@@ -401,15 +402,18 @@ void udp_socket::wrap(char const* hostname, int const port, span<char const> p
 	m_socket.send_to(iovec, m_socks5_connection->target(), 0, ec);
 }
 
+namespace aux {
+
 // unwrap the UDP packet from the SOCKS5 header
 // buf is an in-out parameter. It will be updated
 // return false if the packet should be ignored. It's not a valid Socks5 UDP
 // forwarded packet
-bool udp_socket::unwrap(udp_socket::packet& pack)
+bool socks5_unwrap(udp_socket::packet& pack)
 {
 	using namespace libtorrent::aux;
 
-	// the minimum socks5 header size
+	// the minimum socks5 header size for an IPv4 forwarded packet:
+	// 2 bytes RSV + 1 byte FRAG + 1 byte ATYP + 4 bytes addr + 2 bytes port
 	auto const size = aux::numeric_cast<int>(pack.data.size());
 	if (size <= 10) return false;
 
@@ -427,13 +431,16 @@ bool udp_socket::unwrap(udp_socket::packet& pack)
 	}
 	else if (atyp == 4)
 	{
-		// IPv6
+		// IPv6: 4-byte header + 16-byte address + 2-byte port = 22 bytes
+		// minimum. The size <= 10 check above is for IPv4 only.
+		if (size <= 22) return false;
 		pack.from = read_v6_endpoint<udp::endpoint>(p);
 	}
 	else
 	{
 		std::uint8_t const len = read_uint8(p);
-		if (len > pack.data.end() - p) return false;
+		// reserve 2 trailing bytes for the port that follows the hostname
+		if (len + 2 > pack.data.end() - p) return false;
 		string_view hostname(p, len);
 		p += len;
 
@@ -449,6 +456,8 @@ bool udp_socket::unwrap(udp_socket::packet& pack)
 	pack.data = span<char>{p, size - (p - pack.data.data())};
 	return true;
 }
+
+} // namespace aux
 
 #if !defined BOOST_ASIO_ENABLE_CANCELIO && defined TORRENT_WINDOWS
 #error BOOST_ASIO_ENABLE_CANCELIO needs to be defined when building libtorrent to enable cancel() in asio on windows
