@@ -426,7 +426,7 @@ namespace {
 		if (bdecode_node const peers_entry = rd.dict_find_string("banned_peers"))
 		{
 			char const* ptr = peers_entry.string_ptr();
-			for (int i = v4_size; i < peers_entry.string_length(); i += v4_size)
+			for (int i = v4_size - 1; i < peers_entry.string_length(); i += v4_size)
 				ret.banned_peers.push_back(read_v4_endpoint<tcp::endpoint>(ptr));
 		}
 

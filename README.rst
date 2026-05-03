@@ -12,9 +12,6 @@
 .. image:: https://github.com/arvidn/libtorrent/actions/workflows/python.yml/badge.svg
     :target: https://github.com/arvidn/libtorrent/actions/workflows/python.yml
 
-.. image:: https://api.cirrus-ci.com/github/arvidn/libtorrent.svg?branch=RC_2_0
-    :target: https://cirrus-ci.com/github/arvidn/libtorrent
-
 .. image:: https://oss-fuzz-build-logs.storage.googleapis.com/badges/libtorrent.svg
     :target: https://bugs.chromium.org/p/oss-fuzz/issues/list?sort=-opened&q=proj%3Alibtorrent&can=1
 

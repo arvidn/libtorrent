@@ -1680,15 +1680,16 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			if (gen->type != GEN_DNS) continue;
 			ASN1_IA5STRING* domain = gen->d.dNSName;
 			if (ASN1_STRING_type(domain) != V_ASN1_IA5STRING || !ASN1_STRING_get0_data(domain) || !ASN1_STRING_length(domain)) continue;
-			auto const* torrent_name = reinterpret_cast<char const*>(ASN1_STRING_get0_data(domain));
-			auto const name_length = aux::numeric_cast<std::size_t>(ASN1_STRING_length(domain));
+			string_view const torrent_name(
+				reinterpret_cast<char const*>(ASN1_STRING_get0_data(domain)),
+				aux::numeric_cast<std::size_t>(ASN1_STRING_length(domain))
+			);
 
 #ifndef TORRENT_DISABLE_LOGGING
 			if (i > 1) names += " | n: ";
-			names.append(torrent_name, name_length);
+			names.append(torrent_name.data(), torrent_name.size());
 #endif
-			if (std::strncmp(torrent_name, "*", name_length) == 0
-				|| std::strncmp(torrent_name, expected.c_str(), name_length) == 0)
+			if (torrent_name == "*"_sv || torrent_name == expected)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
 				match = true;
@@ -1717,15 +1718,16 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		}
 		if (common_name && ASN1_STRING_get0_data(common_name) && ASN1_STRING_length(common_name))
 		{
-			auto const* torrent_name = reinterpret_cast<char const*>(ASN1_STRING_get0_data(common_name));
-			auto const name_length = aux::numeric_cast<std::size_t>(ASN1_STRING_length(common_name));
+			string_view const torrent_name(
+				reinterpret_cast<char const*>(ASN1_STRING_get0_data(common_name)),
+				aux::numeric_cast<std::size_t>(ASN1_STRING_length(common_name))
+			);
 
 #ifndef TORRENT_DISABLE_LOGGING
 			if (!names.empty()) names += " | n: ";
-			names.append(torrent_name, name_length);
+			names.append(torrent_name.data(), torrent_name.size());
 #endif
-			if (std::strncmp(torrent_name, "*", name_length) == 0
-				|| std::strncmp(torrent_name, expected.c_str(), name_length) == 0)
+			if (torrent_name == "*"_sv || torrent_name == expected)
 			{
 #ifdef TORRENT_DISABLE_LOGGING
 				return true;
@@ -1753,12 +1755,12 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			if(ret == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE) break;
 			if(ret == GNUTLS_E_SUCCESS)
 			{
+				string_view const torrent_name(buf, len);
 #ifndef TORRENT_DISABLE_LOGGING
 				if (!names.empty()) names += " | n: ";
-				names.append(buf, len);
+				names.append(torrent_name.data(), torrent_name.size());
 #endif
-				if (std::strncmp(buf, "*", len) == 0
-					|| std::strncmp(buf, expected.c_str(), len) == 0)
+				if (torrent_name == "*"_sv || torrent_name == expected)
 				{
 #ifndef TORRENT_DISABLE_LOGGING
 					match = true;
@@ -1776,12 +1778,12 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		int ret = gnutls_x509_crt_get_dn_by_oid(cert, GNUTLS_OID_X520_COMMON_NAME, 0, 0, buf, &len);
 		if(ret == GNUTLS_E_SUCCESS)
 		{
+			string_view const torrent_name(buf, len);
 #ifndef TORRENT_DISABLE_LOGGING
 			if (!names.empty()) names += " | n: ";
-			names.append(buf, len);
+			names.append(torrent_name.data(), torrent_name.size());
 #endif
-			if (std::strncmp(buf, "*", len) == 0
-				|| std::strncmp(buf, expected.c_str(), len) == 0)
+			if (torrent_name == "*"_sv || torrent_name == expected)
 			{
 #ifdef TORRENT_DISABLE_LOGGING
 				return true;

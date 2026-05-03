@@ -351,7 +351,14 @@ namespace libtorrent {
 					value = value.substr(9);
 
 					sha1_hash info_hash;
-					if (value.size() == 40) aux::from_hex(value, info_hash.data());
+					if (value.size() == 40)
+					{
+						if (!aux::from_hex(value, info_hash.data()))
+						{
+							ec = errors::invalid_info_hash;
+							return;
+						}
+					}
 					else if (value.size() == 32)
 					{
 						std::string const ih = base32decode(value);
@@ -388,7 +395,11 @@ namespace libtorrent {
 						ec = errors::invalid_info_hash;
 						return;
 					}
-					aux::from_hex(value, p.info_hashes.v2.data());
+					if (!aux::from_hex(value, p.info_hashes.v2.data()))
+					{
+						ec = errors::invalid_info_hash;
+						return;
+					}
 					has_ih[1] = true;
 				}
 			}

@@ -184,6 +184,7 @@ run test_receive_buffer.cpp ;
 run test_alert_manager.cpp ;
 run test_apply_pad.cpp ;
 run test_alert_types.cpp ;
+run test_udp_socket.cpp ;
 run test_magnet.cpp ;
 run test_storage.cpp ;
 run test_readwrite.cpp ;
@@ -327,6 +328,7 @@ alias deterministic-tests :
 	test_torrent_info
 	test_torrent_list
 	test_tracker_list
+	test_udp_socket
 	test_utf8
 	test_xml
 	test_store_buffer

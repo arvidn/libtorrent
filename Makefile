@@ -987,6 +987,7 @@ TEST_SOURCES = \
   test_tracker_manager.cpp \
   test_truncate.cpp \
   test_transfer.cpp \
+  test_udp_socket.cpp \
   test_upnp.cpp \
   test_url_seed.cpp \
   test_utf8.cpp \

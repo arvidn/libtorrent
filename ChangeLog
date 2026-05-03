@@ -30,6 +30,7 @@
 
 2.0.13
 
+	* stricter checking of tracker URLs
 	* fixed piece-picker accounting issue for filtered pieces
 	* add setting for NAT-PMP lease duration
 	* optimize v2 request sizes

@@ -28,6 +28,7 @@ namespace libtorrent::aux {
 		string_view::iterator at;
 		string_view::iterator colon;
 		string_view::iterator port_pos;
+		bool ipv6_literal = false;
 
 		// PARSE URL
 		auto start = url.begin();
@@ -87,12 +88,31 @@ namespace libtorrent::aux {
 			// strip the brackets
 			hostname.assign(start + 1, port_pos);
 			port_pos = std::find(port_pos, url.end(), ':');
+			ipv6_literal = true;
 		}
 		else
 		{
 			port_pos = std::find(start, url.end(), ':');
 			if (port_pos < end) hostname.assign(start, port_pos);
 			else hostname.assign(start, end);
+		}
+
+		if (hostname.empty())
+		{
+			ec = errors::invalid_hostname;
+			goto exit;
+		}
+		// LDH from RFC 952/1123 for DNS hostnames; IPv6 literals additionally
+		// allow ':', '%' (RFC 6874 zone separator '%25' parses as '%' + hex)
+		// and '_' / '~' for zone-ID characters
+		for (char const c : hostname)
+		{
+			if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')
+				|| c == '-' || c == '.')
+				continue;
+			if (ipv6_literal && (c == ':' || c == '%' || c == '_' || c == '~')) continue;
+			ec = errors::invalid_hostname;
+			goto exit;
 		}
 
 		if (port_pos < end)
@@ -197,13 +217,26 @@ exit:
 			return false;
 		}
 
-		return string_begins_no_case("http://", url)
-			|| string_begins_no_case("https://", url)
+		// reject control characters and space. RFC 3986 requires both to be
+		// percent-encoded; control chars also enable header/CRLF injection
+		for (char const c : url)
+		{
+			auto const uc = static_cast<unsigned char>(c);
+			if (uc <= 0x20 || uc == 0x7f) return false;
+		}
+
+		if (!string_begins_no_case("http://", url) && !string_begins_no_case("https://", url)
 #if TORRENT_USE_RTC
-			|| string_begins_no_case("wss://", url)
-			|| string_begins_no_case("ws://", url)
+			&& !string_begins_no_case("wss://", url) && !string_begins_no_case("ws://", url)
 #endif
-			|| string_begins_no_case("udp://", url);
+			&& !string_begins_no_case("udp://", url))
+		{
+			return false;
+		}
+
+		error_code ec;
+		parse_url_components(url, ec);
+		return !ec;
 	}
 
 }

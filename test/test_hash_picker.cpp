@@ -617,3 +617,49 @@ TORRENT_TEST(validate_hash_request)
 	TEST_CHECK(validate_hash_request(hash_request(file_index_t{0}, 1, 0, 1, num_layers - 2), fs));
 }
 
+TORRENT_TEST(validate_hash_request_pad_file)
+{
+	file_storage fs;
+	fs.set_piece_length(16 * 1024);
+	fs.add_file("test/tmp1", 2048 * 16 * 1024);
+	fs.add_file(".pad/16384", 16 * 1024, file_storage::flag_pad_file);
+
+	// sanity: requests for the regular file are still accepted
+	TEST_CHECK(validate_hash_request(aux::hash_request(file_index_t{0}, 0, 0, 1, 0), fs));
+
+	// requests targeting the pad file must be rejected. The pad file's
+	// merkle tree is uninitialized, so allowing such a request would
+	// otherwise reach merkle_tree::add_hashes with an empty m_tree.
+	TEST_CHECK(!validate_hash_request(aux::hash_request(file_index_t{1}, 0, 0, 1, 0), fs));
+}
+
+TORRENT_TEST(validate_hash_request_empty_file)
+{
+	file_storage fs;
+	fs.set_piece_length(16 * 1024);
+	fs.add_file("test/tmp1", 2048 * 16 * 1024);
+	fs.add_file("test/empty", 0);
+
+	// sanity: requests for the regular file are still accepted
+	TEST_CHECK(validate_hash_request(aux::hash_request(file_index_t{0}, 0, 0, 1, 0), fs));
+
+	// requests targeting the zero-size file must be rejected. Like pad
+	// files, its merkle tree is uninitialized.
+	TEST_CHECK(!validate_hash_request(aux::hash_request(file_index_t{1}, 0, 0, 1, 0), fs));
+}
+
+TORRENT_TEST(validate_hash_request_single_block_file)
+{
+	// For a file that fits in a single block, the merkle tree has one leaf
+	// and that leaf IS the root, so no hash exchange is ever needed. The
+	// tree has 0 layers above the root, so every request — including
+	// base=0, index=0, count=1 — must be rejected.
+	file_storage fs;
+	fs.set_piece_length(16 * 1024);
+	fs.add_file("test/tmp1", 16 * 1024);
+
+	TEST_EQUAL(merkle_num_leafs(fs.file_num_blocks(file_index_t{0})), 1);
+	TEST_EQUAL(merkle_num_layers(merkle_num_leafs(fs.file_num_blocks(file_index_t{0}))), 0);
+
+	TEST_CHECK(!validate_hash_request(aux::hash_request(file_index_t{0}, 0, 0, 1, 0), fs));
+}

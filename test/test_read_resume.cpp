@@ -144,8 +144,8 @@ add_torrent_params generate_torrent()
 	fs.emplace_back("test_resume/tmp3", 128 * 1024);
 	lt::create_torrent t(std::move(fs), 128 * 1024);
 
-	t.add_tracker("http://torrent_file_tracker.com/announce");
-	t.add_url_seed("http://torrent_file_url_seed.com/");
+	t.add_tracker("http://torrent-file-tracker.com/announce");
+	t.add_url_seed("http://torrent-file-url-seed.com/");
 
 	int num = t.num_pieces();
 	TEST_CHECK(num > 0);
@@ -532,4 +532,21 @@ TORRENT_TEST(deprecated_trees_fields)
 
 	TEST_CHECK(atp.verified_leaf_hashes.at(0) == make_bitfield(
 		{true, true, true, false, false, true, false, true, false, true, true, true, true}));
+}
+
+TORRENT_TEST(read_resume_banned_peers)
+{
+	add_torrent_params atp;
+	atp.info_hashes.v1 = sha1_hash("abcdefghijklmnopqrst");
+	atp.banned_peers.push_back(tcp::endpoint(make_address("1.2.3.4"), 6881));
+	atp.banned_peers.push_back(tcp::endpoint(make_address("5.6.7.8"), 6882));
+	atp.banned_peers.push_back(tcp::endpoint(make_address("::1"), 6883));
+	atp.banned_peers.push_back(tcp::endpoint(make_address("1234:5678::1"), 6884));
+
+	auto const buf = write_resume_data_buf(atp);
+	add_torrent_params const out = read_resume_data(buf);
+
+	std::set<tcp::endpoint> const expected(atp.banned_peers.begin(), atp.banned_peers.end());
+	std::set<tcp::endpoint> const actual(out.banned_peers.begin(), out.banned_peers.end());
+	TEST_CHECK(expected == actual);
 }

@@ -52,6 +52,8 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		|| hr.proof_layers < 0)
 		return false;
 
+	if (fs.pad_file_at(hr.file) || fs.file_size(hr.file) == 0) return false;
+
 	int const num_leafs = merkle_num_leafs(fs.file_num_blocks(hr.file));
 	int const num_layers = merkle_num_layers(num_leafs);
 
@@ -252,6 +254,9 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		auto& dst_tree = m_merkle_trees[req.file];
 		int const dest_start_idx = merkle_to_flat_index(base_layer_idx, req.index);
 		auto const file_piece_offset = m_files.piece_index_at_file(req.file) - piece_index_t{0};
+		if (dst_tree.size() <= 0 || dest_start_idx >= int(dst_tree.size()))
+			return add_hashes_result(false);
+
 		auto results = dst_tree.add_hashes(dest_start_idx, file_piece_offset, hashes, uncle_hashes);
 
 		if (!results)
