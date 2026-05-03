@@ -51,7 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 using disk_test_mode_t = lt::flags::bitfield_flag<std::uint8_t, struct disk_test_mode_tag>;
 
 using lt::operator""_bit;
-using lt::operator "" _sv;
+using lt::operator ""_sv;
 
 namespace test_mode {
 constexpr disk_test_mode_t sparse = 0_bit;
@@ -158,11 +158,9 @@ int run_test(test_case const& t)
 	int const piece_size = 0x8000;
 
 	{
-		std::int64_t off = 0;
 		for (int i = 0; i < t.num_files; ++i)
 		{
 			fs.add_file("test/" + std::to_string(i), file_size);
-			off += file_size;
 			file_size *= 2;
 		}
 		std::int64_t const total_size = fs.total_size();

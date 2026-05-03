@@ -374,6 +374,15 @@ namespace aux {
 
 			void call_abort()
 			{
+				// at this point we cannot call the notify function anymore, since the
+				// session will become invalid. We clear the notify function on the
+				// user's thread, since it will destruct the callback function object,
+				// which might hold objects belonging to the user.
+				// Most notably, this is important for the python binding, since the
+				// callback function object needs to hold the GIL.
+				// This is safe because alert_manager has an internal mutex
+				m_alerts.set_notify_function({});
+
 				auto ptr = shared_from_this();
 				dispatch(m_io_context, make_handler([ptr] { ptr->abort(); }
 					, m_abort_handler_storage, *this));
@@ -628,7 +637,20 @@ namespace aux {
 			std::vector<torrent_handle> get_torrents() const;
 
 			void pop_alerts(std::vector<alert*>* alerts);
-			alert* wait_for_alert(time_duration max_wait);
+			bool wait_for_alert(time_duration max_wait);
+
+			// a placeholder alert returned by the legacy session_handle::wait_for_alert
+			// signature when an alert is pending. The pointer to the head of the
+			// alert queue can't be returned because the queue may grow and reallocate
+			// concurrently, invalidating the pointer.
+			struct legacy_dummy_alert : alert
+			{
+				int type() const noexcept override { return -1; }
+				char const* what() const noexcept override { return "dummy"; }
+				std::string message() const override { return {}; }
+				alert_category_t category() const noexcept override { return {}; }
+			};
+			legacy_dummy_alert m_legacy_dummy_alert;
 
 #if TORRENT_ABI_VERSION == 1
 			TORRENT_DEPRECATED void pop_alerts();
@@ -713,7 +735,7 @@ namespace aux {
 			void abort() noexcept;
 			void abort_stage2() noexcept;
 
-			torrent_handle find_torrent_handle(sha1_hash const& info_hash);
+			torrent_handle find_torrent_handle(info_hash_t const& info_hash);
 
 			void announce_lsd(sha1_hash const& ih, int port) override;
 

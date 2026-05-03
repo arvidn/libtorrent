@@ -505,6 +505,18 @@ TORRENT_VERSION_NAMESPACE_3
 		// except for the last piece, which may be shorter.
 		int piece_size(piece_index_t index) const { return m_files.piece_size(index); }
 
+		// returns the piece size appropriate for computing request lengths.
+		// for v2-only torrents, pieces at the end of files may be shorter than
+		// the main piece size. For v1 and hybrid torrents, piece sizes must be
+		// full (except for the last piece) in order to correctly compute the
+		// piece hash.
+		int piece_size_for_req(piece_index_t index) const
+		{
+			return v1()
+				? m_files.piece_size(index)
+				: m_files.piece_size2(index);
+		}
+
 		// ``hash_for_piece()`` takes a piece-index and returns the 20-bytes
 		// sha1-hash for that piece and ``info_hash()`` returns the 20-bytes
 		// sha1-hash for the info-section of the torrent file.

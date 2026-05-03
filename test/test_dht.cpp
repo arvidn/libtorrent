@@ -1099,7 +1099,7 @@ TORRENT_TEST(bloom_filter)
 
 	if (supports_ipv6())
 	{
-		for (int i = 0; i < 0x3E8; ++i)
+		for (std::uint32_t i = 0; i < 0x3E8; ++i)
 		{
 			char adr[50];
 			std::snprintf(adr, sizeof(adr), "2001:db8::%x", i);

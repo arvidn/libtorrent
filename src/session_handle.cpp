@@ -263,7 +263,12 @@ namespace libtorrent {
 
 	torrent_handle session_handle::find_torrent(sha1_hash const& info_hash) const
 	{
-		return sync_call_ret<torrent_handle>(&session_impl::find_torrent_handle, info_hash);
+		return sync_call_ret<torrent_handle>(&session_impl::find_torrent_handle, info_hash_t(info_hash));
+	}
+
+	torrent_handle session_handle::find_torrent(sha256_hash const& info_hash) const
+	{
+		return sync_call_ret<torrent_handle>(&session_impl::find_torrent_handle, info_hash_t(info_hash));
 	}
 
 	std::vector<torrent_handle> session_handle::get_torrents() const
@@ -1204,7 +1209,7 @@ namespace {
 	{
 		std::shared_ptr<session_impl> s = m_impl.lock();
 		if (!s) aux::throw_ex<system_error>(errors::invalid_session_handle);
-		return s->wait_for_alert(max_wait);
+		return s->wait_for_alert(max_wait) ? &s->m_legacy_dummy_alert : nullptr;
 	}
 
 	void session_handle::set_alert_notify(std::function<void()> const& fun)

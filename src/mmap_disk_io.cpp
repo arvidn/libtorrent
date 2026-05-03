@@ -1289,6 +1289,18 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		// gauges
 		c.set_value(counters::disk_blocks_in_use, m_buffer_pool.in_use());
+
+		std::int64_t hits;
+		std::int64_t misses;
+		std::int64_t stalls;
+		std::int64_t races;
+		std::int64_t num_files;
+		std::tie(hits, misses, stalls, races, num_files) = m_file_pool.stats_counters();
+		c.set_value(counters::file_pool_hits, hits);
+		c.set_value(counters::file_pool_misses, misses);
+		c.set_value(counters::file_pool_thread_stall, stalls);
+		c.set_value(counters::file_pool_race, races);
+		c.set_value(counters::file_pool_size, num_files);
 	}
 
 	status_t mmap_disk_io::do_file_priority(aux::mmap_disk_job* j)

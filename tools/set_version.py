@@ -119,3 +119,9 @@ substitute_file(
         "VERSION = ": lambda ln: f"VERSION = {v[0]}.{v[1]}.{v[2]} ;{nl}",
     },
 )
+substitute_file(
+    "pyproject.toml",
+    {
+        "version = ": lambda ln: f"version = \"{v[0]}.{v[1]}.{v[2]}\"{nl}",
+    },
+)

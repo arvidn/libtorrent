@@ -87,7 +87,7 @@ private:
 	// ignore our own broadcast messages.
 	// There's no point in adding ourselves
 	// as a peer
-	int m_cookie;
+	std::uint32_t m_cookie;
 
 	bool m_disabled = false;
 };

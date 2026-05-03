@@ -112,24 +112,7 @@ namespace libtorrent {
 	{
 		std::shared_ptr<torrent> t = h.native_handle();
 		if (t)
-		{
-			std::string name_str = t->name();
-			if (!name_str.empty())
-			{
-				m_name_idx = alloc.copy_string(name_str);
-			}
-			else
-			{
-				if (t->info_hash().has_v2())
-					m_name_idx = alloc.copy_string(aux::to_hex(t->info_hash().v2));
-				else
-					m_name_idx = alloc.copy_string(aux::to_hex(t->info_hash().v1));
-			}
-		}
-		else
-		{
-			m_name_idx = alloc.copy_string("");
-		}
+			m_name_idx = t->name_idx(alloc);
 
 #if TORRENT_ABI_VERSION == 1
 		name = m_alloc.get().ptr(m_name_idx);
@@ -2284,6 +2267,7 @@ namespace {
 		, m_counters_idx(alloc.allocate(sizeof(std::int64_t)
 			* counters::num_counters + sizeof(std::int64_t) - 1))
 	{
+		if (!m_counters_idx.is_valid()) return;
 		std::int64_t* ptr = align_pointer<std::int64_t>(alloc.ptr(m_counters_idx));
 		for (int i = 0; i < counters::num_counters; ++i, ++ptr)
 			*ptr = cnt[i];
@@ -2531,6 +2515,13 @@ namespace {
 		m_v4_peers_idx = alloc.allocate(m_v4_num_peers * 6);
 		m_v6_peers_idx = alloc.allocate(m_v6_num_peers * 18);
 
+		if ((!m_v4_peers_idx.is_valid() && m_v4_num_peers > 0) || (!m_v6_peers_idx.is_valid() && m_v6_num_peers > 0))
+		{
+			m_v4_num_peers = 0;
+			m_v6_num_peers = 0;
+			return;
+		}
+
 		char* v4_ptr = alloc.ptr(m_v4_peers_idx);
 		char* v6_ptr = alloc.ptr(m_v6_peers_idx);
 		for (auto const& endp : peers)
@@ -2729,7 +2720,7 @@ namespace {
 		, error_code e, string_view error_str)
 		: error(e)
 		, m_alloc(alloc)
-		, m_msg_idx(alloc.copy_buffer(error_str))
+		, m_msg_idx(alloc.copy_string(error_str))
 	{}
 
 	std::string session_error_alert::message() const
@@ -2774,21 +2765,29 @@ namespace {
 		aux::allocation_slot const v4_nodes_idx = alloc.allocate(v4_num_nodes * (20 + 6));
 		aux::allocation_slot const v6_nodes_idx = alloc.allocate(v6_num_nodes * (20 + 18));
 
-		char* v4_ptr = alloc.ptr(v4_nodes_idx);
-		char* v6_ptr = alloc.ptr(v6_nodes_idx);
-		for (auto const& n : nodes)
+		if ((v4_nodes_idx.is_valid() || v4_num_nodes == 0) && (v6_nodes_idx.is_valid() || v6_num_nodes == 0))
 		{
-			udp::endpoint const& endp = n.second;
-			if (aux::is_v4(endp))
+			char* v4_ptr = alloc.ptr(v4_nodes_idx);
+			char* v6_ptr = alloc.ptr(v6_nodes_idx);
+			for (auto const& n : nodes)
 			{
-				aux::write_string(n.first.to_string(), v4_ptr);
-				aux::write_endpoint(endp, v4_ptr);
+				udp::endpoint const& endp = n.second;
+				if (aux::is_v4(endp))
+				{
+					aux::write_string(n.first.to_string(), v4_ptr);
+					aux::write_endpoint(endp, v4_ptr);
+				}
+				else
+				{
+					aux::write_string(n.first.to_string(), v6_ptr);
+					aux::write_endpoint(endp, v6_ptr);
+				}
 			}
-			else
-			{
-				aux::write_string(n.first.to_string(), v6_ptr);
-				aux::write_endpoint(endp, v6_ptr);
-			}
+		}
+		else
+		{
+			v4_num_nodes = 0;
+			v6_num_nodes = 0;
 		}
 
 		return nodes_slot{v4_num_nodes, v4_nodes_idx, v6_num_nodes, v6_nodes_idx};
@@ -2897,6 +2896,12 @@ namespace {
 		, m_num_samples(aux::numeric_cast<int>(samples.size()))
 	{
 		m_samples_idx = alloc.allocate(m_num_samples * 20);
+
+		if (!m_samples_idx.is_valid())
+		{
+			m_num_samples = 0;
+			return;
+		}
 
 		char *ptr = alloc.ptr(m_samples_idx);
 		std::memcpy(ptr, samples.data(), samples.size() * 20);

@@ -634,6 +634,7 @@ private:
 
 	void queue_event(lt::time_duration dt, std::function<void()> f)
 	{
+		TORRENT_ASSERT(dt > lt::milliseconds(0));
 		if (m_event_queue.empty())
 		{
 			m_event_queue.push_back({lt::clock_type::now() + dt, std::move(f)});
@@ -661,7 +662,7 @@ private:
 		if (m_event_queue.empty())
 			return;
 
-		m_timer.expires_at(m_event_queue.back().first);
+		m_timer.expires_at(m_event_queue.front().first);
 		using namespace std::placeholders;
 		m_timer.async_wait(std::bind(&test_disk_io::on_timer, this, _1));
 	}

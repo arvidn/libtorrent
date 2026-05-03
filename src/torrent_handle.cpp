@@ -81,6 +81,7 @@ namespace libtorrent {
 	constexpr pause_flags_t torrent_handle::clear_disk_cache;
 	constexpr deadline_flags_t torrent_handle::alert_when_available;
 	constexpr reannounce_flags_t torrent_handle::ignore_min_interval;
+	constexpr reannounce_flags_t torrent_handle::high_priority;
 	constexpr file_progress_flags_t torrent_handle::piece_granularity;
 
 	constexpr status_flags_t torrent_handle::query_distributed_copies;
@@ -412,6 +413,11 @@ namespace libtorrent {
 	bool torrent_handle::need_save_resume_data(resume_data_flags_t const flags) const
 	{
 		return sync_call_ret<bool>(false, &torrent::need_save_resume_data, flags);
+	}
+
+	add_torrent_params torrent_handle::get_resume_data(resume_data_flags_t const flags) const
+	{
+		return sync_call_ret<add_torrent_params>({}, &torrent::get_resume_data, flags);
 	}
 
 	void torrent_handle::force_recheck() const

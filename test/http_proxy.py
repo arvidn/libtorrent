@@ -205,6 +205,20 @@ class Handler(http.server.BaseHTTPRequestHandler):
             raise _HTTPError(400, explain="Target must be host:port")
         host, port = split
 
+        # Check if Host header is present (useful for debugging libtorrent CONNECT requests)
+        host_header = self.headers.get("Host")
+        if host_header:
+            self.log_message("CONNECT request: target=%s:%s, Host header=%s",
+                host, port, host_header)
+            # Check if Host header matches CONNECT target
+            if host_header == f"{host}:{port}":
+                self.log_message("Host header matches CONNECT target")
+            else:
+                self.log_message("Host header differs from CONNECT target")
+        else:
+            self.log_error("CONNECT request rejected: missing Host header (required for HTTP/1.1 compliance)")
+            raise _HTTPError(400, explain="Host header required for CONNECT requests")
+
         try:
             return socket.create_connection((host, port), self.timeout)
         except socket.timeout:
@@ -537,6 +551,8 @@ class Main:
                 self.args.basic_auth.encode()).decode()
         else:
             Handler.basic_auth = None
+
+        Handler.timeout = self.args.timeout
 
         self.server = _ThreadingHTTPServer(self.address, Handler)
         self.server.serve_forever()

@@ -51,6 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstring> // for memcpy
 
 #include "libtorrent/natpmp.hpp"
+#include "libtorrent/settings_pack.hpp"
 #include "libtorrent/io.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/enum_net.hpp"
@@ -137,9 +138,11 @@ using namespace aux;
 using namespace std::placeholders;
 
 natpmp::natpmp(io_context& ios
+	, aux::session_settings const& settings
 	, aux::portmap_callback& cb
 	, listen_socket_handle ls)
-	: m_callback(cb)
+	: m_settings(settings)
+	, m_callback(cb)
 	, m_socket(ios)
 	, m_send_timer(ios)
 	, m_refresh_timer(ios)
@@ -152,31 +155,34 @@ natpmp::natpmp(io_context& ios
 	m_mappings.reserve(10);
 }
 
-void natpmp::start(ip_interface const& ip)
+void natpmp::start(ip_interface const& ip, boost::optional<address> const& gateway)
 {
 	TORRENT_ASSERT(is_single_thread());
 
 	// assume servers support PCP and fall back to NAT-PMP
 	// if necessary
 	m_version = version_pcp;
-
+	error_code ec;
 	address const& local_address = ip.interface_address;
 
-	error_code ec;
-	auto const routes = enum_routes(m_ioc, ec);
-	if (ec)
+	boost::optional<address> route = gateway;
+	if (!route)
 	{
-#ifndef TORRENT_DISABLE_LOGGING
-		if (should_log())
+		auto const routes = enum_routes(m_ioc, ec);
+		if (ec)
 		{
-			log("failed to enumerate routes: %s"
-				, convert_from_native(ec.message()).c_str());
+	#ifndef TORRENT_DISABLE_LOGGING
+			if (should_log())
+			{
+				log("failed to enumerate routes: %s"
+					, convert_from_native(ec.message()).c_str());
+			}
+	#endif
+			disable(ec);
 		}
-#endif
-		disable(ec);
-	}
 
-	auto const route = get_gateway(ip, routes);
+		route = get_gateway(ip, routes);
+	}
 
 	if (!route)
 	{
@@ -452,7 +458,8 @@ void natpmp::send_map_request(port_mapping_t const i)
 	TORRENT_ASSERT(m.act != portmap_action::none);
 	char buf[60];
 	char* out = buf;
-	int ttl = m.act == portmap_action::add ? 3600 : 0;
+	int const configured_ttl = m_settings.get_int(settings_pack::natpmp_lease_duration);
+	int ttl = m.act == portmap_action::add ? (configured_ttl > 0 ? configured_ttl : 3600) : 0;
 	if (m_version == version_natpmp)
 	{
 		write_uint8(m_version, out);
@@ -533,7 +540,7 @@ void natpmp::send_map_request(port_mapping_t const i)
 	if (should_log())
 	{
 		log("==> port map [ mapping: %d action: %s"
-			" transport: %s proto: %s local: %u external: %u ttl: %u ]"
+			" transport: %s proto: %s local: %d external: %d ttl: %d ]"
 			, static_cast<int>(i), to_string(m.act)
 			, version_to_string(m_version)
 			, to_string(m.protocol)
@@ -584,6 +591,7 @@ void natpmp::on_resend_request(port_mapping_t const i, error_code const& e)
 
 void natpmp::resend_request(port_mapping_t const i)
 {
+	TORRENT_ASSERT(i >= port_mapping_t{0});
 	if (m_currently_mapping != i) return;
 
 	// if we're shutting down, don't retry, just move on
@@ -660,7 +668,7 @@ void natpmp::on_reply(error_code const& e
 	if (version != version_natpmp && version != version_pcp)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		log("unexpected version: %u", version);
+		log("unexpected version: %d", version);
 #endif
 		return;
 	}
@@ -691,7 +699,8 @@ void natpmp::on_reply(error_code const& e
 		if (m_version == version_pcp && !aux::is_v6(m_socket.local_endpoint(ec)))
 		{
 			m_version = version_natpmp;
-			resend_request(m_currently_mapping);
+			if (m_currently_mapping != port_mapping_t{-1})
+				resend_request(m_currently_mapping);
 			send_get_ip_address_request();
 		}
 		return;
@@ -706,12 +715,12 @@ void natpmp::on_reply(error_code const& e
 		return;
 	}
 
-	int lifetime = 0;
+	std::uint32_t lifetime = 0;
 	if (version == version_pcp)
 	{
-		lifetime = aux::numeric_cast<int>(read_uint32(in));
+		lifetime = read_uint32(in);
 	}
-	int const time = aux::numeric_cast<int>(read_uint32(in));
+	std::uint32_t const time = read_uint32(in);
 	if (version == version_pcp) in += 12; // reserved
 	TORRENT_UNUSED(time);
 
@@ -753,7 +762,7 @@ void natpmp::on_reply(error_code const& e
 	int const private_port = read_uint16(in);
 	int const public_port = read_uint16(in);
 	if (version == version_natpmp)
-		lifetime = aux::numeric_cast<int>(read_uint32(in));
+		lifetime = read_uint32(in);
 	address external_addr;
 	if (version == version_pcp)
 	{
@@ -772,7 +781,7 @@ void natpmp::on_reply(error_code const& e
 #ifndef TORRENT_DISABLE_LOGGING
 	char msg[200];
 	int const num_chars = std::snprintf(msg, sizeof(msg), "<== port map ["
-		" transport: %s protocol: %s local: %d external: %d ttl: %d ]"
+		" transport: %s protocol: %s local: %d external: %d ttl: %u ]"
 		, version_to_string(protocol_version(version))
 		, (protocol == portmap_protocol::udp ? "udp" : "tcp")
 		, private_port, public_port, lifetime);
@@ -848,7 +857,8 @@ void natpmp::update_expiration_timer()
 	if (m_abort) return;
 
 	time_point const now = aux::time_now() + milliseconds(100);
-	time_point min_expire = now + seconds(3600);
+	int const lease_duration = m_settings.get_int(settings_pack::natpmp_lease_duration);
+	time_point min_expire = now + seconds(lease_duration > 0 ? lease_duration : 3600);
 	port_mapping_t min_index{-1};
 	for (auto i = m_mappings.begin(), end(m_mappings.end()); i != end; ++i)
 	{
@@ -858,7 +868,7 @@ void natpmp::update_expiration_timer()
 		if (i->expires < now)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			log("mapping %u expired", static_cast<int>(index));
+			log("mapping %d expired", static_cast<int>(index));
 #endif
 			i->act = portmap_action::add;
 			if (m_next_refresh == index) m_next_refresh = port_mapping_t{-1};
@@ -895,7 +905,7 @@ void natpmp::mapping_expired(error_code const& e, port_mapping_t const i)
 	COMPLETE_ASYNC("natpmp::mapping_expired");
 	if (e || m_abort) return;
 #ifndef TORRENT_DISABLE_LOGGING
-	log("mapping %u expired", static_cast<int>(i));
+	log("mapping %d expired", static_cast<int>(i));
 #endif
 	m_mappings[i].act = portmap_action::add;
 	if (m_next_refresh == i) m_next_refresh = port_mapping_t{-1};

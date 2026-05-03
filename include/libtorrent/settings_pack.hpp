@@ -391,6 +391,13 @@ namespace aux {
 			// ``router.bt.ouinet.work:6881``,
 			dht_bootstrap_nodes,
 
+			// Overrides the NAT-PMP service gateway. When set, libtorrent won't try
+			// to resolve the default gateway and instead will send the requests to
+			// the address specified. This only takes affect when NAT-PMP first
+			// starts. If you change this setting after NAT-PMP has been
+			// enabled, you need to disable it and re-enable it.
+			natpmp_gateway,
+
 			max_string_setting_internal
 		};
 
@@ -1018,6 +1025,36 @@ namespace aux {
 			// protocol may not be valid from the proxy's point of view.
 			socks5_udp_send_local_ep,
 
+			// When using HTTP proxy (in proxy_type), libtorrent will connect
+			// to peers and trackers using the `CONNECT` proxy command. In this
+			// command it's possible to reveal the hostname of the server we're
+			// connecting to. When this option is true, the hostname will be
+			// sent. This feature can be useful if the proxy is used to
+			// man-in-the-middle connections.
+			proxy_send_host_in_connect,
+
+			// When set, downloaded files will have the no-copy-on-write flag
+			// (``FS_NOCOW_FL``) set on Linux. This mitigates heavy
+			// fragmentation on filesystems like btrfs, but has the unfortunate
+			// side effect of disabling useful CoW-related features including
+			// checksumming and compression, and adding additional restrictions
+			// on the use of reflinks. A NOCOW file can only be reflinked to NOCOW
+			// directories, which can be a surprising change for existing users.
+			// Therefore, this option is disabled by default.
+			//
+			// An alternative to this option is for the user to manually set the
+			// NOCOW flag on the download directory, which will cause all files
+			// created within it to have the NOCOW flag set.
+			disk_disable_copy_on_write,
+			
+			// determines if connections from the same Peer ID as existing
+			// connections should be rejected or not. Typically, we
+			// only establish a single connection with each peer. If
+			// a peer has multiple IP addresses, enabling this feature
+			// may improve transfer efficiency, but it may also
+			// increase network load.
+			allow_multiple_connections_per_pid,
+
 			max_bool_setting_internal
 		};
 
@@ -1310,11 +1347,14 @@ namespace aux {
 
 			// ``peer_dscp`` determines the DSCP field in the IP header of every
 			// packet sent to peers (including web seeds). ``0x0`` means no marking,
-			// ``0x04`` represents Lower Effort. For more details see `RFC 8622`_.
+			// ``0x01`` represents Lower Effort. For more details see `RFC 8622`_
+			// and IANA's `dscp registry`_.
 			//
 			// .. _`RFC 8622`: http://www.faqs.org/rfcs/rfc8622.html
+			// .. _`dscp registry`: https://www.iana.org/assignments/dscp-registry/dscp-registry.xhtml
 			//
-			// ``peer_tos`` is the backwards compatible name for this setting.
+			// ``peer_tos`` is the old name for ``peer_dscp``, it's still
+			// available for backwards compatibility.
 			peer_dscp,
 
 			// hidden
@@ -1949,8 +1989,10 @@ namespace aux {
 			max_web_seed_connections,
 
 			// the number of seconds before the internal host name resolver
-			// considers a cache value timed out, negative values are interpreted
-			// as zero.
+			// considers a cache value out of date, and removes it. Negative
+			// values are interpreted as zero. The host name cache also caches
+			// failed DNS lookups, but only for 1/8th of the time of this
+			// timeout.
 			resolver_cache_timeout,
 
 			// specify the not-sent low watermark for socket send buffers. This
@@ -2085,6 +2127,14 @@ namespace aux {
 			//    the external NAT-PMP port (configured using ``announce_port``)
 			//    instead of the actual local listening port.
 			announce_port,
+
+			// Configures the variance for I2P inbound and outbound tunnel lengths [-7..7]
+			i2p_inbound_length_variance,
+			i2p_outbound_length_variance,
+
+			// The life time of NAT-PMP and PCP port-mappings, specified in
+			// seconds.
+			natpmp_lease_duration,
 
 			max_int_setting_internal
 		};

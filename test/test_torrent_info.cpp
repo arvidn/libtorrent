@@ -271,6 +271,12 @@ static test_torrent_t const test_torrents[] =
 			TEST_EQUAL(ti->num_files(), 3);
 		}
 	},
+	{ "invalid_directory_name.torrent", [](torrent_info const* ti) {
+			TEST_EQUAL(ti->num_files(), 2);
+			TEST_EQUAL(ti->files().file_path(file_index_t{0}), "test2" SEPARATOR "_" SEPARATOR "foo");
+			TEST_EQUAL(ti->files().file_path(file_index_t{1}), "test2" SEPARATOR "_" SEPARATOR "foo.1");
+		}
+	},
 	{ "overlapping_symlinks.torrent", [](torrent_info const* ti) {
 			TEST_CHECK(ti->num_files() > 3);
 			TEST_EQUAL(ti->files().symlink(file_index_t{0}), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "Headers");
@@ -1629,6 +1635,7 @@ TORRENT_TEST(write_torrent_file_session_roundtrip)
 		"absolute_filename.torrent",
 		"invalid_filename.torrent",
 		"invalid_filename2.torrent",
+		"invalid_directory_name.torrent",
 		"overlapping_symlinks.torrent",
 		"v2.torrent",
 		"v2_multipiece_file.torrent",
@@ -1684,12 +1691,12 @@ TORRENT_TEST(write_torrent_file_session_roundtrip)
 
 			if (out_buffer != data)
 			{
-				std::cout << "GOT:\n";
+				std::cout << "GOT: (" << out_buffer.size() << ")\n";
 				for (char b : out_buffer)
 					std::cout << (std::isprint(std::uint8_t(b)) ? b : '.');
 				std::cout << '\n';
 
-				std::cout << "EXPECTED:\n";
+				std::cout << "EXPECTED: (" << data.size() << ")\n";
 				for (char b : data)
 					std::cout << (std::isprint(std::uint8_t(b)) ? b : '.');
 				std::cout << '\n';
@@ -1707,12 +1714,12 @@ TORRENT_TEST(write_torrent_file_session_roundtrip)
 
 			if (out_buffer != data)
 			{
-				std::cout << "GOT:\n";
+				std::cout << "GOT: (" << out_buffer.size() << ")\n";
 				for (char b : out_buffer)
 					std::cout << (std::isprint(std::uint8_t(b)) ? b : '.');
 				std::cout << '\n';
 
-				std::cout << "EXPECTED:\n";
+				std::cout << "EXPECTED: (" << data.size() << ")\n";
 				for (char b : data)
 					std::cout << (std::isprint(std::uint8_t(b)) ? b : '.');
 				std::cout << '\n';
@@ -1722,3 +1729,34 @@ TORRENT_TEST(write_torrent_file_session_roundtrip)
 	}
 }
 
+TORRENT_TEST(add_tracker_reject_invalid_url)
+{
+	torrent_info ti(info_hash_t(sha1_hash("                   ")));
+	TEST_EQUAL(ti.trackers().size(), 0);
+
+	ti.add_tracker("http://test.com/announce");
+	TEST_EQUAL(ti.trackers().size(), 1);
+
+	// random text is invalid
+	ti.add_tracker("invalid url");
+	TEST_EQUAL(ti.trackers().size(), 1);
+
+	ti.add_tracker("https://test.com/announce");
+	TEST_EQUAL(ti.trackers().size(), 2);
+
+	// ftp scheme is invalid
+	ti.add_tracker("ftp://test.com");
+	TEST_EQUAL(ti.trackers().size(), 2);
+
+	ti.add_tracker("udp://test.com/announce");
+	TEST_EQUAL(ti.trackers().size(), 3);
+
+	ti.add_tracker("httpfoo://test.com/announce");
+	TEST_EQUAL(ti.trackers().size(), 3);
+
+	ti.add_tracker("http://foo.com/announce");
+	TEST_EQUAL(ti.trackers().size(), 4);
+
+	ti.clear_trackers();
+	TEST_EQUAL(ti.trackers().size(), 0);
+}

@@ -158,8 +158,9 @@ namespace {
 		if (k != m_failed_cache.end())
 		{
 			// keep cache entries valid for m_timeout seconds
+			// failures are cached for a shorter time to optimistically retry
 			if ((flags & resolver_interface::cache_only)
-				|| k->second.last_seen + m_timeout >= time_now())
+				|| k->second.last_seen + m_timeout / 8 >= time_now())
 			{
 				error_code error_code = k->second.error;
 				post(m_ios, [h, error_code] { callback(h, error_code, {}); });

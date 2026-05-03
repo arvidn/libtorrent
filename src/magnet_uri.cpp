@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/hex.hpp" // to_hex, from_hex
 #include "libtorrent/socket_io.hpp" // for print_endpoint
+#include "libtorrent/parse_url.hpp" // for is_valid_tracker_url
 
 namespace libtorrent {
 
@@ -344,7 +345,7 @@ namespace libtorrent {
 					p.tracker_tiers.resize(p.trackers.size(), 0);
 				error_code e;
 				std::string tracker = unescape_string(value, e);
-				if (!e && !tracker.empty())
+				if (!e && is_valid_tracker_url(tracker))
 				{
 #if TORRENT_USE_I2P
 					if (!(p.flags & torrent_flags::i2p_torrent) && is_i2p_url(tracker))
@@ -376,7 +377,14 @@ namespace libtorrent {
 					value = value.substr(9);
 
 					sha1_hash info_hash;
-					if (value.size() == 40) aux::from_hex(value, info_hash.data());
+					if (value.size() == 40)
+					{
+						if (!aux::from_hex(value, info_hash.data()))
+						{
+							ec = errors::invalid_info_hash;
+							return;
+						}
+					}
 					else if (value.size() == 32)
 					{
 						std::string const ih = base32decode(value);
@@ -413,7 +421,11 @@ namespace libtorrent {
 						ec = errors::invalid_info_hash;
 						return;
 					}
-					aux::from_hex(value, p.info_hashes.v2.data());
+					if (!aux::from_hex(value, p.info_hashes.v2.data()))
+					{
+						ec = errors::invalid_info_hash;
+						return;
+					}
 					has_ih[1] = true;
 				}
 			}

@@ -312,9 +312,10 @@ protected:
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
 		if (!e) return false;
-		std::forward<Handler>(h)(e);
 		error_code ec;
-		close(ec);
+		// prevent lifetime management use-after-free
+		close(ec); // close first
+		std::move(h)(e); // consume
 		return true;
 	}
 

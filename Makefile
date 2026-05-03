@@ -1,4 +1,4 @@
-VERSION=2.0.11
+VERSION=2.0.12
 
 BUILD_CONFIG=release link=shared crypto=openssl warnings=off address-model=64
 
@@ -196,6 +196,8 @@ PYTHON_FILES= \
   setup.py                  \
   setup.py.cmake.in         \
   simple_client.py          \
+  libtorrent/__init__.pyi   \
+  libtorrent/py.typed       \
   src/alert.cpp             \
   src/boost_python.hpp      \
   src/bytes.hpp             \
@@ -751,6 +753,7 @@ SIM_SOURCES = \
   setup_dht.hpp \
   setup_swarm.cpp \
   setup_swarm.hpp \
+  test_allow_multiple_connections_per_pid.cpp \
   test_auto_manage.cpp \
   test_checking.cpp \
   test_dht.cpp \
@@ -934,6 +937,7 @@ TEST_SOURCES = \
   test_tracker.cpp \
   test_truncate.cpp \
   test_transfer.cpp \
+  test_udp_socket.cpp \
   test_upnp.cpp \
   test_url_seed.cpp \
   test_utf8.cpp \
@@ -1002,6 +1006,7 @@ TEST_TORRENTS = \
   invalid_file_size.torrent \
   invalid_filename.torrent \
   invalid_filename2.torrent \
+  invalid_directory_name.torrent \
   invalid_info.torrent \
   invalid_name.torrent \
   invalid_name2.torrent \

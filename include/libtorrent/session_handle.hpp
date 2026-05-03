@@ -254,6 +254,7 @@ namespace libtorrent {
 		// ``get_torrents()`` returns a vector of torrent_handles to all the
 		// torrents currently in the session.
 		torrent_handle find_torrent(sha1_hash const& info_hash) const;
+		torrent_handle find_torrent(sha256_hash const& info_hash) const;
 		std::vector<torrent_handle> get_torrents() const;
 
 		// You add torrents through the add_torrent() function where you give an
@@ -980,7 +981,9 @@ namespace libtorrent {
 		// will pop it and the second will free it.
 		//
 		// If there is no alert in the queue and no alert arrives within the
-		// specified timeout, ``wait_for_alert`` returns nullptr.
+		// specified timeout, ``wait_for_alert`` returns nullptr. If there are
+		// alerts available to be popped, the non-null pointer that's returned
+		// is of an unspecified alert.
 		//
 		// In the python binding, ``wait_for_alert`` takes the number of
 		// milliseconds to wait as an integer.

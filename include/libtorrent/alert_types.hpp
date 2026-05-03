@@ -120,11 +120,11 @@ namespace libtorrent {
 	{
 		// the total number of nodes and replacement nodes
 		// in the routing table
-		int num_nodes;
-		int num_replacements;
+		int num_nodes = 0;
+		int num_replacements = 0;
 
 		// number of seconds since last activity
-		int last_active;
+		int last_active = 0;
 	};
 
 TORRENT_VERSION_NAMESPACE_3
@@ -2886,7 +2886,7 @@ TORRENT_VERSION_NAMESPACE_3
 
 	private:
 		std::reference_wrapper<aux::stack_allocator> m_alloc;
-		int const m_num_samples;
+		int m_num_samples;
 		aux::allocation_slot m_samples_idx;
 		int m_v4_num_nodes = 0;
 		int m_v6_num_nodes = 0;

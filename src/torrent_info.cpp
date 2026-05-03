@@ -57,6 +57,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/file_pointer.hpp"
 #include "libtorrent/disk_interface.hpp" // for default_block_size
 #include "libtorrent/span.hpp"
+#include "libtorrent/parse_url.hpp" // for is_valid_tracker_url
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/crc.hpp>
@@ -465,7 +466,11 @@ namespace {
 		, std::string const& root_dir, std::ptrdiff_t const info_offset
 		, char const* info_buffer, bool const top_level, error_code& ec)
 	{
-		if (dict.type() != bdecode_node::dict_t) return false;
+		if (dict.type() != bdecode_node::dict_t)
+		{
+			ec = errors::torrent_file_parse_failed;
+			return false;
+		}
 
 		file_flags_t file_flags = get_file_attributes(dict);
 
@@ -544,7 +549,7 @@ namespace {
 				// pad files don't need a path element, we'll just store them
 				// under the .pad directory
 				char cnt[20];
-				std::snprintf(cnt, sizeof(cnt), "%" PRIu64, file_size);
+				std::snprintf(cnt, sizeof(cnt), "%" PRIi64, file_size);
 				path = combine_path(".pad", cnt);
 			}
 			else
@@ -1230,7 +1235,7 @@ namespace {
 
 		bdecode_node const files_node = info.dict_find_list("files");
 
-		bdecode_node file_tree_node = info.dict_find_dict("file tree");
+		bdecode_node const file_tree_node = info.dict_find_dict("file tree");
 		if (version >= 2 && file_tree_node)
 		{
 			if (!extract_files2(file_tree_node, files, name, info_offset
@@ -1648,7 +1653,7 @@ namespace {
 				{
 					announce_entry e(tier.list_string_value_at(k).to_string());
 					ltrim(e.url);
-					if (e.url.empty()) continue;
+					if (!is_valid_tracker_url(e.url)) continue;
 					e.tier = std::uint8_t(j);
 					e.fail_limit = 0;
 					e.source = announce_entry::source_torrent;
@@ -1678,7 +1683,7 @@ namespace {
 #if TORRENT_USE_I2P
 			if (is_i2p_url(e.url)) m_flags |= i2p;
 #endif
-			if (!e.url.empty()) m_urls.push_back(e);
+			if (is_valid_tracker_url(e.url)) m_urls.push_back(e);
 		}
 
 		bdecode_node const nodes = torrent_file.dict_find_list("nodes");
@@ -1779,6 +1784,7 @@ namespace {
 		auto const i = std::find_if(m_urls.begin(), m_urls.end()
 			, [&url](announce_entry const& ae) { return ae.url == url; });
 		if (i != m_urls.end()) return;
+		if (!is_valid_tracker_url(url)) return;
 
 		announce_entry e(url);
 		e.tier = std::uint8_t(tier);

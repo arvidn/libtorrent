@@ -22,6 +22,7 @@
 #include <libtorrent/session_status.hpp>
 #include <libtorrent/peer_class_type_filter.hpp>
 #include <libtorrent/torrent_status.hpp>
+#include <libtorrent/optional.hpp>
 
 #include <libtorrent/extensions/smart_ban.hpp>
 #include <libtorrent/extensions/ut_metadata.hpp>
@@ -256,6 +257,30 @@ namespace
     }
 #endif
 #endif
+
+	struct notify_callback_wrapper
+	{
+		notify_callback_wrapper(object o): m_cb(o) {}
+		~notify_callback_wrapper()
+		{
+			lock_gil lock;
+			m_cb.reset();
+		}
+
+		void operator()() try
+		{
+			lock_gil lock;
+			(*m_cb)();
+		}
+		catch (boost::python::error_already_set const&)
+		{
+			// this callback isn't supposed to throw an error.
+			// just swallow and ignore the exception
+			TORRENT_ASSERT_FAIL_VAL("python notify callback threw exception");
+		}
+
+		boost::optional<object> m_cb;
+	};
 }
 
     void dict_to_add_torrent_params(dict params, add_torrent_params& p)
@@ -486,24 +511,9 @@ namespace
     }
 #endif // TORRENT_ABI_VERSION
 
-    void alert_notify(object cb) try
-    {
-        lock_gil lock;
-        if (cb)
-        {
-            cb();
-        }
-    }
-    catch (boost::python::error_already_set const&)
-    {
-        // this callback isn't supposed to throw an error.
-        // just swallow and ignore the exception
-        TORRENT_ASSERT_FAIL_VAL("python notify callback threw exception");
-    }
-
     void set_alert_notify(lt::session& s, object cb)
     {
-        s.set_alert_notify(std::bind(&alert_notify, cb));
+        s.set_alert_notify(notify_callback_wrapper(cb));
     }
 
 #ifdef TORRENT_WINDOWS
@@ -846,6 +856,9 @@ namespace
             return incref(ret.ptr());
         }
     };
+
+    torrent_handle (lt::session_handle::*find_torrent0)(sha1_hash const&) const = &lt::session_handle::find_torrent;
+    torrent_handle (lt::session_handle::*find_torrent1)(sha256_hash const&) const = &lt::session_handle::find_torrent;
 
 } // anonymous namespace
 
@@ -1223,7 +1236,8 @@ void bind_session()
 #endif
         .def("set_ip_filter", allow_threads(&lt::session::set_ip_filter))
         .def("get_ip_filter", allow_threads(&lt::session::get_ip_filter))
-        .def("find_torrent", allow_threads(&lt::session::find_torrent))
+        .def("find_torrent", allow_threads(find_torrent0))
+        .def("find_torrent", allow_threads(find_torrent1))
         .def("get_torrents", &get_torrents)
         .def("get_torrent_status", &get_torrent_status, (arg("session"), arg("pred"), arg("flags") = 0))
         .def("refresh_torrent_status", &refresh_torrent_status, (arg("session"), arg("torrents"), arg("flags") = 0))

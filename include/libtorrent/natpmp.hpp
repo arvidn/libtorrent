@@ -47,12 +47,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/enum_net.hpp" // for ip_interface
 #include "libtorrent/aux_/listen_socket_handle.hpp"
+#include "libtorrent/aux_/session_settings.hpp"
 
 namespace libtorrent {
 
 namespace errors {
 	// See RFC 6887 Section 7.4
-	enum pcp_errors
+	enum pcp_errors : int
 	{
 		pcp_success = 0,
 		pcp_unsupp_version,
@@ -89,9 +90,10 @@ struct TORRENT_EXTRA_EXPORT natpmp final
 	: std::enable_shared_from_this<natpmp>
 	, single_threaded
 {
-	natpmp(io_context& ios, aux::portmap_callback& cb, aux::listen_socket_handle ls);
+	natpmp(io_context& ios, aux::session_settings const& settings
+		, aux::portmap_callback& cb, aux::listen_socket_handle ls);
 
-	void start(ip_interface const& ip);
+	void start(ip_interface const& ip, boost::optional<address> const& gateway);
 
 	// maps the ports, if a port is set to 0
 	// it will not be mapped
@@ -163,6 +165,7 @@ private:
 	void mapping_log(char const* op, mapping_t const& m) const;
 #endif
 
+	aux::session_settings const& m_settings;
 	aux::portmap_callback& m_callback;
 
 	protocol_version m_version = version_pcp;

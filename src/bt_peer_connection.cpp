@@ -879,23 +879,7 @@ namespace {
 			TORRENT_ASSERT(t);
 			auto const dlq = download_queue();
 			for (pending_block const& pb : dlq)
-			{
-				peer_request r;
-				r.piece = pb.block.piece_index;
-				r.start = pb.block.block_index * t->block_size();
-				r.length = t->block_size();
-				// if it's the last piece, make sure to
-				// set the length of the request to not
-				// exceed the end of the torrent. This is
-				// necessary in order to maintain a correct
-				// m_outstanding_bytes
-				if (r.piece == t->torrent_file().last_piece())
-				{
-					r.length = std::min(t->torrent_file().piece_size(
-						r.piece) - r.start, r.length);
-				}
-				incoming_reject_request(r);
-			}
+				incoming_reject_request(t->to_req(pb.block));
 		}
 	}
 
@@ -1682,7 +1666,7 @@ namespace {
 				{
 					static char const* err_msg[] = {"no such peer", "not connected", "no support", "no self"};
 					peer_log(peer_log_alert::incoming_message, "HOLEPUNCH"
-						, "msg:failed ERROR: %d msg: %s", error
+						, "msg:failed ERROR: %u msg: %s", error
 						, ((error > 0 && error < 5)?err_msg[error-1]:"unknown message id"));
 				}
 #endif
@@ -3534,28 +3518,31 @@ namespace {
 			std::copy(recv_buffer.begin(), recv_buffer.begin() + 20, pid.data());
 
 			// now, let's see if this connection should be closed
-			peer_connection* p = t->find_peer(pid);
-			if (p)
+			if (!t->settings().get_bool(settings_pack::allow_multiple_connections_per_pid))
 			{
-				TORRENT_ASSERT(p->pid() == pid);
-				// we found another connection with the same peer-id
-				// which connection should be closed in order to be
-				// sure that the other end closes the same connection?
-				// the peer with greatest peer-id is the one allowed to
-				// initiate connections. So, if our peer-id is greater than
-				// the others, we should close the incoming connection,
-				// if not, we should close the outgoing one.
-				if ((pid < m_our_peer_id) == is_outgoing())
+				peer_connection* p = t->find_peer(pid);
+				if (p)
 				{
-					p->disconnect(errors::duplicate_peer_id, operation_t::bittorrent);
-				}
-				else
-				{
-					disconnect(errors::duplicate_peer_id, operation_t::bittorrent);
-					return;
+					TORRENT_ASSERT(p->pid() == pid);
+					// we found another connection with the same peer-id
+					// which connection should be closed in order to be
+					// sure that the other end closes the same connection?
+					// the peer with greatest peer-id is the one allowed to
+					// initiate connections. So, if our peer-id is greater than
+					// the others, we should close the incoming connection,
+					// if not, we should close the outgoing one.
+					if ((pid < m_our_peer_id) == is_outgoing())
+					{
+						p->disconnect(errors::duplicate_peer_id, operation_t::bittorrent);
+					}
+					else
+					{
+						disconnect(errors::duplicate_peer_id, operation_t::bittorrent);
+						return;
+					}
 				}
 			}
-
+			
 			set_pid(pid);
 			m_client_version = identify_client(pid);
 			if (pid[0] == '-' && pid[1] == 'B' && pid[2] == 'C' && pid[7] == '-')

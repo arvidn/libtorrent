@@ -1043,10 +1043,6 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 		session_log(" *** ABORT CALLED ***");
 #endif
 
-		// at this point we cannot call the notify function anymore, since the
-		// session will become invalid.
-		m_alerts.set_notify_function({});
-
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto& ext : m_ses_extensions[plugins_all_idx])
 		{
@@ -2378,6 +2374,8 @@ namespace {
 			, m_settings.get_int(settings_pack::i2p_outbound_quantity)
 			, m_settings.get_int(settings_pack::i2p_inbound_length)
 			, m_settings.get_int(settings_pack::i2p_outbound_length)
+			, m_settings.get_int(settings_pack::i2p_inbound_length_variance)
+			, m_settings.get_int(settings_pack::i2p_outbound_length_variance)
 		};
 		m_i2p_conn.open(m_settings.get_str(settings_pack::i2p_hostname)
 			, m_settings.get_int(settings_pack::i2p_port)
@@ -4874,9 +4872,9 @@ namespace {
 		return ret;
 	}
 
-	torrent_handle session_impl::find_torrent_handle(sha1_hash const& info_hash)
+	torrent_handle session_impl::find_torrent_handle(info_hash_t const& info_hash)
 	{
-		return torrent_handle(find_torrent(info_hash_t(info_hash)));
+		return torrent_handle(find_torrent(info_hash));
 	}
 
 	void session_impl::async_add_torrent(add_torrent_params* params)
@@ -4908,11 +4906,6 @@ namespace {
 		// the scope
 		auto abort_torrent = aux::scope_end([&]{ if (torrent_ptr) torrent_ptr->abort(); });
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		auto extensions = std::move(params.extensions);
-		auto const userdata = std::move(params.userdata);
-#endif
-
 		// copy the most important fields from params to pass back in the
 		// add_torrent_alert
 		add_torrent_params alert_params;
@@ -4922,6 +4915,11 @@ namespace {
 		alert_params.save_path = params.save_path;
 		alert_params.userdata = params.userdata;
 		alert_params.trackerid = params.trackerid;
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		auto extensions = std::move(params.extensions);
+		auto const userdata = params.userdata;
+#endif
 
 		auto const flags = params.flags;
 
@@ -5670,13 +5668,22 @@ namespace {
 		{
 			// the natpmp constructor may fail and call the callbacks
 			// into the session_impl.
-			s->natpmp_mapper = std::make_shared<natpmp>(m_io_context, *this, listen_socket_handle(s));
+			s->natpmp_mapper = std::make_shared<natpmp>(m_io_context, m_settings, *this, listen_socket_handle(s));
 			ip_interface ip;
 			ip.interface_address = s->local_endpoint.address();
 			ip.netmask = s->netmask;
 			std::strncpy(ip.name, s->device.c_str(), sizeof(ip.name) - 1);
 			ip.name[sizeof(ip.name) - 1] = '\0';
-			s->natpmp_mapper->start(ip);
+
+			std::string gateway = m_settings.get_str(settings_pack::natpmp_gateway);
+			boost::optional<address> gateway_addr = boost::none;
+			if (!gateway.empty())
+			{
+				error_code ec;
+				gateway_addr = make_address(gateway, ec);
+				if (ec) gateway_addr.reset();
+			}
+			s->natpmp_mapper->start(ip, gateway_addr);
 		}
 	}
 
@@ -6404,7 +6411,7 @@ namespace {
 				{
 					session_log(">>> SET_DSCP [ tcp (%s %d) value: %x e: %s ]"
 						, l->sock->local_endpoint().address().to_string().c_str()
-						, l->sock->local_endpoint().port(), value, ec.message().c_str());
+						, l->sock->local_endpoint().port(), std::uint32_t(value), ec.message().c_str());
 				}
 #endif
 			}
@@ -6420,7 +6427,7 @@ namespace {
 					session_log(">>> SET_DSCP [ udp (%s %d) value: %x e: %s ]"
 						, l->udp_sock->sock.local_endpoint().address().to_string().c_str()
 						, l->udp_sock->sock.local_port()
-						, value, ec.message().c_str());
+						, std::uint32_t(value), ec.message().c_str());
 				}
 #endif
 			}
@@ -6814,7 +6821,7 @@ namespace {
 
 #endif
 
-	alert* session_impl::wait_for_alert(time_duration max_wait)
+	bool session_impl::wait_for_alert(time_duration max_wait)
 	{
 		return m_alerts.wait_for_alert(max_wait);
 	}

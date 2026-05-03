@@ -551,7 +551,7 @@ cpp
 tos
 BP
 qB
-LT20B0
+LT20C0
 iocontrol
 getname
 getpeername
@@ -636,3 +636,9 @@ DAX
 WebDAV
 transmissionbt
 ouinet
+IANA's
+NOCOW
+btrfs
+CoW
+reflinks
+reflinked

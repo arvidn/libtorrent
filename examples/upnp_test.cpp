@@ -70,8 +70,7 @@ int main(int argc, char*[])
 
 	for (;;)
 	{
-		alert const* a = s.wait_for_alert(seconds(5));
-		if (a == nullptr)
+		if (!s.wait_for_alert(seconds(5)))
 		{
 			p.set_bool(settings_pack::enable_upnp, false);
 			p.set_bool(settings_pack::enable_natpmp, false);
@@ -91,8 +90,7 @@ int main(int argc, char*[])
 
 	for (;;)
 	{
-		alert const* a = s.wait_for_alert(seconds(5));
-		if (a == nullptr) break;
+		if (!s.wait_for_alert(seconds(5))) break;
 		std::vector<alert*> alerts;
 		s.pop_alerts(&alerts);
 		for (std::vector<alert*>::iterator i = alerts.begin()
