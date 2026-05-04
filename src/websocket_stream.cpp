@@ -200,6 +200,17 @@ void websocket_stream::do_ssl_handshake()
 		return;
 	}
 
+	// match the certificate's subject against the hostname we connected to.
+	// this only takes effect when verify_peer is set on the SSL context;
+	// when the user has disabled validation this callback is not invoked.
+	ssl_stream.set_verify_callback(ssl::host_name_verification(m_hostname), ec);
+	if (ec)
+	{
+		if (auto handler = std::exchange(m_connect_handler, nullptr))
+			post(m_io_service, std::bind(std::move(handler), ec));
+		return;
+	}
+
 	ADD_OUTSTANDING_ASYNC("websocket_stream::on_ssl_handshake");
 	ssl_stream.async_handshake(ssl::stream_base::client
 			, std::bind(&websocket_stream::on_ssl_handshake, shared_from_this(), _1));
