@@ -82,7 +82,7 @@ private:
 	void fail(operation_t op, error_code const& ec);
 
 	io_context& m_io_context;
-	ssl::context m_ssl_context;
+	ssl::context* m_ssl_context;
 	std::shared_ptr<aux::websocket_stream> m_websocket;
 	boost::beast::flat_buffer m_read_buffer;
 	std::string m_write_data;
