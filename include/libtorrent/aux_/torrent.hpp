@@ -690,7 +690,7 @@ namespace libtorrent::aux {
 
 		void retry_web_seed(peer_connection* p, std::optional<seconds32> retry = std::nullopt);
 
-		void remove_web_seed_conn(peer_connection* peer);
+		void remove_web_seed_conn(web_seed_t* w);
 
 		std::set<std::string> web_seeds() const;
 

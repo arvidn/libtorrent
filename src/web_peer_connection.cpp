@@ -631,12 +631,14 @@ void web_peer_connection::disable(error_code const& ec)
 {
 	// we should not try this server again.
 	m_web->disabled = true;
+	bool const ephemeral = m_web->ephemeral;
+	aux::web_seed_t* const web = m_web;
 	disconnect(ec, operation_t::bittorrent, peer_error);
-	if (m_web->ephemeral)
+	if (ephemeral)
 	{
 		std::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
-		t->remove_web_seed_conn(this);
+		t->remove_web_seed_conn(web);
 	}
 	m_web = nullptr;
 	TORRENT_ASSERT(is_disconnecting());

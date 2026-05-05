@@ -11409,10 +11409,12 @@ namespace {
 		}
 	}
 
-	void torrent::remove_web_seed_conn(peer_connection* p)
+	void torrent::remove_web_seed_conn(web_seed_t* w)
 	{
-		auto const i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
-			, [p] (web_seed_t const& ws) { return ws.peer_info.connection == p; });
+		auto const i =
+			std::find_if(m_web_seeds.begin(), m_web_seeds.end(), [w](web_seed_t const& ws) {
+				return &ws == w;
+			});
 
 		TORRENT_ASSERT(i != m_web_seeds.end());
 		if (i == m_web_seeds.end()) return;
