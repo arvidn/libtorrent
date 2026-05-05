@@ -221,7 +221,22 @@ restart_response:
 			m_protocol = read_until(line, ' ', line_end);
 			if (m_protocol.substr(0, 5) == "HTTP/")
 			{
-				m_status_code = atoi(read_until(line, ' ', line_end).c_str());
+				std::string const code_str = read_until(line, ' ', line_end);
+				char* parse_end = nullptr;
+				std::int64_t const code = std::strtoll(code_str.c_str(), &parse_end, 10);
+				// require a non-negative status code that consumed the full
+				// substring. negative values would also collide with the -1
+				// sentinel meaning "status line not yet parsed"
+				if (code_str.empty()
+					|| parse_end != code_str.data() + code_str.size()
+					|| code < 0
+					|| code > std::numeric_limits<int>::max())
+				{
+					m_state = error_state;
+					error = true;
+					return ret;
+				}
+				m_status_code = static_cast<int>(code);
 				m_server_message = read_until(line, '\r', line_end);
 
 				// HTTP 1.0 always closes the connection after
