@@ -9033,10 +9033,8 @@ namespace {
 					// During init(), before on_metadata_impl()/pc->init() have
 					// run, valid_metadata() just became true so is_seed() can
 					// spuriously return true for peers whose have-bitmask hasn't
-					// been reconciled with the actual piece count yet. Skip this
-					// check until m_connections_initialized confirms the
-					// transition is complete.
-					if (m_connections_initialized)
+					// been reconciled with the actual piece count yet.
+					if (p.m_initialized)
 						TORRENT_ASSERT(!p.is_seed());
 				}
 			}
