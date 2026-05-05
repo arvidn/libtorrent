@@ -694,7 +694,12 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 	// add the redirected url and remove the current one
 	if (!single_file_request)
 	{
-		TORRENT_ASSERT(!m_file_requests.empty());
+		if (m_file_requests.empty())
+		{
+			// the server sent a redirect response without a matching request
+			disconnect(errors::http_parse_error, operation_t::bittorrent, peer_error);
+			return;
+		}
 		file_index_t const file_index = m_file_requests.front().file_index;
 
 		location = resolve_redirect_location(m_url, location);
@@ -933,7 +938,13 @@ void web_peer_connection::on_receive(error_code const& error
 			return;
 		}
 
-		TORRENT_ASSERT(!m_file_requests.empty());
+		if (m_file_requests.empty())
+		{
+			// the server sent a response without a matching request
+			received_bytes(0, int(recv_buffer.size()));
+			disconnect(errors::http_parse_error, operation_t::bittorrent, peer_error);
+			return;
+		}
 		file_request_t const& file_req = m_file_requests.front();
 		if (range_start != file_req.start
 			|| range_end != file_req.start + file_req.length)
