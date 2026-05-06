@@ -1,5 +1,6 @@
 2.0.13
 
+	* optimize sanitization of symlinks when loading torrents
 	* stricter checking of tracker URLs
 	* fixed piece-picker accounting issue for filtered pieces
 	* add setting for NAT-PMP lease duration

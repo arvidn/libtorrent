@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstdio>
 #include <cinttypes>
+#include <cstring>
 #include <algorithm>
 #include <functional>
 #include <set>
@@ -1341,10 +1342,39 @@ namespace {
 		std::unordered_map<std::string, file_index_t> file_map;
 		bool file_map_initialized = false;
 
-		// lazily instantiated set of all valid directories a symlink may point to
-		// TODO: in C++17 this could be string_view
-		std::unordered_set<std::string> dir_map;
-		bool dir_map_initialized = false;
+		// sorted view of m_paths for is_directory()
+		std::vector<char const*> sorted_paths;
+		bool sorted_paths_initialized = false;
+
+		auto is_directory = [&](std::string const& target) -> bool {
+			if (!sorted_paths_initialized)
+			{
+				sorted_paths.reserve(m_paths.size());
+				for (auto const& p : m_paths) sorted_paths.emplace_back(p.c_str());
+				std::sort(sorted_paths.begin(), sorted_paths.end()
+					, [](char const* a, char const* b) { return std::strcmp(a, b) < 0; });
+				sorted_paths_initialized = true;
+			}
+
+			auto const path_lt = [](char const* a, std::string const& b) {
+				return std::strcmp(a, b.c_str()) < 0;
+			};
+
+			auto it = std::lower_bound(sorted_paths.begin(), sorted_paths.end()
+				, target, path_lt);
+			if (it != sorted_paths.end() && std::strcmp(*it, target.c_str()) == 0)
+				return true;
+
+			// a separate search is needed: characters such as '.' (0x2E) sort
+			// before '/' (0x2F), so paths like "a.foo" appear between "a" and
+			// "a/" — we can't conclude from `*it` alone.
+			std::string prefix = target;
+			prefix += TORRENT_SEPARATOR;
+			auto it2 = std::lower_bound(it, sorted_paths.end()
+				, prefix, path_lt);
+			return it2 != sorted_paths.end()
+				&& std::strncmp(*it2, prefix.c_str(), prefix.size()) == 0;
+		};
 
 		// symbolic links that points to directories
 		std::unordered_map<std::string, std::string> dir_links;
@@ -1370,7 +1400,7 @@ namespace {
 			// symlink targets are only allowed to point to files or directories in
 			// this torrent.
 			{
-				std::string target = m_symlinks[fe.symlink_index];
+				std::string const& target = m_symlinks[fe.symlink_index];
 
 				if (is_complete(target))
 				{
@@ -1383,7 +1413,6 @@ namespace {
 				auto const iter = file_map.find(target);
 				if (iter != file_map.end())
 				{
-					m_symlinks[fe.symlink_index] = target;
 					if (file_flags(iter->second) & file_storage::flag_symlink)
 					{
 						// we don't know whether this symlink is a file or a
@@ -1396,18 +1425,9 @@ namespace {
 
 				// it may point to a directory that doesn't have any files (but only
 				// other directories), in which case it won't show up in m_paths
-				if (!dir_map_initialized)
-				{
-					for (auto const& p : m_paths)
-						for (string_view pv = p; !pv.empty(); pv = rsplit_path(pv).first)
-							dir_map.insert(pv.to_string());
-					dir_map_initialized = true;
-				}
-
-				if (dir_map.count(target))
+				if (is_directory(target))
 				{
 					// it points to a sub directory within the torrent, that's OK
-					m_symlinks[fe.symlink_index] = target;
 					dir_links[internal_file_path(i)] = target;
 					continue;
 				}
@@ -1429,7 +1449,7 @@ namespace {
 					continue;
 				}
 
-				if (dir_map.count(target))
+				if (is_directory(target))
 				{
 					// it points to a sub directory within the torrent, that's OK
 					m_symlinks[fe.symlink_index] = target;
@@ -1482,8 +1502,9 @@ namespace {
 				branch = lsplit_path(target, branch.size() + 1).first)
 			{
 				auto branch_temp = branch.to_string();
+
 				// this is a concrete directory
-				if (dir_map.count(branch_temp)) continue;
+				if (is_directory(branch_temp)) continue;
 
 				auto const iter = dir_links.find(branch_temp);
 				if (iter == dir_links.end()) goto failed;
@@ -1501,7 +1522,7 @@ namespace {
 			// the final (resolved) target must be a valid file
 			// or directory
 			if (file_map.count(target) == 0
-				&& dir_map.count(target) == 0) goto failed;
+				&& !is_directory(target)) goto failed;
 
 			// this is OK
 			continue;
