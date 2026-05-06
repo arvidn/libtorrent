@@ -987,13 +987,13 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		if (mask & torrent_flags::disable_lsd)
 		{
 			bool const new_value = !bool(flags & torrent_flags::disable_lsd);
-			if (m_enable_dht != new_value) set_need_save_resume(torrent_handle::if_config_changed);
+			if (m_enable_lsd != new_value) set_need_save_resume(torrent_handle::if_config_changed);
 			m_enable_lsd = new_value;
 		}
 		if (mask & torrent_flags::disable_pex)
 		{
 			bool const new_value = !bool(flags & torrent_flags::disable_pex);
-			if (m_enable_dht != new_value) set_need_save_resume(torrent_handle::if_config_changed);
+			if (m_enable_pex != new_value) set_need_save_resume(torrent_handle::if_config_changed);
 			m_enable_pex = new_value;
 		}
 	}
