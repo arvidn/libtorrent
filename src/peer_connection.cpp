@@ -1247,11 +1247,11 @@ namespace {
 		TORRENT_ASSERT(t->valid_metadata());
 		torrent_info const& ti = t->torrent_file();
 
-		return p.piece >= piece_index_t(0)
-			&& p.piece < ti.end_piece()
-			&& p.start >= 0
-			&& p.start < t->piece_size_for_req(p.piece)
-			&& t->to_req(piece_block(p.piece, p.start / t->block_size())) == p;
+		if (p.piece < piece_index_t(0) || p.piece >= ti.end_piece() || p.start < 0) return false;
+
+		int const piece_sz = t->piece_size_for_req(p.piece);
+		return p.start < piece_sz
+			&& t->to_req(piece_block(p.piece, p.start / t->block_size()), piece_sz) == p;
 	}
 
 	void peer_connection::attach_to_torrent(info_hash_t const& ih)
@@ -1575,12 +1575,11 @@ namespace {
 		if (is_disconnecting()) return;
 
 		int const block_size = t->block_size();
-		if (r.piece < piece_index_t{}
-			|| r.piece >= t->torrent_file().layout().end_piece()
-			|| r.start < 0
-			|| r.start >= t->piece_size_for_req(r.piece)
-			|| (r.start % block_size) != 0
-			|| r.length != std::min(t->piece_size_for_req(r.piece) - r.start, block_size))
+		bool const piece_in_range =
+			r.piece >= piece_index_t{} && r.piece < t->torrent_file().layout().end_piece();
+		int const piece_sz = piece_in_range ? t->piece_size_for_req(r.piece) : 0;
+		if (!piece_in_range || r.start < 0 || r.start >= piece_sz || (r.start % block_size) != 0
+			|| r.length != std::min(piece_sz - r.start, block_size))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, peer_log_alert::reject, "invalid reject message (%d, %d, %d)"
@@ -4047,11 +4046,12 @@ namespace {
 				continue;
 			}
 
-			peer_request r = t->to_req(block.block);
+			int piece_sz = t->piece_size_for_req(block.block.piece_index);
+			peer_request r = t->to_req(block.block, piece_sz);
 			if (m_download_queue.empty())
 				m_counters.inc_stats_counter(counters::num_peers_down_requests);
 
-			TORRENT_ASSERT(validate_piece_request(t->to_req(block.block)));
+			TORRENT_ASSERT(validate_piece_request(r));
 			block.send_buffer_offset = aux::numeric_cast<std::uint32_t>(m_send_buffer.size());
 			m_download_queue.push_back(block);
 			m_outstanding_bytes += r.length;
@@ -4073,9 +4073,13 @@ namespace {
 					if (static_cast<int>(front.block.piece_index) * blocks_per_piece + front.block.block_index
 						!= static_cast<int>(block.block.piece_index) * blocks_per_piece + block.block.block_index + 1)
 						break;
+					// the merge loop can cross into a new piece when the previous
+					// piece had all blocks contiguous; refresh piece_sz then
+					bool const new_piece = front.block.piece_index != block.block.piece_index;
 					block = m_request_queue.front();
 					m_request_queue.erase(m_request_queue.begin());
-					TORRENT_ASSERT(validate_piece_request(t->to_req(block.block)));
+					if (new_piece) piece_sz = t->piece_size_for_req(block.block.piece_index);
+					TORRENT_ASSERT(validate_piece_request(t->to_req(block.block, piece_sz)));
 
 					if (m_download_queue.empty())
 						m_counters.inc_stats_counter(counters::num_peers_down_requests);
@@ -4085,9 +4089,7 @@ namespace {
 					if (m_queued_time_critical) --m_queued_time_critical;
 
 					int const block_offset = block.block.block_index * t->block_size();
-					int const bs =
-						std::min(t->piece_size_for_req(block.block.piece_index)
-							- block_offset, t->block_size());
+					int const bs = std::min(piece_sz - block_offset, t->block_size());
 					TORRENT_ASSERT(bs > 0);
 					TORRENT_ASSERT(bs <= t->block_size());
 

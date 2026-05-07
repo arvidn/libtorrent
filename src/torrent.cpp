@@ -1571,9 +1571,18 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 	peer_request torrent::to_req(piece_block const& p) const
 	{
+		return to_req(p, piece_size_for_req(p.piece_index));
+	}
+
+	// piece_size must be the value of piece_size_for_req(p.piece_index). This
+	// overload exists so callers in hot paths can cache piece_size_for_req()
+	// across multiple to_req() calls for the same piece, since
+	// piece_size_for_req() is O(log files) for v2-only torrents.
+	peer_request torrent::to_req(piece_block const& p, int const piece_size) const
+	{
+		TORRENT_ASSERT(piece_size == piece_size_for_req(p.piece_index));
 		int const block_offset = p.block_index * block_size();
-		int const piece_sz = piece_size_for_req(p.piece_index);
-		int const block = std::min(piece_sz - block_offset, block_size());
+		int const block = std::min(piece_size - block_offset, block_size());
 		TORRENT_ASSERT(block > 0);
 		TORRENT_ASSERT(block <= block_size());
 
