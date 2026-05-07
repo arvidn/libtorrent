@@ -513,6 +513,11 @@ TORRENT_VERSION_NAMESPACE_4
 		// the main piece size. For v1 and hybrid torrents, piece sizes must be
 		// full (except for the last piece) in order to correctly compute the
 		// piece hash.
+		// Note: this is not a trivial accessor. For v2-only torrents it calls
+		// file_storage::piece_size2(), which performs an O(log n) upper_bound
+		// over the file list to find the file boundary that may shorten the
+		// piece. Cache the result when calling it repeatedly for the same
+		// piece in a hot path.
 		int piece_size_for_req(piece_index_t index) const
 		{
 			return v1()

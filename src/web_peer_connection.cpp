@@ -327,12 +327,13 @@ void web_peer_connection::write_request(peer_request const& r)
 
 	piece_index_t cur_piece = r.piece;
 	int cur_start = r.start;
+	int cur_piece_size = t->piece_size_for_req(cur_piece);
 
 	while (size > 0)
 	{
 		pr.piece = cur_piece;
 		pr.start = cur_start;
-		pr.length = std::min(std::min(block_size, size), t->piece_size_for_req(pr.piece) - pr.start);
+		pr.length = std::min(std::min(block_size, size), cur_piece_size - pr.start);
 		TORRENT_ASSERT(validate_piece_request(pr));
 		m_requests.push_back(pr);
 
@@ -369,10 +370,11 @@ void web_peer_connection::write_request(peer_request const& r)
 #endif
 		size -= pr.length;
 		cur_start += pr.length;
-		if (cur_start >= t->piece_size_for_req(cur_piece))
+		if (cur_start >= cur_piece_size)
 		{
 			cur_start = 0;
 			++cur_piece;
+			if (size > 0) cur_piece_size = t->piece_size_for_req(cur_piece);
 		}
 	}
 
