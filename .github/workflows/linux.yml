@@ -27,7 +27,7 @@ jobs:
       - name: install clang-format-18
         run: sudo apt-get update && sudo apt-get install -y clang-format-18
 
-      - uses: pre-commit/action@v3.0.1
+      - uses: j178/prek-action@v2
 
       - name: clang-format check (changed lines vs PR base)
         if: github.event_name == 'pull_request'

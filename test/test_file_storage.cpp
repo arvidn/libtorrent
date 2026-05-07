@@ -608,6 +608,33 @@ TORRENT_TEST(sanitize_symlinks_circular)
 	TEST_EQUAL(fs.symlink(file_index_t{2}), "test" SEP "2");
 }
 
+TORRENT_TEST(sanitize_symlinks_lexicographic)
+{
+	// an `is_directory` based on a single lower_bound() would miss directories
+	// whose name is a strict prefix of another m_paths entry, when a sibling
+	// path sorts between them. e.g. m_paths {"A.bar", "A/B"}: "A.bar" sorts
+	// before "A/B" because '.' (0x2E) < '/' (0x2F), so a search for "A" lands
+	// on "A.bar" and would incorrectly conclude "A" is not a directory symlink.
+	file_storage fs;
+	fs.set_piece_length(1024);
+
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+	fs.add_file("test\\A.bar\\leaf", 100);
+	fs.add_file("test\\A\\B\\leaf", 100);
+	fs.add_file("test\\sym", 0, file_storage::flag_symlink, 0, "A");
+#else
+	fs.add_file("test/A.bar/leaf", 100);
+	fs.add_file("test/A/B/leaf", 100);
+	fs.add_file("test/sym", 0, file_storage::flag_symlink, 0, "A");
+#endif
+
+	fs.set_num_pieces(int((fs.total_size() + 1023) / 1024));
+	fs.sanitize_symlinks();
+
+	// the symlink resolves to the "A" directory in the torrent
+	TEST_EQUAL(fs.symlink(file_index_t{2}), "test" SEP "A");
+}
+
 TORRENT_TEST(query_symlinks)
 {
 	file_storage fs;

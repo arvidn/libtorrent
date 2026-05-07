@@ -998,13 +998,14 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		if (mask & torrent_flags::disable_lsd)
 		{
 			bool const new_value = !bool(flags & torrent_flags::disable_lsd);
-			if (m_enable_dht != new_value) set_need_save_resume(torrent_handle::if_config_changed);
+			if (m_enable_lsd != new_value) set_need_save_resume(torrent_handle::if_config_changed);
 			m_enable_lsd = new_value;
 		}
 		if (mask & torrent_flags::disable_pex)
 		{
 			bool const new_value = !bool(flags & torrent_flags::disable_pex);
-			if (m_enable_dht != new_value) set_need_save_resume(torrent_handle::if_config_changed);
+			if (bool(m_enable_pex) != new_value)
+				set_need_save_resume(torrent_handle::if_config_changed);
 			m_enable_pex = new_value;
 		}
 	}
@@ -9198,11 +9199,8 @@ namespace {
 					// During init(), before on_metadata_impl()/pc->init() have
 					// run, valid_metadata() just became true so is_seed() can
 					// spuriously return true for peers whose have-bitmask hasn't
-					// been reconciled with the actual piece count yet. Skip this
-					// check until m_connections_initialized confirms the
-					// transition is complete.
-					if (m_connections_initialized)
-						TORRENT_ASSERT(!p.is_seed());
+					// been reconciled with the actual piece count yet.
+					if (p.m_initialized) TORRENT_ASSERT(!p.is_seed());
 				}
 			}
 
