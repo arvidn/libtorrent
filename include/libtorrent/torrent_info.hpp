@@ -97,6 +97,11 @@ namespace aux {
 		// counter. This operation is not cheap and a malicious torrent may pose
 		// a DoS attack, stalling torrent parsing.
 		int max_duplicate_filenames = 500;
+
+		// the max depth of the directory structure of files in the torrent. It
+		// protects against malicious torrents with a deeply nested directory
+		// structure.
+		int max_directory_depth = 100;
 	};
 
 	using torrent_info_flags_t = flags::bitfield_flag<std::uint8_t, struct torrent_info_flags_tag>;
@@ -727,8 +732,9 @@ TORRENT_VERSION_NAMESPACE_4
 #endif
 
 	private:
-
-		void parse_info_section_impl(bdecode_node const& info, error_code& ec, int max_pieces);
+		void parse_info_section_impl(
+			bdecode_node const& info, error_code& ec, load_torrent_limits const& cfg
+		);
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		friend struct ::lt::invariant_access;
