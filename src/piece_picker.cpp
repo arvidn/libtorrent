@@ -3477,14 +3477,16 @@ get_out:
 		TORRENT_ASSERT(&info >= &m_block_info[0]);
 		TORRENT_ASSERT(&info < &m_block_info[0] + m_block_info.size());
 		TORRENT_ASSERT(info.piece_index == block.piece_index);
+
+		// reaching this with the block in any other state means a disk-job
+		// completion got out-of-order with a picker state transition (a
+		// programmer error). In release builds, bail out instead of
+		// double-accounting i->writing.
 		TORRENT_ASSERT(info.state == block_info::state_writing);
 		TORRENT_ASSERT(info.num_peers == 0);
-
 		TORRENT_ASSERT(i->writing > 0);
-		TORRENT_ASSERT(info.state == block_info::state_writing);
-
-		if (info.state == block_info::state_finished) return;
-		if (info.state == block_info::state_writing) --i->writing;
+		if (info.state != block_info::state_writing) return;
+		--i->writing;
 
 		info.peer = nullptr;
 		info.state = block_info::state_none;

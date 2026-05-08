@@ -166,10 +166,6 @@ struct cached_piece_entry
 	// the last block, we should post this
 	disk_job* hash_job = nullptr;
 
-	// if the piece has been requested to be cleared, but it was locked
-	// (flushing) at the time. We hang this job here to complete it once the
-	// thread currently flushing is done with it
-	disk_job* clear_piece = nullptr;
 	// the exact v2 size of this piece (respecting file boundaries).
 	// Used for bytes_left computation in kick_hasher's v2 path.
 	int piece_size2;
@@ -239,6 +235,15 @@ struct cached_piece_entry
 	// thread holds hashing_flag. When kick_hasher() later clears
 	// hashing_flag it will see this flag and free+erase the piece itself.
 	static constexpr cached_piece_flags pending_free_flag = 8_bit;
+
+	// set by try_clear_piece() when a clear was requested while the piece was
+	// being flushed or hashed by another thread. The clear_piece job is stored
+	// in disk_cache::m_pending_clears (keyed by piece) -- not in every entry,
+	// since pending clears are rare -- and the deferred clear is run by whichever
+	// of flush_piece_impl()/kick_hasher()/hash_piece() releases the last of
+	// flushing_flag and hashing_flag. While set, kick_pending_hashers() will not
+	// start a new hash on the piece, so it cannot race with the pending clear.
+	static constexpr cached_piece_flags clearing_flag = 9_bit;
 
 	// flags are protected by the main disk cache mutex and may only be
 	// accessed while holding it
@@ -389,7 +394,10 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 	// already been flushed to disk are freed. If all blocks are flushed, the
 	// piece entry is removed from the cache entirely.
 	template <typename Fun>
-	hash_piece_result hash_piece(piece_location const loc, disk_job* j, Fun f)
+	hash_piece_result hash_piece(piece_location const loc,
+		disk_job* j,
+		Fun f,
+		std::function<void(jobqueue_t, disk_job*)> const& clear_piece_fun)
 	{
 		std::unique_lock<std::mutex> l(m_mutex);
 
@@ -443,6 +451,16 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 			});
 			TORRENT_ASSERT(m_num_unhashed >= num_unhashed);
 			m_num_unhashed -= num_unhashed;
+
+			// If a clear_piece was deferred on this piece while we were hashing,
+			// run it now (unless a flush thread still holds flushing_flag, which
+			// will run it instead). clear_piece_impl() resets all block state and
+			// aborts pending writes, so it supersedes the flushed-buffer cleanup
+			// and the erase below. Without this, a clear deferred behind the
+			// async_hash path would be lost (and the piece possibly erased,
+			// dropping the clear_piece job).
+			if (run_deferred_clear_impl(loc, clear_piece_fun)) return;
+
 			{
 				TORRENT_ASSERT(m_allocator);
 				bulk_free_buffer to_free(*m_allocator);
@@ -540,7 +558,12 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 	// thread should be woken to flush those pieces to disk.
 	// Jobs hung on a piece that stops hashing early are extracted and placed in
 	// retry_jobs so the caller can re-submit them.
-	bool kick_pending_hashers(jobqueue_t& completed_jobs, jobqueue_t& retry_jobs);
+	// If a clear_piece was deferred on a piece while it was being hashed,
+	// clear_piece_fun is invoked with the aborted write jobs and the clear_piece
+	// job once hashing completes (see clearing_flag).
+	bool kick_pending_hashers(jobqueue_t& completed_jobs,
+		jobqueue_t& retry_jobs,
+		std::function<void(jobqueue_t, disk_job*)> clear_piece_fun);
 
 	// this should be called by a disk thread
 	// the callback should return the number of blocks it successfully flushed
@@ -568,19 +591,32 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 #endif
 
 private:
-
 	// this should be called from a hasher thread, with m_mutex held.
 	// hashing_flag must already be set on the piece by the caller.
 	// Returns true if force_flush_flag was set on the piece.
 	// Jobs hung on a piece that stops hashing early are placed in retry_jobs.
-	bool kick_hasher(piece_container::nth_index<4>::type::iterator piece_iter
-		, std::unique_lock<std::mutex>& l, jobqueue_t& completed_jobs
-		, jobqueue_t& retry_jobs);
+	// If a clear was deferred on this piece (clearing_flag), it is run once
+	// hashing_flag is cleared and clear_piece_fun is invoked with the aborted
+	// write jobs and the clear_piece job.
+	bool kick_hasher(piece_container::nth_index<4>::type::iterator piece_iter,
+		std::unique_lock<std::mutex>& l,
+		jobqueue_t& completed_jobs,
+		jobqueue_t& retry_jobs,
+		std::function<void(jobqueue_t, disk_job*)> const& clear_piece_fun);
 
 	void free_piece(cached_piece_entry const& cpe);
 
 	// this requires the mutex to be locked
 	void clear_piece_impl(cached_piece_entry& cpe, jobqueue_t& aborted);
+
+	// Requires the mutex to be locked. If a clear_piece was deferred on loc
+	// (clearing_flag set, see try_clear_piece) and no thread still holds
+	// flushing_flag/hashing_flag, run clear_piece_impl, route the aborted write
+	// jobs and the clear_piece job through clear_piece_fun, and return true.
+	// Called from every site that releases the last flushing_flag/hashing_flag
+	// (flush_piece_impl, kick_hasher, hash_piece).
+	bool run_deferred_clear_impl(
+		piece_location loc, std::function<void(jobqueue_t, disk_job*)> const& clear_piece_fun);
 
 	template <typename Iter, typename View>
 	Iter flush_piece_impl(View& view,
@@ -593,6 +629,12 @@ private:
 	mutable std::mutex m_mutex;
 	std::condition_variable m_flushing_cv;
 	piece_container m_pieces;
+
+	// clear_piece jobs deferred because the piece was being flushed or hashed
+	// when the clear was requested (see clearing_flag). Stored here rather than
+	// in every cached_piece_entry because pending clears are rare. An entry
+	// exists iff the corresponding piece has clearing_flag set.
+	std::unordered_map<piece_location, disk_job*, boost::hash<piece_location>> m_pending_clears;
 
 	// allocator used for all disk buffers in this cache. Set lazily on the
 	// first insert() call. All blocks share the same allocator.

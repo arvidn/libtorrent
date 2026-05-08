@@ -171,7 +171,7 @@ struct cache_fixture
 	void kick_hashers()
 	{
 		lt::jobqueue_t completed, retry;
-		cache.kick_pending_hashers(completed, retry);
+		cache.kick_pending_hashers(completed, retry, [](lt::jobqueue_t, lt::aux::disk_job*) {});
 	}
 
 	// Simulate flush_storage(): marks every block with a write_job as flushed.

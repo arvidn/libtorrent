@@ -203,26 +203,22 @@ bool disk_cache::try_clear_piece(piece_location const loc, disk_job* j, jobqueue
 	auto& view = m_pieces.template get<0>();
 	auto i = view.find(loc);
 	if (i == view.end()) return true;
-	if (i->flags & cached_piece_entry::flushing_flag)
+
+	// If another thread is currently flushing this piece to disk or hashing
+	// it, we cannot reset the block state yet. Hang the clear_piece job on the
+	// piece and set clearing_flag. Whichever thread releases the last of
+	// flushing_flag / hashing_flag will run clear_piece_impl and post j (see
+	// flush_piece_impl() and kick_hasher()). clearing_flag also stops
+	// kick_pending_hashers() from starting a fresh hash on the piece, so a
+	// pending clear can never race a newly-started hasher.
+	if (i->flags & (cached_piece_entry::flushing_flag | cached_piece_entry::hashing_flag))
 	{
-		// postpone the clearing until we're done flushing
-		view.modify(i, [&](cached_piece_entry& e) { e.clear_piece = j; });
+		view.modify(i, [](cached_piece_entry& e) { e.flags |= cached_piece_entry::clearing_flag; });
+		m_pending_clears[loc] = j;
 		return false;
 	}
 
-	// we clear a piece after it fails the hash check. It doesn't make sense
-	// to be hashing still
-	TORRENT_ASSERT(!(i->flags & cached_piece_entry::hashing_flag));
-	if (i->flags & cached_piece_entry::hashing_flag)
-	{
-		// postpone the clearing until we're done hashing
-		view.modify(i, [&](cached_piece_entry& e) { e.clear_piece = j; });
-		return false;
-	}
-
-	view.modify(i, [&](cached_piece_entry& e) {
-		clear_piece_impl(e, aborted);
-	});
+	view.modify(i, [&](cached_piece_entry& e) { clear_piece_impl(e, aborted); });
 	return true;
 }
 
@@ -382,9 +378,11 @@ disk_cache::hash_result disk_cache::try_hash_piece(piece_location const loc, dis
 // NOTE: if pending_free_flag is set, this function will erase the piece from
 // the cache before returning, invalidating piece_iter. Callers must not
 // dereference it after this call returns.
-bool disk_cache::kick_hasher(piece_container::nth_index<4>::type::iterator piece_iter
-	, std::unique_lock<std::mutex>& l, jobqueue_t& completed_jobs
-	, jobqueue_t& retry_jobs)
+bool disk_cache::kick_hasher(piece_container::nth_index<4>::type::iterator piece_iter,
+	std::unique_lock<std::mutex>& l,
+	jobqueue_t& completed_jobs,
+	jobqueue_t& retry_jobs,
+	std::function<void(jobqueue_t, disk_job*)> const& clear_piece_fun)
 {
 	INVARIANT_CHECK;
 	TORRENT_ASSERT(l.owns_lock());
@@ -510,6 +508,8 @@ keep_going:
 		});
 		if (rj) retry_jobs.push_back(rj);
 
+		run_deferred_clear_impl(piece_iter->piece, clear_piece_fun);
+
 		if (piece_iter->flags & cached_piece_entry::pending_free_flag)
 		{
 			free_piece(*piece_iter);
@@ -529,6 +529,8 @@ keep_going:
 			e.flags &= ~cached_piece_entry::hashing_flag;
 			e.flags |= cached_piece_entry::force_flush_flag;
 		});
+
+		run_deferred_clear_impl(piece_iter->piece, clear_piece_fun);
 
 		if (piece_iter->flags & cached_piece_entry::pending_free_flag)
 		{
@@ -576,6 +578,8 @@ keep_going:
 		, static_cast<int>(piece_iter->piece.piece));
 	completed_jobs.push_back(j);
 
+	run_deferred_clear_impl(piece_iter->piece, clear_piece_fun);
+
 	if (piece_iter->flags & cached_piece_entry::pending_free_flag)
 	{
 		free_piece(*piece_iter);
@@ -588,7 +592,9 @@ keep_going:
 
 // returns true if any piece finished hashing, and is ready to be flushed to
 // disk. Any such piece will also have had the force_flush_flag set.
-bool disk_cache::kick_pending_hashers(jobqueue_t& completed_jobs, jobqueue_t& retry_jobs)
+bool disk_cache::kick_pending_hashers(jobqueue_t& completed_jobs,
+	jobqueue_t& retry_jobs,
+	std::function<void(jobqueue_t, disk_job*)> clear_piece_fun)
 {
 	bool needs_flush = false;
 	std::unique_lock<std::mutex> l(m_mutex);
@@ -600,8 +606,12 @@ bool disk_cache::kick_pending_hashers(jobqueue_t& completed_jobs, jobqueue_t& re
 			break;
 
 		// Skip pieces already being hashed or fully hashed; just clear the flag.
+		// Also skip pieces with a pending clear: starting a hash on them would
+		// race the deferred clear_piece (which would then have to wait for this
+		// hash to finish anyway). The clear runs without us hashing.
 		if ((it->flags & cached_piece_entry::hashing_flag)
-			|| (it->flags & cached_piece_entry::piece_hash_returned_flag))
+			|| (it->flags & cached_piece_entry::piece_hash_returned_flag)
+			|| (it->flags & cached_piece_entry::clearing_flag))
 		{
 			view.modify(it, [](cached_piece_entry& e)
 				{ e.flags &= ~cached_piece_entry::needs_hasher_kick_flag; });
@@ -615,7 +625,7 @@ bool disk_cache::kick_pending_hashers(jobqueue_t& completed_jobs, jobqueue_t& re
 				| cached_piece_entry::hashing_flag;
 		});
 
-		needs_flush |= kick_hasher(it, l, completed_jobs, retry_jobs);
+		needs_flush |= kick_hasher(it, l, completed_jobs, retry_jobs, clear_piece_fun);
 	}
 	return needs_flush;
 }
@@ -747,22 +757,22 @@ Iter disk_cache::flush_piece_impl(View& view,
 	DLOG("flush_piece_impl: piece: %d flushed_cursor: %d force_flush: %d\n"
 		, static_cast<int>(piece_iter->piece.piece), piece_iter->flushed_cursor, bool(piece_iter->flags & cached_piece_entry::force_flush_flag));
 	TORRENT_ASSERT(count <= blocks.size());
-	if (piece_iter->clear_piece)
-	{
-		jobqueue_t aborted;
-		disk_job* clear_piece = nullptr;
-		view.modify(piece_iter, [&](cached_piece_entry& e) {
-			clear_piece_impl(e, aborted);
-			clear_piece = std::exchange(e.clear_piece, nullptr);
-		});
-		clear_piece_fun(std::move(aborted), clear_piece);
-	}
+	// If a clear_piece was deferred on this piece, run it now that this flush is
+	// done (flushing_flag was cleared above). If a hasher thread still holds
+	// hashing_flag, run_deferred_clear_impl leaves it for kick_hasher()/
+	// hash_piece() to run when hashing finishes.
+	run_deferred_clear_impl(piece_iter->piece, clear_piece_fun);
 
 	return next_iter;
 }
 
 void disk_cache::free_piece(cached_piece_entry const& cpe)
 {
+	// normally a deferred clear is run (and its map entry removed) before the
+	// piece is freed; this drops any entry left over from a teardown race,
+	// mirroring how the old per-entry clear_piece pointer vanished with the
+	// entry. Cheap: m_pending_clears is empty unless a clear is in flight.
+	if (!m_pending_clears.empty()) m_pending_clears.erase(cpe.piece);
 #if TORRENT_USE_ASSERTS
 	if (cpe.flags & cached_piece_entry::piece_hash_returned_flag)
 	{
@@ -842,8 +852,7 @@ void disk_cache::flush_to_disk(std::function<int(bitfield&, span<disk_job* const
 		}
 		span<cached_block_entry> blocks = piece_iter->get_blocks();
 
-		auto const next_iter = flush_piece_impl(view, piece_iter, f, l
-			, blocks, clear_piece_fun);
+		auto const next_iter = flush_piece_impl(view, piece_iter, f, l, blocks, clear_piece_fun);
 
 		if (piece_iter->flushed_cursor == piece_iter->blocks_in_piece()
 			&& bool(piece_iter->flags & cached_piece_entry::piece_hash_returned_flag)
@@ -887,8 +896,7 @@ void disk_cache::flush_to_disk(std::function<int(bitfield&, span<disk_job* const
 			piece_iter->flushed_cursor
 			, num_eligible_blocks);
 
-		piece_iter = flush_piece_impl(view2, piece_iter, f, l
-			, blocks, clear_piece_fun);
+		piece_iter = flush_piece_impl(view2, piece_iter, f, l, blocks, clear_piece_fun);
 	}
 
 	// before doing any more disk I/O, drop buffers that were kept alive
@@ -1068,6 +1076,7 @@ void disk_cache::check_invariant() const
 	int flushed_blocks = 0;
 	int flushing_blocks = 0;
 	int unhashed_blocks = 0;
+	int clearing_pieces = 0;
 
 	auto& view = m_pieces.template get<2>();
 	for (auto const& piece_entry : view)
@@ -1087,6 +1096,14 @@ void disk_cache::check_invariant() const
 		// It must never outlive the hashing window.
 		if (piece_entry.flags & cached_piece_entry::pending_free_flag)
 			TORRENT_ASSERT(piece_entry.flags & cached_piece_entry::hashing_flag);
+
+		// clearing_flag and m_pending_clears must agree: a piece carries the
+		// flag iff its deferred clear_piece job is stored in the map.
+		if (piece_entry.flags & cached_piece_entry::clearing_flag)
+		{
+			TORRENT_ASSERT(m_pending_clears.find(piece_entry.piece) != m_pending_clears.end());
+			++clearing_pieces;
+		}
 
 		int idx = 0;
 		for (auto& be : blocks)
@@ -1133,8 +1150,41 @@ void disk_cache::check_invariant() const
 	TORRENT_ASSERT(dirty_blocks + flushed_blocks == m_blocks);
 	TORRENT_ASSERT(flushing_blocks >= m_flushing_blocks);
 	TORRENT_ASSERT(unhashed_blocks == m_num_unhashed);
+	// every map entry corresponds to a piece carrying clearing_flag
+	TORRENT_ASSERT(std::size_t(clearing_pieces) == m_pending_clears.size());
 }
 #endif
+
+// this requires the mutex to be locked
+bool disk_cache::run_deferred_clear_impl(
+	piece_location const loc, std::function<void(jobqueue_t, disk_job*)> const& clear_piece_fun)
+{
+	auto& view = m_pieces.template get<0>();
+	auto i = view.find(loc);
+	if (i == view.end()) return false;
+	if (!(i->flags & cached_piece_entry::clearing_flag)) return false;
+	// another thread is still flushing or hashing this piece; whichever
+	// releases the last of those flags will run the clear.
+	if (i->flags & (cached_piece_entry::flushing_flag | cached_piece_entry::hashing_flag))
+		return false;
+
+	// clearing_flag is set, so the deferred clear job must be in the map.
+	auto const mit = m_pending_clears.find(loc);
+	TORRENT_ASSERT(mit != m_pending_clears.end());
+	disk_job* const clear_job = mit->second;
+
+	jobqueue_t aborted;
+	view.modify(i, [&](cached_piece_entry& e) {
+		clear_piece_impl(e, aborted);
+		e.flags &= ~cached_piece_entry::clearing_flag;
+	});
+	// erase the map entry only after the modify: clear_piece_impl runs an
+	// invariant check that requires clearing_flag and the map to agree, so the
+	// entry must stay until clearing_flag is cleared above.
+	m_pending_clears.erase(loc);
+	clear_piece_fun(std::move(aborted), clear_job);
+	return true;
+}
 
 // this requires the mutex to be locked
 void disk_cache::clear_piece_impl(cached_piece_entry& cpe, jobqueue_t& aborted)

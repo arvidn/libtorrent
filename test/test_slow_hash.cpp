@@ -189,9 +189,8 @@ void test_hash_job_dispatched_by_hasher(test_mode_t const mode)
 	// With slow hashing each block takes ~1.6 s. Run the hasher in a thread
 	// and call try_hash_piece after a short sleep, reliably catching the
 	// window where hashing_flag is set.
-	std::thread t([&]() {
-		f.cache.kick_pending_hashers(completed, retry);
-	});
+	std::thread t(
+		[&]() { f.cache.kick_pending_hashers(completed, retry, [](jobqueue_t, disk_job*) {}); });
 	std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
 	auto const result = f.cache.try_hash_piece(f.loc(0_piece), hash_job.get());
@@ -233,9 +232,8 @@ void test_hash_job_retry_when_piece_incomplete(test_mode_t const mode)
 
 	// Slow hashing gives us a wide window. Run the hasher in a thread, park
 	// the hash job while hashing_flag is set, then let the hasher finish.
-	std::thread t([&]() {
-		f.cache.kick_pending_hashers(completed, retry);
-	});
+	std::thread t(
+		[&]() { f.cache.kick_pending_hashers(completed, retry, [](jobqueue_t, disk_job*) {}); });
 	std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
 	// hashing_flag is set; block 1 is absent so the hasher will stall at
@@ -291,7 +289,8 @@ void test_drop_held_alive_buffers(test_mode_t const mode)
 
 	jobqueue_t completed, retry;
 
-	std::thread hasher_thread([&]() { f.cache.kick_pending_hashers(completed, retry); });
+	std::thread hasher_thread(
+		[&]() { f.cache.kick_pending_hashers(completed, retry, [](jobqueue_t, disk_job*) {}); });
 	// Wait until kick_hasher has released the mutex inside its slow hash
 	// update. The 50ms is comfortably inside the ~1.6s slow-hash window.
 	std::this_thread::sleep_for(std::chrono::milliseconds(50));
@@ -340,9 +339,8 @@ void test_flush_storage_during_hashing(test_mode_t const mode)
 
 	// With slow hashing each block takes ~1.6 s. Run the hasher in a
 	// background thread so flush_storage() races with it.
-	std::thread hasher_thread([&]() {
-		f.cache.kick_pending_hashers(completed, retry);
-	});
+	std::thread hasher_thread(
+		[&]() { f.cache.kick_pending_hashers(completed, retry, [](jobqueue_t, disk_job*) {}); });
 
 	// Give the hasher time to set hashing_flag and release the mutex.
 	std::this_thread::sleep_for(std::chrono::milliseconds(50));
@@ -362,6 +360,65 @@ void test_flush_storage_during_hashing(test_mode_t const mode)
 	TEST_EQUAL(f.alloc.live, 0);
 }
 
+// Regression test for the clearing_flag mechanism.
+//
+// A clear_piece is requested (try_clear_piece) while a hasher thread holds
+// hashing_flag (mutex released mid-hash). The clear must be deferred -- the
+// clear_piece job is hung on the piece and clearing_flag is set -- and then
+// run by kick_hasher() once hashing completes, routing the aborted write jobs
+// and the clear_piece job through clear_piece_fun. Without the interlock the
+// clear would either race the hasher (tripping clear_piece_impl's
+// !hashing_flag assert) or be lost entirely (the old code asserted hashing was
+// not in progress).
+void test_clear_piece_during_hashing(test_mode_t const mode)
+{
+	// 2-block piece so the hasher spends real time hashing.
+	cache_fixture f(2, mode);
+	f.insert(0_piece, 0);
+	f.insert(0_piece, 1);
+
+	jobqueue_t completed, retry;
+
+	// Recorded by clear_piece_fun when the deferred clear runs (hasher thread).
+	// Read on the main thread only after join(), so no synchronization needed.
+	int clear_calls = 0;
+	int aborted_count = 0;
+	lt::aux::disk_job* routed_clear = nullptr;
+
+	// A clear_piece job to hang on the piece. The cache only stores and returns
+	// the pointer; it never inspects the action.
+	auto clear_job = std::make_unique<pread_disk_job>();
+
+	std::thread hasher_thread([&]() {
+		f.cache.kick_pending_hashers(completed, retry, [&](jobqueue_t aborted, disk_job* clear) {
+			++clear_calls;
+			aborted_count = int(aborted.size());
+			routed_clear = clear;
+		});
+	});
+
+	// Give the hasher time to set hashing_flag and release the mutex.
+	std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+	// Request the clear while hashing_flag is set: try_clear_piece must defer
+	// (return false) and abort nothing yet.
+	jobqueue_t aborted_now;
+	bool const immediate = f.cache.try_clear_piece(f.loc(0_piece), clear_job.get(), aborted_now);
+	TEST_CHECK(!immediate);
+	TEST_CHECK(aborted_now.empty());
+
+	hasher_thread.join();
+
+	// kick_hasher() finished hashing, saw clearing_flag, ran the deferred clear
+	// and routed the aborted write jobs + the clear_piece job exactly once.
+	TEST_EQUAL(clear_calls, 1);
+	TEST_CHECK(routed_clear == clear_job.get());
+	TEST_EQUAL(aborted_count, 2); // both blocks' write jobs were aborted
+	// the piece's blocks are gone from the cache's accounting; the two block
+	// buffers are now owned by the aborted write jobs (freed when the caller
+	// completes them, as clear_piece_jobs() does in production).
+	TEST_EQUAL(int(f.cache.size()), 0);
+}
 }
 
 TORRENT_TEST(test_pread_hash_job_retry)
@@ -395,6 +452,13 @@ TORRENT_TEST(flush_storage_during_hashing_v2)
 	{ test_flush_storage_during_hashing(test_mode::v2); }
 TORRENT_TEST(flush_storage_during_hashing_hybrid)
 	{ test_flush_storage_during_hashing(test_mode::v1 | test_mode::v2); }
+
+	TORRENT_TEST(clear_piece_during_hashing_v1) { test_clear_piece_during_hashing(test_mode::v1); }
+	TORRENT_TEST(clear_piece_during_hashing_v2) { test_clear_piece_during_hashing(test_mode::v2); }
+	TORRENT_TEST(clear_piece_during_hashing_hybrid)
+	{
+		test_clear_piece_during_hashing(test_mode::v1 | test_mode::v2);
+	}
 
 	TORRENT_TEST(drop_held_alive_v1) { test_drop_held_alive_buffers(test_mode::v1); }
 	TORRENT_TEST(drop_held_alive_v2) { test_drop_held_alive_buffers(test_mode::v2); }

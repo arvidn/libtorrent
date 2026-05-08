@@ -38,7 +38,7 @@ Flags are stored in `cached_piece_flags flags` (a `bitfield_flag<uint8_t>` bitfi
 
 In both hashing and flushing cases, the lock is **released** for the duration of the actual I/O (hashing or `pwrite()`), then re-acquired to update cursors/flags and potentially free buffers.
 
-**Deferred clear:** If `try_clear_piece()` is called while `flushing_flag` or `hashing_flag` is set, the clear job is stored in `cached_piece_entry::clear_piece` and executed by the owning thread once it clears its flag.
+**Deferred clear (`clearing_flag`):** `clear_piece` is *not* a storage fence. `try_clear_piece()` clears the piece's block state in place (aborting its pending write jobs) if the piece is idle. If `flushing_flag` or `hashing_flag` is set, it cannot reset the block state safely, so it stores the clear job in `disk_cache::m_pending_clears` (a map keyed by piece — kept out of `cached_piece_entry` since pending clears are rare), sets `clearing_flag`, and returns deferred. The deferred clear is run by whichever thread releases the *last* of `flushing_flag`/`hashing_flag` — `flush_piece_impl()`, `kick_hasher()`, and `hash_piece()` all call `run_deferred_clear_impl()`, which runs `clear_piece_impl()` and routes the aborted writes + clear job through `clear_piece_fun` only once neither flag remains set. While `clearing_flag` is set, `kick_pending_hashers()` will not start a new hash on the piece, so a pending clear can never race a freshly started hasher. The BitTorrent engine locks the piece in the picker (`lock_piece`/`write_failed`) before requesting the clear and only restores it in the completion handler, so no new writes arrive while a clear is pending.
 
 **Held-alive buffers and the flush/hasher race:**
 

@@ -191,7 +191,7 @@ void test_disk_bottleneck(test_mode_t const mode)
 	TEST_EQUAL(int(f.cache.size()), 2);
 
 	jobqueue_t completed, retry;
-	TEST_CHECK(f.cache.kick_pending_hashers(completed, retry));
+	TEST_CHECK(f.cache.kick_pending_hashers(completed, retry, [](jobqueue_t, disk_job*) {}));
 	TEST_CHECK(completed.empty());
 
 	std::vector<sha256_hash> block_hashes(mode & test_mode::v2 ? 2 : 0);
@@ -250,7 +250,7 @@ void test_multi_piece(test_mode_t const mode)
 	TEST_EQUAL(int(f.cache.size()), 3);
 
 	jobqueue_t completed, retry;
-	f.cache.kick_pending_hashers(completed, retry);
+	f.cache.kick_pending_hashers(completed, retry, [](jobqueue_t, disk_job*) {});
 
 	for (auto p : {0_piece, 1_piece, 2_piece})
 	{
@@ -323,7 +323,7 @@ TORRENT_TEST(v2_hash2_from_cache)
 
 	// Let the hasher compute SHA256 for block 0.
 	jobqueue_t completed, retry;
-	f.cache.kick_pending_hashers(completed, retry);
+	f.cache.kick_pending_hashers(completed, retry, [](jobqueue_t, disk_job*) {});
 
 	bool fallback_called = false;
 	sha256_hash h = f.cache.hash2(f.loc(0_piece), 0, [&]() -> sha256_hash {
@@ -376,7 +376,7 @@ TORRENT_TEST(hash_failure_clear)
 	f.insert(0_piece, 1);
 
 	jobqueue_t completed, retry;
-	f.cache.kick_pending_hashers(completed, retry);
+	f.cache.kick_pending_hashers(completed, retry, [](jobqueue_t, disk_job*) {});
 
 	auto hash_job = std::make_unique<pread_disk_job>();
 	hash_job->action = job::hash{{}, 0_piece, span<sha256_hash>{}, sha1_hash{}};
@@ -401,7 +401,7 @@ TORRENT_TEST(clear_piece_partially_flushed)
 	f.insert(0_piece, 0);
 	{
 		jobqueue_t completed, retry;
-		f.cache.kick_pending_hashers(completed, retry);
+		f.cache.kick_pending_hashers(completed, retry, [](jobqueue_t, disk_job*) {});
 	}
 
 	// Flush block 0 (cheap: already hashed).
@@ -686,7 +686,7 @@ void test_piece_size2_smaller_than_piece_size(test_mode_t const mode)
 	}
 
 	jobqueue_t completed, retry;
-	f.cache.kick_pending_hashers(completed, retry);
+	f.cache.kick_pending_hashers(completed, retry, [](jobqueue_t, disk_job*) {});
 
 	int const v2_blocks = (piece_size2 + default_block_size - 1) / default_block_size;
 	std::vector<sha256_hash> block_hashes(need_v2 ? v2_blocks : 0);

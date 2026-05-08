@@ -632,9 +632,10 @@ bool pread_disk_io::async_write(storage_index_t const storage, peer_request cons
 		std::uint16_t(r.length)
 	);
 
-	DLOG("async_write: piece: %d offset: %d flags: %x\n"
-		, int(r.piece), int(r.start)
-		, static_cast<std::uint8_t>(flags));
+	DLOG("async_write: piece: %d offset: %d flags: %x\n",
+		int(r.piece),
+		int(r.start),
+		static_cast<std::uint8_t>(flags));
 	bool const force_flush = bool(flags & flush_piece);
 	file_storage const& fs = j->storage->files();
 	// in order to compute v1 hashes, we need the full piece, including pad
@@ -642,18 +643,15 @@ bool pread_disk_io::async_write(storage_index_t const storage, peer_request cons
 	int const piece_size = j->storage->v1() ? fs.piece_size(r.piece) : fs.piece_size2(r.piece);
 	TORRENT_ASSERT(r.length == std::min(piece_size - r.start, default_block_size));
 	aux::disk_cache::piece_entry_params const piece_params{
-		fs.piece_size2(r.piece)
-		, piece_size
-		, j->storage->v1()
-		, j->storage->v2()
-	};
-	auto const result = m_cache.insert(
-		{j->storage->storage_index(), r.piece}
-		, r.start / default_block_size
-		, force_flush, std::move(o), j, piece_params);
+		fs.piece_size2(r.piece), piece_size, j->storage->v1(), j->storage->v2()};
+	auto const result = m_cache.insert({j->storage->storage_index(), r.piece},
+		r.start / default_block_size,
+		force_flush,
+		std::move(o),
+		j,
+		piece_params);
 
-	if (result & aux::disk_cache::need_hasher_kick)
-		m_hash_threads.interrupt();
+	if (result & aux::disk_cache::need_hasher_kick) m_hash_threads.interrupt();
 
 	std::unique_lock<std::mutex> l(m_job_mutex);
 	if (!m_flush_target)
@@ -881,8 +879,8 @@ void pread_disk_io::async_clear_piece(storage_index_t const storage
 	// clear piece must wait for all write jobs issued to the piece finish
 	// before it completes.
 	jobqueue_t aborted_jobs;
-	bool const immediate_completion = m_cache.try_clear_piece(
-		{j->storage->storage_index(), index}, j, aborted_jobs);
+	bool const immediate_completion =
+		m_cache.try_clear_piece({j->storage->storage_index(), index}, j, aborted_jobs);
 
 	m_completed_jobs.abort_jobs(m_ios, std::move(aborted_jobs));
 	if (immediate_completion)
@@ -1016,8 +1014,12 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 		}
 	};
 
-	auto const hpr = m_cache.hash_piece({ j->storage->storage_index(), a.piece}
-		, j, hash_partial_piece);
+	auto const hpr = m_cache.hash_piece({j->storage->storage_index(), a.piece},
+		j,
+		hash_partial_piece,
+		[&](jobqueue_t aborted, aux::disk_job* clear) {
+			clear_piece_jobs(std::move(aborted), static_cast<aux::pread_disk_job*>(clear));
+		});
 
 	if (hpr == aux::disk_cache::hash_piece_result::deferred)
 		return disk_status::job_deferred;
@@ -1528,7 +1530,13 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 			l.unlock();
 			jobqueue_t completed;
 			jobqueue_t retry;
-			bool const needs_flush = m_cache.kick_pending_hashers(completed, retry);
+			// if a clear_piece was deferred on a piece while it was being hashed,
+			// kick_pending_hashers runs it once hashing finishes and routes the
+			// aborted write jobs + clear_piece job through clear_piece_jobs.
+			bool const needs_flush = m_cache.kick_pending_hashers(
+				completed, retry, [&](jobqueue_t aborted, aux::disk_job* clear) {
+					clear_piece_jobs(std::move(aborted), static_cast<aux::pread_disk_job*>(clear));
+				});
 			add_completed_jobs(std::move(completed));
 
 			l.lock();
