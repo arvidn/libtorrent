@@ -652,7 +652,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			struct ifinfomsg msg;
 		} link_req{};
 
-		link_req.hdr.nlmsg_len = std::uint32_t(NLMSG_LENGTH(sizeof(link_req.msg)));
+		link_req.hdr.nlmsg_len = aux::nlmsg_length(sizeof(link_req.msg));
 		link_req.hdr.nlmsg_type = RTM_GETLINK;
 		link_req.msg.ifi_family = AF_PACKET;
 		link_req.msg.ifi_change = 0xFFFFFFFF;
@@ -676,7 +676,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			struct ifaddrmsg msg;
 		} request{};
 
-		request.hdr.nlmsg_len = std::uint32_t(NLMSG_LENGTH(sizeof(request.msg)));
+		request.hdr.nlmsg_len = aux::nlmsg_length(sizeof(request.msg));
 		request.hdr.nlmsg_type = RTM_GETADDR;
 		request.msg.ifa_family = AF_PACKET;
 
@@ -1382,7 +1382,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			struct nlmsghdr hdr;
 			struct rtmsg msg;
 		} request{};
-		request.hdr.nlmsg_len = std::uint32_t(NLMSG_LENGTH(sizeof(request.msg)));
+		request.hdr.nlmsg_len = aux::nlmsg_length(sizeof(request.msg));
 		request.hdr.nlmsg_type = RTM_GETROUTE;
 		request.msg.rtm_family = AF_UNSPEC;
 
