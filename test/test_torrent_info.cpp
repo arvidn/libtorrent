@@ -1392,133 +1392,190 @@ TORRENT_TEST(parse_invalid_torrents_no_throw)
 
 namespace {
 
-struct file_t
-{
-	std::string filename;
-	int size;
-	file_flags_t flags;
-	string_view expected_filename;
-};
+	std::vector<char> make_v1_torrent_with_path_depth(int const depth)
+	{
+		entry::list_type path;
+		for (int i = 0; i < depth - 1; ++i)
+			path.emplace_back("d");
+		path.emplace_back("file.txt");
 
-std::vector<lt::aux::vector<file_t, lt::file_index_t>> const test_cases
-{
-	{
-		{"test/temporary.txt", 0x4000, {}, "test/temporary.txt"},
-		{"test/Temporary.txt", 0x4000, {}, "test/Temporary.1.txt"},
-		{"test/TeMPorArY.txT", 0x4000, {}, "test/TeMPorArY.2.txT"},
-		// a file with the same name in a separate directory is fine
-		{"test/test/TEMPORARY.TXT", 0x4000, {}, "test/test/TEMPORARY.TXT"},
-	},
-	{
-		{"test/b.exe", 0x4000, {}, "test/b.exe"},
-		// duplicate of b.exe
-		{"test/B.ExE", 0x4000, {}, "test/B.1.ExE"},
-		// duplicate of b.exe
-		{"test/B.exe", 0x4000, {}, "test/B.2.exe"},
-		{"test/filler", 0x4000, {}, "test/filler"},
-	},
-	{
-		{"test/a/b/c/d/e/f/g/h/i/j/k/l/m", 0x4000, {}, "test/a/b/c/d/e/f/g/h/i/j/k/l/m"},
-		{"test/a", 0x4000, {}, "test/a.1"},
-		{"test/a/b", 0x4000, {}, "test/a/b.1"},
-		{"test/a/b/c", 0x4000, {}, "test/a/b/c.1"},
-		{"test/a/b/c/d", 0x4000, {}, "test/a/b/c/d.1"},
-		{"test/a/b/c/d/e", 0x4000, {}, "test/a/b/c/d/e.1"},
-		{"test/a/b/c/d/e/f", 0x4000, {}, "test/a/b/c/d/e/f.1"},
-		{"test/a/b/c/d/e/f/g", 0x4000, {}, "test/a/b/c/d/e/f/g.1"},
-		{"test/a/b/c/d/e/f/g/h", 0x4000, {}, "test/a/b/c/d/e/f/g/h.1"},
-		{"test/a/b/c/d/e/f/g/h/i", 0x4000, {}, "test/a/b/c/d/e/f/g/h/i.1"},
-		{"test/a/b/c/d/e/f/g/h/i/j", 0x4000, {}, "test/a/b/c/d/e/f/g/h/i/j.1"},
-	},
-	{
-		// it doesn't matter whether the file comes before the directory,
-		// directories take precedence
-		{"test/a", 0x4000, {}, "test/a.1"},
-		{"test/a/b", 0x4000, {}, "test/a/b"},
-	},
-	{
-		{"test/A/tmp", 0x4000, {}, "test/A/tmp"},
-		// a file may not have the same name as a directory
-		{"test/a", 0x4000, {}, "test/a.1"},
-		// duplicate of directory a
-		{"test/A", 0x4000, {}, "test/A.2"},
-		{"test/filler", 0x4000, {}, "test/filler"},
-	},
-	{
-		// a subset of this path collides with the next filename
-		{"test/long/path/name/that/collides", 0x4000, {}, "test/long/path/name/that/collides"},
-		// so this file needs to be renamed, to not collide with the path name
-		{"test/long/path", 0x4000, {}, "test/long/path.1"},
-		{"test/filler-1", 0x4000, {}, "test/filler-1"},
-		{"test/filler-2", 0x4000, {}, "test/filler-2"},
-	},
-	{
-		// pad files are allowed to collide, as long as they have the same size
-		{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234"},
-		{"test/filler-1", 0x4000, {}, "test/filler-1"},
-		{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234"},
-		{"test/filler-2", 0x4000, {}, "test/filler-2"},
-	},
-	{
-		// pad files of different sizes are NOT allowed to collide
-		{"test/.pad/1234", 0x8000, file_storage::flag_pad_file, "test/.pad/1234"},
-		{"test/filler-1", 0x4000, {}, "test/filler-1"},
-		{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234.1"},
-		{"test/filler-2", 0x4000, {}, "test/filler-2"},
-	},
-	{
-		// pad files are NOT allowed to collide with normal files
-		{"test/.pad/1234", 0x4000, {}, "test/.pad/1234"},
-		{"test/filler-1", 0x4000, {}, "test/filler-1"},
-		{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234.1"},
-		{"test/filler-2", 0x4000, {}, "test/filler-2"},
-	},
-	{
-		// normal files are NOT allowed to collide with pad files
-		{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234"},
-		{"test/filler-1", 0x4000, {}, "test/filler-1"},
-		{"test/.pad/1234", 0x4000, {}, "test/.pad/1234.1"},
-		{"test/filler-2", 0x4000, {}, "test/filler-2"},
-	},
-	{
-		// pad files are NOT allowed to collide with directories
-		{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234.1"},
-		{"test/filler-1", 0x4000, {}, "test/filler-1"},
-		{"test/.pad/1234/filler-2", 0x4000, {}, "test/.pad/1234/filler-2"},
-	},
-};
+		entry file;
+		file["length"] = 1;
+		file["path"] = path;
 
-void test_resolve_duplicates(aux::vector<file_t, file_index_t> const& test)
-{
-	std::vector<lt::create_file_entry> fs;
-	for (auto const& f : test) fs.emplace_back(f.filename, f.size, f.flags);
+		entry::list_type files;
+		files.emplace_back(std::move(file));
 
-	// This test creates torrents with duplicate (identical) filenames, which
-	// isn't supported by v2 torrents, so we can only test this with v1 torrents
-	lt::create_torrent t(std::move(fs), 0x4000, create_torrent::v1_only);
+		entry info;
+		info["name"] = "root";
+		info["piece length"] = 16 * 1024;
+		info["pieces"] = "aaaaaaaaaaaaaaaaaaaa";
+		info["files"] = files;
 
-	for (auto const i : t.piece_range())
-		t.set_hash(i, sha1_hash::max());
-
-	std::vector<char> const tmp = t.generate_buf();
-	auto atp = load_torrent_buffer(tmp);
-	for (auto const i : t.file_range())
-	{
-		std::string p;
-		auto it = atp.renamed_files.find(i);
-		if (it == atp.renamed_files.end()) {
-			p = atp.ti->layout().file_path(i);
-		}
-		else
-		{
-			p = it->second;
-		}
-		convert_path_to_posix(p);
-		std::printf("%s == %s\n", p.c_str(), std::string(test[i].expected_filename).c_str());
-
-		TEST_EQUAL(p, test[i].expected_filename);
+		entry torrent;
+		torrent["info"] = info;
+		return bencode(torrent);
 	}
+
+} // anonymous namespace
+
+TORRENT_TEST(load_torrent_directory_depth_v1_within_limit)
+{
+	auto const buf = make_v1_torrent_with_path_depth(50);
+	error_code ec;
+	auto const atp = load_torrent_buffer(buf, ec, load_torrent_limits{});
+	TEST_CHECK(!ec);
+	TEST_CHECK(atp.ti);
 }
+
+TORRENT_TEST(load_torrent_directory_depth_v1_exceeds_default)
+{
+	auto const buf = make_v1_torrent_with_path_depth(200);
+	error_code ec;
+	auto const atp = load_torrent_buffer(buf, ec, load_torrent_limits{});
+	TEST_EQUAL(ec, errors::torrent_directory_too_deep);
+}
+
+TORRENT_TEST(load_torrent_directory_depth_v1_configurable)
+{
+	auto const buf = make_v1_torrent_with_path_depth(20);
+	error_code ec;
+	load_torrent_limits cfg;
+	cfg.max_directory_depth = 5;
+	auto const atp = load_torrent_buffer(buf, ec, cfg);
+	TEST_EQUAL(ec, errors::torrent_directory_too_deep);
+}
+
+namespace {
+
+	struct file_t
+	{
+		std::string filename;
+		int size;
+		file_flags_t flags;
+		string_view expected_filename;
+	};
+
+	std::vector<lt::aux::vector<file_t, lt::file_index_t>> const test_cases{
+		{
+			{"test/temporary.txt", 0x4000, {}, "test/temporary.txt"},
+			{"test/Temporary.txt", 0x4000, {}, "test/Temporary.1.txt"},
+			{"test/TeMPorArY.txT", 0x4000, {}, "test/TeMPorArY.2.txT"},
+			// a file with the same name in a separate directory is fine
+			{"test/test/TEMPORARY.TXT", 0x4000, {}, "test/test/TEMPORARY.TXT"},
+		},
+		{
+			{"test/b.exe", 0x4000, {}, "test/b.exe"},
+			// duplicate of b.exe
+			{"test/B.ExE", 0x4000, {}, "test/B.1.ExE"},
+			// duplicate of b.exe
+			{"test/B.exe", 0x4000, {}, "test/B.2.exe"},
+			{"test/filler", 0x4000, {}, "test/filler"},
+		},
+		{
+			{"test/a/b/c/d/e/f/g/h/i/j/k/l/m", 0x4000, {}, "test/a/b/c/d/e/f/g/h/i/j/k/l/m"},
+			{"test/a", 0x4000, {}, "test/a.1"},
+			{"test/a/b", 0x4000, {}, "test/a/b.1"},
+			{"test/a/b/c", 0x4000, {}, "test/a/b/c.1"},
+			{"test/a/b/c/d", 0x4000, {}, "test/a/b/c/d.1"},
+			{"test/a/b/c/d/e", 0x4000, {}, "test/a/b/c/d/e.1"},
+			{"test/a/b/c/d/e/f", 0x4000, {}, "test/a/b/c/d/e/f.1"},
+			{"test/a/b/c/d/e/f/g", 0x4000, {}, "test/a/b/c/d/e/f/g.1"},
+			{"test/a/b/c/d/e/f/g/h", 0x4000, {}, "test/a/b/c/d/e/f/g/h.1"},
+			{"test/a/b/c/d/e/f/g/h/i", 0x4000, {}, "test/a/b/c/d/e/f/g/h/i.1"},
+			{"test/a/b/c/d/e/f/g/h/i/j", 0x4000, {}, "test/a/b/c/d/e/f/g/h/i/j.1"},
+		},
+		{
+			// it doesn't matter whether the file comes before the directory,
+			// directories take precedence
+			{"test/a", 0x4000, {}, "test/a.1"},
+			{"test/a/b", 0x4000, {}, "test/a/b"},
+		},
+		{
+			{"test/A/tmp", 0x4000, {}, "test/A/tmp"},
+			// a file may not have the same name as a directory
+			{"test/a", 0x4000, {}, "test/a.1"},
+			// duplicate of directory a
+			{"test/A", 0x4000, {}, "test/A.2"},
+			{"test/filler", 0x4000, {}, "test/filler"},
+		},
+		{
+			// a subset of this path collides with the next filename
+			{"test/long/path/name/that/collides", 0x4000, {}, "test/long/path/name/that/collides"},
+			// so this file needs to be renamed, to not collide with the path name
+			{"test/long/path", 0x4000, {}, "test/long/path.1"},
+			{"test/filler-1", 0x4000, {}, "test/filler-1"},
+			{"test/filler-2", 0x4000, {}, "test/filler-2"},
+		},
+		{
+			// pad files are allowed to collide, as long as they have the same size
+			{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234"},
+			{"test/filler-1", 0x4000, {}, "test/filler-1"},
+			{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234"},
+			{"test/filler-2", 0x4000, {}, "test/filler-2"},
+		},
+		{
+			// pad files of different sizes are NOT allowed to collide
+			{"test/.pad/1234", 0x8000, file_storage::flag_pad_file, "test/.pad/1234"},
+			{"test/filler-1", 0x4000, {}, "test/filler-1"},
+			{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234.1"},
+			{"test/filler-2", 0x4000, {}, "test/filler-2"},
+		},
+		{
+			// pad files are NOT allowed to collide with normal files
+			{"test/.pad/1234", 0x4000, {}, "test/.pad/1234"},
+			{"test/filler-1", 0x4000, {}, "test/filler-1"},
+			{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234.1"},
+			{"test/filler-2", 0x4000, {}, "test/filler-2"},
+		},
+		{
+			// normal files are NOT allowed to collide with pad files
+			{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234"},
+			{"test/filler-1", 0x4000, {}, "test/filler-1"},
+			{"test/.pad/1234", 0x4000, {}, "test/.pad/1234.1"},
+			{"test/filler-2", 0x4000, {}, "test/filler-2"},
+		},
+		{
+			// pad files are NOT allowed to collide with directories
+			{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234.1"},
+			{"test/filler-1", 0x4000, {}, "test/filler-1"},
+			{"test/.pad/1234/filler-2", 0x4000, {}, "test/.pad/1234/filler-2"},
+		},
+	};
+
+	void test_resolve_duplicates(aux::vector<file_t, file_index_t> const& test)
+	{
+		std::vector<lt::create_file_entry> fs;
+		for (auto const& f : test)
+			fs.emplace_back(f.filename, f.size, f.flags);
+
+		// This test creates torrents with duplicate (identical) filenames, which
+		// isn't supported by v2 torrents, so we can only test this with v1 torrents
+		lt::create_torrent t(std::move(fs), 0x4000, create_torrent::v1_only);
+
+		for (auto const i : t.piece_range())
+			t.set_hash(i, sha1_hash::max());
+
+		std::vector<char> const tmp = t.generate_buf();
+		auto atp = load_torrent_buffer(tmp);
+		for (auto const i : t.file_range())
+		{
+			std::string p;
+			auto it = atp.renamed_files.find(i);
+			if (it == atp.renamed_files.end())
+			{
+				p = atp.ti->layout().file_path(i);
+			}
+			else
+			{
+				p = it->second;
+			}
+			convert_path_to_posix(p);
+			std::printf("%s == %s\n", p.c_str(), std::string(test[i].expected_filename).c_str());
+
+			TEST_EQUAL(p, test[i].expected_filename);
+		}
+	}
 
 } // anonymous namespace
 
