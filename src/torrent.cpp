@@ -431,9 +431,9 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 		// the number of seconds this torrent has spent in started, finished and
 		// seeding state so far, respectively.
-		m_active_time = seconds(p.active_time);
-		m_finished_time = seconds(p.finished_time);
-		m_seeding_time = seconds(p.seeding_time);
+		m_active_time = seconds(std::max(0, p.active_time));
+		m_finished_time = seconds(std::max(0, p.finished_time));
+		m_seeding_time = seconds(std::max(0, p.seeding_time));
 
 		if (m_completed_time != 0 && m_completed_time < m_added_time)
 			m_completed_time = m_added_time;
