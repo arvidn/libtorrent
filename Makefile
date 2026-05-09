@@ -1096,6 +1096,7 @@ TEST_TORRENTS = \
   symlink1.torrent \
   symlink2.torrent \
   symlink_zero_size.torrent \
+  symlink_filtered_path.torrent \
   unaligned_pieces.torrent \
   unordered.torrent \
   url_list.torrent \
