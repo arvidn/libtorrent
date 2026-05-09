@@ -1,5 +1,6 @@
 2.0.13
 
+	* in create_torrent, store symbolic links according to BEP 47
 	* strengthen peer encryption (obfuscation)
 	* improve HTTP response parsing
 	* optimize sanitization of symlinks when loading torrents
