@@ -834,7 +834,9 @@ TORRENT_TEST(symlinks_restore)
 
 	std::string const f = combine_path(combine_path(work_dir, "Some.framework"), "SDL2");
 	TEST_CHECK(aux::get_file_attributes(f) & file_storage::flag_symlink);
-	TEST_EQUAL(aux::get_symlink_path(f), "Versions/A/SDL2");
+	error_code sym_ec;
+	TEST_EQUAL(aux::get_symlink_path(f, sym_ec), "Versions/A/SDL2");
+	TEST_CHECK(!sym_ec);
 }
 #endif
 

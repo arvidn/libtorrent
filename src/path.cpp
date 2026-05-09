@@ -71,6 +71,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/directory.hpp"
 #include "libtorrent/string_util.hpp"
 #include <cstring>
+#include <vector>
 
 #include "libtorrent/aux_/escape_string.hpp" // for convert_to_native
 #include "libtorrent/assert.hpp"
@@ -600,8 +601,8 @@ namespace {
 			#ifdef TORRENT_WINDOWS
 			if (f[std::size_t(len)] == '/' || f[std::size_t(len)] == '\\') break;
 			#else
-			if (f[std::size_t(len)] == '/') break;  
-			#endif		
+			if (f[std::size_t(len)] == '/') break;
+			#endif
 		}
 
 		if (f[std::size_t(len)] == '/' || f[std::size_t(len)] == '\\') ++len;
@@ -726,6 +727,53 @@ namespace {
 			ret += ".." TORRENT_SEPARATOR;
 
 		ret += target.to_string();
+		return ret;
+	}
+
+	std::string lexically_relative_normal(string_view base
+		, string_view target, error_code& ec)
+	{
+		// strip shared leading components from base and target
+		auto b = lsplit_path(base);
+		auto t = lsplit_path(target);
+		while (!b.first.empty() && b.first == t.first)
+		{
+			b = lsplit_path(b.second);
+			t = lsplit_path(t.second);
+		}
+
+		// any leftover in base means target lies outside base (sibling,
+		// ancestor, or different root)
+		if (!b.first.empty())
+		{
+			ec = make_error_code(boost::system::errc::invalid_argument);
+			return {};
+		}
+
+		// resolve the remainder of target into a component stack
+		std::vector<string_view> components;
+		for (; !t.first.empty(); t = lsplit_path(t.second))
+		{
+			if (t.first == ".") continue;
+			if (t.first == "..")
+			{
+				if (components.empty())
+				{
+					ec = make_error_code(boost::system::errc::invalid_argument);
+					return {};
+				}
+				components.pop_back();
+				continue;
+			}
+			components.push_back(t.first);
+		}
+
+		std::string ret;
+		for (auto const& c : components)
+		{
+			if (!ret.empty()) ret += TORRENT_SEPARATOR_CHAR;
+			ret.append(c.data(), c.size());
+		}
 		return ret;
 	}
 
