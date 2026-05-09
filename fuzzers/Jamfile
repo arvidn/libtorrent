@@ -78,6 +78,7 @@ fuzzer dht_node ;
 fuzzer utp ;
 fuzzer resume_data ;
 fuzzer peer_conn ;
+fuzzer pe_crypto_state ;
 fuzzer idna ;
 fuzzer parse_url ;
 fuzzer http_tracker ;
@@ -97,6 +98,7 @@ local LARGE_TARGETS =
 	sanitize_path
 	upnp
 	peer_conn
+	pe_crypto_state
 	http_tracker
 	session_params
 	add_torrent
