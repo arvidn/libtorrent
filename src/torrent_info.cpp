@@ -78,18 +78,31 @@ namespace libtorrent {
 #else
 		static const char invalid_chars[] = "";
 #endif
-		if (c < 32) return false;
+		// C0 controls and DEL
+		if (c < 32 || c == 0x7f) return false;
+		// C1 controls
+		if (c >= 0x80 && c <= 0x9f) return false;
 		if (c > 127) return true;
 		return std::strchr(invalid_chars, static_cast<char>(c)) == nullptr;
 	}
 
 	bool filter_path_character(std::int32_t const c)
 	{
-		// these unicode characters change the writing direction of the
-		// string and can be used for attacks:
+		// Unicode formatting characters that are zero-width, invisible, or
+		// change writing direction. These can be used to spoof filenames so
+		// that they appear identical to legitimate names but resolve to a
+		// different path:
 		// https://security.stackexchange.com/questions/158802/how-can-this-executable-have-an-avi-extension
-		static const std::array<std::int32_t, 7> bad_cp = {{0x202a, 0x202b, 0x202c, 0x202d, 0x202e, 0x200e, 0x200f}};
-		if (std::find(bad_cp.begin(), bad_cp.end(), c) != bad_cp.end()) return true;
+		// - U+061C: Arabic letter mark
+		// - U+200B-200D: ZWSP, ZWNJ, ZWJ
+		// - U+200E-200F: LRM, RLM
+		// - U+202A-202E: LRE, RLE, PDF, LRO, RLO (bidi embedding/override)
+		// - U+2060-2064: word joiner and invisible math operators
+		// - U+2066-2069: LRI, RLI, FSI, PDI (bidi isolates, Unicode 6.3+)
+		// - U+FEFF: byte order mark / zero-width no-break space
+		if (c == 0x061c || (c >= 0x200b && c <= 0x200f) || (c >= 0x202a && c <= 0x202e)
+			|| (c >= 0x2060 && c <= 0x2064) || (c >= 0x2066 && c <= 0x2069) || c == 0xfeff)
+			return true;
 
 		static const char invalid_chars[] = "/\\";
 		if (c > 127) return false;
@@ -415,7 +428,16 @@ namespace {
 				for (int i = 0, end(s_p.list_size()); i < end; ++i)
 				{
 					auto pe = s_p.list_at(i).string_value();
-					aux::sanitize_append_path_element(symlink_path, pe);
+					// BEP 47 forbids "." and ".." in symlink path components.
+					// We tolerate them for backwards compatibility with
+					// non-conforming torrents by dropping them, leaving the
+					// remaining components to be interpreted relative to the
+					// torrent root.
+					if (pe == "." || pe == "..") continue;
+					// force_element=true keeps sanitization in sync with the
+					// file paths the symlink may point to, so sanitize_symlinks()
+					// can match the target.
+					aux::sanitize_append_path_element(symlink_path, pe, true);
 				}
 			}
 		}
@@ -583,7 +605,16 @@ namespace {
 				for (int i = 0, end(s_p.list_size()); i < end; ++i)
 				{
 					auto pe = s_p.list_at(i).string_value();
-					aux::sanitize_append_path_element(symlink_path, pe);
+					// BEP 47 forbids "." and ".." in symlink path components.
+					// We tolerate them for backwards compatibility with
+					// non-conforming torrents by dropping them, leaving the
+					// remaining components to be interpreted relative to the
+					// torrent root.
+					if (pe == "." || pe == "..") continue;
+					// force_element=true keeps sanitization in sync with the
+					// file paths the symlink may point to, so sanitize_symlinks()
+					// can match the target.
+					aux::sanitize_append_path_element(symlink_path, pe, true);
 				}
 			}
 			else
