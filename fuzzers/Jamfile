@@ -59,6 +59,7 @@ fuzzer torrent_info ;
 fuzzer parse_magnet_uri ;
 fuzzer bdecode_node ;
 fuzzer parse_int ;
+fuzzer piece_layers ;
 fuzzer sanitize_path ;
 fuzzer escape_path ;
 fuzzer file_storage_add_file ;
