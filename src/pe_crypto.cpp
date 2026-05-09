@@ -291,10 +291,12 @@ namespace libtorrent::aux {
 		int bytes_processed = 0;
 		for (auto& buf : bufs)
 		{
-			auto* const pos = reinterpret_cast<unsigned char*>(buf.data());
 			int const len = int(buf.size());
 
 			TORRENT_ASSERT(len >= 0);
+			if (len == 0) continue;
+
+			auto* const pos = reinterpret_cast<unsigned char*>(buf.data());
 			TORRENT_ASSERT(pos);
 
 			bytes_processed += len;
