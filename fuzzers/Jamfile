@@ -67,6 +67,7 @@ fuzzer base32decode ;
 fuzzer base32encode ;
 fuzzer base64encode ;
 fuzzer escape_string ;
+fuzzer identify_client ;
 fuzzer gzip ;
 fuzzer verify_encoding ;
 fuzzer convert_to_native ;
