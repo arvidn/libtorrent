@@ -569,7 +569,11 @@ feature wolfssl-lib : : free path ;
 feature wolfssl-include : : free path ;
 
 feature test-coverage : off on : composite propagated link-incompatible ;
-feature.compose <test-coverage>on : <cxxflags>--coverage <linkflags>--coverage ;
+feature.compose <test-coverage>on :
+    <cxxflags>-fprofile-instr-generate
+    <cxxflags>-fcoverage-mapping
+    <linkflags>-fprofile-instr-generate
+    ;
 
 feature predictive-pieces : on off : composite propagated ;
 feature.compose <predictive-pieces>off : <define>TORRENT_DISABLE_PREDICTIVE_PIECES ;
