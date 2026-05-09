@@ -2803,8 +2803,12 @@ namespace {
 			if (is_disconnecting()) return;
 
 			// read dh key, generate shared secret
-			m_dh_key_exchange->compute_secret(
-				reinterpret_cast<std::uint8_t const*>(recv_buffer.data()));
+			if (!m_dh_key_exchange->compute_secret(
+				reinterpret_cast<std::uint8_t const*>(recv_buffer.data())))
+			{
+				disconnect(errors::invalid_encrypt_handshake, operation_t::encryption, peer_error);
+				return;
+			}
 
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, "ENCRYPTION", "received DH key");

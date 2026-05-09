@@ -1,5 +1,6 @@
 2.0.13
 
+	* strengthen peer encryption (obfuscation)
 	* improve HTTP response parsing
 	* optimize sanitization of symlinks when loading torrents
 	* stricter checking of tracker URLs
