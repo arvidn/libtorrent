@@ -79,9 +79,11 @@ namespace libtorrent {
 		key_t const& get_local_key() const { return m_dh_local_key; }
 
 		// read remote_pubkey, generate and store shared secret in
-		// m_dh_shared_secret.
-		void compute_secret(std::uint8_t const* remote_pubkey);
-		void compute_secret(key_t const& remote_pubkey);
+		// m_dh_shared_secret. Returns false if the remote public key is
+		// degenerate (i.e. outside the range [2, p-2]) and the shared
+		// secret was not computed.
+		bool compute_secret(std::uint8_t const* remote_pubkey);
+		bool compute_secret(key_t const& remote_pubkey);
 
 		key_t const& get_secret() const { return m_dh_shared_secret; }
 

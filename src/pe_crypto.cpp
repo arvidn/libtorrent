@@ -104,16 +104,23 @@ namespace libtorrent {
 	}
 
 	// compute shared secret given remote public key
-	void dh_key_exchange::compute_secret(std::uint8_t const* remote_pubkey)
+	bool dh_key_exchange::compute_secret(std::uint8_t const* remote_pubkey)
 	{
 		TORRENT_ASSERT(remote_pubkey);
 		key_t key;
 		mp::import_bits(key, remote_pubkey, remote_pubkey + 96);
-		compute_secret(key);
+		return compute_secret(key);
 	}
 
-	void dh_key_exchange::compute_secret(key_t const& remote_pubkey)
+	bool dh_key_exchange::compute_secret(key_t const& remote_pubkey)
 	{
+		// reject degenerate public keys. Any value outside [2, p-2] produces
+		// a shared secret in a small subgroup (0, 1, or +/-1), which
+		// effectively defeats the key exchange and would allow a
+		// man-in-the-middle to fix the shared secret.
+		if (remote_pubkey < key_t(2) || remote_pubkey >= dh_prime - 1)
+			return false;
+
 		// shared_secret = (remote_pubkey ^ local_secret) % prime
 		m_dh_shared_secret = mp::powm(remote_pubkey, m_dh_local_secret, dh_prime);
 
@@ -123,6 +130,7 @@ namespace libtorrent {
 		static char const req3[4] = {'r', 'e', 'q', '3'};
 		// calculate the xor mask for the obfuscated hash
 		m_xor_mask = hasher(req3).update(buffer).final();
+		return true;
 	}
 
 	std::tuple<int, span<span<char const>>>
