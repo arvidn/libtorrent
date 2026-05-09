@@ -27,8 +27,7 @@ see LICENSE file.
 
 using namespace lt;
 
-lt::session_params g_params;
-io_context g_ioc;
+std::optional<lt::session> g_ses;
 lt::add_torrent_params g_torrent;
 std::vector<sha256_hash> g_tree;
 
@@ -39,9 +38,10 @@ int const num_leafs = merkle_num_leafs(num_pieces * blocks_per_piece);
 int const num_nodes = merkle_num_nodes(num_leafs);
 int const first_leaf = merkle_first_leaf(num_leafs);
 
-extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv)
+extern "C" int LLVMFuzzerInitialize(int*, char***)
 {
-	lt::settings_pack& pack = g_params.settings;
+	lt::session_params params;
+	lt::settings_pack& pack = params.settings;
 	// set up settings pack we'll be using
 	pack.set_int(settings_pack::tick_interval, 1);
 	pack.set_int(settings_pack::alert_mask, 0);
@@ -59,7 +59,7 @@ extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv)
 	pack.set_bool(settings_pack::enable_ip_notifier, false);
 	pack.set_str(settings_pack::listen_interfaces, "127.0.0.1:0");
 
-	g_params.disk_io_constructor = lt::disabled_disk_io_constructor;
+	params.disk_io_constructor = lt::disabled_disk_io_constructor;
 
 	// create a torrent
 	std::int64_t const total_size = std::int64_t(piece_size) * num_pieces;
@@ -95,6 +95,12 @@ extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv)
 	std::vector<char> buf;
 	bencode(std::back_inserter(buf), t.generate());
 	g_torrent = lt::load_torrent_buffer(buf);
+
+	g_ses.emplace(std::move(params));
+
+	// shut the session down cleanly on process exit so libFuzzer's leak checker
+	// doesn't flag the session-owned thread/state.
+	std::atexit([] { g_ses.reset(); });
 
 	return 0;
 }
@@ -192,25 +198,51 @@ lt::add_torrent_params generate_atp(std::uint8_t const* data, size_t size)
 	return ret;
 }
 
+namespace {
+
+	// Waits up to 500 ms for an alert of the given type. Returns true if such an
+	// alert was found. add_torrent_alert and torrent_removed_alert are emitted
+	// unconditionally (independent of alert_mask) so this works with
+	// alert_mask = 0.
+	bool wait_for(int const alert_type)
+	{
+		auto const deadline = clock_type::now() + milliseconds(500);
+		for (;;)
+		{
+			auto const now = clock_type::now();
+			if (now >= deadline) return false;
+			g_ses->wait_for_alert(deadline - now);
+
+			std::vector<alert*> alerts;
+			g_ses->pop_alerts(&alerts);
+			for (auto const* a : alerts)
+				if (a->type() == alert_type) return true;
+		}
+	}
+
+}
+
 extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 {
-	g_ioc.restart();
-	std::optional<lt::session> ses(lt::session{g_params, g_ioc});
+	// drain any leftover alerts from the previous input so they don't get
+	// mistaken for the response to this iteration's add_torrent.
+	std::vector<alert*> stale;
+	g_ses->pop_alerts(&stale);
 
-	lt::add_torrent_params atp = generate_atp(data, size);
+	g_ses->async_add_torrent(generate_atp(data, size));
 
-	ses->async_add_torrent(atp);
-	auto proxy = ses->abort();
-	post(g_ioc, [&]{ ses.reset(); });
+	wait_for(add_torrent_alert::alert_type);
 
-	g_ioc.run_for(seconds(2));
-
-#if defined TORRENT_ASIO_DEBUGGING
-	lt::aux::log_async();
-	lt::aux::_async_ops.clear();
-	lt::aux::_async_ops_nthreads = 0;
-	lt::aux::_wakeups.clear();
-#endif
+	// the add can fail (invalid resume data etc.); in that case find_torrent
+	// returns an empty handle and there's nothing to remove. otherwise tear
+	// the torrent back down so the session doesn't accumulate state across
+	// iterations.
+	torrent_handle const h = g_ses->find_torrent(g_torrent.info_hashes.get_best());
+	if (h.is_valid())
+	{
+		g_ses->remove_torrent(h);
+		wait_for(torrent_removed_alert::alert_type);
+	}
 
 	return 0;
 }
