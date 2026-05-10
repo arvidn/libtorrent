@@ -87,6 +87,12 @@ see LICENSE file.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 #include "libtorrent/aux_/storage_utils.hpp" // copy_file
 
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+#define TORRENT_SEPARATOR "\\"
+#else
+#define TORRENT_SEPARATOR "/"
+#endif
+
 namespace libtorrent {
 
 #if defined TORRENT_WINDOWS
@@ -646,20 +652,15 @@ namespace {
 		if (rhs.empty() || rhs == ".") return std::string(lhs);
 
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
-#define TORRENT_SEPARATOR "\\"
-		bool const need_sep = lhs[lhs.size() - 1] != '\\' && lhs[lhs.size() - 1] != '/';
+		bool const need_sep = lhs.back() != '\\' && lhs.back() != '/';
 #else
-#define TORRENT_SEPARATOR "/"
-		bool const need_sep = lhs[lhs.size() - 1] != '/';
+		bool const need_sep = lhs.back() != '/';
 #endif
 		std::string ret;
-		std::size_t target_size = lhs.size() + rhs.size() + 2;
-		ret.resize(target_size);
-		target_size = aux::numeric_cast<std::size_t>(std::snprintf(&ret[0], target_size, "%*s%s%*s"
-			, int(lhs.size()), lhs.data()
-			, (need_sep ? TORRENT_SEPARATOR : "")
-			, int(rhs.size()), rhs.data()));
-		ret.resize(target_size);
+		ret.reserve(lhs.size() + rhs.size() + (need_sep ? 1 : 0));
+		ret.append(lhs.data(), lhs.size());
+		if (need_sep) ret += TORRENT_SEPARATOR_CHAR;
+		ret.append(rhs.data(), rhs.size());
 		return ret;
 	}
 
@@ -960,19 +961,16 @@ namespace {
 	{
 		if (f.empty()) return false;
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
-		int i = 0;
+		std::size_t i = 0;
 		// match the xx:\ or xx:/ form
 		while (i < int(f.size()) && aux::is_alpha(f[i])) ++i;
-		if (i < int(f.size()-1) && f[i] == ':' && (f[i+1] == '\\' || f[i+1] == '/'))
-			return true;
+		if (i + 1 < f.size() && f[i] == ':' && (f[i + 1] == '\\' || f[i + 1] == '/')) return true;
 
 		// match the \\ form
-		if (int(f.size()) >= 2 && f[0] == '\\' && f[1] == '\\')
-			return true;
+		if (f.size() >= 2 && f[0] == '\\' && f[1] == '\\') return true;
 		return false;
 #else
-		if (f[0] == '/') return true;
-		return false;
+		return f[0] == '/';
 #endif
 	}
 }

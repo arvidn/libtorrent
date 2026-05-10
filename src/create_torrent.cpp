@@ -121,7 +121,7 @@ namespace {
 				std::string sym_path = aux::get_symlink_path(f, sym_ec);
 				if (sym_ec) return;
 				if (!is_complete(sym_path)) sym_path = combine_path(parent_path(f), sym_path);
-				std::string const torrent_root = combine_path(p, std::string(lsplit_path(l).first));
+				std::string const torrent_root = combine_path(p, lsplit_path(l).first);
 				sym_path = lexically_relative_normal(torrent_root, sym_path, sym_ec);
 				// drop symlinks whose target is outside the torrent root
 				if (sym_ec || sym_path.empty()) return;
@@ -191,7 +191,7 @@ namespace {
 				std::string sym_path = aux::get_symlink_path(f, sym_ec);
 				if (sym_ec) return;
 				if (!is_complete(sym_path)) sym_path = combine_path(parent_path(f), sym_path);
-				std::string const torrent_root = combine_path(p, std::string(lsplit_path(l).first));
+				std::string const torrent_root = combine_path(p, lsplit_path(l).first);
 				sym_path = lexically_relative_normal(torrent_root, sym_path, sym_ec);
 				// drop symlinks whose target is outside the torrent root
 				if (sym_ec || sym_path.empty()) return;
