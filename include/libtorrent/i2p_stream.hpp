@@ -311,7 +311,7 @@ private:
 			std::tie(name, remaining) = split_string(remaining, '=');
 			if (name.empty()) break;
 			string_view value;
-			if (remaining[0] == '"')
+			if (!remaining.empty() && remaining[0] == '"')
 			{
 				std::tie(value, remaining) = split_string(remaining.substr(1), '"');
 				if (value.empty()) { handle_error(invalid_response, h); return; }
@@ -321,7 +321,6 @@ private:
 			{
 				std::tie(value, remaining) = split_string(remaining, ' ');
 			}
-			if (value.empty()) { handle_error(invalid_response, h); return; }
 
 			if ("RESULT"_sv == name)
 			{
