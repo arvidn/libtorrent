@@ -427,6 +427,81 @@ TORRENT_TEST(relative_path)
 	TEST_EQUAL(lexically_relative("", ""), "");
 }
 
+TORRENT_TEST(lexically_relative_normal)
+{
+#ifdef TORRENT_WINDOWS
+#define S "\\"
+#else
+#define S "/"
+#endif
+
+	auto rel = [](string_view base, string_view target) {
+		error_code ec;
+		auto const out = lexically_relative_normal(base, target, ec);
+		TEST_CHECK(!ec);
+		return out;
+	};
+
+	auto rel_fail = [](string_view base, string_view target) {
+		error_code ec;
+		auto const out = lexically_relative_normal(base, target, ec);
+		TEST_CHECK(ec);
+		TEST_EQUAL(out, "");
+	};
+
+	// target equals base
+	TEST_EQUAL(rel(S "a" S "b", S "a" S "b"), "");
+
+	// target inside base, no special components
+	TEST_EQUAL(rel(S "a" S "b", S "a" S "b" S "c"), "c");
+	TEST_EQUAL(rel(S "a" S "b", S "a" S "b" S "c" S "d"), "c" S "d");
+	TEST_EQUAL(rel(S "a", S "a" S "b" S "c" S "d"), "b" S "c" S "d");
+
+	// "." in target is skipped
+	TEST_EQUAL(rel(S "a" S "b", S "a" S "b" S "." S "c"), "c");
+	TEST_EQUAL(rel(S "a" S "b", S "a" S "b" S "c" S "."), "c");
+	TEST_EQUAL(rel(S "a" S "b", S "a" S "b" S "." S "." S "c"), "c");
+
+	// ".." in target resolves against the preceding component (within
+	// the part of target after the common prefix)
+	TEST_EQUAL(rel(S "a" S "b", S "a" S "b" S "c" S ".."), "");
+	TEST_EQUAL(rel(S "a" S "b", S "a" S "b" S "c" S ".." S "d"), "d");
+	TEST_EQUAL(rel(S "a" S "b", S "a" S "b" S "c" S "d" S ".."), "c");
+	TEST_EQUAL(rel(S "a" S "b", S "a" S "b" S "c" S "d" S ".." S ".."), "");
+	TEST_EQUAL(rel(S "a" S "b", S "a" S "b" S "c" S "d" S ".." S ".." S "e"), "e");
+
+	// trailing separator on either side
+	TEST_EQUAL(rel(S "a" S "b" S, S "a" S "b" S "c"), "c");
+	TEST_EQUAL(rel(S "a" S "b", S "a" S "b" S "c" S), "c");
+
+	// base has no components (just root) — strip loop never runs
+	TEST_EQUAL(rel(S, S), "");
+	TEST_EQUAL(rel(S, S "a"), "a");
+	TEST_EQUAL(rel(S, S "a" S "b"), "a" S "b");
+	TEST_EQUAL(rel(S, S "a" S "." S "b"), "a" S "b");
+	TEST_EQUAL(rel(S, S "a" S ".." S "b"), "b");
+	rel_fail(S, S "..");
+
+	// target sibling of base
+	rel_fail(S "a" S "b", S "a" S "c");
+	rel_fail(S "a" S "b" S "x", S "a" S "b" S "y");
+
+	// target above base
+	rel_fail(S "a" S "b", S "a");
+	rel_fail(S "a" S "b" S "c", S "a");
+	rel_fail(S "a" S "b", S);
+
+	// target on a different absolute root
+	rel_fail(S "a" S "b", S "x" S "y");
+
+	// ".." in target underflows the in-target stack (would step above
+	// the common prefix)
+	rel_fail(S "a" S "b", S "a" S "b" S "..");
+	rel_fail(S "a" S "b", S "a" S "b" S "c" S ".." S ".." S "..");
+	rel_fail(S "a" S "b", S "a" S "b" S "c" S ".." S "..");
+#undef S
+}
+
 // UNC tests
 #if TORRENT_USE_UNC_PATHS
 

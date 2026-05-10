@@ -84,8 +84,8 @@ TORRENT_TEST(diffie_hellman)
 	{
 		aux::dh_key_exchange DH1, DH2;
 
-		DH1.compute_secret(DH2.get_local_key());
-		DH2.compute_secret(DH1.get_local_key());
+		TEST_CHECK(DH1.compute_secret(DH2.get_local_key()));
+		TEST_CHECK(DH2.compute_secret(DH1.get_local_key()));
 
 		TEST_EQUAL(DH1.get_secret(), DH2.get_secret());
 		if (!DH1.get_secret() != DH2.get_secret())
@@ -102,6 +102,45 @@ TORRENT_TEST(diffie_hellman)
 			std::printf("DH2 shared_secret: ");
 			std::cout << DH2.get_secret() << std::endl;
 		}
+	}
+}
+
+TORRENT_TEST(diffie_hellman_degenerate_key)
+{
+	// MODP DH prime (BEP 8) used by dh_key_exchange. The generator is 2.
+	lt::aux::key_t const dh_prime(
+		"0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020"
+		"BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D"
+		"6D51C245E485B576625E7EC6F44C42E9A63A36210000000000090563");
+
+	// public keys outside [2, p-2] are degenerate and must be rejected.
+	// Otherwise an attacker can fix the shared secret to a small set of
+	// known values, defeating the encryption.
+	{
+		lt::aux::dh_key_exchange dh;
+		TEST_CHECK(!dh.compute_secret(lt::aux::key_t(0)));
+	}
+	{
+		lt::aux::dh_key_exchange dh;
+		TEST_CHECK(!dh.compute_secret(lt::aux::key_t(1)));
+	}
+	{
+		lt::aux::dh_key_exchange dh;
+		TEST_CHECK(!dh.compute_secret(dh_prime - 1));
+	}
+	{
+		lt::aux::dh_key_exchange dh;
+		TEST_CHECK(!dh.compute_secret(dh_prime));
+	}
+
+	// boundary values inside the valid range must be accepted.
+	{
+		lt::aux::dh_key_exchange dh;
+		TEST_CHECK(dh.compute_secret(lt::aux::key_t(2)));
+	}
+	{
+		lt::aux::dh_key_exchange dh;
+		TEST_CHECK(dh.compute_secret(dh_prime - 2));
 	}
 }
 

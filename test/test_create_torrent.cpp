@@ -365,7 +365,7 @@ TORRENT_TEST(create_torrent_symlink)
 	check(::truncate("test-torrent/d/file-2", 1000));
 	check(::symlink("../a/b/c/file-1", "test-torrent/d/test-link-1"));
 	check(::symlink("a/b/c/file-1", "test-torrent/test-link-2"));
-	check(::symlink("a/b/c/file-1", "test-torrent/a/b/c/test-link-3"));
+	check(::symlink("file-1", "test-torrent/a/b/c/test-link-3"));
 	check(::symlink("../../../d/file-2", "test-torrent/a/b/c/test-link-4"));
 
 	auto check = [](lt::create_torrent& t) {
@@ -376,6 +376,26 @@ TORRENT_TEST(create_torrent_symlink)
 		TEST_CHECK(torrent == t.generate_buf());
 		lt::add_torrent_params atp = lt::load_torrent_buffer(torrent);
 		auto& ti = *atp.ti;
+
+		// directly inspect the bencoded v1 files list to confirm the
+		// stored "symlink path" entries are relative to the torrent root
+		// and do NOT have the torrent's own name as their first element
+		lt::bdecode_node const root = lt::bdecode(torrent);
+		lt::bdecode_node const files_list = root.dict_find("info").dict_find_list("files");
+		TEST_CHECK(files_list);
+		int direct_found = 0;
+		for (int i = 0; i < files_list.list_size(); ++i)
+		{
+			lt::bdecode_node const file_e = files_list.list_at(i);
+			lt::bdecode_node const sympath = file_e.dict_find_list("symlink path");
+			if (!sympath) continue;
+			TEST_CHECK(sympath.list_size() > 0);
+			// the torrent name "test-torrent" must not appear as the first
+			// component of any stored symlink path
+			TEST_CHECK(sympath.list_at(0).string_value() != "test-torrent");
+			++direct_found;
+		}
+		TEST_EQUAL(direct_found, 4);
 
 		int found = 0;
 		for (auto i : ti.layout().file_range())
@@ -412,6 +432,151 @@ TORRENT_TEST(create_torrent_symlink)
 	{
 		auto files = lt::list_files("test-torrent"
 			, [](std::string n){ std::cout << n << '\n'; return true; }, lt::create_torrent::symlinks);
+
+		lt::create_torrent t(std::move(files), 16 * 1024, lt::create_torrent::symlinks);
+		check(t);
+	}
+}
+
+TORRENT_TEST(create_torrent_symlink_escape)
+{
+	lt::error_code ec;
+	lt::create_directories("escape-torrent/sub", ec);
+	TEST_CHECK(!ec);
+	std::ofstream f1("escape-torrent/sub/inside-file");
+	check(::truncate("escape-torrent/sub/inside-file", 1000));
+
+	// these symlinks all reach outside the torrent root and must be
+	// silently dropped from the resulting file list
+	check(::symlink("../../outside", "escape-torrent/escape-1"));
+	check(::symlink("../../../some/other/file", "escape-torrent/sub/escape-2"));
+	check(::symlink("/tmp/elsewhere", "escape-torrent/escape-3"));
+
+	// this one stays inside the torrent root and must be kept
+	check(::symlink("inside-file", "escape-torrent/sub/inside-link"));
+
+	auto check = [](lt::create_torrent& t) {
+		lt::set_piece_hashes(t, ".", [](lt::piece_index_t) {});
+
+		std::vector<char> torrent = lt::bencode(t.generate());
+
+		TEST_CHECK(torrent == t.generate_buf());
+		lt::add_torrent_params atp = lt::load_torrent_buffer(torrent);
+		auto& ti = *atp.ti;
+
+		bool found_inside_link = false;
+		for (auto i : ti.layout().file_range())
+		{
+			auto const filename = ti.layout().file_path(i);
+			// none of the escaping symlinks should appear in the torrent
+			TEST_CHECK(filename != "escape-torrent/escape-1");
+			TEST_CHECK(filename != "escape-torrent/sub/escape-2");
+			TEST_CHECK(filename != "escape-torrent/escape-3");
+
+			if (filename == "escape-torrent/sub/inside-link")
+			{
+				TEST_EQUAL(ti.layout().symlink(i), "escape-torrent/sub/inside-file");
+				found_inside_link = true;
+			}
+		}
+		TEST_CHECK(found_inside_link);
+	};
+
+#if TORRENT_ABI_VERSION < 4
+	{
+		lt::file_storage fs;
+		lt::add_files(
+			fs, "escape-torrent", [](std::string) { return true; }, lt::create_torrent::symlinks);
+
+		lt::create_torrent t(fs, 16 * 1024, lt::create_torrent::symlinks);
+		check(t);
+	}
+#endif
+
+	{
+		auto files = lt::list_files(
+			"escape-torrent",
+			[](std::string n) {
+				std::cout << n << '\n';
+				return true;
+			},
+			lt::create_torrent::symlinks);
+
+		lt::create_torrent t(std::move(files), 16 * 1024, lt::create_torrent::symlinks);
+		check(t);
+	}
+}
+
+TORRENT_TEST(create_torrent_symlink_pred)
+{
+	lt::error_code ec;
+	lt::create_directories("pred-torrent/sub", ec);
+	std::ofstream f1("pred-torrent/sub/keep-me");
+	check(::truncate("pred-torrent/sub/keep-me", 1000));
+	std::ofstream f2("pred-torrent/sub/skip-me");
+	check(::truncate("pred-torrent/sub/skip-me", 1000));
+
+	// two symlinks: one to a file the predicate accepts, one to a file
+	// the predicate rejects
+	check(::symlink("sub/keep-me", "pred-torrent/link-keep"));
+	check(::symlink("sub/skip-me", "pred-torrent/link-skip"));
+
+	auto check = [](lt::create_torrent& t) {
+		lt::set_piece_hashes(t, ".", [](lt::piece_index_t) {});
+
+		std::vector<char> torrent = lt::bencode(t.generate());
+
+		TEST_CHECK(torrent == t.generate_buf());
+		lt::add_torrent_params atp = lt::load_torrent_buffer(torrent);
+		auto& ti = *atp.ti;
+
+		bool found_link_keep = false;
+		for (auto i : ti.layout().file_range())
+		{
+			auto const filename = ti.layout().file_path(i);
+			// link-skip points at skip-me which the predicate rejected
+			TEST_CHECK(filename != "pred-torrent/link-skip");
+			// the rejected regular file itself must also be absent
+			TEST_CHECK(filename != "pred-torrent/sub/skip-me");
+
+			if (filename == "pred-torrent/link-keep")
+			{
+				TEST_EQUAL(ti.layout().symlink(i), "pred-torrent/sub/keep-me");
+				found_link_keep = true;
+			}
+		}
+		TEST_CHECK(found_link_keep);
+	};
+
+#if TORRENT_ABI_VERSION < 4
+	{
+		lt::file_storage fs;
+		lt::add_files(
+			fs,
+			"pred-torrent",
+			[](std::string n) {
+				// reject the regular file "skip-me" AND any symlink whose
+				// resolved target is "skip-me". The second pred call (on the
+				// resolved target) is what we're testing.
+				return n.find("skip-me") == std::string::npos;
+			},
+			lt::create_torrent::symlinks);
+
+		lt::create_torrent t(fs, 16 * 1024, lt::create_torrent::symlinks);
+		check(t);
+	}
+#endif
+
+	{
+		auto files = lt::list_files(
+			"pred-torrent",
+			[](std::string n) {
+				// reject the regular file "skip-me" AND any symlink whose
+				// resolved target is "skip-me". The second pred call (on the
+				// resolved target) is what we're testing.
+				return n.find("skip-me") == std::string::npos;
+			},
+			lt::create_torrent::symlinks);
 
 		lt::create_torrent t(std::move(files), 16 * 1024, lt::create_torrent::symlinks);
 		check(t);

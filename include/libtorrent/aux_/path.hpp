@@ -116,6 +116,13 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT std::string lexically_relative(string_view base
 		, string_view target);
 
+	// Compute `target` relative to `base`, resolving "." and ".." in
+	// `target` on the fly (single pass, no intermediate string). Sets
+	// `ec` and returns "" if `target` lies outside `base` or if a ".."
+	// in `target` underflows. Both inputs should be absolute paths.
+	TORRENT_EXTRA_EXPORT std::string lexically_relative_normal(
+		string_view base, string_view target, error_code& ec);
+
 	// internal used by create_torrent.hpp
 	TORRENT_EXTRA_EXPORT std::string complete(string_view f);
 	TORRENT_EXTRA_EXPORT bool is_complete(string_view f);

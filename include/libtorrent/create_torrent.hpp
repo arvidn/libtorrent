@@ -646,7 +646,7 @@ namespace aux {
 #endif
 
 namespace aux {
-	TORRENT_EXTRA_EXPORT std::string get_symlink_path(std::string const& p);
+	TORRENT_EXTRA_EXPORT std::string get_symlink_path(std::string const& p, error_code& ec);
 
 	TORRENT_EXTRA_EXPORT
 	std::tuple<aux::vector<create_file_entry, file_index_t>, std::int64_t>

@@ -45,16 +45,27 @@ namespace {
 	{ return leaf == ".." || leaf == "."; }
 
 #ifndef TORRENT_WINDOWS
-	std::string get_symlink_path_impl(char const* path)
+	std::string get_symlink_path_impl(char const* path, error_code& ec)
 	{
 		constexpr int MAX_SYMLINK_PATH = 200;
 
 		char buf[MAX_SYMLINK_PATH];
 		std::string f = convert_to_native_path_string(path);
 		int char_read = int(readlink(f.c_str(), buf, MAX_SYMLINK_PATH));
-		if (char_read < 0) return "";
-		if (char_read < MAX_SYMLINK_PATH) buf[char_read] = 0;
-		else buf[0] = 0;
+		if (char_read < 0)
+		{
+			ec.assign(errno, generic_category());
+			return {};
+		}
+		if (char_read >= MAX_SYMLINK_PATH)
+		{
+			// the link target is too long for our buffer; readlink doesn't
+			// distinguish truncation from filling exactly, so treat both as
+			// a failure rather than risk silently returning a truncated path
+			ec = make_error_code(boost::system::errc::filename_too_long);
+			return {};
+		}
+		buf[char_read] = 0;
 		return convert_from_native_path(buf);
 	}
 #endif
@@ -102,7 +113,23 @@ namespace {
 			if ((file_flags & file_storage::flag_symlink)
 				&& (flags & create_torrent::symlinks))
 			{
-				std::string sym_path = aux::get_symlink_path(f);
+				// readlink() returns the symlink target either as an absolute
+				// path or as a path relative to the symlink's parent directory.
+				// BEP 47 stores symlink paths relative to the torrent root, so
+				// translate the on-disk target into that frame of reference.
+				error_code sym_ec;
+				std::string sym_path = aux::get_symlink_path(f, sym_ec);
+				if (sym_ec) return;
+				if (!is_complete(sym_path)) sym_path = combine_path(parent_path(f), sym_path);
+				std::string const torrent_root = combine_path(p, std::string(lsplit_path(l).first));
+				sym_path = lexically_relative_normal(torrent_root, sym_path, sym_ec);
+				// drop symlinks whose target is outside the torrent root
+				if (sym_ec || sym_path.empty()) return;
+				// give the predicate a chance to filter on the resolved
+				// target as well (e.g. to reject symlinks pointing at files
+				// the predicate excluded earlier)
+				if (!pred(combine_path(torrent_root, sym_path))) return;
+
 				files.emplace_back(std::move(l), 0, file_flags, std::time_t(s.mtime)
 					, std::move(sym_path));
 			}
@@ -156,7 +183,22 @@ namespace {
 			if ((file_flags & file_storage::flag_symlink)
 				&& (flags & create_torrent::symlinks))
 			{
-				std::string const sym_path = aux::get_symlink_path(f);
+				// readlink() returns the symlink target either as an absolute
+				// path or as a path relative to the symlink's parent directory.
+				// BEP 47 stores symlink paths relative to the torrent root, so
+				// translate the on-disk target into that frame of reference.
+				error_code sym_ec;
+				std::string sym_path = aux::get_symlink_path(f, sym_ec);
+				if (sym_ec) return;
+				if (!is_complete(sym_path)) sym_path = combine_path(parent_path(f), sym_path);
+				std::string const torrent_root = combine_path(p, std::string(lsplit_path(l).first));
+				sym_path = lexically_relative_normal(torrent_root, sym_path, sym_ec);
+				// drop symlinks whose target is outside the torrent root
+				if (sym_ec || sym_path.empty()) return;
+				// give the predicate a chance to filter on the resolved
+				// target as well (e.g. to reject symlinks pointing at files
+				// the predicate excluded earlier)
+				if (!pred(combine_path(torrent_root, sym_path))) return;
 				fs.add_file(l, 0, file_flags, std::time_t(s.mtime), sym_path);
 			}
 			else
@@ -254,13 +296,14 @@ namespace {
 
 namespace aux {
 
-	std::string get_symlink_path(std::string const& p)
+	std::string get_symlink_path(std::string const& p, error_code& ec)
 	{
 #if defined TORRENT_WINDOWS
 		TORRENT_UNUSED(p);
-		return "";
+		ec = make_error_code(boost::system::errc::function_not_supported);
+		return {};
 #else
-		return get_symlink_path_impl(p.c_str());
+		return get_symlink_path_impl(p.c_str(), ec);
 #endif
 	}
 
