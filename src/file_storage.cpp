@@ -1513,7 +1513,7 @@ namespace {
 
 				// this path element is a symlink. substitute the branch so far by
 				// the link target
-				target = combine_path(iter->second, target.substr(branch.size() + 1));
+				target = combine_path(iter->second, string_view(target).substr(branch.size() + 1));
 
 				// start over with the new (concrete) path
 				branch = {};

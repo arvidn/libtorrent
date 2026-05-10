@@ -161,6 +161,22 @@ TORRENT_TEST(paths)
 	TEST_EQUAL(combine_path("test1", "test2"), "test1/test2");
 #endif
 
+	// combine_path takes string_view arguments, so it must honor the
+	// view's length and not read past it. Pass substring views that view
+	// into the middle of longer null-terminated buffers to ensure the
+	// extra trailing bytes are not picked up.
+	{
+		std::string const lhs_buf = "test1-extra";
+		std::string const rhs_buf = "test2-extra";
+		string_view const lhs = string_view(lhs_buf).substr(0, 5);
+		string_view const rhs = string_view(rhs_buf).substr(0, 5);
+#ifdef TORRENT_WINDOWS
+		TEST_EQUAL(combine_path(lhs, rhs), "test1\\test2");
+#else
+		TEST_EQUAL(combine_path(lhs, rhs), "test1/test2");
+#endif
+	}
+
 	TEST_EQUAL(extension("blah"), "");
 	TEST_EQUAL(extension("blah.exe"), ".exe");
 	TEST_EQUAL(extension("blah.foo.bar"), ".bar");
@@ -249,6 +265,23 @@ TORRENT_TEST(paths)
 	TEST_EQUAL(is_complete("/"), true);
 	TEST_EQUAL(is_complete(""), false);
 #endif
+
+	// is_complete must honor the string_view length and not read past it.
+	// Pass substring views that view into the middle of longer buffers, so
+	// that any read past the view's end would (with a sanitizer) flag UB
+	// or (on Windows) potentially see ':' '\\' bytes and falsely report a
+	// drive-letter-rooted path.
+	{
+		std::string const drive = "c:\\foo";
+		std::string const rel = "foo/bar";
+		// view just "c" out of "c:\\foo" — the ':' and '\\' are past the
+		// view and must not be consulted.
+		TEST_EQUAL(is_complete(string_view(drive).substr(0, 1)), false);
+		// view "c:" out of "c:\\foo" — drive letter without separator.
+		TEST_EQUAL(is_complete(string_view(drive).substr(0, 2)), false);
+		// view "f" out of "foo/bar" — must not read past view to find '/'.
+		TEST_EQUAL(is_complete(string_view(rel).substr(0, 1)), false);
+	}
 
 	TEST_EQUAL(complete("."), current_working_directory());
 
