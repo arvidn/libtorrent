@@ -856,7 +856,7 @@ namespace {
 			auto const match = std::find_if(range.first, range.second, [&](std::pair<std::uint32_t, name_entry> const& o)
 			{
 				std::string const other_name = o.second.idx < file_index_t{}
-					? combine_path(m_files.name(), paths[std::size_t(-static_cast<int>(o.second.idx)-1)].substr(0, std::size_t(o.second.length)))
+					? combine_path(m_files.name(), string_view(paths[std::size_t(-static_cast<int>(o.second.idx)-1)]).substr(0, std::size_t(o.second.length)))
 					: m_files.file_path(o.second.idx);
 				return string_equal_no_case(other_name, m_files.file_path(i));
 			});
