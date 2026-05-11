@@ -11558,11 +11558,23 @@ namespace {
 		peers_erased(st.erased);
 	}
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+	// Defined in src/smart_ban.cpp. This is a hack to give the smart-ban
+	// plugin an erasure notification without adding a new virtual to the
+	// public torrent_plugin interface (which would break ABI).
+	void smart_ban_notify_erase_peers(torrent_plugin* ext, span<torrent_peer* const> peers);
+#endif
+
 	// this is called when torrent_peers are removed from the peer_list
 	// (peer-list). It removes any references we may have to those torrent_peers,
 	// so we don't leave then dangling
 	void torrent::peers_erased(std::vector<torrent_peer*> const& peers)
 	{
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (auto& ext : m_extensions)
+			smart_ban_notify_erase_peers(ext.get(), peers);
+#endif
+
 		if (!has_picker()) return;
 
 		for (auto const p : peers)
