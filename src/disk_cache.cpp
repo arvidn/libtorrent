@@ -879,10 +879,53 @@ void disk_cache::flush_to_disk(
 			, blocks, clear_piece_fun);
 	}
 
-	// we may still need to flush blocks at this point, even though we
-	// would require read-back later to compute the piece hash
+	// before doing any more disk I/O, drop buffers that were kept alive
+	// for a hasher snapshot that has since released (the needed_by_hasher
+	// branch in flush_piece_impl). The data is already on disk, so freeing
+	// these buffers requires no I/O. Without this pass, when kick_hasher
+	// returns without advancing the cursor (e.g. v1 SHA-1 is blocked on a
+	// missing earlier block) the held-alive buffers stay in
+	// disk_buffer_ref{buf} state contributing to m_blocks. With nothing
+	// inserting more writes (back-pressure observers waiting for
+	// on_disk()) the cache can never drop below the low watermark and
+	// the back-pressure observer is never notified.
 	auto& view3 = m_pieces.template get<0>();
 	for (auto piece_iter = view3.begin(); piece_iter != view3.end();)
+	{
+		if (m_blocks - m_flushing_blocks <= target_blocks) return;
+
+		// skip pieces a hasher or another flush is currently using
+		if (piece_iter->flags
+			& (cached_piece_entry::flushing_flag | cached_piece_entry::hashing_flag))
+		{
+			++piece_iter;
+			continue;
+		}
+
+		TORRENT_ASSERT(m_allocator);
+		bulk_free_buffer to_free(*m_allocator);
+		int const hasher_cursor = piece_iter->hasher_cursor;
+		span<cached_block_entry> const blocks = piece_iter->get_blocks();
+		for (int i = 0; i < int(blocks.size()); ++i)
+		{
+			auto& blk = blocks[i];
+			if (!blk.has_buf()) continue;
+			to_free.add(blk.take_buf());
+			TORRENT_ASSERT(m_blocks > 0);
+			--m_blocks;
+			if (i >= hasher_cursor)
+			{
+				TORRENT_ASSERT(m_num_unhashed > 0);
+				--m_num_unhashed;
+			}
+		}
+		++piece_iter;
+	}
+
+	// we may still need to flush blocks at this point, even though we
+	// would require read-back later to compute the piece hash
+	auto& view4 = m_pieces.template get<0>();
+	for (auto piece_iter = view4.begin(); piece_iter != view4.end();)
 	{
 		// We avoid flushing if other threads have already initiated sufficient
 		// amount of flushing
@@ -905,8 +948,7 @@ void disk_cache::flush_to_disk(
 
 		span<cached_block_entry> const blocks = piece_iter->get_blocks();
 
-		piece_iter = flush_piece_impl(view3, piece_iter, f, l
-			, blocks, clear_piece_fun);
+		piece_iter = flush_piece_impl(view4, piece_iter, f, l, blocks, clear_piece_fun);
 	}
 }
 
