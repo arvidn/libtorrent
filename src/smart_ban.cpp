@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <vector>
 #include <map>
+#include <algorithm>
 #include <utility>
 #include <numeric>
 #include <cstdio>
@@ -163,6 +164,25 @@ namespace {
 				++pb.block_index;
 			}
 			TORRENT_ASSERT(size <= 0);
+		}
+
+		// not declared on torrent_plugin (would require an ABI-breaking new
+		// virtual). Called via a downcast in torrent::peers_erased() — see
+		// smart_ban_notify_erase_peers() below
+		void on_erase_peers(span<torrent_peer* const> peers)
+		{
+			if (m_block_hashes.empty() || peers.empty()) return;
+
+			std::vector<torrent_peer*> erased(peers.begin(), peers.end());
+			std::sort(erased.begin(), erased.end());
+			// TODO: replace with std::erase_if() once we require C++20
+			for (auto i = m_block_hashes.begin(); i != m_block_hashes.end();)
+			{
+				if (std::binary_search(erased.begin(), erased.end(), i->second.peer))
+					i = m_block_hashes.erase(i);
+				else
+					++i;
+			}
 		}
 
 	private:
@@ -318,6 +338,20 @@ namespace {
 } }
 
 namespace libtorrent {
+
+	// Defined here so the dynamic_cast happens in the same translation unit
+	// as the smart_ban_plugin definition (it lives in an anonymous namespace
+	// so its typeinfo isn't visible from torrent.cpp). torrent::peers_erased
+	// calls this for each of its plugins; non-smart_ban plugins fall through
+	// as a no-op. The prototype is repeated here (matching the forward decl
+	// in torrent.cpp) to satisfy -Wmissing-prototypes
+	void smart_ban_notify_erase_peers(torrent_plugin* ext, span<torrent_peer* const> peers);
+
+	void smart_ban_notify_erase_peers(torrent_plugin* ext, span<torrent_peer* const> peers)
+	{
+		if (auto* sb = dynamic_cast<smart_ban_plugin*>(ext))
+			sb->on_erase_peers(peers);
+	}
 
 	std::shared_ptr<torrent_plugin> create_smart_ban_plugin(torrent_handle const& th, client_data_t)
 	{
