@@ -963,7 +963,8 @@ namespace {
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 		std::size_t i = 0;
 		// match the xx:\ or xx:/ form
-		while (i < int(f.size()) && aux::is_alpha(f[i])) ++i;
+		while (i < f.size() && aux::is_alpha(f[i]))
+			++i;
 		if (i + 1 < f.size() && f[i] == ':' && (f[i + 1] == '\\' || f[i + 1] == '/')) return true;
 
 		// match the \\ form

@@ -2349,7 +2349,7 @@ class peer_error_alert(peer_alert):
     @property
     def op(self) -> operation_t: ...
 
-peer_id = sha1_hash
+peer_id: TypeAlias = sha1_hash  # noqa: Y042
 
 class peer_info(metaclass=_BoostBaseClass):
     __instance_size__: int

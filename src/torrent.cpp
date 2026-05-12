@@ -429,9 +429,9 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 		// the number of seconds this torrent has spent in started, finished and
 		// seeding state so far, respectively.
-		m_active_time = seconds(std::max(0, p.active_time));
-		m_finished_time = seconds(std::max(0, p.finished_time));
-		m_seeding_time = seconds(std::max(0, p.seeding_time));
+		m_active_time = seconds(std::max(0, std::min(0x3fffffff, p.active_time)));
+		m_finished_time = seconds(std::max(0, std::min(0x3fffffff, p.finished_time)));
+		m_seeding_time = seconds(std::max(0, std::min(0x3fffffff, p.seeding_time)));
 
 		if (m_completed_time != 0 && m_completed_time < m_added_time)
 			m_completed_time = m_added_time;
@@ -11739,11 +11739,23 @@ namespace {
 		peers_erased(st.erased);
 	}
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+	// Defined in src/smart_ban.cpp. This is a hack to give the smart-ban
+	// plugin an erasure notification without adding a new virtual to the
+	// public torrent_plugin interface (which would break ABI).
+	void smart_ban_notify_erase_peers(torrent_plugin* ext, span<aux::torrent_peer* const> peers);
+#endif
+
 	// this is called when torrent_peers are removed from the peer_list
 	// (peer-list). It removes any references we may have to those torrent_peers,
 	// so we don't leave then dangling
 	void torrent::peers_erased(std::vector<torrent_peer*> const& peers)
 	{
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (auto& ext : m_extensions)
+			smart_ban_notify_erase_peers(ext.get(), peers);
+#endif
+
 		if (!has_picker()) return;
 
 		for (auto* const p : peers)
