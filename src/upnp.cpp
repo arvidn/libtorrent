@@ -86,6 +86,15 @@ namespace upnp_errors
 
 static error_code ignore_error;
 
+bool aux::is_upnp_xml_content_type(string_view content_type)
+{
+	content_type = strip_string(split_string(content_type, ';').first);
+	return string_equal_no_case(content_type, "text/xml"_sv)
+		|| string_equal_no_case(content_type, "text/soap+xml"_sv)
+		|| string_equal_no_case(content_type, "application/xml"_sv)
+		|| string_equal_no_case(content_type, "application/soap+xml"_sv);
+}
+
 upnp::rootdevice::rootdevice() = default;
 
 #if TORRENT_USE_ASSERTS
@@ -1409,12 +1418,7 @@ void upnp::on_upnp_map_response(error_code const& e
 	}
 
 	std::string const& ct = p.header("content-type");
-	if (!ct.empty()
-		&& ct.find("text/xml") == std::string::npos
-		&& ct.find("text/soap+xml") == std::string::npos
-		&& ct.find("application/xml") == std::string::npos
-		&& ct.find("application/soap+xml") == std::string::npos
-		)
+	if (!ct.empty() && !aux::is_upnp_xml_content_type(ct))
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		log("error while adding port map: invalid content-type, \"%s\". "
