@@ -604,6 +604,11 @@ class alert(metaclass=_BoostBaseClass):
         tracker_notification: Literal[16]
         upload_notification: Literal[8388608]
 
+    def timestamp(self) -> datetime.datetime:
+        """
+        timestamp( (alert)arg1) -> datetime.datetime :
+        """
+
     def category(self) -> int:
         """
         category( (alert)arg1) -> object :

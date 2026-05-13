@@ -309,6 +309,7 @@ void bind_alert()
 
 	{
 		scope alert_scope = class_<alert, noncopyable>("alert", no_init)
+								.def("timestamp", &alert::timestamp)
 								.def("message", &alert::message)
 								.def("what", &alert::what)
 								.def("category", &alert::category)
