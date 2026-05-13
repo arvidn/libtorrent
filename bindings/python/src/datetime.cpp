@@ -65,13 +65,21 @@ struct time_point_to_python
 	static PyObject* convert(T const pt)
 	{
 		using std::chrono::duration_cast;
+		using std::chrono::microseconds;
+		using std::chrono::seconds;
 		using std::chrono::system_clock;
 		object result;
 		if (pt > T())
 		{
-			time_t const tm = system_clock::to_time_t(
-				system_clock::now() + duration_cast<system_clock::duration>(pt - now(::tag<T>()))
-			);
+			auto const system_tp =
+				(system_clock::now() + duration_cast<system_clock::duration>(pt - now(::tag<T>())));
+
+			// split into seconds and microseconds
+			auto const seconds_tp = std::chrono::time_point_cast<seconds>(system_tp);
+
+			time_t const tm = system_clock::to_time_t(seconds_tp);
+
+			auto const tm_usec = duration_cast<microseconds>(system_tp - seconds_tp).count();
 
 #ifdef TORRENT_WINDOWS
 			std::tm const* date = localtime(&tm);
@@ -80,16 +88,15 @@ struct time_point_to_python
 			std::tm const* date = localtime_r(&tm, &buf);
 #endif
 
-			result = datetime_datetime(
-				(int)1900 + date->tm_year
+			result = datetime_datetime((int)1900 + date->tm_year
 				// tm use 0-11 and we need 1-12
 				,
 				(int)date->tm_mon + 1,
 				(int)date->tm_mday,
 				date->tm_hour,
 				date->tm_min,
-				date->tm_sec
-			);
+				date->tm_sec,
+				(int)tm_usec);
 		}
 		else
 		{
