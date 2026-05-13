@@ -1410,10 +1410,10 @@ void upnp::on_upnp_map_response(error_code const& e
 
 	std::string const& ct = p.header("content-type");
 	if (!ct.empty()
-		&& ct.find_first_of("text/xml") == std::string::npos
-		&& ct.find_first_of("text/soap+xml") == std::string::npos
-		&& ct.find_first_of("application/xml") == std::string::npos
-		&& ct.find_first_of("application/soap+xml") == std::string::npos
+		&& ct.find("text/xml") == std::string::npos
+		&& ct.find("text/soap+xml") == std::string::npos
+		&& ct.find("application/xml") == std::string::npos
+		&& ct.find("application/soap+xml") == std::string::npos
 		)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
