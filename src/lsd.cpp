@@ -206,6 +206,11 @@ void lsd::on_announce(error_code const& ec, std::size_t len)
 			, std::bind(&lsd::on_announce, self(), _1, _2));
 	});
 
+	process_packet(span<char const>{m_buffer.data(), std::ptrdiff_t(len)}, from);
+}
+
+void lsd::process_packet(span<char const> packet, udp::endpoint const& from)
+{
 	if (!aux::match_addr_mask(from.address(), m_listen_address, m_netmask))
 	{
 		// we don't care about this network. Ignore this packet
@@ -219,7 +224,7 @@ void lsd::on_announce(error_code const& ec, std::size_t len)
 	aux::http_parser p;
 
 	bool error = false;
-	p.incoming(span<char const>{m_buffer.data(), std::ptrdiff_t(len)}, error);
+	p.incoming(packet, error);
 
 	if (!p.header_finished() || error)
 	{

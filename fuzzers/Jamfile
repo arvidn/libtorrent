@@ -68,6 +68,7 @@ fuzzer base32encode ;
 fuzzer base64encode ;
 fuzzer escape_string ;
 fuzzer identify_client ;
+fuzzer lsd ;
 fuzzer gzip ;
 fuzzer verify_encoding ;
 fuzzer convert_to_native ;
@@ -102,6 +103,7 @@ local LARGE_TARGETS =
 	pe_crypto_state
 	http_tracker
 	session_params
+	lsd
 	add_torrent
 	websocket_tracker
 	;

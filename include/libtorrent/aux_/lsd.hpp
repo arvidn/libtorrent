@@ -14,6 +14,7 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/sha1_hash.hpp"
+#include "libtorrent/span.hpp"
 #include "libtorrent/aux_/deadline_timer.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/io_context.hpp"
@@ -43,6 +44,11 @@ struct lsd : std::enable_shared_from_this<lsd>
 
 	void announce(sha1_hash const& ih, int listen_port);
 	void close();
+
+	// Parse and dispatch a single BT-SEARCH packet, as if it had been
+	// received from `from` on the LSD socket. Exposed for fuzzing/testing,
+	// so the receive path can be exercised without a real socket bind.
+	void process_packet(span<char const> packet, udp::endpoint const& from);
 
 private:
 
