@@ -363,3 +363,17 @@ TORRENT_TEST(upnp_max_mappings)
 		TEST_CHECK(mapping != port_mapping_t{-1});
 	}
 }
+
+TORRENT_TEST(upnp_content_type)
+{
+	TEST_CHECK(aux::is_upnp_xml_content_type("text/xml"));
+	TEST_CHECK(aux::is_upnp_xml_content_type("Text/XML"));
+	TEST_CHECK(aux::is_upnp_xml_content_type(" text/xml; charset=\"utf-8\""));
+	TEST_CHECK(aux::is_upnp_xml_content_type("application/soap+xml; charset=utf-8"));
+	TEST_CHECK(aux::is_upnp_xml_content_type("application/xml"));
+	TEST_CHECK(aux::is_upnp_xml_content_type("text/soap+xml"));
+
+	TEST_CHECK(!aux::is_upnp_xml_content_type("text/html;charset=utf-8"));
+	TEST_CHECK(!aux::is_upnp_xml_content_type("x-text/xml"));
+	TEST_CHECK(!aux::is_upnp_xml_content_type("application/json"));
+}

@@ -68,6 +68,8 @@ namespace aux {
 		std::array<char, 1500> buffer;
 		udp::endpoint remote;
 	};
+
+	TORRENT_EXTRA_EXPORT bool is_upnp_xml_content_type(string_view content_type);
 }
 
 namespace upnp_errors {
