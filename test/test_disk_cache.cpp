@@ -22,12 +22,11 @@ namespace {
 
 struct tbe
 {
-	span<char const> write_buf() const
-	{
-		return _buf;
-	}
 	span<char const> _buf;
 };
+
+// found via ADL by visit_block_iovecs when iterating a span<tbe const>
+span<char const> write_buf(tbe const& be) { return be._buf; }
 
 template <size_t N>
 tbe b(char const (&literal)[N])
@@ -418,6 +417,52 @@ TORRENT_TEST(clear_piece_partially_flushed)
 	TEST_EQUAL(aborted.size(), 1); // only block 1's write_job
 }
 
+// flush_piece_impl releases the cache mutex during the flush callback.
+// Inserts into previously-empty slots of the piece being flushed are legal
+// at that point (insert() only requires block_idx >= hasher_cursor). The
+// callback must observe a snapshot of write_jobs taken before the lock was
+// released, so concurrent inserts cannot race with the flush.
+TORRENT_TEST(insert_during_flush_snapshot_stable)
+{
+	cache_fixture f(4, test_mode::v1);
+
+	// Populate blocks 0 and 1. Leave 2 and 3 empty.
+	f.insert(0_piece, 0);
+	f.insert(0_piece, 1);
+	TEST_EQUAL(int(f.cache.size()), 2);
+
+	int callback_calls = 0;
+	f.cache.flush_to_disk(
+		[&](bitfield& flushed, span<disk_job* const> blocks) -> int {
+			++callback_calls;
+			TEST_EQUAL(blocks.size(), 4);
+			TEST_CHECK(blocks[0] != nullptr);
+			TEST_CHECK(blocks[1] != nullptr);
+			TEST_CHECK(blocks[2] == nullptr);
+			TEST_CHECK(blocks[3] == nullptr);
+
+			// The cache mutex is released while this callback runs. Stand in
+			// for a concurrent network thread by inserting a new block at
+			// index 2. The snapshot was taken under the mutex, so what we
+			// already hold must not reflect this insertion.
+			f.insert(0_piece, 2);
+			TEST_CHECK(blocks[2] == nullptr);
+
+			// Flush only what was in the snapshot.
+			flushed.set_bit(0);
+			flushed.set_bit(1);
+			return 2;
+		},
+		0, // target=0: triggers the expensive flush pass (full piece span)
+		[](jobqueue_t, disk_job*) {},
+		false);
+
+	TEST_EQUAL(callback_calls, 1);
+	// Blocks 0 and 1 are flushed. Block 2 (inserted during the flush) is
+	// still in the cache as a dirty block; the flush did not touch it.
+	TEST_EQUAL(int(f.cache.size()), 1);
+}
+
 namespace {
 
 struct flush_test_case
@@ -478,12 +523,11 @@ void run_flush_test(flush_test_case tc)
 	// the initial string. '!' blocks are present in the cache but skipped,
 	// simulating a callback that only partially flushes a piece.
 	f.cache.flush_to_disk(
-		[&](bitfield& flushed, span<cached_block_entry const> blocks) -> int
-		{
+		[&](bitfield& flushed, span<disk_job* const> blocks) -> int {
 			int count = 0;
 			for (int i = 0; i < blocks.size(); ++i)
 			{
-				auto const* wj = blocks[i].get_write_job();
+				auto const* wj = blocks[i];
 				if (!wj) continue;
 				auto const& w = std::get<job::write>(wj->action);
 				auto const blk = static_cast<std::size_t>(w.offset / default_block_size);

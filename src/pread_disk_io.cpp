@@ -185,8 +185,8 @@ private:
 		, std::unique_lock<std::mutex>& l);
 	void flush_storage(std::shared_ptr<aux::pread_storage> const& storage);
 
-	int flush_cache_blocks(bitfield& flushed, span<aux::cached_block_entry const> blocks
-		, jobqueue_t& completed_jobs);
+	int flush_cache_blocks(
+		bitfield& flushed, span<aux::disk_job* const> blocks, jobqueue_t& completed_jobs);
 	void clear_piece_jobs(jobqueue_t aborted, aux::pread_disk_job* clear);
 
 	// returns the maximum number of threads
@@ -1343,9 +1343,8 @@ void pread_disk_io::execute_job(aux::pread_disk_job* j)
 		add_completed_jobs(std::move(completed_jobs));
 }
 
-int pread_disk_io::flush_cache_blocks(bitfield& flushed
-	, span<aux::cached_block_entry const> blocks
-	, jobqueue_t& completed_jobs)
+int pread_disk_io::flush_cache_blocks(
+	bitfield& flushed, span<aux::disk_job* const> blocks, jobqueue_t& completed_jobs)
 {
 	if (blocks.empty()) return 0;
 
@@ -1354,11 +1353,10 @@ int pread_disk_io::flush_cache_blocks(bitfield& flushed
 		auto piece = piece_index_t(-1);
 		std::string blocks_str;
 		blocks_str.reserve(blocks.size());
-		for (auto const& blk : blocks)
+		for (auto* wj : blocks)
 		{
-			blocks_str += blk.get_write_job() ? '*' : ' ';
-			if (auto* wj = blk.get_write_job())
-				piece = std::get<aux::job::write>(wj->action).piece;
+			blocks_str += wj ? '*' : ' ';
+			if (wj) piece = std::get<aux::job::write>(wj->action).piece;
 		}
 		// If this assert fires, it means we were asked to flush a piece
 		// that doesn't have any jobs to flush
@@ -1367,7 +1365,7 @@ int pread_disk_io::flush_cache_blocks(bitfield& flushed
 	}
 #endif
 
-	// blocks may be sparse. We need to skip any block entry where write_job is null
+	// blocks may be sparse. We need to skip any entry where the job is null
 	m_stats_counters.inc_stats_counter(counters::num_running_disk_jobs, 1);
 	m_stats_counters.inc_stats_counter(counters::num_writing_threads, 1);
 
@@ -1383,8 +1381,8 @@ int pread_disk_io::flush_cache_blocks(bitfield& flushed
 	// the total number of blocks we ended up flushing to disk
 	int ret = 0;
 
-	visit_block_iovecs(blocks, [&] (span<span<char const>> iovec, int const start_idx) {
-		auto* j = blocks[start_idx].get_write_job();
+	visit_block_iovecs(blocks, [&](span<span<char const>> iovec, int const start_idx) {
+		auto* j = blocks[start_idx];
 		TORRENT_ASSERT(j->get_type() == aux::job_action_t::write);
 		auto& a = std::get<aux::job::write>(j->action);
 		auto* pj = static_cast<aux::pread_disk_job*>(j);
@@ -1400,9 +1398,8 @@ int pread_disk_io::flush_cache_blocks(bitfield& flushed
 			, a.piece, a.offset, file_mode, j->flags, error);
 
 		int i = start_idx;
-		for (aux::cached_block_entry const& blk : blocks.subspan(start_idx, count))
+		for (auto* j2 : blocks.subspan(start_idx, count))
 		{
-			auto* j2 = blk.get_write_job();
 			TORRENT_ASSERT(j2);
 			TORRENT_ASSERT(j2->get_type() == aux::job_action_t::write);
 			j2->error = error;
@@ -1413,12 +1410,12 @@ int pread_disk_io::flush_cache_blocks(bitfield& flushed
 
 		ret += count;
 
-		if (error) {
+		if (error)
+		{
 			TORRENT_ASSERT(i == start_idx + count);
 			// if there was a failure, fail the remaining jobs as well
-			for (aux::cached_block_entry const& blk : blocks.subspan(start_idx + count))
+			for (auto* j2 : blocks.subspan(start_idx + count))
 			{
-				auto* j2 = blk.get_write_job();
 				if (j2)
 				{
 					j2->error = error;
@@ -1463,14 +1460,14 @@ void pread_disk_io::try_flush_cache(int const target_cache_size
 	l.unlock();
 	jobqueue_t completed_jobs;
 	m_cache.flush_to_disk(
-		[&](bitfield& flushed, span<aux::cached_block_entry const> blocks) {
+		[&](bitfield& flushed, span<aux::disk_job* const> blocks) {
 			return flush_cache_blocks(flushed, blocks, completed_jobs);
-		}
-		, target_cache_size
-		, [&](jobqueue_t aborted, aux::disk_job* clear) {
+		},
+		target_cache_size,
+		[&](jobqueue_t aborted, aux::disk_job* clear) {
 			clear_piece_jobs(std::move(aborted), static_cast<aux::pread_disk_job*>(clear));
-		}
-		, optimistic);
+		},
+		optimistic);
 	l.lock();
 	DLOG("flushed blocks (%d blocks left), return to disk loop\n", m_cache.size());
 	if (!completed_jobs.empty())
@@ -1483,11 +1480,11 @@ void pread_disk_io::flush_storage(std::shared_ptr<aux::pread_storage> const& sto
 	DLOG("flush_storage (%d)\n", torrent);
 	jobqueue_t completed_jobs;
 	m_cache.flush_storage(
-		[&](bitfield& flushed, span<aux::cached_block_entry const> blocks) {
+		[&](bitfield& flushed, span<aux::disk_job* const> blocks) {
 			return flush_cache_blocks(flushed, blocks, completed_jobs);
-		}
-		, torrent
-		, [&](jobqueue_t aborted, aux::disk_job* clear) {
+		},
+		torrent,
+		[&](jobqueue_t aborted, aux::disk_job* clear) {
 			clear_piece_jobs(std::move(aborted), static_cast<aux::pread_disk_job*>(clear));
 		});
 	DLOG("flush_storage - done (%d left)\n", m_cache.size());
