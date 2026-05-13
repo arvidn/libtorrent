@@ -340,7 +340,7 @@ TORRENT_TEST(upnp_wanipconnection)
 
 TORRENT_TEST(upnp_wanipconnection2)
 {
-	run_upnp_test(combine_path("..", "root3.xml").c_str(), "WANIPConnection_2", 2);
+	run_upnp_test(combine_path("..", "root3.xml").c_str(), "WANIPConnection", 2);
 }
 
 TORRENT_TEST(upnp_max_mappings)
