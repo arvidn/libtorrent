@@ -133,6 +133,16 @@ struct TORRENT_EXTRA_EXPORT cached_block_entry
 	write_state_t write_state;
 };
 
+// returns the buffer attached to the write job, or an empty span if j is null.
+// found via ADL by visit_block_iovecs when iterating a span<disk_job* const>.
+inline span<char const> write_buf(disk_job const* j)
+{
+	if (j == nullptr) return {};
+	TORRENT_ASSERT(j->get_type() == aux::job_action_t::write);
+	auto const& w = std::get<aux::job::write>(j->action);
+	return {w.buf.data(), w.buffer_size};
+}
+
 struct cached_piece_entry
 {
 	cached_piece_entry(piece_location const& loc
@@ -534,15 +544,17 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 
 	// this should be called by a disk thread
 	// the callback should return the number of blocks it successfully flushed
-	// to disk
-	void flush_to_disk(std::function<int(bitfield&, span<cached_block_entry const>)> f
-		, int target_blocks
-		, std::function<void(jobqueue_t, disk_job*)> clear_piece_fun
-		, bool optimistic = false);
+	// to disk. The flush callback receives a snapshot of the pending write
+	// jobs (null entries for blocks with no pending job), taken under the
+	// cache mutex so the callback can run without it.
+	void flush_to_disk(std::function<int(bitfield&, span<disk_job* const>)> f,
+		int target_blocks,
+		std::function<void(jobqueue_t, disk_job*)> clear_piece_fun,
+		bool optimistic = false);
 
-	void flush_storage(std::function<int(bitfield&, span<cached_block_entry const>)> f
-		, storage_index_t storage
-		, std::function<void(jobqueue_t, disk_job*)> clear_piece_fun);
+	void flush_storage(std::function<int(bitfield&, span<disk_job* const>)> f,
+		storage_index_t storage,
+		std::function<void(jobqueue_t, disk_job*)> clear_piece_fun);
 
 	std::size_t size() const;
 	std::size_t num_flushing() const;
@@ -571,12 +583,12 @@ private:
 	void clear_piece_impl(cached_piece_entry& cpe, jobqueue_t& aborted);
 
 	template <typename Iter, typename View>
-	Iter flush_piece_impl(View& view
-		, Iter piece_iter
-		, std::function<int(bitfield&, span<cached_block_entry const>)> const& f
-		, std::unique_lock<std::mutex>& l
-		, span<cached_block_entry> const blocks
-		, std::function<void(jobqueue_t, disk_job*)> clear_piece_fun);
+	Iter flush_piece_impl(View& view,
+		Iter piece_iter,
+		std::function<int(bitfield&, span<disk_job* const>)> const& f,
+		std::unique_lock<std::mutex>& l,
+		span<cached_block_entry> const blocks,
+		std::function<void(jobqueue_t, disk_job*)> clear_piece_fun);
 
 	mutable std::mutex m_mutex;
 	std::condition_variable m_flushing_cv;

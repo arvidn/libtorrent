@@ -150,11 +150,11 @@ struct cache_fixture
 	{
 		int total = 0;
 		cache.flush_to_disk(
-			[&](lt::bitfield& flushed, lt::span<lt::aux::cached_block_entry const> blocks) -> int {
+			[&](lt::bitfield& flushed, lt::span<lt::aux::disk_job* const> blocks) -> int {
 				int count = 0;
 				for (int i = 0; i < int(blocks.size()); ++i)
 				{
-					if (!blocks[i].get_write_job()) continue;
+					if (!blocks[i]) continue;
 					flushed.set_bit(i);
 					++count;
 				}
@@ -162,8 +162,8 @@ struct cache_fixture
 				return count;
 			},
 			target,
-			[](lt::jobqueue_t, lt::aux::disk_job*) {}
-			, optimistic);
+			[](lt::jobqueue_t, lt::aux::disk_job*) {},
+			optimistic);
 		return total;
 	}
 
@@ -178,11 +178,11 @@ struct cache_fixture
 	void flush_storage_for(lt::storage_index_t const storage = lt::storage_index_t{0})
 	{
 		cache.flush_storage(
-			[](lt::bitfield& flushed, lt::span<lt::aux::cached_block_entry const> blocks) -> int {
+			[](lt::bitfield& flushed, lt::span<lt::aux::disk_job* const> blocks) -> int {
 				int count = 0;
 				for (int i = 0; i < int(blocks.size()); ++i)
 				{
-					if (!blocks[i].get_write_job()) continue;
+					if (!blocks[i]) continue;
 					flushed.set_bit(i);
 					++count;
 				}
