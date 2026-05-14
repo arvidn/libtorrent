@@ -332,6 +332,12 @@ struct peer_conn
 	}
 
 	tcp::socket s;
+	// per-connection scratch buffers reused across messages. We rely on each
+	// async_write being followed by the next one only from inside its
+	// completion handler, so writes on a single socket never overlap and the
+	// buffer below is never clobbered while in flight. Adding an overlapping
+	// async_write on the same socket would silently corrupt the in-flight
+	// payload.
 	char write_buf_proto[100];
 	std::uint32_t write_buffer[17*1024/4];
 	std::uint32_t buffer[17*1024/4];
@@ -366,7 +372,7 @@ struct peer_conn
 	// if this is true, this connection is a seed
 	bool seed;
 	bool fast_extension;
-	// when set, this leech sends a flood of HASH_REQUEST messages instead
+	// when set, this downloader sends a flood of HASH_REQUEST messages instead
 	// of (or in addition to) regular piece requests. Used by hash-stress mode.
 	bool flood_hashes;
 	int blocks_received;
@@ -392,25 +398,27 @@ struct peer_conn
 			return;
 		}
 
-		char handshake[] = "\x13" "BitTorrent protocol\0\0\0\0\0\0\0\x04"
-			"                    " // space for info-hash
-			"aaaaaaaaaaaaaaaaaaaa" // peer-id
-			"\0\0\0\x01\x02"; // interested
-		char* h = static_cast<char*>(malloc(sizeof(handshake)));
-		memcpy(h, handshake, sizeof(handshake));
+		static char const handshake[] = "\x13"
+										"BitTorrent protocol\0\0\0\0\0\0\0\x04"
+										"                    " // space for info-hash
+										"aaaaaaaaaaaaaaaaaaaa" // peer-id
+										"\0\0\0\x01\x02"; // interested
+		constexpr int handshake_size = int(sizeof(handshake) - 1);
+		static_assert(handshake_size <= int(sizeof(write_buf_proto)), "write_buf_proto too small");
+		std::memcpy(write_buf_proto, handshake, handshake_size);
 		// bit 4 of reserved byte 7 (0x10) advertises the v2 hash-exchange
 		// protocol (BEP 52). reserved bytes are at offset 20..27.
-		if (v2) h[27] |= 0x10;
-		std::memcpy(h + 28, info_hash.data(), 20);
-		std::generate(h + 48, h + 68, [] { return char(rand()); });
+		if (v2) write_buf_proto[27] |= 0x10;
+		std::memcpy(write_buf_proto + 28, info_hash.data(), 20);
+		std::generate(write_buf_proto + 48, write_buf_proto + 68, [] { return char(rand()); });
 		// for seeds, don't send the interested message
-		boost::asio::async_write(s, boost::asio::buffer(h, (sizeof(handshake) - 1) - (seed ? 5 : 0))
-			, std::bind(&peer_conn::on_handshake, this, h, _1, _2));
+		boost::asio::async_write(s,
+			boost::asio::buffer(write_buf_proto, std::size_t(handshake_size - (seed ? 5 : 0))),
+			std::bind(&peer_conn::on_handshake, this, _1, _2));
 	}
 
-	void on_handshake(char* h, error_code const& ec, size_t)
+	void on_handshake(error_code const& ec, size_t)
 	{
-		free(h);
 		if (ec)
 		{
 			close("ERROR SEND HANDSHAKE", ec);
@@ -484,9 +492,22 @@ struct peer_conn
 			return;
 		}
 
-		// read message
-		boost::asio::async_read(s, boost::asio::buffer(buffer, 4)
-			, std::bind(&peer_conn::on_msg_length, this, _1, _2));
+		if (seed)
+		{
+			// read next message from the peer
+			boost::asio::async_read(s,
+				boost::asio::buffer(buffer, 4),
+				std::bind(&peer_conn::on_msg_length, this, _1, _2));
+		}
+		else
+		{
+			// the only write from a downloader that lands here is write_have(),
+			// called after the last block of a piece. Run the completion
+			// check / pipeline refill instead of just blocking on a read --
+			// otherwise if the last block to arrive is the last block of any
+			// piece, the connection stalls near 100%.
+			work_download();
+		}
 	}
 
 	bool write_request()
@@ -543,18 +564,15 @@ struct peer_conn
 		int const this_block_size =
 			(is_last_piece && block == last_piece_blocks - 1) ? last_block_size : 16 * 1024;
 
-		char msg[] = "\0\0\0\xd\x06"
-			"    " // piece
-			"    " // offset
-			"    "; // length
-		char* m = static_cast<char*>(malloc(sizeof(msg)));
-		memcpy(m, msg, sizeof(msg));
-		char* ptr = m + 5;
+		char* ptr = write_buf_proto;
+		write_uint32(13, ptr); // payload size
+		write_uint8(6, ptr); // request
 		write_uint32(static_cast<int>(current_piece), ptr);
 		write_uint32(block * 16 * 1024, ptr);
 		write_uint32(this_block_size, ptr);
-		boost::asio::async_write(s, boost::asio::buffer(m, sizeof(msg) - 1)
-			, std::bind(&peer_conn::on_req_sent, this, m, _1, _2));
+		boost::asio::async_write(s,
+			boost::asio::buffer(write_buf_proto, 17),
+			std::bind(&peer_conn::on_req_sent, this, _1, _2));
 
 		++outstanding_requests;
 		++block;
@@ -567,9 +585,8 @@ struct peer_conn
 		return true;
 	}
 
-	void on_req_sent(char* m, error_code const& ec, size_t)
+	void on_req_sent(error_code const& ec, size_t)
 	{
-		free(m);
 		if (ec)
 		{
 			close("ERROR SEND REQUEST", ec);
@@ -982,8 +999,12 @@ struct peer_conn
 	{
 		int const payload_size = 1 + 32 + 4 + 4 + 4 + 4 + int(hashes.size()) * 32;
 		int const total = 4 + payload_size;
-		char* buf = static_cast<char*>(malloc(std::size_t(total)));
-		char* ptr = buf;
+		// HASHES is the only message big enough that it doesn't fit in
+		// write_buf_proto. write_buffer is sized for a 16 KiB block plus
+		// header so it easily accommodates any HASHES reply this tester
+		// produces (get_hashes_for_request caps count at blocks_per_piece).
+		TORRENT_ASSERT(total <= int(sizeof(write_buffer)));
+		char* ptr = reinterpret_cast<char*>(write_buffer);
 		write_uint32(payload_size, ptr);
 		write_uint8(22, ptr); // msg_hashes
 		std::memcpy(ptr, file_root.data(), 32);
@@ -998,8 +1019,8 @@ struct peer_conn
 			ptr += 32;
 		}
 		boost::asio::async_write(s,
-			boost::asio::buffer(buf, std::size_t(total)),
-			std::bind(&peer_conn::on_hash_sent, this, buf, _1, _2, "ERROR SENT HASHES"));
+			boost::asio::buffer(write_buffer, std::size_t(total)),
+			std::bind(&peer_conn::on_hash_sent, this, _1, _2, "ERROR SENT HASHES"));
 	}
 
 	void write_hash_reject(sha256_hash const& file_root,
@@ -1008,10 +1029,10 @@ struct peer_conn
 		int const count,
 		int const proof_layers)
 	{
-		int const payload_size = 1 + 32 + 4 + 4 + 4 + 4;
-		int const total = 4 + payload_size;
-		char* buf = static_cast<char*>(malloc(std::size_t(total)));
-		char* ptr = buf;
+		constexpr int payload_size = 1 + 32 + 4 + 4 + 4 + 4;
+		constexpr int total = 4 + payload_size;
+		static_assert(total <= int(sizeof(write_buf_proto)), "write_buf_proto too small");
+		char* ptr = write_buf_proto;
 		write_uint32(payload_size, ptr);
 		write_uint8(23, ptr); // msg_hash_reject
 		std::memcpy(ptr, file_root.data(), 32);
@@ -1021,8 +1042,8 @@ struct peer_conn
 		write_uint32(count, ptr);
 		write_uint32(proof_layers, ptr);
 		boost::asio::async_write(s,
-			boost::asio::buffer(buf, std::size_t(total)),
-			std::bind(&peer_conn::on_hash_sent, this, buf, _1, _2, "ERROR SENT HASH_REJECT"));
+			boost::asio::buffer(write_buf_proto, std::size_t(total)),
+			std::bind(&peer_conn::on_hash_sent, this, _1, _2, "ERROR SENT HASH_REJECT"));
 	}
 
 	void write_hash_request(sha256_hash const& file_root,
@@ -1031,10 +1052,10 @@ struct peer_conn
 		int const count,
 		int const proof_layers)
 	{
-		int const payload_size = 1 + 32 + 4 + 4 + 4 + 4;
-		int const total = 4 + payload_size;
-		char* buf = static_cast<char*>(malloc(std::size_t(total)));
-		char* ptr = buf;
+		constexpr int payload_size = 1 + 32 + 4 + 4 + 4 + 4;
+		constexpr int total = 4 + payload_size;
+		static_assert(total <= int(sizeof(write_buf_proto)), "write_buf_proto too small");
+		char* ptr = write_buf_proto;
 		write_uint32(payload_size, ptr);
 		write_uint8(21, ptr); // msg_hash_request
 		std::memcpy(ptr, file_root.data(), 32);
@@ -1044,14 +1065,13 @@ struct peer_conn
 		write_uint32(count, ptr);
 		write_uint32(proof_layers, ptr);
 		boost::asio::async_write(s,
-			boost::asio::buffer(buf, std::size_t(total)),
-			std::bind(&peer_conn::on_hash_sent, this, buf, _1, _2, "ERROR SENT HASH_REQUEST"));
+			boost::asio::buffer(write_buf_proto, std::size_t(total)),
+			std::bind(&peer_conn::on_hash_sent, this, _1, _2, "ERROR SENT HASH_REQUEST"));
 		++hash_requests_sent;
 	}
 
-	void on_hash_sent(char* buf, error_code const& ec, size_t, char const* msg)
+	void on_hash_sent(error_code const& ec, size_t, char const* msg)
 	{
-		free(buf);
 		if (ec)
 		{
 			close(msg, ec);
@@ -1066,7 +1086,7 @@ struct peer_conn
 		}
 		else
 		{
-			// leech in flood mode: pipeline another HASH_REQUEST or drain
+			// downloader in flood mode: pipeline another HASH_REQUEST or drain
 			// pending responses.
 			work_download();
 		}
@@ -1779,6 +1799,7 @@ int main(int argc, char* argv[])
 		bool seed = false;
 		if (test_mode == upload_test) seed = true;
 		else if (test_mode == dual_test) seed = (i & 1);
+		// hash-stress connections all act as downloaders that flood HASH_REQUEST.
 		conns.push_back(new peer_conn(ios[i % num_threads],
 			atp.ti->num_pieces(),
 			atp.ti->piece_length() / 16 / 1024,
