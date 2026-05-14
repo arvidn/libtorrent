@@ -115,6 +115,10 @@ bool force_v1_handshake = false;
 // struct). Built once at startup; read-only afterwards.
 std::vector<sha256_hash> file_root_list;
 
+// when greater than zero, each connection emits a periodic STATUS log
+// line every interval. zero disables status printing entirely.
+std::chrono::seconds status_interval{0};
+
 // the number of suggest messages received (total across all peers)
 std::atomic<int> num_suggest(0);
 
@@ -271,6 +275,7 @@ struct peer_conn
 		bool corrupt_,
 		bool flood_hashes_ = false)
 		: s(ios)
+		, status_timer(ios)
 		, read_pos(0)
 		, state(handshaking)
 		, choked(true)
@@ -293,6 +298,8 @@ struct peer_conn
 		, hash_requests_sent(0)
 		, hashes_sent(0)
 		, hash_rejects_sent(0)
+		, last_status_blocks_received(0)
+		, last_status_blocks_sent(0)
 		, num_pieces(piece_count)
 		, start_time(clock_type::now())
 		, churn(churn_)
@@ -304,6 +311,45 @@ struct peer_conn
 		if (seed) ++num_seeds;
 		pieces.reserve(std::size_t(piece_count));
 		start_conn();
+	}
+
+	void schedule_status_timer()
+	{
+		if (status_interval.count() <= 0) return;
+		status_timer.expires_after(status_interval);
+		status_timer.async_wait([this](error_code const& ec) {
+			if (ec) return; // canceled or aborted
+			on_status_timer();
+		});
+	}
+
+	// periodic per-connection status. A stalled connection shows
+	// delta=0 here, plus the choked/outstanding fields tell you
+	// whether we're waiting for the peer or out of work to send.
+	void on_status_timer()
+	{
+		int const drecv = blocks_received - last_status_blocks_received;
+		int const dsent = blocks_sent - last_status_blocks_sent;
+		last_status_blocks_received = blocks_received;
+		last_status_blocks_sent = blocks_sent;
+		std::fprintf(stderr,
+			"STATUS %s recv=%d(+%d) sent=%d(+%d) outstanding=%d "
+			"choked=%s pieces-queued=%d current-piece=%d block=%d "
+			"hash-req-sent=%d hashes-recv=%d hashes-rejected=%d\n",
+			seed ? "seed" : "leech",
+			blocks_received,
+			drecv,
+			blocks_sent,
+			dsent,
+			outstanding_requests,
+			choked ? "yes" : "no",
+			int(pieces.size()),
+			static_cast<int>(current_piece),
+			block,
+			hash_requests_sent,
+			hashes_received,
+			hashes_rejected);
+		schedule_status_timer();
 	}
 
 	void start_conn()
@@ -332,6 +378,10 @@ struct peer_conn
 	}
 
 	tcp::socket s;
+	// fires every status_interval while the connection is open (when the
+	// interval is positive); emits a one-line state dump useful for
+	// diagnosing stalls.
+	boost::asio::steady_timer status_timer;
 	// per-connection scratch buffers reused across messages. We rely on each
 	// async_write being followed by the next one only from inside its
 	// completion handler, so writes on a single socket never overlap and the
@@ -382,6 +432,10 @@ struct peer_conn
 	int hash_requests_sent;
 	int hashes_sent;
 	int hash_rejects_sent;
+	// snapshot of blocks_{received,sent} at the previous status timer
+	// fire, used to compute per-interval deltas.
+	int last_status_blocks_received;
+	int last_status_blocks_sent;
 	int num_pieces;
 	time_point start_time;
 	time_point end_time;
@@ -442,6 +496,9 @@ struct peer_conn
 		// look at the extension bits
 
 		fast_extension = (reinterpret_cast<char const*>(buffer)[27] & 4) != 0;
+
+		// start the periodic status timer once the connection is alive.
+		schedule_status_timer();
 
 		if (seed)
 		{
@@ -599,6 +656,7 @@ struct peer_conn
 	void close(char const* msg, error_code const& ec)
 	{
 		end_time = clock_type::now();
+		status_timer.cancel();
 		char tmp[1024];
 		std::snprintf(tmp, sizeof(tmp), "%s: %s", msg, ec ? ec.message().c_str() : "");
 		int time = int(total_milliseconds(end_time - start_time));
@@ -615,8 +673,19 @@ struct peer_conn
 		else
 			std::snprintf(ep_str, sizeof(ep_str), "%s:%d", addr.to_string().c_str()
 				, s.local_endpoint(e).port());
-		std::printf("%s ep: %s sent: %d received: %d duration: %d ms up: %.1fMB/s down: %.1fMB/s\n"
-			, tmp, ep_str, blocks_sent, blocks_received, time, up, down);
+		std::printf("%s ep: %s sent: %d received: %d duration: %d ms "
+					"up: %.1fMB/s down: %.1fMB/s outstanding: %d choked: %s "
+					"pieces-queued: %d\n",
+			tmp,
+			ep_str,
+			blocks_sent,
+			blocks_received,
+			time,
+			up,
+			down,
+			outstanding_requests,
+			choked ? "yes" : "no",
+			int(pieces.size()));
 		if (seed) --num_seeds;
 	}
 
@@ -894,6 +963,10 @@ struct peer_conn
 			else if (msg == 23) // hash_reject
 			{
 				++hashes_rejected;
+				std::fprintf(stderr,
+					"HASH_REJECT received (total=%d) -- "
+					"indicates an issue in the hash-request logic\n",
+					hashes_rejected);
 				if (flood_hashes && outstanding_requests > 0) --outstanding_requests;
 			}
 			work_download();
@@ -1131,7 +1204,9 @@ struct peer_conn
 		"    -1                 for hybrid torrents, use the v1 info hash in the\n"
 		"                       handshake and clear the v2 reserved bit (default is\n"
 		"                       to use the v2 info hash and exercise the v2 path)\n"
-		"    -r <reconnects>    churn - number of reconnects per second\n\n"
+		"    -r <reconnects>    churn - number of reconnects per second\n"
+		"    -S <seconds>       print a per-connection STATUS line every\n"
+		"                       <seconds> seconds (0 disables, default)\n\n"
 		"examples:\n\n"
 		"connection_tester gen-torrent -s 1024 -n 4 -t test.torrent\n"
 		"connection_tester upload -c 200 -d 127.0.0.1 -p 6881 -t test.torrent\n"
@@ -1610,6 +1685,9 @@ int main(int argc, char* argv[])
 			case 'p': destination_port = atoi(opt); break;
 			case 'd': destination_ip = opt; break;
 			case 'r': churn = atoi(opt); break;
+			case 'S':
+				status_interval = std::chrono::seconds(atoi(opt));
+				break;
 			case 'V':
 				if (opt[0] == '1' && opt[1] == 0)
 					gen_version = gen_version_t::v1;
