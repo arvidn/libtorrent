@@ -716,10 +716,13 @@ namespace libtorrent::aux {
 				// or the current one is already connected
 				if (i->connection->is_outgoing() == c.is_outgoing())
 				{
+					if (!state->allow_multiple_connections_per_peer)
+					{
 					// if the other end connected to us both times, just drop
 					// the second one. Or if we made both connections.
 					c.disconnect(errors::duplicate_peer_id, operation_t::bittorrent);
 					return false;
+					}
 				}
 #if TORRENT_USE_I2P
 				else if (!i2p_dest.empty())

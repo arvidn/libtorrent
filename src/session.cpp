@@ -87,6 +87,7 @@ namespace {
 
 		// we want to keep the peer list as small as possible
 		set.set_bool(settings_pack::allow_multiple_connections_per_ip, false);
+		set.set_bool(settings_pack::allow_multiple_connections_per_peer, false);
 		set.set_int(settings_pack::max_failcount, 2);
 		set.set_int(settings_pack::inactivity_timeout, 120);
 

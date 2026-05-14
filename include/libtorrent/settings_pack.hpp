@@ -395,6 +395,10 @@ namespace aux {
 			// this feature.
 			allow_multiple_connections_per_ip = bool_type_base,
 
+			// allow multiple connections
+			// from the same IP address and port
+			allow_multiple_connections_per_peer,
+
 #if TORRENT_ABI_VERSION == 1
 			// if set to true, upload, download and unchoke limits are ignored for
 			// peers on the local network. This option is *DEPRECATED*, please use
