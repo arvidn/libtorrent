@@ -7486,16 +7486,19 @@ namespace {
 
 	void torrent::post_download_queue()
 	{
+		if (!valid_metadata()) return;
 		std::vector<block_info> blk;
-		if (!valid_metadata() || !has_picker()) return;
-		piece_picker const& p = picker();
-		std::vector<piece_picker::downloading_piece> const q = p.get_download_queue();
 		std::vector<partial_piece_info> queue;
-		if (!q.empty())
+		if (has_picker())
 		{
-			const int blocks_per_piece = m_picker->blocks_in_piece(piece_index_t(0));
-			blk.resize(q.size() * aux::numeric_cast<std::size_t>(blocks_per_piece));
-			initialize_piece_info(p, torrent_file(), block_size(), blk, q, &queue);
+			piece_picker const& p = picker();
+			std::vector<piece_picker::downloading_piece> const q = p.get_download_queue();
+			if (!q.empty())
+			{
+				const int blocks_per_piece = m_picker->blocks_in_piece(piece_index_t(0));
+				blk.resize(q.size() * aux::numeric_cast<std::size_t>(blocks_per_piece));
+				initialize_piece_info(p, torrent_file(), block_size(), blk, q, &queue);
+			}
 		}
 		alerts().emplace_alert<piece_info_alert>(get_handle(), std::move(queue), std::move(blk));
 	}
