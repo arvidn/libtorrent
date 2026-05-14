@@ -5,7 +5,9 @@ from __future__ import print_function
 import urllib.parse
 import glob
 import os
+import re
 import sys
+from typing import Any, Dict, Optional, Set
 
 verbose = '--verbose' in sys.argv
 dump = '--dump' in sys.argv
@@ -194,6 +196,84 @@ def first_item(itr):
     for i in itr:
         return i
     return None
+
+
+# operators whose meaning is fixed by the language and which therefore
+# do not need a written description.
+TRIVIAL_OP_NAMES: Set[str] = {
+    'operator==()', 'operator!=()',
+    'operator<()', 'operator<=()',
+    'operator>()', 'operator>=()',
+    'operator<=>()',
+    'operator<<()', 'operator>>()',
+}
+
+
+def _normalize_params(params: str) -> str:
+    """Normalize a parameter list: collapse whitespace, tighten ' &' to
+    '&', and drop an optional trailing identifier (the parameter name).
+    'Foo const&  rhs' -> 'Foo const&'."""
+    p = ' '.join(params.split())
+    p = re.sub(r'\s*&', '&', p)
+    p = re.sub(r' \w+$', '', p)
+    return p
+
+
+def _params_of(sig: str, anchor: str) -> Optional[str]:
+    """Extract and normalize the parameter list inside the first
+    (...) that follows the given anchor regex in sig. Returns None if
+    no match. Nested parens inside the parameter list are not handled,
+    which is fine because default / copy / move special members never
+    take parameters with function-call default values."""
+    m = re.search(rf'{anchor}\s*\(([^()]*)\)', sig)
+    return _normalize_params(m.group(1)) if m else None
+
+
+def is_trivial_member(class_name: str, current_fun: Dict[str, Any]) -> bool:
+    """Return True for compiler-generated / language-fixed members
+    whose meaning is fixed by the language and which do not benefit
+    from a written description: destructors, default / copy / move
+    constructors, copy / move assignment, comparison operators,
+    stream operators, and conversion operators."""
+
+    name = first_item(current_fun['names'])
+    sig = ' '.join(current_fun['signatures']).split('//')[0]
+
+    # destructor: ~Foo()
+    if name == f'~{class_name}()':
+        return True
+
+    # default / copy / move constructor
+    if name == f'{class_name}()':
+        params = _params_of(sig, rf'\b{re.escape(class_name)}')
+        return params in ('',
+                          f'const {class_name}&',
+                          f'{class_name} const&',
+                          f'{class_name}&&')
+
+    # copy / move assignment
+    if name == 'operator=()':
+        params = _params_of(sig, r'operator\s*=')
+        return params in (f'const {class_name}&',
+                          f'{class_name} const&',
+                          f'{class_name}&&')
+
+    # comparison and stream operators
+    if name in TRIVIAL_OP_NAMES:
+        return True
+
+    # conversion operators: signature contains "operator <type>()".
+    # parse_function strips the "operator" prefix when building the
+    # name, so e.g. "operator bool()" arrives as name "bool()" and the
+    # only reliable signal is the signature itself. The space after
+    # 'operator' distinguishes conversion operators from other
+    # overloads (operator==, operator[], operator(), etc.) which never
+    # have whitespace there; the empty '()' rules out 'operator new'
+    # and friends, which take arguments.
+    if re.search(r'\boperator\s+[^(]+\(\s*\)', sig):
+        return True
+
+    return False
 
 
 def is_visible(desc):
@@ -447,6 +527,7 @@ def parse_class(lno, lines, filename):
     class_type = 'struct'
     blanks = 0
     decl = ''
+    template_depth = 0
 
     while lno < len(lines):
         line = lines[lno].strip()
@@ -507,6 +588,25 @@ def parse_class(lno, lines, filename):
             context += line + '\n'
             continue
 
+        # Skip lines that make up a template parameter list. These are
+        # not declarations on their own; the actual declaration follows
+        # on the next non-template-prefix line. Without this, the
+        # template <...> line falls through to the "context = ''" reset
+        # at the bottom of the loop, dropping the doc comment that was
+        # written above it.
+        if re.match(r'template\b', line) and template_depth == 0:
+            template_depth = line.count('<') - line.count('>')
+            if verbose:
+                print(f'templ {line}')
+            continue
+        if template_depth > 0:
+            template_depth += line.count('<') - line.count('>')
+            if template_depth < 0:
+                template_depth = 0
+            if verbose:
+                print(f'templ {line}')
+            continue
+
         start_brace += line.count('{')
         end_brace += line.count('}')
 
@@ -545,7 +645,9 @@ def parse_class(lno, lines, filename):
                         sys.exit(1)
                     current_fun['desc'] = context
                     add_desc(context)
-                    if context == '' and not suppress_warning(filename, first_item(current_fun['names'])):
+                    if (context == ''
+                            and not suppress_warning(filename, first_item(current_fun['names']))
+                            and not is_trivial_member(name, current_fun)):
                         print('WARNING: member function "%s" is not documented: \x1b[34m%s:%d\x1b[0m'
                               % (name + '::' + first_item(current_fun['names']), filename, lno))
                     funs.append(current_fun)
@@ -601,7 +703,15 @@ def parse_class(lno, lines, filename):
                 context = ''
             continue
 
-        context = ''
+        # only reset the doc-comment context if this line clearly ends a
+        # declaration (a ; or block boundary). Otherwise the line is
+        # most likely a continuation of the declaration on the next line
+        # (e.g. a function whose return type is broken onto its own line)
+        # and the comment above should still attach to it.
+        line_no_comment = line.split('//')[0].rstrip()
+        if line_no_comment.endswith(';') or line_no_comment.endswith('{') \
+                or line_no_comment.endswith('}') or line_no_comment == '':
+            context = ''
 
         if verbose:
             if looks_like_forward_decl(line) \
@@ -923,7 +1033,7 @@ for filename in files:
                     constants[t] = [current_constant]
             continue
 
-        if 'TORRENT_EXPORT ' in line or line.startswith('inline ') or line.startswith('template') or internal:
+        if 'TORRENT_EXPORT ' in line or line.startswith('inline ') or re.match(r'template\b', line) or internal:
             if line.startswith('class ') or line.startswith('struct '):
                 if not line.endswith(';'):
                     current_class, lno = parse_class(lno - 1, lines, filename)
