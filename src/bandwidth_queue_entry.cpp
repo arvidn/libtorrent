@@ -59,7 +59,7 @@ namespace aux {
 		--ttl;
 		if (quota == 0) return quota;
 
-		for (int j = 0; j < 5 && channel[j]; ++j)
+		for (int j = 0; j < max_bandwidth_channels && channel[j]; ++j)
 		{
 			if (channel[j]->throttle() == 0) continue;
 			if (channel[j]->tmp == 0) continue;
@@ -67,7 +67,7 @@ namespace aux {
 				* priority / channel[j]->tmp), quota);
 		}
 		assigned += quota;
-		for (int j = 0; j < 5 && channel[j]; ++j)
+		for (int j = 0; j < max_bandwidth_channels && channel[j]; ++j)
 			channel[j]->use_quota(quota);
 		TORRENT_ASSERT(assigned <= request_size);
 		return quota;
