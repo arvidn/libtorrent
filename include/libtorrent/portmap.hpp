@@ -39,7 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
-	// specify which protocol we speak to the gateway, to forward ports
+	// specify which port-mapping mechanism we use to talk to the gateway
+	// to forward ports (e.g. NAT-PMP/PCP vs. UPnP)
 	enum class portmap_transport : std::uint8_t
 	{
 		// natpmp can be NAT-PMP or PCP
