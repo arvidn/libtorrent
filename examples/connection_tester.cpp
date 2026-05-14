@@ -129,8 +129,15 @@ std::mt19937 rng(dev());
 
 struct peer_conn
 {
-	peer_conn(io_context& ios, int piece_count, int blocks_pp, tcp::endpoint const& ep
-		, char const* ih, bool seed_, int churn_, bool corrupt_)
+	peer_conn(io_context& ios,
+		int piece_count,
+		int blocks_pp,
+		int last_piece_size_,
+		tcp::endpoint const& ep,
+		char const* ih,
+		bool seed_,
+		int churn_,
+		bool corrupt_)
 		: s(ios)
 		, read_pos(0)
 		, state(handshaking)
@@ -139,6 +146,8 @@ struct peer_conn
 		, current_piece_is_allowed(false)
 		, block(0)
 		, blocks_per_piece(blocks_pp)
+		, last_piece_blocks((last_piece_size_ + 0x3fff) / 0x4000)
+		, last_block_size(last_piece_size_ - ((last_piece_size_ + 0x3fff) / 0x4000 - 1) * 0x4000)
 		, info_hash(ih)
 		, outstanding_requests(0)
 		, seed(seed_)
@@ -205,6 +214,11 @@ struct peer_conn
 	bool current_piece_is_allowed;
 	int block;
 	int blocks_per_piece;
+	// number of blocks in the final (possibly partial) piece, and the size of
+	// the last block within that piece. for regular pieces, every block is
+	// `blocks_per_piece` blocks of 16 KiB.
+	int last_piece_blocks;
+	int last_block_size;
 	char const* info_hash;
 	int outstanding_requests;
 	// if this is true, this connection is a seed
@@ -328,7 +342,7 @@ struct peer_conn
 		if (choked && allowed_fast.empty() && !current_piece_is_allowed) return false;
 
 		// if there are no pieces left to request
-		if (pieces.empty() && suggested_pieces.empty()
+		if (pieces.empty() && suggested_pieces.empty() && allowed_fast.empty()
 			&& current_piece == piece_index_t(-1))
 		{
 			return false;
@@ -336,7 +350,11 @@ struct peer_conn
 
 		if (current_piece == piece_index_t(-1))
 		{
-			// pick a new piece
+			// pick a new piece. allowed-fast pieces are usable both while
+			// choked and while unchoked -- so once the normal `pieces` queue
+			// has been drained, fall back to allowed_fast even when unchoked
+			// (otherwise the seed's ALLOWED_FAST set is silently leaked and
+			// the leech caps at less than 100%).
 			if (choked && allowed_fast.size() > 0)
 			{
 				current_piece = allowed_fast.front();
@@ -356,11 +374,22 @@ struct peer_conn
 				pieces.erase(pieces.begin());
 				current_piece_is_allowed = false;
 			}
+			else if (allowed_fast.size() > 0)
+			{
+				current_piece = allowed_fast.front();
+				allowed_fast.erase(allowed_fast.begin());
+				current_piece_is_allowed = true;
+			}
 			else
 			{
 				TORRENT_ASSERT_FAIL();
 			}
 		}
+		bool const is_last_piece = (static_cast<int>(current_piece) == num_pieces - 1);
+		int const this_blocks_per_piece = is_last_piece ? last_piece_blocks : blocks_per_piece;
+		int const this_block_size =
+			(is_last_piece && block == last_piece_blocks - 1) ? last_block_size : 16 * 1024;
+
 		char msg[] = "\0\0\0\xd\x06"
 			"    " // piece
 			"    " // offset
@@ -370,13 +399,13 @@ struct peer_conn
 		char* ptr = m + 5;
 		write_uint32(static_cast<int>(current_piece), ptr);
 		write_uint32(block * 16 * 1024, ptr);
-		write_uint32(16 * 1024, ptr);
+		write_uint32(this_block_size, ptr);
 		boost::asio::async_write(s, boost::asio::buffer(m, sizeof(msg) - 1)
 			, std::bind(&peer_conn::on_req_sent, this, m, _1, _2));
 
 		++outstanding_requests;
 		++block;
-		if (block == blocks_per_piece)
+		if (block == this_blocks_per_piece)
 		{
 			block = 0;
 			current_piece = piece_index_t(-1);
@@ -423,11 +452,10 @@ struct peer_conn
 
 	void work_download()
 	{
-		if (pieces.empty()
-			&& suggested_pieces.empty()
-			&& current_piece == piece_index_t(-1)
-			&& outstanding_requests == 0
-			&& blocks_received >= num_pieces * blocks_per_piece)
+		int const total_blocks = (num_pieces - 1) * blocks_per_piece + last_piece_blocks;
+		if (pieces.empty() && suggested_pieces.empty() && allowed_fast.empty()
+			&& current_piece == piece_index_t(-1) && outstanding_requests == 0
+			&& blocks_received >= total_blocks)
 		{
 			close("COMPLETED DOWNLOAD", error_code());
 			return;
@@ -1181,14 +1209,22 @@ int main(int argc, char* argv[])
 	int const num_threads = 2;
 	io_context ios[num_threads];
 	lt::sha1_hash const ih = atp.ti->info_hash();
+	int const last_piece_size = atp.ti->piece_size(piece_index_t(atp.ti->num_pieces() - 1));
 	for (int i = 0; i < num_connections; ++i)
 	{
 		bool corrupt = test_corruption && (i & 1) == 0;
 		bool seed = false;
 		if (test_mode == upload_test) seed = true;
 		else if (test_mode == dual_test) seed = (i & 1);
-		conns.push_back(new peer_conn(ios[i % num_threads], atp.ti->num_pieces(), atp.ti->piece_length() / 16 / 1024
-			, ep, ih.data(), seed, churn, corrupt));
+		conns.push_back(new peer_conn(ios[i % num_threads],
+			atp.ti->num_pieces(),
+			atp.ti->piece_length() / 16 / 1024,
+			last_piece_size,
+			ep,
+			ih.data(),
+			seed,
+			churn,
+			corrupt));
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		ios[i % num_threads].poll_one();
 	}
