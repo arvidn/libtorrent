@@ -8249,7 +8249,7 @@ namespace {
 		bool is_downloading = false;
 		bool is_seeding = false;
 
-		if (is_auto_managed() && !has_error())
+		if (is_auto_managed() && !has_error() && !m_abort)
 		{
 			if (m_state == torrent_status::checking_files)
 			{
