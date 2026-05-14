@@ -64,6 +64,7 @@ fuzzer sanitize_path ;
 fuzzer escape_path ;
 fuzzer file_storage_add_file ;
 fuzzer udp_tracker ;
+fuzzer natpmp ;
 fuzzer base32decode ;
 fuzzer base32encode ;
 fuzzer base64encode ;
@@ -100,6 +101,7 @@ local LARGE_TARGETS =
 	resume_data
 	file_storage_add_file
 	udp_tracker
+	natpmp
 	sanitize_path
 	upnp
 	peer_conn
