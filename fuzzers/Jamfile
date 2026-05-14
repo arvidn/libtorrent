@@ -77,6 +77,7 @@ fuzzer convert_to_native ;
 fuzzer convert_from_native ;
 fuzzer utf8_codepoint ;
 fuzzer http_parser ;
+fuzzer socks5_udp ;
 fuzzer upnp ;
 fuzzer dht_node ;
 fuzzer utp ;
@@ -96,6 +97,7 @@ local LARGE_TARGETS =
 	torrent_info
 	bdecode_node
 	http_parser
+	socks5_udp
 	dht_node
 	utp
 	resume_data
