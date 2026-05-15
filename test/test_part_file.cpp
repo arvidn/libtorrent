@@ -33,6 +33,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstring>
 #include <array>
+#include <fstream>
+#include <vector>
 
 #include "test.hpp"
 #include "test_utils.hpp"
@@ -53,8 +55,14 @@ int part_file_header_size(int const num_pieces)
 void truncate_part_file(std::string const& filename, std::int64_t const size)
 {
 	{
-		aux::file_handle f(filename, size
-			, aux::open_mode::write | aux::open_mode::truncate | aux::open_mode::sparse);
+		std::vector<char> buf(static_cast<std::size_t>(size));
+		std::ifstream in(filename.c_str(), std::ios_base::binary);
+		in.read(buf.data(), std::streamsize(buf.size()));
+		TEST_EQUAL(in.gcount(), std::streamsize(buf.size()));
+
+		std::ofstream out(filename.c_str()
+			, std::ios_base::binary | std::ios_base::trunc);
+		out.write(buf.data(), std::streamsize(buf.size()));
 	}
 
 	file_status st;
