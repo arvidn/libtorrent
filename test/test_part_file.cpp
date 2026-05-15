@@ -52,8 +52,16 @@ int part_file_header_size(int const num_pieces)
 
 void truncate_part_file(std::string const& filename, std::int64_t const size)
 {
-	aux::file_handle f(filename, size
-		, aux::open_mode::write | aux::open_mode::truncate | aux::open_mode::sparse);
+	{
+		aux::file_handle f(filename, size
+			, aux::open_mode::write | aux::open_mode::truncate | aux::open_mode::sparse);
+	}
+
+	file_status st;
+	error_code ec;
+	stat_file(filename, &st, ec);
+	TEST_CHECK(!ec);
+	TEST_EQUAL(st.file_size, size);
 }
 
 template <typename PartFile>
