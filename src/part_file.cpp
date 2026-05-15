@@ -71,8 +71,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/storage_utils.hpp" // for iovec_t
 
-#include <boost/asio/error.hpp>
-
 #include <functional> // for std::function
 #include <cstdint>
 
@@ -95,7 +93,7 @@ namespace {
 		int const ret = int(libtorrent::aux::pread_all(fd, buf, offset, ec));
 		if (ret == int(buf.size())) return ret;
 
-		if (!ec || ec == boost::asio::error::eof)
+		if (ret >= 0)
 			set_file_too_short(ec);
 		return -1;
 	}
