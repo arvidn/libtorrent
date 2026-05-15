@@ -90,8 +90,8 @@ namespace {
 		, libtorrent::span<char> const buf
 		, std::int64_t const offset, libtorrent::error_code& ec)
 	{
-		int const ret = int(libtorrent::aux::pread_all(fd, buf, offset, ec));
-		if (ret == int(buf.size())) return ret;
+		int const ret = libtorrent::aux::pread_all(fd, buf, offset, ec);
+		if (ret >= 0 && ret == buf.size()) return ret;
 
 		if (ret >= 0)
 			set_file_too_short(ec);
