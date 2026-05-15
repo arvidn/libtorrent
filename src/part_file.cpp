@@ -71,6 +71,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/storage_utils.hpp" // for iovec_t
 
+#include <boost/asio/error.hpp>
+
 #include <functional> // for std::function
 #include <cstdint>
 
@@ -79,6 +81,24 @@ namespace {
 	// round up to even kilobyte
 	int round_up(int n)
 	{ return (n + 1023) & ~0x3ff; }
+
+	void set_file_too_short(libtorrent::error_code& ec)
+	{
+		ec.assign(libtorrent::errors::file_too_short
+			, libtorrent::libtorrent_category());
+	}
+
+	int read_full(libtorrent::handle_type const fd
+		, libtorrent::span<char> const buf
+		, std::int64_t const offset, libtorrent::error_code& ec)
+	{
+		int const ret = int(libtorrent::aux::pread_all(fd, buf, offset, ec));
+		if (ret == int(buf.size())) return ret;
+
+		if (!ec || ec == boost::asio::error::eof)
+			set_file_too_short(ec);
+		return -1;
+	}
 }
 
 namespace libtorrent {
@@ -212,7 +232,7 @@ namespace libtorrent {
 		auto f = open_file(aux::open_mode::read_only | aux::open_mode::hidden, ec);
 		if (ec) return -1;
 
-		return int(aux::pread_all(f.fd(), buf, slot_offset(slot) + offset, ec));
+		return read_full(f.fd(), buf, slot_offset(slot) + offset, ec);
 	}
 
 	int part_file::hash(hasher& ph
@@ -258,7 +278,8 @@ namespace libtorrent {
 
 		std::vector<char> buffer(static_cast<std::size_t>(len));
 		std::int64_t const slot_offset = std::int64_t(m_header_size) + std::int64_t(static_cast<int>(slot)) * m_piece_size;
-		int const ret = int(aux::pread_all(f.fd(), buffer, slot_offset + offset, ec));
+		int const ret = read_full(f.fd(), buffer, slot_offset + offset, ec);
+		if (ret < 0) return -1;
 		ph.update(buffer);
 		return ret;
 	}
@@ -368,9 +389,8 @@ namespace libtorrent {
 				l.unlock();
 
 				span<char> v = {buf.get(), block_to_copy};
-				auto bytes_read = aux::pread_all(file.fd(), v, slot_offset(slot) + piece_offset, ec);
-				v = v.first(static_cast<std::ptrdiff_t>(bytes_read));
-				if (ec || v.empty()) return;
+				int const bytes_read = read_full(file.fd(), v, slot_offset(slot) + piece_offset, ec);
+				if (bytes_read < 0) return;
 
 				f(file_offset, {buf.get(), block_to_copy});
 
