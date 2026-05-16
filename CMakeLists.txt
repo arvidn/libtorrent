@@ -244,6 +244,7 @@ set(libtorrent_aux_include_files
 	packet_buffer.hpp
 	packet_pool.hpp
 	path.hpp
+	peer_class_limits.hpp
 	polymorphic_socket.hpp
 	pool.hpp
 	portmap.hpp

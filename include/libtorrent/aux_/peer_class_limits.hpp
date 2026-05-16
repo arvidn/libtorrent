@@ -36,8 +36,11 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 namespace aux {
 
-	static constexpr int max_peer_classes = 15;
-	static constexpr int max_peer_class_bandwidth_channels = max_peer_classes * 2 + 2;
+	enum
+	{
+		max_peer_classes = 15,
+		max_peer_class_bandwidth_channels = max_peer_classes * 2 + 2
+	};
 
 }
 }

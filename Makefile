@@ -631,6 +631,7 @@ HEADERS = \
   aux_/packet_buffer.hpp            \
   aux_/packet_pool.hpp              \
   aux_/path.hpp                     \
+  aux_/peer_class_limits.hpp        \
   aux_/polymorphic_socket.hpp       \
   aux_/pool.hpp                     \
   aux_/portmap.hpp                  \
