@@ -41,7 +41,7 @@ namespace libtorrent {
 	{
 		if (std::find(m_class.begin(), m_class.begin() + m_size, c)
 			!= m_class.begin() + m_size) return;
-		if (m_size >= int(m_class.size()) - 1)
+		if (m_size >= max_classes)
 		{
 			TORRENT_ASSERT_FAIL();
 			return;

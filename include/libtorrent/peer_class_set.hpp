@@ -43,6 +43,8 @@ namespace libtorrent {
 	// to it. Most notably, peer connections and torrents derive from this.
 	struct TORRENT_EXTRA_EXPORT peer_class_set
 	{
+		static constexpr int max_classes = 15;
+
 		peer_class_set() : m_size(0) {}
 		void add_class(peer_class_pool& pool, peer_class_t c);
 		bool has_class(peer_class_t c) const;
@@ -63,7 +65,7 @@ namespace libtorrent {
 		// class IDs. Each ID refers to a an entry in m_ses.m_peer_classes which
 		// holds the metadata about the class. Classes affect bandwidth limits
 		// among other things
-		aux::array<peer_class_t, 15> m_class;
+		aux::array<peer_class_t, max_classes> m_class;
 	};
 }
 

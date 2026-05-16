@@ -5707,7 +5707,8 @@ namespace libtorrent {
 
 		int const priority = get_priority(channel);
 
-		int const max_channels = num_classes() + (t ? t->num_classes() : 0) + 2;
+		int const max_channels = aux::bw_request::max_bandwidth_channels;
+		TORRENT_ASSERT(num_classes() + (t ? t->num_classes() : 0) + 2 <= max_channels);
 		TORRENT_ALLOCA(channels, aux::bandwidth_channel*, max_channels);
 
 		// collect the pointers to all bandwidth channels
