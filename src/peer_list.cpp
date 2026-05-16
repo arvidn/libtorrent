@@ -675,6 +675,7 @@ namespace libtorrent::aux {
 				else
 #endif
 				{
+					// FIXME dont log this if is_false_duplicate
 					c.peer_log(peer_log_alert::info, peer_log_alert::duplicate_peer, "this: \"%s\" that: \"%s\""
 						, print_address(c.remote().address()).c_str()
 						, print_address(i->address()).c_str());
@@ -716,12 +717,73 @@ namespace libtorrent::aux {
 				// or the current one is already connected
 				if (i->connection->is_outgoing() == c.is_outgoing())
 				{
-					if (!state->allow_multiple_connections_per_peer)
-					{
+					if (!state->replace_stale_connections) {
+					// TODO indent...
 					// if the other end connected to us both times, just drop
 					// the second one. Or if we made both connections.
 					c.disconnect(errors::duplicate_peer_id, operation_t::bittorrent);
 					return false;
+					// ...TODO indent
+					}
+					else {
+						// replace_stale_connections == true
+						// replace existing peer connections when the kernel reuses the same TCP tuple
+						// differentiate:
+						//   false duplicate connections
+						//   true duplicate connections
+						auto const& old_remote = i->connection->remote();
+						auto const old_local = i->connection->local_endpoint();
+						auto const& new_remote = c.remote();
+						auto const new_local = c.local_endpoint();
+						bool const is_false_duplicate = (
+							old_local.port()  == new_local.port() &&
+							old_remote.port() == new_remote.port() &&
+							old_local.address()  == new_local.address() &&
+							old_remote.address() == new_remote.address()
+						);
+						if (is_false_duplicate) {
+							// false duplicate connection:
+							//   duplicate remote (ipaddr, port)
+							//   duplicate local (ipaddr, port)
+							// this is not possible in TCP/IP
+							// so the operating system has already closed the old connection
+							// so the old connection entry must be stale
+							if (i->connection != nullptr)
+							{
+								// TODO remove? we already get a peer_log_alert from disconnect
+								#if false
+								c.peer_log(peer_log_alert::info
+									, peer_log_alert::duplicate_peer
+									, "replacing stale connection"
+									" %s:%d<->%s:%d"
+									, print_address(new_local.address()).c_str()
+									, int(new_local.port())
+									, print_address(new_remote.address()).c_str()
+									, int(new_remote.port())
+								);
+								#endif
+
+								// TODO just destroy the old connection object?
+								// the operating system has already closed the old connection
+
+								// close the old connection
+								i->connection->disconnect(
+									// errors::duplicate_peer_id,
+									errors::replaced_stale_connection,
+									operation_t::bittorrent
+								);
+							}
+							i->connection = nullptr;
+							// now the old connection is closed
+						    // continue with the new connection
+						}
+						else {
+							// true duplicate connection:
+							//   duplicate remote (ipaddr, port)
+							//   different local (ipaddr, port)
+							c.disconnect(errors::duplicate_peer_id, operation_t::bittorrent);
+							return false;
+						}
 					}
 				}
 #if TORRENT_USE_I2P

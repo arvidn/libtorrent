@@ -397,7 +397,7 @@ namespace aux {
 
 			// allow multiple connections
 			// from the same IP address and port
-			allow_multiple_connections_per_peer,
+			replace_stale_connections,
 
 #if TORRENT_ABI_VERSION == 1
 			// if set to true, upload, download and unchoke limits are ignored for
