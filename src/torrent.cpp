@@ -757,10 +757,12 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		// torrent
 
 #if TORRENT_USE_ASSERTS
-		for (torrent_list_index_t i{}; i != m_links.end_index(); ++i)
+		// by the time a torrent is destroyed it must already have been
+		// removed from every session_impl::m_torrent_lists entry, otherwise
+		// the list is left with a dangling pointer.
+		for (auto const& l : m_links)
 		{
-			if (!m_links[i].in_list()) continue;
-			m_links[i].unlink(m_ses.torrent_list(i), i);
+			TORRENT_ASSERT(!l.in_list());
 		}
 #endif
 
@@ -4966,6 +4968,15 @@ namespace {
 		if (m_abort) return;
 
 		m_abort = true;
+		m_paused = false;
+		m_auto_managed = false;
+		m_state_subscription = false;
+		for (torrent_list_index_t i{}; i != m_links.end_index(); ++i)
+		{
+			if (!m_links[i].in_list()) continue;
+			m_links[i].unlink(m_ses.torrent_list(i), i);
+		}
+
 		update_want_peers();
 		update_want_tick();
 		update_want_scrape();
@@ -5035,17 +5046,6 @@ namespace {
 			inc_stats_counter(counters::non_filter_torrents, -1);
 			m_apply_ip_filter = true;
 		}
-
-		m_paused = false;
-		m_auto_managed = false;
-		update_state_list();
-		for (torrent_list_index_t i{}; i != m_links.end_index(); ++i)
-		{
-			if (!m_links[i].in_list()) continue;
-			m_links[i].unlink(m_ses.torrent_list(i), i);
-		}
-		// don't re-add this torrent to the state-update list
-		m_state_subscription = false;
 	}
 
 	// this is called when we're destructing non-gracefully. i.e. we're _just_
@@ -8370,6 +8370,12 @@ namespace {
 
 	void torrent::update_list(torrent_list_index_t const list, bool in)
 	{
+		// once we've started aborting, we must never re-insert this torrent
+		// into any of session_impl::m_torrent_lists. The torrent is on its
+		// way out and any lingering pointer would dangle once we destruct.
+		// unlinking is still allowed (and is what abort() relies on).
+		if (m_abort) in = false;
+
 		link& l = m_links[list];
 		aux::vector<torrent*>& v = m_ses.torrent_list(list);
 
@@ -8962,6 +8968,12 @@ namespace {
 		for (torrent_list_index_t i{}; i != m_links.end_index(); ++i)
 		{
 			if (!m_links[i].in_list()) continue;
+
+			// an aborted torrent must not be a member of any of
+			// session_impl::m_torrent_lists, otherwise we risk
+			// leaving a dangling pointer behind when we destruct.
+			TORRENT_ASSERT(!m_abort);
+
 			int const index = m_links[i].index;
 
 			TORRENT_ASSERT(index >= 0);
