@@ -18,14 +18,26 @@ exe = ""
 ROOT_DIR = Path(__file__).parent.parent.resolve()
 EXAMPLES_DIR = ROOT_DIR / "examples"
 
+# torrent metadata variants to exercise. Maps the variant name to the
+# connection_tester gen-torrent "-V" flag value (1 = v1-only, 2 = v2-only,
+# h = hybrid). The variant name is also used to suffix the torrent filename
+# and the payload directory.
+VARIANT_FLAGS = {"v1": "1", "v2": "2", "hybrid": "h"}
+
 if platform.system() == "Windows":
     exe = ".exe"
 
 
-def reset_download(save_path: Path) -> None:
+def torrent_path(variant: str) -> Path:
+    return EXAMPLES_DIR / f"cpu_benchmark-{variant}.torrent"
+
+
+def reset_download(save_path: Path, variant: str) -> None:
     rm_file_or_dir(Path(".ses_state"))
     rm_file_or_dir(save_path / ".resume")
-    rm_file_or_dir(save_path / "cpu_benchmark")
+    # the payload directory is named after the torrent file stem
+    # (see generate_torrent() in connection_tester.cpp).
+    rm_file_or_dir(save_path / f"cpu_benchmark-{variant}")
 
 
 def main() -> None:
@@ -49,6 +61,14 @@ def main() -> None:
         type=Path,
         help="The directory to download to or upload from",
     )
+    p.add_argument(
+        "--variants",
+        nargs="+",
+        choices=list(VARIANT_FLAGS.keys()),
+        default=list(VARIANT_FLAGS.keys()),
+        help="Torrent metadata variants to test. Each selected variant is"
+        " run through the full backend/test matrix.",
+    )
 
     args = p.parse_args()
 
@@ -59,50 +79,57 @@ def main() -> None:
         ["b2", "release", args.toolset, "stage_connection_tester"], cwd=EXAMPLES_DIR
     )
 
-    reset_download(args.save_path)
-
-    if not (EXAMPLES_DIR / "cpu_benchmark.torrent").exists():
-        subprocess.check_call(
-            [
-                str(EXAMPLES_DIR / f"connection_tester{exe}"),
-                "gen-torrent",
-                "-s",  # num pieces
-                "50000",
-                "-n",  # num files
-                "15",
-                "-t",  # output torrent file
-                str(EXAMPLES_DIR / "cpu_benchmark.torrent"),
-            ],
-        )
+    for variant in args.variants:
+        reset_download(args.save_path, variant)
+        if not torrent_path(variant).exists():
+            subprocess.check_call(
+                [
+                    str(EXAMPLES_DIR / f"connection_tester{exe}"),
+                    "gen-torrent",
+                    "-s",  # num pieces
+                    "50000",
+                    "-n",  # num files
+                    "15",
+                    "-V",  # metadata version
+                    VARIANT_FLAGS[variant],
+                    "-t",  # output torrent file
+                    str(torrent_path(variant)),
+                ],
+            )
 
     rm_file_or_dir(Path("t"))
 
-    for io_backend in ["mmap", "pread", "posix"]:
-        run_test(
-            f"download-write-through-{io_backend}",
-            "upload",
-            ["-1", "--disk_io_write_mode=write_through", "-i", io_backend],
-            args.download_peers,
-            args.save_path,
-            args.always_yes,
-        )
-        reset_download(args.save_path)
-        run_test(
-            f"download-full-cache-{io_backend}",
-            "upload",
-            ["-1", "--disk_io_write_mode=enable_os_cache", "-i", io_backend],
-            args.download_peers,
-            args.save_path,
-            args.always_yes,
-        )
-        run_test(
-            f"upload-{io_backend}",
-            "download",
-            ["-G", "-e", "240", "-i", io_backend],
-            args.upload_peers,
-            args.save_path,
-            args.always_yes,
-        )
+    for variant in args.variants:
+        torrent = torrent_path(variant)
+        for io_backend in ["mmap", "pread", "posix"]:
+            run_test(
+                f"download-write-through-{variant}-{io_backend}",
+                "upload",
+                ["-1", "--disk_io_write_mode=write_through", "-i", io_backend],
+                args.download_peers,
+                args.save_path,
+                torrent,
+                args.always_yes,
+            )
+            reset_download(args.save_path, variant)
+            run_test(
+                f"download-full-cache-{variant}-{io_backend}",
+                "upload",
+                ["-1", "--disk_io_write_mode=enable_os_cache", "-i", io_backend],
+                args.download_peers,
+                args.save_path,
+                torrent,
+                args.always_yes,
+            )
+            run_test(
+                f"upload-{variant}-{io_backend}",
+                "download",
+                ["-G", "-e", "240", "-i", io_backend],
+                args.upload_peers,
+                args.save_path,
+                torrent,
+                args.always_yes,
+            )
 
 
 def run_test(
@@ -111,6 +138,7 @@ def run_test(
     client_arg: list[str],
     num_peers: int,
     save_path: Path,
+    torrent: Path,
     always_yes: bool,
 ) -> None:
     output_dir = (save_path / f"logs_{name}").resolve()
@@ -127,7 +155,7 @@ def run_test(
     start = time.monotonic()
     client_cmd = [
         str(EXAMPLES_DIR / f"client_test{exe}"),
-        str(EXAMPLES_DIR / "cpu_benchmark.torrent"),
+        str(torrent),
         "-k",  # high performance seed settings
         "-O",  # print stats counters to specified file
         str(output_dir / "counters.log"),
@@ -157,7 +185,7 @@ def run_test(
         "-p",
         f"{port}",
         "-t",
-        str(EXAMPLES_DIR / "cpu_benchmark.torrent"),
+        str(torrent),
         "-s",
         str(save_path),
     ]
