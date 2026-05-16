@@ -33,8 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <cstring>
 #include <array>
-#include <fstream>
-#include <vector>
 
 #include "test.hpp"
 #include "test_utils.hpp"
@@ -42,6 +40,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/posix_part_file.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/file_storage.hpp"
+#include "libtorrent/truncate.hpp"
 
 using namespace lt;
 
@@ -54,16 +54,11 @@ int part_file_header_size(int const num_pieces)
 
 void truncate_part_file(std::string const& filename, std::int64_t const size)
 {
-	{
-		std::vector<char> buf(static_cast<std::size_t>(size));
-		std::ifstream in(filename.c_str(), std::ios_base::binary);
-		in.read(buf.data(), std::streamsize(buf.size()));
-		TEST_EQUAL(in.gcount(), std::streamsize(buf.size()));
-
-		std::ofstream out(filename.c_str()
-			, std::ios_base::binary | std::ios_base::trunc);
-		out.write(buf.data(), std::streamsize(buf.size()));
-	}
+	file_storage fs;
+	fs.add_file(libtorrent::filename(filename), size);
+	storage_error se;
+	truncate_files(fs, parent_path(filename), se);
+	TEST_CHECK(!se);
 
 	file_status st;
 	error_code ec;
