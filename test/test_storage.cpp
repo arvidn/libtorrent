@@ -61,8 +61,6 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <memory>
 #include <functional> // for bind
-#include <thread>
-
 #include <iostream>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -1803,11 +1801,11 @@ TORRENT_TEST(mmap_fenced_hash_zero_aio_threads)
 		, hash_handler);
 	disk_io->submit_jobs();
 
-	for (int i = 0; i < 200 && outstanding > 0; ++i)
+	time_point const end_time = clock_type::now() + seconds(10);
+	while (outstanding > 0 && clock_type::now() < end_time)
 	{
-		ioc.poll();
+		ioc.run_one_for(milliseconds(100));
 		ioc.restart();
-		std::this_thread::sleep_for(lt::milliseconds(10));
 	}
 
 	TEST_EQUAL(outstanding, 0);
