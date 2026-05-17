@@ -81,11 +81,6 @@ namespace {
 	int round_up(int n)
 	{ return (n + 1023) & ~0x3ff; }
 
-	void set_file_too_short(libtorrent::error_code& ec)
-	{
-		ec.assign(libtorrent::errors::file_too_short
-			, libtorrent::libtorrent_category());
-	}
 }
 
 namespace libtorrent {
@@ -292,7 +287,7 @@ namespace aux {
 		if (ret != buffer.size())
 		{
 			if (std::ferror(f.file())) ec.assign(errno, generic_category());
-			else set_file_too_short(ec);
+			else ec.assign(errors::file_too_short, libtorrent_category());
 			return -1;
 		}
 		ph.update(buffer);
@@ -413,7 +408,7 @@ namespace aux {
 				if (int(bytes_read) != block_to_copy)
 				{
 					if (std::ferror(file.file())) ec.assign(errno, generic_category());
-					else set_file_too_short(ec);
+					else ec.assign(errors::file_too_short, libtorrent_category());
 				}
 
 				if (ec) return;
