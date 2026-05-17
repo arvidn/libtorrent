@@ -15,6 +15,7 @@ see LICENSE file.
 #include "libtorrent/aux_/pool.hpp"
 #include "libtorrent/aux_/disk_job.hpp"
 #include <mutex>
+#include <new> // for placement new
 
 namespace libtorrent {
 namespace aux {
@@ -32,9 +33,8 @@ namespace aux {
 			, Args&&... args)
 		{
 			std::lock_guard<std::mutex> l(m_job_mutex);
-			auto* ptr = m_job_pool.malloc();
-			new (ptr) T{
-				disk_job{
+			void* storage = m_job_pool.malloc();
+			disk_job j{
 				tailqueue_node<disk_job>{},
 				flags,
 				status_t{},
@@ -46,8 +46,8 @@ namespace aux {
 				false, // callback_called
 				false, // blocked
 #endif
-				},
-				std::move(stor)};
+			};
+			T* const ptr = new (storage) T{std::move(j), std::move(stor)};
 			m_job_pool.set_next_size(100);
 			++m_jobs_in_use;
 			if constexpr (std::is_same_v<JobType, job::read>)
@@ -75,7 +75,7 @@ namespace aux {
 		int m_write_jobs;
 
 		std::mutex m_job_mutex;
-		aux::object_pool<T> m_job_pool;
+		aux::pool m_job_pool;
 	};
 
 	struct mmap_disk_job;

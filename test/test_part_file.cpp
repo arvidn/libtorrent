@@ -203,10 +203,7 @@ TORRENT_TEST(part_file)
 	}
 }
 
-TORRENT_TEST(part_file_short_read)
-{
-	test_short_read<part_file>("partfile_short_read_dir");
-}
+TORRENT_TEST(part_file_short_read) { test_short_read<aux::part_file>("partfile_short_read_dir"); }
 
 TORRENT_TEST(posix_part_file)
 {
