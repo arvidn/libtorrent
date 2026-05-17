@@ -792,10 +792,9 @@ namespace aux {
 
 		// bulk import or export the set of file renames recorded in
 		// this object. ``import_filenames()`` adds the given renames
-		// (dropping invalid entries such as out-of-range indices or
-		// paths that escape the save path). ``export_filenames()``
-		// returns the current renames as a map suitable for
-		// serializing and later passing back to
+		// (dropping entries whose file index is out of range).
+		// ``export_filenames()`` returns the current renames as a map
+		// suitable for serializing and later passing back to
 		// ``import_filenames()``.
 		void import_filenames(file_storage const& fs, std::map<file_index_t, std::string> const& renamed_files);
 		std::map<file_index_t, std::string> export_filenames(file_storage const& fs) const;
