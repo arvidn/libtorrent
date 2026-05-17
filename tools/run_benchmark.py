@@ -212,7 +212,7 @@ def run_test(
         )
         time.sleep(2)
 
-        perf = None
+        profiler = None
         if platform.system() == "Linux":
             perf_log_path = output_dir / "perf.log"
             perf_cmd = [
@@ -225,7 +225,7 @@ def run_test(
             print(f"perf_cmd: {' '.join(perf_cmd)}")
             try:
                 with open(perf_log_path, "wb") as perf_log:
-                    perf = subprocess.Popen(
+                    profiler = subprocess.Popen(
                         perf_cmd, stdout=perf_log, stderr=perf_log
                     )
             except FileNotFoundError:
@@ -241,13 +241,13 @@ def run_test(
             # kernel.perf_event_paranoid or ptrace_scope) it exits within a
             # few milliseconds. Give it a moment then check.
             time.sleep(0.5)
-            if perf.poll() is not None:
+            if profiler.poll() is not None:
                 msg = perf_log_path.read_text(errors="replace").strip()
                 c.send_signal(signal.SIGINT)
                 c.wait()
                 raise SystemExit(
                     f"ERROR: 'perf record' exited with code"
-                    f" {perf.returncode}.\n\n"
+                    f" {profiler.returncode}.\n\n"
                     f"perf output:\n{msg}\n\n"
                     "Common causes and fixes:\n"
                     "  1. kernel.perf_event_paranoid is too restrictive:\n"
@@ -258,6 +258,40 @@ def run_test(
                     "  3. Or grant capabilities to the perf binary:\n"
                     "       sudo setcap cap_perfmon,cap_sys_ptrace+ep"
                     " $(which perf)"
+                )
+        elif platform.system() == "Darwin":
+            xctrace_log_path = output_dir / "xctrace.log"
+            xctrace_cmd = [
+                "xcrun", "xctrace", "record",
+                "--template", "Time Profiler",
+                "--attach", str(c.pid),
+                "--output", str(output_dir / "run.trace"),
+            ]
+            print(f"xctrace_cmd: {' '.join(xctrace_cmd)}")
+            try:
+                with open(xctrace_log_path, "wb") as xctrace_log:
+                    profiler = subprocess.Popen(
+                        xctrace_cmd,
+                        stdout=xctrace_log,
+                        stderr=xctrace_log,
+                    )
+            except FileNotFoundError:
+                c.send_signal(signal.SIGINT)
+                c.wait()
+                raise SystemExit(
+                    "ERROR: 'xcrun' is not installed.\n"
+                    "  Install Xcode Command Line Tools:"
+                    " xcode-select --install"
+                )
+            time.sleep(0.5)
+            if profiler.poll() is not None:
+                msg = xctrace_log_path.read_text(errors="replace").strip()
+                c.send_signal(signal.SIGINT)
+                c.wait()
+                raise SystemExit(
+                    f"ERROR: 'xctrace record' exited with code"
+                    f" {profiler.returncode}.\n\n"
+                    f"xctrace output:\n{msg}"
                 )
 
         print(f"test_cmd: \"{' '.join(test_cmd)}\"")
@@ -270,9 +304,9 @@ def run_test(
             c.poll()
         end = time.monotonic()
 
-        if perf is not None:
-            perf.send_signal(signal.SIGINT)
-            perf.wait()
+        if profiler is not None:
+            profiler.send_signal(signal.SIGINT)
+            profiler.wait()
 
         stats_filename = output_dir / "memory_stats.log"
         keys = print_output_to_file(out, stats_filename)
