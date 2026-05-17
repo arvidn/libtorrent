@@ -17,6 +17,7 @@ see LICENSE file.
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/ip_filter.hpp"
+#include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/aux_/path.hpp"
 
 #include "test.hpp"
@@ -213,4 +214,57 @@ TORRENT_TEST(remove_torrent_twice)
 TORRENT_TEST(remove_torrent_and_files_twice)
 {
 	test_remove_torrent(session::delete_files, double_remove);
+}
+
+// Cover the race fixed in commit "fix race when removing an auto managed
+// torrent": an auto-managed torrent must not be re-inserted into any of
+// session_impl::m_torrent_lists once abort() has started, otherwise the
+// list is left with a dangling pointer when the torrent destructs.
+// Tight active_* limits make auto-manage actively shuffle torrents,
+// widening the window where the bug used to trigger. A regression will
+// fire the new TORRENT_ASSERT(!l.in_list()) in ~torrent() under debug
+// builds, or surface as a use-after-free under sanitizers.
+TORRENT_TEST(remove_auto_managed_torrent)
+{
+	settings_pack pack = settings();
+	pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
+	pack.set_int(settings_pack::active_downloads, 1);
+	pack.set_int(settings_pack::active_seeds, 1);
+	pack.set_int(settings_pack::active_limit, 1);
+
+	lt::session ses(pack);
+
+	error_code ec;
+	remove_all("tmp_auto_remove", ec);
+	create_directory("tmp_auto_remove", ec);
+	std::ofstream file("tmp_auto_remove/temporary");
+	add_torrent_params atp =
+		::create_torrent(&file, "temporary", 8 * 1024, 4, false, create_torrent::v1_only);
+	file.close();
+
+	atp.save_path = "tmp_auto_remove";
+	atp.flags |= torrent_flags::auto_managed;
+	atp.flags &= ~torrent_flags::paused;
+
+	torrent_handle h = ses.add_torrent(atp);
+
+	// let the auto-manager pick it up and place it in one of the
+	// torrent_lists (downloading/seeding/checking)
+	for (int i = 0; i < 20; ++i)
+	{
+		print_alerts(ses, "ses", true, true);
+		std::this_thread::sleep_for(lt::milliseconds(50));
+	}
+
+	ses.remove_torrent(h);
+
+	for (int i = 0; h.is_valid() && i < 100; ++i)
+	{
+		print_alerts(ses, "ses", true, true);
+		std::this_thread::sleep_for(lt::milliseconds(50));
+	}
+
+	TEST_CHECK(!h.is_valid());
+
+	session_proxy sp = ses.abort();
 }

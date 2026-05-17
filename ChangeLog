@@ -31,6 +31,8 @@
 
 2.0.13
 
+	* fix race when removing an auto managed torrent
+	* fix bug in post_download_queue() when a torrent complete
 	* in create_torrent, store symbolic links according to BEP 47
 	* strengthen peer encryption (obfuscation)
 	* improve HTTP response parsing

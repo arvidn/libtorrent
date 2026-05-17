@@ -274,7 +274,7 @@ namespace {
 			if (r < 0)
 			{
 				ec = error_code(errno, system_category());
-				return -1;
+				return ret;
 			}
 			ret += r;
 			file_offset += r;

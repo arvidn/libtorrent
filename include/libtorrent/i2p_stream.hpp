@@ -290,8 +290,6 @@ private:
 			if (!remaining.empty() && remaining[0] == '"')
 			{
 				std::tie(value, remaining) = aux::split_string(remaining.substr(1), '"');
-				if (value.empty()) { handle_error(invalid_response, h); return; }
-				value.remove_suffix(1);
 			}
 			else
 			{

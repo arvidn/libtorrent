@@ -335,6 +335,9 @@ namespace libtorrent {
 	std::shared_ptr<torrent_plugin> create_smart_ban_plugin(torrent_handle const& th, client_data_t)
 	{
 		aux::torrent* t = th.native_handle().get();
+		// v2 torrents identify bad peers via merkle block hashes — see
+		// torrent::piece_failed and hash_picker::verify_block_hashes
+		if (t->torrent_file().info_hashes().has_v2()) return nullptr;
 		return std::make_shared<smart_ban_plugin>(*t);
 	}
 }

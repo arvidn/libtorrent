@@ -317,7 +317,7 @@ TORRENT_TEST(upnp_wanipconnection)
 
 TORRENT_TEST(upnp_wanipconnection2)
 {
-	run_upnp_test(combine_path("..", "root3.xml").c_str(), "WANIPConnection_2", 2);
+	run_upnp_test(combine_path("..", "root3.xml").c_str(), "WANIPConnection", 2);
 }
 
 TORRENT_TEST(upnp_max_mappings)
@@ -339,4 +339,18 @@ TORRENT_TEST(upnp_max_mappings)
 
 		TEST_CHECK(mapping != port_mapping_t{-1});
 	}
+}
+
+TORRENT_TEST(upnp_content_type)
+{
+	TEST_CHECK(aux::is_upnp_xml_content_type("text/xml"));
+	TEST_CHECK(aux::is_upnp_xml_content_type("Text/XML"));
+	TEST_CHECK(aux::is_upnp_xml_content_type(" text/xml; charset=\"utf-8\""));
+	TEST_CHECK(aux::is_upnp_xml_content_type("application/soap+xml; charset=utf-8"));
+	TEST_CHECK(aux::is_upnp_xml_content_type("application/xml"));
+	TEST_CHECK(aux::is_upnp_xml_content_type("text/soap+xml"));
+
+	TEST_CHECK(!aux::is_upnp_xml_content_type("text/html;charset=utf-8"));
+	TEST_CHECK(!aux::is_upnp_xml_content_type("x-text/xml"));
+	TEST_CHECK(!aux::is_upnp_xml_content_type("application/json"));
 }

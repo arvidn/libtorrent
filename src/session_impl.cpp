@@ -5254,6 +5254,13 @@ retry:
 			l.reserve(num_torrents + 1);
 		}
 
+		// the torrent may have inserted itself into any of m_torrent_lists,
+		// so we must abort() before the torrent destructs, to avoid a dangling
+		// pointer in the list
+		auto abort_partial = aux::scope_end([&] {
+			if (torrent_ptr) torrent_ptr->abort();
+		});
+
 		try
 		{
 			torrent_ptr = std::make_shared<torrent>(*this, m_paused, std::move(params));
@@ -5264,6 +5271,8 @@ retry:
 			ec = e.code();
 			return ret_t{ptr_t(), params.info_hashes, false};
 		}
+
+		abort_partial.disarm();
 
 		// it's fine to copy this moved-from info_hash_t object, since its move
 		// construction is just a copy.
