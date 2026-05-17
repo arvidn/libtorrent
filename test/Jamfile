@@ -140,6 +140,7 @@ run test_bloom_filter.cpp ;
 run test_identify_client.cpp ;
 run test_merkle.cpp ;
 run test_merkle_tree.cpp ;
+run test_precomputed_block_hashes.cpp ;
 run test_resolve_links.cpp ;
 run test_heterogeneous_queue.cpp ;
 run test_ip_voter.cpp ;
@@ -301,6 +302,7 @@ alias deterministic-tests :
 	test_peer_list
 	test_peer_priority
 	test_piece_picker
+	test_precomputed_block_hashes
 	test_primitives
 	test_read_resume
 	test_receive_buffer

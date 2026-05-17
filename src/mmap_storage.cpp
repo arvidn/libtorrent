@@ -85,24 +85,26 @@ error_code translate_error(std::error_code const& err, bool const write)
 } // namespace
 
 
-	mmap_storage::mmap_storage(storage_params const& params
-		, aux::file_view_pool& pool)
-		: m_files(params.files)
-		, m_renamed_files(params.renamed_files)
-		, m_file_priority(params.priorities)
-		, m_save_path(complete(params.path))
-		, m_part_file_dir(params.part_file_dir)
-		, m_part_file_name("." + aux::to_hex(params.info_hash) + ".parts")
-		, m_pool(pool)
-		, m_allocate_files(params.mode == storage_mode_allocate)
-	{
-		TORRENT_ASSERT(files().num_files() > 0);
+mmap_storage::mmap_storage(storage_params const& params, aux::file_view_pool& pool)
+	: m_files(params.files)
+	, m_renamed_files(params.renamed_files)
+	, m_file_priority(params.priorities)
+	, m_save_path(complete(params.path))
+	, m_part_file_dir(params.part_file_dir)
+	, m_part_file_name("." + aux::to_hex(params.info_hash) + ".parts")
+	, m_pool(pool)
+	, m_allocate_files(params.mode == storage_mode_allocate)
+	, m_v1(params.v1)
+	, m_v2(params.v2)
+{
+	TORRENT_ASSERT(files().num_files() > 0);
+	TORRENT_ASSERT(m_v1 || m_v2);
 
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
 		m_file_open_unmap_lock.reset(new std::mutex[files().num_files()]
 			, [](std::mutex* o) { delete[] o; });
 #endif
-	}
+}
 
 	mmap_storage::~mmap_storage()
 	{
@@ -117,6 +119,30 @@ error_code translate_error(std::error_code const& err, bool const write)
 	filenames mmap_storage::names() const
 	{
 		return {m_files, m_renamed_files};
+	}
+
+	// these forward to the precomputed_block_hashes data structure, adding the
+	// storage's knowledge of the per-piece v2 block count.
+	void mmap_storage::store_precomputed_v2(
+		piece_index_t const piece, int const block, sha256_hash const& h)
+	{
+		m_precomputed_v2.store(piece, block, files().blocks_in_piece2(piece), h);
+	}
+
+	aux::vector<sha256_hash> mmap_storage::take_precomputed_v2(piece_index_t const piece)
+	{
+		return m_precomputed_v2.take(piece);
+	}
+
+	std::optional<sha256_hash> mmap_storage::take_precomputed_v2_block(
+		piece_index_t const piece, int const block)
+	{
+		return m_precomputed_v2.take_block(piece, block);
+	}
+
+	void mmap_storage::drop_precomputed_v2(piece_index_t const piece)
+	{
+		m_precomputed_v2.drop(piece);
 	}
 
 	void mmap_storage::need_partfile()
