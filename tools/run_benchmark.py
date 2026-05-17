@@ -54,10 +54,10 @@ def main() -> None:
         help="don't wait for interactive input, keep running",
     )
     p.add_argument(
-        "--download-peers", default=50, help="Number of peers to use for download test"
+        "--download-peers", type=int, default=50, help="Number of peers to use for download test"
     )
     p.add_argument(
-        "--upload-peers", default=20, help="Number of peers to use for upload test"
+        "--upload-peers", type=int, default=20, help="Number of peers to use for upload test"
     )
     p.add_argument(
         "--save-path",
