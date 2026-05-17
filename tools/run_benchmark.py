@@ -25,6 +25,9 @@ EXAMPLES_DIR = ROOT_DIR / "examples"
 # and the payload directory.
 VARIANT_FLAGS = {"v1": "1", "v2": "2", "hybrid": "h"}
 
+# disk I/O backends to exercise. Passed to client_test via "-i".
+IO_BACKENDS = ["mmap", "pread", "posix"]
+
 if platform.system() == "Windows":
     exe = ".exe"
 
@@ -70,6 +73,14 @@ def main() -> None:
         help="Torrent metadata variants to test. Each selected variant is"
         " run through the full backend/test matrix.",
     )
+    p.add_argument(
+        "--io-backends",
+        nargs="+",
+        choices=IO_BACKENDS,
+        default=IO_BACKENDS,
+        help="Disk I/O backends to test. Each selected backend is run"
+        " through the full variant/test matrix.",
+    )
 
     args = p.parse_args()
 
@@ -110,11 +121,12 @@ def main() -> None:
 
     for variant in args.variants:
         torrent = torrent_path(variant)
-        for io_backend in ["mmap", "pread", "posix"]:
+        for io_backend in args.io_backends:
+            reset_download(args.save_path, variant)
             run_test(
-                f"download-write-through-{variant}-{io_backend}",
+                f"download-{variant}-{io_backend}",
                 "upload",
-                ["-1", "--disk_io_write_mode=write_through", "-i", io_backend],
+                ["-1", "-i", io_backend],
                 args.download_peers,
                 args.save_path,
                 torrent,
@@ -122,9 +134,9 @@ def main() -> None:
             )
             reset_download(args.save_path, variant)
             run_test(
-                f"download-full-cache-{variant}-{io_backend}",
-                "upload",
-                ["-1", "--disk_io_write_mode=enable_os_cache", "-i", io_backend],
+                f"dual-{variant}-{io_backend}",
+                "dual",
+                ["-1", "-i", io_backend],
                 args.download_peers,
                 args.save_path,
                 torrent,
@@ -298,10 +310,10 @@ def run_test(
         t = subprocess.Popen(test_cmd, stdout=test_out, stderr=test_out)
 
         out: dict[str, list[float]] = {}
-        while c.returncode is None:
+        while t.returncode is None:
             capture_sample(c.pid, start, out)
             time.sleep(0.1)
-            c.poll()
+            t.poll()
         end = time.monotonic()
 
         if profiler is not None:
