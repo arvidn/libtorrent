@@ -1368,7 +1368,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			m_generic_io_jobs.m_queued_jobs.push_back(j);
 			l.unlock();
 
-			if (pool_for_job(j).max_threads() == 0 && user_add)
+			if (m_generic_threads.max_threads() == 0 && user_add)
 				immediate_execute();
 
 			return;
