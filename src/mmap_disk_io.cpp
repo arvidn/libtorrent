@@ -1368,7 +1368,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			m_generic_io_jobs.m_queued_jobs.push_back(j);
 			l.unlock();
 
-			if (num_threads() == 0 && user_add)
+			if (pool_for_job(j).max_threads() == 0 && user_add)
 				immediate_execute();
 
 			return;
@@ -1432,9 +1432,12 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 	void mmap_disk_io::immediate_execute()
 	{
-		while (!m_generic_io_jobs.m_queued_jobs.empty())
+		for (;;)
 		{
+			std::unique_lock<std::mutex> l(m_job_mutex);
+			if (m_generic_io_jobs.m_queued_jobs.empty()) return;
 			aux::mmap_disk_job* j = m_generic_io_jobs.m_queued_jobs.pop_front();
+			l.unlock();
 			execute_job(j);
 		}
 	}
@@ -1687,8 +1690,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 	aux::disk_io_thread_pool& mmap_disk_io::pool_for_job(aux::mmap_disk_job* j)
 	{
-		if (m_hash_threads.max_threads() > 0
-			&& (j->action == aux::job_action_t::hash || j->action == aux::job_action_t::hash2))
+		if (&queue_for_job(j) == &m_hash_io_jobs)
 			return m_hash_threads;
 		else
 			return m_generic_threads;
@@ -1745,6 +1747,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs, -ret);
 		TORRENT_ASSERT(int(m_stats_counters[counters::blocked_disk_jobs]) >= 0);
 
+		jobqueue_t execute_now;
 		if (m_abort.load())
 		{
 			while (!new_jobs.empty())
@@ -1760,28 +1763,56 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		{
 			if (!new_jobs.empty())
 			{
+				std::lock_guard<std::mutex> l(m_job_mutex);
+				bool queue_generic = false;
+				bool queue_hash = false;
+				while (!new_jobs.empty())
 				{
-					std::lock_guard<std::mutex> l(m_job_mutex);
-					m_generic_io_jobs.m_queued_jobs.append(std::move(new_jobs));
+					aux::mmap_disk_job* j = new_jobs.pop_front();
+					if (pool_for_job(j).max_threads() == 0)
+					{
+						execute_now.push_back(j);
+						continue;
+					}
+
+					job_queue& q = queue_for_job(j);
+					q.m_queued_jobs.push_back(j);
+					if (&q == &m_hash_io_jobs)
+						queue_hash = true;
+					else
+						queue_generic = true;
 				}
 
+				if (queue_generic)
 				{
-					std::lock_guard<std::mutex> l(m_job_mutex);
 					m_generic_io_jobs.m_job_cond.notify_all();
 					m_generic_threads.job_queued(m_generic_io_jobs.m_queued_jobs.size());
+				}
+				if (queue_hash)
+				{
+					m_hash_io_jobs.m_job_cond.notify_all();
+					m_hash_threads.job_queued(m_hash_io_jobs.m_queued_jobs.size());
 				}
 			}
 		}
 
-		std::lock_guard<std::mutex> l(m_completed_jobs_mutex);
-		m_completed_jobs.append(std::move(jobs));
-
-		if (!m_job_completions_in_flight)
 		{
-			DLOG("posting job handlers (%d)\n", m_completed_jobs.size());
+			std::lock_guard<std::mutex> l(m_completed_jobs_mutex);
+			m_completed_jobs.append(std::move(jobs));
 
-			post(m_ios, [this] { this->call_job_handlers(); });
-			m_job_completions_in_flight = true;
+			if (!m_job_completions_in_flight)
+			{
+				DLOG("posting job handlers (%d)\n", m_completed_jobs.size());
+
+				post(m_ios, [this] { this->call_job_handlers(); });
+				m_job_completions_in_flight = true;
+			}
+		}
+
+		while (!execute_now.empty())
+		{
+			aux::mmap_disk_job* j = execute_now.pop_front();
+			execute_job(j);
 		}
 	}
 
