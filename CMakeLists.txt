@@ -209,6 +209,7 @@ set(libtorrent_aux_include_files
 	merkle.hpp
 	merkle_tree.hpp
 	mmap_storage.hpp
+	precomputed_block_hashes.hpp
 	netlink.hpp
 	netlink_utils.hpp
 	noexcept_movable.hpp
@@ -376,6 +377,7 @@ set(sources
 	mmap_disk_io.cpp
 	disk_job.cpp
 	mmap_storage.cpp
+	precomputed_block_hashes.cpp
 	natpmp.cpp
 	packet_buffer.cpp
 	parse_url.cpp

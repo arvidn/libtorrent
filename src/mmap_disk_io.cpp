@@ -502,6 +502,22 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			m_stats_counters.inc_stats_counter(counters::disk_job_time, write_time);
 		}
 
+		// for v2 / hybrid torrents the block is still in RAM; compute the
+		// SHA-256 hash now and stash it on the storage so the later hash job
+		// doesn't have to re-read the block from disk. v2 pieces don't span
+		// file boundaries, so for hybrid torrents the block may extend past
+		// the v2 piece end into v1 padding; hash only the v2 portion.
+		if (!j->error.ec && ret == a.buffer_size && j->storage->v2())
+		{
+			int const piece_size2 = j->storage->files().piece_size2(a.piece);
+			if (a.offset < piece_size2)
+			{
+				int const blk = a.offset / default_block_size;
+				int const v2_len = std::min(int(a.buffer_size), piece_size2 - a.offset);
+				j->storage->store_precomputed_v2(a.piece, blk, hasher256(b.first(v2_len)).final());
+			}
+		}
+
 		m_store_buffer.erase({j->storage->storage_index(), a.piece, a.offset});
 
 		{
@@ -873,6 +889,12 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		TORRENT_ASSERT(!v2 || int(a.block_hashes.size()) >= blocks_in_piece2);
 		TORRENT_ASSERT(v1 || v2);
 
+		// consume SHA-256 hashes computed inline during do_job(write); for any
+		// block where we don't have one (an all-zero entry), fall through to the
+		// existing path
+		aux::vector<sha256_hash> const pc =
+			v2 ? j->storage->take_precomputed_v2(a.piece) : aux::vector<sha256_hash>{};
+
 		hasher h;
 		int ret = 0;
 		int offset = 0;
@@ -887,7 +909,24 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			std::ptrdiff_t const len = v1 ? std::min(default_block_size, piece_size - offset) : 0;
 			std::ptrdiff_t const len2 = v2_block ? std::min(default_block_size, piece_size2 - offset) : 0;
 
+			bool const have_precomputed_v2 =
+				v2_block && i < int(pc.size()) && !pc[i].is_all_zeros();
+
 			hasher256 h2;
+
+			if (have_precomputed_v2 && !v1)
+			{
+				// pure v2 fast path: no I/O, no SHA-256 work
+				a.block_hashes[i] = pc[i];
+				ret = int(len2);
+				offset += default_block_size;
+				continue;
+			}
+
+			// for hybrid with a precomputed v2 hash, we still need bytes for
+			// the v1 SHA-1 piece hash, but we can skip h2.update() and the
+			// hash2() fallback
+			bool const need_v2_io = v2_block && !have_precomputed_v2;
 
 			if (!m_store_buffer.get({ j->storage->storage_index(), a.piece, offset }
 				, [&](char const* buf)
@@ -897,7 +936,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 						h.update({ buf, len });
 						ret = int(len);
 					}
-					if (v2_block)
+					if (need_v2_io)
 					{
 						h2.update({ buf, len2 });
 						ret = int(len2);
@@ -908,13 +947,14 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 				{
 					// if we will call hash2() in a bit, don't trigger a flush
 					// just yet, let hash2() do it
-					auto const flags = v2_block ? (j->flags & ~disk_interface::flush_piece) : j->flags;
+					auto const flags =
+						need_v2_io ? (j->flags & ~disk_interface::flush_piece) : j->flags;
 					j->error.ec.clear();
 					ret = j->storage->hash(m_settings, h, len, a.piece, offset
 						, file_mode, flags, j->error);
 					if (ret < 0) break;
 				}
-				if (v2_block)
+				if (need_v2_io)
 				{
 					j->error.ec.clear();
 					ret = j->storage->hash2(m_settings, h2, len2, a.piece, offset
@@ -930,8 +970,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 				}
 			}
 
-			if (v2_block)
-				a.block_hashes[i] = h2.final();
+			if (v2_block) a.block_hashes[i] = have_precomputed_v2 ? pc[i] : h2.final();
 
 			if (ret <= 0) break;
 
@@ -966,6 +1005,19 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		TORRENT_ASSERT(piece_size > a.offset);
 		std::ptrdiff_t const len = std::min(default_block_size, piece_size - a.offset);
+
+		// fast path: SHA-256 was computed inline during the write job
+		{
+			int const blk = a.offset / default_block_size;
+			if (auto pre = j->storage->take_precomputed_v2_block(a.piece, blk))
+			{
+				a.piece_hash2 = *pre;
+				std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+				m_stats_counters.inc_stats_counter(counters::disk_hash_time, read_time);
+				m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
+				return {};
+			}
+		}
 
 		if (!m_store_buffer.get({ j->storage->storage_index(), a.piece, a.offset }
 			, [&](char const* buf)
@@ -1136,10 +1188,12 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	// this job won't return until all outstanding jobs on this
 	// piece are completed or cancelled and the buffers for it
 	// have been evicted
-	status_t mmap_disk_io::do_job(aux::job::clear_piece&, aux::mmap_disk_job*)
+	status_t mmap_disk_io::do_job(aux::job::clear_piece& a, aux::mmap_disk_job* j)
 	{
-		// there's nothing to do here, by the time this is called the jobs for
-		// this storage has been completed since this is a fence job
+		// by the time this is called the jobs for this storage have been
+		// completed since this is a fence job; drop any precomputed block
+		// hashes for the cleared piece so a re-download starts fresh
+		j->storage->drop_precomputed_v2(a.piece);
 		return {};
 	}
 
