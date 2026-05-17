@@ -53,9 +53,7 @@ see LICENSE file.
 namespace {
 
 	// round up to even kilobyte
-	int round_up(int n)
-	{ return (n + 1023) & ~0x3ff; }
-
+	int round_up(int n) { return (n + 1023) & ~0x3ff; }
 }
 
 namespace libtorrent::aux {
@@ -364,7 +362,8 @@ namespace libtorrent::aux {
 				l.unlock();
 
 				span<char> v = {buf.get(), block_to_copy};
-				int const bytes_read = aux::pread_all(file.fd(), v, slot_offset(slot) + piece_offset, ec);
+				int const bytes_read =
+					aux::pread_all(file.fd(), v, slot_offset(slot) + piece_offset, ec);
 				if (bytes_read < 0) return;
 
 				f(file_offset, {buf.get(), block_to_copy});
