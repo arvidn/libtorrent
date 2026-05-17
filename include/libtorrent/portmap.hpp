@@ -20,11 +20,15 @@ namespace libtorrent {
 	// to forward ports (e.g. NAT-PMP/PCP vs. UPnP)
 	enum class portmap_transport : std::uint8_t
 	{
-		// natpmp can be NAT-PMP or PCP
-		natpmp, upnp
+		// NAT-PMP or PCP
+		natpmp,
+		// UPnP IGD
+		upnp
 	};
 
-	// The transport protocol to be forwarded
+	// the IP transport protocol that a port mapping is for. ``none`` is
+	// used to represent the absence of a mapping (e.g. when a mapping has
+	// been removed).
 	enum class portmap_protocol : std::uint8_t
 	{
 		none, tcp, udp

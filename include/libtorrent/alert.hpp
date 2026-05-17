@@ -180,6 +180,8 @@ namespace alert_category {
 		using category_t = alert_category_t;
 #endif
 
+		// hidden
+		// these names are for backwards compatibility
 		static inline constexpr alert_category_t error_notification = 0_bit;
 		static inline constexpr alert_category_t peer_notification = 1_bit;
 		static inline constexpr alert_category_t port_mapping_notification = 2_bit;
@@ -200,7 +202,6 @@ namespace alert_category {
 		static inline constexpr alert_category_t ip_block_notification = 8_bit;
 		static inline constexpr alert_category_t performance_warning = 9_bit;
 		static inline constexpr alert_category_t dht_notification = 10_bit;
-
 #if TORRENT_ABI_VERSION <= 2
 		// If you enable these alerts, you will receive a stats_alert
 		// approximately once every second, for every active torrent.

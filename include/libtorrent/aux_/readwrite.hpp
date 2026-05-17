@@ -87,7 +87,7 @@ namespace {
 }
 #endif
 
-// Simpler single-buffer specialisation of readwrite_vec_impl. Reads are always
+// Simpler single-buffer specialization of readwrite_vec_impl. Reads are always
 // single-buffer and on the hot path, so avoiding the alloca + copy_bufs
 // overhead of the vec variant is worthwhile.
 template <typename Char, typename Fun>

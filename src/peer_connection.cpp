@@ -3267,6 +3267,15 @@ namespace {
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
+#ifndef TORRENT_DISABLE_LOGGING
+		peer_log(peer_log_alert::incoming_message,
+			peer_log_alert::cancel,
+			"piece: %d s: %x l: %x",
+			static_cast<int>(r.piece),
+			std::uint32_t(r.start),
+			std::uint32_t(r.length));
+#endif
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto const& e : m_extensions)
 		{
@@ -3274,11 +3283,6 @@ namespace {
 		}
 #endif
 		if (is_disconnecting()) return;
-
-#ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::incoming_message, peer_log_alert::cancel
-			, "piece: %d s: %x l: %x", static_cast<int>(r.piece), std::uint32_t(r.start), std::uint32_t(r.length));
-#endif
 
 		auto const i = std::find(m_requests.begin(), m_requests.end(), r);
 

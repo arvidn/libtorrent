@@ -53,7 +53,10 @@ namespace errors {
 	boost::system::error_code make_error_code(pcp_errors e);
 } // namespace errors
 
-	TORRENT_EXPORT boost::system::error_category& pcp_category();
+// returns the ``boost::system::error_category`` used for
+// ``errors::pcp_errors``. ``error_code`` objects returned by the PCP
+// (Port Control Protocol) port-mapping code use this category.
+TORRENT_EXPORT boost::system::error_category& pcp_category();
 } // namespace libtorrent
 
 namespace boost {

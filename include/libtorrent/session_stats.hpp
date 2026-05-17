@@ -17,6 +17,9 @@ see LICENSE file.
 
 namespace libtorrent {
 
+	// classifies a session statistic. ``counter`` values monotonically
+	// increase (e.g. total bytes received); ``gauge`` values fluctuate up
+	// and down (e.g. number of connected peers). See ``stats_metric``.
 	enum class metric_type_t
 	{
 		counter, gauge

@@ -235,6 +235,10 @@ namespace aux {
 		friend struct aux::session_impl;
 		friend struct session_handle;
 		friend struct aux::torrent;
+
+		// ADL hook for ``boost::hash`` and the hash specialization for
+		// ``torrent_handle``. Two handles that refer to the same torrent
+		// hash to the same value.
 		TORRENT_EXPORT friend std::size_t hash_value(torrent_handle const& th);
 
 		// constructs a torrent handle that does not refer to a torrent.

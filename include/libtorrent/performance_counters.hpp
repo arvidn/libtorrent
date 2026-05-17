@@ -21,6 +21,18 @@ see LICENSE file.
 
 namespace libtorrent {
 
+	// holds the session-wide counters and gauges backing the
+	// ``session_stats_alert`` and ``session_status`` reporting paths.
+	// One instance lives on the session and is incremented from the
+	// network thread; reads from other threads use the lock-free
+	// ``operator[]`` overload when ``ATOMIC_LLONG_LOCK_FREE`` is set,
+	// otherwise a single shared mutex guards the whole array.
+	//
+	// A reference to this object is passed to custom disk I/O
+	// implementations (see disk_interface and the disk_io_constructor
+	// passed via session_params), which update the disk related metrics
+	// through it. The specific counters and gauges are documented under
+	// the session-statistics_ section.
 	struct TORRENT_EXPORT counters
 	{
 		// internal
@@ -458,10 +470,18 @@ namespace libtorrent {
 		counters(counters const&) TORRENT_COUNTER_NOEXCEPT;
 		counters& operator=(counters const&) & TORRENT_COUNTER_NOEXCEPT;
 
-		// returns the new value
+		// increments the counter or gauge ``c`` (an index into the counter
+		// array) by ``value`` and returns the new value.
 		std::int64_t inc_stats_counter(int c, std::int64_t value = 1) TORRENT_COUNTER_NOEXCEPT;
+
+		// returns the current value of counter or gauge ``i`` (an index into
+		// the counter array).
 		std::int64_t operator[](int i) const TORRENT_COUNTER_NOEXCEPT;
 
+		// overwrites the value of counter or gauge ``c`` (an index into
+		// the counter array). ``blend_stats_counter()`` adjusts the stat value
+		// toward the specified ``value``, ``ratio`` specifies the percent of
+		// the new value should be influenced by ``value``.
 		void set_value(int c, std::int64_t value) TORRENT_COUNTER_NOEXCEPT;
 		void blend_stats_counter(int c, std::int64_t value, int ratio) TORRENT_COUNTER_NOEXCEPT;
 

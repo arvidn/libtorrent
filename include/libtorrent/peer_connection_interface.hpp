@@ -25,10 +25,14 @@ namespace libtorrent {
 		class stat;
 	}
 
+	// classifies a peer connection by the protocol it speaks.
 	enum class connection_type : std::uint8_t
 	{
+		// this is a regular bittorrent peer connection
 		bittorrent,
+		// BEP 19 web seed
 		url_seed,
+		// BEP 17 web seed (no longer supported)
 		http_seed
 	};
 
