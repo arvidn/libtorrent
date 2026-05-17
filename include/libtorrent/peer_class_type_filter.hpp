@@ -32,10 +32,12 @@ namespace libtorrent {
 			m_peer_class_type.fill(0);
 		}
 
+		// the socket types that ``peer_class_type_filter`` distinguishes,
+		// used as the index into ``add()`` / ``remove()`` / ``apply()``.
+		// These match the socket types from socket_type.hpp, shifted one
+		// down.
 		enum socket_type_t : std::uint8_t
 		{
-			// these match the socket types from socket_type.hpp
-			// shifted one down
 			tcp_socket = 0,
 			utp_socket,
 			ssl_tcp_socket,

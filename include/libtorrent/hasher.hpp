@@ -117,6 +117,12 @@ TORRENT_CRYPTO_NAMESPACE
 #endif
 	};
 
+	// ``hasher256`` computes a SHA-256 message digest. It is the
+	// counterpart to ``hasher`` (which computes SHA-1) and is used for
+	// BitTorrent v2 piece and merkle-tree hashes. It can be fed input
+	// incrementally via ``update()`` and the digest is produced by
+	// ``final()``. Call ``reset()`` to reuse the object for another
+	// digest.
 	class TORRENT_EXPORT hasher256
 	{
 	public:

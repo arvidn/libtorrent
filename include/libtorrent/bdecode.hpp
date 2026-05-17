@@ -80,7 +80,10 @@ example layout:
 
 namespace libtorrent {
 
-TORRENT_EXPORT boost::system::error_category& bdecode_category();
+	// returns the ``boost::system::error_category`` used for the
+	// ``bdecode_errors::error_code_enum`` errors. ``error_code`` objects
+	// produced by ``bdecode()`` use this category.
+	TORRENT_EXPORT boost::system::error_category& bdecode_category();
 
 #if TORRENT_ABI_VERSION == 1
 TORRENT_DEPRECATED
@@ -310,7 +313,11 @@ struct TORRENT_EXPORT bdecode_node
 	// functions with the ``list_`` prefix operate on lists. These functions are
 	// only valid if ``type()`` == ``list_t``. ``list_at()`` returns the item
 	// in the list at index ``i``. ``i`` may not be greater than or equal to the
-	// size of the list. ``size()`` returns the size of the list.
+	// size of the list. ``list_size()`` returns the size of the list.
+	// ``list_int_value_at()`` and ``list_string_value_at()`` return the
+	// integer or string value of the item at index ``i`` directly. If that
+	// item is not of the requested type, the provided ``default_val`` is
+	// returned instead.
 	bdecode_node list_at(int i) const;
 	string_view list_string_value_at(int i
 		, string_view default_val = string_view()) const;

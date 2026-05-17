@@ -174,6 +174,11 @@ TORRENT_VERSION_NAMESPACE_4
 		torrent_info(std::string const& filename, error_code& ec);
 #endif
 
+		// constructs an empty ``torrent_info`` containing only an
+		// info-hash. Useful for magnet links: the resulting object has
+		// no metadata (no file list, no piece hashes) but the info-hash
+		// is set so it can be passed to ``session::add_torrent()`` and
+		// later filled in once metadata is received from peers.
 		explicit torrent_info(info_hash_t const& info_hash);
 
 		torrent_info(torrent_info const& t);
@@ -531,8 +536,7 @@ TORRENT_VERSION_NAMESPACE_4
 		}
 
 		// ``hash_for_piece()`` takes a piece-index and returns the 20-bytes
-		// sha1-hash for that piece and ``info_hash()`` returns the 20-bytes
-		// sha1-hash for the info-section of the torrent file.
+		// sha1-hash for that piece.
 		// ``hash_for_piece_ptr()`` returns a pointer to the 20 byte sha1 digest
 		// for the piece. Note that the string is not 0-terminated.
 		sha1_hash hash_for_piece(piece_index_t index) const;
@@ -548,6 +552,10 @@ TORRENT_VERSION_NAMESPACE_4
 			return &m_info_section[std::ptrdiff_t(m_piece_hashes) + idx * 20];
 		}
 
+		// returns true if the metadata for this torrent has been loaded
+		// (i.e. the file list is populated). For a ``torrent_info``
+		// constructed from just an info-hash this returns false until
+		// metadata has been received.
 		bool is_loaded() const { return m_files.num_files() > 0; }
 
 #if TORRENT_ABI_VERSION <= 2

@@ -309,6 +309,7 @@ namespace aux { struct torrent; }
 		// mechanism. Resuming will restore the torrents to their previous paused
 		// state. i.e. the session pause state is separate from the torrent pause
 		// state. A torrent is inactive if it is paused or if the session is
+		// paused. ``is_paused()`` returns true if the session is currently
 		// paused.
 		void pause();
 		void resume();
@@ -631,6 +632,9 @@ namespace aux { struct torrent; }
 		// bind to.
 		//
 		// ``listen_port()`` returns the port we ended up listening on.
+		//
+		// ``ssl_listen_port()`` returns the port used for incoming SSL
+		// connections, or 0 if no SSL listen port is open.
 		unsigned short listen_port() const;
 		unsigned short ssl_listen_port() const;
 		bool is_listening() const;

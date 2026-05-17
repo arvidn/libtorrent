@@ -34,9 +34,14 @@ namespace dht {
 	// This structure hold the relevant counters for the storage
 	struct TORRENT_EXPORT dht_storage_counters
 	{
+		// the number of distinct torrents (info-hashes) for which we hold
+		// announced peers (BEP 5)
 		std::int32_t torrents = 0;
+		// the total number of announced peers across all torrents
 		std::int32_t peers = 0;
+		// the number of immutable items (BEP 44) currently stored
 		std::int32_t immutable_data = 0;
+		// the number of mutable items (BEP 44) currently stored
 		std::int32_t mutable_data = 0;
 
 		// This member function set the counters to zero.

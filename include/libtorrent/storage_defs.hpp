@@ -82,6 +82,11 @@ namespace libtorrent {
 	// disk_interface
 	struct TORRENT_EXPORT storage_params
 	{
+		// constructs a parameter pack from the layout, save path, mode,
+		// per-file priorities, info-hash and protocol-version flags.
+		// ``v1`` indicates that the torrent has v1 metadata (a SHA-1
+		// info-hash); ``v2`` that it has v2 metadata (BEP 52). A hybrid
+		// torrent has both set.
 		storage_params(file_storage const& f, lt::renamed_files const& mf
 			, string_view sp, string_view pfd, storage_mode_t const sm
 			, aux::vector<download_priority_t, file_index_t> const& prio
@@ -96,13 +101,35 @@ namespace libtorrent {
 			, v1(v1_torrent)
 			, v2(v2_torrent)
 		{}
+		// the file layout (sizes, paths, flags) of the torrent
 		file_storage const& files;
+
+		// rename overlay applied on top of ``files``; on-disk paths
+		// resolved through this object take precedence over the
+		// originals
 		lt::renamed_files const& renamed_files;
+
+		// the directory where the torrent's files are stored
 		string_view path;
+
+		// directory in which the part file is created. If empty, the
+		// part file is placed under ``path``.
 		string_view part_file_dir;
+
+		// the storage allocation mode (sparse vs. pre-allocated)
 		storage_mode_t mode{storage_mode_sparse};
+
+		// per-file download priorities, indexed by file index
 		aux::vector<download_priority_t, file_index_t> const& priorities;
+
+		// the SHA-1 info-hash of the torrent (zero for v2-only
+		// torrents)
 		sha1_hash info_hash;
+
+		// indicates which BitTorrent protocol version(s) this storage
+		// is for. ``v1`` is true if the torrent has v1 metadata;
+		// ``v2`` is true if the torrent has v2 metadata (BEP 52). A
+		// hybrid torrent has both flags set.
 		bool v1;
 		bool v2;
 	};

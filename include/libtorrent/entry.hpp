@@ -176,8 +176,9 @@ namespace libtorrent {
 			std::is_same<U, char const*>::value>::type>
 		entry& operator=(U v) &;
 
-		// The ``integer()``, ``string()``, ``list()`` and ``dict()`` functions
-		// are accessors that return the respective type. If the ``entry`` object
+		// The ``integer()``, ``string()``, ``list()``, ``dict()`` and
+		// ``preformatted()`` functions are accessors that return the
+		// respective type. If the ``entry`` object
 		// isn't of the type you request, the accessor will throw
 		// system_error. You can ask an ``entry`` for its type through the
 		// ``type()`` function.
