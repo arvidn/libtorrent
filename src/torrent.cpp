@@ -4687,7 +4687,7 @@ namespace {
 		// need to try to get higher fidelity hashes (yet)
 		bool const found_on_disk = peers.size() == 1 && peers.count(nullptr);
 
-		if (!torrent_file().info_hashes().has_v1() && blocks.empty() && !found_on_disk)
+		if (torrent_file().info_hashes().has_v2() && blocks.empty() && !found_on_disk)
 		{
 			// TODO: only do this if the piece size > 1 blocks
 			// This is a v2 torrent so we can request get block
