@@ -94,6 +94,21 @@ static_links = \
         ".. _extensions: manual-ref.html#extensions",
     }
 
+# macros that are assumed to be false / not set for purposes of generating
+# documentation. #if blocks gated on these are skipped entirely (along with
+# their #else branch), the same way older TORRENT_ABI_VERSION guards are
+# skipped.
+ASSUMED_UNSET_MACROS = [
+    'TORRENT_USE_ASSERTS',
+    'TORRENT_USE_INVARIANT_CHECKS',
+    'TORRENT_ASIO_DEBUGGING',
+    'TORRENT_DEBUG',
+    'TORRENT_DEBUG_BUFFER_POOL',
+    'TORRENT_DEBUG_STREAMING',
+    'TORRENT_DEBUG_REFCOUNTS',
+]
+
+
 anon_index = 0
 
 category_mapping = {
@@ -893,10 +908,7 @@ def consume_ifdef(lno, lines, warn_on_ifdefs=False):
         elif define != '':
             print('\x1b[33msensitive define in public struct: "%s"\x1b[34m %s:%d\x1b[0m' % (define, filename, lno))
 
-    if (line.startswith('#if') and (
-            ' TORRENT_USE_ASSERTS' in line or
-            ' TORRENT_USE_INVARIANT_CHECKS' in line or
-            ' TORRENT_ASIO_DEBUGGING' in line) or
+    if (line.startswith('#if') and any(' ' + m in line for m in ASSUMED_UNSET_MACROS) or
             line == '#if TORRENT_ABI_VERSION == 1' or
             line == '#if TORRENT_ABI_VERSION <= 2' or
             line == '#if TORRENT_ABI_VERSION < 3' or
