@@ -1422,6 +1422,9 @@ namespace {
 					, str.string_length());
 			}
 		}
+
+		m_update_url = info.dict_find_string_value("update-url").to_string();
+		m_originator = info.dict_find_string_value("originator").to_string();
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 
 		if (info.dict_find_string("ssl-cert"))
@@ -1547,6 +1550,12 @@ namespace {
 
 	void torrent_info::internal_set_comment(string_view const s)
 	{ m_comment = std::string(s); }
+
+	void torrent_info::internal_set_update_url(string_view const u)
+	{ m_update_url = std::string(u); }
+
+	void torrent_info::internal_set_originator(string_view const o)
+	{ m_originator = std::string(o); }
 
 	bdecode_node torrent_info::info(char const* key) const
 	{

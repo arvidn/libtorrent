@@ -619,10 +619,26 @@ TORRENT_TEST(creator)
 	TEST_EQUAL(info.creator(), "foobar");
 }
 
+TORRENT_TEST(update_url)
+{
+	auto info = test_field([](lt::create_torrent& t){
+		t.set_update_url("http://example.com/update");
+	});
+	TEST_EQUAL(info.update_url(), "http://example.com/update");
+}
+
+TORRENT_TEST(originator)
+{
+	auto info = test_field([](lt::create_torrent& t){
+		t.set_originator("cert-bytes");
+	});
+	TEST_EQUAL(info.originator(), "cert-bytes");
+}
+
 TORRENT_TEST(dht_nodes)
 {
 	auto info = test_field([](lt::create_torrent& t){
-		t.add_node({"foobar"s, 1337});
+		t.add_node({std::string("foobar"), 1337});
 	});
 	using nodes = std::vector<std::pair<std::string, int>>;
 	TEST_CHECK((info.nodes() == nodes{{"foobar", 1337}}));

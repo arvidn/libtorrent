@@ -522,6 +522,8 @@ namespace {
 
 		if (!ti.creator().empty()) set_creator(ti.creator().c_str());
 		if (!ti.comment().empty()) set_comment(ti.comment().c_str());
+		if (!ti.update_url().empty()) set_update_url(ti.update_url().c_str());
+		if (!ti.originator().empty()) set_originator(ti.originator().c_str());
 
 		for (auto const& n : ti.nodes())
 			add_node(n);
@@ -798,6 +800,12 @@ namespace {
 		if (!m_root_cert.empty())
 			info["ssl-cert"] = m_root_cert;
 
+		if (!m_update_url.empty())
+			info["update-url"] = m_update_url;
+
+		if (!m_originator.empty())
+			info["originator"] = m_originator;
+
 		if (m_private) info["private"] = 1;
 
 		if (make_v1)
@@ -1035,6 +1043,18 @@ namespace {
 	{
 		if (str == nullptr) m_created_by.clear();
 		else m_created_by = str;
+	}
+
+	void create_torrent::set_update_url(char const* str)
+	{
+		if (str == nullptr) m_update_url.clear();
+		else m_update_url = str;
+	}
+
+	void create_torrent::set_originator(char const* str)
+	{
+		if (str == nullptr) m_originator.clear();
+		else m_originator = str;
 	}
 
 	void create_torrent::set_creation_date(std::time_t timestamp)
