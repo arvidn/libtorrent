@@ -80,23 +80,6 @@ namespace {
 	int round_up(int n)
 	{ return (n + 1023) & ~0x3ff; }
 
-	void set_file_too_short(libtorrent::error_code& ec)
-	{
-		ec.assign(libtorrent::errors::file_too_short
-			, libtorrent::libtorrent_category());
-	}
-
-	int read_full(libtorrent::handle_type const fd
-		, libtorrent::span<char> const buf
-		, std::int64_t const offset, libtorrent::error_code& ec)
-	{
-		int const ret = libtorrent::aux::pread_all(fd, buf, offset, ec);
-		if (ret >= 0 && ret == buf.size()) return ret;
-
-		if (ret >= 0)
-			set_file_too_short(ec);
-		return -1;
-	}
 }
 
 namespace libtorrent {
@@ -230,7 +213,7 @@ namespace libtorrent {
 		auto f = open_file(aux::open_mode::read_only | aux::open_mode::hidden, ec);
 		if (ec) return -1;
 
-		return read_full(f.fd(), buf, slot_offset(slot) + offset, ec);
+		return aux::pread_all(f.fd(), buf, slot_offset(slot) + offset, ec);
 	}
 
 	int part_file::hash(hasher& ph
@@ -276,7 +259,7 @@ namespace libtorrent {
 
 		std::vector<char> buffer(static_cast<std::size_t>(len));
 		std::int64_t const slot_offset = std::int64_t(m_header_size) + std::int64_t(static_cast<int>(slot)) * m_piece_size;
-		int const ret = read_full(f.fd(), buffer, slot_offset + offset, ec);
+		int const ret = aux::pread_all(f.fd(), buffer, slot_offset + offset, ec);
 		if (ret < 0) return -1;
 		ph.update(buffer);
 		return ret;
@@ -387,7 +370,7 @@ namespace libtorrent {
 				l.unlock();
 
 				span<char> v = {buf.get(), block_to_copy};
-				int const bytes_read = read_full(file.fd(), v, slot_offset(slot) + piece_offset, ec);
+				int const bytes_read = aux::pread_all(file.fd(), v, slot_offset(slot) + piece_offset, ec);
 				if (bytes_read < 0) return;
 
 				f(file_offset, {buf.get(), block_to_copy});
