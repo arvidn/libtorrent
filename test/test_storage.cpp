@@ -61,6 +61,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <memory>
 #include <functional> // for bind
+#include <thread>
 
 #include <iostream>
 
@@ -1730,6 +1731,93 @@ void test_unaligned_read(lt::disk_io_constructor_type constructor, Fun fun)
 	t.reset();
 	disk_io->abort(true);
 }
+
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
+TORRENT_TEST(mmap_fenced_hash_zero_aio_threads)
+{
+	lt::io_context ioc;
+	lt::counters cnt;
+	lt::settings_pack pack;
+	pack.set_int(lt::settings_pack::aio_threads, 0);
+	pack.set_int(lt::settings_pack::hashing_threads, 1);
+	pack.set_int(lt::settings_pack::file_pool_size, 2);
+
+	std::unique_ptr<lt::disk_interface> disk_io
+		= lt::mmap_disk_io_constructor(ioc, pack, cnt);
+
+	lt::file_storage fs;
+	fs.add_file(combine_path("fenced_hash", "test"), lt::default_block_size);
+	fs.set_num_pieces(1);
+	fs.set_piece_length(lt::default_block_size);
+
+	std::string const save_path = complete("fenced_hash_save");
+	delete_dirs(save_path);
+
+	lt::aux::vector<lt::download_priority_t, lt::file_index_t> prios;
+	lt::storage_params params(fs, nullptr
+		, save_path
+		, lt::storage_mode_sparse
+		, prios
+		, lt::sha1_hash("01234567890123456789"));
+
+	lt::storage_holder t = disk_io->new_torrent(params, {});
+
+	std::vector<char> write_buffer(lt::default_block_size);
+	aux::random_bytes(write_buffer);
+	lt::sha1_hash const expected_hash = lt::hasher(write_buffer).final();
+
+	int outstanding = 1;
+	lt::peer_request const req{0_piece, 0, lt::default_block_size};
+	disk_io->async_write(t, req, write_buffer.data(), {}
+		, [&](lt::storage_error const& ec)
+		{
+			TEST_CHECK(!ec);
+			--outstanding;
+		});
+	disk_io->submit_jobs();
+	sync(ioc, outstanding);
+
+	int hashes_done = 0;
+	bool release_done = false;
+	outstanding = 3;
+	auto hash_handler = [&](lt::piece_index_t const piece
+		, lt::sha1_hash const& hash, lt::storage_error const& ec)
+	{
+		TEST_EQUAL(piece, 0_piece);
+		TEST_CHECK(!ec);
+		TEST_EQUAL(hash, expected_hash);
+		++hashes_done;
+		--outstanding;
+	};
+
+	disk_io->async_hash(t, 0_piece, {}
+		, lt::disk_interface::sequential_access | lt::disk_interface::v1_hash
+		, hash_handler);
+	disk_io->async_release_files(t, [&]
+	{
+		release_done = true;
+		--outstanding;
+	});
+	disk_io->async_hash(t, 0_piece, {}
+		, lt::disk_interface::sequential_access | lt::disk_interface::v1_hash
+		, hash_handler);
+	disk_io->submit_jobs();
+
+	for (int i = 0; i < 200 && outstanding > 0; ++i)
+	{
+		ioc.poll();
+		ioc.restart();
+		std::this_thread::sleep_for(lt::milliseconds(10));
+	}
+
+	TEST_EQUAL(outstanding, 0);
+	TEST_EQUAL(hashes_done, 2);
+	TEST_CHECK(release_done);
+
+	t.reset();
+	disk_io->abort(true);
+}
+#endif
 
 struct write_handler
 {
