@@ -32,16 +32,16 @@ if platform.system() == "Windows":
     exe = ".exe"
 
 
-def torrent_path(variant: str) -> Path:
-    return EXAMPLES_DIR / f"cpu_benchmark-{variant}.torrent"
+def torrent_path(variant: str, num_pieces: int) -> Path:
+    return EXAMPLES_DIR / f"cpu_benchmark-{variant}-{num_pieces}p.torrent"
 
 
-def reset_download(save_path: Path, variant: str) -> None:
+def reset_download(save_path: Path, variant: str, num_pieces: int) -> None:
     rm_file_or_dir(Path(".ses_state"))
     rm_file_or_dir(save_path / ".resume")
     # the payload directory is named after the torrent file stem
     # (see generate_torrent() in connection_tester.cpp).
-    rm_file_or_dir(save_path / f"cpu_benchmark-{variant}")
+    rm_file_or_dir(save_path / f"cpu_benchmark-{variant}-{num_pieces}p")
 
 
 def main() -> None:
@@ -81,6 +81,13 @@ def main() -> None:
         help="Disk I/O backends to test. Each selected backend is run"
         " through the full variant/test matrix.",
     )
+    p.add_argument(
+        "--num-pieces",
+        type=int,
+        default=50000,
+        help="Number of pieces in the generated test torrent."
+        " Piece size is 1 MiB, so total size is num_pieces MiB.",
+    )
 
     args = p.parse_args()
 
@@ -100,29 +107,29 @@ def main() -> None:
     )
 
     for variant in args.variants:
-        reset_download(args.save_path, variant)
-        if not torrent_path(variant).exists():
+        reset_download(args.save_path, variant, args.num_pieces)
+        if not torrent_path(variant, args.num_pieces).exists():
             subprocess.check_call(
                 [
                     str(EXAMPLES_DIR / f"connection_tester{exe}"),
                     "gen-torrent",
                     "-s",  # num pieces
-                    "50000",
+                    str(args.num_pieces),
                     "-n",  # num files
                     "15",
                     "-V",  # metadata version
                     VARIANT_FLAGS[variant],
                     "-t",  # output torrent file
-                    str(torrent_path(variant)),
+                    str(torrent_path(variant, args.num_pieces)),
                 ],
             )
 
     rm_file_or_dir(Path("t"))
 
     for variant in args.variants:
-        torrent = torrent_path(variant)
+        torrent = torrent_path(variant, args.num_pieces)
         for io_backend in args.io_backends:
-            reset_download(args.save_path, variant)
+            reset_download(args.save_path, variant, args.num_pieces)
             run_test(
                 f"download-{variant}-{io_backend}",
                 "upload",
@@ -132,7 +139,7 @@ def main() -> None:
                 torrent,
                 args.always_yes,
             )
-            reset_download(args.save_path, variant)
+            reset_download(args.save_path, variant, args.num_pieces)
             run_test(
                 f"dual-{variant}-{io_backend}",
                 "dual",
