@@ -17,8 +17,86 @@ see LICENSE file.
 #include "libtorrent/aux_/posix_part_file.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/file_storage.hpp"
+#include "libtorrent/truncate.hpp"
 
 using namespace lt;
+
+namespace {
+
+int part_file_header_size(int const num_pieces)
+{
+	return ((2 + num_pieces) * 4 + 1023) & ~0x3ff;
+}
+
+void truncate_part_file(std::string const& filename, std::int64_t const size)
+{
+	file_storage fs;
+	fs.add_file(libtorrent::filename(filename), size);
+	storage_error se;
+	truncate_files(fs, parent_path(filename), se);
+	TEST_CHECK(!se);
+
+	file_status st;
+	error_code ec;
+	stat_file(filename, &st, ec);
+	TEST_CHECK(!ec);
+	TEST_EQUAL(st.file_size, size);
+}
+
+template <typename PartFile>
+void test_short_read(std::string const& test_dir)
+{
+	error_code ec;
+	std::string const cwd = complete(".");
+	std::string const path = combine_path(cwd, test_dir);
+	std::string const part_file_path = combine_path(path, "partfile.parts");
+	int const piece_size = 16 * 0x4000;
+	int const num_pieces = 100;
+
+	remove_all(path, ec);
+	if (ec == boost::system::errc::no_such_file_or_directory)
+		ec.clear();
+	TEST_CHECK(!ec);
+	create_directory(path, ec);
+	TEST_CHECK(!ec);
+
+	std::array<char, 1024> buf;
+	for (int i = 0; i < int(buf.size()); ++i)
+		buf[std::size_t(i)] = static_cast<char>(i);
+
+	PartFile pf(path, "partfile.parts", num_pieces, piece_size);
+	TEST_EQUAL(pf.write(buf, 10_piece, 0, ec), int(buf.size()));
+	TEST_CHECK(!ec);
+	pf.flush_metadata(ec);
+	TEST_CHECK(!ec);
+
+	truncate_part_file(part_file_path, part_file_header_size(num_pieces) + 512);
+
+	std::array<char, 1024> read_buf;
+	read_buf.fill(0);
+	TEST_EQUAL(pf.read(read_buf, 10_piece, 0, ec), -1);
+	TEST_EQUAL(ec, errors::file_too_short);
+
+	ec.clear();
+	hasher ph;
+	TEST_EQUAL(pf.hash(ph, int(buf.size()), 10_piece, 0, ec), -1);
+	TEST_EQUAL(ec, errors::file_too_short);
+
+	ec.clear();
+	bool exported = false;
+	pf.export_file([&exported](std::int64_t, span<char>)
+	{
+		exported = true;
+	}, 10 * piece_size, int(buf.size()), ec);
+	TEST_EQUAL(ec, errors::file_too_short);
+	TEST_CHECK(!exported);
+
+	remove_all(path, ec);
+	TEST_CHECK(!ec);
+}
+
+} // anonymous namespace
 
 TORRENT_TEST(part_file)
 {
@@ -125,6 +203,11 @@ TORRENT_TEST(part_file)
 	}
 }
 
+TORRENT_TEST(part_file_short_read)
+{
+	test_short_read<part_file>("partfile_short_read_dir");
+}
+
 TORRENT_TEST(posix_part_file)
 {
 	error_code ec;
@@ -228,4 +311,9 @@ TORRENT_TEST(posix_part_file)
 		TEST_CHECK(!ec);
 		if (ec) std::printf("exists: %s\n", ec.message().c_str());
 	}
+}
+
+TORRENT_TEST(posix_part_file_short_read)
+{
+	test_short_read<aux::posix_part_file>("posix_partfile_short_read_dir");
 }
