@@ -4,6 +4,7 @@
 import os
 import time
 import shutil
+import signal
 import subprocess
 import parse_session_stats
 from pathlib import Path
@@ -73,7 +74,15 @@ def main() -> None:
     args = p.parse_args()
 
     subprocess.check_call(
-        ["b2", "profile", args.toolset, "stage_client_test"], cwd=EXAMPLES_DIR
+        [
+            "b2",
+            "release",
+            "debug-symbols=on",
+            "cxxflags=-fno-omit-frame-pointer",
+            args.toolset,
+            "stage_client_test",
+        ],
+        cwd=EXAMPLES_DIR,
     )
     subprocess.check_call(
         ["b2", "release", args.toolset, "stage_connection_tester"], cwd=EXAMPLES_DIR
@@ -202,6 +211,55 @@ def run_test(
             stdin=subprocess.PIPE,
         )
         time.sleep(2)
+
+        perf = None
+        if platform.system() == "Linux":
+            perf_log_path = output_dir / "perf.log"
+            perf_cmd = [
+                "perf", "record",
+                "-F", "999",
+                "--call-graph", "dwarf,65528",
+                "-o", str(output_dir / "perf.data"),
+                "-p", str(c.pid),
+            ]
+            print(f"perf_cmd: {' '.join(perf_cmd)}")
+            try:
+                with open(perf_log_path, "wb") as perf_log:
+                    perf = subprocess.Popen(
+                        perf_cmd, stdout=perf_log, stderr=perf_log
+                    )
+            except FileNotFoundError:
+                c.send_signal(signal.SIGINT)
+                c.wait()
+                raise SystemExit(
+                    "ERROR: 'perf' is not installed.\n"
+                    "  Debian/Ubuntu: sudo apt install"
+                    " linux-tools-$(uname -r) linux-tools-generic\n"
+                    "  Fedora/RHEL:   sudo dnf install perf"
+                )
+            # if perf can't open the events (typically due to
+            # kernel.perf_event_paranoid or ptrace_scope) it exits within a
+            # few milliseconds. Give it a moment then check.
+            time.sleep(0.5)
+            if perf.poll() is not None:
+                msg = perf_log_path.read_text(errors="replace").strip()
+                c.send_signal(signal.SIGINT)
+                c.wait()
+                raise SystemExit(
+                    f"ERROR: 'perf record' exited with code"
+                    f" {perf.returncode}.\n\n"
+                    f"perf output:\n{msg}\n\n"
+                    "Common causes and fixes:\n"
+                    "  1. kernel.perf_event_paranoid is too restrictive:\n"
+                    "       sudo sysctl kernel.perf_event_paranoid=1\n"
+                    "  2. kernel.yama.ptrace_scope blocks attaching to"
+                    " another process:\n"
+                    "       sudo sysctl kernel.yama.ptrace_scope=0\n"
+                    "  3. Or grant capabilities to the perf binary:\n"
+                    "       sudo setcap cap_perfmon,cap_sys_ptrace+ep"
+                    " $(which perf)"
+                )
+
         print(f"test_cmd: \"{' '.join(test_cmd)}\"")
         t = subprocess.Popen(test_cmd, stdout=test_out, stderr=test_out)
 
@@ -212,6 +270,10 @@ def run_test(
             c.poll()
         end = time.monotonic()
 
+        if perf is not None:
+            perf.send_signal(signal.SIGINT)
+            perf.wait()
+
         stats_filename = output_dir / "memory_stats.log"
         keys = print_output_to_file(out, stats_filename)
         plot_output(stats_filename, keys)
@@ -220,24 +282,54 @@ def run_test(
 
     print(f"runtime {end-start:0.2f} seconds")
 
-    # MacOS no longer supports gprof
+    # perf-based profiling is Linux only
     if platform.system() == "Linux":
         print("analyzing profile...")
-        with open(output_dir / "gprof.out", "w+") as gprof:
-            print(f"gprof " + str(EXAMPLES_DIR / f"client_test{exe}"))
+        with open(output_dir / "perf.out", "w+") as perf_script:
             subprocess.check_call(
-                ["gprof", str(EXAMPLES_DIR / f"client_test{exe}")], stdout=gprof
+                ["perf", "script", "-i", str(output_dir / "perf.data")],
+                stdout=perf_script,
             )
         print("generating profile graph...")
 
         with (
-            open(output_dir / "gprof.out") as gprof,
-            open(output_dir / "gprof.dot", "w+") as dot,
+            open(output_dir / "perf.out") as perf_script,
+            open(output_dir / "perf.dot", "w+") as dot,
         ):
-            subprocess.check_call(["gprof2dot", "--strip"], stdin=gprof, stdout=dot)
-            with open(output_dir / "cpu_profile.png", "w+") as profile:
+            subprocess.check_call(
+                ["gprof2dot", "-f", "perf", "--strip"],
+                stdin=perf_script,
+                stdout=dot,
+            )
+            with open(output_dir / "cpu_profile.png", "wb") as profile:
                 dot.seek(0)
                 subprocess.check_call(["dot", "-Tpng"], stdin=dot, stdout=profile)
+
+        print("generating flame graph...")
+        try:
+            with (
+                open(output_dir / "perf.out") as perf_script,
+                open(output_dir / "flame.folded", "w+") as folded,
+            ):
+                subprocess.check_call(
+                    ["stackcollapse-perf.pl"],
+                    stdin=perf_script,
+                    stdout=folded,
+                )
+            with (
+                open(output_dir / "flame.folded") as folded,
+                open(output_dir / "flame.svg", "w+") as svg,
+            ):
+                subprocess.check_call(
+                    ["flamegraph.pl"], stdin=folded, stdout=svg
+                )
+        except FileNotFoundError:
+            print(
+                "skipping flame graph: FlameGraph tools not found on PATH.\n"
+                "  install: git clone"
+                " https://github.com/brendangregg/FlameGraph\n"
+                "  then add the cloned directory to PATH"
+            )
 
     parse_session_stats.main(output_dir / "counters.log", 8, output_dir)
 
