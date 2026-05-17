@@ -85,24 +85,26 @@ error_code translate_error(std::error_code const& err, bool const write)
 } // namespace
 
 
-	mmap_storage::mmap_storage(storage_params const& params
-		, aux::file_view_pool& pool)
-		: m_files(params.files)
-		, m_renamed_files(params.renamed_files)
-		, m_file_priority(params.priorities)
-		, m_save_path(complete(params.path))
-		, m_part_file_dir(params.part_file_dir)
-		, m_part_file_name("." + aux::to_hex(params.info_hash) + ".parts")
-		, m_pool(pool)
-		, m_allocate_files(params.mode == storage_mode_allocate)
-	{
-		TORRENT_ASSERT(files().num_files() > 0);
+mmap_storage::mmap_storage(storage_params const& params, aux::file_view_pool& pool)
+	: m_files(params.files)
+	, m_renamed_files(params.renamed_files)
+	, m_file_priority(params.priorities)
+	, m_save_path(complete(params.path))
+	, m_part_file_dir(params.part_file_dir)
+	, m_part_file_name("." + aux::to_hex(params.info_hash) + ".parts")
+	, m_pool(pool)
+	, m_allocate_files(params.mode == storage_mode_allocate)
+	, m_v1(params.v1)
+	, m_v2(params.v2)
+{
+	TORRENT_ASSERT(files().num_files() > 0);
+	TORRENT_ASSERT(m_v1 || m_v2);
 
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
 		m_file_open_unmap_lock.reset(new std::mutex[files().num_files()]
 			, [](std::mutex* o) { delete[] o; });
 #endif
-	}
+}
 
 	mmap_storage::~mmap_storage()
 	{
@@ -117,6 +119,52 @@ error_code translate_error(std::error_code const& err, bool const write)
 	filenames mmap_storage::names() const
 	{
 		return {m_files, m_renamed_files};
+	}
+
+	void mmap_storage::store_precomputed_v2(
+		piece_index_t const piece, int const block, sha256_hash const& h)
+	{
+		int const blocks = files().blocks_in_piece2(piece);
+		std::lock_guard<std::mutex> l(m_precomputed_v2_mutex);
+		auto& entry = m_precomputed_v2[piece];
+		if (entry.hashes.empty())
+		{
+			entry.hashes.resize(blocks);
+			entry.present.resize(blocks, false);
+		}
+		TORRENT_ASSERT(block >= 0 && block < blocks);
+		entry.hashes[block] = h;
+		entry.present.set_bit(block);
+	}
+
+	mmap_storage::precomputed_piece mmap_storage::take_precomputed_v2(piece_index_t const piece)
+	{
+		std::lock_guard<std::mutex> l(m_precomputed_v2_mutex);
+		auto const it = m_precomputed_v2.find(piece);
+		if (it == m_precomputed_v2.end()) return {};
+		precomputed_piece ret = std::move(it->second);
+		m_precomputed_v2.erase(it);
+		return ret;
+	}
+
+	std::optional<sha256_hash> mmap_storage::take_precomputed_v2_block(
+		piece_index_t const piece, int const block)
+	{
+		std::lock_guard<std::mutex> l(m_precomputed_v2_mutex);
+		auto const it = m_precomputed_v2.find(piece);
+		if (it == m_precomputed_v2.end()) return std::nullopt;
+		auto& entry = it->second;
+		if (block >= entry.present.size() || !entry.present.get_bit(block)) return std::nullopt;
+		sha256_hash const h = entry.hashes[block];
+		entry.present.clear_bit(block);
+		if (entry.present.none_set()) m_precomputed_v2.erase(it);
+		return h;
+	}
+
+	void mmap_storage::drop_precomputed_v2(piece_index_t const piece)
+	{
+		std::lock_guard<std::mutex> l(m_precomputed_v2_mutex);
+		m_precomputed_v2.erase(piece);
 	}
 
 	void mmap_storage::need_partfile()

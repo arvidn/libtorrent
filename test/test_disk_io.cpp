@@ -25,6 +25,7 @@ see LICENSE file.
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/sha1_hash.hpp"
+#include "libtorrent/hasher.hpp"
 
 using disk_test_mode_t = lt::flags::bitfield_flag<std::uint32_t, struct disk_test_mode_tag>;
 
@@ -135,17 +136,59 @@ void disk_io_test_suite_impl(lt::disk_io_constructor_type disk_io
 				lt::disk_job_flags_t const hash_flags = need_v1
 					? lt::disk_interface::v1_hash
 					: lt::disk_job_flags_t{};
-				disk_thread->async_hash(storage, p
-					, lt::span<lt::sha256_hash>(*v2_hashes)
-					, hash_flags | lt::disk_interface::flush_piece
-					, [&hashes_done, p, v2_hashes](lt::piece_index_t, lt::sha1_hash const&
-						, lt::storage_error const& e) {
-						if (e.ec) {
+				// expected hashes computed from the same generate_piece data.
+				// v2 pieces don't span file boundaries, so v2 hashes only cover
+				// the v2 portion (up to piece_size2) of the block buffer.
+				std::vector<lt::sha256_hash> expected_v2;
+				lt::sha1_hash expected_v1;
+				if (need_v2)
+				{
+					expected_v2.resize(blocks_in_piece);
+					int const v2_blocks = fs.blocks_in_piece2(p);
+					int const v2_size = fs.piece_size2(p);
+					for (int b = 0; b < v2_blocks; ++b)
+					{
+						int const off = b * block_size;
+						int const bsize = std::min(block_size, v2_size - off);
+						lt::hasher256 hh;
+						hh.update({buffer.data() + off, bsize});
+						expected_v2[b] = hh.final();
+					}
+				}
+				if (need_v1)
+				{
+					lt::hasher hh;
+					hh.update({buffer.data(), len});
+					expected_v1 = hh.final();
+				}
+
+				disk_thread->async_hash(storage,
+					p,
+					lt::span<lt::sha256_hash>(*v2_hashes),
+					hash_flags | lt::disk_interface::flush_piece,
+					[&hashes_done,
+						p,
+						v2_hashes,
+						need_v1,
+						need_v2,
+						expected_v2 = std::move(expected_v2),
+						expected_v1](lt::piece_index_t,
+						lt::sha1_hash const& v1_hash,
+						lt::storage_error const& e) {
+						if (e.ec)
+						{
 							std::cout << "ERROR: failed to hash piece (p: " << p
 								<< "): (" << e.ec.value()
 								<< ") " << e.ec.message() << std::endl;
 							std::abort();
 						}
+						if (need_v2)
+						{
+							TEST_EQUAL(v2_hashes->size(), expected_v2.size());
+							for (std::size_t i = 0; i < expected_v2.size(); ++i)
+								TEST_CHECK((*v2_hashes)[i] == expected_v2[i]);
+						}
+						if (need_v1) TEST_CHECK(v1_hash == expected_v1);
 						++hashes_done;
 					});
 				++expect_hashes;
