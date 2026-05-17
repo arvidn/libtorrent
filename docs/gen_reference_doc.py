@@ -611,12 +611,16 @@ def parse_class(lno, lines, filename):
         start_brace += line.count('{')
         end_brace += line.count('}')
 
-        if line == 'private:':
-            state = 'private'
-        elif line == 'protected:':
-            state = 'protected'
-        elif line == 'public:':
-            state = 'public'
+        if line in ('private:', 'protected:', 'public:'):
+            new_state = line[:-1]
+            # any doc comment that accumulated while parsing the
+            # previous access section belongs to that section, not to
+            # the first member of the new one. Without this reset, a
+            # comment above a private member would bleed into the next
+            # public member's docs.
+            if new_state != state:
+                context = ''
+            state = new_state
 
         if start_brace > 0 and start_brace == end_brace:
             return [{'file': filename[11:], 'enums': enums, 'fields':fields,
