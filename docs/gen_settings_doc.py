@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
+import sys
 from typing import Dict
 from typing import List
 from typing import Sequence
 from typing import Set
 
 f = open("../include/libtorrent/settings_pack.hpp")
+missing_docs = False
 
 out = open("settings.rst", "w+")
 all_names: Set[str] = set()
@@ -107,6 +109,7 @@ for line in f:
         if description == "":
             for n in names:
                 print('WARNING: no description for "%s"' % n)
+                missing_docs = True
         elif description.strip() != "hidden":
             default_values = []
             for n in names:
@@ -142,3 +145,6 @@ for w in sorted(all_names):
 dictionary.close()
 out.close()
 f.close()
+
+if missing_docs:
+    sys.exit(1)
