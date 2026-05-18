@@ -2,6 +2,7 @@
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 
 import os
+import re
 import time
 import shutil
 import signal
@@ -192,6 +193,156 @@ def compact_indent(line: str) -> str:
     return "|".join(out) + rest + nl
 
 
+RATE_LINE_RE = re.compile(
+    r"rate sent:\s*([\d.]+)\s*MB/s\s+received:\s*([\d.]+)\s*MB/s"
+)
+
+
+def parse_test_out(path: Path) -> tuple[float, float]:
+    """Return (sent_MB, received_MB) parsed from connection_tester's summary.
+    The 'MB/s' label in connection_tester's output is misleading -- the
+    printed value is total bytes / 1e6, not divided by runtime. Caller
+    converts to a real rate using its own runtime measurement.
+    """
+    try:
+        text = path.read_text(errors="replace")
+    except OSError:
+        return 0.0, 0.0
+    m = RATE_LINE_RE.search(text)
+    if not m:
+        return 0.0, 0.0
+    return float(m.group(1)), float(m.group(2))
+
+
+# stable display order: backends are table rows, variants are columns
+_VARIANT_ORDER = {"v1": 0, "v2": 1, "hybrid": 2}
+_BACKEND_ORDER = {"mmap": 0, "pread": 1, "posix": 2}
+
+
+def render_pivot(mode_results: list[dict], rate_field: str) -> str:
+    """Render a `disk_io_backend X torrent_variant` matrix of `rate_field`
+    as an RST simple table. Backends not yet tested in this mode are
+    omitted; cells for untested (backend, variant) pairs show '-'.
+    """
+    backends = sorted(
+        {r["io_backend"] for r in mode_results},
+        key=lambda b: _BACKEND_ORDER.get(b, 99),
+    )
+    variants = sorted(
+        {r["variant"] for r in mode_results},
+        key=lambda v: _VARIANT_ORDER.get(v, 99),
+    )
+    by_key = {
+        (r["io_backend"], r["variant"]): r[rate_field]
+        for r in mode_results
+    }
+
+    headers = ["Backend"] + variants
+    body = []
+    for b in backends:
+        row = [b]
+        for v in variants:
+            rate = by_key.get((b, v))
+            row.append(f"{rate:.2f}" if rate is not None else "-")
+        body.append(row)
+
+    widths = [len(h) for h in headers]
+    for row in body:
+        for i, cell in enumerate(row):
+            widths[i] = max(widths[i], len(cell))
+
+    sep = "  ".join("=" * w for w in widths)
+
+    def fmt(cells: list[str]) -> str:
+        return "  ".join(c.ljust(w) for c, w in zip(cells, widths))
+
+    lines = [sep, fmt(headers), sep]
+    for row in body:
+        lines.append(fmt(row))
+    lines.append(sep)
+    return "\n".join(lines) + "\n"
+
+
+def update_results(
+    results: list[dict],
+    benchmarks_dir: Path,
+    transfer_mode: str,
+    variant: str,
+    io_backend: str,
+    upload_rate: float,
+    download_rate: float,
+) -> None:
+    """Record one test's result into `results` (mutated in place) and
+    re-render the RST summary table -- plus its HTML rendering, when
+    docutils is importable. `results` is the in-memory source of truth;
+    the RST/HTML are rewritten from it after every test so a Ctrl-C run
+    leaves a coherent partial table behind, but nothing is persisted
+    across script restarts.
+    """
+    benchmarks_dir.mkdir(parents=True, exist_ok=True)
+
+    key = (transfer_mode, variant, io_backend)
+    results[:] = [
+        r for r in results
+        if (r["transfer_mode"], r["variant"], r["io_backend"]) != key
+    ]
+    results.append({
+        "transfer_mode": transfer_mode,
+        "variant": variant,
+        "io_backend": io_backend,
+        "upload_rate_mbps": upload_rate,
+        "download_rate_mbps": download_rate,
+    })
+
+    by_mode: dict[str, list[dict]] = {}
+    for r in results:
+        by_mode.setdefault(r["transfer_mode"], []).append(r)
+
+    # one mode-section per transfer mode that has results. download- and
+    # upload-only modes get a single matrix for the rate that mode
+    # actually exercises; dual mode gets one matrix per direction.
+    sections = [
+        ("download", "Download mode",
+         [(None, "download_rate_mbps")]),
+        ("upload", "Upload mode",
+         [(None, "upload_rate_mbps")]),
+        ("dual", "Dual mode", [
+            ("Download rate (MB/s)", "download_rate_mbps"),
+            ("Upload rate (MB/s)", "upload_rate_mbps"),
+        ]),
+    ]
+
+    doc_parts: list[str] = []
+    for mode_key, heading, subs in sections:
+        mode_results = by_mode.get(mode_key, [])
+        if not mode_results:
+            continue
+        doc_parts.append(f"{heading}\n{'=' * len(heading)}\n\n")
+        for sub_heading, rate_field in subs:
+            if sub_heading:
+                doc_parts.append(
+                    f"{sub_heading}\n{'-' * len(sub_heading)}\n\n"
+                )
+            doc_parts.append(render_pivot(mode_results, rate_field))
+            doc_parts.append("\n")
+    rst_text = "".join(doc_parts)
+
+    rst_path = benchmarks_dir / "results.rst"
+    tmp_rst = rst_path.with_suffix(".rst.tmp")
+    tmp_rst.write_text(rst_text)
+    tmp_rst.replace(rst_path)
+
+    try:
+        from docutils.core import publish_string
+    except ImportError:
+        return
+    html_bytes = publish_string(source=rst_text, writer_name="html5")
+    html_path = benchmarks_dir / "results.html"
+    tmp_html = html_path.with_suffix(".html.tmp")
+    tmp_html.write_bytes(html_bytes)
+    tmp_html.replace(html_path)
+
+
 def check_perf_environment() -> None:
     """Warn early about sysctls that prevent perf record / perf report from
     producing useful output. Linux only; no-op elsewhere.
@@ -317,6 +468,8 @@ def main() -> None:
 
     rm_file_or_dir(Path("t"))
 
+    results: list[dict] = []
+
     for variant in args.variants:
         torrent = torrent_path(variant, args.num_pieces)
         data_dir = payload_dir(args.save_path, variant, args.num_pieces)
@@ -330,6 +483,10 @@ def main() -> None:
                 args.save_path,
                 torrent,
                 data_dir,
+                results=results,
+                transfer_mode="download",
+                variant=variant,
+                io_backend=io_backend,
             )
             reset_download(args.save_path, variant, args.num_pieces)
             run_test(
@@ -340,6 +497,10 @@ def main() -> None:
                 args.save_path,
                 torrent,
                 data_dir,
+                results=results,
+                transfer_mode="dual",
+                variant=variant,
+                io_backend=io_backend,
             )
             run_test(
                 f"upload-{variant}-{io_backend}",
@@ -349,6 +510,10 @@ def main() -> None:
                 args.save_path,
                 torrent,
                 data_dir,
+                results=results,
+                transfer_mode="upload",
+                variant=variant,
+                io_backend=io_backend,
             )
 
 
@@ -360,8 +525,14 @@ def run_test(
     save_path: Path,
     torrent: Path,
     data_dir: Path,
+    *,
+    results: list[dict],
+    transfer_mode: str,
+    variant: str,
+    io_backend: str,
 ) -> None:
-    output_dir = (save_path / f"logs_{name}").resolve()
+    benchmarks_dir = (save_path / "benchmarks").resolve()
+    output_dir = benchmarks_dir / name
 
     rm_file_or_dir(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -510,6 +681,7 @@ def run_test(
                 )
 
         print(f"test_cmd: \"{' '.join(test_cmd)}\"")
+        test_start = time.monotonic()
         t = subprocess.Popen(test_cmd, stdout=test_out, stderr=test_out)
 
         out: dict[str, list[float]] = {}
@@ -518,6 +690,7 @@ def run_test(
             time.sleep(0.1)
             t.poll()
         end = time.monotonic()
+        test_runtime = end - test_start
 
         if profiler is not None:
             profiler.send_signal(signal.SIGINT)
@@ -530,6 +703,17 @@ def run_test(
         t.wait()
 
     print(f"runtime {end-start:0.2f} seconds")
+
+    sent_mb, recv_mb = parse_test_out(output_dir / "test.out")
+    # connection_tester reports totals from its own perspective: it `sent` to
+    # the client (so client downloaded) and `received` from it (so client
+    # uploaded). Convert to rates against the test-only runtime.
+    download_rate = sent_mb / test_runtime if test_runtime > 0 else 0.0
+    upload_rate = recv_mb / test_runtime if test_runtime > 0 else 0.0
+    update_results(
+        results, benchmarks_dir, transfer_mode, variant, io_backend,
+        upload_rate, download_rate,
+    )
 
     # perf-based profiling is Linux only
     if platform.system() == "Linux":
