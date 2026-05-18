@@ -88,10 +88,7 @@ struct cache_fixture
 	lt::aux::disk_cache::piece_entry_params piece_params() const
 	{
 		return {
-			piece_size2,
-			piece_size,
-			bool(mode & test_mode::v1), bool(mode & test_mode::v2)
-		};
+			piece_size2, piece_size, bool(mode & test_mode::v1), bool(mode & test_mode::v2), {}};
 	}
 
 	// Allocate a write-job whose buffer is filled with fill_char.

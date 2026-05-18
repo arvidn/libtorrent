@@ -51,28 +51,31 @@ namespace libtorrent {
 
 namespace libtorrent::aux {
 
-namespace mi = boost::multi_index;
+	struct pread_storage;
 
-using cached_piece_flags = libtorrent::flags::bitfield_flag<std::uint16_t, struct cached_piece_flags_tag>;
+	namespace mi = boost::multi_index;
 
-// uniquely identifies a torrent and piece
-struct piece_location
-{
-	piece_location(storage_index_t const t, piece_index_t const p)
-		: torrent(t), piece(p) {}
-	storage_index_t torrent;
-	piece_index_t piece;
-	bool operator==(piece_location const& rhs) const
+	using cached_piece_flags =
+		libtorrent::flags::bitfield_flag<std::uint16_t, struct cached_piece_flags_tag>;
+
+	// uniquely identifies a torrent and piece
+	struct piece_location
 	{
-		return std::tie(torrent, piece)
-			== std::tie(rhs.torrent, rhs.piece);
-	}
+		piece_location(storage_index_t const t, piece_index_t const p)
+			: torrent(t)
+			, piece(p)
+		{}
+		storage_index_t torrent;
+		piece_index_t piece;
+		bool operator==(piece_location const& rhs) const
+		{
+			return std::tie(torrent, piece) == std::tie(rhs.torrent, rhs.piece);
+		}
 
-	bool operator<(piece_location const& rhs) const
-	{
-		return std::tie(torrent, piece)
-			< std::tie(rhs.torrent, rhs.piece);
-	}
+		bool operator<(piece_location const& rhs) const
+		{
+			return std::tie(torrent, piece) < std::tie(rhs.torrent, rhs.piece);
+		}
 };
 
 inline size_t hash_value(piece_location const& l)
@@ -145,22 +148,27 @@ inline span<char const> write_buf(disk_job const* j)
 
 struct cached_piece_entry
 {
-	cached_piece_entry(piece_location const& loc
-		, int const piece_size_v2
-		, int const piece_size
-		, int const num_blocks
-		, bool v1
-		, bool v2);
+	cached_piece_entry(piece_location const& loc,
+		int const piece_size_v2,
+		int const piece_size,
+		int const num_blocks,
+		bool v1,
+		bool v2,
+		std::weak_ptr<pread_storage> storage);
 
 	span<cached_block_entry> get_blocks() const;
 
 	piece_location piece;
 
 	unique_ptr<cached_block_entry[], int> blocks;
-	// allocated only for v2 torrents (null for v1-only)
-	unique_ptr<sha256_hash[], int> block_hashes;
 	// allocated only for v1 torrents (null for v2-only)
 	std::unique_ptr<piece_hasher> ph;
+
+	// The storage this piece belongs to. kick_hasher uses this to deliver
+	// computed v2 block hashes to pread_storage::store_precomputed_v2.
+	// weak_ptr so we don't extend the storage's lifetime; when the storage
+	// is destroyed the v2 pass becomes a no-op.
+	std::weak_ptr<pread_storage> storage;
 
 	// if there is a hash_job set on this piece, whenever we complete hashing
 	// the last block, we should post this
@@ -220,8 +228,8 @@ struct cached_piece_entry
 	// set if this piece requires v1 SHA1 hashing (ph member is allocated).
 	static constexpr cached_piece_flags v1_hashes_flag = 4_bit;
 
-	// set if this piece requires v2 SHA256 block hashing (block_hashes
-	// member is allocated).
+	// set if this piece requires v2 SHA256 block hashing. The hashes are
+	// stashed on pread_storage (not in this struct) by kick_hasher.
 	static constexpr cached_piece_flags v2_hashes_flag = 5_bit;
 
 	// set when a block is inserted into this piece and the hasher thread
@@ -310,57 +318,6 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 		return false;
 	}
 
-	template <typename Fun>
-	sha256_hash hash2(piece_location const loc, int const block_idx, Fun f) const
-	{
-		std::unique_lock<std::mutex> l(m_mutex);
-
-		INVARIANT_CHECK;
-
-		auto& view = m_pieces.template get<0>();
-		auto i = view.find(loc);
-		if (i == view.end())
-		{
-			l.unlock();
-			return f();
-		}
-
-		// Another thread may be hashing this piece right now. In this case we
-		// need to wait
-		// TODO: there may be a better way to solve this, maybe hang the job on
-		// the piece and try later. But it's a big change to do so
-		while (i->flags & cached_piece_entry::hashing_flag)
-		{
-			l.unlock();
-			std::this_thread::yield();
-			l.lock();
-
-			i = view.find(loc);
-			if (i == view.end())
-			{
-				l.unlock();
-				return f();
-			}
-		}
-		auto const& cbe = i->blocks[block_idx];
-		// There's nothing stopping the hash threads from hashing the blocks in
-		// parallel. This should not depend on the hasher_cursor. That's a v1
-		// concept
-		TORRENT_ASSERT(i->block_hashes);
-		if (!i->block_hashes[block_idx].is_all_zeros())
-			return i->block_hashes[block_idx];
-		if (cbe.data())
-		{
-			int const blk_size = std::min(default_block_size
-				, i->piece_size2 - block_idx * default_block_size);
-			hasher256 h;
-			h.update(cbe.buf(blk_size));
-			return h.final();
-		}
-		l.unlock();
-		return f();
-	}
-
 	enum class hash_piece_result { not_in_cache, completed, deferred };
 
 	// Looks up the piece in the cache and calls f() to complete its hash computation.
@@ -375,19 +332,19 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 	// the mutex, sets hashing=true (which pins all buffers at index >= hasher_cursor
 	// so flush_piece_impl cannot free them), then releases the lock and calls:
 	//
-	//   f(ph, hasher_cursor, blocks, v2_hashes)
+	//   f(ph, hasher_cursor, blocks)
 	//
 	//   ph: SHA1 piece hasher already fed blocks [0, hasher_cursor).
 	//   hasher_cursor: index of the first block not yet incorporated in ph.
 	//     f() must continue feeding blocks from this index onward.
 	//   blocks: per-block buffer pointers. A null entry means the block is not
 	//     in the cache and must be read from disk.
-	//   v2_hashes: per-block SHA256 hash snapshots. all-zeros means not-yet-computed.
-	//     a non-zero entry is a pre-computed hash that f() may use directly without re-hashing.
 	//
 	// After f() returns hasher_cursor is advanced and buffers that have
 	// already been flushed to disk are freed. If all blocks are flushed, the
-	// piece entry is removed from the cache entirely.
+	// piece entry is removed from the cache entirely. v2 block hashes are
+	// stashed directly on pread_storage by kick_hasher; callers read them
+	// from there, not through this function.
 	template <typename Fun>
 	hash_piece_result hash_piece(piece_location const loc, disk_job* j, Fun f)
 	{
@@ -415,7 +372,6 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 		std::uint16_t const hasher_cursor = piece_iter->hasher_cursor;
 
 		TORRENT_ALLOCA(blocks, char const*, blocks_in_piece);
-		TORRENT_ALLOCA(v2_hashes, sha256_hash, (piece_iter->flags & cached_piece_entry::v2_hashes_flag) ? blocks_in_piece : 0);
 
 		int num_unhashed = 0;
 		for (int i = 0; i < blocks_in_piece; ++i)
@@ -424,11 +380,6 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 			blocks[i] = buf;
 			if (buf && i >= hasher_cursor)
 				++num_unhashed;
-		}
-		if (piece_iter->block_hashes)
-		{
-			for (int i = 0; i < blocks_in_piece; ++i)
-				v2_hashes[i] = piece_iter->block_hashes[i];
 		}
 
 		view.modify(piece_iter, [](cached_piece_entry& e) { e.flags |= cached_piece_entry::hashing_flag; });
@@ -462,7 +413,7 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 				view.erase(piece_iter);
 			}
 		});
-		f(piece_iter->ph.get(), hasher_cursor, blocks, v2_hashes);
+		f(piece_iter->ph.get(), hasher_cursor, blocks);
 		return hash_piece_result::completed;
 	}
 
@@ -511,6 +462,9 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 		int piece_size;
 		bool v1; // piece requires SHA-1 hashing
 		bool v2; // piece requires per-block SHA-256 hashing
+		// the storage that owns this piece. kick_hasher delivers computed
+		// v2 block hashes to it via pread_storage::store_precomputed_v2.
+		std::weak_ptr<pread_storage> storage;
 	};
 
 	// the return value indicates whether the piece needs its hasher kicked or

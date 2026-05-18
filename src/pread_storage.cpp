@@ -72,6 +72,52 @@ namespace libtorrent::aux {
 		return {m_files, m_renamed_files};
 	}
 
+	void pread_storage::store_precomputed_v2(
+		piece_index_t const piece, int const block, sha256_hash const& h)
+	{
+		int const blocks = files().blocks_in_piece2(piece);
+		std::lock_guard<std::mutex> l(m_precomputed_v2_mutex);
+		auto& entry = m_precomputed_v2[piece];
+		if (entry.hashes.empty())
+		{
+			entry.hashes.resize(blocks);
+			entry.present.resize(blocks, false);
+		}
+		TORRENT_ASSERT(block >= 0 && block < blocks);
+		entry.hashes[block] = h;
+		entry.present.set_bit(block);
+	}
+
+	pread_storage::precomputed_piece pread_storage::take_precomputed_v2(piece_index_t const piece)
+	{
+		std::lock_guard<std::mutex> l(m_precomputed_v2_mutex);
+		auto const it = m_precomputed_v2.find(piece);
+		if (it == m_precomputed_v2.end()) return {};
+		precomputed_piece ret = std::move(it->second);
+		m_precomputed_v2.erase(it);
+		return ret;
+	}
+
+	std::optional<sha256_hash> pread_storage::take_precomputed_v2_block(
+		piece_index_t const piece, int const block)
+	{
+		std::lock_guard<std::mutex> l(m_precomputed_v2_mutex);
+		auto const it = m_precomputed_v2.find(piece);
+		if (it == m_precomputed_v2.end()) return std::nullopt;
+		auto& entry = it->second;
+		if (block >= entry.present.size() || !entry.present.get_bit(block)) return std::nullopt;
+		sha256_hash const h = entry.hashes[block];
+		entry.present.clear_bit(block);
+		if (entry.present.none_set()) m_precomputed_v2.erase(it);
+		return h;
+	}
+
+	void pread_storage::drop_precomputed_v2(piece_index_t const piece)
+	{
+		std::lock_guard<std::mutex> l(m_precomputed_v2_mutex);
+		m_precomputed_v2.erase(piece);
+	}
+
 	void pread_storage::need_partfile()
 	{
 		if (m_part_file) return;

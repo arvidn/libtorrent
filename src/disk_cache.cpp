@@ -8,6 +8,7 @@ see LICENSE file.
 */
 
 #include "libtorrent/aux_/disk_cache.hpp"
+#include "libtorrent/aux_/pread_storage.hpp"
 #include "libtorrent/disk_observer.hpp"
 #include "libtorrent/aux_/debug_disk_thread.hpp"
 #include "libtorrent/bitfield.hpp"
@@ -165,16 +166,21 @@ lt::hasher& piece_hasher::ctx()
 	return *ctx;
 }
 
-cached_piece_entry::cached_piece_entry(piece_location const& loc
-	, int const piece_size_v2, int const piece_size_arg, int const num_blocks, bool const v1, bool const v2)
+cached_piece_entry::cached_piece_entry(piece_location const& loc,
+	int const piece_size_v2,
+	int const piece_size_arg,
+	int const num_blocks,
+	bool const v1,
+	bool const v2,
+	std::weak_ptr<pread_storage> stg)
 	: piece(loc)
 	, blocks(aux::make_unique<cached_block_entry[]>(num_blocks))
-	, block_hashes(v2 ? aux::make_unique<sha256_hash[]>(num_blocks) : aux::unique_ptr<sha256_hash[], int>())
 	, ph(v1 ? std::make_unique<piece_hasher>() : nullptr)
+	, storage(std::move(stg))
 	, piece_size2(piece_size_v2)
 	, piece_size(piece_size_arg)
 	, flags((v1 ? v1_hashes_flag : cached_piece_flags{})
-		| (v2 ? v2_hashes_flag : cached_piece_flags{}))
+		  | (v2 ? v2_hashes_flag : cached_piece_flags{}))
 {
 	TORRENT_ASSERT(piece_size_arg > 0);
 	TORRENT_ASSERT(num_blocks == blocks_in_piece());
@@ -251,8 +257,15 @@ insert_result_flags disk_cache::insert(piece_location const loc
 	if (i == view.end())
 	{
 		int const num_blocks = (params.piece_size + default_block_size - 1) / default_block_size;
-		i = m_pieces.emplace(loc, params.piece_size2
-			, params.piece_size, num_blocks, params.v1, params.v2).first;
+		i = m_pieces
+				.emplace(loc,
+					params.piece_size2,
+					params.piece_size,
+					num_blocks,
+					params.v1,
+					params.v2,
+					params.storage)
+				.first;
 	}
 
 	TORRENT_ASSERT(!(i->flags & cached_piece_entry::piece_hash_returned_flag));
@@ -338,6 +351,7 @@ disk_cache::hash_result disk_cache::try_hash_piece(piece_location const loc, dis
 
 	if (!(i->flags & cached_piece_entry::hashing_flag) && i->hasher_cursor == i->blocks_in_piece())
 	{
+		std::weak_ptr<pread_storage> storage_wp;
 		view.modify(i, [&](cached_piece_entry& e) {
 			// mark for flush so a generic thread will write any pending
 			// write_jobs that are still in the cache for this piece
@@ -346,16 +360,23 @@ disk_cache::hash_result disk_cache::try_hash_piece(piece_location const loc, dis
 			auto& job = std::get<aux::job::hash>(hash_job->action);
 			TORRENT_ASSERT(bool(e.ph) == bool(e.flags & cached_piece_entry::v1_hashes_flag));
 			job.piece_hash = e.ph ? e.ph->final_hash() : sha1_hash{};
-			if (!job.block_hashes.empty())
-			{
-				TORRENT_ASSERT(bool(i->flags & cached_piece_entry::v2_hashes_flag));
-				TORRENT_ASSERT(e.block_hashes);
-				TORRENT_ASSERT(job.block_hashes.size() <= e.blocks_in_piece());
-				int const to_copy = std::min(int(job.block_hashes.size()), int(e.blocks_in_piece()));
-				for (int idx = 0; idx < to_copy; ++idx)
-					job.block_hashes[idx] = e.block_hashes[idx];
-			}
+			storage_wp = e.storage;
 		});
+		{
+			auto& job2 = std::get<aux::job::hash>(hash_job->action);
+			if (!job2.block_hashes.empty())
+			{
+				if (auto storage = storage_wp.lock())
+				{
+					auto pc = storage->take_precomputed_v2(loc.piece);
+					int const to_copy =
+						std::min(int(job2.block_hashes.size()), int(pc.hashes.size()));
+					for (int idx = 0; idx < to_copy; ++idx)
+						if (idx < pc.present.size() && pc.present.get_bit(idx))
+							job2.block_hashes[idx] = pc.hashes[idx];
+				}
+			}
+		}
 		return hash_result::job_completed;
 	}
 
@@ -458,12 +479,15 @@ keep_going:
 			++count_hashed;
 		}
 
-		if (need_v2)
+		if (need_v2 && bytes_left > 0)
 		{
-			TORRENT_ASSERT(piece_iter->block_hashes);
 			int const blk_idx = int(cursor_start) + i;
-			if (bytes_left > 0 && piece_iter->block_hashes[blk_idx].is_all_zeros())
-				piece_iter->block_hashes[blk_idx] = hasher256(buf.first(std::min(bytes_left, default_block_size))).final();
+			if (auto storage = piece_iter->storage.lock())
+			{
+				storage->store_precomputed_v2(piece_iter->piece.piece,
+					blk_idx,
+					hasher256(buf.first(std::min(bytes_left, default_block_size))).final());
+			}
 		}
 	}
 
@@ -565,12 +589,14 @@ keep_going:
 	if (!job.block_hashes.empty())
 	{
 		TORRENT_ASSERT(need_v2);
-		TORRENT_ASSERT(piece_iter->block_hashes);
-		int const to_copy = std::min(
-			piece_iter->blocks_in_piece(),
-			int(job.block_hashes.size()));
-		for (int i = 0; i < to_copy; ++i)
-			job.block_hashes[i] = piece_iter->block_hashes[i];
+		if (auto storage = piece_iter->storage.lock())
+		{
+			auto pc = storage->take_precomputed_v2(piece_iter->piece.piece);
+			int const to_copy = std::min(int(job.block_hashes.size()), int(pc.hashes.size()));
+			for (int i = 0; i < to_copy; ++i)
+				if (i < pc.present.size() && pc.present.get_bit(i))
+					job.block_hashes[i] = pc.hashes[i];
+		}
 	}
 	DLOG("kick_hasher: posting attached job piece: %d\n"
 		, static_cast<int>(piece_iter->piece.piece));
@@ -1182,8 +1208,6 @@ void disk_cache::clear_piece_impl(cached_piece_entry& cpe, jobqueue_t& aborted)
 		| cached_piece_entry::needs_hasher_kick_flag);
 	cpe.hasher_cursor = 0;
 	cpe.flushed_cursor = 0;
-	if (cpe.block_hashes)
-		std::fill_n(cpe.block_hashes.get(), cpe.blocks_in_piece(), sha256_hash{});
 	TORRENT_ASSERT(cpe.num_jobs >= jobs);
 	cpe.num_jobs -= jobs;
 	if (cpe.ph) *cpe.ph = piece_hasher{};

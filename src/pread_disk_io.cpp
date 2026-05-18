@@ -642,11 +642,7 @@ bool pread_disk_io::async_write(storage_index_t const storage, peer_request cons
 	int const piece_size = j->storage->v1() ? fs.piece_size(r.piece) : fs.piece_size2(r.piece);
 	TORRENT_ASSERT(r.length == std::min(piece_size - r.start, default_block_size));
 	aux::disk_cache::piece_entry_params const piece_params{
-		fs.piece_size2(r.piece)
-		, piece_size
-		, j->storage->v1()
-		, j->storage->v2()
-	};
+		fs.piece_size2(r.piece), piece_size, j->storage->v1(), j->storage->v2(), j->storage};
 	auto const result = m_cache.insert(
 		{j->storage->storage_index(), r.piece}
 		, r.start / default_block_size
@@ -876,6 +872,10 @@ void pread_disk_io::async_clear_piece(storage_index_t const storage
 		index
 	);
 
+	// drop any precomputed v2 block hashes for this piece so a re-download
+	// after corruption starts fresh
+	j->storage->drop_precomputed_v2(index);
+
 	DLOG("async_clear_piece: piece: %d\n", int(index));
 	// regular jobs are not executed in-order.
 	// clear piece must wait for all write jobs issued to the piece finish
@@ -914,12 +914,15 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 
 	int const blocks_to_read = std::max(blocks_in_piece, blocks_in_piece2);
 
+	// Take precomputed v2 hashes once. Anything not present here will be
+	// computed from a cache buffer or re-read from disk in the loop below.
+	auto pc =
+		v2 ? j->storage->take_precomputed_v2(a.piece) : aux::pread_storage::precomputed_piece{};
+
 	// Callable matching the hash_piece() protocol (see disk_cache.hpp).
 	// Completes piece hash computation using the cache snapshot passed by hash_piece(),
 	// reading any missing blocks from disk.
-	// * Copies all non-zero v2_hashes entries into a.block_hashes (capturing both
-	//   in-order hashes and any out-of-order hashes computed by kick_hasher's second
-	//   pass).
+	// * Copies precomputed v2 hashes from pread_storage into a.block_hashes.
 	// * Iterates blocks [hasher_cursor, blocks_to_read): for each block, either reads
 	//   it from disk (buf == nullptr) or hashes it from the in-memory buffer. Skips
 	//   the SHA256 work for any block whose v2 hash is already pre-computed (v2_done).
@@ -927,23 +930,21 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 	//
 	// Also invoked directly as a fallback (all-null blocks, hasher_cursor=0) when the
 	// piece is not in the cache at all, in which case every block is read from disk.
-	auto hash_partial_piece = [&] (lt::aux::piece_hasher* ph
-		, int const hasher_cursor
-		, span<char const*> const blocks
-		, span<sha256_hash> const v2_hashes)
-	{
+	auto hash_partial_piece = [&](lt::aux::piece_hasher* ph,
+								  int const hasher_cursor,
+								  span<char const*> const blocks) {
 		// ph: SHA1 hasher already fed blocks [0, hasher_cursor)
 		// hasher_cursor: first block index that still needs processing for SHA1.
 		// blocks: per-block buffer pointers from the cache snapshot.
-		// v2_hashes: SHA256 block hashes from the cache snapshot.
 		time_point const start_time = clock_type::now();
 
-		// copy all pre-computed v2 hashes, including out-of-order ones
+		// copy precomputed v2 hashes
 		if (v2)
 		{
-			for (int i = 0; i < blocks_in_piece2; ++i)
-				if (!v2_hashes[i].is_all_zeros())
-					a.block_hashes[i] = v2_hashes[i];
+			int const to_copy = std::min(blocks_in_piece2, int(pc.hashes.size()));
+			for (int i = 0; i < to_copy; ++i)
+				if (i < pc.present.size() && pc.present.get_bit(i))
+					a.block_hashes[i] = pc.hashes[i];
 		}
 
 		int offset = hasher_cursor * default_block_size;
@@ -951,7 +952,7 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 		for (int i = hasher_cursor; i < blocks_to_read; ++i)
 		{
 			bool const v2_block = i < blocks_in_piece2;
-			bool const v2_done = v2_block && !v2_hashes[i].is_all_zeros();
+			bool const v2_done = v2_block && i < pc.present.size() && pc.present.get_bit(i);
 
 			std::ptrdiff_t const len = v1 ? std::min(default_block_size, piece_size - offset) : 0;
 			std::ptrdiff_t const len2 = (v2_block && !v2_done) ? std::min(default_block_size, piece_size2 - offset) : 0;
@@ -1027,10 +1028,9 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 		// fall back to reading everything from disk
 
 		TORRENT_ALLOCA(blocks, char const*, blocks_to_read);
-		TORRENT_ALLOCA(v2_hashes, sha256_hash, v2 ? blocks_in_piece2 : 0);
 		for (char const*& b : blocks) b = nullptr;
 		lt::aux::piece_hasher ph_storage;
-		hash_partial_piece(v1 ? &ph_storage : nullptr, 0, blocks, v2_hashes);
+		hash_partial_piece(v1 ? &ph_storage : nullptr, 0, blocks);
 	}
 
 	return j->error ? disk_status::fatal_disk_error : status_t{};
@@ -1045,18 +1045,39 @@ status_t pread_disk_io::do_job(aux::job::hash2& a, aux::pread_disk_job* j)
 
 	time_point const start_time = clock_type::now();
 
+	int const blk = a.offset / default_block_size;
+	if (auto pre = j->storage->take_precomputed_v2_block(a.piece, blk))
+	{
+		a.piece_hash2 = *pre;
+		std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+		m_stats_counters.inc_stats_counter(counters::disk_hash_time, read_time);
+		m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
+		return {};
+	}
+
 	TORRENT_ASSERT(piece_size > a.offset);
 	std::ptrdiff_t const len = std::min(default_block_size, piece_size - a.offset);
 
-	int ret = 0;
-	a.piece_hash2 = m_cache.hash2({ j->storage->storage_index(), a.piece }
-		, a.offset / default_block_size
-		, [&] {
-		hasher256 h;
-		ret = j->storage->hash2(m_settings, h, len, a.piece, a.offset
-			, file_mode, j->flags, j->error);
-		return h.final();
-	});
+	hasher256 h;
+
+	// the block may still be in the disk cache and not yet flushed; reading
+	// from disk in that case would yield stale or zero bytes. v2 pieces don't
+	// span file boundaries, so we hash only the v2 portion of the cache buffer
+	// (which may extend past piece_size2 into v1 padding for hybrid torrents).
+	if (m_cache.get({j->storage->storage_index(), a.piece}, blk, [&](span<char const> buf) {
+			h.update(buf.first(len));
+		}))
+	{
+		a.piece_hash2 = h.final();
+		std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+		m_stats_counters.inc_stats_counter(counters::disk_hash_time, read_time);
+		m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
+		return {};
+	}
+
+	int const ret =
+		j->storage->hash2(m_settings, h, len, a.piece, a.offset, file_mode, j->flags, j->error);
+	a.piece_hash2 = h.final();
 
 	if (!j->error.ec)
 	{

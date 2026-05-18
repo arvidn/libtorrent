@@ -14,6 +14,8 @@ see LICENSE file.
 
 #include <mutex>
 #include <memory>
+#include <optional>
+#include <unordered_map>
 
 #include "libtorrent/fwd.hpp"
 #include "libtorrent/aux_/disk_job_fence.hpp"
@@ -23,6 +25,7 @@ see LICENSE file.
 #include "libtorrent/aux_/file_pool.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/sha1_hash.hpp" // for sha256_hash
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/open_mode.hpp" // for aux::open_mode_t
 #include "libtorrent/disk_interface.hpp" // for disk_job_flags_t
@@ -109,6 +112,21 @@ namespace libtorrent::aux {
 		bool v1() const { return m_v1; }
 		bool v2() const { return m_v2; }
 
+		// SHA-256 block hashes computed inline on the hasher thread by
+		// disk_cache::kick_hasher, indexed by piece. Consumed by hash/hash2
+		// jobs to avoid re-reading the block from disk just to hash it. Only
+		// populated for v2/hybrid torrents.
+		struct precomputed_piece
+		{
+			aux::vector<sha256_hash> hashes;
+			bitfield present;
+		};
+
+		void store_precomputed_v2(piece_index_t piece, int block, sha256_hash const& h);
+		precomputed_piece take_precomputed_v2(piece_index_t piece);
+		std::optional<sha256_hash> take_precomputed_v2_block(piece_index_t piece, int block);
+		void drop_precomputed_v2(piece_index_t piece);
+
 	private:
 
 		bool m_need_tick = false;
@@ -180,6 +198,10 @@ namespace libtorrent::aux {
 		// this is a v2 torrent. If both v1 and v2 are set, it's a hybrid
 		// torrent
 		bool m_v2;
+
+		// guards m_precomputed_v2
+		mutable std::mutex m_precomputed_v2_mutex;
+		std::unordered_map<piece_index_t, precomputed_piece> m_precomputed_v2;
 	};
 
 }

@@ -206,8 +206,9 @@ void test_disk_bottleneck(test_mode_t const mode)
 		, disk_cache::hash_result::job_completed);
 	if (mode & test_mode::v1)
 		TEST_CHECK(!std::get<job::hash>(hash_job->action).piece_hash.is_all_zeros());
-	for (auto const& h : block_hashes)
-		TEST_CHECK(!h.is_all_zeros());
+	// v2 block hashes are stashed on pread_storage by kick_hasher, not in the
+	// cache. This fixture has no pread_storage, so v2 hashes don't land in
+	// block_hashes here. End-to-end v2 hash validation lives in test_disk_io.
 
 	TEST_EQUAL(f.flush(), 2);
 	TEST_EQUAL(int(f.cache.size()), 0);
@@ -265,8 +266,9 @@ void test_multi_piece(test_mode_t const mode)
 			, disk_cache::hash_result::job_completed);
 		if (mode & test_mode::v1)
 			TEST_CHECK(!std::get<job::hash>(hash_job->action).piece_hash.is_all_zeros());
-		if (mode & test_mode::v2)
-			TEST_CHECK(!bh.is_all_zeros());
+		// v2 block hash assertion moved to test_disk_io (cache no longer
+		// owns v2 hashes; they live on pread_storage which this fixture
+		// does not wire up).
 	}
 
 	TEST_EQUAL(f.flush(), 3);
@@ -286,58 +288,6 @@ TORRENT_TEST(hashing_bottleneck_hybrid) { test_hashing_bottleneck(test_mode::v1 
 TORRENT_TEST(multi_piece_v1) { test_multi_piece(test_mode::v1); }
 TORRENT_TEST(multi_piece_v2) { test_multi_piece(test_mode::v2); }
 TORRENT_TEST(multi_piece_hybrid) { test_multi_piece(test_mode::v1 | test_mode::v2); }
-
-// v2, hashing is the bottleneck: block 0 flushed before SHA256 is computed.
-// hash2() must invoke the fallback (read from disk).
-TORRENT_TEST(v2_hashing_bottleneck)
-{
-	// 1-block piece for simplicity.
-	cache_fixture f(1, test_mode::v2);
-
-	f.insert(0_piece, 0);
-	// Flush before the hasher runs — block_hashes[0] stays all-zeros.
-	TEST_EQUAL(f.flush(0), 1);
-
-	// The precomputed hash is absent and the buffer is gone; fallback fires.
-	bool fallback_called = false;
-	sha256_hash h = f.cache.hash2(f.loc(0_piece), 0, [&]() -> sha256_hash {
-		fallback_called = true;
-		return sha256_hash{};
-	});
-	TEST_CHECK(fallback_called);
-	(void)h;
-
-	jobqueue_t aborted;
-	TEST_CHECK(f.cache.try_clear_piece(f.loc(0_piece), nullptr, aborted));
-	TEST_CHECK(aborted.empty()); // block 0's write_job was consumed by the flush
-	TEST_EQUAL(int(f.cache.size()), 0);
-	TEST_EQUAL(f.alloc.live, 0); // buffer was freed when the block was flushed
-}
-
-// v2: hash2() served from precomputed in-cache hash (no fallback needed).
-TORRENT_TEST(v2_hash2_from_cache)
-{
-	cache_fixture f(1, test_mode::v2);
-
-	f.insert(0_piece, 0);
-
-	// Let the hasher compute SHA256 for block 0.
-	jobqueue_t completed, retry;
-	f.cache.kick_pending_hashers(completed, retry);
-
-	bool fallback_called = false;
-	sha256_hash h = f.cache.hash2(f.loc(0_piece), 0, [&]() -> sha256_hash {
-		fallback_called = true;
-		return sha256_hash{};
-	});
-	TEST_CHECK(!fallback_called);
-	TEST_CHECK(!h.is_all_zeros());
-
-	jobqueue_t aborted;
-	TEST_CHECK(f.cache.try_clear_piece(f.loc(0_piece), nullptr, aborted));
-	TEST_EQUAL(aborted.size(), 1); // block 0's write_job was never flushed
-	TEST_EQUAL(int(f.cache.size()), 0);
-}
 
 // Clear a piece that was never flushed or hashed.
 // All write_jobs must be returned in the aborted queue.
@@ -672,11 +622,7 @@ void test_piece_size2_smaller_than_piece_size(test_mode_t const mode)
 	cache_fixture f(blocks_in_piece, mode);
 
 	disk_cache::piece_entry_params const params{
-		piece_size2,
-		effective_piece_size,
-		need_v1,
-		need_v2
-	};
+		piece_size2, effective_piece_size, need_v1, need_v2, {}};
 
 	for (int blk = 0; blk < blocks_in_piece; ++blk)
 	{
@@ -700,8 +646,8 @@ void test_piece_size2_smaller_than_piece_size(test_mode_t const mode)
 		, disk_cache::hash_result::job_completed);
 	if (need_v1)
 		TEST_CHECK(!std::get<job::hash>(hash_job->action).piece_hash.is_all_zeros());
-	for (auto const& h : block_hashes)
-		TEST_CHECK(!h.is_all_zeros());
+	// v2 block hashes are stashed on pread_storage by kick_hasher, not in
+	// the cache. End-to-end v2 validation lives in test_disk_io.
 
 	TEST_EQUAL(f.flush(), blocks_in_piece);
 	TEST_EQUAL(int(f.cache.size()), 0);
