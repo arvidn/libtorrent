@@ -271,6 +271,43 @@ TORRENT_TEST(add_piece_hashes)
 	TEST_CHECK(std::equal(cmp.begin(), cmp.begin() + merkle_num_nodes(1024), full_tree.begin()));
 }
 
+TORRENT_TEST(add_piece_hashes_marks_request_complete)
+{
+	file_storage fs;
+	fs.set_piece_length(4 * 16 * 1024);
+
+	fs.add_file("test/tmp1", 4 * 512 * 16 * 1024);
+
+	aux::vector<aux::merkle_tree, file_index_t> trees;
+	auto const full_tree = build_tree(4 * 512);
+	sha256_hash const root = full_tree[0];
+	trees.emplace_back(4 * 512, 4, root.data());
+
+	hash_picker picker(fs, trees);
+
+	typed_bitfield<piece_index_t> const pieces(512, true);
+
+	hash_request const picked = picker.pick_hashes(pieces);
+	TEST_EQUAL(picked.file, 0_file);
+	TEST_EQUAL(picked.base, 2);
+	TEST_EQUAL(picked.index, 0);
+	TEST_EQUAL(picked.count, 512);
+
+	// Make the same request immediately eligible again. This simulates the
+	// retry interval expiring before the valid response is processed.
+	picker.hashes_rejected(picked);
+
+	auto pieces_start = full_tree.begin() + merkle_num_nodes(512) - 512;
+
+	std::vector<sha256_hash> hashes;
+	std::copy(pieces_start, pieces_start + 512, std::back_inserter(hashes));
+	add_hashes_result const result = picker.add_hashes(picked, hashes);
+	TEST_CHECK(result.valid);
+
+	hash_request const picked2 = picker.pick_hashes(pieces);
+	TEST_EQUAL(picked2.count, 0);
+}
+
 TORRENT_TEST(add_piece_hashes_padded)
 {
 	file_storage fs;
@@ -682,4 +719,3 @@ TORRENT_TEST(validate_hash_request_single_block_file)
 
 	TEST_CHECK(!validate_hash_request(hash_request(file_index_t{0}, 0, 0, 1, 0), fs));
 }
-

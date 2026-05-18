@@ -289,6 +289,27 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		ret.hash_failed = std::move(results->failed);
 		ret.hash_passed = std::move(results->passed);
 
+		if (req.base == m_piece_layer)
+		{
+			// Piece-layer hash requests are tracked in 512-piece buckets.
+			// Once the response has been validated and inserted into the merkle
+			// tree, mark the bucket as complete so pick_hashes() does not retry
+			// the same range after min_request_interval.
+			TORRENT_ASSERT(req.index % 512 == 0);
+			TORRENT_ASSERT(req.count <= 512);
+			int const request_index = req.index / 512;
+			if (req.index % 512 == 0
+				&& req.count <= 512
+				&& request_index >= 0
+				&& request_index < int(m_piece_hash_requested[req.file].size()))
+			{
+				auto& piece_hash_req = m_piece_hash_requested[req.file][request_index];
+				piece_hash_req.have = true;
+				piece_hash_req.last_request = min_time();
+				piece_hash_req.num_requests = 0;
+			}
+		}
+
 		return ret;
 	}
 
