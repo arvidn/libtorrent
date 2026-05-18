@@ -41,18 +41,95 @@ def reset_download(save_path: Path, variant: str, num_pieces: int) -> None:
     rm_file_or_dir(save_path / ".resume")
     # the payload directory is named after the torrent file stem
     # (see generate_torrent() in connection_tester.cpp).
-    rm_file_or_dir(save_path / f"cpu_benchmark-{variant}-{num_pieces}p")
+    rm_file_or_dir(payload_dir(save_path, variant, num_pieces))
+
+
+def payload_dir(save_path: Path, variant: str, num_pieces: int) -> Path:
+    return save_path / f"cpu_benchmark-{variant}-{num_pieces}p"
+
+
+def drop_file_cache(path: Path) -> None:
+    """Evict path (recursively) from the OS page cache so the next access
+    actually hits disk. Used between benchmark runs to get cold-cache numbers.
+
+    Linux: posix_fadvise(POSIX_FADV_DONTNEED) per file, after fdatasync to
+        flush any dirty pages first (only clean pages can be dropped). No
+        root required; targeted to just these files.
+    macOS: posix_fadvise is not implemented in Darwin's libc, so
+        os.posix_fadvise is not defined on Python/macOS. Falls back to the
+        Apple-supplied 'purge' command, which flushes the entire system
+        cache. No sudo on modern macOS. Note: not targeted.
+    Windows: there is no per-file cache eviction without admin (Sysinternals
+        RAMMap /Et, or NtSetSystemInformation). Prints a warning and is a
+        no-op; for cold-cache benchmarks on Windows, reboot between runs
+        or run RAMMap manually.
+    """
+    if not path.exists():
+        return
+
+    system = platform.system()
+    if system == "Linux" and hasattr(os, "posix_fadvise") \
+            and hasattr(os, "POSIX_FADV_DONTNEED"):
+        for entry in _walk_files(path):
+            try:
+                fd = os.open(str(entry), os.O_RDONLY)
+            except OSError:
+                continue
+            try:
+                # only clean pages get dropped; flush dirty ones first
+                try:
+                    os.fdatasync(fd)
+                except OSError:
+                    pass
+                os.posix_fadvise(fd, 0, 0, os.POSIX_FADV_DONTNEED)
+            finally:
+                os.close(fd)
+        return
+
+    if system == "Darwin":
+        try:
+            r = subprocess.run(
+                ["purge"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=False,
+            )
+        except FileNotFoundError:
+            print("warning: 'purge' not found on PATH; "
+                  "cannot drop file caches on macOS")
+            return
+        if r.returncode != 0:
+            # don't let a silent purge failure turn a cold-cache run
+            # into a warm-cache one without telling anyone.
+            msg = r.stdout.decode(errors="replace").strip()
+            print(f"warning: 'purge' exited with code {r.returncode};"
+                  " file caches may NOT have been dropped, so this"
+                  " run may be warm-cache. purge output:")
+            for line in msg.splitlines() or ["(no output)"]:
+                print(f"  {line}")
+        return
+
+    if system == "Windows":
+        print("warning: automatic file cache drop is not available on "
+              "Windows without admin. For cold-cache benchmarks, reboot "
+              "between runs or use Sysinternals RAMMap (/Et) manually.")
+        return
+
+
+def _walk_files(root: Path):
+    if root.is_file():
+        yield root
+        return
+    if not root.is_dir():
+        return
+    for entry in root.rglob("*"):
+        if entry.is_file():
+            yield entry
 
 
 def main() -> None:
     p = ArgumentParser()
     p.add_argument("--toolset", default="")
-    p.add_argument(
-        "-y",
-        action="store_true",
-        dest="always_yes",
-        help="don't wait for interactive input, keep running",
-    )
     p.add_argument(
         "--download-peers", type=int, default=50, help="Number of peers to use for download test"
     )
@@ -128,6 +205,7 @@ def main() -> None:
 
     for variant in args.variants:
         torrent = torrent_path(variant, args.num_pieces)
+        data_dir = payload_dir(args.save_path, variant, args.num_pieces)
         for io_backend in args.io_backends:
             reset_download(args.save_path, variant, args.num_pieces)
             run_test(
@@ -137,7 +215,7 @@ def main() -> None:
                 args.download_peers,
                 args.save_path,
                 torrent,
-                args.always_yes,
+                data_dir,
             )
             reset_download(args.save_path, variant, args.num_pieces)
             run_test(
@@ -147,7 +225,7 @@ def main() -> None:
                 args.download_peers,
                 args.save_path,
                 torrent,
-                args.always_yes,
+                data_dir,
             )
             run_test(
                 f"upload-{variant}-{io_backend}",
@@ -156,7 +234,7 @@ def main() -> None:
                 args.upload_peers,
                 args.save_path,
                 torrent,
-                args.always_yes,
+                data_dir,
             )
 
 
@@ -167,7 +245,7 @@ def run_test(
     num_peers: int,
     save_path: Path,
     torrent: Path,
-    always_yes: bool,
+    data_dir: Path,
 ) -> None:
     output_dir = (save_path / f"logs_{name}").resolve()
 
@@ -176,9 +254,10 @@ def run_test(
 
     port = (int(time.time()) % 50000) + 2000
 
-    if not always_yes:
-        print('drop caches now. e.g. "echo 1 | sudo tee /proc/sys/vm/drop_caches"')
-        input("Press Enter to continue...")
+    # evict the test's payload files from the OS page cache so this run
+    # starts cold (matters most for the upload test, which reads the data
+    # written by a previous run)
+    drop_file_cache(data_dir)
 
     start = time.monotonic()
     client_cmd = [
