@@ -223,10 +223,6 @@ private:
 	// disk cache
 	aux::disk_buffer_pool m_buffer_pool;
 
-	// total number of blocks in use by both the read
-	// and the write cache. This is not supposed to
-	// exceed m_cache_size
-
 	counters& m_stats_counters;
 
 	// this is the main thread io_context. Callbacks are
