@@ -127,6 +127,118 @@ def _walk_files(root: Path):
             yield entry
 
 
+def compact_indent(line: str) -> str:
+    """Compact a perf '--call-graph graph' tree line: each 11-column tree
+    level shrinks to 2 columns so deep trees fit on screen.
+
+    Approach: split the indent prefix at each '|' and shrink each interior
+    space run proportionally. perf renders each tree level as 11 columns,
+    so 10 spaces between pipes (the body of one `|          ` unit) become
+    1 space. The 15-space baseline (the Children% column) becomes 5 spaces,
+    with each additional 11-col last-sibling unit (11 spaces, no pipe)
+    contributing 2 more. Content past the indent (`|--12.34%-- foo`,
+    ` --12.34%-- foo`, a function name, or nothing for a pure
+    sibling-separator line) is preserved unchanged.
+
+    A `|` belongs to the indent only when followed by whitespace or
+    end-of-line. A `|` immediately followed by `-` is the content marker
+    `|--XX.XX%--`, so the scan stops before it.
+
+    Pure sibling-separator lines (e.g. `               |          |`) get
+    the same treatment so the tree's branching structure is preserved.
+
+    The first child of a top-level entry is rendered as
+    `<12 spaces>---name` (no percentage) and is handled separately.
+    """
+    if line.startswith("            ---"):
+        return "  " + line[12:]
+    if not line.startswith("               "):  # 15-space Children% baseline
+        return line
+
+    stripped = line.rstrip("\n")
+    nl = line[len(stripped):]
+
+    # find the end of the indent prefix: a leading run of ' ' and 'indent'
+    # pipes. anything past it is content (or nothing for a sibling
+    # separator).
+    i = 0
+    while i < len(stripped):
+        c = stripped[i]
+        if c == " ":
+            i += 1
+        elif c == "|":
+            nxt = stripped[i + 1] if i + 1 < len(stripped) else ""
+            if nxt == "" or nxt == " ":
+                i += 1
+            else:
+                break
+        else:
+            break
+    indent, rest = stripped[:i], stripped[i:]
+
+    pieces = indent.split("|")
+    out = []
+    for idx, p in enumerate(pieces):
+        if idx == 0:
+            # baseline (15) -> 5; each extra 11-col last-sibling unit -> 2.
+            # anything left over (off-by-one whitespace) is kept verbatim.
+            extra = len(p) - 15
+            out.append(" " * (5 + 2 * (extra // 11) + extra % 11))
+        else:
+            # 10 spaces inside one `|          ` unit -> 1 space; round
+            # other widths proportionally.
+            out.append(" " * round(len(p) / 10))
+
+    return "|".join(out) + rest + nl
+
+
+def check_perf_environment() -> None:
+    """Warn early about sysctls that prevent perf record / perf report from
+    producing useful output. Linux only; no-op elsewhere.
+    """
+    if platform.system() != "Linux":
+        return
+
+    def read_sysctl(name):
+        try:
+            return Path(f"/proc/sys/{name.replace('.', '/')}").read_text().strip()
+        except OSError:
+            return None
+
+    warnings = []
+    kptr = read_sysctl("kernel.kptr_restrict")
+    if kptr is not None and kptr != "0":
+        warnings.append(
+            f"  kernel.kptr_restrict = {kptr} -- kernel symbols will not"
+            " resolve in perf report.\n"
+            "    fix: sudo sysctl kernel.kptr_restrict=0"
+        )
+
+    paranoid = read_sysctl("kernel.perf_event_paranoid")
+    # 2 is the default on many distros; perf record on a PID we own usually
+    # needs <= 1 to capture kernel-side samples.
+    if paranoid is not None and paranoid not in ("-1", "0", "1"):
+        warnings.append(
+            f"  kernel.perf_event_paranoid = {paranoid} -- 'perf record'"
+            " may fail to attach or miss kernel samples.\n"
+            "    fix: sudo sysctl kernel.perf_event_paranoid=1"
+        )
+
+    ptrace = read_sysctl("kernel.yama.ptrace_scope")
+    if ptrace is not None and ptrace != "0":
+        warnings.append(
+            f"  kernel.yama.ptrace_scope = {ptrace} -- 'perf record -p'"
+            " may not be able to attach.\n"
+            "    fix: sudo sysctl kernel.yama.ptrace_scope=0"
+        )
+
+    if warnings:
+        print("warning: perf environment is restrictive:")
+        for w in warnings:
+            print(w)
+        print()
+
+
 def main() -> None:
     p = ArgumentParser()
     p.add_argument("--toolset", default="")
@@ -167,6 +279,8 @@ def main() -> None:
     )
 
     args = p.parse_args()
+
+    check_perf_environment()
 
     subprocess.check_call(
         [
@@ -353,7 +467,10 @@ def run_test(
                     "  2. kernel.yama.ptrace_scope blocks attaching to"
                     " another process:\n"
                     "       sudo sysctl kernel.yama.ptrace_scope=0\n"
-                    "  3. Or grant capabilities to the perf binary:\n"
+                    "  3. kernel.kptr_restrict hides kernel addresses (so"
+                    " kernel symbols won't resolve):\n"
+                    "       sudo sysctl kernel.kptr_restrict=0\n"
+                    "  4. Or grant capabilities to the perf binary:\n"
                     "       sudo setcap cap_perfmon,cap_sys_ptrace+ep"
                     " $(which perf)"
                 )
@@ -416,52 +533,26 @@ def run_test(
 
     # perf-based profiling is Linux only
     if platform.system() == "Linux":
-        print("analyzing profile...")
-        with open(output_dir / "perf.out", "w+") as perf_script:
-            subprocess.check_call(
-                ["perf", "script", "-i", str(output_dir / "perf.data")],
-                stdout=perf_script,
-            )
-        print("generating profile graph...")
-
-        with (
-            open(output_dir / "perf.out") as perf_script,
-            open(output_dir / "perf.dot", "w+") as dot,
-        ):
-            subprocess.check_call(
-                ["gprof2dot", "-f", "perf", "--strip"],
-                stdin=perf_script,
-                stdout=dot,
-            )
-            with open(output_dir / "cpu_profile.png", "wb") as profile:
-                dot.seek(0)
-                subprocess.check_call(["dot", "-Tpng"], stdin=dot, stdout=profile)
-
-        print("generating flame graph...")
-        try:
-            with (
-                open(output_dir / "perf.out") as perf_script,
-                open(output_dir / "flame.folded", "w+") as folded,
-            ):
-                subprocess.check_call(
-                    ["stackcollapse-perf.pl"],
-                    stdin=perf_script,
-                    stdout=folded,
-                )
-            with (
-                open(output_dir / "flame.folded") as folded,
-                open(output_dir / "flame.svg", "w+") as svg,
-            ):
-                subprocess.check_call(
-                    ["flamegraph.pl"], stdin=folded, stdout=svg
-                )
-        except FileNotFoundError:
-            print(
-                "skipping flame graph: FlameGraph tools not found on PATH.\n"
-                "  install: git clone"
-                " https://github.com/brendangregg/FlameGraph\n"
-                "  then add the cloned directory to PATH"
-            )
+        print("generating call tree report...")
+        raw_report = subprocess.check_output(
+            [
+                "perf", "report",
+                "-i", str(output_dir / "perf.data"),
+                "--stdio",
+                "--no-header",
+                "--children",
+                "--sort", "symbol",
+                "-g", "graph,0.5,caller",
+                "--percent-limit", "0.5",
+            ],
+            text=True,
+        )
+        # collapse each 11-column tree level to 2 columns so deep trees
+        # fit on screen. sibling-separator lines (whitespace plus `|`)
+        # are kept because they show where the tree's branching happens.
+        with open(output_dir / "perf.report", "w") as perf_report:
+            for line in raw_report.splitlines(keepends=True):
+                perf_report.write(compact_indent(line))
 
     parse_session_stats.main(output_dir / "counters.log", 8, output_dir)
 
