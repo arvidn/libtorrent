@@ -1312,7 +1312,12 @@ namespace {
 		}
 		else
 		{
-			TORRENT_ASSERT(req.kind == tracker_request::i2p);
+			// the only request that may legitimately have no outgoing socket
+			// is an i2p announce/scrape; it uses the SAM bridge rather than
+			// one of our listen sockets. Other flags (high_priority,
+			// scrape_request, ...) may be combined with i2p, so check the
+			// bit rather than equality.
+			TORRENT_ASSERT(req.kind & tracker_request::i2p);
 			req.listen_port = 1;
 		}
 		m_tracker_manager.queue_request(get_context(), std::move(req), m_settings, c);
