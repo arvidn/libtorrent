@@ -1637,27 +1637,13 @@ void write_seeding_resume_file(torrent_info const& ti, char const* data_path)
 	atp.have_pieces.resize(ti.num_pieces(), true);
 	atp.save_path = data_path;
 
-	if (ti.v2())
-	{
-		// the seed needs the per-file merkle trees to answer
-		// HASH_REQUEST and to verify blocks before sending. flatten
-		// what build_global_file_trees() fills into the resume-data
-		// layout (one inner vector per file, indexed by file_index_t).
-		// leaving verified_leaf_hashes empty signals "the whole tree
-		// is verified" (see add_torrent_params docs).
-		build_global_file_trees(ti);
-		file_storage const& fs = ti.layout();
-		atp.merkle_trees.resize(fs.num_files());
-		for (file_index_t fi : fs.file_range())
-		{
-			if (fs.pad_file_at(fi)) continue;
-			if (fs.file_size(fi) == 0) continue;
-			sha256_hash const root = fs.root(fi);
-			auto it = file_trees.find(root);
-			if (it == file_trees.end()) continue;
-			atp.merkle_trees[fi].assign(it->second.tree.begin(), it->second.tree.end());
-		}
-	}
+	// for v2 torrents, the per-file piece-layer hashes are already in the
+	// .torrent file (its `piece layers` field) and load_torrent() puts each
+	// merkle_tree into piece_layer mode for us. block hashes are only needed
+	// to answer HASH_REQUEST messages from peers; connection_tester's leech
+	// mode does not send those (only the explicit hash-stress mode does), so
+	// we don't store block hashes in the resume file. that keeps the resume
+	// small and avoids hashing the entire payload here.
 
 	std::vector<char> buf = lt::write_resume_data_buf(atp);
 
