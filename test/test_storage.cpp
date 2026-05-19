@@ -678,7 +678,9 @@ constexpr check_files_flag_t test_oversized = 1_bit;
 constexpr check_files_flag_t zero_prio = 2_bit;
 
 void test_check_files(check_files_flag_t const flags
-	, lt::disk_io_constructor_type const disk_constructor)
+	, lt::disk_io_constructor_type const disk_constructor
+	, int const aio_threads = 1
+	, int const hashing_threads = 0)
 {
 	std::string const test_path = current_working_directory();
 	std::shared_ptr<torrent_info> info;
@@ -721,7 +723,8 @@ void test_check_files(check_files_flag_t const flags
 	counters cnt;
 
 	aux::session_settings sett;
-	sett.set_int(settings_pack::aio_threads, 1);
+	sett.set_int(settings_pack::aio_threads, aio_threads);
+	sett.set_int(settings_pack::hashing_threads, hashing_threads);
 	std::unique_ptr<disk_interface> io = disk_constructor(ios, sett, cnt);
 
 	aux::vector<download_priority_t, file_index_t> priorities;
@@ -762,6 +765,47 @@ void test_check_files(check_files_flag_t const flags
 		io->submit_jobs();
 		ios.restart();
 		run_until(ios, done);
+	}
+
+	if (aio_threads == 0 && hashing_threads > 0)
+	{
+		int outstanding = 3;
+		int hashes_done = 0;
+		bool release_done = false;
+		sha1_hash const expected_hash = hasher(piece0).final();
+		auto hash_handler = [&](piece_index_t const piece
+			, sha1_hash const& hash, storage_error const& error)
+		{
+			TEST_EQUAL(piece, 0_piece);
+			TEST_CHECK(!error);
+			TEST_EQUAL(hash, expected_hash);
+			++hashes_done;
+			--outstanding;
+		};
+
+		io->async_hash(st, 0_piece, {}
+			, disk_interface::sequential_access | disk_interface::volatile_read | disk_interface::v1_hash
+			, hash_handler);
+		io->async_release_files(st, [&]
+		{
+			release_done = true;
+			--outstanding;
+		});
+		io->async_hash(st, 0_piece, {}
+			, disk_interface::sequential_access | disk_interface::volatile_read | disk_interface::v1_hash
+			, hash_handler);
+		io->submit_jobs();
+
+		time_point const end_time = clock_type::now() + seconds(10);
+		while (outstanding > 0 && clock_type::now() < end_time)
+		{
+			ios.run_one_for(milliseconds(100));
+			ios.restart();
+		}
+
+		TEST_EQUAL(outstanding, 0);
+		TEST_EQUAL(hashes_done, 2);
+		TEST_CHECK(release_done);
 	}
 
 	io->abort(true);
@@ -828,21 +872,25 @@ void run_test()
 TORRENT_TEST(check_files_sparse_mmap)
 {
 	test_check_files(sparse | zero_prio, lt::mmap_disk_io_constructor);
+	test_check_files(sparse | zero_prio, lt::mmap_disk_io_constructor, 0, 1);
 }
 
 TORRENT_TEST(check_files_oversized_mmap_zero_prio)
 {
 	test_check_files(sparse | zero_prio | test_oversized, lt::mmap_disk_io_constructor);
+	test_check_files(sparse | zero_prio | test_oversized, lt::mmap_disk_io_constructor, 0, 1);
 }
 
 TORRENT_TEST(check_files_oversized_mmap)
 {
 	test_check_files(sparse | test_oversized, lt::mmap_disk_io_constructor);
+	test_check_files(sparse | test_oversized, lt::mmap_disk_io_constructor, 0, 1);
 }
 
 TORRENT_TEST(check_files_allocate_mmap)
 {
 	test_check_files(zero_prio, lt::mmap_disk_io_constructor);
+	test_check_files(zero_prio, lt::mmap_disk_io_constructor, 0, 1);
 }
 
 TORRENT_TEST(test_pre_allocate_mmap)
@@ -1729,93 +1777,6 @@ void test_unaligned_read(lt::disk_io_constructor_type constructor, Fun fun)
 	t.reset();
 	disk_io->abort(true);
 }
-
-#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
-TORRENT_TEST(mmap_fenced_hash_zero_aio_threads)
-{
-	lt::io_context ioc;
-	lt::counters cnt;
-	lt::settings_pack pack;
-	pack.set_int(lt::settings_pack::aio_threads, 0);
-	pack.set_int(lt::settings_pack::hashing_threads, 1);
-	pack.set_int(lt::settings_pack::file_pool_size, 2);
-
-	std::unique_ptr<lt::disk_interface> disk_io
-		= lt::mmap_disk_io_constructor(ioc, pack, cnt);
-
-	lt::file_storage fs;
-	fs.add_file(combine_path("fenced_hash", "test"), lt::default_block_size);
-	fs.set_num_pieces(1);
-	fs.set_piece_length(lt::default_block_size);
-
-	std::string const save_path = complete("fenced_hash_save");
-	delete_dirs(save_path);
-
-	lt::aux::vector<lt::download_priority_t, lt::file_index_t> prios;
-	lt::storage_params params(fs, nullptr
-		, save_path
-		, lt::storage_mode_sparse
-		, prios
-		, lt::sha1_hash("01234567890123456789"));
-
-	lt::storage_holder t = disk_io->new_torrent(params, {});
-
-	std::vector<char> write_buffer(lt::default_block_size);
-	aux::random_bytes(write_buffer);
-	lt::sha1_hash const expected_hash = lt::hasher(write_buffer).final();
-
-	int outstanding = 1;
-	lt::peer_request const req{0_piece, 0, lt::default_block_size};
-	disk_io->async_write(t, req, write_buffer.data(), {}
-		, [&](lt::storage_error const& ec)
-		{
-			TEST_CHECK(!ec);
-			--outstanding;
-		});
-	disk_io->submit_jobs();
-	sync(ioc, outstanding);
-
-	int hashes_done = 0;
-	bool release_done = false;
-	outstanding = 3;
-	auto hash_handler = [&](lt::piece_index_t const piece
-		, lt::sha1_hash const& hash, lt::storage_error const& ec)
-	{
-		TEST_EQUAL(piece, 0_piece);
-		TEST_CHECK(!ec);
-		TEST_EQUAL(hash, expected_hash);
-		++hashes_done;
-		--outstanding;
-	};
-
-	disk_io->async_hash(t, 0_piece, {}
-		, lt::disk_interface::sequential_access | lt::disk_interface::v1_hash
-		, hash_handler);
-	disk_io->async_release_files(t, [&]
-	{
-		release_done = true;
-		--outstanding;
-	});
-	disk_io->async_hash(t, 0_piece, {}
-		, lt::disk_interface::sequential_access | lt::disk_interface::v1_hash
-		, hash_handler);
-	disk_io->submit_jobs();
-
-	time_point const end_time = clock_type::now() + seconds(10);
-	while (outstanding > 0 && clock_type::now() < end_time)
-	{
-		ioc.run_one_for(milliseconds(100));
-		ioc.restart();
-	}
-
-	TEST_EQUAL(outstanding, 0);
-	TEST_EQUAL(hashes_done, 2);
-	TEST_CHECK(release_done);
-
-	t.reset();
-	disk_io->abort(true);
-}
-#endif
 
 struct write_handler
 {

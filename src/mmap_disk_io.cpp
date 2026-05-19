@@ -1432,6 +1432,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 	void mmap_disk_io::immediate_execute()
 	{
+		// Hash threads can lower fences and touch the generic queue while
+		// there are no generic disk threads.
 		for (;;)
 		{
 			std::unique_lock<std::mutex> l(m_job_mutex);
