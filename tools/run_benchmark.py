@@ -45,6 +45,25 @@ def reset_download(save_path: Path, variant: str, num_pieces: int) -> None:
     rm_file_or_dir(payload_dir(save_path, variant, num_pieces))
 
 
+def gen_data(torrent: Path, save_path: Path, *, with_resume: bool = False) -> None:
+    """Write the canonical payload for `torrent` under `save_path` (a full
+    sweep of generate_block() per file). When `with_resume` is true,
+    also write a resume file under `save_path/.resume/` that claims
+    every piece is present, so a seed-only client (e.g. client_test for
+    the upload benchmark) can start in seeding state without the
+    startup check pass that would otherwise warm the page cache.
+    """
+    cmd = [
+        str(EXAMPLES_DIR / f"connection_tester{exe}"),
+        "gen-data",
+        "-t", str(torrent),
+        "-P", str(save_path),
+    ]
+    if with_resume:
+        cmd.append("-R")
+    subprocess.check_call(cmd)
+
+
 def payload_dir(save_path: Path, variant: str, num_pieces: int) -> Path:
     return save_path / f"cpu_benchmark-{variant}-{num_pieces}p"
 
@@ -424,7 +443,7 @@ def main() -> None:
     p.add_argument(
         "--num-pieces",
         type=int,
-        default=50000,
+        default=1000,
         help="Number of pieces in the generated test torrent."
         " Piece size is 1 MiB, so total size is num_pieces MiB.",
     )
@@ -449,7 +468,6 @@ def main() -> None:
     )
 
     for variant in args.variants:
-        reset_download(args.save_path, variant, args.num_pieces)
         if not torrent_path(variant, args.num_pieces).exists():
             subprocess.check_call(
                 [
@@ -502,10 +520,17 @@ def main() -> None:
                 variant=variant,
                 io_backend=io_backend,
             )
+            # the upload test needs a complete, canonical payload to
+            # serve. gen-data -R writes the payload and a resume file
+            # claiming every piece is present, so client_test comes up
+            # in the seeding state without a startup check pass (which
+            # would warm the page cache we want cold).
+            reset_download(args.save_path, variant, args.num_pieces)
+            gen_data(torrent, args.save_path, with_resume=True)
             run_test(
                 f"upload-{variant}-{io_backend}",
                 "download",
-                ["-G", "-e", "240", "-i", io_backend],
+                ["-e", "240", "-i", io_backend],
                 args.upload_peers,
                 args.save_path,
                 torrent,
