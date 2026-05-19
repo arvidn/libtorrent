@@ -947,6 +947,14 @@ namespace libtorrent {
 #if TORRENT_USE_I2P
 		void on_i2p_resolve(error_code const& ec, char const* dest);
 		bool is_i2p() const { return m_i2p; }
+
+		// returns true if this tracker URL is compatible with the torrent's
+		// i2p mode. Used to keep announce_with_tracker() and
+		// update_tracker_timer() in sync about which trackers will be
+		// contacted. If they disagree, the timer may schedule an immediate
+		// re-announce for a tracker that announce_with_tracker() will then
+		// skip, causing a CPU spin.
+		bool i2p_compatible_tracker(std::string const& url) const;
 #endif
 
 		// this is the asio callback that is called when a name
