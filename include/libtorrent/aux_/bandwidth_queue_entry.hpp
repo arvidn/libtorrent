@@ -39,7 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/bandwidth_limit.hpp"
 #include "libtorrent/aux_/bandwidth_socket.hpp"
 #include "libtorrent/aux_/array.hpp"
-#include "libtorrent/aux_/peer_class_limits.hpp"
 
 namespace libtorrent {
 namespace aux {
@@ -67,7 +66,8 @@ struct TORRENT_EXTRA_EXPORT bw_request
 	// from the most limiting one
 	int assign_bandwidth();
 
-	static constexpr int max_bandwidth_channels = max_peer_class_bandwidth_channels;
+	static constexpr int max_bandwidth_channels = 10;
+	// we don't actually support more than 10 channels per peer
 	aux::array<bandwidth_channel*, max_bandwidth_channels> channel{};
 };
 

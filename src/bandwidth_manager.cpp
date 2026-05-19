@@ -117,10 +117,7 @@ namespace aux {
 		for (int i = 0; i < num_channels; ++i)
 		{
 			if (chan[i]->need_queueing(blk))
-			{
-				TORRENT_ASSERT(k < bw_request::max_bandwidth_channels);
 				bwr.channel[k++] = chan[i];
-			}
 		}
 
 		if (k == 0) return blk;

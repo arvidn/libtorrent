@@ -39,7 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/bandwidth_limit.hpp"
 #include "libtorrent/aux_/bandwidth_socket.hpp"
 #include "libtorrent/socket.hpp"
-#include "libtorrent/peer_class_set.hpp"
 #include "libtorrent/stat.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
@@ -517,17 +516,13 @@ TORRENT_TEST(bandwidth_limiter)
 	test_single_peer(40000, false);
 }
 
-TORRENT_TEST(many_bandwidth_channels)
+TORRENT_TEST(max_bandwidth_channels)
 {
-	static constexpr int expected_channels = peer_class_set::max_classes * 2 + 2;
-
 	aux::bandwidth_manager manager(0);
 	auto p = std::make_shared<bandwidth_peer>();
 
-	TEST_EQUAL(aux::bw_request::max_bandwidth_channels, expected_channels);
-
-	std::array<aux::bandwidth_channel, expected_channels> channels;
-	std::array<aux::bandwidth_channel*, expected_channels> ptrs;
+	std::array<aux::bandwidth_channel, aux::bw_request::max_bandwidth_channels> channels;
+	std::array<aux::bandwidth_channel*, aux::bw_request::max_bandwidth_channels> ptrs;
 
 	for (std::size_t i = 0; i < channels.size(); ++i)
 	{

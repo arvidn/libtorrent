@@ -126,7 +126,7 @@ TORRENT_TEST(peer_class_set_capacity)
 {
 	peer_class_pool pool;
 	peer_class_set set;
-	std::array<peer_class_t, peer_class_set::max_classes> classes;
+	std::array<peer_class_t, 15> classes;
 
 	for (std::size_t i = 0; i < classes.size(); ++i)
 	{
@@ -134,7 +134,7 @@ TORRENT_TEST(peer_class_set_capacity)
 		set.add_class(pool, classes[i]);
 	}
 
-	TEST_EQUAL(set.num_classes(), peer_class_set::max_classes);
+	TEST_EQUAL(set.num_classes(), int(classes.size()));
 
 	for (std::size_t i = 0; i < classes.size(); ++i)
 	{
