@@ -702,6 +702,13 @@ def run_test(
 
         t.wait()
 
+        # stop the client cleanly before reading counters.log -- otherwise
+        # parse_session_stats may catch a half-written `session stats (`
+        # line and crash on the split. SIGINT triggers client_test's
+        # normal shutdown, which flushes and closes the stats file.
+        c.send_signal(signal.SIGINT)
+        c.wait()
+
     print(f"runtime {end-start:0.2f} seconds")
 
     sent_mb, recv_mb = parse_test_out(output_dir / "test.out")
