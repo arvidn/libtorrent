@@ -25,6 +25,7 @@ see LICENSE file.
 #include "libtorrent/session.hpp" // for default_disk_io_constructor
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/load_torrent.hpp"
+#include "libtorrent/write_resume_data.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/info_hash.hpp"
@@ -33,6 +34,9 @@ see LICENSE file.
 #include "libtorrent/aux_/merkle_tree.hpp"
 #include <random>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <sstream>
 #include <thread>
 #include <functional>
 #include <iostream>
@@ -1182,7 +1186,10 @@ struct peer_conn
 		"  gen-data             generate the data file(s) for the test torrent\n"
 		"    options for this command:\n"
 		"    -t <file>          the torrent file that was previously generated\n"
-		"    -P <path>          the path to where the data should be stored\n\n"
+		"    -P <path>          the path to where the data should be stored\n"
+		"    -R                 also write a resume file under <path>/.resume/\n"
+		"                       that marks every piece as owned, so a client\n"
+		"                       can start seeding without a startup check pass\n"
 		"  gen-test-torrents    generate many test torrents (cannot be used for up/down tests)\n"
 		"    options for this command:\n"
 		"    -N <num-torrents>  number of torrents to generate\n"
@@ -1618,6 +1625,61 @@ void build_global_file_trees(torrent_info const& ti)
 	std::printf("built %d v2 file merkle trees\n", int(file_trees.size()));
 }
 
+// write a resume file under <data_path>/.resume/ that asserts ownership
+// of every piece, so a seed-only client (e.g. client_test for the upload
+// benchmark) comes up in seeding state without a startup check pass.
+// expects the canonical payload to already exist at <data_path> (run
+// generate_data() first).
+void write_seeding_resume_file(torrent_info const& ti, char const* data_path)
+{
+	add_torrent_params atp;
+	atp.ti = std::make_shared<torrent_info>(ti);
+	atp.have_pieces.resize(ti.num_pieces(), true);
+	atp.save_path = data_path;
+
+	if (ti.v2())
+	{
+		// the seed needs the per-file merkle trees to answer
+		// HASH_REQUEST and to verify blocks before sending. flatten
+		// what build_global_file_trees() fills into the resume-data
+		// layout (one inner vector per file, indexed by file_index_t).
+		// leaving verified_leaf_hashes empty signals "the whole tree
+		// is verified" (see add_torrent_params docs).
+		build_global_file_trees(ti);
+		file_storage const& fs = ti.layout();
+		atp.merkle_trees.resize(fs.num_files());
+		for (file_index_t fi : fs.file_range())
+		{
+			if (fs.pad_file_at(fi)) continue;
+			if (fs.file_size(fi) == 0) continue;
+			sha256_hash const root = fs.root(fi);
+			auto it = file_trees.find(root);
+			if (it == file_trees.end()) continue;
+			atp.merkle_trees[fi].assign(it->second.tree.begin(), it->second.tree.end());
+		}
+	}
+
+	std::vector<char> buf = lt::write_resume_data_buf(atp);
+
+	// mirror client_test's resume layout:
+	// <save_path>/.resume/<info-hash-hex>.resume
+	std::filesystem::path const resume_dir = std::filesystem::path(data_path) / ".resume";
+	std::error_code ec;
+	std::filesystem::create_directories(resume_dir, ec);
+
+	std::stringstream hex;
+	hex << ti.info_hashes().get_best();
+	std::filesystem::path const resume_path = resume_dir / (hex.str() + ".resume");
+
+	std::ofstream out(resume_path, std::ios::binary);
+	if (!out.write(buf.data(), std::streamsize(buf.size())))
+	{
+		std::fprintf(stderr, "failed to write '%s'\n", resume_path.string().c_str());
+		return;
+	}
+	std::printf("wrote resume file: %s\n", resume_path.string().c_str());
+}
+
 } // anonymous namespace
 
 int main(int argc, char* argv[])
@@ -1637,6 +1699,7 @@ int main(int argc, char* argv[])
 	int churn = 0;
 	std::vector<std::string> trackers;
 	gen_version_t gen_version = gen_version_t::hybrid;
+	bool gen_resume_too = false;
 
 	argv += 2;
 	argc -= 2;
@@ -1659,6 +1722,9 @@ int main(int argc, char* argv[])
 			case 'C': test_corruption = true; continue;
 			case '1':
 				force_v1_handshake = true;
+				continue;
+			case 'R':
+				gen_resume_too = true;
 				continue;
 		}
 
@@ -1736,6 +1802,7 @@ int main(int argc, char* argv[])
 		{
 			add_torrent_params atp = load_torrent_file(torrent_file);
 			generate_data(data_path, *atp.ti);
+			if (gen_resume_too) write_seeding_resume_file(*atp.ti, data_path);
 		}
 		catch (lt::system_error const& err)
 		{
