@@ -33,6 +33,7 @@ see LICENSE file.
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/aux_/merkle_tree.hpp"
 #include <random>
+#include <algorithm>
 #include <cstring>
 #include <filesystem>
 #include <fstream>
@@ -118,6 +119,12 @@ bool force_v1_handshake = false;
 // Parallel-index into file_trees (defined below after the file_merkle_tree
 // struct). Built once at startup; read-only afterwards.
 std::vector<sha256_hash> file_root_list;
+
+// absolute byte ranges [begin, end) covered by pad files. A real seed reads
+// these from disk, where pad files read as zero, so the seed-side send path
+// must send zero for them. generate_block() fills the whole block with the
+// test pattern, so write_piece() zeroes any overlapping pad bytes afterwards.
+std::vector<std::pair<std::int64_t, std::int64_t>> pad_ranges;
 
 // when greater than zero, each connection emits a periodic STATUS log
 // line every interval. zero disables status printing entirely.
@@ -1002,6 +1009,31 @@ struct peer_conn
 		int const fill_words = (length + 3) / 4;
 		generate_block({write_buffer, fill_words}, piece, start);
 
+		// zero any bytes of this block that fall within a pad file. A real
+		// seed serves zeros there (pad files read as zero from disk); without
+		// this a data/pad-straddling block fails the v1 piece hash while
+		// passing the v2 block hash on hybrid torrents. See pad_ranges.
+		if (!pad_ranges.empty())
+		{
+			std::int64_t const piece_len = std::int64_t(blocks_per_piece) * 0x4000;
+			std::int64_t const block_begin =
+				std::int64_t(static_cast<int>(piece)) * piece_len + start;
+			std::int64_t const block_end = block_begin + length;
+			char* const buf = reinterpret_cast<char*>(write_buffer);
+			// pad_ranges is sorted by offset and the ranges don't overlap, so
+			// binary-search for the first range that can reach into this block
+			auto it = std::lower_bound(pad_ranges.begin(),
+				pad_ranges.end(),
+				block_begin,
+				[](auto const& pr, std::int64_t const off) { return pr.second <= off; });
+			for (; it != pad_ranges.end() && it->first < block_end; ++it)
+			{
+				std::int64_t const lo = std::max(block_begin, it->first);
+				std::int64_t const hi = std::min(block_end, it->second);
+				if (lo < hi) std::memset(buf + (lo - block_begin), 0, std::size_t(hi - lo));
+			}
+		}
+
 		if (corrupt)
 		{
 			--corruption_counter;
@@ -1425,7 +1457,8 @@ std::vector<char> generate_torrent(int num_pieces,
 		for (int i = 0; i < num_threads; ++i)
 		{
 			auto const start_piece = piece_index_t(i * num_pieces / num_threads);
-			auto const target_offset = static_cast<int>(start_piece) * t.piece_length();
+			std::int64_t const target_offset =
+				static_cast<int>(start_piece) * std::int64_t(t.piece_length());
 			while (offset < target_offset)
 			{
 				while (current_file.size == 0)
@@ -1623,6 +1656,21 @@ void build_global_file_trees(torrent_info const& ti)
 		file_trees.emplace(root, std::move(ft));
 	}
 	std::printf("built %d v2 file merkle trees\n", int(file_trees.size()));
+}
+
+// record the absolute byte ranges of pad files into pad_ranges, so the
+// seed-side send path can zero them (see pad_ranges). No-op when there are
+// no pad files (v1-only torrents, or any torrent without padding).
+void build_pad_ranges(file_storage const& fs)
+{
+	pad_ranges.clear();
+	std::int64_t offset = 0;
+	for (file_index_t fi : fs.file_range())
+	{
+		std::int64_t const sz = fs.file_size(fi);
+		if (fs.pad_file_at(fi) && sz > 0) pad_ranges.emplace_back(offset, offset + sz);
+		offset += sz;
+	}
 }
 
 // write a resume file under <data_path>/.resume/ that asserts ownership
@@ -1916,6 +1964,10 @@ int main(int argc, char* argv[])
 	{
 		build_global_file_trees(*atp.ti);
 	}
+
+	// seed modes generate piece data on the fly; record pad-file ranges so the
+	// send path can zero them to match what a disk-backed seed would serve.
+	if (test_mode == upload_test || test_mode == dual_test) build_pad_ranges(atp.ti->layout());
 
 	bool const flood_hashes_all = (test_mode == hash_stress_test);
 
