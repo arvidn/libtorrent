@@ -64,31 +64,13 @@ see LICENSE file.
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/address.hpp"
-#include "libtorrent/aux_/portmap.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
-#include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/aux_/io_bytes.hpp"
+#include "libtorrent/aux_/session_impl.hpp"
+
+#include "portmap_session.hpp"
 
 namespace {
-
-	struct fuzz_portmap_cb final : lt::aux::portmap_callback
-	{
-		void on_port_mapping(lt::port_mapping_t,
-			lt::address const&,
-			int,
-			lt::portmap_protocol,
-			lt::error_code const&,
-			lt::portmap_transport,
-			lt::aux::listen_socket_handle const&) override
-		{}
-
-#ifndef TORRENT_DISABLE_LOGGING
-		bool should_log_portmap(lt::portmap_transport) const override { return false; }
-		void log_portmap(
-			lt::portmap_transport, char const*, lt::aux::listen_socket_handle const&) const override
-		{}
-#endif
-	};
 
 	// Decode the length-prefixed wire format: [2-byte big-endian length][data]...
 	std::vector<std::vector<char>> parse_messages(std::uint8_t const* data, std::size_t size)
