@@ -84,6 +84,7 @@ fuzzer utp ;
 fuzzer resume_data ;
 fuzzer peer_conn ;
 fuzzer pe_crypto_state ;
+fuzzer rtc_peer_conn ;
 fuzzer idna ;
 fuzzer parse_url ;
 fuzzer http_tracker ;
@@ -92,6 +93,11 @@ fuzzer add_torrent ;
 fuzzer utp_stream ;
 fuzzer websocket_tracker ;
 fuzzer xml_parse ;
+fuzzer socks5_stream_handshake ;
+fuzzer pe_conn ;
+fuzzer ut_metadata ;
+fuzzer ut_pex ;
+fuzzer web_seed ;
 
 local LARGE_TARGETS =
 	torrent_info
@@ -108,12 +114,18 @@ local LARGE_TARGETS =
 	upnp
 	peer_conn
 	pe_crypto_state
+	rtc_peer_conn
 	http_tracker
 	session_params
 	lsd
 	add_torrent
 	utp_stream
 	websocket_tracker
+	socks5_stream_handshake
+	pe_conn
+	ut_metadata
+	ut_pex
+	web_seed
 	;
 
 install stage : $(TARGETS) : <install-type>EXE <location>fuzzers ;
