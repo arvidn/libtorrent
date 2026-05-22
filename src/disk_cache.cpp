@@ -629,7 +629,13 @@ Iter disk_cache::flush_piece_impl(View& view,
 	std::function<void(jobqueue_t, disk_job*)> clear_piece_fun)
 {
 	TORRENT_ASSERT(l.owns_lock());
-	int const num_blocks = count_jobs(blocks);
+	// when "blocks" covers the whole piece we can use the maintained per-piece
+	// counter instead of scanning. A subspan (the cheap-flush pass) still needs
+	// to count the write jobs within that range.
+	int const num_blocks = (blocks.size() == piece_iter->blocks_in_piece())
+		? int(piece_iter->num_jobs)
+		: count_jobs(blocks);
+	TORRENT_ASSERT(num_blocks == count_jobs(blocks));
 	if (num_blocks <= 0)
 		return std::next(piece_iter);
 
@@ -951,7 +957,6 @@ void disk_cache::flush_to_disk(std::function<int(bitfield&, span<disk_job* const
 		}
 
 		int const num_blocks = piece_iter->num_jobs;
-		TORRENT_ASSERT(count_jobs(piece_iter->get_blocks()) == num_blocks);
 		if (num_blocks == 0)
 		{
 			++piece_iter;
@@ -1005,7 +1010,6 @@ void disk_cache::flush_storage(std::function<int(bitfield&, span<disk_job* const
 		TORRENT_ASSERT(!(piece_iter->flags & cached_piece_entry::flushing_flag));
 
 		int const num_blocks = piece_iter->num_jobs;
-		TORRENT_ASSERT(count_jobs(piece_iter->get_blocks()) == num_blocks);
 		if (num_blocks == 0) continue;
 		span<cached_block_entry> const blocks = piece_iter->get_blocks();
 
