@@ -181,8 +181,8 @@ jobs:
       strategy:
          matrix:
             include:
-               - config: webtorrent=on address-sanitizer=norecover undefined-sanitizer=norecover crypto=openssl invariant-checks=full
-               - config: toolset=clang logging=off address-sanitizer=norecover undefined-sanitizer=norecover invariant-checks=full
+               - config: webtorrent=on address-sanitizer=norecover undefined-sanitizer=norecover crypto=openssl invariant-checks=on
+               - config: toolset=clang logging=off address-sanitizer=norecover undefined-sanitizer=norecover invariant-checks=on
                - config: thread-sanitizer=norecover crypto=openssl release debug-symbols=on cxxflags=-Wno-tsan
                - config: crypto=gnutls invariant-checks=full
                - config: deprecated-functions=off invariant-checks=full
