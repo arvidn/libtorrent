@@ -1430,10 +1430,12 @@ namespace {
 	int session_impl::copy_pertinent_channels(peer_class_set const& set
 		, int channel, bandwidth_channel** dst, int const max)
 	{
+		TORRENT_ASSERT(max >= 0);
 		int num_channels = set.num_classes();
 		int num_copied = 0;
 		for (int i = 0; i < num_channels; ++i)
 		{
+			if (num_copied >= max) break;
 			peer_class* pc = m_classes.at(set.class_at(i));
 			TORRENT_ASSERT(pc);
 			if (pc == nullptr) continue;
@@ -1442,7 +1444,6 @@ namespace {
 			if (chan->throttle() == 0) continue;
 			dst[num_copied] = chan;
 			++num_copied;
-			if (num_copied == max) break;
 		}
 		return num_copied;
 	}

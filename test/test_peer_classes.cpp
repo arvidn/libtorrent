@@ -39,6 +39,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/session.hpp"
 
+#include <array>
+
 using namespace lt;
 
 namespace {
@@ -118,6 +120,30 @@ TORRENT_TEST(peer_class)
 	pool.decref(id1);
 	TEST_CHECK(pool.at(id2) == nullptr);
 	TEST_CHECK(pool.at(id1) == nullptr);
+}
+
+TORRENT_TEST(peer_class_set_capacity)
+{
+	peer_class_pool pool;
+	peer_class_set set;
+	std::array<peer_class_t, 15> classes;
+
+	for (std::size_t i = 0; i < classes.size(); ++i)
+	{
+		classes[i] = pool.new_peer_class("test");
+		set.add_class(pool, classes[i]);
+	}
+
+	TEST_EQUAL(set.num_classes(), int(classes.size()));
+
+	for (std::size_t i = 0; i < classes.size(); ++i)
+	{
+		TEST_CHECK(set.has_class(classes[i]));
+		set.remove_class(pool, classes[i]);
+		pool.decref(classes[i]);
+	}
+
+	TEST_EQUAL(set.num_classes(), 0);
 }
 
 TORRENT_TEST(session_peer_class_filter)

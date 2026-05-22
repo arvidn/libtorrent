@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/time.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 
+#include <array>
 #include <cmath>
 #include <functional>
 #include <iostream>
@@ -90,6 +91,14 @@ struct peer_connection: aux::bandwidth_socket, std::enable_shared_from_this<peer
 	bool m_ignore_limits;
 	std::string m_name;
 	std::int64_t m_quota;
+};
+
+struct bandwidth_peer: aux::bandwidth_socket
+{
+	bool is_disconnecting() const override { return false; }
+	void assign_bandwidth(int, int amount) override { m_quota += amount; }
+
+	int m_quota = 0;
 };
 
 void peer_connection::assign_bandwidth(int /*channel*/, int amount)
@@ -505,6 +514,31 @@ TORRENT_TEST(bandwidth_limiter)
 {
 	test_single_peer(40000, true);
 	test_single_peer(40000, false);
+}
+
+TORRENT_TEST(max_bandwidth_channels)
+{
+	aux::bandwidth_manager manager(0);
+	auto p = std::make_shared<bandwidth_peer>();
+
+	std::array<aux::bandwidth_channel, aux::bw_request::max_bandwidth_channels> channels;
+	std::array<aux::bandwidth_channel*, aux::bw_request::max_bandwidth_channels> ptrs;
+
+	for (std::size_t i = 0; i < channels.size(); ++i)
+	{
+		channels[i].throttle(100);
+		ptrs[i] = &channels[i];
+	}
+
+	TEST_EQUAL(manager.request_bandwidth(p, 100, 1
+		, ptrs.data(), int(ptrs.size())), 0);
+	TEST_EQUAL(manager.queue_size(), 1);
+
+	manager.update_quotas(milliseconds(10000));
+
+	TEST_EQUAL(p->m_quota, 100);
+	TEST_EQUAL(manager.queue_size(), 0);
+	TEST_EQUAL(manager.queued_bytes(), 0);
 }
 
 TORRENT_TEST(peer_priority)
