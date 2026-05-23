@@ -34,6 +34,12 @@ class http_server_with_timeout(HTTPServer):
 
 class http_handler(BaseHTTPRequestHandler):
 
+    def normalize_request_path(self):
+        # if the request contains the hostname and port. strip it
+        if self.path.startswith('http://') or self.path.startswith('https://'):
+            self.path = self.path[8:]
+            self.path = self.path[self.path.find('/'):]
+
     def do_GET(self):
         try:
             self.inner_do_GET()
@@ -51,11 +57,7 @@ class http_handler(BaseHTTPRequestHandler):
         global chunked_encoding
         global keepalive
 
-        # if the request contains the hostname and port. strip it
-        if self.path.startswith('http://') or self.path.startswith('https://'):
-            self.path = self.path[8:]
-            self.path = self.path[self.path.find('/'):]
-
+        self.normalize_request_path()
         file_path = os.path.normpath(self.path)
         sys.stdout.flush()
 
@@ -135,8 +137,6 @@ class http_handler(BaseHTTPRequestHandler):
                     self.send_header('Content-Encoding', 'gzip')
                 if not keepalive:
                     self.send_header("Connection", "close")
-                    if not use_ssl:
-                        self.request.shutdown(socket.SHUT_RD)
 
                 self.end_headers()
 
@@ -167,6 +167,66 @@ class http_handler(BaseHTTPRequestHandler):
                     self.end_headers()
                 except Exception:
                     pass
+            if not keepalive and not use_ssl:
+                try:
+                    self.request.shutdown(socket.SHUT_RD)
+                except Exception:
+                    pass
+
+        print("...DONE")
+        sys.stdout.flush()
+        self.wfile.flush()
+
+    def do_POST(self):
+        try:
+            self.inner_do_POST()
+        except Exception:
+            print('EXCEPTION')
+            traceback.print_exc(file=sys.stdout)
+            sys.stdout.flush()
+
+    def inner_do_POST(self):
+        print('INCOMING-REQUEST [from: {}]: {}'.format(self.request.getsockname(), self.requestline))
+        print(self.headers)
+        sys.stdout.flush()
+
+        global keepalive
+
+        self.normalize_request_path()
+
+        content_length = self.headers.get('Content-Length')
+        if content_length is not None:
+            self.rfile.read(int(content_length))
+
+        if self.path not in ('/wipconn', '/WANIPConnection'):
+            self.send_response(404)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
+
+        filename = os.path.normpath(self.path[1:])
+        try:
+            f = open(filename, 'rb')
+            data = f.read()
+            f.close()
+
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/xml; charset="utf-8"')
+            self.send_header('Content-Length', "%d" % len(data))
+            if not keepalive:
+                self.send_header("Connection", "close")
+            self.end_headers()
+            self.wfile.write(data)
+        except Exception as e:
+            print('FILE ERROR: ', filename, e)
+            traceback.print_exc(file=sys.stdout)
+            sys.stdout.flush()
+            self.send_response(404)
+            self.send_header("Content-Length", "0")
+            try:
+                self.end_headers()
+            except Exception:
+                pass
 
         print("...DONE")
         sys.stdout.flush()

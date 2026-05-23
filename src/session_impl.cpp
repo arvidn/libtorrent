@@ -3508,7 +3508,8 @@ retry:
 		}
 
 		ADD_OUTSTANDING_ASYNC("session_impl::on_tick");
-		milliseconds const tick_interval(m_abort ? 100 : m_settings.get_int(settings_pack::tick_interval));
+		int const raw_tick_ms = m_settings.get_int(settings_pack::tick_interval);
+		milliseconds const tick_interval(m_abort ? 100 : std::max(1, raw_tick_ms));
 		m_timer.expires_at(now + tick_interval);
 		m_timer.async_wait(aux::make_handler([this](error_code const& err)
 		{ wrap(&session_impl::on_tick, err); }, m_tick_handler_storage, *this));
@@ -3523,8 +3524,10 @@ retry:
 		m_ssl_utp_socket_manager.tick(now);
 #endif
 
-		// only tick the following once per second
-		if (now - m_last_second_tick < seconds(1)) return;
+		// only tick the following once per second; a negative tick_interval bypasses
+		// this gate (intended for testing/fuzzing where the second_tick must fire
+		// on every fast tick)
+		if ((m_abort || raw_tick_ms >= 0) && now - m_last_second_tick < seconds(1)) return;
 
 #ifndef TORRENT_DISABLE_DHT
 		if (m_dht
@@ -5251,6 +5254,13 @@ retry:
 			l.reserve(num_torrents + 1);
 		}
 
+		// the torrent may have inserted itself into any of m_torrent_lists,
+		// so we must abort() before the torrent destructs, to avoid a dangling
+		// pointer in the list
+		auto abort_partial = aux::scope_end([&] {
+			if (torrent_ptr) torrent_ptr->abort();
+		});
+
 		try
 		{
 			torrent_ptr = std::make_shared<torrent>(*this, m_paused, std::move(params));
@@ -5261,6 +5271,8 @@ retry:
 			ec = e.code();
 			return ret_t{ptr_t(), params.info_hashes, false};
 		}
+
+		abort_partial.disarm();
 
 		// it's fine to copy this moved-from info_hash_t object, since its move
 		// construction is just a copy.
@@ -6968,7 +6980,7 @@ retry:
 
 #endif
 
-	alert* session_impl::wait_for_alert(time_duration max_wait)
+	bool session_impl::wait_for_alert(time_duration max_wait)
 	{
 		return m_alerts.wait_for_alert(max_wait);
 	}

@@ -25,16 +25,27 @@ see LICENSE file.
 #include "libtorrent/session.hpp" // for default_disk_io_constructor
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/load_torrent.hpp"
+#include "libtorrent/write_resume_data.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
+#include "libtorrent/info_hash.hpp"
+#include "libtorrent/file_storage.hpp"
+#include "libtorrent/aux_/merkle.hpp"
+#include "libtorrent/aux_/merkle_tree.hpp"
 #include <random>
+#include <algorithm>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <sstream>
 #include <thread>
 #include <functional>
 #include <iostream>
 #include <atomic>
 #include <array>
 #include <chrono>
+#include <map>
+#include <memory>
 
 #ifdef BOOST_ASIO_DYN_LINK
 #include <boost/asio/impl/src.hpp>
@@ -80,9 +91,44 @@ std::atomic<int> num_seeds(0);
 // bittorrent client, download requests data from
 // a client and dual uploads and downloads from a client
 // at the same time (this is presumably the most realistic
-// test)
-enum test_mode_t{ none, upload_test, download_test, dual_test };
+// test). hash_stress_test floods the target with v2
+// HASH_REQUEST messages to stress its hash-response path.
+enum test_mode_t
+{
+	none,
+	upload_test,
+	download_test,
+	dual_test,
+	hash_stress_test
+};
 test_mode_t test_mode = none;
+
+// which torrent metadata version to produce in gen-torrent
+enum class gen_version_t
+{
+	v1,
+	v2,
+	hybrid
+};
+
+// when true and the torrent is hybrid, force the v1 sha1 info hash and
+// clear the v2 reserved bit in the handshake.
+bool force_v1_handshake = false;
+
+// list of file roots used by hash-stress to pick random files to query.
+// Parallel-index into file_trees (defined below after the file_merkle_tree
+// struct). Built once at startup; read-only afterwards.
+std::vector<sha256_hash> file_root_list;
+
+// absolute byte ranges [begin, end) covered by pad files. A real seed reads
+// these from disk, where pad files read as zero, so the seed-side send path
+// must send zero for them. generate_block() fills the whole block with the
+// test pattern, so write_piece() zeroes any overlapping pad bytes afterwards.
+std::vector<std::pair<std::int64_t, std::int64_t>> pad_ranges;
+
+// when greater than zero, each connection emits a periodic STATUS log
+// line every interval. zero disables status printing entirely.
+std::chrono::seconds status_interval{0};
 
 // the number of suggest messages received (total across all peers)
 std::atomic<int> num_suggest(0);
@@ -127,11 +173,120 @@ std::random_device dev;
 std::mt19937 rng(dev());
 }
 
+// flat merkle tree for a single file, plus dimensions. used by both
+// gen-torrent (when computing v2 piece roots) and the seed-side
+// HASH_REQUEST responder.
+struct file_merkle_tree
+{
+	aux::vector<sha256_hash> tree;
+	int num_blocks = 0;
+	int num_leafs = 0;
+	int blocks_per_piece = 0;
+};
+
+// per-file merkle trees, keyed by the file's merkle root (pieces_root).
+// Built once at startup; read-only afterwards.
+std::map<sha256_hash, file_merkle_tree> file_trees;
+
+// build a full per-file merkle tree from the deterministic content that
+// generate_block() produces. The file's content for absolute piece P at
+// 16 KiB offset O is generate_block(buf, P, O).
+file_merkle_tree build_file_merkle_tree(piece_index_t const file_first_piece,
+	int const file_num_pieces,
+	std::int64_t const file_size,
+	int const piece_length)
+{
+	file_merkle_tree out;
+	out.num_blocks = int((file_size + default_block_size - 1) / default_block_size);
+	out.num_leafs = merkle_num_leafs(out.num_blocks);
+	out.blocks_per_piece = piece_length / default_block_size;
+
+	int const num_nodes = merkle_num_nodes(out.num_leafs);
+	int const first_leaf = merkle_first_leaf(out.num_leafs);
+	out.tree.resize(num_nodes);
+
+	std::uint32_t block_buf[default_block_size / 4];
+	int block_idx = 0;
+	for (int p = 0; p < file_num_pieces; ++p)
+	{
+		piece_index_t const abs_piece(static_cast<int>(file_first_piece) + p);
+		std::int64_t const piece_offset = std::int64_t(p) * piece_length;
+		int const bytes_in_piece =
+			int(std::min(std::int64_t(piece_length), file_size - piece_offset));
+		int const blocks_in_piece = (bytes_in_piece + default_block_size - 1) / default_block_size;
+
+		for (int b = 0; b < blocks_in_piece; ++b)
+		{
+			generate_block(block_buf, abs_piece, b * default_block_size);
+			int const block_bytes = (b == blocks_in_piece - 1)
+				? (bytes_in_piece - b * default_block_size)
+				: default_block_size;
+			out.tree[first_leaf + block_idx] =
+				hasher256(reinterpret_cast<char const*>(block_buf), block_bytes).final();
+			++block_idx;
+		}
+	}
+	// remaining leaves are zero (default-constructed sha256_hash), which is
+	// the correct merkle padding for tail leaves below the piece layer.
+	merkle_fill_tree(out.tree, out.num_leafs);
+	return out;
+}
+
+// extract the hashes for a HASH_REQUEST response: `count` hashes at the given
+// (base, index) followed by the uncle proof chain (`max(0, proof_layers -
+// (merkle_num_layers(merkle_num_leafs(count)) - 1))` hashes). Mirrors the
+// wire format produced by bt_peer_connection::write_hashes().
+std::vector<sha256_hash> get_hashes_for_request(file_merkle_tree const& ft,
+	int const base,
+	int const index,
+	int const count,
+	int const proof_layers)
+{
+	if (count <= 0 || count > 8192) return {};
+	int const tree_layers = merkle_num_layers(ft.num_leafs);
+	if (base < 0 || base >= tree_layers) return {};
+	int const base_layer_idx = tree_layers - base;
+	int const base_start_idx = merkle_to_flat_index(base_layer_idx, index);
+	if (base_start_idx < 0 || base_start_idx + count > int(ft.tree.size())) return {};
+
+	std::vector<sha256_hash> ret;
+	int const base_tree_layers = merkle_num_layers(merkle_num_leafs(count)) - 1;
+	int const proof_hashes = std::max(0, proof_layers - base_tree_layers);
+	ret.reserve(std::size_t(count + proof_hashes));
+
+	for (int i = 0; i < count; ++i)
+		ret.push_back(ft.tree[base_start_idx + i]);
+
+	int proof_idx = base_start_idx;
+	for (int i = 0; i < proof_layers; ++i)
+	{
+		proof_idx = merkle_get_parent(proof_idx);
+		if (proof_idx <= 0) break;
+		if (i >= base_tree_layers)
+		{
+			int const sibling = merkle_get_sibling(proof_idx);
+			if (sibling < 0 || sibling >= int(ft.tree.size())) return {};
+			ret.push_back(ft.tree[sibling]);
+		}
+	}
+	return ret;
+}
+
 struct peer_conn
 {
-	peer_conn(io_context& ios, int piece_count, int blocks_pp, tcp::endpoint const& ep
-		, char const* ih, bool seed_, int churn_, bool corrupt_)
+	peer_conn(io_context& ios,
+		int piece_count,
+		int blocks_pp,
+		int last_piece_size_,
+		tcp::endpoint const& ep,
+		sha1_hash const& ih,
+		bool v2_,
+		bool seed_,
+		int churn_,
+		bool corrupt_,
+		bool flood_hashes_ = false)
 		: s(ios)
+		, status_timer(ios)
 		, read_pos(0)
 		, state(handshaking)
 		, choked(true)
@@ -139,12 +294,23 @@ struct peer_conn
 		, current_piece_is_allowed(false)
 		, block(0)
 		, blocks_per_piece(blocks_pp)
+		, last_piece_blocks((last_piece_size_ + 0x3fff) / 0x4000)
+		, last_block_size(last_piece_size_ - ((last_piece_size_ + 0x3fff) / 0x4000 - 1) * 0x4000)
 		, info_hash(ih)
 		, outstanding_requests(0)
+		, v2(v2_)
 		, seed(seed_)
 		, fast_extension(false)
+		, flood_hashes(flood_hashes_)
 		, blocks_received(0)
 		, blocks_sent(0)
+		, hashes_received(0)
+		, hashes_rejected(0)
+		, hash_requests_sent(0)
+		, hashes_sent(0)
+		, hash_rejects_sent(0)
+		, last_status_blocks_received(0)
+		, last_status_blocks_sent(0)
 		, num_pieces(piece_count)
 		, start_time(clock_type::now())
 		, churn(churn_)
@@ -156,6 +322,45 @@ struct peer_conn
 		if (seed) ++num_seeds;
 		pieces.reserve(std::size_t(piece_count));
 		start_conn();
+	}
+
+	void schedule_status_timer()
+	{
+		if (status_interval.count() <= 0) return;
+		status_timer.expires_after(status_interval);
+		status_timer.async_wait([this](error_code const& ec) {
+			if (ec) return; // canceled or aborted
+			on_status_timer();
+		});
+	}
+
+	// periodic per-connection status. A stalled connection shows
+	// delta=0 here, plus the choked/outstanding fields tell you
+	// whether we're waiting for the peer or out of work to send.
+	void on_status_timer()
+	{
+		int const drecv = blocks_received - last_status_blocks_received;
+		int const dsent = blocks_sent - last_status_blocks_sent;
+		last_status_blocks_received = blocks_received;
+		last_status_blocks_sent = blocks_sent;
+		std::fprintf(stderr,
+			"STATUS %s recv=%d(+%d) sent=%d(+%d) outstanding=%d "
+			"choked=%s pieces-queued=%d current-piece=%d block=%d "
+			"hash-req-sent=%d hashes-recv=%d hashes-rejected=%d\n",
+			seed ? "seed" : "leech",
+			blocks_received,
+			drecv,
+			blocks_sent,
+			dsent,
+			outstanding_requests,
+			choked ? "yes" : "no",
+			int(pieces.size()),
+			static_cast<int>(current_piece),
+			block,
+			hash_requests_sent,
+			hashes_received,
+			hashes_rejected);
+		schedule_status_timer();
 	}
 
 	void start_conn()
@@ -184,6 +389,16 @@ struct peer_conn
 	}
 
 	tcp::socket s;
+	// fires every status_interval while the connection is open (when the
+	// interval is positive); emits a one-line state dump useful for
+	// diagnosing stalls.
+	boost::asio::steady_timer status_timer;
+	// per-connection scratch buffers reused across messages. We rely on each
+	// async_write being followed by the next one only from inside its
+	// completion handler, so writes on a single socket never overlap and the
+	// buffer below is never clobbered while in flight. Adding an overlapping
+	// async_write on the same socket would silently corrupt the in-flight
+	// payload.
 	char write_buf_proto[100];
 	std::uint32_t write_buffer[17*1024/4];
 	std::uint32_t buffer[17*1024/4];
@@ -205,13 +420,33 @@ struct peer_conn
 	bool current_piece_is_allowed;
 	int block;
 	int blocks_per_piece;
-	char const* info_hash;
+	// number of blocks in the final (possibly partial) piece, and the size of
+	// the last block within that piece. for regular pieces, every block is
+	// `blocks_per_piece` blocks of 16 KiB.
+	int last_piece_blocks;
+	int last_block_size;
+	sha1_hash info_hash;
 	int outstanding_requests;
+	// when set, this connection sets the v2 protocol bit in the handshake
+	// and responds to / drains HASH_REQUEST / HASHES / HASH_REJECT messages.
+	bool v2;
 	// if this is true, this connection is a seed
 	bool seed;
 	bool fast_extension;
+	// when set, this downloader sends a flood of HASH_REQUEST messages instead
+	// of (or in addition to) regular piece requests. Used by hash-stress mode.
+	bool flood_hashes;
 	int blocks_received;
 	int blocks_sent;
+	int hashes_received;
+	int hashes_rejected;
+	int hash_requests_sent;
+	int hashes_sent;
+	int hash_rejects_sent;
+	// snapshot of blocks_{received,sent} at the previous status timer
+	// fire, used to compute per-interval deltas.
+	int last_status_blocks_received;
+	int last_status_blocks_sent;
 	int num_pieces;
 	time_point start_time;
 	time_point end_time;
@@ -228,22 +463,27 @@ struct peer_conn
 			return;
 		}
 
-		char handshake[] = "\x13" "BitTorrent protocol\0\0\0\0\0\0\0\x04"
-			"                    " // space for info-hash
-			"aaaaaaaaaaaaaaaaaaaa" // peer-id
-			"\0\0\0\x01\x02"; // interested
-		char* h = static_cast<char*>(malloc(sizeof(handshake)));
-		memcpy(h, handshake, sizeof(handshake));
-		std::memcpy(h + 28, info_hash, 20);
-		std::generate(h + 48, h + 68, [] { return char(rand()); });
+		static char const handshake[] = "\x13"
+										"BitTorrent protocol\0\0\0\0\0\0\0\x04"
+										"                    " // space for info-hash
+										"aaaaaaaaaaaaaaaaaaaa" // peer-id
+										"\0\0\0\x01\x02"; // interested
+		constexpr int handshake_size = int(sizeof(handshake) - 1);
+		static_assert(handshake_size <= int(sizeof(write_buf_proto)), "write_buf_proto too small");
+		std::memcpy(write_buf_proto, handshake, handshake_size);
+		// bit 4 of reserved byte 7 (0x10) advertises the v2 hash-exchange
+		// protocol (BEP 52). reserved bytes are at offset 20..27.
+		if (v2) write_buf_proto[27] |= 0x10;
+		std::memcpy(write_buf_proto + 28, info_hash.data(), 20);
+		std::generate(write_buf_proto + 48, write_buf_proto + 68, [] { return char(rand()); });
 		// for seeds, don't send the interested message
-		boost::asio::async_write(s, boost::asio::buffer(h, (sizeof(handshake) - 1) - (seed ? 5 : 0))
-			, std::bind(&peer_conn::on_handshake, this, h, _1, _2));
+		boost::asio::async_write(s,
+			boost::asio::buffer(write_buf_proto, std::size_t(handshake_size - (seed ? 5 : 0))),
+			std::bind(&peer_conn::on_handshake, this, _1, _2));
 	}
 
-	void on_handshake(char* h, error_code const& ec, size_t)
+	void on_handshake(error_code const& ec, size_t)
 	{
-		free(h);
 		if (ec)
 		{
 			close("ERROR SEND HANDSHAKE", ec);
@@ -267,6 +507,9 @@ struct peer_conn
 		// look at the extension bits
 
 		fast_extension = (reinterpret_cast<char const*>(buffer)[27] & 4) != 0;
+
+		// start the periodic status timer once the connection is alive.
+		schedule_status_timer();
 
 		if (seed)
 		{
@@ -317,9 +560,22 @@ struct peer_conn
 			return;
 		}
 
-		// read message
-		boost::asio::async_read(s, boost::asio::buffer(buffer, 4)
-			, std::bind(&peer_conn::on_msg_length, this, _1, _2));
+		if (seed)
+		{
+			// read next message from the peer
+			boost::asio::async_read(s,
+				boost::asio::buffer(buffer, 4),
+				std::bind(&peer_conn::on_msg_length, this, _1, _2));
+		}
+		else
+		{
+			// the only write from a downloader that lands here is write_have(),
+			// called after the last block of a piece. Run the completion
+			// check / pipeline refill instead of just blocking on a read --
+			// otherwise if the last block to arrive is the last block of any
+			// piece, the connection stalls near 100%.
+			work_download();
+		}
 	}
 
 	bool write_request()
@@ -328,7 +584,7 @@ struct peer_conn
 		if (choked && allowed_fast.empty() && !current_piece_is_allowed) return false;
 
 		// if there are no pieces left to request
-		if (pieces.empty() && suggested_pieces.empty()
+		if (pieces.empty() && suggested_pieces.empty() && allowed_fast.empty()
 			&& current_piece == piece_index_t(-1))
 		{
 			return false;
@@ -336,7 +592,11 @@ struct peer_conn
 
 		if (current_piece == piece_index_t(-1))
 		{
-			// pick a new piece
+			// pick a new piece. allowed-fast pieces are usable both while
+			// choked and while unchoked -- so once the normal `pieces` queue
+			// has been drained, fall back to allowed_fast even when unchoked
+			// (otherwise the seed's ALLOWED_FAST set is silently leaked and
+			// the leech caps at less than 100%).
 			if (choked && allowed_fast.size() > 0)
 			{
 				current_piece = allowed_fast.front();
@@ -356,27 +616,35 @@ struct peer_conn
 				pieces.erase(pieces.begin());
 				current_piece_is_allowed = false;
 			}
+			else if (allowed_fast.size() > 0)
+			{
+				current_piece = allowed_fast.front();
+				allowed_fast.erase(allowed_fast.begin());
+				current_piece_is_allowed = true;
+			}
 			else
 			{
 				TORRENT_ASSERT_FAIL();
 			}
 		}
-		char msg[] = "\0\0\0\xd\x06"
-			"    " // piece
-			"    " // offset
-			"    "; // length
-		char* m = static_cast<char*>(malloc(sizeof(msg)));
-		memcpy(m, msg, sizeof(msg));
-		char* ptr = m + 5;
+		bool const is_last_piece = (static_cast<int>(current_piece) == num_pieces - 1);
+		int const this_blocks_per_piece = is_last_piece ? last_piece_blocks : blocks_per_piece;
+		int const this_block_size =
+			(is_last_piece && block == last_piece_blocks - 1) ? last_block_size : 16 * 1024;
+
+		char* ptr = write_buf_proto;
+		write_uint32(13, ptr); // payload size
+		write_uint8(6, ptr); // request
 		write_uint32(static_cast<int>(current_piece), ptr);
 		write_uint32(block * 16 * 1024, ptr);
-		write_uint32(16 * 1024, ptr);
-		boost::asio::async_write(s, boost::asio::buffer(m, sizeof(msg) - 1)
-			, std::bind(&peer_conn::on_req_sent, this, m, _1, _2));
+		write_uint32(this_block_size, ptr);
+		boost::asio::async_write(s,
+			boost::asio::buffer(write_buf_proto, 17),
+			std::bind(&peer_conn::on_req_sent, this, _1, _2));
 
 		++outstanding_requests;
 		++block;
-		if (block == blocks_per_piece)
+		if (block == this_blocks_per_piece)
 		{
 			block = 0;
 			current_piece = piece_index_t(-1);
@@ -385,9 +653,8 @@ struct peer_conn
 		return true;
 	}
 
-	void on_req_sent(char* m, error_code const& ec, size_t)
+	void on_req_sent(error_code const& ec, size_t)
 	{
-		free(m);
 		if (ec)
 		{
 			close("ERROR SEND REQUEST", ec);
@@ -400,6 +667,7 @@ struct peer_conn
 	void close(char const* msg, error_code const& ec)
 	{
 		end_time = clock_type::now();
+		status_timer.cancel();
 		char tmp[1024];
 		std::snprintf(tmp, sizeof(tmp), "%s: %s", msg, ec ? ec.message().c_str() : "");
 		int time = int(total_milliseconds(end_time - start_time));
@@ -416,18 +684,45 @@ struct peer_conn
 		else
 			std::snprintf(ep_str, sizeof(ep_str), "%s:%d", addr.to_string().c_str()
 				, s.local_endpoint(e).port());
-		std::printf("%s ep: %s sent: %d received: %d duration: %d ms up: %.1fMB/s down: %.1fMB/s\n"
-			, tmp, ep_str, blocks_sent, blocks_received, time, up, down);
+		std::printf("%s ep: %s sent: %d received: %d duration: %d ms "
+					"up: %.1fMB/s down: %.1fMB/s outstanding: %d choked: %s "
+					"pieces-queued: %d\n",
+			tmp,
+			ep_str,
+			blocks_sent,
+			blocks_received,
+			time,
+			up,
+			down,
+			outstanding_requests,
+			choked ? "yes" : "no",
+			int(pieces.size()));
 		if (seed) --num_seeds;
 	}
 
 	void work_download()
 	{
-		if (pieces.empty()
-			&& suggested_pieces.empty()
-			&& current_piece == piece_index_t(-1)
-			&& outstanding_requests == 0
-			&& blocks_received >= num_pieces * blocks_per_piece)
+		if (flood_hashes)
+		{
+			if (file_root_list.empty())
+			{
+				close("HASH_STRESS: no v2 files in torrent", error_code());
+				return;
+			}
+			if (outstanding_requests < 40)
+			{
+				if (write_flood_hash_request()) return;
+			}
+			boost::asio::async_read(s,
+				boost::asio::buffer(buffer, 4),
+				std::bind(&peer_conn::on_msg_length, this, _1, _2));
+			return;
+		}
+
+		int const total_blocks = (num_pieces - 1) * blocks_per_piece + last_piece_blocks;
+		if (pieces.empty() && suggested_pieces.empty() && allowed_fast.empty()
+			&& current_piece == piece_index_t(-1) && outstanding_requests == 0
+			&& blocks_received >= total_blocks)
 		{
 			close("COMPLETED DOWNLOAD", error_code());
 			return;
@@ -442,6 +737,31 @@ struct peer_conn
 		// read message
 		boost::asio::async_read(s, boost::asio::buffer(buffer, 4)
 			, std::bind(&peer_conn::on_msg_length, this, _1, _2));
+	}
+
+	// pick a random file and piece-range, send a HASH_REQUEST at the
+	// block layer. Returns false only if the file map is empty.
+	bool write_flood_hash_request()
+	{
+		auto const& root = file_root_list[std::size_t(std::rand()) % file_root_list.size()];
+		auto it = file_trees.find(root);
+		if (it == file_trees.end()) return false;
+		file_merkle_tree const& ft = it->second;
+		int const tree_layers = merkle_num_layers(ft.num_leafs);
+		if (tree_layers < 1 || ft.blocks_per_piece <= 0 || ft.num_blocks <= 0) return false;
+
+		int const num_pieces_in_file =
+			std::max(1, (ft.num_blocks + ft.blocks_per_piece - 1) / ft.blocks_per_piece);
+		int const piece_idx = std::rand() % num_pieces_in_file;
+		int const block_start = piece_idx * ft.blocks_per_piece;
+		int const blocks_in_this_piece = std::min(ft.blocks_per_piece, ft.num_blocks - block_start);
+
+		// validate_hash_request() requires proof_layers < num_layers - base.
+		// With base == 0, the maximum valid proof_layers is tree_layers - 1
+		// (uncle chain from the block layer up to just below the root).
+		write_hash_request(root, 0 /*base*/, block_start, blocks_in_this_piece, tree_layers - 1);
+		++outstanding_requests;
+		return true;
 	}
 
 	void on_msg_length(error_code const& ec, size_t)
@@ -509,6 +829,15 @@ struct peer_conn
 				int const start = aux::read_int32(ptr);
 				int const length = aux::read_int32(ptr);
 				write_piece(piece, start, length);
+			}
+			else if (msg == 21) // hash_request
+			{
+				if (bytes_transferred != 49)
+				{
+					close("HASH_REQUEST packet has invalid size", error_code());
+					return;
+				}
+				handle_hash_request(ptr);
 			}
 			else if (msg == 3) // not-interested
 			{
@@ -637,6 +966,20 @@ struct peer_conn
 					allowed_fast.push_back(piece);
 				}
 			}
+			else if (msg == 22) // hashes
+			{
+				++hashes_received;
+				if (flood_hashes && outstanding_requests > 0) --outstanding_requests;
+			}
+			else if (msg == 23) // hash_reject
+			{
+				++hashes_rejected;
+				std::fprintf(stderr,
+					"HASH_REJECT received (total=%d) -- "
+					"indicates an issue in the hash-request logic\n",
+					hashes_rejected);
+				if (flood_hashes && outstanding_requests > 0) --outstanding_requests;
+			}
 			work_download();
 		}
 	}
@@ -660,8 +1003,36 @@ struct peer_conn
 
 	void write_piece(piece_index_t const piece, int start, int length)
 	{
-		generate_block({write_buffer, length / 4}
-			, piece, start);
+		// BT REQUEST is at most 16 KiB but the last block of a (partial)
+		// last piece can be smaller. Fill the buffer rounded up to a 4-byte
+		// word so all `length` bytes are deterministic.
+		int const fill_words = (length + 3) / 4;
+		generate_block({write_buffer, fill_words}, piece, start);
+
+		// zero any bytes of this block that fall within a pad file. A real
+		// seed serves zeros there (pad files read as zero from disk); without
+		// this a data/pad-straddling block fails the v1 piece hash while
+		// passing the v2 block hash on hybrid torrents. See pad_ranges.
+		if (!pad_ranges.empty())
+		{
+			std::int64_t const piece_len = std::int64_t(blocks_per_piece) * 0x4000;
+			std::int64_t const block_begin =
+				std::int64_t(static_cast<int>(piece)) * piece_len + start;
+			std::int64_t const block_end = block_begin + length;
+			char* const buf = reinterpret_cast<char*>(write_buffer);
+			// pad_ranges is sorted by offset and the ranges don't overlap, so
+			// binary-search for the first range that can reach into this block
+			auto it = std::lower_bound(pad_ranges.begin(),
+				pad_ranges.end(),
+				block_begin,
+				[](auto const& pr, std::int64_t const off) { return pr.second <= off; });
+			for (; it != pad_ranges.end() && it->first < block_end; ++it)
+			{
+				std::int64_t const lo = std::max(block_begin, it->first);
+				std::int64_t const hi = std::min(block_end, it->second);
+				if (lo < hi) std::memset(buf + (lo - block_begin), 0, std::size_t(hi - lo));
+			}
+		}
 
 		if (corrupt)
 		{
@@ -674,7 +1045,6 @@ struct peer_conn
 		}
 		char* ptr = write_buf_proto;
 		write_uint32(9 + length, ptr);
-		assert(length == 0x4000);
 		write_uint8(7, ptr);
 		write_uint32(static_cast<int>(piece), ptr);
 		write_uint32(start, ptr);
@@ -698,22 +1068,160 @@ struct peer_conn
 		write_uint32(static_cast<int>(piece), ptr);
 		boost::asio::async_write(s, boost::asio::buffer(write_buf_proto, 9), std::bind(&peer_conn::on_sent, this, _1, _2, "ERROR SENT HAVE"));
 	}
+
+	// reads a 48-byte HASH_REQUEST/HASH_REJECT payload (file-root + 4 int32s)
+	// from `ptr` and produces a HASHES (msg 22) or HASH_REJECT (msg 23) reply
+	// from the precomputed merkle tree for `file_root`.
+	void handle_hash_request(char const* ptr)
+	{
+		sha256_hash file_root;
+		std::memcpy(file_root.data(), ptr, 32);
+		ptr += 32;
+		int const base = aux::read_int32(ptr);
+		int const index = aux::read_int32(ptr);
+		int const count = aux::read_int32(ptr);
+		int const proof_layers = aux::read_int32(ptr);
+
+		auto it = file_trees.find(file_root);
+		std::vector<sha256_hash> hashes;
+		if (it != file_trees.end())
+			hashes = get_hashes_for_request(it->second, base, index, count, proof_layers);
+
+		if (hashes.empty())
+		{
+			++hash_rejects_sent;
+			write_hash_reject(file_root, base, index, count, proof_layers);
+		}
+		else
+		{
+			++hashes_sent;
+			write_hashes(file_root, base, index, count, proof_layers, hashes);
+		}
+	}
+
+	void write_hashes(sha256_hash const& file_root,
+		int const base,
+		int const index,
+		int const count,
+		int const proof_layers,
+		std::vector<sha256_hash> const& hashes)
+	{
+		int const payload_size = 1 + 32 + 4 + 4 + 4 + 4 + int(hashes.size()) * 32;
+		int const total = 4 + payload_size;
+		// HASHES is the only message big enough that it doesn't fit in
+		// write_buf_proto. write_buffer is sized for a 16 KiB block plus
+		// header so it easily accommodates any HASHES reply this tester
+		// produces (get_hashes_for_request caps count at blocks_per_piece).
+		TORRENT_ASSERT(total <= int(sizeof(write_buffer)));
+		char* ptr = reinterpret_cast<char*>(write_buffer);
+		write_uint32(payload_size, ptr);
+		write_uint8(22, ptr); // msg_hashes
+		std::memcpy(ptr, file_root.data(), 32);
+		ptr += 32;
+		write_uint32(base, ptr);
+		write_uint32(index, ptr);
+		write_uint32(count, ptr);
+		write_uint32(proof_layers, ptr);
+		for (auto const& h : hashes)
+		{
+			std::memcpy(ptr, h.data(), 32);
+			ptr += 32;
+		}
+		boost::asio::async_write(s,
+			boost::asio::buffer(write_buffer, std::size_t(total)),
+			std::bind(&peer_conn::on_hash_sent, this, _1, _2, "ERROR SENT HASHES"));
+	}
+
+	void write_hash_reject(sha256_hash const& file_root,
+		int const base,
+		int const index,
+		int const count,
+		int const proof_layers)
+	{
+		constexpr int payload_size = 1 + 32 + 4 + 4 + 4 + 4;
+		constexpr int total = 4 + payload_size;
+		static_assert(total <= int(sizeof(write_buf_proto)), "write_buf_proto too small");
+		char* ptr = write_buf_proto;
+		write_uint32(payload_size, ptr);
+		write_uint8(23, ptr); // msg_hash_reject
+		std::memcpy(ptr, file_root.data(), 32);
+		ptr += 32;
+		write_uint32(base, ptr);
+		write_uint32(index, ptr);
+		write_uint32(count, ptr);
+		write_uint32(proof_layers, ptr);
+		boost::asio::async_write(s,
+			boost::asio::buffer(write_buf_proto, std::size_t(total)),
+			std::bind(&peer_conn::on_hash_sent, this, _1, _2, "ERROR SENT HASH_REJECT"));
+	}
+
+	void write_hash_request(sha256_hash const& file_root,
+		int const base,
+		int const index,
+		int const count,
+		int const proof_layers)
+	{
+		constexpr int payload_size = 1 + 32 + 4 + 4 + 4 + 4;
+		constexpr int total = 4 + payload_size;
+		static_assert(total <= int(sizeof(write_buf_proto)), "write_buf_proto too small");
+		char* ptr = write_buf_proto;
+		write_uint32(payload_size, ptr);
+		write_uint8(21, ptr); // msg_hash_request
+		std::memcpy(ptr, file_root.data(), 32);
+		ptr += 32;
+		write_uint32(base, ptr);
+		write_uint32(index, ptr);
+		write_uint32(count, ptr);
+		write_uint32(proof_layers, ptr);
+		boost::asio::async_write(s,
+			boost::asio::buffer(write_buf_proto, std::size_t(total)),
+			std::bind(&peer_conn::on_hash_sent, this, _1, _2, "ERROR SENT HASH_REQUEST"));
+		++hash_requests_sent;
+	}
+
+	void on_hash_sent(error_code const& ec, size_t, char const* msg)
+	{
+		if (ec)
+		{
+			close(msg, ec);
+			return;
+		}
+		if (seed)
+		{
+			// after sending a HASHES / HASH_REJECT, resume reading.
+			boost::asio::async_read(s,
+				boost::asio::buffer(buffer, 4),
+				std::bind(&peer_conn::on_msg_length, this, _1, _2));
+		}
+		else
+		{
+			// downloader in flood mode: pipeline another HASH_REQUEST or drain
+			// pending responses.
+			work_download();
+		}
+	}
 };
 
 [[noreturn]] void print_usage()
 {
-	std::fprintf(stderr, "usage: connection_tester command [options]\n\n"
+	std::fprintf(stderr,
+		"usage: connection_tester command [options]\n\n"
 		"command is one of:\n"
 		"  gen-torrent        generate a test torrent\n"
 		"    options for this command:\n"
 		"    -s <size>          the size of the torrent in megabytes\n"
 		"    -n <num-files>     the number of files in the test torrent\n"
 		"    -t <file>          the file to save the .torrent file to\n"
+		"    -V <version>       torrent format: 1 = v1-only, 2 = v2-only,\n"
+		"                       h = hybrid (default)\n"
 		"    -U <num>           Add <num> random test tracker URLs\n\n"
 		"  gen-data             generate the data file(s) for the test torrent\n"
 		"    options for this command:\n"
 		"    -t <file>          the torrent file that was previously generated\n"
-		"    -P <path>          the path to where the data should be stored\n\n"
+		"    -P <path>          the path to where the data should be stored\n"
+		"    -R                 also write a resume file under <path>/.resume/\n"
+		"                       that marks every piece as owned, so a client\n"
+		"                       can start seeding without a startup check pass\n"
 		"  gen-test-torrents    generate many test torrents (cannot be used for up/down tests)\n"
 		"    options for this command:\n"
 		"    -N <num-torrents>  number of torrents to generate\n"
@@ -724,18 +1232,26 @@ struct peer_conn
 		"  upload               start an uploader test\n"
 		"  download             start a downloader test\n"
 		"  dual                 start a download and upload test\n"
+		"  hash-stress          flood the target with v2 HASH_REQUEST messages\n"
+		"                       (requires a v2 or hybrid torrent on the target)\n"
 		"    options for these commands:\n"
 		"    -c <num-conns>     the number of connections to make to the target\n"
 		"    -d <dst>           the IP address of the target\n"
 		"    -p <dst-port>      the port the target listens on\n"
 		"    -t <torrent-file>  the torrent file previously generated by gen-torrent\n"
 		"    -C                 send corrupt pieces sometimes (applies to upload and dual)\n"
-		"    -r <reconnects>    churn - number of reconnects per second\n\n"
+		"    -1                 for hybrid torrents, use the v1 info hash in the\n"
+		"                       handshake and clear the v2 reserved bit (default is\n"
+		"                       to use the v2 info hash and exercise the v2 path)\n"
+		"    -r <reconnects>    churn - number of reconnects per second\n"
+		"    -S <seconds>       print a per-connection STATUS line every\n"
+		"                       <seconds> seconds (0 disables, default)\n\n"
 		"examples:\n\n"
 		"connection_tester gen-torrent -s 1024 -n 4 -t test.torrent\n"
 		"connection_tester upload -c 200 -d 127.0.0.1 -p 6881 -t test.torrent\n"
 		"connection_tester download -c 200 -d 127.0.0.1 -p 6881 -t test.torrent\n"
-		"connection_tester dual -c 200 -d 127.0.0.1 -p 6881 -t test.torrent\n");
+		"connection_tester dual -c 200 -d 127.0.0.1 -p 6881 -t test.torrent\n"
+		"connection_tester hash-stress -c 100 -d 127.0.0.1 -p 6881 -t test.torrent\n");
 	exit(1);
 }
 
@@ -800,9 +1316,98 @@ out:
 	if (print) std::fprintf(stderr, "\n");
 }
 
+// describes the (canonicalized) file an absolute piece belongs to.
+// Only meaningful for v2 and hybrid torrents, where canonicalize() guarantees
+// each piece lives within a single file.
+struct piece_file_map_entry
+{
+	file_index_t file{0};
+	piece_index_t::diff_type piece_in_file{0};
+	bool is_pad = false;
+};
+
+// walk t.file_at(fi) in order, attributing each piece to the data file it
+// belongs to. Pad files are skipped because they fill the tail of the
+// previous data file's last (partial) piece; they own no pieces of their own.
+std::vector<piece_file_map_entry> compute_piece_to_file_map(create_torrent const& t)
+{
+	int const piece_length = t.piece_length();
+	int const num_pieces = t.num_pieces();
+	std::vector<piece_file_map_entry> result;
+	result.resize(std::size_t(num_pieces));
+
+	int abs = 0;
+	for (file_index_t fi{0}; fi < t.end_file(); ++fi)
+	{
+		auto const& fe = t.file_at(fi);
+		if (fe.flags & file_storage::flag_pad_file) continue;
+		if (fe.size == 0) continue;
+		int const file_pieces = int((fe.size + piece_length - 1) / piece_length);
+		for (int p = 0; p < file_pieces && abs < num_pieces; ++p, ++abs)
+		{
+			result[std::size_t(abs)].file = fi;
+			result[std::size_t(abs)].piece_in_file = piece_index_t::diff_type(p);
+			result[std::size_t(abs)].is_pad = false;
+		}
+	}
+	return result;
+}
+
+void v2_hasher_thread(create_torrent const* ct,
+	std::vector<piece_file_map_entry> const* piece_map,
+	lt::aux::vector<sha256_hash, piece_index_t>* output,
+	piece_index_t const start_piece,
+	piece_index_t const end_piece)
+{
+	int const piece_length = ct->piece_length();
+	int const blocks_per_piece = piece_length / default_block_size;
+	// largest subtree we will ever need: a full piece. For files smaller
+	// than a piece the subtree is smaller and we reuse the prefix.
+	aux::vector<sha256_hash> subtree(merkle_num_nodes(blocks_per_piece));
+
+	std::uint32_t block_buf[default_block_size / 4];
+	for (piece_index_t i = start_piece; i < end_piece; ++i)
+	{
+		auto const& pm = (*piece_map)[std::size_t(static_cast<int>(i))];
+		if (pm.is_pad) continue;
+		auto const& fe = ct->file_at(pm.file);
+		std::int64_t const piece_offset =
+			std::int64_t(static_cast<int>(pm.piece_in_file)) * piece_length;
+		int const bytes_in_piece =
+			int(std::min(std::int64_t(piece_length), fe.size - piece_offset));
+		if (bytes_in_piece <= 0) continue;
+		int const blocks_in_piece = (bytes_in_piece + default_block_size - 1) / default_block_size;
+		// BEP 52 padding rule: per-piece merkle roots use blocks_per_piece
+		// leaves for files at least a piece long (zero-padding the last
+		// piece's tail). For files shorter than a piece, pad to next pow-2
+		// of the block count. Matches create_torrent.cpp on_hash().
+		int const num_leafs =
+			(fe.size < piece_length) ? merkle_num_leafs(blocks_in_piece) : blocks_per_piece;
+		int const num_nodes = merkle_num_nodes(num_leafs);
+		int const first_leaf = merkle_first_leaf(num_leafs);
+
+		for (int n = 0; n < num_nodes; ++n)
+			subtree[n] = sha256_hash{};
+		for (int b = 0; b < blocks_in_piece; ++b)
+		{
+			generate_block(block_buf, i, b * default_block_size);
+			int const block_bytes = (b == blocks_in_piece - 1)
+				? (bytes_in_piece - b * default_block_size)
+				: default_block_size;
+			subtree[first_leaf + b] =
+				hasher256(reinterpret_cast<char const*>(block_buf), block_bytes).final();
+		}
+		merkle_fill_tree(span<sha256_hash>(subtree).first(num_nodes), num_leafs);
+		(*output)[i] = subtree[0];
+	}
+}
+
 // size is in megabytes
-std::vector<char> generate_torrent(int num_pieces, int num_files
-	, char const* torrent_name, int num_trackers)
+std::vector<char> generate_torrent(int num_pieces,
+	int num_files,
+	char const* torrent_name,
+	int num_trackers,
+	gen_version_t const version)
 {
 	std::vector<lt::create_file_entry> files;
 	// 1 MiB piece size
@@ -822,50 +1427,94 @@ std::vector<char> generate_torrent(int num_pieces, int num_files
 		file_size += 200;
 	}
 
-	lt::create_torrent t(std::move(files), piece_size, lt::create_torrent::v1_only);
+	lt::create_flags_t flags{};
+	if (version == gen_version_t::v1)
+		flags = lt::create_torrent::v1_only;
+	else if (version == gen_version_t::v2)
+		flags = lt::create_torrent::v2_only;
+	// hybrid: no version flag — canonicalize and emit both v1 and v2 metadata
+
+	lt::create_torrent t(std::move(files), piece_size, flags);
 
 	num_pieces = t.num_pieces();
+	bool const do_v1 = (version != gen_version_t::v2);
+	bool const do_v2 = (version != gen_version_t::v1);
 
 	int const num_threads = std::thread::hardware_concurrency()
 		? int(std::thread::hardware_concurrency()) : 4;
 	std::printf("hashing in %d threads\n", num_threads);
 
-	std::vector<std::thread> threads;
-	threads.reserve(std::size_t(num_threads));
-	lt::aux::vector<lt::sha1_hash, piece_index_t> hashes{static_cast<std::size_t>(num_pieces)};
-	lt::file_slice current_file;
-	current_file.file_index = file_index_t{0};
-	current_file.offset = 0;
-	current_file.size = t.file_at(current_file.file_index).size;
-	std::int64_t offset = 0;
-	for (int i = 0; i < num_threads; ++i)
+	if (do_v1)
 	{
-		auto const start_piece = piece_index_t(i * num_pieces / num_threads);
-		auto const target_offset = static_cast<int>(start_piece) * t.piece_length();
-		while (offset < target_offset)
+		std::vector<std::thread> threads;
+		threads.reserve(std::size_t(num_threads));
+		lt::aux::vector<lt::sha1_hash, piece_index_t> hashes{static_cast<std::size_t>(num_pieces)};
+		lt::file_slice current_file;
+		current_file.file_index = file_index_t{0};
+		current_file.offset = 0;
+		current_file.size = t.file_at(current_file.file_index).size;
+		std::int64_t offset = 0;
+		for (int i = 0; i < num_threads; ++i)
 		{
-			while (current_file.size == 0)
+			auto const start_piece = piece_index_t(i * num_pieces / num_threads);
+			std::int64_t const target_offset =
+				static_cast<int>(start_piece) * std::int64_t(t.piece_length());
+			while (offset < target_offset)
 			{
-				++current_file.file_index;
-				current_file.offset = 0;
-				current_file.size = t.file_at(current_file.file_index).size;
+				while (current_file.size == 0)
+				{
+					++current_file.file_index;
+					current_file.offset = 0;
+					current_file.size = t.file_at(current_file.file_index).size;
+				}
+				std::int64_t const increment = std::min(current_file.size, target_offset - offset);
+				current_file.offset += increment;
+				current_file.size -= increment;
+				offset += increment;
 			}
-			std::int64_t const increment = std::min(current_file.size, target_offset - offset);
-			current_file.offset += increment;
-			current_file.size -= increment;
-			offset += increment;
+			threads.emplace_back(&hasher_thread,
+				&hashes,
+				std::cref(t),
+				current_file,
+				start_piece,
+				piece_index_t((i + 1) * num_pieces / num_threads),
+				i == 0);
 		}
-		threads.emplace_back(&hasher_thread, &hashes, std::cref(t), current_file
-			, start_piece
-			, piece_index_t((i + 1) * num_pieces / num_threads)
-			, i == 0);
+
+		for (auto& i : threads)
+			i.join();
+
+		for (auto i : t.piece_range())
+			t.set_hash(i, hashes[i]);
 	}
 
-	for (auto& i : threads)
-		i.join();
+	if (do_v2)
+	{
+		auto const piece_map = compute_piece_to_file_map(t);
+		lt::aux::vector<sha256_hash, piece_index_t> v2_hashes{static_cast<std::size_t>(num_pieces)};
 
-	for (auto i : t.piece_range())
-		t.set_hash(i, hashes[i]);
+		std::vector<std::thread> threads;
+		threads.reserve(std::size_t(num_threads));
+		for (int i = 0; i < num_threads; ++i)
+		{
+			threads.emplace_back(&v2_hasher_thread,
+				&t,
+				&piece_map,
+				&v2_hashes,
+				piece_index_t(i * num_pieces / num_threads),
+				piece_index_t((i + 1) * num_pieces / num_threads));
+		}
+		for (auto& th : threads)
+			th.join();
+
+		for (piece_index_t p : t.piece_range())
+		{
+			auto const& pm = piece_map[std::size_t(static_cast<int>(p))];
+			if (pm.is_pad) continue;
+			if (v2_hashes[p].is_all_zeros()) continue;
+			t.set_hash2(pm.file, pm.piece_in_file, v2_hashes[p]);
+		}
+	}
 
 	for (int i = 0; i < num_trackers; ++i)
 	{
@@ -981,6 +1630,90 @@ catch (std::exception const& e)
 	std::fprintf(stderr, "ERROR: %s\n", e.what());
 }
 
+// build the per-file merkle trees needed to satisfy HASH_REQUEST messages
+// and to drive the hash-stress flood. Populates the globals file_trees and
+// file_root_list. No-op for v1-only torrents.
+void build_global_file_trees(torrent_info const& ti)
+{
+	if (!ti.v2()) return;
+	file_storage const& fs = ti.layout();
+	int const piece_length = fs.piece_length();
+
+	for (file_index_t fi : fs.file_range())
+	{
+		if (fs.pad_file_at(fi)) continue;
+		std::int64_t const file_size = fs.file_size(fi);
+		if (file_size == 0) continue;
+
+		piece_index_t const file_first_piece = fs.piece_index_at_file(fi);
+		int const file_num_pieces = fs.file_num_pieces(fi);
+
+		file_merkle_tree ft =
+			build_file_merkle_tree(file_first_piece, file_num_pieces, file_size, piece_length);
+		if (ft.tree.empty()) continue;
+		sha256_hash const root = ft.tree[0];
+		file_root_list.push_back(root);
+		file_trees.emplace(root, std::move(ft));
+	}
+	std::printf("built %d v2 file merkle trees\n", int(file_trees.size()));
+}
+
+// record the absolute byte ranges of pad files into pad_ranges, so the
+// seed-side send path can zero them (see pad_ranges). No-op when there are
+// no pad files (v1-only torrents, or any torrent without padding).
+void build_pad_ranges(file_storage const& fs)
+{
+	pad_ranges.clear();
+	std::int64_t offset = 0;
+	for (file_index_t fi : fs.file_range())
+	{
+		std::int64_t const sz = fs.file_size(fi);
+		if (fs.pad_file_at(fi) && sz > 0) pad_ranges.emplace_back(offset, offset + sz);
+		offset += sz;
+	}
+}
+
+// write a resume file under <data_path>/.resume/ that asserts ownership
+// of every piece, so a seed-only client (e.g. client_test for the upload
+// benchmark) comes up in seeding state without a startup check pass.
+// expects the canonical payload to already exist at <data_path> (run
+// generate_data() first).
+void write_seeding_resume_file(torrent_info const& ti, char const* data_path)
+{
+	add_torrent_params atp;
+	atp.ti = std::make_shared<torrent_info>(ti);
+	atp.have_pieces.resize(ti.num_pieces(), true);
+	atp.save_path = data_path;
+
+	// for v2 torrents, the per-file piece-layer hashes are already in the
+	// .torrent file (its `piece layers` field) and load_torrent() puts each
+	// merkle_tree into piece_layer mode for us. block hashes are only needed
+	// to answer HASH_REQUEST messages from peers; connection_tester's leech
+	// mode does not send those (only the explicit hash-stress mode does), so
+	// we don't store block hashes in the resume file. that keeps the resume
+	// small and avoids hashing the entire payload here.
+
+	std::vector<char> buf = lt::write_resume_data_buf(atp);
+
+	// mirror client_test's resume layout:
+	// <save_path>/.resume/<info-hash-hex>.resume
+	std::filesystem::path const resume_dir = std::filesystem::path(data_path) / ".resume";
+	std::error_code ec;
+	std::filesystem::create_directories(resume_dir, ec);
+
+	std::stringstream hex;
+	hex << ti.info_hashes().get_best();
+	std::filesystem::path const resume_path = resume_dir / (hex.str() + ".resume");
+
+	std::ofstream out(resume_path, std::ios::binary);
+	if (!out.write(buf.data(), std::streamsize(buf.size())))
+	{
+		std::fprintf(stderr, "failed to write '%s'\n", resume_path.string().c_str());
+		return;
+	}
+	std::printf("wrote resume file: %s\n", resume_path.string().c_str());
+}
+
 } // anonymous namespace
 
 int main(int argc, char* argv[])
@@ -999,6 +1732,8 @@ int main(int argc, char* argv[])
 	int destination_port = 6881;
 	int churn = 0;
 	std::vector<std::string> trackers;
+	gen_version_t gen_version = gen_version_t::hybrid;
+	bool gen_resume_too = false;
 
 	argv += 2;
 	argc -= 2;
@@ -1019,6 +1754,12 @@ int main(int argc, char* argv[])
 		switch (optname[1])
 		{
 			case 'C': test_corruption = true; continue;
+			case '1':
+				force_v1_handshake = true;
+				continue;
+			case 'R':
+				gen_resume_too = true;
+				continue;
 		}
 
 		if (argc == 0)
@@ -1044,6 +1785,22 @@ int main(int argc, char* argv[])
 			case 'p': destination_port = atoi(opt); break;
 			case 'd': destination_ip = opt; break;
 			case 'r': churn = atoi(opt); break;
+			case 'S':
+				status_interval = std::chrono::seconds(atoi(opt));
+				break;
+			case 'V':
+				if (opt[0] == '1' && opt[1] == 0)
+					gen_version = gen_version_t::v1;
+				else if (opt[0] == '2' && opt[1] == 0)
+					gen_version = gen_version_t::v2;
+				else if (opt[0] == 'h' && opt[1] == 0)
+					gen_version = gen_version_t::hybrid;
+				else
+				{
+					std::fprintf(stderr, "invalid -V value: %s (expected 1, 2 or h)\n", opt);
+					return 1;
+				}
+				break;
 			default: std::fprintf(stderr, "unknown option: %s\n", optname);
 		}
 	}
@@ -1053,8 +1810,8 @@ int main(int argc, char* argv[])
 		std::string name = leaf_path(torrent_file);
 		name = name.substr(0, name.find_last_of('.'));
 		std::printf("generating torrent: %s\n", name.c_str());
-		std::vector<char> tmp = generate_torrent(size ? size : 1024, num_files ? num_files : 1
-			, name.c_str(), num_trackers);
+		std::vector<char> tmp = generate_torrent(
+			size ? size : 1024, num_files ? num_files : 1, name.c_str(), num_trackers, gen_version);
 
 		FILE* output = stdout;
 		if ("-"_sv != torrent_file)
@@ -1079,6 +1836,7 @@ int main(int argc, char* argv[])
 		{
 			add_torrent_params atp = load_torrent_file(torrent_file);
 			generate_data(data_path, *atp.ti);
+			if (gen_resume_too) write_seeding_resume_file(*atp.ti, data_path);
 		}
 		catch (lt::system_error const& err)
 		{
@@ -1144,6 +1902,10 @@ int main(int argc, char* argv[])
 	{
 		test_mode = dual_test;
 	}
+	else if (command == "hash-stress"_sv)
+	{
+		test_mode = hash_stress_test;
+	}
 	else
 	{
 		std::fprintf(stderr, "unknown command: %s\n\n", command);
@@ -1176,19 +1938,62 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
+	info_hash_t const& ihs = atp.ti->info_hashes();
+	bool const torrent_has_v2 = ihs.has_v2();
+	bool const torrent_has_v1 = ihs.has_v1();
+	bool const handshake_uses_v2 = torrent_has_v2 && !(torrent_has_v1 && force_v1_handshake);
+	sha1_hash const handshake_info_hash = handshake_uses_v2 ? sha1_hash(ihs.v2.data()) : ihs.v1;
+
+	if (test_mode == hash_stress_test && !torrent_has_v2)
+	{
+		std::fprintf(stderr, "ERROR: hash-stress requires a v2 or hybrid torrent\n");
+		return 1;
+	}
+
+	if (test_mode == hash_stress_test && force_v1_handshake)
+	{
+		std::fprintf(stderr, "ERROR: -1 (force v1 handshake) is incompatible with hash-stress\n");
+		return 1;
+	}
+
+	// build the per-file merkle trees we need to respond to HASH_REQUEST (as
+	// seed) and to drive the hash-stress flood. download-only mode does not
+	// touch the trees, so the build is skipped to save startup cost.
+	if (torrent_has_v2
+		&& (test_mode == upload_test || test_mode == dual_test || test_mode == hash_stress_test))
+	{
+		build_global_file_trees(*atp.ti);
+	}
+
+	// seed modes generate piece data on the fly; record pad-file ranges so the
+	// send path can zero them to match what a disk-backed seed would serve.
+	if (test_mode == upload_test || test_mode == dual_test) build_pad_ranges(atp.ti->layout());
+
+	bool const flood_hashes_all = (test_mode == hash_stress_test);
+
 	std::vector<peer_conn*> conns;
 	conns.reserve(std::size_t(num_connections));
 	int const num_threads = 2;
 	io_context ios[num_threads];
-	lt::sha1_hash const ih = atp.ti->info_hash();
+	int const last_piece_size = atp.ti->piece_size(piece_index_t(atp.ti->num_pieces() - 1));
 	for (int i = 0; i < num_connections; ++i)
 	{
 		bool corrupt = test_corruption && (i & 1) == 0;
 		bool seed = false;
 		if (test_mode == upload_test) seed = true;
 		else if (test_mode == dual_test) seed = (i & 1);
-		conns.push_back(new peer_conn(ios[i % num_threads], atp.ti->num_pieces(), atp.ti->piece_length() / 16 / 1024
-			, ep, ih.data(), seed, churn, corrupt));
+		// hash-stress connections all act as downloaders that flood HASH_REQUEST.
+		conns.push_back(new peer_conn(ios[i % num_threads],
+			atp.ti->num_pieces(),
+			atp.ti->piece_length() / 16 / 1024,
+			last_piece_size,
+			ep,
+			handshake_info_hash,
+			handshake_uses_v2,
+			seed,
+			churn,
+			corrupt,
+			flood_hashes_all));
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		ios[i % num_threads].poll_one();
 	}
@@ -1201,6 +2006,11 @@ int main(int argc, char* argv[])
 
 	std::int64_t total_sent = 0;
 	std::int64_t total_received = 0;
+	std::int64_t total_hashes_received = 0;
+	std::int64_t total_hashes_rejected = 0;
+	std::int64_t total_hash_requests = 0;
+	std::int64_t total_hashes_sent = 0;
+	std::int64_t total_hash_rejects_sent = 0;
 
 	for (peer_conn* p : conns)
 	{
@@ -1208,18 +2018,31 @@ int main(int argc, char* argv[])
 		if (time == 0) time = 1;
 		total_sent += p->blocks_sent;
 		total_received += p->blocks_received;
+		total_hashes_received += p->hashes_received;
+		total_hashes_rejected += p->hashes_rejected;
+		total_hash_requests += p->hash_requests_sent;
+		total_hashes_sent += p->hashes_sent;
+		total_hash_rejects_sent += p->hash_rejects_sent;
 		delete p;
 	}
 
 	std::printf("=========================\n"
-		"suggests: %d suggested-requests: %d\n"
-		"total sent: %.1f %% received: %.1f %%\n"
-		"rate sent: %.1f MB/s received: %.1f MB/s\n"
-		, int(num_suggest), int(num_suggested_requests)
-		, double(total_sent * 0x4000) * 100.0 / double(atp.ti->total_size())
-		, double(total_received * 0x4000) * 100.0 / double(atp.ti->total_size())
-		, double(total_sent * 0x4000) / 1000000.0
-		, double(total_received * 0x4000) / 1000000.0);
+				"suggests: %d suggested-requests: %d\n"
+				"total sent: %.1f %% received: %.1f %%\n"
+				"rate sent: %.1f MB/s received: %.1f MB/s\n"
+				"hash-requests: sent=%lld   hashes: sent=%lld received=%lld\n"
+				"hash-rejects:  sent=%lld received=%lld\n",
+		int(num_suggest),
+		int(num_suggested_requests),
+		double(total_sent * 0x4000) * 100.0 / double(atp.ti->total_size()),
+		double(total_received * 0x4000) * 100.0 / double(atp.ti->total_size()),
+		double(total_sent * 0x4000) / 1000000.0,
+		double(total_received * 0x4000) / 1000000.0,
+		static_cast<long long>(total_hash_requests),
+		static_cast<long long>(total_hashes_sent),
+		static_cast<long long>(total_hashes_received),
+		static_cast<long long>(total_hash_rejects_sent),
+		static_cast<long long>(total_hashes_rejected));
 
 	return 0;
 }

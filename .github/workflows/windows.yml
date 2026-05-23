@@ -41,7 +41,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.90.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.91.0 https://github.com/boostorg/boost.git
           cd boost
           bootstrap.bat
 
@@ -88,7 +88,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.90.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.91.0 https://github.com/boostorg/boost.git
           cd boost
           bootstrap.bat
 
@@ -148,7 +148,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.90.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.91.0 https://github.com/boostorg/boost.git
           cd boost
           bootstrap.bat
 
@@ -203,7 +203,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.90.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.91.0 https://github.com/boostorg/boost.git
           cd boost
           bootstrap.bat
 
@@ -249,10 +249,10 @@ jobs:
           cd boost
           bootstrap.bat
 
-      - name: stage boost libraries
+      - name: stage boost headers
         run: |
           cd boost
-          b2 cxxstd=17 release --with-system --with-json --layout=system address-model=64 link=static stage
+          b2 cxxstd=17 release --with-headers --layout=system address-model=64 link=static stage
 
       - name: cmake configure
         run: |

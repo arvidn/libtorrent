@@ -90,20 +90,20 @@ TORRENT_CRYPTO_NAMESPACE
 #endif
 
 #if defined TORRENT_USE_LIBCRYPTO
-	hasher::hasher(hasher&& h)
+	hasher::hasher(hasher&& h) noexcept
 	{
 		std::swap(m_context, h.m_context);
 	}
 
-	hasher& hasher::operator=(hasher&& h) &
+	hasher& hasher::operator=(hasher&& h) & noexcept
 	{
 		if (this == &h) return *this;
 		std::swap(m_context, h.m_context);
 		return *this;
 	}
 #else
-	hasher::hasher(hasher&&) = default;
-	hasher& hasher::operator=(hasher&&) & = default;
+	hasher::hasher(hasher&&) noexcept = default;
+	hasher& hasher::operator=(hasher&&) & noexcept = default;
 #endif
 
 	hasher& hasher::update(char const* data, int len)
@@ -242,20 +242,20 @@ TORRENT_CRYPTO_NAMESPACE
 #endif
 
 #if defined TORRENT_USE_LIBCRYPTO
-	hasher256::hasher256(hasher256&& h)
+	hasher256::hasher256(hasher256&& h) noexcept
 	{
 		std::swap(m_context, h.m_context);
 	}
 
-	hasher256& hasher256::operator=(hasher256&& h) &
+	hasher256& hasher256::operator=(hasher256&& h) & noexcept
 	{
 		if (this == &h) return *this;
 		std::swap(m_context, h.m_context);
 		return *this;
 	}
 #else
-	hasher256::hasher256(hasher256&&) = default;
-	hasher256& hasher256::operator=(hasher256&&) & = default;
+	hasher256::hasher256(hasher256&&) noexcept = default;
+	hasher256& hasher256::operator=(hasher256&&) & noexcept = default;
 #endif
 
 	hasher256& hasher256::update(char const* data, int len)

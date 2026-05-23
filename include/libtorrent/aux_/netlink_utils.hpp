@@ -37,6 +37,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #if TORRENT_USE_NETLINK
 
+#include <cstddef>
+#include <cstdint>
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 
@@ -48,11 +50,18 @@ namespace aux {
 #pragma clang diagnostic ignored "-Wsign-compare"
 #pragma clang diagnostic ignored "-Wcast-qual"
 #pragma clang diagnostic ignored "-Wcast-align"
+#pragma clang diagnostic ignored "-Wold-style-cast"
+#pragma clang diagnostic ignored "-Wcomma"
 #pragma clang diagnostic ignored "-Wunknown-warning-option"
 #pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
 #endif
 	// these are here to concentrate all the shady casts these macros expand to,
 	// to disable the warnings for them all
+	inline std::uint32_t nlmsg_length(std::size_t const len)
+	{
+		return std::uint32_t(NLMSG_LENGTH(len));
+	}
+
 	inline bool nlmsg_ok(nlmsghdr const* hdr, int const len)
 	{ return NLMSG_OK(hdr, len); }
 

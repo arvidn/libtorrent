@@ -55,8 +55,7 @@ see LICENSE file.
 namespace {
 
 	// round up to even kilobyte
-	int round_up(int n)
-	{ return (n + 1023) & ~0x3ff; }
+	int round_up(int n) { return (n + 1023) & ~0x3ff; }
 }
 
 namespace libtorrent {
@@ -262,7 +261,10 @@ namespace aux {
 		auto const ret = std::fread(buffer.data(), 1, buffer.size(), f.file());
 		if (ret != buffer.size())
 		{
-			ec.assign(errno, generic_category());
+			if (std::ferror(f.file()))
+				ec.assign(errno, generic_category());
+			else
+				ec.assign(errors::file_too_short, libtorrent_category());
 			return -1;
 		}
 		ph.update(buffer);
@@ -381,7 +383,12 @@ namespace aux {
 				}
 				auto bytes_read = std::fread(buf.get(), 1, std::size_t(block_to_copy), file.file());
 				if (int(bytes_read) != block_to_copy)
-					ec.assign(errno, generic_category());
+				{
+					if (std::ferror(file.file()))
+						ec.assign(errno, generic_category());
+					else
+						ec.assign(errors::file_too_short, libtorrent_category());
+				}
 
 				if (ec) return;
 

@@ -17,9 +17,9 @@ namespace libtorrent {
 
 	ip_filter::ip_filter() = default;
 	ip_filter::ip_filter(ip_filter const&) = default;
-	ip_filter::ip_filter(ip_filter&&) = default;
+	ip_filter::ip_filter(ip_filter&&) noexcept = default;
 	ip_filter& ip_filter::operator=(ip_filter const&) = default;
-	ip_filter& ip_filter::operator=(ip_filter&&) = default;
+	ip_filter& ip_filter::operator=(ip_filter&&) noexcept = default;
 	ip_filter::~ip_filter() = default;
 
 	bool ip_filter::empty() const { return m_filter4.empty() && m_filter6.empty(); }

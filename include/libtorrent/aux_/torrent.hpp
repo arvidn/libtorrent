@@ -690,7 +690,7 @@ namespace libtorrent::aux {
 
 		void retry_web_seed(peer_connection* p, std::optional<seconds32> retry = std::nullopt);
 
-		void remove_web_seed_conn(peer_connection* peer);
+		void remove_web_seed_conn(web_seed_t* w);
 
 		std::set<std::string> web_seeds() const;
 
@@ -929,6 +929,10 @@ namespace libtorrent::aux {
 		// as v2-only and requests v2-sized blocks, so pad-file regions are never
 		// downloaded or written to disk. The flag is locked in at construct_storage()
 		// time so a later setting change cannot cause a storage/engine mismatch.
+		// Note: this is not a trivial accessor. For v2-only torrents it performs
+		// an O(log n) std::upper_bound over the file list (in piece_size2()) to
+		// resolve the file boundary that may shorten the piece. Cache the result
+		// when calling it repeatedly for the same piece in a hot path.
 		int piece_size_for_req(piece_index_t p) const
 		{
 			if (m_disable_v1_hashes)
@@ -937,6 +941,11 @@ namespace libtorrent::aux {
 		}
 
 		peer_request to_req(piece_block const& p) const;
+		// overload that takes a precomputed piece size to avoid recomputing
+		// piece_size_for_req() in hot paths. piece_size MUST equal
+		// piece_size_for_req(p.piece_index); this is checked by an assert in
+		// debug builds.
+		peer_request to_req(piece_block const& p, int piece_size) const;
 
 		void disconnect_all(error_code const& ec, operation_t op);
 		int disconnect_peers(int num, error_code const& ec);

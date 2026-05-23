@@ -1007,13 +1007,12 @@ class AlertHandlingTest(unittest.TestCase):
         self.session = lt.session(settings)
 
     def test_wait_and_pop(self) -> None:
-        # wait_for_alert() shouldn't return anything with no pending alerts
-        self.assertIsNone(self.session.wait_for_alert(0))
+        # wait_for_alert() should report no pending alerts
+        self.assertFalse(self.session.wait_for_alert(0))
 
         # Force an alert to fire
         self.session.post_torrent_updates()
-        alert = self.session.wait_for_alert(10000)
-        self.assertIsInstance(alert, lt.state_update_alert)
+        self.assertTrue(self.session.wait_for_alert(10000))
         alerts = self.session.pop_alerts()
         self.assertEqual(len(alerts), 1)
         self.assertIsInstance(alerts[0], lt.state_update_alert)
@@ -1113,24 +1112,27 @@ class PostAlertsTest(unittest.TestCase):
         settings["alert_mask"] = 0
         self.session = lt.session(settings)
 
+    def _assert_pending_alert(self, alert_type: type) -> None:
+        self.assertTrue(self.session.wait_for_alert(10000))
+        alerts = self.session.pop_alerts()
+        self.assertTrue(any(isinstance(a, alert_type) for a in alerts))
+
     def test_post_torrent_updates(self) -> None:
         # no args
         self.session.post_torrent_updates()
-        self.assertIsInstance(self.session.wait_for_alert(10000), lt.state_update_alert)
+        self._assert_pending_alert(lt.state_update_alert)
 
-        self.session.pop_alerts()
         # positional args
         self.session.post_torrent_updates(0)
-        self.assertIsInstance(self.session.wait_for_alert(10000), lt.state_update_alert)
+        self._assert_pending_alert(lt.state_update_alert)
 
-        self.session.pop_alerts()
         # kwargs
         self.session.post_torrent_updates(flags=0)
-        self.assertIsInstance(self.session.wait_for_alert(10000), lt.state_update_alert)
+        self._assert_pending_alert(lt.state_update_alert)
 
     def test_post_dht_stats(self) -> None:
         self.session.post_dht_stats()
-        self.assertIsInstance(self.session.wait_for_alert(10000), lt.dht_stats_alert)
+        self._assert_pending_alert(lt.dht_stats_alert)
 
 
 class AddTorrentTest(unittest.TestCase):

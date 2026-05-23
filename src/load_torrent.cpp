@@ -75,6 +75,10 @@ namespace {
 		}
 	}
 
+} // anonymous namespace
+
+namespace aux {
+
 	void parse_piece_layers(bdecode_node const& e, file_storage const& fs, error_code& ec, add_torrent_params& out)
 	{
 		std::map<sha256_hash, string_view> piece_layers;
@@ -142,10 +146,7 @@ namespace {
 			all_file_roots.erase(file_index);
 		}
 	}
-}
 
-namespace aux
-{
 	std::shared_ptr<torrent_info> parse_torrent_file(bdecode_node const& torrent_file
 		, error_code& ec, load_torrent_limits const& cfg, add_torrent_params& out)
 	{

@@ -604,6 +604,11 @@ class alert(metaclass=_BoostBaseClass):
         tracker_notification: Literal[16]
         upload_notification: Literal[8388608]
 
+    def timestamp(self) -> datetime.datetime:
+        """
+        timestamp( (alert)arg1) -> datetime.datetime :
+        """
+
     def category(self) -> int:
         """
         category( (alert)arg1) -> object :
@@ -2349,7 +2354,7 @@ class peer_error_alert(peer_alert):
     @property
     def op(self) -> operation_t: ...
 
-peer_id = sha1_hash
+peer_id: TypeAlias = sha1_hash  # noqa: Y042
 
 class peer_info(metaclass=_BoostBaseClass):
     __instance_size__: int
@@ -3405,9 +3410,9 @@ class session(metaclass=_BoostBaseClass):
         upload_rate_limit( (session)arg1) -> int :
         """
 
-    def wait_for_alert(self, _ms: int) -> alert | None:
+    def wait_for_alert(self, _ms: int) -> bool:
         """
-        wait_for_alert( (session)arg1, (int)arg2) -> alert :
+        wait_for_alert( (session)arg1, (int)arg2) -> bool :
         """
 
     def web_seed_proxy(self) -> proxy_type_t.proxy_settings:

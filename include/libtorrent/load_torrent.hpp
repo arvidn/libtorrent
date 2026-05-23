@@ -57,6 +57,10 @@ namespace libtorrent::aux {
 	std::shared_ptr<torrent_info> parse_torrent_file(bdecode_node const& torrent_file
 		, error_code& ec, load_torrent_limits const& cfg, add_torrent_params& out);
 
+	TORRENT_EXTRA_EXPORT void parse_piece_layers(
+		bdecode_node const& e, file_storage const& fs, error_code& ec, add_torrent_params& out
+	);
+
 #if TORRENT_ABI_VERSION < 4
 	using torrent_info_ptr = std::shared_ptr<torrent_info>;
 #else

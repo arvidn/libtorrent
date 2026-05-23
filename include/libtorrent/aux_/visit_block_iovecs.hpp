@@ -31,7 +31,8 @@ void visit_block_iovecs(span<BlockEntry const> blocks
 
 	for (auto& be : blocks)
 	{
-		auto const buf = be.write_buf();
+		// unqualified call: found via ADL on the element type
+		auto const buf = write_buf(be);
 		if (count > 0 && buf.empty())
 		{
 			bool const interrupt = f(iovec.first(count), start_idx);

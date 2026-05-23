@@ -53,8 +53,7 @@ see LICENSE file.
 namespace {
 
 	// round up to even kilobyte
-	int round_up(int n)
-	{ return (n + 1023) & ~0x3ff; }
+	int round_up(int n) { return (n + 1023) & ~0x3ff; }
 }
 
 namespace libtorrent::aux {
@@ -167,6 +166,24 @@ namespace libtorrent::aux {
 		return int(aux::pwrite_all(f.fd(), buf, slot_offset(slot) + offset, ec));
 	}
 
+	int part_file::writev(span<span<char const> const> bufs, piece_index_t const piece
+		, int const offset, error_code& ec)
+	{
+		TORRENT_ASSERT(offset >= 0);
+		std::unique_lock<std::mutex> l(m_mutex);
+
+		auto f = open_file(aux::open_mode::write | aux::open_mode::hidden, ec);
+		if (ec) return -1;
+
+		auto const i = m_piece_map.find(piece);
+		slot_index_t const slot = (i == m_piece_map.end())
+			? allocate_slot(piece) : i->second;
+
+		l.unlock();
+
+		return int(aux::pwritev_all(f.fd(), bufs, slot_offset(slot) + offset, ec));
+	}
+
 	int part_file::read(span<char> buf
 		, piece_index_t const piece
 		, int const offset, error_code& ec)
@@ -188,7 +205,7 @@ namespace libtorrent::aux {
 		auto f = open_file(aux::open_mode::read_only | aux::open_mode::hidden, ec);
 		if (ec) return -1;
 
-		return int(aux::pread_all(f.fd(), buf, slot_offset(slot) + offset, ec));
+		return aux::pread_all(f.fd(), buf, slot_offset(slot) + offset, ec);
 	}
 
 	int part_file::hash(hasher& ph
@@ -234,7 +251,8 @@ namespace libtorrent::aux {
 
 		std::vector<char> buffer(static_cast<std::size_t>(len));
 		std::int64_t const slot_offset = std::int64_t(m_header_size) + std::int64_t(static_cast<int>(slot)) * m_piece_size;
-		int const ret = int(aux::pread_all(f.fd(), buffer, slot_offset + offset, ec));
+		int const ret = aux::pread_all(f.fd(), buffer, slot_offset + offset, ec);
+		if (ret < 0) return -1;
 		ph.update(buffer);
 		return ret;
 	}
@@ -344,9 +362,9 @@ namespace libtorrent::aux {
 				l.unlock();
 
 				span<char> v = {buf.get(), block_to_copy};
-				auto bytes_read = aux::pread_all(file.fd(), v, slot_offset(slot) + piece_offset, ec);
-				v = v.first(static_cast<std::ptrdiff_t>(bytes_read));
-				if (ec || v.empty()) return;
+				int const bytes_read =
+					aux::pread_all(file.fd(), v, slot_offset(slot) + piece_offset, ec);
+				if (bytes_read < 0) return;
 
 				f(file_offset, {buf.get(), block_to_copy});
 

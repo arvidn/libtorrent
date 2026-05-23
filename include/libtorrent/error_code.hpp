@@ -385,7 +385,6 @@ namespace errors {
 		http_failed_decompress,
 
 
-
 		// The URL specified an i2p address, but no i2p router is configured
 		no_i2p_router = 160,
 		// i2p acceptor is not available yet, can't announce without endpoint
@@ -459,6 +458,9 @@ namespace errors {
 		torrent_inconsistent_hashes,
 		// a file in the v2 metadata has the pad attribute set
 		torrent_invalid_pad_file,
+		// the directory structure of files in the torrent exceeds the
+		// configured maximum depth (see load_torrent_limits)
+		torrent_directory_too_deep,
 
 		// the number of error codes
 		error_code_max

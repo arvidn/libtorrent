@@ -383,7 +383,7 @@ namespace libtorrent::aux {
 		{
 			int peer_count;
 			int priority;
-			bool have;
+			bool flushed;
 			bool downloading;
 		};
 
@@ -667,10 +667,14 @@ namespace libtorrent::aux {
 			std::set<const aux::torrent_peer*> have_peers;
 #endif
 
-			// index is set to this to indicate that we have the
-			// piece. There is no entry for the piece in the
-			// buckets if this is the case.
-			static inline constexpr prio_index_t we_have_index{-1};
+			// index is set to this to indicate that this piece has been
+			// flushed (i.e. the picker has finalized accounting for it
+			// and removed it from the priority buckets). The flushed flag
+			// is the strict notion of "had": piece_picker::have_piece()
+			// is the loose notion (passed_hash_check OR flushed). Most
+			// internal code wants the strict notion (e.g. cursor advance
+			// is driven by piece_flushed()).
+			static inline constexpr prio_index_t flushed_index{-1};
 
 			// the priority value that means the piece is filtered
 			static constexpr std::uint32_t filter_priority = 0;
@@ -678,9 +682,9 @@ namespace libtorrent::aux {
 			// the max number the peer count can hold
 			static constexpr std::uint32_t max_peer_count = 0xffff;
 
-			bool have() const { return index == we_have_index; }
-			void set_have() { index = we_have_index; TORRENT_ASSERT(have()); }
-			void set_not_have() { index = prio_index_t(0); TORRENT_ASSERT(!have()); }
+			bool flushed() const { return index == flushed_index; }
+			void set_flushed() { index = flushed_index; TORRENT_ASSERT(flushed()); }
+			void set_not_flushed() { index = prio_index_t(0); TORRENT_ASSERT(!flushed()); }
 			bool downloading() const { return state() != piece_open; }
 
 			bool filtered() const { return piece_priority == filter_priority; }
@@ -710,7 +714,7 @@ namespace libtorrent::aux {
 				// filtered pieces (prio = 0), pieces we have or pieces with
 				// availability = 0 should not be present in the piece list
 				// returning -1 indicates that they shouldn't.
-				if (filtered() || have() || peer_count + picker->m_seeds == 0
+				if (filtered() || flushed() || peer_count + picker->m_seeds == 0
 					|| state() == piece_full
 					|| state() == piece_finished)
 					return -1;
@@ -797,8 +801,8 @@ namespace libtorrent::aux {
 
 		// this maps indices to number of peers that has this piece and
 		// index into the m_piece_info vectors.
-		// piece_pos::we_have_index means that we have the piece, so it
-		// doesn't exist in the piece_info buckets
+		// piece_pos::flushed_index means the picker has finalized the
+		// piece, so it doesn't exist in the piece_info buckets
 		// pieces with the filtered flag set doesn't have entries in
 		// the m_piece_info buckets either
 		// TODO: should this be allocated lazily?
@@ -881,12 +885,23 @@ namespace libtorrent::aux {
 		int m_num_have_filtered = 0;
 
 		// we have all pieces in the range [start_range, m_cursor)
-		// m_cursor is the first piece we don't have
+		// m_cursor is the first piece we don't have.
+		//
+		// "have" here is the strict notion: piece_pos::flushed(). The
+		// cursor is only advanced past a piece by piece_flushed() (and
+		// the cursor walks in set_piece_priority() when filtering, since
+		// filtered pieces are also out of the picker's working set). A
+		// piece that has only passed_hash_check but is not yet flushed
+		// will not move the cursor; the cursor lags until piece_flushed()
+		// runs (typically from mark_as_finished() once the last block
+		// completes). This avoids needing to walk the cursor backwards
+		// if write_failed() later clears passed_hash_check.
 		piece_index_t m_cursor{0};
 
 		// we have all pieces in the range [m_reverse_cursor, end_range)
 		// m_reverse_cursor is the first piece where we also have
-		// all the subsequent pieces
+		// all the subsequent pieces.
+		// Same strict-flushed semantics as m_cursor above.
 		piece_index_t m_reverse_cursor{0};
 
 		// the number of pieces we have (i.e. passed hash check).

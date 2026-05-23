@@ -39,6 +39,9 @@ namespace dht {
 	// .. _`BEP 32`: https://www.bittorrent.org/beps/bep_0032.html
 	struct TORRENT_EXPORT dht_state
 	{
+		// the node IDs assigned to each listen socket, paired with the
+		// local address they were generated for. The IDs are derived per
+		// BEP 42 from the external IP and persisted across runs.
 		node_ids_t nids;
 
 		// the bootstrap nodes saved from the buckets node
@@ -46,6 +49,7 @@ namespace dht {
 		// the bootstrap nodes saved from the IPv6 buckets node
 		std::vector<udp::endpoint> nodes6;
 
+		// reset the state to be empty (no node IDs, no bootstrap nodes)
 		void clear();
 	};
 

@@ -74,11 +74,27 @@ namespace aux {
 	// settings.
 	struct TORRENT_EXPORT settings_interface
 	{
+		// store the value of a single setting. ``name`` is one of the
+		// enum values from ``settings_pack::string_types``,
+		// ``int_types`` or ``bool_types``. The setter must match the
+		// type of the setting: ``set_str()`` only accepts names from
+		// ``string_types``, ``set_int()`` from ``int_types`` and
+		// ``set_bool()`` from ``bool_types``. Passing a name of the
+		// wrong type asserts in debug builds and is ignored otherwise.
 		virtual void set_str(int name, std::string val) = 0;
 		virtual void set_int(int name, int val) = 0;
 		virtual void set_bool(int name, bool val) = 0;
+
+		// returns true if a value has been explicitly set for the
+		// setting ``name``. If false, reads of that setting return
+		// the default value.
 		virtual bool has_val(int name) const = 0;
 
+		// retrieve the current value of a single setting. ``name`` is
+		// one of the enum values from ``settings_pack::string_types``,
+		// ``int_types`` or ``bool_types``. The getter must match the
+		// type of the setting; if no value has been set, the default
+		// value of the setting is returned.
 		virtual std::string const& get_str(int name) const = 0;
 		virtual int get_int(int name) const = 0;
 		virtual bool get_bool(int name) const = 0;
@@ -114,6 +130,7 @@ namespace aux {
 	//
 	struct TORRENT_EXPORT settings_pack final : settings_interface
 	{
+		// hidden
 		friend TORRENT_EXTRA_EXPORT void apply_pack_impl(settings_pack const*
 			, aux::session_settings_single_thread&
 			, std::vector<void(aux::session_impl::*)()>*);
@@ -132,6 +149,7 @@ namespace aux {
 		void set_int(int name, int val) override;
 		void set_bool(int name, bool val) override;
 		template <typename Type, typename Tag>
+		// hidden
 		void set_int(int name, flags::bitfield_flag<Type, Tag> const val)
 		{ set_int(name, static_cast<int>(static_cast<Type>(val))); }
 
@@ -957,11 +975,12 @@ namespace aux {
 			// small piece sizes
 			piece_extent_affinity,
 
-			// when set to true, the certificate of HTTPS trackers and HTTPS web
-			// seeds will be validated against the system's certificate store
-			// (as defined by OpenSSL). If the system does not have a
-			// certificate store, this option may have to be disabled in order
-			// to get trackers and web seeds to work).
+			// when set to true, the certificate of HTTPS trackers, HTTPS web
+			// seeds and WebTorrent (wss://) trackers will be validated
+			// against the system's certificate store (as defined by
+			// OpenSSL/GnuTLS). If the system does not have a certificate
+			// store, this option may have to be disabled in order to get
+			// trackers and web seeds to work).
 			validate_https_trackers,
 
 			// when enabled, tracker and web seed requests are subject to
@@ -1597,6 +1616,12 @@ namespace aux {
 			// 1000 ms). Setting this to a low value (around 100) means higher
 			// resolution bandwidth quota distribution, setting it to a higher
 			// value saves CPU cycles.
+			//
+			// A negative value disables the once-per-second gate on the
+			// ``second_tick`` path (the heavier per-torrent work). The timer
+			// itself still fires every millisecond. This is intended for test
+			// and fuzzing scenarios that need the session to react instantly; do
+			// not use it in production.
 			tick_interval,
 
 			// ``share_mode_target`` specifies the target share ratio for share
@@ -2134,6 +2159,9 @@ namespace aux {
 		constexpr static int num_bool_settings = int(max_bool_setting_internal) - int(bool_type_base);
 		constexpr static int num_int_settings = int(max_int_setting_internal) - int(int_type_base);
 
+		// values for ``settings_pack::mmap_file_write_mode``; selects
+		// the strategy used by the disk subsystem when writing data to
+		// disk.
 		enum mmap_write_mode_t : std::uint8_t
 		{
 			// disable writing to disk via mmap, always use normal write calls
@@ -2148,8 +2176,21 @@ namespace aux {
 			auto_mmap_write,
 		};
 
-		enum suggest_mode_t : std::uint8_t { no_piece_suggestions = 0, suggest_read_cache = 1 };
+		// values for ``settings_pack::suggest_mode``; controls whether
+		// libtorrent sends SUGGEST messages to peers.
+		enum suggest_mode_t : std::uint8_t
+		{
+			// disables suggestion messages
+			no_piece_suggestions = 0,
 
+			// sends suggest messages for the pieces currently in the read
+			// cache, as a hint to peers about cache-friendly piece selection
+			suggest_read_cache = 1
+		};
+
+		// values for ``settings_pack::choking_algorithm``; selects the
+		// algorithm used to decide which peers to unchoke when we are
+		// downloading.
 		enum choking_algorithm_t : std::uint8_t
 		{
 			// This is the traditional choker with a fixed number of unchoke
@@ -2170,6 +2211,9 @@ namespace aux {
 #endif
 		};
 
+		// values for ``settings_pack::seed_choking_algorithm``;
+		// selects the algorithm used to decide which peers to unchoke
+		// while seeding.
 		enum seed_choking_algorithm_t : std::uint8_t
 		{
 			// which round-robins the peers that are unchoked
@@ -2191,6 +2235,9 @@ namespace aux {
 			anti_leech
 		};
 
+		// values for ``settings_pack::disk_io_read_mode`` and
+		// ``disk_io_write_mode``; controls whether the OS file cache
+		// is used by disk reads and writes.
 		enum io_buffer_mode_t : std::uint8_t
 		{
 			enable_os_cache = 0,
@@ -2204,6 +2251,9 @@ namespace aux {
 			write_through = 3,
 		};
 
+		// values for ``settings_pack::mixed_mode_algorithm``;
+		// controls how bandwidth is divided between TCP and uTP
+		// connections when both protocols are in use.
 		enum bandwidth_mixed_algo_t : std::uint8_t
 		{
 			// disables the mixed mode bandwidth balancing
@@ -2245,6 +2295,9 @@ namespace aux {
 			pe_both = 3
 		};
 
+		// values for ``settings_pack::proxy_type``; selects which
+		// proxy protocol (if any) outgoing connections are routed
+		// through.
 		enum proxy_type_t : std::uint8_t
 		{
 			// No proxy server is used and all other fields are ignored.

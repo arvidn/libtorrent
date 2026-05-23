@@ -97,6 +97,11 @@ namespace aux {
 		// counter. This operation is not cheap and a malicious torrent may pose
 		// a DoS attack, stalling torrent parsing.
 		int max_duplicate_filenames = 500;
+
+		// the max depth of the directory structure of files in the torrent. It
+		// protects against malicious torrents with a deeply nested directory
+		// structure.
+		int max_directory_depth = 100;
 	};
 
 	using torrent_info_flags_t = flags::bitfield_flag<std::uint8_t, struct torrent_info_flags_tag>;
@@ -169,6 +174,11 @@ TORRENT_VERSION_NAMESPACE_4
 		torrent_info(std::string const& filename, error_code& ec);
 #endif
 
+		// constructs an empty ``torrent_info`` containing only an
+		// info-hash. Useful for magnet links: the resulting object has
+		// no metadata (no file list, no piece hashes) but the info-hash
+		// is set so it can be passed to ``session::add_torrent()`` and
+		// later filled in once metadata is received from peers.
 		explicit torrent_info(info_hash_t const& info_hash);
 
 		torrent_info(torrent_info const& t);
@@ -198,7 +208,7 @@ TORRENT_VERSION_NAMESPACE_4
 
 		// hidden
 		torrent_info& operator=(torrent_info const&) = delete;
-		torrent_info& operator=(torrent_info&&);
+		torrent_info& operator=(torrent_info&&) noexcept;
 
 		// The file_storage object contains the information on how to map the
 		// pieces to files. It is separated from the torrent_info object as the
@@ -513,6 +523,11 @@ TORRENT_VERSION_NAMESPACE_4
 		// the main piece size. For v1 and hybrid torrents, piece sizes must be
 		// full (except for the last piece) in order to correctly compute the
 		// piece hash.
+		// Note: this is not a trivial accessor. For v2-only torrents it calls
+		// file_storage::piece_size2(), which performs an O(log n) upper_bound
+		// over the file list to find the file boundary that may shorten the
+		// piece. Cache the result when calling it repeatedly for the same
+		// piece in a hot path.
 		int piece_size_for_req(piece_index_t index) const
 		{
 			return v1()
@@ -521,8 +536,7 @@ TORRENT_VERSION_NAMESPACE_4
 		}
 
 		// ``hash_for_piece()`` takes a piece-index and returns the 20-bytes
-		// sha1-hash for that piece and ``info_hash()`` returns the 20-bytes
-		// sha1-hash for the info-section of the torrent file.
+		// sha1-hash for that piece.
 		// ``hash_for_piece_ptr()`` returns a pointer to the 20 byte sha1 digest
 		// for the piece. Note that the string is not 0-terminated.
 		sha1_hash hash_for_piece(piece_index_t index) const;
@@ -538,6 +552,10 @@ TORRENT_VERSION_NAMESPACE_4
 			return &m_info_section[std::ptrdiff_t(m_piece_hashes) + idx * 20];
 		}
 
+		// returns true if the metadata for this torrent has been loaded
+		// (i.e. the file list is populated). For a ``torrent_info``
+		// constructed from just an info-hash this returns false until
+		// metadata has been received.
 		bool is_loaded() const { return m_files.num_files() > 0; }
 
 #if TORRENT_ABI_VERSION <= 2
@@ -722,8 +740,9 @@ TORRENT_VERSION_NAMESPACE_4
 #endif
 
 	private:
-
-		void parse_info_section_impl(bdecode_node const& info, error_code& ec, int max_pieces);
+		void parse_info_section_impl(
+			bdecode_node const& info, error_code& ec, load_torrent_limits const& cfg
+		);
 
 #if TORRENT_USE_INVARIANT_CHECKS
 		friend struct ::lt::invariant_access;

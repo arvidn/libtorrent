@@ -3,28 +3,25 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #ifndef OPTIONAL_070108_HPP
-# define OPTIONAL_070108_HPP
+#define OPTIONAL_070108_HPP
 
-# include "boost_python.hpp"
-# include <optional>
+#include "boost_python.hpp"
+#include <optional>
 
 template <class T>
 struct optional_to_python
 {
-    optional_to_python()
-    {
-        boost::python::to_python_converter<
-            std::optional<T>, optional_to_python<T>
-        >();
-    }
+	optional_to_python()
+	{
+		boost::python::to_python_converter<std::optional<T>, optional_to_python<T>>();
+	}
 
-    static PyObject* convert(std::optional<T> const& x)
-    {
-        if (!x)
-            return boost::python::incref(Py_None);
+	static PyObject* convert(std::optional<T> const& x)
+	{
+		if (!x) return boost::python::incref(Py_None);
 
-        return boost::python::incref(boost::python::object(*x).ptr());
-    }
+		return boost::python::incref(boost::python::object(*x).ptr());
+	}
 };
 
 #endif // OPTIONAL_070108_HPP

@@ -123,6 +123,9 @@ namespace {
 		}
 #endif // TORRENT_USE_IOSTREAM
 
+		// the v1 (SHA-1) info-hash and the v2 (SHA-256) info-hash. For a
+		// hybrid torrent both are populated. For a pure v1 or pure v2
+		// torrent, the unused field is the all-zero hash.
 		sha1_hash v1;
 		sha256_hash v2;
 	};

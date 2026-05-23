@@ -261,6 +261,9 @@ TORRENT_VERSION_NAMESPACE_3
 		virtual void load_state(bdecode_node const&) {}
 #endif
 
+		// called when serializing session state. The returned map of
+		// key/value strings is stored alongside the session state and
+		// passed back to ``load_state()`` on the next session.
 		virtual std::map<std::string, std::string> save_state() const { return {}; }
 
 		// called on startup while loading settings state from the session_params
@@ -425,10 +428,16 @@ TORRENT_VERSION_NAMESPACE_3_END
 		virtual bool on_piece(peer_request const& /*piece*/
 			, span<char const> /*buf*/) { return false; }
 
+		// called when a CANCEL, REJECT or SUGGEST message is received from the
+		// peer. If the extension returns true, the message is not
+		// forwarded to the bittorrent engine. It's expected to have been
+		// handled by the extension.
 		virtual bool on_cancel(peer_request const&) { return false; }
 		virtual bool on_reject(peer_request const&) { return false; }
 		virtual bool on_suggest(piece_index_t) { return false; }
 
+		// called after the corresponding message has been sent
+		// to the peer.
 		virtual void sent_have_all() {}
 		virtual void sent_have_none() {}
 		virtual void sent_reject_request(peer_request const&) {}
@@ -437,7 +446,6 @@ TORRENT_VERSION_NAMESPACE_3_END
 		virtual void sent_cancel(peer_request const&) {}
 		virtual void sent_request(peer_request const&) {}
 		virtual void sent_choke() {}
-		// called after a choke message has been sent to the peer
 		virtual void sent_unchoke() {}
 		virtual void sent_interested() {}
 		virtual void sent_not_interested() {}
@@ -488,11 +496,22 @@ TORRENT_VERSION_NAMESPACE_3_END
 
 #if !defined TORRENT_DISABLE_ENCRYPTION
 
+	// interface implemented by a plugin that wants to take over the
+	// encryption / decryption of a peer connection. Returned by
+	// ``peer_plugin::wrap_socket()`` to plug into the BitTorrent peer
+	// connection's send / receive path. Used by the built-in protocol
+	// encryption (MSE) implementation.
 	struct TORRENT_EXPORT crypto_plugin
 	{
 		// hidden
 		virtual ~crypto_plugin() {}
 
+		// configure the symmetric stream keys used by this plugin.
+		// ``set_incoming_key()`` provides the key for decrypting bytes
+		// received from the peer; ``set_outgoing_key()`` the key for
+		// encrypting bytes sent to the peer. Both are called once
+		// during the handshake before any data flows through the
+		// plugin.
 		virtual void set_incoming_key(span<char const> key) = 0;
 		virtual void set_outgoing_key(span<char const> key) = 0;
 

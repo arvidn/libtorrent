@@ -621,15 +621,21 @@ bool disk_cache::kick_pending_hashers(jobqueue_t& completed_jobs, jobqueue_t& re
 }
 
 template <typename Iter, typename View>
-Iter disk_cache::flush_piece_impl(View& view
-	, Iter piece_iter
-	, std::function<int(bitfield&, span<cached_block_entry const>)> const& f
-	, std::unique_lock<std::mutex>& l
-	, span<cached_block_entry> const blocks
-	, std::function<void(jobqueue_t, disk_job*)> clear_piece_fun)
+Iter disk_cache::flush_piece_impl(View& view,
+	Iter piece_iter,
+	std::function<int(bitfield&, span<disk_job* const>)> const& f,
+	std::unique_lock<std::mutex>& l,
+	span<cached_block_entry> const blocks,
+	std::function<void(jobqueue_t, disk_job*)> clear_piece_fun)
 {
 	TORRENT_ASSERT(l.owns_lock());
-	int const num_blocks = count_jobs(blocks);
+	// when "blocks" covers the whole piece we can use the maintained per-piece
+	// counter instead of scanning. A subspan (the cheap-flush pass) still needs
+	// to count the write jobs within that range.
+	int const num_blocks = (blocks.size() == piece_iter->blocks_in_piece())
+		? int(piece_iter->num_jobs)
+		: count_jobs(blocks);
+	TORRENT_ASSERT(num_blocks == count_jobs(blocks));
 	if (num_blocks <= 0)
 		return std::next(piece_iter);
 
@@ -639,6 +645,19 @@ Iter disk_cache::flush_piece_impl(View& view
 
 	view.modify(piece_iter, [](cached_piece_entry& e) { TORRENT_ASSERT(!(e.flags & cached_piece_entry::flushing_flag)); e.flags |= cached_piece_entry::flushing_flag; });
 	m_flushing_blocks += num_blocks;
+
+	// Snapshot the pending write_job pointer for each block while we still
+	// hold the mutex. flushing_flag prevents other threads from flushing
+	// this piece, but disk_cache::insert() may still populate previously
+	// empty trailing slots (insert only requires block_idx >= hasher_cursor).
+	// Reading cached_block_entry::write_state from outside the lock would
+	// race with that. Once a slot holds a disk_job the network thread won't
+	// touch it (nor the job's contents) until the disk thread takes it
+	// back, so the snapshotted pointers and the buffers they reference stay
+	// valid for the entire unlocked region below.
+	TORRENT_ALLOCA(snapshot, disk_job*, blocks.size());
+	for (int i = 0; i < blocks.size(); ++i)
+		snapshot[i] = blocks[i].get_write_job();
 
 	// we have to release the lock while flushing, but since we set the
 	// "flushing" member to true, this piece is pinned to the cache
@@ -663,7 +682,7 @@ Iter disk_cache::flush_piece_impl(View& view
 		});
 		flushed_blocks.resize(int(blocks.size()));
 		flushed_blocks.clear_all();
-		count = f(flushed_blocks, blocks);
+		count = f(flushed_blocks, snapshot);
 	}
 	TORRENT_UNUSED(count);
 	TORRENT_ASSERT(l.owns_lock());
@@ -784,11 +803,10 @@ void disk_cache::free_piece(cached_piece_entry const& cpe)
 // to disk. Optimistic flush means we'll only flush pieces that are ready to
 // be flushed, and already hashed. We don't gain anything from keeping those in
 // the cache.
-void disk_cache::flush_to_disk(
-	std::function<int(bitfield&, span<cached_block_entry const>)> f
-	, int const target_blocks
-	, std::function<void(jobqueue_t, disk_job*)> clear_piece_fun
-	, bool const optimistic)
+void disk_cache::flush_to_disk(std::function<int(bitfield&, span<disk_job* const>)> f,
+	int const target_blocks,
+	std::function<void(jobqueue_t, disk_job*)> clear_piece_fun,
+	bool const optimistic)
 {
 	std::unique_lock<std::mutex> l(m_mutex);
 
@@ -879,10 +897,53 @@ void disk_cache::flush_to_disk(
 			, blocks, clear_piece_fun);
 	}
 
-	// we may still need to flush blocks at this point, even though we
-	// would require read-back later to compute the piece hash
+	// before doing any more disk I/O, drop buffers that were kept alive
+	// for a hasher snapshot that has since released (the needed_by_hasher
+	// branch in flush_piece_impl). The data is already on disk, so freeing
+	// these buffers requires no I/O. Without this pass, when kick_hasher
+	// returns without advancing the cursor (e.g. v1 SHA-1 is blocked on a
+	// missing earlier block) the held-alive buffers stay in
+	// disk_buffer_ref{buf} state contributing to m_blocks. With nothing
+	// inserting more writes (back-pressure observers waiting for
+	// on_disk()) the cache can never drop below the low watermark and
+	// the back-pressure observer is never notified.
 	auto& view3 = m_pieces.template get<0>();
 	for (auto piece_iter = view3.begin(); piece_iter != view3.end();)
+	{
+		if (m_blocks - m_flushing_blocks <= target_blocks) return;
+
+		// skip pieces a hasher or another flush is currently using
+		if (piece_iter->flags
+			& (cached_piece_entry::flushing_flag | cached_piece_entry::hashing_flag))
+		{
+			++piece_iter;
+			continue;
+		}
+
+		TORRENT_ASSERT(m_allocator);
+		bulk_free_buffer to_free(*m_allocator);
+		int const hasher_cursor = piece_iter->hasher_cursor;
+		span<cached_block_entry> const blocks = piece_iter->get_blocks();
+		for (int i = 0; i < int(blocks.size()); ++i)
+		{
+			auto& blk = blocks[i];
+			if (!blk.has_buf()) continue;
+			to_free.add(blk.take_buf());
+			TORRENT_ASSERT(m_blocks > 0);
+			--m_blocks;
+			if (i >= hasher_cursor)
+			{
+				TORRENT_ASSERT(m_num_unhashed > 0);
+				--m_num_unhashed;
+			}
+		}
+		++piece_iter;
+	}
+
+	// we may still need to flush blocks at this point, even though we
+	// would require read-back later to compute the piece hash
+	auto& view4 = m_pieces.template get<0>();
+	for (auto piece_iter = view4.begin(); piece_iter != view4.end();)
 	{
 		// We avoid flushing if other threads have already initiated sufficient
 		// amount of flushing
@@ -896,7 +957,6 @@ void disk_cache::flush_to_disk(
 		}
 
 		int const num_blocks = piece_iter->num_jobs;
-		TORRENT_ASSERT(count_jobs(piece_iter->get_blocks()) == num_blocks);
 		if (num_blocks == 0)
 		{
 			++piece_iter;
@@ -905,14 +965,13 @@ void disk_cache::flush_to_disk(
 
 		span<cached_block_entry> const blocks = piece_iter->get_blocks();
 
-		piece_iter = flush_piece_impl(view3, piece_iter, f, l
-			, blocks, clear_piece_fun);
+		piece_iter = flush_piece_impl(view4, piece_iter, f, l, blocks, clear_piece_fun);
 	}
 }
 
-void disk_cache::flush_storage(std::function<int(bitfield&, span<cached_block_entry const>)> f
-	, storage_index_t const storage
-	, std::function<void(jobqueue_t, disk_job*)> clear_piece_fun)
+void disk_cache::flush_storage(std::function<int(bitfield&, span<disk_job* const>)> f,
+	storage_index_t const storage,
+	std::function<void(jobqueue_t, disk_job*)> clear_piece_fun)
 {
 	std::unique_lock<std::mutex> l(m_mutex);
 
@@ -951,7 +1010,6 @@ void disk_cache::flush_storage(std::function<int(bitfield&, span<cached_block_en
 		TORRENT_ASSERT(!(piece_iter->flags & cached_piece_entry::flushing_flag));
 
 		int const num_blocks = piece_iter->num_jobs;
-		TORRENT_ASSERT(count_jobs(piece_iter->get_blocks()) == num_blocks);
 		if (num_blocks == 0) continue;
 		span<cached_block_entry> const blocks = piece_iter->get_blocks();
 

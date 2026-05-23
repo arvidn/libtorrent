@@ -373,8 +373,8 @@ def main() -> None:
                     fp = h.file_progress()
                     ti = cast(lt.torrent_info, t.torrent_file)
                     for idx, p in enumerate(fp):
-                        out += progress_bar(p / float(ti.files().file_size(idx)), 20)
-                        out += " " + ti.files().file_path(idx) + "\n"
+                        out += progress_bar(p / float(ti.layout().file_size(idx)), 20)
+                        out += " " + ti.layout().file_path(idx) + "\n"
                     write_line(console, out)
                 except Exception:
                     pass

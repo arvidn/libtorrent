@@ -37,9 +37,8 @@ using namespace boost::placeholders;
 
 inline void python_deprecated(char const* msg)
 {
-    if (PyErr_WarnEx(PyExc_DeprecationWarning, msg, 1) == -1)
-        boost::python::throw_error_already_set();
+	if (PyErr_WarnEx(PyExc_DeprecationWarning, msg, 1) == -1)
+		boost::python::throw_error_already_set();
 }
 
 #endif
-

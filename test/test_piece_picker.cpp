@@ -1791,12 +1791,12 @@ TORRENT_TEST(piece_stats)
 
 	piece_picker::piece_stats_t stat = p->piece_stats(0_piece);
 	TEST_EQUAL(stat.peer_count, 3);
-	TEST_EQUAL(stat.have, 1);
+	TEST_EQUAL(stat.flushed, 1);
 	TEST_EQUAL(stat.downloading, 0);
 
 	stat = p->piece_stats(1_piece);
 	TEST_EQUAL(stat.peer_count, 4);
-	TEST_EQUAL(stat.have, 0);
+	TEST_EQUAL(stat.flushed, 0);
 	TEST_EQUAL(stat.downloading, 1);
 }
 
@@ -1831,6 +1831,133 @@ TORRENT_TEST(piece_passed)
 	p->mark_as_finished({2_piece, 2}, &tmp1);
 	p->mark_as_finished({2_piece, 3}, &tmp1);
 	TEST_EQUAL(p->is_piece_flushed(2_piece), true);
+}
+
+// The picker may be notified of piece_passed() while some blocks are still in
+// state_writing, leaving the piece in a transient state: passed_hash_check is
+// set, the piece is in m_downloads, but p.flushed() is still false.
+// set_piece_priority() must account for this case so that filtering or
+// un-filtering such a piece keeps m_num_filtered / m_num_have_filtered
+// consistent with what check_invariant() computes by walking m_piece_map.
+TORRENT_TEST(set_piece_priority_passed_hash_check)
+{
+	// piece 1 has blocks 0,1,2 finished but block 3 still pending
+	auto p = setup_picker("1111111", "       ", "", "0700000");
+
+	TEST_EQUAL(p->have_piece(1_piece), false);
+	TEST_EQUAL(p->is_piece_flushed(1_piece), false);
+	TEST_EQUAL(p->num_have(), 0);
+	TEST_EQUAL(p->want().num_pieces, 7);
+	TEST_EQUAL(p->have_want().num_pieces, 0);
+
+	// hash check arrives ahead of the last write completion
+	p->piece_passed(1_piece);
+
+	TEST_EQUAL(p->have_piece(1_piece), true);
+	TEST_EQUAL(p->is_piece_flushed(1_piece), false);
+	TEST_EQUAL(p->num_have(), 1);
+	TEST_EQUAL(p->want().num_pieces, 7);
+	TEST_EQUAL(p->have_want().num_pieces, 1);
+
+	// filter the piece while it is in the transient state. without the fix,
+	// this would drive m_num_filtered out of sync with the invariant scan
+	// (which classifies the piece as filtered + had).
+	p->set_piece_priority(1_piece, dont_download);
+
+	TEST_EQUAL(p->have_piece(1_piece), true);
+	TEST_EQUAL(p->is_piece_flushed(1_piece), false);
+	TEST_EQUAL(p->num_have(), 1);
+	TEST_EQUAL(p->want().num_pieces, 6);
+	TEST_EQUAL(p->have_want().num_pieces, 0);
+
+	// the late mark_as_finished must drive piece_flushed() since
+	// passed_hash_check is set, and counters must stay consistent.
+	p->mark_as_finished({1_piece, 3}, &tmp1);
+
+	TEST_EQUAL(p->have_piece(1_piece), true);
+	TEST_EQUAL(p->is_piece_flushed(1_piece), true);
+	TEST_EQUAL(p->num_have(), 1);
+	TEST_EQUAL(p->want().num_pieces, 6);
+	TEST_EQUAL(p->have_want().num_pieces, 0);
+
+	// un-filtering the (now actually had) piece should give us a wanted+had
+	// piece back.
+	p->set_piece_priority(1_piece, top_priority);
+
+	TEST_EQUAL(p->num_have(), 1);
+	TEST_EQUAL(p->want().num_pieces, 7);
+	TEST_EQUAL(p->have_want().num_pieces, 1);
+}
+
+// same as above but un-filters before the final block completes, exercising
+// the symmetric path in set_piece_priority().
+TORRENT_TEST(set_piece_priority_passed_hash_check_unfilter)
+{
+	auto p = setup_picker("1111111", "       ", "", "0700000");
+
+	p->piece_passed(1_piece);
+	p->set_piece_priority(1_piece, dont_download);
+
+	TEST_EQUAL(p->have_piece(1_piece), true);
+	TEST_EQUAL(p->is_piece_flushed(1_piece), false);
+	TEST_EQUAL(p->num_have(), 1);
+	TEST_EQUAL(p->want().num_pieces, 6);
+	TEST_EQUAL(p->have_want().num_pieces, 0);
+
+	// un-filter while the piece is still in transient state. the counter
+	// decrement must come out of m_num_have_filtered (not m_num_filtered)
+	// to match the increment from the filter call above.
+	p->set_piece_priority(1_piece, top_priority);
+
+	TEST_EQUAL(p->have_piece(1_piece), true);
+	TEST_EQUAL(p->is_piece_flushed(1_piece), false);
+	TEST_EQUAL(p->num_have(), 1);
+	TEST_EQUAL(p->want().num_pieces, 7);
+	TEST_EQUAL(p->have_want().num_pieces, 1);
+
+	// finally complete the last write; piece_flushed() runs on the back
+	// of mark_as_finished because passed_hash_check is set.
+	p->mark_as_finished({1_piece, 3}, &tmp1);
+	TEST_EQUAL(p->is_piece_flushed(1_piece), true);
+	TEST_EQUAL(p->num_have(), 1);
+	TEST_EQUAL(p->want().num_pieces, 7);
+	TEST_EQUAL(p->have_want().num_pieces, 1);
+}
+
+// covers the case where the piece hash comes first, then the flushed blocks
+TORRENT_TEST(set_piece_priority_passed_hash_check_bulk_filter)
+{
+	auto p = setup_picker("1111111", "       ", "", "7777777");
+
+	// hash result for every piece arrives before the last block of each
+	// piece has been flushed.
+	for (auto i = 0_piece; i < piece_index_t(7); ++i)
+		p->piece_passed(i);
+
+	TEST_EQUAL(p->num_have(), 7);
+	TEST_EQUAL(p->want().num_pieces, 7);
+	TEST_EQUAL(p->have_want().num_pieces, 7);
+
+	// bulk filter (matches torrent_handle::prioritize_pieces(all
+	// dont_download))
+	for (auto i = 0_piece; i < piece_index_t(7); ++i)
+		p->set_piece_priority(i, dont_download);
+
+	TEST_EQUAL(p->num_have(), 7);
+	TEST_EQUAL(p->want().num_pieces, 0);
+	TEST_EQUAL(p->have_want().num_pieces, 0);
+
+	// finishing the last block of each piece must transition each one
+	// through piece_flushed without disturbing the invariants.
+	for (auto i = 0_piece; i < piece_index_t(7); ++i)
+	{
+		p->mark_as_finished({i, 3}, &tmp1);
+		TEST_EQUAL(p->is_piece_flushed(i), true);
+	}
+
+	TEST_EQUAL(p->num_have(), 7);
+	TEST_EQUAL(p->want().num_pieces, 0);
+	TEST_EQUAL(p->have_want().num_pieces, 0);
 }
 
 TORRENT_TEST(piece_passed_causing_we_have)

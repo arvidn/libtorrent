@@ -241,7 +241,7 @@ void test_transfer(int const proxy_type, settings_pack const& sett
 		{"checking (q)", "checking", "dl metadata"
 		, "downloading", "finished", "seeding", "allocating", "checking (r)"};
 
-	for (int i = 0; i < 20000; ++i)
+	for (int i = 0; i < 30000; ++i)
 	{
 		if (lt::clock_type::now() - start_time > seconds(timeout))
 		{

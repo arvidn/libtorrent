@@ -83,6 +83,12 @@ Pre-commit hooks include trailing whitespace, YAML/TOML/XML checks, RST formatti
 - `include/libtorrent/fwd.hpp` and `include/libtorrent/libtorrent.hpp` via `tools/gen_fwd.py` and `tools/gen_convenience_header.py`
 - C binding headers (`bindings/c/include/libtorrent_settings.h`, `libtorrent_alerts.h`) via `bindings/c/tools/gen_header.py` and `bindings/c/tools/gen_alert_header.py`
 
+The C++ format check (`git-clang-format-18`) is the only hook that requires a
+system install -- `apt install clang-format-18` (or platform equivalent). It
+formats only the lines that differ from HEAD, not whole files; the codebase is
+being migrated to the `.clang-format` style incrementally rather than via a
+flag-day reformat.
+
 ## Key Architecture
 
 ### Threading Model
@@ -215,6 +221,7 @@ These are also run automatically by the pre-commit hooks.
 - Use a single space after a period in comments (not two spaces)
 - Declare variables `const` whenever they are not reassigned after initialization
 - C++17 throughout; no C++20 features yet
+- The code must build with standard C++ and must not require compiler language extensions; optional extensions (e.g. `__builtin_*`, platform-specific pragmas) may be used when guarded by feature detection
 - `namespace lt = libtorrent` alias is always available
 - Asserts: use `TORRENT_ASSERT(cond)` (active when `TORRENT_USE_ASSERTS` is defined, i.e. debug builds)
 - Invariant checks: expensive checks inside `#if TORRENT_USE_INVARIANT_CHECKS`

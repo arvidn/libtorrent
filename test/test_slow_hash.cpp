@@ -259,6 +259,68 @@ void test_hash_job_retry_when_piece_incomplete(test_mode_t const mode)
 	TEST_EQUAL(int(f.cache.size()), 0);
 }
 
+// Exercises phase 3 of flush_to_disk - the "drop held-alive" pass.
+//
+// After a block is written to disk we usually keep its buffer in the cache so
+// the piece hash can be computed in-memory rather than read back from disk.
+// kick_hasher naturally releases these buffers as it hashes past them, but if
+// the hasher cursor can't advance (e.g. v1 SHA-1 is blocked on a missing
+// earlier block), they sit pinned in the cache. Phase 3 evicts them anyway
+// when the cache is full and we need the room - sacrificing the read-back
+// optimization is cheaper than letting back-pressure stall the producer.
+//
+// Setup: a 3-block piece with blocks 0 and 2 inserted (block 1 missing).
+// The hasher thread runs kick_pending_hashers; under slow-hash it spends
+// ~1.6s in each hash update, holding hashing_flag with hasher_cursor=0.
+// During that window the main thread calls flush_to_disk(target=0): phase 4
+// flushes blocks 0 and 2 via flush_piece_impl, and because hashing_flag is
+// set and both block indices are >= hasher_cursor, both transition to the
+// held-alive state (disk_buffer_ref{buf}) - m_blocks does NOT drop.
+// When kick_hasher finishes, cursor=1 (block 0 hashed contiguously, block 1
+// missing stops it). Its cleanup pass over [0, 1) reclaims block 0. Block 2
+// (index 2 >= cursor=1) is left held-alive.
+// A subsequent flush_to_disk's phase 3 must free block 2's buffer with no
+// disk I/O - the data has already been written.
+void test_drop_held_alive_buffers(test_mode_t const mode)
+{
+	cache_fixture f(3, mode);
+	f.insert(0_piece, 0);
+	f.insert(0_piece, 2);
+	TEST_EQUAL(int(f.cache.size()), 2);
+	TEST_EQUAL(f.alloc.live, 2);
+
+	jobqueue_t completed, retry;
+
+	std::thread hasher_thread([&]() { f.cache.kick_pending_hashers(completed, retry); });
+	// Wait until kick_hasher has released the mutex inside its slow hash
+	// update. The 50ms is comfortably inside the ~1.6s slow-hash window.
+	std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+	// Flush while hashing_flag is set on the piece and hasher_cursor=0.
+	// In phase 4 of flush_to_disk, flush_piece_impl flushes blocks 0 and 2;
+	// the needed_by_hasher branch puts both into the held-alive state.
+	TEST_EQUAL(f.flush(), 2);
+
+	hasher_thread.join();
+
+	// kick_hasher hashed block 0 contiguously (cursor advanced to 1), then
+	// hit the gap at block 1 and stopped. Its cleanup pass over [0, 1)
+	// released block 0's held-alive buffer. Block 2 remains held-alive at
+	// index 2 >= cursor=1 - exactly the state phase 3 is meant to clean up.
+	TEST_EQUAL(int(f.cache.size()), 1);
+	TEST_EQUAL(f.alloc.live, 1);
+
+	// Phase 3 of flush_to_disk reclaims block 2's held-alive buffer.
+	// No write_jobs remain, so the flush callback returns 0.
+	TEST_EQUAL(f.flush(), 0);
+	TEST_EQUAL(int(f.cache.size()), 0);
+	TEST_EQUAL(f.alloc.live, 0);
+
+	jobqueue_t aborted;
+	TEST_CHECK(f.cache.try_clear_piece(f.loc(0_piece), nullptr, aborted));
+	TEST_CHECK(aborted.empty());
+}
+
 // Regression test for the pending_free_flag mechanism.
 //
 // flush_storage() is called to tear down a storage while a hasher thread
@@ -333,5 +395,12 @@ TORRENT_TEST(flush_storage_during_hashing_v2)
 	{ test_flush_storage_during_hashing(test_mode::v2); }
 TORRENT_TEST(flush_storage_during_hashing_hybrid)
 	{ test_flush_storage_during_hashing(test_mode::v1 | test_mode::v2); }
+
+	TORRENT_TEST(drop_held_alive_v1) { test_drop_held_alive_buffers(test_mode::v1); }
+	TORRENT_TEST(drop_held_alive_v2) { test_drop_held_alive_buffers(test_mode::v2); }
+	TORRENT_TEST(drop_held_alive_hybrid)
+	{
+		test_drop_held_alive_buffers(test_mode::v1 | test_mode::v2);
+	}
 
 #endif // TORRENT_SIMULATE_SLOW_HASH

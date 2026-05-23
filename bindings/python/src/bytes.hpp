@@ -9,9 +9,15 @@
 
 struct bytes
 {
-	bytes(char const* s, std::size_t len): arr(s, len) {}
-	bytes(std::string const& s): arr(s) {}
-	bytes(std::string&& s): arr(std::move(s)) {}
+	bytes(char const* s, std::size_t len)
+		: arr(s, len)
+	{}
+	bytes(std::string const& s)
+		: arr(s)
+	{}
+	bytes(std::string&& s)
+		: arr(std::move(s))
+	{}
 	bytes(bytes const&) = default;
 	bytes(bytes&&) noexcept = default;
 	bytes& operator=(bytes&&) & noexcept = default;

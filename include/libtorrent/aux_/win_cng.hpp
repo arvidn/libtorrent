@@ -11,6 +11,7 @@ see LICENSE file.
 #ifndef TORRENT_WIN_CNG_HPP
 #define TORRENT_WIN_CNG_HPP
 
+#include <utility>
 #include <vector>
 
 #include "libtorrent/config.hpp"
@@ -75,6 +76,12 @@ namespace libtorrent { namespace aux {
 	{
 		cng_hash() { create(); }
 		cng_hash(cng_hash const& h) { duplicate(h); }
+		cng_hash(cng_hash&& h) noexcept
+			: m_hash(h.m_hash)
+			, m_hash_object(std::move(h.m_hash_object))
+		{
+			h.m_hash = nullptr;
+		}
 		~cng_hash()
 		{
 			destroy();
@@ -86,6 +93,14 @@ namespace libtorrent { namespace aux {
 			if (m_hash == h.m_hash) return *this;
 			destroy();
 			duplicate(h);
+			return *this;
+		}
+
+		cng_hash& operator=(cng_hash&& h) & noexcept
+		{
+			using std::swap;
+			swap(m_hash, h.m_hash);
+			swap(m_hash_object, h.m_hash_object);
 			return *this;
 		}
 
@@ -128,7 +143,9 @@ namespace libtorrent { namespace aux {
 
 		void destroy()
 		{
+			if (m_hash == nullptr) return;
 			NTSTATUS status = BCryptDestroyHash(m_hash);
+			m_hash = nullptr;
 			if (status < 0) {
 				throw_ntstatus_error("BCryptDestroyHash", status);
 			}
@@ -160,7 +177,7 @@ namespace libtorrent { namespace aux {
 
 		using hash_object_t = std::vector<UCHAR>;
 
-		BCRYPT_HASH_HANDLE m_hash;
+		BCRYPT_HASH_HANDLE m_hash = nullptr;
 		hash_object_t m_hash_object
 			= hash_object_t(get_algorithm_object_size());
 	};

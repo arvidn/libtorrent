@@ -952,6 +952,7 @@ TEST_SOURCES = \
   test_privacy.cpp \
   test_read_piece.cpp \
   test_read_resume.cpp \
+  test_readwrite.cpp \
   test_receive_buffer.cpp \
   test_recheck.cpp \
   test_remap_files.cpp \
@@ -986,6 +987,7 @@ TEST_SOURCES = \
   test_tracker_manager.cpp \
   test_truncate.cpp \
   test_transfer.cpp \
+  test_udp_socket.cpp \
   test_upnp.cpp \
   test_url_seed.cpp \
   test_utf8.cpp \
@@ -1094,6 +1096,7 @@ TEST_TORRENTS = \
   symlink1.torrent \
   symlink2.torrent \
   symlink_zero_size.torrent \
+  symlink_filtered_path.torrent \
   unaligned_pieces.torrent \
   unordered.torrent \
   url_list.torrent \

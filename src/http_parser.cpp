@@ -12,8 +12,10 @@ see LICENSE file.
 #include <cctype>
 #include <cstring>
 #include <algorithm>
+#include <charconv>
 #include <cstdlib>
 #include <cinttypes>
+#include <system_error>
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/http_parser.hpp"
@@ -204,7 +206,18 @@ restart_response:
 			m_protocol = read_until(line, ' ', line_end);
 			if (m_protocol.substr(0, 5) == "HTTP/")
 			{
-				m_status_code = atoi(read_until(line, ' ', line_end).c_str());
+				std::string const code_str = read_until(line, ' ', line_end);
+				char const* const code_end = code_str.data() + code_str.size();
+				auto const r = std::from_chars(code_str.data(), code_end, m_status_code);
+				// require a non-negative status code that consumed the full
+				// substring. negative values would also collide with the -1
+				// sentinel meaning "status line not yet parsed"
+				if (r.ec != std::errc{} || r.ptr != code_end || m_status_code < 0)
+				{
+					m_state = error_state;
+					error = true;
+					return ret;
+				}
 				m_server_message = read_until(line, '\r', line_end);
 
 				// HTTP 1.0 always closes the connection after

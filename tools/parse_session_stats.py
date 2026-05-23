@@ -304,10 +304,15 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     g = 0
     with open(input_file) as stat, open(output_dir / f"counters.{g:04}.dat", "w+") as data_out:
-        line = stat.readline()
         print("looking for stats header")
-        while "session stats header:" not in line:
+        while True:
             line = stat.readline()
+            if not line:
+                raise RuntimeError(
+                    f"no 'session stats header:' line found in {input_file}"
+                )
+            if "session stats header:" in line:
+                break
 
         print("found")
         keys = line.split("session stats header:")[1].strip().split(", ")

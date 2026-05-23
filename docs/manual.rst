@@ -705,13 +705,11 @@ The benefits of this mode are:
 HTTP seeding
 ============
 
-There are two kinds of HTTP seeding. One with that assumes a smart (and polite)
-client and one that assumes a smart server. These are specified in `BEP 19`_
-and `BEP 17`_ respectively.
+There are two kinds of HTTP seeding. These are specified in `BEP 19`_ and `BEP
+17`_ respectively.
 
-libtorrent supports both. In the libtorrent source code and API, BEP 19 URLs
-are typically referred to as *url seeds* and BEP 17 URLs are typically referred
-to as *HTTP seeds*.
+Since libtorrent 2.1, support for BEP 17 was dropped. In the libtorrent source
+code and API, BEP 19 URLs are typically referred to as *url seeds*.
 
 The libtorrent implementation of `BEP 19`_ assumes that, if the URL ends with a
 slash ('/'), the filename should be appended to it in order to request pieces
@@ -825,10 +823,9 @@ prefer whole pieces
 -------------------
 
 The *prefer whole pieces* setting makes the piece picker prefer picking entire
-pieces at a time. This is used by web connections (both http seeding
-standards), in order to be able to coalesce the small bittorrent requests to
-larger HTTP requests. This significantly improves performance when downloading
-over HTTP.
+pieces at a time. This is used by web connections (http seeding), in order to
+be able to coalesce the small bittorrent requests to larger HTTP requests. This
+significantly improves performance when downloading over HTTP.
 
 It is also used by peers that are downloading faster than a certain threshold.
 The main advantage is that these peers will better utilize the other peer's

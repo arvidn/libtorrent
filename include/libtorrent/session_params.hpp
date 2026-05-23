@@ -67,9 +67,9 @@ struct TORRENT_EXPORT session_params
 
 	// hidden
 	session_params(session_params const&);
-	session_params(session_params&&);
+	session_params(session_params&&) noexcept;
 	session_params& operator=(session_params const&) &;
-	session_params& operator=(session_params&&) &;
+	session_params& operator=(session_params&&) & noexcept;
 
 	// The settings to configure the session with
 	settings_pack settings;

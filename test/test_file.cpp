@@ -140,6 +140,22 @@ TORRENT_TEST(paths)
 	TEST_EQUAL(combine_path("test1", "test2"), "test1/test2");
 #endif
 
+	// combine_path takes string_view arguments, so it must honor the
+	// view's length and not read past it. Pass substring views that view
+	// into the middle of longer null-terminated buffers to ensure the
+	// extra trailing bytes are not picked up.
+	{
+		std::string const lhs_buf = "test1-extra";
+		std::string const rhs_buf = "test2-extra";
+		string_view const lhs = string_view(lhs_buf).substr(0, 5);
+		string_view const rhs = string_view(rhs_buf).substr(0, 5);
+#ifdef TORRENT_WINDOWS
+		TEST_EQUAL(combine_path(lhs, rhs), "test1\\test2");
+#else
+		TEST_EQUAL(combine_path(lhs, rhs), "test1/test2");
+#endif
+	}
+
 	TEST_EQUAL(extension("blah"), "");
 	TEST_EQUAL(extension("blah.exe"), ".exe");
 	TEST_EQUAL(extension("blah.foo.bar"), ".bar");
@@ -228,6 +244,23 @@ TORRENT_TEST(paths)
 	TEST_EQUAL(is_complete("/"), true);
 	TEST_EQUAL(is_complete(""), false);
 #endif
+
+	// is_complete must honor the string_view length and not read past it.
+	// Pass substring views that view into the middle of longer buffers, so
+	// that any read past the view's end would (with a sanitizer) flag UB
+	// or (on Windows) potentially see ':' '\\' bytes and falsely report a
+	// drive-letter-rooted path.
+	{
+		std::string const drive = "c:\\foo";
+		std::string const rel = "foo/bar";
+		// view just "c" out of "c:\\foo" — the ':' and '\\' are past the
+		// view and must not be consulted.
+		TEST_EQUAL(is_complete(string_view(drive).substr(0, 1)), false);
+		// view "c:" out of "c:\\foo" — drive letter without separator.
+		TEST_EQUAL(is_complete(string_view(drive).substr(0, 2)), false);
+		// view "f" out of "foo/bar" — must not read past view to find '/'.
+		TEST_EQUAL(is_complete(string_view(rel).substr(0, 1)), false);
+	}
 
 	TEST_EQUAL(complete("."), current_working_directory());
 
@@ -425,6 +458,81 @@ TORRENT_TEST(relative_path)
 		, ".." S ".." S ".." S);
 
 	TEST_EQUAL(lexically_relative("", ""), "");
+}
+
+TORRENT_TEST(lexically_relative_normal)
+{
+#ifdef TORRENT_WINDOWS
+#define S "\\"
+#else
+#define S "/"
+#endif
+
+	auto rel = [](string_view base, string_view target) {
+		error_code ec;
+		auto const out = lexically_relative_normal(base, target, ec);
+		TEST_CHECK(!ec);
+		return out;
+	};
+
+	auto rel_fail = [](string_view base, string_view target) {
+		error_code ec;
+		auto const out = lexically_relative_normal(base, target, ec);
+		TEST_CHECK(ec);
+		TEST_EQUAL(out, "");
+	};
+
+	// target equals base
+	TEST_EQUAL(rel(S "a" S "b", S "a" S "b"), "");
+
+	// target inside base, no special components
+	TEST_EQUAL(rel(S "a" S "b", S "a" S "b" S "c"), "c");
+	TEST_EQUAL(rel(S "a" S "b", S "a" S "b" S "c" S "d"), "c" S "d");
+	TEST_EQUAL(rel(S "a", S "a" S "b" S "c" S "d"), "b" S "c" S "d");
+
+	// "." in target is skipped
+	TEST_EQUAL(rel(S "a" S "b", S "a" S "b" S "." S "c"), "c");
+	TEST_EQUAL(rel(S "a" S "b", S "a" S "b" S "c" S "."), "c");
+	TEST_EQUAL(rel(S "a" S "b", S "a" S "b" S "." S "." S "c"), "c");
+
+	// ".." in target resolves against the preceding component (within
+	// the part of target after the common prefix)
+	TEST_EQUAL(rel(S "a" S "b", S "a" S "b" S "c" S ".."), "");
+	TEST_EQUAL(rel(S "a" S "b", S "a" S "b" S "c" S ".." S "d"), "d");
+	TEST_EQUAL(rel(S "a" S "b", S "a" S "b" S "c" S "d" S ".."), "c");
+	TEST_EQUAL(rel(S "a" S "b", S "a" S "b" S "c" S "d" S ".." S ".."), "");
+	TEST_EQUAL(rel(S "a" S "b", S "a" S "b" S "c" S "d" S ".." S ".." S "e"), "e");
+
+	// trailing separator on either side
+	TEST_EQUAL(rel(S "a" S "b" S, S "a" S "b" S "c"), "c");
+	TEST_EQUAL(rel(S "a" S "b", S "a" S "b" S "c" S), "c");
+
+	// base has no components (just root) — strip loop never runs
+	TEST_EQUAL(rel(S, S), "");
+	TEST_EQUAL(rel(S, S "a"), "a");
+	TEST_EQUAL(rel(S, S "a" S "b"), "a" S "b");
+	TEST_EQUAL(rel(S, S "a" S "." S "b"), "a" S "b");
+	TEST_EQUAL(rel(S, S "a" S ".." S "b"), "b");
+	rel_fail(S, S "..");
+
+	// target sibling of base
+	rel_fail(S "a" S "b", S "a" S "c");
+	rel_fail(S "a" S "b" S "x", S "a" S "b" S "y");
+
+	// target above base
+	rel_fail(S "a" S "b", S "a");
+	rel_fail(S "a" S "b" S "c", S "a");
+	rel_fail(S "a" S "b", S);
+
+	// target on a different absolute root
+	rel_fail(S "a" S "b", S "x" S "y");
+
+	// ".." in target underflows the in-target stack (would step above
+	// the common prefix)
+	rel_fail(S "a" S "b", S "a" S "b" S "..");
+	rel_fail(S "a" S "b", S "a" S "b" S "c" S ".." S ".." S "..");
+	rel_fail(S "a" S "b", S "a" S "b" S "c" S ".." S "..");
+#undef S
 }
 
 // UNC tests

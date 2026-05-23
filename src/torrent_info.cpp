@@ -78,18 +78,31 @@ namespace libtorrent {
 #else
 		static const char invalid_chars[] = "";
 #endif
-		if (c < 32) return false;
+		// C0 controls and DEL
+		if (c < 32 || c == 0x7f) return false;
+		// C1 controls
+		if (c >= 0x80 && c <= 0x9f) return false;
 		if (c > 127) return true;
 		return std::strchr(invalid_chars, static_cast<char>(c)) == nullptr;
 	}
 
 	bool filter_path_character(std::int32_t const c)
 	{
-		// these unicode characters change the writing direction of the
-		// string and can be used for attacks:
+		// Unicode formatting characters that are zero-width, invisible, or
+		// change writing direction. These can be used to spoof filenames so
+		// that they appear identical to legitimate names but resolve to a
+		// different path:
 		// https://security.stackexchange.com/questions/158802/how-can-this-executable-have-an-avi-extension
-		static const std::array<std::int32_t, 7> bad_cp = {{0x202a, 0x202b, 0x202c, 0x202d, 0x202e, 0x200e, 0x200f}};
-		if (std::find(bad_cp.begin(), bad_cp.end(), c) != bad_cp.end()) return true;
+		// - U+061C: Arabic letter mark
+		// - U+200B-200D: ZWSP, ZWNJ, ZWJ
+		// - U+200E-200F: LRM, RLM
+		// - U+202A-202E: LRE, RLE, PDF, LRO, RLO (bidi embedding/override)
+		// - U+2060-2064: word joiner and invisible math operators
+		// - U+2066-2069: LRI, RLI, FSI, PDI (bidi isolates, Unicode 6.3+)
+		// - U+FEFF: byte order mark / zero-width no-break space
+		if (c == 0x061c || (c >= 0x200b && c <= 0x200f) || (c >= 0x202a && c <= 0x202e)
+			|| (c >= 0x2060 && c <= 0x2064) || (c >= 0x2066 && c <= 0x2069) || c == 0xfeff)
+			return true;
 
 		static const char invalid_chars[] = "/\\";
 		if (c > 127) return false;
@@ -354,10 +367,16 @@ namespace {
 		return ret + len;
 	}
 
-	bool extract_single_file2(bdecode_node const& dict, file_storage& files
-		, std::string const& path, string_view const name
-		, std::ptrdiff_t const info_offset, char const* info_buffer
-		, error_code& ec)
+	bool extract_single_file2(
+		bdecode_node const& dict,
+		file_storage& files,
+		std::string const& path,
+		string_view const name,
+		std::ptrdiff_t const info_offset,
+		char const* info_buffer,
+		int const max_directory_depth,
+		error_code& ec
+	)
 	{
 		if (dict.type() != bdecode_node::dict_t)
 		{
@@ -398,13 +417,27 @@ namespace {
 		{
 			if (bdecode_node const s_p = dict.dict_find_list("symlink path"))
 			{
+				if (s_p.list_size() > max_directory_depth)
+				{
+					ec = errors::torrent_directory_too_deep;
+					return false;
+				}
 				auto const preallocate = static_cast<std::size_t>(path_length(s_p, ec));
 				if (ec) return false;
 				symlink_path.reserve(preallocate);
 				for (int i = 0, end(s_p.list_size()); i < end; ++i)
 				{
 					auto pe = s_p.list_at(i).string_value();
-					aux::sanitize_append_path_element(symlink_path, pe);
+					// BEP 47 forbids "." and ".." in symlink path components.
+					// We tolerate them for backwards compatibility with
+					// non-conforming torrents by dropping them, leaving the
+					// remaining components to be interpreted relative to the
+					// torrent root.
+					if (pe == "." || pe == "..") continue;
+					// force_element=true keeps sanitization in sync with the
+					// file paths the symlink may point to, so sanitize_symlinks()
+					// can match the target.
+					aux::sanitize_append_path_element(symlink_path, pe, true);
 				}
 			}
 		}
@@ -436,9 +469,16 @@ namespace {
 	// "path"
 	// root_dir is the name of the torrent, unless this is a single file
 	// torrent, in which case it's empty.
-	bool extract_single_file(bdecode_node const& dict, file_storage& files
-		, std::string const& root_dir, std::ptrdiff_t const info_offset
-		, char const* info_buffer, bool const top_level, error_code& ec)
+	bool extract_single_file(
+		bdecode_node const& dict,
+		file_storage& files,
+		std::string const& root_dir,
+		std::ptrdiff_t const info_offset,
+		char const* info_buffer,
+		bool const top_level,
+		int const max_directory_depth,
+		error_code& ec
+	)
 	{
 		if (dict.type() != bdecode_node::dict_t)
 		{
@@ -501,6 +541,11 @@ namespace {
 
 			if (p && p.list_size() > 0)
 			{
+				if (p.list_size() > max_directory_depth)
+				{
+					ec = errors::torrent_directory_too_deep;
+					return false;
+				}
 				std::size_t const preallocate = path.size() + std::size_t(path_length(p, ec));
 				if (ec) return false;
 				path.reserve(preallocate);
@@ -549,13 +594,27 @@ namespace {
 		{
 			if (bdecode_node const s_p = dict.dict_find_list("symlink path"))
 			{
+				if (s_p.list_size() > max_directory_depth)
+				{
+					ec = errors::torrent_directory_too_deep;
+					return false;
+				}
 				auto const preallocate = static_cast<std::size_t>(path_length(s_p, ec));
 				if (ec) return false;
 				symlink_path.reserve(preallocate);
 				for (int i = 0, end(s_p.list_size()); i < end; ++i)
 				{
 					auto pe = s_p.list_at(i).string_value();
-					aux::sanitize_append_path_element(symlink_path, pe);
+					// BEP 47 forbids "." and ".." in symlink path components.
+					// We tolerate them for backwards compatibility with
+					// non-conforming torrents by dropping them, leaving the
+					// remaining components to be interpreted relative to the
+					// torrent root.
+					if (pe == "." || pe == "..") continue;
+					// force_element=true keeps sanitization in sync with the
+					// file paths the symlink may point to, so sanitize_symlinks()
+					// can match the target.
+					aux::sanitize_append_path_element(symlink_path, pe, true);
 				}
 			}
 			else
@@ -582,10 +641,17 @@ namespace {
 		return !ec;
 	}
 
-	bool extract_files2(bdecode_node const& tree, file_storage& target
-		, std::string const& root_dir, ptrdiff_t const info_offset
-		, char const* info_buffer
-		, bool const has_files, int const depth, error_code& ec)
+	bool extract_files2(
+		bdecode_node const& tree,
+		file_storage& target,
+		std::string const& root_dir,
+		ptrdiff_t const info_offset,
+		char const* info_buffer,
+		bool const has_files,
+		int const depth,
+		int const max_directory_depth,
+		error_code& ec
+	)
 	{
 		if (tree.type() != bdecode_node::dict_t)
 		{
@@ -593,13 +659,12 @@ namespace {
 			return false;
 		}
 
-		// since we're parsing this recursively, we have to be careful not to blow
-		// up the stack. 100 levels of sub directories should be enough. This
-		// could be improved by an iterative parser, keeping the state on a more
-		// compact side-stack
-		if (depth > 100)
+		// since we're parsing this recursively, we have to be careful not to
+		// blow up the stack. This limit also bounds the depth of the directory
+		// tree of the torrent, defending against malicious torrents.
+		if (depth > max_directory_depth)
 		{
-			ec = errors::torrent_file_parse_failed;
+			ec = errors::torrent_directory_too_deep;
 			return false;
 		}
 
@@ -632,16 +697,33 @@ namespace {
 					filename = {};
 				}
 
-				if (!extract_single_file2(e.second.dict_at(0).second, target
-					, path, filename, info_offset, info_buffer, ec))
+				if (!extract_single_file2(
+						e.second.dict_at(0).second,
+						target,
+						path,
+						filename,
+						info_offset,
+						info_buffer,
+						max_directory_depth,
+						ec
+					))
 				{
 					return false;
 				}
 				continue;
 			}
 
-			if (!extract_files2(e.second, target, path, info_offset, info_buffer
-				, true, depth + 1, ec))
+			if (!extract_files2(
+					e.second,
+					target,
+					path,
+					info_offset,
+					info_buffer,
+					true,
+					depth + 1,
+					max_directory_depth,
+					ec
+				))
 			{
 				return false;
 			}
@@ -652,9 +734,15 @@ namespace {
 
 	// root_dir is the name of the torrent, unless this is a single file
 	// torrent, in which case it's empty.
-	bool extract_files(bdecode_node const& list, file_storage& target
-		, std::string const& root_dir, std::ptrdiff_t info_offset
-		, char const* info_buffer, error_code& ec)
+	bool extract_files(
+		bdecode_node const& list,
+		file_storage& target,
+		std::string const& root_dir,
+		std::ptrdiff_t info_offset,
+		char const* info_buffer,
+		int const max_directory_depth,
+		error_code& ec
+	)
 	{
 		if (list.type() != bdecode_node::list_t)
 		{
@@ -665,8 +753,16 @@ namespace {
 
 		for (int i = 0, end(list.list_size()); i < end; ++i)
 		{
-			if (!extract_single_file(list.list_at(i), target, root_dir
-				, info_offset, info_buffer, false, ec))
+			if (!extract_single_file(
+					list.list_at(i),
+					target,
+					root_dir,
+					info_offset,
+					info_buffer,
+					false,
+					max_directory_depth,
+					ec
+				))
 				return false;
 		}
 		// this rewrites invalid symlinks to point to themselves
@@ -733,7 +829,7 @@ namespace {
 TORRENT_VERSION_NAMESPACE_4
 
 	torrent_info::torrent_info(torrent_info const&) = default;
-	torrent_info& torrent_info::operator=(torrent_info&&) = default;
+	torrent_info& torrent_info::operator=(torrent_info&&) noexcept = default;
 
 #if TORRENT_ABI_VERSION < 4
 	void torrent_info::remap_files(file_storage const& f)
@@ -908,7 +1004,7 @@ TORRENT_VERSION_NAMESPACE_4
 	torrent_info::torrent_info(bdecode_node const& info_section, error_code& ec
 		, load_torrent_limits const& cfg, from_info_section_t)
 	{
-		parse_info_section_impl(info_section, ec, cfg.max_pieces);
+		parse_info_section_impl(info_section, ec, cfg);
 	}
 
 	torrent_info::~torrent_info() = default;
@@ -1000,14 +1096,19 @@ TORRENT_VERSION_NAMESPACE_4
 	bool torrent_info::parse_info_section(bdecode_node const& info
 		, error_code& ec, int const max_pieces)
 	{
-		parse_info_section_impl(info, ec, max_pieces);
+		load_torrent_limits cfg;
+		cfg.max_pieces = max_pieces;
+		parse_info_section_impl(info, ec, cfg);
 		return !ec;
 	}
 #endif
 
-	void torrent_info::parse_info_section_impl(bdecode_node const& info
-		, error_code& ec, int const max_pieces)
+	void torrent_info::parse_info_section_impl(
+		bdecode_node const& info, error_code& ec, load_torrent_limits const& cfg
+	)
 	{
+		int const max_pieces = cfg.max_pieces;
+		int const max_directory_depth = cfg.max_directory_depth;
 		if (info.type() != bdecode_node::dict_t)
 		{
 			ec = errors::torrent_info_no_dict;
@@ -1120,8 +1221,17 @@ TORRENT_VERSION_NAMESPACE_4
 		bdecode_node const file_tree_node = info.dict_find_dict("file tree");
 		if (version >= 2 && file_tree_node)
 		{
-			if (!extract_files2(file_tree_node, files, name, info_offset
-				, m_info_section.get(), bool(files_node), 0, ec))
+			if (!extract_files2(
+					file_tree_node,
+					files,
+					name,
+					info_offset,
+					m_info_section.get(),
+					bool(files_node),
+					0,
+					max_directory_depth,
+					ec
+				))
 			{
 				// mark the torrent as invalid
 				m_files.set_piece_length(0);
@@ -1157,8 +1267,16 @@ TORRENT_VERSION_NAMESPACE_4
 			{
 				// if there's no list of files, there has to be a length
 				// field.
-				if (!extract_single_file(info, version == 2 ? v1_files : files, ""
-					, info_offset, m_info_section.get(), true, ec))
+				if (!extract_single_file(
+						info,
+						version == 2 ? v1_files : files,
+						"",
+						info_offset,
+						m_info_section.get(),
+						true,
+						max_directory_depth,
+						ec
+					))
 				{
 					// mark the torrent as invalid
 					m_files.set_piece_length(0);
@@ -1175,8 +1293,15 @@ TORRENT_VERSION_NAMESPACE_4
 		}
 		else
 		{
-			if (!extract_files(files_node, version == 2 ? v1_files : files, name
-				, info_offset, m_info_section.get(), ec))
+			if (!extract_files(
+					files_node,
+					version == 2 ? v1_files : files,
+					name,
+					info_offset,
+					m_info_section.get(),
+					max_directory_depth,
+					ec
+				))
 			{
 				// mark the torrent as invalid
 				m_files.set_piece_length(0);

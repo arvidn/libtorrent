@@ -19,8 +19,8 @@ web_seed_entry::web_seed_entry(std::string url_, std::string auth_, headers_t ex
 }
 
 web_seed_entry::web_seed_entry(web_seed_entry const&) = default;
-web_seed_entry::web_seed_entry(web_seed_entry&&) = default;
+web_seed_entry::web_seed_entry(web_seed_entry&&) noexcept = default;
 web_seed_entry& web_seed_entry::operator=(web_seed_entry const&) = default;
-web_seed_entry& web_seed_entry::operator=(web_seed_entry&&) = default;
+web_seed_entry& web_seed_entry::operator=(web_seed_entry&&) noexcept = default;
 
 }

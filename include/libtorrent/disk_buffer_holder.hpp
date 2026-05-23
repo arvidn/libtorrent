@@ -29,6 +29,10 @@ namespace libtorrent {
 	// to return disk buffers back to libtorrent
 	struct TORRENT_EXPORT buffer_allocator_interface
 	{
+		// returns one or more disk buffers (previously handed out by
+		// the disk subsystem) back to the allocator. The bulk
+		// overload, ``free_multiple_buffers()``, lets callers free a
+		// batch of buffers under a single mutex acquisition.
 		virtual void free_disk_buffer(char* b) = 0;
 		virtual void free_multiple_buffers(span<char*> bufs) = 0;
 #if TORRENT_DEBUG_BUFFER_POOL
@@ -91,6 +95,8 @@ namespace libtorrent {
 		// buffer
 		explicit operator bool() const noexcept { return m_buf != nullptr; }
 
+		// the size, in bytes, of the held buffer. 0 if the holder does
+		// not own a buffer.
 		std::ptrdiff_t size() const { return m_size; }
 
 #if TORRENT_DEBUG_BUFFER_POOL
@@ -115,13 +121,21 @@ namespace libtorrent {
 	struct TORRENT_EXPORT disk_buffer_ref
 	{
 		disk_buffer_ref() noexcept = default;
+		// take ownership of the buffer held by ``h``, leaving ``h``
+		// empty. The buffer must subsequently be transferred to a
+		// ``bulk_free_buffer`` for release; this type cannot free the
+		// buffer itself.
 		explicit disk_buffer_ref(disk_buffer_holder&& h) noexcept;
+
 		disk_buffer_ref(disk_buffer_ref&&) noexcept;
 		disk_buffer_ref& operator=(disk_buffer_ref&&) noexcept;
 		disk_buffer_ref(disk_buffer_ref const&) = delete;
 		disk_buffer_ref& operator=(disk_buffer_ref const&) = delete;
 		~disk_buffer_ref() { TORRENT_ASSERT(m_buf == nullptr); if (m_buf != nullptr) std::abort(); }
 
+		// returns a pointer to the held buffer, or nullptr if this
+		// reference is empty. ``operator bool()`` returns true iff a
+		// buffer is held.
 		char* data() const noexcept { return m_buf; }
 		explicit operator bool() const noexcept { return m_buf != nullptr; }
 
@@ -138,7 +152,12 @@ namespace libtorrent {
 	// Freeing happens in the destructor.
 	struct TORRENT_EXPORT bulk_free_buffer
 	{
+		// construct an empty batch tied to the given allocator. All
+		// buffers added via ``add()`` must have come from this same
+		// allocator. The batch is freed in the destructor.
 		explicit bulk_free_buffer(buffer_allocator_interface& alloc) : m_allocator(&alloc) {}
+
+		// hidden
 		bulk_free_buffer(bulk_free_buffer const&) = delete;
 		bulk_free_buffer& operator=(bulk_free_buffer const&) = delete;
 

@@ -41,7 +41,7 @@ struct TORRENT_EXPORT client_data_t
 
 	// request to retrieve the pointer back again. The type ``T`` must be
 	// identical to the type of the pointer assigned earlier, including
-	// cv-qualifiers.
+	// const & volatile qualifiers.
 	template <typename T>
 	T* get() const
 	{

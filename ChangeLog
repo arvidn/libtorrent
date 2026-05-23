@@ -1,5 +1,7 @@
 2.1.0 not released
 
+	* add max_directory_depth limit to load_torrent_limits to bound file path depth when loading torrents
+	* fix race in wait_for_alert(), and update its return value
 	* optimize torrent_handle::torrent_file()
 	* add option to not validate v1 hashes for hybrid torrents
 	* add post_file_status() to query them asynchronously
@@ -25,9 +27,19 @@
 	* use std::string_view instead of boost counterpart
 	* libtorrent now requires C++17 to build
 	* added support for WebTorrent
+	* removed support for BEP 17 web seeds (in favor of BEP 19)
 
 2.0.13
 
+	* improve performance of disk job pool
+	* fix race when removing an auto managed torrent
+	* fix bug in post_download_queue() when a torrent complete
+	* in create_torrent, store symbolic links according to BEP 47
+	* strengthen peer encryption (obfuscation)
+	* improve HTTP response parsing
+	* optimize sanitization of symlinks when loading torrents
+	* stricter checking of tracker URLs
+	* fixed piece-picker accounting issue for filtered pieces
 	* add setting for NAT-PMP lease duration
 	* optimize v2 request sizes
 	* fix socks5 issues

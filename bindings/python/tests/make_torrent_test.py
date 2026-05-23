@@ -45,7 +45,7 @@ class TestMakeTorrent(unittest.TestCase):
 
         ti = lt.torrent_info(str(self.out_path))
         self.assertEqual(list(tr.url for tr in ti.trackers()), [self.tracker_url])
-        fs = ti.files()
+        fs = ti.layout()
         self.assertEqual(fs.num_files(), 1)
         self.assertEqual(fs.file_name(0), name)
         self.assertEqual(hashlib.sha1(data).digest(), ti.hash_for_piece(0))
@@ -74,7 +74,7 @@ class TestMakeTorrent(unittest.TestCase):
 
         ti = lt.torrent_info(str(self.out_path))
         self.assertEqual(list(tr.url for tr in ti.trackers()), [self.tracker_url])
-        fs = ti.files()
+        fs = ti.layout()
         non_pad_filenames: Set[str] = set()
         for i in range(fs.num_files()):
             if fs.file_flags(i) & lt.file_flags_t.flag_pad_file:

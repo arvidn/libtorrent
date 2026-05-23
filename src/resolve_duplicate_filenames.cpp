@@ -92,13 +92,15 @@ namespace {
 			// increase the counter
 			std::uint32_t const hash = fs.file_path_hash(i, "");
 			auto range = files.equal_range(hash);
-			auto const match = std::find_if(range.first, range.second, [&](std::pair<std::uint32_t, name_entry> const& o)
-			{
-				std::string const other_name = o.second.idx < file_index_t{}
-					? combine_path(fs.name(), paths[std::size_t(-static_cast<int>(o.second.idx)-1)].substr(0, std::size_t(o.second.length)))
-					: fs.file_path(o.second.idx);
-				return aux::string_equal_no_case(other_name, fs.file_path(i));
-			});
+			auto const match = std::find_if(
+				range.first, range.second, [&](std::pair<std::uint32_t, name_entry> const& o) {
+					std::string const other_name = o.second.idx < file_index_t{}
+						? combine_path(fs.name(),
+							  string_view(paths[std::size_t(-static_cast<int>(o.second.idx) - 1)])
+								  .substr(0, std::size_t(o.second.length)))
+						: fs.file_path(o.second.idx);
+					return aux::string_equal_no_case(other_name, fs.file_path(i));
+				});
 
 			if (match == range.second)
 			{

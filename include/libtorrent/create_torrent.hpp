@@ -88,6 +88,13 @@ TORRENT_VERSION_NAMESPACE_4
 	// This represents one file in the torrent file to be created
 	struct TORRENT_EXPORT create_file_entry
 	{
+		// construct a file entry for the file at relative path ``fn``
+		// with size ``sz``.
+		// ``f`` is the set of file flags that applies to the file, see file_flags_t.
+		// ``ts`` is an optional modification time (0 to omit).
+		// ``sl`` is the symlink target, only used when ``f`` includes the symlink
+		// flag. Symlinks are only allowed to target other files or directories
+		// in the torrent.
 		create_file_entry(std::string fn, std::int64_t const sz
 			, file_flags_t const f = {}, std::time_t const ts = 0, std::string sl = {})
 			: filename(std::move(fn))
@@ -100,14 +107,18 @@ TORRENT_VERSION_NAMESPACE_4
 		// the path and name of the file. The path is relative to the root of
 		// the torrent file.
 		std::string filename;
+
 		// the size of the file
 		std::int64_t size;
 
+		// bitmask of ``file_flags_t`` (pad-file, hidden, executable,
+		// symlink) for this file.
 		file_flags_t flags;
 
+		// optional modification time of the file. 0 means "do not record".
 		std::time_t mtime;
 
-		// only considered if the symlink flag is set
+		// the link target, only considered if the symlink flag is set
 		std::string symlink;
 	};
 
@@ -401,6 +412,11 @@ TORRENT_VERSION_NAMESPACE_4
 		void set_priv(bool p) { m_private = p; }
 		bool priv() const { return m_private; }
 
+		// query which protocol versions will be written by this
+		// builder. ``is_v2_only()`` returns true if no v1 info dict
+		// will be written; ``is_v1_only()`` returns true if no v2
+		// file tree will be written. A torrent that is neither
+		// v1-only nor v2-only is a hybrid v1+v2 torrent.
 		bool is_v2_only() const { return m_v2_only; }
 		bool is_v1_only() const { return m_v1_only; }
 
@@ -414,6 +430,7 @@ TORRENT_VERSION_NAMESPACE_4
 		index_range<piece_index_t> piece_range() const noexcept
 		{ return {piece_index_t{0}, end_piece()}; }
 
+		// one past-the-end file index
 		file_index_t end_file() const { return file_index_t{int(m_files.size())}; }
 
 		// all file indices in the torrent to be created
@@ -646,7 +663,7 @@ namespace aux {
 #endif
 
 namespace aux {
-	TORRENT_EXTRA_EXPORT std::string get_symlink_path(std::string const& p);
+	TORRENT_EXTRA_EXPORT std::string get_symlink_path(std::string const& p, error_code& ec);
 
 	TORRENT_EXTRA_EXPORT
 	std::tuple<aux::vector<create_file_entry, file_index_t>, std::int64_t>

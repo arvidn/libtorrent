@@ -1561,7 +1561,9 @@ int main(int argc, char* argv[])
 
 		switch (argv[i][1])
 		{
-			case 'O': g_stats_log_file = std::fopen(arg, "w+"); continue;
+			case 'O':
+				g_stats_log_file = std::fopen(arg, "w+");
+				break;
 			case 'f': g_log_file = std::fopen(arg, "w+"); break;
 			case 's': save_path = make_absolute_path(arg); break;
 			case 'U': torrent_upload_limit = atoi(arg) * 1000; break;
@@ -2403,8 +2405,7 @@ done:
 
 	while (num_outstanding_resume_data > 0)
 	{
-		alert const* a = ses.wait_for_alert(seconds(10));
-		if (a == nullptr) continue;
+		if (!ses.wait_for_alert(seconds(10))) continue;
 		pop_alerts(client_state, ses);
 	}
 

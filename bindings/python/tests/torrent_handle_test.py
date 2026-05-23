@@ -584,13 +584,15 @@ class ResumeDataTest(TorrentHandleTest):
         handle.save_resume_data()
         for _ in lib.loop_until_timeout(5, msg="save_resume_data"):
             self.session.wait_for_alert(1)
-            for alert in self.session.pop_alerts():
+            alerts = self.session.pop_alerts()
+            for alert in alerts:
                 if isinstance(alert, lt.save_resume_data_alert):
                     self.assertEqual(
                         alert.params.renamed_files,
                         {0: renamed},
                     )
                     return
+            del alerts
         self.fail("save_resume_data_alert not received")
 
 

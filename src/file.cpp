@@ -203,10 +203,17 @@ namespace {
 		OVERLAPPED ol{};
 		ol.Offset = offset & 0xffffffff;
 		ol.OffsetHigh = offset >> 32;
+		DWORD const bytes_to_read = DWORD(buf.size());
 		DWORD bytes_read = 0;
-		if (ReadFile(fd, buf.data(), DWORD(buf.size()), &bytes_read, &ol) == FALSE)
+		if (ReadFile(fd, buf.data(), bytes_to_read, &bytes_read, &ol) == FALSE)
 		{
 			ec = error_code(::GetLastError(), system_category());
+			return -1;
+		}
+
+		if (bytes_read != bytes_to_read)
+		{
+			ec.assign(errors::file_too_short, libtorrent_category());
 			return -1;
 		}
 
@@ -243,13 +250,13 @@ namespace {
 			auto const r = ::pread(handle, buf.data(), std::size_t(buf.size()), file_offset);
 			if (r == 0)
 			{
-				ec = boost::asio::error::eof;
-				return ret;
+				ec.assign(errors::file_too_short, libtorrent_category());
+				return -1;
 			}
 			if (r < 0)
 			{
 				ec = error_code(errno, system_category());
-				return ret;
+				return -1;
 			}
 			ret += r;
 			file_offset += r;
@@ -274,7 +281,7 @@ namespace {
 			if (r < 0)
 			{
 				ec = error_code(errno, system_category());
-				return -1;
+				return ret;
 			}
 			ret += r;
 			file_offset += r;
@@ -731,7 +738,7 @@ void file_handle::close()
 
 file_handle::~file_handle() { close(); }
 
-file_handle& file_handle::operator=(file_handle&& rhs) &
+file_handle& file_handle::operator=(file_handle&& rhs) & noexcept
 {
 	if (&rhs == this) return *this;
 	close();

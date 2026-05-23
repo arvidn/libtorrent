@@ -47,8 +47,8 @@ namespace aux {
 		file_mapping_handle(file_mapping_handle const&) = delete;
 		file_mapping_handle& operator=(file_mapping_handle const&) = delete;
 
-		file_mapping_handle(file_mapping_handle&& fm);
-		file_mapping_handle& operator=(file_mapping_handle&& fm) &;
+		file_mapping_handle(file_mapping_handle&& fm) noexcept;
+		file_mapping_handle& operator=(file_mapping_handle&& fm) & noexcept;
 
 		HANDLE handle() const { return m_mapping; }
 		handle_type fd() const { return m_file.fd(); }
@@ -75,8 +75,8 @@ namespace aux {
 		file_mapping(file_mapping const&) = delete;
 		file_mapping& operator=(file_mapping const&) = delete;
 
-		file_mapping(file_mapping&& rhs);
-		file_mapping& operator=(file_mapping&& rhs) &;
+		file_mapping(file_mapping&& rhs) noexcept;
+		file_mapping& operator=(file_mapping&& rhs) & noexcept;
 		~file_mapping();
 
 		handle_type fd() const { return m_file.fd(); }

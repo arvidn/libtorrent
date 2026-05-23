@@ -61,13 +61,15 @@ std::string utf8_latin1(json::string const& sv)
 
 }
 
-websocket_tracker_connection::websocket_tracker_connection(io_context& ios
-		, tracker_manager& man
-		, tracker_request const& req
-		, std::weak_ptr<request_callback> cb)
+websocket_tracker_connection::websocket_tracker_connection(
+	io_context& ios,
+	tracker_manager& man,
+	tracker_request const& req,
+	std::weak_ptr<request_callback> cb
+)
 	: tracker_connection(man, req, ios, cb)
-	  , m_io_context(ios)
-	  , m_ssl_context(ssl::context::tlsv12_client)
+	, m_io_context(ios)
+	, m_ssl_context(req.ssl_ctx)
 {
 	queue_request(req, std::move(cb));
 }
@@ -78,7 +80,8 @@ void websocket_tracker_connection::start()
 
 	auto const& settings = m_man.settings();
 	auto const& req = tracker_req();
-	m_websocket = std::make_shared<aux::websocket_stream>(m_io_context, m_man.host_resolver(), &m_ssl_context);
+	m_websocket =
+		std::make_shared<aux::websocket_stream>(m_io_context, m_man.host_resolver(), m_ssl_context);
 
 	// in anonymous mode we omit the user agent to mitigate fingerprinting of
 	// the client. Private torrents is an exception because some private

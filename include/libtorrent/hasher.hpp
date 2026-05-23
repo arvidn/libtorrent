@@ -82,8 +82,8 @@ TORRENT_CRYPTO_NAMESPACE
 		explicit hasher(span<char const> data);
 		hasher(hasher const&);
 		hasher& operator=(hasher const&) &;
-		hasher(hasher&&);
-		hasher& operator=(hasher&&) &;
+		hasher(hasher&&) noexcept;
+		hasher& operator=(hasher&&) & noexcept;
 
 		// append the following bytes to what is being hashed
 		hasher& update(span<char const> data);
@@ -117,6 +117,12 @@ TORRENT_CRYPTO_NAMESPACE
 #endif
 	};
 
+	// ``hasher256`` computes a SHA-256 message digest. It is the
+	// counterpart to ``hasher`` (which computes SHA-1) and is used for
+	// BitTorrent v2 piece and merkle-tree hashes. It can be fed input
+	// incrementally via ``update()`` and the digest is produced by
+	// ``final()``. Call ``reset()`` to reuse the object for another
+	// digest.
 	class TORRENT_EXPORT hasher256
 	{
 	public:
@@ -128,8 +134,8 @@ TORRENT_CRYPTO_NAMESPACE
 		explicit hasher256(span<char const> data);
 		hasher256(hasher256 const&);
 		hasher256& operator=(hasher256 const&) &;
-		hasher256(hasher256&&);
-		hasher256& operator=(hasher256&&) &;
+		hasher256(hasher256&&) noexcept;
+		hasher256& operator=(hasher256&&) & noexcept;
 
 		// append the following bytes to what is being hashed
 		hasher256& update(span<char const> data);

@@ -429,9 +429,9 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 		// the number of seconds this torrent has spent in started, finished and
 		// seeding state so far, respectively.
-		m_active_time = seconds(p.active_time);
-		m_finished_time = seconds(p.finished_time);
-		m_seeding_time = seconds(p.seeding_time);
+		m_active_time = seconds(std::max(0, std::min(0x3fffffff, p.active_time)));
+		m_finished_time = seconds(std::max(0, std::min(0x3fffffff, p.finished_time)));
+		m_seeding_time = seconds(std::max(0, std::min(0x3fffffff, p.seeding_time)));
 
 		if (m_completed_time != 0 && m_completed_time < m_added_time)
 			m_completed_time = m_added_time;
@@ -766,10 +766,12 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		// torrent
 
 #if TORRENT_USE_ASSERTS
-		for (torrent_list_index_t i{}; i != m_links.end_index(); ++i)
+		// by the time a torrent is destroyed it must already have been
+		// removed from every session_impl::m_torrent_lists entry, otherwise
+		// the list is left with a dangling pointer.
+		for (auto const& l : m_links)
 		{
-			if (!m_links[i].in_list()) continue;
-			m_links[i].unlink(m_ses.torrent_list(i), i);
+			TORRENT_ASSERT(!l.in_list());
 		}
 #endif
 
@@ -998,13 +1000,14 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		if (mask & torrent_flags::disable_lsd)
 		{
 			bool const new_value = !bool(flags & torrent_flags::disable_lsd);
-			if (m_enable_dht != new_value) set_need_save_resume(torrent_handle::if_config_changed);
+			if (m_enable_lsd != new_value) set_need_save_resume(torrent_handle::if_config_changed);
 			m_enable_lsd = new_value;
 		}
 		if (mask & torrent_flags::disable_pex)
 		{
 			bool const new_value = !bool(flags & torrent_flags::disable_pex);
-			if (m_enable_dht != new_value) set_need_save_resume(torrent_handle::if_config_changed);
+			if (bool(m_enable_pex) != new_value)
+				set_need_save_resume(torrent_handle::if_config_changed);
 			m_enable_pex = new_value;
 		}
 	}
@@ -1571,9 +1574,18 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 	peer_request torrent::to_req(piece_block const& p) const
 	{
+		return to_req(p, piece_size_for_req(p.piece_index));
+	}
+
+	// piece_size must be the value of piece_size_for_req(p.piece_index). This
+	// overload exists so callers in hot paths can cache piece_size_for_req()
+	// across multiple to_req() calls for the same piece, since
+	// piece_size_for_req() is O(log files) for v2-only torrents.
+	peer_request torrent::to_req(piece_block const& p, int const piece_size) const
+	{
+		TORRENT_ASSERT(piece_size == piece_size_for_req(p.piece_index));
 		int const block_offset = p.block_index * block_size();
-		int const piece_sz = piece_size_for_req(p.piece_index);
-		int const block = std::min(piece_sz - block_offset, block_size());
+		int const block = std::min(piece_size - block_offset, block_size());
 		TORRENT_ASSERT(block > 0);
 		TORRENT_ASSERT(block <= block_size());
 
@@ -1680,15 +1692,16 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			if (gen->type != GEN_DNS) continue;
 			ASN1_IA5STRING* domain = gen->d.dNSName;
 			if (ASN1_STRING_type(domain) != V_ASN1_IA5STRING || !ASN1_STRING_get0_data(domain) || !ASN1_STRING_length(domain)) continue;
-			auto const* torrent_name = reinterpret_cast<char const*>(ASN1_STRING_get0_data(domain));
-			auto const name_length = aux::numeric_cast<std::size_t>(ASN1_STRING_length(domain));
+			string_view const torrent_name(
+				reinterpret_cast<char const*>(ASN1_STRING_get0_data(domain)),
+				aux::numeric_cast<std::size_t>(ASN1_STRING_length(domain))
+			);
 
 #ifndef TORRENT_DISABLE_LOGGING
 			if (i > 1) names += " | n: ";
-			names.append(torrent_name, name_length);
+			names.append(torrent_name.data(), torrent_name.size());
 #endif
-			if (std::strncmp(torrent_name, "*", name_length) == 0
-				|| std::strncmp(torrent_name, expected.c_str(), name_length) == 0)
+			if (torrent_name == "*"_sv || torrent_name == expected)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
 				match = true;
@@ -1717,15 +1730,16 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		}
 		if (common_name && ASN1_STRING_get0_data(common_name) && ASN1_STRING_length(common_name))
 		{
-			auto const* torrent_name = reinterpret_cast<char const*>(ASN1_STRING_get0_data(common_name));
-			auto const name_length = aux::numeric_cast<std::size_t>(ASN1_STRING_length(common_name));
+			string_view const torrent_name(
+				reinterpret_cast<char const*>(ASN1_STRING_get0_data(common_name)),
+				aux::numeric_cast<std::size_t>(ASN1_STRING_length(common_name))
+			);
 
 #ifndef TORRENT_DISABLE_LOGGING
 			if (!names.empty()) names += " | n: ";
-			names.append(torrent_name, name_length);
+			names.append(torrent_name.data(), torrent_name.size());
 #endif
-			if (std::strncmp(torrent_name, "*", name_length) == 0
-				|| std::strncmp(torrent_name, expected.c_str(), name_length) == 0)
+			if (torrent_name == "*"_sv || torrent_name == expected)
 			{
 #ifdef TORRENT_DISABLE_LOGGING
 				return true;
@@ -1753,12 +1767,12 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			if(ret == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE) break;
 			if(ret == GNUTLS_E_SUCCESS)
 			{
+				string_view const torrent_name(buf, len);
 #ifndef TORRENT_DISABLE_LOGGING
 				if (!names.empty()) names += " | n: ";
-				names.append(buf, len);
+				names.append(torrent_name.data(), torrent_name.size());
 #endif
-				if (std::strncmp(buf, "*", len) == 0
-					|| std::strncmp(buf, expected.c_str(), len) == 0)
+				if (torrent_name == "*"_sv || torrent_name == expected)
 				{
 #ifndef TORRENT_DISABLE_LOGGING
 					match = true;
@@ -1776,12 +1790,12 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		int ret = gnutls_x509_crt_get_dn_by_oid(cert, GNUTLS_OID_X520_COMMON_NAME, 0, 0, buf, &len);
 		if(ret == GNUTLS_E_SUCCESS)
 		{
+			string_view const torrent_name(buf, len);
 #ifndef TORRENT_DISABLE_LOGGING
 			if (!names.empty()) names += " | n: ";
-			names.append(buf, len);
+			names.append(torrent_name.data(), torrent_name.size());
 #endif
-			if (std::strncmp(buf, "*", len) == 0
-				|| std::strncmp(buf, expected.c_str(), len) == 0)
+			if (torrent_name == "*"_sv || torrent_name == expected)
 			{
 #ifdef TORRENT_DISABLE_LOGGING
 				return true;
@@ -3982,7 +3996,7 @@ namespace {
 		bool found_one = false;
 		if (tracker_idx == -1)
 		{
-			for (auto e : m_trackers)
+			for (auto& e : m_trackers)
 			{
 				// make sure we check for new endpoints from the listen sockets
 				refresh_endpoint_list(m_ses, is_ssl_torrent(), bool(m_complete_sent), e);
@@ -4837,7 +4851,7 @@ namespace {
 		// need to try to get higher fidelity hashes (yet)
 		bool const found_on_disk = peers.size() == 1 && peers.count(nullptr);
 
-		if (!torrent_file().info_hashes().has_v1() && blocks.empty() && !found_on_disk)
+		if (torrent_file().info_hashes().has_v2() && blocks.empty() && !found_on_disk)
 		{
 			// TODO: only do this if the piece size > 1 blocks
 			// This is a v2 torrent so we can request get block
@@ -5116,6 +5130,15 @@ namespace {
 		if (m_abort) return;
 
 		m_abort = true;
+		m_paused = false;
+		m_auto_managed = false;
+		m_state_subscription = false;
+		for (torrent_list_index_t i{}; i != m_links.end_index(); ++i)
+		{
+			if (!m_links[i].in_list()) continue;
+			m_links[i].unlink(m_ses.torrent_list(i), i);
+		}
+
 		update_want_peers();
 		update_want_tick();
 		update_want_scrape();
@@ -5185,17 +5208,6 @@ namespace {
 			inc_stats_counter(counters::non_filter_torrents, -1);
 			m_apply_ip_filter = true;
 		}
-
-		m_paused = false;
-		m_auto_managed = false;
-		update_state_list();
-		for (torrent_list_index_t i{}; i != m_links.end_index(); ++i)
-		{
-			if (!m_links[i].in_list()) continue;
-			m_links[i].unlink(m_ses.torrent_list(i), i);
-		}
-		// don't re-add this torrent to the state-update list
-		m_state_subscription = false;
 
 #if TORRENT_USE_RTC
 		if(m_rtc_signaling)
@@ -7642,16 +7654,19 @@ namespace {
 
 	void torrent::post_download_queue()
 	{
+		if (!valid_metadata()) return;
 		std::vector<block_info> blk;
-		if (!valid_metadata() || !has_picker()) return;
-		piece_picker const& p = picker();
-		std::vector<piece_picker::downloading_piece> const q = p.get_download_queue();
 		std::vector<partial_piece_info> queue;
-		if (!q.empty())
+		if (has_picker())
 		{
-			const int blocks_per_piece = m_picker->blocks_in_piece(piece_index_t(0));
-			blk.resize(q.size() * aux::numeric_cast<std::size_t>(blocks_per_piece));
-			initialize_piece_info(p, torrent_file(), block_size(), blk, q, &queue);
+			piece_picker const& p = picker();
+			std::vector<piece_picker::downloading_piece> const q = p.get_download_queue();
+			if (!q.empty())
+			{
+				const int blocks_per_piece = m_picker->blocks_in_piece(piece_index_t(0));
+				blk.resize(q.size() * aux::numeric_cast<std::size_t>(blocks_per_piece));
+				initialize_piece_info(p, torrent_file(), block_size(), blk, q, &queue);
+			}
 		}
 		alerts().emplace_alert<piece_info_alert>(get_handle(), std::move(queue), std::move(blk));
 	}
@@ -8557,6 +8572,12 @@ namespace {
 
 	void torrent::update_list(torrent_list_index_t const list, bool in)
 	{
+		// once we've started aborting, we must never re-insert this torrent
+		// into any of session_impl::m_torrent_lists. The torrent is on its
+		// way out and any lingering pointer would dangle once we destruct.
+		// unlinking is still allowed (and is what abort() relies on).
+		if (m_abort) in = false;
+
 		link& l = m_links[list];
 		aux::vector<torrent*>& v = m_ses.torrent_list(list);
 
@@ -9113,6 +9134,12 @@ namespace {
 		for (torrent_list_index_t i{}; i != m_links.end_index(); ++i)
 		{
 			if (!m_links[i].in_list()) continue;
+
+			// an aborted torrent must not be a member of any of
+			// session_impl::m_torrent_lists, otherwise we risk
+			// leaving a dangling pointer behind when we destruct.
+			TORRENT_ASSERT(!m_abort);
+
 			int const index = m_links[i].index;
 
 			TORRENT_ASSERT(index >= 0);
@@ -9187,11 +9214,8 @@ namespace {
 					// During init(), before on_metadata_impl()/pc->init() have
 					// run, valid_metadata() just became true so is_seed() can
 					// spuriously return true for peers whose have-bitmask hasn't
-					// been reconciled with the actual piece count yet. Skip this
-					// check until m_connections_initialized confirms the
-					// transition is complete.
-					if (m_connections_initialized)
-						TORRENT_ASSERT(!p.is_seed());
+					// been reconciled with the actual piece count yet.
+					if (p.m_initialized) TORRENT_ASSERT(!p.is_seed());
 				}
 			}
 
@@ -10782,13 +10806,13 @@ namespace {
 		{
 			piece_picker::piece_stats_t ps = m_picker->piece_stats(i);
 			if (ps.peer_count == 0) continue;
-			if (ps.priority == 0 && (ps.have || ps.downloading))
+			if (ps.priority == 0 && (ps.flushed || ps.downloading))
 			{
 				m_picker->set_piece_priority(i, default_priority);
 				continue;
 			}
 			// don't count pieces we already have or are trying to download
-			if (ps.priority > 0 || ps.have) continue;
+			if (ps.priority > 0 || ps.flushed) continue;
 			if (ps.peer_count > rarest_rarity) continue;
 			if (ps.peer_count == rarest_rarity)
 			{
@@ -11407,10 +11431,12 @@ namespace {
 		}
 	}
 
-	void torrent::remove_web_seed_conn(peer_connection* p)
+	void torrent::remove_web_seed_conn(web_seed_t* w)
 	{
-		auto const i = std::find_if(m_web_seeds.begin(), m_web_seeds.end()
-			, [p] (web_seed_t const& ws) { return ws.peer_info.connection == p; });
+		auto const i =
+			std::find_if(m_web_seeds.begin(), m_web_seeds.end(), [w](web_seed_t const& ws) {
+				return &ws == w;
+			});
 
 		TORRENT_ASSERT(i != m_web_seeds.end());
 		if (i == m_web_seeds.end()) return;
@@ -11728,11 +11754,23 @@ namespace {
 		peers_erased(st.erased);
 	}
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+	// Defined in src/smart_ban.cpp. This is a hack to give the smart-ban
+	// plugin an erasure notification without adding a new virtual to the
+	// public torrent_plugin interface (which would break ABI).
+	void smart_ban_notify_erase_peers(torrent_plugin* ext, span<aux::torrent_peer* const> peers);
+#endif
+
 	// this is called when torrent_peers are removed from the peer_list
 	// (peer-list). It removes any references we may have to those torrent_peers,
 	// so we don't leave then dangling
 	void torrent::peers_erased(std::vector<torrent_peer*> const& peers)
 	{
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (auto& ext : m_extensions)
+			smart_ban_notify_erase_peers(ext.get(), peers);
+#endif
+
 		if (!has_picker()) return;
 
 		for (auto* const p : peers)

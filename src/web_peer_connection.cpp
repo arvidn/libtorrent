@@ -327,12 +327,13 @@ void web_peer_connection::write_request(peer_request const& r)
 
 	piece_index_t cur_piece = r.piece;
 	int cur_start = r.start;
+	int cur_piece_size = t->piece_size_for_req(cur_piece);
 
 	while (size > 0)
 	{
 		pr.piece = cur_piece;
 		pr.start = cur_start;
-		pr.length = std::min(std::min(block_size, size), t->piece_size_for_req(pr.piece) - pr.start);
+		pr.length = std::min(std::min(block_size, size), cur_piece_size - pr.start);
 		TORRENT_ASSERT(validate_piece_request(pr));
 		m_requests.push_back(pr);
 
@@ -369,10 +370,11 @@ void web_peer_connection::write_request(peer_request const& r)
 #endif
 		size -= pr.length;
 		cur_start += pr.length;
-		if (cur_start >= t->piece_size_for_req(cur_piece))
+		if (cur_start >= cur_piece_size)
 		{
 			cur_start = 0;
 			++cur_piece;
+			if (size > 0) cur_piece_size = t->piece_size_for_req(cur_piece);
 		}
 	}
 
@@ -631,12 +633,14 @@ void web_peer_connection::disable(error_code const& ec)
 {
 	// we should not try this server again.
 	m_web->disabled = true;
+	bool const ephemeral = m_web->ephemeral;
+	aux::web_seed_t* const web = m_web;
 	disconnect(ec, operation_t::bittorrent, peer_error);
-	if (m_web->ephemeral)
+	if (ephemeral)
 	{
 		std::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
-		t->remove_web_seed_conn(this);
+		t->remove_web_seed_conn(web);
 	}
 	m_web = nullptr;
 	TORRENT_ASSERT(is_disconnecting());
@@ -671,7 +675,12 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 	// add the redirected url and remove the current one
 	if (!single_file_request)
 	{
-		TORRENT_ASSERT(!m_file_requests.empty());
+		if (m_file_requests.empty())
+		{
+			// the server sent a redirect response without a matching request
+			disconnect(errors::http_parse_error, operation_t::bittorrent, peer_error);
+			return;
+		}
 		file_index_t const file_index = m_file_requests.front().file_index;
 
 		location = aux::resolve_redirect_location(m_url, location);
@@ -818,6 +827,27 @@ void web_peer_connection::on_receive(error_code const& error
 				return;
 			}
 
+			// status code 0 means the parser saw an HTTP request line instead of a
+			// response line (e.g. the remote sent garbage that the parser treated as
+			// a method name). Treat that as a parse error.
+			if (m_parser.status_code() == 0)
+			{
+				received_bytes(0, int(recv_buffer.size()));
+				disconnect(errors::http_parse_error, operation_t::bittorrent, peer_error);
+				return;
+			}
+
+			// status code -1 means the parser hasn't seen a complete status line
+			// yet. If the buffered bytes don't start with 'H' they can never form
+			// a valid HTTP response, so fail early rather than letting the assert
+			// below fire.
+			if (!recv_buffer.empty() && recv_buffer[0] != 'H')
+			{
+				received_bytes(0, int(recv_buffer.size()));
+				disconnect(errors::http_parse_error, operation_t::bittorrent, peer_error);
+				return;
+			}
+
 			TORRENT_ASSERT(recv_buffer.empty() || recv_buffer[0] == 'H');
 			TORRENT_ASSERT(int(recv_buffer.size()) <= m_recv_buffer.packet_size());
 
@@ -912,7 +942,13 @@ void web_peer_connection::on_receive(error_code const& error
 			return;
 		}
 
-		TORRENT_ASSERT(!m_file_requests.empty());
+		if (m_file_requests.empty())
+		{
+			// the server sent a response without a matching request
+			received_bytes(0, int(recv_buffer.size()));
+			disconnect(errors::http_parse_error, operation_t::bittorrent, peer_error);
+			return;
+		}
 		file_request_t const& file_req = m_file_requests.front();
 		if (range_start != file_req.start
 			|| range_end != file_req.start + file_req.length)

@@ -2196,3 +2196,105 @@ TORRENT_TEST(posix_disk_io_part_file)
 		}
 	}
 }
+
+// Test the vec-write path (pread_storage::write(span<span<char const> const>))
+// when a piece overlaps a 0-priority file. mmap_storage and posix_storage use
+// the single-buffer readwrite() path so this overload is pread_storage-only.
+//
+// file_defs is a list of (block_count, priority) pairs. All files are packed
+// into a single piece so that the write covers all of them at once.
+static void test_write_vec_partfile(
+	std::vector<std::pair<int, download_priority_t>> const& file_defs
+	, lt::storage_mode_t const storage_mode)
+{
+	int const block = 0x4000; // 16 KiB
+
+	int total_blocks = 0;
+	for (auto const& [nblocks, _prio] : file_defs) total_blocks += nblocks;
+	int const ps = block * total_blocks; // one piece covers all files
+
+	std::vector<lt::create_file_entry> flist;
+	aux::vector<download_priority_t, file_index_t> priorities;
+	for (std::size_t i = 0; i < file_defs.size(); ++i)
+	{
+		auto const [nblocks, prio] = file_defs[i];
+		flist.emplace_back("vec_test/f" + std::to_string(i) + ".tmp"
+			, std::int64_t(block) * nblocks);
+		priorities.push_back(prio);
+	}
+
+	lt::create_torrent t(std::move(flist), ps, lt::create_torrent::v1_only);
+	TEST_CHECK(t.num_pieces() == 1);
+
+	std::vector<std::vector<char>> blks(static_cast<std::size_t>(total_blocks));
+	std::vector<char> full_piece;
+	for (auto& b : blks)
+	{
+		b = new_piece(block);
+		full_piece.insert(full_piece.end(), b.begin(), b.end());
+	}
+	t.set_hash(0_piece, hasher(full_piece).final());
+
+	std::shared_ptr<torrent_info const> info = load_torrent_buffer(bencode(t.generate())).ti;
+
+	aux::session_settings set;
+	file_pool_type<pread_storage>::type fp;
+	std::string const cwd = current_working_directory();
+	std::string const download_dir = combine_path(cwd, "pread_vec_partfile_test");
+	delete_dirs(download_dir);
+	renamed_files rf;
+	storage_params p(
+		info->layout(),
+		rf,
+		download_dir,
+		{},
+		storage_mode,
+		priorities,
+		sha1_hash{},
+		info->v1(),
+		info->v2()
+	);
+	auto s = make_storage<pread_storage>(p, fp);
+	storage_error ec;
+	s->initialize(set, ec);
+	TEST_CHECK(!ec);
+	if (ec) print_error("initialize", 0, ec);
+
+	// write piece 0 as individual block-sized buffers via the vec overload.
+	// any 0-priority file spanning more than one block causes bufs.size() > 1
+	// in the part-file branch of the write lambda.
+	std::vector<span<char const>> buf_spans;
+	buf_spans.reserve(std::size_t(total_blocks));
+	for (auto const& b : blks) buf_spans.emplace_back(b);
+	span<span<char const> const> const vec_bufs(buf_spans.data()
+		, static_cast<std::ptrdiff_t>(buf_spans.size()));
+	int const wret = s->write(set, vec_bufs, 0_piece, 0
+		, aux::open_mode::write, disk_job_flags_t{}, ec);
+	TEST_EQUAL(wret, ps);
+	TEST_CHECK(!ec);
+	if (ec) print_error("write", wret, ec);
+
+	std::vector<char> read_buf(static_cast<std::size_t>(ps));
+	int const rret = s->read(set, read_buf, 0_piece, 0
+		, aux::open_mode::read_only, disk_job_flags_t{}, ec);
+	TEST_EQUAL(rret, ps);
+	TEST_CHECK(!ec);
+	if (ec) print_error("read", rret, ec);
+	TEST_CHECK(read_buf == full_piece);
+
+	s->delete_files(session::delete_files, ec);
+	if (ec) print_error("delete_files", 0, ec);
+}
+
+TORRENT_TEST(pread_write_vec_partfile_multi_buf)
+{
+	for (auto const sm : {storage_mode_sparse, storage_mode_allocate})
+	{
+		// 0-priority file (2 blocks) at the start of the piece
+		test_write_vec_partfile({{2, 0_pri}, {2, 1_pri}}, sm);
+		// 0-priority file (2 blocks) at the end of the piece
+		test_write_vec_partfile({{2, 1_pri}, {2, 0_pri}}, sm);
+		// 0-priority file (2 blocks) in the middle, normal files on both sides
+		test_write_vec_partfile({{1, 1_pri}, {2, 0_pri}, {1, 1_pri}}, sm);
+	}
+}

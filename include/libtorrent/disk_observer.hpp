@@ -15,6 +15,10 @@ see LICENSE file.
 
 namespace libtorrent {
 
+	// callback interface used to be notified when the disk write queue has
+	// drained below the low watermark. When the disk subsystem applies
+	// back-pressure, peers wanting to upload are paused; once the queue
+	// drains, ``on_disk()`` is invoked so that those peers can resume.
 	struct TORRENT_EXPORT disk_observer
 	{
 		// called when the disk cache size has dropped

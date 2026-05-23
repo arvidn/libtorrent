@@ -39,6 +39,7 @@ namespace libtorrent::aux {
 		~part_file();
 
 		int write(span<char const> buf, piece_index_t piece, int offset, error_code& ec);
+		int writev(span<span<char const> const> bufs, piece_index_t piece, int offset, error_code& ec);
 		int read(span<char> buf, piece_index_t piece, int offset, error_code& ec);
 		int hash(hasher& ph, std::ptrdiff_t len, piece_index_t piece, int offset, error_code& ec);
 		int hash2(hasher256& ph, std::ptrdiff_t len, piece_index_t piece, int offset, error_code& ec);

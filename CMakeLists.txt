@@ -957,24 +957,17 @@ add_subdirectory(bindings)
 if(webtorrent)
     set(USRSCTP_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/libdatachannel/deps/usrsctp/usrsctplib")
     target_include_directories(datachannel-static PRIVATE "${USRSCTP_INCLUDE_DIR}")
-    target_include_directories(torrent-rasterbar PRIVATE "${USRSCTP_INCLUDE_DIR}")
+    target_include_directories(torrent-rasterbar PRIVATE
+        "${USRSCTP_INCLUDE_DIR}"
+        deps/libdatachannel/include
+        deps/libdatachannel/include/rtc
+    )
     if (BUILD_SHARED_LIBS)
         target_link_libraries(torrent-rasterbar PRIVATE datachannel-static)
     else()
         target_link_libraries(torrent-rasterbar PUBLIC datachannel-static)
     endif()
-    target_include_directories(torrent-rasterbar PRIVATE
-        deps/libdatachannel/include
-        deps/libdatachannel/include/rtc
-    )
-	# Boost.JSON was added to Boost in version 1.75
-	find_package(Boost OPTIONAL_COMPONENTS json)
-	target_compile_definitions(torrent-rasterbar PRIVATE BOOST_JSON_HEADER_ONLY)
-	if(Boost_JSON_FOUND)
-		target_link_libraries(torrent-rasterbar PUBLIC Boost::json)
-	else()
-		message(FATAL_ERROR "Boost.JSON library not found")
-	endif()
+    target_compile_definitions(torrent-rasterbar PRIVATE BOOST_JSON_HEADER_ONLY)
 endif()
 
 if(IS_ABSOLUTE "${CMAKE_INSTALL_LIBDIR}")

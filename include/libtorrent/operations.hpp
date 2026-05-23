@@ -154,7 +154,7 @@ namespace libtorrent {
 		// enumeration of network routes
 		enum_route,
 
-		// moving read/write position in a file, operation_t::hostname_lookup
+		// moving read/write position in a file
 		file_seek,
 
 		// an async wait operation on a timer

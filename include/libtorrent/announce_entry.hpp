@@ -31,61 +31,67 @@ namespace aux { struct torrent; }
 
 TORRENT_VERSION_NAMESPACE_2
 
-	struct TORRENT_EXPORT announce_infohash
-	{
-		// internal
-		TORRENT_UNEXPORT announce_infohash();
+// holds the per-info-hash state for a tracker, separately for the v1
+// and v2 info-hashes. Since a hybrid torrent has both info-hashes, the
+// state for the two announces (the message returned by the tracker, the
+// time of the next announce, the most recent scrape numbers, etc.) are
+// kept independently. ``announce_endpoint`` owns one ``announce_infohash``
+// for each protocol version.
+struct TORRENT_EXPORT announce_infohash
+{
+	// internal
+	TORRENT_UNEXPORT announce_infohash();
 
-		// if this tracker has returned an error or warning message
-		// that message is stored here
-		std::string message;
+	// if this tracker has returned an error or warning message
+	// that message is stored here
+	std::string message;
 
-		// if this tracker failed the last time it was contacted
-		// this error code specifies what error occurred
-		error_code last_error;
+	// if this tracker failed the last time it was contacted
+	// this error code specifies what error occurred
+	error_code last_error;
 
-		// the time of next tracker announce
-		time_point32 next_announce = (time_point32::min)();
+	// the time of next tracker announce
+	time_point32 next_announce = (time_point32::min)();
 
-		// no announces before this time
-		time_point32 min_announce = (time_point32::min)();
+	// no announces before this time
+	time_point32 min_announce = (time_point32::min)();
 
-		// TODO: include the number of peers received from this tracker, at last
-		// announce
+	// TODO: include the number of peers received from this tracker, at last
+	// announce
 
-		// these are either -1 or the scrape information this tracker last
-		// responded with. *incomplete* is the current number of downloaders in
-		// the swarm, *complete* is the current number of seeds in the swarm and
-		// *downloaded* is the cumulative number of completed downloads of this
-		// torrent, since the beginning of time (from this tracker's point of
-		// view).
+	// these are either -1 or the scrape information this tracker last
+	// responded with. *incomplete* is the current number of downloaders in
+	// the swarm, *complete* is the current number of seeds in the swarm and
+	// *downloaded* is the cumulative number of completed downloads of this
+	// torrent, since the beginning of time (from this tracker's point of
+	// view).
 
-		// if this tracker has returned scrape data, these fields are filled in
-		// with valid numbers. Otherwise they are set to -1. ``incomplete`` counts
-		// the number of current downloaders. ``complete`` counts the number of
-		// current peers completed the download, or "seeds". ``downloaded`` is the
-		// cumulative number of completed downloads.
-		int scrape_incomplete = -1;
-		int scrape_complete = -1;
-		int scrape_downloaded = -1;
+	// if this tracker has returned scrape data, these fields are filled in
+	// with valid numbers. Otherwise they are set to -1. ``incomplete`` counts
+	// the number of current downloaders. ``complete`` counts the number of
+	// current peers completed the download, or "seeds". ``downloaded`` is the
+	// cumulative number of completed downloads.
+	int scrape_incomplete = -1;
+	int scrape_complete = -1;
+	int scrape_downloaded = -1;
 
-		// the number of times in a row we have failed to announce to this
-		// tracker.
-		std::uint8_t fails : 7;
+	// the number of times in a row we have failed to announce to this
+	// tracker.
+	std::uint8_t fails : 7;
 
-		// true while we're waiting for a response from the tracker.
-		bool updating : 1;
+	// true while we're waiting for a response from the tracker.
+	bool updating : 1;
 
-		// set to true when we get a valid response from an announce
-		// with event=started. If it is set, we won't send start in the subsequent
-		// announces.
-		bool start_sent : 1;
+	// set to true when we get a valid response from an announce
+	// with event=started. If it is set, we won't send start in the subsequent
+	// announces.
+	bool start_sent : 1;
 
-		// set to true when we send a event=completed.
-		bool complete_sent : 1;
+	// set to true when we send a event=completed.
+	bool complete_sent : 1;
 
-		// internal
-		bool triggered_manually : 1;
+	// internal
+	bool triggered_manually : 1;
 
 #if TORRENT_ABI_VERSION <= 2
 		// reset announce counters and clears the started sent flag.
@@ -108,7 +114,7 @@ TORRENT_VERSION_NAMESPACE_2
 		// tracker succeeded, or if we haven't tried yet.
 		TORRENT_DEPRECATED bool is_working() const { return fails == 0; }
 #endif
-	};
+};
 
 	// announces are sent to each tracker using every listen socket
 	// this class holds information about one listen socket for one tracker

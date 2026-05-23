@@ -86,8 +86,8 @@ namespace libtorrent::aux {
 		file_handle(file_handle const& rhs) = delete;
 		file_handle& operator=(file_handle const& rhs) = delete;
 
-		file_handle(file_handle&& rhs) : m_fd(rhs.m_fd) { rhs.m_fd = invalid_handle; }
-		file_handle& operator=(file_handle&& rhs) &;
+		file_handle(file_handle&& rhs) noexcept : m_fd(rhs.m_fd) { rhs.m_fd = invalid_handle; }
+		file_handle& operator=(file_handle&& rhs) & noexcept;
 
 		~file_handle();
 

@@ -191,7 +191,11 @@ TORRENT_TEST(dht_get_peers_reply_alert)
 
 	mgr.emplace_alert<dht_get_peers_reply_alert>(ih, v);
 
-	auto const* a = alert_cast<dht_get_peers_reply_alert>(mgr.wait_for_alert(seconds(0)));
+	TEST_CHECK(mgr.wait_for_alert(seconds(0)));
+	std::vector<alert*> alerts;
+	mgr.get_all(alerts);
+	TEST_EQUAL(alerts.size(), 1);
+	auto const* a = alert_cast<dht_get_peers_reply_alert>(alerts.front());
 	TEST_CHECK(a != nullptr);
 
 	TEST_EQUAL(a->info_hash, ih);
@@ -229,7 +233,11 @@ TORRENT_TEST(dht_live_nodes_alert)
 
 	mgr.emplace_alert<dht_live_nodes_alert>(ih, v);
 
-	auto const* a = alert_cast<dht_live_nodes_alert>(mgr.wait_for_alert(seconds(0)));
+	TEST_CHECK(mgr.wait_for_alert(seconds(0)));
+	std::vector<alert*> alerts;
+	mgr.get_all(alerts);
+	TEST_EQUAL(alerts.size(), 1);
+	auto const* a = alert_cast<dht_live_nodes_alert>(alerts.front());
 	TEST_CHECK(a != nullptr);
 
 	TEST_EQUAL(a->node_id, ih);
@@ -303,7 +311,11 @@ TORRENT_TEST(dht_sample_infohashes_alert)
 
 	mgr.emplace_alert<dht_sample_infohashes_alert>(node_id, endpoint, interval, num, v, nv);
 
-	auto const* a = alert_cast<dht_sample_infohashes_alert>(mgr.wait_for_alert(seconds(0)));
+	TEST_CHECK(mgr.wait_for_alert(seconds(0)));
+	std::vector<alert*> alerts;
+	mgr.get_all(alerts);
+	TEST_EQUAL(alerts.size(), 1);
+	auto const* a = alert_cast<dht_sample_infohashes_alert>(alerts.front());
 	TEST_CHECK(a != nullptr);
 
 	TEST_EQUAL(a->node_id, node_id);

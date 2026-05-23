@@ -14,9 +14,13 @@ feature.compose <fuzz>on : <cflags>-fsanitize=fuzzer <linkflags>-fsanitize=fuzze
 feature sanitize : off on : composite propagated link-incompatible ;
 feature.compose <sanitize>on : <address-sanitizer>norecover <undefined-sanitizer>norecover ;
 
-# this is a build configuration that only does limited validation (i.e. no
-# sanitizers, invariant-checks, asserts etc.). The purpose is to quickly iterate
-# on inputs to build code coverage
+#enable logging for some fuzzers
+feature debug-logging : off on : composite propagated ;
+feature.compose <debug-logging>on : <define>DEBUG_LOGGING=1 ;
+feature.compose <debug-logging>off : <define>DEBUG_LOGGING=0 ;
+
+# Fast build for corpus replay -- no sanitizers, asserts, or invariant checks.
+# Use together with test-coverage=on to measure code coverage from a corpus.
 variant build_coverage : release : <sanitize>off <debug-symbols>on <asserts>off <invariant-checks>off ;
 
 project fuzzers
@@ -27,7 +31,7 @@ project fuzzers
 	<define>_GLIBCXX_DEBUG
 	<cxxflags>-fno-omit-frame-pointer
 	<linkflags>-fno-omit-frame-pointer
-	<library>/torrent//torrent
+	<library>/torrent//torrent/<debug-logging>off
 	: default-build
 	<cxxstd>17
 	<fuzz>on
@@ -40,6 +44,7 @@ project fuzzers
 	<export-extra>on
 	<asserts>on
 	<debug-symbols>on
+	<webtorrent>on
 	;
 
 local TARGETS ;
@@ -54,44 +59,73 @@ fuzzer torrent_info ;
 fuzzer parse_magnet_uri ;
 fuzzer bdecode_node ;
 fuzzer parse_int ;
+fuzzer piece_layers ;
 fuzzer sanitize_path ;
 fuzzer escape_path ;
 fuzzer file_storage_add_file ;
+fuzzer udp_tracker ;
+fuzzer natpmp ;
 fuzzer base32decode ;
 fuzzer base32encode ;
 fuzzer base64encode ;
 fuzzer escape_string ;
+fuzzer identify_client ;
+fuzzer lsd ;
 fuzzer gzip ;
 fuzzer verify_encoding ;
 fuzzer convert_to_native ;
 fuzzer convert_from_native ;
 fuzzer utf8_codepoint ;
 fuzzer http_parser ;
+fuzzer socks5_udp ;
 fuzzer upnp ;
 fuzzer dht_node ;
 fuzzer utp ;
 fuzzer resume_data ;
 fuzzer peer_conn ;
+fuzzer pe_crypto_state ;
+fuzzer rtc_peer_conn ;
 fuzzer idna ;
 fuzzer parse_url ;
 fuzzer http_tracker ;
 fuzzer session_params ;
 fuzzer add_torrent ;
+fuzzer utp_stream ;
+fuzzer websocket_tracker ;
+fuzzer xml_parse ;
+fuzzer socks5_stream_handshake ;
+fuzzer pe_conn ;
+fuzzer ut_metadata ;
+fuzzer ut_pex ;
+fuzzer web_seed ;
 
 local LARGE_TARGETS =
 	torrent_info
 	bdecode_node
 	http_parser
+	socks5_udp
 	dht_node
 	utp
 	resume_data
 	file_storage_add_file
+	udp_tracker
+	natpmp
 	sanitize_path
 	upnp
 	peer_conn
+	pe_crypto_state
+	rtc_peer_conn
 	http_tracker
 	session_params
+	lsd
 	add_torrent
+	utp_stream
+	websocket_tracker
+	socks5_stream_handshake
+	pe_conn
+	ut_metadata
+	ut_pex
+	web_seed
 	;
 
 install stage : $(TARGETS) : <install-type>EXE <location>fuzzers ;

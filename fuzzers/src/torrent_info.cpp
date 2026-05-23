@@ -15,7 +15,7 @@ extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 	{
 		lt::add_torrent_params atp = lt::load_torrent_buffer({reinterpret_cast<char const*>(data), int(size)});
 	}
-	catch (lt::system_error comst)
+	catch (lt::system_error const&)
 	{
 		return 0;
 	}

@@ -802,7 +802,9 @@ TORRENT_TEST(symlinks_restore)
 	lt::stat_file(f, &st, ec, dont_follow_links);
 	TEST_CHECK(st.mode & file_status::symlink);
 	TEST_CHECK(!ec);
-	TEST_EQUAL(aux::get_symlink_path(f), "Versions/A/SDL2");
+	error_code sym_ec;
+	TEST_EQUAL(aux::get_symlink_path(f, sym_ec), "Versions/A/SDL2");
+	TEST_CHECK(!sym_ec);
 }
 #endif
 
