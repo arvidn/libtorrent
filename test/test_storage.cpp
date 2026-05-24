@@ -767,46 +767,43 @@ void test_check_files(check_files_flag_t const flags
 		run_until(ios, done);
 	}
 
-	if (aio_threads == 0 && hashing_threads > 0)
+	int outstanding = 3;
+	int hashes_done = 0;
+	bool release_done = false;
+	sha1_hash const expected_hash = hasher(piece0).final();
+	auto hash_handler = [&](piece_index_t const piece
+		, sha1_hash const& hash, storage_error const& error)
 	{
-		int outstanding = 3;
-		int hashes_done = 0;
-		bool release_done = false;
-		sha1_hash const expected_hash = hasher(piece0).final();
-		auto hash_handler = [&](piece_index_t const piece
-			, sha1_hash const& hash, storage_error const& error)
-		{
-			TEST_EQUAL(piece, 0_piece);
-			TEST_CHECK(!error);
-			TEST_EQUAL(hash, expected_hash);
-			++hashes_done;
-			--outstanding;
-		};
+		TEST_EQUAL(piece, 0_piece);
+		TEST_CHECK(!error);
+		TEST_EQUAL(hash, expected_hash);
+		++hashes_done;
+		--outstanding;
+	};
 
-		io->async_hash(st, 0_piece, {}
-			, disk_interface::sequential_access | disk_interface::volatile_read | disk_interface::v1_hash
-			, hash_handler);
-		io->async_release_files(st, [&]
-		{
-			release_done = true;
-			--outstanding;
-		});
-		io->async_hash(st, 0_piece, {}
-			, disk_interface::sequential_access | disk_interface::volatile_read | disk_interface::v1_hash
-			, hash_handler);
-		io->submit_jobs();
+	io->async_hash(st, 0_piece, {}
+		, disk_interface::sequential_access | disk_interface::volatile_read | disk_interface::v1_hash
+		, hash_handler);
+	io->async_release_files(st, [&]
+	{
+		release_done = true;
+		--outstanding;
+	});
+	io->async_hash(st, 0_piece, {}
+		, disk_interface::sequential_access | disk_interface::volatile_read | disk_interface::v1_hash
+		, hash_handler);
+	io->submit_jobs();
 
-		time_point const end_time = clock_type::now() + seconds(10);
-		while (outstanding > 0 && clock_type::now() < end_time)
-		{
-			ios.run_one_for(milliseconds(100));
-			ios.restart();
-		}
-
-		TEST_EQUAL(outstanding, 0);
-		TEST_EQUAL(hashes_done, 2);
-		TEST_CHECK(release_done);
+	time_point const end_time = clock_type::now() + seconds(10);
+	while (outstanding > 0 && clock_type::now() < end_time)
+	{
+		ios.run_one_for(milliseconds(100));
+		ios.restart();
 	}
+
+	TEST_EQUAL(outstanding, 0);
+	TEST_EQUAL(hashes_done, 2);
+	TEST_CHECK(release_done);
 
 	io->abort(true);
 }
