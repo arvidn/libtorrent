@@ -1523,9 +1523,44 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 
 	for (;;)
 	{
-		// before going to sleep, always flush force-flush blocks from the cache
 		if (&pool == &m_generic_threads)
+		{
+			// always flush completed (force-flush) pieces from the cache; this
+			// is cheap and never requires read-back
 			try_flush_cache(0, true, l);
+
+			// A discretionary flush of partial pieces is requested
+			// (m_flush_target) once the cache reaches the high watermark.
+			// Reads are latency-critical (a peer is waiting on the result),
+			// whereas writes are throughput-oriented and can be deferred. The
+			// generic queue is processed front-to-back, so if the next job to
+			// run is a read we leave m_flush_target set and let it run instead
+			// of flushing; once the next job is not a read (or the queue is
+			// empty) we flush. We only peek the front job (the one we would
+			// otherwise run in place of the flush) rather than testing the
+			// whole queue or the in-use read-job count: a count of in-use
+			// reads also includes reads that have already completed but not
+			// yet been freed on the network thread, which would defer flushing
+			// indefinitely. Peeking only the front (rather than requiring the
+			// queue to be free of reads) also keeps a steady stream of reads
+			// from starving flushing -- and hence write throughput -- entirely:
+			// as soon as a non-read reaches the front we flush. The exception
+			// is when back-pressure has engaged
+			// (should_force_flush()): then writes can't make progress until we
+			// flush down to the low watermark, so we flush regardless of a
+			// queued read. This naturally throttles writers through
+			// back-pressure rather than stalling reads behind flushing.
+			aux::disk_job const* const next_job = pool.front();
+			bool const next_is_read = next_job != nullptr
+				&& (next_job->get_type() == aux::job_action_t::read
+					|| next_job->get_type() == aux::job_action_t::partial_read);
+			if (m_flush_target && (!next_is_read || m_cache.should_force_flush()))
+			{
+				int const target_cache_size = *std::exchange(m_flush_target, std::nullopt);
+				DLOG("try_flush_cache(%d)\n", target_cache_size);
+				try_flush_cache(target_cache_size, false, l);
+			}
+		}
 
 		auto const res = pool.wait_for_job(l);
 
@@ -1577,19 +1612,6 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 			// fall through so the thread actually exits.
 			if (res == aux::wait_result::interrupt
 				|| (res == aux::wait_result::new_job && pool.empty()))
-				continue;
-		}
-
-		// if we need to flush the cache, let one of the generic threads do
-		// that
-		if (m_flush_target && &pool == &m_generic_threads)
-		{
-			int const target_cache_size = *std::exchange(m_flush_target, std::nullopt);
-			DLOG("try_flush_cache(%d)\n", target_cache_size);
-			try_flush_cache(target_cache_size, false, l);
-			// try_flush_cache() will release the mutex, so we may not have a
-			// job in the queue for us anymore
-			if (res != aux::wait_result::exit_thread && pool.empty())
 				continue;
 		}
 

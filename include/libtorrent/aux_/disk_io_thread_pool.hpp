@@ -115,16 +115,24 @@ namespace libtorrent::aux {
 			m_queued_jobs.push_back(j);
 		}
 
-		// TODO: the job mutex must be held when this is called
+		// the job mutex must be held when this is called
 		aux::disk_job* pop_front()
 		{
 			return m_queued_jobs.pop_front();
 		}
 
-		// TODO: the job mutex must be held when this is called
+		// the job mutex must be held when this is called
 		bool empty() const
 		{
 			return m_queued_jobs.empty();
+		}
+
+		// returns the job that would be processed next (the front of the
+		// FIFO queue), or nullptr if the queue is empty. Does not remove it.
+		// TODO: the job mutex must be held when this is called
+		aux::disk_job const* front() const
+		{
+			return m_queued_jobs.empty() ? nullptr : m_queued_jobs.first();
 		}
 
 		// TODO: the job mutex must be held when this is called

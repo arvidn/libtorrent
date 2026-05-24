@@ -318,6 +318,17 @@ std::optional<int> disk_cache::flush_request() const
 	return m_back_pressure.should_flush(m_blocks);
 }
 
+bool disk_cache::should_force_flush() const
+{
+	// deliberately does not take m_mutex: this is called from the disk thread
+	// loop while holding pread_disk_io::m_job_mutex. The established lock order
+	// is m_mutex (outer) -> m_job_mutex (inner) -- e.g. flush_piece_impl holds
+	// m_mutex while invoking the clear_piece callback, which lowers fences and
+	// takes m_job_mutex. Taking m_mutex here would invert that order and can
+	// deadlock. exceeded() reads an atomic, so no lock is needed.
+	return m_back_pressure.exceeded();
+}
+
 // this call can have 3 outcomes:
 // 1. the job is immediately satisfied and should be posted to the
 //    completion queue

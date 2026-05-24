@@ -563,6 +563,12 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 
 	std::optional<int> flush_request() const;
 
+	// returns true when back-pressure has engaged (the cache hit its hard
+	// limit). In this state we must flush even while read jobs are queued,
+	// since writes can't make progress until we flush down to the low
+	// watermark and notify the back-pressure observers.
+	bool should_force_flush() const;
+
 #if TORRENT_USE_INVARIANT_CHECKS
 	void check_invariant() const;
 #endif
