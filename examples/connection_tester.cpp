@@ -1976,6 +1976,11 @@ int main(int argc, char* argv[])
 	int const num_threads = 2;
 	io_context ios[num_threads];
 	int const last_piece_size = atp.ti->piece_size(piece_index_t(atp.ti->num_pieces() - 1));
+
+	// start of the transfer window. This is after the merkle-tree build above,
+	// which can take several seconds for a large v2 torrent and must not count
+	// against the transfer rate.
+	time_point const transfer_start = clock_type::now();
 	for (int i = 0; i < num_connections; ++i)
 	{
 		bool corrupt = test_corruption && (i & 1) == 0;
@@ -2003,6 +2008,7 @@ int main(int argc, char* argv[])
 
 	t1.join();
 	t2.join();
+	time_point const transfer_end = clock_type::now();
 
 	std::int64_t total_sent = 0;
 	std::int64_t total_received = 0;
@@ -2014,8 +2020,6 @@ int main(int argc, char* argv[])
 
 	for (peer_conn* p : conns)
 	{
-		int time = int(total_milliseconds(p->end_time - p->start_time));
-		if (time == 0) time = 1;
 		total_sent += p->blocks_sent;
 		total_received += p->blocks_received;
 		total_hashes_received += p->hashes_received;
@@ -2026,18 +2030,30 @@ int main(int argc, char* argv[])
 		delete p;
 	}
 
+	double const sent_mb = double(total_sent * 0x4000) / 1000000.0;
+	double const recv_mb = double(total_received * 0x4000) / 1000000.0;
+	// duration of the transfer window only (excludes the merkle-tree build at
+	// startup), so the rate reflects actual transfer throughput.
+	double const duration_s = double(total_milliseconds(transfer_end - transfer_start)) / 1000.0;
+	double const rate_div = duration_s > 0.0 ? duration_s : 0.001;
+
 	std::printf("=========================\n"
 				"suggests: %d suggested-requests: %d\n"
 				"total sent: %.1f %% received: %.1f %%\n"
-				"rate sent: %.1f MB/s received: %.1f MB/s\n"
+				"transfer sent: %.1f MB received: %.1f MB\n"
+				"duration: %.2f s\n"
+				"rate sent: %.2f MB/s received: %.2f MB/s\n"
 				"hash-requests: sent=%lld   hashes: sent=%lld received=%lld\n"
 				"hash-rejects:  sent=%lld received=%lld\n",
 		int(num_suggest),
 		int(num_suggested_requests),
 		double(total_sent * 0x4000) * 100.0 / double(atp.ti->total_size()),
 		double(total_received * 0x4000) * 100.0 / double(atp.ti->total_size()),
-		double(total_sent * 0x4000) / 1000000.0,
-		double(total_received * 0x4000) / 1000000.0,
+		sent_mb,
+		recv_mb,
+		duration_s,
+		sent_mb / rate_div,
+		recv_mb / rate_div,
 		static_cast<long long>(total_hash_requests),
 		static_cast<long long>(total_hashes_sent),
 		static_cast<long long>(total_hashes_received),
