@@ -158,7 +158,7 @@ void run_until(io_context& ios, bool const& done)
 	while (!done)
 	{
 		ios.restart();
-		ios.run_one();
+		ios.run_one_for(lt::milliseconds(100));
 		std::cout << time_now_string() << " done: " << done << std::endl;
 	}
 }
@@ -1730,8 +1730,8 @@ void sync(lt::io_context& ioc, int& outstanding)
 {
 	while (outstanding > 0)
 	{
-		ioc.run_one();
 		ioc.restart();
+		ioc.run_one_for(lt::milliseconds(100));
 	}
 }
 
