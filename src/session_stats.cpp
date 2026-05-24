@@ -374,6 +374,31 @@ namespace {
 		METRIC(disk, disk_hash_time),
 		METRIC(disk, disk_job_time),
 
+		// histogram of disk read-job latency (queue wait + execution +
+		// completion-queue wait), measured on the network thread. bucket 0
+		// counts jobs faster than 30 ms. Each bucket represents 30 ms
+		// increments. only populated in disk-latency-stats builds.
+		METRIC(disk, disk_read_latency1),
+		METRIC(disk, disk_read_latency2),
+		METRIC(disk, disk_read_latency3),
+		METRIC(disk, disk_read_latency4),
+		METRIC(disk, disk_read_latency5),
+		METRIC(disk, disk_read_latency6),
+		METRIC(disk, disk_read_latency7),
+		METRIC(disk, disk_read_latency8),
+		METRIC(disk, disk_read_latency9),
+		METRIC(disk, disk_read_latency10),
+		METRIC(disk, disk_read_latency11),
+		METRIC(disk, disk_read_latency12),
+		METRIC(disk, disk_read_latency13),
+		METRIC(disk, disk_read_latency14),
+		METRIC(disk, disk_read_latency15),
+		METRIC(disk, disk_read_latency16),
+		METRIC(disk, disk_read_latency17),
+		METRIC(disk, disk_read_latency18),
+		METRIC(disk, disk_read_latency19),
+		METRIC(disk, disk_read_latency20),
+
 		// for each kind of disk job, a counter of how many jobs of that kind
 		// are currently blocked by a disk fence
 		METRIC(disk, num_fenced_read),

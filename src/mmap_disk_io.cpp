@@ -1175,6 +1175,13 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		TORRENT_ASSERT(!j->storage || j->storage->files().is_valid());
 		TORRENT_ASSERT(j->next == nullptr);
+
+#if TORRENT_DISK_LATENCY_STATS
+		// stamp the job on the network thread, where add_job runs. The matching
+		// measurement happens when the completion handler runs (also on the
+		// network thread), so the latency includes both disk queues.
+		j->start_time = clock_type::now();
+#endif
 		// if this happens, it means we started to shut down
 		// the disk threads too early. We have to post all jobs
 		// before the disk threads are shut down

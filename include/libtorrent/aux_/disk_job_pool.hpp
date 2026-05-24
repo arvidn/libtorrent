@@ -40,6 +40,9 @@ namespace aux {
 				status_t{},
 				storage_error{},
 				JobType{std::forward<Args>(args)...},
+#if TORRENT_DISK_LATENCY_STATS
+				{}, // start_time (stamped later in add_job, on the network thread)
+#endif
 #if TORRENT_USE_ASSERTS
 				true, // in_use
 				false, // job_posted

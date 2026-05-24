@@ -12,6 +12,7 @@ see LICENSE file.
 
 #include "libtorrent/fwd.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/time.hpp" // for time_point
 #include "libtorrent/aux_/tailqueue.hpp"
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/disk_interface.hpp"
@@ -290,6 +291,15 @@ namespace job {
 
 		// the type of job this is
 		job_action_t get_type() const { return job_action_t(action.index()); }
+
+#if TORRENT_DISK_LATENCY_STATS
+		// the time this job was added to the disk job queue, stamped on the
+		// network thread. At completion (also on the network thread) the
+		// elapsed time is bucketed into the disk_read_latency* histogram, so
+		// the measured interval includes both the disk-thread queue and the
+		// completion queue. Only present in disk-latency-stats builds.
+		time_point start_time{};
+#endif
 
 #if TORRENT_USE_ASSERTS
 		bool in_use = false;
