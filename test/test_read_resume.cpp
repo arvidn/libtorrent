@@ -72,13 +72,9 @@ TORRENT_TEST(read_resume)
 	TEST_EQUAL(atp.max_connections, 1345);
 	TEST_EQUAL(atp.max_uploads, 1346);
 
-	torrent_flags_t const flags_mask
-		= torrent_flags::seed_mode
-		| torrent_flags::super_seeding
-		| torrent_flags::auto_managed
-		| torrent_flags::paused
-		| torrent_flags::i2p_torrent
-		| torrent_flags::sequential_download;
+	torrent_flags_t const flags_mask = torrent_flags::seed_mode | torrent_flags::super_seeding
+		| torrent_flags::auto_managed | torrent_flags::paused
+		| torrent_flags::deprecated_i2p_torrent | torrent_flags::sequential_download;
 
 	TEST_CHECK(!(atp.flags & flags_mask));
 	TEST_EQUAL(atp.added_time, 1347);
@@ -386,7 +382,7 @@ TORRENT_TEST(round_trip_flags)
 		torrent_flags::disable_lsd,
 		torrent_flags::disable_pex,
 #if TORRENT_USE_I2P
-		torrent_flags::i2p_torrent,
+		torrent_flags::deprecated_i2p_torrent,
 #endif
 	};
 

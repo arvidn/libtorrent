@@ -322,8 +322,14 @@ namespace libtorrent {
 				if (!e && lt::aux::is_valid_tracker_url(tracker))
 				{
 #if TORRENT_USE_I2P
-					if (!(p.flags & torrent_flags::i2p_torrent) && aux::is_i2p_url(tracker))
-						p.flags |= torrent_flags::i2p_torrent;
+					if (!(p.flags & torrent_flags::deprecated_i2p_torrent)
+						&& aux::is_i2p_url(tracker))
+					{
+						p.flags |= torrent_flags::deprecated_i2p_torrent;
+						// fail closed: restrict to i2p peers. The session relaxes
+						// this when allow_i2p_mixed is enabled.
+						p.flags |= torrent_flags::only_i2p_peers;
+					}
 #endif
 
 					p.trackers.push_back(std::move(tracker));

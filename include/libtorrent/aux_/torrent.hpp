@@ -964,8 +964,10 @@ namespace libtorrent::aux {
 		void on_i2p_resolve(error_code const& ec, char const* dest, peer_source_flags_t const source);
 		void add_i2p_peer(sha256_hash const& dest, peer_source_flags_t source);
 		bool is_i2p() const { return m_i2p; }
+		bool only_i2p_peers() const { return m_only_i2p_peers; }
 #else
 		bool is_i2p() const { return false; }
+		bool only_i2p_peers() const { return false; }
 #endif
 
 		// this is the asio callback that is called when a name
@@ -1686,6 +1688,10 @@ namespace libtorrent::aux {
 		bool m_enable_lsd:1;
 
 		bool m_i2p:1;
+
+		// when set, only i2p peers are allowed for this torrent; regular peers
+		// are never added. See torrent_flags::only_i2p_peers.
+		bool m_only_i2p_peers : 1;
 
 		// set once at construct_storage() time when disable_v1_hashes is
 		// enabled. locked in at that point so that changing the setting later

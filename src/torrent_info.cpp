@@ -1542,7 +1542,7 @@ TORRENT_VERSION_NAMESPACE_4
 			m_urls.push_back(std::move(ent));
 		}
 
-		if (atp.flags & torrent_flags::i2p_torrent)
+		if (atp.flags & torrent_flags::deprecated_i2p_torrent)
 		{
 			m_flags |= i2p;
 		}

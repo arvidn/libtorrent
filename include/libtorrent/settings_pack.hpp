@@ -556,12 +556,24 @@ namespace aux {
 			// combined with disabled_storage)
 			disable_hash_checks,
 
+#if TORRENT_ABI_VERSION < 4
 			// if this is true, i2p torrents are allowed to also get peers from
 			// other sources than the tracker, and connect to regular IPs, not
 			// providing any anonymization. This may be useful if the user is not
 			// interested in the anonymization of i2p, but still wants to be able
 			// to connect to i2p peers.
-			allow_i2p_mixed,
+			// This is a global override of the per-torrent
+			// ``torrent_flags::only_i2p_peers`` flag: enabling it clears that
+			// flag on all torrents (and prevents it from being set), while
+			// disabling it restores i2p-only behavior for i2p torrents.
+			//
+			// This setting is deprecated. For finer-grained control, leave it
+			// at its default (disabled) and manage the per-torrent
+			// ``torrent_flags::only_i2p_peers`` flag instead.
+			allow_i2p_mixed TORRENT_DEPRECATED_ENUM,
+#else
+			deprecated_allow_i2p_mixed,
+#endif
 
 #if TORRENT_ABI_VERSION == 1
 			// ``low_prio_disk`` determines if the disk I/O should use a normal or

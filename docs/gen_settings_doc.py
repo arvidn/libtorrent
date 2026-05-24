@@ -95,6 +95,8 @@ for line in f:
         mode += "skip"
     if "#if TORRENT_ABI_VERSION <= 3" in line:
         mode += "skip"
+    if "#if TORRENT_ABI_VERSION < 4" in line:
+        mode += "skip"
     if "#endif" in line:
         mode = mode[0:-4]
 
@@ -134,6 +136,9 @@ for line in f:
         line = line[:-1]  # strip trailing comma
         if "=" in line:
             line = line.split("=")[0].strip()
+        # strip a trailing deprecation marker, e.g. "name TORRENT_DEPRECATED_ENUM"
+        if line.endswith("TORRENT_DEPRECATED_ENUM"):
+            line = line[: -len("TORRENT_DEPRECATED_ENUM")].strip()
         if line.endswith("_internal"):
             continue
 

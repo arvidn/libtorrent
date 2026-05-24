@@ -282,9 +282,10 @@ namespace torrent_flags {
 	// (dont_download).
 	constexpr torrent_flags_t default_dont_download = 23_bit;
 
-	// this flag makes the torrent be considered an "i2p torrent" for purposes
-	// of the allow_i2p_mixed setting. When mixing regular peers and i2p peers
-	// is disabled, i2p torrents won't add normal peers to its peer list.
+#if TORRENT_ABI_VERSION < 4
+	// this flag makes the torrent be considered an "i2p torrent". i2p torrents
+	// exchange peers over i2p (via the i2p_pex extension) and can connect to
+	// peers reachable through the session's SAM connection.
 	// Note that non i2p torrents may still allow i2p peers (on the off-chance
 	// that a tracker return them and the session is configured with a SAM
 	// connection).
@@ -292,7 +293,20 @@ namespace torrent_flags {
 	// one tracker whose hostname ends with .i2p.
 	// It's also set by parse_magnet_uri() if the tracker list contains such
 	// URL.
-	constexpr torrent_flags_t i2p_torrent = 24_bit;
+	// Whether regular (non-i2p) peers are allowed is controlled separately by
+	// the only_i2p_peers flag.
+	//
+	// This flag is deprecated. It is set automatically for i2p torrents (those
+	// with a .i2p tracker), so setting it explicitly should not be necessary.
+	// To control whether regular (non-i2p) peers are allowed, use the
+	// only_i2p_peers flag instead.
+	TORRENT_DEPRECATED constexpr torrent_flags_t i2p_torrent = 24_bit;
+#endif
+
+	// hidden
+	// internal, non-deprecated alias for i2p_torrent, used by the library and
+	// tests in place of the deprecated public name
+	constexpr torrent_flags_t deprecated_i2p_torrent = 24_bit;
 
 	// For hybrid (v1+v2) torrents, skip SHA-1 (v1) piece hash validation and
 	// only verify SHA-256 (v2) hashes. Saves CPU and disk I/O by avoiding the
@@ -300,6 +314,15 @@ namespace torrent_flags {
 	// validation alone is sufficient. Has no effect on v1-only or v2-only
 	// torrents. Cannot be changed after the torrent is added.
 	constexpr torrent_flags_t disable_v1_hashes = 25_bit;
+
+	// when set, this torrent only connects to and exchanges i2p peers; regular
+	// (non-i2p) peers are never added to the peer list, and the torrent is not
+	// announced to regular trackers, the DHT or local service discovery. This
+	// is the per-torrent equivalent of disabling the global allow_i2p_mixed
+	// setting. It is set automatically for i2p torrents (see i2p_torrent),
+	// unless allow_i2p_mixed is enabled. Clearing the i2p_torrent flag also
+	// clears this flag.
+	constexpr torrent_flags_t only_i2p_peers = 26_bit;
 
 	// all torrent flags combined. Can conveniently be used when creating masks
 	// for flags
