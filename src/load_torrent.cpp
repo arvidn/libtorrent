@@ -238,7 +238,14 @@ namespace aux {
 					string_view const url = aux::ltrim(tier.list_string_value_at(k));
 					if (!aux::is_valid_tracker_url(url)) continue;
 #if TORRENT_USE_I2P
-					if (aux::is_i2p_url(url)) out.flags |= torrent_flags::i2p_torrent;
+					if (aux::is_i2p_url(url))
+					{
+						// fail closed: an .i2p tracker makes this an i2p-only
+						// torrent. The session relaxes this when allow_i2p_mixed
+						// is enabled.
+						out.flags |= torrent_flags::deprecated_i2p_torrent;
+						out.flags |= torrent_flags::only_i2p_peers;
+					}
 #endif
 					out.trackers.emplace_back(url);
 					out.tracker_tiers.push_back(j);
@@ -252,7 +259,14 @@ namespace aux {
 			if (aux::is_valid_tracker_url(url))
 			{
 #if TORRENT_USE_I2P
-				if (aux::is_i2p_url(url)) out.flags |= torrent_flags::i2p_torrent;
+				if (aux::is_i2p_url(url))
+				{
+					// fail closed: an .i2p tracker makes this an i2p-only
+					// torrent. The session relaxes this when allow_i2p_mixed
+					// is enabled.
+					out.flags |= torrent_flags::deprecated_i2p_torrent;
+					out.flags |= torrent_flags::only_i2p_peers;
+				}
 #endif
 				out.trackers.emplace_back(url);
 				out.tracker_tiers.push_back(0);

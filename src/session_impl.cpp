@@ -2378,6 +2378,31 @@ retry:
 #endif
 	}
 
+	void session_impl::update_allow_i2p_mixed()
+	{
+#if TORRENT_USE_I2P && TORRENT_ABI_VERSION < 4
+		// the global allow_i2p_mixed setting is preserved as an override of
+		// the per-torrent only_i2p_peers flag. Keep the invariant
+		// only_i2p_peers == (i2p_torrent && !allow_i2p_mixed) for all torrents
+		// that don't manage only_i2p_peers themselves. This callback fires only
+		// when the setting actually changes.
+		bool const mixed = m_settings.get_bool(settings_pack::allow_i2p_mixed);
+		for (auto const& t : m_torrents)
+		{
+			if (mixed)
+			{
+				// mixing enabled: allow regular peers everywhere
+				t->set_flags(torrent_flags_t{}, torrent_flags::only_i2p_peers);
+			}
+			else if (t->is_i2p())
+			{
+				// mixing disabled again: restore i2p-only for i2p torrents
+				t->set_flags(torrent_flags::only_i2p_peers, torrent_flags::only_i2p_peers);
+			}
+		}
+#endif
+	}
+
 #ifndef TORRENT_DISABLE_DHT
 	int session_impl::external_udp_port(address const& local_address) const
 	{
@@ -5797,9 +5822,8 @@ retry:
 
 		std::shared_ptr<torrent> t = find_torrent(info_hash_t(ih)).lock();
 		if (!t) return;
-		// don't add peers from lsd to private torrents
-		if (t->torrent_file().priv() || (t->is_i2p()
-			&& !m_settings.get_bool(settings_pack::allow_i2p_mixed))) return;
+		// don't add peers from lsd to private or i2p-only torrents
+		if (t->torrent_file().priv() || t->only_i2p_peers()) return;
 
 		protocol_version const v = ih == t->torrent_file().info_hashes().v1
 			? protocol_version::V1 : protocol_version::V2;

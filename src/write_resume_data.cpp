@@ -93,7 +93,8 @@ namespace {
 		ret["super_seeding"] = bool(atp.flags & torrent_flags::super_seeding);
 #endif
 #if TORRENT_USE_I2P
-		ret["i2p"] = bool(atp.flags & torrent_flags::i2p_torrent);
+		ret["i2p"] = bool(atp.flags & torrent_flags::deprecated_i2p_torrent);
+		ret["only_i2p_peers"] = bool(atp.flags & torrent_flags::only_i2p_peers);
 #endif
 		ret["sequential_download"] = bool(atp.flags & torrent_flags::sequential_download);
 		ret["stop_when_ready"] = bool(atp.flags & torrent_flags::stop_when_ready);

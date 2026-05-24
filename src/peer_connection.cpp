@@ -1344,12 +1344,10 @@ namespace {
 		}
 
 #if TORRENT_USE_I2P
-		if (!aux::is_i2p(m_socket)
-			&& t->is_i2p()
-			&& !m_settings.get_bool(settings_pack::allow_i2p_mixed))
+		if (!aux::is_i2p(m_socket) && t->only_i2p_peers())
 		{
-			// the torrent is an i2p torrent, the peer is a regular peer
-			// and we don't allow mixed mode. Disconnect the peer.
+			// the torrent only allows i2p peers and this is a regular peer.
+			// Disconnect the peer.
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, peer_log_alert::attach, "rejected regular connection to i2p torrent");
 #endif

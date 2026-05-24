@@ -45,64 +45,57 @@ using namespace lt;
 
 namespace {
 
-torrent_flags_t const flags_mask
-	= torrent_flags::sequential_download
-	| torrent_flags::paused
-	| torrent_flags::auto_managed
-	| torrent_flags::seed_mode
-	| torrent_flags::super_seeding
-	| torrent_flags::share_mode
-	| torrent_flags::upload_mode
-	| torrent_flags::apply_ip_filter
-	| torrent_flags::i2p_torrent;
+	torrent_flags_t const flags_mask = torrent_flags::sequential_download | torrent_flags::paused
+		| torrent_flags::auto_managed | torrent_flags::seed_mode | torrent_flags::super_seeding
+		| torrent_flags::share_mode | torrent_flags::upload_mode | torrent_flags::apply_ip_filter
+		| torrent_flags::deprecated_i2p_torrent;
 
-std::vector<char> generate_resume_data(torrent_info const* ti
-	, char const* file_priorities = "")
-{
-	entry rd;
-
-	rd["file-format"] = "libtorrent resume file";
-	rd["file-version"] = 1;
-	rd["info-hash"] = ti->info_hashes().v1.to_string();
-	rd["blocks per piece"] = std::max(1, ti->piece_length() / 0x4000);
-	rd["pieces"] = std::string(std::size_t(ti->num_pieces()), '\x01');
-
-	rd["total_uploaded"] = 1337;
-	rd["total_downloaded"] = 1338;
-	rd["active_time"] = 1339;
-	rd["seeding_time"] = 1340;
-	rd["upload_rate_limit"] = 1343;
-	rd["download_rate_limit"] = 1344;
-	rd["max_connections"] = 1345;
-	rd["max_uploads"] = 1346;
-	rd["seed_mode"] = 0;
-	rd["i2p"] = 0;
-	rd["super_seeding"] = 0;
-	rd["added_time"] = 1347;
-	rd["completed_time"] = 1348;
-	rd["last_download"] = time(nullptr) - 1350;
-	rd["last_upload"] = time(nullptr) - 1351;
-	rd["finished_time"] = 1352;
-	rd["last_seen_complete"] = 1353;
-	if (file_priorities && file_priorities[0])
+	std::vector<char> generate_resume_data(torrent_info const* ti, char const* file_priorities = "")
 	{
-		entry::list_type& file_prio = rd["file_priority"].list();
-		for (int i = 0; file_priorities[i]; ++i)
-			file_prio.push_back(entry(file_priorities[i] - '0'));
-	}
+		entry rd;
 
-	rd["piece_priority"] = std::string(std::size_t(ti->num_pieces()), '\x01');
-	rd["auto_managed"] = 0;
-	rd["sequential_download"] = 0;
-	rd["paused"] = 0;
-	entry::list_type& trackers = rd["trackers"].list();
-	trackers.push_back(entry(entry::list_t));
-	trackers.back().list().push_back(entry("http://resume-data-tracker.com/announce"));
-	entry::list_type& url_list = rd["url-list"].list();
-	url_list.push_back(entry("http://resume-data-url-seed.com"));
+		rd["file-format"] = "libtorrent resume file";
+		rd["file-version"] = 1;
+		rd["info-hash"] = ti->info_hashes().v1.to_string();
+		rd["blocks per piece"] = std::max(1, ti->piece_length() / 0x4000);
+		rd["pieces"] = std::string(std::size_t(ti->num_pieces()), '\x01');
 
-	entry::list_type& httpseeds = rd["httpseeds"].list();
-	httpseeds.push_back(entry("http://resume-data-http-seed.com"));
+		rd["total_uploaded"] = 1337;
+		rd["total_downloaded"] = 1338;
+		rd["active_time"] = 1339;
+		rd["seeding_time"] = 1340;
+		rd["upload_rate_limit"] = 1343;
+		rd["download_rate_limit"] = 1344;
+		rd["max_connections"] = 1345;
+		rd["max_uploads"] = 1346;
+		rd["seed_mode"] = 0;
+		rd["i2p"] = 0;
+		rd["super_seeding"] = 0;
+		rd["added_time"] = 1347;
+		rd["completed_time"] = 1348;
+		rd["last_download"] = time(nullptr) - 1350;
+		rd["last_upload"] = time(nullptr) - 1351;
+		rd["finished_time"] = 1352;
+		rd["last_seen_complete"] = 1353;
+		if (file_priorities && file_priorities[0])
+		{
+			entry::list_type& file_prio = rd["file_priority"].list();
+			for (int i = 0; file_priorities[i]; ++i)
+				file_prio.push_back(entry(file_priorities[i] - '0'));
+		}
+
+		rd["piece_priority"] = std::string(std::size_t(ti->num_pieces()), '\x01');
+		rd["auto_managed"] = 0;
+		rd["sequential_download"] = 0;
+		rd["paused"] = 0;
+		entry::list_type& trackers = rd["trackers"].list();
+		trackers.push_back(entry(entry::list_t));
+		trackers.back().list().push_back(entry("http://resume-data-tracker.com/announce"));
+		entry::list_type& url_list = rd["url-list"].list();
+		url_list.push_back(entry("http://resume-data-url-seed.com"));
+
+		entry::list_type& httpseeds = rd["httpseeds"].list();
+		httpseeds.push_back(entry("http://resume-data-http-seed.com"));
 
 #ifdef TORRENT_WINDOWS
 	rd["save_path"] = "c:\\resume_data save_path";
@@ -1137,6 +1130,55 @@ TORRENT_TEST(resume_info_dict)
 	add_torrent_params atp = read_resume_data(resume_data, ec);
 	TEST_CHECK(atp.ti->info_hashes() == p.ti->info_hashes());
 }
+
+#if TORRENT_USE_I2P
+TORRENT_TEST(only_i2p_peers_resume_migration)
+{
+	// the only_i2p_peers flag controls whether regular peers are allowed.
+	// Verify it round-trips, and that resume data predating the flag (no
+	// "only_i2p_peers" key) fails closed by deriving it from the i2p flag.
+	auto make_resume = [](bool const set_i2p, int const i2p, bool const set_only, int const only) {
+		entry rd;
+		rd["file-format"] = "libtorrent resume file";
+		rd["file-version"] = 1;
+		rd["info-hash"] = "abcdefghij0123456789";
+		if (set_i2p) rd["i2p"] = i2p;
+		if (set_only) rd["only_i2p_peers"] = only;
+		return bencode(rd);
+	};
+
+	auto flags_of = [](std::vector<char> const& buf) {
+		error_code ec;
+		add_torrent_params atp = read_resume_data(buf, ec);
+		TEST_CHECK(!ec);
+		return atp.flags;
+	};
+
+	// old resume data, i2p torrent, no only_i2p_peers key -> fail closed
+	{
+		auto const f = flags_of(make_resume(true, 1, false, 0));
+		TEST_CHECK(f & torrent_flags::deprecated_i2p_torrent);
+		TEST_CHECK(f & torrent_flags::only_i2p_peers);
+	}
+	// old resume data, non-i2p torrent -> not restricted
+	{
+		auto const f = flags_of(make_resume(true, 0, false, 0));
+		TEST_CHECK(!(f & torrent_flags::only_i2p_peers));
+	}
+	// new resume data, explicit only_i2p_peers=1 -> restricted
+	{
+		auto const f = flags_of(make_resume(true, 1, true, 1));
+		TEST_CHECK(f & torrent_flags::only_i2p_peers);
+	}
+	// new resume data, explicit only_i2p_peers=0 on an i2p torrent is honored
+	// (the torrent was deliberately put in mixed mode)
+	{
+		auto const f = flags_of(make_resume(true, 1, true, 0));
+		TEST_CHECK(f & torrent_flags::deprecated_i2p_torrent);
+		TEST_CHECK(!(f & torrent_flags::only_i2p_peers));
+	}
+}
+#endif
 
 TORRENT_TEST(zero_file_prio)
 {

@@ -290,6 +290,105 @@ TORRENT_TEST(added_peers)
 	if (ra) TEST_EQUAL(ra->params.peers.size(), 2);
 }
 
+// this test exercises the deprecated allow_i2p_mixed setting, which only
+// exists for TORRENT_ABI_VERSION < 4. The per-torrent only_i2p_peers flag is
+// covered for all ABIs by test_resume and test_magnet.
+#if TORRENT_USE_I2P && TORRENT_ABI_VERSION < 4
+namespace {
+// suppress the deprecation warning for the allow_i2p_mixed setting, which this
+// test deliberately exercises for backward-compatibility coverage
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+	std::unique_ptr<lt::session> make_i2p_mixed_session(bool const mixed)
+	{
+		settings_pack pack = settings();
+		pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
+		pack.set_int(settings_pack::max_retry_port_bind, 10);
+		pack.set_bool(settings_pack::allow_i2p_mixed, mixed);
+		return std::make_unique<lt::session>(pack);
+	}
+
+	void set_allow_i2p_mixed(lt::session& ses, bool const mixed)
+	{
+		settings_pack pack;
+		pack.set_bool(settings_pack::allow_i2p_mixed, mixed);
+		ses.apply_settings(pack);
+	}
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
+
+	torrent_handle add_i2p_torrent(lt::session& ses, bool const i2p)
+	{
+		add_torrent_params atp = generate_torrent();
+		atp.save_path = ".";
+		// mimic what the loaders (load_torrent / parse_magnet_uri) produce for an
+		// i2p torrent: both the i2p_torrent flag and the fail-closed only_i2p_peers
+		// flag are set. The session reconciles only_i2p_peers with allow_i2p_mixed.
+		if (i2p) atp.flags |= torrent_flags::deprecated_i2p_torrent | torrent_flags::only_i2p_peers;
+		return ses.add_torrent(std::move(atp));
+	}
+} // anonymous namespace
+
+// this exercises the per-torrent only_i2p_peers flag (which controls whether
+// regular peers are allowed) and its backward-compatible reconciliation with
+// the i2p_torrent flag and the deprecated allow_i2p_mixed setting. It does not
+// require an i2p router, since it only inspects flag state via the public API.
+TORRENT_TEST(only_i2p_peers_flag)
+{
+	// default (allow_i2p_mixed = false): an i2p torrent fails closed to i2p-only
+	{
+		auto ses = make_i2p_mixed_session(false);
+		torrent_handle h = add_i2p_torrent(*ses, true);
+		TEST_CHECK(h.flags() & torrent_flags::only_i2p_peers);
+	}
+
+	// a non-i2p torrent is never restricted
+	{
+		auto ses = make_i2p_mixed_session(false);
+		torrent_handle h = add_i2p_torrent(*ses, false);
+		TEST_CHECK(!(h.flags() & torrent_flags::only_i2p_peers));
+	}
+
+	// allow_i2p_mixed = true at add time: regular peers are allowed
+	{
+		auto ses = make_i2p_mixed_session(true);
+		torrent_handle h = add_i2p_torrent(*ses, true);
+		TEST_CHECK(!(h.flags() & torrent_flags::only_i2p_peers));
+	}
+
+	// toggling allow_i2p_mixed at runtime reconciles existing i2p torrents in
+	// both directions
+	{
+		auto ses = make_i2p_mixed_session(false);
+		torrent_handle h = add_i2p_torrent(*ses, true);
+		TEST_CHECK(h.flags() & torrent_flags::only_i2p_peers);
+
+		set_allow_i2p_mixed(*ses, true);
+		TEST_CHECK(!(h.flags() & torrent_flags::only_i2p_peers));
+
+		set_allow_i2p_mixed(*ses, false);
+		TEST_CHECK(h.flags() & torrent_flags::only_i2p_peers);
+	}
+
+	// the set_flags compatibility shim: toggling the (deprecated) i2p_torrent
+	// flag also adjusts only_i2p_peers
+	{
+		auto ses = make_i2p_mixed_session(false);
+		torrent_handle h = add_i2p_torrent(*ses, false);
+		TEST_CHECK(!(h.flags() & torrent_flags::only_i2p_peers));
+
+		h.set_flags(torrent_flags::deprecated_i2p_torrent, torrent_flags::deprecated_i2p_torrent);
+		TEST_CHECK(h.flags() & torrent_flags::only_i2p_peers);
+
+		h.unset_flags(torrent_flags::deprecated_i2p_torrent);
+		TEST_CHECK(!(h.flags() & torrent_flags::only_i2p_peers));
+	}
+}
+#endif // TORRENT_USE_I2P && TORRENT_ABI_VERSION < 4
+
 TORRENT_TEST(mismatching_info_hash)
 {
 	std::vector<lt::create_file_entry> fs;

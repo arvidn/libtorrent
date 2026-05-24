@@ -249,7 +249,7 @@ namespace {
 		apply_flag(ret.flags, rd, "super_seeding", torrent_flags::super_seeding);
 #endif
 #if TORRENT_USE_I2P
-		apply_flag(ret.flags, rd, "i2p", torrent_flags::i2p_torrent);
+		apply_flag(ret.flags, rd, "i2p", torrent_flags::deprecated_i2p_torrent);
 #endif
 		apply_flag(ret.flags, rd, "sequential_download", torrent_flags::sequential_download);
 		apply_flag(ret.flags, rd, "stop_when_ready", torrent_flags::stop_when_ready);
@@ -326,7 +326,8 @@ namespace {
 					ret.trackers.emplace_back(tier_list.list_string_value_at(j));
 					ret.tracker_tiers.push_back(tier);
 #if TORRENT_USE_I2P
-					if (aux::is_i2p_url(ret.trackers.back())) ret.flags |= torrent_flags::i2p_torrent;
+					if (aux::is_i2p_url(ret.trackers.back()))
+						ret.flags |= torrent_flags::deprecated_i2p_torrent;
 #endif
 				}
 				++tier;
@@ -453,6 +454,19 @@ namespace {
 					bitmask.string_ptr(), bitmask.string_length() * CHAR_BIT);
 			}
 		}
+
+#if TORRENT_USE_I2P
+		// the only_i2p_peers flag controls whether regular (non-i2p) peers are
+		// allowed. If the resume data carries it explicitly, honor that value.
+		// Older resume data (written before this flag existed) has no such key:
+		// in that case fail closed and derive it from the i2p flag (which may
+		// have been set from the "i2p" key or from an .i2p tracker URL), so a
+		// torrent that used to be restricted to i2p peers stays restricted.
+		if (rd.dict_find("only_i2p_peers"))
+			apply_flag(ret.flags, rd, "only_i2p_peers", torrent_flags::only_i2p_peers);
+		else if (ret.flags & torrent_flags::deprecated_i2p_torrent)
+			ret.flags |= torrent_flags::only_i2p_peers;
+#endif
 
 		// we're loading this torrent from resume data. There's no need to
 		// re-save the resume data immediately.

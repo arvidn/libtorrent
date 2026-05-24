@@ -37,7 +37,6 @@ int settings_key(int const tag)
 		case SET_ANNOUNCE_TO_ALL_TRACKERS: return sp::announce_to_all_trackers;
 		case SET_PREFER_UDP_TRACKERS: return sp::prefer_udp_trackers;
 		case SET_DISABLE_HASH_CHECKS: return sp::disable_hash_checks;
-		case SET_ALLOW_I2P_MIXED: return sp::allow_i2p_mixed;
 		case SET_NO_ATIME_STORAGE: return sp::no_atime_storage;
 		case SET_INCOMING_STARTS_QUEUED_TORRENTS: return sp::incoming_starts_queued_torrents;
 		case SET_REPORT_TRUE_DOWNLOADED: return sp::report_true_downloaded;

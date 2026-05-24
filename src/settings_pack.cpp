@@ -86,6 +86,18 @@ namespace libtorrent {
 #define DEPRECATED2_SET(name, default_value, fun) { "", nullptr, 0 }
 #endif
 
+#if TORRENT_ABI_VERSION < 4
+#define DEPRECATED4_SET(name, default_value, fun) \
+	{ \
+		#name, fun, default_value \
+	}
+#else
+#define DEPRECATED4_SET(name, default_value, fun) \
+	{ \
+		"", nullptr, 0 \
+	}
+#endif
+
 #ifdef TORRENT_WINDOWS
 constexpr int CLOSE_FILE_INTERVAL = 240;
 #else
@@ -129,10 +141,11 @@ namespace {
 	}});
 
 	CONSTEXPR_SETTINGS
-	aux::array<bool_setting_entry_t, settings_pack::num_bool_settings> const bool_settings
-	({{
+	aux::array<bool_setting_entry_t, settings_pack::num_bool_settings> const bool_settings({{
 		SET(allow_multiple_connections_per_ip, false, nullptr),
-		DEPRECATED_SET(ignore_limits_on_local_network, true, &session_impl::update_ignore_rate_limits_on_local_network),
+		DEPRECATED_SET(ignore_limits_on_local_network,
+			true,
+			&session_impl::update_ignore_rate_limits_on_local_network),
 		SET(send_redundant_have, true, nullptr),
 		DEPRECATED_SET(lazy_bitfields, false, nullptr),
 		SET(use_dht_as_fallback, false, nullptr),
@@ -154,7 +167,7 @@ namespace {
 		DEPRECATED_SET(strict_super_seeding, false, nullptr),
 		DEPRECATED_SET(lock_disk_cache, false, nullptr),
 		SET(disable_hash_checks, false, nullptr),
-		SET(allow_i2p_mixed, false, nullptr),
+		DEPRECATED4_SET(allow_i2p_mixed, false, &session_impl::update_allow_i2p_mixed),
 		DEPRECATED_SET(low_prio_disk, true, nullptr),
 		DEPRECATED2_SET(volatile_read_cache, false, nullptr),
 		DEPRECATED_SET(guided_read_cache, false, nullptr),

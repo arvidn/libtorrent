@@ -32,7 +32,6 @@ enum settings_tags_t {
 	SET_ANNOUNCE_TO_ALL_TRACKERS, // int (0 or 1)
 	SET_PREFER_UDP_TRACKERS, // int (0 or 1)
 	SET_DISABLE_HASH_CHECKS, // int (0 or 1)
-	SET_ALLOW_I2P_MIXED, // int (0 or 1)
 	SET_NO_ATIME_STORAGE, // int (0 or 1)
 	SET_INCOMING_STARTS_QUEUED_TORRENTS, // int (0 or 1)
 	SET_REPORT_TRUE_DOWNLOADED, // int (0 or 1)

@@ -363,10 +363,13 @@ TORRENT_TEST(parse_i2p_tracker)
 {
 	add_torrent_params p = parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
 		"&tr=https://test.i2p/announce");
-	TEST_CHECK(p.flags & torrent_flags::i2p_torrent);
+	TEST_CHECK(p.flags & torrent_flags::deprecated_i2p_torrent);
+	// an .i2p tracker also fails closed to i2p-only peers
+	TEST_CHECK(p.flags & torrent_flags::only_i2p_peers);
 	p = parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"
 		"&tr=https://test.com/announce");
-	TEST_CHECK(!(p.flags & torrent_flags::i2p_torrent));
+	TEST_CHECK(!(p.flags & torrent_flags::deprecated_i2p_torrent));
+	TEST_CHECK(!(p.flags & torrent_flags::only_i2p_peers));
 }
 #endif
 

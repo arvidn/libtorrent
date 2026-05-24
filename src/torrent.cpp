@@ -208,10 +208,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		, m_state(torrent_status::checking_resume_data)
 	{}
 
-	torrent::torrent(
-		aux::session_interface& ses
-		, bool const session_paused
-		, add_torrent_params&& p)
+	torrent::torrent(aux::session_interface& ses, bool const session_paused, add_torrent_params&& p)
 		: torrent_hot_members(ses, p, session_paused)
 		, m_total_uploaded(p.total_uploaded)
 		, m_total_downloaded(p.total_downloaded)
@@ -248,7 +245,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		, m_stop_when_ready(p.flags & torrent_flags::stop_when_ready)
 		, m_enable_dht(!bool(p.flags & torrent_flags::disable_dht))
 		, m_enable_lsd(!bool(p.flags & torrent_flags::disable_lsd))
-		, m_i2p(bool(p.flags & torrent_flags::i2p_torrent))
+		, m_i2p(bool(p.flags & torrent_flags::deprecated_i2p_torrent))
+		, m_only_i2p_peers(bool(p.flags & torrent_flags::only_i2p_peers))
 		, m_disable_v1_hashes(false)
 		, m_max_uploads((1 << 24) - 1)
 		, m_num_uploads(0)
@@ -258,7 +256,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 #if TORRENT_ABI_VERSION < 4
 		, m_v2_piece_layers_validated(false)
 #endif
-		, m_connect_boost_counter(static_cast<std::uint8_t>(settings().get_int(settings_pack::torrent_connect_boost)))
+		, m_connect_boost_counter(
+			  static_cast<std::uint8_t>(settings().get_int(settings_pack::torrent_connect_boost)))
 		, m_incomplete(0xffffff)
 		, m_announce_to_dht(!(p.flags & torrent_flags::paused))
 		, m_ssl_torrent(false)
@@ -313,7 +312,23 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 #if TORRENT_USE_I2P
 		if (m_torrent_file->is_i2p())
+		{
+			bool const was_i2p = m_i2p;
 			m_i2p = true;
+			// if the torrent's i2p nature was only discovered from the metadata
+			// (i.e. it was not flagged via add_torrent_params or resume data,
+			// both of which also set only_i2p_peers), fail closed and restrict
+			// to i2p peers only. When the flag was set by a loader, magnet link
+			// or resume data, only_i2p_peers carries the authoritative decision
+			// (including a deliberate "mixed" choice) and is honored as-is.
+			if (!was_i2p) m_only_i2p_peers = true;
+		}
+#if TORRENT_ABI_VERSION < 4
+		// honor the deprecated global mixed-mode override: when the user has
+		// explicitly enabled mixing i2p and regular peers, never restrict to
+		// i2p-only.
+		if (settings().get_bool(settings_pack::allow_i2p_mixed)) m_only_i2p_peers = false;
+#endif
 #endif
 
 		if (m_torrent_file->is_valid())
@@ -739,10 +754,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		if (!m_ses.announce_dht()) return false;
 
 #if TORRENT_USE_I2P
-		// i2p torrents don't announced on the DHT
-		// unless we allow mixed swarms
-		if (is_i2p() && !settings().get_bool(settings_pack::allow_i2p_mixed))
-			return false;
+		// i2p-only torrents are not announced on the DHT
+		if (only_i2p_peers()) return false;
 #endif
 
 		if (!m_ses.dht()) return false;
@@ -947,8 +960,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			ret |= torrent_flags::disable_lsd;
 		if (!m_enable_pex)
 			ret |= torrent_flags::disable_pex;
-		if (m_i2p)
-			ret |= torrent_flags::i2p_torrent;
+		if (m_i2p) ret |= torrent_flags::deprecated_i2p_torrent;
+		if (m_only_i2p_peers) ret |= torrent_flags::only_i2p_peers;
 		if (m_disable_v1_hashes)
 			ret |= torrent_flags::disable_v1_hashes;
 		return ret;
@@ -957,9 +970,28 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 	void torrent::set_flags(torrent_flags_t const flags
 		, torrent_flags_t const mask)
 	{
-		if (mask & torrent_flags::i2p_torrent)
+		if (mask & torrent_flags::deprecated_i2p_torrent)
 		{
-			m_i2p = bool(flags & torrent_flags::i2p_torrent);
+			bool const new_i2p = bool(flags & torrent_flags::deprecated_i2p_torrent);
+			m_i2p = new_i2p;
+			// backward compatibility: toggling the i2p_torrent flag also
+			// adjusts only_i2p_peers. Setting i2p_torrent fails closed
+			// (i2p-only); clearing it allows regular peers again.
+#if TORRENT_ABI_VERSION < 4
+			// while the deprecated allow_i2p_mixed setting exists, it overrides
+			// the fail-closed default, preserving the legacy behavior where
+			// i2p_torrent combined with !allow_i2p_mixed controlled whether
+			// regular peers were allowed.
+			m_only_i2p_peers = new_i2p && !settings().get_bool(settings_pack::allow_i2p_mixed);
+#else
+			m_only_i2p_peers = new_i2p;
+#endif
+		}
+		// applied after the i2p_torrent shim so an explicit only_i2p_peers in
+		// the same call takes precedence.
+		if (mask & torrent_flags::only_i2p_peers)
+		{
+			m_only_i2p_peers = bool(flags & torrent_flags::only_i2p_peers);
 		}
 		if ((mask & torrent_flags::seed_mode)
 			&& !(flags & torrent_flags::seed_mode))
@@ -2867,10 +2899,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		if (m_torrent_file->is_valid() && m_torrent_file->priv()) return;
 
 #if TORRENT_USE_I2P
-		// i2p torrents are also never announced on LSD
-		// unless we allow mixed swarms
-		if (is_i2p() && !settings().get_bool(settings_pack::allow_i2p_mixed))
-			return;
+		// i2p-only torrents are also never announced on LSD
+		if (only_i2p_peers()) return;
 #endif
 
 		if (is_paused()) return;
@@ -2911,8 +2941,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			if (should_log())
 			{
 #if TORRENT_USE_I2P
-				if (is_i2p() && !settings().get_bool(settings_pack::allow_i2p_mixed))
-					debug_log("DHT: i2p torrent (and mixed peers not allowed)");
+				if (only_i2p_peers())
+					debug_log("DHT: i2p-only torrent (regular peers not allowed)");
 #endif
 				if (!m_ses.announce_dht())
 					debug_log("DHT: no listen sockets");
@@ -3007,7 +3037,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		}
 
 #if TORRENT_USE_I2P
-		if (is_i2p() && !settings().get_bool(settings_pack::allow_i2p_mixed)) return;
+		if (only_i2p_peers()) return;
 #endif
 
 		if (torrent_file().priv()) return;
@@ -3308,10 +3338,10 @@ namespace {
 			{
 				req.kind |= tracker_request::i2p;
 			}
-			else if (is_i2p() && !settings().get_bool(settings_pack::allow_i2p_mixed))
+			else if (only_i2p_peers())
 			{
-				// if we don't allow mixing normal peers into this i2p
-				// torrent, skip this announce
+				// if this is an i2p-only torrent, skip announcing to this
+				// regular tracker
 				continue;
 			}
 #endif
@@ -3524,7 +3554,7 @@ namespace {
 #if TORRENT_USE_I2P
 		if (ae.i2p)
 			req.kind |= tracker_request::i2p;
-		else if (is_i2p() && !settings().get_bool(settings_pack::allow_i2p_mixed))
+		else if (only_i2p_peers())
 			return;
 #endif
 		refresh_endpoint_list(m_ses, is_ssl_torrent(), bool(m_complete_sent), ae);
@@ -11535,9 +11565,8 @@ namespace {
 		}
 
 #if TORRENT_USE_I2P
-		// if this is an i2p torrent, and we don't allow mixed mode
-		// no regular peers should ever be added!
-		if (!settings().get_bool(settings_pack::allow_i2p_mixed) && is_i2p())
+		// if this is an i2p-only torrent, no regular peers should ever be added!
+		if (only_i2p_peers())
 		{
 			if (alerts().should_post<peer_blocked_alert>())
 				alerts().emplace_alert<peer_blocked_alert>(get_handle()
