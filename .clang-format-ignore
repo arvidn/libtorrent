@@ -1,0 +1,13 @@
+# Auto-generated source files; do not reformat them.
+# These are produced by code-generation scripts and must match the generator
+# output exactly, so clang-format must leave them untouched. This file is
+# honored by a direct `clang-format` / `clang-format -i` run (e.g. from an
+# editor). NOTE: git-clang-format does NOT understand .clang-format-ignore --
+# it reads the empty output for an ignored file as "make the file empty" -- so
+# these same files are also excluded from the git-clang-format pre-commit hook
+# in .pre-commit-config.yaml. Keep the two lists in sync.
+bindings/c/include/libtorrent_settings.h
+bindings/c/include/libtorrent_alerts.h
+bindings/c/src/settings.cpp
+include/libtorrent/libtorrent.hpp
+include/libtorrent/fwd.hpp

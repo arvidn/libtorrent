@@ -218,6 +218,17 @@ repos:
   - id: git-clang-format
     name: git-clang-format
     language: system
-    entry: git-clang-format-18 --binary clang-format-18 --force
-    pass_filenames: false
+    entry: git-clang-format-18 --binary clang-format-18 --force --
+    pass_filenames: true
     files: \.(cpp|hpp)$
+    # Auto-generated sources must match their generator output, so
+    # clang-format must never touch them. The .h generated headers
+    # (bindings/c/include/libtorrent_*.h) are already skipped because they
+    # do not match the .cpp/.hpp filter above; the generated .cpp/.hpp
+    # sources are excluded explicitly here.
+    exclude: |
+      (?x)^(
+        bindings/c/src/settings\.cpp|
+        include/libtorrent/libtorrent\.hpp|
+        include/libtorrent/fwd\.hpp
+      )$
