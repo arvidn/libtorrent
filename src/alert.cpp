@@ -1441,12 +1441,12 @@ namespace {
 		{
 			std::array<int, stats_alert::num_channels> arr{};
 
-			arr[stats_alert::upload_payload] = s[aux::stat::upload_payload].counter();
-			arr[stats_alert::upload_protocol] = s[aux::stat::upload_protocol].counter();
-			arr[stats_alert::download_payload] = s[aux::stat::download_payload].counter();
-			arr[stats_alert::download_protocol] = s[aux::stat::download_protocol].counter();
-			arr[stats_alert::upload_ip_protocol] = s[aux::stat::upload_ip_protocol].counter();
-			arr[stats_alert::download_ip_protocol] = s[aux::stat::download_ip_protocol].counter();
+			arr[stats_alert::upload_payload] = s[aux::stat::upload_payload].counter() & 0x7fffffff;
+			arr[stats_alert::upload_protocol] = s[aux::stat::upload_protocol].counter() & 0x7fffffff;
+			arr[stats_alert::download_payload] = s[aux::stat::download_payload].counter() & 0x7fffffff;
+			arr[stats_alert::download_protocol] = s[aux::stat::download_protocol].counter() & 0x7fffffff;
+			arr[stats_alert::upload_ip_protocol] = s[aux::stat::upload_ip_protocol].counter() & 0x7fffffff;
+			arr[stats_alert::download_ip_protocol] = s[aux::stat::download_ip_protocol].counter() & 0x7fffffff;
 
 #if TORRENT_ABI_VERSION == 1
 			arr[stats_alert::upload_dht_protocol] = 0;

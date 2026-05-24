@@ -18,7 +18,11 @@ see LICENSE file.
 #error warning "this header is deprecated, use io_context.hpp instead"
 namespace libtorrent {
 
+#if defined TORRENT_BUILD_SIMULATOR
+	using io_service = sim::asio::io_service;
+#else
 	using io_service = boost::asio::io_context;
+#endif
 }
 
 #endif

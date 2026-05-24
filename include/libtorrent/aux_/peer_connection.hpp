@@ -526,7 +526,7 @@ namespace libtorrent::aux {
 		// for which one is more eligible for an unchoke.
 		// returns true if this is more eligible
 
-		int download_payload_rate() const { return m_statistics.download_payload_rate(); }
+		std::int64_t download_payload_rate() const { return m_statistics.download_payload_rate(); }
 
 		// resets the byte counters that are used to measure
 		// the number of bytes transferred within unchoke cycles
@@ -932,10 +932,10 @@ namespace libtorrent::aux {
 		std::int64_t m_uploaded_at_last_unchoke = 0;
 
 		// the number of payload bytes downloaded last second tick
-		std::int32_t m_downloaded_last_second = 0;
+		std::int64_t m_downloaded_last_second = 0;
 
 		// the number of payload bytes uploaded last second tick
-		std::int32_t m_uploaded_last_second = 0;
+		std::int64_t m_uploaded_last_second = 0;
 
 		// the number of bytes that the other
 		// end has to send us in order to respond
@@ -1049,8 +1049,8 @@ namespace libtorrent::aux {
 		int m_outstanding_writing_bytes = 0;
 
 		// max transfer rates seen on this peer
-		int m_download_rate_peak = 0;
-		int m_upload_rate_peak = 0;
+		std::int64_t m_download_rate_peak = 0;
+		std::int64_t m_upload_rate_peak = 0;
 
 		// stop sending data after this many bytes, INT_MAX = inf
 		int m_send_barrier = INT_MAX;
