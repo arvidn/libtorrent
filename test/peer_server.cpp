@@ -123,7 +123,7 @@ struct peer_server
 			m_acceptor.async_accept(socket, from, std::bind(&new_connection, _1, &ec, &done));
 			while (!done)
 			{
-				m_ios.poll_one();
+				m_ios.run_for(lt::milliseconds(100));
 				m_ios.restart();
 			}
 
