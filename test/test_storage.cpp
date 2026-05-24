@@ -869,28 +869,31 @@ void run_test()
 }
 
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
+void test_check_files_mmap(check_files_flag_t const flags)
+{
+	test_check_files(flags, lt::mmap_disk_io_constructor);
+	test_check_files(flags, lt::mmap_disk_io_constructor, 0, 1);
+	test_check_files(flags, lt::mmap_disk_io_constructor, 0, 2);
+}
+
 TORRENT_TEST(check_files_sparse_mmap)
 {
-	test_check_files(sparse | zero_prio, lt::mmap_disk_io_constructor);
-	test_check_files(sparse | zero_prio, lt::mmap_disk_io_constructor, 0, 1);
+	test_check_files_mmap(sparse | zero_prio);
 }
 
 TORRENT_TEST(check_files_oversized_mmap_zero_prio)
 {
-	test_check_files(sparse | zero_prio | test_oversized, lt::mmap_disk_io_constructor);
-	test_check_files(sparse | zero_prio | test_oversized, lt::mmap_disk_io_constructor, 0, 1);
+	test_check_files_mmap(sparse | zero_prio | test_oversized);
 }
 
 TORRENT_TEST(check_files_oversized_mmap)
 {
-	test_check_files(sparse | test_oversized, lt::mmap_disk_io_constructor);
-	test_check_files(sparse | test_oversized, lt::mmap_disk_io_constructor, 0, 1);
+	test_check_files_mmap(sparse | test_oversized);
 }
 
 TORRENT_TEST(check_files_allocate_mmap)
 {
-	test_check_files(zero_prio, lt::mmap_disk_io_constructor);
-	test_check_files(zero_prio, lt::mmap_disk_io_constructor, 0, 1);
+	test_check_files_mmap(zero_prio);
 }
 
 TORRENT_TEST(test_pre_allocate_mmap)
