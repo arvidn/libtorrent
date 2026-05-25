@@ -31,6 +31,11 @@ VARIANT_FLAGS = {"v1": "1", "v2": "2", "hybrid": "h"}
 # disk I/O backends to exercise. Passed to client_test via "-i".
 IO_BACKENDS = ["mmap", "pread", "posix"]
 
+# transfer modes to exercise. "download" measures the client downloading from
+# peers, "upload" measures it seeding to peers, and "dual" runs both directions
+# at once. Each selected mode is run through the full variant/backend matrix.
+MODES = ["download", "upload", "dual"]
+
 # fixed properties of the generated test torrents. connection_tester's
 # gen-torrent uses a 1 MiB piece size (the "-s" flag is the piece count, not
 # the piece size), and we always generate this many files per torrent.
@@ -691,6 +696,16 @@ def main() -> None:
         " through the full variant/test matrix.",
     )
     p.add_argument(
+        "--modes",
+        nargs="+",
+        choices=MODES,
+        default=MODES,
+        help="Transfer modes to test. 'download' measures the client"
+        " downloading from peers, 'upload' measures it seeding to peers, and"
+        " 'dual' runs both directions at once. Each selected mode is run"
+        " through the full variant/backend matrix.",
+    )
+    p.add_argument(
         "--num-pieces",
         type=int,
         default=10000,
@@ -772,70 +787,100 @@ def main() -> None:
     for variant in args.variants:
         torrent = torrent_path(variant, args.num_pieces)
         data_dir = payload_dir(args.save_path, variant, args.num_pieces)
-        for io_backend in args.io_backends:
-            reset_download(args.save_path, variant, args.num_pieces)
-            run_test(
-                f"download-{variant}-{io_backend}",
-                "upload",
-                ["-1", "-i", io_backend],
-                args.download_peers,
-                args.save_path,
-                torrent,
-                data_dir,
-                results=results,
-                results_path=args.results_path,
-                config_header=config_header,
-                max_queued_disk_bytes=max_queued_disk_bytes,
-                aio_threads=args.aio_threads,
-                hasher_threads=args.hasher_threads,
-                transfer_mode="download",
-                variant=variant,
-                io_backend=io_backend,
-            )
-            reset_download(args.save_path, variant, args.num_pieces)
-            run_test(
-                f"dual-{variant}-{io_backend}",
-                "dual",
-                ["-1", "-i", io_backend],
-                args.download_peers,
-                args.save_path,
-                torrent,
-                data_dir,
-                results=results,
-                results_path=args.results_path,
-                config_header=config_header,
-                max_queued_disk_bytes=max_queued_disk_bytes,
-                aio_threads=args.aio_threads,
-                hasher_threads=args.hasher_threads,
-                transfer_mode="dual",
-                variant=variant,
-                io_backend=io_backend,
-            )
-            # the upload test needs a complete, canonical payload to
-            # serve. gen-data -R writes the payload and a resume file
-            # claiming every piece is present, so client_test comes up
-            # in the seeding state without a startup check pass (which
-            # would warm the page cache we want cold).
-            reset_download(args.save_path, variant, args.num_pieces)
-            gen_data(torrent, args.save_path, with_resume=True)
-            run_test(
-                f"upload-{variant}-{io_backend}",
-                "download",
-                ["-e", "240", "-i", io_backend],
-                args.upload_peers,
-                args.save_path,
-                torrent,
-                data_dir,
-                results=results,
-                results_path=args.results_path,
-                config_header=config_header,
-                max_queued_disk_bytes=max_queued_disk_bytes,
-                aio_threads=args.aio_threads,
-                hasher_threads=args.hasher_threads,
-                transfer_mode="upload",
-                variant=variant,
-                io_backend=io_backend,
-            )
+        # whether the canonical upload payload + resume data (from gen_data)
+        # for this variant is currently intact on disk. The payload depends
+        # only on the variant, not the io_backend, so once generated it is
+        # reused across backends for the upload test. We iterate modes outer
+        # and backends inner (below), so all of this variant's upload runs are
+        # consecutive: gen_data runs exactly once per variant, never once per
+        # backend. We only ever reuse data gen_data produced -- never a
+        # download/dual test's output, which could be an incomplete download
+        # whose resume data would trigger a cache-warming recheck.
+        upload_payload_ready = False
+        # modes outer, backends inner. Run the selected modes in MODES order so
+        # the matrix is filled in a stable, predictable sequence regardless of
+        # the order they were passed on the command line.
+        for mode in MODES:
+            if mode not in args.modes:
+                continue
+            for io_backend in args.io_backends:
+                if mode == "download":
+                    reset_download(args.save_path, variant, args.num_pieces)
+                    run_test(
+                        f"download-{variant}-{io_backend}",
+                        "upload",
+                        ["-1", "-i", io_backend],
+                        args.download_peers,
+                        args.save_path,
+                        torrent,
+                        data_dir,
+                        results=results,
+                        results_path=args.results_path,
+                        config_header=config_header,
+                        max_queued_disk_bytes=max_queued_disk_bytes,
+                        aio_threads=args.aio_threads,
+                        hasher_threads=args.hasher_threads,
+                        transfer_mode="download",
+                        variant=variant,
+                        io_backend=io_backend,
+                    )
+                elif mode == "dual":
+                    reset_download(args.save_path, variant, args.num_pieces)
+                    run_test(
+                        f"dual-{variant}-{io_backend}",
+                        "dual",
+                        ["-1", "-i", io_backend],
+                        args.download_peers,
+                        args.save_path,
+                        torrent,
+                        data_dir,
+                        results=results,
+                        results_path=args.results_path,
+                        config_header=config_header,
+                        max_queued_disk_bytes=max_queued_disk_bytes,
+                        aio_threads=args.aio_threads,
+                        hasher_threads=args.hasher_threads,
+                        transfer_mode="dual",
+                        variant=variant,
+                        io_backend=io_backend,
+                    )
+                else:  # upload
+                    # the upload test needs a complete, canonical payload to
+                    # serve. gen-data -R writes the payload and a resume file
+                    # claiming every piece is present, so client_test comes up
+                    # in the seeding state without a startup check pass (which
+                    # would warm the page cache we want cold).
+                    if upload_payload_ready:
+                        # the first upload run for this variant already
+                        # generated the canonical payload + resume; reuse it
+                        # and just start from a fresh session. run_test still
+                        # drops the page cache, so this run is cold despite
+                        # reusing the on-disk data.
+                        rm_file_or_dir(Path(".ses_state"))
+                    else:
+                        reset_download(
+                            args.save_path, variant, args.num_pieces
+                        )
+                        gen_data(torrent, args.save_path, with_resume=True)
+                        upload_payload_ready = True
+                    run_test(
+                        f"upload-{variant}-{io_backend}",
+                        "download",
+                        ["-e", "240", "-i", io_backend],
+                        args.upload_peers,
+                        args.save_path,
+                        torrent,
+                        data_dir,
+                        results=results,
+                        results_path=args.results_path,
+                        config_header=config_header,
+                        max_queued_disk_bytes=max_queued_disk_bytes,
+                        aio_threads=args.aio_threads,
+                        hasher_threads=args.hasher_threads,
+                        transfer_mode="upload",
+                        variant=variant,
+                        io_backend=io_backend,
+                    )
 
 
 def run_test(
