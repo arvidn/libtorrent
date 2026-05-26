@@ -1214,7 +1214,10 @@ struct peer_conn
 		"    -t <file>          the file to save the .torrent file to\n"
 		"    -V <version>       torrent format: 1 = v1-only, 2 = v2-only,\n"
 		"                       h = hybrid (default)\n"
-		"    -U <num>           Add <num> random test tracker URLs\n\n"
+		"    -U <num>           Add <num> random test tracker URLs\n"
+		"    for v2/hybrid torrents a <file>.merkle sidecar holding the precomputed\n"
+		"    per-file merkle trees is written next to the .torrent, so up/dual/\n"
+		"    hash-stress runs load it instead of rehashing at startup\n\n"
 		"  gen-data             generate the data file(s) for the test torrent\n"
 		"    options for this command:\n"
 		"    -t <file>          the torrent file that was previously generated\n"
@@ -1658,6 +1661,115 @@ void build_global_file_trees(torrent_info const& ti)
 	std::printf("built %d v2 file merkle trees\n", int(file_trees.size()));
 }
 
+// the precomputed per-file merkle trees written alongside a v2/hybrid .torrent
+// (the ".merkle" sidecar file). The point is to front-load the expensive
+// per-file tree hashing to gen-torrent time so the repeated upload/dual/
+// hash-stress runs can load the trees instead of rehashing the whole payload at
+// startup.
+//
+// The sidecar is tied to a specific .torrent, so it carries no header or
+// per-file framing: it is just the merkle-tree node hashes for each file (in
+// file order, skipping pad and empty files), concatenated. Both the number of
+// files and the node count per file are re-derived from the torrent when
+// reading, exactly as build_global_file_trees() does.
+
+// serialize the global file_trees to `path` in file order. Called from
+// gen-torrent for v2/hybrid torrents (see load_merkle_trees() for the reader).
+// Best-effort: failures only print a warning, since the test can rebuild.
+// The non-pad, non-empty files are visited in file order; the reader must walk
+// the same order so the headerless sidecar lines up.
+void save_merkle_trees(std::string const& path, file_storage const& fs)
+{
+	std::ofstream out(path, std::ios::binary);
+	if (!out)
+	{
+		std::fprintf(stderr, "failed to open '%s' for writing merkle trees\n", path.c_str());
+		return;
+	}
+
+	int num_files = 0;
+	for (file_index_t fi : fs.file_range())
+	{
+		if (fs.pad_file_at(fi)) continue;
+		if (fs.file_size(fi) == 0) continue;
+		auto it = file_trees.find(fs.root(fi));
+		// build_global_file_trees() inserts a tree for every non-pad, non-empty
+		// file, keyed by exactly this root. A miss means the writer and the
+		// (headerless, purely positional) reader would disagree on this file's
+		// bytes, producing a silently misaligned sidecar. That should be
+		// impossible, so abort rather than write a corrupt file.
+		if (it == file_trees.end())
+		{
+			std::fprintf(stderr, "missing merkle tree for file %d\n", static_cast<int>(fi));
+			std::abort();
+		}
+		file_merkle_tree const& ft = it->second;
+		// sha256_hash is exactly 32 contiguous bytes, so the node array can be
+		// written in one shot.
+		out.write(
+			reinterpret_cast<char const*>(ft.tree.data()), std::streamsize(ft.tree.size()) * 32);
+		++num_files;
+	}
+	if (!out)
+	{
+		std::fprintf(stderr, "error writing merkle trees to '%s'\n", path.c_str());
+		return;
+	}
+	std::printf("wrote %d merkle trees to %s\n", num_files, path.c_str());
+}
+
+// load merkle trees previously written by save_merkle_trees() into the global
+// file_trees / file_root_list. The dimensions of each tree are derived from
+// `fs`, so the sidecar is just raw node data. The loaded root of each file must
+// equal the torrent's pieces_root, which rejects a stale sidecar from a
+// different torrent. On any mismatch or read error the globals are left
+// untouched and false is returned, so the caller falls back to rebuilding.
+bool load_merkle_trees(std::string const& path, file_storage const& fs)
+{
+	std::ifstream in(path, std::ios::binary);
+	if (!in) return false;
+
+	int const blocks_per_piece = fs.piece_length() / default_block_size;
+
+	time_point const load_start = clock_type::now();
+	std::map<sha256_hash, file_merkle_tree> loaded;
+	std::vector<sha256_hash> roots;
+	for (file_index_t fi : fs.file_range())
+	{
+		if (fs.pad_file_at(fi)) continue;
+		std::int64_t const file_size = fs.file_size(fi);
+		if (file_size == 0) continue;
+
+		file_merkle_tree ft;
+		ft.num_blocks = int((file_size + default_block_size - 1) / default_block_size);
+		ft.num_leafs = merkle_num_leafs(ft.num_blocks);
+		ft.blocks_per_piece = blocks_per_piece;
+		int const num_nodes = merkle_num_nodes(ft.num_leafs);
+		ft.tree.resize(num_nodes);
+		if (!in.read(reinterpret_cast<char*>(ft.tree.data()), std::streamsize(num_nodes) * 32))
+			return false;
+
+		sha256_hash const root = fs.root(fi);
+		// the stored tree must be for this torrent: its root has to match the
+		// file's pieces_root.
+		if (ft.tree[0] != root) return false;
+		roots.push_back(root);
+		loaded.emplace(root, std::move(ft));
+	}
+
+	// the sidecar must contain exactly the trees for this torrent, no trailing
+	// bytes.
+	if (in.peek() != std::char_traits<char>::eof()) return false;
+
+	double const load_s = std::chrono::duration<double>(clock_type::now() - load_start).count();
+
+	file_trees = std::move(loaded);
+	file_root_list = std::move(roots);
+	std::printf(
+		"loaded %d merkle trees from %s in %.3f s\n", int(file_trees.size()), path.c_str(), load_s);
+	return true;
+}
+
 // record the absolute byte ranges of pad files into pad_ranges, so the
 // seed-side send path can zero them (see pad_ranges). No-op when there are
 // no pad files (v1-only torrents, or any torrent without padding).
@@ -1828,6 +1940,30 @@ int main(int argc, char* argv[])
 		if (output != stdout)
 			std::fclose(output);
 
+		// for v2/hybrid torrents, precompute the per-file merkle trees and save
+		// them next to the .torrent as a ".merkle" sidecar, so the seed-side
+		// HASH_REQUEST responder and hash-stress flood can load them at test
+		// startup instead of rehashing the entire payload. Skipped when writing
+		// the torrent to stdout (no on-disk path to anchor the sidecar to).
+		if ("-"_sv != torrent_file)
+		{
+			try
+			{
+				add_torrent_params atp = load_torrent_file(torrent_file);
+				if (atp.ti->v2())
+				{
+					build_global_file_trees(*atp.ti);
+					save_merkle_trees(std::string(torrent_file) + ".merkle", atp.ti->layout());
+				}
+			}
+			catch (lt::system_error const& err)
+			{
+				std::fprintf(stderr,
+					"WARNING: could not build merkle trees: %s\n",
+					err.code().message().c_str());
+			}
+		}
+
 		return 0;
 	}
 	else if (command == "gen-data"_sv)
@@ -1958,11 +2094,15 @@ int main(int argc, char* argv[])
 
 	// build the per-file merkle trees we need to respond to HASH_REQUEST (as
 	// seed) and to drive the hash-stress flood. download-only mode does not
-	// touch the trees, so the build is skipped to save startup cost.
+	// touch the trees, so the build is skipped to save startup cost. Prefer the
+	// ".merkle" sidecar written by gen-torrent: loading the precomputed trees
+	// avoids rehashing the whole payload here. Fall back to rebuilding if the
+	// sidecar is missing or stale.
 	if (torrent_has_v2
 		&& (test_mode == upload_test || test_mode == dual_test || test_mode == hash_stress_test))
 	{
-		build_global_file_trees(*atp.ti);
+		if (!load_merkle_trees(std::string(torrent_file) + ".merkle", atp.ti->layout()))
+			build_global_file_trees(*atp.ti);
 	}
 
 	// seed modes generate piece data on the fly; record pad-file ranges so the
