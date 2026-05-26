@@ -1523,9 +1523,22 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 
 	for (;;)
 	{
-		// before going to sleep, always flush force-flush blocks from the cache
+		// before going to sleep, always flush blocks from the cache that need flushing
 		if (&pool == &m_generic_threads)
-			try_flush_cache(0, true, l);
+		{
+			// if we need to flush the cache, let one of the generic threads do
+			// that
+			if (m_flush_target)
+			{
+				int const target_cache_size = *std::exchange(m_flush_target, std::nullopt);
+				DLOG("try_flush_cache(%d)\n", target_cache_size);
+				try_flush_cache(target_cache_size, false, l);
+			}
+			else
+			{
+				try_flush_cache(0, true, l);
+			}
+		}
 
 		auto const res = pool.wait_for_job(l);
 
@@ -1580,19 +1593,6 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 				continue;
 		}
 
-		// if we need to flush the cache, let one of the generic threads do
-		// that
-		if (m_flush_target && &pool == &m_generic_threads)
-		{
-			int const target_cache_size = *std::exchange(m_flush_target, std::nullopt);
-			DLOG("try_flush_cache(%d)\n", target_cache_size);
-			try_flush_cache(target_cache_size, false, l);
-			// try_flush_cache() will release the mutex, so we may not have a
-			// job in the queue for us anymore
-			if (res != aux::wait_result::exit_thread && pool.empty())
-				continue;
-		}
-
 		if (res == aux::wait_result::exit_thread)
 		{
 			DLOG("exit disk loop\n");
@@ -1610,13 +1610,7 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 		bool const is_flush_piece = (&pool == &m_hash_threads)
 			&& bool(j->flags & disk_interface::flush_piece);
 
-		if (&pool == &m_generic_threads)
-		{
-			// This will attempt to flush any pieces that have been completely
-			// downloaded, but nothing else
-			try_flush_cache(0, true, l);
-		}
-		else if (is_flush_piece)
+		if (is_flush_piece)
 		{
 			// This hash job will (or already did) set force_flush_flag.
 			// Interrupt a generic thread to do the actual flush.
