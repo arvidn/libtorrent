@@ -1163,7 +1163,7 @@ def write_test_summary(output_dir: Path, name: str) -> None:
     # vmstat plots, embedded (see plot_output() in vmstat.py for the names),
     # plus the disk read-latency plot (from disk_latency.plot_latency)
     plots = [
-        ("disk_read_latency.png", "disk read latency (median/avg/p95)"),
+        ("disk_read_latency.png", "disk read latency (time x latency heat-map)"),
         ("memory_stats.log-memory.png", "memory usage"),
         ("memory_stats.log-vm.png", "vm stats"),
         ("memory_stats.log-read.png", "disk read"),
