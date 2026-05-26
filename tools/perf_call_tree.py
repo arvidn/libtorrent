@@ -38,6 +38,7 @@
 from argparse import ArgumentParser
 from functools import lru_cache
 import html
+import math
 from pathlib import Path
 import re
 import subprocess
@@ -91,9 +92,12 @@ _FRAME_RE = re.compile(r"^\s+([0-9a-fA-F]+)\s+(.*)$")
 #   client_test 12345/12348 [001] 9043.123456: 1000000 cycles:ppp:
 #   ^comm        ^pid ^tid    ^cpu  ^timestamp
 # comm may itself contain spaces, so anchor on the "pid[/tid] [cpu] time:" tail
-# and let comm absorb everything before it. the cpu field is optional.
+# and let comm absorb everything before it. the cpu field is optional. the
+# timestamp (seconds, with a fractional part) is captured to bucket samples
+# into time intervals for the per-thread histograms.
 _HEADER_RE = re.compile(
-    r"^(?P<comm>.+?)\s+(?P<pid>\d+)(?:/(?P<tid>\d+))?\s+" r"(?:\[\d+\]\s+)?[\d.]+:"
+    r"^(?P<comm>.+?)\s+(?P<pid>\d+)(?:/(?P<tid>\d+))?\s+"
+    r"(?:\[\d+\]\s+)?(?P<time>[\d.]+):"
 )
 
 # trailing cv/ref/exception qualifiers that 'perf' (via c++filt) appends after
@@ -269,23 +273,32 @@ def parse_samples(
     strip_ret: bool = True,
     collapse_tmpl: bool = True,
     abbrev_ns: bool = True,
-) -> list[list[str]]:
+) -> tuple[list[list[str]], list[tuple[str, float]]]:
     """Parse 'perf script' output into a list of call stacks. Each stack is a
     list of function names ordered root -> leaf. A synthetic frame identifying
     the originating thread (comm + tid) is prepended to every stack, so each
-    thread gets its own root in the resulting tree."""
+    thread gets its own root in the resulting tree.
+
+    Also returns a parallel list of (thread, timestamp) events -- one per
+    sample that carried a timestamp -- used to build the per-thread histograms.
+    """
     samples: list[list[str]] = []
+    events: list[tuple[str, float]] = []
     frames: list[str] = []
     have_record = False
     thread: Optional[str] = None
+    ts: Optional[float] = None
 
     def flush() -> None:
         nonlocal frames, have_record
         if have_record and frames:
             # perf prints leaf first; reverse to root -> leaf
+            name = thread if thread is not None else "[unknown thread]"
             frames.reverse()
-            frames.insert(0, thread if thread is not None else "[unknown thread]")
+            frames.insert(0, name)
             samples.append(frames)
+            if ts is not None:
+                events.append((name, ts))
         frames = []
         have_record = False
 
@@ -297,21 +310,23 @@ def parse_samples(
         if m is None:
             # a non-indented line is the per-sample header (comm/pid/tid/event).
             # it begins a new record; flush the previous one first, then capture
-            # the thread identity this record's frames belong to.
+            # the thread identity and timestamp this record's frames belong to.
             flush()
             have_record = True
             hm = _HEADER_RE.match(line)
             if hm is not None:
                 tid = hm.group("tid") or hm.group("pid")
                 thread = f"{hm.group('comm').strip()} (tid {tid})"
+                ts = float(hm.group("time"))
             else:
                 thread = "[unknown thread]"
+                ts = None
             continue
         frames.append(
             frame_symbol(m.group(1), m.group(2), strip_ret, collapse_tmpl, abbrev_ns)
         )
     flush()
-    return samples
+    return samples, events
 
 
 def build_tree(samples: list[list[str]]) -> Node:
@@ -385,6 +400,14 @@ li.leaf > .node::before { content: "\\2003 "; }
 .count { color: #888; display: inline-block; width: 9ch; text-align: right;
          padding-right: 1ch; }
 .name { color: inherit; }
+.hist { margin: 0 0 1.5em 0; }
+.hist h2 { font-size: 1em; margin: 0 0 0.6em 0; }
+.hist .chart-title { font-size: 12px; margin: 0.7em 0 0.1em 0; font-weight: bold; }
+.hist svg { display: block; }
+.hist .bar { fill: #2b6cb0; }
+.hist .axis { stroke: #888; stroke-width: 1; }
+.hist .grid { stroke: #e2e2e2; stroke-width: 1; }
+.hist .tick-label { fill: #444; font-size: 10px; }
 """
 
 PAGE_JS = """
@@ -500,7 +523,144 @@ PAGE_JS = """
 """
 
 
-def gen_html(root: Node, total: int, title: str) -> str:
+def _nice_step(span: float, target: int) -> float:
+    """A 'nice' (1/2/2.5/5 * 10^n) step that splits span into ~target intervals.
+    Used to place axis ticks at round values."""
+    if span <= 0:
+        return 1.0
+    raw = span / target
+    mag = 10.0 ** math.floor(math.log10(raw))
+    for m in (1, 2, 2.5, 5, 10):
+        if m * mag >= raw:
+            return m * mag
+    return 10 * mag
+
+
+def gen_histograms(events: list[tuple[str, float]], interval: float) -> str:
+    """Render one bar chart per thread of the number of samples falling in each
+    `interval`-second time bucket. Every chart shares the same x-axis (time) and
+    y-axis (sample count) range and ticks, so they can be compared directly. A
+    bucket with zero samples is a valid (empty) bar. Returns an HTML fragment
+    with inline SVG so the page stays self-contained."""
+    if not events:
+        return ""
+    times = [ts for _, ts in events]
+    t0 = min(times)
+    duration = max(times) - t0
+    # one extra bucket so a sample exactly at the end has a home; at least one
+    num_bins = int(duration / interval) + 1
+
+    # bin every thread's samples; remember per-thread totals for ordering
+    bins: dict[str, list[int]] = {}
+    totals: dict[str, int] = {}
+    for name, ts in events:
+        b = bins.get(name)
+        if b is None:
+            b = [0] * num_bins
+            bins[name] = b
+            totals[name] = 0
+        idx = int((ts - t0) / interval)
+        if idx >= num_bins:
+            idx = num_bins - 1
+        b[idx] += 1
+        totals[name] += 1
+    # busiest thread first, matching the call-tree ordering
+    order = sorted(bins, key=lambda n: totals[n], reverse=True)
+
+    global_max = max((max(b) for b in bins.values()), default=0) or 1
+
+    # shared geometry (identical for every chart -> identical scales/ticks)
+    left, right, top, bottom = 55, 12, 8, 24
+    plot_w, plot_h = 900, 110
+    width = left + plot_w + right
+    height = top + plot_h + bottom
+    x_range = num_bins * interval  # seconds spanned by the bars
+    bar_w = plot_w / num_bins
+
+    def ticks(span: float, step: float) -> list[float]:
+        out: list[float] = []
+        v = 0.0
+        while v <= span + step * 0.001:
+            out.append(v)
+            v += step
+        return out
+
+    y_step = _nice_step(global_max, 4)
+    y_ticks = ticks(global_max, y_step)
+    x_step = _nice_step(x_range, 6)
+    x_ticks = ticks(x_range, x_step)
+
+    def y_of(c: float) -> float:
+        return top + plot_h - (c / global_max) * plot_h
+
+    def x_of(t: float) -> float:
+        return left + (t / x_range) * plot_w
+
+    def chart(name: str) -> str:
+        b = bins[name]
+        s: list[str] = []
+        s.append(
+            f'<div class="chart-title">{html.escape(name)} '
+            f"({totals[name]} samples)</div>"
+        )
+        s.append(
+            f'<svg width="{width}" height="{height}" '
+            f'viewBox="0 0 {width} {height}">'
+        )
+        # y grid lines and labels
+        for t in y_ticks:
+            y = y_of(t)
+            s.append(
+                f'<line class="grid" x1="{left}" y1="{y:.1f}" '
+                f'x2="{left + plot_w}" y2="{y:.1f}"/>'
+            )
+            s.append(
+                f'<text class="tick-label" x="{left - 4}" y="{y + 3:.1f}" '
+                f'text-anchor="end">{int(round(t))}</text>'
+            )
+        # bars
+        for i, c in enumerate(b):
+            if c <= 0:
+                continue
+            y = y_of(c)
+            s.append(
+                f'<rect class="bar" x="{left + i * bar_w:.2f}" y="{y:.2f}" '
+                f'width="{bar_w:.2f}" '
+                f'height="{top + plot_h - y:.2f}"/>'
+            )
+        # axes
+        s.append(
+            f'<line class="axis" x1="{left}" y1="{top + plot_h}" '
+            f'x2="{left + plot_w}" y2="{top + plot_h}"/>'
+        )
+        s.append(
+            f'<line class="axis" x1="{left}" y1="{top}" '
+            f'x2="{left}" y2="{top + plot_h}"/>'
+        )
+        # x ticks and labels
+        for t in x_ticks:
+            x = x_of(t)
+            s.append(
+                f'<line class="axis" x1="{x:.1f}" y1="{top + plot_h}" '
+                f'x2="{x:.1f}" y2="{top + plot_h + 4}"/>'
+            )
+            s.append(
+                f'<text class="tick-label" x="{x:.1f}" '
+                f'y="{top + plot_h + 15}" text-anchor="middle">'
+                f"{t:g}s</text>"
+            )
+        s.append("</svg>")
+        return "".join(s)
+
+    out = ['<div class="hist">']
+    out.append(f"<h2>samples per {interval:g}s interval</h2>")
+    for name in order:
+        out.append(chart(name))
+    out.append("</div>")
+    return "\n".join(out)
+
+
+def gen_html(root: Node, total: int, title: str, hist_html: str = "") -> str:
     parts: list[str] = []
     parts.append("<!doctype html>")
     parts.append('<html><head><meta charset="utf-8">')
@@ -513,6 +673,8 @@ def gen_html(root: Node, total: int, title: str) -> str:
         "Navigate with the arrow keys: up/down move, right expands, "
         "left collapses.</p>"
     )
+    if hist_html:
+        parts.append(hist_html)
     parts.append('<ul class="tree">')
     # render the real top-level frames, not the synthetic root. each top-level
     # node is a thread, so percentages are computed relative to that thread's
@@ -529,22 +691,24 @@ def main(
     perf_data: Path,
     output: Path,
     threshold: float,
+    interval: float = 0.25,
     strip_ret: bool = True,
     collapse_tmpl: bool = True,
     abbrev_ns: bool = True,
 ) -> None:
     text = run_perf_script(perf_data)
-    samples = parse_samples(text, strip_ret, collapse_tmpl, abbrev_ns)
+    samples, events = parse_samples(text, strip_ret, collapse_tmpl, abbrev_ns)
     if not samples:
         raise SystemExit(
             f"ERROR: no call-stack samples found in {perf_data}.\n"
             "  was it recorded with call graphs, e.g."
             " 'perf record --call-graph dwarf'?"
         )
+    hist_html = gen_histograms(events, interval)
     root = build_tree(samples)
     total = root.count
     prune(root, total * threshold / 100.0)
-    page = gen_html(root, total, f"call tree: {perf_data.name}")
+    page = gen_html(root, total, f"call tree: {perf_data.name}", hist_html)
     output.write_text(page)
     print(f"wrote {output} ({total} samples)")
 
@@ -564,6 +728,13 @@ if __name__ == "__main__":
         type=float,
         default=0.1,
         help="prune subtrees below this percent of total samples" " (default: 0.1)",
+    )
+    p.add_argument(
+        "--interval",
+        type=float,
+        default=0.25,
+        help="width in seconds of each bar in the per-thread sample-rate"
+        " histograms (default: 0.25)",
     )
     p.add_argument(
         "--raw-symbols",
@@ -588,6 +759,7 @@ if __name__ == "__main__":
         args.perf_data,
         args.output,
         args.threshold,
+        args.interval,
         not args.raw_symbols,
         not args.full_templates,
         not args.full_namespaces,
