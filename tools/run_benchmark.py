@@ -757,7 +757,16 @@ def main() -> None:
     )
 
     for variant in args.variants:
-        if not torrent_path(variant, args.num_pieces).exists():
+        torrent = torrent_path(variant, args.num_pieces)
+        # v2/hybrid torrents have a "<torrent>.merkle" sidecar holding the
+        # precomputed per-file merkle trees; gen-torrent writes it alongside the
+        # .torrent. The upload/dual tests load it instead of rehashing the whole
+        # payload at startup, so regenerate the torrent if the sidecar is missing
+        # (e.g. a torrent left over from before this feature existed). v1-only
+        # torrents have no sidecar.
+        merkle = Path(f"{torrent}.merkle")
+        needs_merkle = VARIANT_FLAGS[variant] != "1"
+        if not torrent.exists() or (needs_merkle and not merkle.exists()):
             subprocess.check_call(
                 [
                     str(EXAMPLES_DIR / f"connection_tester{exe}"),
@@ -769,7 +778,7 @@ def main() -> None:
                     "-V",  # metadata version
                     VARIANT_FLAGS[variant],
                     "-t",  # output torrent file
-                    str(torrent_path(variant, args.num_pieces)),
+                    str(torrent),
                 ],
             )
 
