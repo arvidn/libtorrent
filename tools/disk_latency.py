@@ -14,11 +14,13 @@ named ``disk.disk_read_latency1`` .. ``disk.disk_read_latency20``, linear in
 build flag the buckets stay zero and there is nothing to plot.
 
 This tool diffs the cumulative buckets between samples, groups the resulting
-per-job counts into fixed wall-clock intervals (5 s by default), and from each
+per-job counts into fixed wall-clock intervals (2 s by default), and from each
 interval's histogram estimates the median, mean, and 95th-percentile latency,
 reported in milliseconds. collect_latency() returns those series plus a single
 representative number for the whole run -- the peak interval p95 -- which
-run_benchmark.py drops into its results table.
+run_benchmark.py drops into its results table. It also keeps the full
+per-interval histograms, which plot_latency() renders as a time x latency
+heat-map (cell color = number of read jobs in that time/latency bin).
 """
 
 from argparse import ArgumentParser
@@ -38,6 +40,9 @@ BUCKET_STEP_MS = 30
 # counters are 1-indexed (latency1 .. latency20), so the first index is 1.
 BUCKET_PREFIX = "disk.disk_read_latency"
 BUCKET_FIRST = 1
+# default wall-clock width, in seconds, of the intervals the per-job counts are
+# grouped into (one heat-map column / one latency-stats sample per interval).
+DEFAULT_INTERVAL_S = 2.0
 
 # leading "[<ms>]" timestamp client_test writes on every stats line
 _TS_RE = re.compile(r"^\[(\d+)\]")
@@ -70,6 +75,15 @@ class LatencySeries:
     # p95. 0.0 when no read-latency samples were recorded -- e.g. a build
     # without disk-latency-stats, or the posix backend (no disk job queue).
     peak_p95_ms: float = 0.0
+
+    # dense time x latency histogram for the heat-map. hist_grid[col] is the
+    # NUM_BUCKETS-long bucket histogram for one interval; columns are contiguous
+    # (zero-filled where an interval had no read jobs), spanning from the first
+    # to the last interval that contained a sample. grid_start_s is the left
+    # (earliest) edge of column 0, in seconds; interval_s is the column width.
+    hist_grid: list[list[int]] = field(default_factory=list)
+    grid_start_s: float = 0.0
+    interval_s: float = DEFAULT_INTERVAL_S
 
 
 def _parse_samples(path: Path) -> Iterator[tuple[float, list[int]]]:
@@ -127,7 +141,9 @@ def _percentile(hist: list[int], frac: float, total: int) -> float:
     return bucket_rep_ms(len(hist) - 1)
 
 
-def collect_latency(path: str | Path, interval_s: float = 5.0) -> LatencySeries:
+def collect_latency(
+    path: str | Path, interval_s: float = DEFAULT_INTERVAL_S
+) -> LatencySeries:
     """Parse `path` and return a LatencySeries: per-interval median/mean/p95
     disk read latency (ms) over `interval_s`-second wall-clock windows, plus
     the peak interval p95 as a single representative number for the run.
@@ -152,6 +168,7 @@ def collect_latency(path: str | Path, interval_s: float = 5.0) -> LatencySeries:
             acc[i] += delta[i]
 
     series = LatencySeries()
+    series.interval_s = interval_s
     for k in sorted(by_interval):
         hist = by_interval[k]
         n = sum(hist)
@@ -164,37 +181,75 @@ def collect_latency(path: str | Path, interval_s: float = 5.0) -> LatencySeries:
         series.p95_ms.append(p95)
         series.counts.append(n)
         series.peak_p95_ms = max(series.peak_p95_ms, p95)
+
+    # build the dense, contiguous time x latency grid for the heat-map: one
+    # column per interval from the first to the last that saw a sample, with
+    # empty intervals zero-filled so the time axis stays linear.
+    if by_interval:
+        k_min, k_max = min(by_interval), max(by_interval)
+        series.grid_start_s = k_min * interval_s
+        for k in range(k_min, k_max + 1):
+            series.hist_grid.append(by_interval.get(k, [0] * NUM_BUCKETS))
     return series
 
 
 def plot_latency(
     series: LatencySeries, out_path: Path, title: str = "disk read latency"
 ) -> bool:
-    """Plot median / average / p95 read latency over time to `out_path` (PNG).
-    Returns True on success, False if matplotlib is missing or there is no
-    data to plot (so callers can skip referencing the image).
+    """Plot read latency over time as a heat-map to `out_path` (PNG): x-axis is
+    time, y-axis is latency, and each cell's color is the number of read jobs
+    that fell in that (time interval, latency bucket). Returns True on success,
+    False if matplotlib is missing or there is no data to plot (so callers can
+    skip referencing the image).
     """
-    if not series.times:
+    if not series.hist_grid:
         return False
     try:
         import matplotlib
 
         matplotlib.use("Agg")  # headless backend; no display required
+        import matplotlib.colors as mcolors
         import matplotlib.pyplot as plt
+        import numpy as np
     except ImportError:
         return False
 
-    fig, ax = plt.subplots(figsize=(10.0, 4.0))
-    ax.plot(series.times, series.median_ms, label="median")
-    ax.plot(series.times, series.mean_ms, label="average")
-    ax.plot(series.times, series.p95_ms, label="95th percentile")
-    # linear y-axis in milliseconds, for readable tick marks
+    # Z[bucket, interval] = job count. hist_grid is interval-major, so transpose
+    # to put latency buckets (y) on rows and time intervals (x) on columns.
+    z = np.array(series.hist_grid, dtype=float).T
+    if z.sum() == 0:
+        return False
+    n_cols = z.shape[1]
+
+    # cell edges for pcolormesh. The y buckets are linear in BUCKET_STEP_MS; the
+    # open-ended top bucket is drawn as one more step for display.
+    x_edges = series.grid_start_s + np.arange(n_cols + 1) * series.interval_s
+    y_edges = BUCKET_STEP_MS * np.arange(NUM_BUCKETS + 1)
+
+    # mask empty cells so they render as the colormap's lowest color. counts
+    # span orders of magnitude, so use a log color scale (falling back to linear
+    # when all counts are equal).
+    z_masked = np.ma.masked_equal(z, 0.0)
+    vmin = z_masked.min()
+    vmax = z_masked.max()
+    norm = mcolors.LogNorm(vmin=vmin, vmax=vmax) if vmax > vmin else None
+    # a light-to-dark palette: a low count sits near the light background and
+    # the color deepens as the job count grows. Empty cells take the palette's
+    # lowest color so "no jobs" blends continuously into "a few jobs".
+    cmap = plt.get_cmap("Blues").copy()
+    cmap.set_bad(cmap(0.0))
+
+    # 1200 px wide at dpi=100 to match the vmstat / piece-pass-order plots on
+    # the summary page (they are 1200 px wide, and all are embedded with
+    # max-width:100%, so a narrower image renders smaller alongside them).
+    fig, ax = plt.subplots(figsize=(12.0, 4.0))
+    mesh = ax.pcolormesh(x_edges, y_edges, z_masked, cmap=cmap, norm=norm)
+    cbar = fig.colorbar(mesh, ax=ax)
+    cbar.set_label("read jobs")
     ax.set_ylim(bottom=0)
     ax.set_xlabel("time (s)")
     ax.set_ylabel("read latency (ms)")
     ax.set_title(title)
-    ax.grid(True, which="both", linewidth=0.3, alpha=0.5)
-    ax.legend()
     fig.tight_layout()
     fig.savefig(out_path, dpi=100)
     plt.close(fig)
@@ -202,7 +257,9 @@ def plot_latency(
 
 
 def main(
-    input_file: str | Path, output_dir: str | Path, interval_s: float = 5.0
+    input_file: str | Path,
+    output_dir: str | Path,
+    interval_s: float = DEFAULT_INTERVAL_S,
 ) -> float:
     """Parse `input_file`, write disk_read_latency.png into `output_dir`, and
     return the run's representative latency (peak interval p95, ms).
@@ -239,8 +296,8 @@ if __name__ == "__main__":
     p.add_argument(
         "--interval",
         type=float,
-        default=5.0,
-        help="bucket interval in seconds (default: 5)",
+        default=DEFAULT_INTERVAL_S,
+        help=f"bucket interval in seconds (default: {DEFAULT_INTERVAL_S:g})",
     )
     args = p.parse_args()
     main(args.input, args.output_dir, args.interval)
