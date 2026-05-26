@@ -9,6 +9,7 @@ import signal
 import subprocess
 import parse_session_stats
 import perf_call_tree
+import parse_piece_downloads
 import disk_latency
 from pathlib import Path
 from argparse import ArgumentParser
@@ -949,7 +950,7 @@ def run_test(
         f"--max_queued_disk_bytes={max_queued_disk_bytes}",
         f"--aio_threads={aio_threads}",
         f"--hashing_threads={hasher_threads}",
-        "--alert_mask=error,status,connect,performance_warning,storage,peer",
+        "--alert_mask=error,status,connect,performance_warning,storage,peer,torrent_log",
     ] + client_arg
 
     test_cmd = [
@@ -1110,6 +1111,12 @@ def run_test(
         latency, output_dir / "disk_read_latency.png",
         title=f"{name}: disk read latency",
     )
+    # plot the order pieces passed the hash check over time (download/verify
+    # order); embedded in summary.html. Needs torrent_log alerts in events.log.
+    parse_piece_downloads.plot_piece_downloads(
+        output_dir / "events.log", output_dir / "piece_downloads.png",
+        title=f"{name}: piece pass order",
+    )
     update_results(
         results, benchmarks_dir, transfer_mode, variant, io_backend,
         upload_rate, download_rate, max_rss_bytes, latency.peak_p95_ms,
@@ -1164,6 +1171,7 @@ def write_test_summary(output_dir: Path, name: str) -> None:
     # plus the disk read-latency plot (from disk_latency.plot_latency)
     plots = [
         ("disk_read_latency.png", "disk read latency (time x latency heat-map)"),
+        ("piece_downloads.png", "piece pass order (time x piece index)"),
         ("memory_stats.log-memory.png", "memory usage"),
         ("memory_stats.log-vm.png", "vm stats"),
         ("memory_stats.log-read.png", "disk read"),
