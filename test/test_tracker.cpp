@@ -98,9 +98,12 @@ TORRENT_TEST(parse_peers4)
 
 TORRENT_TEST(parse_peers4_invalid_length)
 {
-	char const response[] = "d5:peers7:\x01\x02\x03\x04\x30\x10\x01" "e";
+	std::string response = "d5:peers7:";
+	response.append("\x01\x02\x03\x04\x30\x10\x01", 7);
+	response += 'e';
+
 	error_code ec;
-	tracker_response resp = parse_tracker_response(response
+	aux::tracker_response resp = aux::parse_tracker_response(response
 		, ec, {}, sha1_hash());
 
 	TEST_EQUAL(ec, errors::invalid_peers_entry);
@@ -121,15 +124,15 @@ TORRENT_TEST(parse_peers6)
 	response += 'e';
 
 	error_code ec;
-	tracker_response resp = parse_tracker_response(response
+	aux::tracker_response resp = aux::parse_tracker_response(response
 		, ec, {}, sha1_hash());
 
 	TEST_EQUAL(ec, error_code());
 	TEST_EQUAL(resp.peers6.size(), 2);
 	if (resp.peers6.size() == 2)
 	{
-		ipv6_peer_entry const& e0 = resp.peers6[0];
-		ipv6_peer_entry const& e1 = resp.peers6[1];
+		aux::ipv6_peer_entry const& e0 = resp.peers6[0];
+		aux::ipv6_peer_entry const& e1 = resp.peers6[1];
 		TEST_CHECK(e0.ip == addr6("2001:db8::1").to_bytes());
 		TEST_EQUAL(e0.port, 0x3010);
 
@@ -145,7 +148,7 @@ TORRENT_TEST(parse_peers6_invalid_length)
 	response += 'e';
 
 	error_code ec;
-	tracker_response resp = parse_tracker_response(response
+	aux::tracker_response resp = aux::parse_tracker_response(response
 		, ec, {}, sha1_hash());
 
 	TEST_EQUAL(ec, errors::invalid_peers_entry);
@@ -237,8 +240,8 @@ TORRENT_TEST(parse_i2p_peers_invalid_length)
 	response += 'e';
 
 	error_code ec;
-	tracker_response resp = parse_tracker_response(response
-		, ec, tracker_request::i2p, sha1_hash());
+	aux::tracker_response resp = aux::parse_tracker_response(response
+		, ec, aux::tracker_request::i2p, sha1_hash());
 
 	TEST_EQUAL(ec, errors::invalid_peers_entry);
 	TEST_EQUAL(resp.i2p_peers.size(), 0);
@@ -375,33 +378,33 @@ TORRENT_TEST(extract_peer_hostname)
 TORRENT_TEST(extract_peer_not_a_dictionary)
 {
 	// not a dictionary
-	aux::peer_entry result = extract_peer("2:ip11:example.com"
+	extract_peer("2:ip11:example.com"
 		, errors::invalid_peer_dict, false);
 }
 
 TORRENT_TEST(extract_peer_missing_ip)
 {
 	// missing IP
-	aux::peer_entry result = extract_peer("d7:peer id20:abababababababababab4:porti1337ee"
+	extract_peer("d7:peer id20:abababababababababab4:porti1337ee"
 		, errors::invalid_tracker_response, false);
 }
 
 TORRENT_TEST(extract_peer_missing_port)
 {
 	// missing port
-	aux::peer_entry result = extract_peer("d7:peer id20:abababababababababab2:ip4:abcde"
+	extract_peer("d7:peer id20:abababababababababab2:ip4:abcde"
 		, errors::invalid_tracker_response, false);
 }
 
 TORRENT_TEST(extract_peer_negative_port)
 {
-	peer_entry result = extract_peer("d2:ip11:example.com4:porti-1ee"
+	extract_peer("d2:ip11:example.com4:porti-1ee"
 		, errors::invalid_tracker_response, false);
 }
 
 TORRENT_TEST(extract_peer_port_overflow)
 {
-	peer_entry result = extract_peer("d2:ip11:example.com4:porti65536ee"
+	extract_peer("d2:ip11:example.com4:porti65536ee"
 		, errors::invalid_tracker_response, false);
 }
 
