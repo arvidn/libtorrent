@@ -679,11 +679,15 @@ bool pread_disk_io::async_write(storage_index_t const storage, peer_request cons
 	if (m_generic_threads.max_threads() == 0)
 	{
 		// also flush any completed (force-flush) pieces
-		try_flush_cache(0, true, l);
 		if (m_flush_target)
 		{
 			int const target = *std::exchange(m_flush_target, std::nullopt);
+			DLOG("try_flush_cache(%d)\n", target);
 			try_flush_cache(target, false, l);
+		}
+		else
+		{
+			try_flush_cache(0, true, l);
 		}
 	}
 
@@ -1332,11 +1336,15 @@ void pread_disk_io::immediate_execute()
 	// mirror what thread_fun does: flush force-flush pieces and handle
 	// any pending cache flush target
 	std::unique_lock<std::mutex> l(m_job_mutex);
-	try_flush_cache(0, true, l);
 	if (m_flush_target)
 	{
 		int const target = *std::exchange(m_flush_target, std::nullopt);
+		DLOG("try_flush_cache(%d)\n", target);
 		try_flush_cache(target, false, l);
+	}
+	else
+	{
+		try_flush_cache(0, true, l);
 	}
 }
 
