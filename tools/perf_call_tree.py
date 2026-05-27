@@ -48,11 +48,15 @@ from typing import Optional
 # a node in the calling-context tree. "count" is the number of samples whose
 # stack passes through this node along this exact path (inclusive count).
 class Node:
-    __slots__ = ("name", "count", "children")
+    __slots__ = ("name", "count", "system", "children")
 
     def __init__(self, name: str) -> None:
         self.name = name
         self.count = 0
+        # true if this symbol was sampled in kernel (or kernel-module) space or
+        # inside the C library (libc) -- such frames are de-emphasized in the
+        # tree and the auto-expand stops when it reaches them
+        self.system = False
         self.children: dict[str, "Node"] = {}
 
     def child(self, name: str) -> "Node":
@@ -229,6 +233,49 @@ def collapse_templates(sym: str) -> str:
     return "".join(out)
 
 
+def frame_dso(payload: str) -> Optional[str]:
+    """Return the originating DSO from a frame's payload, or None. A frame line
+    ends with the DSO in parentheses, e.g. 'foo+0x1 (/lib/libc.so.6)'."""
+    payload = payload.rstrip()
+    if not payload.endswith(")"):
+        return None
+    open_paren = payload.rfind(" (")
+    if open_paren == -1:
+        return None
+    return payload[open_paren + 2 : -1]
+
+
+def is_kernel_frame(addr: str, payload: str) -> bool:
+    """Classify a frame as kernel (or kernel-module) space.
+
+    Kernel code lives in the upper half of the virtual address space: on
+    x86-64/arm64 every kernel address has bit 63 set, while user-space
+    addresses never do, so the sampled instruction pointer alone is a reliable
+    signal (it also covers kernel modules, which load at high addresses too).
+    'perf' additionally tags resolved kernel frames with the
+    '[kernel.kallsyms]' dso, which we accept as a backup."""
+    try:
+        if int(addr, 16) & (1 << 63):
+            return True
+    except ValueError:
+        pass
+    return frame_dso(payload) == "[kernel.kallsyms]"
+
+
+# basename of the C runtime shared object: 'libc.so.6', 'libc-2.31.so',
+# 'libc.musl-x86_64.so.1', etc.
+_LIBC_RE = re.compile(r"^libc[.-]")
+
+
+def is_libc_frame(payload: str) -> bool:
+    """True if the frame originates from the C library (libc), identified by
+    its DSO basename."""
+    dso = frame_dso(payload)
+    if dso is None:
+        return False
+    return _LIBC_RE.match(dso.rsplit("/", 1)[-1]) is not None
+
+
 def frame_symbol(
     addr: str,
     payload: str,
@@ -273,18 +320,19 @@ def parse_samples(
     strip_ret: bool = True,
     collapse_tmpl: bool = True,
     abbrev_ns: bool = True,
-) -> tuple[list[list[str]], list[tuple[str, float]]]:
+) -> tuple[list[list[tuple[str, bool]]], list[tuple[str, float]]]:
     """Parse 'perf script' output into a list of call stacks. Each stack is a
-    list of function names ordered root -> leaf. A synthetic frame identifying
-    the originating thread (comm + tid) is prepended to every stack, so each
-    thread gets its own root in the resulting tree.
+    list of (function name, is_system) pairs ordered root -> leaf, where
+    is_system marks kernel or libc frames. A synthetic frame identifying the
+    originating thread (comm + tid) is prepended to every stack, so each thread
+    gets its own root in the resulting tree.
 
     Also returns a parallel list of (thread, timestamp) events -- one per
     sample that carried a timestamp -- used to build the per-thread histograms.
     """
-    samples: list[list[str]] = []
+    samples: list[list[tuple[str, bool]]] = []
     events: list[tuple[str, float]] = []
-    frames: list[str] = []
+    frames: list[tuple[str, bool]] = []
     have_record = False
     thread: Optional[str] = None
     ts: Optional[float] = None
@@ -295,7 +343,8 @@ def parse_samples(
             # perf prints leaf first; reverse to root -> leaf
             name = thread if thread is not None else "[unknown thread]"
             frames.reverse()
-            frames.insert(0, name)
+            # the synthetic thread root is never a system frame
+            frames.insert(0, (name, False))
             samples.append(frames)
             if ts is not None:
                 events.append((name, ts))
@@ -322,22 +371,28 @@ def parse_samples(
                 thread = "[unknown thread]"
                 ts = None
             continue
+        addr, payload = m.group(1), m.group(2)
         frames.append(
-            frame_symbol(m.group(1), m.group(2), strip_ret, collapse_tmpl, abbrev_ns)
+            (
+                frame_symbol(addr, payload, strip_ret, collapse_tmpl, abbrev_ns),
+                is_kernel_frame(addr, payload) or is_libc_frame(payload),
+            )
         )
     flush()
     return samples, events
 
 
-def build_tree(samples: list[list[str]]) -> Node:
+def build_tree(samples: list[list[tuple[str, bool]]]) -> Node:
     """Fold call stacks into a calling-context tree with inclusive counts."""
     root = Node("[root]")
     for stack in samples:
         root.count += 1
         node = root
-        for name in stack:
+        for name, is_system in stack:
             node = node.child(name)
             node.count += 1
+            if is_system:
+                node.system = True
     return root
 
 
@@ -361,6 +416,8 @@ def render_node(node: Node, total: int, parts: list[str]) -> None:
     has_children = len(children) > 0
     pct = (100.0 * node.count / total) if total else 0.0
     cls = "has-children" if has_children else "leaf"
+    if node.system:
+        cls += " system"
     label = (
         f'<span class="pct">{pct:6.2f}%</span>'
         f'<span class="count">{node.count}</span>'
@@ -400,6 +457,9 @@ li.leaf > .node::before { content: "\\2003 "; }
 .count { color: #888; display: inline-block; width: 9ch; text-align: right;
          padding-right: 1ch; }
 .name { color: inherit; }
+/* dim system frames (kernel or libc) -- they are de-emphasized in the tree */
+li.system > .node .name { color: #999; }
+li.system > .node.selected .name { color: #fff; }
 .hist { margin: 0 0 1.5em 0; }
 .hist h2 { font-size: 1em; margin: 0 0 0.6em 0; }
 .hist .chart-title { font-size: 12px; margin: 0.7em 0 0.1em 0; font-weight: bold; }
@@ -418,6 +478,7 @@ PAGE_JS = """
   function liOf(node) { return node.parentNode; }
   function hasChildren(node) { return liOf(node).classList.contains('has-children'); }
   function isExpanded(node) { return liOf(node).classList.contains('expanded'); }
+  function isSystem(node) { return liOf(node).classList.contains('system'); }
 
   function childList(node) { return liOf(node).querySelector(':scope > ul.children'); }
 
@@ -427,10 +488,14 @@ PAGE_JS = """
     var ul = childList(node);
     ul.hidden = false;
     // collapse degenerate chains: if there is exactly one child, expand it
-    // too, recursively, until we reach a node with 0 or more than 1 children
+    // too, recursively, until we reach a node with 0 or more than 1 children.
+    // stop the auto-expand once we descend into a system frame (kernel or
+    // libc) -- those are rarely interesting, so reveal the boundary but no
+    // further (an explicit right-arrow/click on it still expands it).
     var childLis = ul.querySelectorAll(':scope > li');
     if (childLis.length === 1) {
-      expand(childLis[0].querySelector(':scope > .node'));
+      var only = childLis[0].querySelector(':scope > .node');
+      if (!isSystem(only)) expand(only);
     }
   }
   function collapse(node) {
