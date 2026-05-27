@@ -46,7 +46,7 @@ namespace libtorrent::aux {
 		bool valid_compact_peer_list(int const len, int const entry_size)
 		{
 			TORRENT_ASSERT(entry_size > 0);
-			return len % entry_size == 0;
+			return len >= 0 && len % entry_size == 0;
 		}
 
 	}
