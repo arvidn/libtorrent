@@ -39,7 +39,6 @@ see LICENSE file.
 using namespace lt;
 
 // TODO: test scrape requests
-// TODO: test parse peers6
 // TODO: test parse tracker-id
 // TODO: test parse failure-reason
 // TODO: test all failure paths, including
@@ -106,6 +105,37 @@ TORRENT_TEST(parse_peers4_invalid_length)
 
 	TEST_EQUAL(ec, errors::invalid_peers_entry);
 	TEST_EQUAL(resp.peers4.size(), 0);
+}
+
+TORRENT_TEST(parse_peers6)
+{
+	std::string response = "d6:peers636:";
+	auto const ip0 = addr6("2001:db8::1").to_bytes();
+	response.append(reinterpret_cast<char const*>(ip0.data()), ip0.size());
+	response.push_back(char(0x30));
+	response.push_back(char(0x10));
+	auto const ip1 = addr6("2001:db8::2").to_bytes();
+	response.append(reinterpret_cast<char const*>(ip1.data()), ip1.size());
+	response.push_back(char(0x20));
+	response.push_back(char(0x10));
+	response += 'e';
+
+	error_code ec;
+	tracker_response resp = parse_tracker_response(response
+		, ec, {}, sha1_hash());
+
+	TEST_EQUAL(ec, error_code());
+	TEST_EQUAL(resp.peers6.size(), 2);
+	if (resp.peers6.size() == 2)
+	{
+		ipv6_peer_entry const& e0 = resp.peers6[0];
+		ipv6_peer_entry const& e1 = resp.peers6[1];
+		TEST_CHECK(e0.ip == addr6("2001:db8::1").to_bytes());
+		TEST_EQUAL(e0.port, 0x3010);
+
+		TEST_CHECK(e1.ip == addr6("2001:db8::2").to_bytes());
+		TEST_EQUAL(e1.port, 0x2010);
+	}
 }
 
 TORRENT_TEST(parse_peers6_invalid_length)
