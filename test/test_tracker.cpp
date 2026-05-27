@@ -85,7 +85,7 @@ TORRENT_TEST(parse_peers4)
 
 	TEST_EQUAL(ec, error_code());
 	TEST_EQUAL(resp.peers4.size(), 2);
-	if (resp.peers.size() == 2)
+	if (resp.peers4.size() == 2)
 	{
 		aux::ipv4_peer_entry const& e0 = resp.peers4[0];
 		aux::ipv4_peer_entry const& e1 = resp.peers4[1];
@@ -176,12 +176,13 @@ TORRENT_TEST(parse_i2p_peers)
 	TEST_EQUAL(ec, error_code());
 	TEST_EQUAL(resp.i2p_peers.size(), 11);
 
-	if (resp.peers.size() == 11)
+	if (resp.i2p_peers.size() == 11)
 	{
-		TEST_EQUAL(resp.peers[0].hostname
-			, "wgcobfq73pzmtmcttiy2knon5bm2a7gn6j6idaiccf53ikwrecdq.b32.i2p");
-		TEST_EQUAL(resp.peers[10].hostname
-			, "ufunemgwuun5t2sn3oay4zv7jvwdezwcrirgwr6b2fjgczvaowvq.b32.i2p");
+		std::uint8_t const* peers = response + 57;
+		TEST_CHECK(resp.i2p_peers[0].destination
+			== sha256_hash(reinterpret_cast<char const*>(peers)));
+		TEST_CHECK(resp.i2p_peers[10].destination
+			== sha256_hash(reinterpret_cast<char const*>(peers + 10 * 32)));
 	}
 }
 #endif // TORRENT_USE_I2P
