@@ -208,11 +208,25 @@ TORRENT_TEST(parse_i2p_peers)
 
 	if (resp.i2p_peers.size() == 11)
 	{
-		std::uint8_t const* peers = response + 57;
-		TEST_CHECK(resp.i2p_peers[0].destination
-			== sha256_hash(reinterpret_cast<char const*>(peers)));
-		TEST_CHECK(resp.i2p_peers[10].destination
-			== sha256_hash(reinterpret_cast<char const*>(peers + 10 * 32)));
+		bdecode_node decoded;
+		error_code decode_ec;
+		int const decode_result = bdecode(
+			reinterpret_cast<char const*>(response)
+			, reinterpret_cast<char const*>(response + sizeof(response))
+			, decoded, decode_ec);
+		TEST_EQUAL(decode_ec, error_code());
+		TEST_EQUAL(decode_result, 0);
+
+		bdecode_node const peers = decoded.dict_find_string("peers");
+		TEST_CHECK(peers);
+		if (peers)
+		{
+			TEST_EQUAL(peers.string_length(), 11 * int(sha256_hash::size()));
+			TEST_CHECK(resp.i2p_peers[0].destination
+				== sha256_hash(peers.string_ptr()));
+			TEST_CHECK(resp.i2p_peers[10].destination
+				== sha256_hash(peers.string_ptr() + 10 * sha256_hash::size()));
+		}
 	}
 }
 
