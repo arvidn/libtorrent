@@ -194,8 +194,12 @@ private:
 	int num_threads() const;
 	aux::disk_io_thread_pool& pool_for_job(aux::pread_disk_job* j);
 
-	// set to true once we start shutting down
-	std::atomic<bool> m_abort{false};
+	// set to true once we start shutting down. Guarded by m_job_mutex: it's
+	// written, and read by the disk threads, under the mutex. The lock-free
+	// reads (in add_job(), add_fence_job() and the destructor) only run on the
+	// network thread (the only writer's thread) or after the disk threads have
+	// exited, so they don't race with the write.
+	bool m_abort = false;
 
 	// this is a counter of how many threads are currently running.
 	// it's used to identify the last thread still running while
@@ -332,7 +336,8 @@ void pread_disk_io::abort(bool const wait)
 	// abuse the job mutex to make setting m_abort and checking the thread count atomic
 	// see also the comment in thread_fun
 	std::unique_lock<std::mutex> l(m_job_mutex);
-	if (m_abort.exchange(true)) return;
+	if (m_abort) return;
+	m_abort = true;
 	bool const no_threads = m_generic_threads.num_threads() == 0
 		&& m_hash_threads.num_threads() == 0;
 	// abort outstanding jobs belonging to this torrent
@@ -1804,22 +1809,37 @@ void pread_disk_io::add_completed_jobs_impl(jobqueue_t jobs, jobqueue_t& complet
 	TORRENT_ASSERT(int(m_stats_counters[counters::blocked_disk_jobs]) >= 0);
 
 	jobqueue_t execute_now;
-	if (m_abort.load())
+	// new_jobs holds jobs that were unblocked by a completing fence job. Fence
+	// jobs only complete on the disk job loop, where m_job_mutex is not held;
+	// the flush paths that call add_completed_jobs() while holding m_job_mutex
+	// only complete cache write jobs, which never unblock a fence. So new_jobs
+	// being non-empty implies the mutex is not already held by this thread and
+	// it is safe to take it here.
+	//
+	// The m_abort check and the re-queue have to happen together under
+	// m_job_mutex (the same mutex abort() holds when it sets m_abort), so the
+	// decision is atomic with respect to the abort. Otherwise m_abort could flip
+	// to true -- and the generic thread pool be torn down -- between the check
+	// and the append, orphaning the jobs in the now-dead pool's queue so their
+	// completion handlers never run. This happens when a job completing on the
+	// hash thread pool (e.g. while checking a torrent) unblocks a stop_torrent
+	// fence job that is then re-queued to the generic pool.
+	if (!new_jobs.empty())
 	{
-		while (!new_jobs.empty())
+		std::lock_guard<std::mutex> l(m_job_mutex);
+		if (m_abort)
 		{
-			auto* j = static_cast<aux::pread_disk_job*>(new_jobs.pop_front());
-			TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
-			j->ret = disk_status::fatal_disk_error;
-			j->error = storage_error(boost::asio::error::operation_aborted);
-			completed.push_back(j);
+			while (!new_jobs.empty())
+			{
+				auto* j = static_cast<aux::pread_disk_job*>(new_jobs.pop_front());
+				TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
+				j->ret = disk_status::fatal_disk_error;
+				j->error = storage_error(boost::asio::error::operation_aborted);
+				completed.push_back(j);
+			}
 		}
-	}
-	else
-	{
-		if (!new_jobs.empty())
+		else
 		{
-			std::lock_guard<std::mutex> l(m_job_mutex);
 			bool queue_generic = false;
 			bool queue_hash = false;
 			while (!new_jobs.empty())
