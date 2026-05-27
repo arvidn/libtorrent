@@ -964,6 +964,14 @@ namespace libtorrent::aux {
 		void on_i2p_resolve(error_code const& ec, char const* dest, peer_source_flags_t const source);
 		void add_i2p_peer(sha256_hash const& dest, peer_source_flags_t source);
 		bool is_i2p() const { return m_i2p; }
+
+		// returns true if this tracker is compatible with the torrent's
+		// i2p mode. Used to keep announce_with_tracker() and
+		// update_tracker_timer() in sync about which trackers will be
+		// contacted. If they disagree, the timer may schedule an immediate
+		// re-announce for a tracker that announce_with_tracker() will then
+		// skip, causing a CPU spin.
+		bool i2p_compatible_tracker(aux::announce_entry const& ae) const;
 #else
 		bool is_i2p() const { return false; }
 #endif

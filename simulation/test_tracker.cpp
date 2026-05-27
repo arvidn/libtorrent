@@ -1624,11 +1624,12 @@ struct tracker_ent
 	int tier;
 };
 
-void test_tracker_tiers(lt::settings_pack pack
-	, std::vector<address> local_addresses
-	, std::vector<tracker_ent> trackers
-	, std::function<void(int (&)[7])> test
-	, boost::optional<std::function<void(int (&)[7])>> test2 = boost::none)
+void test_tracker_tiers(lt::settings_pack pack,
+	std::vector<address> local_addresses,
+	std::vector<tracker_ent> trackers,
+	std::function<void(int (&)[7])> test,
+	boost::optional<std::function<void(int (&)[7])>> test2 = boost::none,
+	lt::torrent_flags_t extra_flags = {})
 {
 	using namespace libtorrent;
 
@@ -1720,6 +1721,7 @@ void test_tracker_tiers(lt::settings_pack pack
 	lt::add_torrent_params params = ::create_torrent(1);
 	params.flags &= ~lt::torrent_flags::auto_managed;
 	params.flags &= ~lt::torrent_flags::paused;
+	params.flags |= extra_flags;
 
 	for (auto const& t : trackers)
 	{
@@ -2098,3 +2100,243 @@ TORRENT_TEST(tracker_tiers_retry_all_multiple_trackers_per_tier)
 
 // TODO: test scrape
 
+#if TORRENT_USE_I2P
+
+// these tests exercise the interaction between announce_with_tracker() and
+// update_tracker_timer() when a torrent is flagged as i2p but its tracker
+// list mixes i2p and non-i2p URLs. announce_with_tracker() skips non-i2p
+// trackers when allow_i2p_mixed is false; update_tracker_timer() must skip
+// them too. If it doesn't, the regular tracker's default next_announce
+// (time_point32::min()) snaps the timer to "now", the timer fires, the
+// callback re-skips, re-arms at "now", and the simulator (or a real
+// session) loops at 100% CPU. These tests would hang if that spin
+// regressed.
+//
+// Note: the simulator can't resolve "*.i2p" hostnames, so the i2p tracker
+// URLs in these tests deliberately fail DNS. That mirrors the original bug
+// report's environment (i2p mode disabled / not configured) while still
+// flowing through every announce_with_tracker / update_tracker_timer
+// path.
+
+struct i2p_tracker_case
+{
+	// identifies the case in the test output
+	char const* name;
+	bool announce_to_all_tiers;
+	bool announce_to_all_trackers;
+	bool allow_i2p_mixed;
+	// whether the torrent is flagged as i2p (is_i2p() == true)
+	bool i2p_torrent;
+	std::vector<tracker_ent> trackers;
+	// when true, exactly one of server slots 0 and 1 is announced to (it
+	// gets 2 announces, the other 0) — used for the "pick one tracker in
+	// the tier" cases. slots 2..6 must still match `expected`.
+	// when false, every slot must match `expected` exactly.
+	bool pick_one_of_01;
+	int expected[7];
+};
+
+// the simulator can't resolve "*.i2p" hostnames, so i2p tracker URLs here
+// deliberately fail DNS. That mirrors the original bug report's environment
+// (i2p mode disabled / not configured) while still flowing through every
+// announce_with_tracker() / update_tracker_timer() path.
+i2p_tracker_case const i2p_tracker_cases[] = {
+	// mixed i2p + regular in the same tier, allow_i2p_mixed=false: the
+	// regular trackers must not be contacted and the sim must not spin.
+	{"mixed_same_tier",
+		false,
+		false,
+		false,
+		true,
+		{{"tracker.i2p", 0}, {"3.0.0.1", 0}, {"3.0.0.2", 0}},
+		false,
+		{0, 0, 0, 0, 0, 0, 0}},
+
+	// same, but allow_i2p_mixed=true: one of the two regular trackers is
+	// picked (hybrid torrent => 2 announces, one per info-hash).
+	{"mixed_same_tier_allow_mixed",
+		false,
+		false,
+		true,
+		true,
+		{{"tracker.i2p", 0}, {"3.0.0.1", 0}, {"3.0.0.2", 0}},
+		true,
+		{0, 0, 0, 0, 0, 0, 0}},
+
+	// i2p in tier 0, regular in tier 1: tier 1 must stay at 0 even though
+	// tier 0 only has an unreachable i2p tracker.
+	{"i2p_tier0_regular_tier1",
+		false,
+		false,
+		false,
+		true,
+		{{"tracker.i2p", 0}, {"3.0.0.1", 1}, {"3.0.0.2", 1}},
+		false,
+		{0, 0, 0, 0, 0, 0, 0}},
+
+	// inverse: regular in tier 0, i2p in tier 1. The regular trackers are
+	// still policy-skipped, and tier 0 being "non-working" must not make
+	// update_tracker_timer spin on the skipped tier-0 entries.
+	{"regular_tier0_i2p_tier1",
+		false,
+		false,
+		false,
+		true,
+		{{"3.0.0.1", 0}, {"3.0.0.2", 0}, {"tracker.i2p", 1}},
+		false,
+		{0, 0, 0, 0, 0, 0, 0}},
+
+	// i2p torrent with only regular trackers: every tracker is policy-
+	// blocked so the announce list is effectively empty; the timer must
+	// use the "nothing eligible" fallback rather than spinning.
+	{"i2p_torrent_only_regular",
+		false,
+		false,
+		false,
+		true,
+		{{"3.0.0.1", 0}, {"3.0.0.2", 0}, {"3.0.0.3", 1}},
+		false,
+		{0, 0, 0, 0, 0, 0, 0}},
+
+	// non-i2p torrent (no flag) that happens to list an i2p tracker URL.
+	// is_i2p() is false so the policy doesn't apply; regular trackers are
+	// announced normally and the i2p one just fails DNS.
+	{"non_i2p_torrent_with_i2p_url",
+		false,
+		false,
+		false,
+		false,
+		{{"tracker.i2p", 0}, {"3.0.0.1", 0}, {"3.0.0.2", 0}},
+		true,
+		{0, 0, 0, 0, 0, 0, 0}},
+
+	// only i2p trackers: the all-i2p case must also not spin or contact a
+	// regular tracker.
+	{"i2p_torrent_only_i2p",
+		false,
+		false,
+		false,
+		true,
+		{{"tracker1.i2p", 0}, {"tracker2.i2p", 1}},
+		false,
+		{0, 0, 0, 0, 0, 0, 0}},
+};
+
+TORRENT_TEST(i2p_tracker_combinations)
+{
+	for (auto const& tc : i2p_tracker_cases)
+	{
+		std::printf("\n=== i2p tracker case: %s ===\n", tc.name);
+		settings_pack pack = settings();
+		pack.set_bool(settings_pack::announce_to_all_tiers, tc.announce_to_all_tiers);
+		pack.set_bool(settings_pack::announce_to_all_trackers, tc.announce_to_all_trackers);
+		pack.set_bool(settings_pack::allow_i2p_mixed, tc.allow_i2p_mixed);
+		auto const flags = tc.i2p_torrent ? lt::torrent_flags::i2p_torrent : lt::torrent_flags_t{};
+		test_tracker_tiers(
+			pack,
+			{addr("50.0.0.1")},
+			tc.trackers,
+			[&tc](int(&a)[7]) {
+				int first = 0;
+				if (tc.pick_one_of_01)
+				{
+					TEST_CHECK(one_of(a[0], a[1]));
+					first = 2;
+				}
+				for (int i = first; i < 7; ++i)
+					TEST_EQUAL(a[i], tc.expected[i]);
+			},
+			boost::none,
+			flags);
+	}
+}
+
+// Regression test for the shared tracker_request being reused across the
+// tracker loop in announce_with_tracker(). The tracker_request::i2p bit
+// used to only ever get OR-ed in, so with allow_i2p_mixed=true an i2p
+// tracker that precedes a regular one would leave the bit set on the
+// shared request. That made the regular tracker's compact (6-byte) peer
+// list get parsed as 32-byte i2p destinations, mangling the peer count.
+// Here the i2p tracker is in tier 0 (so it's processed first and fails
+// DNS) and the regular tracker is in tier 1; with announce_to_all_tiers
+// the regular tracker is contacted and must report all of its peers.
+TORRENT_TEST(tracker_i2p_kind_not_leaked_to_regular_tracker)
+{
+	sim_config network_cfg;
+	sim::simulation sim{network_cfg};
+
+	sim::asio::io_context tracker_ios(sim, addr("3.0.0.1"));
+	sim::http_server http(tracker_ios, 8080);
+
+	// 6 compact IPv4 peers => 36 bytes. If this response is misparsed as
+	// i2p destinations (32 bytes each) it yields only 1 "peer".
+	int const num_compact_peers = 6;
+
+	int max_reported_peers = -1;
+	int regular_announces = 0;
+
+	http.register_handler("/announce",
+		[&](std::string /* method */,
+			std::string /* req */
+			,
+			std::map<std::string, std::string>&) {
+			++regular_announces;
+			std::string peers;
+			for (int i = 0; i < num_compact_peers; ++i)
+			{
+				peers += char(10);
+				peers += char(0);
+				peers += char(0);
+				peers += char(i + 1); // 10.0.0.(i+1)
+				peers += char(0x1a);
+				peers += char(0xe1); // port 6881
+			}
+			std::string const body =
+				"d8:intervali1800e5:peers" + std::to_string(peers.size()) + ":" + peers + "e";
+			return sim::send_response(200, "OK", int(body.size())) + body;
+		});
+
+	lt::session_proxy zombie;
+	asio::io_context ios(sim, {addr("50.0.0.1")});
+	settings_pack pack = settings();
+	pack.set_bool(settings_pack::allow_i2p_mixed, true);
+	pack.set_bool(settings_pack::announce_to_all_tiers, true);
+	pack.set_bool(settings_pack::announce_to_all_trackers, false);
+	pack.set_str(settings_pack::listen_interfaces, "50.0.0.1:6881");
+
+	auto ses = std::make_shared<lt::session>(pack, ios);
+
+	ses->set_alert_notify([&] {
+		post(ios, [&] {
+			std::vector<lt::alert*> alerts;
+			ses->pop_alerts(&alerts);
+			for (lt::alert* a : alerts)
+			{
+				if (auto* tr = alert_cast<tracker_reply_alert>(a))
+					max_reported_peers = std::max(max_reported_peers, tr->num_peers);
+			}
+		});
+	});
+
+	lt::add_torrent_params params = ::create_torrent(1);
+	params.flags &= ~lt::torrent_flags::auto_managed;
+	params.flags &= ~lt::torrent_flags::paused;
+	params.flags |= lt::torrent_flags::i2p_torrent;
+	params.trackers.push_back("http://tracker.i2p:8080/announce");
+	params.tracker_tiers.push_back(0);
+	params.trackers.push_back("http://3.0.0.1:8080/announce");
+	params.tracker_tiers.push_back(1);
+	params.save_path = save_path(0);
+	ses->async_add_torrent(params);
+
+	sim::timer t(sim, lt::seconds(30), [&](boost::system::error_code const&) {
+		zombie = ses->abort();
+		ses.reset();
+	});
+	sim.run();
+
+	TEST_CHECK(regular_announces > 0);
+	TEST_EQUAL(max_reported_peers, num_compact_peers);
+}
+
+#endif // TORRENT_USE_I2P

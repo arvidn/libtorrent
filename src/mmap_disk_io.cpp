@@ -225,8 +225,8 @@ private:
 
 	std::atomic_flag m_jobs_aborted = ATOMIC_FLAG_INIT;
 
-	// most jobs are posted to m_generic_io_jobs
-	// but hash jobs are posted to m_hash_io_jobs if m_hash_threads
+	// most jobs are posted to m_generic_threads
+	// but hash jobs are posted to m_hash_threads if it
 	// has a non-zero maximum thread count
 	aux::disk_io_thread_pool m_generic_threads;
 	aux::disk_io_thread_pool m_hash_threads;
@@ -1163,6 +1163,10 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
 			m_generic_threads.push_back(j);
 			l.unlock();
+
+			if (m_generic_threads.max_threads() == 0 && user_add) immediate_execute();
+
+			return;
 		}
 
 		if (num_threads() == 0 && user_add)
@@ -1228,9 +1232,14 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 	void mmap_disk_io::immediate_execute()
 	{
-		while (!m_generic_threads.empty())
+		// Hash threads can lower fences and touch the generic queue while
+		// there are no generic disk threads.
+		for (;;)
 		{
+			std::unique_lock<std::mutex> l(m_job_mutex);
+			if (m_generic_threads.empty()) return;
 			auto* j = static_cast<aux::mmap_disk_job*>(m_generic_threads.pop_front());
+			l.unlock();
 			execute_job(j);
 		}
 	}
@@ -1476,6 +1485,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs, -ret);
 		TORRENT_ASSERT(int(m_stats_counters[counters::blocked_disk_jobs]) >= 0);
 
+		jobqueue_t execute_now;
 		if (m_abort.load())
 		{
 			while (!new_jobs.empty())
@@ -1491,19 +1501,38 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		{
 			if (!new_jobs.empty())
 			{
+				std::lock_guard<std::mutex> l(m_job_mutex);
+				bool queue_generic = false;
+				bool queue_hash = false;
+				while (!new_jobs.empty())
 				{
-					std::lock_guard<std::mutex> l(m_job_mutex);
-					m_generic_threads.append(std::move(new_jobs));
+					auto* j = static_cast<aux::mmap_disk_job*>(new_jobs.pop_front());
+					aux::disk_io_thread_pool& pool = pool_for_job(j);
+					if (pool.max_threads() == 0)
+					{
+						execute_now.push_back(j);
+						continue;
+					}
+
+					pool.push_back(j);
+					if (&pool == &m_hash_threads)
+						queue_hash = true;
+					else
+						queue_generic = true;
 				}
 
-				{
-					std::lock_guard<std::mutex> l(m_job_mutex);
-					m_generic_threads.submit_jobs();
-				}
+				if (queue_generic) m_generic_threads.submit_jobs();
+				if (queue_hash) m_hash_threads.submit_jobs();
 			}
 		}
 
 		m_completed_jobs.append(m_ios, std::move(jobs));
+
+		while (!execute_now.empty())
+		{
+			auto* j = static_cast<aux::mmap_disk_job*>(execute_now.pop_front());
+			execute_job(j);
+		}
 	}
 }
 

@@ -72,6 +72,7 @@ namespace libtorrent::aux {
 
 		TORRENT_ASSERT(blk > 0);
 		TORRENT_ASSERT(priority > 0);
+		TORRENT_ASSERT(channels.size() <= bw_request::max_bandwidth_channels);
 
 		// if this assert is hit, the peer is requesting more bandwidth before
 		// being assigned bandwidth for an already outstanding request

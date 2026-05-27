@@ -1247,6 +1247,10 @@ void pread_disk_io::add_fence_job(aux::pread_disk_job* j, bool const user_add)
 		TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
 		m_generic_threads.push_back(j);
 		l.unlock();
+
+		if (m_generic_threads.max_threads() == 0 && user_add) immediate_execute();
+
+		return;
 	}
 
 	if (num_threads() == 0 && user_add)
@@ -1310,9 +1314,14 @@ void pread_disk_io::add_job(aux::pread_disk_job* j, bool const user_add)
 
 void pread_disk_io::immediate_execute()
 {
-	while (!m_generic_threads.empty())
+	// Hash threads can lower fences and touch the generic queue while
+	// there are no generic disk threads.
+	for (;;)
 	{
+		std::unique_lock<std::mutex> l(m_job_mutex);
+		if (m_generic_threads.empty()) break;
 		auto* j = static_cast<aux::pread_disk_job*>(m_generic_threads.pop_front());
+		l.unlock();
 		execute_job(j);
 	}
 	// mirror what thread_fun does: flush force-flush pieces and handle
@@ -1800,6 +1809,7 @@ void pread_disk_io::add_completed_jobs_impl(jobqueue_t jobs, jobqueue_t& complet
 	m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs, -ret);
 	TORRENT_ASSERT(int(m_stats_counters[counters::blocked_disk_jobs]) >= 0);
 
+	jobqueue_t execute_now;
 	if (m_abort.load())
 	{
 		while (!new_jobs.empty())
@@ -1815,19 +1825,37 @@ void pread_disk_io::add_completed_jobs_impl(jobqueue_t jobs, jobqueue_t& complet
 	{
 		if (!new_jobs.empty())
 		{
+			std::lock_guard<std::mutex> l(m_job_mutex);
+			bool queue_generic = false;
+			bool queue_hash = false;
+			while (!new_jobs.empty())
 			{
-				std::lock_guard<std::mutex> l(m_job_mutex);
-				m_generic_threads.append(std::move(new_jobs));
+				auto* j = static_cast<aux::pread_disk_job*>(new_jobs.pop_front());
+				aux::disk_io_thread_pool& pool = pool_for_job(j);
+				if (pool.max_threads() == 0)
+				{
+					execute_now.push_back(j);
+					continue;
+				}
+				pool.push_back(j);
+				if (&pool == &m_hash_threads)
+					queue_hash = true;
+				else
+					queue_generic = true;
 			}
 
-			{
-				std::lock_guard<std::mutex> l(m_job_mutex);
-				m_generic_threads.submit_jobs();
-			}
+			if (queue_generic) m_generic_threads.submit_jobs();
+			if (queue_hash) m_hash_threads.submit_jobs();
 		}
 	}
 
 	m_completed_jobs.append(m_ios, std::move(jobs));
+
+	while (!execute_now.empty())
+	{
+		auto* j = static_cast<aux::pread_disk_job*>(execute_now.pop_front());
+		execute_job(j);
+	}
 }
 
 }
