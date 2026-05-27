@@ -656,6 +656,71 @@ def check_matplotlib() -> None:
         )
 
 
+def suggest_dirty_limit_if_high_ram() -> None:
+    """On a high-RAM Linux host the OS dirty-page writeback thresholds (a
+    percentage of total RAM) are large enough that a multi-GB download buffers
+    entirely in the page cache and writeback rarely throttles -- so disk-bound
+    results don't represent a typical machine. Print a suggestion to cap the
+    thresholds (which needs root, so we only suggest it -- we don't apply it).
+    """
+    if platform.system() != "Linux":
+        return
+    try:
+        mem_kb = 0
+        with open("/proc/meminfo", encoding="utf-8") as f:
+            for line in f:
+                if line.startswith("MemTotal:"):
+                    mem_kb = int(line.split()[1])
+                    break
+    except OSError:
+        return
+    gib = mem_kb / (1024 * 1024)
+    if gib < 32:
+        return
+
+    def read_int(name: str) -> int | None:
+        try:
+            return int(Path(f"/proc/sys/vm/{name}").read_text())
+        except OSError:
+            return None
+
+    bg = 800 * 1024 * 1024
+    dirty = 1600 * 1024 * 1024
+
+    cur_bytes = read_int("dirty_bytes")
+    cur_bg_bytes = read_int("dirty_background_bytes")
+
+    # the user already applied the recommended cap -- nothing to suggest
+    if cur_bytes > 0 and cur_bytes <= dirty and cur_bg_bytes > 0 and cur_bg_bytes <= bg:
+        return
+
+    # vm.dirty_bytes and vm.dirty_ratio are mutually exclusive: setting one
+    # zeroes the other. Build the restore command from whichever form is
+    # currently in effect, so we reverse our change exactly rather than
+    # assuming the kernel defaults.
+    cur_ratio = read_int("dirty_ratio")
+    cur_bg_ratio = read_int("dirty_background_ratio")
+    if cur_bytes:  # already byte-based; restore the original byte values
+        restore = ("vm.dirty_background_bytes={} vm.dirty_bytes={}"
+                   .format(cur_bg_bytes, cur_bytes))
+    elif cur_ratio is not None and cur_bg_ratio is not None:
+        restore = ("vm.dirty_background_ratio={} vm.dirty_ratio={}"
+                   .format(cur_bg_ratio, cur_ratio))
+    else:
+        restore = "vm.dirty_background_ratio=10 vm.dirty_ratio=20"
+
+    print(
+        f"note: this host has {gib:.0f} GiB RAM. The OS dirty-page writeback\n"
+        "  thresholds default to a percentage of RAM, so a multi-GB download\n"
+        "  buffers in the page cache and writeback rarely throttles -- disk-bound\n"
+        "  results won't represent a typical (e.g. 8 GB) machine. To emulate one,\n"
+        "  cap the thresholds before running (needs root):\n"
+        f"    sudo sysctl -w vm.dirty_background_bytes={bg} vm.dirty_bytes={dirty}\n"
+        "  and restore your current setting afterward with:\n"
+        f"    sudo sysctl -w {restore}\n"
+    )
+
+
 def main() -> None:
     p = ArgumentParser()
     p.add_argument("--toolset", default="")
@@ -740,6 +805,7 @@ def main() -> None:
 
     check_perf_environment()
     check_matplotlib()
+    suggest_dirty_limit_if_high_ram()
 
     subprocess.check_call(
         [
