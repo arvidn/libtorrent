@@ -25,6 +25,7 @@ see LICENSE file.
 #include <algorithm>
 #include <cstdio> // for snprintf
 #include <cinttypes> // for PRId64 et.al.
+#include <limits>
 
 #include "libtorrent/aux_/http_tracker_connection.hpp"
 #include "libtorrent/aux_/http_connection.hpp"
@@ -39,6 +40,16 @@ see LICENSE file.
 #include "libtorrent/aux_/array.hpp"
 
 namespace libtorrent::aux {
+
+	namespace {
+
+		bool valid_compact_peer_list(int const len, int const entry_size)
+		{
+			TORRENT_ASSERT(entry_size > 0);
+			return len % entry_size == 0;
+		}
+
+	}
 
 	http_tracker_connection::http_tracker_connection(
 		io_context& ios
@@ -492,7 +503,14 @@ namespace libtorrent::aux {
 			ec = errors::invalid_tracker_response;
 			return false;
 		}
-		ret.port = std::uint16_t(i.int_value());
+
+		auto const port = i.int_value();
+		if (port < 0 || port > std::numeric_limits<std::uint16_t>::max())
+		{
+			ec = errors::invalid_tracker_response;
+			return false;
+		}
+		ret.port = std::uint16_t(port);
 
 		return true;
 	}
@@ -573,9 +591,13 @@ namespace libtorrent::aux {
 #if TORRENT_USE_I2P
 			if (flags & tracker_request::i2p)
 			{
+				if (!valid_compact_peer_list(len, 32))
+				{
+					ec = errors::invalid_peers_entry;
+					return resp;
+				}
 				for (int i = 0; i < len; i += 32)
 				{
-					if (len - i < 32) break;
 					i2p_peer_entry p;
 					std::memcpy(p.destination.data(), peers + i, 32);
 					resp.i2p_peers.push_back(p);
@@ -584,11 +606,14 @@ namespace libtorrent::aux {
 			else
 #endif
 			{
+				if (!valid_compact_peer_list(len, 6))
+				{
+					ec = errors::invalid_peers_entry;
+					return resp;
+				}
 				resp.peers4.reserve(std::size_t(len / 6));
 				for (int i = 0; i < len; i += 6)
 				{
-					if (len - i < 6) break;
-
 					ipv4_peer_entry p;
 					p.ip = aux::read_v4_address(peers).to_bytes();
 					p.port = aux::read_uint16(peers);
@@ -626,11 +651,14 @@ namespace libtorrent::aux {
 		{
 			char const* peers = ipv6_peers.string_ptr();
 			int const len = ipv6_peers.string_length();
+			if (!valid_compact_peer_list(len, 18))
+			{
+				ec = errors::invalid_peers_entry;
+				return resp;
+			}
 			resp.peers6.reserve(std::size_t(len / 18));
 			for (int i = 0; i < len; i += 18)
 			{
-				if (len - i < 18) break;
-
 				ipv6_peer_entry p;
 				p.ip = aux::read_v6_address(peers).to_bytes();
 				p.port = aux::read_uint16(peers);

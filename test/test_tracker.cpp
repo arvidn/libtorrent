@@ -97,6 +97,31 @@ TORRENT_TEST(parse_peers4)
 	}
 }
 
+TORRENT_TEST(parse_peers4_invalid_length)
+{
+	char const response[] = "d5:peers7:\x01\x02\x03\x04\x30\x10\x01" "e";
+	error_code ec;
+	tracker_response resp = parse_tracker_response(response
+		, ec, {}, sha1_hash());
+
+	TEST_EQUAL(ec, errors::invalid_peers_entry);
+	TEST_EQUAL(resp.peers4.size(), 0);
+}
+
+TORRENT_TEST(parse_peers6_invalid_length)
+{
+	std::string response = "d6:peers619:";
+	response.append(19, '\1');
+	response += 'e';
+
+	error_code ec;
+	tracker_response resp = parse_tracker_response(response
+		, ec, {}, sha1_hash());
+
+	TEST_EQUAL(ec, errors::invalid_peers_entry);
+	TEST_EQUAL(resp.peers6.size(), 0);
+}
+
 #if TORRENT_USE_I2P
 TORRENT_TEST(parse_i2p_peers)
 {
@@ -306,6 +331,18 @@ TORRENT_TEST(extract_peer_missing_port)
 {
 	// missing port
 	aux::peer_entry result = extract_peer("d7:peer id20:abababababababababab2:ip4:abcde"
+		, errors::invalid_tracker_response, false);
+}
+
+TORRENT_TEST(extract_peer_negative_port)
+{
+	peer_entry result = extract_peer("d2:ip11:example.com4:porti-1ee"
+		, errors::invalid_tracker_response, false);
+}
+
+TORRENT_TEST(extract_peer_port_overflow)
+{
+	peer_entry result = extract_peer("d2:ip11:example.com4:porti65536ee"
 		, errors::invalid_tracker_response, false);
 }
 
