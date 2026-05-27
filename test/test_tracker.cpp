@@ -215,6 +215,20 @@ TORRENT_TEST(parse_i2p_peers)
 			== sha256_hash(reinterpret_cast<char const*>(peers + 10 * 32)));
 	}
 }
+
+TORRENT_TEST(parse_i2p_peers_invalid_length)
+{
+	std::string response = "d5:peers33:";
+	response.append(33, '\1');
+	response += 'e';
+
+	error_code ec;
+	tracker_response resp = parse_tracker_response(response
+		, ec, tracker_request::i2p, sha1_hash());
+
+	TEST_EQUAL(ec, errors::invalid_peers_entry);
+	TEST_EQUAL(resp.i2p_peers.size(), 0);
+}
 #endif // TORRENT_USE_I2P
 
 TORRENT_TEST(parse_interval)
