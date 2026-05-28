@@ -549,6 +549,17 @@ def update_results(
                     f".. image:: {chart_name}\n"
                     f"   :alt: {sub_heading}\n\n"
                 )
+        # disk read-latency matrix for this mode, right under the rate
+        # matrices (so it follows the Upload rate section). The cell value is
+        # the peak interval p95 read latency (from disk_latency.collect_latency);
+        # it is only nonzero for disk-latency-stats builds and backends that
+        # have a disk job queue (mmap, pread -- not posix).
+        lat_heading = "Disk read latency (peak p95, ms)"
+        doc_parts.append(f"{lat_heading}\n{'-' * len(lat_heading)}\n\n")
+        doc_parts.append(
+            render_pivot(mode_results, "read_latency_p95_ms", mode_key)
+        )
+        doc_parts.append("\n")
         # peak RSS matrix for this mode -- memory rather than throughput.
         mem_heading = "Max memory usage (MiB RSS)"
         doc_parts.append(f"{mem_heading}\n{'-' * len(mem_heading)}\n\n")
@@ -565,16 +576,6 @@ def update_results(
                 f".. image:: {mem_chart}\n"
                 f"   :alt: {mem_title}\n\n"
             )
-        # disk read-latency matrix for this mode. The cell value is the peak
-        # interval p95 read latency (from disk_latency.collect_latency); it is
-        # only nonzero for disk-latency-stats builds and backends that have a
-        # disk job queue (mmap, pread -- not posix).
-        lat_heading = "Disk read latency (peak p95, ms)"
-        doc_parts.append(f"{lat_heading}\n{'-' * len(lat_heading)}\n\n")
-        doc_parts.append(
-            render_pivot(mode_results, "read_latency_p95_ms", mode_key)
-        )
-        doc_parts.append("\n")
 
     rst_text = "".join(doc_parts)
 
