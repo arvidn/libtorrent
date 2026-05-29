@@ -30,6 +30,8 @@ from dataclasses import field
 from pathlib import Path
 import re
 
+import plot_layout
+
 # number of disk_read_latency buckets exposed by libtorrent (see
 # performance_counters.hpp: disk_read_latency1 .. disk_read_latency20), linear
 # in 30 ms steps.
@@ -244,13 +246,33 @@ def plot_latency(
     # max-width:100%, so a narrower image renders smaller alongside them).
     fig, ax = plt.subplots(figsize=(12.0, 4.0))
     mesh = ax.pcolormesh(x_edges, y_edges, z_masked, cmap=cmap, norm=norm)
-    cbar = fig.colorbar(mesh, ax=ax)
+
+    # pin the heat-map box to the shared summary-page margins (see plot_layout)
+    # so it lines up with the other plots, and put the colorbar in a thin
+    # dedicated axes inside the reserved right margin -- a normal
+    # fig.colorbar(ax=ax) would steal width from the heat-map and make this
+    # box narrower than the rest.
+    box_bottom, box_top = 0.16, 0.90
+    fig.subplots_adjust(
+        left=plot_layout.BOX_LEFT,
+        right=plot_layout.BOX_RIGHT,
+        bottom=box_bottom,
+        top=box_top,
+    )
+    cax = fig.add_axes(
+        [
+            plot_layout.BOX_RIGHT + 0.02,
+            box_bottom,
+            0.018,
+            box_top - box_bottom,
+        ]
+    )
+    cbar = fig.colorbar(mesh, cax=cax)
     cbar.set_label("read jobs")
     ax.set_ylim(bottom=0)
     ax.set_xlabel("time (s)")
     ax.set_ylabel("read latency (ms)")
     ax.set_title(title)
-    fig.tight_layout()
     fig.savefig(out_path, dpi=100)
     plt.close(fig)
     return True
