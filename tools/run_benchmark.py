@@ -1209,7 +1209,7 @@ def write_test_summary(output_dir: Path, name: str) -> None:
     """Write summary.html into a test run's output_dir. It links the session
     stats page (index.html, from parse_session_stats), embeds the vmstat
     plots, and links the raw logs. results.rst points each rate cell here.
-    Artifacts that are absent (e.g. plots when gnuplot is missing, or
+    Artifacts that are absent (e.g. plots when matplotlib is missing, or
     profile.html off Linux) are simply skipped.
     """
     parts = [
