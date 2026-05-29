@@ -6,6 +6,8 @@ import platform
 import subprocess
 from time import monotonic
 
+import plot_layout
+
 
 @dataclass(frozen=True)
 class Metric:
@@ -335,7 +337,12 @@ def plot_output(filename: str, keys: list[str]) -> None:
     output_dir, in_file = os.path.split(filename)
     gnuplot_file = f"{output_dir}/plot_{in_file}.gnuplot"
     with open(gnuplot_file, "w+") as f:
-        f.write("""set term png size 1200,700
+        # pin the plot box to the shared summary-page margins (see plot_layout)
+        # so these plots line up with the matplotlib ones. y2 tic labels render
+        # to the right of rmargin, within the reserved right margin.
+        f.write(f"""set term png size 1200,700
+set lmargin at screen {plot_layout.BOX_LEFT}
+set rmargin at screen {plot_layout.BOX_RIGHT}
 set format y '%.0f'
 set xlabel "time (s)"
 set xrange [0:*]

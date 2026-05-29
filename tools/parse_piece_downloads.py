@@ -19,6 +19,8 @@ from collections import defaultdict
 from pathlib import Path
 import re
 
+import plot_layout
+
 LINE_RE = re.compile(
     r"^\[(?P<ts>\d+)\]\s+(?P<tid>[0-9a-f]+):\s+PIECE_PASSED\s+\((?P<piece>\d+)\)"
 )
@@ -71,7 +73,15 @@ def plot_piece_downloads(
         ax.legend(title="torrent", markerscale=3)
     ax.grid(True, alpha=0.3)
 
-    fig.tight_layout()
+    # pin the plot box to the shared summary-page margins (see plot_layout) so
+    # it lines up with the other plots, instead of letting tight_layout pick a
+    # near-zero right margin (which makes this box wider than the rest).
+    fig.subplots_adjust(
+        left=plot_layout.BOX_LEFT,
+        right=plot_layout.BOX_RIGHT,
+        bottom=0.09,
+        top=0.93,
+    )
     fig.savefig(output, dpi=100)
     plt.close(fig)
     return True
