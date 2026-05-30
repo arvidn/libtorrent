@@ -16,6 +16,8 @@ see LICENSE file.
 #include "libtorrent/aux_/buffer.hpp"
 
 #include <deque>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -103,11 +105,17 @@ namespace libtorrent::aux {
 
 		void pop_front(int bytes_to_pop);
 
+		// Holder concept: provides char* data() const. If the holder
+		// also has a zero-arg size() (e.g. aux::buffer's malloc-usable
+		// rounded capacity, or a span's length), the trailing bytes
+		// beyond used_size are exposed as slack for subsequent
+		// send_buffer() calls to coalesce small messages into. Holders
+		// without size() (e.g. disk_buffer_holder, whose backing
+		// allocation may not be fully owned) suppress that piggybacking.
 		template <typename Holder>
 		void append_buffer(Holder buffer, int used_size)
 		{
 			TORRENT_ASSERT(is_single_thread());
-			TORRENT_ASSERT(int(buffer.size()) >= used_size);
 			m_vec.emplace_back();
 			buffer_t& b = m_vec.back();
 			init_buffer_entry<Holder>(b, std::move(buffer), used_size);
@@ -117,7 +125,6 @@ namespace libtorrent::aux {
 		void prepend_buffer(Holder buffer, int used_size)
 		{
 			TORRENT_ASSERT(is_single_thread());
-			TORRENT_ASSERT(int(buffer.size()) >= used_size);
 			m_vec.emplace_front();
 			buffer_t& b = m_vec.front();
 			init_buffer_entry<Holder>(b, std::move(buffer), used_size);
@@ -146,6 +153,12 @@ namespace libtorrent::aux {
 		~chained_buffer();
 
 	private:
+		template <typename T, typename = void>
+		struct has_size : std::false_type
+		{};
+		template <typename T>
+		struct has_size<T, std::void_t<decltype(std::declval<T const&>().size())>> : std::true_type
+		{};
 
 		template <typename Holder>
 		void init_buffer_entry(buffer_t& b, Holder buf, int used_size)
@@ -153,7 +166,11 @@ namespace libtorrent::aux {
 			static_assert(sizeof(Holder) <= sizeof(b.holder), "buffer holder too large");
 
 			b.buf = buf.data();
-			b.size = static_cast<int>(buf.size());
+			if constexpr (has_size<Holder>::value)
+				b.size = int(buf.size());
+			else
+				b.size = used_size;
+			TORRENT_ASSERT(b.size >= used_size);
 			b.used_size = used_size;
 
 #ifdef _MSC_VER

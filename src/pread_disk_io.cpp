@@ -439,7 +439,7 @@ status_t pread_disk_io::do_job(aux::job::partial_read& a, aux::pread_disk_job* j
 
 status_t pread_disk_io::do_job(aux::job::read& a, aux::pread_disk_job* j)
 {
-	a.buf = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"), default_block_size);
+	a.buf = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"));
 	if (!a.buf)
 	{
 		j->error.ec = error::no_memory;
@@ -522,11 +522,9 @@ void pread_disk_io::async_read(storage_index_t storage, peer_request const& r
 
 		TORRENT_ASSERT(r.length > len1);
 
-		int const ret = m_cache.get2(loc, block_idx, [&](char const* buf1, char const* buf2)
-		{
-			buffer = disk_buffer_holder(m_buffer_pool
-				, m_buffer_pool.allocate_buffer("send buffer")
-				, r.length);
+		int const ret = m_cache.get2(loc, block_idx, [&](char const* buf1, char const* buf2) {
+			buffer =
+				disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"));
 			if (!buffer)
 			{
 				ec.ec = error::no_memory;
@@ -580,7 +578,8 @@ void pread_disk_io::async_read(storage_index_t storage, peer_request const& r
 		{
 			TORRENT_ASSERT_VAL(read_offset <= buf.size(), read_offset);
 			TORRENT_ASSERT_VAL(read_offset + r.length <= buf.size(), r.length);
-			buffer = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"), r.length);
+			buffer =
+				disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"));
 			if (!buffer)
 			{
 				ec.ec = error::no_memory;
@@ -615,8 +614,7 @@ bool pread_disk_io::async_write(storage_index_t const storage, peer_request cons
 	, disk_job_flags_t const flags)
 {
 	TORRENT_ASSERT(valid_flags(flags));
-	disk_buffer_holder buffer(m_buffer_pool, m_buffer_pool.allocate_buffer(
-		"receive buffer"), r.length);
+	disk_buffer_holder buffer(m_buffer_pool, m_buffer_pool.allocate_buffer("receive buffer"));
 	if (!buffer) aux::throw_ex<std::bad_alloc>();
 	std::memcpy(buffer.data(), buf, aux::numeric_cast<std::size_t>(r.length));
 
