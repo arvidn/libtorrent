@@ -290,7 +290,8 @@ int run_test(test_case const& t)
 							throw std::runtime_error("async_read failed");
 						}
 
-						int const block_size = std::min((fs.piece_size(req.piece) - req.start), int(h.size()));
+						int const block_size =
+							std::min(fs.piece_size(req.piece) - req.start, req.length);
 						if (!check_block_fill(req, {h.data(), block_size}))
 						{
 							std::cerr << "read buffer mismatch: (" << req.piece << ", " << req.start << ")\n";

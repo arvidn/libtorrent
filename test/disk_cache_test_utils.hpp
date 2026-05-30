@@ -43,7 +43,7 @@ struct test_allocator : lt::buffer_allocator_interface
 	lt::disk_buffer_holder alloc(int const size = lt::default_block_size)
 	{
 		++live;
-		return lt::disk_buffer_holder(*this, new char[static_cast<size_t>(size)], size);
+		return lt::disk_buffer_holder(*this, new char[static_cast<size_t>(size)]);
 	}
 
 	virtual ~test_allocator() = default;
@@ -107,7 +107,7 @@ struct cache_fixture
 	{
 		auto j = std::make_unique<lt::aux::pread_disk_job>();
 		auto buf = alloc.alloc(buf_size);
-		std::memset(buf.data(), fill, std::size_t(buf.size()));
+		std::memset(buf.data(), fill, std::size_t(buf_size));
 		j->action = lt::aux::job::write{
 			{},
 			std::move(buf),

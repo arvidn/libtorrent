@@ -59,8 +59,7 @@ struct TORRENT_EXTRA_EXPORT disabled_disk_io final
 		TORRENT_UNUSED(r);
 
 		post(m_ios, [this, h = std::move(handler)] {
-			h(disk_buffer_holder(*this, this->m_zero_buffer.get(), default_block_size)
-				, storage_error{});
+			h(disk_buffer_holder(*this, this->m_zero_buffer.get()), storage_error{});
 		});
 	}
 

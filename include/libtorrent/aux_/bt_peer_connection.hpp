@@ -319,7 +319,6 @@ namespace libtorrent::aux {
 #endif
 
 	public:
-
 		// these functions encrypt the send buffer if m_rc4_encrypted
 		// is true, otherwise it passes the call to the
 		// peer_connection functions of the same names

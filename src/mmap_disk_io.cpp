@@ -437,7 +437,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 	status_t mmap_disk_io::do_job(aux::job::read& a, aux::mmap_disk_job* j)
 	{
-		a.buf = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer (cache miss)"), default_block_size);
+		a.buf = disk_buffer_holder(
+			m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer (cache miss)"));
 		if (!a.buf)
 		{
 			j->error.ec = error::no_memory;
@@ -572,24 +573,21 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 			TORRENT_ASSERT(r.length > len1);
 
-			int const ret = m_store_buffer.get2(loc1, loc2, [&](char const* buf1, char const* buf2)
-			{
-				buffer = disk_buffer_holder(m_buffer_pool
-					, m_buffer_pool.allocate_buffer("send buffer (cache hit)")
-					, r.length);
-				if (!buffer)
-				{
-					ec.ec = error::no_memory;
-					ec.operation = operation_t::alloc_cache_piece;
-					return 3;
-				}
+			int const ret =
+				m_store_buffer.get2(loc1, loc2, [&](char const* buf1, char const* buf2) {
+					buffer = disk_buffer_holder(
+						m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer (cache hit)"));
+					if (!buffer)
+					{
+						ec.ec = error::no_memory;
+						ec.operation = operation_t::alloc_cache_piece;
+						return 3;
+					}
 
-				if (buf1)
-					std::memcpy(buffer.data(), buf1 + read_offset, std::size_t(len1));
-				if (buf2)
-					std::memcpy(buffer.data() + len1, buf2, std::size_t(r.length - len1));
-				return (buf1 ? 2 : 0) | (buf2 ? 1 : 0);
-			});
+					if (buf1) std::memcpy(buffer.data(), buf1 + read_offset, std::size_t(len1));
+					if (buf2) std::memcpy(buffer.data() + len1, buf2, std::size_t(r.length - len1));
+					return (buf1 ? 2 : 0) | (buf2 ? 1 : 0);
+				});
 
 			if (ret == 3)
 			{
@@ -624,18 +622,18 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		}
 		else
 		{
-			if (m_store_buffer.get({ storage, r.piece, block_offset }, [&](char const* buf)
-			{
-				buffer = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer (cache hit)"), r.length);
-				if (!buffer)
-				{
-					ec.ec = error::no_memory;
-					ec.operation = operation_t::alloc_cache_piece;
-					return;
-				}
+			if (m_store_buffer.get({storage, r.piece, block_offset}, [&](char const* buf) {
+					buffer = disk_buffer_holder(
+						m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer (cache hit)"));
+					if (!buffer)
+					{
+						ec.ec = error::no_memory;
+						ec.operation = operation_t::alloc_cache_piece;
+						return;
+					}
 
-				std::memcpy(buffer.data(), buf + read_offset, std::size_t(r.length));
-			}))
+					std::memcpy(buffer.data(), buf + read_offset, std::size_t(r.length));
+				}))
 			{
 				handler(std::move(buffer), ec);
 				return;
@@ -660,8 +658,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		, disk_job_flags_t const flags)
 	{
 		TORRENT_ASSERT(valid_flags(flags));
-		disk_buffer_holder buffer(m_buffer_pool, m_buffer_pool.allocate_buffer(
-			"store buffer"), default_block_size);
+		disk_buffer_holder buffer(m_buffer_pool, m_buffer_pool.allocate_buffer("store buffer"));
 		if (!buffer) aux::throw_ex<std::bad_alloc>();
 		std::memcpy(buffer.data(), buf, aux::numeric_cast<std::size_t>(r.length));
 

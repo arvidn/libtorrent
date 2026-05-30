@@ -1939,16 +1939,23 @@ struct write_handler
 
 struct read_handler
 {
-	read_handler(int& outstanding, lt::span<char const> expected) : m_out(&outstanding), m_exp(expected) {}
+	// disk_buffer_holder doesn't expose a size, so the caller is
+	// responsible for sizing the read to default_block_size and
+	// supplying that many expected bytes.
+	read_handler(int& outstanding, char const* expected)
+		: m_out(&outstanding)
+		, m_exp(expected)
+	{}
 	void operator()(lt::disk_buffer_holder h, lt::storage_error const& ec) const
 	{
 		--(*m_out);
 		if (ec) std::cout << "async_read failed " << ec.ec.message() << '\n';
 		TEST_CHECK(!ec);
-		TEST_CHECK(m_exp == lt::span<char const>(h.data(), h.size()));
+		TEST_CHECK(lt::span<char const>(m_exp, lt::default_block_size)
+			== lt::span<char const>(h.data(), lt::default_block_size));
 	}
 	int* m_out;
-	lt::span<char const> m_exp;
+	char const* m_exp;
 };
 
 void both_sides_from_store_buffer(lt::disk_interface* disk_io, lt::storage_holder const& t, lt::io_context& ioc, int& outstanding)
@@ -1970,7 +1977,7 @@ void both_sides_from_store_buffer(lt::disk_interface* disk_io, lt::storage_holde
 	++outstanding;
 	disk_io->async_write(t, req1, write_buffer.data() + lt::default_block_size, {}, write_handler(outstanding));
 	++outstanding;
-	disk_io->async_read(t, req2, read_handler(outstanding, expected_buffer));
+	disk_io->async_read(t, req2, read_handler(outstanding, expected_buffer.data()));
 	disk_io->submit_jobs();
 	sync(ioc, outstanding);
 }
@@ -1998,7 +2005,7 @@ void first_side_from_store_buffer(lt::disk_interface* disk_io, lt::storage_holde
 	++outstanding;
 	disk_io->async_write(t, req1, write_buffer.data() + lt::default_block_size, {}, write_handler(outstanding));
 	++outstanding;
-	disk_io->async_read(t, req2, read_handler(outstanding, expected_buffer));
+	disk_io->async_read(t, req2, read_handler(outstanding, expected_buffer.data()));
 	disk_io->submit_jobs();
 	sync(ioc, outstanding);
 }
@@ -2025,7 +2032,7 @@ void second_side_from_store_buffer(lt::disk_interface* disk_io, lt::storage_hold
 	++outstanding;
 	disk_io->async_write(t, req0, write_buffer.data(), {}, write_handler(outstanding));
 	++outstanding;
-	disk_io->async_read(t, req2, read_handler(outstanding, expected_buffer));
+	disk_io->async_read(t, req2, read_handler(outstanding, expected_buffer.data()));
 	disk_io->submit_jobs();
 	sync(ioc, outstanding);
 }
@@ -2052,7 +2059,7 @@ void none_from_store_buffer(lt::disk_interface* disk_io, lt::storage_holder cons
 	sync(ioc, outstanding);
 
 	++outstanding;
-	disk_io->async_read(t, req2, read_handler(outstanding, expected_buffer));
+	disk_io->async_read(t, req2, read_handler(outstanding, expected_buffer.data()));
 	disk_io->submit_jobs();
 	sync(ioc, outstanding);
 }
