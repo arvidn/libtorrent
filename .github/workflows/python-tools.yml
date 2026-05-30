@@ -1,0 +1,104 @@
+name: Python tools
+
+on:
+   push:
+      branches: [ RC_1_2 RC_2_0 master ]
+   pull_request:
+
+concurrency:
+   group: ${{ github.ref }}-${{ github.workflow }}-${{ github.event_name }}
+   cancel-in-progress: true
+
+jobs:
+
+   tools:
+      name: validate tools/
+      runs-on: ubuntu-24.04
+
+      steps:
+      - uses: actions/checkout@v6
+        with:
+           fetch-depth: 1
+           filter: tree:0
+
+      - uses: actions/setup-python@v6
+        with:
+           python-version: "3.12"
+
+      - name: install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          # black for formatting; the rest cover the third-party imports
+          # used by tools/*.py so the import check below resolves them.
+          python3 -m pip install black matplotlib numpy docutils psutil
+
+      - name: syntax check
+        run: |
+          # Compile every tools/*.py. Fails on any SyntaxError.
+          python3 -m compileall -q tools
+
+      - name: black formatting check
+        run: |
+          # Mirror the exclusions in .pre-commit-config.yaml so this CI
+          # matches what pre-commit's black hook checks today. When a file
+          # is removed from the pre-commit exclude list, drop it here too.
+          python3 -m black --check --diff \
+            tools/disk_latency.py \
+            tools/gen_corpus.py \
+            tools/libtorrent_lldb.py \
+            tools/parse_piece_downloads.py \
+            tools/perf_call_tree.py \
+            tools/plot_layout.py \
+            tools/test_filesystems.py \
+            tools/vmstat.py
+
+      - name: import resolution check
+        run: |
+          # For every tools/*.py, walk the module-level imports and verify
+          # each name resolves on sys.path. This catches the case where a
+          # script imports a sibling module that was never git-added.
+          # We use importlib.util.find_spec rather than `import`, because
+          # several scripts do real work at module scope (e.g. open(argv[1]))
+          # and would crash on import even when nothing is missing.
+          python3 <<'PY'
+          import ast
+          import importlib.util
+          import pathlib
+          import sys
+
+          tools = pathlib.Path("tools")
+          sys.path.insert(0, str(tools))
+
+          # lldb's Python bindings ship with LLDB, not PyPI; skip the helper
+          # that depends on them rather than installing LLDB in CI.
+          skip = {"libtorrent_lldb.py"}
+
+          def module_level_imports(tree):
+              # Only imports executed unconditionally at module load. We skip
+              # imports inside try/except (commonly used for optional deps)
+              # and inside function/class bodies.
+              for node in tree.body:
+                  if isinstance(node, ast.Import):
+                      for alias in node.names:
+                          yield alias.name
+                  elif isinstance(node, ast.ImportFrom):
+                      if node.level == 0 and node.module:
+                          yield node.module
+
+          errors = []
+          for py in sorted(tools.glob("*.py")):
+              if py.name in skip:
+                  continue
+              tree = ast.parse(py.read_text())
+              for name in module_level_imports(tree):
+                  try:
+                      spec = importlib.util.find_spec(name)
+                  except (ImportError, ValueError):
+                      spec = None
+                  if spec is None:
+                      errors.append(f"{py}: cannot resolve import '{name}'")
+
+          if errors:
+              print("\n".join(errors))
+              sys.exit(1)
+          PY
