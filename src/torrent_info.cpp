@@ -1551,12 +1551,6 @@ namespace {
 	void torrent_info::internal_set_comment(string_view const s)
 	{ m_comment = std::string(s); }
 
-	void torrent_info::internal_set_update_url(string_view const u)
-	{ m_update_url = std::string(u); }
-
-	void torrent_info::internal_set_originator(string_view const o)
-	{ m_originator = std::string(o); }
-
 	bdecode_node torrent_info::info(char const* key) const
 	{
 		if (m_info_dict.type() == bdecode_node::none_t)

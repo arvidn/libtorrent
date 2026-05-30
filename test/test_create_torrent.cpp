@@ -638,7 +638,7 @@ TORRENT_TEST(originator)
 TORRENT_TEST(dht_nodes)
 {
 	auto info = test_field([](lt::create_torrent& t){
-		t.add_node({std::string("foobar"), 1337});
+		t.add_node({"foobar"s, 1337});
 	});
 	using nodes = std::vector<std::pair<std::string, int>>;
 	TEST_CHECK((info.nodes() == nodes{{"foobar", 1337}}));
