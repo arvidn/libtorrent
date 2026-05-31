@@ -9,3 +9,6 @@ target_link_libraries(session_log_alerts PRIVATE torrent-rasterbar)
 
 add_executable(gen_torture_torrent gen_torture_torrent.cpp)
 target_link_libraries(gen_torture_torrent PRIVATE torrent-rasterbar)
+
+add_executable(benchmark_load_torrent benchmark_load_torrent.cpp)
+target_link_libraries(benchmark_load_torrent PRIVATE torrent-rasterbar)
