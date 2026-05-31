@@ -641,17 +641,14 @@ namespace {
 		return !ec;
 	}
 
-	bool extract_files2(
-		bdecode_node const& tree,
+	bool extract_files2(bdecode_node const& tree,
 		file_storage& target,
 		std::string const& root_dir,
 		ptrdiff_t const info_offset,
 		char const* info_buffer,
-		bool const has_files,
-		int const depth,
+		bool is_multi_file,
 		int const max_directory_depth,
-		error_code& ec
-	)
+		error_code& ec)
 	{
 		if (tree.type() != bdecode_node::dict_t)
 		{
@@ -659,18 +656,32 @@ namespace {
 			return false;
 		}
 
-		// since we're parsing this recursively, we have to be careful not to
-		// blow up the stack. This limit also bounds the depth of the directory
-		// tree of the torrent, defending against malicious torrents.
-		if (depth > max_directory_depth)
+		// the v2 file tree can be arbitrarily deeply nested. Walk it
+		// iteratively with an explicit parse stack so the C++ call stack
+		// doesn't grow with the directory depth. The depth is still bounded
+		// by max_directory_depth to defend against malicious torrents.
+		struct stack_frame
 		{
-			ec = errors::torrent_directory_too_deep;
-			return false;
-		}
+			bdecode_node tree;
+			std::string path;
+			int index;
+		};
 
-		for (int i = 0; i < tree.dict_size(); ++i)
+		std::vector<stack_frame> stack;
+		stack.push_back({tree, root_dir, 0});
+
+		while (!stack.empty())
 		{
-			auto e = tree.dict_at_node(i);
+			stack_frame& frame = stack.back();
+			if (frame.index >= frame.tree.dict_size())
+			{
+				stack.pop_back();
+				continue;
+			}
+
+			auto e = frame.tree.dict_at_node(frame.index);
+			++frame.index;
+
 			if (e.second.type() != bdecode_node::dict_t || e.first.string_value().empty())
 			{
 				ec = errors::torrent_file_parse_failed;
@@ -683,9 +694,9 @@ namespace {
 				filename.remove_prefix(1);
 
 			bool const leaf_node = e.second.dict_size() == 1 && e.second.dict_at(0).first.empty();
-			bool const single_file = leaf_node && !has_files && tree.dict_size() == 1;
+			bool const single_file = leaf_node && !is_multi_file && frame.tree.dict_size() == 1;
 
-			std::string path = single_file ? std::string() : root_dir;
+			std::string path = single_file ? std::string() : frame.path;
 			aux::sanitize_append_path_element(path, filename, true);
 
 			if (leaf_node)
@@ -710,23 +721,35 @@ namespace {
 				{
 					return false;
 				}
-				continue;
+			}
+			else
+			{
+				// descend into the subdirectory. This matches the depth check
+				// in the original recursive implementation: an N-th level
+				// recursive call had depth==N, which is allowed up to
+				// max_directory_depth. stack.size() here equals the current
+				// depth + 1, so we bail when the about-to-be-pushed child
+				// would exceed the limit.
+				if (int(stack.size()) > max_directory_depth)
+				{
+					ec = errors::torrent_directory_too_deep;
+					return false;
+				}
+
+				// don't push a frame we would immediately pop. An empty
+				// subdirectory contributes no files; just skip it.
+				if (e.second.dict_size() > 0)
+				{
+					// note: `frame` is invalidated by push_back below; we're done with it
+					stack.push_back({e.second, std::move(path), 0});
+				}
 			}
 
-			if (!extract_files2(
-					e.second,
-					target,
-					path,
-					info_offset,
-					info_buffer,
-					true,
-					depth + 1,
-					max_directory_depth,
-					ec
-				))
-			{
-				return false;
-			}
+			// the single-file shortcut only applies at the top of the file
+			// tree. After the first iteration we are either inside a
+			// subdirectory or past the only entry of a multi-entry root, so
+			// the shortcut can no longer fire.
+			is_multi_file = true;
 		}
 
 		return true;
@@ -1221,17 +1244,14 @@ TORRENT_VERSION_NAMESPACE_4
 		bdecode_node const file_tree_node = info.dict_find_dict("file tree");
 		if (version >= 2 && file_tree_node)
 		{
-			if (!extract_files2(
-					file_tree_node,
+			if (!extract_files2(file_tree_node,
 					files,
 					name,
 					info_offset,
 					m_info_section.get(),
 					bool(files_node),
-					0,
 					max_directory_depth,
-					ec
-				))
+					ec))
 			{
 				// mark the torrent as invalid
 				m_files.set_piece_length(0);
