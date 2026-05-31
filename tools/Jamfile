@@ -45,4 +45,12 @@ exe dht-sample : dht_sample.cpp : <include>../ed25519/src ;
 exe session_log_alerts : session_log_alerts.cpp ;
 exe disk_io_stress_test : disk_io_stress_test.cpp ;
 exe checking_benchmark : checking_benchmark.cpp ;
+exe gen_torture_torrent : gen_torture_torrent.cpp ;
+
+install stage
+	: dht dht-sample session_log_alerts disk_io_stress_test
+	  checking_benchmark gen_torture_torrent
+	: <location>.
+	;
+explicit stage ;
 
