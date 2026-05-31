@@ -124,8 +124,7 @@ namespace libtorrent {
 		// shared_secret = (remote_pubkey ^ local_secret) % prime
 		m_dh_shared_secret = mp::powm(remote_pubkey, m_dh_local_secret, dh_prime);
 
-		std::array<char, 96> buffer;
-		mp::export_bits(m_dh_shared_secret, reinterpret_cast<std::uint8_t*>(buffer.data()), 8);
+		std::array<char, 96> const buffer = export_key(m_dh_shared_secret);
 
 		static char const req3[4] = {'r', 'e', 'q', '3'};
 		// calculate the xor mask for the obfuscated hash
