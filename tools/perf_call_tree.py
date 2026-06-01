@@ -396,6 +396,71 @@ def build_tree(samples: list[list[tuple[str, bool]]]) -> Node:
     return root
 
 
+def build_tree_weighted(stacks: list[tuple[list[str], int]]) -> Node:
+    """Like build_tree() but each stack carries its own weight (e.g. an
+    allocation byte count). Frames are plain strings without the system /
+    libc marker that perf samples have; heaptrack and other collapsed-
+    stack producers don't expose that distinction.
+    """
+    root = Node("[root]")
+    for frames, weight in stacks:
+        root.count += weight
+        node = root
+        for name in frames:
+            node = node.child(name)
+            node.count += weight
+    return root
+
+
+def parse_collapsed(text: str) -> list[tuple[list[str], int]]:
+    """Parse 'collapsed stacks' text (the format used by FlameGraph.pl
+    and emitted by `heaptrack_print -F`): one stack per line, frames
+    separated by ';' from root to leaf, followed by a whitespace-
+    separated integer weight.
+    """
+    stacks: list[tuple[list[str], int]] = []
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        # rsplit with no separator splits on any run of whitespace, so a
+        # tab or multiple spaces between the stack and its weight work
+        # the same as a single space. maxsplit=1 keeps any whitespace
+        # inside frame names intact. A line with no whitespace fails to
+        # unpack and a non-numeric weight fails int() -- both bubble up
+        # rather than silently dropping the line.
+        stack_part, weight_str = line.rsplit(maxsplit=1)
+        weight = int(weight_str)
+        frames = stack_part.split(";")
+        stacks.append((frames, weight))
+    return stacks
+
+
+def main_collapsed(
+    collapsed: Path,
+    output: Path,
+    threshold: float = 0.1,
+    title: Optional[str] = None,
+) -> None:
+    """Render an HTML call tree from a collapsed-stacks text file (the
+    format FlameGraph.pl and `heaptrack_print -F` emit). Uses heap mode:
+    weights are reported as bytes and percentages are relative to the
+    global total.
+    """
+    stacks = parse_collapsed(collapsed.read_text(encoding="utf-8", errors="replace"))
+    if not stacks:
+        raise SystemExit(
+            f"ERROR: no stacks found in {collapsed}."
+            " Expected FlameGraph.pl 'collapsed stacks' format"
+            " ('frame1;frame2;...;leaf <weight>' per line)."
+        )
+    root = build_tree_weighted(stacks)
+    total = root.count
+    prune(root, total * threshold / 100.0)
+    page = gen_html(root, total, title or f"call tree: {collapsed.name}", mode="heap")
+    output.write_text(page, encoding="utf-8")
+    print(f"wrote {output} ({total} bytes across {len(stacks)} stacks)")
+
+
 def prune(node: Node, min_count: float) -> None:
     """Drop children below min_count samples, depth first."""
     for name in list(node.children.keys()):
@@ -725,7 +790,28 @@ def gen_histograms(events: list[tuple[str, float]], interval: float) -> str:
     return "\n".join(out)
 
 
-def gen_html(root: Node, total: int, title: str, hist_html: str = "") -> str:
+def gen_html(
+    root: Node,
+    total: int,
+    title: str,
+    hist_html: str = "",
+    mode: str = "cpu",
+) -> str:
+    """Render the call-tree HTML.
+
+    `mode` is "cpu" (the default) or "heap":
+
+    - "cpu" weights are perf samples. Percentages at each node are
+      computed relative to the top-level frame the node sits under --
+      top-level frames are threads, and per-thread percentages make
+      sense for CPU profiles because each thread runs independently
+      (so every thread root reads 100%).
+    - "heap" weights are bytes (from heaptrack -F output). Percentages
+      are computed relative to the global total so every node shows
+      its share of total peak heap, not its share of one allocator
+      callsite's bucket.
+    """
+    unit = "bytes" if mode == "heap" else "samples"
     parts: list[str] = []
     parts.append("<!doctype html>")
     parts.append('<html><head><meta charset="utf-8">')
@@ -734,18 +820,20 @@ def gen_html(root: Node, total: int, title: str, hist_html: str = "") -> str:
     parts.append("</head><body>")
     parts.append(f"<h1>{html.escape(title)}</h1>")
     parts.append(
-        f"<p>{total} samples. "
+        f"<p>{total} {unit}. "
         "Navigate with the arrow keys: up/down move, right expands, "
         "left collapses.</p>"
     )
     if hist_html:
         parts.append(hist_html)
     parts.append('<ul class="tree">')
-    # render the real top-level frames, not the synthetic root. each top-level
-    # node is a thread, so percentages are computed relative to that thread's
-    # own sample count -- every thread root reads 100%.
+    # For CPU mode each top-level frame is a thread; render its
+    # percentages relative to that thread's own count. For heap mode
+    # there's only one logical "thread" (allocations) and we want every
+    # callsite's share of the global total instead.
+    denominator_fn = (lambda c: total) if mode == "heap" else (lambda c: c.count)
     for child in sorted_children(root):
-        render_node(child, child.count, parts)
+        render_node(child, denominator_fn(child), parts)
     parts.append("</ul>")
     parts.append(f"<script>{PAGE_JS}</script>")
     parts.append("</body></html>")
@@ -774,7 +862,7 @@ def main(
     total = root.count
     prune(root, total * threshold / 100.0)
     page = gen_html(root, total, f"call tree: {perf_data.name}", hist_html)
-    output.write_text(page)
+    output.write_text(page, encoding="utf-8")
     print(f"wrote {output} ({total} samples)")
 
 
