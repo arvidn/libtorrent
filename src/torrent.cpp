@@ -5138,6 +5138,10 @@ namespace {
 
 		m_abort = true;
 		m_paused = false;
+		// clear graceful pause too. on_remove_peers() below would otherwise
+		// hit the "last peer in graceful pause" branch and assert is_paused(),
+		// which no longer holds now that m_paused has been cleared.
+		m_graceful_pause_mode = false;
 		m_auto_managed = false;
 		m_state_subscription = false;
 		for (torrent_list_index_t i{}; i != m_links.end_index(); ++i)

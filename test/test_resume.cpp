@@ -283,6 +283,32 @@ TORRENT_TEST(piece_priorities_deprecated)
 {
 	test_piece_priorities(true);
 }
+
+TORRENT_TEST(prioritize_pieces_deprecated_pair_overload)
+{
+	lt::session ses(settings());
+	add_torrent_params p = generate_torrent();
+	auto ti = p.ti;
+	p.save_path = ".";
+	torrent_handle h = ses.add_torrent(p);
+
+	h.prioritize_pieces(
+		std::vector<std::pair<piece_index_t, int>>{{2_piece, 2}, {3_piece, 2}, {4_piece, 2}});
+
+	h.prioritize_pieces(std::vector<std::pair<piece_index_t, int>>{{0_piece, int(dont_download)},
+		{1_piece, int(top_priority)},
+		{2_piece, 256},
+		{3_piece, -1},
+		{4_piece, int(top_priority) + 1},
+		{ti->last_piece(), 6}});
+
+	TEST_EQUAL(h.piece_priority(0_piece), dont_download);
+	TEST_EQUAL(h.piece_priority(1_piece), top_priority);
+	TEST_EQUAL(h.piece_priority(2_piece), 2_pri);
+	TEST_EQUAL(h.piece_priority(3_piece), 2_pri);
+	TEST_EQUAL(h.piece_priority(4_piece), 2_pri);
+	TEST_EQUAL(h.piece_priority(ti->last_piece()), 6_pri);
+}
 #endif
 
 TORRENT_TEST(piece_priorities)

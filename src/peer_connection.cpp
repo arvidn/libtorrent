@@ -2622,15 +2622,20 @@ namespace {
 	void peer_connection::reject_piece(piece_index_t const index)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		for (auto i = m_requests.begin(), end(m_requests.end()); i != end; ++i)
+		for (auto i = m_requests.begin(); i != m_requests.end();)
 		{
-			peer_request const& r = *i;
-			if (r.piece != index) continue;
-			write_reject_request(r);
-			i = m_requests.erase(i);
+			peer_request const r = *i;
+			if (r.piece != index)
+			{
+				++i;
+				continue;
+			}
 
+			i = m_requests.erase(i);
 			if (m_requests.empty())
 				m_counters.inc_stats_counter(counters::num_peers_up_requests, -1);
+
+			write_reject_request(r);
 		}
 	}
 
