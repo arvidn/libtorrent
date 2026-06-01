@@ -143,7 +143,7 @@ inline span<char const> write_buf(disk_job const* j)
 	return {w.buf.data(), w.buffer_size};
 }
 
-struct cached_piece_entry
+struct TORRENT_EXTRA_EXPORT cached_piece_entry
 {
 	cached_piece_entry(piece_location const& loc
 		, int const piece_size_v2
