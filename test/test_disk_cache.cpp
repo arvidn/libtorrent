@@ -463,6 +463,63 @@ TORRENT_TEST(insert_during_flush_snapshot_stable)
 	TEST_EQUAL(int(f.cache.size()), 1);
 }
 
+// A piece can have piece_hash_returned_flag set with some block slots still
+// in monostate. This happens when the user resumes a partially-complete
+// piece: only the missing blocks go through async_write, the rest stay on
+// disk. When the bittorrent layer later asks for the piece hash, hash_piece()
+// reads the on-disk blocks itself, sets piece_hash_returned_flag, and leaves
+// the piece in the cache because flushed_cursor < blocks_in_piece.
+//
+// flush_storage() (run on torrent teardown) must be able to free that piece
+// without tripping the precondition in free_piece(). Prior to the fix the
+// "piece_hash_returned_flag implies flushed_cursor == blocks_in_piece"
+// assertion fired here.
+TORRENT_TEST(flush_storage_after_hash_piece_with_monostate_block)
+{
+	cache_fixture f(2, test_mode::v1);
+
+	// Simulate a partial-resume: only block 1 is written this session.
+	// Block 0 is on disk from a previous session, so its slot stays in
+	// monostate.
+	f.insert(0_piece, 1);
+	TEST_EQUAL(int(f.cache.size()), 1);
+
+	// The hasher cannot advance past slot 0 (no buffer), so hasher_cursor
+	// stays at 0 and try_hash_piece() falls through to post_job.
+	auto hash_job = std::make_unique<pread_disk_job>();
+	hash_job->action = job::hash{{}, 0_piece, span<sha256_hash>{}, sha1_hash{}};
+	TEST_EQUAL(
+		f.cache.try_hash_piece(f.loc(0_piece), hash_job.get()), disk_cache::hash_result::post_job);
+
+	// Drive hash_piece() the same way pread_disk_io::do_job(hash) does: the
+	// callback represents reading any nullptr-blocks back from disk to
+	// finish the SHA-1. We only need it to be called for block 0 (the
+	// monostate slot) -- the actual hash value is irrelevant for this test.
+	bool callback_invoked = false;
+	auto const res = f.cache.hash_piece(f.loc(0_piece),
+		hash_job.get(),
+		[&](aux::piece_hasher*,
+			std::uint16_t const hasher_cursor,
+			span<char const*> const blocks,
+			span<sha256_hash>) {
+			callback_invoked = true;
+			TEST_EQUAL(hasher_cursor, 0);
+			TEST_EQUAL(blocks.size(), 2);
+			TEST_CHECK(blocks[0] == nullptr); // would be read from disk
+			TEST_CHECK(blocks[1] != nullptr);
+		});
+	TEST_CHECK(res == disk_cache::hash_piece_result::completed);
+	TEST_CHECK(callback_invoked);
+
+	// flushed_cursor < blocks_in_piece here (slot 0 is still monostate), so
+	// the piece is left in cache by hash_piece(). flush_storage() must
+	// flush block 1 and then free the piece without tripping the assertion.
+	f.flush_storage_for();
+
+	TEST_EQUAL(int(f.cache.size()), 0);
+	TEST_EQUAL(f.alloc.live, 0);
+}
+
 namespace {
 
 struct flush_test_case
