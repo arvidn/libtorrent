@@ -907,9 +907,9 @@ TORRENT_TEST(url_seed_resume_data_deprecated)
 
 	TEST_EQUAL(us.size(), 2);
 	TEST_EQUAL(std::count(us.begin(), us.end(), "http://add-torrent-params-url-seed.com/"), 1);
-	TEST_EQUAL(std::count(us.begin(), us.end(), "http://torrent-file-url-seed.com/"), 1);
+	TEST_EQUAL(std::count(us.begin(), us.end(), "http://resume-data-url-seed.com/"), 1);
 
-	// "http://torrent-file-url-seed.com/" is not longer part of torrent_info,
+	// "http://torrent-file-url-seed.com/" is no longer part of torrent_info,
 	// and so is no longer included when the torrent is added
 }
 
