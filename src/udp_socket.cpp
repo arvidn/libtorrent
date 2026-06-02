@@ -68,7 +68,7 @@ namespace libtorrent {
 using namespace std::placeholders;
 
 // used to build SOCKS messages in
-std::size_t const tmp_buffer_size = 270;
+std::size_t const tmp_buffer_size = 3 + 255 + 255;
 
 // used for SOCKS5 UDP wrapper header
 std::size_t const max_header_size = 255;
@@ -533,17 +533,19 @@ void udp_socket::set_proxy_settings(aux::proxy_settings const& ps
 	}
 
 	m_proxy_settings = ps;
+	if (m_proxy_settings.username.size() > 255) m_proxy_settings.username.resize(255);
+	if (m_proxy_settings.password.size() > 255) m_proxy_settings.password.resize(255);
 
 	if (m_abort) return;
 
-	if (ps.type == settings_pack::socks5
-		|| ps.type == settings_pack::socks5_pw)
+	if (m_proxy_settings.type == settings_pack::socks5
+		|| m_proxy_settings.type == settings_pack::socks5_pw)
 	{
 		// connect to socks5 server and open up the UDP tunnel
 
 		m_socks5_connection = std::make_shared<socks5>(m_ioc
 			, m_listen_socket, alerts, resolver, send_local_ep);
-		m_socks5_connection->start(ps);
+		m_socks5_connection->start(m_proxy_settings);
 	}
 }
 
