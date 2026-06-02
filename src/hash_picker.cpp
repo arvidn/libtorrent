@@ -289,6 +289,15 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		ret.hash_failed = std::move(results->failed);
 		ret.hash_passed = std::move(results->passed);
 
+		// the hashes passed validation and were added to the tree. Mark the
+		// corresponding entries in m_piece_hash_requested as "have" so we won't
+		// request them again. This mirrors the bookkeeping in hashes_rejected().
+		if (req.base == m_piece_layer)
+		{
+			for (int i = req.index; i < req.index + req.count; i += 512)
+				m_piece_hash_requested[req.file][i / 512].have = true;
+		}
+
 		return ret;
 	}
 
