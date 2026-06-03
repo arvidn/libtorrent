@@ -36,13 +36,13 @@ see LICENSE file.
 #include "libtorrent/aux_/random.hpp"
 #include "libtorrent/mmap_disk_io.hpp"
 #include "libtorrent/posix_disk_io.hpp"
+#include "libtorrent/pread_disk_io.hpp"
 #include "libtorrent/flags.hpp"
 #include "libtorrent/aux_/readwrite.hpp"
 #include "libtorrent/load_torrent.hpp"
 
 #include <memory>
 #include <functional> // for bind
-
 #include <iostream>
 
 using namespace std::placeholders;
@@ -128,7 +128,7 @@ void run_until(io_context& ios, bool const& done)
 	while (!done)
 	{
 		ios.restart();
-		ios.run_one();
+		ios.run_one_for(lt::milliseconds(100));
 		std::cout << time_now_string() << " done: " << done << std::endl;
 	}
 }
@@ -685,8 +685,10 @@ constexpr check_files_flag_t sparse = 0_bit;
 constexpr check_files_flag_t test_oversized = 1_bit;
 constexpr check_files_flag_t zero_prio = 2_bit;
 
-void test_check_files(check_files_flag_t const flags
-	, lt::disk_io_constructor_type const disk_constructor)
+void test_check_files(check_files_flag_t const flags,
+	lt::disk_io_constructor_type const disk_constructor,
+	int const aio_threads = 1,
+	int const hashing_threads = 0)
 {
 	std::string const test_path = current_working_directory();
 
@@ -726,7 +728,8 @@ void test_check_files(check_files_flag_t const flags
 	counters cnt;
 
 	aux::session_settings sett;
-	sett.set_int(settings_pack::aio_threads, 1);
+	sett.set_int(settings_pack::aio_threads, aio_threads);
+	sett.set_int(settings_pack::hashing_threads, hashing_threads);
 	std::unique_ptr<disk_interface> io = disk_constructor(ios, sett, cnt);
 
 	aux::vector<download_priority_t, file_index_t> priorities;
@@ -771,6 +774,46 @@ void test_check_files(check_files_flag_t const flags
 		ios.restart();
 		run_until(ios, done);
 	}
+
+	int outstanding = 3;
+	int hashes_done = 0;
+	bool release_done = false;
+	sha1_hash const expected_hash = hasher(piece0).final();
+	auto hash_handler =
+		[&](piece_index_t const piece, sha1_hash const& hash, storage_error const& error) {
+			TEST_EQUAL(piece, 0_piece);
+			TEST_CHECK(!error);
+			TEST_EQUAL(hash, expected_hash);
+			++hashes_done;
+			--outstanding;
+		};
+
+	io->async_hash(st,
+		0_piece,
+		{},
+		disk_interface::sequential_access | disk_interface::volatile_read | disk_interface::v1_hash,
+		hash_handler);
+	io->async_release_files(st, [&] {
+		release_done = true;
+		--outstanding;
+	});
+	io->async_hash(st,
+		0_piece,
+		{},
+		disk_interface::sequential_access | disk_interface::volatile_read | disk_interface::v1_hash,
+		hash_handler);
+	io->submit_jobs();
+
+	time_point const end_time = clock_type::now() + seconds(10);
+	while (outstanding > 0 && clock_type::now() < end_time)
+	{
+		ios.run_one_for(milliseconds(100));
+		ios.restart();
+	}
+
+	TEST_EQUAL(outstanding, 0);
+	TEST_EQUAL(hashes_done, 2);
+	TEST_CHECK(release_done);
 
 	io->abort(true);
 }
@@ -832,25 +875,23 @@ void run_test()
 }
 
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
-TORRENT_TEST(check_files_sparse_mmap)
+void test_check_files_mmap(check_files_flag_t const flags)
 {
-	test_check_files(sparse | zero_prio, lt::mmap_disk_io_constructor);
+	test_check_files(flags, lt::mmap_disk_io_constructor);
+	test_check_files(flags, lt::mmap_disk_io_constructor, 0, 1);
+	test_check_files(flags, lt::mmap_disk_io_constructor, 0, 2);
 }
+
+TORRENT_TEST(check_files_sparse_mmap) { test_check_files_mmap(sparse | zero_prio); }
 
 TORRENT_TEST(check_files_oversized_mmap_zero_prio)
 {
-	test_check_files(sparse | zero_prio | test_oversized, lt::mmap_disk_io_constructor);
+	test_check_files_mmap(sparse | zero_prio | test_oversized);
 }
 
-TORRENT_TEST(check_files_oversized_mmap)
-{
-	test_check_files(sparse | test_oversized, lt::mmap_disk_io_constructor);
-}
+TORRENT_TEST(check_files_oversized_mmap) { test_check_files_mmap(sparse | test_oversized); }
 
-TORRENT_TEST(check_files_allocate_mmap)
-{
-	test_check_files(zero_prio, lt::mmap_disk_io_constructor);
-}
+TORRENT_TEST(check_files_allocate_mmap) { test_check_files_mmap(zero_prio); }
 
 TORRENT_TEST(test_pre_allocate_mmap)
 {
@@ -886,6 +927,24 @@ TORRENT_TEST(test_pre_allocate_posix)
 	test_pre_allocate<posix_storage>();
 }
 */
+
+void test_check_files_pread(check_files_flag_t const flags)
+{
+	test_check_files(flags, lt::pread_disk_io_constructor);
+	test_check_files(flags, lt::pread_disk_io_constructor, 0, 1);
+	test_check_files(flags, lt::pread_disk_io_constructor, 0, 2);
+}
+
+TORRENT_TEST(check_files_sparse_pread) { test_check_files_pread(sparse | zero_prio); }
+
+TORRENT_TEST(check_files_oversized_pread_zero_prio)
+{
+	test_check_files_pread(sparse | zero_prio | test_oversized);
+}
+
+TORRENT_TEST(check_files_oversized_pread) { test_check_files_pread(sparse | test_oversized); }
+
+TORRENT_TEST(check_files_allocate_pread) { test_check_files_pread(zero_prio); }
 
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 TORRENT_TEST(rename_mmap_disk_io)
@@ -1812,8 +1871,8 @@ void sync(lt::io_context& ioc, int& outstanding)
 {
 	while (outstanding > 0)
 	{
-		ioc.run_one();
 		ioc.restart();
+		ioc.run_one_for(lt::milliseconds(100));
 	}
 }
 
@@ -1880,16 +1939,23 @@ struct write_handler
 
 struct read_handler
 {
-	read_handler(int& outstanding, lt::span<char const> expected) : m_out(&outstanding), m_exp(expected) {}
+	// disk_buffer_holder doesn't expose a size, so the caller is
+	// responsible for sizing the read to default_block_size and
+	// supplying that many expected bytes.
+	read_handler(int& outstanding, char const* expected)
+		: m_out(&outstanding)
+		, m_exp(expected)
+	{}
 	void operator()(lt::disk_buffer_holder h, lt::storage_error const& ec) const
 	{
 		--(*m_out);
 		if (ec) std::cout << "async_read failed " << ec.ec.message() << '\n';
 		TEST_CHECK(!ec);
-		TEST_CHECK(m_exp == lt::span<char const>(h.data(), h.size()));
+		TEST_CHECK(lt::span<char const>(m_exp, lt::default_block_size)
+			== lt::span<char const>(h.data(), lt::default_block_size));
 	}
 	int* m_out;
-	lt::span<char const> m_exp;
+	char const* m_exp;
 };
 
 void both_sides_from_store_buffer(lt::disk_interface* disk_io, lt::storage_holder const& t, lt::io_context& ioc, int& outstanding)
@@ -1911,7 +1977,7 @@ void both_sides_from_store_buffer(lt::disk_interface* disk_io, lt::storage_holde
 	++outstanding;
 	disk_io->async_write(t, req1, write_buffer.data() + lt::default_block_size, {}, write_handler(outstanding));
 	++outstanding;
-	disk_io->async_read(t, req2, read_handler(outstanding, expected_buffer));
+	disk_io->async_read(t, req2, read_handler(outstanding, expected_buffer.data()));
 	disk_io->submit_jobs();
 	sync(ioc, outstanding);
 }
@@ -1939,7 +2005,7 @@ void first_side_from_store_buffer(lt::disk_interface* disk_io, lt::storage_holde
 	++outstanding;
 	disk_io->async_write(t, req1, write_buffer.data() + lt::default_block_size, {}, write_handler(outstanding));
 	++outstanding;
-	disk_io->async_read(t, req2, read_handler(outstanding, expected_buffer));
+	disk_io->async_read(t, req2, read_handler(outstanding, expected_buffer.data()));
 	disk_io->submit_jobs();
 	sync(ioc, outstanding);
 }
@@ -1966,7 +2032,7 @@ void second_side_from_store_buffer(lt::disk_interface* disk_io, lt::storage_hold
 	++outstanding;
 	disk_io->async_write(t, req0, write_buffer.data(), {}, write_handler(outstanding));
 	++outstanding;
-	disk_io->async_read(t, req2, read_handler(outstanding, expected_buffer));
+	disk_io->async_read(t, req2, read_handler(outstanding, expected_buffer.data()));
 	disk_io->submit_jobs();
 	sync(ioc, outstanding);
 }
@@ -1993,7 +2059,7 @@ void none_from_store_buffer(lt::disk_interface* disk_io, lt::storage_holder cons
 	sync(ioc, outstanding);
 
 	++outstanding;
-	disk_io->async_read(t, req2, read_handler(outstanding, expected_buffer));
+	disk_io->async_read(t, req2, read_handler(outstanding, expected_buffer.data()));
 	disk_io->submit_jobs();
 	sync(ioc, outstanding);
 }

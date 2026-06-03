@@ -252,9 +252,8 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 	for (int i = 0; i < 20; ++i)
 	{
 		ios.restart();
-		ios.poll();
+		ios.run_for(lt::milliseconds(100));
 		if (!upnp_handler->router_model().empty()) break;
-		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
 
 	std::cout << "router: " << upnp_handler->router_model() << std::endl;
@@ -268,9 +267,8 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 	for (int i = 0; i < 40; ++i)
 	{
 		ios.restart();
-		ios.poll();
+		ios.run_for(lt::milliseconds(100));
 		if (callbacks.size() >= 2) break;
-		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
 
 	callback_info expected1 = {mapping1, 500, error_code()};
@@ -288,9 +286,8 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 	for (int i = 0; i < 40; ++i)
 	{
 		ios.restart();
-		ios.poll();
+		ios.run_for(lt::milliseconds(100));
 		if (callbacks.size() >= 4) break;
-		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
 
 	// there should have been two DeleteMapping calls

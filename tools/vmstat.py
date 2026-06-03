@@ -3,8 +3,9 @@
 from dataclasses import dataclass
 import os
 import platform
-import subprocess
 from time import monotonic
+
+import plot_layout
 
 
 @dataclass(frozen=True)
@@ -332,54 +333,102 @@ def plot_output(filename: str, keys: list[str]) -> None:
     if "time" not in keys:
         return
 
+    try:
+        import matplotlib
+
+        matplotlib.use("Agg")  # headless backend; no display required
+        import matplotlib.pyplot as plt
+    except ImportError:
+        return
+
     output_dir, in_file = os.path.split(filename)
-    gnuplot_file = f"{output_dir}/plot_{in_file}.gnuplot"
-    with open(gnuplot_file, "w+") as f:
-        f.write("""set term png size 1200,700
-set format y '%.0f'
-set xlabel "time (s)"
-set xrange [0:*]
-set yrange [0:*]
-set y2range [0:*]
-set grid
-""")
 
-        for plot in plots:
-            f.write(f"""set output "{in_file}-{plot.name}.png"
-set title "{plot.title}"
-set ylabel "{plot.ylabel} (MB)"
-set y2label "{plot.y2label}"
-{"set y2tics" if plot.y2label != "" else ""}
-""")
+    # read the stats table written by print_output_to_file: the first line is
+    # the column names, the rest are rows of floats.
+    with open(filename) as f:
+        header = f.readline().split()
+        cols: dict[str, list[float]] = {name: [] for name in header}
+        for line in f:
+            fields = line.split()
+            if len(fields) != len(header):
+                continue
+            for name, value in zip(header, fields):
+                cols[name].append(float(value))
 
-            plot_string = "plot "
-            tidx = keys.index("time") + 1
-            idx = 0
-            for p in keys:
-                idx += 1
-                if p == "time" or p == "":
-                    continue
+    if not cols.get("time"):
+        return
+    t = cols["time"]
 
-                if p not in plot.lines:
-                    continue
+    # print_output_to_file blanks all-zero columns to "" in `keys`; plot only
+    # the columns that actually saw a non-zero sample, matching the previous
+    # gnuplot output.
+    nonzero = {k for k in keys if k}
 
-                m = metrics[p]
+    mib = 1024 * 1024
+    dpi = 100
+    # draw the lines a single device pixel wide; matplotlib's ~1.5 pt default
+    # is thick for the dense, spiky disk-I/O curves.
+    line_width = 72.0 / dpi
+    for plot in plots:
+        names = [n for n in plot.lines if n in nonzero and n in cols]
+        if not names:
+            continue
 
-                title = p.replace("_", "\\\\_")
-                if m.cumulative:
-                    title += "/s"
+        # count-style (x1y2) metrics go on the left (primary) axis; size
+        # (x1y1) metrics go on the right axis, in MB. both axes are always
+        # created so the layout is the same across plots, and an axis with no
+        # data is left unlabeled. the right (MB) axis tick labels land in the
+        # reserved right margin (see subplots_adjust below).
+        has_count = any(metrics[n].axis == "x1y2" for n in names)
+        has_size = any(metrics[n].axis == "x1y1" for n in names)
 
-                divider = 1
-                if m.axis == "x1y1":
-                    divider = 1024 * 1024
+        fig, ax = plt.subplots(figsize=(12.0, 7.0))
+        ax_mb = ax.twinx()
 
-                # escape underscores, since gnuplot interprets those as markup
-                plot_string += (
-                    f'"{in_file}" using {tidx}:(${idx}/{divider}) '
-                    + f'title "{title}" axis {m.axis} with steps, \\\n'
-                )
-            if len(plot_string) > 5:
-                plot_string = plot_string[0:-4] + "\n\n"
-                f.write(plot_string)
+        # draw colors from a single cycle in plot-line order so the two axes
+        # don't both restart at the first color (twinx gives each axis its own
+        # cycle otherwise), matching gnuplot's single sequence.
+        color_cycle = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+        handles = []
+        for i, name in enumerate(names):
+            m = metrics[name]
+            label = name + ("/s" if m.cumulative else "")
+            color = color_cycle[i % len(color_cycle)]
+            if m.axis == "x1y1":
+                # x1y1 metrics are byte counts; show them in MB
+                target = ax_mb
+                ys = [v / mib for v in cols[name]]
+            else:
+                target = ax
+                ys = cols[name]
+            (line,) = target.step(
+                t, ys, where="post", label=label, color=color, linewidth=line_width
+            )
+            handles.append(line)
 
-    subprocess.check_output(["gnuplot", os.path.split(gnuplot_file)[1]], cwd=output_dir)
+        ax.set_xlim(left=0)
+        ax.set_ylim(bottom=0)
+        ax_mb.set_ylim(bottom=0)
+        ax.set_xlabel("time (s)")
+        ax.set_title(plot.title)
+        # label each y-axis only when it has data
+        if has_count:
+            ax.set_ylabel(plot.y2label)
+        if has_size:
+            ax_mb.set_ylabel(f"{plot.ylabel} (MB)")
+        # vertical grid always; horizontal grid on whichever axis has data
+        ax.grid(True, axis="x")
+        (ax if has_count else ax_mb).grid(True, axis="y")
+        # always top-left; matplotlib's auto-placement does a poor job here
+        ax.legend(handles=handles, loc="upper left")
+
+        # pin the plot box to the shared summary-page margins (see plot_layout)
+        # so these line up with the piece-pass-order and latency plots.
+        fig.subplots_adjust(
+            left=plot_layout.BOX_LEFT,
+            right=plot_layout.BOX_RIGHT,
+            bottom=0.09,
+            top=0.93,
+        )
+        fig.savefig(f"{output_dir}/{in_file}-{plot.name}.png", dpi=dpi)
+        plt.close(fig)

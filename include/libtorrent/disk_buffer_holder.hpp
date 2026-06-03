@@ -63,8 +63,7 @@ namespace libtorrent {
 		// construct a buffer holder that will free the held buffer
 		// using a disk buffer pool directly (there's only one
 		// disk_buffer_pool per session)
-		disk_buffer_holder(buffer_allocator_interface& alloc
-			, char* buf, int sz) noexcept;
+		disk_buffer_holder(buffer_allocator_interface& alloc, char* buf) noexcept;
 
 		// default construct a holder that does not own any buffer
 		disk_buffer_holder() noexcept = default;
@@ -85,7 +84,6 @@ namespace libtorrent {
 			using std::swap;
 			swap(h.m_allocator, m_allocator);
 			swap(h.m_buf, m_buf);
-			swap(h.m_size, m_size);
 		}
 
 		// if this returns true, the buffer may not be modified in place
@@ -94,10 +92,6 @@ namespace libtorrent {
 		// implicitly convertible to true if the object is currently holding a
 		// buffer
 		explicit operator bool() const noexcept { return m_buf != nullptr; }
-
-		// the size, in bytes, of the held buffer. 0 if the holder does
-		// not own a buffer.
-		std::ptrdiff_t size() const { return m_size; }
 
 #if TORRENT_DEBUG_BUFFER_POOL
 		void rename(char const* category);
@@ -110,7 +104,6 @@ namespace libtorrent {
 
 		buffer_allocator_interface* m_allocator = nullptr;
 		char* m_buf = nullptr;
-		int m_size = 0;
 	};
 
 	// Pointer-only disk buffer reference. Holds a char* but neither the allocator

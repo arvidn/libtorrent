@@ -175,8 +175,12 @@ private:
 	int num_threads() const;
 	aux::disk_io_thread_pool& pool_for_job(aux::mmap_disk_job* j);
 
-	// set to true once we start shutting down
-	std::atomic<bool> m_abort{false};
+	// set to true once we start shutting down. Guarded by m_job_mutex: it's
+	// written, and read by the disk threads, under the mutex. The lock-free
+	// reads (in add_job(), add_fence_job() and the destructor) only run on the
+	// network thread (the only writer's thread) or after the disk threads have
+	// exited, so they don't race with the write.
+	bool m_abort = false;
 
 	// this is a counter of how many threads are currently running.
 	// it's used to identify the last thread still running while
@@ -203,10 +207,6 @@ private:
 	// disk cache
 	aux::disk_buffer_pool m_buffer_pool;
 
-	// total number of blocks in use by both the read
-	// and the write cache. This is not supposed to
-	// exceed m_cache_size
-
 	counters& m_stats_counters;
 
 	// this is the main thread io_context. Callbacks are
@@ -225,8 +225,8 @@ private:
 
 	std::atomic_flag m_jobs_aborted = ATOMIC_FLAG_INIT;
 
-	// most jobs are posted to m_generic_io_jobs
-	// but hash jobs are posted to m_hash_io_jobs if m_hash_threads
+	// most jobs are posted to m_generic_threads
+	// but hash jobs are posted to m_hash_threads if it
 	// has a non-zero maximum thread count
 	aux::disk_io_thread_pool m_generic_threads;
 	aux::disk_io_thread_pool m_hash_threads;
@@ -312,7 +312,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		// abuse the job mutex to make setting m_abort and checking the thread count atomic
 		// see also the comment in thread_fun
 		std::unique_lock<std::mutex> l(m_job_mutex);
-		if (m_abort.exchange(true)) return;
+		if (m_abort) return;
+		m_abort = true;
 		bool const no_threads = m_generic_threads.num_threads() == 0
 			&& m_hash_threads.num_threads() == 0;
 		// abort outstanding jobs belonging to this torrent
@@ -436,7 +437,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 	status_t mmap_disk_io::do_job(aux::job::read& a, aux::mmap_disk_job* j)
 	{
-		a.buf = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer (cache miss)"), default_block_size);
+		a.buf = disk_buffer_holder(
+			m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer (cache miss)"));
 		if (!a.buf)
 		{
 			j->error.ec = error::no_memory;
@@ -497,6 +499,22 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			m_stats_counters.inc_stats_counter(counters::disk_job_time, write_time);
 		}
 
+		// for v2 / hybrid torrents the block is still in RAM; compute the
+		// SHA-256 hash now and stash it on the storage so the later hash job
+		// doesn't have to re-read the block from disk. v2 pieces don't span
+		// file boundaries, so for hybrid torrents the block may extend past
+		// the v2 piece end into v1 padding; hash only the v2 portion.
+		if (!j->error.ec && ret == a.buffer_size && j->storage->v2())
+		{
+			int const piece_size2 = j->storage->files().piece_size2(a.piece);
+			if (a.offset < piece_size2)
+			{
+				int const blk = a.offset / default_block_size;
+				int const v2_len = std::min(int(a.buffer_size), piece_size2 - a.offset);
+				j->storage->store_precomputed_v2(a.piece, blk, hasher256(b.first(v2_len)).final());
+			}
+		}
+
 		m_store_buffer.erase({j->storage->storage_index(), a.piece, a.offset});
 
 		{
@@ -555,24 +573,21 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 			TORRENT_ASSERT(r.length > len1);
 
-			int const ret = m_store_buffer.get2(loc1, loc2, [&](char const* buf1, char const* buf2)
-			{
-				buffer = disk_buffer_holder(m_buffer_pool
-					, m_buffer_pool.allocate_buffer("send buffer (cache hit)")
-					, r.length);
-				if (!buffer)
-				{
-					ec.ec = error::no_memory;
-					ec.operation = operation_t::alloc_cache_piece;
-					return 3;
-				}
+			int const ret =
+				m_store_buffer.get2(loc1, loc2, [&](char const* buf1, char const* buf2) {
+					buffer = disk_buffer_holder(
+						m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer (cache hit)"));
+					if (!buffer)
+					{
+						ec.ec = error::no_memory;
+						ec.operation = operation_t::alloc_cache_piece;
+						return 3;
+					}
 
-				if (buf1)
-					std::memcpy(buffer.data(), buf1 + read_offset, std::size_t(len1));
-				if (buf2)
-					std::memcpy(buffer.data() + len1, buf2, std::size_t(r.length - len1));
-				return (buf1 ? 2 : 0) | (buf2 ? 1 : 0);
-			});
+					if (buf1) std::memcpy(buffer.data(), buf1 + read_offset, std::size_t(len1));
+					if (buf2) std::memcpy(buffer.data() + len1, buf2, std::size_t(r.length - len1));
+					return (buf1 ? 2 : 0) | (buf2 ? 1 : 0);
+				});
 
 			if (ret == 3)
 			{
@@ -607,18 +622,18 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		}
 		else
 		{
-			if (m_store_buffer.get({ storage, r.piece, block_offset }, [&](char const* buf)
-			{
-				buffer = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer (cache hit)"), r.length);
-				if (!buffer)
-				{
-					ec.ec = error::no_memory;
-					ec.operation = operation_t::alloc_cache_piece;
-					return;
-				}
+			if (m_store_buffer.get({storage, r.piece, block_offset}, [&](char const* buf) {
+					buffer = disk_buffer_holder(
+						m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer (cache hit)"));
+					if (!buffer)
+					{
+						ec.ec = error::no_memory;
+						ec.operation = operation_t::alloc_cache_piece;
+						return;
+					}
 
-				std::memcpy(buffer.data(), buf + read_offset, std::size_t(r.length));
-			}))
+					std::memcpy(buffer.data(), buf + read_offset, std::size_t(r.length));
+				}))
 			{
 				handler(std::move(buffer), ec);
 				return;
@@ -643,8 +658,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		, disk_job_flags_t const flags)
 	{
 		TORRENT_ASSERT(valid_flags(flags));
-		disk_buffer_holder buffer(m_buffer_pool, m_buffer_pool.allocate_buffer(
-			"store buffer"), default_block_size);
+		disk_buffer_holder buffer(m_buffer_pool, m_buffer_pool.allocate_buffer("store buffer"));
 		if (!buffer) aux::throw_ex<std::bad_alloc>();
 		std::memcpy(buffer.data(), buf, aux::numeric_cast<std::size_t>(r.length));
 
@@ -868,6 +882,12 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		TORRENT_ASSERT(!v2 || int(a.block_hashes.size()) >= blocks_in_piece2);
 		TORRENT_ASSERT(v1 || v2);
 
+		// consume SHA-256 hashes computed inline during do_job(write); for any
+		// block where we don't have one (an all-zero entry), fall through to the
+		// existing path
+		aux::vector<sha256_hash> const pc =
+			v2 ? j->storage->take_precomputed_v2(a.piece) : aux::vector<sha256_hash>{};
+
 		hasher h;
 		int ret = 0;
 		int offset = 0;
@@ -882,7 +902,24 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			std::ptrdiff_t const len = v1 ? std::min(default_block_size, piece_size - offset) : 0;
 			std::ptrdiff_t const len2 = v2_block ? std::min(default_block_size, piece_size2 - offset) : 0;
 
+			bool const have_precomputed_v2 =
+				v2_block && i < int(pc.size()) && !pc[i].is_all_zeros();
+
 			hasher256 h2;
+
+			if (have_precomputed_v2 && !v1)
+			{
+				// pure v2 fast path: no I/O, no SHA-256 work
+				a.block_hashes[i] = pc[i];
+				ret = int(len2);
+				offset += default_block_size;
+				continue;
+			}
+
+			// for hybrid with a precomputed v2 hash, we still need bytes for
+			// the v1 SHA-1 piece hash, but we can skip h2.update() and the
+			// hash2() fallback
+			bool const need_v2_io = v2_block && !have_precomputed_v2;
 
 			if (!m_store_buffer.get({ j->storage->storage_index(), a.piece, offset }
 				, [&](char const* buf)
@@ -892,7 +929,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 						h.update({ buf, len });
 						ret = int(len);
 					}
-					if (v2_block)
+					if (need_v2_io)
 					{
 						h2.update({ buf, len2 });
 						ret = int(len2);
@@ -903,13 +940,14 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 				{
 					// if we will call hash2() in a bit, don't trigger a flush
 					// just yet, let hash2() do it
-					auto const flags = v2_block ? (j->flags & ~disk_interface::flush_piece) : j->flags;
+					auto const flags =
+						need_v2_io ? (j->flags & ~disk_interface::flush_piece) : j->flags;
 					j->error.ec.clear();
 					ret = j->storage->hash(m_settings, h, len, a.piece, offset
 						, file_mode, flags, j->error);
 					if (ret < 0) break;
 				}
-				if (v2_block)
+				if (need_v2_io)
 				{
 					j->error.ec.clear();
 					ret = j->storage->hash2(m_settings, h2, len2, a.piece, offset
@@ -925,8 +963,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 				}
 			}
 
-			if (v2_block)
-				a.block_hashes[i] = h2.final();
+			if (v2_block) a.block_hashes[i] = have_precomputed_v2 ? pc[i] : h2.final();
 
 			if (ret <= 0) break;
 
@@ -961,6 +998,19 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		TORRENT_ASSERT(piece_size > a.offset);
 		std::ptrdiff_t const len = std::min(default_block_size, piece_size - a.offset);
+
+		// fast path: SHA-256 was computed inline during the write job
+		{
+			int const blk = a.offset / default_block_size;
+			if (auto pre = j->storage->take_precomputed_v2_block(a.piece, blk))
+			{
+				a.piece_hash2 = *pre;
+				std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+				m_stats_counters.inc_stats_counter(counters::disk_hash_time, read_time);
+				m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
+				return {};
+			}
+		}
 
 		if (!m_store_buffer.get({ j->storage->storage_index(), a.piece, a.offset }
 			, [&](char const* buf)
@@ -1131,10 +1181,12 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	// this job won't return until all outstanding jobs on this
 	// piece are completed or cancelled and the buffers for it
 	// have been evicted
-	status_t mmap_disk_io::do_job(aux::job::clear_piece&, aux::mmap_disk_job*)
+	status_t mmap_disk_io::do_job(aux::job::clear_piece& a, aux::mmap_disk_job* j)
 	{
-		// there's nothing to do here, by the time this is called the jobs for
-		// this storage has been completed since this is a fence job
+		// by the time this is called the jobs for this storage have been
+		// completed since this is a fence job; drop any precomputed block
+		// hashes for the cleared piece so a re-download starts fresh
+		j->storage->drop_precomputed_v2(a.piece);
 		return {};
 	}
 
@@ -1163,6 +1215,10 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
 			m_generic_threads.push_back(j);
 			l.unlock();
+
+			if (m_generic_threads.max_threads() == 0 && user_add) immediate_execute();
+
+			return;
 		}
 
 		if (num_threads() == 0 && user_add)
@@ -1175,6 +1231,13 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		TORRENT_ASSERT(!j->storage || j->storage->files().is_valid());
 		TORRENT_ASSERT(j->next == nullptr);
+
+#if TORRENT_DISK_LATENCY_STATS
+		// stamp the job on the network thread, where add_job runs. The matching
+		// measurement happens when the completion handler runs (also on the
+		// network thread), so the latency includes both disk queues.
+		j->start_time = clock_type::now();
+#endif
 		// if this happens, it means we started to shut down
 		// the disk threads too early. We have to post all jobs
 		// before the disk threads are shut down
@@ -1221,9 +1284,14 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 	void mmap_disk_io::immediate_execute()
 	{
-		while (!m_generic_threads.empty())
+		// Hash threads can lower fences and touch the generic queue while
+		// there are no generic disk threads.
+		for (;;)
 		{
+			std::unique_lock<std::mutex> l(m_job_mutex);
+			if (m_generic_threads.empty()) return;
 			auto* j = static_cast<aux::mmap_disk_job*>(m_generic_threads.pop_front());
+			l.unlock();
 			execute_job(j);
 		}
 	}
@@ -1469,34 +1537,69 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs, -ret);
 		TORRENT_ASSERT(int(m_stats_counters[counters::blocked_disk_jobs]) >= 0);
 
-		if (m_abort.load())
+		jobqueue_t execute_now;
+		// new_jobs holds jobs that were unblocked by a completing fence job.
+		// Fence jobs only complete on the disk job loop (or via immediate
+		// execution), where m_job_mutex is not held, so new_jobs being non-empty
+		// implies the mutex is not already held by this thread and it is safe to
+		// take it here.
+		//
+		// The m_abort check and the re-queue have to happen together under
+		// m_job_mutex (the same mutex abort() holds when it sets m_abort), so the
+		// decision is atomic with respect to the abort. Otherwise m_abort could
+		// flip to true -- and the generic thread pool be torn down -- between the
+		// check and the append, orphaning the jobs in the now-dead pool's queue
+		// so their completion handlers never run. This happens when a job
+		// completing on the hash thread pool (e.g. while checking a torrent)
+		// unblocks a stop_torrent fence job that is then re-queued to the
+		// generic pool.
+		if (!new_jobs.empty())
 		{
-			while (!new_jobs.empty())
+			std::lock_guard<std::mutex> l(m_job_mutex);
+			if (m_abort)
 			{
-				auto* j = static_cast<aux::mmap_disk_job*>(new_jobs.pop_front());
-				TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
-				j->ret = disk_status::fatal_disk_error;
-				j->error = storage_error(boost::asio::error::operation_aborted);
-				completed.push_back(j);
-			}
-		}
-		else
-		{
-			if (!new_jobs.empty())
-			{
+				while (!new_jobs.empty())
 				{
-					std::lock_guard<std::mutex> l(m_job_mutex);
-					m_generic_threads.append(std::move(new_jobs));
+					auto* j = static_cast<aux::mmap_disk_job*>(new_jobs.pop_front());
+					TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
+					j->ret = disk_status::fatal_disk_error;
+					j->error = storage_error(boost::asio::error::operation_aborted);
+					completed.push_back(j);
+				}
+			}
+			else
+			{
+				bool queue_generic = false;
+				bool queue_hash = false;
+				while (!new_jobs.empty())
+				{
+					auto* j = static_cast<aux::mmap_disk_job*>(new_jobs.pop_front());
+					aux::disk_io_thread_pool& pool = pool_for_job(j);
+					if (pool.max_threads() == 0)
+					{
+						execute_now.push_back(j);
+						continue;
+					}
+
+					pool.push_back(j);
+					if (&pool == &m_hash_threads)
+						queue_hash = true;
+					else
+						queue_generic = true;
 				}
 
-				{
-					std::lock_guard<std::mutex> l(m_job_mutex);
-					m_generic_threads.submit_jobs();
-				}
+				if (queue_generic) m_generic_threads.submit_jobs();
+				if (queue_hash) m_hash_threads.submit_jobs();
 			}
 		}
 
 		m_completed_jobs.append(m_ios, std::move(jobs));
+
+		while (!execute_now.empty())
+		{
+			auto* j = static_cast<aux::mmap_disk_job*>(execute_now.pop_front());
+			execute_job(j);
+		}
 	}
 }
 

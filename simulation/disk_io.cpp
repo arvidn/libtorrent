@@ -407,13 +407,13 @@ struct test_disk_io final : lt::disk_interface
 
 		auto const seek_time = disk_seek(r.piece, r.start, lt::default_block_size);
 
-		queue_event(seek_time + m_state.read_time, [this,r, h=std::move(h)] () mutable {
-			lt::disk_buffer_holder buf(*this, new char[lt::default_block_size], r.length);
+		queue_event(seek_time + m_state.read_time, [this, r, h = std::move(h)]() mutable {
+			lt::disk_buffer_holder buf(*this, new char[lt::default_block_size]);
 
 			if (m_have.get_bit(block_index(r)))
 			{
 				if (m_state.corrupt_data_in-- <= 0)
-					lt::aux::random_bytes(buf);
+					lt::aux::random_bytes({buf.data(), r.length});
 				else
 					generate_block(buf.data(), r
 						, pads_in_req(m_pad_bytes, r, m_files->piece_size(r.piece))

@@ -296,7 +296,7 @@ namespace libtorrent {
 			// the more efficient. The size is
 			// 1 << n, where n is the number
 			// at the end of the counter name
-
+			//
 			// 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
 			// 16384, 32768, 65536, 131072, 262144, 524288, 1048576
 			socket_recv_size3,
@@ -317,6 +317,36 @@ namespace libtorrent {
 			socket_recv_size18,
 			socket_recv_size19,
 			socket_recv_size20,
+
+			// histogram of disk read-job latency, measured on the network
+			// thread from when the job is queued to when its completion
+			// latency buckets in ms: 30 * n
+			// 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360, 390,
+			// 420, 450, 480, 510, 540, 570, 600
+			//
+			// Only populated when built with disk-latency-stats=on builds (see
+			// the disk-latency-stats / TORRENT_DISK_LATENCY_STATS feature);
+			// always zero otherwise.
+			disk_read_latency1,
+			disk_read_latency2,
+			disk_read_latency3,
+			disk_read_latency4,
+			disk_read_latency5,
+			disk_read_latency6,
+			disk_read_latency7,
+			disk_read_latency8,
+			disk_read_latency9,
+			disk_read_latency10,
+			disk_read_latency11,
+			disk_read_latency12,
+			disk_read_latency13,
+			disk_read_latency14,
+			disk_read_latency15,
+			disk_read_latency16,
+			disk_read_latency17,
+			disk_read_latency18,
+			disk_read_latency19,
+			disk_read_latency20,
 
 			num_stats_counters
 		};

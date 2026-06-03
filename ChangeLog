@@ -31,6 +31,7 @@
 
 2.0.13
 
+	* fix bug in tracker announcements involving i2p trackers
 	* improve performance of disk job pool
 	* fix race when removing an auto managed torrent
 	* fix bug in post_download_queue() when a torrent complete

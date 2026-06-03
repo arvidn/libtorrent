@@ -3038,11 +3038,19 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 #endif
 
-namespace {
-	void refresh_endpoint_list(aux::session_interface& ses
-		, bool const is_ssl, bool const complete_sent
-		, aux::announce_entry& ae)
+#if TORRENT_USE_I2P
+	bool torrent::i2p_compatible_tracker(aux::announce_entry const& ae) const
 	{
+		return ae.i2p || !is_i2p() || settings().get_bool(settings_pack::allow_i2p_mixed);
+	}
+#endif
+
+	namespace {
+		void refresh_endpoint_list(aux::session_interface& ses,
+			bool const is_ssl,
+			bool const complete_sent,
+			aux::announce_entry& ae)
+		{
 #if TORRENT_USE_I2P
 		if (ae.i2p)
 		{
@@ -3096,8 +3104,8 @@ namespace {
 		TORRENT_ASSERT(valid_endpoints <= ae.endpoints.size());
 		ae.endpoints.erase(ae.endpoints.begin() + int(valid_endpoints), ae.endpoints.end());
 		ae.listen_socket_version = ver;
+		}
 	}
-}
 
 	namespace
 	{
@@ -3304,16 +3312,17 @@ namespace {
 			req.url = ae.url;
 
 #if TORRENT_USE_I2P
+			// if we don't allow mixing normal peers into this i2p torrent,
+			// skip non-i2p trackers. update_tracker_timer() applies the
+			// same skip so the timer doesn't keep firing for trackers we'll
+			// never contact.
+			if (!i2p_compatible_tracker(ae)) continue;
+			// req is reused across iterations, so set the i2p bit to match
+			// this tracker rather than only ever OR-ing it in.
 			if (ae.i2p)
-			{
 				req.kind |= tracker_request::i2p;
-			}
-			else if (is_i2p() && !settings().get_bool(settings_pack::allow_i2p_mixed))
-			{
-				// if we don't allow mixing normal peers into this i2p
-				// torrent, skip this announce
-				continue;
-			}
+			else
+				req.kind &= ~tracker_request::i2p;
 #endif
 
 			for (auto& aep : ae.endpoints)
@@ -3522,10 +3531,8 @@ namespace {
 		req.kind |= tracker_request::scrape_request;
 
 #if TORRENT_USE_I2P
-		if (ae.i2p)
-			req.kind |= tracker_request::i2p;
-		else if (is_i2p() && !settings().get_bool(settings_pack::allow_i2p_mixed))
-			return;
+		if (!i2p_compatible_tracker(ae)) return;
+		if (ae.i2p) req.kind |= tracker_request::i2p;
 #endif
 		refresh_endpoint_list(m_ses, is_ssl_torrent(), bool(m_complete_sent), ae);
 		req.url = ae.url;
@@ -5131,6 +5138,10 @@ namespace {
 
 		m_abort = true;
 		m_paused = false;
+		// clear graceful pause too. on_remove_peers() below would otherwise
+		// hit the "last peer in graceful pause" branch and assert is_paused(),
+		// which no longer holds now that m_paused has been cleared.
+		m_graceful_pause_mode = false;
 		m_auto_managed = false;
 		m_state_subscription = false;
 		for (torrent_list_index_t i{}; i != m_links.end_index(); ++i)
@@ -10242,7 +10253,10 @@ namespace {
 
 		time_point32 next_announce = time_point32::max();
 
-		std::map<std::weak_ptr<aux::listen_socket_t>, timer_state, std::owner_less<std::weak_ptr<aux::listen_socket_t>>> listen_socket_states;
+		// one entry per listen socket, mirroring announce_with_tracker()'s
+		// announce_state vector. The set of listen sockets is small (a
+		// handful at most), so linear search is cheaper than a map.
+		std::vector<timer_state> listen_socket_states;
 
 		bool const announce_to_all_tiers = settings().get_bool(settings_pack::announce_to_all_tiers);
 		bool const announce_to_all_trackers = settings().get_bool(settings_pack::announce_to_all_trackers);
@@ -10262,14 +10276,25 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 			++idx;
 #endif
+#if TORRENT_USE_I2P
+			// Skip trackers that announce_with_tracker() will skip too.
+			// Without this, those trackers' default next_announce
+			// (time_point32::min()) drives the timer to fire immediately,
+			// calling announce_with_tracker() which skips again, looping
+			// forever and spinning the CPU.
+			if (!i2p_compatible_tracker(t)) continue;
+#endif
 			for (auto const& aep : t.endpoints)
 			{
-				auto aep_state_iter = listen_socket_states.find(aep.socket.get_ptr());
-				if (aep_state_iter == listen_socket_states.end())
+				auto ep_state_iter = std::find_if(listen_socket_states.begin(),
+					listen_socket_states.end(),
+					[&](timer_state const& s) { return s.socket == aep.socket; });
+				if (ep_state_iter == listen_socket_states.end())
 				{
-					aep_state_iter = listen_socket_states.insert({aep.socket.get_ptr(), timer_state(aep.socket)}).first;
+					listen_socket_states.emplace_back(aep.socket);
+					ep_state_iter = listen_socket_states.end() - 1;
 				}
-				timer_state& ep_state = aep_state_iter->second;
+				timer_state& ep_state = *ep_state_iter;
 
 				if (!aep.enabled) continue;
 				for (protocol_version const ih : all_versions)
@@ -10311,8 +10336,13 @@ namespace {
 					{
 						state.found_working = true;
 					}
-					else
+					else if (a.next_announce != time_point32::min())
 					{
+						// defensive: announce_with_tracker() always
+						// advances next_announce for trackers it would
+						// actually contact, so a leftover min() means
+						// something filtered this tracker upstream. Don't let
+						// it snap the timer to "now" and re-fire endlessly.
 						time_point32 const next_tracker_announce = std::max(a.next_announce, a.min_announce);
 						if (next_tracker_announce < next_announce)
 							next_announce = next_tracker_announce;
@@ -10325,15 +10355,15 @@ namespace {
 				}
 			}
 
-			if (std::all_of(listen_socket_states.begin(), listen_socket_states.end()
-				, [supports_protocol](std::pair<std::weak_ptr<aux::listen_socket_t>, timer_state> const& s) {
-					for (protocol_version const ih : all_versions)
-					{
-						if (supports_protocol[ih] && !s.second.state[ih].done)
-							return false;
-					}
-					return true;
-				}))
+			if (std::all_of(listen_socket_states.begin(),
+					listen_socket_states.end(),
+					[supports_protocol](timer_state const& s) {
+						for (protocol_version const ih : all_versions)
+						{
+							if (supports_protocol[ih] && !s.state[ih].done) return false;
+						}
+						return true;
+					}))
 				break;
 		}
 

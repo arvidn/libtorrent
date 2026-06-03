@@ -163,14 +163,23 @@ bool compare_chained_buffer(chained_buffer& b, char const* mem, int size)
 
 struct holder
 {
-	holder(char* buf, std::size_t size) : m_buf(buf), m_size(size) {}
+	holder(char* buf, std::size_t size)
+		: m_buf(buf)
+		, m_size(size)
+	{}
 	~holder() { if (m_buf) free_buffer(m_buf); }
 	holder(holder const&) = delete;
 	holder& operator=(holder const&) = delete;
-	holder(holder&& rhs) noexcept : m_buf(rhs.m_buf), m_size(rhs.m_size) { rhs.m_buf = nullptr; }
+	holder(holder&& rhs) noexcept
+		: m_buf(rhs.m_buf)
+		, m_size(rhs.m_size)
+	{
+		rhs.m_buf = nullptr;
+	}
 	holder& operator=(holder&& rhs) = delete;
 	char* data() const { return m_buf; }
 	std::size_t size() const { return m_size; }
+
 private:
 	char* m_buf;
 	std::size_t m_size;

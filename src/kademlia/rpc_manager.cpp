@@ -243,7 +243,7 @@ bool rpc_manager::incoming(msg const& m, node_id* id)
 	auto range = m_transactions.equal_range(tid);
 	for (auto i = range.first; i != range.second; ++i)
 	{
-		if (m.addr.address() != i->second->target_addr()) continue;
+		if (m.addr != i->second->target_ep()) continue;
 		o = i->second;
 		i = m_transactions.erase(i);
 		break;

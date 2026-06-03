@@ -2622,15 +2622,20 @@ namespace {
 	void peer_connection::reject_piece(piece_index_t const index)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		for (auto i = m_requests.begin(), end(m_requests.end()); i != end; ++i)
+		for (auto i = m_requests.begin(); i != m_requests.end();)
 		{
-			peer_request const& r = *i;
-			if (r.piece != index) continue;
-			write_reject_request(r);
-			i = m_requests.erase(i);
+			peer_request const r = *i;
+			if (r.piece != index)
+			{
+				++i;
+				continue;
+			}
 
+			i = m_requests.erase(i);
 			if (m_requests.empty())
 				m_counters.inc_stats_counter(counters::num_peers_up_requests, -1);
+
+			write_reject_request(r);
 		}
 	}
 
@@ -5702,7 +5707,11 @@ namespace {
 
 		int const priority = get_priority(channel);
 
-		int const max_channels = num_classes() + (t ? t->num_classes() : 0) + 2;
+		// Reserve for the peer classes, torrent classes and existing slack,
+		// capped to the number of channels bw_request can store.
+		int const max_supported_channels = aux::bw_request::max_bandwidth_channels;
+		int const max_channels =
+			std::min(max_supported_channels, num_classes() + (t ? t->num_classes() : 0) + 2);
 		TORRENT_ALLOCA(channels, aux::bandwidth_channel*, max_channels);
 
 		// collect the pointers to all bandwidth channels

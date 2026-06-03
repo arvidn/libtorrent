@@ -164,6 +164,22 @@ void node_from_entry(entry const& e, bdecode_node& l)
 	TEST_CHECK(ret == 0);
 }
 
+bool incoming_rpc_message(
+	dht::rpc_manager& rpc, entry const& e, udp::endpoint const& source, node_id* id)
+{
+	std::vector<char> msg_buf;
+	bencode(std::back_inserter(msg_buf), e);
+
+	bdecode_node decoded;
+	error_code ec;
+	bdecode(msg_buf.data(), msg_buf.data() + msg_buf.size(), decoded, ec);
+	TEST_CHECK(!ec);
+	if (ec) return false;
+
+	dht::msg m(decoded, source);
+	return rpc.incoming(m, id);
+}
+
 entry write_peers(std::set<tcp::endpoint> const& peers)
 {
 	entry r;
@@ -3222,6 +3238,53 @@ TORRENT_TEST(read_only_node)
 #endif
 }
 
+TORRENT_TEST(rpc_reply_ignores_wrong_port)
+{
+	auto sett = test_settings();
+	mock_socket s;
+	auto ls = dummy_listen_socket4();
+	obs observer;
+	counters cnt;
+
+	dht::routing_table table(node_id(), udp::v4(), 8, sett, &observer);
+	dht::rpc_manager rpc(node_id(), sett, table, ls, &s, &observer);
+	std::unique_ptr<dht_storage_interface> dht_storage(dht_default_storage_constructor(sett));
+	dht_storage->update_node_ids({node_id(nullptr)});
+	dht::node node(
+		ls, &s, sett, node_id(nullptr), &observer, cnt, get_foreign_node_stub, *dht_storage);
+
+	udp::endpoint const source(addr("10.0.0.1"), 20);
+	udp::endpoint const wrong_port(source.address(), source.port() + 1);
+
+	entry req;
+	req["q"] = "ping";
+
+	g_sent_packets.clear();
+	auto algo = std::make_shared<dht::traversal_algorithm>(node, node_id());
+	auto o = rpc.allocate_observer<null_observer>(std::move(algo), source, node_id());
+#if TORRENT_USE_ASSERTS
+	o->m_in_constructor = false;
+#endif
+	o->flags |= observer::flag_queried;
+	TEST_CHECK(rpc.invoke(req, source, o));
+	TEST_EQUAL(g_sent_packets.size(), 1);
+	if (g_sent_packets.empty()) return;
+
+	node_id const response_id = generate_next();
+
+	entry response;
+	response["y"] = "r";
+	response["t"] = g_sent_packets.front().second["t"].string();
+	response["r"]["id"] = response_id.to_string();
+
+	node_id nid = node_id::max();
+	TEST_EQUAL(incoming_rpc_message(rpc, response, wrong_port, &nid), false);
+	TEST_EQUAL(nid, node_id::max());
+
+	incoming_rpc_message(rpc, response, source, &nid);
+	TEST_EQUAL(nid, response_id);
+}
+
 #ifndef TORRENT_DISABLE_LOGGING
 // these tests rely on logging being enabled
 
@@ -3357,17 +3420,9 @@ TORRENT_TEST(rpc_invalid_error_msg)
 	err["y"] = "e";
 	err["e"].string() = "Malformed Error";
 	err["t"] = g_sent_packets.begin()->second["t"].string();
-	char msg_buf[1500];
-	int size = bencode(msg_buf, err);
 
-	bdecode_node decoded;
-	error_code ec;
-	bdecode(msg_buf, msg_buf + size, decoded, ec);
-	if (ec) std::printf("bdecode failed: %s\n", ec.message().c_str());
-
-	dht::msg m(decoded, source);
 	node_id nid;
-	rpc.incoming(m, &nid);
+	incoming_rpc_message(rpc, err, source, &nid);
 
 	bool found = false;
 	for (auto const& log : observer.m_log)

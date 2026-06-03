@@ -365,6 +365,7 @@ SOURCES = \
   mmap_disk_io.cpp                \
   disk_job.cpp                    \
   mmap_storage.cpp                \
+  precomputed_block_hashes.cpp    \
   natpmp.cpp                      \
   packet_buffer.cpp               \
   parse_url.cpp                   \
@@ -612,6 +613,7 @@ HEADERS = \
   aux_/merkle_tree.hpp              \
   aux_/mmap.hpp                     \
   aux_/mmap_storage.hpp             \
+  aux_/precomputed_block_hashes.hpp \
   aux_/mmap_disk_job.hpp            \
   aux_/disk_job.hpp                 \
   aux_/netlink.hpp                  \
@@ -1004,6 +1006,7 @@ TEST_SOURCES = \
   test_web_seed_socks5_no_peers.cpp \
   test_web_seed_socks5_pw.cpp \
   test_xml.cpp \
+  test_precomputed_block_hashes.cpp \
   \
   main.cpp \
   broadcast_socket.cpp \

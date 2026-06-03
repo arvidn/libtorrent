@@ -518,6 +518,13 @@ namespace libtorrent {
 	{
 		std::vector<std::pair<piece_index_t, download_priority_t>> p;
 		p.reserve(pieces.size());
+		for (auto const& piece : pieces)
+		{
+			if (piece.second < int(dont_download) || piece.second > int(top_priority)) continue;
+
+			p.emplace_back(
+				piece.first, download_priority_t(static_cast<std::uint8_t>(piece.second)));
+		}
 		async_call(&aux::torrent::prioritize_piece_list, std::move(p));
 	}
 

@@ -116,9 +116,10 @@ TORRENT_VERSION_NAMESPACE_4
 #if TORRENT_ABI_VERSION < 4
 		// The constructor that takes an info-hash will initialize the info-hash
 		// to the given value, but leave all other fields empty. This is used
-		// internally when downloading torrents without the metadata. The
-		// metadata will be created by libtorrent as soon as it has been
-		// downloaded from the swarm.
+		// internally when downloading torrents without the metadata. Note that
+		// this object is not filled in once the metadata has been downloaded
+		// from the swarm; the torrent installs a new torrent_info internally,
+		// retrievable via ``torrent_handle::torrent_file()``.
 		//
 		// The constructor that takes a bdecode_node will create a torrent_info
 		// object from the information found in the given torrent_file. The
@@ -177,8 +178,12 @@ TORRENT_VERSION_NAMESPACE_4
 		// constructs an empty ``torrent_info`` containing only an
 		// info-hash. Useful for magnet links: the resulting object has
 		// no metadata (no file list, no piece hashes) but the info-hash
-		// is set so it can be passed to ``session::add_torrent()`` and
-		// later filled in once metadata is received from peers.
+		// is set so it can be passed to ``session::add_torrent()``.
+		//
+		// This object is not filled in once metadata is received from
+		// peers. The torrent installs a new ``torrent_info`` instance
+		// internally rather than updating this one. Retrieve the populated
+		// metadata via ``torrent_handle::torrent_file()``.
 		explicit torrent_info(info_hash_t const& info_hash);
 
 		torrent_info(torrent_info const& t);
@@ -554,8 +559,7 @@ TORRENT_VERSION_NAMESPACE_4
 
 		// returns true if the metadata for this torrent has been loaded
 		// (i.e. the file list is populated). For a ``torrent_info``
-		// constructed from just an info-hash this returns false until
-		// metadata has been received.
+		// constructed from just an info-hash this returns false.
 		bool is_loaded() const { return m_files.num_files() > 0; }
 
 #if TORRENT_ABI_VERSION <= 2

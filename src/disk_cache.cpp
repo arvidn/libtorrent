@@ -770,11 +770,18 @@ Iter disk_cache::flush_piece_impl(View& view,
 void disk_cache::free_piece(cached_piece_entry const& cpe)
 {
 #if TORRENT_USE_ASSERTS
+	// piece_hash_returned_flag implies hasher_cursor == blocks_in_piece():
+	// try_hash_piece() requires the cursor to already be at the end before
+	// it sets the flag, and kick_hasher() and hash_piece() both move the
+	// cursor to the end in the same modify() that sets the flag.
+	// flushed_cursor does *not* have a similar invariant: hash_piece() can
+	// complete a hash by reading blocks from disk for slots that were never
+	// written via async_write this session. Those slots stay in monostate,
+	// so the contiguous-from-zero count in compute_flushed_cursor() stops at
+	// the first such slot even though every block needing to be written
+	// has in fact been written.
 	if (cpe.flags & cached_piece_entry::piece_hash_returned_flag)
-	{
-		TORRENT_ASSERT(cpe.flushed_cursor == cpe.blocks_in_piece());
 		TORRENT_ASSERT(cpe.hasher_cursor == cpe.blocks_in_piece());
-	}
 	TORRENT_ASSERT(cpe.hash_job == nullptr);
 #endif
 	TORRENT_ASSERT(m_allocator);

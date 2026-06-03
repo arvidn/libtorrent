@@ -29,11 +29,13 @@ see LICENSE file.
 #include "libtorrent/aux_/stat_cache.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/sha1_hash.hpp" // for sha256_hash
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/open_mode.hpp" // for aux::open_mode_t
 #include "libtorrent/disk_interface.hpp" // for disk_job_flags_t
 #include "libtorrent/aux_/mmap.hpp"
 #include "libtorrent/aux_/file_view_pool.hpp"
+#include "libtorrent/aux_/precomputed_block_hashes.hpp"
 
 namespace libtorrent::aux {
 
@@ -115,6 +117,20 @@ namespace libtorrent::aux {
 		storage_index_t storage_index() const { return m_storage_index; }
 		void set_storage_index(storage_index_t st) { m_storage_index = st; }
 
+		bool v1() const { return m_v1; }
+		bool v2() const { return m_v2; }
+
+		// SHA-256 block hashes computed inline during write jobs (see
+		// m_precomputed_v2). Consumed by hash/hash2 jobs to avoid re-reading the
+		// block from disk just to hash it. A block whose hash hasn't been
+		// computed reads as an all-zero hash (a SHA-256 over a non-empty block
+		// is never all zeros), so no separate "present" bitfield is needed.
+		void store_precomputed_v2(piece_index_t piece, int block, sha256_hash const& h);
+		// the piece's block hashes (indexed by block); empty if none.
+		aux::vector<sha256_hash> take_precomputed_v2(piece_index_t piece);
+		std::optional<sha256_hash> take_precomputed_v2_block(piece_index_t piece, int block);
+		void drop_precomputed_v2(piece_index_t piece);
+
 	private:
 
 		bool m_need_tick = false;
@@ -195,6 +211,20 @@ namespace libtorrent::aux {
 #endif
 
 		bool m_allocate_files;
+
+		// whether this torrent has v1 and/or v2 piece hashes
+		bool m_v1;
+		bool m_v2;
+
+		// SHA-256 block hashes computed during write jobs. An entry is added
+		// when the first block of a piece is written and removed by
+		// take_precomputed_v2() (full-piece hash), take_precomputed_v2_block()
+		// (single-block hash2) or drop_precomputed_v2() (clear_piece). An entry
+		// for a piece that is written but never hashed or cleared lives until
+		// the storage is destroyed; it is therefore bounded by the number of
+		// pieces with blocks written but not yet hashed, i.e. the in-flight
+		// pieces the piece picker keeps open.
+		precomputed_block_hashes m_precomputed_v2;
 	};
 
 }

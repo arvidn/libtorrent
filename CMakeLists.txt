@@ -209,6 +209,7 @@ set(libtorrent_aux_include_files
 	merkle.hpp
 	merkle_tree.hpp
 	mmap_storage.hpp
+	precomputed_block_hashes.hpp
 	netlink.hpp
 	netlink_utils.hpp
 	noexcept_movable.hpp
@@ -376,6 +377,7 @@ set(sources
 	mmap_disk_io.cpp
 	disk_job.cpp
 	mmap_storage.cpp
+	precomputed_block_hashes.cpp
 	natpmp.cpp
 	packet_buffer.cpp
 	parse_url.cpp
@@ -919,6 +921,8 @@ if(developer-options)
 		target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_EXPENSIVE_INVARIANT_CHECKS)
 	endif()
 
+	target_optional_compile_definitions(torrent-rasterbar PUBLIC NAME disk-latency-stats DEFAULT OFF
+		ENABLED TORRENT_DISK_LATENCY_STATS=1)
 	target_optional_compile_definitions(torrent-rasterbar PUBLIC NAME utp-log DEFAULT OFF
 		ENABLED TORRENT_UTP_LOG_ENABLE)
 	target_optional_compile_definitions(torrent-rasterbar PUBLIC NAME simulate-slow-read DEFAULT OFF

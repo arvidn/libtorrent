@@ -733,6 +733,14 @@ feature.compose <debug-disk-thread>on : <define>DEBUG_DISK_THREAD=1 ;
 feature debug-disk-pool : off on : composite propagated ;
 feature.compose <debug-disk-pool>on : <define>TORRENT_DEBUG_BUFFER_POOL=1 ;
 
+# instruments disk-job latency (queue wait + execution + completion-queue
+# wait, measured on the network thread) into a per-bucket histogram exposed
+# via session stats. It adds a timestamp to every disk_job, so it's
+# link-incompatible and off in production builds.
+feature disk-latency-stats : off on : composite propagated link-incompatible ;
+feature.compose <disk-latency-stats>off : <define>TORRENT_DISK_LATENCY_STATS=0 ;
+feature.compose <disk-latency-stats>on : <define>TORRENT_DISK_LATENCY_STATS=1 ;
+
 feature msvc-version-macro : off on : composite propagated link-incompatible ;
 # ask the compiler to correctly set __cplusplus version
 feature.compose <msvc-version-macro>on : <cxxflags>/Zc\:__cplusplus ;
@@ -921,6 +929,7 @@ SOURCES =
 	mmap
 	mmap_disk_io
 	mmap_storage
+	precomputed_block_hashes
 	pread_disk_io
 	pread_storage
 	posix_disk_io
