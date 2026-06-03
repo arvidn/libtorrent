@@ -10,6 +10,9 @@ see LICENSE file.
 */
 
 #include "libtorrent/aux_/merkle.hpp"
+#include "libtorrent/aux_/array.hpp"
+#include "libtorrent/aux_/ffs.hpp" // for log2p1
+#include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/bitfield.hpp"
 
@@ -274,20 +277,28 @@ namespace libtorrent {
 	}
 
 	// generates the pad hash for the tree level with "pieces" nodes, given the
-	// full tree has "blocks" number of blocks.
-	sha256_hash merkle_pad(int blocks, int pieces)
+	// full tree has "blocks" number of blocks. Both must be powers of two.
+	// Returns a reference into a static table indexed by log2(blocks/pieces).
+	sha256_hash const& merkle_pad(int blocks, int pieces)
 	{
 		TORRENT_ASSERT(blocks >= pieces);
-		sha256_hash ret{};
-		while (pieces < blocks)
-		{
-			hasher256 h;
-			h.update(ret);
-			h.update(ret);
-			ret = h.final();
-			pieces *= 2;
-		}
-		return ret;
+		TORRENT_ASSERT(pieces > 0);
+		TORRENT_ASSERT((blocks & (blocks - 1)) == 0);
+		TORRENT_ASSERT((pieces & (pieces - 1)) == 0);
+
+		// 32 exceeds the maximum tree depth this library builds (blocks <= 2^30)
+		constexpr int max_depth = 32;
+		static auto const table = [] {
+			aux::array<sha256_hash, max_depth + 1, int> t{};
+			for (int i = 1; i <= max_depth; ++i)
+				t[i] = hasher256().update(t[i - 1]).update(t[i - 1]).final();
+			return t;
+		}();
+
+		int const d = int(aux::log2p1(aux::numeric_cast<std::uint32_t>(blocks)))
+			- int(aux::log2p1(aux::numeric_cast<std::uint32_t>(pieces)));
+		TORRENT_ASSERT(d >= 0 && d <= max_depth);
+		return table[d];
 	}
 
 	bool merkle_validate_and_insert_proofs(span<sha256_hash> target_tree
