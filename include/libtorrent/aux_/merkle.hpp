@@ -83,7 +83,7 @@ namespace libtorrent {
 	// given "blocks" number of leafs in the full tree (i.e. at the block level)
 	// and given "pieces" nodes in the piece layer, compute the pad hash for the
 	// piece layer
-	TORRENT_EXTRA_EXPORT sha256_hash merkle_pad(int blocks, int pieces);
+	TORRENT_EXTRA_EXPORT sha256_hash const& merkle_pad(int blocks, int pieces);
 
 	// validates and inserts the uncle hashes (and the specified node) into the
 	// target tree. "node" is the hash at target_node_idx and uncle_hashes are
