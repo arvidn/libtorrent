@@ -117,10 +117,33 @@ CASES: list[Case] = [
         "--num-files 1 --file-size 1G --piece-size 16K",
     ),
     mk_case(
+        "merkle_padding",
+        "500 files each sized one block above a power-of-2 number of"
+        " blocks (257 blocks = 4 MiB + 16 KiB per file). v2 builds a"
+        " merkle tree per file and pads the leaf count up to the next"
+        " power of 2 (512 here), so every tree carries as much padding"
+        " as real data -- the worst-case ratio for per-file merkle"
+        " allocation. v1 has no per-file merkle tree and is unaffected;"
+        " it's included for contrast.",
+        "--num-files 500 --file-size 4210688 --piece-size 16K",
+    ),
+    mk_case(
         "many_files",
         "5000 small files. Exercises file-entry parsing and (for v2) the"
         " v2 file tree dict walk.",
         "--num-files 5000 --file-size 16K",
+    ),
+    mk_case(
+        "many_pad_files",
+        "5000 small files whose size (100000 B) is not a piece-size"
+        " multiple, so hybrid mode inserts a pad file between every pair"
+        " of files. v1 ends up with ~10000 file entries and every path"
+        " goes through extract_single_file's '.pad/<size>' synthesis +"
+        " bitcomet-pad substring scan. v1-only and v2-only have no pad"
+        " files (v2 uses per-file merkle trees instead of a flat piece"
+        " stream), so only hybrid is informative here.",
+        "--num-files 5000 --file-size 100000 --piece-size 1M",
+        versions=("hybrid",),
     ),
     mk_case(
         "long_dirs",
@@ -137,16 +160,120 @@ CASES: list[Case] = [
         "--num-files 1000 --dir-depth 3 --branching 5 --file-size 16K",
     ),
     mk_case(
+        "deep_v2_tree",
+        "90 files in a single leaf at the bottom of a 90-deep path"
+        " (close to the default max_directory_depth of 100). Exercises"
+        " the explicit parse stack in extract_files2(). v2-only.",
+        "--num-files 90 --dir-depth 90 --branching 1 --file-size 16K",
+        versions=("v2",),
+    ),
+    mk_case(
+        "extension_truncation",
+        "1000 files with 260-char names ending in '.txt'. Every file's"
+        " path component crosses the 240-char threshold in"
+        " sanitize_append_path_element(), which scans the last 10 bytes"
+        " for an extension and replays the loop with the extension"
+        " appended. No existing case puts a '.' in the long-name window,"
+        " so this is the only one that takes that branch.",
+        "--num-files 1000 --file-size 16K --file-name-len 260"
+        " --file-name-suffix .txt",
+    ),
+    mk_case(
+        "non_utf8_paths",
+        "5000 small files whose name padding is the invalid-utf8 byte"
+        " 0xFF. Every byte of every path component takes the 'invalid"
+        " utf8 sequence, replace with _' branch of"
+        " sanitize_append_path_element(). Same shape as many_files but"
+        " on the per-byte slow path; the delta isolates the cost of"
+        " utf8 validation.",
+        "--num-files 5000 --file-size 16K --file-name-len 64" " --invalid-utf8-names",
+    ),
+    mk_case(
         "many_trackers",
         "1000 synthetic tracker URLs. Exercises the tracker-list parser"
         " and is_valid_tracker_url() check.",
         "--num-files 10 --file-size 16K --num-trackers 1000",
     ),
     mk_case(
+        "many_announce_tiers",
+        "1000 tracker URLs distributed one-per-tier across 1000 tiers."
+        " many_trackers puts all URLs in tier 0 (a single inner list);"
+        " this case maximizes the outer iteration in"
+        " load_torrent.cpp's announce-list parser instead. The torrent"
+        " body is otherwise tiny, so the variant column is uninformative"
+        " and only v1 is run.",
+        "--num-files 10 --file-size 16K --num-trackers 1000" " --num-tiers 1000",
+        versions=("v1",),
+    ),
+    mk_case(
+        "many_url_seeds",
+        "2000 unique url-list (BEP 19) entries. Exercises the"
+        " std::set<string_view> dedup loop in load_torrent.cpp plus"
+        " maybe_url_encode() per URL. Top-level metadata, v1 only.",
+        "--num-files 10 --file-size 16K --num-url-seeds 2000",
+        versions=("v1",),
+    ),
+    mk_case(
+        "many_dht_nodes",
+        "2000 DHT bootstrap nodes in the top-level 'nodes' list."
+        " Exercises the per-entry type-check + (host, port) push-back"
+        " loop in load_torrent.cpp. v1 only -- the field is version"
+        " independent.",
+        "--num-files 10 --file-size 16K --num-dht-nodes 2000",
+        versions=("v1",),
+    ),
+    mk_case(
+        "many_similar",
+        "2000 'similar' info-hashes (BEP 38). Exercises the"
+        " per-entry length / type check loop in parse_torrent_file()"
+        " and the m_similar_torrents offset push-back in"
+        " torrent_info::parse_info_section_impl. v1 only.",
+        "--num-files 10 --file-size 16K --num-similar 2000",
+        versions=("v1",),
+    ),
+    mk_case(
+        "many_collections",
+        "2000 'collection' strings (BEP 38). Exercises the"
+        " m_collections offset+length push-back loop. v1 only.",
+        "--num-files 10 --file-size 16K --num-collections 2000",
+        versions=("v1",),
+    ),
+    mk_case(
+        "long_comment",
+        "1 MiB 'comment' + 1 MiB 'created by' fields. Both go through"
+        " aux::verify_encoding() in parse_torrent_file(), which scans"
+        " the string byte-by-byte for utf-8 validity. Isolates that"
+        " cost from everything else. v1 only.",
+        "--num-files 10 --file-size 16K --comment-len 1048576"
+        " --created-by-len 1048576",
+        versions=("v1",),
+    ),
+    mk_case(
         "many_symlinks",
         "1100 files of which the last 1000 are symlinks pointing at file"
         " 0. Exercises the symlink-target sanitize/match path.",
         "--num-files 1100 --num-symlinks 1000 --file-size 16K",
+    ),
+    mk_case(
+        "symlink_chain",
+        "1100 files of which the last 1000 are symlinks chained back to"
+        " the last regular file: symlink i targets file (i-1). All but"
+        " the first one resolve through another symlink, which is the"
+        " only path that enters the second pass of"
+        " file_storage::sanitize_symlinks() with its dir_links walk"
+        " and per-entry std::set<std::string> traversed.",
+        "--num-files 1100 --num-symlinks 1000 --symlink-mode chain" " --file-size 16K",
+    ),
+    mk_case(
+        "symlink_to_dir",
+        "1100 files in a single subdirectory, of which the last 1000 are"
+        " symlinks targeting that directory rather than a file."
+        " Forces sanitize_symlinks() into the is_directory() branch,"
+        " which lazily builds a sorted view of m_paths and does"
+        " lower_bound for every symlink. None of the other cases"
+        " trigger that branch.",
+        "--num-files 1100 --num-symlinks 1000 --symlink-mode dir"
+        " --dir-depth 1 --branching 1 --file-size 16K",
     ),
     mk_case(
         "many_duplicates",
@@ -527,10 +654,15 @@ def render_chart(
     by_key = {(r.case, r.variant): r for r in results}
     case_names = [c.name for c in CASES]
     n_variants = len(VARIANTS)
-    group_width = 0.8
+    # Narrow bars (group spans 0.45 of its slot rather than the matplotlib
+    # default of ~0.8); the inter-group gap is then group_pitch - group_width.
+    # Pitch < 1.0 packs groups closer together than the natural integer-slot
+    # spacing.
+    group_width = 0.45
     bar_width = group_width / n_variants
+    group_pitch = 0.615  # group_width + 0.165 gap
 
-    fig, ax = plt.subplots(figsize=(max(8.0, len(case_names) * 1.2), 4.5))
+    fig, ax = plt.subplots(figsize=(max(8.0, len(case_names) * 1.2 * group_pitch), 4.5))
 
     for i, variant in enumerate(VARIANTS):
         offset = (i - (n_variants - 1) / 2) * bar_width
@@ -543,17 +675,27 @@ def render_chart(
             v = value_fn(r)
             if v <= 0:
                 continue
-            xs.append(j + offset)
+            xs.append(j * group_pitch + offset)
             ys.append(v)
         if xs:
             ax.bar(xs, ys, bar_width, label=variant)
 
     ax.set_yscale("log")
-    ax.set_xticks(range(len(case_names)))
+    ax.set_xticks([j * group_pitch for j in range(len(case_names))])
     ax.set_xticklabels(case_names, rotation=30, ha="right")
+    # tighten the x-axis: groups sit at j*group_pitch with bars offset by at
+    # most group_width/2; clamp to half a pitch beyond the first/last group
+    # so matplotlib doesn't leave its default ~5% of empty space at the ends.
+    ax.set_xlim(
+        -group_pitch / 2,
+        (len(case_names) - 1) * group_pitch + group_pitch / 2,
+    )
     ax.set_ylabel(ylabel)
     ax.set_title(title)
-    ax.legend(title="variant")
+    # upper-left rather than the default best/upper-right -- the rightmost
+    # cases tend to be the heaviest ones, and an auto-placed legend often
+    # ends up sitting on top of their bars.
+    ax.legend(title="variant", loc="upper left")
     # plain decimal tick labels ("1", "10", "0.1") instead of the
     # default "10^0", "10^1", "10^-1" -- easier to read at a glance.
     # '%g' strips trailing zeros and avoids scientific notation for
