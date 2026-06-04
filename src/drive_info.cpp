@@ -103,7 +103,7 @@ drive_info get_drive_info(std::string const& path)
 	drive_info const def = drive_info::spinning;
 
 	struct statfs stfs{};
-	if (statfs(path.c_str(), &stfs) != 0)
+	if (statfs(path.c_str(), &stfs) == 0)
 	{
 		if (stfs.f_type == TMPFS_MAGIC
 			|| stfs.f_type == RAMFS_MAGIC)
