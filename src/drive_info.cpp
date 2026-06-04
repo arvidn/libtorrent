@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <thread>
 #include <string>
 #include <optional>
+#include <type_traits>
 
 #ifdef TORRENT_LINUX
 #include <sys/vfs.h>
@@ -102,9 +103,12 @@ drive_info get_drive_info(std::string const& path)
 	struct statfs stfs{};
 	if (statfs(path.c_str(), &stfs) != 0)
 	{
-		if (stfs.f_type == TMPFS_MAGIC
-			|| stfs.f_type == RAMFS_MAGIC)
-			return drive_info::ssd_dax;
+		// f_type is signed (__fsword_t) but the magic constants are
+		// (sometimes unsigned) non-negative values. Compare against an
+		// unsigned copy to avoid a sign-compare warning on 32-bit.
+		auto const f_type = static_cast<std::make_unsigned_t<decltype(stfs.f_type)>>(stfs.f_type);
+
+		if (f_type == TMPFS_MAGIC || f_type == RAMFS_MAGIC) return drive_info::ssd_dax;
 
 #ifndef FUSE_SUPER_MAGIC
 #define FUSE_SUPER_MAGIC      0x65735546
@@ -113,9 +117,7 @@ drive_info get_drive_info(std::string const& path)
 		// most fuse-based filesystems are probably not remote
 		// but sshfs is and fuse appears to not like memory mapped files very
 		// much. So this is a conservative assumption.
-		if (stfs.f_type == FUSE_SUPER_MAGIC
-			|| stfs.f_type == NFS_SUPER_MAGIC)
-			return drive_info::remote;
+		if (f_type == FUSE_SUPER_MAGIC || f_type == NFS_SUPER_MAGIC) return drive_info::remote;
 	}
 
 	struct stat st{};

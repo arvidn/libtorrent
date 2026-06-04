@@ -255,6 +255,58 @@ jobs:
 
 
 
+   test-32bit:
+      name: Tests (32-bit)
+      runs-on: ubuntu-24.04
+      continue-on-error: true
+
+      steps:
+      - name: checkout
+        uses: actions/checkout@v6
+        with:
+           submodules: recursive
+           fetch-depth: 1
+           filter: tree:0
+
+      - name: update package lists
+        continue-on-error: true
+        run: |
+          sudo apt update
+
+      - uses: Chocobo1/setup-ccache-action@v1
+        with:
+          update_packager_index: false
+          override_cache_key: ccache-linux-tests-32bit-${{ github.base_ref }}
+          ccache_options: |
+            max_size=5G
+
+      - name: install 32-bit toolchain
+        run: |
+          sudo apt install -y g++-multilib
+
+      - name: install boost from source
+        run: |
+          wget -nv -O boost.tar.gz https://archives.boost.io/release/1.86.0/source/boost_1_86_0.tar.gz
+          tar xzf boost.tar.gz
+          mv boost_1_86_0 boost
+          cd boost
+          ./bootstrap.sh
+          ./b2 headers
+
+      - name: configure user-config.jam
+        run: echo "using gcc ;" >>~/user-config.jam
+
+      - name: build and run tests (32-bit)
+        env:
+          BOOST_ROOT: ${{ github.workspace }}/boost
+          BOOST_BUILD_PATH: ${{ github.workspace }}/boost/tools/build
+        run: |
+          cd test
+          ${BOOST_ROOT}/b2 address-model=32 architecture=x86 -l500 \
+            crypto=built-in warnings-as-errors=on debug-iterators=on asserts=on \
+            deterministic-tests
+
+
    sim:
       name: Simulations
       runs-on: ubuntu-24.04
