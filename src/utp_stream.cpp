@@ -391,8 +391,14 @@ utp_stream::~utp_stream()
 	{
 		UTP_LOGV("%8p: utp_stream destructed\n", static_cast<void*>(m_impl));
 		m_impl->destroy();
-		m_impl->detach();
-		m_impl = nullptr;
+		// destroy() may invoke a shutdown completion handler which already
+		// detaches and clears m_impl (see on_read/on_write/on_connect). Only
+		// detach here if that hasn't happened.
+		if (m_impl)
+		{
+			m_impl->detach();
+			m_impl = nullptr;
+		}
 	}
 }
 
