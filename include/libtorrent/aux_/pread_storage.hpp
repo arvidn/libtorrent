@@ -14,6 +14,7 @@ see LICENSE file.
 
 #include <mutex>
 #include <memory>
+#include <optional>
 
 #include "libtorrent/fwd.hpp"
 #include "libtorrent/aux_/disk_job_fence.hpp"

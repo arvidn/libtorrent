@@ -951,6 +951,21 @@ void pread_disk_io::async_set_file_priority(storage_index_t const storage
 	add_fence_job(j);
 }
 
+// Called by the bittorrent layer in two distinct scenarios:
+//
+// 1. Hash check failed: peer_connection / torrent calls this after the piece
+//    hash was returned and didn't match. By this point hashing has finished
+//    on the piece (the hash was delivered to the caller before they could
+//    react), so when do_job(clear_piece) runs the cpe has no hashing_flag.
+//
+// 2. Disk write failed: peer_connection::on_disk_write_complete calls this
+//    when async_write reports a non-aborted error. The write failure is
+//    unrelated to hashing -- earlier blocks of the same piece may still be
+//    going through kick_hasher when the clear is dispatched, so try_clear_piece
+//    sees hashing_flag set and parks the clear on the cpe (see disk_cache.cpp).
+//
+// Don't add an assertion in disk_cache::try_clear_piece that hashing_flag is
+// clear; scenario 2 will fire it. The deferral branches are intentional.
 void pread_disk_io::async_clear_piece(storage_index_t const storage
 	, piece_index_t const index, std::function<void(piece_index_t)> handler)
 {
