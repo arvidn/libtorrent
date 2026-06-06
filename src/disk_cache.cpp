@@ -212,13 +212,21 @@ bool disk_cache::try_clear_piece(piece_location const loc, disk_job* j, jobqueue
 	auto i = view.find(loc);
 	if (i == view.end()) return true;
 
-	// we clear a piece after it fails the hash check. It doesn't make sense
-	// to be hashing still
-	TORRENT_ASSERT(!(i->flags & cached_piece_entry::hashing_flag));
-
 	if (i->flags & cached_piece_entry::flushing_flag)
 	{
 		// postpone the clearing until we're done flushing
+		view.modify(i, [&](cached_piece_entry& e) { e.clear_piece = j; });
+		return false;
+	}
+
+	// clear_piece is also issued on a disk write failure (peer_connection.cpp's
+	// on_disk_write_complete error path), and that can race with a hasher that
+	// was already kicked for earlier blocks of the same piece. Park the clear;
+	// flush_piece_impl's scope_end will dispatch it the next time a flush
+	// touches this piece (the hasher's Path 2/3 exit sets force_flush_flag so
+	// the next optimistic flush picks it up).
+	if (i->flags & cached_piece_entry::hashing_flag)
+	{
 		view.modify(i, [&](cached_piece_entry& e) { e.clear_piece = j; });
 		return false;
 	}
@@ -1248,11 +1256,6 @@ void disk_cache::check_invariant() const
 		// It must never outlive the hashing window.
 		if (piece_entry.flags & cached_piece_entry::pending_free_flag)
 			TORRENT_ASSERT(piece_entry.flags & cached_piece_entry::hashing_flag);
-
-		if (piece_entry.clear_piece != nullptr)
-		{
-			TORRENT_ASSERT(!(piece_entry.flags & cached_piece_entry::hashing_flag));
-		}
 
 		int idx = 0;
 		for (auto& be : blocks)

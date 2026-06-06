@@ -23,6 +23,7 @@ see LICENSE file.
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/units.hpp"
 #include <cstring>
+#include <functional>
 #include <map>
 #include <memory>
 #include <vector>

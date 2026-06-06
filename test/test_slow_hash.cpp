@@ -369,6 +369,72 @@ void test_drop_held_alive_buffers(test_mode_t const mode)
 	TEST_CHECK(aborted.empty());
 }
 
+// try_clear_piece() arrives while a hasher thread holds hashing_flag (mutex
+// released mid-hash) -- the disk-write-failure path can race with kick_hasher
+// on the same piece. try_clear_piece must park the clear on the cpe (not run
+// clear_piece_impl while ph/hasher_cursor are in use). When kick_hasher
+// finishes via Path 2 it sets force_flush_flag; the next flush sees the
+// parked clear in flush_piece_impl's scope_end and dispatches it.
+void test_clear_piece_during_hashing(test_mode_t const mode)
+{
+	if (!(mode & test_mode::v1)) return; // v2-only has no hashing_flag
+
+	cache_fixture f(2, mode);
+	f.insert(0_piece, 0);
+	f.insert(0_piece, 1);
+
+	auto clear_job = std::make_unique<pread_disk_job>();
+	clear_job->action = job::clear_piece{{}, 0_piece};
+
+	jobqueue_t completed, retry;
+	std::thread hasher_thread([&]() { f.cache.kick_pending_hashers(completed, retry); });
+
+	// Give the hasher time to set hashing_flag and release the mutex inside
+	// its slow-hash update. The window is ~1.6s per block; 50ms is well inside.
+	std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+	jobqueue_t cb_aborted;
+	bool const cb_immediate = f.cache.try_clear_piece(f.loc(0_piece), clear_job.get(), cb_aborted);
+	// hashing_flag was set -- try_clear_piece parked the clear and returned false.
+	TEST_CHECK(!cb_immediate);
+	TEST_CHECK(cb_aborted.empty());
+
+	hasher_thread.join();
+	// kick_hasher's Path 2 (all blocks hashed, no hash_job) cleared
+	// hashing_flag and set force_flush_flag.
+
+	// Run a flush. Pass 1 picks up the piece (force_flush_flag), flushes its
+	// write_jobs, then flush_piece_impl's scope_end sees cpe.clear_piece set
+	// and dispatches the parked clear via clear_piece_fun.
+	jobqueue_t deferred_aborted;
+	disk_job* deferred_clear = nullptr;
+	f.cache.flush_to_disk(
+		[&](bitfield& flushed, span<disk_job* const> blocks) -> int {
+			int count = 0;
+			for (int i = 0; i < int(blocks.size()); ++i)
+			{
+				if (!blocks[i]) continue;
+				flushed.set_bit(i);
+				++count;
+			}
+			return count;
+		},
+		0,
+		[&](jobqueue_t aborted, disk_job* clear) {
+			while (!aborted.empty())
+				deferred_aborted.push_back(aborted.pop_front());
+			if (clear) deferred_clear = clear;
+		},
+		false);
+
+	// Both write_jobs were already taken by the flush, so the deferred clear's
+	// aborted is empty. The clear job itself was dispatched.
+	TEST_CHECK(deferred_aborted.empty());
+	TEST_EQUAL(deferred_clear, clear_job.get());
+	TEST_EQUAL(int(f.cache.size()), 0);
+	TEST_EQUAL(f.alloc.live, 0);
+}
+
 // Regression test for the pending_free_flag mechanism.
 //
 // flush_storage() is called to tear down a storage while a hasher thread
@@ -449,6 +515,12 @@ TORRENT_TEST(flush_storage_during_hashing_v2)
 	{ test_flush_storage_during_hashing(test_mode::v2); }
 TORRENT_TEST(flush_storage_during_hashing_hybrid)
 	{ test_flush_storage_during_hashing(test_mode::v1 | test_mode::v2); }
+
+	TORRENT_TEST(clear_piece_during_hashing_v1) { test_clear_piece_during_hashing(test_mode::v1); }
+	TORRENT_TEST(clear_piece_during_hashing_hybrid)
+	{
+		test_clear_piece_during_hashing(test_mode::v1 | test_mode::v2);
+	}
 
 	TORRENT_TEST(drop_held_alive_v1) { test_drop_held_alive_buffers(test_mode::v1); }
 	TORRENT_TEST(drop_held_alive_v2) { test_drop_held_alive_buffers(test_mode::v2); }
