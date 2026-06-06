@@ -4086,14 +4086,19 @@ void test_rate_limit(aux::session_settings const& sett, std::function<void(lt::d
 }
 }
 
-TORRENT_TEST(rate_limit_zero)
+TORRENT_TEST(rate_limit_non_positive)
 {
-	aux::session_settings sett;
-	sett.set_int(settings_pack::dht_upload_rate_limit, 0);
+	int const limits[] = {0, -1};
 
-	test_rate_limit(sett, [](lt::dht::socket_manager& sm) {
-		TEST_CHECK(!sm.has_quota());
-	});
+	for (int const limit : limits)
+	{
+		aux::session_settings sett;
+		sett.set_int(settings_pack::dht_upload_rate_limit, limit);
+
+		test_rate_limit(sett, [](lt::dht::socket_manager& sm) {
+			TEST_CHECK(!sm.has_quota());
+		});
+	}
 }
 
 TORRENT_TEST(rate_limit_int_max)
