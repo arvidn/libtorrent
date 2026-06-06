@@ -760,7 +760,41 @@ void disk_cache::drain_v2_hash_queue(Fun store,
 				if (entry.block >= piece_iter->blocks_in_piece()) continue;
 				auto& cbe = piece_iter->blocks[entry.block];
 				auto* j = cbe.get_write_job();
-				if (j == nullptr) continue;
+				if (j == nullptr)
+				{
+					// cbe was flushed while our v2 entry was outstanding.
+					// flush_piece_impl couldn't hold-alive because the buffer
+					// wasn't cache-owned (the queue owned it). If a hasher
+					// (kick_hasher for v1/hybrid, hash_piece for any) is
+					// mid-update, its block snapshot still points into
+					// entry.buf -- dropping now would dangle that pointer.
+					// Move the buffer into the cbe so kick_hasher's cleanup
+					// loop (or free_piece / clear_piece_impl) frees it once
+					// the cursor passes this block.
+					// !has_buf() should always be true here: in v2/hybrid mode
+					// nothing else parks a held-alive buf in the cbe (the
+					// queue owns the buffer, so flush_piece_impl's
+					// needed_by_hasher branch is never taken). The check
+					// guards against the degenerate "same block inserted
+					// twice and flushed twice before the drain runs" case;
+					// otherwise disk_buffer_ref's move-assign would abort
+					// trying to overwrite a non-empty ref.
+					auto& cbe2 = piece_iter->blocks[entry.block];
+					if ((piece_iter->flags & cached_piece_entry::hashing_flag)
+						&& int(entry.block) >= piece_iter->hasher_cursor && !cbe2.has_buf())
+					{
+						cbe2.write_state = disk_buffer_ref(std::move(entry.buf));
+						++m_blocks;
+						// flush_piece_impl decremented m_num_unhashed when it
+						// transitioned the cbe to flushed-no-buf (v1/hybrid).
+						// Re-parking the buffer as held-alive makes this block
+						// unhashed again until kick_hasher's cleanup sweeps it
+						// past the cursor.
+						if (piece_iter->flags & cached_piece_entry::v1_hashes_flag)
+							++m_num_unhashed;
+					}
+					continue;
+				}
 				auto& wj = std::get<aux::job::write>(j->action);
 				// cbe may have been cleared and re-inserted with a new buffer
 				// while we were hashing; an address mismatch means this
