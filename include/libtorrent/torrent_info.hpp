@@ -115,12 +115,25 @@ namespace aux {
 		// The URL of the web seed
 		std::string url;
 
-		// Optional authentication. If this is set, it's passed
-		// in as HTTP basic auth to the web seed. The format is:
-		// username:password.
+		// Optional authentication. If set, this string is sent verbatim as the
+		// value of the HTTP ``Authorization`` header, and it overrides any
+		// credentials embedded in the URL. It is not transformed in any way, so
+		// it must be the complete header value. For HTTP basic authentication
+		// that means ``"Basic "`` followed by the base64 encoding of
+		// ``username:password``.
+		// For security, this value (as well as any credentials embedded in the
+		// URL as "username:password@host") is only sent to the origin of the
+		// web seed URL. If the web seed responds with a redirect to a different
+		// origin (a different scheme, host or port), it is *not* forwarded to
+		// the new origin.
 		std::string auth;
 
-		// Any extra HTTP headers that need to be passed to the web seed
+		// Any extra HTTP headers that need to be passed to the web seed.
+		// Warning: unlike ``auth``, these headers are sent verbatim with
+		// every request, including requests to a different origin that the web
+		// seed may redirect to. Do not put sensitive credentials (such as an
+		// ``Authorization`` or ``Cookie`` header) here unless you trust every
+		// host the web seed might redirect to.
 		headers_t extra_headers;
 
 		// The type of web seed (see type_t)
@@ -329,10 +342,13 @@ TORRENT_VERSION_NAMESPACE_3
 		// ``set_web_seeds()`` replaces all web seeds with the ones specified in
 		// the ``seeds`` vector.
 		//
-		// The ``extern_auth`` argument can be used for other authorization
-		// schemes than basic HTTP authorization. If set, it will override any
-		// username and password found in the URL itself. The string will be sent
-		// as the HTTP authorization header's value (without specifying "Basic").
+		// The ``extern_auth`` argument sets the ``auth`` field of the
+		// web_seed_entry. If set, it overrides any username and password found
+		// in the URL itself, and it is sent verbatim as the value of the HTTP
+		// ``Authorization`` header (it is not transformed in any way). For HTTP
+		// basic authentication the value must therefore be ``"Basic "`` followed
+		// by the base64 encoding of ``username:password``. See web_seed_entry
+		// for the security implications of this field across redirects.
 		//
 		// The ``extra_headers`` argument defaults to an empty list, but can be
 		// used to insert custom HTTP headers in the requests to a specific web
