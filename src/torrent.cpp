@@ -164,11 +164,9 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		// mark all pieces of the file with this file's priority
 		// but only if the priority is higher than the pieces
 		// already set (to avoid problems with overlapping pieces)
-		auto const [start, end] = file_piece_range_inclusive(fs, i);
-
 		// if one piece spans several files, we might
 		// come here several times with the same start_piece, end_piece
-		for (piece_index_t p = start; p < end; ++p)
+		for (piece_index_t const p : file_piece_range_inclusive(fs, i))
 			pieces[p] = std::max(pieces[p], file_prio);
 	}
 	return pieces;

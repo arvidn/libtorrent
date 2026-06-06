@@ -1763,8 +1763,8 @@ namespace aux {
 		return true;
 	}
 
-	std::tuple<piece_index_t, piece_index_t>
-	file_piece_range_exclusive(file_storage const& fs, file_index_t const file)
+	index_range<piece_index_t> file_piece_range_exclusive(
+		file_storage const& fs, file_index_t const file)
 	{
 		peer_request const range = fs.map_file(file, 0, 1);
 		std::int64_t const file_size = fs.file_size(file);
@@ -1777,18 +1777,18 @@ namespace aux {
 		piece_index_t const end_piece = (file == file_index_t(fs.num_files() - 1))
 			? piece_index_t(fs.num_pieces())
 			: piece_index_t(int((static_cast<int>(range.piece) * piece_size + range.start + file_size + 1) / piece_size));
-		return std::make_tuple(begin_piece, end_piece);
+		return {begin_piece, end_piece};
 	}
 
-	std::tuple<piece_index_t, piece_index_t>
-	file_piece_range_inclusive(file_storage const& fs, file_index_t const file)
+	index_range<piece_index_t> file_piece_range_inclusive(
+		file_storage const& fs, file_index_t const file)
 	{
 		peer_request const range = fs.map_file(file, 0, 1);
 		std::int64_t const file_size = fs.file_size(file);
 		std::int64_t const piece_size = fs.piece_length();
 		piece_index_t const end_piece = piece_index_t(int((static_cast<int>(range.piece)
 			* piece_size + range.start + file_size - 1) / piece_size + 1));
-		return std::make_tuple(range.piece, end_piece);
+		return {range.piece, end_piece};
 	}
 
 	int calc_num_pieces(file_storage const& fs)

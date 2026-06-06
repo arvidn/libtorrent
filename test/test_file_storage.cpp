@@ -347,9 +347,12 @@ TORRENT_TEST(piece_range_exclusive)
 	// files  | 0 |        1       |        2     |
 	//        +---+----------------+--------------+
 
-	TEST_CHECK(aux::file_piece_range_exclusive(fs, 0_file) == std::make_tuple(0_piece, 1_piece));
-	TEST_CHECK(aux::file_piece_range_exclusive(fs, 1_file) == std::make_tuple(1_piece, 5_piece));
-	TEST_CHECK(aux::file_piece_range_exclusive(fs, 2_file) == std::make_tuple(6_piece, 9_piece));
+	TEST_CHECK((aux::file_piece_range_exclusive(fs, 0_file)
+		== lt::index_range<piece_index_t>{0_piece, 1_piece}));
+	TEST_CHECK((aux::file_piece_range_exclusive(fs, 1_file)
+		== lt::index_range<piece_index_t>{1_piece, 5_piece}));
+	TEST_CHECK((aux::file_piece_range_exclusive(fs, 2_file)
+		== lt::index_range<piece_index_t>{6_piece, 9_piece}));
 }
 
 TORRENT_TEST(piece_range_inclusive)
@@ -367,9 +370,12 @@ TORRENT_TEST(piece_range_inclusive)
 	// files  | 0 |        1       |        2     |
 	//        +---+----------------+--------------+
 
-	TEST_CHECK(aux::file_piece_range_inclusive(fs, 0_file) == std::make_tuple(0_piece, 1_piece));
-	TEST_CHECK(aux::file_piece_range_inclusive(fs, 1_file) == std::make_tuple(1_piece, 6_piece));
-	TEST_CHECK(aux::file_piece_range_inclusive(fs, 2_file) == std::make_tuple(5_piece, 9_piece));
+	TEST_CHECK((aux::file_piece_range_inclusive(fs, 0_file)
+		== lt::index_range<piece_index_t>{0_piece, 1_piece}));
+	TEST_CHECK((aux::file_piece_range_inclusive(fs, 1_file)
+		== lt::index_range<piece_index_t>{1_piece, 6_piece}));
+	TEST_CHECK((aux::file_piece_range_inclusive(fs, 2_file)
+		== lt::index_range<piece_index_t>{5_piece, 9_piece}));
 }
 
 TORRENT_TEST(piece_range)
@@ -386,11 +392,15 @@ TORRENT_TEST(piece_range)
 	// files  |      0    |      1     |
 	//        +---+-------+------------+
 
-	TEST_CHECK(aux::file_piece_range_inclusive(fs, 0_file) == std::make_tuple(0_piece, 3_piece));
-	TEST_CHECK(aux::file_piece_range_inclusive(fs, 1_file) == std::make_tuple(3_piece, 7_piece));
+	TEST_CHECK((aux::file_piece_range_inclusive(fs, 0_file)
+		== lt::index_range<piece_index_t>{0_piece, 3_piece}));
+	TEST_CHECK((aux::file_piece_range_inclusive(fs, 1_file)
+		== lt::index_range<piece_index_t>{3_piece, 7_piece}));
 
-	TEST_CHECK(aux::file_piece_range_exclusive(fs, 0_file) == std::make_tuple(0_piece, 3_piece));
-	TEST_CHECK(aux::file_piece_range_exclusive(fs, 1_file) == std::make_tuple(3_piece, 7_piece));
+	TEST_CHECK((aux::file_piece_range_exclusive(fs, 0_file)
+		== lt::index_range<piece_index_t>{0_piece, 3_piece}));
+	TEST_CHECK((aux::file_piece_range_exclusive(fs, 1_file)
+		== lt::index_range<piece_index_t>{3_piece, 7_piece}));
 }
 
 TORRENT_TEST(piece_size_last_piece)
