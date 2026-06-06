@@ -724,6 +724,14 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		// add_web_seed won't add duplicates. If we have already added an entry
 		// with this URL, we'll get back the existing entry
 
+		// Don't forward our credentials (the web_seed_entry::auth value, sent
+		// as the Authorization header) to a different origin. The redirect
+		// target may be a third party server that should not see them. Note
+		// that any user-supplied m_extra_headers are still forwarded -- see the
+		// warning on web_seed_entry::extra_headers.
+		std::string const auth = same_origin(m_url, location)
+			? m_external_auth : std::string();
+
 		// "ephemeral" flag should be set to avoid "web_seed_t" saving in resume data.
 		// E.g. original "web_seed_t" request url points to "http://example1.com/file1" and
 		// web server responses with redirect location "http://example2.com/subpath/file2".
@@ -732,7 +740,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		// If we try to load resume with such "web_seed_t" then "web_peer_connection" will send
 		// request with wrong path "http://example2.com/file1" (cause "redirects" map is not serialized in resume)
 		web_seed_t* web = t->add_web_seed(redirect_base, web_seed_entry::url_seed
-			, m_external_auth, m_extra_headers, web_seed_flags);
+			, auth, m_extra_headers, web_seed_flags);
 		web->have_files.resize(t->torrent_file().num_files(), false);
 
 		// the new web seed we're adding only has this file for now
@@ -777,7 +785,14 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, "LOCATION", "%s", location.c_str());
 #endif
-		t->add_web_seed(location, web_seed_entry::url_seed, m_external_auth
+		// Don't forward our credentials (the web_seed_entry::auth value, sent
+		// as the Authorization header) to a different origin. The redirect
+		// target may be a third party server that should not see them. Note
+		// that any user-supplied m_extra_headers are still forwarded -- see the
+		// warning on web_seed_entry::extra_headers.
+		std::string const auth = same_origin(m_url, location)
+			? m_external_auth : std::string();
+		t->add_web_seed(location, web_seed_entry::url_seed, auth
 			, m_extra_headers, web_seed_flags);
 
 		// this web seed doesn't have any files. Don't try to request from it

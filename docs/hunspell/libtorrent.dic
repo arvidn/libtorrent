@@ -642,3 +642,4 @@ btrfs
 CoW
 reflinks
 reflinked
+base64
