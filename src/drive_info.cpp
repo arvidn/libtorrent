@@ -36,6 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <iostream>
 #include <thread>
 #include <string>
+#include <cstdint>
+#include <type_traits>
 
 #ifdef TORRENT_LINUX
 #include <sys/vfs.h>
@@ -102,22 +104,37 @@ drive_info get_drive_info(std::string const& path)
 	// make a conservative default assumption
 	drive_info const def = drive_info::spinning;
 
+	// filesystem magic numbers from linux/magic.h. They are defined locally
+	// since some are missing from older kernel headers.
+	constexpr std::uint32_t fuse_super_magic = 0x65735546;
+	constexpr std::uint32_t smb_super_magic = 0x517B;
+	constexpr std::uint32_t cifs_magic_number = 0xFF534D42;
+	constexpr std::uint32_t smb2_magic_number = 0xFE534D42;
+
 	struct statfs stfs{};
 	if (statfs(path.c_str(), &stfs) == 0)
 	{
-		if (stfs.f_type == TMPFS_MAGIC
-			|| stfs.f_type == RAMFS_MAGIC)
-			return drive_info::ssd_dax;
+		// f_type is signed (__fsword_t) but the magic constants are
+		// (sometimes unsigned) non-negative values. Compare against an
+		// unsigned copy to avoid a sign-compare warning on 32-bit.
+		auto const f_type = static_cast<std::make_unsigned_t<decltype(stfs.f_type)>>(stfs.f_type);
 
-#ifndef FUSE_SUPER_MAGIC
-#define FUSE_SUPER_MAGIC      0x65735546
-#endif
+		// tmpfs and ramfs are backed by RAM, so memory mapping them is as
+		// efficient as it gets. Treat them like DAX.
+		if (f_type == TMPFS_MAGIC
+			|| f_type == RAMFS_MAGIC)
+			return drive_info::ssd_dax;
 
 		// most fuse-based filesystems are probably not remote
 		// but sshfs is and fuse appears to not like memory mapped files very
 		// much. So this is a conservative assumption.
-		if (stfs.f_type == FUSE_SUPER_MAGIC
-			|| stfs.f_type == NFS_SUPER_MAGIC)
+		// SMB/CIFS and NFS are network filesystems that don't handle memory
+		// mapped files well.
+		if (f_type == fuse_super_magic
+			|| f_type == NFS_SUPER_MAGIC
+			|| f_type == smb_super_magic
+			|| f_type == cifs_magic_number
+			|| f_type == smb2_magic_number)
 			return drive_info::remote;
 	}
 
