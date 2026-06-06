@@ -178,15 +178,27 @@ struct cache_fixture
 	// observe deferred clear_piece completions dispatched by the drain.
 	std::vector<lt::aux::disk_job*> cleared_jobs;
 	std::vector<lt::aux::disk_job*> aborted_jobs;
+	// captured by the kick_hashers() drain so tests can observe parked
+	// hash_jobs that were dispatched once v2_pending reached zero.
+	lt::jobqueue_t posted_jobs;
+	// optional hook fired from kick_hashers()'s drain store callback after
+	// the hash is captured into v2_hashes but before v2_pending is
+	// decremented. lets tests inject try_clear_piece / try_hash_piece into
+	// the drain's unlocked window without bypassing kick_hashers().
+	std::function<void()> drain_store_hook;
 	void kick_hashers()
 	{
-		lt::jobqueue_t completed, retry;
-		cache.kick_pending_hashers(completed, retry);
-		cache.drain_v2_hash_queue([this](std::shared_ptr<lt::aux::pread_storage> const&,
-									  lt::piece_index_t const piece,
-									  int const block,
-									  lt::sha256_hash const& h) { v2_hashes[{piece, block}] = h; },
-			retry,
+		lt::jobqueue_t completed;
+		cache.kick_pending_hashers(completed, posted_jobs);
+		cache.drain_v2_hash_queue(
+			[this](std::shared_ptr<lt::aux::pread_storage> const&,
+				lt::piece_index_t const piece,
+				int const block,
+				lt::sha256_hash const& h) {
+				v2_hashes[{piece, block}] = h;
+				if (drain_store_hook) drain_store_hook();
+			},
+			posted_jobs,
 			[this](lt::jobqueue_t aborted, lt::aux::disk_job* clear) {
 				cleared_jobs.push_back(clear);
 				while (!aborted.empty())
