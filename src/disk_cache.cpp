@@ -12,6 +12,10 @@ see LICENSE file.
 #include "libtorrent/aux_/debug_disk_thread.hpp"
 #include "libtorrent/bitfield.hpp"
 
+#if TORRENT_USE_INVARIANT_CHECKS
+#include <map>
+#endif
+
 namespace libtorrent::aux {
 
 namespace mi = boost::multi_index;
@@ -67,7 +71,7 @@ char const* cached_block_entry::data() const noexcept
 	if (auto const* j = std::get_if<disk_job*>(&write_state))
 	{
 		TORRENT_ASSERT((*j)->get_type() == aux::job_action_t::write);
-		return std::get<job::write>((*j)->action).buf.data();
+		return std::get<job::write>((*j)->action).borrowed_buf;
 	}
 	return nullptr;
 }
@@ -84,7 +88,7 @@ span<char const> cached_block_entry::buf(int const block_size) const
 		TORRENT_ASSERT((*j)->get_type() == aux::job_action_t::write);
 		auto const& job = std::get<job::write>((*j)->action);
 		TORRENT_ASSERT(block_size == job.buffer_size);
-		return {job.buf.data(), job.buffer_size};
+		return {job.borrowed_buf, job.buffer_size};
 	}
 	return {nullptr, 0};
 }
@@ -95,7 +99,7 @@ span<char const> cached_block_entry::write_buf() const
 	{
 		TORRENT_ASSERT((*j)->get_type() == aux::job_action_t::write);
 		auto const& job = std::get<job::write>((*j)->action);
-		return {job.buf.data(), job.buffer_size};
+		return {job.borrowed_buf, job.borrowed_buf ? job.buffer_size : std::uint16_t{0}};
 	}
 	return {nullptr, 0};
 }
@@ -165,16 +169,17 @@ lt::hasher& piece_hasher::ctx()
 	return *ctx;
 }
 
-cached_piece_entry::cached_piece_entry(piece_location const& loc
-	, int const piece_size_v2, int const piece_size_arg, int const num_blocks, bool const v1, bool const v2)
+cached_piece_entry::cached_piece_entry(piece_location const& loc,
+	int const piece_size_v2,
+	int const piece_size_arg,
+	int const num_blocks,
+	bool const v1)
 	: piece(loc)
 	, blocks(aux::make_unique<cached_block_entry[]>(num_blocks))
-	, block_hashes(v2 ? aux::make_unique<sha256_hash[]>(num_blocks) : aux::unique_ptr<sha256_hash[], int>())
 	, ph(v1 ? std::make_unique<piece_hasher>() : nullptr)
 	, piece_size2(piece_size_v2)
 	, piece_size(piece_size_arg)
-	, flags((v1 ? v1_hashes_flag : cached_piece_flags{})
-		| (v2 ? v2_hashes_flag : cached_piece_flags{}))
+	, flags(v1 ? v1_hashes_flag : cached_piece_flags{})
 {
 	TORRENT_ASSERT(piece_size_arg > 0);
 	TORRENT_ASSERT(num_blocks == blocks_in_piece());
@@ -189,11 +194,14 @@ disk_cache::disk_cache(io_context& ios)
 	: m_back_pressure(ios)
 {}
 
-// If the specified piece exists in the cache, and it's unlocked, clear all
-// write jobs (return them in "aborted"). Returns true if the clear_piece
-// job should be posted as complete. Returns false if the piece is locked by
-// another thread, and the clear_piece job has been queued to be issued once
-// the piece is unlocked.
+// If the specified piece exists in the cache and is not in use by another
+// thread, clear it: abort all write jobs (returned in `aborted`), drop any
+// v2 hash queue entries, and reset cursors/flags. Returns true when the
+// caller can post the clear_piece job as complete now. Returns false if the
+// clear must be deferred -- the clear_piece job is parked on the cpe and
+// will be dispatched by whichever path eventually releases the gate that
+// blocked us (flush_piece_impl's scope_end for flushing_flag, or
+// drain_v2_hash_queue for v2_pending).
 bool disk_cache::try_clear_piece(piece_location const loc, disk_job* j, jobqueue_t& aborted)
 {
 	std::unique_lock<std::mutex> l(m_mutex);
@@ -203,6 +211,11 @@ bool disk_cache::try_clear_piece(piece_location const loc, disk_job* j, jobqueue
 	auto& view = m_pieces.template get<0>();
 	auto i = view.find(loc);
 	if (i == view.end()) return true;
+
+	// we clear a piece after it fails the hash check. It doesn't make sense
+	// to be hashing still
+	TORRENT_ASSERT(!(i->flags & cached_piece_entry::hashing_flag));
+
 	if (i->flags & cached_piece_entry::flushing_flag)
 	{
 		// postpone the clearing until we're done flushing
@@ -210,19 +223,23 @@ bool disk_cache::try_clear_piece(piece_location const loc, disk_job* j, jobqueue
 		return false;
 	}
 
-	// we clear a piece after it fails the hash check. It doesn't make sense
-	// to be hashing still
-	TORRENT_ASSERT(!(i->flags & cached_piece_entry::hashing_flag));
-	if (i->flags & cached_piece_entry::hashing_flag)
-	{
-		// postpone the clearing until we're done hashing
-		view.modify(i, [&](cached_piece_entry& e) { e.clear_piece = j; });
-		return false;
-	}
-
 	view.modify(i, [&](cached_piece_entry& e) {
 		clear_piece_impl(e, aborted);
 	});
+
+	// In-flight drain batches still own entries for this piece -- their
+	// store_precomputed_v2() calls land on pread_storage *after* we return.
+	// Defer the completion (and the drop_precomputed_v2 the caller will
+	// issue) until the drain decrements v2_pending to zero, so the late
+	// store doesn't race the drop. The caller's per-storage fence keeps new
+	// async_writes blocked across this wait; v2 hashing 16 KiB is much
+	// faster than the disk I/O that drove the request, so this branch is
+	// rarely taken.
+	if (i->v2_pending > 0)
+	{
+		view.modify(i, [&](cached_piece_entry& e) { e.clear_piece = j; });
+		return false;
+	}
 	return true;
 }
 
@@ -251,8 +268,8 @@ insert_result_flags disk_cache::insert(piece_location const loc
 	if (i == view.end())
 	{
 		int const num_blocks = (params.piece_size + default_block_size - 1) / default_block_size;
-		i = m_pieces.emplace(loc, params.piece_size2
-			, params.piece_size, num_blocks, params.v1, params.v2).first;
+		i = m_pieces.emplace(loc, params.piece_size2, params.piece_size, num_blocks, params.v1)
+				.first;
 	}
 
 	TORRENT_ASSERT(!(i->flags & cached_piece_entry::piece_hash_returned_flag));
@@ -271,17 +288,43 @@ insert_result_flags disk_cache::insert(piece_location const loc
 	TORRENT_ASSERT(block_idx >= i->hasher_cursor);
 
 	TORRENT_ASSERT(write_job->get_type() == aux::job_action_t::write);
-	TORRENT_ASSERT(std::get<aux::job::write>(write_job->action).buffer_size
+	auto& wjob = std::get<aux::job::write>(write_job->action);
+	TORRENT_ASSERT(wjob.buffer_size
 		== std::min(default_block_size, params.piece_size - block_idx * default_block_size));
 	// All write jobs must use the same disk buffer allocator
 	if (!m_allocator)
-		m_allocator = std::get<aux::job::write>(write_job->action).buf.m_allocator;
+		m_allocator = wjob.buf.m_allocator;
 	else
-		TORRENT_ASSERT(m_allocator == std::get<aux::job::write>(write_job->action).buf.m_allocator);
+		TORRENT_ASSERT(m_allocator == wjob.buf.m_allocator);
+
+	// captured while wjob.buf is in scope, before any move that may empty
+	// it. flush reads through this without the cache mutex (see write_buf()).
+	TORRENT_ASSERT(wjob.borrowed_buf == nullptr);
+	wjob.borrowed_buf = wjob.buf.data();
+
+	// move v2 blocks whose data falls inside piece_size2 onto the hash
+	// queue. The queue owns the buffer; the cache reaches the bytes through
+	// wjob.borrowed_buf.
+	if (params.v2)
+	{
+		int const block_offset = block_idx * default_block_size;
+		int const piece_size2 = params.piece_size2;
+		int const v2_len = std::min(int(wjob.buffer_size), piece_size2 - block_offset);
+		if (v2_len > 0)
+		{
+			m_v2_hash_queue.emplace_back(loc,
+				params.storage,
+				static_cast<std::uint16_t>(block_idx),
+				static_cast<std::uint16_t>(v2_len),
+				std::move(wjob.buf));
+			view.modify(i, [](cached_piece_entry& e) { ++e.v2_pending; });
+		}
+	}
 
 	blk.write_state = write_job;
-	++m_blocks;
-	++m_num_unhashed;
+	// queue-owned buffers contribute to the level via m_v2_hash_queue.size().
+	if (wjob.buf) ++m_blocks;
+	if (params.v1) ++m_num_unhashed;
 
 	bool const effective_force_flush = force_flush || compute_force_flush(*i);
 	view.modify(i, [effective_force_flush](cached_piece_entry& e) {
@@ -291,11 +334,12 @@ insert_result_flags disk_cache::insert(piece_location const loc
 
 	insert_result_flags ret{};
 
-	if (m_back_pressure.has_back_pressure(m_blocks, std::move(o)))
+	if (m_back_pressure.has_back_pressure(m_blocks + int(m_v2_hash_queue.size()), std::move(o)))
 		ret |= exceeded_limit;
 
-	if ((i->hasher_cursor == block_idx
-		|| bool(i->flags & cached_piece_entry::v2_hashes_flag))
+	// need_hasher_kick covers v1 hasher progress only; the caller wakes the
+	// hasher for v2 queue work itself (it knows storage->v2()).
+	if (params.v1 && i->hasher_cursor == block_idx
 		&& !(i->flags & cached_piece_entry::piece_hash_returned_flag)
 		&& !(i->flags & cached_piece_entry::needs_hasher_kick_flag))
 	{
@@ -315,7 +359,7 @@ void disk_cache::set_max_size(int const max_size)
 std::optional<int> disk_cache::flush_request() const
 {
 	std::unique_lock<std::mutex> l(m_mutex);
-	return m_back_pressure.should_flush(m_blocks);
+	return m_back_pressure.should_flush(m_blocks + int(m_v2_hash_queue.size()));
 }
 
 // this call can have 3 outcomes:
@@ -338,30 +382,42 @@ disk_cache::hash_result disk_cache::try_hash_piece(piece_location const loc, dis
 
 	if (!(i->flags & cached_piece_entry::hashing_flag) && i->hasher_cursor == i->blocks_in_piece())
 	{
+		// v1 hash is computed. If the v2 drain still has entries for
+		// this piece, async_hash's contract to deliver v1 + v2 hashes
+		// together means we can't post yet -- hang and let
+		// drain_v2_hash_queue post the job through the retry queue when
+		// v2_pending hits zero. do_job(hash) -> hash_piece scope_end
+		// will then set piece_hash_returned_flag and force_flush_flag.
+		if (i->v2_pending > 0)
+		{
+			TORRENT_ASSERT(i->hash_job == nullptr);
+			view.modify(i, [&](cached_piece_entry& e) { e.hash_job = hash_job; });
+			return hash_result::job_queued;
+		}
+
 		view.modify(i, [&](cached_piece_entry& e) {
 			// mark for flush so a generic thread will write any pending
 			// write_jobs that are still in the cache for this piece
-			e.flags |= cached_piece_entry::piece_hash_returned_flag | cached_piece_entry::force_flush_flag;
+			e.flags |=
+				cached_piece_entry::piece_hash_returned_flag | cached_piece_entry::force_flush_flag;
 
 			auto& job = std::get<aux::job::hash>(hash_job->action);
 			TORRENT_ASSERT(bool(e.ph) == bool(e.flags & cached_piece_entry::v1_hashes_flag));
 			job.piece_hash = e.ph ? e.ph->final_hash() : sha1_hash{};
-			if (!job.block_hashes.empty())
-			{
-				TORRENT_ASSERT(bool(i->flags & cached_piece_entry::v2_hashes_flag));
-				TORRENT_ASSERT(e.block_hashes);
-				TORRENT_ASSERT(job.block_hashes.size() <= e.blocks_in_piece());
-				int const to_copy = std::min(int(job.block_hashes.size()), int(e.blocks_in_piece()));
-				for (int idx = 0; idx < to_copy; ++idx)
-					job.block_hashes[idx] = e.block_hashes[idx];
-			}
 		});
 		return hash_result::job_completed;
 	}
 
-	if ((i->flags & cached_piece_entry::hashing_flag)
-		&& i->hasher_cursor < i->blocks_in_piece()
-		)
+	// v2-only with v2 still draining: same defer, just reached through a
+	// different gate -- there's no v1 hasher cursor to wait on.
+	if (!(i->flags & cached_piece_entry::v1_hashes_flag) && i->v2_pending > 0)
+	{
+		TORRENT_ASSERT(i->hash_job == nullptr);
+		view.modify(i, [&](cached_piece_entry& e) { e.hash_job = hash_job; });
+		return hash_result::job_queued;
+	}
+
+	if ((i->flags & cached_piece_entry::hashing_flag) && i->hasher_cursor < i->blocks_in_piece())
 	{
 		// We're not done hashing yet, let the hashing thread post the
 		// completion once it's done
@@ -374,6 +430,23 @@ disk_cache::hash_result disk_cache::try_hash_piece(piece_location const loc, dis
 	}
 
 	return hash_result::post_job;
+}
+
+bool disk_cache::wait_for_v2_queue(piece_location const loc, disk_job* hash_job)
+{
+	std::unique_lock<std::mutex> l(m_mutex);
+	INVARIANT_CHECK;
+
+	auto& view = m_pieces.template get<0>();
+	auto pi = view.find(loc);
+	if (pi == view.end()) return false;
+	// hash_piece's deferred path will own hash_job in this case
+	if (pi->flags & cached_piece_entry::hashing_flag) return false;
+	if (pi->hash_job != nullptr) return false;
+	if (pi->v2_pending == 0) return false;
+
+	view.modify(pi, [hash_job](cached_piece_entry& e) { e.hash_job = hash_job; });
+	return true;
 }
 
 // this should be called from a hasher thread, with m_mutex held.
@@ -394,8 +467,6 @@ bool disk_cache::kick_hasher(piece_container::nth_index<4>::type::iterator piece
 	// NOTE: block_storage is indexed starting at cursor. We don't waste space
 	// allocating a slot for every block, just the ones in front of the cursor
 	TORRENT_ALLOCA(blocks_storage, span<char const>, piece_iter->blocks_in_piece() - int(cursor));
-
-	int count_hashed = 0;
 
 	// hashing_flag is already set by caller. We need to clear it before returning.
 	TORRENT_ASSERT(piece_iter->flags & cached_piece_entry::hashing_flag);
@@ -419,52 +490,25 @@ keep_going:
 	while (end < piece_iter->blocks_in_piece() && blocks_storage[end - cursor].data())
 		++end;
 
-	bool const need_v1 = bool(piece_iter->flags & cached_piece_entry::v1_hashes_flag);
-	bool const need_v2 = bool(piece_iter->flags & cached_piece_entry::v2_hashes_flag);
+	// insert() only sets needs_hasher_kick_flag for v1/hybrid pieces.
+	TORRENT_ASSERT(piece_iter->flags & cached_piece_entry::v1_hashes_flag);
+	TORRENT_ASSERT(piece_iter->ph);
 
-	DLOG("kick_hasher: piece: %d hashed_cursor: [%d, %d] v1: %d v2: %d ctx: %p\n"
-		, static_cast<int>(piece_iter->piece.piece)
-		, cursor, end
-		, need_v1, need_v2
-		, piece_iter->ph.get());
+	DLOG("kick_hasher: piece: %d hashed_cursor: [%d, %d] ctx: %p\n",
+		static_cast<int>(piece_iter->piece.piece),
+		cursor,
+		end,
+		piece_iter->ph.get());
 
 	l.unlock();
 
-	std::uint16_t const cursor_start = cursor;
-	int bytes_left = piece_iter->piece_size2 - int(cursor_start) * default_block_size;
-	bool contiguous = true;
-
-	// NOTE: i is in the blocks_storage space. It's offset by "cursor_start" to
-	// get back to block index
-	for (int i = 0; i < n; ++i, bytes_left -= default_block_size)
+	for (span<char const> const buf : blocks_storage)
 	{
-		span<char const> const buf = blocks_storage[i];
-		if (buf.data() == nullptr)
-		{
-			contiguous = false;
-			if (!need_v2) break;
-			continue;
-		}
+		if (buf.data() == nullptr) break;
 
-		if (contiguous)
-		{
-			if (need_v1)
-			{
-				TORRENT_ASSERT(piece_iter->ph);
-				auto& ctx = const_cast<aux::piece_hasher&>(*piece_iter->ph);
-				ctx.update(buf);
-			}
-			++cursor;
-			++count_hashed;
-		}
-
-		if (need_v2)
-		{
-			TORRENT_ASSERT(piece_iter->block_hashes);
-			int const blk_idx = int(cursor_start) + i;
-			if (bytes_left > 0 && piece_iter->block_hashes[blk_idx].is_all_zeros())
-				piece_iter->block_hashes[blk_idx] = hasher256(buf.first(std::min(bytes_left, default_block_size))).final();
-		}
+		auto& ctx = const_cast<aux::piece_hasher&>(*piece_iter->ph);
+		ctx.update(buf);
+		++cursor;
 	}
 
 	l.lock();
@@ -476,11 +520,19 @@ keep_going:
 		goto keep_going;
 	}
 
-	TORRENT_ASSERT(m_num_unhashed >= count_hashed);
-	m_num_unhashed -= count_hashed;
+	// recount rather than relying on (cursor - old_cursor): blocks flushed
+	// during the unlocked hashing window have already had their
+	// m_num_unhashed contribution removed by flush_piece_impl.
+	int const count = cursor - piece_iter->hasher_cursor;
+	{
+		int actual_hashed = 0;
+		for (auto const& cbe : piece_iter->get_blocks().subspan(piece_iter->hasher_cursor, count))
+			if (cbe.has_buf() || cbe.get_write_job()) ++actual_hashed;
+		TORRENT_ASSERT(m_num_unhashed >= actual_hashed);
+		m_num_unhashed -= actual_hashed;
+	}
 
 	// blocks that have been flushed and hashed can be removed from the cache immediately
-	int const count = cursor - piece_iter->hasher_cursor;
 	TORRENT_ASSERT(m_allocator);
 	bulk_free_buffer to_free(*m_allocator);
 	for (auto& cbe : piece_iter->get_blocks().subspan(piece_iter->hasher_cursor, count))
@@ -492,7 +544,7 @@ keep_going:
 	}
 
 	TORRENT_ASSERT(l.owns_lock());
-	m_back_pressure.check_buffer_level(m_blocks);
+	m_back_pressure.check_buffer_level(m_blocks + int(m_v2_hash_queue.size()));
 
 	auto& view = m_pieces.template get<4>();
 
@@ -541,40 +593,50 @@ keep_going:
 	}
 
 	// there's a hash job hung on this piece, post it now
-	disk_job* j = nullptr;
-
-	sha1_hash piece_hash;
+	disk_job* const j = piece_iter->hash_job;
+	TORRENT_ASSERT(j != nullptr);
 	TORRENT_ASSERT(!(piece_iter->flags & cached_piece_entry::piece_hash_returned_flag));
 
+	// peek at the hung job to decide between inline completion and a retry
+	// through the disk thread pool. A non-empty block_hashes array means
+	// the caller wants v2 block hashes too -- do_job(hash) will pull those
+	// from pread_storage::precomputed_block_hashes (populated by the v2
+	// drain) with a disk fallback for any still missing.
+	auto& job = std::get<job::hash>(j->action);
+	bool const will_retry = !job.block_hashes.empty();
+
+	sha1_hash piece_hash;
 	bool const force_flush = cursor == piece_iter->blocks_in_piece()
 		|| bool(piece_iter->flags & cached_piece_entry::piece_hash_returned_flag);
-	view.modify(piece_iter, [&j, &piece_hash, force_flush, cursor](cached_piece_entry& e) {
-		j = std::exchange(e.hash_job, nullptr);
+	view.modify(piece_iter, [&piece_hash, force_flush, cursor, will_retry](cached_piece_entry& e) {
+		e.hash_job = nullptr;
 		if (force_flush) e.flags |= cached_piece_entry::force_flush_flag;
 		e.hasher_cursor = cursor;
 		e.flags &= ~cached_piece_entry::hashing_flag;
-		e.flags |= cached_piece_entry::piece_hash_returned_flag;
-		// we've hashed all blocks, and there's a hash job associated with
-		// this piece, post it.
+		// only mark the hash as returned when we're delivering it inline.
+		// In the retry case do_job(hash) -> hash_piece's scope_end sets
+		// the flag once the v2 block hashes are actually in the job. If we
+		// set it eagerly, flush_to_disk could evict the cpe between here
+		// and the retry, forcing do_job(hash) to read everything back
+		// from disk instead of reusing the cached state.
+		if (!will_retry) e.flags |= cached_piece_entry::piece_hash_returned_flag;
 		TORRENT_ASSERT(bool(e.ph) == bool(e.flags & cached_piece_entry::v1_hashes_flag));
 		piece_hash = e.ph ? e.ph->final_hash() : sha1_hash{};
 	});
 
-	auto& job = std::get<job::hash>(j->action);
-	if (need_v1) job.piece_hash = piece_hash;
-	if (!job.block_hashes.empty())
+	job.piece_hash = piece_hash;
+	if (will_retry)
 	{
-		TORRENT_ASSERT(need_v2);
-		TORRENT_ASSERT(piece_iter->block_hashes);
-		int const to_copy = std::min(
-			piece_iter->blocks_in_piece(),
-			int(job.block_hashes.size()));
-		for (int i = 0; i < to_copy; ++i)
-			job.block_hashes[i] = piece_iter->block_hashes[i];
+		DLOG("kick_hasher: retrying attached v2 job piece: %d\n",
+			static_cast<int>(piece_iter->piece.piece));
+		retry_jobs.push_back(j);
 	}
-	DLOG("kick_hasher: posting attached job piece: %d\n"
-		, static_cast<int>(piece_iter->piece.piece));
-	completed_jobs.push_back(j);
+	else
+	{
+		DLOG("kick_hasher: posting attached job piece: %d\n",
+			static_cast<int>(piece_iter->piece.piece));
+		completed_jobs.push_back(j);
+	}
 
 	if (piece_iter->flags & cached_piece_entry::pending_free_flag)
 	{
@@ -643,8 +705,10 @@ Iter disk_cache::flush_piece_impl(View& view,
 	// TODO: pass the block offset as a parameter instead of computing it like this
 	int const block_offset = static_cast<int>(blocks.data() - piece_iter->get_blocks().data());
 
-	view.modify(piece_iter, [](cached_piece_entry& e) { TORRENT_ASSERT(!(e.flags & cached_piece_entry::flushing_flag)); e.flags |= cached_piece_entry::flushing_flag; });
-	m_flushing_blocks += num_blocks;
+	view.modify(piece_iter, [](cached_piece_entry& e) {
+		TORRENT_ASSERT(!(e.flags & cached_piece_entry::flushing_flag));
+		e.flags |= cached_piece_entry::flushing_flag;
+	});
 
 	// Snapshot the pending write_job pointer for each block while we still
 	// hold the mutex. flushing_flag prevents other threads from flushing
@@ -676,8 +740,6 @@ Iter disk_cache::flush_piece_impl(View& view,
 				// until flush_storage clears it after waking up
 				e.flags &= ~cached_piece_entry::flushing_flag;
 			});
-			TORRENT_ASSERT(m_flushing_blocks >= num_blocks);
-			m_flushing_blocks -= num_blocks;
 			if (notify) m_flushing_cv.notify_all();
 		});
 		flushed_blocks.resize(int(blocks.size()));
@@ -708,14 +770,14 @@ Iter disk_cache::flush_piece_impl(View& view,
 		TORRENT_ASSERT(j);
 		TORRENT_ASSERT(j->get_type() == aux::job_action_t::write);
 		auto& job = std::get<aux::job::write>(j->action);
+		// borrowed_buf is write-once and stays valid for the buffer's
+		// lifetime; leave it alone for the unlocked completed-job path.
 		disk_buffer_ref ref(std::move(job.buf));
 
-		// if a hasher thread has captured a pointer into this buffer (it
-		// snapshotted blocks_storage before we re-acquired the lock), we
-		// must keep the buffer alive until hashing completes; kick_hasher
-		// will free it.  In every other case — including write errors —
-		// release the buffer immediately.
-		bool const needed_by_hasher = (piece_iter->flags & cached_piece_entry::hashing_flag)
+		// ref empty means the v2 hash queue owns the buffer; the cache
+		// didn't count it in m_blocks and can't hold-alive for the hasher.
+		bool const needed_by_hasher = bool(ref)
+			&& (piece_iter->flags & cached_piece_entry::hashing_flag)
 			&& block_index >= hasher_cursor;
 		if (needed_by_hasher)
 		{
@@ -723,17 +785,22 @@ Iter disk_cache::flush_piece_impl(View& view,
 		}
 		else
 		{
+			bool const cache_owned = bool(ref);
 			to_free.add(std::move(ref));
 			// mark as flushed (with null buffer) so compute_flushed_cursor can
 			// advance past this block even though the buffer has been freed
 			blk.write_state = disk_buffer_ref{};
-			if (block_index >= hasher_cursor)
+			if ((piece_iter->flags & cached_piece_entry::v1_hashes_flag)
+				&& block_index >= hasher_cursor)
 			{
 				TORRENT_ASSERT(m_num_unhashed > 0);
 				--m_num_unhashed;
 			}
-			TORRENT_ASSERT(m_blocks > 0);
-			--m_blocks;
+			if (cache_owned)
+			{
+				TORRENT_ASSERT(m_blocks > 0);
+				--m_blocks;
+			}
 		}
 
 		++jobs;
@@ -759,12 +826,30 @@ Iter disk_cache::flush_piece_impl(View& view,
 		disk_job* clear_piece = nullptr;
 		view.modify(piece_iter, [&](cached_piece_entry& e) {
 			clear_piece_impl(e, aborted);
-			clear_piece = std::exchange(e.clear_piece, nullptr);
+			// if a v2 drain still owes us a callback, leave e.clear_piece
+			// armed so drain_v2_hash_queue finishes the clear once
+			// v2_pending hits zero (the late store_precomputed_v2() must
+			// land before drop_precomputed_v2()).
+			if (e.v2_pending == 0) clear_piece = std::exchange(e.clear_piece, nullptr);
 		});
-		clear_piece_fun(std::move(aborted), clear_piece);
+		if (clear_piece != nullptr || !aborted.empty())
+			clear_piece_fun(std::move(aborted), clear_piece);
 	}
 
 	return next_iter;
+}
+
+int disk_cache::drop_v2_queue_entries(piece_location const loc)
+{
+	int dropped = 0;
+	auto new_end = std::remove_if(
+		m_v2_hash_queue.begin(), m_v2_hash_queue.end(), [&](v2_hash_queue_entry const& e) {
+			if (!(e.piece == loc)) return false;
+			++dropped;
+			return true;
+		});
+	m_v2_hash_queue.erase(new_end, m_v2_hash_queue.end());
+	return dropped;
 }
 
 void disk_cache::free_piece(cached_piece_entry const& cpe)
@@ -785,13 +870,22 @@ void disk_cache::free_piece(cached_piece_entry const& cpe)
 	TORRENT_ASSERT(cpe.hash_job == nullptr);
 #endif
 	TORRENT_ASSERT(m_allocator);
+
+	// drop any queued v2 hash entries for this piece. The queue owns those
+	// buffers and they're released when the entries go out of scope. Any
+	// drain batch already in flight for this piece keeps its own buffer; on
+	// dispose the drain will look up the piece, find it gone, and drop the
+	// buffer naturally.
+	drop_v2_queue_entries(cpe.piece);
+
 	bulk_free_buffer to_free(*m_allocator);
+	bool const is_v1 = bool(cpe.flags & cached_piece_entry::v1_hashes_flag);
 	int idx = 0;
 	for (auto& blk : cpe.get_blocks())
 	{
 		if (blk.has_buf())
 		{
-			if (idx >= cpe.hasher_cursor)
+			if (is_v1 && idx >= cpe.hasher_cursor)
 			{
 				TORRENT_ASSERT(m_num_unhashed > 0);
 				--m_num_unhashed;
@@ -825,7 +919,7 @@ void disk_cache::flush_to_disk(std::function<int(bitfield&, span<disk_job* const
 		// and if we're in fact below the low watermark. If so, we need to
 		// post the notification messages to the peers that are waiting for
 		// more buffers to received data into
-		m_back_pressure.check_buffer_level(m_blocks);
+		m_back_pressure.check_buffer_level(m_blocks + int(m_v2_hash_queue.size()));
 	});
 
 	// first we look for pieces that are ready to be flushed and should be
@@ -861,9 +955,13 @@ void disk_cache::flush_to_disk(std::function<int(bitfield&, span<disk_job* const
 		if (piece_iter->flushed_cursor == piece_iter->blocks_in_piece()
 			&& bool(piece_iter->flags & cached_piece_entry::piece_hash_returned_flag)
 			&& !(piece_iter->flags & cached_piece_entry::flushing_flag)
-			&& !(piece_iter->flags & cached_piece_entry::notify_flushed_flag))
+			&& !(piece_iter->flags & cached_piece_entry::notify_flushed_flag)
+			&& !(piece_iter->flags & cached_piece_entry::hashing_flag))
 		{
-			TORRENT_ASSERT(!(piece_iter->flags & cached_piece_entry::hashing_flag));
+			// piece_hash_returned_flag is set at the same modify() that
+			// extracts hash_job (try_hash_piece's job_completed path, or
+			// kick_hasher / hash_piece scope_end), so flag-set implies
+			// hash_job == nullptr -- the cpe is safe to evict.
 			free_piece(*piece_iter);
 			view.erase(piece_iter);
 		}
@@ -878,10 +976,15 @@ void disk_cache::flush_to_disk(std::function<int(bitfield&, span<disk_job* const
 	auto& view2 = m_pieces.template get<1>();
 	for (auto piece_iter = view2.begin(); piece_iter != view2.end();)
 	{
-		// We avoid flushing if other threads have already initiated sufficient
-		// amount of flushing
-		if (m_blocks - m_flushing_blocks <= target_blocks)
-			return;
+		// exit only on the actual level. Predicting the level after in-flight
+		// flushes finish (subtracting concurrent flushing count) creates a
+		// race where each thread can exit assuming the others will finish
+		// their work, but if the last thread also takes that shortcut, no
+		// one drives the level down to target and back-pressure stays on.
+		// Cheap flushing is the preferred path (no read-back later), so we
+		// want to exhaust it here rather than fall through to the expensive
+		// pass.
+		if (m_blocks + int(m_v2_hash_queue.size()) <= target_blocks) return;
 
 		int const num_eligible_blocks = piece_iter->hasher_cursor - piece_iter->flushed_cursor;
 
@@ -917,7 +1020,10 @@ void disk_cache::flush_to_disk(std::function<int(bitfield&, span<disk_job* const
 	auto& view3 = m_pieces.template get<0>();
 	for (auto piece_iter = view3.begin(); piece_iter != view3.end();)
 	{
-		if (m_blocks - m_flushing_blocks <= target_blocks) return;
+		// safety net pass: exit only on the actual level. See the comment
+		// in the cheap pass above for why we don't subtract the concurrent
+		// flushing count from this check.
+		if (m_blocks + int(m_v2_hash_queue.size()) <= target_blocks) return;
 
 		// skip pieces a hasher or another flush is currently using
 		if (piece_iter->flags
@@ -930,6 +1036,7 @@ void disk_cache::flush_to_disk(std::function<int(bitfield&, span<disk_job* const
 		TORRENT_ASSERT(m_allocator);
 		bulk_free_buffer to_free(*m_allocator);
 		int const hasher_cursor = piece_iter->hasher_cursor;
+		bool const is_v1 = bool(piece_iter->flags & cached_piece_entry::v1_hashes_flag);
 		span<cached_block_entry> const blocks = piece_iter->get_blocks();
 		for (int i = 0; i < int(blocks.size()); ++i)
 		{
@@ -938,7 +1045,7 @@ void disk_cache::flush_to_disk(std::function<int(bitfield&, span<disk_job* const
 			to_free.add(blk.take_buf());
 			TORRENT_ASSERT(m_blocks > 0);
 			--m_blocks;
-			if (i >= hasher_cursor)
+			if (is_v1 && i >= hasher_cursor)
 			{
 				TORRENT_ASSERT(m_num_unhashed > 0);
 				--m_num_unhashed;
@@ -952,10 +1059,9 @@ void disk_cache::flush_to_disk(std::function<int(bitfield&, span<disk_job* const
 	auto& view4 = m_pieces.template get<0>();
 	for (auto piece_iter = view4.begin(); piece_iter != view4.end();)
 	{
-		// We avoid flushing if other threads have already initiated sufficient
-		// amount of flushing
-		if (m_blocks - m_flushing_blocks <= target_blocks)
-			return;
+		// safety-net pass: exit only on the actual level. See the comment
+		// in pass 3.
+		if (m_blocks + int(m_v2_hash_queue.size()) <= target_blocks) return;
 
 		if (piece_iter->flags & cached_piece_entry::flushing_flag)
 		{
@@ -1045,6 +1151,23 @@ void disk_cache::flush_storage(std::function<int(bitfield&, span<disk_job* const
 		// is simply discarded. Any subsequent try_hash_piece() call would
 		// find the piece absent from cache and re-read from disk, which is
 		// correct since all blocks have been flushed above.
+
+		// hash_job may be hung via wait_for_v2_queue. Abort it so free_piece's
+		// invariant holds; the storage is going away regardless.
+		if (piece_iter->hash_job != nullptr)
+		{
+			jobqueue_t aborted;
+			view.modify(piece_iter, [&](cached_piece_entry& e) {
+				aborted.push_back(std::exchange(e.hash_job, nullptr));
+			});
+			clear_piece_fun(std::move(aborted), nullptr);
+		}
+
+		// In-flight drain batches keep their own copy of the buffer; freeing
+		// the piece here just removes the cbe. When the drain finishes and
+		// looks up the piece it'll find it gone, store the precomputed hash
+		// on the (still-alive via shared_ptr) storage, and drop the buffer
+		// naturally. The stored hash is harmless: nobody will read it back.
 		free_piece(*piece_iter);
 		view.erase(piece_iter);
 	}
@@ -1054,21 +1177,14 @@ std::size_t disk_cache::size() const
 {
 	std::unique_lock<std::mutex> l(m_mutex);
 	INVARIANT_CHECK;
-	return static_cast<std::size_t>(m_blocks);
-}
-
-std::size_t disk_cache::num_flushing() const
-{
-	std::unique_lock<std::mutex> l(m_mutex);
-	INVARIANT_CHECK;
-	return static_cast<std::size_t>(m_flushing_blocks);
+	return static_cast<std::size_t>(m_blocks) + m_v2_hash_queue.size();
 }
 
 std::tuple<std::int64_t, std::int64_t> disk_cache::stats() const
 {
 	std::unique_lock<std::mutex> l(m_mutex);
 	INVARIANT_CHECK;
-	return {m_blocks, m_num_unhashed};
+	return {std::int64_t(m_blocks) + std::int64_t(m_v2_hash_queue.size()), m_num_unhashed};
 }
 
 #if TORRENT_USE_INVARIANT_CHECKS
@@ -1077,21 +1193,55 @@ void disk_cache::check_invariant() const
 	// mutex must be held by caller
 	int dirty_blocks = 0;
 	int flushed_blocks = 0;
-	int flushing_blocks = 0;
 	int unhashed_blocks = 0;
+
+	// v2_pending on each cpe counts that piece's blocks in m_v2_hash_queue
+	// plus any blocks held in a drain batch (popped from the queue but not
+	// yet decremented). We can directly observe only the queue half; we
+	// derive bounds against the cpe by counting queue entries per piece.
+	std::map<piece_location, int> queue_counts;
+	for (auto const& entry : m_v2_hash_queue)
+		++queue_counts[entry.piece];
+
+	// every queue entry must reference a cpe in the cache: clear_piece_impl
+	// and free_piece drop matching entries when a cpe is removed, so a
+	// queue entry without a cpe would mean a leak.
+	{
+		auto const& view0 = m_pieces.template get<0>();
+		for (auto const& entry : m_v2_hash_queue)
+		{
+			auto const it = view0.find(entry.piece);
+			TORRENT_ASSERT(it != view0.end());
+			TORRENT_ASSERT(int(entry.block) < it->blocks_in_piece());
+		}
+	}
+
+	int total_v2_pending = 0;
 
 	auto& view = m_pieces.template get<2>();
 	for (auto const& piece_entry : view)
 	{
 		int const num_blocks = piece_entry.blocks_in_piece();
-
-		if (piece_entry.flags & cached_piece_entry::flushing_flag)
-			flushing_blocks += num_blocks;
+		bool const is_v1 = bool(piece_entry.flags & cached_piece_entry::v1_hashes_flag);
 
 		span<cached_block_entry> const blocks = piece_entry.get_blocks();
 
 		TORRENT_ASSERT(piece_entry.flushed_cursor <= num_blocks);
 		TORRENT_ASSERT(piece_entry.hasher_cursor <= num_blocks);
+
+		// each block can contribute at most one v2 hash queue entry (insert()
+		// pushes once per write, and a block can only be written once per
+		// cycle), so v2_pending is bounded by blocks_in_piece.
+		TORRENT_ASSERT(int(piece_entry.v2_pending) <= num_blocks);
+
+		// v2_pending >= (queue entries for this piece). The slack is the
+		// number of entries this piece has in flight inside drain batches.
+		{
+			auto const it = queue_counts.find(piece_entry.piece);
+			int const queued = (it != queue_counts.end()) ? it->second : 0;
+			TORRENT_ASSERT(queued <= int(piece_entry.v2_pending));
+		}
+		total_v2_pending += int(piece_entry.v2_pending);
 
 		// pending_free_flag is set by flush_storage() when it wants to erase a
 		// piece but hashing_flag is active. The hasher will erase it when done.
@@ -1099,10 +1249,23 @@ void disk_cache::check_invariant() const
 		if (piece_entry.flags & cached_piece_entry::pending_free_flag)
 			TORRENT_ASSERT(piece_entry.flags & cached_piece_entry::hashing_flag);
 
+		if (piece_entry.clear_piece != nullptr)
+		{
+			TORRENT_ASSERT(!(piece_entry.flags & cached_piece_entry::hashing_flag));
+		}
+
 		int idx = 0;
 		for (auto& be : blocks)
 		{
-			if (be.get_write_job()) ++dirty_blocks;
+			if (auto* j = be.get_write_job())
+			{
+				auto const& wj = std::get<aux::job::write>(j->action);
+				// If wj.buf is empty, the buffer for this block lives in a
+				// v2 hash queue entry (counted by queue_blocks below), not
+				// in this write job, so this slot does not hold a buffer
+				// in cache.
+				if (bool(wj.buf)) ++dirty_blocks;
+			}
 			if (be.has_buf()) ++flushed_blocks;
 
 			if (!(piece_entry.flags & cached_piece_entry::flushing_flag))
@@ -1132,7 +1295,7 @@ void disk_cache::check_invariant() const
 						|| piece_entry.hasher_cursor == piece_entry.blocks_in_piece());
 			}
 
-			if (idx >= piece_entry.hasher_cursor && (be.has_buf() || be.get_write_job()))
+			if (is_v1 && idx >= piece_entry.hasher_cursor && (be.has_buf() || be.get_write_job()))
 				++unhashed_blocks;
 
 			++idx;
@@ -1142,8 +1305,12 @@ void disk_cache::check_invariant() const
 	// are in flight. We just know the limit
 	TORRENT_ASSERT(dirty_blocks <= m_blocks);
 	TORRENT_ASSERT(dirty_blocks + flushed_blocks == m_blocks);
-	TORRENT_ASSERT(flushing_blocks >= m_flushing_blocks);
 	TORRENT_ASSERT(unhashed_blocks == m_num_unhashed);
+
+	// Sum of v2_pending across cpes equals (queue size) + (in-flight drain
+	// batches' size). Without drain activity Σ v2_pending == queue size;
+	// with a drain mid-execution the sum is strictly greater.
+	TORRENT_ASSERT(int(m_v2_hash_queue.size()) <= total_v2_pending);
 }
 #endif
 
@@ -1153,24 +1320,46 @@ void disk_cache::clear_piece_impl(cached_piece_entry& cpe, jobqueue_t& aborted)
 	INVARIANT_CHECK;
 	TORRENT_ASSERT(!(cpe.flags & cached_piece_entry::flushing_flag));
 	TORRENT_ASSERT(!(cpe.flags & cached_piece_entry::hashing_flag));
+
 	std::uint16_t jobs = 0;
 	int const hasher_cursor = cpe.hasher_cursor;
 	TORRENT_ASSERT(m_allocator);
 	bulk_free_buffer to_free(*m_allocator);
+
+	// hash_job may be hung via wait_for_v2_queue (hash request waiting for
+	// the hasher to finish). Abort it -- the caller is throwing the piece
+	// away.
+	if (cpe.hash_job) aborted.push_back(std::exchange(cpe.hash_job, nullptr));
+
+	// drop any queued v2 hash entries for this piece. The queue owns those
+	// buffers and they're released when the entries go out of scope. v2_pending
+	// is updated by the drain when it disposes in-flight entries, which is
+	// safe because those entries own their own buffer copy.
+	{
+		int const dropped = drop_v2_queue_entries(cpe.piece);
+		TORRENT_ASSERT(cpe.v2_pending >= dropped);
+		cpe.v2_pending -= static_cast<std::uint16_t>(dropped);
+	}
+
+	bool const is_v1 = bool(cpe.flags & cached_piece_entry::v1_hashes_flag);
 	for (int idx = 0; idx < cpe.blocks_in_piece(); ++idx)
 	{
 		auto& cbe = cpe.blocks[idx];
-		if (cbe.data() && idx >= hasher_cursor)
+		if (is_v1 && cbe.data() && idx >= hasher_cursor)
 		{
 			TORRENT_ASSERT(m_num_unhashed > 0);
 			--m_num_unhashed;
 		}
 
-		if (cbe.get_write_job())
+		if (auto* j = cbe.get_write_job())
 		{
+			// only decrement m_blocks if the cache owned the buffer (i.e.
+			// wj.buf is non-empty). Queue-owned buffers were never counted.
+			auto const& job = std::get<aux::job::write>(j->action);
+			bool const cache_owned = bool(job.buf);
 			aborted.push_back(cbe.take_write_job());
 			++jobs;
-			--m_blocks;
+			if (cache_owned) --m_blocks;
 		}
 
 		if (cbe.has_buf())
@@ -1189,8 +1378,6 @@ void disk_cache::clear_piece_impl(cached_piece_entry& cpe, jobqueue_t& aborted)
 		| cached_piece_entry::needs_hasher_kick_flag);
 	cpe.hasher_cursor = 0;
 	cpe.flushed_cursor = 0;
-	if (cpe.block_hashes)
-		std::fill_n(cpe.block_hashes.get(), cpe.blocks_in_piece(), sha256_hash{});
 	TORRENT_ASSERT(cpe.num_jobs >= jobs);
 	cpe.num_jobs -= jobs;
 	if (cpe.ph) *cpe.ph = piece_hasher{};

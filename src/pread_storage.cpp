@@ -72,6 +72,30 @@ namespace libtorrent::aux {
 		return {m_files, m_renamed_files};
 	}
 
+	// these forward to the precomputed_block_hashes data structure, adding the
+	// storage's knowledge of the per-piece v2 block count.
+	void pread_storage::store_precomputed_v2(
+		piece_index_t const piece, int const block, sha256_hash const& h)
+	{
+		m_precomputed_v2.store(piece, block, files().blocks_in_piece2(piece), h);
+	}
+
+	aux::vector<sha256_hash> pread_storage::take_precomputed_v2(piece_index_t const piece)
+	{
+		return m_precomputed_v2.take(piece);
+	}
+
+	std::optional<sha256_hash> pread_storage::take_precomputed_v2_block(
+		piece_index_t const piece, int const block)
+	{
+		return m_precomputed_v2.take_block(piece, block);
+	}
+
+	void pread_storage::drop_precomputed_v2(piece_index_t const piece)
+	{
+		m_precomputed_v2.drop(piece);
+	}
+
 	void pread_storage::need_partfile()
 	{
 		if (m_part_file) return;

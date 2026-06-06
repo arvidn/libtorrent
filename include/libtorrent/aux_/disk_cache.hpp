@@ -12,9 +12,11 @@ see LICENSE file.
 
 #include <unordered_map>
 #include <condition_variable>
+#include <deque>
 #include <mutex>
 #include <thread>
 #include <algorithm>
+#include <vector>
 
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/disk_interface.hpp" // for default_block_size
@@ -51,28 +53,32 @@ namespace libtorrent {
 
 namespace libtorrent::aux {
 
-namespace mi = boost::multi_index;
+	struct pread_storage;
 
-using cached_piece_flags = libtorrent::flags::bitfield_flag<std::uint16_t, struct cached_piece_flags_tag>;
 
-// uniquely identifies a torrent and piece
-struct piece_location
-{
-	piece_location(storage_index_t const t, piece_index_t const p)
-		: torrent(t), piece(p) {}
-	storage_index_t torrent;
-	piece_index_t piece;
-	bool operator==(piece_location const& rhs) const
+	namespace mi = boost::multi_index;
+
+	using cached_piece_flags =
+		libtorrent::flags::bitfield_flag<std::uint16_t, struct cached_piece_flags_tag>;
+
+	// uniquely identifies a torrent and piece
+	struct piece_location
 	{
-		return std::tie(torrent, piece)
-			== std::tie(rhs.torrent, rhs.piece);
-	}
+		piece_location(storage_index_t const t, piece_index_t const p)
+			: torrent(t)
+			, piece(p)
+		{}
+		storage_index_t torrent;
+		piece_index_t piece;
+		bool operator==(piece_location const& rhs) const
+		{
+			return std::tie(torrent, piece) == std::tie(rhs.torrent, rhs.piece);
+		}
 
-	bool operator<(piece_location const& rhs) const
-	{
-		return std::tie(torrent, piece)
-			< std::tie(rhs.torrent, rhs.piece);
-	}
+		bool operator<(piece_location const& rhs) const
+		{
+			return std::tie(torrent, piece) < std::tie(rhs.torrent, rhs.piece);
+		}
 };
 
 inline size_t hash_value(piece_location const& l)
@@ -133,32 +139,30 @@ struct TORRENT_EXTRA_EXPORT cached_block_entry
 	write_state_t write_state;
 };
 
-// returns the buffer attached to the write job, or an empty span if j is null.
-// found via ADL by visit_block_iovecs when iterating a span<disk_job* const>.
+// ADL hook for visit_block_iovecs over span<disk_job* const>. Reads only
+// borrowed_buf (not wj.buf) because flush_piece_impl invokes this without
+// holding the cache mutex.
 inline span<char const> write_buf(disk_job const* j)
 {
 	if (j == nullptr) return {};
 	TORRENT_ASSERT(j->get_type() == aux::job_action_t::write);
 	auto const& w = std::get<aux::job::write>(j->action);
-	return {w.buf.data(), w.buffer_size};
+	return {w.borrowed_buf, w.borrowed_buf ? w.buffer_size : std::uint16_t{0}};
 }
 
 struct TORRENT_EXTRA_EXPORT cached_piece_entry
 {
-	cached_piece_entry(piece_location const& loc
-		, int const piece_size_v2
-		, int const piece_size
-		, int const num_blocks
-		, bool v1
-		, bool v2);
+	cached_piece_entry(piece_location const& loc,
+		int const piece_size_v2,
+		int const piece_size,
+		int const num_blocks,
+		bool v1);
 
 	span<cached_block_entry> get_blocks() const;
 
 	piece_location piece;
 
 	unique_ptr<cached_block_entry[], int> blocks;
-	// allocated only for v2 torrents (null for v1-only)
-	unique_ptr<sha256_hash[], int> block_hashes;
 	// allocated only for v1 torrents (null for v2-only)
 	std::unique_ptr<piece_hasher> ph;
 
@@ -199,6 +203,15 @@ struct TORRENT_EXTRA_EXPORT cached_piece_entry
 	// the number of blocks that have a write job associated with them
 	std::uint16_t num_jobs = 0;
 
+	// number of this piece's blocks that are either in m_v2_hash_queue or
+	// currently being processed by a drain batch. Decremented by
+	// drain_v2_hash_queue once a batch has stored its hashes on
+	// pread_storage. While > 0, a clear_piece must wait (try_clear_piece
+	// parks it on clear_piece) and a hash_job hung via wait_for_v2_queue or
+	// try_hash_piece's deferred path cannot post yet. drain_v2_hash_queue
+	// dispatches both when this hits zero.
+	std::uint16_t v2_pending = 0;
+
 	// this is set when the piece has been populated with all blocks;
 	// it will make it prioritized for flushing to disk.
 	// it will be cleared once all blocks have been flushed.
@@ -219,10 +232,6 @@ struct TORRENT_EXTRA_EXPORT cached_piece_entry
 
 	// set if this piece requires v1 SHA1 hashing (ph member is allocated).
 	static constexpr cached_piece_flags v1_hashes_flag = 4_bit;
-
-	// set if this piece requires v2 SHA256 block hashing (block_hashes
-	// member is allocated).
-	static constexpr cached_piece_flags v2_hashes_flag = 5_bit;
 
 	// set when a block is inserted into this piece and the hasher thread
 	// should be woken to make hashing progress. Cleared when the hasher
@@ -263,6 +272,40 @@ struct TORRENT_EXTRA_EXPORT cached_piece_entry
 };
 
 using insert_result_flags = libtorrent::flags::bitfield_flag<std::uint8_t, struct insert_result_flags_tag>;
+
+// one entry per v2 block waiting for a hasher thread. The entry owns the
+// buffer until the hash is computed and stored on the storage; if the cbe
+// is flushed while the entry is still queued, the queue keeps the buffer
+// alive so the hasher can still consume it without a disk read-back. (If
+// the cpe is removed entirely -- free_piece / clear_piece_impl -- the
+// matching queue entries are dropped along with their buffers.)
+struct v2_hash_queue_entry
+{
+	v2_hash_queue_entry(piece_location p,
+		std::shared_ptr<pread_storage> s,
+		std::uint16_t b,
+		std::uint16_t hl,
+		disk_buffer_holder buf_)
+		: piece(p)
+		, storage(std::move(s))
+		, block(b)
+		, hash_len(hl)
+		, buf(std::move(buf_))
+	{}
+
+	v2_hash_queue_entry(v2_hash_queue_entry&&) = default;
+	v2_hash_queue_entry& operator=(v2_hash_queue_entry&&) = default;
+
+	piece_location piece;
+	// keeps the storage alive past torrent removal, so the precomputed
+	// hash can still be stored on it.
+	std::shared_ptr<pread_storage> storage;
+	std::uint16_t block = 0;
+	// blocks straddling the v2 piece boundary in a hybrid torrent are
+	// hashed only up to piece_size2.
+	std::uint16_t hash_len = 0;
+	disk_buffer_holder buf;
+};
 
 struct TORRENT_EXTRA_EXPORT disk_cache
 {
@@ -343,12 +386,9 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 			}
 		}
 		auto const& cbe = i->blocks[block_idx];
-		// There's nothing stopping the hash threads from hashing the blocks in
-		// parallel. This should not depend on the hasher_cursor. That's a v1
-		// concept
-		TORRENT_ASSERT(i->block_hashes);
-		if (!i->block_hashes[block_idx].is_all_zeros())
-			return i->block_hashes[block_idx];
+		// independent of hasher_cursor: any v2 block may be hashed in any
+		// order. Precomputed v2 hashes live on pread_storage and are
+		// consulted by the caller before reaching here.
 		if (cbe.data())
 		{
 			int const blk_size = std::min(default_block_size
@@ -375,19 +415,20 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 	// the mutex, sets hashing=true (which pins all buffers at index >= hasher_cursor
 	// so flush_piece_impl cannot free them), then releases the lock and calls:
 	//
-	//   f(ph, hasher_cursor, blocks, v2_hashes)
+	//   f(ph, hasher_cursor, blocks)
 	//
 	//   ph: SHA1 piece hasher already fed blocks [0, hasher_cursor).
 	//   hasher_cursor: index of the first block not yet incorporated in ph.
 	//     f() must continue feeding blocks from this index onward.
 	//   blocks: per-block buffer pointers. A null entry means the block is not
 	//     in the cache and must be read from disk.
-	//   v2_hashes: per-block SHA256 hash snapshots. all-zeros means not-yet-computed.
-	//     a non-zero entry is a pre-computed hash that f() may use directly without re-hashing.
 	//
 	// After f() returns hasher_cursor is advanced and buffers that have
 	// already been flushed to disk are freed. If all blocks are flushed, the
 	// piece entry is removed from the cache entirely.
+	// v2 block hashes (when applicable) live in pread_storage's
+	// precomputed_block_hashes; the caller is expected to consult that
+	// directly.
 	template <typename Fun>
 	hash_piece_result hash_piece(piece_location const loc, disk_job* j, Fun f)
 	{
@@ -415,20 +456,11 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 		std::uint16_t const hasher_cursor = piece_iter->hasher_cursor;
 
 		TORRENT_ALLOCA(blocks, char const*, blocks_in_piece);
-		TORRENT_ALLOCA(v2_hashes, sha256_hash, (piece_iter->flags & cached_piece_entry::v2_hashes_flag) ? blocks_in_piece : 0);
 
-		int num_unhashed = 0;
 		for (int i = 0; i < blocks_in_piece; ++i)
 		{
 			char const* buf = piece_iter->blocks[i].data();
 			blocks[i] = buf;
-			if (buf && i >= hasher_cursor)
-				++num_unhashed;
-		}
-		if (piece_iter->block_hashes)
-		{
-			for (int i = 0; i < blocks_in_piece; ++i)
-				v2_hashes[i] = piece_iter->block_hashes[i];
 		}
 
 		view.modify(piece_iter, [](cached_piece_entry& e) { e.flags |= cached_piece_entry::hashing_flag; });
@@ -436,13 +468,26 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 
 		auto se = scope_end([&] {
 			l.lock();
+			// recount rather than relying on the pre-unlock snapshot:
+			// blocks flushed during the hashing window had their
+			// m_num_unhashed contribution removed by flush_piece_impl.
+			bool const is_v1 = bool(piece_iter->flags & cached_piece_entry::v1_hashes_flag);
+			int actual_unhashed = 0;
+			if (is_v1)
+			{
+				for (int i = hasher_cursor; i < blocks_in_piece; ++i)
+				{
+					auto const& cbe = piece_iter->blocks[i];
+					if (cbe.has_buf() || cbe.get_write_job()) ++actual_unhashed;
+				}
+			}
 			view.modify(piece_iter, [&](cached_piece_entry& e) {
 				e.flags |= cached_piece_entry::force_flush_flag | cached_piece_entry::piece_hash_returned_flag;
 				e.flags &= ~cached_piece_entry::hashing_flag;
 				e.hasher_cursor = static_cast<std::uint16_t>(blocks_in_piece);
 			});
-			TORRENT_ASSERT(m_num_unhashed >= num_unhashed);
-			m_num_unhashed -= num_unhashed;
+			TORRENT_ASSERT(m_num_unhashed >= actual_unhashed);
+			m_num_unhashed -= actual_unhashed;
 			{
 				TORRENT_ASSERT(m_allocator);
 				bulk_free_buffer to_free(*m_allocator);
@@ -462,7 +507,7 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 				view.erase(piece_iter);
 			}
 		});
-		f(piece_iter->ph.get(), hasher_cursor, blocks, v2_hashes);
+		f(piece_iter->ph.get(), hasher_cursor, blocks);
 		return hash_piece_result::completed;
 	}
 
@@ -511,6 +556,10 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 		int piece_size;
 		bool v1; // piece requires SHA-1 hashing
 		bool v2; // piece requires per-block SHA-256 hashing
+		// owning reference to the storage; used to keep it alive while v2
+		// blocks for this piece sit in m_v2_hash_queue. May be null when v2
+		// is false or when the caller (e.g. tests) doesn't need the queue.
+		std::shared_ptr<pread_storage> storage;
 	};
 
 	// the return value indicates whether the piece needs its hasher kicked or
@@ -534,6 +583,14 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 
 	hash_result try_hash_piece(piece_location loc, disk_job* hash_job);
 
+	// Hangs hash_job on the piece if there are pending v2 hash queue
+	// entries for it (either still in m_v2_hash_queue or currently being
+	// hashed by a drain). drain_v2_hash_queue will post the job when the
+	// queue empties for the piece. Returns true if hung; false if there's
+	// nothing to wait for (piece gone, no pending entries) or another
+	// path already owns hash_job.
+	bool wait_for_v2_queue(piece_location loc, disk_job* hash_job);
+
 	// Called from a hasher thread when woken by interrupt. Processes all
 	// pieces marked with needs_hasher_kick_flag, calling kick_hasher on each.
 	// Returns true if force_flush_flag was set on any piece, meaning a generic
@@ -541,6 +598,18 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 	// Jobs hung on a piece that stops hashing early are extracted and placed in
 	// retry_jobs so the caller can re-submit them.
 	bool kick_pending_hashers(jobqueue_t& completed_jobs, jobqueue_t& retry_jobs);
+
+	// Drains the queue: pops entries in batches, hashes each batch outside
+	// the cache lock, and forwards results via
+	// `store(storage, piece, block, hash)`. Hash jobs parked on a piece
+	// (via try_hash_piece's v2-pending defer branch or wait_for_v2_queue)
+	// are appended to `posted` once that piece's v2_pending reaches zero.
+	// `clear_piece_fun` is invoked for clear_piece jobs deferred for the
+	// same reason (see try_clear_piece). Returns when the queue is empty.
+	template <typename Fun>
+	void drain_v2_hash_queue(Fun store,
+		jobqueue_t& posted,
+		std::function<void(jobqueue_t, disk_job*)> const& clear_piece_fun);
 
 	// this should be called by a disk thread
 	// the callback should return the number of blocks it successfully flushed
@@ -557,7 +626,6 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 		std::function<void(jobqueue_t, disk_job*)> clear_piece_fun);
 
 	std::size_t size() const;
-	std::size_t num_flushing() const;
 	std::tuple<std::int64_t, std::int64_t> stats() const;
 
 
@@ -578,6 +646,10 @@ private:
 		, jobqueue_t& retry_jobs);
 
 	void free_piece(cached_piece_entry const& cpe);
+
+	// remove every m_v2_hash_queue entry whose piece matches loc, releasing
+	// the buffers they own. Returns the count removed. Mutex must be held.
+	int drop_v2_queue_entries(piece_location loc);
 
 	// this requires the mutex to be locked
 	void clear_piece_impl(cached_piece_entry& cpe, jobqueue_t& aborted);
@@ -603,19 +675,131 @@ private:
 	// while finishing hashing blocks.
 	int m_blocks = 0;
 
-	// the number of blocks currently being flushed by a disk thread
-	// we use this to avoid over-shooting flushing blocks
-	int m_flushing_blocks = 0;
-
-	// the number of blocks in the cache that have not yet been passed throught
-	// the piece hasher. i.e. where the hasher_cursor is <= the block index
+	// number of blocks in the cache belonging to v1 (or hybrid) pieces that
+	// have not yet been passed through the v1 piece hasher, i.e. where
+	// hasher_cursor <= block_idx. Pure-v2 pieces have no v1 hasher cursor
+	// concept and don't contribute to this counter.
 	int m_num_unhashed = 0;
 
 	// record disk_observers that we've signalled back-pressure to. Once the
 	// cache size drop below the low watermark, we'll signal them they can resume
 	back_pressure m_back_pressure;
+
+	// FIFO queue of v2 block hashing work. Each entry owns its buffer (moved
+	// out of the originating write_job in insert()); the cbe reads through
+	// borrowed_buf while the entry is queued. Drained by drain_v2_hash_queue()
+	// from hasher threads: on success the buffer moves back into the cbe's
+	// write_job for the normal flush path; if the cbe is gone (clear_piece,
+	// flush completed) the buffer drops with the entry. cpe.v2_pending counts
+	// this piece's outstanding entries (queued + in flight inside a drain
+	// batch) so a clear_piece can wait for them.
+	std::deque<v2_hash_queue_entry> m_v2_hash_queue;
 };
 
+template <typename Fun>
+void disk_cache::drain_v2_hash_queue(Fun store,
+	jobqueue_t& posted,
+	std::function<void(jobqueue_t, disk_job*)> const& clear_piece_fun)
+{
+	// Batched so the cache mutex is acquired once per batch_size entries
+	// instead of per entry. The bound also caps the stack footprint and
+	// lets other hasher threads grab their own batches in parallel.
+	constexpr int batch_size = 16;
+	std::vector<v2_hash_queue_entry> batch;
+	batch.reserve(batch_size);
+
+	for (;;)
+	{
+		batch.clear();
+		{
+			std::unique_lock<std::mutex> l(m_mutex);
+			INVARIANT_CHECK;
+			int const take = std::min(int(m_v2_hash_queue.size()), batch_size);
+			if (take == 0) return;
+			for (int i = 0; i < take; ++i)
+			{
+				batch.push_back(std::move(m_v2_hash_queue.front()));
+				m_v2_hash_queue.pop_front();
+			}
+		}
+
+		for (auto& entry : batch)
+		{
+			hasher256 h;
+			h.update({entry.buf.data(), entry.hash_len});
+			store(entry.storage, entry.piece.piece, int(entry.block), h.final());
+		}
+
+		{
+			std::unique_lock<std::mutex> l(m_mutex);
+			INVARIANT_CHECK;
+			// If the cbe still references our buffer, hand it back so the
+			// regular flush path can take it. Otherwise the block was already
+			// flushed (or the piece evicted) and the buffer just drops.
+			auto& view = m_pieces.template get<0>();
+			// piece_iters is kept aligned with batch so the loop below
+			// (which gates on v2_pending == 0 after all decrements have
+			// landed) can reuse the lookups. v2_pending isn't an indexed
+			// key, so view.modify doesn't invalidate cached iterators.
+			// Every slot must be assigned exactly once before any
+			// `continue` -- a default-constructed multi_index iterator is
+			// singular and comparing it is undefined.
+			TORRENT_ALLOCA(piece_iters,
+				typename piece_container::nth_index<0>::type::iterator,
+				int(batch.size()));
+			int i = 0;
+			for (auto& entry : batch)
+			{
+				auto piece_iter = view.find(entry.piece);
+				piece_iters[i++] = piece_iter;
+				if (piece_iter == view.end()) continue;
+				view.modify(piece_iter, [](cached_piece_entry& e) {
+					TORRENT_ASSERT(e.v2_pending > 0);
+					--e.v2_pending;
+				});
+				if (entry.block >= piece_iter->blocks_in_piece()) continue;
+				auto& cbe = piece_iter->blocks[entry.block];
+				auto* j = cbe.get_write_job();
+				if (j == nullptr) continue;
+				auto& wj = std::get<aux::job::write>(j->action);
+				// cbe may have been cleared and re-inserted with a new buffer
+				// while we were hashing; an address mismatch means this
+				// write_job isn't ours.
+				if (wj.borrowed_buf != entry.buf.data()) continue;
+				wj.buf = std::move(entry.buf);
+				++m_blocks;
+			}
+			// post any hash_job parked on the cpe by try_hash_piece's
+			// v2-pending defer branch or wait_for_v2_queue, and finish any
+			// clear_piece job try_clear_piece (or flush_piece_impl's deferred-
+			// clear branch) parked on the cpe -- all gated on v2_pending == 0.
+			for (auto piece_iter : piece_iters)
+			{
+				if (piece_iter == view.end()) continue;
+				if (piece_iter->v2_pending > 0) continue;
+				if (piece_iter->hash_job != nullptr)
+				{
+					disk_job* j = nullptr;
+					view.modify(piece_iter,
+						[&](cached_piece_entry& e) { j = std::exchange(e.hash_job, nullptr); });
+					posted.push_back(j);
+				}
+				if (piece_iter->clear_piece != nullptr)
+				{
+					disk_job* clear_piece = nullptr;
+					view.modify(piece_iter, [&](cached_piece_entry& e) {
+						clear_piece = std::exchange(e.clear_piece, nullptr);
+					});
+					// clear_piece_impl already ran when the clear was parked;
+					// any aborted writes were dispatched at that point. We
+					// only need to post the clear job's completion now.
+					clear_piece_fun({}, clear_piece);
+				}
+			}
+			m_back_pressure.check_buffer_level(m_blocks + int(m_v2_hash_queue.size()));
+		}
+	}
+}
 }
 
 #endif

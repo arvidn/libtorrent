@@ -186,26 +186,52 @@ void test_hash_job_dispatched_by_hasher(test_mode_t const mode)
 
 	jobqueue_t completed, retry;
 
-	// With slow hashing each block takes ~1.6 s. Run the hasher in a thread
-	// and call try_hash_piece after a short sleep, reliably catching the
-	// window where hashing_flag is set.
+	// With slow hashing each block takes ~1.6 s. Run both the v1 hasher
+	// (kick_pending_hashers) and the v2 drain on the same thread, mirroring
+	// pread_disk_io::thread_fun, so a v2-only piece has a hashing window
+	// too. Call try_hash_piece after a short sleep so the hasher is
+	// reliably mid-run.
 	std::thread t([&]() {
 		f.cache.kick_pending_hashers(completed, retry);
+		f.cache.drain_v2_hash_queue(
+			[&block_hashes](std::shared_ptr<lt::aux::pread_storage> const&,
+				lt::piece_index_t,
+				int const block,
+				lt::sha256_hash const& h) {
+				if (block < int(block_hashes.size())) block_hashes[std::size_t(block)] = h;
+			},
+			retry,
+			[](jobqueue_t, disk_job*) {});
 	});
 	std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
 	auto const result = f.cache.try_hash_piece(f.loc(0_piece), hash_job.get());
 	t.join();
 
+	// try_hash_piece parks the job in all three modes: v1/hybrid via the
+	// hashing_flag branch (kick_hasher mid-run), v2-only via the v2_pending
+	// branch (drain mid-run). The dispatched job lands in completed for
+	// v1-only (kick_hasher's main path) and in retry for v2 and hybrid
+	// (kick_hasher routes hybrid through retry; the v2-only drain posts
+	// the hung job there too).
 	TEST_EQUAL(result, disk_cache::hash_result::job_queued);
-	// The hasher filled in the hash values and posted the job.
-	TEST_EQUAL(completed.size(), 1);
+	auto& dispatched = bool(mode & test_mode::v2) ? retry : completed;
+	TEST_EQUAL(dispatched.size(), 1);
 
 	if (mode & test_mode::v1)
 		TEST_CHECK(!std::get<job::hash>(hash_job->action).piece_hash.is_all_zeros());
 	for (auto const& h : block_hashes)
 		TEST_CHECK(!h.is_all_zeros());
 
+	if (!(mode & test_mode::v1))
+	{
+		// v2-only: the dispatched job goes to retry; in production
+		// pread_disk_io re-runs do_job(hash) which calls hash_piece,
+		// whose scope_end sets piece_hash_returned_flag and lets pass-1
+		// evict. The fixture doesn't drive that path, so the cpe stays
+		// in the cache without the flag set -- skip the eviction check.
+		return;
+	}
 	TEST_EQUAL(f.flush(), 1);
 	TEST_EQUAL(int(f.cache.size()), 0);
 }
@@ -231,23 +257,38 @@ void test_hash_job_retry_when_piece_incomplete(test_mode_t const mode)
 
 	jobqueue_t completed, retry;
 
-	// Slow hashing gives us a wide window. Run the hasher in a thread, park
-	// the hash job while hashing_flag is set, then let the hasher finish.
+	// Slow hashing gives us a wide window. Run the hasher and the v2 drain
+	// on the same thread, park the hash job while hashing_flag is set, then
+	// let the hasher finish.
 	std::thread t([&]() {
 		f.cache.kick_pending_hashers(completed, retry);
+		f.cache.drain_v2_hash_queue(
+			[&block_hashes](std::shared_ptr<lt::aux::pread_storage> const&,
+				lt::piece_index_t,
+				int const block,
+				lt::sha256_hash const& h) {
+				if (block < int(block_hashes.size())) block_hashes[std::size_t(block)] = h;
+			},
+			retry,
+			[](jobqueue_t, disk_job*) {});
 	});
 	std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
-	// hashing_flag is set; block 1 is absent so the hasher will stall at
-	// cursor=1. try_hash_piece parks the job (job_queued) now that the
-	// have_buffers guard in try_hash_piece has been removed — the retry
-	// mechanism handles the case where the hasher can't complete.
+	// For v1/hybrid the hasher has set hashing_flag and block 1 is absent,
+	// so it will stall at cursor=1; try_hash_piece parks the job
+	// (job_queued) and the retry mechanism handles the case where the
+	// hasher can't complete. For v2-only the drain is mid-run and
+	// v2_pending > 0 parks the job through the same job_queued path.
 	auto const result = f.cache.try_hash_piece(f.loc(0_piece), hash_job.get());
+	// v1/hybrid: parked via hashing_flag (kick_hasher mid-run).
+	// v2-only: parked via v2_pending (drain mid-run).
 	TEST_EQUAL(result, disk_cache::hash_result::job_queued);
 	t.join();
 
-	// kick_hasher hashed block 0 (cursor=1) but stopped because block 1 is
-	// absent. The hung hash job must be in retry, not completed.
+	// v1/hybrid: kick_hasher hashed block 0 (cursor=1) but stopped because
+	// block 1 is absent, and posted the hung job to retry.
+	// v2-only: drain processed block 0's queue entry, found the hung
+	// hash_job, and posted it to retry. Either way the job lands in retry.
 	TEST_EQUAL(completed.size(), 0);
 	TEST_EQUAL(retry.size(), 1);
 	TEST_CHECK(retry.pop_front() == hash_job.get());
@@ -283,6 +324,13 @@ void test_hash_job_retry_when_piece_incomplete(test_mode_t const mode)
 // disk I/O - the data has already been written.
 void test_drop_held_alive_buffers(test_mode_t const mode)
 {
+	// The held-alive mechanism only applies to v1 pieces: kick_hasher pins
+	// block buffers until the SHA-1 hasher reaches them. For pieces with
+	// any v2 component (v2-only or hybrid) the insert path moves wjob.buf
+	// into m_v2_hash_queue, so cbe never owns the buffer; the data is
+	// owned by the queue entry and freed by drain_v2_hash_queue.
+	if (mode & test_mode::v2) return;
+
 	cache_fixture f(3, mode);
 	f.insert(0_piece, 0);
 	f.insert(0_piece, 2);
@@ -329,8 +377,14 @@ void test_drop_held_alive_buffers(test_mode_t const mode)
 // block_hashes; instead it sets pending_free_flag and defers the erasure.
 // When kick_hasher() subsequently clears hashing_flag it sees
 // pending_free_flag and erases the piece itself.
+//
+// hashing_flag is set by kick_pending_hashers, which only kicks v1/hybrid
+// pieces. v2-only pieces have no hashing_flag (their work happens in
+// drain_v2_hash_queue), so they don't exercise the pending_free_flag race.
 void test_flush_storage_during_hashing(test_mode_t const mode)
 {
+	if (!(mode & test_mode::v1)) return;
+
 	// 2-block piece so the hasher has real work to do.
 	cache_fixture f(2, mode);
 	f.insert(0_piece, 0);

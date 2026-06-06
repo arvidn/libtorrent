@@ -21,9 +21,11 @@ see LICENSE file.
 
 namespace libtorrent::aux {
 
-	// A thread-safe cache of SHA-256 block hashes computed inline while writing
-	// blocks to disk, so a later hash/hash2 job doesn't have to re-read the block
-	// just to hash it. Keyed by piece, then indexed by block within the piece.
+	// A thread-safe cache of SHA-256 block hashes computed by the v2 hash
+	// queue (disk_cache::drain_v2_hash_queue) while the block buffer is still
+	// in memory, so a later hash/hash2 job doesn't have to re-read the block
+	// from disk just to hash it. Keyed by piece, then indexed by block within
+	// the piece.
 	//
 	// A block whose hash has not been computed reads as an all-zero hash. A
 	// SHA-256 over a (non-empty) block is never all zeros, so this doubles as the
