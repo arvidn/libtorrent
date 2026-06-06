@@ -20,8 +20,10 @@ see LICENSE file.
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/units.hpp"
 #include <cstring>
+#include <map>
 #include <memory>
 #include <vector>
 
@@ -88,17 +90,17 @@ struct cache_fixture
 	lt::aux::disk_cache::piece_entry_params piece_params() const
 	{
 		return {
-			piece_size2,
-			piece_size,
-			bool(mode & test_mode::v1), bool(mode & test_mode::v2)
-		};
+			piece_size2, piece_size, bool(mode & test_mode::v1), bool(mode & test_mode::v2), {}};
 	}
 
 	// Allocate a write-job whose buffer is filled with fill_char.
 	// The buffer is sized to the actual block size (which may be less than
 	// default_block_size for the last block of a piece with unaligned piece_size).
 	// Ownership is transferred to live_jobs; the raw pointer is returned.
-	// write_job->storage is intentionally null: disk_cache no longer needs it.
+	// write_job->storage is left null; disk_cache uses it only to keep the
+	// storage alive while a v2 hash queue entry is outstanding, and the test
+	// harness instead captures the v2 hashes directly in v2_hashes (see
+	// kick_hashers()).
 	lt::aux::pread_disk_job* make_write_job(
 		lt::piece_index_t const piece
 		, int const block
@@ -168,10 +170,28 @@ struct cache_fixture
 	}
 
 	// Advance the hasher for all pending pieces, discarding completed jobs.
+	// Also drains the v2 hash queue, capturing computed SHA-256s in v2_hashes
+	// (indexed by piece, then block) so tests can verify them without a real
+	// pread_storage.
+	std::map<std::pair<lt::piece_index_t, int>, lt::sha256_hash> v2_hashes;
+	// captured by the kick_hashers() clear-piece callback so tests can
+	// observe deferred clear_piece completions dispatched by the drain.
+	std::vector<lt::aux::disk_job*> cleared_jobs;
+	std::vector<lt::aux::disk_job*> aborted_jobs;
 	void kick_hashers()
 	{
 		lt::jobqueue_t completed, retry;
 		cache.kick_pending_hashers(completed, retry);
+		cache.drain_v2_hash_queue([this](std::shared_ptr<lt::aux::pread_storage> const&,
+									  lt::piece_index_t const piece,
+									  int const block,
+									  lt::sha256_hash const& h) { v2_hashes[{piece, block}] = h; },
+			retry,
+			[this](lt::jobqueue_t aborted, lt::aux::disk_job* clear) {
+				cleared_jobs.push_back(clear);
+				while (!aborted.empty())
+					aborted_jobs.push_back(aborted.pop_front());
+			});
 	}
 
 	// Simulate flush_storage(): marks every block with a write_job as flushed.
