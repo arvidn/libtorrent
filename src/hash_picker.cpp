@@ -265,6 +265,22 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		ret.hash_failed = std::move(results->failed);
 		ret.hash_passed = std::move(results->passed);
 
+		// the hashes passed validation and were added to the tree. Mark the
+		// corresponding entries in m_piece_hash_requested as "have" so we won't
+		// request them again. This mirrors the bookkeeping in hashes_rejected().
+		if (req.base == m_piece_layer)
+		{
+			// req.base == m_piece_layer implies the file's merkle tree has more
+			// than m_piece_layer layers above its leaves, which is only true when
+			// file_size > piece_length. That is exactly the condition under
+			// which the constructor resizes m_piece_hash_requested[req.file],
+			// so the vector is guaranteed to be non-empty here.
+			// validate_hash_request() enforces this invariant for incoming requests.
+			TORRENT_ASSERT(!m_piece_hash_requested[req.file].empty());
+			for (int i = req.index; i < req.index + req.count; i += 512)
+				m_piece_hash_requested[req.file][i / 512].have = true;
+		}
+
 		return ret;
 	}
 

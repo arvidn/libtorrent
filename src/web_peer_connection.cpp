@@ -154,8 +154,7 @@ void web_peer_connection::on_connected()
 			// if we have the file, no need to do anything
 			if (m_web->have_files.get_bit(i) || fs.pad_file_at(i)) continue;
 
-			auto const range = aux::file_piece_range_inclusive(fs, i);
-			for (piece_index_t k = std::get<0>(range); k < std::get<1>(range); ++k)
+			for (piece_index_t const k : aux::file_piece_range_inclusive(fs, i))
 				have.clear_bit(k);
 		}
 		t->set_seed(peer_info_struct(), false);
@@ -583,8 +582,7 @@ bool web_peer_connection::received_invalid_data(piece_index_t const index, bool 
 	{
 		// assume the web seed has a different copy of this specific file
 		// than what we expect, and pretend not to have it.
-		auto const range = file_piece_range_inclusive(fs, files[0].file_index);
-		for (piece_index_t i = std::get<0>(range); i != std::get<1>(range); ++i)
+		for (piece_index_t const i : file_piece_range_inclusive(fs, files[0].file_index))
 			incoming_dont_have(i);
 	}
 	else
@@ -732,8 +730,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 				// connected to it. Make it advertise that it has this file to the
 				// bittorrent engine
 				file_storage const& fs = t->torrent_file().layout();
-				auto const range = aux::file_piece_range_inclusive(fs, file_index);
-				for (piece_index_t i = std::get<0>(range); i < std::get<1>(range); ++i)
+				for (piece_index_t const i : aux::file_piece_range_inclusive(fs, file_index))
 					pc->incoming_have(i);
 			}
 			// we just learned about another file this web server has, make sure

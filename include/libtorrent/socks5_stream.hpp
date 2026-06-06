@@ -100,6 +100,8 @@ public:
 	{
 		m_user = user;
 		m_password = password;
+		if (m_user.size() > 255) m_user.resize(255);
+		if (m_password.size() > 255) m_password.resize(255);
 	}
 
 	void set_dst_name(std::string const& host)
