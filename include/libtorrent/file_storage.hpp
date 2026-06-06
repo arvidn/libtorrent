@@ -925,16 +925,16 @@ namespace aux {
 
 	// returns the piece range that entirely falls within the specified file. the
 	// end piece is one-past the last piece that entirely falls within the file.
-	// i.e. They can conveniently be used as loop boundaries. No edge partial
-	// pieces will be included.
-	TORRENT_EXTRA_EXPORT std::tuple<piece_index_t, piece_index_t>
-	file_piece_range_exclusive(file_storage const& fs, file_index_t file);
+	// i.e. the range can conveniently be iterated over. No edge partial pieces
+	// will be included.
+	TORRENT_EXTRA_EXPORT index_range<piece_index_t> file_piece_range_exclusive(
+		file_storage const& fs, file_index_t file);
 
 	// returns the piece range of pieces that overlaps with the specified file.
-	// the end piece is one-past the last piece. i.e. They can conveniently be
-	// used as loop boundaries.
-	TORRENT_EXTRA_EXPORT std::tuple<piece_index_t, piece_index_t>
-	file_piece_range_inclusive(file_storage const& fs, file_index_t file);
+	// the end piece is one-past the last piece. i.e. the range can conveniently
+	// be iterated over.
+	TORRENT_EXTRA_EXPORT index_range<piece_index_t> file_piece_range_inclusive(
+		file_storage const& fs, file_index_t file);
 } // namespace aux
 } // namespace libtorrent
 

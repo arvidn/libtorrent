@@ -42,6 +42,11 @@ struct index_range
 	Index _end;
 	index_iter<Index> begin() const { return index_iter<Index>{_begin}; }
 	index_iter<Index> end() const { return index_iter<Index>{_end}; }
+	friend bool operator==(index_range const& lhs, index_range const& rhs)
+	{
+		return lhs._begin == rhs._begin && lhs._end == rhs._end;
+	}
+	friend bool operator!=(index_range const& lhs, index_range const& rhs) { return !(lhs == rhs); }
 };
 
 }
