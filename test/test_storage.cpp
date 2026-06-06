@@ -54,6 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/storage_utils.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
+#include "libtorrent/stat_cache.hpp"
 #include "libtorrent/random.hpp"
 #include "libtorrent/mmap_disk_io.hpp"
 #include "libtorrent/posix_disk_io.hpp"
@@ -61,6 +62,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <memory>
 #include <functional> // for bind
+#include <fstream>
 #include <iostream>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -1067,6 +1069,45 @@ TORRENT_TEST(fastresume_deprecated)
 	test_fastresume(true);
 }
 #endif
+
+TORRENT_TEST(fastresume_spanning_piece_missing_file)
+{
+	int const resume_piece_size = 0x4000;
+	std::string const save_path = complete("temp_storage_spanning_resume");
+	delete_dirs(save_path);
+
+	file_storage fs;
+	fs.add_file(combine_path("test", "first"), resume_piece_size / 2);
+	fs.add_file(combine_path("test", "missing"), resume_piece_size / 2);
+	fs.add_file(combine_path("test", "unchecked"), resume_piece_size);
+	fs.set_piece_length(resume_piece_size);
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
+
+	error_code ec;
+	create_directories(combine_path(save_path, "test"), ec);
+	TEST_CHECK(!ec);
+
+	std::ofstream file(fs.file_path(0_file, save_path).c_str());
+	file.write("x", 1);
+	file.close();
+
+	add_torrent_params rd;
+	rd.have_pieces.resize(fs.num_pieces(), false);
+	rd.have_pieces.set_bit(0_piece);
+
+	aux::vector<std::string, file_index_t> links;
+	aux::vector<download_priority_t, file_index_t> priorities;
+	stat_cache stat;
+	storage_error se;
+	bool const valid = aux::verify_resume_data(rd, links, fs, priorities
+		, stat, save_path, se);
+
+	TEST_CHECK(!valid);
+	TEST_EQUAL(se.ec, error_code(errors::mismatching_file_size));
+	TEST_EQUAL(static_cast<int>(se.file()), 1);
+
+	delete_dirs(save_path);
+}
 
 namespace {
 
