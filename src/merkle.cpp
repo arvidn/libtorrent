@@ -327,6 +327,7 @@ namespace libtorrent {
 
 		int cursor = target_node_idx;
 		target_tree[cursor] = node;
+		bool cursor_inserted = false;
 		for (auto const& proof : uncle_hashes)
 		{
 			int const proof_idx = merkle_get_sibling(cursor);
@@ -337,8 +338,12 @@ namespace libtorrent {
 			cursor = merkle_get_parent(cursor);
 			if (target_tree[cursor] == hash) return true;
 			if (!target_tree[cursor].is_all_zeros())
+			{
+				cursor_inserted = false;
 				break;
+			}
 			target_tree[cursor] = hash;
+			cursor_inserted = true;
 		}
 
 		// we get here if we never reached a known hash in the tree, i.e. the
@@ -352,6 +357,7 @@ namespace libtorrent {
 			target_tree[proof_idx].clear();
 			clear_cursor = merkle_get_parent(clear_cursor);
 		}
+		if (cursor_inserted) target_tree[cursor].clear();
 		return false;
 	}
 
