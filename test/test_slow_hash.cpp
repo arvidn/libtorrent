@@ -482,6 +482,47 @@ void test_flush_storage_during_hashing(test_mode_t const mode)
 	TEST_EQUAL(f.alloc.live, 0);
 }
 
+// Exercises kick_hasher's keep_going path: a 3-block piece with the middle
+// block missing stalls the hasher at the hole. The test fills block 1 while
+// the hasher is asleep inside slow-hash's ctx.update(buf0), so the relock
+// sees blocks[1].data() and goes to keep_going to hash the rest of the piece.
+void test_kick_hasher_keep_going_fills_hole(test_mode_t const mode)
+{
+	// The bug lives on the v1 hasher cursor path. v2-only pieces have no
+	// hashing_flag (their work is in drain_v2_hash_queue), so they don't
+	// reach kick_hasher's keep_going loop at all.
+	if (!(mode & test_mode::v1)) return;
+
+	cache_fixture f(3, mode);
+	f.insert(0_piece, 0);
+	f.insert(0_piece, 2);
+
+	jobqueue_t completed, retry;
+	std::thread hasher_thread([&]() { f.cache.kick_pending_hashers(completed, retry); });
+
+	// Wait until kick_hasher has released the mutex inside its slow-hash
+	// update on block 0. 50ms is comfortably inside the ~1.6s slow window.
+	std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+	// Fill the hole while the hasher is still feeding block 0 into ph.
+	// When it relocks it will see blocks[1].data() and goto keep_going --
+	// the path that walks into the stale tail of blocks_storage.
+	f.insert(0_piece, 1);
+
+	hasher_thread.join();
+
+	// For hybrid pieces every insert also pushed a v2 queue entry that
+	// owns the buffer; drain those so cache.size() / alloc.live can drop
+	// to zero after the flush below.
+	if (mode & test_mode::v2) f.kick_hashers();
+
+	// Post-fix: cursor reached exactly blocks_in_piece without re-feeding
+	// any block, so all 3 write_jobs are still pending and flush picks
+	// them all up.
+	TEST_EQUAL(f.flush(), 3);
+	TEST_EQUAL(int(f.cache.size()), 0);
+	TEST_EQUAL(f.alloc.live, 0);
+}
 }
 
 TORRENT_TEST(test_pread_hash_job_retry)
@@ -527,6 +568,15 @@ TORRENT_TEST(flush_storage_during_hashing_hybrid)
 	TORRENT_TEST(drop_held_alive_hybrid)
 	{
 		test_drop_held_alive_buffers(test_mode::v1 | test_mode::v2);
+	}
+
+	TORRENT_TEST(kick_hasher_keep_going_fills_hole_v1)
+	{
+		test_kick_hasher_keep_going_fills_hole(test_mode::v1);
+	}
+	TORRENT_TEST(kick_hasher_keep_going_fills_hole_hybrid)
+	{
+		test_kick_hasher_keep_going_fills_hole(test_mode::v1 | test_mode::v2);
 	}
 
 #endif // TORRENT_SIMULATE_SLOW_HASH

@@ -471,6 +471,7 @@ bool disk_cache::kick_hasher(piece_container::nth_index<4>::type::iterator piece
 	TORRENT_ASSERT(l.owns_lock());
 
 	std::uint16_t cursor = piece_iter->hasher_cursor;
+	TORRENT_ASSERT(cursor <= piece_iter->blocks_in_piece());
 
 	// NOTE: block_storage is indexed starting at cursor. We don't waste space
 	// allocating a slot for every block, just the ones in front of the cursor
@@ -479,12 +480,21 @@ bool disk_cache::kick_hasher(piece_container::nth_index<4>::type::iterator piece
 	// hashing_flag is already set by caller. We need to clear it before returning.
 	TORRENT_ASSERT(piece_iter->flags & cached_piece_entry::hashing_flag);
 
+#if TORRENT_USE_ASSERTS
+	piece_location const original_piece = piece_iter->piece;
+#endif
+
 keep_going:
 
 	// Snapshot all block buffer pointers from cursor onwards while holding the
 	// mutex. New blocks may be added asynchronously after we release the lock,
 	// so we must not read their buf() pointers then.
 	int const n = piece_iter->blocks_in_piece() - int(cursor);
+	TORRENT_ASSERT(n >= 0);
+
+	// we may loop here, so this may not be the first time around the hashing loop.
+	// Make sure blocks_storage only covers the remaining blocks in the piece
+	blocks_storage = blocks_storage.subspan(0, n);
 	for (int i = 0; i < n; ++i)
 	{
 		int const blk_idx = int(cursor) + i;
@@ -517,9 +527,14 @@ keep_going:
 		auto& ctx = const_cast<aux::piece_hasher&>(*piece_iter->ph);
 		ctx.update(buf);
 		++cursor;
+		TORRENT_ASSERT(cursor <= piece_iter->blocks_in_piece());
 	}
 
 	l.lock();
+
+	// sanity check to ensure the piece entry wasn't removed under our feet
+	TORRENT_ASSERT(piece_iter->piece == original_piece);
+	TORRENT_ASSERT(piece_iter->flags & cached_piece_entry::hashing_flag);
 
 	// if some other thread added the next block, keep going
 	if (cursor != piece_iter->blocks_in_piece()
