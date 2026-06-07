@@ -1828,19 +1828,19 @@ namespace {
 #endif // TORRENT_ABI_VERSION
 
 	void torrent_info::add_url_seed(std::string const& url
-		, std::string const& ext_auth
+		, std::string const& extern_auth
 		, web_seed_entry::headers_t const& ext_headers)
 	{
 		m_web_seeds.emplace_back(url, web_seed_entry::url_seed
-			, ext_auth, ext_headers);
+			, extern_auth, ext_headers);
 	}
 
 	void torrent_info::add_http_seed(std::string const& url
-		, std::string const& auth
+		, std::string const& extern_auth
 		, web_seed_entry::headers_t const& extra_headers)
 	{
 		m_web_seeds.emplace_back(url, web_seed_entry::http_seed
-			, auth, extra_headers);
+			, extern_auth, extra_headers);
 	}
 
 	void torrent_info::set_web_seeds(std::vector<web_seed_entry> seeds)
