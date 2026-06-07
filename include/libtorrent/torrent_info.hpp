@@ -356,7 +356,7 @@ TORRENT_VERSION_NAMESPACE_3
 		//
 		// See http-seeding_ for more information.
 		void add_url_seed(std::string const& url
-			, std::string const& ext_auth = std::string()
+			, std::string const& extern_auth = std::string()
 			, web_seed_entry::headers_t const& ext_headers = web_seed_entry::headers_t());
 		void add_http_seed(std::string const& url
 			, std::string const& extern_auth = std::string()
