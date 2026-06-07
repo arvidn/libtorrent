@@ -91,6 +91,23 @@ class http_handler(BaseHTTPRequestHandler):
             self.send_header("Location", "../test_file")
             self.send_header("Connection", "close")
             self.end_headers()
+        elif self.path == '/redirect_auth':
+            # same-origin redirect. The client should keep the
+            # Authorization header when following.
+            self.send_response(301)
+            self.send_header("Location", "/password_protected")
+            self.send_header("Connection", "close")
+            self.end_headers()
+        elif self.path == '/redirect_auth_external':
+            # cross-origin redirect (different host string: localhost vs
+            # 127.0.0.1). The client must NOT forward the Authorization
+            # header to the new origin.
+            scheme = 'https' if use_ssl else 'http'
+            self.send_response(301)
+            self.send_header("Location",
+                "%s://localhost:%d/password_protected" % (scheme, port))
+            self.send_header("Connection", "close")
+            self.end_headers()
         elif self.path.startswith('/announce'):
             self.send_response(200)
             response = b'd8:intervali1800e8:completei1e10:incompletei1e' + \

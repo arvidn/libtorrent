@@ -55,12 +55,25 @@ struct TORRENT_EXPORT web_seed_entry
 	// The URL of the web seed
 	std::string url;
 
-	// Optional authentication. If this is set, it's passed
-	// in as HTTP basic auth to the web seed. The format is:
-	// username:password.
+	// Optional authentication. If set, this string is sent verbatim as the
+	// value of the HTTP ``Authorization`` header, and it overrides any
+	// credentials embedded in the URL. It is not transformed in any way, so
+	// it must be the complete header value. For HTTP basic authentication
+	// that means ``"Basic "`` followed by the base64 encoding of
+	// ``username:password``.
+	// For security, this value (as well as any credentials embedded in the
+	// URL as "username:password@host") is only sent to the origin of the
+	// web seed URL. If the web seed responds with a redirect to a different
+	// origin (a different scheme, host or port), it is *not* forwarded to
+	// the new origin.
 	std::string auth;
 
-	// Any extra HTTP headers that need to be passed to the web seed
+	// Any extra HTTP headers that need to be passed to the web seed.
+	// Warning: unlike ``auth``, these headers are sent verbatim with
+	// every request, including requests to a different origin that the web
+	// seed may redirect to. Do not put sensitive credentials (such as an
+	// ``Authorization`` or ``Cookie`` header) here unless you trust every
+	// host the web seed might redirect to.
 	headers_t extra_headers;
 
 #if TORRENT_ABI_VERSION < 4

@@ -333,10 +333,13 @@ TORRENT_VERSION_NAMESPACE_4
 		// ``set_web_seeds()`` replaces all web seeds with the ones specified in
 		// the ``seeds`` vector.
 		//
-		// The ``extern_auth`` argument can be used for other authorization
-		// schemes than basic HTTP authorization. If set, it will override any
-		// username and password found in the URL itself. The string will be sent
-		// as the HTTP authorization header's value (without specifying "Basic").
+		// The ``extern_auth`` argument sets the ``auth`` field of the
+		// web_seed_entry. If set, it overrides any username and password found
+		// in the URL itself, and it is sent verbatim as the value of the HTTP
+		// ``Authorization`` header (it is not transformed in any way). For HTTP
+		// basic authentication the value must therefore be ``"Basic "`` followed
+		// by the base64 encoding of ``username:password``. See web_seed_entry
+		// for the security implications of this field across redirects.
 		//
 		// The ``extra_headers`` argument defaults to an empty list, but can be
 		// used to insert custom HTTP headers in the requests to a specific web
@@ -344,9 +347,9 @@ TORRENT_VERSION_NAMESPACE_4
 		//
 		// See http-seeding_ for more information.
 		TORRENT_DEPRECATED
-		void add_url_seed(std::string const& url
-			, std::string const& ext_auth = std::string()
-			, web_seed_entry::headers_t const& ext_headers = web_seed_entry::headers_t());
+		void add_url_seed(std::string const& url,
+			std::string const& extern_auth = std::string(),
+			web_seed_entry::headers_t const& ext_headers = web_seed_entry::headers_t());
 		TORRENT_DEPRECATED
 		std::vector<web_seed_entry> const& web_seeds() const { return m_web_seeds; }
 		TORRENT_DEPRECATED

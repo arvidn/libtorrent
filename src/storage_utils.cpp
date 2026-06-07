@@ -434,18 +434,10 @@ std::int64_t get_filesize(stat_cache& stat, file_index_t const file_index
 		if (added_files) return false;
 #endif
 
-		// parse have bitmask. Verify that the files we expect to have
-		// actually do exist
-		piece_index_t const end_piece = std::min(rd.have_pieces.end_index(), fs.end_piece());
-		for (piece_index_t i(0); i < end_piece; ++i)
+		// parse have bitmask. Verify that files touched by completed pieces
+		// actually exist. A completed piece may span multiple files.
+		for (file_index_t const file_index : fs.file_range())
 		{
-			if (rd.have_pieces.get_bit(i) == false) continue;
-
-			std::vector<file_slice> f = fs.map_block(i, 0, 1);
-			TORRENT_ASSERT(!f.empty());
-
-			file_index_t const file_index = f[0].file_index;
-
 			// files with priority zero may not have been saved to disk at their
 			// expected location, but is likely to be in a partfile. Just exempt it
 			// from checking
@@ -454,16 +446,24 @@ std::int64_t get_filesize(stat_cache& stat, file_index_t const file_index
 				continue;
 
 			if (fs.pad_file_at(file_index)) continue;
+			if (fs.file_size(file_index) == 0) continue;
 
-			if (get_filesize(stat, file_index, fs, save_path, ec) < 0)
-				return false;
+			auto const piece_range = aux::file_piece_range_inclusive(fs, file_index);
+			piece_index_t const start_piece = piece_range._begin;
 
-			// OK, this file existed, good. Now, skip all remaining pieces in
-			// this file. We're just sanity-checking whether the files exist
-			// or not.
-			peer_request const pr = fs.map_file(file_index
-				, fs.file_size(file_index) + 1, 0);
-			i = std::max(next(i), pr.piece);
+			piece_index_t const end_piece = std::min(piece_range._end, rd.have_pieces.end_index());
+
+			bool has_completed_resume_piece = false;
+			for (piece_index_t piece = start_piece; piece < end_piece; ++piece)
+			{
+				if (!rd.have_pieces.get_bit(piece)) continue;
+				has_completed_resume_piece = true;
+				break;
+			}
+
+			if (!has_completed_resume_piece) continue;
+
+			if (get_filesize(stat, file_index, fs, save_path, ec) < 0) return false;
 		}
 		return true;
 	}

@@ -927,14 +927,30 @@ namespace aux {
 	// end piece is one-past the last piece that entirely falls within the file.
 	// i.e. the range can conveniently be iterated over. No edge partial pieces
 	// will be included.
+	// these are templated on the file-layout type so they accept both a
+	// file_storage and a filenames view (which exposes the same map_file(),
+	// file_size(), piece_length(), num_files() and num_pieces() members). the
+	// rename layer in filenames only affects file paths, not the piece layout,
+	// so the result is identical for either. The instantiations are defined in
+	// file_storage.cpp.
+	template <typename FileStorage>
 	TORRENT_EXTRA_EXPORT index_range<piece_index_t> file_piece_range_exclusive(
-		file_storage const& fs, file_index_t file);
+		FileStorage const& fs, file_index_t file);
 
 	// returns the piece range of pieces that overlaps with the specified file.
 	// the end piece is one-past the last piece. i.e. the range can conveniently
 	// be iterated over.
+	template <typename FileStorage>
 	TORRENT_EXTRA_EXPORT index_range<piece_index_t> file_piece_range_inclusive(
-		file_storage const& fs, file_index_t file);
+		FileStorage const& fs, file_index_t file);
+
+	// only the instantiations explicitly defined in file_storage.cpp are used
+	extern template index_range<piece_index_t> file_piece_range_exclusive(
+		file_storage const&, file_index_t);
+	extern template index_range<piece_index_t> file_piece_range_inclusive(
+		file_storage const&, file_index_t);
+	extern template index_range<piece_index_t> file_piece_range_inclusive(
+		filenames const&, file_index_t);
 } // namespace aux
 } // namespace libtorrent
 

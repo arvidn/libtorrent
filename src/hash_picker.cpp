@@ -224,10 +224,19 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		if (req.count + num_uncle_hashes != hashes.size())
 			return add_hashes_result(false);
 
-		// for now we rely on only requesting piece hashes in 512 chunks
+		// for now we rely on only requesting piece hashes in 512-piece chunks,
+		// aligned to (and starting within) the actual number of pieces. The
+		// bookkeeping in m_piece_hash_requested below and in hashes_rejected()
+		// indexes by req.index / 512 and assumes req.index is a multiple of 512
+		// referring to an existing bucket. validate_hash_request() only bounds
+		// req.index against the padded piece layer, so a peer could otherwise
+		// send a request that is misaligned or points into the padding region,
+		// corrupting the wrong bucket or writing out of bounds.
 		if (req.base == m_piece_layer
-			&& req.count != 512
-			&& (req.count > 512 || unpadded_count != m_files.file_num_pieces(req.file) - req.index))
+			&& (req.index % 512 != 0 || req.index >= m_files.file_num_pieces(req.file)
+				|| (req.count != 512
+					&& (req.count > 512
+						|| unpadded_count != m_files.file_num_pieces(req.file) - req.index))))
 			return add_hashes_result(false);
 
 		// for now we only support receiving hashes at the piece and leaf layers

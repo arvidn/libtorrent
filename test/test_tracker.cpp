@@ -980,6 +980,8 @@ void test_stop_tracker_timeout(int const timeout)
 
 	int const count = count_stopped_events(s, (timeout == 0) ? 0 : 2);
 	TEST_EQUAL(count, (timeout == 0) ? 0 : 2);
+
+	stop_web_server();
 }
 } // anonymous namespace
 
