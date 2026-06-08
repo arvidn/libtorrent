@@ -113,7 +113,8 @@ setup_transfer(lt::session* ses1, lt::session* ses2
 	, lt::create_flags_t flags = {});
 
 EXPORT int start_web_server(bool ssl = false, bool chunked = false
-	, bool keepalive = true, int min_interval = 30);
+	, bool keepalive = true, int min_interval = 30
+	, bool expect_host_header = false);
 
 EXPORT void stop_web_server();
 EXPORT int start_proxy(int type);

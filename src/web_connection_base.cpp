@@ -43,6 +43,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/parse_url.hpp"
 #include "libtorrent/peer_info.hpp"
+#include "libtorrent/string_util.hpp"
 
 namespace libtorrent {
 
@@ -131,7 +132,7 @@ namespace libtorrent {
 		, aux::session_settings const& sett, bool const using_proxy) const
 	{
 		request += "Host: ";
-		request += m_host;
+		request += format_host_header(m_host, m_port, m_ssl ? 443 : 80);
 		if ((m_first_request || m_settings.get_bool(settings_pack::always_send_user_agent))
 			&& !m_settings.get_bool(settings_pack::anonymous_mode))
 		{

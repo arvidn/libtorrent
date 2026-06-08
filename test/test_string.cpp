@@ -657,3 +657,19 @@ TORRENT_TEST(format_host_for_connect)
 	TEST_EQUAL(format_host_for_connect("123", 80), "123:80");
 }
 
+TORRENT_TEST(format_host_header)
+{
+	TEST_EQUAL(format_host_header("example.com", 80, 80), "example.com");
+	TEST_EQUAL(format_host_header("example.com", 8080, 80), "example.com:8080");
+	TEST_EQUAL(format_host_header("example.com", 70000, 80), "example.com:70000");
+	TEST_EQUAL(format_host_header("example.com", 0, 80), "example.com");
+	TEST_EQUAL(format_host_header("example.com", -1, 80), "example.com");
+
+	TEST_EQUAL(format_host_header("127.0.0.1", 80, 80), "127.0.0.1");
+	TEST_EQUAL(format_host_header("127.0.0.1", 8080, 80), "127.0.0.1:8080");
+
+	TEST_EQUAL(format_host_header("2001:db8::1", 443, 443), "[2001:db8::1]");
+	TEST_EQUAL(format_host_header("2001:db8::1", 8443, 443), "[2001:db8::1]:8443");
+	TEST_EQUAL(format_host_header("[2001:db8::1]", 443, 443), "[2001:db8::1]");
+	TEST_EQUAL(format_host_header("[2001:db8::1]", 8443, 443), "[2001:db8::1]:8443");
+}
