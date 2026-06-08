@@ -1130,6 +1130,28 @@ TORRENT_TEST(validate_and_insert_proofs_mixed_failure)
 	          eh,
 	      o,        o,
 	  o,    o,   o,    o,
+	 o, o, o, o,o, o, o, o}));
+}
+
+TORRENT_TEST(validate_and_insert_proofs_under_length_failure)
+{
+// full tree:
+//       ah
+//    ad      eh
+//  ab  cd  ef  gh
+// a b c d  e f g h
+
+	v tree(15);
+	tree[0] = ah;
+	tree[6] = gh;
+
+	v const proofs{f};
+
+	TEST_CHECK(!merkle_validate_and_insert_proofs(tree, 11, e, proofs));
+	TEST_CHECK((tree == v{
+	          ah,
+	      o,        o,
+	  o,    o,   o,   gh,
 	o, o, o, o,o, o, o, o}));
 }
 

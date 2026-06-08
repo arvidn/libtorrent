@@ -330,14 +330,20 @@ namespace libtorrent {
 		for (auto const& proof : uncle_hashes)
 		{
 			int const proof_idx = merkle_get_sibling(cursor);
+			int const parent = merkle_get_parent(cursor);
 			TORRENT_ASSERT(target_tree[proof_idx].is_all_zeros());
 			target_tree[proof_idx] = proof;
 			int const left = std::min(proof_idx, cursor);
 			auto const hash = hasher256().update(target_tree[left]).update(target_tree[left + 1]).final();
-			cursor = merkle_get_parent(cursor);
-			if (target_tree[cursor] == hash) return true;
-			if (!target_tree[cursor].is_all_zeros())
+			if (target_tree[parent] == hash) return true;
+			if (!target_tree[parent].is_all_zeros())
+			{
+				// mismatched known parent — undo this iteration's sibling
+				// write so the cleanup below has a uniform shape.
+				target_tree[proof_idx].clear();
 				break;
+			}
+			cursor = parent;
 			target_tree[cursor] = hash;
 		}
 
@@ -352,6 +358,7 @@ namespace libtorrent {
 			target_tree[proof_idx].clear();
 			clear_cursor = merkle_get_parent(clear_cursor);
 		}
+		target_tree[cursor].clear();
 		return false;
 	}
 
