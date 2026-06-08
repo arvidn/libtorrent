@@ -154,6 +154,10 @@ namespace libtorrent {
 	// - otherwise append ":port" for regular hostnames/IPv4
 	TORRENT_EXTRA_EXPORT std::string format_host_for_connect(std::string host, unsigned short port);
 
+	// Format a hostname for an HTTP Host header. IPv6 literals are bracketed,
+	// and the port is omitted when it is not positive or matches the default.
+	TORRENT_EXTRA_EXPORT std::string format_host_header(std::string host, int port, int default_port);
+
 #if TORRENT_USE_I2P
 
 	TORRENT_EXTRA_EXPORT bool is_i2p_url(std::string const& url);

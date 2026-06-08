@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdlib> // for malloc
 #include <cstring> // for strlen
 #include <algorithm> // for search
+#include <utility> // for move
 
 namespace libtorrent {
 
@@ -396,32 +397,48 @@ namespace libtorrent {
 			s.erase(s.begin());
 	}
 
+	namespace {
+		std::string format_host_authority(std::string host, int const port)
+		{
+			bool const has_port = port > 0;
+
+			if (!host.empty() && host.front() == '[' && host.back() == ']')
+			{
+				if (has_port)
+				{
+					host += ":";
+					host += to_string(port).data();
+				}
+				return host;
+			}
+
+			if (host.find(':') != std::string::npos)
+			{
+				host = "[" + host;
+				host += ']';
+			}
+
+			if (has_port)
+			{
+				host += ":";
+				host += to_string(port).data();
+			}
+			return host;
+		}
+	}
+
 	std::string format_host_for_connect(std::string host, unsigned short const port)
 	{
 		// Handle edge case: if no port specified, return host as-is
 		if (port == 0) return host;
 
-		// Already bracketed IPv6 literal
-		if (!host.empty() && host.front() == '[' && host.back() == ']')
-		{
-			host += ":";
-			host += to_string(port).data();
-			return host;
-		}
+		return format_host_authority(std::move(host), port);
+	}
 
-		// Contains colons (unbracketed IPv6) - need to bracket
-		if (host.find(':') != string_view::npos)
-		{
-			host = "[" + host;
-			host += "]:";
-			host += to_string(port).data();
-			return host;
-		}
-
-		// Regular hostname or IPv4
-		host += ":";
-		host += to_string(port).data();
-		return host;
+	std::string format_host_header(std::string host, int const port, int const default_port)
+	{
+		return format_host_authority(std::move(host)
+			, (port <= 0 || port == default_port) ? 0 : port);
 	}
 
 #if TORRENT_USE_I2P

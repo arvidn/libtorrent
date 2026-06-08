@@ -55,6 +55,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/i2p_stream.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp"
+#include "libtorrent/string_util.hpp"
 #include "libtorrent/ssl.hpp"
 
 #include <functional>
@@ -187,18 +188,15 @@ void http_connection::get(std::string const& url, time_duration timeout
 			request << "Proxy-Authorization: Basic " << base64encode(
 				ps->username + ":" + ps->password) << "\r\n";
 
-		request << "Host: " << hostname;
-		if (port != default_port) request << ":" << port << "\r\n";
-		else request << "\r\n";
+		request << "Host: " << format_host_header(hostname, port, default_port) << "\r\n";
 
 		hostname = ps->hostname;
 		port = ps->port;
 	}
 	else
 	{
-		request << "GET " << path << " HTTP/1.1\r\nHost: " << hostname;
-		if (port != default_port) request << ":" << port << "\r\n";
-		else request << "\r\n";
+		request << "GET " << path << " HTTP/1.1\r\nHost: "
+			<< format_host_header(hostname, port, default_port) << "\r\n";
 	}
 
 //	request << "Accept: */*\r\n";
