@@ -492,10 +492,9 @@ namespace {
 	TORRENT_EXPORT std::unique_ptr<disk_interface> default_disk_io_constructor(
 		io_context& ios, settings_interface const& sett, counters& cnt)
 	{
-		// TODO: Enable this once it's stable enough
-//#if TORRENT_HAVE_PREAD || defined TORRENT_WINDOWS
-//		return pread_disk_io_constructor(ios, sett, cnt);
-#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
+#if TORRENT_HAVE_PREAD || defined TORRENT_WINDOWS
+		return pread_disk_io_constructor(ios, sett, cnt);
+#elif TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 #include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 		if constexpr (sizeof(void*) == 8)
 			return mmap_disk_io_constructor(ios, sett, cnt);
