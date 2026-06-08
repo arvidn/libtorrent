@@ -29,7 +29,7 @@
 	* added support for WebTorrent
 	* removed support for BEP 17 web seeds (in favor of BEP 19)
 
-2.0.13
+2.0.13 released
 
 	* stricter basic auth handling for web seed
 	* fix bug in tracker announcements involving i2p trackers

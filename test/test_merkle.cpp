@@ -1104,11 +1104,37 @@ TORRENT_TEST(validate_and_insert_proofs_mixed_failure)
 	TEST_CHECK(!merkle_validate_and_insert_proofs(tree, 11, e, proofs));
 
 	// make sure all nodes that were filled in were cleared correctly
+	// clang-format off
 	TEST_CHECK((tree == v{
 	          eh,
 	      o,        o,
 	  o,    o,   o,    o,
 	o, o, o, o,o, o, o, o}));
+	// clang-format on
+}
+
+TORRENT_TEST(validate_and_insert_proofs_under_length_failure)
+{
+	// full tree:
+	//       ah
+	//    ad      eh
+	//  ab  cd  ef  gh
+	// a b c d  e f g h
+
+	v tree(15);
+	tree[0] = ah;
+	tree[6] = gh;
+
+	v const proofs{f};
+
+	TEST_CHECK(!merkle_validate_and_insert_proofs(tree, 11, e, proofs));
+	// clang-format off
+	TEST_CHECK((tree == v{
+	          ah,
+	      o,        o,
+	  o,    o,   o,   gh,
+	o, o, o, o,o, o, o, o}));
+	// clang-format on
 }
 
 TORRENT_TEST(validate_and_insert_proofs_left)
