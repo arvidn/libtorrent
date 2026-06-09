@@ -327,36 +327,72 @@ namespace libtorrent {
 
 		int cursor = target_node_idx;
 		target_tree[cursor] = node;
+
+		// One bit per iteration: did we write into that iteration's
+		// sibling slot, or was the slot already populated with the
+		// matching proof value? The cleanup skips clearing slots we
+		// didn't write so a pre-existing leaf hash (e.g. one
+		// merkle_tree::set_block stored speculatively) survives a
+		// failed proof. The walk length is bounded by the tree depth,
+		// which is well under 32 for any tree this library can build.
+		std::uint32_t wrote_sibling = 0;
+		int iter = 0;
+
 		for (auto const& proof : uncle_hashes)
 		{
+			TORRENT_ASSERT(iter < 32);
 			int const proof_idx = merkle_get_sibling(cursor);
 			int const parent = merkle_get_parent(cursor);
-			TORRENT_ASSERT(target_tree[proof_idx].is_all_zeros());
-			target_tree[proof_idx] = proof;
+
+			if (target_tree[proof_idx].is_all_zeros())
+			{
+				target_tree[proof_idx] = proof;
+				wrote_sibling |= std::uint32_t(1) << iter;
+			}
+			else if (target_tree[proof_idx] != proof)
+			{
+				// pre-existing sibling contradicts the proof, fail
+				break;
+			}
+			// else: sibling already holds the proof value; leave it
+			// in place and walk on
+
 			int const left = std::min(proof_idx, cursor);
 			auto const hash = hasher256().update(target_tree[left]).update(target_tree[left + 1]).final();
+			// success: the computed pair-hash matches a known parent,
+			// anchoring the chain from `node` up to a trusted node in
+			// the tree
 			if (target_tree[parent] == hash) return true;
 			if (!target_tree[parent].is_all_zeros())
 			{
-				// mismatched known parent — undo this iteration's sibling
-				// write so the cleanup below has a uniform shape.
-				target_tree[proof_idx].clear();
+				// mismatched known parent. undo this iteration's
+				// sibling write so the cleanup below has a uniform
+				// shape
+				if (wrote_sibling & (std::uint32_t(1) << iter))
+				{
+					target_tree[proof_idx].clear();
+					wrote_sibling &= ~(std::uint32_t(1) << iter);
+				}
 				break;
 			}
 			cursor = parent;
 			target_tree[cursor] = hash;
+			++iter;
 		}
 
 		// we get here if we never reached a known hash in the tree, i.e. the
 		// uncle_hashes failed to prove the specified node hash.
-		// we now need to clear up all the hashes we've inserted into the tree
+		// we now need to clear up the hashes we inserted while walking up.
 		int clear_cursor = target_node_idx;
+		int undo_iter = 0;
 		while (clear_cursor > cursor)
 		{
 			int const proof_idx = merkle_get_sibling(clear_cursor);
 			target_tree[clear_cursor].clear();
-			target_tree[proof_idx].clear();
+			if (wrote_sibling & (std::uint32_t(1) << undo_iter))
+				target_tree[proof_idx].clear();
 			clear_cursor = merkle_get_parent(clear_cursor);
+			++undo_iter;
 		}
 		target_tree[cursor].clear();
 		return false;

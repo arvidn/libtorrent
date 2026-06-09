@@ -935,6 +935,63 @@ TORRENT_TEST(add_hashes_partial_proofs)
 	TEST_CHECK(t.verified_leafs() == none_set(num_blocks));
 }
 
+// load_piece_layer transitions the tree out of full_tree mode by replacing
+// m_tree with the freshly-validated piece layer. The piece_layer and
+// block_layer invariants both require m_block_verified to be empty, so
+// load_piece_layer must drop it on the transition even when the caller
+// hands it a tree that's been brought into full_tree mode with some bits
+// set -- a state set up here by installing the piece layer and then
+// verifying piece 0 via per-block set_block calls. The INVARIANT_CHECK
+// destructor in load_piece_layer enforces this on the way out, and a
+// follow-up set_block exercises the entry-side check too.
+TORRENT_TEST(load_piece_layer_clears_verified_bits)
+{
+	int const blocks_per_piece = 4;
+	aux::merkle_tree t(num_blocks, blocks_per_piece, f[0].data());
+
+	// install the piece-layer hashes; add_hashes only ever optimizes down to
+	// block_layer/empty_tree, so the tree stays in full_tree mode here with
+	// m_block_verified all-false
+	auto const piece_result = t.add_hashes(127, pdiff(1)
+		, range(f, 127, 128), span<sha256_hash const>());
+	TEST_CHECK(piece_result);
+	if (!piece_result) return;
+
+	// set all four block hashes for piece 0; the last call moves us into
+	// full_tree mode and verifies the piece, setting m_block_verified[0..3].
+	for (int b = 0; b < blocks_per_piece; ++b)
+		t.set_block(b, f[511 + b]);
+	TEST_CHECK(t.blocks_verified(0, blocks_per_piece));
+
+	// materialize the piece-layer bytes from the reference
+	int const npieces = (num_blocks + blocks_per_piece - 1) / blocks_per_piece;
+	int const piece_layer_first = merkle_first_leaf(merkle_num_leafs(npieces));
+	std::vector<char> piece_layer_bytes(std::size_t(npieces) * sha256_hash::size());
+	for (int i = 0; i < npieces; ++i)
+		std::memcpy(piece_layer_bytes.data() + i * int(sha256_hash::size())
+			, f[piece_layer_first + i].data()
+			, sha256_hash::size());
+
+	TEST_CHECK(t.load_piece_layer(piece_layer_bytes));
+
+	// in piece_layer mode with bpp > 1, no blocks should report as verified
+	TEST_CHECK(t.verified_leafs() == none_set(num_blocks));
+
+	// after load_piece_layer the tree is back in the piece_layer-only
+	// state, so a single set_block can't yet verify against the sibling.
+	auto const result = t.set_block(0, f[511]);
+	TEST_CHECK(std::get<0>(result) == aux::merkle_tree::set_block_result::unknown);
+
+	// the set_block above ran allocate_full(), bringing us back to full_tree
+	// mode where verified_leafs()/blocks_verified() consult m_block_verified
+	// directly (in piece_layer mode they ignore it). allocate_full's resize
+	// preserves any pre-existing bits, so had load_piece_layer failed to
+	// clear them the stale piece-0 bits would resurface as "verified" here --
+	// catching the bug even in builds compiled without invariant checks.
+	TEST_CHECK(!t.blocks_verified(0, blocks_per_piece));
+	TEST_CHECK(t.verified_leafs() == none_set(num_blocks));
+}
+
 // TODO: add test for load_piece_layer()
 // TODO: add test for add_hashes() with an odd number of blocks
 // TODO: add test for set_block() (setting the last block) with an odd number of blocks
