@@ -9,6 +9,7 @@ see LICENSE file.
 */
 
 #include "test.hpp"
+#include "disk_io_test.hpp"
 #include "setup_transfer.hpp"
 #include "web_seed_suite.hpp"
 
@@ -17,28 +18,25 @@ using namespace lt;
 const int proxy = lt::settings_pack::none;
 
 #if TORRENT_USE_SSL
-TORRENT_TEST(url_seed_ssl_keepalive)
+TORRENT_TEST_DISK_IO(url_seed_ssl_keepalive)
 {
-	run_http_suite(proxy, "https", 0, 0, 1);
+	run_http_suite(proxy, "https", 0, 0, 1, false, true, disk_io);
 }
 
-TORRENT_TEST(url_seed_ssl)
+TORRENT_TEST_DISK_IO(url_seed_ssl)
 {
-	run_http_suite(proxy, "https", 0, 0, 0);
+	run_http_suite(proxy, "https", 0, 0, 0, false, true, disk_io);
 }
 #endif
 
-TORRENT_TEST(url_seed_keepalive)
+TORRENT_TEST_DISK_IO(url_seed_keepalive)
 {
-	run_http_suite(proxy, "http", 0, 0, 1);
+	run_http_suite(proxy, "http", 0, 0, 1, false, true, disk_io);
 }
 
-TORRENT_TEST(url_seed)
-{
-	run_http_suite(proxy, "http", 0, 0, 0);
-}
+TORRENT_TEST_DISK_IO(url_seed) { run_http_suite(proxy, "http", 0, 0, 0, false, true, disk_io); }
 
-TORRENT_TEST(url_seed_keepalive_rename)
+TORRENT_TEST_DISK_IO(url_seed_keepalive_rename)
 {
-	run_http_suite(proxy, "http", 0, 1, 1);
+	run_http_suite(proxy, "http", 0, 1, 1, false, true, disk_io);
 }
