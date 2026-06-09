@@ -101,7 +101,8 @@ void test_checking(int const flags)
 	if (ec) std::printf("ERROR: set_piece_hashes: (%d) %s\n"
 		, ec.value(), ec.message().c_str());
 
-	auto ti = load_torrent_buffer(bencode(t.generate())).ti;
+	add_torrent_params atp = load_torrent_buffer(bencode(t.generate()));
+	auto ti = atp.ti;
 	TEST_CHECK(ti->is_valid());
 
 	std::printf("generated torrent: %s test_torrent_dir\n"
@@ -180,9 +181,8 @@ void test_checking(int const flags)
 
 	lt::session ses1(settings());
 
-	add_torrent_params p;
+	add_torrent_params p = std::move(atp);
 	p.save_path = ".";
-	p.ti = ti;
 	torrent_handle tor1 = ses1.add_torrent(p, ec);
 	TEST_CHECK(!ec);
 
@@ -377,7 +377,8 @@ TORRENT_TEST(discrete_checking)
 	if (ec) printf("ERROR: set_piece_hashes: (%d) %s\n", ec.value(), ec.message().c_str());
 
 	std::vector<char> const buf = bencode(t.generate());
-	auto ti = load_torrent_buffer(buf).ti;
+	add_torrent_params atp = load_torrent_buffer(buf);
+	auto ti = atp.ti;
 	printf("generated torrent: %s test_torrent_dir result: %s\n"
 		, aux::to_hex(ti->info_hashes().v1.to_string()).c_str()
 		, ec.message().c_str());
@@ -389,11 +390,10 @@ TORRENT_TEST(discrete_checking)
 
 	{
 		session ses1(settings());
-		add_torrent_params p;
+		add_torrent_params p = std::move(atp);
 		p.file_priorities.resize(std::size_t(ti->num_files()));
 		p.file_priorities[0] = 1_pri;
 		p.save_path = ".";
-		p.ti = ti;
 		torrent_handle tor1 = ses1.add_torrent(p, ec);
 		// change the priority of a file while checking and make sure it doesn't interrupt the checking.
 		std::vector<download_priority_t> prio(std::size_t(ti->num_files()), 0_pri);
