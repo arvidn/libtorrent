@@ -1337,3 +1337,117 @@ TORRENT_TEST(validate_and_insert_proofs_too_many_uncles)
 	  o,    o,  ef,   gh,
 	o, o, o, o,e, f, o, o}));
 }
+
+// A pre-existing sibling slot that already holds the same value the proof
+// would write into it must not cause the call to fail or to disturb that
+// slot. This models the merkle_tree::set_block path (a leaf-layer block
+// hash speculatively stored before its sibling's proof arrives).
+TORRENT_TEST(validate_and_insert_proofs_existing_sibling_match)
+{
+// full tree:
+//       ah
+//    ad      eh
+//  ab  cd  ef  gh
+// a b c d  e f g h
+
+	v tree(15);
+	tree[0] = ah;
+	tree[12] = f; // pre-existing matching sibling at the leaf layer
+
+	v const proofs{f, gh, ad};
+
+	TEST_CHECK(merkle_validate_and_insert_proofs(tree, 11, e, proofs));
+	TEST_CHECK((tree == v{
+	          ah,
+	     ad,       eh,
+	  o,    o,  ef,   gh,
+	o, o, o, o,e, f, o, o}));
+}
+
+// A pre-existing sibling holding a value that contradicts the proof must
+// cause a clean failure with the tree left untouched. (The class invariant
+// for interior nodes guarantees existing non-zero values are correct, so
+// the incoming proof is by definition wrong; for the leaf layer it lets
+// us detect a bad proof against a previously-stored speculative hash
+// without losing that hash.)
+TORRENT_TEST(validate_and_insert_proofs_existing_sibling_mismatch)
+{
+// full tree:
+//       ah
+//    ad      eh
+//  ab  cd  ef  gh
+// a b c d  e f g h
+
+	v tree(15);
+	tree[0] = ah;
+	tree[12] = g; // contradicts the proof (which is f)
+
+	v const proofs{f, gh, ad};
+
+	TEST_CHECK(!merkle_validate_and_insert_proofs(tree, 11, e, proofs));
+
+	// tree state must be fully preserved
+	TEST_CHECK((tree == v{
+	          ah,
+	      o,        o,
+	  o,    o,   o,    o,
+	o, o, o, o,o, g, o, o}));
+}
+
+// Failure on a mid-walk mismatched known parent must not clear a sibling
+// slot whose value was pre-existing rather than written by this call.
+// Same scenario as the previous test, but with the mismatch one level
+// up so the walk sees the matching sibling first and then fails.
+TORRENT_TEST(validate_and_insert_proofs_existing_sibling_walk_failure)
+{
+// full tree:
+//       ah
+//    ad      eh
+//  ab  cd  ef  gh
+// a b c d  e f g h
+
+	v tree(15);
+	tree[0] = ah;
+	tree[2] = ad; // wrong "eh" at layer 1, will fail at the parent check
+	tree[12] = f; // pre-existing matching sibling at the leaf layer
+
+	v const proofs{f, gh, ad};
+
+	TEST_CHECK(!merkle_validate_and_insert_proofs(tree, 11, e, proofs));
+
+	// the pre-existing leaf sibling must survive the failure
+	TEST_CHECK((tree == v{
+	          ah,
+	      o,       ad,
+	  o,    o,   o,    o,
+	o, o, o, o,o, f, o, o}));
+}
+
+// Companion to the test above, but with the walk exhausting `uncle_hashes`
+// before reaching a known anchor (rather than breaking on a mismatched
+// parent). The cleanup path is the same shape, and the pre-existing
+// matching sibling must survive there too.
+TORRENT_TEST(validate_and_insert_proofs_existing_sibling_short_uncles)
+{
+// full tree:
+//       ah
+//    ad      eh
+//  ab  cd  ef  gh
+// a b c d  e f g h
+
+	v tree(15);
+	tree[0] = ah;
+	tree[12] = f; // pre-existing matching sibling at the leaf layer
+
+	// only one uncle: the walk computes one parent and then runs out
+	// without ever reaching a node the tree already trusts
+	v const proofs{f};
+
+	TEST_CHECK(!merkle_validate_and_insert_proofs(tree, 11, e, proofs));
+
+	TEST_CHECK((tree == v{
+	          ah,
+	      o,        o,
+	  o,    o,   o,    o,
+	o, o, o, o,o, f, o, o}));
+}
