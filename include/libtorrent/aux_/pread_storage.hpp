@@ -14,6 +14,7 @@ see LICENSE file.
 
 #include <mutex>
 #include <memory>
+#include <optional>
 
 #include "libtorrent/fwd.hpp"
 #include "libtorrent/aux_/disk_job_fence.hpp"
@@ -25,6 +26,7 @@ see LICENSE file.
 #include "libtorrent/span.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/open_mode.hpp" // for aux::open_mode_t
+#include "libtorrent/aux_/precomputed_block_hashes.hpp"
 #include "libtorrent/disk_interface.hpp" // for disk_job_flags_t
 
 namespace libtorrent::aux {
@@ -109,6 +111,18 @@ namespace libtorrent::aux {
 		bool v1() const { return m_v1; }
 		bool v2() const { return m_v2; }
 
+		// SHA-256 block hashes deposited by the v2 hash queue
+		// (disk_cache::drain_v2_hash_queue) for later consumption by hash and
+		// hash2 jobs, avoiding a read-back from disk. A block whose hash
+		// hasn't been computed reads as an all-zero hash (a SHA-256 over a
+		// non-empty block is never all zeros), so no separate "present"
+		// bitfield is needed. See m_precomputed_v2.
+		void store_precomputed_v2(piece_index_t piece, int block, sha256_hash const& h);
+		// the piece's block hashes (indexed by block); empty if none.
+		aux::vector<sha256_hash> take_precomputed_v2(piece_index_t piece);
+		std::optional<sha256_hash> take_precomputed_v2_block(piece_index_t piece, int block);
+		void drop_precomputed_v2(piece_index_t piece);
+
 	private:
 
 		bool m_need_tick = false;
@@ -180,6 +194,17 @@ namespace libtorrent::aux {
 		// this is a v2 torrent. If both v1 and v2 are set, it's a hybrid
 		// torrent
 		bool m_v2;
+
+		// SHA-256 block hashes deposited by the v2 hash queue
+		// (disk_cache::drain_v2_hash_queue) as each v2 block is hashed in
+		// memory. An entry is added the first time store_precomputed_v2() is
+		// called for a piece, and removed by take_precomputed_v2() (full-piece
+		// hash), take_precomputed_v2_block() (single-block hash2) or
+		// drop_precomputed_v2() (clear_piece). An entry for a piece that has
+		// blocks hashed but is never consumed by hash/hash2/clear lives until
+		// the storage is destroyed; it is therefore bounded by the number of
+		// in-flight pieces the piece picker keeps open.
+		precomputed_block_hashes m_precomputed_v2;
 	};
 
 }

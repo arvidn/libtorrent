@@ -1683,18 +1683,16 @@ TORRENT_VERSION_NAMESPACE_4
 #endif // TORRENT_ABI_VERSION
 
 #if TORRENT_ABI_VERSION < 4
-	void torrent_info::add_url_seed(std::string const& url
-		, std::string const& ext_auth
-		, web_seed_entry::headers_t const& ext_headers)
+	void torrent_info::add_url_seed(std::string const& url,
+		std::string const& extern_auth,
+		web_seed_entry::headers_t const& ext_headers)
 	{
-		m_web_seeds.emplace_back(url, ext_auth, ext_headers);
+		m_web_seeds.emplace_back(url, extern_auth, ext_headers);
 	}
 
-	void torrent_info::add_http_seed(std::string const&
-		, std::string const&
-		, web_seed_entry::headers_t const&)
-	{
-	}
+	void torrent_info::add_http_seed(
+		std::string const&, std::string const&, web_seed_entry::headers_t const&)
+	{}
 
 	void torrent_info::set_web_seeds(std::vector<web_seed_entry> seeds)
 	{

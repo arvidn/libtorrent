@@ -182,17 +182,25 @@ void test_disk_bottleneck(test_mode_t const mode)
 	cache_fixture f(2, mode);
 
 	auto r0 = f.insert(0_piece, 0);
-	TEST_CHECK(bool(r0 & disk_cache::need_hasher_kick));
+	// need_hasher_kick is set for v1/hybrid pieces when the v1 piece hasher
+	// can advance (this insert filled hasher_cursor's slot). Pure-v2 pieces
+	// don't drive the cache hasher; pread_disk_io wakes the hasher
+	// independently for v2 storages.
+	if (mode & test_mode::v1)
+		TEST_CHECK(bool(r0 & disk_cache::need_hasher_kick));
+	else
+		TEST_CHECK(!(r0 & disk_cache::need_hasher_kick));
 
 	auto r1 = f.insert(0_piece, 1);
-	// needs_hasher_kick_flag already set from block 0 — not raised again.
+	// needs_hasher_kick_flag already set from block 0 (v1/hybrid case) or
+	// never set (pure v2 case) — either way not raised here.
 	TEST_CHECK(!(r1 & disk_cache::need_hasher_kick));
 
 	TEST_EQUAL(int(f.cache.size()), 2);
 
-	jobqueue_t completed, retry;
-	TEST_CHECK(f.cache.kick_pending_hashers(completed, retry));
-	TEST_CHECK(completed.empty());
+	// kick_hashers() advances v1 and also drains the v2 hash queue,
+	// capturing computed v2 hashes in f.v2_hashes.
+	f.kick_hashers();
 
 	std::vector<sha256_hash> block_hashes(mode & test_mode::v2 ? 2 : 0);
 	auto hash_job = std::make_unique<pread_disk_job>();
@@ -202,12 +210,30 @@ void test_disk_bottleneck(test_mode_t const mode)
 		sha1_hash{}
 	};
 
-	TEST_EQUAL(f.cache.try_hash_piece(f.loc(0_piece), hash_job.get())
-		, disk_cache::hash_result::job_completed);
+	auto const hpr = f.cache.try_hash_piece(f.loc(0_piece), hash_job.get());
 	if (mode & test_mode::v1)
+	{
+		// v1 (or hybrid) -- the piece hasher advanced to blocks_in_piece in
+		// kick_hashers(), so the piece hash is ready.
+		TEST_EQUAL(hpr, disk_cache::hash_result::job_completed);
 		TEST_CHECK(!std::get<job::hash>(hash_job->action).piece_hash.is_all_zeros());
-	for (auto const& h : block_hashes)
-		TEST_CHECK(!h.is_all_zeros());
+	}
+	else
+	{
+		// Pure-v2 -- no v1 piece hasher, so hasher_cursor never reaches
+		// blocks_in_piece and try_hash_piece returns post_job. The actual
+		// path in production is pread_disk_io::do_job(hash), which pulls
+		// the v2 hashes from precomputed_block_hashes.
+		TEST_EQUAL(hpr, disk_cache::hash_result::post_job);
+	}
+	if (mode & test_mode::v2)
+	{
+		// v2 block hashes live on the storage's precomputed_block_hashes
+		// (captured into f.v2_hashes by the test fixture's kick_hashers()).
+		TEST_EQUAL(int(f.v2_hashes.size()), 2);
+		TEST_CHECK(!f.v2_hashes.at({0_piece, 0}).is_all_zeros());
+		TEST_CHECK(!f.v2_hashes.at({0_piece, 1}).is_all_zeros());
+	}
 
 	TEST_EQUAL(f.flush(), 2);
 	TEST_EQUAL(int(f.cache.size()), 0);
@@ -230,12 +256,18 @@ void test_hashing_bottleneck(test_mode_t const mode)
 		sha1_hash{}
 	};
 
-	TEST_EQUAL(f.cache.try_hash_piece(f.loc(0_piece), hash_job.get())
-		, disk_cache::hash_result::post_job);
+	// v2-only with v2_pending > 0: try_hash_piece hangs the hash_job on the
+	// cpe so drain_v2_hash_queue can post it once the queue drains, and
+	// clear_piece_impl extracts the hung hash_job alongside block 1's
+	// write_job. v1/hybrid don't take that gate -- kick_hasher hasn't run
+	// so the v1_done check sends them down post_job.
+	bool const v2_only = (mode & test_mode::v2) && !(mode & test_mode::v1);
+	TEST_EQUAL(f.cache.try_hash_piece(f.loc(0_piece), hash_job.get()),
+		v2_only ? disk_cache::hash_result::job_queued : disk_cache::hash_result::post_job);
 
 	jobqueue_t aborted;
 	TEST_CHECK(f.cache.try_clear_piece(f.loc(0_piece), nullptr, aborted));
-	TEST_EQUAL(aborted.size(), 1);
+	TEST_EQUAL(aborted.size(), v2_only ? 2 : 1);
 	TEST_EQUAL(int(f.cache.size()), 0);
 }
 
@@ -249,8 +281,7 @@ void test_multi_piece(test_mode_t const mode)
 	f.insert(2_piece, 0);
 	TEST_EQUAL(int(f.cache.size()), 3);
 
-	jobqueue_t completed, retry;
-	f.cache.kick_pending_hashers(completed, retry);
+	f.kick_hashers();
 
 	for (auto p : {0_piece, 1_piece, 2_piece})
 	{
@@ -261,12 +292,25 @@ void test_multi_piece(test_mode_t const mode)
 			(mode & test_mode::v2) ? span<sha256_hash>{&bh, 1} : span<sha256_hash>{},
 			sha1_hash{}
 		};
-		TEST_EQUAL(f.cache.try_hash_piece(f.loc(p), hash_job.get())
-			, disk_cache::hash_result::job_completed);
+		auto const hpr = f.cache.try_hash_piece(f.loc(p), hash_job.get());
 		if (mode & test_mode::v1)
+		{
+			TEST_EQUAL(hpr, disk_cache::hash_result::job_completed);
 			TEST_CHECK(!std::get<job::hash>(hash_job->action).piece_hash.is_all_zeros());
+		}
+		else
+		{
+			// Pure-v2: hasher_cursor doesn't advance, so try_hash_piece
+			// returns post_job (handled by pread_disk_io::do_job(hash) in
+			// production).
+			TEST_EQUAL(hpr, disk_cache::hash_result::post_job);
+		}
 		if (mode & test_mode::v2)
-			TEST_CHECK(!bh.is_all_zeros());
+		{
+			// v2 hashes are stashed on storage via drain_v2_hash_queue;
+			// the test fixture captured them in v2_hashes.
+			TEST_CHECK(!f.v2_hashes.at({p, 0}).is_all_zeros());
+		}
 	}
 
 	TEST_EQUAL(f.flush(), 3);
@@ -295,7 +339,7 @@ TORRENT_TEST(v2_hashing_bottleneck)
 	cache_fixture f(1, test_mode::v2);
 
 	f.insert(0_piece, 0);
-	// Flush before the hasher runs — block_hashes[0] stays all-zeros.
+	// Flush before the hasher runs -- block_hashes[0] stays all-zeros.
 	TEST_EQUAL(f.flush(0), 1);
 
 	// The precomputed hash is absent and the buffer is gone; fallback fires.
@@ -417,6 +461,245 @@ TORRENT_TEST(clear_piece_partially_flushed)
 	TEST_EQUAL(aborted.size(), 1); // only block 1's write_job
 }
 
+namespace {
+
+	// Pure-v2 / hybrid variant of clear_piece_v1: verifies that
+	// clear_piece_impl's m_v2_hash_queue dedup loop drops every queued entry
+	// for the piece and decrements v2_pending to zero. Both inserts left their
+	// buffers in m_v2_hash_queue, so size() before clear is queue-driven.
+	void test_clear_piece_queued_v2(test_mode_t const mode)
+	{
+		cache_fixture f(2, mode);
+
+		f.insert(0_piece, 0);
+		f.insert(0_piece, 1);
+		TEST_EQUAL(int(f.cache.size()), 2); // both entries in m_v2_hash_queue
+
+		jobqueue_t aborted;
+		TEST_CHECK(f.cache.try_clear_piece(f.loc(0_piece), nullptr, aborted));
+		TEST_EQUAL(int(f.cache.size()), 0); // queue dedup'd both entries
+		TEST_EQUAL(aborted.size(), 2); // both write_jobs aborted
+		TEST_EQUAL(f.alloc.live, 0);
+	}
+
+}
+
+TORRENT_TEST(clear_piece_queued_v2) { test_clear_piece_queued_v2(test_mode::v2); }
+TORRENT_TEST(clear_piece_queued_hybrid)
+{
+	test_clear_piece_queued_v2(test_mode::v1 | test_mode::v2);
+}
+
+namespace {
+
+	// Branch 2: clear_piece arrives while flushing_flag is set. The flush
+	// callback runs with the cache mutex released; try_clear_piece must
+	// park the clear_piece job on the cpe and return false. flush_piece_impl's
+	// post-scope_end block then dispatches the parked clear via
+	// clear_piece_fun once flushing_flag is cleared.
+	void test_clear_piece_during_flush(test_mode_t const mode)
+	{
+		cache_fixture f(2, mode);
+		f.insert(0_piece, 0);
+		f.insert(0_piece, 1);
+
+		auto clear_job = std::make_unique<pread_disk_job>();
+		clear_job->action = job::clear_piece{{}, 0_piece};
+
+		jobqueue_t cb_aborted;
+		bool cb_immediate = true;
+		int callback_calls = 0;
+
+		jobqueue_t deferred_aborted;
+		disk_job* deferred_clear = nullptr;
+
+		f.cache.flush_to_disk(
+			[&](bitfield&, span<disk_job* const>) -> int {
+				++callback_calls;
+				// cache mutex is released while we're in here; the cpe has
+				// flushing_flag set, so try_clear_piece parks our clear_job
+				// rather than running clear_piece_impl inline.
+				cb_immediate = f.cache.try_clear_piece(f.loc(0_piece), clear_job.get(), cb_aborted);
+				// Don't flush anything: leave the write_jobs to be aborted by
+				// the deferred clear.
+				return 0;
+			},
+			0, // target=0, optimistic=false -> reaches the expensive pass
+			[&](jobqueue_t aborted, disk_job* clear) {
+				while (!aborted.empty())
+					deferred_aborted.push_back(aborted.pop_front());
+				if (clear) deferred_clear = clear;
+			},
+			false);
+
+		TEST_EQUAL(callback_calls, 1);
+		TEST_CHECK(!cb_immediate); // try_clear_piece deferred
+		TEST_CHECK(cb_aborted.empty()); // nothing returned through the inline path
+		TEST_EQUAL(deferred_aborted.size(), 2); // both write_jobs aborted via clear_piece_fun
+		TEST_EQUAL(deferred_clear, clear_job.get());
+		TEST_EQUAL(int(f.cache.size()), 0);
+		// alloc.live is mode-dependent here: v1 keeps the buffers attached to
+		// the aborted write_jobs (released only when the caller processes them);
+		// v2 moved the buffers into m_v2_hash_queue at insert time and clear_piece_impl's
+		// queue dedup drops them. So we don't assert on it.
+	}
+
+}
+
+TORRENT_TEST(clear_piece_during_flush_v1) { test_clear_piece_during_flush(test_mode::v1); }
+TORRENT_TEST(clear_piece_during_flush_v2) { test_clear_piece_during_flush(test_mode::v2); }
+TORRENT_TEST(clear_piece_during_flush_hybrid)
+{
+	test_clear_piece_during_flush(test_mode::v1 | test_mode::v2);
+}
+
+namespace {
+
+	// Branch 5: clear_piece arrives while a drain batch holds the only
+	// outstanding v2_pending decrement. clear_piece_impl drops queued entries
+	// (none -- already popped by drain) without decrementing v2_pending; the
+	// post-clear_piece_impl check in try_clear_piece sees v2_pending > 0 and
+	// parks the clear_job. When the drain re-acquires the lock and decrements
+	// v2_pending to zero, its second batch loop dispatches the parked clear
+	// via clear_piece_fun.
+	void test_clear_piece_v2_drain_in_flight(test_mode_t const mode)
+	{
+		cache_fixture f(1, mode);
+		f.insert(0_piece, 0);
+		TEST_EQUAL(int(f.cache.size()), 1); // one queue entry
+
+		auto clear_job = std::make_unique<pread_disk_job>();
+		clear_job->action = job::clear_piece{{}, 0_piece};
+
+		jobqueue_t cb_aborted;
+		bool cb_immediate = true;
+		int store_calls = 0;
+
+		jobqueue_t deferred_aborted;
+		disk_job* deferred_clear = nullptr;
+
+		jobqueue_t posted;
+		f.cache.drain_v2_hash_queue(
+			[&](std::shared_ptr<aux::pread_storage> const&,
+				piece_index_t,
+				int,
+				sha256_hash const&) {
+				++store_calls;
+				// We're inside the unlocked window of drain_v2_hash_queue:
+				// the entry has been popped from m_v2_hash_queue but
+				// v2_pending has not yet been decremented. try_clear_piece
+				// must defer -- v2_pending stays > 0 until drain re-acquires
+				// the lock.
+				cb_immediate = f.cache.try_clear_piece(f.loc(0_piece), clear_job.get(), cb_aborted);
+			},
+			posted,
+			[&](jobqueue_t aborted, disk_job* clear) {
+				while (!aborted.empty())
+					deferred_aborted.push_back(aborted.pop_front());
+				if (clear) deferred_clear = clear;
+			});
+
+		TEST_EQUAL(store_calls, 1);
+		TEST_CHECK(!cb_immediate);
+		// clear_piece_impl ran inside try_clear_piece, so the write_job came
+		// back through the inline aborted queue, not the deferred one.
+		TEST_EQUAL(cb_aborted.size(), 1);
+		TEST_CHECK(deferred_aborted.empty());
+		TEST_EQUAL(deferred_clear, clear_job.get());
+		TEST_EQUAL(int(f.cache.size()), 0);
+		TEST_EQUAL(f.alloc.live, 0);
+	}
+
+}
+
+TORRENT_TEST(clear_piece_v2_drain_in_flight_v2)
+{
+	test_clear_piece_v2_drain_in_flight(test_mode::v2);
+}
+TORRENT_TEST(clear_piece_v2_drain_in_flight_hybrid)
+{
+	test_clear_piece_v2_drain_in_flight(test_mode::v1 | test_mode::v2);
+}
+
+namespace {
+
+	// Same scenario as clear_piece_v2_drain_in_flight, but exercised through the
+	// fixture's full kick_hashers() pipeline. Verifies the fixture's capture
+	// fields (cleared_jobs, aborted_jobs) reflect the deferred-clear dispatch
+	// the drain made on the way out.
+	void test_deferred_clear_via_kick_hashers(test_mode_t const mode)
+	{
+		cache_fixture f(1, mode);
+		f.insert(0_piece, 0);
+
+		auto clear_job = std::make_unique<pread_disk_job>();
+		clear_job->action = job::clear_piece{{}, 0_piece};
+
+		jobqueue_t cb_aborted;
+		bool cb_immediate = true;
+		f.drain_store_hook = [&] {
+			// inside the drain's unlocked window, v2_pending is still > 0 (the
+			// entry has been popped but not yet decremented), so try_clear_piece
+			// parks the clear and dispatch is left to the drain's second pass.
+			cb_immediate = f.cache.try_clear_piece(f.loc(0_piece), clear_job.get(), cb_aborted);
+		};
+
+		f.kick_hashers();
+
+		TEST_CHECK(!cb_immediate);
+		TEST_EQUAL(cb_aborted.size(), 1); // write_job, aborted inline by clear_piece_impl
+		TEST_EQUAL(f.cleared_jobs.size(), 1); // dispatched by the drain's clear_piece_fun
+		TEST_EQUAL(f.cleared_jobs[0], clear_job.get());
+		TEST_CHECK(f.aborted_jobs.empty()); // drain passes empty aborted to clear_piece_fun
+		TEST_EQUAL(int(f.cache.size()), 0);
+		TEST_EQUAL(f.alloc.live, 0);
+	}
+
+}
+
+TORRENT_TEST(deferred_clear_via_kick_hashers_v2)
+{
+	test_deferred_clear_via_kick_hashers(test_mode::v2);
+}
+TORRENT_TEST(deferred_clear_via_kick_hashers_hybrid)
+{
+	test_deferred_clear_via_kick_hashers(test_mode::v1 | test_mode::v2);
+}
+
+// try_hash_piece's v2-pending defer branch parks the hash_job on the cpe;
+// once the drain decrements v2_pending to zero, its second pass extracts the
+// hash_job and posts it via the `posted` jobqueue. Pure-v2 only -- the
+// hybrid path is covered by hashing_bottleneck_hybrid via a different gate.
+TORRENT_TEST(parked_hash_job_dispatched_via_drain_v2)
+{
+	cache_fixture f(1, test_mode::v2);
+	f.insert(0_piece, 0);
+
+	sha256_hash bh;
+	auto hash_job = std::make_unique<pread_disk_job>();
+	hash_job->action = job::hash{{}, 0_piece, span<sha256_hash>{&bh, 1}, sha1_hash{}};
+
+	// no v1 hasher cursor + v2_pending > 0 -> try_hash_piece parks the
+	// hash_job on the cpe and returns job_queued.
+	TEST_EQUAL(f.cache.try_hash_piece(f.loc(0_piece), hash_job.get()),
+		disk_cache::hash_result::job_queued);
+
+	// kick_hashers drains the queue and dispatches the parked hash_job via
+	// drain_v2_hash_queue's `posted` parameter.
+	f.kick_hashers();
+
+	TEST_EQUAL(f.posted_jobs.size(), 1);
+	TEST_CHECK(f.posted_jobs.pop_front() == hash_job.get());
+	// the queue entry has migrated back to the cbe (its buffer was handed
+	// back to wj.buf), so the block sits in the cache as a dirty write
+	// awaiting flush.
+	TEST_EQUAL(int(f.cache.size()), 1);
+	TEST_EQUAL(f.v2_hashes.size(), 1u);
+	TEST_CHECK(!f.v2_hashes.at({0_piece, 0}).is_all_zeros());
+	TEST_EQUAL(f.flush(), 1);
+	TEST_EQUAL(int(f.cache.size()), 0);
+}
+
 // flush_piece_impl releases the cache mutex during the flush callback.
 // Inserts into previously-empty slots of the piece being flushed are legal
 // at that point (insert() only requires block_idx >= hasher_cursor). The
@@ -498,10 +781,7 @@ TORRENT_TEST(flush_storage_after_hash_piece_with_monostate_block)
 	bool callback_invoked = false;
 	auto const res = f.cache.hash_piece(f.loc(0_piece),
 		hash_job.get(),
-		[&](aux::piece_hasher*,
-			std::uint16_t const hasher_cursor,
-			span<char const*> const blocks,
-			span<sha256_hash>) {
+		[&](aux::piece_hasher*, std::uint16_t const hasher_cursor, span<char const*> const blocks) {
 			callback_invoked = true;
 			TEST_EQUAL(hasher_cursor, 0);
 			TEST_EQUAL(blocks.size(), 2);
@@ -729,11 +1009,7 @@ void test_piece_size2_smaller_than_piece_size(test_mode_t const mode)
 	cache_fixture f(blocks_in_piece, mode);
 
 	disk_cache::piece_entry_params const params{
-		piece_size2,
-		effective_piece_size,
-		need_v1,
-		need_v2
-	};
+		piece_size2, effective_piece_size, need_v1, need_v2, {}};
 
 	for (int blk = 0; blk < blocks_in_piece; ++blk)
 	{
@@ -742,8 +1018,8 @@ void test_piece_size2_smaller_than_piece_size(test_mode_t const mode)
 		f.insert(0_piece, blk, params, buf_size);
 	}
 
-	jobqueue_t completed, retry;
-	f.cache.kick_pending_hashers(completed, retry);
+	// kick_hashers() also drains the v2 hash queue, populating f.v2_hashes.
+	f.kick_hashers();
 
 	int const v2_blocks = (piece_size2 + default_block_size - 1) / default_block_size;
 	std::vector<sha256_hash> block_hashes(need_v2 ? v2_blocks : 0);
@@ -753,12 +1029,25 @@ void test_piece_size2_smaller_than_piece_size(test_mode_t const mode)
 		span<sha256_hash>{block_hashes.data(), int(block_hashes.size())},
 		sha1_hash{}
 	};
-	TEST_EQUAL(f.cache.try_hash_piece(f.loc(0_piece), hash_job.get())
-		, disk_cache::hash_result::job_completed);
+	auto const hpr = f.cache.try_hash_piece(f.loc(0_piece), hash_job.get());
 	if (need_v1)
+	{
+		TEST_EQUAL(hpr, disk_cache::hash_result::job_completed);
 		TEST_CHECK(!std::get<job::hash>(hash_job->action).piece_hash.is_all_zeros());
-	for (auto const& h : block_hashes)
-		TEST_CHECK(!h.is_all_zeros());
+	}
+	else
+	{
+		// Pure-v2: try_hash_piece returns post_job (see comment in
+		// test_disk_bottleneck).
+		TEST_EQUAL(hpr, disk_cache::hash_result::post_job);
+	}
+	if (need_v2)
+	{
+		// v2 hashes were stashed via drain_v2_hash_queue into f.v2_hashes.
+		TEST_EQUAL(int(f.v2_hashes.size()), v2_blocks);
+		for (int b = 0; b < v2_blocks; ++b)
+			TEST_CHECK(!f.v2_hashes.at({0_piece, b}).is_all_zeros());
+	}
 
 	TEST_EQUAL(f.flush(), blocks_in_piece);
 	TEST_EQUAL(int(f.cache.size()), 0);

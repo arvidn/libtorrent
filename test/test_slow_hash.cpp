@@ -186,26 +186,52 @@ void test_hash_job_dispatched_by_hasher(test_mode_t const mode)
 
 	jobqueue_t completed, retry;
 
-	// With slow hashing each block takes ~1.6 s. Run the hasher in a thread
-	// and call try_hash_piece after a short sleep, reliably catching the
-	// window where hashing_flag is set.
+	// With slow hashing each block takes ~1.6 s. Run both the v1 hasher
+	// (kick_pending_hashers) and the v2 drain on the same thread, mirroring
+	// pread_disk_io::thread_fun, so a v2-only piece has a hashing window
+	// too. Call try_hash_piece after a short sleep so the hasher is
+	// reliably mid-run.
 	std::thread t([&]() {
 		f.cache.kick_pending_hashers(completed, retry);
+		f.cache.drain_v2_hash_queue(
+			[&block_hashes](std::shared_ptr<lt::aux::pread_storage> const&,
+				lt::piece_index_t,
+				int const block,
+				lt::sha256_hash const& h) {
+				if (block < int(block_hashes.size())) block_hashes[std::size_t(block)] = h;
+			},
+			retry,
+			[](jobqueue_t, disk_job*) {});
 	});
 	std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
 	auto const result = f.cache.try_hash_piece(f.loc(0_piece), hash_job.get());
 	t.join();
 
+	// try_hash_piece parks the job in all three modes: v1/hybrid via the
+	// hashing_flag branch (kick_hasher mid-run), v2-only via the v2_pending
+	// branch (drain mid-run). The dispatched job lands in completed for
+	// v1-only (kick_hasher's main path) and in retry for v2 and hybrid
+	// (kick_hasher routes hybrid through retry; the v2-only drain posts
+	// the hung job there too).
 	TEST_EQUAL(result, disk_cache::hash_result::job_queued);
-	// The hasher filled in the hash values and posted the job.
-	TEST_EQUAL(completed.size(), 1);
+	auto& dispatched = bool(mode & test_mode::v2) ? retry : completed;
+	TEST_EQUAL(dispatched.size(), 1);
 
 	if (mode & test_mode::v1)
 		TEST_CHECK(!std::get<job::hash>(hash_job->action).piece_hash.is_all_zeros());
 	for (auto const& h : block_hashes)
 		TEST_CHECK(!h.is_all_zeros());
 
+	if (!(mode & test_mode::v1))
+	{
+		// v2-only: the dispatched job goes to retry; in production
+		// pread_disk_io re-runs do_job(hash) which calls hash_piece,
+		// whose scope_end sets piece_hash_returned_flag and lets pass-1
+		// evict. The fixture doesn't drive that path, so the cpe stays
+		// in the cache without the flag set -- skip the eviction check.
+		return;
+	}
 	TEST_EQUAL(f.flush(), 1);
 	TEST_EQUAL(int(f.cache.size()), 0);
 }
@@ -231,23 +257,38 @@ void test_hash_job_retry_when_piece_incomplete(test_mode_t const mode)
 
 	jobqueue_t completed, retry;
 
-	// Slow hashing gives us a wide window. Run the hasher in a thread, park
-	// the hash job while hashing_flag is set, then let the hasher finish.
+	// Slow hashing gives us a wide window. Run the hasher and the v2 drain
+	// on the same thread, park the hash job while hashing_flag is set, then
+	// let the hasher finish.
 	std::thread t([&]() {
 		f.cache.kick_pending_hashers(completed, retry);
+		f.cache.drain_v2_hash_queue(
+			[&block_hashes](std::shared_ptr<lt::aux::pread_storage> const&,
+				lt::piece_index_t,
+				int const block,
+				lt::sha256_hash const& h) {
+				if (block < int(block_hashes.size())) block_hashes[std::size_t(block)] = h;
+			},
+			retry,
+			[](jobqueue_t, disk_job*) {});
 	});
 	std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
-	// hashing_flag is set; block 1 is absent so the hasher will stall at
-	// cursor=1. try_hash_piece parks the job (job_queued) now that the
-	// have_buffers guard in try_hash_piece has been removed — the retry
-	// mechanism handles the case where the hasher can't complete.
+	// For v1/hybrid the hasher has set hashing_flag and block 1 is absent,
+	// so it will stall at cursor=1; try_hash_piece parks the job
+	// (job_queued) and the retry mechanism handles the case where the
+	// hasher can't complete. For v2-only the drain is mid-run and
+	// v2_pending > 0 parks the job through the same job_queued path.
 	auto const result = f.cache.try_hash_piece(f.loc(0_piece), hash_job.get());
+	// v1/hybrid: parked via hashing_flag (kick_hasher mid-run).
+	// v2-only: parked via v2_pending (drain mid-run).
 	TEST_EQUAL(result, disk_cache::hash_result::job_queued);
 	t.join();
 
-	// kick_hasher hashed block 0 (cursor=1) but stopped because block 1 is
-	// absent. The hung hash job must be in retry, not completed.
+	// v1/hybrid: kick_hasher hashed block 0 (cursor=1) but stopped because
+	// block 1 is absent, and posted the hung job to retry.
+	// v2-only: drain processed block 0's queue entry, found the hung
+	// hash_job, and posted it to retry. Either way the job lands in retry.
 	TEST_EQUAL(completed.size(), 0);
 	TEST_EQUAL(retry.size(), 1);
 	TEST_CHECK(retry.pop_front() == hash_job.get());
@@ -283,6 +324,13 @@ void test_hash_job_retry_when_piece_incomplete(test_mode_t const mode)
 // disk I/O - the data has already been written.
 void test_drop_held_alive_buffers(test_mode_t const mode)
 {
+	// The held-alive mechanism only applies to v1 pieces: kick_hasher pins
+	// block buffers until the SHA-1 hasher reaches them. For pieces with
+	// any v2 component (v2-only or hybrid) the insert path moves wjob.buf
+	// into m_v2_hash_queue, so cbe never owns the buffer; the data is
+	// owned by the queue entry and freed by drain_v2_hash_queue.
+	if (mode & test_mode::v2) return;
+
 	cache_fixture f(3, mode);
 	f.insert(0_piece, 0);
 	f.insert(0_piece, 2);
@@ -321,6 +369,72 @@ void test_drop_held_alive_buffers(test_mode_t const mode)
 	TEST_CHECK(aborted.empty());
 }
 
+// try_clear_piece() arrives while a hasher thread holds hashing_flag (mutex
+// released mid-hash) -- the disk-write-failure path can race with kick_hasher
+// on the same piece. try_clear_piece must park the clear on the cpe (not run
+// clear_piece_impl while ph/hasher_cursor are in use). When kick_hasher
+// finishes via Path 2 it sets force_flush_flag; the next flush sees the
+// parked clear in flush_piece_impl's scope_end and dispatches it.
+void test_clear_piece_during_hashing(test_mode_t const mode)
+{
+	if (!(mode & test_mode::v1)) return; // v2-only has no hashing_flag
+
+	cache_fixture f(2, mode);
+	f.insert(0_piece, 0);
+	f.insert(0_piece, 1);
+
+	auto clear_job = std::make_unique<pread_disk_job>();
+	clear_job->action = job::clear_piece{{}, 0_piece};
+
+	jobqueue_t completed, retry;
+	std::thread hasher_thread([&]() { f.cache.kick_pending_hashers(completed, retry); });
+
+	// Give the hasher time to set hashing_flag and release the mutex inside
+	// its slow-hash update. The window is ~1.6s per block; 50ms is well inside.
+	std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+	jobqueue_t cb_aborted;
+	bool const cb_immediate = f.cache.try_clear_piece(f.loc(0_piece), clear_job.get(), cb_aborted);
+	// hashing_flag was set -- try_clear_piece parked the clear and returned false.
+	TEST_CHECK(!cb_immediate);
+	TEST_CHECK(cb_aborted.empty());
+
+	hasher_thread.join();
+	// kick_hasher's Path 2 (all blocks hashed, no hash_job) cleared
+	// hashing_flag and set force_flush_flag.
+
+	// Run a flush. Pass 1 picks up the piece (force_flush_flag), flushes its
+	// write_jobs, then flush_piece_impl's scope_end sees cpe.clear_piece set
+	// and dispatches the parked clear via clear_piece_fun.
+	jobqueue_t deferred_aborted;
+	disk_job* deferred_clear = nullptr;
+	f.cache.flush_to_disk(
+		[&](bitfield& flushed, span<disk_job* const> blocks) -> int {
+			int count = 0;
+			for (int i = 0; i < int(blocks.size()); ++i)
+			{
+				if (!blocks[i]) continue;
+				flushed.set_bit(i);
+				++count;
+			}
+			return count;
+		},
+		0,
+		[&](jobqueue_t aborted, disk_job* clear) {
+			while (!aborted.empty())
+				deferred_aborted.push_back(aborted.pop_front());
+			if (clear) deferred_clear = clear;
+		},
+		false);
+
+	// Both write_jobs were already taken by the flush, so the deferred clear's
+	// aborted is empty. The clear job itself was dispatched.
+	TEST_CHECK(deferred_aborted.empty());
+	TEST_EQUAL(deferred_clear, clear_job.get());
+	TEST_EQUAL(int(f.cache.size()), 0);
+	TEST_EQUAL(f.alloc.live, 0);
+}
+
 // Regression test for the pending_free_flag mechanism.
 //
 // flush_storage() is called to tear down a storage while a hasher thread
@@ -329,8 +443,14 @@ void test_drop_held_alive_buffers(test_mode_t const mode)
 // block_hashes; instead it sets pending_free_flag and defers the erasure.
 // When kick_hasher() subsequently clears hashing_flag it sees
 // pending_free_flag and erases the piece itself.
+//
+// hashing_flag is set by kick_pending_hashers, which only kicks v1/hybrid
+// pieces. v2-only pieces have no hashing_flag (their work happens in
+// drain_v2_hash_queue), so they don't exercise the pending_free_flag race.
 void test_flush_storage_during_hashing(test_mode_t const mode)
 {
+	if (!(mode & test_mode::v1)) return;
+
 	// 2-block piece so the hasher has real work to do.
 	cache_fixture f(2, mode);
 	f.insert(0_piece, 0);
@@ -362,6 +482,47 @@ void test_flush_storage_during_hashing(test_mode_t const mode)
 	TEST_EQUAL(f.alloc.live, 0);
 }
 
+// Exercises kick_hasher's keep_going path: a 3-block piece with the middle
+// block missing stalls the hasher at the hole. The test fills block 1 while
+// the hasher is asleep inside slow-hash's ctx.update(buf0), so the relock
+// sees blocks[1].data() and goes to keep_going to hash the rest of the piece.
+void test_kick_hasher_keep_going_fills_hole(test_mode_t const mode)
+{
+	// The bug lives on the v1 hasher cursor path. v2-only pieces have no
+	// hashing_flag (their work is in drain_v2_hash_queue), so they don't
+	// reach kick_hasher's keep_going loop at all.
+	if (!(mode & test_mode::v1)) return;
+
+	cache_fixture f(3, mode);
+	f.insert(0_piece, 0);
+	f.insert(0_piece, 2);
+
+	jobqueue_t completed, retry;
+	std::thread hasher_thread([&]() { f.cache.kick_pending_hashers(completed, retry); });
+
+	// Wait until kick_hasher has released the mutex inside its slow-hash
+	// update on block 0. 50ms is comfortably inside the ~1.6s slow window.
+	std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+	// Fill the hole while the hasher is still feeding block 0 into ph.
+	// When it relocks it will see blocks[1].data() and goto keep_going --
+	// the path that walks into the stale tail of blocks_storage.
+	f.insert(0_piece, 1);
+
+	hasher_thread.join();
+
+	// For hybrid pieces every insert also pushed a v2 queue entry that
+	// owns the buffer; drain those so cache.size() / alloc.live can drop
+	// to zero after the flush below.
+	if (mode & test_mode::v2) f.kick_hashers();
+
+	// Post-fix: cursor reached exactly blocks_in_piece without re-feeding
+	// any block, so all 3 write_jobs are still pending and flush picks
+	// them all up.
+	TEST_EQUAL(f.flush(), 3);
+	TEST_EQUAL(int(f.cache.size()), 0);
+	TEST_EQUAL(f.alloc.live, 0);
+}
 }
 
 TORRENT_TEST(test_pread_hash_job_retry)
@@ -396,11 +557,26 @@ TORRENT_TEST(flush_storage_during_hashing_v2)
 TORRENT_TEST(flush_storage_during_hashing_hybrid)
 	{ test_flush_storage_during_hashing(test_mode::v1 | test_mode::v2); }
 
+	TORRENT_TEST(clear_piece_during_hashing_v1) { test_clear_piece_during_hashing(test_mode::v1); }
+	TORRENT_TEST(clear_piece_during_hashing_hybrid)
+	{
+		test_clear_piece_during_hashing(test_mode::v1 | test_mode::v2);
+	}
+
 	TORRENT_TEST(drop_held_alive_v1) { test_drop_held_alive_buffers(test_mode::v1); }
 	TORRENT_TEST(drop_held_alive_v2) { test_drop_held_alive_buffers(test_mode::v2); }
 	TORRENT_TEST(drop_held_alive_hybrid)
 	{
 		test_drop_held_alive_buffers(test_mode::v1 | test_mode::v2);
+	}
+
+	TORRENT_TEST(kick_hasher_keep_going_fills_hole_v1)
+	{
+		test_kick_hasher_keep_going_fills_hole(test_mode::v1);
+	}
+	TORRENT_TEST(kick_hasher_keep_going_fills_hole_hybrid)
+	{
+		test_kick_hasher_keep_going_fills_hole(test_mode::v1 | test_mode::v2);
 	}
 
 #endif // TORRENT_SIMULATE_SLOW_HASH

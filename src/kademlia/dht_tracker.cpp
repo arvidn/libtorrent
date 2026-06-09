@@ -623,6 +623,11 @@ namespace {
 		m_last_tick = now;
 
 		std::int64_t const limit = m_settings.get_int(settings_pack::dht_upload_rate_limit);
+		if (limit <= 0)
+		{
+			m_send_quota = 0;
+			return false;
+		}
 
 		// allow 3 seconds worth of burst
 		std::int64_t const max_accrue = std::min(3 * limit, std::int64_t(std::numeric_limits<int>::max()));

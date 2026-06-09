@@ -59,6 +59,16 @@ bool valid_flags(disk_job_flags_t const flags)
 }
 #endif
 
+// Copy SHA-256 block hashes that the v2 hash queue precomputed for this
+// piece into block_hashes, filling only slots that are still all-zero.
+void fill_precomputed_v2(
+	span<sha256_hash> block_hashes, aux::vector<sha256_hash> const& pc, int const blocks_in_piece2)
+{
+	int const to_copy = std::min({int(pc.size()), int(block_hashes.size()), blocks_in_piece2});
+	for (int i = 0; i < to_copy; ++i)
+		if (block_hashes[i].is_all_zeros()) block_hashes[i] = pc[i];
+}
+
 template <typename Fun>
 status_t translate_error(aux::disk_job* j, Fun f)
 {
@@ -614,6 +624,30 @@ bool pread_disk_io::async_write(storage_index_t const storage, peer_request cons
 	, disk_job_flags_t const flags)
 {
 	TORRENT_ASSERT(valid_flags(flags));
+
+	auto storage_ptr = m_torrents[storage]->shared_from_this();
+
+	// a clear_piece (or other fence job) is in flight for this storage. For
+	// clear_piece the cpe is about to be reset; for storage-wide fences (e.g.
+	// release/delete_files) the storage is about to go away. Either way,
+	// inserting now would race with the teardown and could leave a block in
+	// the cache that the picker has just been told to re-pick. Abort the
+	// write so peer_connection sees operation_aborted and calls
+	// mark_as_canceled, which puts the block back in state_none ready to be
+	// re-requested after the fence lowers.
+	if (storage_ptr->has_fence())
+	{
+		aux::pread_disk_job* j = m_job_pool.allocate_job<aux::job::write>(flags,
+			std::move(storage_ptr),
+			std::move(handler),
+			disk_buffer_holder{},
+			r.piece,
+			r.start,
+			std::uint16_t(r.length));
+		m_completed_jobs.abort_job(m_ios, j);
+		return false;
+	}
+
 	disk_buffer_holder buffer(m_buffer_pool, m_buffer_pool.allocate_buffer("receive buffer"));
 	if (!buffer) aux::throw_ex<std::bad_alloc>();
 	std::memcpy(buffer.data(), buf, aux::numeric_cast<std::size_t>(r.length));
@@ -621,15 +655,13 @@ bool pread_disk_io::async_write(storage_index_t const storage, peer_request cons
 	TORRENT_ASSERT(r.start % default_block_size == 0);
 	TORRENT_ASSERT(r.length <= default_block_size);
 
-	aux::pread_disk_job* j = m_job_pool.allocate_job<aux::job::write>(
-		flags,
-		m_torrents[storage]->shared_from_this(),
+	aux::pread_disk_job* j = m_job_pool.allocate_job<aux::job::write>(flags,
+		std::move(storage_ptr),
 		std::move(handler),
 		std::move(buffer),
 		r.piece,
 		r.start,
-		std::uint16_t(r.length)
-	);
+		std::uint16_t(r.length));
 
 	DLOG("async_write: piece: %d offset: %d flags: %x\n"
 		, int(r.piece), int(r.start)
@@ -641,18 +673,41 @@ bool pread_disk_io::async_write(storage_index_t const storage, peer_request cons
 	int const piece_size = j->storage->v1() ? fs.piece_size(r.piece) : fs.piece_size2(r.piece);
 	TORRENT_ASSERT(r.length == std::min(piece_size - r.start, default_block_size));
 	aux::disk_cache::piece_entry_params const piece_params{
-		fs.piece_size2(r.piece)
-		, piece_size
-		, j->storage->v1()
-		, j->storage->v2()
-	};
+		fs.piece_size2(r.piece), piece_size, j->storage->v1(), j->storage->v2(), j->storage};
 	auto const result = m_cache.insert(
 		{j->storage->storage_index(), r.piece}
 		, r.start / default_block_size
 		, force_flush, std::move(o), j, piece_params);
 
-	if (result & aux::disk_cache::need_hasher_kick)
+	// v1 wake-up signal comes from the cache; for v2 the insert may have
+	// pushed a queue entry the cache has no way to flag.
+	if ((result & aux::disk_cache::need_hasher_kick) || j->storage->v2())
+	{
 		m_hash_threads.interrupt();
+		// no thread available to process the interrupt -- drain inline so
+		// the v2 hash queue can't grow without bound (and so destruction
+		// sees an empty cache).
+		if (m_hash_threads.max_threads() == 0)
+		{
+			jobqueue_t completed;
+			jobqueue_t retry;
+			m_cache.kick_pending_hashers(completed, retry);
+			m_cache.drain_v2_hash_queue(
+				[](std::shared_ptr<aux::pread_storage> const& st,
+					piece_index_t const piece,
+					int const block,
+					sha256_hash const& h) {
+					if (st) st->store_precomputed_v2(piece, block, h);
+				},
+				retry,
+				[this](jobqueue_t aborted, aux::disk_job* clear) {
+					clear_piece_jobs(std::move(aborted), static_cast<aux::pread_disk_job*>(clear));
+				});
+			if (!completed.empty()) add_completed_jobs(std::move(completed));
+			while (!retry.empty())
+				add_job(static_cast<aux::pread_disk_job*>(retry.pop_front()));
+		}
+	}
 
 	std::unique_lock<std::mutex> l(m_job_mutex);
 	if (!m_flush_target)
@@ -708,6 +763,33 @@ void pread_disk_io::async_hash(storage_index_t const storage
 	// immediately
 	if (ret == aux::disk_cache::job_completed)
 	{
+		// any v2 hash missing from storage means we have to fall back to
+		// do_job(hash), which can read the block from disk.
+		auto& a = std::get<aux::job::hash>(j->action);
+		bool need_disk_fallback = false;
+		if (!a.block_hashes.empty())
+		{
+			int const blocks_in_piece2 = j->storage->files().blocks_in_piece2(piece);
+			fill_precomputed_v2(
+				a.block_hashes, j->storage->take_precomputed_v2(piece), blocks_in_piece2);
+
+			for (int i = 0; i < blocks_in_piece2; ++i)
+			{
+				if (i >= int(a.block_hashes.size()) || a.block_hashes[i].is_all_zeros())
+				{
+					need_disk_fallback = true;
+					break;
+				}
+			}
+		}
+
+		if (need_disk_fallback)
+		{
+			DLOG("async_hash: v2 hashes incomplete, falling back to do_job(hash)\n");
+			add_job(j);
+			return;
+		}
+
 		// TODO: we may not need to do this, the cache could tell us
 		// this piece should be flushed to disk now.
 		m_generic_threads.interrupt();
@@ -869,6 +951,21 @@ void pread_disk_io::async_set_file_priority(storage_index_t const storage
 	add_fence_job(j);
 }
 
+// Called by the bittorrent layer in two distinct scenarios:
+//
+// 1. Hash check failed: peer_connection / torrent calls this after the piece
+//    hash was returned and didn't match. By this point hashing has finished
+//    on the piece (the hash was delivered to the caller before they could
+//    react), so when do_job(clear_piece) runs the cpe has no hashing_flag.
+//
+// 2. Disk write failed: peer_connection::on_disk_write_complete calls this
+//    when async_write reports a non-aborted error. The write failure is
+//    unrelated to hashing -- earlier blocks of the same piece may still be
+//    going through kick_hasher when the clear is dispatched, so try_clear_piece
+//    sees hashing_flag set and parks the clear on the cpe (see disk_cache.cpp).
+//
+// Don't add an assertion in disk_cache::try_clear_piece that hashing_flag is
+// clear; scenario 2 will fire it. The deferral branches are intentional.
 void pread_disk_io::async_clear_piece(storage_index_t const storage
 	, piece_index_t const index, std::function<void(piece_index_t)> handler)
 {
@@ -880,25 +977,14 @@ void pread_disk_io::async_clear_piece(storage_index_t const storage
 	);
 
 	DLOG("async_clear_piece: piece: %d\n", int(index));
-	// regular jobs are not executed in-order.
-	// clear piece must wait for all write jobs issued to the piece finish
-	// before it completes.
-	jobqueue_t aborted_jobs;
-	bool const immediate_completion = m_cache.try_clear_piece(
-		{j->storage->storage_index(), index}, j, aborted_jobs);
-
-	m_completed_jobs.abort_jobs(m_ios, std::move(aborted_jobs));
-	if (immediate_completion)
-	{
-		DLOG("immediate clear\n");
-		jobqueue_t jobs;
-		jobs.push_back(j);
-		add_completed_jobs(std::move(jobs));
-	}
-	else
-	{
-		DLOG("deferred clear\n");
-	}
+	// clear_piece is a fence job: raise the per-storage fence so any
+	// async_write issued from the network thread after this point is
+	// aborted instead of racing with the cpe reset (see async_write).
+	// The fence stays up until the clear job itself completes -- if
+	// try_clear_piece defers (flushing/hashing/v2_pending), do_job
+	// returns job_deferred and the fence is only lowered when the
+	// deferred path eventually posts the completion.
+	add_fence_job(j);
 }
 
 status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
@@ -917,68 +1003,98 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 
 	int const blocks_to_read = std::max(blocks_in_piece, blocks_in_piece2);
 
-	// Callable matching the hash_piece() protocol (see disk_cache.hpp).
-	// Completes piece hash computation using the cache snapshot passed by hash_piece(),
-	// reading any missing blocks from disk.
-	// * Copies all non-zero v2_hashes entries into a.block_hashes (capturing both
-	//   in-order hashes and any out-of-order hashes computed by kick_hasher's second
-	//   pass).
-	// * Iterates blocks [hasher_cursor, blocks_to_read): for each block, either reads
-	//   it from disk (buf == nullptr) or hashes it from the in-memory buffer. Skips
-	//   the SHA256 work for any block whose v2 hash is already pre-computed (v2_done).
-	// * Finalises the SHA1 hash into a.piece_hash.
-	//
-	// Also invoked directly as a fallback (all-null blocks, hasher_cursor=0) when the
-	// piece is not in the cache at all, in which case every block is read from disk.
-	auto hash_partial_piece = [&] (lt::aux::piece_hasher* ph
-		, int const hasher_cursor
-		, span<char const*> const blocks
-		, span<sha256_hash> const v2_hashes)
+	// async_hash's fast path may have partially populated a.block_hashes
+	// already; preserve those entries (only fill all-zero slots).
+	if (v2)
 	{
-		// ph: SHA1 hasher already fed blocks [0, hasher_cursor)
-		// hasher_cursor: first block index that still needs processing for SHA1.
-		// blocks: per-block buffer pointers from the cache snapshot.
-		// v2_hashes: SHA256 block hashes from the cache snapshot.
+		fill_precomputed_v2(
+			a.block_hashes, j->storage->take_precomputed_v2(a.piece), blocks_in_piece2);
+
+		// If any v2 block is still missing, rendezvous with the hasher
+		// queue rather than reading the block back from disk. The block
+		// is sitting in m_v2_hash_queue waiting to be hashed; doing it
+		// here too would duplicate the hash work and leak the second copy
+		// into pread_storage::m_precomputed_v2 (nobody else will consume
+		// it). Only worth waiting when there's actually a hasher thread
+		// that can drain the queue.
+		if (m_hash_threads.max_threads() > 0)
+		{
+			bool any_missing = false;
+			for (int i = 0; i < blocks_in_piece2; ++i)
+			{
+				if (a.block_hashes[i].is_all_zeros())
+				{
+					any_missing = true;
+					break;
+				}
+			}
+			if (any_missing && m_cache.wait_for_v2_queue({j->storage->storage_index(), a.piece}, j))
+			{
+				m_hash_threads.interrupt();
+				return disk_status::job_deferred;
+			}
+		}
+	}
+
+	// hash_piece() callback. Also reused as a fallback (all-null blocks,
+	// hasher_cursor=0) for pieces not in the cache.
+	auto hash_partial_piece = [&](lt::aux::piece_hasher* ph,
+								  int const hasher_cursor,
+								  span<char const*> const blocks) {
 		time_point const start_time = clock_type::now();
 
-		// copy all pre-computed v2 hashes, including out-of-order ones
+		// v1 hashing is contiguous from hasher_cursor; v2 may need any
+		// earlier block that's still missing its hash.
+		int start = hasher_cursor;
 		if (v2)
 		{
 			for (int i = 0; i < blocks_in_piece2; ++i)
-				if (!v2_hashes[i].is_all_zeros())
-					a.block_hashes[i] = v2_hashes[i];
+			{
+				if (a.block_hashes[i].is_all_zeros())
+				{
+					start = std::min(start, i);
+					break;
+				}
+			}
 		}
 
-		int offset = hasher_cursor * default_block_size;
+		int offset = start * default_block_size;
 		int blocks_read_from_disk = 0;
-		for (int i = hasher_cursor; i < blocks_to_read; ++i)
+		for (int i = start; i < blocks_to_read; ++i)
 		{
 			bool const v2_block = i < blocks_in_piece2;
-			bool const v2_done = v2_block && !v2_hashes[i].is_all_zeros();
+			bool const v2_done = v2_block && !a.block_hashes[i].is_all_zeros();
+			bool const v1_done = i < hasher_cursor;
 
-			std::ptrdiff_t const len = v1 ? std::min(default_block_size, piece_size - offset) : 0;
+			std::ptrdiff_t const len =
+				(v1 && !v1_done) ? std::min(default_block_size, piece_size - offset) : 0;
 			std::ptrdiff_t const len2 = (v2_block && !v2_done) ? std::min(default_block_size, piece_size2 - offset) : 0;
 
+			if (len == 0 && len2 == 0)
+			{
+				offset += default_block_size;
+				continue;
+			}
+
 			hasher256 ph2;
-			char const* buf = blocks[i];
+			char const* buf = (i < int(blocks.size())) ? blocks[i] : nullptr;
 			if (buf == nullptr)
 			{
 				DLOG("do_hash: reading (piece: %d block: %d)\n", int(a.piece), i);
 
 				j->error.ec.clear();
 
-				if (v1)
+				if (len > 0)
 				{
 					TORRENT_ASSERT(ph);
-					auto const flags = v2_block
-						? (j->flags & ~disk_interface::flush_piece)
-						: j->flags;
+					auto const flags =
+						v2_block && !v2_done ? (j->flags & ~disk_interface::flush_piece) : j->flags;
 
 					j->storage->hash(m_settings, ph->ctx(), len, a.piece
 						, offset, file_mode, flags, j->error);
 					++blocks_read_from_disk;
 				}
-				if (v2_block && !v2_done)
+				if (len2 > 0)
 				{
 					j->storage->hash2(m_settings, ph2, len2, a.piece, offset
 						, file_mode, j->flags, j->error);
@@ -988,18 +1104,16 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 			}
 			else
 			{
-				if (v1)
+				if (len > 0)
 				{
 					TORRENT_ASSERT(ph);
 					ph->update({ buf, len });
 				}
-				if (v2_block && !v2_done)
-					ph2.update({buf, len2});
+				if (len2 > 0) ph2.update({buf, len2});
 			}
 			offset += default_block_size;
 
-			if (v2_block && !v2_done)
-				a.block_hashes[i] = ph2.final();
+			if (len2 > 0) a.block_hashes[i] = ph2.final();
 		}
 
 		if (v1)
@@ -1030,10 +1144,9 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 		// fall back to reading everything from disk
 
 		TORRENT_ALLOCA(blocks, char const*, blocks_to_read);
-		TORRENT_ALLOCA(v2_hashes, sha256_hash, v2 ? blocks_in_piece2 : 0);
 		for (char const*& b : blocks) b = nullptr;
 		lt::aux::piece_hasher ph_storage;
-		hash_partial_piece(v1 ? &ph_storage : nullptr, 0, blocks, v2_hashes);
+		hash_partial_piece(v1 ? &ph_storage : nullptr, 0, blocks);
 	}
 
 	return j->error ? disk_status::fatal_disk_error : status_t{};
@@ -1051,10 +1164,20 @@ status_t pread_disk_io::do_job(aux::job::hash2& a, aux::pread_disk_job* j)
 	TORRENT_ASSERT(piece_size > a.offset);
 	std::ptrdiff_t const len = std::min(default_block_size, piece_size - a.offset);
 
+	// fast path: SHA-256 was already computed by drain_v2_hash_queue() while
+	// the block was held in the v2 hash queue, and stashed on the storage.
+	int const blk = a.offset / default_block_size;
+	if (auto pre = j->storage->take_precomputed_v2_block(a.piece, blk))
+	{
+		a.piece_hash2 = *pre;
+		std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+		m_stats_counters.inc_stats_counter(counters::disk_hash_time, read_time);
+		m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
+		return {};
+	}
+
 	int ret = 0;
-	a.piece_hash2 = m_cache.hash2({ j->storage->storage_index(), a.piece }
-		, a.offset / default_block_size
-		, [&] {
+	a.piece_hash2 = m_cache.hash2({j->storage->storage_index(), a.piece}, blk, [&] {
 		hasher256 h;
 		ret = j->storage->hash2(m_settings, h, len, a.piece, a.offset
 			, file_mode, j->flags, j->error);
@@ -1218,9 +1341,34 @@ status_t pread_disk_io::do_job(aux::job::file_priority& a, aux::pread_disk_job* 
 	return status_t{};
 }
 
-status_t pread_disk_io::do_job(aux::job::clear_piece&, aux::pread_disk_job*)
+status_t pread_disk_io::do_job(aux::job::clear_piece& a, aux::pread_disk_job* j)
 {
-	TORRENT_ASSERT_FAIL();
+	// raise_fence ensured the previous outstanding jobs for this storage all
+	// completed before we got here, and the fence keeps new ones blocked.
+	// async_write checks has_fence() and aborts itself, so no fresh writes
+	// can race with the cpe reset either.
+	jobqueue_t aborted;
+	bool const immediate =
+		m_cache.try_clear_piece({j->storage->storage_index(), a.piece}, j, aborted);
+
+	if (!aborted.empty()) m_completed_jobs.abort_jobs(m_ios, std::move(aborted));
+
+	if (!immediate)
+	{
+		// try_clear_piece parked j on the cpe waiting for flushing_flag or
+		// v2_pending to clear. The deferred path will dispatch the
+		// completion via clear_piece_jobs -> add_completed_jobs, which runs
+		// job_complete and lowers the fence.
+		DLOG("do_job(clear_piece): piece: %d deferred\n", int(a.piece));
+		return disk_status::job_deferred;
+	}
+
+	DLOG("do_job(clear_piece): piece: %d immediate\n", int(a.piece));
+	// In the hash-failure caller take_precomputed_v2() in async_hash's path
+	// has already drained the map and this is a no-op; in the write-failure
+	// caller the v2 drain typically completed before the write error
+	// surfaced and the entries it stored are removed here.
+	j->storage->drop_precomputed_v2(a.piece);
 	return {};
 }
 
@@ -1469,17 +1617,26 @@ int pread_disk_io::flush_cache_blocks(
 void pread_disk_io::clear_piece_jobs(jobqueue_t aborted, aux::pread_disk_job* clear)
 {
 	m_completed_jobs.abort_jobs(m_ios, std::move(aborted));
-	jobqueue_t jobs;
-	jobs.push_back(clear);
-	add_completed_jobs(std::move(jobs));
+	// drop any precomputed v2 hashes for the cleared piece. We hold off on
+	// this drop until m_cache has confirmed v2_pending == 0 for the piece;
+	// otherwise an in-flight drain batch could call store_precomputed_v2()
+	// after we drop, leaving a stale hash to be consumed by a later
+	// hash/hash2 on the re-downloaded piece.
+	if (clear)
+	{
+		auto const& a = std::get<aux::job::clear_piece>(clear->action);
+		clear->storage->drop_precomputed_v2(a.piece);
+		jobqueue_t jobs;
+		jobs.push_back(clear);
+		add_completed_jobs(std::move(jobs));
+	}
 }
 
 void pread_disk_io::try_flush_cache(int const target_cache_size
 	, bool const optimistic
 	, std::unique_lock<std::mutex>& l)
 {
-	DLOG("flushing, cache target: %d (current size: %d currently flushing: %d)\n"
-		, target_cache_size, m_cache.size(), m_cache.num_flushing());
+	DLOG("flushing, cache target: %d (current size: %d)\n", target_cache_size, m_cache.size());
 	l.unlock();
 	jobqueue_t completed_jobs;
 	m_cache.flush_to_disk(
@@ -1565,6 +1722,18 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 			jobqueue_t completed;
 			jobqueue_t retry;
 			bool const needs_flush = m_cache.kick_pending_hashers(completed, retry);
+
+			m_cache.drain_v2_hash_queue(
+				[](std::shared_ptr<aux::pread_storage> const& st,
+					piece_index_t const piece,
+					int const block,
+					sha256_hash const& h) {
+					if (st) st->store_precomputed_v2(piece, block, h);
+				},
+				retry,
+				[this](jobqueue_t aborted, aux::disk_job* clear) {
+					clear_piece_jobs(std::move(aborted), static_cast<aux::pread_disk_job*>(clear));
+				});
 			add_completed_jobs(std::move(completed));
 
 			l.lock();

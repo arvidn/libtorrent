@@ -642,6 +642,7 @@ btrfs
 CoW
 reflinks
 reflinked
+base64
 google
 WebTorrent
 webtorrent

@@ -762,12 +762,26 @@ void http_connection::on_read(error_code const& e
 			m_sock->close(ec);
 
 			std::string url = aux::resolve_redirect_location(m_url, location);
-			get(url, m_completion_timeout, &m_proxy, m_redirects - 1
-				, m_user_agent, m_bind_addr, m_resolve_flags, m_auth
+
+			// Don't forward Authorization credentials to a different
+			// origin. The redirect target may be a third party server
+			// that should not see our basic-auth credentials.
+			std::string auth = m_auth;
+			if (!auth.empty() && !same_origin(m_url, url)) auth.clear();
+
+			get(url,
+				m_completion_timeout,
+				&m_proxy,
+				m_redirects - 1,
+				m_user_agent,
+				m_bind_addr,
+				m_resolve_flags,
+				auth
 #if TORRENT_USE_I2P
-				, m_i2p_conn
+				,
+				m_i2p_conn
 #endif
-				);
+			);
 			return;
 		}
 

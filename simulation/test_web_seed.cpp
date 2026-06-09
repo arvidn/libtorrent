@@ -503,6 +503,114 @@ TORRENT_TEST(multi_file_unaligned_redirect)
 		}
 	);
 }
+
+// A web seed's credentials must keep being forwarded when redirected to the
+// *same* origin, but must NOT be forwarded when redirected to a *different*
+// origin. This is checked for both ways of supplying credentials:
+//  - embedded in the URL ("user:pass@host"), handled via m_basic_auth, and
+//  - the explicit web_seed_entry::auth, handled via m_external_auth, set
+//    through torrent_info::add_url_seed()'s ext_auth argument.
+void test_redirect_auth(
+	char const* redirect_target, bool const same_origin, bool const external_auth)
+{
+	using namespace lt;
+	std::vector<lt::create_file_entry> files;
+	files.emplace_back("file1", 0xc000);
+	lt::add_torrent_params params = ::create_torrent(std::move(files));
+	if (external_auth)
+	{
+#if TORRENT_ABI_VERSION < 4
+		// the credentials are supplied out-of-band, the URL has none. This
+		// exercises the m_external_auth path (web_seed_entry::auth). The ext_auth
+		// feature (and add_url_seed()) only exists before ABI version 4.
+		params.ti->add_url_seed("http://2.2.2.2:8080/", "Bearer secret-token");
+#endif
+	}
+	else
+	{
+		// the credentials are embedded in the URL. This exercises the
+		// m_basic_auth path.
+		params.url_seeds.push_back("http://testuser:testpass@2.2.2.2:8080/");
+	}
+
+	// the credentials must be present on the initial request (sanity check
+	// that the test actually sends any), and on the redirect target only when
+	// it's the same origin.
+	bool auth_at_origin = false;
+	bool target_was_hit = false;
+	bool auth_at_target = false;
+
+	auto record_auth = [](std::map<std::string, std::string>& headers, bool& flag) {
+		if (headers.find("authorization") != headers.end()) flag = true;
+	};
+
+	run_test([&params](lt::session& ses) { ses.async_add_torrent(params); },
+		[](lt::session&, lt::alert const*) {},
+		[&](sim::simulation& sim, lt::session&) {
+			// the origin web server, which redirects the file request
+			sim::asio::io_context web_server1(sim, make_address_v4("2.2.2.2"));
+			sim::http_server http1(web_server1, 8080);
+			http1.register_handler("/file1",
+				[&](std::string, std::string, std::map<std::string, std::string>& headers) {
+					record_auth(headers, auth_at_origin);
+					std::string const header = "Location: " + std::string(redirect_target) + "\r\n";
+					char const* extra_headers[4] = {header.c_str(), "", "", ""};
+					return sim::send_response(301, "Moved Permanently", 0, extra_headers);
+				});
+			// same-origin redirect lands here
+			http1.register_handler("/file1_redirected",
+				[&](std::string, std::string, std::map<std::string, std::string>& headers) {
+					target_was_hit = true;
+					record_auth(headers, auth_at_target);
+					return sim::send_response(404, "not found", 0);
+				});
+
+			// a different origin, the cross-origin redirect lands here
+			sim::asio::io_context web_server2(sim, make_address_v4("3.3.3.3"));
+			sim::http_server http2(web_server2, 4444);
+			http2.register_handler("/file1_redirected",
+				[&](std::string, std::string, std::map<std::string, std::string>& headers) {
+					target_was_hit = true;
+					record_auth(headers, auth_at_target);
+					return sim::send_response(404, "not found", 0);
+				});
+
+			sim.run();
+		});
+
+	TEST_CHECK(auth_at_origin);
+	TEST_CHECK(target_was_hit);
+	TEST_EQUAL(auth_at_target, same_origin);
+}
+
+// a path-only redirect resolves to the same origin, credentials kept
+TORRENT_TEST(web_seed_redirect_same_origin_url_auth)
+{
+	test_redirect_auth("/file1_redirected", true, false);
+}
+
+#if TORRENT_ABI_VERSION < 4
+// the ext_auth (web_seed_entry::auth) feature is deprecated and removed at ABI
+// version 4, so these cases only apply to earlier ABI versions
+TORRENT_TEST(web_seed_redirect_same_origin_external_auth)
+{
+	test_redirect_auth("/file1_redirected", true, true);
+}
+#endif
+
+// a redirect to a different host must not leak the credentials
+TORRENT_TEST(web_seed_redirect_cross_origin_url_auth)
+{
+	test_redirect_auth("http://3.3.3.3:4444/file1_redirected", false, false);
+}
+
+#if TORRENT_ABI_VERSION < 4
+TORRENT_TEST(web_seed_redirect_cross_origin_external_auth)
+{
+	test_redirect_auth("http://3.3.3.3:4444/file1_redirected", false, true);
+}
+#endif
+
 TORRENT_TEST(urlseed_timeout)
 {
 	bool timeout = false;

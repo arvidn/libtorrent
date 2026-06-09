@@ -563,6 +563,32 @@ TORRENT_TEST(http_parser)
 	TEST_EQUAL(aux::resolve_redirect_location("example.com/a/b", "/c/d")
 		, "/c/d");
 
+	// same_origin
+
+	// identical, and path/query/fragment differences don't matter
+	TEST_CHECK(same_origin("http://example.com/a", "http://example.com/a"));
+	TEST_CHECK(same_origin("http://example.com/a", "http://example.com/b?x=1#y"));
+	TEST_CHECK(same_origin("http://example.com", "http://example.com/b"));
+	// scheme and host are case-insensitive
+	TEST_CHECK(same_origin("http://Example.COM/a", "HTTP://example.com/b"));
+	// an explicit well-known port equals the implicit default
+	TEST_CHECK(same_origin("http://example.com/a", "http://example.com:80/b"));
+	TEST_CHECK(same_origin("https://example.com/a", "https://example.com:443/b"));
+	// userinfo is not part of the origin
+	TEST_CHECK(same_origin("http://user:pass@example.com/a", "http://example.com/b"));
+
+	// different host, scheme or port is a different origin
+	TEST_CHECK(!same_origin("http://example.com/a", "http://evil.com/a"));
+	TEST_CHECK(!same_origin("http://example.com/a", "http://example.com.evil.com/a"));
+	TEST_CHECK(!same_origin("http://example.com/a", "https://example.com/a"));
+	TEST_CHECK(!same_origin("http://example.com/a", "http://example.com:8080/a"));
+	// an explicit non-default port differs from the implicit default
+	TEST_CHECK(!same_origin("https://example.com/a", "https://example.com:80/a"));
+	// a redirect that smuggles a new host via userinfo is a different origin
+	TEST_CHECK(!same_origin("http://example.com/a", "http://example.com@evil.com/a"));
+	// unparseable URLs are never same-origin
+	TEST_CHECK(!same_origin("not a url", "not a url"));
+
 	// is_ok_status
 
 	TEST_EQUAL(aux::is_ok_status(200), true);

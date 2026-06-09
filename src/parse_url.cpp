@@ -210,7 +210,30 @@ exit:
 		return false;
 	}
 
-	bool is_valid_tracker_url(string_view url)
+	bool same_origin(std::string const& a, std::string const& b)
+	{
+		// the origin is the (scheme, host, port) triple. Scheme and host are
+		// compared case-insensitively. This is meant for http/https URLs: a
+		// missing port is replaced by 443 for "https" and 80 otherwise.
+		// userinfo, path and query are not part of the origin.
+		auto const origin = [](std::string const& u) {
+			error_code ec;
+			std::string protocol, host, ignore;
+			int port;
+			std::tie(protocol, ignore, host, port, ignore) = parse_url_components(u, ec);
+			if (ec) host.clear();
+			if (port == -1) port = string_equal_no_case(protocol, "https") ? 443 : 80;
+			return std::make_tuple(std::move(protocol), std::move(host), port);
+		};
+		auto const oa = origin(a);
+		auto const ob = origin(b);
+		return !std::get<1>(oa).empty() // parsed successfully (host non-empty)
+			&& string_equal_no_case(std::get<0>(oa), std::get<0>(ob))
+			&& string_equal_no_case(std::get<1>(oa), std::get<1>(ob))
+			&& std::get<2>(oa) == std::get<2>(ob);
+	}
+
+	bool is_valid_tracker_url(string_view const url)
 	{
 		if (url.empty())
 		{

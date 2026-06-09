@@ -1763,8 +1763,9 @@ namespace aux {
 		return true;
 	}
 
+	template <typename FileStorage>
 	index_range<piece_index_t> file_piece_range_exclusive(
-		file_storage const& fs, file_index_t const file)
+		FileStorage const& fs, file_index_t const file)
 	{
 		peer_request const range = fs.map_file(file, 0, 1);
 		std::int64_t const file_size = fs.file_size(file);
@@ -1780,8 +1781,9 @@ namespace aux {
 		return {begin_piece, end_piece};
 	}
 
+	template <typename FileStorage>
 	index_range<piece_index_t> file_piece_range_inclusive(
-		file_storage const& fs, file_index_t const file)
+		FileStorage const& fs, file_index_t const file)
 	{
 		peer_request const range = fs.map_file(file, 0, 1);
 		std::int64_t const file_size = fs.file_size(file);
@@ -1790,6 +1792,14 @@ namespace aux {
 			* piece_size + range.start + file_size - 1) / piece_size + 1));
 		return {range.piece, end_piece};
 	}
+
+	// explicit instantiations for the file-layout types these are used with
+	template TORRENT_EXTRA_EXPORT index_range<piece_index_t> file_piece_range_exclusive(
+		file_storage const&, file_index_t);
+	template TORRENT_EXTRA_EXPORT index_range<piece_index_t> file_piece_range_inclusive(
+		file_storage const&, file_index_t);
+	template TORRENT_EXTRA_EXPORT index_range<piece_index_t> file_piece_range_inclusive(
+		filenames const&, file_index_t);
 
 	int calc_num_pieces(file_storage const& fs)
 	{
