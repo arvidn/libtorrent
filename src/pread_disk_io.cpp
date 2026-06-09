@@ -748,6 +748,14 @@ void pread_disk_io::async_hash(storage_index_t const storage
 	, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler)
 {
 	TORRENT_ASSERT(valid_flags(flags));
+
+	// the v2 span may arrive with stale bytes (e.g. callers that chain pieces
+	// through the same buffer). do_job(hash) uses non-zero entries as a marker
+	// that a block's hash is already known and skips re-hashing it, so wipe
+	// the span here to keep that contract internal to the disk_io.
+	for (auto& h : v2)
+		h.clear();
+
 	aux::pread_disk_job* j = m_job_pool.allocate_job<aux::job::hash>(
 		flags,
 		m_torrents[storage]->shared_from_this(),
