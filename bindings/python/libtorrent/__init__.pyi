@@ -3602,6 +3602,7 @@ class settings_pack(TypedDict):
     min_websocket_announce_interval: NotRequired[int]
     webtorrent_connection_timeout: NotRequired[int]
     allow_multiple_connections_per_ip: NotRequired[bool]
+    replace_stale_connections: NotRequired[bool]
     ignore_limits_on_local_network: NotRequired[bool]
     send_redundant_have: NotRequired[bool]
     lazy_bitfields: NotRequired[bool]

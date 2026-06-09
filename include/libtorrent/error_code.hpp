@@ -462,6 +462,14 @@ namespace errors {
 		// configured maximum depth (see load_torrent_limits)
 		torrent_directory_too_deep,
 
+		// The connection was replaced with a new connection
+		// after reuse of the identical TCP tuple
+		// (src_ipaddr, src_port, dst_ipaddr, dst_port)
+		replaced_stale_connection,
+		// TODO rename?
+		// replaced_stale_duplicate_connection,
+		// replaced_false_duplicate_connection,
+
 		// the number of error codes
 		error_code_max
 	};
