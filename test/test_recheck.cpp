@@ -20,6 +20,7 @@ see LICENSE file.
 #include <functional>
 
 #include "test.hpp"
+#include "disk_io_test.hpp"
 #include "test_utils.hpp"
 #include "setup_transfer.hpp"
 #include "settings.hpp"
@@ -56,7 +57,7 @@ void wait_for_complete(lt::session& ses, torrent_handle h)
 
 } // anonymous namespace
 
-TORRENT_TEST(recheck)
+TORRENT_TEST_DISK_IO(recheck)
 {
 	error_code ec;
 	settings_pack sett = settings();
@@ -65,7 +66,9 @@ TORRENT_TEST(recheck)
 	sett.set_bool(settings_pack::enable_natpmp, false);
 	sett.set_bool(settings_pack::enable_lsd, false);
 	sett.set_bool(settings_pack::enable_dht, false);
-	lt::session ses1(sett);
+	lt::session_params sp(sett);
+	sp.disk_io_constructor = disk_io;
+	lt::session ses1(sp);
 	create_directory("tmp1_recheck", ec);
 	if (ec) std::printf("create_directory: %s\n", ec.message().c_str());
 	std::ofstream file("tmp1_recheck/temporary");

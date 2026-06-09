@@ -13,6 +13,7 @@ see LICENSE file.
 */
 
 #include "test.hpp"
+#include "disk_io_test.hpp"
 #include "setup_transfer.hpp"
 #include "test_utils.hpp"
 #include "settings.hpp"
@@ -876,50 +877,36 @@ void run_test()
 	}
 }
 
+namespace {
+	void test_check_files_all_threads(
+		check_files_flag_t const flags, lt::disk_io_constructor_type disk_io)
+	{
+		test_check_files(flags, disk_io);
+		test_check_files(flags, disk_io, 0, 1);
+		test_check_files(flags, disk_io, 0, 2);
+	}
+} // anonymous namespace
+
+TORRENT_TEST_DISK_IO(check_files_sparse)
+{
+	test_check_files_all_threads(sparse | zero_prio, disk_io);
+}
+
+TORRENT_TEST_DISK_IO(check_files_oversized_zero_prio)
+{
+	test_check_files_all_threads(sparse | zero_prio | test_oversized, disk_io);
+}
+
+TORRENT_TEST_DISK_IO(check_files_oversized)
+{
+	test_check_files_all_threads(sparse | test_oversized, disk_io);
+}
+
+TORRENT_TEST_DISK_IO(check_files_allocate) { test_check_files_all_threads(zero_prio, disk_io); }
+
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
-void test_check_files_mmap(check_files_flag_t const flags)
-{
-	test_check_files(flags, lt::mmap_disk_io_constructor);
-	test_check_files(flags, lt::mmap_disk_io_constructor, 0, 1);
-	test_check_files(flags, lt::mmap_disk_io_constructor, 0, 2);
-}
-
-TORRENT_TEST(check_files_sparse_mmap) { test_check_files_mmap(sparse | zero_prio); }
-
-TORRENT_TEST(check_files_oversized_mmap_zero_prio)
-{
-	test_check_files_mmap(sparse | zero_prio | test_oversized);
-}
-
-TORRENT_TEST(check_files_oversized_mmap) { test_check_files_mmap(sparse | test_oversized); }
-
-TORRENT_TEST(check_files_allocate_mmap) { test_check_files_mmap(zero_prio); }
-
-TORRENT_TEST(test_pre_allocate_mmap)
-{
-	test_pre_allocate<mmap_storage>();
-}
+TORRENT_TEST(test_pre_allocate_mmap) { test_pre_allocate<mmap_storage>(); }
 #endif
-TORRENT_TEST(check_files_sparse_posix)
-{
-	test_check_files(sparse | zero_prio, lt::posix_disk_io_constructor);
-}
-
-TORRENT_TEST(check_files_oversized_zero_prio_posix)
-{
-	test_check_files(sparse | zero_prio | test_oversized, lt::posix_disk_io_constructor);
-}
-
-TORRENT_TEST(check_files_oversized_posix)
-{
-	test_check_files(sparse | test_oversized, lt::posix_disk_io_constructor);
-}
-
-
-TORRENT_TEST(check_files_allocate_posix)
-{
-	test_check_files(zero_prio, lt::posix_disk_io_constructor);
-}
 
 // posix_storage is meant to only use the most portable API for disk I/O, and so
 // doesn't support pre-allocating files
@@ -929,24 +916,6 @@ TORRENT_TEST(test_pre_allocate_posix)
 	test_pre_allocate<posix_storage>();
 }
 */
-
-void test_check_files_pread(check_files_flag_t const flags)
-{
-	test_check_files(flags, lt::pread_disk_io_constructor);
-	test_check_files(flags, lt::pread_disk_io_constructor, 0, 1);
-	test_check_files(flags, lt::pread_disk_io_constructor, 0, 2);
-}
-
-TORRENT_TEST(check_files_sparse_pread) { test_check_files_pread(sparse | zero_prio); }
-
-TORRENT_TEST(check_files_oversized_pread_zero_prio)
-{
-	test_check_files_pread(sparse | zero_prio | test_oversized);
-}
-
-TORRENT_TEST(check_files_oversized_pread) { test_check_files_pread(sparse | test_oversized); }
-
-TORRENT_TEST(check_files_allocate_pread) { test_check_files_pread(zero_prio); }
 
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 TORRENT_TEST(rename_mmap_disk_io)

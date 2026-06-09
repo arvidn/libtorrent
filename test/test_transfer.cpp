@@ -15,11 +15,9 @@ see LICENSE file.
 #include "libtorrent/time.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/torrent_info.hpp"
-#include "libtorrent/mmap_disk_io.hpp"
-#include "libtorrent/posix_disk_io.hpp"
-#include "libtorrent/pread_disk_io.hpp"
 
 #include "test.hpp"
+#include "disk_io_test.hpp"
 #include "setup_transfer.hpp"
 #include "settings.hpp" // for settings()
 #include "test_utils.hpp"
@@ -384,26 +382,10 @@ TORRENT_TEST(i2p)
 	cleanup();
 }
 */
-#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
-TORRENT_TEST(move_storage_mmap)
+TORRENT_TEST_DISK_IO(move_storage)
 {
 	using namespace lt;
-	test_transfer(0, settings_pack(), move_storage, storage_mode_sparse, mmap_disk_io_constructor);
-	cleanup();
-}
-#endif
-
-TORRENT_TEST(move_storage_posix)
-{
-	using namespace lt;
-	test_transfer(0, settings_pack(), move_storage, storage_mode_sparse, posix_disk_io_constructor);
-	cleanup();
-}
-
-TORRENT_TEST(move_storage_pread)
-{
-	using namespace lt;
-	test_transfer(0, settings_pack(), move_storage, storage_mode_sparse, pread_disk_io_constructor);
+	test_transfer(0, settings_pack(), move_storage, storage_mode_sparse, disk_io);
 	cleanup();
 }
 
@@ -414,32 +396,12 @@ TORRENT_TEST(piece_deadline)
 	cleanup();
 }
 
-#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
-TORRENT_TEST(delete_files_mmap)
+TORRENT_TEST_DISK_IO(delete_files)
 {
 	using namespace lt;
 	settings_pack p = settings_pack();
 	p.set_int(settings_pack::aio_threads, 10);
-	test_transfer(0, p, delete_files, storage_mode_sparse, mmap_disk_io_constructor);
-	cleanup();
-}
-#endif
-
-TORRENT_TEST(delete_files_posix)
-{
-	using namespace lt;
-	settings_pack p = settings_pack();
-	p.set_int(settings_pack::aio_threads, 10);
-	test_transfer(0, p, delete_files, storage_mode_sparse, posix_disk_io_constructor);
-	cleanup();
-}
-
-TORRENT_TEST(delete_files_pread)
-{
-	using namespace lt;
-	settings_pack p = settings_pack();
-	p.set_int(settings_pack::aio_threads, 10);
-	test_transfer(0, p, delete_files, storage_mode_sparse, pread_disk_io_constructor);
+	test_transfer(0, p, delete_files, storage_mode_sparse, disk_io);
 	cleanup();
 }
 
@@ -455,63 +417,21 @@ TORRENT_TEST(allow_fast)
 	cleanup();
 }
 
-#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
-TORRENT_TEST(large_pieces_mmap)
+TORRENT_TEST_DISK_IO(large_pieces)
 {
 	using namespace lt;
 	std::printf("large pieces\n");
-	test_transfer(0, settings_pack(), large_piece_size, storage_mode_sparse, mmap_disk_io_constructor);
-
-	cleanup();
-}
-#endif
-
-TORRENT_TEST(large_pieces_posix)
-{
-	using namespace lt;
-	std::printf("large pieces\n");
-	test_transfer(0, settings_pack(), large_piece_size, storage_mode_sparse, posix_disk_io_constructor);
+	test_transfer(0, settings_pack(), large_piece_size, storage_mode_sparse, disk_io);
 
 	cleanup();
 }
 
-TORRENT_TEST(large_pieces_pread)
-{
-	using namespace lt;
-	std::printf("large pieces\n");
-	test_transfer(0, settings_pack(), large_piece_size, storage_mode_sparse, pread_disk_io_constructor);
-
-	cleanup();
-}
-
-#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
-TORRENT_TEST(allocate_mmap)
+TORRENT_TEST_DISK_IO(allocate)
 {
 	using namespace lt;
 	// test storage_mode_allocate
 	std::printf("full allocation mode\n");
-	test_transfer(0, settings_pack(), {}, storage_mode_allocate, mmap_disk_io_constructor);
-
-	cleanup();
-}
-#endif
-
-TORRENT_TEST(allocate_posix)
-{
-	using namespace lt;
-	// test storage_mode_allocate
-	std::printf("full allocation mode\n");
-	test_transfer(0, settings_pack(), {}, storage_mode_allocate, posix_disk_io_constructor);
-
-	cleanup();
-}
-
-TORRENT_TEST(allocate_pread)
-{
-	using namespace lt;
-	// test storage_mode_allocate
-	std::printf("full allocation mode\n");
-	test_transfer(0, settings_pack(), {}, storage_mode_allocate, pread_disk_io_constructor);
+	test_transfer(0, settings_pack(), {}, storage_mode_allocate, disk_io);
 
 	cleanup();
 }
@@ -526,66 +446,22 @@ TORRENT_TEST(suggest)
 	cleanup();
 }
 
-#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
-TORRENT_TEST(disable_os_cache_mmap)
+TORRENT_TEST_DISK_IO(disable_os_cache)
 {
 	using namespace lt;
 	settings_pack p = settings();
 	p.set_int(settings_pack::disk_io_write_mode, settings_pack::disable_os_cache);
-	test_transfer(0, p, {}, storage_mode_allocate, mmap_disk_io_constructor);
-
-	cleanup();
-}
-#endif
-
-TORRENT_TEST(disable_os_cache_posix)
-{
-	using namespace lt;
-	settings_pack p = settings();
-	p.set_int(settings_pack::disk_io_write_mode, settings_pack::disable_os_cache);
-	test_transfer(0, p, {}, storage_mode_allocate, posix_disk_io_constructor);
+	test_transfer(0, p, {}, storage_mode_allocate, disk_io);
 
 	cleanup();
 }
 
-TORRENT_TEST(disable_os_cache_pread)
-{
-	using namespace lt;
-	settings_pack p = settings();
-	p.set_int(settings_pack::disk_io_write_mode, settings_pack::disable_os_cache);
-	test_transfer(0, p, {}, storage_mode_allocate, pread_disk_io_constructor);
-
-	cleanup();
-}
-
-#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
-TORRENT_TEST(write_through_mmap)
+TORRENT_TEST_DISK_IO(write_through)
 {
 	using namespace lt;
 	settings_pack p = settings();
 	p.set_int(settings_pack::disk_io_write_mode, settings_pack::write_through);
-	test_transfer(0, p, {}, storage_mode_allocate, mmap_disk_io_constructor);
-
-	cleanup();
-}
-#endif
-
-TORRENT_TEST(write_through_posix)
-{
-	using namespace lt;
-	settings_pack p = settings();
-	p.set_int(settings_pack::disk_io_write_mode, settings_pack::write_through);
-	test_transfer(0, p, {}, storage_mode_allocate, posix_disk_io_constructor);
-
-	cleanup();
-}
-
-TORRENT_TEST(write_through_pread)
-{
-	using namespace lt;
-	settings_pack p = settings();
-	p.set_int(settings_pack::disk_io_write_mode, settings_pack::write_through);
-	test_transfer(0, p, {}, storage_mode_allocate, pread_disk_io_constructor);
+	test_transfer(0, p, {}, storage_mode_allocate, disk_io);
 
 	cleanup();
 }

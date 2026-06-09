@@ -9,12 +9,10 @@ see LICENSE file.
 
 #include <iostream>
 #include "test.hpp"
+#include "disk_io_test.hpp"
 #include "setup_transfer.hpp"
 #include "test_utils.hpp"
 #include "libtorrent/disk_interface.hpp"
-#include "libtorrent/mmap_disk_io.hpp"
-#include "libtorrent/posix_disk_io.hpp"
-#include "libtorrent/pread_disk_io.hpp"
 #include "libtorrent/session_params.hpp" // for disk_io_constructor_type
 #include "libtorrent/settings_pack.hpp" // for default_settings
 #include "libtorrent/flags.hpp"
@@ -397,38 +395,6 @@ void hash2_before_flush_suite(lt::disk_io_constructor_type disk_io)
 }
 }
 
-#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
-TORRENT_TEST(test_mmap_disk_io)
-{
-	disk_io_test_suite(&lt::mmap_disk_io_constructor, 3);
-}
+TORRENT_TEST_DISK_IO(test_disk_io) { disk_io_test_suite(disk_io, 3); }
 
-#endif
-
-TORRENT_TEST(test_posix_disk_io)
-{
-	disk_io_test_suite(&lt::posix_disk_io_constructor, 3);
-}
-
-TORRENT_TEST(test_pread_disk_io)
-{
-	disk_io_test_suite(&lt::pread_disk_io_constructor, 3);
-}
-
-#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
-TORRENT_TEST(test_mmap_disk_io_hash2_before_flush)
-{
-	hash2_before_flush_suite(&lt::mmap_disk_io_constructor);
-}
-
-#endif
-
-TORRENT_TEST(test_posix_disk_io_hash2_before_flush)
-{
-	hash2_before_flush_suite(&lt::posix_disk_io_constructor);
-}
-
-TORRENT_TEST(test_pread_disk_io_hash2_before_flush)
-{
-	hash2_before_flush_suite(&lt::pread_disk_io_constructor);
-}
+TORRENT_TEST_DISK_IO(test_disk_io_hash2_before_flush) { hash2_before_flush_suite(disk_io); }
