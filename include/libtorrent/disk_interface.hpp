@@ -232,6 +232,10 @@ namespace file_open_mode {
 		// should not be computed. If v2 is non-empty it must be at least large
 		// enough to hold all v2 blocks in the piece, and this function will
 		// fill in the span with the SHA-256 block hashes of the piece.
+		//
+		// The contents of the `v2` span on entry are not read by the
+		// implementation; it is treated as output only. Callers may safely
+		// reuse the same buffer across pieces without clearing it.
 		virtual void async_hash(storage_index_t storage, piece_index_t piece, span<sha256_hash> v2
 			, disk_job_flags_t flags
 			, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler) = 0;
