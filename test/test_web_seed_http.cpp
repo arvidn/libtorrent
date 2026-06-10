@@ -9,6 +9,7 @@ see LICENSE file.
 */
 
 #include "test.hpp"
+#include "disk_io_test.hpp"
 #include "setup_transfer.hpp"
 #include "web_seed_suite.hpp"
 
@@ -16,14 +17,14 @@ using namespace lt;
 
 const int proxy = lt::settings_pack::http;
 
-TORRENT_TEST(url_seed_http)
+TORRENT_TEST_DISK_IO(url_seed_http)
 {
-	run_http_suite(proxy, "http");
+	run_http_suite(proxy, "http", false, false, true, false, true, disk_io);
 }
 
 #if TORRENT_USE_SSL
-TORRENT_TEST(url_seed_https)
+TORRENT_TEST_DISK_IO(url_seed_https)
 {
-	run_http_suite(proxy, "https");
+	run_http_suite(proxy, "https", false, false, true, false, true, disk_io);
 }
 #endif

@@ -25,6 +25,7 @@ see LICENSE file.
 #include <random>
 
 #include "test.hpp"
+#include "disk_io_test.hpp"
 #include "test_utils.hpp"
 #include "setup_transfer.hpp"
 #include "settings.hpp"
@@ -57,7 +58,9 @@ void cleanup()
 	remove_all("tmp2_priority_moved", ec);
 }
 
-void test_transfer(settings_pack const& sett, bool test_deprecated = false)
+void test_transfer(settings_pack const& sett,
+	bool test_deprecated = false,
+	lt::disk_io_constructor_type disk_io = lt::default_disk_io_constructor)
 {
 	// this allows shutting down the sessions in parallel
 	std::vector<session_proxy> sp;
@@ -91,10 +94,14 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 	pack.set_bool(settings_pack::rate_limit_utp, true);
 #endif
 
-	lt::session ses1(pack);
+	lt::session_params sp1(pack);
+	sp1.disk_io_constructor = disk_io;
+	lt::session ses1(sp1);
 
 	pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
-	lt::session ses2(pack);
+	lt::session_params sp2(pack);
+	sp2.disk_io_constructor = disk_io;
+	lt::session ses2(sp2);
 
 	torrent_handle tor1;
 	torrent_handle tor2;
@@ -377,20 +384,20 @@ done:
 
 } // anonymous namespace
 
-TORRENT_TEST(priority)
+TORRENT_TEST_DISK_IO(priority)
 {
 	using namespace lt;
 	settings_pack p = settings();
-	test_transfer(p);
+	test_transfer(p, false, disk_io);
 	cleanup();
 }
 
 #if TORRENT_ABI_VERSION == 1
-TORRENT_TEST(priority_deprecated)
+TORRENT_TEST_DISK_IO(priority_deprecated)
 {
 	using namespace lt;
 	settings_pack p = settings();
-	test_transfer(p, true);
+	test_transfer(p, true, disk_io);
 	cleanup();
 }
 #endif

@@ -15,6 +15,7 @@ see LICENSE file.
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_params.hpp"
 #include "test.hpp"
+#include "disk_io_test.hpp"
 #include "settings.hpp"
 #include "setup_transfer.hpp"
 #include "test_utils.hpp"
@@ -67,7 +68,7 @@ enum
 	single_file = 64,
 };
 
-void test_checking(int const flags)
+void test_checking(int const flags, lt::disk_io_constructor_type disk_io)
 {
 	using namespace lt;
 
@@ -101,7 +102,8 @@ void test_checking(int const flags)
 	if (ec) std::printf("ERROR: set_piece_hashes: (%d) %s\n"
 		, ec.value(), ec.message().c_str());
 
-	auto ti = load_torrent_buffer(bencode(t.generate())).ti;
+	add_torrent_params atp = load_torrent_buffer(bencode(t.generate()));
+	auto ti = atp.ti;
 	TEST_CHECK(ti->is_valid());
 
 	std::printf("generated torrent: %s test_torrent_dir\n"
@@ -178,11 +180,12 @@ void test_checking(int const flags)
 			, ec.value(), ec.message().c_str());
 	}
 
-	lt::session ses1(settings());
+	lt::session_params sp(settings());
+	sp.disk_io_constructor = disk_io;
+	lt::session ses1(sp);
 
-	add_torrent_params p;
+	add_torrent_params p = std::move(atp);
 	p.save_path = ".";
-	p.ti = ti;
 	torrent_handle tor1 = ses1.add_torrent(p, ec);
 	TEST_CHECK(!ec);
 
@@ -277,87 +280,48 @@ void test_checking(int const flags)
 
 } // anonymous namespace
 
-TORRENT_TEST(checking)
+TORRENT_TEST_DISK_IO(checking) { test_checking(0, disk_io); }
+
+TORRENT_TEST_DISK_IO(read_only_corrupt) { test_checking(read_only_files | corrupt_files, disk_io); }
+
+TORRENT_TEST_DISK_IO(read_only) { test_checking(read_only_files, disk_io); }
+
+TORRENT_TEST_DISK_IO(incomplete) { test_checking(incomplete_files, disk_io); }
+
+TORRENT_TEST_DISK_IO(extended) { test_checking(extended_files, disk_io); }
+
+TORRENT_TEST_DISK_IO(corrupt) { test_checking(corrupt_files, disk_io); }
+
+TORRENT_TEST_DISK_IO(force_recheck) { test_checking(force_recheck, disk_io); }
+
+TORRENT_TEST_DISK_IO(checking_v2) { test_checking(v2, disk_io); }
+
+TORRENT_TEST_DISK_IO(read_only_corrupt_v2)
 {
-	test_checking(0);
+	test_checking(read_only_files | corrupt_files | v2, disk_io);
 }
 
-TORRENT_TEST(read_only_corrupt)
+TORRENT_TEST_DISK_IO(read_only_v2) { test_checking(read_only_files | v2, disk_io); }
+
+TORRENT_TEST_DISK_IO(incomplete_v2) { test_checking(incomplete_files | v2, disk_io); }
+
+TORRENT_TEST_DISK_IO(corrupt_v2) { test_checking(corrupt_files | v2, disk_io); }
+
+TORRENT_TEST_DISK_IO(single_file_v2) { test_checking(v2 | single_file, disk_io); }
+
+TORRENT_TEST_DISK_IO(single_file_corrupt_v2)
 {
-	test_checking(read_only_files | corrupt_files);
+	test_checking(corrupt_files | v2 | single_file, disk_io);
 }
 
-TORRENT_TEST(read_only)
+TORRENT_TEST_DISK_IO(single_file_incomplete_v2)
 {
-	test_checking(read_only_files);
+	test_checking(incomplete_files | v2 | single_file, disk_io);
 }
 
-TORRENT_TEST(incomplete)
-{
-	test_checking(incomplete_files);
-}
+TORRENT_TEST_DISK_IO(force_recheck_v2) { test_checking(force_recheck | v2, disk_io); }
 
-TORRENT_TEST(extended)
-{
-	test_checking(extended_files);
-}
-
-TORRENT_TEST(corrupt)
-{
-	test_checking(corrupt_files);
-}
-
-TORRENT_TEST(force_recheck)
-{
-	test_checking(force_recheck);
-}
-
-TORRENT_TEST(checking_v2)
-{
-	test_checking(v2);
-}
-
-TORRENT_TEST(read_only_corrupt_v2)
-{
-	test_checking(read_only_files | corrupt_files | v2);
-}
-
-TORRENT_TEST(read_only_v2)
-{
-	test_checking(read_only_files | v2);
-}
-
-TORRENT_TEST(incomplete_v2)
-{
-	test_checking(incomplete_files | v2);
-}
-
-TORRENT_TEST(corrupt_v2)
-{
-	test_checking(corrupt_files | v2);
-}
-
-TORRENT_TEST(single_file_v2)
-{
-	test_checking(v2 | single_file);
-}
-
-TORRENT_TEST(single_file_corrupt_v2)
-{
-	test_checking(corrupt_files | v2 | single_file);
-}
-
-TORRENT_TEST(single_file_incomplete_v2)
-{
-	test_checking(incomplete_files | v2 | single_file);
-}
-
-TORRENT_TEST(force_recheck_v2)
-{
-	test_checking(force_recheck | v2);
-}
-
-TORRENT_TEST(discrete_checking)
+TORRENT_TEST_DISK_IO(discrete_checking)
 {
 	using namespace lt;
 	printf("\n==== TEST CHECKING discrete =====\n\n");
@@ -377,7 +341,8 @@ TORRENT_TEST(discrete_checking)
 	if (ec) printf("ERROR: set_piece_hashes: (%d) %s\n", ec.value(), ec.message().c_str());
 
 	std::vector<char> const buf = bencode(t.generate());
-	auto ti = load_torrent_buffer(buf).ti;
+	add_torrent_params atp = load_torrent_buffer(buf);
+	auto ti = atp.ti;
 	printf("generated torrent: %s test_torrent_dir result: %s\n"
 		, aux::to_hex(ti->info_hashes().v1.to_string()).c_str()
 		, ec.message().c_str());
@@ -388,12 +353,13 @@ TORRENT_TEST(discrete_checking)
 	TEST_EQUAL(ti->num_files(), 4);
 
 	{
-		session ses1(settings());
-		add_torrent_params p;
+		lt::session_params sp(settings());
+		sp.disk_io_constructor = disk_io;
+		session ses1(sp);
+		add_torrent_params p = std::move(atp);
 		p.file_priorities.resize(std::size_t(ti->num_files()));
 		p.file_priorities[0] = 1_pri;
 		p.save_path = ".";
-		p.ti = ti;
 		torrent_handle tor1 = ses1.add_torrent(p, ec);
 		// change the priority of a file while checking and make sure it doesn't interrupt the checking.
 		std::vector<download_priority_t> prio(std::size_t(ti->num_files()), 0_pri);
@@ -410,7 +376,7 @@ TORRENT_TEST(discrete_checking)
 // When need_picker() re-creates the piece picker, make sure we preserve the
 // file priorities that have been set. piece priorities will not be preserved
 // since they're stored inside the piece picker.
-TORRENT_TEST(preserve_file_priorities)
+TORRENT_TEST_DISK_IO(preserve_file_priorities)
 {
 	using namespace lt;
 
@@ -438,7 +404,9 @@ TORRENT_TEST(preserve_file_priorities)
 	p.save_path = ".";
 	p.file_priorities = { dont_download, default_priority };
 
-	session ses(settings());
+	lt::session_params sp(settings());
+	sp.disk_io_constructor = disk_io;
+	session ses(sp);
 	torrent_handle h = ses.add_torrent(p, ec);
 	TEST_CHECK(!ec);
 

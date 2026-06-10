@@ -1036,7 +1036,8 @@ TEST_SOURCES = \
   make_torrent.hpp \
   bittorrent_peer.hpp \
   print_alerts.hpp \
-  session_mock.hpp
+  session_mock.hpp \
+  disk_io_test.hpp
 
 TEST_TORRENTS = \
   absolute_filename.torrent \
