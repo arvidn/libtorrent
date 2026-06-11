@@ -1422,6 +1422,9 @@ namespace {
 					, str.string_length());
 			}
 		}
+
+		m_update_url = info.dict_find_string_value("update-url").to_string();
+		m_originator = info.dict_find_string_value("originator").to_string();
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 
 		if (info.dict_find_string("ssl-cert"))
