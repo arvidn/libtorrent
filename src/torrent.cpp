@@ -901,7 +901,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		{
 			TORRENT_INCREMENT(m_iterating_connections);
 
-			p->send_not_interested();
+			if (upload_only_enabled)
+				p->send_not_interested();
 			p->send_upload_only(upload_only_enabled);
 		}
 #endif // TORRENT_DISABLE_EXTENSIONS
@@ -8576,6 +8577,9 @@ namespace {
 		set_state(torrent_status::downloading);
 		set_queue_position(last_pos);
 
+		// since the torrent is not complete right now, make sure we reset
+		// this timestamp to allow it to be updated once it does complete
+		// (possibly for the second time)
 		m_completed_time = 0;
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -8723,6 +8727,10 @@ namespace {
 			&& !m_seed_mode)
 		{
 			set_state(torrent_status::downloading);
+			// since the torrent is not complete right now, make sure we reset
+			// this timestamp to allow it to be updated once it does complete
+			// (possibly for the second time)
+			m_completed_time = 0;
 		}
 
 		INVARIANT_CHECK;
