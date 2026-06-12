@@ -1212,17 +1212,29 @@ namespace {
 pid_type web_server_pid = 0;
 }
 
-int start_web_server(bool ssl, bool chunked_encoding, bool keepalive, int min_interval)
+int start_web_server(
+	bool ssl, bool chunked_encoding, bool keepalive, int min_interval, bool expect_host_header)
 {
 	int const port = find_available_port();
+	char expected_host[200] = {};
+	if (expect_host_header)
+		std::snprintf(expected_host, sizeof(expected_host), "127.0.0.1:%d", port);
 
 	std::vector<std::string> python_exes = get_python();
 
 	for (auto const& python_exe : python_exes)
 	{
-		char buf[200];
-		std::snprintf(buf, sizeof(buf), "%s .." SEPARATOR "web_server.py %d %d %d %d %d"
-			, python_exe.c_str(), port, chunked_encoding, ssl, keepalive, min_interval);
+		char buf[300];
+		std::snprintf(buf,
+			sizeof(buf),
+			"%s .." SEPARATOR "web_server.py %d %d %d %d %d %s",
+			python_exe.c_str(),
+			port,
+			chunked_encoding,
+			ssl,
+			keepalive,
+			min_interval,
+			expected_host);
 
 		std::printf("%s starting web_server on port %d...\n", time_now_string().c_str(), port);
 

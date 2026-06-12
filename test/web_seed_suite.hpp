@@ -9,9 +9,14 @@ see LICENSE file.
 
 #include "test.hpp"
 
-int EXPORT run_http_suite(int proxy, char const* protocol
-	, bool chunked_encoding = false, bool test_ban = false
-	, bool keepalive = true, bool test_rename = false, bool proxy_peers = true);
+int EXPORT run_http_suite(int proxy,
+	char const* protocol,
+	bool chunked_encoding = false,
+	bool test_ban = false,
+	bool keepalive = true,
+	bool test_rename = false,
+	bool proxy_peers = true,
+	bool expect_host_header = false);
 
 void EXPORT test_transfer(lt::session& ses
 	, lt::add_torrent_params atp

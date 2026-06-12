@@ -89,8 +89,12 @@ setup_transfer(lt::session* ses1, lt::session* ses2
 	, lt::create_flags_t flags = {}
 	, lt::torrent_flags_t seeder_extra_flags = {});
 
-EXPORT int start_web_server(bool ssl = false, bool chunked = false
-	, bool keepalive = true, int min_interval = 30);
+EXPORT int start_web_server(bool ssl = false,
+	bool chunked = false,
+	bool keepalive = true,
+	int min_interval = 30,
+	bool expect_host_header = false);
+
 EXPORT void stop_web_server();
 
 EXPORT int start_websocket_server(bool ssl = false, int min_interval = 30);

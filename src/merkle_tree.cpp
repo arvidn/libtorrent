@@ -257,6 +257,11 @@ namespace {
 		// this file
 		m_mode = m_blocks_per_piece_log == 0 ? mode_t::block_layer : mode_t::piece_layer;
 		m_tree = std::move(pieces);
+		// piece_layer and block_layer modes both require m_block_verified
+		// to be empty (see check_invariant). The verified bitfield only
+		// has meaning when paired with the full_tree storage; the
+		// optimized modes derive verification from the mode itself.
+		m_block_verified.clear();
 
 		return true;
 	}

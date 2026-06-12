@@ -38,6 +38,11 @@ TORRENT_TEST(url_seed)
 	run_http_suite(proxy, "http", 0, 0, 0);
 }
 
+TORRENT_TEST(url_seed_host_header)
+{
+	run_http_suite(proxy, "http", false, false, false, false, true, true);
+}
+
 TORRENT_TEST(url_seed_keepalive_rename)
 {
 	run_http_suite(proxy, "http", 0, 1, 1);

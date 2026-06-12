@@ -233,9 +233,14 @@ void test_transfer(lt::session& ses, lt::add_torrent_params p
 
 // proxy: 0=none, 1=socks4, 2=socks5, 3=socks5_pw 4=http 5=http_pw
 // protocol: "http" or "https"
-int EXPORT run_http_suite(int proxy, char const* protocol
-	, bool chunked_encoding, bool test_ban, bool keepalive, bool test_rename
-	, bool proxy_peers)
+int EXPORT run_http_suite(int proxy,
+	char const* protocol,
+	bool chunked_encoding,
+	bool test_ban,
+	bool keepalive,
+	bool test_rename,
+	bool proxy_peers,
+	bool expect_host_header)
 {
 	using namespace lt;
 
@@ -243,7 +248,8 @@ int EXPORT run_http_suite(int proxy, char const* protocol
 	save_path += proxy_name[proxy];
 
 	error_code ec;
-	int const port = start_web_server(protocol == "https"_sv, chunked_encoding, keepalive);
+	int const port = start_web_server(
+		protocol == "https"_sv, chunked_encoding, keepalive, 30, expect_host_header);
 
 	std::vector<torrent_args> test_cases;
 
