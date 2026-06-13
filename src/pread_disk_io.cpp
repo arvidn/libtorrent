@@ -1403,13 +1403,9 @@ void pread_disk_io::add_fence_job(aux::pread_disk_job* j, bool const user_add)
 		TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
 		m_generic_threads.push_back(j);
 		l.unlock();
-
-		if (m_generic_threads.max_threads() == 0 && user_add) immediate_execute();
-
-		return;
 	}
 
-	if (m_generic_threads.num_threads() == 0 && user_add) immediate_execute();
+	if (m_generic_threads.max_threads() == 0 && user_add) immediate_execute();
 }
 
 void pread_disk_io::add_job(aux::pread_disk_job* j, bool const user_add)
