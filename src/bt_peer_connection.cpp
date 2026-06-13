@@ -753,7 +753,7 @@ namespace {
 
 		// this is a v1 peer in a hybrid torrent
 		// indicate that we support upgrading to v2
-		if (!peer_info_struct()->protocol_v2 && t->info_hash().has_v2())
+		if (!peer_info_struct()->protocol_v2 && m_info_hash.has_v2())
 		{
 			*(ptr + 7) |= 0x10;
 		}
@@ -2956,8 +2956,7 @@ namespace {
 				sha1_hash oih(ih);
 				oih ^= m_dh_key_exchange->get_hash_xor_mask();
 
-				t->info_hash().for_each([&](sha1_hash const& tih, protocol_version v)
-				{
+				m_info_hash.for_each([&](sha1_hash const& tih, protocol_version v) {
 					static char const req2[4] = { 'r', 'e', 'q', '2' };
 					hasher h(req2);
 					h.update(tih);
@@ -3423,7 +3422,7 @@ namespace {
 				// adds the peer info for incoming connections
 				if (recv_buffer[7] & 0x10)
 				{
-					if (t->valid_metadata() && !t->info_hash().has_v2())
+					if (t->valid_metadata() && !m_info_hash.has_v2())
 					{
 						// the peer claims to support the v2 protocol with a non-v2 torrent
 						disconnect(errors::invalid_info_hash, operation_t::bittorrent);
@@ -3438,9 +3437,10 @@ namespace {
 				// also check for all zero info hash in the torrent to make sure
 				// the client isn't attempting to use a protocol version the torrent
 				// doesn't support
-				if (std::equal(recv_buffer.begin() + 8, recv_buffer.begin() + 28
-					, t->info_hash().get(protocol_version::V2).data())
-					&& t->info_hash().has_v2())
+				if (std::equal(recv_buffer.begin() + 8,
+						recv_buffer.begin() + 28,
+						m_info_hash.get(protocol_version::V2).data())
+					&& m_info_hash.has_v2())
 				{
 					peer_info_struct()->protocol_v2 = true;
 				}
