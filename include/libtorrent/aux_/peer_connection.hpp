@@ -17,6 +17,7 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/peer_id.hpp"
+#include "libtorrent/info_hash.hpp"
 #include "libtorrent/aux_/stat.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/peer_request.hpp"
@@ -836,6 +837,17 @@ namespace libtorrent::aux {
 		// it may not necessarily be the peer we're
 		// connected to, in case we use a proxy
 		tcp::endpoint m_remote;
+
+		// the info-hash(es) of the torrent this peer is associated with.
+		// for outgoing connections this is set at construction; for
+		// incoming connections it is set when attach_to_torrent()
+		// succeeds. Until then it is all zeros. It is refreshed in
+		// on_metadata_impl() because acquiring metadata can grow the
+		// info-hash (e.g. a v1 magnet for a hybrid torrent learns the
+		// v2 hash at that point). All updates happen on the network
+		// thread, so the peer's other code paths can read it without
+		// synchronization.
+		info_hash_t m_info_hash;
 
 	public:
 		aux::chained_buffer m_send_buffer;

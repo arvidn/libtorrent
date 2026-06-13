@@ -136,8 +136,13 @@ namespace {
 			+ static_cast<std::uint8_t>(socket_type_idx(m_socket)));
 		auto t = m_torrent.lock();
 
+		// for outgoing connections the torrent is known at construction
+		// time, so we can cache the info-hash up-front. For incoming
+		// connections attach_to_torrent() sets it later.
+		if (t) m_info_hash = t->info_hash();
+
 		// the protocol_v2 flag should not be set for non-v2 torrents
-		TORRENT_ASSERT(!t || t->info_hash().has_v2() || !m_peer_info->protocol_v2);
+		TORRENT_ASSERT(!t || m_info_hash.has_v2() || !m_peer_info->protocol_v2);
 
 		if (m_connected)
 			m_counters.inc_stats_counter(counters::num_peers_connected);
@@ -707,6 +712,11 @@ namespace {
 	{
 		TORRENT_ASSERT(is_single_thread());
 		auto t = associated_torrent().lock();
+		// when metadata arrives, the info-hash may grow: a v1 (or v2)
+		// magnet may turn out to be a hybrid torrent, gaining the other
+		// protocol's hash. Refresh our cached copy now, since the
+		// torrent's info_hash was just updated in set_metadata().
+		m_info_hash = t->info_hash();
 		m_have_piece.resize(t->torrent_file().num_pieces(), m_have_all);
 		m_num_pieces = m_have_piece.count();
 
@@ -1095,14 +1105,13 @@ namespace {
 
 	sha1_hash peer_connection::associated_info_hash() const
 	{
-		auto t = associated_torrent().lock();
-		TORRENT_ASSERT(t);
-		auto const& ih = t->info_hash();
+		TORRENT_ASSERT(!associated_torrent().expired());
 		// if protocol_v2 is set on the peer, this better be a v2 torrent,
 		// otherwise something isn't right
-		TORRENT_ASSERT(ih.has_v2() || !peer_info_struct()->protocol_v2);
-		return ih.get((ih.has_v2() && peer_info_struct()->protocol_v2)
-			? protocol_version::V2 : protocol_version::V1);
+		TORRENT_ASSERT(m_info_hash.has_v2() || !peer_info_struct()->protocol_v2);
+		return m_info_hash.get((m_info_hash.has_v2() && peer_info_struct()->protocol_v2)
+				? protocol_version::V2
+				: protocol_version::V1);
 	}
 
 	void peer_connection::received_bytes(int const bytes_payload, int const bytes_protocol)
@@ -1369,6 +1378,7 @@ namespace {
 		// of the torrent and peer_connection::disconnect() will fail if it
 		// think it is
 		m_torrent = t;
+		m_info_hash = t->info_hash();
 
 		if (t && t->alerts().should_post<peer_connect_alert>())
 		{
@@ -1376,11 +1386,11 @@ namespace {
 				t->get_handle(), remote_endpoint(), pid(), socket_type_idx(m_socket), peer_connect_alert::direction_t::in);
 		}
 
-		if (t->info_hash().has_v2() && (t->info_hash().get(protocol_version::V2) == ih.v1
-			|| t->info_hash().v2 == ih.v2))
+		if (m_info_hash.has_v2()
+			&& (m_info_hash.get(protocol_version::V2) == ih.v1 || m_info_hash.v2 == ih.v2))
 		{
 			peer_info_struct()->protocol_v2 = true;
-			TORRENT_ASSERT(t->info_hash().has_v2());
+			TORRENT_ASSERT(m_info_hash.has_v2());
 		}
 
 		// Since accepting the slack connection, we might have fallen below the connections limit in which case we
@@ -5315,10 +5325,10 @@ namespace {
 				// this means we're in seed mode and we haven't yet
 				// verified this piece (r.piece)
 				disk_job_flags_t flags;
-				if (t->info_hash().has_v1() && !t->disable_v1_hashes())
+				if (m_info_hash.has_v1() && !t->disable_v1_hashes())
 					flags |= disk_interface::v1_hash;
 				aux::vector<sha256_hash> hashes;
-				if (t->info_hash().has_v2())
+				if (m_info_hash.has_v2())
 					hashes.resize(t->torrent_file().layout().blocks_in_piece2(r.piece));
 
 				span<sha256_hash> v2_hashes(hashes);
@@ -5425,14 +5435,13 @@ namespace {
 #endif
 
 		// we're using the piece hashes here, we need the torrent to be loaded
-		if (!m_settings.get_bool(settings_pack::disable_hash_checks)
-			&& t->info_hash().has_v1() && !t->disable_v1_hashes())
+		if (!m_settings.get_bool(settings_pack::disable_hash_checks) && m_info_hash.has_v1()
+			&& !t->disable_v1_hashes())
 		{
 			hash_failed[protocol_version::V1] = piece_hash != t->torrent_file().hash_for_piece(piece);
 		}
 
-		if (!m_settings.get_bool(settings_pack::disable_hash_checks)
-			&& t->info_hash().has_v2())
+		if (!m_settings.get_bool(settings_pack::disable_hash_checks) && m_info_hash.has_v2())
 		{
 			hash_failed[protocol_version::V2] = false;
 
@@ -6655,7 +6664,7 @@ namespace {
 			return;
 		}
 
-		auto const& ih = t->info_hash();
+		auto const& ih = m_info_hash;
 		if (peer_info_struct() && peer_info_struct()->protocol_v2)
 			TORRENT_ASSERT(ih.has_v2());
 
