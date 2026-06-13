@@ -199,9 +199,6 @@ private:
 		bitfield& flushed, span<aux::disk_job* const> blocks, jobqueue_t& completed_jobs);
 	void clear_piece_jobs(jobqueue_t aborted, aux::pread_disk_job* clear);
 
-	// returns the maximum number of threads
-	// the actual number of threads may be less
-	int num_threads() const;
 	aux::disk_io_thread_pool& pool_for_job(aux::pread_disk_job* j);
 
 	// set to true once we start shutting down. Guarded by m_job_mutex: it's
@@ -1412,8 +1409,7 @@ void pread_disk_io::add_fence_job(aux::pread_disk_job* j, bool const user_add)
 		return;
 	}
 
-	if (num_threads() == 0 && user_add)
-		immediate_execute();
+	if (m_generic_threads.max_threads() == 0 && user_add) immediate_execute();
 }
 
 void pread_disk_io::add_job(aux::pread_disk_job* j, bool const user_add)
@@ -1917,11 +1913,6 @@ void pread_disk_io::abort_jobs()
 	// the disk thread in parallel with stopping
 	// trackers.
 	m_file_pool.release();
-}
-
-int pread_disk_io::num_threads() const
-{
-	return m_generic_threads.max_threads() + m_hash_threads.max_threads();
 }
 
 aux::disk_io_thread_pool& pread_disk_io::pool_for_job(aux::pread_disk_job* j)
