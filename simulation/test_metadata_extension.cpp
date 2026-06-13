@@ -24,43 +24,48 @@ using namespace lt;
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
-enum flags_t
-{
+using test_flags_t = lt::flags::bitfield_flag<std::uint32_t, struct test_flags_tag>;
+
+namespace test_flags {
+
 	// disconnect immediately after receiving the metadata (to test that
 	// edge case, it caused a crash once)
-	disconnect = 1,
+	constexpr test_flags_t disconnect = 0_bit;
 
 	// force encryption (to make sure the plugin uses the peer_connection
 	// API in a compatible way)
-	full_encryption = 2,
+	constexpr test_flags_t full_encryption = 1_bit;
 
 	// have the downloader connect to the seeder
 	// (instead of the other way around)
-	reverse = 4,
+	constexpr test_flags_t reverse = 2_bit;
 
 	// only use uTP
-	utp = 8,
+	constexpr test_flags_t utp = 3_bit;
 
 	// upload-only mode
-	upload_only = 16,
+	constexpr test_flags_t upload_only = 4_bit;
 
 	// re-add the torrent after removing
-	readd = 32,
+	constexpr test_flags_t readd = 5_bit;
 
 	// token limit is too low
-	token_limit = 64,
+	constexpr test_flags_t token_limit = 6_bit;
 
 	// add the torrent from a magnet link that only carries the v1
 	// info-hash, even though the actual torrent is hybrid. Once the
 	// metadata is received the torrent must grow into a hybrid torrent
-	v1_magnet = 128,
+	constexpr test_flags_t v1_magnet = 7_bit;
 
 	// same as v1_magnet, but the magnet link only carries the v2 info-hash
-	v2_magnet = 256,
-};
+	constexpr test_flags_t v2_magnet = 8_bit;
 
-void run_metadata_test(int flags)
+} // namespace test_flags
+
+void run_metadata_test(test_flags_t const flags)
 {
+	using namespace test_flags;
+
 	int metadata_alerts = 0;
 	int metadata_failed_alerts = 0;
 
@@ -100,11 +105,10 @@ void run_metadata_test(int flags)
 			| ((flags & readd) ? swarm_test::real_disk : swarm_test_t{}),
 		sim,
 		default_settings,
-		default_add_torrent
+		default_add_torrent,
 		// add session
-		,
-		[](lt::settings_pack&) {} // add torrent
-		,
+		[](lt::settings_pack&) {},
+		// add torrent
 		[&ti, flags](lt::add_torrent_params& params) {
 			// we want to add the torrent via magnet link
 			error_code ec;
@@ -129,9 +133,8 @@ void run_metadata_test(int flags)
 			params.dht_nodes = p.dht_nodes;
 #endif
 			params.flags &= ~torrent_flags::upload_mode;
-		}
+		},
 		// on alert
-		,
 		[&](lt::alert const* a, lt::session& ses) {
 			if (alert_cast<metadata_failed_alert>(a))
 			{
@@ -168,9 +171,8 @@ void run_metadata_test(int flags)
 					ses.add_torrent(p);
 				}
 			}
-		}
+		},
 		// terminate
-		,
 		[&](int ticks, lt::session& ses) -> bool {
 			// until the metadata arrives the torrent should only carry the
 			// single info-hash from the magnet link. it grows into a hybrid
@@ -214,7 +216,7 @@ void run_metadata_test(int flags)
 
 			if (is_seed(ses))
 			{
-				TEST_CHECK((flags & upload_only) == 0);
+				TEST_CHECK(!(flags & upload_only));
 				return true;
 			}
 
@@ -233,47 +235,35 @@ void run_metadata_test(int flags)
 
 TORRENT_TEST(ut_metadata_encryption_reverse)
 {
-	run_metadata_test(full_encryption | reverse);
+	run_metadata_test(test_flags::full_encryption | test_flags::reverse);
 }
 
 TORRENT_TEST(ut_metadata_encryption_utp)
 {
-	run_metadata_test(full_encryption | utp);
+	run_metadata_test(test_flags::full_encryption | test_flags::utp);
 }
 
-TORRENT_TEST(ut_metadata_reverse)
-{
-	run_metadata_test(reverse);
-}
+TORRENT_TEST(ut_metadata_reverse) { run_metadata_test(test_flags::reverse); }
 
-TORRENT_TEST(ut_metadata_upload_only)
-{
-	run_metadata_test(upload_only);
-}
+TORRENT_TEST(ut_metadata_upload_only) { run_metadata_test(test_flags::upload_only); }
 
-TORRENT_TEST(ut_metadata_disconnect)
-{
-	run_metadata_test(disconnect);
-}
+TORRENT_TEST(ut_metadata_disconnect) { run_metadata_test(test_flags::disconnect); }
 
 TORRENT_TEST(ut_metadata_disconnect_readd)
 {
-	run_metadata_test(disconnect | readd);
+	run_metadata_test(test_flags::disconnect | test_flags::readd);
 }
 
 TORRENT_TEST(ut_metadata_upload_only_disconnect_readd)
 {
-	run_metadata_test(upload_only | disconnect | readd);
+	run_metadata_test(test_flags::upload_only | test_flags::disconnect | test_flags::readd);
 }
 
-TORRENT_TEST(ut_metadata_token_limit)
-{
-	run_metadata_test(token_limit);
-}
+TORRENT_TEST(ut_metadata_token_limit) { run_metadata_test(test_flags::token_limit); }
 
-TORRENT_TEST(ut_metadata_v1_magnet_to_hybrid) { run_metadata_test(v1_magnet); }
+TORRENT_TEST(ut_metadata_v1_magnet_to_hybrid) { run_metadata_test(test_flags::v1_magnet); }
 
-TORRENT_TEST(ut_metadata_v2_magnet_to_hybrid) { run_metadata_test(v2_magnet); }
+TORRENT_TEST(ut_metadata_v2_magnet_to_hybrid) { run_metadata_test(test_flags::v2_magnet); }
 
 #else
 TORRENT_TEST(disabled) {}
