@@ -67,4 +67,17 @@ see LICENSE file.
 	} \
 	static void BOOST_PP_CAT(disk_io_test_, test_name)(lt::disk_io_constructor_type disk_io)
 
+// true if `disk_io` constructs a single-threaded backend (posix_disk_io).
+// Lets a test skip thread-count sweeps that would only re-run the same code
+// path. Compares the std::function target against the free function pointer;
+// a lambda-wrapped constructor returns false here and the sweep runs as
+// written.
+inline bool is_single_threaded_disk_io(lt::disk_io_constructor_type const& disk_io)
+{
+	using fn_t = std::unique_ptr<lt::disk_interface> (*)(
+		lt::io_context&, lt::settings_interface const&, lt::counters&);
+	auto const* tgt = disk_io.target<fn_t>();
+	return tgt != nullptr && *tgt == &lt::posix_disk_io_constructor;
+}
+
 #endif // TORRENT_DISK_IO_TEST_HPP
