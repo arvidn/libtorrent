@@ -878,6 +878,10 @@ int disk_cache::drop_v2_queue_entries(piece_location const loc)
 void disk_cache::free_piece(cached_piece_entry const& cpe)
 {
 #if TORRENT_USE_ASSERTS
+	// a piece with notify_flushed_flag set is pinned: flush_storage() is
+	// waiting on it and erases it itself. No other path may free it.
+	TORRENT_ASSERT(!(cpe.flags & cached_piece_entry::notify_flushed_flag));
+
 	// piece_hash_returned_flag implies hasher_cursor == blocks_in_piece():
 	// try_hash_piece() requires the cursor to already be at the end before
 	// it sets the flag, and kick_hasher() and hash_piece() both move the
@@ -1126,6 +1130,11 @@ void disk_cache::flush_storage(std::function<int(bitfield&, span<disk_job* const
 		auto const piece_iter = view.find(piece_location{storage, piece});
 		if (piece_iter == view.end())
 			continue;
+
+		// a concurrent flush_storage() may be running. Only one thread can be
+		// notified for a piece, so if one is already waiting on it, leave it
+		// to them.
+		if (piece_iter->flags & cached_piece_entry::notify_flushed_flag) continue;
 
 		// A background flush thread may have this piece mid-flight (flushing_flag
 		// set, lock released). Set notify_flushed_flag so flush_piece_impl will
