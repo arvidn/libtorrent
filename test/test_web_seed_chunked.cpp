@@ -18,7 +18,13 @@ using namespace lt;
 const int proxy = lt::settings_pack::none;
 
 #if TORRENT_USE_SSL
-TORRENT_TEST_DISK_IO(url_seed_ssl) { run_http_suite(proxy, "https", disk_io, true); }
+TORRENT_TEST_DISK_IO(url_seed_ssl)
+{
+	run_http_suite(proxy, "https", disk_io, web_seed::chunked_encoding);
+}
 #endif
 
-TORRENT_TEST_DISK_IO(url_seed) { run_http_suite(proxy, "http", disk_io, true); }
+TORRENT_TEST_DISK_IO(url_seed)
+{
+	run_http_suite(proxy, "http", disk_io, web_seed::chunked_encoding);
+}

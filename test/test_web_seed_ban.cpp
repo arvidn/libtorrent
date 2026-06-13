@@ -26,7 +26,7 @@ TORRENT_TEST_DISK_IO(url_seed_ssl)
 	auto const* tgt = disk_io.target<fn_t>();
 	if (tgt != nullptr && *tgt == &lt::pread_disk_io_constructor) return;
 
-	run_http_suite(proxy, "https", disk_io, false, true);
+	run_http_suite(proxy, "https", disk_io, web_seed::test_ban);
 }
 #endif
 
@@ -38,5 +38,5 @@ TORRENT_TEST_DISK_IO(url_seed)
 	auto const* tgt = disk_io.target<fn_t>();
 	if (tgt != nullptr && *tgt == &lt::pread_disk_io_constructor) return;
 
-	run_http_suite(proxy, "http", disk_io, false, true);
+	run_http_suite(proxy, "http", disk_io, web_seed::test_ban);
 }
