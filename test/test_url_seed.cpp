@@ -20,16 +20,19 @@ const int proxy = lt::settings_pack::none;
 #if TORRENT_USE_SSL
 TORRENT_TEST_DISK_IO(url_seed_ssl_keepalive) { run_http_suite(proxy, "https", disk_io); }
 
-TORRENT_TEST_DISK_IO(url_seed_ssl) { run_http_suite(proxy, "https", disk_io, false, false, false); }
+TORRENT_TEST_DISK_IO(url_seed_ssl)
+{
+	run_http_suite(proxy, "https", disk_io, web_seed::no_keepalive);
+}
 #endif
 
 TORRENT_TEST_DISK_IO(url_seed_keepalive) { run_http_suite(proxy, "http", disk_io); }
 
-TORRENT_TEST_DISK_IO(url_seed) { run_http_suite(proxy, "http", disk_io, false, false, false); }
+TORRENT_TEST_DISK_IO(url_seed) { run_http_suite(proxy, "http", disk_io, web_seed::no_keepalive); }
 
 TORRENT_TEST_DISK_IO(url_seed_host_header)
 {
-	run_http_suite(proxy, "http", disk_io, false, false, false, false, true, true);
+	run_http_suite(proxy, "http", disk_io, web_seed::no_keepalive | web_seed::expect_host_header);
 }
 
 TORRENT_TEST_DISK_IO(url_seed_keepalive_rename)
@@ -40,5 +43,5 @@ TORRENT_TEST_DISK_IO(url_seed_keepalive_rename)
 	auto const* tgt = disk_io.target<fn_t>();
 	if (tgt != nullptr && *tgt == &lt::pread_disk_io_constructor) return;
 
-	run_http_suite(proxy, "http", disk_io, false, true);
+	run_http_suite(proxy, "http", disk_io, web_seed::test_ban);
 }

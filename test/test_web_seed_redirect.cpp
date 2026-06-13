@@ -71,7 +71,7 @@ TORRENT_TEST_DISK_IO(web_seed_redirect)
 
 		// disable keep-alive because otherwise the test will choke on seeing
 		// the disconnect (from the redirect)
-		test_transfer(ses, atp, 0, "http", true, false, false, false);
+		test_transfer(ses, atp, 0, "http", web_seed::no_keepalive);
 	}
 
 	stop_web_server();

@@ -20,11 +20,11 @@ const int proxy = lt::settings_pack::socks5;
 #if TORRENT_USE_SSL
 TORRENT_TEST_DISK_IO(url_seed_socks5_no_peers_ssl)
 {
-	run_http_suite(proxy, "https", disk_io, false, false, false, false, false);
+	run_http_suite(proxy, "https", disk_io, web_seed::no_keepalive | web_seed::no_proxy_peers);
 }
 #endif
 
 TORRENT_TEST_DISK_IO(url_seed_socks5_no_peers)
 {
-	run_http_suite(proxy, "http", disk_io, false, false, false, false, false);
+	run_http_suite(proxy, "http", disk_io, web_seed::no_keepalive | web_seed::no_proxy_peers);
 }
