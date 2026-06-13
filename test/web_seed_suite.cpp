@@ -235,6 +235,7 @@ void test_transfer(lt::session& ses, lt::add_torrent_params p
 // protocol: "http" or "https"
 int EXPORT run_http_suite(int proxy,
 	char const* protocol,
+	lt::disk_io_constructor_type disk_io,
 	bool chunked_encoding,
 	bool test_ban,
 	bool keepalive,
@@ -354,7 +355,9 @@ int EXPORT run_http_suite(int proxy,
 			pack.set_bool(settings_pack::enable_natpmp, false);
 			pack.set_bool(settings_pack::enable_upnp, false);
 			pack.set_bool(settings_pack::enable_dht, false);
-			lt::session ses(session_params{pack, {}});
+			session_params sp(pack, {});
+			sp.disk_io_constructor = disk_io;
+			lt::session ses(std::move(sp));
 
 			test_transfer(ses, atp, proxy, protocol, true
 				, chunked_encoding, test_ban, keepalive, proxy_peers);

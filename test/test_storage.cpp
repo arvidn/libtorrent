@@ -882,6 +882,8 @@ namespace {
 		check_files_flag_t const flags, lt::disk_io_constructor_type disk_io)
 	{
 		test_check_files(flags, disk_io);
+		// posix_disk_io is single-threaded; the thread-count variants are redundant
+		if (is_single_threaded_disk_io(disk_io)) return;
 		test_check_files(flags, disk_io, 0, 1);
 		test_check_files(flags, disk_io, 0, 2);
 	}

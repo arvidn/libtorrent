@@ -224,12 +224,16 @@ void disk_io_test_suite_impl(lt::disk_io_constructor_type disk_io
 void disk_io_test_suite(lt::disk_io_constructor_type disk_io
 	, int const num_files)
 {
+	// posix_disk_io is single-threaded; disk_threads has no effect, so don't
+	// re-run the same configuration twice.
+	bool const single_threaded = is_single_threaded_disk_io(disk_io);
 	for (disk_test_mode_t flags : {test_mode::v1, test_mode::v2, test_mode::v1 | test_mode::v2})
 	{
 		for (int hasher_threads : {0, 2})
 		{
 			for (int disk_threads : {0, 2})
 			{
+				if (single_threaded && disk_threads != 0) continue;
 				for (int piece_size : {300, 0x8000})
 				{
 					disk_io_test_suite_impl(disk_io

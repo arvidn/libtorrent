@@ -8,9 +8,11 @@ see LICENSE file.
 */
 
 #include "test.hpp"
+#include "libtorrent/session_params.hpp" // for disk_io_constructor_type
 
 int EXPORT run_http_suite(int proxy,
 	char const* protocol,
+	lt::disk_io_constructor_type disk_io,
 	bool chunked_encoding = false,
 	bool test_ban = false,
 	bool keepalive = true,

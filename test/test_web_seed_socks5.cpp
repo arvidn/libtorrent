@@ -9,6 +9,7 @@ see LICENSE file.
 */
 
 #include "test.hpp"
+#include "disk_io_test.hpp"
 #include "setup_transfer.hpp"
 #include "web_seed_suite.hpp"
 
@@ -17,13 +18,7 @@ using namespace lt;
 const int proxy = lt::settings_pack::socks5;
 
 #if TORRENT_USE_SSL
-TORRENT_TEST(url_seed_ssl)
-{
-	run_http_suite(proxy, "https");
-}
+TORRENT_TEST_DISK_IO(url_seed_ssl) { run_http_suite(proxy, "https", disk_io); }
 #endif
 
-TORRENT_TEST(url_seed)
-{
-	run_http_suite(proxy, "http");
-}
+TORRENT_TEST_DISK_IO(url_seed) { run_http_suite(proxy, "http", disk_io); }
