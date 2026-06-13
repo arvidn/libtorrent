@@ -49,6 +49,14 @@ enum flags_t
 
 	// token limit is too low
 	token_limit = 64,
+
+	// add the torrent from a magnet link that only carries the v1
+	// info-hash, even though the actual torrent is hybrid. Once the
+	// metadata is received the torrent must grow into a hybrid torrent
+	v1_magnet = 128,
+
+	// same as v1_magnet, but the magnet link only carries the v2 info-hash
+	v2_magnet = 256,
 };
 
 void run_metadata_test(int flags)
@@ -86,15 +94,18 @@ void run_metadata_test(int flags)
 	// TODO: we use real_disk here because the test disk io doesn't support
 	// multiple torrents, and readd will add back the same torrent before the
 	// first one is done being removed
-	setup_swarm(2, ((flags & reverse) ? swarm_test::upload : swarm_test::download)
-		| ((flags & readd) ? swarm_test::real_disk : swarm_test_t{})
-		, sim
-		, default_settings
-		, default_add_torrent
+	setup_swarm(
+		2,
+		((flags & reverse) ? swarm_test::upload : swarm_test::download)
+			| ((flags & readd) ? swarm_test::real_disk : swarm_test_t{}),
+		sim,
+		default_settings,
+		default_add_torrent
 		// add session
-		, [](lt::settings_pack&) {}
-		// add torrent
-		, [&ti](lt::add_torrent_params& params) {
+		,
+		[](lt::settings_pack&) {} // add torrent
+		,
+		[&ti, flags](lt::add_torrent_params& params) {
 			// we want to add the torrent via magnet link
 			error_code ec;
 			add_torrent_params const p = parse_magnet_uri(
@@ -107,6 +118,12 @@ void run_metadata_test(int flags)
 			params.tracker_tiers = p.tracker_tiers;
 			params.url_seeds = p.url_seeds;
 			params.info_hashes = p.info_hashes;
+			// the test torrent is hybrid, so its magnet link normally
+			// carries both info-hashes. Drop one of them to add the torrent
+			// as if from a single-protocol magnet link and exercise the
+			// upgrade-to-hybrid path in torrent::set_metadata()
+			if (flags & v1_magnet) params.info_hashes.v2 = sha256_hash{};
+			if (flags & v2_magnet) params.info_hashes.v1 = sha1_hash{};
 			params.peers = p.peers;
 #ifndef TORRENT_DISABLE_DHT
 			params.dht_nodes = p.dht_nodes;
@@ -114,15 +131,29 @@ void run_metadata_test(int flags)
 			params.flags &= ~torrent_flags::upload_mode;
 		}
 		// on alert
-		, [&](lt::alert const* a, lt::session& ses) {
-
+		,
+		[&](lt::alert const* a, lt::session& ses) {
 			if (alert_cast<metadata_failed_alert>(a))
 			{
 				metadata_failed_alerts += 1;
 			}
-			else if (alert_cast<metadata_received_alert>(a))
+			else if (auto const* mr = alert_cast<metadata_received_alert>(a))
 			{
 				metadata_alerts += 1;
+
+				if (flags & (v1_magnet | v2_magnet))
+				{
+					// even though we added the torrent via a single-protocol
+					// magnet link, the metadata describes a hybrid torrent, so
+					// the torrent must now have both info-hashes
+					auto const tf = mr->handle.torrent_file();
+					TEST_CHECK(tf);
+					if (tf)
+					{
+						TEST_CHECK(tf->info_hashes().has_v1());
+						TEST_CHECK(tf->info_hashes().has_v2());
+					}
+				}
 
 				if (flags & disconnect)
 				{
@@ -139,8 +170,22 @@ void run_metadata_test(int flags)
 			}
 		}
 		// terminate
-		, [&](int ticks, lt::session& ses) -> bool
-		{
+		,
+		[&](int ticks, lt::session& ses) -> bool {
+			// until the metadata arrives the torrent should only carry the
+			// single info-hash from the magnet link. it grows into a hybrid
+			// torrent only once the metadata is received
+			if ((flags & (v1_magnet | v2_magnet)) && metadata_alerts == 0)
+			{
+				auto const torrents = ses.get_torrents();
+				if (!torrents.empty())
+				{
+					info_hash_t const ih = torrents[0].info_hashes();
+					TEST_EQUAL(ih.has_v1(), bool(flags & v1_magnet));
+					TEST_EQUAL(ih.has_v2(), bool(flags & v2_magnet));
+				}
+			}
+
 			if (flags & reverse)
 			{
 				return true;
@@ -225,6 +270,10 @@ TORRENT_TEST(ut_metadata_token_limit)
 {
 	run_metadata_test(token_limit);
 }
+
+TORRENT_TEST(ut_metadata_v1_magnet_to_hybrid) { run_metadata_test(v1_magnet); }
+
+TORRENT_TEST(ut_metadata_v2_magnet_to_hybrid) { run_metadata_test(v2_magnet); }
 
 #else
 TORRENT_TEST(disabled) {}
