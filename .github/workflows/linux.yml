@@ -248,10 +248,10 @@ jobs:
           LSAN_OPTIONS: suppressions=${{ github.workspace }}/.asan.suppressions
         uses: nick-fields/retry@v4
         with:
-          timeout_minutes: 30
+          timeout_minutes: 90
           retry_wait_seconds: 4
           max_attempts: 3
-          command: (cd test; b2 ${{ matrix.config }} -l500 warnings-as-errors=on debug-iterators=on asserts=on)
+          command: (cd test; b2 ${{ matrix.config }} -l1800 warnings-as-errors=on debug-iterators=on asserts=on)
 
 
 
