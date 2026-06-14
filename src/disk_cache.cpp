@@ -1128,14 +1128,19 @@ void disk_cache::flush_storage(std::function<int(bitfield&, span<disk_job* const
 		if (piece_iter == view.end())
 			continue;
 
-		// a concurrent flush_storage() may be running. Only one thread can be
-		// notified for a piece, so if one is already waiting on it, leave it
-		// to them.
+		// If another flush_storage() is already waiting on this piece, leave it to
+		// them. notify_flushed_flag is a single shared wakeup signal that supports
+		// only one waiter at a time: a second waiter could be stranded if the
+		// first one clears the flag and then re-flushes the piece -- that
+		// re-flush's scope_end would see no flag set and never wake the second.
 		if (piece_iter->flags & cached_piece_entry::notify_flushed_flag) continue;
 
-		// A background flush thread may have this piece mid-flight (flushing_flag
-		// set, lock released). Set notify_flushed_flag so flush_piece_impl will
-		// signal us, then wait for it to finish before flushing remaining blocks.
+		// Another thread may be flushing this piece right now (flushing_flag set,
+		// lock released). Set notify_flushed_flag so that thread's flush_piece_impl
+		// wakes us from its scope_end, then wait for it to finish. The flag is only
+		// a wakeup signal, not a pin: while we wait the piece may be flushed,
+		// hashed, or even evicted by another thread, so we re-look-up the piece on
+		// each wakeup and move on if it is gone.
 		if (piece_iter->flags & cached_piece_entry::flushing_flag)
 		{
 			view.modify(piece_iter, [](cached_piece_entry& e)
@@ -1156,7 +1161,6 @@ void disk_cache::flush_storage(std::function<int(bitfield&, span<disk_job* const
 		if (num_blocks == 0) continue;
 
 		span<cached_block_entry> const blocks = piece_iter->get_blocks();
-
 		flush_piece_impl(view, piece_iter, f, l, blocks, clear_piece_fun);
 		TORRENT_ASSERT(l.owns_lock());
 		TORRENT_ASSERT(!(piece_iter->flags & cached_piece_entry::flushing_flag));
