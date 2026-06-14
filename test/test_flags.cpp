@@ -16,10 +16,15 @@ see LICENSE file.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/load_torrent.hpp"
+#include "libtorrent/create_torrent.hpp"
+#include "libtorrent/bencode.hpp"
+#include "libtorrent/alert_types.hpp"
 #include "settings.hpp"
 #include "test_utils.hpp"
+#include "setup_transfer.hpp"
 
 using namespace libtorrent;
+using namespace std::chrono_literals;
 namespace lt = libtorrent;
 
 namespace {
@@ -159,22 +164,57 @@ TORRENT_TEST(flag_sequential_download)
 	test_unset_after_add(torrent_flags::sequential_download);
 }
 
-// the stop when ready flag will be cleared when the torrent is ready to start
-// downloading.
-// since the posix_disk_io is not threaded, this will happen immediately
-#if TORRENT_HAVE_MMAP
+// stop_when_ready force-stops the torrent once it becomes ready to start
+// downloading (transitions into a downloading state) and clears the flag.
+//
+// The torrent is added paused with a partial have_pieces bitmask, which keeps
+// it in the checking_files state (not a downloading state, so the flag is
+// preserved) and lets us observe the flag set. Resuming then lets checking
+// complete, which makes the torrent ready and triggers stop_when_ready.
 TORRENT_TEST(flag_stop_when_ready)
 {
-	// stop-when-ready
-	// TODO: this test is flaky, since the torrent will become ready before
-	// asking for the flags, and by then stop_when_ready will have been cleared
-	//test_add_and_get_flags(torrent_flags::stop_when_ready);
-	// setting stop-when-ready when already stopped has no effect.
-	// TODO: change to a different test setup. currently always paused.
-	//test_set_after_add(torrent_flags::stop_when_ready);
-	test_unset_after_add(torrent_flags::stop_when_ready);
+	// a multi-piece torrent is required to be able to resume mid-check
+	std::vector<lt::create_file_entry> fs;
+	fs.emplace_back("temp", std::int64_t(default_block_size) * 4);
+	lt::create_torrent ct(std::move(fs), default_block_size, lt::create_torrent::v1_only);
+	for (auto const i : ct.piece_range())
+		ct.set_hash(i, sha1_hash::max());
+
+	session ses(settings());
+	add_torrent_params p = load_torrent_buffer(bencode(ct.generate()));
+	p.save_path = ".";
+	p.flags = torrent_flags::stop_when_ready | torrent_flags::paused;
+	// a partial have_pieces bitmask makes the torrent resume mid-check, so it
+	// stays in the checking_files state rather than becoming ready
+	p.have_pieces.resize(1, false);
+	const torrent_handle h = ses.add_torrent(p);
+	TEST_CHECK(h.is_valid());
+	TEST_EQUAL(h.flags() & torrent_flags::stop_when_ready, torrent_flags::stop_when_ready);
+
+	h.resume();
+
+	// wait for checking to complete, which makes the torrent ready and
+	// transitions it into a downloading state. status() is serialized after
+	// that transition on the network thread, so by the time we read it the
+	// torrent has been force-stopped: paused and no longer auto-managed, in a
+	// downloading state, with stop_when_ready cleared.
+	const bool ready = wait_for_alert(
+		ses,
+		"flag_stop_when_ready",
+		[](lt::alert const* a) {
+			auto const* sc = alert_cast<state_changed_alert>(a);
+			return sc && sc->state == torrent_status::downloading;
+		},
+		30s);
+	TEST_CHECK(ready);
+
+	const torrent_status st = h.status();
+	TEST_EQUAL(st.flags & torrent_flags::stop_when_ready, torrent_flags_t{});
+	TEST_EQUAL(st.flags & torrent_flags::paused, torrent_flags::paused);
+	TEST_EQUAL(st.flags & torrent_flags::auto_managed, torrent_flags_t{});
+	TEST_EQUAL(st.state, torrent_status::downloading);
+	print_alerts(ses);
 }
-#endif
 
 TORRENT_TEST(flag_disable_dht)
 {
