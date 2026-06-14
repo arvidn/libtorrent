@@ -37,11 +37,5 @@ TORRENT_TEST_DISK_IO(url_seed_host_header)
 
 TORRENT_TEST_DISK_IO(url_seed_keepalive_rename)
 {
-	// TODO: Run this test for all disk I/O backends
-	using fn_t = std::unique_ptr<lt::disk_interface> (*)(
-		lt::io_context&, lt::settings_interface const&, lt::counters&);
-	auto const* tgt = disk_io.target<fn_t>();
-	if (tgt != nullptr && *tgt == &lt::pread_disk_io_constructor) return;
-
 	run_http_suite(proxy, "http", disk_io, web_seed::test_ban);
 }
