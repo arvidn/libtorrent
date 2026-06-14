@@ -33,13 +33,14 @@ constexpr disk_test_mode_t v1 = 0_bit;
 constexpr disk_test_mode_t v2 = 1_bit;
 }
 
-namespace {
-void disk_io_test_suite_impl(lt::disk_io_constructor_type disk_io
-	, disk_test_mode_t const flags
-	, int const piece_size
-	, int const num_files
-	, int const hasher_threads
-	, int const disk_threads)
+static void disk_io_test_suite_impl(lt::disk_io_constructor_type disk_io,
+	disk_test_mode_t const flags,
+	int const piece_size,
+	int const num_files,
+	int const hasher_threads,
+	int const disk_threads,
+	bool const raise_fence,
+	bool const stacked_fence)
 {
 	lt::io_context ios;
 	lt::counters cnt;
@@ -90,6 +91,8 @@ void disk_io_test_suite_impl(lt::disk_io_constructor_type disk_io
 	int expect_written = 0;
 	int hashes_done = 0;
 	int expect_hashes = 0;
+	int clears_done = 0;
+	int expect_clears = 0;
 	bool const need_v1 = bool(flags & test_mode::v1);
 	bool const need_v2 = bool(flags & test_mode::v2);
 	int const block_size = std::min(lt::default_block_size, piece_size);
@@ -97,6 +100,20 @@ void disk_io_test_suite_impl(lt::disk_io_constructor_type disk_io
 	{
 		int const len = need_v1 ? fs.piece_size(p) : fs.piece_size2(p);
 		std::vector<char> const buffer = generate_piece(p, len);
+
+		// Raise a per-storage fence right before this piece's writes. Clearing
+		// p while it is still empty is a no-op clear, but it raises the fence,
+		// so the writes (and the hash) below are queued behind it and only
+		// inserted/run when the clear lowers it. If the fence machinery ran the
+		// hash before the queued writes landed in the cache, the hash would not
+		// match. We deliberately don't submit_jobs() until the whole piece is
+		// queued, so the fence stays up across all of p's writes.
+		if (raise_fence || stacked_fence)
+		{
+			disk_thread->async_clear_piece(
+				storage, p, [&clears_done](lt::piece_index_t) { ++clears_done; });
+			++expect_clears;
+		}
 		for (int block = 0; block < len; block += block_size)
 		{
 			int const write_size = std::min(block_size, len - block);
@@ -121,6 +138,22 @@ void disk_io_test_suite_impl(lt::disk_io_constructor_type disk_io
 				}
 				, disk_flags);
 			++expect_written;
+
+			// stacked-fence regression: right after this piece's first block,
+			// raise a SECOND fence (a no-op clear on the next, still-empty piece)
+			// before the rest of the piece is written. While both fences are up,
+			// lowering the first reposts this partial piece's first block into the
+			// cache ahead of the second (still-raised) fence. Nothing would flush
+			// that partial piece, so before the fix the second fence waited on it
+			// forever; the re-armed fence flush keeps it moving.
+			if (stacked_fence && block == 0 && !last_block
+				&& static_cast<int>(p) + 1 < fs.num_pieces())
+			{
+				lt::piece_index_t const next{static_cast<int>(p) + 1};
+				disk_thread->async_clear_piece(
+					storage, next, [&clears_done](lt::piece_index_t) { ++clears_done; });
+				++expect_clears;
+			}
 
 			if (last_block)
 			{
@@ -202,11 +235,13 @@ void disk_io_test_suite_impl(lt::disk_io_constructor_type disk_io
 #else
 	auto const timeout = lt::seconds(20);
 #endif
-	while (blocks_written < expect_written || hashes_done < expect_hashes)
+	while (blocks_written < expect_written || hashes_done < expect_hashes
+		|| clears_done < expect_clears)
 	{
 		ios.run_for(std::chrono::seconds(1));
 		std::cout << "blocks_written: " << blocks_written << "/" << expect_written
-			<< " hashes_done: " << hashes_done << "/" << expect_hashes << std::endl;
+				  << " hashes_done: " << hashes_done << "/" << expect_hashes
+				  << " clears_done: " << clears_done << "/" << expect_clears << std::endl;
 
 		if (lt::aux::time_now() - start_time > timeout)
 		{
@@ -217,12 +252,15 @@ void disk_io_test_suite_impl(lt::disk_io_constructor_type disk_io
 
 	TEST_EQUAL(blocks_written, expect_written);
 	TEST_EQUAL(hashes_done, expect_hashes);
+	TEST_EQUAL(clears_done, expect_clears);
 
 	disk_thread->abort(true);
 }
 
-void disk_io_test_suite(lt::disk_io_constructor_type disk_io
-	, int const num_files)
+static void disk_io_test_suite(lt::disk_io_constructor_type disk_io,
+	int const num_files,
+	bool const raise_fence = false,
+	bool const stacked_fence = false)
 {
 	// posix_disk_io is single-threaded; disk_threads has no effect, so don't
 	// re-run the same configuration twice.
@@ -236,12 +274,14 @@ void disk_io_test_suite(lt::disk_io_constructor_type disk_io
 				if (single_threaded && disk_threads != 0) continue;
 				for (int piece_size : {300, 0x8000})
 				{
-					disk_io_test_suite_impl(disk_io
-						, flags
-						, piece_size
-						, num_files
-						, hasher_threads
-						, disk_threads);
+					disk_io_test_suite_impl(disk_io,
+						flags,
+						piece_size,
+						num_files,
+						hasher_threads,
+						disk_threads,
+						raise_fence,
+						stacked_fence);
 				}
 			}
 		}
@@ -255,7 +295,7 @@ void disk_io_test_suite(lt::disk_io_constructor_type disk_io
 // aio_threads=0 there is no thread to flush the cache to disk. In this state
 // any hash2 implementation that falls through to a disk read would read zeros
 // (the block has not been written to disk yet) and produce a wrong hash.
-void hash2_before_flush_impl(
+static void hash2_before_flush_impl(
 	lt::disk_io_constructor_type disk_io, disk_test_mode_t const flags, int const piece_size)
 {
 	lt::io_context ios;
@@ -387,7 +427,7 @@ void hash2_before_flush_impl(
 	disk_thread->abort(true);
 }
 
-void hash2_before_flush_suite(lt::disk_io_constructor_type disk_io)
+static void hash2_before_flush_suite(lt::disk_io_constructor_type disk_io)
 {
 	for (disk_test_mode_t flags : {test_mode::v2, test_mode::v1 | test_mode::v2})
 	{
@@ -397,8 +437,22 @@ void hash2_before_flush_suite(lt::disk_io_constructor_type disk_io)
 		}
 	}
 }
-}
 
 TORRENT_TEST_DISK_IO(test_disk_io) { disk_io_test_suite(disk_io, 3); }
 
+// same as test_pread_disk_io, but raises a fence (a no-op async_clear_piece)
+// before each piece's writes, so the writes and the hash are queued behind the
+// fence. This exercises that a piece's hash still reflects every write posted
+// before it once the fence is lowered.
+TORRENT_TEST_DISK_IO(test_pread_disk_io_fence) { disk_io_test_suite(disk_io, 3, true); }
+
 TORRENT_TEST_DISK_IO(test_disk_io_hash2_before_flush) { hash2_before_flush_suite(disk_io); }
+
+// like test_pread_disk_io_fence, but raises a SECOND, stacked fence in the
+// middle of each piece (after its first block), leaving a partial piece queued
+// between two fences. Exercises forward progress when a stacked fence is
+// re-raised over the writes reposted by the fence ahead of it.
+TORRENT_TEST_DISK_IO(test_pread_disk_io_stacked_fence)
+{
+	disk_io_test_suite(disk_io, 3, false, true);
+}
