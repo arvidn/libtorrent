@@ -195,16 +195,25 @@ private:
 	// the disk buffer pool is over its limit (back-pressure).
 	bool add_write_to_cache(aux::pread_disk_job* j, std::shared_ptr<disk_observer> o);
 
-	// the cache lookup async_read() performs, applied to an already-allocated read
-	// job, when it is resumed after the fence it was blocked behind lowers: the
-	// block was written while the fence was up and is in the cache by then, so it
-	// must be consulted rather than read (stale) from disk. (do_job(read) reads
-	// straight from disk, unlike do_job(hash)/do_job(hash2) which already consult
-	// the cache, so only reads need this on the unblock path.) Returns true and
-	// fills the job's result buffer when the whole request is served from the
-	// cache; false when it must read from disk. Only does m_cache.get -- no
-	// completion -- so it is safe to call with a fence mutex held.
-	bool read_from_cache(aux::pread_disk_job* j);
+	// the single place a read job consults the cache and is turned into queued
+	// work. It runs once the job is past the fence gate -- in add_job() with the
+	// fence down, or in the repost callback when a fence lowers -- so it always
+	// sees the current cache (do_job(read) reads straight from disk, unlike
+	// do_job(hash)/do_job(hash2), which already consult the cache).
+	//
+	//  - the whole request is in the cache: fills the job's buffer and returns
+	//    true (the caller completes it).
+	//  - an unaligned, block-spanning request has only the block on one side in
+	//    the cache: copies that side into a fresh buffer and transforms j into a
+	//    job::partial_read for the missing side, then returns false. The
+	//    partial_read therefore reads only from disk and never re-consults the
+	//    cache.
+	//  - nothing is in the cache: leaves j a job::read and returns false (read
+	//    from disk).
+	//
+	// Only does m_cache.get/get2 -- no completion -- so it is safe to call with a
+	// fence mutex held.
+	bool prepare_read(aux::pread_disk_job* j);
 
 	// flush the cache if it is over its watermark (or schedule a flush). Called
 	// after add_write_to_cache(); separated because a synchronous flush can
@@ -540,9 +549,9 @@ status_t pread_disk_io::do_job(aux::job::read& a, aux::pread_disk_job* j)
 status_t pread_disk_io::do_job(aux::job::write&, aux::pread_disk_job*)
 {
 	// write jobs never run through the generic job path: a write queued behind
-	// a fence is inserted directly into the cache by execute_unblocked() when
-	// the fence lowers, and an un-fenced write is inserted inline in
-	// async_write(). So this is never reached.
+	// a fence is inserted directly into the cache by the repost callback in
+	// add_completed_jobs_impl() when the fence lowers, and an un-fenced write is
+	// inserted inline in async_write(). So this is never reached.
 	TORRENT_ASSERT_FAIL();
 	return {};
 }
@@ -566,105 +575,13 @@ void pread_disk_io::async_read(storage_index_t storage, peer_request const& r
 		return;
 	}
 
-	// in case r.start is not aligned to a block, calculate that offset,
-	// since that's how the disk_cache is indexed. block_offset is the
-	// aligned offset to the first block this read touches. In the case the
-	// request is aligned, it's the same as r.start
-	int const block_offset = r.start - (r.start % default_block_size);
-	int const block_idx = r.start / default_block_size;
-	// this is the offset into the block that we're reading from
-	int const read_offset = r.start - block_offset;
-
-	DLOG("async_read piece: %d block: %d (read-offset: %d)\n", static_cast<int>(r.piece)
-		, block_offset / default_block_size, read_offset);
-
-	disk_buffer_holder buffer;
-
-	if (read_offset + r.length > default_block_size)
-	{
-		// This is an unaligned request spanning two blocks. One of the two
-		// blocks may be in the cache, or neither.
-		// If neither is in the cache, we can just issue a normal
-		// read job for the unaligned request.
-
-		aux::piece_location const loc{storage, r.piece};
-		std::ptrdiff_t const len1 = default_block_size - read_offset;
-
-		TORRENT_ASSERT(r.length > len1);
-
-		int const ret = m_cache.get2(loc, block_idx, [&](char const* buf1, char const* buf2) {
-			buffer =
-				disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"));
-			if (!buffer)
-			{
-				ec.ec = error::no_memory;
-				ec.operation = operation_t::alloc_cache_piece;
-				return 3;
-			}
-
-			if (buf1)
-				std::memcpy(buffer.data(), buf1 + read_offset, std::size_t(len1));
-			if (buf2)
-				std::memcpy(buffer.data() + len1, buf2, std::size_t(r.length - len1));
-			return (buf1 ? 2 : 0) | (buf2 ? 1 : 0);
-		});
-
-		if (ret == 3)
-		{
-			// both sides were found in the store buffer and the read request
-			// was satisfied immediately
-			handler(std::move(buffer), ec);
-			return;
-		}
-
-		if (ret != 0)
-		{
-			TORRENT_ASSERT(ret == 1 || ret == 2);
-			// only one side of the read request was found in the store
-			// buffer, and we need to issue a partial read for the remaining
-			// bytes
-			aux::pread_disk_job* j = m_job_pool.allocate_job<aux::job::partial_read>(
-				flags,
-				m_torrents[storage]->shared_from_this(),
-				std::move(handler),
-				std::move(buffer),
-				std::uint16_t((ret == 1) ? 0 : len1), // buffer_offset
-				std::uint16_t((ret == 1) ? len1 : r.length - len1), // buffer_size
-				r.piece,
-				(ret == 1) ? r.start : block_offset + default_block_size // offset
-			);
-
-			add_job(j);
-			return;
-		}
-
-		// if we couldn't find any block in the cache, fall through and post it
-		// as a normal read job
-	}
-	else
-	{
-		// this is an aligned read request for one block
-		if (m_cache.get({ storage, r.piece }, block_idx, [&](span<char const> buf)
-		{
-			TORRENT_ASSERT_VAL(read_offset <= buf.size(), read_offset);
-			TORRENT_ASSERT_VAL(read_offset + r.length <= buf.size(), r.length);
-			buffer =
-				disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"));
-			if (!buffer)
-			{
-				ec.ec = error::no_memory;
-				ec.operation = operation_t::alloc_cache_piece;
-				return;
-			}
-
-			std::memcpy(buffer.data(), buf.data() + read_offset, std::size_t(r.length));
-		}))
-		{
-			handler(std::move(buffer), ec);
-			return;
-		}
-	}
-
+	// async_read() does not consult the cache itself. It posts a read job that
+	// carries the request verbatim -- including an unaligned start that spans two
+	// blocks -- and lets add_job() funnel it. A job arriving while a fence is up
+	// is parked, and the cache is consulted only once it is unblocked, so a read
+	// can never bypass the fence and read stale data ahead of a queued write.
+	// prepare_read() is the single point where the cache decides whether a read is
+	// served from the cache, turned into a partial_read, or read from disk.
 	aux::pread_disk_job* j = m_job_pool.allocate_job<aux::job::read>(
 		flags,
 		m_torrents[storage]->shared_from_this(),
@@ -678,41 +595,96 @@ void pread_disk_io::async_read(storage_index_t storage, peer_request const& r
 	add_job(j);
 }
 
-bool pread_disk_io::read_from_cache(aux::pread_disk_job* j)
+bool pread_disk_io::prepare_read(aux::pread_disk_job* j)
 {
 	auto& a = std::get<aux::job::read>(j->action);
 	aux::piece_location const loc{j->storage->storage_index(), a.piece};
+	// in case a.offset is not aligned to a block, calculate that offset, since
+	// that's how the disk_cache is indexed. block_offset is the aligned offset to
+	// the first block this read touches; read_offset is the offset into it.
 	int const block_offset = a.offset - (a.offset % default_block_size);
 	int const block_idx = a.offset / default_block_size;
 	int const read_offset = a.offset - block_offset;
 
 	disk_buffer_holder buffer;
+
 	if (read_offset + int(a.buffer_size) > default_block_size)
 	{
-		// an unaligned request spanning two blocks. Only serve it from the cache
-		// if both blocks are present; otherwise fall back to a disk read.
+		// an unaligned request spanning two blocks. Either, both, or neither may
+		// be in the cache.
 		std::ptrdiff_t const len1 = default_block_size - read_offset;
+		// the callback returns -1 if the buffer could not be allocated, else a
+		// bitmask of which sides were found: 2 = first block, 1 = second block.
 		int const ret = m_cache.get2(loc, block_idx, [&](char const* buf1, char const* buf2) {
-			if (buf1 == nullptr || buf2 == nullptr) return 0;
 			buffer =
 				disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"));
-			if (!buffer) return 0;
-			std::memcpy(buffer.data(), buf1 + read_offset, std::size_t(len1));
-			std::memcpy(buffer.data() + len1, buf2, std::size_t(a.buffer_size - len1));
-			return 3;
+			if (!buffer) return -1;
+			if (buf1) std::memcpy(buffer.data(), buf1 + read_offset, std::size_t(len1));
+			if (buf2) std::memcpy(buffer.data() + len1, buf2, std::size_t(a.buffer_size - len1));
+			return (buf1 ? 2 : 0) | (buf2 ? 1 : 0);
 		});
-		if (ret != 3) return false;
+
+		// neither side was in the cache; read the whole span from disk.
+		if (ret == 0) return false;
+
+		if (ret == -1)
+		{
+			j->error.ec = error::no_memory;
+			j->error.operation = operation_t::alloc_cache_piece;
+			j->ret = disk_status::fatal_disk_error;
+			return true;
+		}
+
+		if (ret == 3)
+		{
+			// both sides were in the cache; the request is served.
+			a.buf = std::move(buffer);
+			j->error = storage_error{};
+			j->ret = status_t{};
+			return true;
+		}
+
+		// only one side was in the cache (copied into buffer above). Transform j
+		// into a partial_read that reads the missing side from disk. This is the
+		// only place partial_read jobs are created, and it runs past the fence
+		// gate against the current cache, so the cached side is never stale and
+		// the partial_read never needs to re-consult the cache.
+		TORRENT_ASSERT(ret == 1 || ret == 2);
+		auto handler = std::move(a.handler);
+		piece_index_t const piece = a.piece;
+		// ret == 1: only the second block was cached, so the first (len1 bytes at
+		// buffer offset 0, disk offset a.offset) is missing. ret == 2: only the
+		// first block was cached, so the second (the remainder at buffer offset
+		// len1, disk offset block_offset + default_block_size) is missing.
+		auto const buffer_offset = std::uint16_t((ret == 1) ? 0 : len1);
+		auto const missing_size = std::uint16_t((ret == 1) ? len1 : a.buffer_size - len1);
+		std::int32_t const missing_offset =
+			(ret == 1) ? a.offset : block_offset + default_block_size;
+		j->action = aux::job::partial_read{std::move(handler),
+			std::move(buffer),
+			buffer_offset,
+			missing_size,
+			piece,
+			missing_offset};
+		return false;
 	}
-	else
+
+	// an aligned read request for one block.
+	if (!m_cache.get(loc, block_idx, [&](span<char const> buf) {
+			TORRENT_ASSERT_VAL(read_offset + int(a.buffer_size) <= buf.size(), read_offset);
+			buffer =
+				disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"));
+			if (!buffer) return;
+			std::memcpy(buffer.data(), buf.data() + read_offset, std::size_t(a.buffer_size));
+		}))
+		return false;
+
+	if (!buffer)
 	{
-		if (!m_cache.get(loc, block_idx, [&](span<char const> buf) {
-				buffer =
-					disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"));
-				if (!buffer) return;
-				std::memcpy(buffer.data(), buf.data() + read_offset, std::size_t(a.buffer_size));
-			}))
-			return false;
-		if (!buffer) return false;
+		j->error.ec = error::no_memory;
+		j->error.operation = operation_t::alloc_cache_piece;
+		j->ret = disk_status::fatal_disk_error;
+		return true;
 	}
 
 	a.buf = std::move(buffer);
@@ -1420,7 +1392,7 @@ status_t pread_disk_io::do_job(aux::job::check_fastresume& a, aux::pread_disk_jo
 	auto const ret_flag = j->storage->initialize(m_settings, j->error);
 	if (j->error) return disk_status::fatal_disk_error | ret_flag;
 
-	// we must call verify_resume() unconditionally of the setting below, in
+	// we must call verify_resume_data() unconditionally of the setting below, in
 	// order to set up the links (if present)
 	bool const verify_success = j->storage->verify_resume_data(*rd
 		, links ? *links : aux::vector<std::string, file_index_t>(), j->error);
@@ -1628,11 +1600,12 @@ void pread_disk_io::add_job(aux::pread_disk_job* j, bool const user_add)
 	// fence is only lowered after job_complete() has reposted every blocked job
 	// -- inserting all blocked writes into the cache -- and it does that holding
 	// the same mutex is_blocked() takes, so a fence observed down here guarantees
-	// those writes are already in the cache. async_read()'s lock-free cache probe
-	// may have run before they landed and missed. Re-check the cache now, so we
-	// don't post a disk read for a block whose write is sitting un-flushed in the
-	// cache; do_job(read) reads disk unconditionally, so this must happen here.
-	if (j->storage && std::holds_alternative<aux::job::read>(j->action) && read_from_cache(j))
+	// those writes are already in the cache. This is where a read consults the
+	// cache (async_read() does not), so we don't post a disk read for a block whose
+	// write is sitting un-flushed in the cache; do_job(read) reads disk
+	// unconditionally, so this must happen here. prepare_read() may instead turn j
+	// into a partial_read, which falls through to the pool.
+	if (j->storage && std::holds_alternative<aux::job::read>(j->action) && prepare_read(j))
 	{
 		jobqueue_t completed;
 		completed.push_back(j);
@@ -2199,7 +2172,7 @@ void pread_disk_io::add_completed_jobs_impl(jobqueue_t jobs, jobqueue_t& complet
 			if ((result & aux::disk_cache::need_hasher_kick) || j->storage->v2())
 				ctx.need_kick = true;
 		}
-		else if (std::holds_alternative<aux::job::read>(j->action) && ctx.self->read_from_cache(j))
+		else if (std::holds_alternative<aux::job::read>(j->action) && ctx.self->prepare_read(j))
 			ctx.cache_hits.push_back(j);
 		else
 			ctx.to_pool.push_back(j);
