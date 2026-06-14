@@ -141,7 +141,7 @@ int run_test(test_case const& t)
 			disk_io = lt::disabled_disk_io_constructor(ioc, pack, cnt);
 		else
 		{
-			if (t.disk_backend != "default")
+			if (t.disk_backend != "default"_sv)
 			{
 				std::fprintf(stderr, "unknown disk-io subsystem: \"%s\". Using default.\n", t.disk_backend.c_str());
 			}
@@ -451,47 +451,76 @@ int run_test(test_case const& t)
 void print_usage()
 {
 	std::cerr << "USAGE: disk_io_stress_test <options>\n"
-		"If no options are specified, the default suite of tests are run\n\n"
-		"OPTIONS:\n"
-		"   alloc\n"
-		"      open files in pre-allocate mode\n"
-		"   even-size\n"
-		"      make test files even multiples of 1 kB\n"
-		"   random-read\n"
-		"      instead of reading blocks back in the same order they were written,\n"
-		"      read them back in random order\n"
-		"   flush\n"
-		"      issue a 'release-files' disk job every 500 jobs\n"
-		"   clear\n"
-		"      issue a 'clear_piece' disk job every 300 jobs\n"
-		"   -f <val>\n"
-		"      specifies the number of files to use in the test torrent\n"
-		"   -q <val>\n"
-		"      specifies the job queue size. i.e. the max number of outstanding\n"
-		"      read jobs to post to the disk I/O subsystem. write jobs depend on\n"
-		"      the disk subsystem's back pressure.\n"
-		"   -t <val>\n"
-		"      specifies the number of disk I/O threads to use\n"
-		"   -r <val>\n"
-		"      specifies the read multiplier. Each block that's written, is read this many times\n"
-		"   -p <val>\n"
-		"      specifies the file pool size. This is the number of files to keep open\n"
-		"   -d <disk-backend>\n"
-		"      Specifies which disk back-end to test. options are: default, mmap, pread, posix, disabled\n"
-		;
-
+				 "If no options are specified, the default suite of tests are run\n"
+				 "If the single argument \"smoke\" is given, a small subset of the\n"
+				 "default suite is run with orders of magnitude fewer blocks (for CI)\n\n"
+				 "OPTIONS:\n"
+				 "   alloc\n"
+				 "      open files in pre-allocate mode\n"
+				 "   even-size\n"
+				 "      make test files even multiples of 1 kB\n"
+				 "   random-read\n"
+				 "      instead of reading blocks back in the same order they were written,\n"
+				 "      read them back in random order\n"
+				 "   flush\n"
+				 "      issue a 'release-files' disk job every 500 jobs\n"
+				 "   clear\n"
+				 "      issue a 'clear_piece' disk job every 300 jobs\n"
+				 "   -f <val>\n"
+				 "      specifies the number of files to use in the test torrent\n"
+				 "   -q <val>\n"
+				 "      specifies the job queue size. i.e. the max number of outstanding\n"
+				 "      read jobs to post to the disk I/O subsystem. write jobs depend on\n"
+				 "      the disk subsystem's back pressure.\n"
+				 "   -t <val>\n"
+				 "      specifies the number of disk I/O threads to use\n"
+				 "   -r <val>\n"
+				 "      specifies the read multiplier. Each block that's written, is read this "
+				 "many times\n"
+				 "   -p <val>\n"
+				 "      specifies the file pool size. This is the number of files to keep open\n"
+				 "   -d <disk-backend>\n"
+				 "      Specifies which disk back-end to test. options are: default, mmap, pread, "
+				 "posix, disabled\n";
 }
 
 int main(int argc, char const* argv[])
 {
-	if (argc == 1)
+	if (argc == 1 || (argc == 2 && argv[1] == "smoke"_sv))
 	{
-		// the default test suite
 		namespace tm = test_mode;
+
+		// a curated subset of the full suite, just to catch trivial hangs and
+		// crashes: baseline, random read order, release-files, small file pool
+		bool const smoke = (argc == 2);
 
 		std::vector<test_case> tests;
 		for (char const* backend : {"mmap", "posix", "pread"})
 		{
+			if (smoke)
+			{
+				// files, queue, threads, read-mult, pool, flags, disk_backend
+				tests.push_back({6, 32, 4, 3, 10, tm::sparse, backend});
+				tests.push_back({6,
+					32,
+					4,
+					3,
+					10,
+					tm::sparse | tm::read_random_order | tm::even_file_sizes,
+					backend});
+				tests.push_back({6,
+					32,
+					4,
+					3,
+					10,
+					tm::flush_files | tm::sparse | tm::read_random_order,
+					backend});
+				tests.push_back({6, 32, 8, 3, 1, tm::sparse | tm::read_random_order, backend});
+				continue;
+			}
+
+			// the full test suite
+
 			// files, queue, threads, read-mult, pool, flags, disk_backend
 			tests.push_back({20, 32, 16, 3, 10, tm::sparse | tm::even_file_sizes, backend});
 			tests.push_back({20, 32, 16, 3, 10, tm::sparse, backend});
