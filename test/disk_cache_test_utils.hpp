@@ -225,6 +225,14 @@ struct cache_fixture
 			[](lt::jobqueue_t, lt::aux::disk_job*) {});
 	}
 
+	// Simulate remove_storage(): erase every cached piece of the storage.
+	// Returns any jobs the teardown aborted (none expected here).
+	lt::jobqueue_t remove_storage_for(lt::storage_index_t const storage = lt::storage_index_t{0})
+	{
+		lt::jobqueue_t aborted;
+		cache.remove_storage(storage, aborted);
+		return aborted;
+	}
 };
 
 #endif // TORRENT_DISK_CACHE_TEST_UTILS_HPP_INCLUDED
