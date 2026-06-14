@@ -435,7 +435,7 @@ jobs:
       - name: build tarball
         run: AAFIGURE=~/.local/bin/aafigure RST2HTML=rst2html make dist
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: tarball-${{ matrix.os }}
           path: libtorrent-rasterbar-*.tar.gz
