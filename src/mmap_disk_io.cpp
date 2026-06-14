@@ -1097,7 +1097,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		auto const ret_flag = j->storage->initialize(m_settings, j->error);
 		if (j->error) return disk_status::fatal_disk_error | ret_flag;
 
-		// we must call verify_resume() unconditionally of the setting below, in
+		// we must call verify_resume_data() unconditionally of the setting below, in
 		// order to set up the links (if present)
 		bool const verify_success = j->storage->verify_resume_data(*rd
 			, links ? *links : aux::vector<std::string, file_index_t>(), j->error);
