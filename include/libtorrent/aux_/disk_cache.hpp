@@ -244,11 +244,6 @@ struct TORRENT_EXTRA_EXPORT cached_piece_entry
 	// flag is set, avoiding the cost of signalling.
 	static constexpr cached_piece_flags notify_flushed_flag = 7_bit;
 
-	// set by flush_storage() when it wants to erase a piece but a hasher
-	// thread holds hashing_flag. When kick_hasher() later clears
-	// hashing_flag it will see this flag and free+erase the piece itself.
-	static constexpr cached_piece_flags pending_free_flag = 8_bit;
-
 	// flags are protected by the main disk cache mutex and may only be
 	// accessed while holding it
 	cached_piece_flags flags{};
@@ -624,6 +619,11 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 	void flush_storage(std::function<int(bitfield&, span<disk_job* const>)> f,
 		storage_index_t storage,
 		std::function<void(jobqueue_t, disk_job*)> clear_piece_fun);
+
+	// called when a storage index is removed, so leftover entries cannot
+	// collide with a future torrent that reuses the index. Any still-attached
+	// jobs (none expected) are moved into `aborted` for the caller to finish.
+	void remove_storage(storage_index_t storage, jobqueue_t& aborted);
 
 	std::size_t size() const;
 	std::tuple<std::int64_t, std::int64_t> stats() const;

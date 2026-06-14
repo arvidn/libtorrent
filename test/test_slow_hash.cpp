@@ -433,18 +433,17 @@ void test_clear_piece_during_hashing(test_mode_t const mode)
 	TEST_EQUAL(f.alloc.live, 0);
 }
 
-// Regression test for the pending_free_flag mechanism.
+// Regression test for tearing down a storage while a hasher is running.
 //
 // flush_storage() is called to tear down a storage while a hasher thread
 // holds hashing_flag (mutex released mid-hash). flush_storage() must NOT
 // free or erase the piece entry while the hasher is accessing ph and
-// block_hashes; instead it sets pending_free_flag and defers the erasure.
-// When kick_hasher() subsequently clears hashing_flag it sees
-// pending_free_flag and erases the piece itself.
+// block_hashes; it only flushes the dirty blocks to disk and leaves the
+// piece in place.
 //
 // hashing_flag is set by kick_pending_hashers, which only kicks v1/hybrid
 // pieces. v2-only pieces have no hashing_flag (their work happens in
-// drain_v2_hash_queue), so they don't exercise the pending_free_flag race.
+// drain_v2_hash_queue), so they don't exercise this race.
 void test_flush_storage_during_hashing(test_mode_t const mode)
 {
 	if (!(mode & test_mode::v1)) return;
@@ -465,16 +464,19 @@ void test_flush_storage_during_hashing(test_mode_t const mode)
 	// Give the hasher time to set hashing_flag and release the mutex.
 	std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
-	// flush_storage() sees hashing_flag set: it flushes the blocks to disk,
-	// sets pending_free_flag, and returns WITHOUT erasing the piece entry.
+	// flush_storage() sees hashing_flag set: it flushes the blocks to disk
+	// and returns WITHOUT erasing the piece entry.
 	f.flush_storage_for();
 
 	// The hasher thread is still running; the piece entry must still exist.
 	TEST_CHECK(f.cache.size() > 0);
 
 	hasher_thread.join();
-	// kick_hasher() saw pending_free_flag when clearing hashing_flag and
-	// erased the piece itself.
+
+	// flush_storage() only flushes, it never erases. remove_storage() does the
+	// actual teardown: it frees any remaining buffers and erases every piece.
+	jobqueue_t const aborted = f.remove_storage_for();
+	TEST_CHECK(aborted.empty());
 
 	TEST_EQUAL(int(f.cache.size()), 0);
 	TEST_EQUAL(f.alloc.live, 0);

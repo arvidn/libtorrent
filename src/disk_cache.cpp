@@ -460,9 +460,6 @@ bool disk_cache::wait_for_v2_queue(piece_location const loc, disk_job* hash_job)
 // this should be called from a hasher thread, with m_mutex held.
 // hashing_flag must already be set on the piece by the caller.
 // Returns true if force_flush_flag was set on the piece.
-// NOTE: if pending_free_flag is set, this function will erase the piece from
-// the cache before returning, invalidating piece_iter. Callers must not
-// dereference it after this call returns.
 bool disk_cache::kick_hasher(piece_container::nth_index<4>::type::iterator piece_iter
 	, std::unique_lock<std::mutex>& l, jobqueue_t& completed_jobs
 	, jobqueue_t& retry_jobs)
@@ -585,12 +582,6 @@ keep_going:
 		});
 		if (rj) retry_jobs.push_back(rj);
 
-		if (piece_iter->flags & cached_piece_entry::pending_free_flag)
-		{
-			free_piece(*piece_iter);
-			view.erase(piece_iter);
-		}
-
 		DLOG("kick_hasher: no attached hash job\n");
 		return false;
 	}
@@ -604,13 +595,6 @@ keep_going:
 			e.flags &= ~cached_piece_entry::hashing_flag;
 			e.flags |= cached_piece_entry::force_flush_flag;
 		});
-
-		if (piece_iter->flags & cached_piece_entry::pending_free_flag)
-		{
-			free_piece(*piece_iter);
-			view.erase(piece_iter);
-			return false;
-		}
 
 		return true;
 	}
@@ -659,13 +643,6 @@ keep_going:
 		DLOG("kick_hasher: posting attached job piece: %d\n",
 			static_cast<int>(piece_iter->piece.piece));
 		completed_jobs.push_back(j);
-	}
-
-	if (piece_iter->flags & cached_piece_entry::pending_free_flag)
-	{
-		free_piece(*piece_iter);
-		view.erase(piece_iter);
-		return false;
 	}
 
 	return force_flush;
@@ -759,8 +736,6 @@ Iter disk_cache::flush_piece_impl(View& view,
 			view.modify(piece_iter, [&notify](cached_piece_entry& e) {
 				TORRENT_ASSERT(bool(e.flags & cached_piece_entry::flushing_flag));
 				notify = bool(e.flags & cached_piece_entry::notify_flushed_flag);
-				// leave notify_flushed_flag set — it pins the piece against eviction
-				// until flush_storage clears it after waking up
 				e.flags &= ~cached_piece_entry::flushing_flag;
 			});
 			if (notify) m_flushing_cv.notify_all();
@@ -878,10 +853,6 @@ int disk_cache::drop_v2_queue_entries(piece_location const loc)
 void disk_cache::free_piece(cached_piece_entry const& cpe)
 {
 #if TORRENT_USE_ASSERTS
-	// a piece with notify_flushed_flag set is pinned: flush_storage() is
-	// waiting on it and erases it itself. No other path may free it.
-	TORRENT_ASSERT(!(cpe.flags & cached_piece_entry::notify_flushed_flag));
-
 	// piece_hash_returned_flag implies hasher_cursor == blocks_in_piece():
 	// try_hash_piece() requires the cursor to already be at the end before
 	// it sets the flag, and kick_hasher() and hash_piece() both move the
@@ -982,7 +953,6 @@ void disk_cache::flush_to_disk(std::function<int(bitfield&, span<disk_job* const
 		if (piece_iter->flushed_cursor == piece_iter->blocks_in_piece()
 			&& bool(piece_iter->flags & cached_piece_entry::piece_hash_returned_flag)
 			&& !(piece_iter->flags & cached_piece_entry::flushing_flag)
-			&& !(piece_iter->flags & cached_piece_entry::notify_flushed_flag)
 			&& !(piece_iter->flags & cached_piece_entry::hashing_flag))
 		{
 			// piece_hash_returned_flag is set at the same modify() that
@@ -1109,6 +1079,33 @@ void disk_cache::flush_to_disk(std::function<int(bitfield&, span<disk_job* const
 	}
 }
 
+void disk_cache::remove_storage(storage_index_t const storage, jobqueue_t& aborted)
+{
+	std::unique_lock<std::mutex> l(m_mutex);
+
+	INVARIANT_CHECK;
+
+	auto& view = m_pieces.template get<0>();
+	auto const [begin, end] = view.equal_range(storage, compare_storage());
+
+	for (auto i = begin; i != end;)
+	{
+		// advance before erasing invalidates the iterator
+		auto const next = std::next(i);
+
+		// removing a storage happens after its torrent has been fully torn down:
+		// the release_files/stop_torrent fence has flushed every dirty block and
+		// no new jobs can be queued, so nothing is mid-flush or mid-hash here.
+		TORRENT_ASSERT(!(i->flags & cached_piece_entry::flushing_flag));
+		TORRENT_ASSERT(!(i->flags & cached_piece_entry::hashing_flag));
+
+		view.modify(i, [&](cached_piece_entry& e) { clear_piece_impl(e, aborted); });
+		view.erase(i);
+
+		i = next;
+	}
+}
+
 void disk_cache::flush_storage(std::function<int(bitfield&, span<disk_job* const>)> f,
 	storage_index_t const storage,
 	std::function<void(jobqueue_t, disk_job*)> clear_piece_fun)
@@ -1127,7 +1124,7 @@ void disk_cache::flush_storage(std::function<int(bitfield&, span<disk_job* const
 
 	for (auto piece : pieces)
 	{
-		auto const piece_iter = view.find(piece_location{storage, piece});
+		auto piece_iter = view.find(piece_location{storage, piece});
 		if (piece_iter == view.end())
 			continue;
 
@@ -1143,65 +1140,26 @@ void disk_cache::flush_storage(std::function<int(bitfield&, span<disk_job* const
 		{
 			view.modify(piece_iter, [](cached_piece_entry& e)
 				{ e.flags |= cached_piece_entry::notify_flushed_flag; });
-			m_flushing_cv.wait(l, [&]
-				{ return !(piece_iter->flags & cached_piece_entry::flushing_flag); });
-			// clear the pin now that we hold the lock and piece_iter is safe
+			m_flushing_cv.wait(l, [&] {
+				piece_iter = view.find(piece_location{storage, piece});
+				return piece_iter == view.end()
+					|| !(piece_iter->flags & cached_piece_entry::flushing_flag);
+			});
+			if (piece_iter == view.end()) continue;
 			view.modify(piece_iter, [](cached_piece_entry& e)
 				{ e.flags &= ~cached_piece_entry::notify_flushed_flag; });
 		}
 
-		// flush storage is a fence-job, no other jobs should be running at the
-		// same time on this torrent
 		TORRENT_ASSERT(!(piece_iter->flags & cached_piece_entry::flushing_flag));
 
 		int const num_blocks = piece_iter->num_jobs;
 		if (num_blocks == 0) continue;
+
 		span<cached_block_entry> const blocks = piece_iter->get_blocks();
 
 		flush_piece_impl(view, piece_iter, f, l, blocks, clear_piece_fun);
 		TORRENT_ASSERT(l.owns_lock());
 		TORRENT_ASSERT(!(piece_iter->flags & cached_piece_entry::flushing_flag));
-		TORRENT_ASSERT(!(piece_iter->flags & cached_piece_entry::notify_flushed_flag));
-
-		// A hasher thread may have picked up this piece. Freeing
-		// or erasing this piece while hashing is active can invalidate buffers
-		// currently being fed into hasher::update(). Defer the erasure: set
-		// pending_free_flag so kick_hasher() will free the piece once it's done.
-		if (piece_iter->flags & cached_piece_entry::hashing_flag)
-		{
-			view.modify(piece_iter, [](cached_piece_entry& e) {
-				e.flags |= cached_piece_entry::pending_free_flag;
-			});
-			continue;
-		}
-
-		// It's safe to free the piece here because flush_storage() is only
-		// called during torrent teardown (release_files, delete_files, etc.),
-		// where the bittorrent layer will not make further hash requests for
-		// this storage. If hashing had completed without a pending hash_job
-		// (piece_hash_returned_flag is not set), the precomputed hash in ph
-		// is simply discarded. Any subsequent try_hash_piece() call would
-		// find the piece absent from cache and re-read from disk, which is
-		// correct since all blocks have been flushed above.
-
-		// hash_job may be hung via wait_for_v2_queue. Abort it so free_piece's
-		// invariant holds; the storage is going away regardless.
-		if (piece_iter->hash_job != nullptr)
-		{
-			jobqueue_t aborted;
-			view.modify(piece_iter, [&](cached_piece_entry& e) {
-				aborted.push_back(std::exchange(e.hash_job, nullptr));
-			});
-			clear_piece_fun(std::move(aborted), nullptr);
-		}
-
-		// In-flight drain batches keep their own copy of the buffer; freeing
-		// the piece here just removes the cbe. When the drain finishes and
-		// looks up the piece it'll find it gone, store the precomputed hash
-		// on the (still-alive via shared_ptr) storage, and drop the buffer
-		// naturally. The stored hash is harmless: nobody will read it back.
-		free_piece(*piece_iter);
-		view.erase(piece_iter);
 	}
 }
 
@@ -1274,12 +1232,6 @@ void disk_cache::check_invariant() const
 			TORRENT_ASSERT(queued <= int(piece_entry.v2_pending));
 		}
 		total_v2_pending += int(piece_entry.v2_pending);
-
-		// pending_free_flag is set by flush_storage() when it wants to erase a
-		// piece but hashing_flag is active. The hasher will erase it when done.
-		// It must never outlive the hashing window.
-		if (piece_entry.flags & cached_piece_entry::pending_free_flag)
-			TORRENT_ASSERT(piece_entry.flags & cached_piece_entry::hashing_flag);
 
 		int idx = 0;
 		for (auto& be : blocks)

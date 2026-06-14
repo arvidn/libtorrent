@@ -309,6 +309,13 @@ storage_holder pread_disk_io::new_torrent(storage_params const& params
 
 void pread_disk_io::remove_torrent(storage_index_t const idx)
 {
+	// purge the cache so stale entries can't collide with a future torrent
+	// that reuses this index. The torrent is fully torn down by now, so no
+	// jobs should still be attached -- abort any defensively.
+	jobqueue_t aborted;
+	m_cache.remove_storage(idx, aborted);
+	TORRENT_ASSERT(aborted.empty());
+	m_completed_jobs.abort_jobs(m_ios, std::move(aborted));
 	m_torrents.remove(idx);
 }
 

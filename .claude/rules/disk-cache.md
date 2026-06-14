@@ -35,6 +35,7 @@ Flags are stored in `cached_piece_flags flags` (a `bitfield_flag<uint8_t>` bitfi
 - `v1_hashes_flag` — set if this piece requires v1 SHA-1 hashing (`ph` is allocated).
 - `v2_hashes_flag` — set if this piece requires v2 SHA-256 block hashing (`block_hashes` is allocated).
 - `needs_hasher_kick_flag` — set when a block is inserted and the hasher thread should be woken; cleared when the hasher picks it up. Coalesces multiple insertions into one wakeup.
+- `notify_flushed_flag` — set by a `flush_storage()` caller that is waiting on a piece another thread is mid-flush on; `flush_piece_impl`'s `scope_end` checks it and signals `m_flushing_cv`. Only a wakeup signal supporting a single waiter, not a pin — the waiter re-looks-up the piece after each wakeup because it may have been flushed, hashed, or evicted while it slept.
 
 In both hashing and flushing cases, the lock is **released** for the duration of the actual I/O (hashing or `pwrite()`), then re-acquired to update cursors/flags and potentially free buffers.
 
@@ -56,3 +57,5 @@ The held-alive buffer is reclaimed when `kick_hasher` next advances the cursor p
 4. Expensive flush pass (`view4`) — flush any dirty blocks even if they haven't been hashed yet, requiring a read-back later to complete the piece hash. Used only when the cache exceeds the high-water mark.
 
 Passes 2-4 run only when `optimistic=false`. The optimistic flush at the top of each disk thread's loop runs only pass 1.
+
+**`flush_storage()`:** Called as a fence job during torrent teardown (`release_files`, `delete_files`, etc.) to flush every cached piece of one storage to disk. For each piece it flushes any still-dirty blocks (completing their write jobs via `flush_piece_impl`). It does **not** free or erase the piece — eviction is left to `flush_to_disk`. Keeping the piece preserves its partial hash state and lets another thread erase it concurrently without racing the flush. If a piece is mid-flush on another thread (`flushing_flag` set), it sets `notify_flushed_flag`, waits on `m_flushing_cv`, and re-looks-up the piece on each wakeup (it may be flushed, hashed, or evicted while waiting); if it is gone, it moves on. A concurrent `flush_storage()` already waiting on a piece (`notify_flushed_flag` already set) is left to that waiter, since the flag supports only one waiter.
