@@ -61,6 +61,14 @@ EXPORT bool print_alerts(lt::session& ses, char const* name
 		= std::function<bool(lt::alert const*)>()
 	, bool no_output = false);
 
+// waits until 'predicate' returns true for one of the session's alerts, or
+// until 'timeout' elapses. returns whether the predicate was satisfied. all
+// alerts are printed (via print_alerts()) while waiting.
+EXPORT bool wait_for_alert(lt::session& ses,
+	char const* name,
+	std::function<bool(lt::alert const*)> predicate,
+	lt::time_duration timeout);
+
 EXPORT void wait_for_listen(lt::session& ses, char const* name);
 EXPORT void wait_for_downloading(lt::session& ses, char const* name);
 EXPORT void wait_for_seeding(lt::session& ses, char const* name);
