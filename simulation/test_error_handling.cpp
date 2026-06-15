@@ -13,8 +13,10 @@ see LICENSE file.
 #include "create_torrent.hpp"
 #include "settings.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/session_params.hpp"
 #include "libtorrent/session_stats.hpp"
 #include "libtorrent/settings_pack.hpp"
+#include "disk_io_test.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/aux_/proxy_settings.hpp"
@@ -37,7 +39,10 @@ using namespace sim;
 int g_alloc_counter = 1000000;
 
 template <typename HandleAlerts, typename Test>
-void run_test(int const round, HandleAlerts const& on_alert, Test const& test)
+void run_test(int const round,
+	lt::disk_io_constructor_type const& disk,
+	HandleAlerts const& on_alert,
+	Test const& test)
 {
 	using namespace lt;
 
@@ -70,11 +75,15 @@ void run_test(int const round, HandleAlerts const& on_alert, Test const& test)
 
 	std::shared_ptr<lt::session> ses[2];
 
-	// create session
-	ses[0] = std::make_shared<lt::session>(pack, ios0);
+	// create session (on the disk back-end under test)
+	lt::session_params sp0(pack);
+	sp0.disk_io_constructor = disk;
+	ses[0] = std::make_shared<lt::session>(sp0, ios0);
 
 	pack.set_str(settings_pack::listen_interfaces, peer1.to_string() + ":6881");
-	ses[1] = std::make_shared<lt::session>(pack, ios1);
+	lt::session_params sp1(pack);
+	sp1.disk_io_constructor = disk;
+	ses[1] = std::make_shared<lt::session>(sp1, ios1);
 
 	// only monitor alerts for session 0 (the downloader)
 	print_alerts(*ses[0], [=](lt::session& ses, lt::alert const* a) {
@@ -167,7 +176,7 @@ void operator delete(void* ptr, std::size_t) noexcept
 	std::free(ptr);
 }
 
-TORRENT_TEST(error_handling)
+void run_rounds(lt::disk_io_constructor_type const& disk)
 {
 	for (int i = 0; i < 8000; ++i)
 	{
@@ -184,10 +193,11 @@ TORRENT_TEST(error_handling)
 		try
 		{
 			using namespace lt;
-			run_test(i,
+			run_test(
+				i,
+				disk,
 				[](lt::session&, lt::alert const*) {},
-				[](std::shared_ptr<lt::session>[2]) {}
-			);
+				[](std::shared_ptr<lt::session>[2]) {});
 		}
 		catch (std::bad_alloc const&)
 		{
@@ -226,3 +236,4 @@ TORRENT_TEST(error_handling)
 	g_alloc_counter = 1000000;
 }
 
+TORRENT_TEST_DISK_IO(error_handling) { run_rounds(disk_io); }
