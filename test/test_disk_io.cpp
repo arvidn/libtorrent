@@ -8,6 +8,8 @@ see LICENSE file.
 */
 
 #include <iostream>
+#include <thread>
+#include <chrono>
 #include "test.hpp"
 #include "disk_io_test.hpp"
 #include "setup_transfer.hpp"
@@ -436,6 +438,168 @@ static void hash2_before_flush_suite(lt::disk_io_constructor_type disk_io)
 			hash2_before_flush_impl(disk_io, flags, piece_size);
 		}
 	}
+}
+
+#ifdef TORRENT_SIMULATE_SLOW_WRITE
+// Regression test for a self-deadlock in pread_disk_io. When an
+// async_clear_piece arrives while its piece is mid-flush, the clear is parked
+// on the cached_piece_entry and dispatched from inside
+// disk_cache::flush_piece_impl with the cache mutex held. pread_disk_io's
+// clear-piece callback re-enters the cache (clear_piece_jobs ->
+// add_completed_jobs -> schedule_flush -> disk_cache::flush_request), which
+// re-locks that same (non-recursive) mutex and hangs the disk thread.
+//
+// The race is only deterministic with a widened flush window, so this test is
+// only built (and only meaningful) in a simulate-slow=write configuration: the
+// 100ms sleep in pread_storage::write keeps flushing_flag set long enough for
+// the clear to reliably land mid-flush. Needs >= 2 disk threads -- one holds
+// flushing_flag in the slow write while another services the clear-piece fence
+// job and parks it.
+static void clear_during_flush_impl(
+	lt::disk_io_constructor_type disk_io, disk_test_mode_t const flags, int const piece_size)
+{
+	lt::io_context ios;
+	lt::counters cnt;
+	lt::settings_pack sett = lt::default_settings();
+	sett.set_int(lt::settings_pack::hashing_threads, 2);
+	sett.set_int(lt::settings_pack::aio_threads, 2);
+	std::unique_ptr<lt::disk_interface> disk_thread = disk_io(ios, sett, cnt);
+
+	std::cout << "clear_during_flush: " << ((flags & test_mode::v1) ? "v1 " : "")
+			  << ((flags & test_mode::v2) ? "v2 " : "") << " piece_size: " << piece_size
+			  << std::endl;
+
+	lt::file_storage fs;
+	fs.set_piece_length(piece_size);
+	int const file_size = piece_size * 4;
+	fs.add_file("clear_during_flush_torrent/file-0", file_size, {});
+	fs.set_num_pieces(int((file_size + piece_size - 1) / piece_size));
+
+	lt::aux::vector<lt::download_priority_t, lt::file_index_t> priorities;
+	std::string const name = "clear_during_flush_store";
+	lt::renamed_files rf;
+	lt::storage_params params{
+		fs,
+		rf,
+		name,
+		{},
+		lt::storage_mode_t::storage_mode_sparse,
+		priorities,
+		lt::sha1_hash{},
+		bool(flags & test_mode::v1),
+		bool(flags & test_mode::v2),
+	};
+
+	lt::storage_holder storage = disk_thread->new_torrent(params, std::shared_ptr<void>());
+
+	bool const need_v1 = bool(flags & test_mode::v1);
+	bool const need_v2 = bool(flags & test_mode::v2);
+	int const block_size = std::min(lt::default_block_size, piece_size);
+
+	int blocks_written = 0;
+	int expect_written = 0;
+	int hashes_done = 0;
+	int expect_hashes = 0;
+	int clears_done = 0;
+	int expect_clears = 0;
+
+	for (lt::piece_index_t p : fs.piece_range())
+	{
+		int const len = need_v1 ? fs.piece_size(p) : fs.piece_size2(p);
+		std::vector<char> const buffer = generate_piece(p, len);
+		for (int block = 0; block < len; block += block_size)
+		{
+			int const write_size = std::min(block_size, len - block);
+			bool const last_block = (block + block_size >= len);
+			lt::disk_job_flags_t const disk_flags =
+				last_block ? lt::disk_interface::flush_piece : lt::disk_job_flags_t{};
+			disk_thread->async_write(
+				storage,
+				lt::peer_request{p, block, write_size},
+				buffer.data() + block,
+				std::shared_ptr<lt::disk_observer>(),
+				[&blocks_written](lt::storage_error const&) { ++blocks_written; },
+				disk_flags);
+			++expect_written;
+
+			if (last_block)
+			{
+				int const blocks_in_piece = (len + block_size - 1) / block_size;
+				auto v2_hashes = need_v2
+					? std::make_shared<std::vector<lt::sha256_hash>>(std::size_t(blocks_in_piece))
+					: std::make_shared<std::vector<lt::sha256_hash>>();
+				lt::disk_job_flags_t const hash_flags =
+					(need_v1 ? lt::disk_interface::v1_hash : lt::disk_job_flags_t{})
+					| lt::disk_interface::flush_piece;
+				disk_thread->async_hash(storage,
+					p,
+					lt::span<lt::sha256_hash>(*v2_hashes),
+					hash_flags,
+					[&hashes_done, v2_hashes](lt::piece_index_t,
+						lt::sha1_hash const&,
+						lt::storage_error const&) { ++hashes_done; });
+				++expect_hashes;
+			}
+		}
+		disk_thread->submit_jobs();
+
+		// give a disk thread time to enter the slow flush for this piece, so
+		// the clear below is observed while flushing_flag is set and gets
+		// parked on the entry (the path that used to deadlock).
+		std::this_thread::sleep_for(std::chrono::milliseconds(60));
+
+		disk_thread->async_clear_piece(
+			storage, p, [&clears_done](lt::piece_index_t) { ++clears_done; });
+		++expect_clears;
+		disk_thread->submit_jobs();
+	}
+
+	auto const start_time = lt::aux::time_now();
+	auto const timeout = lt::seconds(20);
+	while (blocks_written < expect_written || hashes_done < expect_hashes
+		|| clears_done < expect_clears)
+	{
+		ios.run_for(std::chrono::seconds(1));
+		std::cout << "blocks_written: " << blocks_written << "/" << expect_written
+				  << " hashes_done: " << hashes_done << "/" << expect_hashes
+				  << " clears_done: " << clears_done << "/" << expect_clears << std::endl;
+
+		if (lt::aux::time_now() - start_time > timeout)
+		{
+			TEST_ERROR("timeout (likely deadlock in clear-during-flush path)");
+			break;
+		}
+	}
+
+	TEST_EQUAL(blocks_written, expect_written);
+	TEST_EQUAL(hashes_done, expect_hashes);
+	TEST_EQUAL(clears_done, expect_clears);
+
+	disk_thread->abort(true);
+}
+
+static void clear_during_flush_suite(lt::disk_io_constructor_type disk_io)
+{
+	for (disk_test_mode_t flags : {test_mode::v1, test_mode::v2, test_mode::v1 | test_mode::v2})
+	{
+		for (int piece_size : {0x4000, 0x8000})
+		{
+			clear_during_flush_impl(disk_io, flags, piece_size);
+		}
+	}
+}
+#endif // TORRENT_SIMULATE_SLOW_WRITE
+
+// Exercises dispatching a deferred clear_piece from inside the cache flush.
+// Only deterministic (and only built) under simulate-slow=write; see
+// clear_during_flush_impl.
+TORRENT_TEST_DISK_IO(test_disk_io_clear_during_flush)
+{
+#ifdef TORRENT_SIMULATE_SLOW_WRITE
+	clear_during_flush_suite(disk_io);
+#else
+	(void)disk_io;
+#endif
 }
 
 TORRENT_TEST_DISK_IO(test_disk_io) { disk_io_test_suite(disk_io, 3); }
