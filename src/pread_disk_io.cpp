@@ -234,7 +234,7 @@ private:
 
 	int flush_cache_blocks(
 		bitfield& flushed, span<aux::disk_job* const> blocks, jobqueue_t& completed_jobs);
-	void clear_piece_jobs(jobqueue_t aborted, aux::pread_disk_job* clear);
+	void clear_piece_jobs(jobqueue_t aborted, aux::disk_job* clear, jobqueue_t& completed);
 
 	aux::disk_io_thread_pool& pool_for_job(aux::pread_disk_job* j);
 
@@ -822,8 +822,8 @@ void pread_disk_io::kick_write_hashers()
 			if (st) st->store_precomputed_v2(p, block, h);
 		},
 		retry,
-		[this](jobqueue_t aborted, aux::disk_job* clear) {
-			clear_piece_jobs(std::move(aborted), static_cast<aux::pread_disk_job*>(clear));
+		[&](jobqueue_t aborted, aux::disk_job* clear) {
+			clear_piece_jobs(std::move(aborted), clear, completed);
 		});
 	if (!completed.empty()) add_completed_jobs(std::move(completed));
 	while (!retry.empty())
@@ -1795,7 +1795,8 @@ int pread_disk_io::flush_cache_blocks(
 	return ret;
 }
 
-void pread_disk_io::clear_piece_jobs(jobqueue_t aborted, aux::pread_disk_job* clear)
+void pread_disk_io::clear_piece_jobs(
+	jobqueue_t aborted, aux::disk_job* clear, jobqueue_t& completed)
 {
 	m_completed_jobs.abort_jobs(m_ios, std::move(aborted));
 	// drop any precomputed v2 hashes for the cleared piece. We hold off on
@@ -1805,11 +1806,15 @@ void pread_disk_io::clear_piece_jobs(jobqueue_t aborted, aux::pread_disk_job* cl
 	// hash/hash2 on the re-downloaded piece.
 	if (clear)
 	{
-		auto const& a = std::get<aux::job::clear_piece>(clear->action);
-		clear->storage->drop_precomputed_v2(a.piece);
-		jobqueue_t jobs;
-		jobs.push_back(clear);
-		add_completed_jobs(std::move(jobs));
+		auto* j = static_cast<aux::pread_disk_job*>(clear);
+		auto const& a = std::get<aux::job::clear_piece>(j->action);
+		j->storage->drop_precomputed_v2(a.piece);
+		// don't complete the clear here: this runs under the cache mutex (the
+		// callback fires from inside flush_to_disk / drain_v2_hash_queue) and
+		// completing it re-enters the cache (add_completed_jobs ->
+		// schedule_flush -> flush_request), self-deadlocking. The caller drains
+		// `completed` once the cache mutex is released.
+		completed.push_back(clear);
 	}
 }
 
@@ -1826,7 +1831,7 @@ void pread_disk_io::try_flush_cache(int const target_cache_size
 		},
 		target_cache_size,
 		[&](jobqueue_t aborted, aux::disk_job* clear) {
-			clear_piece_jobs(std::move(aborted), static_cast<aux::pread_disk_job*>(clear));
+			clear_piece_jobs(std::move(aborted), clear, completed_jobs);
 		},
 		optimistic);
 	// complete the flushed write jobs with m_job_mutex unlocked: a completed
@@ -1850,7 +1855,7 @@ void pread_disk_io::flush_storage(std::shared_ptr<aux::pread_storage> const& sto
 		},
 		torrent,
 		[&](jobqueue_t aborted, aux::disk_job* clear) {
-			clear_piece_jobs(std::move(aborted), static_cast<aux::pread_disk_job*>(clear));
+			clear_piece_jobs(std::move(aborted), clear, completed_jobs);
 		});
 	DLOG("flush_storage - done (%d left)\n", m_cache.size());
 	if (!completed_jobs.empty())
@@ -1933,8 +1938,8 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 					if (st) st->store_precomputed_v2(piece, block, h);
 				},
 				retry,
-				[this](jobqueue_t aborted, aux::disk_job* clear) {
-					clear_piece_jobs(std::move(aborted), static_cast<aux::pread_disk_job*>(clear));
+				[&](jobqueue_t aborted, aux::disk_job* clear) {
+					clear_piece_jobs(std::move(aborted), clear, completed);
 				});
 			add_completed_jobs(std::move(completed));
 
