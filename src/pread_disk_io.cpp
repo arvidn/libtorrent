@@ -2175,26 +2175,34 @@ void pread_disk_io::add_completed_jobs_impl(jobqueue_t jobs, jobqueue_t& complet
 	//    deferred (it re-enters the fence via job_complete()).
 	//  - everything else (reads that missed, hashes, a stacked fence) is queued
 	//    for dispatch to its thread pool, deferred too.
-	jobqueue_t to_pool;
-	jobqueue_t cache_hits;
-	bool need_kick = false;
+	// passing repost to job_complete must not allocate (the job-completion path must
+	// not throw), so it has to fit std::function's small-object buffer -- hence a
+	// single captured pointer.
+	struct repost_state
+	{
+		pread_disk_io* self;
+		jobqueue_t to_pool;
+		jobqueue_t cache_hits;
+		bool need_kick;
+	} ctx{this, {}, {}, false};
 
 	// set when a completed fence re-raised a stacked fence and its storage was
 	// queued in m_fence_flush in the loop below; after the loop we drain it (or
 	// interrupt a generic thread to). See the push site for the rationale.
 	bool need_fence_flush = false;
 
-	auto const repost = [&](aux::disk_job* job) {
+	auto const repost = [&ctx](aux::disk_job* job) {
 		auto* j = static_cast<aux::pread_disk_job*>(job);
 		if (std::holds_alternative<aux::job::write>(j->action))
 		{
-			auto const result = insert_write(j, {});
-			if ((result & aux::disk_cache::need_hasher_kick) || j->storage->v2()) need_kick = true;
+			auto const result = ctx.self->insert_write(j, {});
+			if ((result & aux::disk_cache::need_hasher_kick) || j->storage->v2())
+				ctx.need_kick = true;
 		}
-		else if (std::holds_alternative<aux::job::read>(j->action) && read_from_cache(j))
-			cache_hits.push_back(j);
+		else if (std::holds_alternative<aux::job::read>(j->action) && ctx.self->read_from_cache(j))
+			ctx.cache_hits.push_back(j);
 		else
-			to_pool.push_back(j);
+			ctx.to_pool.push_back(j);
 	};
 
 	int ret = 0;
@@ -2249,14 +2257,14 @@ void pread_disk_io::add_completed_jobs_impl(jobqueue_t jobs, jobqueue_t& complet
 
 	// wake the hasher for the blocks the repost callback inserted (drains the v2
 	// queue inline when there are no hash threads).
-	if (need_kick) kick_write_hashers();
+	if (ctx.need_kick) kick_write_hashers();
 
 	// every reposted write is in the cache now; flush if over the watermark.
 	schedule_flush();
 
 	// complete the reads we served from the cache, the same way the disk threads
 	// would have. This can lower further fences (re-entering via job_complete).
-	if (!cache_hits.empty()) add_completed_jobs(std::move(cache_hits));
+	if (!ctx.cache_hits.empty()) add_completed_jobs(std::move(ctx.cache_hits));
 
 	// drain the storages queued in the loop above. With no generic threads the
 	// interrupt is a no-op and nothing else would drain m_fence_flush before the
@@ -2270,7 +2278,7 @@ void pread_disk_io::add_completed_jobs_impl(jobqueue_t jobs, jobqueue_t& complet
 			m_generic_threads.interrupt();
 	}
 
-	if (to_pool.empty()) return;
+	if (ctx.to_pool.empty()) return;
 
 	// dispatch the remaining unblocked jobs to their pools. The m_abort check is
 	// atomic with abort() under m_job_mutex, so a stop_torrent fence's backlog
@@ -2281,9 +2289,9 @@ void pread_disk_io::add_completed_jobs_impl(jobqueue_t jobs, jobqueue_t& complet
 		std::lock_guard<std::mutex> l(m_job_mutex);
 		if (m_abort)
 		{
-			while (!to_pool.empty())
+			while (!ctx.to_pool.empty())
 			{
-				auto* j = static_cast<aux::pread_disk_job*>(to_pool.pop_front());
+				auto* j = static_cast<aux::pread_disk_job*>(ctx.to_pool.pop_front());
 				TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
 				j->ret = disk_status::fatal_disk_error;
 				j->error = storage_error(boost::asio::error::operation_aborted);
@@ -2294,9 +2302,9 @@ void pread_disk_io::add_completed_jobs_impl(jobqueue_t jobs, jobqueue_t& complet
 
 		bool queue_generic = false;
 		bool queue_hash = false;
-		while (!to_pool.empty())
+		while (!ctx.to_pool.empty())
 		{
-			auto* j = static_cast<aux::pread_disk_job*>(to_pool.pop_front());
+			auto* j = static_cast<aux::pread_disk_job*>(ctx.to_pool.pop_front());
 			aux::disk_io_thread_pool& pool = pool_for_job(j);
 			if (pool.max_threads() == 0)
 			{
