@@ -345,6 +345,14 @@ storage_holder pread_disk_io::new_torrent(storage_params const& params
 {
 	TORRENT_ASSERT(params.files.is_valid());
 
+	// m_fence_flush holds at most one entry per storage (deduped via
+	// pread_storage::in_fence_flush()), so reserving a slot per storage here means
+	// pushing to it never allocates -- it happens on the job-completion path, which
+	// must not throw. m_fence_flush is guarded by m_job_mutex and touched by the
+	// disk threads, so the (possibly reallocating) reserve has to hold the lock.
+	std::lock_guard<std::mutex> l(m_job_mutex);
+	m_fence_flush.reserve(static_cast<std::size_t>(m_torrents.num_slots() + 1));
+
 	auto storage = std::make_shared<aux::pread_storage>(params, m_file_pool);
 	storage->set_owner(owner);
 	storage_index_t const idx = m_torrents.add(std::move(storage));
@@ -1561,7 +1569,11 @@ void pread_disk_io::add_fence_job(aux::pread_disk_job* j, bool const user_add)
 		// fence would wait forever. Hand the storage to a generic thread to flush.
 		// (fence_post_fence has nothing outstanding to flush; a stacked fence's writes
 		// land later, when the fence ahead lowers -- add_completed_jobs_impl() re-arms.)
-		if (ret != aux::disk_job_fence::fence_post_fence) m_fence_flush.push_back(j->storage);
+		if (ret != aux::disk_job_fence::fence_post_fence && !j->storage->in_fence_flush())
+		{
+			j->storage->set_in_fence_flush(true);
+			m_fence_flush.push_back(j->storage);
+		}
 		m_generic_threads.interrupt();
 	}
 
@@ -1865,15 +1877,20 @@ void pread_disk_io::flush_storage(std::shared_ptr<aux::pread_storage> const& sto
 void pread_disk_io::flush_fenced_storages(std::unique_lock<std::mutex>& l)
 {
 	TORRENT_ASSERT(l.owns_lock());
-	if (m_fence_flush.empty()) return;
-	std::vector<std::shared_ptr<aux::pread_storage>> to_flush;
-	to_flush.swap(m_fence_flush);
-	l.unlock();
-	// flushing drains the storage's outstanding writes; once they complete the
-	// queued fence's wait for m_outstanding_jobs == 0 can finish and it runs.
-	for (auto const& st : to_flush)
+	// drain in place: pop_back keeps the reserved capacity (a swap would hand it
+	// to a fresh local and force the next push to reallocate), so this allocates
+	// nothing -- it is reachable from the no-throw job-completion path. flushing
+	// drains the storage's outstanding writes; once they complete the queued
+	// fence's wait for m_outstanding_jobs == 0 can finish and it runs.
+	while (!m_fence_flush.empty())
+	{
+		auto const st = std::move(m_fence_flush.back());
+		m_fence_flush.pop_back();
+		st->set_in_fence_flush(false);
+		l.unlock();
 		flush_storage(st);
-	l.lock();
+		l.lock();
+	}
 }
 
 void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
@@ -2162,6 +2179,11 @@ void pread_disk_io::add_completed_jobs_impl(jobqueue_t jobs, jobqueue_t& complet
 	jobqueue_t cache_hits;
 	bool need_kick = false;
 
+	// set when a completed fence re-raised a stacked fence and its storage was
+	// queued in m_fence_flush in the loop below; after the loop we drain it (or
+	// interrupt a generic thread to). See the push site for the rationale.
+	bool need_fence_flush = false;
+
 	auto const repost = [&](aux::disk_job* job) {
 		auto* j = static_cast<aux::pread_disk_job*>(job);
 		if (std::holds_alternative<aux::job::write>(j->action))
@@ -2174,15 +2196,6 @@ void pread_disk_io::add_completed_jobs_impl(jobqueue_t jobs, jobqueue_t& complet
 		else
 			to_pool.push_back(j);
 	};
-
-	// storages where completing a fence re-raised a stacked fence. The repost
-	// above inserted the writes that were queued between the two fences into the
-	// cache; nothing else will flush them while the re-raised fence blocks new
-	// jobs, so the fence (now waiting on those very writes) would wait forever.
-	// Re-arm m_fence_flush for these so a generic thread drains them, the same
-	// way add_fence_job() does when a fence is first raised over outstanding
-	// writes.
-	std::vector<std::shared_ptr<aux::pread_storage>> rearm_fence_flush;
 
 	int ret = 0;
 	for (auto i = jobs.iterate(); i.get(); i.next())
@@ -2203,9 +2216,22 @@ void pread_disk_io::add_completed_jobs_impl(jobqueue_t jobs, jobqueue_t& complet
 
 		// a fence completed but the storage still has a fence up: a stacked fence
 		// was re-raised over the writes the repost callback just inserted. (the fence
-		// flag survives job_complete; only in_progress is cleared.)
+		// flag survives job_complete; only in_progress is cleared.) The repost
+		// inserted those writes into the cache; nothing else will flush them while
+		// the re-raised fence blocks new jobs, so the fence (now waiting on those
+		// very writes) would wait forever. Queue the storage in m_fence_flush so a
+		// generic thread drains them, the same way add_fence_job() does when a fence
+		// is first raised over outstanding writes.
 		if ((j->flags & aux::disk_job::fence) && j->storage && j->storage->has_fence())
-			rearm_fence_flush.push_back(j->storage);
+		{
+			std::lock_guard<std::mutex> l(m_job_mutex);
+			if (!j->storage->in_fence_flush())
+			{
+				j->storage->set_in_fence_flush(true);
+				m_fence_flush.push_back(j->storage);
+			}
+			need_fence_flush = true;
+		}
 
 		TORRENT_ASSERT(!(j->flags & aux::disk_job::in_progress));
 #if TORRENT_USE_ASSERTS
@@ -2232,14 +2258,12 @@ void pread_disk_io::add_completed_jobs_impl(jobqueue_t jobs, jobqueue_t& complet
 	// would have. This can lower further fences (re-entering via job_complete).
 	if (!cache_hits.empty()) add_completed_jobs(std::move(cache_hits));
 
-	// hand any stacked-fence storages to a generic thread to flush (see above).
-	if (!rearm_fence_flush.empty())
+	// drain the storages queued in the loop above. With no generic threads the
+	// interrupt is a no-op and nothing else would drain m_fence_flush before the
+	// next user job, so flush inline here.
+	if (need_fence_flush)
 	{
 		std::unique_lock<std::mutex> l(m_job_mutex);
-		for (auto& st : rearm_fence_flush)
-			m_fence_flush.push_back(std::move(st));
-		// with no generic threads the interrupt is a no-op and nothing else would
-		// drain m_fence_flush before the next user job, so flush inline here.
 		if (m_generic_threads.max_threads() == 0)
 			flush_fenced_storages(l);
 		else
