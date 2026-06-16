@@ -60,6 +60,21 @@ The fence operations are:
 is what the fence waits to reach zero before it runs; a job stays counted from
 the moment it is accepted until its completion is posted back.
 
+**Every ordinary job must honor the fence -- including a buffered write.** Each
+job, with no exceptions, has to participate in the outstanding-job count for its
+whole lifetime, so the fence cannot run while any work on the storage is still
+in flight. This is easy to overlook for `async_write` on a write-back back end:
+even though the write is inserted into a cache and its handler is deferred, it
+must be counted as outstanding from the moment it is accepted until the flush
+that retires it has finished and its completion is posted -- *including the
+window while a disk thread is mid-flush writing it out*. It must not take a fast
+path that skips the count. If a buffered write (or the thread flushing it) is
+invisible to the fence, the fence can be raised and complete while that write is
+still being written to disk, and a teardown fence (`async_stop_torrent`,
+`async_release_files`, ...) can then tear the storage down underneath the
+in-flight flush -- a use-after-free. So the rule is symmetric: a write counts
+exactly like a read or a hash.
+
 ### Fences and deferred (write-back) writes
 
 The fence contract above is straightforward for an implementation that runs
