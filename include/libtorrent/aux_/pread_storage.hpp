@@ -108,6 +108,14 @@ namespace libtorrent::aux {
 		storage_index_t storage_index() const { return m_storage_index; }
 		void set_storage_index(storage_index_t st) { m_storage_index = st; }
 
+		// dedup flag for pread_disk_io::m_fence_flush: whether this storage is
+		// currently queued there. Keeping it at most once lets that vector be
+		// pre-reserved to one slot per storage, so pushing never allocates.
+		// Guarded by pread_disk_io::m_job_mutex (held by the caller), not by this
+		// storage's own fence mutex.
+		bool in_fence_flush() const { return m_in_fence_flush; }
+		void set_in_fence_flush(bool const b) { m_in_fence_flush = b; }
+
 		bool v1() const { return m_v1; }
 		bool v2() const { return m_v2; }
 
@@ -137,6 +145,9 @@ namespace libtorrent::aux {
 		std::shared_ptr<void> m_torrent;
 
 		storage_index_t m_storage_index{0};
+
+		// see in_fence_flush()
+		bool m_in_fence_flush = false;
 
 		void need_partfile();
 

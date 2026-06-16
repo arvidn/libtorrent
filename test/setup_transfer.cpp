@@ -46,6 +46,7 @@ see LICENSE file.
 #endif
 
 using namespace lt;
+using namespace std::chrono_literals;
 
 #if defined TORRENT_WINDOWS
 #include <conio.h>
@@ -426,37 +427,45 @@ bool print_alerts(lt::session& ses, char const* name
 	return predicate && std::any_of(alerts.begin(), alerts.end(), predicate);
 }
 
+bool wait_for_alert(lt::session& ses,
+	char const* name,
+	std::function<bool(lt::alert const*)> predicate,
+	lt::time_duration const timeout)
+{
+	time_point const end_time = clock_type::now() + timeout;
+	for (;;)
+	{
+		if (print_alerts(ses, name, true, true, predicate, false)) return true;
+		time_point const now = clock_type::now();
+		if (now >= end_time) return false;
+		ses.wait_for_alert(end_time - now);
+	}
+}
+
 void wait_for_listen(lt::session& ses, char const* name)
 {
-	bool listen_done = false;
-	do
-	{
-		listen_done = print_alerts(ses, name, true, true, [](lt::alert const* al)
-			{ return alert_cast<listen_failed_alert>(al) || alert_cast<listen_succeeded_alert>(al); }
-			, false);
-		if (listen_done) break;
-	}
-	while (ses.wait_for_alert(milliseconds(500)));
-	// we din't receive a listen alert!
+	bool const listen_done = wait_for_alert(
+		ses,
+		name,
+		[](lt::alert const* al) {
+			return alert_cast<listen_failed_alert>(al) || alert_cast<listen_succeeded_alert>(al);
+		},
+		30s);
+	// we didn't receive a listen alert!
 	TEST_CHECK(listen_done);
 }
 
 void wait_for_downloading(lt::session& ses, char const* name)
 {
-	time_point start = clock_type::now();
-	bool downloading_done = false;
-	do
-	{
-		downloading_done = print_alerts(ses, name, true, true
-			, [](lt::alert const* al)
-			{
-				state_changed_alert const* sc = alert_cast<state_changed_alert>(al);
-				return sc && sc->state == torrent_status::downloading;
-			}, false);
-		if (downloading_done) break;
-		if (clock_type::now() - start > seconds(30)) break;
-	}
-	while (ses.wait_for_alert(seconds(5)));
+	time_point const start = clock_type::now();
+	bool const downloading_done = wait_for_alert(
+		ses,
+		name,
+		[](lt::alert const* al) {
+			state_changed_alert const* sc = alert_cast<state_changed_alert>(al);
+			return sc && sc->state == torrent_status::downloading;
+		},
+		30s);
 	if (!downloading_done)
 	{
 		std::printf("%s: did not receive a state_changed_alert indicating "
@@ -467,20 +476,15 @@ void wait_for_downloading(lt::session& ses, char const* name)
 
 void wait_for_seeding(lt::session& ses, char const* name)
 {
-	time_point start = clock_type::now();
-	bool seeding = false;
-	do
-	{
-		seeding = print_alerts(ses, name, true, true
-			, [](lt::alert const* al)
-			{
-				state_changed_alert const* sc = alert_cast<state_changed_alert>(al);
-				return sc && sc->state == torrent_status::seeding;
-			}, false);
-		if (seeding) break;
-		if (clock_type::now() - start > seconds(30)) break;
-	}
-	while (ses.wait_for_alert(seconds(5)));
+	time_point const start = clock_type::now();
+	bool const seeding = wait_for_alert(
+		ses,
+		name,
+		[](lt::alert const* al) {
+			state_changed_alert const* sc = alert_cast<state_changed_alert>(al);
+			return sc && sc->state == torrent_status::seeding;
+		},
+		30s);
 	if (!seeding)
 	{
 		std::printf("%s: did not receive a state_changed_alert indicating "
@@ -1212,17 +1216,29 @@ namespace {
 pid_type web_server_pid = 0;
 }
 
-int start_web_server(bool ssl, bool chunked_encoding, bool keepalive, int min_interval)
+int start_web_server(
+	bool ssl, bool chunked_encoding, bool keepalive, int min_interval, bool expect_host_header)
 {
 	int const port = find_available_port();
+	char expected_host[200] = {};
+	if (expect_host_header)
+		std::snprintf(expected_host, sizeof(expected_host), "127.0.0.1:%d", port);
 
 	std::vector<std::string> python_exes = get_python();
 
 	for (auto const& python_exe : python_exes)
 	{
-		char buf[200];
-		std::snprintf(buf, sizeof(buf), "%s .." SEPARATOR "web_server.py %d %d %d %d %d"
-			, python_exe.c_str(), port, chunked_encoding, ssl, keepalive, min_interval);
+		char buf[300];
+		std::snprintf(buf,
+			sizeof(buf),
+			"%s .." SEPARATOR "web_server.py %d %d %d %d %d %s",
+			python_exe.c_str(),
+			port,
+			chunked_encoding,
+			ssl,
+			keepalive,
+			min_interval,
+			expected_host);
 
 		std::printf("%s starting web_server on port %d...\n", time_now_string().c_str(), port);
 

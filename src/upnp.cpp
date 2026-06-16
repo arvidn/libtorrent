@@ -28,6 +28,7 @@ see LICENSE file.
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/aux_/ssl.hpp"
 #include "libtorrent/aux_/scope_end.hpp"
+#include "libtorrent/aux_/string_util.hpp" // for format_host_for_connect
 
 #if defined TORRENT_ASIO_DEBUGGING
 #include "libtorrent/aux_/debug.hpp"
@@ -703,16 +704,25 @@ void upnp::post(upnp::rootdevice const& d, char const* soap
 	TORRENT_ASSERT(d.upnp_connection);
 	TORRENT_ASSERT(!d.disabled);
 
+	// IPv6 literals must be bracketed in the Host header (RFC 3986); parse_url
+	// strips the brackets, so re-add them here for v6 device addresses.
+	std::string const host =
+		format_host_for_connect(d.hostname, static_cast<unsigned short>(d.port));
 	char header[2048];
-	std::snprintf(header, sizeof(header), "POST %s HTTP/1.1\r\n"
-		"Host: %s:%d\r\n"
+	std::snprintf(header,
+		sizeof(header),
+		"POST %s HTTP/1.1\r\n"
+		"Host: %s\r\n"
 		"Content-Type: text/xml; charset=\"utf-8\"\r\n"
 		"Content-Length: %d\r\n"
 		"Soapaction: \"%s#%s\"\r\n\r\n"
-		"%s"
-		, d.path.c_str(), d.hostname.c_str(), d.port
-		, int(strlen(soap)), d.service_namespace.c_str(), soap_action
-		, soap);
+		"%s",
+		d.path.c_str(),
+		host.c_str(),
+		int(strlen(soap)),
+		d.service_namespace.c_str(),
+		soap_action,
+		soap);
 
 	d.upnp_connection->m_sendbuffer = header;
 

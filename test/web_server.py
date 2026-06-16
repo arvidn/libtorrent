@@ -12,6 +12,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 
 chunked_encoding = False
 keepalive = True
+expected_host = ''
 
 try:
     fin = open('test_file', 'rb')
@@ -56,6 +57,17 @@ class http_handler(BaseHTTPRequestHandler):
 
         global chunked_encoding
         global keepalive
+        global expected_host
+
+        if expected_host and self.headers.get('Host') != expected_host:
+            print('UNEXPECTED-HOST expected={} actual={}'.format(
+                expected_host, self.headers.get('Host')))
+            sys.stdout.flush()
+            self.send_response(400)
+            self.send_header("Content-Length", "0")
+            self.send_header("Connection", "close")
+            self.end_headers()
+            return
 
         self.normalize_request_path()
         file_path = os.path.normpath(self.path)
@@ -256,6 +268,7 @@ if __name__ == '__main__':
     use_ssl = sys.argv[3] != '0'
     keepalive = sys.argv[4] != '0'
     min_interval = sys.argv[5]
+    expected_host = sys.argv[6] if len(sys.argv) > 6 else ''
     print('python version: %s' % sys.version_info.__str__())
 
     http_handler.protocol_version = 'HTTP/1.1'

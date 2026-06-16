@@ -42,6 +42,7 @@ constexpr disk_test_mode_t even_file_sizes = 1_bit;
 constexpr disk_test_mode_t read_random_order = 2_bit;
 constexpr disk_test_mode_t flush_files = 3_bit;
 constexpr disk_test_mode_t clear_pieces = 4_bit;
+constexpr disk_test_mode_t unaligned_read = 5_bit;
 }
 
 std::mt19937 random_engine(std::random_device{}());
@@ -57,21 +58,21 @@ private:
 
 bool check_block_fill(lt::peer_request const& req, lt::span<char const> buf)
 {
-	int const v = (static_cast<int>(req.piece) << 8) | ((req.start / lt::default_block_size) & 0xff);
-	int offset = 0;
-	int const tail = buf.size() % 4;
-	for (; offset < buf.size() - tail; offset += 4)
-		if (std::memcmp(buf.data() + offset, reinterpret_cast<char const*>(&v), 4) != 0)
+	// generate_block_fill() fills each block with the 4-byte word value derived
+	// from the block index, repeated. So the expected byte at piece offset `off`
+	// is byte (off % 4) of that block's word. Verifying per byte (rather than per
+	// word) handles reads at any offset and length -- including unaligned ones
+	// that span a block boundary -- not just word-aligned block reads.
+	for (int i = 0; i < buf.size(); ++i)
+	{
+		int const off = req.start + i;
+		int const v = (static_cast<int>(req.piece) << 8) | ((off / lt::default_block_size) & 0xff);
+		if (buf[i] != reinterpret_cast<char const*>(&v)[off % 4])
 		{
-			std::cout << "buffer diverged at word: " << offset << '\n';
+			std::cout << "buffer diverged at offset: " << i << '\n';
 			return false;
 		}
-	if (tail > 0)
-		if (std::memcmp(buf.data() + offset, reinterpret_cast<char const*>(&v), tail) != 0)
-		{
-			std::cout << "buffer diverged at word: " << offset << '\n';
-			return false;
-		}
+	}
 	return true;
 }
 
@@ -141,7 +142,7 @@ int run_test(test_case const& t)
 			disk_io = lt::disabled_disk_io_constructor(ioc, pack, cnt);
 		else
 		{
-			if (t.disk_backend != "default")
+			if (t.disk_backend != "default"_sv)
 			{
 				std::fprintf(stderr, "unknown disk-io subsystem: \"%s\". Using default.\n", t.disk_backend.c_str());
 			}
@@ -149,18 +150,15 @@ int run_test(test_case const& t)
 		}
 	}
 
-	std::cerr << "RUNNING: -f " << t.num_files
-		<< " -q " << t.queue_size
-		<< " -t " << t.num_threads
-		<< " -r " << t.read_multiplier
-		<< " -p " << t.file_pool_size
-		<< ((t.flags & test_mode::sparse) ? "" : " alloc")
-		<< ((t.flags & test_mode::even_file_sizes) ? " even-size" : "")
-		<< ((t.flags & test_mode::read_random_order) ? " random-read" : "")
-		<< ((t.flags & test_mode::flush_files) ? " flush" : "")
-		<< ((t.flags & test_mode::clear_pieces) ? " clear" : "")
-		<< " -d " << t.disk_backend
-		<< "\n";
+	std::cerr << "RUNNING: -f " << t.num_files << " -q " << t.queue_size << " -t " << t.num_threads
+			  << " -r " << t.read_multiplier << " -p " << t.file_pool_size
+			  << ((t.flags & test_mode::sparse) ? "" : " alloc")
+			  << ((t.flags & test_mode::even_file_sizes) ? " even-size" : "")
+			  << ((t.flags & test_mode::read_random_order) ? " random-read" : "")
+			  << ((t.flags & test_mode::flush_files) ? " flush" : "")
+			  << ((t.flags & test_mode::clear_pieces) ? " clear" : "")
+			  << ((t.flags & test_mode::unaligned_read) ? " unaligned-read" : "") << " -d "
+			  << t.disk_backend << "\n";
 
 	try
 	{
@@ -270,8 +268,28 @@ int run_test(test_case const& t)
 			{
 				if (!blocks_to_read.empty() && outstanding_read < t.queue_size)
 				{
-					auto const req = blocks_to_read.back();
+					auto req = blocks_to_read.back();
 					blocks_to_read.erase(blocks_to_read.end() - 1);
+
+					// once the whole piece has been written (it's no longer counted
+					// in blocks_per_piece) its entire content is known, so read a
+					// randomly sized range at a random offset within it. This gives
+					// a mix of aligned and unaligned, single-block and
+					// block-spanning reads of varying sizes, exercising the disk
+					// back-end's spanning/partial read path. (While the piece is
+					// still being written we can only safely read the block we just
+					// wrote, so the request is left as-is.)
+					if ((t.flags & test_mode::unaligned_read)
+						&& blocks_per_piece.count(req.piece) == 0)
+					{
+						int const this_piece_size = fs.piece_size(req.piece);
+						std::uniform_int_distribution<int> start_dist(0, this_piece_size - 1);
+						req.start = start_dist(random_engine);
+						int const max_len =
+							std::min(lt::default_block_size, this_piece_size - req.start);
+						std::uniform_int_distribution<int> len_dist(1, max_len);
+						req.length = len_dist(random_engine);
+					}
 
 					in_flight.insert(job_idx);
 					++outstanding_read;
@@ -451,53 +469,108 @@ int run_test(test_case const& t)
 void print_usage()
 {
 	std::cerr << "USAGE: disk_io_stress_test <options>\n"
-		"If no options are specified, the default suite of tests are run\n\n"
-		"OPTIONS:\n"
-		"   alloc\n"
-		"      open files in pre-allocate mode\n"
-		"   even-size\n"
-		"      make test files even multiples of 1 kB\n"
-		"   random-read\n"
-		"      instead of reading blocks back in the same order they were written,\n"
-		"      read them back in random order\n"
-		"   flush\n"
-		"      issue a 'release-files' disk job every 500 jobs\n"
-		"   clear\n"
-		"      issue a 'clear_piece' disk job every 300 jobs\n"
-		"   -f <val>\n"
-		"      specifies the number of files to use in the test torrent\n"
-		"   -q <val>\n"
-		"      specifies the job queue size. i.e. the max number of outstanding\n"
-		"      read jobs to post to the disk I/O subsystem. write jobs depend on\n"
-		"      the disk subsystem's back pressure.\n"
-		"   -t <val>\n"
-		"      specifies the number of disk I/O threads to use\n"
-		"   -r <val>\n"
-		"      specifies the read multiplier. Each block that's written, is read this many times\n"
-		"   -p <val>\n"
-		"      specifies the file pool size. This is the number of files to keep open\n"
-		"   -d <disk-backend>\n"
-		"      Specifies which disk back-end to test. options are: default, mmap, pread, posix, disabled\n"
-		;
-
+				 "If no options are specified, the default suite of tests are run\n"
+				 "If the single argument \"smoke\" is given, a small subset of the\n"
+				 "default suite is run with orders of magnitude fewer blocks (for CI)\n\n"
+				 "OPTIONS:\n"
+				 "   alloc\n"
+				 "      open files in pre-allocate mode\n"
+				 "   even-size\n"
+				 "      make test files even multiples of 1 kB\n"
+				 "   random-read\n"
+				 "      instead of reading blocks back in the same order they were written,\n"
+				 "      read them back in random order\n"
+				 "   flush\n"
+				 "      issue a 'release-files' disk job every 500 jobs\n"
+				 "   clear\n"
+				 "      issue a 'clear_piece' disk job every 300 jobs\n"
+				 "   unaligned-read\n"
+				 "      read completed pieces back with requests of random offset and\n"
+				 "      size (a mix of aligned, unaligned and block-spanning reads),\n"
+				 "      exercising the disk back-end's spanning/partial read path\n"
+				 "   -f <val>\n"
+				 "      specifies the number of files to use in the test torrent\n"
+				 "   -q <val>\n"
+				 "      specifies the job queue size. i.e. the max number of outstanding\n"
+				 "      read jobs to post to the disk I/O subsystem. write jobs depend on\n"
+				 "      the disk subsystem's back pressure.\n"
+				 "   -t <val>\n"
+				 "      specifies the number of disk I/O threads to use\n"
+				 "   -r <val>\n"
+				 "      specifies the read multiplier. Each block that's written, is read this "
+				 "many times\n"
+				 "   -p <val>\n"
+				 "      specifies the file pool size. This is the number of files to keep open\n"
+				 "   -d <disk-backend>\n"
+				 "      Specifies which disk back-end to test. options are: default, mmap, pread, "
+				 "posix, disabled\n";
 }
 
 int main(int argc, char const* argv[])
 {
-	if (argc == 1)
+	if (argc == 1 || (argc == 2 && argv[1] == "smoke"_sv))
 	{
-		// the default test suite
 		namespace tm = test_mode;
+
+		// a curated subset of the full suite, just to catch trivial hangs and
+		// crashes: baseline, random read order, release-files, small file pool
+		bool const smoke = (argc == 2);
 
 		std::vector<test_case> tests;
 		for (char const* backend : {"mmap", "posix", "pread"})
 		{
+			if (smoke)
+			{
+				// files, queue, threads, read-mult, pool, flags, disk_backend
+				tests.push_back({7, 32, 4, 3, 10, tm::sparse, backend});
+				tests.push_back({7,
+					32,
+					4,
+					3,
+					10,
+					tm::sparse | tm::read_random_order | tm::even_file_sizes,
+					backend});
+				tests.push_back({7,
+					32,
+					4,
+					3,
+					10,
+					tm::flush_files | tm::sparse | tm::read_random_order,
+					backend});
+				tests.push_back({7, 32, 8, 3, 1, tm::sparse | tm::read_random_order, backend});
+				// random-offset/size reads of completed pieces, exercising the
+				// disk back-end's unaligned/spanning read path. Use more files (and
+				// thus more pieces) than the other smoke cases: unaligned reads only
+				// fire on already-completed pieces, so a handful of pieces hardly
+				// covers the path.
+				tests.push_back({13,
+					32,
+					4,
+					3,
+					10,
+					tm::sparse | tm::read_random_order | tm::unaligned_read,
+					backend});
+				continue;
+			}
+
+			// the full test suite
+
 			// files, queue, threads, read-mult, pool, flags, disk_backend
 			tests.push_back({20, 32, 16, 3, 10, tm::sparse | tm::even_file_sizes, backend});
 			tests.push_back({20, 32, 16, 3, 10, tm::sparse, backend});
 			tests.push_back({20, 32, 16, 3, 10, tm::sparse | tm::read_random_order, backend});
 			tests.push_back({20, 32, 16, 3, 10, tm::sparse | tm::read_random_order | tm::even_file_sizes, backend});
 			tests.push_back({20, 32, 16, 3, 10, tm::flush_files | tm::sparse | tm::read_random_order | tm::even_file_sizes, backend});
+
+			// random-offset/size reads of completed pieces, exercising the disk
+			// back-end's unaligned/spanning read path
+			tests.push_back({20,
+				32,
+				16,
+				3,
+				10,
+				tm::sparse | tm::read_random_order | tm::unaligned_read,
+				backend});
 
 			// test with small pool size
 			tests.push_back({10, 32, 16, 3, 1, tm::sparse | tm::read_random_order, backend});
@@ -567,6 +640,8 @@ int main(int argc, char const* argv[])
 			tc.flags |= test_mode::flush_files;
 		else if (opt == "clear")
 			tc.flags |= test_mode::clear_pieces;
+		else if (opt == "unaligned-read")
+			tc.flags |= test_mode::unaligned_read;
 		else
 		{
 			std::cerr << "unknown option \"" << opt << "\"\n";

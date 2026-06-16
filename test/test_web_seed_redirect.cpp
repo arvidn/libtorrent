@@ -10,6 +10,7 @@ see LICENSE file.
 */
 
 #include "test.hpp"
+#include "disk_io_test.hpp"
 #include "test_utils.hpp"
 #include "setup_transfer.hpp"
 #include "web_seed_suite.hpp"
@@ -22,7 +23,7 @@ see LICENSE file.
 
 using namespace lt;
 
-TORRENT_TEST(web_seed_redirect)
+TORRENT_TEST_DISK_IO(web_seed_redirect)
 {
 	using namespace lt;
 
@@ -64,11 +65,13 @@ TORRENT_TEST(web_seed_redirect)
 	{
 		settings_pack p = settings();
 		p.set_int(settings_pack::max_queued_disk_bytes, 256 * 1024);
-		lt::session ses(p);
+		session_params sp(p);
+		sp.disk_io_constructor = disk_io;
+		lt::session ses(std::move(sp));
 
 		// disable keep-alive because otherwise the test will choke on seeing
 		// the disconnect (from the redirect)
-		test_transfer(ses, atp, 0, "http", true, false, false, false);
+		test_transfer(ses, atp, 0, "http", web_seed::no_keepalive);
 	}
 
 	stop_web_server();

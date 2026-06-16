@@ -24,13 +24,11 @@ TORRENT_TEST(slow_hash_tests_skipped) {}
 #include <thread>
 #include <chrono>
 #include "test.hpp"
+#include "disk_io_test.hpp"
 #include "setup_transfer.hpp"
 #include "test_utils.hpp"
 #include "disk_cache_test_utils.hpp"
 #include "libtorrent/disk_interface.hpp"
-#include "libtorrent/mmap_disk_io.hpp"
-#include "libtorrent/posix_disk_io.hpp"
-#include "libtorrent/pread_disk_io.hpp"
 #include "libtorrent/session_params.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/io_context.hpp"
@@ -435,18 +433,17 @@ void test_clear_piece_during_hashing(test_mode_t const mode)
 	TEST_EQUAL(f.alloc.live, 0);
 }
 
-// Regression test for the pending_free_flag mechanism.
+// Regression test for tearing down a storage while a hasher is running.
 //
 // flush_storage() is called to tear down a storage while a hasher thread
 // holds hashing_flag (mutex released mid-hash). flush_storage() must NOT
 // free or erase the piece entry while the hasher is accessing ph and
-// block_hashes; instead it sets pending_free_flag and defers the erasure.
-// When kick_hasher() subsequently clears hashing_flag it sees
-// pending_free_flag and erases the piece itself.
+// block_hashes; it only flushes the dirty blocks to disk and leaves the
+// piece in place.
 //
 // hashing_flag is set by kick_pending_hashers, which only kicks v1/hybrid
 // pieces. v2-only pieces have no hashing_flag (their work happens in
-// drain_v2_hash_queue), so they don't exercise the pending_free_flag race.
+// drain_v2_hash_queue), so they don't exercise this race.
 void test_flush_storage_during_hashing(test_mode_t const mode)
 {
 	if (!(mode & test_mode::v1)) return;
@@ -467,16 +464,19 @@ void test_flush_storage_during_hashing(test_mode_t const mode)
 	// Give the hasher time to set hashing_flag and release the mutex.
 	std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
-	// flush_storage() sees hashing_flag set: it flushes the blocks to disk,
-	// sets pending_free_flag, and returns WITHOUT erasing the piece entry.
+	// flush_storage() sees hashing_flag set: it flushes the blocks to disk
+	// and returns WITHOUT erasing the piece entry.
 	f.flush_storage_for();
 
 	// The hasher thread is still running; the piece entry must still exist.
 	TEST_CHECK(f.cache.size() > 0);
 
 	hasher_thread.join();
-	// kick_hasher() saw pending_free_flag when clearing hashing_flag and
-	// erased the piece itself.
+
+	// flush_storage() only flushes, it never erases. remove_storage() does the
+	// actual teardown: it frees any remaining buffers and erases every piece.
+	jobqueue_t const aborted = f.remove_storage_for();
+	TEST_CHECK(aborted.empty());
 
 	TEST_EQUAL(int(f.cache.size()), 0);
 	TEST_EQUAL(f.alloc.live, 0);
@@ -525,22 +525,7 @@ void test_kick_hasher_keep_going_fills_hole(test_mode_t const mode)
 }
 }
 
-TORRENT_TEST(test_pread_hash_job_retry)
-{
-	hash_job_retry_test(&lt::pread_disk_io_constructor, "test_pread_hash_retry");
-}
-
-TORRENT_TEST(test_posix_hash_job_retry)
-{
-	hash_job_retry_test(&lt::posix_disk_io_constructor, "test_posix_hash_retry");
-}
-
-#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
-TORRENT_TEST(test_mmap_hash_job_retry)
-{
-	hash_job_retry_test(&lt::mmap_disk_io_constructor, "test_mmap_hash_retry");
-}
-#endif
+TORRENT_TEST_DISK_IO(hash_job_retry) { hash_job_retry_test(disk_io, "test_hash_retry"); }
 
 TORRENT_TEST(hash_job_dispatched_v1) { test_hash_job_dispatched_by_hasher(test_mode::v1); }
 TORRENT_TEST(hash_job_dispatched_v2) { test_hash_job_dispatched_by_hasher(test_mode::v2); }

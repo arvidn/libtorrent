@@ -45,6 +45,11 @@ struct storage_array
 
 	bool empty() const { return m_torrents.size() == m_free_slots.size(); }
 
+	// the number of slots ever allocated (it never shrinks; freed indices are
+	// reused). An upper bound on the number of live storages, used to size
+	// per-storage scratch up front.
+	int num_slots() const { return int(m_torrents.size()); }
+
 private:
 
 	aux::vector<std::shared_ptr<Storage>, storage_index_t> m_torrents;

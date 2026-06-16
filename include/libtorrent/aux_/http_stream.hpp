@@ -104,26 +104,17 @@ private:
 
 		// send CONNECT
 		std::back_insert_iterator<std::vector<char>> p(m_buffer);
-		std::string const endpoint = print_endpoint(m_remote_endpoint);
-		// if we were given the original host (domain or IP), prefer using it (lets proxy resolve domains)
-		if (!m_host.empty())
-		{
-			std::string const remote_host = format_host_for_connect(
-				m_host,
-				m_remote_endpoint.port());
+		// if we were given the original host (domain or IP), prefer using it so
+		// the proxy can resolve domains; otherwise fall back to the resolved
+		// endpoint.
+		std::string const remote_host = m_host.empty()
+			? print_endpoint(m_remote_endpoint)
+			: format_host_for_connect(m_host, m_remote_endpoint.port());
 
-			write_string("CONNECT " + remote_host + " HTTP/1.0\r\n", p);
-			// Host header is required per RFC 9110 Section 7.2 and RFC 9112 Section 3.2
-			// for HTTP/1.1 compliance, virtual host support, and proper proxy routing
-			write_string("Host: " + remote_host + "\r\n", p);
-		}
-		else
-		{
-			write_string("CONNECT " + endpoint + " HTTP/1.0\r\n", p);
-			// Host header is mandatory for all HTTP/1.1 requests per RFC 9110 Section 7.2
-			// to ensure protocol compliance, even when using IP addresses
-			write_string("Host: " + endpoint + "\r\n", p);
-		}
+		write_string("CONNECT " + remote_host + " HTTP/1.0\r\n", p);
+		// Host header is required for HTTP/1.1 (RFC 9110 Section 7.2 / RFC 9112
+		// Section 3.2). For CONNECT it must match the request-target authority.
+		write_string("Host: " + remote_host + "\r\n", p);
 		if (!m_user.empty())
 		{
 			write_string("Proxy-Authorization: Basic " + base64encode(

@@ -54,11 +54,18 @@ static char const* proxy_name[] = {"", "_socks4", "_socks5", "_socks5_pw", "_htt
 } // anonymous namespace
 
 // proxy: 0=none, 1=socks4, 2=socks5, 3=socks5_pw 4=http 5=http_pw
-void test_transfer(lt::session& ses, lt::add_torrent_params p
-	, int proxy, char const* protocol, bool url_seed
-	, bool chunked_encoding, bool test_ban, bool keepalive, bool proxy_peers)
+void test_transfer(lt::session& ses,
+	lt::add_torrent_params p,
+	int proxy,
+	char const* protocol,
+	web_seed_flag_t const flags)
 {
 	using namespace lt;
+
+	bool const chunked_encoding = bool(flags & web_seed::chunked_encoding);
+	bool const test_ban = bool(flags & web_seed::test_ban);
+	bool const keepalive = !bool(flags & web_seed::no_keepalive);
+	bool const proxy_peers = !bool(flags & web_seed::no_proxy_peers);
 
 	TORRENT_ASSERT(p.url_seeds.size() > 0);
 
@@ -71,11 +78,14 @@ void test_transfer(lt::session& ses, lt::add_torrent_params p
 	static char const* test_name[] = {"no", "SOCKS4", "SOCKS5", "SOCKS5 password", "HTTP", "HTTP password"};
 
 	std::printf("\n\n  ==== TESTING === proxy: %s ==== protocol: %s "
-		"==== seed: %s === transfer-encoding: %s === corruption: %s "
-		"==== keepalive: %s\n\n\n"
-		, test_name[proxy], protocol, url_seed ? "URL seed" : "HTTP seed"
-		, chunked_encoding ? "chunked": "none", test_ban ? "yes" : "no"
-		, keepalive ? "yes" : "no");
+				"==== seed: %s === transfer-encoding: %s === corruption: %s "
+				"==== keepalive: %s\n\n\n",
+		test_name[proxy],
+		protocol,
+		"URL seed",
+		chunked_encoding ? "chunked" : "none",
+		test_ban ? "yes" : "no",
+		keepalive ? "yes" : "no");
 
 	int proxy_port = 0;
 	settings_pack pack;
@@ -233,17 +243,25 @@ void test_transfer(lt::session& ses, lt::add_torrent_params p
 
 // proxy: 0=none, 1=socks4, 2=socks5, 3=socks5_pw 4=http 5=http_pw
 // protocol: "http" or "https"
-int EXPORT run_http_suite(int proxy, char const* protocol
-	, bool chunked_encoding, bool test_ban, bool keepalive, bool test_rename
-	, bool proxy_peers)
+int EXPORT run_http_suite(int proxy,
+	char const* protocol,
+	lt::disk_io_constructor_type disk_io,
+	web_seed_flag_t const flags)
 {
 	using namespace lt;
+
+	bool const chunked_encoding = bool(flags & web_seed::chunked_encoding);
+	bool const test_ban = bool(flags & web_seed::test_ban);
+	bool const keepalive = !bool(flags & web_seed::no_keepalive);
+	bool const test_rename = bool(flags & web_seed::test_rename);
+	bool const expect_host_header = bool(flags & web_seed::expect_host_header);
 
 	std::string save_path = "web_seed";
 	save_path += proxy_name[proxy];
 
 	error_code ec;
-	int const port = start_web_server(protocol == "https"_sv, chunked_encoding, keepalive);
+	int const port = start_web_server(
+		protocol == "https"_sv, chunked_encoding, keepalive, 30, expect_host_header);
 
 	std::vector<torrent_args> test_cases;
 
@@ -348,16 +366,16 @@ int EXPORT run_http_suite(int proxy, char const* protocol
 			pack.set_bool(settings_pack::enable_natpmp, false);
 			pack.set_bool(settings_pack::enable_upnp, false);
 			pack.set_bool(settings_pack::enable_dht, false);
-			lt::session ses(session_params{pack, {}});
+			session_params sp(pack, {});
+			sp.disk_io_constructor = disk_io;
+			lt::session ses(std::move(sp));
 
-			test_transfer(ses, atp, proxy, protocol, true
-				, chunked_encoding, test_ban, keepalive, proxy_peers);
+			test_transfer(ses, atp, proxy, protocol, flags);
 
 			if (test_rename)
 			{
 				atp.renamed_files.emplace(0_file, combine_path(save_path, combine_path("torrent_dir", "renamed_test1")));
-				test_transfer(ses, atp, 0, protocol, true
-					, chunked_encoding, test_ban, keepalive, proxy_peers);
+				test_transfer(ses, atp, 0, protocol, flags);
 			}
 		}
 		puts("::endgroup::");

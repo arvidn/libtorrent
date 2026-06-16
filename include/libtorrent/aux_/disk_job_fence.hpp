@@ -15,6 +15,7 @@ see LICENSE file.
 #include "libtorrent/aux_/tailqueue.hpp"
 
 #include <atomic>
+#include <functional>
 #include <mutex>
 
 namespace libtorrent {
@@ -56,8 +57,19 @@ namespace libtorrent::aux {
 		// called whenever a job completes and is posted back to the
 		// main network thread. the tailqueue of jobs will have the
 		// backed-up jobs prepended to it in case this resulted in the
-		// fence being lowered.
+		// fence being lowered. (used by mmap_disk_io, which aborts writes that
+		// arrive during a fence so its backlog never needs the cache.)
 		int job_complete(disk_job*, tailqueue<disk_job>&);
+
+		// same, but instead of appending the unblocked backlog to a tailqueue,
+		// "repost" is called -- still holding m_mutex -- once for each job, in
+		// order. pread_disk_io resumes each job there (inserting writes into the
+		// cache, serving reads, queueing the rest), so the resume happens under
+		// the fence and a job arriving concurrently is ordered behind the
+		// backlog. repost() must not complete a job or otherwise re-enter the
+		// fence (it would deadlock on m_mutex); defer that to after this returns.
+		// Returns the number of jobs reposted.
+		int job_complete(disk_job*, std::function<void(disk_job*)> const& repost);
 		int num_outstanding_jobs() const { return m_outstanding_jobs; }
 
 		// if there is a fence up, returns true and adds the job

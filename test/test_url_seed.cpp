@@ -9,6 +9,7 @@ see LICENSE file.
 */
 
 #include "test.hpp"
+#include "disk_io_test.hpp"
 #include "setup_transfer.hpp"
 #include "web_seed_suite.hpp"
 
@@ -17,28 +18,30 @@ using namespace lt;
 const int proxy = lt::settings_pack::none;
 
 #if TORRENT_USE_SSL
-TORRENT_TEST(url_seed_ssl_keepalive)
-{
-	run_http_suite(proxy, "https", 0, 0, 1);
-}
+TORRENT_TEST_DISK_IO(url_seed_ssl_keepalive) { run_http_suite(proxy, "https", disk_io); }
 
-TORRENT_TEST(url_seed_ssl)
+TORRENT_TEST_DISK_IO(url_seed_ssl)
 {
-	run_http_suite(proxy, "https", 0, 0, 0);
+	run_http_suite(proxy, "https", disk_io, web_seed::no_keepalive);
 }
 #endif
 
-TORRENT_TEST(url_seed_keepalive)
+TORRENT_TEST_DISK_IO(url_seed_keepalive) { run_http_suite(proxy, "http", disk_io); }
+
+TORRENT_TEST_DISK_IO(url_seed) { run_http_suite(proxy, "http", disk_io, web_seed::no_keepalive); }
+
+TORRENT_TEST_DISK_IO(url_seed_host_header)
 {
-	run_http_suite(proxy, "http", 0, 0, 1);
+	run_http_suite(proxy, "http", disk_io, web_seed::no_keepalive | web_seed::expect_host_header);
 }
 
-TORRENT_TEST(url_seed)
+TORRENT_TEST_DISK_IO(url_seed_keepalive_rename)
 {
-	run_http_suite(proxy, "http", 0, 0, 0);
-}
+	// TODO: Run this test for all disk I/O backends
+	using fn_t = std::unique_ptr<lt::disk_interface> (*)(
+		lt::io_context&, lt::settings_interface const&, lt::counters&);
+	auto const* tgt = disk_io.target<fn_t>();
+	if (tgt != nullptr && *tgt == &lt::pread_disk_io_constructor) return;
 
-TORRENT_TEST(url_seed_keepalive_rename)
-{
-	run_http_suite(proxy, "http", 0, 1, 1);
+	run_http_suite(proxy, "http", disk_io, web_seed::test_ban);
 }

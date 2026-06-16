@@ -242,16 +242,17 @@ jobs:
           b2 ${{ matrix.config }} -l500 warnings-as-errors=on debug-iterators=on asserts=on deterministic-tests
           b2 ${{ matrix.config }} -l500 testing.execute=off warnings-as-errors=on debug-iterators=on asserts=on test_lsd test_hasher test_hasher512 test_natpmp enum_if
           b2 ${{ matrix.config }} -l500 warnings-as-errors=on debug-iterators=on asserts=on simulate-slow=hash test_slow_hash
+          b2 ${{ matrix.config }} -l500 warnings-as-errors=on debug-iterators=on asserts=on simulate-slow=write test_disk_io
 
       - name: run tests (flaky)
         env:
           LSAN_OPTIONS: suppressions=${{ github.workspace }}/.asan.suppressions
         uses: nick-fields/retry@v4
         with:
-          timeout_minutes: 30
+          timeout_minutes: 90
           retry_wait_seconds: 4
           max_attempts: 3
-          command: (cd test; b2 ${{ matrix.config }} -l500 warnings-as-errors=on debug-iterators=on asserts=on)
+          command: (cd test; b2 ${{ matrix.config }} -l1800 warnings-as-errors=on debug-iterators=on asserts=on)
 
 
 
@@ -345,6 +346,56 @@ jobs:
         run: |
           cd simulation
           b2 testing.execute=off deprecated-functions=off
+
+
+   disk-stress:
+      name: disk I/O stress (smoke)
+      runs-on: ubuntu-24.04
+      continue-on-error: true
+
+      strategy:
+         matrix:
+            config:
+              - release asserts=on debug-iterators=on
+              - release asserts=on debug-iterators=on address-sanitizer=norecover undefined-sanitizer=norecover crypto=openssl
+              - release asserts=on debug-iterators=on thread-sanitizer=norecover crypto=openssl debug-symbols=on cxxflags=-Wno-tsan
+
+      steps:
+      - name: checkout
+        uses: actions/checkout@v6
+        with:
+           submodules: recursive
+           fetch-depth: 1
+           filter: tree:0
+
+      - name: update package lists
+        continue-on-error: true
+        run: |
+          sudo apt update
+
+      - uses: Chocobo1/setup-ccache-action@v1
+        with:
+          update_packager_index: false
+          override_cache_key: ccache-linux-disk-stress-${{ matrix.config }}-${{ github.base_ref }}
+          ccache_options: |
+            max_size=5G
+
+      - name: install boost
+        run: |
+          sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
+          echo "using gcc ;" >>~/user-config.jam
+
+      - name: build disk_io_stress_test
+        run: |
+          cd tools
+          b2 ${{ matrix.config }} warnings-as-errors=on stage
+
+      - name: run smoke suite
+        env:
+          LSAN_OPTIONS: suppressions=${{ github.workspace }}/.asan.suppressions
+        run: |
+          cd tools
+          ./disk_io_stress_test smoke
 
 
    dist:

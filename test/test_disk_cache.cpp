@@ -10,6 +10,10 @@ see LICENSE file.
 #include "libtorrent/aux_/visit_block_iovecs.hpp"
 #include "libtorrent/hasher.hpp"
 #include <array>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <chrono>
 #include "test.hpp"
 #include "test_utils.hpp"
 #include "disk_cache_test_utils.hpp"
@@ -795,6 +799,92 @@ TORRENT_TEST(flush_storage_after_hash_piece_with_monostate_block)
 	// the piece is left in cache by hash_piece(). flush_storage() must
 	// flush block 1 and then free the piece without tripping the assertion.
 	f.flush_storage_for();
+
+	TEST_EQUAL(int(f.cache.size()), 0);
+	TEST_EQUAL(f.alloc.live, 0);
+}
+
+// Two threads calling flush_storage() concurrently for the same storage must
+// not both wait on the same in-flight flush of a piece. notify_flushed_flag
+// records only that *a* waiter exists, not which thread, so a second waiter
+// would be woken by the same notify, race the first to erase the piece, and
+// dereference a now-dangling piece_iter. The fix makes the second
+// flush_storage() observe notify_flushed_flag and skip the piece.
+//
+// Reproduction: a background flush_to_disk() holds flushing_flag on the piece,
+// parked inside its flush callback with the cache mutex released. Two
+// flush_storage() threads then race; exactly one sets notify_flushed_flag and
+// waits, the other observes the flag and skips. Once the skipper returns we
+// know the waiter is parked: it set the flag under the cache mutex and then
+// cv-waited (atomically releasing the lock the skipper went on to take). Only
+// then do we release the background flush, so the waiter flushes and erases
+// the piece.
+TORRENT_TEST(flush_storage_concurrent_same_storage)
+{
+	cache_fixture f(2, test_mode::v1);
+	f.insert(0_piece, 0);
+	f.insert(0_piece, 1);
+	TEST_EQUAL(int(f.cache.size()), 2);
+
+	std::mutex mtx;
+	std::condition_variable cv;
+	bool bg_parked = false;
+	bool release_bg = false;
+	int finished = 0;
+
+	// Background flush: parks inside the callback while flushing_flag is set on
+	// piece 0 and the cache mutex is released. Flushes nothing -- the waiting
+	// flush_storage() flushes the blocks once it wakes.
+	std::thread bg([&] {
+		f.cache.flush_to_disk(
+			[&](bitfield&, span<disk_job* const>) -> int {
+				std::unique_lock<std::mutex> lk(mtx);
+				bg_parked = true;
+				cv.notify_all();
+				cv.wait(lk, [&] { return release_bg; });
+				return 0;
+			},
+			0, // target=0, optimistic=false -> expensive pass flushes piece 0
+			[](jobqueue_t, disk_job*) {},
+			false);
+	});
+
+	// wait for the background flush to set flushing_flag on piece 0
+	{
+		std::unique_lock<std::mutex> lk(mtx);
+		cv.wait(lk, [&] { return bg_parked; });
+	}
+
+	// two concurrent flush_storage() calls for the same storage
+	auto storage_flusher = [&] {
+		f.flush_storage_for();
+		std::unique_lock<std::mutex> lk(mtx);
+		++finished;
+		cv.notify_all();
+	};
+	std::thread a(storage_flusher);
+	std::thread b(storage_flusher);
+
+	// wait until the skipper returns. A timeout guards against a regression
+	// where neither skips and both wait forever on the background flush.
+	{
+		std::unique_lock<std::mutex> lk(mtx);
+		bool const one_done =
+			cv.wait_for(lk, std::chrono::seconds(10), [&] { return finished >= 1; });
+		TEST_CHECK(one_done);
+	}
+
+	// release the background flush; the parked waiter now flushes and erases
+	// piece 0.
+	{
+		std::unique_lock<std::mutex> lk(mtx);
+		release_bg = true;
+		cv.notify_all();
+	}
+
+	bg.join();
+	a.join();
+	b.join();
 
 	TEST_EQUAL(int(f.cache.size()), 0);
 	TEST_EQUAL(f.alloc.live, 0);
