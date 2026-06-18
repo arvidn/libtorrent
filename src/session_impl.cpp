@@ -643,14 +643,28 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 		m_ssl_ctx.load_verify_file("/etc/ssl/cert.pem", ec);
 #ifndef TORRENT_DISABLE_LOGGING
 		if (ec) session_log("SSL load_verify_file failed: %s", ec.message().c_str());
-		ec.clear();
 #endif
+		ec.clear();
 		m_ssl_ctx.add_verify_path("/etc/ssl/certs", ec);
 #ifndef TORRENT_DISABLE_LOGGING
 		if (ec) session_log("SSL add_verify_path failed: %s", ec.message().c_str());
-		ec.clear();
 #endif
+		ec.clear();
 #endif // __APPLE__
+#ifdef __linux__
+		// Debian, Ubuntu, Alpine, openSUSE
+		m_ssl_ctx.load_verify_file("/etc/ssl/certs/ca-certificates.crt", ec);
+#ifndef TORRENT_DISABLE_LOGGING
+		if (ec) session_log("SSL load_verify_file failed: %s", ec.message().c_str());
+#endif
+		ec.clear();
+		// RHEL, Fedora, CentOS
+		m_ssl_ctx.load_verify_file("/etc/pki/tls/certs/ca-bundle.crt", ec);
+#ifndef TORRENT_DISABLE_LOGGING
+		if (ec) session_log("SSL load_verify_file failed: %s", ec.message().c_str());
+#endif
+		ec.clear();
+#endif // __linux__
 #endif // TORRENT_USE_SSL
 #ifdef TORRENT_SSL_PEERS
 		m_peer_ssl_ctx.set_verify_mode(ssl::context::verify_none, ec);
