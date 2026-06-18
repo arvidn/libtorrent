@@ -58,22 +58,20 @@ web_peer_connection::web_peer_connection(peer_connection_args& pack
 	if (!m_settings.get_bool(settings_pack::report_web_seed_downloads))
 		ignore_stats(true);
 
-	auto tor = pack.tor.lock();
-	TORRENT_ASSERT(tor);
+	TORRENT_ASSERT(m_ti);
 
 	// if the web server is known not to support keep-alive. request 4MiB
 	// but we want to have at least piece size to prevent block based requests
-	int const min_size = std::max((web.supports_keepalive ? 1 : 4) * 1024 * 1024,
-		tor->torrent_file().piece_length());
+	int const min_size =
+		std::max((web.supports_keepalive ? 1 : 4) * 1024 * 1024, m_ti->piece_length());
 
 	// we prefer downloading large chunks from web seeds,
 	// but still want to be able to split requests
 	int const preferred_size = std::max(min_size, m_settings.get_int(settings_pack::urlseed_max_request_bytes));
 
-	prefer_contiguous_blocks(preferred_size / tor->block_size());
+	prefer_contiguous_blocks(preferred_size / block_size());
 
-	auto t = associated_torrent().lock();
-	bool const single_file_request = t->torrent_file().num_files() == 1;
+	bool const single_file_request = m_ti->num_files() == 1;
 
 	if (!single_file_request)
 	{
@@ -88,12 +86,12 @@ web_peer_connection::web_peer_connection(peer_connection_args& pack
 		if (m_path.empty()) m_path += '/';
 		if (m_path[m_path.size() - 1] == '/')
 		{
-			m_path += lt::escape_string(t->torrent_file().name());
+			m_path += lt::escape_string(m_ti->name());
 		}
 
 		if (!m_url.empty() && m_url[m_url.size() - 1] == '/')
 		{
-			m_url += escape_file_path(t->torrent_file().layout(), file_index_t(0));
+			m_url += escape_file_path(m_ti->layout(), file_index_t(0));
 		}
 	}
 
@@ -147,7 +145,7 @@ void web_peer_connection::on_connected()
 		// other way around. Start with assuming we have all files, and clear
 		// pieces overlapping with files we *don't* have.
 		typed_bitfield<piece_index_t> have;
-		file_storage const& fs = t->torrent_file().layout();
+		file_storage const& fs = m_ti->layout();
 		have.resize(fs.num_pieces(), true);
 		for (auto const i : fs.file_range())
 		{
@@ -299,8 +297,9 @@ piece_block_progress web_peer_connection::downloading_piece_progress() const
 	// would otherwise point to one past the end
 	int const correction = m_piece.empty() ? 0 : -1;
 	auto const& pr = m_requests.front();
-	ret.block_index = (pr.start + int(m_piece.size()) + correction) / t->block_size();
-	ret.full_block_bytes = std::min(t->block_size(), t->piece_size_for_req(ret.piece_index) - pr.start);
+	ret.block_index = (pr.start + int(m_piece.size()) + correction) / block_size();
+	ret.full_block_bytes =
+		std::min(block_size(), t->piece_size_for_req(ret.piece_index) - pr.start);
 	return ret;
 }
 
@@ -311,16 +310,16 @@ void web_peer_connection::write_request(peer_request const& r)
 	auto t = associated_torrent().lock();
 	TORRENT_ASSERT(t);
 
-	TORRENT_ASSERT(t->valid_metadata());
+	TORRENT_ASSERT(m_ti->is_valid());
 
-	torrent_info const& info = t->torrent_file();
+	torrent_info const& info = *m_ti;
 	peer_request req = r;
 
 	std::string request;
 	request.reserve(400);
 
 	int size = r.length;
-	const int block_size = t->block_size();
+	const int bs = block_size();
 	const int piece_size = info.piece_length();
 	peer_request pr{};
 
@@ -332,7 +331,7 @@ void web_peer_connection::write_request(peer_request const& r)
 	{
 		pr.piece = cur_piece;
 		pr.start = cur_start;
-		pr.length = std::min(std::min(block_size, size), cur_piece_size - pr.start);
+		pr.length = std::min(std::min(bs, size), cur_piece_size - pr.start);
 		TORRENT_ASSERT(validate_piece_request(pr));
 		m_requests.push_back(pr);
 
@@ -383,7 +382,7 @@ void web_peer_connection::write_request(peer_request const& r)
 		, static_cast<int>(pr.piece), pr.start + pr.length);
 #endif
 
-	bool const single_file_request = t->torrent_file().num_files() == 1;
+	bool const single_file_request = m_ti->num_files() == 1;
 	int const proxy_type = m_settings.get_int(settings_pack::proxy_type);
 	bool const using_proxy = (proxy_type == settings_pack::http
 		|| proxy_type == settings_pack::http_pw) && !m_ssl;
@@ -570,8 +569,7 @@ bool web_peer_connection::received_invalid_data(piece_index_t const index, bool 
 	// 3. if it's a single file torrent, just ban it right away
 	// this handles the case where web seeds may have some files updated but not other
 
-	auto t = associated_torrent().lock();
-	file_storage const& fs = t->torrent_file().layout();
+	file_storage const& fs = m_ti->layout();
 
 	// single file torrent
 	if (fs.num_files() == 1) return peer_connection::received_invalid_data(index, single_peer);
@@ -719,7 +717,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		// If we try to load resume with such "web_seed_t" then "web_peer_connection" will send
 		// request with wrong path "http://example2.com/file1" (cause "redirects" map is not serialized in resume)
 		web_seed_t* web = t->add_web_seed(redirect_base, auth, m_extra_headers, web_seed_flags);
-		web->have_files.resize(t->torrent_file().num_files(), false);
+		web->have_files.resize(m_ti->num_files(), false);
 
 		// the new web seed we're adding only has this file for now
 		// we may add more files later
@@ -735,7 +733,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 				// we just learned that this host has this file, and we're currently
 				// connected to it. Make it advertise that it has this file to the
 				// bittorrent engine
-				file_storage const& fs = t->torrent_file().layout();
+				file_storage const& fs = m_ti->layout();
 				for (piece_index_t const i : aux::file_piece_range_inclusive(fs, file_index))
 					pc->incoming_have(i);
 			}
@@ -745,7 +743,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		}
 
 		// we don't have this file on this server. Don't ask for it again
-		m_web->have_files.resize(t->torrent_file().num_files(), true);
+		m_web->have_files.resize(m_ti->num_files(), true);
 		if (m_web->have_files[file_index])
 		{
 			m_web->have_files.clear_bit(file_index);
@@ -775,7 +773,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 
 		// this web seed doesn't have any files. Don't try to request from it
 		// again this session
-		m_web->have_files.resize(t->torrent_file().num_files(), false);
+		m_web->have_files.resize(m_ti->num_files(), false);
 		disconnect(errors::redirecting, operation_t::bittorrent, normal);
 		m_web = nullptr;
 		TORRENT_ASSERT(is_disconnecting());
@@ -905,7 +903,7 @@ void web_peer_connection::on_receive(error_code const& error
 				if (!m_file_requests.empty())
 				{
 					file_request_t const& file_req = m_file_requests.front();
-					m_web->have_files.resize(t->torrent_file().num_files(), true);
+					m_web->have_files.resize(m_ti->num_files(), true);
 					m_web->have_files.clear_bit(file_req.file_index);
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1118,8 +1116,8 @@ void web_peer_connection::on_receive(error_code const& error
 done:
 
 	// now, remove all the bytes we've processed from the receive buffer
-	m_recv_buffer.cut(int(recv_buffer.data() - m_recv_buffer.get().begin())
-		, t->block_size() + request_size_overhead);
+	m_recv_buffer.cut(int(recv_buffer.data() - m_recv_buffer.get().begin()),
+		block_size() + request_size_overhead);
 }
 
 void web_peer_connection::incoming_payload(char const* buf, int len)
@@ -1239,7 +1237,7 @@ void web_peer_connection::handle_padfile()
 
 	auto t = associated_torrent().lock();
 	TORRENT_ASSERT(t);
-	torrent_info const& info = t->torrent_file();
+	torrent_info const& info = *m_ti;
 
 	while (!m_file_requests.empty()
 		&& info.layout().pad_file_at(m_file_requests.front().file_index))

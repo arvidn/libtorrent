@@ -17,7 +17,6 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/peer_id.hpp"
-#include "libtorrent/info_hash.hpp"
 #include "libtorrent/aux_/stat.hpp"
 #include "libtorrent/alert.hpp"
 #include "libtorrent/peer_request.hpp"
@@ -49,6 +48,7 @@ see LICENSE file.
 #include "libtorrent/aux_/piece_picker.hpp" // for picker_options_t
 #include "libtorrent/units.hpp"
 #include "libtorrent/aux_/socket_type.hpp"
+#include "libtorrent/fwd.hpp"
 
 #include <ctime>
 #include <algorithm>
@@ -441,6 +441,17 @@ namespace libtorrent::aux {
 		// which torrent it should be associated with
 		std::weak_ptr<aux::torrent> associated_torrent() const
 		{ return m_torrent; }
+
+		// the cached pointer to the associated torrent_info, used to
+		// resolve info-hash, piece info, file storage, etc. without
+		// reaching back through associated_torrent().lock(). null
+		// before the peer has attached to a torrent.
+		std::shared_ptr<torrent_info const> const& torrent_file() const { return m_ti; }
+
+		// the block size in bytes for this peer's torrent. matches
+		// torrent::block_size(): default_block_size pre-metadata,
+		// min(piece_length, default_block_size) once metadata is known.
+		int block_size() const;
 
 		// get the info hash associated with this peer
 		// this will be a sha1 hash or truncated sha256 hash depending
@@ -838,16 +849,18 @@ namespace libtorrent::aux {
 		// connected to, in case we use a proxy
 		tcp::endpoint m_remote;
 
-		// the info-hash(es) of the torrent this peer is associated with.
-		// for outgoing connections this is set at construction; for
-		// incoming connections it is set when attach_to_torrent()
-		// succeeds. Until then it is all zeros. It is refreshed in
-		// on_metadata_impl() because acquiring metadata can grow the
-		// info-hash (e.g. a v1 magnet for a hybrid torrent learns the
-		// v2 hash at that point). All updates happen on the network
-		// thread, so the peer's other code paths can read it without
-		// synchronization.
-		info_hash_t m_info_hash;
+		// the torrent_info for the torrent this peer is associated with.
+		// set when the peer attaches to a torrent (constructor for
+		// outgoing connections, attach_to_torrent() for incoming) and
+		// refreshed in on_metadata_impl() because torrent::set_metadata()
+		// replaces the underlying holder when metadata arrives. The
+		// torrent_info itself is immutable; the shared_ptr keeps a
+		// stable pointer regardless of holder swaps, and across the
+		// pre-/post-metadata transition. All reads through this pointer
+		// (info-hash, piece info, file storage, block size, ...) are
+		// thread-safe with no further synchronization. Null until
+		// attached.
+		std::shared_ptr<torrent_info const> m_ti;
 
 	public:
 		aux::chained_buffer m_send_buffer;

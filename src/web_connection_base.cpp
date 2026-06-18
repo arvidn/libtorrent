@@ -102,7 +102,7 @@ namespace libtorrent::aux {
 		// it is always possible to request pieces
 		incoming_unchoke();
 
-		m_recv_buffer.reset(t->block_size() + 1024);
+		m_recv_buffer.reset(block_size() + 1024);
 	}
 
 	void web_connection_base::add_headers(std::string& request
