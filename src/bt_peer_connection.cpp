@@ -436,7 +436,7 @@ namespace {
 #if TORRENT_USE_ASSERTS
 		auto t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
-		TORRENT_ASSERT(t->valid_metadata());
+		TORRENT_ASSERT(m_ti->is_valid());
 #endif
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -753,7 +753,7 @@ namespace {
 
 		// this is a v1 peer in a hybrid torrent
 		// indicate that we support upgrading to v2
-		if (!peer_info_struct()->protocol_v2 && m_info_hash.has_v2())
+		if (!peer_info_struct()->protocol_v2 && m_ti->info_hashes().has_v2())
 		{
 			*(ptr + 7) |= 0x10;
 		}
@@ -825,7 +825,7 @@ namespace {
 		piece_block_progress p;
 
 		p.piece_index = r.piece;
-		p.block_index = r.start / t->block_size();
+		p.block_index = r.start / block_size();
 		p.bytes_downloaded = int(recv_buffer.size()) - 9;
 		p.full_block_bytes = r.length;
 
@@ -979,8 +979,8 @@ namespace {
 		received_bytes(0, received);
 		// if we don't have the metadata, we cannot
 		// verify the bitfield size
-		if (t->valid_metadata()
-			&& m_recv_buffer.packet_size() - 1 != (t->torrent_file().num_pieces() + CHAR_BIT - 1) / CHAR_BIT)
+		if (m_ti->is_valid()
+			&& m_recv_buffer.packet_size() - 1 != (m_ti->num_pieces() + CHAR_BIT - 1) / CHAR_BIT)
 		{
 			disconnect(errors::invalid_bitfield_size, operation_t::bittorrent, peer_error);
 			return;
@@ -991,8 +991,9 @@ namespace {
 		span<char const> recv_buffer = m_recv_buffer.get();
 
 		typed_bitfield<piece_index_t> bits;
-		bits.assign(recv_buffer.data() + 1
-			, t->valid_metadata()?get_bitfield().size():(m_recv_buffer.packet_size()-1)*CHAR_BIT);
+		bits.assign(recv_buffer.data() + 1,
+			m_ti->is_valid() ? get_bitfield().size()
+							 : (m_recv_buffer.packet_size() - 1) * CHAR_BIT);
 
 		incoming_bitfield(bits);
 	}
@@ -1042,7 +1043,7 @@ namespace {
 		TORRENT_ASSERT(t);
 		if (recv_pos == 1)
 		{
-			if (m_recv_buffer.packet_size() - 9 > t->block_size())
+			if (m_recv_buffer.packet_size() - 9 > block_size())
 			{
 				received_bytes(0, received);
 				disconnect(errors::packet_too_large, operation_t::bittorrent, peer_error);
@@ -1167,7 +1168,7 @@ namespace {
 		auto t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
-		auto const& files = t->torrent_file().layout();
+		auto const& files = m_ti->layout();
 
 		span<char const> recv_buffer = m_recv_buffer.get();
 		const char* ptr = recv_buffer.begin() + 1;
@@ -1223,7 +1224,7 @@ namespace {
 		auto t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
-		auto const& files = t->torrent_file().layout();
+		auto const& files = m_ti->layout();
 
 		span<char const> recv_buffer = m_recv_buffer.get();
 
@@ -1254,7 +1255,7 @@ namespace {
 
 		hash_request const hr(file_index, base, index, count, proof_layers);
 
-		if (!validate_hash_request(hr, t->torrent_file().layout()))
+		if (!validate_hash_request(hr, m_ti->layout()))
 		{
 			disconnect(errors::invalid_hashes, operation_t::bittorrent, peer_connection_interface::peer_error);
 			return;
@@ -1328,7 +1329,7 @@ namespace {
 		const char* ptr = recv_buffer.begin() + 1;
 
 		auto const file_root = sha256_hash(ptr);
-		file_index_t const file_index = t->torrent_file().layout().file_index_for_root(file_root);
+		file_index_t const file_index = m_ti->layout().file_index_for_root(file_root);
 		ptr += sha256_hash::size();
 		int const base = aux::read_int32(ptr);
 		int const index = aux::read_int32(ptr);
@@ -1714,13 +1715,13 @@ namespace {
 
 		auto t = associated_torrent().lock();
 		if (!t) return;
-		auto const& ti = t->torrent_file();
+		auto const& ti = *m_ti;
 		auto const& fs = ti.layout();
 		auto const root = fs.root(req.file);
 
 		ptr = std::copy(root.begin(), root.end(), ptr);
 
-		TORRENT_ASSERT(validate_hash_request(req, t->torrent_file().layout()));
+		TORRENT_ASSERT(validate_hash_request(req, m_ti->layout()));
 
 		aux::write_uint32(req.base, ptr);
 		aux::write_uint32(req.index, ptr);
@@ -1757,7 +1758,7 @@ namespace {
 
 		auto t = associated_torrent().lock();
 		if (!t) return;
-		auto const& ti = t->torrent_file();
+		auto const& ti = *m_ti;
 		auto const& fs = ti.layout();
 		auto root = fs.root(req.file);
 
@@ -1825,7 +1826,7 @@ namespace {
 		auto t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
-		if (!t->valid_metadata()) return;
+		if (!m_ti->is_valid()) return;
 
 		auto req = t->pick_hashes(this);
 		if (req.count > 0) write_hash_request(req);
@@ -2272,7 +2273,7 @@ namespace {
 		auto t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 		TORRENT_ASSERT(m_sent_handshake);
-		TORRENT_ASSERT(t->valid_metadata());
+		TORRENT_ASSERT(m_ti->is_valid());
 
 #ifndef TORRENT_DISABLE_SUPERSEEDING
 		if (t->super_seeding())
@@ -2315,7 +2316,7 @@ namespace {
 			return;
 		}
 
-		const int num_pieces = t->torrent_file().num_pieces();
+		const int num_pieces = m_ti->num_pieces();
 		TORRENT_ASSERT(num_pieces > 0);
 
 		constexpr std::uint8_t char_bit_mask = CHAR_BIT - 1;
@@ -2450,11 +2451,11 @@ namespace {
 #ifndef TORRENT_DISABLE_SHARE_MODE
 			&& !t->share_mode()
 #endif
-			&& t->valid_metadata()
+			&& m_ti->is_valid()
 #ifndef TORRENT_DISABLE_SUPERSEEDING
 			&& !t->super_seeding()
 #endif
-			)
+		)
 		{
 			handshake["upload_only"] = 1;
 		}
@@ -2642,8 +2643,8 @@ namespace {
 
 		if (t->alerts().should_post<block_uploaded_alert>())
 		{
-			t->alerts().emplace_alert<block_uploaded_alert>(t->get_handle(),
-				remote_endpoint(), pid(), r.start / t->block_size() , r.piece);
+			t->alerts().emplace_alert<block_uploaded_alert>(
+				t->get_handle(), remote_endpoint(), pid(), r.start / block_size(), r.piece);
 		}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -2956,7 +2957,7 @@ namespace {
 				sha1_hash oih(ih);
 				oih ^= m_dh_key_exchange->get_hash_xor_mask();
 
-				m_info_hash.for_each([&](sha1_hash const& tih, protocol_version v) {
+				m_ti->info_hashes().for_each([&](sha1_hash const& tih, protocol_version v) {
 					static char const req2[4] = { 'r', 'e', 'q', '2' };
 					hasher h(req2);
 					h.update(tih);
@@ -3422,7 +3423,7 @@ namespace {
 				// adds the peer info for incoming connections
 				if (recv_buffer[7] & 0x10)
 				{
-					if (t->valid_metadata() && !m_info_hash.has_v2())
+					if (m_ti->is_valid() && !m_ti->info_hashes().has_v2())
 					{
 						// the peer claims to support the v2 protocol with a non-v2 torrent
 						disconnect(errors::invalid_info_hash, operation_t::bittorrent);
@@ -3439,8 +3440,8 @@ namespace {
 				// doesn't support
 				if (std::equal(recv_buffer.begin() + 8,
 						recv_buffer.begin() + 28,
-						m_info_hash.get(protocol_version::V2).data())
-					&& m_info_hash.has_v2())
+						m_ti->info_hashes().get(protocol_version::V2).data())
+					&& m_ti->info_hashes().has_v2())
 				{
 					peer_info_struct()->protocol_v2 = true;
 				}
@@ -3588,7 +3589,7 @@ namespace {
 			// complete the handshake
 			// we don't know how many pieces there are until we
 			// have the metadata
-			if (t->ready_for_connections())
+			if (m_ti->is_valid())
 			{
 				write_bitfield();
 				write_dht_port();
@@ -3784,8 +3785,6 @@ namespace {
 #if TORRENT_USE_INVARIANT_CHECKS
 	void bt_peer_connection::check_invariant() const
 	{
-		auto t = associated_torrent().lock();
-
 #if !defined TORRENT_DISABLE_ENCRYPTION
 		TORRENT_ASSERT( (bool(m_state != state_t::read_pe_dhkey) || m_dh_key_exchange.get())
 				|| !is_outgoing());

@@ -137,12 +137,12 @@ namespace {
 		auto t = m_torrent.lock();
 
 		// for outgoing connections the torrent is known at construction
-		// time, so we can cache the info-hash up-front. For incoming
-		// connections attach_to_torrent() sets it later.
-		if (t) m_info_hash = t->info_hash();
+		// time, so we can cache the torrent_info pointer up-front. For
+		// incoming connections attach_to_torrent() sets it later.
+		if (t) m_ti = t->torrent_file_ptr();
 
 		// the protocol_v2 flag should not be set for non-v2 torrents
-		TORRENT_ASSERT(!t || m_info_hash.has_v2() || !m_peer_info->protocol_v2);
+		TORRENT_ASSERT(!m_ti || m_ti->info_hashes().has_v2() || !m_peer_info->protocol_v2);
 
 		if (m_connected)
 			m_counters.inc_stats_counter(counters::num_peers_connected);
@@ -347,7 +347,7 @@ namespace {
 		}
 #endif
 
-		if (t && t->ready_for_connections())
+		if (t && m_ti->is_valid())
 		{
 			init();
 		}
@@ -495,7 +495,7 @@ namespace {
 #endif
 			return;
 		}
-		if (!t->ready_for_connections())
+		if (!m_ti->is_valid())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, peer_log_alert::update_interest, "not ready for connections");
@@ -598,7 +598,7 @@ namespace {
 		auto t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
-		if (!t->valid_metadata())
+		if (!m_ti->is_valid())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, peer_log_alert::allowed, "skipping allowed set because we don't have metadata");
@@ -627,16 +627,16 @@ namespace {
 		int const num_allowed_pieces = m_settings.get_int(settings_pack::allowed_fast_set_size);
 		if (num_allowed_pieces <= 0) return;
 
-		if (!t->valid_metadata()) return;
+		if (!m_ti->is_valid()) return;
 
-		int const num_pieces = t->torrent_file().num_pieces();
+		int const num_pieces = m_ti->num_pieces();
 
 		if (num_allowed_pieces >= num_pieces)
 		{
 			// this is a special case where we have more allowed
 			// fast pieces than pieces in the torrent. Just send
 			// an allowed fast message for every single piece
-			for (auto const i : t->torrent_file().piece_range())
+			for (auto const i : m_ti->piece_range())
 			{
 				// there's no point in offering fast pieces
 				// that the peer already has
@@ -712,12 +712,14 @@ namespace {
 	{
 		TORRENT_ASSERT(is_single_thread());
 		auto t = associated_torrent().lock();
-		// when metadata arrives, the info-hash may grow: a v1 (or v2)
-		// magnet may turn out to be a hybrid torrent, gaining the other
-		// protocol's hash. Refresh our cached copy now, since the
-		// torrent's info_hash was just updated in set_metadata().
-		m_info_hash = t->info_hash();
-		m_have_piece.resize(t->torrent_file().num_pieces(), m_have_all);
+		// torrent::set_metadata() replaced the torrent_info holder, so
+		// re-point our cached shared_ptr at the new one. the old
+		// torrent_info (with whatever partial info-hash and empty
+		// file_storage) stays alive as long as anyone holds the old
+		// shared_ptr; this single pointer write is the only refresh
+		// peer-side state needs to follow the swap.
+		m_ti = t->torrent_file_ptr();
+		m_have_piece.resize(m_ti->num_pieces(), m_have_all);
 		m_num_pieces = m_have_piece.count();
 
 		piece_index_t const limit(m_num_pieces);
@@ -747,14 +749,14 @@ namespace {
 
 		auto t = m_torrent.lock();
 		TORRENT_ASSERT(t);
-		TORRENT_ASSERT(t->valid_metadata());
-		TORRENT_ASSERT(t->ready_for_connections());
+		TORRENT_ASSERT(m_ti->is_valid());
+		TORRENT_ASSERT(m_ti->is_valid());
 
-		m_have_piece.resize(t->torrent_file().num_pieces(), m_have_all);
+		m_have_piece.resize(m_ti->num_pieces(), m_have_all);
 
 		if (m_have_all)
 		{
-			m_num_pieces = t->torrent_file().num_pieces();
+			m_num_pieces = m_ti->num_pieces();
 			m_have_piece.set_all();
 		}
 
@@ -776,7 +778,7 @@ namespace {
 
 			TORRENT_ASSERT(m_have_piece.all_set());
 			TORRENT_ASSERT(m_have_piece.count() == m_have_piece.size());
-			TORRENT_ASSERT(m_have_piece.size() == t->torrent_file().num_pieces());
+			TORRENT_ASSERT(m_have_piece.size() == m_ti->num_pieces());
 
 			// if this is a web seed. we don't have a peer_info struct
 			t->set_seed(m_peer_info, true);
@@ -799,7 +801,7 @@ namespace {
 		// if we're a seed, we don't keep track of piece availability
 		if (t->has_picker())
 		{
-			TORRENT_ASSERT(m_have_piece.size() == t->torrent_file().num_pieces());
+			TORRENT_ASSERT(m_have_piece.size() == m_ti->num_pieces());
 			t->peer_has(m_have_piece, this);
 			bool interesting = false;
 			for (auto const i : m_have_piece.range())
@@ -1027,9 +1029,9 @@ namespace {
 #if TORRENT_USE_ASSERTS
 		auto t = m_torrent.lock();
 		TORRENT_ASSERT(t);
-		TORRENT_ASSERT(t->valid_metadata());
+		TORRENT_ASSERT(m_ti->is_valid());
 		TORRENT_ASSERT(i >= piece_index_t(0));
-		TORRENT_ASSERT(i < t->torrent_file().end_piece());
+		TORRENT_ASSERT(i < m_ti->end_piece());
 #endif
 		if (m_have_piece.empty()) return false;
 		return m_have_piece[i];
@@ -1093,8 +1095,9 @@ namespace {
 		// average of current rate and peak
 //		rate = (rate + m_download_rate_peak) / 2;
 
-		return milliseconds((m_outstanding_bytes + extra_bytes
-			+ m_queued_time_critical * t->block_size() * 1000) / rate);
+		return milliseconds(
+			(m_outstanding_bytes + extra_bytes + m_queued_time_critical * block_size() * 1000)
+			/ rate);
 	}
 
 	void peer_connection::add_stat(std::int64_t const downloaded, std::int64_t const uploaded)
@@ -1105,13 +1108,21 @@ namespace {
 
 	sha1_hash peer_connection::associated_info_hash() const
 	{
-		TORRENT_ASSERT(!associated_torrent().expired());
+		TORRENT_ASSERT(m_ti);
+		auto const& ih = m_ti->info_hashes();
 		// if protocol_v2 is set on the peer, this better be a v2 torrent,
 		// otherwise something isn't right
-		TORRENT_ASSERT(m_info_hash.has_v2() || !peer_info_struct()->protocol_v2);
-		return m_info_hash.get((m_info_hash.has_v2() && peer_info_struct()->protocol_v2)
-				? protocol_version::V2
-				: protocol_version::V1);
+		TORRENT_ASSERT(ih.has_v2() || !peer_info_struct()->protocol_v2);
+		bool const v2 = ih.has_v2() && peer_info_struct()->protocol_v2;
+		return ih.get(v2 ? protocol_version::V2 : protocol_version::V1);
+	}
+
+	int peer_connection::block_size() const
+	{
+		// matches torrent::block_size(): default_block_size pre-metadata,
+		// min(piece_length, default_block_size) once metadata is known.
+		if (!m_ti || !m_ti->is_valid()) return default_block_size;
+		return std::min(m_ti->piece_length(), default_block_size);
 	}
 
 	void peer_connection::received_bytes(int const bytes_payload, int const bytes_protocol)
@@ -1253,14 +1264,14 @@ namespace {
 		auto t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
-		TORRENT_ASSERT(t->valid_metadata());
-		torrent_info const& ti = t->torrent_file();
+		TORRENT_ASSERT(m_ti->is_valid());
+		torrent_info const& ti = *m_ti;
 
 		if (p.piece < piece_index_t(0) || p.piece >= ti.end_piece() || p.start < 0) return false;
 
 		int const piece_sz = t->piece_size_for_req(p.piece);
 		return p.start < piece_sz
-			&& t->to_req(piece_block(p.piece, p.start / t->block_size()), piece_sz) == p;
+			&& t->to_req(piece_block(p.piece, p.start / block_size()), piece_sz) == p;
 	}
 
 	void peer_connection::attach_to_torrent(info_hash_t const& ih)
@@ -1285,16 +1296,14 @@ namespace {
 			t.reset();
 		}
 
+#ifndef TORRENT_DISABLE_LOGGING
+		bool delay_loaded = false;
+#endif
 		if (!t)
 		{
 			t = m_ses.delay_load_torrent(ih, this);
 #ifndef TORRENT_DISABLE_LOGGING
-			if (t && should_log(peer_log_alert::info))
-			{
-				peer_log(peer_log_alert::info, peer_log_alert::attach
-					, "Delay loaded torrent: %s:"
-					, aux::to_hex(t->info_hash().get_best()).c_str());
-			}
+			delay_loaded = (t != nullptr);
 #endif
 		}
 
@@ -1327,8 +1336,22 @@ namespace {
 			return;
 		}
 
+		// set m_ti before m_torrent so the validation below reads through it
+		m_ti = t->torrent_file_ptr();
+
+#ifndef TORRENT_DISABLE_LOGGING
+		if (delay_loaded && should_log(peer_log_alert::info))
+		{
+			peer_log(peer_log_alert::info,
+				peer_log_alert::attach,
+				"Delay loaded torrent: %s:",
+				aux::to_hex(m_ti->info_hashes().get_best()).c_str());
+		}
+#endif
+
 		// if this peer supports v2, this better be a v2 torrent
-		TORRENT_ASSERT(t->info_hash().has_v2() || !(peer_info_struct() && peer_info_struct()->protocol_v2));
+		TORRENT_ASSERT(m_ti->info_hashes().has_v2()
+			|| !(peer_info_struct() && peer_info_struct()->protocol_v2));
 
 		if (t->is_paused()
 			&& t->is_auto_managed()
@@ -1378,7 +1401,6 @@ namespace {
 		// of the torrent and peer_connection::disconnect() will fail if it
 		// think it is
 		m_torrent = t;
-		m_info_hash = t->info_hash();
 
 		if (t && t->alerts().should_post<peer_connect_alert>())
 		{
@@ -1386,11 +1408,11 @@ namespace {
 				t->get_handle(), remote_endpoint(), pid(), socket_type_idx(m_socket), peer_connect_alert::direction_t::in);
 		}
 
-		if (m_info_hash.has_v2()
-			&& (m_info_hash.get(protocol_version::V2) == ih.v1 || m_info_hash.v2 == ih.v2))
+		auto const& tih = m_ti->info_hashes();
+		if (tih.has_v2() && (tih.get(protocol_version::V2) == ih.v1 || tih.v2 == ih.v2))
 		{
 			peer_info_struct()->protocol_v2 = true;
-			TORRENT_ASSERT(m_info_hash.has_v2());
+			TORRENT_ASSERT(tih.has_v2());
 		}
 
 		// Since accepting the slack connection, we might have fallen below the connections limit in which case we
@@ -1441,7 +1463,7 @@ namespace {
 		// if the torrent isn't ready to accept
 		// connections yet, we'll have to wait with
 		// our initialization
-		if (t->ready_for_connections()) init();
+		if (m_ti->is_valid()) init();
 
 		TORRENT_ASSERT(!m_torrent.expired());
 
@@ -1584,12 +1606,12 @@ namespace {
 
 		if (is_disconnecting()) return;
 
-		int const block_size = t->block_size();
+		int const bs = block_size();
 		bool const piece_in_range =
-			r.piece >= piece_index_t{} && r.piece < t->torrent_file().layout().end_piece();
+			r.piece >= piece_index_t{} && r.piece < m_ti->layout().end_piece();
 		int const piece_sz = piece_in_range ? t->piece_size_for_req(r.piece) : 0;
-		if (!piece_in_range || r.start < 0 || r.start >= piece_sz || (r.start % block_size) != 0
-			|| r.length != std::min(piece_sz - r.start, block_size))
+		if (!piece_in_range || r.start < 0 || r.start >= piece_sz || (r.start % bs) != 0
+			|| r.length != std::min(piece_sz - r.start, bs))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, peer_log_alert::reject, "invalid reject message (%d, %d, %d)"
@@ -1599,12 +1621,10 @@ namespace {
 		}
 
 		auto const dlq_iter = std::find_if(
-			m_download_queue.begin(), m_download_queue.end()
-			, [&r, block_size](pending_block const& pb)
-			{
+			m_download_queue.begin(), m_download_queue.end(), [&r, bs](pending_block const& pb) {
 				auto const& b = pb.block;
 				if (b.piece_index != r.piece) return false;
-				if (b.block_index != r.start / block_size) return false;
+				if (b.block_index != r.start / bs) return false;
 				return true;
 			});
 
@@ -1703,7 +1723,7 @@ namespace {
 			return;
 		}
 
-		if (t->valid_metadata())
+		if (m_ti->is_valid())
 		{
 			if (index >= m_have_piece.end_index())
 			{
@@ -1970,7 +1990,7 @@ namespace {
 
 		if (is_disconnecting()) return;
 
-		if (!t->valid_metadata() && index >= m_have_piece.end_index())
+		if (!m_ti->is_valid() && index >= m_have_piece.end_index())
 		{
 			if (index <= piece_index_t(m_settings.get_int(settings_pack::max_piece_count)))
 			{
@@ -2039,7 +2059,7 @@ namespace {
 		// we have the metadata and if
 		// we're not a seed (in which case
 		// we won't have a piece picker)
-		if (!t->valid_metadata()) return;
+		if (!m_ti->is_valid()) return;
 
 		t->peer_has(index, this);
 
@@ -2053,10 +2073,10 @@ namespace {
 				, static_cast<void*>(m_peer_info));
 #endif
 
-			TORRENT_ASSERT(t->ready_for_connections());
+			TORRENT_ASSERT(m_ti->is_valid());
 			TORRENT_ASSERT(m_have_piece.all_set());
 			TORRENT_ASSERT(m_have_piece.count() == m_have_piece.size());
-			TORRENT_ASSERT(m_have_piece.size() == t->torrent_file().num_pieces());
+			TORRENT_ASSERT(m_have_piece.size() == m_ti->num_pieces());
 
 			// only mark last-seen-complete if we've received actual payload data
 			// from this peer, to prevent lying peers from updating the timestamp
@@ -2116,8 +2136,7 @@ namespace {
 		auto t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
-		if (index < piece_index_t{}
-			|| index >= t->torrent_file().end_piece())
+		if (index < piece_index_t{} || index >= m_ti->end_piece())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::incoming, peer_log_alert::dont_have
@@ -2167,7 +2186,7 @@ namespace {
 		// we have the metadata and if
 		// we're not a seed (in which case
 		// we won't have a piece picker)
-		if (!t->valid_metadata()) return;
+		if (!m_ti->is_valid()) return;
 
 		t->peer_lost(index, this);
 
@@ -2213,8 +2232,7 @@ namespace {
 
 		// if we don't have the metadata, we cannot
 		// verify the bitfield size
-		if (t->valid_metadata()
-			&& bits.size() != m_have_piece.size())
+		if (m_ti->is_valid() && bits.size() != m_have_piece.size())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log(peer_log_alert::incoming_message))
@@ -2242,7 +2260,7 @@ namespace {
 		// just remember the bitmask
 		// don't update the piecepicker
 		// (since it doesn't exist yet)
-		if (!t->ready_for_connections())
+		if (!m_ti->is_valid())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			if (m_num_pieces == bits.size())
@@ -2252,7 +2270,7 @@ namespace {
 			m_have_piece = bits;
 			m_num_pieces = bits.count();
 			t->set_seed(m_peer_info, m_num_pieces == bits.size());
-			TORRENT_ASSERT(!t->valid_metadata() || (is_seed() == (m_num_pieces == bits.size())));
+			TORRENT_ASSERT(!m_ti->is_valid() || (is_seed() == (m_num_pieces == bits.size())));
 
 #if TORRENT_USE_INVARIANT_CHECKS
 			if (t && t->has_picker())
@@ -2261,7 +2279,7 @@ namespace {
 			return;
 		}
 
-		TORRENT_ASSERT(t->valid_metadata());
+		TORRENT_ASSERT(m_ti->is_valid());
 
 		int const num_pieces = bits.count();
 		t->set_seed(m_peer_info, num_pieces == m_have_piece.size());
@@ -2279,7 +2297,7 @@ namespace {
 
 			TORRENT_ASSERT(m_have_piece.all_set());
 			TORRENT_ASSERT(m_have_piece.count() == m_have_piece.size());
-			TORRENT_ASSERT(m_have_piece.size() == t->torrent_file().num_pieces());
+			TORRENT_ASSERT(m_have_piece.size() == m_ti->num_pieces());
 
 #if TORRENT_USE_INVARIANT_CHECKS
 			if (t && t->has_picker())
@@ -2322,7 +2340,7 @@ namespace {
 		// also, if the peer doesn't have metadata we shouldn't
 		// disconnect it, since it may want to request the
 		// metadata from us
-		if (!t->valid_metadata() || !has_metadata()) return false;
+		if (!m_ti->is_valid() || !has_metadata()) return false;
 
 #ifndef TORRENT_DISABLE_SHARE_MODE
 		// don't close connections in share mode, we don't know if we need them
@@ -2380,14 +2398,12 @@ namespace {
 
 		auto t = m_torrent.lock();
 		TORRENT_ASSERT(t);
-		torrent_info const& ti = t->torrent_file();
+		torrent_info const& ti = *m_ti;
 
 		m_counters.inc_stats_counter(counters::piece_requests);
 
 #ifndef TORRENT_DISABLE_LOGGING
-		const bool valid_piece_index
-			= r.piece >= piece_index_t(0)
-			&& r.piece < t->torrent_file().end_piece();
+		const bool valid_piece_index = r.piece >= piece_index_t(0) && r.piece < m_ti->end_piece();
 
 		peer_log(peer_log_alert::incoming_message, peer_log_alert::request
 			, "piece: %d s: %x l: %x", static_cast<int>(r.piece), std::uint32_t(r.start), std::uint32_t(r.length));
@@ -2403,15 +2419,16 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log(peer_log_alert::info))
 			{
-				peer_log(peer_log_alert::info, peer_log_alert::invalid_request, "piece not super-seeded "
-					"i: %d t: %d n: %d h: %d ss1: %d ss2: %d"
-					, m_peer_interested
-					, valid_piece_index
-						? t->torrent_file().piece_size(r.piece) : -1
-					, t->torrent_file().num_pieces()
-					, valid_piece_index ? t->have_piece(r.piece) : 0
-					, static_cast<int>(m_superseed_piece[0])
-					, static_cast<int>(m_superseed_piece[1]));
+				peer_log(peer_log_alert::info,
+					peer_log_alert::invalid_request,
+					"piece not super-seeded "
+					"i: %d t: %d n: %d h: %d ss1: %d ss2: %d",
+					m_peer_interested,
+					valid_piece_index ? m_ti->piece_size(r.piece) : -1,
+					m_ti->num_pieces(),
+					valid_piece_index ? t->have_piece(r.piece) : 0,
+					static_cast<int>(m_superseed_piece[0]),
+					static_cast<int>(m_superseed_piece[1]));
 			}
 #endif
 
@@ -2443,7 +2460,7 @@ namespace {
 		if (is_disconnecting()) return;
 #endif
 
-		if (!t->valid_metadata())
+		if (!m_ti->is_valid())
 		{
 			m_counters.inc_stats_counter(counters::invalid_piece_requests);
 			// if we don't have valid metadata yet,
@@ -2480,12 +2497,13 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log(peer_log_alert::info))
 			{
-				peer_log(peer_log_alert::info, peer_log_alert::invalid_request, "peer is not interested "
-					" t: %d n: %d block_limit: %d"
-					, valid_piece_index
-						? t->torrent_file().piece_size(r.piece) : -1
-					, t->torrent_file().num_pieces()
-					, t->block_size());
+				peer_log(peer_log_alert::info,
+					peer_log_alert::invalid_request,
+					"peer is not interested "
+					" t: %d n: %d block_limit: %d",
+					valid_piece_index ? m_ti->piece_size(r.piece) : -1,
+					m_ti->num_pieces(),
+					block_size());
 				peer_log(peer_log_alert::info, peer_log_alert::interested, "artificial incoming INTERESTED message");
 			}
 #endif
@@ -2504,32 +2522,28 @@ namespace {
 		// make sure this request
 		// is legal and that the peer
 		// is not choked
-		if (r.piece < piece_index_t(0)
-			|| r.piece >= t->torrent_file().end_piece()
+		if (r.piece < piece_index_t(0) || r.piece >= m_ti->end_piece()
 			|| (!t->user_have_piece(r.piece)
 #ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
 				&& !t->is_predictive_piece(r.piece)
 #endif
 				&& !t->seed_mode())
-			|| r.start < 0
-			|| r.start >= ti.piece_size(r.piece)
-			|| r.length <= 0
-			|| r.length + r.start > ti.piece_size(r.piece)
-			|| r.length > t->block_size())
+			|| r.start < 0 || r.start >= ti.piece_size(r.piece) || r.length <= 0
+			|| r.length + r.start > ti.piece_size(r.piece) || r.length > block_size())
 		{
 			m_counters.inc_stats_counter(counters::invalid_piece_requests);
 
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log(peer_log_alert::info))
 			{
-				peer_log(peer_log_alert::info, peer_log_alert::invalid_request
-					, "i: %d t: %d n: %d h: %d block_limit: %d"
-					, m_peer_interested
-					, valid_piece_index
-						? t->torrent_file().piece_size(r.piece) : -1
-					, ti.num_pieces()
-					, t->user_have_piece(r.piece)
-					, t->block_size());
+				peer_log(peer_log_alert::info,
+					peer_log_alert::invalid_request,
+					"i: %d t: %d n: %d h: %d block_limit: %d",
+					m_peer_interested,
+					valid_piece_index ? m_ti->piece_size(r.piece) : -1,
+					ti.num_pieces(),
+					t->user_have_piece(r.piece),
+					block_size());
 			}
 #endif
 
@@ -2571,8 +2585,7 @@ namespace {
 
 		// if we have choked the client
 		// ignore the request
-		int const blocks_per_piece =
-			(ti.piece_length() + t->block_size() - 1) / t->block_size();
+		int const blocks_per_piece = (ti.piece_length() + block_size() - 1) / block_size();
 
 		// disconnect peers that downloads more than foo times an allowed
 		// fast piece
@@ -2609,9 +2622,9 @@ namespace {
 			if (m_requests.empty())
 				m_counters.inc_stats_counter(counters::num_peers_up_requests);
 
-			TORRENT_ASSERT(t->valid_metadata());
+			TORRENT_ASSERT(m_ti->is_valid());
 			TORRENT_ASSERT(r.piece >= piece_index_t(0));
-			TORRENT_ASSERT(r.piece < t->torrent_file().end_piece());
+			TORRENT_ASSERT(r.piece < m_ti->end_piece());
 			TORRENT_ASSERT(r.length <= default_block_size);
 			TORRENT_ASSERT(r.length > 0);
 
@@ -2658,7 +2671,7 @@ namespace {
 		if (m_outstanding_bytes < 0) m_outstanding_bytes = 0;
 		auto t = associated_torrent().lock();
 #if TORRENT_USE_ASSERTS
-		TORRENT_ASSERT(m_received_in_piece + bytes <= t->block_size());
+		TORRENT_ASSERT(m_received_in_piece + bytes <= block_size());
 		m_received_in_piece += bytes;
 #endif
 
@@ -2695,7 +2708,7 @@ namespace {
 			return;
 		}
 
-		piece_block const b(r.piece, r.start / t->block_size());
+		piece_block const b(r.piece, r.start / block_size());
 		m_receiving_block = b;
 
 		bool in_req_queue = false;
@@ -2877,7 +2890,7 @@ namespace {
 
 		piece_picker& picker = t->picker();
 
-		piece_block block_finished(p.piece, p.start / t->block_size());
+		piece_block block_finished(p.piece, p.start / block_size());
 		TORRENT_ASSERT(validate_piece_request(p));
 
 		auto const b = std::find_if(m_download_queue.begin()
@@ -3074,7 +3087,7 @@ namespace {
 						// download rate from this peer, and how many blocks
 						// do we have left to download?
 						std::int64_t const rate = peer->connection->statistics().download_payload_rate();
-						std::int64_t const bytes_left = std::int64_t(st.requested) * t->block_size();
+						std::int64_t const bytes_left = std::int64_t(st.requested) * block_size();
 
 						// calculate the eta for the piece
 						time_duration const eta = rate > 0
@@ -3187,7 +3200,7 @@ namespace {
 		// to allow to receive more data
 		setup_receive();
 
-		piece_block const block_finished(p.piece, p.start / t->block_size());
+		piece_block const block_finished(p.piece, p.start / block_size());
 
 		if (error)
 		{
@@ -3388,7 +3401,7 @@ namespace {
 		// just remember the bitmask
 		// don't update the piecepicker
 		// (since it doesn't exist yet)
-		if (!t->ready_for_connections())
+		if (!m_ti->is_valid())
 		{
 			// assume seeds are interesting when we
 			// don't even have the metadata
@@ -3411,7 +3424,7 @@ namespace {
 
 		TORRENT_ASSERT(m_have_piece.all_set());
 		TORRENT_ASSERT(m_have_piece.count() == m_have_piece.size());
-		TORRENT_ASSERT(m_have_piece.size() == t->torrent_file().num_pieces());
+		TORRENT_ASSERT(m_have_piece.size() == m_ti->num_pieces());
 
 		// if we're finished, we're not interested
 		if (t->is_upload_only()) send_not_interested();
@@ -3462,7 +3475,7 @@ namespace {
 		// we're never interested in a peer that doesn't have anything
 		send_not_interested();
 
-		TORRENT_ASSERT(!m_have_piece.empty() || !t->ready_for_connections());
+		TORRENT_ASSERT(!m_have_piece.empty() || !m_ti->is_valid());
 		disconnect_if_redundant();
 	}
 
@@ -3500,7 +3513,7 @@ namespace {
 			return;
 		}
 
-		if (t->valid_metadata())
+		if (m_ti->is_valid())
 		{
 			if (index >= m_have_piece.end_index())
 			{
@@ -3523,11 +3536,8 @@ namespace {
 
 		// if the peer has the piece and we want
 		// to download it, request it
-		if (index < m_have_piece.end_index()
-			&& m_have_piece[index]
-			&& !t->have_piece(index)
-			&& t->valid_metadata()
-			&& t->has_picker()
+		if (index < m_have_piece.end_index() && m_have_piece[index] && !t->have_piece(index)
+			&& m_ti->is_valid() && t->has_picker()
 			&& t->picker().piece_priority(index) > dont_download)
 		{
 			t->peer_is_interesting(*this);
@@ -3595,12 +3605,12 @@ namespace {
 		TORRENT_ASSERT(t);
 
 		TORRENT_ASSERT(!m_disconnecting);
-		TORRENT_ASSERT(t->valid_metadata());
+		TORRENT_ASSERT(m_ti->is_valid());
 
 		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
 		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
-		TORRENT_ASSERT(block.piece_index < t->torrent_file().end_piece());
-		TORRENT_ASSERT(block.block_index < t->torrent_file().piece_size(block.piece_index));
+		TORRENT_ASSERT(block.piece_index < m_ti->end_piece());
+		TORRENT_ASSERT(block.block_index < m_ti->piece_size(block.piece_index));
 		TORRENT_ASSERT(!t->picker().is_requested(block) || (t->picker().num_peers(block) > 0));
 		TORRENT_ASSERT(!t->have_piece(block.piece_index));
 		TORRENT_ASSERT(std::find_if(m_download_queue.begin(), m_download_queue.end()
@@ -3699,7 +3709,7 @@ namespace {
 		// this peer might be disconnecting
 		if (!t) return;
 
-		TORRENT_ASSERT(t->valid_metadata());
+		TORRENT_ASSERT(m_ti->is_valid());
 
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, peer_log_alert::cancel_all_requests);
@@ -3744,12 +3754,12 @@ namespace {
 		// this peer might be disconnecting
 		if (!t) return;
 
-		TORRENT_ASSERT(t->valid_metadata());
+		TORRENT_ASSERT(m_ti->is_valid());
 
 		TORRENT_ASSERT(block.block_index != piece_block::invalid.block_index);
 		TORRENT_ASSERT(block.piece_index != piece_block::invalid.piece_index);
-		TORRENT_ASSERT(block.piece_index < t->torrent_file().end_piece());
-		TORRENT_ASSERT(block.block_index < t->torrent_file().piece_size(block.piece_index));
+		TORRENT_ASSERT(block.piece_index < m_ti->end_piece());
+		TORRENT_ASSERT(block.block_index < m_ti->piece_size(block.piece_index));
 		TORRENT_ASSERT(t->has_picker());
 
 		// if all the peers that requested this block has been
@@ -3856,8 +3866,7 @@ namespace {
 		INVARIANT_CHECK;
 
 		if (!m_choked) return false;
-		auto t = m_torrent.lock();
-		if (!t->ready_for_connections()) return false;
+		if (!m_ti->is_valid()) return false;
 
 		if (m_settings.get_int(settings_pack::suggest_mode)
 			== settings_pack::suggest_read_cache)
@@ -3886,8 +3895,7 @@ namespace {
 	{
 		TORRENT_ASSERT(is_single_thread());
 		if (m_interesting) return;
-		auto t = m_torrent.lock();
-		if (!t->ready_for_connections()) return;
+		if (!m_ti->is_valid()) return;
 		if (!m_interesting)
 		{
 			m_interesting = true;
@@ -3913,8 +3921,7 @@ namespace {
 			return;
 		}
 
-		auto t = m_torrent.lock();
-		if (!t->ready_for_connections()) return;
+		if (!m_ti->is_valid()) return;
 		if (m_interesting)
 		{
 			m_interesting = false;
@@ -3992,7 +3999,7 @@ namespace {
 			auto t = m_torrent.lock();
 			TORRENT_ASSERT(t);
 			TORRENT_ASSERT(t->have_piece(piece));
-			TORRENT_ASSERT(piece < t->torrent_file().end_piece());
+			TORRENT_ASSERT(piece < m_ti->end_piece());
 		}
 #endif
 
@@ -4082,7 +4089,7 @@ namespace {
 			// blocks that are in the same piece into larger requests
 			if (m_request_large_blocks)
 			{
-				int const blocks_per_piece = t->torrent_file().blocks_per_piece();
+				int const blocks_per_piece = m_ti->blocks_per_piece();
 
 				while (!m_request_queue.empty())
 				{
@@ -4107,10 +4114,10 @@ namespace {
 					m_download_queue.push_back(block);
 					if (m_queued_time_critical) --m_queued_time_critical;
 
-					int const block_offset = block.block.block_index * t->block_size();
-					int const bs = std::min(piece_sz - block_offset, t->block_size());
+					int const block_offset = block.block.block_index * block_size();
+					int const bs = std::min(piece_sz - block_offset, block_size());
 					TORRENT_ASSERT(bs > 0);
-					TORRENT_ASSERT(bs <= t->block_size());
+					TORRENT_ASSERT(bs <= block_size());
 
 					r.length += bs;
 					m_outstanding_bytes += bs;
@@ -4802,8 +4809,7 @@ namespace {
 			// the minimum number of requests is 2 and the maximum is 48
 			// the block size doesn't have to be 16. So we first query the
 			// torrent for it
-			auto t = m_torrent.lock();
-			int const bs = t->block_size();
+			int const bs = block_size();
 
 			TORRENT_ASSERT(bs > 0);
 
@@ -4896,9 +4902,7 @@ namespace {
 		}
 
 #ifndef TORRENT_DISABLE_SUPERSEEDING
-		if (t->super_seeding()
-			&& t->ready_for_connections()
-			&& !m_peer_interested
+		if (t->super_seeding() && m_ti->is_valid() && !m_peer_interested
 			&& m_became_uninterested.get(m_connect) + seconds(10) < now)
 		{
 			// maybe we need to try another piece, to see if the peer
@@ -5100,7 +5104,7 @@ namespace {
 		}
 		if (is_disconnecting()) return;
 
-		if (!t->ready_for_connections()) return;
+		if (!m_ti->is_valid()) return;
 
 		update_desired_queue_size();
 
@@ -5294,12 +5298,12 @@ namespace {
 		for (int i = 0; i < int(m_requests.size())
 			&& (send_buffer_size() + m_reading_bytes < buffer_size_watermark); ++i)
 		{
-			TORRENT_ASSERT(t->ready_for_connections());
+			TORRENT_ASSERT(m_ti->is_valid());
 			peer_request const& r = m_requests[i];
 
 			TORRENT_ASSERT(r.piece >= piece_index_t(0));
 			TORRENT_ASSERT(r.piece < piece_index_t(m_have_piece.size()));
-			TORRENT_ASSERT(r.start + r.length <= t->torrent_file().piece_size(r.piece));
+			TORRENT_ASSERT(r.start + r.length <= m_ti->piece_size(r.piece));
 			TORRENT_ASSERT(r.length > 0);
 			TORRENT_ASSERT(r.start >= 0);
 
@@ -5325,11 +5329,11 @@ namespace {
 				// this means we're in seed mode and we haven't yet
 				// verified this piece (r.piece)
 				disk_job_flags_t flags;
-				if (m_info_hash.has_v1() && !t->disable_v1_hashes())
+				if (m_ti->info_hashes().has_v1() && !t->disable_v1_hashes())
 					flags |= disk_interface::v1_hash;
 				aux::vector<sha256_hash> hashes;
-				if (m_info_hash.has_v2())
-					hashes.resize(t->torrent_file().layout().blocks_in_piece2(r.piece));
+				if (m_ti->info_hashes().has_v2())
+					hashes.resize(m_ti->layout().blocks_in_piece2(r.piece));
 
 				span<sha256_hash> v2_hashes(hashes);
 				m_disk_thread.async_hash(t->storage(), r.piece, v2_hashes, flags
@@ -5370,9 +5374,9 @@ namespace {
 
 				// the callback function may be called immediately, instead of being posted
 
-				TORRENT_ASSERT(t->valid_metadata());
+				TORRENT_ASSERT(m_ti->is_valid());
 				TORRENT_ASSERT(r.piece >= piece_index_t(0));
-				TORRENT_ASSERT(r.piece < t->torrent_file().end_piece());
+				TORRENT_ASSERT(r.piece < m_ti->end_piece());
 
 				disk_job_flags_t flags{};
 				auto const read_mode = m_settings.get_int(settings_pack::disk_io_read_mode);
@@ -5435,17 +5439,18 @@ namespace {
 #endif
 
 		// we're using the piece hashes here, we need the torrent to be loaded
-		if (!m_settings.get_bool(settings_pack::disable_hash_checks) && m_info_hash.has_v1()
+		if (!m_settings.get_bool(settings_pack::disable_hash_checks) && m_ti->info_hashes().has_v1()
 			&& !t->disable_v1_hashes())
 		{
-			hash_failed[protocol_version::V1] = piece_hash != t->torrent_file().hash_for_piece(piece);
+			hash_failed[protocol_version::V1] = piece_hash != m_ti->hash_for_piece(piece);
 		}
 
-		if (!m_settings.get_bool(settings_pack::disable_hash_checks) && m_info_hash.has_v2())
+		if (!m_settings.get_bool(settings_pack::disable_hash_checks)
+			&& m_ti->info_hashes().has_v2())
 		{
 			hash_failed[protocol_version::V2] = false;
 
-			int const blocks_in_piece = t->torrent_file().layout().blocks_in_piece2(piece);
+			int const blocks_in_piece = m_ti->layout().blocks_in_piece2(piece);
 
 			TORRENT_ASSERT(blocks_in_piece == int(block_hashes.size()));
 
@@ -5534,7 +5539,7 @@ namespace {
 		case set_block_hash_result::success:
 		{
 			t->need_picker();
-			int const blocks_per_piece = t->torrent_file().layout().blocks_per_piece();
+			int const blocks_per_piece = m_ti->layout().blocks_per_piece();
 			for (piece_index_t verified_piece = int(r.piece) + result.first_verified_block / blocks_per_piece
 				, end = int(verified_piece) + (result.num_verified + blocks_per_piece - 1) / blocks_per_piece
 				; verified_piece < end; ++verified_piece)
@@ -6273,8 +6278,6 @@ namespace {
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		auto t = m_torrent.lock();
-
 		bool bw_limit = m_quota[download_channel] > 0;
 
 		if (!bw_limit) return false;
@@ -6575,8 +6578,7 @@ namespace {
 		}
 
 		TORRENT_ASSERT(m_outstanding_bytes >= 0);
-		if (t
-			&& t->valid_metadata()
+		if (t && m_ti->is_valid()
 			&& !m_disconnecting
 #ifndef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 			// if our download queue is too long, this invariant
@@ -6584,13 +6586,13 @@ namespace {
 			// opted-in to expensive invariant checks
 			&& m_download_queue.size() <= 128
 #endif
-			)
+		)
 		{
-			torrent_info const& ti = t->torrent_file();
+			torrent_info const& ti = *m_ti;
 			// if the piece is fully downloaded, we might have popped it from the
 			// download queue already
 			int outstanding_bytes = 0;
-			int const bs = t->block_size();
+			int const bs = block_size();
 			piece_block last_block(ti.last_piece()
 				, (t->piece_size_for_req(ti.last_piece()) + bs - 1) / bs);
 
@@ -6620,7 +6622,7 @@ namespace {
 		{
 			TORRENT_ASSERT(r.piece >= piece_index_t(0));
 			TORRENT_ASSERT(r.piece < piece_index_t(m_have_piece.size()));
-			if (t) TORRENT_ASSERT(r.start + r.length <= t->torrent_file().piece_size(r.piece));
+			if (t) TORRENT_ASSERT(r.start + r.length <= m_ti->piece_size(r.piece));
 			TORRENT_ASSERT(r.length > 0);
 			TORRENT_ASSERT(r.length <= default_block_size);
 			TORRENT_ASSERT(r.start >= 0);
@@ -6664,12 +6666,12 @@ namespace {
 			return;
 		}
 
-		auto const& ih = m_info_hash;
+		auto const& ih = m_ti->info_hashes();
 		if (peer_info_struct() && peer_info_struct()->protocol_v2)
 			TORRENT_ASSERT(ih.has_v2());
 
-		if (t->ready_for_connections() && m_initialized)
-			TORRENT_ASSERT(t->torrent_file().num_pieces() == int(m_have_piece.size()));
+		if (m_ti->is_valid() && m_initialized)
+			TORRENT_ASSERT(m_ti->num_pieces() == int(m_have_piece.size()));
 
 		// in share mode we don't close redundant connections
 		if (m_settings.get_bool(settings_pack::close_redundant_connections)
@@ -6687,22 +6689,12 @@ namespace {
 					|| can_disconnect(errors::timed_out_inactivity);
 
 			// make sure upload only peers are disconnected
-			if (t->is_upload_only()
-				&& upload_only()
-				&& !m_need_interest_update
-				&& t->valid_metadata()
-				&& has_metadata()
-				&& ok_to_disconnect)
+			if (t->is_upload_only() && upload_only() && !m_need_interest_update && m_ti->is_valid()
+				&& has_metadata() && ok_to_disconnect)
 				TORRENT_ASSERT(m_disconnect_started || t->graceful_pause() || t->has_error());
 
-			if (upload_only()
-				&& !m_interesting
-				&& !m_need_interest_update
-				&& m_bitfield_received
-				&& t->are_files_checked()
-				&& t->valid_metadata()
-				&& has_metadata()
-				&& ok_to_disconnect)
+			if (upload_only() && !m_interesting && !m_need_interest_update && m_bitfield_received
+				&& t->are_files_checked() && m_ti->is_valid() && has_metadata() && ok_to_disconnect)
 				TORRENT_ASSERT(m_disconnect_started);
 		}
 
@@ -6773,12 +6765,12 @@ namespace {
 		}
 */
 // extremely expensive invariant check
-/*
+		/*
 		if (!t->is_seed())
 		{
 			piece_picker& p = t->picker();
 			const std::vector<piece_picker::downloading_piece>& dlq = p.get_download_queue();
-			const int blocks_per_piece = static_cast<int>(t->torrent_file().blocks_per_piece());
+			const int blocks_per_piece = static_cast<int>(m_ti->blocks_per_piece());
 
 			for (std::vector<piece_picker::downloading_piece>::const_iterator i =
 				dlq.begin(); i != dlq.end(); ++i)
@@ -6843,8 +6835,7 @@ namespace {
 		// if m_num_pieces == 0, we probably don't have the
 		// metadata yet.
 		auto t = m_torrent.lock();
-		return m_num_pieces == m_have_piece.size()
-			&& m_num_pieces > 0 && t && t->valid_metadata();
+		return m_num_pieces == m_have_piece.size() && m_num_pieces > 0 && t && m_ti->is_valid();
 	}
 
 #ifndef TORRENT_DISABLE_SHARE_MODE

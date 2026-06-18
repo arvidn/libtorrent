@@ -1121,6 +1121,16 @@ namespace libtorrent::aux {
 		torrent_info const& torrent_file() const
 		{ return *m_torrent_file; }
 
+		// network-thread-only accessor returning the shared_ptr to the
+		// torrent_info itself. unlike get_torrent_file(), this returns
+		// the pointer even when is_valid() is false (pre-metadata),
+		// because the placeholder torrent_info still carries the
+		// info-hash and the peer_connection wants a stable handle. The
+		// holder is replaced (not mutated in place) when set_metadata()
+		// runs, so callers caching this pointer must refresh it from
+		// on_metadata_impl().
+		std::shared_ptr<torrent_info const> torrent_file_ptr() const { return m_torrent_file; }
+
 		hash_request pick_hashes(peer_connection* peer);
 		std::vector<sha256_hash> get_hashes(hash_request const& req) const;
 		bool add_hashes(hash_request const& req, span<sha256_hash> hashes);
