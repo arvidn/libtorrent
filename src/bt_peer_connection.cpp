@@ -417,7 +417,7 @@ namespace {
 			, static_cast<int>(piece));
 #endif
 
-		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
+		TORRENT_ASSERT(m_ti->is_valid());
 
 		send_message(msg_allowed_fast, counters::num_outgoing_allowed_fast
 			, static_cast<int>(piece));
@@ -723,8 +723,7 @@ namespace {
 		TORRENT_ASSERT(!m_sent_handshake);
 		m_sent_handshake = true;
 
-		auto t = associated_torrent().lock();
-		TORRENT_ASSERT(t);
+		TORRENT_ASSERT(!associated_torrent().expired());
 
 		// add handshake to the send buffer
 		static const char version_string[] = "BitTorrent protocol";
@@ -803,8 +802,7 @@ namespace {
 
 	piece_block_progress bt_peer_connection::downloading_piece_progress() const
 	{
-		auto t = associated_torrent().lock();
-		TORRENT_ASSERT(t);
+		TORRENT_ASSERT(!associated_torrent().expired());
 
 		span<char const> recv_buffer = m_recv_buffer.get();
 		// are we currently receiving a 'piece' message?
@@ -973,8 +971,7 @@ namespace {
 
 		TORRENT_ASSERT(received >= 0);
 
-		auto t = associated_torrent().lock();
-		TORRENT_ASSERT(t);
+		TORRENT_ASSERT(!associated_torrent().expired());
 
 		received_bytes(0, received);
 		// if we don't have the metadata, we cannot
@@ -1039,8 +1036,7 @@ namespace {
 		span<char const> recv_buffer = m_recv_buffer.get();
 		int const recv_pos = m_recv_buffer.pos();
 
-		auto t = associated_torrent().lock();
-		TORRENT_ASSERT(t);
+		TORRENT_ASSERT(!associated_torrent().expired());
 		if (recv_pos == 1)
 		{
 			if (m_recv_buffer.packet_size() - 9 > block_size())
@@ -2561,9 +2557,9 @@ namespace {
 	void bt_peer_connection::write_have(piece_index_t const index)
 	{
 		INVARIANT_CHECK;
-		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
+		TORRENT_ASSERT(m_ti->is_valid());
 		TORRENT_ASSERT(index >= piece_index_t(0));
-		TORRENT_ASSERT(index < associated_torrent().lock()->torrent_file().end_piece());
+		TORRENT_ASSERT(index < m_ti->end_piece());
 
 		// if we haven't sent the bitfield yet, this piece should be included in
 		// there instead
@@ -2580,9 +2576,9 @@ namespace {
 	void bt_peer_connection::write_dont_have(piece_index_t const index)
 	{
 		INVARIANT_CHECK;
-		TORRENT_ASSERT(associated_torrent().lock()->valid_metadata());
+		TORRENT_ASSERT(m_ti->is_valid());
 		TORRENT_ASSERT(index >= piece_index_t(0));
-		TORRENT_ASSERT(index < associated_torrent().lock()->torrent_file().end_piece());
+		TORRENT_ASSERT(index < m_ti->end_piece());
 
 		if (in_handshake()) return;
 

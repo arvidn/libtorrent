@@ -984,10 +984,7 @@ namespace {
 
 		if (disconnect_if_redundant()) return;
 
-#if TORRENT_USE_ASSERTS
-		auto t = m_torrent.lock();
-		TORRENT_ASSERT(t);
-#endif
+		TORRENT_ASSERT(!m_torrent.expired());
 	}
 
 	void peer_connection::announce_piece(piece_index_t const index)
@@ -1015,22 +1012,16 @@ namespace {
 			, static_cast<int>(index));
 #endif
 		write_have(index);
-#if TORRENT_USE_ASSERTS
-		auto t = m_torrent.lock();
-		TORRENT_ASSERT(t);
-#endif
+		TORRENT_ASSERT(!m_torrent.expired());
 	}
 
 	bool peer_connection::has_piece(piece_index_t const i) const
 	{
 		TORRENT_ASSERT(is_single_thread());
-#if TORRENT_USE_ASSERTS
-		auto t = m_torrent.lock();
-		TORRENT_ASSERT(t);
+		TORRENT_ASSERT(!m_torrent.expired());
 		TORRENT_ASSERT(m_ti->is_valid());
 		TORRENT_ASSERT(i >= piece_index_t(0));
 		TORRENT_ASSERT(i < m_ti->end_piece());
-#endif
 		if (m_have_piece.empty()) return false;
 		return m_have_piece[i];
 	}
@@ -1916,8 +1907,7 @@ namespace {
 
 		if (is_disconnecting()) return;
 
-		auto t = m_torrent.lock();
-		TORRENT_ASSERT(t);
+		TORRENT_ASSERT(!m_torrent.expired());
 
 		choke_this_peer();
 	}
@@ -3545,8 +3535,7 @@ namespace {
 	std::vector<piece_index_t> const& peer_connection::allowed_fast()
 	{
 		TORRENT_ASSERT(is_single_thread());
-		auto t = m_torrent.lock();
-		TORRENT_ASSERT(t);
+		TORRENT_ASSERT(!m_torrent.expired());
 
 		// TODO: sort the allowed fast set in priority order
 		return m_allowed_fast;
@@ -4733,8 +4722,7 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, peer_log_alert::super_seeding, "ending");
 #endif
-			auto t = m_torrent.lock();
-			TORRENT_ASSERT(t);
+			TORRENT_ASSERT(!m_torrent.expired());
 
 			// this will either send a full bitfield or
 			// a have-all message, effectively terminating
