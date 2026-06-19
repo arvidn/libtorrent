@@ -89,9 +89,7 @@ namespace {
 	bool peer_connection::is_single_thread() const
 	{
 #ifdef TORRENT_USE_INVARIANT_CHECKS
-		auto t = m_torrent.lock();
-		if (!t) return true;
-		return t->is_single_thread();
+		return m_ses.is_single_thread();
 #else
 		return true;
 #endif
