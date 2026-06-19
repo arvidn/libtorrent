@@ -614,12 +614,11 @@ void web_peer_connection::handle_error(int const bytes_left)
 
 	// temporarily unavailable, retry later
 	t->retry_web_seed(this, m_parser.header_duration("retry-after"));
-	if (t->alerts().should_post<url_seed_alert>())
+	if (m_alerts.should_post<url_seed_alert>())
 	{
 		std::string const error_msg = to_string(m_parser.status_code()).data()
 			+ (" " + m_parser.message());
-		t->alerts().emplace_alert<url_seed_alert>(t->get_handle(), m_url
-			, error_msg);
+		m_alerts.emplace_alert<url_seed_alert>(t->get_handle(), m_url, error_msg);
 	}
 	received_bytes(0, bytes_left);
 	disconnect(error_code(m_parser.status_code(), http_category()), operation_t::bittorrent, failure);
