@@ -51,7 +51,14 @@ namespace {
 	{
 		explicit smart_ban_plugin(aux::torrent& t)
 			: m_torrent(t)
+			, m_ti(t.torrent_file_ptr())
 		{}
+
+		void on_files_checked() override
+		{
+			// torrent::set_metadata() may have replaced the holder; refresh
+			m_ti = m_torrent.torrent_file_ptr();
+		}
 
 		// explicitly disallow assignment, to silence msvc warning
 		smart_ban_plugin& operator=(smart_ban_plugin const&) = delete;
@@ -70,7 +77,7 @@ namespace {
 					, static_cast<int>(p), int(m_block_hashes.size()));
 #endif
 
-			int size = m_torrent.torrent_file().piece_size(p);
+			int size = m_ti->piece_size(p);
 			peer_request r = {p, 0, std::min(16 * 1024, size)};
 			piece_block pb(p, 0);
 			while (size > 0)
@@ -121,7 +128,7 @@ namespace {
 			std::vector<aux::torrent_peer*> const downloaders
 				= m_torrent.picker().get_downloaders(p);
 
-			int size = m_torrent.torrent_file().piece_size(p);
+			int size = m_ti->piece_size(p);
 			peer_request r = {p, 0, std::min(16*1024, size)};
 			piece_block pb(p, 0);
 			for (auto const& i : downloaders)
@@ -305,6 +312,7 @@ namespace {
 		}
 
 		aux::torrent& m_torrent;
+		std::shared_ptr<torrent_info const> m_ti;
 
 		// This table maps a piece_block (piece and block index
 		// pair) to a peer and the block CRC. The CRC is calculated
@@ -337,7 +345,7 @@ namespace libtorrent {
 		aux::torrent* t = th.native_handle().get();
 		// v2 torrents identify bad peers via merkle block hashes — see
 		// torrent::piece_failed and hash_picker::verify_block_hashes
-		if (t->torrent_file().info_hashes().has_v2()) return nullptr;
+		if (t->torrent_file_ptr()->info_hashes().has_v2()) return nullptr;
 		return std::make_shared<smart_ban_plugin>(*t);
 	}
 }

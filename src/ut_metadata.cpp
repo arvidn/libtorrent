@@ -75,7 +75,18 @@ namespace {
 	struct ut_metadata_plugin final
 		: torrent_plugin
 	{
-		explicit ut_metadata_plugin(aux::torrent& t) : m_torrent(t) {}
+		friend struct ut_metadata_peer_plugin;
+
+		explicit ut_metadata_plugin(aux::torrent& t)
+			: m_torrent(t)
+			, m_ti(t.torrent_file_ptr())
+		{}
+
+		void on_files_checked() override
+		{
+			// torrent::set_metadata() may have replaced the holder; refresh
+			m_ti = m_torrent.torrent_file_ptr();
+		}
 
 		std::shared_ptr<peer_plugin> new_connection(
 			peer_connection_handle const& pc) override;
@@ -83,20 +94,18 @@ namespace {
 		span<char const> metadata() const
 		{
 			if (!m_metadata.empty()) return m_metadata;
-			if (!m_torrent.valid_metadata()) return {};
+			if (!m_ti->is_valid()) return {};
 
-			auto const ret = m_torrent.torrent_file().info_section();
+			auto const ret = m_ti->info_section();
 
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
-			if (m_torrent.torrent_file().info_hashes().has_v1())
+			if (m_ti->info_hashes().has_v1())
 			{
-				TORRENT_ASSERT(hasher(ret).final()
-					== m_torrent.torrent_file().info_hashes().v1);
+				TORRENT_ASSERT(hasher(ret).final() == m_ti->info_hashes().v1);
 			}
-			if (m_torrent.torrent_file().info_hashes().has_v2())
+			if (m_ti->info_hashes().has_v2())
 			{
-				TORRENT_ASSERT(hasher256(ret).final()
-					== m_torrent.torrent_file().info_hashes().v2);
+				TORRENT_ASSERT(hasher256(ret).final() == m_ti->info_hashes().v2);
 			}
 #endif
 
@@ -121,7 +130,7 @@ namespace {
 
 		void metadata_size(int const size)
 		{
-			if (m_torrent.valid_metadata()) return;
+			if (m_ti->is_valid()) return;
 			if (size <= 0 || size > 4 * 1024 * 1024) return;
 			m_metadata.resize(size);
 			m_requested_metadata.resize(div_round_up(size, 16 * 1024));
@@ -132,6 +141,7 @@ namespace {
 
 	private:
 		aux::torrent& m_torrent;
+		std::shared_ptr<torrent_info const> m_ti;
 
 		// this buffer is filled with the info-section of
 		// the metadata file while downloading it from
@@ -161,10 +171,8 @@ namespace {
 	{
 		friend struct ut_metadata_plugin;
 
-		ut_metadata_peer_plugin(aux::torrent& t, aux::bt_peer_connection& pc
-			, ut_metadata_plugin& tp)
+		ut_metadata_peer_plugin(aux::bt_peer_connection& pc, ut_metadata_plugin& tp)
 			: m_request_limit(min_time())
-			, m_torrent(t)
 			, m_pc(pc)
 			, m_tp(tp)
 		{}
@@ -174,8 +182,7 @@ namespace {
 		{
 			entry& messages = h["m"];
 			messages["ut_metadata"] = 2;
-			if (m_torrent.valid_metadata())
-				h["metadata_size"] = m_tp.metadata().size();
+			if (m_tp.m_ti->is_valid()) h["metadata_size"] = m_tp.metadata().size();
 		}
 
 		// called when the extension handshake from the other end is received
@@ -222,14 +229,13 @@ namespace {
 			char const* metadata = nullptr;
 			int metadata_piece_size = 0;
 
-			if (m_torrent.valid_metadata())
-				e["total_size"] = m_tp.metadata().size();
+			if (m_tp.m_ti->is_valid()) e["total_size"] = m_tp.metadata().size();
 
 			if (type == msg_t::piece)
 			{
 				TORRENT_ASSERT(piece >= 0 && piece < (m_tp.metadata().size() + 16 * 1024 - 1) / (16 * 1024));
 				TORRENT_ASSERT(m_pc.associated_torrent().lock()->valid_metadata());
-				TORRENT_ASSERT(m_torrent.valid_metadata());
+				TORRENT_ASSERT(m_tp.m_ti->is_valid());
 
 				int const offset = piece * 16 * 1024;
 				metadata = m_tp.metadata().data() + offset;
@@ -318,17 +324,18 @@ namespace {
 			{
 				case msg_t::request:
 				{
-					if (!m_torrent.valid_metadata()
-						|| piece < 0 || piece >= (m_tp.metadata().size() + 16 * 1024 - 1) / (16 * 1024))
+					if (!m_tp.m_ti->is_valid() || piece < 0
+						|| piece >= (m_tp.metadata().size() + 16 * 1024 - 1) / (16 * 1024))
 					{
 #ifndef TORRENT_DISABLE_LOGGING
 						if (m_pc.should_log(peer_log_alert::info))
 						{
-							m_pc.peer_log(peer_log_alert::info, peer_log_alert::ut_metadata
-								, "have: %d invalid piece %d metadata size: %d"
-								, int(m_torrent.valid_metadata()), piece
-								, m_torrent.valid_metadata()
-									? int(m_tp.metadata().size()) : 0);
+							m_pc.peer_log(peer_log_alert::info,
+								peer_log_alert::ut_metadata,
+								"have: %d invalid piece %d metadata size: %d",
+								int(m_tp.m_ti->is_valid()),
+								piece,
+								m_tp.m_ti->is_valid() ? int(m_tp.metadata().size()) : 0);
 						}
 #endif
 						write_metadata_packet(msg_t::dont_have, piece);
@@ -401,9 +408,7 @@ namespace {
 			// supports the request metadata extension
 			// and we aren't currently waiting for a request
 			// reply. Then, send a request for some metadata.
-			if (!m_torrent.valid_metadata()
-				&& m_message_index != 0
-				&& m_sent_requests.size() < 2
+			if (!m_tp.m_ti->is_valid() && m_message_index != 0 && m_sent_requests.size() < 2
 				&& has_metadata())
 			{
 				int const piece = m_tp.metadata_request(m_pc.has_metadata());
@@ -443,7 +448,6 @@ namespace {
 		std::vector<int> m_sent_requests;
 		std::vector<int> m_incoming_requests;
 
-		aux::torrent& m_torrent;
 		aux::bt_peer_connection& m_pc;
 		ut_metadata_plugin& m_tp;
 	};
@@ -454,7 +458,7 @@ namespace {
 		if (pc.type() != connection_type::bittorrent) return {};
 
 		aux::bt_peer_connection* c = static_cast<aux::bt_peer_connection*>(pc.native_handle().get());
-		return std::make_shared<ut_metadata_peer_plugin>(m_torrent, *c, *this);
+		return std::make_shared<ut_metadata_peer_plugin>(*c, *this);
 	}
 
 	// has_metadata is false if the peer making the request has not announced
@@ -499,7 +503,7 @@ namespace {
 	bool ut_metadata_plugin::received_metadata(ut_metadata_peer_plugin& source
 		, span<char const> buf, int const piece, int const total_size)
 	{
-		if (m_torrent.valid_metadata())
+		if (m_ti->is_valid())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			source.m_pc.peer_log(peer_log_alert::info, peer_log_alert::ut_metadata
@@ -564,7 +568,7 @@ namespace {
 
 		if (!m_torrent.set_metadata(m_metadata))
 		{
-			if (!m_torrent.valid_metadata())
+			if (!m_ti->is_valid())
 			{
 				time_point const now = aux::time_now();
 				// any peer that we downloaded metadata from gets a random time
@@ -585,6 +589,9 @@ namespace {
 			}
 			return false;
 		}
+
+		// refresh now -- metadata() may be called before on_files_checked
+		m_ti = m_torrent.torrent_file_ptr();
 
 		// free our copy of the metadata and get a reference
 		// to the torrent's copy instead. No need to keep two
@@ -607,7 +614,7 @@ namespace libtorrent {
 	{
 		aux::torrent* t = th.native_handle().get();
 		// don't add this extension if the torrent is private
-		if (t->valid_metadata() && t->torrent_file().priv()) return {};
+		if (auto const ti = t->torrent_file_ptr(); ti->is_valid() && ti->priv()) return {};
 		return std::make_shared<ut_metadata_plugin>(*t);
 	}
 }
