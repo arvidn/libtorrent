@@ -3225,9 +3225,10 @@ namespace {
 					// when this returns, all outstanding jobs to the
 					// piece are done, and we can restore it, allowing
 					// new requests to it
-					m_disk_thread.async_clear_piece(t->storage(), p.piece
-						, [t, block_finished] (piece_index_t pi)
-						{ t->wrap(&aux::torrent::on_piece_fail_sync, pi, block_finished); });
+					m_disk_thread.async_clear_piece(
+						t->storage(), p.piece, [t, block_finished](piece_index_t pi) {
+							t->on_piece_fail_sync(pi, block_finished);
+						});
 				}
 				else
 				{
@@ -3238,7 +3239,6 @@ namespace {
 				}
 				m_ses.deferred_submit_jobs();
 			}
-			t->update_gauge();
 			// handle_disk_error may disconnect us
 			t->handle_disk_error("write", error, this, aux::torrent::disk_class::write);
 			return;
