@@ -96,8 +96,7 @@ namespace libtorrent::aux {
 
 	void web_connection_base::on_connected()
 	{
-		auto t = associated_torrent().lock();
-		TORRENT_ASSERT(t);
+		TORRENT_ASSERT(!associated_torrent().expired());
 
 		// it is always possible to request pieces
 		incoming_unchoke();

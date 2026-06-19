@@ -798,8 +798,7 @@ void web_peer_connection::on_receive(error_code const& error
 		return;
 	}
 
-	auto t = associated_torrent().lock();
-	TORRENT_ASSERT(t);
+	TORRENT_ASSERT(!associated_torrent().expired());
 
 	// in case the first file on this series of requests is a padfile
 	// we need to handle it right now
@@ -1203,8 +1202,7 @@ void web_peer_connection::maybe_harvest_piece()
 	TORRENT_ASSERT(front_request.length >= int(m_piece.size()));
 	if (int(m_piece.size()) != front_request.length) return;
 
-	auto t = associated_torrent().lock();
-	TORRENT_ASSERT(t);
+	TORRENT_ASSERT(!associated_torrent().expired());
 
 #ifndef TORRENT_DISABLE_LOGGING
 	peer_log(peer_log_alert::incoming_message, peer_log_alert::pop_request
