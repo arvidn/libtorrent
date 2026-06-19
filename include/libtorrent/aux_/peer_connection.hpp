@@ -31,6 +31,7 @@ see LICENSE file.
 #include "libtorrent/aux_/sliding_average.hpp"
 #include "libtorrent/peer_class.hpp"
 #include "libtorrent/aux_/peer_class_set.hpp"
+#include "libtorrent/aux_/session_interface.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/disk_observer.hpp"
 #include "libtorrent/peer_connection_interface.hpp"
@@ -73,6 +74,7 @@ namespace libtorrent::aux {
 	struct session_interface;
 	struct torrent;
 	struct torrent_peer;
+	struct alert_manager;
 
 	struct min_value_t {};
 	static const min_value_t min_value{};
@@ -163,13 +165,13 @@ namespace libtorrent::aux {
 	struct TORRENT_EXTRA_EXPORT peer_connection_hot_members
 	{
 		// if tor is set, this is an outgoing connection
-		peer_connection_hot_members(
-			std::weak_ptr<aux::torrent> t
-			, aux::session_interface& ses
-			, aux::session_settings const& sett)
+		peer_connection_hot_members(std::weak_ptr<aux::torrent> t,
+			aux::session_interface& ses,
+			aux::session_settings const& sett)
 			: m_torrent(std::move(t))
 			, m_ses(ses)
 			, m_settings(sett)
+			, m_alerts(ses.alerts())
 			, m_disconnecting(false)
 			, m_connecting(!m_torrent.expired())
 			, m_endgame_mode(false)
@@ -207,6 +209,9 @@ namespace libtorrent::aux {
 
 		// settings that apply to this peer
 		aux::session_settings const& m_settings;
+
+		// cached reference to session's alert_manager
+		aux::alert_manager& m_alerts;
 
 	protected:
 

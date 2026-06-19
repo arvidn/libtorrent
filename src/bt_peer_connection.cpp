@@ -2641,9 +2641,9 @@ namespace {
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_piece);
 
-		if (t->alerts().should_post<block_uploaded_alert>())
+		if (m_alerts.should_post<block_uploaded_alert>())
 		{
-			t->alerts().emplace_alert<block_uploaded_alert>(
+			m_alerts.emplace_alert<block_uploaded_alert>(
 				t->get_handle(), remote_endpoint(), pid(), r.start / block_size(), r.piece);
 		}
 
