@@ -602,8 +602,8 @@ namespace libtorrent {
 	std::shared_ptr<torrent_plugin> create_ut_pex_plugin(torrent_handle const& th, client_data_t)
 	{
 		aux::torrent* t = th.native_handle().get();
-		if (t->torrent_file().priv() || (t->is_i2p()
-			&& !t->settings().get_bool(settings_pack::allow_i2p_mixed)))
+		if (t->torrent_file_ptr()->priv()
+			|| (t->is_i2p() && !t->settings().get_bool(settings_pack::allow_i2p_mixed)))
 		{
 			return {};
 		}
