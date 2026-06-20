@@ -107,7 +107,7 @@ TORRENT_TEST(peer_class_set_capacity)
 	for (std::size_t i = 0; i < classes.size(); ++i)
 	{
 		classes[i] = pool.new_peer_class("test");
-		set.add_class(pool, classes[i]);
+		if (set.add(classes[i])) pool.incref(classes[i]);
 	}
 
 	TEST_EQUAL(set.num_classes(), int(classes.size()));
@@ -115,7 +115,7 @@ TORRENT_TEST(peer_class_set_capacity)
 	for (std::size_t i = 0; i < classes.size(); ++i)
 	{
 		TEST_CHECK(set.has_class(classes[i]));
-		set.remove_class(pool, classes[i]);
+		if (set.remove(classes[i])) pool.decref(classes[i]);
 		pool.decref(classes[i]);
 	}
 

@@ -44,6 +44,7 @@ see LICENSE file.
 #include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/aux_/bandwidth_manager.hpp"
+#include "libtorrent/aux_/rate_limits.hpp"
 #include "libtorrent/aux_/request_blocks.hpp" // for request_a_block
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/aux_/alert_manager.hpp" // for alert_manager
@@ -253,23 +254,10 @@ namespace {
 	{
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(channel >= 0 && channel < 2);
-		int prio = 1;
-		for (int i = 0; i < num_classes(); ++i)
-		{
-			int class_prio = m_ses.peer_classes().at(class_at(i))->priority[std::size_t(channel)];
-			if (prio < class_prio) prio = class_prio;
-		}
-
+		// the bandwidth allocator's minimum priority is 1
+		int prio = std::max(1, m_rates.max_priority(*this, channel));
 		auto const t = associated_torrent().lock();
-
-		if (t)
-		{
-			for (int i = 0; i < t->num_classes(); ++i)
-			{
-				int class_prio = m_ses.peer_classes().at(t->class_at(i))->priority[std::size_t(channel)];
-				if (prio < class_prio) prio = class_prio;
-			}
-		}
+		if (t) prio = std::max(prio, m_rates.max_priority(*t, channel));
 		return prio;
 	}
 
@@ -335,11 +323,7 @@ namespace {
 		if (should_log(peer_log_alert::info))
 		{
 			std::string classes;
-			for (int i = 0; i < num_classes(); ++i)
-			{
-				classes += m_ses.peer_classes().at(class_at(i))->label;
-				classes += ' ';
-			}
+			m_rates.format_class_labels(*this, classes);
 			peer_log(peer_log_alert::info, peer_log_alert::peer_class, "%s"
 				, classes.c_str());
 		}
@@ -4560,9 +4544,9 @@ namespace {
 		TORRENT_ASSERT(is_single_thread());
 		if (num_classes() == 0) return true;
 
-		if (m_ses.ignore_unchoke_slots_set(*this)) return true;
+		if (m_rates.ignore_unchoke_slots_set(*this)) return true;
 		auto t = m_torrent.lock();
-		if (t && m_ses.ignore_unchoke_slots_set(*t)) return true;
+		if (t && m_rates.ignore_unchoke_slots_set(*t)) return true;
 		return false;
 	}
 
@@ -4870,12 +4854,10 @@ namespace {
 		// drain the IP overhead from the bandwidth limiters
 		if (m_settings.get_bool(settings_pack::rate_limit_ip_overhead) && t)
 		{
-			warning |= m_ses.use_quota_overhead(*this
-				, m_statistics.download_ip_overhead()
-				, m_statistics.upload_ip_overhead());
-			warning |= m_ses.use_quota_overhead(*t
-				, m_statistics.download_ip_overhead()
-				, m_statistics.upload_ip_overhead());
+			warning |= m_rates.apply_ip_overhead(*this,
+				t.get(),
+				m_statistics.download_ip_overhead(),
+				m_statistics.upload_ip_overhead());
 		}
 
 		if (warning && m_alerts.should_post<performance_alert>())
@@ -5740,41 +5722,9 @@ namespace {
 
 		int const priority = get_priority(channel);
 
-		// Reserve for the peer classes, torrent classes and existing slack,
-		// capped to the number of channels bw_request can store.
-		int const max_supported_channels = aux::bw_request::max_bandwidth_channels;
-		int const max_channels =
-			std::min(max_supported_channels, num_classes() + (t ? t->num_classes() : 0) + 2);
-		TORRENT_ALLOCA(channels, aux::bandwidth_channel*, max_channels);
-
-		// collect the pointers to all bandwidth channels
-		// that apply to this torrent
-		int c = 0;
-
-		c += m_ses.copy_pertinent_channels(*this, channel
-			, channels.subspan(c).data(), max_channels - c);
-		if (t)
-		{
-			c += m_ses.copy_pertinent_channels(*t, channel
-				, channels.subspan(c).data(), max_channels - c);
-		}
-
-#if TORRENT_USE_ASSERTS
-		// make sure we don't have duplicates
-		std::set<aux::bandwidth_channel*> unique_classes;
-		for (auto chan : channels.first(c))
-		{
-			TORRENT_ASSERT(unique_classes.count(chan) == 0);
-			unique_classes.insert(chan);
-		}
-#endif
-
 		TORRENT_ASSERT(!(m_channel_state[channel] & peer_info::bw_limit));
 
-		aux::bandwidth_manager* manager = m_ses.get_bandwidth_manager(channel);
-
-		int const ret = manager->request_bandwidth(self()
-			, bytes, priority, channels.first(c));
+		int const ret = m_rates.request_bandwidth(self(), channel, bytes, priority, *this, t.get());
 
 		if (ret == 0)
 		{
@@ -5784,9 +5734,14 @@ namespace {
 			if (should_log(dir))
 			{
 				peer_log(dir,
-					peer_log_alert::request_bandwidth, "bytes: %d quota: %d wanted_transfer: %d "
-					"prio: %d num_channels: %d", bytes, m_quota[channel]
-					, wanted_transfer(channel), priority, c);
+					peer_log_alert::request_bandwidth,
+					"bytes: %d quota: %d wanted_transfer: %d"
+					" prio: %d num_channels: %d",
+					bytes,
+					m_quota[channel],
+					wanted_transfer(channel),
+					priority,
+					num_classes() + (t ? t->num_classes() : 0));
 			}
 #endif
 			m_channel_state[channel] |= peer_info::bw_limit;
@@ -6568,7 +6523,7 @@ namespace {
 			{
 				// if we're waiting for bandwidth, we should be in the
 				// bandwidth manager's queue
-				TORRENT_ASSERT(m_ses.get_bandwidth_manager(i)->is_queued(this));
+				TORRENT_ASSERT(m_rates.is_queued(this, i));
 			}
 		}
 

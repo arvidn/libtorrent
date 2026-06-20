@@ -11,6 +11,8 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
+#include "libtorrent/aux_/bandwidth_manager.hpp"
+#include "libtorrent/aux_/rate_limits.hpp"
 #include "libtorrent/aux_/alert_manager.hpp"
 #include "libtorrent/aux_/resolver.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
@@ -112,13 +114,7 @@ struct session_mock : aux::session_interface
 	void queue_tracker_request(aux::tracker_request, std::weak_ptr<aux::request_callback>) override {}
 
 	void set_peer_classes(aux::peer_class_set*, address const&, socket_type_t) override {}
-	peer_class_pool const& peer_classes() const override { return _peer_class_pool; }
-	peer_class_pool& peer_classes() override { return _peer_class_pool; }
-	bool ignore_unchoke_slots_set(aux::peer_class_set const&) const override { return false; }
-	int copy_pertinent_channels(aux::peer_class_set const&, int, aux::bandwidth_channel**, int) override { return 0; }
-	std::uint8_t use_quota_overhead(aux::peer_class_set&, int, int) override { return 0; }
-
-	aux::bandwidth_manager* get_bandwidth_manager(int) override { return nullptr; }
+	aux::rate_limits& rates() override { return _rates; }
 
 	void accumulate_stats(aux::stat_delta const&) override {}
 
@@ -225,7 +221,9 @@ struct session_mock : aux::session_interface
 	aux::torrent_peer_allocator _torrent_peer_allocator;
 	port_filter _port_filter;
 	counters _counters;
-	peer_class_pool _peer_class_pool;
+	aux::bandwidth_manager _download_rate{1};
+	aux::bandwidth_manager _upload_rate{0};
+	aux::rate_limits _rates{_download_rate, _upload_rate};
 	time_point _start_time;
 
 	std::unique_ptr<disk_interface> _disk_io;

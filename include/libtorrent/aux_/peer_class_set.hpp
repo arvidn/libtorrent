@@ -18,12 +18,18 @@ namespace libtorrent::aux {
 
 	// this represents an object that can have many peer classes applied
 	// to it. Most notably, peer connections and torrents derive from this.
+	// the membership list is tracked here; reference counting on the
+	// peer_class_pool is the caller's responsibility (rate_limits owns
+	// that part).
 	struct TORRENT_EXTRA_EXPORT peer_class_set
 	{
 		peer_class_set() : m_size(0) {}
-		void add_class(peer_class_pool& pool, peer_class_t c);
+		// returns true iff `c` was actually added (false if already a
+		// member, or if the fixed-size membership array is full).
+		bool add(peer_class_t c);
+		// returns true iff `c` was actually removed (false if not a member).
+		bool remove(peer_class_t c);
 		bool has_class(peer_class_t c) const;
-		void remove_class(peer_class_pool& pool, peer_class_t c);
 		int num_classes() const { return m_size; }
 		peer_class_t class_at(int i) const
 		{

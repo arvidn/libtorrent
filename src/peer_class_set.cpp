@@ -14,18 +14,18 @@ see LICENSE file.
 
 namespace libtorrent::aux {
 
-	void peer_class_set::add_class(peer_class_pool& pool, peer_class_t c)
+	bool peer_class_set::add(peer_class_t c)
 	{
-		if (std::find(m_class.begin(), m_class.begin() + m_size, c)
-			!= m_class.begin() + m_size) return;
+		if (std::find(m_class.begin(), m_class.begin() + m_size, c) != m_class.begin() + m_size)
+			return false;
 		if (m_size >= int(m_class.size()))
 		{
 			TORRENT_ASSERT_FAIL();
-			return;
+			return false;
 		}
 		m_class[m_size] = c;
-		pool.incref(c);
 		++m_size;
+		return true;
 	}
 
 	bool peer_class_set::has_class(peer_class_t c) const
@@ -34,17 +34,17 @@ namespace libtorrent::aux {
 			!= m_class.begin() + m_size;
 	}
 
-	void peer_class_set::remove_class(peer_class_pool& pool, peer_class_t const c)
+	bool peer_class_set::remove(peer_class_t const c)
 	{
 		auto const i = std::find(m_class.begin(), m_class.begin() + m_size, c);
 		int const idx = int(i - m_class.begin());
-		if (idx == m_size) return; // not found
+		if (idx == m_size) return false; // not found
 		if (idx < m_size - 1)
 		{
 			// place the last element in the slot of the erased one
 			m_class[idx] = m_class[m_size - 1];
 		}
 		--m_size;
-		pool.decref(c);
+		return true;
 	}
 }

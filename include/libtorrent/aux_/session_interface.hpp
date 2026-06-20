@@ -56,6 +56,7 @@ namespace aux {
 	struct torrent_peer_allocator_interface;
 	struct external_ip;
 	struct stat_delta;
+	struct rate_limits;
 }
 
 	// hidden
@@ -206,16 +207,14 @@ namespace libtorrent::aux {
 		virtual void queue_tracker_request(aux::tracker_request req
 			, std::weak_ptr<aux::request_callback> c) = 0;
 
-		// peer-classes
+		// classifies a peer connection or torrent against the peer-class
+		// filter / type filter; appends matching classes to `s`.
 		virtual void set_peer_classes(peer_class_set* s, address const& a, socket_type_t st) = 0;
-		virtual peer_class_pool const& peer_classes() const = 0;
-		virtual peer_class_pool& peer_classes() = 0;
-		virtual bool ignore_unchoke_slots_set(peer_class_set const& set) const = 0;
-		virtual int copy_pertinent_channels(peer_class_set const& set
-			, int channel, bandwidth_channel** dst, int m) = 0;
-		virtual std::uint8_t use_quota_overhead(peer_class_set& set, int amount_down, int amount_up) = 0;
 
-		virtual bandwidth_manager* get_bandwidth_manager(int channel) = 0;
+		// returns the session's bandwidth subsystem. owns the peer_class_pool
+		// and the bandwidth_managers; the eventual home of the bandwidth
+		// mutex once peer_connection runs on its own strand.
+		virtual rate_limits& rates() = 0;
 
 		// per-tick stats delta flushed from peer_connection. covers
 		// payload/protocol bytes (both directions) and IP overhead
