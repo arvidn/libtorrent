@@ -646,6 +646,7 @@ HEADERS = \
   aux_/puff.hpp                     \
   aux_/random.hpp                   \
   aux_/range.hpp                    \
+  aux_/rate_limits.hpp              \
   aux_/readwrite.hpp                \
   aux_/receive_buffer.hpp           \
   aux_/request_blocks.hpp           \

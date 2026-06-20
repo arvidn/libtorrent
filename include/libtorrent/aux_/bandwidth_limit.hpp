@@ -27,8 +27,8 @@ struct TORRENT_EXTRA_EXPORT bandwidth_channel
 
 	bandwidth_channel();
 
-	// 0 means infinite
-	void throttle(int limit);
+	// 0 means infinite. returns true iff the stored value actually changed.
+	bool throttle(int limit);
 	int throttle() const
 	{
 		TORRENT_ASSERT_VAL(m_limit >= 0, m_limit);

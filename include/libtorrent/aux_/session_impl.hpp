@@ -47,6 +47,7 @@ see LICENSE file.
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/aux_/stat.hpp"
 #include "libtorrent/aux_/bandwidth_manager.hpp"
+#include "libtorrent/aux_/rate_limits.hpp"
 #include "libtorrent/aux_/udp_socket.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/alert_manager.hpp" // for alert_manager
@@ -558,13 +559,8 @@ namespace aux {
 
 			// implements session_interface
 			void set_peer_classes(peer_class_set* s, address const& a, socket_type_t st) override;
-			peer_class_pool const& peer_classes() const override { return m_classes; }
-			peer_class_pool& peer_classes() override { return m_classes; }
-			bool ignore_unchoke_slots_set(peer_class_set const& set) const override;
-			int copy_pertinent_channels(peer_class_set const& set
-				, int channel, bandwidth_channel** dst, int m) override;
-			std::uint8_t use_quota_overhead(peer_class_set& set, int amount_down, int amount_up) override;
-			bool use_quota_overhead(bandwidth_channel* ch, int amount);
+			// session_interface
+			rate_limits& rates() override { return m_rates; }
 
 			peer_class_t create_peer_class(char const* name);
 			void delete_peer_class(peer_class_t cid);
@@ -647,7 +643,6 @@ namespace aux {
 			TORRENT_DEPRECATED int max_uploads() const;
 #endif
 
-			aux::bandwidth_manager* get_bandwidth_manager(int channel) override;
 
 			int upload_rate_limit(peer_class_t c) const;
 			int download_rate_limit(peer_class_t c) const;
@@ -878,8 +873,6 @@ namespace aux {
 			aux::array<aux::vector<torrent*>, num_torrent_lists, torrent_list_index_t>
 				m_torrent_lists;
 
-			peer_class_pool m_classes;
-
 			void init();
 
 			void submit_disk_jobs();
@@ -951,6 +944,14 @@ namespace aux {
 			// rate.
 			bandwidth_manager m_download_rate;
 			bandwidth_manager m_upload_rate;
+
+			// concrete owner of the bandwidth subsystem -- bandwidth_managers,
+			// peer_class_pool, and the channel-lookup dispatch -- exposed to
+			// peer_connection via rates(). references the bandwidth_managers
+			// above (which session_impl still owns to keep the io_context
+			// dependency direction simple); declared after them so destruction
+			// order is reverse and the references remain valid for its lifetime.
+			rate_limits m_rates{m_download_rate, m_upload_rate};
 
 			// the peer class that all peers belong to by default
 			peer_class_t m_global_class{0};

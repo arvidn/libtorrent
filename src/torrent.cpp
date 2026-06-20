@@ -5159,8 +5159,10 @@ namespace {
 
 		if (m_peer_class > peer_class_t{0})
 		{
-			remove_class(m_ses.peer_classes(), m_peer_class);
-			m_ses.peer_classes().decref(m_peer_class);
+			// drops the membership refcount + the explicit one held since
+			// setup_peer_class() called new_class()
+			m_ses.rates().remove_class_from(*this, m_peer_class);
+			m_ses.rates().delete_class(m_peer_class);
 			m_peer_class = peer_class_t{0};
 		}
 
@@ -8251,14 +8253,7 @@ namespace {
 			return false;
 		}
 
-		int connection_limit_factor = 0;
-		for (int i = 0; i < p->num_classes(); ++i)
-		{
-			peer_class_t pc = p->class_at(i);
-			if (m_ses.peer_classes().at(pc) == nullptr) continue;
-			int f = m_ses.peer_classes().at(pc)->connection_limit_factor;
-			if (connection_limit_factor < f) connection_limit_factor = f;
-		}
+		int connection_limit_factor = m_ses.rates().max_connection_limit_factor(*p);
 		if (connection_limit_factor == 0) connection_limit_factor = 100;
 
 		std::int64_t const limit = std::int64_t(m_max_connections) * 100 / connection_limit_factor;
@@ -9521,22 +9516,21 @@ namespace {
 			setup_peer_class();
 		}
 
-		struct peer_class* tpc = m_ses.peer_classes().at(m_peer_class);
-		TORRENT_ASSERT(tpc);
-		if (tpc->channel[channel].throttle() == limit) return;
+		auto& rates = m_ses.rates();
+		TORRENT_ASSERT(rates.exists(m_peer_class));
+		if (!rates.set_throttle(m_peer_class, channel, limit)) return;
 		if (state_update)
 		{
 			state_updated();
 			set_need_save_resume(torrent_handle::if_config_changed);
 		}
-		tpc->channel[channel].throttle(limit);
 	}
 
 	void torrent::setup_peer_class()
 	{
 		TORRENT_ASSERT(m_peer_class == peer_class_t{0});
-		m_peer_class = m_ses.peer_classes().new_peer_class(name());
-		add_class(m_ses.peer_classes(), m_peer_class);
+		m_peer_class = m_ses.rates().new_class(name());
+		m_ses.rates().add_class_to(*this, m_peer_class);
 	}
 
 	int torrent::limit_impl(int const channel) const
@@ -9544,7 +9538,7 @@ namespace {
 		TORRENT_ASSERT(is_single_thread());
 
 		if (m_peer_class == peer_class_t{0}) return -1;
-		int limit = m_ses.peer_classes().at(m_peer_class)->channel[channel].throttle();
+		int limit = m_ses.rates().throttle(m_peer_class, channel);
 		if (limit == std::numeric_limits<int>::max()) limit = -1;
 		return limit;
 	}
@@ -12426,14 +12420,9 @@ namespace {
 
 	int torrent::priority() const
 	{
-		int priority = 0;
-		for (int i = 0; i < num_classes(); ++i)
-		{
-			span<int const> prio = m_ses.peer_classes().at(class_at(i))->priority;
-			priority = std::max(priority, prio[peer_connection::upload_channel]);
-			priority = std::max(priority, prio[peer_connection::download_channel]);
-		}
-		return priority;
+		auto const& rates = m_ses.rates();
+		return std::max(rates.max_priority(*this, peer_connection::upload_channel),
+			rates.max_priority(*this, peer_connection::download_channel));
 	}
 
 #if TORRENT_ABI_VERSION == 1
@@ -12445,10 +12434,10 @@ namespace {
 		if (m_peer_class == peer_class_t{})
 			setup_peer_class();
 
-		struct peer_class* tpc = m_ses.peer_classes().at(m_peer_class);
-		TORRENT_ASSERT(tpc);
-		tpc->priority[peer_connection::download_channel] = prio;
-		tpc->priority[peer_connection::upload_channel] = prio;
+		auto& rates = m_ses.rates();
+		TORRENT_ASSERT(rates.exists(m_peer_class));
+		rates.set_priority(m_peer_class, peer_connection::download_channel, prio);
+		rates.set_priority(m_peer_class, peer_connection::upload_channel, prio);
 
 		state_updated();
 	}

@@ -29,8 +29,8 @@ see LICENSE file.
 #include "libtorrent/aux_/bandwidth_socket.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/sliding_average.hpp"
-#include "libtorrent/peer_class.hpp"
 #include "libtorrent/aux_/peer_class_set.hpp"
+#include "libtorrent/aux_/rate_limits.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/disk_observer.hpp"
@@ -172,6 +172,7 @@ namespace libtorrent::aux {
 			, m_ses(ses)
 			, m_settings(sett)
 			, m_alerts(ses.alerts())
+			, m_rates(ses.rates())
 			, m_disconnecting(false)
 			, m_connecting(!m_torrent.expired())
 			, m_endgame_mode(false)
@@ -212,6 +213,12 @@ namespace libtorrent::aux {
 
 		// cached reference to session's alert_manager
 		aux::alert_manager& m_alerts;
+
+		// cached reference to the session's bandwidth subsystem. concrete
+		// owner of the bandwidth_managers and the peer_class -> channel
+		// translation; the eventual home of the bandwidth mutex once
+		// peer_connection runs on its own strand
+		aux::rate_limits& m_rates;
 
 	protected:
 
@@ -274,12 +281,12 @@ namespace libtorrent::aux {
 
 		virtual connection_type type() const = 0;
 
-		enum channels
-		{
-			upload_channel,
-			download_channel,
-			num_channels
-		};
+		// channel indices live on rate_limits; aliased here so existing
+		// peer_connection::upload_channel spellings keep working.
+		using channels = aux::rate_limits::channels;
+		static constexpr int upload_channel = aux::rate_limits::upload_channel;
+		static constexpr int download_channel = aux::rate_limits::download_channel;
+		static constexpr int num_channels = aux::rate_limits::num_channels;
 
 		explicit peer_connection(peer_connection_args& pack);
 

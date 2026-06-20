@@ -629,14 +629,14 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 #endif
 		m_next_lsd_torrent = 0;
 
-		m_global_class = m_classes.new_peer_class("global");
-		m_tcp_peer_class = m_classes.new_peer_class("tcp");
-		m_local_peer_class = m_classes.new_peer_class("local");
+		m_global_class = m_rates.new_class("global");
+		m_tcp_peer_class = m_rates.new_class("tcp");
+		m_local_peer_class = m_rates.new_class("local");
 		// local peers are always unchoked
-		m_classes.at(m_local_peer_class)->ignore_unchoke_slots = true;
+		m_rates.set_ignore_unchoke_slots(m_local_peer_class, true);
 		// local peers are allowed to exceed the normal connection
 		// limit by 50%
-		m_classes.at(m_local_peer_class)->connection_limit_factor = 150;
+		m_rates.set_connection_limit_factor(m_local_peer_class, 150);
 
 		TORRENT_ASSERT(m_global_class == session::global_peer_class_id);
 		TORRENT_ASSERT(m_tcp_peer_class == session::tcp_peer_class_id);
@@ -1188,42 +1188,22 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 	peer_class_t session_impl::create_peer_class(char const* name)
 	{
 		TORRENT_ASSERT(is_single_thread());
-		return m_classes.new_peer_class(name);
+		return m_rates.new_class(name);
 	}
 
 	void session_impl::delete_peer_class(peer_class_t const cid)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		// if you hit this assert, you're deleting a non-existent peer class
-		TORRENT_ASSERT_PRECOND(m_classes.at(cid));
-		if (m_classes.at(cid) == nullptr) return;
-		m_classes.decref(cid);
+		TORRENT_ASSERT_PRECOND(m_rates.exists(cid));
+		m_rates.delete_class(cid);
 	}
 
 	peer_class_info session_impl::get_peer_class(peer_class_t const cid) const
 	{
-		peer_class_info ret{};
-		peer_class const* pc = m_classes.at(cid);
 		// if you hit this assert, you're passing in an invalid cid
-		TORRENT_ASSERT_PRECOND(pc);
-		if (pc == nullptr)
-		{
-#if TORRENT_USE_INVARIANT_CHECKS
-			// make it obvious that the return value is undefined
-			ret.upload_limit = 0xf0f0f0f;
-			ret.download_limit = 0xf0f0f0f;
-			ret.label.resize(20);
-			url_random(span<char>(ret.label));
-			ret.ignore_unchoke_slots = false;
-			ret.connection_limit_factor = 0xf0f0f0f;
-			ret.upload_priority = 0xf0f0f0f;
-			ret.download_priority = 0xf0f0f0f;
-#endif
-			return ret;
-		}
-
-		pc->get_info(&ret);
-		return ret;
+		TORRENT_ASSERT_PRECOND(m_rates.exists(cid));
+		return m_rates.info(cid);
 	}
 
 namespace {
@@ -1278,12 +1258,9 @@ namespace {
 
 	void session_impl::set_peer_class(peer_class_t const cid, peer_class_info const& pci)
 	{
-		peer_class* pc = m_classes.at(cid);
 		// if you hit this assert, you're passing in an invalid cid
-		TORRENT_ASSERT_PRECOND(pc);
-		if (pc == nullptr) return;
-
-		pc->set_info(&pci);
+		TORRENT_ASSERT_PRECOND(m_rates.exists(cid));
+		m_rates.set_info(cid, pci);
 	}
 
 	void session_impl::set_peer_class_filter(ip_filter const& f)
@@ -1334,31 +1311,13 @@ namespace {
 			if ((peer_class_mask & 1) == 0) continue;
 
 			// if you hit this assert, your peer class filter contains
-			// a bitmask referencing a non-existent peer class
-			TORRENT_ASSERT_PRECOND(m_classes.at(i));
-
-			if (m_classes.at(i) == nullptr) continue;
-			s->add_class(m_classes, i);
+			// a bitmask referencing a non-existent peer class.
+			// add_class_to silently no-ops in release.
+			TORRENT_ASSERT_PRECOND(m_rates.exists(i));
+			m_rates.add_class_to(*s, i);
 		}
 	}
 
-	bool session_impl::ignore_unchoke_slots_set(peer_class_set const& set) const
-	{
-		int num = set.num_classes();
-		for (int i = 0; i < num; ++i)
-		{
-			peer_class const* pc = m_classes.at(set.class_at(i));
-			if (pc == nullptr) continue;
-			if (pc->ignore_unchoke_slots) return true;
-		}
-		return false;
-	}
-
-	bandwidth_manager* session_impl::get_bandwidth_manager(int channel)
-	{
-		return (channel == peer_connection::download_channel)
-			? &m_download_rate : &m_upload_rate;
-	}
 
 	void session_impl::deferred_submit_jobs()
 	{
@@ -1374,57 +1333,6 @@ namespace {
 		TORRENT_ASSERT(m_deferred_submit_disk_jobs);
 		m_deferred_submit_disk_jobs = false;
 		m_disk_thread->submit_jobs();
-	}
-
-	// copies pointers to bandwidth channels from the peer classes
-	// into the array. Only bandwidth channels with a bandwidth limit
-	// is considered pertinent and copied
-	// returns the number of pointers copied
-	// channel is upload_channel or download_channel
-	int session_impl::copy_pertinent_channels(peer_class_set const& set
-		, int channel, bandwidth_channel** dst, int const max)
-	{
-		TORRENT_ASSERT(max >= 0);
-		int num_channels = set.num_classes();
-		int num_copied = 0;
-		for (int i = 0; i < num_channels; ++i)
-		{
-			if (num_copied >= max) break;
-			peer_class* pc = m_classes.at(set.class_at(i));
-			TORRENT_ASSERT(pc);
-			if (pc == nullptr) continue;
-			bandwidth_channel* chan = &pc->channel[channel];
-			// no need to include channels that don't have any bandwidth limits
-			if (chan->throttle() == 0) continue;
-			dst[num_copied] = chan;
-			++num_copied;
-		}
-		return num_copied;
-	}
-
-	bool session_impl::use_quota_overhead(bandwidth_channel* ch, int amount)
-	{
-		ch->use_quota(amount);
-		return (ch->throttle() > 0 && ch->throttle() < amount);
-	}
-
-	std::uint8_t session_impl::use_quota_overhead(peer_class_set& set, int const amount_down, int const amount_up)
-	{
-		std::uint8_t ret = 0;
-		int const num = set.num_classes();
-		for (int i = 0; i < num; ++i)
-		{
-			peer_class* p = m_classes.at(set.class_at(i));
-			if (p == nullptr) continue;
-
-			bandwidth_channel* ch = &p->channel[peer_connection::download_channel];
-			if (use_quota_overhead(ch, amount_down))
-				ret |= 1u << peer_connection::download_channel;
-			ch = &p->channel[peer_connection::upload_channel];
-			if (use_quota_overhead(ch, amount_up))
-				ret |= 1u << peer_connection::upload_channel;
-		}
-		return ret;
 	}
 
 	// session_impl is responsible for deleting 'pack'
@@ -3169,14 +3077,7 @@ retry:
 		// to get connection_limit_factor
 		peer_class_set pcs;
 		set_peer_classes(&pcs, endp.address(), socket_type_idx(s));
-		int connection_limit_factor = 0;
-		for (int i = 0; i < pcs.num_classes(); ++i)
-		{
-			peer_class_t pc = pcs.class_at(i);
-			if (m_classes.at(pc) == nullptr) continue;
-			int f = m_classes.at(pc)->connection_limit_factor;
-			if (connection_limit_factor < f) connection_limit_factor = f;
-		}
+		int connection_limit_factor = m_rates.max_connection_limit_factor(pcs);
 		if (connection_limit_factor == 0) connection_limit_factor = 100;
 
 		std::int64_t limit = m_settings.get_int(settings_pack::connections_limit);
@@ -3319,9 +3220,7 @@ retry:
 		TORRENT_ASSERT(channel >= 0 && channel <= 1);
 		if (channel < 0 || channel > 1) return 0;
 
-		peer_class const* pc = m_classes.at(c);
-		if (pc == nullptr) return 0;
-		return pc->channel[channel].throttle();
+		return m_rates.throttle(c, channel);
 	}
 
 	int session_impl::upload_rate_limit(peer_class_t c) const
@@ -3341,12 +3240,7 @@ retry:
 		TORRENT_ASSERT(channel >= 0 && channel <= 1);
 
 		if (channel < 0 || channel > 1) return;
-
-		peer_class* pc = m_classes.at(c);
-		if (pc == nullptr) return;
-		if (limit <= 0) limit = 0;
-		else limit = std::min(limit, std::numeric_limits<int>::max() - 1);
-		pc->channel[channel].throttle(limit);
+		m_rates.set_throttle(c, channel, limit);
 	}
 
 	void session_impl::set_upload_rate_limit(peer_class_t c, int limit)

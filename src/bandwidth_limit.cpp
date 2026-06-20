@@ -23,12 +23,14 @@ namespace libtorrent::aux {
 	{}
 
 	// 0 means infinite
-	void bandwidth_channel::throttle(int const limit)
+	bool bandwidth_channel::throttle(int const limit)
 	{
 		TORRENT_ASSERT_VAL(limit >= 0, limit);
 		// if the throttle is more than this, we might overflow
 		TORRENT_ASSERT_VAL(limit < inf, limit);
+		if (m_limit == limit) return false;
 		m_limit = limit;
+		return true;
 	}
 
 	int bandwidth_channel::quota_left() const
