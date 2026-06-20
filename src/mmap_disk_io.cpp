@@ -1258,9 +1258,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		// will take ownership of the job and queue it up, in case the fence is up
 		// if the fence flag is set, this job just raised the fence on the storage
 		// and should be scheduled
-		if (j->storage && j->storage->is_blocked(j))
+		if (j->storage && j->storage->is_blocked(j, m_stats_counters))
 		{
-			m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs);
 			DLOG("blocked job: %s (torrent: %d total: %d)\n"
 				, print_job(*j).c_str(), j->storage ? j->storage->num_blocked() : 0
 				, int(m_stats_counters[counters::blocked_disk_jobs]));

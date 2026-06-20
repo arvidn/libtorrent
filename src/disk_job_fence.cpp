@@ -128,7 +128,7 @@ namespace aux {
 		return 1;
 	}
 
-	bool disk_job_fence::is_blocked(disk_job* j)
+	bool disk_job_fence::is_blocked(disk_job* j, counters& cnt)
 	{
 		std::lock_guard<std::mutex> l(m_mutex);
 		DLOG(stderr, "[%p] is_blocked: fence: %d num_outstanding: %d\n"
@@ -152,6 +152,9 @@ namespace aux {
 		j->blocked = true;
 #endif
 
+		// increment while holding m_mutex so job_complete() cannot pop this job
+		// and decrement the counter before this increment executes
+		cnt.inc_stats_counter(counters::blocked_disk_jobs);
 		return true;
 	}
 
