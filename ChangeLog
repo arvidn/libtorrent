@@ -1,4 +1,4 @@
-2.1.0 not released
+2.1.0 release candidate 2
 
 	* add max_directory_depth limit to load_torrent_limits to bound file path depth when loading torrents
 	* fix race in wait_for_alert(), and update its return value
@@ -7,7 +7,7 @@
 	* add post_file_status() to query them asynchronously
 	* add post_file_priorities() to query them asynchronously
 	* fix local service discovery not being correctly staggered
-	* add an experimental multi-threaded, pread()-based, disk I/O backend (pread_disk_io)
+	* add a multi-threaded, pread()-based, disk I/O backend (pread_disk_io)
 	* make the save path for part files configurable
 	* retry failed SAM connection (for i2p)
 	* deprecated remap_files(), and prevent it from breaking v2 torrents

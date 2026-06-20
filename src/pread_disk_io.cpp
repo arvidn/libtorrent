@@ -717,40 +717,38 @@ bool pread_disk_io::async_write(storage_index_t const storage, peer_request cons
 		r.start,
 		std::uint16_t(r.length));
 
-	// a clear_piece (or other fence job) is in flight for this storage. For
-	// clear_piece the cpe is about to be reset; for storage-wide fences (e.g.
-	// release/delete_files) the storage is about to go away. Inserting now
-	// would race with the teardown. Instead of aborting the write, queue it
-	// behind the fence: is_blocked() takes ownership of the job. When the fence
-	// lowers, the repost callback in add_completed_jobs_impl() inserts the
-	// block. This keeps the picker's view consistent: the block stays "writing"
-	// (the write is pending, not aborted), so the piece isn't prematurely
-	// reported finished and its hash isn't requested before every block has
-	// actually been inserted into the cache.
-	// TODO: back-pressure (the disk_observer o) is dropped on this path. The
-	// blocked writes accumulate in m_blocked_jobs holding disk buffers, but
-	// async_write returns false (keep writing) and the cache's back-pressure
-	// (driven off m_blocks) doesn't see them since they aren't in the cache
-	// yet. For long-lived fences (e.g. move_storage) on a busy torrent this can
-	// grow unbounded; carry the observer through so the peer is throttled while
-	// its writes are queued behind the fence.
-	if (j->storage->has_fence())
+	// during shutdown a counted write would never be flushed and would leak the
+	// storage's outstanding-job count. is_blocked() has not run, so j is not
+	// in_progress and must not be job_complete()d -- abort it directly.
+	if (m_abort)
 	{
-		if (j->storage->is_blocked(j))
-		{
-			m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs);
-			return false;
-		}
-
-		// the fence lowered between has_fence() and is_blocked(); is_blocked()
-		// took ownership of j (marked it in-progress and counted it). The fence
-		// is down now, so insert it straight into the cache like the un-fenced
-		// path below (back-pressure is dropped on this rare race, as above).
-		add_write_to_cache(j, {});
-		schedule_flush();
+		m_completed_jobs.abort_job(m_ios, j);
 		return false;
 	}
 
+	// a write counts as an outstanding job on the storage (like a read or hash),
+	// so a fence waits for buffered writes and their in-flight flush before it
+	// runs, rather than tearing the storage down under a flush. This does not
+	// deadlock the fence: add_fence_job() hands a storage with outstanding writes
+	// to a generic thread to flush, draining the writes the fence waits on.
+	//
+	// when a fence is up, is_blocked() parks the job in the fence's blocked queue
+	// to be reposted into the cache once the fence lowers (add_completed_jobs_impl).
+	// Inserting now would race teardown: for clear_piece the cpe is about to be
+	// reset, for storage-wide fences the storage is about to go away. Parking
+	// keeps the block "writing" in the picker's view, so the piece isn't reported
+	// finished and its hash isn't requested before the block has been inserted.
+	// TODO: back-pressure (the disk_observer o) is dropped on the blocked path.
+	// async_write returns false (keep writing) but the cache's back-pressure
+	// (driven off m_blocks) can't see the parked writes, so a long-lived fence
+	// (e.g. move_storage) on a busy torrent can grow m_blocked_jobs unbounded.
+	// Carry the observer through to throttle the peer while its writes are parked.
+	if (j->storage->is_blocked(j, m_stats_counters))
+	{
+		return false;
+	}
+
+	// is_blocked() marked j in_progress and counted it as outstanding.
 	bool const exceeded = add_write_to_cache(j, std::move(o));
 	schedule_flush();
 	return exceeded;
@@ -1587,9 +1585,8 @@ void pread_disk_io::add_job(aux::pread_disk_job* j, bool const user_add)
 	// will take ownership of the job and queue it up, in case the fence is up
 	// if the fence flag is set, this job just raised the fence on the storage
 	// and should be scheduled
-	if (j->storage && j->storage->is_blocked(j))
+	if (j->storage && j->storage->is_blocked(j, m_stats_counters))
 	{
-		m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs);
 		DLOG("blocked job: %s (torrent: %d total: %d)\n"
 			, print_job(*j).c_str(), j->storage ? j->storage->num_blocked() : 0
 			, int(m_stats_counters[counters::blocked_disk_jobs]));
@@ -1951,9 +1948,8 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 				// in_progress set would double-increment m_outstanding_jobs and
 				// would deadlock any pending fence.
 				if (j->storage && !(j->flags & aux::disk_job::in_progress)
-					&& j->storage->is_blocked(j))
+					&& j->storage->is_blocked(j, m_stats_counters))
 				{
-					m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs);
 					DLOG("blocked job: %s (torrent: %d total: %d)\n"
 						, print_job(*j).c_str(), j->storage ? j->storage->num_blocked() : 0
 						, int(m_stats_counters[counters::blocked_disk_jobs]));

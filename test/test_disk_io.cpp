@@ -815,6 +815,7 @@ static void clear_during_flush_suite(lt::disk_io_constructor_type disk_io)
 		}
 	}
 }
+
 #endif // TORRENT_SIMULATE_SLOW_WRITE
 
 // Exercises dispatching a deferred clear_piece from inside the cache flush.
