@@ -771,6 +771,8 @@ namespace libtorrent::aux {
 		io_context& get_context() { return m_ios; }
 
 	private:
+		// flushes m_pending_stats into t (which also propagates to session)
+		void flush_pending_stats(aux::torrent& t);
 
 		// callbacks for data being sent or received
 		void on_send_data(error_code const& error
@@ -1030,6 +1032,12 @@ namespace libtorrent::aux {
 		// TODO: factor this out into its own class with a virtual interface
 		// torrent and session should implement this interface
 		aux::stat m_statistics;
+
+		// stat deltas accumulated locally on the per-byte hot path;
+		// flushed once per second_tick() via a single accumulate_stats
+		// call. ip_overhead is pre-computed packet-by-packet so the
+		// aggregation preserves the per-packet count
+		aux::stat_delta m_pending_stats;
 
 		// the number of outstanding bytes expected
 		// to be received by extensions

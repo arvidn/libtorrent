@@ -55,6 +55,7 @@ namespace aux {
 	struct torrent_peer;
 	struct torrent_peer_allocator_interface;
 	struct external_ip;
+	struct stat_delta;
 }
 
 	// hidden
@@ -216,11 +217,11 @@ namespace libtorrent::aux {
 
 		virtual bandwidth_manager* get_bandwidth_manager(int channel) = 0;
 
-		virtual void sent_bytes(int bytes_payload, int bytes_protocol) = 0;
-		virtual void received_bytes(int bytes_payload, int bytes_protocol) = 0;
-		virtual void trancieve_ip_packet(int bytes, bool ipv6) = 0;
-		virtual void sent_syn(bool ipv6) = 0;
-		virtual void received_synack(bool ipv6) = 0;
+		// per-tick stats delta flushed from peer_connection. covers
+		// payload/protocol bytes (both directions) and IP overhead
+		// (asymmetric for SYN/SYN-ACK, symmetric for data packets).
+		// pre-computed at peer call sites so aggregation is exact
+		virtual void accumulate_stats(stat_delta const&) = 0;
 
 		// this is the set of (subscribed) torrents that have changed
 		// their states since the last time the user requested updates.

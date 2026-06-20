@@ -1108,11 +1108,7 @@ namespace aux {
 			stat m_stat;
 
 			// implements session_interface
-			void sent_bytes(int bytes_payload, int bytes_protocol) override;
-			void received_bytes(int bytes_payload, int bytes_protocol) override;
-			void trancieve_ip_packet(int bytes, bool ipv6) override;
-			void sent_syn(bool ipv6) override;
-			void received_synack(bool ipv6) override;
+			void accumulate_stats(stat_delta const& d) override;
 
 #if TORRENT_ABI_VERSION == 1
 			int m_peak_up_rate = 0;

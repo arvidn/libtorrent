@@ -522,11 +522,9 @@ namespace libtorrent::aux {
 
 		void bytes_done(torrent_status& st, status_flags_t) const;
 
-		void sent_bytes(int bytes_payload, int bytes_protocol);
-		void received_bytes(int bytes_payload, int bytes_protocol);
-		void trancieve_ip_packet(int bytes, bool ipv6);
-		void sent_syn(bool ipv6);
-		void received_synack(bool ipv6);
+		// per-tick stats delta flushed by peer_connection. propagates
+		// the deltas to m_stat and to the session
+		void accumulate_stats(stat_delta const& d);
 
 		void set_ip_filter(std::shared_ptr<const ip_filter> ipf);
 		void privileged_port_updated();

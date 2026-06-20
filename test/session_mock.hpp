@@ -120,11 +120,7 @@ struct session_mock : aux::session_interface
 
 	aux::bandwidth_manager* get_bandwidth_manager(int) override { return nullptr; }
 
-	void sent_bytes(int, int) override {}
-	void received_bytes(int, int) override {}
-	void trancieve_ip_packet(int, bool) override {}
-	void sent_syn(bool) override {}
-	void received_synack(bool) override {}
+	void accumulate_stats(aux::stat_delta const&) override {}
 
 	aux::vector<aux::torrent*>& torrent_list(aux::torrent_list_index_t) override { return _torrent_list; }
 

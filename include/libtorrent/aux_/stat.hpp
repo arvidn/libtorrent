@@ -84,6 +84,20 @@ namespace libtorrent::aux {
 		std::int32_t m_5_sec_average;
 	};
 
+	// per-tick deltas accumulated on the peer-connection hot path and
+	// flushed through aux::session_interface::accumulate_stats() and
+	// aux::torrent::accumulate_stats(). IP overhead bytes are pre-computed
+	// at peer call sites so aggregation preserves the per-packet count.
+	struct stat_delta
+	{
+		int payload_recv = 0;
+		int protocol_recv = 0;
+		int payload_sent = 0;
+		int protocol_sent = 0;
+		int ip_overhead_recv = 0;
+		int ip_overhead_sent = 0;
+	};
+
 	class TORRENT_EXTRA_EXPORT stat
 	{
 	public:
@@ -91,6 +105,16 @@ namespace libtorrent::aux {
 		{
 			for (int i = 0; i < num_channels; ++i)
 				m_stat[i] += s.m_stat[i];
+		}
+
+		void accumulate(stat_delta const& d)
+		{
+			m_stat[download_payload].add(d.payload_recv);
+			m_stat[download_protocol].add(d.protocol_recv);
+			m_stat[upload_payload].add(d.payload_sent);
+			m_stat[upload_protocol].add(d.protocol_sent);
+			m_stat[download_ip_protocol].add(d.ip_overhead_recv);
+			m_stat[upload_ip_protocol].add(d.ip_overhead_sent);
 		}
 
 		void sent_syn(bool ipv6)
