@@ -72,9 +72,13 @@ namespace libtorrent::aux {
 		int job_complete(disk_job*, std::function<void(disk_job*)> const& repost);
 		int num_outstanding_jobs() const { return m_outstanding_jobs; }
 
-		// if there is a fence up, returns true and adds the job
-		// to the queue of blocked jobs
-		bool is_blocked(disk_job*);
+		// if there is a fence up, returns true and adds the job to the queue of
+		// blocked jobs. Increments the blocked_disk_jobs counter while still
+		// holding m_mutex, closing the TOCTOU race that would arise if the
+		// caller incremented after releasing the lock (job_complete() can pop the
+		// job and decrement the counter between is_blocked() releasing m_mutex
+		// and the caller's increment, driving the counter negative).
+		bool is_blocked(disk_job*, counters&);
 
 		// the number of blocked jobs
 		int num_blocked() const;

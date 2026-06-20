@@ -38,9 +38,9 @@ TORRENT_TEST(empty_fence)
 	// we need to post this job
 	TEST_CHECK(ret_int == disk_job_fence::fence_post_fence);
 
-	ret = fence.is_blocked(&test_job[7]);
+	ret = fence.is_blocked(&test_job[7], cnt);
 	TEST_CHECK(ret == true);
-	ret = fence.is_blocked(&test_job[8]);
+	ret = fence.is_blocked(&test_job[8], cnt);
 	TEST_CHECK(ret == true);
 
 	aux::tailqueue<aux::disk_job> jobs;
@@ -70,16 +70,16 @@ TORRENT_TEST(job_fence)
 	int ret_int = 0;
 	bool ret = false;
 	TEST_CHECK(fence.num_outstanding_jobs() == 0);
-	ret = fence.is_blocked(&test_job[0]);
+	ret = fence.is_blocked(&test_job[0], cnt);
 	TEST_CHECK(ret == false);
 	TEST_CHECK(fence.num_outstanding_jobs() == 1);
-	ret = fence.is_blocked(&test_job[1]);
+	ret = fence.is_blocked(&test_job[1], cnt);
 	TEST_CHECK(ret == false);
-	ret = fence.is_blocked(&test_job[2]);
+	ret = fence.is_blocked(&test_job[2], cnt);
 	TEST_CHECK(ret == false);
-	ret = fence.is_blocked(&test_job[3]);
+	ret = fence.is_blocked(&test_job[3], cnt);
 	TEST_CHECK(ret == false);
-	ret = fence.is_blocked(&test_job[4]);
+	ret = fence.is_blocked(&test_job[4], cnt);
 	TEST_CHECK(ret == false);
 
 	TEST_CHECK(fence.num_outstanding_jobs() == 5);
@@ -91,9 +91,9 @@ TORRENT_TEST(job_fence)
 	// to post anything
 	TEST_CHECK(ret_int == disk_job_fence::fence_post_none);
 
-	ret = fence.is_blocked(&test_job[7]);
+	ret = fence.is_blocked(&test_job[7], cnt);
 	TEST_CHECK(ret == true);
-	ret = fence.is_blocked(&test_job[8]);
+	ret = fence.is_blocked(&test_job[8], cnt);
 	TEST_CHECK(ret == true);
 
 	aux::tailqueue<aux::disk_job> jobs;
@@ -140,16 +140,16 @@ TORRENT_TEST(double_fence)
 	int ret_int = 0;
 	bool ret = false;
 	TEST_CHECK(fence.num_outstanding_jobs() == 0);
-	ret = fence.is_blocked(&test_job[0]);
+	ret = fence.is_blocked(&test_job[0], cnt);
 	TEST_CHECK(ret == false);
 	TEST_CHECK(fence.num_outstanding_jobs() == 1);
-	ret = fence.is_blocked(&test_job[1]);
+	ret = fence.is_blocked(&test_job[1], cnt);
 	TEST_CHECK(ret == false);
-	ret = fence.is_blocked(&test_job[2]);
+	ret = fence.is_blocked(&test_job[2], cnt);
 	TEST_CHECK(ret == false);
-	ret = fence.is_blocked(&test_job[3]);
+	ret = fence.is_blocked(&test_job[3], cnt);
 	TEST_CHECK(ret == false);
-	ret = fence.is_blocked(&test_job[4]);
+	ret = fence.is_blocked(&test_job[4], cnt);
 	TEST_CHECK(ret == false);
 
 	TEST_CHECK(fence.num_outstanding_jobs() == 5);
@@ -167,7 +167,7 @@ TORRENT_TEST(double_fence)
 	TEST_CHECK(ret_int == disk_job_fence::fence_post_none);
 	std::printf("ret: %d\n", ret_int);
 
-	ret = fence.is_blocked(&test_job[9]);
+	ret = fence.is_blocked(&test_job[9], cnt);
 	TEST_CHECK(ret == true);
 
 	aux::tailqueue<aux::disk_job> jobs;

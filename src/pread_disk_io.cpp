@@ -743,9 +743,8 @@ bool pread_disk_io::async_write(storage_index_t const storage, peer_request cons
 	// (driven off m_blocks) can't see the parked writes, so a long-lived fence
 	// (e.g. move_storage) on a busy torrent can grow m_blocked_jobs unbounded.
 	// Carry the observer through to throttle the peer while its writes are parked.
-	if (j->storage->is_blocked(j))
+	if (j->storage->is_blocked(j, m_stats_counters))
 	{
-		m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs);
 		return false;
 	}
 
@@ -1586,9 +1585,8 @@ void pread_disk_io::add_job(aux::pread_disk_job* j, bool const user_add)
 	// will take ownership of the job and queue it up, in case the fence is up
 	// if the fence flag is set, this job just raised the fence on the storage
 	// and should be scheduled
-	if (j->storage && j->storage->is_blocked(j))
+	if (j->storage && j->storage->is_blocked(j, m_stats_counters))
 	{
-		m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs);
 		DLOG("blocked job: %s (torrent: %d total: %d)\n"
 			, print_job(*j).c_str(), j->storage ? j->storage->num_blocked() : 0
 			, int(m_stats_counters[counters::blocked_disk_jobs]));
@@ -1950,9 +1948,8 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 				// in_progress set would double-increment m_outstanding_jobs and
 				// would deadlock any pending fence.
 				if (j->storage && !(j->flags & aux::disk_job::in_progress)
-					&& j->storage->is_blocked(j))
+					&& j->storage->is_blocked(j, m_stats_counters))
 				{
-					m_stats_counters.inc_stats_counter(counters::blocked_disk_jobs);
 					DLOG("blocked job: %s (torrent: %d total: %d)\n"
 						, print_job(*j).c_str(), j->storage ? j->storage->num_blocked() : 0
 						, int(m_stats_counters[counters::blocked_disk_jobs]));
