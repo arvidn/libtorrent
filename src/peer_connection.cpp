@@ -1122,9 +1122,8 @@ namespace {
 		TORRENT_ASSERT(is_single_thread());
 		m_statistics.received_bytes(bytes_payload, bytes_protocol);
 		if (m_ignore_stats) return;
-		auto t = m_torrent.lock();
-		if (!t) return;
-		t->received_bytes(bytes_payload, bytes_protocol);
+		m_pending_stats.payload_recv += bytes_payload;
+		m_pending_stats.protocol_recv += bytes_protocol;
 	}
 
 	void peer_connection::sent_bytes(int const bytes_payload, int const bytes_protocol)
@@ -1142,9 +1141,8 @@ namespace {
 #endif
 		if (bytes_payload > 0) m_last_sent_payload.set(m_connect, clock_type::now());
 		if (m_ignore_stats) return;
-		auto t = m_torrent.lock();
-		if (!t) return;
-		t->sent_bytes(bytes_payload, bytes_protocol);
+		m_pending_stats.payload_sent += bytes_payload;
+		m_pending_stats.protocol_sent += bytes_protocol;
 	}
 
 	void peer_connection::trancieve_ip_packet(int const bytes, bool const ipv6)
@@ -1152,9 +1150,21 @@ namespace {
 		TORRENT_ASSERT(is_single_thread());
 		m_statistics.trancieve_ip_packet(bytes, ipv6);
 		if (m_ignore_stats) return;
-		auto t = m_torrent.lock();
-		if (!t) return;
-		t->trancieve_ip_packet(bytes, ipv6);
+		// compute per-call overhead packet-by-packet, then accumulate.
+		// summing overhead (not bytes) preserves the per-call packet
+		// count across the per-tick flush. trancieve covers both
+		// directions (packet + ACK) so add to both channels
+		int const header = (ipv6 ? 40 : 20) + 20;
+		int const packet_size = 1500 - header;
+		int const overhead = std::max(1, (bytes + packet_size - 1) / packet_size) * header;
+		m_pending_stats.ip_overhead_recv += overhead;
+		m_pending_stats.ip_overhead_sent += overhead;
+	}
+
+	void peer_connection::flush_pending_stats(aux::torrent& t)
+	{
+		t.accumulate_stats(m_pending_stats);
+		m_pending_stats = {};
 	}
 
 	void peer_connection::sent_syn(bool const ipv6)
@@ -1162,9 +1172,8 @@ namespace {
 		TORRENT_ASSERT(is_single_thread());
 		m_statistics.sent_syn(ipv6);
 		if (m_ignore_stats) return;
-		auto t = m_torrent.lock();
-		if (!t) return;
-		t->sent_syn(ipv6);
+		// only the outgoing SYN -- no ACK back yet
+		m_pending_stats.ip_overhead_sent += ipv6 ? 60 : 40;
 	}
 
 	void peer_connection::received_synack(bool const ipv6)
@@ -1172,9 +1181,10 @@ namespace {
 		TORRENT_ASSERT(is_single_thread());
 		m_statistics.received_synack(ipv6);
 		if (m_ignore_stats) return;
-		auto t = m_torrent.lock();
-		if (!t) return;
-		t->received_synack(ipv6);
+		// the received SYN-ACK and our ACK back -- one of each direction
+		int const overhead = ipv6 ? 60 : 40;
+		m_pending_stats.ip_overhead_recv += overhead;
+		m_pending_stats.ip_overhead_sent += overhead;
 	}
 
 	peer_endpoint_t peer_connection::remote_endpoint() const
@@ -4484,6 +4494,8 @@ namespace {
 
 		if (t)
 		{
+			flush_pending_stats(*t);
+
 			// make sure we keep all the stats!
 			if (!m_ignore_stats)
 			{
@@ -4851,6 +4863,8 @@ namespace {
 		INVARIANT_CHECK;
 
 		auto t = m_torrent.lock();
+
+		if (t) flush_pending_stats(*t);
 
 		std::uint8_t warning = 0;
 		// drain the IP overhead from the bandwidth limiters

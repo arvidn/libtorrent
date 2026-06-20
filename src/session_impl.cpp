@@ -3381,67 +3381,32 @@ retry:
 	}
 #endif
 
-	void session_impl::sent_bytes(int bytes_payload, int bytes_protocol)
+	void session_impl::accumulate_stats(stat_delta const& d)
 	{
-		TORRENT_ASSERT(bytes_payload >= 0);
-		TORRENT_ASSERT(bytes_protocol >= 0);
-		m_stats_counters.inc_stats_counter(counters::sent_bytes
-			, bytes_payload + bytes_protocol);
-		m_stats_counters.inc_stats_counter(counters::sent_payload_bytes
-			, bytes_payload);
+		TORRENT_ASSERT(d.payload_recv >= 0 && d.protocol_recv >= 0);
+		TORRENT_ASSERT(d.payload_sent >= 0 && d.protocol_sent >= 0);
+		TORRENT_ASSERT(d.ip_overhead_recv >= 0 && d.ip_overhead_sent >= 0);
 
-		m_stat.sent_bytes(bytes_payload, bytes_protocol);
-	}
+		if (d.payload_recv || d.protocol_recv)
+		{
+			m_stats_counters.inc_stats_counter(
+				counters::recv_bytes, d.payload_recv + d.protocol_recv);
+			m_stats_counters.inc_stats_counter(counters::recv_payload_bytes, d.payload_recv);
+		}
+		if (d.payload_sent || d.protocol_sent)
+		{
+			m_stats_counters.inc_stats_counter(
+				counters::sent_bytes, d.payload_sent + d.protocol_sent);
+			m_stats_counters.inc_stats_counter(counters::sent_payload_bytes, d.payload_sent);
+		}
+		if (d.ip_overhead_recv)
+			m_stats_counters.inc_stats_counter(
+				counters::recv_ip_overhead_bytes, d.ip_overhead_recv);
+		if (d.ip_overhead_sent)
+			m_stats_counters.inc_stats_counter(
+				counters::sent_ip_overhead_bytes, d.ip_overhead_sent);
 
-	void session_impl::received_bytes(int bytes_payload, int bytes_protocol)
-	{
-		TORRENT_ASSERT(bytes_payload >= 0);
-		TORRENT_ASSERT(bytes_protocol >= 0);
-		m_stats_counters.inc_stats_counter(counters::recv_bytes
-			, bytes_payload + bytes_protocol);
-		m_stats_counters.inc_stats_counter(counters::recv_payload_bytes
-			, bytes_payload);
-
-		m_stat.received_bytes(bytes_payload, bytes_protocol);
-	}
-
-	void session_impl::trancieve_ip_packet(int bytes, bool ipv6)
-	{
-		TORRENT_ASSERT(bytes >= 0);
-		// one TCP/IP packet header for the packet
-		// sent or received, and one for the ACK
-		// The IPv4 header is 20 bytes
-		// and IPv6 header is 40 bytes
-		int const header = (ipv6 ? 40 : 20) + 20;
-		int const mtu = 1500;
-		int const packet_size = mtu - header;
-		int const overhead = std::max(1, (bytes + packet_size - 1) / packet_size) * header;
-		m_stats_counters.inc_stats_counter(counters::sent_ip_overhead_bytes
-			, overhead);
-		m_stats_counters.inc_stats_counter(counters::recv_ip_overhead_bytes
-			, overhead);
-
-		m_stat.trancieve_ip_packet(bytes, ipv6);
-	}
-
-	void session_impl::sent_syn(bool ipv6)
-	{
-		int const overhead = ipv6 ? 60 : 40;
-		m_stats_counters.inc_stats_counter(counters::sent_ip_overhead_bytes
-			, overhead);
-
-		m_stat.sent_syn(ipv6);
-	}
-
-	void session_impl::received_synack(bool ipv6)
-	{
-		int const overhead = ipv6 ? 60 : 40;
-		m_stats_counters.inc_stats_counter(counters::sent_ip_overhead_bytes
-			, overhead);
-		m_stats_counters.inc_stats_counter(counters::recv_ip_overhead_bytes
-			, overhead);
-
-		m_stat.received_synack(ipv6);
+		m_stat.accumulate(d);
 	}
 
 	void session_impl::on_tick(error_code const& e)

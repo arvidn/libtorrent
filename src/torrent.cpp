@@ -10876,34 +10876,10 @@ namespace {
 	}
 #endif // TORRENT_DISABLE_SHARE_MODE
 
-	void torrent::sent_bytes(int const bytes_payload, int const bytes_protocol)
+	void torrent::accumulate_stats(stat_delta const& d)
 	{
-		m_stat.sent_bytes(bytes_payload, bytes_protocol);
-		m_ses.sent_bytes(bytes_payload, bytes_protocol);
-	}
-
-	void torrent::received_bytes(int const bytes_payload, int const bytes_protocol)
-	{
-		m_stat.received_bytes(bytes_payload, bytes_protocol);
-		m_ses.received_bytes(bytes_payload, bytes_protocol);
-	}
-
-	void torrent::trancieve_ip_packet(int const bytes, bool const ipv6)
-	{
-		m_stat.trancieve_ip_packet(bytes, ipv6);
-		m_ses.trancieve_ip_packet(bytes, ipv6);
-	}
-
-	void torrent::sent_syn(bool const ipv6)
-	{
-		m_stat.sent_syn(ipv6);
-		m_ses.sent_syn(ipv6);
-	}
-
-	void torrent::received_synack(bool const ipv6)
-	{
-		m_stat.received_synack(ipv6);
-		m_ses.received_synack(ipv6);
+		m_stat.accumulate(d);
+		m_ses.accumulate_stats(d);
 	}
 
 #ifndef TORRENT_DISABLE_STREAMING
