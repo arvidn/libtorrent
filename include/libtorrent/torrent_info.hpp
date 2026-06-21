@@ -386,6 +386,7 @@ TORRENT_VERSION_NAMESPACE_4
 		// smaller.
 		int piece_length() const { return m_files.piece_length(); }
 		int num_pieces() const { return m_files.num_pieces(); }
+		int block_size() const { return std::min(m_files.piece_length(), default_block_size); }
 
 		// returns the number of blocks there are in the typical piece. There
 		// may be fewer in the last piece)

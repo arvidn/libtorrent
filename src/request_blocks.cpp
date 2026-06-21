@@ -13,6 +13,7 @@ see LICENSE file.
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/aux_/peer_connection.hpp"
 #include "libtorrent/aux_/torrent.hpp"
+#include "libtorrent/torrent_info.hpp"
 #include "libtorrent/aux_/socket_type.hpp"
 #include "libtorrent/peer_info.hpp" // for peer_info flags
 #include "libtorrent/aux_/request_blocks.hpp"
@@ -40,7 +41,7 @@ namespace libtorrent::aux {
 	// infinite loop, fighting to request the same blocks.
 	// returns false if the function is aborted by an early-exit
 	// condition.
-	bool request_a_block(torrent& t, peer_connection& c)
+	bool request_a_block(torrent& t, torrent_info const& ti, peer_connection& c)
 	{
 		if (t.is_seed()) return false;
 		if (c.no_download()) return false;
@@ -48,7 +49,7 @@ namespace libtorrent::aux {
 		if (c.is_disconnecting()) return false;
 
 		// don't request pieces before we have the metadata
-		if (!t.valid_metadata()) return false;
+		if (!ti.is_valid()) return false;
 
 		// don't request pieces before the peer is properly
 		// initialized after we have the metadata
@@ -109,11 +110,10 @@ namespace libtorrent::aux {
 				// in the window.
 				std::int64_t const download_window =
 					std::int64_t(c.statistics().download_payload_rate()) * whole_pieces_threshold;
-				int const contiguous_pieces =
-					int(std::min(download_window, std::int64_t(8 * 1024 * 1024))
-						/ t.torrent_file().piece_length());
+				int const contiguous_pieces = int(
+					std::min(download_window, std::int64_t(8 * 1024 * 1024)) / ti.piece_length());
 
-				int const blocks_per_piece = t.torrent_file().piece_length() / t.block_size();
+				int const blocks_per_piece = ti.piece_length() / ti.block_size();
 
 				prefer_contiguous_blocks = contiguous_pieces * blocks_per_piece;
 			}

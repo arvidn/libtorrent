@@ -1237,7 +1237,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			p->update_interest();
 			if (!m_abort)
 			{
-				if (request_a_block(*this, *p))
+				if (request_a_block(*this, torrent_file(), *p))
 					inc_stats_counter(counters::hash_fail_piece_picks);
 				p->send_block_requests();
 			}
@@ -5007,7 +5007,7 @@ namespace {
 			&& c.allowed_fast().empty())
 			return;
 
-		if (request_a_block(*this, c))
+		if (request_a_block(*this, torrent_file(), c))
 			inc_stats_counter(counters::interesting_piece_picks);
 		c.send_block_requests();
 	}
@@ -8921,7 +8921,7 @@ namespace {
 #endif
 			if (pc->is_interesting() && !pc->has_peer_choked())
 			{
-				if (request_a_block(*this, *pc))
+				if (request_a_block(*this, torrent_file(), *pc))
 				{
 					inc_stats_counter(counters::unchoke_piece_picks);
 					pc->send_block_requests();
