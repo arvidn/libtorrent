@@ -460,9 +460,8 @@ namespace libtorrent::aux {
 		// before the peer has attached to a torrent.
 		std::shared_ptr<torrent_info const> const& torrent_file() const { return m_ti; }
 
-		// the block size in bytes for this peer's torrent. matches
-		// torrent::block_size(): default_block_size pre-metadata,
-		// min(piece_length, default_block_size) once metadata is known.
+		// default_block_size pre-metadata, min(piece_length, default_block_size)
+		// once metadata is known.
 		int block_size() const;
 
 		// get the info hash associated with this peer

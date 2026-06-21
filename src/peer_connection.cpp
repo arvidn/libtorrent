@@ -1095,8 +1095,8 @@ namespace {
 
 	int peer_connection::block_size() const
 	{
-		// matches torrent::block_size(): default_block_size pre-metadata,
-		// min(piece_length, default_block_size) once metadata is known.
+		// default_block_size pre-metadata, min(piece_length, default_block_size)
+		// once metadata is known.
 		if (!m_ti || !m_ti->is_valid()) return default_block_size;
 		return std::min(m_ti->piece_length(), default_block_size);
 	}
@@ -1672,7 +1672,7 @@ namespace {
 
 		if (m_request_queue.empty() && m_download_queue.size() < 2)
 		{
-			if (aux::request_a_block(*t, *this))
+			if (aux::request_a_block(*t, *m_ti, *this))
 				m_counters.inc_stats_counter(counters::reject_piece_picks);
 		}
 
@@ -1775,7 +1775,7 @@ namespace {
 
 		if (is_interesting())
 		{
-			if (request_a_block(*t, *this))
+			if (request_a_block(*t, *m_ti, *this))
 				m_counters.inc_stats_counter(counters::unchoke_piece_picks);
 			send_block_requests();
 		}
@@ -2759,37 +2759,6 @@ namespace {
 		}
 	}
 
-#if TORRENT_USE_INVARIANT_CHECKS
-	struct check_postcondition
-	{
-		explicit check_postcondition(std::shared_ptr<aux::torrent> const& t_
-			, bool init_check = true): t(t_) { if (init_check) check(); }
-
-		~check_postcondition() { check(); }
-
-		void check()
-		{
-			if (!t->is_seed())
-			{
-				const int blocks_per_piece = static_cast<int>(
-					(t->torrent_file().piece_length() + t->block_size() - 1) / t->block_size());
-
-				std::vector<piece_picker::downloading_piece> const& dl_queue
-					= t->picker().get_download_queue();
-
-				for (std::vector<piece_picker::downloading_piece>::const_iterator i =
-					dl_queue.begin(); i != dl_queue.end(); ++i)
-				{
-					TORRENT_ASSERT(i->finished <= blocks_per_piece);
-				}
-			}
-		}
-
-		std::shared_ptr<aux::torrent> t;
-	};
-#endif
-
-
 	// -----------------------------
 	// ----------- PIECE -----------
 	// -----------------------------
@@ -2839,13 +2808,6 @@ namespace {
 		}
 #endif
 		if (is_disconnecting()) return;
-
-#if TORRENT_USE_INVARIANT_CHECKS
-		check_postcondition post_checker_(t);
-#if defined TORRENT_EXPENSIVE_INVARIANT_CHECKS
-		t->check_invariant();
-#endif
-#endif
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::incoming_message))
@@ -2968,7 +2930,7 @@ namespace {
 			if (!m_download_queue.empty())
 				m_requested.set(m_connect, now);
 
-			if (request_a_block(*t, *this))
+			if (request_a_block(*t, *m_ti, *this))
 				m_counters.inc_stats_counter(counters::incoming_redundant_piece_picks);
 			send_block_requests();
 			return;
@@ -3134,9 +3096,6 @@ namespace {
 		// to disk or are in the disk write cache
 		if (picker.is_piece_finished(p.piece) && !was_finished)
 		{
-#if TORRENT_USE_INVARIANT_CHECKS
-			check_postcondition post_checker2_(t, false);
-#endif
 			t->verify_piece(p.piece);
 		}
 
@@ -3144,7 +3103,7 @@ namespace {
 
 		if (is_disconnecting()) return;
 
-		if (request_a_block(*t, *this))
+		if (request_a_block(*t, *m_ti, *this))
 			m_counters.inc_stats_counter(counters::incoming_piece_picks);
 		send_block_requests();
 	}
@@ -4899,7 +4858,7 @@ namespace {
 			// we should try to pick another block to see
 			// if we can pick a busy one
 			m_last_request.set(m_connect, now);
-			if (request_a_block(*t, *this))
+			if (request_a_block(*t, *m_ti, *this))
 				m_counters.inc_stats_counter(counters::end_game_piece_picks);
 			if (m_disconnecting) return;
 			send_block_requests();
@@ -5223,7 +5182,7 @@ namespace {
 			// picking the same block again, stalling the
 			// same piece indefinitely.
 			m_desired_queue_size = 2;
-			if (request_a_block(*t, *this))
+			if (request_a_block(*t, *m_ti, *this))
 				m_counters.inc_stats_counter(counters::snubbed_piece_picks);
 
 			// the block we just picked (potentially)

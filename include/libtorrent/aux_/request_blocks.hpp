@@ -12,6 +12,7 @@ see LICENSE file.
 #define TORRENT_REQUEST_BLOCKS_HPP_INCLUDED
 
 #include "libtorrent/peer_info.hpp"
+#include "libtorrent/fwd.hpp"
 
 namespace libtorrent::aux {
 
@@ -22,7 +23,7 @@ namespace libtorrent::aux {
 	// of an early exit condition. In this case, the stats counter
 	// shouldn't be incremented, since it won't use any significant
 	// amount of CPU
-	bool request_a_block(torrent& t, peer_connection& c);
+	bool request_a_block(torrent& t, torrent_info const& ti, peer_connection& c);
 
 	// returns the rank of a peer's source. We have an affinity
 	// to connecting to peers with higher rank. This is to avoid
