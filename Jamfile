@@ -74,11 +74,14 @@ rule linking ( properties * )
 	else if <crypto>openssl in $(properties)
 		|| <crypto>openssl-shared in $(properties)
 	{
-		result += <library>ssl ;
-		result += <library>crypto ;
-		if <target-os>linux in $(properties)
+		if <target-os>windows in $(properties)
 		{
-			result += <library>dl ;
+			result += <library>ssl ;
+			result += <library>crypto ;
+		}
+		else
+		{
+			result += <conditional>@openssl-pkg-config ;
 		}
 	}
 	else if <crypto>gnutls in $(properties)
@@ -481,6 +484,51 @@ rule openssl-include-path ( properties * )
 
 	local result ;
 	result += <include>$(OPENSSL_INCLUDE) ;
+	return $(result) ;
+}
+
+# Return link and compile flags for OpenSSL using pkg-config. This picks up
+# transitive dependencies (e.g. -lzstd when OpenSSL is built with zstd
+# support). Falls back to explicit library targets when pkg-config is
+# unavailable or when openssl-lib is explicitly set by the user.
+rule openssl-pkg-config ( properties * )
+{
+	local result ;
+	local OPENSSL_LIB = [ feature.get-values <openssl-lib> : $(properties) ] ;
+
+	if $(OPENSSL_LIB) = ""
+	{
+		local static-arg ;
+		if <link>static in $(properties)
+			&& ! <crypto>openssl-shared in $(properties)
+		{
+			static-arg = --static ;
+		}
+
+		local pkg-libs = [ SHELL "pkg-config $(static-arg) --libs libssl 2>/dev/null" ] ;
+		local pkg-cflags = [ SHELL "pkg-config --cflags libssl 2>/dev/null" ] ;
+
+		if $(pkg-libs) != ""
+		{
+			for f in [ SPLIT_BY_CHARACTERS $(pkg-libs) : " \t\n\r" ]
+			{
+				if $(f) != "" { result += <linkflags>$(f) ; }
+			}
+			for f in [ SPLIT_BY_CHARACTERS $(pkg-cflags) : " \t\n\r" ]
+			{
+				if $(f) != "" { result += <cxxflags>$(f) ; }
+			}
+			return $(result) ;
+		}
+	}
+
+	# fallback: use explicit library targets with manual path rules
+	result += <library>ssl <library>crypto ;
+	if <target-os>linux in $(properties)
+	{
+		result += <library>dl ;
+	}
+	result += [ openssl-include-path $(properties) ] ;
 	return $(result) ;
 }
 
