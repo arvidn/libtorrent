@@ -19,15 +19,17 @@ see LICENSE file.
 #include <cstdint>
 
 #include "libtorrent/config.hpp"
-#include "libtorrent/aux_/web_connection_base.hpp"
+#include "libtorrent/aux_/peer_connection.hpp"
+#include "libtorrent/aux_/torrent.hpp"
+#include "libtorrent/peer_request.hpp"
+#include "libtorrent/aux_/http_parser.hpp"
 #include "libtorrent/aux_/piece_block_progress.hpp"
 #include "libtorrent/operations.hpp" // for operation_t enum
 #include "libtorrent/aux_/vector.hpp"
 
 namespace libtorrent::aux {
 
-	class TORRENT_EXTRA_EXPORT web_peer_connection
-		: public web_connection_base
+	class TORRENT_EXTRA_EXPORT web_peer_connection : public peer_connection
 	{
 	friend struct invariant_access;
 	public:
@@ -37,6 +39,9 @@ namespace libtorrent::aux {
 		// other end has the correct id
 		web_peer_connection(peer_connection_args& pack
 			, aux::web_seed_t& web);
+
+		int timeout() const override;
+		void start() override;
 
 		void on_connected() override;
 
@@ -48,17 +53,53 @@ namespace libtorrent::aux {
 		void on_receive(error_code const& error
 			, std::size_t bytes_transferred) override;
 
-		std::string const& url() const override { return m_url; }
+		// called from the main loop when this connection has any
+		// work to do.
+		void on_sent(error_code const& error, std::size_t bytes_transferred) override;
+
+		bool in_handshake() const override;
+
+		peer_id our_pid() const override { return peer_id(); }
+
+		// the following functions appends messages
+		// to the send buffer
+		void write_choke() override {}
+		void write_unchoke() override {}
+		void write_interested() override {}
+		void write_not_interested() override {}
+		void write_request(peer_request const& r) override;
+		void write_cancel(peer_request const&) override {}
+		void write_have(piece_index_t) override {}
+		void write_dont_have(piece_index_t) override {}
+		void write_piece(peer_request const&, disk_buffer_holder) override
+		{
+			TORRENT_ASSERT_FAIL();
+		}
+		void write_keepalive() override {}
+		void write_reject_request(peer_request const&) override {}
+		void write_allow_fast(piece_index_t) override {}
+		void write_suggest(piece_index_t) override {}
+		void write_bitfield() override {}
+		void write_upload_only(bool) override {}
+
+#if TORRENT_USE_INVARIANT_CHECKS
+		// shadow peer_connection::check_invariant() to keep its invariant from
+		// running for web seeds. that invariant requires
+		// m_peer_info->prev_amount_download to be zero, which is not true at
+		// construction time: a web seed's peer_info persists across connection
+		// attempts and its byte counters are only folded into our stats and
+		// cleared once we exist.
+		void check_invariant() const {}
+#endif
 
 		void get_specific_peer_info(peer_info& p) const override;
 		void disconnect(error_code const& ec
 			, operation_t op, disconnect_severity_t error = peer_connection_interface::normal) override;
 
-		void write_request(peer_request const& r) override;
-
 		bool received_invalid_data(piece_index_t index, bool single_peer) override;
 
 	private:
+		void add_headers(std::string& request, bool using_proxy) const;
 
 		void on_receive_padfile();
 		void incoming_payload(char const* buf, int len);
@@ -91,6 +132,33 @@ namespace libtorrent::aux {
 
 		aux::web_seed_t* m_web;
 
+		// the first request will contain a little bit more data
+		// than subsequent ones, things that aren't critical are left
+		// out to save bandwidth.
+		bool m_first_request = true;
+
+		// true if we're using ssl
+		bool m_ssl = false;
+
+		// this has one entry per bittorrent request
+		std::deque<peer_request> m_requests;
+
+		std::string m_server_string;
+		std::string m_basic_auth;
+		std::string m_host;
+		std::string m_path;
+
+		std::string m_external_auth;
+		web_seed_entry::headers_t m_extra_headers;
+
+		aux::http_parser m_parser{aux::http_parser::dont_parse_chunks};
+
+		int m_port;
+
+		// the number of bytes into the receive buffer where
+		// current read cursor is.
+		int m_body_start = 0;
+
 		// this is used for intermediate storage of pieces to be delivered to the
 		// bittorrent engine
 		// TODO: 3 if we make this be a disk_buffer_holder instead
@@ -101,7 +169,7 @@ namespace libtorrent::aux {
 		// the number of bytes we've forwarded to the incoming_payload() function
 		// in the current HTTP response. used to know where in the buffer the
 		// next response starts
-		int m_received_body;
+		int m_received_body = 0;
 
 		// this is the offset inside the current receive
 		// buffer where the next chunk header will be.
@@ -109,15 +177,15 @@ namespace libtorrent::aux {
 		// parsed. It does not necessarily point to a valid
 		// offset in the receive buffer, if we haven't received
 		// it yet. This offset never includes the HTTP header
-		int m_chunk_pos;
+		int m_chunk_pos = 0;
 
 		// this is the number of bytes we've already received
 		// from the next chunk header we're waiting for
-		int m_partial_chunk_header;
+		int m_partial_chunk_header = 0;
 
 		// the number of responses we've received so far on
 		// this connection
-		int m_num_responses;
+		int m_num_responses = 0;
 	};
 }
 

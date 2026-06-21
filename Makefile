@@ -438,7 +438,6 @@ SOURCES = \
   utp_socket_manager.cpp          \
   utp_stream.cpp                  \
   version.cpp                     \
-  web_connection_base.cpp         \
   web_peer_connection.cpp         \
   web_seed_entry.cpp              \
   write_resume_data.cpp           \
@@ -702,7 +701,6 @@ HEADERS = \
   aux_/utp_stream.hpp               \
   aux_/vector.hpp                   \
   aux_/vector_utils.hpp             \
-  aux_/web_connection_base.hpp      \
   aux_/web_peer_connection.hpp      \
   aux_/windows.hpp                  \
   aux_/win_cng.hpp                  \
