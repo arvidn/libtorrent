@@ -104,8 +104,7 @@ namespace libtorrent::aux {
 		m_recv_buffer.reset(block_size() + 1024);
 	}
 
-	void web_connection_base::add_headers(std::string& request
-		, aux::session_settings const& sett, bool const using_proxy) const
+	void web_connection_base::add_headers(std::string& request, bool const using_proxy) const
 	{
 		request += "Host: ";
 		request += format_host_header(m_host, m_port, m_ssl ? 443 : 80);
@@ -125,11 +124,11 @@ namespace libtorrent::aux {
 			request += "\r\nAuthorization: Basic ";
 			request += m_basic_auth;
 		}
-		if (sett.get_int(settings_pack::proxy_type) == settings_pack::http_pw)
+		if (m_settings.get_int(settings_pack::proxy_type) == settings_pack::http_pw)
 		{
 			request += "\r\nProxy-Authorization: Basic ";
-			request += base64encode(sett.get_str(settings_pack::proxy_username)
-				+ ":" + sett.get_str(settings_pack::proxy_password));
+			request += base64encode(m_settings.get_str(settings_pack::proxy_username) + ":"
+				+ m_settings.get_str(settings_pack::proxy_password));
 		}
 		for (auto const& h : m_extra_headers)
 		{
