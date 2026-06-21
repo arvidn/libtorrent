@@ -3054,7 +3054,7 @@ namespace {
 
 		// this is for a future per-block request feature
 #if 0
-		if (t->info_hashes().has_v2())
+		if (m_ti->info_hashes().has_v2())
 		{
 			t->picker().started_hash_job(p.piece);
 			m_disk_thread.async_hash2(t->storage(), p.piece, p.start, {}

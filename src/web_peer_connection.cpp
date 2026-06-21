@@ -408,7 +408,7 @@ void web_peer_connection::write_request(peer_request const& r)
 		// assumed to be encoded in the torrent file
 		request += using_proxy ? m_url : m_path;
 		request += " HTTP/1.1\r\n";
-		add_headers(request, m_settings, using_proxy);
+		add_headers(request, using_proxy);
 		request += "\r\nRange: bytes=";
 		request += to_string(file_req.start).data();
 		request += "-";
@@ -474,7 +474,7 @@ void web_peer_connection::write_request(peer_request const& r)
 				request += escape_file_path(info.layout(), f.file_index);
 			}
 			request += " HTTP/1.1\r\n";
-			add_headers(request, m_settings, using_proxy);
+			add_headers(request, using_proxy);
 			request += "\r\nRange: bytes=";
 			request += to_string(f.offset).data();
 			request += "-";

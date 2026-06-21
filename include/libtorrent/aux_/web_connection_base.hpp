@@ -78,9 +78,7 @@ namespace libtorrent::aux {
 		void get_specific_peer_info(peer_info& p) const override;
 
 	protected:
-
-		virtual void add_headers(std::string& request
-			, aux::session_settings const& sett, bool using_proxy) const;
+		void add_headers(std::string& request, bool using_proxy) const;
 
 		// the first request will contain a little bit more data
 		// than subsequent ones, things that aren't critical are left
