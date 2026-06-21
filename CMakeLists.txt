@@ -293,7 +293,6 @@ set(libtorrent_aux_include_files
 	utp_stream.hpp
 	vector.hpp
 	vector_utils.hpp
-	web_connection_base.hpp
 	web_peer_connection.hpp
 	websocket_stream.hpp
 	websocket_tracker_connection.hpp
@@ -447,7 +446,6 @@ set(sources
 	utp_socket_manager.cpp
 	utp_stream.cpp
 	version.cpp
-	web_connection_base.cpp
 	web_peer_connection.cpp
 	web_seed_entry.cpp
 	websocket_stream.cpp
