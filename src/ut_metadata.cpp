@@ -77,9 +77,10 @@ namespace {
 	{
 		friend struct ut_metadata_peer_plugin;
 
-		explicit ut_metadata_plugin(aux::torrent& t)
+		ut_metadata_plugin(aux::torrent& t, int const max_metadata_size)
 			: m_torrent(t)
 			, m_ti(t.torrent_file_ptr())
+			, m_max_metadata_size(max_metadata_size)
 		{}
 
 		void on_files_checked() override
@@ -142,6 +143,12 @@ namespace {
 	private:
 		aux::torrent& m_torrent;
 		std::shared_ptr<torrent_info const> m_ti;
+
+		// snapshot of settings_pack::max_metadata_size at attach time. the
+		// setting can change over the life of the session, but the plugin
+		// reads it on a hot path; snapshotting avoids reaching back into
+		// the session for every received_metadata() call.
+		int const m_max_metadata_size;
 
 		// this buffer is filled with the info-section of
 		// the metadata file while downloading it from
@@ -516,7 +523,7 @@ namespace {
 		if (m_metadata.empty())
 		{
 			// verify the total_size
-			if (total_size <= 0 || total_size > m_torrent.session().settings().get_int(settings_pack::max_metadata_size))
+			if (total_size <= 0 || total_size > m_max_metadata_size)
 			{
 #ifndef TORRENT_DISABLE_LOGGING
 				source.m_pc.peer_log(peer_log_alert::info, peer_log_alert::ut_metadata
@@ -615,7 +622,8 @@ namespace libtorrent {
 		aux::torrent* t = th.native_handle().get();
 		// don't add this extension if the torrent is private
 		if (auto const ti = t->torrent_file_ptr(); ti->is_valid() && ti->priv()) return {};
-		return std::make_shared<ut_metadata_plugin>(*t);
+		int const max_size = t->session().settings().get_int(settings_pack::max_metadata_size);
+		return std::make_shared<ut_metadata_plugin>(*t, max_size);
 	}
 }
 

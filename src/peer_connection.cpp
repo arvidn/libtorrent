@@ -5289,13 +5289,14 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::outgoing))
 		{
-			peer_log(peer_log_alert::outgoing, peer_log_alert::send_buffer_watermark
-				, "current watermark: %d max: %d min: %d factor: %d uploaded: %d B/s"
-				, buffer_size_watermark
-				, m_ses.settings().get_int(settings_pack::send_buffer_watermark)
-				, m_ses.settings().get_int(settings_pack::send_buffer_low_watermark)
-				, m_ses.settings().get_int(settings_pack::send_buffer_watermark_factor)
-				, int(m_uploaded_last_second));
+			peer_log(peer_log_alert::outgoing,
+				peer_log_alert::send_buffer_watermark,
+				"current watermark: %d max: %d min: %d factor: %d uploaded: %d B/s",
+				buffer_size_watermark,
+				m_settings.get_int(settings_pack::send_buffer_watermark),
+				m_settings.get_int(settings_pack::send_buffer_low_watermark),
+				m_settings.get_int(settings_pack::send_buffer_watermark_factor),
+				int(m_uploaded_last_second));
 		}
 #endif
 

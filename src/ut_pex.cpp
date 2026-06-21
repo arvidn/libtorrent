@@ -59,12 +59,16 @@ namespace libtorrent { namespace {
 		// to evenly spread it out across all torrents
 		// the more torrents we have, the longer we can
 		// delay the rebuilding
-		explicit ut_pex_plugin(aux::torrent& t)
+		ut_pex_plugin(aux::torrent& t, int const max_pex_peers)
 			: m_torrent(t)
-			, m_last_msg(min_time()) {}
+			, m_last_msg(min_time())
+			, m_max_pex_peers(max_pex_peers)
+		{}
 
 		// explicitly disallow assignment, to silence msvc warning
 		ut_pex_plugin& operator=(ut_pex_plugin const&) = delete;
+
+		int max_pex_peers() const { return m_max_pex_peers; }
 
 		std::shared_ptr<peer_plugin> new_connection(
 			peer_connection_handle const& pc) override;
@@ -198,6 +202,11 @@ namespace libtorrent { namespace {
 		time_point m_last_msg;
 		std::vector<char> m_ut_pex_msg;
 		int m_peers_in_message = 0;
+
+		// snapshot of settings_pack::max_pex_peers at attach time. read on a
+		// hot path by every ut_pex_peer_plugin; snapshotting avoids reaching
+		// back into the session for every PEX message processed.
+		int const m_max_pex_peers;
 	};
 
 	struct ut_pex_peer_plugin final
@@ -318,8 +327,7 @@ namespace libtorrent { namespace {
 					// this is an internal flag. disregard it from the internet
 					flags &= ~pex_lt_v2;
 
-					if (int(m_peers.size()) >= m_torrent.settings().get_int(settings_pack::max_pex_peers))
-						break;
+					if (int(m_peers.size()) >= m_tp.max_pex_peers()) break;
 
 					// ignore local addresses unless the peer is local to us
 					if (aux::is_local(adr.address()) && !aux::is_local(m_pc.remote().address())) continue;
@@ -373,8 +381,7 @@ namespace libtorrent { namespace {
 
 					// ignore local addresses unless the peer is local to us
 					if (aux::is_local(adr.address()) && !aux::is_local(m_pc.remote().address())) continue;
-					if (int(m_peers6.size()) >= m_torrent.settings().get_int(settings_pack::max_pex_peers))
-						break;
+					if (int(m_peers6.size()) >= m_tp.max_pex_peers()) break;
 
 					peers6_t::value_type const v(adr.address().to_v6().to_bytes(), adr.port());
 					auto const j = std::lower_bound(m_peers6.begin(), m_peers6.end(), v);
@@ -602,12 +609,13 @@ namespace libtorrent {
 	std::shared_ptr<torrent_plugin> create_ut_pex_plugin(torrent_handle const& th, client_data_t)
 	{
 		aux::torrent* t = th.native_handle().get();
+		auto const& sett = t->session().settings();
 		if (t->torrent_file_ptr()->priv()
-			|| (t->is_i2p() && !t->settings().get_bool(settings_pack::allow_i2p_mixed)))
+			|| (t->is_i2p() && !sett.get_bool(settings_pack::allow_i2p_mixed)))
 		{
 			return {};
 		}
-		return std::make_shared<ut_pex_plugin>(*t);
+		return std::make_shared<ut_pex_plugin>(*t, sett.get_int(settings_pack::max_pex_peers));
 	}
 }
 
