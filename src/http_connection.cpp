@@ -200,6 +200,20 @@ void http_connection::get(std::string const& url,
 		);
 }
 
+namespace {
+	// two requests can share a socket only if they go through the same proxy.
+	// Compares the fields that determine which server the socket actually connects
+	// to (and how), so a SOCKS5/I2P tunnel or direct connection is never reused for
+	// a request that should take a different route.
+	bool same_proxy(aux::proxy_settings const& lhs, aux::proxy_settings const& rhs)
+	{
+		return lhs.type == rhs.type && lhs.port == rhs.port && lhs.hostname == rhs.hostname
+			&& lhs.username == rhs.username && lhs.password == rhs.password
+			&& lhs.proxy_hostnames == rhs.proxy_hostnames
+			&& lhs.send_host_in_connect == rhs.send_host_in_connect;
+	}
+}
+
 void http_connection::start(std::string const& hostname, int port
 	, time_duration timeout, aux::proxy_settings const* ps, bool ssl
 	, int handle_redirects
@@ -212,6 +226,12 @@ void http_connection::start(std::string const& hostname, int port
 {
 	m_redirects = handle_redirects;
 	m_resolve_flags = resolve_flags;
+
+	// the existing socket (if any) was established for the proxy currently in
+	// m_proxy. Capture whether this request uses the same proxy before m_proxy
+	// is overwritten below; a request through a different proxy (or direct vs
+	// proxied) cannot reuse the socket.
+	bool const proxy_matches = ps ? same_proxy(*ps, m_proxy) : m_proxy.type == settings_pack::none;
 	if (ps) m_proxy = *ps;
 
 	// keep ourselves alive even if the callback function
@@ -232,8 +252,16 @@ void http_connection::start(std::string const& hostname, int port
 	TORRENT_ASSERT(!ssl || m_ssl_ctx != nullptr);
 #endif
 
-	if (m_sock && m_sock->is_open() && m_hostname == hostname && m_port == port
-		&& m_ssl == ssl && m_bind_addr == bind_addr)
+	// reuse the existing socket if the previous response left it in a reusable
+	// state (keep-alive, server did not close it) and it targets the same
+	// endpoint. m_reusable is consumed here: it is set again only when the next
+	// response finishes cleanly, so a failed reused request won't be retried on
+	// a stale socket.
+	bool const reuse_connection = m_sock && m_sock->is_open() && m_reusable && proxy_matches
+		&& m_hostname == hostname && m_port == port && m_ssl == ssl && m_bind_addr == bind_addr;
+	m_reusable = false;
+
+	if (reuse_connection)
 	{
 		ADD_OUTSTANDING_ASYNC("http_connection::on_write");
 		async_write(*m_sock, boost::asio::buffer(m_sendbuffer)
@@ -799,6 +827,11 @@ void http_connection::on_read(error_code const& e
 	if (m_parser.finished())
 	{
 		m_timer.cancel();
+		// capture whether this socket can be reused for a follow-up request,
+		// while the parser still reflects the completed response. The caller
+		// may issue another request (via get()) from the handler; start() will
+		// reuse the socket only if this is set.
+		m_reusable = !m_parser.connection_close();
 		callback(e, span<char>(m_recvbuffer)
 			.first(m_read_pos)
 			.subspan(m_parser.body_start()));
