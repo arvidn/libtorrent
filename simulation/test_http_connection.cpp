@@ -673,7 +673,79 @@ TORRENT_TEST(http_connection_ssl_proxy_hostname)
 }
 
 
+// verify that http_connection emits "Connection: close" by default and
+// "Connection: keep-alive" when the keep_alive flag is passed to get(). This is
+// the foundation for coalescing tracker announces onto a persistent connection.
+void test_connection_header(bool const keep_alive)
+{
+	using sim::asio::ip::address_v4;
+	sim_config network_cfg;
+	sim::simulation sim{network_cfg};
+
+	sim::asio::io_context client_ios(sim, make_address_v4("10.0.0.1"));
+	sim::asio::io_context server_ios(sim, make_address_v4("10.0.0.2"));
+	lt::aux::resolver res(client_ios);
+
+	sim::http_server http(server_ios, 8080);
+
+	int server_counter = 0;
+	http.register_handler("/test",
+		[&server_counter, keep_alive](std::string method,
+			std::string /* req */
+			,
+			std::map<std::string, std::string>& headers) {
+			++server_counter;
+			TEST_EQUAL(method, "GET");
+			TEST_EQUAL(headers["connection"], keep_alive ? "keep-alive" : "close");
+			return sim::send_response(200, "OK", 0);
+		});
+
+	int client_counter = 0;
+	auto h = std::make_shared<lt::aux::http_connection>(
+		client_ios,
+		res,
+		[&client_counter](error_code const&,
+			lt::aux::http_parser const&,
+			span<char const>,
+			lt::aux::http_connection& c) {
+			++client_counter;
+			c.close();
+		},
+		1024 * 1024,
+		lt::aux::http_connect_handler(),
+		lt::aux::http_filter_handler(),
+		lt::aux::hostname_filter_handler()
+#if TORRENT_USE_SSL
+			,
+		nullptr
+#endif
+	);
+
+	h->get("http://10.0.0.2:8080/test",
+		seconds(5),
+		nullptr,
+		5,
+		std::string(),
+		std::nullopt,
+		lt::aux::resolver_flags{},
+		std::string()
+#if TORRENT_USE_I2P
+			,
+		nullptr
+#endif
+		,
+		keep_alive);
+
+	sim.run();
+
+	TEST_EQUAL(server_counter, 1);
+	TEST_EQUAL(client_counter, 1);
+}
+
+TORRENT_TEST(http_connection_connection_close_header) { test_connection_header(false); }
+
+TORRENT_TEST(http_connection_connection_keep_alive_header) { test_connection_header(true); }
+
 // TODO: test http proxy with password
 // TODO: test socks5 with password
 // TODO: test SSL
-// TODO: test keepalive
