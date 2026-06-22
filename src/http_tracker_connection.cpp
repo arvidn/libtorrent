@@ -60,7 +60,9 @@ namespace libtorrent::aux {
 		, m_ioc(ios)
 	{}
 
-	void http_tracker_connection::start()
+	void http_tracker_connection::start() { send_request(); }
+
+	void http_tracker_connection::send_request()
 	{
 		std::string url = tracker_req().url;
 
@@ -210,17 +212,24 @@ namespace libtorrent::aux {
 			return;
 		}
 
-		using namespace std::placeholders;
-		m_tracker_connection = std::make_shared<aux::http_connection>(m_ioc, m_man.host_resolver()
-			, std::bind(&http_tracker_connection::on_response, shared_from_this(), _1, _2, _3)
-			, settings.get_int(settings_pack::max_http_recv_buffer_size)
-			, std::bind(&http_tracker_connection::on_connect, shared_from_this(), _1)
-			, std::bind(&http_tracker_connection::on_filter, shared_from_this(), _1, _2)
-			, std::bind(&http_tracker_connection::on_filter_hostname, shared_from_this(), _1, _2)
+		// create the http_connection on the first request. Followers reuse it,
+		// and its keep-alive socket, via send_request() -> http_connection::get().
+		if (!m_tracker_connection)
+		{
+			using namespace std::placeholders;
+			m_tracker_connection = std::make_shared<aux::http_connection>(m_ioc,
+				m_man.host_resolver(),
+				std::bind(&http_tracker_connection::on_response, shared_from_this(), _1, _2, _3),
+				settings.get_int(settings_pack::max_http_recv_buffer_size),
+				std::bind(&http_tracker_connection::on_connect, shared_from_this(), _1),
+				std::bind(&http_tracker_connection::on_filter, shared_from_this(), _1, _2),
+				std::bind(&http_tracker_connection::on_filter_hostname, shared_from_this(), _1, _2)
 #if TORRENT_USE_SSL
-			, tracker_req().ssl_ctx
+					,
+				tracker_req().ssl_ctx
 #endif
 			);
+		}
 
 		int const timeout = tracker_req().event == event_t::stopped
 			? settings.get_int(settings_pack::stop_tracker_timeout)
@@ -248,21 +257,32 @@ namespace libtorrent::aux {
 		// are that we're shutting down, and this should be a best-effort
 		// attempt. It's not worth stalling shutdown.
 		aux::proxy_settings ps(settings);
-		m_tracker_connection->get(url, seconds(timeout)
-			, ps.proxy_tracker_connections ? &ps : nullptr
-			, 5, user_agent, bi
-			, (tracker_req().event == event_t::stopped
-				? aux::resolver_interface::cache_only : aux::resolver_flags{})
+		m_tracker_connection->get(url,
+			seconds(timeout),
+			ps.proxy_tracker_connections ? &ps : nullptr,
+			5,
+			user_agent,
+			bi,
+			(tracker_req().event == event_t::stopped ? aux::resolver_interface::cache_only
+													 : aux::resolver_flags{})
 				| aux::resolver_interface::abort_on_shutdown
 #if TORRENT_ABI_VERSION == 1
-			, tracker_req().auth
+			,
+			tracker_req().auth
 #else
-			, ""
+			,
+			""
 #endif
 #if TORRENT_USE_I2P
-			, tracker_req().i2pconn
+			,
+			tracker_req().i2pconn
 #endif
-			);
+			// always request keep-alive so the socket stays available for a
+			// follower that may be queued while this request is in flight. When
+			// the queue drains, the connection is closed immediately (see
+			// next_request()), so this does not leak idle sockets.
+			,
+			true);
 
 		// the url + 100 estimated header size
 		sent_bytes(int(url.size()) + 100);
@@ -275,6 +295,33 @@ namespace libtorrent::aux {
 			cb->debug_log("==> TRACKER_REQUEST [ url: %s ]", url.c_str());
 		}
 #endif
+	}
+
+	void http_tracker_connection::queue_request(
+		tracker_request req, std::weak_ptr<request_callback> c)
+	{
+		m_followers.emplace_back(std::move(req), std::move(c));
+	}
+
+	void http_tracker_connection::next_request()
+	{
+		if (m_followers.empty())
+		{
+			close();
+			return;
+		}
+
+		// promote the next queued request to be the in-flight request and issue
+		// it on this connection. http_connection reuses the keep-alive socket if
+		// the previous response allowed it, otherwise it reconnects transparently.
+		// m_tracker_ip is left untouched: on reuse on_connect does not fire and
+		// the address (same server) stays valid; on a reconnect on_connect
+		// refreshes it.
+		auto next = std::move(m_followers.front());
+		m_followers.pop_front();
+		m_req = std::move(next.first);
+		m_requester = std::move(next.second);
+		send_request();
 	}
 
 	void http_tracker_connection::close()
@@ -422,7 +469,7 @@ namespace libtorrent::aux {
 		std::shared_ptr<request_callback> cb = requester();
 		if (!cb)
 		{
-			close();
+			next_request();
 			return;
 		}
 
@@ -463,7 +510,7 @@ namespace libtorrent::aux {
 
 			cb->tracker_response(tracker_req(), m_tracker_ip, ip_list, resp);
 		}
-		close();
+		next_request();
 	}
 
 	// TODO: 2 returning a bool here is redundant. Instead this function should

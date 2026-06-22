@@ -36,45 +36,60 @@ using namespace sim;
 using chrono::duration_cast;
 
 namespace {
-struct sim_config : sim::default_config
-{
-	chrono::high_resolution_clock::duration hostname_lookup(
-		asio::ip::address const& requestor
-		, std::string hostname
-		, std::vector<asio::ip::address>& result
-		, boost::system::error_code& ec) override
+
+	using conn_test_flags_t = flags::bitfield_flag<std::uint8_t, struct conn_test_flags_tag>;
+	constexpr conn_test_flags_t keep_alive = 0_bit;
+	constexpr conn_test_flags_t through_redirect = 1_bit;
+
+	struct sim_config : sim::default_config
 	{
-		if (hostname == "try-next.com")
+		chrono::high_resolution_clock::duration hostname_lookup(asio::ip::address const& requestor,
+			std::string hostname,
+			std::vector<asio::ip::address>& result,
+			boost::system::error_code& ec) override
 		{
-			result.push_back(make_address_v4("10.0.0.10"));
-			result.push_back(make_address_v4("10.0.0.9"));
-			result.push_back(make_address_v4("10.0.0.8"));
-			result.push_back(make_address_v4("10.0.0.7"));
-			result.push_back(make_address_v4("10.0.0.6"));
-			result.push_back(make_address_v4("10.0.0.5"));
-			result.push_back(make_address_v4("10.0.0.4"));
-			result.push_back(make_address_v4("10.0.0.3"));
+			if (hostname == "try-next.com")
+			{
+				result.push_back(make_address_v4("10.0.0.10"));
+				result.push_back(make_address_v4("10.0.0.9"));
+				result.push_back(make_address_v4("10.0.0.8"));
+				result.push_back(make_address_v4("10.0.0.7"));
+				result.push_back(make_address_v4("10.0.0.6"));
+				result.push_back(make_address_v4("10.0.0.5"));
+				result.push_back(make_address_v4("10.0.0.4"));
+				result.push_back(make_address_v4("10.0.0.3"));
 
-			// this is the IP that works, all other should fail
-			result.push_back(make_address_v4("10.0.0.2"));
-			return duration_cast<chrono::high_resolution_clock::duration>(chrono::milliseconds(100));
+				// this is the IP that works, all other should fail
+				result.push_back(make_address_v4("10.0.0.2"));
+				return duration_cast<chrono::high_resolution_clock::duration>(
+					chrono::milliseconds(100));
+			}
+
+			if (hostname == "test-hostname.com")
+			{
+				result.push_back(make_address_v4("10.0.0.2"));
+				return duration_cast<chrono::high_resolution_clock::duration>(
+					chrono::milliseconds(100));
+			}
+
+			if (hostname == "dual-stack.test-hostname.com")
+			{
+				result.push_back(make_address_v4("10.0.0.2"));
+				result.push_back(make_address_v6("ff::dead:beef"));
+				return duration_cast<chrono::high_resolution_clock::duration>(
+					chrono::milliseconds(100));
+			}
+
+			if (hostname == "two-endpoints.com")
+			{
+				result.push_back(make_address_v4("10.0.0.2"));
+				result.push_back(make_address_v4("10.0.0.3"));
+				return duration_cast<chrono::high_resolution_clock::duration>(
+					chrono::milliseconds(100));
+			}
+
+			return default_config::hostname_lookup(requestor, hostname, result, ec);
 		}
-
-		if (hostname == "test-hostname.com")
-		{
-			result.push_back(make_address_v4("10.0.0.2"));
-			return duration_cast<chrono::high_resolution_clock::duration>(chrono::milliseconds(100));
-		}
-
-		if (hostname == "dual-stack.test-hostname.com")
-		{
-			result.push_back(make_address_v4("10.0.0.2"));
-			result.push_back(make_address_v6("ff::dead:beef"));
-			return duration_cast<chrono::high_resolution_clock::duration>(chrono::milliseconds(100));
-		}
-
-		return default_config::hostname_lookup(requestor, hostname, result, ec);
-	}
 };
 } // anonymous namespace
 
@@ -674,10 +689,14 @@ TORRENT_TEST(http_connection_ssl_proxy_hostname)
 
 
 // verify that http_connection emits "Connection: close" by default and
-// "Connection: keep-alive" when the keep_alive flag is passed to get(). This is
-// the foundation for coalescing tracker announces onto a persistent connection.
-void test_connection_header(bool const keep_alive)
+// "Connection: keep-alive" when the keep_alive flag is passed to get(). When
+// through_redirect is set, an intervening 301 is followed first; the header
+// check is applied to the redirected request to verify keep_alive is preserved.
+void test_connection_header(conn_test_flags_t const flags)
 {
+	bool const use_keep_alive = bool(flags & keep_alive);
+	bool const use_redirect = bool(flags & through_redirect);
+
 	using sim::asio::ip::address_v4;
 	sim_config network_cfg;
 	sim::simulation sim{network_cfg};
@@ -688,15 +707,25 @@ void test_connection_header(bool const keep_alive)
 
 	sim::http_server http(server_ios, 8080);
 
+	if (use_redirect)
+	{
+		http.register_handler(
+			"/redirect", [](std::string, std::string, std::map<std::string, std::string>&) {
+				return "HTTP/1.1 301 Moved Permanently\r\n"
+					   "Location: /test\r\n"
+					   "\r\n";
+			});
+	}
+
 	int server_counter = 0;
 	http.register_handler("/test",
-		[&server_counter, keep_alive](std::string method,
+		[&server_counter, use_keep_alive](std::string method,
 			std::string /* req */
 			,
 			std::map<std::string, std::string>& headers) {
 			++server_counter;
 			TEST_EQUAL(method, "GET");
-			TEST_EQUAL(headers["connection"], keep_alive ? "keep-alive" : "close");
+			TEST_EQUAL(headers["connection"], use_keep_alive ? "keep-alive" : "close");
 			return sim::send_response(200, "OK", 0);
 		});
 
@@ -721,7 +750,9 @@ void test_connection_header(bool const keep_alive)
 #endif
 	);
 
-	h->get("http://10.0.0.2:8080/test",
+	std::string const start_url =
+		use_redirect ? "http://10.0.0.2:8080/redirect" : "http://10.0.0.2:8080/test";
+	h->get(start_url,
 		seconds(5),
 		nullptr,
 		5,
@@ -734,7 +765,7 @@ void test_connection_header(bool const keep_alive)
 		nullptr
 #endif
 		,
-		keep_alive);
+		use_keep_alive);
 
 	sim.run();
 
@@ -742,9 +773,9 @@ void test_connection_header(bool const keep_alive)
 	TEST_EQUAL(client_counter, 1);
 }
 
-TORRENT_TEST(http_connection_connection_close_header) { test_connection_header(false); }
+TORRENT_TEST(http_connection_connection_close_header) { test_connection_header({}); }
 
-TORRENT_TEST(http_connection_connection_keep_alive_header) { test_connection_header(true); }
+TORRENT_TEST(http_connection_connection_keep_alive_header) { test_connection_header(keep_alive); }
 
 // issue two sequential requests on the same http_connection. When the server
 // keeps the connection alive, the second request must reuse the socket (a single
@@ -848,6 +879,111 @@ TORRENT_TEST(http_connection_http_1_0_no_reuse)
 	// an HTTP/1.0 server closes after each response (no Connection header); the
 	// client must detect this from the protocol version and open a new socket
 	test_http_connection_reuse(sim::http_server::http_1_0, 2);
+}
+
+// Regression test: when http_connection reuses a keep-alive socket and the
+// second request times out, on_timeout must not close the live socket and
+// reconnect to the next endpoint (which would send an empty HTTP request).
+// It must call callback(timed_out) cleanly.
+//
+// Bug: start() in the reuse path left m_next_ep and m_start_time stale from
+// the previous connection. on_timeout saw m_start_time + timeout <= now
+// (always true -- stale start_time is in the past) and, for a multi-endpoint
+// tracker where m_next_ep < m_endpoints.size(), closed the working socket
+// and called connect() to the next endpoint with an empty m_sendbuffer.
+TORRENT_TEST(http_connection_keepalive_reuse_timeout_does_not_reconnect)
+{
+	// two-endpoints.com resolves to 10.0.0.2 and 10.0.0.3 (see sim_config)
+	sim_config network_cfg;
+	sim::simulation sim{network_cfg};
+
+	sim::asio::io_context client_ios(sim, make_address_v4("10.0.0.1"));
+	sim::asio::io_context server_ios(sim, make_address_v4("10.0.0.2"));
+	sim::asio::io_context server2_ios(sim, make_address_v4("10.0.0.3"));
+	lt::aux::resolver res(client_ios);
+
+	// both servers handle /first normally and stall /second; either may receive
+	// the initial connection depending on random_shuffle in on_resolve
+	sim::http_server http(server_ios, 8080);
+	sim::http_server http2(server2_ios, 8080);
+
+	for (sim::http_server* s : {&http, &http2})
+	{
+		s->register_handler(
+			"/first", [](std::string, std::string, std::map<std::string, std::string>&) {
+				return sim::send_response(200, "OK", 2) + "ok";
+			});
+		s->register_stall_handler("/second");
+	}
+
+	int connect_count = 0;
+	int response_count = 0;
+	std::shared_ptr<lt::aux::http_connection> h;
+
+	auto const issue = [&](char const* path) {
+		h->get(std::string("http://two-endpoints.com:8080") + path,
+			seconds(1),
+			nullptr,
+			5,
+			std::string(),
+			std::nullopt,
+			lt::aux::resolver_flags{},
+			std::string()
+#if TORRENT_USE_I2P
+				,
+			nullptr
+#endif
+			,
+			true /*keep_alive*/);
+	};
+
+	h = std::make_shared<lt::aux::http_connection>(
+		client_ios,
+		res,
+		[&](error_code const& ec,
+			lt::aux::http_parser const&,
+			span<char const>,
+			lt::aux::http_connection& c) {
+			++response_count;
+			if (!ec)
+			{
+				issue("/second");
+			}
+			else
+			{
+				TEST_EQUAL(ec, make_error_code(lt::errors::timed_out));
+				c.close();
+			}
+		},
+		1024 * 1024,
+		[&connect_count](lt::aux::http_connection&) { ++connect_count; },
+		lt::aux::http_filter_handler(),
+		lt::aux::hostname_filter_handler()
+#if TORRENT_USE_SSL
+			,
+		nullptr
+#endif
+	);
+
+	issue("/first");
+
+	sim.run();
+
+	// two callbacks: success for /first, timed_out for /second
+	TEST_EQUAL(response_count, 2);
+	// one TCP connection: the keep-alive socket must not be replaced by a
+	// reconnect to the second endpoint
+	TEST_EQUAL(connect_count, 1);
+	TEST_EQUAL(http.accepted_connections() + http2.accepted_connections(), 1);
+}
+
+// Regression test: a get() call that follows a redirect must preserve the
+// keep_alive flag from the original request. Without the fix, the redirect
+// re-issues get() with keep_alive=false (the default), which sends
+// "Connection: close" on the redirected request and prevents connection reuse.
+TORRENT_TEST(http_connection_redirect_preserves_keep_alive)
+{
+	test_connection_header(keep_alive | through_redirect);
 }
 
 // TODO: test http proxy with password
