@@ -102,6 +102,7 @@ void http_connection::get(std::string const& url,
 {
 	m_user_agent = user_agent;
 	m_resolve_flags = resolve_flags;
+	m_keep_alive = keep_alive;
 
 	error_code ec;
 
@@ -263,6 +264,10 @@ void http_connection::start(std::string const& hostname, int port
 
 	if (reuse_connection)
 	{
+		// reset so on_timeout has a correct baseline and does not try a
+		// stale next endpoint on expiry
+		m_start_time = clock_type::now();
+		m_next_ep = int(m_endpoints.size());
 		ADD_OUTSTANDING_ASYNC("http_connection::on_write");
 		async_write(*m_sock, boost::asio::buffer(m_sendbuffer)
 			, std::bind(&http_connection::on_write, me, _1));
@@ -817,7 +822,8 @@ void http_connection::on_read(error_code const& e
 				,
 				m_i2p_conn
 #endif
-			);
+				,
+				m_keep_alive);
 			return;
 		}
 

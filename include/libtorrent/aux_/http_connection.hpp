@@ -230,6 +230,10 @@ private:
 	// socket is still open). This is captured when the response finishes, before
 	// start() resets the parser, and gates the socket-reuse fast-path in start().
 	bool m_reusable = false;
+
+	// whether the most recent get() call requested keep-alive. Preserved so
+	// that a redirect re-issues get() with the same keep-alive intent.
+	bool m_keep_alive = false;
 };
 
 }

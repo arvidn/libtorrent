@@ -13,6 +13,8 @@ see LICENSE file.
 
 #include <vector>
 #include <memory>
+#include <deque>
+#include <utility>
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/peer_id.hpp"
@@ -45,6 +47,12 @@ namespace libtorrent::aux {
 		void start() override;
 		void close() override;
 
+		// coalesce another announce/scrape onto this connection, to be issued
+		// sequentially (keep-alive) after the in-flight request completes. Only
+		// called for requests to the same server (see tracker_manager). Accessed
+		// by tracker_manager (a friend).
+		void queue_request(tracker_request req, std::weak_ptr<request_callback> c);
+
 	private:
 
 		std::shared_ptr<http_tracker_connection> shared_from_this()
@@ -52,6 +60,15 @@ namespace libtorrent::aux {
 			return std::static_pointer_cast<http_tracker_connection>(
 				tracker_connection::shared_from_this());
 		}
+
+		// build the announce/scrape URL from the in-flight request (tracker_req())
+		// and issue it on m_tracker_connection (creating it on the first call).
+		// Reused for each follower, relying on http_connection's keep-alive reuse.
+		void send_request();
+
+		// after a request completes, promote the next queued follower and reissue
+		// it on this connection, or close the connection if the queue is empty.
+		void next_request();
 
 		void on_filter(aux::http_connection& c, std::vector<tcp::endpoint>& endpoints);
 		bool on_filter_hostname(aux::http_connection& c, string_view hostname);
@@ -64,6 +81,11 @@ namespace libtorrent::aux {
 		std::shared_ptr<aux::http_connection> m_tracker_connection;
 		address m_tracker_ip;
 		io_context& m_ioc;
+
+		// announces/scrapes to the same server queued behind the in-flight
+		// request (which is the base class m_req / m_requester). They are issued
+		// one at a time as each response completes, reusing the keep-alive socket.
+		std::deque<std::pair<tracker_request, std::weak_ptr<request_callback>>> m_followers;
 	};
 
 	TORRENT_EXTRA_EXPORT tracker_response parse_tracker_response(
