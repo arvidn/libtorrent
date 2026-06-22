@@ -746,6 +746,110 @@ TORRENT_TEST(http_connection_connection_close_header) { test_connection_header(f
 
 TORRENT_TEST(http_connection_connection_keep_alive_header) { test_connection_header(true); }
 
+// issue two sequential requests on the same http_connection. When the server
+// keeps the connection alive, the second request must reuse the socket (a single
+// accepted connection, the connect handler fires once). When the server closes
+// the connection, the second request must transparently open a fresh socket.
+void test_http_connection_reuse(int const server_flags, int const expected_connections)
+{
+	using sim::asio::ip::address_v4;
+	sim_config network_cfg;
+	sim::simulation sim{network_cfg};
+
+	sim::asio::io_context client_ios(sim, make_address_v4("10.0.0.1"));
+	sim::asio::io_context server_ios(sim, make_address_v4("10.0.0.2"));
+	lt::aux::resolver res(client_ios);
+
+	sim::http_server http(server_ios, 8080, server_flags);
+
+	int a_count = 0;
+	int b_count = 0;
+	http.register_handler(
+		"/a", [&a_count](std::string, std::string, std::map<std::string, std::string>&) {
+			++a_count;
+			return sim::send_response(200, "OK", 1) + "A";
+		});
+	http.register_handler(
+		"/b", [&b_count](std::string, std::string, std::map<std::string, std::string>&) {
+			++b_count;
+			return sim::send_response(200, "OK", 1) + "B";
+		});
+
+	int connect_count = 0;
+	int response_count = 0;
+	std::shared_ptr<lt::aux::http_connection> h;
+
+	auto const issue = [&](char const* path) {
+		h->get(std::string("http://10.0.0.2:8080") + path,
+			seconds(5),
+			nullptr,
+			5,
+			std::string(),
+			std::nullopt,
+			lt::aux::resolver_flags{},
+			std::string()
+#if TORRENT_USE_I2P
+				,
+			nullptr
+#endif
+			,
+			true /*keep_alive*/);
+	};
+
+	h = std::make_shared<lt::aux::http_connection>(
+		client_ios,
+		res,
+		[&](error_code const&,
+			lt::aux::http_parser const&,
+			span<char const>,
+			lt::aux::http_connection& c) {
+			++response_count;
+			if (response_count == 1)
+				issue("/b");
+			else
+				c.close();
+		},
+		1024 * 1024,
+		[&connect_count](lt::aux::http_connection&) { ++connect_count; },
+		lt::aux::http_filter_handler(),
+		lt::aux::hostname_filter_handler()
+#if TORRENT_USE_SSL
+			,
+		nullptr
+#endif
+	);
+
+	issue("/a");
+
+	sim.run();
+
+	TEST_EQUAL(a_count, 1);
+	TEST_EQUAL(b_count, 1);
+	TEST_EQUAL(response_count, 2);
+	TEST_EQUAL(http.accepted_connections(), expected_connections);
+	TEST_EQUAL(connect_count, expected_connections);
+}
+
+TORRENT_TEST(http_connection_keep_alive_reuse)
+{
+	// with a keep-alive server, the second request reuses the first socket
+	test_http_connection_reuse(sim::http_server::keep_alive, 1);
+}
+
+TORRENT_TEST(http_connection_keep_alive_server_close)
+{
+	// a server that does not keep connections alive responds with
+	// "Connection: close"; the second request opens a new socket
+	test_http_connection_reuse(0, 2);
+}
+
+TORRENT_TEST(http_connection_http_1_0_no_reuse)
+{
+	// an HTTP/1.0 server closes after each response (no Connection header); the
+	// client must detect this from the protocol version and open a new socket
+	test_http_connection_reuse(sim::http_server::http_1_0, 2);
+}
+
 // TODO: test http proxy with password
 // TODO: test socks5 with password
 // TODO: test SSL

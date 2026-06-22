@@ -224,6 +224,12 @@ private:
 
 	// true while resolving hostname
 	bool m_resolving_host = false;
+
+	// set to true when a response completes on a connection that may be reused
+	// for a subsequent request (i.e. the server did not ask to close it and the
+	// socket is still open). This is captured when the response finishes, before
+	// start() resets the parser, and gates the socket-reuse fast-path in start().
+	bool m_reusable = false;
 };
 
 }
