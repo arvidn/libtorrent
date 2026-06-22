@@ -85,14 +85,20 @@ http_connection::http_connection(io_context& ios
 
 http_connection::~http_connection() = default;
 
-void http_connection::get(std::string const& url, time_duration timeout
-	, aux::proxy_settings const* ps, int handle_redirects, std::string const& user_agent
-	, std::optional<bind_info_t> const& bind_addr
-	, aux::resolver_flags const resolve_flags, std::string const& auth_
+void http_connection::get(std::string const& url,
+	time_duration timeout,
+	aux::proxy_settings const* ps,
+	int handle_redirects,
+	std::string const& user_agent,
+	std::optional<bind_info_t> const& bind_addr,
+	aux::resolver_flags const resolve_flags,
+	std::string const& auth_
 #if TORRENT_USE_I2P
-	, i2p_connection* i2p_conn
+	,
+	i2p_connection* i2p_conn
 #endif
-	)
+	,
+	bool const keep_alive)
 {
 	m_user_agent = user_agent;
 	m_resolve_flags = resolve_flags;
@@ -179,7 +185,10 @@ void http_connection::get(std::string const& url, time_duration timeout
 	if (!auth.empty())
 		request << "Authorization: Basic " << base64encode(auth) << "\r\n";
 
-	request << "Connection: close\r\n\r\n";
+	// HTTP/1.1 defaults to persistent connections, but be explicit. When we
+	// don't intend to reuse the socket, ask the server to close it after the
+	// response so we don't leave a connection lingering.
+	request << "Connection: " << (keep_alive ? "keep-alive" : "close") << "\r\n\r\n";
 
 	m_sendbuffer.assign(request.str());
 	m_url = url;
