@@ -14,8 +14,8 @@ concurrency:
    cancel-in-progress: true
 
 env:
-  NDK_VERSION: "r21d"
-  OPENSSL_VERSION: "1.1.1i"
+  NDK_VERSION: "r27c"
+  OPENSSL_VERSION: "3.4.0"
   OPENSSL_OPTS: "no-deprecated no-shared no-makedepend -fvisibility=hidden -O3"
 
 jobs:
@@ -34,7 +34,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --branch=boost-1.75.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --branch=boost-1.86.0 https://github.com/boostorg/boost.git
           cd boost
           git submodule update --init --depth=1
           ./bootstrap.sh
@@ -43,32 +43,29 @@ jobs:
 
       - name: install ndk
         run: |
-          wget -nv -O android-ndk.zip https://dl.google.com/android/repository/android-ndk-${NDK_VERSION}-linux-x86_64.zip
+          wget -nv -O android-ndk.zip https://dl.google.com/android/repository/android-ndk-${NDK_VERSION}-linux.zip
           unzip -qq android-ndk.zip
-          export NDK=${PWD}/android-ndk-${NDK_VERSION}
-          ${NDK}/build/tools/make_standalone_toolchain.py --arch arm --api 19 --stl libc++ --install-dir android-toolchain
 
       - name: install openssl
         run: |
-          export ANDROID_TOOLCHAIN=${PWD}/android-toolchain
-          export PATH=${ANDROID_TOOLCHAIN}/arm-linux-androideabi/bin:${PATH}
-          export CC=${ANDROID_TOOLCHAIN}/bin/arm-linux-androideabi-clang
+          export NDK=${PWD}/android-ndk-${NDK_VERSION}
+          export ANDROID_NDK_ROOT=${NDK}
+          export PATH=${NDK}/toolchains/llvm/prebuilt/linux-x86_64/bin:${PATH}
           wget -nv -O openssl.tar.gz https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz
           tar xzf openssl.tar.gz
           cd openssl-${OPENSSL_VERSION}
-          ./Configure linux-armv4 ${OPENSSL_OPTS} -march=armv7-a -mfpu=neon -fPIC --prefix=${PWD}/../openssl
+          ./Configure android-arm ${OPENSSL_OPTS} -D__ANDROID_API__=21 -march=armv7-a -mfpu=neon -fPIC --prefix=${PWD}/../openssl
           make &> /dev/null
           make install_sw &> /dev/null
           cd ..
 
       - name: build library
         run: |
-          export ANDROID_TOOLCHAIN=${PWD}/android-toolchain
-          export PATH=${ANDROID_TOOLCHAIN}/arm-linux-androideabi/bin:${PATH}
+          export NDK=${PWD}/android-ndk-${NDK_VERSION}
           export BOOST_ROOT=${PWD}/boost
           export OPENSSL_ROOT=${PWD}/openssl
           echo "boost-build ${BOOST_ROOT}/tools/build/src ;" > boost-build.jam
-          echo "using clang-linux : arm : ${ANDROID_TOOLCHAIN}/bin/arm-linux-androideabi-clang++
+          echo "using clang-linux : arm : ${NDK}/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang++
           <cxxflags>-fPIC
           <cxxflags>-march=armv7-a
           <cxxflags>-mfpu=neon ;" >>~/user-config.jam;
@@ -86,7 +83,7 @@ jobs:
 
       - name: install boost
         run: |
-          git clone --depth=1 --branch=boost-1.75.0 https://github.com/boostorg/boost.git
+          git clone --depth=1 --branch=boost-1.86.0 https://github.com/boostorg/boost.git
           cd boost
           git submodule update --init --depth=1
           ./bootstrap.sh
@@ -95,32 +92,29 @@ jobs:
 
       - name: install ndk
         run: |
-          wget -nv -O android-ndk.zip https://dl.google.com/android/repository/android-ndk-${NDK_VERSION}-linux-x86_64.zip
+          wget -nv -O android-ndk.zip https://dl.google.com/android/repository/android-ndk-${NDK_VERSION}-linux.zip
           unzip -qq android-ndk.zip
-          export NDK=${PWD}/android-ndk-${NDK_VERSION}
-          ${NDK}/build/tools/make_standalone_toolchain.py --arch arm --api 28 --stl libc++ --install-dir android-toolchain
 
       - name: install openssl
         run: |
-          export ANDROID_TOOLCHAIN=${PWD}/android-toolchain
-          export PATH=${ANDROID_TOOLCHAIN}/arm-linux-androideabi/bin:${PATH}
-          export CC=${ANDROID_TOOLCHAIN}/bin/arm-linux-androideabi-clang
+          export NDK=${PWD}/android-ndk-${NDK_VERSION}
+          export ANDROID_NDK_ROOT=${NDK}
+          export PATH=${NDK}/toolchains/llvm/prebuilt/linux-x86_64/bin:${PATH}
           wget -nv -O openssl.tar.gz https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz
           tar xzf openssl.tar.gz
           cd openssl-${OPENSSL_VERSION}
-          ./Configure linux-armv4 ${OPENSSL_OPTS} -march=armv7-a -mfpu=neon -fPIC --prefix=${PWD}/../openssl
+          ./Configure android-arm ${OPENSSL_OPTS} -D__ANDROID_API__=28 -march=armv7-a -mfpu=neon -fPIC --prefix=${PWD}/../openssl
           make &> /dev/null
           make install_sw &> /dev/null
           cd ..
 
       - name: build library
         run: |
-          export ANDROID_TOOLCHAIN=${PWD}/android-toolchain
-          export PATH=${ANDROID_TOOLCHAIN}/arm-linux-androideabi/bin:${PATH}
+          export NDK=${PWD}/android-ndk-${NDK_VERSION}
           export BOOST_ROOT=${PWD}/boost
           export OPENSSL_ROOT=${PWD}/openssl
           echo "boost-build ${BOOST_ROOT}/tools/build/src ;" > boost-build.jam
-          echo "using clang-linux : arm : ${ANDROID_TOOLCHAIN}/bin/arm-linux-androideabi-clang++
+          echo "using clang-linux : arm : ${NDK}/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi28-clang++
           <cxxflags>-fPIC
           <cxxflags>-march=armv7-a
           <cxxflags>-mfpu=neon ;" >>~/user-config.jam;
