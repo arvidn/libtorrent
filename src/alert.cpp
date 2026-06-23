@@ -91,6 +91,20 @@ namespace libtorrent {
 #endif
 	}
 
+	namespace {
+#ifndef TORRENT_DISABLE_ALERT_MSG
+		// format the 6-char hex prefix from a stored info_hash_t, for use in alerts
+		// that fire after the torrent has been removed (where the base-class handle
+		// may be expired)
+		std::string hash_prefix(info_hash_t const& ih)
+		{
+			if (ih.has_v2()) return aux::to_hex(span<char const>(ih.v2).first(3));
+			if (ih.has_v1()) return aux::to_hex(span<char const>(ih.v1).first(3));
+			return "------";
+		}
+#endif
+	}
+
 	peer_alert::peer_alert(aux::stack_allocator& alloc
 		, torrent_handle const& h
 		, peer_endpoint_t ep_
@@ -848,7 +862,7 @@ namespace libtorrent {
 #ifdef TORRENT_DISABLE_ALERT_MSG
 		return {};
 #else
-		return torrent_alert::message() + " deleted";
+		return hash_prefix(info_hashes) + " deleted";
 #endif
 	}
 
@@ -871,8 +885,7 @@ namespace libtorrent {
 #ifdef TORRENT_DISABLE_ALERT_MSG
 		return {};
 #else
-		return torrent_alert::message() + " torrent deletion failed: "
-			+ error.message();
+		return hash_prefix(info_hashes) + " torrent deletion failed: " + error.message();
 #endif
 	}
 
@@ -1655,7 +1668,7 @@ namespace {
 #ifdef TORRENT_DISABLE_ALERT_MSG
 		return {};
 #else
-		return torrent_alert::message() + " removed";
+		return hash_prefix(info_hashes) + " removed";
 #endif
 	}
 
