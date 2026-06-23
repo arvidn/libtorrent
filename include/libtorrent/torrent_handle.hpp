@@ -1471,6 +1471,7 @@ namespace aux {
 		bool in_session() const;
 
 	private:
+		torrent_flags_t internal_flags() const;
 
 		template<typename Fun, typename... Args>
 		void async_call(Fun f, Args&&... a) const;

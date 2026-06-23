@@ -261,25 +261,38 @@ namespace libtorrent {
 		async_call(&aux::torrent::pause, flags & graceful_pause);
 	}
 
-	torrent_flags_t torrent_handle::flags() const
+	torrent_flags_t torrent_handle::internal_flags() const
 	{
 		return sync_call_ret<torrent_flags_t>(torrent_flags_t{}, &aux::torrent::flags);
+	}
+
+	torrent_flags_t torrent_handle::flags() const
+	{
+		// mask off engine-internal bits before exposing to the user
+		return internal_flags() & torrent_flags::public_flags & ~torrent_flags::input_only_flags;
 	}
 
 	void torrent_handle::set_flags(torrent_flags_t const flags
 		, torrent_flags_t const mask) const
 	{
-		async_call(&aux::torrent::set_flags, flags, mask);
+		// public API: strip any engine-internal bits that share the
+		// torrent_flags_t bitfield so callers can't reach into internal state.
+		async_call(&aux::torrent::set_flags,
+			flags & torrent_flags::public_flags,
+			mask & torrent_flags::public_flags);
 	}
 
 	void torrent_handle::set_flags(torrent_flags_t const flags) const
 	{
-		async_call(&aux::torrent::set_flags, torrent_flags::all, flags);
+		async_call(&aux::torrent::set_flags,
+			torrent_flags::all & torrent_flags::public_flags,
+			flags & torrent_flags::public_flags);
 	}
 
 	void torrent_handle::unset_flags(torrent_flags_t const flags) const
 	{
-		async_call(&aux::torrent::set_flags, torrent_flags_t{}, flags);
+		async_call(
+			&aux::torrent::set_flags, torrent_flags_t{}, flags & torrent_flags::public_flags);
 	}
 
 #if TORRENT_ABI_VERSION == 1
