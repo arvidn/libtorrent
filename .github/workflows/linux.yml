@@ -122,15 +122,15 @@ jobs:
           ccache_options: |
             max_size=500M
 
-      - name: install clang-15
+      - name: install clang-18
         continue-on-error: true
         run: |
-          sudo apt install clang-15
+          sudo apt install clang-18
 
       - name: install boost
         run: |
           sudo apt install libboost-tools-dev libboost-dev libboost-system-dev libboost-json-dev
-          echo "using clang : 15 : clang++-15 ;" >>~/user-config.jam
+          echo "using clang : 18 : clang++-18 ;" >>~/user-config.jam
 
       - name: build fuzzers
         run: |
