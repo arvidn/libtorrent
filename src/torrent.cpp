@@ -458,7 +458,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 	int torrent::current_stats_state() const
 	{
-		if (m_flags & torrent_internal_flags::torrent_aborted
+		if ((m_flags & torrent_internal_flags::torrent_aborted)
 			|| !(m_flags & torrent_internal_flags::added))
 			return counters::num_checking_torrents + no_gauge_state;
 
@@ -777,8 +777,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 	void torrent::read_piece(piece_index_t const piece)
 	{
 		error_code ec;
-		if (m_flags & torrent_internal_flags::torrent_aborted
-			|| m_flags & torrent_internal_flags::deleted)
+		if ((m_flags & torrent_internal_flags::torrent_aborted)
+			|| (m_flags & torrent_internal_flags::deleted))
 		{
 			ec.assign(boost::system::errc::operation_canceled, generic_category());
 		}
@@ -863,10 +863,10 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 #ifndef TORRENT_DISABLE_EXTENSIONS
 
 #ifndef TORRENT_DISABLE_SHARE_MODE
-		if (share_mode()) return;
+		if (m_flags & torrent_flags::share_mode) return;
 #endif
 #ifndef TORRENT_DISABLE_SUPERSEEDING
-		if (super_seeding()) return;
+		if (m_flags & torrent_flags::super_seeding) return;
 #endif
 
 		// if we send upload-only, the other end is very likely to disconnect
@@ -881,7 +881,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		// make another piece available
 		bool const upload_only_enabled = is_upload_only()
 #ifndef TORRENT_DISABLE_SUPERSEEDING
-			&& !super_seeding()
+			&& !(m_flags & torrent_flags::super_seeding)
 #endif
 			;
 
@@ -1278,7 +1278,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		if (m_picker) return;
 
 		TORRENT_ASSERT(valid_metadata());
-		TORRENT_ASSERT((m_flags & torrent_internal_flags::connections_initialized));
+		TORRENT_ASSERT(m_flags & torrent_internal_flags::connections_initialized);
 
 		INVARIANT_CHECK;
 
@@ -1327,7 +1327,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		if (m_hash_picker) return;
 
 		TORRENT_ASSERT(valid_metadata());
-		TORRENT_ASSERT((m_flags & torrent_internal_flags::connections_initialized));
+		TORRENT_ASSERT(m_flags & torrent_internal_flags::connections_initialized);
 
 		//INVARIANT_CHECK;
 
@@ -1398,7 +1398,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		if (m_flags & torrent_internal_flags::deleted) return;
 
 		// avoid crash trying to access the picker when there is none
-		if (m_flags & torrent_internal_flags::have_all && !has_picker()) return;
+		if ((m_flags & torrent_internal_flags::have_all) && !has_picker()) return;
 
 		// we don't support clobbering the piece picker while checking the
 		// files. We may end up having the same piece multiple times
@@ -1926,7 +1926,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		construct_storage();
 
 #ifndef TORRENT_DISABLE_SHARE_MODE
-		if (m_flags & torrent_flags::share_mode && valid_metadata())
+		if ((m_flags & torrent_flags::share_mode) && valid_metadata())
 		{
 			// in share mode, all pieces have their priorities initialized to 0
 			m_file_priority.clear();
@@ -2138,7 +2138,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		, storage_error const& error) try
 	{
 #if TORRENT_USE_ASSERTS
-		TORRENT_ASSERT((m_flags & torrent_internal_flags::outstanding_check_files));
+		TORRENT_ASSERT(m_flags & torrent_internal_flags::outstanding_check_files);
 		m_flags &= ~torrent_internal_flags::outstanding_check_files;
 #endif
 
@@ -2760,7 +2760,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			, get_int_setting(settings_pack::active_seeds)
 			, get_int_setting(settings_pack::active_limit)});
 		int const num_torrents = m_ses.num_torrents();
-		if (m_flags & torrent_flags::auto_managed && num_torrents > limit)
+		if ((m_flags & torrent_flags::auto_managed) && num_torrents > limit)
 		{
 			// if we're auto managed and we've reached one of the limits. Assume
 			// we need to be paused until the auto managed logic runs again
@@ -3254,10 +3254,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 #ifndef TORRENT_DISABLE_LOGGING
 			++idx;
 #endif
-			refresh_endpoint_list(m_ses,
-				is_ssl_torrent(),
-				bool((m_flags & torrent_internal_flags::complete_sent)),
-				ae);
+			refresh_endpoint_list(
+				m_ses, is_ssl_torrent(), bool(m_flags & torrent_internal_flags::complete_sent), ae);
 
 			// if trackerid is not specified for tracker use default one, probably set explicitly
 			req.trackerid = ae.trackerid.empty() ? m_trackerid : ae.trackerid;
@@ -3397,7 +3395,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 					// if we're not logging session logs, don't bother creating an
 					// observer object just for logging
-					if (m_flags & torrent_internal_flags::torrent_aborted && m_ses.should_log())
+					if ((m_flags & torrent_internal_flags::torrent_aborted) && m_ses.should_log())
 					{
 						auto tl = std::make_shared<aux::tracker_logger>(m_ses);
 						m_ses.queue_tracker_request(req, tl);
@@ -3490,7 +3488,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		if (ae.i2p) req.kind |= tracker_request::i2p;
 #endif
 		refresh_endpoint_list(
-			m_ses, is_ssl_torrent(), bool((m_flags & torrent_internal_flags::complete_sent)), ae);
+			m_ses, is_ssl_torrent(), bool(m_flags & torrent_internal_flags::complete_sent), ae);
 		req.url = ae.url;
 		req.private_torrent = m_torrent_file && m_torrent_file->priv();
 #if TORRENT_ABI_VERSION == 1
@@ -3963,11 +3961,11 @@ namespace {
 				// make sure we check for new endpoints from the listen sockets
 				refresh_endpoint_list(m_ses,
 					is_ssl_torrent(),
-					bool((m_flags & torrent_internal_flags::complete_sent)),
+					bool(m_flags & torrent_internal_flags::complete_sent),
 					e);
 				found_one |= trigger_announce(m_ses,
 					is_ssl_torrent(),
-					bool((m_flags & torrent_internal_flags::complete_sent)),
+					bool(m_flags & torrent_internal_flags::complete_sent),
 					flags,
 					t,
 					e);
@@ -3981,7 +3979,7 @@ namespace {
 			if (e == nullptr) return;
 			found_one |= trigger_announce(m_ses,
 				is_ssl_torrent(),
-				bool((m_flags & torrent_internal_flags::complete_sent)),
+				bool(m_flags & torrent_internal_flags::complete_sent),
 				flags,
 				t,
 				*e);
@@ -4024,7 +4022,7 @@ namespace {
 
 		bool const found = trigger_announce(m_ses,
 			is_ssl_torrent(),
-			bool((m_flags & torrent_internal_flags::complete_sent)),
+			bool(m_flags & torrent_internal_flags::complete_sent),
 			flags,
 			t,
 			*e);
@@ -4208,7 +4206,7 @@ namespace {
 		TORRENT_ASSERT(!valid_metadata() || m_torrent_file->num_pieces() > 0);
 		if (!valid_metadata()) return;
 
-		if (m_flags & torrent_flags::seed_mode || is_seed())
+		if ((m_flags & torrent_flags::seed_mode) || is_seed())
 		{
 			// once we're a seed and remove the piece picker, we stop tracking
 			// piece- and file priority. We consider everything as being
@@ -4890,7 +4888,7 @@ namespace {
 		}
 		else
 		{
-			TORRENT_ASSERT((m_flags & torrent_internal_flags::torrent_aborted));
+			TORRENT_ASSERT(m_flags & torrent_internal_flags::torrent_aborted);
 			// it doesn't really matter what we do
 			// here, since we're about to destruct the
 			// torrent anyway.
@@ -5404,7 +5402,7 @@ namespace {
 		TORRENT_ASSERT_PRECOND(valid_metadata());
 		TORRENT_ASSERT_PRECOND(valid_metadata() && piece < m_torrent_file->end_piece());
 
-		if (m_flags & torrent_internal_flags::torrent_aborted || !valid_metadata()
+		if ((m_flags & torrent_internal_flags::torrent_aborted) || !valid_metadata()
 			|| piece < piece_index_t(0) || piece >= m_torrent_file->end_piece())
 		{
 			// failed
@@ -6114,7 +6112,7 @@ namespace {
 		if (settings().get_bool(settings_pack::prefer_udp_trackers))
 			m_trackers.prioritize_udp_trackers();
 
-		if (m_flags & torrent_internal_flags::announcing && !m_trackers.empty())
+		if ((m_flags & torrent_internal_flags::announcing) && !m_trackers.empty())
 			announce_with_tracker();
 
 		set_need_save_resume(torrent_handle::if_metadata_changed);
@@ -6124,7 +6122,7 @@ namespace {
 	{
 		bool const added = m_trackers.add_tracker(aux::announce_entry(url));
 		if (added) set_need_save_resume(torrent_handle::if_metadata_changed);
-		if (m_flags & torrent_internal_flags::announcing && added) announce_with_tracker();
+		if ((m_flags & torrent_internal_flags::announcing) && added) announce_with_tracker();
 		return added;
 	}
 
@@ -6481,7 +6479,7 @@ namespace {
 		TORRENT_ASSERT_VAL(m_peers_to_disconnect.size() == num, m_peers_to_disconnect.size() - num);
 		m_peers_to_disconnect.clear();
 
-		if (m_flags & torrent_internal_flags::graceful_pause && m_connections.empty())
+		if ((m_flags & torrent_internal_flags::graceful_pause) && m_connections.empty())
 		{
 			// we're in graceful pause mode and this was the last peer we
 			// disconnected. This will clear the graceful_pause_mode and post the
@@ -8200,7 +8198,7 @@ namespace {
 
 		m_flags |= torrent_internal_flags::has_incoming;
 
-		if (m_flags & torrent_flags::apply_ip_filter && m_ip_filter
+		if ((m_flags & torrent_flags::apply_ip_filter) && m_ip_filter
 			&& m_ip_filter->access(p->remote().address()) & ip_filter::blocked)
 		{
 			if (m_ses.alerts().should_post<peer_blocked_alert>())
@@ -8434,7 +8432,7 @@ namespace {
 		bool is_downloading = false;
 		bool is_seeding = false;
 
-		if (m_flags & torrent_flags::auto_managed && !has_error())
+		if ((m_flags & torrent_flags::auto_managed) && !has_error())
 		{
 			if (m_state == torrent_status::checking_files)
 			{
@@ -9140,7 +9138,7 @@ namespace {
 		bool is_downloading = false;
 		bool is_seeding = false;
 
-		if (m_flags & torrent_flags::auto_managed && !has_error())
+		if ((m_flags & torrent_flags::auto_managed) && !has_error())
 		{
 			if (m_state == torrent_status::checking_files)
 			{
@@ -9373,7 +9371,7 @@ namespace {
 			}
 		}
 */
-		if (m_flags & torrent_internal_flags::files_checked && valid_metadata())
+		if ((m_flags & torrent_internal_flags::files_checked) && valid_metadata())
 		{
 			TORRENT_ASSERT(block_size() > 0);
 		}
@@ -9399,7 +9397,7 @@ namespace {
 	{
 		// finished torrents may not change their queue positions, as it's set to
 		// -1
-		if (m_flags & torrent_internal_flags::torrent_aborted || is_finished()) return;
+		if ((m_flags & torrent_internal_flags::torrent_aborted) || is_finished()) return;
 
 		set_queue_position(queue_position() == queue_position_t{0}
 			? queue_position() : prev(queue_position()));
@@ -9416,7 +9414,7 @@ namespace {
 
 		// finished torrents may not change their queue positions, as it's set to
 		// -1
-		if ((m_flags & torrent_internal_flags::torrent_aborted || is_finished()) && p != no_pos)
+		if (((m_flags & torrent_internal_flags::torrent_aborted) || is_finished()) && p != no_pos)
 			return;
 
 		TORRENT_ASSERT((p == no_pos) == is_finished()
@@ -9823,7 +9821,7 @@ namespace {
 		// storage may be nullptr during shutdown
 		if (!m_storage)
 		{
-			TORRENT_ASSERT((m_flags & torrent_internal_flags::torrent_aborted));
+			TORRENT_ASSERT(m_flags & torrent_internal_flags::torrent_aborted);
 			return;
 		}
 		m_ses.disk_thread().async_release_files(m_storage
@@ -10086,7 +10084,7 @@ namespace {
 			// there is one special case here. If we are
 			// currently in graceful pause mode, and we just turned into regular
 			// paused mode, we need to actually pause the torrent properly
-			if (m_flags & torrent_flags::paused
+			if ((m_flags & torrent_flags::paused)
 				&& bool(m_flags & torrent_internal_flags::graceful_pause)
 				&& !(flags & torrent_handle::graceful_pause))
 			{
@@ -10511,7 +10509,7 @@ namespace {
 		// if we're in upload only mode and we're auto-managed
 		// leave upload mode every 10 minutes hoping that the error
 		// condition has been fixed
-		if (m_flags & torrent_flags::upload_mode && m_flags & torrent_flags::auto_managed
+		if ((m_flags & torrent_flags::upload_mode) && (m_flags & torrent_flags::auto_managed)
 			&& upload_mode_time()
 				>= seconds(settings().get_int(settings_pack::optimistic_disk_retry)))
 		{
@@ -10581,7 +10579,8 @@ namespace {
 		}
 #endif // TORRENT_DEBUG_STREAMING
 
-		if (!m_time_critical_pieces.empty() && !upload_mode())
+		if (!m_time_critical_pieces.empty() && !(m_flags & torrent_flags::upload_mode)
+			&& !(m_flags & torrent_internal_flags::graceful_pause))
 		{
 			request_time_critical_pieces();
 		}
@@ -10628,7 +10627,7 @@ namespace {
 
 		if (settings().get_bool(settings_pack::dont_count_slow_torrents))
 		{
-			if (is_inactive != bool((m_flags & torrent_internal_flags::inactive))
+			if (is_inactive != bool(m_flags & torrent_internal_flags::inactive)
 				&& !(m_flags & torrent_internal_flags::pending_active_change))
 			{
 				int const delay = settings().get_int(settings_pack::auto_manage_startup);
@@ -10637,7 +10636,7 @@ namespace {
 					self->wrap(&torrent::on_inactivity_tick, ec); });
 				m_flags |= torrent_internal_flags::pending_active_change;
 			}
-			else if (is_inactive == bool((m_flags & torrent_internal_flags::inactive))
+			else if (is_inactive == bool(m_flags & torrent_internal_flags::inactive)
 				&& (m_flags & torrent_internal_flags::pending_active_change))
 			{
 				m_inactivity_timer.cancel();
@@ -10666,7 +10665,7 @@ namespace {
 		if (ec) return;
 
 		bool const is_inactive = is_inactive_internal();
-		if (is_inactive == bool((m_flags & torrent_internal_flags::inactive))) return;
+		if (is_inactive == bool(m_flags & torrent_internal_flags::inactive)) return;
 
 		set_flag(torrent_internal_flags::inactive, is_inactive);
 
@@ -10721,7 +10720,7 @@ namespace {
 #ifndef TORRENT_DISABLE_SHARE_MODE
 	void torrent::recalc_share_mode()
 	{
-		TORRENT_ASSERT(share_mode());
+		TORRENT_ASSERT(m_flags & torrent_flags::share_mode);
 		if (is_seed()) return;
 
 		int const pieces_in_torrent = m_torrent_file->num_pieces();
@@ -11214,7 +11213,8 @@ namespace {
 	void torrent::request_time_critical_pieces()
 	{
 		TORRENT_ASSERT(is_single_thread());
-		TORRENT_ASSERT(!upload_mode());
+		TORRENT_ASSERT(!(m_flags & torrent_flags::upload_mode)
+			&& !(m_flags & torrent_internal_flags::graceful_pause));
 
 		// build a list of peers and sort it by download_queue_time
 		// we use this sorted list to determine which peer we should
@@ -11944,7 +11944,7 @@ namespace {
 
 		// to avoid race condition, if we're already in a downloading state,
 		// trigger the stop-when-ready logic immediately.
-		if (m_flags & torrent_flags::stop_when_ready && is_downloading_state(m_state))
+		if ((m_flags & torrent_flags::stop_when_ready) && is_downloading_state(m_state))
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			debug_log("stop_when_ready triggered");

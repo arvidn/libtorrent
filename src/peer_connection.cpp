@@ -46,6 +46,7 @@ see LICENSE file.
 #include "libtorrent/aux_/bandwidth_manager.hpp"
 #include "libtorrent/aux_/rate_limits.hpp"
 #include "libtorrent/aux_/request_blocks.hpp" // for request_a_block
+#include "libtorrent/aux_/torrent_internal_flags.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/aux_/alert_manager.hpp" // for alert_manager
 #include "libtorrent/ip_filter.hpp"
@@ -592,7 +593,7 @@ namespace {
 		}
 
 #ifndef TORRENT_DISABLE_SUPERSEEDING
-		if (t->super_seeding())
+		if (t->flags() & torrent_flags::super_seeding)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, peer_log_alert::allowed, "skipping allowed set because of super seeding");
@@ -880,7 +881,7 @@ namespace {
 		TORRENT_ASSERT(t);
 		if (!t) return {};
 
-		if (t->is_sequential_download())
+		if (t->flags() & torrent_internal_flags::effective_sequential)
 		{
 			ret |= piece_picker::sequential;
 		}
@@ -1339,8 +1340,7 @@ namespace {
 		TORRENT_ASSERT(m_ti->info_hashes().has_v2()
 			|| !(peer_info_struct() && peer_info_struct()->protocol_v2));
 
-		if (t->is_paused()
-			&& t->is_auto_managed()
+		if (t->is_paused() && (t->flags() & torrent_flags::auto_managed)
 			&& m_settings.get_bool(settings_pack::incoming_starts_queued_torrents)
 			&& !t->is_aborted())
 		{
@@ -2008,11 +2008,11 @@ namespace {
 		}
 
 #ifndef TORRENT_DISABLE_SUPERSEEDING
-		if (t->super_seeding()
+		if ((t->flags() & torrent_flags::super_seeding)
 #if TORRENT_ABI_VERSION == 1
 			&& !m_settings.get_bool(settings_pack::strict_super_seeding)
 #endif
-			)
+		)
 		{
 			// if we're super-seeding and the peer just told
 			// us that it completed the piece we're super-seeding
@@ -2097,7 +2097,7 @@ namespace {
 		// if we're super seeding, this might mean that somebody
 		// forwarded this piece. In which case we need to give
 		// a new piece to that peer
-		if (t->super_seeding()
+		if ((t->flags() & torrent_flags::super_seeding)
 			&& m_settings.get_bool(settings_pack::strict_super_seeding)
 			&& (!super_seeded_piece(index) || t->num_peers() == 1))
 		{
@@ -2332,7 +2332,7 @@ namespace {
 
 #ifndef TORRENT_DISABLE_SHARE_MODE
 		// don't close connections in share mode, we don't know if we need them
-		if (t->share_mode()) return false;
+		if (t->flags() & torrent_flags::share_mode) return false;
 #endif
 
 		if (upload_only() && t->is_upload_only()
@@ -2398,8 +2398,7 @@ namespace {
 #endif
 
 #ifndef TORRENT_DISABLE_SUPERSEEDING
-		if (t->super_seeding()
-			&& !super_seeded_piece(r.piece))
+		if ((t->flags() & torrent_flags::super_seeding) && !super_seeded_piece(r.piece))
 		{
 			m_counters.inc_stats_counter(counters::invalid_piece_requests);
 			if (m_num_invalid_requests < std::numeric_limits<decltype(m_num_invalid_requests)>::max())
@@ -2522,7 +2521,7 @@ namespace {
 #ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
 				&& !t->is_predictive_piece(r.piece)
 #endif
-				&& !t->seed_mode())
+				&& !(t->flags() & torrent_flags::seed_mode))
 			|| r.start < 0 || r.start >= ti.piece_size(r.piece) || r.length <= 0
 			|| r.length + r.start > ti.piece_size(r.piece) || r.length > block_size())
 		{
@@ -3529,7 +3528,7 @@ namespace {
 		if (m_disconnecting) return false;
 		auto t = m_torrent.lock();
 		TORRENT_ASSERT(t);
-		if (t->upload_mode()) return false;
+		if (t->flags() & torrent_internal_flags::effective_upload_mode) return false;
 
 		// ignore snubbed peers, since they're not likely to return pieces in a
 		// timely manner anyway
@@ -3583,7 +3582,7 @@ namespace {
 		TORRENT_ASSERT(std::find(m_request_queue.begin(), m_request_queue.end()
 			, block) == m_request_queue.end());
 
-		if (t->upload_mode())
+		if (t->flags() & torrent_internal_flags::effective_upload_mode)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, peer_log_alert::piece_picker
@@ -4011,7 +4010,8 @@ namespace {
 			return;
 
 		if (int(m_download_queue.size()) >= m_desired_queue_size
-			|| t->upload_mode()) return;
+			|| (t->flags() & torrent_internal_flags::effective_upload_mode))
+			return;
 
 		bool const empty_download_queue = m_download_queue.empty();
 
@@ -4865,7 +4865,7 @@ namespace {
 		}
 
 #ifndef TORRENT_DISABLE_SUPERSEEDING
-		if (t->super_seeding() && m_ti->is_valid() && !m_peer_interested
+		if ((t->flags() & torrent_flags::super_seeding) && m_ti->is_valid() && !m_peer_interested
 			&& m_became_uninterested.get(m_connect) + seconds(10) < now)
 		{
 			// maybe we need to try another piece, to see if the peer
@@ -5212,6 +5212,10 @@ namespace {
 		auto t = m_torrent.lock();
 		if (!t || t->is_aborted() || m_requests.empty()) return;
 
+		// snapshot the torrent flags once for the loop below
+		auto const tflags = t->flags();
+		bool const seed_mode = bool(tflags & torrent_flags::seed_mode);
+
 		// only add new piece-chunks if the send buffer is small enough
 		// otherwise there will be no end to how large it will be!
 
@@ -5269,8 +5273,6 @@ namespace {
 			TORRENT_ASSERT(r.length > 0);
 			TORRENT_ASSERT(r.start >= 0);
 
-			bool const seed_mode = t->seed_mode();
-
 			if (seed_mode
 				&& !t->verified_piece(r.piece)
 				&& !m_settings.get_bool(settings_pack::disable_hash_checks))
@@ -5291,7 +5293,7 @@ namespace {
 				// this means we're in seed mode and we haven't yet
 				// verified this piece (r.piece)
 				disk_job_flags_t flags;
-				if (m_ti->info_hashes().has_v1() && !t->disable_v1_hashes())
+				if (m_ti->info_hashes().has_v1() && !(tflags & torrent_flags::disable_v1_hashes))
 					flags |= disk_interface::v1_hash;
 				aux::vector<sha256_hash> hashes;
 				if (m_ti->info_hashes().has_v2())
@@ -5362,8 +5364,7 @@ namespace {
 		m_ses.deferred_submit_jobs();
 
 #ifndef TORRENT_DISABLE_SHARE_MODE
-		if (t->share_mode() && sent_a_piece)
-			t->recalc_share_mode();
+		if ((tflags & torrent_flags::share_mode) && sent_a_piece) t->recalc_share_mode();
 #endif
 	}
 
@@ -5390,6 +5391,8 @@ namespace {
 			return;
 		}
 
+		auto const tflags = t->flags();
+
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wmissing-braces"
@@ -5402,7 +5405,7 @@ namespace {
 
 		// we're using the piece hashes here, we need the torrent to be loaded
 		if (!m_settings.get_bool(settings_pack::disable_hash_checks) && m_ti->info_hashes().has_v1()
-			&& !t->disable_v1_hashes())
+			&& !(tflags & torrent_flags::disable_v1_hashes))
 		{
 			hash_failed[protocol_version::V1] = piece_hash != m_ti->hash_for_piece(piece);
 		}
@@ -5455,7 +5458,8 @@ namespace {
 		}
 		else
 		{
-			if (t->seed_mode())
+			bool const seed_mode = bool(tflags & torrent_flags::seed_mode);
+			if (seed_mode)
 			{
 				TORRENT_ASSERT(t->verifying_piece(piece));
 				t->verified(piece);
@@ -5465,7 +5469,7 @@ namespace {
 			peer_log(peer_log_alert::info, peer_log_alert::seed_mode_file_hash
 				, "piece: %d passed", static_cast<int>(piece));
 #endif
-			if (t->seed_mode() && t->all_verified())
+			if (seed_mode && t->all_verified())
 				t->leave_seed_mode(aux::torrent::seed_mode_t::skip_checking);
 		}
 
@@ -6610,9 +6614,9 @@ namespace {
 		// in share mode we don't close redundant connections
 		if (m_settings.get_bool(settings_pack::close_redundant_connections)
 #ifndef TORRENT_DISABLE_SHARE_MODE
-			&& !t->share_mode()
+			&& !(t->flags() & torrent_flags::share_mode)
 #endif
-			)
+		)
 		{
 			bool const ok_to_disconnect =
 				can_disconnect(errors::upload_upload_connection)

@@ -3614,7 +3614,7 @@ retry:
 						m_next_scrape_torrent = 0;
 
 					torrent& t = *want_scrape[m_next_scrape_torrent];
-					TORRENT_ASSERT(t.is_paused() && t.is_auto_managed());
+					TORRENT_ASSERT(t.is_paused() && (t.flags() & torrent_flags::auto_managed));
 
 					// false means it's not triggered by the user, but automatically
 					// by libtorrent
@@ -3927,7 +3927,7 @@ retry:
 		for (auto& t : list)
 		{
 			TORRENT_ASSERT(t->state() == torrent_status::checking_files);
-			TORRENT_ASSERT(t->is_auto_managed());
+			TORRENT_ASSERT(t->flags() & torrent_flags::auto_managed);
 			if (limit <= 0)
 			{
 				t->pause();

@@ -294,13 +294,16 @@ namespace {
 		// will send their bitfield when the handshake
 		// is done
 		auto t = associated_torrent().lock();
+#if !defined TORRENT_DISABLE_SHARE_MODE || !defined TORRENT_DISABLE_SUPERSEEDING
+		auto const tflags = t->flags();
+#endif
 #ifndef TORRENT_DISABLE_SHARE_MODE
-		if (!t->share_mode())
+		if (!(tflags & torrent_flags::share_mode))
 #endif
 		{
 			bool const upload_only_enabled = t->is_upload_only()
 #ifndef TORRENT_DISABLE_SUPERSEEDING
-				&& !t->super_seeding()
+				&& !(tflags & torrent_flags::super_seeding)
 #endif
 				;
 			send_upload_only(upload_only_enabled);
@@ -2073,7 +2076,7 @@ namespace {
 		if (t->is_finished() && upload_only()
 			&& m_settings.get_bool(settings_pack::close_redundant_connections)
 #ifndef TORRENT_DISABLE_SHARE_MODE
-			&& !t->share_mode()
+			&& !(t->flags() & torrent_flags::share_mode)
 #endif
 			&& can_disconnect(errors::upload_upload_connection))
 			disconnect(errors::upload_upload_connection, operation_t::bittorrent);
@@ -2179,7 +2182,7 @@ namespace {
 
 #if TORRENT_USE_ASSERTS && !defined TORRENT_DISABLE_SHARE_MODE
 		auto t = associated_torrent().lock();
-		TORRENT_ASSERT(!t->share_mode());
+		TORRENT_ASSERT(!(t->flags() & torrent_flags::share_mode));
 #endif
 
 		if (m_upload_only_id == 0) return;
@@ -2209,7 +2212,7 @@ namespace {
 		char msg[7] = {0, 0, 0, 3, msg_extended};
 		char* ptr = msg + 5;
 		aux::write_uint8(m_share_mode_id, ptr);
-		aux::write_uint8(t->share_mode(), ptr);
+		aux::write_uint8(bool(t->flags() & torrent_flags::share_mode), ptr);
 		send_buffer(msg);
 
 		stats_counters().inc_stats_counter(counters::num_outgoing_extended);
@@ -2272,7 +2275,7 @@ namespace {
 		TORRENT_ASSERT(m_ti->is_valid());
 
 #ifndef TORRENT_DISABLE_SUPERSEEDING
-		if (t->super_seeding())
+		if (t->flags() & torrent_flags::super_seeding)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, peer_log_alert::bitfield, "not sending bitfield, super seeding");
@@ -2443,13 +2446,16 @@ namespace {
 		// If we don't have metadata, we also need to suppress saying we're
 		// upload-only. If we do, we may be disconnected before we receive the
 		// metadata.
+#if !defined TORRENT_DISABLE_SHARE_MODE || !defined TORRENT_DISABLE_SUPERSEEDING
+		auto const tflags = t->flags();
+#endif
 		if (t->is_upload_only()
 #ifndef TORRENT_DISABLE_SHARE_MODE
-			&& !t->share_mode()
+			&& !(tflags & torrent_flags::share_mode)
 #endif
 			&& m_ti->is_valid()
 #ifndef TORRENT_DISABLE_SUPERSEEDING
-			&& !t->super_seeding()
+			&& !(tflags & torrent_flags::super_seeding)
 #endif
 		)
 		{
@@ -2458,7 +2464,7 @@ namespace {
 
 #ifndef TORRENT_DISABLE_SHARE_MODE
 		if (m_settings.get_bool(settings_pack::support_share_mode)
-			&& t->share_mode())
+			&& (tflags & torrent_flags::share_mode))
 			handshake["share_mode"] = 1;
 #endif
 
