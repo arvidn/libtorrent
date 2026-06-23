@@ -19,6 +19,7 @@ see LICENSE file.
 #include "libtorrent/aux_/request_blocks.hpp"
 #include "libtorrent/aux_/alert_manager.hpp"
 #include "libtorrent/aux_/has_block.hpp"
+#include "libtorrent/aux_/torrent_internal_flags.hpp"
 
 #include <cstdint>
 #include <vector>
@@ -45,7 +46,7 @@ namespace libtorrent::aux {
 	{
 		if (t.is_seed()) return false;
 		if (c.no_download()) return false;
-		if (t.upload_mode()) return false;
+		if (t.flags() & torrent_internal_flags::effective_upload_mode) return false;
 		if (c.is_disconnecting()) return false;
 
 		// don't request pieces before we have the metadata

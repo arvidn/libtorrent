@@ -25,6 +25,7 @@ see LICENSE file.
 
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/aux_/torrent.hpp"
+#include "libtorrent/aux_/torrent_internal_flags.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/aux_/session_call.hpp"
@@ -639,10 +640,14 @@ namespace libtorrent {
 	{ return sync_call_ret<bool>(false, &aux::torrent::is_torrent_paused); }
 
 	bool torrent_handle::is_sequential_download() const
-	{ return sync_call_ret<bool>(false, &aux::torrent::is_sequential_download); }
+	{
+		return bool(internal_flags() & aux::torrent_internal_flags::effective_sequential);
+	}
 
 	bool torrent_handle::is_auto_managed() const
-	{ return sync_call_ret<bool>(false, &aux::torrent::is_auto_managed); }
+	{
+		return bool(internal_flags() & torrent_flags::auto_managed);
+	}
 
 	bool torrent_handle::has_metadata() const
 	{ return sync_call_ret<bool>(false, &aux::torrent::valid_metadata); }
@@ -650,7 +655,7 @@ namespace libtorrent {
 	bool torrent_handle::super_seeding() const
 	{
 #ifndef TORRENT_DISABLE_SUPERSEEDING
-		return sync_call_ret<bool>(false, &aux::torrent::super_seeding);
+		return bool(internal_flags() & torrent_flags::super_seeding);
 #else
 		return false;
 #endif

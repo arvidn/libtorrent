@@ -411,7 +411,6 @@ namespace libtorrent::aux {
 #ifndef TORRENT_DISABLE_SHARE_MODE
 		void send_share_mode();
 		void set_share_mode(bool s);
-		bool share_mode() const { return bool(m_flags & torrent_flags::share_mode); }
 #endif
 
 		// TODO: make graceful pause also finish all sending blocks
@@ -425,11 +424,10 @@ namespace libtorrent::aux {
 		void set_flags(torrent_flags_t flags, torrent_flags_t mask);
 
 		void set_upload_mode(bool b);
-		bool upload_mode() const
+		bool is_upload_only() const
 		{
-			return bool(m_flags & torrent_internal_flags::effective_upload_mode);
+			return is_finished() || bool(m_flags & torrent_internal_flags::effective_upload_mode);
 		}
-		bool is_upload_only() const { return is_finished() || upload_mode(); }
 
 		int seed_rank(aux::session_settings const& s) const;
 
@@ -472,10 +470,6 @@ namespace libtorrent::aux {
 		aux::session_interface& session() { return m_ses; }
 
 		void set_sequential_download(bool sd);
-		bool is_sequential_download() const
-		{
-			return bool(m_flags & torrent_internal_flags::effective_sequential);
-		}
 
 		void queue_up();
 		void queue_down();
@@ -570,7 +564,6 @@ namespace libtorrent::aux {
 
 		add_torrent_params get_resume_data(resume_data_flags_t flags) const;
 
-		bool is_auto_managed() const { return bool(m_flags & torrent_flags::auto_managed); }
 		void auto_managed(bool a);
 
 		bool should_check_files() const;
@@ -823,12 +816,6 @@ namespace libtorrent::aux {
 #endif
 
 #ifndef TORRENT_DISABLE_SUPERSEEDING
-		bool super_seeding() const
-		{
-			// we're not super seeding if we're not a seed
-			return bool(m_flags & torrent_flags::super_seeding);
-		}
-
 		void set_super_seeding(bool on);
 		piece_index_t get_piece_to_super_seed(typed_bitfield<piece_index_t> const&);
 #endif
@@ -879,7 +866,7 @@ namespace libtorrent::aux {
 		int num_have() const
 		{
 			// pretend we have every piece when in seed mode
-			if (m_flags & torrent_flags::seed_mode && m_torrent_file)
+			if ((m_flags & torrent_flags::seed_mode) && m_torrent_file)
 				return m_torrent_file->num_pieces();
 			if (has_picker()) return m_picker->have().num_pieces;
 			if (m_flags & torrent_internal_flags::have_all)
@@ -908,8 +895,6 @@ namespace libtorrent::aux {
 				? (std::min)(m_torrent_file->piece_length(), default_block_size)
 				: default_block_size;
 		}
-
-		bool disable_v1_hashes() const { return bool(m_flags & torrent_flags::disable_v1_hashes); }
 
 		// like torrent_info::piece_size_for_req(), but when disable_v1_hashes
 		// was set at the time the torrent was added, the engine treats the torrent
@@ -1206,8 +1191,6 @@ namespace libtorrent::aux {
 		bool set_metadata(span<char const> metadata);
 
 		queue_position_t sequence_number() const { return m_sequence_number; }
-
-		bool seed_mode() const { return bool(m_flags & torrent_flags::seed_mode); }
 
 		enum class seed_mode_t { check_files, skip_checking };
 
