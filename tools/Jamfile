@@ -36,7 +36,7 @@ project tools
 	<conditional>@link_libtorrent
 	: default-build
 	<link>static
-	<cxxstd>17
+	<cxxstd>20
 	<address-model>64
    ;
 

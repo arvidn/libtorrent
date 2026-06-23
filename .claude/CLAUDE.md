@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-libtorrent-rasterbar is a C++17 BitTorrent library (version 2.1.0). It supports v1 and v2 torrents, DHT, WebTorrent (WebRTC), and optional I2P/SSL.
+libtorrent-rasterbar is a C++20 BitTorrent library (version 2.1.0). It supports v1 and v2 torrents, DHT, WebTorrent (WebRTC), and optional I2P/SSL.
 
 ## Build Systems
 
@@ -220,7 +220,7 @@ These are also run automatically by the pre-commit hooks.
 - Comments must use ASCII characters only (no Unicode, smart quotes, em-dashes, etc.)
 - Use a single space after a period in comments (not two spaces)
 - Declare variables `const` whenever they are not reassigned after initialization
-- C++17 throughout; no C++20 features yet
+- C++20 throughout
 - The code must build with standard C++ and must not require compiler language extensions; optional extensions (e.g. `__builtin_*`, platform-specific pragmas) may be used when guarded by feature detection
 - `namespace lt = libtorrent` alias is always available
 - Asserts: use `TORRENT_ASSERT(cond)` (active when `TORRENT_USE_ASSERTS` is defined, i.e. debug builds)

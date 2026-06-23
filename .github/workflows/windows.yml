@@ -252,12 +252,12 @@ jobs:
       - name: stage boost headers
         run: |
           cd boost
-          b2 cxxstd=17 release --with-headers --layout=system address-model=64 link=static stage
+          b2 cxxstd=20 release --with-headers --layout=system address-model=64 link=static stage
 
       - name: cmake configure
         run: |
           set BOOST_ROOT=%CD%\boost
-          cmake -B build -DBOOST_ROOT=%BOOST_ROOT% -DBOOST_LIBRARYDIR=%BOOST_ROOT%\stage\lib -DCMAKE_CXX_STANDARD=17 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dwebtorrent=on -DOPENSSL_ROOT_DIR="C:\Program Files\OpenSSL" -Dskip-python-runtime-test=true -DBUILD_SHARED_LIBS=OFF -G "Visual Studio 17 2022" -A x64
+          cmake -B build -DBOOST_ROOT=%BOOST_ROOT% -DBOOST_LIBRARYDIR=%BOOST_ROOT%\stage\lib -DCMAKE_CXX_STANDARD=20 -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dwebtorrent=on -DOPENSSL_ROOT_DIR="C:\Program Files\OpenSSL" -Dskip-python-runtime-test=true -DBUILD_SHARED_LIBS=OFF -G "Visual Studio 17 2022" -A x64
 
       - name: cmake build
         run: cmake --build build --config Debug --parallel %NUMBER_OF_PROCESSORS%

@@ -33,7 +33,7 @@ lib libtorrent_test
 
 	: # default build
 	<link>shared
-	<cxxstd>17
+	<cxxstd>20
 
 	: # user-requirements
 	<link>shared:<define>TORRENT_LINK_TEST_SHARED
@@ -51,7 +51,7 @@ local default-build =
 	<link>shared
 	<picker-debugging>on
 	<logging>on
-	<cxxstd>17
+	<cxxstd>20
 	<variant>debug-mode
 # default to 64 bit address model as it's required by mmap-disk-io.
 	<address-model>64

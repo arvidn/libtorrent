@@ -23,7 +23,7 @@ project client_test
 	<conditional>@warnings
 	: default-build
 	<link>static
-	<cxxstd>17
+	<cxxstd>20
 	<address-model>64
 	;
 

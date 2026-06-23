@@ -539,10 +539,10 @@ add_library(torrent-rasterbar
 	${libtorrent_aux_include_files}
 )
 
-# C++ 17 support is required
+# C++ 20 support is required
 target_compile_features(torrent-rasterbar
 	PUBLIC
-		cxx_std_17
+		cxx_std_20
 )
 
 if (BUILD_SHARED_LIBS)

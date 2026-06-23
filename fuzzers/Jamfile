@@ -26,6 +26,7 @@ variant build_coverage : release : <sanitize>off <debug-symbols>on <asserts>off 
 project fuzzers
 	: requirements
 	<export-extra>on
+	<cxxstd>20
 	<define>TORRENT_USE_IPV6=1
 	<define>_SCL_SECURE=1
 	<define>_GLIBCXX_DEBUG
@@ -33,7 +34,6 @@ project fuzzers
 	<linkflags>-fno-omit-frame-pointer
 	<library>/torrent//torrent/<debug-logging>off
 	: default-build
-	<cxxstd>17
 	<fuzz>on
 	<threading>multi
 	<sanitize>on
