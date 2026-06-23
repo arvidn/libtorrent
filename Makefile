@@ -687,6 +687,7 @@ HEADERS = \
   aux_/timestamp_history.hpp        \
   aux_/torrent.hpp                  \
   aux_/torrent_impl.hpp             \
+  aux_/torrent_internal_flags.hpp   \
   aux_/torrent_list.hpp             \
   aux_/torrent_peer.hpp             \
   aux_/torrent_peer_allocator.hpp   \

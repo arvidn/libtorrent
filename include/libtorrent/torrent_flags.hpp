@@ -204,9 +204,9 @@ namespace torrent_flags {
 	// category if_metadata_changed. See resume_data_flags_t and
 	// save_resume_data() for details.
 	//
-	// This flag is cleared by a successful call to save_resume_data()
-	// This flag is not saved by write_resume_data(), since it represents an
-	// ephemeral state of a running torrent.
+	// This flag is input-only and not preserved in the torrent nor saved by
+	// write_resume_data(), since it represents an ephemeral state of a running
+	// torrent. It's currently only used when adding a new torrent.
 	constexpr torrent_flags_t need_save_resume = 13_bit;
 
 #if TORRENT_ABI_VERSION == 1
@@ -306,6 +306,28 @@ namespace torrent_flags {
 	constexpr torrent_flags_t all = torrent_flags_t::all();
 
 	// internal
+	// the union of all user-visible torrent flag bits. Used internally as a
+	// mask to filter user-supplied flag values (so any high bits reserved for
+	// engine-internal state cannot be set or read through the public API), and
+	// to filter the torrent state before it is exposed back to the user.
+	constexpr torrent_flags_t public_flags = torrent_flags::seed_mode | torrent_flags::upload_mode
+		| torrent_flags::share_mode | torrent_flags::apply_ip_filter | torrent_flags::paused
+		| torrent_flags::auto_managed | torrent_flags::duplicate_is_error
+		| torrent_flags::update_subscribe | torrent_flags::super_seeding
+		| torrent_flags::sequential_download | torrent_flags::stop_when_ready
+		| torrent_flags::need_save_resume | torrent_flags::disable_dht | torrent_flags::disable_lsd
+		| torrent_flags::disable_pex | torrent_flags::no_verify_files
+		| torrent_flags::default_dont_download | torrent_flags::i2p_torrent
+		| torrent_flags::disable_v1_hashes
+#if TORRENT_ABI_VERSION == 1
+		| torrent_flags::override_trackers | torrent_flags::override_web_seeds
+		| torrent_flags::pinned | torrent_flags::override_resume_data
+		| torrent_flags::merge_resume_trackers | torrent_flags::use_resume_save_path
+		| torrent_flags::merge_resume_http_seeds
+#endif
+		;
+
+	// internal
 	constexpr torrent_flags_t default_flags =
 		torrent_flags::update_subscribe
 		| torrent_flags::auto_managed
@@ -316,6 +338,17 @@ namespace torrent_flags {
 		| torrent_flags::pinned
 		| torrent_flags::merge_resume_http_seeds
 		| torrent_flags::merge_resume_trackers
+#endif
+		;
+
+	// internal
+	constexpr torrent_flags_t input_only_flags = torrent_flags::need_save_resume
+		| torrent_flags::duplicate_is_error | torrent_flags::default_dont_download
+#if TORRENT_ABI_VERSION == 1
+		| torrent_flags::override_trackers | torrent_flags::override_web_seeds
+		| torrent_flags::pinned | torrent_flags::override_resume_data
+		| torrent_flags::merge_resume_trackers | torrent_flags::use_resume_save_path
+		| torrent_flags::merge_resume_http_seeds
 #endif
 		;
 
