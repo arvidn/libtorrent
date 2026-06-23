@@ -10579,8 +10579,8 @@ namespace {
 		}
 #endif // TORRENT_DEBUG_STREAMING
 
-		if (!m_time_critical_pieces.empty() && !(m_flags & torrent_flags::upload_mode)
-			&& !(m_flags & torrent_internal_flags::graceful_pause))
+		if (!m_time_critical_pieces.empty()
+			&& !(m_flags & torrent_internal_flags::effective_upload_mode))
 		{
 			request_time_critical_pieces();
 		}
@@ -11213,8 +11213,7 @@ namespace {
 	void torrent::request_time_critical_pieces()
 	{
 		TORRENT_ASSERT(is_single_thread());
-		TORRENT_ASSERT(!(m_flags & torrent_flags::upload_mode)
-			&& !(m_flags & torrent_internal_flags::graceful_pause));
+		TORRENT_ASSERT(!(m_flags & torrent_internal_flags::effective_upload_mode));
 
 		// build a list of peers and sort it by download_queue_time
 		// we use this sorted list to determine which peer we should
