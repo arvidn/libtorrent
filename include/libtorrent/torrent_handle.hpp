@@ -11,6 +11,7 @@ Copyright (c) 2019, Andrei Kurushin
 Copyright (c) 2019, ghbplayer
 Copyright (c) 2025, Vladimir Golovnev (glassez)
 Copyright (c) 2021, Mark Scott
+Copyright (c) 2024-2026 Martin Rodriguez Reboredo
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,
@@ -321,9 +322,13 @@ namespace aux {
 		// then the functions do nothing.
 		void set_sequential_range(piece_index_t first_piece, piece_index_t last_piece) const;
 		void set_sequential_range(piece_index_t first_piece) const;
-		// Returns true if this piece has been completely downloaded and written
-		// to disk, and false otherwise.
+		// Returns true if pieces have been completely downloaded and written to
+		// disk, and false otherwise.
+		//
+		// ``have_piece()`` checks for a single piece.
+		// ``have_piece_range()`` does so for a range of pieces.
 		bool have_piece(piece_index_t piece) const;
+		bool have_piece_range(const index_range<piece_index_t>& range) const;
 
 #if TORRENT_ABI_VERSION == 1
 		// internal
@@ -1152,6 +1157,7 @@ namespace aux {
 		void prioritize_pieces(std::vector<download_priority_t> const& pieces) const;
 		void prioritize_pieces(std::vector<std::pair<piece_index_t, download_priority_t>> const& pieces) const;
 		std::vector<download_priority_t> get_piece_priorities() const;
+		void get_piece_priorities(std::vector<download_priority_t>& priorities) const;
 
 #if TORRENT_ABI_VERSION == 1
 		TORRENT_DEPRECATED

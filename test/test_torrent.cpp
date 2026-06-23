@@ -6,6 +6,7 @@ Copyright (c) 2017, Falcosc
 Copyright (c) 2017, Steven Siloti
 Copyright (c) 2018, d-komarov
 Copyright (c) 2020, AllSeeingEyeTolledEweSew
+Copyright (c) 2024-2026, Martin Rodriguez Reboredo
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,
@@ -691,6 +692,8 @@ TORRENT_TEST(test_have_piece_out_of_range)
 	TEST_EQUAL(h.have_piece(piece_index_t{-1}), false);
 	TEST_EQUAL(h.have_piece(0_piece), true);
 	TEST_EQUAL(h.have_piece(100_piece), false);
+	TEST_EQUAL(h.have_piece_range(lt::index_range<lt::piece_index_t>{0_piece, 7_piece}), true);
+	TEST_EQUAL(h.have_piece_range(lt::index_range<lt::piece_index_t>{0_piece, 100_piece}), false);
 }
 
 TORRENT_TEST(test_read_piece_no_metadata)

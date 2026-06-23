@@ -15,6 +15,7 @@ Copyright (c) 2020, Viktor Elofsson
 Copyright (c) 2021, AdvenT
 Copyright (c) 2025, Vladimir Golovnev (glassez)
 Copyright (c) 2021, Mark Scott
+Copyright (c) 2024-2026, Martin Rodriguez Reboredo
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,
@@ -867,6 +868,15 @@ namespace libtorrent::aux {
 			if (index < piece_index_t{0} || index >= m_torrent_file->end_piece()) return false;
 			if (!has_picker()) return m_have_all;
 			return m_picker->have_piece(index);
+		}
+
+		// returns true if we have downloaded the given piece range
+		bool user_have_piece_range(const index_range<piece_index_t>& range) const
+		{
+			if (!valid_metadata()) return false;
+			if (*range.begin() < piece_index_t{0} || *range.begin() >= m_torrent_file->end_piece() || *range.end() < piece_index_t{0} || *range.end() >= m_torrent_file->end_piece()) return false;
+			if (!has_picker()) return m_have_all;
+			return m_picker->have_piece_range(range);
 		}
 
 #ifndef TORRENT_DISABLE_PREDICTIVE_PIECES

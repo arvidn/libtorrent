@@ -11,6 +11,7 @@ Copyright (c) 2019, ghbplayer
 Copyright (c) 2025, Vladimir Golovnev (glassez)
 Copyright (c) 2021, Mark Scott
 Copyright (c) 2025, Vladimir Golovnev (glassez)
+Copyright (c) 2024-2026, Martin Rodriguez Reboredo
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,
@@ -497,10 +498,17 @@ namespace libtorrent {
 
 	std::vector<download_priority_t> torrent_handle::get_piece_priorities() const
 	{
-		aux::vector<download_priority_t, piece_index_t> ret;
-		auto* const retp = &ret;
+		std::vector<download_priority_t> ret;
+		get_piece_priorities(ret);
+		return ret;
+	}
+
+	void torrent_handle::get_piece_priorities(std::vector<download_priority_t>& priorities) const
+	{
+		aux::vector<download_priority_t, piece_index_t> ret(std::move(priorities));
+		auto retp = &ret;
 		sync_call(&aux::torrent::piece_priorities, retp);
-		return TORRENT_RVO(ret);
+		priorities = std::move(ret);
 	}
 
 #if TORRENT_ABI_VERSION == 1
@@ -724,6 +732,11 @@ namespace libtorrent {
 		TORRENT_ASSERT_PRECOND(first_piece >= piece_index_t(0));
 		if (first_piece >= piece_index_t(0))
 			async_call(static_cast<void (aux::torrent::*)(piece_index_t)>(&aux::torrent::set_sequential_range), first_piece);
+	}
+
+	bool torrent_handle::have_piece_range(const index_range<piece_index_t>& range) const
+	{
+		return sync_call_ret<bool>(false, &aux::torrent::user_have_piece_range, range);
 	}
 
 	bool torrent_handle::is_valid() const

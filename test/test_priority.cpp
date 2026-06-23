@@ -4,6 +4,7 @@ Copyright (c) 2018, Steven Siloti
 Copyright (c) 2013-2021, Arvid Norberg
 Copyright (c) 2016-2018, Alden Torres
 Copyright (c) 2018, d-komarov
+Copyright (c) 2024-2026, Martin Rodriguez Reboredo
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,
@@ -189,6 +190,8 @@ void test_transfer(settings_pack const& sett,
 		, std::ostream_iterator<download_priority_t>(std::cout, ", "));
 	std::cout << std::endl;
 	TEST_CHECK(std::equal(priorities.begin(), priorities.end(), priorities2.begin()));
+	tor2.get_piece_priorities(priorities2);
+	TEST_CHECK(std::equal(priorities.begin(), priorities.end(), priorities2.begin()));
 
 	std::cout << "force recheck" << std::endl;
 	tor2.force_recheck();
@@ -197,6 +200,8 @@ void test_transfer(settings_pack const& sett,
 	std::copy(priorities2.begin(), priorities2.end()
 		, std::ostream_iterator<download_priority_t>(std::cout, ", "));
 	std::cout << std::endl;
+	TEST_CHECK(std::equal(priorities.begin(), priorities.end(), priorities2.begin()));
+	tor2.get_piece_priorities(priorities2);
 	TEST_CHECK(std::equal(priorities.begin(), priorities.end(), priorities2.begin()));
 
 	peer_disconnects = 0;
@@ -229,6 +234,8 @@ void test_transfer(settings_pack const& sett,
 	priorities2 = tor2.get_piece_priorities();
 	std::copy(priorities2.begin(), priorities2.end(), std::ostream_iterator<download_priority_t>(std::cout, ", "));
 	std::cout << std::endl;
+	TEST_CHECK(std::equal(priorities.begin(), priorities.end(), priorities2.begin()));
+	tor2.get_piece_priorities(priorities2);
 	TEST_CHECK(std::equal(priorities.begin(), priorities.end(), priorities2.begin()));
 
 	tor2.pause();
