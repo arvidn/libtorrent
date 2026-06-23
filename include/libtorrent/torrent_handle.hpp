@@ -316,9 +316,13 @@ namespace aux {
 		//    of files (in v2 and hybrid torrents) are not full size.
 		void read_piece(piece_index_t piece) const;
 
-		// Returns true if this piece has been completely downloaded and written
+		// Returns true pieces have been completely downloaded and written
 		// to disk, and false otherwise.
+		//
+		// ``have_piece()`` checks for a single piece.
+		// ``have_piece_range()`` does so for a range of pieces.
 		bool have_piece(piece_index_t piece) const;
+		bool have_piece_range(const index_range<piece_index_t>& range) const;
 
 #if TORRENT_ABI_VERSION == 1
 		// internal
@@ -1111,6 +1115,7 @@ namespace aux {
 		void prioritize_pieces(std::vector<download_priority_t> const& pieces) const;
 		void prioritize_pieces(std::vector<std::pair<piece_index_t, download_priority_t>> const& pieces) const;
 		std::vector<download_priority_t> get_piece_priorities() const;
+		void get_piece_priorities(std::vector<download_priority_t>& priorities) const;
 
 #if TORRENT_ABI_VERSION == 1
 		TORRENT_DEPRECATED

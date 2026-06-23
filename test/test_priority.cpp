@@ -204,6 +204,8 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 		, std::ostream_iterator<download_priority_t>(std::cout, ", "));
 	std::cout << std::endl;
 	TEST_CHECK(std::equal(priorities.begin(), priorities.end(), priorities2.begin()));
+	tor2.get_piece_priorities(priorities2);
+	TEST_CHECK(std::equal(priorities.begin(), priorities.end(), priorities2.begin()));
 
 	std::cout << "force recheck" << std::endl;
 	tor2.force_recheck();
@@ -212,6 +214,8 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 	std::copy(priorities2.begin(), priorities2.end()
 		, std::ostream_iterator<download_priority_t>(std::cout, ", "));
 	std::cout << std::endl;
+	TEST_CHECK(std::equal(priorities.begin(), priorities.end(), priorities2.begin()));
+	tor2.get_piece_priorities(priorities2);
 	TEST_CHECK(std::equal(priorities.begin(), priorities.end(), priorities2.begin()));
 
 	peer_disconnects = 0;
@@ -244,6 +248,8 @@ void test_transfer(settings_pack const& sett, bool test_deprecated = false)
 	priorities2 = tor2.get_piece_priorities();
 	std::copy(priorities2.begin(), priorities2.end(), std::ostream_iterator<download_priority_t>(std::cout, ", "));
 	std::cout << std::endl;
+	TEST_CHECK(std::equal(priorities.begin(), priorities.end(), priorities2.begin()));
+	tor2.get_piece_priorities(priorities2);
 	TEST_CHECK(std::equal(priorities.begin(), priorities.end(), priorities2.begin()));
 
 	tor2.pause();

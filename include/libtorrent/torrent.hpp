@@ -877,6 +877,15 @@ namespace libtorrent {
 			return m_picker->have_piece(index);
 		}
 
+		// returns true if we have downloaded the given piece range
+		bool user_have_piece_range(const index_range<piece_index_t>& range) const
+		{
+			if (!valid_metadata()) return false;
+			if (*range.begin() < piece_index_t{0} || *range.begin() >= m_torrent_file->end_piece() || *range.end() < piece_index_t{0} || *range.end() >= m_torrent_file->end_piece()) return false;
+			if (!has_picker()) return m_have_all;
+			return m_picker->have_piece_range(range);
+		}
+
 #ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
 		// a predictive piece is a piece that we might
 		// not have yet, but still announced to peers, anticipating that
