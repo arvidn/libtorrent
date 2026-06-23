@@ -336,9 +336,9 @@ rule building ( properties * )
 	}
 
 	local CXXVER = [ feature.get-values <cxxstd> : $(properties) ] ;
-	if ! $(CXXVER) || $(CXXVER) < 17
+	if ! $(CXXVER) || $(CXXVER) < 20
 	{
-		ECHO "libtorrent requires at least C++17. Specify cxxstd=17 or higher" ;
+		ECHO "libtorrent requires at least C++20. Specify cxxstd=20 or higher" ;
 		result += <build>no ;
 	}
 
@@ -1044,7 +1044,7 @@ lib torrent
 
 	: # default build
 	<threading>multi
-	<cxxstd>17
+	<cxxstd>20
 	<c++-template-depth>512
 
 	: # usage requirements
@@ -1236,7 +1236,7 @@ for local target in $(headers)
 		# otherwise the object rule doesn't know which language to interpret them as
 		obj header-build/$(target).o : [ cast.cast _ cpp : $(target) ]
 			: <library>torrent <cxxflags>-fsyntax-only
-			: <cxxstd>17 ;
+			: <cxxstd>20 ;
 		explicit header-build/$(target).o ;
 		header_targets += $(target) ;
 	}

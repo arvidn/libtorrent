@@ -40,7 +40,7 @@ jobs:
 
       strategy:
          matrix:
-            std: [17, 20]
+            std: [20]
             config:
               - asio-debugging=on picker-debugging=on
               - extensions=off logging=off streaming=off super-seeding=off share-mode=off predictive-pieces=off dht=off alert-msg=off encryption=off mutable-torrents=off deprecated-functions=off
@@ -135,7 +135,7 @@ jobs:
       - name: build fuzzers
         run: |
           cd fuzzers
-          b2 clang deprecated-functions=on,off warnings-as-errors=on
+          b2 clang cxxstd=20 deprecated-functions=on,off warnings-as-errors=on
 
 
 

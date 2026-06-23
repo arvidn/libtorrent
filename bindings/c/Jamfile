@@ -26,7 +26,7 @@ lib torrentc
 	<conditional>@libtorrent_linking
 	<library>/torrent//torrent
 	<include>include
-	<cxxstd>17
+	<cxxstd>20
 	<define>LIBTORRENT_C_BUILDING_LIBRARY
 
 	: # default build

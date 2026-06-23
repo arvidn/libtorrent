@@ -163,4 +163,4 @@ jobs:
 
       - name: build library
         run: |
-          b2 -l400 cxxstd=14 target-os=iphone crypto=built-in darwin-ios darwin-ios_sim address-model=64 link=static
+          b2 -l400 cxxstd=20 target-os=iphone crypto=built-in darwin-ios darwin-ios_sim address-model=64 link=static
