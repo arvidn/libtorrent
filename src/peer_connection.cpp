@@ -2008,7 +2008,8 @@ namespace {
 		}
 
 #ifndef TORRENT_DISABLE_SUPERSEEDING
-		if ((t->flags() & torrent_flags::super_seeding)
+		auto const tflags = t->flags();
+		if ((tflags & torrent_flags::super_seeding)
 #if TORRENT_ABI_VERSION == 1
 			&& !m_settings.get_bool(settings_pack::strict_super_seeding)
 #endif
@@ -2097,7 +2098,7 @@ namespace {
 		// if we're super seeding, this might mean that somebody
 		// forwarded this piece. In which case we need to give
 		// a new piece to that peer
-		if ((t->flags() & torrent_flags::super_seeding)
+		if ((tflags & torrent_flags::super_seeding)
 			&& m_settings.get_bool(settings_pack::strict_super_seeding)
 			&& (!super_seeded_piece(index) || t->num_peers() == 1))
 		{
@@ -2387,6 +2388,7 @@ namespace {
 		auto t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 		torrent_info const& ti = *m_ti;
+		auto const tflags = t->flags();
 
 		m_counters.inc_stats_counter(counters::piece_requests);
 
@@ -2398,7 +2400,7 @@ namespace {
 #endif
 
 #ifndef TORRENT_DISABLE_SUPERSEEDING
-		if ((t->flags() & torrent_flags::super_seeding) && !super_seeded_piece(r.piece))
+		if ((tflags & torrent_flags::super_seeding) && !super_seeded_piece(r.piece))
 		{
 			m_counters.inc_stats_counter(counters::invalid_piece_requests);
 			if (m_num_invalid_requests < std::numeric_limits<decltype(m_num_invalid_requests)>::max())
@@ -2521,7 +2523,7 @@ namespace {
 #ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
 				&& !t->is_predictive_piece(r.piece)
 #endif
-				&& !(t->flags() & torrent_flags::seed_mode))
+				&& !(tflags & torrent_flags::seed_mode))
 			|| r.start < 0 || r.start >= ti.piece_size(r.piece) || r.length <= 0
 			|| r.length + r.start > ti.piece_size(r.piece) || r.length > block_size())
 		{
@@ -5212,7 +5214,6 @@ namespace {
 		auto t = m_torrent.lock();
 		if (!t || t->is_aborted() || m_requests.empty()) return;
 
-		// snapshot the torrent flags once for the loop below
 		auto const tflags = t->flags();
 		bool const seed_mode = bool(tflags & torrent_flags::seed_mode);
 
