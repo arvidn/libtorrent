@@ -34,32 +34,32 @@ namespace aux {
 			}
 			if (val < 100)
 			{
-				buf[0] = '0' + (val / 10) % 10;
-				buf[1] = '0' + val % 10;
+				buf[0] = static_cast<char>('0' + (val / 10) % 10);
+				buf[1] = static_cast<char>('0' + val % 10);
 				return {buf.data(), std::size_t(2)};
 			}
 			if (val < 1000)
 			{
-				buf[0] = '0' + (val / 100) % 10;
-				buf[1] = '0' + (val / 10) % 10;
-				buf[2] = '0' + val % 10;
+				buf[0] = static_cast<char>('0' + (val / 100) % 10);
+				buf[1] = static_cast<char>('0' + (val / 10) % 10);
+				buf[2] = static_cast<char>('0' + val % 10);
 				return {buf.data(), std::size_t(3)};
 			}
 			if (val < 10000)
 			{
-				buf[0] = '0' + (val / 1000) % 10;
-				buf[1] = '0' + (val / 100) % 10;
-				buf[2] = '0' + (val / 10) % 10;
-				buf[3] = '0' + val % 10;
+				buf[0] = static_cast<char>('0' + (val / 1000) % 10);
+				buf[1] = static_cast<char>('0' + (val / 100) % 10);
+				buf[2] = static_cast<char>('0' + (val / 10) % 10);
+				buf[3] = static_cast<char>('0' + val % 10);
 				return {buf.data(), std::size_t(4)};
 			}
 			if (val < 100000)
 			{
-				buf[0] = '0' + (val / 10000) % 10;
-				buf[1] = '0' + (val / 1000) % 10;
-				buf[2] = '0' + (val / 100) % 10;
-				buf[3] = '0' + (val / 10) % 10;
-				buf[4] = '0' + val % 10;
+				buf[0] = static_cast<char>('0' + (val / 10000) % 10);
+				buf[1] = static_cast<char>('0' + (val / 1000) % 10);
+				buf[2] = static_cast<char>('0' + (val / 100) % 10);
+				buf[3] = static_cast<char>('0' + (val / 10) % 10);
+				buf[4] = static_cast<char>('0' + val % 10);
 				return {buf.data(), std::size_t(5)};
 			}
 		}
