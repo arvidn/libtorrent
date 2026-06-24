@@ -519,9 +519,9 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		rv.interface_address = sockaddr_to_address(ifa->ifa_addr);
 		if (rv.interface_address.is_unspecified()) return false;
 
-		if (ifa->ifa_name != nullptr)
+		if (char const* const name = ifa->ifa_name)
 		{
-			std::strncpy(rv.name, ifa->ifa_name, sizeof(rv.name) - 1);
+			std::strncpy(rv.name, name, sizeof(rv.name) - 1);
 			rv.name[sizeof(rv.name) - 1] = '\0';
 		}
 
