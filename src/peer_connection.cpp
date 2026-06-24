@@ -2102,7 +2102,7 @@ namespace {
 			&& m_settings.get_bool(settings_pack::strict_super_seeding)
 			&& (!super_seeded_piece(index) || t->num_peers() == 1))
 		{
-			for (auto& p : *t)
+			for (auto* p : t->peers())
 			{
 				if (!p->super_seeded_piece(index)) continue;
 				if (!p->has_piece(index)) continue;
@@ -6646,50 +6646,6 @@ namespace {
 			if (is_seed())
 				TORRENT_ASSERT(upload_only());
 		}
-
-#ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
-		if (t->has_picker())
-		{
-			std::map<piece_block, peer_count_t> num_requests;
-			for (aux::torrent::const_peer_iterator i = t->begin(); i != t->end(); ++i)
-			{
-				// make sure this peer is not a dangling pointer
-				TORRENT_ASSERT(m_ses.has_peer(*i));
-				peer_connection const& p = *(*i);
-				for (std::vector<pending_block>::const_iterator j = p.request_queue().begin()
-					, end(p.request_queue().end()); j != end; ++j)
-				{
-					++num_requests[j->block].num_peers;
-					++num_requests[j->block].num_peers_with_timeouts;
-					++num_requests[j->block].num_peers_with_nowant;
-					++num_requests[j->block].num_not_requested;
-//					num_requests[j->block].peers.push_back(&p);
-				}
-				for (std::vector<pending_block>::const_iterator j = p.download_queue().begin()
-					, end(p.download_queue().end()); j != end; ++j)
-				{
-					if (!j->not_wanted && !j->timed_out) ++num_requests[j->block].num_peers;
-					if (j->timed_out) ++num_requests[j->block].num_peers_with_timeouts;
-					if (j->not_wanted) ++num_requests[j->block].num_peers_with_nowant;
-//					num_requests[j->block].peers.push_back(&p);
-				}
-			}
-			for (std::map<piece_block, peer_count_t>::iterator j = num_requests.begin()
-				, end(num_requests.end()); j != end; ++j)
-			{
-				piece_block b = j->first;
-				peer_count_t const& pc = j->second;
-				int count = pc.num_peers;
-				int count_with_timeouts = pc.num_peers_with_timeouts;
-				int count_with_nowant = pc.num_peers_with_nowant;
-				(void)count_with_timeouts;
-				(void)count_with_nowant;
-				int picker_count = t->picker().num_peers(b);
-				if (!t->picker().is_downloaded(b))
-					TORRENT_ASSERT(picker_count == count);
-			}
-		}
-#endif
 /*
 		if (t->has_picker() && !t->is_aborted())
 		{
