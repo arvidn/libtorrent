@@ -719,14 +719,8 @@ namespace libtorrent::aux {
 		int num_seeds() const;
 		int num_downloaders() const;
 
-		using peer_iterator = std::vector<peer_connection*>::iterator;
-		using const_peer_iterator = std::vector<peer_connection*>::const_iterator;
-
-		const_peer_iterator begin() const { return m_connections.begin(); }
-		const_peer_iterator end() const { return m_connections.end(); }
-
-		peer_iterator begin() { return m_connections.begin(); }
-		peer_iterator end() { return m_connections.end(); }
+		// only used by ut_pex and i2p_pex. do not use for new code.
+		span<peer_connection* const> peers() const { return m_connections; }
 
 #if TORRENT_ABI_VERSION == 1
 		void get_full_peer_list(std::vector<peer_list_entry>* v) const;
@@ -739,6 +733,15 @@ namespace libtorrent::aux {
 
 		void update_auto_sequential();
 	private:
+		using peer_iterator = std::vector<peer_connection*>::iterator;
+		using const_peer_iterator = std::vector<peer_connection*>::const_iterator;
+
+		const_peer_iterator begin() const { return m_connections.begin(); }
+		const_peer_iterator end() const { return m_connections.end(); }
+
+		peer_iterator begin() { return m_connections.begin(); }
+		peer_iterator end() { return m_connections.end(); }
+
 #if TORRENT_USE_RTC
 		void generate_rtc_offers(int count
 			, std::function<void(error_code const&, std::vector<aux::rtc_offer>)> handler) override;
