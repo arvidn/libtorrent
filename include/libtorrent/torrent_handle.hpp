@@ -1168,6 +1168,7 @@ namespace aux {
 		download_priority_t file_priority(file_index_t index) const;
 		void prioritize_files(std::vector<download_priority_t> const& files) const;
 		std::vector<download_priority_t> get_file_priorities() const;
+		void get_file_priorities(std::vector<download_priority_t>& priorities) const;
 
 #if TORRENT_ABI_VERSION == 1
 		TORRENT_DEPRECATED

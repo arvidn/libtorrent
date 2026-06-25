@@ -624,6 +624,14 @@ namespace libtorrent {
 		return TORRENT_RVO(ret);
 	}
 
+	void torrent_handle::get_file_priorities(std::vector<download_priority_t>& priorities) const
+	{
+		aux::vector<download_priority_t, file_index_t> ret(std::move(priorities));
+		auto retp = &ret;
+		sync_call(&torrent::file_priorities, retp);
+		priorities = std::move(ret);
+	}
+
 #if TORRENT_ABI_VERSION == 1
 
 // ============ start deprecation ===============

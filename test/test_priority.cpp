@@ -515,7 +515,8 @@ TORRENT_TEST(file_priority_multiple_calls)
 		std::size_t(t->files().num_files()), lt::low_priority);
 	for (int i = 0; i < 10; ++i)
 	{
-		auto const p = h.get_file_priorities();
+		auto p = h.get_file_priorities();
+		if (p == expected) h.get_file_priorities(p);
 		if (p == expected) return;
 		std::this_thread::sleep_for(milliseconds(500));
 	}
