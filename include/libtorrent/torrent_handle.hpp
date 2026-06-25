@@ -1210,6 +1210,7 @@ namespace aux {
 		download_priority_t file_priority(file_index_t index) const;
 		void prioritize_files(std::vector<download_priority_t> const& files) const;
 		std::vector<download_priority_t> get_file_priorities() const;
+		void get_file_priorities(std::vector<download_priority_t>& priorities) const;
 
 		// ``post_file_priorities()`` will trigger a file_priorities_alert to be
 		// posted, containing the download priority of each file in the torrent.

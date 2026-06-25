@@ -573,10 +573,17 @@ namespace libtorrent {
 
 	std::vector<download_priority_t> torrent_handle::get_file_priorities() const
 	{
-		aux::vector<download_priority_t, file_index_t> ret;
-		auto* const retp = &ret;
+		std::vector<download_priority_t> ret;
+		get_file_priorities(ret);
+		return ret;
+	}
+
+	void torrent_handle::get_file_priorities(std::vector<download_priority_t>& priorities) const
+	{
+		aux::vector<download_priority_t, file_index_t> ret(std::move(priorities));
+		auto retp = &ret;
 		sync_call(&aux::torrent::file_priorities, retp);
-		return TORRENT_RVO(ret);
+		priorities = std::move(ret);
 	}
 
 #if TORRENT_ABI_VERSION == 1
