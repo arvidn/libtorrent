@@ -119,11 +119,6 @@ namespace aux {
 		// this is 0 or 1, but at the end of the torrent blocks may be requested
 		// by more peers in parallel to speed things up.
 		std::uint16_t num_peers:15;
-#if defined __clang__ && defined __has_warning
-#  if __has_warning("-Wms-bitfield-padding")
-#    pragma clang diagnostic pop
-#  endif
-#endif
 
 		// The peer is the ip address of the peer this block was downloaded from.
 		void set_peer(tcp::endpoint const& ep);
@@ -137,6 +132,11 @@ namespace aux {
 
 		// the state this block is in (see block_state_t)
 		std::uint32_t state:2;
+#if defined __clang__ && defined __has_warning
+#if __has_warning("-Wms-bitfield-padding")
+#pragma clang diagnostic pop
+#endif
+#endif
 	};
 
 	// This class holds information about pieces that have outstanding requests

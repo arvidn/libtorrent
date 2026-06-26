@@ -119,6 +119,7 @@ IndentPPDirectives: None
 # --- Spaces ---
 SpaceBeforeParens:                   ControlStatements
 SpaceBeforeRangeBasedForLoopColon:   true
+BitFieldColonSpacing:                None
 SpaceInEmptyBlock:                   false
 SpaceAfterCStyleCast:                false
 Cpp11BracedListStyle:                true
