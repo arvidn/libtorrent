@@ -25,6 +25,7 @@ see LICENSE file.
 #define TORRENT_TORRENT_HPP_INCLUDE
 
 #include <algorithm>
+#include <array>
 #include <vector>
 #include <set>
 #include <list>
@@ -500,6 +501,10 @@ namespace libtorrent::aux {
 		// per-tick stats delta flushed by peer_connection. propagates
 		// the deltas to m_stat and to the session
 		void accumulate_stats(stat_delta const& d);
+
+		// max priority across torrent's peer_class_set, per channel.
+		// peer snapshots this at attach (m_torrent_priority_cache).
+		std::array<int, 2> torrent_priority() const;
 
 		void set_ip_filter(std::shared_ptr<const ip_filter> ipf);
 		void privileged_port_updated();

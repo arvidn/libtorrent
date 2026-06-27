@@ -875,6 +875,12 @@ namespace libtorrent::aux {
 		// attached.
 		std::shared_ptr<torrent_info const> m_ti;
 
+		// snapshot of the torrent's priority per channel, taken at
+		// attach. lets the choker's compare predicate read priority
+		// without touching the torrent. not refreshed; a runtime
+		// set_peer_class only takes effect on reconnect.
+		std::array<int, 2> m_torrent_priority_cache{};
+
 	public:
 		aux::chained_buffer m_send_buffer;
 	private:

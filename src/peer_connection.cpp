@@ -136,10 +136,13 @@ namespace {
 			+ static_cast<std::uint8_t>(socket_type_idx(m_socket)));
 		auto t = m_torrent.lock();
 
-		// for outgoing connections the torrent is known at construction
-		// time, so we can cache the torrent_info pointer up-front. For
-		// incoming connections attach_to_torrent() sets it later.
-		if (t) m_ti = t->torrent_file_ptr();
+		// outgoing connections know the torrent here; incoming ones
+		// snapshot the same state in attach_to_torrent().
+		if (t)
+		{
+			m_ti = t->torrent_file_ptr();
+			m_torrent_priority_cache = t->torrent_priority();
+		}
 
 		// the protocol_v2 flag should not be set for non-v2 torrents
 		TORRENT_ASSERT(!m_ti || m_ti->info_hashes().has_v2() || !m_peer_info->protocol_v2);
@@ -256,10 +259,8 @@ namespace {
 		TORRENT_ASSERT(is_single_thread());
 		TORRENT_ASSERT(channel >= 0 && channel < 2);
 		// the bandwidth allocator's minimum priority is 1
-		int prio = std::max(1, m_rates.max_priority(*this, channel));
-		auto const t = associated_torrent().lock();
-		if (t) prio = std::max(prio, m_rates.max_priority(*t, channel));
-		return prio;
+		int const peer_prio = std::max(1, m_rates.max_priority(*this, channel));
+		return std::max(peer_prio, m_torrent_priority_cache[std::size_t(channel)]);
 	}
 
 	void peer_connection::reset_choke_counters()
@@ -1387,6 +1388,8 @@ namespace {
 		// of the torrent and peer_connection::disconnect() will fail if it
 		// think it is
 		m_torrent = t;
+
+		m_torrent_priority_cache = t->torrent_priority();
 
 		if (t && m_alerts.should_post<peer_connect_alert>())
 		{

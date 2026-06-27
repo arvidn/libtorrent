@@ -73,6 +73,7 @@ see LICENSE file.
 #include "libtorrent/identify_client.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/extensions.hpp"
+#include "libtorrent/aux_/rate_limits.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
 #include "libtorrent/aux_/instantiate_connection.hpp"
 #include "libtorrent/assert.hpp"
@@ -10857,6 +10858,13 @@ namespace {
 	{
 		m_stat.accumulate(d);
 		m_ses.accumulate_stats(d);
+	}
+
+	std::array<int, 2> torrent::torrent_priority() const
+	{
+		auto& rates = m_ses.rates();
+		return {{rates.max_priority(*this, rate_limits::upload_channel),
+			rates.max_priority(*this, rate_limits::download_channel)}};
 	}
 
 #ifndef TORRENT_DISABLE_STREAMING
