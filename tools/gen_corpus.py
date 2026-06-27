@@ -3181,6 +3181,65 @@ def generate_add_torrent(outdir: str) -> None:
     print(f"Generated {c.count} add_torrent corpus files in {outdir}")
 
 
+def generate_sdp_offer(outdir: str) -> None:
+    """Seed corpus for fuzzers/src/sdp_offer.cpp.
+
+    Provides minimal valid WebRTC DataChannel SDP offers for libdatachannel's
+    rtc::Description parser to start mutating from.
+    """
+    c = Corpus(outdir)
+
+    # Minimal WebRTC DataChannel offer as produced by libdatachannel.
+    # Lines use CRLF as required by RFC 4566.
+    def sdp(lines: list) -> bytes:
+        return "\r\n".join(lines).encode() + b"\r\n"
+
+    common_header = [
+        "v=0",
+        "o=- 1462739618 1462739618 IN IP4 127.0.0.1",
+        "s=-",
+        "t=0 0",
+        "a=group:BUNDLE 0",
+    ]
+    common_media = [
+        "m=application 9 UDP/DTLS/SCTP webrtc-datachannel",
+        "c=IN IP4 0.0.0.0",
+        "a=ice-ufrag:abcd",
+        "a=ice-pwd:abcdabcdabcdabcdabcdabcd",
+        "a=ice-options:trickle",
+        (
+            "a=fingerprint:sha-256 "
+            "AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:"
+            "AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99"
+        ),
+        "a=setup:actpass",
+        "a=mid:0",
+        "a=sctp-port:5000",
+        "a=max-message-size:262144",
+    ]
+
+    # Minimal valid offer
+    c.add("minimal", sdp(common_header + common_media))
+
+    # With an ICE candidate line
+    c.add(
+        "with_candidate",
+        sdp(
+            common_header
+            + common_media
+            + ["a=candidate:1 1 UDP 2130706431 127.0.0.1 9 typ host"]
+        ),
+    )
+
+    # Empty input (parser must not crash)
+    c.add("empty", b"")
+
+    # Just the version line
+    c.add("version_only", b"v=0\r\n")
+
+    print(f"Generated {c.count} sdp_offer corpus files in {outdir}")
+
+
 def main() -> None:
     # Anchor output to the repo's fuzzers/corpus directory regardless of the
     # current working directory. This script lives in tools/, so the repo root
@@ -3204,6 +3263,7 @@ def main() -> None:
     generate_torrent_info(corpus("torrent_info"))
     generate_lsd(corpus("lsd"))
     generate_add_torrent(corpus("add_torrent"))
+    generate_sdp_offer(corpus("sdp_offer"))
 
 
 if __name__ == "__main__":
