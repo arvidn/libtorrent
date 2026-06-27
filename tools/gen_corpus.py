@@ -3181,6 +3181,156 @@ def generate_add_torrent(outdir: str) -> None:
     print(f"Generated {c.count} add_torrent corpus files in {outdir}")
 
 
+def generate_rtc_parse_endpoint(outdir: str) -> None:
+    """Seed corpus for fuzzers/src/rtc_parse_endpoint.cpp."""
+    c = Corpus(outdir)
+
+    # Valid IPv4 address:port
+    c.add("ipv4", b"127.0.0.1:12345")
+
+    # Valid IPv6 (split on last colon, no brackets)
+    c.add("ipv6", b"::1:12345")
+
+    # Port at boundary
+    c.add("port_max", b"127.0.0.1:65535")
+    c.add("port_zero", b"127.0.0.1:0")
+
+    # Malformed: no colon
+    c.add("no_colon", b"127.0.0.1")
+
+    # Malformed: non-numeric port
+    c.add("bad_port", b"127.0.0.1:abc")
+
+    # Empty
+    c.add("empty", b"")
+
+    print(f"Generated {c.count} rtc_parse_endpoint corpus files in {outdir}")
+
+
+def _make_tracker_offer_json(sdp: str) -> bytes:
+    """Build a minimal valid websocket tracker offer message containing sdp."""
+    # info_hash, peer_id: 20 ASCII bytes each (valid Latin-1 encoded as UTF-8)
+    info_hash = "a" * 20
+    peer_id = "b" * 20
+    offer_id = "c" * 20
+    payload = (
+        '{"info_hash":"' + info_hash + '"'
+        ',"peer_id":"' + peer_id + '"'
+        ',"offer_id":"' + offer_id + '"'
+        ',"offer":{"type":"offer","sdp":"'
+        + sdp.replace("\\", "\\\\").replace('"', '\\"')
+        + '"}}'
+    )
+    return payload.encode()
+
+
+def generate_rtc_tracker_offer(outdir: str) -> None:
+    """Seed corpus for fuzzers/src/rtc_tracker_offer.cpp.
+
+    Covers the path: boost::json parsing -> JSON string unescape -> rtc::Description.
+    """
+    c = Corpus(outdir)
+
+    minimal_sdp = (
+        "v=0\\r\\n"
+        "o=- 1462739618 1462739618 IN IP4 127.0.0.1\\r\\n"
+        "s=-\\r\\n"
+        "t=0 0\\r\\n"
+        "a=group:BUNDLE 0\\r\\n"
+        "m=application 9 UDP/DTLS/SCTP webrtc-datachannel\\r\\n"
+        "c=IN IP4 0.0.0.0\\r\\n"
+        "a=ice-ufrag:abcd\\r\\n"
+        "a=ice-pwd:abcdabcdabcdabcdabcdabcd\\r\\n"
+        "a=fingerprint:sha-256 "
+        "AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:"
+        "AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99\\r\\n"
+        "a=setup:actpass\\r\\n"
+        "a=mid:0\\r\\n"
+        "a=sctp-port:5000\\r\\n"
+        "a=max-message-size:262144\\r\\n"
+    )
+
+    # Minimal valid offer
+    c.add("offer_minimal", _make_tracker_offer_json(minimal_sdp))
+
+    # With ICE candidate in the SDP
+    sdp_with_candidate = (
+        minimal_sdp.rstrip("\\r\\n") + "\\r\\n"
+        "a=candidate:1 1 UDP 2130706431 127.0.0.1 9 typ host\\r\\n"
+    )
+    c.add("offer_with_candidate", _make_tracker_offer_json(sdp_with_candidate))
+
+    # Invalid JSON (parser must not crash)
+    c.add("invalid_json", b"{not json}")
+
+    # Valid JSON but missing required fields
+    c.add("missing_info_hash", b'{"offer":{"sdp":"v=0"}}')
+
+    # Empty input
+    c.add("empty", b"")
+
+    print(f"Generated {c.count} rtc_tracker_offer corpus files in {outdir}")
+
+
+def generate_sdp_offer(outdir: str) -> None:
+    """Seed corpus for fuzzers/src/sdp_offer.cpp.
+
+    Provides minimal valid WebRTC DataChannel SDP offers for libdatachannel's
+    rtc::Description parser to start mutating from.
+    """
+    c = Corpus(outdir)
+
+    # Minimal WebRTC DataChannel offer as produced by libdatachannel.
+    # Lines use CRLF as required by RFC 4566.
+    def sdp(lines: list) -> bytes:
+        return "\r\n".join(lines).encode() + b"\r\n"
+
+    common_header = [
+        "v=0",
+        "o=- 1462739618 1462739618 IN IP4 127.0.0.1",
+        "s=-",
+        "t=0 0",
+        "a=group:BUNDLE 0",
+    ]
+    common_media = [
+        "m=application 9 UDP/DTLS/SCTP webrtc-datachannel",
+        "c=IN IP4 0.0.0.0",
+        "a=ice-ufrag:abcd",
+        "a=ice-pwd:abcdabcdabcdabcdabcdabcd",
+        "a=ice-options:trickle",
+        (
+            "a=fingerprint:sha-256 "
+            "AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99:"
+            "AA:BB:CC:DD:EE:FF:00:11:22:33:44:55:66:77:88:99"
+        ),
+        "a=setup:actpass",
+        "a=mid:0",
+        "a=sctp-port:5000",
+        "a=max-message-size:262144",
+    ]
+
+    # Minimal valid offer
+    c.add("minimal", sdp(common_header + common_media))
+
+    # With an ICE candidate line
+    c.add(
+        "with_candidate",
+        sdp(
+            common_header
+            + common_media
+            + ["a=candidate:1 1 UDP 2130706431 127.0.0.1 9 typ host"]
+        ),
+    )
+
+    # Empty input (parser must not crash)
+    c.add("empty", b"")
+
+    # Just the version line
+    c.add("version_only", b"v=0\r\n")
+
+    print(f"Generated {c.count} sdp_offer corpus files in {outdir}")
+
+
 def main() -> None:
     # Anchor output to the repo's fuzzers/corpus directory regardless of the
     # current working directory. This script lives in tools/, so the repo root
@@ -3204,6 +3354,9 @@ def main() -> None:
     generate_torrent_info(corpus("torrent_info"))
     generate_lsd(corpus("lsd"))
     generate_add_torrent(corpus("add_torrent"))
+    generate_sdp_offer(corpus("sdp_offer"))
+    generate_rtc_parse_endpoint(corpus("rtc_parse_endpoint"))
+    generate_rtc_tracker_offer(corpus("rtc_tracker_offer"))
 
 
 if __name__ == "__main__":
