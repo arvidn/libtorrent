@@ -93,6 +93,8 @@ fuzzer add_torrent ;
 fuzzer utp_stream ;
 fuzzer websocket_tracker ;
 fuzzer sdp_offer ;
+fuzzer rtc_parse_endpoint ;
+fuzzer rtc_tracker_offer ;
 fuzzer xml_parse ;
 fuzzer socks5_stream_handshake ;
 fuzzer pe_conn ;
@@ -123,6 +125,7 @@ local LARGE_TARGETS =
 	utp_stream
 	websocket_tracker
 	sdp_offer
+	rtc_tracker_offer
 	socks5_stream_handshake
 	pe_conn
 	ut_metadata
