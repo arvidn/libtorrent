@@ -129,6 +129,7 @@ namespace libtorrent::aux {
 			, std::vector<tcp::endpoint>& banned);
 
 		void set_seed(torrent_peer* p, bool s);
+		void set_upload_only(torrent_peer* p, bool s);
 
 		// this clears all cached peer priorities. It's called when
 		// our external IP changes

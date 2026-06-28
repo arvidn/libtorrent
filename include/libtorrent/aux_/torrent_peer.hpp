@@ -123,6 +123,12 @@ namespace libtorrent::aux {
 		// because we have connected to it and it told us it was a seed
 		std::uint32_t seed:1;
 
+		// this peer confirmed via BEP-21 (LTEP upload_only=1) that it will
+		// not download any more. A seed is upload_only by implication,
+		// but a partial seed can be upload_only without being a seed, so
+		// this is tracked separately from seed:1.
+		std::uint32_t upload_only:1;
+
 		// we've been told that this peer is upload-only, but we don't know for
 		// sure because we haven't connected to it yet. If we are finished, we
 		// will de-prioritize peers that may be seeds
