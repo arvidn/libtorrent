@@ -13,6 +13,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 chunked_encoding = False
 keepalive = True
 expected_host = ''
+stopped_announces_file = ''
 
 try:
     fin = open('test_file', 'rb')
@@ -121,6 +122,17 @@ class http_handler(BaseHTTPRequestHandler):
             self.send_header("Connection", "close")
             self.end_headers()
         elif self.path.startswith('/announce'):
+            # record stopped announces to a file so the test can verify they were
+            # actually delivered (the client-side alert may not fire for a stop
+            # announce coalesced behind a removed torrent). stdout is inherited by
+            # the test process and can't be read back portably, so use a file.
+            if stopped_announces_file and 'event=stopped' in self.path:
+                try:
+                    with open(stopped_announces_file, 'a') as sf:
+                        sf.write(self.path + '\n')
+                except OSError as e:
+                    print(f'WARNING: failed to write stopped announce: {e}')
+                    sys.stdout.flush()
             self.send_response(200)
             response = b'd8:intervali1800e8:completei1e10:incompletei1e' + \
                 b'12:min intervali' + min_interval.encode() + b'e' + \
@@ -128,10 +140,15 @@ class http_handler(BaseHTTPRequestHandler):
                 b'6:peers618:EEEEEEEEEEEEEEEEFF' + \
                 b'e'
             self.send_header("Content-Length", "%d" % len(response))
-            self.send_header("Connection", "close")
+            # honor keep-alive so multiple (possibly pipelined) announces can be
+            # served on one connection. Only force-close when keep-alive is off.
+            if not keepalive:
+                self.send_header("Connection", "close")
             self.end_headers()
             self.wfile.write(response)
-            self.request.close()
+            self.wfile.flush()
+            if not keepalive:
+                self.request.close()
         else:
             filename = ''
             try:
@@ -268,7 +285,8 @@ if __name__ == '__main__':
     use_ssl = sys.argv[3] != '0'
     keepalive = sys.argv[4] != '0'
     min_interval = sys.argv[5]
-    expected_host = sys.argv[6] if len(sys.argv) > 6 else ''
+    stopped_announces_file = sys.argv[6]
+    expected_host = sys.argv[7] if len(sys.argv) > 7 else ''
     print('python version: %s' % sys.version_info.__str__())
 
     http_handler.protocol_version = 'HTTP/1.1'

@@ -914,34 +914,37 @@ void test_stop_tracker_timeout(int const timeout)
 	// after the initial announce
 	int port = start_web_server(false, false, true, -1);
 
-	auto count_stopped_events = [](session& ses, int expected)
+	// the web server records each stopped announce it actually receives to this
+	// file. We count real deliveries rather than client-side log alerts: a stop
+	// announce coalesced behind a removed torrent is still delivered but produces
+	// no client alert (its requester, the torrent, is gone by then). The path is
+	// derived from the port so concurrent test runs don't clobber each other.
+	std::string const stopped_file = web_server_stopped_announces_path(port);
 	{
+		std::ofstream clear_f(stopped_file, std::ios::trunc);
+	}
+
+	auto count_stopped_events = [stopped_file](session& ses, int const expected) {
+		time_point const end_time = clock_type::now() + seconds(5);
 		int count = 0;
-		int num = 70; // this number is adjusted per version, an estimate
-		time_point const end_time = clock_type::now() + seconds(15);
 		while (true)
 		{
-			time_point const now = clock_type::now();
-			if (now > end_time) return count;
-
-			ses.wait_for_alert(end_time - now);
+			// the session runs on its own thread; drain alerts so the queue
+			// doesn't fill, and use the wait as our poll interval.
+			ses.wait_for_alert(milliseconds(200));
 			std::vector<alert*> alerts;
 			ses.pop_alerts(&alerts);
-			for (auto a : alerts)
-			{
-				std::printf("%d: [%s] %s\n", num, a->what(), a->message().c_str());
-				if (a->type() == log_alert::alert_type)
-				{
-					std::string const msg = a->message();
-					if (msg.find("&event=stopped") != std::string::npos)
-					{
-						count++;
-						--expected;
-					}
-				}
-				num--;
-			}
-			if (num <= 0 && expected <= 0) return count;
+			for (auto const a : alerts)
+				std::printf("[%s] %s\n", a->what(), a->message().c_str());
+
+			count = 0;
+			std::ifstream f(stopped_file);
+			std::string line;
+			while (std::getline(f, line))
+				++count;
+
+			if (count >= expected && expected > 0) return count;
+			if (clock_type::now() > end_time) return count;
 		}
 	};
 

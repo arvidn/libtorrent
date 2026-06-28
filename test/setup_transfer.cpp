@@ -1216,28 +1216,39 @@ namespace {
 pid_type web_server_pid = 0;
 }
 
+std::string web_server_stopped_announces_path(int const port)
+{
+	return "stopped_announces." + std::to_string(port);
+}
+
 int start_web_server(
 	bool ssl, bool chunked_encoding, bool keepalive, int min_interval, bool expect_host_header)
 {
 	int const port = find_available_port();
 	char expected_host[200] = {};
 	if (expect_host_header)
-		std::snprintf(expected_host, sizeof(expected_host), "127.0.0.1:%d", port);
+		std::snprintf(expected_host, sizeof(expected_host), " 127.0.0.1:%d", port);
+
+	// passed to web_server.py as a fixed (always non-empty) positional argument
+	// ahead of the optional expected-host, so the optional argument can be
+	// omitted without shifting this one's position.
+	std::string const stopped_file = web_server_stopped_announces_path(port);
 
 	std::vector<std::string> python_exes = get_python();
 
 	for (auto const& python_exe : python_exes)
 	{
-		char buf[300];
+		char buf[512];
 		std::snprintf(buf,
 			sizeof(buf),
-			"%s .." SEPARATOR "web_server.py %d %d %d %d %d %s",
+			"%s .." SEPARATOR "web_server.py %d %d %d %d %d %s%s",
 			python_exe.c_str(),
 			port,
 			chunked_encoding,
 			ssl,
 			keepalive,
 			min_interval,
+			stopped_file.c_str(),
 			expected_host);
 
 		std::printf("%s starting web_server on port %d...\n", time_now_string().c_str(), port);
