@@ -757,6 +757,7 @@ namespace libtorrent {
 		bool ban_peer(torrent_peer* tp);
 		void update_peer_port(int port, torrent_peer* p, peer_source_flags_t src);
 		void set_seed(torrent_peer* p, bool s);
+		void set_upload_only(torrent_peer* p, bool s);
 		void clear_failcount(torrent_peer* p);
 		std::pair<peer_list::iterator, peer_list::iterator> find_peers(address const& a);
 
