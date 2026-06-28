@@ -265,23 +265,19 @@ namespace libtorrent::aux {
 			bi,
 			(tracker_req().event == event_t::stopped ? aux::resolver_interface::cache_only
 													 : aux::resolver_flags{})
-				| aux::resolver_interface::abort_on_shutdown
+				| aux::resolver_interface::abort_on_shutdown,
 #if TORRENT_ABI_VERSION == 1
-			,
-			tracker_req().auth
+			tracker_req().auth,
 #else
-			,
-			""
+			"",
 #endif
 #if TORRENT_USE_I2P
-			,
-			tracker_req().i2pconn
+			tracker_req().i2pconn,
 #endif
 			// always request keep-alive so the socket stays available for a
 			// follower that may be queued while this request is in flight. When
 			// the queue drains, the connection is closed immediately (see
 			// next_request()), so this does not leak idle sockets.
-			,
 			true);
 
 		// the url + 100 estimated header size
