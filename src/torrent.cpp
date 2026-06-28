@@ -11657,6 +11657,11 @@ namespace {
 		update_auto_sequential();
 	}
 
+	void torrent::set_upload_only(torrent_peer* p, bool const s)
+	{
+		m_peer_list->set_upload_only(p, s);
+	}
+
 	void torrent::clear_failcount(torrent_peer* p)
 	{
 		need_peer_list();
