@@ -92,12 +92,10 @@ void http_connection::get(std::string const& url,
 	std::string const& user_agent,
 	std::optional<bind_info_t> const& bind_addr,
 	aux::resolver_flags const resolve_flags,
-	std::string const& auth_
+	std::string const& auth_,
 #if TORRENT_USE_I2P
-	,
-	i2p_connection* i2p_conn
+	i2p_connection* i2p_conn,
 #endif
-	,
 	bool const keep_alive)
 {
 	m_user_agent = user_agent;

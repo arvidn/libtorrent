@@ -91,12 +91,10 @@ struct TORRENT_EXTRA_EXPORT http_connection
 		std::string const& user_agent = std::string(),
 		std::optional<bind_info_t> const& bind_addr = std::nullopt,
 		aux::resolver_flags resolve_flags = aux::resolver_flags{},
-		std::string const& auth_ = std::string()
+		std::string const& auth_ = std::string(),
 #if TORRENT_USE_I2P
-			,
-		i2p_connection* i2p_conn = nullptr
+		i2p_connection* i2p_conn = nullptr,
 #endif
-		,
 		bool keep_alive = false);
 
 	void start(std::string const& hostname, int port
