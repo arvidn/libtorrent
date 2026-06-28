@@ -483,7 +483,7 @@ namespace libtorrent::aux {
 			|| p.banned
 			|| p.web_seed
 			|| !p.connectable
-			|| (p.seed && m_finished)
+			|| ((p.seed || p.upload_only) && m_finished)
 			|| int(p.failcount) >= m_max_failcount)
 			return false;
 
@@ -983,6 +983,23 @@ namespace libtorrent::aux {
 			TORRENT_ASSERT(m_num_seeds > 0);
 			--m_num_seeds;
 		}
+	}
+
+	void peer_list::set_upload_only(torrent_peer* p, bool s)
+	{
+		TORRENT_ASSERT(is_single_thread());
+		if (p == nullptr) return;
+		TORRENT_ASSERT(p->in_use);
+		if (bool(p->upload_only) == s) return;
+		bool const was_conn_cand = is_connect_candidate(*p);
+		p->upload_only = s;
+		bool const is_conn_cand = is_connect_candidate(*p);
+		if (was_conn_cand && !is_conn_cand)
+			update_connect_candidates(-1);
+		else if (!was_conn_cand && is_conn_cand)
+			update_connect_candidates(1);
+		// unlike set_seed, do NOT touch m_num_seeds: a BEP-21 upload_only
+		// peer is not necessarily a full seed (partial seeds qualify too).
 	}
 
 	// this is an internal function

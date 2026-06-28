@@ -134,6 +134,7 @@ namespace libtorrent::aux {
 		, connectable(conn)
 		, optimistically_unchoked(false)
 		, seed(false)
+		, upload_only(false)
 		, maybe_upload_only(false)
 		, fast_reconnects(0)
 		, trust_points(0)

@@ -6853,6 +6853,20 @@ namespace {
 	{
 		TORRENT_ASSERT(is_single_thread());
 		m_upload_only = u;
+
+		// arvidn/libtorrent#7700: keep the persistent peer_list entry in
+		// sync with the live m_upload_only bit, BEFORE the connection may
+		// be torn down by disconnect_if_redundant(). This is what lets
+		// the next scheduler tick filter out known upload_only peers via
+		// is_connect_candidate() and avoid the reconnect storm. Both
+		// transitions propagate so the persistent bit cannot go stale if
+		// BEP-21 toggles the flag back to 0.
+		if (m_peer_info != nullptr)
+		{
+			if (auto t = m_torrent.lock())
+				t->set_upload_only(m_peer_info, u);
+		}
+
 		disconnect_if_redundant();
 	}
 
