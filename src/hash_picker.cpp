@@ -92,9 +92,8 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 
 			m_piece_hash_requested[f].resize((m_files.file_num_pieces(f) + 511) / 512);
 
-			int const piece_layer_idx = merkle_num_layers(
-				merkle_num_leafs(m_files.file_num_blocks(f))) - m_piece_layer;
-			int const piece_layer_start = merkle_layer_start(piece_layer_idx);
+			int const piece_layer_idx =
+				merkle_num_layers(merkle_num_leafs(m_files.file_num_blocks(f))) - m_piece_layer;
 
 			// check for hashes we already have and flag entries in m_piece_hash_requested
 			// so that we don't request them again
@@ -109,7 +108,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 					}
 					if ((m_files.piece_length() == default_block_size && !v.get_bit(j))
 						|| (m_files.piece_length() > default_block_size
-							&& !tree.has_node(piece_layer_start + j)))
+							&& !tree.has_node(piece_layer_idx, j)))
 						break;
 				}
 			}
@@ -379,7 +378,9 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		file_index_t const f = m_files.file_index_at_piece(index);
 		if (m_files.file_size(f) <= m_files.piece_length()) return true;
 		piece_index_t const file_first_piece(int(m_files.file_offset(f) / m_files.piece_length()));
-		return m_merkle_trees[f].has_node(m_files.file_first_piece_node(f) + int(index - file_first_piece));
+		int const node = m_files.file_first_piece_node(f) + int(index - file_first_piece);
+		int const L = merkle_get_layer(node);
+		return m_merkle_trees[f].has_node(L, node - merkle_layer_start(L));
 	}
 
 	bool hash_picker::have_all(file_index_t const file) const
@@ -418,7 +419,8 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		for (;;)
 		{
 			idx.node = merkle_get_parent(idx.node);
-			if (tree.has_node(idx.node)) break;
+			int const L = merkle_get_layer(idx.node);
+			if (tree.has_node(L, idx.node - merkle_layer_start(L))) break;
 			layers++;
 			if (layers == file_internal_layers) return layers;
 		}
