@@ -722,6 +722,11 @@ namespace libtorrent {
 		async_call(&aux::torrent::read_piece, piece);
 	}
 
+	void torrent_handle::read_piece_range(const index_range<piece_index_t>& range) const
+	{
+		async_call(&aux::torrent::read_piece_range, range);
+	}
+
 	bool torrent_handle::have_piece(piece_index_t piece) const
 	{
 		return sync_call_ret<bool>(false, &aux::torrent::user_have_piece, piece);
@@ -957,10 +962,43 @@ namespace libtorrent {
 #endif
 	}
 
+	void torrent_handle::set_piece_range_deadline(const index_range<piece_index_t>& range
+		, int deadline, deadline_flags_t const flags) const
+	{
+#ifndef TORRENT_DISABLE_STREAMING
+		async_call(static_cast<void (aux::torrent::*)(const index_range<piece_index_t>&, int, deadline_flags_t const)>(&aux::torrent::set_piece_range_deadline), range, deadline, flags);
+#else
+		TORRENT_UNUSED(deadline);
+		if (flags & alert_when_available)
+			async_call(&aux::torrent::read_piece_range, range);
+#endif
+	}
+
+	void torrent_handle::set_piece_range_deadline(const index_range<piece_index_t>& range
+		, std::vector<int>&& deadlines, deadline_flags_t const flags) const
+	{
+#ifndef TORRENT_DISABLE_STREAMING
+		async_call(static_cast<void (aux::torrent::*)(const index_range<piece_index_t>&, boost::span<int>&&, deadline_flags_t const)>(&aux::torrent::set_piece_range_deadline), range, boost::span<int>(deadlines), flags);
+#else
+		TORRENT_UNUSED(deadlines);
+		if (flags & alert_when_available)
+			async_call(&aux::torrent::read_piece_range, range);
+#endif
+	}
+
 	void torrent_handle::reset_piece_deadline(piece_index_t index) const
 	{
 #ifndef TORRENT_DISABLE_STREAMING
 		async_call(&aux::torrent::reset_piece_deadline, index);
+#else
+		TORRENT_UNUSED(index);
+#endif
+	}
+
+	void torrent_handle::reset_piece_range_deadline(const index_range<piece_index_t>& range) const
+	{
+#ifndef TORRENT_DISABLE_STREAMING
+		async_call(&aux::torrent::reset_piece_range_deadline, range);
 #else
 		TORRENT_UNUSED(index);
 #endif
