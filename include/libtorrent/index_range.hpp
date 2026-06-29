@@ -90,11 +90,20 @@ private:
 	Index m_idx;
 };
 
+// Ranges can be represented with both a starting and an ending index. Functions
+// from libtorrent that are called with a range parameter will always take the
+// starting index as is and the ending index will either be used exclusively or
+// inclusively, depending on each method.
 template <typename Index>
 struct index_range
 {
+	// hidden
 	Index _begin;
 	Index _end;
+	// With these two methods a range can be iterated upon.
+	//
+	// ``begin()`` returns an iterator at the start of the range.
+	// ``end()`` return an iterator at the end of the range.
 	index_iter<Index> begin() const { return index_iter<Index>{_begin}; }
 	index_iter<Index> end() const { return index_iter<Index>{_end}; }
 	friend bool operator==(index_range const& lhs, index_range const& rhs)
@@ -102,6 +111,15 @@ struct index_range
 		return lhs._begin == rhs._begin && lhs._end == rhs._end;
 	}
 	friend bool operator!=(index_range const& lhs, index_range const& rhs) { return !(lhs == rhs); }
+	// Check if an index value is part of a range.
+	//
+	// ``belongs()`` will check from start to end exclusive.
+	// ``bounds()`` will check from start to end inclusive.
+	bool belongs(Index value) const { return _begin <= value && _end > value; }
+	bool bounds(Index value) const { return _begin <= value && _end >= value; }
+	// Check if this range contains another.
+	bool contains(const index_range<Index>& other) const
+	{ return _begin <= other._begin && _begin <= other._end && _end >= other._begin && _end >= other._end; }
 };
 
 }
