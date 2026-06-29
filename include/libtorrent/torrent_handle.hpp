@@ -301,8 +301,8 @@ namespace aux {
 		void add_piece(piece_index_t piece, std::vector<char> data, add_piece_flags_t flags = {}) const;
 
 		// This function starts an asynchronous read operation of the specified
-		// piece from this torrent. You must have completed the download of the
-		// specified piece before calling this function.
+		// pieces from this torrent. You must have completed the download of the
+		// specified pieces before calling this function.
 		//
 		// When the read operation is completed, it is passed back through an
 		// alert, read_piece_alert. Since this alert is a response to an explicit
@@ -314,7 +314,11 @@ namespace aux {
 		// .. note:: the size of the buffer passed back in the alert is not
 		//    necessarily piece_length() long. The last piece or pieces at the end
 		//    of files (in v2 and hybrid torrents) are not full size.
+		//
+		// ``read_piece()`` requests a single piece.
+		// ``read_piece_range()`` requests a range of pieces.
 		void read_piece(piece_index_t piece) const;
+		void read_piece_range(const index_range<piece_index_t>& range) const;
 
 		// Returns true pieces have been completely downloaded and written
 		// to disk, and false otherwise.
@@ -433,14 +437,25 @@ namespace aux {
 		// ``deadline`` is the number of milliseconds until this piece should be
 		// completed.
 		//
-		// ``reset_piece_deadline`` removes the deadline from the piece. If it
+		// ``set_piece_range_deadline()`` sets deadlines for a range of pieces.
+		//
+		// ``deadlines`` vector of deadlines of each individual piece. If its
+		// length does not coincide with the range then it's truncated from its
+		// first index to an equal size or its last value is used as filler.
+		//
+		// ``reset_piece_deadline()`` removes the deadline from the piece. If it
 		// hasn't already been downloaded, it will no longer be considered a
 		// priority.
+		//
+		// ``reset_piece_range_deadline()`` does so for a range of pieces.
 		//
 		// ``clear_piece_deadlines()`` removes deadlines on all pieces in
 		// the torrent. As if reset_piece_deadline() was called on all pieces.
 		void set_piece_deadline(piece_index_t index, int deadline, deadline_flags_t flags = {}) const;
+		void set_piece_range_deadline(const index_range<piece_index_t>& range, int deadline, deadline_flags_t flags = {}) const;
+		void set_piece_range_deadline(const index_range<piece_index_t>& range, std::vector<int>&& deadlines, deadline_flags_t flags = {}) const;
 		void reset_piece_deadline(piece_index_t index) const;
+		void reset_piece_range_deadline(const index_range<piece_index_t>& range) const;
 		void clear_piece_deadlines() const;
 
 #if TORRENT_ABI_VERSION == 1

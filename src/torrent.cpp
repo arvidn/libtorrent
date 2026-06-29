@@ -855,6 +855,81 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		m_ses.deferred_submit_jobs();
 	}
 
+	void torrent::read_piece_range(const index_range<piece_index_t> &range)
+	{
+		error_code ec;
+		if (m_abort || m_deleted)
+		{
+			ec.assign(boost::system::errc::operation_canceled, generic_category());
+		}
+		else if (!valid_metadata())
+		{
+			ec.assign(errors::no_metadata, libtorrent_category());
+		}
+
+		if (ec)
+		{
+			for (const auto p : range)
+				m_ses.alerts().emplace_alert<read_piece_alert>(get_handle(), p, ec);
+			return;
+		}
+
+		for (const auto p : range) {
+			if (!user_have_piece(p))
+			{
+				ec.assign(errors::invalid_piece_index, libtorrent_category());
+				m_ses.alerts().emplace_alert<read_piece_alert>(get_handle(), p, ec);
+				continue;
+			}
+
+			const int piece_size = m_torrent_file->piece_size_for_req(p);
+			const int blocks_in_piece = (piece_size + block_size() - 1) / block_size();
+
+			TORRENT_ASSERT(blocks_in_piece > 0);
+			TORRENT_ASSERT(piece_size > 0);
+
+			if (blocks_in_piece == 0)
+			{
+				// this shouldn't actually happen
+				boost::shared_array<char> buf;
+				m_ses.alerts().emplace_alert<read_piece_alert>(
+					get_handle(), p, buf, 0);
+				continue;
+			}
+
+			std::shared_ptr<read_piece_struct> rp = std::make_shared<read_piece_struct>();
+			rp->piece_data.reset(new (std::nothrow) char[std::size_t(piece_size)]);
+			if (!rp->piece_data)
+			{
+				m_ses.alerts().emplace_alert<read_piece_alert>(
+					get_handle(), p, error_code(boost::system::errc::not_enough_memory, generic_category()));
+				continue;
+			}
+			rp->blocks_left = blocks_in_piece;
+			rp->fail = false;
+
+			disk_job_flags_t flags{};
+			auto const read_mode = settings().get_int(settings_pack::disk_io_read_mode);
+			if (read_mode == settings_pack::disable_os_cache)
+				flags |= disk_interface::volatile_read;
+
+			peer_request r;
+			r.piece = p;
+			r.start = 0;
+			auto self = shared_from_this();
+			for (int i = 0; i < blocks_in_piece; ++i, r.start += block_size())
+			{
+				r.length = std::min(piece_size - r.start, block_size());
+				m_ses.disk_thread().async_read(m_storage, r
+					, [self, r, rp](disk_buffer_holder block, storage_error const& se) mutable
+					{ self->on_disk_read_complete(std::move(block), se, r, rp); }
+					, flags);
+			}
+		}
+
+		m_ses.deferred_submit_jobs();
+	}
+
 #ifndef TORRENT_DISABLE_SHARE_MODE
 	void torrent::send_share_mode()
 	{
@@ -5366,9 +5441,152 @@ namespace {
 		}
 	}
 
+	void torrent::set_piece_range_deadline(const index_range<piece_index_t>& range, boost::span<int>&& deadlines
+		, deadline_flags_t const flags)
+	{
+		INVARIANT_CHECK;
+
+		TORRENT_ASSERT_PRECOND(valid_metadata());
+		TORRENT_ASSERT_PRECOND(valid_metadata() && m_torrent_file->piece_range().contains(range));
+		TORRENT_ASSERT_PRECOND(deadlines.size());
+
+		if (m_abort || !valid_metadata()
+			|| !m_torrent_file->piece_range().contains(range)
+			|| !deadlines.size())
+		{
+			// failed
+			if (flags & torrent_handle::alert_when_available)
+			{
+				for (auto const p : range)
+					m_ses.alerts().emplace_alert<read_piece_alert>(
+						get_handle(), p, error_code(boost::system::errc::operation_canceled, generic_category()));
+			}
+			return;
+		}
+
+		// if we already have the range, no need to set the deadline.
+		// however, if the user asked to get the pieces, give 'em up.
+		if (is_seed() || (has_picker() && m_picker->have_piece_range(range)))
+		{
+			if (flags & torrent_handle::alert_when_available)
+				read_piece_range(range);
+			return;
+		}
+
+		auto it = deadlines.cbegin();
+		int d = deadlines.back();
+		for (auto const piece : range) {
+			int t = it == deadlines.cend() ? d : *it;
+			++it;
+			time_point const deadline = aux::time_now() + milliseconds(t);
+			bool skip = false;
+
+			// don't deadline the piece that is already on disk.
+			if (is_seed() || (has_picker() && m_picker->have_piece(piece)))
+			{
+				if (flags & torrent_handle::alert_when_available)
+					read_piece(piece);
+				continue;
+			}
+
+			// if this is the first time critical piece we add. in order to make it
+			// react quickly, cancel all the currently outstanding requests
+			if (m_time_critical_pieces.empty())
+			{
+				// defer this by posting it to the end of the message queue.
+				// this gives the client a chance to specify multiple time-critical
+				// pieces before libtorrent cancels requests
+				auto self = shared_from_this();
+				post(m_ses.get_context(), [self] { self->wrap(&torrent::cancel_non_critical); });
+			}
+
+			for (auto i = m_time_critical_pieces.begin()
+				, end(m_time_critical_pieces.end()); i != end; ++i)
+			{
+				if (i->piece != piece) continue;
+				i->deadline = deadline;
+				i->flags = flags;
+
+				// resort i since deadline might have changed
+				while (std::next(i) != m_time_critical_pieces.end() && i->deadline > std::next(i)->deadline)
+				{
+					std::iter_swap(i, std::next(i));
+					++i;
+				}
+				while (i != m_time_critical_pieces.begin() && i->deadline < std::prev(i)->deadline)
+				{
+					std::iter_swap(i, std::prev(i));
+					--i;
+				}
+				// just in case this piece had priority 0
+				download_priority_t const prev_prio = m_picker->piece_priority(piece);
+				bool const was_finished = is_finished();
+				bool const filter_updated = m_picker->set_piece_priority(piece, top_priority);
+				if (prev_prio == dont_download)
+				{
+					update_gauge();
+					if (filter_updated) update_peer_interest(was_finished);
+				}
+				skip = true;
+				break;
+			}
+
+			if (skip) continue;
+
+			need_picker();
+
+			time_critical_piece p;
+			p.first_requested = min_time();
+			p.last_requested = min_time();
+			p.flags = flags;
+			p.deadline = deadline;
+			p.peers = 0;
+			p.piece = piece;
+			auto const critical_piece_it = std::upper_bound(m_time_critical_pieces.begin()
+				, m_time_critical_pieces.end(), p);
+			m_time_critical_pieces.insert(critical_piece_it, p);
+
+			// just in case this piece had priority 0
+			download_priority_t const prev_prio = m_picker->piece_priority(piece);
+			bool const was_finished = is_finished();
+			bool const filter_updated = m_picker->set_piece_priority(piece, top_priority);
+			if (prev_prio == dont_download)
+			{
+				update_gauge();
+				if (filter_updated) update_peer_interest(was_finished);
+			}
+
+			piece_picker::downloading_piece pi;
+			m_picker->piece_info(piece, pi);
+			if (pi.requested == 0) return;
+			// this means we have outstanding requests (or queued
+			// up requests that haven't been sent yet). Promote them
+			// to deadline pieces immediately
+			std::vector<torrent_peer*> const downloaders
+				= m_picker->get_downloaders(piece);
+
+			int block = 0;
+			for (auto i = downloaders.begin()
+				, end(downloaders.end()); i != end; ++i, ++block)
+			{
+				torrent_peer* const tp = *i;
+				if (tp == nullptr || tp->connection == nullptr) continue;
+				auto* peer = static_cast<peer_connection*>(tp->connection);
+				peer->make_time_critical(piece_block(piece, block));
+			}
+		}
+	}
+
 	void torrent::reset_piece_deadline(piece_index_t piece)
 	{
 		remove_time_critical_piece(piece);
+	}
+
+	void torrent::reset_piece_range_deadline(const index_range<piece_index_t>& range)
+	{
+		for (auto const piece : range) {
+			remove_time_critical_piece(piece);
+		}
 	}
 
 	void torrent::remove_time_critical_piece(piece_index_t const piece, bool const finished)

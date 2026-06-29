@@ -53,6 +53,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <limits> // for numeric_limits
 #include <memory> // for unique_ptr
 
+#include <boost/core/span.hpp>
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/logic/tribool.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -488,6 +489,7 @@ namespace libtorrent {
 			error_code error;
 		};
 		void read_piece(piece_index_t);
+		void read_piece_range(const index_range<piece_index_t>&);
 		void on_disk_read_complete(disk_buffer_holder, storage_error const&
 			, peer_request const&, std::shared_ptr<read_piece_struct>);
 
@@ -644,7 +646,9 @@ namespace libtorrent {
 #ifndef TORRENT_DISABLE_STREAMING
 		void cancel_non_critical();
 		void set_piece_deadline(piece_index_t piece, int t, deadline_flags_t flags);
+		void set_piece_range_deadline(const index_range<piece_index_t>& range, boost::span<int>&& deadlines, deadline_flags_t flags);
 		void reset_piece_deadline(piece_index_t piece);
+		void reset_piece_range_deadline(const index_range<piece_index_t>& range);
 		void clear_time_critical();
 #endif // TORRENT_DISABLE_STREAMING
 
