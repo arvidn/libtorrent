@@ -1,4 +1,4 @@
-2.1.0 release candidate 2
+2.1.0 release
 
 	* add max_directory_depth limit to load_torrent_limits to bound file path depth when loading torrents
 	* fix race in wait_for_alert(), and update its return value
