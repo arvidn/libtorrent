@@ -319,6 +319,8 @@ namespace libtorrent {
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		std::shared_ptr<request_callback> cb = requester();
+#else
+		TORRENT_UNUSED(ep);
 #endif
 
 		// ignore responses before we've sent any requests
@@ -338,13 +340,12 @@ namespace libtorrent {
 			return false;
 		}
 
-		// ignore packet not sent from the tracker
-		// if m_target is inaddr_any, it suggests that we
-		// sent the packet through a proxy only knowing
-		// the hostname, in which case this packet might be for us
+		// Per BEP 15, we accept the response as long as the transaction ID
+		// is valid, even if the source IP differs from the expected tracker IP.
+		// https://www.bittorrent.org/beps/bep_0015.html
+#ifndef TORRENT_DISABLE_LOGGING
 		if (!m_target.address().is_unspecified() && m_target != ep)
 		{
-#ifndef TORRENT_DISABLE_LOGGING
 			if (cb && cb->should_log())
 			{
 				cb->debug_log("<== UDP_TRACKER [ unexpected source IP: %s "
@@ -352,9 +353,8 @@ namespace libtorrent {
 					, print_endpoint(ep).c_str()
 					, print_endpoint(m_target).c_str());
 			}
-#endif
-			return false;
 		}
+#endif
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (cb) cb->debug_log("<== UDP_TRACKER_PACKET [ size: %d ]"
