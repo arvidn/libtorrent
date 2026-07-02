@@ -678,6 +678,56 @@ TORRENT_TEST(set_seed)
 	TEST_EQUAL(p.num_peers(), 100);
 }
 
+// test set_upload_only
+TORRENT_TEST(set_upload_only)
+{
+	torrent_state st = init_state();
+
+	mock_torrent t(&st);
+	peer_list p(allocator);
+	t.m_p = &p;
+
+	std::vector<torrent_peer*> upload_only_peers;
+	for (int i = 0; i < 100; ++i)
+	{
+		torrent_peer* peer =
+			p.add_peer(tcp::endpoint(address_v4(std::uint32_t((10 << 24) + ((i + 10) << 16))),
+						   std::uint16_t(i + 10)),
+				{},
+				{},
+				&st);
+		TEST_EQUAL(st.erased.size(), 0);
+		st.erased.clear();
+		// make every other peer upload_only
+		if (i % 2)
+		{
+			p.set_upload_only(peer, true);
+			upload_only_peers.push_back(peer);
+		}
+	}
+	TEST_EQUAL(p.num_peers(), 100);
+	TEST_EQUAL(p.num_connect_candidates(), 100);
+
+	// now, the torrent completes and we're no longer interested in
+	// connecting to upload_only peers. Make sure half the peers are no
+	// longer considered connect candidates
+	st.is_finished = true;
+
+	// this will make the peer_list recalculate the connect candidates
+	p.connect_one_peer(1, &st);
+
+	TEST_EQUAL(p.num_connect_candidates(), 50);
+	TEST_EQUAL(p.num_peers(), 100);
+
+	// per BEP-21, the upload_only flag may toggle back to 0. Verify the
+	// persistent bit follows and the peers become connect candidates again.
+	for (torrent_peer* peer : upload_only_peers)
+		p.set_upload_only(peer, false);
+
+	TEST_EQUAL(p.num_connect_candidates(), 100);
+	TEST_EQUAL(p.num_peers(), 100);
+}
+
 // test has_peer
 TORRENT_TEST(has_peer)
 {

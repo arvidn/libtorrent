@@ -126,14 +126,14 @@ namespace libtorrent::aux {
 		return ret;
 	}
 
-	torrent_peer::torrent_peer(std::uint16_t port_, bool conn
-		, peer_source_flags_t const src)
+	torrent_peer::torrent_peer(std::uint16_t port_, bool conn, peer_source_flags_t const src)
 		: connection(nullptr)
 		, port(port_)
 		, failcount(0)
 		, connectable(conn)
 		, optimistically_unchoked(false)
 		, seed(false)
+		, upload_only(false)
 		, maybe_upload_only(false)
 		, fast_reconnects(0)
 		, trust_points(0)

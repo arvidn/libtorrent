@@ -6853,6 +6853,16 @@ namespace {
 	{
 		TORRENT_ASSERT(is_single_thread());
 		m_upload_only = u;
+
+		// keep the persistent peer_list entry in sync with the live m_upload_only bit,
+		// BEFORE the connection may be torn down by disconnect_if_redundant().
+		// Both transitions propagate so the persistent bit cannot go stale if
+		// peer toggles the flag back to 0.
+		if (m_peer_info != nullptr)
+		{
+			if (auto t = m_torrent.lock()) t->set_upload_only(m_peer_info, u);
+		}
+
 		disconnect_if_redundant();
 	}
 
