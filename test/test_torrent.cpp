@@ -724,6 +724,8 @@ TORRENT_TEST(test_have_piece_out_of_range)
 	TEST_EQUAL(h.have_piece(piece_index_t{-1}), false);
 	TEST_EQUAL(h.have_piece(0_piece), true);
 	TEST_EQUAL(h.have_piece(100_piece), false);
+	TEST_EQUAL(h.have_piece_range(lt::index_range<lt::piece_index_t>{0_piece, 7_piece}), true);
+	TEST_EQUAL(h.have_piece_range(lt::index_range<lt::piece_index_t>{0_piece, 100_piece}), false);
 }
 
 TORRENT_TEST(test_read_piece_no_metadata)

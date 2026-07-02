@@ -2945,6 +2945,11 @@ get_out:
 		return bool(i->passed_hash_check);
 	}
 
+	bool piece_picker::have_piece_range(const index_range<piece_index_t>& range) const
+	{
+		return std::all_of(range.begin(), range.end(), [this](piece_index_t index) { return have_piece(index); });
+	}
+
 	std::vector<piece_picker::downloading_piece>::iterator piece_picker::find_dl_piece(
 		download_queue_t const queue, piece_index_t const index)
 	{

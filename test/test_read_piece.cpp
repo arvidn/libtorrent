@@ -143,19 +143,118 @@ void test_read_piece(int flags)
 		, ec.value(), ec.message().c_str());
 }
 
+void test_read_piece_range(int flags)
+{
+	using namespace lt;
+
+	std::printf("==== TEST READ PIECE RANGE =====\n");
+
+	// in case the previous run was terminated
+	error_code ec;
+	remove_all("tmp2_read_piece", ec);
+	if (ec) std::printf("ERROR: removing tmp2_read_piece: (%d) %s\n"
+		, ec.value(), ec.message().c_str());
+
+	create_directory("tmp2_read_piece", ec);
+	if (ec) std::printf("ERROR: creating directory tmp2_read_piece: (%d) %s\n"
+		, ec.value(), ec.message().c_str());
+
+	create_directory(combine_path("tmp2_read_piece", "test_torrent"), ec);
+	if (ec) std::printf("ERROR: creating directory test_torrent: (%d) %s\n"
+		, ec.value(), ec.message().c_str());
+
+	file_storage fs;
+	int piece_size = 0x4000;
+
+	static std::array<const int, 2> const file_sizes{{ 100000, 10000 }};
+
+	create_random_files(combine_path("tmp2_read_piece", "test_torrent"), file_sizes);
+
+	add_files(fs, combine_path("tmp2_read_piece", "test_torrent"));
+	lt::create_torrent t(fs, piece_size);
+
+	// calculate the hash for all pieces
+	set_piece_hashes(t, "tmp2_read_piece", ec);
+	if (ec) std::printf("ERROR: set_piece_hashes: (%d) %s\n"
+		, ec.value(), ec.message().c_str());
+
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), t.generate());
+	auto ti = std::make_shared<torrent_info>(buf, ec, from_span);
+
+	std::printf("generated torrent: %s tmp2_read_piece/test_torrent\n"
+		, aux::to_hex(ti->info_hashes().v1).c_str());
+
+	settings_pack sett = settings();
+	sett.set_str(settings_pack::listen_interfaces, test_listen_interface());
+	lt::session ses(sett);
+
+	add_torrent_params p;
+	p.flags &= ~torrent_flags::paused;
+	p.flags &= ~torrent_flags::auto_managed;
+	p.save_path = "tmp2_read_piece";
+	p.ti = ti;
+	if (flags & flags_t::seed_mode)
+		p.flags |= torrent_flags::seed_mode;
+	torrent_handle tor2 = ses.add_torrent(p, ec);
+	if (ec) std::printf("ERROR: add_torrent: (%d) %s\n"
+		, ec.value(), ec.message().c_str());
+	TEST_CHECK(!ec);
+	TEST_CHECK(tor2.is_valid());
+
+	alert const* a = wait_for_alert(ses, torrent_finished_alert::alert_type, "ses");
+	TEST_CHECK(a);
+
+	TEST_CHECK(tor2.status().is_seeding);
+
+	index_range<piece_index_t> range({0_piece, 2_piece});
+
+	if (flags & time_critical)
+	{
+		tor2.set_piece_range_deadline(range, 0, torrent_handle::alert_when_available);
+	}
+	else
+	{
+		tor2.read_piece_range(range);
+	}
+
+	for (auto const piece : range) {
+		a = wait_for_alert(ses, read_piece_alert::alert_type, "ses", pop_alerts::cache_alerts);
+
+		TEST_CHECK(a);
+		if (a)
+		{
+			read_piece_alert const* rp = alert_cast<read_piece_alert>(a);
+			TEST_CHECK(rp);
+			if (rp)
+			{
+				TEST_CHECK(range.belongs(rp->piece));
+				TEST_CHECK(range.bounds(rp->piece));
+			}
+		}
+	}
+
+	remove_all("tmp2_read_piece", ec);
+	if (ec) std::printf("ERROR: removing tmp2_read_piece: (%d) %s\n"
+		, ec.value(), ec.message().c_str());
+}
+
 } // anonymous namespace
 
 TORRENT_TEST(read_piece)
 {
 	test_read_piece(0);
+	test_read_piece_range(0);
 }
 
 TORRENT_TEST(seed_mode)
 {
 	test_read_piece(seed_mode);
+	test_read_piece_range(seed_mode);
 }
 
 TORRENT_TEST(time_critical)
 {
 	test_read_piece(time_critical);
+	test_read_piece_range(time_critical);
 }

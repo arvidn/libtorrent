@@ -284,6 +284,10 @@ namespace libtorrent {
 		// has passed the hash check
 		bool have_piece(piece_index_t) const;
 
+		// returns true if we have the piece range or if the piece range
+		// has passed the hash check
+		bool have_piece_range(const index_range<piece_index_t>&) const;
+
 		// returns true if the piece has been completely downloaded and
 		// successfully flushed to disk (i.e. "finished").
 		bool is_piece_flushed(piece_index_t) const;
