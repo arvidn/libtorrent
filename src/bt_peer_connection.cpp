@@ -47,6 +47,7 @@ see LICENSE file.
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/aux_/alert_manager.hpp" // for alert_manager
+#include "libtorrent/aux_/ip_helpers.hpp"
 #include "libtorrent/aux_/string_util.hpp" // for search
 #include "libtorrent/aux_/generate_peer_id.hpp"
 
@@ -1589,11 +1590,41 @@ namespace {
 					break;
 				}
 
+				// don't bridge local and non-local peers
+				if (aux::is_local(ep.address()) != aux::is_local(remote().address()))
+				{
+#ifndef TORRENT_DISABLE_LOGGING
+					if (should_log(peer_log_alert::incoming_message))
+					{
+						peer_log(peer_log_alert::incoming_message,
+							peer_log_alert::holepunch,
+							"msg:rendezvous to: %s ERROR: bridging local and non-local peer",
+							print_address(ep.address()).c_str());
+					}
+#endif
+					break;
+				}
+
 				write_holepunch_msg(hp_message::connect, ep);
 				p->write_holepunch_msg(hp_message::connect, remote());
 			} break;
 			case hp_message::connect:
 			{
+				// ignore local addresses unless the peer is local
+				if (aux::is_local(ep.address()) && !aux::is_local(remote().address()))
+				{
+#ifndef TORRENT_DISABLE_LOGGING
+					if (should_log(peer_log_alert::incoming_message))
+					{
+						peer_log(peer_log_alert::incoming_message,
+							peer_log_alert::holepunch,
+							"msg:connect to: %s ERROR: rejected local address from non-local peer",
+							print_address(ep.address()).c_str());
+					}
+#endif
+					break;
+				}
+
 				// add or find the peer with this endpoint
 				torrent_peer* p = t->add_peer(ep, peer_info::pex);
 				if (p == nullptr || p->connection)
