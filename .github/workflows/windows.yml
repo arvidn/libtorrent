@@ -26,9 +26,9 @@ jobs:
       strategy:
          matrix:
            include:
-             - config: address-model=32 crypto=built-in
-             - config: address-model=64
-             - config: release
+             - config: webtorrent=off address-model=32 crypto=built-in
+             - config: webtorrent=off address-model=64
+             - config: webtorrent=off release
 
       steps:
 
@@ -56,7 +56,7 @@ jobs:
           set PATH=%BOOST_ROOT%;%PATH%
           set PYTHON_INTERPRETER=python
           cd test
-          b2 -l400 msvc-version-macro=on warnings=all warnings-as-errors=on ${{ matrix.config }} deterministic-tests
+          b2 --hash -l400 msvc-version-macro=on warnings=all warnings-as-errors=on ${{ matrix.config }} deterministic-tests
 
 
       - name: tests (flaky)
@@ -69,7 +69,7 @@ jobs:
           :retry
           if %c%==0 exit /B 1
           set /a c = %c% -1
-          b2 -l400 msvc-version-macro=on warnings=all warnings-as-errors=on ${{ matrix.config }}
+          b2 --hash -l400 msvc-version-macro=on warnings=all warnings-as-errors=on ${{ matrix.config }}
           if %errorlevel%==0 exit /B 0
           if %c% gtr 0 goto retry
           exit /B 1
@@ -131,12 +131,12 @@ jobs:
       strategy:
          matrix:
            include:
-             - config: asio-debugging=on picker-debugging=on windows-version=vista
-             - config: asio-debugging=on picker-debugging=on windows-version=win10
+             - config: webtorrent=off asio-debugging=on picker-debugging=on windows-version=vista
+             - config: webtorrent=off asio-debugging=on picker-debugging=on windows-version=win10
              # the Windows Store API build is disabled because boost.container
              # contains a .c file that cannot be built with /ZW in msvc
              #- config: windows-api=store windows-version=win10
-             - config: deprecated-functions=off
+             - config: webtorrent=off deprecated-functions=off
 
       steps:
       - name: checkout
@@ -161,7 +161,7 @@ jobs:
         run: |
           set BOOST_ROOT=%CD%\boost
           set PATH=%BOOST_ROOT%;%PATH%
-          b2 ${{ matrix.config }} msvc-version-macro=on address-model=64 warnings=all warnings-as-errors=on
+          b2 --hash ${{ matrix.config }} msvc-version-macro=on address-model=64 warnings=all warnings-as-errors=on
 
       - name: build examples
         if: ${{ ! contains(matrix.config, 'windows-api=store') }}
@@ -169,7 +169,7 @@ jobs:
           set BOOST_ROOT=%CD%\boost
           set PATH=%BOOST_ROOT%;%PATH%
           cd examples
-          b2 ${{ matrix.config }} msvc-version-macro=on address-model=64 warnings=all warnings-as-errors=on
+          b2 --hash ${{ matrix.config }} msvc-version-macro=on address-model=64 warnings=all warnings-as-errors=on
 
       - name: build tools
         if: ${{ ! contains(matrix.config, 'windows-api=store') }}
@@ -177,7 +177,7 @@ jobs:
           set BOOST_ROOT=%CD%\boost
           set PATH=%BOOST_ROOT%;%PATH%
           cd tools
-          b2 ${{ matrix.config }} msvc-version-macro=on address-model=64 warnings=all warnings-as-errors=on
+          b2 --hash ${{ matrix.config }} msvc-version-macro=on address-model=64 warnings=all warnings-as-errors=on
 
    mingw:
       name: MingW
@@ -186,10 +186,10 @@ jobs:
       strategy:
          matrix:
            include:
-             - config: address-model=64
+             - config: webtorrent=off address-model=64
                msys2_pkg: mingw-w64-x86_64
                msystem: MINGW64
-             - config: address-model=32
+             - config: webtorrent=off address-model=32
                msys2_pkg: mingw-w64-i686
                msystem: MINGW32
 
