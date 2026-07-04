@@ -144,6 +144,7 @@ TORRENT_TEST(empty_and_num_requests)
 
 		tracker_request r;
 		r.url = "ws://tracker.com";
+		r.num_want = 1;
 		auto cb = std::make_shared<ws_request_callback>();
 		h.m_tracker_manager.queue_request(ios, std::move(r), sett, cb);
 		TEST_CHECK(!h.m_tracker_manager.empty());
@@ -168,6 +169,7 @@ TORRENT_TEST(empty_and_num_requests)
 #if TORRENT_USE_RTC
 		tracker_request r3;
 		r3.url = "ws://tracker.com";
+		r3.num_want = 1;
 		auto cb = std::make_shared<ws_request_callback>();
 		h.m_tracker_manager.queue_request(ios, std::move(r3), sett, cb);
 		TEST_EQUAL(h.m_tracker_manager.num_requests(), 3);
