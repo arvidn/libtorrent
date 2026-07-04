@@ -37,7 +37,7 @@ jobs:
     steps:
     - uses: actions/checkout@v6
       with:
-        submodules: true
+        submodules: recursive
         fetch-depth: 1
         filter: tree:0
 
@@ -80,7 +80,7 @@ jobs:
     - name: dependencies (linux)
       if: runner.os == 'Linux'
       run: |
-        sudo apt install libboost-tools-dev libboost-python-dev libboost-dev libboost-system-dev python3 python3-setuptools libssl-dev
+        sudo apt install libboost-tools-dev libboost-python-dev libboost-dev libboost-system-dev libboost-json-dev python3 python3-setuptools libssl-dev
 
     - name: dependencies (windows)
       if: runner.os == 'Windows'
@@ -93,6 +93,10 @@ jobs:
       with:
         architecture: x64
         linking: static
+
+    - name: setup msbuild (windows)
+      if: runner.os == 'Windows'
+      uses: microsoft/setup-msbuild@v2
 
     - name: install boost (windows)
       if: runner.os == 'Windows'
@@ -116,6 +120,7 @@ jobs:
         set BOOST_ROOT=%CD%\boost
         set PATH=%BOOST_ROOT%;%PATH%
         set PYTHON_INTERPRETER=python
+        set B2_EXTRA_ARGS=openssl-include="C:\Program Files\OpenSSL\include" openssl-lib="C:\Program Files\OpenSSL\lib"
         tox -e py
 
     - name: build no-deprecated (Linux)
