@@ -2,16 +2,20 @@ name: Release
 
 on:
    push:
+      branches: [ RC_2_0, RC_2_1, master ]
       tags:
          - 'v[0-9]*.[0-9]*.[0-9]*'
+   pull_request:
+
+concurrency:
+   group: ${{ github.ref }}-${{ github.workflow }}-${{ github.event_name }}
+   cancel-in-progress: true
 
 jobs:
 
    dist:
       name: Build source package
       runs-on: ubuntu-24.04
-      permissions:
-         contents: write
 
       steps:
       - name: checkout
@@ -23,15 +27,25 @@ jobs:
 
       - name: update package lists
         continue-on-error: true
-        run: sudo apt update
+        run: |
+          sudo apt update
+
+      - uses: Chocobo1/setup-ccache-action@v1
+        with:
+          update_packager_index: false
+          override_cache_key: ccache-linux-dist-${{ github.base_ref || github.ref_name }}
+          ccache_options: |
+            max_size=15G
 
       - name: install dependencies
         run: |
           sudo apt install python3-docutils python3-pygments python3-pil gsfonts inkscape icoutils graphviz hunspell imagemagick rsync
+          sudo apt install libboost-tools-dev libboost-python-dev libboost-dev libboost-system-dev libboost-json-dev python3-setuptools
           python3 -m pip install aafigure
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          echo "using gcc ;" >>~/user-config.jam
 
       - name: verify version matches tag
+        if: startsWith(github.ref, 'refs/tags/')
         run: |
           TAG_VERSION="${GITHUB_REF_NAME#v}"
           MAKEFILE_VERSION="$(grep '^VERSION=' Makefile | cut -d= -f2)"
@@ -41,12 +55,48 @@ jobs:
           fi
 
       - name: build docs and source package
-        run: make dist RST2HTML=rst2html
+        run: AAFIGURE=~/.local/bin/aafigure RST2HTML=rst2html make dist
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: tarball
+          path: libtorrent-rasterbar-*.tar.gz
+
+      - name: test-tarball (b2 install)
+        run: |
+          tar xvzf libtorrent-rasterbar-*.tar.gz
+          cd libtorrent-rasterbar-*/
+          b2 install --prefix=test-install-root webtorrent=on
+          cat test-install-root/lib/pkgconfig/libtorrent-rasterbar.pc
+
+      - name: test-tarball (b2 tests)
+        run: |
+          cd libtorrent-rasterbar-*/test
+          b2 testing.execute=off webtorrent=on
+          b2 webtorrent=on test_torrent_info
+
+      - name: test-tarball (python bindings)
+        run: |
+          cd libtorrent-rasterbar-*/bindings/python/
+          python3 setup.py build
+
+   upload:
+      name: Upload release asset
+      needs: dist
+      if: startsWith(github.ref, 'refs/tags/')
+      runs-on: ubuntu-24.04
+      permissions:
+         contents: write
+
+      steps:
+      - uses: actions/download-artifact@v6
+        with:
+          name: tarball
+          path: dist
 
       - name: upload release asset
         env:
            GH_TOKEN: ${{ github.token }}
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          TARBALL="libtorrent-rasterbar-${VERSION}.tar.gz"
-          gh release upload "$GITHUB_REF_NAME" "$TARBALL" --clobber
+          cd dist
+          gh release upload "$GITHUB_REF_NAME" libtorrent-rasterbar-*.tar.gz --clobber
