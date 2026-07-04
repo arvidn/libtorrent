@@ -243,9 +243,9 @@ namespace libtorrent::aux {
 #endif // TORRENT_USE_I2P
 
 #if TORRENT_USE_RTC
-	rtc_peer::rtc_peer(tcp::endpoint const& ep, peer_source_flags_t src)
+	rtc_peer::rtc_peer(tcp::endpoint ep, peer_source_flags_t src)
 		: torrent_peer(0, false, src)
-		, endpoint(ep)
+		, endpoint(std::move(ep))
 	{
 		is_v6_addr = false;
 #if TORRENT_USE_I2P

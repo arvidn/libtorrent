@@ -137,7 +137,7 @@ void rtc_signaling::generate_offers(int count, offers_handler handler)
 #ifndef TORRENT_DISABLE_LOGGING
 	debug_log("*** RTC signaling generating %d offers", count);
 #endif
-	m_offer_batches.push({count, std::move(handler)});
+	m_offer_batches.emplace(count, std::move(handler));
 	while (count--)
 	{
 		rtc_offer_id offer_id = generate_offer_id();
