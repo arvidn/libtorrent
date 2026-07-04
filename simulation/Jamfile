@@ -28,6 +28,7 @@ project
 	<picker-debugging>on
 	<cxxstd>17
 	<crypto>built-in
+	<webtorrent>off
 	;
 
 run test_pause.cpp ;
