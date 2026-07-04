@@ -549,6 +549,10 @@ see LICENSE file.
 #define TORRENT_USE_RTC 1
 #endif
 
+#ifndef TORRENT_DISK_LATENCY_STATS
+#define TORRENT_DISK_LATENCY_STATS 0
+#endif
+
 #ifndef TORRENT_HAS_SYMLINK
 #define TORRENT_HAS_SYMLINK 0
 #endif
