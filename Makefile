@@ -783,7 +783,12 @@ ASIO_GNUTLS = \
   test/gnutls/rfc2818_verification.cpp \
   test/gnutls/stream.cpp
 
-DATACHANNEL = $(shell cd deps/libdatachannel && git ls-files | grep -v "^examples")
+DATACHANNEL = $(shell cd deps/libdatachannel && { git ls-files --recurse-submodules \
+  | grep -v "^examples" \
+  | grep -viE "fuzz|corpus" \
+  | grep -viE "(^|/)(test|tests|docs?)/" \
+  | grep -E "\.(c|cpp|h|hpp|cmake|in)$$|(^|/)(Jamfile|CMakeLists\.txt|LICENSE(\.[A-Za-z0-9]+)?|LICENSES/.*|COPYING|NOTICE|README(\.[A-Za-z0-9]+)?|CHANGES?(LOG)?(\.[A-Za-z0-9]+)?)$$" ; \
+  git ls-files --recurse-submodules deps/libjuice/test ; } | sort -u)
 
 SIM_SOURCES = \
   Jamfile \
@@ -1192,25 +1197,24 @@ dist: FORCE
 	(cd docs; make)
 	rm -rf libtorrent-rasterbar-${VERSION} libtorrent-rasterbar-${VERSION}.tar.gz
 	mkdir libtorrent-rasterbar-${VERSION}
-	rsync -R ${EXTRA_DIST} \
-    $(addprefix src/,${SOURCES}) \
-    $(addprefix src/kademlia/,${KADEMLIA_SOURCES}) \
-    $(addprefix include/libtorrent/,${HEADERS}) \
-    $(addprefix examples/,${EXAMPLE_FILES}) \
-    $(addprefix tools/,${TOOLS_FILES}) \
-    $(addprefix bindings/python/,${PYTHON_FILES}) \
-    $(addprefix test/,${TEST_SOURCES}) \
-    $(addprefix test/,${TEST_EXTRA}) \
-    $(addprefix simulation/,${SIM_SOURCES}) \
-    $(addprefix deps/try_signal/,${TRY_SIGNAL}) \
-    $(addprefix deps/asio-gnutls/,${ASIO_GNUTLS}) \
-    $(addprefix deps/libdatachannel/,${DATACHANNEL}) \
-    $(addprefix simulation/libsimulator/,${LIBSIM_EXTRA}) \
-    $(addprefix simulation/libsimulator/test,${LIBSIM_TEST}) \
-    $(addprefix simulation/libsimulator/include/simulator/,${LIBSIM_HEADERS}) \
-    $(addprefix simulation/libsimulator/src/,${LIBSIM_SOURCES}) \
-    $(addprefix src/ed25519/,$(ED25519_SOURCE)) \
-    libtorrent-rasterbar-${VERSION}
+	rsync -R ${EXTRA_DIST} libtorrent-rasterbar-${VERSION}
+	rsync -R $(addprefix src/,${SOURCES}) libtorrent-rasterbar-${VERSION}
+	rsync -R $(addprefix src/kademlia/,${KADEMLIA_SOURCES}) libtorrent-rasterbar-${VERSION}
+	rsync -R $(addprefix include/libtorrent/,${HEADERS}) libtorrent-rasterbar-${VERSION}
+	rsync -R $(addprefix examples/,${EXAMPLE_FILES}) libtorrent-rasterbar-${VERSION}
+	rsync -R $(addprefix tools/,${TOOLS_FILES}) libtorrent-rasterbar-${VERSION}
+	rsync -R $(addprefix bindings/python/,${PYTHON_FILES}) libtorrent-rasterbar-${VERSION}
+	rsync -R $(addprefix test/,${TEST_SOURCES}) libtorrent-rasterbar-${VERSION}
+	rsync -R $(addprefix test/,${TEST_EXTRA}) libtorrent-rasterbar-${VERSION}
+	rsync -R $(addprefix simulation/,${SIM_SOURCES}) libtorrent-rasterbar-${VERSION}
+	rsync -R $(addprefix deps/try_signal/,${TRY_SIGNAL}) libtorrent-rasterbar-${VERSION}
+	rsync -R $(addprefix deps/asio-gnutls/,${ASIO_GNUTLS}) libtorrent-rasterbar-${VERSION}
+	rsync -R $(addprefix deps/libdatachannel/,${DATACHANNEL}) libtorrent-rasterbar-${VERSION}
+	rsync -R $(addprefix simulation/libsimulator/,${LIBSIM_EXTRA}) libtorrent-rasterbar-${VERSION}
+	rsync -R $(addprefix simulation/libsimulator/test/,${LIBSIM_TESTS}) libtorrent-rasterbar-${VERSION}
+	rsync -R $(addprefix simulation/libsimulator/include/simulator/,${LIBSIM_HEADERS}) libtorrent-rasterbar-${VERSION}
+	rsync -R $(addprefix simulation/libsimulator/src/,${LIBSIM_SOURCES}) libtorrent-rasterbar-${VERSION}
+	rsync -R $(addprefix src/ed25519/,$(ED25519_SOURCE)) libtorrent-rasterbar-${VERSION}
 	tar -czf libtorrent-rasterbar-${VERSION}.tar.gz libtorrent-rasterbar-${VERSION}
 
 FORCE:
