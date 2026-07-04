@@ -393,7 +393,7 @@ rtc_stream::endpoint_type rtc_parse_endpoint(std::string const& addr, error_code
 		return {};
 	}
 
-	return rtc_stream_impl::endpoint_type(ip::make_address(host, ec), port);
+	return {ip::make_address(host, ec), port};
 }
 
 }

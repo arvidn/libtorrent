@@ -229,7 +229,7 @@ namespace libtorrent::aux {
 #if TORRENT_USE_RTC
 	struct TORRENT_EXTRA_EXPORT rtc_peer : torrent_peer
 	{
-		rtc_peer(tcp::endpoint const& ep, peer_source_flags_t src);
+		rtc_peer(tcp::endpoint ep, peer_source_flags_t src);
 		rtc_peer(rtc_peer const&) = delete;
 		rtc_peer& operator=(rtc_peer const&) = delete;
 		rtc_peer(rtc_peer&&) = default;
