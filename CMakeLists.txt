@@ -747,7 +747,7 @@ target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME extens
 	DESCRIPTION "Enables protocol extensions" DISABLED TORRENT_DISABLE_EXTENSIONS)
 target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME i2p DEFAULT ON
 	DESCRIPTION "build with I2P support" DISABLED TORRENT_USE_I2P=0)
-target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME webtorrent DEFAULT OFF
+target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME webtorrent DEFAULT ON
 	DESCRIPTION "build with WebTorrent support" DISABLED TORRENT_USE_RTC=0)
 target_optional_compile_definitions(torrent-rasterbar PUBLIC FEATURE NAME logging DEFAULT ON
 	DESCRIPTION "build with logging" DISABLED TORRENT_DISABLE_LOGGING)
