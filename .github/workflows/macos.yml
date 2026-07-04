@@ -24,7 +24,6 @@ jobs:
    test:
       name: Tests
       runs-on: macos-14
-      continue-on-error: true
 
       strategy:
          matrix:
@@ -94,7 +93,6 @@ jobs:
    build:
       name: Build
       runs-on: macos-14
-      continue-on-error: true
 
       strategy:
          matrix:
@@ -127,7 +125,6 @@ jobs:
    cmake:
       name: cmake
       runs-on: macos-14
-      continue-on-error: true
 
       steps:
       - name: checkout
@@ -164,7 +161,6 @@ jobs:
    ios_build:
       name: Build iOS
       runs-on: macos-14
-      continue-on-error: true
 
       steps:
       - name: checkout

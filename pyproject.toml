@@ -89,6 +89,7 @@ select = "*-win_amd64"
 test-command = '''bash -c "cd '{project}/bindings/python' && python -m pip install -r test-requirements.txt && python -X dev -m pytest -v --log-level=DEBUG --log-cli-level=DEBUG && python -m mypy --config-file mypy-tox.ini tests"'''
 
 [tool.cibuildwheel.windows.environment]
+B2_EXTRA_ARGS = 'openssl-include=\"C:/Program Files/OpenSSL/include\" openssl-lib=\"C:/Program Files/OpenSSL/lib\"'
 BOOST_BUILD_PATH = 'c:/boost/tools/build'
 BOOST_ROOT = 'c:/boost'
 BOOST_VERSION = "1.83.0"

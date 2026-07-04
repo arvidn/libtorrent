@@ -196,7 +196,11 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
             None,
             "The full argument string to pass to b2. This is parsed with shlex, to "
             "support arguments with spaces. For example: --b2-args 'variant=debug "
-            '"my-feature=a value with spaces"\'',
+            '"my-feature=a value with spaces"\'. '
+            "Note: shlex uses POSIX escaping rules, so on Windows a quoted path "
+            'with a single backslash (e.g. "C:\\Program Files\\...") survives, '
+            "but a UNC path (\\\\server\\share) or a path with a trailing "
+            "backslash before the closing quote will be mangled or fail to parse.",
         ),
         (
             "no-autoconf=",
@@ -269,7 +273,12 @@ class LibtorrentBuildExt(build_ext_lib.build_ext):
             )
 
         # shlex the args here to warn early on bad config
-        self._b2_args_split = shlex.split(self.b2_args or "")
+        # NB: shlex.split() applies POSIX backslash-escaping even on Windows, so
+        # quoted Windows paths with "\\" (UNC) or a trailing "\" before the
+        # closing quote will be mangled or raise ValueError; see --b2-args help.
+        self._b2_args_split = shlex.split(self.b2_args or "") + shlex.split(
+            os.environ.get("B2_EXTRA_ARGS", "")
+        )
         self._b2_args_configured.update(shlex.split(self.no_autoconf or ""))
 
         # In b2's arg system only single-character args can consume the next
