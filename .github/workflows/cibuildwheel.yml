@@ -148,6 +148,11 @@ jobs:
         fetch-depth: 1
         filter: tree:0
 
+    - name: patch libdatachannel (windows 32/64-bit builds)
+      if: runner.os == 'Windows'
+      run: git apply ../patch-libdatachannel-32bit-builds.patch
+      working-directory: deps/libdatachannel
+
     - uses: actions/cache@v5
       id: cache-wheel
       with:
@@ -167,6 +172,10 @@ jobs:
     - name: install openssl (linux)
       if: runner.os == 'Linux'
       run: sudo apt-get install libssl-dev
+
+    - name: setup msbuild (windows)
+      if: runner.os == 'Windows'
+      uses: microsoft/setup-msbuild@v2
 
     - uses: pypa/cibuildwheel@v2.23.4
       if: ${{ steps.cache-wheel.outputs.cache-hit != 'true' || github.event_name == 'pull_request' }}

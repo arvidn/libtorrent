@@ -36,7 +36,6 @@ jobs:
    build:
       name: build
       runs-on: ubuntu-22.04
-      continue-on-error: true
 
       strategy:
          matrix:
@@ -100,7 +99,6 @@ jobs:
    cmake:
       name: cmake
       runs-on: ubuntu-24.04
-      continue-on-error: true
 
       steps:
       - name: checkout
@@ -147,7 +145,6 @@ jobs:
    fuzzers:
       name: Fuzzers
       runs-on: ubuntu-24.04
-      continue-on-error: true
 
       steps:
       - name: checkout
@@ -223,7 +220,6 @@ jobs:
    test:
       name: Tests
       runs-on: ubuntu-24.04
-      continue-on-error: true
 
       strategy:
          matrix:
@@ -309,7 +305,6 @@ jobs:
    test-32bit:
       name: Tests (32-bit)
       runs-on: ubuntu-24.04
-      continue-on-error: true
 
       steps:
       - name: checkout
@@ -401,7 +396,6 @@ jobs:
    disk-stress:
       name: disk I/O stress (smoke)
       runs-on: ubuntu-24.04
-      continue-on-error: true
 
       strategy:
          matrix:
