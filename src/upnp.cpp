@@ -28,6 +28,7 @@ see LICENSE file.
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/aux_/ssl.hpp"
 #include "libtorrent/aux_/scope_end.hpp"
+#include "libtorrent/aux_/ip_helpers.hpp"
 #include "libtorrent/aux_/string_util.hpp" // for format_host_for_connect
 
 #if defined TORRENT_ASIO_DEBUGGING
@@ -630,6 +631,25 @@ void upnp::on_reply(aux::socket_package& s, error_code const& ec, std::size_t co
 			}
 #endif
 			return;
+		}
+
+		if (aux::is_ip_address(d.hostname))
+		{
+			error_code ip_ec;
+			address const addr = make_address(d.hostname.c_str(), ip_ec);
+			if (!ip_ec
+				&& (addr.is_unspecified() || aux::is_link_local(addr) || addr.is_multicast()))
+			{
+#ifndef TORRENT_DISABLE_LOGGING
+				if (should_log())
+				{
+					log("ignoring rootdevice from %s with local address: %s",
+						print_endpoint(from).c_str(),
+						d.hostname.c_str());
+				}
+#endif
+				return;
+			}
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
