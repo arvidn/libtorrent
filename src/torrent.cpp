@@ -3184,83 +3184,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		if (e == event_t::none && is_finished() && !is_seed())
 			e = event_t::paused;
 
-		tracker_request req;
-		if (settings().get_bool(settings_pack::apply_ip_filter_to_trackers)
-			&& m_apply_ip_filter)
-		{
-			req.filter = m_ip_filter;
-		}
-
-		req.private_torrent = m_torrent_file && m_torrent_file->priv();
-
-		req.pid = m_peer_id;
-		req.downloaded = m_stat.total_payload_download() - m_total_failed_bytes;
-		req.uploaded = m_stat.total_payload_upload();
-		req.corrupt = m_total_failed_bytes;
-		req.left = bytes_left().value_or(16 * 1024);
-#ifdef TORRENT_SSL_PEERS
-		// if this torrent contains an SSL certificate, make sure
-		// any SSL tracker presents a certificate signed by it
-		req.ssl_ctx = m_ssl_ctx.get();
-#endif
-
-		req.redundant = m_total_redundant_bytes;
-		// exclude redundant bytes if we should
-		if (!settings().get_bool(settings_pack::report_true_downloaded))
-		{
-			req.downloaded -= m_total_redundant_bytes;
-
-			// if the torrent is complete we know that all incoming pieces will be
-			// marked redundant so add them to the redundant count
-			// this is mainly needed to cover the case where a torrent has just completed
-			// but still has partially downloaded pieces
-			// if the incoming pieces are not accounted for it could cause the downloaded
-			// amount to exceed the total size of the torrent which upsets some trackers
-			if (is_seed())
-			{
-				for (auto const& c : m_connections)
-				{
-					TORRENT_INCREMENT(m_iterating_connections);
-					auto const pbp = c->downloading_piece_progress();
-					if (pbp.bytes_downloaded > 0)
-					{
-						req.downloaded -= pbp.bytes_downloaded;
-						req.redundant += pbp.bytes_downloaded;
-					}
-				}
-			}
-		}
-		if (req.downloaded < 0) req.downloaded = 0;
-
-		req.event = e;
-
-		// since sending our IPv4/v6 address to the tracker may be sensitive. Only
-		// do that if we're not in anonymous mode and if it's a private torrent
-		if (!settings().get_bool(settings_pack::anonymous_mode)
-			&& m_torrent_file
-			&& m_torrent_file->priv())
-		{
-			m_ses.for_each_listen_socket([&](aux::listen_socket_handle const& s)
-			{
-				if (s.is_ssl() != is_ssl_torrent()) return;
-				tcp::endpoint const ep = s.get_local_endpoint();
-				if (ep.address().is_unspecified()) return;
-				if (aux::is_v6(ep))
-				{
-					if (!aux::is_local(ep.address()) && !ep.address().is_loopback())
-						req.ipv6.push_back(ep.address().to_v6());
-				}
-				else
-				{
-					if (!aux::is_local(ep.address()) && !ep.address().is_loopback())
-						req.ipv4.push_back(ep.address().to_v4());
-				}
-			});
-		}
-
-		// if we are aborting. we don't want any new peers
-		req.num_want = (req.event == event_t::stopped)
-			? 0 : settings().get_int(settings_pack::num_want);
+		tracker_request req = build_tracker_request(e);
 
 // some older versions of clang had a bug where it would fire this warning here
 #ifdef __clang__
@@ -3393,73 +3317,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 						continue;
 					}
 
-					req.event = e;
-					if (req.event == event_t::none)
-					{
-						if (!a.start_sent) req.event = event_t::started;
-						else if (!m_complete_sent
-							&& !a.complete_sent
-							&& is_seed())
-						{
-							req.event = event_t::completed;
-						}
-					}
-
-					req.triggered_manually = a.triggered_manually;
-					a.triggered_manually = false;
-
-#if TORRENT_ABI_VERSION == 1
-					req.auth = tracker_login();
-#endif
-					req.key = tracker_key();
-
-					req.outgoing_socket = aep.socket;
-					req.info_hash = m_torrent_file->info_hashes().get(ih);
-					if (high_priority) req.kind |= tracker_request::high_priority;
-
-#ifndef TORRENT_DISABLE_LOGGING
-					if (should_log())
-					{
-						debug_log("==> TRACKER REQUEST \"%s\" event: %s abort: %d ssl: %p "
-							"port: %d ssl-port: %d fails: %d upd: %d ep: %s"
-							, req.url.c_str()
-							, (req.event == event_t::stopped ? "stopped"
-								: req.event == event_t::started ? "started" : "")
-							, m_abort
-#ifdef TORRENT_SSL_PEERS
-							, static_cast<void*>(req.ssl_ctx)
-#else
-							, static_cast<void*>(nullptr)
-#endif
-							, m_ses.listen_port()
-							, m_ses.ssl_listen_port()
-							, a.fails
-							, a.updating
-							, print_endpoint(aep.local_endpoint).c_str());
-					}
-
-					// if we're not logging session logs, don't bother creating an
-					// observer object just for logging
-					if (m_abort && m_ses.should_log())
-					{
-						auto tl = std::make_shared<aux::tracker_logger>(m_ses);
-						m_ses.queue_tracker_request(req, tl);
-					}
-					else
-#endif
-					{
-						m_ses.queue_tracker_request(req, shared_from_this());
-					}
-
-					a.updating = true;
-					a.next_announce = now;
-					a.min_announce = now;
-
-					if (m_ses.alerts().should_post<tracker_announce_alert>())
-					{
-						m_ses.alerts().emplace_alert<tracker_announce_alert>(
-							get_handle(), aep.local_endpoint, req.url, ih, req.event);
-					}
+					send_tracker_request(req, aep, a, ih, e, high_priority, now);
 
 					state.sent_announce = true;
 					if (a.is_working()
@@ -3483,6 +3341,211 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 				break;
 		}
 		update_tracker_timer(now);
+	}
+
+	tracker_request torrent::build_tracker_request(event_t const e)
+	{
+		tracker_request req;
+		if (settings().get_bool(settings_pack::apply_ip_filter_to_trackers) && m_apply_ip_filter)
+		{
+			req.filter = m_ip_filter;
+		}
+
+		req.private_torrent = m_torrent_file && m_torrent_file->priv();
+
+		req.pid = m_peer_id;
+		req.downloaded = m_stat.total_payload_download() - m_total_failed_bytes;
+		req.uploaded = m_stat.total_payload_upload();
+		req.corrupt = m_total_failed_bytes;
+		req.left = bytes_left().value_or(16 * 1024);
+#ifdef TORRENT_SSL_PEERS
+		// if this torrent contains an SSL certificate, make sure
+		// any SSL tracker presents a certificate signed by it
+		req.ssl_ctx = m_ssl_ctx.get();
+#endif
+
+		req.redundant = m_total_redundant_bytes;
+		// exclude redundant bytes if we should
+		if (!settings().get_bool(settings_pack::report_true_downloaded))
+		{
+			req.downloaded -= m_total_redundant_bytes;
+
+			// if the torrent is complete we know that all incoming pieces will be
+			// marked redundant so add them to the redundant count
+			// this is mainly needed to cover the case where a torrent has just completed
+			// but still has partially downloaded pieces
+			// if the incoming pieces are not accounted for it could cause the downloaded
+			// amount to exceed the total size of the torrent which upsets some trackers
+			if (is_seed())
+			{
+				for (auto const& c : m_connections)
+				{
+					TORRENT_INCREMENT(m_iterating_connections);
+					auto const pbp = c->downloading_piece_progress();
+					if (pbp.bytes_downloaded > 0)
+					{
+						req.downloaded -= pbp.bytes_downloaded;
+						req.redundant += pbp.bytes_downloaded;
+					}
+				}
+			}
+		}
+		if (req.downloaded < 0) req.downloaded = 0;
+
+		req.event = e;
+
+		// since sending our IPv4/v6 address to the tracker may be sensitive. Only
+		// do that if we're not in anonymous mode and if it's a private torrent
+		if (!settings().get_bool(settings_pack::anonymous_mode) && m_torrent_file
+			&& m_torrent_file->priv())
+		{
+			m_ses.for_each_listen_socket([&](aux::listen_socket_handle const& s) {
+				if (s.is_ssl() != is_ssl_torrent()) return;
+				tcp::endpoint const ep = s.get_local_endpoint();
+				if (ep.address().is_unspecified()) return;
+				if (aux::is_v6(ep))
+				{
+					if (!aux::is_local(ep.address()) && !ep.address().is_loopback())
+						req.ipv6.push_back(ep.address().to_v6());
+				}
+				else
+				{
+					if (!aux::is_local(ep.address()) && !ep.address().is_loopback())
+						req.ipv4.push_back(ep.address().to_v4());
+				}
+			});
+		}
+
+		// if we are aborting. we don't want any new peers
+		req.num_want =
+			(req.event == event_t::stopped) ? 0 : settings().get_int(settings_pack::num_want);
+
+		return req;
+	}
+
+	void torrent::send_tracker_request(tracker_request& req,
+		aux::announce_endpoint& aep,
+		aux::announce_infohash& a,
+		protocol_version const ih,
+		event_t const e,
+		bool const high_priority,
+		time_point32 const now)
+	{
+		req.event = e;
+		if (req.event == event_t::none)
+		{
+			if (!a.start_sent)
+				req.event = event_t::started;
+			else if (!m_complete_sent && !a.complete_sent && is_seed())
+			{
+				req.event = event_t::completed;
+			}
+		}
+
+		req.triggered_manually = a.triggered_manually;
+		a.triggered_manually = false;
+
+#if TORRENT_ABI_VERSION == 1
+		req.auth = tracker_login();
+#endif
+		req.key = tracker_key();
+
+		req.outgoing_socket = aep.socket;
+		req.info_hash = m_torrent_file->info_hashes().get(ih);
+		if (high_priority) req.kind |= tracker_request::high_priority;
+
+#ifndef TORRENT_DISABLE_LOGGING
+		if (should_log())
+		{
+			debug_log("==> TRACKER REQUEST \"%s\" event: %s abort: %d ssl: %p "
+					  "port: %d ssl-port: %d fails: %d upd: %d ep: %s",
+				req.url.c_str(),
+				(req.event == event_t::stopped			? "stopped"
+						: req.event == event_t::started ? "started"
+														: ""),
+				m_abort
+#ifdef TORRENT_SSL_PEERS
+				,
+				static_cast<void*>(req.ssl_ctx)
+#else
+				,
+				static_cast<void*>(nullptr)
+#endif
+					,
+				m_ses.listen_port(),
+				m_ses.ssl_listen_port(),
+				a.fails,
+				a.updating,
+				print_endpoint(aep.local_endpoint).c_str());
+		}
+
+		// if we're not logging session logs, don't bother creating an
+		// observer object just for logging
+		if (m_abort && m_ses.should_log())
+		{
+			auto tl = std::make_shared<aux::tracker_logger>(m_ses);
+			m_ses.queue_tracker_request(req, tl);
+		}
+		else
+#endif
+		{
+			m_ses.queue_tracker_request(req, shared_from_this());
+		}
+
+		a.updating = true;
+		a.next_announce = now;
+		a.min_announce = now;
+
+		if (m_ses.alerts().should_post<tracker_announce_alert>())
+		{
+			m_ses.alerts().emplace_alert<tracker_announce_alert>(
+				get_handle(), aep.local_endpoint, req.url, ih, req.event);
+		}
+	}
+
+	// unlike announce_with_tracker(), this only considers a single,
+	// specific tracker, and does not defer to other trackers based on
+	// tier or "is one tracker already working" bookkeeping. This is used
+	// to force-announce a specific tracker (by index), since the whole
+	// point of asking for a specific tracker is to reach that tracker,
+	// regardless of the state of any other tracker in the list.
+	void torrent::announce_tracker_now(
+		aux::announce_entry& ae, event_t const e, bool const high_priority)
+	{
+		TORRENT_ASSERT(is_single_thread());
+
+		if (m_abort) return;
+		if (e != event_t::stopped && (!m_announce_to_trackers || m_paused)) return;
+
+		tracker_request req = build_tracker_request(e);
+		time_point32 const now = aux::time_now32();
+
+		refresh_endpoint_list(m_ses, is_ssl_torrent(), bool(m_complete_sent), ae);
+		req.trackerid = ae.trackerid.empty() ? m_trackerid : ae.trackerid;
+		req.url = ae.url;
+
+#if TORRENT_USE_I2P
+		if (!i2p_compatible_tracker(ae)) return;
+		if (ae.i2p) req.kind |= tracker_request::i2p;
+#endif
+
+		for (auto& aep : ae.endpoints)
+		{
+			if (!aep.enabled) continue;
+
+			for (protocol_version const ih : all_versions)
+			{
+				if (ih == protocol_version::V1 && !m_info_hash.has_v1()) continue;
+				if (ih == protocol_version::V2 && !m_info_hash.has_v2()) continue;
+
+				auto& a = aep.info_hashes[ih];
+
+				if (!a.start_sent && e == event_t::stopped) continue;
+				if (!a.can_announce(now, is_seed(), ae.fail_limit)) continue;
+
+				send_tracker_request(req, aep, a, ih, e, high_priority, now);
+			}
+		}
 	}
 
 	void torrent::scrape_tracker(int idx, bool const user_triggered)
@@ -3978,7 +4041,14 @@ namespace {
 				a.next_announce = (flags & torrent_handle::ignore_min_interval)
 					? time_point_cast<seconds32>(t) + seconds32(1)
 					: std::max(time_point_cast<seconds32>(t), a.min_announce) + seconds32(1);
-				a.min_announce = a.next_announce;
+				// ignore_min_interval means the caller explicitly wants to
+				// bypass the tracker's requested minimum interval, so clear
+				// it. Otherwise leave it as-is (e.g. reflecting a real
+				// interval requested by the tracker) rather than pushing it
+				// a second into the future, which would make can_announce()
+				// falsely report this endpoint as not yet eligible.
+				if (flags & torrent_handle::ignore_min_interval)
+					a.min_announce = (time_point32::min)();
 				a.triggered_manually = true;
 				ret = true;
 			}
@@ -3998,42 +4068,57 @@ namespace {
 			|| tracker_idx == -1);
 
 		if (is_paused()) return;
-		bool found_one = false;
+
 		if (tracker_idx == -1)
 		{
+			bool found_one = false;
 			for (auto& e : m_trackers)
 			{
 				// make sure we check for new endpoints from the listen sockets
 				refresh_endpoint_list(m_ses, is_ssl_torrent(), bool(m_complete_sent), e);
 				found_one |= trigger_announce(m_ses, is_ssl_torrent(), bool(m_complete_sent), flags, t, e);
 			}
+
+#ifndef TORRENT_DISABLE_LOGGING
+			if (!found_one)
+			{
+				debug_log("*** found no tracker endpoints to announce");
+			}
+#else
+			TORRENT_UNUSED(found_one);
+#endif
+
+			if (flags & torrent_handle::high_priority)
+			{
+				announce_with_tracker(event_t::none, true);
+			}
+			else
+			{
+				update_tracker_timer(aux::time_now32());
+			}
+			return;
 		}
-		else
-		{
-			if (tracker_idx < 0 || tracker_idx >= int(m_trackers.size()))
-				return;
-			auto* e = m_trackers.find(tracker_idx);
-			if (e == nullptr) return;
-			found_one |= trigger_announce(m_ses, is_ssl_torrent(), bool(m_complete_sent), flags, t, *e);
-		}
+
+		if (tracker_idx < 0 || tracker_idx >= int(m_trackers.size())) return;
+		auto* e = m_trackers.find(tracker_idx);
+		if (e == nullptr) return;
+		bool const found_one =
+			trigger_announce(m_ses, is_ssl_torrent(), bool(m_complete_sent), flags, t, *e);
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (!found_one)
 		{
 			debug_log("*** found no tracker endpoints to announce");
 		}
-#else
-		TORRENT_UNUSED(found_one);
 #endif
 
-		if (flags & torrent_handle::high_priority)
-		{
-			announce_with_tracker(event_t::none, true);
-		}
-		else
-		{
-			update_tracker_timer(aux::time_now32());
-		}
+		// unlike the "reannounce to all trackers" case above, forcing a
+		// specific tracker must actually reach that tracker, regardless of
+		// whether some other tracker earlier in the list hasn't failed yet.
+		// announce_with_tracker() would silently skip this tracker in that
+		// case, so use the single-tracker path instead.
+		if (found_one)
+			announce_tracker_now(*e, event_t::none, bool(flags & torrent_handle::high_priority));
 	}
 
 	// this is the entry point for the client to force a re-announce. It's
@@ -4054,9 +4139,12 @@ namespace {
 
 		bool const found = trigger_announce(m_ses, is_ssl_torrent(), bool(m_complete_sent), flags, t, *e);
 
+		// see the comment in force_tracker_request() above: this must reach
+		// this specific tracker regardless of the state of any other one,
+		// so use the single-tracker path rather than announce_with_tracker().
 		if (found)
 		{
-			update_tracker_timer(aux::time_now32());
+			announce_tracker_now(*e, event_t::none, bool(flags & torrent_handle::high_priority));
 		}
 #ifndef TORRENT_DISABLE_LOGGING
 		else
