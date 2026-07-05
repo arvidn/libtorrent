@@ -45,7 +45,12 @@ struct session_mock : aux::session_interface
 		, _resolver(_io_context)
 		, _start_time(clock_type::now())
 		, _disk_io(disabled_disk_io_constructor(_io_context, _session_settings, _counters))
-	{}
+	{
+		// tests must not depend on reaching a real, external STUN server;
+		// leaving this empty makes RTC ICE gathering complete using only
+		// host candidates
+		_session_settings.set_str(settings_pack::webtorrent_stun_server, "");
+	}
 
 	void set_external_address(tcp::endpoint const&, address const&, aux::ip_source_t, address const&) override {}
 	aux::external_ip external_address() const override { return {}; }
