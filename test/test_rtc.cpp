@@ -21,6 +21,10 @@ see LICENSE file.
 
 #if TORRENT_USE_RTC
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <rtc/rtc.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 #include <boost/asio.hpp>
 
 #include <iostream>
@@ -151,6 +155,7 @@ void test_connectivity()
 
 		std::cout << "Signaling 1: Generated " << int(offers.size()) << " offer(s)" << std::endl;
 		TEST_EQUAL(int(offers.size()), 1);
+		if (offers.empty()) return;
 
 		rtc_offer offer = offers[0];
 		offer.answer_callback = answer_callback;
@@ -240,6 +245,7 @@ void test_stream()
 
 		std::cout << "Signaling 1: Generated " << int(offers.size()) << " offer(s)" << std::endl;
 		TEST_EQUAL(int(offers.size()), 1);
+		if (offers.empty()) return;
 
 		rtc_offer offer = offers[0];
 		offer.answer_callback = answer_callback;
@@ -330,6 +336,97 @@ void test_stream()
 	sig2->close();
 }
 
+// regression test for a bug in rtc_stream_impl::write_data(): when a write's
+// total size lands exactly on a max-message-size boundary (i.e. it's an
+// exact multiple of the negotiated max message size), the chunk-splitting
+// loop left the final chunk's buffer entry in m_write_buffer without
+// shrinking or erasing it. Since issue_write()'s driving loop only stops
+// once m_write_buffer is empty, this caused an infinite loop: each iteration
+// re-sent a spurious 0-byte message and never made progress, spinning the
+// network thread and leaking a small allocation every iteration (observed
+// as an unbounded, fast climb in RSS -- tens of GB within a minute -- before
+// being killed). A remote peer controls the negotiated max message size via
+// SDP, so this was remotely triggerable by aligning a write size to it.
+void test_write_exact_chunk_boundary()
+{
+	time_point const start_time = clock_type::now();
+
+	session_mock ses1(io_context);
+	aux::torrent tor1(ses1,
+		false,
+		parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
+
+	session_mock ses2(io_context);
+	aux::torrent tor2(ses2,
+		false,
+		parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
+
+	std::shared_ptr<rtc_signaling> sig1, sig2;
+	std::shared_ptr<rtc_stream> stream1, stream2;
+	std::vector<char> message;
+
+	auto answer_callback = [&](peer_id const&, rtc_answer const& answer) {
+		sig1->process_answer(answer);
+	};
+
+	auto offers_handler = [&](error_code const& ec, std::vector<rtc_offer> offers) {
+		TEST_CHECK(!ec);
+		TEST_EQUAL(int(offers.size()), 1);
+		if (offers.empty()) return;
+		rtc_offer offer = offers[0];
+		offer.answer_callback = answer_callback;
+		sig2->process_offer(offer);
+	};
+
+	auto write_handler = [&](error_code const& ec, std::size_t size) {
+		std::cout << "Stream 2: write completed, ec: " << ec.message() << " size: " << size
+				  << std::endl;
+		TEST_CHECK(!ec);
+		TEST_EQUAL(size, message.size());
+		success = true;
+	};
+
+	auto handler1 = [&](rtc_stream_init init) {
+		TEST_CHECK(init.peer_connection);
+		TEST_CHECK(init.data_channel);
+		stream1 = std::make_shared<rtc_stream>(io_context, init);
+	};
+
+	auto handler2 = [&](rtc_stream_init init) {
+		TEST_CHECK(init.peer_connection);
+		TEST_CHECK(init.data_channel);
+
+		// an exact multiple of the negotiated max message size is the
+		// boundary condition that used to make write_data() spin forever
+		std::size_t const max_message_size = init.data_channel->maxMessageSize();
+		TEST_CHECK(max_message_size > 0);
+		if (max_message_size == 0) return;
+		message.assign(3 * max_message_size, char(0x42));
+
+		std::cout << "Signaling 2: Endpoint is connected, writing " << message.size()
+				  << " bytes (3x max_message_size=" << max_message_size << ")" << std::endl;
+		stream2 = std::make_shared<rtc_stream>(io_context, init);
+		stream2->async_write_some(
+			boost::asio::const_buffer(message.data(), message.size()), write_handler);
+	};
+
+	sig1 = std::make_shared<rtc_signaling>(io_context, &tor1, handler1);
+	sig2 = std::make_shared<rtc_signaling>(io_context, &tor2, handler2);
+
+	std::cout << "Signaling 1: Generating 1 offer" << std::endl;
+	sig1->generate_offers(1, offers_handler);
+
+	run_test();
+
+	ses1.print_alerts(start_time);
+	ses2.print_alerts(start_time);
+
+	if (stream1) stream1->close();
+	if (stream2) stream2->close();
+
+	sig1->close();
+	sig2->close();
+}
 
 } // namespace
 
@@ -337,6 +434,7 @@ TORRENT_TEST(parse_endpoint) { test_parse_endpoint(); }
 TORRENT_TEST(signaling_offers) { test_offers(); }
 TORRENT_TEST(signaling_connectivity) { test_connectivity(); }
 TORRENT_TEST(signaling_stream) { test_stream(); }
+TORRENT_TEST(write_exact_chunk_boundary) { test_write_exact_chunk_boundary(); }
 #else
 TORRENT_TEST(disabled) {}
 #endif // TORRENT_USE_RTC
