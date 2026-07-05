@@ -1,3 +1,4 @@
+	* fix corruption bug in mmap_storage
 	* fix bug where torrent_status::total was not set for seeds
 
 2.0.13 released

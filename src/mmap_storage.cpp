@@ -701,13 +701,12 @@ error_code translate_error(std::error_code const& err, bool const write)
 					std::memcpy(const_cast<char*>(file_range.data()), buf.data(), static_cast<std::size_t>(buf.size()));
 					});
 
-				file_range = file_range.subspan(buf.size());
-				ret += static_cast<int>(buf.size());
-
 				if (flags & disk_interface::volatile_read)
 					handle->dont_need(file_range.first(buf.size()));
 				if (flags & disk_interface::flush_piece)
 					handle->page_out(file_range.first(buf.size()));
+
+				ret = static_cast<int>(buf.size());
 			}
 			catch (std::system_error const& err)
 			{
