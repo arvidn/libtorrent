@@ -48,6 +48,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           TAG_VERSION="${GITHUB_REF_NAME#v}"
+          TAG_VERSION="${TAG_VERSION%%-*}"
           MAKEFILE_VERSION="$(grep '^VERSION=' Makefile | cut -d= -f2)"
           if [ "$TAG_VERSION" != "$MAKEFILE_VERSION" ]; then
             echo "error: tag version (${TAG_VERSION}) does not match Makefile VERSION (${MAKEFILE_VERSION})"
