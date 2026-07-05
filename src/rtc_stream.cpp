@@ -348,14 +348,25 @@ std::pair<std::size_t, bool> rtc_stream_impl::write_data(std::size_t size)
 		++target;
 	}
 
-	if (total > size)
+	if (target != m_write_buffer.end())
 	{
-		TORRENT_ASSERT(target != m_write_buffer.end());
-		std::size_t const left = total - size;
-		std::size_t const to_copy = target->size() - left;
-		m_write_buffer.insert(target, boost::asio::const_buffer(target->data(), to_copy));
-		(*target) += to_copy;
-		total = size;
+		if (total > size)
+		{
+			std::size_t const left = total - size;
+			std::size_t const to_copy = target->size() - left;
+			m_write_buffer.insert(target, boost::asio::const_buffer(target->data(), to_copy));
+			(*target) += to_copy;
+			total = size;
+		}
+		else
+		{
+			// total == size exactly here: target's whole buffer is part of
+			// this chunk, include it in the [begin(), target) send range
+			// below instead of leaving it dangling in m_write_buffer (which
+			// would spin issue_write()'s loop forever, since it never
+			// shrinks).
+			++target;
+		}
 	}
 
 	bool is_buffered = !m_data_channel->sendBuffer(m_write_buffer.begin(), target);
