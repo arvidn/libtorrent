@@ -1143,8 +1143,8 @@ namespace libtorrent::aux {
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		iterator const iter = std::lower_bound(m_peers.begin(), m_peers.end()
-				, remote.address(), peer_address_compare());
+		auto const iter = std::lower_bound(
+			m_peers.begin(), m_peers.end(), remote.address(), peer_address_compare());
 
 		if (!state->allow_multiple_connections_per_ip
 				&& iter != m_peers.end() && (*iter)->address() == remote.address())

@@ -4200,6 +4200,7 @@ namespace {
 		st.total_done = 0;
 		st.total_wanted_done = 0;
 		st.total_wanted = m_size_on_disk;
+		st.total = m_size_on_disk;
 
 		TORRENT_ASSERT(st.total_wanted <= m_torrent_file->total_size());
 		TORRENT_ASSERT(st.total_wanted >= 0);
@@ -4212,21 +4213,15 @@ namespace {
 			// once we're a seed and remove the piece picker, we stop tracking
 			// piece- and file priority. We consider everything as being
 			// "wanted"
-			st.total_done = m_torrent_file->total_size() - m_padding_bytes;
+			st.total_done = m_size_on_disk;
 			st.total_wanted_done = m_size_on_disk;
-			st.total_wanted = m_size_on_disk;
 			TORRENT_ASSERT(st.total_wanted <= st.total_done);
 			TORRENT_ASSERT(st.total_wanted_done <= st.total_wanted);
 			TORRENT_ASSERT(st.total_done <= m_torrent_file->total_size());
 			return;
 		}
 		else if (!has_picker())
-		{
-			st.total_done = 0;
-			st.total_wanted_done = 0;
-			st.total_wanted = m_size_on_disk;
 			return;
-		}
 
 		TORRENT_ASSERT(has_picker());
 

@@ -920,7 +920,7 @@ if(developer-options)
 	endif()
 
 	target_optional_compile_definitions(torrent-rasterbar PUBLIC NAME disk-latency-stats DEFAULT OFF
-		ENABLED TORRENT_DISK_LATENCY_STATS=1)
+		ENABLED TORRENT_DISK_LATENCY_STATS=1 DISABLED TORRENT_DISK_LATENCY_STATS=0)
 	target_optional_compile_definitions(torrent-rasterbar PUBLIC NAME utp-log DEFAULT OFF
 		ENABLED TORRENT_UTP_LOG_ENABLE)
 	target_optional_compile_definitions(torrent-rasterbar PUBLIC NAME simulate-slow-read DEFAULT OFF

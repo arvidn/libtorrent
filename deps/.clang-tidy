@@ -1,0 +1,7 @@
+# clang-tidy always prepends its built-in defaults (clang-diagnostic-*,
+# clang-analyzer-*) ahead of this file's Checks, so a bare '-*' leaves zero
+# enabled checks, which clang-tidy treats as a hard error ("no checks
+# enabled") rather than a silent no-op. Re-enable a harmless check category
+# that never matches C/C++ code (this isn't an Objective-C codebase) purely
+# to keep the enabled-checks set non-empty.
+Checks: '-*,objc-*'

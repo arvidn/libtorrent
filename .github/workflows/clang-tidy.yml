@@ -19,7 +19,7 @@ jobs:
       - name: checkout
         uses: actions/checkout@v6
         with:
-           submodules: true
+           submodules: recursive
            fetch-depth: 1
            filter: tree:0
 
@@ -45,7 +45,7 @@ jobs:
 
       - name: analyze
         run: |
-          b2 -a clang_tidy
+          b2 -a clang_tidy webtorrent=on
 
 
 

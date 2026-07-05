@@ -325,6 +325,7 @@ namespace libtorrent::aux {
 				post(ios, std::bind(&request_callback::tracker_request_error, cb, std::move(req)
 					, errors::torrent_aborted, operation_t::connect
 					, "", seconds32(0)));
+				return;
 			}
 			cb->generate_rtc_offers(req.num_want
 				, [this, &ios, request = std::move(req), c](error_code const& ec
