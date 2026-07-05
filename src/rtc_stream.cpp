@@ -213,11 +213,28 @@ void rtc_stream_impl::issue_write()
 	std::size_t const max_message_size = m_data_channel->maxMessageSize();
 	std::size_t bytes_written = 0;
 	bool is_buffered = false;
-	while (!m_write_buffer.empty())
+	try
 	{
-		std::size_t bytes;
-		std::tie(bytes, is_buffered) = write_data(max_message_size);
-		bytes_written += bytes;
+		while (!m_write_buffer.empty())
+		{
+			std::size_t bytes;
+			std::tie(bytes, is_buffered) = write_data(max_message_size);
+			bytes_written += bytes;
+		}
+	}
+	catch (std::exception const&)
+	{
+		// the data channel can throw if it was closed concurrently with
+		// this write. Report it through the completion handler instead of
+		// letting the exception escape async_write_some(), which would
+		// leave the caller's outstanding-operation bookkeeping out of sync
+		// with this (aborted) write.
+		clear_write_buffers();
+		post(m_io_context,
+			std::bind(std::exchange(m_write_handler, nullptr),
+				boost::asio::error::broken_pipe,
+				bytes_written));
+		return;
 	}
 
 	TORRENT_ASSERT(bytes_written == m_write_buffer_size);
@@ -297,11 +314,21 @@ std::size_t rtc_stream_impl::write_some(error_code& ec)
 	std::size_t const max_message_size = m_data_channel->maxMessageSize();
 	std::size_t bytes_written = 0;
 	bool is_buffered = false;
-	while (!m_write_buffer.empty() && !is_buffered)
+	try
 	{
-		std::size_t bytes = 0;
-		std::tie(bytes, is_buffered) = write_data(max_message_size);
-		bytes_written += bytes;
+		while (!m_write_buffer.empty() && !is_buffered)
+		{
+			std::size_t bytes = 0;
+			std::tie(bytes, is_buffered) = write_data(max_message_size);
+			bytes_written += bytes;
+		}
+	}
+	catch (std::exception const&)
+	{
+		// the data channel can throw if it was closed concurrently with
+		// this write
+		ec = boost::asio::error::broken_pipe;
+		clear_write_buffers();
 	}
 
 	return bytes_written;
