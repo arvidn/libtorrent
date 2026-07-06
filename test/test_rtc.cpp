@@ -72,6 +72,14 @@ void test_parse_endpoint() {
 	TEST_CHECK(ec);
 }
 
+// shared across all tests in this file (rather than one per test) because
+// libdatachannel's background thread pool is process-global and doesn't
+// synchronously stop when a test's connections are closed; a late completion
+// posted from those threads to a per-test io_context that has since been
+// destroyed would be a dangling reference. With a process-lifetime
+// io_context that's always safe, at the cost of stale completions from one
+// test occasionally being serviced while a later test is running (made
+// harmless by the weak_ptr checks in rtc_signaling's callbacks).
 boost::asio::io_context io_context;
 bool success = false;
 
@@ -82,7 +90,10 @@ void run_test() {
 	auto const begin_time = clock_type::now();
 	auto const end_time = begin_time + duration;
 	do {
-		io_context.restart();
+		// restart() requires stopped() == true; outstanding per-connection
+		// timers mean that isn't always the case, so check rather than
+		// calling it unconditionally
+		if (io_context.stopped()) io_context.restart();
 		io_context.run_one_until(end_time);
 	}
 	while (!success && clock_type::now() < end_time);
