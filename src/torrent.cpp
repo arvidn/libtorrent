@@ -3546,6 +3546,12 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 				send_tracker_request(req, aep, a, ih, e, high_priority, now);
 			}
 		}
+
+		// if the tracker wasn't immediately eligible to announce (e.g. its
+		// min_interval hasn't expired), make sure the timer is (re)armed so
+		// the forced announce isn't silently dropped, and instead happens
+		// as soon as the tracker becomes eligible.
+		update_tracker_timer(now);
 	}
 
 	void torrent::scrape_tracker(int idx, bool const user_triggered)
