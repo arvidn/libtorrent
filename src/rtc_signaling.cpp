@@ -47,19 +47,26 @@ template <class T> std::weak_ptr<T> make_weak_ptr(std::shared_ptr<T> ptr) { retu
 class rtc_log_appender
 {
 public:
+	// write() is called from libdatachannel's background threads; the lock
+	// is held for its whole body (not just the m_ses read) so unset_session()
+	// can't clear the pointer out from under an in-flight write(), which
+	// would otherwise race with the session being destroyed right after
 	void set_session(aux::session_interface* ses)
 	{
+		std::lock_guard<std::mutex> l(m_mutex);
 		m_ses = ses;
 	}
 
 	void unset_session(aux::session_interface* ses)
 	{
+		std::lock_guard<std::mutex> l(m_mutex);
 		if (m_ses == ses)
 			m_ses = nullptr;
 	}
 
 	void write(rtc::LogLevel level, rtc::string message)
 	{
+		std::lock_guard<std::mutex> l(m_mutex);
 		if (!m_ses) return;
 
 		auto &alerts = m_ses->alerts();
@@ -73,6 +80,7 @@ public:
 	}
 
 private:
+	std::mutex m_mutex;
 	aux::session_interface* m_ses = nullptr;
 };
 
