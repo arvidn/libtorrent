@@ -221,6 +221,7 @@ namespace {
 	}});
 
 	CONSTEXPR_SETTINGS
+	// clang-format off
 	aux::array<int_setting_entry_t, settings_pack::num_int_settings> const int_settings
 	({{
 		SET(tracker_completion_timeout, 30, nullptr),
@@ -375,7 +376,7 @@ namespace {
 		SET(dht_max_infohashes_sample_count, 20, nullptr),
 		SET(max_piece_count, 0x200000, nullptr),
 		SET(metadata_token_limit, 2500000, nullptr),
-		SET(disk_write_mode, settings_pack::mmap_write_mode_t::auto_mmap_write, nullptr),
+		SET(disk_write_mode, settings_pack::mmap_write_mode_t::always_mmap_write, nullptr),
 		SET(mmap_file_size_cutoff, 40, nullptr),
 		SET(i2p_inbound_quantity, 3, nullptr),
 		SET(i2p_outbound_quantity, 3, nullptr),
@@ -388,6 +389,7 @@ namespace {
 		SET(min_websocket_announce_interval, 1 * 60, nullptr),
 		SET(webtorrent_connection_timeout, 2 * 60, nullptr)
 	}});
+	// clang-format on
 
 #undef SET
 #undef DEPRECATED_SET

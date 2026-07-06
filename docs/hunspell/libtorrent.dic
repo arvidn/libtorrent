@@ -644,6 +644,7 @@ CoW
 reflinks
 reflinked
 base64
+ZFS
 google
 WebTorrent
 webtorrent
