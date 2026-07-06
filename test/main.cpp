@@ -11,6 +11,11 @@ see LICENSE file.
 */
 
 #include <iostream>
+#include <algorithm> // for std::shuffle
+#include <numeric> // for std::iota
+#include <random> // for std::mt19937, std::random_device
+#include <charconv> // for std::from_chars
+#include <cinttypes> // for PRIu32
 #include <boost/config.hpp>
 #include <fcntl.h>
 #include <cstdio>
@@ -211,19 +216,25 @@ LONG WINAPI seh_exception_handler(LPEXCEPTION_POINTERS p)
 void print_usage(char const* executable)
 {
 	std::printf("%s [options] [tests...]\n"
-		"\n"
-		"OPTIONS:\n"
-		"-h,--help            show this help\n"
-		"-l,--list            list the tests available to run\n"
-		"-k,--keep            keep files created by the test\n"
-		"                     regardless of whether it passed or not\n"
-		"-n,--no-redirect     don't redirect test output to\n"
-		"                     temporary file, but let it go straight\n"
-		"                     to stdout\n"
-		"--stderr-redirect    also redirect stderr in addition to stdout\n"
-		"\n"
-		"for tests, specify one or more test names as printed\n"
-		"by -l. If no test is specified, all tests are run\n", executable);
+				"\n"
+				"OPTIONS:\n"
+				"-h,--help            show this help\n"
+				"-l,--list            list the tests available to run\n"
+				"-k,--keep            keep files created by the test\n"
+				"                     regardless of whether it passed or not\n"
+				"-n,--no-redirect     don't redirect test output to\n"
+				"                     temporary file, but let it go straight\n"
+				"                     to stdout\n"
+				"--stderr-redirect    also redirect stderr in addition to stdout\n"
+				"--no-shuffle         run the tests in registration order instead\n"
+				"                     of shuffling them\n"
+				"--shuffle-seed=<n>   shuffle the test order using the given seed\n"
+				"                     instead of a random one, to reproduce a\n"
+				"                     previous run's order\n"
+				"\n"
+				"for tests, specify one or more test names as printed\n"
+				"by -l. If no test is specified, all tests are run\n",
+		executable);
 }
 
 void change_directory(std::string const& f, error_code& ec)
@@ -306,6 +317,9 @@ int EXPORT main(int argc, char const* argv[])
 	++argv;
 	--argc;
 
+	bool shuffle_tests = true;
+	std::uint32_t shuffle_seed = std::random_device{}();
+
 	// pick up options
 	while (argc > 0 && argv[0][0] == '-')
 	{
@@ -334,6 +348,21 @@ int EXPORT main(int argc, char const* argv[])
 		if (argv[0] == "--stderr-redirect"_sv)
 		{
 			redirect_stderr = true;
+		}
+
+		if (argv[0] == "--no-shuffle"_sv)
+		{
+			shuffle_tests = false;
+		}
+
+		{
+			string_view const arg = argv[0];
+			string_view const prefix = "--shuffle-seed="_sv;
+			if (arg.substr(0, prefix.size()) == prefix)
+			{
+				string_view const value = arg.substr(prefix.size());
+				std::from_chars(value.data(), value.data() + value.size(), shuffle_seed);
+			}
 		}
 
 		if (argv[0] == "-k"_sv || argv[0] == "--keep"_sv)
@@ -411,11 +440,25 @@ int EXPORT main(int argc, char const* argv[])
 	if (redirect_stdout) old_stdout = dup(fileno(stdout));
 	if (redirect_stderr) old_stderr = dup(fileno(stderr));
 
+	// randomize the order tests run in, to root out any accidental
+	// dependencies on running order (e.g. via global state)
+	std::vector<int> test_order(static_cast<std::size_t>(unit_test::g_num_unit_tests));
+	std::iota(test_order.begin(), test_order.end(), 0);
+	if (shuffle_tests)
+	{
+		std::printf("shuffle-seed = %" PRIu32 " (pass --shuffle-seed=%" PRIu32
+					" to reproduce this order)\n",
+			shuffle_seed,
+			shuffle_seed);
+		std::mt19937 shuffle_rng(shuffle_seed);
+		std::shuffle(test_order.begin(), test_order.end(), shuffle_rng);
+	}
+
 	int num_run = 0;
 	for (int i = 0; i < unit_test::g_num_unit_tests; ++i)
 	{
-		if (filter && tests_to_run.count(unit_test::g_unit_tests[i].name) == 0)
-			continue;
+		int const test_idx = test_order[static_cast<std::size_t>(i)];
+		if (filter && tests_to_run.count(unit_test::g_unit_tests[test_idx].name) == 0) continue;
 
 		std::string const unit_dir = unit_dir_prefix + std::to_string(i);
 		error_code ec;
@@ -435,7 +478,7 @@ int EXPORT main(int argc, char const* argv[])
 			return 1;
 		}
 
-		auto& t = ::unit_test::g_unit_tests[i];
+		auto& t = ::unit_test::g_unit_tests[test_idx];
 
 		if (redirect_stdout || redirect_stderr)
 		{
