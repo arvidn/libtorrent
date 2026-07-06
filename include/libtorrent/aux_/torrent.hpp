@@ -827,15 +827,14 @@ namespace libtorrent::aux {
 		// populates the fields of a tracker_request that describe this
 		// torrent's state, i.e. everything that's the same regardless of
 		// which tracker it's being sent to. The caller still needs to set
-		// the per-tracker fields (trackerid, url, i2p bit, event).
+		// the per-tracker fields (trackerid, url, i2p bit).
 		tracker_request build_tracker_request(event_t e);
 
 		// resolves the event type, sends req to the tracker for a single
 		// endpoint/info-hash, and updates that endpoint's announce state
 		// (updating, next_announce, min_announce) and posts the
 		// tracker_announce_alert. Does not touch any tier-selection state;
-		// callers that have one (announce_with_tracker) update it themselves
-		// based on the return value.
+		// callers that have one (announce_with_tracker) update it themselves.
 		void send_tracker_request(tracker_request& req,
 			aux::announce_endpoint& aep,
 			aux::announce_infohash& a,
