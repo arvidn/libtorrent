@@ -2095,6 +2095,15 @@ namespace aux {
 			// When writing to a local SSD (especially in DAX mode) using memory
 			// mapped files likely gives the best performance.
 			// The values for this setting are specified as mmap_write_mode_t.
+			//
+			// A very important consideration when changing this is that some
+			// operating systems and filesystems do not support mixing write
+			// calls with memory mapped files. Notably, Windows does not
+			// support mixing, since windows does not use the page cache for
+			// caching files. Also, ZFS and Btrfs use their own caching layer,
+			// not the page cache, so they also do not support mixing. Since
+			// reading large files always happen via mmap, enabling writes via
+			// write calls on this systems may cause corruption.
 			disk_write_mode,
 
 			// when using mmap_disk_io, files smaller than this number of blocks

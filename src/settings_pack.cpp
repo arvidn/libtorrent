@@ -400,7 +400,7 @@ constexpr int DISK_WRITE_MODE = settings_pack::enable_os_cache;
 		SET(dht_max_infohashes_sample_count, 20, nullptr),
 		SET(max_piece_count, 0x200000, nullptr),
 		SET(metadata_token_limit, 2500000, nullptr),
-		SET(disk_write_mode, settings_pack::mmap_write_mode_t::auto_mmap_write, nullptr),
+		SET(disk_write_mode, settings_pack::mmap_write_mode_t::always_mmap_write, nullptr),
 		SET(mmap_file_size_cutoff, 40, nullptr),
 		SET(i2p_inbound_quantity, 3, nullptr),
 		SET(i2p_outbound_quantity, 3, nullptr),
