@@ -720,7 +720,13 @@ std::vector<std::string> get_python()
 
 int find_available_port()
 {
-	int port = 2000 + (std::int64_t(::getpid()) + ::unit_test::g_test_idx + std::rand()) % 60000;
+	// this needs entropy that differs across sibling test processes started
+	// at nearly the same time by the test runner, otherwise they can compute
+	// the same candidate port and race for it.
+	int port = 2000
+		+ (std::int64_t(::getpid()) + ::unit_test::g_test_idx
+			  + lt::clock_type::now().time_since_epoch().count())
+			% 60000;
 	error_code ec;
 	io_context ios;
 
