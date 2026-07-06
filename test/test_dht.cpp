@@ -2527,6 +2527,7 @@ TORRENT_TEST(traversal_done)
 	// verify that done() is only invoked once
 	// See PR 252
 	g_sent_packets.clear();
+	g_put_count = 0;
 
 	sha1_hash const target = hasher(pk.bytes).final();
 	constexpr int num_test_nodes = 9; // we need K + 1 nodes to create the failing sequence
@@ -2633,6 +2634,8 @@ TORRENT_TEST(dht_dual_stack)
 	// v4 node requesting v6 nodes
 
 	udp::endpoint source(addr("10.0.0.1"), 20);
+
+	g_sent_packets.clear();
 
 	send_dht_request(node4, "find_node", source, &response
 		, msg_args()
@@ -2741,6 +2744,8 @@ TORRENT_TEST(multi_home)
 	// send a request with a different listen socket and make sure the node ignores it
 	dht_test_setup t(udp::endpoint(rand_v4(), 20));
 	bdecode_node response;
+
+	g_sent_packets.clear();
 
 	entry e;
 	e["q"] = "ping";
@@ -3159,6 +3164,8 @@ TORRENT_TEST(read_only_node)
 	bdecode_node response;
 	msg_args args;
 
+	g_sent_packets.clear();
+
 	// for incoming requests, read_only node won't response.
 	send_dht_request(node, "ping", source, &response, args, "10", false);
 	TEST_EQUAL(response.type(), bdecode_node::none_t);
@@ -3198,6 +3205,7 @@ TORRENT_TEST(read_only_node)
 	bool ret = verify_message(request, get_item_desc_ro, parsed, error_string);
 
 	TEST_CHECK(ret);
+	if (!ret) return;
 	TEST_EQUAL(parsed[3].int_value(), 1);
 
 	// should have one node now, which is 4.4.4.4:1234
@@ -3420,6 +3428,7 @@ TORRENT_TEST(rpc_invalid_error_msg)
 	err["y"] = "e";
 	err["e"].string() = "Malformed Error";
 	err["t"] = g_sent_packets.begin()->second["t"].string();
+	g_sent_packets.clear();
 
 	node_id nid;
 	incoming_rpc_message(rpc, err, source, &nid);
