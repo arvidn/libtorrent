@@ -43,6 +43,13 @@ foreach(TARGET_SRC ${tests})
 	add_test(${TARGET} ${TARGET})
 endforeach()
 
+if (webtorrent AND TARGET test_rtc)
+	# torrent-rasterbar links datachannel-static privately, so its include
+	# directories and symbols are not propagated to consumers; test_rtc.cpp
+	# includes <rtc/rtc.hpp> directly and needs them linked in explicitly.
+	target_link_libraries(test_rtc datachannel-static)
+endif()
+
 file(GLOB GZIP_ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/*.gz")
 file(COPY ${GZIP_ASSETS} DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 
