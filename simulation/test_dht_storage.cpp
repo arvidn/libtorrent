@@ -90,6 +90,9 @@ void test_expiration(simulation& sim
 
 TORRENT_TEST(dht_storage_counters)
 {
+	default_config cfg;
+	simulation sim(cfg);
+
 	auto sett = test_settings();
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
@@ -122,9 +125,6 @@ TORRENT_TEST(dht_storage_counters)
 
 	dht_storage_counters c;
 	// note that we are using the aux global timer
-
-	default_config cfg;
-	simulation sim(cfg);
 
 	c.peers = 3;
 	c.torrents = 2;
