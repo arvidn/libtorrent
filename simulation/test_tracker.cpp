@@ -1304,6 +1304,160 @@ TORRENT_TEST(clear_error)
 	TEST_EQUAL(num_announces, 2);
 }
 
+// make sure a tracker announce forced with the high_priority flag jumps
+// ahead of an announce that's already waiting in the tracker queue,
+// instead of waiting behind it for a free announce slot.
+//
+// this uses 3 separate single-tracker torrents sharing the session-wide
+// tracker queue:
+// - "fast" completes a normal announce right away, so its tracker is no
+//   longer in flight (not "updating") and is eligible to be re-announced
+//   on demand, like any tracker that's already been talked to once.
+// - "hold" is added next and occupies the only available announce slot
+//   forever (its tracker never responds), so anything announced after it
+//   has to wait in the queue.
+// - "low" is added after "hold" and queues normally, behind "hold".
+// - "fast" is then force-reannounced with the high_priority flag. Since
+//   its tracker isn't in flight anymore, this queues a new request for
+//   it, which should jump ahead of "low" in the queue.
+void test_force_reannounce_high_priority_skips_queue(bool const by_url)
+{
+	using sim::asio::ip::address_v4;
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+
+	sim::asio::io_context fast_ios(sim, make_address_v4("3.0.0.1"));
+	sim::asio::io_context hold_ios(sim, make_address_v4("3.0.0.2"));
+	sim::asio::io_context low_ios(sim, make_address_v4("3.0.0.3"));
+
+	sim::http_server fast_http(fast_ios, 8080);
+	sim::http_server hold_http(hold_ios, 8080);
+	sim::http_server low_http(low_ios, 8080);
+
+	// never respond. This ties up the single available announce slot
+	// until it eventually times out.
+	hold_http.register_stall_handler("/announce");
+
+	// only record announces once "tracking" is turned on, i.e. after
+	// "fast"'s initial (unforced) announce has already completed
+	bool tracking = false;
+	std::vector<std::string> announce_order;
+
+	fast_http.register_handler(
+		"/announce", [&](std::string, std::string, std::map<std::string, std::string>&) {
+			if (tracking) announce_order.push_back("fast");
+			std::string const ret = "d8:intervali1800e5:peers0:e";
+			return sim::send_response(200, "OK", int(ret.size())) + ret;
+		});
+
+	low_http.register_handler(
+		"/announce", [&](std::string, std::string, std::map<std::string, std::string>&) {
+			if (tracking) announce_order.push_back("low");
+			std::string const ret = "d8:intervali1800e5:peers0:e";
+			return sim::send_response(200, "OK", int(ret.size())) + ret;
+		});
+
+	lt::session_proxy zombie;
+
+	asio::io_context ios(sim, make_address_v4("123.0.0.3"));
+	lt::settings_pack sett = settings();
+	sett.set_str(settings_pack::listen_interfaces, "123.0.0.3:6881");
+	// only one HTTP tracker announce may be in flight at a time, so
+	// whichever one doesn't get the slot has to queue
+	sett.set_int(settings_pack::max_concurrent_http_announces, 1);
+	// don't let the initial connect boost make the very first announces
+	// high priority, that would confuse this test
+	sett.set_int(settings_pack::torrent_connect_boost, 0);
+	// give up on the stalled announce quickly so the queue can drain
+	// within the lifetime of this test
+	sett.set_int(settings_pack::tracker_completion_timeout, 2);
+
+	auto ses = std::make_unique<lt::session>(sett, ios);
+	ses->set_alert_notify(std::bind(&on_alert_notify, ses.get()));
+
+	auto make_params = [](char const* name, char const* info_hash, char const* url) {
+		lt::add_torrent_params p;
+		p.name = name;
+		p.save_path = ".";
+		p.info_hashes.v1.assign(info_hash);
+		p.trackers.push_back(url);
+		// start announcing right away, instead of waiting for the auto
+		// manager to un-pause the torrent half a second in
+		p.flags &= ~lt::torrent_flags::auto_managed;
+		p.flags &= ~lt::torrent_flags::paused;
+		return p;
+	};
+
+	auto find_handle = [&](char const* name) {
+		for (auto const& h : ses->get_torrents())
+			if (h.status().name == name) return h;
+		return torrent_handle();
+	};
+
+	// "fast" is added first and gets the only announce slot to itself,
+	// so its first announce completes right away
+	ses->async_add_torrent(
+		make_params("fast-torrent", "aaaaaaaaaaaaaaaaaaaa", "http://3.0.0.1:8080/announce"));
+
+	// 1 second in, "fast" has long since completed its announce and
+	// freed up the only slot. "hold" grabs it and ties it up, then "low"
+	// queues behind "hold". Finally "fast" is force-reannounced with the
+	// high_priority flag, and should queue ahead of "low".
+	sim::timer t1(sim, lt::seconds(1), [&](boost::system::error_code const&) {
+		ses->async_add_torrent(
+			make_params("hold-torrent", "bbbbbbbbbbbbbbbbbbbb", "http://3.0.0.2:8080/announce"));
+	});
+
+	sim::timer t2(
+		sim, lt::seconds(1) + lt::milliseconds(100), [&](boost::system::error_code const&) {
+			ses->async_add_torrent(
+				make_params("low-torrent", "cccccccccccccccccccc", "http://3.0.0.3:8080/announce"));
+		});
+
+	sim::timer t3(
+		sim, lt::seconds(1) + lt::milliseconds(200), [&](boost::system::error_code const&) {
+			tracking = true;
+			reannounce_flags_t const flags =
+				torrent_handle::ignore_min_interval | torrent_handle::high_priority;
+			torrent_handle fast = find_handle("fast-torrent");
+			TEST_CHECK(fast.is_valid());
+			if (by_url)
+				fast.force_reannounce(0, "http://3.0.0.1:8080/announce", flags);
+			else
+				fast.force_reannounce(0, 0, flags);
+		});
+
+	// by 6 seconds in, "hold" has timed out (after 2s) and both "fast"
+	// and "low" should have been serviced, in that order
+	sim::timer t4(sim, lt::seconds(6), [&](boost::system::error_code const&) {
+		TEST_EQUAL(announce_order.size(), std::size_t(2));
+		if (announce_order.size() == 2)
+		{
+			TEST_EQUAL(announce_order[0], "fast");
+			TEST_EQUAL(announce_order[1], "low");
+		}
+	});
+
+	sim::timer t5(sim, lt::seconds(10), [&](boost::system::error_code const&) {
+		zombie = ses->abort();
+		ses.reset();
+	});
+
+	sim.run();
+}
+
+TORRENT_TEST(force_reannounce_high_priority_skips_queue)
+{
+	test_force_reannounce_high_priority_skips_queue(false);
+}
+
+// this covers the same behavior via the tracker-url overload of
+// force_reannounce()
+TORRENT_TEST(force_reannounce_url_high_priority_skips_queue)
+{
+	test_force_reannounce_high_priority_skips_queue(true);
+}
+
 lt::add_torrent_params make_torrent(bool priv)
 {
 	std::vector<lt::create_file_entry> fs;

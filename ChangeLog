@@ -1,5 +1,6 @@
 2.1.0 release
 
+	* fix tracker force announce
 	* add max_directory_depth limit to load_torrent_limits to bound file path depth when loading torrents
 	* fix race in wait_for_alert(), and update its return value
 	* optimize torrent_handle::torrent_file()
@@ -29,6 +30,7 @@
 	* added support for WebTorrent
 	* removed support for BEP 17 web seeds (in favor of BEP 19)
 
+	* fix corruption bug in mmap_storage
 	* fix bug where torrent_status::total was not set for seeds
 
 2.0.13 released

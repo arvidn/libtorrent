@@ -69,7 +69,7 @@ jobs:
           <cxxflags>-fPIC
           <cxxflags>-march=armv7-a
           <cxxflags>-mfpu=neon ;" >>~/user-config.jam;
-          ${BOOST_ROOT}/b2 warnings-as-errors=on toolset=clang-linux-arm target-os=android link=static crypto=openssl openssl-include=${OPENSSL_ROOT}/include openssl-lib=${OPENSSL_ROOT}/lib
+          ${BOOST_ROOT}/b2 warnings-as-errors=on toolset=clang-linux-arm target-os=android link=static crypto=openssl openssl-include=${OPENSSL_ROOT}/include openssl-lib=${OPENSSL_ROOT}/lib webtorrent=off
 
    android_arm32_webtorrent_build:
       name: Build Android Arm 32bits with WebTorrent

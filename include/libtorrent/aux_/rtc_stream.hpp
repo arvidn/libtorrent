@@ -329,7 +329,7 @@ struct TORRENT_EXTRA_EXPORT rtc_stream
 		}
 
 		std::size_t ret = m_impl->write_some(ec);
-		m_impl->clear_read_buffers();
+		m_impl->clear_write_buffers();
 		return ret;
 	}
 

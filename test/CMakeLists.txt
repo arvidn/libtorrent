@@ -43,6 +43,20 @@ foreach(TARGET_SRC ${tests})
 	add_test(${TARGET} ${TARGET})
 endforeach()
 
+if (webtorrent AND TARGET test_rtc)
+	# torrent-rasterbar links datachannel-static privately when building
+	# shared libs (so its include directories aren't propagated to
+	# consumers), and test_rtc.cpp includes <rtc/rtc.hpp> directly; only
+	# the include path is needed here, NOT a
+	# direct link -- datachannel-static is a static library, so linking it
+	# into test_rtc directly would give test_rtc its own separate copy of
+	# everything in it (ThreadPool, Init, and any other global/static state),
+	# disconnected from the copy torrent-rasterbar's own compiled code
+	# (rtc_signaling.cpp) actually uses
+	target_include_directories(test_rtc PRIVATE
+		$<TARGET_PROPERTY:datachannel-static,INTERFACE_INCLUDE_DIRECTORIES>)
+endif()
+
 file(GLOB GZIP_ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/*.gz")
 file(COPY ${GZIP_ASSETS} DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 

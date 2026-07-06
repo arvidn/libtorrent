@@ -36,16 +36,15 @@ jobs:
    build:
       name: build
       runs-on: ubuntu-22.04
-      continue-on-error: true
 
       strategy:
          matrix:
             std: [20]
             config:
-              - asio-debugging=on picker-debugging=on
-              - extensions=off logging=off streaming=off super-seeding=off share-mode=off predictive-pieces=off dht=off alert-msg=off encryption=off mutable-torrents=off deprecated-functions=off
-              - crypto=gcrypt
-              - mmap-disk-io=off
+              - webtorrent=off asio-debugging=on picker-debugging=on
+              - webtorrent=off extensions=off logging=off streaming=off super-seeding=off share-mode=off predictive-pieces=off dht=off alert-msg=off encryption=off mutable-torrents=off deprecated-functions=off
+              - webtorrent=off crypto=gcrypt
+              - webtorrent=off mmap-disk-io=off
 
       steps:
       - name: checkout
@@ -97,10 +96,55 @@ jobs:
           BOOST_ROOT="" b2 ${{ matrix.config }} cxxstd=${{ matrix.std }} warnings-as-errors=on
 
 
+   cmake:
+      name: cmake
+      runs-on: ubuntu-24.04
+
+      steps:
+      - name: checkout
+        uses: actions/checkout@v6
+        with:
+           submodules: recursive
+           fetch-depth: 1
+           filter: tree:0
+
+      - name: update package lists
+        continue-on-error: true
+        run: |
+          sudo apt update
+
+      - uses: Chocobo1/setup-ccache-action@v1
+        with:
+          update_packager_index: false
+          override_cache_key: ccache-linux-cmake-${{ github.base_ref }}
+          ccache_options: |
+            max_size=5G
+
+      - name: install boost
+        run: |
+          sudo apt install libboost-tools-dev libboost-dev libboost-system-dev libboost-json-dev ninja-build
+          pip install websockets
+
+      - name: cmake configure
+        env:
+          # required by deps/libdatachannel's own deps (usrsctp, plog), which
+          # declare cmake_minimum_required versions older than modern cmake allows
+          CMAKE_POLICY_VERSION_MINIMUM: 3.5
+        run: |
+          cmake -B build-cmake -GNinja -DCMAKE_BUILD_TYPE=Debug -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dwebtorrent=on -Dasserts=on -DCMAKE_CXX_STANDARD=17
+
+      - name: cmake build
+        run: cmake --build build-cmake
+
+      - name: ctest
+        run: |
+          cd build-cmake
+          ctest --output-on-failure
+
+
    fuzzers:
       name: Fuzzers
       runs-on: ubuntu-24.04
-      continue-on-error: true
 
       steps:
       - name: checkout
@@ -147,7 +191,7 @@ jobs:
       - name: checkout
         uses: actions/checkout@v6
         with:
-           submodules: true
+           submodules: recursive
            fetch-depth: 1
            filter: tree:0
 
@@ -165,7 +209,7 @@ jobs:
 
       - name: install boost
         run: |
-          sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
+          sudo apt install libboost-tools-dev libboost-dev libboost-system-dev libboost-json-dev
           echo "using gcc ;" >>~/user-config.jam
 
       - name: compile header files individually
@@ -176,14 +220,16 @@ jobs:
    test:
       name: Tests
       runs-on: ubuntu-24.04
-      continue-on-error: true
 
       strategy:
          matrix:
             include:
                - config: webtorrent=on address-sanitizer=norecover undefined-sanitizer=norecover crypto=openssl invariant-checks=on
                - config: toolset=clang logging=off address-sanitizer=norecover undefined-sanitizer=norecover invariant-checks=on
-               - config: thread-sanitizer=norecover crypto=openssl release debug-symbols=on cxxflags=-Wno-tsan
+               # thread-sanitizer is left off webtorrent: libdatachannel's third-party
+               # deps (usrsctp, libjuice) are multi-threaded and not vetted against TSan,
+               # which would make this job noisy/flaky for reasons outside our control
+               - config: webtorrent=off thread-sanitizer=norecover crypto=openssl release debug-symbols=on cxxflags=-Wno-tsan
                - config: crypto=gnutls invariant-checks=full
                - config: deprecated-functions=off invariant-checks=full
 
@@ -213,7 +259,7 @@ jobs:
           sudo apt install libgnutls28-dev
 
       - name: install boost.json
-        if: ${{ contains(matrix.config, 'webtorrent=on') }}
+        if: ${{ !contains(matrix.config, 'webtorrent=off') }}
         run: |
           sudo apt install libboost-json-dev
 
@@ -259,7 +305,6 @@ jobs:
    test-32bit:
       name: Tests (32-bit)
       runs-on: ubuntu-24.04
-      continue-on-error: true
 
       steps:
       - name: checkout
@@ -305,7 +350,7 @@ jobs:
           cd test
           ${BOOST_ROOT}/b2 address-model=32 architecture=x86 -l500 \
             crypto=built-in warnings-as-errors=on debug-iterators=on asserts=on \
-            deterministic-tests
+            webtorrent=off deterministic-tests
 
 
    sim:
@@ -351,20 +396,19 @@ jobs:
    disk-stress:
       name: disk I/O stress (smoke)
       runs-on: ubuntu-24.04
-      continue-on-error: true
 
       strategy:
          matrix:
             config:
-              - release asserts=on debug-iterators=on
-              - release asserts=on debug-iterators=on address-sanitizer=norecover undefined-sanitizer=norecover crypto=openssl
-              - release asserts=on debug-iterators=on thread-sanitizer=norecover crypto=openssl debug-symbols=on cxxflags=-Wno-tsan
+              - webtorrent=off release asserts=on debug-iterators=on
+              - webtorrent=off release asserts=on debug-iterators=on address-sanitizer=norecover undefined-sanitizer=norecover crypto=openssl
+              - webtorrent=off release asserts=on debug-iterators=on thread-sanitizer=norecover crypto=openssl debug-symbols=on cxxflags=-Wno-tsan
 
       steps:
       - name: checkout
         uses: actions/checkout@v6
         with:
-           submodules: recursive
+           submodules: true
            fetch-depth: 1
            filter: tree:0
 

@@ -25,7 +25,8 @@ The major new feature in libtorrent 2.1 is WebTorrent support. WebTorrent
 requires a stun server, it can be configured via the ``webtorrent_stun_server``
 configuration option. It defaults to "stun.l.google.com:19302".
 
-To enable webtorrent support, build with ``webtorrent=on``.
+WebTorrent support is enabled by default. To disable it, build with
+``webtorrent=off`` (or ``-Dwebtorrent=OFF`` with CMake).
 
 loading and saving torrents
 ===========================

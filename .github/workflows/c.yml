@@ -30,7 +30,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        submodules: true
+        submodules: recursive
 
     - name: dependencies (MacOS)
       if: runner.os == 'macOS'
@@ -48,6 +48,17 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
+
+    - name: install openssl (windows)
+      if: runner.os == 'Windows'
+      uses: ./.github/actions/win_install_openssl
+      with:
+        architecture: x64
+        linking: static
+
+    - name: setup msbuild (windows)
+      if: runner.os == 'Windows'
+      uses: microsoft/setup-msbuild@v2
 
     - name: install boost (windows)
       if: runner.os == 'Windows'
@@ -73,7 +84,7 @@ jobs:
         set PATH=%BOOST_ROOT%;%PATH%
 
         cd bindings\c
-        b2 address-model=64
+        b2 address-model=64 release openssl-include="C:\Program Files\OpenSSL\include" openssl-lib="C:\Program Files\OpenSSL\lib"
 
     - name: build
       if: runner.os != 'Windows'

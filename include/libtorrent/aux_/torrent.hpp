@@ -805,6 +805,26 @@ namespace libtorrent::aux {
 		void scrape_tracker_url(std::string url, bool user_triggered);
 		void scrape_tracker_impl(aux::announce_entry& ae, bool user_triggered);
 		void announce_with_tracker(event_t = event_t::none, bool high_priority = false);
+		void announce_tracker_now(aux::announce_entry& ae, event_t e, bool high_priority);
+
+		// populates the fields of a tracker_request that describe this
+		// torrent's state, i.e. everything that's the same regardless of
+		// which tracker it's being sent to. The caller still needs to set
+		// the per-tracker fields (trackerid, url, i2p bit).
+		tracker_request build_tracker_request(event_t e);
+
+		// resolves the event type, sends req to the tracker for a single
+		// endpoint/info-hash, and updates that endpoint's announce state
+		// (updating, next_announce, min_announce) and posts the
+		// tracker_announce_alert. Does not touch any tier-selection state;
+		// callers that have one (announce_with_tracker) update it themselves.
+		void send_tracker_request(tracker_request& req,
+			aux::announce_endpoint& aep,
+			aux::announce_infohash& a,
+			protocol_version ih,
+			event_t e,
+			bool high_priority,
+			time_point32 now);
 
 #ifndef TORRENT_DISABLE_DHT
 		void dht_announce();
