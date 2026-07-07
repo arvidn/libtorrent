@@ -100,4 +100,4 @@ jobs:
            GH_TOKEN: ${{ github.token }}
         run: |
           cd dist
-          gh release upload "$GITHUB_REF_NAME" libtorrent-rasterbar-*.tar.gz --clobber
+          gh release upload "$GITHUB_REF_NAME" libtorrent-rasterbar-*.tar.gz --clobber --repo "$GITHUB_REPOSITORY"
