@@ -687,14 +687,15 @@ TORRENT_VERSION_NAMESPACE_3
 		bool is_merkle_torrent() const { return !m_merkle_tree.empty(); }
 #endif
 
+		// hidden
+		void resolve_duplicate_filenames();
+
 	private:
 
 		// populate the piece layers from the metadata
 		bool parse_piece_layers(bdecode_node const& e, error_code& ec);
 
 		bool parse_torrent_file(bdecode_node const& torrent_file, error_code& ec, int piece_limit);
-
-		void resolve_duplicate_filenames();
 
 		// the slow path, in case we detect/suspect a name collision
 		void resolve_duplicate_filenames_slow();

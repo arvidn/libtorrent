@@ -49,6 +49,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/piece_picker.hpp"
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/write_resume_data.hpp" // write_torrent_file
+#include "libtorrent/session.hpp"
+#include "libtorrent/alert_types.hpp"
 
 #include <iostream>
 
@@ -1453,6 +1455,100 @@ TORRENT_TEST(resolve_duplicates)
 {
 	for (auto const& t : test_cases)
 		test_resolve_duplicates(t);
+}
+
+namespace {
+
+	// a small number of test_torrents entries validate fields that live
+	// outside the info dict:
+	// * creation_date.torrent / no_creation_date.torrent check the deprecated
+	//   torrent_info::creation_date(), which is only ever populated when
+	//   parsing a full .torrent file
+	// * similar.torrent / collection.torrent put their "similar"/"collections"
+	//   lists at the top level of the .torrent file, per BEP38 (the ".2"
+	//   variants of these fixtures put the same lists inside the info dict
+	//   instead, and are not skipped)
+	// * dht_nodes.torrent checks nodes(), populated from the top-level
+	//   "nodes" field (BEP32)
+	// * v2_multiple_files.torrent checks v2_piece_hashes_verified(), which
+	//   requires the top-level "piece layers" field
+	// Metadata received at run-time (via ut_metadata / set_metadata()) only
+	// ever contains the info dict, so those specific checks cannot pass
+	// through this path, and they are unrelated to filename sanitization or
+	// deduplication, so they are skipped here.
+	bool skip_set_metadata_test(char const* file)
+	{
+		return file == "creation_date.torrent"_sv || file == "no_creation_date.torrent"_sv
+			|| file == "similar.torrent"_sv || file == "collection.torrent"_sv
+			|| file == "dht_nodes.torrent"_sv || file == "v2_multiple_files.torrent"_sv;
+	}
+
+	// metadata received at run-time (e.g. via the ut_metadata extension, here
+	// simulated with torrent_handle::set_metadata()) must go through the same
+	// filename sanitization and duplicate-filename resolution as loading the
+	// same .torrent file from disk. Re-use each test_torrents entry's own
+	// validation callback to check that.
+	void test_set_metadata_resolve_duplicate_filenames(
+		lt::session& ses, test_torrent_t const& t, std::string const& filename)
+	{
+		lt::add_torrent_params const ref = lt::load_torrent_file(filename);
+
+		auto const is = ref.ti->info_section();
+		std::vector<char> const info_section(is.begin(), is.end());
+
+		// simulate a genuine magnet link add: no metadata (and none of the
+		// knowledge, like the disambiguated file names, that only comes from
+		// having already parsed a full .torrent file), but keep the fields
+		// that come from outside the info dict (trackers, web seeds, DHT
+		// nodes, ...), the same way a real magnet URI might supply them
+		lt::add_torrent_params atp = ref;
+		atp.ti.reset();
+		atp.renamed_files.clear();
+		atp.save_path = ".";
+
+		lt::torrent_handle h = ses.add_torrent(atp);
+		TEST_CHECK(h.is_valid());
+		h.set_metadata(info_section);
+
+		lt::alert const* m = wait_for_alert(ses, lt::metadata_received_alert::alert_type, t.file);
+		TEST_CHECK(m);
+
+		// query the actual file names the torrent would use, the same way an
+		// application resuming this torrent later would see them
+		h.save_resume_data(lt::torrent_handle::save_info_dict);
+		lt::alert const* r = wait_for_alert(ses, lt::save_resume_data_alert::alert_type, t.file);
+		TEST_CHECK(r);
+		auto const* rda = lt::alert_cast<lt::save_resume_data_alert>(r);
+		TEST_CHECK(rda);
+		TEST_CHECK(rda->params.ti);
+
+		if (t.test && rda->params.ti)
+		{
+			t.test(rda->params.ti.get());
+		}
+
+		ses.remove_torrent(h);
+	}
+
+} // anonymous namespace
+
+TORRENT_TEST(set_metadata_resolve_duplicate_filenames)
+{
+	std::string const root_dir = parent_path(current_working_directory());
+
+	lt::session_params p = settings();
+	p.settings.set_int(lt::settings_pack::alert_mask,
+		lt::alert_category::status | lt::alert_category::error | lt::alert_category::storage);
+	p.settings.set_str(lt::settings_pack::listen_interfaces, "127.0.0.1:6881");
+	lt::session ses(p);
+
+	for (auto const& t : test_torrents)
+	{
+		if (skip_set_metadata_test(t.file)) continue;
+		std::printf("set_metadata: %s\n", t.file);
+		std::string const filename = combine_path(combine_path(root_dir, "test_torrents"), t.file);
+		test_set_metadata_resolve_duplicate_filenames(ses, t, filename);
+	}
 }
 
 TORRENT_TEST(empty_file)
