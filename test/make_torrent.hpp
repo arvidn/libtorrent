@@ -29,8 +29,17 @@ struct torrent_args
 	torrent_args& http_seed(char const* u) { m_http_seed = u; return *this; }
 	torrent_args& priv() { m_priv = true; return *this; }
 	torrent_args& collection(std::string c) { m_collection = c; return *this; }
+	// force the BEP3 "files" list representation (with a root "name"
+	// directory) even when there's only a single file, instead of the
+	// top-level "length" single-file representation
+	torrent_args& multi_file()
+	{
+		m_multi_file = true;
+		return *this;
+	}
 
 	bool m_priv;
+	bool m_multi_file = false;
 	std::string m_name;
 	std::vector<std::string> m_files;
 	std::string m_url_seed;

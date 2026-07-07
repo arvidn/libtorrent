@@ -40,7 +40,7 @@ lt::add_torrent_params make_test_torrent(torrent_args const& args)
 	int const piece_length = 32768;
 	info["piece length"] = piece_length;
 
-	if (args.m_files.size() == 1)
+	if (args.m_files.size() == 1 && !args.m_multi_file)
 	{
 		std::string const& ent = args.m_files[0];
 		std::string name = "test_file-1";

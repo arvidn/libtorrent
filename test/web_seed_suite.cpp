@@ -336,6 +336,21 @@ int EXPORT run_http_suite(int proxy,
 			.file("199092,name=test-single-file")
 			.name("torrent_dir")
 			.url_seed(url));
+
+		std::snprintf(url, sizeof(url), "%s://127.0.0.1:%d/%s/", protocol, port, save_path.c_str());
+
+		// test case 7 (a single file torrent using the BEP3 multi-file
+		// representation, i.e. the file is nested under the torrent's
+		// "name" directory instead of the "name" field being the filename
+		// itself). The url seed has a trailing slash, so the client has to
+		// append the relative file path itself, which for this
+		// representation is "torrent_dir/test-single-file2", not just the
+		// "name" field ("torrent_dir").
+		test_cases.push_back(torrent_args()
+								 .file("199092,name=test-single-file2")
+								 .name("torrent_dir")
+								 .multi_file()
+								 .url_seed(url));
 	}
 
 	int idx = 0;
