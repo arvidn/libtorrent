@@ -573,6 +573,19 @@ target_compile_definitions(torrent-rasterbar
 		BOOST_ASIO_NO_DEPRECATED
 		BOOST_SYSTEM_USE_UTF8
 		_SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING
+		# works around a boost.asio bug affecting boost versions old enough
+		# that their BOOST_ASIO_HAS_STD_TO_ADDRESS detection didn't yet cover
+		# GCC (e.g. 1.83.0, still pinned by the cibuildwheel manylinux2014
+		# build, with its GCC 10 devtoolset): at cxxstd 20 (the project
+		# minimum), is_contiguous_iterator<> uses the std::contiguous_iterator
+		# concept, which std::vector<char>::iterator satisfies under those GCC
+		# versions, but asio's own fallback to_address() only has raw-pointer
+		# overloads, so asio::buffer() on any std::vector-derived container
+		# (e.g. aux::container_wrapper) fails to compile with "no matching
+		# function for call to 'to_address'". Disabling asio's concept checks
+		# routes back to the long-standing is_pointer<>-based (false)
+		# non-contiguous path.
+		BOOST_ASIO_DISABLE_STD_CONCEPTS
 	PRIVATE
 		TORRENT_BUILDING_LIBRARY
 		BOOST_EXCEPTION_DISABLE

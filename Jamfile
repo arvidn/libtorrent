@@ -212,6 +212,17 @@ rule linking ( properties * )
 		<define>BOOST_SYSTEM_NO_DEPRECATED
 		;
 
+	# works around a boost.asio bug affecting boost versions old enough that
+	# their BOOST_ASIO_HAS_STD_TO_ADDRESS detection didn't yet cover GCC.
+	# is_contiguous_iterator<> uses the std::contiguous_iterator concept, which
+	# std::vector<char>::iterator satisfies under those GCC versions, but
+	# asio's own fallback to_address() only has raw-pointer overloads, so
+	# asio::buffer() on any std::vector-derived container fails to compile with
+	# "no matching function for call to 'to_address'".
+	# Disabling asio's concept checks routes back to the long-standing
+	# is_pointer<>-based (false) non-contiguous path.
+	result += <define>BOOST_ASIO_DISABLE_STD_CONCEPTS ;
+
 	if <link>shared in $(properties)
 	{
 		result += <library>/try_signal//try_signal/<link>static/<fpic>on ;
