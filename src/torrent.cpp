@@ -7855,8 +7855,16 @@ namespace {
 			, settings().get_int(settings_pack::metadata_token_limit));
 
 		auto info = std::make_shared<torrent_info>(*m_torrent_file);
-		if (ec || !info->parse_info_section(metadata, ec
+		if (!ec)
+		{
+			if (info->parse_info_section(metadata, ec
 			, settings().get_int(settings_pack::max_piece_count)))
+			{
+				info->resolve_duplicate_filenames();
+			}
+		}
+
+		if (ec)
 		{
 			update_gauge();
 			// this means the metadata is correct, since we
