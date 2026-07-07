@@ -35,6 +35,10 @@ see LICENSE file.
 #include "libtorrent/aux_/escape_string.hpp"
 #include <csignal>
 
+#ifdef TORRENT_BUILD_SIMULATOR
+#include "simulator/chrono.hpp" // for sim::chrono::reset_clock()
+#endif
+
 #ifdef _WIN32
 #include "libtorrent/aux_/windows.hpp" // for SetErrorMode
 #include <io.h> // for _dup and _dup2
@@ -512,8 +516,17 @@ int EXPORT main(int argc, char const* argv[])
 		setbuf(stdout, nullptr);
 		setbuf(stderr, nullptr);
 
-		::unit_test::g_test_idx = i;
+		// use the test's registration-order index (not its position in this
+		// run's possibly-shuffled order), so anything derived from
+		// test_counter() (e.g. swarm/torrent naming) stays reproducible
+		// regardless of shuffle order.
+		::unit_test::g_test_idx = test_idx;
 		current_test = &t;
+
+#ifdef TORRENT_BUILD_SIMULATOR
+		// the simulated clock is process-global. reset it before every test.
+		sim::chrono::reset_clock();
+#endif
 
 		std::printf("cwd: %s\n", unit_dir.c_str());
 		std::printf("test-case: %s\n", t.name);
