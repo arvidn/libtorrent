@@ -1,4 +1,5 @@
 	* back-port fix blocking UDP socket in UPnP
+	* back-port fix blocking UDP socket in LSD and NAT-PMP
 
 1.2.20 released
 
