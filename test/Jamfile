@@ -237,6 +237,7 @@ run test_disk_io.cpp ;
 run test_slow_hash.cpp ;
 
 run test_rtc.cpp ;
+run test_webtorrent_transfer.cpp ;
 run test_utp.cpp ;
 run test_auto_unchoke.cpp ;
 run test_http_connection.cpp : :
