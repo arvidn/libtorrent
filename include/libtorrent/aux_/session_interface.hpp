@@ -178,8 +178,7 @@ namespace libtorrent::aux {
 		// ask for which interface and port to bind outgoing peer connections on
 		virtual tcp::endpoint bind_outgoing_socket(socket_type& s, address const&
 			remote_address, error_code& ec) const = 0;
-		virtual bool verify_bound_address(address const& addr, bool utp
-			, error_code& ec) = 0;
+		virtual bool verify_bound_address(address const& addr, bool utp) = 0;
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
 		virtual std::vector<std::shared_ptr<torrent>> find_collection(

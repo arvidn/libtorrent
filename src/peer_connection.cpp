@@ -6329,14 +6329,8 @@ namespace {
 		// peer is correctly bound to one of them
 		if (!m_settings.get_str(settings_pack::outgoing_interfaces).empty())
 		{
-			if (!m_ses.verify_bound_address(m_local.address()
-				, is_utp(m_socket), ec))
+			if (!m_ses.verify_bound_address(m_local.address(), is_utp(m_socket)))
 			{
-				if (ec)
-				{
-					disconnect(ec, operation_t::get_interface);
-					return;
-				}
 				disconnect(error_code(
 					boost::system::errc::no_such_device, generic_category())
 					, operation_t::connect);

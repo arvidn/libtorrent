@@ -55,6 +55,7 @@ run test_metadata_extension.cpp ;
 run test_tracker.cpp ;
 run test_thread_pool.cpp ;
 run test_ip_filter.cpp ;
+run test_outgoing_interfaces.cpp ;
 run test_dht_rate_limit.cpp ;
 run test_fast_extensions.cpp ;
 run test_v2.cpp ;

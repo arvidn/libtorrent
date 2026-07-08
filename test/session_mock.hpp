@@ -103,7 +103,7 @@ struct session_mock : aux::session_interface
 	void for_each_listen_socket(std::function<void(aux::listen_socket_handle const&)>) const override {}
 
 	tcp::endpoint bind_outgoing_socket(aux::socket_type&, address const&, error_code&) const override { return {}; }
-	bool verify_bound_address(address const&, bool, error_code&) override { return false; }
+	bool verify_bound_address(address const&, bool) override { return false; }
 
 	aux::proxy_settings proxy() const override { return {}; }
 
