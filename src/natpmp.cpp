@@ -223,6 +223,12 @@ void natpmp::start(ip_interface const& ip, boost::optional<address> const& gatew
 		disable(ec);
 		return;
 	}
+	m_socket.non_blocking(true, ec);
+	if (ec)
+	{
+		disable(ec);
+		return;
+	}
 
 	ADD_OUTSTANDING_ASYNC("natpmp::on_reply");
 	m_socket.async_receive_from(boost::asio::buffer(&m_response_buffer[0]
@@ -262,6 +268,15 @@ void natpmp::send_get_ip_address_request()
 
 	error_code ec;
 	m_socket.send_to(boost::asio::buffer(buf, sizeof(buf)), m_nat_endpoint, 0, ec);
+#ifndef TORRENT_DISABLE_LOGGING
+	if (ec && should_log())
+	{
+		log("*** get public IP address [ ec: %s:%d %s ]"
+			, ec.category().name()
+			, ec.value()
+			, ec.message().c_str());
+	}
+#endif
 }
 
 bool natpmp::get_mapping(port_mapping_t const index, int& local_port
