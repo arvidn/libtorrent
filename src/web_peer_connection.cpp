@@ -119,7 +119,7 @@ web_peer_connection::web_peer_connection(peer_connection_args& pack, aux::web_se
 		if (m_path.empty()) m_path += '/';
 		if (m_path[m_path.size() - 1] == '/')
 		{
-			m_path += lt::escape_string(m_ti->name());
+			m_path += escape_file_path(m_ti->layout(), file_index_t(0));
 		}
 
 		if (!m_url.empty() && m_url[m_url.size() - 1] == '/')

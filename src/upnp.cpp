@@ -167,6 +167,8 @@ void upnp::open_multicast_socket(aux::socket_package& s, error_code& ec)
 	if (ec) return;
 	s.socket.bind(udp::endpoint(m_listen_address, ssdp_port), ec);
 	if (ec) return;
+	s.socket.non_blocking(true, ec);
+	if (ec) return;
 	s.socket.set_option(join_group(ssdp_multicast_addr), ec);
 	if (ec) return;
 	s.socket.set_option(hops(255), ec);
@@ -186,6 +188,8 @@ void upnp::open_unicast_socket(aux::socket_package& s, error_code& ec)
 	s.socket.open(udp::v4(), ec);
 	if (ec) return;
 	s.socket.bind(udp::endpoint(m_listen_address, 0), ec);
+	if (ec) return;
+	s.socket.non_blocking(true, ec);
 	if (ec) return;
 
 	ADD_OUTSTANDING_ASYNC("upnp::on_reply");
@@ -238,7 +242,11 @@ void upnp::discover_device_impl()
 	m_unicast.socket.send_to(boost::asio::buffer(msearch, sizeof(msearch) - 1)
 		, udp::endpoint(ssdp_multicast_addr, ssdp_port), 0, ucast_ec);
 
-	if (mcast_ec && ucast_ec)
+	auto const dropped = [](error_code const& e) {
+		return e == boost::asio::error::would_block || e == boost::asio::error::try_again;
+	};
+
+	if (mcast_ec && ucast_ec && !dropped(mcast_ec) && !dropped(ucast_ec))
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())

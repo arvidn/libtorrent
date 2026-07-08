@@ -89,6 +89,7 @@ see LICENSE file.
 #include "libtorrent/aux_/resolver_interface.hpp"
 #include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/aux_/resolve_links.hpp"
+#include "libtorrent/aux_/resolve_duplicate_filenames.hpp"
 #include "libtorrent/aux_/file_progress.hpp"
 #include "libtorrent/aux_/has_block.hpp"
 #include "libtorrent/aux_/alert_manager.hpp"
@@ -8115,11 +8116,28 @@ namespace {
 			, sett.get_int(settings_pack::metadata_token_limit));
 
 		std::shared_ptr<torrent_info> info;
+		std::map<file_index_t, std::string> renamed_files;
 		if (!ec)
 		{
 			load_torrent_limits cfg;
 			cfg.max_pieces = sett.get_int(settings_pack::max_piece_count);
 			info = std::make_shared<torrent_info>(metadata, ec, cfg, from_info_section);
+			// ec is an output parameter set by torrent_info's constructor on
+			// parse failure; cppcheck doesn't see the constructor definition
+			// (in torrent_info.cpp) from this translation unit
+			// cppcheck-suppress identicalInnerCondition
+			if (!ec)
+			{
+				renamed_files = aux::resolve_duplicate_filenames(
+					info->layout(), cfg.max_duplicate_filenames, ec);
+#if TORRENT_ABI_VERSION < 4
+				// for backwards compatibility, make sure the file_storage
+				// returned by the deprecated files() has updated filenames
+				// as well
+				for (auto const& entry : renamed_files)
+					info->rename_file(entry.first, entry.second);
+#endif
+			}
 		}
 
 		if (ec)
@@ -8174,6 +8192,7 @@ namespace {
 
 		m_name_idx.clear();
 		m_torrent_file = info;
+		m_renamed_files.import_filenames(m_torrent_file->layout(), renamed_files);
 		m_info_hash = m_torrent_file->info_hashes();
 		{
 			std::lock_guard<std::mutex> l(m_torrent_file_mutex);
@@ -11702,6 +11721,11 @@ namespace {
 		need_peer_list();
 		m_peer_list->set_seed(p, s);
 		update_auto_sequential();
+	}
+
+	void torrent::set_upload_only(torrent_peer* p, bool const s)
+	{
+		m_peer_list->set_upload_only(p, s);
 	}
 
 	void torrent::clear_failcount(torrent_peer* p)
