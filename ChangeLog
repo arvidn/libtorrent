@@ -32,6 +32,7 @@
 
 	* fix web seed requests for single-file torrents in multi-file mode
 	* fix duplicate filenames in magnet links
+	* fix blocking UDP socket in UPnP
 	* fix corruption bug in mmap_storage
 	* fix bug where torrent_status::total was not set for seeds
 

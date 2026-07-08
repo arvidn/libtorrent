@@ -1083,8 +1083,9 @@ namespace {
 		// average of current rate and peak
 //		rate = (rate + m_download_rate_peak) / 2;
 
-		return milliseconds((m_outstanding_bytes + extra_bytes
-			+ m_queued_time_critical * t->block_size() * 1000) / rate);
+		return milliseconds((std::int64_t(m_outstanding_bytes) + extra_bytes
+								+ m_queued_time_critical * t->block_size() * 1000)
+			/ rate);
 	}
 
 	void peer_connection::add_stat(std::int64_t const downloaded, std::int64_t const uploaded)
@@ -4797,7 +4798,8 @@ namespace {
 
 			TORRENT_ASSERT(bs > 0);
 
-			m_desired_queue_size = std::uint16_t(queue_time * download_rate / bs);
+			std::int64_t const desired_queue_size = std::int64_t(queue_time) * download_rate / bs;
+			m_desired_queue_size = aux::clamp_assign<std::uint16_t>(desired_queue_size);
 		}
 
 		if (m_desired_queue_size > m_max_out_request_queue)

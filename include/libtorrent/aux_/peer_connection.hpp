@@ -93,12 +93,12 @@ namespace libtorrent::aux {
 		milliseconds32 m_time_diff;
 	};
 
-	template <typename T>
-	T clamp_assign(int const v)
+	template <typename T, typename U>
+	T clamp_assign(U const v)
 	{
 		auto const limit = std::numeric_limits<T>::max();
 		if (v < 0) return 0;
-		if (v > int(limit)) return limit;
+		if (v > U(limit)) return limit;
 		return static_cast<T>(v);
 	}
 
