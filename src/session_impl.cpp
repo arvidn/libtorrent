@@ -1182,6 +1182,7 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 		TORRENT_ASSERT(is_single_thread());
 		if (!m_ip_filter) m_ip_filter = std::make_shared<ip_filter>();
 		m_ip_filter->add_rule(addr, addr, ip_filter::blocked);
+		if (m_alerts.should_post<ip_ban_alert>()) m_alerts.emplace_alert<ip_ban_alert>(addr);
 		for (auto& i : m_torrents)
 			i->set_ip_filter(m_ip_filter);
 	}

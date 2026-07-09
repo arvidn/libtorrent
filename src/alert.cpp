@@ -3083,56 +3083,128 @@ namespace {
 	{
 		static std::array<char const*, num_alert_types> const names = {{
 #if TORRENT_ABI_VERSION == 1
-		"torrent", "peer", "tracker", "torrent_added",
+			"torrent",
+			"peer",
+			"tracker",
+			"torrent_added",
 #else
-		"", "", "", "",
+			"",
+			"",
+			"",
+			"",
 #endif
-		"torrent_removed", "read_piece", "file_completed",
-		"file_renamed", "file_rename_failed", "performance",
-		"state_changed", "tracker_error", "tracker_warning",
-		"scrape_reply", "scrape_failed", "tracker_reply",
-		"dht_reply", "tracker_announce", "hash_failed",
-		"peer_ban", "peer_unsnubbed", "peer_snubbed",
-		"peer_error", "peer_connect", "peer_disconnected",
-		"invalid_request", "torrent_finished", "piece_finished",
-		"request_dropped", "block_timeout", "block_finished",
-		"block_downloading", "unwanted_block", "storage_moved",
-		"storage_moved_failed", "torrent_deleted",
-		"torrent_delete_failed", "save_resume_data",
-		"save_resume_data_failed", "torrent_paused",
-		"torrent_resumed", "torrent_checked", "url_seed",
-		"file_error", "metadata_failed", "metadata_received",
-		"udp_error", "external_ip", "listen_failed",
-		"listen_succeeded", "portmap_error", "portmap",
-		"portmap_log", "fastresume_rejected", "peer_blocked",
-		"dht_announce", "dht_get_peers", "stats",
-		"cache_flushed", "anonymous_mode", "lsd_peer",
-		"trackerid", "dht_bootstrap", "", "torrent_error",
-		"torrent_need_cert", "incoming_connection",
-		"add_torrent", "state_update",
+			"torrent_removed",
+			"read_piece",
+			"file_completed",
+			"file_renamed",
+			"file_rename_failed",
+			"performance",
+			"state_changed",
+			"tracker_error",
+			"tracker_warning",
+			"scrape_reply",
+			"scrape_failed",
+			"tracker_reply",
+			"dht_reply",
+			"tracker_announce",
+			"hash_failed",
+			"peer_ban",
+			"peer_unsnubbed",
+			"peer_snubbed",
+			"peer_error",
+			"peer_connect",
+			"peer_disconnected",
+			"invalid_request",
+			"torrent_finished",
+			"piece_finished",
+			"request_dropped",
+			"block_timeout",
+			"block_finished",
+			"block_downloading",
+			"unwanted_block",
+			"storage_moved",
+			"storage_moved_failed",
+			"torrent_deleted",
+			"torrent_delete_failed",
+			"save_resume_data",
+			"save_resume_data_failed",
+			"torrent_paused",
+			"torrent_resumed",
+			"torrent_checked",
+			"url_seed",
+			"file_error",
+			"metadata_failed",
+			"metadata_received",
+			"udp_error",
+			"external_ip",
+			"listen_failed",
+			"listen_succeeded",
+			"portmap_error",
+			"portmap",
+			"portmap_log",
+			"fastresume_rejected",
+			"peer_blocked",
+			"dht_announce",
+			"dht_get_peers",
+			"stats",
+			"cache_flushed",
+			"anonymous_mode",
+			"lsd_peer",
+			"trackerid",
+			"dht_bootstrap",
+			"",
+			"torrent_error",
+			"torrent_need_cert",
+			"incoming_connection",
+			"add_torrent",
+			"state_update",
 #if TORRENT_ABI_VERSION == 1
-		"mmap_cache",
+			"mmap_cache",
 #else
-		"",
+			"",
 #endif
-		"session_stats",
+			"session_stats",
 #if TORRENT_ABI_VERSION == 1
-		"torrent_update",
+			"torrent_update",
 #else
-		"",
+			"",
 #endif
-		"", "dht_error", "dht_immutable_item", "dht_mutable_item",
-		"dht_put", "i2p", "dht_outgoing_get_peers", "log",
-		"torrent_log", "peer_log", "lsd_error",
-		"dht_stats", "incoming_request", "dht_log",
-		"dht_pkt", "dht_get_peers_reply", "dht_direct_response",
-		"picker_log", "session_error", "dht_live_nodes",
-		"session_stats_header", "dht_sample_infohashes",
-		"block_uploaded", "alerts_dropped", "socks5",
-		"file_prio", "oversized_file", "torrent_conflict",
-		"peer_info", "file_progress", "piece_info",
-		"piece_availability", "tracker_list", "file_priorities", "file_status"
-		}};
+			"",
+			"dht_error",
+			"dht_immutable_item",
+			"dht_mutable_item",
+			"dht_put",
+			"i2p",
+			"dht_outgoing_get_peers",
+			"log",
+			"torrent_log",
+			"peer_log",
+			"lsd_error",
+			"dht_stats",
+			"incoming_request",
+			"dht_log",
+			"dht_pkt",
+			"dht_get_peers_reply",
+			"dht_direct_response",
+			"picker_log",
+			"session_error",
+			"dht_live_nodes",
+			"session_stats_header",
+			"dht_sample_infohashes",
+			"block_uploaded",
+			"alerts_dropped",
+			"socks5",
+			"file_prio",
+			"oversized_file",
+			"torrent_conflict",
+			"peer_info",
+			"file_progress",
+			"piece_info",
+			"piece_availability",
+			"tracker_list",
+			"file_priorities",
+			"file_status",
+			"ip_ban"}};
 
 		TORRENT_ASSERT(alert_type >= 0);
 		TORRENT_ASSERT(alert_type < num_alert_types);
@@ -3322,6 +3394,19 @@ namespace {
 		return {};
 #else
 		return torrent_alert::message() + " file_status";
+#endif
+	}
+
+	ip_ban_alert::ip_ban_alert(aux::stack_allocator&, address const& addr)
+		: banned_address(addr)
+	{}
+
+	std::string ip_ban_alert::message() const
+	{
+#ifdef TORRENT_DISABLE_ALERT_MSG
+		return {};
+#else
+		return "IP banned: " + banned_address.to_string();
 #endif
 	}
 
