@@ -275,6 +275,7 @@ TOOLS_FILES= \
   parse_sample.py        \
   parse_session_stats.py \
   parse_utp_log.py       \
+  check_installed_headers.py \
   session_log_alerts.cpp
 
 KADEMLIA_SOURCES = \
