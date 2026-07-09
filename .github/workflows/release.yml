@@ -70,6 +70,11 @@ jobs:
           b2 install --prefix=test-install-root webtorrent=on
           cat test-install-root/lib/pkgconfig/libtorrent-rasterbar.pc
 
+      - name: test-tarball (installed headers are self-sufficient)
+        run: |
+          cd libtorrent-rasterbar-*/
+          ./tools/check_installed_headers.py test-install-root
+
       - name: test-tarball (b2 tests)
         run: |
           cd libtorrent-rasterbar-*/test

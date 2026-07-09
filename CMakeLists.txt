@@ -995,11 +995,6 @@ install(TARGETS ${LIBTORRENT_EXPORT_TARGETS}
 )
 install(DIRECTORY include/libtorrent DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} FILES_MATCHING PATTERN "*.h*")
 
-if (webtorrent)
-    install(DIRECTORY deps/libdatachannel/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-	install(DIRECTORY deps/libdatachannel/deps/plog/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-endif()
-
 # === generate a CMake Config File ===
 include(CMakePackageConfigHelpers)
 set(ConfigPackageLocation ${CMAKE_INSTALL_LIBDIR}/cmake/LibtorrentRasterbar)
