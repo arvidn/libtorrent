@@ -1,6 +1,7 @@
 2.1.1 not released
 
 	* improve performance of checking files
+	* add ip_ban_alert for IPs banned internally by libtorrent
 
 2.1.0 release
 
