@@ -20,6 +20,7 @@ see LICENSE file.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/aux_/torrent.hpp"
+#include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/path.hpp" // for combine_path, current_working_directory
@@ -27,9 +28,12 @@ see LICENSE file.
 #include "libtorrent/span.hpp"
 #include "libtorrent/session_params.hpp"
 #include "libtorrent/aux_/random.hpp"
+#include "libtorrent/ip_filter.hpp"
 #include "settings.hpp"
 #include <tuple>
 #include <iostream>
+#include <atomic>
+#include <memory>
 
 #include "test.hpp"
 #include "test_utils.hpp"
@@ -729,6 +733,60 @@ TORRENT_TEST(test_read_piece_out_of_range)
 		TEST_CHECK(rp->error == error_code(lt::errors::invalid_piece_index
 			, lt::libtorrent_category()));
 	}
+}
+
+// want_peers_finished()/want_peers_download() are derived from the
+// connect-candidate count, while a torrent's membership in
+// session_impl::m_torrent_lists[torrent_want_peers_*] is a separately
+// maintained mirror of them. torrent::check_invariant() requires the two
+// to always agree.
+TORRENT_TEST(ban_ip_updates_want_peers)
+{
+	settings_pack sett = settings();
+	// keeps the connect-candidate added below from being consumed by a
+	// real connection attempt before the ip_filter is applied to it
+	sett.set_int(settings_pack::connection_speed, 0);
+	lt::session ses(sett);
+
+	static std::array<const int, 1> const file_sizes{{100000}};
+	int const piece_size = 0x8000;
+	auto files = create_random_files(".", file_sizes);
+	add_torrent_params p = make_torrent(std::move(files), piece_size);
+	p.save_path = ".";
+	p.flags |= torrent_flags::seed_mode;
+	p.flags &= ~torrent_flags::paused;
+	p.flags &= ~torrent_flags::auto_managed;
+	torrent_handle h = ses.add_torrent(std::move(p));
+
+	for (int i = 0; i < 100 && h.status().state != torrent_status::seeding; ++i)
+		std::this_thread::sleep_for(lt::milliseconds(100));
+	TEST_EQUAL(h.status().state, torrent_status::seeding);
+
+	// gives the torrent exactly one connect-candidate, so banning it drives
+	// the count to 0 and want_peers_finished() to false
+	tcp::endpoint const peer_addr = ep("1.2.3.4", 6881);
+	h.connect_peer(peer_addr);
+	std::this_thread::sleep_for(lt::milliseconds(100));
+	TEST_EQUAL(h.status().connect_candidates, 1);
+
+	ip_filter filter;
+	filter.add_rule(peer_addr.address(), peer_addr.address(), ip_filter::blocked);
+	ses.set_ip_filter(filter);
+
+	std::this_thread::sleep_for(lt::milliseconds(200));
+	TEST_EQUAL(h.status().connect_candidates, 0);
+
+#if TORRENT_USE_INVARIANT_CHECKS
+	auto const tor = h.native_handle();
+	auto checked = std::make_shared<std::atomic<bool>>(false);
+	post(ses.native_handle()->get_context(), [tor, checked] {
+		tor->check_invariant();
+		*checked = true;
+	});
+	for (int i = 0; i < 100 && !*checked; ++i)
+		std::this_thread::sleep_for(lt::milliseconds(100));
+	TEST_CHECK(checked->load());
+#endif
 }
 
 namespace {
