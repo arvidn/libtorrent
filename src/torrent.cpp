@@ -11767,6 +11767,7 @@ namespace {
 
 	void torrent::set_upload_only(torrent_peer* p, bool const s)
 	{
+		need_peer_list();
 		m_peer_list->set_upload_only(p, s);
 	}
 
