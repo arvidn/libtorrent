@@ -1,5 +1,6 @@
 2.1.1 not released
 
+	* fix shutdown hang when uTP sockets are stalled on a closed UDP socket
 	* require webtorrent RTC offer IDs to be exactly 20 bytes
 	* fix point-to-point interfaces without a route to the internet being used for outgoing traffic
 	* apply IP filter to DHT node
