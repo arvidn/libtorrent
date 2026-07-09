@@ -506,6 +506,7 @@ HEADERS = \
   portmap.hpp                  \
   posix_disk_io.hpp            \
   pread_disk_io.hpp            \
+  random.hpp                   \
   read_resume_data.hpp         \
   session.hpp                  \
   session_handle.hpp           \
