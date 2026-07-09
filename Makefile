@@ -890,6 +890,7 @@ TEST_SOURCES = \
   test_ip_voter.cpp \
   test_listen_socket.cpp \
   test_lsd.cpp \
+  test_lsd_teardown.cpp \
   test_magnet.cpp \
   test_merkle.cpp \
   test_merkle_tree.cpp \

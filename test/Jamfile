@@ -236,6 +236,8 @@ run test_priority.cpp ;
 run test_upnp.cpp ;
 run test_lsd.cpp ;
 explicit test_lsd ;
+run test_lsd_teardown.cpp ;
+explicit test_lsd_teardown ;
 run test_hasher.cpp ;
 explicit test_hasher ;
 run test_hasher512.cpp ;
