@@ -774,6 +774,11 @@ namespace aux {
 			void stop_natpmp();
 			void stop_upnp();
 
+			// closes the listen socket's UDP socket and aborts the uTP
+			// connections bound to it, so their completion handlers (holding
+			// peer_connection references) are released rather than leaked
+			void close_udp_listen_socket(std::shared_ptr<listen_socket_t> const& s);
+
 			std::vector<port_mapping_t> add_port_mapping(portmap_protocol t, int external_port
 				, int local_port);
 			void delete_port_mapping(port_mapping_t handle);

@@ -290,9 +290,24 @@ namespace aux {
 		m_drained_event.push_back(s);
 	}
 
+	// precondition: the UDP socket must have been closed before this is
+	// called. Stalled sockets are woken below on the assumption that their
+	// send attempts fail against the closed socket, tearing the connection
+	// down; on a still-open (backpressured) socket they would just stall
+	// again
 	void utp_socket_manager::remove_udp_socket(std::weak_ptr<utp_socket_interface> sock)
 	{
 		auto iface = sock.lock();
+
+		// sockets that stalled on this UDP socket will never receive their
+		// writable notification (the UDP socket is going away). Deliver it
+		// now: writable() clears the stalled state, which would otherwise
+		// prevent the socket from ever being deleted (should_delete()
+		// requires !m_stalled). Sockets stalled on other (still live)
+		// interfaces simply re-subscribe, just as they do when
+		// on_udp_writeable() flushes all stalled sockets
+		writable();
+
 		for (auto& s : m_utp_sockets)
 		{
 			if (s.second->m_sock.lock() != iface)

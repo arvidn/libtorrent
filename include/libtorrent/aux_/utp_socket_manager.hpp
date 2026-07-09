@@ -99,6 +99,9 @@ namespace aux {
 			, error_code& ec, udp_send_flags_t flags = {});
 		void subscribe_writable(utp_socket_impl* s);
 
+		// aborts every uTP socket bound to this UDP socket, and wakes
+		// stalled sockets so they can be deleted. The UDP socket must have
+		// been closed before calling this
 		void remove_udp_socket(std::weak_ptr<utp_socket_interface> sock);
 
 		// internal, used by utp_stream

@@ -1,3 +1,4 @@
+	* fix shutdown hang when uTP sockets are stalled on a closed UDP socket
 	* fix blocking UDP socket in LSD and NAT-PMP
 	* fix web seed requests for single-file torrents in multi-file mode
 	* fix duplicate filenames in magnet links
