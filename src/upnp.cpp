@@ -157,6 +157,18 @@ namespace {
 	address_v4 const ssdp_multicast_addr = make_address_v4("239.255.255.250");
 	int const ssdp_port = 1900;
 
+	// reject Location/control-URL hosts a real IGD would never use, to block
+	// SSRF via forged SSDP replies or device descriptions. RFC1918 stays
+	// allowed since that is where real devices live. only IP literals are
+	// checked here, not DNS names.
+	bool invalid_upnp_host(std::string const& hostname)
+	{
+		error_code ec;
+		address const addr = make_address(hostname.c_str(), ec);
+		if (ec) return false;
+		return addr.is_unspecified() || addr.is_loopback() || aux::is_link_local(addr)
+			|| addr.is_multicast();
+	}
 }
 
 void upnp::open_multicast_socket(aux::socket_package& s, error_code& ec)
@@ -633,23 +645,17 @@ void upnp::on_reply(aux::socket_package& s, error_code const& ec, std::size_t co
 			return;
 		}
 
-		if (aux::is_ip_address(d.hostname))
+		if (invalid_upnp_host(d.hostname))
 		{
-			error_code ip_ec;
-			address const addr = make_address(d.hostname.c_str(), ip_ec);
-			if (!ip_ec
-				&& (addr.is_unspecified() || aux::is_link_local(addr) || addr.is_multicast()))
-			{
 #ifndef TORRENT_DISABLE_LOGGING
-				if (should_log())
-				{
-					log("ignoring rootdevice from %s with local address: %s",
-						print_endpoint(from).c_str(),
-						d.hostname.c_str());
-				}
-#endif
-				return;
+			if (should_log())
+			{
+				log("ignoring rootdevice from %s with invalid address: %s",
+					print_endpoint(from).c_str(),
+					d.hostname.c_str());
 			}
+#endif
+			return;
 		}
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1110,6 +1116,22 @@ void upnp::on_upnp_xml(error_code const& e
 		{
 			log("failed to parse URL '%s': %s"
 				, d.control_url.c_str(), ec.message().c_str());
+		}
+#endif
+		d.disabled = true;
+		return;
+	}
+
+	// control URL host comes from the untrusted device description; validate
+	// it the same way as the rootdevice Location above.
+	if (invalid_upnp_host(d.hostname))
+	{
+#ifndef TORRENT_DISABLE_LOGGING
+		if (should_log())
+		{
+			log("ignoring control URL '%s' with invalid address: %s",
+				d.control_url.c_str(),
+				d.hostname.c_str());
 		}
 #endif
 		d.disabled = true;
