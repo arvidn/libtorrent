@@ -2,7 +2,7 @@ name: Android
 
 on:
    push:
-      branches: [ RC_2_0 master ]
+      branches: [ RC_2_0, master ]
    pull_request:
 
 concurrency:

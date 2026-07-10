@@ -2,7 +2,7 @@ name: Windows
 
 on:
    push:
-      branches: [ RC_1_2 RC_2_0 master ]
+      branches: [ RC_1_2, RC_2_0, master ]
    pull_request:
 
 defaults:
