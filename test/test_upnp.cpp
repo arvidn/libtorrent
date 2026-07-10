@@ -31,6 +31,7 @@ namespace {
 
 broadcast_socket* sock = nullptr;
 int g_port = 0;
+std::string g_local_address;
 
 char const* soap_add_response[] = {
 	"<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
@@ -69,21 +70,22 @@ void incoming_msearch(udp::endpoint const& from, span<char const> buffer)
 	std::cout << "< incoming m-search from " << from << std::endl;
 
 	char const msg[] = "HTTP/1.1 200 OK\r\n"
-		"ST:upnp:rootdevice\r\n"
-		"USN:uuid:000f-66d6-7296000099dc::upnp:rootdevice\r\n"
-		"Location: http://127.0.0.1:%d/upnp.xml\r\n"
-		"Server: Custom/1.0 UPnP/1.0 Proc/Ver\r\n"
-		"EXT:\r\n"
-		"Cache-Control:max-age=180\r\n"
-		"DATE: Fri, 02 Jan 1970 08:10:38 GMT\r\n\r\n";
+					   "ST:upnp:rootdevice\r\n"
+					   "USN:uuid:000f-66d6-7296000099dc::upnp:rootdevice\r\n"
+					   "Location: http://%s:%d/upnp.xml\r\n"
+					   "Server: Custom/1.0 UPnP/1.0 Proc/Ver\r\n"
+					   "EXT:\r\n"
+					   "Cache-Control:max-age=180\r\n"
+					   "DATE: Fri, 02 Jan 1970 08:10:38 GMT\r\n\r\n";
 
 	TORRENT_ASSERT(g_port != 0);
-	char buf[sizeof(msg) + 30];
+	TORRENT_ASSERT(!g_local_address.empty());
+	char buf[sizeof(msg) + 64];
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wformat-nonliteral"
 #endif
-	int const len = std::snprintf(buf, sizeof(buf), msg, g_port);
+	int const len = std::snprintf(buf, sizeof(buf), msg, g_local_address.c_str(), g_port);
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
@@ -206,6 +208,12 @@ aux::ip_interface pick_upnp_interface()
 
 void run_upnp_test(char const* root_filename, char const* control_name, int igd_version)
 {
+	// advertise the fake device on a real interface, not loopback: upnp.cpp's
+	// SSRF check rejects loopback/link-local/multicast hosts. web_server.py
+	// binds INADDR_ANY, so it answers on that address too.
+	auto const ipf = pick_upnp_interface();
+	g_local_address = ipf.interface_address.to_string();
+
 	g_port = start_web_server();
 
 	std::vector<char> buf;
@@ -224,7 +232,7 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wformat-nonliteral"
 #endif
-	std::fprintf(xml_file, &buf[0], g_port);
+	std::fprintf(xml_file, &buf[0], g_local_address.c_str(), g_port);
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
@@ -238,9 +246,6 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 
 	lt::io_context ios;
 	aux::session_settings sett;
-
-	// pick an appropriate interface to run this test on
-	auto const ipf = pick_upnp_interface();
 
 	sock->open(&incoming_msearch, ios, ec);
 
@@ -259,10 +264,14 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 	std::cout << "router: " << upnp_handler->router_model() << std::endl;
 	TEST_CHECK(!upnp_handler->router_model().empty());
 
-	auto const mapping1 = upnp_handler->add_mapping(portmap_protocol::tcp, 500
-		, ep("127.0.0.1", 500), "");
-	auto const mapping2 = upnp_handler->add_mapping(portmap_protocol::udp, 501
-		, ep("127.0.0.1", 501), "");
+	// the internal-client endpoint becomes the source address upnp.cpp binds
+	// the outgoing AddPortMapping connection to (see bind_info_t in
+	// upnp::create_port_mapping); it must be reachable from the control URL's
+	// host, which is now a real interface address rather than loopback.
+	auto const mapping1 = upnp_handler->add_mapping(
+		portmap_protocol::tcp, 500, tcp::endpoint(ipf.interface_address.to_v4(), 500), "");
+	auto const mapping2 = upnp_handler->add_mapping(
+		portmap_protocol::udp, 501, tcp::endpoint(ipf.interface_address.to_v4(), 501), "");
 
 	for (int i = 0; i < 40; ++i)
 	{
