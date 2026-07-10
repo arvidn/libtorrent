@@ -979,7 +979,11 @@ if(IS_ABSOLUTE "${CMAKE_INSTALL_LIBDIR}")
 endif()
 
 set(LIBTORRENT_EXPORT_TARGETS torrent-rasterbar)
-if (webtorrent)
+if (webtorrent AND NOT BUILD_SHARED_LIBS)
+    # these are only linked PUBLIC (and therefore need to be installed and
+    # part of the export set) when torrent-rasterbar itself is static; for a
+    # shared build they're linked PRIVATE and are already embedded in
+    # libtorrent-rasterbar.so, so consumers never need them
     list(APPEND LIBTORRENT_EXPORT_TARGETS datachannel-static juice-static plog usrsctp)
 	if (TARGET usrsctp)
         set_target_properties(usrsctp PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "")
