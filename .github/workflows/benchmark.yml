@@ -1,0 +1,129 @@
+name: Benchmark
+
+on:
+   push:
+      branches: [ RC_2_1, master ]
+   pull_request:
+
+concurrency:
+   group: ${{ github.ref }}-${{ github.workflow }}-${{ github.event_name }}
+   cancel-in-progress: true
+
+jobs:
+
+   # tracks benchmark history for the base branches themselves.
+   tools:
+      name: tools
+      if: github.event_name == 'push'
+      runs-on: ubuntu-24.04
+      permissions:
+         contents: read
+         checks: write
+
+      steps:
+      - name: checkout
+        uses: actions/checkout@v6
+        with:
+           submodules: recursive
+           fetch-depth: 1
+           filter: tree:0
+
+      - name: update package lists
+        continue-on-error: true
+        run: |
+          sudo apt update
+
+      - uses: Chocobo1/setup-ccache-action@v1
+        with:
+          update_packager_index: false
+          override_cache_key: ccache-linux-benchmark-tools-${{ github.base_ref || github.ref_name }}
+          ccache_options: |
+            max_size=500M
+
+      - name: install boost
+        run: |
+          sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
+          echo "using gcc ;" >>~/user-config.jam
+
+      - name: build benchmark tools
+        run: |
+          cd tools
+          b2 release warnings-as-errors=on stage
+
+      - uses: bencherdev/bencher@v0.6.8
+
+      - name: track benchmarks
+        run: |
+          cd tools
+          bencher run \
+            --project libtorrent \
+            --key '${{ secrets.BENCHER_API_KEY }}' \
+            --branch '${{ github.ref_name }}' \
+            --testbed ubuntu-24.04 \
+            --adapter json \
+            --error-on-alert \
+            --github-actions '${{ secrets.GITHUB_TOKEN }}' \
+            ./bencher
+
+   # compares PR benchmark results against their target branch. Skipped for
+   # forked PRs, since they don't have access to the secrets below. Never
+   # fails the PR: alerts are surfaced via the GitHub check/PR comment (see
+   # --github-actions) but --error-on-alert is intentionally omitted.
+   tools-pr:
+      name: tools (PR)
+      if: >
+         github.event_name == 'pull_request' &&
+         github.event.pull_request.head.repo.full_name == github.repository
+      runs-on: ubuntu-24.04
+      permissions:
+         contents: read
+         checks: write
+         pull-requests: write
+
+      steps:
+      - name: checkout
+        uses: actions/checkout@v6
+        with:
+           submodules: recursive
+           fetch-depth: 1
+           filter: tree:0
+
+      - name: update package lists
+        continue-on-error: true
+        run: |
+          sudo apt update
+
+      - uses: Chocobo1/setup-ccache-action@v1
+        with:
+          update_packager_index: false
+          override_cache_key: ccache-linux-benchmark-tools-${{ github.base_ref || github.ref_name }}
+          ccache_options: |
+            max_size=500M
+
+      - name: install boost
+        run: |
+          sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
+          echo "using gcc ;" >>~/user-config.jam
+
+      - name: build benchmark tools
+        run: |
+          cd tools
+          b2 release warnings-as-errors=on stage
+
+      - uses: bencherdev/bencher@v0.6.8
+
+      - name: track benchmarks
+        run: |
+          cd tools
+          bencher run \
+            --project libtorrent \
+            --key '${{ secrets.BENCHER_API_KEY }}' \
+            --branch '${{ github.head_ref }}' \
+            --start-point '${{ github.base_ref }}' \
+            --start-point-hash '${{ github.event.pull_request.base.sha }}' \
+            --start-point-clone-thresholds \
+            --start-point-reset \
+            --testbed ubuntu-24.04 \
+            --adapter json \
+            --github-actions '${{ secrets.GITHUB_TOKEN }}' \
+            ./bencher
