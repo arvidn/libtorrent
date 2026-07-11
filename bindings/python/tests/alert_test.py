@@ -402,6 +402,14 @@ def wait_until_done_checking(handle: lt.torrent_handle, *, timeout: float) -> No
             break
 
 
+def wait_for_num_peers(
+    handle: lt.torrent_handle, num_peers: int, *, timeout: float
+) -> None:
+    for _ in lib.loop_until_timeout(timeout, msg="num_peers"):
+        if handle.status().num_peers >= num_peers:
+            break
+
+
 def remove_handles_and_wait(session: lt.session) -> None:
     handles = session.get_torrents()
     for handle in handles:
@@ -1762,6 +1770,12 @@ class PeerDisconnectedAlertTest(PeerAlertTest):
         peer_handle = self.peer.add_torrent(self.peer_atp)
         handle.connect_peer(self.peer_endpoint)
         self.wait_for(lt.peer_connect_alert, timeout=5)
+        # peer_connect_alert on self.session fires as soon as the outgoing
+        # connect() call is issued, before self.peer has accepted the
+        # connection and attached it to peer_handle. Wait for that
+        # attachment too, otherwise remove_torrent() below can race ahead of
+        # it and never actually disconnect this peer.
+        wait_for_num_peers(peer_handle, 1, timeout=5)
         self.peer.remove_torrent(peer_handle)
         alert = self.wait_for(lt.peer_disconnected_alert, timeout=5)
 
