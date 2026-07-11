@@ -3,6 +3,7 @@
 #ifndef LIBTORRENT_SETTINGS_H
 #define LIBTORRENT_SETTINGS_H
 
+// clang-format off
 // tags for session wide settings
 enum settings_tags_t {
 	SET_USER_AGENT = 0x200, // char const*

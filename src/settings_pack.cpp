@@ -107,6 +107,8 @@ constexpr int DISK_WRITE_MODE = settings_pack::enable_os_cache;
 
 namespace {
 
+	// the documentation generation parser requires one line per setting
+	// clang-format off
 	using aux::session_impl;
 
 	// std::string is not a literal, so this can't be constexpr
@@ -221,7 +223,6 @@ namespace {
 	}});
 
 	CONSTEXPR_SETTINGS
-	// clang-format off
 	aux::array<int_setting_entry_t, settings_pack::num_int_settings> const int_settings
 	({{
 		SET(tracker_completion_timeout, 30, nullptr),
