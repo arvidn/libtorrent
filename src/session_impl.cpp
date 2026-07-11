@@ -1149,12 +1149,12 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 				TORRENT_ASSERT(!ec);
 			}
 
-			// TODO: 3 closing the udp sockets here means that
-			// the uTP connections cannot be closed gracefully
-			if (l->udp_sock)
-			{
-				l->udp_sock->sock.close();
-			}
+			// this closes the UDP socket abruptly; the uTP connections on it
+			// are aborted rather than closed gracefully. Leaving them alive
+			// would let their completion handlers pin peers in
+			// m_undead_peers (and keep num_sockets() > 0) forever,
+			// preventing on_tick() from ever completing the shutdown
+			close_udp_listen_socket(l);
 		}
 
 		// we need to give all the sockets an opportunity to actually have their handlers
@@ -2171,7 +2171,7 @@ namespace {
 			}
 #endif
 			if ((*remove_iter)->sock) (*remove_iter)->sock->close(ec);
-			if ((*remove_iter)->udp_sock) (*remove_iter)->udp_sock->sock.close();
+			close_udp_listen_socket(*remove_iter);
 			if ((*remove_iter)->natpmp_mapper) (*remove_iter)->natpmp_mapper->close();
 			if ((*remove_iter)->upnp_mapper) (*remove_iter)->upnp_mapper->close();
 			if ((*remove_iter)->lsd) (*remove_iter)->lsd->close();
@@ -6982,6 +6982,18 @@ namespace {
 			s->lsd->close();
 			s->lsd.reset();
 		}
+	}
+
+	void session_impl::close_udp_listen_socket(std::shared_ptr<listen_socket_t> const& s)
+	{
+		if (!s->udp_sock) return;
+		s->udp_sock->sock.close();
+		// the uTP socket managers require the UDP socket to be closed
+		// before being told it is going away
+		m_utp_socket_manager.remove_udp_socket(s);
+#ifdef TORRENT_SSL_PEERS
+		m_ssl_utp_socket_manager.remove_udp_socket(s);
+#endif
 	}
 
 	void session_impl::stop_natpmp()
