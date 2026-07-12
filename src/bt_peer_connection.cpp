@@ -545,9 +545,10 @@ namespace {
 		{
 			p.flags |= (m_rc4_encrypted
 #if TORRENT_HAS_MSE_AES_CTR
-				|| m_aes_ctr_encrypted
+						   || m_aes_ctr_encrypted
 #endif
-				) ? peer_info::rc4_encrypted
+						   )
+				? peer_info::rc4_encrypted
 				: peer_info::plaintext_encrypted;
 		}
 #endif
@@ -736,7 +737,7 @@ namespace {
 			m_aes_ctr_encrypted = true;
 		else
 #endif
-		if (crypto_select == 0x02) // pe_rc4
+			if (crypto_select == 0x02) // pe_rc4
 			m_rc4_encrypted = true;
 			// else 0x01 (pe_plaintext) — no encryption
 
@@ -756,7 +757,11 @@ namespace {
 	{
 		INVARIANT_CHECK;
 
+#if TORRENT_HAS_MSE_AES_CTR
+		TORRENT_ASSERT(crypto_field <= 0x07 && crypto_field > 0);
+#else
 		TORRENT_ASSERT(crypto_field <= 0x03 && crypto_field > 0);
+#endif
 		// vc,crypto_field,len(pad),pad, (len(ia))
 		TORRENT_ASSERT((write_buf.size() >= 8+4+2+pad_size+2
 				&& is_outgoing())
@@ -2836,7 +2841,7 @@ namespace {
 		}
 		else
 #endif
-		if (m_rc4_encrypted)
+			if (m_rc4_encrypted)
 		{
 			switch_send_crypto(m_rc4);
 			switch_recv_crypto(m_rc4);
@@ -2852,7 +2857,7 @@ namespace {
 		}
 		else
 #endif
-		if (m_rc4_encrypted)
+			if (m_rc4_encrypted)
 		{
 			span<char> const remaining = m_recv_buffer.mutable_buffer()
 				.subspan(m_recv_buffer.packet_size());
@@ -3251,8 +3256,8 @@ namespace {
 				}
 				else
 #endif
-				if (m_settings.get_bool(settings_pack::prefer_rc4)
-					&& (crypto_select & settings_pack::pe_rc4))
+					if (m_settings.get_bool(settings_pack::prefer_rc4)
+						&& (crypto_select & settings_pack::pe_rc4))
 				{
 					crypto_select = settings_pack::pe_rc4;
 				}
@@ -3424,7 +3429,7 @@ namespace {
 			}
 			else
 #endif
-			if (m_rc4_encrypted)
+				if (m_rc4_encrypted)
 			{
 				switch_send_crypto(m_rc4);
 				switch_recv_crypto(m_rc4);

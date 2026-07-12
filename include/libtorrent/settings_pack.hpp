@@ -883,11 +883,6 @@ namespace aux {
 			// prefer RC4 if both methods are offered, plain text otherwise
 			prefer_rc4,
 
-			// if the allowed encryption level includes AES-CTR (bit 4),
-			// setting this to true will prefer AES-CTR when offered, falling
-			// back to RC4 or plaintext
-			prefer_aes_ctr,
-
 			// if true, hostname lookups are done via the configured proxy (if
 			// any). This is only supported by SOCKS5 and HTTP.
 			proxy_hostnames,
@@ -1060,6 +1055,11 @@ namespace aux {
 			// may improve transfer efficiency, but it may also
 			// increase network load.
 			allow_multiple_connections_per_pid,
+
+			// if the allowed encryption level includes AES-CTR (bit 4),
+			// setting this to true will prefer AES-CTR when offered, falling
+			// back to RC4 or plaintext
+			prefer_aes_ctr,
 
 			max_bool_setting_internal
 		};

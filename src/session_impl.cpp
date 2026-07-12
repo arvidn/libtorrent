@@ -1513,12 +1513,13 @@ namespace {
 	{
 		validate_setting(settings_pack::out_enc_policy, 0, 2);
 		validate_setting(settings_pack::in_enc_policy, 0, 2);
-		validate_setting(settings_pack::allowed_enc_level, 1
-			, settings_pack::pe_plaintext | settings_pack::pe_rc4
+		validate_setting(settings_pack::allowed_enc_level,
+			1,
+			settings_pack::pe_plaintext | settings_pack::pe_rc4
 #if TORRENT_HAS_MSE_AES_CTR
-			| settings_pack::pe_aes_ctr
+				| settings_pack::pe_aes_ctr
 #endif
-			);
+		);
 		validate_setting(settings_pack::mixed_mode_algorithm, 0, 1);
 		validate_setting(settings_pack::proxy_type, 0, 5);
 		validate_setting(settings_pack::disk_io_read_mode, 0, 3);

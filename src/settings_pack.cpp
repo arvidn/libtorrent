@@ -129,10 +129,11 @@ namespace {
 	}});
 
 	CONSTEXPR_SETTINGS
-	aux::array<bool_setting_entry_t, settings_pack::num_bool_settings> const bool_settings
-	({{
+	aux::array<bool_setting_entry_t, settings_pack::num_bool_settings> const bool_settings({{
 		SET(allow_multiple_connections_per_ip, false, nullptr),
-		DEPRECATED_SET(ignore_limits_on_local_network, true, &session_impl::update_ignore_rate_limits_on_local_network),
+		DEPRECATED_SET(ignore_limits_on_local_network,
+			true,
+			&session_impl::update_ignore_rate_limits_on_local_network),
 		SET(send_redundant_have, true, nullptr),
 		DEPRECATED_SET(lazy_bitfields, false, nullptr),
 		SET(use_dht_as_fallback, false, nullptr),
@@ -195,7 +196,6 @@ namespace {
 		SET(enable_lsd, true, &session_impl::update_lsd),
 		SET(enable_dht, true, &session_impl::update_dht),
 		SET(prefer_rc4, false, nullptr),
-		SET(prefer_aes_ctr, true, nullptr),
 		SET(proxy_hostnames, true, nullptr),
 		SET(proxy_peer_connections, true, nullptr),
 		SET(auto_sequential, true, &session_impl::update_auto_sequential),
@@ -219,6 +219,7 @@ namespace {
 		SET(proxy_send_host_in_connect, false, nullptr),
 		SET(disk_disable_copy_on_write, false, nullptr),
 		SET(allow_multiple_connections_per_pid, false, nullptr),
+		SET(prefer_aes_ctr, true, nullptr),
 	}});
 
 	CONSTEXPR_SETTINGS
