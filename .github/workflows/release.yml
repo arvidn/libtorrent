@@ -2,7 +2,7 @@ name: Release
 
 on:
    push:
-      branches: [ RC_2_0, RC_2_1, master ]
+      branches: [ RC_2_1, master ]
       tags:
          - 'v[0-9]*.[0-9]*.[0-9]*'
    pull_request:
@@ -70,6 +70,11 @@ jobs:
           b2 install --prefix=test-install-root webtorrent=on
           cat test-install-root/lib/pkgconfig/libtorrent-rasterbar.pc
 
+      - name: test-tarball (installed headers are self-sufficient)
+        run: |
+          cd libtorrent-rasterbar-*/
+          ./tools/check_installed_headers.py test-install-root
+
       - name: test-tarball (b2 tests)
         run: |
           cd libtorrent-rasterbar-*/test
@@ -100,4 +105,4 @@ jobs:
            GH_TOKEN: ${{ github.token }}
         run: |
           cd dist
-          gh release upload "$GITHUB_REF_NAME" libtorrent-rasterbar-*.tar.gz --clobber
+          gh release upload "$GITHUB_REF_NAME" libtorrent-rasterbar-*.tar.gz --clobber --repo "$GITHUB_REPOSITORY"

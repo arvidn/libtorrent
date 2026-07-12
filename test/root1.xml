@@ -79,7 +79,7 @@
 								<serviceType>urn:schemas-upnp-org:service:WANIPConnection:1</serviceType>
 								
 								<serviceId>urn:upnp-org:serviceId:WANIPConn1</serviceId>
-								<controlURL>http://127.0.0.1:%d/wipconn</controlURL>
+								<controlURL>http://%s:%d/wipconn</controlURL>
 								<eventSubURL>http://192.168.0.1:9393/wipconn</eventSubURL>
 								<SCPDURL>http://192.168.0.1/WANIPConn1.xml</SCPDURL>
 							</service>

@@ -2,7 +2,7 @@ name: Documentation
 
 on:
    push:
-      branches: [ RC_1_2 RC_2_0 master ]
+      branches: [ RC_2_1, master ]
    pull_request:
 
 concurrency:

@@ -64,7 +64,7 @@ namespace libtorrent::aux {
 	// Set the prime P and the generator, generate local public key
 	dh_key_exchange::dh_key_exchange()
 	{
-		aux::array<std::uint8_t, 96> random_key;
+		aux::array<std::uint8_t, 20> random_key;
 		aux::random_bytes({reinterpret_cast<char*>(random_key.data())
 			, static_cast<std::ptrdiff_t>(random_key.size())});
 

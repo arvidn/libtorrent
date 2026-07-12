@@ -1956,8 +1956,30 @@ retry:
 
 		// if we don't proxy peer connections, don't apply the special logic for
 		// proxies
-		if (m_settings.get_int(settings_pack::proxy_type) != settings_pack::none
-			&& m_settings.get_bool(settings_pack::proxy_peer_connections))
+		bool const use_proxy = m_settings.get_int(settings_pack::proxy_type) != settings_pack::none
+			&& m_settings.get_bool(settings_pack::proxy_peer_connections);
+
+		// the interface list is needed to build per-interface listen endpoints
+		// below (when not proxying peer connections), and to refresh the cache
+		// verify_bound_address() relies on for every peer connection (only
+		// relevant when outgoing_interfaces restricts which interfaces we
+		// bind to). Skip the netlink round-trip when neither applies.
+		std::vector<ip_interface> ifs;
+		if (!use_proxy || !m_outgoing_interfaces.empty())
+		{
+			ifs = enum_net_interfaces(m_io_context, ec);
+			if (ec && m_alerts.should_post<listen_failed_alert>())
+			{
+				m_alerts.emplace_alert<listen_failed_alert>(
+					"", operation_t::enum_if, ec, socket_type_t::tcp);
+			}
+			else if (!ec)
+			{
+				m_cached_interfaces = ifs;
+			}
+		}
+
+		if (use_proxy)
 		{
 			// we will be able to accept incoming connections over UDP. so use
 			// one of the ports the user specified to use a consistent port
@@ -1973,12 +1995,6 @@ retry:
 		}
 		else
 		{
-			std::vector<ip_interface> const ifs = enum_net_interfaces(m_io_context, ec);
-			if (ec && m_alerts.should_post<listen_failed_alert>())
-			{
-				m_alerts.emplace_alert<listen_failed_alert>(""
-					, operation_t::enum_if, ec, socket_type_t::tcp);
-			}
 			auto const routes = enum_routes(m_io_context, ec);
 			if (ec && m_alerts.should_post<listen_failed_alert>())
 			{
@@ -3020,20 +3036,8 @@ retry:
 						, endp, peer_blocked_alert::invalid_local_interface);
 				return;
 			}
-			if (!verify_bound_address(local.address(), is_utp(s), ec))
+			if (!verify_bound_address(local.address(), is_utp(s)))
 			{
-				if (ec)
-				{
-#ifndef TORRENT_DISABLE_LOGGING
-					if (should_log())
-					{
-						session_log("<== INCOMING CONNECTION [ rejected, not allowed local interface: %s ]"
-							, print_error(ec).c_str());
-					}
-#endif
-					return;
-				}
-
 #ifndef TORRENT_DISABLE_LOGGING
 				if (should_log())
 				{
@@ -5288,8 +5292,7 @@ retry:
 	// sure one of the allowed interfaces exists and maybe that it's the
 	// default route. For systems that have SO_BINDTODEVICE, it should be
 	// enough to just know that one of the devices exist
-	bool session_impl::verify_bound_address(address const& addr, bool utp
-		, error_code& ec)
+	bool session_impl::verify_bound_address(address const& addr, bool utp)
 	{
 		TORRENT_UNUSED(utp);
 
@@ -5306,12 +5309,15 @@ retry:
 		}
 
 		// we didn't find the address as an IP in the interface list. Now,
-		// resolve which device (if any) has this IP address.
-		std::string const device = device_for_address(addr, m_io_context, ec);
-		if (ec) return false;
+		// resolve which device (if any) has this IP address. Cached, since
+		// this runs on every incoming and outgoing peer connection.
+		auto const iter = std::find_if(m_cached_interfaces.begin(),
+			m_cached_interfaces.end(),
+			[&addr](ip_interface const& iface) { return iface.interface_address == addr; });
 
 		// if no device was found to have this address, we fail
-		if (device.empty()) return false;
+		if (iter == m_cached_interfaces.end()) return false;
+		std::string const device = iter->name;
 
 		return std::any_of(m_outgoing_interfaces.begin(), m_outgoing_interfaces.end()
 			, [&device](std::string const& s) { return s == device; });

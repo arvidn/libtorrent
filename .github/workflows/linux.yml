@@ -2,7 +2,7 @@ name: Linux
 
 on:
    push:
-      branches: [ RC_1_2 RC_2_0 master ]
+      branches: [ RC_2_1, master ]
    pull_request:
 
 concurrency:
@@ -140,6 +140,11 @@ jobs:
         run: |
           cd build-cmake
           ctest --output-on-failure
+
+      - name: cmake install (installed headers are self-sufficient)
+        run: |
+          cmake --install build-cmake --prefix "$PWD/install-test"
+          ./tools/check_installed_headers.py "$PWD/install-test"
 
 
    fuzzers:

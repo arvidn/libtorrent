@@ -11721,11 +11721,14 @@ namespace {
 		need_peer_list();
 		m_peer_list->set_seed(p, s);
 		update_auto_sequential();
+		update_want_peers();
 	}
 
 	void torrent::set_upload_only(torrent_peer* p, bool const s)
 	{
+		need_peer_list();
 		m_peer_list->set_upload_only(p, s);
+		update_want_peers();
 	}
 
 	void torrent::clear_failcount(torrent_peer* p)
@@ -11811,6 +11814,7 @@ namespace {
 		}
 
 		peers_erased(st.erased);
+		update_want_peers();
 	}
 
 	// this call will disconnect any peers whose remote port is < 1024
@@ -11833,6 +11837,7 @@ namespace {
 		}
 
 		peers_erased(st.erased);
+		update_want_peers();
 	}
 
 	void torrent::port_filter_updated()
@@ -11851,6 +11856,7 @@ namespace {
 		}
 
 		peers_erased(st.erased);
+		update_want_peers();
 	}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS

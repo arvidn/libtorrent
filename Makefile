@@ -275,6 +275,7 @@ TOOLS_FILES= \
   parse_sample.py        \
   parse_session_stats.py \
   parse_utp_log.py       \
+  check_installed_headers.py \
   session_log_alerts.cpp
 
 KADEMLIA_SOURCES = \
@@ -504,6 +505,7 @@ HEADERS = \
   portmap.hpp                  \
   posix_disk_io.hpp            \
   pread_disk_io.hpp            \
+  random.hpp                   \
   read_resume_data.hpp         \
   session.hpp                  \
   session_handle.hpp           \

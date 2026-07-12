@@ -47,10 +47,14 @@ exe disk_io_stress_test : disk_io_stress_test.cpp ;
 exe checking_benchmark : checking_benchmark.cpp ;
 exe gen_torture_torrent : gen_torture_torrent.cpp ;
 exe benchmark_load_torrent : benchmark_load_torrent.cpp ;
+# bencher uses do_not_optimize(), which relies on GNU inline asm and is
+# not supported by MSVC.
+exe bencher : bencher.cpp : <toolset>msvc:<build>no ;
 
 install stage
 	: dht dht-sample session_log_alerts disk_io_stress_test
 	  checking_benchmark gen_torture_torrent benchmark_load_torrent
+	  bencher
 	: <location>.
 	;
 explicit stage ;
