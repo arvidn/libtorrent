@@ -4,6 +4,7 @@
 #define LIBTORRENT_SETTINGS_H
 
 // tags for session wide settings
+// clang-format off
 enum settings_tags_t
 {
 	SET_USER_AGENT = 0x200, // char const*
@@ -60,7 +61,6 @@ enum settings_tags_t
 	SET_ENABLE_LSD, // int (0 or 1)
 	SET_ENABLE_DHT, // int (0 or 1)
 	SET_PREFER_RC4, // int (0 or 1)
-	SET_PREFER_AES_CTR, // int (0 or 1)
 	SET_PROXY_HOSTNAMES, // int (0 or 1)
 	SET_PROXY_PEER_CONNECTIONS, // int (0 or 1)
 	SET_AUTO_SEQUENTIAL, // int (0 or 1)
@@ -84,6 +84,7 @@ enum settings_tags_t
 	SET_PROXY_SEND_HOST_IN_CONNECT, // int (0 or 1)
 	SET_DISK_DISABLE_COPY_ON_WRITE, // int (0 or 1)
 	SET_ALLOW_MULTIPLE_CONNECTIONS_PER_PID, // int (0 or 1)
+	SET_PREFER_AES_CTR, // int (0 or 1)
 	SET_TRACKER_COMPLETION_TIMEOUT, // int
 	SET_TRACKER_RECEIVE_TIMEOUT, // int
 	SET_STOP_TRACKER_TIMEOUT, // int
@@ -231,4 +232,5 @@ enum settings_tags_t
 	SET_WEBTORRENT_CONNECTION_TIMEOUT, // int
 };
 
+// clang-format on
 #endif // LIBTORRENT_SETTINGS_H
