@@ -36,17 +36,6 @@ extern "C"
 #elif defined TORRENT_USE_GNUTLS
 #include <nettle/aes.h>
 #include <nettle/ctr.h>
-#elif TORRENT_USE_CNG
-#include <windows.h>
-#include <bcrypt.h>
-
-// BCRYPT_CHAIN_MODE_CTR was added in Windows 10 RS5 (NTDDI >= 0x0A000006).
-// Provide a fallback definition in case the SDK headers don't expose it
-// (e.g. when NTDDI_VERSION hasn't been set high enough by the build system).
-#ifndef BCRYPT_CHAIN_MODE_CTR
-#define BCRYPT_CHAIN_MODE_CTR L"ChainingModeCTR"
-#endif
-
 #elif TORRENT_USE_COMMONCRYPTO
 #include <CommonCrypto/CommonCryptor.h>
 #endif
@@ -437,12 +426,6 @@ struct aes_ctr_handler::aes_ctr_state
 	aes128_ctx ctx{};
 	std::array<std::uint8_t, AES_BLOCK_SIZE> ctr{};
 };
-#elif TORRENT_USE_CNG
-struct aes_ctr_handler::aes_ctr_state
-{
-	BCRYPT_KEY_HANDLE key_handle = nullptr;
-	std::array<UCHAR, 16> iv{};
-};
 #elif TORRENT_USE_COMMONCRYPTO
 struct aes_ctr_handler::aes_ctr_state
 {
@@ -536,74 +519,6 @@ namespace {
 			data,
 			data);
 		return int(len);
-	}
-
-#elif TORRENT_USE_CNG
-
-	static void init_ctr_state(aes_ctr_handler::aes_ctr_state*& state, span<char const> key)
-	{
-		delete state;
-		state = new aes_ctr_handler::aes_ctr_state;
-
-		BCRYPT_ALG_HANDLE hAlg = nullptr;
-		BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_AES_ALGORITHM, nullptr, 0);
-		if (!hAlg) return;
-
-		BCryptSetProperty(hAlg,
-			BCRYPT_CHAINING_MODE,
-			reinterpret_cast<PUCHAR>(const_cast<wchar_t*>(BCRYPT_CHAIN_MODE_CTR)),
-			sizeof(BCRYPT_CHAIN_MODE_CTR),
-			0);
-
-		// Build key blob: header + raw key bytes
-		struct
-		{
-			BCRYPT_KEY_DATA_BLOB_HEADER header;
-			UCHAR key_data[16];
-		} key_blob;
-		key_blob.header.dwMagic = BCRYPT_KEY_DATA_BLOB_MAGIC;
-		key_blob.header.dwVersion = BCRYPT_KEY_DATA_BLOB_VERSION1;
-		key_blob.header.cbKeyData = 16;
-		std::memcpy(key_blob.key_data, key.data(), 16);
-
-		BCryptGenerateSymmetricKey(hAlg,
-			&state->key_handle,
-			nullptr,
-			0,
-			reinterpret_cast<PUCHAR>(&key_blob),
-			sizeof(key_blob),
-			0);
-
-		BCryptCloseAlgorithmProvider(hAlg, 0);
-
-		// Copy initial IV
-		auto const iv = make_ctr_iv(key);
-		std::memcpy(state->iv.data(), iv.data(), 16);
-	}
-
-	static void free_ctr_state(aes_ctr_handler::aes_ctr_state*& state)
-	{
-		if (!state) return;
-		if (state->key_handle) BCryptDestroyKey(state->key_handle);
-		delete state;
-		state = nullptr;
-	}
-
-	static int do_xor(aes_ctr_handler::aes_ctr_state* state, span<char> buf)
-	{
-		if (buf.empty()) return 0;
-		ULONG cbResult = 0;
-		BCryptEncrypt(state->key_handle,
-			reinterpret_cast<PUCHAR>(buf.data()),
-			ULONG(buf.size()),
-			nullptr,
-			state->iv.data(),
-			ULONG(state->iv.size()),
-			nullptr,
-			0,
-			&cbResult,
-			0);
-		return int(cbResult);
 	}
 
 #elif TORRENT_USE_COMMONCRYPTO
