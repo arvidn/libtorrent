@@ -134,6 +134,7 @@ namespace libtorrent::aux {
 		bool m_decrypt;
 	};
 
+#if defined TORRENT_USE_LIBCRYPTO || defined TORRENT_USE_OPENSSL
 	// AES-128-CTR handler, functionally equivalent to rc4_handler but using
 	// AES-NI accelerated AES in counter mode.
 	struct TORRENT_EXTRA_EXPORT aes_ctr_handler final : crypto_plugin
@@ -154,6 +155,7 @@ namespace libtorrent::aux {
 		aes_ctr_state* m_incoming = nullptr;
 		aes_ctr_state* m_outgoing = nullptr;
 	};
+#endif
 
 } // namespace libtorrent::aux
 
