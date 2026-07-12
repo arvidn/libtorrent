@@ -5,9 +5,7 @@
 
 // clang-format off
 // tags for session wide settings
-// clang-format off
-enum settings_tags_t
-{
+enum settings_tags_t {
 	SET_USER_AGENT = 0x200, // char const*
 	SET_ANNOUNCE_IP, // char const*
 	SET_HANDSHAKE_CLIENT_VERSION, // char const*
@@ -233,5 +231,4 @@ enum settings_tags_t
 	SET_WEBTORRENT_CONNECTION_TIMEOUT, // int
 };
 
-// clang-format on
 #endif // LIBTORRENT_SETTINGS_H
