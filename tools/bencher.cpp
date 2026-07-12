@@ -35,6 +35,7 @@ see LICENSE file.
 #include <vector>
 
 #include "libtorrent/aux_/pe_crypto.hpp"
+#include "libtorrent/hasher.hpp"
 #include "libtorrent/load_torrent.hpp"
 #include "libtorrent/span.hpp"
 
@@ -186,6 +187,26 @@ try
 			[&] {
 				dh_key_exchange local;
 				local.compute_secret(reinterpret_cast<std::uint8_t const*>(peer_key.data()));
+			},
+			min_samples,
+			min_duration)));
+
+	// RC4 stream cipher throughput, encrypting a single 16 kiB buffer (the
+	// size of one block, the unit of transfer in the BitTorrent protocol).
+	// decrypt() runs the same underlying rc4_encrypt() core over the same
+	// amount of data, just against the peer key schedule, so its cost
+	// tracks this benchmark and isn't measured separately.
+	lt::sha1_hash const rc4_key = lt::hasher("bencher-rc4-key", 15).final();
+
+	rc4_handler rc4_enc;
+	rc4_enc.set_outgoing_key(rc4_key);
+	std::vector<char> rc4_buf(16 * 1024);
+	results.emplace_back("rc4_encrypt",
+		analyze(measure(
+			[&] {
+				lt::span<char> iovec(rc4_buf);
+				auto const ret = rc4_enc.encrypt(iovec);
+				do_not_optimize(ret);
 			},
 			min_samples,
 			min_duration)));
