@@ -453,15 +453,14 @@ namespace libtorrent::aux {
 		// initialized.
 		std::unique_ptr<dh_key_exchange> m_dh_key_exchange;
 
-		// used during an encrypted handshake then moved
-		// into m_enc_handler if rc4 encryption is negotiated
-		// otherwise it is destroyed when the handshake completes
-		std::shared_ptr<rc4_handler> m_rc4;
+		// used during the encrypted MSE handshake only.
+		// after crypto negotiation, either moved into m_enc_handler
+		// (if RC4 selected) or destroyed (if AES-CTR selected).
+		std::shared_ptr<rc4_handler> m_handshake_rc4;
 
-#if TORRENT_HAS_MSE_AES_CTR
-		// same as m_rc4 but for AES-CTR encryption
-		std::shared_ptr<aes_ctr_handler> m_aes_ctr;
-#endif
+		// stored DH shared secret for deferred AES-CTR key
+		// derivation after crypto negotiation (outgoing path).
+		key_t m_dh_secret;
 
 		// if encryption is negotiated, this is used for
 		// encryption/decryption during the entire session.

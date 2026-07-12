@@ -453,7 +453,7 @@ namespace {
 
 #if defined(TORRENT_USE_LIBCRYPTO) || defined(TORRENT_USE_OPENSSL)
 
-	static void init_ctr_state(aes_ctr_handler::aes_ctr_state*& state, span<char const> key)
+	void init_ctr_state(aes_ctr_handler::aes_ctr_state*& state, span<char const> key)
 	{
 		delete state;
 		state = new aes_ctr_handler::aes_ctr_state;
@@ -468,7 +468,7 @@ namespace {
 			iv.data());
 	}
 
-	static void free_ctr_state(aes_ctr_handler::aes_ctr_state*& state)
+	void free_ctr_state(aes_ctr_handler::aes_ctr_state*& state)
 	{
 		if (!state) return;
 		if (state->ctx) EVP_CIPHER_CTX_free(state->ctx);
@@ -476,7 +476,7 @@ namespace {
 		state = nullptr;
 	}
 
-	static int do_xor(aes_ctr_handler::aes_ctr_state* state, span<char> buf)
+	int do_xor(aes_ctr_handler::aes_ctr_state* state, span<char> buf)
 	{
 		if (buf.empty()) return 0;
 		int outlen = 0;
@@ -490,7 +490,7 @@ namespace {
 
 #elif defined(TORRENT_USE_GNUTLS)
 
-	static void init_ctr_state(aes_ctr_handler::aes_ctr_state*& state, span<char const> key)
+	void init_ctr_state(aes_ctr_handler::aes_ctr_state*& state, span<char const> key)
 	{
 		delete state;
 		state = new aes_ctr_handler::aes_ctr_state;
@@ -500,13 +500,13 @@ namespace {
 		aes128_set_encrypt_key(&state->ctx, reinterpret_cast<std::uint8_t const*>(key.data()));
 	}
 
-	static void free_ctr_state(aes_ctr_handler::aes_ctr_state*& state)
+	void free_ctr_state(aes_ctr_handler::aes_ctr_state*& state)
 	{
 		delete state;
 		state = nullptr;
 	}
 
-	static int do_xor(aes_ctr_handler::aes_ctr_state* state, span<char> buf)
+	int do_xor(aes_ctr_handler::aes_ctr_state* state, span<char> buf)
 	{
 		if (buf.empty()) return 0;
 		auto const len = buf.size();
@@ -523,7 +523,7 @@ namespace {
 
 #elif TORRENT_USE_COMMONCRYPTO
 
-	static void init_ctr_state(aes_ctr_handler::aes_ctr_state*& state, span<char const> key)
+	void init_ctr_state(aes_ctr_handler::aes_ctr_state*& state, span<char const> key)
 	{
 		delete state;
 		state = new aes_ctr_handler::aes_ctr_state;
@@ -543,7 +543,7 @@ namespace {
 			&state->cryptor);
 	}
 
-	static void free_ctr_state(aes_ctr_handler::aes_ctr_state*& state)
+	void free_ctr_state(aes_ctr_handler::aes_ctr_state*& state)
 	{
 		if (!state) return;
 		if (state->cryptor) CCCryptorRelease(state->cryptor);
@@ -551,7 +551,7 @@ namespace {
 		state = nullptr;
 	}
 
-	static int do_xor(aes_ctr_handler::aes_ctr_state* state, span<char> buf)
+	int do_xor(aes_ctr_handler::aes_ctr_state* state, span<char> buf)
 	{
 		if (buf.empty()) return 0;
 		if (!state->cryptor) return 0;

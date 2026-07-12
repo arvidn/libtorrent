@@ -666,13 +666,13 @@ namespace {
 		std::memcpy(ptr, obfsc_hash.data(), 20);
 		ptr += 20;
 
-		// Discard DH key exchange data, setup RC4 and AES-CTR keys
-		m_rc4 = init_pe_rc4_handler(secret_key, info_hash, is_outgoing());
-#if TORRENT_HAS_MSE_AES_CTR
-		m_aes_ctr = init_pe_aes_ctr_handler(secret_key, info_hash, is_outgoing());
-#endif
+		// Setup RC4 for the handshake. AES-CTR keys are derived
+		// later after crypto negotiation, if selected.
+		m_handshake_rc4 = init_pe_rc4_handler(secret_key, info_hash, is_outgoing());
+		m_dh_secret = secret_key;
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::info, peer_log_alert::encryption, "computed RC4 and AES-CTR keys");
+		peer_log(
+			peer_log_alert::info, peer_log_alert::encryption, "computed RC4 keys for handshake");
 #endif
 		m_dh_key_exchange.reset(); // secret should be invalid at this point
 
@@ -702,7 +702,7 @@ namespace {
 
 		write_pe_vc_cryptofield({ptr, encrypt_size}, crypto_provide, pad_size);
 		span<char> vec(ptr, encrypt_size);
-		m_rc4->encrypt(vec);
+		m_handshake_rc4->encrypt(vec);
 		send_buffer({msg, int(sizeof(msg)) - 512 + pad_size});
 	}
 
@@ -728,7 +728,7 @@ namespace {
 		write_pe_vc_cryptofield(msg, crypto_select, pad_size);
 
 		span<char> vec(msg, buf_size);
-		m_rc4->encrypt(vec);
+		m_handshake_rc4->encrypt(vec);
 		send_buffer(vec);
 
 		// encryption method has been negotiated
@@ -786,10 +786,7 @@ namespace {
 			aux::write_uint16(handshake_len, write_buf); // len(IA)
 	}
 
-	void bt_peer_connection::rc4_decrypt(span<char> buf)
-	{
-		m_rc4->decrypt(buf);
-	}
+	void bt_peer_connection::rc4_decrypt(span<char> buf) { m_handshake_rc4->decrypt(buf); }
 
 #endif // #if !defined TORRENT_DISABLE_ENCRYPTION
 
@@ -2833,45 +2830,36 @@ namespace {
 	void bt_peer_connection::init_bt_handshake()
 	{
 		m_encrypted = true;
+
+		std::shared_ptr<crypto_plugin> handler;
 #if TORRENT_HAS_MSE_AES_CTR
 		if (m_aes_ctr_encrypted)
 		{
-			switch_send_crypto(m_aes_ctr);
-			switch_recv_crypto(m_aes_ctr);
+			handler = init_pe_aes_ctr_handler(m_dh_secret, associated_info_hash(), is_outgoing());
 		}
 		else
 #endif
 			if (m_rc4_encrypted)
 		{
-			switch_send_crypto(m_rc4);
-			switch_recv_crypto(m_rc4);
+			handler = std::move(m_handshake_rc4);
 		}
 
+		switch_send_crypto(handler);
+		switch_recv_crypto(handler);
+
 		// decrypt remaining received bytes
-#if TORRENT_HAS_MSE_AES_CTR
-		if (m_aes_ctr_encrypted)
+		if (handler)
 		{
 			span<char> remaining =
 				m_recv_buffer.mutable_buffer().subspan(m_recv_buffer.packet_size());
-			m_aes_ctr->decrypt(remaining);
-		}
-		else
-#endif
-			if (m_rc4_encrypted)
-		{
-			span<char> const remaining = m_recv_buffer.mutable_buffer()
-				.subspan(m_recv_buffer.packet_size());
-			rc4_decrypt(remaining);
+			handler->decrypt(remaining);
 
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, peer_log_alert::encryption
 				, "decrypted remaining %d bytes", int(remaining.size()));
 #endif
 		}
-		m_rc4.reset();
-#if TORRENT_HAS_MSE_AES_CTR
-		m_aes_ctr.reset();
-#endif
+		m_handshake_rc4.reset();
 
 		// encrypted portion of handshake completed, toggle
 		// peer_info pe_support flag back to true
@@ -2941,7 +2929,7 @@ namespace {
 				// initial payload is the standard handshake, this is
 				// always rc4 if sent here. m_rc4_encrypted is flagged
 				// again according to peer selection.
-				switch_send_crypto(m_rc4);
+				switch_send_crypto(m_handshake_rc4);
 				write_handshake();
 				switch_send_crypto(std::shared_ptr<crypto_plugin>());
 
@@ -3092,24 +3080,20 @@ namespace {
 						peer_info_struct()->protocol_v2 = v == protocol_version::V2;
 				});
 
-				m_rc4 = init_pe_rc4_handler(m_dh_key_exchange->get_secret()
-					, associated_info_hash(), is_outgoing());
-#if TORRENT_HAS_MSE_AES_CTR
-				if (m_rc4)
-					m_aes_ctr = init_pe_aes_ctr_handler(
-						m_dh_key_exchange->get_secret(), associated_info_hash(), is_outgoing());
-#endif
+				m_handshake_rc4 = init_pe_rc4_handler(
+					m_dh_key_exchange->get_secret(), associated_info_hash(), is_outgoing());
+				m_dh_secret = m_dh_key_exchange->get_secret();
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log(peer_log_alert::info,
 					peer_log_alert::encryption,
-					"computed RC4 and AES-CTR keys");
+					"computed RC4 keys for handshake");
 				peer_log(peer_log_alert::info,
 					peer_log_alert::encryption,
 					"stream key found, torrent located");
 #endif
 			}
 
-			if (!m_rc4)
+			if (!m_handshake_rc4)
 			{
 				disconnect(errors::invalid_info_hash, operation_t::bittorrent, failure);
 				return;
@@ -3421,23 +3405,24 @@ namespace {
 
 			// everything that arrives after this is encrypted
 			m_encrypted = true;
+
+			std::shared_ptr<crypto_plugin> handler;
 #if TORRENT_HAS_MSE_AES_CTR
 			if (m_aes_ctr_encrypted)
 			{
-				switch_send_crypto(m_aes_ctr);
-				switch_recv_crypto(m_aes_ctr);
+				handler =
+					init_pe_aes_ctr_handler(m_dh_secret, associated_info_hash(), is_outgoing());
 			}
 			else
 #endif
 				if (m_rc4_encrypted)
 			{
-				switch_send_crypto(m_rc4);
-				switch_recv_crypto(m_rc4);
+				handler = std::move(m_handshake_rc4);
 			}
-			m_rc4.reset();
-#if TORRENT_HAS_MSE_AES_CTR
-			m_aes_ctr.reset();
-#endif
+
+			switch_send_crypto(handler);
+			switch_recv_crypto(handler);
+			m_handshake_rc4.reset();
 
 			// now that we have decrypted IA length of bytes, we
 			// reinterpret the receive buffer as the very start of a normal
@@ -3971,11 +3956,10 @@ namespace {
 		TORRENT_ASSERT( (bool(m_state != state_t::read_pe_dhkey) || m_dh_key_exchange.get())
 				|| !is_outgoing());
 
-		TORRENT_ASSERT(!m_rc4_encrypted || (!m_encrypted && m_rc4)
+		TORRENT_ASSERT(!m_rc4_encrypted || (!m_encrypted && m_handshake_rc4)
 			|| (m_encrypted && !m_enc_handler.is_send_plaintext()));
 #if TORRENT_HAS_MSE_AES_CTR
-		TORRENT_ASSERT(!m_aes_ctr_encrypted || (!m_encrypted && m_aes_ctr)
-			|| (m_encrypted && !m_enc_handler.is_send_plaintext()));
+		TORRENT_ASSERT(!m_aes_ctr_encrypted || !m_encrypted || !m_enc_handler.is_send_plaintext());
 #endif
 #endif
 		if (!in_handshake())
