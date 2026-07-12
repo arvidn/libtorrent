@@ -64,6 +64,7 @@ int settings_key(int const tag)
 		case SET_ENABLE_LSD: return sp::enable_lsd;
 		case SET_ENABLE_DHT: return sp::enable_dht;
 		case SET_PREFER_RC4: return sp::prefer_rc4;
+		case SET_PREFER_AES_CTR: return sp::prefer_aes_ctr;
 		case SET_PROXY_HOSTNAMES: return sp::proxy_hostnames;
 		case SET_PROXY_PEER_CONNECTIONS: return sp::proxy_peer_connections;
 		case SET_AUTO_SEQUENTIAL: return sp::auto_sequential;

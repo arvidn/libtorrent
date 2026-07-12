@@ -60,6 +60,7 @@ enum settings_tags_t
 	SET_ENABLE_LSD, // int (0 or 1)
 	SET_ENABLE_DHT, // int (0 or 1)
 	SET_PREFER_RC4, // int (0 or 1)
+	SET_PREFER_AES_CTR, // int (0 or 1)
 	SET_PROXY_HOSTNAMES, // int (0 or 1)
 	SET_PROXY_PEER_CONNECTIONS, // int (0 or 1)
 	SET_AUTO_SEQUENTIAL, // int (0 or 1)
