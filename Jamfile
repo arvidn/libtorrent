@@ -586,9 +586,6 @@ feature.compose <test-coverage>on :
     <linkflags>-fprofile-instr-generate
     ;
 
-feature predictive-pieces : on off : composite propagated ;
-feature.compose <predictive-pieces>off : <define>TORRENT_DISABLE_PREDICTIVE_PIECES ;
-
 feature share-mode : on off : composite propagated ;
 feature.compose <share-mode>off : <define>TORRENT_DISABLE_SHARE_MODE ;
 

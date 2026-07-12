@@ -42,7 +42,7 @@ jobs:
             std: [20]
             config:
               - webtorrent=off asio-debugging=on picker-debugging=on
-              - webtorrent=off extensions=off logging=off streaming=off super-seeding=off share-mode=off predictive-pieces=off dht=off alert-msg=off encryption=off mutable-torrents=off deprecated-functions=off
+              - webtorrent=off extensions=off logging=off streaming=off super-seeding=off share-mode=off dht=off alert-msg=off encryption=off mutable-torrents=off deprecated-functions=off
               - webtorrent=off crypto=gcrypt
               - webtorrent=off mmap-disk-io=off
 

@@ -76,14 +76,43 @@ namespace libtorrent {
 #define DEPRECATED_SET(name, default_value, fun) { #name, fun, default_value }
 #define DEPRECATED_SET_STR(name, default_value, fun) { #name, fun, default_value }
 #define DEPRECATED2_SET(name, default_value, fun) { #name, fun, default_value }
+#define DEPRECATED4_SET(name, default_value, fun) \
+	{ \
+		#name, fun, default_value \
+	}
 #elif TORRENT_ABI_VERSION == 2
 #define DEPRECATED_SET(name, default_value, fun) { "", nullptr, 0 }
 #define DEPRECATED_SET_STR(name, default_value, fun) { "", nullptr, ""}
 #define DEPRECATED2_SET(name, default_value, fun) { #name, fun, default_value }
+#define DEPRECATED4_SET(name, default_value, fun) \
+	{ \
+		#name, fun, default_value \
+	}
+#elif TORRENT_ABI_VERSION < 5
+#define DEPRECATED_SET(name, default_value, fun) \
+	{ \
+		"", nullptr, 0 \
+	}
+#define DEPRECATED_SET_STR(name, default_value, fun) \
+	{ \
+		"", nullptr, "" \
+	}
+#define DEPRECATED2_SET(name, default_value, fun) \
+	{ \
+		"", nullptr, 0 \
+	}
+#define DEPRECATED4_SET(name, default_value, fun) \
+	{ \
+		#name, fun, default_value \
+	}
 #else
 #define DEPRECATED_SET(name, default_value, fun) { "", nullptr, 0 }
 #define DEPRECATED_SET_STR(name, default_value, fun) { "", nullptr, ""}
 #define DEPRECATED2_SET(name, default_value, fun) { "", nullptr, 0 }
+#define DEPRECATED4_SET(name, default_value, fun) \
+	{ \
+		"", nullptr, 0 \
+	}
 #endif
 
 #ifdef TORRENT_WINDOWS
@@ -107,6 +136,8 @@ constexpr int DISK_WRITE_MODE = settings_pack::enable_os_cache;
 
 namespace {
 
+	// the documentation generation parser requires one line per setting
+	// clang-format off
 	using aux::session_impl;
 
 	// std::string is not a literal, so this can't be constexpr
@@ -221,7 +252,6 @@ namespace {
 	}});
 
 	CONSTEXPR_SETTINGS
-	// clang-format off
 	aux::array<int_setting_entry_t, settings_pack::num_int_settings> const int_settings
 	({{
 		SET(tracker_completion_timeout, 30, nullptr),
@@ -328,7 +358,7 @@ namespace {
 		SET(max_metadata_size, 3 * 1024 * 10240, nullptr),
 		SET(hashing_threads, 1, &session_impl::update_disk_threads),
 		SET(checking_mem_usage, 256, nullptr),
-		SET(predictive_piece_announce, 0, nullptr),
+		DEPRECATED4_SET(predictive_piece_announce, 0, nullptr),
 		SET(aio_threads, 10, &session_impl::update_disk_threads),
 		DEPRECATED_SET(aio_max, 300, nullptr),
 		DEPRECATED_SET(network_threads, 0, nullptr),

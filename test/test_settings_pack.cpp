@@ -110,7 +110,9 @@ TORRENT_TEST(test_name)
 	TEST_NAME(peer_turnover_interval);
 	TEST_NAME(peer_fingerprint);
 	TEST_NAME(proxy_tracker_connections);
+#if TORRENT_ABI_VERSION < 5
 	TEST_NAME(predictive_piece_announce);
+#endif
 	TEST_NAME(max_metadata_size);
 	TEST_NAME(num_optimistic_unchoke_slots);
 

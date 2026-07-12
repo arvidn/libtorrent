@@ -3,6 +3,7 @@
 #ifndef LIBTORRENT_SETTINGS_H
 #define LIBTORRENT_SETTINGS_H
 
+// clang-format off
 // tags for session wide settings
 enum settings_tags_t {
 	SET_USER_AGENT = 0x200, // char const*
@@ -171,7 +172,6 @@ enum settings_tags_t {
 	SET_MAX_METADATA_SIZE, // int
 	SET_HASHING_THREADS, // int
 	SET_CHECKING_MEM_USAGE, // int
-	SET_PREDICTIVE_PIECE_ANNOUNCE, // int
 	SET_AIO_THREADS, // int
 	SET_TRACKER_BACKOFF, // int
 	SET_SHARE_RATIO_LIMIT, // int

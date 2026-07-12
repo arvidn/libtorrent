@@ -4501,20 +4501,7 @@ namespace {
 		inc_stats_counter(counters::num_have_pieces);
 
 		// at this point, we have the piece for sure. It has been
-		// successfully written to disk. We may announce it to peers
-		// (unless it has already been announced through predictive_piece_announce
-		// feature).
-		bool announce_piece = true;
-#ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
-		auto const it = std::lower_bound(m_predictive_pieces.begin()
-			, m_predictive_pieces.end(), index);
-		if (it != m_predictive_pieces.end() && *it == index)
-		{
-			// this means we've already announced the piece
-			announce_piece = false;
-			m_predictive_pieces.erase(it);
-		}
-#endif
+		// successfully written to disk. We announce it to peers.
 
 		// make a copy of the peer list since peers
 		// may disconnect while looping
@@ -4528,13 +4515,7 @@ namespace {
 			p->received_piece(index);
 			if (p->is_disconnecting()) continue;
 
-			// if we're not announcing the piece, it means we
-			// already have, and that we might have received
-			// a request for it, and not sending it because
-			// we were waiting to receive the piece, now that
-			// we have received it, try to send stuff (fill_send_buffer)
-			if (announce_piece) p->announce_piece(index);
-			else p->fill_send_buffer();
+			p->announce_piece(index);
 		}
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
@@ -4750,8 +4731,7 @@ namespace {
 	// this is called when the piece hash is checked as correct. Note
 	// that the piece picker and the torrent won't necessarily consider
 	// us to have this piece yet, since it might not have been flushed
-	// to disk yet. Only if we have predictive_piece_announce on will
-	// we announce this piece to peers at this point.
+	// to disk yet.
 	void torrent::piece_passed(piece_index_t const index)
 	{
 //		INVARIANT_CHECK;
@@ -4829,33 +4809,6 @@ namespace {
 #endif
 	}
 
-#ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
-	// we believe we will complete this piece very soon
-	// announce it to peers ahead of time to eliminate the
-	// round-trip times involved in announcing it, requesting it
-	// and sending it
-	void torrent::predicted_have_piece(piece_index_t const index, time_duration const duration)
-	{
-		auto const i = std::lower_bound(m_predictive_pieces.begin()
-			, m_predictive_pieces.end(), index);
-		if (i != m_predictive_pieces.end() && *i == index) return;
-
-		for (auto* p : m_connections)
-		{
-			TORRENT_INCREMENT(m_iterating_connections);
-#ifndef TORRENT_DISABLE_LOGGING
-			p->peer_log(peer_log_alert::outgoing, peer_log_alert::predictive_have, "piece: %d expected in %d ms"
-				, static_cast<int>(index), static_cast<int>(total_milliseconds(duration)));
-#else
-			TORRENT_UNUSED(duration);
-#endif
-			p->announce_piece(index);
-		}
-
-		m_predictive_pieces.insert(i, index);
-	}
-#endif
-
 	// blocks may contain the block indices of the blocks that failed (if this is
 	// a v2 torrent).
 	void torrent::piece_failed(piece_index_t const index, std::vector<int> blocks)
@@ -4874,25 +4827,6 @@ namespace {
 		TORRENT_ASSERT(std::is_sorted(blocks.begin(), blocks.end()));
 
 		inc_stats_counter(counters::num_piece_failed);
-
-#ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
-		auto const it = std::lower_bound(m_predictive_pieces.begin()
-			, m_predictive_pieces.end(), index);
-		if (it != m_predictive_pieces.end() && *it == index)
-		{
-			for (auto* p : m_connections)
-			{
-				TORRENT_INCREMENT(m_iterating_connections);
-				// send reject messages for
-				// potential outstanding requests to this piece
-				p->reject_piece(index);
-				// let peers that support the dont-have message
-				// know that we don't actually have this piece
-				p->write_dont_have(index);
-			}
-			m_predictive_pieces.erase(it);
-		}
-#endif
 
 		std::vector<torrent_peer*> const downloaders = m_picker->get_downloaders(index);
 

@@ -5,6 +5,7 @@
 
 #include "libtorrent_settings.h"
 
+// clang-format off
 int settings_key(int const tag)
 {
 	using sp = lt::settings_pack;
@@ -176,7 +177,6 @@ int settings_key(int const tag)
 		case SET_MAX_METADATA_SIZE: return sp::max_metadata_size;
 		case SET_HASHING_THREADS: return sp::hashing_threads;
 		case SET_CHECKING_MEM_USAGE: return sp::checking_mem_usage;
-		case SET_PREDICTIVE_PIECE_ANNOUNCE: return sp::predictive_piece_announce;
 		case SET_AIO_THREADS: return sp::aio_threads;
 		case SET_TRACKER_BACKOFF: return sp::tracker_backoff;
 		case SET_SHARE_RATIO_LIMIT: return sp::share_ratio_limit;

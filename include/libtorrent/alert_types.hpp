@@ -2420,7 +2420,8 @@ TORRENT_VERSION_NAMESPACE_4
 			info
 		};
 
-		enum event_t : std::uint8_t {
+		enum event_t : std::uint8_t
+		{
 			tracker_response, // responses from trackers
 			allowed, // log related to sending the ALLOWED (fast) message
 			seed,
@@ -2447,7 +2448,6 @@ TORRENT_VERSION_NAMESPACE_4
 			duplicate_peer_resolution,
 			super_seeding,
 			merging_requests,
-			predictive_have,
 			banning_peer,
 			choking_peer,
 			torrent,

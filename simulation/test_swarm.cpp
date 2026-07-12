@@ -793,17 +793,16 @@ TORRENT_TEST(unchoke_slots_limit_negative)
 
 TORRENT_TEST(settings_stress_test)
 {
-	std::array<int, 11> const settings{{
+	std::array<int, 10> const settings{{
 		settings_pack::unchoke_slots_limit,
 		settings_pack::connections_limit,
-		settings_pack::predictive_piece_announce,
 		settings_pack::allow_multiple_connections_per_ip,
 		settings_pack::send_redundant_have,
 		settings_pack::rate_limit_ip_overhead,
 		settings_pack::rate_limit_ip_overhead,
 		settings_pack::anonymous_mode,
-//		settings_pack::enable_upnp,
-//		settings_pack::enable_natpmp,
+		//		settings_pack::enable_upnp,
+		//		settings_pack::enable_natpmp,
 		settings_pack::enable_lsd,
 		settings_pack::enable_ip_notifier,
 		settings_pack::piece_extent_affinity,
