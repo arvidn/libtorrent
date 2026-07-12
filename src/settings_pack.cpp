@@ -110,6 +110,7 @@ namespace {
 	using aux::session_impl;
 
 	// std::string is not a literal, so this can't be constexpr
+	// clang-format off
 	aux::array<str_setting_entry_t, settings_pack::num_string_settings> const str_settings
 	({{
 		SET(user_agent, "libtorrent/" LIBTORRENT_VERSION, &session_impl::update_user_agent),
@@ -127,13 +128,13 @@ namespace {
 		SET(natpmp_gateway, "", nullptr),
 		SET(webtorrent_stun_server, "stun.l.google.com:19302", nullptr)
 	}});
+	// clang-format on
 
 	CONSTEXPR_SETTINGS
+	// clang-format off
 	aux::array<bool_setting_entry_t, settings_pack::num_bool_settings> const bool_settings({{
 		SET(allow_multiple_connections_per_ip, false, nullptr),
-		DEPRECATED_SET(ignore_limits_on_local_network,
-			true,
-			&session_impl::update_ignore_rate_limits_on_local_network),
+		DEPRECATED_SET(ignore_limits_on_local_network, true, &session_impl::update_ignore_rate_limits_on_local_network),
 		SET(send_redundant_have, true, nullptr),
 		DEPRECATED_SET(lazy_bitfields, false, nullptr),
 		SET(use_dht_as_fallback, false, nullptr),
@@ -221,6 +222,7 @@ namespace {
 		SET(allow_multiple_connections_per_pid, false, nullptr),
 		SET(prefer_aes_ctr, true, nullptr),
 	}});
+	// clang-format on
 
 	CONSTEXPR_SETTINGS
 	// clang-format off
