@@ -13,13 +13,18 @@ see LICENSE file.
 
 namespace libtorrent { namespace aux {
 
-	address listen_socket_handle::get_external_address() const
-	{
-		auto s = m_sock.lock();
-		TORRENT_ASSERT(s);
-		if (!s) throw_ex<std::bad_weak_ptr>();
-		return s->external_address.external_address();
-	}
+		listen_socket_handle::listen_socket_handle(std::shared_ptr<listen_socket_t> s)
+			: m_sock(s)
+			, m_id(s ? s->id : 0)
+		{}
+
+		address listen_socket_handle::get_external_address() const
+		{
+			auto s = m_sock.lock();
+			TORRENT_ASSERT(s);
+			if (!s) throw_ex<std::bad_weak_ptr>();
+			return s->external_address.external_address();
+		}
 
 	tcp::endpoint listen_socket_handle::get_local_endpoint() const
 	{
