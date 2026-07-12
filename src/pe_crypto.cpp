@@ -27,10 +27,20 @@ see LICENSE file.
 #include "libtorrent/hasher.hpp"
 
 #if TORRENT_HAS_MSE_AES_CTR
+
+#if defined TORRENT_USE_LIBCRYPTO || defined TORRENT_USE_OPENSSL
 extern "C"
 {
 #include <openssl/evp.h>
 }
+#elif defined TORRENT_USE_GNUTLS
+#include <nettle/aes.h>
+#include <nettle/ctr.h>
+#elif TORRENT_USE_CNG
+#include <windows.h>
+#include <bcrypt.h>
+#endif
+
 #endif
 
 namespace libtorrent::aux {
@@ -404,63 +414,195 @@ std::size_t rc4_encrypt(unsigned char *out, std::size_t outlen, rc4 *state)
 
 #if TORRENT_HAS_MSE_AES_CTR
 
+// --- per-backend state ---
+
+#if defined(TORRENT_USE_LIBCRYPTO) || defined(TORRENT_USE_OPENSSL)
 struct aes_ctr_handler::aes_ctr_state
 {
 	EVP_CIPHER_CTX* ctx = nullptr;
 };
-
-static void init_ctr_state(aes_ctr_handler::aes_ctr_state*& state, span<char const> key)
+#elif defined TORRENT_USE_GNUTLS
+struct aes_ctr_handler::aes_ctr_state
 {
-	// key format: [16 bytes AES-128 key][4 bytes nonce]
-	TORRENT_ASSERT(key.size() >= 20);
+	aes128_ctx ctx{};
+	std::array<std::uint8_t, AES_BLOCK_SIZE> ctr{};
+};
+#elif TORRENT_USE_CNG
+struct aes_ctr_handler::aes_ctr_state
+{
+	BCRYPT_KEY_HANDLE key_handle = nullptr;
+	std::array<UCHAR, 16> iv{};
+};
+#endif
 
-	delete state;
-	state = new aes_ctr_handler::aes_ctr_state;
-	state->ctx = EVP_CIPHER_CTX_new();
-	if (!state->ctx) return;
+// --- per-backend init ---
 
-	// Build IV: nonce (4B BE) || counter=64 (12B BE)
+namespace {
+
+	// Build the AES-CTR IV: 4-byte nonce (BE) + 64 (12-byte counter, BE)
 	// Counter starts at 64 to discard the first 1024 bytes (64 AES blocks)
-	std::array<std::uint8_t, 16> iv{};
-	iv[0] = std::uint8_t(key[16]);
-	iv[1] = std::uint8_t(key[17]);
-	iv[2] = std::uint8_t(key[18]);
-	iv[3] = std::uint8_t(key[19]);
-	iv[15] = 64; // counter = 64 in big-endian (lowest byte)
+	std::array<std::uint8_t, 16> make_ctr_iv(span<char const> key)
+	{
+		TORRENT_ASSERT(key.size() >= 20);
+		std::array<std::uint8_t, 16> iv{};
+		iv[0] = std::uint8_t(key[16]);
+		iv[1] = std::uint8_t(key[17]);
+		iv[2] = std::uint8_t(key[18]);
+		iv[3] = std::uint8_t(key[19]);
+		iv[15] = 64;
+		return iv;
+	}
 
-	EVP_EncryptInit_ex(state->ctx,
-		EVP_aes_128_ctr(),
-		nullptr,
-		reinterpret_cast<unsigned char const*>(key.data()),
-		iv.data());
-}
+#if defined(TORRENT_USE_LIBCRYPTO) || defined(TORRENT_USE_OPENSSL)
 
-static int do_xor(EVP_CIPHER_CTX* ctx, span<char> buf)
-{
-	if (buf.empty()) return 0;
-	int outlen = 0;
-	EVP_EncryptUpdate(ctx,
-		reinterpret_cast<unsigned char*>(buf.data()),
-		&outlen,
-		reinterpret_cast<unsigned char*>(buf.data()),
-		int(buf.size()));
-	return outlen;
-}
+	static void init_ctr_state(aes_ctr_handler::aes_ctr_state*& state, span<char const> key)
+	{
+		delete state;
+		state = new aes_ctr_handler::aes_ctr_state;
+		state->ctx = EVP_CIPHER_CTX_new();
+		if (!state->ctx) return;
+
+		auto const iv = make_ctr_iv(key);
+		EVP_EncryptInit_ex(state->ctx,
+			EVP_aes_128_ctr(),
+			nullptr,
+			reinterpret_cast<unsigned char const*>(key.data()),
+			iv.data());
+	}
+
+	static void free_ctr_state(aes_ctr_handler::aes_ctr_state*& state)
+	{
+		if (!state) return;
+		if (state->ctx) EVP_CIPHER_CTX_free(state->ctx);
+		delete state;
+		state = nullptr;
+	}
+
+	static int do_xor(aes_ctr_handler::aes_ctr_state* state, span<char> buf)
+	{
+		if (buf.empty()) return 0;
+		int outlen = 0;
+		EVP_EncryptUpdate(state->ctx,
+			reinterpret_cast<unsigned char*>(buf.data()),
+			&outlen,
+			reinterpret_cast<unsigned char*>(buf.data()),
+			int(buf.size()));
+		return outlen;
+	}
+
+#elif defined(TORRENT_USE_GNUTLS)
+
+	static void init_ctr_state(aes_ctr_handler::aes_ctr_state*& state, span<char const> key)
+	{
+		delete state;
+		state = new aes_ctr_handler::aes_ctr_state;
+
+		auto const iv = make_ctr_iv(key);
+		std::memcpy(state->ctr.data(), iv.data(), state->ctr.size());
+		aes128_set_encrypt_key(&state->ctx, reinterpret_cast<std::uint8_t const*>(key.data()));
+	}
+
+	static void free_ctr_state(aes_ctr_handler::aes_ctr_state*& state)
+	{
+		delete state;
+		state = nullptr;
+	}
+
+	static int do_xor(aes_ctr_handler::aes_ctr_state* state, span<char> buf)
+	{
+		if (buf.empty()) return 0;
+		auto const len = buf.size();
+		auto* const data = reinterpret_cast<std::uint8_t*>(buf.data());
+		ctr_crypt(&state->ctx,
+			reinterpret_cast<nettle_cipher_func*>(aes128_encrypt),
+			AES_BLOCK_SIZE,
+			state->ctr.data(),
+			len,
+			data,
+			data);
+		return int(len);
+	}
+
+#elif TORRENT_USE_CNG
+
+	static void init_ctr_state(aes_ctr_handler::aes_ctr_state*& state, span<char const> key)
+	{
+		delete state;
+		state = new aes_ctr_handler::aes_ctr_state;
+
+		BCRYPT_ALG_HANDLE hAlg = nullptr;
+		BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_AES_ALGORITHM, nullptr, 0);
+		if (!hAlg) return;
+
+		BCryptSetProperty(hAlg,
+			BCRYPT_CHAINING_MODE,
+			reinterpret_cast<PUCHAR>(const_cast<wchar_t*>(BCRYPT_CHAIN_MODE_CTR)),
+			sizeof(BCRYPT_CHAIN_MODE_CTR),
+			0);
+
+		// Build key blob: header + raw key bytes
+		struct
+		{
+			BCRYPT_KEY_DATA_BLOB_HEADER header;
+			UCHAR key_data[16];
+		} key_blob;
+		key_blob.header.dwMagic = BCRYPT_KEY_DATA_BLOB_MAGIC;
+		key_blob.header.dwVersion = BCRYPT_KEY_DATA_BLOB_VERSION1;
+		key_blob.header.cbKeyData = 16;
+		std::memcpy(key_blob.key_data, key.data(), 16);
+
+		BCryptGenerateSymmetricKey(hAlg,
+			&state->key_handle,
+			nullptr,
+			0,
+			reinterpret_cast<PUCHAR>(&key_blob),
+			sizeof(key_blob),
+			0);
+
+		BCryptCloseAlgorithmProvider(hAlg, 0);
+
+		// Copy initial IV
+		auto const iv = make_ctr_iv(key);
+		std::memcpy(state->iv.data(), iv.data(), 16);
+	}
+
+	static void free_ctr_state(aes_ctr_handler::aes_ctr_state*& state)
+	{
+		if (!state) return;
+		if (state->key_handle) BCryptDestroyKey(state->key_handle);
+		delete state;
+		state = nullptr;
+	}
+
+	static int do_xor(aes_ctr_handler::aes_ctr_state* state, span<char> buf)
+	{
+		if (buf.empty()) return 0;
+		ULONG cbResult = 0;
+		BCryptEncrypt(state->key_handle,
+			reinterpret_cast<PUCHAR>(buf.data()),
+			ULONG(buf.size()),
+			nullptr,
+			state->iv.data(),
+			ULONG(state->iv.size()),
+			nullptr,
+			0,
+			&cbResult,
+			0);
+		return int(cbResult);
+	}
+
+#endif
+
+} // anonymous namespace
+
+// --- common methods ---
 
 aes_ctr_handler::aes_ctr_handler() = default;
 
 aes_ctr_handler::~aes_ctr_handler()
 {
-	if (m_incoming)
-	{
-		if (m_incoming->ctx) EVP_CIPHER_CTX_free(m_incoming->ctx);
-		delete m_incoming;
-	}
-	if (m_outgoing)
-	{
-		if (m_outgoing->ctx) EVP_CIPHER_CTX_free(m_outgoing->ctx);
-		delete m_outgoing;
-	}
+	free_ctr_state(m_incoming);
+	free_ctr_state(m_outgoing);
 }
 
 void aes_ctr_handler::set_incoming_key(span<char const> key) { init_ctr_state(m_incoming, key); }
@@ -470,34 +612,25 @@ void aes_ctr_handler::set_outgoing_key(span<char const> key) { init_ctr_state(m_
 std::tuple<int, span<span<char const>>> aes_ctr_handler::encrypt(span<span<char>> bufs)
 {
 	span<span<char const>> empty;
-	if (!m_outgoing || !m_outgoing->ctx || bufs.empty()) return std::make_tuple(0, empty);
+	if (!m_outgoing || bufs.empty()) return std::make_tuple(0, empty);
 
 	int bytes_processed = 0;
 	for (auto& buf : bufs)
-		bytes_processed += do_xor(m_outgoing->ctx, buf);
+		bytes_processed += do_xor(m_outgoing, buf);
 	return std::make_tuple(bytes_processed, empty);
 }
 
 std::tuple<int, int, int> aes_ctr_handler::decrypt(span<span<char>> bufs)
 {
-	if (!m_incoming || !m_incoming->ctx) return std::make_tuple(0, 0, 0);
+	if (!m_incoming) return std::make_tuple(0, 0, 0);
 
 	int bytes_processed = 0;
 	for (auto& buf : bufs)
-	{
-		if (buf.empty()) continue;
-		int outlen = 0;
-		EVP_DecryptUpdate(m_incoming->ctx,
-			reinterpret_cast<unsigned char*>(buf.data()),
-			&outlen,
-			reinterpret_cast<unsigned char*>(buf.data()),
-			int(buf.size()));
-		bytes_processed += outlen;
-	}
+		bytes_processed += do_xor(m_incoming, buf);
 	return std::make_tuple(0, bytes_processed, 0);
 }
 
-#endif // TORRENT_USE_LIBCRYPTO || TORRENT_USE_OPENSSL
+#endif // TORRENT_HAS_MSE_AES_CTR
 
 } // namespace libtorrent::aux
 
