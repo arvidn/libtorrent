@@ -110,7 +110,6 @@ namespace {
 	using aux::session_impl;
 
 	// std::string is not a literal, so this can't be constexpr
-	// clang-format off
 	aux::array<str_setting_entry_t, settings_pack::num_string_settings> const str_settings
 	({{
 		SET(user_agent, "libtorrent/" LIBTORRENT_VERSION, &session_impl::update_user_agent),
@@ -130,7 +129,8 @@ namespace {
 	}});
 
 	CONSTEXPR_SETTINGS
-	aux::array<bool_setting_entry_t, settings_pack::num_bool_settings> const bool_settings({{
+	aux::array<bool_setting_entry_t, settings_pack::num_bool_settings> const bool_settings
+	({{
 		SET(allow_multiple_connections_per_ip, false, nullptr),
 		DEPRECATED_SET(ignore_limits_on_local_network, true, &session_impl::update_ignore_rate_limits_on_local_network),
 		SET(send_redundant_have, true, nullptr),
