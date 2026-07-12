@@ -3,6 +3,7 @@
 #ifndef LIBTORRENT_SETTINGS_H
 #define LIBTORRENT_SETTINGS_H
 
+// clang-format off
 // tags for session wide settings
 // clang-format off
 enum settings_tags_t

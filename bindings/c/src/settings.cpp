@@ -6,6 +6,7 @@
 
 #include "libtorrent_settings.h"
 
+// clang-format off
 int settings_key(int const tag)
 {
 	using sp = lt::settings_pack;

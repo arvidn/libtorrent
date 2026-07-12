@@ -190,7 +190,6 @@ try
 			},
 			min_samples,
 			min_duration)));
-
 	// --- stream cipher throughput: RC4 vs AES-CTR ---
 	// Measures the encryption throughput of each cipher by repeatedly
 	// encrypting a 16 KB buffer (typical BT message size).
@@ -247,7 +246,6 @@ try
 #endif
 
 #endif // !defined TORRENT_DISABLE_ENCRYPTION
-
 	for (char const* filename : benchmark_cases)
 	{
 		std::vector<char> const buf = read_file(fs::path("bench-torrents") / filename);
