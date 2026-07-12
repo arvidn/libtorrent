@@ -193,17 +193,6 @@ void send_unchoke(tcp::socket& s)
 	if (ec) TEST_ERROR(ec.message());
 }
 
-#ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
-void send_interested(tcp::socket& s)
-{
-	log("==> interested");
-	char msg[] = "\0\0\0\x01\x02";
-	error_code ec;
-	boost::asio::write(s, boost::asio::buffer(msg, 5), boost::asio::transfer_all(), ec);
-	if (ec) TEST_ERROR(ec.message());
-}
-#endif
-
 void send_have_all(tcp::socket& s)
 {
 	log("==> have_all");
@@ -506,27 +495,6 @@ std::shared_ptr<torrent_info const> setup_peer(tcp::socket& s, io_context& ioc
 	return p.ti;
 }
 
-#ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
-template <typename Fun>
-void post_torrent(lt::session& ses, torrent_handle const& th, Fun fun)
-{
-	auto const tor = th.native_handle();
-	post(ses.native_handle()->get_context(), [tor, fun] { fun(*tor); });
-}
-
-bool wait_for_counter(lt::session& ses, char const* name, std::int64_t const value)
-{
-	for (int i = 0; i < 50; ++i)
-	{
-		auto const counters = get_counters(ses);
-		auto const counter = counters.find(name);
-		if (counter != counters.end() && counter->second >= value) return true;
-		std::this_thread::sleep_for(lt::milliseconds(100));
-	}
-	return false;
-}
-#endif
-
 } // anonymous namespace
 
 // makes sure that pieces that are allowed and then
@@ -600,61 +568,6 @@ TORRENT_TEST(reject_fast)
 	std::this_thread::sleep_for(lt::milliseconds(500));
 	print_session_log(*ses);
 }
-
-#ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
-TORRENT_TEST(reject_predictive_piece_requests)
-{
-	std::cout << "\n === test reject predictive piece requests ===\n" << std::endl;
-
-	info_hash_t ih;
-	torrent_handle th;
-	std::shared_ptr<lt::session> ses;
-	io_context ios;
-	tcp::socket s(ios);
-	setup_peer(s, ios, ih, ses, true, false, false, torrent_flags_t{}, &th);
-
-	char recv_buffer[1000];
-	do_handshake(s, ih, recv_buffer);
-	print_session_log(*ses);
-
-	post_torrent(*ses, th, [](aux::torrent& tor) { tor.predicted_have_piece(0_piece, 0ms); });
-	get_counters(*ses);
-
-	send_interested(s);
-	if (!wait_for_counter(*ses, "ses.num_outgoing_unchoke", 1))
-	{
-		TEST_ERROR("expected unchoke message");
-		s.close();
-		return;
-	}
-
-	peer_request req;
-	req.piece = 0_piece;
-	req.start = 0;
-	req.length = 0x4000;
-	send_request(s, req);
-	send_request(s, req);
-
-	if (!wait_for_counter(*ses, "peer.piece_requests", 2))
-	{
-		TEST_ERROR("expected two piece requests");
-		s.close();
-		return;
-	}
-
-	post_torrent(*ses, th, [](aux::torrent& tor) { tor.piece_failed(0_piece); });
-	if (!wait_for_counter(*ses, "peer.piece_rejects", 2))
-	{
-		TEST_ERROR("expected two rejected requests");
-		s.close();
-		return;
-	}
-
-	auto const counters = get_counters(*ses);
-	TEST_EQUAL(counters.at("peer.num_peers_up_requests"), 0);
-	s.close();
-}
-#endif
 
 TORRENT_TEST(invalid_suggest)
 {

@@ -443,12 +443,6 @@ Build features
 | ``share-mode``           | * ``on`` - enable share-mode feature. (default)    |
 |                          | * ``off`` - disable share-mode feature             |
 +--------------------------+----------------------------------------------------+
-| ``predictive-pieces``    | * ``on`` - enable predictive piece announce        |
-|                          |   feature. i.e.                                    |
-|                          |   settings_pack::predictive_piece_announce         |
-|                          |   (default)                                        |
-|                          | * ``off`` - disable feature.                       |
-+--------------------------+----------------------------------------------------+
 | ``fpic``                 | * ``off`` - default. Build without specifying      |
 |                          |   ``-fPIC``.                                       |
 |                          | * ``on`` - Force build with ``-fPIC`` (useful for  |
@@ -671,10 +665,6 @@ own code that compiles and links with libtorrent.
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_DISABLE_STREAMING``          | Disables set_piece_deadline() and associated    |
 |                                        | functionality.                                  |
-+----------------------------------------+-------------------------------------------------+
-| ``TORRENT_DISABLE_PREDICTIVE_PIECES``  | Disables                                        |
-|                                        | settings_pack::predictive_piece_announce        |
-|                                        | feature.                                        |
 +----------------------------------------+-------------------------------------------------+
 | ``TORRENT_LINKING_SHARED``             | If this is defined when including the           |
 |                                        | libtorrent headers, the classes and functions   |

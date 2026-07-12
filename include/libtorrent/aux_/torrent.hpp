@@ -867,16 +867,6 @@ namespace libtorrent::aux {
 			return m_picker->have_piece(index);
 		}
 
-#ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
-		// a predictive piece is a piece that we might
-		// not have yet, but still announced to peers, anticipating that
-		// we'll have it very soon
-		bool is_predictive_piece(piece_index_t index) const
-		{
-			return std::binary_search(m_predictive_pieces.begin(), m_predictive_pieces.end(), index);
-		}
-#endif // TORRENT_DISABLE_PREDICTIVE_PIECES
-
 	private:
 
 		// called when we learn that we have a piece
@@ -1247,15 +1237,6 @@ namespace libtorrent::aux {
 		void set_apply_ip_filter(bool b);
 		bool apply_ip_filter() const { return bool(m_flags & torrent_flags::apply_ip_filter); }
 
-#ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
-		std::vector<piece_index_t> const& predictive_pieces() const
-		{ return m_predictive_pieces; }
-
-		// this is called whenever we predict to have this piece
-		// within one second
-		void predicted_have_piece(piece_index_t index, time_duration duration);
-#endif
-
 		void clear_in_state_update()
 		{
 			TORRENT_ASSERT(m_links[aux::session_interface::torrent_state_updates].in_list());
@@ -1456,20 +1437,6 @@ namespace libtorrent::aux {
 		std::string m_save_path;
 		std::string m_part_file_dir;
 		aux::cached_slot m_name_idx;
-
-#ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
-		// this is a list of all pieces that we have announced
-		// as having, without actually having yet. If we receive
-		// a request for a piece in this list, we need to hold off
-		// on responding until we have completed the piece and
-		// verified its hash. If the hash fails, send reject to
-		// peers with outstanding requests, and dont_have to other
-		// peers. This vector is ordered, to make lookups fast.
-
-		// TODO: 3 factor out predictive pieces and all operations on it into a
-		// separate class (to use as member here instead)
-		std::vector<piece_index_t> m_predictive_pieces;
-#endif
 
 		// v2 merkle tree for each file
 		aux::vector<aux::merkle_tree, file_index_t> m_merkle_trees;

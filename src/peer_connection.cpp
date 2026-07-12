@@ -2522,12 +2522,8 @@ namespace {
 		// is legal and that the peer
 		// is not choked
 		if (r.piece < piece_index_t(0) || r.piece >= m_ti->end_piece()
-			|| (!t->user_have_piece(r.piece)
-#ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
-				&& !t->is_predictive_piece(r.piece)
-#endif
-				&& !(tflags & torrent_flags::seed_mode))
-			|| r.start < 0 || r.start >= ti.piece_size(r.piece) || r.length <= 0
+			|| (!t->user_have_piece(r.piece) && !(tflags & torrent_flags::seed_mode)) || r.start < 0
+			|| r.start >= ti.piece_size(r.piece) || r.length <= 0
 			|| r.length + r.start > ti.piece_size(r.piece) || r.length > block_size())
 		{
 			m_counters.inc_stats_counter(counters::invalid_piece_requests);
@@ -3035,50 +3031,6 @@ namespace {
 		TORRENT_ASSERT(picker.num_peers(block_finished) == 0);
 		// if we requested this block from other peers, cancel it now
 		if (multi) t->cancel_block(block_finished);
-
-#ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
-		if (m_settings.get_int(settings_pack::predictive_piece_announce))
-		{
-			piece_index_t const piece = block_finished.piece_index;
-			piece_picker::downloading_piece st;
-			t->picker().piece_info(piece, st);
-
-			int const num_blocks = t->picker().blocks_in_piece(piece);
-			if (st.requested > 0 && st.writing + st.finished + st.requested == num_blocks)
-			{
-				std::vector<aux::torrent_peer*> const d = t->picker().get_downloaders(piece);
-				if (d.size() == 1)
-				{
-					// only make predictions if all remaining
-					// blocks are requested from the same peer
-					aux::torrent_peer* const peer = d[0];
-					if (peer->connection)
-					{
-						// we have a connection. now, what is the current
-						// download rate from this peer, and how many blocks
-						// do we have left to download?
-						std::int64_t const rate = peer->connection->statistics().download_payload_rate();
-						std::int64_t const bytes_left = std::int64_t(st.requested) * block_size();
-
-						// calculate the eta for the piece
-						time_duration const eta = rate > 0
-							? milliseconds((bytes_left * 1000) / rate)
-							: milliseconds(0);
-
-						// the configured threshold for predictive piece announce
-						time_duration const threshold = milliseconds(
-							m_settings.get_int(settings_pack::predictive_piece_announce));
-
-						if (rate > 1000 && eta < threshold)
-						{
-							// we predict we will complete this piece very soon.
-							t->predicted_have_piece(piece, eta);
-						}
-					}
-				}
-			}
-		}
-#endif // TORRENT_DISABLE_PREDICTIVE_PIECES
 
 		TORRENT_ASSERT(picker.num_peers(block_finished) == 0);
 
@@ -5316,13 +5268,6 @@ namespace {
 
 			if (!t->have_piece(r.piece) && !seed_mode)
 			{
-#ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
-				// we don't have this piece yet, but we anticipate to have
-				// it very soon, so we have told our peers we have it.
-				// hold off on sending it. If the piece fails later
-				// we will reject this request
-				if (t->is_predictive_piece(r.piece)) continue;
-#endif
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log(peer_log_alert::info, peer_log_alert::piece_failed
 					, "piece: %d s: %x l: %x piece failed hash check"

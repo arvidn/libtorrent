@@ -76,14 +76,43 @@ namespace libtorrent {
 #define DEPRECATED_SET(name, default_value, fun) { #name, fun, default_value }
 #define DEPRECATED_SET_STR(name, default_value, fun) { #name, fun, default_value }
 #define DEPRECATED2_SET(name, default_value, fun) { #name, fun, default_value }
+#define DEPRECATED4_SET(name, default_value, fun) \
+	{ \
+		#name, fun, default_value \
+	}
 #elif TORRENT_ABI_VERSION == 2
 #define DEPRECATED_SET(name, default_value, fun) { "", nullptr, 0 }
 #define DEPRECATED_SET_STR(name, default_value, fun) { "", nullptr, ""}
 #define DEPRECATED2_SET(name, default_value, fun) { #name, fun, default_value }
+#define DEPRECATED4_SET(name, default_value, fun) \
+	{ \
+		#name, fun, default_value \
+	}
+#elif TORRENT_ABI_VERSION < 5
+#define DEPRECATED_SET(name, default_value, fun) \
+	{ \
+		"", nullptr, 0 \
+	}
+#define DEPRECATED_SET_STR(name, default_value, fun) \
+	{ \
+		"", nullptr, "" \
+	}
+#define DEPRECATED2_SET(name, default_value, fun) \
+	{ \
+		"", nullptr, 0 \
+	}
+#define DEPRECATED4_SET(name, default_value, fun) \
+	{ \
+		#name, fun, default_value \
+	}
 #else
 #define DEPRECATED_SET(name, default_value, fun) { "", nullptr, 0 }
 #define DEPRECATED_SET_STR(name, default_value, fun) { "", nullptr, ""}
 #define DEPRECATED2_SET(name, default_value, fun) { "", nullptr, 0 }
+#define DEPRECATED4_SET(name, default_value, fun) \
+	{ \
+		"", nullptr, 0 \
+	}
 #endif
 
 #ifdef TORRENT_WINDOWS
@@ -329,7 +358,7 @@ namespace {
 		SET(max_metadata_size, 3 * 1024 * 10240, nullptr),
 		SET(hashing_threads, 1, &session_impl::update_disk_threads),
 		SET(checking_mem_usage, 256, nullptr),
-		SET(predictive_piece_announce, 0, nullptr),
+		DEPRECATED4_SET(predictive_piece_announce, 0, nullptr),
 		SET(aio_threads, 10, &session_impl::update_disk_threads),
 		DEPRECATED_SET(aio_max, 300, nullptr),
 		DEPRECATED_SET(network_threads, 0, nullptr),

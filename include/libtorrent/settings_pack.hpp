@@ -1801,13 +1801,17 @@ namespace aux {
 			// more memory. Specified in number of 16 kiB blocks
 			checking_mem_usage,
 
+#if TORRENT_ABI_VERSION < 5
 			// if set to > 0, pieces will be announced to other peers before they
 			// are fully downloaded (and before they are hash checked). The
 			// intention is to gain 1.5 potential round trip times per downloaded
 			// piece. When non-zero, this indicates how many milliseconds in
 			// advance pieces should be announced, before they are expected to be
 			// completed.
-			predictive_piece_announce,
+			predictive_piece_announce TORRENT_DEPRECATED_ENUM,
+#else
+			deprecated_predictive_piece_announce,
+#endif
 
 			// for some aio back-ends, ``aio_threads`` specifies the number of
 			// io-threads to use.
