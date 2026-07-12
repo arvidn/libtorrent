@@ -39,6 +39,8 @@ extern "C"
 #elif TORRENT_USE_CNG
 #include <windows.h>
 #include <bcrypt.h>
+#elif TORRENT_USE_COMMONCRYPTO
+#include <CommonCrypto/CommonCryptor.h>
 #endif
 
 #endif
@@ -433,6 +435,11 @@ struct aes_ctr_handler::aes_ctr_state
 	BCRYPT_KEY_HANDLE key_handle = nullptr;
 	std::array<UCHAR, 16> iv{};
 };
+#elif TORRENT_USE_COMMONCRYPTO
+struct aes_ctr_handler::aes_ctr_state
+{
+	CCCryptorRef cryptor = nullptr;
+};
 #endif
 
 // --- per-backend init ---
@@ -589,6 +596,50 @@ namespace {
 			&cbResult,
 			0);
 		return int(cbResult);
+	}
+
+#elif TORRENT_USE_COMMONCRYPTO
+
+	static void init_ctr_state(aes_ctr_handler::aes_ctr_state*& state, span<char const> key)
+	{
+		delete state;
+		state = new aes_ctr_handler::aes_ctr_state;
+
+		auto const iv = make_ctr_iv(key);
+		CCCryptorCreateWithMode(kCCEncrypt,
+			kCCModeCTR,
+			kCCAlgorithmAES128,
+			ccNoPadding,
+			iv.data(),
+			reinterpret_cast<std::uint8_t const*>(key.data()),
+			kCCKeySizeAES128,
+			nullptr,
+			0,
+			0,
+			kCCModeOptionCTR_BE,
+			&state->cryptor);
+	}
+
+	static void free_ctr_state(aes_ctr_handler::aes_ctr_state*& state)
+	{
+		if (!state) return;
+		if (state->cryptor) CCCryptorRelease(state->cryptor);
+		delete state;
+		state = nullptr;
+	}
+
+	static int do_xor(aes_ctr_handler::aes_ctr_state* state, span<char> buf)
+	{
+		if (buf.empty()) return 0;
+		if (!state->cryptor) return 0;
+		size_t dataOutMoved = 0;
+		CCCryptorUpdate(state->cryptor,
+			buf.data(),
+			size_t(buf.size()),
+			buf.data(),
+			size_t(buf.size()),
+			&dataOutMoved);
+		return int(dataOutMoved);
 	}
 
 #endif

@@ -161,7 +161,7 @@ TORRENT_TEST(rc4)
 	test_enc_handler(rc41, rc42);
 }
 
-#if defined TORRENT_USE_LIBCRYPTO
+#if TORRENT_HAS_MSE_AES_CTR
 TORRENT_TEST(aes_ctr)
 {
 	using namespace lt;
