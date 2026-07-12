@@ -1,3 +1,6 @@
+2.2.0 not released
+
+	* reuse tracker connections when announcing multiple torrents
 	* remove predictive pieces feature
 
 2.1.1 not released

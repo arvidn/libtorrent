@@ -96,11 +96,13 @@ void http_connection::get(std::string const& url,
 #if TORRENT_USE_I2P
 	i2p_connection* i2p_conn,
 #endif
-	bool const keep_alive)
+	bool const keep_alive,
+	bool const write_only)
 {
 	m_user_agent = user_agent;
 	m_resolve_flags = resolve_flags;
 	m_keep_alive = keep_alive;
+	set_write_only(write_only);
 
 	error_code ec;
 
@@ -251,11 +253,12 @@ void http_connection::start(std::string const& hostname, int port
 	TORRENT_ASSERT(!ssl || m_ssl_ctx != nullptr);
 #endif
 
-	// reuse the existing socket if the previous response left it in a reusable
-	// state (keep-alive, server did not close it) and it targets the same
-	// endpoint. m_reusable is consumed here: it is set again only when the next
-	// response finishes cleanly, so a failed reused request won't be retried on
-	// a stale socket.
+	// reuse the existing socket if the previous request left it in a reusable
+	// state (keep-alive, server did not close it -- or, in write_only mode,
+	// the previous write simply went out with nothing to indicate otherwise)
+	// and it targets the same endpoint. m_reusable is consumed here: it is
+	// set again only when the next request completes, so a failed reused
+	// request won't be retried on a stale socket.
 	bool const reuse_connection = m_sock && m_sock->is_open() && m_reusable && proxy_matches
 		&& m_hostname == hostname && m_port == port && m_ssl == ssl && m_bind_addr == bind_addr;
 	m_reusable = false;
@@ -267,6 +270,7 @@ void http_connection::start(std::string const& hostname, int port
 		m_start_time = clock_type::now();
 		m_next_ep = int(m_endpoints.size());
 		ADD_OUTSTANDING_ASYNC("http_connection::on_write");
+		note_write_dispatched();
 		async_write(*m_sock, boost::asio::buffer(m_sendbuffer)
 			, std::bind(&http_connection::on_write, me, _1));
 	}
@@ -421,16 +425,27 @@ void http_connection::on_timeout(std::weak_ptr<http_connection> p
 
 	if (c->m_start_time + c->m_completion_timeout <= now)
 	{
+		if (c->write_only())
+		{
+			// write_only: let the handler close gracefully instead of trying
+			// another endpoint or doing an abrupt timed-out close -- we're
+			// best-effort here, and retrying elsewhere would only stall the
+			// shutdown this mode exists to keep prompt. The handler may not
+			// close yet (e.g. a "flushing" wait before a second firing) or
+			// may dispatch a new follower (which re-arms the timer itself).
+			// Re-arm here too unless it already closed -- otherwise nothing
+			// else ever fires again.
+			if (c->m_write_handler) c->m_write_handler(*c);
+			if (c->m_abort) return;
+		}
 		// the connection timed out. If we have more endpoints to try, just
 		// close this connection. The on_connect handler will try the next
 		// endpoint in the list.
-		if (c->m_next_ep < int(c->m_endpoints.size()))
+		else if (c->m_next_ep < int(c->m_endpoints.size()))
 		{
 			error_code ec;
 			c->m_sock->close(ec);
 			if (!c->m_connecting) c->connect();
-			c->m_last_receive = now;
-			c->m_start_time = c->m_last_receive;
 		}
 		else
 		{
@@ -441,6 +456,8 @@ void http_connection::on_timeout(std::weak_ptr<http_connection> p
 			c->callback(lt::errors::timed_out);
 			return;
 		}
+		c->m_last_receive = now;
+		c->m_start_time = c->m_last_receive;
 	}
 
 	ADD_OUTSTANDING_ASYNC("http_connection::on_timeout");
@@ -473,6 +490,7 @@ void http_connection::close(bool force)
 	m_hostname.clear();
 	m_port = 0;
 	m_handler = nullptr;
+	m_write_handler = nullptr;
 	m_abort = true;
 }
 
@@ -632,6 +650,7 @@ void http_connection::on_connect(error_code const& e)
 	{
 		if (m_connect_handler) m_connect_handler(*this);
 		ADD_OUTSTANDING_ASYNC("http_connection::on_write");
+		note_write_dispatched();
 		async_write(*m_sock, boost::asio::buffer(m_sendbuffer)
 			, std::bind(&http_connection::on_write, shared_from_this(), _1));
 	}
@@ -687,6 +706,14 @@ void http_connection::on_write(error_code const& e)
 {
 	COMPLETE_ASYNC("http_connection::on_write");
 
+	// this write is no longer outstanding either way; only the success path
+	// below additionally starts the drain loop, the first time this happens.
+	bool const was_first_write = m_write_only_state == write_only_state_t::first_write;
+	if (was_first_write)
+		m_write_only_state = write_only_state_t::not_started;
+	else if (m_write_only_state == write_only_state_t::write_in_flight)
+		m_write_only_state = write_only_state_t::idle;
+
 	if (e == boost::asio::error::operation_aborted) return;
 
 	if (e)
@@ -698,6 +725,27 @@ void http_connection::on_write(error_code const& e)
 	if (m_abort) return;
 
 	std::string().swap(m_sendbuffer);
+
+	// fire-and-forget: the request is on the wire; don't parse a response. Keep a
+	// drain loop running so responses don't back up (which would stall the server
+	// and turn our eventual close() into a RST). The handler then writes the next
+	// request or closes the connection.
+	if (write_only())
+	{
+		// the write succeeded; whether the socket is fair game for a following
+		// write-only request depends on whether we asked to keep it alive --
+		// there's no response to read a "Connection: close" out of in this
+		// mode, so this is the only signal available.
+		m_reusable = m_keep_alive;
+		if (was_first_write)
+		{
+			m_write_only_state = write_only_state_t::idle;
+			start_drain();
+		}
+		if (m_write_handler) m_write_handler(*this);
+		return;
+	}
+
 	m_recvbuffer.resize(4096);
 
 	int amount_to_read = int(m_recvbuffer.size()) - m_read_pos;
@@ -719,6 +767,66 @@ void http_connection::on_write(error_code const& e)
 		, std::size_t(amount_to_read))
 		, std::bind(&http_connection::on_read
 			, shared_from_this(), _1, _2));
+}
+
+void http_connection::start_drain()
+{
+	// read whatever the server sends and discard it. We never parse responses in
+	// write_only mode; this just keeps the receive buffer empty.
+	m_drain_buffer.resize(4096);
+	ADD_OUTSTANDING_ASYNC("http_connection::on_drain");
+	m_sock->async_read_some(boost::asio::buffer(m_drain_buffer.data(), m_drain_buffer.size()),
+		std::bind(&http_connection::on_drain, shared_from_this(), _1, _2));
+}
+
+void http_connection::on_drain(error_code const& e, std::size_t)
+{
+	COMPLETE_ASYNC("http_connection::on_drain");
+
+	if (e == boost::asio::error::operation_aborted) return;
+
+	if (e || m_abort)
+	{
+		// the peer is gone (possibly just EOF); undo on_write()'s optimistic
+		// m_reusable so we don't write onto a dead socket, and reset the
+		// write-only state so a later reconnect starts its own drain loop
+		// fresh.
+		bool const write_in_flight = m_write_only_state == write_only_state_t::write_in_flight;
+		m_write_only_state = write_only_state_t::not_started;
+		m_reusable = false;
+		// let the handler react immediately (promote the next follower, or
+		// close) for a genuine read error/EOF on a still-live, currently idle
+		// connection: m_abort set means close() already ran and handled
+		// everything; write_in_flight set means a write dispatched from
+		// this very handler, for a later request, is already underway, and
+		// its own on_write() completion (success or failure) is what drives
+		// the next step instead.
+		if (e && !m_abort && !write_in_flight && write_only() && m_write_handler)
+			m_write_handler(*this);
+		return;
+	}
+	start_drain();
+}
+
+void http_connection::note_write_dispatched()
+{
+	if (!write_only()) return;
+	m_write_only_state = m_write_only_state == write_only_state_t::not_started
+		? write_only_state_t::first_write
+		: write_only_state_t::write_in_flight;
+}
+
+void http_connection::set_write_only(bool const enable)
+{
+	if (enable)
+	{
+		if (m_write_only_state == write_only_state_t::normal_mode)
+			m_write_only_state = write_only_state_t::not_started;
+	}
+	else
+	{
+		m_write_only_state = write_only_state_t::normal_mode;
+	}
 }
 
 void http_connection::on_read(error_code const& e
@@ -815,12 +923,10 @@ void http_connection::on_read(error_code const& e
 				m_user_agent,
 				m_bind_addr,
 				m_resolve_flags,
-				auth
+				auth,
 #if TORRENT_USE_I2P
-				,
-				m_i2p_conn
+				m_i2p_conn,
 #endif
-				,
 				m_keep_alive);
 			return;
 		}

@@ -17,6 +17,7 @@ see LICENSE file.
 #include "simulator/http_server.hpp"
 #include "simulator/http_proxy.hpp"
 #include "simulator/socks_server.hpp"
+#include "simulator/utils.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/aux_/proxy_settings.hpp"
 #include "libtorrent/aux_/http_connection.hpp"
@@ -112,17 +113,22 @@ std::string chunk_string(std::string s)
 	return ret;
 }
 
-std::shared_ptr<lt::aux::http_connection> test_request(io_context& ios
-	, lt::aux::resolver& res
-	, std::string const& url
-	, char const* expected_data
-	, int const expected_size
-	, int const expected_status
-	, error_condition expected_error
-	, lt::aux::proxy_settings const& ps
-	, int* connect_handler_called
-	, int* handler_called
-	, std::string const& auth = std::string())
+std::shared_ptr<lt::aux::http_connection> test_request(io_context& ios,
+	lt::aux::resolver& res,
+	std::string const& url,
+	char const* expected_data,
+	int const expected_size,
+	int const expected_status,
+	error_condition expected_error,
+	lt::aux::proxy_settings const& ps,
+	int* connect_handler_called,
+	int* handler_called,
+	std::string const& auth = std::string(),
+	// fire-and-forget mode: write the request but never read a response.
+	// Completion is signaled through the write handler instead of the
+	// response handler above, so *handler_called is incremented there
+	// instead (see set_write_handler() below).
+	bool const write_only = false)
 {
 	std::printf(" ===== TESTING: %s =====\n", url.c_str());
 
@@ -185,8 +191,40 @@ std::shared_ptr<lt::aux::http_connection> test_request(io_context& ios
 #endif
 		);
 
-	h->get(url, seconds(1), &ps, 5, "test/user-agent", std::nullopt
-		, lt::aux::resolver_flags{}, auth);
+	if (write_only)
+	{
+		// mirrors the two-phase pattern a real write_only caller
+		// (http_tracker_connection::next_request()) uses: the handler fires
+		// once right after the write completes (nothing to do yet -- don't
+		// close, so the connection stays open like a real drain-and-wait),
+		// then fires a second time when the deadline timer expires again,
+		// at which point it closes. Closing on the very first call would
+		// never give on_timeout() a chance to fire at all, so it couldn't
+		// exercise the write_only-vs-retry-other-endpoint ordering this
+		// test is meant to check.
+		auto write_calls = std::make_shared<int>(0);
+		h->set_write_handler([=](lt::aux::http_connection& c) {
+			++*write_calls;
+			std::printf("WRITE COMPLETE (%d): %s\n", *write_calls, url.c_str());
+			if (*write_calls < 2) return;
+			++*handler_called;
+			c.close();
+		});
+	}
+
+	h->get(url,
+		seconds(1),
+		&ps,
+		5,
+		"test/user-agent",
+		std::nullopt,
+		lt::aux::resolver_flags{},
+		auth,
+#if TORRENT_USE_I2P
+		nullptr,
+#endif
+		false, // keep_alive
+		write_only);
 	return h;
 }
 
@@ -456,9 +494,13 @@ TORRENT_TEST(http_connection_socks5_proxy_names)
 }
 
 // tests the error scenario of a http server listening on two sockets (ipv4/ipv6) which
-// both accept the incoming connection but never send anything back. we test that
-// both ip addresses get tried in turn and that the connection attempts time out as expected.
-TORRENT_TEST(http_connection_timeout_server_stalls)
+// both accept the incoming connection but never send anything back. In the normal
+// (non-write_only) case, both ip addresses get tried in turn before the connection
+// attempt times out. In write_only mode, retrying a different endpoint is skipped in
+// favor of promptly and gracefully finishing up via the write handler once the first
+// endpoint accepts -- retrying elsewhere would only stall the shutdown that mode
+// exists to keep prompt.
+void test_timeout_server_stalls(bool const write_only)
 {
 	sim_config network_cfg;
 	sim::simulation sim{network_cfg};
@@ -487,14 +529,156 @@ TORRENT_TEST(http_connection_timeout_server_stalls)
 
 	error_condition timed_out(lt::errors::timed_out, lt::libtorrent_category());
 
-	auto c = test_request(client_ios, resolver
-		, "http://dual-stack.test-hostname.com:8080/timeout", data_buffer, -1, -1
-		, timed_out, lt::aux::proxy_settings()
-		, &connect_counter, &handler_counter);
+	auto c = test_request(client_ios,
+		resolver,
+		"http://dual-stack.test-hostname.com:8080/timeout",
+		data_buffer,
+		-1,
+		-1,
+		timed_out,
+		lt::aux::proxy_settings(),
+		&connect_counter,
+		&handler_counter,
+		std::string(),
+		write_only);
 
 	sim.run();
-	TEST_EQUAL(connect_counter, 2); // both endpoints are connected to
-	TEST_EQUAL(handler_counter, 1); // the handler only gets called once with error_code == timed_out
+	// normal mode retries the second endpoint after the first stalls; write_only
+	// mode gives up gracefully after the first rather than retrying elsewhere.
+	TEST_EQUAL(connect_counter, write_only ? 1 : 2);
+	// the handler (response handler normally, write handler in write_only mode)
+	// only gets called once.
+	TEST_EQUAL(handler_counter, 1);
+}
+
+TORRENT_TEST(http_connection_timeout_server_stalls) { test_timeout_server_stalls(false); }
+TORRENT_TEST(http_connection_timeout_server_stalls_write_only) { test_timeout_server_stalls(true); }
+
+// a write-only connection must reconnect, not reuse a socket the peer already
+// closed while draining (on_drain()'s error path must undo on_write()'s
+// optimistic m_reusable).
+TORRENT_TEST(http_connection_write_only_drain_eof_forces_reconnect)
+{
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+	sim::asio::io_context server_ios(sim, make_address_v4("10.0.0.2"));
+	sim::asio::io_context client_ios(sim, make_address_v4("10.0.0.1"));
+	lt::aux::resolver resolver(client_ios);
+
+	const unsigned short http_port = 8080;
+	// no keep_alive flag: the server closes right after responding, so the
+	// drain loop observes EOF.
+	sim::http_server http(server_ios, http_port, 0);
+	http.register_handler(
+		"/announce", [](std::string, std::string, std::map<std::string, std::string>&) {
+			std::string const body = "d8:intervali1800e5:peers0:e";
+			return sim::send_response(200, "OK", int(body.size())) + body;
+		});
+
+	lt::aux::proxy_settings const ps;
+	int connect_count = 0;
+	int write_count = 0;
+
+	auto h = std::make_shared<lt::aux::http_connection>(
+		client_ios,
+		resolver,
+		[](error_code const&,
+			lt::aux::http_parser const&,
+			span<char const>,
+			lt::aux::http_connection&) {},
+		1024 * 1024,
+		[&](lt::aux::http_connection&) { ++connect_count; },
+		lt::aux::http_filter_handler(),
+		lt::aux::hostname_filter_handler()
+#if TORRENT_USE_SSL
+			,
+		nullptr
+#endif
+	);
+
+	auto const dispatch = [&] {
+		h->get("http://10.0.0.2:8080/announce",
+			seconds(1),
+			&ps,
+			5,
+			"test/user-agent",
+			std::nullopt,
+			lt::aux::resolver_flags{},
+			std::string(),
+#if TORRENT_USE_I2P
+			nullptr,
+#endif
+			true, // keep_alive
+			true // write_only
+		);
+	};
+
+	// the write handler fires three times: once when the first write
+	// completes (nothing to do yet), once when the drain loop notices the
+	// server's subsequent close (EOF) -- the cue that this connection is
+	// confirmed dead, so it's safe to check whether a second dispatch
+	// reconnects -- and once when that second write completes.
+	h->set_write_handler([&](lt::aux::http_connection& c) {
+		++write_count;
+		if (write_count == 1) return;
+		if (write_count == 2)
+		{
+			dispatch();
+			return;
+		}
+		c.close();
+	});
+
+	dispatch();
+
+	sim.run();
+
+	// must reconnect, not reuse the closed socket.
+	TEST_EQUAL(connect_count, 2);
+	TEST_EQUAL(write_count, 3);
+}
+
+// close() must release both m_handler and m_write_handler, so whatever a
+// caller's response/write handler captured doesn't needlessly outlive the
+// http_connection object once it's closed.
+TORRENT_TEST(http_connection_close_releases_handlers)
+{
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+	sim::asio::io_context client_ios(sim, make_address_v4("10.0.0.1"));
+	lt::aux::resolver resolver(client_ios);
+
+	auto tracked_handler = std::make_shared<int>(0);
+	std::weak_ptr<int> const weak_handler = tracked_handler;
+
+	auto h = std::make_shared<lt::aux::http_connection>(
+		client_ios,
+		resolver,
+		[tracked_handler](error_code const&,
+			lt::aux::http_parser const&,
+			span<char const>,
+			lt::aux::http_connection&) {},
+		1024 * 1024,
+		[](lt::aux::http_connection&) {},
+		lt::aux::http_filter_handler(),
+		lt::aux::hostname_filter_handler()
+#if TORRENT_USE_SSL
+			,
+		nullptr
+#endif
+	);
+	tracked_handler.reset();
+
+	auto tracked_write_handler = std::make_shared<int>(0);
+	std::weak_ptr<int> const weak_write_handler = tracked_write_handler;
+	h->set_write_handler([tracked_write_handler](lt::aux::http_connection&) {});
+	tracked_write_handler.reset();
+
+	TEST_CHECK(!weak_handler.expired());
+	TEST_CHECK(!weak_write_handler.expired());
+	h->close();
+	TEST_CHECK(weak_handler.expired());
+	TEST_CHECK(weak_write_handler.expired());
 }
 
 // tests the error scenario of a http server listening on two sockets (ipv4/ipv6) neither of which
@@ -759,12 +943,10 @@ void test_connection_header(conn_test_flags_t const flags)
 		std::string(),
 		std::nullopt,
 		lt::aux::resolver_flags{},
-		std::string()
+		std::string(),
 #if TORRENT_USE_I2P
-			,
-		nullptr
+		nullptr,
 #endif
-		,
 		use_keep_alive);
 
 	sim.run();
@@ -818,13 +1000,12 @@ void test_http_connection_reuse(int const server_flags, int const expected_conne
 			std::string(),
 			std::nullopt,
 			lt::aux::resolver_flags{},
-			std::string()
+			std::string(),
 #if TORRENT_USE_I2P
-				,
-			nullptr
+			nullptr,
 #endif
-			,
-			true /*keep_alive*/);
+			true // keep_alive
+		);
 	};
 
 	h = std::make_shared<lt::aux::http_connection>(
@@ -881,16 +1062,10 @@ TORRENT_TEST(http_connection_http_1_0_no_reuse)
 	test_http_connection_reuse(sim::http_server::http_1_0, 2);
 }
 
-// Regression test: when http_connection reuses a keep-alive socket and the
-// second request times out, on_timeout must not close the live socket and
-// reconnect to the next endpoint (which would send an empty HTTP request).
-// It must call callback(timed_out) cleanly.
-//
-// Bug: start() in the reuse path left m_next_ep and m_start_time stale from
-// the previous connection. on_timeout saw m_start_time + timeout <= now
-// (always true -- stale start_time is in the past) and, for a multi-endpoint
-// tracker where m_next_ep < m_endpoints.size(), closed the working socket
-// and called connect() to the next endpoint with an empty m_sendbuffer.
+// when http_connection reuses a keep-alive socket and the second request times
+// out, on_timeout must not close the live socket and reconnect to the next
+// endpoint (which would send an empty HTTP request). It must call
+// callback(timed_out) cleanly.
 TORRENT_TEST(http_connection_keepalive_reuse_timeout_does_not_reconnect)
 {
 	// two-endpoints.com resolves to 10.0.0.2 and 10.0.0.3 (see sim_config)
@@ -928,13 +1103,12 @@ TORRENT_TEST(http_connection_keepalive_reuse_timeout_does_not_reconnect)
 			std::string(),
 			std::nullopt,
 			lt::aux::resolver_flags{},
-			std::string()
+			std::string(),
 #if TORRENT_USE_I2P
-				,
-			nullptr
+			nullptr,
 #endif
-			,
-			true /*keep_alive*/);
+			true // keep_alive
+		);
 	};
 
 	h = std::make_shared<lt::aux::http_connection>(
@@ -977,10 +1151,9 @@ TORRENT_TEST(http_connection_keepalive_reuse_timeout_does_not_reconnect)
 	TEST_EQUAL(http.accepted_connections() + http2.accepted_connections(), 1);
 }
 
-// Regression test: a get() call that follows a redirect must preserve the
-// keep_alive flag from the original request. Without the fix, the redirect
-// re-issues get() with keep_alive=false (the default), which sends
-// "Connection: close" on the redirected request and prevents connection reuse.
+// a get() call that follows a redirect must preserve the keep_alive flag from
+// the original request, so the redirected request also sends keep-alive and
+// the connection remains eligible for reuse.
 TORRENT_TEST(http_connection_redirect_preserves_keep_alive)
 {
 	test_connection_header(keep_alive | through_redirect);
