@@ -1056,6 +1056,18 @@ namespace aux {
 			// increase network load.
 			allow_multiple_connections_per_pid,
 
+			// HTTP tracker announces and scrapes destined for the same server
+			// are normally coalesced onto a single keep-alive connection and
+			// issued sequentially, and stop-announces at shutdown use a
+			// best-effort fire-and-forget write-only mode on their own
+			// connection. Setting this to true disables all of that: every
+			// tracker request gets its own connection, issued and read the
+			// same way regardless of what else is being announced or
+			// whether the session is shutting down. This is provided as an
+			// escape hatch, to fall back to the simpler, previous behavior
+			// if connection reuse is ever suspected of causing a problem.
+			disable_tracker_connection_reuse,
+
 			max_bool_setting_internal
 		};
 
@@ -2027,9 +2039,12 @@ namespace aux {
 			// lower than 5 minutes.
 			upnp_lease_duration,
 
-			// limits the number of concurrent HTTP tracker announces. Once the
-			// limit is hit, tracker requests are queued and issued when an
-			// outstanding announce completes.
+			// limits the number of concurrent HTTP tracker connections. Once the
+			// limit is hit, new connections are queued and started when an
+			// outstanding one closes. Announces to a host that already has a
+			// connection (started or queued) are coalesced onto it and issued
+			// sequentially over that single, keep-alive connection, so this
+			// limit bounds open sockets rather than individual announces.
 			max_concurrent_http_announces,
 
 			// the maximum number of peers to send in a reply to ``get_peers``
@@ -2163,6 +2178,14 @@ namespace aux {
 
 			// the WebRTC connection timeout used by WebTorrent (in seconds)
 			webtorrent_connection_timeout,
+
+			// the maximum number of requests (announces and scrapes) issued
+			// over a single tracker connection before it is closed and any
+			// remaining coalesced requests are re-dispatched onto a new one.
+			// This applies whenever requests are coalesced onto one
+			// keep-alive connection (see disable_tracker_connection_reuse).
+			// 0 means no limit.
+			max_tracker_connection_requests,
 
 			max_int_setting_internal
 		};

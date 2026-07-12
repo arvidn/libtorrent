@@ -160,8 +160,7 @@ namespace {
 	}});
 
 	CONSTEXPR_SETTINGS
-	aux::array<bool_setting_entry_t, settings_pack::num_bool_settings> const bool_settings
-	({{
+	aux::array<bool_setting_entry_t, settings_pack::num_bool_settings> const bool_settings({{
 		SET(allow_multiple_connections_per_ip, false, nullptr),
 		DEPRECATED_SET(ignore_limits_on_local_network, true, &session_impl::update_ignore_rate_limits_on_local_network),
 		SET(send_redundant_have, true, nullptr),
@@ -249,6 +248,7 @@ namespace {
 		SET(proxy_send_host_in_connect, false, nullptr),
 		SET(disk_disable_copy_on_write, false, nullptr),
 		SET(allow_multiple_connections_per_pid, false, nullptr),
+		SET(disable_tracker_connection_reuse, false, nullptr),
 	}});
 
 	CONSTEXPR_SETTINGS
@@ -417,7 +417,8 @@ namespace {
 		SET(i2p_outbound_length_variance, 0, nullptr),
 		SET(natpmp_lease_duration, 3600, nullptr),
 		SET(min_websocket_announce_interval, 1 * 60, nullptr),
-		SET(webtorrent_connection_timeout, 2 * 60, nullptr)
+		SET(webtorrent_connection_timeout, 2 * 60, nullptr),
+		SET(max_tracker_connection_requests, 1000, nullptr)
 	}});
 	// clang-format on
 

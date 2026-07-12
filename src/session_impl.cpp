@@ -1027,6 +1027,16 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 		m_abort = true;
 		error_code ec;
 
+		// must happen before the torrents below dispatch their final
+		// "stopped" announces: is_stopping() needs to already read true for
+		// that whole wave, or the write-only shutdown path never engages.
+		// This also closes out (or prunes down to stop-only) any connection
+		// opened before shutdown began, so those fresh stop announces find a
+		// clean, consistently-keyed pool to coalesce onto instead of missing
+		// a stale pre-shutdown connection in the lookup and opening a
+		// redundant second one for the same host.
+		m_tracker_manager.stop();
+
 		// we rely on on_tick() during shutdown, but we don't need to wait a
 		// whole second for it to fire
 		m_timer.cancel();
@@ -1076,11 +1086,6 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 		m_stats_counters.set_value(counters::num_peers_up_unchoked_all, 0);
 		m_stats_counters.set_value(counters::num_peers_up_unchoked, 0);
 		m_stats_counters.set_value(counters::num_peers_up_unchoked_optimistic, 0);
-
-#ifndef TORRENT_DISABLE_LOGGING
-		session_log(" aborting all tracker requests");
-#endif
-		m_tracker_manager.stop();
 
 #ifndef TORRENT_DISABLE_LOGGING
 		session_log(" aborting all connections (%d)", int(m_connections.size()));

@@ -95,7 +95,16 @@ struct TORRENT_EXTRA_EXPORT http_connection
 #if TORRENT_USE_I2P
 		i2p_connection* i2p_conn = nullptr,
 #endif
-		bool keep_alive = false);
+		bool keep_alive = false,
+		// fire-and-forget: write the request but read no response. On each write
+		// completion the write-handler (set_write_handler) is invoked instead of
+		// starting a read. Used for best-effort stop announces at shutdown, where
+		// the response is irrelevant.
+		bool write_only = false);
+
+	// set the handler invoked when a write completes in write_only mode (the
+	// caller then writes the next request or closes the connection).
+	void set_write_handler(http_connect_handler h) { m_write_handler = std::move(h); }
 
 	void start(std::string const& hostname, int port
 		, time_duration timeout, aux::proxy_settings const* ps = nullptr
@@ -127,6 +136,23 @@ private:
 	void on_connect(error_code const& e);
 	void on_write(error_code const& e);
 	void on_read(error_code const& e, std::size_t bytes_transferred);
+	// write_only drain loop: read into m_drain_buffer and discard, repeatedly.
+	void start_drain();
+	void on_drain(error_code const& e, std::size_t bytes_transferred);
+	// records that a write was just dispatched, advancing m_write_only_state
+	// (see its declaration). A no-op outside write-only mode.
+	void note_write_dispatched();
+	// true once this connection cycle is in fire-and-forget write-only mode
+	// (write requests but never parse a response; the socket stays reusable
+	// for the next write without waiting for or reading a reply).
+	bool write_only() const { return m_write_only_state != write_only_state_t::normal_mode; }
+	// switches this connection cycle in or out of write-only mode for a new
+	// get() call. Entering write-only mode only (re-)starts
+	// write_only_state_t's progress from not_started if this connection
+	// wasn't already in write-only mode -- a later, promoted dispatch calls
+	// get() again with write_only=true on the same object, and must not
+	// have its in-progress state clobbered back to the start.
+	void set_write_only(bool enable);
 	static void on_timeout(std::weak_ptr<http_connection> p
 		, error_code const& e);
 	void on_assign_bandwidth(error_code const& e);
@@ -134,6 +160,13 @@ private:
 	void callback(error_code e, span<char> data = {});
 
 	aux::vector<char> m_recvbuffer;
+
+	// scratch buffer for the write_only drain loop (responses are discarded).
+	// Must not be m_recvbuffer: on_write() can invoke m_write_handler
+	// synchronously, before this loop's read completes, which re-enters
+	// start() for the next pipelined write and unconditionally clears/resizes
+	// m_recvbuffer, racing the still-outstanding drain read's buffer.
+	aux::vector<char> m_drain_buffer;
 	io_context& m_ios;
 
 	std::string m_hostname;
@@ -162,6 +195,9 @@ private:
 	http_connect_handler m_connect_handler;
 	http_filter_handler m_filter_handler;
 	hostname_filter_handler m_hostname_filter_handler;
+	// invoked on write completion in write_only mode, instead of reading a
+	// response (see set_write_handler / get()'s write_only).
+	http_connect_handler m_write_handler;
 	deadline_timer m_timer;
 
 	time_duration m_completion_timeout;
@@ -232,6 +268,35 @@ private:
 	// whether the most recent get() call requested keep-alive. Preserved so
 	// that a redirect re-issues get() with the same keep-alive intent.
 	bool m_keep_alive = false;
+
+	// the mode and, for write-only mode, the write/drain lifecycle of this
+	// connection, tracked as a single state machine. on_drain() only reacts
+	// to the peer closing while idle (see on_drain()); the drain loop starts
+	// on the first write's completion (see on_write()).
+	enum class write_only_state_t : std::uint8_t
+	{
+		// normal (response-reading) mode: fire-and-forget write-only
+		// semantics do not apply, and none of the other states below are
+		// ever entered.
+		normal_mode,
+		// write-only mode; nothing dispatched yet this connection cycle, or
+		// the peer was found dead and this connection is about to reconnect
+		// from scratch. The drain loop is not running.
+		not_started,
+		// the very first write of this cycle is outstanding; the drain loop
+		// starts once it completes (see on_write()).
+		first_write,
+		// the drain loop is running and a later, promoted write is
+		// outstanding. on_drain() must not react to the peer closing while
+		// here: this write's own completion (on_write(), success or
+		// failure) already drives the next step.
+		write_in_flight,
+		// the drain loop is running and idle: nothing outstanding, waiting
+		// for either a promoted follow-up write (-> write_in_flight) or for
+		// the drain loop to observe the peer's own close.
+		idle,
+	};
+	write_only_state_t m_write_only_state = write_only_state_t::normal_mode;
 };
 
 }

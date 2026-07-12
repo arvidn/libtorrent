@@ -19,6 +19,7 @@ see LICENSE file.
 #include "simulator/http_server.hpp"
 #include "simulator/utils.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/session_stats.hpp"
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/session.hpp"
 #include "libtorrent/create_torrent.hpp"
@@ -281,6 +282,828 @@ TORRENT_TEST(announce_interval_1800)
 TORRENT_TEST(announce_interval_1200)
 {
 	test_interval(3600);
+}
+
+// a hybrid torrent announces both its v1 and v2 info-hashes to the tracker. The
+// two announces target the same server and overlap in time, so they must be
+// coalesced onto a single keep-alive connection rather than each opening a new
+// socket -- unless settings_pack::disable_tracker_connection_reuse is set, in
+// which case each gets its own connection, as if reuse never existed.
+void test_tracker_coalesce_keepalive(bool const disable_reuse)
+{
+	using sim::asio::ip::address_v4;
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+
+	bool ran_to_completion = false;
+
+	sim::asio::io_context web_server(sim, make_address_v4("2.2.2.2"));
+	sim::http_server http(web_server, 8080);
+
+	int announces = 0;
+	http.register_handler("/announce",
+		[&](std::string /* method */,
+			std::string /* req */
+			,
+			std::map<std::string, std::string>&) {
+			if (!ran_to_completion) ++announces;
+			std::string const body = "d8:intervali1800e5:peers0:e";
+			return sim::send_response(200, "OK", int(body.size())) + body;
+		});
+
+	int connections = 0;
+
+	lt::settings_pack default_settings = settings();
+	default_settings.set_str(settings_pack::listen_interfaces, "0.0.0.0:6881");
+	default_settings.set_bool(settings_pack::disable_tracker_connection_reuse, disable_reuse);
+	lt::add_torrent_params default_add_torrent;
+
+	setup_swarm(
+		1,
+		swarm_test::upload,
+		sim,
+		default_settings,
+		default_add_torrent,
+		[](lt::settings_pack&) {},
+		[](lt::add_torrent_params& params) {
+			params.trackers.push_back("http://2.2.2.2:8080/announce");
+		},
+		[&](lt::alert const*, lt::session&) {},
+		[&](int const ticks, lt::session&) -> bool {
+			if (ticks > 5)
+			{
+				ran_to_completion = true;
+				// record the connection count before the stop-announce
+				connections = http.accepted_connections();
+				return true;
+			}
+			return false;
+		});
+
+	TEST_CHECK(ran_to_completion);
+	// both the v1 and v2 announces reached the tracker...
+	TEST_EQUAL(announces, 2);
+	// ...over a single coalesced connection, unless reuse is disabled, in
+	// which case each gets its own.
+	TEST_EQUAL(connections, disable_reuse ? 2 : 1);
+}
+
+TORRENT_TEST(tracker_coalesce_keepalive) { test_tracker_coalesce_keepalive(false); }
+TORRENT_TEST(tracker_coalesce_keepalive_disabled) { test_tracker_coalesce_keepalive(true); }
+
+TORRENT_TEST(tracker_coalesce_keepalive_after_error)
+{
+	// a per-response error (a complete HTTP response with a non-200 status) on
+	// the first coalesced request must not tear down the keep-alive connection:
+	// the second coalesced request is still served on the same socket. Before
+	// the fail-granularity change the error closed the connection and the second
+	// request opened a fresh one (connections would be 2).
+	using sim::asio::ip::address_v4;
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+
+	bool ran_to_completion = false;
+
+	sim::asio::io_context web_server(sim, make_address_v4("2.2.2.2"));
+	sim::http_server http(web_server, 8080);
+
+	int announces = 0;
+	http.register_handler("/announce",
+		[&](std::string /* method */,
+			std::string /* req */
+			,
+			std::map<std::string, std::string>&) {
+			int const n = ran_to_completion ? -1 : announces++;
+			if (n == 0)
+			{
+				// fail the first announce with a complete, well-framed HTTP error
+				// response, so the socket is left at a clean message boundary.
+				std::string const body = "d14:failure reason5:helloe";
+				return sim::send_response(404, "Not Found", int(body.size())) + body;
+			}
+			std::string const body = "d8:intervali1800e5:peers0:e";
+			return sim::send_response(200, "OK", int(body.size())) + body;
+		});
+
+	int connections = 0;
+
+	lt::settings_pack default_settings = settings();
+	default_settings.set_str(settings_pack::listen_interfaces, "0.0.0.0:6881");
+	lt::add_torrent_params default_add_torrent;
+
+	setup_swarm(
+		1,
+		swarm_test::upload,
+		sim,
+		default_settings,
+		default_add_torrent,
+		[](lt::settings_pack&) {},
+		[](lt::add_torrent_params& params) {
+			params.trackers.push_back("http://2.2.2.2:8080/announce");
+		},
+		[&](lt::alert const*, lt::session&) {},
+		[&](int const ticks, lt::session&) -> bool {
+			if (ticks > 5)
+			{
+				ran_to_completion = true;
+				connections = http.accepted_connections();
+				return true;
+			}
+			return false;
+		});
+
+	TEST_CHECK(ran_to_completion);
+	// both announces reached the tracker (the first failed, the second succeeded)...
+	TEST_EQUAL(announces, 2);
+	// ...still over a single connection: the error did not close it
+	TEST_EQUAL(connections, 1);
+}
+
+TORRENT_TEST(tracker_stop_announces_pipelined_on_abort)
+{
+	// two torrents' final "stopped" announces to the same tracker host, during
+	// a real session::abort(), must both reach the tracker promptly -- the
+	// second one coalesces as a follower behind the first on the same
+	// connection, and the write-only fire-and-forget path dispatches it
+	// immediately after the write (not after waiting for a response), rather
+	// than sitting behind the first as an ordinary keep-alive follower, which
+	// is only promoted once the first request completes or times out
+	// (stop_tracker_timeout, 5s default) -- since the tracker below never
+	// finishes responding, that would mean the second announce doesn't reach
+	// the tracker until ~5s later.
+	//
+	// Regression test for tracker_manager::m_abort: session_impl::abort()
+	// must call tracker_manager::begin_shutdown() (which sets m_abort) before
+	// dispatching any torrent's stop announce (via torrent::abort() ->
+	// stop_announcing()), so is_stopping() reads true for that entire first
+	// wave and the write-only path engages. (A tracker_error_alert-based test
+	// can't observe a failure here directly: by the time such a timeout would
+	// fire, session_impl::abort() has already destroyed the torrent objects,
+	// so the alert never reaches a live requester either way -- the
+	// pipelining timing is the only observable difference.)
+	using sim::asio::ip::address_v4;
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+	sim::asio::io_context ios0{sim, make_address_v4("10.0.0.1")};
+	sim::asio::io_context web_server(sim, make_address_v4("2.2.2.2"));
+	sim::http_server http(web_server, 8080);
+
+	int started = 0;
+	int stopped = 0;
+	http.register_handler("/announce",
+		[&](std::string /* method */, std::string req, std::map<std::string, std::string>&) {
+			if (req.find("&event=stopped") != std::string::npos)
+			{
+				++stopped;
+				// never actually finish responding: a client waiting for a
+				// real response would sit here for the full
+				// stop_tracker_timeout before dispatching anything else on
+				// this connection.
+				return sim::send_response(200, "OK", 1000) + std::string("incomplete");
+			}
+			++started;
+			std::string const body = "d8:intervali1800e5:peers0:e";
+			return sim::send_response(200, "OK", int(body.size())) + body;
+		});
+
+	lt::settings_pack pack = settings();
+	pack.set_str(settings_pack::listen_interfaces, "10.0.0.1:6881");
+
+	auto ses = std::make_shared<lt::session>(pack, ios0);
+
+	auto const add = [&](int const idx) {
+		lt::add_torrent_params params = ::create_torrent(idx, true, 9, lt::create_torrent::v1_only);
+		params.flags &= ~lt::torrent_flags::auto_managed;
+		params.flags &= ~lt::torrent_flags::paused;
+		params.trackers.push_back("http://2.2.2.2:8080/announce");
+		ses->async_add_torrent(std::move(params));
+	};
+	add(0);
+	add(1);
+
+	lt::session_proxy zombie;
+
+	sim::timer t_abort(sim, lt::seconds(1), [&](boost::system::error_code const&) {
+		// both started announces complete almost instantly on a direct IP
+		// connection, well within this window.
+		TEST_EQUAL(started, 2);
+		// session::abort() alone does very little (just clears the alert
+		// notify function); the real session_impl::abort() -- which is what
+		// dispatches every torrent's stop announce -- only runs once the
+		// session object is actually destroyed, so ses.reset() must happen
+		// right alongside it, not in a later callback.
+		zombie = ses->abort();
+		ses.reset();
+	});
+
+	sim::timer t_check(sim, lt::seconds(2), [&](boost::system::error_code const&) {
+		// well under stop_tracker_timeout (5s default): both stop announces
+		// must already have reached the tracker.
+		TEST_EQUAL(stopped, 2);
+	});
+
+	sim.run();
+
+	TEST_EQUAL(started, 2);
+	TEST_EQUAL(stopped, 2);
+}
+
+TORRENT_TEST(tracker_stop_connection_closes_promptly)
+{
+	// Regression test: once a write-only connection's correctly-identified
+	// last follower is dispatched, it requests "Connection: close", and once
+	// the drain loop observes the peer's own close (EOF), the connection
+	// closes promptly, freeing its slot under max_concurrent_http_announces
+	// well before stop_tracker_timeout elapses.
+	//
+	// Two tracker hosts, two torrents sharing each (so each connection's
+	// second, correctly-known-to-be-last dispatch asks for a close), with
+	// only one concurrent HTTP announce allowed: whichever host's pair grabs
+	// the single slot first must free it quickly, so the other pair can use
+	// it too.
+	using sim::asio::ip::address_v4;
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+	sim::asio::io_context ios0{sim, make_address_v4("10.0.0.1")};
+	sim::asio::io_context web_server1{sim, make_address_v4("2.2.2.2")};
+	sim::asio::io_context web_server2{sim, make_address_v4("3.3.3.3")};
+	sim::http_server http1(web_server1, 8080);
+	sim::http_server http2(web_server2, 8080);
+
+	int stopped1 = 0;
+	int stopped2 = 0;
+	auto const make_handler = [](int& counter) {
+		return [&counter](
+				   std::string /* method */, std::string req, std::map<std::string, std::string>&) {
+			if (req.find("&event=stopped") != std::string::npos) ++counter;
+			std::string const body = "d8:intervali1800e5:peers0:e";
+			return sim::send_response(200, "OK", int(body.size())) + body;
+		};
+	};
+	http1.register_handler("/announce", make_handler(stopped1));
+	http2.register_handler("/announce", make_handler(stopped2));
+
+	lt::settings_pack pack = settings();
+	pack.set_str(settings_pack::listen_interfaces, "10.0.0.1:6881");
+	pack.set_int(settings_pack::max_concurrent_http_announces, 1);
+	// set far above the check window below, so a passing test demonstrates
+	// the connection actually closed promptly, not merely that
+	// stop_tracker_timeout itself happened to be short.
+	pack.set_int(settings_pack::stop_tracker_timeout, 100);
+	pack.set_int(settings_pack::torrent_connect_boost, 0);
+
+	auto ses = std::make_shared<lt::session>(pack, ios0);
+
+	auto const add = [&](int const idx, char const* url) {
+		lt::add_torrent_params params = ::create_torrent(idx, true, 9, lt::create_torrent::v1_only);
+		params.flags &= ~lt::torrent_flags::auto_managed;
+		params.flags &= ~lt::torrent_flags::paused;
+		params.trackers.push_back(url);
+		ses->async_add_torrent(std::move(params));
+	};
+	add(0, "http://2.2.2.2:8080/announce");
+	add(1, "http://2.2.2.2:8080/announce");
+	add(2, "http://3.3.3.3:8080/announce");
+	add(3, "http://3.3.3.3:8080/announce");
+
+	lt::session_proxy zombie;
+	sim::timer t_abort(sim, lt::seconds(1), [&](boost::system::error_code const&) {
+		zombie = ses->abort();
+		ses.reset();
+	});
+
+	sim::timer t_check(sim, lt::seconds(5), [&](boost::system::error_code const&) {
+		// well under the 100s stop_tracker_timeout: whichever host's pair
+		// grabbed the single available slot first must have already closed
+		// its connection and freed it up for the other pair.
+		TEST_EQUAL(stopped1, 2);
+		TEST_EQUAL(stopped2, 2);
+	});
+
+	sim.run();
+
+	TEST_EQUAL(stopped1, 2);
+	TEST_EQUAL(stopped2, 2);
+}
+
+TORRENT_TEST(tracker_stop_solo_torrent_requests_connection_close)
+{
+	// During shutdown, a solo torrent's write-only stop announce -- the only
+	// request ever dispatched on its tracker connection -- must ask for
+	// "Connection: close", not keep-alive: deferring the first write-only
+	// dispatch by a tick (see send_request()) lets it see that no sibling
+	// ever coalesced a follower during the shutdown wave, so it can safely
+	// decline keep-alive and get the same prompt-close benefit (see
+	// tracker_stop_connection_closes_promptly) as a connection shared by
+	// multiple torrents. This is specific to the write-only shutdown path --
+	// a steady-state stop announce (session not shutting down) is dispatched
+	// as an ordinary normal-mode request and always asks for keep-alive.
+	using sim::asio::ip::address_v4;
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+	sim::asio::io_context ios0{sim, make_address_v4("10.0.0.1")};
+	sim::asio::io_context web_server{sim, make_address_v4("2.2.2.2")};
+	sim::http_server http(web_server, 8080);
+
+	std::string connection_header;
+	http.register_handler("/announce",
+		[&](std::string /* method */,
+			std::string req,
+			std::map<std::string, std::string>& headers) {
+			if (req.find("&event=stopped") != std::string::npos)
+				connection_header = headers["connection"];
+			std::string const body = "d8:intervali1800e5:peers0:e";
+			return sim::send_response(200, "OK", int(body.size())) + body;
+		});
+
+	lt::settings_pack pack = settings();
+	pack.set_str(settings_pack::listen_interfaces, "10.0.0.1:6881");
+
+	auto ses = std::make_shared<lt::session>(pack, ios0);
+
+	lt::add_torrent_params params = ::create_torrent(0, true, 9, lt::create_torrent::v1_only);
+	params.flags &= ~lt::torrent_flags::auto_managed;
+	params.flags &= ~lt::torrent_flags::paused;
+	params.trackers.push_back("http://2.2.2.2:8080/announce");
+	ses->async_add_torrent(std::move(params));
+
+	lt::session_proxy zombie;
+	sim::timer t_abort(sim, lt::seconds(1), [&](boost::system::error_code const&) {
+		zombie = ses->abort();
+		ses.reset();
+	});
+
+	sim.run();
+
+	TEST_EQUAL(connection_header, "close");
+}
+
+TORRENT_TEST(tracker_connection_rotates_after_max_requests)
+{
+	// Regression test: settings_pack::max_tracker_connection_requests bounds
+	// how many requests get pipelined onto one connection. Once hit,
+	// next_request() rotates the remaining coalesced followers onto a fresh
+	// connection instead of continuing to write onto a socket a tracker (or
+	// an intermediary reverse proxy) may already have decided to close after
+	// its own request-count limit.
+	//
+	// Five torrents share one tracker host during a real shutdown; with the
+	// cap set to 2, coalescing 5 stop announces two per connection needs at
+	// least ceil(5/2) = 3 separate connections, and all five must still
+	// reach the tracker.
+	using sim::asio::ip::address_v4;
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+	sim::asio::io_context ios0{sim, make_address_v4("10.0.0.1")};
+	sim::asio::io_context web_server{sim, make_address_v4("2.2.2.2")};
+	sim::http_server http(web_server, 8080);
+
+	int stopped = 0;
+	http.register_handler("/announce",
+		[&](std::string /* method */, std::string req, std::map<std::string, std::string>&) {
+			if (req.find("&event=stopped") != std::string::npos) ++stopped;
+			std::string const body = "d8:intervali1800e5:peers0:e";
+			return sim::send_response(200, "OK", int(body.size())) + body;
+		});
+
+	lt::settings_pack pack = settings();
+	pack.set_str(settings_pack::listen_interfaces, "10.0.0.1:6881");
+	pack.set_int(settings_pack::max_tracker_connection_requests, 2);
+	pack.set_int(settings_pack::torrent_connect_boost, 0);
+
+	auto ses = std::make_shared<lt::session>(pack, ios0);
+
+	auto const add = [&](int const idx) {
+		lt::add_torrent_params params = ::create_torrent(idx, true, 9, lt::create_torrent::v1_only);
+		params.flags &= ~lt::torrent_flags::auto_managed;
+		params.flags &= ~lt::torrent_flags::paused;
+		params.trackers.push_back("http://2.2.2.2:8080/announce");
+		ses->async_add_torrent(std::move(params));
+	};
+	for (int i = 0; i < 5; ++i)
+		add(i);
+
+	lt::session_proxy zombie;
+	sim::timer t_abort(sim, lt::seconds(1), [&](boost::system::error_code const&) {
+		zombie = ses->abort();
+		ses.reset();
+	});
+
+	sim.run();
+
+	TEST_EQUAL(stopped, 5);
+	TEST_CHECK(http.accepted_connections() >= 3);
+}
+
+TORRENT_TEST(tracker_pause_reports_dropped_follower)
+{
+	// Pausing a session drops any non-stop follower coalesced behind another
+	// torrent's in-flight request to the same tracker host
+	// (prune_followers(), called from
+	// tracker_manager::abort_all_requests(false)). That follower's requester
+	// is told the announce was skipped, which resets
+	// announce_infohash::updating so can_announce() (which requires
+	// !updating) allows that endpoint to be announced to again.
+	using sim::asio::ip::address_v4;
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+	sim::asio::io_context ios0{sim, make_address_v4("10.0.0.1")};
+	sim::asio::io_context tracker_ios{sim, make_address_v4("2.2.2.2")};
+	sim::http_server http(tracker_ios, 8080);
+
+	// never respond, so torrent 0's request stays in flight and torrent 1's
+	// coalesces as a follower behind it.
+	http.register_stall_handler("/announce");
+
+	lt::settings_pack pack = settings();
+	pack.set_str(settings_pack::listen_interfaces, "10.0.0.1:6881");
+	pack.set_int(settings_pack::torrent_connect_boost, 0);
+
+	auto ses = std::make_shared<lt::session>(pack, ios0);
+
+	std::vector<torrent_handle> handles;
+	bool follower_error_seen = false;
+	error_code follower_error;
+	ses->set_alert_notify([&] {
+		post(ses->get_context(), [&] {
+			std::vector<lt::alert*> alerts;
+			ses->pop_alerts(&alerts);
+			for (lt::alert* a : alerts)
+			{
+				if (auto const* at = alert_cast<add_torrent_alert>(a))
+					handles.push_back(at->handle);
+				else if (auto const* te = alert_cast<tracker_error_alert>(a))
+				{
+					if (handles.size() > 1 && te->handle == handles[1])
+					{
+						follower_error_seen = true;
+						follower_error = te->error;
+					}
+				}
+			}
+		});
+	});
+
+	auto const add = [&](int const i) {
+		lt::add_torrent_params params = ::create_torrent(i, true, 9, lt::create_torrent::v1_only);
+		params.flags &= ~lt::torrent_flags::auto_managed;
+		params.flags &= ~lt::torrent_flags::paused;
+		params.trackers.push_back("http://2.2.2.2:8080/announce");
+		ses->async_add_torrent(std::move(params));
+	};
+	add(0);
+	add(1);
+
+	sim::timer t_pause(
+		sim, lt::seconds(2), [&](boost::system::error_code const&) { ses->pause(); });
+
+	lt::session_proxy zombie;
+	sim::timer t_end(sim, lt::seconds(3), [&](boost::system::error_code const&) {
+		zombie = ses->abort();
+		ses.reset();
+	});
+
+	sim.run();
+
+	TEST_CHECK(follower_error_seen);
+	TEST_CHECK(follower_error == lt::errors::announce_skipped);
+}
+
+TORRENT_TEST(tracker_pause_reports_in_flight_request)
+{
+	// Pausing a session while a tracker announce is genuinely in flight
+	// (already dispatched, awaiting a response -- as opposed to a follower
+	// still queued behind one) must report it as skipped rather than
+	// silently dropping it: http_tracker_connection::close() only
+	// re-dispatched m_followers, never reporting the connection's own
+	// in-flight m_req/m_requester when torn down directly by
+	// tracker_manager::abort_all_requests() (reachable on both session
+	// pause and shutdown; pause() is used here since, unlike abort(), it
+	// doesn't disable alert delivery as a side effect of the call itself).
+	using sim::asio::ip::address_v4;
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+	sim::asio::io_context ios0{sim, make_address_v4("10.0.0.1")};
+	sim::asio::io_context tracker_ios{sim, make_address_v4("2.2.2.2")};
+	sim::http_server http(tracker_ios, 8080);
+
+	// never respond, so the announce stays genuinely in flight.
+	http.register_stall_handler("/announce");
+
+	lt::settings_pack pack = settings();
+	pack.set_str(settings_pack::listen_interfaces, "10.0.0.1:6881");
+
+	auto ses = std::make_shared<lt::session>(pack, ios0);
+
+	bool error_seen = false;
+	error_code got_error;
+	ses->set_alert_notify([&] {
+		post(ses->get_context(), [&] {
+			std::vector<lt::alert*> alerts;
+			ses->pop_alerts(&alerts);
+			for (lt::alert* a : alerts)
+			{
+				if (auto const* te = alert_cast<tracker_error_alert>(a))
+				{
+					error_seen = true;
+					got_error = te->error;
+				}
+			}
+		});
+	});
+
+	lt::add_torrent_params params = ::create_torrent(0, true, 9, lt::create_torrent::v1_only);
+	params.flags &= ~lt::torrent_flags::auto_managed;
+	params.flags &= ~lt::torrent_flags::paused;
+	params.trackers.push_back("http://2.2.2.2:8080/announce");
+	ses->async_add_torrent(std::move(params));
+
+	sim::timer t_pause(
+		sim, lt::seconds(2), [&](boost::system::error_code const&) { ses->pause(); });
+
+	lt::session_proxy zombie;
+	sim::timer t_end(sim, lt::seconds(3), [&](boost::system::error_code const&) {
+		zombie = ses->abort();
+		ses.reset();
+	});
+
+	sim.run();
+
+	TEST_CHECK(error_seen);
+	TEST_CHECK(got_error == lt::errors::announce_skipped);
+}
+
+TORRENT_TEST(ssrf_coalesced_follower)
+{
+	// Regression test for the SSRF-mitigation gap where a follower coalescing
+	// onto an already-connected loopback tracker connection bypassed the
+	// check entirely: on_filter() is only invoked at DNS-resolution time for
+	// a connection's first request, never again for followers reusing the
+	// same keep-alive socket. Two torrents pointed at the same loopback
+	// host:port (so they coalesce onto one connection): the first uses a
+	// safe /announce path and establishes the connection; the second uses an
+	// unusual path and queues as a follower behind it. Without the
+	// send_request()-time re-check, the second reaches the tracker; with it,
+	// the follower is rejected before ever writing to the socket.
+	using sim::asio::ip::address_v4;
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+	sim::asio::io_context ios0{sim, make_address_v4("10.0.0.1")};
+	sim::asio::io_context tracker_ios{sim, make_address_v4("127.0.0.1")};
+	sim::http_server http(tracker_ios, 8080);
+
+	int announce_hits = 0;
+	int unusual_hits = 0;
+	http.register_handler("/announce",
+		[&](std::string /* method */,
+			std::string /* req */
+			,
+			std::map<std::string, std::string>&) {
+			++announce_hits;
+			std::string const body = "d8:intervali1800e5:peers0:e";
+			return sim::send_response(200, "OK", int(body.size())) + body;
+		});
+	http.register_handler("/unusual-announce-path",
+		[&](std::string /* method */,
+			std::string /* req */
+			,
+			std::map<std::string, std::string>&) {
+			++unusual_hits;
+			std::string const body = "d8:intervali1800e5:peers0:e";
+			return sim::send_response(200, "OK", int(body.size())) + body;
+		});
+
+	lt::settings_pack pack = settings();
+	pack.set_str(settings_pack::listen_interfaces, "10.0.0.1:6881");
+	pack.set_bool(settings_pack::ssrf_mitigation, true);
+
+	auto ses = std::make_shared<lt::session>(pack, ios0);
+
+	int ssrf_errors = 0;
+	ses->set_alert_notify([&] {
+		post(ses->get_context(), [&] {
+			std::vector<lt::alert*> alerts;
+			ses->pop_alerts(&alerts);
+			for (lt::alert* a : alerts)
+			{
+				if (auto* e = alert_cast<tracker_error_alert>(a))
+				{
+					if (e->error == errors::ssrf_mitigation) ++ssrf_errors;
+				}
+			}
+		});
+	});
+
+	auto const add = [&](int const idx, char const* path) {
+		lt::add_torrent_params params = ::create_torrent(idx, true, 9, lt::create_torrent::v1_only);
+		params.flags &= ~lt::torrent_flags::auto_managed;
+		params.flags &= ~lt::torrent_flags::paused;
+		params.trackers.push_back(std::string("http://127.0.0.1:8080") + path);
+		ses->async_add_torrent(std::move(params));
+	};
+	add(0, "/announce");
+	add(1, "/unusual-announce-path");
+
+	lt::session_proxy zombie;
+	sim::timer t_end(sim, lt::seconds(5), [&](boost::system::error_code const&) {
+		zombie = ses->abort();
+		ses.reset();
+	});
+
+	sim.run();
+
+	// the safe torrent's start and stop announces both reach the tracker...
+	TEST_EQUAL(announce_hits, 2);
+	// ...the coalesced follower's must never reach it
+	TEST_EQUAL(unusual_hits, 0);
+	// ...its requester sees the SSRF-mitigation error instead
+	TEST_CHECK(ssrf_errors >= 1);
+}
+
+TORRENT_TEST(tracker_queued_counter_counts_coalesced_followers)
+{
+	// Regression test: counters::num_queued_tracker_announces must count
+	// individual pending requests, including followers coalesced onto an
+	// existing connection's own queue -- not just whole connections queued
+	// behind the max_concurrent_http_announces cap. Two torrents share one
+	// tracker host; the first's announce never gets a response (so it stays
+	// in-flight indefinitely) and the second coalesces as a follower behind
+	// it on the same connection -- the counter must report that follower as
+	// queued.
+	using sim::asio::ip::address_v4;
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+	sim::asio::io_context ios0{sim, make_address_v4("10.0.0.1")};
+	sim::asio::io_context tracker_ios{sim, make_address_v4("2.2.2.2")};
+	sim::http_server http(tracker_ios, 8080);
+
+	// never respond, so the first request stays in flight and the second
+	// coalesces as a follower behind it.
+	http.register_stall_handler("/announce");
+
+	lt::settings_pack pack = settings();
+	pack.set_str(settings_pack::listen_interfaces, "10.0.0.1:6881");
+	// don't let the initial connect boost make both first announces
+	// high-priority, that's not what this test is about
+	pack.set_int(settings_pack::torrent_connect_boost, 0);
+
+	auto ses = std::make_shared<lt::session>(pack, ios0);
+
+	std::int64_t queued = -1;
+	int const idx = lt::find_metric_idx("tracker.num_queued_tracker_announces");
+	ses->set_alert_notify([&] {
+		post(ses->get_context(), [&] {
+			std::vector<lt::alert*> alerts;
+			ses->pop_alerts(&alerts);
+			for (lt::alert* a : alerts)
+			{
+				if (auto* ss = alert_cast<session_stats_alert>(a)) queued = ss->counters()[idx];
+			}
+		});
+	});
+
+	auto const add = [&](int const i) {
+		lt::add_torrent_params params = ::create_torrent(i, true, 9, lt::create_torrent::v1_only);
+		params.flags &= ~lt::torrent_flags::auto_managed;
+		params.flags &= ~lt::torrent_flags::paused;
+		params.trackers.push_back("http://2.2.2.2:8080/announce");
+		ses->async_add_torrent(std::move(params));
+	};
+	add(0);
+	add(1);
+
+	sim::timer t_stats(
+		sim, lt::seconds(2), [&](boost::system::error_code const&) { ses->post_session_stats(); });
+
+	lt::session_proxy zombie;
+	sim::timer t_end(sim, lt::seconds(3), [&](boost::system::error_code const&) {
+		zombie = ses->abort();
+		ses.reset();
+	});
+
+	sim.run();
+
+	// torrent 0's announce is in flight (not queued); torrent 1's is the one
+	// coalesced follower actually waiting.
+	TEST_EQUAL(queued, 1);
+}
+
+namespace {
+	// resolves a single tracker hostname slowly, so the first announce to it sits in
+	// DNS resolution for a long, deterministic window while later announces to the
+	// same host pile up as queued followers on the (already pooled) connection.
+	struct slow_dns_config : sim::default_config
+	{
+		chrono::high_resolution_clock::duration hostname_lookup(asio::ip::address const& requestor,
+			std::string hostname,
+			std::vector<asio::ip::address>& result,
+			boost::system::error_code& ec) override
+		{
+			if (hostname == "slowtracker.test")
+			{
+				result.push_back(make_address_v4("2.2.2.2"));
+				return duration_cast<chrono::high_resolution_clock::duration>(chrono::seconds(2));
+			}
+			return default_config::hostname_lookup(requestor, hostname, result, ec);
+		}
+	};
+}
+
+TORRENT_TEST(tracker_high_priority_jumps_follower_queue)
+{
+	// A high-priority announce that coalesces onto a connection which already has
+	// queued followers must jump to the front of the per-connection FIFO: it is
+	// served ahead of the normal followers that were queued earlier (it cannot
+	// preempt the request that is already in flight).
+	//
+	// This uses four separate torrents that all announce to the same slow-
+	// resolving host, so their announces coalesce onto one connection (the
+	// tracker connection pool is keyed by destination, not by torrent).
+	// A torrent's very first announce is high priority exactly when
+	// settings_pack::torrent_connect_boost is non-zero at the moment the
+	// torrent is added (torrent::start_announcing() reads it once, into
+	// m_connect_boost_counter). Toggling that setting between add_torrent()
+	// calls produces low- and then high-priority followers, without going
+	// through force_reannounce() or any tier-ordering logic.
+	slow_dns_config network_cfg;
+	sim::simulation sim{network_cfg};
+	sim::asio::io_context ios0{sim, make_address_v4("10.0.0.1")};
+	sim::asio::io_context web_server(sim, make_address_v4("2.2.2.2"));
+	sim::http_server http(web_server, 8080);
+
+	std::vector<std::string> order;
+	auto const make_handler = [&order](std::string path) {
+		return [&order, path](std::string /* method */,
+				   std::string /* req */
+				   ,
+				   std::map<std::string, std::string>&) {
+			order.push_back(path);
+			std::string const body = "d8:intervali1800e5:peers0:e";
+			return sim::send_response(200, "OK", int(body.size())) + body;
+		};
+	};
+	http.register_handler("/announce-a", make_handler("/announce-a"));
+	http.register_handler("/announce-b", make_handler("/announce-b"));
+	http.register_handler("/announce-c", make_handler("/announce-c"));
+	http.register_handler("/announce-d", make_handler("/announce-d"));
+
+	lt::settings_pack pack = settings();
+	pack.set_str(settings_pack::listen_interfaces, "10.0.0.1:6881");
+
+	auto ses = std::make_shared<lt::session>(pack, ios0);
+
+	// v1-only torrent, so there is exactly one announce per tracker.
+	auto const add = [&](int const idx, char const* path) {
+		lt::add_torrent_params params = ::create_torrent(idx, true, 9, lt::create_torrent::v1_only);
+		params.flags &= ~lt::torrent_flags::auto_managed;
+		params.flags &= ~lt::torrent_flags::paused;
+		params.trackers.push_back(std::string("http://slowtracker.test:8080") + path);
+		ses->async_add_torrent(std::move(params));
+	};
+
+	sim::timer t_start(sim, lt::seconds(0), [&](boost::system::error_code const&) {
+		// default torrent_connect_boost (non-zero): torrent a's first announce
+		// is high priority. It becomes the in-flight request while the slow DNS
+		// lookup for the shared host is outstanding.
+		add(0, "/announce-a");
+
+		// disable connect boost so the next two torrents' first announces are
+		// NOT high priority: they queue as normal followers behind a.
+		lt::settings_pack boost_off;
+		boost_off.set_int(settings_pack::torrent_connect_boost, 0);
+		ses->apply_settings(boost_off);
+
+		add(1, "/announce-b");
+		add(2, "/announce-c");
+
+		// re-enable connect boost so this torrent's first announce is high
+		// priority again -- it must jump ahead of the already-queued b, c.
+		lt::settings_pack boost_on;
+		boost_on.set_int(settings_pack::torrent_connect_boost, 30);
+		ses->apply_settings(boost_on);
+
+		add(3, "/announce-d");
+	});
+
+	lt::session_proxy zombie;
+	sim::timer t_end(sim, lt::seconds(12), [&](boost::system::error_code const&) {
+		zombie = ses->abort();
+		ses.reset();
+	});
+
+	sim.run();
+
+	auto const pos = [&](char const* p) -> int {
+		for (int i = 0; i < int(order.size()); ++i)
+			if (order[i] == p) return i;
+		return int(order.size());
+	};
+
+	// the in-flight request (a) is served first...
+	TEST_CHECK(!order.empty() && order.front() == "/announce-a");
+	// ...then the high-priority d jumps ahead of the earlier-queued b and c
+	TEST_CHECK(pos("/announce-d") < pos("/announce-b"));
+	TEST_CHECK(pos("/announce-d") < pos("/announce-c"));
 }
 
 namespace {
