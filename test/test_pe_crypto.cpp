@@ -237,7 +237,6 @@ TORRENT_TEST(rc4_transfer)
 	using namespace lt;
 
 	sha1_hash const test1_key = hasher("test1_key", 8).final();
-	sha1_hash const test2_key = hasher("test2_key", 8).final();
 
 	std::printf("testing RC4 handler transfer\n");
 	// send side encrypts with test1_key, recv side decrypts with test1_key
@@ -268,7 +267,6 @@ TORRENT_TEST(aes_ctr_transfer)
 	using namespace lt;
 
 	sha1_hash const test1_key = hasher("test1_key", 8).final();
-	sha1_hash const test2_key = hasher("test2_key", 8).final();
 
 	std::printf("testing AES-CTR handler transfer\n");
 	// send side encrypts with test1_key, recv side decrypts with test1_key
