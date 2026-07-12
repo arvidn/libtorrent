@@ -140,7 +140,7 @@ namespace libtorrent::aux {
 	struct TORRENT_EXTRA_EXPORT aes_ctr_handler final : crypto_plugin
 	{
 		aes_ctr_handler();
-		~aes_ctr_handler();
+		~aes_ctr_handler() override;
 
 		void set_incoming_key(span<char const> key) override;
 		void set_outgoing_key(span<char const> key) override;

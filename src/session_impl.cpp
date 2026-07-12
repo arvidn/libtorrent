@@ -1515,7 +1515,7 @@ namespace {
 		validate_setting(settings_pack::in_enc_policy, 0, 2);
 		validate_setting(settings_pack::allowed_enc_level, 1
 			, settings_pack::pe_plaintext | settings_pack::pe_rc4
-#if defined(TORRENT_USE_LIBCRYPTO) || defined(TORRENT_USE_OPENSSL)
+#if TORRENT_HAS_MSE_AES_CTR
 			| settings_pack::pe_aes_ctr
 #endif
 			);

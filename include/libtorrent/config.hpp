@@ -687,6 +687,12 @@ see LICENSE file.
 #endif
 #endif // TORRENT_HAS_ARM_CRC32
 
+#if defined TORRENT_USE_LIBCRYPTO || defined TORRENT_USE_OPENSSL
+#define TORRENT_HAS_MSE_AES_CTR 1
+#else
+#define TORRENT_HAS_MSE_AES_CTR 0
+#endif
+
 #if defined TORRENT_USE_OPENSSL || defined TORRENT_USE_GNUTLS
 #define TORRENT_USE_SSL 1
 #else

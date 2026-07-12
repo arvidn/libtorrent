@@ -104,7 +104,7 @@ namespace {
 		return ret;
 	}
 
-#if defined(TORRENT_USE_LIBCRYPTO) || defined(TORRENT_USE_OPENSSL)
+#if TORRENT_HAS_MSE_AES_CTR
 	std::shared_ptr<aes_ctr_handler> init_pe_aes_ctr_handler(
 		key_t const& secret, sha1_hash const& stream_key, bool const outgoing)
 	{
@@ -177,7 +177,7 @@ namespace {
 #if !defined TORRENT_DISABLE_ENCRYPTION
 		, m_encrypted(false)
 		, m_rc4_encrypted(false)
-#if defined(TORRENT_USE_LIBCRYPTO) || defined(TORRENT_USE_OPENSSL)
+#if TORRENT_HAS_MSE_AES_CTR
 		, m_aes_ctr_encrypted(false)
 #endif
 		, m_recv_buffer(peer_connection::m_recv_buffer)
@@ -544,7 +544,7 @@ namespace {
 		if (m_encrypted)
 		{
 			p.flags |= (m_rc4_encrypted
-#if defined(TORRENT_USE_LIBCRYPTO) || defined(TORRENT_USE_OPENSSL)
+#if TORRENT_HAS_MSE_AES_CTR
 				|| m_aes_ctr_encrypted
 #endif
 				) ? peer_info::rc4_encrypted
@@ -667,7 +667,7 @@ namespace {
 
 		// Discard DH key exchange data, setup RC4 and AES-CTR keys
 		m_rc4 = init_pe_rc4_handler(secret_key, info_hash, is_outgoing());
-#if defined(TORRENT_USE_LIBCRYPTO) || defined(TORRENT_USE_OPENSSL)
+#if TORRENT_HAS_MSE_AES_CTR
 		m_aes_ctr = init_pe_aes_ctr_handler(secret_key, info_hash, is_outgoing());
 #endif
 #ifndef TORRENT_DISABLE_LOGGING
@@ -685,8 +685,8 @@ namespace {
 			crypto_provide = std::uint8_t(settings_pack::pe_both);
 		else
 			crypto_provide = std::uint8_t(enc_level & settings_pack::pe_both);
-#if !(defined(TORRENT_USE_LIBCRYPTO) || defined(TORRENT_USE_OPENSSL))
-		crypto_provide &= ~std::uint8_t(settings_pack::pe_aes_ctr);
+#if !(TORRENT_HAS_MSE_AES_CTR)
+		crypto_provide &= ~std::uint8_t(0x04); // pe_aes_ctr not available
 #endif
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -712,7 +712,7 @@ namespace {
 		TORRENT_ASSERT(!is_outgoing());
 		TORRENT_ASSERT(!m_encrypted);
 		TORRENT_ASSERT(!m_rc4_encrypted);
-#if defined(TORRENT_USE_LIBCRYPTO) || defined(TORRENT_USE_OPENSSL)
+#if TORRENT_HAS_MSE_AES_CTR
 		TORRENT_ASSERT(!m_aes_ctr_encrypted);
 		TORRENT_ASSERT(crypto_select == 0x04 || crypto_select == 0x02 || crypto_select == 0x01);
 #else
@@ -731,7 +731,7 @@ namespace {
 		send_buffer(vec);
 
 		// encryption method has been negotiated
-#if defined(TORRENT_USE_LIBCRYPTO) || defined(TORRENT_USE_OPENSSL)
+#if TORRENT_HAS_MSE_AES_CTR
 		if (crypto_select == 0x04) // pe_aes_ctr
 			m_aes_ctr_encrypted = true;
 		else
@@ -2828,7 +2828,7 @@ namespace {
 	void bt_peer_connection::init_bt_handshake()
 	{
 		m_encrypted = true;
-#if defined(TORRENT_USE_LIBCRYPTO) || defined(TORRENT_USE_OPENSSL)
+#if TORRENT_HAS_MSE_AES_CTR
 		if (m_aes_ctr_encrypted)
 		{
 			switch_send_crypto(m_aes_ctr);
@@ -2843,7 +2843,7 @@ namespace {
 		}
 
 		// decrypt remaining received bytes
-#if defined(TORRENT_USE_LIBCRYPTO) || defined(TORRENT_USE_OPENSSL)
+#if TORRENT_HAS_MSE_AES_CTR
 		if (m_aes_ctr_encrypted)
 		{
 			span<char> remaining =
@@ -2864,7 +2864,7 @@ namespace {
 #endif
 		}
 		m_rc4.reset();
-#if defined(TORRENT_USE_LIBCRYPTO) || defined(TORRENT_USE_OPENSSL)
+#if TORRENT_HAS_MSE_AES_CTR
 		m_aes_ctr.reset();
 #endif
 
@@ -3089,7 +3089,7 @@ namespace {
 
 				m_rc4 = init_pe_rc4_handler(m_dh_key_exchange->get_secret()
 					, associated_info_hash(), is_outgoing());
-#if defined(TORRENT_USE_LIBCRYPTO) || defined(TORRENT_USE_OPENSSL)
+#if TORRENT_HAS_MSE_AES_CTR
 				if (m_rc4)
 					m_aes_ctr = init_pe_aes_ctr_handler(
 						m_dh_key_exchange->get_secret(), associated_info_hash(), is_outgoing());
@@ -3210,7 +3210,7 @@ namespace {
 		{
 			TORRENT_ASSERT(!m_encrypted);
 			TORRENT_ASSERT(!m_rc4_encrypted);
-#if defined(TORRENT_USE_LIBCRYPTO) || defined(TORRENT_USE_OPENSSL)
+#if TORRENT_HAS_MSE_AES_CTR
 			TORRENT_ASSERT(!m_aes_ctr_encrypted);
 #endif
 			TORRENT_ASSERT(m_recv_buffer.packet_size() == 4+2);
@@ -3243,7 +3243,7 @@ namespace {
 				std::uint32_t crypto_select = crypto_field & std::uint32_t(allowed_encryption);
 
 				// priority: AES-CTR > RC4 > plaintext
-#if defined(TORRENT_USE_LIBCRYPTO) || defined(TORRENT_USE_OPENSSL)
+#if TORRENT_HAS_MSE_AES_CTR
 				if (m_settings.get_bool(settings_pack::prefer_aes_ctr)
 					&& (crypto_select & settings_pack::pe_aes_ctr))
 				{
@@ -3292,18 +3292,18 @@ namespace {
 				if (crypto_field == settings_pack::pe_plaintext)
 				{
 					m_rc4_encrypted = false;
-#if defined(TORRENT_USE_LIBCRYPTO) || defined(TORRENT_USE_OPENSSL)
+#if TORRENT_HAS_MSE_AES_CTR
 					m_aes_ctr_encrypted = false;
 #endif
 				}
 				else if (crypto_field == settings_pack::pe_rc4)
 				{
 					m_rc4_encrypted = true;
-#if defined(TORRENT_USE_LIBCRYPTO) || defined(TORRENT_USE_OPENSSL)
+#if TORRENT_HAS_MSE_AES_CTR
 					m_aes_ctr_encrypted = false;
 #endif
 				}
-#if defined(TORRENT_USE_LIBCRYPTO) || defined(TORRENT_USE_OPENSSL)
+#if TORRENT_HAS_MSE_AES_CTR
 				else if (crypto_field == settings_pack::pe_aes_ctr)
 				{
 					m_rc4_encrypted = false;
@@ -3416,7 +3416,7 @@ namespace {
 
 			// everything that arrives after this is encrypted
 			m_encrypted = true;
-#if defined(TORRENT_USE_LIBCRYPTO) || defined(TORRENT_USE_OPENSSL)
+#if TORRENT_HAS_MSE_AES_CTR
 			if (m_aes_ctr_encrypted)
 			{
 				switch_send_crypto(m_aes_ctr);
@@ -3430,7 +3430,7 @@ namespace {
 				switch_recv_crypto(m_rc4);
 			}
 			m_rc4.reset();
-#if defined(TORRENT_USE_LIBCRYPTO) || defined(TORRENT_USE_OPENSSL)
+#if TORRENT_HAS_MSE_AES_CTR
 			m_aes_ctr.reset();
 #endif
 
@@ -3968,7 +3968,7 @@ namespace {
 
 		TORRENT_ASSERT(!m_rc4_encrypted || (!m_encrypted && m_rc4)
 			|| (m_encrypted && !m_enc_handler.is_send_plaintext()));
-#if defined(TORRENT_USE_LIBCRYPTO) || defined(TORRENT_USE_OPENSSL)
+#if TORRENT_HAS_MSE_AES_CTR
 		TORRENT_ASSERT(!m_aes_ctr_encrypted || (!m_encrypted && m_aes_ctr)
 			|| (m_encrypted && !m_enc_handler.is_send_plaintext()));
 #endif

@@ -26,7 +26,7 @@ see LICENSE file.
 #include "libtorrent/aux_/pe_crypto.hpp"
 #include "libtorrent/hasher.hpp"
 
-#if defined(TORRENT_USE_LIBCRYPTO) || defined(TORRENT_USE_OPENSSL)
+#if TORRENT_HAS_MSE_AES_CTR
 extern "C"
 {
 #include <openssl/evp.h>
@@ -402,14 +402,14 @@ std::size_t rc4_encrypt(unsigned char *out, std::size_t outlen, rc4 *state)
 	return n;
 }
 
-#if defined(TORRENT_USE_LIBCRYPTO) || defined(TORRENT_USE_OPENSSL)
+#if TORRENT_HAS_MSE_AES_CTR
 
 struct aes_ctr_handler::aes_ctr_state
 {
 	EVP_CIPHER_CTX* ctx = nullptr;
 };
 
-void init_ctr_state(aes_ctr_handler::aes_ctr_state*& state, span<char const> key)
+static void init_ctr_state(aes_ctr_handler::aes_ctr_state*& state, span<char const> key)
 {
 	// key format: [16 bytes AES-128 key][4 bytes nonce]
 	TORRENT_ASSERT(key.size() >= 20);
@@ -435,7 +435,7 @@ void init_ctr_state(aes_ctr_handler::aes_ctr_state*& state, span<char const> key
 		iv.data());
 }
 
-int do_xor(EVP_CIPHER_CTX* ctx, span<char> buf)
+static int do_xor(EVP_CIPHER_CTX* ctx, span<char> buf)
 {
 	if (buf.empty()) return 0;
 	int outlen = 0;

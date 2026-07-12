@@ -2305,10 +2305,15 @@ namespace aux {
 			pe_plaintext = 1,
 			// use only RC4 encryption
 			pe_rc4 = 2,
-			// allow plaintext, RC4 and AES-CTR
-			pe_both = 7,
+#if TORRENT_HAS_MSE_AES_CTR
 			// use AES-128-CTR encryption (hardware accelerated)
-			pe_aes_ctr = 4
+			pe_aes_ctr = 4,
+			// allow plaintext, RC4 and AES-CTR
+			pe_both = pe_plaintext | pe_rc4 | pe_aes_ctr
+#else
+			// allow both plaintext and RC4
+			pe_both = pe_plaintext | pe_rc4
+#endif
 		};
 
 		// values for ``settings_pack::proxy_type``; selects which
