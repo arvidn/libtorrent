@@ -1513,7 +1513,7 @@ namespace {
 	{
 		validate_setting(settings_pack::out_enc_policy, 0, 2);
 		validate_setting(settings_pack::in_enc_policy, 0, 2);
-		validate_setting(settings_pack::allowed_enc_level, 1, 3);
+		validate_setting(settings_pack::allowed_enc_level, 1, 7);
 		validate_setting(settings_pack::mixed_mode_algorithm, 0, 1);
 		validate_setting(settings_pack::proxy_type, 0, 5);
 		validate_setting(settings_pack::disk_io_read_mode, 0, 3);

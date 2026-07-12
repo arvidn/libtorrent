@@ -26,6 +26,13 @@ see LICENSE file.
 #include "libtorrent/aux_/pe_crypto.hpp"
 #include "libtorrent/hasher.hpp"
 
+#if defined(TORRENT_USE_LIBCRYPTO) || defined(TORRENT_USE_OPENSSL)
+extern "C"
+{
+#include <openssl/evp.h>
+}
+#endif
+
 namespace libtorrent::aux {
 
 	namespace {
@@ -394,6 +401,103 @@ std::size_t rc4_encrypt(unsigned char *out, std::size_t outlen, rc4 *state)
 	state->y = y;
 	return n;
 }
+
+#if defined(TORRENT_USE_LIBCRYPTO) || defined(TORRENT_USE_OPENSSL)
+
+struct aes_ctr_handler::aes_ctr_state
+{
+	EVP_CIPHER_CTX* ctx = nullptr;
+};
+
+void init_ctr_state(aes_ctr_handler::aes_ctr_state*& state, span<char const> key)
+{
+	// key format: [16 bytes AES-128 key][4 bytes nonce]
+	TORRENT_ASSERT(key.size() >= 20);
+
+	delete state;
+	state = new aes_ctr_handler::aes_ctr_state;
+	state->ctx = EVP_CIPHER_CTX_new();
+	if (!state->ctx) return;
+
+	// Build IV: nonce (4B BE) || counter=64 (12B BE)
+	// Counter starts at 64 to discard the first 1024 bytes (64 AES blocks)
+	std::array<std::uint8_t, 16> iv{};
+	iv[0] = std::uint8_t(key[16]);
+	iv[1] = std::uint8_t(key[17]);
+	iv[2] = std::uint8_t(key[18]);
+	iv[3] = std::uint8_t(key[19]);
+	iv[15] = 64; // counter = 64 in big-endian (lowest byte)
+
+	EVP_EncryptInit_ex(state->ctx,
+		EVP_aes_128_ctr(),
+		nullptr,
+		reinterpret_cast<unsigned char const*>(key.data()),
+		iv.data());
+}
+
+int do_xor(EVP_CIPHER_CTX* ctx, span<char> buf)
+{
+	if (buf.empty()) return 0;
+	int outlen = 0;
+	EVP_EncryptUpdate(ctx,
+		reinterpret_cast<unsigned char*>(buf.data()),
+		&outlen,
+		reinterpret_cast<unsigned char*>(buf.data()),
+		int(buf.size()));
+	return outlen;
+}
+
+aes_ctr_handler::aes_ctr_handler() = default;
+
+aes_ctr_handler::~aes_ctr_handler()
+{
+	if (m_incoming)
+	{
+		if (m_incoming->ctx) EVP_CIPHER_CTX_free(m_incoming->ctx);
+		delete m_incoming;
+	}
+	if (m_outgoing)
+	{
+		if (m_outgoing->ctx) EVP_CIPHER_CTX_free(m_outgoing->ctx);
+		delete m_outgoing;
+	}
+}
+
+void aes_ctr_handler::set_incoming_key(span<char const> key) { init_ctr_state(m_incoming, key); }
+
+void aes_ctr_handler::set_outgoing_key(span<char const> key) { init_ctr_state(m_outgoing, key); }
+
+std::tuple<int, span<span<char const>>> aes_ctr_handler::encrypt(span<span<char>> bufs)
+{
+	span<span<char const>> empty;
+	if (!m_outgoing || !m_outgoing->ctx || bufs.empty()) return std::make_tuple(0, empty);
+
+	int bytes_processed = 0;
+	for (auto& buf : bufs)
+		bytes_processed += do_xor(m_outgoing->ctx, buf);
+	return std::make_tuple(bytes_processed, empty);
+}
+
+std::tuple<int, int, int> aes_ctr_handler::decrypt(span<span<char>> bufs)
+{
+	if (!m_incoming || !m_incoming->ctx) return std::make_tuple(0, 0, 0);
+
+	int bytes_processed = 0;
+	for (auto& buf : bufs)
+	{
+		if (buf.empty()) continue;
+		int outlen = 0;
+		EVP_DecryptUpdate(m_incoming->ctx,
+			reinterpret_cast<unsigned char*>(buf.data()),
+			&outlen,
+			reinterpret_cast<unsigned char*>(buf.data()),
+			int(buf.size()));
+		bytes_processed += outlen;
+	}
+	return std::make_tuple(0, bytes_processed, 0);
+}
+
+#endif // TORRENT_USE_LIBCRYPTO || TORRENT_USE_OPENSSL
 
 } // namespace libtorrent::aux
 

@@ -104,6 +104,45 @@ namespace {
 		return ret;
 	}
 
+	std::shared_ptr<aes_ctr_handler> init_pe_aes_ctr_handler(
+		key_t const& secret, sha1_hash const& stream_key, bool const outgoing)
+	{
+		hasher h;
+		static const char keyA[] = {'k', 'e', 'y', 'A'};
+		static const char keyB[] = {'k', 'e', 'y', 'B'};
+
+		std::array<char, dh_key_len> const secret_buf = export_key(secret);
+
+		if (outgoing)
+			h.update(keyA);
+		else
+			h.update(keyB);
+		h.update(secret_buf);
+		h.update(stream_key);
+		sha1_hash const local_key = h.final();
+
+		h.reset();
+
+		if (outgoing)
+			h.update(keyB);
+		else
+			h.update(keyA);
+		h.update(secret_buf);
+		h.update(stream_key);
+		sha1_hash const remote_key = h.final();
+
+		auto ret = std::make_shared<aes_ctr_handler>();
+
+		// Pass full 20-byte SHA-1 output: first 16 bytes = AES key
+		// last 4 bytes = nonce (big-endian)
+		span<char const> local_full(local_key.data(), 20);
+		span<char const> remote_full(remote_key.data(), 20);
+		ret->set_incoming_key(remote_full);
+		ret->set_outgoing_key(local_full);
+
+		return ret;
+	}
+
 } // anonymous namespace
 #endif
 
@@ -136,6 +175,7 @@ namespace {
 #if !defined TORRENT_DISABLE_ENCRYPTION
 		, m_encrypted(false)
 		, m_rc4_encrypted(false)
+		, m_aes_ctr_encrypted(false)
 		, m_recv_buffer(peer_connection::m_recv_buffer)
 #endif
 		, m_our_peer_id(pack.our_peer_id)
@@ -499,9 +539,8 @@ namespace {
 #if !defined TORRENT_DISABLE_ENCRYPTION
 		if (m_encrypted)
 		{
-			p.flags |= m_rc4_encrypted
-				? peer_info::rc4_encrypted
-				: peer_info::plaintext_encrypted;
+			p.flags |= (m_rc4_encrypted || m_aes_ctr_encrypted) ? peer_info::rc4_encrypted
+																: peer_info::plaintext_encrypted;
 		}
 #endif
 
@@ -618,10 +657,11 @@ namespace {
 		std::memcpy(ptr, obfsc_hash.data(), 20);
 		ptr += 20;
 
-		// Discard DH key exchange data, setup RC4 keys
+		// Discard DH key exchange data, setup RC4 and AES-CTR keys
 		m_rc4 = init_pe_rc4_handler(secret_key, info_hash, is_outgoing());
+		m_aes_ctr = init_pe_aes_ctr_handler(secret_key, info_hash, is_outgoing());
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::info, peer_log_alert::encryption, "computed RC4 keys");
+		peer_log(peer_log_alert::info, peer_log_alert::encryption, "computed RC4 and AES-CTR keys");
 #endif
 		m_dh_key_exchange.reset(); // secret should be invalid at this point
 
@@ -630,14 +670,20 @@ namespace {
 
 		// this is an invalid setting, but let's just make the best of the situation
 		int const enc_level = m_settings.get_int(settings_pack::allowed_enc_level);
-		std::uint8_t const crypto_provide = ((enc_level & settings_pack::pe_both) == 0)
-			? std::uint8_t(settings_pack::pe_both)
-			: std::uint8_t(enc_level);
+		std::uint8_t crypto_provide;
+		if ((enc_level & settings_pack::pe_both) == 0)
+			crypto_provide = std::uint8_t(settings_pack::pe_both);
+		else
+			crypto_provide = std::uint8_t(enc_level & settings_pack::pe_both);
 
 #ifndef TORRENT_DISABLE_LOGGING
-		static char const* level[] = {"plaintext", "rc4", "plaintext rc4"};
-		peer_log(peer_log_alert::info, peer_log_alert::encryption
-			, "%s", level[crypto_provide - 1]);
+		{
+			std::string desc;
+			if (crypto_provide & 1) desc += "plaintext ";
+			if (crypto_provide & 2) desc += "rc4 ";
+			if (crypto_provide & 4) desc += "aes-ctr";
+			peer_log(peer_log_alert::info, peer_log_alert::encryption, "%s", desc.c_str());
+		}
 #endif
 
 		write_pe_vc_cryptofield({ptr, encrypt_size}, crypto_provide, pad_size);
@@ -653,7 +699,8 @@ namespace {
 		TORRENT_ASSERT(!is_outgoing());
 		TORRENT_ASSERT(!m_encrypted);
 		TORRENT_ASSERT(!m_rc4_encrypted);
-		TORRENT_ASSERT(crypto_select == 0x02 || crypto_select == 0x01);
+		TORRENT_ASSERT(!m_aes_ctr_encrypted);
+		TORRENT_ASSERT(crypto_select == 0x04 || crypto_select == 0x02 || crypto_select == 0x01);
 		TORRENT_ASSERT(!m_sent_handshake);
 
 		int const pad_size = int(random(512));
@@ -667,14 +714,18 @@ namespace {
 		send_buffer(vec);
 
 		// encryption method has been negotiated
-		if (crypto_select == 0x02)
+		if (crypto_select == 0x04) // pe_aes_ctr
+			m_aes_ctr_encrypted = true;
+		else if (crypto_select == 0x02) // pe_rc4
 			m_rc4_encrypted = true;
-		else // 0x01
-			m_rc4_encrypted = false;
+			// else 0x01 (pe_plaintext) — no encryption
 
 #ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::info, peer_log_alert::encryption, " crypto select: %s"
-			, (crypto_select == 0x01) ? "plaintext" : "rc4");
+		static char const* mode_name[] = {"none", "plaintext", "rc4", "invalid", "aes-ctr"};
+		peer_log(peer_log_alert::info,
+			peer_log_alert::encryption,
+			" crypto select: %s",
+			crypto_select <= 4 ? mode_name[crypto_select] : "unknown");
 #endif
 	}
 
@@ -2757,14 +2808,25 @@ namespace {
 	void bt_peer_connection::init_bt_handshake()
 	{
 		m_encrypted = true;
-		if (m_rc4_encrypted)
+		if (m_aes_ctr_encrypted)
+		{
+			switch_send_crypto(m_aes_ctr);
+			switch_recv_crypto(m_aes_ctr);
+		}
+		else if (m_rc4_encrypted)
 		{
 			switch_send_crypto(m_rc4);
 			switch_recv_crypto(m_rc4);
 		}
 
 		// decrypt remaining received bytes
-		if (m_rc4_encrypted)
+		if (m_aes_ctr_encrypted)
+		{
+			span<char> remaining =
+				m_recv_buffer.mutable_buffer().subspan(m_recv_buffer.packet_size());
+			m_aes_ctr->decrypt(remaining);
+		}
+		else if (m_rc4_encrypted)
 		{
 			span<char> const remaining = m_recv_buffer.mutable_buffer()
 				.subspan(m_recv_buffer.packet_size());
@@ -2776,6 +2838,7 @@ namespace {
 #endif
 		}
 		m_rc4.reset();
+		m_aes_ctr.reset();
 
 		// encrypted portion of handshake completed, toggle
 		// peer_info pe_support flag back to true
@@ -2998,9 +3061,16 @@ namespace {
 
 				m_rc4 = init_pe_rc4_handler(m_dh_key_exchange->get_secret()
 					, associated_info_hash(), is_outgoing());
+				if (m_rc4)
+					m_aes_ctr = init_pe_aes_ctr_handler(
+						m_dh_key_exchange->get_secret(), associated_info_hash(), is_outgoing());
 #ifndef TORRENT_DISABLE_LOGGING
-				peer_log(peer_log_alert::info, peer_log_alert::encryption, "computed RC4 keys");
-				peer_log(peer_log_alert::info, peer_log_alert::encryption, "stream key found, torrent located");
+				peer_log(peer_log_alert::info,
+					peer_log_alert::encryption,
+					"computed RC4 and AES-CTR keys");
+				peer_log(peer_log_alert::info,
+					peer_log_alert::encryption,
+					"stream key found, torrent located");
 #endif
 			}
 
@@ -3110,6 +3180,7 @@ namespace {
 		{
 			TORRENT_ASSERT(!m_encrypted);
 			TORRENT_ASSERT(!m_rc4_encrypted);
+			TORRENT_ASSERT(!m_aes_ctr_encrypted);
 			TORRENT_ASSERT(m_recv_buffer.packet_size() == 4+2);
 			received_bytes(0, int(bytes_transferred));
 			bytes_transferred = 0;
@@ -3124,10 +3195,13 @@ namespace {
 			std::uint32_t crypto_field = aux::read_uint32(recv_buffer);
 
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, peer_log_alert::encryption, "crypto %s : [%s%s ]"
-				, is_outgoing() ? "select" : "provide"
-				, (crypto_field & 1) ? " plaintext" : ""
-				, (crypto_field & 2) ? " rc4" : "");
+			peer_log(peer_log_alert::info,
+				peer_log_alert::encryption,
+				"crypto %s : [%s%s%s]",
+				is_outgoing() ? "select" : "provide",
+				(crypto_field & 1) ? " plaintext" : "",
+				(crypto_field & 2) ? " rc4" : "",
+				(crypto_field & 4) ? " aes-ctr" : "");
 #endif
 
 			if (!is_outgoing())
@@ -3136,19 +3210,20 @@ namespace {
 				int allowed_encryption = m_settings.get_int(settings_pack::allowed_enc_level);
 				std::uint32_t crypto_select = crypto_field & std::uint32_t(allowed_encryption);
 
-				// when prefer_rc4 is set, keep the most significant bit
-				// otherwise keep the least significant one
-				if (m_settings.get_bool(settings_pack::prefer_rc4))
+				// priority: AES-CTR > RC4 > plaintext
+				if (m_settings.get_bool(settings_pack::prefer_aes_ctr)
+					&& (crypto_select & settings_pack::pe_aes_ctr))
 				{
-					std::uint32_t mask = std::numeric_limits<std::uint32_t>::max();
-					while (crypto_select & (mask << 1))
-					{
-						mask <<= 1;
-						crypto_select = crypto_select & mask;
-					}
+					crypto_select = settings_pack::pe_aes_ctr;
+				}
+				else if (m_settings.get_bool(settings_pack::prefer_rc4)
+					&& (crypto_select & settings_pack::pe_rc4))
+				{
+					crypto_select = settings_pack::pe_rc4;
 				}
 				else
 				{
+					// default: keep the least significant bit
 					std::uint32_t mask = std::numeric_limits<std::uint32_t>::max();
 					while (crypto_select & (mask >> 1))
 					{
@@ -3180,9 +3255,27 @@ namespace {
 				}
 
 				if (crypto_field == settings_pack::pe_plaintext)
+				{
 					m_rc4_encrypted = false;
+					m_aes_ctr_encrypted = false;
+				}
 				else if (crypto_field == settings_pack::pe_rc4)
+				{
 					m_rc4_encrypted = true;
+					m_aes_ctr_encrypted = false;
+				}
+				else if (crypto_field == settings_pack::pe_aes_ctr)
+				{
+					m_rc4_encrypted = false;
+					m_aes_ctr_encrypted = true;
+				}
+				else
+				{
+					disconnect(errors::unsupported_encryption_mode_selected,
+						operation_t::encryption,
+						peer_error);
+					return;
+				}
 			}
 
 			int len_pad = aux::read_int16(recv_buffer);
@@ -3282,12 +3375,18 @@ namespace {
 
 			// everything that arrives after this is encrypted
 			m_encrypted = true;
-			if (m_rc4_encrypted)
+			if (m_aes_ctr_encrypted)
+			{
+				switch_send_crypto(m_aes_ctr);
+				switch_recv_crypto(m_aes_ctr);
+			}
+			else if (m_rc4_encrypted)
 			{
 				switch_send_crypto(m_rc4);
 				switch_recv_crypto(m_rc4);
 			}
 			m_rc4.reset();
+			m_aes_ctr.reset();
 
 			// now that we have decrypted IA length of bytes, we
 			// reinterpret the receive buffer as the very start of a normal
@@ -3822,6 +3921,8 @@ namespace {
 				|| !is_outgoing());
 
 		TORRENT_ASSERT(!m_rc4_encrypted || (!m_encrypted && m_rc4)
+			|| (m_encrypted && !m_enc_handler.is_send_plaintext()));
+		TORRENT_ASSERT(!m_aes_ctr_encrypted || (!m_encrypted && m_aes_ctr)
 			|| (m_encrypted && !m_enc_handler.is_send_plaintext()));
 #endif
 		if (!in_handshake())

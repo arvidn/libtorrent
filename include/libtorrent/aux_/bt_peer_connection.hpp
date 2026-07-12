@@ -399,6 +399,9 @@ namespace libtorrent::aux {
 		// true if rc4, false if plaintext
 		bool m_rc4_encrypted:1;
 
+		// true if AES-128-CTR encryption is negotiated
+		bool m_aes_ctr_encrypted:1;
+
 // this is a legitimate use of a shadow field
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -452,6 +455,9 @@ namespace libtorrent::aux {
 		// into m_enc_handler if rc4 encryption is negotiated
 		// otherwise it is destroyed when the handshake completes
 		std::shared_ptr<rc4_handler> m_rc4;
+
+		// same as m_rc4 but for AES-CTR encryption
+		std::shared_ptr<aes_ctr_handler> m_aes_ctr;
 
 		// if encryption is negotiated, this is used for
 		// encryption/decryption during the entire session.

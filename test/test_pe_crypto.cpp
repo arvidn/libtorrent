@@ -161,6 +161,25 @@ TORRENT_TEST(rc4)
 	test_enc_handler(rc41, rc42);
 }
 
+#if defined TORRENT_USE_LIBCRYPTO
+TORRENT_TEST(aes_ctr)
+{
+	using namespace lt;
+
+	sha1_hash test1_key = hasher("test1_key", 8).final();
+	sha1_hash test2_key = hasher("test2_key", 8).final();
+
+	std::printf("testing AES-CTR handler\n");
+	aux::aes_ctr_handler h1;
+	h1.set_incoming_key(test2_key);
+	h1.set_outgoing_key(test1_key);
+	aux::aes_ctr_handler h2;
+	h2.set_incoming_key(test1_key);
+	h2.set_outgoing_key(test2_key);
+	test_enc_handler(h1, h2);
+}
+#endif
+
 #else
 TORRENT_TEST(disabled)
 {

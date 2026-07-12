@@ -883,6 +883,11 @@ namespace aux {
 			// prefer RC4 if both methods are offered, plain text otherwise
 			prefer_rc4,
 
+			// if the allowed encryption level includes AES-CTR (bit 4),
+			// setting this to true will prefer AES-CTR when offered, falling
+			// back to RC4 or plaintext
+			prefer_aes_ctr,
+
 			// if true, hostname lookups are done via the configured proxy (if
 			// any). This is only supported by SOCKS5 and HTTP.
 			proxy_hostnames,
@@ -2300,8 +2305,10 @@ namespace aux {
 			pe_plaintext = 1,
 			// use only RC4 encryption
 			pe_rc4 = 2,
-			// allow both
-			pe_both = 3
+			// allow plaintext, RC4 and AES-CTR
+			pe_both = 7,
+			// use AES-128-CTR encryption (hardware accelerated)
+			pe_aes_ctr = 4
 		};
 
 		// values for ``settings_pack::proxy_type``; selects which
