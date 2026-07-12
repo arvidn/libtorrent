@@ -437,8 +437,9 @@ struct aes_ctr_handler::aes_ctr_state
 
 namespace {
 
-	// Build the AES-CTR IV: 4-byte nonce (BE) + 64 (12-byte counter, BE)
-	// Counter starts at 64 to discard the first 1024 bytes (64 AES blocks)
+	// Build the AES-CTR IV: 4-byte nonce (BE) + 12-byte counter (BE)
+	// Counter starts at 0. Unlike RC4, AES-CTR has no initial
+	// keystream bias, so no warm-up discard is needed.
 	std::array<std::uint8_t, 16> make_ctr_iv(span<char const> key)
 	{
 		TORRENT_ASSERT(key.size() >= 20);
@@ -447,7 +448,6 @@ namespace {
 		iv[1] = std::uint8_t(key[17]);
 		iv[2] = std::uint8_t(key[18]);
 		iv[3] = std::uint8_t(key[19]);
-		iv[15] = 64;
 		return iv;
 	}
 
