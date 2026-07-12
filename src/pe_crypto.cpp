@@ -39,6 +39,14 @@ extern "C"
 #elif TORRENT_USE_CNG
 #include <windows.h>
 #include <bcrypt.h>
+
+// BCRYPT_CHAIN_MODE_CTR was added in Windows 10 RS5 (NTDDI >= 0x0A000006).
+// Provide a fallback definition in case the SDK headers don't expose it
+// (e.g. when NTDDI_VERSION hasn't been set high enough by the build system).
+#ifndef BCRYPT_CHAIN_MODE_CTR
+#define BCRYPT_CHAIN_MODE_CTR L"ChainingModeCTR"
+#endif
+
 #elif TORRENT_USE_COMMONCRYPTO
 #include <CommonCrypto/CommonCryptor.h>
 #endif
