@@ -709,7 +709,7 @@ namespace libtorrent::aux {
 		, storage_error& error)
 	{
 #ifdef TORRENT_SIMULATE_SLOW_READ
-		std::this_thread::sleep_for(milliseconds(100);
+		std::this_thread::sleep_for(milliseconds(100));
 #endif
 		std::int64_t const start_offset = static_cast<int>(piece) * std::int64_t(files().piece_length()) + offset;
 		file_index_t const file_index = files().file_index_at_offset(start_offset);

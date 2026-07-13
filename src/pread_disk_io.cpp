@@ -36,6 +36,8 @@ see LICENSE file.
 #include "libtorrent/aux_/scope_end.hpp"
 
 #include <functional>
+#include <memory>
+#include <vector>
 
 namespace libtorrent {
 namespace {
@@ -1168,8 +1170,8 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 		}
 	}
 
-	// hash_piece() callback. Also reused as a fallback (all-null blocks,
-	// hasher_cursor=0) for pieces not in the cache.
+	// hash_piece() callback, for a piece that's at least partially in the
+	// cache. See the not_in_cache branch below for the not-in-cache fallback.
 	auto hash_partial_piece = [&](lt::aux::piece_hasher* ph,
 								  int const hasher_cursor,
 								  span<char const*> const blocks) {
@@ -1265,20 +1267,66 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 		}
 	};
 
-	auto const hpr = m_cache.hash_piece({ j->storage->storage_index(), a.piece}
-		, j, hash_partial_piece);
+	auto const hpr =
+		m_cache.hash_piece({j->storage->storage_index(), a.piece}, j, hash_partial_piece);
 
-	if (hpr == aux::disk_cache::hash_piece_result::deferred)
-		return disk_status::job_deferred;
+	if (hpr == aux::disk_cache::hash_piece_result::deferred) return disk_status::job_deferred;
 
+	// Fast path for a piece that isn't in the cache at all: read the whole
+	// piece from disk in a single I/O operation, rather than one read per
+	// 16 kiB block. v1's addressing spans whatever files/pad-files the piece
+	// touches and zero-fills any pad-file range (see storage->read()); v2's
+	// real data is always a prefix of that same span, since a pad file only
+	// ever follows the real bytes of the file it aligns, never precedes or
+	// overlaps them. So when v1 is also being hashed, one read of the
+	// v1-sized span serves both: the v1 SHA-1 is hashed over the whole
+	// buffer, and the v2 per-block SHA-256 hashes are computed from its
+	// leading piece_size2 bytes. When only v2 is being hashed, the read is
+	// exactly piece_size2 bytes. Either way, all hashing happens in memory,
+	// with no further I/O.
 	if (hpr == aux::disk_cache::hash_piece_result::not_in_cache)
 	{
-		// fall back to reading everything from disk
+		time_point const start_time = clock_type::now();
 
-		TORRENT_ALLOCA(blocks, char const*, blocks_to_read);
-		for (char const*& b : blocks) b = nullptr;
-		lt::aux::piece_hasher ph_storage;
-		hash_partial_piece(v1 ? &ph_storage : nullptr, 0, blocks);
+		int const read_len = v1 ? piece_size : piece_size2;
+		std::unique_ptr<char[]> buf(new char[std::size_t(read_len)]);
+		span<char> const buf_span{buf.get(), read_len};
+
+		j->error.ec.clear();
+		j->storage->read(m_settings, buf_span, a.piece, 0, file_mode, j->flags, j->error);
+
+		if (!j->error.ec)
+		{
+			if (v1)
+			{
+				hasher h;
+				h.update(buf_span);
+				a.piece_hash = h.final();
+			}
+
+			if (v2)
+			{
+				int offset = 0;
+				for (int i = 0; i < blocks_in_piece2; ++i)
+				{
+					std::ptrdiff_t const len2 = std::min(default_block_size, piece_size2 - offset);
+					if (a.block_hashes[i].is_all_zeros())
+					{
+						hasher256 h2;
+						h2.update({buf.get() + offset, len2});
+						a.block_hashes[i] = h2.final();
+					}
+					offset += default_block_size;
+				}
+			}
+
+			std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+
+			m_stats_counters.inc_stats_counter(counters::num_read_back, blocks_to_read);
+			m_stats_counters.inc_stats_counter(counters::num_read_ops, 1);
+			m_stats_counters.inc_stats_counter(counters::disk_hash_time, read_time);
+			m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
+		}
 	}
 
 	return j->error ? disk_status::fatal_disk_error : status_t{};
