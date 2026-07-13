@@ -126,6 +126,40 @@ namespace
 
 } // anonymous namespace
 
+TORRENT_TEST(listen_socket_handle_hash_stable_after_destruction)
+{
+	// listen_socket_handle::hash_value() must stay the same for as long as a
+	// handle exists, even after the listen_socket_t it refers to is
+	// destroyed -- unlike get(), which collapses to nullptr once the object
+	// dies. tracker_manager::http_pool_key_hash relies on this: boost's
+	// hashed_unique index recomputes an element's hash during a rehash, so a
+	// hash that depends on pointee liveness would silently move the element
+	// to the wrong bucket the moment the object it refers to is destroyed.
+	aux::listen_socket_handle handle;
+	std::size_t hash_before_destruction;
+	{
+		auto s = sock("4.4.4.4", 6881);
+		handle = aux::listen_socket_handle(s);
+		hash_before_destruction = handle.hash_value();
+		TEST_CHECK(handle.get() == s.get());
+	}
+	// the listen_socket_t is destroyed here; handle still refers to it weakly
+	TEST_CHECK(handle.get() == nullptr);
+	TEST_EQUAL(handle.hash_value(), hash_before_destruction);
+}
+
+TORRENT_TEST(listen_socket_handle_hash_distinguishes_objects)
+{
+	// two handles referring to distinct, concurrently alive listen_socket_t
+	// objects must have distinct hashes.
+	auto s1 = sock("4.4.4.4", 6881);
+	auto s2 = sock("5.5.5.5", 6882);
+	aux::listen_socket_handle const h1(s1);
+	aux::listen_socket_handle const h2(s2);
+	TEST_CHECK(h1 != h2);
+	TEST_CHECK(h1.hash_value() != h2.hash_value());
+}
+
 TORRENT_TEST(partition_listen_sockets_wildcard2specific)
 {
 	std::vector<std::shared_ptr<aux::listen_socket_t>> sockets = {
