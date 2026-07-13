@@ -13,7 +13,7 @@ see LICENSE file.
 #include <type_traits> // for enable_if
 
 #if TORRENT_USE_IOSTREAM
-#include <iosfwd>
+#include <iostream>
 #include <iomanip>
 #endif
 
