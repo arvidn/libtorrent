@@ -166,6 +166,10 @@ namespace aux {
 		listen_socket_t& operator=(listen_socket_t const&) = delete;
 		listen_socket_t& operator=(listen_socket_t&&) = delete;
 
+		// unlike this object's address, never reused by a later, unrelated
+		// listen_socket_t once this one is destroyed.
+		std::uint32_t const id = next_id();
+
 		udp::endpoint get_local_endpoint() override
 		{
 			error_code ec;
@@ -254,6 +258,15 @@ namespace aux {
 		// set to true when we receive an incoming connection from this listen
 		// socket
 		bool incoming_connection = false;
+
+	private:
+		// non-atomic is fine: listen_socket_t is only ever constructed on
+		// the network thread.
+		static std::uint32_t next_id()
+		{
+			static std::uint32_t next = 0;
+			return ++next;
+		}
 	};
 
 		struct TORRENT_EXTRA_EXPORT listen_endpoint_t
