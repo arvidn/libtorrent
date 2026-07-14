@@ -171,9 +171,20 @@ constexpr tracker_request_flags_t tracker_request::high_priority;
 	void tracker_connection::fail_impl(error_code const& ec, operation_t const op
 		, std::string const msg, seconds32 const interval, seconds32 const min_interval)
 	{
-		std::shared_ptr<request_callback> cb = requester();
-		if (cb) cb->tracker_request_error(m_req, ec, op, msg
-			, interval.count() == 0 ? min_interval : interval);
+		// fail() only posts this call, so m_req is not necessarily still
+		// pending by the time it runs: the connection's own logic may have
+		// already reported an outcome for it (e.g. a legitimate response
+		// arriving right as tracker_manager::abort_all_requests() posted
+		// this same call). Checking here, rather than in fail(), is what
+		// makes the two mutually exclusive.
+		if (m_req_pending)
+		{
+			m_req_pending = false;
+			std::shared_ptr<request_callback> cb = requester();
+			if (cb)
+				cb->tracker_request_error(
+					m_req, ec, op, msg, interval.count() == 0 ? min_interval : interval);
+		}
 		close();
 	}
 
@@ -438,31 +449,47 @@ constexpr tracker_request_flags_t tracker_request::high_priority;
 		// this is called from the destructor too, which is not subject to the
 		// single-thread requirement.
 		TORRENT_ASSERT(all || is_single_thread());
-		// removes all connections except 'event=stopped'-requests
+		// removes all connections except 'event=stopped'-requests. Aborted
+		// requests are reported as a skipped announce, which clears the
+		// "updating" flag on the requester's end, so the tracker is
+		// eligible to be announced to again, e.g. once a paused session is
+		// resumed.
 
-		std::vector<std::shared_ptr<http_tracker_connection>> close_http_connections;
+		std::vector<std::shared_ptr<http_tracker_connection>> close_http_queued;
+		std::vector<std::shared_ptr<http_tracker_connection>> close_http_started;
 		std::vector<std::shared_ptr<udp_tracker_connection>> close_udp_connections;
 
-		for (auto const& c : m_queued)
+		// remove queued (not yet started) requests from the queue right
+		// away, rather than leaving that to the closing loop below.
+		// Otherwise, closing one of the started connections below would
+		// dequeue and start the next queued request, just to abort it
+		// again immediately after.
+		for (auto it = m_queued.begin(); it != m_queued.end();)
 		{
-			tracker_request const& req = c->tracker_req();
+			tracker_request const& req = (*it)->tracker_req();
 			if (req.event == event_t::stopped && !all)
+			{
+				++it;
 				continue;
-
-			close_http_connections.push_back(c);
+			}
 
 #ifndef TORRENT_DISABLE_LOGGING
-			std::shared_ptr<request_callback> rc = c->requester();
+			std::shared_ptr<request_callback> rc = (*it)->requester();
 			if (rc) rc->debug_log("aborting: %s", req.url.c_str());
 #endif
+			close_http_queued.push_back(*it);
+			it = m_queued.erase(it);
 		}
+		m_stats_counters.set_value(
+			counters::num_queued_tracker_announces, std::int64_t(m_queued.size()));
+
 		for (auto const& c : m_http_conns)
 		{
 			tracker_request const& req = c->tracker_req();
 			if (req.event == event_t::stopped && !all)
 				continue;
 
-			close_http_connections.push_back(c);
+			close_http_started.push_back(c);
 
 #ifndef TORRENT_DISABLE_LOGGING
 			std::shared_ptr<request_callback> rc = c->requester();
@@ -484,11 +511,33 @@ constexpr tracker_request_flags_t tracker_request::high_priority;
 #endif
 		}
 
-		for (auto const& c : close_http_connections)
-			c->close();
-
-		for (auto const& c : close_udp_connections)
-			c->close();
+		// tearing everything down for good (the tracker_manager destructor)
+		// reports no outcome and closes synchronously: posting here would
+		// be unsafe, since the io_context is not guaranteed to run again
+		// before this object is destroyed. Otherwise, report each as a
+		// skipped announce (fail() posts, so this is safe to call while
+		// still iterating connection containers here) so the "updating"
+		// flag on the torrent's end is cleared and the tracker becomes
+		// eligible to be announced to again, e.g. once the session is
+		// resumed.
+		if (all)
+		{
+			for (auto const& c : close_http_queued)
+				c->close();
+			for (auto const& c : close_http_started)
+				c->close();
+			for (auto const& c : close_udp_connections)
+				c->close();
+		}
+		else
+		{
+			for (auto const& c : close_http_queued)
+				c->fail(errors::announce_skipped, operation_t::bittorrent);
+			for (auto const& c : close_http_started)
+				c->fail(errors::announce_skipped, operation_t::bittorrent);
+			for (auto const& c : close_udp_connections)
+				c->fail(errors::announce_skipped, operation_t::bittorrent);
+		}
 	}
 
 	bool tracker_manager::empty() const

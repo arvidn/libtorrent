@@ -599,6 +599,7 @@ namespace libtorrent {
 
 		if (!cb)
 		{
+			m_req_pending = false;
 			close();
 			return true;
 		}
@@ -633,6 +634,11 @@ namespace libtorrent {
 		std::transform(m_endpoints.begin(), m_endpoints.end(), std::back_inserter(ip_list)
 			, [](tcp::endpoint const& ep) { return ep.address(); } );
 
+		// about to report the response below; mark it as no longer pending
+		// first, so a fail() already posted (e.g. by
+		// tracker_manager::abort_all_requests() racing this response) finds
+		// nothing left to report when it runs.
+		m_req_pending = false;
 		cb->tracker_response(tracker_req(), m_target.address(), ip_list, resp);
 
 		close();
@@ -677,10 +683,13 @@ namespace libtorrent {
 		std::shared_ptr<request_callback> cb = requester();
 		if (!cb)
 		{
+			m_req_pending = false;
 			close();
 			return true;
 		}
 
+		// see the equivalent comment in on_announce_response()
+		m_req_pending = false;
 		cb->tracker_scrape_response(tracker_req()
 			, complete, incomplete, downloaded, -1);
 
