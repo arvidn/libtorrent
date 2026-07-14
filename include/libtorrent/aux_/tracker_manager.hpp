@@ -297,6 +297,15 @@ using tracker_request_flags_t = flags::bitfield_flag<std::uint8_t, struct tracke
 		tracker_request m_req;
 		std::weak_ptr<request_callback> m_requester;
 
+		// true whenever m_req's outcome (success or error) has not yet been
+		// reported to m_requester. fail_impl() clears it when it reports an
+		// error; subclasses clear it wherever else they report m_req's
+		// outcome. This is what makes fail_impl() and a subclass's own
+		// success path mutually exclusive, even when fail() was posted (by
+		// e.g. tracker_manager::abort_all_requests()) around the same time
+		// the connection's own logic independently reported an outcome.
+		bool m_req_pending = true;
+
 		tracker_manager& m_man;
 	};
 
