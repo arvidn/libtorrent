@@ -29,7 +29,6 @@ see LICENSE file.
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <numeric>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -43,33 +42,6 @@ namespace fs = std::filesystem;
 using namespace std::chrono_literals;
 
 using clock_type = std::chrono::steady_clock;
-
-// calls fun() repeatedly, for at least min_samples calls and at least
-// min_duration of wall-clock time, and returns the per-call latency of
-// each sample, in nanoseconds
-template <typename Fun>
-std::vector<double> measure(
-	Fun fun, int const min_samples, std::chrono::milliseconds const min_duration)
-{
-	// warm up, e.g. to avoid attributing first-touch page faults to a
-	// real sample
-	for (int i = 0; i < 3; ++i)
-		fun();
-
-	std::vector<double> samples_ns;
-	auto const deadline = clock_type::now() + min_duration;
-	while (int(samples_ns.size()) < min_samples || clock_type::now() < deadline)
-	{
-		auto const start = clock_type::now();
-		fun();
-		auto const end = clock_type::now();
-		// prevents the compiler from reordering or eliding memory writes
-		// across this point
-		asm volatile("" : : : "memory");
-		samples_ns.push_back(std::chrono::duration<double, std::nano>(end - start).count());
-	}
-	return samples_ns;
-}
 
 // prevents the compiler from proving `value` is unused and eliding the
 // computation that produced it. The empty asm block with an input
@@ -88,14 +60,42 @@ struct stats
 	double stddev_ns;
 };
 
-stats analyze(lt::span<double const> samples_ns)
+// calls fun() repeatedly, for at least 10 samples and at least 500ms of
+// wall-clock time, and returns the mean and standard deviation of the
+// per-call latency, in nanoseconds. Samples are folded into the running
+// mean and variance as they're taken (Welford's online algorithm), so this
+// doesn't need to keep every sample around just to analyze them afterwards.
+template <typename Fun>
+stats analyze(Fun fun)
 {
-	double const mean =
-		std::accumulate(samples_ns.begin(), samples_ns.end(), 0.0) / double(samples_ns.size());
-	double sq_diff_sum = 0.0;
-	for (double const s : samples_ns)
-		sq_diff_sum += (s - mean) * (s - mean);
-	return {mean, std::sqrt(sq_diff_sum / double(samples_ns.size()))};
+	int const min_samples = 10;
+	auto const min_duration = 500ms;
+
+	// warm up, e.g. to avoid attributing first-touch page faults to a
+	// real sample
+	for (int i = 0; i < 3; ++i)
+		fun();
+
+	int count = 0;
+	double mean_ns = 0.0;
+	double m2 = 0.0;
+	auto const deadline = clock_type::now() + min_duration;
+	while (count < min_samples || clock_type::now() < deadline)
+	{
+		auto const start = clock_type::now();
+		fun();
+		auto const end = clock_type::now();
+		// prevents the compiler from reordering or eliding memory writes
+		// across this point
+		asm volatile("" : : : "memory");
+		double const sample_ns = std::chrono::duration<double, std::nano>(end - start).count();
+
+		++count;
+		double const delta = sample_ns - mean_ns;
+		mean_ns += delta / count;
+		m2 += delta * (sample_ns - mean_ns);
+	}
+	return {mean_ns, std::sqrt(m2 / count)};
 }
 
 // prints a set of named benchmarks as a Bencher Metric Format (BMF)
@@ -157,12 +157,8 @@ try
 #if !defined TORRENT_DISABLE_ENCRYPTION
 	using namespace lt::aux;
 
-	int const min_samples = 100;
-	auto const min_duration = 500ms;
-
 	// key generation: random secret + (2 ^ secret) % prime
-	results.emplace_back("dh_key_exchange",
-		analyze(measure([] { dh_key_exchange const dh; }, min_samples, min_duration)));
+	results.emplace_back("dh_key_exchange", analyze([] { dh_key_exchange const dh; }));
 
 	// a peer's public key to react to, exported the same way it would
 	// arrive off the wire
@@ -173,23 +169,17 @@ try
 	// operation that dominates the per-connection DH cost, isolated here
 	// from key generation and from hashing the resulting secret
 	dh_key_exchange dh;
-	results.emplace_back("dh_compute_secret",
-		analyze(measure(
-			[&] { dh.compute_secret(reinterpret_cast<std::uint8_t const*>(peer_key.data())); },
-			min_samples,
-			min_duration)));
+	results.emplace_back("dh_compute_secret", analyze([&] {
+		dh.compute_secret(reinterpret_cast<std::uint8_t const*>(peer_key.data()));
+	}));
 
 	// the total DH cost incurred by one side of a PE handshake: generate
 	// a local key pair, then compute the shared secret from the peer's
 	// key
-	results.emplace_back("dh_handshake",
-		analyze(measure(
-			[&] {
-				dh_key_exchange local;
-				local.compute_secret(reinterpret_cast<std::uint8_t const*>(peer_key.data()));
-			},
-			min_samples,
-			min_duration)));
+	results.emplace_back("dh_handshake", analyze([&] {
+		dh_key_exchange local;
+		local.compute_secret(reinterpret_cast<std::uint8_t const*>(peer_key.data()));
+	}));
 
 	// RC4 stream cipher throughput, encrypting a single 16 kiB buffer (the
 	// size of one block, the unit of transfer in the BitTorrent protocol).
@@ -201,27 +191,20 @@ try
 	rc4_handler rc4_enc;
 	rc4_enc.set_outgoing_key(rc4_key);
 	std::vector<char> rc4_buf(16 * 1024);
-	results.emplace_back("rc4_encrypt",
-		analyze(measure(
-			[&] {
-				lt::span<char> iovec(rc4_buf);
-				auto const ret = rc4_enc.encrypt(iovec);
-				do_not_optimize(ret);
-			},
-			min_samples,
-			min_duration)));
+	results.emplace_back("rc4_encrypt", analyze([&] {
+		lt::span<char> iovec(rc4_buf);
+		auto const ret = rc4_enc.encrypt(iovec);
+		do_not_optimize(ret);
+	}));
 #endif
 
 	for (char const* filename : benchmark_cases)
 	{
 		std::vector<char> const buf = read_file(fs::path("bench-torrents") / filename);
-		stats const s = analyze(measure(
-			[&] {
-				auto const atp = lt::load_torrent_buffer(buf);
-				do_not_optimize(atp);
-			},
-			10,
-			500ms));
+		stats const s = analyze([&] {
+			auto const atp = lt::load_torrent_buffer(buf);
+			do_not_optimize(atp);
+		});
 		results.emplace_back(filename, s);
 	}
 
