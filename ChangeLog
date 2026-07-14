@@ -30,6 +30,9 @@
 	* added support for WebTorrent
 	* removed support for BEP 17 web seeds (in favor of BEP 19)
 
+2.0.14 not released
+
+	* fix windows disk read, possibly causing short-read errors
 	* fix blocking UDP socket in LSD and NAT-PMP
 	* fix web seed requests for single-file torrents in multi-file mode
 	* fix duplicate filenames in magnet links
