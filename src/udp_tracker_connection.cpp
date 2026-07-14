@@ -141,9 +141,10 @@ namespace libtorrent {
 
 		if (i != m_endpoints.end()) m_endpoints.erase(i);
 
-		// if that was the last one, or the listen socket was closed
-		// fail the whole announce
-		if (m_endpoints.empty() || !tracker_req().outgoing_socket)
+		// if we were explicitly told to give up (as opposed to this
+		// particular endpoint failing), if that was the last endpoint, or
+		// if the listen socket was closed, fail the whole announce
+		if (ec == errors::announce_skipped || m_endpoints.empty() || !tracker_req().outgoing_socket)
 		{
 			tracker_connection::fail(ec, op, msg, interval, min_interval);
 			return;
