@@ -301,6 +301,11 @@ TORRENT_TEST(base32)
 
 	// make sure invalid encoding returns the empty string
 	TEST_CHECK(base32decode("mZXw6yTBO1{#&*()=") == "");
+
+	// bytes with the high bit set (e.g. from a percent-encoded magnet link)
+	// are not valid base32 and decode to the empty string
+	TEST_CHECK(base32decode("MZXW6YT\x80") == "");
+	TEST_CHECK(base32decode(std::string("MZXW\xffYTBO")) == "");
 }
 
 TORRENT_TEST(escape_string)
