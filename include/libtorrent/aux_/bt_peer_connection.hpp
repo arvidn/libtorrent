@@ -399,6 +399,11 @@ namespace libtorrent::aux {
 		// true if rc4, false if plaintext
 		bool m_rc4_encrypted:1;
 
+#if TORRENT_HAS_MSE_AES_CTR
+		// true if AES-128-CTR encryption is negotiated
+		bool m_aes_ctr_encrypted:1;
+#endif
+
 // this is a legitimate use of a shadow field
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -448,10 +453,14 @@ namespace libtorrent::aux {
 		// initialized.
 		std::unique_ptr<dh_key_exchange> m_dh_key_exchange;
 
-		// used during an encrypted handshake then moved
-		// into m_enc_handler if rc4 encryption is negotiated
-		// otherwise it is destroyed when the handshake completes
-		std::shared_ptr<rc4_handler> m_rc4;
+		// used during the encrypted MSE handshake only.
+		// after crypto negotiation, either moved into m_enc_handler
+		// (if RC4 selected) or destroyed (if AES-CTR selected).
+		std::shared_ptr<rc4_handler> m_handshake_rc4;
+
+		// stored DH shared secret for deferred AES-CTR key
+		// derivation after crypto negotiation (outgoing path).
+		key_t m_dh_secret;
 
 		// if encryption is negotiated, this is used for
 		// encryption/decryption during the entire session.

@@ -134,6 +134,29 @@ namespace libtorrent::aux {
 		bool m_decrypt;
 	};
 
+#if TORRENT_HAS_MSE_AES_CTR
+	// AES-128-CTR handler, functionally equivalent to rc4_handler but using
+	// AES-NI accelerated AES in counter mode.
+	struct TORRENT_EXTRA_EXPORT aes_ctr_handler final : crypto_plugin
+	{
+		aes_ctr_handler();
+		~aes_ctr_handler() override;
+
+		void set_incoming_key(span<char const> key) override;
+		void set_outgoing_key(span<char const> key) override;
+
+		std::tuple<int, span<span<char const>>> encrypt(span<span<char>> buf) override;
+
+		std::tuple<int, int, int> decrypt(span<span<char>> buf) override;
+
+		struct aes_ctr_state;
+
+	private:
+		aes_ctr_state* m_incoming = nullptr;
+		aes_ctr_state* m_outgoing = nullptr;
+	};
+#endif
+
 } // namespace libtorrent::aux
 
 #endif // TORRENT_DISABLE_ENCRYPTION

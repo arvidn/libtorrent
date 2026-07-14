@@ -88,10 +88,16 @@ void bind_session_settings()
 		.value("pe_rc4", settings_pack::pe_rc4)
 		.value("pe_plaintext", settings_pack::pe_plaintext)
 		.value("pe_both", settings_pack::pe_both)
+#if TORRENT_HAS_MSE_AES_CTR
+		.value("pe_aes_ctr", settings_pack::pe_aes_ctr)
+#endif
 #if TORRENT_ABI_VERSION == 1
 		.value("rc4", settings_pack::pe_rc4)
 		.value("plaintext", settings_pack::pe_plaintext)
 		.value("both", settings_pack::pe_both)
+#if TORRENT_HAS_MSE_AES_CTR
+		.value("aes_ctr", settings_pack::pe_aes_ctr)
+#endif
 #endif
 		;
 

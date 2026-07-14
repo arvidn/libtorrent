@@ -26,6 +26,22 @@ see LICENSE file.
 #include "libtorrent/aux_/pe_crypto.hpp"
 #include "libtorrent/hasher.hpp"
 
+#if TORRENT_HAS_MSE_AES_CTR
+
+#if defined TORRENT_USE_LIBCRYPTO || defined TORRENT_USE_OPENSSL
+extern "C"
+{
+#include <openssl/evp.h>
+}
+#elif defined TORRENT_USE_GNUTLS
+#include <nettle/aes.h>
+#include <nettle/ctr.h>
+#elif TORRENT_USE_COMMONCRYPTO
+#include <CommonCrypto/CommonCryptor.h>
+#endif
+
+#endif
+
 namespace libtorrent::aux {
 
 	namespace {
@@ -394,6 +410,201 @@ std::size_t rc4_encrypt(unsigned char *out, std::size_t outlen, rc4 *state)
 	state->y = y;
 	return n;
 }
+
+#if TORRENT_HAS_MSE_AES_CTR
+
+// --- per-backend state ---
+
+#if defined(TORRENT_USE_LIBCRYPTO) || defined(TORRENT_USE_OPENSSL)
+struct aes_ctr_handler::aes_ctr_state
+{
+	EVP_CIPHER_CTX* ctx = nullptr;
+};
+#elif defined TORRENT_USE_GNUTLS
+struct aes_ctr_handler::aes_ctr_state
+{
+	aes128_ctx ctx{};
+	std::array<std::uint8_t, AES_BLOCK_SIZE> ctr{};
+};
+#elif TORRENT_USE_COMMONCRYPTO
+struct aes_ctr_handler::aes_ctr_state
+{
+	CCCryptorRef cryptor = nullptr;
+};
+#endif
+
+// --- per-backend init ---
+
+namespace {
+
+	// Build the AES-CTR IV: 4-byte nonce (BE) + 12-byte counter (BE)
+	// Counter starts at 0. Unlike RC4, AES-CTR has no initial
+	// keystream bias, so no warm-up discard is needed.
+	std::array<std::uint8_t, 16> make_ctr_iv(span<char const> key)
+	{
+		TORRENT_ASSERT(key.size() >= 20);
+		std::array<std::uint8_t, 16> iv{};
+		iv[0] = std::uint8_t(key[16]);
+		iv[1] = std::uint8_t(key[17]);
+		iv[2] = std::uint8_t(key[18]);
+		iv[3] = std::uint8_t(key[19]);
+		return iv;
+	}
+
+#if defined(TORRENT_USE_LIBCRYPTO) || defined(TORRENT_USE_OPENSSL)
+
+	void init_ctr_state(aes_ctr_handler::aes_ctr_state*& state, span<char const> key)
+	{
+		delete state;
+		state = new aes_ctr_handler::aes_ctr_state;
+		state->ctx = EVP_CIPHER_CTX_new();
+		if (!state->ctx) return;
+
+		auto const iv = make_ctr_iv(key);
+		EVP_EncryptInit_ex(state->ctx,
+			EVP_aes_128_ctr(),
+			nullptr,
+			reinterpret_cast<unsigned char const*>(key.data()),
+			iv.data());
+	}
+
+	void free_ctr_state(aes_ctr_handler::aes_ctr_state*& state)
+	{
+		if (!state) return;
+		if (state->ctx) EVP_CIPHER_CTX_free(state->ctx);
+		delete state;
+		state = nullptr;
+	}
+
+	int do_xor(aes_ctr_handler::aes_ctr_state* state, span<char> buf)
+	{
+		if (buf.empty()) return 0;
+		int outlen = 0;
+		EVP_EncryptUpdate(state->ctx,
+			reinterpret_cast<unsigned char*>(buf.data()),
+			&outlen,
+			reinterpret_cast<unsigned char*>(buf.data()),
+			int(buf.size()));
+		return outlen;
+	}
+
+#elif defined(TORRENT_USE_GNUTLS)
+
+	void init_ctr_state(aes_ctr_handler::aes_ctr_state*& state, span<char const> key)
+	{
+		delete state;
+		state = new aes_ctr_handler::aes_ctr_state;
+
+		auto const iv = make_ctr_iv(key);
+		std::memcpy(state->ctr.data(), iv.data(), state->ctr.size());
+		aes128_set_encrypt_key(&state->ctx, reinterpret_cast<std::uint8_t const*>(key.data()));
+	}
+
+	void free_ctr_state(aes_ctr_handler::aes_ctr_state*& state)
+	{
+		delete state;
+		state = nullptr;
+	}
+
+	int do_xor(aes_ctr_handler::aes_ctr_state* state, span<char> buf)
+	{
+		if (buf.empty()) return 0;
+		auto const len = buf.size();
+		auto* const data = reinterpret_cast<std::uint8_t*>(buf.data());
+		ctr_crypt(&state->ctx,
+			reinterpret_cast<nettle_cipher_func*>(aes128_encrypt),
+			AES_BLOCK_SIZE,
+			state->ctr.data(),
+			len,
+			data,
+			data);
+		return int(len);
+	}
+
+#elif TORRENT_USE_COMMONCRYPTO
+
+	void init_ctr_state(aes_ctr_handler::aes_ctr_state*& state, span<char const> key)
+	{
+		delete state;
+		state = new aes_ctr_handler::aes_ctr_state;
+
+		auto const iv = make_ctr_iv(key);
+		CCCryptorCreateWithMode(kCCEncrypt,
+			kCCModeCTR,
+			kCCAlgorithmAES128,
+			ccNoPadding,
+			iv.data(),
+			reinterpret_cast<std::uint8_t const*>(key.data()),
+			kCCKeySizeAES128,
+			nullptr,
+			0,
+			0,
+			kCCModeOptionCTR_BE,
+			&state->cryptor);
+	}
+
+	void free_ctr_state(aes_ctr_handler::aes_ctr_state*& state)
+	{
+		if (!state) return;
+		if (state->cryptor) CCCryptorRelease(state->cryptor);
+		delete state;
+		state = nullptr;
+	}
+
+	int do_xor(aes_ctr_handler::aes_ctr_state* state, span<char> buf)
+	{
+		if (buf.empty()) return 0;
+		if (!state->cryptor) return 0;
+		size_t dataOutMoved = 0;
+		CCCryptorUpdate(state->cryptor,
+			buf.data(),
+			size_t(buf.size()),
+			buf.data(),
+			size_t(buf.size()),
+			&dataOutMoved);
+		return int(dataOutMoved);
+	}
+
+#endif
+
+} // anonymous namespace
+
+// --- common methods ---
+
+aes_ctr_handler::aes_ctr_handler() = default;
+
+aes_ctr_handler::~aes_ctr_handler()
+{
+	free_ctr_state(m_incoming);
+	free_ctr_state(m_outgoing);
+}
+
+void aes_ctr_handler::set_incoming_key(span<char const> key) { init_ctr_state(m_incoming, key); }
+
+void aes_ctr_handler::set_outgoing_key(span<char const> key) { init_ctr_state(m_outgoing, key); }
+
+std::tuple<int, span<span<char const>>> aes_ctr_handler::encrypt(span<span<char>> bufs)
+{
+	span<span<char const>> empty;
+	if (!m_outgoing || bufs.empty()) return std::make_tuple(0, empty);
+
+	int bytes_processed = 0;
+	for (auto& buf : bufs)
+		bytes_processed += do_xor(m_outgoing, buf);
+	return std::make_tuple(bytes_processed, empty);
+}
+
+std::tuple<int, int, int> aes_ctr_handler::decrypt(span<span<char>> bufs)
+{
+	if (!m_incoming) return std::make_tuple(0, 0, 0);
+
+	int bytes_processed = 0;
+	for (auto& buf : bufs)
+		bytes_processed += do_xor(m_incoming, buf);
+	return std::make_tuple(0, bytes_processed, 0);
+}
+
+#endif // TORRENT_HAS_MSE_AES_CTR
 
 } // namespace libtorrent::aux
 

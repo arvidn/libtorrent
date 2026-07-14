@@ -1056,6 +1056,11 @@ namespace aux {
 			// increase network load.
 			allow_multiple_connections_per_pid,
 
+			// if the allowed encryption level includes AES-CTR (bit 4),
+			// setting this to true will prefer AES-CTR when offered, falling
+			// back to RC4 or plaintext
+			prefer_aes_ctr,
+
 			max_bool_setting_internal
 		};
 
@@ -2300,8 +2305,15 @@ namespace aux {
 			pe_plaintext = 1,
 			// use only RC4 encryption
 			pe_rc4 = 2,
-			// allow both
-			pe_both = 3
+#if TORRENT_HAS_MSE_AES_CTR
+			// use AES-128-CTR encryption (hardware accelerated)
+			pe_aes_ctr = 4,
+			// allow plaintext, RC4 and AES-CTR
+			pe_both = pe_plaintext | pe_rc4 | pe_aes_ctr
+#else
+			// allow both plaintext and RC4
+			pe_both = pe_plaintext | pe_rc4
+#endif
 		};
 
 		// values for ``settings_pack::proxy_type``; selects which

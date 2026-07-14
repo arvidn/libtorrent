@@ -674,3 +674,9 @@ fn
 sz
 sl
 hasher256
+AES
+CTR
+aes
+ctr
+AES-CTR
+plaintext

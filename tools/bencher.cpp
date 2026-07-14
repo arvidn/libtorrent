@@ -35,6 +35,7 @@ see LICENSE file.
 #include <vector>
 
 #include "libtorrent/aux_/pe_crypto.hpp"
+#include "libtorrent/aux_/random.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/load_torrent.hpp"
 #include "libtorrent/span.hpp"
@@ -190,7 +191,6 @@ try
 			},
 			min_samples,
 			min_duration)));
-
 	// RC4 stream cipher throughput, encrypting a single 16 kiB buffer (the
 	// size of one block, the unit of transfer in the BitTorrent protocol).
 	// decrypt() runs the same underlying rc4_encrypt() core over the same
@@ -210,8 +210,38 @@ try
 			},
 			min_samples,
 			min_duration)));
+
+#if TORRENT_HAS_MSE_AES_CTR
+	// AES-128-CTR stream cipher throughput, same 16 kiB buffer size.
+	// Key derivation uses the same 20-byte SHA-1 output as RC4,
+	// split into 16-byte AES key + 4-byte nonce.
+	{
+		constexpr int buf_size = 16 * 1024;
+		std::array<char, 20> const aes_ctr_key = [] {
+			std::array<char, 20> k;
+			random_bytes(k);
+			return k;
+		}();
+
+		std::vector<char> aes_buf(static_cast<std::size_t>(buf_size));
+		random_bytes(aes_buf);
+
+		aes_ctr_handler aes_ctr;
+		aes_ctr.set_outgoing_key(aes_ctr_key);
+		results.emplace_back("aes_ctr_encrypt",
+			analyze(measure(
+				[&] {
+					lt::span<char> iov[1] = {lt::span<char>(aes_buf)};
+					aes_ctr.encrypt(iov);
+					do_not_optimize(aes_buf[0]);
+				},
+				min_samples,
+				min_duration)));
+	}
+#endif
 #endif
 
+#endif // !defined TORRENT_DISABLE_ENCRYPTION
 	for (char const* filename : benchmark_cases)
 	{
 		std::vector<char> const buf = read_file(fs::path("bench-torrents") / filename);

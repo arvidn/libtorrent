@@ -88,6 +88,7 @@ int settings_key(int const tag)
 		case SET_PROXY_SEND_HOST_IN_CONNECT: return sp::proxy_send_host_in_connect;
 		case SET_DISK_DISABLE_COPY_ON_WRITE: return sp::disk_disable_copy_on_write;
 		case SET_ALLOW_MULTIPLE_CONNECTIONS_PER_PID: return sp::allow_multiple_connections_per_pid;
+		case SET_PREFER_AES_CTR: return sp::prefer_aes_ctr;
 		case SET_TRACKER_COMPLETION_TIMEOUT: return sp::tracker_completion_timeout;
 		case SET_TRACKER_RECEIVE_TIMEOUT: return sp::tracker_receive_timeout;
 		case SET_STOP_TRACKER_TIMEOUT: return sp::stop_tracker_timeout;
