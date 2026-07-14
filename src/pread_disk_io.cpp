@@ -268,13 +268,6 @@ private:
 	// starts, m_flush_target is cleared.
 	std::optional<int> m_flush_target = std::nullopt;
 
-	// storages that have a fence queued behind their outstanding cache writes.
-	// Those writes won't flush on their own (they can be partial pieces the
-	// optimistic pass skips, with the cache under its watermark), so the fence
-	// would wait forever. A generic disk thread flushes each so the writes drain
-	// and the fence can run. Guarded by m_job_mutex.
-	std::vector<std::shared_ptr<aux::pread_storage>> m_fence_flush;
-
 	settings_interface const& m_settings;
 
 	// LRU cache of open files
@@ -298,6 +291,16 @@ private:
 	std::mutex m_need_tick_mutex;
 
 	aux::storage_array<aux::pread_storage> m_torrents;
+
+	// storages that have a fence queued behind their outstanding cache writes.
+	// Those writes won't flush on their own (they can be partial pieces the
+	// optimistic pass skips, with the cache under its watermark), so the fence
+	// would wait forever. A generic disk thread flushes each so the writes drain
+	// and the fence can run. Guarded by m_job_mutex.
+	// this must be declared (and so destructed) after m_file_pool, since a
+	// pread_storage held alive only by this vector will call back into
+	// m_file_pool from its destructor.
+	std::vector<std::shared_ptr<aux::pread_storage>> m_fence_flush;
 
 	std::atomic_flag m_jobs_aborted = ATOMIC_FLAG_INIT;
 
@@ -393,6 +396,12 @@ pread_disk_io::~pread_disk_io()
 
 	// all torrents are supposed to have been removed by now
 	TORRENT_ASSERT(m_torrents.empty());
+
+	// every fenced storage is supposed to have been flushed by now. If one
+	// were left, destroying m_fence_flush here would drop the last reference
+	// to its pread_storage, which would call back into the (already
+	// destructed) m_file_pool.
+	TORRENT_ASSERT(m_fence_flush.empty());
 }
 #endif
 
@@ -2095,6 +2104,16 @@ void pread_disk_io::abort_jobs()
 	DLOG("pread_disk_io::abort_jobs\n");
 
 	if (m_jobs_aborted.test_and_set()) return;
+
+	// flush any storages still queued behind a fence's outstanding writes.
+	// Otherwise they would sit in m_fence_flush, keeping their pread_storage
+	// alive until m_fence_flush is destructed, which happens after
+	// m_file_pool -- and pread_storage::~pread_storage() calls back into
+	// m_file_pool.
+	{
+		std::unique_lock<std::mutex> l(m_job_mutex);
+		flush_fenced_storages(l);
+	}
 
 	// close all files. This may take a long
 	// time on certain OSes (i.e. Mac OS)
