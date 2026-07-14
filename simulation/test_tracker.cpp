@@ -992,9 +992,78 @@ TORRENT_TEST(paused_session)
 	timeline += seconds(5);
 
 	// then shut down
-	sim::timer t4(sim, timeline
-		, [&ses,&zombie](boost::system::error_code const&)
-	{
+	sim::timer t4(sim, timeline, [&ses, &zombie](boost::system::error_code const&) {
+		zombie = ses->abort();
+		ses.reset();
+	});
+
+	sim.run();
+}
+
+// pausing a session while a tracker announce is genuinely in flight
+// (already dispatched, awaiting a response, as opposed to paused_session
+// above where the announce has already completed) must still report the
+// request being torn down, via tracker_manager::abort_all_requests(), so
+// announce_infohash::updating gets cleared and the tracker becomes
+// eligible to be announced to again once the session is resumed.
+TORRENT_TEST(paused_session_in_flight_announce)
+{
+	using sim::asio::ip::address_v4;
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+
+	sim::asio::io_context tracker_ios(sim, make_address_v4("123.0.0.2"));
+	sim::http_server http(tracker_ios, 8080);
+
+	// never respond, so the announce stays genuinely in flight when the
+	// session is paused.
+	http.register_stall_handler("/announce");
+
+	lt::session_proxy zombie;
+
+	asio::io_context ios(sim, make_address_v4("123.0.0.3"));
+	lt::settings_pack sett = settings();
+	auto ses = std::make_unique<lt::session>(sett, ios);
+
+	bool error_seen = false;
+	error_code got_error;
+	ses->set_alert_notify([&] {
+		post(ses->get_context(), [&] {
+			std::vector<lt::alert*> alerts;
+			ses->pop_alerts(&alerts);
+			for (lt::alert* a : alerts)
+			{
+				if (auto const* te = alert_cast<tracker_error_alert>(a))
+				{
+					error_seen = true;
+					got_error = te->error;
+				}
+			}
+		});
+	});
+
+	lt::add_torrent_params p;
+	p.name = "test-torrent";
+	p.save_path = ".";
+	p.info_hashes.v1.assign("abababababababababab");
+	p.trackers.push_back("http://123.0.0.2:8080/announce");
+	ses->async_add_torrent(p);
+
+	sim::timer t1(sim, lt::seconds(2), [&](boost::system::error_code const&) { ses->pause(); });
+
+	sim::timer t2(sim, lt::seconds(3), [&](boost::system::error_code const&) {
+		TEST_CHECK(error_seen);
+		TEST_CHECK(got_error == error_code(errors::announce_skipped));
+
+		std::vector<lt::torrent_handle> torrents = ses->get_torrents();
+		TEST_EQUAL(torrents.size(), 1);
+		std::vector<announce_entry> tr = torrents[0].trackers();
+		TEST_EQUAL(tr.size(), 1);
+		TEST_EQUAL(tr[0].endpoints.size(), 1);
+		TEST_CHECK(!tr[0].endpoints[0].info_hashes[protocol_version::V1].updating);
+	});
+
+	sim::timer t3(sim, lt::seconds(4), [&ses, &zombie](boost::system::error_code const&) {
 		zombie = ses->abort();
 		ses.reset();
 	});

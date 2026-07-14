@@ -422,6 +422,7 @@ namespace libtorrent::aux {
 		std::shared_ptr<request_callback> cb = requester();
 		if (!cb)
 		{
+			m_req_pending = false;
 			close();
 			return;
 		}
@@ -443,6 +444,12 @@ namespace libtorrent::aux {
 			close();
 			return;
 		}
+
+		// the response is about to be reported below; mark it as no longer
+		// pending first, so a fail() already posted (e.g. by
+		// tracker_manager::abort_all_requests() racing this response) finds
+		// nothing left to report when it runs.
+		m_req_pending = false;
 
 		// do slightly different things for scrape requests
 		if (tracker_req().kind & tracker_request::scrape_request)
