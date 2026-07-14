@@ -32,6 +32,7 @@ see LICENSE file.
 #include <iostream>
 
 using namespace lt;
+using namespace std::chrono_literals;
 using std::ignore;
 
 namespace {
@@ -337,9 +338,20 @@ done:
 		, std::ostream_iterator<download_priority_t>(std::cout, ", "));
 	std::cout << std::endl;
 
-	// drain alerts
-	print_alerts(ses1, "ses1", true, true, &on_alert);
-	print_alerts(ses2, "ses2", true, true, &on_alert);
+	// drain alerts. The redundant seed connection may still be in the
+	// process of being disconnected from when the torrent was briefly
+	// finished (just before the priority bump above took effect), and its
+	// peer_disconnected_alert (one from each side) can arrive with some
+	// delay. Wait for both to show up so that disconnect is accounted for
+	// here, rather than leaking into the reconnect loop below and being
+	// mistaken for a reconnect failure.
+	for (int i = 0; i < 10 && peer_disconnects < 2; ++i)
+	{
+		ses1.wait_for_alert(100ms);
+		ses2.wait_for_alert(100ms);
+		print_alerts(ses1, "ses1", true, true, &on_alert);
+		print_alerts(ses2, "ses2", true, true, &on_alert);
+	}
 
 	peer_disconnects = 0;
 
