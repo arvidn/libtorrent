@@ -111,17 +111,19 @@ struct proxy_base
 	}
 
 #if BOOST_VERSION >= 106600 && !defined TORRENT_BUILD_SIMULATOR
-	// Compatibility with the async_wait method introduced in boost 1.66
-
+	// Compatibility with the async_wait method introduced in boost 1.66.
+	// This only exists to satisfy the interface required by
+	// boost::asio::gnutls::stream when instantiated with proxy_base (e.g.
+	// socks5_stream) as its next_layer_type. It is not expected to actually
+	// be called, since proxy_base is not used as an event-driven reactor.
 	static constexpr auto wait_read = tcp::socket::wait_read;
 	static constexpr auto wait_write = tcp::socket::wait_write;
 	static constexpr auto wait_error = tcp::socket::wait_error;
 
 	template <class Handler>
-	void async_wait(tcp::socket::wait_type type, Handler handler)
+	void async_wait(tcp::socket::wait_type, Handler)
 	{
-		TORRENT_ASSERT(m_magic == 0x1337);
-		m_sock.async_wait(type, std::move(handler));
+		TORRENT_ASSERT_FAIL();
 	}
 #endif
 
