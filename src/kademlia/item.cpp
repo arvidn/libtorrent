@@ -41,15 +41,23 @@ namespace {
 		char* ptr = out.data();
 
 		auto left = out.size() - (ptr - out.data());
+		// snprintf returns the number of characters it would have written had
+		// there been room, which may exceed "left". Clamp the advance so ptr
+		// never moves past the end of "out"; otherwise "left" goes negative and
+		// the std::min below hands std::copy a negative count.
 		if (!salt.empty())
 		{
-			ptr += std::snprintf(ptr, static_cast<std::size_t>(left), "4:salt%d:", int(salt.size()));
+			int const n =
+				std::snprintf(ptr, static_cast<std::size_t>(left), "4:salt%d:", int(salt.size()));
+			ptr += std::min<std::ptrdiff_t>(n, left);
 			left = out.size() - (ptr - out.data());
 			std::copy(salt.begin(), salt.begin() + std::min(salt.size(), left), ptr);
 			ptr += std::min(salt.size(), left);
 			left = out.size() - (ptr - out.data());
 		}
-		ptr += std::snprintf(ptr, static_cast<std::size_t>(left), "3:seqi%" PRId64 "e1:v", seq.value);
+		int const n =
+			std::snprintf(ptr, static_cast<std::size_t>(left), "3:seqi%" PRId64 "e1:v", seq.value);
+		ptr += std::min<std::ptrdiff_t>(n, left);
 		left = out.size() - (ptr - out.data());
 		std::copy(v.begin(), v.begin() + std::min(v.size(), left), ptr);
 		ptr += std::min(v.size(), left);

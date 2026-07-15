@@ -1,5 +1,6 @@
 2.1.1 not released
 
+	* fix stack buffer overflow in DHT mutable item signing/verification with oversized salt
 	* improve performance of checking files
 
 2.1.0 release
