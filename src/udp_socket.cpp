@@ -170,6 +170,9 @@ udp_socket::udp_socket(io_context& ios, aux::listen_socket_handle ls)
 	, m_listen_socket(std::move(ls))
 	, m_bind_port(0)
 	, m_abort(true)
+#if defined TORRENT_WINDOWS && !defined TORRENT_BUILD_SIMULATOR
+	, m_write_retry_timer(ios)
+#endif
 {}
 
 int udp_socket::read(span<packet> pkts, error_code& ec)
@@ -180,8 +183,25 @@ int udp_socket::read(span<packet> pkts, error_code& ec)
 
 	while (ret < num)
 	{
-		int const len = int(m_socket.receive_from(boost::asio::buffer(*m_buf)
-			, p.from, 0, ec));
+		int len;
+#if defined TORRENT_WINDOWS && !defined TORRENT_BUILD_SIMULATOR
+		if (m_recv_valid)
+		{
+			// use the result of the async_receive_from() issued by async_read()
+			// instead of a synchronous receive_from(), to avoid boost.asio
+			// instantiating a select_reactor on this platform. Subsequent
+			// iterations of this loop (draining the rest of a batch) fall
+			// through to the synchronous receive_from() below, same as POSIX.
+			m_recv_valid = false;
+			len = int(m_recv_bytes);
+			p.from = m_recv_from;
+			ec = m_recv_ec;
+		}
+		else
+#endif
+		{
+			len = int(m_socket.receive_from(boost::asio::buffer(*m_buf), p.from, 0, ec));
+		}
 
 		if (ec == error::would_block
 			|| ec == error::try_again
@@ -443,6 +463,9 @@ void udp_socket::close()
 	error_code ec;
 	m_socket.close(ec);
 	TORRENT_ASSERT_VAL(!ec || ec == error::bad_descriptor, ec);
+#if defined TORRENT_WINDOWS && !defined TORRENT_BUILD_SIMULATOR
+	m_write_retry_timer.cancel();
+#endif
 	if (m_socks5_connection)
 	{
 		m_socks5_connection->close();
