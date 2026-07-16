@@ -1,5 +1,10 @@
 	* remove predictive pieces feature
 
+2.1.1 not released
+
+	* improve dont-count-slow-torrents
+	* improve performance of checking files
+
 2.1.0 release
 
 	* fix tracker force announce
@@ -32,6 +37,11 @@
 	* added support for WebTorrent
 	* removed support for BEP 17 web seeds (in favor of BEP 19)
 
+2.0.14 not released
+
+	* fix external_ip_alert not being posted under some conditions when UPnP/NAT-PMP is enabled
+	* fix issue with stuck trackers on session pause
+	* fix windows disk read, possibly causing short-read errors
 	* fix blocking UDP socket in LSD and NAT-PMP
 	* fix web seed requests for single-file torrents in multi-file mode
 	* fix duplicate filenames in magnet links

@@ -54,7 +54,12 @@ struct entry_to_python
 				return tuple(l);
 			}
 			default:
-				return object();
+				// an undefined entry bencodes as an empty string (see
+				// bencode_visitor::operator()(entry::uninitialized_type const&)
+				// in bencode.hpp), so represent it the same way here rather
+				// than as None, which cannot be bencoded again without
+				// triggering the deprecation warning below
+				return object(bytes(std::string()));
 		}
 	}
 

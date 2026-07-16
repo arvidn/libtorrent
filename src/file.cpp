@@ -195,47 +195,68 @@ namespace {
 #endif
 
 #ifdef TORRENT_WINDOWS
-	int pread_all(handle_type const fd
-		, span<char> const buf
-		, std::int64_t const offset
-		, error_code& ec)
+	int pread_all(handle_type const fd, span<char> buf, std::int64_t offset, error_code& ec)
 	{
+		int ret = 0;
 		OVERLAPPED ol{};
-		ol.Offset = offset & 0xffffffff;
-		ol.OffsetHigh = offset >> 32;
-		DWORD const bytes_to_read = DWORD(buf.size());
-		DWORD bytes_read = 0;
-		if (ReadFile(fd, buf.data(), bytes_to_read, &bytes_read, &ol) == FALSE)
+		while (buf.size() > 0)
 		{
-			ec = error_code(::GetLastError(), system_category());
-			return -1;
-		}
+			ol.Offset = offset & 0xffffffff;
+			ol.OffsetHigh = offset >> 32;
+			DWORD const bytes_to_read = DWORD(buf.size());
+			DWORD bytes_read = 0;
+			if (ReadFile(fd, buf.data(), bytes_to_read, &bytes_read, &ol) == FALSE)
+			{
+				// when the read position is at or beyond the end of the
+				// file, ReadFile() fails with ERROR_HANDLE_EOF instead of
+				// succeeding with 0 bytes read
+				DWORD const last_error = ::GetLastError();
+				if (last_error == ERROR_HANDLE_EOF)
+					ec.assign(errors::file_too_short, libtorrent_category());
+				else
+					ec = error_code(last_error, system_category());
+				return -1;
+			}
 
-		if (bytes_read != bytes_to_read)
-		{
-			ec.assign(errors::file_too_short, libtorrent_category());
-			return -1;
-		}
+			if (bytes_read == 0)
+			{
+				ec.assign(errors::file_too_short, libtorrent_category());
+				return -1;
+			}
 
-		return int(bytes_read);
+			ret += int(bytes_read);
+			offset += bytes_read;
+			buf = buf.subspan(bytes_read);
+		}
+		return ret;
 	}
 
-	int pwrite_all(handle_type const fd
-		, span<char const> const buf
-		, std::int64_t const offset
-		, error_code& ec)
+	int pwrite_all(handle_type const fd, span<char const> buf, std::int64_t offset, error_code& ec)
 	{
+		int ret = 0;
 		OVERLAPPED ol{};
-		ol.Offset = offset & 0xffffffff;
-		ol.OffsetHigh = offset >> 32;
-		DWORD bytes_written = 0;
-		if (WriteFile(fd, buf.data(), DWORD(buf.size()), &bytes_written, &ol) == FALSE)
+		while (buf.size() > 0)
 		{
-			ec = error_code(::GetLastError(), system_category());
-			return -1;
-		}
+			ol.Offset = offset & 0xffffffff;
+			ol.OffsetHigh = offset >> 32;
+			DWORD bytes_written = 0;
+			if (WriteFile(fd, buf.data(), DWORD(buf.size()), &bytes_written, &ol) == FALSE)
+			{
+				ec = error_code(::GetLastError(), system_category());
+				return -1;
+			}
 
-		return int(bytes_written);
+			if (bytes_written == 0)
+			{
+				ec.assign(errors::file_too_short, libtorrent_category());
+				return -1;
+			}
+
+			ret += int(bytes_written);
+			offset += bytes_written;
+			buf = buf.subspan(bytes_written);
+		}
+		return ret;
 	}
 
 #else

@@ -317,6 +317,7 @@ namespace libtorrent::aux {
 		m_followers.pop_front();
 		m_req = std::move(next.first);
 		m_requester = std::move(next.second);
+		m_req_pending = true;
 		send_request();
 	}
 
@@ -465,6 +466,7 @@ namespace libtorrent::aux {
 		std::shared_ptr<request_callback> cb = requester();
 		if (!cb)
 		{
+			m_req_pending = false;
 			next_request();
 			return;
 		}
@@ -483,9 +485,15 @@ namespace libtorrent::aux {
 			fail(ecode, operation_t::bittorrent
 				, resp.failure_reason.c_str()
 				, resp.interval, resp.min_interval);
-			close();
+			next_request();
 			return;
 		}
+
+		// the response is about to be reported below; mark it as no longer
+		// pending first, so a fail() already posted (e.g. by
+		// tracker_manager::abort_all_requests() racing this response) finds
+		// nothing left to report when it runs.
+		m_req_pending = false;
 
 		// do slightly different things for scrape requests
 		if (tracker_req().kind & tracker_request::scrape_request)

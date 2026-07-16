@@ -42,6 +42,7 @@ namespace libtorrent {
 			if (t1 == -1) return false;
 			*out = char(t1 << 4);
 			++i;
+			if (i == end) return false;
 			int const t2 = aux::hex_to_int(*i);
 			if (t2 == -1) return false;
 			*out |= t2 & 15;

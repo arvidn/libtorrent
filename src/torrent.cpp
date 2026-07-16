@@ -10662,25 +10662,27 @@ namespace {
 
 		// this section determines whether the torrent is active or not. When it
 		// changes state, it may also trigger the auto-manage logic to reconsider
-		// which torrents should be queued and started. There is a low pass
-		// filter in order to avoid flapping (auto_manage_startup).
-		bool is_inactive = is_inactive_internal();
+		// which torrents should be queued and started.
+		bool const is_inactive = is_inactive_internal();
 
 		if (settings().get_bool(settings_pack::dont_count_slow_torrents))
 		{
-			if (is_inactive != bool(m_flags & torrent_internal_flags::inactive)
-				&& !(m_flags & torrent_internal_flags::pending_active_change))
+			if (is_inactive == bool(m_flags & torrent_internal_flags::inactive))
 			{
-				int const delay = settings().get_int(settings_pack::auto_manage_startup);
-				m_inactivity_timer.expires_after(seconds(delay));
-				m_inactivity_timer.async_wait([self](error_code const& ec) {
-					self->wrap(&torrent::on_inactivity_tick, ec); });
-				m_flags |= torrent_internal_flags::pending_active_change;
+				if (m_flags & torrent_internal_flags::pending_active_change)
+					m_inactivity_timer.cancel();
 			}
-			else if (is_inactive == bool(m_flags & torrent_internal_flags::inactive)
-				&& (m_flags & torrent_internal_flags::pending_active_change))
+			else if (!(m_flags & torrent_internal_flags::pending_active_change))
 			{
-				m_inactivity_timer.cancel();
+				// becoming inactive is debounced, to avoid flapping.
+				// recovering from inactive is posted immediately (0 delay)
+				int const delay =
+					is_inactive ? settings().get_int(settings_pack::auto_manage_startup) : 0;
+				m_inactivity_timer.expires_after(seconds(delay));
+				ADD_OUTSTANDING_ASYNC("torrent::on_inactivity_tick");
+				m_inactivity_timer.async_wait(
+					[self](error_code const& ec) { self->wrap(&torrent::on_inactivity_tick, ec); });
+				m_flags |= torrent_internal_flags::pending_active_change;
 			}
 		}
 
@@ -10701,6 +10703,8 @@ namespace {
 
 	void torrent::on_inactivity_tick(error_code const& ec) try
 	{
+		COMPLETE_ASYNC("torrent::on_inactivity_tick");
+
 		m_flags &= ~torrent_internal_flags::pending_active_change;
 
 		if (ec) return;

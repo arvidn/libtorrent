@@ -17,6 +17,7 @@ see LICENSE file.
 #include "settings.hpp"
 #include "utils.hpp"
 #include "create_torrent.hpp"
+#include "fake_peer.hpp"
 #include "simulator/simulator.hpp"
 #include "simulator/utils.hpp" // for timer
 #include <iostream>
@@ -894,6 +895,123 @@ TORRENT_TEST(pause_completed_torrents)
 		});
 }
 
+
+// once a torrent has been marked inactive (because its transfer rate dropped
+// below the inactive_down_rate threshold) it must stop being exempt from the
+// active_downloads limit as soon as it's no longer slow, rather than remaining
+// exempt for another auto_manage_startup seconds. This test doesn't simulate a
+// rate recovery, it lowers inactive_down_rate below zero instead, which flips
+// is_inactive_internal() from true to false the way a real rate recovery
+// would.
+TORRENT_TEST(inactive_recovery_is_immediate)
+{
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+	std::unique_ptr<sim::asio::io_context> ios = make_io_context(sim, 0);
+	lt::session_proxy zombie;
+
+	int const auto_manage_startup = 20;
+
+	lt::settings_pack pack = settings();
+	pack.set_bool(lt::settings_pack::dont_count_slow_torrents, true);
+	pack.set_int(lt::settings_pack::active_downloads, 1);
+	pack.set_int(lt::settings_pack::active_seeds, 1);
+	pack.set_int(lt::settings_pack::auto_manage_startup, auto_manage_startup);
+	pack.set_int(lt::settings_pack::inactive_down_rate, 1);
+	// the fake peer never completes the BT handshake (it doesn't send one
+	// back), so avoid the connection being torn down as a handshake timeout
+	// during the test
+	pack.set_int(lt::settings_pack::handshake_timeout, 3600);
+
+	std::shared_ptr<lt::session> ses = std::make_shared<lt::session>(pack, *ios);
+
+	// keep torrent A connected to a (silent) peer, without any real transfer,
+	// so it keeps being ticked even after it's marked inactive
+	fake_peer peer_a(sim, "60.0.0.0");
+
+	lt::torrent_handle h_a;
+	lt::torrent_handle h_b;
+	int num_added = 0;
+
+	lt::time_point start_time;
+	bool have_start_time = false;
+
+	struct pause_event
+	{
+		lt::time_point ts;
+		lt::torrent_handle h;
+	};
+	std::vector<pause_event> pause_events;
+
+	print_alerts(*ses, [&](lt::session&, lt::alert const* a) {
+		if (!have_start_time)
+		{
+			start_time = a->timestamp();
+			have_start_time = true;
+		}
+
+		if (auto* at = lt::alert_cast<lt::add_torrent_alert>(a))
+		{
+			if (num_added == 0)
+			{
+				h_a = at->handle;
+				add_fake_peer(h_a, 0);
+			}
+			else
+			{
+				h_b = at->handle;
+			}
+			++num_added;
+		}
+
+		if (auto* pa = lt::alert_cast<lt::torrent_paused_alert>(a))
+			pause_events.push_back({a->timestamp(), pa->handle});
+	});
+
+	lt::add_torrent_params params_a = ::create_torrent(0, false);
+	params_a.flags |= lt::torrent_flags::auto_managed;
+	params_a.flags |= lt::torrent_flags::paused;
+	ses->async_add_torrent(params_a);
+
+	lt::add_torrent_params params_b = ::create_torrent(1, false);
+	params_b.flags |= lt::torrent_flags::auto_managed;
+	params_b.flags |= lt::torrent_flags::paused;
+	ses->async_add_torrent(params_b);
+
+	// by now torrent A should have been marked inactive (at
+	// auto_manage_startup) and torrent B should have started to fill the
+	// freed slot. Simulate torrent A's rate recovering by lowering the
+	// inactive threshold below its (always zero) rate. This is comfortably
+	// before torrent B would independently be marked inactive on its own
+	// (which would happen at roughly 2 * auto_manage_startup).
+	int const recover_time = auto_manage_startup * 3 / 2;
+	sim::timer t2(sim, lt::seconds(recover_time), [&](boost::system::error_code const&) {
+		lt::settings_pack p;
+		p.set_int(lt::settings_pack::inactive_down_rate, -1);
+		ses->apply_settings(p);
+	});
+
+	sim::timer end_timer(
+		sim, lt::seconds(auto_manage_startup * 9 / 4), [&](boost::system::error_code const&) {
+			zombie = ses->abort();
+			ses.reset();
+		});
+
+	sim.run();
+
+	// torrent B should have been paused again shortly after torrent A
+	// recovers (recovering immediately), not another auto_manage_startup
+	// seconds later
+	bool paused_promptly = false;
+	for (auto const& e : pause_events)
+	{
+		int const t = int(lt::duration_cast<lt::seconds>(e.ts - start_time).count());
+		std::printf("pause-event t=%d\n", t);
+		if (e.h == h_b && t >= recover_time && t < recover_time + auto_manage_startup / 2)
+			paused_promptly = true;
+	}
+	TEST_CHECK(paused_promptly);
+}
 
 // TODO: assert that the torrent_paused_alert is posted when pausing
 //       downloading, seeding, checking torrents as well as the graceful pause

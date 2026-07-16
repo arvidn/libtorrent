@@ -11,9 +11,11 @@ see LICENSE file.
 #ifndef TORRENT_AUX_IO_HPP_INCLUDED
 #define TORRENT_AUX_IO_HPP_INCLUDED
 
+#include <algorithm>
 #include <cstdint>
 #include <string>
 #include <type_traits>
+
 #include "libtorrent/span.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 
