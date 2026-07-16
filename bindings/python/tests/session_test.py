@@ -8,6 +8,7 @@ from typing import cast
 from typing import Dict
 from typing import TYPE_CHECKING
 import unittest
+import warnings
 
 import libtorrent as lt
 
@@ -566,6 +567,20 @@ class AddTorrentParamsTest(unittest.TestCase):
         atp = lt.add_torrent_params()
         atp.renamed_files = {0: b"\xff.txt"}  # type: ignore
         self.assertEqual(atp.renamed_files, {0: os.fsdecode("\xff.txt")})
+
+    def test_renamed_files_sparse_bencode(self) -> None:
+        # only a non-zero file index is renamed, leaving a gap in the
+        # "mapped_files" list written by write_resume_data(). That gap must
+        # not turn into a python None (which can't be re-bencoded without a
+        # spurious DeprecationWarning), see
+        # https://github.com/arvidn/libtorrent/issues/8593
+        atp = lt.add_torrent_params()
+        atp.renamed_files = {1: "test.txt"}
+        resume_data = lt.write_resume_data(atp)
+        self.assertEqual(resume_data[b"mapped_files"], [b"", b"test.txt"])
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", DeprecationWarning)
+            lt.bencode(resume_data)
 
 
 class EnumsTest(unittest.TestCase):
