@@ -5902,7 +5902,9 @@ retry:
 		{
 			// TODO: 1 report the proper address of the router as the source IP of
 			// this vote of our external address, instead of the empty address
-			listen_socket->external_address.cast_vote(external_ip, source_router, address());
+			auto sock = ls.m_sock.lock();
+			TORRENT_ASSERT(sock);
+			if (sock) set_external_address(sock, external_ip, source_router, address());
 		}
 
 		// need to check whether this mapping is for one of session ports (it could also be a user mapping)

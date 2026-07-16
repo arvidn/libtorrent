@@ -13,7 +13,6 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 
 #include <string>
-#include <cctype>
 #include <algorithm>
 #include <mutex>
 #include <cstring>
@@ -393,7 +392,13 @@ namespace {
 			inbuf.fill(0);
 			for (int j = 0; j < available_input; ++j)
 			{
-				char const in = char(std::toupper(*i++));
+				// uppercase the ASCII range directly. the input can come from
+				// untrusted sources (e.g. the base32 info-hash in a magnet link)
+				// and may contain bytes with the high bit set, which are left
+				// untouched here and rejected as invalid base32 below. this keeps
+				// the decoding independent of the current locale.
+				char const c = *i++;
+				char const in = (c >= 'a' && c <= 'z') ? char(c - 'a' + 'A') : c;
 				if (in >= 'A' && in <= 'Z')
 					inbuf[j] = (in - 'A') & 0xff;
 				else if (in >= '2' && in <= '7')
