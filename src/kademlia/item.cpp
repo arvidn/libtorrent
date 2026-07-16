@@ -88,6 +88,11 @@ bool verify_mutable_item(
 	, public_key const& pk
 	, signature const& sig)
 {
+	// the BEP44 salt is capped at 64 bytes. a larger salt can never be part of
+	// a valid item, so fail validation rather than hand canonical_string an
+	// input that doesn't fit its buffer.
+	if (salt.size() > 64) return false;
+
 	char str[1200];
 	int len = canonical_string(v, seq, salt, str);
 

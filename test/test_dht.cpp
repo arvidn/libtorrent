@@ -2824,18 +2824,24 @@ TORRENT_TEST(signing_oversized_salt)
 {
 	// a salt long enough to fill canonical_string's internal buffer used to
 	// push its write cursor past the end, wrapping the remaining-space count
-	// negative and handing std::copy a negative count. sign/verify must stay
-	// in bounds and still round-trip.
+	// negative and handing std::copy a negative count. an oversized salt is
+	// rejected rather than truncated, and sign stays in bounds; a max-size salt
+	// still round-trips.
 	public_key pk;
 	secret_key sk;
 	get_test_keypair(pk, sk);
 
-	span<char const> test_content("12:Hello World!", 15);
-	std::string const big_salt(1200, 'x');
-	span<char const> const salt(big_salt.data(), int(big_salt.size()));
+	span<char const> const test_content("12:Hello World!", 15);
 
-	signature const sig = sign_mutable_item(test_content, salt, sequence_number(1), pk, sk);
-	TEST_EQUAL(verify_mutable_item(test_content, salt, sequence_number(1), pk, sig), true);
+	std::string const big_salt(1200, 'x');
+	span<char const> const oversized(big_salt.data(), int(big_salt.size()));
+	signature const sig = sign_mutable_item(test_content, oversized, sequence_number(1), pk, sk);
+	TEST_EQUAL(verify_mutable_item(test_content, oversized, sequence_number(1), pk, sig), false);
+
+	std::string const max_salt(64, 'x');
+	span<char const> const salt(max_salt.data(), int(max_salt.size()));
+	signature const sig2 = sign_mutable_item(test_content, salt, sequence_number(1), pk, sk);
+	TEST_EQUAL(verify_mutable_item(test_content, salt, sequence_number(1), pk, sig2), true);
 }
 
 // TODO: 2 split this up into smaller test cases
