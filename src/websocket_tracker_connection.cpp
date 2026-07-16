@@ -42,6 +42,7 @@ see LICENSE file.
 #include <locale>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <vector>
 
 namespace libtorrent::aux {
@@ -112,15 +113,28 @@ void websocket_tracker_connection::close()
 	while (!m_pending.empty())
 	{
 		auto [msg, callback] = std::move(m_pending.front());
-		TORRENT_UNUSED(msg);
-		m_pending.pop();
+		m_pending.pop_front();
 		if (auto cb = callback.lock())
+		{
+			// only tracker_request messages ever carry a non-empty
+			// callback (queue_answer() always passes an empty one).
+			auto const* req = std::get_if<tracker_request>(&msg);
+			TORRENT_ASSERT(req);
+			cb->tracker_request_error(*req, ec, operation_t::unknown, ec.message(), seconds32(120));
+		}
+	}
+
+	// any request still marked pending here never got a response: either
+	// it's the most recently sent one and fail() (below) hasn't run for
+	// it, or it belongs to another torrent multiplexed onto this same
+	// connection whose outcome only this loop reports.
+	for (auto& e : m_callbacks)
+	{
+		if (!e.second.pending) continue;
+		e.second.pending = false;
+		if (auto cb = e.second.cb.lock())
 			cb->tracker_request_error(
-					tracker_req()
-					, ec
-					, operation_t::unknown
-					, ec.message()
-					, seconds32(120));
+				e.second.req, ec, operation_t::unknown, ec.message(), seconds32(120));
 	}
 
 	m_callbacks.clear();
@@ -137,15 +151,69 @@ bool websocket_tracker_connection::is_open() const
 	return m_websocket && m_websocket->is_open();
 }
 
+bool websocket_tracker_connection::prune_non_stopped_requests()
+{
+	error_code const ec = errors::announce_skipped;
+	// m_req_pending guards against tracker_req() being stale: it stays set
+	// to the most recently sent request even after that request's outcome
+	// has been reported, so without this check a long-completed stopped
+	// announce would keep this connection from ever being pruned again.
+	bool has_stopped = m_req_pending && tracker_req().event == event_t::stopped;
+
+	// erasing is the common case, so do it in one pass rather than paying
+	// for an O(n) shift on every deque::erase() of a single element.
+	auto const pending_end =
+		std::remove_if(m_pending.begin(), m_pending.end(), [&](auto const& item) {
+			auto const* req = std::get_if<tracker_request>(&std::get<0>(item));
+			if (!req) return false;
+			if (req->event == event_t::stopped)
+			{
+				has_stopped = true;
+				return false;
+			}
+
+			if (auto cb = std::get<1>(item).lock())
+				cb->tracker_request_error(
+					*req, ec, operation_t::bittorrent, ec.message(), seconds32(120));
+			return true;
+		});
+	m_pending.erase(pending_end, m_pending.end());
+
+	for (auto it = m_callbacks.begin(); it != m_callbacks.end();)
+	{
+		if (!it->second.pending)
+		{
+			++it;
+			continue;
+		}
+		if (it->second.req.event == event_t::stopped)
+		{
+			has_stopped = true;
+			++it;
+			continue;
+		}
+
+		// current entry: prevent a later fail() from re-reporting it.
+		if (it->first == tracker_req().info_hash) m_req_pending = false;
+
+		if (auto cb = it->second.cb.lock())
+			cb->tracker_request_error(
+				it->second.req, ec, operation_t::bittorrent, ec.message(), seconds32(120));
+		it = m_callbacks.erase(it);
+	}
+
+	return has_stopped;
+}
+
 void websocket_tracker_connection::queue_request(tracker_request req, std::weak_ptr<request_callback> cb)
 {
-	m_pending.emplace(tracker_message{std::move(req)}, cb);
+	m_pending.emplace_back(tracker_message{std::move(req)}, cb);
 	if (is_open()) send_pending();
 }
 
 void websocket_tracker_connection::queue_answer(tracker_answer ans)
 {
-	m_pending.emplace(tracker_message{std::move(ans)}, std::weak_ptr<request_callback>{});
+	m_pending.emplace_back(tracker_message{std::move(ans)}, std::weak_ptr<request_callback>{});
 	if (is_open()) send_pending();
 }
 
@@ -156,7 +224,7 @@ void websocket_tracker_connection::send_pending()
 	m_sending = true;
 
 	auto [msg, callback] = std::move(m_pending.front());
-	m_pending.pop();
+	m_pending.pop_front();
 
 	std::visit([this, cb = callback](auto const& m)
 		{
@@ -164,7 +232,8 @@ void websocket_tracker_connection::send_pending()
 			if (cb.lock())
 			{
 				m_requester = cb;
-				m_callbacks[m.info_hash] = std::move(cb);
+				if constexpr (std::is_same_v<std::decay_t<decltype(m)>, tracker_request>)
+					m_callbacks[m.info_hash] = callback_entry{std::move(cb), m};
 			}
 
 			do_send(m);
@@ -174,8 +243,12 @@ void websocket_tracker_connection::send_pending()
 
 void websocket_tracker_connection::do_send(tracker_request const& req)
 {
-	// Update request
+	// Update request. This connection may be reused for many requests in
+	// turn (multiplexed torrents sharing a tracker URL), so re-arm
+	// m_req_pending for the new one; it was left cleared by whatever
+	// reported the previous m_req's outcome.
 	m_req = req;
+	m_req_pending = true;
 
 	json::object payload;
 	payload["action"] = "announce";
@@ -333,8 +406,8 @@ void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_r
 	auto response = std::move(std::get<websocket_tracker_response>(ret));
 
 	std::shared_ptr<request_callback> cb;
-	if (auto cit = m_callbacks.find(response.info_hash); cit != m_callbacks.end())
-		cb = cit->second.lock();
+	auto const cit = m_callbacks.find(response.info_hash);
+	if (cit != m_callbacks.end()) cb = cit->second.cb.lock();
 
 	if (cb)
 	{
@@ -365,7 +438,14 @@ void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_r
 			response.resp->interval = std::max(response.resp->interval
 				, seconds32{m_man.settings().get_int(settings_pack::min_websocket_announce_interval)});
 
-			cb->tracker_response(tracker_req(), {}, {}, *response.resp);
+			// this request now has an outcome reported to its requester;
+			// mark it (and, if this is the most recently sent request,
+			// m_req_pending too) so close() won't also report an error to
+			// the same requester for the same request.
+			cit->second.pending = false;
+			if (response.info_hash == tracker_req().info_hash) m_req_pending = false;
+
+			cb->tracker_response(cit->second.req, {}, {}, *response.resp);
 		}
 	}
 	else
@@ -398,6 +478,13 @@ void websocket_tracker_connection::on_write(error_code const& ec, std::size_t /*
 
 void websocket_tracker_connection::fail(error_code const& ec, operation_t const op)
 {
+	// mark the current request's entry as handled now, synchronously,
+	// since tracker_connection::fail() only posts fail_impl() (which
+	// reports its outcome via requester()) to run later; this keeps
+	// close()'s m_callbacks sweep from also reporting it.
+	if (auto cit = m_callbacks.find(tracker_req().info_hash); cit != m_callbacks.end())
+		cit->second.pending = false;
+
 	tracker_connection::fail(ec, op, ec.message().c_str(), seconds32{120}, seconds32{120});
 }
 
