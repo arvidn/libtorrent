@@ -53,8 +53,22 @@ namespace aux {
 		noexcept_movable(T const& rhs) : T(rhs) {} // NOLINT
 		noexcept_movable& operator=(noexcept_movable const& rhs) = default;
 		noexcept_movable& operator=(noexcept_movable&& rhs) = default;
+		// declared as plain member functions, not name-imported from T, so
+		// their bodies (and thus the accessibility of T::operator=) are only
+		// checked when actually called. T's copy-assignment may be a private,
+		// deleted member (e.g. boost.asio socket types) that is never
+		// actually invoked this way for such T.
+		noexcept_movable& operator=(T&& rhs) noexcept
+		{
+			T::operator=(std::forward<T>(rhs));
+			return *this;
+		}
+		noexcept_movable& operator=(T const& rhs)
+		{
+			T::operator=(rhs);
+			return *this;
+		}
 		using T::T;
-		using T::operator=;
 	};
 
 	template <typename T>
