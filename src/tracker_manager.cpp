@@ -10,6 +10,7 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
+#include <algorithm>
 #include <cctype>
 
 #include "libtorrent/aux_/io.hpp"
@@ -490,22 +491,20 @@ namespace libtorrent::aux {
 		// Otherwise, closing one of the started connections below would
 		// dequeue and start the next queued request, just to abort it
 		// again immediately after.
-		for (auto it = m_queued.begin(); it != m_queued.end();)
-		{
-			tracker_request const& req = (*it)->tracker_req();
-			if (req.event == event_t::stopped && !all)
-			{
-				++it;
-				continue;
-			}
+		auto const erase_begin = std::remove_if(m_queued.begin(),
+			m_queued.end(),
+			[&](std::shared_ptr<aux::http_tracker_connection>& c) {
+				tracker_request const& req = c->tracker_req();
+				if (req.event == event_t::stopped && !all) return false;
 
 #ifndef TORRENT_DISABLE_LOGGING
-			std::shared_ptr<request_callback> rc = (*it)->requester();
-			if (rc) rc->debug_log("aborting: %s", req.url.c_str());
+				std::shared_ptr<request_callback> rc = c->requester();
+				if (rc) rc->debug_log("aborting: %s", req.url.c_str());
 #endif
-			close_http_queued.push_back(*it);
-			it = m_queued.erase(it);
-		}
+				close_http_queued.push_back(std::move(c));
+				return true;
+			});
+		m_queued.erase(erase_begin, m_queued.end());
 		m_stats_counters.set_value(
 			counters::num_queued_tracker_announces, std::int64_t(m_queued.size()));
 
