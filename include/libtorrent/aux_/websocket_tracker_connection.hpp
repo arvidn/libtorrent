@@ -79,7 +79,8 @@ private:
 	void on_connect(error_code const& ec);
 	void on_read(error_code ec, std::size_t bytes_read);
 	void on_write(error_code const& ec, std::size_t bytes_written);
-	void fail(operation_t op, error_code const& ec);
+	// wraps tracker_connection::fail
+	void fail(error_code const& ec, operation_t op);
 
 	io_context& m_io_context;
 	ssl::context* m_ssl_context;

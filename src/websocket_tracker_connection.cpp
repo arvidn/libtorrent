@@ -269,7 +269,7 @@ void websocket_tracker_connection::on_timeout(error_code const& ec)
 	// No async
 	if (ec)
 	{
-		fail(operation_t::sock_read, ec);
+		fail(ec, operation_t::sock_read);
 		return;
 	}
 
@@ -278,7 +278,7 @@ void websocket_tracker_connection::on_timeout(error_code const& ec)
 		cb->debug_log("*** WEBSOCKET_TRACKER_TIMEOUT [ url: %s ]", tracker_req().url.c_str());
 #endif
 
-	fail(operation_t::sock_read, error_code(error::timed_out));
+	fail(error_code(error::timed_out), operation_t::sock_read);
 	close();
 }
 
@@ -287,7 +287,7 @@ void websocket_tracker_connection::on_connect(error_code const& ec)
 	COMPLETE_ASYNC("websocket_tracker_connection::on_connect");
 	if (ec)
 	{
-		fail(operation_t::connect, ec);
+		fail(ec, operation_t::connect);
 		close();
 		return;
 	}
@@ -301,8 +301,7 @@ void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_r
 	COMPLETE_ASYNC("websocket_tracker_connection::on_read");
 	if (ec)
 	{
-		if(ec != websocket::error::closed)
-			fail(operation_t::sock_read, ec);
+		if (ec != websocket::error::closed) fail(ec, operation_t::sock_read);
 		close();
 		return;
 	}
@@ -325,7 +324,7 @@ void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_r
 			cb->debug_log("*** WEBSOCKET_TRACKER_READ [ ERROR: %s ]", std::get<std::string>(ret).c_str());
 		}
 #endif
-		fail(operation_t::handshake, ec);
+		fail(ec, operation_t::handshake);
 		close();
 		return;
 	}
@@ -388,7 +387,7 @@ void websocket_tracker_connection::on_write(error_code const& ec, std::size_t /*
 	m_sending = false;
 	if (ec)
 	{
-		fail(operation_t::sock_write, ec);
+		fail(ec, operation_t::sock_write);
 		close();
 		return;
 	}
@@ -397,7 +396,7 @@ void websocket_tracker_connection::on_write(error_code const& ec, std::size_t /*
 	send_pending();
 }
 
-void websocket_tracker_connection::fail(operation_t op, error_code const& ec)
+void websocket_tracker_connection::fail(error_code const& ec, operation_t const op)
 {
 	tracker_connection::fail(ec, op, ec.message().c_str(), seconds32{120}, seconds32{120});
 }
