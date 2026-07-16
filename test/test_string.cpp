@@ -69,6 +69,13 @@ TORRENT_TEST(hex)
 	TEST_CHECK(aux::to_hex({"\x55\x73",2}) == "5573");
 	TEST_CHECK(aux::to_hex({"\xaB\xd0",2}) == "abd0");
 
+	// an odd number of digits leaves the last one unpaired. The buffer is
+	// sized exactly, so there is no terminator to stop the loop early
+	char odd[39];
+	std::memset(odd, '0', sizeof(odd));
+	char odd_bin[(sizeof(odd) + 1) / 2];
+	TEST_CHECK(!aux::from_hex(odd, odd_bin));
+
 	static char const hex_chars[] = "0123456789abcdefABCDEF";
 
 	for (int i = 1; i < 255; ++i)
