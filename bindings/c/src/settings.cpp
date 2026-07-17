@@ -25,6 +25,7 @@ int settings_key(int const tag)
 		case SET_NATPMP_GATEWAY: return sp::natpmp_gateway;
 		case SET_WEBTORRENT_STUN_SERVER: return sp::webtorrent_stun_server;
 		case SET_ALLOW_MULTIPLE_CONNECTIONS_PER_IP: return sp::allow_multiple_connections_per_ip;
+		case SET_REPLACE_STALE_CONNECTIONS: return sp::replace_stale_connections;
 		case SET_SEND_REDUNDANT_HAVE: return sp::send_redundant_have;
 		case SET_USE_DHT_AS_FALLBACK: return sp::use_dht_as_fallback;
 		case SET_UPNP_IGNORE_NONROUTERS: return sp::upnp_ignore_nonrouters;
