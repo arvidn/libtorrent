@@ -58,7 +58,7 @@ jobs:
       - name: build docs and source package
         run: AAFIGURE=~/.local/bin/aafigure RST2HTML=rst2html make dist
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: tarball
           path: libtorrent-rasterbar-*.tar.gz
@@ -95,7 +95,7 @@ jobs:
          contents: write
 
       steps:
-      - uses: actions/download-artifact@v6
+      - uses: actions/download-artifact@v8
         with:
           name: tarball
           path: dist
