@@ -10444,15 +10444,18 @@ namespace {
 
 		m_total_uploaded += m_stat.last_payload_uploaded();
 		m_total_downloaded += m_stat.last_payload_downloaded();
+
+		// if the rate is 0, there's no update because of network transfers.
+		// check the rate before ticking the stats so that the last update is
+		// sent with the rate equal to zero
+		if (m_stat.low_pass_upload_rate() > 0 || m_stat.low_pass_download_rate() > 0)
+			state_updated();
+
 		m_stat.second_tick(tick_interval_ms);
 
 		// these counters are saved in the resume data, since they updated
 		// we need to save the resume data too
 		set_need_save_resume(torrent_handle::if_counters_changed);
-
-		// if the rate is 0, there's no update because of network transfers
-		if (m_stat.low_pass_upload_rate() > 0 || m_stat.low_pass_download_rate() > 0)
-			state_updated();
 
 		// this section determines whether the torrent is active or not. When it
 		// changes state, it may also trigger the auto-manage logic to reconsider

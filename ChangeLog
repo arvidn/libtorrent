@@ -1,5 +1,6 @@
 2.0.14 not released
 
+	* fix torrent updates for idle torrents
 	* improve dont-count-slow-torrents
 	* fix external_ip_alert not being posted under some conditions when UPnP/NAT-PMP is enabled
 	* fix issue with stuck trackers on session pause
