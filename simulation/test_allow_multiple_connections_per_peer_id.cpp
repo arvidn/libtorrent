@@ -53,7 +53,7 @@ struct test_result
 	std::vector<lt::tcp::endpoint> connects;
 };
 
-test_result test_allow_multiple_connections_per_pid(bool allow
+test_result test_allow_multiple_connections_per_peer_id(bool allow
 	, lt::peer_id const& pid
 	, char const* peer1_ip
 	, char const* peer2_ip)
@@ -69,7 +69,7 @@ test_result test_allow_multiple_connections_per_pid(bool allow
 	sp.settings = settings();
 	sp.settings.set_int(lt::settings_pack::alert_mask
 		, lt::alert_category::all & ~lt::alert_category::stats);
-	sp.settings.set_bool(lt::settings_pack::allow_multiple_connections_per_pid, allow);
+	sp.settings.set_bool(lt::settings_pack::allow_multiple_connections_per_peer_id, allow);
 	sp.disk_io_constructor = lt::disabled_disk_io_constructor;
 
 	// create session
@@ -138,28 +138,28 @@ bool has_connected(std::vector<lt::tcp::endpoint> const& endpoints
 
 } // anonymous namespace
 
-// allow_multiple_connections_per_pid = false:
+// allow_multiple_connections_per_peer_id = false:
 // a second connection from a different IP but the same peer-id should be rejected
-TORRENT_TEST(allow_multiple_connections_per_pid_false)
+TORRENT_TEST(allow_multiple_connections_per_peer_id_false)
 {
 	lt::peer_id pid;
 	std::fill(pid.data(), pid.data() + 20, char(0xAA));
 
-	auto result = test_allow_multiple_connections_per_pid(false, pid
+	auto result = test_allow_multiple_connections_per_peer_id(false, pid
 		, "60.0.0.1", "60.0.0.2");
 
 	// verify that a duplicate_peer_id disconnect occurred
 	TEST_CHECK(has_duplicate_peer_id_error(result.disconnects));
 }
 
-// allow_multiple_connections_per_pid = true:
+// allow_multiple_connections_per_peer_id = true:
 // a second connection from a different IP but the same peer-id should be allowed
-TORRENT_TEST(allow_multiple_connections_per_pid_true)
+TORRENT_TEST(allow_multiple_connections_per_peer_id_true)
 {
 	lt::peer_id pid;
 	std::fill(pid.data(), pid.data() + 20, char(0xBB));
 
-	auto result = test_allow_multiple_connections_per_pid(true, pid
+	auto result = test_allow_multiple_connections_per_peer_id(true, pid
 		, "60.0.0.3", "60.0.0.4");
 
 	// verify no duplicate_peer_id error occurred
