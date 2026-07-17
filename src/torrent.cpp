@@ -431,9 +431,9 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 		// the number of seconds this torrent has spent in started, finished and
 		// seeding state so far, respectively.
-		m_active_time = seconds(std::max(0, std::min(0x3fffffff, p.active_time)));
-		m_finished_time = seconds(std::max(0, std::min(0x3fffffff, p.finished_time)));
-		m_seeding_time = seconds(std::max(0, std::min(0x3fffffff, p.seeding_time)));
+		m_active_timer.set_total(seconds32(std::max(0, std::min(0x3fffffff, p.active_time))));
+		m_finished_timer.set_total(seconds32(std::max(0, std::min(0x3fffffff, p.finished_time))));
+		m_seeding_timer.set_total(seconds32(std::max(0, std::min(0x3fffffff, p.seeding_time))));
 
 		if (m_completed_time != 0 && m_completed_time < m_added_time)
 			m_completed_time = m_added_time;
@@ -460,6 +460,12 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 		// TODO: 3 we could probably get away with just saving a few fields here
 		m_add_torrent_params = std::make_unique<add_torrent_params>(std::move(p));
+
+		// seed m_active_timer/m_seeding_timer/m_finished_timer's live state
+		// to match reality as constructed (m_paused/m_seed_mode etc. are
+		// all settled by now); every subsequent transition maintains it
+		// from here via update_state_timers()
+		update_state_timers();
 	}
 
 	void torrent::load_merkle_trees(
@@ -554,12 +560,16 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			, checking == seed_mode_t::skip_checking ? "as seed" : "as non-seed");
 #endif
 		m_seed_mode = false;
+		// m_seed_mode is one of is_seed()'s inputs, and set_have_all() below
+		// only reacts to m_have_all changing, so flush/re-anchor the timers
+		// here explicitly
+		update_state_timers();
 		// seed is false if we turned out not
 		// to be a seed after all
 		if (checking == seed_mode_t::check_files
 			&& state() != torrent_status::checking_resume_data)
 		{
-			m_have_all = false;
+			set_have_all(false);
 			set_state(torrent_status::downloading);
 			force_recheck();
 		}
@@ -1193,7 +1203,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		m_picker.reset();
 		m_hash_picker.reset();
 		m_file_progress.clear();
-		m_have_all = false;
+		set_have_all(false);
 		update_gauge();
 		pause();
 	}
@@ -1976,7 +1986,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 		if (m_seed_mode)
 		{
-			m_have_all = true;
+			set_have_all(true);
 			update_gauge();
 			update_state_list();
 			update_want_tick();
@@ -2268,7 +2278,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 			if (m_seed_mode)
 			{
-				m_have_all = true;
+				set_have_all(true);
 				update_gauge();
 				update_state_list();
 
@@ -2349,7 +2359,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			m_seed_mode = false;
 			// either the fastresume data was rejected or there are
 			// some files
-			m_have_all = false;
+			set_have_all(false);
 			update_gauge();
 			update_state_list();
 		}
@@ -2401,7 +2411,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		leave_seed_mode(seed_mode_t::skip_checking);
 
 		// forget that we have any pieces
-		m_have_all = false;
+		set_have_all(false);
 
 // removing the piece picker will clear the user priorities
 // instead, just clear which pieces we have
@@ -2412,6 +2422,10 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			m_file_progress.clear();
 			m_file_progress.init(picker(), m_torrent_file->files());
 		}
+
+		// resizing the picker above may have changed is_finished(), which
+		// set_have_all() above didn't catch if m_have_all was already false
+		update_state_timers();
 
 		// assume that we don't have anything
 		m_files_checked = false;
@@ -4970,6 +4984,11 @@ namespace {
 
 		m_abort = true;
 		m_paused = false;
+
+		// flush the live segment into the accumulators and mark them all
+		// not-live, now that m_abort/m_paused have settled into their
+		// final values
+		update_state_timers();
 		// clear graceful pause too. on_remove_peers() below would otherwise
 		// hit the "last peer in graceful pause" branch and assert is_paused(),
 		// which no longer holds now that m_paused has been cleared.
@@ -7091,10 +7110,10 @@ namespace {
 		ret.total_uploaded = m_total_uploaded;
 		ret.total_downloaded = m_total_downloaded;
 
-		// cast to seconds in case that internal values doesn't have ratio<1>
-		ret.active_time = static_cast<int>(total_seconds(active_time()));
-		ret.finished_time = static_cast<int>(total_seconds(finished_time()));
-		ret.seeding_time = static_cast<int>(total_seconds(seeding_time()));
+		time_point32 const now = aux::time_now32();
+		ret.active_time = active_time(now).count();
+		ret.finished_time = finished_time(now).count();
+		ret.seeding_time = seeding_time(now).count();
 		ret.last_seen_complete = m_last_seen_complete;
 		ret.last_upload = aux::to_time_t(m_last_upload);
 		ret.last_download = aux::to_time_t(m_last_download);
@@ -8504,7 +8523,7 @@ namespace {
 		set_state(torrent_status::finished);
 		set_queue_position(no_pos);
 
-		m_became_finished = aux::time_now32();
+		update_state_timers();
 
 		// we have to call completed() before we start
 		// disconnecting peers, since there's an assert
@@ -8579,6 +8598,8 @@ namespace {
 		set_state(torrent_status::downloading);
 		set_queue_position(last_pos);
 
+		update_state_timers();
+
 		m_completed_time = 0;
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -8587,6 +8608,22 @@ namespace {
 		send_upload_only();
 		update_want_tick();
 		update_state_list();
+	}
+
+	void torrent::set_have_all(bool const b)
+	{
+		if (m_have_all == b) return;
+		m_have_all = b;
+		update_state_timers();
+	}
+
+	void torrent::update_state_timers()
+	{
+		time_point32 const now = aux::time_now32();
+		bool const live = !is_paused() && !m_abort;
+		m_active_timer.set_live(live, now);
+		m_seeding_timer.set_live(live && is_seed(), now);
+		m_finished_timer.set_live(live && is_finished(), now);
 	}
 
 	void torrent::maybe_done_flushing()
@@ -8606,7 +8643,7 @@ namespace {
 				m_hash_picker.reset();
 				m_file_progress.clear();
 			}
-			m_have_all = true;
+			set_have_all(true);
 		}
 		update_gauge();
 	}
@@ -8618,7 +8655,7 @@ namespace {
 		maybe_done_flushing();
 
 		set_state(torrent_status::seeding);
-		m_became_seed = aux::time_now32();
+		update_state_timers();
 
 		if (!m_announcing) return;
 
@@ -9519,8 +9556,9 @@ namespace {
 
 		int ret = 0;
 
-		seconds32 const act_time = active_time();
-		seconds32 const fin_time = finished_time();
+		time_point32 const now = aux::time_now32();
+		seconds32 const act_time = active_time(now);
+		seconds32 const fin_time = finished_time(now);
 		seconds32 const download_time = act_time - fin_time;
 
 		// if we haven't yet met the seed limits, set the seed_ratio_not_met
@@ -9696,10 +9734,16 @@ namespace {
 		set_paused(true, flags);
 	}
 
-	void torrent::do_pause(bool const was_paused)
+	void torrent::do_pause()
 	{
 		TORRENT_ASSERT(is_single_thread());
 		if (!is_paused()) return;
+
+		// is_paused() already reflects the new state (the caller set
+		// m_paused before calling us), so flush/re-anchor the timers now,
+		// regardless of whether an extension below defers the rest of the
+		// pause handling
+		update_state_timers();
 
 		// this torrent may be about to consider itself inactive. If so, we want
 		// to prevent it from doing so, since it's being paused unconditionally
@@ -9724,23 +9768,6 @@ namespace {
 
 		update_state_list();
 		update_want_tick();
-
-		// do_paused() may be called twice, if the first time is to enter
-		// graceful pause, and the second time proper pause. We can only update
-		// these timers once, otherwise they'll be inflated
-		if (!was_paused)
-		{
-			const time_point now = aux::time_now();
-
-			m_active_time +=
-				duration_cast<seconds32>(now - m_started);
-
-			if (is_seed()) m_seeding_time +=
-				duration_cast<seconds32>(now - m_became_seed);
-
-			if (is_finished()) m_finished_time +=
-				duration_cast<seconds32>(now - m_became_finished);
-		}
 
 		m_announce_to_dht = false;
 		m_announce_to_trackers = false;
@@ -9916,7 +9943,7 @@ namespace {
 			{
 				m_graceful_pause_mode = false;
 				update_gauge();
-				do_pause(true);
+				do_pause();
 			}
 			return;
 		}
@@ -9965,6 +9992,12 @@ namespace {
 			return;
 		}
 
+		// is_paused() already reflects the new state (the caller cleared
+		// m_paused before calling us), so flush/re-anchor the timers now,
+		// regardless of whether an extension below defers the rest of the
+		// resume handling
+		update_state_timers();
+
 #ifndef TORRENT_DISABLE_EXTENSIONS
 		for (auto& ext : m_extensions)
 		{
@@ -9978,10 +10011,6 @@ namespace {
 		m_announce_to_dht = true;
 		m_announce_to_trackers = true;
 		m_announce_to_lsd = true;
-
-		m_started = aux::time_now32();
-		if (is_seed()) m_became_seed = m_started;
-		if (is_finished()) m_became_finished = m_started;
 
 		clear_error();
 
@@ -10288,34 +10317,17 @@ namespace {
 
 	seconds32 torrent::finished_time() const
 	{
-		if(!is_finished() || is_paused())
-			return m_finished_time;
-
-		return m_finished_time + duration_cast<seconds32>(
-			aux::time_now() - m_became_finished);
+		return finished_time(aux::time_now32());
 	}
 
 	seconds32 torrent::active_time() const
 	{
-		if (is_paused())
-			return m_active_time;
-
-		// m_active_time does not account for the current "session", just the
-		// time before we last started this torrent. To get the current time, we
-		// need to add the time since we started it
-		return m_active_time + duration_cast<seconds32>(
-			aux::time_now() - m_started);
+		return active_time(aux::time_now32());
 	}
 
 	seconds32 torrent::seeding_time() const
 	{
-		if(!is_seed() || is_paused())
-			return m_seeding_time;
-		// m_seeding_time does not account for the current "session", just the
-		// time before we last started this torrent. To get the current time, we
-		// need to add the time since we started it
-		return m_seeding_time + duration_cast<seconds32>(
-			aux::time_now() - m_became_seed);
+		return seeding_time(aux::time_now32());
 	}
 
 	seconds32 torrent::upload_mode_time() const
@@ -12047,9 +12059,9 @@ namespace {
 
 		// activity time
 #if TORRENT_ABI_VERSION == 1
-		st->finished_time = int(total_seconds(finished_time()));
-		st->active_time = int(total_seconds(active_time()));
-		st->seeding_time = int(total_seconds(seeding_time()));
+		st->finished_time = finished_time(now).count();
+		st->active_time = active_time(now).count();
+		st->seeding_time = seeding_time(now).count();
 
 		time_point32 const unset{seconds32(0)};
 
@@ -12059,9 +12071,9 @@ namespace {
 			: static_cast<int>(total_seconds(now - m_last_download));
 #endif
 
-		st->finished_duration = finished_time();
-		st->active_duration = active_time();
-		st->seeding_duration = seeding_time();
+		st->finished_duration = finished_time(now);
+		st->active_duration = active_time(now);
+		st->seeding_duration = seeding_time(now);
 
 		st->last_upload = m_last_upload;
 		st->last_download = m_last_download;
