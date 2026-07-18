@@ -3,7 +3,7 @@
 Copyright (c) 2017-2018, Alden Torres
 Copyright (c) 2017-2022, Arvid Norberg
 Copyright (c) 2017, Steven Siloti
-Copyright (c) 2021, Vladimir Golovnev (glassez)
+Copyright (c) 2021, 2026, Vladimir Golovnev (glassez)
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -63,7 +63,7 @@ namespace {
 				tier = aux::clamp(std::size_t(*tier_it++), std::size_t{0}, std::size_t{1024});
 
 			if (tr_list.size() <= tier)
-				tr_list.resize(tier + 1);
+				tr_list.resize(tier + 1, entry(entry::list_t));
 
 			tr_list[tier].list().emplace_back(tr);
 		}
