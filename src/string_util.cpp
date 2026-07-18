@@ -19,9 +19,18 @@ see LICENSE file.
 #include "libtorrent/assert.hpp"
 
 #include <algorithm> // for search
+#include <charconv> // for from_chars
 #include <utility> // for move
 
 namespace libtorrent::aux {
+
+	int parse_decimal(string_view const str)
+	{
+		int ret = 0;
+		auto const r = std::from_chars(str.data(), str.data() + str.size(), ret);
+		if (r.ec != std::errc{}) return -1;
+		return ret;
+	}
 
 	// We need well defined results that don't depend on locale
 	std::array<char, 4 + std::numeric_limits<std::int64_t>::digits10>
@@ -227,7 +236,7 @@ namespace libtorrent::aux {
 				continue;
 			}
 
-			iface.port = std::atoi(port_str.c_str());
+			iface.port = parse_decimal(port_str);
 			if (iface.port < 0 || iface.port > 65535)
 			{
 				err.emplace_back(element);
@@ -279,7 +288,8 @@ namespace libtorrent::aux {
 
 			if (colon != std::string::npos && colon > start)
 			{
-				int port = std::atoi(in.substr(colon + 1, end - colon - 1).c_str());
+				int const port = parse_decimal(strip_string(
+					string_view(in).substr(colon + 1, end - colon - 1)));
 
 				// skip trailing spaces
 				std::string::size_type soft_end = colon;

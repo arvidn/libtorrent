@@ -196,6 +196,30 @@ TORRENT_TEST(to_string)
 	TEST_CHECK(to_string(-999999999999999999).data() == std::string("-999999999999999999"));
 }
 
+TORRENT_TEST(parse_decimal)
+{
+	TEST_EQUAL(parse_decimal("0"), 0);
+	TEST_EQUAL(parse_decimal("80"), 80);
+	TEST_EQUAL(parse_decimal("65535"), 65535);
+	TEST_EQUAL(parse_decimal("2147483647"), 2147483647);
+	TEST_EQUAL(parse_decimal("-4"), -4);
+
+	// only the leading digits are parsed
+	TEST_EQUAL(parse_decimal("200 OK"), 200);
+	TEST_EQUAL(parse_decimal("80/announce"), 80);
+
+	// not a number
+	TEST_EQUAL(parse_decimal(""), -1);
+	TEST_EQUAL(parse_decimal("abc"), -1);
+	TEST_EQUAL(parse_decimal(" 80"), -1);
+
+	// out of range. These must not wrap into the valid range
+	TEST_EQUAL(parse_decimal("2147483648"), -1);
+	TEST_EQUAL(parse_decimal("4294967376"), -1);
+	TEST_EQUAL(parse_decimal("4294967496 Forbidden"), -1);
+	TEST_EQUAL(parse_decimal("99999999999999999999"), -1);
+}
+
 #if TORRENT_USE_I2P
 namespace {
 
