@@ -53,7 +53,11 @@ see LICENSE file.
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #ifdef TORRENT_BUILD_SIMULATOR
+#ifdef TORRENT_USE_OPENSSL
+#include "simulator/ssl.hpp"
+#else
 #include "simulator/simulator.hpp"
+#endif
 #endif
 
 #include <string>

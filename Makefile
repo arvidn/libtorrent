@@ -873,6 +873,7 @@ LIBSIM_HEADERS = \
   simulator.hpp \
   sink.hpp \
   sink_forwarder.hpp \
+  ssl.hpp \
   socks_server.hpp \
   utils.hpp
 

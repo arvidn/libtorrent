@@ -573,6 +573,12 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 
 #if TORRENT_USE_SSL
 		error_code ec;
+		TORRENT_UNUSED(ec);
+		// the simulator never talks to real HTTPS servers, so loading the
+		// system's trusted root certificates is pointless overhead (and,
+		// with the windows certificate store, very slow, since it happens
+		// on every session construction)
+#ifndef TORRENT_BUILD_SIMULATOR
 		m_ssl_ctx.set_default_verify_paths(ec);
 #ifndef TORRENT_DISABLE_LOGGING
 		if (ec) session_log("SSL set_default verify_paths failed: %s", ec.message().c_str());
@@ -632,6 +638,7 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 #endif
 		ec.clear();
 #endif // __linux__
+#endif // !TORRENT_BUILD_SIMULATOR
 #endif // TORRENT_USE_SSL
 #ifdef TORRENT_SSL_PEERS
 		m_peer_ssl_ctx.set_verify_mode(ssl::context::verify_none, ec);
