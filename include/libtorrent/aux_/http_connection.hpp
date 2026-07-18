@@ -157,6 +157,11 @@ private:
 		, error_code const& e);
 	void on_assign_bandwidth(error_code const& e);
 
+	// a reused socket turned out to be dead (the peer may have closed it
+	// without us noticing. Close it and re-issue the same request on a fresh
+	// connection, once.
+	void retry_fresh_connection();
+
 	void callback(error_code e, span<char> data = {});
 
 	aux::vector<char> m_recvbuffer;
@@ -264,6 +269,15 @@ private:
 	// socket is still open). This is captured when the response finishes, before
 	// start() resets the parser, and gates the socket-reuse fast-path in start().
 	bool m_reusable = false;
+
+	// set true only by start()'s socket-reuse fast-path, and the sole gate
+	// for the retry in on_write()/on_read(): a failure while this is set
+	// means the reused socket was already dead, rather than a genuine
+	// request failure. Cleared as soon as either becomes true, so the retry
+	// can fire at most once per request: some response data has actually
+	// been received (on_read, confirming the connection was alive after
+	// all), or the retry has already been taken (retry_fresh_connection()).
+	bool m_reused_socket = false;
 
 	// whether the most recent get() call requested keep-alive. Preserved so
 	// that a redirect re-issues get() with the same keep-alive intent.

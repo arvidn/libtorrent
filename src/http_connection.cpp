@@ -269,6 +269,7 @@ void http_connection::start(std::string const& hostname, int port
 		// stale next endpoint on expiry
 		m_start_time = clock_type::now();
 		m_next_ep = int(m_endpoints.size());
+		m_reused_socket = true;
 		ADD_OUTSTANDING_ASYNC("http_connection::on_write");
 		note_write_dispatched();
 		async_write(*m_sock, boost::asio::buffer(m_sendbuffer)
@@ -276,6 +277,7 @@ void http_connection::start(std::string const& hostname, int port
 	}
 	else
 	{
+		m_reused_socket = false;
 		m_ssl = ssl;
 		m_bind_addr = bind_addr;
 		error_code err;
@@ -669,6 +671,28 @@ void http_connection::on_connect(error_code const& e)
 	}
 }
 
+void http_connection::retry_fresh_connection()
+{
+	m_reused_socket = false;
+	bool const was_write_only = write_only();
+	error_code ec;
+	if (m_sock)
+		m_sock->close(ec);
+	get(m_url,
+		m_completion_timeout,
+		&m_proxy,
+		m_redirects,
+		m_user_agent,
+		m_bind_addr,
+		m_resolve_flags,
+		m_auth,
+#if TORRENT_USE_I2P
+		m_i2p_conn,
+#endif
+		m_keep_alive,
+		was_write_only);
+}
+
 void http_connection::callback(error_code e, span<char> data)
 {
 	if (m_called) return;
@@ -718,6 +742,11 @@ void http_connection::on_write(error_code const& e)
 
 	if (e)
 	{
+		if (m_reused_socket && !m_abort)
+		{
+			retry_fresh_connection();
+			return;
+		}
 		callback(e);
 		return;
 	}
@@ -844,6 +873,12 @@ void http_connection::on_read(error_code const& e
 
 	if (m_abort) return;
 
+	// any data at all confirms the reused connection was actually alive;
+	// don't second-guess a failure past this point by retrying, it would
+	// discard whatever this response already delivered.
+	if (bytes_transferred > 0)
+		m_reused_socket = false;
+
 	// keep ourselves alive even if the callback function
 	// deletes this object
 	std::shared_ptr<http_connection> me(shared_from_this());
@@ -854,6 +889,11 @@ void http_connection::on_read(error_code const& e
 	{
 		error_code ec = boost::asio::error::eof;
 		TORRENT_ASSERT(bytes_transferred == 0);
+		if (m_reused_socket)
+		{
+			retry_fresh_connection();
+			return;
+		}
 		span<char> body;
 		if (m_parser.header_finished())
 		{
@@ -867,6 +907,11 @@ void http_connection::on_read(error_code const& e
 	if (e)
 	{
 		TORRENT_ASSERT(bytes_transferred == 0);
+		if (m_reused_socket)
+		{
+			retry_fresh_connection();
+			return;
+		}
 		callback(e);
 		return;
 	}
