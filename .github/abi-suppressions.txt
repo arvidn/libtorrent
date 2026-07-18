@@ -1,0 +1,13 @@
+# libabigail suppression spec for the ABI check (see .github/workflows/abi-check.yml).
+#
+# libtorrent::aux::* is an internal implementation-detail namespace (see
+# TORRENT_EXTRA_EXPORT in include/libtorrent/aux_/export.hpp) -- it is not
+# reachable from any TORRENT_EXPORT public header. It still shows up in
+# abidiff because the build only sets -fvisibility=hidden, not
+# -fvisibility-inlines-hidden, so inline template instantiations from
+# external headers (e.g. boost::asio's io_context executors) that happen to
+# close over an aux:: type keep default visibility and drag its layout into
+# the exported symbol table. Suppress diffs attributable to aux:: types so
+# purely-internal changes don't fail the check.
+[suppress_type]
+  name_regexp = ^libtorrent::aux::
