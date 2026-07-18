@@ -61,7 +61,7 @@ IndentCaseLabels: true
 AllowShortFunctionsOnASingleLine: All
 AllowShortLambdasOnASingleLine:   All
 # 'if (cond) return;' without braces is common in this codebase
-AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortIfStatementsOnASingleLine: Never
 AllowShortBlocksOnASingleLine: Empty
 
 # --- Function parameter / argument wrapping ---
