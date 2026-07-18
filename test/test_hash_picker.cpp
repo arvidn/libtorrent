@@ -470,10 +470,15 @@ TORRENT_TEST(set_block_hash_fail)
 	auto const result = picker.set_block_hash(3_piece, default_block_size, sha256_hash("01234567890123456789012345678901"));
 	TEST_CHECK(result.status == aux::set_block_hash_result::result::piece_hash_failed);
 
-	TEST_CHECK(trees.front()[merkle_get_parent(first_leaf + 12)].is_all_zeros());
-	TEST_CHECK(trees.front()[merkle_get_parent(first_leaf + 13)].is_all_zeros());
-	TEST_CHECK(trees.front()[merkle_get_parent(first_leaf + 14)].is_all_zeros());
-	TEST_CHECK(trees.front()[merkle_get_parent(first_leaf + 15)].is_all_zeros());
+	auto const parent_flat = [&](int const leaf_offset) {
+		int const n = merkle_get_parent(first_leaf + leaf_offset);
+		int const L = merkle_get_layer(n);
+		return trees.front().node_at(L, n - merkle_layer_start(L));
+	};
+	TEST_CHECK(parent_flat(12).is_all_zeros());
+	TEST_CHECK(parent_flat(13).is_all_zeros());
+	TEST_CHECK(parent_flat(14).is_all_zeros());
+	TEST_CHECK(parent_flat(15).is_all_zeros());
 }
 
 TORRENT_TEST(set_block_hash_pass)
