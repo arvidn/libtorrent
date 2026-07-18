@@ -24,6 +24,7 @@ All rights reserved.
 #include "libtorrent/flags.hpp"
 #include "libtorrent/socket.hpp"
 #if TORRENT_USE_SSL
+#include "libtorrent/aux_/deadline_timer.hpp"
 #include "libtorrent/aux_/polymorphic_socket.hpp"
 #include "libtorrent/aux_/proxy_base.hpp" // for wrap_allocator, used by ssl_stream
 #include "libtorrent/aux_/ssl.hpp"
@@ -38,7 +39,7 @@ All rights reserved.
 #include <ctime>
 #endif
 
-using libtorrent::operator""_bit;
+using lt::operator""_bit;
 
 namespace sim {
 	std::string trim(std::string s);
@@ -93,16 +94,25 @@ namespace sim {
 	struct http_server
 	{
 		static constexpr http_server_flags_t keep_alive = 0_bit;
+
 		// behave like an HTTP/1.0 server: respond with an HTTP/1.0 status line
 		// and close the connection after each response. HTTP/1.0 has no
 		// persistent connections, and the Connection header is an HTTP/1.1
 		// mechanism, so no "Connection: close" is sent, the client must detect
 		// the close from the protocol version (and the socket closing).
 		static constexpr http_server_flags_t http_1_0 = 1_bit;
+
 		// wrap the connection in TLS, using a self-signed test certificate
 		// (test/ssl/server.pem). Only available when built with
 		// TORRENT_USE_SSL.
 		static constexpr http_server_flags_t https = 2_bit;
+
+		// like keep_alive, but the server tears down the socket right after
+		// writing each response, without ever advertising "Connection: close".
+		// this simulates a server-side idle-timeout race that the client can't
+		// see coming from the response headers, and must recover from by
+		// transparently reconnecting.
+		static constexpr http_server_flags_t stale_keep_alive = 3_bit;
 
 		http_server(asio::io_context& ios,
 			unsigned short listen_port,
@@ -169,6 +179,12 @@ namespace sim {
 
 #if TORRENT_USE_SSL
 		std::unique_ptr<lt::aux::ssl::context> m_ssl_ctx;
+
+		// guards against a peer that never completes the TLS close_notify
+		// handshake: close_connection() arms this for 3 seconds and force-
+		// closes the connection if it fires before the shutdown completes,
+		// so a stuck peer can't stall this server's accept loop forever.
+		lt::aux::deadline_timer m_shutdown_timer;
 #endif
 		// left empty until the first connection is accepted: the active
 		// alternative is constructed in place (emplace), since the underlying

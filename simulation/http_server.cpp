@@ -171,6 +171,9 @@ namespace sim {
 		)
 		: m_ios(ios)
 		, m_listen_socket(ios)
+#if TORRENT_USE_SSL
+		, m_shutdown_timer(ios)
+#endif
 		, m_bytes_used(0)
 		, m_close(false)
 		, m_flags(flags)
@@ -474,9 +477,13 @@ namespace sim {
 			}
 		}
 
+		// a stale_keep_alive server tears the connection down right after
+		// responding, even though it just told the client to keep it alive.
+		bool const close_socket = close || (m_flags & stale_keep_alive);
+
 		async_write(*m_connection,
 			asio::buffer(m_send_buffer.data(), m_send_buffer.size()),
-			std::bind(&http_server::on_write, this, _1, _2, close));
+			std::bind(&http_server::on_write, this, _1, _2, close_socket));
 	}
 	catch (std::exception& e)
 	{
@@ -526,8 +533,27 @@ namespace sim {
 		if (m_connection
 			&& std::holds_alternative<lt::aux::ssl_stream<lt::tcp::socket>>(*m_connection))
 		{
+			// if the peer never completes its side of the close_notify
+			// handshake, force-close the connection so the shutdown below
+			// unblocks instead of stalling this server's accept loop forever.
+			m_shutdown_timer.expires_after(chrono::seconds(3));
+			m_shutdown_timer.async_wait([this](error_code const& ec) {
+				// a non-empty ec means the timer was cancelled because the
+				// shutdown below already completed; nothing left to do.
+				if (ec)
+					return;
+				if (m_connection)
+				{
+					error_code ignore;
+					m_connection->close(ignore);
+				}
+			});
+
 			std::get<lt::aux::ssl_stream<lt::tcp::socket>>(*m_connection)
-				.async_shutdown(std::bind(&http_server::finish_close, this, _1));
+				.async_shutdown([this](error_code const& ec) {
+					m_shutdown_timer.cancel();
+					finish_close(ec);
+				});
 			return;
 		}
 #endif

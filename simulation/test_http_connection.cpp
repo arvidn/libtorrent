@@ -391,8 +391,10 @@ void run_test(lt::aux::proxy_settings ps, std::string url, int expect_size, int 
 	sim::asio::io_context proxy_ios(sim, make_address_v4("50.50.50.50"));
 	lt::aux::resolver res(ios);
 
-	sim::http_server http(
-		web_server, 8080, https ? sim::http_server::https : sim::http_server_flags_t{});
+	sim::http_server http(web_server,
+		8080,
+		sim::http_server::keep_alive
+			| (https ? sim::http_server::https : sim::http_server_flags_t{}));
 	sim::socks_server socks(proxy_ios, 4444, ps.type == settings_pack::socks4 ? 4 : 5);
 	sim::http_proxy http_p(proxy_ios, 4445);
 
@@ -677,7 +679,7 @@ TORRENT_TEST(http_connection_write_only_drain_eof_forces_reconnect)
 	const unsigned short http_port = 8080;
 	// no keep_alive flag: the server closes right after responding, so the
 	// drain loop observes EOF.
-	sim::http_server http(server_ios, http_port, sim::http_server_flags_t{});
+	sim::http_server http(server_ios, http_port, {});
 	http.register_handler(
 		"/announce", [](std::string, std::string, std::map<std::string, std::string>&) {
 			std::string const body = "d8:intervali1800e5:peers0:e";
@@ -1120,10 +1122,11 @@ void test_http_connection_reuse(
 	h = std::make_shared<lt::aux::http_connection>(
 		client_ios,
 		res,
-		[&](error_code const&,
+		[&](error_code const& ec,
 			lt::aux::http_parser const&,
 			span<char const>,
 			lt::aux::http_connection& c) {
+			TEST_CHECK(!ec);
 			++response_count;
 			if (response_count == 1)
 				issue("/b");
@@ -1161,7 +1164,7 @@ TORRENT_TEST(http_connection_keep_alive_server_close)
 {
 	// a server that does not keep connections alive responds with
 	// "Connection: close"; the second request opens a new socket
-	test_http_connection_reuse(sim::http_server_flags_t{}, 2);
+	test_http_connection_reuse({}, 2);
 }
 
 TORRENT_TEST(http_connection_http_1_0_no_reuse)
@@ -1169,6 +1172,17 @@ TORRENT_TEST(http_connection_http_1_0_no_reuse)
 	// an HTTP/1.0 server closes after each response (no Connection header); the
 	// client must detect this from the protocol version and open a new socket
 	test_http_connection_reuse(sim::http_server::http_1_0, 2);
+}
+
+TORRENT_TEST(http_connection_stale_keep_alive_reconnects)
+{
+	// the server advertises "Connection: keep-alive" but closes the socket
+	// right after responding anyway (e.g. an idle-timeout race the client
+	// can't see in the response headers). The client optimistically reuses
+	// the socket for the second request, finds it dead, and must transparently
+	// retry on a fresh connection rather than failing the request.
+	test_http_connection_reuse(
+		sim::http_server::keep_alive | sim::http_server::stale_keep_alive, 2);
 }
 
 // when http_connection reuses a keep-alive socket and the second request times
