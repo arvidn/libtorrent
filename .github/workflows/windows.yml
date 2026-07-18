@@ -108,12 +108,13 @@ jobs:
   # termination
   # the IOCP backend in asio appears to have an issue where it hangs under
   # certain unexpected terminations (through exceptions)
+  # crypto=built-in avoids OpenSSL, in case an OpenSSL-touching code path hits that same hang
       - name: build sims
         run: |
           echo %BOOST_ROOT%
           echo %PATH%
           cd simulation
-          b2 --hash release msvc-version-macro=on address-model=64 link=static debug-iterators=off invariant-checks=on define=BOOST_ASIO_DISABLE_IOCP asserts=on testing.execute=off
+          b2 --hash release msvc-version-macro=on address-model=64 link=static crypto=built-in debug-iterators=off invariant-checks=on define=BOOST_ASIO_DISABLE_IOCP asserts=on testing.execute=off
 
       - name: run sims
         uses: nick-fields/retry@v4
@@ -122,7 +123,7 @@ jobs:
           timeout_minutes: 120
           command: |
             cd simulation
-            b2 --hash -l800 release msvc-version-macro=on address-model=64 link=static debug-iterators=off invariant-checks=on define=BOOST_ASIO_DISABLE_IOCP asserts=on
+            b2 --hash -l800 release msvc-version-macro=on address-model=64 link=static crypto=built-in debug-iterators=off invariant-checks=on define=BOOST_ASIO_DISABLE_IOCP asserts=on
 
    build:
       name: Build

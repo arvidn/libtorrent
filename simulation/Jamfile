@@ -28,7 +28,6 @@ project
 	<asserts>on
 	<picker-debugging>on
 	<cxxstd>20
-	<crypto>built-in
 	<webtorrent>off
 	;
 
