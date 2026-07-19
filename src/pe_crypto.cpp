@@ -58,7 +58,20 @@ namespace libtorrent::aux {
 		return ret;
 	}
 
-#if defined TORRENT_USE_LIBCRYPTO
+#if defined TORRENT_USE_LIBGCRYPT
+	rc4::rc4() { gcry_cipher_open(&h, GCRY_CIPHER_ARCFOUR, GCRY_CIPHER_MODE_STREAM, 0); }
+	rc4::~rc4() { gcry_cipher_close(h); }
+
+	void rc4_set_key(rc4& state, span<char const> key)
+	{
+		gcry_cipher_setkey(state.h, key.data(), std::size_t(key.size()));
+	}
+
+	void rc4_crypt(rc4& state, unsigned char* buf, std::size_t len)
+	{
+		gcry_cipher_encrypt(state.h, buf, len, nullptr, 0);
+	}
+#elif defined TORRENT_USE_LIBCRYPTO
 	// RC4_set_key() and RC4() are deprecated as of OpenSSL 3.0, but work
 	// without requiring any additional runtime provider configuration.
 	// The deprecation warning is suppressed once here, for these two
@@ -273,19 +286,12 @@ namespace libtorrent::aux {
 	rc4_handler::rc4_handler()
 		: m_encrypt(false)
 		, m_decrypt(false)
-	{
-#if !defined TORRENT_USE_LIBCRYPTO
-		m_rc4_incoming.x = 0;
-		m_rc4_incoming.y = 0;
-		m_rc4_outgoing.x = 0;
-		m_rc4_outgoing.y = 0;
-#endif
-	}
+	{}
 
 	void rc4_handler::set_incoming_key(span<char const> key)
 	{
 		m_decrypt = true;
-#if defined TORRENT_USE_LIBCRYPTO
+#if defined TORRENT_USE_LIBGCRYPT || defined TORRENT_USE_LIBCRYPTO
 		rc4_set_key(m_rc4_incoming, key);
 #else
 		rc4_init(reinterpret_cast<unsigned char const*>(key.data())
@@ -300,7 +306,7 @@ namespace libtorrent::aux {
 	void rc4_handler::set_outgoing_key(span<char const> key)
 	{
 		m_encrypt = true;
-#if defined TORRENT_USE_LIBCRYPTO
+#if defined TORRENT_USE_LIBGCRYPT || defined TORRENT_USE_LIBCRYPTO
 		rc4_set_key(m_rc4_outgoing, key);
 #else
 		rc4_init(reinterpret_cast<unsigned char const*>(key.data())
@@ -331,7 +337,7 @@ namespace libtorrent::aux {
 			TORRENT_ASSERT(pos);
 
 			bytes_processed += len;
-#if defined TORRENT_USE_LIBCRYPTO
+#if defined TORRENT_USE_LIBGCRYPT || defined TORRENT_USE_LIBCRYPTO
 			rc4_crypt(m_rc4_outgoing, pos, std::size_t(len));
 #else
 			rc4_encrypt(pos, std::uint32_t(len), &m_rc4_outgoing);
@@ -354,7 +360,7 @@ namespace libtorrent::aux {
 			TORRENT_ASSERT(pos);
 
 			bytes_processed += len;
-#if defined TORRENT_USE_LIBCRYPTO
+#if defined TORRENT_USE_LIBGCRYPT || defined TORRENT_USE_LIBCRYPTO
 			rc4_crypt(m_rc4_incoming, pos, std::size_t(len));
 #else
 			rc4_encrypt(pos, std::uint32_t(len), &m_rc4_incoming);
@@ -363,7 +369,7 @@ namespace libtorrent::aux {
 		return std::make_tuple(0, bytes_processed, 0);
 	}
 
-#if !defined TORRENT_USE_LIBCRYPTO
+#if !defined TORRENT_USE_LIBGCRYPT && !defined TORRENT_USE_LIBCRYPTO
 	// All this code is based on libTomCrypt (http://www.libtomcrypt.com/)
 	// this library is public domain and has been specially
 	// tailored for libtorrent by Arvid Norberg
@@ -438,7 +444,7 @@ namespace libtorrent::aux {
 		state->y = y;
 		return n;
 	}
-#endif // !defined TORRENT_USE_LIBCRYPTO
+#endif // !defined TORRENT_USE_LIBGCRYPT && !defined TORRENT_USE_LIBCRYPTO
 
 } // namespace libtorrent::aux
 

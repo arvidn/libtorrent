@@ -27,7 +27,9 @@ see LICENSE file.
 #include "libtorrent/span.hpp"
 #include "libtorrent/aux_/array.hpp"
 
-#if defined TORRENT_USE_LIBCRYPTO
+#if defined TORRENT_USE_LIBGCRYPT
+#include <gcrypt.h>
+#elif defined TORRENT_USE_LIBCRYPTO
 extern "C"
 {
 #include <openssl/rc4.h>
@@ -46,7 +48,17 @@ namespace libtorrent::aux {
 
 	TORRENT_EXTRA_EXPORT std::array<char, 96> export_key(key_t const& k);
 
-#if defined TORRENT_USE_LIBCRYPTO
+#if defined TORRENT_USE_LIBGCRYPT
+	// RC4 (ARCFOUR) state, backed by libgcrypt
+	struct rc4
+	{
+		rc4();
+		rc4(rc4 const&) = delete;
+		rc4& operator=(rc4 const&) = delete;
+		~rc4();
+		gcry_cipher_hd_t h = nullptr;
+	};
+#elif defined TORRENT_USE_LIBCRYPTO
 	// RC4 state, backed by libcrypto's RC4 implementation
 	using rc4 = RC4_KEY;
 #else
