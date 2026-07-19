@@ -289,8 +289,8 @@ namespace libtorrent::aux {
 
 			if (colon != std::string::npos && colon > start)
 			{
-				auto const port = parse_decimal(strip_string(
-					string_view(in).substr(colon + 1, end - colon - 1)));
+				auto const port =
+					parse_decimal(strip_string(string_view(in).substr(colon + 1, end - colon - 1)));
 				if (!port)
 				{
 					start = end + 1;

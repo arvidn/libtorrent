@@ -33,14 +33,6 @@ namespace libtorrent::aux {
 		std::array<char, 4 + std::numeric_limits<std::int64_t>::digits10>
 		to_string(std::int64_t n);
 
-	// parses the leading decimal digits of the string and returns the value.
-	// Returns an empty optional if the string doesn't start with a number, or
-	// if the number doesn't fit in an int. std::atoi() is undefined for
-	// out-of-range values, and in practice truncates them into the valid range,
-	// which defeats any range check made on the result. Unlike atoi(), a
-	// successful parse of a negative number is distinguishable from a failure.
-	TORRENT_EXTRA_EXPORT std::optional<int> parse_decimal(string_view str);
-
 	// internal
 	inline bool is_digit(char c)
 	{ return c >= '0' && c <= '9'; }
@@ -52,6 +44,14 @@ namespace libtorrent::aux {
 
 	// internal
 	TORRENT_EXTRA_EXPORT string_view strip_string(string_view in);
+
+	// parses the leading decimal digits of the string and returns the value.
+	// Returns an empty optional if the string doesn't start with a number, or
+	// if the number doesn't fit in an int. std::atoi() is undefined for
+	// out-of-range values, and in practice truncates them into the valid range,
+	// which defeats any range check made on the result. Unlike atoi(), a
+	// successful parse of a negative number is distinguishable from a failure.
+	TORRENT_EXTRA_EXPORT std::optional<int> parse_decimal(string_view str);
 
 	TORRENT_EXTRA_EXPORT bool is_print(char c);
 	TORRENT_EXTRA_EXPORT bool is_space(char c);

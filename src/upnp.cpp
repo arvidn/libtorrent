@@ -1220,8 +1220,7 @@ void find_error_code(int const type, string_view string, error_code_parse_state&
 	{
 		// leave error_code at -1 if the device sent something that isn't a
 		// number, or a number that doesn't fit in an int
-		if (auto const code = aux::parse_decimal(string))
-			state.error_code = *code;
+		if (auto const code = aux::parse_decimal(string)) state.error_code = *code;
 		state.exit = true;
 	}
 }

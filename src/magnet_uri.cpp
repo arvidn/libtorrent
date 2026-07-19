@@ -475,8 +475,7 @@ namespace libtorrent {
 				if (divider != std::string::npos)
 				{
 					auto const port = aux::parse_decimal(value.substr(divider + 1));
-					if (port && *port > 0
-						&& *port < int(std::numeric_limits<std::uint16_t>::max()))
+					if (port && *port > 0 && *port < int(std::numeric_limits<std::uint16_t>::max()))
 						p.dht_nodes.emplace_back(value.substr(0, divider), *port);
 				}
 			}

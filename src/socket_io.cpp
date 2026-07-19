@@ -119,8 +119,7 @@ namespace libtorrent::aux {
 		}
 
 		auto const port_num = parse_decimal(port);
-		if (!port_num || *port_num <= 0
-			|| *port_num > std::numeric_limits<std::uint16_t>::max())
+		if (!port_num || *port_num <= 0 || *port_num > std::numeric_limits<std::uint16_t>::max())
 		{
 			ec = errors::invalid_port;
 			return ret;
