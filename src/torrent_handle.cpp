@@ -11,6 +11,7 @@ Copyright (c) 2019, ghbplayer
 Copyright (c) 2025, Vladimir Golovnev (glassez)
 Copyright (c) 2021, Mark Scott
 Copyright (c) 2025, Vladimir Golovnev (glassez)
+Copyright (c) 2024-2026, Martin Rodriguez Reboredo
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,
@@ -497,10 +498,17 @@ namespace libtorrent {
 
 	std::vector<download_priority_t> torrent_handle::get_piece_priorities() const
 	{
-		aux::vector<download_priority_t, piece_index_t> ret;
-		auto* const retp = &ret;
+		std::vector<download_priority_t> ret;
+		get_piece_priorities(ret);
+		return ret;
+	}
+
+	void torrent_handle::get_piece_priorities(std::vector<download_priority_t>& priorities) const
+	{
+		aux::vector<download_priority_t, piece_index_t> ret(std::move(priorities));
+		auto retp = &ret;
 		sync_call(&aux::torrent::piece_priorities, retp);
-		return TORRENT_RVO(ret);
+		priorities = std::move(ret);
 	}
 
 #if TORRENT_ABI_VERSION == 1
@@ -565,10 +573,17 @@ namespace libtorrent {
 
 	std::vector<download_priority_t> torrent_handle::get_file_priorities() const
 	{
-		aux::vector<download_priority_t, file_index_t> ret;
-		auto* const retp = &ret;
+		std::vector<download_priority_t> ret;
+		get_file_priorities(ret);
+		return ret;
+	}
+
+	void torrent_handle::get_file_priorities(std::vector<download_priority_t>& priorities) const
+	{
+		aux::vector<download_priority_t, file_index_t> ret(std::move(priorities));
+		auto retp = &ret;
 		sync_call(&aux::torrent::file_priorities, retp);
-		return TORRENT_RVO(ret);
+		priorities = std::move(ret);
 	}
 
 #if TORRENT_ABI_VERSION == 1
@@ -707,6 +722,11 @@ namespace libtorrent {
 		async_call(&aux::torrent::read_piece, piece);
 	}
 
+	void torrent_handle::read_piece_range(const index_range<piece_index_t>& range) const
+	{
+		async_call(&aux::torrent::read_piece_range, range);
+	}
+
 	bool torrent_handle::have_piece(piece_index_t piece) const
 	{
 		return sync_call_ret<bool>(false, &aux::torrent::user_have_piece, piece);
@@ -724,6 +744,11 @@ namespace libtorrent {
 		TORRENT_ASSERT_PRECOND(first_piece >= piece_index_t(0));
 		if (first_piece >= piece_index_t(0))
 			async_call(static_cast<void (aux::torrent::*)(piece_index_t)>(&aux::torrent::set_sequential_range), first_piece);
+	}
+
+	bool torrent_handle::have_piece_range(const index_range<piece_index_t>& range) const
+	{
+		return sync_call_ret<bool>(false, &aux::torrent::user_have_piece_range, range);
 	}
 
 	bool torrent_handle::is_valid() const
@@ -937,10 +962,43 @@ namespace libtorrent {
 #endif
 	}
 
+	void torrent_handle::set_piece_range_deadline(const index_range<piece_index_t>& range
+		, int deadline, deadline_flags_t const flags) const
+	{
+#ifndef TORRENT_DISABLE_STREAMING
+		async_call(static_cast<void (aux::torrent::*)(const index_range<piece_index_t>&, int, deadline_flags_t const)>(&aux::torrent::set_piece_range_deadline), range, deadline, flags);
+#else
+		TORRENT_UNUSED(deadline);
+		if (flags & alert_when_available)
+			async_call(&aux::torrent::read_piece_range, range);
+#endif
+	}
+
+	void torrent_handle::set_piece_range_deadline(const index_range<piece_index_t>& range
+		, std::vector<int>&& deadlines, deadline_flags_t const flags) const
+	{
+#ifndef TORRENT_DISABLE_STREAMING
+		async_call(static_cast<void (aux::torrent::*)(const index_range<piece_index_t>&, boost::span<int>&&, deadline_flags_t const)>(&aux::torrent::set_piece_range_deadline), range, boost::span<int>(deadlines), flags);
+#else
+		TORRENT_UNUSED(deadlines);
+		if (flags & alert_when_available)
+			async_call(&aux::torrent::read_piece_range, range);
+#endif
+	}
+
 	void torrent_handle::reset_piece_deadline(piece_index_t index) const
 	{
 #ifndef TORRENT_DISABLE_STREAMING
 		async_call(&aux::torrent::reset_piece_deadline, index);
+#else
+		TORRENT_UNUSED(index);
+#endif
+	}
+
+	void torrent_handle::reset_piece_range_deadline(const index_range<piece_index_t>& range) const
+	{
+#ifndef TORRENT_DISABLE_STREAMING
+		async_call(&aux::torrent::reset_piece_range_deadline, range);
 #else
 		TORRENT_UNUSED(index);
 #endif

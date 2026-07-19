@@ -15,6 +15,7 @@ Copyright (c) 2020, Viktor Elofsson
 Copyright (c) 2021, AdvenT
 Copyright (c) 2025, Vladimir Golovnev (glassez)
 Copyright (c) 2021, Mark Scott
+Copyright (c) 2024-2026, Martin Rodriguez Reboredo
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,
@@ -34,6 +35,7 @@ see LICENSE file.
 #include <mutex>
 #include <optional>
 
+#include <boost/core/span.hpp>
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/logic/tribool.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -468,6 +470,7 @@ namespace libtorrent::aux {
 			error_code error;
 		};
 		void read_piece(piece_index_t);
+		void read_piece_range(const index_range<piece_index_t>&);
 		void set_sequential_range(piece_index_t first_piece, piece_index_t last_piece);
 		void set_sequential_range(piece_index_t first_piece);
 		void on_disk_read_complete(disk_buffer_holder, storage_error const&
@@ -623,7 +626,10 @@ namespace libtorrent::aux {
 #ifndef TORRENT_DISABLE_STREAMING
 		void cancel_non_critical();
 		void set_piece_deadline(piece_index_t piece, int t, deadline_flags_t flags);
+		void set_piece_range_deadline(const index_range<piece_index_t>& range, int deadline, deadline_flags_t flags);
+		void set_piece_range_deadline(const index_range<piece_index_t>& range, boost::span<int>&& deadlines, deadline_flags_t flags);
 		void reset_piece_deadline(piece_index_t piece);
+		void reset_piece_range_deadline(const index_range<piece_index_t>& range);
 		void clear_time_critical();
 #endif // TORRENT_DISABLE_STREAMING
 
@@ -888,6 +894,15 @@ namespace libtorrent::aux {
 			if (index < piece_index_t{0} || index >= m_torrent_file->end_piece()) return false;
 			if (!has_picker()) return m_have_all;
 			return m_picker->have_piece(index);
+		}
+
+		// returns true if we have downloaded the given piece range
+		bool user_have_piece_range(const index_range<piece_index_t>& range) const
+		{
+			if (!valid_metadata()) return false;
+			if (*range.begin() < piece_index_t{0} || *range.begin() >= m_torrent_file->end_piece() || *range.end() < piece_index_t{0} || *range.end() >= m_torrent_file->end_piece()) return false;
+			if (!has_picker()) return m_have_all;
+			return m_picker->have_piece_range(range);
 		}
 
 #ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
