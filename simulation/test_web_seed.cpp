@@ -17,7 +17,7 @@ see LICENSE file.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/aux_/path.hpp"
-#include "simulator/http_server.hpp"
+#include "http_server.hpp"
 #include "simulator/http_proxy.hpp"
 #include "settings.hpp"
 #include "libtorrent/create_torrent.hpp"

@@ -17,7 +17,7 @@ see LICENSE file.
 #include "simulator/simulator.hpp"
 #include "simulator/socks_server.hpp"
 #include "simulator/utils.hpp"
-#include "simulator/http_server.hpp"
+#include "http_server.hpp"
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/address.hpp"
