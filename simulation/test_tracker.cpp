@@ -16,7 +16,7 @@ see LICENSE file.
 #include "utils.hpp" // for print_alerts
 #include "create_torrent.hpp"
 #include "simulator/simulator.hpp"
-#include "simulator/http_server.hpp"
+#include "http_server.hpp"
 #include "simulator/utils.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/session_stats.hpp"

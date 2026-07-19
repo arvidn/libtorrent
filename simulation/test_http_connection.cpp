@@ -14,7 +14,7 @@ see LICENSE file.
 #include "settings.hpp"
 #include "setup_swarm.hpp"
 #include "simulator/simulator.hpp"
-#include "simulator/http_server.hpp"
+#include "http_server.hpp"
 #include "simulator/http_proxy.hpp"
 #include "simulator/socks_server.hpp"
 #include "simulator/utils.hpp"

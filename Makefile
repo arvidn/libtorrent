@@ -799,6 +799,8 @@ SIM_SOURCES = \
   fake_peer.hpp \
   disk_io.hpp \
   disk_io.cpp \
+  http_server.cpp \
+  http_server.hpp \
   make_proxy_settings.hpp \
   setup_dht.cpp \
   setup_dht.hpp \
@@ -845,7 +847,6 @@ LIBSIM_SOURCES = \
   high_resolution_clock.cpp \
   high_resolution_timer.cpp \
   http_proxy.cpp \
-  http_server.cpp \
   io_service.cpp \
   pcap.cpp \
   queue.cpp \
@@ -863,7 +864,6 @@ LIBSIM_HEADERS = \
   function.hpp \
   handler_allocator.hpp \
   http_proxy.hpp \
-  http_server.hpp \
   noexcept_movable.hpp \
   packet.hpp \
   pcap.hpp \

@@ -13,7 +13,7 @@ see LICENSE file.
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/aux_/deadline_timer.hpp"
-#include "simulator/http_server.hpp"
+#include "http_server.hpp"
 #include "settings.hpp"
 #include "create_torrent.hpp"
 #include "setup_transfer.hpp" // for addr()
