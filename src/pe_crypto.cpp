@@ -14,8 +14,10 @@ see LICENSE file.
 #if !defined TORRENT_DISABLE_ENCRYPTION
 
 #include <cstdint>
+#include <cstring>
 #include <algorithm>
 #include <random>
+#include <utility>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/multiprecision/integer.hpp>
@@ -255,16 +257,6 @@ namespace libtorrent::aux {
 		recv_buffer.crypto_reset(packet_size);
 	}
 
-	rc4_handler::rc4_handler()
-		: m_encrypt(false)
-		, m_decrypt(false)
-	{
-		m_rc4_incoming.x = 0;
-		m_rc4_incoming.y = 0;
-		m_rc4_outgoing.x = 0;
-		m_rc4_outgoing.y = 0;
-	}
-
 	void rc4_handler::set_incoming_key(span<char const> key)
 	{
 		m_decrypt = true;
@@ -334,66 +326,89 @@ namespace libtorrent::aux {
 // this library is public domain and has been specially
 // tailored for libtorrent by Arvid Norberg
 
-void rc4_init(const unsigned char* in, std::size_t len, rc4 *state)
-{
-	std::size_t const key_size = sizeof(state->buf);
-	aux::array<std::uint8_t, key_size> key;
-	std::uint8_t tmp, *s;
-	int keylen, x, y, j;
+	void rc4_init(unsigned char const* in, std::size_t len, rc4* state)
+	{
+		constexpr std::size_t key_size = 256;
 
-	TORRENT_ASSERT(state != nullptr);
-	TORRENT_ASSERT(len <= key_size);
-	if (len > key_size) len = key_size;
+		TORRENT_ASSERT(state != nullptr);
+		TORRENT_ASSERT(len > 0);
+		TORRENT_ASSERT(len <= key_size);
+		if (len > key_size)
+			len = key_size;
 
-	state->x = 0;
-	while (len--) {
-		state->buf[state->x++] = *in++;
-	}
+		// make RC4 perm and shuffle. the key is read directly out of "in"
+		// (wrapping every keylen bytes), instead of first being copied byte by
+		// byte into state->buf and then back out again
+		for (int i = 0; i < int(key_size); ++i)
+			state->buf[i] = std::uint32_t(i);
 
-	/* extract the key */
-	s = state->buf.data();
-	std::memcpy(key.data(), s, key_size);
-	keylen = state->x;
-
-	/* make RC4 perm and shuffle */
-	for (x = 0; x < int(key_size); ++x) {
-		s[x] = x & 0xff;
-	}
-
-	for (j = x = y = 0; x < int(key_size); x++) {
-		y = (y + state->buf[x] + key[j++]) & 255;
-		if (j == keylen) {
-			j = 0;
+		// skip mixing the key in for len == 0, rather than dereferencing
+		// "in" (an empty span's data() pointer isn't guaranteed to point
+		// at valid memory). buf is left as the identity permutation --
+		// not meaningful RC4 state, but safe
+		if (len > 0)
+		{
+			int j = 0;
+			for (int i = 0; i < int(key_size); ++i)
+			{
+				j = (j + int(state->buf[i]) + int(in[i % int(len)])) & 0xff;
+				std::swap(state->buf[i], state->buf[j]);
+			}
 		}
-		tmp = s[x]; s[x] = s[y]; s[y] = tmp;
+		state->x = 0;
+		state->y = 0;
 	}
-	state->x = 0;
-	state->y = 0;
-}
 
-std::size_t rc4_encrypt(unsigned char *out, std::size_t outlen, rc4 *state)
-{
-	std::uint8_t x, y, *s, tmp;
-	std::size_t n;
+	std::size_t rc4_encrypt(unsigned char* out, std::size_t outlen, rc4* state)
+	{
+		TORRENT_ASSERT(out != nullptr);
+		TORRENT_ASSERT(state != nullptr);
 
-	TORRENT_ASSERT(out != nullptr);
-	TORRENT_ASSERT(state != nullptr);
+		std::size_t const n = outlen;
+		auto x = std::uint8_t(state->x);
+		auto y = std::uint8_t(state->y);
+		std::uint32_t* const s = state->buf.data();
 
-	n = outlen;
-	x = state->x & 0xff;
-	y = state->y & 0xff;
-	s = state->buf.data();
-	while (outlen--) {
-		x = (x + 1) & 255;
-		y = (y + s[x]) & 255;
-		tmp = s[x]; s[x] = s[y]; s[y] = tmp;
-		tmp = (s[x] + s[y]) & 255;
-		*out++ ^= s[tmp];
+		auto const step = [&]() -> std::uint8_t {
+			x = std::uint8_t(x + 1);
+			y = std::uint8_t(y + s[x]);
+			std::swap(s[x], s[y]);
+			auto const idx = std::uint8_t(s[x] + s[y]);
+			return std::uint8_t(s[idx]);
+		};
+
+		// generate 8 keystream bytes at a time into a local buffer, and XOR
+		// them against the output in a single 64-bit operation, rather than
+		// doing a separate byte-sized load/xor/store for every output byte
+		while (outlen >= 8)
+		{
+			// write each keystream byte directly into keystream's own
+			// storage (well-defined: any object's representation can be
+			// written through an unsigned char pointer) instead of
+			// staging it through a separate array and a second memcpy.
+			// this preserves byte position exactly like memcpy does, so
+			// it doesn't depend on host endianness
+			std::uint64_t keystream;
+			auto* const ks = reinterpret_cast<unsigned char*>(&keystream);
+			for (int i = 0; i < 8; ++i)
+				ks[i] = step();
+
+			std::uint64_t block;
+			std::memcpy(&block, out, 8);
+			block ^= keystream;
+			std::memcpy(out, &block, 8);
+
+			out += 8;
+			outlen -= 8;
+		}
+
+		while (outlen--)
+			*out++ ^= step();
+
+		state->x = x;
+		state->y = y;
+		return n;
 	}
-	state->x = x;
-	state->y = y;
-	return n;
-}
 
 } // namespace libtorrent::aux
 
