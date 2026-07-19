@@ -273,14 +273,14 @@ namespace aux {
 				if (err) return;
 				TORRENT_ASSERT(*in == ':');
 				++in; // ':'
-				int const len = aux::parse_decimal(len_s);
-				if (len < 0)
+				auto const len = aux::parse_decimal(len_s);
+				if (!len || *len < 0)
 				{
 					err = true;
 					return;
 				}
 				ret = entry(entry::string_t);
-				read_string(in, end, len, ret.string(), err);
+				read_string(in, end, *len, ret.string(), err);
 				if (err) return;
 			}
 			else

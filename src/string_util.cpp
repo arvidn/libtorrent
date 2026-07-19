@@ -24,11 +24,11 @@ see LICENSE file.
 
 namespace libtorrent::aux {
 
-	int parse_decimal(string_view const str)
+	std::optional<int> parse_decimal(string_view const str)
 	{
 		int ret = 0;
 		auto const r = std::from_chars(str.data(), str.data() + str.size(), ret);
-		if (r.ec != std::errc{}) return -1;
+		if (r.ec != std::errc{}) return std::nullopt;
 		return ret;
 	}
 
@@ -236,12 +236,13 @@ namespace libtorrent::aux {
 				continue;
 			}
 
-			iface.port = parse_decimal(port_str);
-			if (iface.port < 0 || iface.port > 65535)
+			auto const port_num = parse_decimal(port_str);
+			if (!port_num || *port_num < 0 || *port_num > 65535)
 			{
 				err.emplace_back(element);
 				continue;
 			}
+			iface.port = *port_num;
 
 			port.remove_prefix(port_str.size());
 			port = strip_string(port);
@@ -288,8 +289,13 @@ namespace libtorrent::aux {
 
 			if (colon != std::string::npos && colon > start)
 			{
-				int const port = parse_decimal(strip_string(
+				auto const port = parse_decimal(strip_string(
 					string_view(in).substr(colon + 1, end - colon - 1)));
+				if (!port)
+				{
+					start = end + 1;
+					continue;
+				}
 
 				// skip trailing spaces
 				std::string::size_type soft_end = colon;
@@ -302,7 +308,7 @@ namespace libtorrent::aux {
 				if (in[start] == '[') ++start;
 				if (soft_end > start && in[soft_end-1] == ']') --soft_end;
 
-				out.emplace_back(in.substr(start, soft_end - start), port);
+				out.emplace_back(in.substr(start, soft_end - start), *port);
 			}
 
 			start = end + 1;

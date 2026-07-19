@@ -118,13 +118,14 @@ namespace libtorrent::aux {
 			return ret;
 		}
 
-		int const port_num = parse_decimal(port);
-		if (port_num <= 0 || port_num > std::numeric_limits<std::uint16_t>::max())
+		auto const port_num = parse_decimal(port);
+		if (!port_num || *port_num <= 0
+			|| *port_num > std::numeric_limits<std::uint16_t>::max())
 		{
 			ec = errors::invalid_port;
 			return ret;
 		}
-		ret.port(static_cast<std::uint16_t>(port_num));
+		ret.port(static_cast<std::uint16_t>(*port_num));
 		return ret;
 	}
 
