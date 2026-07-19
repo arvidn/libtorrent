@@ -41,15 +41,23 @@ namespace {
 		char* ptr = out.data();
 
 		auto left = out.size() - (ptr - out.data());
+		// snprintf returns the number of characters it would have written had
+		// there been room, which may exceed "left". Clamp the advance so ptr
+		// never moves past the end of "out"; otherwise "left" goes negative and
+		// the std::min below hands std::copy a negative count.
 		if (!salt.empty())
 		{
-			ptr += std::snprintf(ptr, static_cast<std::size_t>(left), "4:salt%d:", int(salt.size()));
+			int const n =
+				std::snprintf(ptr, static_cast<std::size_t>(left), "4:salt%d:", int(salt.size()));
+			ptr += std::min<std::ptrdiff_t>(n, left);
 			left = out.size() - (ptr - out.data());
 			std::copy(salt.begin(), salt.begin() + std::min(salt.size(), left), ptr);
 			ptr += std::min(salt.size(), left);
 			left = out.size() - (ptr - out.data());
 		}
-		ptr += std::snprintf(ptr, static_cast<std::size_t>(left), "3:seqi%" PRId64 "e1:v", seq.value);
+		int const n =
+			std::snprintf(ptr, static_cast<std::size_t>(left), "3:seqi%" PRId64 "e1:v", seq.value);
+		ptr += std::min<std::ptrdiff_t>(n, left);
 		left = out.size() - (ptr - out.data());
 		std::copy(v.begin(), v.begin() + std::min(v.size(), left), ptr);
 		ptr += std::min(v.size(), left);
@@ -80,6 +88,12 @@ bool verify_mutable_item(
 	, public_key const& pk
 	, signature const& sig)
 {
+	// the BEP44 salt is capped at 64 bytes. a larger salt can never be part of
+	// a valid item, so fail validation rather than hand canonical_string an
+	// input that doesn't fit its buffer.
+	if (salt.size() > 64)
+		return false;
+
 	char str[1200];
 	int len = canonical_string(v, seq, salt, str);
 

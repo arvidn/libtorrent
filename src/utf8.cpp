@@ -93,11 +93,11 @@ namespace {
 		if (sequence_len == 0)
 			return std::make_pair(-1, 1);
 
-		if (sequence_len > 4)
-			return std::make_pair(-1, sequence_len);
-
 		if (sequence_len > int(str.size()))
 			return std::make_pair(-1, static_cast<int>(str.size()));
+
+		if (sequence_len > 4)
+			return std::make_pair(-1, sequence_len);
 
 		std::int32_t ch = 0;
 		// first byte

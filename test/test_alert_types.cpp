@@ -168,11 +168,34 @@ TORRENT_TEST(alerts_types)
 	TEST_ALERT_TYPE(tracker_list_alert, 104, alert_priority::critical, alert_category::status);
 	TEST_ALERT_TYPE(file_priorities_alert, 105, alert_priority::critical, alert_category::status);
 	TEST_ALERT_TYPE(file_status_alert, 106, alert_priority::critical, alert_category::status);
+	TEST_ALERT_TYPE(ip_ban_alert, 107, alert_priority::normal, alert_category::ip_block);
 
 #undef TEST_ALERT_TYPE
 
-	TEST_EQUAL(num_alert_types, 107);
+	TEST_EQUAL(num_alert_types, 108);
 	TEST_EQUAL(num_alert_types, count_alert_types);
+}
+
+TORRENT_TEST(ip_ban_alert)
+{
+	aux::alert_manager mgr(1, ip_ban_alert::static_category);
+
+	TEST_EQUAL(mgr.should_post<ip_ban_alert>(), true);
+
+	address const banned = addr("10.0.0.1");
+	mgr.emplace_alert<ip_ban_alert>(banned);
+
+	TEST_CHECK(mgr.wait_for_alert(seconds(0)));
+	std::vector<alert*> alerts;
+	mgr.get_all(alerts);
+	TEST_EQUAL(alerts.size(), 1);
+	auto const* a = alert_cast<ip_ban_alert>(alerts.front());
+	TEST_CHECK(a != nullptr);
+	TEST_CHECK(a->banned_address == banned);
+
+#ifndef TORRENT_DISABLE_ALERT_MSG
+	TEST_CHECK(a->message().find("10.0.0.1") != std::string::npos);
+#endif
 }
 
 TORRENT_TEST(dht_get_peers_reply_alert)

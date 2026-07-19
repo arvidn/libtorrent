@@ -334,7 +334,11 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 
 	void hash_picker::hashes_rejected(hash_request const& req)
 	{
-		TORRENT_ASSERT(req.base == m_piece_layer && req.index % 512 == 0);
+		// only requests at the piece layer are recorded in
+		// m_piece_hash_requested.
+		if (req.base != m_piece_layer || req.index % 512 != 0 || req.count > 512
+			|| req.index >= m_files.file_num_pieces(req.file))
+			return;
 
 		for (int i = req.index; i < req.index + req.count; i += 512)
 		{

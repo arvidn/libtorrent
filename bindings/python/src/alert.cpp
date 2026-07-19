@@ -249,6 +249,7 @@ namespace boost {
 	POLY(file_prio_alert)
 	POLY(oversized_file_alert)
 	POLY(torrent_conflict_alert)
+	POLY(ip_ban_alert)
 
 #if TORRENT_ABI_VERSION == 1
 	POLY(anonymous_mode_alert)
@@ -734,6 +735,9 @@ void bind_alert()
 		.add_property(
 			"external_address", make_getter(&external_ip_alert::external_address, by_value())
 		);
+
+	class_<ip_ban_alert, bases<alert>, noncopyable>("ip_ban_alert", no_init)
+		.add_property("banned_address", make_getter(&ip_ban_alert::banned_address, by_value()));
 
 	class_<save_resume_data_alert, bases<torrent_alert>, noncopyable>(
 		"save_resume_data_alert", no_init

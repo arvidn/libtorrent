@@ -128,6 +128,13 @@ TORRENT_TEST(parse_utf8_fail)
 	// invalid continuation character
 	parse_error("\xc0\x7f");
 
+	// truncated 5-byte sequences. The reported length must stay within the
+	// buffer we were handed
+	parse_error("\xf8");
+	parse_error("\xf8\x80");
+	parse_error("\xf8\x80\x80");
+	parse_error("\xf8\x80\x80\x80");
+
 	// codepoint too high
 	parse_error("\xf5\x8f\xbf\xbf");
 	parse_error("\xf4\xbf\xbf\xbf");

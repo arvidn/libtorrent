@@ -39,11 +39,13 @@ namespace libtorrent::aux {
 
 	TORRENT_EXTRA_EXPORT std::array<char, 96> export_key(key_t const& k);
 
-	// RC4 state from libtomcrypt
+	// RC4 state from libtomcrypt. buf holds a permutation of 0-255, stored
+	// widened to 32 bits per entry so every access is a whole-register
+	// load/store.
 	struct rc4 {
-		int x;
-		int y;
-		aux::array<std::uint8_t, 256> buf;
+		int x = 0;
+		int y = 0;
+		aux::array<std::uint32_t, 256> buf;
 	};
 
 	// TODO: 3 dh_key_exchange should probably move into its own file
@@ -114,7 +116,7 @@ namespace libtorrent::aux {
 	struct TORRENT_EXTRA_EXPORT rc4_handler : crypto_plugin
 	{
 	public:
-		rc4_handler();
+		rc4_handler() = default;
 
 		// Input keys must be 20 bytes
 		void set_incoming_key(span<char const> key) override;
@@ -130,8 +132,8 @@ namespace libtorrent::aux {
 		rc4 m_rc4_outgoing;
 
 		// determines whether or not encryption and decryption is enabled
-		bool m_encrypt;
-		bool m_decrypt;
+		bool m_encrypt = false;
+		bool m_decrypt = false;
 	};
 
 } // namespace libtorrent::aux

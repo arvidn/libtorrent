@@ -77,7 +77,7 @@ namespace libtorrent {
 	constexpr int user_alert_id = 10000;
 
 	// this constant represents "max_alert_index" + 1
-	constexpr int num_alert_types = 107;
+	constexpr int num_alert_types = 108;
 
 	// internal
 	constexpr int abi_alert_count = 128;
@@ -3283,6 +3283,21 @@ TORRENT_VERSION_NAMESPACE_4_END
 		// Files that are not open are not included. Each entry's ``file_index``
 		// field identifies which file it refers to.
 		std::vector<open_file_state> state;
+	};
+
+	// This alert is generated when libtorrent internally bans an IP address.
+	// The banned IP address can be accessed through the ``banned_address`` member.
+	struct TORRENT_EXPORT ip_ban_alert final : alert
+	{
+		// internal
+		TORRENT_UNEXPORT ip_ban_alert(aux::stack_allocator& alloc, address const& addr);
+		TORRENT_DEFINE_ALERT(ip_ban_alert, 107)
+
+		static constexpr alert_category_t static_category = alert_category::ip_block;
+		std::string message() const override;
+
+		// the IP address that was banned
+		aux::noexcept_movable<address> banned_address;
 	};
 
 	// internal

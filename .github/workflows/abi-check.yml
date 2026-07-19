@@ -1,0 +1,171 @@
+name: ABI check
+
+# Compares the ABI of a PR's target library build against a fixed baseline
+# release tag for that branch, using libabigail's abidiff. Only branches
+# listed below are checked -- ABI must stay compatible on RC_* stable
+# branches, whenever a new RC_* branch is cut. master intentionally has no
+# baseline, since ABI-breaking changes are expected to land there.
+
+on:
+   pull_request:
+      branches: [ RC_2_1 ]
+
+concurrency:
+   group: ${{ github.ref }}-${{ github.workflow }}-${{ github.event_name }}
+   cancel-in-progress: true
+
+jobs:
+
+   abi-diff:
+      name: ABI diff
+      runs-on: ubuntu-24.04
+      permissions:
+         contents: read
+         pull-requests: write
+
+      steps:
+      - name: pick baseline tag
+        id: config
+        run: |
+          case "${{ github.base_ref }}" in
+            RC_2_1) echo "baseline=v2.1.0" >>"$GITHUB_OUTPUT" ;;
+          esac
+
+      # the baseline is a fixed release tag -- there's only ever one build of
+      # it per branch, so cache the installed headers+lib and skip rebuilding
+      # it on every PR. Bump the "v1" salt below if the build flags change.
+      - name: cache baseline build
+        if: steps.config.outputs.baseline != ''
+        id: cache-baseline
+        uses: actions/cache@v4
+        with:
+           path: install-baseline
+           key: abi-baseline-v1-${{ steps.config.outputs.baseline }}
+
+      - name: checkout baseline (${{ steps.config.outputs.baseline }})
+        if: steps.config.outputs.baseline != '' && steps.cache-baseline.outputs.cache-hit != 'true'
+        uses: actions/checkout@v6
+        with:
+           ref: ${{ steps.config.outputs.baseline }}
+           path: baseline
+           fetch-depth: 1
+           filter: tree:0
+           submodules: true
+
+      - name: checkout PR
+        uses: actions/checkout@v6
+        with:
+           path: pr
+           fetch-depth: 1
+           filter: tree:0
+           submodules: true
+
+      - name: update package lists
+        continue-on-error: true
+        run: sudo apt update
+
+      - name: install dependencies
+        run: |
+          sudo apt install -y libboost-tools-dev libboost-dev libboost-system-dev abigail-tools
+          echo "using gcc ;" >>~/user-config.jam
+
+      - uses: Chocobo1/setup-ccache-action@v1
+        with:
+          update_packager_index: false
+          override_cache_key: ccache-linux-abi-${{ github.base_ref }}
+          remove_stale_cache: false
+          ccache_options: |
+            max_size=1G
+
+      - name: build and install baseline (${{ steps.config.outputs.baseline }})
+        if: steps.config.outputs.baseline != '' && steps.cache-baseline.outputs.cache-hit != 'true'
+        run: |
+          cd baseline
+          b2 install --prefix="$GITHUB_WORKSPACE/install-baseline" \
+            release debug-symbols=on link=shared webtorrent=off crypto=built-in
+
+      - name: build and install PR
+        run: |
+          cd pr
+          b2 install --prefix="$GITHUB_WORKSPACE/install-pr" \
+            release debug-symbols=on link=shared webtorrent=off crypto=built-in
+
+      - name: run abidiff
+        if: steps.config.outputs.baseline != ''
+        id: abidiff
+        run: |
+          set +e
+          abidiff \
+            --headers-dir1 install-baseline/include \
+            --headers-dir2 install-pr/include \
+            --suppressions pr/.github/abi-suppressions.txt \
+            install-baseline/lib/libtorrent-rasterbar.so \
+            install-pr/lib/libtorrent-rasterbar.so \
+            | tee abidiff.txt
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >>"$GITHUB_OUTPUT"
+          # bit 1 (error) or bit 2 (usage error) or bit 8 (incompatible ABI
+          # change) fail the check; bit 4 alone (compatible additions, e.g.
+          # new symbols) is informational only.
+          if (( (code & 1) || (code & 2) || (code & 8) )); then
+            echo "incompatible=true" >>"$GITHUB_OUTPUT"
+          else
+            echo "incompatible=false" >>"$GITHUB_OUTPUT"
+          fi
+
+      - name: prepare comment
+        if: always() && steps.config.outputs.baseline != ''
+        run: |
+          {
+            echo '<!-- abi-check -->'
+            echo "## ABI check against \`${{ steps.config.outputs.baseline }}\`"
+            echo
+            if [ ! -f abidiff.txt ]; then
+              echo 'The baseline or PR build failed before abidiff could run -- see the workflow run for details.'
+            elif [ "${{ steps.abidiff.outputs.exit_code }}" = "0" ]; then
+              echo 'ABI appear backwards compatible.'
+            elif [ "${{ steps.abidiff.outputs.incompatible }}" = "true" ]; then
+              echo "**Incompatible ABI changes detected** (abidiff exit code ${{ steps.abidiff.outputs.exit_code }}). This is not allowed on \`${{ github.base_ref }}\` -- see CLAUDE.md."
+            else
+              echo "ABI additions detected (abidiff exit code ${{ steps.abidiff.outputs.exit_code }}), but they appear backwards compatible."
+            fi
+            echo
+            if [ -f abidiff.txt ]; then
+              echo '<details><summary>abidiff report</summary>'
+              echo
+              echo '```'
+              head -c 60000 abidiff.txt
+              if [ "$(wc -c < abidiff.txt)" -gt 60000 ]; then
+                echo
+                echo '... (truncated, see full log in the workflow run)'
+              fi
+              echo '```'
+              echo '</details>'
+            fi
+          } > comment.md
+
+      # only same-repo PRs get GITHUB_TOKEN write access; forked PRs still
+      # get the pass/fail check below, just no comment.
+      - name: find existing comment
+        if: always() && steps.config.outputs.baseline != '' && github.event.pull_request.head.repo.full_name == github.repository
+        id: find_comment
+        uses: peter-evans/find-comment@v3
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: '<!-- abi-check -->'
+
+      - name: post/update PR comment
+        if: always() && steps.config.outputs.baseline != '' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.find_comment.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          edit-mode: replace
+          body-path: comment.md
+
+      - name: fail on incompatible ABI change
+        if: steps.config.outputs.baseline != '' && steps.abidiff.outputs.incompatible == 'true'
+        run: |
+          echo "abidiff reported an incompatible ABI change against ${{ steps.config.outputs.baseline }} (exit code ${{ steps.abidiff.outputs.exit_code }})"
+          exit 1
