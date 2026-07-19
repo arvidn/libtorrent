@@ -27,6 +27,13 @@ see LICENSE file.
 #include "libtorrent/span.hpp"
 #include "libtorrent/aux_/array.hpp"
 
+#if defined TORRENT_USE_LIBCRYPTO
+extern "C"
+{
+#include <openssl/rc4.h>
+}
+#endif
+
 #include <list>
 #include <array>
 #include <cstdint>
@@ -39,12 +46,17 @@ namespace libtorrent::aux {
 
 	TORRENT_EXTRA_EXPORT std::array<char, 96> export_key(key_t const& k);
 
+#if defined TORRENT_USE_LIBCRYPTO
+	// RC4 state, backed by libcrypto's RC4 implementation
+	using rc4 = RC4_KEY;
+#else
 	// RC4 state from libtomcrypt
 	struct rc4 {
-		int x;
-		int y;
+		int x = 0;
+		int y = 0;
 		aux::array<std::uint8_t, 256> buf;
 	};
+#endif
 
 	// TODO: 3 dh_key_exchange should probably move into its own file
 	class TORRENT_EXTRA_EXPORT dh_key_exchange

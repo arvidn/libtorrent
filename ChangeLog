@@ -1,5 +1,6 @@
 2.1.1 not released
 
+	* optimize RC4 crypto
 	* fail validation of DHT mutable items whose salt exceeds the 64 byte limit
 	* improve dont-count-slow-torrents
 	* improve performance of checking files

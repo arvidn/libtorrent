@@ -11,6 +11,8 @@ see LICENSE file.
 */
 
 #include <algorithm>
+#include <array>
+#include <cstdint>
 #include <iostream>
 
 #include "libtorrent/hasher.hpp"
@@ -23,6 +25,42 @@ see LICENSE file.
 #if !defined TORRENT_DISABLE_ENCRYPTION
 
 namespace {
+
+	// a from-scratch, textbook RC4 (KSA + PRGA) implementation, independent
+	// of whichever backend aux::rc4_handler is built against. It exists
+	// purely to catch a change to rc4_handler's keystream that would break
+	// interop with peers running a differently-configured libtorrent build.
+	struct reference_rc4_state
+	{
+		std::array<std::uint8_t, 256> s;
+		std::uint8_t i = 0;
+		std::uint8_t j = 0;
+	};
+
+	void reference_rc4_init(
+		unsigned char const* key, std::size_t keylen, reference_rc4_state& state)
+	{
+		for (int n = 0; n < 256; ++n)
+			state.s[std::size_t(n)] = std::uint8_t(n);
+
+		std::uint8_t j = 0;
+		for (int n = 0; n < 256; ++n)
+		{
+			j = std::uint8_t(j + state.s[std::size_t(n)] + key[std::size_t(n) % keylen]);
+			std::swap(state.s[std::size_t(n)], state.s[j]);
+		}
+	}
+
+	void reference_rc4_encrypt(unsigned char* out, std::size_t len, reference_rc4_state& state)
+	{
+		while (len--)
+		{
+			state.i = std::uint8_t(state.i + 1);
+			state.j = std::uint8_t(state.j + state.s[state.i]);
+			std::swap(state.s[state.i], state.s[state.j]);
+			*out++ ^= state.s[std::uint8_t(state.s[state.i] + state.s[state.j])];
+		}
+	}
 
 void test_enc_handler(lt::crypto_plugin& a, lt::crypto_plugin& b)
 {
@@ -159,6 +197,40 @@ TORRENT_TEST(rc4)
 	rc42.set_incoming_key(test1_key);
 	rc42.set_outgoing_key(test2_key);
 	test_enc_handler(rc41, rc42);
+}
+
+// make sure rc4_handler produces the exact keystream we expect, regardless
+// of which RC4 backend it's built against. See reference_rc4_init() /
+// reference_rc4_encrypt() above.
+TORRENT_TEST(rc4_known_keystream)
+{
+	using namespace lt;
+
+	sha1_hash const key = hasher("rc4 test key", 12).final();
+
+	reference_rc4_state ref_state;
+	reference_rc4_init(
+		reinterpret_cast<unsigned char const*>(key.data()), std::size_t(key.size()), ref_state);
+
+	// rc4_handler discards the first 1024 bytes of keystream when a key is
+	// set, to satisfy the MSE spec
+	std::array<unsigned char, 1024> discard{};
+	reference_rc4_encrypt(discard.data(), discard.size(), ref_state);
+
+	std::array<unsigned char, 64> expected{};
+	reference_rc4_encrypt(expected.data(), expected.size(), ref_state);
+
+	aux::rc4_handler rc4;
+	rc4.set_outgoing_key(key);
+
+	std::array<char, 64> buf{};
+	lt::span<char> iovec(buf.data(), int(buf.size()));
+	auto const [next_barrier, iovec_out] = rc4.encrypt(iovec);
+	TEST_EQUAL(next_barrier, int(buf.size()));
+	TEST_EQUAL(iovec_out.size(), 0);
+
+	for (std::size_t i = 0; i < buf.size(); ++i)
+		TEST_EQUAL(int(std::uint8_t(buf[i])), int(expected[i]));
 }
 
 #else

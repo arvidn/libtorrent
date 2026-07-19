@@ -58,8 +58,23 @@ namespace libtorrent::aux {
 		return ret;
 	}
 
+#if defined TORRENT_USE_LIBCRYPTO
+	// RC4_set_key() and RC4() are deprecated as of OpenSSL 3.0, but work
+	// without requiring any additional runtime provider configuration.
+	// The deprecation warning is suppressed once here, for these two
+	// wrappers, rather than at every call site.
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
+	void rc4_set_key(rc4& state, span<char const> key)
+	{
+		RC4_set_key(&state, int(key.size()), reinterpret_cast<unsigned char const*>(key.data()));
+	}
+
+	void rc4_crypt(rc4& state, unsigned char* buf, std::size_t len) { RC4(&state, len, buf, buf); }
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#else
 	void rc4_init(const unsigned char* in, std::size_t len, rc4 *state);
 	std::size_t rc4_encrypt(unsigned char *out, std::size_t outlen, rc4 *state);
+#endif
 
 	// Set the prime P and the generator, generate local public key
 	dh_key_exchange::dh_key_exchange()
@@ -259,17 +274,23 @@ namespace libtorrent::aux {
 		: m_encrypt(false)
 		, m_decrypt(false)
 	{
+#if !defined TORRENT_USE_LIBCRYPTO
 		m_rc4_incoming.x = 0;
 		m_rc4_incoming.y = 0;
 		m_rc4_outgoing.x = 0;
 		m_rc4_outgoing.y = 0;
+#endif
 	}
 
 	void rc4_handler::set_incoming_key(span<char const> key)
 	{
 		m_decrypt = true;
+#if defined TORRENT_USE_LIBCRYPTO
+		rc4_set_key(m_rc4_incoming, key);
+#else
 		rc4_init(reinterpret_cast<unsigned char const*>(key.data())
 			, std::size_t(key.size()), &m_rc4_incoming);
+#endif
 		// Discard first 1024 bytes
 		char buf[1024];
 		span<char> vec(buf, sizeof(buf));
@@ -279,8 +300,12 @@ namespace libtorrent::aux {
 	void rc4_handler::set_outgoing_key(span<char const> key)
 	{
 		m_encrypt = true;
+#if defined TORRENT_USE_LIBCRYPTO
+		rc4_set_key(m_rc4_outgoing, key);
+#else
 		rc4_init(reinterpret_cast<unsigned char const*>(key.data())
 			, std::size_t(key.size()), &m_rc4_outgoing);
+#endif
 		// Discard first 1024 bytes
 		char buf[1024];
 		span<char> vec(buf, sizeof(buf));
@@ -306,7 +331,11 @@ namespace libtorrent::aux {
 			TORRENT_ASSERT(pos);
 
 			bytes_processed += len;
+#if defined TORRENT_USE_LIBCRYPTO
+			rc4_crypt(m_rc4_outgoing, pos, std::size_t(len));
+#else
 			rc4_encrypt(pos, std::uint32_t(len), &m_rc4_outgoing);
+#endif
 		}
 		return std::make_tuple(bytes_processed, empty);
 	}
@@ -325,75 +354,91 @@ namespace libtorrent::aux {
 			TORRENT_ASSERT(pos);
 
 			bytes_processed += len;
+#if defined TORRENT_USE_LIBCRYPTO
+			rc4_crypt(m_rc4_incoming, pos, std::size_t(len));
+#else
 			rc4_encrypt(pos, std::uint32_t(len), &m_rc4_incoming);
+#endif
 		}
 		return std::make_tuple(0, bytes_processed, 0);
 	}
 
-// All this code is based on libTomCrypt (http://www.libtomcrypt.com/)
-// this library is public domain and has been specially
-// tailored for libtorrent by Arvid Norberg
+#if !defined TORRENT_USE_LIBCRYPTO
+	// All this code is based on libTomCrypt (http://www.libtomcrypt.com/)
+	// this library is public domain and has been specially
+	// tailored for libtorrent by Arvid Norberg
 
-void rc4_init(const unsigned char* in, std::size_t len, rc4 *state)
-{
-	std::size_t const key_size = sizeof(state->buf);
-	aux::array<std::uint8_t, key_size> key;
-	std::uint8_t tmp, *s;
-	int keylen, x, y, j;
+	void rc4_init(const unsigned char* in, std::size_t len, rc4* state)
+	{
+		std::size_t const key_size = sizeof(state->buf);
+		aux::array<std::uint8_t, key_size> key;
+		std::uint8_t tmp, *s;
+		int keylen, x, y, j;
 
-	TORRENT_ASSERT(state != nullptr);
-	TORRENT_ASSERT(len <= key_size);
-	if (len > key_size) len = key_size;
+		TORRENT_ASSERT(state != nullptr);
+		TORRENT_ASSERT(len <= key_size);
+		if (len > key_size)
+			len = key_size;
 
-	state->x = 0;
-	while (len--) {
-		state->buf[state->x++] = *in++;
-	}
-
-	/* extract the key */
-	s = state->buf.data();
-	std::memcpy(key.data(), s, key_size);
-	keylen = state->x;
-
-	/* make RC4 perm and shuffle */
-	for (x = 0; x < int(key_size); ++x) {
-		s[x] = x & 0xff;
-	}
-
-	for (j = x = y = 0; x < int(key_size); x++) {
-		y = (y + state->buf[x] + key[j++]) & 255;
-		if (j == keylen) {
-			j = 0;
+		state->x = 0;
+		while (len--)
+		{
+			state->buf[state->x++] = *in++;
 		}
-		tmp = s[x]; s[x] = s[y]; s[y] = tmp;
+
+		/* extract the key */
+		s = state->buf.data();
+		std::memcpy(key.data(), s, key_size);
+		keylen = state->x;
+
+		/* make RC4 perm and shuffle */
+		for (x = 0; x < int(key_size); ++x)
+		{
+			s[x] = x & 0xff;
+		}
+
+		for (j = x = y = 0; x < int(key_size); x++)
+		{
+			y = (y + state->buf[x] + key[j++]) & 255;
+			if (j == keylen)
+			{
+				j = 0;
+			}
+			tmp = s[x];
+			s[x] = s[y];
+			s[y] = tmp;
+		}
+		state->x = 0;
+		state->y = 0;
 	}
-	state->x = 0;
-	state->y = 0;
-}
 
-std::size_t rc4_encrypt(unsigned char *out, std::size_t outlen, rc4 *state)
-{
-	std::uint8_t x, y, *s, tmp;
-	std::size_t n;
+	std::size_t rc4_encrypt(unsigned char* out, std::size_t outlen, rc4* state)
+	{
+		std::uint8_t x, y, *s, tmp;
+		std::size_t n;
 
-	TORRENT_ASSERT(out != nullptr);
-	TORRENT_ASSERT(state != nullptr);
+		TORRENT_ASSERT(out != nullptr);
+		TORRENT_ASSERT(state != nullptr);
 
-	n = outlen;
-	x = state->x & 0xff;
-	y = state->y & 0xff;
-	s = state->buf.data();
-	while (outlen--) {
-		x = (x + 1) & 255;
-		y = (y + s[x]) & 255;
-		tmp = s[x]; s[x] = s[y]; s[y] = tmp;
-		tmp = (s[x] + s[y]) & 255;
-		*out++ ^= s[tmp];
+		n = outlen;
+		x = state->x & 0xff;
+		y = state->y & 0xff;
+		s = state->buf.data();
+		while (outlen--)
+		{
+			x = (x + 1) & 255;
+			y = (y + s[x]) & 255;
+			tmp = s[x];
+			s[x] = s[y];
+			s[y] = tmp;
+			tmp = (s[x] + s[y]) & 255;
+			*out++ ^= s[tmp];
+		}
+		state->x = x;
+		state->y = y;
+		return n;
 	}
-	state->x = x;
-	state->y = y;
-	return n;
-}
+#endif // !defined TORRENT_USE_LIBCRYPTO
 
 } // namespace libtorrent::aux
 
