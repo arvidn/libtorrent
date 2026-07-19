@@ -356,13 +356,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 	void hash_picker::hashes_rejected(hash_request const& req)
 	{
 		// only requests at the piece layer are recorded in
-		// m_piece_hash_requested. The index of a request at any other layer
-		// counts nodes in that layer rather than pieces, so it would index the
-		// wrong bucket, or one past the end of the vector. pick_hashes() issues
-		// base 0 requests for the block hashes of a failed piece, and
-		// on_hash_reject() only matches the reject against an outstanding
-		// request, it does not validate it. This mirrors the check in
-		// add_hashes().
+		// m_piece_hash_requested.
 		if (req.base != m_piece_layer || req.index % 512 != 0 || req.count > 512
 			|| req.index >= m_files.file_num_pieces(req.file))
 			return;
