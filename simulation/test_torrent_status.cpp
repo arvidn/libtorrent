@@ -357,6 +357,168 @@ TORRENT_TEST(finish_time_shift_paused)
 	TEST_CHECK(ran_to_completion);
 }
 
+namespace {
+
+	void check_status_durations(lt::torrent_handle const& handle, lt::seconds expected)
+	{
+		torrent_status const st = handle.status();
+		TEST_EQUAL(st.active_duration.count(), expected.count());
+		TEST_EQUAL(st.seeding_duration.count(), expected.count());
+		TEST_EQUAL(st.finished_duration.count(), expected.count());
+	}
+
+	// removing a torrent must not let active_time(), seeding_time() or
+	// finished_time() include time it shouldn't: not time spent paused
+	// (pause_before_remove == true), and not lose live time that was never
+	// paused (pause_before_remove == false). Both cases exercise
+	// torrent::abort(), which clears m_paused directly, without going through
+	// do_resume(), so these timers rely on m_abort (in addition to
+	// is_paused()) to know their became-active/seed/finished timestamps are
+	// stale -- and abort() itself must flush the live segment into the
+	// accumulators before that happens, the same way do_pause() does.
+	void run_status_timers_removed_test(bool const pause_before_remove)
+	{
+		bool ran_to_completion = false;
+
+		lt::torrent_handle handle;
+		seconds expected_active_duration = seconds(1);
+		bool tick_is_in_active_range = false;
+
+		setup_swarm(
+			1,
+			swarm_test::upload
+			// add session
+			,
+			[](lt::settings_pack&) {} // add torrent
+			,
+			[](lt::add_torrent_params&) {} // on alert
+			,
+			[&](lt::alert const* a, lt::session&) {
+				if (auto ta = alert_cast<add_torrent_alert>(a))
+				{
+					TEST_CHECK(!handle.is_valid());
+					handle = ta->handle;
+				}
+			}
+			// terminate
+			,
+			[&](int ticks, lt::session& ses) -> bool {
+				if (tick_is_in_active_range)
+				{
+					// 1 second per tick
+					expected_active_duration++;
+				}
+
+				switch (ticks)
+				{
+					case 0:
+						// torrent get ready for seeding on first tick, means time +1s
+						tick_is_in_active_range = true;
+						break;
+					case 10:
+						if (pause_before_remove)
+						{
+							// pause. this flushes and freezes active/seeding/finished
+							// time at expected_active_duration
+							handle.pause();
+							tick_is_in_active_range = false;
+						}
+						break;
+					case 5000:
+						// removing the torrent -- whether it's been paused for a
+						// long time (that gap must not leak into the timers) or
+						// has been actively seeding the whole time (that time
+						// must not be lost)
+						ses.remove_torrent(handle);
+						check_status_durations(handle, expected_active_duration);
+						ran_to_completion = true;
+						return true;
+				}
+
+				// while paused, the durations must stay exactly frozen, tick by
+				// tick, for the whole stretch leading up to the removal above
+				if (pause_before_remove && !tick_is_in_active_range && ticks > 0)
+				{
+					check_status_durations(handle, expected_active_duration);
+				}
+				return false;
+			});
+		TEST_CHECK(ran_to_completion);
+	}
+
+} // namespace
+
+TORRENT_TEST(status_timers_removed_while_paused) { run_status_timers_removed_test(true); }
+
+TORRENT_TEST(status_timers_removed_while_active) { run_status_timers_removed_test(false); }
+
+// force-rechecking a torrent that's actively seeding must not discard the
+// seeding time accrued before the recheck, nor inflate it. force_recheck()
+// clears m_have_all directly, which is_seed() depends on, so the live time
+// since m_became_seed must be flushed into m_seeding_time before that
+// happens, and m_became_seed must be re-anchored to the moment the recheck
+// completes and confirms the torrent is a seed again.
+TORRENT_TEST(seeding_time_survives_force_recheck)
+{
+	bool ran_to_completion = false;
+	lt::torrent_handle handle;
+	seconds32 seeding_time_before_recheck{0};
+	int recheck_started_tick = -1;
+
+	setup_swarm(
+		1,
+		swarm_test::upload
+		// add session
+		,
+		[](lt::settings_pack&) {} // add torrent
+		,
+		[](lt::add_torrent_params&) {} // on alert
+		,
+		[&](lt::alert const* a, lt::session&) {
+			if (auto ta = alert_cast<add_torrent_alert>(a))
+			{
+				handle = ta->handle;
+			}
+		}
+		// terminate
+		,
+		[&](int ticks, lt::session&) -> bool {
+			if (ticks == 5000)
+			{
+				// let a good amount of real seeding time accrue first, then
+				// force a recheck of the (still intact) data
+				seeding_time_before_recheck = seconds32(handle.status().seeding_duration);
+				handle.force_recheck();
+				recheck_started_tick = ticks;
+			}
+
+			if (recheck_started_tick != -1)
+			{
+				torrent_status const st = handle.status();
+				if (st.state == torrent_status::seeding)
+				{
+					// the recheck completed and confirmed we're still a
+					// complete seed. seeding_duration must equal the
+					// pre-recheck total plus only the (small) time since
+					// the recheck itself completed
+					seconds32 const elapsed_since_recheck_started(ticks - recheck_started_tick);
+					TEST_CHECK(seconds32(st.seeding_duration) >= seeding_time_before_recheck);
+					TEST_CHECK(seconds32(st.seeding_duration)
+						<= seeding_time_before_recheck + elapsed_since_recheck_started);
+					ran_to_completion = true;
+					return true;
+				}
+				if (ticks > recheck_started_tick + 2000)
+				{
+					TEST_ERROR("recheck did not complete in time");
+					return true;
+				}
+			}
+			return false;
+		});
+	TEST_CHECK(ran_to_completion);
+}
+
 // This test makes sure that adding a torrent causes no torrent related alert to
 // be posted _before_ the add_torrent_alert, which is expected to always be the
 // first

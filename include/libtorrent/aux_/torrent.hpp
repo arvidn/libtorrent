@@ -232,6 +232,39 @@ namespace libtorrent::aux {
 #endif
 	};
 
+	// tracks the total time some condition has held (e.g. "this torrent is
+	// seeding"), as an accumulated duration plus an anchor timestamp for
+	// the current live segment, if any. All transitions go through
+	// set_live(), which is the only place that flushes the live segment
+	// into the accumulator and re-anchors it. Callers just report
+	// whether the condition holds.
+	struct accrued_time
+	{
+		seconds32 get(time_point32 const now) const
+		{
+			return m_live ? m_total + duration_cast<seconds32>(now - m_anchor) : m_total;
+		}
+
+		void set_live(bool const live, time_point32 const now)
+		{
+			if (live == m_live)
+				return;
+			if (m_live)
+				m_total += duration_cast<seconds32>(now - m_anchor);
+			else
+				m_anchor = now;
+			m_live = live;
+		}
+
+		// only meant for initializing from resume data
+		void set_total(seconds32 const t) { m_total = t; }
+
+	private:
+		seconds32 m_total{0};
+		time_point32 m_anchor{aux::time_now32()};
+		bool m_live = false;
+	};
+
 	struct TORRENT_EXTRA_EXPORT torrent_hot_members
 	{
 		torrent_hot_members(aux::session_interface& ses
@@ -559,9 +592,8 @@ namespace libtorrent::aux {
 
 		void stop_when_ready(bool b);
 
-		time_point32 started() const { return m_started; }
 		void step_session_time(int seconds);
-		void do_pause(bool was_paused = false);
+		void do_pause();
 		void do_resume();
 
 		seconds32 finished_time() const;
@@ -970,6 +1002,23 @@ namespace libtorrent::aux {
 
 		void disconnect_all(error_code const& ec, operation_t op);
 		int disconnect_peers(int num, error_code const& ec);
+
+		// every write to m_have_all must go through here: is_seed() and
+		// is_finished() depend on it, and both feed update_state_timers()
+		void set_have_all(bool b);
+
+		// re-evaluates whether each of m_active_timer/m_seeding_timer/
+		// m_finished_timer should be live right now, and updates them
+		// accordingly. Must be called any time is_paused(), m_abort,
+		// is_seed() or is_finished() may have changed
+		void update_state_timers();
+
+		// overloads for callers that already have "now" at hand and want to
+		// query more than one of these in a row without re-reading the clock
+		// each time
+		seconds32 finished_time(time_point32 now) const { return m_finished_timer.get(now); }
+		seconds32 active_time(time_point32 now) const { return m_active_timer.get(now); }
+		seconds32 seeding_time(time_point32 now) const { return m_seeding_timer.get(now); }
 
 		// called every time a block is marked as finished in the
 		// piece picker. We might have completed the torrent and
@@ -1556,18 +1605,19 @@ namespace libtorrent::aux {
 		// m_num_verified = m_verified.count()
 		std::uint32_t m_num_verified = 0;
 
-		// if this torrent is running, this was the time
-		// when it was started. This is used to have a
-		// bias towards keeping seeding torrents that
-		// recently was started, to avoid oscillation
-		// this is specified at a second granularity
-		time_point32 m_started = aux::time_now32();
+		// total time we've been active on this torrent, i.e. either (trying
+		// to) download or seed, not counting time paused or stopped. Used
+		// to have a bias towards keeping recently-started seeding torrents,
+		// to avoid oscillation
+		accrued_time m_active_timer;
 
-		// if we're a seed, this is the timestamp of when we became one
-		time_point32 m_became_seed = aux::time_now32();
+		// total time we've been available as a seed on this torrent, not
+		// counting time paused or stopped
+		accrued_time m_seeding_timer;
 
-		// if we're finished, this is the timestamp of when we finished
-		time_point32 m_became_finished = aux::time_now32();
+		// total time we've been finished with this torrent, not counting
+		// time paused or stopped
+		accrued_time m_finished_timer;
 
 		// when checking, this is the first piece we have not
 		// issued a hash job for
@@ -1669,21 +1719,9 @@ namespace libtorrent::aux {
 
 // ----
 
-		// total time we've been active on this torrent. i.e. either (trying to)
-		// download or seed. does not count time when the torrent is stopped or
-		// paused. specified in seconds. This only track time _before_ we started
-		// the torrent this last time. When the torrent is paused, this counter is
-		// incremented to include this current session.
-		seconds32 m_active_time{0};
-
-// ----
-
-		// total time we've been finished with this torrent.
-		// does not count when the torrent is stopped or paused.
-		seconds32 m_finished_time{0};
-
-		// this variable keeps track of whether the torrent
-		// has been set to be downloaded sequentially.
+		// in case the piece picker hasn't been constructed
+		// when this settings is set, this variable will keep
+		// its value until the piece picker is created
 		bool m_sequential_download:1;
 
 		// this is set if the auto_sequential setting is true and this swarm
@@ -1721,16 +1759,7 @@ namespace libtorrent::aux {
 		// doesn't cause a mismatch between the storage (which was set up as
 		// v2-only) and the engine's block-sizing logic.
 		bool m_disable_v1_hashes:1;
-// ----
-
-		// total time we've been available as a seed on this torrent.
-		// does not count when the torrent is stopped or paused. This value only
-		// accounts for the time prior to the current start of the torrent. When
-		// the torrent is paused, this counter is incremented to account for the
-		// additional seeding time.
-		seconds32 m_seeding_time{0};
-
-// ----
+		// ----
 
 		// the maximum number of uploads for this torrent
 		std::uint32_t m_max_uploads:24;

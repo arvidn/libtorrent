@@ -81,7 +81,7 @@ TORRENT_TEST(pick_piece_layer)
 	trees.push_back(aux::merkle_tree(merkle_num_nodes(merkle_num_leafs(4 * 512))));
 	aux::from_hex("0000000000000000000000000000000000000000000000000000000000000001", trees.back()[0].data());
 
-	hash_picker picker(fs, trees);
+	aux::hash_picker picker(fs, trees);
 
 	typed_bitfield<piece_index_t> pieces;
 	pieces.resize(8 * 512);
@@ -171,6 +171,35 @@ TORRENT_TEST(reject_piece_request)
 
 	auto const picked2 = picker.pick_hashes(pieces);
 	TEST_CHECK(picked == picked2);
+}
+
+TORRENT_TEST(reject_block_hash_request)
+{
+	file_storage fs;
+	// 16 blocks per piece, so a block index is 16 times the piece index
+	fs.set_piece_length(16 * default_block_size);
+
+	// 100 pieces means m_piece_hash_requested only has a single 512-piece bucket
+	fs.add_file("test/tmp1", 100 * 16 * default_block_size);
+
+	aux::vector<aux::merkle_tree, file_index_t> trees;
+	auto const root = from_hex("0000000000000000000000000000000000000000000000000000000000000001");
+	trees.emplace_back(100 * 16, 16, root.data());
+
+	aux::hash_picker picker(fs, trees);
+
+	// a failed piece hash makes the picker ask for the block hashes of that
+	// piece, which is a request at the block layer (base 0)
+	picker.verify_block_hashes(piece_index_t{40});
+
+	typed_bitfield<piece_index_t> const pieces(100, true);
+
+	auto const picked = picker.pick_hashes(pieces);
+	TEST_EQUAL(picked.base, 0);
+
+	// the index of a base 0 request counts blocks, not pieces, so it must not
+	// be used to index the piece-layer bookkeeping
+	picker.hashes_rejected(picked);
 }
 
 TORRENT_TEST(add_leaf_hashes)
