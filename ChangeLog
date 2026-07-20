@@ -1,5 +1,6 @@
 2.1.1 not released
 
+	* fix use of a stack buffer past its lifetime when sending i2p SAM commands
 	* optimize RC4
 	* fail validation of DHT mutable items whose salt exceeds the 64 byte limit
 	* improve dont-count-slow-torrents
