@@ -28,7 +28,8 @@ namespace libtorrent::aux {
 	{
 		int ret = 0;
 		auto const r = std::from_chars(str.data(), str.data() + str.size(), ret);
-		if (r.ec != std::errc{}) return std::nullopt;
+		if (r.ec != std::errc{})
+			return std::nullopt;
 		return ret;
 	}
 
