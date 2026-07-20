@@ -1,5 +1,6 @@
 2.0.14 not released
 
+	* fix use of a stack buffer past its lifetime when sending i2p SAM commands
 	* fix issues with active_time, seeding_time and finished_time
 	* fix torrent updates for idle torrents
 	* improve dont-count-slow-torrents
