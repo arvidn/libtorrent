@@ -1451,3 +1451,28 @@ TORRENT_TEST(validate_and_insert_proofs_existing_sibling_short_uncles)
 	  o,    o,   o,    o,
 	o, o, o, o,o, f, o, o}));
 }
+
+// an all-zero hash is the sentinel for "this node is unknown" throughout the
+// tree, so it must never be accepted as a node hash, no matter what proof
+// comes with it
+TORRENT_TEST(validate_and_insert_proofs_zero_node)
+{
+	// full tree:
+	//       ah
+	//    ad      eh
+	//  ab  cd  ef  gh
+	// a b c d  e f g h
+
+	v tree(15);
+	tree[0] = ah;
+
+	v const proofs{f, gh, ad};
+
+	TEST_CHECK(!merkle_validate_and_insert_proofs(tree, 11, o, proofs));
+
+	TEST_CHECK((tree == v{
+	          ah,
+	      o,        o,
+	  o,    o,   o,    o,
+	o, o, o, o,o, o, o, o}));
+}

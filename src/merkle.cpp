@@ -316,6 +316,12 @@ namespace libtorrent {
 	bool merkle_validate_and_insert_proofs(span<sha256_hash> target_tree
 		, int const target_node_idx, sha256_hash const& node, span<sha256_hash const> uncle_hashes)
 	{
+		// all-zeros is the sentinel for a node we don't know yet. it is never a
+		// valid node hash, and it compares equal to the empty target slot
+		// below, which would return success without looking at a single proof
+		if (node.is_all_zeros())
+			return false;
+
 		if (target_tree[target_node_idx] == node)
 			return true;
 
