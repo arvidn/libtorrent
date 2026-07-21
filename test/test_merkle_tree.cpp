@@ -996,3 +996,18 @@ TORRENT_TEST(load_piece_layer_clears_verified_bits)
 // TODO: add test for add_hashes() with an odd number of blocks
 // TODO: add test for set_block() (setting the last block) with an odd number of blocks
 
+TORRENT_TEST(add_hashes_zero_block_hash)
+{
+	// a peer can ask us to insert a single block hash of all zeros. that's the
+	// same value an unknown node has, so the insert must be rejected rather
+	// than silently marking the block as verified
+	aux::merkle_tree t(num_blocks, 4, f[0].data());
+
+	std::vector<sha256_hash> const hashes{sha256_hash{}};
+	std::vector<sha256_hash> const proofs{rand_sha256()};
+
+	auto const result = t.add_hashes(merkle_first_leaf(num_leafs) + 1, pdiff(0), hashes, proofs);
+
+	TEST_CHECK(!result);
+	TEST_CHECK(t.verified_leafs() == none_set(num_blocks));
+}
