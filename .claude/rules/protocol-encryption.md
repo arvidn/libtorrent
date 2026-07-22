@@ -40,6 +40,9 @@ side (incoming).
 
 1. **`read_pe_dhkey`** (96 bytes) -- read client's DH public key, respond
    with our DH public key + random PadB, transition to `read_pe_synchash`.
+   Failure if the peer's key is degenerate (outside `[2, p-2]`):
+   `invalid_encrypt_handshake`. Failure if the local key exchange failed:
+   `no_memory`.
 2. **`read_pe_synchash`** (scans up to 512 bytes of PadA + the 20-byte hash) --
    scan received bytes for `hash('req1', S)` where S is the shared secret. The
    client may insert up to 512 bytes of PadA before this hash. Failure:
@@ -63,16 +66,20 @@ side (incoming).
 
 ### Outgoing (client) path
 
-1. **`on_connected`** -- send DH public key + random PadA,
-   transition to `read_pe_dhkey`.
+1. **`on_connected`** -- generate the local key pair, send DH public key +
+   random PadA, transition to `read_pe_dhkey`. Failure if generating the
+   key pair failed locally: `no_memory`.
 2. **`read_pe_dhkey`** (96 bytes) -- read server's DH public key, then send
    sync hash + SKEY hash + encrypted(VC + crypto_provide + len_pad + PadC +
    len_IA) + encrypted(IA = BT handshake). Also send the BT handshake
-   encrypted as IA. Transition to `read_pe_syncvc`.
+   encrypted as IA. Transition to `read_pe_syncvc`. Failure if the peer's
+   key is degenerate (outside `[2, p-2]`): `invalid_encrypt_handshake`.
+   Failure if computing the shared secret failed locally: `no_memory`.
 3. **`read_pe_syncvc`** (scans up to 512 bytes of PadB + the 8-byte VC) --
    scan for the encrypted 8-byte verification constant (all zeros encrypted
    with RC4). Failure if not found within the 512-byte pad window:
-   `invalid_encryption_constant`.
+   `invalid_encryption_constant`. Failure if the 8-byte buffer could not be
+   allocated: `no_memory`.
 4. **`read_pe_cryptofield`** (6 bytes) -- read server's `crypto_select(4) +
    len_pad(2)`. Failure if selected mode not in our `allowed_enc_level`:
    `unsupported_encryption_mode_selected`.
@@ -87,11 +94,22 @@ side (incoming).
 spec). `key = 2^random % prime`.
 
 - `dh_key_exchange()` -- generate local key pair
+- `good()` -- false if the crypto library failed locally (e.g. out of
+  memory) generating the key pair or computing the shared secret. A
+  degenerate key from the peer does not clear it
 - `compute_secret(remote_pubkey)` -- compute shared secret S; also computes
-  `m_xor_mask = hash('req3', S)` used for SKEY obfuscation
+  `m_xor_mask = hash('req3', S)` used for SKEY obfuscation. Returns false
+  for a degenerate peer key (outside `[2, p-2]`) or on local failure
 - `get_local_key()` -- 96-byte DH public key to send
-- `get_secret()` -- shared secret S
-- `get_hash_xor_mask()` -- `hash('req3', S)` for SKEY obfuscation
+- `get_secret()` -- shared secret S, 96 bytes big-endian. Zeroed if
+  `compute_secret()` did not return true
+- `get_hash_xor_mask()` -- `hash('req3', S)` for SKEY obfuscation. Zeroed if
+  `compute_secret()` did not return true
+
+There are two implementations selected at compile time: one using libcrypto
+`BIGNUM` (when `TORRENT_USE_LIBCRYPTO` is defined and `TORRENT_USE_WOLFSSL`
+is not) and one using Boost.Multiprecision. Only the libcrypto one can fail
+locally, so `good()` is always true in the Boost build.
 
 ### RC4 Key Derivation
 
@@ -155,4 +173,5 @@ encrypt([8 bytes]  VC = 0x00 * 8
 | `unsupported_encryption_mode` | No overlap in crypto_provide vs allowed_enc_level |
 | `unsupported_encryption_mode_selected` | Server selected a mode not in our allowed list |
 | `invalid_pad_size` | len_pad_c > 512 |
-| `invalid_encrypt_handshake` | len_ia > 68 |
+| `invalid_encrypt_handshake` | len_ia > 68, or the peer's DH public key is degenerate (outside `[2, p-2]`) |
+| `no_memory` | a local allocation or crypto-library failure, never attributed to the peer: `dh_key_exchange` could not be allocated, the key exchange failed locally (`dh_key_exchange::good()` is false), or a handshake buffer could not be allocated |

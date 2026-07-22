@@ -16,94 +16,346 @@ see LICENSE file.
 #include <cstdint>
 #include <cstring>
 #include <algorithm>
-#include <random>
+#include <iterator>
+#include <optional>
 #include <utility>
 
+#if defined TORRENT_USE_LIBCRYPTO && !defined TORRENT_USE_WOLFSSL
 #include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <openssl/bn.h>
+#include <openssl/err.h>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#else
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/multiprecision/cpp_int.hpp>
 #include <boost/multiprecision/integer.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
+#endif
 
 #include "libtorrent/aux_/random.hpp"
 #include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/aux_/pe_crypto.hpp"
+#include "libtorrent/aux_/scope_end.hpp"
 #include "libtorrent/hasher.hpp"
 
 namespace libtorrent::aux {
 
 	namespace {
-		// TODO: it would be nice to get the literal working
-		key_t const dh_prime
-			("0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A63A36210000000000090563");
+		// the prime P from the MSE spec, 768 bits big-endian. The
+		// generator is 2
+		// clang-format off
+		unsigned char const dh_prime_bytes[96] = {
+			0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+			0xc9, 0x0f, 0xda, 0xa2, 0x21, 0x68, 0xc2, 0x34,
+			0xc4, 0xc6, 0x62, 0x8b, 0x80, 0xdc, 0x1c, 0xd1,
+			0x29, 0x02, 0x4e, 0x08, 0x8a, 0x67, 0xcc, 0x74,
+			0x02, 0x0b, 0xbe, 0xa6, 0x3b, 0x13, 0x9b, 0x22,
+			0x51, 0x4a, 0x08, 0x79, 0x8e, 0x34, 0x04, 0xdd,
+			0xef, 0x95, 0x19, 0xb3, 0xcd, 0x3a, 0x43, 0x1b,
+			0x30, 0x2b, 0x0a, 0x6d, 0xf2, 0x5f, 0x14, 0x37,
+			0x4f, 0xe1, 0x35, 0x6d, 0x6d, 0x51, 0xc2, 0x45,
+			0xe4, 0x85, 0xb5, 0x76, 0x62, 0x5e, 0x7e, 0xc6,
+			0xf4, 0x4c, 0x42, 0xe9, 0xa6, 0x3a, 0x36, 0x21,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x09, 0x05, 0x63
+		};
+		// clang-format on
+
+		char const req3[4] = {'r', 'e', 'q', '3'};
 	}
 
-	std::array<char, 96> export_key(key_t const& k)
-	{
-		std::array<char, 96> ret;
-		auto* begin = reinterpret_cast<std::uint8_t*>(ret.data());
-		std::uint8_t* end = mp::export_bits(k, begin, 8);
+	void rc4_init(const unsigned char* in, std::size_t len, rc4* state);
+	std::size_t rc4_encrypt(unsigned char* out, std::size_t outlen, rc4* state);
 
-		// TODO: it would be nice to be able to export to a fixed width field, so
-		// we wouldn't have to shift it later
-		if (end < begin + 96)
+#if defined TORRENT_USE_LIBCRYPTO && !defined TORRENT_USE_WOLFSSL
+
+	namespace {
+
+		// per-thread libcrypto state: scratch space for BIGNUM math and
+		// constants derived from the prime, set up once and reused by
+		// every key exchange on the thread
+		struct openssl_context
 		{
-			int const len = int(end - begin);
-#if defined __GNUC__ && __GNUC__ == 12
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wstringop-overflow"
-#endif
-			std::memmove(begin + 96 - len, begin, aux::numeric_cast<std::size_t>(len));
-#if defined __GNUC__ && __GNUC__ == 12
-#pragma GCC diagnostic pop
-#endif
-			std::memset(begin, 0, aux::numeric_cast<std::size_t>(96 - len));
-		}
-		return ret;
-	}
+			openssl_context() = default;
+			~openssl_context()
+			{
+				BN_MONT_CTX_free(montgomery);
+				BN_CTX_free(ctx);
+				BN_free(prime_minus_1);
+				BN_free(prime);
+			}
+			openssl_context(openssl_context const&) = delete;
+			openssl_context& operator=(openssl_context const&) = delete;
 
-	void rc4_init(const unsigned char* in, std::size_t len, rc4 *state);
-	std::size_t rc4_encrypt(unsigned char *out, std::size_t outlen, rc4 *state);
+			// these are initialized in declaration order, so prime_minus_1
+			// sees an already-initialized prime, and valid sees all four
+			BIGNUM* const prime = BN_bin2bn(dh_prime_bytes, int(sizeof(dh_prime_bytes)), nullptr);
+			BIGNUM* const prime_minus_1 = prime != nullptr ? BN_dup(prime) : nullptr;
+			BN_CTX* const ctx = BN_CTX_new();
+			BN_MONT_CTX* const montgomery = BN_MONT_CTX_new();
+			bool const valid = prime != nullptr && prime_minus_1 != nullptr && ctx != nullptr
+				&& montgomery != nullptr && BN_sub_word(prime_minus_1, 1) == 1
+				&& BN_MONT_CTX_set(montgomery, prime, ctx) == 1;
+		};
+
+		// export a BIGNUM as a 96 byte big-endian string, padded with
+		// leading zeroes. On failure "out" is left zeroed rather than
+		// holding a partial or stale value. The size check is what keeps
+		// BN_bn2bin (which takes no destination length) inside "out"
+		bool export_bignum(BIGNUM const* value, std::array<char, 96>& out)
+		{
+			out.fill(0);
+			int const size = int(BN_num_bytes(value));
+			// a zero value would export as an all-zero key, which is never
+			// a valid result of the modular exponentiation we do here
+			if (size <= 0 || size > int(out.size()))
+				return false;
+			if (int(BN_bn2bin(value,
+					reinterpret_cast<unsigned char*>(out.data()) + out.size() - std::size_t(size)))
+				== size)
+				return true;
+
+			// BN_bn2bin may already have written part of the value
+			out.fill(0);
+			return false;
+		}
+
+#if !defined BOOST_NO_CXX11_THREAD_LOCAL
+		// the thread's cached libcrypto state, set up on first use. If
+		// setting it up failed (out of memory), it is torn down and set up
+		// again on the next call, rather than leaving the thread unable to
+		// perform key exchanges forever. This is deliberately not a
+		// template, so there is exactly one context per thread
+		openssl_context const* thread_context()
+		{
+			static thread_local std::optional<openssl_context> storage;
+			if (!storage.has_value())
+				storage.emplace();
+			if (!storage->valid)
+			{
+				// don't hold on to a half-built context until the next call
+				storage.reset();
+				return nullptr;
+			}
+			return &*storage;
+		}
+#endif
+
+		// runs f with the thread's libcrypto state (or a fresh one, on
+		// compilers without thread_local), leaving the error queue the way
+		// we found it. Returns false if the state could not be set up or
+		// if f fails
+		template <typename F>
+		bool with_openssl_context(F f)
+		{
+			ERR_set_mark();
+			auto const restore_errors = aux::scope_end([] { ERR_pop_to_mark(); });
+#if defined BOOST_NO_CXX11_THREAD_LOCAL
+			openssl_context const storage;
+			return storage.valid && f(storage);
+#else
+			openssl_context const* const storage = thread_context();
+			return storage != nullptr && f(*storage);
+#endif
+		}
+	}
 
 	// Set the prime P and the generator, generate local public key
 	dh_key_exchange::dh_key_exchange()
 	{
-		aux::array<std::uint8_t, 20> random_key;
-		aux::random_bytes({reinterpret_cast<char*>(random_key.data())
-			, static_cast<std::ptrdiff_t>(random_key.size())});
+		// create local secret (random)
+		aux::random_bytes({reinterpret_cast<char*>(m_dh_local_secret.data()),
+			static_cast<std::ptrdiff_t>(m_dh_local_secret.size())});
 
-		// create local key (random)
-		mp::import_bits(m_dh_local_secret, random_key.begin(), random_key.end());
+		m_good = with_openssl_context([&](openssl_context const& storage) {
+			// every BIGNUM below is owned by the context's stack frame, and
+			// is only valid until the matching BN_CTX_end()
+			BN_CTX_start(storage.ctx);
+			auto const frame = aux::scope_end([&] { BN_CTX_end(storage.ctx); });
 
-		// key = (2 ^ secret) % prime
-		m_dh_local_key = mp::powm(key_t(2), m_dh_local_secret, dh_prime);
+			BIGNUM* const generator = BN_CTX_get(storage.ctx);
+			BIGNUM* const exponent = BN_CTX_get(storage.ctx);
+			BIGNUM* const key = BN_CTX_get(storage.ctx);
+			if (generator == nullptr || exponent == nullptr || key == nullptr)
+				return false;
+
+			if (BN_set_word(generator, 2) != 1)
+				return false;
+			if (BN_bin2bn(m_dh_local_secret.data(), int(m_dh_local_secret.size()), exponent)
+				== nullptr)
+				return false;
+
+			// key = (2 ^ secret) % prime
+			if (BN_mod_exp_mont(
+					key, generator, exponent, storage.prime, storage.ctx, storage.montgomery)
+				!= 1)
+				return false;
+
+			return export_bignum(key, m_dh_local_key);
+		});
 	}
 
 	// compute shared secret given remote public key
 	bool dh_key_exchange::compute_secret(std::uint8_t const* remote_pubkey)
 	{
 		TORRENT_ASSERT(remote_pubkey);
-		key_t key;
-		mp::import_bits(key, remote_pubkey, remote_pubkey + 96);
-		return compute_secret(key);
+
+		// every failure path below shares one post-condition: no previous
+		// exchange's secret is left readable through the accessors
+		m_dh_shared_secret.fill(0);
+		m_xor_mask.clear();
+
+		// a previous call failed locally, or the key pair was never
+		// generated. Either way this object cannot produce a shared secret
+		if (!m_good)
+			return false;
+
+		bool degenerate = false;
+		bool const ok = with_openssl_context([&](openssl_context const& storage) {
+			// every BIGNUM below is owned by the context's stack frame, and
+			// is only valid until the matching BN_CTX_end()
+			BN_CTX_start(storage.ctx);
+			auto const frame = aux::scope_end([&] { BN_CTX_end(storage.ctx); });
+
+			BIGNUM* const pubkey = BN_CTX_get(storage.ctx);
+			BIGNUM* const exponent = BN_CTX_get(storage.ctx);
+			BIGNUM* const secret = BN_CTX_get(storage.ctx);
+			if (pubkey == nullptr || exponent == nullptr || secret == nullptr)
+				return false;
+
+			if (BN_bin2bn(remote_pubkey, 96, pubkey) == nullptr)
+				return false;
+
+			// reject degenerate public keys. Any value outside [2, p-2]
+			// produces a shared secret in a small subgroup (0, 1, or +/-1),
+			// which effectively defeats the key exchange and would allow a
+			// man-in-the-middle to fix the shared secret. 0 and 1 are the
+			// only values below 2. This is the peer's mistake, not a local
+			// failure
+			if (BN_is_zero(pubkey) || BN_is_one(pubkey)
+				|| BN_ucmp(pubkey, storage.prime_minus_1) >= 0)
+			{
+				degenerate = true;
+				return false;
+			}
+
+			if (BN_bin2bn(m_dh_local_secret.data(), int(m_dh_local_secret.size()), exponent)
+				== nullptr)
+				return false;
+
+			// shared_secret = (remote_pubkey ^ local_secret) % prime
+			if (BN_mod_exp_mont(
+					secret, pubkey, exponent, storage.prime, storage.ctx, storage.montgomery)
+				!= 1)
+				return false;
+
+			return export_bignum(secret, m_dh_shared_secret);
+		});
+		if (!ok)
+		{
+			// a failure other than the peer sending a degenerate key is a
+			// local crypto failure. Record it so the caller doesn't blame
+			// the peer
+			if (!degenerate)
+				m_good = false;
+			return false;
+		}
+
+		// calculate the xor mask for the obfuscated hash
+		m_xor_mask = hasher(req3).update(m_dh_shared_secret).final();
+		return true;
 	}
 
-	bool dh_key_exchange::compute_secret(key_t const& remote_pubkey)
+#else
+
+	namespace {
+
+		namespace mp = boost::multiprecision;
+		using key_t =
+			mp::number<mp::cpp_int_backend<768, 768, mp::unsigned_magnitude, mp::unchecked, void>>;
+
+		key_t make_dh_prime()
+		{
+			key_t ret;
+			mp::import_bits(ret, std::begin(dh_prime_bytes), std::end(dh_prime_bytes));
+			return ret;
+		}
+
+		key_t const dh_prime = make_dh_prime();
+
+		// export a bignum as a 96 byte big-endian string, padded with
+		// leading zeroes
+		void export_key(key_t const& value, std::array<char, 96>& out)
+		{
+			auto* const begin = reinterpret_cast<std::uint8_t*>(out.data());
+			std::uint8_t* const end = mp::export_bits(value, begin, 8);
+
+			if (end < begin + 96)
+			{
+				int const len = int(end - begin);
+#if defined __GNUC__ && __GNUC__ == 12
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
+				std::memmove(begin + 96 - len, begin, aux::numeric_cast<std::size_t>(len));
+#if defined __GNUC__ && __GNUC__ == 12
+#pragma GCC diagnostic pop
+#endif
+				std::memset(begin, 0, aux::numeric_cast<std::size_t>(96 - len));
+			}
+		}
+	}
+
+	// Set the prime P and the generator, generate local public key
+	dh_key_exchange::dh_key_exchange()
 	{
+		// create local secret (random)
+		aux::random_bytes({reinterpret_cast<char*>(m_dh_local_secret.data()),
+			static_cast<std::ptrdiff_t>(m_dh_local_secret.size())});
+
+		key_t secret;
+		mp::import_bits(secret, m_dh_local_secret.begin(), m_dh_local_secret.end());
+
+		// key = (2 ^ secret) % prime
+		export_key(mp::powm(key_t(2), secret, dh_prime), m_dh_local_key);
+
+		// key_t is a fixed precision, unchecked integer with no allocator, so
+		// none of the operations above can fail. m_good is never cleared in
+		// this backend, unlike the libcrypto one
+		m_good = true;
+	}
+
+	// compute shared secret given remote public key
+	bool dh_key_exchange::compute_secret(std::uint8_t const* remote_pubkey)
+	{
+		TORRENT_ASSERT(remote_pubkey);
+
+		key_t pubkey;
+		mp::import_bits(pubkey, remote_pubkey, remote_pubkey + 96);
+
+		// every failure path below shares one post-condition: no previous
+		// exchange's secret is left readable through the accessors
+		m_dh_shared_secret.fill(0);
+		m_xor_mask.clear();
+
 		// reject degenerate public keys. Any value outside [2, p-2] produces
 		// a shared secret in a small subgroup (0, 1, or +/-1), which
 		// effectively defeats the key exchange and would allow a
 		// man-in-the-middle to fix the shared secret.
-		if (remote_pubkey < key_t(2) || remote_pubkey >= dh_prime - 1) return false;
+		if (pubkey < key_t(2) || pubkey >= dh_prime - 1)
+			return false;
+
+		key_t secret;
+		mp::import_bits(secret, m_dh_local_secret.begin(), m_dh_local_secret.end());
 
 		// shared_secret = (remote_pubkey ^ local_secret) % prime
-		m_dh_shared_secret = mp::powm(remote_pubkey, m_dh_local_secret, dh_prime);
+		export_key(mp::powm(pubkey, secret, dh_prime), m_dh_shared_secret);
 
-		std::array<char, 96> const buffer = export_key(m_dh_shared_secret);
-
-		static char const req3[4] = {'r', 'e', 'q', '3'};
 		// calculate the xor mask for the obfuscated hash
-		m_xor_mask = hasher(req3).update(buffer).final();
+		m_xor_mask = hasher(req3).update(m_dh_shared_secret).final();
 		return true;
 	}
+
+#endif // TORRENT_USE_LIBCRYPTO
 
 	std::tuple<int, span<span<char const>>>
 	encryption_handler::encrypt(

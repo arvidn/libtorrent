@@ -12,8 +12,9 @@ see LICENSE file.
 
 #include <algorithm>
 #include <array>
+#include <cstdint>
+#include <cstdio>
 #include <cstring>
-#include <iostream>
 
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/hex.hpp"
@@ -99,65 +100,144 @@ TORRENT_TEST(diffie_hellman)
 	for (int rep = 0; rep < repcount; ++rep)
 	{
 		aux::dh_key_exchange DH1, DH2;
+		TEST_CHECK(DH1.good());
+		TEST_CHECK(DH2.good());
 
-		TEST_CHECK(DH1.compute_secret(DH2.get_local_key()));
-		TEST_CHECK(DH2.compute_secret(DH1.get_local_key()));
+		TEST_CHECK(
+			DH1.compute_secret(reinterpret_cast<std::uint8_t const*>(DH2.get_local_key().data())));
+		TEST_CHECK(
+			DH2.compute_secret(reinterpret_cast<std::uint8_t const*>(DH1.get_local_key().data())));
 
-		TEST_EQUAL(DH1.get_secret(), DH2.get_secret());
-		if (!DH1.get_secret() != DH2.get_secret())
+		TEST_CHECK(DH1.get_secret() == DH2.get_secret());
+		// guard against a backend that "succeeds" without writing anything:
+		// two all-zero buffers would compare equal
+		std::array<char, 96> const zero{};
+		TEST_CHECK(DH1.get_secret() != zero);
+		if (DH1.get_secret() != DH2.get_secret())
 		{
-			std::printf("DH1 local: ");
-			std::cout << DH1.get_local_key() << std::endl;
-
-			std::printf("DH2 local: ");
-			std::cout << DH2.get_local_key() << std::endl;
-
-			std::printf("DH1 shared_secret: ");
-			std::cout << DH1.get_secret() << std::endl;
-
-			std::printf("DH2 shared_secret: ");
-			std::cout << DH2.get_secret() << std::endl;
+			std::printf("DH1 local: %s\n", aux::to_hex(DH1.get_local_key()).c_str());
+			std::printf("DH2 local: %s\n", aux::to_hex(DH2.get_local_key()).c_str());
+			std::printf("DH1 shared_secret: %s\n", aux::to_hex(DH1.get_secret()).c_str());
+			std::printf("DH2 shared_secret: %s\n", aux::to_hex(DH2.get_secret()).c_str());
 		}
 	}
 }
 
 TORRENT_TEST(diffie_hellman_degenerate_key)
 {
-	// MODP DH prime (BEP 8) used by dh_key_exchange. The generator is 2.
-	lt::aux::key_t const dh_prime(
-		"0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020"
+	// MODP DH prime (BEP 8) used by dh_key_exchange, 96 bytes big-endian.
+	// The generator is 2.
+	char const dh_prime_hex[] =
+		"FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020"
 		"BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D"
-		"6D51C245E485B576625E7EC6F44C42E9A63A36210000000000090563");
+		"6D51C245E485B576625E7EC6F44C42E9A63A36210000000000090563";
+
+	std::array<std::uint8_t, 96> prime{};
+	TEST_CHECK(lt::aux::from_hex(
+		{dh_prime_hex, int(sizeof(dh_prime_hex)) - 1}, reinterpret_cast<char*>(prime.data())));
+
+	// the prime ends in 0x63, so nearby values can be formed by patching
+	// the last byte
+	auto const patched = [&prime](std::uint8_t const last) {
+		std::array<std::uint8_t, 96> ret = prime;
+		ret[95] = last;
+		return ret;
+	};
+
+	std::array<std::uint8_t, 96> key{};
 
 	// public keys outside [2, p-2] are degenerate and must be rejected.
 	// Otherwise an attacker can fix the shared secret to a small set of
 	// known values, defeating the encryption.
 	{
 		lt::aux::dh_key_exchange dh;
-		TEST_CHECK(!dh.compute_secret(lt::aux::key_t(0)));
+		TEST_CHECK(!dh.compute_secret(key.data())); // 0
+		// a degenerate peer key is the peer's fault, not a local failure
+		TEST_CHECK(dh.good());
 	}
 	{
 		lt::aux::dh_key_exchange dh;
-		TEST_CHECK(!dh.compute_secret(lt::aux::key_t(1)));
+		key[95] = 1;
+		TEST_CHECK(!dh.compute_secret(key.data()));
+		TEST_CHECK(dh.good());
 	}
 	{
 		lt::aux::dh_key_exchange dh;
-		TEST_CHECK(!dh.compute_secret(dh_prime - 1));
+		auto const p_minus_1 = patched(0x62);
+		TEST_CHECK(!dh.compute_secret(p_minus_1.data()));
+		TEST_CHECK(dh.good());
 	}
 	{
 		lt::aux::dh_key_exchange dh;
-		TEST_CHECK(!dh.compute_secret(dh_prime));
+		TEST_CHECK(!dh.compute_secret(prime.data()));
+		TEST_CHECK(dh.good());
+	}
+	{
+		// p+1 is congruent to 1, so accepting it would fix the shared
+		// secret to 1 regardless of our secret exponent
+		lt::aux::dh_key_exchange dh;
+		auto const p_plus_1 = patched(0x64);
+		TEST_CHECK(!dh.compute_secret(p_plus_1.data()));
+		TEST_CHECK(dh.good());
 	}
 
 	// boundary values inside the valid range must be accepted.
 	{
 		lt::aux::dh_key_exchange dh;
-		TEST_CHECK(dh.compute_secret(lt::aux::key_t(2)));
+		key[95] = 2;
+		TEST_CHECK(dh.compute_secret(key.data()));
 	}
 	{
 		lt::aux::dh_key_exchange dh;
-		TEST_CHECK(dh.compute_secret(dh_prime - 2));
+		auto const p_minus_2 = patched(0x61);
+		TEST_CHECK(dh.compute_secret(p_minus_2.data()));
 	}
+}
+
+// a rejected peer key must not leave the previous exchange's shared secret
+// readable through the accessors
+TORRENT_TEST(diffie_hellman_failure_clears_secret)
+{
+	lt::aux::dh_key_exchange dh, peer;
+	TEST_CHECK(dh.good());
+	TEST_CHECK(peer.good());
+
+	TEST_CHECK(
+		dh.compute_secret(reinterpret_cast<std::uint8_t const*>(peer.get_local_key().data())));
+
+	std::array<char, 96> const zero{};
+	TEST_CHECK(dh.get_secret() != zero);
+	TEST_CHECK(!dh.get_hash_xor_mask().is_all_zeros());
+
+	// 1 is degenerate, so this exchange must fail -- and must not leave the
+	// secret from the successful exchange above readable
+	std::array<std::uint8_t, 96> degenerate{};
+	degenerate[95] = 1;
+	TEST_CHECK(!dh.compute_secret(degenerate.data()));
+	// a degenerate peer key is the peer's fault, so the object is still good
+	TEST_CHECK(dh.good());
+	TEST_CHECK(dh.get_secret() == zero);
+	TEST_CHECK(dh.get_hash_xor_mask().is_all_zeros());
+}
+
+// the xor mask must be hash('req3', S) over exactly what get_secret()
+// returns. This pins the 'req3' label and the identity of the hashed
+// buffer. It pins neither the width, the endianness, nor the padding of
+// that buffer, since both sides of the comparison would change together
+TORRENT_TEST(diffie_hellman_xor_mask)
+{
+	static char const req3[4] = {'r', 'e', 'q', '3'};
+
+	lt::aux::dh_key_exchange dh, peer;
+	TEST_CHECK(dh.good());
+	TEST_CHECK(peer.good());
+	if (!dh.good() || !peer.good())
+		return;
+
+	TEST_CHECK(
+		dh.compute_secret(reinterpret_cast<std::uint8_t const*>(peer.get_local_key().data())));
+
+	TEST_CHECK(dh.get_hash_xor_mask() == lt::hasher(req3).update(dh.get_secret()).final());
 }
 
 TORRENT_TEST(rc4)

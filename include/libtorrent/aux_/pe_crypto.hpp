@@ -16,14 +16,9 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/multiprecision/cpp_int.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include "libtorrent/aux_/receive_buffer.hpp"
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/extensions.hpp"
-#include "libtorrent/assert.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/aux_/array.hpp"
 
@@ -32,12 +27,6 @@ see LICENSE file.
 #include <cstdint>
 
 namespace libtorrent::aux {
-
-	namespace mp = boost::multiprecision;
-
-	using key_t = mp::number<mp::cpp_int_backend<768, 768, mp::unsigned_magnitude, mp::unchecked, void>>;
-
-	TORRENT_EXTRA_EXPORT std::array<char, 96> export_key(key_t const& k);
 
 	// RC4 state from libtomcrypt. buf holds a permutation of 0-255, stored
 	// widened to 32 bits per entry so every access is a whole-register
@@ -54,26 +43,41 @@ namespace libtorrent::aux {
 	public:
 		dh_key_exchange();
 
-		// Get local public key
-		key_t const& get_local_key() const { return m_dh_local_key; }
+		// false if the crypto library failed locally (out of memory) when
+		// generating the local key pair or computing the shared secret.
+		// The connection cannot proceed in that case. A degenerate key
+		// from the peer does not clear this
+		bool good() const { return m_good; }
 
-		// read remote_pubkey, generate and store shared secret in
-		// m_dh_shared_secret. Returns false if the remote public key is
-		// degenerate (i.e. outside the range [2, p-2]) and the shared
-		// secret was not computed.
+		// Get local public key, 96 bytes big-endian. All zeroes if
+		// generating the key pair failed, i.e. if good() was false before
+		// the first compute_secret() call. A later local failure clears
+		// good() but leaves this key, which has already gone out on the
+		// wire, intact
+		std::array<char, 96> const& get_local_key() const { return m_dh_local_key; }
+
+		// read the remote 96 byte public key, generate and store the
+		// shared secret in m_dh_shared_secret. Returns false if the
+		// remote public key is degenerate (i.e. outside the range
+		// [2, p-2]) or if the computation failed. The shared secret is
+		// not computed in that case.
 		bool compute_secret(std::uint8_t const* remote_pubkey);
-		bool compute_secret(key_t const& remote_pubkey);
 
-		key_t const& get_secret() const { return m_dh_shared_secret; }
+		// the shared secret, 96 bytes big-endian. Only meaningful after
+		// compute_secret() returned true; it is zeroed on failure
+		std::array<char, 96> const& get_secret() const { return m_dh_shared_secret; }
 
+		// hash('req3', S). Only meaningful after compute_secret() returned
+		// true; it is zeroed on failure
 		sha1_hash const& get_hash_xor_mask() const { return m_xor_mask; }
 
 	private:
-
-		key_t m_dh_local_key;
-		key_t m_dh_local_secret;
-		key_t m_dh_shared_secret;
+		// the 160 bit random secret exponent, big-endian
+		std::array<std::uint8_t, 20> m_dh_local_secret{};
+		std::array<char, 96> m_dh_local_key{};
+		std::array<char, 96> m_dh_shared_secret{};
 		sha1_hash m_xor_mask;
+		bool m_good = false;
 	};
 
 	struct TORRENT_EXTRA_EXPORT encryption_handler

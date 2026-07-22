@@ -461,20 +461,32 @@ try
 #if !defined TORRENT_DISABLE_ENCRYPTION
 	using namespace lt::aux;
 
-	// key generation: random secret + (2 ^ secret) % prime
-	results.emplace_back("dh_key_exchange", analyze([] { dh_key_exchange const dh; }));
+	// every DH benchmark below fails loudly rather than timing a failing
+	// backend, which would look like a bogus speedup
 
-	// a peer's public key to react to, exported the same way it would
-	// arrive off the wire
+	// key generation: random secret + (2 ^ secret) % prime
+	results.emplace_back("dh_key_exchange", analyze([] {
+		dh_key_exchange const dh;
+		if (!dh.good())
+			throw std::runtime_error("DH key generation failed");
+	}));
+
+	// a peer's public key to react to, in the same wire format it would
+	// arrive in
 	dh_key_exchange const peer;
-	std::array<char, 96> const peer_key = export_key(peer.get_local_key());
+	if (!peer.good())
+		throw std::runtime_error("DH key generation failed");
+	std::array<char, 96> const& peer_key = peer.get_local_key();
 
 	// shared secret: (peer_pubkey ^ secret) % prime. this modexp is the
 	// operation that dominates the per-connection DH cost, isolated here
 	// from key generation and from hashing the resulting secret
 	dh_key_exchange dh;
+	if (!dh.good())
+		throw std::runtime_error("DH key generation failed");
 	results.emplace_back("dh_compute_secret", analyze([&] {
-		dh.compute_secret(reinterpret_cast<std::uint8_t const*>(peer_key.data()));
+		if (!dh.compute_secret(reinterpret_cast<std::uint8_t const*>(peer_key.data())))
+			throw std::runtime_error("DH shared secret failed");
 	}));
 
 	// the total DH cost incurred by one side of a PE handshake: generate
@@ -482,7 +494,9 @@ try
 	// key
 	results.emplace_back("dh_handshake", analyze([&] {
 		dh_key_exchange local;
-		local.compute_secret(reinterpret_cast<std::uint8_t const*>(peer_key.data()));
+		if (!local.good()
+			|| !local.compute_secret(reinterpret_cast<std::uint8_t const*>(peer_key.data())))
+			throw std::runtime_error("DH key exchange failed");
 	}));
 
 	// RC4 stream cipher throughput, encrypting a single 16 kiB buffer (the

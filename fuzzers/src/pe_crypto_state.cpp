@@ -36,11 +36,13 @@ extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, std::size_t size
 {
 	lt::aux::dh_key_exchange a;
 	lt::aux::dh_key_exchange b;
+	if (!a.good() || !b.good())
+		return 0;
 
-	auto const b_pub = lt::aux::export_key(b.get_local_key());
-	a.compute_secret(reinterpret_cast<std::uint8_t const*>(b_pub.data()));
-	auto const a_pub = lt::aux::export_key(a.get_local_key());
-	b.compute_secret(reinterpret_cast<std::uint8_t const*>(a_pub.data()));
+	if (!a.compute_secret(reinterpret_cast<std::uint8_t const*>(b.get_local_key().data())))
+		return 0;
+	if (!b.compute_secret(reinterpret_cast<std::uint8_t const*>(a.get_local_key().data())))
+		return 0;
 
 	auto key_in = make_key(data, size, 1);
 	auto key_out = make_key(data, size, 7);
