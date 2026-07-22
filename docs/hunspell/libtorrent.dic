@@ -636,6 +636,9 @@ DAX
 WebDAV
 transmissionbt
 ouinet
+uring
+backend
+liburing
 IANA's
 NOCOW
 btrfs
