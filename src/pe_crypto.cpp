@@ -47,6 +47,16 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
+#if defined TORRENT_USE_LIBCRYPTO && !defined TORRENT_USE_WOLFSSL
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+extern "C" {
+#include <openssl/bn.h>
+#include <openssl/crypto.h>
+#include <openssl/err.h>
+}
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#endif
+
 #include "libtorrent/random.hpp"
 #include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/pe_crypto.hpp"
@@ -60,6 +70,94 @@ namespace libtorrent {
 		// TODO: it would be nice to get the literal working
 		key_t const dh_prime
 			("0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A63A36210000000000090563");
+
+#if defined TORRENT_USE_LIBCRYPTO && !defined TORRENT_USE_WOLFSSL
+		struct openssl_context
+		{
+			openssl_context()
+				: context(BN_CTX_new())
+				, montgomery(BN_MONT_CTX_new())
+			{}
+			~openssl_context()
+			{
+				BN_MONT_CTX_free(montgomery);
+				BN_CTX_free(context);
+			}
+
+			BN_CTX* context;
+			BN_MONT_CTX* montgomery;
+			bool montgomery_initialized = false;
+		};
+#endif
+
+		key_t dh_mod_exp(key_t const& base, key_t const& exponent)
+		{
+#if defined TORRENT_USE_LIBCRYPTO && !defined TORRENT_USE_WOLFSSL
+			bool const had_error_mark = ERR_set_mark() == 1;
+#if defined BOOST_NO_CXX11_THREAD_LOCAL
+			openssl_context storage;
+#else
+			thread_local openssl_context storage;
+#endif
+			if (storage.context != nullptr && storage.montgomery != nullptr)
+			{
+				auto const base_bytes = export_key(base);
+				auto exponent_bytes = export_key(exponent);
+				auto const modulus_bytes = export_key(dh_prime);
+				std::array<unsigned char, 96> result_bytes{};
+				bool success = false;
+
+				BN_CTX_start(storage.context);
+				BIGNUM* const bn_base = BN_CTX_get(storage.context);
+				BIGNUM* const bn_exponent = BN_CTX_get(storage.context);
+				BIGNUM* const bn_modulus = BN_CTX_get(storage.context);
+				BIGNUM* const bn_result = BN_CTX_get(storage.context);
+
+				if (bn_result != nullptr
+					&& BN_bin2bn(reinterpret_cast<unsigned char const*>(base_bytes.data())
+						, int(base_bytes.size()), bn_base) != nullptr
+					&& BN_bin2bn(reinterpret_cast<unsigned char const*>(exponent_bytes.data())
+						, int(exponent_bytes.size()), bn_exponent) != nullptr
+					&& BN_bin2bn(reinterpret_cast<unsigned char const*>(modulus_bytes.data())
+						, int(modulus_bytes.size()), bn_modulus) != nullptr)
+				{
+					if (!storage.montgomery_initialized)
+						storage.montgomery_initialized = BN_MONT_CTX_set(storage.montgomery
+							, bn_modulus, storage.context) == 1;
+					BN_set_flags(bn_exponent, BN_FLG_CONSTTIME);
+					if (storage.montgomery_initialized
+						&& BN_mod_exp_mont_consttime(bn_result, bn_base, bn_exponent
+							, bn_modulus, storage.context, storage.montgomery) == 1)
+					{
+						int const size = BN_num_bytes(bn_result);
+						success = size <= int(result_bytes.size())
+							&& BN_bn2bin(bn_result, result_bytes.data()
+								+ result_bytes.size() - std::size_t(size)) == size;
+					}
+				}
+
+				if (bn_exponent != nullptr) BN_clear(bn_exponent);
+				if (bn_result != nullptr) BN_clear(bn_result);
+				BN_CTX_end(storage.context);
+				OPENSSL_cleanse(exponent_bytes.data(), exponent_bytes.size());
+				if (had_error_mark) ERR_pop_to_mark();
+				else ERR_clear_error();
+
+				if (success)
+				{
+					key_t result;
+					mp::import_bits(result, result_bytes.begin(), result_bytes.end());
+					OPENSSL_cleanse(result_bytes.data(), result_bytes.size());
+					return result;
+				}
+				OPENSSL_cleanse(result_bytes.data(), result_bytes.size());
+				return mp::powm(base, exponent, dh_prime);
+			}
+			if (had_error_mark) ERR_pop_to_mark();
+			else ERR_clear_error();
+#endif
+			return mp::powm(base, exponent, dh_prime);
+		}
 	}
 
 	std::array<char, 96> export_key(key_t const& k)
@@ -100,7 +198,7 @@ namespace libtorrent {
 		mp::import_bits(m_dh_local_secret, random_key.begin(), random_key.end());
 
 		// key = (2 ^ secret) % prime
-		m_dh_local_key = mp::powm(key_t(2), m_dh_local_secret, dh_prime);
+		m_dh_local_key = dh_mod_exp(key_t(2), m_dh_local_secret);
 	}
 
 	// compute shared secret given remote public key
@@ -122,7 +220,7 @@ namespace libtorrent {
 			return false;
 
 		// shared_secret = (remote_pubkey ^ local_secret) % prime
-		m_dh_shared_secret = mp::powm(remote_pubkey, m_dh_local_secret, dh_prime);
+		m_dh_shared_secret = dh_mod_exp(remote_pubkey, m_dh_local_secret);
 
 		std::array<char, 96> const buffer = export_key(m_dh_shared_secret);
 
