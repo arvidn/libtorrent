@@ -28,9 +28,9 @@ see LICENSE file.
 
 #include <boost/beast/core/flat_buffer.hpp>
 
+#include <deque>
 #include <map>
 #include <memory>
-#include <queue>
 #include <tuple>
 #include <variant>
 #include <optional>
@@ -61,6 +61,11 @@ struct TORRENT_EXTRA_EXPORT websocket_tracker_connection : tracker_connection
 	bool is_started() const;
 	bool is_open() const;
 
+	// aborts every non-stopped-event request on this connection (it may
+	// multiplex several torrents' requests). Returns true if a
+	// stopped-event request remains, meaning the connection must stay open.
+	bool prune_non_stopped_requests();
+
 	void queue_request(tracker_request req, std::weak_ptr<request_callback> cb);
 	void queue_answer(tracker_answer ans);
 
@@ -79,7 +84,8 @@ private:
 	void on_connect(error_code const& ec);
 	void on_read(error_code ec, std::size_t bytes_read);
 	void on_write(error_code const& ec, std::size_t bytes_written);
-	void fail(operation_t op, error_code const& ec);
+	// wraps tracker_connection::fail
+	void fail(error_code const& ec, operation_t op);
 
 	io_context& m_io_context;
 	ssl::context* m_ssl_context;
@@ -88,8 +94,22 @@ private:
 	std::string m_write_data;
 
 	using tracker_message = std::variant<tracker_request, tracker_answer>;
-	std::queue<std::tuple<tracker_message, std::weak_ptr<request_callback>>> m_pending;
-	std::map<sha1_hash, std::weak_ptr<request_callback>> m_callbacks;
+	std::deque<std::tuple<tracker_message, std::weak_ptr<request_callback>>> m_pending;
+
+	// pending is true from the point a request is sent until its first
+	// tracker_response is delivered. close() reports an error for any
+	// entry still pending, so a torrent multiplexed onto this connection
+	// (i.e. not the most recently sent request) still gets notified when
+	// the connection is torn down before it received a response. req is
+	// the entry's own request, since it may not be the most recently sent
+	// request on this connection (tracker_req()).
+	struct callback_entry
+	{
+		std::weak_ptr<request_callback> cb;
+		tracker_request req;
+		bool pending = true;
+	};
+	std::map<sha1_hash, callback_entry> m_callbacks;
 
 	bool m_sending = false;
 };
