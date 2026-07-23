@@ -173,11 +173,10 @@ rule linking ( properties * )
 		result += <linkflags>-Wl,--export-dynamic <linkflags>-rdynamic ;
 		result += <local-visibility>global ;
 	}
-	else if [ version.version-less $(jam-version) : 1990 0 ]
+	else
 	{
-		# the visibility feature was introduced in boost-1.69. This was close to
-		# when the versioning scheme changed from year to (low) version numbers.
-		# in boost-1.70
+		# the <visibility> feature requires boost-build from boost-1.69 or
+		# later
 		result += <visibility>hidden ;
 	}
 
