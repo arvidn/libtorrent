@@ -1912,6 +1912,10 @@ class io_buffer_mode_t(int):
         3: io_buffer_mode_t.write_through,  # noqa: F821
     }
 
+class ip_ban_alert(alert):
+    @property
+    def banned_address(self) -> str: ...
+
 class ip_filter(metaclass=_BoostBaseClass):
     __instance_size__: int
     def access(self, _ip: str) -> int:
