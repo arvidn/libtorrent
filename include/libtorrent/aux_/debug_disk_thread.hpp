@@ -18,6 +18,7 @@ see LICENSE file.
 #define DLOG(...) do {} while(false)
 #else
 
+#include <algorithm> // for min
 #include <cstdarg> // for va_list
 #include <sstream>
 #include <cstdio> // for vsnprintf
@@ -124,6 +125,7 @@ inline void debug_log(char const* fmt, ...)
 
 	char usr[2048];
 	int len = std::vsnprintf(usr, sizeof(usr), fmt, v);
+	len = std::min(len, int(sizeof(usr)) - 1);
 
 	static bool prepend_time = true;
 	if (!prepend_time)

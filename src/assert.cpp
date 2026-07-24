@@ -280,8 +280,7 @@ namespace libtorrent {
 
 TORRENT_EXPORT void print_backtrace(char* out, int len, int /*max_depth*/, void* /* ctx */)
 {
-	out[0] = 0;
-	std::strncat(out, "<not supported>", std::size_t(len));
+	std::snprintf(out, std::size_t(len), "<not supported>");
 }
 
 }
