@@ -23,11 +23,6 @@ see LICENSE file.
 
 #include "make_proxy_settings.hpp"
 
-#if defined TORRENT_USE_OPENSSL
-#include <openssl/ssl.h>
-#include <openssl/x509_vfy.h>
-#endif
-
 using namespace lt;
 using namespace sim;
 
@@ -50,29 +45,6 @@ namespace {
 			return default_config::hostname_lookup({}, hostname, result, ec);
 		}
 	};
-
-	bool is_ssl_error(error_code const& ec)
-	{
-		return ec
-			&& (std::strcmp(ec.category().name(), lt::aux::ssl::error::get_ssl_category().name())
-					== 0
-				|| std::strcmp(
-					   ec.category().name(), lt::aux::ssl::error::get_stream_category().name())
-					== 0);
-	}
-
-#if defined TORRENT_USE_OPENSSL
-	// overrides the time used to check a peer certificate's notBefore/
-	// notAfter, letting a test validate an otherwise-valid certificate as
-	// though it were some other date. This is raw OpenSSL API (there's no
-	// portable equivalent through boost::asio::ssl::context or the aux::ssl
-	// abstraction), so it isn't available when built against GnuTLS.
-	void set_verification_time(lt::aux::ssl::context& ctx, std::time_t t)
-	{
-		X509_VERIFY_PARAM* param = SSL_CTX_get0_param(ctx.native_handle());
-		X509_VERIFY_PARAM_set_time(param, t);
-	}
-#endif
 
 	// bundles the sim/server/resolver/client-ssl-context scaffolding shared by
 	// every test below, and registers the "/test_file" 200-OK handler they
@@ -249,7 +221,8 @@ TORRENT_TEST(https_reject_hostname_mismatch)
 // but is checked against a time far past its notAfter, isolating "expired"
 // as the rejection reason independent of the chain-trust and hostname
 // checks the other tests exercise. Only run under OpenSSL: overriding the
-// verification time requires the raw API in set_verification_time() above.
+// verification time requires the raw API in sim::set_verification_time()
+// (see http_server.hpp).
 TORRENT_TEST(https_reject_expired_certificate)
 {
 	https_fixture f("hostname_cert.pem", "hostname_key.pem", "hostname_cert.pem");

@@ -27,6 +27,7 @@ see LICENSE file.
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/load_torrent.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp" // for is_v4
+#include "libtorrent/config.hpp"
 
 #include <boost/optional.hpp>
 #include <iostream>
@@ -987,6 +988,91 @@ TORRENT_TEST(tracker_queued_counter_counts_coalesced_followers)
 	// coalesced follower actually waiting.
 	TEST_EQUAL(queued, 1);
 }
+
+#if TORRENT_USE_SSL
+// shared by the two TORRENT_TESTs below: an HTTPS tracker presenting a
+// certificate the client has no reason to trust (sim::http_server's
+// "https" flag defaults to a self-signed certificate that isn't signed by
+// any CA in the real system trust store session_impl loads by default).
+// With settings_pack::validate_https_trackers left at its default (true)
+// the announce must be rejected before ever reaching the tracker; with it
+// disabled (session_impl::update_validate_https() switches the tracker
+// SSL context to verify_none) the very same certificate must be accepted
+// and the announce completes normally.
+static void test_https_tracker_cert_validation(bool const validate)
+{
+	using sim::asio::ip::address_v4;
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+	sim::asio::io_context ios0{sim, make_address_v4("10.0.0.1")};
+	sim::asio::io_context web_server{sim, make_address_v4("10.0.0.2")};
+	sim::http_server http(web_server, 8080, sim::http_server::https);
+
+	int announce_hits = 0;
+	http.register_handler("/announce",
+		[&](std::string /* method */,
+			std::string /* req */
+			,
+			std::map<std::string, std::string>&) {
+			++announce_hits;
+			std::string const body = "d8:intervali1800e5:peers0:e";
+			return sim::send_response(200, "OK", int(body.size())) + body;
+		});
+
+	lt::settings_pack pack = settings();
+	pack.set_str(settings_pack::listen_interfaces, "10.0.0.1:6881");
+	pack.set_bool(settings_pack::validate_https_trackers, validate);
+
+	auto ses = std::make_shared<lt::session>(pack, ios0);
+
+	bool reply_seen = false;
+	error_code got_error;
+	print_alerts(*ses, [&](lt::session&, lt::alert const* a) {
+		if (alert_cast<tracker_reply_alert>(a))
+			reply_seen = true;
+		else if (auto const* te = alert_cast<tracker_error_alert>(a))
+			got_error = te->error;
+	});
+
+	lt::add_torrent_params params = ::create_torrent(0, true, 9, lt::create_torrent::v1_only);
+	params.flags &= ~lt::torrent_flags::auto_managed;
+	params.flags &= ~lt::torrent_flags::paused;
+	params.trackers.push_back("https://10.0.0.2:8080/announce");
+	ses->async_add_torrent(std::move(params));
+
+	lt::session_proxy zombie;
+	sim::timer t_end(sim, lt::seconds(5), [&](boost::system::error_code const&) {
+		zombie = ses->abort();
+		ses.reset();
+	});
+
+	sim.run();
+
+	if (validate)
+	{
+		// the TLS handshake never completes, so the server's handler is
+		// never invoked, and the requester sees an SSL/TLS error instead
+		TEST_EQUAL(announce_hits, 0);
+		TEST_CHECK(!reply_seen);
+		TEST_CHECK(got_error);
+		TEST_CHECK(is_ssl_error(got_error));
+	}
+	else
+	{
+		// both the started and (on abort) stopped announces reach the
+		// tracker and get a normal reply
+		TEST_EQUAL(announce_hits, 2);
+		TEST_CHECK(reply_seen);
+		TEST_CHECK(!got_error);
+	}
+}
+
+TORRENT_TEST(https_tracker_rejects_invalid_cert) { test_https_tracker_cert_validation(true); }
+TORRENT_TEST(https_tracker_validate_disabled_accepts_invalid_cert)
+{
+	test_https_tracker_cert_validation(false);
+}
+#endif // TORRENT_USE_SSL
 
 namespace {
 	// resolves a single tracker hostname slowly, so the first announce to it sits in
