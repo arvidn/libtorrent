@@ -28,11 +28,15 @@ All rights reserved.
 #include "libtorrent/aux_/proxy_base.hpp" // for wrap_allocator, used by ssl_stream
 #include "libtorrent/aux_/ssl.hpp"
 #include "libtorrent/aux_/ssl_stream.hpp"
+#include "libtorrent/error_code.hpp"
 #endif
 #include <functional>
 #include <memory>
 #include <optional>
 #include <string>
+#if defined TORRENT_USE_OPENSSL
+#include <ctime>
+#endif
 
 using libtorrent::operator""_bit;
 
@@ -68,6 +72,20 @@ namespace sim {
 	// resolves a filename under test/ssl/ to a path usable from a
 	// simulation test binary's working directory.
 	std::string ssl_fixture_path(std::string const& name);
+
+	// true if ec is an SSL/TLS-layer error (certificate verification,
+	// handshake negotiation, etc), as opposed to e.g. a plain connection
+	// failure.
+	bool is_ssl_error(lt::error_code const& ec);
+
+#if defined TORRENT_USE_OPENSSL
+	// overrides the time used to check a peer certificate's notBefore/
+	// notAfter, letting a test validate an otherwise-valid certificate as
+	// though it were some other date. This is raw OpenSSL API (there's no
+	// portable equivalent through boost::asio::ssl::context or the aux::ssl
+	// abstraction), so it isn't available when built against GnuTLS.
+	void set_verification_time(lt::aux::ssl::context& ctx, std::time_t t);
+#endif
 #endif
 
 	// This is a very simple http server that only supports a single concurrent
