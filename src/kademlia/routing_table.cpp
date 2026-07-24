@@ -36,6 +36,7 @@ see LICENSE file.
 #include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/aux_/array.hpp"
+#include "libtorrent/ip_filter.hpp"
 
 using namespace std::placeholders;
 
@@ -229,14 +230,13 @@ routing_table::add_node_status_t replace_node_impl(node_entry const& e
 	return routing_table::need_bucket_split;
 }
 
-routing_table::routing_table(node_id const& id, udp const proto, int const bucket_size
-	, aux::session_settings const& settings
-	, dht_logger* log)
-	:
-#ifndef TORRENT_DISABLE_LOGGING
-	m_log(log),
-#endif
-	m_settings(settings)
+routing_table::routing_table(node_id const& id,
+	udp const proto,
+	int const bucket_size,
+	aux::session_settings const& settings,
+	dht_observer* log)
+	: m_log(log)
+	, m_settings(settings)
 	, m_id(id)
 	, m_protocol(proto)
 	, m_depth(0)
@@ -600,6 +600,13 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 	// don't add if the address isn't the right type
 	if (!native_endpoint(e.ep()))
 		return failed_to_add;
+
+	if (m_log != nullptr && m_settings.get_bool(settings_pack::apply_filter_to_dht))
+	{
+		ip_filter const* filter = m_log->get_dht_ip_filter();
+		if (filter && filter->access(e.addr()) == ip_filter::blocked)
+			return failed_to_add;
+	}
 
 	// if we already have this (IP,port), don't do anything
 	if (m_router_nodes.find(e.ep()) != m_router_nodes.end())

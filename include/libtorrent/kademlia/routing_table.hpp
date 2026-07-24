@@ -38,6 +38,7 @@ namespace dht {
 
 struct settings;
 struct dht_logger;
+struct dht_observer;
 
 using bucket_t = aux::vector<node_entry>;
 
@@ -132,10 +133,11 @@ public:
 	// Perhaps replacement nodes should be in a separate vector.
 	using table_t = aux::vector<routing_table_node>;
 
-	routing_table(node_id const& id, udp proto
-		, int bucket_size
-		, aux::session_settings const& settings
-		, dht_logger* log);
+	routing_table(node_id const& id,
+		udp proto,
+		int bucket_size,
+		aux::session_settings const& settings,
+		dht_observer* log);
 
 	routing_table(routing_table const&) = delete;
 	routing_table& operator=(routing_table const&) = delete;
@@ -250,9 +252,8 @@ public:
 	{ return m_buckets; }
 
 private:
-
+	dht_observer* m_log;
 #ifndef TORRENT_DISABLE_LOGGING
-	dht_logger* m_log;
 	void log_node_failed(node_id const& nid, node_entry const& ne) const;
 #endif
 

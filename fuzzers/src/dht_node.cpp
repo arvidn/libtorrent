@@ -40,6 +40,8 @@ struct obs : dht::dht_observer
 		, dht::msg const&, entry&) override
 	{ return false; }
 
+	ip_filter const* get_dht_ip_filter() const override { return nullptr; }
+
 #ifndef TORRENT_DISABLE_LOGGING
 
 	void log(dht_logger::module_t, char const*, ...) override {}

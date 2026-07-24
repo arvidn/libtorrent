@@ -21,6 +21,7 @@ see LICENSE file.
 namespace libtorrent {
 
 struct entry;
+struct ip_filter;
 
 namespace aux {
 struct listen_socket_handle;
@@ -67,6 +68,9 @@ namespace dht {
 		virtual void announce(sha1_hash const& ih, address const& addr, int port) = 0;
 		virtual bool on_dht_request(string_view query
 			, dht::msg const& request, entry& response) = 0;
+
+		// returns the session's IP filter, or nullptr if none is set
+		virtual ip_filter const* get_dht_ip_filter() const = 0;
 
 	protected:
 		~dht_observer() = default;
