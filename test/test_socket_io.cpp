@@ -103,6 +103,15 @@ TORRENT_TEST(parse_invalid_ipv4_endpoint)
 	TEST_CHECK(ec);
 	ec.clear();
 
+	// a port that wraps into the valid range when truncated to an int
+	endp = parse_endpoint("127.0.0.1:4294967376", ec);
+	TEST_CHECK(ec);
+	ec.clear();
+
+	endp = parse_endpoint("127.0.0.1:99999999999999999999", ec);
+	TEST_CHECK(ec);
+	ec.clear();
+
 	endp = parse_endpoint("127.0.0.1:abc", ec);
 	TEST_CHECK(ec);
 	ec.clear();

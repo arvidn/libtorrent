@@ -22,6 +22,7 @@ see LICENSE file.
 #include <string>
 #include <cstdint>
 #include <limits>
+#include <optional>
 #include <array> // for std::array
 
 namespace libtorrent::aux {
@@ -43,6 +44,14 @@ namespace libtorrent::aux {
 
 	// internal
 	TORRENT_EXTRA_EXPORT string_view strip_string(string_view in);
+
+	// parses the leading decimal digits of the string and returns the value.
+	// Returns an empty optional if the string doesn't start with a number, or
+	// if the number doesn't fit in an int. std::atoi() is undefined for
+	// out-of-range values, and in practice truncates them into the valid range,
+	// which defeats any range check made on the result. Unlike atoi(), a
+	// successful parse of a negative number is distinguishable from a failure.
+	TORRENT_EXTRA_EXPORT std::optional<int> parse_decimal(string_view str);
 
 	TORRENT_EXTRA_EXPORT bool is_print(char c);
 	TORRENT_EXTRA_EXPORT bool is_space(char c);

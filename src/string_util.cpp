@@ -19,9 +19,19 @@ see LICENSE file.
 #include "libtorrent/assert.hpp"
 
 #include <algorithm> // for search
+#include <charconv> // for from_chars
 #include <utility> // for move
 
 namespace libtorrent::aux {
+
+	std::optional<int> parse_decimal(string_view const str)
+	{
+		int ret = 0;
+		auto const r = std::from_chars(str.data(), str.data() + str.size(), ret);
+		if (r.ec != std::errc{})
+			return std::nullopt;
+		return ret;
+	}
 
 	// We need well defined results that don't depend on locale
 	std::array<char, 4 + std::numeric_limits<std::int64_t>::digits10>
@@ -227,12 +237,13 @@ namespace libtorrent::aux {
 				continue;
 			}
 
-			iface.port = std::atoi(port_str.c_str());
-			if (iface.port < 0 || iface.port > 65535)
+			auto const port_num = parse_decimal(port_str);
+			if (!port_num || *port_num < 0 || *port_num > 65535)
 			{
 				err.emplace_back(element);
 				continue;
 			}
+			iface.port = *port_num;
 
 			port.remove_prefix(port_str.size());
 			port = strip_string(port);
@@ -279,7 +290,13 @@ namespace libtorrent::aux {
 
 			if (colon != std::string::npos && colon > start)
 			{
-				int port = std::atoi(in.substr(colon + 1, end - colon - 1).c_str());
+				auto const port =
+					parse_decimal(strip_string(string_view(in).substr(colon + 1, end - colon - 1)));
+				if (!port)
+				{
+					start = end + 1;
+					continue;
+				}
 
 				// skip trailing spaces
 				std::string::size_type soft_end = colon;
@@ -292,7 +309,7 @@ namespace libtorrent::aux {
 				if (in[start] == '[') ++start;
 				if (soft_end > start && in[soft_end-1] == ']') --soft_end;
 
-				out.emplace_back(in.substr(start, soft_end - start), port);
+				out.emplace_back(in.substr(start, soft_end - start), *port);
 			}
 
 			start = end + 1;

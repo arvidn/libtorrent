@@ -124,7 +124,14 @@ namespace libtorrent::aux {
 				ec = errors::invalid_port;
 				goto exit;
 			}
-			port = std::atoi(std::string(port_pos, end).c_str());
+			auto const port_num = parse_decimal(
+				url.substr(std::size_t(port_pos - url.begin()), std::size_t(end - port_pos)));
+			if (!port_num)
+			{
+				ec = errors::invalid_port;
+				goto exit;
+			}
+			port = *port_num;
 		}
 
 		start = end;
