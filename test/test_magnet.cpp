@@ -853,8 +853,10 @@ TORRENT_TEST(round_trip)
 
 	TEST_CHECK(test_round_trip(atp));
 
+#ifndef TORRENT_DISABLE_DHT
 	atp.dht_nodes = nv{node("foobar.com", 1)};
 	TEST_CHECK(test_round_trip(atp));
+#endif
 
 	atp.peers = pv{ep(make_address("127.0.0.1"), 6881)};
 	TEST_CHECK(test_round_trip(atp));
