@@ -816,6 +816,7 @@ SIM_SOURCES = \
   test_error_handling.cpp \
   test_fast_extensions.cpp \
   test_http_connection.cpp \
+  test_https.cpp \
   test_ip_filter.cpp \
   test_metadata_extension.cpp \
   test_optimistic_unchoke.cpp \
@@ -1185,6 +1186,8 @@ TEST_EXTRA = Jamfile \
   ssl/root_ca_cert.pem               \
   ssl/root_ca_private.pem            \
   ssl/server.pem                     \
+  ssl/hostname_key.pem               \
+  ssl/hostname_cert.pem              \
   zeroes.gz \
   corrupt.gz \
   invalid1.gz \

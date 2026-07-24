@@ -33,5 +33,13 @@ cp newcert.pem peer_certificate.pem
 
 openssl dhparam -outform PEM -out dhparams.pem 4096
 
+# self-signed, with a concrete CN/SAN (unlike server_cert.pem's CN of "*",
+# which isn't a valid RFC 6125 wildcard) -- used by simulation/test_https.cpp
+# to test hostname/CN verification independent of chain-of-trust verification
+openssl req -newkey rsa:4096 -nodes -keyout hostname_key.pem -x509 -days 99999 \
+	-subj "/C=AU/ST=Some-State/O=Internet Widgits Pty Ltd/CN=test-hostname.com" \
+	-addext "subjectAltName=DNS:test-hostname.com" \
+	-out hostname_cert.pem
+
 printf "\n\nSUCCESS!\n"
 
