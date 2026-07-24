@@ -793,7 +793,6 @@ int start_proxy(int proxy_type)
 		proxy_t t = { r, proxy_type };
 		running_proxies.insert(std::make_pair(port, t));
 		std::printf("%s launched\n", time_now_string().c_str());
-		std::this_thread::sleep_for(lt::milliseconds(500));
 		wait_for_port(port);
 		return port;
 	}
@@ -1251,7 +1250,6 @@ int start_web_server(
 		if (r == 0) continue;
 		web_server_pid = r;
 		std::printf("%s launched\n", time_now_string().c_str());
-		std::this_thread::sleep_for(lt::milliseconds(1000));
 		wait_for_port(port);
 		return port;
 	}
@@ -1301,7 +1299,6 @@ int start_websocket_server(bool ssl, int min_interval)
 		if (r == 0) continue;
 		websocket_server_pid = r;
 		std::printf("%s launched\n", time_now_string().c_str());
-		std::this_thread::sleep_for(lt::milliseconds(1000));
 		wait_for_port(port);
 		return port;
 	}
