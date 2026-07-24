@@ -800,6 +800,7 @@ namespace aux {
 
 			bool on_dht_request(string_view query
 				, dht::msg const& request, entry& response) override;
+			ip_filter const* get_dht_ip_filter() const override;
 
 			void set_external_address(tcp::endpoint const& local_endpoint
 				, address const& ip

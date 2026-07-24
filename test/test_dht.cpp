@@ -558,11 +558,14 @@ struct obs : dht::dht_observer
 	bool on_dht_request(string_view
 		, dht::msg const&, entry&) override { return false; }
 
+	ip_filter const* get_dht_ip_filter() const override { return m_ip_filter; }
+
 	virtual ~obs() = default;
 
 #ifndef TORRENT_DISABLE_LOGGING
 	std::vector<std::string> m_log;
 #endif
+	ip_filter const* m_ip_filter = nullptr;
 };
 
 aux::session_settings test_settings()
@@ -3559,6 +3562,86 @@ TORRENT_TEST(dht_verify_node_address)
 
 	TEST_EQUAL(std::get<0>(table.size()), 0);
 	TEST_EQUAL(nodes.size(), 0);
+}
+
+TORRENT_TEST(dht_ip_filter)
+{
+	obs observer;
+	ip_filter filter;
+	filter.add_rule(addr("4.4.4.4"), addr("4.4.4.4"), ip_filter::blocked);
+	observer.m_ip_filter = &filter;
+
+	aux::session_settings s;
+	s.set_bool(settings_pack::dht_extended_routing_table, false);
+	// use IPs from unrelated /24s so dht_restrict_routing_ips doesn't
+	// interfere with what this test is exercising
+	s.set_bool(settings_pack::dht_restrict_routing_ips, false);
+	node_id const id = to_hash("3123456789abcdef01232456789abcdef0123456");
+	const int bucket_size = 8;
+	dht::routing_table table(id, udp::v4(), bucket_size, s, &observer);
+
+	node_id tmp = id;
+	node_id const diff = to_hash("15764f7459456a9453f8719b09547c11d5f34061");
+	add_and_replace(tmp, diff);
+
+	// blocked by the ip filter, should not be added
+	table.node_seen(tmp, udp::endpoint(addr("4.4.4.4"), 4), 10);
+	TEST_EQUAL(std::get<0>(table.size()), 0);
+
+	// not blocked, should be added
+	table.node_seen(tmp, udp::endpoint(addr("5.5.5.5"), 4), 10);
+	TEST_EQUAL(std::get<0>(table.size()), 1);
+
+	// disabling the setting lets the blocked address through too
+	s.set_bool(settings_pack::apply_filter_to_dht, false);
+	add_and_replace(tmp, diff);
+	table.node_seen(tmp, udp::endpoint(addr("4.4.4.4"), 4), 10);
+	TEST_EQUAL(std::get<0>(table.size()), 2);
+}
+
+TORRENT_TEST(dht_tracker_ip_filter)
+{
+	io_context ios;
+	obs observer;
+	ip_filter filter;
+	udp::endpoint const blocked_source(addr("4.4.4.4"), 4);
+	filter.add_rule(blocked_source.address(), blocked_source.address(), ip_filter::blocked);
+	observer.m_ip_filter = &filter;
+
+	aux::session_settings const sett = test_settings();
+	counters cnt;
+	auto dht_storage = dht_default_storage_constructor(sett);
+	dht_state state;
+
+	bool sent = false;
+	dht_tracker::send_fun_t const send = [&sent](aux::listen_socket_handle const&,
+											 udp::endpoint const&,
+											 span<char const>,
+											 error_code&,
+											 aux::udp_send_flags_t) { sent = true; };
+
+	dht_tracker dht(&observer, ios, send, sett, cnt, *dht_storage, std::move(state));
+	auto ls = dummy_listen_socket(udp::endpoint(addr("10.0.0.1"), 6881));
+	aux::listen_socket_handle const handle(ls);
+	dht.new_socket(handle);
+
+	entry e;
+	e["y"] = "q";
+	e["q"] = "ping";
+	e["t"] = "aa";
+	e["a"]["id"] = std::string(20, 'a');
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), e);
+
+	std::int64_t const dropped_before = cnt[counters::dht_messages_in_dropped];
+	dht.incoming_packet(handle, blocked_source, {buf.data(), int(buf.size())});
+	TEST_EQUAL(cnt[counters::dht_messages_in_dropped], dropped_before + 1);
+	TEST_EQUAL(sent, false);
+
+	// the same message from a non-blocked address is processed normally
+	udp::endpoint const source(addr("4.4.4.5"), 4);
+	dht.incoming_packet(handle, source, {buf.data(), int(buf.size())});
+	TEST_EQUAL(sent, true);
 }
 
 TORRENT_TEST(generate_prefix_mask)
