@@ -594,6 +594,17 @@ TORRENT_VERSION_NAMESPACE_3
 		const std::string& comment() const
 		{ return m_comment; }
 
+		// ``update_url()`` returns the feed URL for this torrent, per BEP 39.
+		// If there is no update feed, it returns an empty string.
+		const std::string& update_url() const
+		{ return m_update_url; }
+
+		// ``originator()`` returns the originator certificate for signed
+		// update feeds, per BEP 39. If there is no originator, it returns an
+		// empty string.
+		const std::string& originator() const
+		{ return m_originator; }
+
 		// If this torrent contains any DHT nodes, they are put in this vector in
 		// their original form (host name and port number).
 		std::vector<std::pair<std::string, int>> const& nodes() const
@@ -665,6 +676,8 @@ TORRENT_VERSION_NAMESPACE_3
 		void internal_set_creator(string_view);
 		void internal_set_creation_date(std::time_t);
 		void internal_set_comment(string_view);
+		void internal_set_update_url(string_view);
+		void internal_set_originator(string_view);
 
 #if TORRENT_ABI_VERSION <= 2
 		// support for BEP 30 merkle torrents has been removed
@@ -763,6 +776,12 @@ TORRENT_VERSION_NAMESPACE_3
 		// if a comment is found in the torrent file
 		// this will be set to that comment
 		std::string m_comment;
+
+		// The feed URL from a BEP 39 torrent info dict.
+		std::string m_update_url;
+
+		// The originator certificate from a BEP 39 torrent info dict.
+		std::string m_originator;
 
 		// an optional string naming the software used
 		// to create the torrent file
