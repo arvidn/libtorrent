@@ -138,7 +138,10 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, flags_t flags)
 
 	std::vector<std::string> accepted_trackers;
 
-	int const timeout = 30;
+	// all outcomes (success or proxy-blocked failure) resolve well under 1.5s
+	// in practice, so 15 iterations is plenty of margin without paying for
+	// the full 3s on every one of the 15 sub-tests in this file
+	int const timeout = 15;
 	std::size_t const expected_trackers
 		= ((flags & expect_http_connection) ? 2 : 0)
 		+ ((flags & expect_udp_connection) ? 2 : 0);
