@@ -260,10 +260,11 @@ TORRENT_TEST(paused_session)
 	ps.save_path = ".";
 
 	torrent_handle h = s.add_torrent(std::move(ps));
-
-	std::this_thread::sleep_for(lt::milliseconds(2000));
 	h.resume();
-	std::this_thread::sleep_for(lt::milliseconds(1000));
+
+	// poll for the resume to take effect
+	for (int i = 0; i < 100 && (h.flags() & torrent_flags::paused); ++i)
+		std::this_thread::sleep_for(lt::milliseconds(50));
 
 	TEST_CHECK(!(h.flags() & torrent_flags::paused));
 }
@@ -394,7 +395,7 @@ TORRENT_TEST(move_session)
 auto const count_dht_inits = [](session& ses)
 {
 	int count = 0;
-	int num = 200; // this number is adjusted per version, an estimate
+	int num = 200; // fallback cap, in case "starting DHT" never shows up
 	time_point const end_time = clock_type::now() + seconds(15);
 	while (true)
 	{
@@ -415,6 +416,10 @@ auto const count_dht_inits = [](session& ses)
 			}
 			num--;
 		}
+		// every call site expects exactly one "starting DHT" message; once
+		// it's been seen there's nothing more this loop can tell us
+		if (count >= 1)
+			return count;
 		if (num <= 0) return count;
 	}
 };
@@ -509,7 +514,12 @@ TORRENT_TEST(reopen_network_sockets)
 		int count_listen = 0;
 		int count_portmap = 0;
 		int num = 60; // this number is adjusted per version, an estimate
-		time_point const end_time = clock_type::now() + seconds(3);
+		// when nothing is expected to happen there's no alert to wait for,
+		// so just wait out a short settle window to give a stray one a
+		// chance to show up; otherwise stop as soon as the expected alerts
+		// have been seen
+		bool const expecting_something = listen > 0 || portmap > 0;
+		time_point const end_time = clock_type::now() + seconds(expecting_something ? 3 : 1);
 		while (true)
 		{
 			time_point const now = clock_type::now();
@@ -533,6 +543,8 @@ TORRENT_TEST(reopen_network_sockets)
 					count_portmap++;
 				num--;
 			}
+			if (expecting_something && count_listen >= listen && count_portmap >= portmap)
+				break;
 			if (num <= 0)
 				break;
 		}
