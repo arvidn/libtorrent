@@ -27,6 +27,7 @@ see LICENSE file.
 #include "make_proxy_settings.hpp"
 
 #include <iostream>
+#include <optional>
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/crc.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -41,6 +42,11 @@ namespace {
 	using conn_test_flags_t = flags::bitfield_flag<std::uint8_t, struct conn_test_flags_tag>;
 	constexpr conn_test_flags_t keep_alive = 0_bit;
 	constexpr conn_test_flags_t through_redirect = 1_bit;
+
+	using suite_flags_t = flags::bitfield_flag<std::uint8_t, struct suite_flags_tag>;
+	// run the suite against a sim::http_server::https (TLS-terminating) server
+	// and https:// URLs, instead of a plain HTTP server and http:// URLs
+	constexpr suite_flags_t use_https = 0_bit;
 
 	struct sim_config : sim::default_config
 	{
@@ -128,20 +134,36 @@ std::shared_ptr<lt::aux::http_connection> test_request(io_context& ios,
 	// Completion is signaled through the write handler instead of the
 	// response handler above, so *handler_called is incremented there
 	// instead (see set_write_handler() below).
-	bool const write_only = false)
+	bool const write_only = false
+#if TORRENT_USE_SSL
+	// an https:// url may cause more than one connection to be made (e.g. a
+	// redirect, or a keep-alive reconnect), all of which reference this
+	// context via a raw pointer for as long as the connection is alive, so
+	// the caller must own one that outlives its own sim.run() call rather
+	// than relying on a context local to this function.
+	,
+	lt::aux::ssl::context* ext_ssl_ctx = nullptr
+#endif
+)
 {
 	std::printf(" ===== TESTING: %s =====\n", url.c_str());
 
 #if TORRENT_USE_SSL
-	lt::aux::ssl::context ssl_ctx(lt::aux::ssl::context::sslv23_client);
-	ssl_ctx.set_verify_mode(lt::aux::ssl::context::verify_none);
+	bool const https = url.compare(0, 8, "https://") == 0;
+	// see the doc comment on ext_ssl_ctx above: an https:// request needs a
+	// context that outlives this function's return, so it cannot be
+	// constructed locally here -- the caller must supply one.
+	TORRENT_ASSERT(!https || ext_ssl_ctx);
+	lt::aux::ssl::context* ssl_ctx = ext_ssl_ctx;
 #endif
 
-	auto h = std::make_shared<lt::aux::http_connection>(ios
-		, res
-		, [=](error_code const& ec, lt::aux::http_parser const& parser
-			, span<char const> data, lt::aux::http_connection&)
-		{
+	auto h = std::make_shared<lt::aux::http_connection>(
+		ios,
+		res,
+		[=](error_code const& ec,
+			lt::aux::http_parser const& parser,
+			span<char const> data,
+			lt::aux::http_connection&) {
 			std::printf("RESPONSE: %s\n", url.c_str());
 			++*handler_called;
 
@@ -176,20 +198,20 @@ std::shared_ptr<lt::aux::http_connection> test_request(io_context& ios,
 					&& int(data.size()) == expected_size
 					&& memcmp(expected_data, data.data(), data.size()) == 0);
 			}
-		}
-		, 1024 * 1024
-		, [=](lt::aux::http_connection& c)
-		{
+		},
+		1024 * 1024,
+		[=](lt::aux::http_connection& c) {
 			++*connect_handler_called;
 			TEST_CHECK(c.socket().is_open());
 			std::printf("CONNECTED: %s\n", url.c_str());
-		}
-		, lt::aux::http_filter_handler()
-		, lt::aux::hostname_filter_handler()
+		},
+		lt::aux::http_filter_handler(),
+		lt::aux::hostname_filter_handler()
 #if TORRENT_USE_SSL
-		, &ssl_ctx
+			,
+		ssl_ctx
 #endif
-		);
+	);
 
 	if (write_only)
 	{
@@ -237,8 +259,12 @@ void print_http_header(std::map<std::string, std::string> const& headers)
 	}
 }
 
-void run_test(lt::aux::proxy_settings ps, std::string url, int expect_size, int expect_status
-	, boost::system::error_condition expect_error, std::vector<int> expect_counters);
+void run_test(lt::aux::proxy_settings ps,
+	std::string url,
+	int expect_size,
+	int expect_status,
+	boost::system::error_condition expect_error,
+	std::vector<int> expect_counters);
 
 enum expect_counters
 {
@@ -254,14 +280,25 @@ enum expect_counters
 	num_counters
 };
 
-void run_suite(lt::aux::proxy_settings ps)
+// runs the full test suite against a plain HTTP server, or (with use_https)
+// against a sim::http_server::https (TLS-terminating) server and https://
+// URLs instead, everything else about the suite (proxy type, expected
+// counters) is shared.
+void run_suite(lt::aux::proxy_settings ps, suite_flags_t flags)
 {
-	std::string url_base = "http://10.0.0.2:8080";
+	bool const https = bool(flags & use_https);
+	std::string const scheme = https ? "https" : "http";
+	std::string url_base = scheme + "://10.0.0.2:8080";
 
 	run_test(ps, url_base + "/test_file", 1337, 200, error_condition(), { 1, 1, 1});
 
 	// positive test with a successful hostname
-	run_test(ps, "http://test-hostname.com:8080/test_file", 1337, 200, error_condition(), { 1, 1, 1});
+	run_test(ps,
+		scheme + "://test-hostname.com:8080/test_file",
+		1337,
+		200,
+		error_condition(),
+		{1, 1, 1});
 
 	run_test(ps, url_base + "/non-existent", 0, 404, error_condition(), { 1, 1 });
 	run_test(ps, url_base + "/redirect", 1337, 200, error_condition(), { 2, 1, 1, 1 });
@@ -284,22 +321,27 @@ void run_suite(lt::aux::proxy_settings ps)
 			boost::system::errc::address_family_not_supported :
 			boost::system::errc::address_not_available;
 
-		run_test(ps, "http://[ff::dead:beef]:8080/test_file", 0, -1
-			, error_condition(expected_code, generic_category())
-			, {0,1});
+		run_test(ps,
+			scheme + "://[ff::dead:beef]:8080/test_file",
+			0,
+			-1,
+			error_condition(expected_code, generic_category()),
+			{0, 1});
 	}
 
 	// there is no node at 10.0.0.10, this should fail with connection refused
 	if (ps.type != settings_pack::http)
 	{
-		run_test(ps, "http://10.0.0.10:8080/test_file", 0, -1,
-			error_condition(boost::system::errc::connection_refused, generic_category())
-			, {0,1});
+		run_test(ps,
+			scheme + "://10.0.0.10:8080/test_file",
+			0,
+			-1,
+			error_condition(boost::system::errc::connection_refused, generic_category()),
+			{0, 1});
 	}
 	else
 	{
-		run_test(ps, "http://10.0.0.10:8080/test_file", 0, 503,
-			error_condition(), {1,1});
+		run_test(ps, scheme + "://10.0.0.10:8080/test_file", 0, 503, error_condition(), {1, 1});
 	}
 
 	// the try-next test in his case would test the socks proxy itself, whether
@@ -311,8 +353,8 @@ void run_suite(lt::aux::proxy_settings ps)
 		// connect to and the second one where we'll get the test file response. Make
 		// sure the http_connection correctly tries the second IP if the first one
 		// fails.
-		run_test(ps, "http://try-next.com:8080/test_file", 1337, 200
-			, error_condition(), { 1, 1, 1});
+		run_test(
+			ps, scheme + "://try-next.com:8080/test_file", 1337, 200, error_condition(), {1, 1, 1});
 	}
 
 	// the http proxy does not support hostname lookups yet
@@ -323,21 +365,21 @@ void run_suite(lt::aux::proxy_settings ps)
 			: error_condition(asio::error::host_not_found, boost::asio::error::get_netdb_category());
 
 		// make sure hostname lookup failures are passed through correctly
-		run_test(ps, "http://non-existent.com/test_file", 0, -1
-			, expected_error, { 0, 1 });
+		run_test(ps, scheme + "://non-existent.com/test_file", 0, -1, expected_error, {0, 1});
 	}
 
 	// make sure we handle gzipped content correctly
-	run_test(ps, url_base + "/test_file.gz", 1337, 200, error_condition(), { 1, 1, 0, 0, 0, 0, 0, 1});
+	run_test(
+		ps, url_base + "/test_file.gz", 1337, 200, error_condition(), {1, 1, 0, 0, 0, 0, 0, 1});
 
-// TODO: 2 test basic-auth
-// TODO: 2 test https
+	// TODO: 2 test basic-auth
 }
 
 void run_test(lt::aux::proxy_settings ps, std::string url, int expect_size, int expect_status
 	, boost::system::error_condition expect_error, std::vector<int> expect_counters)
 {
 	using sim::asio::ip::address_v4;
+	bool const https = url.compare(0, 8, "https://") == 0;
 	sim_config network_cfg;
 	sim::simulation sim{network_cfg};
 
@@ -349,7 +391,8 @@ void run_test(lt::aux::proxy_settings ps, std::string url, int expect_size, int 
 	sim::asio::io_context proxy_ios(sim, make_address_v4("50.50.50.50"));
 	lt::aux::resolver res(ios);
 
-	sim::http_server http(web_server, 8080);
+	sim::http_server http(
+		web_server, 8080, https ? sim::http_server::https : sim::http_server_flags_t{});
 	sim::socks_server socks(proxy_ios, 4444, ps.type == settings_pack::socks4 ? 4 : 5);
 	sim::http_proxy http_p(proxy_ios, 4445);
 
@@ -447,9 +490,37 @@ void run_test(lt::aux::proxy_settings ps, std::string url, int expect_size, int 
 			"\r\n";
 	});
 
-	auto c = test_request(ios, res, url, data_buffer, expect_size
-		, expect_status, expect_error, ps, &counters[connect_handler]
-		, &counters[handler]);
+#if TORRENT_USE_SSL
+	// owned here (rather than by test_request()) so it outlives every
+	// connection made over the course of this request, including any
+	// redirect- or keep-alive-driven reconnects that happen during sim.run().
+	// only constructed for https:// requests, so the plain-HTTP majority of
+	// calls don't pay for an unused ssl::context.
+	std::optional<lt::aux::ssl::context> ssl_ctx;
+	if (https)
+	{
+		ssl_ctx.emplace(lt::aux::ssl::context::sslv23_client);
+		ssl_ctx->set_verify_mode(lt::aux::ssl::context::verify_none);
+	}
+#endif
+
+	auto c = test_request(ios,
+		res,
+		url,
+		data_buffer,
+		expect_size,
+		expect_status,
+		expect_error,
+		ps,
+		&counters[connect_handler],
+		&counters[handler],
+		std::string(),
+		false
+#if TORRENT_USE_SSL
+		,
+		ssl_ctx ? &*ssl_ctx : nullptr
+#endif
+	);
 
 	sim.run();
 
@@ -464,34 +535,72 @@ void run_test(lt::aux::proxy_settings ps, std::string url, int expect_size, int 
 TORRENT_TEST(http_connection)
 {
 	lt::aux::proxy_settings ps = make_proxy_settings(settings_pack::none);
-	run_suite(ps);
+	run_suite(ps, {});
 }
 
+#if TORRENT_USE_SSL
+TORRENT_TEST(http_connection_https)
+{
+	lt::aux::proxy_settings ps = make_proxy_settings(settings_pack::none);
+	run_suite(ps, use_https);
+}
+#endif
+
+// libsimulator's sim::http_proxy only rewrites plain "GET http://..." request
+// lines onto the target server; it has no CONNECT support, so it cannot
+// tunnel HTTPS. sim::http_server's https flag is exercised through the SOCKS
+// proxies below instead, which relay raw bytes and are agnostic to what's
+// inside them.
 TORRENT_TEST(http_connection_http)
 {
 	lt::aux::proxy_settings ps = make_proxy_settings(settings_pack::http);
 	ps.proxy_hostnames = true;
-	run_suite(ps);
+	run_suite(ps, {});
 }
 
 TORRENT_TEST(http_connection_socks4)
 {
 	lt::aux::proxy_settings ps = make_proxy_settings(settings_pack::socks4);
-	run_suite(ps);
+	run_suite(ps, {});
 }
+
+#if TORRENT_USE_SSL
+TORRENT_TEST(http_connection_socks4_https)
+{
+	lt::aux::proxy_settings ps = make_proxy_settings(settings_pack::socks4);
+	run_suite(ps, use_https);
+}
+#endif
 
 TORRENT_TEST(http_connection_socks5)
 {
 	lt::aux::proxy_settings ps = make_proxy_settings(settings_pack::socks5);
-	run_suite(ps);
+	run_suite(ps, {});
 }
+
+#if TORRENT_USE_SSL
+TORRENT_TEST(http_connection_socks5_https)
+{
+	lt::aux::proxy_settings ps = make_proxy_settings(settings_pack::socks5);
+	run_suite(ps, use_https);
+}
+#endif
 
 TORRENT_TEST(http_connection_socks5_proxy_names)
 {
 	lt::aux::proxy_settings ps = make_proxy_settings(settings_pack::socks5);
 	ps.proxy_hostnames = true;
-	run_suite(ps);
+	run_suite(ps, {});
 }
+
+#if TORRENT_USE_SSL
+TORRENT_TEST(http_connection_socks5_proxy_names_https)
+{
+	lt::aux::proxy_settings ps = make_proxy_settings(settings_pack::socks5);
+	ps.proxy_hostnames = true;
+	run_suite(ps, use_https);
+}
+#endif
 
 // tests the error scenario of a http server listening on two sockets (ipv4/ipv6) which
 // both accept the incoming connection but never send anything back. In the normal
@@ -568,7 +677,7 @@ TORRENT_TEST(http_connection_write_only_drain_eof_forces_reconnect)
 	const unsigned short http_port = 8080;
 	// no keep_alive flag: the server closes right after responding, so the
 	// drain loop observes EOF.
-	sim::http_server http(server_ios, http_port, 0);
+	sim::http_server http(server_ios, http_port, sim::http_server_flags_t{});
 	http.register_handler(
 		"/announce", [](std::string, std::string, std::map<std::string, std::string>&) {
 			std::string const body = "d8:intervali1800e5:peers0:e";
@@ -871,7 +980,6 @@ TORRENT_TEST(http_connection_ssl_proxy_hostname)
 	test_connection_ssl_proxy(true);
 }
 
-
 // verify that http_connection emits "Connection: close" by default and
 // "Connection: keep-alive" when the keep_alive flag is passed to get(). When
 // through_redirect is set, an intervening 301 is followed first; the header
@@ -963,7 +1071,8 @@ TORRENT_TEST(http_connection_connection_keep_alive_header) { test_connection_hea
 // keeps the connection alive, the second request must reuse the socket (a single
 // accepted connection, the connect handler fires once). When the server closes
 // the connection, the second request must transparently open a fresh socket.
-void test_http_connection_reuse(int const server_flags, int const expected_connections)
+void test_http_connection_reuse(
+	sim::http_server_flags_t const server_flags, int const expected_connections)
 {
 	using sim::asio::ip::address_v4;
 	sim_config network_cfg;
@@ -1052,7 +1161,7 @@ TORRENT_TEST(http_connection_keep_alive_server_close)
 {
 	// a server that does not keep connections alive responds with
 	// "Connection: close"; the second request opens a new socket
-	test_http_connection_reuse(0, 2);
+	test_http_connection_reuse(sim::http_server_flags_t{}, 2);
 }
 
 TORRENT_TEST(http_connection_http_1_0_no_reuse)

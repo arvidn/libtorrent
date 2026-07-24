@@ -18,6 +18,10 @@ All rights reserved.
 
 #include "simulator/simulator.hpp"
 #include "http_server.hpp"
+#include "libtorrent/aux_/path.hpp"
+#include "libtorrent/aux_/throw.hpp"
+
+#include <boost/system/system_error.hpp>
 
 #include <functional>
 #include <cstdio> // for printf
@@ -121,14 +125,63 @@ namespace sim {
 		return ret;
 	}
 
-	http_server::http_server(io_context& ios, unsigned short listen_port, int flags)
+#if TORRENT_USE_SSL
+	std::string ssl_fixture_path(std::string const& name)
+	{
+		// simulation test binaries run with a scratch directory under
+		// simulation/ as their working directory, hence the two ".."
+		return lt::combine_path(
+			"..", lt::combine_path("..", lt::combine_path("test", lt::combine_path("ssl", name))));
+	}
+#endif
+
+	http_server::http_server(io_context& ios,
+		unsigned short listen_port,
+		http_server_flags_t flags
+#if TORRENT_USE_SSL
+		,
+		std::string cert_file,
+		std::string key_file,
+		std::function<void(lt::aux::ssl::context&)> ssl_setup
+#endif
+		)
 		: m_ios(ios)
 		, m_listen_socket(ios)
-		, m_connection(ios)
 		, m_bytes_used(0)
 		, m_close(false)
 		, m_flags(flags)
 	{
+#if TORRENT_USE_SSL
+		if (m_flags & https)
+		{
+			m_ssl_ctx = std::make_unique<lt::aux::ssl::context>(lt::aux::ssl::context::tls);
+			// called before the certificate and private key are loaded, so a
+			// test can install a password callback (needed by some of the
+			// test/ssl/ fixtures, e.g. invalid_peer_private_key.pem) or
+			// restrict protocol options ahead of time.
+			if (ssl_setup)
+				ssl_setup(*m_ssl_ctx);
+
+			// loads a PEM file via the given ssl::context member function
+			// (use_certificate_file or use_private_key_file), throwing on
+			// failure.
+			using loader_fn = void (lt::aux::ssl::context::*)(
+				std::string const&, lt::aux::ssl::context::file_format, error_code&);
+			auto const load = [this](std::string const& file, loader_fn mem_fn) {
+				std::string const path = ssl_fixture_path(file);
+				error_code ec;
+				(m_ssl_ctx.get()->*mem_fn)(path, lt::aux::ssl::context::pem, ec);
+				if (ec)
+				{
+					lt::aux::throw_ex<boost::system::system_error>(
+						ec, "http_server: failed to load " + path);
+				}
+			};
+			load(cert_file, &lt::aux::ssl::context::use_certificate_file);
+			load(key_file, &lt::aux::ssl::context::use_private_key_file);
+		}
+#endif
+
 		address local_ip = ios.get_ips().front();
 		if (local_ip.is_v4())
 		{
@@ -142,11 +195,10 @@ namespace sim {
 		}
 		m_listen_socket.listen();
 
-		m_listen_socket.async_accept(
-			m_connection, m_ep, std::bind(&http_server::on_accept, this, _1));
+		m_listen_socket.async_accept(std::bind(&http_server::on_accept, this, _1, _2));
 	}
 
-	void http_server::on_accept(error_code const& ec)
+	void http_server::on_accept(error_code const& ec, tcp::socket peer)
 	{
 		if (ec)
 		{
@@ -157,12 +209,48 @@ namespace sim {
 
 		++m_accepted_connections;
 
-		std::printf("http_server accepted connection from: %s : %d\n",
-			m_ep.address().to_string().c_str(),
-			m_ep.port());
+		error_code e;
+		m_ep = peer.remote_endpoint(e);
+		if (e)
+		{
+			std::printf("http_server::on_accept: failed to get remote endpoint (%d) %s\n",
+				e.value(),
+				e.message().c_str());
+		}
+		else
+		{
+			std::printf("http_server accepted connection from: %s : %d\n",
+				m_ep.address().to_string().c_str(),
+				m_ep.port());
+		}
+
+#if TORRENT_USE_SSL
+		if (m_flags & https)
+		{
+			m_connection.emplace(
+				lt::aux::ssl_stream<lt::tcp::socket>(lt::tcp::socket(std::move(peer)), *m_ssl_ctx));
+			std::get<lt::aux::ssl_stream<lt::tcp::socket>>(*m_connection)
+				.async_accept_handshake(std::bind(&http_server::on_handshake, this, _1));
+			return;
+		}
+#endif
+		m_connection.emplace(lt::tcp::socket(std::move(peer)));
+		read();
+	}
+
+#if TORRENT_USE_SSL
+	void http_server::on_handshake(error_code const& ec)
+	{
+		if (ec)
+		{
+			std::printf("http_server::on_handshake: (%d) %s\n", ec.value(), ec.message().c_str());
+			close_connection();
+			return;
+		}
 
 		read();
 	}
+#endif
 
 	void http_server::register_handler(std::string const& path, handler_t h)
 	{
@@ -221,7 +309,7 @@ namespace sim {
 			m_recv_buffer.resize((std::max)(500, m_bytes_used * 2));
 		}
 		assert(int(m_recv_buffer.size()) > m_bytes_used);
-		m_connection.async_read_some(
+		m_connection->async_read_some(
 			asio::buffer(&m_recv_buffer[m_bytes_used], m_recv_buffer.size() - m_bytes_used),
 			std::bind(&http_server::on_read, this, _1, _2));
 	}
@@ -362,7 +450,7 @@ namespace sim {
 			}
 		}
 
-		async_write(m_connection,
+		async_write(*m_connection,
 			asio::buffer(m_send_buffer.data(), m_send_buffer.size()),
 			std::bind(&http_server::on_write, this, _1, _2, close));
 	}
@@ -406,20 +494,54 @@ namespace sim {
 		m_recv_buffer.clear();
 		m_bytes_used = 0;
 
-		error_code err;
-		m_connection.close(err);
-		if (err)
+#if TORRENT_USE_SSL
+		// send a TLS close_notify before tearing down the TCP connection, so
+		// the client sees a clean SSL shutdown rather than an abrupt socket
+		// close (which surfaces as a "stream truncated" error instead of the
+		// plain EOF a closed plaintext connection produces).
+		if (m_connection
+			&& std::holds_alternative<lt::aux::ssl_stream<lt::tcp::socket>>(*m_connection))
 		{
-			std::printf("http_server::close: failed to close connection (%d) %s\n",
-				err.value(),
-				err.message().c_str());
+			std::get<lt::aux::ssl_stream<lt::tcp::socket>>(*m_connection)
+				.async_shutdown(std::bind(&http_server::finish_close, this, _1));
 			return;
+		}
+#endif
+		finish_close();
+	}
+
+	void http_server::finish_close(error_code const& shutdown_ec)
+	{
+		if (shutdown_ec)
+		{
+			std::printf("http_server::close: TLS shutdown failed (%d) %s\n",
+				shutdown_ec.value(),
+				shutdown_ec.message().c_str());
+		}
+
+		// on_accept() may call close_connection() before a connection was
+		// ever accepted (e.g. the accept itself failed), in which case
+		// m_connection is still unset.
+		if (m_connection)
+		{
+			error_code err;
+			m_connection->close(err);
+			// clear the (now-closed) connection so a subsequent close_connection()
+			// call (e.g. from a spurious accept error while idle) doesn't re-run
+			// TLS shutdown logic against a stale, already-torn-down stream.
+			m_connection.reset();
+			if (err)
+			{
+				std::printf("http_server::close: failed to close connection (%d) %s\n",
+					err.value(),
+					err.message().c_str());
+				return;
+			}
 		}
 
 		if (m_close) return;
 
 		// now we can accept another connection
-		m_listen_socket.async_accept(
-			m_connection, m_ep, std::bind(&http_server::on_accept, this, _1));
+		m_listen_socket.async_accept(std::bind(&http_server::on_accept, this, _1, _2));
 	}
 }
