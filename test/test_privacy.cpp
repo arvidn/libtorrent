@@ -138,13 +138,23 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, flags_t flags)
 
 	std::vector<std::string> accepted_trackers;
 
-	// all outcomes (success or proxy-blocked failure) resolve well under 1.5s
-	// in practice, so 15 iterations is plenty of margin without paying for
-	// the full 3s on every one of the 15 sub-tests in this file
+	// all outcomes (success or proxy-blocked failure) resolve well under
+	// 1.5s in practice, so 15 iterations is plenty of margin
 	int const timeout = 15;
 	std::size_t const expected_trackers
 		= ((flags & expect_http_connection) ? 2 : 0)
 		+ ((flags & expect_udp_connection) ? 2 : 0);
+
+	// most sub-tests expect only a subset of {tracker, peer} connections to
+	// succeed; the rest are meant to be blocked by the proxy, and there's no
+	// alert to wait for to prove a connection did *not* happen. Once the
+	// expected subset has been observed, keep waiting out this floor of
+	// iterations so a proxy bypass on the unexpected side still has a chance
+	// to show up before the checks below run (observed worst case for a
+	// blocked connection to resolve is ~0.5s, this leaves ample margin).
+	int const settle_iterations = 8;
+	bool const all_connections_expected =
+		bool(flags & expect_udp_connection) && bool(flags & expect_peer_connection);
 
 	for (int i = 0; i < timeout; ++i)
 	{
@@ -160,9 +170,13 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, flags_t flags)
 			});
 		std::this_thread::sleep_for(lt::milliseconds(100));
 
-		if (num_udp_announces() >= prev_udp_announces + 1
-			&& num_peer_hits() > 0
-			&& accepted_trackers.size() >= expected_trackers)
+		bool const udp_done =
+			!(flags & expect_udp_connection) || num_udp_announces() >= prev_udp_announces + 1;
+		bool const peer_done = !(flags & expect_peer_connection) || num_peer_hits() > 0;
+		bool const trackers_done = accepted_trackers.size() >= expected_trackers;
+
+		if (udp_done && peer_done && trackers_done
+			&& (all_connections_expected || i >= settle_iterations))
 		{
 			break;
 		}
