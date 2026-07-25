@@ -29,8 +29,8 @@ namespace {
 	// src/enum_net.cpp).
 	constexpr char const* device_name = "eth0";
 
-	template <typename Settings, typename Test>
-	void run_test(Settings const& make_settings, Test const& test)
+	template <typename Settings, typename Alert, typename Test>
+	void run_test(Settings const& make_settings, Alert const& on_alert, Test const& test)
 	{
 		// setup the simulation
 		sim::default_config network_cfg;
@@ -56,12 +56,13 @@ namespace {
 		params.flags &= ~lt::torrent_flags::paused;
 		ses->async_add_torrent(params);
 
-		print_alerts(*ses, [](lt::session&, lt::alert const* a) {
+		print_alerts(*ses, [&](lt::session&, lt::alert const* a) {
 			if (auto at = lt::alert_cast<lt::add_torrent_alert>(a))
 			{
 				lt::torrent_handle h = at->handle;
 				add_fake_peer(h, 0);
 			}
+			on_alert(a);
 		});
 
 		sim::timer t(sim, lt::seconds(60), [&](boost::system::error_code const&) {
@@ -74,6 +75,12 @@ namespace {
 		});
 
 		sim.run();
+	}
+
+	template <typename Settings, typename Test>
+	void run_test(Settings const& make_settings, Test const& test)
+	{
+		run_test(make_settings, [](lt::alert const*) {}, test);
 	}
 
 } // anonymous namespace
@@ -123,3 +130,37 @@ TORRENT_TEST(outgoing_interfaces_matching_device_allowed_with_proxy)
 		},
 		[](fake_peer& p) { TEST_EQUAL(p.connected(), true); });
 }
+
+#ifndef TORRENT_DISABLE_LOGGING
+// peer_dscp must be applied after opening the socket but before initiating
+// the outgoing TCP connection. Otherwise set_traffic_class() fails with
+// error::bad_descriptor and the SYN is sent without the configured DSCP.
+TORRENT_TEST(outgoing_peer_dscp)
+{
+	bool socket_opened = false;
+	bool dscp_error = false;
+	run_test(
+		[](lt::settings_pack& pack) {
+			pack.set_int(lt::settings_pack::peer_dscp, 0x04);
+			pack.set_bool(lt::settings_pack::enable_outgoing_utp, false);
+		},
+		[&](lt::alert const* a) {
+			auto const* pl = lt::alert_cast<lt::peer_log_alert>(a);
+			if (pl == nullptr)
+				return;
+
+			if (pl->event_type == lt::peer_log_alert::open)
+				socket_opened = true;
+			else if (pl->event_type == lt::peer_log_alert::set_dscp)
+			{
+				TEST_EQUAL(socket_opened, true);
+				dscp_error = true;
+			}
+		},
+		[&](fake_peer& p) {
+			TEST_EQUAL(p.connected(), true);
+			TEST_EQUAL(socket_opened, true);
+			TEST_EQUAL(dscp_error, false);
+		});
+}
+#endif

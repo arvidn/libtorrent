@@ -7,6 +7,7 @@
 	* improve dont-count-slow-torrents
 	* improve performance of checking files
 	* add ip_ban_alert for IPs banned internally by libtorrent
+	* fix peer DSCP marking on outgoing TCP connections
 
 2.1.0 release
 
