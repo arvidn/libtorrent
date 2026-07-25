@@ -72,9 +72,10 @@ constexpr test_transfer_flags_t bad_v1_hashes = 13_bit;
 constexpr test_transfer_flags_t disable_v1_hashes = 14_bit;
 }
 
-void set_proxy(lt::session& ses, int proxy_type
-	, test_transfer_flags_t flags = tx::proxy_peers
-	, bool proxy_peers = true);
+void set_proxy(lt::session& ses,
+	int proxy_type,
+	test_transfer_flags_t flags = tx::proxy_peers,
+	bool proxy_peers = true);
 
 void print_alerts(lt::session& ses
 	, std::function<void(lt::session&, lt::alert const*)> on_alert
