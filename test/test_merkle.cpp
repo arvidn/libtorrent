@@ -11,7 +11,9 @@ see LICENSE file.
 
 #include "test.hpp"
 #include "libtorrent/aux_/merkle.hpp"
+#include "libtorrent/aux_/merkle_tree.hpp"
 #include "libtorrent/bitfield.hpp"
+#include "libtorrent/hasher.hpp"
 #include <iostream>
 
 using namespace lt;
@@ -29,6 +31,44 @@ namespace {
 			else
 				TEST_CHECK(false);
 		}
+	}
+
+	// Construct an aux::merkle_tree pre-loaded with the hashes from a
+	// hand-laid-out flat std::vector (standard layout: root at index 0,
+	// layer L at [(1<<L) - 1, (1<<(L+1)) - 1)). The tree's root is taken
+	// from src[0]; the tree is transitioned into full_tree mode so the
+	// tests can address nodes via (L, O) directly.
+	aux::merkle_tree make_tree(std::vector<sha256_hash> const& src, int const blocks_per_piece = 1)
+	{
+		int const num_nodes = int(src.size());
+		TORRENT_ASSERT(((num_nodes + 1) & num_nodes) == 0);
+		int const num_leafs = (num_nodes + 1) / 2;
+		aux::merkle_tree t(num_leafs, blocks_per_piece, src[0].data());
+		t.allocate_compact();
+		int const N = t.num_layers();
+		for (int L = 0; L <= N; ++L)
+		{
+			int const start = (1 << L) - 1;
+			int const layer_size = 1 << L;
+			for (int O = 0; O < layer_size; ++O)
+				t.set(L, O, src[start + O]);
+		}
+		return t;
+	}
+
+	// Read back the tree's contents into a standard-layout flat vector.
+	std::vector<sha256_hash> flatten(aux::merkle_tree const& t)
+	{
+		int const N = t.num_layers();
+		std::vector<sha256_hash> out(std::size_t(merkle_num_nodes(1 << N)));
+		for (int L = 0; L <= N; ++L)
+		{
+			int const start = (1 << L) - 1;
+			int const layer_size = 1 << L;
+			for (int O = 0; O < layer_size; ++O)
+				out[start + O] = t.get(L, O);
+		}
+		return out;
 	}
 }
 
@@ -395,201 +435,110 @@ TORRENT_TEST(merkle_fill_partial_tree)
 {
 	// fill whole tree
 	{
-		v tree{o,
-		   o,      o,
-		  o, o,   o, o,
-		a,b,c,d,e,f,g,h};
+		auto t = make_tree(v{o, o, o, o, o, o, o, a, b, c, d, e, f, g, h});
 
-		merkle_fill_partial_tree(tree);
+		merkle_fill_partial_tree(t);
 
-		TEST_CHECK((tree ==
-		     v{ah,
-		   ad,     eh,
-		 ab, cd, ef, gh,
-		a,b,c,d,e,f,g,h}));
+		TEST_CHECK((flatten(t) == v{ah, ad, eh, ab, cd, ef, gh, a, b, c, d, e, f, g, h}));
 	}
 
 	// fill left side of the tree
 	{
-		v tree{o,
-		   o,      eh,
-		 ab,cd,   o, o,
-		a,b,c,d,o,o,o,o};
+		auto t = make_tree(v{o, o, eh, ab, cd, o, o, a, b, c, d, o, o, o, o});
 
-		merkle_fill_partial_tree(tree);
+		merkle_fill_partial_tree(t);
 
-		TEST_CHECK((tree ==
-		     v{ah,
-		   ad,    eh,
-		 ab, cd, o, o,
-		a,b,c,d,o,o,o,o}));
+		TEST_CHECK((flatten(t) == v{ah, ad, eh, ab, cd, o, o, a, b, c, d, o, o, o, o}));
 	}
 
 	// fill right side of the tree
 	{
-		v tree{o,
-		   ad,     o,
-		 o,  o,   o, o,
-		o,o,o,o,e,f,g,h};
+		auto t = make_tree(v{o, ad, o, o, o, o, o, o, o, o, o, e, f, g, h});
 
-		merkle_fill_partial_tree(tree);
+		merkle_fill_partial_tree(t);
 
-		TEST_CHECK((tree ==
-		     v{ah,
-		   ad,     eh,
-		 o,  o,  ef,gh,
-		o,o,o,o,e,f,g,h}));
+		TEST_CHECK((flatten(t) == v{ah, ad, eh, o, o, ef, gh, o, o, o, o, e, f, g, h}));
 	}
 
 	// fill shallow left of the tree
 	{
-		v tree{
-		       o,
-		   o,      eh,
-		 ab, cd,   o, o,
-		o,o,o,o,o,o,o,o};
+		auto t = make_tree(v{o, o, eh, ab, cd, o, o, o, o, o, o, o, o, o, o});
 
-		merkle_fill_partial_tree(tree);
+		merkle_fill_partial_tree(t);
 
-		TEST_CHECK((tree ==
-		     v{ah,
-		   ad,    eh,
-		 ab, cd,   o, o,
-		o,o,o,o,o,o,o,o}));
+		TEST_CHECK((flatten(t) == v{ah, ad, eh, ab, cd, o, o, o, o, o, o, o, o, o, o}));
 	}
 
 	// fill shallow right of the tree
 	{
-		v tree{
-		       o,
-		   ad,     o,
-		 o,  o,   ef,gh,
-		o,o,o,o,o,o,o,o};
+		auto t = make_tree(v{o, ad, o, o, o, ef, gh, o, o, o, o, o, o, o, o});
 
-		merkle_fill_partial_tree(tree);
+		merkle_fill_partial_tree(t);
 
-		TEST_CHECK((tree ==
-		     v{ah,
-		   ad,     eh,
-		 o,  o,   ef, gh,
-		o,o,o,o,o,o,o,o}));
+		TEST_CHECK((flatten(t) == v{ah, ad, eh, o, o, ef, gh, o, o, o, o, o, o, o, o}));
 	}
 
 	// fill uneven tree
 	{
-		v tree{
-		       o,
-		   ad,     o,
-		 o,  o,  ef, gh,
-		o,o,o,o,o,o,o,o};
+		auto t = make_tree(v{o, ad, o, o, o, ef, gh, o, o, o, o, o, o, o, o});
 
-		merkle_fill_partial_tree(tree);
+		merkle_fill_partial_tree(t);
 
-		TEST_CHECK((tree ==
-		     v{ah,
-		   ad,     eh,
-		 o,  o,  ef, gh,
-		o,o,o,o,o,o,o,o}));
+		TEST_CHECK((flatten(t) == v{ah, ad, eh, o, o, ef, gh, o, o, o, o, o, o, o, o}));
 	}
 
 	// clear orphans
 	{
-		v tree{
-		       o,
-		   ad,    ah,
-		 o,  o,  ef, gh,
-		a,o,c,o,o,o,o,o};
+		auto t = make_tree(v{o, ad, ah, o, o, ef, gh, a, o, c, o, o, o, o, o});
 
-		merkle_fill_partial_tree(tree);
+		merkle_fill_partial_tree(t);
 
-		TEST_CHECK((tree ==
-		     v{ah,
-		   ad,     eh,
-		 o,  o,   ef,gh,
-		o,o,o,o,o,o,o,o}));
+		TEST_CHECK((flatten(t) == v{ah, ad, eh, o, o, ef, gh, o, o, o, o, o, o, o, o}));
 	}
 
 	// clear orphan sub-tree
 	{
-		v tree{o,
-		   o,     o,
-		 o, o,   o, o,
-		a,b,c,d,o,o,o,o};
+		auto t = make_tree(v{o, o, o, o, o, o, o, a, b, c, d, o, o, o, o});
 
-		merkle_fill_partial_tree(tree);
+		merkle_fill_partial_tree(t);
 
-		TEST_CHECK((tree ==
-		    v{o,
-		   o,     o,
-		 o, o,   o, o,
-		o,o,o,o,o,o,o,o}));
+		TEST_CHECK((flatten(t) == v{o, o, o, o, o, o, o, o, o, o, o, o, o, o, o}));
 	}
 
 	// fill sub-tree
 	{
-		v tree{o,
-		   o,     eh,
-		 o, o,   o, o,
-		a,b,c,d,o,o,o,o};
+		auto t = make_tree(v{o, o, eh, o, o, o, o, a, b, c, d, o, o, o, o});
 
-		merkle_fill_partial_tree(tree);
+		merkle_fill_partial_tree(t);
 
-		TEST_CHECK((tree ==
-		    v{ah,
-		   ad,   eh,
-		 ab,cd,   o, o,
-		a,b,c,d,o,o,o,o}));
+		TEST_CHECK((flatten(t) == v{ah, ad, eh, ab, cd, o, o, a, b, c, d, o, o, o, o}));
 	}
 
 	// clear no-siblings left
 	{
-		v tree{
-		       o,
-		   ad,    ah,
-		 o,  o,  ef, gh,
-		o,o,o,o,o,o,o,h};
+		auto t = make_tree(v{o, ad, ah, o, o, ef, gh, o, o, o, o, o, o, o, h});
 
-		merkle_fill_partial_tree(tree);
+		merkle_fill_partial_tree(t);
 
-		TEST_CHECK((tree ==
-		     v{ah,
-		   ad,     eh,
-		 o,  o,  ef, gh,
-		o,o,o,o,o,o,o,o}));
+		TEST_CHECK((flatten(t) == v{ah, ad, eh, o, o, ef, gh, o, o, o, o, o, o, o, o}));
 	}
 
 	// clear no-siblings right
 	{
-		v tree{
-		       o,
-		   ad,    ah,
-		 o,  o,  ef, gh,
-		o,o,o,o,o,o,g,o};
+		auto t = make_tree(v{o, ad, ah, o, o, ef, gh, o, o, o, o, o, o, g, o});
 
-		merkle_fill_partial_tree(tree);
+		merkle_fill_partial_tree(t);
 
-		TEST_CHECK((tree ==
-		     v{ah,
-		   ad,     eh,
-		 o,  o,  ef, gh,
-		o,o,o,o,o,o,o,o}));
+		TEST_CHECK((flatten(t) == v{ah, ad, eh, o, o, ef, gh, o, o, o, o, o, o, o, o}));
 	}
 
 	// fill gaps
 	{
-		v tree{
-		       o,
-		   ad,    ah,
-		 o,  o,  ef,gh,
-		a,b,c,d,o,o,o,o};
+		auto t = make_tree(v{o, ad, ah, o, o, ef, gh, a, b, c, d, o, o, o, o});
 
-		merkle_fill_partial_tree(tree);
+		merkle_fill_partial_tree(t);
 
-		TEST_CHECK((tree ==
-		     v{ah,
-		   ad,     eh,
-		 ab,cd,   ef,gh,
-		a,b,c,d,o,o,o,o}));
+		TEST_CHECK((flatten(t) == v{ah, ad, eh, ab, cd, ef, gh, a, b, c, d, o, o, o, o}));
 	}
 }
 
@@ -625,121 +574,56 @@ TORRENT_TEST(merkle_root_scratch)
 	TEST_CHECK(merkle_root_scratch(v{a,b,c}, 8, o, buf) == H(H(ab, H(c, o)), H(H(o,o), H(o,o))));
 }
 
-namespace {
-void print_tree(span<sha256_hash const> tree)
-{
-	int const num_leafs = static_cast<int>((tree.size() + 1) / 2);
-	int spacing = num_leafs;
-	int const num_levels = merkle_num_layers(num_leafs) + 1;
-	int layer_width = 1;
-	int node = 0;
-	for (int i = 0; i < num_levels; ++i)
-	{
-		for (int k = 0; k < layer_width; ++k)
-		{
-			for (int j = 0; j < spacing; ++j) std::cout << ' ';
-			std::cout << (tree[node] == sha256_hash() ? '0' : '1');
-			for (int j = 0; j < spacing - 1; ++j) std::cout << ' ';
-			++node;
-		}
-		std::cout << '\n';
-		layer_width *= 2;
-		spacing /= 2;
-	}
-	std::cout << '\n';
-}
-}
-
 TORRENT_TEST(merkle_clear_tree)
 {
 	// test clearing the whole tree
 	{
-		v tree{l,
-		   l,      l,
-		  l, l,   l, l,
-		l,l,l,l,l,l,l,l};
+		auto t = make_tree(v{l, l, l, l, l, l, l, l, l, l, l, l, l, l, l});
 
-		print_tree(tree);
-		merkle_clear_tree(tree, 8, 7);
-		print_tree(tree);
+		// level_start=7 -> (L=3, O=0), num_leafs=8
+		merkle_clear_tree(t, 3, 0, 8);
 
-		TEST_CHECK((tree ==
-		     v{o,
-		   o,      o,
-		  o, o,   o, o,
-		o,o,o,o,o,o,o,o}));
+		TEST_CHECK((flatten(t) == v{o, o, o, o, o, o, o, o, o, o, o, o, o, o, o}));
 	}
 
 	// test clearing the left side of the tree
 	{
-		v tree{l,
-		   l,      l,
-		  l, l,   l, l,
-		l,l,l,l,l,l,l,l};
+		auto t = make_tree(v{l, l, l, l, l, l, l, l, l, l, l, l, l, l, l});
 
-		print_tree(tree);
-		merkle_clear_tree(tree, 4, 7);
-		print_tree(tree);
+		// level_start=7 -> (L=3, O=0), num_leafs=4
+		merkle_clear_tree(t, 3, 0, 4);
 
-		TEST_CHECK((tree ==
-		     v{l,
-		   o,      l,
-		  o, o,   l, l,
-		o,o,o,o,l,l,l,l}));
+		TEST_CHECK((flatten(t) == v{l, o, l, o, o, l, l, o, o, o, o, l, l, l, l}));
 	}
 
 	// test clearing the right side of the tree
 	{
-		v tree{l,
-		   l,      l,
-		  l, l,   l, l,
-		l,l,l,l,l,l,l,l};
+		auto t = make_tree(v{l, l, l, l, l, l, l, l, l, l, l, l, l, l, l});
 
-		print_tree(tree);
-		merkle_clear_tree(tree, 4, 11);
-		print_tree(tree);
+		// level_start=11 -> (L=3, O=4), num_leafs=4
+		merkle_clear_tree(t, 3, 4, 4);
 
-		TEST_CHECK((tree ==
-		     v{l,
-		   l,      o,
-		  l, l,   o, o,
-		l,l,l,l,o,o,o,o}));
+		TEST_CHECK((flatten(t) == v{l, l, o, l, l, o, o, l, l, l, l, o, o, o, o}));
 	}
 
 	// test clearing shallow left
 	{
-		v tree{l,
-		   l,      l,
-		  l, l,   l, l,
-		l,l,l,l,l,l,l,l};
+		auto t = make_tree(v{l, l, l, l, l, l, l, l, l, l, l, l, l, l, l});
 
-		print_tree(tree);
-		merkle_clear_tree(tree, 2, 3);
-		print_tree(tree);
+		// level_start=3 -> (L=2, O=0), num_leafs=2
+		merkle_clear_tree(t, 2, 0, 2);
 
-		TEST_CHECK((tree ==
-		     v{l,
-		   o,      l,
-		  o, o,   l, l,
-		l,l,l,l,l,l,l,l}));
+		TEST_CHECK((flatten(t) == v{l, o, l, o, o, l, l, l, l, l, l, l, l, l, l}));
 	}
 
 	// test clearing shallow right
 	{
-		v tree{l,
-		   l,      l,
-		  l, l,   l, l,
-		l,l,l,l,l,l,l,l};
+		auto t = make_tree(v{l, l, l, l, l, l, l, l, l, l, l, l, l, l, l});
 
-		print_tree(tree);
-		merkle_clear_tree(tree, 2, 5);
-		print_tree(tree);
+		// level_start=5 -> (L=2, O=2), num_leafs=2
+		merkle_clear_tree(t, 2, 2, 2);
 
-		TEST_CHECK((tree ==
-		     v{l,
-		   l,      o,
-		  l, l,   o, o,
-		l,l,l,l,l,l,l,l}));
+		TEST_CHECK((flatten(t) == v{l, l, o, l, l, o, o, l, l, l, l, l, l, l, l}));
 	}
 }
 
@@ -797,6 +681,21 @@ TORRENT_TEST(merkle_validate_node)
 	TEST_CHECK(!merkle_validate_node(h, g, gh));
 }
 
+namespace {
+	// Construct an empty (root-only) merkle_tree for use as the dst in
+	// merkle_validate_copy tests. The root is set to zero so that flatten()
+	// returns all-zeros when no copy happens (mismatched expected_root case).
+	aux::merkle_tree make_empty_dst(int num_blocks, sha256_hash const& root_buf)
+	{
+		aux::merkle_tree dst(num_blocks, 1, root_buf.data());
+		dst.allocate_compact();
+		// allocate_compact set position (0,0) to dst's root; zero it so the
+		// merkle_validate_copy walk's set(0,0,src[0]) is the only write there.
+		dst.set(0, 0, sha256_hash{});
+		return dst;
+	}
+}
+
 TORRENT_TEST(merkle_validate_copy_full)
 {
 	v const src{
@@ -805,13 +704,14 @@ TORRENT_TEST(merkle_validate_copy_full)
 	 ab, cd, ef, gh,
 	a,b,c,d,e,f,g,h};
 
-	v empty_tree(15);
+	sha256_hash const zero{};
+	auto dst = make_empty_dst(8, zero);
 	bitfield verified(8);
 
-	merkle_validate_copy(src, empty_tree, ah, verified);
+	merkle_validate_copy(src, dst, ah, verified);
 
 	compare_bits(verified, "11111111");
-	TEST_CHECK(empty_tree == src);
+	TEST_CHECK(flatten(dst) == src);
 }
 
 TORRENT_TEST(merkle_validate_copy_full_odd_nodes)
@@ -822,15 +722,16 @@ TORRENT_TEST(merkle_validate_copy_full_odd_nodes)
 	 ab, cd, ef, gh,
 	a,b,c,d,e,f,g,h};
 
-	v empty_tree(15);
+	sha256_hash const zero{};
+	auto dst = make_empty_dst(8, zero);
 	// we pretend that h is a padding node. This algorithm doesn't care that
 	// it's not zero (yet)
 	bitfield verified(7);
 
-	merkle_validate_copy(src, empty_tree, ah, verified);
+	merkle_validate_copy(src, dst, ah, verified);
 
 	compare_bits(verified, "1111111");
-	TEST_CHECK(empty_tree == src);
+	TEST_CHECK(flatten(dst) == src);
 }
 
 
@@ -842,10 +743,11 @@ TORRENT_TEST(merkle_validate_copy_invalid_leaf)
 	 ab, cd, ef, gh,
 	a,b,c,d,e,ef,g,h};
 
-	v empty_tree(15);
+	sha256_hash const zero{};
+	auto dst = make_empty_dst(8, zero);
 	bitfield verified(8);
 
-	merkle_validate_copy(src, empty_tree, ah, verified);
+	merkle_validate_copy(src, dst, ah, verified);
 
 	// leaf 5 had an invalid hash, it's sibling (leaf 4) could also not be
 	// validated because of it
@@ -856,7 +758,7 @@ TORRENT_TEST(merkle_validate_copy_invalid_leaf)
 	   ad,     eh,
 	 ab, cd, ef, gh,
 	a,b,c,d,o,o,g,h};
-	TEST_CHECK(empty_tree == expected);
+	TEST_CHECK(flatten(dst) == expected);
 }
 
 TORRENT_TEST(merkle_validate_copy_many_invalid_leafs)
@@ -867,10 +769,11 @@ TORRENT_TEST(merkle_validate_copy_many_invalid_leafs)
 	 ab, cd, ef, gh,
 	a,b,ef,d,eh,ef,g,ah};
 
-	v empty_tree(15);
+	sha256_hash const zero{};
+	auto dst = make_empty_dst(8, zero);
 	bitfield verified(8);
 
-	merkle_validate_copy(src, empty_tree, ah, verified);
+	merkle_validate_copy(src, dst, ah, verified);
 
 	// leaf 2,4, 5 and 7 had an invalid hash, their siblings (leaf 3 and 6) could also not be
 	// validated because of it
@@ -881,7 +784,7 @@ TORRENT_TEST(merkle_validate_copy_many_invalid_leafs)
 	   ad,     eh,
 	 ab, cd, ef, gh,
 	a,b,o,o,o,o,o,o};
-	TEST_CHECK(empty_tree == expected);
+	TEST_CHECK(flatten(dst) == expected);
 }
 
 TORRENT_TEST(merkle_validate_copy_partial)
@@ -892,10 +795,11 @@ TORRENT_TEST(merkle_validate_copy_partial)
 	 ab, cd, ef, o,
 	a,b,c,o,o,o,o,o};
 
-	v empty_tree(15);
+	sha256_hash const zero{};
+	auto dst = make_empty_dst(8, zero);
 	bitfield verified(8);
 
-	merkle_validate_copy(src, empty_tree, ah, verified);
+	merkle_validate_copy(src, dst, ah, verified);
 
 	compare_bits(verified, "11000000");
 
@@ -905,7 +809,7 @@ TORRENT_TEST(merkle_validate_copy_partial)
 	 ab, cd,  o, o,
 	a,b,o,o,o,o,o,o};
 
-	TEST_CHECK(empty_tree == expected);
+	TEST_CHECK(flatten(dst) == expected);
 }
 
 TORRENT_TEST(merkle_validate_copy_invalid_root)
@@ -916,15 +820,16 @@ TORRENT_TEST(merkle_validate_copy_invalid_root)
 	 ab, cd, ef, o,
 	a,b,c,o,o,o,o,o};
 
-	v empty_tree(15);
+	sha256_hash const zero{};
+	auto dst = make_empty_dst(8, zero);
 	bitfield verified(8);
 
-	merkle_validate_copy(src, empty_tree, a, verified);
+	merkle_validate_copy(src, dst, a, verified);
 
 	v const expected(15);
 
 	compare_bits(verified, "00000000");
-	TEST_CHECK(empty_tree == expected);
+	TEST_CHECK(flatten(dst) == expected);
 }
 
 TORRENT_TEST(merkle_validate_copy_root_only)
@@ -935,10 +840,11 @@ TORRENT_TEST(merkle_validate_copy_root_only)
 	  o,  o,  o, o,
 	o,o,o,o,o,o,o,o};
 
-	v empty_tree(15);
+	sha256_hash const zero{};
+	auto dst = make_empty_dst(8, zero);
 	bitfield verified(8);
 
-	merkle_validate_copy(src, empty_tree, ah, verified);
+	merkle_validate_copy(src, dst, ah, verified);
 
 	compare_bits(verified, "00000000");
 
@@ -948,7 +854,7 @@ TORRENT_TEST(merkle_validate_copy_root_only)
 	  o,  o,  o, o,
 	o,o,o,o,o,o,o,o};
 
-	TEST_CHECK(empty_tree == expected);
+	TEST_CHECK(flatten(dst) == expected);
 }
 
 TORRENT_TEST(merkle_validate_single_leayer_fail_no_parents)
@@ -997,74 +903,67 @@ TORRENT_TEST(merkle_validate_single_layer)
 
 TORRENT_TEST(is_subtree_known_full)
 {
-	v const src{
-	        ah,
-	    ad,     eh,
-	  ab, cd, ef,gh,
-	a,b,c,d,e,f,g,h};
+	auto t = make_tree(v{ah, ad, eh, ab, cd, ef, gh, a, b, c, d, e, f, g, h});
 
-	TEST_CHECK(merkle_find_known_subtree(src, 1, 8) == std::make_tuple(0, 2, 3));
+	// root_index=3 -> (root_L=2, root_O=0)
+	TEST_CHECK(merkle_find_known_subtree(t, 1, 8) == std::make_tuple(0, 2, 2, 0));
 }
 
 TORRENT_TEST(is_subtree_known_two_levels)
 {
-	v const src{
-	        ah,
-	    ad,     eh,
-	  o, o, ef,gh,
-	a,b,c,d,e,f,g,h};
+	auto t = make_tree(v{ah, ad, eh, o, o, ef, gh, a, b, c, d, e, f, g, h});
 
-	TEST_CHECK(merkle_find_known_subtree(src, 1, 8) == std::make_tuple(0, 4, 1));
+	// root_index=1 -> (root_L=1, root_O=0)
+	TEST_CHECK(merkle_find_known_subtree(t, 1, 8) == std::make_tuple(0, 4, 1, 0));
 }
 
 TORRENT_TEST(is_subtree_known_unknown)
 {
-	v const src{
-	        ah,
-	    ad,     eh,
-	  o, o, ef,gh,
-	a,b,o,d,e,f,g,h};
+	auto t = make_tree(v{ah, ad, eh, o, o, ef, gh, a, b, o, d, e, f, g, h});
 
-	TEST_CHECK(merkle_find_known_subtree(src, 1, 8) == std::make_tuple(0, 2, 3));
+	// root_index=3 -> (root_L=2, root_O=0)
+	TEST_CHECK(merkle_find_known_subtree(t, 1, 8) == std::make_tuple(0, 2, 2, 0));
 }
 
 TORRENT_TEST(is_subtree_known_padding)
 {
 	// the last leaf is padding, it should be assumed to be correct despite
 	// being zero
-	v const src{
-	        ah,
-	    ad,     eh,
-	  o, o, ef,gh,
-	a,b,o,d,e,f,g,o};
+	auto t = make_tree(v{ah, ad, eh, o, o, ef, gh, a, b, o, d, e, f, g, o});
 
-	TEST_CHECK(merkle_find_known_subtree(src, 6, 7) == std::make_tuple(6, 2, 6));
+	// root_index=6 -> (root_L=2, root_O=3)
+	TEST_CHECK(merkle_find_known_subtree(t, 6, 7) == std::make_tuple(6, 2, 2, 3));
 }
 
 TORRENT_TEST(is_subtree_known_padding_two_levels)
 {
 	// the last leaf is padding, it should be assumed to be correct despite
 	// being zero
-	v const src{
-	        ah,
-	    ad,     eh,
-	  o, o,  o, o,
-	a,b,o,d,e,f,g,o};
+	auto t = make_tree(v{ah, ad, eh, o, o, o, o, a, b, o, d, e, f, g, o});
 
-	TEST_CHECK(merkle_find_known_subtree(src, 6, 7) == std::make_tuple(4, 4, 2));
+	// root_index=2 -> (root_L=1, root_O=1)
+	TEST_CHECK(merkle_find_known_subtree(t, 6, 7) == std::make_tuple(4, 4, 1, 1));
 }
 
 TORRENT_TEST(is_subtree_known_more_padding_two_levels)
 {
 	// the last two leafs are padding, they should be assumed to be correct despite
 	// being zero
-	v const src{
-	        ah,
-	    ad,     eh,
-	  o, o,  o, o,
-	a,b,o,d,e,f,o,o};
+	auto t = make_tree(v{ah, ad, eh, o, o, o, o, a, b, o, d, e, f, o, o});
 
-	TEST_CHECK(merkle_find_known_subtree(src, 5, 6) == std::make_tuple(4, 4, 2));
+	// root_index=2 -> (root_L=1, root_O=1)
+	TEST_CHECK(merkle_find_known_subtree(t, 5, 6) == std::make_tuple(4, 4, 1, 1));
+}
+
+namespace {
+	// Build a fresh tree with only `tree[0] = root_hash` set, in full_tree
+	// mode, for the proof-validation tests below.
+	aux::merkle_tree make_root_only(sha256_hash const& root_hash)
+	{
+		aux::merkle_tree t(8, 1, root_hash.data());
+		t.allocate_compact();
+		return t;
+	}
 }
 
 TORRENT_TEST(validate_and_insert_proofs_mixed)
@@ -1075,17 +974,13 @@ TORRENT_TEST(validate_and_insert_proofs_mixed)
 //  ab  cd  ef  gh
 // a b c d  e f g h
 
-	v tree(15);
-	tree[0] = ah;
+auto t = make_root_only(ah);
 
-	v const proofs{f, gh, ad};
+v const proofs{f, gh, ad};
 
-	TEST_CHECK(merkle_validate_and_insert_proofs(tree, 11, e, proofs));
-	TEST_CHECK((tree == v{
-	          ah,
-	     ad,       eh,
-	  o,    o,  ef,   gh,
-	o, o, o, o,e, f, o, o}));
+// target node_idx 11 -> (L=3, O=4)
+TEST_CHECK(merkle_validate_and_insert_proofs(t, 3, 4, e, proofs));
+TEST_CHECK((flatten(t) == v{ah, ad, eh, o, o, ef, gh, o, o, o, o, e, f, o, o}));
 }
 
 TORRENT_TEST(validate_and_insert_proofs_mixed_failure)
@@ -1096,45 +991,15 @@ TORRENT_TEST(validate_and_insert_proofs_mixed_failure)
 //  ab  cd  ef  gh
 // a b c d  e f g h
 
-	v tree(15);
-	tree[0] = eh; // this is not the correct root
+auto t = make_root_only(eh); // this is not the correct root
 
-	v const proofs{f, gh, ad};
+v const proofs{f, gh, ad};
 
-	TEST_CHECK(!merkle_validate_and_insert_proofs(tree, 11, e, proofs));
+// target node_idx 11 -> (L=3, O=4)
+TEST_CHECK(!merkle_validate_and_insert_proofs(t, 3, 4, e, proofs));
 
-	// make sure all nodes that were filled in were cleared correctly
-	// clang-format off
-	TEST_CHECK((tree == v{
-	          eh,
-	      o,        o,
-	  o,    o,   o,    o,
-	o, o, o, o,o, o, o, o}));
-	// clang-format on
-}
-
-TORRENT_TEST(validate_and_insert_proofs_under_length_failure)
-{
-	// full tree:
-	//       ah
-	//    ad      eh
-	//  ab  cd  ef  gh
-	// a b c d  e f g h
-
-	v tree(15);
-	tree[0] = ah;
-	tree[6] = gh;
-
-	v const proofs{f};
-
-	TEST_CHECK(!merkle_validate_and_insert_proofs(tree, 11, e, proofs));
-	// clang-format off
-	TEST_CHECK((tree == v{
-	          ah,
-	      o,        o,
-	  o,    o,   o,   gh,
-	o, o, o, o,o, o, o, o}));
-	// clang-format on
+// make sure all nodes that were filled in were cleared correctly
+TEST_CHECK((flatten(t) == v{eh, o, o, o, o, o, o, o, o, o, o, o, o, o, o}));
 }
 
 TORRENT_TEST(validate_and_insert_proofs_left)
@@ -1145,17 +1010,13 @@ TORRENT_TEST(validate_and_insert_proofs_left)
 //  ab  cd  ef  gh
 // a b c d  e f g h
 
-	v tree(15);
-	tree[0] = ah;
+auto t = make_root_only(ah);
 
-	v const proofs{b, cd, eh};
+v const proofs{b, cd, eh};
 
-	TEST_CHECK(merkle_validate_and_insert_proofs(tree, 7, a, proofs));
-	TEST_CHECK((tree == v{
-	          ah,
-	     ad,       eh,
-	  ab,   cd,  o,    o,
-	a, b, o, o,o, o, o, o}));
+// target node_idx 7 -> (L=3, O=0)
+TEST_CHECK(merkle_validate_and_insert_proofs(t, 3, 0, a, proofs));
+TEST_CHECK((flatten(t) == v{ah, ad, eh, ab, cd, o, o, a, b, o, o, o, o, o, o}));
 }
 
 TORRENT_TEST(validate_and_insert_proofs_right)
@@ -1166,17 +1027,13 @@ TORRENT_TEST(validate_and_insert_proofs_right)
 //  ab  cd  ef  gh
 // a b c d  e f g h
 
-	v tree(15);
-	tree[0] = ah;
+auto t = make_root_only(ah);
 
-	v const proofs{g, ef, ad};
+v const proofs{g, ef, ad};
 
-	TEST_CHECK(merkle_validate_and_insert_proofs(tree, 14, h, proofs));
-	TEST_CHECK((tree == v{
-	          ah,
-	     ad,       eh,
-	  o,    o,   ef,   gh,
-	o, o, o, o,o, o, g, h}));
+// target node_idx 14 -> (L=3, O=7)
+TEST_CHECK(merkle_validate_and_insert_proofs(t, 3, 7, h, proofs));
+TEST_CHECK((flatten(t) == v{ah, ad, eh, o, o, ef, gh, o, o, o, o, o, o, g, h}));
 }
 
 TORRENT_TEST(validate_and_insert_proofs_early_success)
@@ -1187,19 +1044,15 @@ TORRENT_TEST(validate_and_insert_proofs_early_success)
 //  ab  cd  ef  gh
 // a b c d  e f g h
 
-	v tree(15);
-	tree[0] = ah;
-	tree[1] = ad;
-	tree[2] = eh;
+auto t = make_root_only(ah);
+t.set(1, 0, ad); // tree[1] = ad
+t.set(1, 1, eh); // tree[2] = eh
 
-	v const proofs{f, gh, ad};
+v const proofs{f, gh, ad};
 
-	TEST_CHECK(merkle_validate_and_insert_proofs(tree, 11, e, proofs));
-	TEST_CHECK((tree == v{
-	          ah,
-	     ad,       eh,
-	  o,    o,  ef,   gh,
-	o, o, o, o,e, f, o, o}));
+// target node_idx 11 -> (L=3, O=4)
+TEST_CHECK(merkle_validate_and_insert_proofs(t, 3, 4, e, proofs));
+TEST_CHECK((flatten(t) == v{ah, ad, eh, o, o, ef, gh, o, o, o, o, e, f, o, o}));
 }
 
 TORRENT_TEST(validate_and_insert_proofs_early_failure)
@@ -1210,21 +1063,17 @@ TORRENT_TEST(validate_and_insert_proofs_early_failure)
 //  ab  cd  ef  gh
 // a b c d  e f g h
 
-	v tree(15);
-	tree[0] = ah;
-	tree[1] = ad;
-	tree[2] = ah; // <- this is not the right hash. It should cause validation to fail
+auto t = make_root_only(ah);
+t.set(1, 0, ad); // tree[1] = ad
+t.set(1, 1, ah); // tree[2] = ah <- this is not the right hash; validation should fail
 
-	v const proofs{f, gh, ad};
+v const proofs{f, gh, ad};
 
-	TEST_CHECK(!merkle_validate_and_insert_proofs(tree, 11, e, proofs));
+// target node_idx 11 -> (L=3, O=4)
+TEST_CHECK(!merkle_validate_and_insert_proofs(t, 3, 4, e, proofs));
 
-	// make sure tree was correctly restored
-	TEST_CHECK((tree == v{
-	          ah,
-	     ad,       ah,
-	  o,    o,   o,    o,
-	o, o, o, o,o, o, o, o}));
+// make sure tree was correctly restored
+TEST_CHECK((flatten(t) == v{ah, ad, ah, o, o, o, o, o, o, o, o, o, o, o, o}));
 }
 
 
@@ -1236,19 +1085,15 @@ TORRENT_TEST(validate_and_insert_proofs_no_uncles)
 //  ab  cd  ef  gh
 // a b c d  e f g h
 
-	v tree(15);
-	tree[0] = ah;
+auto t = make_root_only(ah);
 
-	v const proofs;
+v const proofs;
 
-	TEST_CHECK(!merkle_validate_and_insert_proofs(tree, 1, ad, proofs));
+// target node_idx 1 -> (L=1, O=0)
+TEST_CHECK(!merkle_validate_and_insert_proofs(t, 1, 0, ad, proofs));
 
-	// make sure tree was correctly restored
-	TEST_CHECK((tree == v{
-	          ah,
-	      o,        o,
-	  o,    o,   o,    o,
-	o, o, o, o,o, o, o, o}));
+// make sure tree was correctly restored
+TEST_CHECK((flatten(t) == v{ah, o, o, o, o, o, o, o, o, o, o, o, o, o, o}));
 }
 
 TORRENT_TEST(validate_and_insert_proofs_root)
@@ -1259,20 +1104,16 @@ TORRENT_TEST(validate_and_insert_proofs_root)
 //  ab  cd  ef  gh
 // a b c d  e f g h
 
-	v tree(15);
-	tree[0] = ah;
+auto t = make_root_only(ah);
 
-	v const proofs;
+v const proofs;
 
-	// this is just attempting to prove the root, which is ok
-	TEST_CHECK(merkle_validate_and_insert_proofs(tree, 0, ah, proofs));
+// this is just attempting to prove the root, which is ok.
+// target node_idx 0 -> (L=0, O=0)
+TEST_CHECK(merkle_validate_and_insert_proofs(t, 0, 0, ah, proofs));
 
-	// nothing happens to the tree in this case, we already had the root
-	TEST_CHECK((tree == v{
-	          ah,
-	      o,        o,
-	  o,    o,   o,    o,
-	o, o, o, o,o, o, o, o}));
+// nothing happens to the tree in this case, we already had the root
+TEST_CHECK((flatten(t) == v{ah, o, o, o, o, o, o, o, o, o, o, o, o, o, o}));
 }
 
 TORRENT_TEST(validate_and_insert_proofs_root_fail)
@@ -1283,20 +1124,16 @@ TORRENT_TEST(validate_and_insert_proofs_root_fail)
 //  ab  cd  ef  gh
 // a b c d  e f g h
 
-	v tree(15);
-	tree[0] = ah;
+auto t = make_root_only(ah);
 
-	v const proofs;
+v const proofs;
 
-	// this is just attempting to prove the root, but with the wrong hash
-	TEST_CHECK(!merkle_validate_and_insert_proofs(tree, 0, a, proofs));
+// this is just attempting to prove the root, but with the wrong hash.
+// target node_idx 0 -> (L=0, O=0)
+TEST_CHECK(!merkle_validate_and_insert_proofs(t, 0, 0, a, proofs));
 
-	// nothing happens to the tree in this case
-	TEST_CHECK((tree == v{
-	          ah,
-	      o,        o,
-	  o,    o,   o,    o,
-	o, o, o, o,o, o, o, o}));
+// nothing happens to the tree in this case
+TEST_CHECK((flatten(t) == v{ah, o, o, o, o, o, o, o, o, o, o, o, o, o, o}));
 }
 
 TORRENT_TEST(validate_and_insert_proofs_too_many_uncles)
@@ -1307,17 +1144,13 @@ TORRENT_TEST(validate_and_insert_proofs_too_many_uncles)
 //  ab  cd  ef  gh
 // a b c d  e f g h
 
-	v tree(15);
-	tree[0] = ah;
+auto t = make_root_only(ah);
 
-	v const proofs{f, gh, ad, a, b, c , d};
+v const proofs{f, gh, ad, a, b, c, d};
 
-	TEST_CHECK(merkle_validate_and_insert_proofs(tree, 11, e, proofs));
-	TEST_CHECK((tree == v{
-	          ah,
-	     ad,       eh,
-	  o,    o,  ef,   gh,
-	o, o, o, o,e, f, o, o}));
+// target node_idx 11 -> (L=3, O=4)
+TEST_CHECK(merkle_validate_and_insert_proofs(t, 3, 4, e, proofs));
+TEST_CHECK((flatten(t) == v{ah, ad, eh, o, o, ef, gh, o, o, o, o, e, f, o, o}));
 }
 
 // A pre-existing sibling slot that already holds the same value the proof

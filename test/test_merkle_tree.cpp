@@ -67,6 +67,26 @@ std::vector<sha256_hash> corrupt(span<sha256_hash const> hashes)
 	return ret;
 }
 
+// Thin flat-index adapters over merkle_tree's (level, offset) API, used
+// by tests that iterate the full standard-layout flat index space.
+sha256_hash node_at_flat(aux::merkle_tree const& t, int const idx)
+{
+	int const L = merkle_get_layer(idx);
+	return t.node_at(L, idx - merkle_layer_start(L));
+}
+
+bool has_node_at(aux::merkle_tree const& t, int const idx)
+{
+	int const L = merkle_get_layer(idx);
+	return t.has_node(L, idx - merkle_layer_start(L));
+}
+
+bool compare_at(aux::merkle_tree const& t, int const idx, sha256_hash const& h)
+{
+	int const L = merkle_get_layer(idx);
+	return t.compare_node(L, idx - merkle_layer_start(L), h);
+}
+
 bitfield all_set(int count)
 {
 	return bitfield(count, true);
@@ -99,13 +119,13 @@ TORRENT_TEST(load_tree)
 		t.load_tree(f, empty_verified);
 		for (int i = 0; i < num_nodes - num_pad_leafs; ++i)
 		{
-			TEST_CHECK(t.has_node(i));
-			TEST_CHECK(t.compare_node(i, f[i]));
+			TEST_CHECK(has_node_at(t, i));
+			TEST_CHECK(compare_at(t, i, f[i]));
 		}
 		for (int i = num_nodes - num_pad_leafs; i < num_nodes; ++i)
 		{
-			TEST_CHECK(!t.has_node(i));
-			TEST_CHECK(t.compare_node(i, f[i]));
+			TEST_CHECK(!has_node_at(t, i));
+			TEST_CHECK(compare_at(t, i, f[i]));
 		}
 	}
 
@@ -114,18 +134,18 @@ TORRENT_TEST(load_tree)
 		sha256_hash const bad_root("01234567890123456789012345678901");
 		aux::merkle_tree t(num_blocks, 1, bad_root.data());
 		t.load_tree(f, empty_verified);
-		TEST_CHECK(t.has_node(0));
+		TEST_CHECK(has_node_at(t, 0));
 		for (int i = 1; i < num_nodes; ++i)
-			TEST_CHECK(!t.has_node(i));
+			TEST_CHECK(!has_node_at(t, i));
 	}
 
 	// mismatching size
 	{
 		aux::merkle_tree t(num_blocks, 1, f[0].data());
 		t.load_tree(span<sha256_hash const>(f).first(f.end_index() - 1), empty_verified);
-		TEST_CHECK(t.has_node(0));
+		TEST_CHECK(has_node_at(t, 0));
 		for (int i = 1; i < num_nodes; ++i)
-			TEST_CHECK(!t.has_node(i));
+			TEST_CHECK(!has_node_at(t, i));
 	}
 }
 
@@ -138,13 +158,13 @@ TORRENT_TEST(load_sparse_tree)
 		t.load_sparse_tree(f, mask, empty_verified);
 		for (int i = 0; i < num_nodes - num_pad_leafs; ++i)
 		{
-			TEST_CHECK(t.has_node(i));
-			TEST_CHECK(t.compare_node(i, f[i]));
+			TEST_CHECK(has_node_at(t, i));
+			TEST_CHECK(compare_at(t, i, f[i]));
 		}
 		for (int i = num_nodes - num_pad_leafs; i < num_nodes; ++i)
 		{
-			TEST_CHECK(!t.has_node(i));
-			TEST_CHECK(t.compare_node(i, f[i]));
+			TEST_CHECK(!has_node_at(t, i));
+			TEST_CHECK(compare_at(t, i, f[i]));
 		}
 	}
 
@@ -156,9 +176,9 @@ TORRENT_TEST(load_sparse_tree)
 		mask.set_bit(1);
 		mask.set_bit(2);
 		t.load_sparse_tree(span<sha256_hash const>(f).subspan(1, 2), mask, empty_verified);
-		TEST_CHECK(t.has_node(0));
+		TEST_CHECK(has_node_at(t, 0));
 		for (int i = 1; i < num_nodes; ++i)
-			TEST_CHECK(!t.has_node(i));
+			TEST_CHECK(!has_node_at(t, i));
 	}
 
 	// block layer
@@ -172,13 +192,13 @@ TORRENT_TEST(load_sparse_tree)
 		t.load_sparse_tree(span<sha256_hash const>(f).subspan(first_block, num_blocks), mask, empty_verified);
 		for (int i = 0; i < num_nodes - num_pad_leafs; ++i)
 		{
-			TEST_CHECK(t.has_node(i));
-			TEST_CHECK(t.compare_node(i, f[i]));
+			TEST_CHECK(has_node_at(t, i));
+			TEST_CHECK(compare_at(t, i, f[i]));
 		}
 		for (int i = num_nodes - num_pad_leafs; i < num_nodes; ++i)
 		{
-			TEST_CHECK(!t.has_node(i));
-			TEST_CHECK(t.compare_node(i, f[i]));
+			TEST_CHECK(!has_node_at(t, i));
+			TEST_CHECK(compare_at(t, i, f[i]));
 		}
 	}
 
@@ -194,12 +214,12 @@ TORRENT_TEST(load_sparse_tree)
 		int const end_piece_layer = first_piece + merkle_num_leafs(num_pieces);
 		for (int i = 0; i < end_piece_layer; ++i)
 		{
-			TEST_CHECK(t.has_node(i));
-			TEST_CHECK(t.compare_node(i, f[i]));
+			TEST_CHECK(has_node_at(t, i));
+			TEST_CHECK(compare_at(t, i, f[i]));
 		}
 		for (int i = end_piece_layer; i < num_nodes; ++i)
 		{
-			TEST_CHECK(!t.has_node(i));
+			TEST_CHECK(!has_node_at(t, i));
 		}
 	}
 }
@@ -217,16 +237,14 @@ void test_roundtrip(aux::merkle_tree const& t
 	TEST_CHECK(t.build_vector() == t2.build_vector());
 	for (int i = 0; i < int(t.size()); ++i)
 	{
-		TEST_EQUAL(t[i], t2[i]);
-		TEST_EQUAL(t.has_node(i), t2.has_node(i));
+		TEST_EQUAL(node_at_flat(t, i), node_at_flat(t2, i));
+		TEST_EQUAL(has_node_at(t, i), has_node_at(t2, i));
 
-		if (!t.has_node(i))
-			TEST_CHECK(t[i].is_all_zeros());
-		if (!t2.has_node(i))
-			TEST_CHECK(t2[i].is_all_zeros());
+		if (!has_node_at(t, i)) TEST_CHECK(node_at_flat(t, i).is_all_zeros());
+		if (!has_node_at(t2, i)) TEST_CHECK(node_at_flat(t2, i).is_all_zeros());
 
-		TEST_CHECK(t.compare_node(i, t2[i]));
-		TEST_CHECK(t2.compare_node(i, t[i]));
+		TEST_CHECK(compare_at(t, i, node_at_flat(t2, i)));
+		TEST_CHECK(compare_at(t2, i, node_at_flat(t, i)));
 	}
 }
 }
@@ -328,7 +346,7 @@ TORRENT_TEST(sparse_merkle_tree_block_layer)
 	t.load_tree(span<sha256_hash const>(f).first(int(t.size())), empty_verified);
 
 	for (int i = 0; i < int(t.size()); ++i)
-		TEST_CHECK(t[i] == f[i]);
+		TEST_CHECK(node_at_flat(t, i) == f[i]);
 }
 
 TORRENT_TEST(get_piece_layer)
@@ -348,7 +366,7 @@ TORRENT_TEST(get_piece_layer)
 	TEST_EQUAL(num_pieces, int(piece_layer.size()));
 	for (int i = 0; i < int(piece_layer.size()); ++i)
 	{
-		TEST_CHECK(t[piece_layer_start + i] == piece_layer[i]);
+		TEST_CHECK(node_at_flat(t, piece_layer_start + i) == piece_layer[i]);
 	}
 }
 
@@ -369,7 +387,7 @@ TORRENT_TEST(get_piece_layer_piece_layer_mode)
 	TEST_EQUAL(num_pieces, int(piece_layer.size()));
 	for (int i = 0; i < int(piece_layer.size()); ++i)
 	{
-		TEST_CHECK(t[piece_layer_start + i] == piece_layer[i]);
+		TEST_CHECK(node_at_flat(t, piece_layer_start + i) == piece_layer[i]);
 	}
 }
 
@@ -505,11 +523,11 @@ TORRENT_TEST(add_hashes_full_tree)
 
 		// check the piece layer
 		for (int i = 127; i < 255; ++i)
-			TEST_EQUAL(t[i], f[i]);
+			TEST_EQUAL(node_at_flat(t, i), f[i]);
 
 		// check the block layer
 		for (int i = 511; i < 1023; ++i)
-			TEST_EQUAL(t[i], f[i]);
+			TEST_EQUAL(node_at_flat(t, i), f[i]);
 
 		TEST_CHECK(t.verified_leafs() == all_set(num_blocks));
 	}
@@ -537,28 +555,34 @@ TORRENT_TEST(add_hashes_one_piece)
 		// the trail of proof hashes
 		for (int i = insert_idx; i > 0; i = merkle_get_parent(i))
 		{
-			TEST_EQUAL(t[i], f[i]);
-			TEST_EQUAL(t[merkle_get_sibling(i)], f[merkle_get_sibling(i)]);
+			TEST_EQUAL(node_at_flat(t, i), f[i]);
+			TEST_EQUAL(node_at_flat(t, merkle_get_sibling(i)), f[merkle_get_sibling(i)]);
 		}
 
-		// check the piece layer
+		// check the piece layer (only live positions; compact storage
+		// returns the implied pad hash at padding positions)
 		for (int i = 127; i < 255; ++i)
 		{
+			int const L = merkle_get_layer(i);
+			int const O = i - merkle_layer_start(L);
 			// one is the root of the hashes we added, the other is part of the
 			// proof anchroing it in the root
 			if (i == 127 + piece_index || merkle_get_sibling(i) == 127 + piece_index)
-				TEST_EQUAL(t[i], f[i]);
-			else
-				TEST_CHECK(t[i].is_all_zeros());
+				TEST_EQUAL(node_at_flat(t, i), f[i]);
+			else if (!t.is_padding(L, O))
+				TEST_CHECK(node_at_flat(t, i).is_all_zeros());
 		}
 
-		// check the block layer
+		// check the block layer (only live positions; padding returns
+		// the implied pad value, here zero at the leaf layer)
 		for (int i = 511; i < 1023; ++i)
 		{
+			int const L = merkle_get_layer(i);
+			int const O = i - merkle_layer_start(L);
 			if (i >= 511 + piece_index*blocks_per_piece && i < 511 + piece_index*blocks_per_piece + 4)
-				TEST_EQUAL(t[i], f[i]);
-			else
-				TEST_CHECK(t[i].is_all_zeros());
+				TEST_EQUAL(node_at_flat(t, i), f[i]);
+			else if (!t.is_padding(L, O))
+				TEST_CHECK(node_at_flat(t, i).is_all_zeros());
 		}
 
 		int const start_block = piece_index * blocks_per_piece;
@@ -854,7 +878,7 @@ TORRENT_TEST(add_hashes_block_layer_no_padding)
 	TEST_EQUAL(res.failed.size(), 0);
 
 	for (int i = 0; i < 1023; ++i)
-		TEST_EQUAL(t[i], f[i]);
+		TEST_EQUAL(node_at_flat(t, i), f[i]);
 
 	TEST_CHECK(t.verified_leafs() == all_set(num_blocks));
 }
@@ -874,10 +898,14 @@ TORRENT_TEST(add_hashes_piece_layer_no_padding)
 	TEST_EQUAL(res.failed.size(), 0);
 
 	for (int i = 0; i < 255; ++i)
-		TEST_EQUAL(t[i], f[i]);
+		TEST_EQUAL(node_at_flat(t, i), f[i]);
 
 	for (int i = 255; i < 1023; ++i)
-		TEST_CHECK(t[i].is_all_zeros());
+	{
+		int const L = merkle_get_layer(i);
+		int const O = i - merkle_layer_start(L);
+		if (!t.is_padding(L, O)) TEST_CHECK(node_at_flat(t, i).is_all_zeros());
+	}
 
 	TEST_CHECK(t.verified_leafs() == none_set(num_blocks));
 }
@@ -893,7 +921,7 @@ TORRENT_TEST(add_hashes_partial_proofs)
 		if (!result) return;
 
 		for (int i = 0; i < 7; ++i)
-			TEST_EQUAL(t[i], f[i]);
+			TEST_EQUAL(node_at_flat(t, i), f[i]);
 	}
 
 	// use a proof that ties the first piece node 3 (since we don't need it all
@@ -906,7 +934,7 @@ TORRENT_TEST(add_hashes_partial_proofs)
 	TEST_EQUAL(res.failed.size(), 0);
 
 	for (int i = 127; i < 127 + 4; ++i)
-		TEST_CHECK(t[i] == f[i]);
+		TEST_CHECK(node_at_flat(t, i) == f[i]);
 
 	TEST_CHECK(t.verified_leafs() == none_set(num_blocks));
 }
@@ -972,3 +1000,125 @@ TORRENT_TEST(load_piece_layer_clears_verified_bits)
 // TODO: add test for add_hashes() with an odd number of blocks
 // TODO: add test for set_block() (setting the last block) with an odd number of blocks
 
+TORRENT_TEST(compact_storage_smaller_than_flat)
+{
+	// For non-power-of-2 block counts, the compact layout stores fewer
+	// hashes than the standard 2*L - 1 nodes.
+	aux::merkle_tree t(num_blocks, 1, f[0].data());
+	int const compact_size = int(t.build_vector().size());
+	int const flat_size = merkle_num_nodes(num_leafs);
+	TEST_CHECK(compact_size < flat_size);
+	// For 259 blocks: sum of live counts = 1+2+3+5+9+17+33+65+130+259 = 524
+	TEST_EQUAL(compact_size, 524);
+	TEST_EQUAL(flat_size, 1023);
+}
+
+TORRENT_TEST(padding_position_reads_implied_pad)
+{
+	// In a non-power-of-2 tree, padding positions report the implied pad
+	// hash (merkle_pad with the appropriate subtree size) rather than
+	// zero. Verify this for an interior padding slot.
+	aux::merkle_tree t(num_blocks, 1, f[0].data());
+	t.allocate_compact();
+
+	// At L=2 in a 9-layer tree (num_blocks=259), live count is 3 so
+	// offset 3 is the first padding slot. The implied pad covers
+	// 2^(9 - 2) = 128 zero leaves.
+	int const pad_L = 2;
+	int const pad_O = 3;
+	sha256_hash const expected_pad = merkle_pad(128, 1);
+	TEST_EQUAL(t.node_at(pad_L, pad_O), expected_pad);
+	TEST_CHECK(t.is_padding(pad_L, pad_O));
+	// And a live slot at the same layer is unset (zero):
+	TEST_CHECK(!t.is_padding(pad_L, 2));
+	TEST_CHECK(t.node_at(pad_L, 2).is_all_zeros());
+}
+
+TORRENT_TEST(set_padding_rejects_non_pad_value)
+{
+	// Writing a non-pad hash to a padding slot is rejected; writing the
+	// implied pad (or zero, as a harmless clear) is accepted as a no-op.
+	aux::merkle_tree t(num_blocks, 1, f[0].data());
+	t.allocate_compact();
+
+	int const pad_L = 2;
+	int const pad_O = 3;
+
+	// rejected: a non-pad, non-zero value
+	sha256_hash const bogus("01234567890123456789012345678901");
+	TEST_CHECK(!t.set(pad_L, pad_O, bogus));
+
+	// accepted: zero (a no-op clear)
+	TEST_CHECK(t.set(pad_L, pad_O, sha256_hash{}));
+
+	// accepted: the implied pad value
+	TEST_CHECK(t.set(pad_L, pad_O, merkle_pad(128, 1)));
+
+	// after all of that, the slot still reads back as the implied pad
+	TEST_EQUAL(t.node_at(pad_L, pad_O), merkle_pad(128, 1));
+}
+
+TORRENT_TEST(validate_and_insert_proofs_padding_uncle_rejected)
+{
+	// A proof chain whose first uncle lands on a padding sibling must
+	// supply the implied pad. A non-pad uncle is rejected by set() and
+	// the proof-validation walk fails, leaving the tree unchanged.
+	aux::merkle_tree t(num_blocks, 1, f[0].data());
+	t.allocate_compact();
+
+	// Insert at (L=9, O=258), the rightmost live leaf. Its sibling at
+	// (L=9, O=259) is padding; the leaf-layer pad is zero. A non-zero
+	// uncle here must be rejected.
+	sha256_hash const leaf_hash = f[merkle_first_leaf(num_leafs) + 258];
+	std::vector<sha256_hash> bogus_proofs{sha256_hash("01234567890123456789012345678901")};
+
+	TEST_CHECK(!merkle_validate_and_insert_proofs(t, 9, 258, leaf_hash, bogus_proofs));
+
+	// Rollback: the target node and the rejected sibling must both be
+	// back to their pre-call state (uninitialized / implied-pad).
+	TEST_CHECK(t.node_at(9, 258).is_all_zeros());
+	TEST_CHECK(t.node_at(9, 259).is_all_zeros()); // leaf-layer pad is zero
+}
+
+TORRENT_TEST(load_sparse_tree_padding_mask_bit_implied_pad)
+{
+	// load_sparse_tree can carry a mask bit at a padding flat index; the
+	// value alongside that bit must match the implied pad. The slot then
+	// reads back as the implied pad. (set() silently accepts the matching
+	// pad write as a no-op; the actual storage doesn't change.)
+	aux::merkle_tree t(num_blocks, 1, f[0].data());
+
+	int const pad_L = 2;
+	int const pad_O = 3;
+	int const pad_flat = merkle_to_flat_index(pad_L, pad_O);
+	sha256_hash const expected_pad = merkle_pad(128, 1);
+
+	std::vector<sha256_hash> sparse{expected_pad};
+	bitfield mask(num_nodes, false);
+	mask.set_bit(pad_flat);
+
+	t.load_sparse_tree(sparse, mask, empty_verified);
+
+	// Padding read-back is unaffected by whether the sparse load touched
+	// it -- the slot is implied.
+	TEST_EQUAL(t.node_at(pad_L, pad_O), expected_pad);
+}
+
+TORRENT_TEST(build_vector_roundtrip_odd_blocks)
+{
+	// Round-trip a partial tree through the sparse-vector serialization:
+	// load some data, build_sparse_vector, construct a new tree, load,
+	// build_vector. The two compact representations must agree.
+	aux::merkle_tree t(num_blocks, 1, f[0].data());
+	t.load_tree(f, empty_verified);
+
+	auto const compact_before = t.build_vector();
+
+	auto const [sparse, mask] = t.build_sparse_vector();
+	aux::merkle_tree t2(num_blocks, 1, f[0].data());
+	t2.load_sparse_tree(sparse, mask, empty_verified);
+
+	auto const compact_after = t2.build_vector();
+	TEST_CHECK(compact_before == compact_after);
+	TEST_EQUAL(int(compact_before.size()), 524);
+}

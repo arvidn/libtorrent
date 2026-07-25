@@ -216,8 +216,9 @@ namespace libtorrent::aux {
 #if TORRENT_USE_ASSERTS
 	struct TORRENT_EXTRA_EXPORT single_threaded
 	{
-		single_threaded(): m_id() {}
-		~single_threaded() { m_id = std::thread::id(); }
+		single_threaded()
+			: m_id()
+		{}
 		bool is_single_thread() const
 		{
 			if (m_id == std::thread::id())
