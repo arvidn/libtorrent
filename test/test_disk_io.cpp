@@ -256,7 +256,13 @@ static void disk_io_test_suite_impl(lt::disk_io_constructor_type disk_io,
 	while (blocks_written < expect_written || hashes_done < expect_hashes
 		|| clears_done < expect_clears)
 	{
-		ios.run_for(std::chrono::seconds(1));
+		// each disk/hasher worker thread holds an executor_work_guard on `ios`
+		// for its entire lifetime (see disk_io_thread_pool.cpp), so run_for()
+		// can never observe "no more work" and always blocks for the full
+		// requested duration -- regardless of how quickly the job completes.
+		// Poll with a short slice so completion is noticed promptly instead
+		// of paying a flat per-wait tax.
+		ios.run_for(5ms);
 		std::cout << "blocks_written: " << blocks_written << "/" << expect_written
 				  << " hashes_done: " << hashes_done << "/" << expect_hashes
 				  << " clears_done: " << clears_done << "/" << expect_clears << std::endl;
@@ -419,7 +425,10 @@ static void hash2_before_flush_impl(
 	auto const timeout = lt::seconds(20);
 	while (hashes_done < hashes_expected || cleared < num_pieces)
 	{
-		ios.run_for(std::chrono::seconds(1));
+		// see disk_io_test_suite_impl for why this polls with a short slice
+		// instead of run_for(1s): a live worker thread's executor_work_guard
+		// stops run_for() from ever returning early.
+		ios.run_for(5ms);
 		if (lt::aux::time_now() - start_time > timeout)
 		{
 			TEST_ERROR("timeout");
@@ -503,7 +512,10 @@ static void unaligned_cross_block_read_impl(
 		auto const start = lt::aux::time_now();
 		while (cond())
 		{
-			ios.run_for(1s);
+			// see disk_io_test_suite_impl for why this polls with a short
+			// slice instead of run_for(1s): a live worker thread's
+			// executor_work_guard stops run_for() from ever returning early.
+			ios.run_for(5ms);
 			if (lt::aux::time_now() - start > 20s)
 			{
 				TEST_ERROR(what);
@@ -786,7 +798,10 @@ static void clear_during_flush_impl(
 	while (blocks_written < expect_written || hashes_done < expect_hashes
 		|| clears_done < expect_clears)
 	{
-		ios.run_for(std::chrono::seconds(1));
+		// see disk_io_test_suite_impl for why this polls with a short slice
+		// instead of run_for(1s): a live worker thread's executor_work_guard
+		// stops run_for() from ever returning early.
+		ios.run_for(5ms);
 		std::cout << "blocks_written: " << blocks_written << "/" << expect_written
 				  << " hashes_done: " << hashes_done << "/" << expect_hashes
 				  << " clears_done: " << clears_done << "/" << expect_clears << std::endl;
