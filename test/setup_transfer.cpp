@@ -1081,9 +1081,13 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 		}
 		else
 		{
-			auto temp = ::create_torrent(&file, "temporary", piece_size, 9, false, flags);
-			param = *atp;
-			param.ti = temp.ti;
+			// start from the freshly generated add_torrent_params, so it
+			// keeps everything create_torrent() filled in (ti, merkle_trees,
+			// ...); only overlay the field callers actually customize on the
+			// atp they passed in, so a field neither side sets here isn't
+			// silently dropped.
+			param = ::create_torrent(&file, "temporary", piece_size, 9, false, flags);
+			param.flags = atp->flags;
 		}
 		file.close();
 		if (clear_files)
