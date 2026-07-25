@@ -153,14 +153,16 @@ int completed_pieces(lt::session& ses)
 }
 
 
-void set_proxy(lt::session& ses, int proxy_type, test_transfer_flags_t const flags
-	, bool const proxy_peers)
+void set_proxy(
+	lt::session& ses, int proxy_type, test_transfer_flags_t const flags, bool const proxy_peers)
 {
 	// apply the proxy settings to session 0
 	settings_pack p;
 	p.set_int(settings_pack::proxy_type, proxy_type);
 	if (proxy_type == settings_pack::socks4)
 		p.set_int(settings_pack::proxy_port, 4444);
+	else if (proxy_type == settings_pack::http || proxy_type == settings_pack::http_pw)
+		p.set_int(settings_pack::proxy_port, 4445);
 	else
 		p.set_int(settings_pack::proxy_port, 5555);
 	if (flags & tx::ipv6)
