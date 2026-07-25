@@ -309,10 +309,13 @@ namespace {
 				int const value = m_settings.get_int(settings_pack::peer_dscp);
 				aux::set_traffic_class(m_socket, value, ec);
 #ifndef TORRENT_DISABLE_LOGGING
-				if (ec && should_log(peer_log_alert::outgoing))
+				if (ec && should_log(peer_log_alert::incoming))
 				{
-					peer_log(peer_log_alert::outgoing, peer_log_alert::set_dscp, "value: %d e: %s"
-						, value, ec.message().c_str());
+					peer_log(peer_log_alert::incoming,
+						peer_log_alert::set_dscp,
+						"value: %d e: %s",
+						value,
+						ec.message().c_str());
 				}
 #endif
 			}
@@ -347,20 +350,6 @@ namespace {
 			init();
 		}
 
-		if (m_settings.get_int(settings_pack::peer_dscp) != 0)
-		{
-			int const value = m_settings.get_int(settings_pack::peer_dscp);
-			error_code ec;
-			aux::set_traffic_class(m_socket, value, ec);
-#ifndef TORRENT_DISABLE_LOGGING
-			if (ec && should_log(peer_log_alert::outgoing))
-			{
-				peer_log(peer_log_alert::outgoing, peer_log_alert::set_dscp, "value: %d e: %s"
-					, value, ec.message().c_str());
-			}
-#endif
-		}
-
 		// if this is an incoming connection, we're done here
 		if (!m_connecting)
 		{
@@ -391,6 +380,23 @@ namespace {
 		{
 			disconnect(ec, operation_t::sock_open);
 			return;
+		}
+
+		if (m_settings.get_int(settings_pack::peer_dscp) != 0)
+		{
+			int const value = m_settings.get_int(settings_pack::peer_dscp);
+			error_code err;
+			aux::set_traffic_class(m_socket, value, err);
+#ifndef TORRENT_DISABLE_LOGGING
+			if (err && should_log(peer_log_alert::outgoing))
+			{
+				peer_log(peer_log_alert::outgoing,
+					peer_log_alert::set_dscp,
+					"value: %d e: %s",
+					value,
+					err.message().c_str());
+			}
+#endif
 		}
 
 		tcp::endpoint const bound_ip = m_ses.bind_outgoing_socket(m_socket
