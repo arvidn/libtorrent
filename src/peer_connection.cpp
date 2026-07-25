@@ -5476,6 +5476,8 @@ namespace {
 			peer_log(peer_log_alert::info, peer_log_alert::seed_mode_file_hash
 				, "piece: %d failed", static_cast<int>(piece));
 #endif
+			if (m_ses.alerts().should_post<hash_failed_alert>())
+				m_ses.alerts().emplace_alert<hash_failed_alert>(t->get_handle(), piece);
 
 			t->leave_seed_mode(aux::torrent::seed_mode_t::check_files);
 		}

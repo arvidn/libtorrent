@@ -118,12 +118,25 @@ void test_swarm(test_flags_t const flags)
 	int count_dl_rates2 = 0;
 	int count_dl_rates3 = 0;
 
+	// none of this suite's scenarios ever hand out intentionally corrupt
+	// data, so a hash check failure anywhere in the swarm (including a
+	// seed-mode piece failing its lazy verification) is always a bug, not
+	// a condition to silently tolerate via the fall-back recheck.
+	auto const fail_on_hash_failure = [](lt::alert const* a) {
+		if (auto const* hf = alert_cast<hash_failed_alert>(a))
+		{
+			std::printf("unexpected hash failure: piece %d\n", static_cast<int>(hf->piece_index));
+			TEST_CHECK(false);
+		}
+		return false;
+	};
+
 	auto const start_time = lt::clock_type::now();
 	for (int i = 0; i < 80; ++i)
 	{
-		print_alerts(ses1, "ses1");
-		print_alerts(ses2, "ses2");
-		print_alerts(ses3, "ses3");
+		print_alerts(ses1, "ses1", false, false, fail_on_hash_failure);
+		print_alerts(ses2, "ses2", false, false, fail_on_hash_failure);
+		print_alerts(ses3, "ses3", false, false, fail_on_hash_failure);
 
 		torrent_status st1 = tor1.status();
 		torrent_status st2 = tor2.status();
