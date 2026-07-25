@@ -110,7 +110,7 @@ struct proxy_base
 		m_sock.async_write_some(buffers, std::move(handler));
 	}
 
-#if BOOST_VERSION >= 106600 && !defined TORRENT_BUILD_SIMULATOR
+#if defined TORRENT_BUILD_SIMULATOR || BOOST_VERSION >= 106600
 	// Compatibility with the async_wait method introduced in boost 1.66.
 	// boost::asio::gnutls::stream calls this on its next_layer_type (e.g.
 	// proxy_base/socks5_stream, when a proxy is used underneath SSL) to wait
