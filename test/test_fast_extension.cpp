@@ -479,8 +479,13 @@ std::shared_ptr<torrent_info const> setup_peer(tcp::socket& s, io_context& ioc
 	torrent_handle ret = ses->add_torrent(p);
 	if (th) *th = ret;
 
-	// wait for the torrent to be ready
-	wait_for_downloading(*ses, "ses");
+	// wait for the torrent to be ready. a seed_mode torrent skips the
+	// downloading state entirely and goes straight to seeding, so waiting
+	// for "downloading" here would always time out for it.
+	if (flags & torrent_flags::seed_mode)
+		wait_for_seeding(*ses, "ses");
+	else
+		wait_for_downloading(*ses, "ses");
 
 	if (incoming)
 	{
@@ -597,7 +602,7 @@ TORRENT_TEST(reject_fast)
 	}
 	print_session_log(*ses);
 	s.close();
-	std::this_thread::sleep_for(lt::milliseconds(500));
+	wait_for_disconnect(*ses, "ses");
 	print_session_log(*ses);
 }
 
@@ -676,9 +681,10 @@ TORRENT_TEST(invalid_suggest)
 	// request for that piece index.
 	send_suggest_piece(s, -234);
 	send_unchoke(s);
-	std::this_thread::sleep_for(lt::milliseconds(500));
 	print_session_log(*ses);
 
+	// read_message() below blocks until the response arrives, so there's no
+	// need to sleep here first.
 	int len = read_message(s, recv_buffer);
 	auto buffer = span<char const>(recv_buffer).first(len);
 	int idx = -1;
@@ -774,7 +780,7 @@ TORRENT_TEST(reject_suggest)
 	TEST_CHECK(fail_counter > 0);
 
 	s.close();
-	std::this_thread::sleep_for(lt::milliseconds(500));
+	wait_for_disconnect(*ses, "ses");
 	print_session_log(*ses);
 }
 
@@ -835,7 +841,7 @@ TORRENT_TEST(suggest_order)
 	TEST_CHECK(fail_counter > 0);
 
 	s.close();
-	std::this_thread::sleep_for(lt::milliseconds(500));
+	wait_for_disconnect(*ses, "ses");
 	print_session_log(*ses);
 }
 
@@ -869,7 +875,7 @@ TORRENT_TEST(multiple_bitfields)
 	print_session_log(*ses);
 
 	s.close();
-	std::this_thread::sleep_for(lt::milliseconds(500));
+	wait_for_disconnect(*ses, "ses");
 	print_session_log(*ses);
 }
 
@@ -899,7 +905,7 @@ TORRENT_TEST(multiple_have_all)
 
 	s.close();
 	print_session_log(*ses);
-	std::this_thread::sleep_for(lt::milliseconds(500));
+	wait_for_disconnect(*ses, "ses");
 	print_session_log(*ses);
 }
 
@@ -1192,7 +1198,7 @@ TORRENT_TEST(dht_port_no_support)
 	print_session_log(*ses);
 
 	s.close();
-	std::this_thread::sleep_for(lt::milliseconds(500));
+	wait_for_disconnect(*ses, "ses");
 	print_session_log(*ses);
 }
 // TODO: test sending invalid requests (out of bound piece index, offsets and

@@ -474,6 +474,24 @@ void wait_for_downloading(lt::session& ses, char const* name)
 	}
 }
 
+// bounded wait for the session to notice a peer's socket close, so a final
+// alert drain right after isn't racing the peer_disconnected_alert.
+void wait_for_disconnect(lt::session& ses, char const* name)
+{
+	time_point const start = clock_type::now();
+	bool const disconnected = wait_for_alert(
+		ses,
+		name,
+		[](lt::alert const* al) { return alert_cast<peer_disconnected_alert>(al) != nullptr; },
+		2s);
+	if (!disconnected)
+	{
+		std::printf("%s: did not receive a peer_disconnected_alert. waited: %d ms\n",
+			name,
+			int(total_milliseconds(clock_type::now() - start)));
+	}
+}
+
 void wait_for_seeding(lt::session& ses, char const* name)
 {
 	time_point const start = clock_type::now();
