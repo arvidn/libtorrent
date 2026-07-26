@@ -137,8 +137,9 @@ TORRENT_TEST(diffie_hellman_degenerate_key)
 	auto const decremented = [](std::array<char, 96> v, int n) {
 		for (int i = int(v.size()) - 1; i >= 0 && n != 0; --i)
 		{
-			int const digit = int(std::uint8_t(v[i])) - n;
-			v[i] = char(digit);
+			auto const idx = static_cast<std::size_t>(i);
+			int const digit = int(std::uint8_t(v[idx])) - n;
+			v[idx] = char(digit);
 			n = (digit < 0) ? 1 : 0;
 		}
 		return v;
