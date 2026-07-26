@@ -861,6 +861,7 @@ if (webtorrent)
     set(PLOG_INSTALL OFF CACHE BOOL "" FORCE)
     set(JUICE_INSTALL OFF CACHE BOOL "" FORCE)
     set(NO_EXAMPLES ON CACHE BOOL "" FORCE)
+    set(NO_TESTS ON CACHE BOOL "" FORCE)
 
 	add_subdirectory(deps/libdatachannel EXCLUDE_FROM_ALL)
 	set_target_properties(datachannel-static PROPERTIES POSITION_INDEPENDENT_CODE ON)
