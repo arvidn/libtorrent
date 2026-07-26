@@ -534,12 +534,7 @@ namespace {
 			peer_log(peer_log_alert::info, peer_log_alert::encryption, "initiating encrypted handshake");
 #endif
 
-		m_dh_key_exchange.reset(new (std::nothrow) dh_key_exchange);
-		if (!m_dh_key_exchange)
-		{
-			disconnect(errors::no_memory, operation_t::encryption);
-			return;
-		}
+		m_dh_key_exchange.reset(new dh_key_exchange);
 
 		int const pad_size = int(random(512));
 
