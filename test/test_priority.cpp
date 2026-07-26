@@ -504,11 +504,12 @@ TORRENT_TEST(file_priority_multiple_calls)
 
 	std::vector<download_priority_t> const expected(
 		std::size_t(addp.ti->num_files()), lt::low_priority);
-	for (int i = 0; i < 10; ++i)
+	// bounded by a 5s ceiling, polled in short slices.
+	for (int i = 0; i < 50; ++i)
 	{
 		auto const p = h.get_file_priorities();
 		if (p == expected) return;
-		std::this_thread::sleep_for(milliseconds(500));
+		std::this_thread::sleep_for(100ms);
 	}
 	TEST_CHECK(false);
 }
