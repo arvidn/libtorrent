@@ -252,7 +252,7 @@ void send_bitfield(tcp::socket& s, char const* bits)
 	log("==> bitfield [%s]", bits);
 	for (int i = 0; i < num_pieces; ++i)
 	{
-		ptr[i/8] |= (bits[i] == '1' ? 1 : 0) << i % 8;
+		ptr[i/8] |= (bits[i] == '1' ? 1 : 0) << (7 - i % 8);
 	}
 	error_code ec;
 	boost::asio::write(s, boost::asio::buffer(msg.data(), std::size_t(msg.size()))
