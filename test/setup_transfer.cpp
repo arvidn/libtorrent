@@ -474,6 +474,24 @@ void wait_for_downloading(lt::session& ses, char const* name)
 	}
 }
 
+// bounded wait for the session to notice a peer's socket close, so a final
+// alert drain right after isn't racing the peer_disconnected_alert.
+void wait_for_disconnect(lt::session& ses, char const* name)
+{
+	time_point const start = clock_type::now();
+	bool const disconnected = wait_for_alert(
+		ses,
+		name,
+		[](lt::alert const* al) { return alert_cast<peer_disconnected_alert>(al) != nullptr; },
+		2s);
+	if (!disconnected)
+	{
+		std::printf("%s: did not receive a peer_disconnected_alert. waited: %d ms\n",
+			name,
+			int(total_milliseconds(clock_type::now() - start)));
+	}
+}
+
 void wait_for_seeding(lt::session& ses, char const* name)
 {
 	time_point const start = clock_type::now();
@@ -799,7 +817,6 @@ int start_proxy(int proxy_type)
 		proxy_t t = { r, proxy_type };
 		running_proxies.insert(std::make_pair(port, t));
 		std::printf("%s launched\n", time_now_string().c_str());
-		std::this_thread::sleep_for(lt::milliseconds(500));
 		wait_for_port(port);
 		return port;
 	}
@@ -1087,9 +1104,13 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 		}
 		else
 		{
-			auto temp = ::create_torrent(&file, "temporary", piece_size, 9, false, flags);
-			param = *atp;
-			param.ti = temp.ti;
+			// start from the freshly generated add_torrent_params, so it
+			// keeps everything create_torrent() filled in (ti, merkle_trees,
+			// ...); only overlay the field callers actually customize on the
+			// atp they passed in, so a field neither side sets here isn't
+			// silently dropped.
+			param = ::create_torrent(&file, "temporary", piece_size, 9, false, flags);
+			param.flags = atp->flags;
 		}
 		file.close();
 		if (clear_files)
@@ -1264,7 +1285,6 @@ int start_web_server(
 		if (r == 0) continue;
 		web_server_pid = r;
 		std::printf("%s launched\n", time_now_string().c_str());
-		std::this_thread::sleep_for(lt::milliseconds(1000));
 		wait_for_port(port);
 		return port;
 	}
@@ -1314,7 +1334,6 @@ int start_websocket_server(bool ssl, int min_interval)
 		if (r == 0) continue;
 		websocket_server_pid = r;
 		std::printf("%s launched\n", time_now_string().c_str());
-		std::this_thread::sleep_for(lt::milliseconds(1000));
 		wait_for_port(port);
 		return port;
 	}

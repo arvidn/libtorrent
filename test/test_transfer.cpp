@@ -29,6 +29,7 @@ see LICENSE file.
 #include <iostream>
 
 using namespace lt;
+using namespace std::chrono_literals;
 
 using std::ignore;
 
@@ -280,7 +281,11 @@ void test_transfer(int const proxy_type, settings_pack const& sett
 			ses1.remove_torrent(tor1, session::delete_files);
 			std::cout << "deleting files" << std::endl;
 
-			std::this_thread::sleep_for(lt::seconds(1));
+			wait_for_alert(
+				ses1,
+				"ses1",
+				[](lt::alert const* a) { return alert_cast<torrent_removed_alert>(a) != nullptr; },
+				10s);
 			break;
 		}
 

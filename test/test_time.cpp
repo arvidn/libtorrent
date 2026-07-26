@@ -17,25 +17,28 @@ see LICENSE file.
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#include <atomic>
 #include <iostream>
 
 using namespace lt;
 
 namespace {
 
-void check_timer_loop(std::mutex& m, time_point& last, std::condition_variable& cv)
-{
-	std::unique_lock<std::mutex> l(m);
-	cv.wait(l);
-	l.unlock();
-
-	for (int i = 0; i < 10000; ++i)
+	void check_timer_loop(
+		std::mutex& m, time_point& last, std::condition_variable& cv, std::atomic<int>& ready)
 	{
-		std::lock_guard<std::mutex> ll(m);
-		time_point now = clock_type::now();
-		TEST_CHECK(now >= last);
-		last = now;
-	}
+		std::unique_lock<std::mutex> l(m);
+		++ready;
+		cv.wait(l);
+		l.unlock();
+
+		for (int i = 0; i < 10000; ++i)
+		{
+			std::lock_guard<std::mutex> ll(m);
+			time_point now = clock_type::now();
+			TEST_CHECK(now >= last);
+			last = now;
+		}
 }
 
 } // anonymous namespace
@@ -67,13 +70,21 @@ TORRENT_TEST(time)
 
 	std::mutex m;
 	std::condition_variable cv;
-	std::thread t1(&check_timer_loop, std::ref(m), std::ref(last), std::ref(cv));
-	std::thread t2(&check_timer_loop, std::ref(m), std::ref(last), std::ref(cv));
-	std::thread t3(&check_timer_loop, std::ref(m), std::ref(last), std::ref(cv));
-	std::thread t4(&check_timer_loop, std::ref(m), std::ref(last), std::ref(cv));
+	std::atomic<int> ready{0};
+	std::thread t1(&check_timer_loop, std::ref(m), std::ref(last), std::ref(cv), std::ref(ready));
+	std::thread t2(&check_timer_loop, std::ref(m), std::ref(last), std::ref(cv), std::ref(ready));
+	std::thread t3(&check_timer_loop, std::ref(m), std::ref(last), std::ref(cv), std::ref(ready));
+	std::thread t4(&check_timer_loop, std::ref(m), std::ref(last), std::ref(cv), std::ref(ready));
 
-	std::this_thread::sleep_for(lt::milliseconds(100));
+	while (ready.load() < 4)
+		std::this_thread::yield();
 
+	// acquiring the mutex here guarantees each thread is actually blocked in
+	// cv.wait() (which releases it) rather than merely having incremented
+	// ready, so notify_all() below can't be missed.
+	{
+		std::lock_guard<std::mutex> l(m);
+	}
 	cv.notify_all();
 
 	t1.join();

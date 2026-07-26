@@ -271,7 +271,9 @@ namespace sim {
 		if (ec)
 		{
 			std::printf("http_server::on_handshake: (%d) %s\n", ec.value(), ec.message().c_str());
-			close_connection();
+			// the handshake never completed, so there's no TLS session to
+			// shut down gracefully.
+			close_connection(false);
 			return;
 		}
 
@@ -520,7 +522,7 @@ namespace sim {
 		m_listen_socket.close();
 	}
 
-	void http_server::close_connection()
+	void http_server::close_connection(bool const graceful)
 	{
 		m_recv_buffer.clear();
 		m_bytes_used = 0;
@@ -530,7 +532,7 @@ namespace sim {
 		// the client sees a clean SSL shutdown rather than an abrupt socket
 		// close (which surfaces as a "stream truncated" error instead of the
 		// plain EOF a closed plaintext connection produces).
-		if (m_connection
+		if (graceful && m_connection
 			&& std::holds_alternative<lt::aux::ssl_stream<lt::tcp::socket>>(*m_connection))
 		{
 			// if the peer never completes its side of the close_notify
@@ -540,13 +542,16 @@ namespace sim {
 			m_shutdown_timer.async_wait([this](error_code const& ec) {
 				// a non-empty ec means the timer was cancelled because the
 				// shutdown below already completed; nothing left to do.
-				if (ec)
+				if (ec || !m_connection)
 					return;
-				if (m_connection)
-				{
-					error_code ignore;
-					m_connection->close(ignore);
-				}
+				// just force the transport closed; the still-outstanding
+				// async_shutdown below owns m_connection and will tear it
+				// down (finish_close()) once its handler runs with an error.
+				// Destroying m_connection here instead would free the
+				// ssl_stream (and its internal buffers) out from under that
+				// still-pending operation.
+				error_code ignore;
+				m_connection->close(ignore);
 			});
 
 			std::get<lt::aux::ssl_stream<lt::tcp::socket>>(*m_connection)
@@ -582,10 +587,10 @@ namespace sim {
 			m_connection.reset();
 			if (err)
 			{
+				// don't stall the accept loop below over a close error.
 				std::printf("http_server::close: failed to close connection (%d) %s\n",
 					err.value(),
 					err.message().c_str());
-				return;
 			}
 		}
 

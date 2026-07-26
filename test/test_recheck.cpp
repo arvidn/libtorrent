@@ -29,6 +29,7 @@ see LICENSE file.
 #include <iostream>
 
 using namespace lt;
+using namespace std::chrono_literals;
 
 namespace {
 
@@ -36,7 +37,9 @@ void wait_for_complete(lt::session& ses, torrent_handle h)
 {
 	int last_progress = 0;
 	clock_type::time_point last_change = clock_type::now();
-	for (int i = 0; i < 200; ++i)
+	// bounded by a 200s absolute backstop; the short poll interval keeps a
+	// quick completion from waiting out a full second of granularity.
+	for (int i = 0; i < 2000; ++i)
 	{
 		print_alerts(ses, "ses1");
 		torrent_status st = h.status();
@@ -50,7 +53,7 @@ void wait_for_complete(lt::session& ses, torrent_handle h)
 			last_change = clock_type::now();
 		}
 		if (clock_type::now() - last_change > seconds(30)) break;
-		std::this_thread::sleep_for(lt::seconds(1));
+		std::this_thread::sleep_for(100ms);
 	}
 	TEST_ERROR("torrent did not finish");
 }

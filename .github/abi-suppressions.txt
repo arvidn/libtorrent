@@ -3,11 +3,35 @@
 # libtorrent::aux::* is an internal implementation-detail namespace (see
 # TORRENT_EXTRA_EXPORT in include/libtorrent/aux_/export.hpp) -- it is not
 # reachable from any TORRENT_EXPORT public header. It still shows up in
-# abidiff because the build only sets -fvisibility=hidden, not
-# -fvisibility-inlines-hidden, so inline template instantiations from
-# external headers (e.g. boost::asio's io_context executors) that happen to
-# close over an aux:: type keep default visibility and drag its layout into
-# the exported symbol table. Suppress diffs attributable to aux:: types so
-# purely-internal changes don't fail the check.
+# abidiff because template instantiations (e.g. boost::asio's io_context
+# executors) that happen to close over an aux:: type get their visibility
+# from their template arguments, not our own -fvisibility flags, and drag
+# aux::'s layout into the exported symbol table. Suppress diffs attributable
+# to aux:: types so purely-internal changes don't fail the check.
 [suppress_type]
   name_regexp = ^libtorrent::aux::
+
+# std:: and boost:: (mainly boost::asio/boost::system) template
+# instantiations leak into our exported symbols the same way: GCC derives an
+# instantiation's visibility from its template arguments, and libstdc++/
+# boost headers keep types like std::string and boost::asio::io_context
+# default-visibility on purpose (some, e.g. asio's per-service singleton
+# ids, must stay one process-wide instance even across independently-built
+# shared objects, so hiding them would be wrong, not just cosmetic) -- this
+# is not fixable via our own -fvisibility flags. None of it is part of
+# libtorrent's ABI surface, except our own std::hash/std::numeric_limits
+# specializations for public libtorrent types (sha1_hash, torrent_handle,
+# torrent_status, strong_typedef, ...), which name_not_regexp excludes so a
+# real change to one of those still fails the check.
+#
+# Variable (data-symbol) changes are deliberately NOT suppressed here: a
+# variable's size/layout is baked directly into every caller, so a spurious
+# diff there is rare and a real one is serious. If a specific guard-variable
+# or singleton-object shows up as noise, add a narrowly scoped
+# [suppress_variable] for that exact symbol instead of broadening this.
+[suppress_type]
+  name_regexp = ^(std|boost)::
+  name_not_regexp = libtorrent
+[suppress_function]
+  name_regexp = ^(std|boost)::
+  name_not_regexp = libtorrent

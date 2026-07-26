@@ -675,6 +675,11 @@ void http_connection::retry_fresh_connection()
 {
 	m_reused_socket = false;
 	bool const was_write_only = write_only();
+	// the fresh connection needs its own first_write to start a drain loop;
+	// set_write_only()'s promoted-dispatch state preservation doesn't apply
+	// to a closed and replaced connection.
+	if (was_write_only)
+		m_write_only_state = write_only_state_t::not_started;
 	error_code ec;
 	if (m_sock)
 		m_sock->close(ec);

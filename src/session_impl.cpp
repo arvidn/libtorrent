@@ -7163,6 +7163,8 @@ retry:
 		return false;
 	}
 
+	ip_filter const* session_impl::get_dht_ip_filter() const { return m_ip_filter.get(); }
+
 	void session_impl::set_external_address(
 		tcp::endpoint const& local_endpoint, address const& ip
 		, ip_source_t const source_type, address const& source)

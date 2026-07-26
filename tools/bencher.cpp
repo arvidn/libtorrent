@@ -29,6 +29,7 @@ see LICENSE file.
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -37,6 +38,7 @@ see LICENSE file.
 #include "libtorrent/aux_/piece_picker.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/hasher.hpp"
+#include "libtorrent/ip_filter.hpp"
 #include "libtorrent/load_torrent.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/span.hpp"
@@ -398,6 +400,59 @@ namespace pp_bench {
 
 } // namespace pp_bench
 
+// ip_filter benchmark. access() resolves an address against a std::set of
+// non-overlapping ranges (O(log n) in the number of ranges), so its cost
+// depends on how many rules the filter holds rather than on where the
+// looked-up address falls. A filter with many blocked ranges, alternating
+// with allowed ranges across the whole address space, stands in for a
+// moderately large user-supplied blocklist.
+namespace ipf_bench {
+
+	using lt::address_v4;
+	using lt::ip_filter;
+	using lt::make_address_v4;
+
+	constexpr int num_blocked_ranges = 5000;
+
+	// the address space is split into 2 * num_blocked_ranges equal segments,
+	// alternating allowed and blocked, starting with an allowed segment
+	constexpr std::uint32_t segment =
+		(std::numeric_limits<std::uint32_t>::max)() / (2 * num_blocked_ranges);
+
+	ip_filter make_filter()
+	{
+		ip_filter f;
+		for (std::uint32_t i = 0; i < num_blocked_ranges; ++i)
+		{
+			std::uint32_t const first = (2 * i + 1) * segment;
+			std::uint32_t const last = first + segment - 1;
+			f.add_rule(make_address_v4(first), make_address_v4(last), ip_filter::blocked);
+		}
+		return f;
+	}
+
+	void run(std::vector<std::pair<char const*, stats>>& results)
+	{
+		ip_filter const f = make_filter();
+
+		// midpoint of the first blocked segment: [segment, 2 * segment - 1]
+		address_v4 const blocked_addr = make_address_v4(segment + segment / 2);
+		// midpoint of the first allowed segment: [0, segment - 1]
+		address_v4 const allowed_addr = make_address_v4(segment / 2);
+
+		results.emplace_back("ip_filter: access, hit", analyze([&] {
+			auto const ret = f.access(blocked_addr);
+			do_not_optimize(ret);
+		}));
+
+		results.emplace_back("ip_filter: access, miss", analyze([&] {
+			auto const ret = f.access(allowed_addr);
+			do_not_optimize(ret);
+		}));
+	}
+
+} // namespace ipf_bench
+
 int main()
 try
 {
@@ -458,6 +513,7 @@ try
 	}
 
 	pp_bench::run(results);
+	ipf_bench::run(results);
 
 	print_bmf(results);
 }

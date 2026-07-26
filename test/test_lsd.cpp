@@ -29,6 +29,7 @@ namespace {
 void test_lsd()
 {
 	using namespace lt;
+	using namespace std::chrono_literals;
 
 	// these are declared before the session objects
 	// so that they are destructed last. This enables
@@ -65,7 +66,9 @@ void test_lsd()
 		, 16 * 1024, nullptr, false, false);
 
 	auto const start_time = lt::clock_type::now();
-	for (int i = 0; i < 30; ++i)
+	// bounded by a 30s ceiling; the short poll interval keeps a quick
+	// local-loopback completion from waiting out a full second of granularity.
+	for (int i = 0; i < 300; ++i)
 	{
 		print_alerts(ses1, "ses1");
 		print_alerts(ses2, "ses2");
@@ -76,7 +79,7 @@ void test_lsd()
 		print_ses_rate(start_time, &st1, &st2);
 
 		if (st2.is_seeding /*&& st3.is_seeding*/) break;
-		std::this_thread::sleep_for(lt::milliseconds(1000));
+		std::this_thread::sleep_for(100ms);
 	}
 
 	TEST_CHECK(tor2.status().is_seeding);

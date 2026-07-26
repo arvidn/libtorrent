@@ -17,6 +17,7 @@ see LICENSE file.
 #include "libtorrent/aux_/io_bytes.hpp" // for write_uint16
 #include "libtorrent/hasher.hpp" // for hasher
 #include "libtorrent/aux_/escape_string.hpp" // for trim
+#include "libtorrent/aux_/string_util.hpp" // for parse_decimal
 
 namespace libtorrent::aux {
 
@@ -117,13 +118,13 @@ namespace libtorrent::aux {
 			return ret;
 		}
 
-		int const port_num = std::atoi(std::string(port).c_str());
-		if (port_num <= 0 || port_num > std::numeric_limits<std::uint16_t>::max())
+		auto const port_num = parse_decimal(port);
+		if (!port_num || *port_num <= 0 || *port_num > std::numeric_limits<std::uint16_t>::max())
 		{
 			ec = errors::invalid_port;
 			return ret;
 		}
-		ret.port(static_cast<std::uint16_t>(port_num));
+		ret.port(static_cast<std::uint16_t>(*port_num));
 		return ret;
 	}
 

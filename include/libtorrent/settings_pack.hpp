@@ -1056,6 +1056,15 @@ namespace aux {
 			// increase network load.
 			allow_multiple_connections_per_pid,
 
+			// when set to true, the IP filter set by set_ip_filter() is also
+			// applied to the DHT, rejecting incoming messages from and
+			// refusing to store routing table entries for filtered
+			// addresses. This is not applied retroactively; DHT nodes
+			// already in the routing table when the filter is set (or
+			// updated) are not removed, and remain in use until they are
+			// naturally evicted.
+			apply_filter_to_dht,
+
 			// HTTP tracker announces and scrapes destined for the same server
 			// are normally coalesced onto a single keep-alive connection and
 			// issued sequentially, and stop-announces at shutdown use a

@@ -37,6 +37,7 @@ see LICENSE file.
 #include <iostream>
 
 using namespace lt;
+using namespace std::chrono_literals;
 
 // TODO: test scrape requests
 // TODO: test parse tracker-id
@@ -448,10 +449,20 @@ void test_udp_tracker(std::string const& iface, address tracker, tcp::endpoint c
 	addp.save_path = "tmp1_tracker";
 	torrent_handle h = s->add_torrent(addp);
 
+	// print_alerts() below drains the session's alert queue every iteration,
+	// so a tracker_reply_alert can only be observed here, not with a
+	// separate wait_for_alert() call afterward (it would already be gone).
 	tcp::endpoint peer_ep;
+	int tracker_replies = 0;
+	auto const track_alerts = [&](lt::alert const* a) {
+		if (alert_cast<tracker_reply_alert>(a))
+			++tracker_replies;
+		return connect_alert(a, peer_ep);
+	};
+
 	for (int i = 0; i < 50; ++i)
 	{
-		print_alerts(*s, "s", false, false, std::bind(&connect_alert, _1, std::ref(peer_ep)));
+		print_alerts(*s, "s", false, false, track_alerts);
 
 		if (num_udp_announces() == prev_udp_announces + 2)
 			break;
@@ -463,8 +474,15 @@ void test_udp_tracker(std::string const& iface, address tracker, tcp::endpoint c
 	TEST_EQUAL(num_udp_announces(), prev_udp_announces + 2);
 
 	// if we remove the torrent before it has received the response from the
-	// tracker, it won't announce again to stop. So, wait a bit before removing.
-	std::this_thread::sleep_for(lt::milliseconds(1000));
+	// tracker, it won't announce again to stop. So wait for the tracker
+	// reply before removing (the v1 and v2 announces to the same tracker
+	// are reported as a single tracker_reply_alert).
+	for (int i = 0; i < 50 && tracker_replies < 1; ++i)
+	{
+		print_alerts(*s, "s", false, false, track_alerts);
+		std::this_thread::sleep_for(100ms);
+	}
+	TEST_CHECK(tracker_replies >= 1);
 
 	s->remove_torrent(h);
 
@@ -818,7 +836,8 @@ TORRENT_TEST(websocket_tracker)
 
 	wait_for_alert(*s, tracker_reply_alert::alert_type, "s");
 
-	std::this_thread::sleep_for(lt::milliseconds(2000));
+	for (int i = 0; i < 100 && h.status().current_tracker.empty(); ++i)
+		std::this_thread::sleep_for(100ms);
 
 	status = h.status();
 	TEST_CHECK(!status.current_tracker.empty());

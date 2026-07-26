@@ -579,7 +579,7 @@ class alert(metaclass=_BoostBaseClass):
 
     class category_t(metaclass=_BoostBaseClass):
         __instance_size__: int
-        all_categories: Literal[4294967295]
+        all_categories: int
         block_progress_notification: Literal[16777216]
         connect_notification: Literal[32]
         debug_notification: Literal[32]

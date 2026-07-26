@@ -5,11 +5,14 @@
 
 2.1.1 not released
 
+	* apply IP filter to DHT node
+	* fix use of a stack buffer past its lifetime when sending i2p SAM commands
 	* optimize RC4
 	* fail validation of DHT mutable items whose salt exceeds the 64 byte limit
 	* improve dont-count-slow-torrents
 	* improve performance of checking files
 	* add ip_ban_alert for IPs banned internally by libtorrent
+	* fix peer DSCP marking on outgoing TCP connections
 
 2.1.0 release
 

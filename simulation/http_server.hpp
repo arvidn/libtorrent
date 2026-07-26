@@ -169,7 +169,9 @@ namespace sim {
 		void read();
 		void on_read(boost::system::error_code const& ec, size_t bytes_transferred);
 		void on_write(boost::system::error_code const& ec, size_t bytes_transferred, bool close);
-		void close_connection();
+		// graceful=false skips the SSL close_notify shutdown attempt and
+		// tears the socket down directly.
+		void close_connection(bool graceful = true);
 		void finish_close(
 			boost::system::error_code const& shutdown_ec = boost::system::error_code());
 

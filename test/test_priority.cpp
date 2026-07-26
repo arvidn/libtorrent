@@ -279,7 +279,7 @@ done:
 
 	std::cout << "removed" << std::endl;
 
-	std::this_thread::sleep_for(lt::milliseconds(100));
+	wait_for_alert(ses2, torrent_removed_alert::alert_type, "ses2");
 
 	std::cout << "re-adding" << std::endl;
 	add_torrent_params p;
@@ -431,13 +431,14 @@ TORRENT_TEST(no_metadata_prioritize_files)
 	prios[0] = lt::dont_download;
 
 	h.prioritize_files(prios);
-	// TODO 2: this should wait for an alert instead of just sleeping
-	std::this_thread::sleep_for(lt::milliseconds(100));
+	for (int i = 0; i < 50 && h.get_file_priorities() != prios; ++i)
+		std::this_thread::sleep_for(100ms);
 	TEST_CHECK(h.get_file_priorities() == prios);
 
 	prios[0] = lt::low_priority;
 	h.prioritize_files(prios);
-	std::this_thread::sleep_for(lt::milliseconds(100));
+	for (int i = 0; i < 50 && h.get_file_priorities() != prios; ++i)
+		std::this_thread::sleep_for(100ms);
 	TEST_CHECK(h.get_file_priorities() == prios);
 
 	ses.remove_torrent(h);
@@ -455,11 +456,12 @@ TORRENT_TEST(no_metadata_file_prio)
 	torrent_handle h = ses.add_torrent(addp);
 
 	h.file_priority(0_file, 0_pri);
-	// TODO 2: this should wait for an alert instead of just sleeping
-	std::this_thread::sleep_for(lt::milliseconds(100));
+	for (int i = 0; i < 50 && h.file_priority(0_file) != 0_pri; ++i)
+		std::this_thread::sleep_for(100ms);
 	TEST_EQUAL(h.file_priority(0_file), 0_pri);
 	h.file_priority(0_file, 1_pri);
-	std::this_thread::sleep_for(lt::milliseconds(100));
+	for (int i = 0; i < 50 && h.file_priority(0_file) != 1_pri; ++i)
+		std::this_thread::sleep_for(100ms);
 	TEST_EQUAL(h.file_priority(0_file), 1_pri);
 
 	ses.remove_torrent(h);
@@ -502,11 +504,12 @@ TORRENT_TEST(file_priority_multiple_calls)
 
 	std::vector<download_priority_t> const expected(
 		std::size_t(addp.ti->num_files()), lt::low_priority);
-	for (int i = 0; i < 10; ++i)
+	// bounded by a 5s ceiling, polled in short slices.
+	for (int i = 0; i < 50; ++i)
 	{
 		auto const p = h.get_file_priorities();
 		if (p == expected) return;
-		std::this_thread::sleep_for(milliseconds(500));
+		std::this_thread::sleep_for(100ms);
 	}
 	TEST_CHECK(false);
 }

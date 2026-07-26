@@ -246,12 +246,14 @@ EXAMPLE_FILES= \
   client_test.cpp \
   cmake/FindLibtorrentRasterbar.cmake \
   connection_tester.cpp \
+  dht_scrape.cpp \
   dump_torrent.cpp \
   dump_bdecode.cpp \
   magnet2torrent.cpp \
   make_torrent.cpp \
   print.cpp \
   print.hpp \
+  rename_torrents.cpp \
   session_view.cpp \
   session_view.hpp \
   simple_client.cpp \
@@ -268,6 +270,10 @@ TOOLS_FILES= \
   dht_put.cpp            \
   dht_sample.cpp         \
   disk_io_stress_test.cpp\
+  checking_benchmark.cpp \
+  gen_torture_torrent.cpp \
+  benchmark_load_torrent.cpp \
+  bencher.cpp            \
   parse_dht_log.py       \
   parse_dht_rtt.py       \
   parse_dht_stats.py     \
@@ -1194,6 +1200,7 @@ TEST_EXTRA = Jamfile \
   utf8_test.txt \
   utf8_latin1_test.txt \
   web_server.py \
+  websocket_server.py \
   socks.py \
   http_proxy.py \
   root1.xml \

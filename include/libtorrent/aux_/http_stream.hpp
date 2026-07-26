@@ -177,8 +177,9 @@ private:
 			}
 
 			status++;
-			int const code = std::atoi(status);
-			if (code != 200)
+			auto const status_len = m_buffer.size() - std::size_t(status - m_buffer.data());
+			auto const code = parse_decimal({status, status_len});
+			if (!code || *code != 200)
 			{
 				h(boost::asio::error::operation_not_supported);
 				error_code ec;

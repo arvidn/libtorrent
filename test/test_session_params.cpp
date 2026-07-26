@@ -160,6 +160,7 @@ settings_pack test_pack()
 dht::dht_state test_state()
 {
 	dht::dht_state ret;
+#ifndef TORRENT_DISABLE_DHT
 	auto a1 = make_address("1.2.3.4");
 	auto a2 = make_address("1234:abcd:ef01::1");
 	ret.nids = dht::node_ids_t{{a1, dht::generate_id(a1)}, {a2, dht::generate_id(a2)}};
@@ -167,6 +168,7 @@ dht::dht_state test_state()
 		ret.nodes.push_back(rand_udp_ep(rand_v4));
 	for (int i = 0; i < 50; ++i)
 		ret.nodes.push_back(rand_udp_ep(rand_v6));
+#endif
 	return ret;
 }
 

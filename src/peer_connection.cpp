@@ -302,10 +302,13 @@ namespace {
 				int const value = m_settings.get_int(settings_pack::peer_dscp);
 				aux::set_traffic_class(m_socket, value, ec);
 #ifndef TORRENT_DISABLE_LOGGING
-				if (ec && should_log(peer_log_alert::outgoing))
+				if (ec && should_log(peer_log_alert::incoming))
 				{
-					peer_log(peer_log_alert::outgoing, peer_log_alert::set_dscp, "value: %d e: %s"
-						, value, ec.message().c_str());
+					peer_log(peer_log_alert::incoming,
+						peer_log_alert::set_dscp,
+						"value: %d e: %s",
+						value,
+						ec.message().c_str());
 				}
 #endif
 			}
@@ -334,20 +337,6 @@ namespace {
 		if (t && m_ti->is_valid())
 		{
 			init();
-		}
-
-		if (m_settings.get_int(settings_pack::peer_dscp) != 0)
-		{
-			int const value = m_settings.get_int(settings_pack::peer_dscp);
-			error_code ec;
-			aux::set_traffic_class(m_socket, value, ec);
-#ifndef TORRENT_DISABLE_LOGGING
-			if (ec && should_log(peer_log_alert::outgoing))
-			{
-				peer_log(peer_log_alert::outgoing, peer_log_alert::set_dscp, "value: %d e: %s"
-					, value, ec.message().c_str());
-			}
-#endif
 		}
 
 		// if this is an incoming connection, we're done here
@@ -380,6 +369,23 @@ namespace {
 		{
 			disconnect(ec, operation_t::sock_open);
 			return;
+		}
+
+		if (m_settings.get_int(settings_pack::peer_dscp) != 0)
+		{
+			int const value = m_settings.get_int(settings_pack::peer_dscp);
+			error_code err;
+			aux::set_traffic_class(m_socket, value, err);
+#ifndef TORRENT_DISABLE_LOGGING
+			if (err && should_log(peer_log_alert::outgoing))
+			{
+				peer_log(peer_log_alert::outgoing,
+					peer_log_alert::set_dscp,
+					"value: %d e: %s",
+					value,
+					err.message().c_str());
+			}
+#endif
 		}
 
 		tcp::endpoint const bound_ip = m_ses.bind_outgoing_socket(m_socket
@@ -5403,6 +5409,8 @@ namespace {
 			peer_log(peer_log_alert::info, peer_log_alert::seed_mode_file_hash
 				, "piece: %d failed", static_cast<int>(piece));
 #endif
+			if (m_ses.alerts().should_post<hash_failed_alert>())
+				m_ses.alerts().emplace_alert<hash_failed_alert>(t->get_handle(), piece);
 
 			t->leave_seed_mode(aux::torrent::seed_mode_t::check_files);
 		}

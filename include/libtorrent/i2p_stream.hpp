@@ -19,6 +19,8 @@ see LICENSE file.
 #include <string>
 #include <vector>
 #include <functional>
+#include <cstdarg>
+#include <cstdio>
 
 #include "libtorrent/aux_/proxy_base.hpp"
 #include "libtorrent/aux_/string_util.hpp"
@@ -143,16 +145,44 @@ struct i2p_stream : aux::proxy_base
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
 		m_state = read_name_lookup_response;
-		char cmd[1024];
-		int size = std::snprintf(cmd, sizeof(cmd), "NAMING LOOKUP NAME=%s\n", m_name_lookup.c_str());
+		if (!format_command("NAMING LOOKUP NAME=%s\n", m_name_lookup.c_str()))
+		{
+			handle_error(boost::asio::error::message_size, h);
+			return;
+		}
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
-		async_write(m_sock, boost::asio::buffer(cmd, std::size_t(size)), aux::wrap_allocator(
-			[this](error_code const& ec, std::size_t, Handler hn) {
-				start_read_line(ec, std::move(hn));
-			}, std::move(h)));
+		async_write(m_sock,
+			boost::asio::buffer(m_buffer),
+			aux::wrap_allocator(
+				[this](error_code const& ec, std::size_t, Handler hn) {
+					start_read_line(ec, std::move(hn));
+				},
+				std::move(h)));
 	}
 
 private:
+	// formats a SAM command into m_buffer, ready to be handed to async_write().
+	// The command has to live in a member, and not in a local buffer, since it
+	// must stay valid until the asynchronous write completes, which is after
+	// the function starting it has returned. Returns false if the command
+	// doesn't fit, in which case it would have been truncated into something
+	// the SAM bridge can't parse.
+	bool format_command(char const* fmt, ...) TORRENT_FORMAT(2, 3)
+	{
+		int const capacity = 1024;
+		m_buffer.resize(capacity);
+		std::va_list args;
+		va_start(args, fmt);
+		int const size = std::vsnprintf(m_buffer.data(), std::size_t(capacity), fmt, args);
+		va_end(args);
+		if (size < 0 || size >= capacity)
+		{
+			m_buffer.clear();
+			return false;
+		}
+		m_buffer.resize(size);
+		return true;
+	}
 
 	template <typename Handler>
 	void do_connect(error_code const& e, tcp::resolver::results_type ips, Handler h)
@@ -388,14 +418,19 @@ private:
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
 		m_state = read_connect_response;
-		char cmd[1024];
-		int size = std::snprintf(cmd, sizeof(cmd), "STREAM CONNECT ID=%s DESTINATION=%s\n"
-			, m_id, m_dest.c_str());
+		if (!format_command("STREAM CONNECT ID=%s DESTINATION=%s\n", m_id, m_dest.c_str()))
+		{
+			handle_error(boost::asio::error::message_size, h);
+			return;
+		}
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
-		async_write(m_sock, boost::asio::buffer(cmd, std::size_t(size)), aux::wrap_allocator(
-			[this](error_code const& ec, std::size_t, Handler hn) {
-				start_read_line(ec, std::move(hn));
-			}, std::move(h)));
+		async_write(m_sock,
+			boost::asio::buffer(m_buffer),
+			aux::wrap_allocator(
+				[this](error_code const& ec, std::size_t, Handler hn) {
+					start_read_line(ec, std::move(hn));
+				},
+				std::move(h)));
 	}
 
 	template <typename Handler>
@@ -403,13 +438,19 @@ private:
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
 		m_state = read_accept_response;
-		char cmd[400];
-		int size = std::snprintf(cmd, sizeof(cmd), "STREAM ACCEPT ID=%s\n", m_id);
+		if (!format_command("STREAM ACCEPT ID=%s\n", m_id))
+		{
+			handle_error(boost::asio::error::message_size, h);
+			return;
+		}
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
-		async_write(m_sock, boost::asio::buffer(cmd, std::size_t(size)), aux::wrap_allocator(
-			[this](error_code const& ec, std::size_t, Handler hn) {
-				start_read_line(ec, std::move(hn));
-			}, std::move(h)));
+		async_write(m_sock,
+			boost::asio::buffer(m_buffer),
+			aux::wrap_allocator(
+				[this](error_code const& ec, std::size_t, Handler hn) {
+					start_read_line(ec, std::move(hn));
+				},
+				std::move(h)));
 	}
 
 	template <typename Handler>
@@ -417,20 +458,30 @@ private:
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
 		m_state = read_session_create_response;
-		char cmd[400];
-		int size = std::snprintf(cmd, sizeof(cmd),
-			"SESSION CREATE STYLE=STREAM ID=%s "
-			"DESTINATION=TRANSIENT SIGNATURE_TYPE=7 i2cp.leaseSetEncType=4,0 "
-			"inbound.quantity=%d outbound.quantity=%d inbound.length=%d outbound.length=%d "
-			"inbound.lengthVariance=%d outbound.lengthVariance=%d\n",
-			m_id, m_session_options.m_inbound_quantity, m_session_options.m_outbound_quantity,
-			m_session_options.m_inbound_length, m_session_options.m_outbound_length,
-			m_session_options.m_inbound_length_variance, m_session_options.m_outbound_length_variance);
+		if (!format_command(
+				"SESSION CREATE STYLE=STREAM ID=%s "
+				"DESTINATION=TRANSIENT SIGNATURE_TYPE=7 i2cp.leaseSetEncType=4,0 "
+				"inbound.quantity=%d outbound.quantity=%d inbound.length=%d outbound.length=%d "
+				"inbound.lengthVariance=%d outbound.lengthVariance=%d\n",
+				m_id,
+				m_session_options.m_inbound_quantity,
+				m_session_options.m_outbound_quantity,
+				m_session_options.m_inbound_length,
+				m_session_options.m_outbound_length,
+				m_session_options.m_inbound_length_variance,
+				m_session_options.m_outbound_length_variance))
+		{
+			handle_error(boost::asio::error::message_size, h);
+			return;
+		}
 		ADD_OUTSTANDING_ASYNC("i2p_stream::start_read_line");
-		async_write(m_sock, boost::asio::buffer(cmd, std::size_t(size)), aux::wrap_allocator(
-			[this](error_code const& ec, std::size_t, Handler hn) {
-				start_read_line(ec, std::move(hn));
-			}, std::move(h)));
+		async_write(m_sock,
+			boost::asio::buffer(m_buffer),
+			aux::wrap_allocator(
+				[this](error_code const& ec, std::size_t, Handler hn) {
+					start_read_line(ec, std::move(hn));
+				},
+				std::move(h)));
 	}
 
 	// send and receive buffer
