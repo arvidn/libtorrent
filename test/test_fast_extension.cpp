@@ -687,11 +687,14 @@ TORRENT_TEST(fast_piece_messages_survive_metadata)
 	do_handshake(s, ih, recv_buffer);
 
 	piece_index_t const allowed_piece(ti->num_pieces() - 1);
+	piece_index_t const invalid_piece(ti->num_pieces());
 	std::string bitfield(std::size_t(ti->num_pieces()), '0');
 	bitfield[std::size_t(static_cast<int>(allowed_piece))] = '1';
 	send_bitfield(s, bitfield.c_str());
 	send_allow_fast(s, static_cast<int>(allowed_piece));
 	send_suggest_piece(s, static_cast<int>(allowed_piece));
+	send_allow_fast(s, static_cast<int>(invalid_piece));
+	send_suggest_piece(s, static_cast<int>(invalid_piece));
 	send_have(s, 0);
 
 	if (!wait_for_counter(*ses, "ses.num_incoming_have", 1))
