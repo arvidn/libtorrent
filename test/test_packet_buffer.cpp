@@ -126,8 +126,7 @@ TORRENT_TEST(wrap_range_boundaries)
 
 	pb.insert(first, make_pkt(pool, 1));
 	auto const capacity = pb.capacity();
-	auto const last = packet_buffer::index_type(
-		(first + capacity - 1) & 0xffff);
+	auto const last = packet_buffer::index_type((first + capacity - 1) & 0xffff);
 	pb.insert(last, make_pkt(pool, 2));
 
 	auto const before = packet_buffer::index_type((first - 1) & 0xffff);
