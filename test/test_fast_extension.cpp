@@ -193,6 +193,16 @@ void send_unchoke(tcp::socket& s)
 	if (ec) TEST_ERROR(ec.message());
 }
 
+void send_choke(tcp::socket& s)
+{
+	log("==> choke");
+	char msg[] = "\0\0\0\x01\0";
+	error_code ec;
+	boost::asio::write(s, boost::asio::buffer(msg, 5)
+		, boost::asio::transfer_all(), ec);
+	if (ec) TEST_ERROR(ec.message());
+}
+
 #ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
 void send_interested(tcp::socket& s)
 {
@@ -642,13 +652,14 @@ TORRENT_TEST(allowed_fast_survives_metadata)
 	piece_index_t const invalid_piece = ti->end_piece();
 	std::string bitfield(std::size_t(ti->num_pieces()), '0');
 	bitfield[std::size_t(static_cast<int>(allowed_piece))] = '1';
+	send_bitfield(s, bitfield.c_str());
 	send_allow_fast(s, static_cast<int>(allowed_piece));
 	send_allow_fast(s, static_cast<int>(invalid_piece));
-	send_bitfield(s, bitfield.c_str());
+	send_choke(s);
 
-	if (!wait_for_counter(*ses, "ses.num_incoming_bitfield", 1))
+	if (!wait_for_counter(*ses, "ses.num_incoming_choke", 1))
 	{
-		TEST_ERROR("expected bitfield message");
+		TEST_ERROR("expected choke message");
 		s.close();
 		return;
 	}
@@ -698,13 +709,14 @@ TORRENT_TEST(suggested_piece_survives_metadata)
 	std::string bitfield(std::size_t(ti->num_pieces()), '0');
 	bitfield[0] = '1';
 	bitfield[std::size_t(static_cast<int>(suggested_piece))] = '1';
+	send_bitfield(s, bitfield.c_str());
 	send_suggest_piece(s, static_cast<int>(suggested_piece));
 	send_suggest_piece(s, static_cast<int>(invalid_piece));
-	send_bitfield(s, bitfield.c_str());
+	send_choke(s);
 
-	if (!wait_for_counter(*ses, "ses.num_incoming_bitfield", 1))
+	if (!wait_for_counter(*ses, "ses.num_incoming_choke", 1))
 	{
-		TEST_ERROR("expected bitfield message");
+		TEST_ERROR("expected choke message");
 		s.close();
 		return;
 	}
