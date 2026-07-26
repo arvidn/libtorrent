@@ -23,8 +23,6 @@ see LICENSE file.
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/entry.hpp"
-#include "libtorrent/extensions.hpp"
-#include "libtorrent/peer_connection_handle.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/session.hpp"
@@ -34,7 +32,6 @@ see LICENSE file.
 
 #include <cstring>
 #include <functional>
-#include <future>
 #include <iostream>
 #include <fstream>
 #include <cstdarg>
@@ -45,33 +42,6 @@ using namespace std::placeholders;
 using namespace std::chrono_literals;
 
 namespace {
-
-#ifndef TORRENT_DISABLE_EXTENSIONS
-struct fast_piece_state
-{
-	std::vector<piece_index_t> allowed;
-	std::vector<piece_index_t> suggested;
-};
-
-struct peer_capture final : torrent_plugin
-{
-	std::shared_ptr<peer_plugin> new_connection(peer_connection_handle const& peer) override
-	{
-		m_peer = peer.native_handle();
-		return {};
-	}
-
-	void on_files_checked() override
-	{
-		pieces.set_value(m_peer
-			? fast_piece_state{m_peer->allowed_fast(), m_peer->suggested_pieces()}
-			: fast_piece_state{});
-	}
-
-	std::promise<fast_piece_state> pieces;
-	std::shared_ptr<aux::peer_connection> m_peer;
-};
-#endif
 
 void log(char const* fmt, ...)
 {
@@ -668,8 +638,7 @@ TORRENT_TEST(reject_fast)
 	print_session_log(*ses);
 }
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-TORRENT_TEST(fast_piece_messages_survive_metadata)
+TORRENT_TEST(allowed_fast_survives_metadata)
 {
 	info_hash_t ih;
 	torrent_handle th;
@@ -678,22 +647,73 @@ TORRENT_TEST(fast_piece_messages_survive_metadata)
 	tcp::socket s(ios);
 	auto const ti = setup_peer(s, ios, ih, ses, true, true, false
 		, torrent_flags_t{}, &th);
-	auto const capture = std::make_shared<peer_capture>();
-	auto fast_pieces = capture->pieces.get_future();
-	th.add_extension([capture](torrent_handle const&, client_data_t)
-		{ return capture; });
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);
 
-	piece_index_t const allowed_piece(ti->num_pieces() - 1);
-	piece_index_t const invalid_piece(ti->num_pieces());
+	piece_index_t const allowed_piece = ti->last_piece();
+	piece_index_t const invalid_piece = ti->end_piece();
 	std::string bitfield(std::size_t(ti->num_pieces()), '0');
 	bitfield[std::size_t(static_cast<int>(allowed_piece))] = '1';
 	send_bitfield(s, bitfield.c_str());
 	send_allow_fast(s, static_cast<int>(allowed_piece));
-	send_suggest_piece(s, static_cast<int>(allowed_piece));
 	send_allow_fast(s, static_cast<int>(invalid_piece));
+	send_have(s, 0);
+
+	if (!wait_for_counter(*ses, "ses.num_incoming_have", 1))
+	{
+		TEST_ERROR("expected have message");
+		s.close();
+		return;
+	}
+
+	th.set_metadata(ti->info_section());
+	wait_for_downloading(*ses, "ses");
+	th.piece_priority(allowed_piece, dont_download);
+	th.piece_priority(allowed_piece, default_priority);
+
+	if (!wait_for_counter(*ses, "ses.num_outgoing_request", 1))
+	{
+		TEST_ERROR("expected an allowed-fast request");
+		s.close();
+		return;
+	}
+
+	for (;;)
+	{
+		int const len = read_message(s, recv_buffer);
+		if (len == -1) break;
+		auto const buffer = span<char const>(recv_buffer).first(len);
+		print_message(buffer);
+		if (len != 13 || buffer[0] != 0x6) continue;
+
+		char const* ptr = buffer.data() + 1;
+		TEST_EQUAL(piece_index_t(aux::read_int32(ptr)), allowed_piece);
+		break;
+	}
+	s.close();
+}
+
+TORRENT_TEST(suggested_piece_survives_metadata)
+{
+	info_hash_t ih;
+	torrent_handle th;
+	std::shared_ptr<lt::session> ses;
+	io_context ios;
+	tcp::socket s(ios);
+	auto const ti = setup_peer(s, ios, ih, ses, true, true, false
+		, torrent_flags::sequential_download, &th);
+
+	char recv_buffer[1000];
+	do_handshake(s, ih, recv_buffer);
+
+	piece_index_t const suggested_piece = ti->last_piece();
+	piece_index_t const invalid_piece = ti->end_piece();
+	std::string bitfield(std::size_t(ti->num_pieces()), '0');
+	bitfield[0] = '1';
+	bitfield[std::size_t(static_cast<int>(suggested_piece))] = '1';
+	send_bitfield(s, bitfield.c_str());
+	send_suggest_piece(s, static_cast<int>(suggested_piece));
 	send_suggest_piece(s, static_cast<int>(invalid_piece));
 	send_have(s, 0);
 
@@ -706,20 +726,29 @@ TORRENT_TEST(fast_piece_messages_survive_metadata)
 
 	th.set_metadata(ti->info_section());
 	wait_for_downloading(*ses, "ses");
+	send_unchoke(s);
 
-	if (fast_pieces.wait_for(5s) != std::future_status::ready)
+	if (!wait_for_counter(*ses, "ses.num_outgoing_request", 1))
 	{
-		TEST_ERROR("expected fast piece state");
+		TEST_ERROR("expected a suggested-piece request");
 		s.close();
 		return;
 	}
 
-	auto const pieces = fast_pieces.get();
-	TEST_CHECK(pieces.allowed == std::vector<piece_index_t>{allowed_piece});
-	TEST_CHECK(pieces.suggested == std::vector<piece_index_t>{allowed_piece});
+	for (;;)
+	{
+		int const len = read_message(s, recv_buffer);
+		if (len == -1) break;
+		auto const buffer = span<char const>(recv_buffer).first(len);
+		print_message(buffer);
+		if (len != 13 || buffer[0] != 0x6) continue;
+
+		char const* ptr = buffer.data() + 1;
+		TEST_EQUAL(piece_index_t(aux::read_int32(ptr)), suggested_piece);
+		break;
+	}
 	s.close();
 }
-#endif
 
 #ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
 TORRENT_TEST(reject_predictive_piece_requests)
