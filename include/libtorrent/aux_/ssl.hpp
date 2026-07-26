@@ -119,6 +119,14 @@ using boost::asio::gnutls::error::get_ssl_category;
 using boost::asio::gnutls::error::get_stream_category;
 #endif
 
+// true if ec originated from the SSL/TLS layer, regardless of crypto backend.
+inline bool is_ssl_error(error_code const& ec)
+{
+	if (!ec)
+		return false;
+	string_view const cat = ec.category().name();
+	return cat == get_ssl_category().name() || cat == get_stream_category().name();
+}
 }
 
 inline context_handle_type get_handle(context &c)

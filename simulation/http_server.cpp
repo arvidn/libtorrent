@@ -25,7 +25,7 @@ All rights reserved.
 
 #include <functional>
 #include <cstdio> // for printf
-#include <cstring> // for strcmp
+#include <cstring> // for strchr, memcmp
 
 #if defined TORRENT_USE_OPENSSL
 #include <openssl/ssl.h>
@@ -140,15 +140,7 @@ namespace sim {
 			"..", lt::combine_path("..", lt::combine_path("test", lt::combine_path("ssl", name))));
 	}
 
-	bool is_ssl_error(lt::error_code const& ec)
-	{
-		return ec
-			&& (std::strcmp(ec.category().name(), lt::aux::ssl::error::get_ssl_category().name())
-					== 0
-				|| std::strcmp(
-					   ec.category().name(), lt::aux::ssl::error::get_stream_category().name())
-					== 0);
-	}
+	bool is_ssl_error(lt::error_code const& ec) { return lt::aux::ssl::error::is_ssl_error(ec); }
 
 #if defined TORRENT_USE_OPENSSL
 	void set_verification_time(lt::aux::ssl::context& ctx, std::time_t t)

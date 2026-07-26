@@ -83,9 +83,7 @@ bool on_alert(alert const* a)
 	if (peer_disconnected_alert const* e = alert_cast<peer_disconnected_alert>(a))
 	{
 		++peer_disconnects;
-		string_view const cat = e->error.category().name();
-		if (cat == aux::ssl::error::get_ssl_category().name()
-			|| cat == aux::ssl::error::get_stream_category().name())
+		if (aux::ssl::error::is_ssl_error(e->error))
 			++ssl_peer_disconnects;
 
 		std::printf("--- peer_errors: %d ssl_disconnects: %d\n"
@@ -97,9 +95,7 @@ bool on_alert(alert const* a)
 		++peer_disconnects;
 		++peer_errors;
 
-		string_view const cat = e->error.category().name();
-		if (cat == aux::ssl::error::get_ssl_category().name()
-			|| cat == aux::ssl::error::get_stream_category().name())
+		if (aux::ssl::error::is_ssl_error(e->error))
 			++ssl_peer_disconnects;
 
 		std::printf("--- peer_errors: %d ssl_disconnects: %d\n"
