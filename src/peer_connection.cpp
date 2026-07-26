@@ -716,7 +716,7 @@ namespace {
 		m_have_piece.resize(t->torrent_file().num_pieces(), m_have_all);
 		m_num_pieces = m_have_piece.count();
 
-		piece_index_t const limit(m_num_pieces);
+		piece_index_t const limit = t->torrent_file().end_piece();
 
 		// now that we know how many pieces there are
 		// remove any invalid allowed_fast and suggest pieces

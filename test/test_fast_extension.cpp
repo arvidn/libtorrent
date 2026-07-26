@@ -23,6 +23,8 @@ see LICENSE file.
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/entry.hpp"
+#include "libtorrent/extensions.hpp"
+#include "libtorrent/peer_connection_handle.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/session.hpp"
@@ -32,6 +34,7 @@ see LICENSE file.
 
 #include <cstring>
 #include <functional>
+#include <future>
 #include <iostream>
 #include <fstream>
 #include <cstdarg>
@@ -42,6 +45,26 @@ using namespace std::placeholders;
 using namespace std::chrono_literals;
 
 namespace {
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+struct peer_capture final : torrent_plugin
+{
+	std::shared_ptr<peer_plugin> new_connection(peer_connection_handle const& peer) override
+	{
+		m_peer = peer.native_handle();
+		return {};
+	}
+
+	void on_files_checked() override
+	{
+		allowed_pieces.set_value(m_peer ? m_peer->allowed_fast()
+			: std::vector<piece_index_t>{});
+	}
+
+	std::promise<std::vector<piece_index_t>> allowed_pieces;
+	std::shared_ptr<aux::peer_connection> m_peer;
+};
+#endif
 
 void log(char const* fmt, ...)
 {
@@ -220,6 +243,19 @@ void send_have_none(tcp::socket& s)
 	char msg[] = "\0\0\0\x01\x0f"; // have_none
 	error_code ec;
 	boost::asio::write(s, boost::asio::buffer(msg, 5)
+		, boost::asio::transfer_all(), ec);
+	if (ec) TEST_ERROR(ec.message());
+}
+
+void send_have(tcp::socket& s, int const piece)
+{
+	log("==> have: %d", piece);
+	using namespace lt::aux;
+	char msg[] = "\0\0\0\x05\x04\0\0\0\0";
+	char* ptr = msg + 5;
+	write_int32(piece, ptr);
+	error_code ec;
+	boost::asio::write(s, boost::asio::buffer(msg, 9)
 		, boost::asio::transfer_all(), ec);
 	if (ec) TEST_ERROR(ec.message());
 }
@@ -537,6 +573,7 @@ void post_torrent(lt::session& ses, torrent_handle const& th, Fun fun)
 	auto const tor = th.native_handle();
 	post(ses.native_handle()->get_context(), [tor, fun] { fun(*tor); });
 }
+#endif
 
 bool wait_for_counter(lt::session& ses, char const* name, std::int64_t const value)
 {
@@ -549,7 +586,6 @@ bool wait_for_counter(lt::session& ses, char const* name, std::int64_t const val
 	}
 	return false;
 }
-#endif
 
 } // anonymous namespace
 
@@ -624,6 +660,53 @@ TORRENT_TEST(reject_fast)
 	wait_for_disconnect(*ses, "ses");
 	print_session_log(*ses);
 }
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+TORRENT_TEST(allowed_fast_survives_metadata)
+{
+	info_hash_t ih;
+	torrent_handle th;
+	std::shared_ptr<lt::session> ses;
+	io_context ios;
+	tcp::socket s(ios);
+	auto const ti = setup_peer(s, ios, ih, ses, true, true, false
+		, torrent_flags_t{}, &th);
+	auto const capture = std::make_shared<peer_capture>();
+	auto allowed_pieces = capture->allowed_pieces.get_future();
+	th.add_extension([capture](torrent_handle const&, client_data_t)
+		{ return capture; });
+
+	char recv_buffer[1000];
+	do_handshake(s, ih, recv_buffer);
+
+	piece_index_t const allowed_piece(ti->num_pieces() - 1);
+	std::string bitfield(std::size_t(ti->num_pieces()), '0');
+	bitfield[std::size_t(static_cast<int>(allowed_piece))] = '1';
+	send_bitfield(s, bitfield.c_str());
+	send_allow_fast(s, static_cast<int>(allowed_piece));
+	send_have(s, 0);
+
+	if (!wait_for_counter(*ses, "ses.num_incoming_have", 1))
+	{
+		TEST_ERROR("expected have message");
+		s.close();
+		return;
+	}
+
+	th.set_metadata(ti->info_section());
+	wait_for_downloading(*ses, "ses");
+
+	if (allowed_pieces.wait_for(5s) != std::future_status::ready)
+	{
+		TEST_ERROR("expected allowed-fast state");
+		s.close();
+		return;
+	}
+
+	TEST_CHECK(allowed_pieces.get() == std::vector<piece_index_t>{allowed_piece});
+	s.close();
+}
+#endif
 
 #ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
 TORRENT_TEST(reject_predictive_piece_requests)
