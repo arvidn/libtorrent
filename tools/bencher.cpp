@@ -467,7 +467,7 @@ try
 	// a peer's public key to react to, exported the same way it would
 	// arrive off the wire
 	dh_key_exchange const peer;
-	std::array<char, 96> const peer_key = export_key(peer.get_local_key());
+	auto const& peer_key = peer.get_local_key();
 
 	// shared secret: (peer_pubkey ^ secret) % prime. this modexp is the
 	// operation that dominates the per-connection DH cost, isolated here

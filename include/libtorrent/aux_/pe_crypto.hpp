@@ -35,10 +35,6 @@ namespace libtorrent::aux {
 
 	namespace mp = boost::multiprecision;
 
-	using key_t = mp::number<mp::cpp_int_backend<768, 768, mp::unsigned_magnitude, mp::unchecked, void>>;
-
-	TORRENT_EXTRA_EXPORT std::array<char, 96> export_key(key_t const& k);
-
 	// RC4 state from libtomcrypt. buf holds a permutation of 0-255, stored
 	// widened to 32 bits per entry so every access is a whole-register
 	// load/store.
@@ -54,25 +50,31 @@ namespace libtorrent::aux {
 	public:
 		dh_key_exchange();
 
-		// Get local public key
-		key_t const& get_local_key() const { return m_dh_local_key; }
+		// Get local public key, DH-exported to a fixed-width 96 byte big
+		// endian buffer.
+		std::array<char, 96> const& get_local_key() const { return m_dh_local_key; }
 
 		// read remote_pubkey, generate and store shared secret in
 		// m_dh_shared_secret. Returns false if the remote public key is
 		// degenerate (i.e. outside the range [2, p-2]) and the shared
 		// secret was not computed.
 		bool compute_secret(std::uint8_t const* remote_pubkey);
-		bool compute_secret(key_t const& remote_pubkey);
 
-		key_t const& get_secret() const { return m_dh_shared_secret; }
+		std::array<char, 96> const& get_secret() const { return m_dh_shared_secret; }
 
 		sha1_hash const& get_hash_xor_mask() const { return m_xor_mask; }
 
 	private:
+		using key_t =
+			mp::number<mp::cpp_int_backend<768, 768, mp::unsigned_magnitude, mp::unchecked, void>>;
 
-		key_t m_dh_local_key;
+		static key_t const& dh_prime();
+		static std::array<char, 96> export_key(key_t const& k);
+
 		key_t m_dh_local_secret;
-		key_t m_dh_shared_secret;
+		std::array<char, 96> m_dh_local_key;
+		// only valid after a successful call to compute_secret()
+		std::array<char, 96> m_dh_shared_secret{};
 		sha1_hash m_xor_mask;
 	};
 
