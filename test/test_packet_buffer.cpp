@@ -141,6 +141,37 @@ TORRENT_TEST(wrap)
 	TEST_EQUAL(get_val(pb.at(2)), 2);
 }
 
+TORRENT_TEST(wrap_range_boundaries)
+{
+	packet_pool pool;
+	packet_buffer pb;
+	auto const first = packet_buffer::index_type{0xfffe};
+
+	pb.insert(first, make_pkt(pool, 1));
+	auto const capacity = pb.capacity();
+	auto const last = packet_buffer::index_type((first + capacity - 1) & 0xffff);
+	pb.insert(last, make_pkt(pool, 2));
+
+	auto const before = packet_buffer::index_type((first - 1) & 0xffff);
+	auto const after = packet_buffer::index_type((first + capacity) & 0xffff);
+	auto const out_of_domain = packet_buffer::index_type(first + 0x10000);
+
+	TEST_EQUAL(get_val(pb.at(first)), 1);
+	TEST_EQUAL(get_val(pb.at(last)), 2);
+	TEST_CHECK(pb.at(before) == nullptr);
+	TEST_CHECK(pb.at(after) == nullptr);
+	TEST_CHECK(pb.at(out_of_domain) == nullptr);
+
+	TEST_CHECK(pb.remove(before) == nullptr);
+	TEST_CHECK(pb.remove(after) == nullptr);
+	TEST_CHECK(pb.remove(out_of_domain) == nullptr);
+	TEST_EQUAL(pb.size(), 2);
+	TEST_EQUAL(pb.cursor(), first);
+	TEST_EQUAL(pb.span(), capacity);
+	TEST_EQUAL(get_val(pb.at(first)), 1);
+	TEST_EQUAL(get_val(pb.at(last)), 2);
+}
+
 TORRENT_TEST(wrap2)
 {
 	// test wrapping the indices
