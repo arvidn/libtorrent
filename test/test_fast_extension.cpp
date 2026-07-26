@@ -453,6 +453,7 @@ std::shared_ptr<torrent_info const> setup_peer(tcp::socket& s, io_context& ioc
 	add_torrent_params p = ::create_torrent(file);
 	out_file.close();
 	ih = p.ti->info_hashes();
+	auto const ti = p.ti;
 
 	settings_pack sett = settings();
 	sett.set_str(settings_pack::listen_interfaces, test_listen_interface());
@@ -473,7 +474,10 @@ std::shared_ptr<torrent_info const> setup_peer(tcp::socket& s, io_context& ioc
 	p.flags &= ~torrent_flags::auto_managed;
 	p.flags |= flags;
 	if (magnet_link)
+	{
 		p.info_hashes = ih;
+		p.ti.reset();
+	}
 	p.save_path = "tmp1_fast";
 
 	torrent_handle ret = ses->add_torrent(p);
@@ -484,7 +488,7 @@ std::shared_ptr<torrent_info const> setup_peer(tcp::socket& s, io_context& ioc
 	// for "downloading" here would always time out for it.
 	if (flags & torrent_flags::seed_mode)
 		wait_for_seeding(*ses, "ses");
-	else
+	else if (!magnet_link)
 		wait_for_downloading(*ses, "ses");
 
 	if (incoming)
@@ -508,7 +512,7 @@ std::shared_ptr<torrent_info const> setup_peer(tcp::socket& s, io_context& ioc
 
 	print_session_log(*ses);
 
-	return p.ti;
+	return ti;
 }
 
 // polls get_peer_info() until pred() holds for the (single) connected peer,
