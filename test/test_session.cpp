@@ -374,7 +374,6 @@ namespace {
 
 lt::session_proxy test_move_session(lt::session ses)
 {
-	std::this_thread::sleep_for(lt::milliseconds(100));
 	auto t = ses.get_torrents();
 	return ses.abort();
 }
