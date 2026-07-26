@@ -118,6 +118,21 @@ TORRENT_TEST(wrap)
 	TEST_EQUAL(get_val(pb.at(2)), 2);
 }
 
+TORRENT_TEST(wrap_outside_range)
+{
+	packet_pool pool;
+	packet_buffer pb;
+
+	pb.insert(0xfffe, make_pkt(pool, 1));
+	auto const outside = packet_buffer::index_type(
+		(0xfffe + pb.capacity()) & 0xffff);
+
+	TEST_CHECK(pb.at(outside) == nullptr);
+	TEST_CHECK(pb.remove(outside) == nullptr);
+	TEST_EQUAL(pb.size(), 1);
+	TEST_EQUAL(get_val(pb.at(0xfffe)), 1);
+}
+
 TORRENT_TEST(wrap2)
 {
 	// test wrapping the indices
