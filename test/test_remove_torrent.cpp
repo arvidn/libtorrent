@@ -250,7 +250,7 @@ TORRENT_TEST(remove_auto_managed_torrent)
 
 	// let the auto-manager pick it up and place it in one of the
 	// torrent_lists (downloading/seeding/checking)
-	for (int i = 0; i < 20; ++i)
+	for (int i = 0; i < 20 && h.status().state == torrent_status::checking_resume_data; ++i)
 	{
 		print_alerts(ses, "ses", true, true);
 		std::this_thread::sleep_for(lt::milliseconds(50));

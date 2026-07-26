@@ -511,6 +511,21 @@ std::shared_ptr<torrent_info const> setup_peer(tcp::socket& s, io_context& ioc
 	return p.ti;
 }
 
+// polls get_peer_info() until pred() holds for the (single) connected peer,
+// or times out. Leaves the last-fetched peer_info in pi either way.
+template <typename Fun>
+bool wait_for_peer_info(torrent_handle& th, std::vector<peer_info>& pi, Fun pred)
+{
+	for (int i = 0; i < 50; ++i)
+	{
+		th.get_peer_info(pi);
+		if (pi.size() == 1 && pred(pi[0]))
+			return true;
+		std::this_thread::sleep_for(100ms);
+	}
+	return false;
+}
+
 #ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
 template <typename Fun>
 void post_torrent(lt::session& ses, torrent_handle const& th, Fun fun)
@@ -991,11 +1006,9 @@ TORRENT_TEST(dont_have)
 
 	print_session_log(*ses);
 
-	std::this_thread::sleep_for(lt::milliseconds(1000));
+	wait_for_peer_info(th, pi, [](peer_info const& p) { return !(p.flags & peer_info::seed); });
 
 	print_session_log(*ses);
-
-	th.get_peer_info(pi);
 
 	TEST_EQUAL(pi.size(), 1);
 	if (pi.size() != 1) return;

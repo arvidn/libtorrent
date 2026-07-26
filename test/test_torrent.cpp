@@ -40,6 +40,7 @@ see LICENSE file.
 #include "setup_transfer.hpp"
 
 using namespace lt;
+using namespace std::chrono_literals;
 
 namespace {
 
@@ -766,14 +767,16 @@ TORRENT_TEST(ban_ip_updates_want_peers)
 	// the count to 0 and want_peers_finished() to false
 	tcp::endpoint const peer_addr = ep("1.2.3.4", 6881);
 	h.connect_peer(peer_addr);
-	std::this_thread::sleep_for(lt::milliseconds(100));
+	for (int i = 0; i < 100 && h.status().connect_candidates != 1; ++i)
+		std::this_thread::sleep_for(100ms);
 	TEST_EQUAL(h.status().connect_candidates, 1);
 
 	ip_filter filter;
 	filter.add_rule(peer_addr.address(), peer_addr.address(), ip_filter::blocked);
 	ses.set_ip_filter(filter);
 
-	std::this_thread::sleep_for(lt::milliseconds(200));
+	for (int i = 0; i < 100 && h.status().connect_candidates != 0; ++i)
+		std::this_thread::sleep_for(100ms);
 	TEST_EQUAL(h.status().connect_candidates, 0);
 
 #if TORRENT_USE_INVARIANT_CHECKS
@@ -895,7 +898,9 @@ TORRENT_TEST(redundant_add_piece)
 	h.set_piece_deadline(0_piece, 0, torrent_handle::alert_when_available);
 	h.prioritize_pieces(std::vector<lt::download_priority_t>(std::size_t(num_pieces), lt::dont_download));
 	h.add_piece(0_piece, std::move(piece_data));
-	std::this_thread::sleep_for(lt::seconds(2));
+	// the session destructor below drains and joins the disk threads, so any
+	// crash from the redundant add_piece would still surface without an
+	// extra settle delay here.
 }
 
 TORRENT_TEST(test_in_session)
