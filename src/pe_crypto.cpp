@@ -30,13 +30,17 @@ see LICENSE file.
 
 namespace libtorrent::aux {
 
-	namespace {
+	dh_key_exchange::key_t const& dh_key_exchange::dh_prime()
+	{
 		// TODO: it would be nice to get the literal working
-		key_t const dh_prime
-			("0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A63A36210000000000090563");
+		static key_t const prime(
+			"0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A"
+			"08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A6"
+			"3A36210000000000090563");
+		return prime;
 	}
 
-	std::array<char, 96> export_key(key_t const& k)
+	std::array<char, 96> dh_key_exchange::export_key(key_t const& k)
 	{
 		std::array<char, 96> ret;
 		auto* begin = reinterpret_cast<std::uint8_t*>(ret.data());
@@ -60,9 +64,6 @@ namespace libtorrent::aux {
 		return ret;
 	}
 
-	void rc4_init(const unsigned char* in, std::size_t len, rc4 *state);
-	std::size_t rc4_encrypt(unsigned char *out, std::size_t outlen, rc4 *state);
-
 	// Set the prime P and the generator, generate local public key
 	dh_key_exchange::dh_key_exchange()
 	{
@@ -74,7 +75,8 @@ namespace libtorrent::aux {
 		mp::import_bits(m_dh_local_secret, random_key.begin(), random_key.end());
 
 		// key = (2 ^ secret) % prime
-		m_dh_local_key = mp::powm(key_t(2), m_dh_local_secret, dh_prime);
+		key_t const local_key = mp::powm(key_t(2), m_dh_local_secret, dh_prime());
+		m_dh_local_key = export_key(local_key);
 	}
 
 	// compute shared secret given remote public key
@@ -83,27 +85,26 @@ namespace libtorrent::aux {
 		TORRENT_ASSERT(remote_pubkey);
 		key_t key;
 		mp::import_bits(key, remote_pubkey, remote_pubkey + 96);
-		return compute_secret(key);
-	}
 
-	bool dh_key_exchange::compute_secret(key_t const& remote_pubkey)
-	{
 		// reject degenerate public keys. Any value outside [2, p-2] produces
 		// a shared secret in a small subgroup (0, 1, or +/-1), which
 		// effectively defeats the key exchange and would allow a
 		// man-in-the-middle to fix the shared secret.
-		if (remote_pubkey < key_t(2) || remote_pubkey >= dh_prime - 1) return false;
+		if (key < key_t(2) || key >= dh_prime() - 1)
+			return false;
 
 		// shared_secret = (remote_pubkey ^ local_secret) % prime
-		m_dh_shared_secret = mp::powm(remote_pubkey, m_dh_local_secret, dh_prime);
-
-		std::array<char, 96> const buffer = export_key(m_dh_shared_secret);
+		key_t const secret = mp::powm(key, m_dh_local_secret, dh_prime());
+		m_dh_shared_secret = export_key(secret);
 
 		static char const req3[4] = {'r', 'e', 'q', '3'};
 		// calculate the xor mask for the obfuscated hash
-		m_xor_mask = hasher(req3).update(buffer).final();
+		m_xor_mask = hasher(req3).update(m_dh_shared_secret).final();
 		return true;
 	}
+
+	void rc4_init(const unsigned char* in, std::size_t len, rc4* state);
+	std::size_t rc4_encrypt(unsigned char* out, std::size_t outlen, rc4* state);
 
 	std::tuple<int, span<span<char const>>>
 	encryption_handler::encrypt(
