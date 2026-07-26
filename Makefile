@@ -246,12 +246,14 @@ EXAMPLE_FILES= \
   client_test.cpp \
   cmake/FindLibtorrentRasterbar.cmake \
   connection_tester.cpp \
+  dht_scrape.cpp \
   dump_torrent.cpp \
   dump_bdecode.cpp \
   magnet2torrent.cpp \
   make_torrent.cpp \
   print.cpp \
   print.hpp \
+  rename_torrents.cpp \
   session_view.cpp \
   session_view.hpp \
   simple_client.cpp \

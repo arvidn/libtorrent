@@ -42,6 +42,7 @@ jobs:
           sudo apt install python3-docutils python3-pygments python3-pil gsfonts inkscape icoutils graphviz hunspell imagemagick rsync
           sudo apt install libboost-tools-dev libboost-python-dev libboost-dev libboost-system-dev libboost-json-dev python3-setuptools
           python3 -m pip install aafigure
+          python3 -m pip install websockets
           echo "using gcc ;" >>~/user-config.jam
 
       - name: verify version matches tag
@@ -84,6 +85,11 @@ jobs:
       - name: test-tarball (b2 build tools)
         run: |
           cd libtorrent-rasterbar-*/tools
+          b2
+
+      - name: test-tarball (b2 build examples)
+        run: |
+          cd libtorrent-rasterbar-*/examples
           b2
 
       - name: test-tarball (python bindings)
