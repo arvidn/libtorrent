@@ -18,6 +18,20 @@ namespace aux {
 	bool compare_less_wrap(std::uint32_t lhs, std::uint32_t rhs
 		, std::uint32_t mask);
 
+	namespace {
+
+		constexpr packet_buffer::index_type index_mask = 0xffff;
+
+		bool is_in_range(packet_buffer::index_type const idx
+			, packet_buffer::index_type const first
+			, packet_buffer::index_type const capacity)
+		{
+			if (idx > index_mask) return false;
+			return ((idx - first) & index_mask) < capacity;
+		}
+
+	}
+
 #if TORRENT_USE_INVARIANT_CHECKS
 	void packet_buffer::check_invariant() const
 	{
@@ -100,11 +114,7 @@ namespace aux {
 	packet* packet_buffer::at(index_type idx) const
 	{
 		INVARIANT_CHECK;
-		if (idx >= m_first + m_capacity)
-			return nullptr;
-
-		if (compare_less_wrap(idx, m_first, 0xffff))
-			return nullptr;
+		if (!is_in_range(idx, m_first, m_capacity)) return nullptr;
 
 		std::size_t const mask = m_capacity - 1;
 		return m_storage[idx & mask].get();
@@ -131,12 +141,7 @@ namespace aux {
 	packet_ptr packet_buffer::remove(index_type idx)
 	{
 		INVARIANT_CHECK;
-		// TODO: use compare_less_wrap for this comparison as well
-		if (idx >= m_first + m_capacity)
-			return {};
-
-		if (compare_less_wrap(idx, m_first, 0xffff))
-			return {};
+		if (!is_in_range(idx, m_first, m_capacity)) return {};
 
 		std::size_t const mask = m_capacity - 1;
 		packet_ptr old_value = std::move(m_storage[idx & mask]);
