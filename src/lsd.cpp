@@ -152,6 +152,9 @@ void lsd::announce_impl(sha1_hash const& ih, int const listen_port
 			, listen_port, m_listen_address.to_string().c_str());
 #endif
 
+		if (msg_len < 0)
+			return;
+
 		m_socket.send_to(boost::asio::buffer(msg, static_cast<std::size_t>(msg_len))
 			, to, {}, ec);
 		if (ec)

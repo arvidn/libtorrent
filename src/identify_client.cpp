@@ -316,10 +316,14 @@ namespace {
 		int num_chars = std::snprintf(identity, sizeof(identity), "%s %d.%d.%d", name
 			, f.major_version, f.minor_version, f.revision_version);
 
-		if (f.tag_version != 0)
+		if (f.tag_version != 0 && num_chars > 0 && num_chars < int(sizeof(identity)))
 		{
 			std::snprintf(identity + num_chars, sizeof(identity) - aux::numeric_cast<std::size_t>(num_chars)
 				, ".%d", f.tag_version);
+		}
+		else if (num_chars < 0)
+		{
+			identity[0] = '\0';
 		}
 
 		return identity;

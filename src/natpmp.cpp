@@ -796,15 +796,21 @@ void natpmp::on_reply(error_code const& e
 	if (m == nullptr)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		snprintf(msg + num_chars, sizeof(msg) - aux::numeric_cast<std::size_t>(num_chars), " not found in map table");
-		log("%s", msg);
+		if (num_chars > 0 && num_chars < int(sizeof(msg)))
+		{
+			std::snprintf(msg + num_chars,
+				sizeof(msg) - aux::numeric_cast<std::size_t>(num_chars),
+				" not found in map table");
+			log("%s", msg);
+		}
 #endif
 		return;
 	}
 	m->outstanding_request = false;
 
 #ifndef TORRENT_DISABLE_LOGGING
-	log("%s", msg);
+	if (num_chars > 0)
+		log("%s", msg);
 #endif
 
 	if (public_port == 0 || lifetime == 0)
