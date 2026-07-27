@@ -36,7 +36,6 @@ see LICENSE file.
 #include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/address.hpp"
 #include "libtorrent/aux_/array.hpp"
-#include "libtorrent/ip_filter.hpp"
 
 using namespace std::placeholders;
 
@@ -601,12 +600,8 @@ routing_table::add_node_status_t routing_table::add_node_impl(node_entry e)
 	if (!native_endpoint(e.ep()))
 		return failed_to_add;
 
-	if (m_log != nullptr && m_settings.get_bool(settings_pack::apply_filter_to_dht))
-	{
-		ip_filter const* filter = m_log->get_dht_ip_filter();
-		if (filter && filter->access(e.addr()) == ip_filter::blocked)
-			return failed_to_add;
-	}
+	if (dht_ip_filtered(m_log, m_settings, e.addr()))
+		return failed_to_add;
 
 	// if we already have this (IP,port), don't do anything
 	if (m_router_nodes.find(e.ep()) != m_router_nodes.end())

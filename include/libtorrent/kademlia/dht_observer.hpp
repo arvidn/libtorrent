@@ -17,15 +17,16 @@ see LICENSE file.
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/kademlia/msg.hpp"
 #include "libtorrent/aux_/session_udp_sockets.hpp" // for transport
+#include "libtorrent/ip_filter.hpp"
+#include "libtorrent/settings_pack.hpp"
 
 namespace libtorrent {
 
-struct entry;
-struct ip_filter;
+	struct entry;
 
-namespace aux {
-struct listen_socket_handle;
-}
+	namespace aux {
+		struct listen_socket_handle;
+	}
 
 namespace dht {
 
@@ -75,6 +76,18 @@ namespace dht {
 	protected:
 		~dht_observer() = default;
 	};
+
+	// true if the session's DHT IP filter is enabled and blocks addr. obs may
+	// be nullptr (a node may have no observer), in which case addr is never
+	// blocked.
+	inline bool dht_ip_filtered(
+		dht_observer const* obs, settings_interface const& sett, address const& addr)
+	{
+		if (obs == nullptr || !sett.get_bool(settings_pack::apply_filter_to_dht))
+			return false;
+		ip_filter const* filter = obs->get_dht_ip_filter();
+		return filter != nullptr && filter->access(addr) == ip_filter::blocked;
+	}
 }
 }
 

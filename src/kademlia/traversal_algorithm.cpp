@@ -20,7 +20,6 @@ see LICENSE file.
 #include <libtorrent/aux_/socket_io.hpp> // for read_*_endpoint
 #include <libtorrent/alert_types.hpp> // for dht_lookup
 #include <libtorrent/aux_/time.hpp>
-#include <libtorrent/ip_filter.hpp>
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include <libtorrent/hex.hpp> // to_hex
@@ -291,13 +290,8 @@ void traversal_algorithm::traverse(node_id const& id, udp::endpoint const& addr)
 	// let the routing table know this node may exist
 	m_node.m_table.heard_about(id, addr);
 
-	if (m_node.observer() != nullptr
-		&& m_node.settings().get_bool(settings_pack::apply_filter_to_dht))
-	{
-		ip_filter const* filter = m_node.observer()->get_dht_ip_filter();
-		if (filter && filter->access(addr.address()) == ip_filter::blocked)
-			return;
-	}
+	if (dht_ip_filtered(m_node.observer(), m_node.settings(), addr.address()))
+		return;
 
 	add_entry(id, addr, {});
 }

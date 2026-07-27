@@ -28,7 +28,6 @@ see LICENSE file.
 #include <libtorrent/aux_/time.hpp>
 #include <libtorrent/session_status.hpp>
 #include <libtorrent/aux_/ip_helpers.hpp> // for is_v6
-#include <libtorrent/ip_filter.hpp>
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include <libtorrent/hex.hpp> // to_hex
@@ -510,14 +509,10 @@ namespace libtorrent::dht {
 			}
 		}
 
-		if (m_settings.get_bool(settings_pack::apply_filter_to_dht))
+		if (dht_ip_filtered(m_log, m_settings, ep.address()))
 		{
-			ip_filter const* filter = m_log->get_dht_ip_filter();
-			if (filter && filter->access(ep.address()) == ip_filter::blocked)
-			{
-				m_counters.inc_stats_counter(counters::dht_messages_in_dropped);
-				return true;
-			}
+			m_counters.inc_stats_counter(counters::dht_messages_in_dropped);
+			return true;
 		}
 
 		if (!m_blocker.incoming(ep.address(), clock_type::now(), m_log))
