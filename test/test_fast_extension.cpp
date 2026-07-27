@@ -147,6 +147,21 @@ void print_message(span<char const> buffer)
 	log("<== %s %s", message.str().c_str(), extra);
 }
 
+piece_index_t read_request_piece(tcp::socket& s, span<char> buffer)
+{
+	for (;;)
+	{
+		int const len = read_message(s, buffer);
+		if (len == -1) return piece_index_t(-1);
+		auto const message = buffer.first(len);
+		print_message(message);
+		if (len != 13 || message[0] != 0x6) continue;
+
+		char const* ptr = message.data() + 1;
+		return piece_index_t(aux::read_int32(ptr));
+	}
+}
+
 void send_allow_fast(tcp::socket& s, int piece)
 {
 	log("==> allow fast: %d", piece);
@@ -674,18 +689,7 @@ TORRENT_TEST(allowed_fast_survives_metadata)
 		return;
 	}
 
-	for (;;)
-	{
-		int const len = read_message(s, recv_buffer);
-		if (len == -1) break;
-		auto const buffer = span<char const>(recv_buffer).first(len);
-		print_message(buffer);
-		if (len != 13 || buffer[0] != 0x6) continue;
-
-		char const* ptr = buffer.data() + 1;
-		TEST_EQUAL(piece_index_t(aux::read_int32(ptr)), allowed_piece);
-		break;
-	}
+	TEST_EQUAL(read_request_piece(s, recv_buffer), allowed_piece);
 	s.close();
 }
 
@@ -728,18 +732,7 @@ TORRENT_TEST(suggested_piece_survives_metadata)
 		return;
 	}
 
-	for (;;)
-	{
-		int const len = read_message(s, recv_buffer);
-		if (len == -1) break;
-		auto const buffer = span<char const>(recv_buffer).first(len);
-		print_message(buffer);
-		if (len != 13 || buffer[0] != 0x6) continue;
-
-		char const* ptr = buffer.data() + 1;
-		TEST_EQUAL(piece_index_t(aux::read_int32(ptr)), suggested_piece);
-		break;
-	}
+	TEST_EQUAL(read_request_piece(s, recv_buffer), suggested_piece);
 	s.close();
 }
 
