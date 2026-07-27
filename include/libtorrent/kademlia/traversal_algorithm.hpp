@@ -57,6 +57,12 @@ struct TORRENT_EXTRA_EXPORT traversal_algorithm
 	void resort_result(observer*);
 	void add_entry(node_id const& id, udp::endpoint const& addr, observer_flags_t flags);
 
+	// returns true if addr is blocked by the DHT IP filter, i.e.
+	// settings_pack::apply_filter_to_dht is enabled and the observer's IP
+	// filter blocks it. add_entry() does not perform this check itself;
+	// callers are expected to have filtered addr first
+	bool filtered(udp::endpoint const& addr) const;
+
 	traversal_algorithm(node& dht_node, node_id const& target);
 	traversal_algorithm(traversal_algorithm const&) = delete;
 	traversal_algorithm& operator=(traversal_algorithm const&) = delete;

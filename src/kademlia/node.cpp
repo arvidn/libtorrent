@@ -37,6 +37,7 @@ see LICENSE file.
 #include "libtorrent/alert_types.hpp" // for dht_lookup
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/aux_/ip_helpers.hpp" // for is_v4
+#include "libtorrent/ip_filter.hpp"
 
 #include "libtorrent/kademlia/node.hpp"
 #include "libtorrent/kademlia/dht_observer.hpp"
@@ -211,6 +212,11 @@ void node::bootstrap(std::vector<udp::endpoint> const& nodes
 
 	for (auto const& n : nodes)
 	{
+		// these come from persisted dht_state (or session config), so, unlike
+		// nodes discovered via traverse(), they have not been filtered yet
+		if (r->filtered(n))
+			continue;
+
 #ifndef TORRENT_DISABLE_LOGGING
 		++count;
 #endif
@@ -400,6 +406,14 @@ void node::add_router_node(udp::endpoint const& router)
 void node::add_node(udp::endpoint const& node)
 {
 	if (!native_address(node)) return;
+
+	if (m_observer != nullptr && m_settings.get_bool(settings_pack::apply_filter_to_dht))
+	{
+		ip_filter const* filter = m_observer->get_dht_ip_filter();
+		if (filter && filter->access(node.address()) == ip_filter::blocked)
+			return;
+	}
+
 	// ping the node, and if we get a reply, it
 	// will be added to the routing table
 	send_single_refresh(node, m_table.num_active_buckets());

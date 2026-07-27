@@ -288,18 +288,23 @@ void traversal_algorithm::traverse(node_id const& id, udp::endpoint const& addr)
 	}
 #endif
 
+	if (filtered(addr))
+		return;
+
 	// let the routing table know this node may exist
 	m_node.m_table.heard_about(id, addr);
 
-	if (m_node.observer() != nullptr
-		&& m_node.settings().get_bool(settings_pack::apply_filter_to_dht))
-	{
-		ip_filter const* filter = m_node.observer()->get_dht_ip_filter();
-		if (filter && filter->access(addr.address()) == ip_filter::blocked)
-			return;
-	}
-
 	add_entry(id, addr, {});
+}
+
+bool traversal_algorithm::filtered(udp::endpoint const& addr) const
+{
+	if (m_node.observer() == nullptr)
+		return false;
+	if (!m_node.settings().get_bool(settings_pack::apply_filter_to_dht))
+		return false;
+	ip_filter const* filter = m_node.observer()->get_dht_ip_filter();
+	return filter != nullptr && filter->access(addr.address()) == ip_filter::blocked;
 }
 
 void traversal_algorithm::finished(observer_ptr o)
@@ -574,6 +579,9 @@ void traversal_algorithm::add_router_entries()
 			, m_id, int(std::distance(m_node.m_table.begin(), m_node.m_table.end())));
 	}
 #endif
+	// router nodes are explicitly configured, trusted bootstrap endpoints;
+	// like add_router_node(), they are intentionally exempt from the DHT IP
+	// filter
 	for (auto const& n : m_node.m_table)
 		add_entry(node_id(), n, observer::flag_initial);
 }

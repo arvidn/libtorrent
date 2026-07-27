@@ -414,7 +414,8 @@ namespace aux { struct torrent; }
 		// those nodes will be used as backups. Nodes in the router node list
 		// will also never be added to the regular routing table, which
 		// effectively means they are only used for bootstrapping, to keep the
-		// load off them.
+		// load off them. Router nodes are trusted bootstrap endpoints, and as
+		// such are not subject to the ``ip_filter``.
 		//
 		// An example routing node that you could typically add is
 		// ``router.bittorrent.com``.
@@ -523,6 +524,8 @@ namespace aux { struct torrent; }
 		// with the response (if any) and the userdata pointer passed in here.
 		// Since this alert is a response to an explicit call, it will always be
 		// posted, regardless of the alert mask.
+		// Note that this request is not subject to the IP filter; ``ep`` is
+		// queried even if it is blocked by the current ``ip_filter``.
 		void dht_direct_request(udp::endpoint const& ep, entry const& e, client_data_t userdata = {});
 
 #if TORRENT_ABI_VERSION == 1
