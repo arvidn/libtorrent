@@ -152,10 +152,12 @@ piece_index_t read_request_piece(tcp::socket& s, span<char> buffer)
 	for (;;)
 	{
 		int const len = read_message(s, buffer);
-		if (len == -1) return piece_index_t(-1);
+		if (len == -1)
+			return piece_index_t(-1);
 		auto const message = buffer.first(len);
 		print_message(message);
-		if (len != 13 || message[0] != 0x6) continue;
+		if (len != 13 || message[0] != 0x6)
+			continue;
 
 		char const* ptr = message.data() + 1;
 		return piece_index_t(aux::read_int32(ptr));
@@ -213,9 +215,9 @@ void send_choke(tcp::socket& s)
 	log("==> choke");
 	char msg[] = "\0\0\0\x01\0";
 	error_code ec;
-	boost::asio::write(s, boost::asio::buffer(msg, 5)
-		, boost::asio::transfer_all(), ec);
-	if (ec) TEST_ERROR(ec.message());
+	boost::asio::write(s, boost::asio::buffer(msg, 5), boost::asio::transfer_all(), ec);
+	if (ec)
+		TEST_ERROR(ec.message());
 }
 
 #ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
@@ -277,7 +279,7 @@ void send_bitfield(tcp::socket& s, char const* bits)
 	log("==> bitfield [%s]", bits);
 	for (int i = 0; i < num_pieces; ++i)
 	{
-		ptr[i/8] |= (bits[i] == '1' ? 1 : 0) << (7 - i % 8);
+		ptr[i / 8] |= (bits[i] == '1' ? 1 : 0) << (7 - i % 8);
 	}
 	error_code ec;
 	boost::asio::write(s, boost::asio::buffer(msg.data(), std::size_t(msg.size()))
@@ -657,8 +659,7 @@ TORRENT_TEST(allowed_fast_survives_metadata)
 	std::shared_ptr<lt::session> ses;
 	io_context ios;
 	tcp::socket s(ios);
-	auto const ti = setup_peer(s, ios, ih, ses, true, true, false
-		, torrent_flags_t{}, &th);
+	auto const ti = setup_peer(s, ios, ih, ses, true, true, false, torrent_flags_t{}, &th);
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);
@@ -700,8 +701,8 @@ TORRENT_TEST(suggested_piece_survives_metadata)
 	std::shared_ptr<lt::session> ses;
 	io_context ios;
 	tcp::socket s(ios);
-	auto const ti = setup_peer(s, ios, ih, ses, true, true, false
-		, torrent_flags::sequential_download, &th);
+	auto const ti =
+		setup_peer(s, ios, ih, ses, true, true, false, torrent_flags::sequential_download, &th);
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);
