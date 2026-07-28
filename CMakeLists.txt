@@ -616,7 +616,6 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES GNU)
 		-Wpedantic
 		-Wvla
 		-Wno-c++11-compat
-		-Wno-format-zero-length
 		-Wno-noexcept-type
 		-ftemplate-depth=512
 	)

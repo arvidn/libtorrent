@@ -548,7 +548,14 @@ namespace {
 	void peer_connection::peer_log(peer_log_alert::direction_t direction
 		, peer_log_alert::event_t const event) const noexcept
 	{
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-zero-length"
+#endif
 		peer_log(direction, event, "");
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 	}
 
 	TORRENT_FORMAT(4,5)
@@ -4287,7 +4294,7 @@ namespace {
 				&& !is_connecting()
 				&& aux::time_now() - connected_time() < seconds(15))
 			{
-				peer_log(peer_log_alert::info, peer_log_alert::short_lived_disconnect, "");
+				peer_log(peer_log_alert::info, peer_log_alert::short_lived_disconnect);
 			}
 		}
 		catch (std::exception const& err)
@@ -5277,7 +5284,7 @@ namespace {
 		{
 			// can this happen here?
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, peer_log_alert::torrent_aborted, "");
+			peer_log(peer_log_alert::info, peer_log_alert::torrent_aborted);
 #endif
 			for (peer_request const& r : m_requests)
 				write_reject_request(r);
