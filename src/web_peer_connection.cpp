@@ -1040,8 +1040,10 @@ void web_peer_connection::on_receive(error_code const& error
 				// parse_chunk_header() reports a malformed chunk header by
 				// setting chunk_size to a negative value, and it accepts sizes
 				// all the way up to int64 max, which don't fit in m_chunk_pos.
-				// http_parser::incoming() applies the same check to the chunk
-				// headers it parses itself
+				// http_parser::incoming() guards its own (int64) running total
+				// against a similar overflow, but that doesn't protect this
+				// (int) m_chunk_pos, so check it here too.
+				TORRENT_ASSERT(m_chunk_pos == 0);
 				if (chunk_size < 0 || chunk_size > std::numeric_limits<int>::max() - m_chunk_pos)
 				{
 					received_bytes(0, int(recv_buffer.size()));
