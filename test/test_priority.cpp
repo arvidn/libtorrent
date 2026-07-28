@@ -42,7 +42,8 @@ int peer_disconnects = 0;
 bool on_alert(alert const* a)
 {
 	auto const* const pd = alert_cast<peer_disconnected_alert>(a);
-	if (pd && pd->error != make_error_code(errors::self_connection))
+	if (pd && pd->error != make_error_code(errors::self_connection)
+		&& pd->error != make_error_code(errors::duplicate_peer_id))
 		++peer_disconnects;
 	else if (alert_cast<peer_error_alert>(a))
 		++peer_disconnects;
