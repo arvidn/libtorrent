@@ -26,8 +26,7 @@ namespace aux {
 			packet_buffer::index_type const first,
 			packet_buffer::index_type const capacity)
 		{
-			if (idx > index_mask)
-				return false;
+			TORRENT_ASSERT_VAL(idx <= index_mask, idx);
 			return ((idx - first) & index_mask) < capacity;
 		}
 
@@ -45,6 +44,38 @@ namespace aux {
 	}
 #endif
 
+	void packet_buffer::grow_to_include(index_type idx)
+	{
+		if (compare_less_wrap(idx, m_first, 0xffff))
+		{
+			// Index comes before m_first. If we have room, we can simply
+			// adjust m_first backward.
+
+			std::uint32_t free_space = 0;
+
+			for (index_type i = (m_first - 1) & (m_capacity - 1); i != (m_first & (m_capacity - 1));
+				 i = (i - 1) & (m_capacity - 1))
+			{
+				if (m_storage[i & (m_capacity - 1)])
+					break;
+				++free_space;
+			}
+
+			if (((m_first - idx) & 0xffff) > free_space)
+				reserve(((m_first - idx) & 0xffff) + m_capacity - free_space);
+
+			m_first = idx;
+		}
+		else
+		{
+			// idx is beyond the current window; grow forward to include it.
+			// (idx - m_first) & 0xffff is the wrapped distance to idx, which
+			// stays correct even once m_first + m_capacity overflows past
+			// 0xffff.
+			reserve(((idx - m_first) & 0xffff) + 1);
+		}
+	}
+
 	packet_ptr packet_buffer::insert(index_type idx, packet_ptr value)
 	{
 		INVARIANT_CHECK;
@@ -57,38 +88,8 @@ namespace aux {
 
 		if (m_size != 0)
 		{
-			if (compare_less_wrap(idx, m_first, 0xffff))
-			{
-				// Index comes before m_first. If we have room, we can simply
-				// adjust m_first backward.
-
-				std::uint32_t free_space = 0;
-
-				for (index_type i = (m_first - 1) & (m_capacity - 1);
-						i != (m_first & (m_capacity - 1)); i = (i - 1) & (m_capacity - 1))
-				{
-					if (m_storage[i & (m_capacity - 1)])
-						break;
-					++free_space;
-				}
-
-				if (((m_first - idx) & 0xffff) > free_space)
-					reserve(((m_first - idx) & 0xffff) + m_capacity - free_space);
-
-				m_first = idx;
-			}
-			else if (idx >= m_first + m_capacity)
-			{
-				reserve(idx - m_first + 1);
-			}
-			else if (idx < m_first)
-			{
-				// We have wrapped.
-				if (idx >= ((m_first + m_capacity) & 0xffff) && m_capacity < 0xffff)
-				{
-					reserve(m_capacity + (idx + 1 - ((m_first + m_capacity) & 0xffff)));
-				}
-			}
+			if (!is_in_range(idx, m_first, m_capacity))
+				grow_to_include(idx);
 			if (compare_less_wrap(m_last, (idx + 1) & 0xffff, 0xffff))
 				m_last = (idx + 1) & 0xffff;
 		}

@@ -54,6 +54,8 @@ namespace aux {
 	class TORRENT_EXTRA_EXPORT packet_buffer
 	{
 	public:
+		// valid values are in the range [0, 0xffff]; this wraps at 0x10000,
+		// matching the 16-bit sequence number space used by the wire protocol
 		using index_type = std::uint32_t;
 
 		packet_ptr insert(index_type idx, packet_ptr value);
@@ -80,6 +82,10 @@ namespace aux {
 #endif
 
 	private:
+		// grows the buffer and/or shifts m_first backward so idx falls
+		// within the valid window
+		void grow_to_include(index_type idx);
+
 		aux::unique_ptr<packet_ptr[], index_type> m_storage;
 		std::uint32_t m_capacity = 0;
 
