@@ -77,12 +77,12 @@ see LICENSE file.
 #include <algorithm>
 #include <vector>
 #include <set>
+#include <map>
 #include <list>
 #include <deque>
 #include <condition_variable>
 #include <mutex>
 #include <cstdarg> // for va_start, va_end
-#include <unordered_map>
 
 namespace libtorrent {
 
@@ -435,6 +435,9 @@ namespace aux {
 				, std::weak_ptr<tcp::acceptor>, transport);
 
 			void incoming_connection(socket_type);
+			std::int64_t num_connections_with_pending() const;
+			void reject_incoming_connection(
+				tcp::endpoint const& endp, socket_type_t socket_type, std::int64_t limit);
 
 			std::weak_ptr<torrent> find_torrent(info_hash_t const&) const override;
 #if TORRENT_ABI_VERSION == 1
@@ -1016,11 +1019,12 @@ namespace aux {
 			connection_map m_connections;
 
 #ifdef TORRENT_SSL_PEERS
-			// this list holds incoming connections while they
+			// this map holds incoming connections while they
 			// are performing SSL handshake. When we shut down
 			// the session, all of these are disconnected, otherwise
 			// they would linger and stall or hang session shutdown
-			std::set<std::unique_ptr<socket_type>, unique_ptr_less> m_incoming_sockets;
+			std::map<std::unique_ptr<socket_type>, std::shared_ptr<deadline_timer>, unique_ptr_less>
+				m_incoming_sockets;
 #endif
 
 			// maps IP ranges to bitfields representing peer class IDs
@@ -1082,7 +1086,11 @@ namespace aux {
 #endif
 #ifdef TORRENT_SSL_PEERS
 			void on_incoming_utp_ssl(socket_type s);
+			bool can_accept_peer() const;
+			void arm_ssl_handshake_timer(
+				socket_type* s, std::shared_ptr<deadline_timer> const& timer);
 			void ssl_handshake(error_code const& ec, socket_type* s);
+			void ssl_handshake_timeout(error_code const& ec, socket_type* s);
 #endif
 
 			// round-robin index into m_outgoing_interfaces
