@@ -19,7 +19,9 @@ see LICENSE file.
 namespace libtorrent {
 namespace aux {
 
+	TORRENT_EXTRA_EXPORT address normalize_address(address const& a);
 	TORRENT_EXTRA_EXPORT bool is_global(address const& a);
+	TORRENT_EXTRA_EXPORT bool is_loopback(address const& a);
 	TORRENT_EXTRA_EXPORT bool is_local(address const& a);
 	TORRENT_EXTRA_EXPORT bool is_link_local(address const& addr);
 	TORRENT_EXTRA_EXPORT bool is_teredo(address const& addr);
