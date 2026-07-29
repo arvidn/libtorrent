@@ -35,6 +35,7 @@ see LICENSE file.
 #include "libtorrent/aux_/string_util.hpp" // for is_i2p_url
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/aux_/resolver_interface.hpp"
+#include "libtorrent/aux_/ip_helpers.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/aux_/parse_url.hpp"
 #include "libtorrent/aux_/array.hpp"
@@ -60,7 +61,7 @@ namespace libtorrent::aux {
 		// go through on_filter() again).
 		bool ssrf_blocks(bool const ssrf_mitigation, address const& addr, string_view const path)
 		{
-			return ssrf_mitigation && addr.is_loopback() && path.substr(0, 9) != "/announce";
+			return ssrf_mitigation && aux::is_loopback(addr) && path.substr(0, 9) != "/announce";
 		}
 	}
 
@@ -590,8 +591,11 @@ namespace libtorrent::aux {
 
 		aux::session_settings const& settings = m_man.settings();
 		bool const ssrf_mitigation = settings.get_bool(settings_pack::ssrf_mitigation);
-		if (ssrf_mitigation && std::find_if(endpoints.begin(), endpoints.end()
-			, [](tcp::endpoint const& ep) { return ep.address().is_loopback(); }) != endpoints.end())
+		if (ssrf_mitigation
+			&& std::find_if(endpoints.begin(),
+				   endpoints.end(),
+				   [](tcp::endpoint const& ep) { return aux::is_loopback(ep.address()); })
+				!= endpoints.end())
 		{
 			// there is at least one loopback address in here. Parse the path
 			// once and remove any endpoint ssrf_blocks() rejects for it (see

@@ -19,6 +19,22 @@ see LICENSE file.
 using namespace lt;
 using namespace lt::aux;
 
+TORRENT_TEST(normalize_address)
+{
+	TEST_CHECK(normalize_address(make_address("::ffff:127.0.0.1")) == make_address("127.0.0.1"));
+	TEST_CHECK(
+		normalize_address(make_address("::ffff:192.168.0.1")) == make_address("192.168.0.1"));
+	TEST_CHECK(normalize_address(make_address("2001:db8::1")) == make_address("2001:db8::1"));
+}
+
+TORRENT_TEST(is_loopback)
+{
+	TEST_CHECK(is_loopback(make_address("127.0.0.1")));
+	TEST_CHECK(is_loopback(make_address("::1")));
+	TEST_CHECK(is_loopback(make_address("::ffff:127.0.0.1")));
+	TEST_CHECK(!is_loopback(make_address("::ffff:192.168.0.1")));
+}
+
 TORRENT_TEST(is_local)
 {
 	error_code ec;
@@ -31,6 +47,12 @@ TORRENT_TEST(is_local)
 	TEST_CHECK(is_local(make_address("100.127.255.255", ec)));
 	TEST_CHECK(!ec);
 	TEST_CHECK(!is_local(make_address("14.14.251.63", ec)));
+	TEST_CHECK(!ec);
+	TEST_CHECK(is_local(make_address("::ffff:127.0.0.1", ec)));
+	TEST_CHECK(!ec);
+	TEST_CHECK(is_local(make_address("::ffff:192.168.0.1", ec)));
+	TEST_CHECK(!ec);
+	TEST_CHECK(!is_local(make_address("::ffff:14.14.251.63", ec)));
 	TEST_CHECK(!ec);
 }
 

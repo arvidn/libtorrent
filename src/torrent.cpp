@@ -6988,10 +6988,13 @@ namespace {
 			return;
 		}
 
+		bool const is_ip = aux::is_ip_address(hostname);
+		if (is_ip)
+			a.address(make_address(hostname, ec));
+
 		// The SSRF mitigation for web seeds is that any HTTP server on the
 		// local network may not use any query string parameters
-		if (settings().get_bool(settings_pack::ssrf_mitigation)
-			&& aux::is_local(web->peer_info.addr)
+		if (settings().get_bool(settings_pack::ssrf_mitigation) && aux::is_local(a.address())
 			&& path.find('?') != std::string::npos)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -7012,8 +7015,6 @@ namespace {
 			return;
 		}
 
-		bool const is_ip = aux::is_ip_address(hostname);
-		if (is_ip) a.address(make_address(hostname, ec));
 		bool const proxy_hostnames = settings().get_bool(settings_pack::proxy_hostnames)
 			&& !is_ip;
 
