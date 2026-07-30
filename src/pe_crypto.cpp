@@ -105,6 +105,24 @@ namespace libtorrent::aux {
 		return shared_ctx.get();
 	}
 
+	::BN_MONT_CTX* dh_key_exchange::mont()
+	{
+		auto make_mont = [] {
+			std::unique_ptr<::BN_MONT_CTX, void (*)(::BN_MONT_CTX*)> ret(
+				BN_MONT_CTX_new(), &BN_MONT_CTX_free);
+			if (!ret || !BN_MONT_CTX_set(ret.get(), dh_prime().get(), ctx()))
+				aux::throw_ex<system_error>(errors::no_memory);
+			return ret;
+		};
+#ifdef BOOST_NO_CXX11_THREAD_LOCAL
+		static std::unique_ptr<::BN_MONT_CTX, void (*)(::BN_MONT_CTX*)> shared_mont = make_mont();
+#else
+		thread_local static std::unique_ptr<::BN_MONT_CTX, void (*)(::BN_MONT_CTX*)> shared_mont
+			= make_mont();
+#endif
+		return shared_mont.get();
+	}
+
 	std::array<char, 96> dh_key_exchange::export_key(key_t const& k)
 	{
 		std::array<char, 96> ret;
@@ -139,8 +157,8 @@ namespace libtorrent::aux {
 #ifdef BOOST_NO_CXX11_THREAD_LOCAL
 			std::lock_guard<std::mutex> l(g_bn_ctx_mutex);
 #endif
-			if (!BN_mod_exp(
-					local_key.get(), two().get(), m_dh_local_secret.get(), dh_prime().get(), ctx()))
+			if (!BN_mod_exp_mont(local_key.get(), two().get(), m_dh_local_secret.get(),
+					dh_prime().get(), ctx(), mont()))
 				aux::throw_ex<system_error>(errors::no_memory);
 		}
 		m_dh_local_key = export_key(local_key);
@@ -167,8 +185,8 @@ namespace libtorrent::aux {
 #ifdef BOOST_NO_CXX11_THREAD_LOCAL
 			std::lock_guard<std::mutex> l(g_bn_ctx_mutex);
 #endif
-			if (!BN_mod_exp(
-					secret.get(), key.get(), m_dh_local_secret.get(), dh_prime().get(), ctx()))
+			if (!BN_mod_exp_mont(secret.get(), key.get(), m_dh_local_secret.get(),
+					dh_prime().get(), ctx(), mont()))
 				aux::throw_ex<system_error>(errors::no_memory);
 		}
 		m_dh_shared_secret = export_key(secret);
