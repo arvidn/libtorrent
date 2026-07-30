@@ -120,6 +120,7 @@ namespace libtorrent::aux {
 		// from multiple threads. Falls back to a single instance guarded by a
 		// mutex where thread_local isn't available.
 		static ::BN_CTX* ctx();
+		static ::BN_MONT_CTX* mont();
 #else
 		// also used for TORRENT_USE_WOLFSSL builds: wolfSSL's OpenSSL
 		// compatibility layer does not reliably provide the same BN_*
