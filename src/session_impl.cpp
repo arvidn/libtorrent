@@ -571,6 +571,12 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 
 #if TORRENT_USE_SSL
 		error_code ec;
+		m_ssl_ctx.set_options(ssl::no_legacy_tls_versions, ec);
+#ifndef TORRENT_DISABLE_LOGGING
+		if (ec)
+			session_log("SSL set_options failed: %s", ec.message().c_str());
+		ec.clear();
+#endif
 		m_ssl_ctx.set_default_verify_paths(ec);
 #ifndef TORRENT_DISABLE_LOGGING
 		if (ec) session_log("SSL set_default verify_paths failed: %s", ec.message().c_str());
@@ -633,6 +639,7 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 #endif // TORRENT_USE_SSL
 #ifdef TORRENT_SSL_PEERS
 		m_peer_ssl_ctx.set_verify_mode(ssl::context::verify_none, ec);
+		m_peer_ssl_ctx.set_options(ssl::no_legacy_tls_versions, ec);
 		ssl::set_server_name_callback(ssl::get_handle(m_peer_ssl_ctx), ssl_server_name_callback, this, ec);
 #endif // TORRENT_SSL_PEERS
 

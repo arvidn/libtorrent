@@ -112,8 +112,9 @@ std::shared_ptr<lt::aux::http_connection> test_request(io_context& ios
 	std::printf(" ===== TESTING: %s =====\n", url.c_str());
 
 #if TORRENT_USE_SSL
-	aux::ssl::context ssl_ctx(aux::ssl::context::sslv23_client);
+	aux::ssl::context ssl_ctx(aux::ssl::context::tls_client);
 	ssl_ctx.set_verify_mode(aux::ssl::context::verify_none);
+	ssl_ctx.set_options(aux::ssl::no_legacy_tls_versions);
 #endif
 
 	auto h = std::make_shared<lt::aux::http_connection>(ios
@@ -626,8 +627,9 @@ void test_connection_ssl_proxy(bool const with_hostname)
 		});
 
 #if TORRENT_USE_SSL
-	aux::ssl::context ssl_ctx(aux::ssl::context::sslv23_client);
+	aux::ssl::context ssl_ctx(aux::ssl::context::tls_client);
 	ssl_ctx.set_verify_mode(aux::ssl::context::verify_none);
+	ssl_ctx.set_options(aux::ssl::no_legacy_tls_versions);
 #endif
 
 	auto h = std::make_shared<lt::aux::http_connection>(client_ios

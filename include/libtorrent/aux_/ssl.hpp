@@ -89,6 +89,11 @@ using stream_handle_type = native_stream_type;
 
 typedef int (*server_name_callback_type)(SSL* s, int*, void* arg);
 
+// restrict negotiation to TLS 1.2 and later, disabling the deprecated and
+// insecure SSLv2, SSLv3, TLS 1.0 and TLS 1.1 protocol versions
+constexpr context::options no_legacy_tls_versions =
+	context::no_sslv2 | context::no_sslv3 | context::no_tlsv1 | context::no_tlsv1_1;
+
 #elif defined TORRENT_USE_GNUTLS
 using boost::asio::gnutls::context;
 using boost::asio::gnutls::stream_base;
@@ -102,6 +107,10 @@ using context_handle_type = context*;
 using stream_handle_type = stream_base*;
 
 typedef bool (*server_name_callback_type)(stream_handle_type handle, std::string const& name, void* arg);
+
+// GnuTLS only exposes options to disable SSLv2 and SSLv3, since it never
+// negotiates anything older than TLS 1.0 to begin with
+constexpr context::options no_legacy_tls_versions = context::no_sslv2 | context::no_sslv3;
 
 #endif
 

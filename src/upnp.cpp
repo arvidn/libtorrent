@@ -92,13 +92,13 @@ upnp::rootdevice::rootdevice(rootdevice&&) noexcept = default;
 upnp::rootdevice& upnp::rootdevice::operator=(rootdevice&&) & = default;
 
 // TODO: 2 use boost::asio::ip::network instead of netmask
-upnp::upnp(io_context& ios
-	, aux::session_settings const& settings
-	, aux::portmap_callback& cb
-	, address_v4 const listen_address
-	, address_v4 const netmask
-	, std::string listen_device
-	, listen_socket_handle ls)
+upnp::upnp(io_context& ios,
+	aux::session_settings const& settings,
+	aux::portmap_callback& cb,
+	address_v4 const listen_address,
+	address_v4 const netmask,
+	std::string listen_device,
+	listen_socket_handle ls)
 	: m_settings(settings)
 	, m_callback(cb)
 	, m_io_service(ios)
@@ -112,12 +112,13 @@ upnp::upnp(io_context& ios
 	, m_netmask(netmask)
 	, m_device(std::move(listen_device))
 #if TORRENT_USE_SSL
-	, m_ssl_ctx(ssl::context::sslv23_client)
+	, m_ssl_ctx(ssl::context::tls_client)
 #endif
 	, m_listen_handle(std::move(ls))
 {
 #if TORRENT_USE_SSL
 	m_ssl_ctx.set_verify_mode(aux::ssl::context::verify_none);
+	m_ssl_ctx.set_options(aux::ssl::no_legacy_tls_versions);
 #endif
 }
 
