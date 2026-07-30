@@ -1097,7 +1097,7 @@ namespace {
 //		rate = (rate + m_download_rate_peak) / 2;
 
 		return milliseconds((std::int64_t(m_outstanding_bytes) + extra_bytes
-								+ m_queued_time_critical * t->block_size() * 1000)
+								+ std::int64_t(m_queued_time_critical) * t->block_size() * 1000)
 			/ rate);
 	}
 
