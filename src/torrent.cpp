@@ -1831,10 +1831,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		// verify other peers against
 		std::unique_ptr<ssl::context> ctx(std::make_unique<ssl::context>(ssl::context::tls));
 
-		ctx->set_options(ssl::context::default_workarounds
-			| ssl::context::no_sslv2
-			| ssl::context::no_sslv3
-			| ssl::context::single_dh_use);
+		ctx->set_options(ssl::context::default_workarounds | ssl::context::single_dh_use
+			| ssl::no_legacy_tls_versions);
 
 		error_code ec;
 		ctx->set_verify_mode(ssl::context::verify_peer
