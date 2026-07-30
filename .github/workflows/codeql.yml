@@ -40,6 +40,8 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           queries: +security-and-quality
+          paths-ignore:
+            - deps/**
 
       - name: Build cpp
         if: ${{ matrix.language == 'cpp' }}
