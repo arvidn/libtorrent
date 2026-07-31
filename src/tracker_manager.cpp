@@ -12,6 +12,7 @@ see LICENSE file.
 
 #include <algorithm>
 #include <cctype>
+#include <iterator>
 
 #include "libtorrent/aux_/io.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
@@ -251,7 +252,9 @@ namespace libtorrent::aux {
 	{
 		TORRENT_ASSERT(is_single_thread());
 		tracker_request const& req = c->tracker_req();
-		m_websocket_conns.erase(req.url);
+		auto const it = m_websocket_conns.find(req.url);
+		if (it != m_websocket_conns.end() && it->second.get() == c)
+			m_websocket_conns.erase(it);
 	}
 #endif
 
@@ -344,6 +347,26 @@ namespace libtorrent::aux {
 					, std::vector<aux::rtc_offer> offers) mutable
 			{
 				if (!ec) request.offers = std::move(offers);
+
+				// m_abort may have been set (session shutdown) while this
+				// offer generation was in flight; the guard at the top of
+				// queue_request() only protects requests queued before
+				// m_abort was set, so re-check here before (re-)establishing
+				// a persistent connection, for the same reason the
+				// num_want==0 branch above avoids doing so during shutdown.
+				if (m_abort && request.event != event_t::stopped)
+				{
+					if (auto rc = c.lock())
+						post(ios,
+							std::bind(&request_callback::tracker_request_error,
+								rc,
+								std::move(request),
+								errors::torrent_aborted,
+								operation_t::connect,
+								"",
+								seconds32(0)));
+					return;
+				}
 
 				auto it = m_websocket_conns.find(request.url);
 				if (it != m_websocket_conns.end() && it->second->is_started()) {
@@ -536,20 +559,6 @@ namespace libtorrent::aux {
 #endif
 		}
 
-#if TORRENT_USE_RTC
-		std::vector<std::shared_ptr<aux::websocket_tracker_connection>> close_websocket_connections;
-		for (auto const& p : m_websocket_conns)
-		{
-			auto const& c = p.second;
-			close_websocket_connections.push_back(c);
-
-#ifndef TORRENT_DISABLE_LOGGING
-			std::shared_ptr<request_callback> rc = c->requester();
-			if (rc) rc->debug_log("aborting: %s", c->tracker_req().url.c_str());
-#endif
-		}
-#endif
-
 		// tearing everything down for good (the tracker_manager destructor)
 		// reports no outcome and closes synchronously: posting here would
 		// be unsafe, since the io_context is not guaranteed to run again
@@ -579,12 +588,47 @@ namespace libtorrent::aux {
 		}
 
 #if TORRENT_USE_RTC
-		for (auto const& c : close_websocket_connections)
+		// close() erases its own entry from this map synchronously (via
+		// remove_request()), so capture the next iterator before calling
+		// it. Deliberately not collected into a vector first (unlike
+		// close_http_started/close_udp_connections above): this function
+		// runs from ~tracker_manager() too, whose implicit noexcept means
+		// a bad_alloc from that allocation would call std::terminate().
+		for (auto it = m_websocket_conns.begin(); it != m_websocket_conns.end();)
 		{
+			auto const& c = it->second;
+			auto const next = std::next(it);
+
 			if (all)
+			{
 				c->close();
-			else
-				c->fail(errors::announce_skipped, operation_t::bittorrent);
+				it = next;
+				continue;
+			}
+
+			// leaves the connection running if it still has a
+			// stopped-event request queued or in flight on it.
+			if (c->prune_non_stopped_requests())
+			{
+				it = next;
+				continue;
+			}
+
+#ifndef TORRENT_DISABLE_LOGGING
+			std::shared_ptr<request_callback> rc = c->requester();
+			if (rc)
+				rc->debug_log("aborting: %s", c->tracker_req().url.c_str());
+#endif
+			// fail() alone does not report anything: it suppresses
+			// fail_impl()'s single-request report (see its definition) so
+			// that close(ec, op), below, is the only thing that reports an
+			// outcome, with the right reason, to every multiplexed
+			// request. Skipping the close(ec, op) call here would silently
+			// fall back to fail_impl()'s deferred, argument-less close(),
+			// reporting operation_aborted/unknown instead.
+			c->fail(errors::announce_skipped, operation_t::bittorrent);
+			c->close(errors::announce_skipped, operation_t::bittorrent);
+			it = next;
 		}
 #endif
 	}
