@@ -430,13 +430,19 @@ parse_websocket_tracker_response(span<char const> message, error_code& ec) try
 		auto sdp = payload_offer["sdp"].as_string();
 		auto id = utf8_latin1(payload["offer_id"].as_string());
 		auto pid = utf8_latin1(payload["peer_id"].as_string());
+		if (id.size() != aux::RTC_OFFER_ID_LEN)
+		{
+			ec = error_code(errors::invalid_tracker_response);
+			return "invalid offer_id size " + std::to_string(id.size());
+		}
 		if (pid.size() != 20)
 		{
 			ec = error_code(errors::invalid_tracker_response);
 			return "invalid peer_id size " + std::to_string(pid.size());
 		}
 
-		aux::rtc_offer_id oid{span<char const>(id)};
+		aux::rtc_offer_id oid;
+		std::copy(id.begin(), id.end(), oid.begin());
 		response.offer.emplace(aux::rtc_offer{std::move(oid), peer_id(pid), {sdp.data(), sdp.size()}, nullptr});
 	}
 
@@ -446,13 +452,19 @@ parse_websocket_tracker_response(span<char const> message, error_code& ec) try
 		auto sdp = payload_answer["sdp"].as_string();
 		auto id = utf8_latin1(payload["offer_id"].as_string());
 		auto pid = utf8_latin1(payload["peer_id"].as_string());
+		if (id.size() != aux::RTC_OFFER_ID_LEN)
+		{
+			ec = error_code(errors::invalid_tracker_response);
+			return "invalid offer_id size " + std::to_string(id.size());
+		}
 		if (pid.size() != 20)
 		{
 			ec = error_code(errors::invalid_tracker_response);
 			return "invalid peer_id size " + std::to_string(pid.size());
 		}
 
-		aux::rtc_offer_id oid{span<char const>(id)};
+		aux::rtc_offer_id oid;
+		std::copy(id.begin(), id.end(), oid.begin());
 		response.answer.emplace(aux::rtc_answer{std::move(oid), peer_id(pid), {sdp.data(), sdp.size()}});
 	}
 
