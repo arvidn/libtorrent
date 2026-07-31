@@ -1197,10 +1197,14 @@ namespace libtorrent::aux {
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		auto const remote_address = remote.address();
+		// normalize v4-mapped IPv6 addresses (::ffff:a.b.c.d) to their IPv4
+		// form, so a peer announced in both forms is treated as a single
+		// entry, rather than two.
+		tcp::endpoint const ep(aux::normalize_address(remote.address()), remote.port());
+		auto const remote_address = ep.address();
 
 		// just ignore the obviously invalid entries
-		if (remote_address == address() || remote.port() == 0 || remote.port() == 1)
+		if (remote_address == address() || ep.port() == 0 || ep.port() == 1)
 			return nullptr;
 
 		// don't allow link-local IPv6 addresses since they
@@ -1216,8 +1220,8 @@ namespace libtorrent::aux {
 		if (state->allow_multiple_connections_per_ip)
 		{
 			auto const range = find_peers(remote_address);
-			iter = std::find_if(range.first, range.second
-				, match_peer_endpoint(remote_address, remote.port()));
+			iter = std::find_if(
+				range.first, range.second, match_peer_endpoint(remote_address, ep.port()));
 			if (iter != range.second) found = true;
 		}
 		else
@@ -1240,9 +1244,9 @@ namespace libtorrent::aux {
 			if (p == nullptr) return nullptr;
 
 			if (is_v6)
-				p = new (p) ipv6_peer(remote, true, src);
+				p = new (p) ipv6_peer(ep, true, src);
 			else
-				p = new (p) ipv4_peer(remote, true, src);
+				p = new (p) ipv4_peer(ep, true, src);
 
 			try
 			{
@@ -1263,7 +1267,7 @@ namespace libtorrent::aux {
 		{
 			p = *iter;
 			TORRENT_ASSERT(p->in_use);
-			update_peer(p, src, flags, remote);
+			update_peer(p, src, flags, ep);
 			state->first_time_seen = false;
 		}
 
