@@ -213,6 +213,65 @@ TORRENT_TEST(default_empty)
 	}
 }
 
+// **** test that v4-mapped IPv6 addresses are treated as their IPv4
+// equivalent when looking up an address ****
+TORRENT_TEST(v4_mapped_access)
+{
+	ip_filter f;
+	f.add_rule(addr4("1.2.3.0"), addr4("1.2.3.255"), ip_filter::blocked);
+
+	TEST_EQUAL(f.access(addr("::ffff:1.2.3.4")), ip_filter::blocked);
+	TEST_EQUAL(f.access(addr("::ffff:1.2.4.4")), 0);
+
+	// a genuine (non-mapped) IPv6 address is unaffected by the IPv4 rule
+	TEST_EQUAL(f.access(addr("1234::1")), 0);
+}
+
+// **** test that adding a rule expressed as a v4-mapped IPv6 range ends
+// up blocking the corresponding IPv4 addresses, and does not create a
+// dead rule in the IPv6 filter (which access() never queries for
+// addresses in the v4-mapped range) ****
+TORRENT_TEST(v4_mapped_add_rule)
+{
+	ip_filter f;
+	f.add_rule(addr("::ffff:1.2.3.0"), addr("::ffff:1.2.3.255"), ip_filter::blocked);
+
+	TEST_EQUAL(f.access(addr4("1.2.3.4")), ip_filter::blocked);
+	TEST_EQUAL(f.access(addr4("1.2.4.4")), 0);
+	TEST_EQUAL(f.access(addr("::ffff:1.2.3.4")), ip_filter::blocked);
+
+	auto const rangev6 = std::get<1>(f.export_filter());
+	TEST_EQUAL(rangev6.size(), 1);
+	TEST_EQUAL(rangev6[0].flags, 0);
+}
+
+// **** test that a v6 rule which only partially overlaps (or straddles)
+// ::ffff:0:0/96 is kept as a plain IPv6 rule and is not split at the
+// boundary, i.e. it has no effect on IPv4 addresses. Only a range with
+// both endpoints expressed as v4-mapped addresses is normalized. ****
+TORRENT_TEST(v4_mapped_range_not_split)
+{
+	ip_filter f;
+	f.add_rule(addr6("::"), addr6("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"), ip_filter::blocked);
+
+	TEST_EQUAL(f.access(addr4("1.2.3.4")), 0);
+	TEST_EQUAL(f.access(addr("2000::1")), ip_filter::blocked);
+}
+
+// **** test that a v6 range not overlapping the v4-mapped subnet leaves
+// the IPv4 filter untouched ****
+TORRENT_TEST(v4_mapped_range_no_overlap)
+{
+	ip_filter f;
+	f.add_rule(addr6("2000::"), addr6("3000::"), ip_filter::blocked);
+
+	TEST_EQUAL(f.access(addr4("1.2.3.4")), 0);
+
+	auto const range4 = std::get<0>(f.export_filter());
+	TEST_EQUAL(range4.size(), 1);
+	TEST_EQUAL(range4[0].flags, 0);
+}
+
 TORRENT_TEST(port_filter)
 {
 	port_filter pf;

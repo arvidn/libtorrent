@@ -12,6 +12,7 @@ see LICENSE file.
 
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/assert.hpp"
+#include "libtorrent/aux_/ip_helpers.hpp"
 
 namespace libtorrent {
 
@@ -30,22 +31,30 @@ namespace libtorrent {
 		{
 			TORRENT_ASSERT(last.is_v4());
 			m_filter4.add_rule(first.to_v4().to_bytes(), last.to_v4().to_bytes(), flags);
+			return;
 		}
-		else if (first.is_v6())
+
+		TORRENT_ASSERT(first.is_v6());
+		TORRENT_ASSERT(last.is_v6());
+
+		address const a = aux::normalize_address(first);
+		address const b = aux::normalize_address(last);
+
+		if (a.is_v4() && b.is_v4())
 		{
-			TORRENT_ASSERT(last.is_v6());
-			m_filter6.add_rule(first.to_v6().to_bytes(), last.to_v6().to_bytes(), flags);
+			m_filter4.add_rule(a.to_v4().to_bytes(), b.to_v4().to_bytes(), flags);
+			return;
 		}
-		else
-			TORRENT_ASSERT_FAIL();
+
+		m_filter6.add_rule(first.to_v6().to_bytes(), last.to_v6().to_bytes(), flags);
 	}
 
 	std::uint32_t ip_filter::access(address const& addr) const
 	{
-		if (addr.is_v4())
-			return m_filter4.access(addr.to_v4().to_bytes());
-		TORRENT_ASSERT(addr.is_v6());
-		return m_filter6.access(addr.to_v6().to_bytes());
+		address const a = aux::normalize_address(addr);
+		if (a.is_v4())
+			return m_filter4.access(a.to_v4().to_bytes());
+		return m_filter6.access(a.to_v6().to_bytes());
 	}
 
 	ip_filter::filter_tuple_t ip_filter::export_filter() const
