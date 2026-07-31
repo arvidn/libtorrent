@@ -758,9 +758,7 @@ void natpmp::on_reply(error_code const& e
 	address external_addr;
 	if (version == version_pcp)
 	{
-		external_addr = read_v6_address(in);
-		if (external_addr.to_v6().is_v4_mapped())
-			external_addr = make_address_v4(v4_mapped, external_addr.to_v6());
+		external_addr = aux::normalize_address(read_v6_address(in));
 	}
 
 	if (version == version_natpmp)
