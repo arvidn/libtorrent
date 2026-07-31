@@ -159,18 +159,16 @@ void websocket_stream::do_tcp_connect(std::vector<tcp::endpoint> endpoints)
 {
 	m_endpoints = std::move(endpoints);
 
-	auto* tcp_stream = std::visit(rtc::overloaded
-		{
-			[&](stream_type &stream) { return &stream.next_layer(); }
-			, [&](ssl_stream_type &stream) { return &stream.next_layer().next_layer(); }
-		}
-		, m_stream);
+	auto* tcp_stream =
+		std::visit(rtc::overloaded{[&](stream_type& stream) { return &stream.next_layer(); },
+					   [&](ssl_stream_type& stream) { return &stream.next_layer().next_layer(); }},
+			m_stream);
 
 	ADD_OUTSTANDING_ASYNC("websocket_stream::on_tcp_connect");
-	boost::asio::async_connect(*tcp_stream
-		, m_endpoints.rbegin()
-		, m_endpoints.rend()
-		, std::bind(&websocket_stream::on_tcp_connect, shared_from_this(), _1));
+	asio::async_connect(*tcp_stream,
+		m_endpoints.rbegin(),
+		m_endpoints.rend(),
+		std::bind(&websocket_stream::on_tcp_connect, shared_from_this(), _1));
 }
 
 void websocket_stream::on_tcp_connect(error_code const& ec)

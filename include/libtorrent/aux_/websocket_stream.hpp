@@ -70,7 +70,13 @@ namespace libtorrent::aux {
 
 namespace websocket = boost::beast::websocket;
 
+#if defined TORRENT_BUILD_SIMULATOR
+namespace asio = sim::asio;
+using tcp = sim::asio::ip::tcp;
+#else
+namespace asio = boost::asio;
 using tcp = boost::asio::ip::tcp;
+#endif
 
 struct TORRENT_EXTRA_EXPORT websocket_stream
 	: std::enable_shared_from_this<websocket_stream>
