@@ -115,6 +115,18 @@ namespace aux {
 // IPv6 range).
 //
 // A default constructed ip_filter does not filter any address.
+//
+// .. note::
+//    Internally, IPv4 and IPv6 addresses are always kept in separate rule
+//    sets. A rule added via ``add_rule()`` is only stored in the IPv4 set
+//    when both endpoints of the range are v4-mapped IPv6 addresses
+//    (``::ffff:0:0/96``); otherwise it is stored, unmodified, in the IPv6
+//    set. Since ``access()`` always looks up a v4-mapped address in the
+//    IPv4 set, an IPv6 rule that only partially overlaps
+//    ``::ffff:0:0/96`` (for example one covering the entire IPv6 address
+//    space) will never affect the result of looking up a v4-mapped
+//    address; add the equivalent IPv4 (or fully v4-mapped) rule
+//    explicitly if that coverage is required.
 struct TORRENT_EXPORT ip_filter
 {
 	ip_filter();
@@ -148,12 +160,29 @@ struct TORRENT_EXPORT ip_filter
 	//
 	// This means that in a case of overlapping ranges, the last one applied takes
 	// precedence.
+	//
+	// .. note::
+	//    A range is normalized to IPv4 only when both ``first`` and ``last``
+	//    are v4-mapped IPv6 addresses (``::ffff:0:0/96``); it is then added
+	//    to the IPv4 rules, affecting lookups of both the plain and
+	//    v4-mapped form. Any other range that overlaps or straddles
+	//    ``::ffff:0:0/96`` is added unmodified as a plain IPv6 rule and is
+	//    not split at the boundary; the overlapping portion can never be
+	//    matched by access(), since a v4-mapped address is always looked up
+	//    in the IPv4 rules. For example, blocking the whole IPv6 range does
+	//    not block any IPv4 addresses; add both ranges explicitly if that
+	//    is desired.
 	void add_rule(address const& first, address const& last, std::uint32_t flags);
 
 	// Returns the access permissions for the given address (``addr``). The permission
 	// can currently be 0 or ``ip_filter::blocked``. The complexity of this operation
 	// is O(``log`` n), where n is the minimum number of non-overlapping ranges to describe
 	// the current filter.
+	//
+	// .. note::
+	//    An IPv4-mapped IPv6 address (``::ffff:0:0/96``) is looked up as its
+	//    equivalent IPv4 address, so a rule added for an IPv4 range also
+	//    applies when that range is presented in v4-mapped IPv6 form.
 	std::uint32_t access(address const& addr) const;
 
 	using filter_tuple_t = std::tuple<std::vector<ip_range<address_v4>>
@@ -165,7 +194,9 @@ struct TORRENT_EXPORT ip_filter
 	// ``flags`` field.
 	//
 	// The return value is a tuple containing two range-lists. One for IPv4 addresses
-	// and one for IPv6 addresses.
+	// and one for IPv6 addresses. Note that a rule added via add_rule() with a
+	// v4-mapped IPv6 range (``::ffff:0:0/96``) is stored, and returned, as an
+	// IPv4 range rather than an IPv6 one.
 	filter_tuple_t export_filter() const;
 
 private:
