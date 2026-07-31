@@ -43,6 +43,7 @@ run test_transfer_partial_valid_files.cpp ;
 run test_http_connection.cpp ;
 run test_https.cpp ;
 run test_websocket_tracker.cpp ;
+run test_ssl.cpp ;
 run test_web_seed.cpp ;
 run test_auto_manage.cpp ;
 run test_torrent_status.cpp ;

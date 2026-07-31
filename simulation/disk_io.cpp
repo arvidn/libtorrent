@@ -232,9 +232,12 @@ int pads_in_req(std::unordered_map<lt::piece_index_t, int> const& pb
 	return std::max(0, std::min(req_end - pad_start, r.length));
 }
 
-lt::add_torrent_params create_test_torrent(int const piece_size
-	, int const num_pieces, lt::create_flags_t const flags, int const num_files
-	, bool const bad_v1_hashes)
+lt::add_torrent_params create_test_torrent(int const piece_size,
+	int const num_pieces,
+	lt::create_flags_t const flags,
+	int const num_files,
+	bool const bad_v1_hashes,
+	std::string const& ssl_root_cert)
 {
 	std::vector<lt::create_file_entry> ifs;
 	int total_size = num_files * piece_size * num_pieces + 1234;
@@ -253,6 +256,9 @@ lt::add_torrent_params create_test_torrent(int const piece_size
 		}
 	}
 	lt::create_torrent t(std::move(ifs), piece_size, flags);
+
+	if (!ssl_root_cert.empty())
+		t.set_root_cert(ssl_root_cert);
 
 	auto const pad_bytes = compute_pad_bytes(t);
 
