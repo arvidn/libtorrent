@@ -78,22 +78,29 @@ namespace libtorrent::aux {
 	bool ip_voter::cast_vote(address const& ip
 		, aux::ip_source_t const source_type, address const& source)
 	{
-		if (ip.is_unspecified()) return false;
-		if (aux::is_local(ip)) return false;
-		if (ip.is_loopback()) return false;
+		address const addr = aux::normalize_address(ip);
+
+		if (addr.is_unspecified())
+			return false;
+		if (addr.is_loopback())
+			return false;
+		if (aux::is_local(addr))
+			return false;
 
 		// don't trust source that aren't connected to us
-		// on a different address family than the external
+		// over the same address family than the external
 		// IP they claim we have
-		if (ip.is_v4() != source.is_v4()) return false;
+		if (addr.is_v4() != source.is_v4())
+			return false;
 
 		// this is the key to use for the bloom filters
 		// it represents the identity of the voter
 		sha1_hash const k = hash_address(source);
 
 		// do we already have an entry for this external IP?
-		auto i = std::find_if(m_external_addresses.begin()
-			, m_external_addresses.end(), [&ip] (external_ip_t const& e) { return e.addr == ip; });
+		auto i = std::find_if(m_external_addresses.begin(),
+			m_external_addresses.end(),
+			[&addr](external_ip_t const& e) { return e.addr == addr; });
 
 		if (i == m_external_addresses.end())
 		{
@@ -117,7 +124,7 @@ namespace libtorrent::aux {
 			}
 			m_external_addresses.emplace_back();
 			i = m_external_addresses.end() - 1;
-			i->addr = ip;
+			i->addr = addr;
 		}
 		// add one more vote to this external IP
 		if (!i->add_vote(k, source_type)) return maybe_rotate();

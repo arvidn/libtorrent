@@ -197,3 +197,42 @@ TORRENT_TEST(ip_voter_2)
 	if (supports_ipv6())
 		TEST_CHECK(ipv6.external_address() == real_external2);
 }
+
+// a vote for an address expressed as a v4-mapped IPv6 address is
+// normalized to its plain IPv4 form before being counted
+TORRENT_TEST(v4_mapped_vote)
+{
+	init_rand_address();
+
+	aux::ip_voter ipv;
+
+	error_code ec;
+	address const real_external = make_address_v4("5.5.5.5", ec);
+	TEST_CHECK(!ec);
+	address const mapped_external = make_address_v6("::ffff:5.5.5.5", ec);
+	TEST_CHECK(!ec);
+
+	bool const new_ip =
+		ipv.cast_vote(mapped_external, aux::session_interface::source_dht, rand_v4());
+	TEST_CHECK(new_ip);
+	TEST_CHECK(ipv.external_address() == real_external);
+}
+
+// a v4-mapped loopback or private address must be rejected just like the
+// plain IPv4 address would be
+TORRENT_TEST(v4_mapped_vote_rejects_local)
+{
+	init_rand_address();
+
+	aux::ip_voter ipv;
+
+	error_code ec;
+	address const mapped_loopback = make_address_v6("::ffff:127.0.0.1", ec);
+	TEST_CHECK(!ec);
+	address const mapped_private = make_address_v6("::ffff:192.168.1.1", ec);
+	TEST_CHECK(!ec);
+
+	TEST_CHECK(!ipv.cast_vote(mapped_loopback, aux::session_interface::source_dht, rand_v4()));
+	TEST_CHECK(!ipv.cast_vote(mapped_private, aux::session_interface::source_dht, rand_v4()));
+	TEST_CHECK(ipv.external_address() == address());
+}
