@@ -17,6 +17,7 @@ see LICENSE file.
 #include <thread>
 #include <algorithm>
 #include <vector>
+#include <array>
 
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/disk_interface.hpp" // for default_block_size
@@ -708,6 +709,12 @@ void disk_cache::drain_v2_hash_queue(Fun store,
 	std::vector<v2_hash_queue_entry> batch;
 	batch.reserve(batch_size);
 
+	// Declared once and reused by every iteration of the for(;;) below, so
+	// stack use stays bounded by batch_size regardless of how many batches
+	// this call ends up draining.
+	std::array<typename piece_container::nth_index<0>::type::iterator, batch_size>
+		piece_iters_storage;
+
 	for (;;)
 	{
 		batch.clear();
@@ -743,10 +750,11 @@ void disk_cache::drain_v2_hash_queue(Fun store,
 			// key, so view.modify doesn't invalidate cached iterators.
 			// Every slot must be assigned exactly once before any
 			// `continue` -- a default-constructed multi_index iterator is
-			// singular and comparing it is undefined.
-			TORRENT_ALLOCA(piece_iters,
-				typename piece_container::nth_index<0>::type::iterator,
-				int(batch.size()));
+			// singular and comparing it is undefined. Only the first
+			// batch.size() slots of piece_iters_storage are touched or read;
+			// the rest may hold stale entries from a previous iteration.
+			libtorrent::span<typename piece_container::nth_index<0>::type::iterator> piece_iters(
+				piece_iters_storage.data(), int(batch.size()));
 			int i = 0;
 			for (auto& entry : batch)
 			{

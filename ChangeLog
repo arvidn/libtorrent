@@ -6,6 +6,7 @@
 
 2.1.1 not released
 
+	* fix point-to-point interfaces without a route to the internet being used for outgoing traffic
 	* apply IP filter to DHT node
 	* fix use of a stack buffer past its lifetime when sending i2p SAM commands
 	* optimize RC4

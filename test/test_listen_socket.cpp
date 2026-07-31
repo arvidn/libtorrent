@@ -469,8 +469,28 @@ void test_expand_unspecified_if_address(char const* address, eps_t const& expect
 
 TORRENT_TEST(expand_unspecified_ppp)
 {
-	test_expand_unspecified_if_flags(if_flags::up | if_flags::pointopoint, eps_t{ ep("192.168.1.2", 6881, global) });
+	// a point-to-point interface is judged by the same internet-route check
+	// as any other interface. eth0 has no route in test_expand_unspecified_if_flags()
+	// (the only route is on eth99), so it's local whether or not it's PPP.
+	test_expand_unspecified_if_flags(
+		if_flags::up | if_flags::pointopoint, eps_t{ep("192.168.1.2", 6881, local)});
 	test_expand_unspecified_if_flags(if_flags::up, eps_t{ ep("192.168.1.2", 6881, local) });
+}
+
+TORRENT_TEST(expand_unspecified_ppp_with_route)
+{
+	// a point-to-point interface (e.g. a dial-up or VPN connection) that
+	// does have a route to the internet on its own device is still global,
+	// same as any other interface with such a route.
+	std::vector<ip_route> const routes = {
+		rt("0.0.0.0", "eth0", "0.0.0.0"),
+	};
+
+	std::vector<ip_interface> const ifs = {
+		ifc("192.168.1.2", "eth0", if_flags::up | if_flags::pointopoint)};
+	eps_t eps = {ep("0.0.0.0", 6881)};
+	aux::expand_unspecified_address(ifs, routes, eps);
+	TEST_CHECK((eps == eps_t{ep("192.168.1.2", 6881, global)}));
 }
 
 TORRENT_TEST(expand_unspecified_down_if)

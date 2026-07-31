@@ -103,8 +103,9 @@ void run_test(std::string const& url, int size, int status, int connected
 		<< " error: " << (ec?ec->message():"no error") << std::endl;
 
 #if TORRENT_USE_SSL
-	aux::ssl::context ssl_ctx(aux::ssl::context::sslv23_client);
+	aux::ssl::context ssl_ctx(aux::ssl::context::tls_client);
 	ssl_ctx.set_verify_mode(aux::ssl::context::verify_none);
+	ssl_ctx.set_options(aux::ssl::no_legacy_tls_versions);
 #endif
 
 	std::shared_ptr<aux::http_connection> h = std::make_shared<aux::http_connection>(ios

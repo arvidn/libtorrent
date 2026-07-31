@@ -19,6 +19,7 @@ see LICENSE file.
 #include <cstdlib>
 #include <cstdio> // for snprintf
 #include <cinttypes> // for PRId64 et.al.
+#include <limits>
 
 #include "libtorrent/aux_/web_peer_connection.hpp"
 #include "libtorrent/session.hpp"
@@ -1142,6 +1143,21 @@ void web_peer_connection::on_receive(error_code const& error
 #endif
 				received_bytes(0, header_size - m_partial_chunk_header);
 				m_partial_chunk_header = 0;
+
+				// parse_chunk_header() reports a malformed chunk header by
+				// setting chunk_size to a negative value, and it accepts sizes
+				// all the way up to int64 max, which don't fit in m_chunk_pos.
+				// http_parser::incoming() guards its own (int64) running total
+				// against a similar overflow, but that doesn't protect this
+				// (int) m_chunk_pos, so check it here too.
+				TORRENT_ASSERT(m_chunk_pos == 0);
+				if (chunk_size < 0 || chunk_size > std::numeric_limits<int>::max() - m_chunk_pos)
+				{
+					received_bytes(0, int(recv_buffer.size()));
+					disconnect(errors::http_parse_error, operation_t::bittorrent, peer_error);
+					return;
+				}
+
 				TORRENT_ASSERT(chunk_size != 0
 					|| int(chunk_start.size()) <= header_size || chunk_start[header_size] == 'H');
 				TORRENT_ASSERT(m_body_start + m_chunk_pos < INT_MAX);

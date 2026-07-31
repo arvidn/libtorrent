@@ -540,7 +540,14 @@ namespace {
 	void peer_connection::peer_log(peer_log_alert::direction_t direction
 		, peer_log_alert::event_t const event) const noexcept
 	{
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-zero-length"
+#endif
 		peer_log(direction, event, "");
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 	}
 
 	TORRENT_FORMAT(4,5)
@@ -715,7 +722,7 @@ namespace {
 		m_have_piece.resize(m_ti->num_pieces(), m_have_all);
 		m_num_pieces = m_have_piece.count();
 
-		piece_index_t const limit(m_num_pieces);
+		piece_index_t const limit = t->torrent_file().end_piece();
 
 		// now that we know how many pieces there are
 		// remove any invalid allowed_fast and suggest pieces
@@ -1080,7 +1087,7 @@ namespace {
 //		rate = (rate + m_download_rate_peak) / 2;
 
 		return milliseconds((std::int64_t(m_outstanding_bytes) + extra_bytes
-								+ m_queued_time_critical * block_size() * 1000)
+								+ std::int64_t(m_queued_time_critical) * block_size() * 1000)
 			/ rate);
 	}
 
@@ -4225,7 +4232,7 @@ namespace {
 				&& !is_connecting()
 				&& aux::time_now() - connected_time() < seconds(15))
 			{
-				peer_log(peer_log_alert::info, peer_log_alert::short_lived_disconnect, "");
+				peer_log(peer_log_alert::info, peer_log_alert::short_lived_disconnect);
 			}
 		}
 		catch (std::exception const& err)
@@ -5212,7 +5219,7 @@ namespace {
 		{
 			// can this happen here?
 #ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, peer_log_alert::torrent_aborted, "");
+			peer_log(peer_log_alert::info, peer_log_alert::torrent_aborted);
 #endif
 			for (peer_request const& r : m_requests)
 				write_reject_request(r);

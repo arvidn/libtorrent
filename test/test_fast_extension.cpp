@@ -147,6 +147,23 @@ void print_message(span<char const> buffer)
 	log("<== %s %s", message.str().c_str(), extra);
 }
 
+piece_index_t read_request_piece(tcp::socket& s, span<char> buffer)
+{
+	for (;;)
+	{
+		int const len = read_message(s, buffer);
+		if (len == -1)
+			return piece_index_t(-1);
+		auto const message = buffer.first(len);
+		print_message(message);
+		if (len != 13 || message[0] != 0x6)
+			continue;
+
+		char const* ptr = message.data() + 1;
+		return piece_index_t(aux::read_int32(ptr));
+	}
+}
+
 void send_allow_fast(tcp::socket& s, int piece)
 {
 	log("==> allow fast: %d", piece);
@@ -191,6 +208,16 @@ void send_unchoke(tcp::socket& s)
 	boost::asio::write(s, boost::asio::buffer(msg, 5)
 		, boost::asio::transfer_all(), ec);
 	if (ec) TEST_ERROR(ec.message());
+}
+
+void send_choke(tcp::socket& s)
+{
+	log("==> choke");
+	char msg[] = "\0\0\0\x01\0";
+	error_code ec;
+	boost::asio::write(s, boost::asio::buffer(msg, 5), boost::asio::transfer_all(), ec);
+	if (ec)
+		TEST_ERROR(ec.message());
 }
 
 void send_have_all(tcp::socket& s)
@@ -241,7 +268,7 @@ void send_bitfield(tcp::socket& s, char const* bits)
 	log("==> bitfield [%s]", bits);
 	for (int i = 0; i < num_pieces; ++i)
 	{
-		ptr[i/8] |= (bits[i] == '1' ? 1 : 0) << i % 8;
+		ptr[i / 8] |= (bits[i] == '1' ? 1 : 0) << (7 - i % 8);
 	}
 	error_code ec;
 	boost::asio::write(s, boost::asio::buffer(msg.data(), std::size_t(msg.size()))
@@ -442,6 +469,7 @@ std::shared_ptr<torrent_info const> setup_peer(tcp::socket& s, io_context& ioc
 	add_torrent_params p = ::create_torrent(file);
 	out_file.close();
 	ih = p.ti->info_hashes();
+	auto const ti = p.ti;
 
 	settings_pack sett = settings();
 	sett.set_str(settings_pack::listen_interfaces, test_listen_interface());
@@ -462,7 +490,10 @@ std::shared_ptr<torrent_info const> setup_peer(tcp::socket& s, io_context& ioc
 	p.flags &= ~torrent_flags::auto_managed;
 	p.flags |= flags;
 	if (magnet_link)
+	{
 		p.info_hashes = ih;
+		p.ti.reset();
+	}
 	p.save_path = "tmp1_fast";
 
 	torrent_handle ret = ses->add_torrent(p);
@@ -473,7 +504,7 @@ std::shared_ptr<torrent_info const> setup_peer(tcp::socket& s, io_context& ioc
 	// for "downloading" here would always time out for it.
 	if (flags & torrent_flags::seed_mode)
 		wait_for_seeding(*ses, "ses");
-	else
+	else if (!magnet_link)
 		wait_for_downloading(*ses, "ses");
 
 	if (incoming)
@@ -497,7 +528,7 @@ std::shared_ptr<torrent_info const> setup_peer(tcp::socket& s, io_context& ioc
 
 	print_session_log(*ses);
 
-	return p.ti;
+	return ti;
 }
 
 // polls get_peer_info() until pred() holds for the (single) connected peer,
@@ -511,6 +542,19 @@ bool wait_for_peer_info(torrent_handle& th, std::vector<peer_info>& pi, Fun pred
 		if (pi.size() == 1 && pred(pi[0]))
 			return true;
 		std::this_thread::sleep_for(100ms);
+	}
+	return false;
+}
+
+bool wait_for_counter(lt::session& ses, char const* name, std::int64_t const value)
+{
+	for (int i = 0; i < 50; ++i)
+	{
+		auto const counters = get_counters(ses);
+		auto const counter = counters.find(name);
+		if (counter != counters.end() && counter->second >= value)
+			return true;
+		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
 	return false;
 }
@@ -587,6 +631,91 @@ TORRENT_TEST(reject_fast)
 	s.close();
 	wait_for_disconnect(*ses, "ses");
 	print_session_log(*ses);
+}
+
+TORRENT_TEST(allowed_fast_survives_metadata)
+{
+	info_hash_t ih;
+	torrent_handle th;
+	std::shared_ptr<lt::session> ses;
+	io_context ios;
+	tcp::socket s(ios);
+	auto const ti = setup_peer(s, ios, ih, ses, true, true, false, torrent_flags_t{}, &th);
+
+	char recv_buffer[1000];
+	do_handshake(s, ih, recv_buffer);
+
+	piece_index_t const allowed_piece = ti->last_piece();
+	std::string bitfield(std::size_t(ti->num_pieces()), '0');
+	bitfield[std::size_t(static_cast<int>(allowed_piece))] = '1';
+	send_bitfield(s, bitfield.c_str());
+	send_allow_fast(s, static_cast<int>(allowed_piece));
+	send_choke(s);
+
+	if (!wait_for_counter(*ses, "ses.num_incoming_choke", 1))
+	{
+		TEST_ERROR("expected choke message");
+		s.close();
+		return;
+	}
+
+	th.set_metadata(ti->info_section());
+	wait_for_downloading(*ses, "ses");
+	th.piece_priority(allowed_piece, dont_download);
+	th.piece_priority(allowed_piece, default_priority);
+
+	if (!wait_for_counter(*ses, "ses.num_outgoing_request", 1))
+	{
+		TEST_ERROR("expected an allowed-fast request");
+		s.close();
+		return;
+	}
+
+	TEST_EQUAL(read_request_piece(s, recv_buffer), allowed_piece);
+	s.close();
+}
+
+TORRENT_TEST(suggested_piece_survives_metadata)
+{
+	info_hash_t ih;
+	torrent_handle th;
+	std::shared_ptr<lt::session> ses;
+	io_context ios;
+	tcp::socket s(ios);
+	auto const ti =
+		setup_peer(s, ios, ih, ses, true, true, false, torrent_flags::sequential_download, &th);
+
+	char recv_buffer[1000];
+	do_handshake(s, ih, recv_buffer);
+
+	piece_index_t const suggested_piece = ti->last_piece();
+	std::string bitfield(std::size_t(ti->num_pieces()), '0');
+	bitfield[0] = '1';
+	bitfield[std::size_t(static_cast<int>(suggested_piece))] = '1';
+	send_bitfield(s, bitfield.c_str());
+	send_suggest_piece(s, static_cast<int>(suggested_piece));
+	send_choke(s);
+
+	if (!wait_for_counter(*ses, "ses.num_incoming_choke", 1))
+	{
+		TEST_ERROR("expected choke message");
+		s.close();
+		return;
+	}
+
+	th.set_metadata(ti->info_section());
+	wait_for_downloading(*ses, "ses");
+	send_unchoke(s);
+
+	if (!wait_for_counter(*ses, "ses.num_outgoing_request", 1))
+	{
+		TEST_ERROR("expected a suggested-piece request");
+		s.close();
+		return;
+	}
+
+	TEST_EQUAL(read_request_piece(s, recv_buffer), suggested_piece);
+	s.close();
 }
 
 TORRENT_TEST(invalid_suggest)

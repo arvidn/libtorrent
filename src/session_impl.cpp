@@ -294,14 +294,12 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 				// if "routes" does not contain a single route to the internet,
 				// we don't use the last case. On MacOS, we can be notified of
 				// network changes *before* the routing table is updated
-				bool const local
-					= ipface.interface_address.is_loopback()
+				bool const local = ipface.interface_address.is_loopback()
 					|| is_link_local(ipface.interface_address)
 					|| (ipface.flags & if_flags::loopback)
-					|| (!is_global(ipface.interface_address)
-						&& !(ipface.flags & if_flags::pointopoint)
-						&& has_any_internet_route(routes)
-						&& !has_internet_route(ipface.name, family(ipface.interface_address), routes));
+					|| (!is_global(ipface.interface_address) && has_any_internet_route(routes)
+						&& !has_internet_route(
+							ipface.name, family(ipface.interface_address), routes));
 
 				eps.emplace_back(ipface.interface_address, uep.port, uep.device
 					, uep.ssl, uep.flags | listen_socket_t::was_expanded
@@ -573,7 +571,12 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 
 #if TORRENT_USE_SSL
 		error_code ec;
-		TORRENT_UNUSED(ec);
+		m_ssl_ctx.set_options(ssl::no_legacy_tls_versions, ec);
+#ifndef TORRENT_DISABLE_LOGGING
+		if (ec)
+			session_log("SSL set_options failed: %s", ec.message().c_str());
+		ec.clear();
+#endif
 		// the simulator never talks to real HTTPS servers, so loading the
 		// system's trusted root certificates is pointless overhead (and,
 		// with the windows certificate store, very slow, since it happens
@@ -642,6 +645,7 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 #endif // TORRENT_USE_SSL
 #ifdef TORRENT_SSL_PEERS
 		m_peer_ssl_ctx.set_verify_mode(ssl::context::verify_none, ec);
+		m_peer_ssl_ctx.set_options(ssl::no_legacy_tls_versions, ec);
 		ssl::set_server_name_callback(ssl::get_handle(m_peer_ssl_ctx), ssl_server_name_callback, this, ec);
 #endif // TORRENT_SSL_PEERS
 

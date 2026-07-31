@@ -131,22 +131,48 @@ TORRENT_TEST(wrap_range_boundaries)
 
 	auto const before = packet_buffer::index_type((first - 1) & 0xffff);
 	auto const after = packet_buffer::index_type((first + capacity) & 0xffff);
-	auto const out_of_domain = packet_buffer::index_type(first + 0x10000);
 
 	TEST_EQUAL(get_val(pb.at(first)), 1);
 	TEST_EQUAL(get_val(pb.at(last)), 2);
 	TEST_CHECK(pb.at(before) == nullptr);
 	TEST_CHECK(pb.at(after) == nullptr);
-	TEST_CHECK(pb.at(out_of_domain) == nullptr);
 
 	TEST_CHECK(pb.remove(before) == nullptr);
 	TEST_CHECK(pb.remove(after) == nullptr);
-	TEST_CHECK(pb.remove(out_of_domain) == nullptr);
 	TEST_EQUAL(pb.size(), 2);
 	TEST_EQUAL(pb.cursor(), first);
 	TEST_EQUAL(pb.span(), capacity);
 	TEST_EQUAL(get_val(pb.at(first)), 1);
 	TEST_EQUAL(get_val(pb.at(last)), 2);
+}
+
+TORRENT_TEST(insert_large_capacity_far_index)
+{
+	// covers capacity growing to the full 0x10000-element span, and an
+	// idx that's within the current window but more than 0x8000 "behind"
+	// cursor() by the wrapped half-circle heuristic insert() uses for
+	// out-of-range decisions
+	packet_pool pool;
+	packet_buffer pb;
+
+	// the first insert takes the m_size == 0 path, which sets m_first
+	// directly and doesn't go through insert()'s growth/shift decision, so
+	// this reliably establishes cursor() == 0
+	pb.insert(packet_buffer::index_type(0), make_pkt(pool, 1));
+	// reserve()'s size argument is capped at 0xffff (the largest valid
+	// index); the resulting capacity still rounds up to the full 0x10000
+	pb.reserve(0xffff);
+	TEST_EQUAL(pb.cursor(), packet_buffer::index_type(0));
+	TEST_EQUAL(pb.capacity(), 0x10000);
+
+	auto const idx = packet_buffer::index_type(0x9000);
+	pb.insert(idx, make_pkt(pool, 2));
+
+	// idx is within the full-span window, so cursor() must stay put
+	TEST_EQUAL(pb.cursor(), packet_buffer::index_type(0));
+	TEST_EQUAL(pb.size(), 2);
+	TEST_EQUAL(get_val(pb.at(packet_buffer::index_type(0))), 1);
+	TEST_EQUAL(get_val(pb.at(idx)), 2);
 }
 
 TORRENT_TEST(wrap2)

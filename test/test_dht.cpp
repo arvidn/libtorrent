@@ -3653,6 +3653,31 @@ TORRENT_TEST(dht_tracker_ip_filter)
 	TEST_EQUAL(sent, true);
 }
 
+TORRENT_TEST(dht_node_add_node_ip_filter)
+{
+	ip_filter filter;
+	filter.add_rule(addr("4.4.4.4"), addr("4.4.4.4"), ip_filter::blocked);
+
+	dht_test_setup t(udp::endpoint(rand_v4(), 20));
+	t.observer.m_ip_filter = &filter;
+
+	g_sent_packets.clear();
+
+	// blocked by the ip filter, node::add_node() must not ping it
+	t.dht_node.add_node(udp::endpoint(addr("4.4.4.4"), 4));
+	TEST_CHECK(g_sent_packets.empty());
+
+	// not blocked, node::add_node() should send a ping
+	t.dht_node.add_node(udp::endpoint(addr("5.5.5.5"), 4));
+	TEST_EQUAL(g_sent_packets.size(), 1);
+
+	// disabling the setting lets the blocked address through too
+	g_sent_packets.clear();
+	t.sett.set_bool(settings_pack::apply_filter_to_dht, false);
+	t.dht_node.add_node(udp::endpoint(addr("4.4.4.4"), 4));
+	TEST_EQUAL(g_sent_packets.size(), 1);
+}
+
 TORRENT_TEST(generate_prefix_mask)
 {
 	std::vector<std::pair<int, char const*>> const test = {

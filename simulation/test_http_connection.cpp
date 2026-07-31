@@ -501,8 +501,9 @@ void run_test(lt::aux::proxy_settings ps, std::string url, int expect_size, int 
 	std::optional<lt::aux::ssl::context> ssl_ctx;
 	if (https)
 	{
-		ssl_ctx.emplace(lt::aux::ssl::context::sslv23_client);
+		ssl_ctx.emplace(lt::aux::ssl::context::tls_client);
 		ssl_ctx->set_verify_mode(lt::aux::ssl::context::verify_none);
+		ssl_ctx->set_options(lt::aux::ssl::no_legacy_tls_versions);
 	}
 #endif
 
@@ -936,8 +937,9 @@ void test_connection_ssl_proxy(bool const with_hostname)
 		});
 
 #if TORRENT_USE_SSL
-	lt::aux::ssl::context ssl_ctx(lt::aux::ssl::context::sslv23_client);
+	lt::aux::ssl::context ssl_ctx(lt::aux::ssl::context::tls_client);
 	ssl_ctx.set_verify_mode(lt::aux::ssl::context::verify_none);
+	ssl_ctx.set_options(lt::aux::ssl::no_legacy_tls_versions);
 #endif
 
 	auto h = std::make_shared<lt::aux::http_connection>(client_ios

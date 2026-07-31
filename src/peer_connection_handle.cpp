@@ -224,7 +224,7 @@ void peer_connection_handle::peer_log(peer_log_alert::direction_t direction
 #pragma clang diagnostic ignored "-Wformat-nonliteral"
 #pragma clang diagnostic ignored "-Wclass-varargs"
 #endif
-	pc->peer_log(direction, event, fmt, v);
+	pc->peer_log(direction, event, fmt, v); // codeql[cpp/non-constant-format]
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif

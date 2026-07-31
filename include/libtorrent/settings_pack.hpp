@@ -385,6 +385,10 @@ namespace aux {
 			// ``router.bittorrent.com:6881``,
 			// ``dht.transmissionbt.com:6881``
 			// ``router.bt.ouinet.work:6881``,
+			//
+			// These nodes are added as DHT router nodes, which are trusted
+			// bootstrap endpoints. As such, they are not subject to the
+			// ``ip_filter``.
 			dht_bootstrap_nodes,
 
 			// Overrides the NAT-PMP service gateway. When set, libtorrent won't try
