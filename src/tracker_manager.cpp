@@ -581,12 +581,10 @@ namespace libtorrent::aux {
 #if TORRENT_USE_RTC
 		for (auto const& c : close_websocket_connections)
 		{
-			// websocket_tracker_connection::fail() takes its arguments in the
-			// opposite order (and hides tracker_connection::fail() by name).
 			if (all)
 				c->close();
 			else
-				c->fail(operation_t::bittorrent, errors::announce_skipped);
+				c->fail(errors::announce_skipped, operation_t::bittorrent);
 		}
 #endif
 	}
