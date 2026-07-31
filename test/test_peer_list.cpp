@@ -342,6 +342,82 @@ TORRENT_TEST(multiple_ips_disallowed2)
 	st.erased.clear();
 }
 
+// test that a peer reported once as a plain IPv4 address and once as the
+// same address in v4-mapped IPv6 form (::ffff:a.b.c.d) is treated as a
+// single peer, not two
+TORRENT_TEST(v4_mapped_dedup)
+{
+	torrent_state st = init_state();
+	mock_torrent t(&st);
+	st.allow_multiple_connections_per_ip = false;
+	peer_list p(allocator);
+	t.m_p = &p;
+
+	torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), {}, {}, &st);
+	TEST_CHECK(peer1);
+	TEST_EQUAL(p.num_peers(), 1);
+	st.erased.clear();
+
+	torrent_peer* peer2 = p.add_peer(ep("::ffff:10.0.0.2", 9020), {}, {}, &st);
+	TEST_EQUAL(p.num_peers(), 1);
+	TEST_EQUAL(peer1, peer2);
+	st.erased.clear();
+
+	// the peer is stored (and reported) in its plain IPv4 form
+	TEST_CHECK(peer1->address().is_v4());
+	TEST_EQUAL(peer1->address(), addr4("10.0.0.2"));
+}
+
+// same as above, but the mapped form is seen first
+TORRENT_TEST(v4_mapped_dedup_reverse)
+{
+	torrent_state st = init_state();
+	mock_torrent t(&st);
+	st.allow_multiple_connections_per_ip = false;
+	peer_list p(allocator);
+	t.m_p = &p;
+
+	torrent_peer* peer1 = p.add_peer(ep("::ffff:10.0.0.2", 3000), {}, {}, &st);
+	TEST_CHECK(peer1);
+	TEST_EQUAL(p.num_peers(), 1);
+	// a v4-mapped address is normalized and stored as a plain IPv4 peer
+	TEST_CHECK(peer1->address().is_v4());
+	TEST_EQUAL(peer1->address(), addr4("10.0.0.2"));
+	st.erased.clear();
+
+	torrent_peer* peer2 = p.add_peer(ep("10.0.0.2", 9020), {}, {}, &st);
+	TEST_EQUAL(p.num_peers(), 1);
+	TEST_EQUAL(peer1, peer2);
+	st.erased.clear();
+}
+
+// with allow_multiple_connections_per_ip, the mapped and plain forms of
+// the same address and port still refer to the same peer
+TORRENT_TEST(v4_mapped_dedup_multiple_allowed)
+{
+	torrent_state st = init_state();
+	mock_torrent t(&st);
+	st.allow_multiple_connections_per_ip = true;
+	peer_list p(allocator);
+	t.m_p = &p;
+
+	torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), {}, {}, &st);
+	TEST_CHECK(peer1);
+	TEST_EQUAL(p.num_peers(), 1);
+	st.erased.clear();
+
+	torrent_peer* peer2 = p.add_peer(ep("::ffff:10.0.0.2", 3000), {}, {}, &st);
+	TEST_EQUAL(p.num_peers(), 1);
+	TEST_EQUAL(peer1, peer2);
+	st.erased.clear();
+
+	// a different port is still a distinct peer
+	torrent_peer* peer3 = p.add_peer(ep("::ffff:10.0.0.2", 3001), {}, {}, &st);
+	TEST_EQUAL(p.num_peers(), 2);
+	TEST_CHECK(peer3 != peer1);
+	st.erased.clear();
+}
+
 // test incoming connection
 // and update_peer_port
 TORRENT_TEST(update_peer_port)
