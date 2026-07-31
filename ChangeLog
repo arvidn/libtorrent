@@ -1,4 +1,4 @@
-2.0.14 not released
+2.0.14 released
 
 	* fix use of a stack buffer past its lifetime when sending i2p SAM commands
 	* fix issues with active_time, seeding_time and finished_time
