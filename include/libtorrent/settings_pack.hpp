@@ -1053,7 +1053,7 @@ namespace aux {
 			// a peer has multiple IP addresses, enabling this feature
 			// may improve transfer efficiency, but it may also
 			// increase network load.
-			allow_multiple_connections_per_pid,
+			allow_multiple_connections_per_peer_id,
 
 			max_bool_setting_internal
 		};
