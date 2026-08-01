@@ -3498,24 +3498,18 @@ get_out:
 		}
 
 		// prevent this hash job from actually completing
-		// this piece, by setting the failure state.
-		// the piece is unlocked in the call to restore_piece()
+		// this piece, by setting the failure state. Do not erase the
+		// downloading_piece entry here even if no blocks are left
+		// outstanding (finished + writing + requested + hashing == 0):
+		// the piece must stay locked, and tracked, until the disk thread
+		// has actually finished discarding the failed state and
+		// restore_piece() is called. Erasing it here would make the piece
+		// pickable again before that has happened, racing a fresh
+		// download of the same piece against the still-outstanding
+		// disk-side cleanup.
 		i->locked = true;
 
-		i = update_piece_state(i);
-
-		if (i->finished + i->writing + i->requested + i->hashing == 0)
-		{
-			piece_pos& p = m_piece_map[block.piece_index];
-			int const prev_priority = p.priority(this);
-			erase_download_piece(i);
-			int const new_priority = p.priority(this);
-
-			if (m_dirty) return;
-			if (new_priority == prev_priority) return;
-			if (prev_priority == -1) add(block.piece_index);
-			else update(prev_priority, p.index);
-		}
+		update_piece_state(i);
 	}
 
 	void piece_picker::mark_as_canceled(piece_block const block, aux::torrent_peer* peer)

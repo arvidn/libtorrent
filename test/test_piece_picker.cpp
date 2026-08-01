@@ -2113,6 +2113,16 @@ TORRENT_TEST(write_failed_clear_piece)
 
 	p->write_failed({1_piece, 0});
 
+	// even though there are no blocks left outstanding for this piece,
+	// it must stay locked and tracked as downloading until restore_piece()
+	// is called. Otherwise it would become pickable again before the disk
+	// thread has finished discarding the failed write, racing a fresh
+	// download of the same piece against that cleanup.
+	stat = p->piece_stats(1_piece);
+	TEST_EQUAL(stat.downloading, 1);
+
+	p->restore_piece(1_piece);
+
 	stat = p->piece_stats(1_piece);
 	TEST_EQUAL(stat.downloading, 0);
 }
