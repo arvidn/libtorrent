@@ -1033,6 +1033,10 @@ namespace aux {
 			// man-in-the-middle connections.
 			proxy_send_host_in_connect,
 
+			// if true, listening on the local listen socket will be allowed for
+      // incoming connections which would bypass any proxy.
+			proxy_accept_incoming,
+      
 			// When set, downloaded files will have the no-copy-on-write flag
 			// (``FS_NOCOW_FL``) set on Linux. This mitigates heavy
 			// fragmentation on filesystems like btrfs, but has the unfortunate
@@ -1056,6 +1060,8 @@ namespace aux {
 			allow_multiple_connections_per_pid,
 
 			max_bool_setting_internal
+
+			
 		};
 
 		// hidden
