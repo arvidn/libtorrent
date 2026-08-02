@@ -536,6 +536,7 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 #if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 		validate_settings();
 #endif
+		sanitize_settings();
 	}
 
 	template <typename Fun, typename... Args>
@@ -835,6 +836,7 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 				val = settings.dict_find_int("allowed_enc_level");
 				if (val) s.set_int(settings_pack::allowed_enc_level, int(val.int_value()));
 			});
+			sanitize_settings();
 		}
 #endif
 
@@ -1531,6 +1533,19 @@ namespace {
 	}
 #endif
 
+	void session_impl::sanitize_settings()
+	{
+		// allowed_enc_level is a bitmask of settings_pack::pe_plaintext and
+		// settings_pack::pe_rc4. any bits outside of pe_both, or a value with
+		// neither bit set, are invalid; the PE handshake code relies on this
+		// always being one of pe_plaintext, pe_rc4 or pe_both. fall back to
+		// allowing both.
+		int const enc_level = m_settings.get_int(settings_pack::allowed_enc_level);
+		if (enc_level != settings_pack::pe_plaintext && enc_level != settings_pack::pe_rc4
+			&& enc_level != settings_pack::pe_both)
+			m_settings.set_int(settings_pack::allowed_enc_level, settings_pack::pe_both);
+	}
+
 	void session_impl::apply_settings_pack_impl(settings_pack const& pack)
 	{
 		bool const reopen_listen_port
@@ -1558,6 +1573,8 @@ namespace {
 #if !defined TORRENT_DISABLE_LOGGING || TORRENT_USE_ASSERTS
 		validate_settings();
 #endif
+
+		sanitize_settings();
 
 		m_disk_thread->settings_updated();
 
