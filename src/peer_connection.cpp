@@ -5420,7 +5420,22 @@ namespace {
 		TORRENT_ASSERT(m_outstanding_piece_verification > 0);
 		--m_outstanding_piece_verification;
 
-		if (!t || t->is_aborted()) return;
+		if (!t)
+			return;
+
+		// must run even while aborting, to keep the outstanding-job count
+		// accurate; hash_job_completed() itself safely no-ops a pending
+		// force_recheck() in that case. A genuine disk error is still
+		// reported below even if a deferred recheck already ran.
+		if (t->hash_job_completed())
+		{
+			if (error)
+				t->handle_disk_error("hash", error, this);
+			return;
+		}
+
+		if (t->is_aborted())
+			return;
 
 		if (error)
 		{
