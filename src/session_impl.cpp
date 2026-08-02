@@ -1527,7 +1527,7 @@ namespace {
 		validate_setting(settings_pack::disk_io_read_mode, 0, 3);
 		validate_setting(settings_pack::disk_io_write_mode, 0, 3);
 		validate_setting(settings_pack::choking_algorithm, 0, 3);
-		validate_setting(settings_pack::seed_choking_algorithm, 0, 3);
+		validate_setting(settings_pack::seed_choking_algorithm, 0, 2);
 		validate_setting(settings_pack::suggest_mode, 0, 1);
 		validate_setting(settings_pack::disk_write_mode, 0, 2);
 	}
@@ -1544,6 +1544,21 @@ namespace {
 		if (enc_level != settings_pack::pe_plaintext && enc_level != settings_pack::pe_rc4
 			&& enc_level != settings_pack::pe_both)
 			m_settings.set_int(settings_pack::allowed_enc_level, settings_pack::pe_both);
+
+		int const out_policy = m_settings.get_int(settings_pack::out_enc_policy);
+		if (out_policy != settings_pack::pe_forced && out_policy != settings_pack::pe_enabled
+			&& out_policy != settings_pack::pe_disabled)
+			m_settings.set_int(settings_pack::out_enc_policy, settings_pack::pe_disabled);
+
+		int const in_policy = m_settings.get_int(settings_pack::in_enc_policy);
+		if (in_policy != settings_pack::pe_forced && in_policy != settings_pack::pe_enabled
+			&& in_policy != settings_pack::pe_disabled)
+			m_settings.set_int(settings_pack::in_enc_policy, settings_pack::pe_disabled);
+
+		int const seed_choke = m_settings.get_int(settings_pack::seed_choking_algorithm);
+		if (seed_choke != settings_pack::round_robin && seed_choke != settings_pack::fastest_upload
+			&& seed_choke != settings_pack::anti_leech)
+			m_settings.set_int(settings_pack::seed_choking_algorithm, settings_pack::round_robin);
 	}
 
 	void session_impl::apply_settings_pack_impl(settings_pack const& pack)
@@ -3643,6 +3658,7 @@ retry:
 		switch (m_settings.get_int(settings_pack::mixed_mode_algorithm))
 		{
 			case settings_pack::prefer_tcp:
+			default:
 				set_upload_rate_limit(m_tcp_peer_class, 0);
 				set_download_rate_limit(m_tcp_peer_class, 0);
 				break;
