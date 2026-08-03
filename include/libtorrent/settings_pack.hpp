@@ -2173,6 +2173,12 @@ namespace aux {
 			// the WebRTC connection timeout used by WebTorrent (in seconds)
 			webtorrent_connection_timeout,
 
+			// the maximum number of WebRTC offers generated and advertised
+			// per WebTorrent tracker announce. It also limits the number of
+			// concurrent incoming WebRTC negotiations per torrent. Set this
+			// to 0 to disable WebTorrent offers.
+			max_webtorrent_offers,
+
 			max_int_setting_internal
 		};
 

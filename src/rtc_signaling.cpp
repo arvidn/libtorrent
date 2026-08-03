@@ -131,6 +131,7 @@ alert_manager& rtc_signaling::alerts() const
 void rtc_signaling::close()
 {
 	m_connections.clear();
+	m_num_incoming_connections = 0;
 }
 
 rtc_offer_id rtc_signaling::generate_offer_id() const
@@ -190,8 +191,22 @@ void rtc_signaling::generate_offers(int count, offers_handler handler)
 
 void rtc_signaling::process_offer(rtc_offer const& offer)
 {
-	if (m_connections.find(offer.id) != m_connections.end()) {
+	if (m_connections.find(offer.id) != m_connections.end())
+	{
+#ifndef TORRENT_DISABLE_LOGGING
+		debug_log("*** RTC signaling ignored duplicate offer");
+#endif
 		// It seems the offer is from ourselves, ignore...
+		return;
+	}
+
+	int const max_offers =
+		std::max(m_torrent->settings().get_int(settings_pack::max_webtorrent_offers), 0);
+	if (m_num_incoming_connections >= max_offers)
+	{
+#ifndef TORRENT_DISABLE_LOGGING
+		debug_log("*** RTC signaling rejected offer: connection limit reached");
+#endif
 		return;
 	}
 
@@ -215,22 +230,39 @@ void rtc_signaling::process_offer(rtc_offer const& offer)
 	});
 
 	conn.pid = offer.pid;
+	conn.incoming = true;
+	++m_num_incoming_connections;
 
-	try {
+	try
+	{
 		conn.peer_connection->setRemoteDescription({offer.sdp, "offer"});
 	}
-	catch(std::exception const& e) {
+	catch (std::exception const& e)
+	{
 		TORRENT_UNUSED(e);
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("*** Failed to set remote RTC offer: %s", e.what());
 #endif
+		auto const it = m_connections.find(offer.id);
+		if (it != m_connections.end())
+		{
+			TORRENT_ASSERT(it->second.incoming);
+			--m_num_incoming_connections;
+			m_connections.erase(it);
+		}
 	}
 }
 
 void rtc_signaling::process_answer(rtc_answer const& answer)
 {
 	auto it = m_connections.find(answer.offer_id);
-	if (it == m_connections.end()) return;
+	if (it == m_connections.end())
+	{
+#ifndef TORRENT_DISABLE_LOGGING
+		debug_log("*** RTC signaling ignored answer for unknown offer");
+#endif
+		return;
+	}
 
 #ifndef TORRENT_DISABLE_LOGGING
 	debug_log("*** RTC signaling processing remote answer");
@@ -247,14 +279,17 @@ void rtc_signaling::process_answer(rtc_answer const& answer)
 
 	conn.pid = answer.pid;
 
-	try {
+	try
+	{
 		conn.peer_connection->setRemoteDescription({answer.sdp, "answer"});
 	}
-	catch(std::exception const& e) {
+	catch (std::exception const& e)
+	{
 		TORRENT_UNUSED(e);
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("*** Failed to set remote RTC answer: %s", e.what());
 #endif
+		m_connections.erase(it);
 	}
 }
 
@@ -366,6 +401,8 @@ void rtc_signaling::on_generated_answer(error_code const& ec, rtc_answer answer,
 		// Ignore
 		return;
 	}
+	if (m_connections.find(answer.offer_id) == m_connections.end())
+		return;
 #ifndef TORRENT_DISABLE_LOGGING
 	debug_log("*** RTC signaling generated answer");
 #endif
@@ -378,7 +415,14 @@ void rtc_signaling::on_data_channel(error_code const& ec
 		, std::shared_ptr<rtc::DataChannel> dc)
 {
 	auto it = m_connections.find(offer_id);
-	if (it == m_connections.end()) return;
+	if (it == m_connections.end())
+		return;
+
+	if (it->second.incoming)
+	{
+		TORRENT_ASSERT(m_num_incoming_connections > 0);
+		--m_num_incoming_connections;
+	}
 
 	connection conn = std::move(it->second);
 	m_connections.erase(it);
