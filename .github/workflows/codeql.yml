@@ -40,7 +40,7 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           queries: +security-and-quality
-          paths-ignore: deps/**
+          config-file: ./.github/codeql/codeql-config.yml
 
       - name: Build cpp
         if: ${{ matrix.language == 'cpp' }}
