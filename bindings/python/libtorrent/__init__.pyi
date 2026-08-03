@@ -3607,6 +3607,7 @@ class settings_pack(TypedDict):
     i2p_outbound_length_variance: NotRequired[int]
     min_websocket_announce_interval: NotRequired[int]
     webtorrent_connection_timeout: NotRequired[int]
+    max_webtorrent_offers: NotRequired[int]
     allow_multiple_connections_per_ip: NotRequired[bool]
     ignore_limits_on_local_network: NotRequired[bool]
     send_redundant_have: NotRequired[bool]

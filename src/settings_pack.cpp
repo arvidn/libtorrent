@@ -389,7 +389,8 @@ namespace {
 		SET(i2p_outbound_length_variance, 0, nullptr),
 		SET(natpmp_lease_duration, 3600, nullptr),
 		SET(min_websocket_announce_interval, 1 * 60, nullptr),
-		SET(webtorrent_connection_timeout, 2 * 60, nullptr)
+		SET(webtorrent_connection_timeout, 2 * 60, nullptr),
+		SET(max_webtorrent_offers, 10, nullptr)
 	}});
 	// clang-format on
 
