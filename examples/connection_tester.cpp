@@ -32,6 +32,7 @@ see LICENSE file.
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/aux_/merkle_tree.hpp"
+#include "libtorrent/error.hpp"
 #include <random>
 #include <algorithm>
 #include <cstring>
@@ -1529,17 +1530,56 @@ std::vector<char> generate_torrent(int num_pieces,
 	return t.generate_buf();
 }
 
-void write_handler(file_storage const& fs
-	, disk_interface& disk, storage_holder& st
-	, piece_index_t& piece, int& offset
-	, lt::storage_error const& error)
+// forces a flush of this piece: pread_disk_io only flushes once a piece is
+// hashed or the cache crosses max_queued_disk_bytes, and this tool never
+// keeps enough blocks in flight to cross that on its own.
+void hash_piece_if_last_block(disk_interface& disk,
+	storage_holder& st,
+	torrent_info const& ti,
+	piece_index_t const piece,
+	int const offset,
+	int const length)
+{
+	if (offset + length < ti.piece_size_for_req(piece))
+		return;
+
+	// async_hash() asserts unless v1_hash is set or the v2 span is
+	// non-empty, so this must supply whichever the torrent actually has.
+	file_storage const& fs = ti.layout();
+	auto v2_hashes =
+		std::make_shared<std::vector<sha256_hash>>(ti.v2() ? fs.blocks_in_piece2(piece) : 0);
+	disk_job_flags_t flags = disk_interface::flush_piece;
+	if (ti.v1())
+		flags |= disk_interface::v1_hash;
+
+	// kept alive by the handler: async_hash() fills the span in only once
+	// the (possibly deferred) hash job runs. Errors here are expected on
+	// shutdown, canceled by write_handler's final abort(); real failures
+	// already surface via the write path.
+	disk.async_hash(st,
+		piece,
+		*v2_hashes,
+		flags,
+		[v2_hashes](piece_index_t, sha1_hash const&, lt::storage_error const&) {});
+}
+
+// throws so the exception unwinds out of generate_data(), whose
+// disk_interface destructor aborts and joins the disk threads.
+void write_handler(torrent_info const& ti,
+	disk_interface& disk,
+	storage_holder& st,
+	piece_index_t& piece,
+	int& offset,
+	lt::storage_error const& error)
 {
 	if (error)
 	{
-		std::fprintf(stderr, "storage error: %s\n", error.ec.message().c_str());
-		return;
+		if (error.ec == error::operation_aborted)
+			return;
+		throw lt::system_error(error.ec);
 	}
 
+	file_storage const& fs = ti.layout();
 
 	if (static_cast<int>(piece) & 1)
 	{
@@ -1549,7 +1589,7 @@ void write_handler(file_storage const& fs
 
 	if (piece >= fs.end_piece()) return;
 	offset += 0x4000;
-	if (offset >= fs.piece_size(piece))
+	if (offset >= ti.piece_size_for_req(piece))
 	{
 		offset = 0;
 		++piece;
@@ -1563,14 +1603,17 @@ void write_handler(file_storage const& fs
 	std::uint32_t buffer[0x4000 / 4];
 	generate_block(buffer, piece, offset);
 
-	int const left_in_piece = fs.piece_size(piece) - offset;
+	int const left_in_piece = ti.piece_size_for_req(piece) - offset;
 	if (left_in_piece <= 0) return;
 
-	disk.async_write(st, { piece, offset, std::min(left_in_piece, 0x4000)}
-		, reinterpret_cast<char const*>(buffer)
-		, std::shared_ptr<disk_observer>()
-		, [&](lt::storage_error const& e)
-		{ write_handler(fs, disk, st, piece, offset, e); });
+	int const this_length = std::min(left_in_piece, 0x4000);
+	disk.async_write(st,
+		{piece, offset, this_length},
+		reinterpret_cast<char const*>(buffer),
+		std::shared_ptr<disk_observer>(),
+		[&](lt::storage_error const& e) { write_handler(ti, disk, st, piece, offset, e); });
+
+	hash_piece_if_last_block(disk, st, ti, piece, offset, this_length);
 
 	disk.submit_jobs();
 }
@@ -1580,6 +1623,11 @@ void generate_data(std::string const path, torrent_info const& ti)
 	io_context ios;
 	counters stats_counters;
 	settings_pack sett = default_settings();
+	// a piece is bigger than the fixed number of blocks kept in flight
+	// below, so it can't complete on its own to trigger
+	// hash_piece_if_last_block()'s flush. Lowering the watermark below
+	// the in-flight budget forces continuous flushing instead.
+	sett.set_int(settings_pack::max_queued_disk_bytes, 8 * 0x4000);
 	std::unique_ptr<lt::disk_interface> disk = default_disk_io_constructor(ios, sett, stats_counters);
 
 	file_storage const& fs = ti.layout();
@@ -1607,16 +1655,21 @@ void generate_data(std::string const path, torrent_info const& ti)
 	std::uint32_t buffer[0x4000 / 4];
 	generate_block(buffer, piece, offset);
 
-	disk->async_write(st, { piece, offset, std::min(fs.piece_size(piece), 0x4000)}
-		, reinterpret_cast<char const*>(buffer)
-		, std::shared_ptr<disk_observer>()
-		, [&](lt::storage_error const& error)
-		{ write_handler(fs, *disk, st, piece, offset, error); });
+	int const initial_length = std::min(ti.piece_size_for_req(piece), 0x4000);
+	disk->async_write(st,
+		{piece, offset, initial_length},
+		reinterpret_cast<char const*>(buffer),
+		std::shared_ptr<disk_observer>(),
+		[&](lt::storage_error const& error) {
+			write_handler(ti, *disk, st, piece, offset, error);
+		});
+
+	hash_piece_if_last_block(*disk, st, ti, piece, offset, initial_length);
 
 	// keep 10 writes in flight at all times
 	for (int i = 0; i < 10; ++i)
 	{
-		write_handler(fs, *disk, st, piece, offset, lt::storage_error());
+		write_handler(ti, *disk, st, piece, offset, lt::storage_error());
 	}
 
 	disk->submit_jobs();
@@ -1976,7 +2029,7 @@ int main(int argc, char* argv[])
 		}
 		catch (lt::system_error const& err)
 		{
-			std::fprintf(stderr, "ERROR LOADING .TORRENT: %s\n", err.code().message().c_str());
+			std::fprintf(stderr, "ERROR: %s\n", err.code().message().c_str());
 			return 1;
 		}
 		return 0;
