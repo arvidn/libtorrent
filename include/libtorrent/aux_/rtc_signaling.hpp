@@ -25,6 +25,8 @@ see LICENSE file.
 #include <boost/functional/hash.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
+#include <array>
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -48,12 +50,10 @@ namespace aux {
 struct rtc_stream_init;
 
 constexpr int RTC_OFFER_ID_LEN = 20;
+constexpr std::size_t RTC_MAX_SDP_SIZE = 64 * 1024;
+constexpr std::size_t RTC_MAX_MESSAGE_SIZE = 2 * RTC_MAX_SDP_SIZE;
 
-struct rtc_offer_id : std::vector<char>
-{
-	rtc_offer_id() : std::vector<char>(RTC_OFFER_ID_LEN, '\0') {}
-	explicit rtc_offer_id(span<char const> s) : std::vector<char>(s.begin(), s.end()) {}
-};
+using rtc_offer_id = std::array<char, RTC_OFFER_ID_LEN>;
 
 struct rtc_answer
 {
@@ -105,6 +105,7 @@ private:
 		std::shared_ptr<rtc::PeerConnection> peer_connection;
 		std::shared_ptr<rtc::DataChannel> data_channel;
 		std::optional<peer_id> pid;
+		bool incoming = false;
 
 		deadline_timer timer;
 	};
@@ -120,7 +121,8 @@ private:
 	torrent* m_torrent;
 	rtc_stream_handler m_rtc_stream_handler;
 
-	std::unordered_map<rtc_offer_id, connection, boost::hash<std::vector<char>>> m_connections;
+	std::unordered_map<rtc_offer_id, connection, boost::hash<rtc_offer_id>> m_connections;
+	int m_num_incoming_connections = 0;
 	std::queue<rtc_offer_id> m_queue;
 
 	struct offer_batch

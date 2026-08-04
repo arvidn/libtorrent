@@ -247,27 +247,16 @@ namespace {
 		// upload_slots peers.
 
 		int const slots = std::min(upload_slots, int(peers.size()));
+		int const seed_choke = sett.get_int(settings_pack::seed_choking_algorithm);
 
-		if (sett.get_int(settings_pack::seed_choking_algorithm)
-			== settings_pack::round_robin)
-		{
-			int const pieces = sett.get_int(settings_pack::seeding_piece_quota);
-
-			std::nth_element(peers.begin(), peers.begin()
-				+ slots, peers.end()
-				, [pieces](peer_connection const* lhs, peer_connection const* rhs)
-				{ return unchoke_compare_rr(lhs, rhs, pieces); });
-		}
-		else if (sett.get_int(settings_pack::seed_choking_algorithm)
-			== settings_pack::fastest_upload)
+		if (seed_choke == settings_pack::fastest_upload)
 		{
 			std::nth_element(peers.begin(), peers.begin()
 				+ slots, peers.end()
 				, [](peer_connection const* lhs, peer_connection const* rhs)
 				{ return unchoke_compare_fastest_upload(lhs, rhs); });
 		}
-		else if (sett.get_int(settings_pack::seed_choking_algorithm)
-			== settings_pack::anti_leech)
+		else if (seed_choke == settings_pack::anti_leech)
 		{
 			std::nth_element(peers.begin(), peers.begin()
 				+ slots, peers.end()
@@ -276,13 +265,14 @@ namespace {
 		}
 		else
 		{
+			TORRENT_ASSERT(seed_choke == settings_pack::round_robin);
 			int const pieces = sett.get_int(settings_pack::seeding_piece_quota);
-			std::nth_element(peers.begin(), peers.begin()
-				+ slots, peers.end()
-				, [pieces](peer_connection const* lhs, peer_connection const* rhs)
-				{ return unchoke_compare_rr(lhs, rhs, pieces); } );
-
-			TORRENT_ASSERT_FAIL();
+			std::nth_element(peers.begin(),
+				peers.begin() + slots,
+				peers.end(),
+				[pieces](peer_connection const* lhs, peer_connection const* rhs) {
+					return unchoke_compare_rr(lhs, rhs, pieces);
+				});
 		}
 
 		return upload_slots;

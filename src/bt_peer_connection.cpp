@@ -67,8 +67,8 @@ namespace {
 	// stream key (info hash of attached torrent)
 	// secret is the DH shared secret
 	// initializes m_enc_handler
-	std::shared_ptr<rc4_handler> init_pe_rc4_handler(key_t const& secret
-		, sha1_hash const& stream_key, bool const outgoing)
+	std::shared_ptr<rc4_handler> init_pe_rc4_handler(
+		span<char const> secret_buf, sha1_hash const& stream_key, bool const outgoing)
 	{
 		hasher h;
 		static const char keyA[] = {'k', 'e', 'y', 'A'};
@@ -77,8 +77,6 @@ namespace {
 		// encryption rc4 longkeys
 		// outgoing connection : hash ('keyA',S,SKEY)
 		// incoming connection : hash ('keyB',S,SKEY)
-
-		std::array<char, dh_key_len> const secret_buf = export_key(secret);
 
 		if (outgoing) h.update(keyA); else h.update(keyB);
 		h.update(secret_buf);
@@ -208,10 +206,13 @@ namespace {
 				out_policy = settings_pack::pe_disabled;
 #endif
 #ifndef TORRENT_DISABLE_LOGGING
-		static char const* policy_name[] = {"forced", "enabled", "disabled", "invalid-setting"};
-		int const policy_name_idx = out_policy > 3 ? 3 : out_policy;
-		peer_log(peer_log_alert::info, peer_log_alert::encryption
-			, "outgoing encryption policy: %s", policy_name[policy_name_idx]);
+		// session_impl::sanitize_settings() guarantees this is one of
+		// pe_forced, pe_enabled or pe_disabled
+		static char const* policy_name[] = {"forced", "enabled", "disabled"};
+		peer_log(peer_log_alert::info,
+			peer_log_alert::encryption,
+			"outgoing encryption policy: %s",
+			policy_name[out_policy]);
 #endif
 
 		if (out_policy == settings_pack::pe_forced)
@@ -539,12 +540,7 @@ namespace {
 			peer_log(peer_log_alert::info, peer_log_alert::encryption, "initiating encrypted handshake");
 #endif
 
-		m_dh_key_exchange.reset(new (std::nothrow) dh_key_exchange);
-		if (!m_dh_key_exchange)
-		{
-			disconnect(errors::no_memory, operation_t::encryption);
-			return;
-		}
+		m_dh_key_exchange.reset(new dh_key_exchange);
 
 		int const pad_size = int(random(512));
 
@@ -556,7 +552,7 @@ namespace {
 		char* ptr = msg;
 		int const buf_size = int(dh_key_len) + pad_size;
 
-		std::array<char, dh_key_len> const local_key = export_key(m_dh_key_exchange->get_local_key());
+		std::array<char, dh_key_len> const& local_key = m_dh_key_exchange->get_local_key();
 		std::memcpy(ptr, local_key.data(), dh_key_len);
 		ptr += dh_key_len;
 
@@ -579,8 +575,7 @@ namespace {
 
 		hasher h;
 		sha1_hash const& info_hash = associated_info_hash();
-		key_t const secret_key = m_dh_key_exchange->get_secret();
-		std::array<char, dh_key_len> const secret = export_key(secret_key);
+		std::array<char, dh_key_len> const& secret = m_dh_key_exchange->get_secret();
 
 		int const pad_size = int(random(512));
 
@@ -622,7 +617,7 @@ namespace {
 		ptr += 20;
 
 		// Discard DH key exchange data, setup RC4 keys
-		m_rc4 = init_pe_rc4_handler(secret_key, info_hash, is_outgoing());
+		m_rc4 = init_pe_rc4_handler(secret, info_hash, is_outgoing());
 #ifndef TORRENT_DISABLE_LOGGING
 		peer_log(peer_log_alert::info, peer_log_alert::encryption, "computed RC4 keys");
 #endif
@@ -631,11 +626,11 @@ namespace {
 		// write the verification constant and crypto field
 		int const encrypt_size = int(sizeof(msg)) - 512 + pad_size - 40;
 
-		// this is an invalid setting, but let's just make the best of the situation
+		// session_impl::sanitize_settings() guarantees this is one of
+		// pe_plaintext, pe_rc4 or pe_both
 		int const enc_level = m_settings.get_int(settings_pack::allowed_enc_level);
-		std::uint8_t const crypto_provide = ((enc_level & settings_pack::pe_both) == 0)
-			? std::uint8_t(settings_pack::pe_both)
-			: std::uint8_t(enc_level);
+		TORRENT_ASSERT_PRECOND(enc_level & settings_pack::pe_both);
+		auto const crypto_provide = std::uint8_t(enc_level);
 
 #ifndef TORRENT_DISABLE_LOGGING
 		static char const* level[] = {"plaintext", "rc4", "plaintext rc4"};
@@ -2879,7 +2874,7 @@ namespace {
 
 				static char const req1[4] = {'r', 'e', 'q', '1'};
 				// compute synchash (hash('req1',S))
-				std::array<char, dh_key_len> const buffer = export_key(m_dh_key_exchange->get_secret());
+				std::array<char, dh_key_len> const& buffer = m_dh_key_exchange->get_secret();
 				hasher h(req1);
 				h.update(buffer);
 				m_sync_hash = std::make_unique<sha1_hash>(h.final());

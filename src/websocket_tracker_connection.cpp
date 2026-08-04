@@ -154,6 +154,7 @@ void websocket_tracker_connection::close(error_code const& ec, operation_t const
 	}
 
 	m_callbacks.clear();
+	m_offer_quota.clear();
 	m_man.remove_request(this);
 }
 
@@ -262,6 +263,7 @@ void websocket_tracker_connection::send_pending()
 void websocket_tracker_connection::do_send(tracker_request const& req)
 {
 	m_req = req;
+	m_offer_quota[req.info_hash] = req.num_want;
 
 	json::object payload;
 	payload["action"] = "announce";
@@ -434,19 +436,24 @@ void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_r
 	{
 		if (response.offer)
 		{
-			response.offer->answer_callback =
-				[info_hash = response.info_hash
-					, self = shared_from_this()
-					, id = response.offer->id
-					, pid = response.offer->pid]
-				(peer_id const& local_pid
-					, aux::rtc_answer const& answer)
-				{
-					self->queue_answer({std::move(info_hash), std::move(local_pid), std::move(answer)});
+			auto const quota = m_offer_quota.find(response.info_hash);
+			if (quota != m_offer_quota.end() && quota->second > 0)
+			{
+				--quota->second;
+
+				response.offer->answer_callback = [info_hash = response.info_hash,
+													  self = shared_from_this(),
+													  id = response.offer->id,
+													  pid = response.offer->pid](
+													  peer_id const& local_pid,
+													  aux::rtc_answer const& answer) {
+					self->queue_answer(
+						{std::move(info_hash), std::move(local_pid), std::move(answer)});
 					self->start();
 				};
 
-			cb->on_rtc_offer(*response.offer);
+				cb->on_rtc_offer(*response.offer);
+			}
 		}
 
 		if(response.answer)
@@ -474,6 +481,7 @@ void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_r
 			cb_->debug_log("*** WEBSOCKET_TRACKER_READ [ warning: no callback for info_hash ]");
 #endif
 		m_callbacks.erase(response.info_hash);
+		m_offer_quota.erase(response.info_hash);
 	}
 
 	do_read();
@@ -534,32 +542,54 @@ parse_websocket_tracker_response(span<char const> message, error_code& ec) try
 	if (auto it = payload.find("offer"); it != payload.end())
 	{
 		json::object& payload_offer = it->value().as_object();
-		auto sdp = payload_offer["sdp"].as_string();
+		auto const& sdp = payload_offer["sdp"].as_string();
+		if (sdp.size() > aux::RTC_MAX_SDP_SIZE)
+		{
+			ec = error_code(errors::invalid_tracker_response);
+			return "offer SDP too large";
+		}
 		auto id = utf8_latin1(payload["offer_id"].as_string());
 		auto pid = utf8_latin1(payload["peer_id"].as_string());
+		if (id.size() != aux::RTC_OFFER_ID_LEN)
+		{
+			ec = error_code(errors::invalid_tracker_response);
+			return "invalid offer_id size " + std::to_string(id.size());
+		}
 		if (pid.size() != 20)
 		{
 			ec = error_code(errors::invalid_tracker_response);
 			return "invalid peer_id size " + std::to_string(pid.size());
 		}
 
-		aux::rtc_offer_id oid{span<char const>(id)};
+		aux::rtc_offer_id oid;
+		std::copy(id.begin(), id.end(), oid.begin());
 		response.offer.emplace(aux::rtc_offer{std::move(oid), peer_id(pid), {sdp.data(), sdp.size()}, nullptr});
 	}
 
 	if (auto it = payload.find("answer"); it != payload.end())
 	{
 		json::object& payload_answer = it->value().as_object();
-		auto sdp = payload_answer["sdp"].as_string();
+		auto const& sdp = payload_answer["sdp"].as_string();
+		if (sdp.size() > aux::RTC_MAX_SDP_SIZE)
+		{
+			ec = error_code(errors::invalid_tracker_response);
+			return "answer SDP too large";
+		}
 		auto id = utf8_latin1(payload["offer_id"].as_string());
 		auto pid = utf8_latin1(payload["peer_id"].as_string());
+		if (id.size() != aux::RTC_OFFER_ID_LEN)
+		{
+			ec = error_code(errors::invalid_tracker_response);
+			return "invalid offer_id size " + std::to_string(id.size());
+		}
 		if (pid.size() != 20)
 		{
 			ec = error_code(errors::invalid_tracker_response);
 			return "invalid peer_id size " + std::to_string(pid.size());
 		}
 
-		aux::rtc_offer_id oid{span<char const>(id)};
+		aux::rtc_offer_id oid;
+		std::copy(id.begin(), id.end(), oid.begin());
 		response.answer.emplace(aux::rtc_answer{std::move(oid), peer_id(pid), {sdp.data(), sdp.size()}});
 	}
 

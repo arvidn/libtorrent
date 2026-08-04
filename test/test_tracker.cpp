@@ -686,7 +686,8 @@ TORRENT_TEST(parse_websocket_tracker_response)
 
 TORRENT_TEST(parse_websocket_tracker_response_offer)
 {
-	char const response[] = R"({"action":"announce","offer":{"type":"offer","sdp":"SDP\r\n"},"offer_id":"yyyyyyyyyyyyyyyy","peer_id":"-LT2000-p!SALH(DnYsi","info_hash":"xxxxxxxxxxxxxxxxxxxx"})";
+	char const response[] =
+		R"({"action":"announce","offer":{"type":"offer","sdp":"SDP\r\n"},"offer_id":"yyyyyyyyyyyyyyyyyyyy","peer_id":"-LT2000-p!SALH(DnYsi","info_hash":"xxxxxxxxxxxxxxxxxxxx"})";
 
 	error_code ec;
 	auto ret = aux::parse_websocket_tracker_response({response, long(std::strlen(response))}, ec);
@@ -705,7 +706,8 @@ TORRENT_TEST(parse_websocket_tracker_response_offer)
 
 		if (parsed.offer)
 		{
-			TEST_EQUAL(std::string(parsed.offer->id.data(), parsed.offer->id.size()), "yyyyyyyyyyyyyyyy");
+			TEST_EQUAL(std::string(parsed.offer->id.data(), parsed.offer->id.size()),
+				"yyyyyyyyyyyyyyyyyyyy");
 			TEST_EQUAL(parsed.offer->sdp, "SDP\r\n");
 		}
 	}
@@ -713,7 +715,8 @@ TORRENT_TEST(parse_websocket_tracker_response_offer)
 
 TORRENT_TEST(parse_websocket_tracker_response_answer)
 {
-	char const response[] = R"({"action":"announce","answer":{"type":"answer","sdp":"SDP\r\n"},"offer_id":"yyyyyyyyyyyyyyyy","peer_id":"-LT2000-p!SALH(DnYsi","info_hash":"xxxxxxxxxxxxxxxxxxxx"})";
+	char const response[] =
+		R"({"action":"announce","answer":{"type":"answer","sdp":"SDP\r\n"},"offer_id":"yyyyyyyyyyyyyyyyyyyy","peer_id":"-LT2000-p!SALH(DnYsi","info_hash":"xxxxxxxxxxxxxxxxxxxx"})";
 
 	error_code ec;
 	auto ret = aux::parse_websocket_tracker_response({response, long(std::strlen(response))}, ec);
@@ -732,7 +735,8 @@ TORRENT_TEST(parse_websocket_tracker_response_answer)
 
 		if(parsed.answer)
 		{
-			TEST_EQUAL(std::string(parsed.answer->offer_id.data(), parsed.answer->offer_id.size()), "yyyyyyyyyyyyyyyy");
+			TEST_EQUAL(std::string(parsed.answer->offer_id.data(), parsed.answer->offer_id.size()),
+				"yyyyyyyyyyyyyyyyyyyy");
 			TEST_EQUAL(parsed.answer->sdp, "SDP\r\n");
 		}
 	}
@@ -752,9 +756,7 @@ TORRENT_TEST(parse_websocket_tracker_invalid_json)
 
 TORRENT_TEST(parse_websocket_tracker_invalid_response)
 {
-	std::array<char const*, 12> responses =
-	{
-		// not an object
+	std::array<char const*, 14> responses = {// not an object
 		R"([ "foo" ])",
 
 		// info_hash too short
@@ -766,30 +768,35 @@ TORRENT_TEST(parse_websocket_tracker_invalid_response)
 		// info_hash too long
 		R"({"complete":1,"incomplete":0,"action":"announce","interval":120,"info_hash":"aaaaaaaaaaaaaaaaaaaaa"})",
 
+		// offer with offer_id too short
+		R"({"action":"announce","offer":{"type":"offer","sdp":"SDP\r\n"},"offer_id":"tooshort","peer_id":"-LT2000-p!SALH(DnYsi","info_hash":"xxxxxxxxxxxxxxxxxxxx"})",
+
+		// answer with offer_id too long
+		R"({"action":"announce","answer":{"type":"answer","sdp":"SDP\r\n"},"offer_id":"aaaaaaaaaaaaaaaaaaaaa","peer_id":"-LT2000-p!SALH(DnYsi","info_hash":"xxxxxxxxxxxxxxxxxxxx"})",
+
 		// offer with peer_id too short
-		R"({"action":"announce","offer":{"type":"offer","sdp":"SDP\r\n"},"offer_id":"yyyyyyyyyyyyyyyy","peer_id":"bbbbbbbbbbbbbbbbbbb","info_hash":"xxxxxxxxxxxxxxxxxxxx"})",
+		R"({"action":"announce","offer":{"type":"offer","sdp":"SDP\r\n"},"offer_id":"yyyyyyyyyyyyyyyyyyyy","peer_id":"bbbbbbbbbbbbbbbbbbb","info_hash":"xxxxxxxxxxxxxxxxxxxx"})",
 
 		// offer with peer_id too long
-		R"({"action":"announce","offer":{"type":"offer","sdp":"SDP\r\n"},"offer_id":"yyyyyyyyyyyyyyyy","peer_id":"aaaaaaaaaaaaaaaaaaaaa","info_hash":"xxxxxxxxxxxxxxxxxxxx"})",
+		R"({"action":"announce","offer":{"type":"offer","sdp":"SDP\r\n"},"offer_id":"yyyyyyyyyyyyyyyyyyyy","peer_id":"aaaaaaaaaaaaaaaaaaaaa","info_hash":"xxxxxxxxxxxxxxxxxxxx"})",
 
 		// answer with peer_id too short
-		R"({"action":"announce","answer":{"type":"answer","sdp":"SDP\r\n"},"offer_id":"yyyyyyyyyyyyyyyy","peer_id":"bbbbbbbbbbbbbbbbbbb","info_hash":"xxxxxxxxxxxxxxxxxxxx"})",
+		R"({"action":"announce","answer":{"type":"answer","sdp":"SDP\r\n"},"offer_id":"yyyyyyyyyyyyyyyyyyyy","peer_id":"bbbbbbbbbbbbbbbbbbb","info_hash":"xxxxxxxxxxxxxxxxxxxx"})",
 
 		// answer with peer_id too long
-		R"({"action":"announce","answer":{"type":"answer","sdp":"SDP\r\n"},"offer_id":"yyyyyyyyyyyyyyyy","peer_id":"aaaaaaaaaaaaaaaaaaaaa","info_hash":"xxxxxxxxxxxxxxxxxxxx"})",
+		R"({"action":"announce","answer":{"type":"answer","sdp":"SDP\r\n"},"offer_id":"yyyyyyyyyyyyyyyyyyyy","peer_id":"aaaaaaaaaaaaaaaaaaaaa","info_hash":"xxxxxxxxxxxxxxxxxxxx"})",
 
 		// offer without sdp
-		R"({"action":"announce","offer":{"type":"offer"},"offer_id":"yyyyyyyyyyyyyyyy","peer_id":"-LT2000-p!SALH(DnYsi","info_hash":"xxxxxxxxxxxxxxxxxxxx"})",
+		R"({"action":"announce","offer":{"type":"offer"},"offer_id":"yyyyyyyyyyyyyyyyyyyy","peer_id":"-LT2000-p!SALH(DnYsi","info_hash":"xxxxxxxxxxxxxxxxxxxx"})",
 
 		// answer without sdp
-		R"({"action":"announce","answer":{"type":"answer"},"offer_id":"yyyyyyyyyyyyyyyy","peer_id":"-LT2000-p!SALH(DnYsi","info_hash":"xxxxxxxxxxxxxxxxxxxx"})",
+		R"({"action":"announce","answer":{"type":"answer"},"offer_id":"yyyyyyyyyyyyyyyyyyyy","peer_id":"-LT2000-p!SALH(DnYsi","info_hash":"xxxxxxxxxxxxxxxxxxxx"})",
 
 		// offer not an object
-		R"({"action":"announce","offer": "foo","offer_id":"yyyyyyyyyyyyyyyy","peer_id":"-LT2000-p!SALH(DnYsi","info_hash":"xxxxxxxxxxxxxxxxxxxx"})",
+		R"({"action":"announce","offer": "foo","offer_id":"yyyyyyyyyyyyyyyyyyyy","peer_id":"-LT2000-p!SALH(DnYsi","info_hash":"xxxxxxxxxxxxxxxxxxxx"})",
 
 		// answer not an object
-		R"({"action":"announce","answer": ["foo","bar"],"offer_id":"yyyyyyyyyyyyyyyy","peer_id":"-LT2000-p!SALH(DnYsi","info_hash":"xxxxxxxxxxxxxxxxxxxx"})"
-	};
+		R"({"action":"announce","answer": ["foo","bar"],"offer_id":"yyyyyyyyyyyyyyyyyyyy","peer_id":"-LT2000-p!SALH(DnYsi","info_hash":"xxxxxxxxxxxxxxxxxxxx"})"};
 
 	for(const auto& response : responses)
 	{

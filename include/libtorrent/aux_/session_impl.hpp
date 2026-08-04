@@ -470,6 +470,10 @@ namespace aux {
 			void validate_setting(int const int_name, int const min, int const max);
 			void validate_settings();
 #endif
+			// clamps settings whose value must be restricted to a valid range
+			// for other code to be able to rely on that invariant, regardless
+			// of whether asserts or logging are enabled in this build
+			void sanitize_settings();
 			void apply_settings_pack(std::shared_ptr<settings_pack> pack) override;
 			void apply_settings_pack_impl(settings_pack const& pack);
 			session_settings const& settings() const override { return m_settings; }

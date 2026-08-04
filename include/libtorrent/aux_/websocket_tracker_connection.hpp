@@ -95,7 +95,7 @@ private:
 	io_context& m_io_context;
 	ssl::context* m_ssl_context;
 	std::shared_ptr<aux::websocket_stream> m_websocket;
-	boost::beast::flat_buffer m_read_buffer;
+	boost::beast::flat_buffer m_read_buffer{RTC_MAX_MESSAGE_SIZE};
 	std::string m_write_data;
 
 	using tracker_message = std::variant<tracker_request, tracker_answer>;
@@ -121,6 +121,7 @@ private:
 	// an unordered_map without also fixing on_read() to not hold an
 	// iterator across that call.
 	std::map<sha1_hash, callback_entry> m_callbacks;
+	std::map<sha1_hash, int> m_offer_quota;
 
 	bool m_sending = false;
 };

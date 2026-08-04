@@ -234,6 +234,7 @@ int settings_key(int const tag)
 		case SET_NATPMP_LEASE_DURATION: return sp::natpmp_lease_duration;
 		case SET_MIN_WEBSOCKET_ANNOUNCE_INTERVAL: return sp::min_websocket_announce_interval;
 		case SET_WEBTORRENT_CONNECTION_TIMEOUT: return sp::webtorrent_connection_timeout;
+		case SET_MAX_WEBTORRENT_OFFERS: return sp::max_webtorrent_offers;
 		case SET_MAX_TRACKER_CONNECTION_REQUESTS: return sp::max_tracker_connection_requests;
 		default:
 			// ignore unknown tags

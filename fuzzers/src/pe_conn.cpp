@@ -68,9 +68,8 @@ peer_fuzz_session g_fz;
 
 // Build RC4 keys for an outgoing (client-initiating) PE connection.
 // The client's send key is hash("keyA", S, SKEY); receive key is hash("keyB", S, SKEY).
-static std::shared_ptr<rc4_handler> make_rc4(lt::aux::key_t const& secret, sha1_hash const& skey)
+static std::shared_ptr<rc4_handler> make_rc4(span<char const> secret_buf, sha1_hash const& skey)
 {
-	std::array<char, 96> const secret_buf = export_key(secret);
 	static const char keyA[4] = {'k', 'e', 'y', 'A'};
 	static const char keyB[4] = {'k', 'e', 'y', 'B'};
 
@@ -132,7 +131,7 @@ extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, std::size_t size
 
 	// Generate a fresh DH key pair for this connection.
 	dh_key_exchange dh;
-	std::array<char, 96> const local_dh_key = export_key(dh.get_local_key());
+	auto const& local_dh_key = dh.get_local_key();
 
 	// Step 1: send our DH public key + PadA.
 	// PadA bytes come from fuzz input so libFuzzer can explore the sync-hash
@@ -161,13 +160,12 @@ extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, std::size_t size
 
 	// Compute DH shared secret and derive RC4 keys.
 	dh.compute_secret(reinterpret_cast<std::uint8_t const*>(srv_key.data()));
-	lt::aux::key_t const secret = dh.get_secret();
-	std::array<char, 96> const secret_buf = export_key(secret);
+	auto const& secret_buf = dh.get_secret();
 
 	// Use the v1 info hash as SKEY. The server's for_each loop tries both the
 	// v1 SHA-1 hash and the first 20 bytes of the v2 SHA-256 hash.
 	sha1_hash const& skey = g_fz.info_hash.v1;
-	auto const rc4 = make_rc4(secret, skey);
+	auto const rc4 = make_rc4(secret_buf, skey);
 
 	// Step 3: compute sync hash and obfuscated SKEY hash.
 

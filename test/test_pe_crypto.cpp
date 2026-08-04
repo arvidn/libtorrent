@@ -12,6 +12,7 @@ see LICENSE file.
 
 #include <algorithm>
 #include <array>
+#include <cstdint>
 #include <cstring>
 #include <iostream>
 
@@ -100,64 +101,72 @@ TORRENT_TEST(diffie_hellman)
 	{
 		aux::dh_key_exchange DH1, DH2;
 
-		TEST_CHECK(DH1.compute_secret(DH2.get_local_key()));
-		TEST_CHECK(DH2.compute_secret(DH1.get_local_key()));
+		auto const& dh1_local = DH1.get_local_key();
+		auto const& dh2_local = DH2.get_local_key();
 
-		TEST_EQUAL(DH1.get_secret(), DH2.get_secret());
-		if (!DH1.get_secret() != DH2.get_secret())
+		TEST_CHECK(DH1.compute_secret(reinterpret_cast<std::uint8_t const*>(dh2_local.data())));
+		TEST_CHECK(DH2.compute_secret(reinterpret_cast<std::uint8_t const*>(dh1_local.data())));
+
+		auto const& secret1 = DH1.get_secret();
+		auto const& secret2 = DH2.get_secret();
+
+		TEST_EQUAL(aux::to_hex(secret1), aux::to_hex(secret2));
+		if (secret1 != secret2)
 		{
-			std::printf("DH1 local: ");
-			std::cout << DH1.get_local_key() << std::endl;
-
-			std::printf("DH2 local: ");
-			std::cout << DH2.get_local_key() << std::endl;
-
-			std::printf("DH1 shared_secret: ");
-			std::cout << DH1.get_secret() << std::endl;
-
-			std::printf("DH2 shared_secret: ");
-			std::cout << DH2.get_secret() << std::endl;
+			std::cout << "DH1 local: " << aux::to_hex(dh1_local) << std::endl;
+			std::cout << "DH2 local: " << aux::to_hex(dh2_local) << std::endl;
+			std::cout << "DH1 shared_secret: " << aux::to_hex(secret1) << std::endl;
+			std::cout << "DH2 shared_secret: " << aux::to_hex(secret2) << std::endl;
 		}
 	}
 }
 
 TORRENT_TEST(diffie_hellman_degenerate_key)
 {
+	using namespace lt;
+
 	// MODP DH prime (BEP 8) used by dh_key_exchange. The generator is 2.
-	lt::aux::key_t const dh_prime(
-		"0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020"
-		"BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D"
-		"6D51C245E485B576625E7EC6F44C42E9A63A36210000000000090563");
+	char const prime_hex[] = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020"
+							 "BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D"
+							 "6D51C245E485B576625E7EC6F44C42E9A63A36210000000000090563";
+
+	std::array<char, 96> dh_prime{};
+	TEST_CHECK(aux::from_hex({prime_hex, int(sizeof(prime_hex) - 1)}, dh_prime.data()));
+
+	// subtract a small value (0-255) from a 96-byte big endian buffer
+	auto const decremented = [](std::array<char, 96> v, int n) {
+		for (int i = int(v.size()) - 1; i >= 0 && n != 0; --i)
+		{
+			auto const idx = static_cast<std::size_t>(i);
+			int const digit = int(std::uint8_t(v[idx])) - n;
+			v[idx] = char(digit);
+			n = (digit < 0) ? 1 : 0;
+		}
+		return v;
+	};
+
+	auto const small_value = [](std::uint8_t const v) {
+		std::array<char, 96> ret{};
+		ret.back() = char(v);
+		return ret;
+	};
+
+	auto const compute = [](std::array<char, 96> const& key) {
+		aux::dh_key_exchange dh;
+		return dh.compute_secret(reinterpret_cast<std::uint8_t const*>(key.data()));
+	};
 
 	// public keys outside [2, p-2] are degenerate and must be rejected.
 	// Otherwise an attacker can fix the shared secret to a small set of
 	// known values, defeating the encryption.
-	{
-		lt::aux::dh_key_exchange dh;
-		TEST_CHECK(!dh.compute_secret(lt::aux::key_t(0)));
-	}
-	{
-		lt::aux::dh_key_exchange dh;
-		TEST_CHECK(!dh.compute_secret(lt::aux::key_t(1)));
-	}
-	{
-		lt::aux::dh_key_exchange dh;
-		TEST_CHECK(!dh.compute_secret(dh_prime - 1));
-	}
-	{
-		lt::aux::dh_key_exchange dh;
-		TEST_CHECK(!dh.compute_secret(dh_prime));
-	}
+	TEST_CHECK(!compute(small_value(0)));
+	TEST_CHECK(!compute(small_value(1)));
+	TEST_CHECK(!compute(decremented(dh_prime, 1)));
+	TEST_CHECK(!compute(dh_prime));
 
 	// boundary values inside the valid range must be accepted.
-	{
-		lt::aux::dh_key_exchange dh;
-		TEST_CHECK(dh.compute_secret(lt::aux::key_t(2)));
-	}
-	{
-		lt::aux::dh_key_exchange dh;
-		TEST_CHECK(dh.compute_secret(dh_prime - 2));
-	}
+	TEST_CHECK(compute(small_value(2)));
+	TEST_CHECK(compute(decremented(dh_prime, 2)));
 }
 
 TORRENT_TEST(rc4)

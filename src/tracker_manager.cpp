@@ -453,8 +453,7 @@ namespace libtorrent::aux {
 			std::shared_ptr<request_callback> cb = c.lock();
 			if (!cb) return;
 
-			// TODO: introduce a setting for max_offers
-			const int max_offers = 10;
+			int const max_offers = std::max(sett.get_int(settings_pack::max_webtorrent_offers), 0);
 			req.num_want = std::min(req.num_want, max_offers);
 			if (req.num_want == 0)
 			{

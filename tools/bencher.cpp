@@ -21,6 +21,7 @@ see LICENSE file.
 	"do_not_optimize() relies on GNU inline asm to act as a compiler optimization barrier, and is only supported on GCC and clang"
 #endif
 
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <cmath>
@@ -34,6 +35,7 @@ see LICENSE file.
 #include <utility>
 #include <vector>
 
+#include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/aux_/pe_crypto.hpp"
 #include "libtorrent/aux_/piece_picker.hpp"
 #include "libtorrent/bitfield.hpp"
@@ -41,6 +43,7 @@ see LICENSE file.
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/load_torrent.hpp"
 #include "libtorrent/performance_counters.hpp"
+#include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/span.hpp"
 
 namespace fs = std::filesystem;
@@ -453,6 +456,91 @@ namespace ipf_bench {
 
 } // namespace ipf_bench
 
+// merkle tree benchmarks: computing a root, building a proof, and
+// validating a proof, over a tree whose leaf count is not a power of two.
+namespace merkle_bench {
+
+	using lt::sha256_hash;
+
+	constexpr int num_leafs = 1000;
+
+	std::vector<sha256_hash> make_leaves()
+	{
+		std::vector<sha256_hash> leaves(static_cast<std::size_t>(num_leafs));
+		for (int i = 0; i < num_leafs; ++i)
+			leaves[std::size_t(i)] =
+				lt::hasher256().update(reinterpret_cast<char const*>(&i), sizeof(i)).final();
+		return leaves;
+	}
+
+	// full tree over `leaves`, padded to the next power of two with
+	// all-zero hashes
+	std::vector<sha256_hash> make_tree(std::vector<sha256_hash> const& leaves)
+	{
+		int const padded_leafs = lt::merkle_num_leafs(int(leaves.size()));
+		std::vector<sha256_hash> tree(std::size_t(lt::merkle_num_nodes(padded_leafs)));
+		int const first_leaf = lt::merkle_first_leaf(padded_leafs);
+		std::copy(leaves.begin(), leaves.end(), tree.begin() + first_leaf);
+		lt::merkle_fill_tree(tree, padded_leafs);
+		return tree;
+	}
+
+	// uncle-hash chain from a leaf up to the root
+	std::vector<sha256_hash> make_proof(std::vector<sha256_hash> const& tree, int leaf_idx)
+	{
+		std::vector<sha256_hash> proof;
+		for (int cursor = leaf_idx; cursor != 0; cursor = lt::merkle_get_parent(cursor))
+			proof.push_back(tree[std::size_t(lt::merkle_get_sibling(cursor))]);
+		return proof;
+	}
+
+	// nodes a proof validation for `leaf_idx` can write to, so they can be
+	// reset between benchmark samples without clearing the whole tree
+	std::vector<int> touched_nodes(int leaf_idx)
+	{
+		std::vector<int> nodes;
+		for (int cursor = leaf_idx; cursor != 0; cursor = lt::merkle_get_parent(cursor))
+		{
+			nodes.push_back(cursor);
+			nodes.push_back(lt::merkle_get_sibling(cursor));
+		}
+		return nodes;
+	}
+
+	void run(std::vector<std::pair<char const*, stats>>& results)
+	{
+		std::vector<sha256_hash> const leaves = make_leaves();
+		std::vector<sha256_hash> const tree = make_tree(leaves);
+		int const padded_leafs = lt::merkle_num_leafs(int(leaves.size()));
+
+		std::vector<sha256_hash> scratch;
+		results.emplace_back("merkle: compute root", analyze([&] {
+			auto const root = lt::merkle_root_scratch(leaves, padded_leafs, sha256_hash{}, scratch);
+			do_not_optimize(root);
+		}));
+
+		int const leaf_idx = lt::merkle_first_leaf(padded_leafs);
+		results.emplace_back("merkle: create proof", analyze([&] {
+			auto const proof = make_proof(tree, leaf_idx);
+			do_not_optimize(proof);
+		}));
+
+		std::vector<sha256_hash> const proof = make_proof(tree, leaf_idx);
+		sha256_hash const leaf_hash = tree[std::size_t(leaf_idx)];
+		std::vector<int> const touched = touched_nodes(leaf_idx);
+		std::vector<sha256_hash> target_tree(tree.size());
+		target_tree[0] = tree[0];
+		results.emplace_back("merkle: validate proof", analyze([&] {
+			for (int const idx : touched)
+				target_tree[std::size_t(idx)].clear();
+			auto const ok =
+				lt::merkle_validate_and_insert_proofs(target_tree, leaf_idx, leaf_hash, proof);
+			do_not_optimize(ok);
+		}));
+	}
+
+} // namespace merkle_bench
+
 int main()
 try
 {
@@ -467,7 +555,7 @@ try
 	// a peer's public key to react to, exported the same way it would
 	// arrive off the wire
 	dh_key_exchange const peer;
-	std::array<char, 96> const peer_key = export_key(peer.get_local_key());
+	auto const& peer_key = peer.get_local_key();
 
 	// shared secret: (peer_pubkey ^ secret) % prime. this modexp is the
 	// operation that dominates the per-connection DH cost, isolated here
@@ -514,6 +602,7 @@ try
 
 	pp_bench::run(results);
 	ipf_bench::run(results);
+	merkle_bench::run(results);
 
 	print_bmf(results);
 }

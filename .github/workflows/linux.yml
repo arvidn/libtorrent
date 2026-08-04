@@ -35,11 +35,14 @@ jobs:
 
    build:
       name: build
-      runs-on: ubuntu-22.04
+      runs-on: ${{ matrix.std.os }}
 
       strategy:
          matrix:
-            std: [20]
+            std:
+              - { version: 20, os: ubuntu-22.04 }
+              - { version: 23, os: ubuntu-24.04 }
+              - { version: 26, os: ubuntu-24.04 }
             config:
               - webtorrent=off asio-debugging=on picker-debugging=on
               - webtorrent=off extensions=off logging=off streaming=off super-seeding=off share-mode=off dht=off alert-msg=off encryption=off mutable-torrents=off deprecated-functions=off
@@ -62,14 +65,22 @@ jobs:
       - uses: Chocobo1/setup-ccache-action@v1
         with:
           update_packager_index: false
-          override_cache_key: ccache-linux-build-${{ github.base_ref }}-${{ matrix.config }}
+          override_cache_key: ccache-linux-build-${{ github.base_ref || github.ref_name }}-${{ matrix.std.version }}-${{ matrix.config }}
           ccache_options: |
             max_size=5G
 
       - name: install boost
         run: |
           sudo apt install libboost-python-dev libboost-tools-dev libboost-dev libboost-system-dev python3
-          echo "using gcc ;" >>~/user-config.jam
+
+      - name: configure toolchain
+        run: |
+          if [ "${{ matrix.std.version }}" = "23" ] || [ "${{ matrix.std.version }}" = "26" ]; then
+            # gcc-14 (needed for -std=c++26) is preinstalled on the noble runner
+            echo "using gcc : : g++-14 ;" >>~/user-config.jam
+          else
+            echo "using gcc ;" >>~/user-config.jam
+          fi
 
       - name: install gcrypt
         if: ${{ contains(matrix.config, 'crypto=gcrypt') }}
@@ -77,23 +88,23 @@ jobs:
 
       - name: build library
         run: |
-          b2 ${{ matrix.config }} cxxstd=${{ matrix.std }} warnings-as-errors=on
+          b2 ${{ matrix.config }} cxxstd=${{ matrix.std.version }} warnings-as-errors=on
 
       - name: build examples
         run: |
           cd examples
-          b2 ${{ matrix.config }} cxxstd=${{ matrix.std }} warnings-as-errors=on
+          b2 ${{ matrix.config }} cxxstd=${{ matrix.std.version }} warnings-as-errors=on
 
       - name: build tools
         run: |
           cd tools
-          b2 ${{ matrix.config }} cxxstd=${{ matrix.std }} warnings-as-errors=on
+          b2 ${{ matrix.config }} cxxstd=${{ matrix.std.version }} warnings-as-errors=on
 
       - name: build python bindings
         run: |
           cd bindings/python
           echo "using python ;" >>~/user-config.jam
-          BOOST_ROOT="" b2 ${{ matrix.config }} cxxstd=${{ matrix.std }} warnings-as-errors=on
+          BOOST_ROOT="" b2 ${{ matrix.config }} cxxstd=${{ matrix.std.version }} warnings-as-errors=on
 
 
    cmake:
