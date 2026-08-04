@@ -111,6 +111,13 @@ namespace libtorrent {
 	bool merkle_validate_node(sha256_hash const& left, sha256_hash const& right
 		, sha256_hash const& parent);
 
+	// same as merkle_validate_node() above, but reuses the caller's hasher256
+	// context (calling reset() on it) instead of constructing a new one. Useful
+	// when validating many nodes in a loop.
+	TORRENT_EXTRA_EXPORT
+	bool merkle_validate_node(
+		hasher256& h, sha256_hash const& left, sha256_hash const& right, sha256_hash const& parent);
+
 	// validates hashes from src and copies the valid ones to dst given root as
 	// the expected root of the tree (i.e. index 0)
 	// src and dst must be the same size. dst is expected to be initialized
