@@ -46,7 +46,7 @@ bool eq(Tp1 const lhs, Tp2 const rhs)
 	return std::abs(lt::duration_cast<seconds>(lhs - rhs).count()) <= 1;
 }
 
-void test_interval(int interval)
+void test_interval(int interval, bool const expect_jitter = false)
 {
 	using sim::asio::ip::address_v4;
 	sim::default_config network_cfg;
@@ -76,7 +76,12 @@ void test_interval(int interval)
 		return sim::send_response(200, "OK", size) + response;
 	});
 
-	std::vector<lt::time_point> announce_alerts;
+	// the timestamps of the announces, per protocol version. The v1 and v2
+	// announces of a hybrid torrent are jittered independently, so they can't
+	// be assumed to always happen at the same time (which is exactly the point
+	// of the jitter)
+	std::vector<lt::time_point> announce_alerts_v1;
+	std::vector<lt::time_point> announce_alerts_v2;
 
 	lt::settings_pack default_settings = settings();
 	// since the test tracker is only listening on IPv4 we need to configure the
@@ -96,9 +101,12 @@ void test_interval(int interval)
 		, [&](lt::alert const* a, lt::session&) {
 
 			if (ran_to_completion) return;
-			if (lt::alert_cast<lt::tracker_announce_alert>(a))
+			if (auto const* at = lt::alert_cast<lt::tracker_announce_alert>(a))
 			{
-				announce_alerts.push_back(a->timestamp());
+				if (at->version == lt::protocol_version::V1)
+					announce_alerts_v1.push_back(a->timestamp());
+				else
+					announce_alerts_v2.push_back(a->timestamp());
 			}
 		}
 		// terminate
@@ -112,22 +120,35 @@ void test_interval(int interval)
 		});
 
 	TEST_CHECK(ran_to_completion);
-	TEST_EQUAL(announce_alerts.size(), announces.size());
-	TEST_CHECK(announces.size() % 2 == 0);
+	TEST_EQUAL(announces.size(), announce_alerts_v1.size() + announce_alerts_v2.size());
+	TEST_CHECK(announce_alerts_v1.size() >= 2);
+	TEST_CHECK(announce_alerts_v2.size() >= 2);
 
-	lt::time_point last_announce = announces[0];
-	lt::time_point last_alert = announce_alerts[0];
-	for (int i = 2; i < int(announces.size()); i += 2)
-	{
-		// make sure the interval is within 1 second of what it's supposed to be
-		// (this accounts for network latencies, and the second-granularity
-		// timestamps)
-		TEST_CHECK(eq(duration_cast<lt::seconds>(announces[i] - last_announce), lt::seconds(interval)));
-		last_announce = announces[i];
+	// by default, the announce interval is jittered by up to 15% (the default
+	// value of announce_interval_jitter_percent), so the actual interval is in
+	// [interval, interval + interval * 15 / 100]
+	int const max_interval = interval + interval * 15 / 100;
+	bool jittered = false;
+	auto const check_intervals = [&](std::vector<lt::time_point> const& alerts) {
+		// the first alert is the event=started announce, the remaining ones
+		// are re-announces, one (jittered) interval apart
+		for (int i = 1; i < int(alerts.size()); ++i)
+		{
+			// make sure the interval is within the expected range, with 1 second
+			// of slack (this accounts for network latencies, and the
+			// second-granularity timestamps)
+			auto const announce_interval = duration_cast<lt::seconds>(alerts[i] - alerts[i - 1]);
+			TEST_CHECK(announce_interval.count() >= interval - 1);
+			TEST_CHECK(announce_interval.count() <= max_interval + 1);
+			if (announce_interval.count() > interval + 1)
+				jittered = true;
+		}
+	};
+	check_intervals(announce_alerts_v1);
+	check_intervals(announce_alerts_v2);
 
-		TEST_CHECK(eq(duration_cast<lt::milliseconds>(announce_alerts[i] - last_alert), lt::seconds(interval)));
-		last_alert = announce_alerts[i];
-	}
+	if (expect_jitter)
+		TEST_CHECK(jittered);
 }
 
 template <typename AddTorrent, typename OnAlert>
@@ -272,7 +293,8 @@ TORRENT_TEST(event_completed_seeding_replace_trackers)
 
 TORRENT_TEST(announce_interval_440)
 {
-	test_interval(440);
+	// also make sure the jitter actually takes effect
+	test_interval(440, true);
 }
 
 TORRENT_TEST(announce_interval_1800)
@@ -2768,6 +2790,10 @@ void test_tracker_tiers(lt::settings_pack pack,
 	pack.set_int(settings_pack::alert_mask, alert_category::error
 		| alert_category::status
 		| alert_category::torrent_log);
+
+	// the announce counts below are based on exact 1800 second intervals
+	// within a fixed time window, so disable the announce interval jitter
+	pack.set_int(settings_pack::announce_interval_jitter_percent, 0);
 
 	// setup the simulation
 	struct sim_config : sim::default_config
