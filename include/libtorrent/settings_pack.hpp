@@ -2206,6 +2206,15 @@ namespace aux {
 			// 0 means no limit.
 			max_tracker_connection_requests,
 
+			// the maximum amount of random jitter, as a percentage of the
+			// announce interval, to add on top of the interval returned by a
+			// tracker. This is used to prevent torrents that share a tracker
+			// from re-announcing in lockstep, which causes periodic bursts of
+			// simultaneous announce requests. The actual interval used is
+			// uniformly random in [interval, interval * (1 + jitter / 100)].
+			// Set to 0 to disable jitter.
+			announce_interval_jitter_percent,
+
 			max_int_setting_internal
 		};
 

@@ -824,6 +824,13 @@ namespace libtorrent::aux {
 		// The key is passed to http trackers as ``&key=``.
 		std::uint32_t tracker_key() const;
 
+		// the announce interval returned by a tracker, with a random jitter of
+		// up to ``jitter_percent`` percent of the interval added on top
+		// (configurable via settings_pack::announce_interval_jitter_percent).
+		// This is to prevent torrents sharing a tracker from announcing in
+		// lockstep
+		seconds32 jittered_announce_interval(seconds32 interval, int jitter_percent) const;
+
 		// the peer id for tracker interaction only, generated when we add the torrent
 		peer_id const& pid() const { return m_peer_id; }
 

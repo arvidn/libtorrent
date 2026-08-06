@@ -3701,6 +3701,23 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		}
 	}
 
+	seconds32 torrent::jittered_announce_interval(
+		seconds32 const interval, int const jitter_percent) const
+	{
+		if (jitter_percent <= 0)
+			return interval;
+
+		// use 64-bit intermediate to avoid overflowing int when multiplying
+		// by the jitter percentage
+		auto const max_jitter =
+			static_cast<int>((std::int64_t{interval.count()} * jitter_percent) / 100);
+		if (max_jitter <= 0)
+			return interval;
+
+		return seconds32{interval.count()
+			+ static_cast<int>(aux::random(static_cast<std::uint32_t>(max_jitter)))};
+	}
+
 	void torrent::tracker_response(
 		tracker_request const& r
 		, address const& tracker_ip // this is the IP we connected to
@@ -3751,7 +3768,14 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 					m_flags |= torrent_internal_flags::complete_sent;
 				}
 				ae->verified = true;
-				a.next_announce = now + resp.interval;
+
+				// add a random jitter (default 15%) on top of the announce
+				// interval, to prevent torrents sharing a tracker from
+				// re-announcing in lockstep, which would cause periodic
+				// bursts of simultaneous announces (see issue #8708)
+				a.next_announce = now
+					+ jittered_announce_interval(resp.interval,
+						settings().get_int(settings_pack::announce_interval_jitter_percent));
 				a.min_announce = now + resp.min_interval;
 				a.updating = false;
 				a.fails = 0;
