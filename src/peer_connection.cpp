@@ -136,8 +136,11 @@ namespace {
 			+ static_cast<std::uint8_t>(socket_type_idx(m_socket)));
 		auto t = m_torrent.lock();
 
-		// the protocol_v2 flag should not be set for non-v2 torrents
-		TORRENT_ASSERT(!t || t->info_hash().has_v2() || !m_peer_info->protocol_v2);
+		// the protocol_v2 flag can be set speculatively before metadata is
+		// valid; once metadata is valid it must agree with whether the
+		// torrent actually has a v2 info hash
+		TORRENT_ASSERT(
+			!t || !t->valid_metadata() || t->info_hash().has_v2() || !m_peer_info->protocol_v2);
 
 		if (m_connected)
 			m_counters.inc_stats_counter(counters::num_peers_connected);
@@ -1112,9 +1115,11 @@ namespace {
 		auto t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 		auto const& ih = t->info_hash();
-		// if protocol_v2 is set on the peer, this better be a v2 torrent,
-		// otherwise something isn't right
-		TORRENT_ASSERT(ih.has_v2() || !peer_info_struct()->protocol_v2);
+		// a peer's protocol_v2 flag may be set speculatively while metadata
+		// is not yet valid (see torrent::set_metadata()), but once metadata
+		// is valid it must agree with whether the torrent actually has a v2
+		// info hash
+		TORRENT_ASSERT(!t->valid_metadata() || ih.has_v2() || !peer_info_struct()->protocol_v2);
 		return ih.get((ih.has_v2() && peer_info_struct()->protocol_v2)
 			? protocol_version::V2 : protocol_version::V1);
 	}
@@ -1332,8 +1337,9 @@ namespace {
 			return;
 		}
 
-		// if this peer supports v2, this better be a v2 torrent
-		TORRENT_ASSERT(t->info_hash().has_v2() || !(peer_info_struct() && peer_info_struct()->protocol_v2));
+		// if this peer supports v2 and metadata is valid, this better be a v2 torrent
+		TORRENT_ASSERT(!t->valid_metadata() || t->info_hash().has_v2()
+			|| !(peer_info_struct() && peer_info_struct()->protocol_v2));
 
 		if (t->is_paused()
 			&& t->is_auto_managed()
@@ -6667,7 +6673,8 @@ namespace {
 		}
 
 		auto const& ih = t->info_hash();
-		if (peer_info_struct() && peer_info_struct()->protocol_v2)
+		// see the comment in associated_info_hash()
+		if (t->valid_metadata() && peer_info_struct() && peer_info_struct()->protocol_v2)
 			TORRENT_ASSERT(ih.has_v2());
 
 		if (t->ready_for_connections() && m_initialized)

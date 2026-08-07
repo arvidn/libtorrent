@@ -67,6 +67,27 @@ FLAGS_EXT_FAST = _flags((5, 0x10), (7, 0x04))
 FLAGS_ALL = bytes([0xFF] * 8)
 FLAGS_V1 = _flags((0, 0x01))
 FLAGS_EXT_FAST_V1 = _flags((0, 0x01), (5, 0x10), (7, 0x04))
+# byte 0, bit 0x02  torrent selector: connect to the fuzzer's second torrent,
+#                    a v1-only magnet whose real metadata gets delivered
+#                    deterministically before these messages are sent (see
+#                    peer_conn.cpp), instead of the default pre-built hybrid
+#                    torrent (which already has valid metadata)
+FLAGS_V1_ONLY_TORRENT = _flags((0, 0x02), (5, 0x10), (7, 0x04))
+# same, plus the v2-upgrade bit (byte 7, bit 0x10): a peer speculatively
+# claiming v2 support for a torrent whose metadata resolves to v1-only
+FLAGS_V1_ONLY_TORRENT_V2_CLAIM = _flags((0, 0x02), (5, 0x10), (7, 0x04), (7, 0x10))
+# byte 0, bit 0x04  torrent selector: connect to the fuzzer's third torrent,
+#                    a hybrid (v1 + v2) magnet whose real metadata gets
+#                    delivered deterministically before these messages are
+#                    sent (see peer_conn.cpp), the counterpart to
+#                    FLAGS_V1_ONLY_TORRENT above: metadata resolves the
+#                    other way, so a v2 claim here is honest rather than
+#                    stale
+FLAGS_V2_HYBRID_TORRENT = _flags((0, 0x04), (5, 0x10), (7, 0x04))
+# same, plus the v2-upgrade bit: a peer claiming v2 support for a torrent
+# whose metadata resolves to a genuine hybrid, the claim must survive
+# metadata resolution, unlike FLAGS_V1_ONLY_TORRENT_V2_CLAIM
+FLAGS_V2_HYBRID_TORRENT_V2_CLAIM = _flags((0, 0x04), (5, 0x10), (7, 0x04), (7, 0x10))
 
 
 # Wire-encoding helpers
@@ -738,6 +759,63 @@ def generate_peer_conn(outdir: str) -> None:
     c.add("hash_reject_max_values", FLAGS_EXT_FAST, msg(23, b"\xff" * 44))
     for n in [0, 8, 32, 43]:
         c.add(f"hash_reject_short_{n}", FLAGS_EXT_FAST, msg(23, b"\x00" * n))
+
+    # v1-only torrent (see FLAGS_V1_ONLY_TORRENT above): metadata resolves
+    # to v1-only regardless of what the handshake claims. Combined with the
+    # v2-upgrade bit, these are seeds for a peer that speculatively claimed
+    # v2 support before metadata was known and then follows up with v2 hash
+    # messages once metadata is delivered.
+    c.add("v1_only_torrent_plain", FLAGS_V1_ONLY_TORRENT)
+    c.add("v1_only_torrent_v2_claim", FLAGS_V1_ONLY_TORRENT_V2_CLAIM)
+    c.add(
+        "v1_only_torrent_v2_claim_hash_request",
+        FLAGS_V1_ONLY_TORRENT_V2_CLAIM,
+        msg(21, valid_hdr),
+    )
+    c.add(
+        "v1_only_torrent_v2_claim_hashes",
+        FLAGS_V1_ONLY_TORRENT_V2_CLAIM,
+        msg(22, valid_hdr + one_sha256),
+    )
+    c.add(
+        "v1_only_torrent_v2_claim_hash_reject",
+        FLAGS_V1_ONLY_TORRENT_V2_CLAIM,
+        msg(23, valid_hdr),
+    )
+    c.add(
+        "v1_only_torrent_v2_claim_have_all",
+        FLAGS_V1_ONLY_TORRENT_V2_CLAIM,
+        msg(0x0E),  # have_all
+    )
+
+    # hybrid torrent (see FLAGS_V2_HYBRID_TORRENT above): metadata resolves
+    # to a genuine hybrid (v1 + v2) regardless of what the handshake claims.
+    # Counterpart to the v1-only seeds above: here the v2 claim is honest,
+    # so these hash messages are expected to be accepted rather than
+    # rejected, guarding against the fix over-triggering on legitimate v2
+    # peers.
+    c.add("v2_hybrid_torrent_plain", FLAGS_V2_HYBRID_TORRENT)
+    c.add("v2_hybrid_torrent_v2_claim", FLAGS_V2_HYBRID_TORRENT_V2_CLAIM)
+    c.add(
+        "v2_hybrid_torrent_v2_claim_hash_request",
+        FLAGS_V2_HYBRID_TORRENT_V2_CLAIM,
+        msg(21, valid_hdr),
+    )
+    c.add(
+        "v2_hybrid_torrent_v2_claim_hashes",
+        FLAGS_V2_HYBRID_TORRENT_V2_CLAIM,
+        msg(22, valid_hdr + one_sha256),
+    )
+    c.add(
+        "v2_hybrid_torrent_v2_claim_hash_reject",
+        FLAGS_V2_HYBRID_TORRENT_V2_CLAIM,
+        msg(23, valid_hdr),
+    )
+    c.add(
+        "v2_hybrid_torrent_v2_claim_have_all",
+        FLAGS_V2_HYBRID_TORRENT_V2_CLAIM,
+        msg(0x0E),  # have_all
+    )
 
     # Multi-message sequences: exercise protocol state transitions
 

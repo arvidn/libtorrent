@@ -151,6 +151,23 @@ sha256_hash from_hex(span<char const> str)
 }
 }
 
+// hash_picker must not index m_merkle_trees using the file_storage's file
+// range: m_merkle_trees is empty for a v1-only torrent, unlike file_storage
+TORRENT_TEST(hash_picker_empty_trees)
+{
+	file_storage fs;
+	fs.set_piece_length(16 * 1024);
+	fs.add_file("test/tmp1", 4 * 512 * 16 * 1024);
+
+	aux::vector<aux::merkle_tree, file_index_t> trees;
+
+	aux::hash_picker picker(fs, trees);
+
+	typed_bitfield<piece_index_t> const pieces(4 * 512, true);
+	auto const picked = picker.pick_hashes(pieces);
+	TEST_EQUAL(picked.count, 0);
+}
+
 TORRENT_TEST(reject_piece_request)
 {
 	file_storage fs;

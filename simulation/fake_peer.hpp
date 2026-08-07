@@ -25,6 +25,7 @@ see LICENSE file.
 #include "libtorrent/aux_/io_bytes.hpp"
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/aux_/random.hpp"
+#include "libtorrent/span.hpp"
 
 using namespace sim;
 
@@ -128,6 +129,40 @@ struct fake_peer
 	void send_have_all() { send_simple_msg(0xe); }
 	void send_have_none() { send_simple_msg(0xf); }
 	void send_invalid_message() { send_simple_msg(0xff); }
+
+	// send an arbitrary message with the standard 4-byte length prefix
+	void send_message(std::uint8_t const msg_id, lt::span<char const> const payload = {})
+	{
+		int const len = 1 + int(payload.size());
+		std::size_t const off = m_send_buffer.size();
+		m_send_buffer.resize(off + 4 + std::size_t(len));
+		char* ptr = m_send_buffer.data() + off;
+
+		lt::aux::write_uint32(len, ptr);
+		lt::aux::write_uint8(msg_id, ptr);
+		if (!payload.empty())
+			memcpy(ptr, payload.data(), payload.size());
+	}
+
+	// send a BEP 10 extended message (msg_id 20) for the given ext_id
+	void send_extended(std::uint8_t const ext_id, lt::span<char const> const payload = {})
+	{
+		int const len = 2 + int(payload.size());
+		std::size_t const off = m_send_buffer.size();
+		m_send_buffer.resize(off + 4 + std::size_t(len));
+		char* ptr = m_send_buffer.data() + off;
+
+		lt::aux::write_uint32(len, ptr);
+		lt::aux::write_uint8(20, ptr);
+		lt::aux::write_uint8(ext_id, ptr);
+		if (!payload.empty())
+			memcpy(ptr, payload.data(), payload.size());
+	}
+
+	// override the 8 reserved handshake bytes. Must be called before the
+	// handshake is written, i.e. before sim.run() processes the connect.
+	// Defaults to only advertising the FAST extension.
+	void set_reserved_bits(std::array<char, 8> const& bits) { m_reserved = bits; }
 	void send_large_message()
 	{
 		m_send_buffer.resize(m_send_buffer.size() + 5);
@@ -158,15 +193,7 @@ struct fake_peer
 	}
 
 private:
-
-	void send_simple_msg(std::uint8_t const msg_code)
-	{
-		m_send_buffer.resize(m_send_buffer.size() + 5);
-		char* ptr = m_send_buffer.data() + m_send_buffer.size() - 5;
-
-		lt::aux::write_uint32(1, ptr);
-		lt::aux::write_uint8(msg_code, ptr);
-	}
+	void send_simple_msg(std::uint8_t const msg_code) { send_message(msg_code); }
 
 	void write_handshake(boost::system::error_code const& ec
 		, lt::sha1_hash ih)
@@ -179,12 +206,12 @@ private:
 			, ec.value(), ec.message().c_str());
 		if (ec) return;
 
-		static char const handshake[]
-		= "\x13" "BitTorrent protocol\0\0\0\0\0\0\0\x04"
-			"                    " // space for info-hash
-			"aaaaaaaaaaaaaaaaaaaa"; // peer-id
-		int const len = sizeof(handshake) - 1;
-		memcpy(m_out_buffer.data(), handshake, len);
+		static char const handshake[] = "\x13"
+										"BitTorrent protocol";
+		// pstrlen(1) + "BitTorrent protocol"(19) + reserved(8) + info-hash(20) + peer-id(20)
+		int const len = 1 + 19 + 8 + 20 + 20;
+		memcpy(m_out_buffer.data(), handshake, sizeof(handshake) - 1);
+		memcpy(&m_out_buffer[20], m_reserved.data(), m_reserved.size());
 		memcpy(&m_out_buffer[28], ih.data(), 20);
 		if (m_use_fixed_pid)
 		{
@@ -297,6 +324,9 @@ private:
 	asio::ip::tcp::acceptor m_acceptor{m_ioc};
 	asio::ip::tcp::socket m_socket{m_ioc};
 	lt::sha1_hash m_info_hash;
+
+	// the 8 reserved handshake bytes, overridable via set_reserved_bits()
+	std::array<char, 8> m_reserved{0, 0, 0, 0, 0, 0, 0, 0x04};
 
 	// set to true if this peer received an incoming connection
 	// if this is an outgoing connection, this will always be false
