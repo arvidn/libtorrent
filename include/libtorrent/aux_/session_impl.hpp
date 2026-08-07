@@ -768,6 +768,16 @@ namespace aux {
 
 			void stop_ip_notifier();
 			void stop_lsd();
+
+			// closes the listen socket's UDP socket and aborts the uTP
+			// connections bound to it, so their completion handlers (holding
+			// peer_connection references) are released rather than leaked.
+			// As a side effect, every stalled uTP socket in the matching
+			// socket manager is woken, not just the ones bound to this
+			// socket; sockets stalled on other (still open) UDP sockets
+			// simply re-subscribe
+			void close_udp_listen_socket(std::shared_ptr<listen_socket_t> const& s);
+
 			void stop_natpmp();
 			void stop_upnp();
 
