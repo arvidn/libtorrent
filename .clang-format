@@ -44,7 +44,7 @@ ReferenceAlignment: Left
 
 # --- Namespaces ---
 # indent namespace contents.
-NamespaceIndentation: All
+NamespaceIndentation: None
 # Do not auto-add '} // namespace X' closing comments
 FixNamespaceComments: false
 
