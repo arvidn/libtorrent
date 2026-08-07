@@ -585,6 +585,35 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		set_need_save_resume(torrent_handle::if_download_progress);
 	}
 
+	bool torrent::hash_job_completed()
+	{
+		TORRENT_ASSERT(m_num_outstanding_hash_jobs > 0);
+		if (m_num_outstanding_hash_jobs > 0)
+			--m_num_outstanding_hash_jobs;
+
+		if (m_abort || m_deleted)
+		{
+			m_pending_force_recheck = false;
+			return false;
+		}
+
+		if (m_num_outstanding_hash_jobs > 0)
+			return false;
+
+		// a force_recheck() was requested while this (or another) hash job
+		// was still outstanding; force_recheck_impl() discards all picker
+		// state and re-derives it from scratch, including this job's own
+		// outcome. clear_error_first is false: a disk error just reported
+		// by this job (or its caller) must survive, not be cleared here.
+		if (m_pending_force_recheck)
+		{
+			m_pending_force_recheck = false;
+			force_recheck_impl(false);
+			return true;
+		}
+		return false;
+	}
+
 	void torrent::start()
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -1468,6 +1497,12 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			&& state() != torrent_status::checking_resume_data);
 		if (state() == torrent_status::checking_files
 			|| state() == torrent_status::checking_resume_data)
+			return;
+
+		// verify_piece() below guards against this too, but bail out here
+		// as well to skip the disk writes and picker mutation below for
+		// data that's about to be discarded by the pending recheck anyway.
+		if (m_pending_force_recheck)
 			return;
 
 		need_picker();
@@ -2371,6 +2406,19 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 				// --- UNFINISHED PIECES ---
 
+				// a truncated have_pieces bitfield (should_start_full_check)
+				// means this torrent was mid-check when the resume data was
+				// saved; downloading (the only source of unfinished pieces)
+				// is disabled during a check, and force_recheck() clears
+				// existing unfinished pieces first, so genuine resume data
+				// never has both. Discard it in that case, rather than
+				// dispatch a verify_piece() job for a piece start_checking()
+				// is about to check anyway; this is external input (a plain
+				// struct, possibly read from disk), so don't rely on that
+				// invariant holding, just enforce it.
+				if (should_start_full_check)
+					m_add_torrent_params->unfinished_pieces.clear();
+
 				int const num_blocks_per_piece = torrent_file().blocks_per_piece();
 
 				for (auto const& p : m_add_torrent_params->unfinished_pieces)
@@ -2388,7 +2436,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 					// being in seed mode and missing a piece is not compatible.
 					// Leave seed mode if that happens
-					if (m_seed_mode) leave_seed_mode(seed_mode_t::skip_checking);
+					if (m_seed_mode)
+						leave_seed_mode(seed_mode_t::skip_checking);
 
 					if (has_picker() && m_picker->have_piece(piece))
 					{
@@ -2427,7 +2476,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		{
 			stop_announcing();
 			set_state(torrent_status::checking_files);
-			if (should_check_files()) start_checking();
+			if (should_check_files())
+				start_checking();
 
 			// start the checking right away (potentially)
 			m_ses.trigger_auto_manage();
@@ -2448,7 +2498,9 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 	}
 	catch (...) { handle_exception(); }
 
-	void torrent::force_recheck()
+	void torrent::force_recheck() { force_recheck_impl(true); }
+
+	void torrent::force_recheck_impl(bool const clear_error_first)
 	{
 		INVARIANT_CHECK;
 
@@ -2460,14 +2512,51 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			|| m_state == torrent_status::checking_resume_data)
 			return;
 
-		clear_error();
+		// clear_error_first is false only when resuming a deferred recheck
+		// (see hash_job_completed()): a disk error that job just reported
+		// must survive, not be wiped out here again.
+		if (clear_error_first)
+			clear_error();
 
+		// disconnect peers, leave seed mode, and mark files as not checked
+		// before the outstanding-jobs check below (even if we end up
+		// deferring, and even when resuming a deferred recheck): a peer
+		// could connect during the wait, and the picker reset further down
+		// requires none be attached.
+		//  - disconnect_all() stops new on-demand seed-mode checks
+		//    (verifying()) and new peer-driven downloads (verify_piece());
+		//  - m_files_checked = false is what actually gates block requests
+		//    (request_blocks.cpp): once m_verifying is cleared below, a job
+		//    it covers is no longer visible to verify_piece()'s own
+		//    is_hashing() guard, so this is the real protection against a
+		//    new peer completing that same piece while we wait. A busy seed
+		//    could otherwise keep m_num_outstanding_hash_jobs from ever
+		//    reaching zero.
+		// All but clear_error() is idempotent, so repeating this on
+		// resumption is just cheap no-ops.
 		disconnect_all(errors::stopping_torrent, operation_t::bittorrent);
 		stop_announcing();
 
 		// we're checking everything anyway, no point in assuming we are a seed
 		// now.
 		leave_seed_mode(seed_mode_t::skip_checking);
+
+		// block new block requests via are_files_checked() (see above) for
+		// the whole wait below, not just once checking actually starts.
+		m_files_checked = false;
+
+		// a hash job (verify_piece() or the seed-mode on-demand check,
+		// verifying()) may already have been in flight before
+		// disconnect_all()/leave_seed_mode() above could stop new ones.
+		// Resetting the picker now would lose track of it, and
+		// start_checking() would dispatch a redundant hash job for the same
+		// piece. Defer until it completes; hash_job_completed() calls
+		// force_recheck_impl() once none are left.
+		if (m_num_outstanding_hash_jobs > 0)
+		{
+			m_pending_force_recheck = true;
+			return;
+		}
 
 		// forget that we have any pieces
 		set_have_all(false);
@@ -2485,9 +2574,6 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		// resizing the picker above may have changed is_finished(), which
 		// set_have_all() above didn't catch if m_have_all was already false
 		update_state_timers();
-
-		// assume that we don't have anything
-		m_files_checked = false;
 
 		update_gauge();
 		update_want_tick();
@@ -2598,6 +2684,13 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 					++m_num_checked_pieces;
 				}
 			}
+
+			// callers must not invoke start_checking() while any piece has a
+			// hash job outstanding (see m_num_outstanding_hash_jobs); we rely
+			// on that to not dispatch a second, concurrent async_hash() for
+			// the same piece, which disk_cache does not allow.
+			TORRENT_ASSERT(m_checking_piece >= m_torrent_file->end_piece() || !has_picker()
+				|| !m_picker->is_hashing(m_checking_piece));
 
 			if (m_checking_piece >= m_torrent_file->end_piece()) break;
 
@@ -2787,6 +2880,9 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 			if (m_checking_piece >= m_torrent_file->end_piece())
 				return;
+
+			// see the matching assert (and comment) in start_checking()
+			TORRENT_ASSERT(!has_picker() || !m_picker->is_hashing(m_checking_piece));
 
 			auto flags = disk_interface::sequential_access | disk_interface::volatile_read;
 
@@ -4410,6 +4506,16 @@ namespace {
 		, sha1_hash const& piece_hash, storage_error const& error) try
 	{
 		TORRENT_ASSERT(is_single_thread());
+
+		if (hash_job_completed())
+		{
+			// this job's pass/fail no longer matters (a deferred
+			// force_recheck() will re-derive it), but a genuine disk error
+			// must still be reported, not silently dropped.
+			if (error)
+				handle_disk_error("piece_verified", error);
+			return;
+		}
 
 		if (m_abort) return;
 		if (m_deleted) return;
@@ -10327,7 +10433,8 @@ namespace {
 			m_ses.trigger_auto_manage();
 		}
 
-		if (should_check_files()) start_checking();
+		if (should_check_files())
+			start_checking();
 
 		state_updated();
 		update_want_peers();
@@ -11811,6 +11918,18 @@ namespace {
 	{
 		TORRENT_ASSERT(m_storage);
 		TORRENT_ASSERT(!m_picker->is_hashing(piece));
+
+		// a force_recheck() is deferred, waiting for outstanding hash jobs
+		// to drain before it can (re-)build the picker; dispatching a new
+		// one here would race it the same way. Not a caller precondition
+		// (this is purely internal state), so just ignore the call.
+		if (m_pending_force_recheck)
+			return;
+
+		// on_piece_verified() decrements this once the job completes, however
+		// it gets there (async_hash() callback or the disable_hash_checks
+		// short-circuit below).
+		++m_num_outstanding_hash_jobs;
 
 		// we just completed the piece, it should be flushed to disk
 		disk_job_flags_t flags{};

@@ -604,6 +604,17 @@ namespace libtorrent::aux {
 		bool is_paused() const;
 		bool is_torrent_paused() const { return m_paused; }
 		void force_recheck();
+
+	private:
+		// shared implementation of force_recheck(), also used by
+		// hash_job_completed() to resume a deferred recheck once
+		// m_num_outstanding_hash_jobs drains. clear_error_first is false
+		// only for that resumption, since a disk error may have just been
+		// reported by the job that triggered it and must survive, not be
+		// cleared again here.
+		void force_recheck_impl(bool clear_error_first);
+
+	public:
 		void save_resume_data(resume_data_flags_t flags);
 
 		bool need_save_resume_data(resume_data_flags_t flags) const
@@ -1290,10 +1301,22 @@ namespace libtorrent::aux {
 		{
 			TORRENT_ASSERT(m_verifying.get_bit(piece) == false);
 			m_verifying.set_bit(piece);
+			// this is a hash job too (dispatched directly by peer_connection
+			// for an on-demand seed-mode check), it must be accounted for the
+			// same way as verify_piece()'s jobs; see m_num_outstanding_hash_jobs.
+			++m_num_outstanding_hash_jobs;
 		}
 		bool verified_piece(piece_index_t piece) const
 		{ return m_verified.get_bit(piece); }
 		void verified(piece_index_t piece);
+
+		// called when a hash job (verify_piece() or the on-demand
+		// seed-mode check, verifying()) completes. Decrements
+		// m_num_outstanding_hash_jobs and, if it just dropped to zero and a
+		// force_recheck() was deferred, carries it out. Returns true if it
+		// did, meaning the recheck supersedes this piece's own completion
+		// handling; callers must call this first and skip the rest if so.
+		bool hash_job_completed();
 
 		// this is called once periodically for torrents
 		// that are not private
@@ -1625,6 +1648,21 @@ namespace libtorrent::aux {
 
 		// the number of pieces we completed the check of
 		piece_index_t m_num_checked_pieces{0};
+
+		// the number of hash jobs that have been dispatched but not completed
+		// yet (hash_job_completed() has not been called for them): jobs
+		// dispatched by verify_piece() (completed via on_piece_verified()),
+		// and on-demand seed-mode jobs dispatched by peer_connection
+		// (verifying(), completed via peer_connection::on_seed_mode_hashed()).
+		// force_recheck() must not reset the piece picker while this is
+		// non-zero, since start_checking() has no way of knowing about those
+		// jobs and would dispatch redundant ones for the same pieces.
+		int m_num_outstanding_hash_jobs = 0;
+
+		// set when force_recheck() is called while m_num_outstanding_hash_jobs
+		// is non-zero. The recheck is carried out from hash_job_completed()
+		// once the count drops to zero.
+		bool m_pending_force_recheck = false;
 
 		// if the error occurred on a file, this is the index of that file
 		// there are a few special cases, when this is negative. See

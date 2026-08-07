@@ -74,6 +74,10 @@ EXPORT void wait_for_downloading(lt::session& ses, char const* name);
 EXPORT void wait_for_seeding(lt::session& ses, char const* name);
 EXPORT void wait_for_disconnect(lt::session& ses, char const* name);
 
+// polls torrent_status::progress_ppm until the torrent reaches 100%, up to a
+// 200s absolute backstop; bails out early if progress stalls for 30s.
+EXPORT void wait_for_complete(lt::session& ses, lt::torrent_handle h, char const* name);
+
 EXPORT std::vector<char> generate_piece(lt::piece_index_t idx, int piece_size = 0x4000);
 EXPORT lt::file_storage make_file_storage(lt::span<const int> file_sizes
 	, int const piece_size, std::string base_name = "test_dir-");
