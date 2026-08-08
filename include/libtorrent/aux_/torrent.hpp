@@ -51,6 +51,7 @@ see LICENSE file.
 #include "libtorrent/alert.hpp"
 #include "libtorrent/aux_/piece_picker.hpp"
 #include "libtorrent/aux_/hash_picker.hpp"
+#include "libtorrent/aux_/smart_ban.hpp"
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/bandwidth_limit.hpp"
 #include "libtorrent/aux_/bandwidth_queue_entry.hpp"
@@ -302,6 +303,13 @@ namespace libtorrent::aux {
 		std::unique_ptr<piece_picker> m_picker;
 
 		std::unique_ptr<hash_picker> m_hash_picker;
+
+		// bans peers that send corrupt data for v1 torrents, by comparing
+		// what different peers sent for the same block once a piece fails
+		// its hash check. Only allocated for v1 torrents (see
+		// get_smart_ban()); v2 torrents identify bad peers via merkle
+		// block hashes instead.
+		std::unique_ptr<aux::smart_ban> m_smart_ban;
 
 		// TODO: make this a raw pointer. perhaps keep the shared_ptr
 		// around further down the object to maintain an owner
@@ -1143,6 +1151,11 @@ namespace libtorrent::aux {
 		{
 			return m_hash_picker.get() != nullptr;
 		}
+
+		// returns the smart_ban instance for this torrent, lazily
+		// allocating it, or nullptr if
+		// torrent_internal_flags::smart_ban_enabled is not set (see init())
+		aux::smart_ban* get_smart_ban();
 
 		void update_max_failcount()
 		{

@@ -90,6 +90,7 @@ int settings_key(int const tag)
 		case SET_ALLOW_MULTIPLE_CONNECTIONS_PER_PID: return sp::allow_multiple_connections_per_pid;
 		case SET_APPLY_FILTER_TO_DHT: return sp::apply_filter_to_dht;
 		case SET_DISABLE_TRACKER_CONNECTION_REUSE: return sp::disable_tracker_connection_reuse;
+		case SET_ENABLE_SMART_BAN: return sp::enable_smart_ban;
 		case SET_TRACKER_COMPLETION_TIMEOUT: return sp::tracker_completion_timeout;
 		case SET_TRACKER_RECEIVE_TIMEOUT: return sp::tracker_receive_timeout;
 		case SET_STOP_TRACKER_TIMEOUT: return sp::stop_tracker_timeout;

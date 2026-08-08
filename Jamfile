@@ -959,12 +959,12 @@ SOURCES =
 	websocket_stream
 	websocket_tracker_connection
 	disk_job
+	smart_ban
 
 # -- extensions --
 	ut_pex
 	i2p_pex
 	ut_metadata
-	smart_ban
 	;
 
 KADEMLIA_SOURCES =

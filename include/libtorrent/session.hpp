@@ -176,7 +176,7 @@ namespace aux {
 		// starts up.
 		//
 		// The ``flags`` parameter can be used to start default features (UPnP &
-		// NAT-PMP) and default plugins (ut_metadata, ut_pex and smart_ban). The
+		// NAT-PMP) and default plugins (ut_metadata and ut_pex). The
 		// default is to start those features. If you do not want them to start,
 		// pass 0 as the flags parameter.
 		TORRENT_DEPRECATED

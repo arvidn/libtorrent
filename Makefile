@@ -721,6 +721,7 @@ HEADERS = \
   aux_/websocket_stream.hpp         \
   aux_/websocket_tracker_connection.hpp \
   aux_/xml_parse.hpp                \
+  aux_/smart_ban.hpp                \
   \
   extensions/smart_ban.hpp          \
   extensions/ut_metadata.hpp        \
