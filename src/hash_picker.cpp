@@ -103,7 +103,8 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		, m_piece_tree_root_layer(m_piece_layer + merkle_num_layers(512))
 	{
 		m_piece_hash_requested.resize(trees.size());
-		for (file_index_t f(0); f != m_files.end_file(); ++f)
+		// m_merkle_trees is empty for a v1-only torrent, unlike m_files
+		for (file_index_t f : m_merkle_trees.range())
 		{
 			if (m_files.pad_file_at(f)) continue;
 
@@ -414,7 +415,8 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 
 	bool hash_picker::have_all() const
 	{
-		for (file_index_t f : m_files.file_range())
+		// m_merkle_trees is empty for a v1-only torrent, unlike m_files
+		for (file_index_t f : m_merkle_trees.range())
 			if (!have_all(f)) return false;
 		return true;
 	}
