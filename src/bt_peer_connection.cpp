@@ -1182,6 +1182,16 @@ namespace {
 		std::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
+		// there are no per-file merkle trees unless the torrent has a v2 info
+		// hash and the metadata (file layout) has actually been loaded. For a
+		// magnet link added with a v2 info hash, has_v2() can be true well
+		// before valid_metadata() is, since the info hash is known up front.
+		if (!t->info_hash().has_v2() || !t->valid_metadata())
+		{
+			disconnect(errors::invalid_message, operation_t::bittorrent, peer_error);
+			return;
+		}
+
 		auto const& files = t->torrent_file().files();
 
 		span<char const> recv_buffer = m_recv_buffer.get();
@@ -1238,6 +1248,13 @@ namespace {
 		std::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
+		// see the comment in on_hash_request()
+		if (!t->info_hash().has_v2() || !t->valid_metadata())
+		{
+			disconnect(errors::invalid_message, operation_t::bittorrent, peer_error);
+			return;
+		}
+
 		auto const& files = t->torrent_file().files();
 
 		span<char const> recv_buffer = m_recv_buffer.get();
@@ -1252,15 +1269,7 @@ namespace {
 		const char* ptr = recv_buffer.begin() + 1;
 
 		auto const file_root = sha256_hash(ptr);
-		file_index_t file_index{ -1 };
-		for (file_index_t i : files.file_range())
-		{
-			if (files.root(i) == file_root)
-			{
-				file_index = i;
-				break;
-			}
-		}
+		file_index_t const file_index = files.file_index_for_root(file_root);
 		ptr += sha256_hash::size();
 		int const base = aux::read_int32(ptr);
 		int const index = aux::read_int32(ptr);
@@ -1338,6 +1347,13 @@ namespace {
 
 		std::shared_ptr<torrent> t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
+
+		// see the comment in on_hash_request()
+		if (!t->info_hash().has_v2() || !t->valid_metadata())
+		{
+			disconnect(errors::invalid_message, operation_t::bittorrent, peer_error);
+			return;
+		}
 
 		span<char const> recv_buffer = m_recv_buffer.get();
 		const char* ptr = recv_buffer.begin() + 1;
@@ -1841,6 +1857,9 @@ namespace {
 		TORRENT_ASSERT(t);
 
 		if (!t->valid_metadata()) return;
+		// there are no per-file merkle trees unless the torrent has a v2 info hash
+		if (!t->info_hash().has_v2())
+			return;
 
 		auto req = t->pick_hashes(this);
 		if (req.count > 0) write_hash_request(req);
