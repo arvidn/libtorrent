@@ -281,6 +281,14 @@ namespace libtorrent {
 		// This is optional.
 		void set_creator(char const* str);
 
+		// Sets the update feed URL for the torrent. The string ``str`` should be utf-8 encoded.
+		// This corresponds to the BEP 39 ``update-url`` key inside the info dict.
+		void set_update_url(char const* str);
+
+		// Sets the originator certificate for the torrent. This corresponds to the
+		// BEP 39 ``originator`` key inside the info dict.
+		void set_originator(char const* str);
+
 		// sets the "creation time" field. Defaults to the system clock at the
 		// time of construction of the create_torrent object. The timestamp is
 		// specified in seconds, posix time. If the creation date is set to 0,
@@ -455,6 +463,12 @@ namespace libtorrent {
 		// if a comment is found in the torrent file
 		// this will be set to that comment
 		std::string m_comment;
+
+		// The BEP 39 update URL.
+		std::string m_update_url;
+
+		// The BEP 39 originator certificate.
+		std::string m_originator;
 
 		// an optional string naming the software used
 		// to create the torrent file
