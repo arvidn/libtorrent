@@ -165,7 +165,7 @@ mmap_storage::mmap_storage(storage_params const& params, aux::file_view_pool& po
 			m_file_priority.resize(prio.size(), default_priority);
 
 		filenames const fs = names();
-		for (file_index_t i(0); i < prio.end_index(); ++i)
+		for (file_index_t i : prio.range())
 		{
 			// pad files always have priority 0.
 			if (fs.pad_file_at(i)) continue;
@@ -349,7 +349,7 @@ mmap_storage::mmap_storage(storage_params const& params, aux::file_view_pool& po
 		// filesystem, in which case we won't use a partfile for them.
 		// this is to be backwards compatible with previous versions of
 		// libtorrent, when part files were not supported.
-		for (file_index_t i(0); i < m_file_priority.end_index(); ++i)
+		for (file_index_t i : m_file_priority.range())
 		{
 			if (m_file_priority[i] != dont_download || fs.pad_file_at(i))
 				continue;

@@ -1667,7 +1667,7 @@ void upnp::on_expire(error_code const& ec)
 		auto& d = const_cast<rootdevice&>(dev);
 		TORRENT_ASSERT(d.magic == 1337);
 		if (d.disabled) continue;
-		for (port_mapping_t m{0}; m < m_mappings.end_index(); ++m)
+		for (port_mapping_t m : m_mappings.range())
 		{
 			if (d.mapping[m].expires == max_time())
 				continue;
