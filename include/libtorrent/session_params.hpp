@@ -49,7 +49,7 @@ TORRENT_VERSION_NAMESPACE_3
 struct TORRENT_EXPORT session_params
 {
 	// This constructor can be used to start with the default plugins
-	// (ut_metadata, ut_pex and smart_ban). Pass a settings_pack to set the
+	// (ut_metadata and ut_pex). Pass a settings_pack to set the
 	// initial settings when the session starts.
 	session_params(settings_pack&& sp); // NOLINT
 	session_params(settings_pack const& sp); // NOLINT

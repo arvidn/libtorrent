@@ -1081,6 +1081,17 @@ namespace aux {
 			// if connection reuse is ever suspected of causing a problem.
 			disable_tracker_connection_reuse,
 
+			// when set to true, blocks of a failed (v1) piece are read back
+			// from disk and compared across the peers that sent them, once
+			// the piece is completed and re-verified, banning any peer found
+			// to have sent data that doesn't match. v2 torrents identify bad
+			// peers directly via their per-block merkle hashes and are
+			// unaffected by this setting. Each torrent latches the value of
+			// this setting once it has valid metadata; changing it takes
+			// effect only for torrents added (or that obtain metadata)
+			// afterwards, not ones already running.
+			enable_smart_ban,
+
 			max_bool_setting_internal
 		};
 

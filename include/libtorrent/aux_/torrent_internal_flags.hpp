@@ -59,6 +59,14 @@ namespace libtorrent::aux::torrent_internal_flags {
 	constexpr lt::torrent_flags_t outstanding_check_files = 55_bit;
 #endif
 
+	// latched from settings_pack::enable_smart_ban once the torrent has
+	// valid metadata (see torrent::init()) and never changed afterwards,
+	// so a later settings_pack update cannot strand a ban evaluation that's
+	// already in flight for a piece. Also folds in the v1-only restriction,
+	// v2 (and hybrid) torrents identify bad peers via their merkle block
+	// hashes instead, see torrent::get_smart_ban().
+	constexpr lt::torrent_flags_t smart_ban_enabled = 56_bit;
+
 	// peer-side helpers combining the public bit with the internal bit so
 	// "is the torrent operating in this mode right now?" is a single
 	// flag test.

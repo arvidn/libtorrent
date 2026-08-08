@@ -562,16 +562,8 @@ namespace aux { struct torrent; }
 		// 	#include <libtorrent/extensions/ut_pex.hpp>
 		// 	ses.add_extension(&lt::create_ut_pex_plugin);
 		//
-		// smart ban plugin
-		// 	A plugin that, with a small overhead, can ban peers
-		// 	that sends bad data with very high accuracy. Should
-		// 	eliminate most problems on poisoned torrents.
-		//
-		// .. code:: c++
-		//
-		// 	#include <libtorrent/extensions/smart_ban.hpp>
-		// 	ses.add_extension(&lt::create_smart_ban_plugin);
-		//
+		// peers that repeatedly send corrupt data are banned automatically
+		// with high accuracy, see settings_pack::enable_smart_ban.
 		//
 		// .. _`libtorrent plugins`: reference-Plugins.html
 		void add_extension(std::function<std::shared_ptr<torrent_plugin>(
@@ -786,7 +778,7 @@ namespace aux { struct torrent; }
 
 #if TORRENT_ABI_VERSION <= 2
 		// this will add common extensions like ut_pex, ut_metadata, lt_tex
-		// smart_ban and possibly others.
+		// and possibly others.
 		TORRENT_DEPRECATED static inline constexpr session_flags_t add_default_plugins = 0_bit;
 #endif
 

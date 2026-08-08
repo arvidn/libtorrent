@@ -62,9 +62,9 @@ TORRENT_TEST(default_plugins)
 #ifndef TORRENT_DISABLE_EXTENSIONS
 #if TORRENT_USE_I2P
 	// this also has i2p_pex
-	TEST_EQUAL(int(p1.extensions.size()), 4);
-#else
 	TEST_EQUAL(int(p1.extensions.size()), 3);
+#else
+	TEST_EQUAL(int(p1.extensions.size()), 2);
 #endif
 #else
 	TEST_EQUAL(int(p1.extensions.size()), 0);

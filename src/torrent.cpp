@@ -1347,6 +1347,15 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			, m_merkle_trees);
 	}
 
+	aux::smart_ban* torrent::get_smart_ban()
+	{
+		if (!(m_flags & torrent_internal_flags::smart_ban_enabled))
+			return nullptr;
+		if (!m_smart_ban)
+			m_smart_ban = std::make_unique<aux::smart_ban>(*this);
+		return m_smart_ban.get();
+	}
+
 	struct piece_refcount
 	{
 		piece_refcount(piece_picker& p, piece_index_t piece)
@@ -1885,6 +1894,14 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		TORRENT_ASSERT(valid_metadata());
 		TORRENT_ASSERT(m_torrent_file->num_files() > 0);
 		TORRENT_ASSERT(m_torrent_file->total_size() >= 0);
+
+		// latch this for the lifetime of the torrent, so a settings_pack
+		// update can't strand a ban evaluation already in flight for a
+		// piece. v2 (and hybrid) torrents identify bad peers via their
+		// merkle block hashes instead, see get_smart_ban().
+		if (settings().get_bool(settings_pack::enable_smart_ban)
+			&& !m_torrent_file->info_hashes().has_v2())
+			m_flags |= torrent_internal_flags::smart_ban_enabled;
 
 		if (int(m_file_priority.size()) > m_torrent_file->num_files())
 			m_file_priority.resize(m_torrent_file->num_files());
@@ -4538,6 +4555,9 @@ namespace {
 		}
 #endif
 
+		if (aux::smart_ban* sb = get_smart_ban())
+			sb->on_piece_pass(index);
+
 		// since this piece just passed, we might have
 		// become uninterested in some peers where this
 		// was the last piece we were interested in
@@ -4890,6 +4910,9 @@ namespace {
 				ext->on_piece_failed(index);
 			}
 #endif
+
+			if (aux::smart_ban* sb = get_smart_ban())
+				sb->on_piece_failed(index);
 
 			// did we receive this piece from a single peer?
 			// if we know exactly which blocks failed the hash, we can also be certain
@@ -11826,22 +11849,13 @@ namespace {
 		update_want_peers();
 	}
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-	// Defined in src/smart_ban.cpp. This is a hack to give the smart-ban
-	// plugin an erasure notification without adding a new virtual to the
-	// public torrent_plugin interface (which would break ABI).
-	void smart_ban_notify_erase_peers(torrent_plugin* ext, span<aux::torrent_peer* const> peers);
-#endif
-
 	// this is called when torrent_peers are removed from the peer_list
 	// (peer-list). It removes any references we may have to those torrent_peers,
 	// so we don't leave then dangling
 	void torrent::peers_erased(std::vector<torrent_peer*> const& peers)
 	{
-#ifndef TORRENT_DISABLE_EXTENSIONS
-		for (auto& ext : m_extensions)
-			smart_ban_notify_erase_peers(ext.get(), peers);
-#endif
+		if (m_smart_ban)
+			m_smart_ban->on_erase_peers(peers);
 
 		if (!has_picker()) return;
 

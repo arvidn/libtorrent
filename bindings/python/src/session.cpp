@@ -112,8 +112,10 @@ namespace {
 			s.add_extension(create_ut_metadata_plugin);
 		else if (name == "ut_pex")
 			s.add_extension(create_ut_pex_plugin);
+#if TORRENT_ABI_VERSION < 5
 		else if (name == "smart_ban")
 			s.add_extension(create_smart_ban_plugin);
+#endif
 
 #endif // TORRENT_DISABLE_EXTENSIONS
 	}
@@ -1467,7 +1469,9 @@ void bind_session()
 
 	scope().attr("create_ut_metadata_plugin") = "ut_metadata";
 	scope().attr("create_ut_pex_plugin") = "ut_pex";
+#if TORRENT_ABI_VERSION < 5
 	scope().attr("create_smart_ban_plugin") = "smart_ban";
+#endif
 
 	{
 		scope s = class_<dummy_announce_flags>("announce_flags_t");
