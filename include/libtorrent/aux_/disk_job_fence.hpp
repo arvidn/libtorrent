@@ -80,6 +80,13 @@ namespace libtorrent::aux {
 		// and the caller's increment, driving the counter negative).
 		bool is_blocked(disk_job*, counters&);
 
+		// marks a job as outstanding without the fence's normal
+		// blocking/queueing, for a job disk_cache parked directly on a
+		// cached_piece_entry (see try_hash_piece()) instead of dispatching
+		// it through the job pools. Caller must eventually call
+		// job_complete() on it, once the piece it's parked on resolves.
+		void mark_outstanding(disk_job*);
+
 		// the number of blocked jobs
 		int num_blocked() const;
 

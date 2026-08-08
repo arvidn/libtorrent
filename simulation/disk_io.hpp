@@ -69,6 +69,18 @@ struct test_disk
 		ret.corrupt_data_in = blocks;
 		return ret;
 	}
+	// makes async_hash() return a wrong hash for this one piece, regardless
+	// of the "files" mode. Unlike send_corrupt_data() (which affects
+	// async_read(), globally, after N blocks), this lets a single specific
+	// piece fail its hash check while the rest of a full_valid torrent stays
+	// valid, e.g. to make a seed_mode torrent's on-demand check fail for one
+	// piece.
+	test_disk corrupt_piece(lt::piece_index_t const p) const
+	{
+		auto ret = *this;
+		ret.corrupt_piece_idx = p;
+		return ret;
+	}
 
 	// the number of blocks/write jobs in the queue before we exceed the write
 	// queue size. Once the level drops below the low watermark, we allow writes
@@ -100,6 +112,10 @@ struct test_disk
 
 	// after sending this many blocks, send corrupt data
 	int corrupt_data_in = std::numeric_limits<int>::max();
+
+	// if set, async_hash() always returns a wrong hash for this piece. See
+	// corrupt_piece().
+	lt::piece_index_t corrupt_piece_idx{-1};
 
 	// after having written this many bytes, fail with disk-full
 	int space_left = std::numeric_limits<int>::max();

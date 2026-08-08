@@ -511,6 +511,33 @@ void wait_for_seeding(lt::session& ses, char const* name)
 	}
 }
 
+void wait_for_complete(lt::session& ses, torrent_handle h)
+{
+	int last_progress = 0;
+	clock_type::time_point last_change = clock_type::now();
+	// bounded by a 200s absolute backstop; the short poll interval keeps a
+	// quick completion from waiting out a full second of granularity.
+	for (int i = 0; i < 2000; ++i)
+	{
+		print_alerts(ses, "ses1");
+		torrent_status st = h.status();
+		std::printf("%d ms -  %f %%\n",
+			int(total_milliseconds(clock_type::now() - last_change)),
+			st.progress_ppm / 10000.0);
+		if (st.progress_ppm == 1000000)
+			return;
+		if (st.progress_ppm != last_progress)
+		{
+			last_progress = st.progress_ppm;
+			last_change = clock_type::now();
+		}
+		if (clock_type::now() - last_change > 30s)
+			break;
+		std::this_thread::sleep_for(100ms);
+	}
+	TEST_ERROR("torrent did not finish");
+}
+
 void print_ses_rate(lt::clock_type::time_point const start_time
 	, lt::torrent_status const* st1
 	, lt::torrent_status const* st2

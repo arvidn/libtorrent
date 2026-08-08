@@ -1564,6 +1564,14 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 		if (!has_picker()) return;
 
+		// a force_recheck() may have reset the picker after this write was
+		// issued by add_piece() (which refuses to run during a check in the
+		// first place); ignore the completion rather than resurrecting
+		// downloading-piece state the recheck already discarded.
+		if (state() == torrent_status::checking_files
+			|| state() == torrent_status::checking_resume_data)
+			return;
+
 		// if we already have this block, just ignore it.
 		// this can happen if the same block is passed in through
 		// add_piece() multiple times
@@ -2406,7 +2414,12 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 							m_picker->mark_as_finished(piece_block(piece, k), nullptr);
 						}
 					}
-					if (m_picker->is_piece_finished(piece))
+					if (m_picker->is_piece_finished(piece)
+						// if a full check is about to start, it will hash every
+						// piece from m_checking_piece onwards on its own; avoid
+						// dispatching a second, redundant hash job here for any
+						// piece it will already cover
+						&& (!should_start_full_check || piece < m_checking_piece))
 					{
 						verify_piece(piece);
 					}
@@ -2725,14 +2738,20 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		}
 		else if (hash_passed[0] || hash_passed[1])
 		{
-			if (has_picker() || !m_have_all)
+			// a concurrent job may already have marked this piece have;
+			// skip re-marking it, but still fall through below to keep the
+			// checking loop advancing.
+			if (!have_piece(piece))
 			{
-				need_picker();
-				m_picker->piece_flushed(piece);
-				set_need_save_resume(torrent_handle::if_download_progress);
-				update_gauge();
+				if (has_picker() || !m_have_all)
+				{
+					need_picker();
+					m_picker->piece_flushed(piece);
+					set_need_save_resume(torrent_handle::if_download_progress);
+					update_gauge();
+				}
+				we_have(piece);
 			}
-			we_have(piece);
 		}
 		else if (!error
 			&& boost::indeterminate(hash_passed[0])
@@ -4474,7 +4493,10 @@ namespace {
 
 		need_picker();
 
-		TORRENT_ASSERT(!m_picker->have_piece(piece));
+		// two concurrent hash jobs for the same piece can both complete;
+		// piece_passed() below is a no-op for the second one.
+		if (m_picker->have_piece(piece))
+			return;
 
 		state_updated();
 
@@ -4794,7 +4816,12 @@ namespace {
 	{
 //		INVARIANT_CHECK;
 		TORRENT_ASSERT(is_single_thread());
-		TORRENT_ASSERT(!m_picker->have_piece(index));
+
+		// two concurrent hash jobs for the same piece (one dispatched by
+		// verify_piece(), one by the checking pipeline) can both complete
+		// and reach here; the second one is a no-op, not an error.
+		if (m_picker->have_piece(index))
+			return;
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log())
@@ -11810,7 +11837,6 @@ namespace {
 	void torrent::verify_piece(piece_index_t const piece)
 	{
 		TORRENT_ASSERT(m_storage);
-		TORRENT_ASSERT(!m_picker->is_hashing(piece));
 
 		// we just completed the piece, it should be flushed to disk
 		disk_job_flags_t flags{};

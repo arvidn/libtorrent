@@ -535,6 +535,14 @@ struct test_disk_io final : lt::disk_interface
 					, m_files->piece_size(piece)
 					, m_files->piece_size2(piece)
 					, block_hashes, pads_in_piece(m_pad_bytes, piece));
+
+			if (piece == m_state.corrupt_piece_idx)
+			{
+				hash = rand_sha1();
+				for (auto& h : block_hashes)
+					h = rand_sha256();
+			}
+
 			post(m_ioc, [h=std::move(h), piece, hash]{ h(piece, hash, lt::storage_error{}); });
 		});
 	}

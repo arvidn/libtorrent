@@ -9,6 +9,8 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 
+#include <thread>
+
 #include "libtorrent/aux_/pread_storage.hpp"
 #include "libtorrent/pread_disk_io.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
@@ -900,7 +902,17 @@ void pread_disk_io::async_hash(storage_index_t const storage
 		sha1_hash{}
 	);
 
-	aux::disk_cache::hash_result const ret = m_cache.try_hash_piece({j->storage->storage_index(), piece}, j);
+	// while a fence is up, this piece's own writes may still be sitting
+	// blocked behind it, not yet in the cache and not yet durable on disk.
+	// try_hash_piece()'s job_queued path parks the hash job directly on the
+	// cached_piece_entry, bypassing the fence's ordering -- kick_hasher()'s
+	// retry can then complete the hash by reading one of those still-blocked
+	// blocks back from disk before the write ever lands. Skip the overlap
+	// fast path while fenced so the hash job falls through to add_job()
+	// below and queues behind the fence, same as the writes it depends on.
+	aux::disk_cache::hash_result const ret = j->storage->has_fence()
+		? aux::disk_cache::hash_result::post_job
+		: m_cache.try_hash_piece({j->storage->storage_index(), piece}, j);
 
 	// if we have already computed the piece hash, just post the completion
 	// immediately
@@ -943,10 +955,13 @@ void pread_disk_io::async_hash(storage_index_t const storage
 		return;
 	}
 
-	// In this case the job has been queued on the piece, and will be posted
-	// once the hashing completes
+	// hung directly off the cached_piece_entry, bypassing add_job() and
+	// is_blocked(); mark it explicitly so a fence still waits for it.
 	if (ret == aux::disk_cache::job_queued)
+	{
+		j->storage->mark_outstanding(j);
 		return;
+	}
 
 	add_job(j);
 }

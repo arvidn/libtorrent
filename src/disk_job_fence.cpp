@@ -164,6 +164,14 @@ namespace aux {
 		return m_has_fence != 0;
 	}
 
+	void disk_job_fence::mark_outstanding(disk_job* j)
+	{
+		std::lock_guard<std::mutex> l(m_mutex);
+		TORRENT_ASSERT(!(j->flags & disk_job::in_progress));
+		j->flags |= disk_job::in_progress;
+		++m_outstanding_jobs;
+	}
+
 	int disk_job_fence::num_blocked() const
 	{
 		std::lock_guard<std::mutex> l(m_mutex);
