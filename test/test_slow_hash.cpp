@@ -39,10 +39,13 @@ TORRENT_TEST(slow_hash_tests_skipped) {}
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/alert_types.hpp"
+#include "settings.hpp"
 
 using lt::span;
 using namespace lt;
 using namespace lt::aux;
+using namespace std::chrono_literals;
 
 namespace {
 
@@ -562,6 +565,113 @@ TORRENT_TEST(flush_storage_during_hashing_hybrid)
 	TORRENT_TEST(kick_hasher_keep_going_fills_hole_hybrid)
 	{
 		test_kick_hasher_keep_going_fills_hole(test_mode::v1 | test_mode::v2);
+	}
+
+	// Regression test for a race between torrent::force_recheck() and an
+	// in-flight per-piece hash-check job.
+	//
+	// verify_piece() dispatches an async hash job and marks the piece
+	// "hashing" in the piece_picker. force_recheck() must not reset the
+	// picker via piece_picker::resize() while that job is outstanding: doing
+	// so wipes the "hashing" bit, so start_checking() dispatches a second,
+	// independent hash job for the same piece.
+	//
+	// Whichever job completes first calls torrent::we_have() for the piece.
+	// A second call re-enters we_have() for a piece already "have"; the
+	// asserts guarding against that are non-fatal under
+	// TORRENT_PRODUCTION_ASSERTS, so file_progress::update()
+	// (src/file_progress.cpp) silently double-counts that piece's bytes, an
+	// invariant violation it documents. Depending on dispatch order, this can
+	// instead trip disk_cache::try_hash_piece()'s "no simultaneous
+	// async_hash() requests for the same piece" assert.
+	//
+	// force_recheck() defers via m_num_outstanding_hash_jobs /
+	// m_pending_force_recheck until outstanding verify_piece() jobs complete,
+	// rather than resetting the picker out from under them.
+	//
+	// Needs a slow-hash configuration to reliably reproduce: it keeps the
+	// original hash job running long enough for force_recheck() to act on
+	// the same piece before it completes.
+	TORRENT_TEST_DISK_IO(recheck_race_double_count)
+	{
+		error_code ec;
+		settings_pack sett = settings();
+		sett.set_str(settings_pack::listen_interfaces, test_listen_interface());
+		sett.set_bool(settings_pack::enable_upnp, false);
+		sett.set_bool(settings_pack::enable_natpmp, false);
+		sett.set_bool(settings_pack::enable_lsd, false);
+		sett.set_bool(settings_pack::enable_dht, false);
+		// serialize hashing onto a single thread, so the two jobs racing over
+		// piece 0 complete in dispatch order (deterministic) rather than leaving
+		// the outcome to thread scheduling.
+		sett.set_int(settings_pack::aio_threads, 1);
+		sett.set_int(settings_pack::hashing_threads, 1);
+		lt::session_params sp(sett);
+		sp.disk_io_constructor = disk_io;
+		lt::session ses1(sp);
+
+		int const piece_size = 16 * 1024;
+		int const num_pieces = 4;
+
+		error_code ec2;
+		create_directory("tmp1_recheck_race", ec2);
+		if (ec2)
+			std::printf("create_directory: %s\n", ec2.message().c_str());
+
+		// a v1-only torrent whose pieces are all bit-for-bit identical (see
+		// ::create_torrent()'s repeating 'A'..'Z' pattern), so any piece can be
+		// injected with the same buffer via add_piece(), without needing real
+		// peers or pre-written files.
+		add_torrent_params param = ::create_torrent(
+			nullptr, "recheck_race", piece_size, num_pieces, false, lt::create_torrent::v1_only);
+		param.flags &= ~torrent_flags::paused;
+		param.flags &= ~torrent_flags::auto_managed;
+		param.save_path = "tmp1_recheck_race";
+		torrent_handle tor1 = ses1.add_torrent(param, ec);
+		if (ec)
+			std::printf("add_torrent: %s\n", ec.message().c_str());
+
+		wait_for_downloading(ses1, "ses1");
+
+		std::vector<char> piece_buf(static_cast<std::size_t>(piece_size));
+		for (int i = 0; i < piece_size; ++i)
+			piece_buf[static_cast<std::size_t>(i)] = char((i % 26) + 'A');
+
+		// finish piece 0 (dispatches hash job #1, marks it "hashing"), then
+		// immediately force a recheck. Both calls post to the same network
+		// thread in order, so job #1 is still dispatched (and, in this
+		// slow-hash configuration, still running) when force_recheck() resets
+		// the picker and start_checking() dispatches job #2 for the same piece.
+		tor1.add_piece(piece_index_t(0), piece_buf.data());
+		tor1.force_recheck();
+
+		wait_for_alert(
+			ses1,
+			"ses1",
+			[](lt::alert const* al) {
+				auto const* sc = alert_cast<state_changed_alert>(al);
+				return sc && sc->state == torrent_status::checking_files;
+			},
+			30s);
+		wait_for_downloading(ses1, "ses1");
+
+		// finish the rest of the download normally
+		torrent_status const st = tor1.status();
+		for (piece_index_t p(0); p < piece_index_t(num_pieces); ++p)
+		{
+			if (st.pieces[p])
+				continue;
+			tor1.add_piece(p, piece_buf.data());
+		}
+
+		wait_for_complete(ses1, tor1);
+
+		// a double-count here inflates piece 0's bytes in file_progress; once the
+		// download is complete, that surfaces as a reported file size larger
+		// than the file actually is.
+		std::vector<std::int64_t> const fp = tor1.file_progress();
+		TEST_EQUAL(int(fp.size()), 1);
+		TEST_EQUAL(fp[0], std::int64_t(piece_size) * num_pieces);
 	}
 
 #endif // TORRENT_SIMULATE_SLOW_HASH
