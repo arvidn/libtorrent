@@ -473,6 +473,13 @@ namespace {
 		, std::function<void(piece_index_t)> const& f, error_code& ec)
 	{
 		settings_pack sett;
+#ifdef TORRENT_BUILD_SIMULATOR
+		// disk I/O runs inline on the calling thread rather than spawning
+		// real background threads, which would race with the simulator's
+		// single-threaded deterministic clock
+		sett.set_int(settings_pack::aio_threads, 0);
+		sett.set_int(settings_pack::hashing_threads, 0);
+#endif
 		set_piece_hashes(t, p, sett, f, ec);
 	}
 
