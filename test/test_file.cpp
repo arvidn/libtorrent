@@ -78,11 +78,7 @@ TORRENT_TEST(pwrite_all_short_write)
 		return;
 	}
 
-	struct sigaction ignore_action
-	{};
-	ignore_action.sa_handler = SIG_IGN;
-	sigemptyset(&ignore_action.sa_mask);
-	if (::sigaction(SIGXFSZ, &ignore_action, nullptr) != 0)
+	if (::signal(SIGXFSZ, SIG_IGN) == SIG_ERR)
 	{
 		TEST_ERROR("could not ignore SIGXFSZ");
 		return;
