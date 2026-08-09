@@ -2888,15 +2888,18 @@ retry:
 			(*listen)->incoming_connection = true;
 
 #ifdef TORRENT_SSL_PEERS
-		if (ssl == transport::ssl && !can_accept_peer())
+		if (ssl == transport::ssl)
 		{
 			error_code endpoint_ec;
 			tcp::endpoint const endp = s.remote_endpoint(endpoint_ec);
-			if (!endpoint_ec)
+			if (endpoint_ec) return;
+
+			bool const reject = !can_accept_peer(endp, socket_type_t::tcp_ssl);
+			if (reject)
 				reject_incoming_connection(endp,
 					socket_type_t::tcp_ssl,
-					m_settings.get_int(settings_pack::connections_limit));
-			return;
+					connection_limit(endp, socket_type_t::tcp_ssl));
+			if (reject) return;
 		}
 #endif
 
@@ -2953,14 +2956,15 @@ retry:
 	{
 		TORRENT_ASSERT(is_ssl(s));
 
-		if (!can_accept_peer())
+		error_code ec;
+		tcp::endpoint const endp = s.remote_endpoint(ec);
+		if (ec) return;
+
+		if (!can_accept_peer(endp, socket_type_t::utp_ssl))
 		{
-			error_code ec;
-			tcp::endpoint const endp = s.remote_endpoint(ec);
-			if (!ec)
-				reject_incoming_connection(endp,
-					socket_type_t::utp_ssl,
-					m_settings.get_int(settings_pack::connections_limit));
+			reject_incoming_connection(endp,
+				socket_type_t::utp_ssl,
+				connection_limit(endp, socket_type_t::utp_ssl));
 			return;
 		}
 
@@ -2986,10 +2990,10 @@ retry:
 	//   -CAfile <torrent-cert>.pem  -debug -connect 127.0.0.1:4433 -tls1
 	//   -servername <hex-encoded-info-hash>
 
-	bool session_impl::can_accept_peer() const
+	bool session_impl::can_accept_peer(tcp::endpoint const& endp, socket_type_t const type)
 	{
 		std::int64_t const limit =
-			std::int64_t(m_settings.get_int(settings_pack::connections_limit))
+			connection_limit(endp, type)
 			+ m_settings.get_int(settings_pack::connections_slack);
 		return num_connections_with_pending() < limit;
 	}
@@ -3052,8 +3056,15 @@ retry:
 	{
 		COMPLETE_ASYNC("session_impl::ssl_handshake_timeout");
 
+		TORRENT_UNUSED(ec);
 		if (ec)
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			if (ec != boost::asio::error::operation_aborted && should_log())
+				session_log("SSL handshake timer failed: %s", ec.message().c_str());
+#endif
 			return;
+		}
 
 		auto const iter = m_incoming_sockets.find(sock);
 		if (iter == m_incoming_sockets.end())
@@ -3076,8 +3087,20 @@ retry:
 		return ret;
 	}
 
+	std::int64_t session_impl::connection_limit(
+		tcp::endpoint const& endp, socket_type_t const type)
+	{
+		peer_class_set pcs;
+		set_peer_classes(&pcs, endp.address(), type);
+		int connection_limit_factor = m_rates.max_connection_limit_factor(pcs);
+		if (connection_limit_factor == 0) connection_limit_factor = 100;
+
+		return std::int64_t(m_settings.get_int(settings_pack::connections_limit))
+			* 100 / connection_limit_factor;
+	}
+
 	void session_impl::reject_incoming_connection(
-		tcp::endpoint const& endp, socket_type_t const socket_type, std::int64_t const limit)
+		tcp::endpoint const& endp, socket_type_t const type, std::int64_t const limit)
 	{
 		TORRENT_UNUSED(limit);
 		if (m_alerts.should_post<peer_disconnected_alert>())
@@ -3086,7 +3109,7 @@ retry:
 				endp,
 				peer_id(),
 				operation_t::bittorrent,
-				socket_type,
+				type,
 				error_code(errors::too_many_connections),
 				close_reason_t::none);
 		}
@@ -3249,15 +3272,7 @@ retry:
 			return;
 		}
 
-		// figure out which peer classes this is connections has,
-		// to get connection_limit_factor
-		peer_class_set pcs;
-		set_peer_classes(&pcs, endp.address(), socket_type_idx(s));
-		int connection_limit_factor = m_rates.max_connection_limit_factor(pcs);
-		if (connection_limit_factor == 0) connection_limit_factor = 100;
-
-		std::int64_t limit = m_settings.get_int(settings_pack::connections_limit);
-		limit = limit * 100 / connection_limit_factor;
+		std::int64_t const limit = connection_limit(endp, socket_type_idx(s));
 
 		// don't allow more connections than the max setting
 		// weighed by the peer class' setting

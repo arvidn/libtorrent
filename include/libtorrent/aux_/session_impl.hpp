@@ -436,8 +436,10 @@ namespace aux {
 
 			void incoming_connection(socket_type);
 			std::int64_t num_connections_with_pending() const;
+			std::int64_t connection_limit(
+				tcp::endpoint const& endp, socket_type_t type);
 			void reject_incoming_connection(
-				tcp::endpoint const& endp, socket_type_t socket_type, std::int64_t limit);
+				tcp::endpoint const& endp, socket_type_t type, std::int64_t limit);
 
 			std::weak_ptr<torrent> find_torrent(info_hash_t const&) const override;
 #if TORRENT_ABI_VERSION == 1
@@ -1086,7 +1088,7 @@ namespace aux {
 #endif
 #ifdef TORRENT_SSL_PEERS
 			void on_incoming_utp_ssl(socket_type s);
-			bool can_accept_peer() const;
+			bool can_accept_peer(tcp::endpoint const& endp, socket_type_t type);
 			void arm_ssl_handshake_timer(
 				socket_type* s, std::shared_ptr<deadline_timer> const& timer);
 			void ssl_handshake(error_code const& ec, socket_type* s);
