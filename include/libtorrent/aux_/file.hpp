@@ -61,10 +61,8 @@ namespace libtorrent::aux {
 	const handle_type invalid_handle = -1;
 #endif
 
-	int pwrite_all(handle_type handle
-		, span<char const> buf
-		, std::int64_t file_offset
-		, error_code& ec);
+	TORRENT_EXTRA_EXPORT int pwrite_all(
+		handle_type handle, span<char const> buf, std::int64_t file_offset, error_code& ec);
 
 	int pwritev_all(handle_type handle
 		, span<span<char const> const> bufs

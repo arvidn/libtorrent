@@ -20,12 +20,20 @@ see LICENSE file.
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/aux_/storage_utils.hpp"
 #include "libtorrent/aux_/file_pool_impl.hpp"
+#include "libtorrent/aux_/scope_end.hpp"
 #include "test.hpp"
 #include "test_utils.hpp"
+#include <algorithm>
+#include <cerrno>
 #include <vector>
 #include <set>
 #include <thread>
 #include <iostream>
+
+#ifndef TORRENT_WINDOWS
+#include <csignal>
+#include <sys/resource.h>
+#endif
 
 using namespace lt;
 
@@ -42,6 +50,67 @@ void touch_file(std::string const& filename, int size)
 }
 
 } // anonymous namespace
+
+#ifndef TORRENT_WINDOWS
+TORRENT_TEST(pwrite_all_short_write)
+{
+	struct rlimit original_limit;
+	if (::getrlimit(RLIMIT_FSIZE, &original_limit) != 0)
+	{
+		TEST_ERROR("getrlimit failed");
+		return;
+	}
+
+	constexpr rlim_t preferred_limit = 10'000;
+	rlim_t const file_size_limit = original_limit.rlim_max == RLIM_INFINITY
+		? preferred_limit
+		: std::min(preferred_limit, original_limit.rlim_max);
+	if (file_size_limit == 0)
+	{
+		TEST_ERROR("hard file-size limit is zero");
+		return;
+	}
+
+	struct sigaction original_action;
+	if (::sigaction(SIGXFSZ, nullptr, &original_action) != 0)
+	{
+		TEST_ERROR("could not read SIGXFSZ action");
+		return;
+	}
+
+	if (::signal(SIGXFSZ, SIG_IGN) == SIG_ERR)
+	{
+		TEST_ERROR("could not ignore SIGXFSZ");
+		return;
+	}
+	auto const restore_action = aux::scope_end([original_action] {
+		if (::sigaction(SIGXFSZ, &original_action, nullptr) != 0)
+			TEST_ERROR("could not restore SIGXFSZ action");
+	});
+
+	struct rlimit short_write_limit = original_limit;
+	short_write_limit.rlim_cur = file_size_limit;
+	if (::setrlimit(RLIMIT_FSIZE, &short_write_limit) != 0)
+	{
+		TEST_ERROR("could not set file-size limit");
+		return;
+	}
+	auto const restore_limit = aux::scope_end([original_limit] {
+		if (::setrlimit(RLIMIT_FSIZE, &original_limit) != 0)
+			TEST_ERROR("could not restore file-size limit");
+	});
+
+	std::vector<char> buffer(std::size_t(file_size_limit) + 1024);
+	aux::file_handle file(
+		"pwrite-all-short-write", 0, aux::open_mode::write | aux::open_mode::truncate);
+	error_code ec;
+	int const written = aux::pwrite_all(file.fd(), buffer, 0, ec);
+
+	TEST_EQUAL(written, int(file_size_limit));
+	TEST_CHECK(ec == error_code(EFBIG, system_category()));
+	TEST_EQUAL(file.get_size(), std::int64_t(file_size_limit));
+}
+#endif
 
 TORRENT_TEST(create_directory)
 {
@@ -700,4 +769,3 @@ TORRENT_TEST(to_file_open_mode)
 	TEST_CHECK(aux::to_file_open_mode(aux::open_mode::write | aux::open_mode::no_atime, false) == (file_open_mode::read_write | file_open_mode::no_atime));
 	TEST_CHECK(aux::to_file_open_mode(aux::open_mode::write, true) == (file_open_mode::read_write | file_open_mode::mmapped));
 }
-
