@@ -1,4 +1,4 @@
-2.1.1 not released
+2.1.1 released
 
 	* fix merkle tree issue
 	* require webtorrent RTC offer IDs to be exactly 20 bytes
