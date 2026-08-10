@@ -31,7 +31,7 @@ see LICENSE file.
 #include <iostream>
 
 #ifndef TORRENT_WINDOWS
-#include <signal.h>
+#include <csignal>
 #include <sys/resource.h>
 #endif
 
