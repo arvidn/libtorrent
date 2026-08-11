@@ -13,6 +13,8 @@ see LICENSE file.
 
 #include <cstdint>
 #include <algorithm>
+#include <limits>
+#include <climits> // for CHAR_BIT
 
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/read_resume_data.hpp"
@@ -40,6 +42,18 @@ namespace {
 		{
 			current_flags |= flag;
 		}
+	}
+
+	// resume-data bitfields are stored as byte strings where each byte holds 8
+	// bits. bdecode accepts strings up to ~512 MiB, so multiplying such a
+	// length by 8 overflows the signed int bit-count bitfield expects, which is
+	// undefined and yields a negative size. a string too large to represent
+	// yields an empty bitfield.
+	bitfield bitfield_from_resume(string_view const str)
+	{
+		if (str.size() > std::size_t(std::numeric_limits<int>::max() / CHAR_BIT))
+			return {};
+		return bitfield(str.data(), int(str.size()) * CHAR_BIT);
 	}
 
 } // anonyous namespace
@@ -178,7 +192,7 @@ namespace {
 					}
 					else
 					{
-						ret.verified_leaf_hashes.emplace_back(str.data(), int(str.size()) * 8);
+						ret.verified_leaf_hashes.push_back(bitfield_from_resume(str));
 					}
 				}
 				else
@@ -200,7 +214,7 @@ namespace {
 					}
 					else
 					{
-						ret.merkle_tree_mask.emplace_back(str.data(), int(str.size()) * 8);
+						ret.merkle_tree_mask.push_back(bitfield_from_resume(str));
 					}
 				}
 				else
@@ -382,15 +396,13 @@ namespace {
 			}
 			else if (file_version == 2)
 			{
-				string_view const str = pieces.string_value();
-				ret.have_pieces.assign(str.data(), int(str.size()) * 8);
+				ret.have_pieces = bitfield_from_resume(pieces.string_value());
 			}
 		}
 
 		if (bdecode_node const verified = rd.dict_find_string("verified"))
 		{
-			string_view const str = verified.string_value();
-			ret.verified_pieces.assign(str.data(), int(str.size()) * 8);
+			ret.verified_pieces = bitfield_from_resume(verified.string_value());
 		}
 
 		if (bdecode_node const piece_priority = rd.dict_find_string("piece_priority"))
@@ -449,8 +461,7 @@ namespace {
 
 				bdecode_node const bitmask = e.dict_find_string("bitmask");
 				if (!bitmask || bitmask.string_length() == 0) continue;
-				ret.unfinished_pieces[piece].assign(
-					bitmask.string_ptr(), bitmask.string_length() * CHAR_BIT);
+				ret.unfinished_pieces[piece] = bitfield_from_resume(bitmask.string_value());
 			}
 		}
 
