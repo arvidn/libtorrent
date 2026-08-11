@@ -1082,7 +1082,7 @@ if (build_examples)
 endif()
 
 # === build tests ===
-if(build_tests)
+if(build_tests OR build_examples OR build_tools)
 	enable_testing()
 	# this will make some internal functions available in the DLL interface
 	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_EXPORT_EXTRA)
