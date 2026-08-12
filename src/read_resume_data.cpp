@@ -44,15 +44,22 @@ namespace {
 		}
 	}
 
-	// resume-data bitfields are stored as byte strings where each byte holds 8
-	// bits. bdecode accepts strings up to ~512 MiB, so multiplying such a
-	// length by 8 overflows the signed int bit-count bitfield expects, which is
-	// undefined and yields a negative size. a string too large to represent
-	// yields an empty bitfield.
-	bitfield bitfield_from_resume(string_view const str)
+	// resume-data bitfields are stored as byte strings, 8 bits per byte. reject
+	// a string whose bit count would exceed bit_limit, or overflow the signed
+	// int bit-count that bitfield uses (multiplying a ~512 MiB bdecode string
+	// by 8 is undefined and yields a negative size). a resume file large enough
+	// to hit either was not written by libtorrent, so it's corrupt at best and
+	// an attack at worst. fail the whole parse rather than silently truncate.
+	bitfield bitfield_from_resume(string_view const str
+		, std::int64_t const bit_limit, error_code& ec)
 	{
-		if (str.size() > std::size_t(std::numeric_limits<int>::max() / CHAR_BIT))
+		std::int64_t const cap = std::min(bit_limit
+			, std::int64_t(std::numeric_limits<int>::max()));
+		if (std::int64_t(str.size()) > cap / CHAR_BIT)
+		{
+			ec = errors::too_many_pieces_in_torrent;
 			return {};
+		}
 		return bitfield(str.data(), int(str.size()) * CHAR_BIT);
 	}
 
@@ -192,7 +199,9 @@ namespace {
 					}
 					else
 					{
-						ret.verified_leaf_hashes.push_back(bitfield_from_resume(str));
+						ret.verified_leaf_hashes.push_back(
+							bitfield_from_resume(str, std::int64_t(piece_limit) * 2, ec));
+						if (ec) return ret;
 					}
 				}
 				else
@@ -214,7 +223,9 @@ namespace {
 					}
 					else
 					{
-						ret.merkle_tree_mask.push_back(bitfield_from_resume(str));
+						ret.merkle_tree_mask.push_back(
+							bitfield_from_resume(str, std::int64_t(piece_limit) * 2, ec));
+						if (ec) return ret;
 					}
 				}
 				else
@@ -396,13 +407,15 @@ namespace {
 			}
 			else if (file_version == 2)
 			{
-				ret.have_pieces = bitfield_from_resume(pieces.string_value());
+				ret.have_pieces = bitfield_from_resume(pieces.string_value(), piece_limit, ec);
+				if (ec) return ret;
 			}
 		}
 
 		if (bdecode_node const verified = rd.dict_find_string("verified"))
 		{
-			ret.verified_pieces = bitfield_from_resume(verified.string_value());
+			ret.verified_pieces = bitfield_from_resume(verified.string_value(), piece_limit, ec);
+			if (ec) return ret;
 		}
 
 		if (bdecode_node const piece_priority = rd.dict_find_string("piece_priority"))
@@ -461,7 +474,11 @@ namespace {
 
 				bdecode_node const bitmask = e.dict_find_string("bitmask");
 				if (!bitmask || bitmask.string_length() == 0) continue;
-				ret.unfinished_pieces[piece] = bitfield_from_resume(bitmask.string_value());
+				// each bit is a block within this piece, not a piece, so it's
+				// bounded only by what fits in the int bit-count.
+				ret.unfinished_pieces[piece] = bitfield_from_resume(
+					bitmask.string_value(), std::numeric_limits<int>::max(), ec);
+				if (ec) return ret;
 			}
 		}
 
