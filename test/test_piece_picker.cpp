@@ -1710,6 +1710,43 @@ TORRENT_TEST(sparse_bitfield_boundaries)
 		TEST_EQUAL(peers, 0);
 }
 
+TORRENT_TEST(bitfield_update_threshold)
+{
+	constexpr int num_pieces = 100;
+	auto p = std::make_shared<piece_picker>(
+		std::int64_t(num_pieces) * default_piece_size, default_piece_size);
+
+	// Build the piece list so bulk updates can choose between updating it in
+	// place and marking it dirty.
+	std::string const peer_pieces(num_pieces, '*');
+	pick_pieces(p, peer_pieces.c_str(), 1, blocks_per_piece, nullptr);
+
+	typed_bitfield<piece_index_t> below_threshold(num_pieces, false);
+	for (int i = 0; i < 49; ++i)
+		below_threshold.set_bit(piece_index_t(i));
+	p->inc_refcount(below_threshold, &tmp0);
+	p->dec_refcount(below_threshold, &tmp0);
+
+	typed_bitfield<piece_index_t> at_threshold = below_threshold;
+	at_threshold.set_bit(49_piece);
+	p->inc_refcount(at_threshold, &tmp0);
+
+	typed_bitfield<piece_index_t> while_dirty(num_pieces, false);
+	while_dirty.set_bit(99_piece);
+	p->inc_refcount(while_dirty, &tmp1);
+
+	aux::vector<int, piece_index_t> availability;
+	p->get_availability(availability);
+	for (piece_index_t const piece : availability.range())
+		TEST_EQUAL(availability[piece], static_cast<int>(piece) < 50 || piece == 99_piece ? 1 : 0);
+
+	p->dec_refcount(while_dirty, &tmp1);
+	p->dec_refcount(at_threshold, &tmp0);
+	p->get_availability(availability);
+	for (int const peers : availability)
+		TEST_EQUAL(peers, 0);
+}
+
 TORRENT_TEST(seed_optimization)
 {
 	// test seed optimization
