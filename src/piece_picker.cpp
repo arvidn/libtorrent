@@ -1441,15 +1441,13 @@ namespace libtorrent::aux {
 			// and mark the picker as dirty, so we'll rebuild it next time we need it.
 			// this only matters if we're not already dirty, in which case the fasted
 			// thing to do is to just update the counters and be done
-			piece_index_t index{0};
 			int num_dec = 0;
-			for (auto i = bitmask.begin(), end(bitmask.end()); i != end; ++i, ++index)
-			{
-				if (!*i) continue;
-				if (num_dec < size) decremented[num_dec] = index;
+			for_each_set_bit(bitmask, [&](piece_index_t const index) {
+				if (num_dec < size)
+					decremented[num_dec] = index;
 				++num_dec;
-				if (num_dec >= size) break;
-			}
+				return num_dec < size;
+			});
 
 			if (num_dec < size)
 			{
@@ -1486,35 +1484,31 @@ namespace libtorrent::aux {
 			}
 		}
 
-		piece_index_t index{0};
 		bool updated = false;
-		for (auto i = bitmask.begin(), end(bitmask.end()); i != end; ++i, ++index)
-		{
-			if (*i)
+		for_each_set_bit(bitmask, [&](piece_index_t const index) {
+			piece_pos& p = m_piece_map[index];
+			if (p.peer_count == 0)
 			{
-				piece_pos& p = m_piece_map[index];
-				if (p.peer_count == 0)
-				{
-					TORRENT_ASSERT(m_seeds > 0);
-					// this is the case where we have one or more
-					// seeds, and one of them saying: I don't have this
-					// piece anymore. we need to break up one of the seed
-					// counters into actual peer counters on the pieces
-					break_one_seed();
-				}
+				TORRENT_ASSERT(m_seeds > 0);
+				// this is the case where we have one or more
+				// seeds, and one of them saying: I don't have this
+				// piece anymore. we need to break up one of the seed
+				// counters into actual peer counters on the pieces
+				break_one_seed();
+			}
 
 #ifdef TORRENT_DEBUG_REFCOUNTS
-				TORRENT_ASSERT(p.have_peers.count(peer) == 1);
-				p.have_peers.erase(peer);
+			TORRENT_ASSERT(p.have_peers.count(peer) == 1);
+			p.have_peers.erase(peer);
 #else
-				TORRENT_UNUSED(peer);
+			TORRENT_UNUSED(peer);
 #endif
 
-				TORRENT_ASSERT(p.peer_count > 0);
-				--p.peer_count;
-				updated = true;
-			}
-		}
+			TORRENT_ASSERT(p.peer_count > 0);
+			--p.peer_count;
+			updated = true;
+			return true;
+		});
 
 		// if we're already dirty, no point in doing anything more
 		if (m_dirty) return;
