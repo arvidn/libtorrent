@@ -19,6 +19,7 @@ see LICENSE file.
 #include "libtorrent/aux_/byteswap.hpp"
 #include "libtorrent/aux_/ffs.hpp"
 
+#include <bit>
 #include <cstring> // for memset and memcpy
 #include <cstdint> // uint32_t
 
@@ -276,6 +277,8 @@ namespace libtorrent {
 		void clear() noexcept { m_buf.reset(); }
 
 	private:
+		template <typename>
+		friend struct typed_bitfield;
 
 		std::uint32_t const* buf() const noexcept { TORRENT_ASSERT(m_buf); return &m_buf[1]; }
 		std::uint32_t* buf() noexcept { TORRENT_ASSERT(m_buf); return &m_buf[1]; }
@@ -319,6 +322,27 @@ namespace libtorrent {
 		index_range<IndexType> range() const noexcept
 		{
 			return {IndexType{0}, end_index()};
+		}
+
+		// calls fun for each set index, in ascending order. The visitor returns
+		// false to stop before scanning the remaining indices.
+		template <typename Fun>
+		void visit_set(Fun&& fun) const
+		{
+			for (int word = 0; word < this->num_words(); ++word)
+			{
+				std::uint32_t bits = aux::network_to_host(this->buf()[word]);
+				while (bits != 0)
+				{
+					int const bit = std::countl_zero(bits);
+					int const index = word * 32 + bit;
+					if (index >= this->size())
+						return;
+					if (!fun(IndexType(index)))
+						return;
+					bits ^= 0x80000000 >> bit;
+				}
+			}
 		}
 
 		bool operator[](IndexType const index) const
