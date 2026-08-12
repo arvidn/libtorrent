@@ -104,6 +104,29 @@ namespace libtorrent {
 }
 
 namespace libtorrent::aux {
+	namespace {
+
+		template <typename Fun>
+		bool for_each_set_bit(typed_bitfield<piece_index_t> const& bitmask, Fun&& fun)
+		{
+			for (int byte = 0; byte < bitmask.num_bytes(); ++byte)
+			{
+				unsigned char const bits = static_cast<unsigned char>(bitmask.data()[byte]);
+				if (bits == 0)
+					continue;
+
+				for (int bit = 0; bit < 8; ++bit)
+				{
+					if ((bits & (0x80 >> bit)) == 0)
+						continue;
+					if (!fun(piece_index_t(byte * 8 + bit)))
+						return false;
+				}
+			}
+			return true;
+		}
+
+	}
 
 	// the max number of blocks to create an affinity for
 	constexpr int max_piece_affinity_extent = 4 * 1024 * 1024 / default_block_size;
@@ -1328,15 +1351,13 @@ namespace libtorrent::aux {
 			// and mark the picker as dirty, so we'll rebuild it next time we need it.
 			// this only matters if we're not already dirty, in which case the fasted
 			// thing to do is to just update the counters and be done
-			piece_index_t index{0};
 			int num_inc = 0;
-			for (auto i = bitmask.begin(), end(bitmask.end()); i != end; ++i, ++index)
-			{
-				if (!*i) continue;
-				if (num_inc < size) incremented[num_inc] = index;
+			for_each_set_bit(bitmask, [&](piece_index_t const index) {
+				if (num_inc < size)
+					incremented[num_inc] = index;
 				++num_inc;
-				if (num_inc >= size) break;
-			}
+				return num_inc < size;
+			});
 
 			if (num_inc < size)
 			{
@@ -1364,23 +1385,19 @@ namespace libtorrent::aux {
 			}
 		}
 
-		piece_index_t index{0};
 		bool updated = false;
-		for (auto i = bitmask.begin(), end(bitmask.end()); i != end; ++i, ++index)
-		{
-			if (*i)
-			{
+		for_each_set_bit(bitmask, [&](piece_index_t const index) {
 #ifdef TORRENT_DEBUG_REFCOUNTS
-				TORRENT_ASSERT(m_piece_map[index].have_peers.count(peer) == 0);
-				m_piece_map[index].have_peers.insert(peer);
+			TORRENT_ASSERT(m_piece_map[index].have_peers.count(peer) == 0);
+			m_piece_map[index].have_peers.insert(peer);
 #else
-				TORRENT_UNUSED(peer);
+			TORRENT_UNUSED(peer);
 #endif
 
-				++m_piece_map[index].peer_count;
-				updated = true;
-			}
-		}
+			++m_piece_map[index].peer_count;
+			updated = true;
+			return true;
+		});
 
 		// if we're already dirty, no point in doing anything more
 		if (m_dirty) return;
