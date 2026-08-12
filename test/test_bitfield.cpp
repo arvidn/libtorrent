@@ -14,6 +14,7 @@ see LICENSE file.
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/aux_/cpuid.hpp"
 #include <cstdlib>
+#include <vector>
 
 using namespace lt;
 
@@ -427,3 +428,48 @@ TORRENT_TEST(bitfield_index_range)
 	TEST_EQUAL(sum, 15 * 16 / 2);
 }
 
+TORRENT_TEST(visit_set_network_order)
+{
+	// The third word is empty and the final byte has seven padding bits set.
+	std::array<std::uint8_t, 13> const bytes = {{
+		0x80,
+		0x01,
+		0x00,
+		0x01,
+		0x80,
+		0x00,
+		0x00,
+		0x01,
+		0x00,
+		0x00,
+		0x00,
+		0x00,
+		0xff,
+	}};
+	typed_bitfield<int> const bits(reinterpret_cast<char const*>(bytes.data()), 97);
+
+	std::vector<int> visited;
+	bits.visit_set([&visited](int const index) {
+		visited.push_back(index);
+		return true;
+	});
+
+	std::vector<int> const expected = {0, 15, 31, 32, 63, 96};
+	TEST_CHECK(visited == expected);
+}
+
+TORRENT_TEST(visit_set_early_exit)
+{
+	typed_bitfield<int> bits(96, false);
+	for (int const index : {0, 31, 32, 63, 64, 95})
+		bits.set_bit(index);
+
+	std::vector<int> visited;
+	bits.visit_set([&visited](int const index) {
+		visited.push_back(index);
+		return index != 32;
+	});
+
+	std::vector<int> const expected = {0, 31, 32};
+	TEST_CHECK(visited == expected);
+}
