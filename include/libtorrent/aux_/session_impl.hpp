@@ -436,8 +436,7 @@ namespace aux {
 
 			void incoming_connection(socket_type);
 			std::int64_t num_connections_with_pending() const;
-			std::int64_t connection_limit(
-				tcp::endpoint const& endp, socket_type_t type);
+			std::int64_t connection_limit(tcp::endpoint const& endp, socket_type_t type);
 			void reject_incoming_connection(
 				tcp::endpoint const& endp, socket_type_t type, std::int64_t limit);
 

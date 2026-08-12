@@ -2892,14 +2892,15 @@ retry:
 		{
 			error_code endpoint_ec;
 			tcp::endpoint const endp = s.remote_endpoint(endpoint_ec);
-			if (endpoint_ec) return;
+			if (endpoint_ec)
+				return;
 
 			bool const reject = !can_accept_peer(endp, socket_type_t::tcp_ssl);
 			if (reject)
-				reject_incoming_connection(endp,
-					socket_type_t::tcp_ssl,
-					connection_limit(endp, socket_type_t::tcp_ssl));
-			if (reject) return;
+				reject_incoming_connection(
+					endp, socket_type_t::tcp_ssl, connection_limit(endp, socket_type_t::tcp_ssl));
+			if (reject)
+				return;
 		}
 #endif
 
@@ -2958,13 +2959,13 @@ retry:
 
 		error_code ec;
 		tcp::endpoint const endp = s.remote_endpoint(ec);
-		if (ec) return;
+		if (ec)
+			return;
 
 		if (!can_accept_peer(endp, socket_type_t::utp_ssl))
 		{
-			reject_incoming_connection(endp,
-				socket_type_t::utp_ssl,
-				connection_limit(endp, socket_type_t::utp_ssl));
+			reject_incoming_connection(
+				endp, socket_type_t::utp_ssl, connection_limit(endp, socket_type_t::utp_ssl));
 			return;
 		}
 
@@ -2993,8 +2994,7 @@ retry:
 	bool session_impl::can_accept_peer(tcp::endpoint const& endp, socket_type_t const type)
 	{
 		std::int64_t const limit =
-			connection_limit(endp, type)
-			+ m_settings.get_int(settings_pack::connections_slack);
+			connection_limit(endp, type) + m_settings.get_int(settings_pack::connections_slack);
 		return num_connections_with_pending() < limit;
 	}
 
@@ -3087,16 +3087,16 @@ retry:
 		return ret;
 	}
 
-	std::int64_t session_impl::connection_limit(
-		tcp::endpoint const& endp, socket_type_t const type)
+	std::int64_t session_impl::connection_limit(tcp::endpoint const& endp, socket_type_t const type)
 	{
 		peer_class_set pcs;
 		set_peer_classes(&pcs, endp.address(), type);
 		int connection_limit_factor = m_rates.max_connection_limit_factor(pcs);
-		if (connection_limit_factor == 0) connection_limit_factor = 100;
+		if (connection_limit_factor == 0)
+			connection_limit_factor = 100;
 
-		return std::int64_t(m_settings.get_int(settings_pack::connections_limit))
-			* 100 / connection_limit_factor;
+		return std::int64_t(m_settings.get_int(settings_pack::connections_limit)) * 100
+			/ connection_limit_factor;
 	}
 
 	void session_impl::reject_incoming_connection(
