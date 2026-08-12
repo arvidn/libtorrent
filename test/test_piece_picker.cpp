@@ -1683,6 +1683,33 @@ TORRENT_TEST(bitfield_optimization)
 	TEST_CHECK(verify_availability(p, "1132123201220322"));
 }
 
+TORRENT_TEST(sparse_bitfield_boundaries)
+{
+	constexpr int num_pieces = 65;
+	auto p = std::make_shared<piece_picker>(
+		std::int64_t(num_pieces) * default_piece_size, default_piece_size);
+
+	typed_bitfield<piece_index_t> pieces(num_pieces, false);
+	for (piece_index_t const piece :
+		{0_piece, 7_piece, 8_piece, 31_piece, 32_piece, 63_piece, 64_piece})
+		pieces.set_bit(piece);
+
+	// Build the piece list so the sparse incremental-update path is used.
+	std::string const peer_pieces(num_pieces, '*');
+	pick_pieces(p, peer_pieces.c_str(), 1, blocks_per_piece, nullptr);
+
+	p->inc_refcount(pieces, &tmp0);
+	aux::vector<int, piece_index_t> availability;
+	p->get_availability(availability);
+	for (auto const piece : pieces.range())
+		TEST_EQUAL(availability[piece], pieces[piece] ? 1 : 0);
+
+	p->dec_refcount(pieces, &tmp0);
+	p->get_availability(availability);
+	for (int const peers : availability)
+		TEST_EQUAL(peers, 0);
+}
+
 TORRENT_TEST(seed_optimization)
 {
 	// test seed optimization
