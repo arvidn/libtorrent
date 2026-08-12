@@ -1710,6 +1710,30 @@ TORRENT_TEST(sparse_bitfield_boundaries)
 		TEST_EQUAL(peers, 0);
 }
 
+TORRENT_TEST(bitfield_padding)
+{
+	constexpr int num_pieces = 72;
+	auto p = std::make_shared<piece_picker>(
+		std::int64_t(num_pieces) * default_piece_size, default_piece_size);
+
+	// The mutable byte buffer may contain set padding bits. They are outside
+	// the bitfield's logical size and must not affect piece availability.
+	typed_bitfield<piece_index_t> pieces(65, false);
+	pieces.set_bit(64_piece);
+	pieces.data()[8] = static_cast<char>(0xc0);
+
+	p->inc_refcount(pieces, &tmp0);
+	aux::vector<int, piece_index_t> availability;
+	p->get_availability(availability);
+	TEST_EQUAL(availability[64_piece], 1);
+	TEST_EQUAL(availability[65_piece], 0);
+
+	p->dec_refcount(pieces, &tmp0);
+	p->get_availability(availability);
+	for (int const peers : availability)
+		TEST_EQUAL(peers, 0);
+}
+
 TORRENT_TEST(bitfield_update_threshold)
 {
 	constexpr int num_pieces = 100;

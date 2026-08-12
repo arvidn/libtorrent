@@ -15,6 +15,7 @@ see LICENSE file.
 */
 
 #include <vector>
+#include <bit>
 #include <cmath>
 #include <algorithm>
 #include <numeric>
@@ -106,24 +107,25 @@ namespace libtorrent {
 namespace libtorrent::aux {
 	namespace {
 
+		// bitfield::data() stores the most significant bit first. Its mutable
+		// storage may contain set padding bits, so stop at the logical size.
 		template <typename Fun>
-		bool for_each_set_bit(typed_bitfield<piece_index_t> const& bitmask, Fun&& fun)
+		void visit_set_pieces(typed_bitfield<piece_index_t> const& bitmask, Fun&& fun)
 		{
 			for (int byte = 0; byte < bitmask.num_bytes(); ++byte)
 			{
-				unsigned char const bits = static_cast<unsigned char>(bitmask.data()[byte]);
-				if (bits == 0)
-					continue;
-
-				for (int bit = 0; bit < 8; ++bit)
+				unsigned char bits = static_cast<unsigned char>(bitmask.data()[byte]);
+				while (bits != 0)
 				{
-					if ((bits & (0x80 >> bit)) == 0)
-						continue;
-					if (!fun(piece_index_t(byte * 8 + bit)))
-						return false;
+					int const bit = std::countl_zero(bits);
+					int const index = byte * 8 + bit;
+					if (index >= bitmask.size())
+						return;
+					if (!fun(piece_index_t(index)))
+						return;
+					bits ^= static_cast<unsigned char>(0x80 >> bit);
 				}
 			}
-			return true;
 		}
 
 	}
@@ -1352,7 +1354,7 @@ namespace libtorrent::aux {
 			// this only matters if we're not already dirty, in which case the fasted
 			// thing to do is to just update the counters and be done
 			int num_inc = 0;
-			for_each_set_bit(bitmask, [&](piece_index_t const index) {
+			visit_set_pieces(bitmask, [&](piece_index_t const index) {
 				if (num_inc < size)
 					incremented[num_inc] = index;
 				++num_inc;
@@ -1386,7 +1388,7 @@ namespace libtorrent::aux {
 		}
 
 		bool updated = false;
-		for_each_set_bit(bitmask, [&](piece_index_t const index) {
+		visit_set_pieces(bitmask, [&](piece_index_t const index) {
 #ifdef TORRENT_DEBUG_REFCOUNTS
 			TORRENT_ASSERT(m_piece_map[index].have_peers.count(peer) == 0);
 			m_piece_map[index].have_peers.insert(peer);
@@ -1442,7 +1444,7 @@ namespace libtorrent::aux {
 			// this only matters if we're not already dirty, in which case the fasted
 			// thing to do is to just update the counters and be done
 			int num_dec = 0;
-			for_each_set_bit(bitmask, [&](piece_index_t const index) {
+			visit_set_pieces(bitmask, [&](piece_index_t const index) {
 				if (num_dec < size)
 					decremented[num_dec] = index;
 				++num_dec;
@@ -1485,7 +1487,7 @@ namespace libtorrent::aux {
 		}
 
 		bool updated = false;
-		for_each_set_bit(bitmask, [&](piece_index_t const index) {
+		visit_set_pieces(bitmask, [&](piece_index_t const index) {
 			piece_pos& p = m_piece_map[index];
 			if (p.peer_count == 0)
 			{
