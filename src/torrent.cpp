@@ -5912,6 +5912,17 @@ namespace {
 		auto new_priority = fix_priorities(std::move(files)
 			, valid_metadata() ? &m_torrent_file->layout() : nullptr);
 
+		// if a file_priority disk job is already in flight, don't queue up
+		// another one behind it. Merge into the deferred priorities instead,
+		// the same way set_file_priority() does, so they're picked up by the
+		// in-flight job's completion handler.
+		if (m_flags & torrent_internal_flags::outstanding_file_priority)
+		{
+			for (file_index_t const i : new_priority.range())
+				m_deferred_file_priorities[i] = new_priority[i];
+			return;
+		}
+
 		m_deferred_file_priorities.clear();
 
 		// storage may be NULL during shutdown

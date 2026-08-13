@@ -365,6 +365,52 @@ TORRENT_TEST(exceed_piece_prio_magnet)
 	TEST_CHECK(prios.empty());
 }
 
+// regression test: prioritize_files()/file_priority() calls arriving while
+// a previous file_priority disk job is outstanding must coalesce into the
+// deferred priorities instead of each dispatching their own job, since a
+// job dispatched from a stale m_file_priority snapshot would clobber
+// priorities set by a still-in-flight job.
+TORRENT_TEST(file_priority_coalesce_deferred)
+{
+	std::vector<lt::create_file_entry> fs;
+	fs.emplace_back("test_torrent_dir5/tmp1", 1024);
+	fs.emplace_back("test_torrent_dir5/tmp2", 1024);
+	fs.emplace_back("test_torrent_dir5/tmp3", 1024);
+	lt::create_torrent t(std::move(fs), 4096, create_torrent::v1_only);
+	t.set_hash(0_piece, sha1_hash::max());
+	std::vector<char> const tmp = bencode(t.generate());
+	add_torrent_params p = load_torrent_buffer(tmp);
+	p.save_path = ".";
+
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(std::move(p));
+
+	// the 2nd and 3rd calls land while the 1st is still outstanding and
+	// must coalesce into it.
+	h.file_priority(0_file, 7_pri);
+	h.prioritize_files(std::vector<download_priority_t>{1_pri, 1_pri, 1_pri});
+	h.file_priority(1_file, 6_pri);
+
+	aux::vector<download_priority_t, file_index_t> const expected{1_pri, 6_pri, 1_pri};
+	TEST_CHECK(wait_priority(h, expected));
+
+	// the 1st call's job is already dispatched, so it always alerts on its
+	// own; the coalesced 2nd/3rd calls must produce a single follow-up
+	// alert, for 2 total, not 3. Poll the whole window rather than
+	// stopping at 2, since the failure mode is a 3rd, straggling alert.
+	int num_file_prio_alerts = 0;
+	for (int i = 0; i < 10; ++i)
+	{
+		std::vector<alert*> alerts;
+		ses.pop_alerts(&alerts);
+		for (auto const* a : alerts)
+			if (a->type() == file_prio_alert::alert_type)
+				++num_file_prio_alerts;
+		std::this_thread::sleep_for(100ms);
+	}
+	TEST_EQUAL(num_file_prio_alerts, 2);
+}
+
 TORRENT_TEST(torrent)
 {
 /*	{
