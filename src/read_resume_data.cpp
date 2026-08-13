@@ -361,7 +361,7 @@ namespace {
 				ret.have_pieces.resize(pieces_len);
 				ret.verified_pieces.resize(pieces_len);
 				bool any_verified = false;
-				for (piece_index_t i(0); i < ret.verified_pieces.end_index(); ++i)
+				for (piece_index_t i : ret.verified_pieces.range())
 				{
 					// being in seed mode and missing a piece is not compatible.
 					// Leave seed mode if that happens

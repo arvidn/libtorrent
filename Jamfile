@@ -12,7 +12,15 @@ import cast ;
 
 # we need version numbers in the form X.Y.Z in order to trigger the built-in
 # support for generating symlinks to the installed library
-VERSION = 2.1.0 ;
+VERSION = 2.1.1 ;
+
+# the SONAME (and the versioned .so filename that embeds it) must stay fixed
+# across patch releases of an ABI-stable branch, so dependents don't need to
+# relink for pure bugfix updates. It only changes on a major/minor bump. The
+# patch component is always pinned to 0 here, independently of VERSION's
+# actual patch number.
+local soname-parts = [ MATCH "^([0-9]+)\\.([0-9]+)" : $(VERSION) ] ;
+SONAME_VERSION = $(soname-parts[1]).$(soname-parts[2]).0 ;
 
 BOOST_ROOT = [ modules.peek : BOOST_ROOT ] ;
 ECHO "OS =" [ os.name ] ;
@@ -419,7 +427,7 @@ rule tag ( name : type ? : property-set )
 	else
 	{
 		local name = [ virtual-target.add-prefix-and-suffix $(name)-rasterbar : $(type) : $(property-set) ] ;
-		return $(name).$(VERSION) ;
+		return $(name).$(SONAME_VERSION) ;
 	}
 }
 

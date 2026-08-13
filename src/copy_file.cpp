@@ -10,6 +10,7 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/aux_/file.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/storage_utils.hpp"
 
@@ -107,24 +108,17 @@ void copy_range(HANDLE const in_handle, HANDLE const out_handle
 		}
 
 		len -= num_read;
-		int buf_offset = 0;
-		while (num_read > 0)
+		error_code write_error;
+		int const num_written =
+			pwrite_all(out_handle, span<char const>(buffer, num_read), in_offset, write_error);
+		if (write_error)
 		{
-			OVERLAPPED out_ol{};
-			out_ol.Offset = in_offset & 0xffffffff;
-			out_ol.OffsetHigh = in_offset >> 32;
-			DWORD num_written = 0;
-			if (WriteFile(out_handle, buffer + buf_offset, DWORD(num_read - buf_offset)
-				, &num_written, &out_ol) == 0)
-			{
-				se.operation = operation_t::file_write;
-				se.ec.assign(::GetLastError(), system_category());
-				return;
-			}
-			buf_offset += num_written;
-			num_read -= num_written;
-			in_offset += num_written;
+			se.operation = operation_t::file_write;
+			se.ec = write_error;
+			return;
 		}
+		TORRENT_ASSERT(num_written == int(num_read));
+		in_offset += num_written;
 	}
 	return;
 }
@@ -258,22 +252,19 @@ ssize_t copy_range_fallback(int const fd_in, int const fd_out, off_t in_offset
 			return -1;
 		}
 		len -= num_read;
-		int buf_offset = 0;
-		while (num_read > 0)
+
+		error_code write_error;
+		int const num_written =
+			pwrite_all(fd_out, span<char const>(buffer, num_read), in_offset, write_error);
+		if (write_error)
 		{
-			auto const ret = ::pwrite(fd_out, buffer + buf_offset
-				, std::size_t(num_read - buf_offset), in_offset);
-			if (ret <= 0)
-			{
-				se.operation = operation_t::file_write;
-				se.ec.assign(errno, system_category());
-				return -1;
-			}
-			buf_offset += ret;
-			num_read -= ret;
-			in_offset += ret;
-			total_copied += ret;
+			se.operation = operation_t::file_write;
+			se.ec = write_error;
+			return -1;
 		}
+		TORRENT_ASSERT(num_written == num_read);
+		in_offset += num_written;
+		total_copied += num_written;
 	}
 	return total_copied;
 }
@@ -434,4 +425,3 @@ void copy_file(std::string const& inf, std::string const& newf, storage_error& s
 
 }
 }
-

@@ -110,16 +110,45 @@ ut_metadata, and ut_pex fuzzers.
   ancillary services (outgoing TCP/uTP, DHT, LSD, UPnP, NAT-PMP, IP
   notifier) disabled, encryption disabled, and all peer timeouts set to
   1 second.
-- Adds a single **hybrid (v1 + v2)** torrent built from four files (a
-  0-byte file, a 100-byte file, a 50 KiB file, and a 97 MiB + 200 KiB
-  file). After canonicalization (alphabetical sort + inserted pad files)
-  this is exactly 100 pieces of 1 MiB. Piece hashes (SHA-1) and per-file
-  block hashes (SHA-256) are filled with dummy values. `save_path` is `.`
-  and no data is on disk, so the torrent stays in downloading state.
+- Adds a **hybrid (v1 + v2)** torrent built from four files (a 0-byte
+  file, a 100-byte file, a 50 KiB file, and a 97 MiB + 200 KiB file).
+  After canonicalization (alphabetical sort + inserted pad files) this is
+  exactly 100 pieces of 1 MiB. Piece hashes (SHA-1) and per-file block
+  hashes (SHA-256) are filled with dummy values. `save_path` is `.` and
+  no data is on disk, so the torrent stays in downloading state.
 - Waits for both the TCP `listen_succeeded_alert` (recording
   `g_fz.listen_port`) and the `torrent_resumed_alert` before returning.
 - Records `g_fz.info_hash` (an `info_hash_t` holding both the v1 SHA-1
   and v2 SHA-256 info-hashes).
+- Also adds a **second** torrent as a **magnet** (`info_hashes` only, no
+  `ti`), built via the shared `add_fuzz_magnet(false, 'a')` helper (which
+  wraps `build_fuzz_torrent()` from `peer_session.hpp`) from the identical
+  file layout but with no v2 (SHA-256) hashes, so it's v1-only. Its
+  info-hash and pre-encoded ut_metadata piece message (from
+  `torrent_info::info_section()`) are stored in
+  `g_v1_only_hash`/`g_v1_only_metadata_piece`. Because this metadata is
+  fixed at startup rather than derived from fuzz input, delivering it via
+  ut_metadata (see below) always succeeds, unlike a corpus byte sequence,
+  which would have to find a SHA-1 preimage to ever make
+  `torrent::set_metadata()` return true. Without this second torrent, the
+  whole torrent-acquires-metadata code path (`set_metadata()`,
+  `initialize_merkle_trees()`, `on_metadata_impl()`) would be unreachable:
+  the first, pre-built torrent always has valid metadata, so that code
+  never runs for it.
+- Also adds a **third** torrent, added as a **hybrid (v1 + v2) magnet**
+  (`info_hashes` holds both the v1 and v2 hash, no `ti`), built via the
+  same `add_fuzz_magnet(true, 'c')` helper from the identical file layout
+  with a different dummy-hash fill byte (`'c'` instead of the default
+  `'a'`) so it gets its own info-hash instead of colliding with `g_fz`'s.
+  Its info-hash and pre-encoded ut_metadata piece message are stored in
+  `g_v2_hybrid_hash`/`g_v2_hybrid_metadata_piece`. This is the counterpart
+  to the v1-only magnet: metadata resolves to a genuine hybrid, so a peer's
+  speculative v2 claim turns out honest and must survive metadata
+  resolution rather than being corrected, exercising the same code as
+  the v1-only magnet from the opposite direction, to guard against the
+  fix over-triggering on legitimate v2 peers. More variants (a different
+  file layout, etc.) can be added the same way if a future case needs
+  one.
 
 **Per-input flow (`LLVMFuzzerTestOneInput`):**
 
@@ -128,9 +157,21 @@ ut_metadata, and ut_pex fuzzers.
    - `data[0..7]` are used as the extension-flags (reserved) bytes.
    - Bits for BEP 10 (byte 5, bit 0x10) and BEP 6 FAST (byte 7, bit
      0x04) are always forced on so those handlers are always reachable.
-   - Byte 0 bit 0x01 selects the peer's protocol version: clear = v2
-     (advertises `g_fz.info_hash.get_best()`, `protocol_v2` true), set =
-     v1 (advertises `g_fz.info_hash.v1`, `protocol_v2` false).
+   - Byte 0 bit 0x01 selects the peer's protocol version, for torrents
+     that have a v1 and a v2 hash to choose between (torrent selector 0
+     and 2 below): clear = v2 (advertises the torrent's
+     `info_hashes().get_best()`, `protocol_v2` true), set = v1
+     (advertises the torrent's `info_hashes().v1`, `protocol_v2` false).
+   - Byte 0 bits 0x02 and 0x04 form a 2-bit torrent selector: 0 = the
+     first, pre-built torrent (metadata already valid, bit 0x01 applies
+     as above); 1 = the second, v1-only magnet (always presents
+     `g_v1_only_hash.v1`; bit 0x01 doesn't apply since there's no v2
+     hash to choose between); 2 = the third, hybrid magnet (bit 0x01
+     applies exactly as it does for selector 0); 3 = unused, falls back
+     to selector 0. Every other flag bit, including byte 7 bit 0x10 (the
+     v2-upgrade bit), is independent of the torrent selector and free to
+     combine with any of them, e.g. a handshake claim that doesn't match
+     what the connected torrent's info-hash actually supports.
    - Peer-ID is all zeros.
 3. Sends a fixed BEP 10 extended handshake (`k_extended_handshake`,
    ext_id 0) registering:
@@ -141,10 +182,21 @@ ut_metadata, and ut_pex fuzzers.
    | ut_metadata | 2      |
    | upload_only | 3      |
 
-4. Parses `data[8..]` as a sequence of messages (see **Corpus wire
+4. If the torrent selector picked the v1-only or hybrid magnet, sends two
+   more fixed (not fuzz-derived) messages before continuing: a second
+   extended handshake (BEP 10 supports re-negotiation) announcing
+   `metadata_size`, which makes the ut_metadata plugin queue a request
+   for piece 0, then a ut_metadata piece message carrying that magnet's
+   metadata (`g_v1_only_metadata_piece` or `g_v2_hybrid_metadata_piece`),
+   so `torrent::set_metadata()` succeeds deterministically on every run
+   that picks either branch.
+5. Parses `data[8..]` as a sequence of messages (see **Corpus wire
    format** below) and sends each with a correct 4-byte BT length
-   prefix.
-5. Closes the socket and waits for a `peer_error_alert` or
+   prefix. This is unchanged regardless of which torrent step 2 picked,
+   so the same fuzzed message space (including BEP 78 hash messages)
+   now also runs against a torrent whose metadata was just acquired
+   rather than always pre-loaded.
+6. Closes the socket and waits for a `peer_error_alert` or
    `peer_disconnected_alert` (3-second timeout).
 
 **DEBUG_LOGGING:** defined by `fuzzers/Jamfile` via the `debug-logging`
@@ -178,10 +230,12 @@ The fuzzer splits this automatically before calling
 
 | Byte | Bit  | Protocol            |
 |------|------|---------------------|
-| 0    | 0x01 | protocol version (set = v1 SHA-1, clear = v2) |
+| 0    | 0x01 | protocol version, when the selected torrent has a v1 and a v2 hash (set = v1 SHA-1, clear = v2) |
+| 0    | 0x02 + 0x04 | 2-bit torrent selector: 0 = pre-built hybrid, 1 = v1-only magnet, 2 = hybrid magnet, 3 = unused (falls back to 0) |
 | 5    | 0x10 | BEP 10 extended     |
 | 7    | 0x04 | BEP 6 FAST          |
 | 7    | 0x01 | BEP 5 DHT           |
+| 7    | 0x10 | v2-upgrade bit (peer claims v2 support)                     |
 
 **libtorrent's fixed incoming ext_ids** (from `bt_peer_connection.hpp`
 enum; these are the IDs libtorrent expects in messages FROM us):
@@ -203,9 +257,11 @@ additional extended handshake (ext_id 0) that includes
 `"ut_holepunch": <nonzero>` in its `m` dict.
 
 **BEP 78 hash messages** (21 = hash_request, 22 = hashes, 23 =
-hash_reject) require the peer to have advertised v2 support via the
-info-hash in the handshake (`protocol_v2` flag). They are rejected with
-`errors::invalid_message` otherwise.
+hash_reject) require the peer's `protocol_v2` flag (set from the
+handshake) and, separately, the connected torrent's info-hash to actually
+have a v2 component, since a peer can set the flag on a torrent that never
+gains one (see the v1-only magnet above), so both are checked. Either
+failing disconnects with `errors::invalid_message`.
 
 ### Corpus generation tool
 
@@ -239,7 +295,17 @@ C++ extended handshake is changed, update both files together.
 
 The tool also uses `NUM_PIECES = 100`, `PIECE_SIZE = 1 MiB`, and
 `BLOCK_SIZE = 16 KiB` -- these must match the torrent that
-`make_fuzz_torrent_params()` in `fuzzers/src/peer_session.hpp` builds.
+`make_fuzz_torrent_params()` (equivalently `build_fuzz_torrent(true)`) in
+`fuzzers/src/peer_session.hpp` builds. `build_fuzz_torrent(false)` builds
+the second, v1-only torrent, and `build_fuzz_torrent(true, 'c')` builds
+the third, hybrid-magnet torrent, both from the identical file layout, so
+these constants apply to them too.
+
+A handful of seeds set byte 0 bits 0x02/0x04 to connect to the second or
+third torrent instead of the first, combined with other flag bits (e.g.
+the v2-upgrade bit) and a follow-up message. These exist to give the
+fuzzer a foothold in those branches, not to exhaustively cover them;
+coverage-guided mutation explores the rest.
 
 ### pe_conn.cpp
 

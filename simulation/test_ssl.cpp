@@ -556,8 +556,8 @@ namespace {
 		lt::tcp::endpoint m_target;
 		std::shared_ptr<lt::torrent_info const> m_ti;
 		attack_config m_atk;
-		std::array<char, handshake_template.size()> m_handshake;
-		std::array<char, 68> m_read_buf;
+		std::array<char, handshake_template.size()> m_handshake{};
+		std::array<char, 68> m_read_buf{};
 		std::function<void(bool)> m_done;
 	};
 

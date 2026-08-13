@@ -1,7 +1,7 @@
 [project]
 name = "libtorrent"
 requires-python = ">=3.9"
-version = "2.1.0"
+version = "2.1.1"
 
 [tool.cibuildwheel]
 manylinux-i686-image = "manylinux2014"

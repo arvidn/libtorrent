@@ -467,9 +467,12 @@ namespace merkle_bench {
 	std::vector<sha256_hash> make_leaves()
 	{
 		std::vector<sha256_hash> leaves(static_cast<std::size_t>(num_leafs));
+		lt::hasher256 h;
 		for (int i = 0; i < num_leafs; ++i)
-			leaves[std::size_t(i)] =
-				lt::hasher256().update(reinterpret_cast<char const*>(&i), sizeof(i)).final();
+		{
+			h.reset();
+			leaves[std::size_t(i)] = h.update(reinterpret_cast<char const*>(&i), sizeof(i)).final();
+		}
 		return leaves;
 	}
 

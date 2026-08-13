@@ -151,6 +151,7 @@ namespace {
 				return;
 			}
 			hasher ph;
+			hasher256 h2;
 
 			posix_storage* st = m_torrents[storage].get();
 
@@ -177,7 +178,10 @@ namespace {
 				if (v1)
 					ph.update(b.first(std::min(ret, len)));
 				if (v2_block)
-					block_hashes[i] = hasher256(b.first(std::min(ret, len2))).final();
+				{
+					h2.reset();
+					block_hashes[i] = h2.update(b.first(std::min(ret, len2))).final();
+				}
 			}
 
 			sha1_hash const hash = v1 ? ph.final() : sha1_hash();

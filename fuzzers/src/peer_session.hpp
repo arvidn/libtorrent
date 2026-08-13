@@ -77,8 +77,8 @@ inline void configure_fuzz_session(lt::settings_pack& pack)
 	pack.set_int(lt::settings_pack::inactivity_timeout, 1);
 }
 
-// Builds a hybrid (v1 + v2) torrent that exercises as many interesting
-// metadata properties as possible:
+// Builds a torrent that exercises as many interesting metadata properties
+// as possible:
 //   - empty file (0 bytes)
 //   - file smaller than the 16 KiB block size (100 bytes)
 //   - file smaller than a piece but spanning multiple blocks (50 KiB)
@@ -87,9 +87,16 @@ inline void configure_fuzz_session(lt::settings_pack& pack)
 // align each non-last file to a piece boundary, yielding several pad
 // files in the resulting layout. The sizes are chosen so the total
 // (data + pad) is exactly 100 pieces of 1 MiB, matching NUM_PIECES
-// in tools/gen_corpus.py.
-// Returns add_torrent_params with save_path set to ".".
-inline lt::add_torrent_params make_fuzz_torrent_params()
+// in tools/gen_corpus.py. `include_v2` selects a hybrid (v1 + v2) torrent
+// vs. a v1-only one built from the identical file layout, so a fuzzer can
+// exercise both without breaking the piece/block offsets its corpus
+// assumes. `fill` seeds the dummy piece/block hash content; callers that
+// build more than one torrent from the same `include_v2` value must pass
+// distinct fill bytes, otherwise the two torrents bencode to the same info
+// dict and get the same info-hash (the session treats the second add as a
+// duplicate of the first). Returns add_torrent_params with save_path set
+// to ".".
+inline lt::add_torrent_params build_fuzz_torrent(bool const include_v2, char const fill = 'a')
 {
 	int const piece_size = 1024 * 1024;
 	std::vector<lt::create_file_entry> fs;
@@ -100,18 +107,20 @@ inline lt::add_torrent_params make_fuzz_torrent_params()
 	lt::create_torrent t(std::move(fs), piece_size);
 
 	for (lt::piece_index_t i : t.piece_range())
-		t.set_hash(i, lt::sha1_hash("abababababababababab"));
+		t.set_hash(i, lt::sha1_hash(std::string(20, fill).c_str()));
 
-	for (lt::file_index_t const f : t.file_range())
+	if (include_v2)
 	{
-		auto const& fe = t.file_at(f);
-		if (fe.flags & lt::file_storage::flag_pad_file) continue;
-		if (fe.size == 0) continue;
-		for (lt::piece_index_t::diff_type i : t.file_piece_range(f))
-			t.set_hash2(f,
-				i,
-				lt::sha256_hash(
-					"abababababababababababababababababababababababababababababababab"));
+		for (lt::file_index_t const f : t.file_range())
+		{
+			auto const& fe = t.file_at(f);
+			if (fe.flags & lt::file_storage::flag_pad_file)
+				continue;
+			if (fe.size == 0)
+				continue;
+			for (lt::piece_index_t::diff_type i : t.file_piece_range(f))
+				t.set_hash2(f, i, lt::sha256_hash(std::string(32, fill).c_str()));
+		}
 	}
 
 	std::vector<char> buf;
@@ -120,6 +129,8 @@ inline lt::add_torrent_params make_fuzz_torrent_params()
 	atp.save_path = ".";
 	return atp;
 }
+
+inline lt::add_torrent_params make_fuzz_torrent_params() { return build_fuzz_torrent(true); }
 
 // Length-prefix and send a BitTorrent protocol message over a TCP socket.
 inline void send_bt_message(

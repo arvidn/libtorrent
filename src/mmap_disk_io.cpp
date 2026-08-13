@@ -893,6 +893,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		int offset = 0;
 		int const blocks_to_read = std::max(blocks_in_piece, blocks_in_piece2);
 		time_point const start_time = clock_type::now();
+		hasher256 h2;
 		for (int i = 0; i < blocks_to_read; ++i)
 		{
 			bool const v2_block = i < blocks_in_piece2;
@@ -905,7 +906,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			bool const have_precomputed_v2 =
 				v2_block && i < int(pc.size()) && !pc[i].is_all_zeros();
 
-			hasher256 h2;
+			h2.reset();
 
 			if (have_precomputed_v2 && !v1)
 			{

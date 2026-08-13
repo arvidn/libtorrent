@@ -7147,6 +7147,17 @@ namespace {
 		if (!m_torrent_file->is_valid()) return {};
 		TORRENT_ASSERT(validate_hash_request(req, m_torrent_file->layout()));
 
+		// m_merkle_trees is only populated for v2 (or hybrid) torrents with
+		// valid metadata (see initialize_merkle_trees()); req.file is
+		// validated against the full file layout, not against m_merkle_trees,
+		// so a v1-only torrent (or one whose metadata hasn't resolved yet)
+		// must be rejected here rather than indexed out of bounds. Callers
+		// are expected to have already checked has_v2() and valid_metadata(),
+		// so reaching this in a debug build indicates a caller bug.
+		TORRENT_ASSERT(req.file >= file_index_t{0} && req.file < m_merkle_trees.end_index());
+		if (req.file < file_index_t{0} || req.file >= m_merkle_trees.end_index())
+			return {};
+
 		auto const& f = m_merkle_trees[req.file];
 
 		return f.get_hashes(req.base, req.index, req.count, req.proof_layers);
@@ -8152,6 +8163,15 @@ namespace {
 		{
 			std::lock_guard<std::mutex> l(m_torrent_file_mutex);
 			m_torrent_file_external = m_torrent_file;
+		}
+
+		// a peer's protocol_v2 flag can be set speculatively before metadata
+		// is valid, since a magnet link's info-hash doesn't establish
+		// whether the torrent has a v2 info hash
+		if (!m_info_hash.has_v2() && m_peer_list)
+		{
+			for (auto* pp : *m_peer_list)
+				pp->protocol_v2 = false;
 		}
 
 		m_size_on_disk = m_torrent_file->layout().size_on_disk();

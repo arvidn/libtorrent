@@ -44,7 +44,7 @@ TORRENT_TEST(init)
 		fp.export_progress(vec);
 
 		std::int64_t sum = 0;
-		for (file_index_t i(0); i < vec.end_index(); ++i)
+		for (file_index_t i : vec.range())
 			sum += vec[i];
 
 		TEST_EQUAL(sum, fs.piece_size(idx));
@@ -76,7 +76,7 @@ TORRENT_TEST(init2)
 		fp.export_progress(vec);
 
 		std::int64_t sum = 0;
-		for (file_index_t i(0); i < vec.end_index(); ++i)
+		for (file_index_t i : vec.range())
 			sum += vec[i];
 
 		TEST_EQUAL(sum, fs.piece_size(idx));

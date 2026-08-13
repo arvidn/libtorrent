@@ -4,8 +4,9 @@
 	* reuse tracker connections when announcing multiple torrents
 	* remove predictive pieces feature
 
-2.1.1 not released
+2.1.1 released
 
+	* fix merkle tree issue
 	* require webtorrent RTC offer IDs to be exactly 20 bytes
 	* fix point-to-point interfaces without a route to the internet being used for outgoing traffic
 	* apply IP filter to DHT node
@@ -51,6 +52,7 @@
 
 2.0.14 released
 
+	* fix issue in merkle tree
 	* fix use of a stack buffer past its lifetime when sending i2p SAM commands
 	* fix issues with active_time, seeding_time and finished_time
 	* fix torrent updates for idle torrents

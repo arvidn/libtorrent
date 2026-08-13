@@ -442,7 +442,7 @@ namespace libtorrent::aux {
 		, aux::torrent_peer const* p) const
 	{
 #ifdef TORRENT_DEBUG_REFCOUNTS
-		for (piece_index_t i(0); i < have.end_index(); ++i)
+		for (piece_index_t i : have.range())
 		{
 			bool const h = have[i];
 			TORRENT_ASSERT(int(m_piece_map[i].have_peers.count(p)) == (h ? 1 : 0));

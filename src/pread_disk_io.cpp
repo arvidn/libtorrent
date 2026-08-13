@@ -1203,6 +1203,7 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 
 		int offset = start * default_block_size;
 		int blocks_read_from_disk = 0;
+		hasher256 ph2;
 		for (int i = start; i < blocks_to_read; ++i)
 		{
 			bool const v2_block = i < blocks_in_piece2;
@@ -1219,7 +1220,7 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 				continue;
 			}
 
-			hasher256 ph2;
+			ph2.reset();
 			char const* buf = (i < int(blocks.size())) ? blocks[i] : nullptr;
 			if (buf == nullptr)
 			{
@@ -1315,13 +1316,14 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 
 			if (v2)
 			{
+				hasher256 h2;
 				int offset = 0;
 				for (int i = 0; i < blocks_in_piece2; ++i)
 				{
 					std::ptrdiff_t const len2 = std::min(default_block_size, piece_size2 - offset);
 					if (a.block_hashes[i].is_all_zeros())
 					{
-						hasher256 h2;
+						h2.reset();
 						h2.update({buf.get() + offset, len2});
 						a.block_hashes[i] = h2.final();
 					}
