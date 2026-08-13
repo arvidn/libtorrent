@@ -316,8 +316,5 @@ Since libtorrent uses Boost.Asio it will take full advantage of high performance
 network APIs on the most popular platforms. I/O completion ports on windows,
 epoll on Linux and kqueue on macOS and BSD.
 
-libtorrent requires a C++11 compiler and does not build with the following compilers:
-
-* GCC older than 5.4
-* Visual Studio older than Visual Studio 15 2017 (aka msvc-14.1)
+libtorrent requires a C++20 compiler.
 
