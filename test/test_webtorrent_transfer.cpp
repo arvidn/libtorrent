@@ -83,10 +83,11 @@ static void connect_rtc_peers(
 	});
 }
 
-// use_metadata_transfer selects one of the two bools setup_transfer() takes:
-// false gives tor2 the full torrent_info up front, true adds it as a magnet
-// (info hash only), requiring the ut_metadata extension to fetch it over the
-// same WebRTC connection before the piece transfer can start.
+// use_metadata_transfer sets the setup_flags::use_metadata_transfer bit in
+// the flags passed to setup_transfer(): false gives tor2 the full
+// torrent_info up front, true adds it as a magnet (info hash only),
+// requiring the ut_metadata extension to fetch it over the same WebRTC
+// connection before the piece transfer can start.
 static void test_webtorrent_transfer(bool const use_metadata_transfer)
 {
 	std::string const suffix = use_metadata_transfer ? "_webtorrent_metadata" : "_webtorrent";
@@ -117,8 +118,11 @@ static void test_webtorrent_transfer(bool const use_metadata_transfer)
 
 	torrent_handle tor1;
 	torrent_handle tor2;
-	std::tie(tor1, tor2, std::ignore) = setup_transfer(
-		&ses1, &ses2, nullptr, true, use_metadata_transfer, false, suffix, piece_size, &atp);
+	setup_flags_t flags = {};
+	if (use_metadata_transfer)
+		flags |= setup_flags::use_metadata_transfer;
+	std::tie(tor1, tor2, std::ignore) =
+		setup_transfer(&ses1, &ses2, nullptr, flags, suffix, piece_size, &atp);
 
 	// connect the two torrents over WebRTC instead of TCP/uTP, using an
 	// in-process stand-in for the tracker's signaling relay. This has to

@@ -120,8 +120,8 @@ void test_transfer(settings_pack const& sett,
 	peer_disconnects = 0;
 
 	// test using piece sizes smaller than 16kB
-	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, nullptr
-		, true, false, true, "_priority", 8 * 1024, &atp, false);
+	std::tie(tor1, tor2, ignore) =
+		setup_transfer(&ses1, &ses2, nullptr, setup_flags::connect, "_priority", 8 * 1024, &atp);
 
 	int const num_pieces = tor2.torrent_file()->num_pieces();
 	aux::vector<download_priority_t, piece_index_t> priorities(std::size_t(num_pieces), 1_pri);

@@ -217,9 +217,16 @@ void test_transfer(int const proxy_type, settings_pack const& sett
 	bool got_inconsistent_error = false;
 
 	// test using piece sizes smaller than 16kB
-	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, nullptr
-		, true, false, true, "_transfer", 1024 * 1024, &atp, false
-		, true, false, nullptr, {}, seeder_extra);
+	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1,
+		&ses2,
+		nullptr,
+		setup_flags::connect,
+		"_transfer",
+		1024 * 1024,
+		&atp,
+		nullptr,
+		{},
+		seeder_extra);
 
 	int num_pieces = tor2.torrent_file()->num_pieces();
 	std::vector<int> priorities(std::size_t(num_pieces), 1);

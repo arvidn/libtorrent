@@ -62,8 +62,8 @@ void test_lsd()
 	torrent_handle tor2;
 
 	using std::ignore;
-	std::tie(tor1, tor2, ignore) = setup_transfer(&ses1, &ses2, nullptr, true, false, false, "_lsd"
-		, 16 * 1024, nullptr, false, false);
+	std::tie(tor1, tor2, ignore) =
+		setup_transfer(&ses1, &ses2, nullptr, setup_flags::start_lsd, "_lsd", 16 * 1024);
 
 	auto const start_time = lt::clock_type::now();
 	// bounded by a 30s ceiling; the short poll interval keeps a quick

@@ -1048,23 +1048,23 @@ add_torrent_params create_torrent(std::ostream* file
 	return load_torrent_buffer(bencode(t.generate()));
 }
 
-std::tuple<torrent_handle, torrent_handle, torrent_handle>
-setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
-	, bool clear_files, bool use_metadata_transfer, bool connect_peers
-	, std::string suffix, int piece_size
-	, add_torrent_params const* atp
-	, bool super_seeding
-	, bool stop_lsd, bool use_ssl_ports
-	, std::shared_ptr<torrent_info>* torrent2, create_flags_t const flags
-	, torrent_flags_t const seeder_extra_flags)
+std::tuple<torrent_handle, torrent_handle, torrent_handle> setup_transfer(lt::session* ses1,
+	lt::session* ses2,
+	lt::session* ses3,
+	setup_flags_t const flags,
+	std::string suffix,
+	int piece_size,
+	add_torrent_params const* atp,
+	std::shared_ptr<torrent_info>* torrent2,
+	create_flags_t const create_flags,
+	torrent_flags_t const seeder_extra_flags)
 {
 	TORRENT_ASSERT(ses1);
 	TORRENT_ASSERT(ses2);
 
-	if (stop_lsd)
 	{
 		settings_pack pack;
-		pack.set_bool(settings_pack::enable_lsd, false);
+		pack.set_bool(settings_pack::enable_lsd, bool(flags & setup_flags::start_lsd));
 		ses1->apply_settings(pack);
 		ses2->apply_settings(pack);
 		if (ses3) ses3->apply_settings(pack);
@@ -1100,7 +1100,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 		ofstream file(file_path.c_str());
 		if (atp == nullptr)
 		{
-			param = ::create_torrent(&file, "temporary", piece_size, 9, false, flags);
+			param = ::create_torrent(&file, "temporary", piece_size, 9, false, create_flags);
 		}
 		else
 		{
@@ -1109,15 +1109,12 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 			// ...); only overlay the field callers actually customize on the
 			// atp they passed in, so a field neither side sets here isn't
 			// silently dropped.
-			param = ::create_torrent(&file, "temporary", piece_size, 9, false, flags);
+			param = ::create_torrent(&file, "temporary", piece_size, 9, false, create_flags);
 			param.flags = atp->flags;
 		}
 		file.close();
-		if (clear_files)
-		{
-			remove_all(combine_path("tmp2" + suffix, "temporary"), ec);
-			remove_all(combine_path("tmp3" + suffix, "temporary"), ec);
-		}
+		remove_all(combine_path("tmp2" + suffix, "temporary"), ec);
+		remove_all(combine_path("tmp3" + suffix, "temporary"), ec);
 		std::printf("generated torrent: %s %s\n", aux::to_hex(param.ti->info_hashes().v2).c_str(), file_path.c_str());
 	}
 	else
@@ -1142,7 +1139,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 		std::printf("ses1.add_torrent: %s\n", ec.message().c_str());
 		return std::make_tuple(torrent_handle(), torrent_handle(), torrent_handle());
 	}
-	if (super_seeding)
+	if (flags & setup_flags::super_seeding)
 	{
 		tor1.set_flags(torrent_flags::super_seeding);
 	}
@@ -1163,7 +1160,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 		TEST_CHECK(!ses3->get_torrents().empty());
 	}
 
-	if (use_metadata_transfer)
+	if (flags & setup_flags::use_metadata_transfer)
 	{
 		param.ti.reset();
 		param.info_hashes = ti->info_hashes();
@@ -1186,22 +1183,12 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 
 //	std::this_thread::sleep_for(lt::milliseconds(100));
 
-	if (connect_peers)
+	if (flags & setup_flags::connect)
 	{
 		wait_for_downloading(*ses2, "ses2");
 
-		int port = 0;
-		if (use_ssl_ports)
-		{
-			port = ses2->ssl_listen_port();
-			std::printf("%s: ses2->ssl_listen_port(): %d\n", time_now_string().c_str(), port);
-		}
-
-		if (port == 0)
-		{
-			port = ses2->listen_port();
-			std::printf("%s: ses2->listen_port(): %d\n", time_now_string().c_str(), port);
-		}
+		int const port = ses2->listen_port();
+		std::printf("%s: ses2->listen_port(): %d\n", time_now_string().c_str(), port);
 
 		std::printf("%s: ses1: connecting peer port: %d\n"
 			, time_now_string().c_str(), port);
@@ -1215,16 +1202,7 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 
 			wait_for_downloading(*ses3, "ses3");
 
-			port = 0;
-			int port2 = 0;
-			if (use_ssl_ports)
-			{
-				port = ses2->ssl_listen_port();
-				port2 = ses1->ssl_listen_port();
-			}
-
-			if (port == 0) port = ses2->listen_port();
-			if (port2 == 0) port2 = ses1->listen_port();
+			int const port2 = ses1->listen_port();
 
 			std::printf("ses3: connecting peer port: %d\n", port);
 			tor3.connect_peer(tcp::endpoint(
