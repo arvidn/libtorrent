@@ -39,10 +39,14 @@ TORRENT_TEST(slow_hash_tests_skipped) {}
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/session.hpp"
+#include "libtorrent/torrent_handle.hpp"
+#include "settings.hpp"
 
 using lt::span;
 using namespace lt;
 using namespace lt::aux;
+using namespace std::chrono_literals;
 
 namespace {
 
@@ -163,6 +167,111 @@ void hash_job_retry_test(lt::disk_io_constructor_type disk_io
 	TEST_EQUAL(hashes_done, 1);
 
 	disk_thread->abort(true);
+}
+
+// add_piece() dispatches a block write and, once the piece's blocks are all
+// written, a verify_piece() hash job. force_recheck(), called immediately
+// afterward with no wait, resets the picker (bumping its generation) while
+// both are still outstanding: the write completes fast (only hashing is
+// slowed by TORRENT_SIMULATE_SLOW_HASH), but the hash job takes over a
+// second. Both stale completions must be ignored rather than corrupting the
+// fresh picker state. Once the recheck settles, its own (current-generation)
+// re-verification of the target piece must still find and keep the data
+// add_piece() genuinely wrote to disk, proving the race didn't corrupt
+// anything.
+void force_recheck_race_add_piece_test(
+	lt::disk_io_constructor_type disk_io, std::string const& save_path)
+{
+	error_code ec;
+	settings_pack sett = settings();
+	sett.set_str(settings_pack::listen_interfaces, test_listen_interface());
+	sett.set_bool(settings_pack::enable_upnp, false);
+	sett.set_bool(settings_pack::enable_natpmp, false);
+	sett.set_bool(settings_pack::enable_lsd, false);
+	sett.set_bool(settings_pack::enable_dht, false);
+	// checking_mem_usage defaults to 256, which (at one block per piece)
+	// dispatches every piece's hash job in a single start_checking() batch.
+	// Force genuine staggering (2 pieces outstanding at a time, the floor
+	// from hashing_threads) so start_checking() only reaches the target
+	// piece well after add_piece()'s original job for it has finished.
+	sett.set_int(settings_pack::checking_mem_usage, 1);
+	sett.set_int(settings_pack::hashing_threads, 1);
+	session_params sp(sett);
+	sp.disk_io_constructor = disk_io;
+	session ses1(sp);
+
+	int const piece_size = lt::default_block_size;
+	// start_checking() always keeps at least 2 pieces outstanding at once
+	// (hashing_threads * 2, floored at 2), so with too few pieces its own
+	// re-check of the last piece would be dispatched while add_piece()'s
+	// original job for it is still outstanding -- colliding with a separate,
+	// pre-existing disk_cache limitation (one hash job per piece at a time)
+	// unrelated to this fix. Enough pieces gives that original job (~1.6s)
+	// plenty of time to finish before start_checking() works its way there.
+	int const num_pieces = 8;
+	piece_index_t const target_piece{num_pieces - 1};
+	add_torrent_params param =
+		::create_torrent(nullptr, "temporary", piece_size, num_pieces, false);
+	param.flags &= ~torrent_flags::paused;
+	param.flags &= ~torrent_flags::auto_managed;
+	param.save_path = save_path;
+	torrent_handle tor1 = ses1.add_torrent(param, ec);
+	if (ec)
+		std::printf("add_torrent: %s\n", ec.message().c_str());
+
+	wait_for_listen(ses1, "ses1");
+
+	// add_piece() refuses to run while the initial resume-data check is
+	// still in progress; wait for it to finish first, rather than relying
+	// on wait_for_listen() (an unrelated, session-level signal) to have
+	// given it enough time by chance.
+	for (int i = 0; i < 300; ++i)
+	{
+		print_alerts(ses1, "ses1");
+		torrent_status const st = tor1.status();
+		if (st.state != torrent_status::checking_files
+			&& st.state != torrent_status::checking_resume_data)
+			break;
+		std::this_thread::sleep_for(100ms);
+	}
+
+	// matches the content create_torrent() generates, so the hash check
+	// (once it actually runs) passes.
+	std::vector<char> piece_data(static_cast<std::size_t>(piece_size));
+	for (int i = 0; i < piece_size; ++i)
+		piece_data[static_cast<std::size_t>(i)] = char((i % 26) + 'A');
+
+	tor1.add_piece(target_piece, piece_data.data());
+	tor1.force_recheck();
+
+	bool settled = false;
+	for (int i = 0; i < 600; ++i)
+	{
+		print_alerts(ses1, "ses1");
+		torrent_status const st = tor1.status();
+		if (st.state != torrent_status::checking_files
+			&& st.state != torrent_status::checking_resume_data)
+		{
+			settled = true;
+			break;
+		}
+		std::this_thread::sleep_for(100ms);
+	}
+	TEST_CHECK(settled);
+
+	bool have_target_piece = false;
+	for (int i = 0; i < 300; ++i)
+	{
+		print_alerts(ses1, "ses1");
+		torrent_status const st = tor1.status(torrent_handle::query_pieces);
+		if (st.pieces.size() > 0 && st.pieces[target_piece])
+		{
+			have_target_piece = true;
+			break;
+		}
+		std::this_thread::sleep_for(100ms);
+	}
+	TEST_CHECK(have_target_piece);
 }
 
 // try_hash_piece is called while kick_pending_hashers is mid-run:
@@ -526,6 +635,11 @@ void test_kick_hasher_keep_going_fills_hole(test_mode_t const mode)
 }
 
 TORRENT_TEST_DISK_IO(hash_job_retry) { hash_job_retry_test(disk_io, "test_hash_retry"); }
+
+TORRENT_TEST_DISK_IO(force_recheck_race_add_piece)
+{
+	force_recheck_race_add_piece_test(disk_io, "test_recheck_race_add_piece");
+}
 
 TORRENT_TEST(hash_job_dispatched_v1) { test_hash_job_dispatched_by_hasher(test_mode::v1); }
 TORRENT_TEST(hash_job_dispatched_v2) { test_hash_job_dispatched_by_hasher(test_mode::v2); }
