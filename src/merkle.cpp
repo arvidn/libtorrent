@@ -11,10 +11,11 @@ see LICENSE file.
 
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/aux_/array.hpp"
-#include "libtorrent/aux_/ffs.hpp" // for log2p1
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/bitfield.hpp"
+
+#include <bit>
 
 namespace libtorrent {
 
@@ -302,8 +303,8 @@ namespace libtorrent {
 			return t;
 		}();
 
-		int const d = int(aux::log2p1(aux::numeric_cast<std::uint32_t>(blocks)))
-			- int(aux::log2p1(aux::numeric_cast<std::uint32_t>(pieces)));
+		int const d = int(std::bit_width(aux::numeric_cast<std::uint32_t>(blocks)))
+			- int(std::bit_width(aux::numeric_cast<std::uint32_t>(pieces)));
 		TORRENT_ASSERT(d >= 0 && d <= max_depth);
 		return table[d];
 	}

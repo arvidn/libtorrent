@@ -86,9 +86,10 @@ see LICENSE file.
 #include "libtorrent/aux_/scope_end.hpp"
 #include "libtorrent/aux_/set_socket_buffer.hpp"
 #include "libtorrent/aux_/generate_peer_id.hpp"
-#include "libtorrent/aux_/ffs.hpp"
 #include "libtorrent/aux_/array.hpp"
 #include "libtorrent/aux_/set_traffic_class.hpp"
+
+#include <bit>
 
 #ifndef TORRENT_DISABLE_LOGGING
 
@@ -3779,13 +3780,15 @@ retry:
 
 	void session_impl::received_buffer(int s)
 	{
-		int index = std::min(aux::log2p1(std::uint32_t(s >> 3)), 17);
+		auto const v = std::uint32_t(s >> 3);
+		int const index = std::min(v ? int(std::bit_width(v)) - 1 : 0, 17);
 		m_stats_counters.inc_stats_counter(counters::socket_recv_size3 + index);
 	}
 
 	void session_impl::sent_buffer(int s)
 	{
-		int index = std::min(aux::log2p1(std::uint32_t(s >> 3)), 17);
+		auto const v = std::uint32_t(s >> 3);
+		int const index = std::min(v ? int(std::bit_width(v)) - 1 : 0, 17);
 		m_stats_counters.inc_stats_counter(counters::socket_send_size3 + index);
 	}
 
