@@ -457,9 +457,11 @@ namespace libtorrent::aux {
 
 		void on_resume_data_checked(status_t status, storage_error const& error);
 		void on_force_recheck(status_t status, storage_error const& error);
-		void on_piece_hashed(aux::vector<sha256_hash> block_hashes
-			, piece_index_t piece, sha1_hash const& piece_hash
-			, storage_error const& error);
+		void on_piece_hashed(aux::vector<sha256_hash> block_hashes,
+			piece_index_t piece,
+			sha1_hash const& piece_hash,
+			storage_error const& error,
+			std::uint8_t picker_gen);
 		void files_checked();
 		void start_checking();
 
@@ -489,8 +491,8 @@ namespace libtorrent::aux {
 
 		void add_piece(piece_index_t piece, char const* data, add_piece_flags_t flags);
 		void add_piece_async(piece_index_t piece, std::vector<char> data, add_piece_flags_t flags);
-		void on_disk_write_complete(storage_error const& error
-			, peer_request const& p);
+		void on_disk_write_complete(
+			storage_error const& error, peer_request const& p, std::uint8_t picker_gen);
 
 		void set_progress_ppm(int p) { m_progress_ppm = std::uint32_t(p); }
 		struct read_piece_struct
@@ -521,6 +523,11 @@ namespace libtorrent::aux {
 		torrent_status::state_t state() const
 		{ return torrent_status::state_t(m_state); }
 		void set_state(torrent_status::state_t s);
+
+		// bumped every time the picker is reset for a fresh check. disk job
+		// completion handlers compare this against the generation captured
+		// at dispatch time to detect and ignore stale completions.
+		std::uint8_t picker_generation() const { return m_picker_generation; }
 
 		aux::session_settings const& settings() const;
 		aux::session_interface& session() { return m_ses; }
@@ -1092,9 +1099,11 @@ namespace libtorrent::aux {
 		void resume_download();
 
 		void verify_piece(piece_index_t piece);
-		void on_piece_verified(aux::vector<sha256_hash> block_hashes
-			, piece_index_t piece
-			, sha1_hash const& piece_hash, storage_error const& error);
+		void on_piece_verified(aux::vector<sha256_hash> block_hashes,
+			piece_index_t piece,
+			sha1_hash const& piece_hash,
+			storage_error const& error,
+			std::uint8_t picker_gen);
 
 		// this is called whenever a peer in this swarm becomes interesting
 		// it is responsible for issuing a block request, if appropriate
@@ -1625,6 +1634,14 @@ namespace libtorrent::aux {
 
 		// the number of pieces we completed the check of
 		piece_index_t m_num_checked_pieces{0};
+
+		// bumped every time the picker is reset for a fresh check
+		// (force_recheck(), handle_inconsistent_hashes()). in-flight disk
+		// job completions capture this at dispatch time; a mismatch at
+		// completion means the picker they were issued against no longer
+		// exists. force_recheck() does not happen at a frequency anywhere
+		// near wrapping an 8 bit counter.
+		std::uint8_t m_picker_generation = 0;
 
 		// if the error occurred on a file, this is the index of that file
 		// there are a few special cases, when this is negative. See

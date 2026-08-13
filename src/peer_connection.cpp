@@ -2987,9 +2987,14 @@ namespace {
 
 		if (t->is_deleted()) return;
 
-		bool const exceeded = m_disk_thread.async_write(t->storage(), p, data, self()
-			, [conn = self(), p, t] (storage_error const& e)
-			{ conn->wrap(&peer_connection::on_disk_write_complete, e, p, t); });
+		std::uint8_t const picker_gen = t->picker_generation();
+		bool const exceeded = m_disk_thread.async_write(t->storage(),
+			p,
+			data,
+			self(),
+			[conn = self(), p, t, picker_gen](storage_error const& e) {
+				conn->wrap(&peer_connection::on_disk_write_complete, e, p, t, picker_gen);
+			});
 		m_ses.deferred_submit_jobs();
 
 		// every peer is entitled to have two disk blocks allocated at any given
@@ -3159,8 +3164,10 @@ namespace {
 		disconnect(errors::torrent_paused, operation_t::bittorrent);
 	}
 
-	void peer_connection::on_disk_write_complete(storage_error const& error
-		, peer_request const& p, std::shared_ptr<aux::torrent> t)
+	void peer_connection::on_disk_write_complete(storage_error const& error,
+		peer_request const& p,
+		std::shared_ptr<aux::torrent> t,
+		std::uint8_t const picker_gen)
 	{
 		TORRENT_ASSERT(is_single_thread());
 #ifndef TORRENT_DISABLE_LOGGING
@@ -3198,6 +3205,12 @@ namespace {
 		setup_receive();
 
 		piece_block const block_finished(p.piece, p.start / t->block_size());
+
+		// a force_recheck() may have reset the picker after this write was
+		// issued; ignore the completion (success or failure) rather than
+		// touching downloading-piece state the recheck already discarded.
+		if (picker_gen != t->picker_generation())
+			return;
 
 		if (error)
 		{
