@@ -237,6 +237,7 @@ int settings_key(int const tag)
 		case SET_WEBTORRENT_CONNECTION_TIMEOUT: return sp::webtorrent_connection_timeout;
 		case SET_MAX_WEBTORRENT_OFFERS: return sp::max_webtorrent_offers;
 		case SET_MAX_TRACKER_CONNECTION_REQUESTS: return sp::max_tracker_connection_requests;
+		case SET_DHT_BLOCK_BYTELIMIT: return sp::dht_block_bytelimit;
 		default:
 			// ignore unknown tags
 			return -1;

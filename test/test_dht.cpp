@@ -106,6 +106,7 @@ struct mock_socket final : socket_manager
 		g_sent_packets.push_back(std::make_pair(ep, msg));
 		return true;
 	}
+	bool should_ignore(udp::endpoint const&) override { return false; }
 };
 
 std::shared_ptr<aux::listen_socket_t> dummy_listen_socket(udp::endpoint src)

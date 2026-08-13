@@ -421,7 +421,8 @@ namespace {
 		SET(min_websocket_announce_interval, 1 * 60, nullptr),
 		SET(webtorrent_connection_timeout, 2 * 60, nullptr),
 		SET(max_webtorrent_offers, 10, nullptr),
-		SET(max_tracker_connection_requests, 1000, nullptr)
+		SET(max_tracker_connection_requests, 1000, nullptr),
+		SET(dht_block_bytelimit, 8192, nullptr)
 	}});
 	// clang-format on
 

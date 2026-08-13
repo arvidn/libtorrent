@@ -87,6 +87,7 @@ namespace libtorrent::dht {
 	{
 		m_blocker.set_block_timer(m_settings.get_int(settings_pack::dht_block_timeout));
 		m_blocker.set_rate_limit(m_settings.get_int(settings_pack::dht_block_ratelimit));
+		m_blocker.set_byte_limit(m_settings.get_int(settings_pack::dht_block_bytelimit));
 	}
 
 	void dht_tracker::update_node_id(aux::listen_socket_handle const& s)
@@ -252,6 +253,7 @@ namespace libtorrent::dht {
 		// periodically update the DOS blocker's settings from the dht_settings
 		m_blocker.set_block_timer(m_settings.get_int(settings_pack::dht_block_timeout));
 		m_blocker.set_rate_limit(m_settings.get_int(settings_pack::dht_block_ratelimit));
+		m_blocker.set_byte_limit(m_settings.get_int(settings_pack::dht_block_bytelimit));
 
 		m_refresh_timer.expires_after(seconds(5));
 		ADD_OUTSTANDING_ASYNC("dht_tracker::refresh_timeout");
@@ -515,11 +517,13 @@ namespace libtorrent::dht {
 			return true;
 		}
 
-		if (!m_blocker.incoming(ep.address(), clock_type::now(), m_log))
-		{
-			m_counters.inc_stats_counter(counters::dht_messages_in_dropped);
-			return true;
-		}
+		// account every incoming message, regardless of type, against its
+		// source's packet-rate budget. Ignore the return value: whether to
+		// actually drop the message is decided once its type is known, in
+		// node::incoming() (see socket_manager::should_ignore), so a
+		// source banned for querying us can still get its replies to our
+		// own outgoing queries accepted.
+		m_blocker.incoming(ep.address(), aux::time_now32(), m_log);
 
 		TORRENT_ASSERT(buf_size > 0);
 
@@ -674,6 +678,22 @@ namespace {
 		m_send_buf.clear();
 		bencode(std::back_inserter(m_send_buf), e);
 
+		// bound response bytes per destination against reflection/
+		// amplification of a spoofed source; outgoing queries are exempt,
+		// since who we query is up to us. Checked before debiting the send
+		// quota below, since a dropped packet used no bandwidth.
+		entry const* y_ent = e.find_key("y");
+		bool const is_response = y_ent != nullptr && y_ent->type() == entry::string_t
+			&& (y_ent->string() == "r" || y_ent->string() == "e");
+
+		if (is_response
+			&& !m_blocker.account_response(
+				addr.address(), int(m_send_buf.size()), aux::time_now32(), m_log))
+		{
+			m_counters.inc_stats_counter(counters::dht_messages_out_dropped);
+			return false;
+		}
+
 		// update the quota. We won't prevent the packet to be sent if we exceed
 		// the quota, we'll just (potentially) block the next incoming request.
 
@@ -719,4 +739,8 @@ namespace {
 		return true;
 	}
 
+	bool dht_tracker::should_ignore(udp::endpoint const& addr)
+	{
+		return m_blocker.should_ignore(addr.address(), aux::time_now32());
+	}
 }

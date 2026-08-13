@@ -304,6 +304,14 @@ void node::incoming(aux::listen_socket_handle const& s, msg const& m)
 			// associated with
 			if (s != m_sock) return;
 
+			// addr may be banned for its query rate or response-byte budget
+			// (see socket_manager::should_ignore)
+			if (m_sock_man->should_ignore(m.addr))
+			{
+				m_counters.inc_stats_counter(counters::dht_messages_in_dropped);
+				return;
+			}
+
 			if (!m_sock_man->has_quota())
 			{
 				m_counters.inc_stats_counter(counters::dht_messages_in_dropped);

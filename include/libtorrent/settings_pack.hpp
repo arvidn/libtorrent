@@ -2101,13 +2101,14 @@ namespace aux {
 			// DHT
 			dht_max_torrent_search_reply,
 
-			// the number of seconds a DHT node is banned if it exceeds the rate
-			// limit. The rate limit is averaged over 10 seconds to allow for bursts
-			// above the limit.
+			// the number of seconds an address is banned for after it exceeds
+			// dht_block_ratelimit or dht_block_bytelimit.
 			dht_block_timeout,
 
-			// the max number of packets per second a DHT node is allowed to send
-			// without getting banned.
+			// max queries per second accepted from a single address before
+			// banning it for dht_block_timeout seconds. Bounds how much
+			// decode, lookup and verification work a flood of cheap queries
+			// can make this node do, independent of response size.
 			dht_block_ratelimit,
 
 			// the number of seconds a immutable/mutable item will be expired.
@@ -2216,6 +2217,12 @@ namespace aux {
 			// keep-alive connection (see disable_tracker_connection_reuse).
 			// 0 means no limit.
 			max_tracker_connection_requests,
+
+			// max response bytes sent to a single DHT node within a 10 second
+			// window before banning it for dht_block_timeout seconds. Bounds
+			// how much this node can be abused as a reflection/amplification
+			// vector against a spoofed source address.
+			dht_block_bytelimit,
 
 			max_int_setting_internal
 		};

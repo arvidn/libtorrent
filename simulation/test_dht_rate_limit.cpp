@@ -94,6 +94,7 @@ TORRENT_TEST(dht_rate_limit)
 	sock.bind(udp::endpoint(make_address_v4("40.30.20.10"), 8888), ec);
 	lt::aux::session_settings sett;
 	sett.set_int(settings_pack::dht_block_ratelimit, 100000); // disable the DOS blocker
+	sett.set_int(settings_pack::dht_block_bytelimit, 100000); // disable the DOS blocker
 	sett.set_bool(settings_pack::dht_ignore_dark_internet, false);
 	sett.set_int(settings_pack::dht_upload_rate_limit, 400);
 	float const target_upload_rate = 400;

@@ -129,6 +129,7 @@ struct dht_node final : lt::dht::socket_manager
 	}
 
 	bool has_quota() override { return true; }
+	bool should_ignore(udp::endpoint const&) override { return false; }
 	bool send_packet(lt::aux::listen_socket_handle const&, entry& e, udp::endpoint const& addr) override
 	{
 		// since the simulaton is single threaded, we can get away with allocating
