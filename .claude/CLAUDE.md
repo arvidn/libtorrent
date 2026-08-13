@@ -156,7 +156,7 @@ Source in `bindings/python/src/*.cpp`, built as `libtorrent.so` using boost.pyth
 | `asserts` | `on`, `off`, `production`, `system` |
 | `invariant-checks` | `off`, `on`, `full` |
 | `logging` | `on`, `off` |
-| `deprecated-functions` | `on`, `off`, `1`, `2`, `3`, `4` |
+| `deprecated-functions` | `on`, `off`, `1`, `2`, `3`, `4`, `5` |
 | `webtorrent` | `on`, `off` |
 | `address-sanitizer` | `norecover`, `recover`, `off` |
 | `undefined-sanitizer` | `norecover`, `recover`, `off` |
@@ -168,11 +168,12 @@ Source in `bindings/python/src/*.cpp`, built as `libtorrent.so` using boost.pyth
 
 | Value | `TORRENT_ABI_VERSION` | Corresponds to |
 |-------|-----------------------|----------------|
-| `on`  | (oldest supported)    | libtorrent 1.x |
-| `1`   | 1                     | libtorrent 1.x |
-| `2`   | 2                     | libtorrent 2.0 |
-| `3`   | 3                     | libtorrent 2.x |
+| `on`  | (oldest supported)    | libtorrent 1.1 |
+| `1`   | 1                     | libtorrent 1.1 |
+| `2`   | 2                     | libtorrent 1.2 |
+| `3`   | 3                     | libtorrent 2.0 |
 | `4`   | 4                     | libtorrent 2.1 |
+| `5`   | 5                     | libtorrent 2.2 |
 | `off` | 100 (newest)          | latest API     |
 
 ## Directory Layout
