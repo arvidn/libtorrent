@@ -34,8 +34,8 @@ see LICENSE file.
 #define TORRENT_HAS_AUXV 0
 #endif
 
-#if TORRENT_HAS_ARM && TORRENT_HAS_AUXV
-#if defined TORRENT_ANDROID
+#if TORRENT_HAS_ARM_CRC32 && TORRENT_HAS_AUXV
+#if defined TORRENT_ANDROID && !defined TORRENT_FORCE_ARM_CRC32
 #include <dlfcn.h>
 namespace {
 unsigned long int helper_getauxval(unsigned long int type)
@@ -51,7 +51,7 @@ unsigned long int helper_getauxval(unsigned long int type)
 #include <sys/auxv.h>
 #define helper_getauxval getauxval
 #endif
-#endif // TORRENT_HAS_ARM && TORRENT_HAS_AUXV
+#endif // TORRENT_HAS_ARM_CRC32 && TORRENT_HAS_AUXV
 
 namespace libtorrent {
 namespace aux {
@@ -91,34 +91,6 @@ namespace {
 #endif
 	}
 
-	bool supports_mmx() noexcept
-	{
-#if TORRENT_HAS_SSE
-		std::uint32_t cpui[4] = {0};
-		cpuid(cpui, 1);
-		return (cpui[2] & (1 << 23)) != 0;
-#else
-		return false;
-#endif
-	}
-
-	bool supports_arm_neon() noexcept
-	{
-#if TORRENT_HAS_ARM_NEON && TORRENT_HAS_AUXV
-#if defined __arm__
-		//return (getauxval(AT_HWCAP) & HWCAP_NEON);
-		return (helper_getauxval(16) & (1 << 12));
-#elif defined __aarch64__
-		//return (getauxval(AT_HWCAP) & HWCAP_ASIMD);
-		//return (getauxval(16) & (1 << 1));
-		// TODO: enable when aarch64 is really tested
-		return false;
-#endif
-#else
-		return false;
-#endif
-	}
-
 	bool supports_arm_crc32c() noexcept
 	{
 #if TORRENT_HAS_ARM_CRC32 && TORRENT_HAS_AUXV
@@ -142,8 +114,6 @@ namespace {
 
 } // anonymous namespace
 
-	bool const sse42_support = supports_sse42();
-	bool const mmx_support = supports_mmx();
-	bool const arm_neon_support = supports_arm_neon();
-	bool const arm_crc32c_support = supports_arm_crc32c();
+bool const sse42_support = supports_sse42();
+bool const arm_crc32c_support = supports_arm_crc32c();
 } }

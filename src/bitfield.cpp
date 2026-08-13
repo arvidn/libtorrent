@@ -14,9 +14,7 @@ see LICENSE file.
 #include "libtorrent/aux_/cpuid.hpp"
 #include "libtorrent/aux_/unique_ptr.hpp"
 
-#ifdef _MSC_VER
-#include <intrin.h>
-#endif
+#include <bit>
 
 #ifdef __clang__
 // disable these warnings until this class is re-worked in a way clang likes
@@ -63,71 +61,9 @@ namespace libtorrent {
 	{
 		int ret = 0;
 		int const words = num_words();
-#if TORRENT_HAS_SSE
-		if (aux::mmx_support)
-		{
-			for (int i = 1; i < words + 1; ++i)
-			{
-#ifdef __GNUC__
-				std::uint32_t cnt = 0;
-				__asm__("popcnt %1, %0"
-					: "=r"(cnt)
-					: "r"(m_buf[i]));
-				ret += cnt;
-#else
-				ret += _mm_popcnt_u32(m_buf[i]);
-#endif
-			}
-
-			TORRENT_ASSERT(ret <= size());
-			TORRENT_ASSERT(ret >= 0);
-			return ret;
-		}
-#endif // TORRENT_HAS_SSE
-
-#if TORRENT_HAS_ARM_NEON && defined __arm__
-		if (aux::arm_neon_support)
-		{
-			for (int i = 1; i < words + 1; ++i)
-			{
-				std::uint32_t cnt;
-				__asm__(
-					"vld1.u32 d0[0], [%1] \n"
-					"vcnt.u8 d0, d0 \n"
-					"vpaddl.u8 d0, d0 \n"
-					"vpaddl.u16 d0, d0 \n"
-					"vst1.u32 d0[0], [%0]"
-					:: "r"(&cnt), "r"(&m_buf[i])
-					: "d0", "memory");
-				ret += cnt;
-			}
-
-			TORRENT_ASSERT(ret <= size());
-			TORRENT_ASSERT(ret >= 0);
-			return ret;
-		}
-#endif // TORRENT_HAS_ARM_NEON
 
 		for (int i = 1; i < words + 1; ++i)
-		{
-#if defined __GNUC__ || defined __clang__
-			ret += __builtin_popcountl(m_buf[i]);
-#else
-			std::uint32_t const v = m_buf[i];
-			// from:
-			// http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
-			static const int S[] = {1, 2, 4, 8, 16}; // Magic Binary Numbers
-			static const std::uint32_t B[] = {0x55555555, 0x33333333, 0x0F0F0F0F, 0x00FF00FF, 0x0000FFFF};
-
-			std::uint32_t c = v - ((v >> 1) & B[0]);
-			c = ((c >> S[1]) & B[1]) + (c & B[1]);
-			c = ((c >> S[2]) + c) & B[2];
-			c = ((c >> S[3]) + c) & B[3];
-			c = ((c >> S[4]) + c) & B[4];
-			ret += c;
-			TORRENT_ASSERT(ret <= size());
-#endif
-		}
+			ret += std::popcount(m_buf[i]);
 
 		TORRENT_ASSERT(ret <= size());
 		TORRENT_ASSERT(ret >= 0);
