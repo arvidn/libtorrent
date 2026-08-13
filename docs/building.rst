@@ -400,6 +400,7 @@ Build features
 |                          | * ``2`` libtorrent-1.2                             |
 |                          | * ``3`` libtorrent-2.0                             |
 |                          | * ``4`` libtorrent-2.1                             |
+|                          | * ``5`` libtorrent-2.2                             |
 |                          |                                                    |
 |                          | For backwards compatibility, it's also possible    |
 |                          | to specify:                                        |
