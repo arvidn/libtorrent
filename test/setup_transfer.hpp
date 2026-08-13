@@ -22,6 +22,7 @@ see LICENSE file.
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/fwd.hpp"
 #include "libtorrent/add_torrent_params.hpp"
+#include "libtorrent/flags.hpp"
 
 EXPORT lt::add_torrent_params generate_torrent(bool with_files = false, bool with_hashes = false);
 
@@ -85,18 +86,32 @@ EXPORT lt::add_torrent_params create_torrent(std::ostream* file = nullptr
 	, bool add_tracker = true, lt::create_flags_t flags = {}, std::string ssl_certificate = ""
 	, bool bad_v1_hashes = false);
 
-EXPORT std::tuple<lt::torrent_handle
-	, lt::torrent_handle
-	, lt::torrent_handle>
-setup_transfer(lt::session* ses1, lt::session* ses2
-	, lt::session* ses3, bool clear_files, bool use_metadata_transfer = true
-	, bool connect = true, std::string suffix = "", int piece_size = 16 * 1024
-	, lt::add_torrent_params const* atp = nullptr
-	, bool super_seeding = false
-	, bool stop_lsd = true, bool use_ssl_ports = false
-	, std::shared_ptr<lt::torrent_info>* torrent2 = nullptr
-	, lt::create_flags_t flags = {}
-	, lt::torrent_flags_t seeder_extra_flags = {});
+using setup_flags_t = lt::flags::bitfield_flag<std::uint32_t, struct setup_flags_tag>;
+
+namespace setup_flags {
+using lt::operator""_bit;
+
+// give the downloading session (ses2) only the info hash, requiring it to
+// fetch metadata over ut_metadata rather than being handed the torrent_info up front
+constexpr setup_flags_t use_metadata_transfer = 0_bit;
+// have ses1 (and ses3, if given) connect_peer() the downloader once it starts downloading
+constexpr setup_flags_t connect = 1_bit;
+constexpr setup_flags_t super_seeding = 2_bit;
+// leave local service discovery enabled on all sessions (by default it's disabled)
+constexpr setup_flags_t start_lsd = 3_bit;
+}
+
+EXPORT std::tuple<lt::torrent_handle, lt::torrent_handle, lt::torrent_handle> setup_transfer(
+	lt::session* ses1,
+	lt::session* ses2,
+	lt::session* ses3,
+	setup_flags_t flags = setup_flags::use_metadata_transfer | setup_flags::connect,
+	std::string suffix = "",
+	int piece_size = 16 * 1024,
+	lt::add_torrent_params const* atp = nullptr,
+	std::shared_ptr<lt::torrent_info>* torrent2 = nullptr,
+	lt::create_flags_t create_flags = {},
+	lt::torrent_flags_t seeder_extra_flags = {});
 
 EXPORT int start_web_server(bool ssl = false,
 	bool chunked = false,

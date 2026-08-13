@@ -99,12 +99,20 @@ void test_swarm(test_flags_t const flags)
 	if (flags & test_flags::seed_mode) p.flags |= torrent_flags::seed_mode;
 	// test v1 metadata using piece sizes smaller than 16kB
 	int const piece_size = (flags & test_flags::v1_meta) ? 8 * 1024 : 16 * 1024;
-	auto const [tor1, tor2, tor3] = setup_transfer(&ses1, &ses2, &ses3, true
-		, false, true, "_swarm", piece_size, &p, bool(flags & test_flags::super_seeding)
-		, true, false, nullptr
-		, (flags & test_flags::v1_meta) ? create_torrent::v1_only
-		: (flags & test_flags::v2_meta) ? create_torrent::v2_only
-		: create_flags_t{});
+	setup_flags_t st_flags = setup_flags::connect;
+	if (flags & test_flags::super_seeding)
+		st_flags |= setup_flags::super_seeding;
+	auto const [tor1, tor2, tor3] = setup_transfer(&ses1,
+		&ses2,
+		&ses3,
+		st_flags,
+		"_swarm",
+		piece_size,
+		&p,
+		nullptr,
+		(flags & test_flags::v1_meta)		? create_torrent::v1_only
+			: (flags & test_flags::v2_meta) ? create_torrent::v2_only
+											: create_flags_t{});
 
 	if (flags & test_flags::time_critical)
 	{

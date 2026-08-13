@@ -76,7 +76,8 @@ void test_swarm()
 
 	lt::session ses3(pack);
 
-	auto const [tor1, tor2, tor3] = setup_transfer(&ses1, &ses2, &ses3, true, false, true, "_unchoke");
+	auto const [tor1, tor2, tor3] =
+		setup_transfer(&ses1, &ses2, &ses3, setup_flags::connect, "_unchoke");
 
 	std::map<std::string, std::int64_t> cnt = get_counters(ses1);
 
