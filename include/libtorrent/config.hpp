@@ -633,10 +633,6 @@ see LICENSE file.
 #define TORRENT_HAS_ARM 0
 #endif // TORRENT_HAS_ARM
 
-#ifndef __has_builtin
-#define __has_builtin(x) 0  // for non-clang compilers
-#endif
-
 #if defined __clang__
 // for some reason, clang warns on relying on guaranteed copy elision,
 // suggesting an explicit call to std::move() instead
@@ -650,26 +646,6 @@ see LICENSE file.
 #else
 #	define TORRENT_RVO(x) std::move(x)
 #endif
-
-#if (TORRENT_HAS_SSE && defined __GNUC__)
-#	define TORRENT_HAS_BUILTIN_CLZ 1
-#elif (TORRENT_HAS_ARM && defined __GNUC__ && !defined __clang__)
-#	define TORRENT_HAS_BUILTIN_CLZ 1
-#elif (defined __clang__ && __has_builtin(__builtin_clz))
-#	define TORRENT_HAS_BUILTIN_CLZ 1
-#else
-#	define TORRENT_HAS_BUILTIN_CLZ 0
-#endif // TORRENT_HAS_BUILTIN_CLZ
-
-#if (TORRENT_HAS_SSE && defined __GNUC__)
-#	define TORRENT_HAS_BUILTIN_CTZ 1
-#elif (TORRENT_HAS_ARM && defined __GNUC__ && !defined __clang__)
-#	define TORRENT_HAS_BUILTIN_CTZ 1
-#elif (defined __clang__ && __has_builtin(__builtin_ctz))
-#	define TORRENT_HAS_BUILTIN_CTZ 1
-#else
-#	define TORRENT_HAS_BUILTIN_CTZ 0
-#endif // TORRENT_HAS_BUILTIN_CTZ
 
 #if TORRENT_HAS_ARM && defined __ARM_NEON
 #	define TORRENT_HAS_ARM_NEON 1

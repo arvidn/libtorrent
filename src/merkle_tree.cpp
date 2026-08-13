@@ -11,27 +11,27 @@ see LICENSE file.
 #include "libtorrent/aux_/merkle_tree.hpp"
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/aux_/vector.hpp"
-#include "libtorrent/aux_/ffs.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/aux_/invariant_check.hpp"
 
-namespace libtorrent {
-namespace aux {
+#include <bit>
 
-	merkle_tree::merkle_tree(int const num_blocks, int const blocks_per_piece, char const* r)
-		: m_root(r)
-		, m_num_blocks(num_blocks)
-		, m_blocks_per_piece_log(numeric_cast<std::uint8_t>(
-			log2p1(numeric_cast<std::uint32_t>(blocks_per_piece))))
-		, m_mode(mode_t::empty_tree)
-	{
-		INVARIANT_CHECK;
+namespace libtorrent::aux {
 
-		// blocks per piece must be an even power of 2
-		TORRENT_ASSERT(((blocks_per_piece - 1) & blocks_per_piece) == 0);
-		TORRENT_ASSERT(m_root != nullptr);
-		TORRENT_ASSERT(this->blocks_per_piece() == blocks_per_piece);
-	}
+merkle_tree::merkle_tree(int const num_blocks, int const blocks_per_piece, char const* r)
+	: m_root(r)
+	, m_num_blocks(num_blocks)
+	, m_blocks_per_piece_log(numeric_cast<std::uint8_t>(
+		  std::bit_width(numeric_cast<std::uint32_t>(blocks_per_piece)) - 1))
+	, m_mode(mode_t::empty_tree)
+{
+	INVARIANT_CHECK;
+
+	// blocks per piece must be an even power of 2
+	TORRENT_ASSERT(blocks_per_piece > 0 && ((blocks_per_piece - 1) & blocks_per_piece) == 0);
+	TORRENT_ASSERT(m_root != nullptr);
+	TORRENT_ASSERT(this->blocks_per_piece() == blocks_per_piece);
+}
 
 	sha256_hash merkle_tree::root() const { return sha256_hash(m_root); }
 
@@ -1041,5 +1041,4 @@ namespace {
 		}
 	}
 #endif
-}
-}
+	}
