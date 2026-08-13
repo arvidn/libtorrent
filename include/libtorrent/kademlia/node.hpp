@@ -65,6 +65,15 @@ struct TORRENT_EXTRA_EXPORT socket_manager
 {
 	virtual bool has_quota() = 0;
 	virtual bool send_packet(aux::listen_socket_handle const& s, entry& e, udp::endpoint const& addr) = 0;
+
+	// true if addr is currently banned, for its packet-rate (accounted for
+	// every incoming message in dht_tracker::incoming_packet(), regardless
+	// of type) or its response-byte budget; skips generating a response
+	// that send_packet() would just drop anyway. Only meant to gate query
+	// processing: a reply to our own outgoing query is never gated by
+	// this, since addr may still be a legitimate node awaiting our reply.
+	virtual bool should_ignore(udp::endpoint const& addr) = 0;
+
 protected:
 	~socket_manager() = default;
 };

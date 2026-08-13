@@ -209,7 +209,8 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 	val = s.dict_find_int("block_timeout");
 	if (val) sett.set_int(settings_pack::dht_block_timeout, int(val.int_value()));
 	val = s.dict_find_int("block_ratelimit");
-	if (val) sett.set_int(settings_pack::dht_block_ratelimit, int(val.int_value()));
+	if (val)
+		sett.set_int(settings_pack::dht_block_ratelimit, int(val.int_value()));
 	val = s.dict_find_int("read_only");
 	if (val) sett.set_bool(settings_pack::dht_read_only, (val.int_value() != 0));
 	val = s.dict_find_int("item_lifetime");

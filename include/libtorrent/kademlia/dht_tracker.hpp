@@ -169,6 +169,7 @@ namespace libtorrent::dht {
 		// implements socket_manager
 		bool has_quota() override;
 		bool send_packet(aux::listen_socket_handle const& s, entry& e, udp::endpoint const& addr) override;
+		bool should_ignore(udp::endpoint const& addr) override;
 
 		// this is the bdecode_node DHT messages are parsed into. It's a member
 		// in order to avoid having to deallocate and re-allocate it for every
