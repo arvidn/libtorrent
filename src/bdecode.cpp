@@ -223,7 +223,6 @@ namespace aux {
 		: m_tokens(n.m_tokens)
 		, m_root_tokens(n.m_root_tokens)
 		, m_buffer(n.m_buffer)
-		, m_buffer_size(n.m_buffer_size)
 		, m_token_idx(n.m_token_idx)
 		, m_last_index(n.m_last_index)
 		, m_last_token(n.m_last_token)
@@ -238,7 +237,6 @@ namespace aux {
 		m_tokens = n.m_tokens;
 		m_root_tokens = n.m_root_tokens;
 		m_buffer = n.m_buffer;
-		m_buffer_size = n.m_buffer_size;
 		m_token_idx = n.m_token_idx;
 		m_last_index = n.m_last_index;
 		m_last_token = n.m_last_token;
@@ -254,11 +252,9 @@ namespace aux {
 
 	bdecode_node::bdecode_node(bdecode_node&&) noexcept = default;
 
-	bdecode_node::bdecode_node(bdecode_token const* tokens, char const* buf
-		, int len, int idx)
+	bdecode_node::bdecode_node(bdecode_token const* tokens, span<char const> buf, int idx)
 		: m_root_tokens(tokens)
 		, m_buffer(buf)
-		, m_buffer_size(len)
 		, m_token_idx(idx)
 	{
 		TORRENT_ASSERT(tokens != nullptr);
@@ -272,7 +268,7 @@ namespace aux {
 
 		// otherwise, return a reference to this node, but without
 		// being an owning root node
-		return {&m_tokens[0], m_buffer, m_buffer_size, m_token_idx};
+		return {m_tokens.data(), m_buffer, m_token_idx};
 	}
 
 	void bdecode_node::clear()
@@ -290,7 +286,7 @@ namespace aux {
 		TORRENT_ASSERT(!m_tokens.empty());
 		if (m_tokens.empty()) return;
 
-		m_buffer = buf;
+		m_buffer = span<char const>(buf, m_buffer.size());
 	}
 
 	bool bdecode_node::has_soft_error(span<char> error) const
@@ -359,8 +355,9 @@ namespace aux {
 						int const k2_len = tokens[v2].offset - k2_start;
 
 						int const min_len = std::min(k1_len, k2_len);
-
-						int cmp = std::memcmp(m_buffer + k1_start, m_buffer + k2_start, std::size_t(min_len));
+						int const cmp = std::memcmp(m_buffer.data() + k1_start,
+							m_buffer.data() + k2_start,
+							std::size_t(min_len));
 						if (cmp > 0 || (cmp == 0 && k1_len > k2_len))
 						{
 							std::snprintf(error.data(), std::size_t(error.size()), "unsorted dictionary key");
@@ -401,7 +398,7 @@ namespace aux {
 		TORRENT_ASSERT(m_token_idx != -1);
 		bdecode_token const& t = m_root_tokens[m_token_idx];
 		bdecode_token const& next = m_root_tokens[m_token_idx + t.next_item];
-		return {m_buffer + t.offset, static_cast<std::ptrdiff_t>(next.offset - t.offset)};
+		return {m_buffer.data() + t.offset, static_cast<std::ptrdiff_t>(next.offset - t.offset)};
 	}
 
 	std::ptrdiff_t bdecode_node::data_offset() const noexcept
@@ -443,7 +440,7 @@ namespace aux {
 		m_last_token = token;
 		m_last_index = i;
 
-		return {tokens, m_buffer, m_buffer_size, token};
+		return {tokens, m_buffer, token};
 	}
 
 	string_view bdecode_node::list_string_value_at(int i
@@ -493,6 +490,14 @@ namespace aux {
 		return ret;
 	}
 
+	bdecode_node::list_range bdecode_node::list_items() const
+	{
+		TORRENT_ASSERT(type() == list_t);
+		TORRENT_ASSERT(m_root_tokens[m_token_idx].type == bdecode_token::list);
+
+		return list_range(m_root_tokens, m_buffer, m_token_idx + 1);
+	}
+
 	std::pair<bdecode_node, bdecode_node> bdecode_node::dict_at_node(int i) const
 	{
 		TORRENT_ASSERT(type() == dict_t);
@@ -540,8 +545,7 @@ namespace aux {
 		TORRENT_ASSERT(tokens[token].type != bdecode_token::end);
 
 		return std::make_pair(
-			bdecode_node(tokens, m_buffer, m_buffer_size, token)
-			, bdecode_node(tokens, m_buffer, m_buffer_size, value_token));
+			bdecode_node(tokens, m_buffer, token), bdecode_node(tokens, m_buffer, value_token));
 	}
 
 	std::pair<string_view, bdecode_node> bdecode_node::dict_at(int const i) const
@@ -588,6 +592,14 @@ namespace aux {
 		return ret;
 	}
 
+	bdecode_node::dict_range bdecode_node::dict_items() const
+	{
+		TORRENT_ASSERT(type() == dict_t);
+		TORRENT_ASSERT(m_root_tokens[m_token_idx].type == bdecode_token::dict);
+
+		return dict_range(m_root_tokens, m_buffer, m_token_idx + 1);
+	}
+
 	bdecode_node bdecode_node::dict_find(string_view key) const
 	{
 		TORRENT_ASSERT(type() == dict_t);
@@ -604,14 +616,14 @@ namespace aux {
 				|| t.type == bdecode_token::long_string);
 			int const size = token_source_span(t) - t.start_offset();
 			if (int(key.size()) == size
-				&& std::equal(key.data(), key.data() + size, m_buffer
-					+ t.offset + t.start_offset()))
+				&& std::equal(
+					key.data(), key.data() + size, m_buffer.data() + t.offset + t.start_offset()))
 			{
 				// skip key
 				token += t.next_item;
 				TORRENT_ASSERT(tokens[token].type != bdecode_token::end);
 
-				return {tokens, m_buffer, m_buffer_size, token};
+				return {tokens, m_buffer, token};
 			}
 
 			// skip key
@@ -685,7 +697,7 @@ namespace aux {
 		TORRENT_ASSERT(t.type == bdecode_token::integer);
 
 		// +1 is to skip the 'i'
-		char const* ptr = m_buffer + t.offset + 1;
+		char const* ptr = m_buffer.data() + t.offset + 1;
 		std::int64_t val = 0;
 		bool const negative = (*ptr == '-');
 		bdecode_errors::error_code_enum ec = bdecode_errors::no_error;
@@ -706,7 +718,7 @@ namespace aux {
 		TORRENT_ASSERT(t.type == bdecode_token::string
 			|| t.type == bdecode_token::long_string);
 
-		return {m_buffer + t.offset + t.start_offset(), size};
+		return {m_buffer.data() + t.offset + t.start_offset(), size};
 	}
 
 	std::ptrdiff_t bdecode_node::string_offset() const
@@ -724,7 +736,7 @@ namespace aux {
 		bdecode_token const& t = m_root_tokens[m_token_idx];
 		TORRENT_ASSERT(t.type == bdecode_token::string
 			|| t.type == bdecode_token::long_string);
-		return m_buffer + t.offset + t.start_offset();
+		return m_buffer.data() + t.offset + t.start_offset();
 	}
 
 	int bdecode_node::string_length() const
@@ -764,7 +776,6 @@ namespace aux {
 		m_tokens.swap(n.m_tokens);
 		std::swap(m_root_tokens, n.m_root_tokens);
 		std::swap(m_buffer, n.m_buffer);
-		std::swap(m_buffer_size, n.m_buffer_size);
 		std::swap(m_token_idx, n.m_token_idx);
 		std::swap(m_last_index, n.m_last_index);
 		std::swap(m_last_token, n.m_last_token);
@@ -1009,8 +1020,7 @@ done:
 		ret.m_tokens.emplace_back(start - orig_start, 0, bdecode_token::end);
 
 		ret.m_token_idx = 0;
-		ret.m_buffer = orig_start;
-		ret.m_buffer_size = int(start - orig_start);
+		ret.m_buffer = span<char const>(orig_start, start - orig_start);
 		ret.m_root_tokens = ret.m_tokens.data();
 
 		return ret;
@@ -1026,9 +1036,9 @@ done:
 		case bdecode_node::list_t:
 			line_len += 4;
 			if (line_len > limit) return -1;
-			for (int i = 0; i < e.list_size(); ++i)
+			for (bdecode_node const item : e.list_items())
 			{
-				int const ret = line_longer_than(e.list_at(i), limit - line_len);
+				int const ret = line_longer_than(item, limit - line_len);
 				if (ret == -1) return -1;
 				line_len += ret + 2;
 			}
@@ -1036,11 +1046,11 @@ done:
 		case bdecode_node::dict_t:
 			line_len += 4;
 			if (line_len > limit) return -1;
-			for (int i = 0; i < e.dict_size(); ++i)
+			for (auto const& item : e.dict_items())
 			{
-				line_len += 4 + int(e.dict_at(i).first.size());
+				line_len += 4 + int(item.first.size());
 				if (line_len > limit) return -1;
-				int const ret = line_longer_than(e.dict_at(i).second, limit - line_len);
+				int const ret = line_longer_than(item.second, limit - line_len);
 				if (ret == -1) return -1;
 				line_len += ret + 1;
 			}
@@ -1142,13 +1152,21 @@ done:
 				bool one_liner = line_longer_than(e, 200) != -1 || single_line;
 
 				if (!one_liner) ret += indent_str + 1;
-				for (int i = 0; i < e.list_size(); ++i)
+				bool first = true;
+				for (bdecode_node const item : e.list_items())
 				{
-					if (i == 0 && one_liner) ret += ' ';
-					ret += print_entry(e.list_at(i), single_line, indent + 2);
-					if (i < e.list_size() - 1) ret += (one_liner ? ", " : indent_str);
-					else ret += (one_liner ? " " : indent_str + 1);
+					if (first)
+					{
+						if (one_liner)
+							ret += ' ';
+					}
+					else
+						ret += (one_liner ? ", " : indent_str);
+					ret += print_entry(item, single_line, indent + 2);
+					first = false;
 				}
+				if (!first)
+					ret += (one_liner ? " " : indent_str + 1);
 				ret += ']';
 				return ret;
 			}
@@ -1158,16 +1176,23 @@ done:
 				bool one_liner = line_longer_than(e, 200) != -1 || single_line;
 
 				if (!one_liner) ret += indent_str + 1;
-				for (int i = 0; i < e.dict_size(); ++i)
+				bool first = true;
+				for (auto const& ent : e.dict_items())
 				{
-					if (i == 0 && one_liner) ret += ' ';
-					std::pair<string_view, bdecode_node> ent = e.dict_at(i);
+					if (first)
+					{
+						if (one_liner)
+							ret += ' ';
+					}
+					else
+						ret += (one_liner ? ", " : indent_str);
 					print_string(ret, ent.first, true);
 					ret += ": ";
 					ret += print_entry(ent.second, single_line, indent + 2);
-					if (i < e.dict_size() - 1) ret += (one_liner ? ", " : indent_str);
-					else ret += (one_liner ? " " : indent_str + 1);
+					first = false;
 				}
+				if (!first)
+					ret += (one_liner ? " " : indent_str + 1);
 				ret += '}';
 				return ret;
 			}

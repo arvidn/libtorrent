@@ -103,6 +103,46 @@ TORRENT_TEST(list)
 	TEST_CHECK(span<char const>("3:aaa", 5) == e.list_at(1).data_section());
 }
 
+// test list_items()
+TORRENT_TEST(list_items)
+{
+	char b[] = "li12453e3:aaae";
+	error_code ec;
+	bdecode_node e = bdecode(b, ec);
+	TEST_CHECK(!ec);
+	TEST_EQUAL(e.type(), bdecode_node::list_t);
+
+	int i = 0;
+	for (bdecode_node item : e.list_items())
+	{
+		TEST_EQUAL(item.type(), e.list_at(i).type());
+		if (item.type() == bdecode_node::int_t)
+			TEST_EQUAL(item.int_value(), e.list_at(i).int_value());
+		else
+			TEST_EQUAL(item.string_value(), e.list_at(i).string_value());
+		++i;
+	}
+	TEST_EQUAL(i, e.list_size());
+}
+
+// test list_items() on an empty list
+TORRENT_TEST(list_items_empty)
+{
+	char b[] = "le";
+	error_code ec;
+	bdecode_node e = bdecode(b, ec);
+	TEST_CHECK(!ec);
+	TEST_EQUAL(e.type(), bdecode_node::list_t);
+
+	int count = 0;
+	for (bdecode_node item : e.list_items())
+	{
+		(void)item;
+		++count;
+	}
+	TEST_EQUAL(count, 0);
+}
+
 // test dict
 TORRENT_TEST(dict)
 {
@@ -126,6 +166,81 @@ TORRENT_TEST(dict)
 	char error_string[200];
 	TEST_CHECK(e.has_soft_error(error_string));
 	TEST_EQUAL(std::string(error_string), std::string("unsorted dictionary key"));
+}
+
+// test dict_items()
+TORRENT_TEST(dict_items)
+{
+	char b[] = "d1:ai12453e1:b3:aaa1:c3:bbbe";
+	error_code ec;
+	bdecode_node e = bdecode(b, ec);
+	TEST_CHECK(!ec);
+	TEST_EQUAL(e.type(), bdecode_node::dict_t);
+
+	int i = 0;
+	for (auto const& [key, value] : e.dict_items())
+	{
+		auto const [expect_key, expect_value] = e.dict_at(i);
+		TEST_EQUAL(key, expect_key);
+		TEST_EQUAL(value.type(), expect_value.type());
+		if (value.type() == bdecode_node::int_t)
+			TEST_EQUAL(value.int_value(), expect_value.int_value());
+		else
+			TEST_EQUAL(value.string_value(), expect_value.string_value());
+		++i;
+	}
+	TEST_EQUAL(i, e.dict_size());
+}
+
+// test dict_items() on an empty dict
+TORRENT_TEST(dict_items_empty)
+{
+	char b[] = "de";
+	error_code ec;
+	bdecode_node e = bdecode(b, ec);
+	TEST_CHECK(!ec);
+	TEST_EQUAL(e.type(), bdecode_node::dict_t);
+
+	int count = 0;
+	for (auto const& entry : e.dict_items())
+	{
+		(void)entry;
+		++count;
+	}
+	TEST_EQUAL(count, 0);
+}
+
+// test list_items()/dict_items() over nested containers
+TORRENT_TEST(nested_items)
+{
+	char b[] = "d1:alli1ei2eeli3ei4eeee";
+	error_code ec;
+	bdecode_node e = bdecode(b, ec);
+	TEST_CHECK(!ec);
+	TEST_EQUAL(e.type(), bdecode_node::dict_t);
+	TEST_EQUAL(e.dict_size(), 1);
+
+	int pairs_seen = 0;
+	for (auto const& [key, value] : e.dict_items())
+	{
+		TEST_EQUAL(key, std::string("a"));
+		TEST_EQUAL(value.type(), bdecode_node::list_t);
+		TEST_EQUAL(value.list_size(), 2);
+
+		std::int64_t expect = 1;
+		for (bdecode_node const inner : value.list_items())
+		{
+			TEST_EQUAL(inner.type(), bdecode_node::list_t);
+			for (bdecode_node const n : inner.list_items())
+			{
+				TEST_EQUAL(n.int_value(), expect);
+				++expect;
+			}
+		}
+		TEST_EQUAL(expect, 5);
+		++pairs_seen;
+	}
+	TEST_EQUAL(pairs_seen, 1);
 }
 
 // test dictionary with a key without a value

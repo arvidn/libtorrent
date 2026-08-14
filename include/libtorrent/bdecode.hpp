@@ -310,6 +310,56 @@ struct TORRENT_EXPORT bdecode_node
 	span<char const> data_section() const noexcept;
 	std::ptrdiff_t data_offset() const noexcept;
 
+	// sentinel type for the end of a list_items()/dict_items() range. An
+	// iterator has reached it once the token at its current position is a
+	// bdecode_token::end token; this needs no end-of-range index of its own.
+	struct items_end_t
+	{};
+
+	struct list_iterator
+	{
+		list_iterator(aux::bdecode_token const* tokens, span<char const> buf, int idx)
+			: m_tokens(tokens)
+			, m_buffer(buf)
+			, m_token_idx(idx)
+		{}
+		bdecode_node operator*() const { return bdecode_node(m_tokens, m_buffer, m_token_idx); }
+		list_iterator& operator++()
+		{
+			m_token_idx += m_tokens[m_token_idx].next_item;
+			return *this;
+		}
+		friend bool operator==(list_iterator const& it, items_end_t)
+		{
+			return it.m_tokens[it.m_token_idx].type == aux::bdecode_token::end;
+		}
+		friend bool operator!=(list_iterator const& it, items_end_t s) { return !(it == s); }
+
+	private:
+		aux::bdecode_token const* m_tokens;
+		span<char const> m_buffer;
+		int m_token_idx;
+	};
+
+	template <typename Iterator>
+	struct item_range
+	{
+		item_range(aux::bdecode_token const* tokens, span<char const> buf, int b)
+			: m_tokens(tokens)
+			, m_buffer(buf)
+			, m_begin(b)
+		{}
+		Iterator begin() const { return Iterator(m_tokens, m_buffer, m_begin); }
+		items_end_t end() const { return {}; }
+
+	private:
+		aux::bdecode_token const* m_tokens;
+		span<char const> m_buffer;
+		int m_begin;
+	};
+
+	using list_range = item_range<list_iterator>;
+
 	// functions with the ``list_`` prefix operate on lists. These functions are
 	// only valid if ``type()`` == ``list_t``. ``list_at()`` returns the item
 	// in the list at index ``i``. ``i`` may not be greater than or equal to the
@@ -317,13 +367,48 @@ struct TORRENT_EXPORT bdecode_node
 	// ``list_int_value_at()`` and ``list_string_value_at()`` return the
 	// integer or string value of the item at index ``i`` directly. If that
 	// item is not of the requested type, the provided ``default_val`` is
-	// returned instead.
+	// returned instead. ``list_items()`` returns a forward range of the list's
+	// elements, for range-for iteration.
 	bdecode_node list_at(int i) const;
 	string_view list_string_value_at(int i
 		, string_view default_val = string_view()) const;
 	std::int64_t list_int_value_at(int i
 		, std::int64_t default_val = 0) const;
 	int list_size() const;
+	list_range list_items() const;
+
+	struct dict_iterator
+	{
+		dict_iterator(aux::bdecode_token const* tokens, span<char const> buf, int idx)
+			: m_tokens(tokens)
+			, m_buffer(buf)
+			, m_token_idx(idx)
+		{}
+		std::pair<string_view, bdecode_node> operator*() const
+		{
+			bdecode_node const key(m_tokens, m_buffer, m_token_idx);
+			int const value_idx = m_token_idx + m_tokens[m_token_idx].next_item;
+			return {key.string_value(), bdecode_node(m_tokens, m_buffer, value_idx)};
+		}
+		dict_iterator& operator++()
+		{
+			int const value_idx = m_token_idx + m_tokens[m_token_idx].next_item;
+			m_token_idx = value_idx + m_tokens[value_idx].next_item;
+			return *this;
+		}
+		friend bool operator==(dict_iterator const& it, items_end_t)
+		{
+			return it.m_tokens[it.m_token_idx].type == aux::bdecode_token::end;
+		}
+		friend bool operator!=(dict_iterator const& it, items_end_t s) { return !(it == s); }
+
+	private:
+		aux::bdecode_token const* m_tokens;
+		span<char const> m_buffer;
+		int m_token_idx;
+	};
+
+	using dict_range = item_range<dict_iterator>;
 
 	// Functions with the ``dict_`` prefix operates on dictionaries. They are
 	// only valid if ``type()`` == ``dict_t``. In case a key you're looking up
@@ -339,7 +424,9 @@ struct TORRENT_EXPORT bdecode_node
 	// ``dict_at()`` returns the (key, value)-pair at the specified index in a
 	// dictionary. Keys are only allowed to be strings. ``dict_at_node()`` also
 	// returns the (key, value)-pair, but the key is returned as a
-	// ``bdecode_node`` (and it will always be a string).
+	// ``bdecode_node`` (and it will always be a string). ``dict_items()``
+	// returns a forward range of the dictionary's (key, value) pairs, for
+	// range-for iteration.
 	bdecode_node dict_find(string_view key) const;
 	std::pair<string_view, bdecode_node> dict_at(int i) const;
 	std::pair<bdecode_node, bdecode_node> dict_at_node(int i) const;
@@ -352,6 +439,7 @@ struct TORRENT_EXPORT bdecode_node
 	std::int64_t dict_find_int_value(string_view key
 		, std::int64_t default_val = 0) const;
 	int dict_size() const;
+	dict_range dict_items() const;
 
 	// this function is only valid if ``type()`` == ``int_t``. It returns the
 	// value of the integer.
@@ -391,8 +479,7 @@ struct TORRENT_EXPORT bdecode_node
 	bool has_soft_error(span<char> error) const;
 
 private:
-	bdecode_node(aux::bdecode_token const* tokens, char const* buf
-		, int len, int idx);
+	bdecode_node(aux::bdecode_token const* tokens, span<char const> buf, int idx);
 
 	// if this is the root node, that owns all the tokens, they live in this
 	// vector. If this is a sub-node, this field is not used, instead the
@@ -403,9 +490,8 @@ private:
 	// for the root node, this points to its own m_tokens member
 	aux::bdecode_token const* m_root_tokens = nullptr;
 
-	// this points to the original buffer that was parsed
-	char const* m_buffer = nullptr;
-	int m_buffer_size = 0;
+	// this is the original buffer that was parsed
+	span<char const> m_buffer;
 
 	// this is the index into m_root_tokens that this node refers to
 	// for the root node, it's 0. -1 means uninitialized.
