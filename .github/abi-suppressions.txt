@@ -24,6 +24,14 @@
 # torrent_status, strong_typedef, ...), which name_not_regexp excludes so a
 # real change to one of those still fails the check.
 #
+# name_not_regexp anchors on the specialization subject (^std::(hash|
+# numeric_limits)<libtorrent) rather than just matching "libtorrent"
+# anywhere. A bare "libtorrent" also un-suppresses std container internals
+# that merely take a libtorrent type as a template argument (e.g.
+# std::vector<libtorrent::bitfield>::_M_realloc_insert), which are libstdc++
+# implementation details, not our ABI, and would otherwise fail the check
+# when instantiations come and go.
+#
 # Variable (data-symbol) changes are deliberately NOT suppressed here: a
 # variable's size/layout is baked directly into every caller, so a spurious
 # diff there is rare and a real one is serious. If a specific guard-variable
@@ -31,7 +39,7 @@
 # [suppress_variable] for that exact symbol instead of broadening this.
 [suppress_type]
   name_regexp = ^(std|boost)::
-  name_not_regexp = libtorrent
+  name_not_regexp = ^std::(hash|numeric_limits)<libtorrent
 [suppress_function]
   name_regexp = ^(std|boost)::
-  name_not_regexp = libtorrent
+  name_not_regexp = ^std::(hash|numeric_limits)<libtorrent
