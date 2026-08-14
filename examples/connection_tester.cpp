@@ -30,8 +30,6 @@ see LICENSE file.
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/info_hash.hpp"
 #include "libtorrent/file_storage.hpp"
-#include "libtorrent/aux_/merkle.hpp"
-#include "libtorrent/aux_/merkle_tree.hpp"
 #include "libtorrent/error.hpp"
 #include <random>
 #include <algorithm>
@@ -172,6 +170,58 @@ std::string leaf_path(std::string f)
 namespace {
 std::random_device dev;
 std::mt19937 rng(dev());
+}
+
+// local copies of libtorrent's internal aux::merkle_* helpers, so this tool
+// doesn't need to link against a TORRENT_EXPORT_EXTRA build of libtorrent.
+
+int merkle_to_flat_index(int const layer, int const offset) { return (1 << layer) - 1 + offset; }
+
+int merkle_get_parent(int const tree_node) { return (tree_node - 1) / 2; }
+
+int merkle_get_sibling(int const tree_node) { return tree_node + ((tree_node & 1) ? 1 : -1); }
+
+int merkle_num_nodes(int const leafs) { return ((leafs - 1) << 1) + 1; }
+
+int merkle_first_leaf(int const num_leafs) { return num_leafs - 1; }
+
+int merkle_num_leafs(int const blocks)
+{
+	int ret = 1;
+	while (blocks > ret)
+		ret <<= 1;
+	return ret;
+}
+
+int merkle_num_layers(int leaves)
+{
+	int layers = 0;
+	while (leaves > 1)
+	{
+		++layers;
+		leaves >>= 1;
+	}
+	return layers;
+}
+
+void merkle_fill_tree(span<sha256_hash> tree, int const num_leafs)
+{
+	hasher256 h;
+	int level_start = merkle_num_nodes(num_leafs) - num_leafs;
+	int level_size = num_leafs;
+	while (level_size > 1)
+	{
+		int parent = merkle_get_parent(level_start);
+		for (int i = level_start; i < level_start + level_size; i += 2, ++parent)
+		{
+			h.reset();
+			h.update(tree[i]);
+			h.update(tree[i + 1]);
+			tree[parent] = h.final();
+		}
+		level_start = merkle_get_parent(level_start);
+		level_size /= 2;
+	}
 }
 
 // flat merkle tree for a single file, plus dimensions. used by both
