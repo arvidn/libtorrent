@@ -101,9 +101,8 @@ namespace aux {
 		out.merkle_tree_mask.resize(fs.num_files());
 		out.verified_leaf_hashes.resize(fs.num_files());
 
-		for (int i = 0; i < e.dict_size(); ++i)
+		for (auto const& f : e.dict_items())
 		{
-			auto const f = e.dict_at(i);
 			if (f.first.size() != static_cast<std::size_t>(sha256_hash::size())
 				|| f.second.type() != bdecode_node::string_t
 				|| f.second.string_length() % sha256_hash::size() != 0)
@@ -191,16 +190,15 @@ namespace aux {
 		if (similar)
 		{
 			std::vector<sha1_hash> similar_torrents;
-			for (int i = 0; i < similar.list_size(); ++i)
+			for (bdecode_node const item : similar.list_items())
 			{
-				if (similar.list_at(i).type() != bdecode_node::string_t)
+				if (item.type() != bdecode_node::string_t)
 					continue;
 
-				if (similar.list_at(i).string_length() != 20)
+				if (item.string_length() != 20)
 					continue;
 
-				similar_torrents.emplace_back(
-					similar.list_at(i).string_ptr());
+				similar_torrents.emplace_back(item.string_ptr());
 			}
 			ti->internal_set_similar(std::move(similar_torrents));
 		}
@@ -209,10 +207,8 @@ namespace aux {
 		if (collections)
 		{
 			std::vector<std::string> owned_collections;
-			for (int i = 0; i < collections.list_size(); ++i)
+			for (bdecode_node const str : collections.list_items())
 			{
-				bdecode_node const str = collections.list_at(i);
-
 				if (str.type() != bdecode_node::string_t) continue;
 
 				owned_collections.emplace_back(str.string_ptr()
@@ -229,20 +225,27 @@ namespace aux {
 			out.trackers.reserve(std::size_t(announce_node.list_size()));
 			out.tracker_tiers.reserve(std::size_t(announce_node.list_size()));
 
-			for (int j = 0, end(announce_node.list_size()); j < end; ++j)
+			int tier = 0;
+			for (bdecode_node const tier_node : announce_node.list_items())
 			{
-				bdecode_node const tier = announce_node.list_at(j);
-				if (tier.type() != bdecode_node::list_t) continue;
-				for (int k = 0, end2(tier.list_size()); k < end2; ++k)
+				if (tier_node.type() == bdecode_node::list_t)
 				{
-					string_view const url = aux::ltrim(tier.list_string_value_at(k));
-					if (!aux::is_valid_tracker_url(url)) continue;
+					for (bdecode_node const url_node : tier_node.list_items())
+					{
+						string_view const url = aux::ltrim(url_node.type() == bdecode_node::string_t
+								? url_node.string_value()
+								: string_view());
+						if (!aux::is_valid_tracker_url(url))
+							continue;
 #if TORRENT_USE_I2P
-					if (aux::is_i2p_url(url)) out.flags |= torrent_flags::i2p_torrent;
+						if (aux::is_i2p_url(url))
+							out.flags |= torrent_flags::i2p_torrent;
 #endif
-					out.trackers.emplace_back(url);
-					out.tracker_tiers.push_back(j);
+						out.trackers.emplace_back(url);
+						out.tracker_tiers.push_back(tier);
+					}
 				}
+				++tier;
 			}
 		}
 
@@ -262,9 +265,8 @@ namespace aux {
 		bdecode_node const nodes = torrent_file.dict_find_list("nodes");
 		if (nodes)
 		{
-			for (int i = 0, end(nodes.list_size()); i < end; ++i)
+			for (bdecode_node const n : nodes.list_items())
 			{
-				bdecode_node const n = nodes.list_at(i);
 				if (n.type() != bdecode_node::list_t
 					|| n.list_size() < 2
 					|| n.list_at(0).type() != bdecode_node::string_t
@@ -297,9 +299,10 @@ namespace aux {
 		{
 			// only add a URL once
 			std::set<string_view> unique;
-			for (int i = 0, end(url_seeds.list_size()); i < end; ++i)
+			for (bdecode_node const item : url_seeds.list_items())
 			{
-				string_view const url = url_seeds.list_string_value_at(i, ""_sv);
+				string_view const url =
+					item.type() == bdecode_node::string_t ? item.string_value() : string_view();
 				if (url.empty()) continue;
 				if (!unique.insert(url).second) continue;
 				std::string new_url = maybe_url_encode(url);

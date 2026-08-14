@@ -131,9 +131,8 @@ session_params read_session_params(bdecode_node const& e, save_state_flags_t con
 		auto ext = e.dict_find_dict("extensions");
 		if (ext)
 		{
-			for (int i = 0; i < ext.dict_size(); ++i)
+			for (auto const& [key, val] : ext.dict_items())
 			{
-				auto const [key, val] = ext.dict_at(i);
 				if (val.type() != bdecode_node::string_t) continue;
 				params.ext_state[std::string(key)] = std::string(val.string_value());
 			}
@@ -147,10 +146,10 @@ session_params read_session_params(bdecode_node const& e, save_state_flags_t con
 		ip_filter load;
 		if (v4)
 		{
-			int const count = v4.list_size();
-			for (int i = 0; i < count; ++i)
+			for (bdecode_node const item : v4.list_items())
 			{
-				auto const str = v4.list_string_value_at(i);
+				string_view const str =
+					item.type() == bdecode_node::string_t ? item.string_value() : string_view();
 				if (str.size() < 4 + 4 + 4) continue;
 				char const* ptr = str.data();
 				auto const first = aux::read_v4_address(ptr);
@@ -165,10 +164,10 @@ session_params read_session_params(bdecode_node const& e, save_state_flags_t con
 		auto const v6 = e.dict_find_list("ip_filter6");
 		if (v6)
 		{
-			int const count = v6.list_size();
-			for (int i = 0; i < count; ++i)
+			for (bdecode_node const item : v6.list_items())
 			{
-				auto const str = v6.list_string_value_at(i);
+				string_view const str =
+					item.type() == bdecode_node::string_t ? item.string_value() : string_view();
 				if (str.size() < 16 + 16 + 4) continue;
 				char const* ptr = str.data();
 				auto const first = aux::read_v6_address(ptr);

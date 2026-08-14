@@ -148,9 +148,8 @@ namespace {
 			ret.merkle_trees.reserve(trees.list_size());
 			ret.verified_leaf_hashes.reserve(trees.list_size());
 			ret.merkle_tree_mask.reserve(trees.list_size());
-			for (int i = 0; i < trees.list_size(); ++i)
+			for (bdecode_node const de : trees.list_items())
 			{
-				auto de = trees.list_at(i);
 				if (de.type() != bdecode_node::dict_t)
 					break;
 				auto dh = de.dict_find_string("hashes");
@@ -270,11 +269,14 @@ namespace {
 		bdecode_node const mapped_files = rd.dict_find_list("mapped_files");
 		if (mapped_files)
 		{
-			for (int i = 0; i < mapped_files.list_size(); ++i)
+			file_index_t idx{};
+			for (bdecode_node const item : mapped_files.list_items())
 			{
-				auto new_filename = mapped_files.list_string_value_at(i);
-				if (new_filename.empty()) continue;
-				ret.renamed_files[file_index_t(i)] = new_filename;
+				string_view const new_filename =
+					item.type() == bdecode_node::string_t ? item.string_value() : string_view();
+				if (!new_filename.empty())
+					ret.renamed_files[idx] = new_filename;
+				++idx;
 			}
 		}
 
@@ -286,22 +288,24 @@ namespace {
 		bdecode_node const file_priority = rd.dict_find_list("file_priority");
 		if (file_priority)
 		{
-			int const num_files = file_priority.list_size();
-			ret.file_priorities.resize(aux::numeric_cast<std::size_t>(num_files)
-				, default_priority);
-			for (int i = 0; i < num_files; ++i)
+			ret.file_priorities.resize(
+				aux::numeric_cast<std::size_t>(file_priority.list_size()), default_priority);
+			std::size_t idx = 0;
+			for (bdecode_node const item : file_priority.list_items())
 			{
-				auto const idx = static_cast<std::size_t>(i);
-				ret.file_priorities[idx] = std::clamp(
-					download_priority_t(static_cast<std::uint8_t>(
-						file_priority.list_int_value_at(i
-							, static_cast<std::uint8_t>(default_priority))))
-						, dont_download, top_priority);
+				std::int64_t const val = item.type() == bdecode_node::int_t
+					? item.int_value()
+					: std::int64_t(static_cast<std::uint8_t>(default_priority));
+				ret.file_priorities[idx] =
+					std::clamp(download_priority_t(static_cast<std::uint8_t>(val)),
+						dont_download,
+						top_priority);
 				// this is suspicious, leave seed mode
 				if (ret.file_priorities[idx] == dont_download)
 				{
 					ret.flags &= ~torrent_flags::seed_mode;
 				}
+				++idx;
 			}
 		}
 
@@ -315,15 +319,17 @@ namespace {
 			ret.flags |= torrent_flags::deprecated_override_trackers;
 
 			int tier = 0;
-			for (int i = 0; i < trackers.list_size(); ++i)
+			for (bdecode_node const tier_list : trackers.list_items())
 			{
-				bdecode_node const tier_list = trackers.list_at(i);
 				if (!tier_list || tier_list.type() != bdecode_node::list_t)
 					continue;
 
-				for (int j = 0; j < tier_list.list_size(); ++j)
+				for (bdecode_node const url_node : tier_list.list_items())
 				{
-					ret.trackers.emplace_back(tier_list.list_string_value_at(j));
+					string_view const url = url_node.type() == bdecode_node::string_t
+						? url_node.string_value()
+						: string_view();
+					ret.trackers.emplace_back(url);
 					ret.tracker_tiers.push_back(tier);
 #if TORRENT_USE_I2P
 					if (aux::is_i2p_url(ret.trackers.back())) ret.flags |= torrent_flags::i2p_torrent;
@@ -343,9 +349,10 @@ namespace {
 			// since we found http seeds in the resume data, they should replace
 			// whatever web seeds are specified in the .torrent, by default
 			ret.flags |= torrent_flags::deprecated_override_web_seeds;
-			for (int i = 0; i < url_list.list_size(); ++i)
+			for (bdecode_node const item : url_list.list_items())
 			{
-				auto url = url_list.list_string_value_at(i);
+				string_view const url =
+					item.type() == bdecode_node::string_t ? item.string_value() : string_view();
 				if (url.empty()) continue;
 				ret.url_seeds.emplace_back(url);
 			}
@@ -440,9 +447,8 @@ namespace {
 		// parse unfinished pieces
 		if (bdecode_node const unfinished_entry = rd.dict_find_list("unfinished"))
 		{
-			for (int i = 0; i < unfinished_entry.list_size(); ++i)
+			for (bdecode_node const e : unfinished_entry.list_items())
 			{
-				bdecode_node const e = unfinished_entry.list_at(i);
 				if (e.type() != bdecode_node::dict_t) continue;
 				piece_index_t const piece = piece_index_t(int(e.dict_find_int_value("piece", -1)));
 				if (piece < piece_index_t(0)) continue;

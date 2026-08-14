@@ -495,7 +495,7 @@ namespace aux {
 		TORRENT_ASSERT(type() == list_t);
 		TORRENT_ASSERT(m_root_tokens[m_token_idx].type == bdecode_token::list);
 
-		return list_range(m_root_tokens, m_buffer, m_token_idx + 1);
+		return {m_root_tokens, m_buffer, m_token_idx + 1};
 	}
 
 	std::pair<bdecode_node, bdecode_node> bdecode_node::dict_at_node(int i) const
@@ -597,7 +597,7 @@ namespace aux {
 		TORRENT_ASSERT(type() == dict_t);
 		TORRENT_ASSERT(m_root_tokens[m_token_idx].type == bdecode_token::dict);
 
-		return dict_range(m_root_tokens, m_buffer, m_token_idx + 1);
+		return {m_root_tokens, m_buffer, m_token_idx + 1};
 	}
 
 	bdecode_node bdecode_node::dict_find(string_view key) const

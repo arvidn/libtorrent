@@ -926,13 +926,12 @@ namespace libtorrent::aux {
 		}
 		else if (peers_ent && peers_ent.type() == bdecode_node::list_t)
 		{
-			int const len = peers_ent.list_size();
-			resp.peers.reserve(std::size_t(len));
+			resp.peers.reserve(std::size_t(peers_ent.list_size()));
 			error_code parse_error;
-			for (int i = 0; i < len; ++i)
+			for (bdecode_node const item : peers_ent.list_items())
 			{
 				peer_entry p;
-				if (!extract_peer_info(peers_ent.list_at(i), p, parse_error))
+				if (!extract_peer_info(item, p, parse_error))
 					continue;
 				resp.peers.push_back(p);
 			}

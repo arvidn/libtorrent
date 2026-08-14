@@ -1211,9 +1211,8 @@ void node::write_nodes_entries(sha1_hash const& info_hash
 	// we use a map maintained by the owning dht_tracker to find the
 	// node associated with each string in the want list, which may
 	// include this node
-	for (int i = 0; i < want.list_size(); ++i)
+	for (bdecode_node const wanted : want.list_items())
 	{
-		bdecode_node wanted = want.list_at(i);
 		if (wanted.type() != bdecode_node::string_t)
 			continue;
 		node* wanted_node = m_get_foreign_node(info_hash, wanted.string_value());

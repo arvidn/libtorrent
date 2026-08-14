@@ -29,9 +29,8 @@ namespace libtorrent::dht {
 		}
 		auto const nids = e.dict_find_list(key);
 		if (!nids) return ret;
-		for (int i = 0; i < nids.list_size(); i++)
+		for (bdecode_node const nid : nids.list_items())
 		{
-			bdecode_node nid = nids.list_at(i);
 			if (nid.type() != bdecode_node::string_t) continue;
 			if (nid.string_length() < 20) continue;
 			char const* in = nid.string_ptr();
