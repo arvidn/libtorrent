@@ -474,9 +474,8 @@ namespace {
 	{
 		settings_pack pack;
 
-		for (int i = 0; i < settings.dict_size(); ++i)
+		for (auto const& [key, val] : settings.dict_items())
 		{
-			auto const [key, val] = settings.dict_at(i);
 			switch (val.type())
 			{
 				case bdecode_node::dict_t:

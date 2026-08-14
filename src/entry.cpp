@@ -254,9 +254,8 @@ namespace {
 			case bdecode_node::dict_t:
 			{
 				dictionary_type& d = this->dict();
-				for (int i = 0; i < e.dict_size(); ++i)
+				for (auto const& elem : e.dict_items())
 				{
-					std::pair<string_view, bdecode_node> elem = e.dict_at(i);
 					d[std::string(elem.first)] = elem.second;
 				}
 				break;
@@ -264,10 +263,10 @@ namespace {
 			case bdecode_node::list_t:
 			{
 				list_type& l = this->list();
-				for (int i = 0; i < e.list_size(); ++i)
+				for (bdecode_node const item : e.list_items())
 				{
 					l.emplace_back();
-					l.back() = e.list_at(i);
+					l.back() = item;
 				}
 				break;
 			}

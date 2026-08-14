@@ -353,10 +353,8 @@ namespace {
 	int path_length(bdecode_node const& p, error_code& ec)
 	{
 		int ret = 0;
-		int const len = p.list_size();
-		for (int i = 0; i < len; ++i)
+		for (bdecode_node const e : p.list_items())
 		{
-			bdecode_node const e = p.list_at(i);
 			if (e.type() != bdecode_node::string_t)
 			{
 				ec = errors::torrent_invalid_name;
@@ -364,7 +362,7 @@ namespace {
 			}
 			ret += e.string_length();
 		}
-		return ret + len;
+		return ret + p.list_size();
 	}
 
 	bool extract_single_file2(
@@ -425,9 +423,9 @@ namespace {
 				auto const preallocate = static_cast<std::size_t>(path_length(s_p, ec));
 				if (ec) return false;
 				symlink_path.reserve(preallocate);
-				for (int i = 0, end(s_p.list_size()); i < end; ++i)
+				for (bdecode_node const item : s_p.list_items())
 				{
-					auto pe = s_p.list_at(i).string_value();
+					auto pe = item.string_value();
 					// BEP 47 forbids "." and ".." in symlink path components.
 					// We tolerate them for backwards compatibility with
 					// non-conforming torrents by dropping them, leaving the
@@ -550,10 +548,11 @@ namespace {
 				if (ec) return false;
 				path.reserve(preallocate);
 
-				for (int i = 0, end(p.list_size()); i < end; ++i)
+				int const last = p.list_size() - 1;
+				int idx = 0;
+				for (bdecode_node const e : p.list_items())
 				{
-					bdecode_node const e = p.list_at(i);
-					if (i == end - 1)
+					if (idx == last)
 					{
 						filename = {info_buffer + (e.string_offset() - info_offset)
 							, static_cast<std::size_t>(e.string_length()) };
@@ -561,6 +560,7 @@ namespace {
 							filename.remove_prefix(1);
 					}
 					aux::sanitize_append_path_element(path, e.string_value(), true);
+					++idx;
 				}
 			}
 			else if (file_flags & file_storage::flag_pad_file)
@@ -602,9 +602,9 @@ namespace {
 				auto const preallocate = static_cast<std::size_t>(path_length(s_p, ec));
 				if (ec) return false;
 				symlink_path.reserve(preallocate);
-				for (int i = 0, end(s_p.list_size()); i < end; ++i)
+				for (bdecode_node const item : s_p.list_items())
 				{
-					auto pe = s_p.list_at(i).string_value();
+					auto pe = item.string_value();
 					// BEP 47 forbids "." and ".." in symlink path components.
 					// We tolerate them for backwards compatibility with
 					// non-conforming torrents by dropping them, leaving the
@@ -774,18 +774,16 @@ namespace {
 		}
 		target.reserve(list.list_size());
 
-		for (int i = 0, end(list.list_size()); i < end; ++i)
+		for (bdecode_node const item : list.list_items())
 		{
-			if (!extract_single_file(
-					list.list_at(i),
+			if (!extract_single_file(item,
 					target,
 					root_dir,
 					info_offset,
 					info_buffer,
 					false,
 					max_directory_depth,
-					ec
-				))
+					ec))
 				return false;
 		}
 		// this rewrites invalid symlinks to point to themselves
@@ -1424,25 +1422,23 @@ TORRENT_VERSION_NAMESPACE_4
 		bdecode_node const similar = info.dict_find_list("similar");
 		if (similar)
 		{
-			for (int i = 0; i < similar.list_size(); ++i)
+			for (bdecode_node const item : similar.list_items())
 			{
-				if (similar.list_at(i).type() != bdecode_node::string_t)
+				if (item.type() != bdecode_node::string_t)
 					continue;
 
-				if (similar.list_at(i).string_length() != 20)
+				if (item.string_length() != 20)
 					continue;
-				m_similar_torrents.push_back(static_cast<std::int32_t>(
-					similar.list_at(i).string_offset() - info_offset));
+				m_similar_torrents.push_back(
+					static_cast<std::int32_t>(item.string_offset() - info_offset));
 			}
 		}
 
 		bdecode_node const collections = info.dict_find_list("collections");
 		if (collections)
 		{
-			for (int i = 0; i < collections.list_size(); ++i)
+			for (bdecode_node const str : collections.list_items())
 			{
-				bdecode_node const str = collections.list_at(i);
-
 				if (str.type() != bdecode_node::string_t) continue;
 
 				m_collections.emplace_back(

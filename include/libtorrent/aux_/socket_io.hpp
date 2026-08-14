@@ -101,9 +101,8 @@ namespace libtorrent::aux {
 	{
 		std::vector<EndpointType> ret;
 		if (n.type() != bdecode_node::list_t) return ret;
-		for (int i = 0; i < n.list_size(); ++i)
+		for (bdecode_node const e : n.list_items())
 		{
-			bdecode_node e = n.list_at(i);
 			if (e.type() != bdecode_node::string_t) return ret;
 			if (e.string_length() < 6) continue;
 			char const* in = e.string_ptr();
