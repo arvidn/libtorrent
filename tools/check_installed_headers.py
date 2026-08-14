@@ -57,7 +57,7 @@ def check_public_headers_compile(prefix: str) -> None:
 
     header = os.path.join(prefix, "include", "libtorrent", "libtorrent.hpp")
     cxx = os.environ.get("CXX", "c++")
-    subprocess.run([cxx, "-std=c++17", "-fsyntax-only", *cflags, header], check=True)
+    subprocess.run([cxx, "-std=c++20", "-fsyntax-only", *cflags, header], check=True)
     print(f"OK: {header} compiles using only the installed headers")
 
 
