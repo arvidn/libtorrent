@@ -191,6 +191,10 @@ jobs:
            fetch-depth: 1
            filter: tree:0
 
+      - name: patch libdatachannel (windows 32/64-bit builds)
+        run: git apply ../patch-libdatachannel-32bit-builds.patch
+        working-directory: deps/libdatachannel
+
       - name: install boost
         run: |
           git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.91.0 https://github.com/boostorg/boost.git
