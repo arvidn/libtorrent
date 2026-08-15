@@ -329,18 +329,55 @@ namespace libtorrent {
 		template <typename Fun>
 		void visit_set(Fun&& fun) const
 		{
-			for (int word = 0; word < this->num_words(); ++word)
+			int const words = num_words();
+			for (int word = 0; word < words; ++word)
 			{
-				std::uint32_t bits = aux::network_to_host(this->buf()[word]);
-				while (bits != 0)
+				std::uint32_t const raw = buf()[word];
+
+				// 0 and 0xffffffff are fixed points of network_to_host(), so these
+				// two common cases skip the byte-swap and the popcount() below
+				if (raw == 0)
+					continue;
+
+				// trailing padding bits are always clear, so a set word is fully in range
+				if (raw == 0xffffffff)
 				{
-					int const bit = std::countl_zero(bits);
-					int const index = word * 32 + bit;
-					if (index >= this->size())
-						return;
-					if (!fun(IndexType(index)))
-						return;
-					bits ^= 0x80000000 >> bit;
+					int const base = word * 32;
+					for (int bit = 0; bit < 32; ++bit)
+					{
+						if (!fun(IndexType(base + bit)))
+							return;
+					}
+					continue;
+				}
+
+				std::uint32_t bits = aux::network_to_host(raw);
+
+				// threshold from a microbenchmark: below it, countl_zero() per set
+				// bit beats testing all 32 positions
+				if (std::popcount(bits) <= 7)
+				{
+					while (bits != 0)
+					{
+						int const bit = std::countl_zero(bits);
+						int const index = word * 32 + bit;
+						if (index >= size())
+							return;
+						if (!fun(IndexType(index)))
+							return;
+						bits ^= 0x80000000 >> bit;
+					}
+				}
+				else
+				{
+					for (int bit = 0; bit < 32; ++bit)
+					{
+						int const index = word * 32 + bit;
+						if (index >= size())
+							return;
+						if ((bits & (0x80000000 >> bit)) && !fun(IndexType(index)))
+							return;
+					}
 				}
 			}
 		}

@@ -473,3 +473,60 @@ TORRENT_TEST(visit_set_early_exit)
 	std::vector<int> const expected = {0, 31, 32};
 	TEST_CHECK(visited == expected);
 }
+
+TORRENT_TEST(visit_set_all_clear_word)
+{
+	// the middle word is entirely clear, the others have a few bits set
+	typed_bitfield<int> bits(96, false);
+	bits.set_bit(0);
+	bits.set_bit(31);
+	bits.set_bit(64);
+	bits.set_bit(95);
+
+	std::vector<int> visited;
+	bits.visit_set([&visited](int const index) {
+		visited.push_back(index);
+		return true;
+	});
+
+	std::vector<int> const expected = {0, 31, 64, 95};
+	TEST_CHECK(visited == expected);
+}
+
+TORRENT_TEST(visit_set_all_set_word)
+{
+	// the middle word is entirely set, the others have a single bit set
+	typed_bitfield<int> bits(96, false);
+	bits.set_bit(0);
+	for (int i = 32; i < 64; ++i)
+		bits.set_bit(i);
+	bits.set_bit(95);
+
+	std::vector<int> visited;
+	bits.visit_set([&visited](int const index) {
+		visited.push_back(index);
+		return true;
+	});
+
+	std::vector<int> expected = {0};
+	for (int i = 32; i < 64; ++i)
+		expected.push_back(i);
+	expected.push_back(95);
+	TEST_CHECK(visited == expected);
+}
+
+TORRENT_TEST(visit_set_all_set_word_early_exit)
+{
+	// a single, fully set word that is also the last word (size is an exact
+	// multiple of 32, so there are no trailing padding bits to worry about)
+	typed_bitfield<int> const bits(32, true);
+
+	std::vector<int> visited;
+	bits.visit_set([&visited](int const index) {
+		visited.push_back(index);
+		return index != 10;
+	});
+
+	std::vector<int> const expected = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+	TEST_CHECK(visited == expected);
+}
