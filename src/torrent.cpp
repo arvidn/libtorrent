@@ -377,7 +377,10 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 				tier = *tier_iter++;
 
 			e.fail_limit = 0;
-			e.source = lt::announce_entry::source_magnet_link;
+			if (p.ti)
+				e.source = lt::announce_entry::source_torrent;
+			else
+				e.source = lt::announce_entry::source_magnet_link;
 			e.tier = std::uint8_t(tier);
 
 			if (!m_trackers.add_tracker(e))
