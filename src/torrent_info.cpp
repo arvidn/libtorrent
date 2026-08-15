@@ -1573,6 +1573,8 @@ TORRENT_VERSION_NAMESPACE_4
 
 			auto const& fs = layout();
 			bitfield const empty_verified;
+			std::vector<sha256_hash> scratch_space;
+			hasher256 scratch_hasher;
 			for (file_index_t i : fs.file_range())
 			{
 				if (fs.pad_file_at(i) || fs.file_size(i) <= fs.piece_length())
@@ -1587,14 +1589,15 @@ TORRENT_VERSION_NAMESPACE_4
 				aux::merkle_tree tree(fs.file_num_blocks(i), fs.blocks_per_piece(), fs.root_ptr(i));
 				if (i < mask.end_index() && !mask[i].empty())
 				{
-					tree.load_sparse_tree(trees[i], mask[i], verified_bitmask);
+					tree.load_sparse_tree(
+						trees[i], mask[i], verified_bitmask, scratch_space, scratch_hasher);
 				}
 				else
 				{
 					tree.load_tree(trees[i], verified_bitmask);
 				}
 
-				auto const& layer = tree.get_piece_layer();
+				auto const& layer = tree.get_piece_layer(scratch_space, scratch_hasher);
 				std::vector<char> out_layer;
 				out_layer.reserve(layer.size() * sha256_hash::size());
 				for (auto const& h : layer)

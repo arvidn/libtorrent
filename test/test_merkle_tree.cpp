@@ -40,6 +40,15 @@ span<sha256_hash const> range(std::vector<sha256_hash> const& c, int first, int 
 	return s(c).subspan(first, count);
 }
 
+// convenience wrapper for tests, that don't care about reusing the
+// scratch_space / hasher256 across repeated calls
+bool load_piece_layer(aux::merkle_tree& t, span<char const> piece_layer)
+{
+	std::vector<sha256_hash> scratch_space;
+	hasher256 h;
+	return t.load_piece_layer(piece_layer, scratch_space, h);
+}
+
 sha256_hash rand_sha256()
 {
 	sha256_hash ret;
@@ -358,7 +367,7 @@ TORRENT_TEST(get_piece_layer_piece_layer_mode)
 	int const num_pieces = (num_blocks + 3) / 4;
 
 	// add the entire piece layer
-	t.load_piece_layer(span<char const>(f[127].data(), sha256_hash::size() * num_pieces));
+	load_piece_layer(t, span<char const>(f[127].data(), sha256_hash::size() * num_pieces));
 
 	int const piece_layer_size = merkle_num_leafs(num_pieces);
 	int const piece_layer_start = merkle_first_leaf(piece_layer_size);
@@ -948,7 +957,7 @@ TORRENT_TEST(load_piece_layer_clears_verified_bits)
 			f[piece_layer_first + i].data(),
 			sha256_hash::size());
 
-	TEST_CHECK(t.load_piece_layer(piece_layer_bytes));
+	TEST_CHECK(load_piece_layer(t, piece_layer_bytes));
 
 	// in piece_layer mode with bpp > 1, no blocks should report as verified
 	TEST_CHECK(t.verified_leafs() == none_set(num_blocks));

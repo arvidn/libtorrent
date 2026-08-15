@@ -216,14 +216,17 @@ namespace libtorrent {
 	{
 		int const num_leafs = merkle_num_leafs(int(leaves.size()));
 		aux::vector<sha256_hash> merkle_tree;
-		return merkle_root_scratch(leaves, num_leafs, pad, merkle_tree);
+		hasher256 h;
+		return merkle_root_scratch(leaves, num_leafs, pad, merkle_tree, h);
 	}
 
 	// compute the merkle tree root, given the leaves and the has to use for
 	// padding
-	sha256_hash merkle_root_scratch(span<sha256_hash const> leaves
-		, int num_leafs, sha256_hash pad
-		, std::vector<sha256_hash>& scratch_space)
+	sha256_hash merkle_root_scratch(span<sha256_hash const> leaves,
+		int num_leafs,
+		sha256_hash pad,
+		std::vector<sha256_hash>& scratch_space,
+		hasher256& h)
 	{
 		TORRENT_ASSERT(((num_leafs - 1) & num_leafs) == 0);
 
@@ -232,7 +235,6 @@ namespace libtorrent {
 
 		if (num_leafs == 1) return leaves[0];
 
-		hasher256 h;
 		while (num_leafs > 1)
 		{
 			int i = 0;

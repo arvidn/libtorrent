@@ -517,8 +517,10 @@ namespace merkle_bench {
 		int const padded_leafs = lt::merkle_num_leafs(int(leaves.size()));
 
 		std::vector<sha256_hash> scratch;
+		lt::hasher256 h;
 		results.emplace_back("merkle: compute root", analyze([&] {
-			auto const root = lt::merkle_root_scratch(leaves, padded_leafs, sha256_hash{}, scratch);
+			auto const root =
+				lt::merkle_root_scratch(leaves, padded_leafs, sha256_hash{}, scratch, h);
 			do_not_optimize(root);
 		}));
 

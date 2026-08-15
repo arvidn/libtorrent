@@ -276,6 +276,7 @@ lt::add_torrent_params create_test_torrent(int const piece_size,
 
 		lt::aux::vector<lt::sha256_hash> blocks(blocks_per_piece);
 		std::vector<lt::sha256_hash> scratch_space;
+		lt::hasher256 h;
 
 		std::int64_t file_offset = 0;
 		std::int64_t const total_size = t.total_size();
@@ -303,10 +304,11 @@ lt::add_torrent_params create_test_torrent(int const piece_size,
 					, piece_size2
 					, blocks, pads_in_piece(pad_bytes, piece));
 				auto const piece_layer_hash = lt::merkle_root_scratch(
-					lt::span<lt::sha256_hash const>(blocks).first(blocks_in_piece)
-					, blocks_per_piece
-					, {}
-					, scratch_space);
+					lt::span<lt::sha256_hash const>(blocks).first(blocks_in_piece),
+					blocks_per_piece,
+					{},
+					scratch_space,
+					h);
 				t.set_hash2(f, piece - first_piece, piece_layer_hash);
 
 				if (!(flags & lt::create_torrent::v2_only))

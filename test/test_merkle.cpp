@@ -611,18 +611,21 @@ TORRENT_TEST(merkle_root)
 TORRENT_TEST(merkle_root_scratch)
 {
 	std::vector<sha256_hash> buf;
+	hasher256 scratch_hasher;
 
 	// all leaves in the tree
-	TEST_CHECK(merkle_root_scratch(v{a,b,c,d,e,f,g,h}, 8, o, buf) == ah);
+	TEST_CHECK(merkle_root_scratch(v{a, b, c, d, e, f, g, h}, 8, o, buf, scratch_hasher) == ah);
 
 	// not power-of-two number of leaves
-	TEST_CHECK(merkle_root_scratch(v{a,b,c,d,e,f}, 8, o, buf) == H(ad, H(ef, H(o, o))));
+	TEST_CHECK(merkle_root_scratch(v{a, b, c, d, e, f}, 8, o, buf, scratch_hasher)
+		== H(ad, H(ef, H(o, o))));
 
 	// very small tree
-	TEST_CHECK(merkle_root_scratch(v{a,b}, 2, o, buf) == ab);
+	TEST_CHECK(merkle_root_scratch(v{a, b}, 2, o, buf, scratch_hasher) == ab);
 
 	// unaligned leaf layer
-	TEST_CHECK(merkle_root_scratch(v{a,b,c}, 8, o, buf) == H(H(ab, H(c, o)), H(H(o,o), H(o,o))));
+	TEST_CHECK(merkle_root_scratch(v{a, b, c}, 8, o, buf, scratch_hasher)
+		== H(H(ab, H(c, o)), H(H(o, o), H(o, o))));
 }
 
 namespace {

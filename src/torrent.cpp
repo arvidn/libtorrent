@@ -446,6 +446,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		auto const& fs = m_torrent_file->layout();
 
 		bitfield const empty_verified;
+		std::vector<sha256_hash> scratch_space;
+		hasher256 h;
 		for (file_index_t i{0}; i < fs.end_file(); ++i)
 		{
 			if (fs.pad_file_at(i) || fs.file_size(i) == 0)
@@ -455,7 +457,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			bitfield const& verified_bitmask = (i >= verified.end_index()) ? empty_verified : verified[i];
 			if (i < mask.end_index() && !mask[i].empty())
 			{
-				m_merkle_trees[i].load_sparse_tree(trees_import[i], mask[i], verified_bitmask);
+				m_merkle_trees[i].load_sparse_tree(
+					trees_import[i], mask[i], verified_bitmask, scratch_space, h);
 			}
 			else
 			{
@@ -7353,9 +7356,11 @@ namespace {
 		if (ret->v2())
 		{
 			aux::vector<aux::vector<char>, file_index_t> v2_hashes;
+			std::vector<sha256_hash> scratch_space;
+			hasher256 scratch_hasher;
 			for (auto const& tree : m_merkle_trees)
 			{
-				auto const& layer = tree.get_piece_layer();
+				auto const& layer = tree.get_piece_layer(scratch_space, scratch_hasher);
 				std::vector<char> out_layer;
 				out_layer.reserve(layer.size() * sha256_hash::size());
 				for (auto const& h : layer)
@@ -7377,8 +7382,10 @@ namespace {
 	std::vector<std::vector<sha256_hash>> torrent::get_piece_layers() const
 	{
 		std::vector<std::vector<sha256_hash>> ret;
+		std::vector<sha256_hash> scratch_space;
+		hasher256 h;
 		for (auto const& tree : m_merkle_trees)
-			ret.emplace_back(tree.get_piece_layer());
+			ret.emplace_back(tree.get_piece_layer(scratch_space, h));
 		return ret;
 	}
 
@@ -8089,6 +8096,10 @@ namespace {
 
 		file_storage const& fs = m_torrent_file->layout();
 		m_merkle_trees.reserve(fs.num_files());
+#if TORRENT_ABI_VERSION < 4
+		std::vector<sha256_hash> scratch_space;
+		hasher256 h;
+#endif
 		for (file_index_t i : fs.file_range())
 		{
 			if (fs.pad_file_at(i) || fs.file_size(i) == 0)
@@ -8106,7 +8117,7 @@ namespace {
 				continue;
 			}
 
-			if (!m_merkle_trees[i].load_piece_layer(piece_layer))
+			if (!m_merkle_trees[i].load_piece_layer(piece_layer, scratch_space, h))
 			{
 				m_merkle_trees[i] = aux::merkle_tree();
 				m_flags &= ~torrent_internal_flags::v2_piece_layers_validated;

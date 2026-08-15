@@ -296,6 +296,8 @@ namespace {
 
 			auto& piece_layers = ret["piece layers"].dict();
 			bitfield const empty_verified;
+			std::vector<sha256_hash> scratch_space;
+			hasher256 h;
 			for (file_index_t f : fs.file_range())
 			{
 				if (fs.pad_file_at(f) || fs.file_size(f) <= fs.piece_length())
@@ -309,21 +311,21 @@ namespace {
 				auto const& tree = trees[f];
 				if (f < atp.merkle_tree_mask.end_index() && !atp.merkle_tree_mask[f].empty())
 				{
-					t.load_sparse_tree(tree, atp.merkle_tree_mask[f], verified);
+					t.load_sparse_tree(tree, atp.merkle_tree_mask[f], verified, scratch_space, h);
 				}
 				else
 				{
 					t.load_tree(tree, verified);
 				}
 
-				auto const piece_layer = t.get_piece_layer();
+				auto const piece_layer = t.get_piece_layer(scratch_space, h);
 				if (int(piece_layer.size()) != fs.file_num_pieces(f))
 					aux::throw_ex<system_error>(errors::torrent_invalid_piece_layer);
 
 				auto& layer = piece_layers[t.root().to_string()].string();
 
-				for (auto const& h : piece_layer)
-					layer += h.to_string();
+				for (auto const& piece_hash : piece_layer)
+					layer += piece_hash.to_string();
 			}
 		}
 		else if (atp.ti->v2() && !(flags & write_flags::allow_missing_piece_layer))

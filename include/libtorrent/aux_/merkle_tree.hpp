@@ -17,6 +17,7 @@ see LICENSE file.
 #include <optional>
 
 #include "libtorrent/sha1_hash.hpp" // for sha256_hash
+#include "libtorrent/hasher.hpp" // for hasher256
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/export.hpp"
 #include "libtorrent/span.hpp"
@@ -70,6 +71,14 @@ struct TORRENT_EXTRA_EXPORT merkle_tree
 	void load_tree(span<sha256_hash const> t, bitfield const& verified);
 	void load_sparse_tree(span<sha256_hash const> t, bitfield const& mask
 		, bitfield const& verified);
+	// same as above, but scratch_space and h are re-used, rather than
+	// allocated / constructed internally. Useful when loading trees for many
+	// files in a loop.
+	void load_sparse_tree(span<sha256_hash const> t,
+		bitfield const& mask,
+		bitfield const& verified,
+		std::vector<sha256_hash>& scratch_space,
+		hasher256& h);
 	void load_verified_bits(bitfield const& verified);
 
 	std::size_t size() const;
@@ -93,7 +102,13 @@ struct TORRENT_EXTRA_EXPORT merkle_tree
 	// returns true if all block hashes in the specified range have been verified
 	bool blocks_verified(int block_idx, int num_blocks) const;
 
-	bool load_piece_layer(span<char const> piece_layer);
+	// returns false if the piece layer fails to validate against the root
+	// hash. scratch_space and h are re-used, rather than allocated /
+	// constructed internally, so this can be called repeatedly, e.g. once
+	// per file in a loop, without re-allocating / re-constructing them each
+	// time.
+	bool load_piece_layer(
+		span<char const> piece_layer, std::vector<sha256_hash>& scratch_space, hasher256& h);
 
 	// the leafs in "tree" must be block hashes (i.e. leaf hashes in the this
 	// tree). This function inserts those hashes as well as the nodes up the
@@ -111,6 +126,11 @@ struct TORRENT_EXTRA_EXPORT merkle_tree
 		, span<sha256_hash const> uncle_hashes);
 
 	aux::vector<sha256_hash> get_piece_layer() const;
+	// same as above, but scratch_space and h are re-used, rather than
+	// allocated / constructed internally. Useful when getting the piece
+	// layer for many files in a loop.
+	aux::vector<sha256_hash> get_piece_layer(
+		std::vector<sha256_hash>& scratch_space, hasher256& h) const;
 
 	enum class set_block_result
 	{
@@ -128,7 +148,7 @@ private:
 	// set to an empty tree
 	void clear();
 
-	sha256_hash get_impl(int idx, std::vector<sha256_hash>& scratch_space) const;
+	sha256_hash get_impl(int idx, std::vector<sha256_hash>& scratch_space, hasher256& h) const;
 
 	int blocks_per_piece() const { return 1 << m_blocks_per_piece_log; }
 	// the number tree levels per piece. This is 0 if the block layer is also
