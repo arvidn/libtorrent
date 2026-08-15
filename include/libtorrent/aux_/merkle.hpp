@@ -71,9 +71,18 @@ namespace libtorrent {
 	// power of two.
 	TORRENT_EXTRA_EXPORT sha256_hash merkle_root(span<sha256_hash const> leaves, sha256_hash const& pad = {});
 
+	// computes the merkle tree root, given the leaves and the hash to use for
+	// padding. scratch_space is used as scratch memory to avoid allocating a
+	// new buffer every call. h is reset and reused for every internal hash
+	// computation, to avoid the overhead of constructing a new hasher256 for
+	// each one. Both are provided by the caller so they can be reused across
+	// repeated calls, e.g. in a loop over files.
 	TORRENT_EXTRA_EXPORT
-	sha256_hash merkle_root_scratch(span<sha256_hash const> leaves, int num_leafs
-		, sha256_hash pad, std::vector<sha256_hash>& scratch_space);
+	sha256_hash merkle_root_scratch(span<sha256_hash const> leaves,
+		int num_leafs,
+		sha256_hash pad,
+		std::vector<sha256_hash>& scratch_space,
+		hasher256& h);
 
 	// given a flat index, return which layer the node is in
 	TORRENT_EXTRA_EXPORT int merkle_get_layer(int idx);

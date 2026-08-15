@@ -101,6 +101,8 @@ namespace aux {
 		out.merkle_tree_mask.resize(fs.num_files());
 		out.verified_leaf_hashes.resize(fs.num_files());
 
+		std::vector<sha256_hash> scratch_space;
+		hasher256 h;
 		for (auto const& f : e.dict_items())
 		{
 			if (f.first.size() != static_cast<std::size_t>(sha256_hash::size())
@@ -130,7 +132,7 @@ namespace aux {
 			}
 
 			aux::merkle_tree tree(fs.file_num_blocks(file), fs.blocks_per_piece(), fs.root_ptr(file));
-			if (!tree.load_piece_layer(piece_layer))
+			if (!tree.load_piece_layer(piece_layer, scratch_space, h))
 			{
 				ec = errors::torrent_invalid_piece_layer;
 				return;

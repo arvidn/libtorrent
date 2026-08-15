@@ -860,6 +860,31 @@ namespace {
 	}
 }
 
+aux::vector<sha256_hash, file_index_t> create_torrent::compute_fileroots() const
+{
+	TORRENT_ASSERT(!m_file_piece_hash.empty());
+	aux::vector<sha256_hash, file_index_t> fileroots;
+	fileroots.resize(m_files.size());
+	sha256_hash const pad_hash = merkle_pad(m_piece_length / default_block_size, 1);
+
+	std::vector<sha256_hash> scratch_space;
+	hasher256 h;
+	for (file_index_t fi : file_range())
+	{
+		if (m_files[fi].flags & file_storage::flag_pad_file)
+			continue;
+		if (m_files[fi].size == 0)
+			continue;
+
+		fileroots[fi] = merkle_root_scratch(m_file_piece_hash[fi],
+			merkle_num_leafs(int(m_file_piece_hash[fi].size())),
+			pad_hash,
+			scratch_space,
+			h);
+	}
+	return fileroots;
+}
+
 TORRENT_VERSION_NAMESPACE_4
 	std::vector<char> create_torrent::generate_buf() const
 	{
@@ -880,19 +905,7 @@ TORRENT_VERSION_NAMESPACE_4
 		// compute file roots
 		aux::vector<sha256_hash, file_index_t> fileroots;
 		if (make_v2)
-		{
-			TORRENT_ASSERT(!m_file_piece_hash.empty());
-			fileroots.resize(m_files.size());
-			sha256_hash const pad_hash = merkle_pad(m_piece_length / default_block_size, 1);
-
-			for (file_index_t fi : file_range())
-			{
-				if (m_files[fi].flags & file_storage::flag_pad_file) continue;
-				if (m_files[fi].size == 0) continue;
-
-				fileroots[fi] = merkle_root(m_file_piece_hash[fi], pad_hash);
-			}
-		}
+			fileroots = compute_fileroots();
 
 		std::vector<char> ret;
 		{
@@ -1307,18 +1320,13 @@ TORRENT_VERSION_NAMESPACE_4
 		aux::vector<sha256_hash, file_index_t> fileroots;
 		if (make_v2)
 		{
-			TORRENT_ASSERT(!m_file_piece_hash.empty());
-			fileroots.resize(m_files.size());
+			fileroots = compute_fileroots();
 
-			sha256_hash const pad_hash = merkle_pad(m_piece_length / default_block_size, 1);
 			auto& file_pieces = dict["piece layers"].dict();
-
 			for (file_index_t fi : file_range())
 			{
 				if (m_files[fi].flags & file_storage::flag_pad_file) continue;
 				if (m_files[fi].size == 0) continue;
-
-				fileroots[fi] = merkle_root(m_file_piece_hash[fi], pad_hash);
 
 				// files that only have one piece store the piece hash as the
 				// root, we don't need a pieces layer entry for such files

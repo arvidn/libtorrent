@@ -96,6 +96,17 @@ namespace {
 		, bitfield const& mask
 		, bitfield const& verified)
 	{
+		std::vector<sha256_hash> scratch_space;
+		hasher256 h;
+		load_sparse_tree(t, mask, verified, scratch_space, h);
+	}
+
+	void merkle_tree::load_sparse_tree(span<sha256_hash const> t,
+		bitfield const& mask,
+		bitfield const& verified,
+		std::vector<sha256_hash>& scratch_space,
+		hasher256& h)
+	{
 		INVARIANT_CHECK;
 
 		// The size of the mask should not exceed the size of the tree, but a mask larger than
@@ -125,7 +136,8 @@ namespace {
 			m_tree.assign(t.begin() + block_index, t.begin() + block_index + m_num_blocks);
 			m_mode = mode_t::block_layer;
 
-			sha256_hash const r = merkle_root(m_tree);
+			sha256_hash const r = merkle_root_scratch(
+				m_tree, merkle_num_leafs(m_tree.end_index()), sha256_hash{}, scratch_space, h);
 			// validation failed!
 			if (r != root()) clear();
 			return;
@@ -158,7 +170,11 @@ namespace {
 				m_mode = mode_t::piece_layer;
 
 				sha256_hash const piece_layer_pad = merkle_pad(1 << m_blocks_per_piece_log, 1);
-				sha256_hash const r = merkle_root(m_tree, piece_layer_pad);
+				sha256_hash const r = merkle_root_scratch(m_tree,
+					merkle_num_leafs(m_tree.end_index()),
+					piece_layer_pad,
+					scratch_space,
+					h);
 				// validation failed!
 				if (r != root()) clear();
 				return;
@@ -191,6 +207,14 @@ namespace {
 
 	aux::vector<sha256_hash> merkle_tree::get_piece_layer() const
 	{
+		std::vector<sha256_hash> scratch_space;
+		hasher256 h;
+		return get_piece_layer(scratch_space, h);
+	}
+
+	aux::vector<sha256_hash> merkle_tree::get_piece_layer(
+		std::vector<sha256_hash>& scratch_space, hasher256& h) const
+	{
 		aux::vector<sha256_hash> ret;
 
 		switch (m_mode)
@@ -209,13 +233,13 @@ namespace {
 			case mode_t::block_layer:
 			{
 				ret.reserve(num_pieces());
-				std::vector<sha256_hash> scratch_space;
 
 				int const blocks_in_piece = blocks_per_piece();
 				for (int b = 0; b < int(m_tree.size()); b += blocks_in_piece)
 				{
 					auto const leafs = span<sha256_hash const>(m_tree).subspan(b);
-					ret.push_back(merkle_root_scratch(leafs, blocks_in_piece, sha256_hash{}, scratch_space));
+					ret.push_back(merkle_root_scratch(
+						leafs, blocks_in_piece, sha256_hash{}, scratch_space, h));
 				}
 				break;
 			}
@@ -223,8 +247,8 @@ namespace {
 		return ret;
 	}
 
-	// returns false if the piece layer fails to validate against the root hash
-	bool merkle_tree::load_piece_layer(span<char const> piece_layer)
+	bool merkle_tree::load_piece_layer(
+		span<char const> piece_layer, std::vector<sha256_hash>& scratch_space, hasher256& h)
 	{
 		INVARIANT_CHECK;
 		if (m_mode == mode_t::block_layer) return true;
@@ -249,7 +273,8 @@ namespace {
 		for (int n = 0; n < npieces; ++n)
 			pieces[n].assign(piece_layer.data() + n * sha256_hash::size());
 
-		if (merkle_root(pieces, pad_hash) != root())
+		if (merkle_root_scratch(pieces, merkle_num_leafs(npieces), pad_hash, scratch_space, h)
+			!= root())
 			return false;
 
 		// if there's only 1 block per piece, the piece layer is the same as the
@@ -627,10 +652,12 @@ namespace {
 	sha256_hash merkle_tree::operator[](int const idx) const
 	{
 		std::vector<sha256_hash> scratch;
-		return get_impl(idx, scratch);
+		hasher256 h;
+		return get_impl(idx, scratch, h);
 	}
 
-	sha256_hash merkle_tree::get_impl(int idx, std::vector<sha256_hash>& scratch_space) const
+	sha256_hash merkle_tree::get_impl(
+		int idx, std::vector<sha256_hash>& scratch_space, hasher256& h) const
 	{
 		switch (m_mode)
 		{
@@ -673,7 +700,7 @@ namespace {
 				auto const layer = span<sha256_hash const>(m_tree)
 					.subspan(idx, std::min(m_tree.end_index() - idx, layer_size));
 
-				return merkle_root_scratch(layer, layer_size, pad_hash, scratch_space);
+				return merkle_root_scratch(layer, layer_size, pad_hash, scratch_space, h);
 			}
 		}
 		TORRENT_ASSERT_FAIL();
@@ -901,6 +928,7 @@ namespace {
 		ret.reserve(std::size_t(count));
 
 		std::vector<sha256_hash> scratch_space;
+		hasher256 h;
 
 		if (base == 0 && m_mode == mode_t::block_layer)
 		{
@@ -920,7 +948,7 @@ namespace {
 				if ((base != 0 || i < m_num_blocks + layer_start_idx - index)
 					&& !has_node(i))
 					return {};
-				ret.push_back(get_impl(i, scratch_space));
+				ret.push_back(get_impl(i, scratch_space, h));
 			}
 		}
 
@@ -943,7 +971,7 @@ namespace {
 				if (!has_node(proof_idx) || !has_node(sibling))
 					return {};
 
-				ret.push_back(get_impl(sibling, scratch_space));
+				ret.push_back(get_impl(sibling, scratch_space, h));
 			}
 		}
 

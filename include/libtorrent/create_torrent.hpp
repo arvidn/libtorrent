@@ -487,6 +487,9 @@ TORRENT_VERSION_NAMESPACE_4
 		void add_collection(string_view c);
 
 	private:
+		// computes the v2 merkle root hash for every file, indexed by
+		// file_index_t. requires m_file_piece_hash to be populated.
+		aux::vector<sha256_hash, file_index_t> compute_fileroots() const;
 
 		aux::vector<create_file_entry, file_index_t> m_files;
 
