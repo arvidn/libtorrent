@@ -104,9 +104,8 @@ namespace libtorrent {
 			|| (c >= 0x2060 && c <= 0x2064) || (c >= 0x2066 && c <= 0x2069) || c == 0xfeff)
 			return true;
 
-		static const char invalid_chars[] = "/\\";
 		if (c > 127) return false;
-		return std::strchr(invalid_chars, static_cast<char>(c)) != nullptr;
+		return c == '/' || c == '\\' || c == '\0';
 	}
 
 	} // anonymous namespace
