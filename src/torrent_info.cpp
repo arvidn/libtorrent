@@ -156,28 +156,46 @@ namespace aux {
 	// meaning in v2 torrents (it means the previous path element was the
 	// filename). Also, If we're adding the torrent name as the first path
 	// element, in a multi-file torrent, we must have a directory name.
-	void sanitize_append_path_element(std::string& path, string_view element, bool const force_element)
+	// returns true if element was modified while being appended to path.
+	// if leaf is true and element turns out to need no modification, path
+	// is left completely untouched (not even the separator is added)
+	// instead of appending element verbatim.
+	bool sanitize_append_path_element(
+		std::string& path, string_view element, bool const force_element, bool const leaf)
 	{
-		if (element.size() == 1 && element[0] == '.' && !force_element) return;
+		if (element.size() == 1 && element[0] == '.' && !force_element)
+			return true;
 
 #ifdef TORRENT_WINDOWS
 #define TORRENT_SEPARATOR '\\'
 #else
 #define TORRENT_SEPARATOR '/'
 #endif
-		path.reserve(path.size() + element.size() + 2);
-		int added_separator = 0;
-		if (!path.empty())
-		{
-			path += TORRENT_SEPARATOR;
-			added_separator = 1;
-		}
+		int const added_separator = path.empty() ? 0 : 1;
+
+		// nothing has been written to path for this element yet. Every write
+		// below goes through commit(), so as long as it's never called, a
+		// leaf element leaves path exactly as it was on entry.
+		bool committed = false;
+		auto commit = [&] {
+			if (committed)
+				return;
+			committed = true;
+			path.reserve(path.size() + element.size() + 2);
+			if (added_separator)
+				path += TORRENT_SEPARATOR;
+		};
+		if (!leaf)
+			commit();
 
 		if (element.empty())
 		{
+			commit();
 			path += "_";
-			return;
+			return true;
 		}
+
+		bool modified = false;
 
 #if !TORRENT_USE_UNC_PATHS && defined TORRENT_WINDOWS
 #pragma message ("building for windows without UNC paths is deprecated")
@@ -207,6 +225,7 @@ namespace aux {
 		{
 			pe = "_" + pe;
 			element = string_view();
+			modified = true;
 		}
 #endif
 #ifdef TORRENT_WINDOWS
@@ -221,6 +240,13 @@ namespace aux {
 		char num_dots = 0;
 		bool found_extension = false;
 
+		// [run_start, i) is a span of element that has passed validation and
+		// is pending a single bulk copy into path, rather than being copied
+		// character by character. It's flushed whenever a character needs to
+		// be dropped or substituted, and once at the end of the loop. This
+		// makes the common case, where element needs no sanitization at all,
+		// a single append() call (or, for a leaf, no call at all).
+		std::size_t run_start = 0;
 		int seq_len = 0;
 		for (std::size_t i = 0; i < element.size(); i += std::size_t(seq_len))
 		{
@@ -229,27 +255,30 @@ namespace aux {
 
 			if (code_point >= 0 && filter_path_character(code_point))
 			{
+				commit();
+				path.append(element.data() + run_start, i - run_start);
+				run_start = i + std::size_t(seq_len);
+				modified = true;
 				continue;
 			}
 
 			if (code_point < 0 || !valid_path_character(code_point))
 			{
 				// invalid utf8 sequence, replace with "_"
+				commit();
+				path.append(element.data() + run_start, i - run_start);
 				path += '_';
+				run_start = i + std::size_t(seq_len);
 				++added;
+				modified = true;
 #ifdef TORRENT_WINDOWS
 				++unicode_chars;
 #endif
 				continue;
 			}
 
-			// validation passed, add it to the output string
-			for (std::size_t k = i; k < i + std::size_t(seq_len); ++k)
-			{
-				TORRENT_ASSERT(element[k] != 0);
-				path.push_back(element[k]);
-			}
-
+			// validation passed, it stays part of the pending run and is
+			// copied to path in bulk once the run ends
 			if (code_point == '.') ++num_dots;
 
 			added += seq_len;
@@ -267,6 +296,10 @@ namespace aux {
 			if (added >= 240 && !found_extension)
 #endif
 			{
+				commit();
+				path.append(element.data() + run_start, i + std::size_t(seq_len) - run_start);
+				modified = true;
+
 				int dot = -1;
 				for (int j = int(element.size()) - 1;
 					j > std::max(int(element.size()) - 10, int(i)); --j)
@@ -276,52 +309,113 @@ namespace aux {
 					break;
 				}
 				// there is no extension
-				if (dot == -1) break;
+				if (dot == -1)
+				{
+					run_start = element.size();
+					break;
+				}
 				found_extension = true;
 				TORRENT_ASSERT(dot > 0);
 				i = std::size_t(dot - seq_len);
+				run_start = std::size_t(dot);
 			}
 		}
+		// flush whatever's left of the pending run. If nothing has been
+		// committed at this point, element hasn't needed any modification so
+		// far (added == element.size()), so this is the only remaining
+		// unconditional write to avoid.
+		if (committed)
+			path.append(element.data() + run_start, element.size() - run_start);
 
 		if (added == num_dots && added <= 2)
 		{
+			// the surviving content is 0-2 dots, which isn't a valid path
+			// component on any OS (it means "self" or "parent directory").
+			// This is always treated as a modification, whether or not any
+			// individual character was flagged above.
 			if (force_element)
 			{
 				// revert the invalid filename and replace it with an underscore
-				path.erase(path.end() - added, path.end());
+				if (committed)
+					path.erase(path.end() - added, path.end());
+				else
+					commit();
 				path += "_";
 			}
-			else
+			else if (committed)
 			{
-				// revert everything
+				// revert everything, including the separator
 				path.erase(path.end() - added - added_separator, path.end());
 			}
-			return;
+			// else: nothing was ever written; path is already in the
+			// reverted state
+			return true;
 		}
 
 #ifdef TORRENT_WINDOWS
-		// remove trailing spaces and dots. These aren't allowed in filenames on windows
-		for (int i = int(path.size()) - 1; i >= 0; --i)
+		if (committed)
 		{
-			if (path[i] != ' ' && path[i] != '.') break;
-			path.resize(i);
-			--added;
-			TORRENT_ASSERT(added >= 0);
+			// remove trailing spaces and dots. These aren't allowed in filenames on windows
+			for (int i = int(path.size()) - 1; i >= 0; --i)
+			{
+				if (path[i] != ' ' && path[i] != '.')
+					break;
+				path.resize(i);
+				--added;
+				modified = true;
+				TORRENT_ASSERT(added >= 0);
+			}
+		}
+		else
+		{
+			// nothing has been written to path yet, so element is still
+			// exactly the pending content (added == element.size()). Mirror
+			// the trim above by scanning element directly, so we can still
+			// avoid touching path if nothing actually needs trimming.
+			std::size_t keep = element.size();
+			while (keep > 0 && (element[keep - 1] == ' ' || element[keep - 1] == '.'))
+			{
+				--keep;
+				--added;
+				TORRENT_ASSERT(added >= 0);
+			}
+			if (keep != element.size())
+			{
+				modified = true;
+				if (added > 0)
+				{
+					commit();
+					path.append(element.data(), keep);
+				}
+			}
 		}
 
 		if (force_element && added == 0)
 		{
+			commit();
 			path += "_";
+			modified = true;
 		}
 		else if (added == 0 && added_separator)
 		{
-			// remove the separator added at the beginning
-			path.erase(path.end() - 1);
-			return;
+			if (committed)
+			{
+				// remove the separator added at the beginning
+				path.erase(path.end() - 1);
+			}
+			return true;
 		}
 #endif
 
-		if (path.empty()) path = "_";
+		if (!committed)
+			return modified;
+
+		if (path.empty())
+		{
+			path = "_";
+			modified = true;
+		}
+		return modified;
 	}
 }
 
@@ -506,6 +600,7 @@ namespace {
 
 		std::string path = root_dir;
 		string_view filename;
+		bool modified = false;
 
 		if (top_level)
 		{
@@ -525,8 +620,22 @@ namespace {
 			while (!filename.empty() && filename.front() == TORRENT_SEPARATOR)
 				filename.remove_prefix(1);
 
-			aux::sanitize_append_path_element(path, p.string_value());
-			if (path.empty())
+			// a name consisting entirely of separators strips down to nothing
+			if (filename.empty())
+			{
+				ec = errors::torrent_missing_name;
+				return false;
+			}
+
+			// leave path empty (rather than just holding filename) when
+			// filename doesn't need sanitizing, so it can be borrowed
+			// directly by add_file_borrow() below instead of being copied
+			// into path and re-split back out. When unmodified, filename is
+			// already known to be valid and non-empty (checked above), so
+			// only a modified-and-reverted result can leave path empty and
+			// mean an actually missing name.
+			modified = aux::sanitize_append_path_element(path, filename, false, true);
+			if (modified && path.empty())
 			{
 				ec = errors::torrent_missing_name;
 				return false;
@@ -558,8 +667,16 @@ namespace {
 							, static_cast<std::size_t>(e.string_length()) };
 						while (!filename.empty() && filename.front() == TORRENT_SEPARATOR)
 							filename.remove_prefix(1);
+						// leave path as just the directory when filename
+						// doesn't need sanitizing, so it can be borrowed
+						// directly by add_file_borrow() below instead of
+						// being copied into path and re-split back out
+						modified = aux::sanitize_append_path_element(path, filename, true, true);
 					}
-					aux::sanitize_append_path_element(path, e.string_value(), true);
+					else
+					{
+						aux::sanitize_append_path_element(path, e.string_value(), true);
+					}
 					++idx;
 				}
 			}
@@ -578,8 +695,11 @@ namespace {
 			}
 		}
 
-		// bitcomet pad file
-		if (path.find("_____padding_file_") != std::string::npos)
+		// bitcomet pad file. filename may or may not be folded into path
+		// (it's left separate, and path left as just the directory, when
+		// filename didn't need sanitizing), so both need checking.
+		if (filename.find("_____padding_file_") != string_view::npos
+			|| path.find("_____padding_file_") != std::string::npos)
 			file_flags |= file_storage::flag_pad_file;
 
 #if TORRENT_ABI_VERSION < 4
@@ -626,10 +746,9 @@ namespace {
 			// directory we haven't parsed yet
 		}
 
-		if (filename.size() > path.length()
-			|| path.substr(path.size() - filename.size()) != filename)
+		if (modified)
 		{
-			// if the filename was sanitized and differ, clear it to just use path
+			// if the filename was sanitized, clear it to just use path
 			filename = {};
 		}
 
@@ -697,14 +816,18 @@ namespace {
 			bool const single_file = leaf_node && !is_multi_file && frame.tree.dict_size() == 1;
 
 			std::string path = single_file ? std::string() : frame.path;
-			aux::sanitize_append_path_element(path, filename, true);
+			// only leaf (file) entries can skip the append when unmodified:
+			// non-leaf entries are directory names that must always end up
+			// in path, since it's pushed onto the stack for children to
+			// build on top of
+			bool const modified =
+				aux::sanitize_append_path_element(path, filename, true, leaf_node);
 
 			if (leaf_node)
 			{
-				if (filename.size() > path.length()
-					|| path.substr(path.size() - filename.size()) != filename)
+				if (modified)
 				{
-					// if the filename was sanitized and differ, clear it to just use path
+					// if the filename was sanitized, clear it to just use path
 					filename = {};
 				}
 

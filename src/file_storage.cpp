@@ -122,54 +122,65 @@ TORRENT_VERSION_NAMESPACE_4
 		return (m_piece_length + default_block_size - 1) / default_block_size;
 	}
 
-	// path is supposed to include the name of the torrent itself.
-	// or an absolute path, to move a file outside of the download directory
-	void file_storage::update_path_index(aux::file_entry& e
-		, std::string const& path, bool const set_name)
+	// path is the directory portion only, never including the leaf (which
+	// is passed in separately as filename), except when path is an absolute
+	// path, to move a file outside of the download directory - in that case
+	// filename is folded into it as a single name.
+	void file_storage::update_path_index(
+		aux::file_entry& e, string_view const path, string_view const filename, bool const set_name)
 	{
-		// TODO: at appears set_name is always true
+		if (path.empty())
+		{
+			if (set_name)
+				e.set_name(filename);
+			e.path_index = aux::file_entry::no_path;
+			return;
+		}
+
 		if (is_complete(path))
 		{
-			TORRENT_ASSERT(set_name);
-			e.set_name(path);
+			// an absolute directory is rare enough (and path_is_absolute
+			// stores the whole thing as a single name) that it's not worth
+			// avoiding the concatenation here. filename is empty when path
+			// is already the complete absolute path (the caller found no
+			// leaf to split off without losing the leading separator).
+			std::string full(path);
+			if (!filename.empty())
+			{
+				full += TORRENT_SEPARATOR;
+				full.append(filename.data(), filename.size());
+			}
+			e.set_name(full);
 			e.path_index = aux::file_entry::path_is_absolute;
 			return;
 		}
 
 		TORRENT_ASSERT(path[0] != '/');
 
-		// split the string into the leaf filename
-		// and the branch path
-		auto [branch_path, leaf] = rsplit_path(path);
-
-		if (branch_path.empty())
-		{
-			if (set_name) e.set_name(leaf);
-			e.path_index = aux::file_entry::no_path;
-			return;
-		}
-
 		// if the path *does* contain the name of the torrent (as we expect)
 		// strip it before adding it to m_paths
-		if (lsplit_path(branch_path).first == m_name)
+		if (lsplit_path(path).first == m_name)
 		{
-			branch_path = lsplit_path(branch_path).second;
+			string_view branch_path = lsplit_path(path).second;
 			// strip duplicate separators
-			while (!branch_path.empty() && (branch_path.front() == TORRENT_SEPARATOR
+			while (!branch_path.empty()
+				&& (branch_path.front() == TORRENT_SEPARATOR
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
-				|| branch_path.front() == '/'
+					|| branch_path.front() == '/'
 #endif
-				))
+					))
 				branch_path.remove_prefix(1);
 			e.no_root_dir = false;
+			e.path_index = get_or_add_path(branch_path);
 		}
 		else
 		{
 			e.no_root_dir = true;
+			e.path_index = get_or_add_path(path);
 		}
 
-		e.path_index = get_or_add_path(branch_path);
-		if (set_name) e.set_name(leaf);
+		if (set_name)
+			e.set_name(filename);
 	}
 
 	aux::path_index_t file_storage::get_or_add_path(string_view const path)
@@ -481,7 +492,18 @@ TORRENT_VERSION_NAMESPACE_4
 		, std::string const& new_filename)
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
-		update_path_index(m_files[index], new_filename);
+		// splitting off the leaf with rsplit_path() loses the leading
+		// separator for a single-component absolute path (e.g. "/tmp"),
+		// so is_complete() must be checked before splitting
+		if (is_complete(new_filename))
+		{
+			update_path_index(m_files[index], new_filename, string_view());
+		}
+		else
+		{
+			auto const [branch_path, leaf] = rsplit_path(new_filename);
+			update_path_index(m_files[index], branch_path, leaf);
+		}
 	}
 #endif // TORRENT_ABI_VERSION
 
@@ -821,14 +843,18 @@ TORRENT_VERSION_NAMESPACE_4
 			return;
 		}
 
-		if (!has_parent_path(path))
+		// when filename is borrowed, path holds only the directory portion
+		// (never the leaf), so "no parent" just means an empty path; there's
+		// no leaf embedded in path to scan for with has_parent_path()
+		bool const has_parent = filename.empty() ? has_parent_path(path) : !path.empty();
+		if (!has_parent)
 		{
 			// you have already added at least one file with a
 			// path to the file (branch_path), which means that
 			// all the other files need to be in the same top
 			// directory as the first file.
 			TORRENT_ASSERT_PRECOND(m_files.empty());
-			m_name = path;
+			m_name = filename.empty() ? path : std::string(filename);
 		}
 		else
 		{
@@ -862,12 +888,29 @@ TORRENT_VERSION_NAMESPACE_4
 		m_files.emplace_back();
 		aux::file_entry& e = m_files.back();
 
-		// the last argument specified whether the function should also set
-		// the filename. If it does, it will copy the leaf filename from path.
-		// if filename is empty, we should copy it. If it isn't, we're borrowing
-		// it and we can save the copy by setting it after this call to
-		// update_path_index().
-		update_path_index(e, path, filename.empty());
+		// if filename is empty, path holds the full path (directory and
+		// leaf together), so it needs splitting here. if filename is
+		// non-empty, it's borrowed and path already holds only the
+		// directory portion, so no split is needed to find the leaf.
+		if (filename.empty())
+		{
+			// splitting off the leaf with rsplit_path() loses the leading
+			// separator for a single-component absolute path (e.g.
+			// "/bar"), so is_complete() must be checked before splitting
+			if (is_complete(path))
+			{
+				update_path_index(e, path, string_view());
+			}
+			else
+			{
+				auto const [branch_path, leaf] = rsplit_path(path);
+				update_path_index(e, branch_path, leaf);
+			}
+		}
+		else
+		{
+			update_path_index(e, path, filename, false);
+		}
 
 		// filename is allowed to be empty, in which case we just use path
 		if (!filename.empty())

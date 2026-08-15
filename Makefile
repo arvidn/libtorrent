@@ -1087,6 +1087,7 @@ TEST_TORRENTS = \
   invalid_name.torrent \
   invalid_name2.torrent \
   invalid_name3.torrent \
+  invalid_name4.torrent \
   invalid_path_list.torrent \
   invalid_piece_len.torrent \
   invalid_pieces.torrent \

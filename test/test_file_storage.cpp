@@ -166,6 +166,66 @@ TORRENT_TEST(rename_file2)
 }
 #endif
 
+#if TORRENT_ABI_VERSION < 4
+TORRENT_TEST(rename_file_absolute_single_component)
+{
+	// a single path-component absolute path (no intermediate directory,
+	// e.g. "/tmp" rather than "/tmp/a") must still be recognized as
+	// absolute, not collapsed into an ordinary relative filename
+	file_storage st;
+	setup_test_storage(st);
+
+#ifdef TORRENT_WINDOWS
+	st.rename_file(file_index_t{0}, "c:\\tmp");
+	TEST_EQUAL(st.file_path(file_index_t{0}, "."), "c:\\tmp");
+#else
+	st.rename_file(file_index_t{0}, "/tmp");
+	TEST_EQUAL(st.file_path(file_index_t{0}, "."), "/tmp");
+#endif
+	TEST_CHECK(st.file_absolute_path(file_index_t{0}));
+}
+#endif
+
+TORRENT_TEST(add_file_absolute_single_component)
+{
+	// same case as rename_file_absolute_single_component, but reached
+	// through add_file(), which hits update_path_index() via a
+	// different call site (add_file_borrow_impl)
+	file_storage fs;
+#ifdef TORRENT_WINDOWS
+	fs.add_file("c:\\bar", 10);
+	TEST_EQUAL(fs.file_path(file_index_t{0}, "."), "c:\\bar");
+#else
+	fs.add_file("/bar", 10);
+	TEST_EQUAL(fs.file_path(file_index_t{0}, "."), "/bar");
+#endif
+	TEST_CHECK(fs.file_absolute_path(file_index_t{0}));
+}
+
+TORRENT_TEST(add_file_no_directory_not_absolute)
+{
+	// a plain filename with no directory component (the common case)
+	// must not be mistaken for a collapsed single-component absolute path
+	file_storage fs;
+	fs.add_file("bar", 10);
+	TEST_CHECK(!fs.file_absolute_path(file_index_t{0}));
+	TEST_EQUAL(fs.file_path(file_index_t{0}, "save_path"), combine_path("save_path", "bar"));
+}
+
+TORRENT_TEST(add_file_borrow_single_file_torrent)
+{
+	// mirrors how torrent_info parses a single-file torrent's "name"
+	// field: the filename is borrowed directly (non-empty) with an
+	// empty directory path. This goes through a different branch of
+	// add_file_borrow_impl than add_file_no_directory_not_absolute
+	// (the filename is never split out of path here), but must still
+	// not be treated as absolute.
+	file_storage fs;
+	fs.add_file_borrow("bar", "", 10);
+	TEST_CHECK(!fs.file_absolute_path(file_index_t{0}));
+	TEST_EQUAL(fs.file_path(file_index_t{0}, "save_path"), combine_path("save_path", "bar"));
+}
+
 TORRENT_TEST(pointer_offset)
 {
 	// test applying pointer offset
@@ -177,12 +237,18 @@ TORRENT_TEST(pointer_offset)
 #endif
 	char const roothash[] = "01234567890123456789012345678912-----";
 
-	st.add_file_borrow({filename, 5}, combine_path("test-torrent-1", "test1")
-		, 10, file_flags_t{}
+	// filename is borrowed and non-empty, so path must hold only the
+	// directory portion, not the leaf ("test1") - it's never both
+	st.add_file_borrow({filename, 5},
+		"test-torrent-1",
+		10,
+		file_flags_t{},
 #if TORRENT_ABI_VERSION < 4
-		, filehash
+		filehash,
 #endif
-		, 0, {}, roothash);
+		0,
+		{},
+		roothash);
 
 	// test filename_ptr and filename_len
 #if TORRENT_ABI_VERSION <= 2

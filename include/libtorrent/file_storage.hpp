@@ -724,8 +724,12 @@ public:
 		bool m_v2 = false;
 
 		// TODO: can we remove set_name?
-		void update_path_index(aux::file_entry& e, std::string const& path
-			, bool set_name = true);
+		// path must be the directory portion only, never including the
+		// leaf; filename is the leaf, always passed in separately. The
+		// caller is responsible for splitting a full path with rsplit_path()
+		// first, when it doesn't already have path and filename apart.
+		void update_path_index(
+			aux::file_entry& e, string_view path, string_view filename, bool set_name = true);
 
 		// the list of files that this torrent consists of
 		aux::vector<aux::file_entry, file_index_t> m_files;

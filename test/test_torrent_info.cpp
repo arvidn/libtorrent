@@ -427,50 +427,50 @@ struct test_failing_torrent_t
 	error_code error; // the expected error
 };
 
-test_failing_torrent_t test_error_torrents[] =
-{
-	{ "missing_piece_len.torrent", errors::torrent_missing_piece_length },
-	{ "invalid_piece_len.torrent", errors::torrent_missing_piece_length },
-	{ "negative_piece_len.torrent", errors::torrent_missing_piece_length },
-	{ "no_name.torrent", errors::torrent_missing_name },
-	{ "bad_name.torrent", errors::torrent_missing_name },
-	{ "invalid_name.torrent", errors::torrent_missing_name },
-	{ "invalid_info.torrent", errors::torrent_missing_info },
-	{ "string.torrent", errors::torrent_is_no_dict },
-	{ "negative_size.torrent", errors::torrent_invalid_length },
-	{ "negative_file_size.torrent", errors::torrent_invalid_length },
-	{ "invalid_path_list.torrent", errors::torrent_invalid_name},
-	{ "missing_path_list.torrent", errors::torrent_missing_name },
-	{ "invalid_pieces.torrent", errors::torrent_missing_pieces },
-	{ "unaligned_pieces.torrent", errors::torrent_invalid_hashes },
-	{ "invalid_file_size.torrent", errors::torrent_invalid_length },
-	{ "invalid_symlink.torrent", errors::torrent_invalid_name },
-	{ "many_pieces.torrent", errors::too_many_pieces_in_torrent },
-	{ "no_files.torrent", errors::no_files_in_torrent},
-	{ "zero.torrent", errors::torrent_invalid_length},
-	{ "zero2.torrent", errors::torrent_invalid_length},
-	{ "v2_mismatching_metadata.torrent", errors::torrent_inconsistent_files},
-	{ "v2_no_power2_piece.torrent", errors::torrent_missing_piece_length},
-	{ "v2_invalid_file.torrent", errors::torrent_file_parse_failed},
-	{ "v2_deep_recursion.torrent", bdecode_errors::depth_exceeded},
-	{ "v2_non_multiple_piece_layer.torrent", errors::torrent_invalid_piece_layer},
-	{ "v2_piece_layer_invalid_file_hash.torrent", errors::torrent_invalid_piece_layer},
-	{ "v2_invalid_piece_layer.torrent", errors::torrent_invalid_piece_layer},
-	{ "v2_invalid_piece_layer_root.torrent", errors::torrent_invalid_piece_layer},
-	{ "v2_unknown_piece_layer_entry.torrent", errors::torrent_invalid_piece_layer},
-	{ "v2_invalid_piece_layer_size.torrent", errors::torrent_invalid_piece_layer},
-	{ "v2_bad_file_alignment.torrent", errors::torrent_inconsistent_files},
-	{ "v2_unordered_files.torrent", errors::invalid_bencoding},
-	{ "v2_overlong_integer.torrent", errors::invalid_bencoding},
-	{ "v2_missing_file_root_invalid_symlink.torrent", errors::torrent_missing_pieces_root},
-	{ "v2_large_file.torrent", errors::torrent_invalid_length},
-	{ "v2_large_offset.torrent", errors::too_many_pieces_in_torrent},
-	{ "v2_piece_size.torrent", errors::torrent_missing_piece_length},
-	{ "v2_invalid_pad_file.torrent", errors::torrent_invalid_pad_file},
-	{ "v2_zero_root.torrent", errors::torrent_missing_pieces_root},
-	{ "v2_zero_root_small.torrent", errors::torrent_missing_pieces_root},
-	{ "v2_empty_filename.torrent", errors::torrent_file_parse_failed},
-	{ "duplicate_files2.torrent", errors::too_many_duplicate_filenames},
+test_failing_torrent_t test_error_torrents[] = {
+	{"missing_piece_len.torrent", errors::torrent_missing_piece_length},
+	{"invalid_piece_len.torrent", errors::torrent_missing_piece_length},
+	{"negative_piece_len.torrent", errors::torrent_missing_piece_length},
+	{"no_name.torrent", errors::torrent_missing_name},
+	{"bad_name.torrent", errors::torrent_missing_name},
+	{"invalid_name.torrent", errors::torrent_missing_name},
+	{"invalid_info.torrent", errors::torrent_missing_info},
+	{"string.torrent", errors::torrent_is_no_dict},
+	{"negative_size.torrent", errors::torrent_invalid_length},
+	{"negative_file_size.torrent", errors::torrent_invalid_length},
+	{"invalid_path_list.torrent", errors::torrent_invalid_name},
+	{"invalid_name4.torrent", errors::torrent_missing_name},
+	{"missing_path_list.torrent", errors::torrent_missing_name},
+	{"invalid_pieces.torrent", errors::torrent_missing_pieces},
+	{"unaligned_pieces.torrent", errors::torrent_invalid_hashes},
+	{"invalid_file_size.torrent", errors::torrent_invalid_length},
+	{"invalid_symlink.torrent", errors::torrent_invalid_name},
+	{"many_pieces.torrent", errors::too_many_pieces_in_torrent},
+	{"no_files.torrent", errors::no_files_in_torrent},
+	{"zero.torrent", errors::torrent_invalid_length},
+	{"zero2.torrent", errors::torrent_invalid_length},
+	{"v2_mismatching_metadata.torrent", errors::torrent_inconsistent_files},
+	{"v2_no_power2_piece.torrent", errors::torrent_missing_piece_length},
+	{"v2_invalid_file.torrent", errors::torrent_file_parse_failed},
+	{"v2_deep_recursion.torrent", bdecode_errors::depth_exceeded},
+	{"v2_non_multiple_piece_layer.torrent", errors::torrent_invalid_piece_layer},
+	{"v2_piece_layer_invalid_file_hash.torrent", errors::torrent_invalid_piece_layer},
+	{"v2_invalid_piece_layer.torrent", errors::torrent_invalid_piece_layer},
+	{"v2_invalid_piece_layer_root.torrent", errors::torrent_invalid_piece_layer},
+	{"v2_unknown_piece_layer_entry.torrent", errors::torrent_invalid_piece_layer},
+	{"v2_invalid_piece_layer_size.torrent", errors::torrent_invalid_piece_layer},
+	{"v2_bad_file_alignment.torrent", errors::torrent_inconsistent_files},
+	{"v2_unordered_files.torrent", errors::invalid_bencoding},
+	{"v2_overlong_integer.torrent", errors::invalid_bencoding},
+	{"v2_missing_file_root_invalid_symlink.torrent", errors::torrent_missing_pieces_root},
+	{"v2_large_file.torrent", errors::torrent_invalid_length},
+	{"v2_large_offset.torrent", errors::too_many_pieces_in_torrent},
+	{"v2_piece_size.torrent", errors::torrent_missing_piece_length},
+	{"v2_invalid_pad_file.torrent", errors::torrent_invalid_pad_file},
+	{"v2_zero_root.torrent", errors::torrent_missing_pieces_root},
+	{"v2_zero_root_small.torrent", errors::torrent_missing_pieces_root},
+	{"v2_empty_filename.torrent", errors::torrent_file_parse_failed},
+	{"duplicate_files2.torrent", errors::too_many_duplicate_filenames},
 };
 
 } // anonymous namespace
@@ -652,18 +652,28 @@ TORRENT_TEST(sanitize_path_truncate)
 	using lt::aux::sanitize_append_path_element;
 
 	std::string path;
-	sanitize_append_path_element(path,
+	// no extension in the truncation window: the "no extension" branch
+	bool const modified1 = sanitize_append_path_element(path,
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_");
-	sanitize_append_path_element(path,
+	TEST_EQUAL(modified1, true);
+	TEST_EQUAL(path,
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_");
+	// extension found in the truncation window: the extension-preserving branch
+	bool const modified2 = sanitize_append_path_element(path,
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcde.test");
+	TEST_EQUAL(modified2, true);
 	TEST_EQUAL(path,
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
@@ -683,12 +693,17 @@ TORRENT_TEST(sanitize_path_truncate_utf)
 
 	std::string path;
 	// msvc doesn't like unicode string literals, so we encode it as UTF-8 explicitly
-	sanitize_append_path_element(path,
+	bool const modified = sanitize_append_path_element(path,
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
-		"abcdefghi_abcdefghi_abcdefghi_abcdefghi" "\xE2" "\x80" "\x94" "abcde.jpg");
+		"abcdefghi_abcdefghi_abcdefghi_abcdefghi"
+		"\xE2"
+		"\x80"
+		"\x94"
+		"abcde.jpg");
+	TEST_EQUAL(modified, true);
 	TEST_EQUAL(path,
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
 		"abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
@@ -702,7 +717,13 @@ TORRENT_TEST(sanitize_path_trailing_dots)
 	std::string path;
 	using lt::aux::sanitize_append_path_element;
 	sanitize_append_path_element(path, "a");
+	TEST_EQUAL(path, "a");
 	sanitize_append_path_element(path, "abc...");
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "a" SEPARATOR "abc");
+#else
+	TEST_EQUAL(path, "a" SEPARATOR "abc...");
+#endif
 	sanitize_append_path_element(path, "c");
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(path, "a" SEPARATOR "abc" SEPARATOR "c");
@@ -711,11 +732,13 @@ TORRENT_TEST(sanitize_path_trailing_dots)
 #endif
 
 	path.clear();
-	sanitize_append_path_element(path, "abc...");
+	bool const modified = sanitize_append_path_element(path, "abc...");
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(path, "abc");
+	TEST_EQUAL(modified, true);
 #else
 	TEST_EQUAL(path, "abc...");
+	TEST_EQUAL(modified, false);
 #endif
 
 	path.clear();
@@ -741,7 +764,13 @@ TORRENT_TEST(sanitize_path_trailing_spaces)
 	using lt::aux::sanitize_append_path_element;
 	std::string path;
 	sanitize_append_path_element(path, "a");
+	TEST_EQUAL(path, "a");
 	sanitize_append_path_element(path, "abc   ");
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "a" SEPARATOR "abc");
+#else
+	TEST_EQUAL(path, "a" SEPARATOR "abc   ");
+#endif
 	sanitize_append_path_element(path, "c");
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(path, "a" SEPARATOR "abc" SEPARATOR "c");
@@ -750,11 +779,13 @@ TORRENT_TEST(sanitize_path_trailing_spaces)
 #endif
 
 	path.clear();
-	sanitize_append_path_element(path, "abc   ");
+	bool const modified = sanitize_append_path_element(path, "abc   ");
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(path, "abc");
+	TEST_EQUAL(modified, true);
 #else
 	TEST_EQUAL(path, "abc   ");
+	TEST_EQUAL(modified, false);
 #endif
 
 	path.clear();
@@ -775,7 +806,9 @@ TORRENT_TEST(sanitize_path)
 
 	path.clear();
 	sanitize_append_path_element(path, "/a/");
+	TEST_EQUAL(path, "a");
 	sanitize_append_path_element(path, "b");
+	TEST_EQUAL(path, "a" SEPARATOR "b");
 	sanitize_append_path_element(path, "c");
 	TEST_EQUAL(path, "a" SEPARATOR "b" SEPARATOR "c");
 
@@ -785,18 +818,26 @@ TORRENT_TEST(sanitize_path)
 
 	path.clear();
 	sanitize_append_path_element(path, "a");
+	TEST_EQUAL(path, "a");
+	// ".." is reverted entirely, including the separator that precedes it
 	sanitize_append_path_element(path, "..");
+	TEST_EQUAL(path, "a");
 	sanitize_append_path_element(path, "c");
 	TEST_EQUAL(path, "a" SEPARATOR "c");
 
 	path.clear();
 	sanitize_append_path_element(path, "a");
+	TEST_EQUAL(path, "a");
 	sanitize_append_path_element(path, "..");
 	TEST_EQUAL(path, "a");
 
 	path.clear();
+	// "/.." leaves nothing once "/" is filtered and ".." is reverted
 	sanitize_append_path_element(path, "/..");
+	TEST_EQUAL(path, "");
+	// a lone "." is dropped without touching path
 	sanitize_append_path_element(path, ".");
+	TEST_EQUAL(path, "");
 	sanitize_append_path_element(path, "c");
 	TEST_EQUAL(path, "c");
 
@@ -810,6 +851,11 @@ TORRENT_TEST(sanitize_path)
 
 	path.clear();
 	sanitize_append_path_element(path, "c:");
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "c_");
+#else
+	TEST_EQUAL(path, "c:");
+#endif
 	sanitize_append_path_element(path, "b");
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(path, "c_" SEPARATOR "b");
@@ -819,7 +865,18 @@ TORRENT_TEST(sanitize_path)
 
 	path.clear();
 	sanitize_append_path_element(path, "c:");
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "c_");
+#else
+	TEST_EQUAL(path, "c:");
+#endif
+	// a lone "." is dropped without touching path
 	sanitize_append_path_element(path, ".");
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "c_");
+#else
+	TEST_EQUAL(path, "c:");
+#endif
 	sanitize_append_path_element(path, "c");
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(path, "c_" SEPARATOR "c");
@@ -829,7 +886,9 @@ TORRENT_TEST(sanitize_path)
 
 	path.clear();
 	sanitize_append_path_element(path, "\\c");
+	TEST_EQUAL(path, "c");
 	sanitize_append_path_element(path, ".");
+	TEST_EQUAL(path, "c");
 	sanitize_append_path_element(path, "c");
 	TEST_EQUAL(path, "c" SEPARATOR "c");
 
@@ -839,21 +898,25 @@ TORRENT_TEST(sanitize_path)
 
 	path.clear();
 	sanitize_append_path_element(path, "\b");
+	TEST_EQUAL(path, "_");
 	sanitize_append_path_element(path, "filename");
 	TEST_EQUAL(path, "_" SEPARATOR "filename");
 
 	path.clear();
 	sanitize_append_path_element(path, "filename");
+	TEST_EQUAL(path, "filename");
 	sanitize_append_path_element(path, "\b");
 	TEST_EQUAL(path, "filename" SEPARATOR "_");
 
 	path.clear();
 	sanitize_append_path_element(path, "abc");
+	TEST_EQUAL(path, "abc");
 	sanitize_append_path_element(path, "");
 	TEST_EQUAL(path, "abc" SEPARATOR "_");
 
 	path.clear();
 	sanitize_append_path_element(path, "abc");
+	TEST_EQUAL(path, "abc");
 	sanitize_append_path_element(path, "   ");
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(path, "abc");
@@ -863,6 +926,7 @@ TORRENT_TEST(sanitize_path)
 
 	path.clear();
 	sanitize_append_path_element(path, "");
+	TEST_EQUAL(path, "_");
 	sanitize_append_path_element(path, "abc");
 	TEST_EQUAL(path, "_" SEPARATOR "abc");
 
@@ -1057,7 +1121,9 @@ TORRENT_TEST(sanitize_path_force)
 
 	path.clear();
 	sanitize_append_path_element(path, "/a/", true);
+	TEST_EQUAL(path, "a");
 	sanitize_append_path_element(path, "b", true);
+	TEST_EQUAL(path, "a" SEPARATOR "b");
 	sanitize_append_path_element(path, "c", true);
 	TEST_EQUAL(path, "a" SEPARATOR "b" SEPARATOR "c");
 
@@ -1067,18 +1133,26 @@ TORRENT_TEST(sanitize_path_force)
 
 	path.clear();
 	sanitize_append_path_element(path, "a", true);
+	TEST_EQUAL(path, "a");
+	// with force_element, ".." is reverted and replaced with "_"
 	sanitize_append_path_element(path, "..", true);
+	TEST_EQUAL(path, "a" SEPARATOR "_");
 	sanitize_append_path_element(path, "c", true);
 	TEST_EQUAL(path, "a" SEPARATOR "_" SEPARATOR "c");
 
 	path.clear();
 	sanitize_append_path_element(path, "a", true);
+	TEST_EQUAL(path, "a");
 	sanitize_append_path_element(path, "..", true);
 	TEST_EQUAL(path, "a" SEPARATOR "_");
 
 	path.clear();
+	// "/.." leaves nothing once "/" is filtered, ".." is replaced with "_"
 	sanitize_append_path_element(path, "/..", true);
+	TEST_EQUAL(path, "_");
+	// with force_element, a lone "." is also reverted and replaced with "_"
 	sanitize_append_path_element(path, ".", true);
+	TEST_EQUAL(path, "_" SEPARATOR "_");
 	sanitize_append_path_element(path, "c", true);
 	TEST_EQUAL(path, "_" SEPARATOR "_" SEPARATOR "c");
 
@@ -1092,6 +1166,11 @@ TORRENT_TEST(sanitize_path_force)
 
 	path.clear();
 	sanitize_append_path_element(path, "c:", true);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "c_");
+#else
+	TEST_EQUAL(path, "c:");
+#endif
 	sanitize_append_path_element(path, "b", true);
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(path, "c_" SEPARATOR "b");
@@ -1101,7 +1180,17 @@ TORRENT_TEST(sanitize_path_force)
 
 	path.clear();
 	sanitize_append_path_element(path, "c:", true);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "c_");
+#else
+	TEST_EQUAL(path, "c:");
+#endif
 	sanitize_append_path_element(path, ".", true);
+#ifdef TORRENT_WINDOWS
+	TEST_EQUAL(path, "c_" SEPARATOR "_");
+#else
+	TEST_EQUAL(path, "c:" SEPARATOR "_");
+#endif
 	sanitize_append_path_element(path, "c", true);
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(path, "c_" SEPARATOR "_" SEPARATOR "c");
@@ -1111,7 +1200,9 @@ TORRENT_TEST(sanitize_path_force)
 
 	path.clear();
 	sanitize_append_path_element(path, "\\c", true);
+	TEST_EQUAL(path, "c");
 	sanitize_append_path_element(path, ".", true);
+	TEST_EQUAL(path, "c" SEPARATOR "_");
 	sanitize_append_path_element(path, "c", true);
 	TEST_EQUAL(path, "c" SEPARATOR "_" SEPARATOR "c");
 
@@ -1121,21 +1212,25 @@ TORRENT_TEST(sanitize_path_force)
 
 	path.clear();
 	sanitize_append_path_element(path, "\b", true);
+	TEST_EQUAL(path, "_");
 	sanitize_append_path_element(path, "filename", true);
 	TEST_EQUAL(path, "_" SEPARATOR "filename");
 
 	path.clear();
 	sanitize_append_path_element(path, "filename", true);
+	TEST_EQUAL(path, "filename");
 	sanitize_append_path_element(path, "\b", true);
 	TEST_EQUAL(path, "filename" SEPARATOR "_");
 
 	path.clear();
 	sanitize_append_path_element(path, "abc", true);
+	TEST_EQUAL(path, "abc");
 	sanitize_append_path_element(path, "", true);
 	TEST_EQUAL(path, "abc" SEPARATOR "_");
 
 	path.clear();
 	sanitize_append_path_element(path, "abc", true);
+	TEST_EQUAL(path, "abc");
 	sanitize_append_path_element(path, "   ", true);
 #ifdef TORRENT_WINDOWS
 	TEST_EQUAL(path, "abc" SEPARATOR "_");
@@ -1145,6 +1240,7 @@ TORRENT_TEST(sanitize_path_force)
 
 	path.clear();
 	sanitize_append_path_element(path, "", true);
+	TEST_EQUAL(path, "_");
 	sanitize_append_path_element(path, "abc", true);
 	TEST_EQUAL(path, "_" SEPARATOR "abc");
 
@@ -1258,6 +1354,144 @@ TORRENT_TEST(sanitize_path_colon)
 #else
 	TEST_EQUAL(path, "foo:bar");
 #endif
+}
+
+// sanitize_append_path_element() returns whether element was modified while
+// being appended to path. torrent_info.cpp relies on this to decide whether
+// a file's name can be borrowed as a string_view into the original buffer
+// (unmodified) or must be copied out of the constructed path (modified).
+TORRENT_TEST(sanitize_path_modified_flag)
+{
+	using lt::aux::sanitize_append_path_element;
+
+	// the common case: a clean element requires no sanitization
+	std::string path;
+	TEST_EQUAL(sanitize_append_path_element(path, "abc"), false);
+	TEST_EQUAL(sanitize_append_path_element(path, "def"), false);
+	TEST_EQUAL(path, "abc" SEPARATOR "def");
+
+	// same, with force_element = true, the mode used for per-file path
+	// components when loading a torrent
+	path.clear();
+	TEST_EQUAL(sanitize_append_path_element(path, "abc", true), false);
+	TEST_EQUAL(sanitize_append_path_element(path, "def", true), false);
+	TEST_EQUAL(path, "abc" SEPARATOR "def");
+
+	// a valid multi-byte utf-8 sequence is not a modification
+	path.clear();
+	TEST_EQUAL(sanitize_append_path_element(path, "filename\xc2\xa1"), false);
+
+	// dots that aren't the entire element are not a modification
+	path.clear();
+	TEST_EQUAL(sanitize_append_path_element(path, "a...b"), false);
+
+	// dropping a filtered character (path separator) is a modification
+	path.clear();
+	TEST_EQUAL(sanitize_append_path_element(path, "/a/"), true);
+
+	// substituting an invalid utf-8 sequence is a modification
+	path.clear();
+	TEST_EQUAL(sanitize_append_path_element(path, "filename\xc2"), true);
+
+	// an empty element is a modification (replaced with "_")
+	path.clear();
+	TEST_EQUAL(sanitize_append_path_element(path, ""), true);
+
+	// a dot-only element is always a modification: dropped entirely when
+	// not forced, replaced with "_" when forced
+	path.clear();
+	TEST_EQUAL(sanitize_append_path_element(path, "..", false), true);
+	TEST_EQUAL(path, "");
+
+	path.clear();
+	TEST_EQUAL(sanitize_append_path_element(path, "..", true), true);
+	TEST_EQUAL(path, "_");
+
+	// a single "." with force_element = false is dropped without touching
+	// path at all, which still counts as a modification
+	path.clear();
+	TEST_EQUAL(sanitize_append_path_element(path, "."), true);
+	TEST_EQUAL(path, "");
+}
+
+// with append_only_if_modified = true, path is left completely untouched
+// (not even the separator is added) whenever the element needs no
+// modification. torrent_info.cpp relies on this to avoid copying a
+// filename into path only to immediately discard it in favor of a
+// borrowed string_view.
+TORRENT_TEST(sanitize_path_append_only_if_modified)
+{
+	using lt::aux::sanitize_append_path_element;
+
+	// unmodified, empty path to start with: path stays empty, not even "_"
+	std::string path;
+	TEST_EQUAL(sanitize_append_path_element(path, "abc", false, true), false);
+	TEST_EQUAL(path, "");
+
+	// unmodified, non-empty path to start with: path stays exactly as it
+	// was, no separator added either
+	path = "dir";
+	TEST_EQUAL(sanitize_append_path_element(path, "abc", false, true), false);
+	TEST_EQUAL(path, "dir");
+
+	// same, with force_element = true (the mode used for the leaf/filename
+	// component when loading a torrent)
+	path = "dir";
+	TEST_EQUAL(sanitize_append_path_element(path, "abc", true, true), false);
+	TEST_EQUAL(path, "dir");
+
+	// a valid multi-byte utf-8 sequence is unmodified: path stays untouched
+	path = "dir";
+	TEST_EQUAL(sanitize_append_path_element(path, "filename\xc2\xa1", true, true), false);
+	TEST_EQUAL(path, "dir");
+
+	// dots that aren't the entire element are unmodified: path untouched
+	path = "dir";
+	TEST_EQUAL(sanitize_append_path_element(path, "a...b", true, true), false);
+	TEST_EQUAL(path, "dir");
+
+	// a filtered character forces a real commit: path gets the separator
+	// and the sanitized content, exactly as without the flag
+	path = "dir";
+	TEST_EQUAL(sanitize_append_path_element(path, "/a/", true, true), true);
+	TEST_EQUAL(path, "dir" SEPARATOR "a");
+
+	// an invalid utf-8 sequence also forces a commit
+	path = "dir";
+	TEST_EQUAL(sanitize_append_path_element(path, "filename\xc2", true, true), true);
+	TEST_EQUAL(path, "dir" SEPARATOR "filename_");
+
+	// an empty element always commits (path can never end up empty when
+	// the caller needs a placeholder), regardless of the flag
+	path = "dir";
+	TEST_EQUAL(sanitize_append_path_element(path, "", true, true), true);
+	TEST_EQUAL(path, "dir" SEPARATOR "_");
+
+	// dot-only element, force_element = true: always a modification,
+	// substituted with "_" without ever writing the raw dots
+	path = "dir";
+	TEST_EQUAL(sanitize_append_path_element(path, "..", true, true), true);
+	TEST_EQUAL(path, "dir" SEPARATOR "_");
+
+	// dot-only element, force_element = false: always a modification,
+	// but reverted to nothing; path stays completely untouched
+	path = "dir";
+	TEST_EQUAL(sanitize_append_path_element(path, "..", false, true), true);
+	TEST_EQUAL(path, "dir");
+
+	// truncation past 240 characters is always a modification, even
+	// though every individual character was valid on its own
+	path.clear();
+	TEST_EQUAL(sanitize_append_path_element(path,
+				   "abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+				   "abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+				   "abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+				   "abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_"
+				   "abcdefghi_abcdefghi_abcdefghi_abcdefghi_abcdefghi_",
+				   true,
+				   true),
+		true);
+	TEST_CHECK(!path.empty());
 }
 
 TORRENT_TEST(verify_encoding)
