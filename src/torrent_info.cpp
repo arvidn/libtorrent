@@ -67,23 +67,24 @@ namespace libtorrent {
 #ifdef TORRENT_WINDOWS
 		// On windows, both the filesystem and the operating system impose
 		// restrictions.
-		static const char invalid_chars[] = "?<>\"|\b*:";
+		constexpr string_view invalid_chars = "?<>\"|\b*:"_sv;
 #elif defined TORRENT_ANDROID
 		// The Android kernel probably has similar restrictions as Linux (i.e.
 		// very few) but it appears some user-space system libraries impose
 		// additional restrictions, and it's probably more common to use FAT32
 		// style filesystems, which also further restricts valid characters
 		// https://cs.android.com/android/platform/superproject/+/master:frameworks/base/core/java/android/os/FileUtils.java;l=997?q=isValidFatFilenameChar
-		static const char invalid_chars[] = "\"*:<>?|";
+		constexpr string_view invalid_chars = "\"*:<>?|"_sv;
 #else
-		static const char invalid_chars[] = "";
+		constexpr string_view invalid_chars = ""_sv;
 #endif
 		// C0 controls and DEL
 		if (c < 32 || c == 0x7f) return false;
 		// C1 controls
 		if (c >= 0x80 && c <= 0x9f) return false;
 		if (c > 127) return true;
-		return std::strchr(invalid_chars, static_cast<char>(c)) == nullptr;
+		return std::find(invalid_chars.begin(), invalid_chars.end(), static_cast<char>(c))
+			== invalid_chars.end();
 	}
 
 	bool filter_path_character(std::int32_t const c)
