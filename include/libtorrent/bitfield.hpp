@@ -193,20 +193,10 @@ namespace libtorrent {
 
 			const_iterator operator+(int const o) const noexcept
 			{
-				auto const* new_buf = buf + (o / 32);
-				auto bit_offset = o & 31;
-				if (bit == 0x80000000)
-					return const_iterator(new_buf, bit_offset);
-				if ((bit >> bit_offset) != 0)
-					return const_iterator(new_buf, bit >> bit_offset, raw_t{});
-
-				const_iterator ret = *this;
-				while (bit_offset > 0)
-				{
-					--bit_offset;
-					ret.inc();
-				}
-				return ret;
+				TORRENT_ASSERT(o >= 0);
+				int const cur_offset = std::countl_zero(bit);
+				int const total_offset = cur_offset + o;
+				return const_iterator(buf + (total_offset / 32), total_offset & 31);
 			}
 
 		private:

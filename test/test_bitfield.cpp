@@ -113,7 +113,7 @@ TORRENT_TEST(bitfield)
 	TEST_CHECK(test1.all_set() == true);
 	TEST_EQUAL(test1.count(), 101);
 
-	std::uint8_t b1[] = { 0x08, 0x10 };
+	std::uint8_t b1[] = {0x08, 0x10};
 	test1.assign(reinterpret_cast<char*>(b1), 14);
 	print_bitfield(test1);
 	TEST_EQUAL(test1.count(), 2);
@@ -142,12 +142,12 @@ TORRENT_TEST(bitfield)
 TORRENT_TEST(test_assign3)
 {
 	bitfield test1;
-	std::uint8_t b2[] = { 0x08, 0x10, 0xff, 0xff, 0xff, 0xff, 0xf, 0xc, 0x7f };
+	std::uint8_t b2[] = {0x08, 0x10, 0xff, 0xff, 0xff, 0xff, 0xf, 0xc, 0x7f};
 	test1.assign(reinterpret_cast<char*>(b2), 72);
 	print_bitfield(test1);
 	TEST_EQUAL(test1.count(), 47);
 
-	std::uint8_t b3[] = { 0x08, 0x10, 0xff, 0xff, 0xff, 0xff, 0xf, 0xc };
+	std::uint8_t b3[] = {0x08, 0x10, 0xff, 0xff, 0xff, 0xff, 0xf, 0xc};
 	test1.assign(reinterpret_cast<char*>(b3), 64);
 	print_bitfield(test1);
 	TEST_EQUAL(test1.count(), 40);
@@ -398,7 +398,7 @@ TORRENT_TEST(not_initialized_assign)
 {
 	// check a not initialized empty bitfield
 	bitfield test1(0);
-	std::uint8_t b1[] = { 0xff };
+	std::uint8_t b1[] = {0xff};
 	test1.assign(reinterpret_cast<char*>(b1), 8);
 	TEST_EQUAL(test1.count(), 8);
 }
@@ -529,4 +529,200 @@ TORRENT_TEST(visit_set_all_set_word_early_exit)
 
 	std::vector<int> const expected = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
 	TEST_CHECK(visited == expected);
+}
+
+TORRENT_TEST(visit_set_dense_popcount_branch)
+{
+	// Test the popcount > 7 branch (where bits are tested sequentially)
+	// and ensure it respects early exit as well as non-32-aligned sizes.
+	typed_bitfield<int> bits(60, false);
+	// Set 12 bits in the first word (word 0, popcount > 7)
+	for (int i = 0; i < 12; ++i)
+		bits.set_bit(i);
+	// Set 10 bits in the second word (word 1, popcount > 7)
+	for (int i = 32; i < 42; ++i)
+		bits.set_bit(i);
+
+	std::vector<int> visited;
+	bits.visit_set([&visited](int const index) {
+		visited.push_back(index);
+		return true;
+	});
+
+	TEST_EQUAL(visited.size(), 22);
+	for (int i = 0; i < 12; ++i)
+		TEST_EQUAL(visited[static_cast<std::size_t>(i)], i);
+	for (int i = 0; i < 10; ++i)
+		TEST_EQUAL(visited[static_cast<std::size_t>(12 + i)], 32 + i);
+
+	// Early exit inside dense branch
+	visited.clear();
+	bits.visit_set([&visited](int const index) {
+		visited.push_back(index);
+		return index != 5;
+	});
+	TEST_EQUAL(visited.size(), 6);
+	for (int i = 0; i <= 5; ++i)
+		TEST_EQUAL(visited[static_cast<std::size_t>(i)], i);
+}
+
+TORRENT_TEST(move_semantics)
+{
+	// Move construction and assignment on bitfield
+	bitfield b1(100, true);
+	b1.clear_bit(50);
+	TEST_EQUAL(b1.size(), 100);
+	TEST_EQUAL(b1.count(), 99);
+
+	bitfield b2(std::move(b1));
+	TEST_EQUAL(b2.size(), 100);
+	TEST_EQUAL(b2.count(), 99);
+	TEST_EQUAL(b2.get_bit(50), false);
+	TEST_EQUAL(b2.get_bit(49), true);
+
+	bitfield b3;
+	b3 = std::move(b2);
+	TEST_EQUAL(b3.size(), 100);
+	TEST_EQUAL(b3.count(), 99);
+	TEST_EQUAL(b3.get_bit(50), false);
+
+	// Move construction and assignment on typed_bitfield
+	typed_bitfield<int> tb1(64, true);
+	typed_bitfield<int> tb2(std::move(tb1));
+	TEST_EQUAL(tb2.size(), 64);
+	TEST_EQUAL(tb2.all_set(), true);
+
+	typed_bitfield<int> tb3;
+	tb3 = std::move(tb2);
+	TEST_EQUAL(tb3.size(), 64);
+	TEST_EQUAL(tb3.all_set(), true);
+}
+
+TORRENT_TEST(swap_test)
+{
+	bitfield b1(30, true);
+	bitfield b2(70, false);
+	b2.set_bit(5);
+
+	b1.swap(b2);
+	TEST_EQUAL(b1.size(), 70);
+	TEST_EQUAL(b1.count(), 1);
+	TEST_EQUAL(b1.get_bit(5), true);
+
+	TEST_EQUAL(b2.size(), 30);
+	TEST_EQUAL(b2.count(), 30);
+	TEST_EQUAL(b2.all_set(), true);
+}
+
+TORRENT_TEST(equality_operator)
+{
+	bitfield b1(65, false);
+	bitfield b2(65, false);
+	TEST_CHECK(b1 == b2);
+
+	b1.set_bit(10);
+	TEST_CHECK(!(b1 == b2));
+
+	b2.set_bit(10);
+	TEST_CHECK(b1 == b2);
+
+	// Different size should never be equal
+	bitfield b3(66, false);
+	b3.set_bit(10);
+	TEST_CHECK(!(b1 == b3));
+
+	// Empty bitfields
+	bitfield empty1;
+	bitfield empty2(0);
+	TEST_CHECK(empty1 == empty2);
+
+	// Trailing padding bits differences should not cause false negatives
+	std::uint8_t raw1[] = {0xff, 0xff};
+	std::uint8_t raw2[] = {0xff, 0x80};
+	bitfield b4(reinterpret_cast<char const*>(raw1), 9);
+	bitfield b5(reinterpret_cast<char const*>(raw2), 9);
+	TEST_CHECK(b4 == b5);
+}
+
+TORRENT_TEST(none_set_and_all_set_boundaries)
+{
+	// Test across various sizes around 32-bit word boundaries
+	for (int size : {0, 1, 31, 32, 33, 63, 64, 65, 127, 128})
+	{
+		bitfield b(size, false);
+		TEST_EQUAL(b.none_set(), true);
+		if (size > 0)
+		{
+			TEST_EQUAL(b.all_set(), false);
+			b.set_all();
+			TEST_EQUAL(b.all_set(), true);
+			TEST_EQUAL(b.none_set(), false);
+			TEST_EQUAL(b.count(), size);
+
+			b.clear_bit(size - 1);
+			TEST_EQUAL(b.all_set(), false);
+			TEST_EQUAL(b.count(), size - 1);
+		}
+		else
+		{
+			TEST_EQUAL(b.all_set(), false);
+		}
+	}
+}
+
+TORRENT_TEST(iterator_decrement_and_boundary_arithmetic)
+{
+	bitfield b(100, false);
+	b.set_bit(0);
+	b.set_bit(30);
+	b.set_bit(34);
+	b.set_bit(99);
+
+	// Test operator-- decrement from end()
+	auto it = b.end();
+	int steps = 0;
+	while (it != b.begin())
+	{
+		--it;
+		++steps;
+	}
+	TEST_EQUAL(steps, 100);
+
+	// Postfix vs prefix operations
+	auto it2 = b.begin();
+	auto it3 = it2++;
+	TEST_CHECK(it3 == b.begin());
+	TEST_CHECK(it2 == b.begin() + 1);
+
+	auto it4 = it2--;
+	TEST_CHECK(it4 == b.begin() + 1);
+	TEST_CHECK(it2 == b.begin());
+
+	// Crossing word boundaries with operator+ from a non-zero bit offset
+	// Start at bit 30 (word 0, bit offset 30), add 34 -> should reach bit 64 (word 2, bit offset 0)
+	auto it_30 = b.begin() + 30;
+	auto it_64 = it_30 + 34;
+	TEST_EQUAL(std::distance(b.begin(), it_64), 64);
+	TEST_EQUAL(*it_30, true);
+
+	auto it_34 = it_30 + 4;
+	TEST_EQUAL(std::distance(b.begin(), it_34), 34);
+	TEST_EQUAL(*it_34, true);
+
+	// Const dereference check
+	bitfield const& cb = b;
+	bitfield::const_iterator cit = cb.begin();
+	TEST_EQUAL(*cit, true);
+}
+
+TORRENT_TEST(data_pointers)
+{
+	bitfield empty_bf;
+	TEST_CHECK(empty_bf.data() == nullptr);
+
+	bitfield non_empty(10);
+	TEST_CHECK(non_empty.data() != nullptr);
+
+	non_empty.clear();
+	TEST_CHECK(non_empty.data() == nullptr);
 }
