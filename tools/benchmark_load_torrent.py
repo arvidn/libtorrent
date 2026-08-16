@@ -827,8 +827,20 @@ def write_report(benchmarks_dir: Path, results: list[Result], report_name: str) 
 
 
 def main() -> None:
-    # no flags; argparse is here for --help and to reject unknown args.
-    ArgumentParser(description=__doc__).parse_args()
+    parser = ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--case",
+        action="append",
+        choices=[c.name for c in CASES],
+        metavar="NAME",
+        help="run only this case (may be repeated). Default: run all cases.",
+    )
+    args = parser.parse_args()
+
+    cases = CASES
+    if args.case:
+        selected = set(args.case)
+        cases = [c for c in CASES if c.name in selected]
 
     # heaptrack is Linux-only (it hooks malloc via LD_PRELOAD against the
     # GNU dynamic linker). When we're on Linux we always run a second
@@ -854,7 +866,7 @@ def main() -> None:
     print(f"results:             {benchmarks_dir}")
 
     results: list[Result] = []
-    for case in CASES:
+    for case in cases:
         for variant in case.versions:
             print(f"\n== {case.name} / {variant} ==")
             r = run_one(
