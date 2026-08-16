@@ -1652,36 +1652,42 @@ namespace {
 			{"test/filler-2", 0x4000, {}, "test/filler-2"},
 		},
 		{
-			// pad files are allowed to collide, as long as they have the same size
-			{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234"},
+			// pad files are allowed to collide, as long as they have the same
+			// size. their name is always synthesized from their size, so the
+			// literal name given here ("1234") is irrelevant
+			{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/16384"},
 			{"test/filler-1", 0x4000, {}, "test/filler-1"},
-			{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234"},
+			{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/16384"},
 			{"test/filler-2", 0x4000, {}, "test/filler-2"},
 		},
 		{
 			// pad files of different sizes are NOT allowed to collide
-			{"test/.pad/1234", 0x8000, file_storage::flag_pad_file, "test/.pad/1234"},
+			{"test/.pad/1234", 0x8000, file_storage::flag_pad_file, "test/.pad/32768"},
 			{"test/filler-1", 0x4000, {}, "test/filler-1"},
-			{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234.1"},
+			{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/16384"},
 			{"test/filler-2", 0x4000, {}, "test/filler-2"},
 		},
 		{
-			// pad files are NOT allowed to collide with normal files
-			{"test/.pad/1234", 0x4000, {}, "test/.pad/1234"},
+			// pad files are NOT allowed to collide with normal files. the
+			// pad file's synthesized name is "16384" (its size), so the
+			// normal file is given that name to collide with it
+			{"test/.pad/16384", 0x4000, {}, "test/.pad/16384"},
 			{"test/filler-1", 0x4000, {}, "test/filler-1"},
-			{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234.1"},
+			{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/16384.1"},
 			{"test/filler-2", 0x4000, {}, "test/filler-2"},
 		},
 		{
 			// normal files are NOT allowed to collide with pad files
-			{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234"},
+			{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/16384"},
 			{"test/filler-1", 0x4000, {}, "test/filler-1"},
-			{"test/.pad/1234", 0x4000, {}, "test/.pad/1234.1"},
+			{"test/.pad/16384", 0x4000, {}, "test/.pad/16384.1"},
 			{"test/filler-2", 0x4000, {}, "test/filler-2"},
 		},
 		{
-			// pad files are NOT allowed to collide with directories
-			{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/1234.1"},
+			// pad files are NOT allowed to collide with directories. the pad
+			// file's size (1234 bytes) makes its synthesized name ("1234")
+			// collide with the directory implied by the next entry
+			{"test/.pad/1234", 1234, file_storage::flag_pad_file, "test/.pad/1234.1"},
 			{"test/filler-1", 0x4000, {}, "test/filler-1"},
 			{"test/.pad/1234/filler-2", 0x4000, {}, "test/.pad/1234/filler-2"},
 		},
@@ -1860,10 +1866,11 @@ TORRENT_TEST(copy)
 		combine_path(parent_path(current_working_directory())
 		, combine_path("test_torrents", "sample.torrent"))).ti;
 
-	aux::vector<char const*, file_index_t> expected_files =
-	{
+	// the padding file's name in the .torrent is "0", but pad files never
+	// store a name, it's always synthesized from their size
+	aux::vector<char const*, file_index_t> expected_files = {
 		"sample/text_file2.txt",
-		"sample/.____padding_file/0",
+		"sample/.____padding_file/16359",
 		"sample/text_file.txt",
 	};
 

@@ -221,6 +221,12 @@ namespace {
 	{
 		return std::string(rf.file_name(fs, index));
 	}
+
+	std::string file_storage_file_name(file_storage const& fs, file_index_t index)
+	{
+		file_storage_check_index(fs, index);
+		return std::string(fs.file_name(index));
+	}
 }
 
 void bind_file_storage()
@@ -265,7 +271,7 @@ void bind_file_storage()
 #endif
 				.def("symlink", &wrap_file_check<std::string, &file_storage::symlink>)
 				.def("file_path", &file_storage_file_path, (arg("idx"), arg("save_path") = ""))
-				.def("file_name", &wrap_file_check<string_view, &file_storage::file_name>)
+				.def("file_name", &file_storage_file_name, arg("idx"))
 				.def("file_size", &wrap_file_check<std::int64_t, &file_storage::file_size>)
 				.def("root", &file_storage::root)
 				.def("file_offset", &wrap_file_check<std::int64_t, &file_storage::file_offset>)

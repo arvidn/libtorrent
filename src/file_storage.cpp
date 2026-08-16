@@ -25,8 +25,6 @@ see LICENSE file.
 #include <boost/crc.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
-#include <cstdio>
-#include <cinttypes>
 #include <cstring>
 #include <algorithm>
 #include <functional>
@@ -127,11 +125,10 @@ TORRENT_VERSION_NAMESPACE_4
 	void file_storage::update_path_index(aux::file_entry& e
 		, std::string const& path, bool const set_name)
 	{
-		// TODO: at appears set_name is always true
 		if (is_complete(path))
 		{
-			TORRENT_ASSERT(set_name);
-			e.set_name(path);
+			if (set_name)
+				e.set_name(path);
 			e.path_index = aux::file_entry::path_is_absolute;
 			return;
 		}
@@ -232,9 +229,8 @@ TORRENT_VERSION_NAMESPACE_4_END
 		return ret;
 	}
 
-	string_view renamed_files::file_name(
-		file_storage const& fs
-		, file_index_t const index) const
+	aux::file_name_view renamed_files::file_name(
+		file_storage const& fs, file_index_t const index) const
 	{
 		auto i = m_renamed_files.find(index);
 		if (i == m_renamed_files.end()) return fs.file_name(index);
@@ -255,6 +251,10 @@ TORRENT_VERSION_NAMESPACE_4_END
 	{
 		TORRENT_ASSERT(new_filename.size() > 0);
 		if (new_filename.size() == 0)
+			return;
+
+		// pad files are managed internally and cannot be renamed
+		if (fs.pad_file_at(index))
 			return;
 
 		if (is_complete(new_filename))
@@ -331,22 +331,27 @@ TORRENT_VERSION_NAMESPACE_4_END
 
 namespace aux {
 
-	file_entry::file_entry()
-		: offset(0)
-		, symlink_index(not_a_symlink)
-		, no_root_dir(false)
-		, size(0)
-		, name_len(name_is_owned)
-		, pad_file(false)
-		, hidden_attribute(false)
-		, executable_attribute(false)
-		, symlink_attribute(false)
-	{}
+file_name_view::file_name_view(std::uint64_t const pad_size)
+	: m_name(std::to_string(pad_size))
+{}
 
-	file_entry::~file_entry()
-	{
-		if (name_len == name_is_owned) delete[] name;
-	}
+file_entry::file_entry()
+	: offset(0)
+	, symlink_index(not_a_symlink)
+	, no_root_dir(false)
+	, size(0)
+	, name_len(name_is_owned)
+	, pad_file(false)
+	, hidden_attribute(false)
+	, executable_attribute(false)
+	, symlink_attribute(false)
+{}
+
+file_entry::~file_entry()
+{
+	if (name_len == name_is_owned)
+		delete[] name;
+}
 
 	file_entry::file_entry(file_entry const& fe)
 		: offset(fe.offset)
@@ -361,8 +366,11 @@ namespace aux {
 		, root(fe.root)
 		, path_index(fe.path_index)
 	{
-		bool const borrow = fe.name_len != name_is_owned;
-		set_name(fe.filename(), borrow);
+		if (!pad_file)
+		{
+			bool const borrow = fe.name_len != name_is_owned;
+			set_name(string_view(fe.filename()), borrow);
+		}
 	}
 
 	file_entry::file_entry(file_entry&& fe) noexcept
@@ -413,6 +421,9 @@ namespace aux {
 	// file_entry.
 	void file_entry::set_name(string_view n, bool const borrow_string)
 	{
+		// pad files don't store a name, it's synthesized from their size
+		TORRENT_ASSERT(!pad_file);
+
 		// free the current string, before assigning the new one
 		if (name_len == name_is_owned) delete[] name;
 		if (n.empty())
@@ -436,10 +447,13 @@ namespace aux {
 		}
 	}
 
-	string_view file_entry::filename() const
+	file_name_view file_entry::filename() const
 	{
-		if (name_len != name_is_owned) return {name, std::size_t(name_len)};
-		return name ? string_view(name) : string_view();
+		if (pad_file)
+			return file_name_view(size);
+		if (name_len != name_is_owned)
+			return {string_view(name, std::size_t(name_len))};
+		return {name ? string_view(name) : string_view()};
 	}
 
 } // aux namespace
@@ -481,6 +495,9 @@ TORRENT_VERSION_NAMESPACE_4
 		, std::string const& new_filename)
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
+		// pad files are managed internally and cannot be renamed
+		if (m_files[index].pad_file)
+			return;
 		update_path_index(m_files[index], new_filename);
 	}
 #endif // TORRENT_ABI_VERSION
@@ -564,6 +581,10 @@ TORRENT_VERSION_NAMESPACE_4
 
 	int file_storage::file_name_len(file_index_t const index) const
 	{
+		// pad files have no stored name (file_name_ptr() returns nullptr for
+		// them), the name_is_owned sentinel would be misleading here
+		if (m_files[index].pad_file)
+			return 0;
 		if (m_files[index].name_len == aux::file_entry::name_is_owned)
 			return -1;
 		return m_files[index].name_len;
@@ -862,20 +883,24 @@ TORRENT_VERSION_NAMESPACE_4
 		m_files.emplace_back();
 		aux::file_entry& e = m_files.back();
 
+		bool const is_pad_file = bool(file_flags & file_storage::flag_pad_file);
+
 		// the last argument specified whether the function should also set
 		// the filename. If it does, it will copy the leaf filename from path.
 		// if filename is empty, we should copy it. If it isn't, we're borrowing
 		// it and we can save the copy by setting it after this call to
-		// update_path_index().
-		update_path_index(e, path, filename.empty());
+		// update_path_index(). pad files never store a name, whatever leaf
+		// name they were given (e.g. by a torrent's own padding convention)
+		// is discarded; it's synthesized from their size on demand instead.
+		update_path_index(e, path, filename.empty() && !is_pad_file);
 
 		// filename is allowed to be empty, in which case we just use path
-		if (!filename.empty())
+		if (!filename.empty() && !is_pad_file)
 			e.set_name(filename, true);
 
 		e.size = aux::numeric_cast<std::uint64_t>(file_size);
 		e.offset = aux::numeric_cast<std::uint64_t>(m_total_size);
-		e.pad_file = bool(file_flags & file_storage::flag_pad_file);
+		e.pad_file = is_pad_file;
 		e.hidden_attribute = bool(file_flags & file_storage::flag_hidden);
 		e.executable_attribute = bool(file_flags & file_storage::flag_executable);
 		e.symlink_attribute = bool(file_flags & file_storage::flag_symlink);
@@ -934,10 +959,6 @@ TORRENT_VERSION_NAMESPACE_4
 			TORRENT_ASSERT(m_total_size > 0);
 			pad.offset = static_cast<std::uint64_t>(m_total_size);
 			pad.path_index = get_or_add_path(".pad");
-			char name[30];
-			std::snprintf(name, sizeof(name), "%" PRIu64
-				, pad.size);
-			pad.set_name(name);
 			pad.pad_file = true;
 			m_total_size += pad_size;
 		}
@@ -1077,7 +1098,7 @@ namespace {
 
 		if (fe.path_index == aux::file_entry::path_is_absolute)
 		{
-			process_string_lowercase(crc, fe.filename());
+			process_string_lowercase(crc, string_view(fe.filename()));
 		}
 		else if (fe.path_index == aux::file_entry::no_path)
 		{
@@ -1087,7 +1108,7 @@ namespace {
 				TORRENT_ASSERT(save_path[save_path.size() - 1] != TORRENT_SEPARATOR);
 				crc.process_byte(TORRENT_SEPARATOR);
 			}
-			process_string_lowercase(crc, fe.filename());
+			process_string_lowercase(crc, string_view(fe.filename()));
 		}
 		else if (fe.no_root_dir)
 		{
@@ -1104,7 +1125,7 @@ namespace {
 				TORRENT_ASSERT(p[p.size() - 1] != TORRENT_SEPARATOR);
 				crc.process_byte(TORRENT_SEPARATOR);
 			}
-			process_string_lowercase(crc, fe.filename());
+			process_string_lowercase(crc, string_view(fe.filename()));
 		}
 		else
 		{
@@ -1127,7 +1148,7 @@ namespace {
 				TORRENT_ASSERT(p[p.size() - 1] != TORRENT_SEPARATOR);
 				crc.process_byte(TORRENT_SEPARATOR);
 			}
-			process_string_lowercase(crc, fe.filename());
+			process_string_lowercase(crc, string_view(fe.filename()));
 		}
 
 		return crc.checksum();
@@ -1137,38 +1158,39 @@ namespace {
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
 		aux::file_entry const& fe = m_files[index];
+		aux::file_name_view const name = fe.filename();
 
 		std::string ret;
 
 		if (fe.path_index == aux::file_entry::path_is_absolute)
 		{
 			// TODO: do we still need this case?
-			ret = fe.filename();
+			ret = std::string(name);
 		}
 		else if (fe.path_index == aux::file_entry::no_path)
 		{
-			ret.reserve(save_path.size() + fe.filename().size() + 1);
+			ret.reserve(save_path.size() + name.size() + 1);
 			ret.assign(save_path);
-			append_path(ret, fe.filename());
+			append_path(ret, string_view(name));
 		}
 		else if (fe.no_root_dir)
 		{
 			std::string const& p = m_paths[fe.path_index];
 
-			ret.reserve(save_path.size() + p.size() + fe.filename().size() + 2);
+			ret.reserve(save_path.size() + p.size() + name.size() + 2);
 			ret.assign(save_path);
 			append_path(ret, p);
-			append_path(ret, fe.filename());
+			append_path(ret, string_view(name));
 		}
 		else
 		{
 			std::string const& p = m_paths[fe.path_index];
 
-			ret.reserve(save_path.size() + m_name.size() + p.size() + fe.filename().size() + 3);
+			ret.reserve(save_path.size() + m_name.size() + p.size() + name.size() + 3);
 			ret.assign(save_path);
 			append_path(ret, m_name);
 			append_path(ret, p);
-			append_path(ret, fe.filename());
+			append_path(ret, string_view(name));
 		}
 
 		// a single return statement, just to make NRVO more likely to kick in
@@ -1185,9 +1207,10 @@ namespace {
 		{
 			std::string ret;
 			std::string const& p = m_paths[fe.path_index];
-			ret.reserve(p.size() + fe.filename().size() + 2);
+			aux::file_name_view const name = fe.filename();
+			ret.reserve(p.size() + name.size() + 2);
 			append_path(ret, p);
-			append_path(ret, fe.filename());
+			append_path(ret, string_view(name));
 			return ret;
 		}
 		else
@@ -1196,7 +1219,7 @@ namespace {
 		}
 	}
 
-	string_view file_storage::file_name(file_index_t const index) const
+	aux::file_name_view file_storage::file_name(file_index_t const index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
 		aux::file_entry const& fe = m_files[index];
@@ -1409,11 +1432,13 @@ namespace {
 			auto const& rf = m_files[r];
 			if (lf.path_index != rf.path_index)
 			{
-				int const ret = path_compare(m_paths[lf.path_index], lf.filename()
-					, m_paths[rf.path_index], rf.filename());
+				int const ret = path_compare(m_paths[lf.path_index],
+					string_view(lf.filename()),
+					m_paths[rf.path_index],
+					string_view(rf.filename()));
 				if (ret != 0) return ret < 0;
 			}
-			return lf.filename() < rf.filename();
+			return string_view(lf.filename()) < string_view(rf.filename());
 		});
 
 		aux::vector<aux::file_entry, file_index_t> new_files;
@@ -1443,9 +1468,6 @@ namespace {
 				pad.offset = static_cast<std::uint64_t>(off);
 				off += pad_size;
 				pad.path_index = get_or_add_path(".pad");
-				char name[30];
-				std::snprintf(name, sizeof(name), "%" PRIu64, pad.size);
-				pad.set_name(name);
 				pad.pad_file = true;
 
 				if (!m_file_hashes.empty())

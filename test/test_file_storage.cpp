@@ -31,10 +31,10 @@ void setup_test_storage(file_storage& st)
 	st.set_piece_length(0x4000);
 	st.set_num_pieces(aux::calc_num_pieces(st));
 
-	TEST_EQUAL(st.file_name(file_index_t{0}), "a");
-	TEST_EQUAL(st.file_name(file_index_t{1}), "b");
-	TEST_EQUAL(st.file_name(file_index_t{2}), "a");
-	TEST_EQUAL(st.file_name(file_index_t{3}), "b");
+	TEST_EQUAL(std::string(st.file_name(file_index_t{0})), "a");
+	TEST_EQUAL(std::string(st.file_name(file_index_t{1})), "b");
+	TEST_EQUAL(std::string(st.file_name(file_index_t{2})), "a");
+	TEST_EQUAL(std::string(st.file_name(file_index_t{3})), "b");
 	TEST_EQUAL(st.name(), "test");
 
 	TEST_EQUAL(st.file_path(file_index_t{0}), combine_path("test", "a"));
@@ -124,6 +124,26 @@ TORRENT_TEST(rename_file)
 	TEST_EQUAL(st.file_path(file_index_t{0}, "."), combine_path(".", combine_path("test__"
 		, "a")));
 }
+
+TORRENT_TEST(rename_pad_file)
+{
+	// pad files cannot be renamed, their name is always synthesized from
+	// their size
+	file_storage st;
+	st.set_piece_length(0x4000);
+	st.add_file(combine_path("test", "a"), 10000);
+	st.add_file(
+		combine_path("test", combine_path(".pad", "6384")), 6384, file_storage::flag_pad_file);
+
+	std::string const pad_path = combine_path("test", combine_path(".pad", "6384"));
+	TEST_EQUAL(st.file_path(file_index_t{1}, ""), pad_path);
+
+	st.rename_file(file_index_t{1}, combine_path("test", "renamed"));
+
+	// the rename had no effect
+	TEST_EQUAL(st.file_path(file_index_t{1}, ""), pad_path);
+	TEST_EQUAL(std::string(st.file_name(file_index_t{1})), "6384");
+}
 #endif
 
 TORRENT_TEST(set_name)
@@ -189,7 +209,7 @@ TORRENT_TEST(pointer_offset)
 	TEST_EQUAL(st.file_name_ptr(file_index_t{0}), filename);
 	TEST_EQUAL(st.file_name_len(file_index_t{0}), 5);
 #endif
-	TEST_EQUAL(st.file_name(file_index_t{0}), string_view(filename, 5));
+	TEST_EQUAL(std::string(st.file_name(file_index_t{0})), string_view(filename, 5));
 #if TORRENT_ABI_VERSION < 4
 	TEST_EQUAL(st.hash(file_index_t{0}), sha1_hash(filehash));
 #endif
@@ -210,7 +230,7 @@ TORRENT_TEST(invalid_path1)
 	st.add_file_borrow({}, "+///(", 10);
 #endif
 
-	TEST_EQUAL(st.file_name(file_index_t{0}), "(");
+	TEST_EQUAL(std::string(st.file_name(file_index_t{0})), "(");
 	TEST_EQUAL(st.file_path(file_index_t{0}, ""), combine_path("+", "("));
 }
 
@@ -224,7 +244,7 @@ TORRENT_TEST(invalid_path2)
 	st.add_file_borrow({}, "+///+//(", 10);
 #endif
 
-	TEST_EQUAL(st.file_name(file_index_t{0}), "(");
+	TEST_EQUAL(std::string(st.file_name(file_index_t{0})), "(");
 	TEST_EQUAL(st.file_path(file_index_t{0}, ""), combine_path("+", combine_path("+", "(")));
 }
 
@@ -288,21 +308,21 @@ TORRENT_TEST(canonicalize_pad)
 	TEST_EQUAL(fs.num_files(), 6);
 
 	TEST_EQUAL(fs.file_size(0_file), 1);
-	TEST_EQUAL(fs.file_name(0_file), "1");
+	TEST_EQUAL(std::string(fs.file_name(0_file)), "1");
 	TEST_EQUAL(fs.pad_file_at(0_file), false);
 
 	TEST_EQUAL(fs.file_size(1_file), 0x4000 - 1);
 	TEST_EQUAL(fs.pad_file_at(1_file), true);
 
 	TEST_EQUAL(fs.file_size(2_file), 0x7000);
-	TEST_EQUAL(fs.file_name(2_file), "2");
+	TEST_EQUAL(std::string(fs.file_name(2_file)), "2");
 	TEST_EQUAL(fs.pad_file_at(2_file), false);
 
 	TEST_EQUAL(fs.file_size(3_file), 0x8000 - 0x7000);
 	TEST_EQUAL(fs.pad_file_at(3_file), true);
 
 	TEST_EQUAL(fs.file_size(4_file), 0x7001);
-	TEST_EQUAL(fs.file_name(4_file), "3");
+	TEST_EQUAL(std::string(fs.file_name(4_file)), "3");
 	TEST_EQUAL(fs.pad_file_at(4_file), false);
 
 	TEST_EQUAL(fs.file_size(5_file), 0x8000 - 0x7001);
@@ -1286,10 +1306,10 @@ TORRENT_TEST(test_renamed_files)
 	TEST_EQUAL(rf.file_path(fs, 3_file, "/root"), "/root/test/2/2");
 #endif
 
-	TEST_EQUAL(rf.file_name(fs, 0_file), "0");
-	TEST_EQUAL(rf.file_name(fs, 1_file), "1");
-	TEST_EQUAL(rf.file_name(fs, 2_file), "1");
-	TEST_EQUAL(rf.file_name(fs, 3_file), "2");
+	TEST_EQUAL(std::string(rf.file_name(fs, 0_file)), "0");
+	TEST_EQUAL(std::string(rf.file_name(fs, 1_file)), "1");
+	TEST_EQUAL(std::string(rf.file_name(fs, 2_file)), "1");
+	TEST_EQUAL(std::string(rf.file_name(fs, 3_file)), "2");
 
 	// no root path
 	rf.rename_file(fs, 0_file, "foobar");
@@ -1298,7 +1318,7 @@ TORRENT_TEST(test_renamed_files)
 #else
 	TEST_EQUAL(rf.file_path(fs, 0_file, "/root"), "/root/foobar");
 #endif
-	TEST_EQUAL(rf.file_name(fs, 0_file), "foobar");
+	TEST_EQUAL(std::string(rf.file_name(fs, 0_file)), "foobar");
 
 	// full path
 #ifdef TORRENT_WINDOWS
@@ -1308,7 +1328,7 @@ TORRENT_TEST(test_renamed_files)
 	rf.rename_file(fs, 1_file, "test/bar");
 	TEST_EQUAL(rf.file_path(fs, 1_file, "/root"), "/root/test/bar");
 #endif
-	TEST_EQUAL(rf.file_name(fs, 1_file), "bar");
+	TEST_EQUAL(std::string(rf.file_name(fs, 1_file)), "bar");
 
 	// absolute path
 #ifdef TORRENT_WINDOWS
@@ -1318,7 +1338,7 @@ TORRENT_TEST(test_renamed_files)
 	rf.rename_file(fs, 2_file, "/foobar/foo");
 	TEST_EQUAL(rf.file_path(fs, 2_file, "/root"), "/foobar/foo");
 #endif
-	TEST_EQUAL(rf.file_name(fs, 2_file), "foo");
+	TEST_EQUAL(std::string(rf.file_name(fs, 2_file)), "foo");
 }
 
 
@@ -1374,10 +1394,10 @@ TORRENT_TEST(renamed_files_round_trip)
 	TEST_EQUAL(rf2.file_path(fs, 2_file, save_path), path2);
 	TEST_EQUAL(rf2.file_path(fs, 3_file, save_path), path3);
 
-	TEST_EQUAL(rf2.file_name(fs, 0_file), rf.file_name(fs, 0_file));
-	TEST_EQUAL(rf2.file_name(fs, 1_file), rf.file_name(fs, 1_file));
-	TEST_EQUAL(rf2.file_name(fs, 2_file), rf.file_name(fs, 2_file));
-	TEST_EQUAL(rf2.file_name(fs, 3_file), rf.file_name(fs, 3_file));
+	TEST_EQUAL(std::string(rf2.file_name(fs, 0_file)), std::string(rf.file_name(fs, 0_file)));
+	TEST_EQUAL(std::string(rf2.file_name(fs, 1_file)), std::string(rf.file_name(fs, 1_file)));
+	TEST_EQUAL(std::string(rf2.file_name(fs, 2_file)), std::string(rf.file_name(fs, 2_file)));
+	TEST_EQUAL(std::string(rf2.file_name(fs, 3_file)), std::string(rf.file_name(fs, 3_file)));
 
 	TEST_EQUAL(rf2.file_absolute_path(fs, 0_file), rf.file_absolute_path(fs, 0_file));
 	TEST_EQUAL(rf2.file_absolute_path(fs, 1_file), rf.file_absolute_path(fs, 1_file));

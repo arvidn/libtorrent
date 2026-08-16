@@ -1,5 +1,6 @@
 2.2.0 not released
 
+	* optimize padfile memory usage
 	* make DHT DoS protection based on bytes in addition to packets
 	* make smart-ban built-in, not a plugin
 	* improve support for mapped v4 addresses

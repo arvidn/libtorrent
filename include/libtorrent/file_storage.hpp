@@ -16,6 +16,7 @@ see LICENSE file.
 
 #include <string>
 #include <vector>
+#include <variant>
 #include <unordered_set>
 #include <unordered_map>
 #include <map>
@@ -100,6 +101,32 @@ namespace aux {
 	struct path_index_tag;
 	using path_index_t = aux::strong_typedef<std::uint32_t, path_index_tag>;
 
+	// a file's name. For ordinary files this is a view into a string
+	// owned elsewhere, exactly like a string_view. Pad files have no
+	// stored name; one is generated from the pad file's size each time
+	// this is asked for.
+	struct TORRENT_EXPORT file_name_view
+	{
+		file_name_view(string_view name)
+			: m_name(name)
+		{} // NOLINT
+		explicit file_name_view(std::uint64_t pad_size);
+
+		// converting to string_view or std::string is explicit since, for
+		// pad files, the returned string_view may refer to storage owned by
+		// this object; the caller must not outlive it when taking a view
+		explicit operator string_view() const
+		{
+			return std::visit([](auto const& n) { return string_view(n); }, m_name);
+		}
+		explicit operator std::string() const { return std::string(string_view(*this)); }
+		char const* data() const { return string_view(*this).data(); }
+		std::size_t size() const { return string_view(*this).size(); }
+
+	private:
+		std::variant<string_view, std::string> m_name;
+	};
+
 	// internal
 	struct file_entry
 	{
@@ -110,8 +137,10 @@ namespace aux {
 		file_entry& operator=(file_entry&& fe) & noexcept;
 		~file_entry();
 
+		// has no effect, and must not be called, for pad files: their
+		// name is synthesized from their size on demand, see filename()
 		void set_name(string_view n, bool borrow_string = false);
-		string_view filename() const;
+		file_name_view filename() const;
 
 		enum {
 			name_is_owned = (1 << 12) - 1,
@@ -140,6 +169,7 @@ namespace aux {
 		// (i.e. it should be freed in the destructor). If
 		// the len is not name_is_owned, the name pointer does not belong
 		// to this object, and it's not 0-terminated
+		// meaningless when pad_file is set, name is then unused (nullptr)
 		std::uint64_t name_len:12;
 		std::uint64_t pad_file:1;
 		std::uint64_t hidden_attribute:1;
@@ -149,7 +179,8 @@ namespace aux {
 		// make it available for logging
 	private:
 		// This string is not necessarily 0-terminated!
-		// that's why it's private, to keep people away from it
+		// that's why it's private, to keep people away from it.
+		// unused (nullptr) when pad_file is set, see filename()
 		char const* name = nullptr;
 	public:
 		// the SHA-256 root of the merkle tree for this file
@@ -561,7 +592,7 @@ public:
 		std::string symlink(file_index_t index) const;
 		std::time_t mtime(file_index_t index) const;
 		std::string file_path(file_index_t index, std::string const& save_path = "") const;
-		string_view file_name(file_index_t index) const;
+		aux::file_name_view file_name(file_index_t index) const;
 		std::int64_t file_size(file_index_t index) const;
 		bool pad_file_at(file_index_t index) const;
 		std::int64_t file_offset(file_index_t index) const;
@@ -644,9 +675,10 @@ public:
 
 #if TORRENT_ABI_VERSION <= 2
 		// low-level function. returns a pointer to the internal storage for
-		// the filename. This string may not be 0-terminated!
+		// the filename. This string may not be 0-terminated! Always nullptr
+		// for pad files, since they have no stored name.
 		// the ``file_name_len()`` function returns the length of the filename.
-		// prefer to use ``file_name()`` instead, which returns a ``string_view``.
+		// prefer to use ``file_name()`` instead.
 		TORRENT_DEPRECATED
 		char const* file_name_ptr(file_index_t index) const;
 		TORRENT_DEPRECATED
@@ -803,7 +835,7 @@ namespace aux {
 		// true if the recorded rename is an absolute path (in which
 		// case ``save_path`` is ignored).
 		std::string file_path(file_storage const& fs, file_index_t index, std::string const& save_path = "") const;
-		string_view file_name(file_storage const& fs, file_index_t index) const;
+		aux::file_name_view file_name(file_storage const& fs, file_index_t index) const;
 		bool file_absolute_path(file_storage const& fs, file_index_t index) const;
 
 		// records that the file at ``index`` in ``fs`` should be

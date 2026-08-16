@@ -306,9 +306,9 @@ TORRENT_TEST(v2_only)
 		lt::torrent_info info(buffer, lt::from_span);
 		TEST_CHECK(info.info_hashes().has_v2());
 		TEST_CHECK(!info.info_hashes().has_v1());
-		TEST_EQUAL(info.layout().file_name(0_file), "A");
+		TEST_EQUAL(std::string(info.layout().file_name(0_file)), "A");
 		TEST_CHECK(info.layout().pad_file_at(1_file));
-		TEST_EQUAL(info.layout().file_name(2_file), "B");
+		TEST_EQUAL(std::string(info.layout().file_name(2_file)), "B");
 		TEST_EQUAL(info.name(), "test");
 
 		lt::create_torrent t2(info);
@@ -322,9 +322,9 @@ TORRENT_TEST(v2_only)
 	std::shared_ptr<lt::torrent_info const> info = lt::load_torrent_buffer(buffer).ti;
 	TEST_CHECK(info->info_hashes().has_v2());
 	TEST_CHECK(!info->info_hashes().has_v1());
-	TEST_EQUAL(info->layout().file_name(0_file), "A");
+	TEST_EQUAL(std::string(info->layout().file_name(0_file)), "A");
 	TEST_CHECK(info->layout().pad_file_at(1_file));
-	TEST_EQUAL(info->layout().file_name(2_file), "B");
+	TEST_EQUAL(std::string(info->layout().file_name(2_file)), "B");
 	TEST_EQUAL(info->name(), "test");
 
 }
@@ -659,18 +659,18 @@ TORRENT_TEST(implicit_v2_only)
 		auto& info = *atp.ti;
 		TEST_CHECK(info.info_hashes().has_v2());
 		TEST_CHECK(!info.info_hashes().has_v1());
-		TEST_EQUAL(info.layout().file_name(0_file), "A");
+		TEST_EQUAL(std::string(info.layout().file_name(0_file)), "A");
 		TEST_EQUAL(info.layout().pad_file_at(1_file), true);
-		TEST_EQUAL(info.layout().file_name(2_file), "B");
+		TEST_EQUAL(std::string(info.layout().file_name(2_file)), "B");
 		TEST_EQUAL(info.name(), "test");
 	}
 
 	auto atp = lt::load_torrent_buffer(buffer);
 	TEST_CHECK(atp.ti->info_hashes().has_v2());
 	TEST_CHECK(!atp.ti->info_hashes().has_v1());
-	TEST_EQUAL(atp.ti->layout().file_name(0_file), "A");
+	TEST_EQUAL(std::string(atp.ti->layout().file_name(0_file)), "A");
 	TEST_EQUAL(atp.ti->layout().pad_file_at(1_file), true);
-	TEST_EQUAL(atp.ti->layout().file_name(2_file), "B");
+	TEST_EQUAL(std::string(atp.ti->layout().file_name(2_file)), "B");
 	TEST_EQUAL(atp.ti->name(), "test");
 }
 
@@ -694,18 +694,18 @@ TORRENT_TEST(implicit_v1_only)
 		auto& info = *atp.ti;
 		TEST_CHECK(!info.info_hashes().has_v2());
 		TEST_CHECK(info.info_hashes().has_v1());
-		TEST_EQUAL(info.layout().file_name(0_file), "A");
+		TEST_EQUAL(std::string(info.layout().file_name(0_file)), "A");
 		TEST_EQUAL(info.layout().pad_file_at(1_file), true);
-		TEST_EQUAL(info.layout().file_name(2_file), "B");
+		TEST_EQUAL(std::string(info.layout().file_name(2_file)), "B");
 		TEST_EQUAL(info.name(), "test");
 	}
 
 	auto info = lt::load_torrent_buffer(buffer).ti;
 	TEST_CHECK(!info->info_hashes().has_v2());
 	TEST_CHECK(info->info_hashes().has_v1());
-	TEST_EQUAL(info->layout().file_name(0_file), "A");
+	TEST_EQUAL(std::string(info->layout().file_name(0_file)), "A");
 	TEST_EQUAL(info->layout().pad_file_at(1_file), true);
-	TEST_EQUAL(info->layout().file_name(2_file), "B");
+	TEST_EQUAL(std::string(info->layout().file_name(2_file)), "B");
 	TEST_EQUAL(info->name(), "test");
 }
 
@@ -1167,21 +1167,21 @@ TORRENT_TEST(canonicalize_pad)
 	TEST_EQUAL(fs.num_files(), 6);
 
 	TEST_EQUAL(fs.file_size(0_file), 1);
-	TEST_EQUAL(fs.file_name(0_file), "1");
+	TEST_EQUAL(std::string(fs.file_name(0_file)), "1");
 	TEST_EQUAL(fs.pad_file_at(0_file), false);
 
 	TEST_EQUAL(fs.file_size(1_file), 0x4000 - 1);
 	TEST_EQUAL(fs.pad_file_at(1_file), true);
 
 	TEST_EQUAL(fs.file_size(2_file), 0x7000);
-	TEST_EQUAL(fs.file_name(2_file), "2");
+	TEST_EQUAL(std::string(fs.file_name(2_file)), "2");
 	TEST_EQUAL(fs.pad_file_at(2_file), false);
 
 	TEST_EQUAL(fs.file_size(3_file), 0x8000 - 0x7000);
 	TEST_EQUAL(fs.pad_file_at(3_file), true);
 
 	TEST_EQUAL(fs.file_size(4_file), 0x7001);
-	TEST_EQUAL(fs.file_name(4_file), "3");
+	TEST_EQUAL(std::string(fs.file_name(4_file)), "3");
 	TEST_EQUAL(fs.pad_file_at(4_file), false);
 	TEST_EQUAL(fs.size_on_disk(), 0x7000 + 1 + 0x7001);
 
