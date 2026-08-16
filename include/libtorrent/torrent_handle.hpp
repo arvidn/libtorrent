@@ -767,7 +767,7 @@ namespace aux {
 		// which pieces have been downloaded. It can also be used to save a
 		// .torrent file for a torrent_handle.
 		//
-		// ```get_resume_data()`` is synchronous and will block the calling
+		// ``get_resume_data()`` is synchronous and will block the calling
 		// thread until the resume data is ready and returned from the
 		// libtorrent main thread.
 		///

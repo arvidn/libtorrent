@@ -137,7 +137,7 @@ load_resume_data() can still load the previous resume data format.
 standard string_view
 ====================
 
-libtorrent now uses ``std::string_view`` instead of ``boost::string_view`` or ``boost::string_ref```.
+libtorrent now uses ``std::string_view`` instead of ``boost::string_view`` or ``boost::string_ref``.
 This affects libtorrent's API to some extent.
 
 bump API version
