@@ -67,23 +67,24 @@ namespace libtorrent {
 #ifdef TORRENT_WINDOWS
 		// On windows, both the filesystem and the operating system impose
 		// restrictions.
-		static const char invalid_chars[] = "?<>\"|\b*:";
+		constexpr string_view invalid_chars = "?<>\"|\b*:"_sv;
 #elif defined TORRENT_ANDROID
 		// The Android kernel probably has similar restrictions as Linux (i.e.
 		// very few) but it appears some user-space system libraries impose
 		// additional restrictions, and it's probably more common to use FAT32
 		// style filesystems, which also further restricts valid characters
 		// https://cs.android.com/android/platform/superproject/+/master:frameworks/base/core/java/android/os/FileUtils.java;l=997?q=isValidFatFilenameChar
-		static const char invalid_chars[] = "\"*:<>?|";
+		constexpr string_view invalid_chars = "\"*:<>?|"_sv;
 #else
-		static const char invalid_chars[] = "";
+		constexpr string_view invalid_chars = ""_sv;
 #endif
 		// C0 controls and DEL
 		if (c < 32 || c == 0x7f) return false;
 		// C1 controls
 		if (c >= 0x80 && c <= 0x9f) return false;
 		if (c > 127) return true;
-		return std::strchr(invalid_chars, static_cast<char>(c)) == nullptr;
+		return std::find(invalid_chars.begin(), invalid_chars.end(), static_cast<char>(c))
+			== invalid_chars.end();
 	}
 
 	bool filter_path_character(std::int32_t const c)
@@ -104,9 +105,8 @@ namespace libtorrent {
 			|| (c >= 0x2060 && c <= 0x2064) || (c >= 0x2066 && c <= 0x2069) || c == 0xfeff)
 			return true;
 
-		static const char invalid_chars[] = "/\\";
 		if (c > 127) return false;
-		return std::strchr(invalid_chars, static_cast<char>(c)) != nullptr;
+		return c == '/' || c == '\\' || c == '\0';
 	}
 
 	} // anonymous namespace
@@ -1136,11 +1136,8 @@ TORRENT_VERSION_NAMESPACE_4
 			return;
 		}
 
-		// hash the info-field to calculate info-hash
 		auto section = info.data_section();
-		m_info_hash.v1 = hasher(section).final();
-		m_info_hash.v2 = hasher256(section).final();
-		if (info.data_section().size() >= std::numeric_limits<int>::max())
+		if (section.size() >= std::numeric_limits<int>::max())
 		{
 			ec = errors::metadata_too_large;
 			return;
@@ -1155,7 +1152,7 @@ TORRENT_VERSION_NAMESPACE_4
 		// copy the info section
 		m_info_section_size = aux::numeric_cast<int>(section.size());
 		char* ptr = new char[aux::numeric_cast<std::size_t>(m_info_section_size)];
-		std::memcpy(ptr, section.data(), aux::numeric_cast<std::size_t>(section.size()));
+		std::memcpy(ptr, section.data(), aux::numeric_cast<std::size_t>(m_info_section_size));
 		m_info_section.reset(ptr);
 
 		// this is the offset from the start of the torrent file buffer to the
@@ -1183,12 +1180,25 @@ TORRENT_VERSION_NAMESPACE_4
 			}
 		}
 
-		if (version < 2)
-		{
-			// this is a v1 torrent so the v2 info hash has no meaning
-			// clear it just to make sure no one tries to use it
+		// a v1 info-hash is only meaningful for version < 2, or for a
+		// hybrid (v1+v2) torrent that also carries a "files"/"length"
+		// listing alongside "meta version" >= 2, mirroring the check
+		// further down that decides whether this ends up a v2-only torrent.
+		bdecode_node const files_node = info.dict_find_list("files");
+		bdecode_node const length_key = info.dict_find("length");
+		bool const need_v1_hash = version < 2 || bool(files_node) || bool(length_key);
+		bool const need_v2_hash = version >= 2;
+
+		// hash the info-field to calculate info-hash
+		if (need_v1_hash)
+			m_info_hash.v1 = hasher(section).final();
+		else
+			m_info_hash.v1.clear();
+
+		if (need_v2_hash)
+			m_info_hash.v2 = hasher256(section).final();
+		else
 			m_info_hash.v2.clear();
-		}
 
 		// extract piece length
 		std::int64_t const piece_length = info.dict_find_int_value("piece length", -1);
@@ -1224,10 +1234,15 @@ TORRENT_VERSION_NAMESPACE_4
 		aux::sanitize_append_path_element(name, name_ent.string_value());
 		if (name.empty())
 		{
-			if (m_info_hash.has_v1())
-				name = aux::to_hex(m_info_hash.v1);
-			else
-				name = aux::to_hex(m_info_hash.v2);
+			// the fallback name is always based on the v1 (SHA-1) info-hash,
+			// even for v2-only torrents where it's otherwise not needed. Compute
+			// it lazily here rather than unconditionally up-front, to avoid the
+			// extra hash in the common case where the name field is valid.
+			// TODO: this should using the v2 hash for v2 torrents, but
+			// changing it is not backwards compatible. Version the sanitizer,
+			// letting the caller pick which sanitizer version to use. Then
+			// this can be fixed in an updated version.
+			name = aux::to_hex(m_info_hash.has_v1() ? m_info_hash.v1 : hasher(section).final());
 		}
 
 		// extract file list
@@ -1236,8 +1251,6 @@ TORRENT_VERSION_NAMESPACE_4
 		file_storage v1_files;
 		if (version >= 2)
 			v1_files = files;
-
-		bdecode_node const files_node = info.dict_find_list("files");
 
 		bdecode_node const file_tree_node = info.dict_find_dict("file tree");
 		if (version >= 2 && file_tree_node)
@@ -1281,7 +1294,7 @@ TORRENT_VERSION_NAMESPACE_4
 		{
 			// if this is a v2 torrent it is ok for the length key to be missing
 			// that means it is a v2 only torrent
-			if (version < 2 || info.dict_find("length"))
+			if (version < 2 || length_key)
 			{
 				// if there's no list of files, there has to be a length
 				// field.
@@ -1303,11 +1316,8 @@ TORRENT_VERSION_NAMESPACE_4
 
 				m_flags &= ~multifile;
 			}
-			else
-			{
-				// this is a v2 only torrent so clear the v1 info hash to make sure no one uses it
-				m_info_hash.v1.clear();
-			}
+			// else: this is a v2 only torrent, the v1 info-hash was already
+			// left cleared, and there's no v1 file length/listing to extract
 		}
 		else
 		{

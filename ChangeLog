@@ -8,6 +8,7 @@
 
 2.1.2 not released
 
+	* optimize loading torrents
 	* fix mis-attribution of tracker source when loading a torrent file
 	* fix race between async_hash() and force_recheck()
 
