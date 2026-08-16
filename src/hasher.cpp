@@ -27,6 +27,35 @@ see LICENSE file.
 
 namespace libtorrent {
 
+#if defined TORRENT_USE_LIBCRYPTO
+namespace {
+
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+// EVP_sha1()/EVP_sha256() return a legacy method table; passing it to
+// EVP_DigestInit_ex() makes OpenSSL's provider machinery fetch a
+// matching implementation on every call (evp_md_init_internal in
+// profiles). Fetching once and reusing the EVP_MD avoids that per-call
+// fetch.
+// see: https://docs.openssl.org/3.0/man7/crypto/#explicit-fetching
+EVP_MD const* sha1_md()
+{
+	static EVP_MD* const md = EVP_MD_fetch(nullptr, "SHA1", nullptr);
+	return md ? md : EVP_sha1();
+}
+
+EVP_MD const* sha256_md()
+{
+	static EVP_MD* const md = EVP_MD_fetch(nullptr, "SHA256", nullptr);
+	return md ? md : EVP_sha256();
+}
+#else
+EVP_MD const* sha1_md() { return EVP_sha1(); }
+EVP_MD const* sha256_md() { return EVP_sha256(); }
+#endif
+
+}
+#endif
+
 TORRENT_CRYPTO_NAMESPACE
 
 	hasher::hasher()
@@ -39,7 +68,7 @@ TORRENT_CRYPTO_NAMESPACE
 #elif TORRENT_USE_CRYPTOAPI
 #elif defined TORRENT_USE_LIBCRYPTO
 		m_context = EVP_MD_CTX_new();
-		EVP_DigestInit_ex(m_context, EVP_sha1(), nullptr);
+		EVP_DigestInit_ex(m_context, sha1_md(), nullptr);
 #else
 		aux::SHA1_init(&m_context);
 #endif
@@ -166,7 +195,7 @@ TORRENT_CRYPTO_NAMESPACE
 #elif TORRENT_USE_CRYPTOAPI
 		m_context.reset();
 #elif defined TORRENT_USE_LIBCRYPTO
-		EVP_DigestInit_ex(m_context, EVP_sha1(), nullptr);
+		EVP_DigestInit_ex(m_context, sha1_md(), nullptr);
 #else
 		aux::SHA1_init(&m_context);
 #endif
@@ -191,7 +220,7 @@ TORRENT_CRYPTO_NAMESPACE
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
 #elif defined TORRENT_USE_LIBCRYPTO
 		m_context = EVP_MD_CTX_new();
-		EVP_DigestInit_ex(m_context, EVP_sha256(), nullptr);
+		EVP_DigestInit_ex(m_context, sha256_md(), nullptr);
 #else
 		aux::SHA256_init(m_context);
 #endif
@@ -318,7 +347,7 @@ TORRENT_CRYPTO_NAMESPACE
 #elif TORRENT_USE_CRYPTOAPI_SHA_512
 		m_context.reset();
 #elif defined TORRENT_USE_LIBCRYPTO
-		EVP_DigestInit_ex(m_context, EVP_sha256(), nullptr);
+		EVP_DigestInit_ex(m_context, sha256_md(), nullptr);
 #else
 		aux::SHA256_init(m_context);
 #endif
