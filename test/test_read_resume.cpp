@@ -534,6 +534,94 @@ TORRENT_TEST(deprecated_trees_fields)
 		{true, true, true, false, false, true, false, true, false, true, true, true, true}));
 }
 
+TORRENT_TEST(verified_pieces_too_large)
+{
+	entry rd;
+	rd["file-format"] = "libtorrent resume file";
+	rd["file-version"] = 1;
+	rd["info-hash"] = "                    ";
+	// each byte holds 8 bits, so this is 8 * 32 = 256 bits, well over the
+	// 64-piece limit passed in below.
+	rd["verified"] = std::string(32, '\xff');
+
+	load_torrent_limits cfg;
+	cfg.max_pieces = 64;
+
+	error_code ec;
+	read_resume_data(bencode(rd), ec, cfg);
+	TEST_EQUAL(ec, error_code(errors::too_many_pieces_in_torrent));
+	// the non-ec overload should turn that into an exception
+	TEST_THROW(read_resume_data(bencode(rd), cfg));
+}
+
+TORRENT_TEST(have_pieces_too_large)
+{
+	entry rd;
+	rd["file-format"] = "libtorrent resume file";
+	rd["file-version"] = 2;
+	rd["info-hash2"] = "01234567890123456789012345678901";
+	rd["pieces"] = std::string(32, '\xff');
+
+	load_torrent_limits cfg;
+	cfg.max_pieces = 64;
+
+	error_code ec;
+	read_resume_data(bencode(rd), ec, cfg);
+	TEST_EQUAL(ec, error_code(errors::too_many_pieces_in_torrent));
+}
+
+TORRENT_TEST(merkle_tree_bitfield_too_large)
+{
+	auto const make = [](int const mask_bytes) {
+		entry rd;
+		rd["file-format"] = "libtorrent resume file";
+		rd["file-version"] = 2;
+		rd["info-hash2"] = "01234567890123456789012345678901";
+		auto& tree = rd["trees"].list();
+		tree.emplace_back(entry::dictionary_t);
+		auto& file = tree.back().dict();
+		file["hashes"] = std::string();
+		file["mask"] = std::string(std::size_t(mask_bytes), '\xff');
+		return bencode(rd);
+	};
+
+	// 64-piece limit means a 64-bit piece limit and a doubled 128-bit (16 byte)
+	// merkle-tree limit.
+	load_torrent_limits cfg;
+	cfg.max_pieces = 64;
+
+	// 12 bytes = 96 bits: past the 64-bit piece limit but within the doubled
+	// merkle limit, so it's accepted.
+	error_code ec;
+	read_resume_data(make(12), ec, cfg);
+	TEST_EQUAL(ec, error_code());
+
+	// 20 bytes = 160 bits: past the doubled merkle limit, so it's rejected.
+	read_resume_data(make(20), ec, cfg);
+	TEST_EQUAL(ec, error_code(errors::too_many_pieces_in_torrent));
+}
+
+// the unfinished bitmask counts blocks in a piece, not pieces, so it's bounded
+// only by what fits the int bit-count. a >= 256 MiB string would make
+// (size * 8) overflow a signed int, which must be rejected rather than trigger
+// undefined behavior. the buffer is built in memory, not saved to disk.
+TORRENT_TEST(unfinished_bitmask_overflow)
+{
+	entry rd;
+	rd["file-format"] = "libtorrent resume file";
+	rd["file-version"] = 1;
+	rd["info-hash"] = "                    ";
+	auto& unfinished = rd["unfinished"].list();
+	unfinished.emplace_back(entry::dictionary_t);
+	auto& piece = unfinished.back().dict();
+	piece["piece"] = 0;
+	piece["bitmask"] = std::string(std::size_t(1) << 28, '\xff');
+
+	error_code ec;
+	read_resume_data(bencode(rd), ec);
+	TEST_EQUAL(ec, error_code(errors::too_many_pieces_in_torrent));
+}
+
 TORRENT_TEST(read_resume_banned_peers)
 {
 	add_torrent_params atp;

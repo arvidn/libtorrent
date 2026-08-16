@@ -342,7 +342,10 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 				tier = *tier_iter++;
 
 			e.fail_limit = 0;
-			e.source = lt::announce_entry::source_magnet_link;
+			if (p.ti)
+				e.source = lt::announce_entry::source_torrent;
+			else
+				e.source = lt::announce_entry::source_magnet_link;
 			e.tier = std::uint8_t(tier);
 
 			if (!m_trackers.add_tracker(e))
@@ -1159,6 +1162,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		// if this is a hybrid torrent, we may have marked some more pieces
 		// as "have" but not yet validated them against the v2 hashes. At
 		// this point, just assume we have no pieces
+		++m_picker_generation;
 		m_picker.reset();
 		m_hash_picker.reset();
 		m_file_progress.clear();
@@ -1440,6 +1444,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		p.start = 0;
 		piece_refcount refcount{picker(), piece};
 		auto self = shared_from_this();
+		std::uint8_t const gen = m_picker_generation;
 		for (int i = 0; i < blocks_in_piece; ++i, p.start += block_size())
 		{
 			piece_block const block(piece, i);
@@ -1474,9 +1479,14 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			debug_log("*** add_piece [ piece: %d | block: %d ]"
 				, static_cast<int>(piece), i);
 #endif
-			m_ses.disk_thread().async_write(m_storage, p, data + p.start, nullptr
-				, [self, p](storage_error const& error) { self->on_disk_write_complete(error, p); }
-				, dflags);
+			m_ses.disk_thread().async_write(
+				m_storage,
+				p,
+				data + p.start,
+				nullptr,
+				[self, p, gen](
+					storage_error const& error) { self->on_disk_write_complete(error, p, gen); },
+				dflags);
 
 			bool const was_finished = picker().is_piece_finished(p.piece);
 			bool const multi = picker().num_peers(block) > 1;
@@ -1501,8 +1511,9 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			refcount.disarm();
 	}
 
-	void torrent::on_disk_write_complete(storage_error const& error
-		, peer_request const& p) try
+	void torrent::on_disk_write_complete(
+		storage_error const& error, peer_request const& p, std::uint8_t const picker_gen)
+	try
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -1514,6 +1525,13 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		INVARIANT_CHECK;
 		if (m_flags & torrent_internal_flags::torrent_aborted) return;
 		piece_block const block_finished(p.piece, p.start / block_size());
+
+		// a force_recheck() may have reset the picker after this write was
+		// issued by add_piece(); ignore the completion (success or failure)
+		// rather than touching downloading-piece state the recheck already
+		// discarded.
+		if (picker_gen != m_picker_generation)
+			return;
 
 		if (error)
 		{
@@ -2436,6 +2454,11 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		// forget that we have any pieces
 		set_have_all(false);
 
+		// any disk job dispatched before this point is now stale; its
+		// completion handler must not touch the picker state we're about
+		// to discard.
+		++m_picker_generation;
+
 		// removing the piece picker will clear the user priorities
 		// instead, just clear which pieces we have
 		if (m_picker)
@@ -2551,6 +2574,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			return;
 		}
 
+		std::uint8_t const gen = m_picker_generation;
+
 		for (int i = 0; i < num_outstanding; ++i)
 		{
 			if (has_picker())
@@ -2574,12 +2599,21 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			if (torrent_file().info_hashes().has_v2())
 				hashes.resize(torrent_file().layout().blocks_in_piece2(m_checking_piece));
 
-			span<sha256_hash> v2_span(hashes);
-			m_ses.disk_thread().async_hash(m_storage, m_checking_piece, v2_span, flags
-				, [self = shared_from_this(), hashes1 = std::move(hashes)]
-				(piece_index_t p, sha1_hash const& h, storage_error const& error) mutable
-				{ self->on_piece_hashed(std::move(hashes1), p, h, error); });
+			// capture and advance before dispatching: with 0 disk threads
+			// (aio_threads=0, e.g. simulations), async_hash() may invoke its
+			// completion handler inline, before this call even returns.
+			piece_index_t const piece = m_checking_piece;
 			++m_checking_piece;
+
+			span<sha256_hash> v2_span(hashes);
+			m_ses.disk_thread().async_hash(m_storage,
+				piece,
+				v2_span,
+				flags,
+				[self = shared_from_this(), hashes1 = std::move(hashes), gen](
+					piece_index_t p, sha1_hash const& h, storage_error const& error) mutable {
+					self->on_piece_hashed(std::move(hashes1), p, h, error, gen);
+				});
 			if (m_checking_piece >= m_torrent_file->end_piece()) break;
 		}
 		m_ses.deferred_submit_jobs();
@@ -2592,15 +2626,24 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 	// This is only used for checking of torrents. i.e. force-recheck or initial checking
 	// of existing files
-	void torrent::on_piece_hashed(aux::vector<sha256_hash> block_hashes
-		, piece_index_t const piece, sha1_hash const& piece_hash
-		, storage_error const& error) try
+	void torrent::on_piece_hashed(aux::vector<sha256_hash> block_hashes,
+		piece_index_t const piece,
+		sha1_hash const& piece_hash,
+		storage_error const& error,
+		std::uint8_t const picker_gen)
+	try
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
 		if (m_flags & torrent_internal_flags::torrent_aborted) return;
 		if (m_flags & torrent_internal_flags::deleted) return;
+
+		// a force_recheck() started a new checking pass after this job was
+		// dispatched; m_checking_piece / m_num_checked_pieces now belong to
+		// that new pass and must not be advanced by this stale completion.
+		if (picker_gen != m_picker_generation)
+			return;
 
 		state_updated();
 
@@ -2763,12 +2806,21 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			if (torrent_file().info_hashes().has_v2())
 				block_hashes.resize(torrent_file().layout().blocks_in_piece2(m_checking_piece));
 
-			span<sha256_hash> v2_span(block_hashes);
-			m_ses.disk_thread().async_hash(m_storage, m_checking_piece, v2_span, flags
-				, [self = shared_from_this(), hashes = std::move(block_hashes)]
-				(piece_index_t p, sha1_hash const& h, storage_error const& e)
-				{ self->on_piece_hashed(std::move(hashes), p, h, e); });
+			// capture and advance before dispatching: with 0 disk threads
+			// (aio_threads=0, e.g. simulations), async_hash() may invoke its
+			// completion handler inline, before this call even returns.
+			piece_index_t const next_piece = m_checking_piece;
 			++m_checking_piece;
+
+			span<sha256_hash> v2_span(block_hashes);
+			m_ses.disk_thread().async_hash(m_storage,
+				next_piece,
+				v2_span,
+				flags,
+				[self = shared_from_this(), hashes = std::move(block_hashes), picker_gen](
+					piece_index_t p, sha1_hash const& h, storage_error const& e) {
+					self->on_piece_hashed(std::move(hashes), p, h, e, picker_gen);
+				});
 			m_ses.deferred_submit_jobs();
 #ifndef TORRENT_DISABLE_LOGGING
 			debug_log("on_piece_hashed, m_checking_piece: %d"
@@ -4397,9 +4449,12 @@ namespace {
 		TORRENT_ASSERT(st.total_done >= st.total_wanted_done);
 	}
 
-	void torrent::on_piece_verified(aux::vector<sha256_hash> block_hashes
-		, piece_index_t const piece
-		, sha1_hash const& piece_hash, storage_error const& error) try
+	void torrent::on_piece_verified(aux::vector<sha256_hash> block_hashes,
+		piece_index_t const piece,
+		sha1_hash const& piece_hash,
+		storage_error const& error,
+		std::uint8_t const picker_gen)
+	try
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -4407,6 +4462,12 @@ namespace {
 		if (m_flags & torrent_internal_flags::deleted) return;
 
 		if (!m_picker) return;
+
+		// a force_recheck() or handle_inconsistent_hashes() reset the
+		// picker after this job was dispatched; the piece it refers to may
+		// no longer correspond to any job the picker knows about.
+		if (picker_gen != m_picker_generation)
+			return;
 
 		m_picker->completed_hash_job(piece);
 
@@ -11779,20 +11840,29 @@ namespace {
 			hashes.resize(torrent_file().layout().blocks_in_piece2(piece));
 		}
 
+		std::uint8_t const gen = m_picker_generation;
+
 		if (settings().get_bool(settings_pack::disable_hash_checks))
 		{
 			// short-circuit the hash check if it's disabled
 			m_picker->started_hash_job(piece);
-			on_piece_verified(std::move(hashes), piece, sha1_hash(), storage_error{});
+			on_piece_verified(std::move(hashes), piece, sha1_hash(), storage_error{}, gen);
 			return;
 		}
 
 		span<sha256_hash> v2_span(hashes);
-		m_ses.disk_thread().async_hash(m_storage, piece, v2_span, flags
-			, [self = shared_from_this(), hashes1 = std::move(hashes)]
-			(piece_index_t p, sha1_hash const& h, storage_error const& error) mutable
-			{ self->on_piece_verified(std::move(hashes1), p, h, error); });
+		// mark the piece as hashing before dispatching: with 0 disk threads
+		// (aio_threads=0, e.g. simulations), async_hash() may invoke its
+		// completion handler inline, before this call even returns.
 		m_picker->started_hash_job(piece);
+		m_ses.disk_thread().async_hash(m_storage,
+			piece,
+			v2_span,
+			flags,
+			[self = shared_from_this(), hashes1 = std::move(hashes), gen](
+				piece_index_t p, sha1_hash const& h, storage_error const& error) mutable {
+				self->on_piece_verified(std::move(hashes1), p, h, error, gen);
+			});
 		m_ses.deferred_submit_jobs();
 	}
 

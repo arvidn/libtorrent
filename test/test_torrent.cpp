@@ -25,6 +25,7 @@ see LICENSE file.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/path.hpp" // for combine_path, current_working_directory
 #include "libtorrent/magnet_uri.hpp"
+#include "libtorrent/announce_entry.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/session_params.hpp"
 #include "libtorrent/aux_/random.hpp"
@@ -958,4 +959,44 @@ TORRENT_TEST(test_in_session)
 	TEST_CHECK(h.in_session());
 	ses.remove_torrent(h);
 	TEST_CHECK(!h.in_session());
+}
+
+// trackers passed in via add_torrent_params::trackers must be attributed to
+// the torrent file when add_torrent_params::ti is set, and to the magnet
+// link otherwise, even though both cases populate the same field.
+TORRENT_TEST(tracker_source_attribution)
+{
+	std::vector<lt::create_file_entry> fs;
+	fs.emplace_back("test_torrent_dir5/tmp1", 1024);
+	lt::create_torrent t(std::move(fs), 1024);
+	t.set_hash(0_piece, sha1_hash::max());
+	auto const ti = load_torrent_buffer(bencode(t.generate())).ti;
+
+	lt::session ses(settings());
+
+	{
+		add_torrent_params p;
+		p.ti = ti;
+		p.trackers.emplace_back("http://torrent-tracker.com/announce");
+		p.save_path = ".";
+		torrent_handle h = ses.add_torrent(std::move(p));
+		std::vector<announce_entry> const trackers = h.trackers();
+		TEST_EQUAL(trackers.size(), 1);
+		if (!trackers.empty())
+			TEST_EQUAL(trackers[0].source, announce_entry::source_torrent);
+		ses.remove_torrent(h);
+	}
+
+	{
+		add_torrent_params p;
+		p.info_hashes = ti->info_hashes();
+		p.trackers.emplace_back("http://magnet-tracker.com/announce");
+		p.save_path = ".";
+		torrent_handle h = ses.add_torrent(std::move(p));
+		std::vector<announce_entry> const trackers = h.trackers();
+		TEST_EQUAL(trackers.size(), 1);
+		if (!trackers.empty())
+			TEST_EQUAL(trackers[0].source, announce_entry::source_magnet_link);
+		ses.remove_torrent(h);
+	}
 }

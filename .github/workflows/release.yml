@@ -25,6 +25,10 @@ jobs:
            filter: tree:0
            submodules: recursive
 
+      - name: patch libdatachannel (windows 32/64-bit builds)
+        run: git apply ../patch-libdatachannel-32bit-builds.patch
+        working-directory: deps/libdatachannel
+
       - name: update package lists
         continue-on-error: true
         run: |

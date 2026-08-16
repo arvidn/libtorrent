@@ -180,6 +180,48 @@ jobs:
           cd tools
           b2 --hash ${{ matrix.config }} msvc-version-macro=on address-model=64 warnings=all warnings-as-errors=on
 
+   build-32bit:
+      name: Build (32-bit)
+      runs-on: windows-2022
+
+      steps:
+      - name: checkout
+        uses: actions/checkout@v6
+        with:
+           submodules: recursive
+           fetch-depth: 1
+           filter: tree:0
+
+      - name: patch libdatachannel (windows 32/64-bit builds)
+        run: git apply ../patch-libdatachannel-32bit-builds.patch
+        working-directory: deps/libdatachannel
+
+      - name: install boost
+        run: |
+          git clone --depth=1 --recurse-submodules -j10 --branch=boost-1.91.0 https://github.com/boostorg/boost.git
+          cd boost
+          bootstrap.bat
+
+      - name: boost headers
+        run: |
+          cd boost
+          .\b2 headers
+
+      - name: install openssl:x86-windows-static
+        uses: ./.github/actions/win_install_openssl
+        with:
+          architecture: x86
+          linking: static
+
+      - name: setup msbuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: build library
+        run: |
+          set BOOST_ROOT=%CD%\boost
+          set PATH=%BOOST_ROOT%;%PATH%
+          b2 --hash msvc-version-macro=on address-model=32 warnings=all warnings-as-errors=on openssl-include="C:/Program Files/OpenSSL/include" openssl-lib="C:/Program Files/OpenSSL/lib"
+
    mingw:
       name: MingW
       runs-on: windows-latest
