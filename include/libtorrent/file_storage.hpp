@@ -195,50 +195,50 @@ namespace aux {
 
 TORRENT_VERSION_NAMESPACE_4
 
-	// The ``file_storage`` class represents a file list and the piece
-	// size. Everything necessary to interpret a regular bittorrent storage
-	// file structure.
-	class TORRENT_EXPORT file_storage
-	{
-	public:
-		// hidden
-		file_storage();
-		// hidden
-		~file_storage();
-		file_storage(file_storage const&);
-		file_storage& operator=(file_storage const&) &;
-		file_storage(file_storage&&) noexcept;
-		file_storage& operator=(file_storage&&) &;
+// The ``file_storage`` class represents a file list and the piece
+// size. Everything necessary to interpret a regular bittorrent storage
+// file structure. A file storage is tied to the torrent_info object that
+// created it, which it should never outlive.
+class TORRENT_EXPORT file_storage
+{
+public:
+	// hidden
+	TORRENT_UNEXPORT file_storage();
+	// hidden
+	~file_storage();
+	file_storage(file_storage const&);
+	file_storage& operator=(file_storage const&) &;
+	file_storage(file_storage&&) noexcept;
+	file_storage& operator=(file_storage&&) &;
 
-		// internal limitations restrict file sizes to not be larger than this
-		// We use int to index into file merkle trees, so a file may not contain more
-		// than INT_MAX entries. That means INT_MAX / 2 blocks (leafs) in each
-		// tree.
-		static constexpr std::int64_t max_file_size = (std::min)(
-			(std::int64_t(1) << 48) - 1
-			, std::int64_t((std::numeric_limits<int>::max)() / 2) * default_block_size);
-		static constexpr std::int64_t max_file_offset = (std::int64_t(1) << 48) - 1;
+	// internal limitations restrict file sizes to not be larger than this
+	// We use int to index into file merkle trees, so a file may not contain more
+	// than INT_MAX entries. That means INT_MAX / 2 blocks (leafs) in each
+	// tree.
+	static constexpr std::int64_t max_file_size = (std::min)((std::int64_t(1) << 48) - 1,
+		std::int64_t((std::numeric_limits<int>::max)() / 2) * default_block_size);
+	static constexpr std::int64_t max_file_offset = (std::int64_t(1) << 48) - 1;
 
-		// we use a signed 32 bit integer for piece indices internally, but
-		// frequently need headroom for intermediate calculations, so we limit
-		// the number of pieces 1 bit below the maximum
-		static constexpr std::int32_t max_num_pieces = (std::int32_t(1) << 30) - 1;
+	// we use a signed 32 bit integer for piece indices internally, but
+	// frequently need headroom for intermediate calculations, so we limit
+	// the number of pieces 1 bit below the maximum
+	static constexpr std::int32_t max_num_pieces = (std::int32_t(1) << 30) - 1;
 
-		// limit the piece length at (2 ^ 30) to get a bit of headroom. We
-		// commonly compute the number of blocks per pieces by adding
-		// block_size - 1 before dividing by block_size. That would overflow with
-		// a piece size of 2 ^ 31. This limit is still an unreasonably large
-		// piece size anyway.
-		// The piece picker (currently) has a limit of no more than (2^15)-1
-		// blocks per piece, which is more restrictive, at a block size of 16
-		// kiB (0x4000).
-		static constexpr std::int32_t max_piece_size = ((1 << 15) - 1) * 0x4000;
+	// limit the piece length at (2 ^ 30) to get a bit of headroom. We
+	// commonly compute the number of blocks per pieces by adding
+	// block_size - 1 before dividing by block_size. That would overflow with
+	// a piece size of 2 ^ 31. This limit is still an unreasonably large
+	// piece size anyway.
+	// The piece picker (currently) has a limit of no more than (2^15)-1
+	// blocks per piece, which is more restrictive, at a block size of 16
+	// kiB (0x4000).
+	static constexpr std::int32_t max_piece_size = ((1 << 15) - 1) * 0x4000;
 
-		// returns true if the piece length has been initialized
-		// on the file_storage. This is typically taken as a proxy
-		// of whether the file_storage as a whole is initialized or
-		// not.
-		bool is_valid() const { return m_piece_length > 0; }
+	// returns true if the piece length has been initialized
+	// on the file_storage. This is typically taken as a proxy
+	// of whether the file_storage as a whole is initialized or
+	// not.
+	bool is_valid() const { return m_piece_length > 0; }
 
 #if TORRENT_ABI_VERSION == 1
 		using flags_t = file_flags_t;
@@ -253,6 +253,7 @@ TORRENT_VERSION_NAMESPACE_4
 		// of files to be added is known up-front.
 		void reserve(int num_files);
 
+		// internal
 		// Adds a file to the file storage. The ``add_file_borrow`` version
 		// expects that ``filename`` is the file name (without a path) of
 		// the file that's being added.
@@ -306,17 +307,22 @@ TORRENT_VERSION_NAMESPACE_4
 #ifndef BOOST_NO_EXCEPTIONS
 #if TORRENT_ABI_VERSION < 4
 		TORRENT_DEPRECATED
-		void add_file_borrow(string_view filename
-			, std::string const& path, std::int64_t file_size
-			, file_flags_t file_flags, char const* filehash
-			, std::int64_t mtime = 0, string_view symlink_path = string_view()
-			, char const* root_hash = nullptr);
+		TORRENT_UNEXPORT void add_file_borrow(string_view filename,
+			std::string const& path,
+			std::int64_t file_size,
+			file_flags_t file_flags,
+			char const* filehash,
+			std::int64_t mtime = 0,
+			string_view symlink_path = string_view(),
+			char const* root_hash = nullptr);
 #endif
-		void add_file_borrow(string_view filename
-			, std::string const& path, std::int64_t file_size
-			, file_flags_t file_flags = {}, std::int64_t mtime = 0
-			, string_view symlink_path = string_view()
-			, char const* root_hash = nullptr);
+		TORRENT_UNEXPORT void add_file_borrow(string_view filename,
+			std::string const& path,
+			std::int64_t file_size,
+			file_flags_t file_flags = {},
+			std::int64_t mtime = 0,
+			string_view symlink_path = string_view(),
+			char const* root_hash = nullptr);
 		void add_file(std::string const& path, std::int64_t file_size
 			, file_flags_t file_flags = {}
 			, std::time_t mtime = 0, string_view symlink_path = string_view()
@@ -324,23 +330,31 @@ TORRENT_VERSION_NAMESPACE_4
 #endif // BOOST_NO_EXCEPTIONS
 #if TORRENT_ABI_VERSION < 4
 		TORRENT_DEPRECATED
-		void add_file_borrow(error_code& ec, string_view filename
-			, std::string const& path, std::int64_t file_size
-			, file_flags_t file_flags, char const* filehash
-			, std::int64_t mtime = 0, string_view symlink_path = string_view()
-			, char const* root_hash = nullptr);
+		TORRENT_UNEXPORT void add_file_borrow(error_code& ec,
+			string_view filename,
+			std::string const& path,
+			std::int64_t file_size,
+			file_flags_t file_flags,
+			char const* filehash,
+			std::int64_t mtime = 0,
+			string_view symlink_path = string_view(),
+			char const* root_hash = nullptr);
 #endif
+		// internal
 		// these overloads report failures through the ``ec`` reference
 		// rather than throwing. ``add_file_borrow()`` does not copy the
 		// ``filename`` string; it is borrowed by reference and the caller
 		// must keep it alive for the lifetime of this ``file_storage``
 		// object. This is useful when constructing the file list from a
 		// memory-mapped .torrent file.
-		void add_file_borrow(error_code& ec, string_view filename
-			, std::string const& path, std::int64_t file_size
-			, file_flags_t file_flags = {}, std::int64_t mtime = 0
-			, string_view symlink_path = string_view()
-			, char const* root_hash = nullptr);
+		TORRENT_UNEXPORT void add_file_borrow(error_code& ec,
+			string_view filename,
+			std::string const& path,
+			std::int64_t file_size,
+			file_flags_t file_flags = {},
+			std::int64_t mtime = 0,
+			string_view symlink_path = string_view(),
+			char const* root_hash = nullptr);
 		void add_file(error_code& ec, std::string const& path, std::int64_t file_size
 			, file_flags_t file_flags = {}
 			, std::time_t mtime = 0, string_view symlink_path = string_view()
@@ -360,10 +374,14 @@ TORRENT_VERSION_NAMESPACE_4
 #include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 
 		TORRENT_DEPRECATED
-		void add_file_borrow(char const* filename, int filename_len
-			, std::string const& path, std::int64_t file_size
-			, file_flags_t file_flags = {}, char const* filehash = nullptr
-			, std::int64_t mtime = 0, string_view symlink_path = string_view());
+		TORRENT_UNEXPORT void add_file_borrow(char const* filename,
+			int filename_len,
+			std::string const& path,
+			std::int64_t file_size,
+			file_flags_t file_flags = {},
+			char const* filehash = nullptr,
+			std::int64_t mtime = 0,
+			string_view symlink_path = string_view());
 		TORRENT_DEPRECATED
 		void add_file(file_entry const& fe, char const* filehash = nullptr);
 
@@ -749,7 +767,7 @@ TORRENT_VERSION_NAMESPACE_4
 
 		// the sum of all non-pad file sizes
 		std::int64_t m_size_on_disk = 0;
-	};
+};
 
 TORRENT_VERSION_NAMESPACE_4_END
 

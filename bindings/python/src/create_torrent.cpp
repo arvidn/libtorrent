@@ -134,19 +134,14 @@ void bind_create_torrent()
 		.add_property("symlink", &lt::create_file_entry::symlink);
 
 	{
-		scope s = class_<create_torrent>("create_torrent", no_init)
+		scope s = class_<create_torrent, boost::noncopyable>("create_torrent", no_init)
 					  .def(init<std::vector<lt::create_file_entry>, int, create_flags_t>(
-						  (arg("files"), arg("piece_size") = 0, arg("flags") = 0)
-					  ))
+						  (arg("files"), arg("piece_size") = 0, arg("flags") = 0)))
 #if TORRENT_ABI_VERSION < 4
-					  .def(
-						  "__init__",
-						  make_constructor(
-							  &file_storage_constructor,
+					  .def("__init__",
+						  make_constructor(&file_storage_constructor,
 							  default_call_policies(),
-							  (arg("storage"), arg("piece_size") = 0, arg("flags") = 0)
-						  )
-					  )
+							  (arg("storage"), arg("piece_size") = 0, arg("flags") = 0)))
 					  .def("__init__", make_constructor(&torrent_info_constructor))
 #endif
 
