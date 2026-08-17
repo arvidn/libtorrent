@@ -262,3 +262,24 @@ TORRENT_TEST(integer_to_str)
 	TEST_CHECK(integer_to_str(buf, std::numeric_limits<std::int64_t>::max()) == "9223372036854775807"_sv);
 	TEST_CHECK(integer_to_str(buf, std::numeric_limits<std::int64_t>::min()) == "-9223372036854775808"_sv);
 }
+
+#if TORRENT_ABI_VERSION == 1
+TORRENT_TEST(bdecode_truncated_container)
+{
+	// valid empty containers still decode
+	std::vector<char> const le{'l', 'e'};
+	TEST_EQUAL(bdecode(le.begin(), le.end()).type(), entry::list_t);
+	std::vector<char> const de{'d', 'e'};
+	TEST_EQUAL(bdecode(de.begin(), de.end()).type(), entry::dictionary_t);
+
+	// input that ends right after a list or dictionary opener must not read
+	// past the end of the buffer. the buffers are deliberately not
+	// null-terminated (std::vector<char>, not std::string) so an over-read is
+	// caught by the address sanitizer.
+	for (string_view const s : {"l"_sv, "d"_sv, "ll"_sv, "ld"_sv, "dl"_sv, "dd"_sv})
+	{
+		std::vector<char> const buf(s.begin(), s.end());
+		TEST_EQUAL(bdecode(buf.begin(), buf.end()).type(), entry::undefined_t);
+	}
+}
+#endif
