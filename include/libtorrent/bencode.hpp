@@ -221,6 +221,11 @@ namespace aux {
 		case 'l':
 			ret = entry(entry::list_t);
 			++in; // 'l'
+			if (in == end)
+			{
+				err = true;
+				return;
+			}
 			while (*in != 'e')
 			{
 				ret.list().emplace_back();
@@ -245,6 +250,11 @@ namespace aux {
 		case 'd':
 			ret = entry(entry::dictionary_t);
 			++in; // 'd'
+			if (in == end)
+			{
+				err = true;
+				return;
+			}
 			while (*in != 'e')
 			{
 				entry key;
