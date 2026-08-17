@@ -218,35 +218,29 @@ void bind_file_storage()
 {
 	{
 		scope s =
-			class_<file_storage>("file_storage")
+			class_<file_storage>("file_storage", no_init)
 				.def("is_valid", &file_storage::is_valid)
-				.def(
-					"add_file",
+				.def("add_file",
 					add_file0,
 					(arg("path"),
-					 arg("size"),
-					 arg("flags") = 0,
-					 arg("mtime") = 0,
-					 arg("linkpath") = "")
-				)
-				.def(
-					"add_file",
+						arg("size"),
+						arg("flags") = 0,
+						arg("mtime") = 0,
+						arg("linkpath") = ""))
+				.def("add_file",
 					add_file1,
 					(arg("path"),
-					 arg("size"),
-					 arg("flags") = 0,
-					 arg("mtime") = 0,
-					 arg("linkpath") = "")
-				)
-				.def(
-					"add_file",
+						arg("size"),
+						arg("flags") = 0,
+						arg("mtime") = 0,
+						arg("linkpath") = ""))
+				.def("add_file",
 					add_file2,
 					(arg("path"),
-					 arg("size"),
-					 arg("flags") = 0,
-					 arg("mtime") = 0,
-					 arg("linkpath") = "")
-				)
+						arg("size"),
+						arg("flags") = 0,
+						arg("mtime") = 0,
+						arg("linkpath") = ""))
 				.def("num_files", &file_storage::num_files)
 #if TORRENT_ABI_VERSION == 1
 				.def("at", depr(file_storage_at))
@@ -266,11 +260,15 @@ void bind_file_storage()
 				.def("file_flags", &wrap_file_check<file_flags_t, &file_storage::file_flags>)
 
 				.def("file_index_for_root", &file_storage::file_index_for_root)
-				.def("piece_index_at_file", &wrap_file_check<piece_index_t, &file_storage::piece_index_at_file>)
-				.def("file_index_at_piece", &wrap_piece_check<file_index_t, &file_storage::file_index_at_piece>)
-				.def("last_file_index_at_piece", &wrap_piece_check<file_index_t, &file_storage::last_file_index_at_piece>)
+				.def("piece_index_at_file",
+					&wrap_file_check<piece_index_t, &file_storage::piece_index_at_file>)
+				.def("file_index_at_piece",
+					&wrap_piece_check<file_index_t, &file_storage::file_index_at_piece>)
+				.def("last_file_index_at_piece",
+					&wrap_piece_check<file_index_t, &file_storage::last_file_index_at_piece>)
 				.def("file_index_at_offset", &file_storage::file_index_at_offset)
-				.def("file_absolute_path", &wrap_file_check<bool, &file_storage::file_absolute_path>)
+				.def(
+					"file_absolute_path", &wrap_file_check<bool, &file_storage::file_absolute_path>)
 
 				.def("v2", &file_storage::v2)
 

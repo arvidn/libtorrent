@@ -68,75 +68,90 @@ class EnumTest(unittest.TestCase):
             self.assertIsInstance(lt.create_torrent_flags_t.merkle, int)
 
 
+def _build_layout(
+    files: List[tuple],
+    flags: int = lt.create_torrent.v1_only,
+    piece_size: int = 0,
+) -> "lt.torrent_info":
+    entries = []
+    for item in files:
+        path, size = item[0], item[1]
+        symlink = item[2] if len(item) > 2 else ""
+        item_flags = int(lt.file_flags_t.flag_symlink) if symlink else 0
+        entries.append(
+            lt.create_file_entry(path, size, flags=item_flags, symlink=symlink)
+        )
+    ct = lt.create_torrent(entries, piece_size, flags=flags)
+    for i in range(ct.num_pieces()):
+        ct.set_hash(i, lib.get_random_bytes(20))
+    entry = ct.generate()
+    return lt.torrent_info(entry)
+
+
 class FileStorageTest(unittest.TestCase):
     def test_is_valid(self) -> None:
-        fs = lt.file_storage()
-        self.assertFalse(fs.is_valid())
-
-    def test_add_file(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file(os.path.join("path", "file.txt"), 1024)
-        self.assertEqual(fs.file_path(0), os.path.join("path", "file.txt"))
-        self.assertEqual(fs.file_size(0), 1024)
-
-        fs = lt.file_storage()
-        fs.add_file(os.path.join("path", "file.txt"), 1024, flags=0)
-        self.assertEqual(fs.file_flags(0), 0)
-
-        fs = lt.file_storage()
-        fs.add_file(os.path.join("path", "file.txt"), 1024, mtime=10000)
-        # TODO: can we test mtime?
-
-        fs = lt.file_storage()
-        fs.add_file(os.path.join("path", "file.txt"), 1024, linkpath="other.txt")
-        self.assertEqual(fs.symlink(0), os.path.join("path", "other.txt"))
-
-    def test_add_file_bytes(self) -> None:
-        fs = lt.file_storage()
-        with self.assertWarns(DeprecationWarning):
-            fs.add_file(os.path.join(b"path", b"file.txt"), 1024)  # type: ignore
-        self.assertEqual(fs.file_path(0), os.path.join("path", "file.txt"))
-
-        fs = lt.file_storage()
-        with self.assertWarns(DeprecationWarning):
-            fs.add_file(
-                os.path.join("path", "file.txt"),
-                1024,
-                linkpath=b"other.txt",
-            )
-        self.assertEqual(fs.symlink(0), os.path.join("path", "other.txt"))
+        ti = _build_layout([("file.txt", 1024)])
+        self.assertTrue(ti.layout().is_valid())
 
     def test_num_files(self) -> None:
-        fs = lt.file_storage()
-        self.assertEqual(fs.num_files(), 0)
-        fs.add_file("file.txt", 1024)
-        self.assertEqual(fs.num_files(), 1)
+        ti = _build_layout([("file.txt", 1024)])
+        self.assertEqual(ti.layout().num_files(), 1)
+
+    def test_add_file(self) -> None:
+        ti = _build_layout([(os.path.join("path", "file1.txt"), 1024)])
+        fs = ti.layout()
+        fs.add_file(os.path.join("path", "file2.txt"), 512)
+        self.assertEqual(fs.num_files(), 2)
+        self.assertEqual(fs.file_path(1), os.path.join("path", "file2.txt"))
+        self.assertEqual(fs.file_size(1), 512)
+
+        ti = _build_layout([(os.path.join("path", "file1.txt"), 1024)])
+        fs = ti.layout()
+        fs.add_file(os.path.join("path", "file2.txt"), 512, linkpath="file1.txt")
+        self.assertEqual(fs.symlink(1), os.path.join("path", "file1.txt"))
+
+    def test_add_file_bytes(self) -> None:
+        ti = _build_layout([(os.path.join("path", "file1.txt"), 1024)])
+        fs = ti.layout()
+        with self.assertWarns(DeprecationWarning):
+            fs.add_file(os.path.join(b"path", b"file2.txt"), 512)  # type: ignore
+        self.assertEqual(fs.file_path(1), os.path.join("path", "file2.txt"))
+
+        ti = _build_layout([(os.path.join("path", "file1.txt"), 1024)])
+        fs = ti.layout()
+        with self.assertWarns(DeprecationWarning):
+            fs.add_file(
+                os.path.join("path", "file2.txt"),
+                512,
+                linkpath=b"file1.txt",
+            )
+        self.assertEqual(fs.symlink(1), os.path.join("path", "file1.txt"))
 
     def test_add_file_entry(self) -> None:
         if lt.api_version < 2:
-            fs = lt.file_storage()
-            # It's not clear this path has ever been useful, as the entry size can't
-            # be modified
+            ti = _build_layout([(os.path.join("path", "file1.txt"), 1024)])
+            fs = ti.layout()
             with self.assertWarns(DeprecationWarning):
                 fe = lt.file_entry()
-            fe.path = "file.txt"
+            fe.path = os.path.join("path", "file2.txt")
             with self.assertWarns(DeprecationWarning):
                 fs.add_file(fe)
 
     def test_at_invalid(self) -> None:
         if lt.api_version < 2:
-            fs = lt.file_storage()
+            ti = _build_layout([("test.txt", 1024)])
+            fs = ti.layout()
             with self.assertWarns(DeprecationWarning):
                 with self.assertRaises(IndexError):
-                    fs.at(0)
+                    fs.at(1)
             with self.assertWarns(DeprecationWarning):
                 with self.assertRaises(IndexError):
                     fs.at(-1)
 
     def test_at(self) -> None:
         if lt.api_version < 2:
-            fs = lt.file_storage()
-            fs.add_file(os.path.join("path", "test.txt"), 1024)
+            ti = _build_layout([(os.path.join("path", "test.txt"), 1024)])
+            fs = ti.layout()
             with self.assertWarns(DeprecationWarning):
                 fe = fs.at(0)
             self.assertEqual(fe.path, os.path.join("path", "test.txt"))
@@ -145,158 +160,138 @@ class FileStorageTest(unittest.TestCase):
 
     def test_iter(self) -> None:
         if lt.api_version < 2:
-            fs = lt.file_storage()
-            fs.add_file("test.txt", 1024)
+            ti = _build_layout([("test.txt", 1024)])
+            fs = ti.layout()
             with self.assertWarns(DeprecationWarning):
                 self.assertEqual([fe.path for fe in fs], ["test.txt"])
 
     def test_len(self) -> None:
         if lt.api_version < 2:
-            fs = lt.file_storage()
-            with self.assertWarns(DeprecationWarning):
-                self.assertEqual(len(fs), 0)
-            fs.add_file("test.txt", 1024)
+            ti = _build_layout([("test.txt", 1024)])
+            fs = ti.layout()
             with self.assertWarns(DeprecationWarning):
                 self.assertEqual(len(fs), 1)
 
     def test_symlink(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file(os.path.join("path", "test.txt"), 1024)
-        self.assertEqual(fs.symlink(0), "")
+        ti = _build_layout([(os.path.join("path", "test.txt"), 1024)])
+        self.assertEqual(ti.layout().symlink(0), "")
 
-        fs = lt.file_storage()
-        fs.add_file(os.path.join("path", "test.txt"), 0, linkpath="other.txt")
-        self.assertEqual(fs.symlink(0), os.path.join("path", "other.txt"))
+        ti = _build_layout(
+            [
+                (os.path.join("path", "real.txt"), 1024),
+                (os.path.join("path", "test.txt"), 0, "real.txt"),
+            ],
+            flags=lt.create_torrent.v1_only | lt.create_torrent.symlinks,
+        )
+        self.assertEqual(ti.layout().symlink(1), os.path.join("path", "real.txt"))
 
     def test_symlink_invalid(self) -> None:
-        fs = lt.file_storage()
+        ti = _build_layout([("test.txt", 1024)])
+        fs = ti.layout()
         with self.assertRaises(IndexError):
-            fs.symlink(0)
+            fs.symlink(1)
         with self.assertRaises(IndexError):
             fs.symlink(-1)
 
     def test_file_path(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file(os.path.join("path", "test.txt"), 1024)
+        ti = _build_layout([(os.path.join("path", "test.txt"), 1024)])
+        fs = ti.layout()
         self.assertEqual(fs.file_path(0), os.path.join("path", "test.txt"))
         self.assertEqual(
             fs.file_path(0, save_path="base"), os.path.join("base", "path", "test.txt")
         )
 
     def test_file_path_invalid(self) -> None:
-        fs = lt.file_storage()
+        ti = _build_layout([("test.txt", 1024)])
+        fs = ti.layout()
         with self.assertRaises(IndexError):
-            fs.file_path(0)
+            fs.file_path(1)
         with self.assertRaises(IndexError):
             fs.file_path(-1)
 
     def test_file_name(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file(os.path.join("path", "test.txt"), 1024)
-        self.assertEqual(fs.file_name(0), "test.txt")
+        ti = _build_layout([(os.path.join("path", "test.txt"), 1024)])
+        self.assertEqual(ti.layout().file_name(0), "test.txt")
 
     def test_file_name_invalid(self) -> None:
-        fs = lt.file_storage()
+        ti = _build_layout([("test.txt", 1024)])
+        fs = ti.layout()
         with self.assertRaises(IndexError):
-            fs.file_name(0)
+            fs.file_name(1)
         with self.assertRaises(IndexError):
             fs.file_name(-1)
 
     def test_file_size(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file("test.txt", 1024)
-        self.assertEqual(fs.file_size(0), 1024)
+        ti = _build_layout([("test.txt", 1024)])
+        self.assertEqual(ti.layout().file_size(0), 1024)
 
     def test_file_size_invalid(self) -> None:
-        fs = lt.file_storage()
+        ti = _build_layout([("test.txt", 1024)])
+        fs = ti.layout()
         with self.assertRaises(IndexError):
-            fs.file_size(0)
+            fs.file_size(1)
         with self.assertRaises(IndexError):
             fs.file_size(-1)
 
     def test_file_offset(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file(os.path.join("path", "test1.txt"), 1024)
-        fs.add_file(os.path.join("path", "test2.txt"), 1024)
+        ti = _build_layout(
+            [
+                (os.path.join("path", "test1.txt"), 1024),
+                (os.path.join("path", "test2.txt"), 1024),
+            ]
+        )
+        fs = ti.layout()
         self.assertEqual(fs.file_offset(0), 0)
         self.assertEqual(fs.file_offset(1), 1024)
 
     def test_file_offset_invalid(self) -> None:
-        fs = lt.file_storage()
+        ti = _build_layout([("test.txt", 1024)])
+        fs = ti.layout()
         with self.assertRaises(IndexError):
-            fs.file_offset(0)
+            fs.file_offset(1)
         with self.assertRaises(IndexError):
             fs.file_offset(-1)
 
     def test_file_flags(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file("test.txt", 1024)
-        self.assertEqual(fs.file_flags(0), 0)
+        ti = _build_layout([("test.txt", 1024)])
+        self.assertEqual(ti.layout().file_flags(0), 0)
 
     def test_file_flags_invalid(self) -> None:
-        fs = lt.file_storage()
+        ti = _build_layout([("test.txt", 1024)])
+        fs = ti.layout()
         with self.assertRaises(IndexError):
-            fs.file_flags(0)
+            fs.file_flags(1)
         with self.assertRaises(IndexError):
             fs.file_flags(-1)
 
     def test_total_size(self) -> None:
-        fs = lt.file_storage()
-        self.assertEqual(fs.total_size(), 0)
-        fs.add_file("test.txt", 1024)
-        self.assertEqual(fs.total_size(), 1024)
+        ti = _build_layout([("test.txt", 1024)])
+        self.assertEqual(ti.layout().total_size(), 1024)
 
     def test_piece_length(self) -> None:
-        fs = lt.file_storage()
-        fs.set_piece_length(16384)
-        self.assertEqual(fs.piece_length(), 16384)
+        ti = _build_layout([("test.txt", 1024)], piece_size=16384)
+        self.assertEqual(ti.layout().piece_length(), 16384)
 
     def test_piece_size(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file("test.txt", 1024)
-        fs.set_piece_length(16384)
-        fs.set_num_pieces(1)
+        ti = _build_layout([("test.txt", 1024)], piece_size=16384)
+        fs = ti.layout()
         self.assertEqual(fs.piece_size(0), 1024)
         with self.assertRaises(IndexError):
             fs.piece_size(1)
 
     def test_name(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file(os.path.join("path", "test.txt"), 1024)
-        self.assertEqual(fs.name(), "path")
-        fs.set_name("other")
-        self.assertEqual(fs.file_path(0), os.path.join("other", "test.txt"))
-
-        with self.assertWarns(DeprecationWarning):
-            fs.set_name(b"bytes")  # type: ignore
-        self.assertEqual(fs.file_path(0), os.path.join("bytes", "test.txt"))
-
-    def test_rename_file(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file(os.path.join("path", "test.txt"), 1024)
-        fs.rename_file(0, os.path.join("path", "other.txt"))
-        self.assertEqual(fs.file_path(0), os.path.join("path", "other.txt"))
-
-        with self.assertWarns(DeprecationWarning):
-            fs.rename_file(0, os.path.join(b"path", b"bytes.txt"))  # type: ignore
-        self.assertEqual(fs.file_path(0), os.path.join("path", "bytes.txt"))
-
-    def test_rename_file_invalid(self) -> None:
-        fs = lt.file_storage()
-        with self.assertRaises(IndexError):
-            fs.rename_file(0, os.path.join("path", "test.txt"))
-        with self.assertRaises(IndexError):
-            fs.rename_file(-1, os.path.join("path", "test.txt"))
+        ti = _build_layout([(os.path.join("path", "test.txt"), 1024)])
+        self.assertEqual(ti.layout().name(), "path")
 
     def test_hash(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file("test.txt", 1024)
-        self.assertIsInstance(fs.hash(0), lt.sha1_hash)
+        ti = _build_layout([("test.txt", 1024)])
+        self.assertIsInstance(ti.layout().hash(0), lt.sha1_hash)
 
     def test_hash_invalid(self) -> None:
-        fs = lt.file_storage()
+        ti = _build_layout([("test.txt", 1024)])
+        fs = ti.layout()
         with self.assertRaises(IndexError):
-            fs.hash(0)
+            fs.hash(1)
 
 
 class CreateTorrentTest(unittest.TestCase):
@@ -327,8 +322,7 @@ class CreateTorrentTest(unittest.TestCase):
         lt.create_torrent(fs, flags=lt.create_torrent_flags_t.v2_only)
 
     def test_args_deprecated(self) -> None:
-        fs = lt.file_storage()
-        fs.add_file(os.path.join("path", "test1.txt"), 1024)
+        fs = _build_layout([(os.path.join("path", "test1.txt"), 1024)]).layout()
 
         with self.assertWarns(DeprecationWarning):
             lt.create_torrent(fs)
@@ -603,7 +597,7 @@ class ListTest(unittest.TestCase):
 
 class AddFilesTest(unittest.TestCase):
     def test_args_no_pred(self) -> None:
-        fs = lt.file_storage()
+        fs = _build_layout([("existing.txt", 1024)]).layout()
         with tempfile.TemporaryDirectory() as path:
             with self.assertWarns(DeprecationWarning):
                 lt.add_files(fs, path)
@@ -626,12 +620,12 @@ class AddFilesTest(unittest.TestCase):
                     fp.write(lib.get_random_bytes(1024))
             calls = [unittest.mock.call(file_path) for file_path in file_paths]
 
-            fs = lt.file_storage()
+            fs = _build_layout([("existing.txt", 1024)]).layout()
             pred = unittest.mock.Mock(return_value=True)
             with self.assertWarns(DeprecationWarning):
                 lt.add_files(fs, path, pred)
             pred.assert_has_calls(calls, any_order=True)
-            self.assertEqual(fs.num_files(), 2)
+            self.assertEqual(fs.num_files(), 3)
 
     def test_args_pred_kwargs(self) -> None:
         with tempfile.TemporaryDirectory() as path:
@@ -642,7 +636,7 @@ class AddFilesTest(unittest.TestCase):
                     fp.write(lib.get_random_bytes(1024))
             calls = [unittest.mock.call(file_path) for file_path in file_paths]
 
-            fs = lt.file_storage()
+            fs = _build_layout([("existing.txt", 1024)]).layout()
             pred = unittest.mock.Mock(return_value=True)
             with self.assertWarns(DeprecationWarning):
                 lt.add_files(
@@ -652,7 +646,7 @@ class AddFilesTest(unittest.TestCase):
                     flags=lt.create_torrent_flags_t.v2_only,
                 )
             pred.assert_has_calls(calls, any_order=True)
-            self.assertEqual(fs.num_files(), 2)
+            self.assertEqual(fs.num_files(), 3)
 
     # We don't bother testing how file_storage sanitizes paths; we assume
     # this is exercised in C++ tests. We just test that various path forms

@@ -543,7 +543,7 @@ class FieldTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.ti.files().file_path(0)
 
-    def test_files_and_remap(self) -> None:
+    def test_files(self) -> None:
         ti = lt.torrent_info(
             TorrentFileDict(
                 {
@@ -559,20 +559,6 @@ class FieldTest(unittest.TestCase):
 
         self.assertEqual(ti.name(), "test.txt")
         self.assertEqual(ti.layout().file_path(0), "test.txt")
-        self.assertEqual(ti.orig_files().file_path(0), "test.txt")
-
-        fs = lt.file_storage()
-        fs.add_file(os.path.join("path", "remapped1.txt"), 512)
-        fs.add_file(os.path.join("path", "remapped2.txt"), 512)
-
-        ti.remap_files(fs)
-
-        self.assertEqual(ti.name(), "path")
-        self.assertEqual(ti.files().num_files(), 2)
-        self.assertEqual(ti.files().file_path(0), os.path.join("path", "remapped1.txt"))
-        self.assertEqual(ti.files().file_path(1), os.path.join("path", "remapped2.txt"))
-
-        self.assertEqual(ti.orig_files().num_files(), 1)
         self.assertEqual(ti.orig_files().file_path(0), "test.txt")
 
     def test_map(self) -> None:
