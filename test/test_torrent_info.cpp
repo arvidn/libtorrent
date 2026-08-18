@@ -647,6 +647,45 @@ TORRENT_TEST(v2_only_torrent_empty_name_fallback)
 	TEST_EQUAL(ti->name(), aux::to_hex(info_section_v1_hash));
 }
 
+// a "meta version" 2 torrent that also carries a v1 "length" listing computes a
+// v1 info-hash, so v1() reports true and the v1 piece-verification path calls
+// hash_for_piece(). If it has no "pieces" string there are no v1 hashes, and
+// that call would read past the info section. Loading it must fail instead.
+TORRENT_TEST(hybrid_torrent_missing_pieces)
+{
+	int const piece_length = 16 * 1024;
+	int const num_pieces = 2000;
+	std::int64_t const total = std::int64_t(piece_length) * num_pieces;
+
+	entry file_entry;
+	file_entry["length"] = total;
+	file_entry["pieces root"] = std::string(32, '\x01');
+
+	entry file_dict;
+	file_dict[""] = file_entry;
+
+	entry file_tree;
+	file_tree["test"] = file_dict;
+
+	entry info;
+	info["file tree"] = file_tree;
+	info["length"] = total; // v1 listing -> a v1 info-hash is computed
+	info["meta version"] = 2;
+	info["name"] = "test";
+	info["piece length"] = piece_length;
+	// deliberately no "pieces" string
+
+	entry torrent;
+	torrent["info"] = info;
+
+	std::vector<char> const buf = bencode(torrent);
+
+	error_code ec;
+	add_torrent_params const atp = load_torrent_buffer(buf, ec, load_torrent_limits{});
+	TEST_CHECK(!atp.ti);
+	TEST_EQUAL(ec, error_code(errors::torrent_missing_pieces));
+}
+
 TORRENT_TEST(sanitize_path_truncate)
 {
 	using lt::aux::sanitize_append_path_element;
