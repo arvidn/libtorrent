@@ -22,8 +22,14 @@ see LICENSE file.
 
 extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 {
+	// unlike most fuzz targets, bdecode<InIt>() is a header-defined template,
+	// visible to the optimizer in this TU, so the result must be consumed to
+	// prevent the optimizer from proving the call has no effect and eliding it.
 	char const* const begin = reinterpret_cast<char const*>(data);
-	lt::bdecode(begin, begin + size);
+	lt::entry const result = lt::bdecode(begin, begin + size);
+	static volatile int sink;
+	sink = static_cast<int>(result.type());
+	static_cast<void>(sink);
 	return 0;
 }
 
