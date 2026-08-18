@@ -152,9 +152,10 @@ namespace aux {
 		// that's why it's private, to keep people away from it
 		char const* name = nullptr;
 	public:
-		// the SHA-256 root of the merkle tree for this file
-		// this is a pointer into the .torrent file
-		char const* root = nullptr;
+		// offset into file_storage::m_info_section where this file's SHA-256
+		// merkle tree root is stored, or file_storage::no_root_hash if this
+		// file has none
+		std::int32_t root_offset = -1;
 
 		// the index into file_storage::m_paths. To get
 		// the full path to this file, concatenate the path
@@ -205,7 +206,15 @@ public:
 	TORRENT_UNEXPORT
 #endif
 	// hidden
+	// constructs a file_storage whose v2 (BEP 52) merkle tree root
+	// hashes, passed to add_file()/add_file_borrow() as pointers, or to
+	// add_file_borrow() as offsets, are resolved relative to
+	// ``info_section``. ``info_section`` must out-live this file_storage
+	// object and any copy of it.
 	file_storage();
+
+	// internal
+	TORRENT_UNEXPORT explicit file_storage(char const* info_section);
 
 	// hidden
 	~file_storage();
@@ -236,6 +245,11 @@ public:
 	// blocks per piece, which is more restrictive, at a block size of 16
 	// kiB (0x4000).
 	static constexpr std::int32_t max_piece_size = ((1 << 15) - 1) * 0x4000;
+
+	// sentinel value for the ``root_hash_offset`` argument to
+	// add_file_borrow(), meaning the file has no v2 (BEP 52)
+	// merkle tree root hash
+	static constexpr std::int32_t no_root_hash = -1;
 
 	// returns true if the piece length has been initialized
 	// on the file_storage. This is typically taken as a proxy
@@ -289,13 +303,19 @@ public:
 		//
 		// ``root_hash`` is an optional pointer to a 32 byte SHA-256 hash, being
 		// the merkle tree root hash for this file. This is only used for v2
-		// torrents. If the ``root hash`` is specified for one file, it has to
-		// be specified for all, otherwise this function will fail.
-		// Note that the buffer ``root_hash`` points to must out-live the
-		// file_storage object, it will not be copied. This parameter is only
-		// used when *loading* torrents, that already have their file hashes
-		// computed. When creating torrents, the file hashes will be computed by
-		// the piece hashes.
+		// torrents. If the root hash is specified for one file, it has to
+		// be specified for all, otherwise this function will fail. The
+		// pointer must point into the buffer this file_storage was
+		// constructed with (see the ``file_storage(char const*)``
+		// constructor); it will not be copied. This parameter is only used
+		// when *loading* torrents, that already have their file hashes
+		// computed. When creating torrents, the file hashes will be
+		// computed by the piece hashes.
+		//
+		// ``add_file_borrow()`` additionally has an overload taking
+		// ``root_hash_offset``, the byte offset of the root hash within
+		// that same buffer, instead of a pointer. Use
+		// ``file_storage::no_root_hash`` when there is none.
 		//
 		// If more files than one are added, certain restrictions to their paths
 		// apply. In a multi-file file storage (torrent), all files must share
@@ -319,13 +339,23 @@ public:
 			string_view symlink_path = string_view(),
 			char const* root_hash = nullptr);
 #endif
+#if TORRENT_ABI_VERSION < 5
+		TORRENT_DEPRECATED
+		TORRENT_UNEXPORT void add_file_borrow(string_view filename,
+			std::string const& path,
+			std::int64_t file_size,
+			file_flags_t file_flags,
+			std::int64_t mtime,
+			string_view symlink_path,
+			char const* root_hash);
+#endif
 		TORRENT_UNEXPORT void add_file_borrow(string_view filename,
 			std::string const& path,
 			std::int64_t file_size,
 			file_flags_t file_flags = {},
 			std::int64_t mtime = 0,
 			string_view symlink_path = string_view(),
-			char const* root_hash = nullptr);
+			std::int32_t root_hash_offset = no_root_hash);
 		void add_file(std::string const& path, std::int64_t file_size
 			, file_flags_t file_flags = {}
 			, std::time_t mtime = 0, string_view symlink_path = string_view()
@@ -343,6 +373,17 @@ public:
 			string_view symlink_path = string_view(),
 			char const* root_hash = nullptr);
 #endif
+#if TORRENT_ABI_VERSION < 5
+		TORRENT_DEPRECATED
+		TORRENT_UNEXPORT void add_file_borrow(error_code& ec,
+			string_view filename,
+			std::string const& path,
+			std::int64_t file_size,
+			file_flags_t file_flags,
+			std::int64_t mtime,
+			string_view symlink_path,
+			char const* root_hash);
+#endif
 		// internal
 		// these overloads report failures through the ``ec`` reference
 		// rather than throwing. ``add_file_borrow()`` does not copy the
@@ -357,7 +398,7 @@ public:
 			file_flags_t file_flags = {},
 			std::int64_t mtime = 0,
 			string_view symlink_path = string_view(),
-			char const* root_hash = nullptr);
+			std::int32_t root_hash_offset = no_root_hash);
 		void add_file(error_code& ec, std::string const& path, std::int64_t file_size
 			, file_flags_t file_flags = {}
 			, std::time_t mtime = 0, string_view symlink_path = string_view()
@@ -531,8 +572,9 @@ public:
 		// ``root()`` returns the SHA-256 merkle tree root of the specified file,
 		// in case this is a v2 torrent. Otherwise returns zeros.
 		// ``root_ptr()`` returns a pointer to the SHA-256 merkle tree root hash
-		// for the specified file. The pointer points into storage referred to
-		// when the file was added, it is not owned by this object. Torrents
+		// for the specified file. The pointer points into the buffer this
+		// file_storage was constructed with (see the ``file_storage(char
+		// const*)`` constructor), it is not owned by this object. Torrents
 		// that are not v2 torrents return nullptr.
 		//
 		// The ``mtime()`` is the modification time is the posix
@@ -698,14 +740,21 @@ public:
 		void canonicalize_impl(bool backwards_compatible);
 #endif
 
-		void add_file_borrow_impl(error_code& ec, string_view filename
-			, std::string const& path, std::int64_t const file_size
-			, file_flags_t const file_flags
+		void add_file_borrow_impl(error_code& ec,
+			string_view filename,
+			std::string const& path,
+			std::int64_t const file_size,
+			file_flags_t const file_flags,
 #if TORRENT_ABI_VERSION < 4
-			, char const* filehash
+			char const* filehash,
 #endif
-			, std::int64_t const mtime, string_view const symlink_path
-			, char const* root_hash);
+			std::int64_t const mtime,
+			string_view const symlink_path,
+			std::int32_t const root_hash_offset);
+
+		// converts a pointer into m_info_section into an offset relative to
+		// m_info_section, or no_root_hash if root_hash is nullptr
+		std::int32_t root_hash_to_offset(char const* root_hash) const;
 
 		std::string internal_file_path(file_index_t index) const;
 		file_index_t last_file() const noexcept;
@@ -770,6 +819,12 @@ public:
 
 		// the sum of all non-pad file sizes
 		std::int64_t m_size_on_disk = 0;
+
+		// the buffer that aux::file_entry::root_offset values are relative
+		// to. Borrowed, not owned by this object. This is the same pointer as
+		// torrent_info::m_info_section, when this file_storage was populated
+		// while parsing a .torrent file.
+		char const* m_info_section = nullptr;
 };
 
 TORRENT_VERSION_NAMESPACE_4_END

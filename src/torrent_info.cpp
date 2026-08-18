@@ -365,16 +365,13 @@ namespace {
 		return ret + p.list_size();
 	}
 
-	bool extract_single_file2(
-		bdecode_node const& dict,
+	bool extract_single_file2(bdecode_node const& dict,
 		file_storage& files,
 		std::string const& path,
 		string_view const name,
 		std::ptrdiff_t const info_offset,
-		char const* info_buffer,
 		int const max_directory_depth,
-		error_code& ec
-	)
+		error_code& ec)
 	{
 		if (dict.type() != bdecode_node::dict_t)
 		{
@@ -408,7 +405,7 @@ namespace {
 
 		auto const mtime = static_cast<std::time_t>(dict.dict_find_int_value("mtime", 0));
 
-		char const* pieces_root = nullptr;
+		std::int32_t pieces_root_offset = file_storage::no_root_hash;
 
 		std::string symlink_path;
 		if (file_flags & file_storage::flag_symlink)
@@ -449,16 +446,19 @@ namespace {
 				ec = errors::torrent_missing_pieces_root;
 				return false;
 			}
-			pieces_root = info_buffer + (root.string_offset() - info_offset);
-			if (sha256_hash(pieces_root).is_all_zeros())
+			if (sha256_hash(root.string_value().data()).is_all_zeros())
 			{
 				ec = errors::torrent_missing_pieces_root;
 				return false;
 			}
+			std::ptrdiff_t const off = root.string_offset() - info_offset;
+			TORRENT_ASSERT(off >= 0);
+			TORRENT_ASSERT(off < std::numeric_limits<std::int32_t>::max());
+			pieces_root_offset = static_cast<std::int32_t>(off);
 		}
 
-		files.add_file_borrow(ec, name, path, file_size, file_flags
-			, mtime, symlink_path, pieces_root);
+		files.add_file_borrow(
+			ec, name, path, file_size, file_flags, mtime, symlink_path, pieces_root_offset);
 		return !ec;
 	}
 
@@ -708,16 +708,13 @@ namespace {
 					filename = {};
 				}
 
-				if (!extract_single_file2(
-						e.second.dict_at(0).second,
+				if (!extract_single_file2(e.second.dict_at(0).second,
 						target,
 						path,
 						filename,
 						info_offset,
-						info_buffer,
 						max_directory_depth,
-						ec
-					))
+						ec))
 				{
 					return false;
 				}
@@ -1216,7 +1213,7 @@ TORRENT_VERSION_NAMESPACE_4
 			return;
 		}
 
-		file_storage files;
+		file_storage files(m_info_section.get());
 		files.set_piece_length(static_cast<int>(piece_length));
 
 		// extract file name (or the directory name if it's a multi file libtorrent)

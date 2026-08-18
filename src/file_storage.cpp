@@ -56,6 +56,9 @@ namespace {
 TORRENT_VERSION_NAMESPACE_4
 
 	file_storage::file_storage() = default;
+	file_storage::file_storage(char const* const info_section)
+		: m_info_section(info_section)
+	{}
 	file_storage::~file_storage() = default;
 
 	// even though this copy constructor and the move special member
@@ -358,7 +361,7 @@ namespace aux {
 		, hidden_attribute(fe.hidden_attribute)
 		, executable_attribute(fe.executable_attribute)
 		, symlink_attribute(fe.symlink_attribute)
-		, root(fe.root)
+		, root_offset(fe.root_offset)
 		, path_index(fe.path_index)
 	{
 		bool const borrow = fe.name_len != name_is_owned;
@@ -376,7 +379,7 @@ namespace aux {
 		, executable_attribute(fe.executable_attribute)
 		, symlink_attribute(fe.symlink_attribute)
 		, name(fe.name)
-		, root(fe.root)
+		, root_offset(fe.root_offset)
 		, path_index(fe.path_index)
 	{
 		fe.name_len = 0;
@@ -399,7 +402,7 @@ namespace aux {
 		if (name_len == name_is_owned) delete[] name;
 
 		name = fe.name;
-		root = fe.root;
+		root_offset = fe.root_offset;
 		name_len = fe.name_len;
 
 		fe.name_len = 0;
@@ -707,12 +710,19 @@ TORRENT_VERSION_NAMESPACE_4
 		, file_flags_t const file_flags, std::time_t const mtime, string_view const symlink_path
 		, char const* root_hash)
 	{
+		std::int32_t const root_hash_offset = root_hash_to_offset(root_hash);
 		error_code ec;
-		add_file_borrow_impl(ec, {}, path, file_size, file_flags
+		add_file_borrow_impl(ec,
+			{},
+			path,
+			file_size,
+			file_flags,
 #if TORRENT_ABI_VERSION < 4
-			, nullptr
+			nullptr,
 #endif
-			, mtime, symlink_path, root_hash);
+			mtime,
+			symlink_path,
+			root_hash_offset);
 		if (ec) aux::throw_ex<system_error>(ec);
 	}
 
@@ -723,27 +733,51 @@ TORRENT_VERSION_NAMESPACE_4
 		, std::int64_t const mtime, string_view const symlink_path
 		, char const* root_hash)
 	{
+		std::int32_t const root_hash_offset = root_hash_to_offset(root_hash);
 		error_code ec;
-		add_file_borrow_impl(ec, filename, path, file_size
-			, file_flags
-			, filehash
-			, mtime
-			, symlink_path, root_hash);
+		add_file_borrow_impl(ec,
+			filename,
+			path,
+			file_size,
+			file_flags,
+			filehash,
+			mtime,
+			symlink_path,
+			root_hash_offset);
 		if (ec) aux::throw_ex<system_error>(ec);
 	}
 #endif
+#if TORRENT_ABI_VERSION < 5
 	void file_storage::add_file_borrow(string_view filename
 		, std::string const& path, std::int64_t const file_size
 		, file_flags_t const file_flags, std::int64_t const mtime
 		, string_view const symlink_path, char const* root_hash)
 	{
-		error_code ec;
-		add_file_borrow_impl(ec, filename, path, file_size
-			, file_flags
-#if TORRENT_ABI_VERSION < 4
-			, nullptr
+		std::int32_t const root_hash_offset = root_hash_to_offset(root_hash);
+		add_file_borrow(
+			filename, path, file_size, file_flags, mtime, symlink_path, root_hash_offset);
+	}
 #endif
-			, mtime, symlink_path, root_hash);
+	void file_storage::add_file_borrow(string_view filename,
+		std::string const& path,
+		std::int64_t const file_size,
+		file_flags_t const file_flags,
+		std::int64_t const mtime,
+		string_view const symlink_path,
+		std::int32_t const root_hash_offset)
+	{
+		error_code ec;
+		add_file_borrow_impl(ec,
+			filename,
+			path,
+			file_size,
+			file_flags,
+#if TORRENT_ABI_VERSION < 4
+			nullptr,
+#endif
+			mtime,
+			symlink_path,
+			root_hash_offset);
 		if (ec) aux::throw_ex<system_error>(ec);
 	}
 #endif // BOOST_NO_EXCEPTIONS
@@ -752,11 +786,18 @@ TORRENT_VERSION_NAMESPACE_4
 		, std::int64_t const file_size, file_flags_t const file_flags, std::time_t const mtime
 		, string_view symlink_path, char const* root_hash)
 	{
-		add_file_borrow_impl(ec, {}, path, file_size, file_flags
+		std::int32_t const root_hash_offset = root_hash_to_offset(root_hash);
+		add_file_borrow_impl(ec,
+			{},
+			path,
+			file_size,
+			file_flags,
 #if TORRENT_ABI_VERSION < 4
-			, nullptr
+			nullptr,
 #endif
-			, mtime, symlink_path, root_hash);
+			mtime,
+			symlink_path,
+			root_hash_offset);
 	}
 
 #if TORRENT_ABI_VERSION < 4
@@ -766,31 +807,69 @@ TORRENT_VERSION_NAMESPACE_4
 		, std::int64_t const mtime, string_view const symlink_path
 		, char const* root_hash)
 	{
-		add_file_borrow_impl(ec, filename, path, file_size, file_flags
-			, filehash, mtime, symlink_path, root_hash);
+		std::int32_t const root_hash_offset = root_hash_to_offset(root_hash);
+		add_file_borrow_impl(ec,
+			filename,
+			path,
+			file_size,
+			file_flags,
+			filehash,
+			mtime,
+			symlink_path,
+			root_hash_offset);
 	}
 #endif
-
+#if TORRENT_ABI_VERSION < 5
 	void file_storage::add_file_borrow(error_code& ec, string_view filename
 		, std::string const& path, std::int64_t const file_size
 		, file_flags_t const file_flags, std::int64_t const mtime
 		, string_view const symlink_path, char const* root_hash)
 	{
-		add_file_borrow_impl(ec, filename, path, file_size, file_flags
-#if TORRENT_ABI_VERSION < 4
-			, nullptr
+		std::int32_t const root_hash_offset = root_hash_to_offset(root_hash);
+		add_file_borrow(
+			ec, filename, path, file_size, file_flags, mtime, symlink_path, root_hash_offset);
+	}
 #endif
-			, mtime, symlink_path, root_hash);
+
+	void file_storage::add_file_borrow(error_code& ec,
+		string_view filename,
+		std::string const& path,
+		std::int64_t const file_size,
+		file_flags_t const file_flags,
+		std::int64_t const mtime,
+		string_view const symlink_path,
+		std::int32_t const root_hash_offset)
+	{
+		add_file_borrow_impl(ec,
+			filename,
+			path,
+			file_size,
+			file_flags,
+#if TORRENT_ABI_VERSION < 4
+			nullptr,
+#endif
+			mtime,
+			symlink_path,
+			root_hash_offset);
 	}
 
-	void file_storage::add_file_borrow_impl(error_code& ec, string_view filename
-		, std::string const& path, std::int64_t const file_size
-		, file_flags_t const file_flags
+	std::int32_t file_storage::root_hash_to_offset(char const* root_hash) const
+	{
+		return root_hash ? aux::numeric_cast<std::int32_t>(root_hash - m_info_section)
+						 : no_root_hash;
+	}
+
+	void file_storage::add_file_borrow_impl(error_code& ec,
+		string_view filename,
+		std::string const& path,
+		std::int64_t const file_size,
+		file_flags_t const file_flags,
 #if TORRENT_ABI_VERSION < 4
-		, char const* filehash
+		char const* filehash,
 #endif
-		, std::int64_t const mtime, string_view const symlink_path
-		, char const* root_hash)
+		std::int64_t const mtime,
+		string_view const symlink_path,
+		std::int32_t const root_hash_offset)
 	{
 		TORRENT_ASSERT_PRECOND(file_size >= 0);
 		TORRENT_ASSERT_PRECOND(!is_complete(filename));
@@ -840,7 +919,7 @@ TORRENT_VERSION_NAMESPACE_4
 		// don't have a root hash and can be either v1 or v2
 		if (symlink_path.empty() && file_size > 0)
 		{
-			bool const v2 = (root_hash != nullptr);
+			bool const v2 = (root_hash_offset != no_root_hash);
 			// This condition is true of all files we've added so far have been
 			// symlinks. i.e. this is the first "real" file we're adding.
 			// or if m_total_size == 0, all files we've added so far have been
@@ -879,7 +958,8 @@ TORRENT_VERSION_NAMESPACE_4
 		e.hidden_attribute = bool(file_flags & file_storage::flag_hidden);
 		e.executable_attribute = bool(file_flags & file_storage::flag_executable);
 		e.symlink_attribute = bool(file_flags & file_storage::flag_symlink);
-		e.root = root_hash;
+		TORRENT_ASSERT(root_hash_offset == no_root_hash || m_info_section != nullptr);
+		e.root_offset = root_hash_offset;
 
 #if TORRENT_ABI_VERSION < 4
 		if (filehash)
@@ -982,14 +1062,21 @@ TORRENT_VERSION_NAMESPACE_4
 	sha256_hash file_storage::root(file_index_t const index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t{} && index < end_file());
-		if (m_files[index].root == nullptr) return {};
-		return sha256_hash(m_files[index].root);
+		char const* const p = root_ptr(index);
+		if (p == nullptr)
+			return {};
+		return sha256_hash(p);
 	}
 
 	char const* file_storage::root_ptr(file_index_t const index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t{} && index < end_file());
-		return m_files[index].root;
+		std::int32_t const off = m_files[index].root_offset;
+		if (off == no_root_hash)
+			return nullptr;
+		TORRENT_ASSERT(off >= 0);
+		TORRENT_ASSERT(m_info_section != nullptr);
+		return m_info_section + off;
 	}
 
 	std::string file_storage::symlink(file_index_t const index) const
@@ -1366,6 +1453,7 @@ namespace {
 		swap(ti.m_name, m_name);
 		swap(ti.m_total_size, m_total_size);
 		swap(ti.m_size_on_disk, m_size_on_disk);
+		swap(ti.m_info_section, m_info_section);
 		swap(ti.m_num_pieces, m_num_pieces);
 		swap(ti.m_piece_length, m_piece_length);
 		swap(ti.m_v2, m_v2);
