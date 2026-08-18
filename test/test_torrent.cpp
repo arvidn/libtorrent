@@ -386,11 +386,20 @@ TORRENT_TEST(file_priority_coalesce_deferred)
 	lt::session ses(settings());
 	torrent_handle h = ses.add_torrent(std::move(p));
 
-	// the 2nd and 3rd calls land while the 1st is still outstanding and
-	// must coalesce into it.
-	h.file_priority(0_file, 7_pri);
-	h.prioritize_files(std::vector<download_priority_t>{1_pri, 1_pri, 1_pri});
-	h.file_priority(1_file, 6_pri);
+	// issue all 3 calls from a single handler on the network thread, rather
+	// than as 3 separate torrent_handle calls (each of which posts its own
+	// handler from this, the test, thread). Otherwise, whether the 2nd and
+	// 3rd calls actually land while the 1st is still outstanding is a race
+	// against the disk job's completion being posted back from the disk
+	// thread. Running all 3 within one handler makes the outstanding-job
+	// state deterministic: the disk thread can't complete and post its
+	// result in between them.
+	auto const tor = h.native_handle();
+	post(ses.get_context(), [tor] {
+		tor->set_file_priority(0_file, 7_pri);
+		tor->prioritize_files(aux::vector<download_priority_t, file_index_t>{1_pri, 1_pri, 1_pri});
+		tor->set_file_priority(1_file, 6_pri);
+	});
 
 	aux::vector<download_priority_t, file_index_t> const expected{1_pri, 6_pri, 1_pri};
 	TEST_CHECK(wait_priority(h, expected));
