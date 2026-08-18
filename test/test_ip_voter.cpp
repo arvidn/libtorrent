@@ -42,8 +42,6 @@ bool cast_vote(aux::ip_voter& ipv, address ext_ip, address voter)
 // we don't flap
 TORRENT_TEST(test_random)
 {
-	init_rand_address();
-
 	aux::ip_voter ipv;
 
 	address_v4 addr1(make_address_v4("51.41.61.132"));
@@ -61,8 +59,6 @@ TORRENT_TEST(test_random)
 
 TORRENT_TEST(two_ips)
 {
-	init_rand_address();
-
 	aux::ip_voter ipv;
 
 	address_v4 addr1(make_address_v4("51.1.1.1"));
@@ -88,8 +84,6 @@ TORRENT_TEST(two_ips)
 
 TORRENT_TEST(one_ip)
 {
-	init_rand_address();
-
 	aux::ip_voter ipv;
 
 	address_v4 start_addr(make_address_v4("93.12.63.174"));
@@ -132,8 +126,6 @@ TORRENT_TEST(one_ip)
 
 TORRENT_TEST(ip_voter_1)
 {
-	init_rand_address();
-
 	// test external ip voting
 	aux::ip_voter ipv1;
 
@@ -155,8 +147,6 @@ TORRENT_TEST(ip_voter_1)
 
 TORRENT_TEST(ip_voter_2)
 {
-	init_rand_address();
-
 	aux::ip_voter ipv2,ipv6;
 
 	// test a single malicious node
@@ -202,8 +192,6 @@ TORRENT_TEST(ip_voter_2)
 // normalized to its plain IPv4 form before being counted
 TORRENT_TEST(v4_mapped_vote)
 {
-	init_rand_address();
-
 	aux::ip_voter ipv;
 
 	error_code ec;
@@ -222,8 +210,6 @@ TORRENT_TEST(v4_mapped_vote)
 // plain IPv4 address would be
 TORRENT_TEST(v4_mapped_vote_rejects_local)
 {
-	init_rand_address();
-
 	aux::ip_voter ipv;
 
 	error_code ec;
