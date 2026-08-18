@@ -21,6 +21,29 @@ using namespace lt;
 
 namespace {
 
+// builds one buffer holding the concatenated bytes of each 32-byte SHA-256
+// hash literal in ``hashes``, and returns it together with each hash's
+// offset within the buffer. Used by tests exercising file_storage's v2
+// root-hash offsets, which must all resolve against a single shared buffer.
+std::pair<std::vector<char>, std::vector<std::int32_t>> build_root_hashes(
+	std::initializer_list<char const*> hashes)
+{
+	std::vector<char> buf;
+	std::vector<std::int32_t> offsets;
+	for (char const* h : hashes)
+	{
+		offsets.push_back(std::int32_t(buf.size()));
+		buf.insert(buf.end(), h, h + sha256_hash::size());
+	}
+	return {std::move(buf), std::move(offsets)};
+}
+
+// a single reusable root hash, for tests that only care that some v2 root
+// hash is present (to trigger v2 file layout rules), not its actual value
+char const dummy_root_hash[] = "01234567890123456789012345678901";
+
+file_storage make_v2_storage() { return file_storage(dummy_root_hash); }
+
 void setup_test_storage(file_storage& st)
 {
 	st.add_file(combine_path("test", "a"), 10000);
@@ -169,20 +192,29 @@ TORRENT_TEST(rename_file2)
 TORRENT_TEST(pointer_offset)
 {
 	// test applying pointer offset
-	file_storage st;
-	st.set_piece_length(16 * 1024);
 	char const filename[] = "test1fooba";
 #if TORRENT_ABI_VERSION < 4
 	char const filehash[] = "01234567890123456789-----";
 #endif
 	char const roothash[] = "01234567890123456789012345678912-----";
 
-	st.add_file_borrow({filename, 5}, combine_path("test-torrent-1", "test1")
-		, 10, file_flags_t{}
+	file_storage st{roothash};
+	st.set_piece_length(16 * 1024);
+
+	st.add_file_borrow({filename, 5},
+		combine_path("test-torrent-1", "test1"),
+		10,
+		file_flags_t{},
 #if TORRENT_ABI_VERSION < 4
-		, filehash
+		filehash,
 #endif
-		, 0, {}, roothash);
+		0,
+		{},
+#if TORRENT_ABI_VERSION < 4
+		roothash);
+#else
+		0);
+#endif
 
 	// test filename_ptr and filename_len
 #if TORRENT_ABI_VERSION <= 2
@@ -962,24 +994,24 @@ TORRENT_TEST(large_filename)
 
 TORRENT_TEST(piece_size2)
 {
-	file_storage fs;
+	file_storage fs = make_v2_storage();
 	fs.set_piece_length(0x8000);
 	// passing in a root hash (the last argument) makes it follow v2 rules, to
 	// add pad files
-	fs.add_file("test/0", 0x5000, {}, 0, {}, "01234567890123456789012345678901");
+	fs.add_file("test/0", 0x5000, {}, 0, {}, dummy_root_hash);
 
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	TEST_EQUAL(fs.num_pieces(), 1);
 	TEST_EQUAL(fs.piece_size2(0_piece), 0x5000);
 
-	fs.add_file("test/1", 0x2000, {}, 0, {}, "01234567890123456789012345678901");
-	fs.add_file("test/2", 0x8000, {}, 0, {}, "01234567890123456789012345678901");
+	fs.add_file("test/1", 0x2000, {}, 0, {}, dummy_root_hash);
+	fs.add_file("test/2", 0x8000, {}, 0, {}, dummy_root_hash);
 
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	TEST_EQUAL(fs.num_pieces(), 3);
 	TEST_EQUAL(fs.piece_size2(2_piece), 0x8000);
 
-	fs.add_file("test/3", 8, {}, 0, {}, "01234567890123456789012345678901");
+	fs.add_file("test/3", 8, {}, 0, {}, dummy_root_hash);
 
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	TEST_EQUAL(fs.num_pieces(), 4);
@@ -988,7 +1020,7 @@ TORRENT_TEST(piece_size2)
 	TEST_EQUAL(fs.piece_size2(2_piece), 0x8000);
 	TEST_EQUAL(fs.piece_size2(3_piece), 8);
 
-	fs.add_file("test/4", 0x8001, {}, 0, {}, "01234567890123456789012345678901");
+	fs.add_file("test/4", 0x8001, {}, 0, {}, dummy_root_hash);
 
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	TEST_EQUAL(fs.num_pieces(), 6);
@@ -1004,14 +1036,14 @@ TORRENT_TEST(piece_size2)
 #if TORRENT_ABI_VERSION < 4
 TORRENT_TEST(file_num_blocks)
 {
-	file_storage fs;
+	file_storage fs = make_v2_storage();
 	fs.set_piece_length(0x8000);
-	fs.add_file("test/0", 0x5000, {}, 0, {}, "01234567890123456789012345678901");
-	fs.add_file("test/1", 0x2000, {}, 0, {}, "01234567890123456789012345678901");
-	fs.add_file("test/2", 0x8000, {}, 0, {}, "01234567890123456789012345678901");
-	fs.add_file("test/3", 0x8001, {}, 0, {}, "01234567890123456789012345678901");
-	fs.add_file("test/4", 1, {}, 0, {}, "01234567890123456789012345678901");
-	fs.add_file("test/5", 0, {}, 0, {}, "01234567890123456789012345678901");
+	fs.add_file("test/0", 0x5000, {}, 0, {}, dummy_root_hash);
+	fs.add_file("test/1", 0x2000, {}, 0, {}, dummy_root_hash);
+	fs.add_file("test/2", 0x8000, {}, 0, {}, dummy_root_hash);
+	fs.add_file("test/3", 0x8001, {}, 0, {}, dummy_root_hash);
+	fs.add_file("test/4", 1, {}, 0, {}, dummy_root_hash);
+	fs.add_file("test/5", 0, {}, 0, {}, dummy_root_hash);
 
 	fs.canonicalize();
 
@@ -1036,14 +1068,14 @@ TORRENT_TEST(file_num_blocks)
 
 TORRENT_TEST(file_num_pieces)
 {
-	file_storage fs;
+	file_storage fs = make_v2_storage();
 	fs.set_piece_length(0x8000);
-	fs.add_file("test/0", 0x5000, {}, 0, {}, "01234567890123456789012345678901");
-	fs.add_file("test/1", 0x2000, {}, 0, {}, "01234567890123456789012345678901");
-	fs.add_file("test/2", 0x8000, {}, 0, {}, "01234567890123456789012345678901");
-	fs.add_file("test/3", 0x8001, {}, 0, {}, "01234567890123456789012345678901");
-	fs.add_file("test/4", 1, {}, 0, {}, "01234567890123456789012345678901");
-	fs.add_file("test/5", 0, {}, 0, {}, "01234567890123456789012345678901");
+	fs.add_file("test/0", 0x5000, {}, 0, {}, dummy_root_hash);
+	fs.add_file("test/1", 0x2000, {}, 0, {}, dummy_root_hash);
+	fs.add_file("test/2", 0x8000, {}, 0, {}, dummy_root_hash);
+	fs.add_file("test/3", 0x8001, {}, 0, {}, dummy_root_hash);
+	fs.add_file("test/4", 1, {}, 0, {}, dummy_root_hash);
+	fs.add_file("test/5", 0, {}, 0, {}, dummy_root_hash);
 
 	fs.canonicalize();
 
@@ -1070,18 +1102,18 @@ TORRENT_TEST(file_num_pieces)
 namespace {
 int first_piece_node(int piece_size, int file_size)
 {
-	file_storage fs;
+	file_storage fs = make_v2_storage();
 	fs.set_piece_length(piece_size);
-	fs.add_file("test/0", file_size, {}, 0, {}, "01234567890123456789012345678901");
+	fs.add_file("test/0", file_size, {}, 0, {}, dummy_root_hash);
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	return fs.file_first_piece_node(file_index_t{0});
 }
 
 int first_block_node(int file_size)
 {
-	file_storage fs;
+	file_storage fs = make_v2_storage();
 	fs.set_piece_length(0x10000);
-	fs.add_file("test/0", file_size, {}, 0, {}, "01234567890123456789012345678901");
+	fs.add_file("test/0", file_size, {}, 0, {}, dummy_root_hash);
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	return fs.file_first_block_node(file_index_t{0});
 }
@@ -1136,23 +1168,23 @@ TORRENT_TEST(file_first_block_node)
 
 TORRENT_TEST(mismatching_file_hash1)
 {
-	file_storage st;
+	file_storage st = make_v2_storage();
 	st.set_piece_length(0x4000);
 
 	error_code ec;
 	st.add_file(ec, combine_path("test", "a"), 10000);
 	TEST_CHECK(!ec);
-	st.add_file(ec, combine_path("test", "B"), 10000, {}, 0, {}, "abababababababababababababababab");
+	st.add_file(ec, combine_path("test", "B"), 10000, {}, 0, {}, dummy_root_hash);
 	TEST_CHECK(ec);
 }
 
 TORRENT_TEST(mismatching_file_hash2)
 {
-	file_storage st;
+	file_storage st = make_v2_storage();
 	st.set_piece_length(0x4000);
 
 	error_code ec;
-	st.add_file(ec, combine_path("test", "B"), 10000, {}, 0, {}, "abababababababababababababababab");
+	st.add_file(ec, combine_path("test", "B"), 10000, {}, 0, {}, dummy_root_hash);
 	TEST_CHECK(!ec);
 	st.add_file(ec, combine_path("test", "a"), 10000);
 	TEST_CHECK(ec);
@@ -1160,21 +1192,21 @@ TORRENT_TEST(mismatching_file_hash2)
 
 TORRENT_TEST(v2_detection_1)
 {
-	file_storage fs;
+	file_storage fs = make_v2_storage();
 	fs.set_piece_length(0x8000);
 	// passing in a root hash (the last argument) makes it follow v2 rules, to
 	// add pad files
 	fs.add_file("test/0", 0x5000, {}, 0, "symlink-test-1");
 	fs.add_file("test/1", 0x5000, {}, 0, "symlink-test-2");
 
-	fs.add_file("test/2", 0x2000, {}, 0, {}, "01234567890123456789012345678901");
+	fs.add_file("test/2", 0x2000, {}, 0, {}, dummy_root_hash);
 	// it's an error to add a v1 file to a v2 torrent
 	TEST_THROW(fs.add_file("test/3", 0x2000));
 }
 
 TORRENT_TEST(v2_detection_2)
 {
-	file_storage fs;
+	file_storage fs = make_v2_storage();
 	fs.set_piece_length(0x8000);
 	// passing in a root hash (the last argument) makes it follow v2 rules, to
 	// add pad files
@@ -1184,7 +1216,7 @@ TORRENT_TEST(v2_detection_2)
 	fs.add_file("test/2", 0x2000);
 
 	// it's an error to add a v1 file to a v2 torrent
-	TEST_THROW(fs.add_file("test/3", 0x2000, {}, 0, {}, "01234567890123456789012345678901"));
+	TEST_THROW(fs.add_file("test/3", 0x2000, {}, 0, {}, dummy_root_hash));
 }
 
 TORRENT_TEST(blocks_in_piece2)
@@ -1197,9 +1229,9 @@ TORRENT_TEST(blocks_in_piece2)
 
 	for (auto t : piece_sizes)
 	{
-		file_storage fs;
+		file_storage fs = make_v2_storage();
 		fs.set_piece_length(0x8000);
-		fs.add_file("test/0", t.first, {}, 0, {}, "01234567890123456789012345678901");
+		fs.add_file("test/0", t.first, {}, 0, {}, dummy_root_hash);
 		fs.set_num_pieces(aux::calc_num_pieces(fs));
 		TEST_EQUAL(fs.blocks_in_piece2(0_piece), t.second);
 	}
@@ -1207,12 +1239,18 @@ TORRENT_TEST(blocks_in_piece2)
 
 TORRENT_TEST(file_index_for_root)
 {
-	file_storage fs;
+	auto [buf, off] = build_root_hashes({
+		"11111111111111111111111111111111",
+		"22222222222222222222222222222222",
+		"33333333333333333333333333333333",
+		"44444444444444444444444444444444",
+	});
+	file_storage fs{buf.data()};
 	fs.set_piece_length(0x8000);
-	fs.add_file("test/0", 0x8000, {}, 0, {}, "11111111111111111111111111111111");
-	fs.add_file("test/1", 0x8000, {}, 0, {}, "22222222222222222222222222222222");
-	fs.add_file("test/2", 0x8000, {}, 0, {}, "33333333333333333333333333333333");
-	fs.add_file("test/3", 0x8000, {}, 0, {}, "44444444444444444444444444444444");
+	fs.add_file("test/0", 0x8000, {}, 0, {}, buf.data() + off[0]);
+	fs.add_file("test/1", 0x8000, {}, 0, {}, buf.data() + off[1]);
+	fs.add_file("test/2", 0x8000, {}, 0, {}, buf.data() + off[2]);
+	fs.add_file("test/3", 0x8000, {}, 0, {}, buf.data() + off[3]);
 
 	TEST_EQUAL(fs.file_index_for_root(sha256_hash("11111111111111111111111111111111")), file_index_t{0});
 	TEST_EQUAL(fs.file_index_for_root(sha256_hash("22222222222222222222222222222222")), file_index_t{1});
@@ -1223,21 +1261,27 @@ TORRENT_TEST(file_index_for_root)
 
 TORRENT_TEST(size_on_disk)
 {
-	file_storage fs;
+	auto [buf, off] = build_root_hashes({
+		"11111111111111111111111111111111",
+		"22222222222222222222222222222222",
+		"33333333333333333333333333333333",
+		"44444444444444444444444444444444",
+	});
+	file_storage fs{buf.data()};
 	fs.set_piece_length(0x8000);
 
 	std::int64_t size_on_disk = 0;
 	TEST_EQUAL(fs.size_on_disk(), size_on_disk);
-	fs.add_file("test/0", 100, {}, 0, {}, "11111111111111111111111111111111");
+	fs.add_file("test/0", 100, {}, 0, {}, buf.data() + off[0]);
 	size_on_disk += 100;
 	TEST_EQUAL(fs.size_on_disk(), size_on_disk);
-	fs.add_file("test/1", 800, {}, 0, {}, "22222222222222222222222222222222");
+	fs.add_file("test/1", 800, {}, 0, {}, buf.data() + off[1]);
 	size_on_disk += 800;
 	TEST_EQUAL(fs.size_on_disk(), size_on_disk);
-	fs.add_file("test/2", 333, {}, 0, {}, "33333333333333333333333333333333");
+	fs.add_file("test/2", 333, {}, 0, {}, buf.data() + off[2]);
 	size_on_disk += 333;
 	TEST_EQUAL(fs.size_on_disk(), size_on_disk);
-	fs.add_file("test/3", 1337, {}, 0, {}, "44444444444444444444444444444444");
+	fs.add_file("test/3", 1337, {}, 0, {}, buf.data() + off[3]);
 	size_on_disk += 1337;
 	TEST_EQUAL(fs.size_on_disk(), size_on_disk);
 	TEST_CHECK(fs.size_on_disk() < fs.total_size());
@@ -1245,19 +1289,24 @@ TORRENT_TEST(size_on_disk)
 
 TORRENT_TEST(size_on_disk_explicit_pads)
 {
-	file_storage fs;
+	auto [buf, off] = build_root_hashes({
+		"11111111111111111111111111111111",
+		"22222222222222222222222222222222",
+		"33333333333333333333333333333333",
+	});
+	file_storage fs{buf.data()};
 	fs.set_piece_length(0x8000);
 
 	std::int64_t size_on_disk = 0;
 	TEST_EQUAL(fs.size_on_disk(), size_on_disk);
-	fs.add_file("test/0", 100, {}, 0, {}, "11111111111111111111111111111111");
+	fs.add_file("test/0", 100, {}, 0, {}, buf.data() + off[0]);
 	size_on_disk += 100;
 	TEST_EQUAL(fs.size_on_disk(), size_on_disk);
 
 	// when adding a pad file, size_on_disk does not increment
-	fs.add_file("test/pad/0", 80, file_storage::flag_pad_file, 0, {}, "22222222222222222222222222222222");
+	fs.add_file("test/pad/0", 80, file_storage::flag_pad_file, 0, {}, buf.data() + off[1]);
 	TEST_EQUAL(fs.size_on_disk(), size_on_disk);
-	fs.add_file("test/2", 333, {}, 0, {}, "33333333333333333333333333333333");
+	fs.add_file("test/2", 333, {}, 0, {}, buf.data() + off[2]);
 	size_on_disk += 333;
 	TEST_EQUAL(fs.size_on_disk(), size_on_disk);
 	TEST_CHECK(fs.size_on_disk() < fs.total_size());
@@ -1265,12 +1314,18 @@ TORRENT_TEST(size_on_disk_explicit_pads)
 
 TORRENT_TEST(test_renamed_files)
 {
-	file_storage fs;
+	auto [buf, off] = build_root_hashes({
+		"11111111111111111111111111111111",
+		"22222222222222222222222222222222",
+		"33333333333333333333333333333333",
+		"44444444444444444444444444444444",
+	});
+	file_storage fs{buf.data()};
 	fs.set_piece_length(0x8000);
-	fs.add_file("test/0", 0x8000, {}, 0, {}, "11111111111111111111111111111111");
-	fs.add_file("test/1", 0x8000, {}, 0, {}, "22222222222222222222222222222222");
-	fs.add_file("test/2/1", 0x8000, {}, 0, {}, "33333333333333333333333333333333");
-	fs.add_file("test/2/2", 0x8000, {}, 0, {}, "44444444444444444444444444444444");
+	fs.add_file("test/0", 0x8000, {}, 0, {}, buf.data() + off[0]);
+	fs.add_file("test/1", 0x8000, {}, 0, {}, buf.data() + off[1]);
+	fs.add_file("test/2/1", 0x8000, {}, 0, {}, buf.data() + off[2]);
+	fs.add_file("test/2/2", 0x8000, {}, 0, {}, buf.data() + off[3]);
 
 	renamed_files rf;
 
@@ -1324,12 +1379,18 @@ TORRENT_TEST(test_renamed_files)
 
 TORRENT_TEST(renamed_files_round_trip)
 {
-	file_storage fs;
+	auto [buf, off] = build_root_hashes({
+		"11111111111111111111111111111111",
+		"22222222222222222222222222222222",
+		"33333333333333333333333333333333",
+		"44444444444444444444444444444444",
+	});
+	file_storage fs{buf.data()};
 	fs.set_piece_length(0x8000);
-	fs.add_file("test/0", 0x8000, {}, 0, {}, "11111111111111111111111111111111");
-	fs.add_file("test/1", 0x8000, {}, 0, {}, "22222222222222222222222222222222");
-	fs.add_file("test/2/1", 0x8000, {}, 0, {}, "33333333333333333333333333333333");
-	fs.add_file("test/2/2", 0x8000, {}, 0, {}, "44444444444444444444444444444444");
+	fs.add_file("test/0", 0x8000, {}, 0, {}, buf.data() + off[0]);
+	fs.add_file("test/1", 0x8000, {}, 0, {}, buf.data() + off[1]);
+	fs.add_file("test/2/1", 0x8000, {}, 0, {}, buf.data() + off[2]);
+	fs.add_file("test/2/2", 0x8000, {}, 0, {}, buf.data() + off[3]);
 
 	renamed_files rf;
 
