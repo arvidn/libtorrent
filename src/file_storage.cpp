@@ -58,12 +58,13 @@ TORRENT_VERSION_NAMESPACE_4
 	file_storage::file_storage() = default;
 	file_storage::~file_storage() = default;
 
-	// even though this copy constructor and the copy assignment
-	// operator are identical to what the compiler would have
+	// even though this copy constructor and the move special member
+	// functions are identical to what the compiler would have
 	// generated, they are put here to explicitly make them part
-	// of libtorrent and properly exported by the .dll.
+	// of libtorrent and properly exported by the .dll. copy-assignment
+	// is deleted, since aux::file_entry has no need for it and dropping
+	// it keeps file_entry's ownership logic simpler.
 	file_storage::file_storage(file_storage const&) = default;
-	file_storage& file_storage::operator=(file_storage const&) & = default;
 	file_storage::file_storage(file_storage&&) noexcept = default;
 	file_storage& file_storage::operator=(file_storage&&) & = default;
 
@@ -362,28 +363,6 @@ namespace aux {
 	{
 		bool const borrow = fe.name_len != name_is_owned;
 		set_name(fe.filename(), borrow);
-	}
-
-	file_entry& file_entry::operator=(file_entry const& fe) &
-	{
-		if (&fe == this) return *this;
-		offset = fe.offset;
-		size = fe.size;
-		path_index = fe.path_index;
-		symlink_index = fe.symlink_index;
-		pad_file = fe.pad_file;
-		hidden_attribute = fe.hidden_attribute;
-		executable_attribute = fe.executable_attribute;
-		symlink_attribute = fe.symlink_attribute;
-		no_root_dir = fe.no_root_dir;
-		root = fe.root;
-
-		// if the name is not owned, don't allocate memory, we can point into the
-		// same metadata buffer
-		bool const borrow = fe.name_len != name_is_owned;
-		set_name(fe.filename(), borrow);
-
-		return *this;
 	}
 
 	file_entry::file_entry(file_entry&& fe) noexcept
