@@ -1247,10 +1247,12 @@ TORRENT_VERSION_NAMESPACE_4
 
 		// extract file list
 
-		// save a copy so that we can extract both v1 and v2 files then compare the results
+		// files has nothing but piece_length set at this point, hand that off
+		// to v1_files as a starting point for the v1 extraction below, so both
+		// v1 and v2 files can be extracted and compared against each other
 		file_storage v1_files;
 		if (version >= 2)
-			v1_files = files;
+			v1_files.set_piece_length(files.piece_length());
 
 		bdecode_node const file_tree_node = info.dict_find_dict("file tree");
 		if (version >= 2 && file_tree_node)

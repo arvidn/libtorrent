@@ -106,7 +106,6 @@ namespace aux {
 		friend class ::lt::file_storage;
 		file_entry();
 		file_entry(file_entry const& fe);
-		file_entry& operator=(file_entry const& fe) &;
 		file_entry(file_entry&& fe) noexcept;
 		file_entry& operator=(file_entry&& fe) & noexcept;
 		~file_entry();
@@ -207,7 +206,7 @@ public:
 	// hidden
 	~file_storage();
 	file_storage(file_storage const&);
-	file_storage& operator=(file_storage const&) &;
+	file_storage& operator=(file_storage const&) & = delete;
 	file_storage(file_storage&&) noexcept;
 	file_storage& operator=(file_storage&&) &;
 
