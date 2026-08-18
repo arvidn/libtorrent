@@ -886,8 +886,6 @@ void test_scrape(address(&rand_addr)())
 	dht_test_setup t(udp::endpoint(rand_addr(), 20));
 	bdecode_node response;
 
-	init_rand_address();
-
 	// announce from 100 random IPs and make sure scrape works
 	// 50 downloaders and 50 seeds
 	for (int i = 0; i < 100; ++i)
@@ -1213,7 +1211,6 @@ void test_put(address(&rand_addr)())
 
 	// ====== put ======
 
-	init_rand_address();
 	udp::endpoint eps[1000];
 	for (int i = 0; i < 1000; ++i)
 		eps[i] = udp::endpoint(rand_addr(), std::uint16_t(aux::random(16534) + 1));
@@ -1516,8 +1513,6 @@ namespace {
 
 void test_routing_table(address(&rand_addr)())
 {
-	init_rand_address();
-
 	dht_test_setup t(udp::endpoint(rand_addr(), 20));
 	bdecode_node response;
 
@@ -3380,8 +3375,6 @@ struct test_algo : dht::traversal_algorithm
 
 TORRENT_TEST(unsorted_traversal_results)
 {
-	init_rand_address();
-
 	// make sure the handling of an unsorted tail of nodes is correct in the
 	// traversal algorithm. Initial nodes (that we bootstrap from) remain
 	// unsorted, since we don't know their node IDs
@@ -3479,8 +3472,6 @@ TORRENT_TEST(rpc_invalid_error_msg)
 // test bucket distribution
 TORRENT_TEST(node_id_bucket_distribution)
 {
-	init_rand_address();
-
 	int nodes_per_bucket[160] = {0};
 	dht::node_id reference_id = generate_id(rand_v4());
 	int const num_samples = 100000;
@@ -3823,8 +3814,6 @@ TORRENT_TEST(dht_state)
 
 TORRENT_TEST(sample_infohashes)
 {
-	init_rand_address();
-
 	dht_test_setup t(rand_udp_ep());
 	bdecode_node response;
 

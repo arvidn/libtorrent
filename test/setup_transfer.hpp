@@ -29,7 +29,6 @@ EXPORT lt::add_torrent_params generate_torrent(bool with_files = false, bool wit
 EXPORT int load_file(std::string const& filename, std::vector<char>& v
 	, lt::error_code& ec, int limit = 8000000);
 
-EXPORT void init_rand_address();
 EXPORT lt::address rand_v4();
 EXPORT lt::address rand_v6();
 EXPORT lt::tcp::endpoint rand_tcp_ep(lt::address(&rand_addr)() = rand_v4);

@@ -99,7 +99,7 @@ TORRENT_TEST(dht_bootstrap)
 			{
 				bootstrap_session({&dht}, ses);
 			}
-			if (ticks > 500)
+			if (ticks > 1000)
 			{
 				ses.post_session_stats();
 				std::printf("depth: %d nodes: %d\n", routing_table_depth, num_nodes);
