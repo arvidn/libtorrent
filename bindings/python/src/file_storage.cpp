@@ -94,6 +94,15 @@ namespace {
 	FileIter end_files(file_storage const& self) { return FileIter(self, self.end_file()); }
 #endif // TORRENT_ABI_VERSION
 
+#if TORRENT_ABI_VERSION < 5
+	std::shared_ptr<file_storage> file_storage_constructor()
+	{
+		python_deprecated("constructing a file_storage directly is deprecated, use "
+						  "create_torrent and create_file_entry instead");
+		return std::make_shared<file_storage>();
+	}
+#endif
+
 #if TORRENT_ABI_VERSION < 4
 	void
 	add_files_no_callback(file_storage& fs, std::string const& file, create_flags_t const flags)
@@ -219,6 +228,9 @@ void bind_file_storage()
 	{
 		scope s =
 			class_<file_storage>("file_storage", no_init)
+#if TORRENT_ABI_VERSION < 5
+				.def("__init__", make_constructor(&file_storage_constructor))
+#endif
 				.def("is_valid", &file_storage::is_valid)
 				.def("add_file",
 					add_file0,

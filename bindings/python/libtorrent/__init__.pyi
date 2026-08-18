@@ -1617,6 +1617,12 @@ class file_storage(metaclass=_BoostBaseClass):
     flag_hidden: int
     flag_pad_file: int
     flag_symlink: int
+    def __init__(self) -> None:
+        """
+        __init__( (object)arg1) -> None :
+            constructing a file_storage directly is deprecated, use create_torrent and create_file_entry instead
+        """
+
     @overload
     def add_file(
         self,

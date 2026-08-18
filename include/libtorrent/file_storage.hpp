@@ -201,8 +201,12 @@ TORRENT_VERSION_NAMESPACE_4
 class TORRENT_EXPORT file_storage
 {
 public:
+#if TORRENT_ABI_VERSION >= 5
+	TORRENT_UNEXPORT
+#endif
 	// hidden
-	TORRENT_UNEXPORT file_storage();
+	file_storage();
+
 	// hidden
 	~file_storage();
 	file_storage(file_storage const&);
