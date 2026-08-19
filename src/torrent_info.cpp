@@ -1053,7 +1053,7 @@ TORRENT_VERSION_NAMESPACE_4
 		if (m_files.file_path(index) == new_filename) return;
 
 		copy_on_write();
-		m_modified_files->rename_file(index, new_filename);
+		m_modified_files->rename_file_impl(index, new_filename);
 	}
 
 	// internal
