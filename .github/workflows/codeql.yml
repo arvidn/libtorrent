@@ -31,9 +31,10 @@ jobs:
 
       - name: Install Packages (cpp)
         if: ${{ matrix.language == 'cpp' }}
+        timeout-minutes: 5
         run: |
-          sudo apt-get update
-          sudo apt-get install --yes libboost-all-dev libssl-dev ninja-build
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=10 -o Acquire::https::Timeout=10 update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install --yes libboost-all-dev libssl-dev ninja-build
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4

@@ -25,7 +25,8 @@ jobs:
            python-version: "3.x"
 
       - name: install clang-format-18
-        run: sudo apt-get update && sudo apt-get install -y clang-format-18
+        timeout-minutes: 5
+        run: sudo DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=10 -o Acquire::https::Timeout=10 update && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y clang-format-18
 
       - uses: j178/prek-action@v2
 
@@ -60,8 +61,9 @@ jobs:
 
       - name: update package lists
         continue-on-error: true
+        timeout-minutes: 5
         run: |
-          sudo apt update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=10 -o Acquire::https::Timeout=10 update
 
       - uses: Chocobo1/setup-ccache-action@v1
         with:
@@ -72,7 +74,7 @@ jobs:
 
       - name: install boost
         run: |
-          sudo apt install libboost-python-dev libboost-tools-dev libboost-dev libboost-system-dev python3
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libboost-python-dev libboost-tools-dev libboost-dev libboost-system-dev python3
 
       - name: configure toolchain
         run: |
@@ -85,7 +87,7 @@ jobs:
 
       - name: install gcrypt
         if: ${{ contains(matrix.config, 'crypto=gcrypt') }}
-        run: sudo apt install libgcrypt20-dev
+        run: sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libgcrypt20-dev
 
       - name: build library
         run: |
@@ -122,8 +124,9 @@ jobs:
 
       - name: update package lists
         continue-on-error: true
+        timeout-minutes: 5
         run: |
-          sudo apt update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=10 -o Acquire::https::Timeout=10 update
 
       - uses: Chocobo1/setup-ccache-action@v1
         with:
@@ -134,7 +137,7 @@ jobs:
 
       - name: install boost
         run: |
-          sudo apt install libboost-tools-dev libboost-dev libboost-system-dev libboost-json-dev ninja-build
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libboost-tools-dev libboost-dev libboost-system-dev libboost-json-dev ninja-build
           pip install websockets
 
       - name: cmake configure
@@ -173,8 +176,9 @@ jobs:
 
       - name: update package lists
         continue-on-error: true
+        timeout-minutes: 5
         run: |
-          sudo apt update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=10 -o Acquire::https::Timeout=10 update
 
       - uses: Chocobo1/setup-ccache-action@v1
         with:
@@ -186,11 +190,11 @@ jobs:
       - name: install clang-15
         continue-on-error: true
         run: |
-          sudo apt install clang-15
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y clang-15
 
       - name: install boost
         run: |
-          sudo apt install libboost-tools-dev libboost-dev libboost-system-dev libboost-json-dev
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libboost-tools-dev libboost-dev libboost-system-dev libboost-json-dev
           echo "using clang : 15 : clang++-15 ;" >>~/user-config.jam
 
       - name: build fuzzers
@@ -214,8 +218,9 @@ jobs:
 
       - name: update package lists
         continue-on-error: true
+        timeout-minutes: 5
         run: |
-          sudo apt update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=10 -o Acquire::https::Timeout=10 update
 
       - uses: Chocobo1/setup-ccache-action@v1
         with:
@@ -226,7 +231,7 @@ jobs:
 
       - name: install boost
         run: |
-          sudo apt install libboost-tools-dev libboost-dev libboost-system-dev libboost-json-dev
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libboost-tools-dev libboost-dev libboost-system-dev libboost-json-dev
           echo "using gcc ;" >>~/user-config.jam
 
       - name: compile header files individually
@@ -260,8 +265,9 @@ jobs:
 
       - name: update package lists
         continue-on-error: true
+        timeout-minutes: 5
         run: |
-          sudo apt update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=10 -o Acquire::https::Timeout=10 update
 
       - uses: Chocobo1/setup-ccache-action@v1
         with:
@@ -273,26 +279,26 @@ jobs:
       - name: install gnutls
         if: ${{ contains(matrix.config, 'crypto=gnutls') }}
         run: |
-          sudo apt install libgnutls28-dev
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libgnutls28-dev
 
       - name: install boost.json
         if: ${{ !contains(matrix.config, 'webtorrent=off') }}
         run: |
-          sudo apt install libboost-json-dev
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libboost-json-dev
 
       - name: install clang-16
         continue-on-error: true
         run: |
-          sudo apt install clang-16
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y clang-16
 
       - name: install GCC-14
         continue-on-error: true
         run: |
-          sudo apt install gcc-14
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y gcc-14
 
       - name: install boost
         run: |
-          sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libboost-tools-dev libboost-dev libboost-system-dev
           pip install websockets
           echo "using gcc : 14 : g++-14 ;" >>~/user-config.jam
           echo "using clang : 16 : clang++-16 ;" >>~/user-config.jam
@@ -333,8 +339,9 @@ jobs:
 
       - name: update package lists
         continue-on-error: true
+        timeout-minutes: 5
         run: |
-          sudo apt update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=10 -o Acquire::https::Timeout=10 update
 
       - uses: Chocobo1/setup-ccache-action@v1
         with:
@@ -345,7 +352,7 @@ jobs:
 
       - name: install 32-bit toolchain
         run: |
-          sudo apt install -y g++-multilib
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y g++-multilib
 
       - name: install boost from source
         run: |
@@ -384,8 +391,9 @@ jobs:
 
       - name: update package lists
         continue-on-error: true
+        timeout-minutes: 5
         run: |
-          sudo apt update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=10 -o Acquire::https::Timeout=10 update
 
       - uses: Chocobo1/setup-ccache-action@v1
         with:
@@ -396,7 +404,7 @@ jobs:
 
       - name: install boost
         run: |
-          sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libboost-tools-dev libboost-dev libboost-system-dev
           echo "using gcc ;" >>~/user-config.jam
 
       - name: build and run simulations
@@ -431,8 +439,9 @@ jobs:
 
       - name: update package lists
         continue-on-error: true
+        timeout-minutes: 5
         run: |
-          sudo apt update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=10 -o Acquire::https::Timeout=10 update
 
       - uses: Chocobo1/setup-ccache-action@v1
         with:
@@ -443,7 +452,7 @@ jobs:
 
       - name: install boost
         run: |
-          sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libboost-tools-dev libboost-dev libboost-system-dev
           echo "using gcc ;" >>~/user-config.jam
 
       - name: build disk_io_stress_test

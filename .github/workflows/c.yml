@@ -41,13 +41,14 @@ jobs:
     - name: update package lists (linux)
       if: runner.os == 'Linux'
       continue-on-error: true
+      timeout-minutes: 5
       run: |
-        sudo apt update
+        sudo DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=10 -o Acquire::https::Timeout=10 update
 
     - name: dependencies (linux)
       if: runner.os == 'Linux'
       run: |
-        sudo apt install libboost-tools-dev libboost-dev libboost-system-dev
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libboost-tools-dev libboost-dev libboost-system-dev
 
     - name: install openssl (windows)
       if: runner.os == 'Windows'

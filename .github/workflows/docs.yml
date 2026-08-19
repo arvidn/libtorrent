@@ -24,12 +24,13 @@ jobs:
 
       - name: update package lists
         continue-on-error: true
+        timeout-minutes: 5
         run: |
-          sudo apt update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=10 -o Acquire::https::Timeout=10 update
 
       - name: install dependencies
         run: |
-          sudo apt install python3-docutils python3-pygments python3-pil gsfonts inkscape icoutils graphviz hunspell imagemagick
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python3-docutils python3-pygments python3-pil gsfonts inkscape icoutils graphviz hunspell imagemagick
           python3 -m pip install aafigure
           ~/.local/bin/aafigure --version
 
