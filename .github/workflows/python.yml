@@ -66,8 +66,9 @@ jobs:
     - name: update package lists (linux)
       if: runner.os == 'Linux'
       continue-on-error: true
+      timeout-minutes: 5
       run: |
-        sudo apt update
+        sudo DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=10 -o Acquire::https::Timeout=10 update
 
     - uses: Chocobo1/setup-ccache-action@v1
       if: runner.os != 'Windows'
@@ -80,7 +81,7 @@ jobs:
     - name: dependencies (linux)
       if: runner.os == 'Linux'
       run: |
-        sudo apt install libboost-tools-dev libboost-python-dev libboost-dev libboost-system-dev libboost-json-dev python3 python3-setuptools libssl-dev
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libboost-tools-dev libboost-python-dev libboost-dev libboost-system-dev libboost-json-dev python3 python3-setuptools libssl-dev
 
     - name: dependencies (windows)
       if: runner.os == 'Windows'

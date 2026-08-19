@@ -45,9 +45,10 @@ jobs:
            fetch-depth: 1
 
       - name: install dependencies
+        timeout-minutes: 5
         run: |
-           sudo apt-get update
-           sudo apt-get install -y cppcheck
+           sudo DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=10 -o Acquire::https::Timeout=10 update
+           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y cppcheck
 
       - name: run cppcheck
         run: |

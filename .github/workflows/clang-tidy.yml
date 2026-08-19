@@ -25,8 +25,9 @@ jobs:
 
       - name: update package lists
         continue-on-error: true
+        timeout-minutes: 5
         run: |
-          sudo apt update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=10 -o Acquire::https::Timeout=10 update
 
       - uses: Chocobo1/setup-ccache-action@v1
         with:
@@ -36,11 +37,11 @@ jobs:
             max_size=500M
 
       - name: install clang-tidy-18
-        run: sudo apt install clang-tidy libc++-dev
+        run: sudo DEBIAN_FRONTEND=noninteractive apt-get install -y clang-tidy libc++-dev
 
       - name: install boost
         run: |
-          sudo apt install libboost-tools-dev libboost-dev
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libboost-tools-dev libboost-dev
           echo "using clang_tidy : : clang-tidy : <cxxflags>-std=c++17 <cxxflags>-I/usr/local/clang-7.0.0/include/c++/v1 <cxxflags>-stdlib=libc++ <cxxflags>-Wno-unknown-warning-option <linkflags>-stdlib=libc++ ;" >> ~/user-config.jam;
 
       - name: analyze
