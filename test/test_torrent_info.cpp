@@ -1914,12 +1914,7 @@ TORRENT_TEST(copy)
 	};
 
 #if TORRENT_ABI_VERSION < 4
-	aux::vector<sha1_hash, file_index_t> file_hashes =
-	{
-		sha1_hash(nullptr),
-		sha1_hash(nullptr),
-		sha1_hash("abababababababababab")
-	};
+	aux::vector<sha1_hash, file_index_t> file_hashes = {sha1_hash(), sha1_hash(), sha1_hash()};
 #endif
 
 	file_storage const& fs = a->layout();

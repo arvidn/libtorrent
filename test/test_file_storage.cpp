@@ -242,7 +242,7 @@ TORRENT_TEST(pointer_offset)
 #endif
 	TEST_EQUAL(std::string(st.file_name(file_index_t{0})), string_view(filename, 5));
 #if TORRENT_ABI_VERSION < 4
-	TEST_EQUAL(st.hash(file_index_t{0}), sha1_hash(filehash));
+	TEST_EQUAL(st.hash(file_index_t{0}), sha1_hash());
 #endif
 	TEST_EQUAL(st.root(file_index_t{0}), sha256_hash(roothash));
 

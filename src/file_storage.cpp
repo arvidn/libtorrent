@@ -727,17 +727,8 @@ TORRENT_VERSION_NAMESPACE_4
 	{
 		std::int32_t const root_hash_offset = root_hash_to_offset(root_hash);
 		error_code ec;
-		add_file_borrow_impl(ec,
-			{},
-			path,
-			file_size,
-			file_flags,
-#if TORRENT_ABI_VERSION < 4
-			nullptr,
-#endif
-			mtime,
-			symlink_path,
-			root_hash_offset);
+		add_file_borrow_impl(
+			ec, {}, path, file_size, file_flags, mtime, symlink_path, root_hash_offset);
 		if (ec) aux::throw_ex<system_error>(ec);
 	}
 
@@ -748,17 +739,11 @@ TORRENT_VERSION_NAMESPACE_4
 		, std::int64_t const mtime, string_view const symlink_path
 		, char const* root_hash)
 	{
+		TORRENT_UNUSED(filehash);
 		std::int32_t const root_hash_offset = root_hash_to_offset(root_hash);
 		error_code ec;
-		add_file_borrow_impl(ec,
-			filename,
-			path,
-			file_size,
-			file_flags,
-			filehash,
-			mtime,
-			symlink_path,
-			root_hash_offset);
+		add_file_borrow_impl(
+			ec, filename, path, file_size, file_flags, mtime, symlink_path, root_hash_offset);
 		if (ec) aux::throw_ex<system_error>(ec);
 	}
 #endif
@@ -782,17 +767,8 @@ TORRENT_VERSION_NAMESPACE_4
 		std::int32_t const root_hash_offset)
 	{
 		error_code ec;
-		add_file_borrow_impl(ec,
-			filename,
-			path,
-			file_size,
-			file_flags,
-#if TORRENT_ABI_VERSION < 4
-			nullptr,
-#endif
-			mtime,
-			symlink_path,
-			root_hash_offset);
+		add_file_borrow_impl(
+			ec, filename, path, file_size, file_flags, mtime, symlink_path, root_hash_offset);
 		if (ec) aux::throw_ex<system_error>(ec);
 	}
 #endif // BOOST_NO_EXCEPTIONS
@@ -802,17 +778,8 @@ TORRENT_VERSION_NAMESPACE_4
 		, string_view symlink_path, char const* root_hash)
 	{
 		std::int32_t const root_hash_offset = root_hash_to_offset(root_hash);
-		add_file_borrow_impl(ec,
-			{},
-			path,
-			file_size,
-			file_flags,
-#if TORRENT_ABI_VERSION < 4
-			nullptr,
-#endif
-			mtime,
-			symlink_path,
-			root_hash_offset);
+		add_file_borrow_impl(
+			ec, {}, path, file_size, file_flags, mtime, symlink_path, root_hash_offset);
 	}
 
 #if TORRENT_ABI_VERSION < 4
@@ -822,16 +789,10 @@ TORRENT_VERSION_NAMESPACE_4
 		, std::int64_t const mtime, string_view const symlink_path
 		, char const* root_hash)
 	{
+		TORRENT_UNUSED(filehash);
 		std::int32_t const root_hash_offset = root_hash_to_offset(root_hash);
-		add_file_borrow_impl(ec,
-			filename,
-			path,
-			file_size,
-			file_flags,
-			filehash,
-			mtime,
-			symlink_path,
-			root_hash_offset);
+		add_file_borrow_impl(
+			ec, filename, path, file_size, file_flags, mtime, symlink_path, root_hash_offset);
 	}
 #endif
 #if TORRENT_ABI_VERSION < 5
@@ -855,17 +816,8 @@ TORRENT_VERSION_NAMESPACE_4
 		string_view const symlink_path,
 		std::int32_t const root_hash_offset)
 	{
-		add_file_borrow_impl(ec,
-			filename,
-			path,
-			file_size,
-			file_flags,
-#if TORRENT_ABI_VERSION < 4
-			nullptr,
-#endif
-			mtime,
-			symlink_path,
-			root_hash_offset);
+		add_file_borrow_impl(
+			ec, filename, path, file_size, file_flags, mtime, symlink_path, root_hash_offset);
 	}
 
 	std::int32_t file_storage::root_hash_to_offset(char const* root_hash) const
@@ -879,9 +831,6 @@ TORRENT_VERSION_NAMESPACE_4
 		std::string const& path,
 		std::int64_t const file_size,
 		file_flags_t const file_flags,
-#if TORRENT_ABI_VERSION < 4
-		char const* filehash,
-#endif
 		std::int64_t const mtime,
 		string_view const symlink_path,
 		std::int32_t const root_hash_offset)
@@ -980,13 +929,6 @@ TORRENT_VERSION_NAMESPACE_4
 		TORRENT_ASSERT(root_hash_offset == no_root_hash || m_info_section != nullptr);
 		e.root_offset = root_hash_offset;
 
-#if TORRENT_ABI_VERSION < 4
-		if (filehash)
-		{
-			if (m_file_hashes.size() < m_files.size()) m_file_hashes.resize(m_files.size());
-			m_file_hashes[last_file()] = filehash;
-		}
-#endif
 		if (!symlink_path.empty()
 			&& m_symlinks.size() < aux::file_entry::not_a_symlink - 1)
 		{
@@ -1069,8 +1011,8 @@ TORRENT_VERSION_NAMESPACE_4
 	sha1_hash file_storage::hash(file_index_t const index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t{} && index < end_file());
-		if (index >= m_file_hashes.end_index()) return {};
-		return sha1_hash(m_file_hashes[index]);
+		TORRENT_UNUSED(index);
+		return {};
 	}
 #endif
 
@@ -1398,10 +1340,8 @@ namespace {
 #if TORRENT_ABI_VERSION == 1
 	sha1_hash file_storage::hash(aux::file_entry const& fe) const
 	{
-		int const index = int(&fe - &m_files.front());
-		TORRENT_ASSERT_PRECOND(index >= file_index_t{} && index < end_file());
-		if (index >= int(m_file_hashes.size())) return sha1_hash(nullptr);
-		return sha1_hash(m_file_hashes[index]);
+		TORRENT_UNUSED(fe);
+		return {};
 	}
 
 	std::string file_storage::symlink(aux::file_entry const& fe) const
@@ -1461,9 +1401,6 @@ namespace {
 	{
 		using std::swap;
 		swap(ti.m_files, m_files);
-#if TORRENT_ABI_VERSION < 4
-		swap(ti.m_file_hashes, m_file_hashes);
-#endif
 		swap(ti.m_symlinks, m_symlinks);
 		swap(ti.m_mtime, m_mtime);
 		swap(ti.m_paths, m_paths);
@@ -1524,13 +1461,10 @@ namespace {
 		});
 
 		aux::vector<aux::file_entry, file_index_t> new_files;
-		aux::vector<char const*, file_index_t> new_file_hashes;
 		aux::vector<std::time_t, file_index_t> new_mtime;
 
 		// reserve enough space for the worst case after padding
 		new_files.reserve(new_order.size() * 2 - 1);
-		if (!m_file_hashes.empty())
-			new_file_hashes.reserve(new_order.size() * 2 - 1);
 		if (!m_mtime.empty())
 			new_mtime.reserve(new_order.size() * 2 - 1);
 
@@ -1552,8 +1486,6 @@ namespace {
 				pad.path_index = get_or_add_path(".pad");
 				pad.pad_file = true;
 
-				if (!m_file_hashes.empty())
-					new_file_hashes.push_back(nullptr);
 				if (!m_mtime.empty())
 					new_mtime.push_back(0);
 			}
@@ -1566,11 +1498,6 @@ namespace {
 
 			TORRENT_ASSERT(!m_files[i].pad_file);
 			new_files.emplace_back(std::move(m_files[i]));
-
-			if (i < m_file_hashes.end_index())
-				new_file_hashes.push_back(m_file_hashes[i]);
-			else if (!m_file_hashes.empty())
-				new_file_hashes.push_back(nullptr);
 
 			if (i < m_mtime.end_index())
 				new_mtime.push_back(m_mtime[i]);
@@ -1590,7 +1517,6 @@ namespace {
 		}
 
 		m_files = std::move(new_files);
-		m_file_hashes = std::move(new_file_hashes);
 		m_mtime = std::move(new_mtime);
 
 		m_total_size = off;
