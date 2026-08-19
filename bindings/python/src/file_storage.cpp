@@ -205,8 +205,10 @@ void bind_file_storage()
 				.def("last_file_index_at_piece",
 					&wrap_piece_check<file_index_t, &file_storage::last_file_index_at_piece>)
 				.def("file_index_at_offset", &file_storage::file_index_at_offset)
+#if TORRENT_ABI_VERSION < 5
 				.def(
 					"file_absolute_path", &wrap_file_check<bool, &file_storage::file_absolute_path>)
+#endif
 
 				.def("v2", &file_storage::v2)
 

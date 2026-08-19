@@ -1107,6 +1107,7 @@ TEST_TORRENTS = \
   overlapping_symlinks.torrent \
   pad_file.torrent \
   pad_file_no_path.torrent \
+  pad_file_symlink.torrent \
   parent_path.torrent \
   sample.torrent \
   similar.torrent \
@@ -1118,6 +1119,7 @@ TEST_TORRENTS = \
   string.torrent \
   symlink1.torrent \
   symlink2.torrent \
+  symlink_hop_limit.torrent \
   symlink_zero_size.torrent \
   symlink_filtered_path.torrent \
   unaligned_pieces.torrent \

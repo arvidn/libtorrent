@@ -36,11 +36,6 @@ see LICENSE file.
 
 using namespace std::literals::string_literals;
 
-namespace {
-constexpr lt::aux::path_index_t operator""_path(unsigned long long i)
-{ return lt::aux::path_index_t(static_cast<std::uint32_t>(i)); }
-}
-
 #if TORRENT_ABI_VERSION < 4
 // make sure creating a torrent from an existing handle preserves the
 // info-dictionary verbatim, so as to not alter the info-hash
@@ -932,6 +927,44 @@ TORRENT_TEST(v1_file_sorting)
 		"ee");
 }
 
+// regression test: create_torrent::generate(), when reconstructing from an
+// already-loaded torrent_info (the create_torrent(torrent_info const&)
+// constructor, via convert_file_storage()), builds a pad file's bencode
+// "path" by stripping its first path element under the assumption it's
+// always the torrent name -- but file_storage::file_path() for a pad file
+// has the name baked directly into the reconstructed path itself (it isn't
+// prepended separately), so blindly stripping the first element there would
+// eat ".pad" instead, corrupting the regenerated pad file entry.
+// Round-tripping through torrent_info and back must reproduce the exact
+// same bytes.
+#if TORRENT_ABI_VERSION < 4
+TORRENT_TEST(create_torrent_roundtrip_pad_files)
+{
+	std::vector<lt::create_file_entry> fs;
+	fs.emplace_back("test/1-small", 0x3fff);
+	fs.emplace_back("test/2-small", 0x3fff);
+	lt::create_torrent t(
+		std::move(fs), 0x4000, lt::create_torrent::v1_only | lt::create_torrent::canonical_files);
+	t.set_creation_date(1337);
+	for (lt::piece_index_t i : t.piece_range())
+		t.set_hash(i, lt::sha1_hash::max());
+
+	std::vector<char> const buffer = lt::bencode(t.generate());
+	TEST_CHECK(buffer == t.generate_buf());
+
+	lt::torrent_info const info(buffer, lt::from_span);
+	TEST_CHECK(info.layout().pad_file_at(1_file));
+	TEST_EQUAL(
+		info.layout().file_path(1_file), lt::combine_path("test", lt::combine_path(".pad", "1")));
+
+	lt::create_torrent t2(info);
+	std::vector<char> const buffer2 = lt::bencode(t2.generate());
+	TEST_CHECK(buffer2 == t2.generate_buf());
+
+	TEST_CHECK(buffer == buffer2);
+}
+#endif
+
 // This is a backwards compatibility feature
 TORRENT_TEST(v1_no_tail_padding)
 {
@@ -1287,13 +1320,18 @@ TORRENT_TEST(coalesce_path)
 	auto ti = make_load_torrent(files, 0x4000);
 	lt::file_storage const& fs = ti->layout();
 
-	// pad files should be created, to make sure the pad files also share the
-	// same path entries
+	// pad files should be created, to make sure "c" is shared between the
+	// two files under it. compute_element_hashes() deliberately doesn't
+	// track the pad files' own ".pad" directory at all (a naming
+	// collision involving a pad file is never a real conflict, see
+	// resolve_duplicate_filenames())
 
-	TEST_EQUAL(fs.paths().size(), 3);
-	TEST_EQUAL(fs.paths()[0_path], "");
-	TEST_EQUAL(fs.paths()[1_path], ".pad");
-	TEST_EQUAL(fs.paths()[2_path], "c");
+	auto const eh = fs.compute_element_hashes();
+	std::size_t dir_count = 0;
+	for (auto const idx : eh.is_dir.range())
+		if (eh.is_dir[idx])
+			++dir_count;
+	TEST_EQUAL(dir_count, 1u); // "test/c"
 }
 
 using cfv = lt::aux::vector<lt::create_file_entry, lt::file_index_t>;

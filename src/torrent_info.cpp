@@ -43,16 +43,15 @@ see LICENSE file.
 #include <unordered_set>
 #include <cstdint>
 #include <cstdio>
-#include <cinttypes>
 #include <iterator>
 #include <algorithm>
 #include <set>
 #include <ctime>
 #include <array>
 
-// file_storage::sanitize_symlinks() is deprecated as public API but is
-// still called internally while parsing torrent files.
-#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/functional/hash.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 namespace libtorrent {
 
@@ -351,30 +350,307 @@ namespace {
 		return file_flags;
 	}
 
-	// iterates an array of strings and returns the sum of the lengths of all
-	// strings + one additional character per entry (to account for the presumed
-	// forward- or backslash to separate directory entries)
-	int path_length(bdecode_node const& p, error_code& ec)
+	// parses the "symlink path" list into symlink_path, as a sequence of
+	// raw (unsanitized) path components, dropping "." and ".." components
+	// for backwards compatibility with non-conforming torrents. Clears
+	// flag_symlink if "symlink path" is missing, or resolves to no
+	// components at all (BEP 47 requires a non-empty list, but we tolerate
+	// the torrent as a non-symlink instead of rejecting it outright).
+	//
+	// components are left unsanitized (only stripped of a leading path
+	// separator, matching how file/directory raw components are extracted)
+	// so resolve_one() can match them directly, byte for byte, against
+	// dir_cache without re-sanitizing.
+	bool parse_symlink_path(bdecode_node const& dict,
+		load_torrent_limits const& cfg,
+		file_flags_t& file_flags,
+		std::vector<string_view>& symlink_path,
+		error_code& ec)
 	{
-		int ret = 0;
-		for (bdecode_node const e : p.list_items())
+		if (bdecode_node const s_p = dict.dict_find_list("symlink path"))
 		{
-			if (e.type() != bdecode_node::string_t)
+			int count = 0;
+			for (bdecode_node const item : s_p.list_items())
 			{
-				ec = errors::torrent_invalid_name;
-				return -1;
+				if (item.type() != bdecode_node::string_t)
+				{
+					ec = errors::torrent_invalid_name;
+					return false;
+				}
+				if (++count > cfg.max_directory_depth)
+				{
+					ec = errors::torrent_directory_too_deep;
+					return false;
+				}
+				string_view pe = item.string_value();
+				while (!pe.empty() && pe.front() == TORRENT_SEPARATOR)
+					pe.remove_prefix(1);
+				// BEP 47 forbids "." and ".." in symlink path components.
+				// We tolerate them for backwards compatibility with
+				// non-conforming torrents by dropping them, leaving the
+				// remaining components to be interpreted relative to the
+				// torrent root.
+				if (pe == "." || pe == "..")
+					continue;
+				symlink_path.push_back(pe);
 			}
-			ret += e.string_length();
+			if (symlink_path.empty())
+			{
+				// technically this is an invalid torrent: an empty
+				// "symlink path" list, or one made up entirely of "." /
+				// ".." components, leaves no real target
+				file_flags &= ~file_storage::flag_symlink;
+			}
 		}
-		return ret + p.list_size();
+		else
+		{
+			// technically this is an invalid torrent. "symlink path" must exist
+			file_flags &= ~file_storage::flag_symlink;
+		}
+		// symlink targets are validated later, as it may point to a file or
+		// directory we haven't parsed yet
+		return true;
+	}
+
+	// caches (parent, raw name) -> path_index_t within a single parse:
+	// directories via cached_directory() (find-or-create, so files
+	// sharing a directory reuse the same path_element instead of
+	// file_storage allocating a fresh one for each), and every non-pad
+	// file's own leaf via record_leaf() (insert-only, first-wins on
+	// collision, two files can legitimately share a path before
+	// resolve_duplicate_filenames() runs later). The combined map is also
+	// how symlink targets get resolved after the whole file list/tree has
+	// been parsed, see resolve_symlinks().
+	//
+	// keyed by the raw, unsanitized component text (only stripped of a
+	// leading path separator), so a lookup never needs to sanitize first;
+	// sanitizing only happens on a cache miss, when a new path_element is
+	// actually created. ``name`` always borrows: it points into the
+	// persistent info-section buffer, which outlives the whole parse.
+	struct dir_cache_key
+	{
+		dir_cache_key(aux::path_index_t const p, string_view const n)
+			: parent(p)
+			, name(n)
+		{}
+
+		bool operator==(dir_cache_key const&) const = default;
+
+		aux::path_index_t parent;
+		string_view name;
+	};
+
+	struct dir_cache_hash
+	{
+		std::size_t operator()(dir_cache_key const& k) const
+		{
+			std::size_t seed = std::hash<aux::path_index_t>{}(k.parent);
+			boost::hash_combine(seed, std::hash<string_view>{}(k.name));
+			return seed;
+		}
+	};
+	using dir_cache_t = std::unordered_map<dir_cache_key, aux::path_index_t, dir_cache_hash>;
+
+	// looks up (parent, raw) in cache, creating (and caching) a new
+	// directory via fs.make_directory() on a miss. Sanitizing ``raw`` is
+	// deferred to the miss path, so a cache hit costs nothing beyond the
+	// lookup itself. The underlying path_element still borrows ``raw``
+	// directly when sanitizing didn't change it, only copying the
+	// sanitized text when it did.
+	aux::path_index_t cached_directory(
+		file_storage& fs, dir_cache_t& cache, aux::path_index_t const parent, string_view const raw)
+	{
+		auto const it = cache.find(dir_cache_key(parent, raw));
+		if (it != cache.end())
+			return it->second;
+		std::string sanitized;
+		aux::sanitize_append_path_element(sanitized, raw, true);
+		bool const unchanged = (string_view(sanitized) == raw);
+		aux::path_index_t const dir =
+			fs.make_directory(parent, unchanged ? raw : string_view(sanitized), unchanged);
+		cache.emplace(dir_cache_key(parent, raw), dir);
+		return dir;
+	}
+
+	// records a file's own leaf into cache, keyed by its raw name, for
+	// later symlink-target resolution. Never dedupes (unlike
+	// cached_directory()): first inserted entry for a given (parent, raw)
+	// key wins.
+	void record_leaf(dir_cache_t& cache,
+		aux::path_index_t const parent,
+		string_view const raw,
+		aux::path_index_t const leaf)
+	{
+		cache.emplace(dir_cache_key(parent, raw), leaf);
+	}
+
+	// per-symlink bookkeeping stashed at parse time, consumed by
+	// resolve_symlinks() once the whole file list/tree has been parsed
+	// (so every real file's own path_element chain, leaf included,
+	// exists). ``target`` is the not-yet-resolved target, as a sequence of
+	// raw (unsanitized) path components, see parse_symlink_path(). Per
+	// BEP 47, symlink targets are always relative to the torrent root,
+	// not the symlink's own directory, so there's no per-symlink base
+	// directory to keep.
+	struct pending_symlink
+	{
+		aux::path_index_t own_leaf;
+		std::vector<string_view> target;
+	};
+	using symlink_stash_t = std::unordered_map<file_index_t, pending_symlink>;
+
+	// stashes a symlink's not-yet-resolved target for resolve_symlinks(),
+	// enforcing max_symlinks (resolving a symlink target isn't free, so a
+	// malicious torrent declaring a huge number of them is rejected
+	// outright rather than accepted and slowly resolved).
+	bool stash_symlink(symlink_stash_t& symlink_stash,
+		file_index_t const this_file,
+		aux::path_index_t const leaf,
+		std::vector<string_view> target,
+		load_torrent_limits const& cfg,
+		error_code& ec)
+	{
+		if (int(symlink_stash.size()) >= cfg.max_symlinks)
+		{
+			ec = errors::too_many_symlinks;
+			return false;
+		}
+		symlink_stash.emplace(this_file, pending_symlink{leaf, std::move(target)});
+		return true;
+	}
+
+	// inserts the file_entry (or symlink placeholder) for one parsed file,
+	// shared between the v1 and v2 file-list/file-tree parsers. ``name_raw``
+	// is skipped as a dir_cache key for pad files, since they don't own a
+	// real path_element (see extract_single_file()); v2 never reaches here
+	// with a pad file, so the check is a no-op on that path.
+	bool finish_file_entry(file_storage& files,
+		aux::path_index_t const dir,
+		string_view const name,
+		bool const name_borrow,
+		string_view const name_raw,
+		file_flags_t const file_flags,
+		std::int64_t const file_size,
+		std::time_t const mtime,
+		std::int32_t const pieces_root_offset,
+		std::vector<string_view> symlink_path,
+		dir_cache_t& dir_cache,
+		symlink_stash_t& symlink_stash,
+		load_torrent_limits const& cfg,
+		error_code& ec)
+	{
+		file_index_t const this_file = files.end_file();
+		if (file_flags & file_storage::flag_symlink)
+		{
+			aux::path_index_t const leaf =
+				files.add_symlink(ec, name, name_borrow, dir, file_flags, mtime);
+			if (ec)
+				return false;
+			record_leaf(dir_cache, dir, name_raw, leaf);
+			if (!symlink_path.empty()
+				&& !stash_symlink(symlink_stash, this_file, leaf, std::move(symlink_path), cfg, ec))
+				return false;
+		}
+		else
+		{
+			aux::path_index_t const leaf = files.add_file(
+				ec, name, name_borrow, dir, file_size, file_flags, mtime, pieces_root_offset);
+			if (ec)
+				return false;
+			if (!(file_flags & file_storage::flag_pad_file))
+				record_leaf(dir_cache, dir, name_raw, leaf);
+		}
+		return true;
+	}
+
+	// a symlink used as a directory hop partway through another
+	// symlink's target (e.g. a macOS framework's "Versions/Current"
+	// standing in for "Versions/A") needs its own target substituted in
+	// to keep walking; a symlink named as a target's final component is
+	// left alone (fully legitimate, resolves to that symlink's own
+	// path_index_t as-is). Chasing such hops is capped at a small,
+	// fixed depth (max_symlink_hops, see load_torrent_limits), since real
+	// uses are one hop deep. The cap bounds the total work for a single
+	// symlink regardless of how deep or cyclic a .torrent shapes a
+	// chain; a cycle simply burns the budget and fails like any other
+	// dead end.
+	//
+	// resolves a single stashed symlink's target against every
+	// path_element created while parsing files (directories via
+	// cached_directory(), leaves via record_leaf()).
+	bool resolve_one(dir_cache_t const& cache,
+		std::unordered_map<aux::path_index_t, pending_symlink const*> const& owner,
+		std::vector<string_view> const& target,
+		load_torrent_limits const& cfg,
+		aux::path_index_t& out)
+	{
+		// walks ``target`` directly, with no copy; a real use never
+		// dereferences a hop, so ``spliced`` is only materialized the
+		// first time one actually needs splicing in
+		std::vector<string_view> spliced;
+		std::vector<string_view> const* components = &target;
+		std::size_t idx = 0;
+		aux::path_index_t cur = aux::path_element::torrent_root;
+		int hops_left = cfg.max_symlink_hops;
+		while (idx < components->size())
+		{
+			auto const it = cache.find(dir_cache_key(cur, (*components)[idx]));
+			if (it == cache.end())
+				return false;
+			cur = it->second;
+			++idx;
+			if (idx == components->size())
+				break;
+
+			auto const oi = owner.find(cur);
+			if (oi == owner.end())
+				continue;
+
+			if (hops_left-- == 0)
+				return false;
+			pending_symlink const& dep = *oi->second;
+			if (components != &spliced)
+			{
+				spliced.assign(components->begin() + std::ptrdiff_t(idx), components->end());
+				components = &spliced;
+				idx = 0;
+			}
+			spliced.insert(
+				spliced.begin() + std::ptrdiff_t(idx), dep.target.begin(), dep.target.end());
+			cur = aux::path_element::torrent_root;
+		}
+		out = cur;
+		return true;
+	}
+
+	void resolve_symlinks(file_storage& files,
+		dir_cache_t const& cache,
+		symlink_stash_t const& stash,
+		load_torrent_limits const& cfg)
+	{
+		std::unordered_map<aux::path_index_t, pending_symlink const*> owner;
+		owner.reserve(stash.size());
+		for (auto const& item : stash)
+			owner.emplace(item.second.own_leaf, &item.second);
+
+		for (auto const& item : stash)
+		{
+			aux::path_index_t resolved;
+			bool const ok = resolve_one(cache, owner, item.second.target, cfg, resolved);
+			files.internal_set_symlink_target(item.first, ok ? resolved : item.second.own_leaf);
+		}
 	}
 
 	bool extract_single_file2(bdecode_node const& dict,
 		file_storage& files,
-		std::string const& path,
+		aux::path_index_t const dir,
 		string_view const name,
+		bool const name_borrow,
+		string_view const raw,
 		std::ptrdiff_t const info_offset,
-		int const max_directory_depth,
+		load_torrent_limits const& cfg,
+		dir_cache_t& dir_cache,
+		symlink_stash_t& symlink_stash,
 		error_code& ec)
 	{
 		if (dict.type() != bdecode_node::dict_t)
@@ -411,35 +687,10 @@ namespace {
 
 		std::int32_t pieces_root_offset = file_storage::no_root_hash;
 
-		std::string symlink_path;
-		if (file_flags & file_storage::flag_symlink)
-		{
-			if (bdecode_node const s_p = dict.dict_find_list("symlink path"))
-			{
-				if (s_p.list_size() > max_directory_depth)
-				{
-					ec = errors::torrent_directory_too_deep;
-					return false;
-				}
-				auto const preallocate = static_cast<std::size_t>(path_length(s_p, ec));
-				if (ec) return false;
-				symlink_path.reserve(preallocate);
-				for (bdecode_node const item : s_p.list_items())
-				{
-					auto pe = item.string_value();
-					// BEP 47 forbids "." and ".." in symlink path components.
-					// We tolerate them for backwards compatibility with
-					// non-conforming torrents by dropping them, leaving the
-					// remaining components to be interpreted relative to the
-					// torrent root.
-					if (pe == "." || pe == "..") continue;
-					// force_element=true keeps sanitization in sync with the
-					// file paths the symlink may point to, so sanitize_symlinks()
-					// can match the target.
-					aux::sanitize_append_path_element(symlink_path, pe, true);
-				}
-			}
-		}
+		std::vector<string_view> symlink_path;
+		if ((file_flags & file_storage::flag_symlink)
+			&& !parse_symlink_path(dict, cfg, file_flags, symlink_path, ec))
+			return false;
 
 		if (symlink_path.empty() && file_size > 0)
 		{
@@ -461,26 +712,35 @@ namespace {
 			pieces_root_offset = static_cast<std::int32_t>(off);
 		}
 
-		files.add_file_borrow(
-			ec, name, path, file_size, file_flags, mtime, symlink_path, pieces_root_offset);
-		return !ec;
+		return finish_file_entry(files,
+			dir,
+			name,
+			name_borrow,
+			raw,
+			file_flags,
+			file_size,
+			mtime,
+			pieces_root_offset,
+			std::move(symlink_path),
+			dir_cache,
+			symlink_stash,
+			cfg,
+			ec);
 	}
 
 	// 'top_level' is extracting the file for a single-file torrent. The
 	// distinction is that the filename is found in "name" rather than
-	// "path"
-	// root_dir is the name of the torrent, unless this is a single file
-	// torrent, in which case it's empty.
-	bool extract_single_file(
-		bdecode_node const& dict,
+	// "path". dir_cache persists across every file of a single file list
+	// (see extract_files()), deduping directories shared between files.
+	bool extract_single_file(bdecode_node const& dict,
 		file_storage& files,
-		std::string const& root_dir,
+		dir_cache_t& dir_cache,
+		symlink_stash_t& symlink_stash,
 		std::ptrdiff_t const info_offset,
 		char const* info_buffer,
 		bool const top_level,
-		int const max_directory_depth,
-		error_code& ec
-	)
+		load_torrent_limits const& cfg,
+		error_code& ec)
 	{
 		if (dict.type() != bdecode_node::dict_t)
 		{
@@ -489,6 +749,16 @@ namespace {
 		}
 
 		file_flags_t file_flags = get_file_attributes(dict);
+
+		// a pad file reserves piece-alignment bytes, but a symlink is
+		// always zero-length, so there's nothing for the pad attribute to
+		// mean; reject the combination rather than guess which one the
+		// producer intended
+		if ((file_flags & file_storage::flag_pad_file) && (file_flags & file_storage::flag_symlink))
+		{
+			ec = errors::torrent_invalid_pad_file;
+			return false;
+		}
 
 		// symlinks have an implied "size" of zero. i.e. they use up 0 bytes of
 		// the torrent payload space
@@ -508,8 +778,14 @@ namespace {
 
 		auto const mtime(static_cast<std::time_t>(dict.dict_find_int_value("mtime", 0)));
 
-		std::string path = root_dir;
-		string_view filename;
+		aux::path_index_t dir = aux::path_element::torrent_root;
+		string_view name;
+		bool name_borrow = false;
+		// owns the sanitized leaf text when name_borrow is false
+		std::string name_scratch;
+		// the leaf's own raw (unsanitized) text, used as the dir_cache key;
+		// unused (default constructed) for pad files
+		string_view name_raw;
 
 		if (top_level)
 		{
@@ -523,18 +799,25 @@ namespace {
 				return false;
 			}
 
-			filename = { info_buffer + (p.string_offset() - info_offset)
-				, static_cast<std::size_t>(p.string_length())};
+			string_view raw = {info_buffer + (p.string_offset() - info_offset),
+				static_cast<std::size_t>(p.string_length())};
+			while (!raw.empty() && raw.front() == TORRENT_SEPARATOR)
+				raw.remove_prefix(1);
 
-			while (!filename.empty() && filename.front() == TORRENT_SEPARATOR)
-				filename.remove_prefix(1);
-
-			aux::sanitize_append_path_element(path, p.string_value());
-			if (path.empty())
+			aux::sanitize_append_path_element(name_scratch, raw);
+			if (name_scratch.empty())
 			{
 				ec = errors::torrent_missing_name;
 				return false;
 			}
+
+			// single-file torrent convention: no directory nesting, and
+			// file_storage::name() is not prepended when reconstructing
+			// this file's path (it already equals the file's own name)
+			dir = aux::path_element::no_root_dir;
+			name_borrow = (string_view(name_scratch) == raw);
+			name = name_borrow ? raw : string_view(name_scratch);
+			name_raw = raw;
 		}
 		else
 		{
@@ -543,37 +826,64 @@ namespace {
 
 			if (p && p.list_size() > 0)
 			{
-				if (p.list_size() > max_directory_depth)
+				if (p.list_size() > cfg.max_directory_depth)
 				{
 					ec = errors::torrent_directory_too_deep;
 					return false;
 				}
-				std::size_t const preallocate = path.size() + std::size_t(path_length(p, ec));
-				if (ec) return false;
-				path.reserve(preallocate);
 
 				int const last = p.list_size() - 1;
 				int idx = 0;
 				for (bdecode_node const e : p.list_items())
 				{
+					if (e.type() != bdecode_node::string_t)
+					{
+						ec = errors::torrent_invalid_name;
+						return false;
+					}
+
+					string_view raw = {info_buffer + (e.string_offset() - info_offset),
+						static_cast<std::size_t>(e.string_length())};
+					while (!raw.empty() && raw.front() == TORRENT_SEPARATOR)
+						raw.remove_prefix(1);
+
+					// each path component becomes its own path_element,
+					// whose stored name length is a std::uint16_t
+					if (raw.size() >= (1 << 12))
+					{
+						ec = errors::torrent_invalid_name;
+						return false;
+					}
+
 					if (idx == last)
 					{
-						filename = {info_buffer + (e.string_offset() - info_offset)
-							, static_cast<std::size_t>(e.string_length()) };
-						while (!filename.empty() && filename.front() == TORRENT_SEPARATOR)
-							filename.remove_prefix(1);
+						name_raw = raw;
+						std::string sanitized;
+						aux::sanitize_append_path_element(sanitized, raw, true);
+						name_borrow = (string_view(sanitized) == raw);
+						if (name_borrow)
+							name = raw;
+						else
+						{
+							name_scratch = std::move(sanitized);
+							name = name_scratch;
+						}
 					}
-					aux::sanitize_append_path_element(path, e.string_value(), true);
+					else
+					{
+						dir = cached_directory(files, dir_cache, dir, raw);
+					}
 					++idx;
 				}
 			}
 			else if (file_flags & file_storage::flag_pad_file)
 			{
-				// pad files don't need a path element, we'll just store them
-				// under the .pad directory
-				char cnt[20];
-				std::snprintf(cnt, sizeof(cnt), "%" PRIi64, file_size);
-				path = combine_path(".pad", cnt);
+				// pad files don't need a path element, they're stored under
+				// the (virtual) pad-file directory. add_file()
+				// ignores name/name_borrow for pad files entirely,
+				// synthesizing the leaf from size on demand instead, so
+				// there's nothing to compute here
+				dir = aux::path_element::pad_directory;
 			}
 			else
 			{
@@ -583,64 +893,36 @@ namespace {
 		}
 
 		// bitcomet pad file
-		if (path.find("_____padding_file_") != std::string::npos)
+		if (name.find("_____padding_file_") != string_view::npos)
 			file_flags |= file_storage::flag_pad_file;
 
-		std::string symlink_path;
-		if (file_flags & file_storage::flag_symlink)
-		{
-			if (bdecode_node const s_p = dict.dict_find_list("symlink path"))
-			{
-				if (s_p.list_size() > max_directory_depth)
-				{
-					ec = errors::torrent_directory_too_deep;
-					return false;
-				}
-				auto const preallocate = static_cast<std::size_t>(path_length(s_p, ec));
-				if (ec) return false;
-				symlink_path.reserve(preallocate);
-				for (bdecode_node const item : s_p.list_items())
-				{
-					auto pe = item.string_value();
-					// BEP 47 forbids "." and ".." in symlink path components.
-					// We tolerate them for backwards compatibility with
-					// non-conforming torrents by dropping them, leaving the
-					// remaining components to be interpreted relative to the
-					// torrent root.
-					if (pe == "." || pe == "..") continue;
-					// force_element=true keeps sanitization in sync with the
-					// file paths the symlink may point to, so sanitize_symlinks()
-					// can match the target.
-					aux::sanitize_append_path_element(symlink_path, pe, true);
-				}
-			}
-			else
-			{
-				// technically this is an invalid torrent. "symlink path" must exist
-				file_flags &= ~file_storage::flag_symlink;
-			}
-			// symlink targets are validated later, as it may point to a file or
-			// directory we haven't parsed yet
-		}
+		std::vector<string_view> symlink_path;
+		if ((file_flags & file_storage::flag_symlink)
+			&& !parse_symlink_path(dict, cfg, file_flags, symlink_path, ec))
+			return false;
 
-		if (filename.size() > path.length()
-			|| path.substr(path.size() - filename.size()) != filename)
-		{
-			// if the filename was sanitized and differ, clear it to just use path
-			filename = {};
-		}
-
-		files.add_file_borrow(ec, filename, path, file_size, file_flags, mtime, symlink_path);
-		return !ec;
+		return finish_file_entry(files,
+			dir,
+			name,
+			name_borrow,
+			name_raw,
+			file_flags,
+			file_size,
+			mtime,
+			file_storage::no_root_hash,
+			std::move(symlink_path),
+			dir_cache,
+			symlink_stash,
+			cfg,
+			ec);
 	}
 
 	bool extract_files2(bdecode_node const& tree,
 		file_storage& target,
-		std::string const& root_dir,
 		ptrdiff_t const info_offset,
 		char const* info_buffer,
 		bool is_multi_file,
-		int const max_directory_depth,
+		load_torrent_limits const& cfg,
 		error_code& ec)
 	{
 		if (tree.type() != bdecode_node::dict_t)
@@ -656,12 +938,18 @@ namespace {
 		struct stack_frame
 		{
 			bdecode_node tree;
-			std::string path;
+			aux::path_index_t dir;
 			int index;
 		};
 
+		// dedupes directories shared between sibling entries at the same
+		// tree depth (the tree structure itself already dedupes across
+		// depths, unlike v1's flat per-file path lists)
+		dir_cache_t dir_cache;
+		symlink_stash_t symlink_stash;
+
 		std::vector<stack_frame> stack;
-		stack.push_back({tree, root_dir, 0});
+		stack.push_back({tree, aux::path_element::torrent_root, 0});
 
 		while (!stack.empty())
 		{
@@ -681,32 +969,44 @@ namespace {
 				return false;
 			}
 
-			string_view filename = { info_buffer + (e.first.string_offset() - info_offset)
-				, static_cast<size_t>(e.first.string_length()) };
-			while (!filename.empty() && filename.front() == TORRENT_SEPARATOR)
-				filename.remove_prefix(1);
+			string_view raw = {info_buffer + (e.first.string_offset() - info_offset),
+				static_cast<size_t>(e.first.string_length())};
+			while (!raw.empty() && raw.front() == TORRENT_SEPARATOR)
+				raw.remove_prefix(1);
+
+			// each path component becomes its own path_element, whose
+			// stored name length is a std::uint16_t
+			if (raw.size() >= (1 << 12))
+			{
+				ec = errors::torrent_invalid_name;
+				return false;
+			}
 
 			bool const leaf_node = e.second.dict_size() == 1 && e.second.dict_at(0).first.empty();
 			bool const single_file = leaf_node && !is_multi_file && frame.tree.dict_size() == 1;
 
-			std::string path = single_file ? std::string() : frame.path;
-			aux::sanitize_append_path_element(path, filename, true);
-
 			if (leaf_node)
 			{
-				if (filename.size() > path.length()
-					|| path.substr(path.size() - filename.size()) != filename)
-				{
-					// if the filename was sanitized and differ, clear it to just use path
-					filename = {};
-				}
+				// every file is a fresh path_element, so unlike a directory
+				// component, its name always needs sanitizing regardless of
+				// dir_cache
+				std::string sanitized;
+				aux::sanitize_append_path_element(sanitized, raw, true);
+				bool const name_borrow = (string_view(sanitized) == raw);
+				string_view const name = name_borrow ? raw : string_view(sanitized);
 
+				// single_file: no directory nesting, and file_storage::name()
+				// is not prepended when reconstructing this file's path
 				if (!extract_single_file2(e.second.dict_at(0).second,
 						target,
-						path,
-						filename,
+						single_file ? aux::path_element::no_root_dir : frame.dir,
+						name,
+						name_borrow,
+						raw,
 						info_offset,
-						max_directory_depth,
+						cfg,
+						dir_cache,
+						symlink_stash,
 						ec))
 				{
 					return false;
@@ -720,7 +1020,7 @@ namespace {
 				// max_directory_depth. stack.size() here equals the current
 				// depth + 1, so we bail when the about-to-be-pushed child
 				// would exceed the limit.
-				if (int(stack.size()) > max_directory_depth)
+				if (int(stack.size()) > cfg.max_directory_depth)
 				{
 					ec = errors::torrent_directory_too_deep;
 					return false;
@@ -730,8 +1030,10 @@ namespace {
 				// subdirectory contributes no files; just skip it.
 				if (e.second.dict_size() > 0)
 				{
+					aux::path_index_t const child_dir =
+						cached_directory(target, dir_cache, frame.dir, raw);
 					// note: `frame` is invalidated by push_back below; we're done with it
-					stack.push_back({e.second, std::move(path), 0});
+					stack.push_back({e.second, child_dir, 0});
 				}
 			}
 
@@ -742,20 +1044,16 @@ namespace {
 			is_multi_file = true;
 		}
 
+		resolve_symlinks(target, dir_cache, symlink_stash, cfg);
 		return true;
 	}
 
-	// root_dir is the name of the torrent, unless this is a single file
-	// torrent, in which case it's empty.
-	bool extract_files(
-		bdecode_node const& list,
+	bool extract_files(bdecode_node const& list,
 		file_storage& target,
-		std::string const& root_dir,
 		std::ptrdiff_t info_offset,
 		char const* info_buffer,
-		int const max_directory_depth,
-		error_code& ec
-	)
+		load_torrent_limits const& cfg,
+		error_code& ec)
 	{
 		if (list.type() != bdecode_node::list_t)
 		{
@@ -764,20 +1062,27 @@ namespace {
 		}
 		target.reserve(list.list_size());
 
+		// persists across every file in the list, deduping directories
+		// shared between them
+		dir_cache_t dir_cache;
+		symlink_stash_t symlink_stash;
+
 		for (bdecode_node const item : list.list_items())
 		{
 			if (!extract_single_file(item,
 					target,
-					root_dir,
+					dir_cache,
+					symlink_stash,
 					info_offset,
 					info_buffer,
 					false,
-					max_directory_depth,
+					cfg,
 					ec))
 				return false;
 		}
-		// this rewrites invalid symlinks to point to themselves
-		target.sanitize_symlinks();
+		// resolves every stashed symlink target, rewriting invalid ones to
+		// point to themselves
+		resolve_symlinks(target, dir_cache, symlink_stash, cfg);
 		return true;
 	}
 
@@ -1046,7 +1351,12 @@ TORRENT_VERSION_NAMESPACE_4
 		if (m_files.file_path(index) == new_filename) return;
 
 		copy_on_write();
-		m_modified_files->rename_file_impl(index, new_filename);
+		error_code ec;
+		m_modified_files->rename_file_impl(index, new_filename, ec);
+		// this deprecated overload has no way to report failure; a
+		// new_filename with this many directory components isn't a
+		// legitimate rename target
+		TORRENT_ASSERT(!ec);
 	}
 
 	// internal
@@ -1115,11 +1425,19 @@ TORRENT_VERSION_NAMESPACE_4
 #endif
 
 	void torrent_info::parse_info_section_impl(
-		bdecode_node const& info, error_code& ec, load_torrent_limits const& cfg
-	)
+		bdecode_node const& info, error_code& ec, load_torrent_limits const& cfg_in)
 	{
-		int const max_pieces = cfg.max_pieces;
-		int const max_directory_depth = cfg.max_directory_depth;
+		int const max_pieces = cfg_in.max_pieces;
+		// path_element::depth is a std::uint16_t, so no chain built while
+		// parsing may exceed that width; max_directory_depth bounds
+		// directory nesting only, and a file's own leaf sits one level
+		// below that, hence the -1 headroom
+		load_torrent_limits cfg = cfg_in;
+		cfg.max_directory_depth = std::min(
+			cfg_in.max_directory_depth, int(std::numeric_limits<std::uint16_t>::max()) - 1);
+		// resolve_one()'s hop budget countdown (hops_left-- == 0) never
+		// triggers for a negative value, silently defeating the bound
+		TORRENT_ASSERT_PRECOND(cfg.max_symlink_hops >= 0);
 		if (info.type() != bdecode_node::dict_t)
 		{
 			ec = errors::torrent_info_no_dict;
@@ -1234,6 +1552,7 @@ TORRENT_VERSION_NAMESPACE_4
 			// this can be fixed in an updated version.
 			name = aux::to_hex(m_info_hash.has_v1() ? m_info_hash.v1 : hasher(section).final());
 		}
+		files.set_name(name);
 
 		// extract file list
 
@@ -1241,6 +1560,7 @@ TORRENT_VERSION_NAMESPACE_4
 		// to v1_files as a starting point for the v1 extraction below, so both
 		// v1 and v2 files can be extracted and compared against each other
 		file_storage v1_files;
+		v1_files.set_name(name);
 		if (version >= 2)
 			v1_files.set_piece_length(files.piece_length());
 
@@ -1249,11 +1569,10 @@ TORRENT_VERSION_NAMESPACE_4
 		{
 			if (!extract_files2(file_tree_node,
 					files,
-					name,
 					info_offset,
 					m_info_section.get(),
 					bool(files_node),
-					max_directory_depth,
+					cfg,
 					ec))
 			{
 				// mark the torrent as invalid
@@ -1261,7 +1580,6 @@ TORRENT_VERSION_NAMESPACE_4
 				return;
 			}
 
-			files.sanitize_symlinks();
 			if (files.num_files() > 1)
 				m_flags |= multifile;
 			else
@@ -1290,16 +1608,22 @@ TORRENT_VERSION_NAMESPACE_4
 			{
 				// if there's no list of files, there has to be a length
 				// field.
-				if (!extract_single_file(
-						info,
+				dir_cache_t single_file_dir_cache;
+				// a genuine single-file torrent's lone file has nothing else
+				// it could resolve a symlink target to, so this stash is
+				// deliberately never passed to resolve_symlinks(), since the
+				// add-time self-pointing placeholder is already the only
+				// possible outcome
+				symlink_stash_t single_file_symlink_stash;
+				if (!extract_single_file(info,
 						version == 2 ? v1_files : files,
-						"",
+						single_file_dir_cache,
+						single_file_symlink_stash,
 						info_offset,
 						m_info_section.get(),
 						true,
-						max_directory_depth,
-						ec
-					))
+						cfg,
+						ec))
 				{
 					// mark the torrent as invalid
 					m_files.set_piece_length(0);
@@ -1313,15 +1637,12 @@ TORRENT_VERSION_NAMESPACE_4
 		}
 		else
 		{
-			if (!extract_files(
-					files_node,
+			if (!extract_files(files_node,
 					version == 2 ? v1_files : files,
-					name,
 					info_offset,
 					m_info_section.get(),
-					max_directory_depth,
-					ec
-				))
+					cfg,
+					ec))
 			{
 				// mark the torrent as invalid
 				m_files.set_piece_length(0);

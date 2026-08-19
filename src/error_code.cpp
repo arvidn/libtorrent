@@ -34,6 +34,7 @@ namespace libtorrent {
 
 	std::string libtorrent_error_category::message(int ev) const
 	{
+		// clang-format off
 		static aux::array<char const*, errors::error_code_max> msgs{
 			{"no error",
 			 "torrent file collides with file from another torrent",
@@ -280,8 +281,10 @@ namespace libtorrent {
 			 "a v2 file entry has no root hash",
 			 "v1 and v2 hashes do not describe the same data",
 			 "a file in the v2 metadata has the pad attribute set",
-			 "directory structure in torrent file exceeds depth limit"}
+			 "directory structure in torrent file exceeds depth limit",
+			 "too many symlinks in torrent file"}
 		};
+		// clang-format on
 		if (ev < 0 || ev >= msgs.end_index())
 			return "Unknown error";
 		return msgs[ev];

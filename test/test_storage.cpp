@@ -1811,21 +1811,6 @@ TORRENT_TEST(move_pread_storage_reset)
 	test_move_storage_reset<pread_storage>(move_flags_t::reset_save_path_unchecked);
 }
 
-TORRENT_TEST(storage_paths_string_pooling)
-{
-	file_storage file_storage;
-	file_storage.add_file_borrow({}, combine_path("test_storage", "root.txt"), 0x4000);
-	file_storage.add_file_borrow(
-		{}, combine_path("test_storage", combine_path("sub", "test1.txt")), 0x4000);
-	file_storage.add_file_borrow(
-		{}, combine_path("test_storage", combine_path("sub", "test2.txt")), 0x4000);
-	file_storage.add_file_borrow(
-		{}, combine_path("test_storage", combine_path("sub", "test3.txt")), 0x4000);
-
-	// "sub" paths should point to same string item, so paths.size() must not grow
-	TEST_CHECK(file_storage.paths().size() <= 2);
-}
-
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 TORRENT_TEST(dont_move_intermingled_files)
 {
