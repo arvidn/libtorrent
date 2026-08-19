@@ -251,27 +251,26 @@ CASES: list[Case] = [
     mk_case(
         "many_symlinks",
         "1100 files of which the last 1000 are symlinks pointing at file"
-        " 0. Exercises the symlink-target sanitize/match path.",
+        " 0. Exercises torrent_info.cpp's symlink-target resolve/match"
+        " path (resolve_symlinks()).",
         "--num-files 1100 --num-symlinks 1000 --file-size 16K",
     ),
     mk_case(
         "symlink_chain",
         "1100 files of which the last 1000 are symlinks chained back to"
         " the last regular file: symlink i targets file (i-1). All but"
-        " the first one resolve through another symlink, which is the"
-        " only path that enters the second pass of"
-        " file_storage::sanitize_symlinks() with its dir_links walk"
-        " and per-entry std::set<std::string> traversed.",
+        " the first one resolve to another symlink's own path_element;"
+        " resolve_symlinks() does a single direct hop against the"
+        " dir_cache_t built while parsing, with no chain-following.",
         "--num-files 1100 --num-symlinks 1000 --symlink-mode chain" " --file-size 16K",
     ),
     mk_case(
         "symlink_to_dir",
         "1100 files in a single subdirectory, of which the last 1000 are"
         " symlinks targeting that directory rather than a file."
-        " Forces sanitize_symlinks() into the is_directory() branch,"
-        " which lazily builds a sorted view of m_paths and does"
-        " lower_bound for every symlink. None of the other cases"
-        " trigger that branch.",
+        " Forces resolve_one() to resolve against a directory entry"
+        " that cached_directory() recorded in dir_cache_t while parsing."
+        " None of the other cases trigger that branch.",
         "--num-files 1100 --num-symlinks 1000 --symlink-mode dir"
         " --dir-depth 1 --branching 1 --file-size 16K",
     ),

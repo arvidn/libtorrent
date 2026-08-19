@@ -28,6 +28,7 @@ namespace errors {
 	// errors. libtorrent has its own error category
 	// libtorrent_category() with the error codes defined by
 	// error_code_enum.
+	// clang-format off
 	enum error_code_enum
 	{
 		// Not an error
@@ -461,10 +462,14 @@ namespace errors {
 		// the directory structure of files in the torrent exceeds the
 		// configured maximum depth (see load_torrent_limits)
 		torrent_directory_too_deep,
+		// the torrent has more symlinks than the configured maximum
+		// (see load_torrent_limits)
+		too_many_symlinks,
 
 		// the number of error codes
 		error_code_max
 	};
+	// clang-format on
 
 	// HTTP errors are reported in the libtorrent::http_category, with error code enums in
 	// the ``libtorrent::errors`` namespace.

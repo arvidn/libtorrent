@@ -71,12 +71,14 @@ namespace {
 		//   "file":  all symlinks point at file 0 (the original behaviour)
 		//   "chain": each symlink points at the previous file (the first
 		//            one at the last regular file, then symlink i+1 at
-		//            symlink i). Forces sanitize_symlinks() into its
-		//            second pass and the lsplit_path walking loop.
+		//            symlink i). All but the first resolve to another
+		//            symlink's own path_element: resolve_symlinks() does
+		//            a single direct hop, no chain-following.
 		//   "dir":   all symlinks point at the directory containing file
 		//            0 (requires dir-depth >= 1 to differ from the
-		//            torrent root). Triggers the lazily-built sorted
-		//            paths + lower_bound dance in is_directory().
+		//            torrent root). Resolves through the dir_cache_t
+		//            entry cached_directory() recorded for that
+		//            directory while parsing.
 		int num_symlinks = 0;
 		std::string symlink_mode = "file";
 		// number of additional file entries whose paths differ only in
@@ -136,13 +138,19 @@ options:
                          file  - all point at file 0 (a regular file)
                          chain - symlink i points at file i-1, forming
                                  a chain back to the last regular file.
-                                 Stresses the 2nd pass in
-                                 sanitize_symlinks() and its dir_links
-                                 traversal
+                                 Stresses resolve_one()'s hop-following
+                                 (the owner/pending_symlink lookup and
+                                 hops_left countdown), since every
+                                 symlink but the last resolves through
+                                 another symlink's own, not yet
+                                 resolved target rather than a real
+                                 file directly
                          dir   - all point at the directory containing
-                                 file 0. Stresses is_directory() (which
-                                 lazily sorts m_paths and uses
-                                 lower_bound). Most useful with
+                                 file 0. Stresses resolve_one()'s
+                                 directory-entry lookup against
+                                 dir_cache_t (the hash map
+                                 cached_directory() populates while
+                                 parsing). Most useful with
                                  --dir-depth >= 1 so the target differs
                                  from the torrent root
   --num-duplicates N   add N extra file entries whose names differ only
@@ -556,7 +564,8 @@ try
 					// point at the file with the previous index. For the
 					// first symlink that is the last regular file; for
 					// subsequent ones it is another symlink, so resolution
-					// goes through sanitize_symlinks()'s second pass.
+					// stops at that symlink's own path_element: a single
+					// direct hop, no chain-following through resolve_symlinks().
 					target = paths[std::size_t(file_idx - 1)];
 				}
 				else if (cfg.symlink_mode == "dir")

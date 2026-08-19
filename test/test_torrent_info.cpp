@@ -250,7 +250,8 @@ static test_torrent_t const test_torrents[] = {
 	{"pad_file_no_path.torrent",
 		[](lt::add_torrent_params atp) {
 			TEST_EQUAL(atp.ti->num_files(), 2);
-			TEST_EQUAL(atp.ti->layout().file_path(file_index_t{1}), combine_path(".pad", "2124"));
+			TEST_EQUAL(atp.ti->layout().file_path(file_index_t{1}),
+				combine_path("temp", combine_path(".pad", "2124")));
 		}},
 	{"large.torrent"},
 	{"absolute_filename.torrent",
@@ -266,9 +267,16 @@ static test_torrent_t const test_torrents[] = {
 	{"overlapping_symlinks.torrent",
 		[](lt::add_torrent_params atp) {
 			TEST_CHECK(atp.ti->num_files() > 3);
-			TEST_EQUAL(atp.ti->layout().symlink(file_index_t{0}), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "Headers");
-			TEST_EQUAL(atp.ti->layout().symlink(file_index_t{1}), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "Resources");
-			TEST_EQUAL(atp.ti->layout().symlink(file_index_t{2}), "SDL2.framework" SEPARATOR "Versions" SEPARATOR "Current" SEPARATOR "SDL2");
+			// "Versions/Current" is itself a symlink, used here as a
+			// directory hop to reach "Versions/A". The chain is followed
+			// through, so these resolve to their real, final targets
+			// rather than the literal "Versions/Current/..." path
+			TEST_EQUAL(atp.ti->layout().symlink(file_index_t{0}),
+				"SDL2.framework" SEPARATOR "Versions" SEPARATOR "A" SEPARATOR "Headers");
+			TEST_EQUAL(atp.ti->layout().symlink(file_index_t{1}),
+				"SDL2.framework" SEPARATOR "Versions" SEPARATOR "A" SEPARATOR "Resources");
+			TEST_EQUAL(atp.ti->layout().symlink(file_index_t{2}),
+				"SDL2.framework" SEPARATOR "Versions" SEPARATOR "A" SEPARATOR "SDL2");
 		}},
 	{"invalid_directory_name.torrent",
 		[](lt::add_torrent_params atp) {
@@ -427,50 +435,50 @@ struct test_failing_torrent_t
 	error_code error; // the expected error
 };
 
-test_failing_torrent_t test_error_torrents[] =
-{
-	{ "missing_piece_len.torrent", errors::torrent_missing_piece_length },
-	{ "invalid_piece_len.torrent", errors::torrent_missing_piece_length },
-	{ "negative_piece_len.torrent", errors::torrent_missing_piece_length },
-	{ "no_name.torrent", errors::torrent_missing_name },
-	{ "bad_name.torrent", errors::torrent_missing_name },
-	{ "invalid_name.torrent", errors::torrent_missing_name },
-	{ "invalid_info.torrent", errors::torrent_missing_info },
-	{ "string.torrent", errors::torrent_is_no_dict },
-	{ "negative_size.torrent", errors::torrent_invalid_length },
-	{ "negative_file_size.torrent", errors::torrent_invalid_length },
-	{ "invalid_path_list.torrent", errors::torrent_invalid_name},
-	{ "missing_path_list.torrent", errors::torrent_missing_name },
-	{ "invalid_pieces.torrent", errors::torrent_missing_pieces },
-	{ "unaligned_pieces.torrent", errors::torrent_invalid_hashes },
-	{ "invalid_file_size.torrent", errors::torrent_invalid_length },
-	{ "invalid_symlink.torrent", errors::torrent_invalid_name },
-	{ "many_pieces.torrent", errors::too_many_pieces_in_torrent },
-	{ "no_files.torrent", errors::no_files_in_torrent},
-	{ "zero.torrent", errors::torrent_invalid_length},
-	{ "zero2.torrent", errors::torrent_invalid_length},
-	{ "v2_mismatching_metadata.torrent", errors::torrent_inconsistent_files},
-	{ "v2_no_power2_piece.torrent", errors::torrent_missing_piece_length},
-	{ "v2_invalid_file.torrent", errors::torrent_file_parse_failed},
-	{ "v2_deep_recursion.torrent", bdecode_errors::depth_exceeded},
-	{ "v2_non_multiple_piece_layer.torrent", errors::torrent_invalid_piece_layer},
-	{ "v2_piece_layer_invalid_file_hash.torrent", errors::torrent_invalid_piece_layer},
-	{ "v2_invalid_piece_layer.torrent", errors::torrent_invalid_piece_layer},
-	{ "v2_invalid_piece_layer_root.torrent", errors::torrent_invalid_piece_layer},
-	{ "v2_unknown_piece_layer_entry.torrent", errors::torrent_invalid_piece_layer},
-	{ "v2_invalid_piece_layer_size.torrent", errors::torrent_invalid_piece_layer},
-	{ "v2_bad_file_alignment.torrent", errors::torrent_inconsistent_files},
-	{ "v2_unordered_files.torrent", errors::invalid_bencoding},
-	{ "v2_overlong_integer.torrent", errors::invalid_bencoding},
-	{ "v2_missing_file_root_invalid_symlink.torrent", errors::torrent_missing_pieces_root},
-	{ "v2_large_file.torrent", errors::torrent_invalid_length},
-	{ "v2_large_offset.torrent", errors::too_many_pieces_in_torrent},
-	{ "v2_piece_size.torrent", errors::torrent_missing_piece_length},
-	{ "v2_invalid_pad_file.torrent", errors::torrent_invalid_pad_file},
-	{ "v2_zero_root.torrent", errors::torrent_missing_pieces_root},
-	{ "v2_zero_root_small.torrent", errors::torrent_missing_pieces_root},
-	{ "v2_empty_filename.torrent", errors::torrent_file_parse_failed},
-	{ "duplicate_files2.torrent", errors::too_many_duplicate_filenames},
+test_failing_torrent_t test_error_torrents[] = {
+	{"missing_piece_len.torrent", errors::torrent_missing_piece_length},
+	{"invalid_piece_len.torrent", errors::torrent_missing_piece_length},
+	{"negative_piece_len.torrent", errors::torrent_missing_piece_length},
+	{"no_name.torrent", errors::torrent_missing_name},
+	{"bad_name.torrent", errors::torrent_missing_name},
+	{"invalid_name.torrent", errors::torrent_missing_name},
+	{"invalid_info.torrent", errors::torrent_missing_info},
+	{"string.torrent", errors::torrent_is_no_dict},
+	{"negative_size.torrent", errors::torrent_invalid_length},
+	{"negative_file_size.torrent", errors::torrent_invalid_length},
+	{"invalid_path_list.torrent", errors::torrent_invalid_name},
+	{"missing_path_list.torrent", errors::torrent_missing_name},
+	{"pad_file_symlink.torrent", errors::torrent_invalid_pad_file},
+	{"invalid_pieces.torrent", errors::torrent_missing_pieces},
+	{"unaligned_pieces.torrent", errors::torrent_invalid_hashes},
+	{"invalid_file_size.torrent", errors::torrent_invalid_length},
+	{"invalid_symlink.torrent", errors::torrent_invalid_name},
+	{"many_pieces.torrent", errors::too_many_pieces_in_torrent},
+	{"no_files.torrent", errors::no_files_in_torrent},
+	{"zero.torrent", errors::torrent_invalid_length},
+	{"zero2.torrent", errors::torrent_invalid_length},
+	{"v2_mismatching_metadata.torrent", errors::torrent_inconsistent_files},
+	{"v2_no_power2_piece.torrent", errors::torrent_missing_piece_length},
+	{"v2_invalid_file.torrent", errors::torrent_file_parse_failed},
+	{"v2_deep_recursion.torrent", bdecode_errors::depth_exceeded},
+	{"v2_non_multiple_piece_layer.torrent", errors::torrent_invalid_piece_layer},
+	{"v2_piece_layer_invalid_file_hash.torrent", errors::torrent_invalid_piece_layer},
+	{"v2_invalid_piece_layer.torrent", errors::torrent_invalid_piece_layer},
+	{"v2_invalid_piece_layer_root.torrent", errors::torrent_invalid_piece_layer},
+	{"v2_unknown_piece_layer_entry.torrent", errors::torrent_invalid_piece_layer},
+	{"v2_invalid_piece_layer_size.torrent", errors::torrent_invalid_piece_layer},
+	{"v2_bad_file_alignment.torrent", errors::torrent_inconsistent_files},
+	{"v2_unordered_files.torrent", errors::invalid_bencoding},
+	{"v2_overlong_integer.torrent", errors::invalid_bencoding},
+	{"v2_missing_file_root_invalid_symlink.torrent", errors::torrent_missing_pieces_root},
+	{"v2_large_file.torrent", errors::torrent_invalid_length},
+	{"v2_large_offset.torrent", errors::too_many_pieces_in_torrent},
+	{"v2_piece_size.torrent", errors::torrent_missing_piece_length},
+	{"v2_invalid_pad_file.torrent", errors::torrent_invalid_pad_file},
+	{"v2_zero_root.torrent", errors::torrent_missing_pieces_root},
+	{"v2_zero_root_small.torrent", errors::torrent_missing_pieces_root},
+	{"v2_empty_filename.torrent", errors::torrent_file_parse_failed},
+	{"duplicate_files2.torrent", errors::too_many_duplicate_filenames},
 };
 
 } // anonymous namespace
@@ -1402,6 +1410,124 @@ void sanity_check(std::shared_ptr<torrent_info const> const& ti)
 }
 }
 
+TORRENT_TEST(symlink_hop_limit)
+{
+	// a chain of 12 symlinks, each one's target using the next as a
+	// directory hop, landing on a real 11-level-deep directory tower.
+	// Hops needed to fully resolve symlink i (0-indexed, root = 0) is
+	// (11 - i); with the default max_symlink_hops == 8, index 3 (needs
+	// exactly 8 hops) resolves for real, index 2 (needs 9) doesn't and
+	// is left self-pointing instead
+	std::string const root_dir = parent_path(current_working_directory());
+	std::string const filename =
+		combine_path(combine_path(root_dir, "test_torrents"), "symlink_hop_limit.torrent");
+
+	auto atp = load_torrent_file(filename);
+	TEST_EQUAL(atp.ti->num_files(), 14);
+	TEST_EQUAL(
+		atp.ti->layout().symlink(file_index_t{4}) != atp.ti->layout().file_path(file_index_t{4}),
+		true);
+	TEST_EQUAL(
+		atp.ti->layout().symlink(file_index_t{3}), atp.ti->layout().file_path(file_index_t{3}));
+
+	// the same chain resolves further (or less far) as max_symlink_hops
+	// is raised (or lowered) at load time
+	load_torrent_limits cfg;
+	cfg.max_symlink_hops = 20;
+	auto atp2 = load_torrent_file(filename, cfg);
+	TEST_EQUAL(
+		atp2.ti->layout().symlink(file_index_t{3}) != atp2.ti->layout().file_path(file_index_t{3}),
+		true);
+
+	cfg.max_symlink_hops = 0;
+	auto atp3 = load_torrent_file(filename, cfg);
+	// needs 0 hops (its own target's only component is the real tower
+	// root): resolves even with no hop budget at all
+	TEST_EQUAL(atp3.ti->layout().symlink(file_index_t{12})
+			!= atp3.ti->layout().file_path(file_index_t{12}),
+		true);
+	// needs 1 hop: fails with a zero hop budget
+	TEST_EQUAL(
+		atp3.ti->layout().symlink(file_index_t{11}), atp3.ti->layout().file_path(file_index_t{11}));
+}
+
+TORRENT_TEST(symlink_count_limit)
+{
+	// symlink2.torrent has 2 symlinks; a max_symlinks limit lower than
+	// that must reject the whole torrent, matching the
+	// max_duplicate_filenames precedent (an operation that isn't cheap,
+	// capped explicitly, rejected outright rather than silently
+	// truncated)
+	std::string const root_dir = parent_path(current_working_directory());
+	std::string const filename =
+		combine_path(combine_path(root_dir, "test_torrents"), "symlink2.torrent");
+
+	load_torrent_limits cfg;
+	cfg.max_symlinks = 1;
+	error_code ec;
+	auto atp = load_torrent_file(filename, ec, cfg);
+	TEST_EQUAL(ec, errors::too_many_symlinks);
+
+	cfg.max_symlinks = 2;
+	auto atp2 = load_torrent_file(filename, cfg);
+	TEST_EQUAL(atp2.ti->num_files(), 5);
+}
+
+TORRENT_TEST(symlink_empty_target)
+{
+	// a "symlink path" that's present but resolves to no real components
+	// (either literally empty, or made up entirely of "." / ".."
+	// components) must downgrade the file to a regular, non-symlink file,
+	// matching a missing "symlink path" -- rather than leaving it flagged
+	// as a symlink with no target
+	auto make_torrent = [](entry::list_type symlink_path) {
+		entry info;
+		info["name"] = "test";
+		info["piece length"] = 16 * 1024;
+		info["pieces"] = "aaaaaaaaaaaaaaaaaaaa";
+		entry link;
+		link["length"] = 0;
+		link["attr"] = "l";
+		entry::list_type link_path;
+		link_path.push_back(entry("link"));
+		link["path"] = link_path;
+		link["symlink path"] = symlink_path;
+		// a torrent with only a zero-length file is itself rejected as
+		// invalid, so a real file with content is needed alongside it
+		entry real;
+		real["length"] = 10;
+		entry::list_type real_path;
+		real_path.push_back(entry("real.txt"));
+		real["path"] = real_path;
+		info["files"] = entry::list_type{link, real};
+		entry torrent;
+		torrent["info"] = info;
+		return bencode(torrent);
+	};
+
+	// an empty "symlink path" list
+	{
+		std::vector<char> const buf = make_torrent(entry::list_type{});
+		auto atp = load_torrent_buffer(buf);
+		TEST_EQUAL(atp.ti->num_files(), 2);
+		TEST_CHECK(
+			!bool(atp.ti->layout().file_flags(file_index_t{0}) & file_storage::flag_symlink));
+		TEST_EQUAL(atp.ti->layout().file_path(file_index_t{0}), combine_path("test", "link"));
+	}
+
+	// a "symlink path" made up entirely of "." / ".." components
+	{
+		entry::list_type path;
+		path.push_back(entry("."));
+		path.push_back(entry(".."));
+		std::vector<char> const buf = make_torrent(path);
+		auto atp = load_torrent_buffer(buf);
+		TEST_EQUAL(atp.ti->num_files(), 2);
+		TEST_CHECK(
+			!bool(atp.ti->layout().file_flags(file_index_t{0}) & file_storage::flag_symlink));
+	}
+}
+
 TORRENT_TEST(parse_torrents)
 {
 	// test torrent parsing
@@ -1831,41 +1957,43 @@ namespace {
 		},
 		{
 			// pad files are allowed to collide, as long as they have the same
-			// size. their name is always synthesized from their size, so the
-			// literal name given here ("1234") is irrelevant
+			// size. their name is always synthesized from their size (rooted
+			// at the torrent name, same as any other file), so the literal
+			// name given here ("1234") is irrelevant
 			{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/16384"},
 			{"test/filler-1", 0x4000, {}, "test/filler-1"},
 			{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/16384"},
 			{"test/filler-2", 0x4000, {}, "test/filler-2"},
 		},
 		{
-			// pad files of different sizes are NOT allowed to collide
+			// pad files of different sizes never collide in the first place,
+			// since their synthesized size is part of the path
 			{"test/.pad/1234", 0x8000, file_storage::flag_pad_file, "test/.pad/32768"},
 			{"test/filler-1", 0x4000, {}, "test/filler-1"},
 			{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/16384"},
 			{"test/filler-2", 0x4000, {}, "test/filler-2"},
 		},
 		{
-			// pad files are NOT allowed to collide with normal files. the
-			// pad file's synthesized name is "16384" (its size), so the
-			// normal file is given that name to collide with it
+			// a pad file is rooted at the torrent name just like any other
+			// file, so its synthesized path ("test/.pad/16384", its size) can
+			// coincide with a normal file's path -- but pad files never touch
+			// disk, so this must not cause the normal file to be renamed
 			{"test/.pad/16384", 0x4000, {}, "test/.pad/16384"},
 			{"test/filler-1", 0x4000, {}, "test/filler-1"},
-			{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/16384.1"},
+			{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/16384"},
 			{"test/filler-2", 0x4000, {}, "test/filler-2"},
 		},
 		{
-			// normal files are NOT allowed to collide with pad files
+			// same as above, the other way around
 			{"test/.pad/1234", 0x4000, file_storage::flag_pad_file, "test/.pad/16384"},
 			{"test/filler-1", 0x4000, {}, "test/filler-1"},
-			{"test/.pad/16384", 0x4000, {}, "test/.pad/16384.1"},
+			{"test/.pad/16384", 0x4000, {}, "test/.pad/16384"},
 			{"test/filler-2", 0x4000, {}, "test/filler-2"},
 		},
 		{
-			// pad files are NOT allowed to collide with directories. the pad
-			// file's size (1234 bytes) makes its synthesized name ("1234")
-			// collide with the directory implied by the next entry
-			{"test/.pad/1234", 1234, file_storage::flag_pad_file, "test/.pad/1234.1"},
+			// a pad file's synthesized path can also coincide with a
+			// directory implied by a normal file; same reasoning, no rename
+			{"test/.pad/1234", 1234, file_storage::flag_pad_file, "test/.pad/1234"},
 			{"test/filler-1", 0x4000, {}, "test/filler-1"},
 			{"test/.pad/1234/filler-2", 0x4000, {}, "test/.pad/1234/filler-2"},
 		},
@@ -2255,10 +2383,6 @@ TORRENT_TEST(copy)
 		convert_path_to_posix(p);
 		TEST_EQUAL(p, expected_files[i]);
 		std::printf("%s\n", p.c_str());
-
-#if TORRENT_ABI_VERSION < 4
-		TEST_EQUAL(a->layout().hash(i), file_hashes[i]);
-#endif
 	}
 
 	// copy the torrent_info object
@@ -2274,10 +2398,6 @@ TORRENT_TEST(copy)
 		convert_path_to_posix(p);
 		TEST_EQUAL(p, expected_files[i]);
 		std::printf("%s\n", p.c_str());
-
-#if TORRENT_ABI_VERSION < 4
-		TEST_EQUAL(fs2.hash(i), file_hashes[i]);
-#endif
 	}
 }
 

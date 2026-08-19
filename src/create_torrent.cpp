@@ -419,8 +419,45 @@ namespace {
 	{
 		file_storage ret;
 		ret.set_piece_length(piece_size);
+
+		error_code ec;
 		for (auto const& f : files)
-			ret.add_file_borrow({}, f.filename, f.size, f.flags);
+		{
+			// the first file establishes the torrent's own name
+			if (ret.num_files() == 0)
+			{
+				ret.set_name(std::string(has_parent_path(f.filename) ? lsplit_path(f.filename).first
+																	 : string_view(f.filename)));
+			}
+
+			// every file is expected to share the same root path element
+			// (the torrent name); the remainder, however deep, is kept as
+			// a single, unsplit path_element rather than one per directory
+			// level, since nothing here needs to address individual
+			// directories or dedupe them against each other
+			bool const has_dir = has_parent_path(f.filename);
+			aux::path_index_t const dir =
+				has_dir ? aux::path_element::torrent_root : aux::path_element::no_root_dir;
+			string_view const leaf =
+				has_dir ? lsplit_path(f.filename).second : string_view(f.filename);
+
+			// fs only maps piece ranges to real on-disk files for hashing;
+			// symlinks are always 0 bytes and never read, so there's
+			// nothing to gain from representing them as symlinks here
+			// (add_file_impl() also asserts the symlink flag isn't set on
+			// this path).
+			ret.add_file(ec,
+				leaf,
+				false,
+				dir,
+				f.size,
+				f.flags & ~file_storage::flag_symlink,
+				f.mtime,
+				file_storage::no_root_hash);
+			if (ec)
+				aux::throw_ex<system_error>(ec);
+		}
+
 		ret.set_num_pieces(aux::calc_num_pieces(ret));
 		return ret;
 	}

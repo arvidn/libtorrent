@@ -1,5 +1,8 @@
 2.2.0 not released
 
+	* deprecate file_storage::file_absolute_path()
+	* avoid copying file path strings out of the info-section
+	* drop backwards compatibility for resolving symlinks relative to their own directory
 	* deprecate file_storage::add_file()
 	* remove deprecated file_entry type and the file_storage iterator API
 	* remove deprecated filehash field

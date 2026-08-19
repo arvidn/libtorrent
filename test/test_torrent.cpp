@@ -552,7 +552,7 @@ TORRENT_TEST(torrent_total_size_zero)
 
 #if TORRENT_ABI_VERSION < 4
 // files aren't allowed to be renamed directly in the torrent_info
-// in the new API
+// in the new API.
 TORRENT_TEST(rename_file)
 {
 	std::vector<lt::create_file_entry> fs;
@@ -567,10 +567,21 @@ TORRENT_TEST(rename_file)
 
 	TEST_EQUAL(info->files().file_path(0_file), combine_path("test3","tmp1"));
 
-	// move "test3/tmp1" -> "tmp1"
-	info->rename_file(0_file, "tmp1");
+	// move "test3/tmp1" -> "test3/renamed"
+	info->rename_file(0_file, combine_path("test3", "renamed"));
 
-	TEST_EQUAL(info->files().file_path(0_file), "tmp1");
+	TEST_EQUAL(info->files().file_path(0_file), combine_path("test3", "renamed"));
+
+	// a multi-file torrent's file may also be renamed outside of the
+	// torrent's own directory, to a bare, root-less filename
+	info->rename_file(0_file, "renamed2");
+	TEST_EQUAL(info->files().file_path(0_file), "renamed2");
+
+	// an absolute new_filename detaches the file from save_path
+	std::string const abs = combine_path(complete("."), combine_path("test3", "detached"));
+	info->rename_file(1_file, abs);
+	TEST_CHECK(info->files().file_absolute_path(1_file));
+	TEST_EQUAL(info->files().file_path(1_file, "save_path"), abs);
 }
 #endif
 

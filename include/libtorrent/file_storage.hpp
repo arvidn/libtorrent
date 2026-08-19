@@ -17,9 +17,10 @@ see LICENSE file.
 #include <string>
 #include <vector>
 #include <variant>
-#include <unordered_set>
+#include <optional>
 #include <unordered_map>
 #include <map>
+#include <utility>
 #include <ctime>
 #include <cstdint>
 
@@ -68,76 +69,101 @@ namespace aux {
 	};
 
 	// internal
+	// a single path-component node in file_storage's path tree. Both
+	// directory components and filenames are represented as path_element
+	// nodes; a file's full path is reconstructed by walking ``parent``
+	// links from its leaf element up to the root. Only file_storage
+	// constructs and resolves these, so all fields are public and mutated
+	// directly by file_storage::make_directory().
+	struct path_element
+	{
+		path_element() = default;
+		path_element(path_element const&);
+		path_element(path_element&&) noexcept;
+		path_element& operator=(path_element const&) = delete;
+		path_element& operator=(path_element&&) = delete;
+		~path_element();
+
+		// sentinel parent for a top-level element
+		static inline constexpr path_index_t torrent_root{(std::uint32_t(1) << 30) - 1};
+		// sentinel parent for an absolute path; the element's own text is
+		// the entire path, never split into components
+		static inline constexpr path_index_t path_is_absolute{(std::uint32_t(1) << 30) - 2};
+		// sentinel identifying the pad-file directory. Resolves to
+		// name()/".pad" without a real path_element: nothing is ever nested
+		// under it (pad files reference it directly as their own directory,
+		// synthesizing their leaf name from their size on demand), so
+		// there's nothing to dedupe or store.
+		static inline constexpr path_index_t pad_directory{(std::uint32_t(1) << 30) - 3};
+		// sentinel parent for a chain (or a lone element) that doesn't root
+		// at file_storage::name(): a single-file torrent's lone file, or a
+		// path added/renamed that doesn't share the torrent's own name.
+		// name() is not prepended when reconstructing a path under it,
+		// unlike a chain rooted at torrent_root.
+		static inline constexpr path_index_t no_root_dir{(std::uint32_t(1) << 30) - 4};
+
+		// sentinel name_len meaning name_ptr is an owned, 0-terminated copy
+		static inline constexpr std::uint16_t name_is_owned = 0xffff;
+
+		path_index_t parent = path_element::torrent_root;
+
+		// borrowed: name_ptr points to name_len bytes owned by the caller
+		// (any buffer, not necessarily file_storage::m_info_section), not
+		// necessarily 0-terminated
+		// owned (name_len == name_is_owned): name_ptr is heap-allocated,
+		// 0-terminated, freed by this object
+		std::uint16_t name_len = 0;
+
+		// this element's own depth: 1 for a top-level element (parent is one
+		// of the sentinels above), or 1 + parent's depth otherwise. Lets
+		// file_storage::reconstruct_path() size its output buffer without a
+		// preliminary walk up to the root. Kept the same width as name_len
+		// (rather than a wider type) so this struct stays 16 bytes; relies
+		// on callers keeping directory nesting within std::uint16_t, see
+		// load_torrent_limits::max_directory_depth
+		std::uint16_t depth = 0;
+
+		char const* name_ptr = nullptr;
+	};
+
+	// internal
 	struct file_entry
 	{
-		friend class ::lt::file_storage;
-		file_entry();
-		file_entry(file_entry const& fe);
-		file_entry(file_entry&& fe) noexcept;
-		file_entry& operator=(file_entry&& fe) & noexcept;
-		~file_entry();
-
-		// has no effect, and must not be called, for pad files: their
-		// name is synthesized from their size on demand, see filename()
-		void set_name(string_view n, bool borrow_string = false);
-		file_name_view filename() const;
-
-		enum {
-			name_is_owned = (1 << 12) - 1,
-			not_a_symlink = (1 << 15) - 1,
-		};
-
-		static inline constexpr aux::path_index_t no_path{(1 << 30) - 1};
-		static inline constexpr aux::path_index_t path_is_absolute{(1 << 30) - 2};
-
 		// the offset of this file inside the torrent
-		std::uint64_t offset:48;
+		std::uint64_t offset = 0;
 
-		// index into file_storage::m_symlinks or not_a_symlink
-		// if this is not a symlink
-		std::uint64_t symlink_index:15;
+		// the size of this file. 60 bits, since that's what's left in this
+		// word alongside the 4 single-bit flags below
+		std::uint64_t size:60 = 0;
 
-		// if this is true, don't include m_name as part of the
-		// path to this file
-		std::uint64_t no_root_dir:1;
+		std::uint64_t pad_file:1 = false;
+		std::uint64_t hidden_attribute:1 = false;
+		std::uint64_t executable_attribute:1 = false;
+		std::uint64_t symlink_attribute:1 = false;
 
-		// the size of this file
-		std::uint64_t size:48;
+		// index into file_storage::m_path_elements. For ordinary files this
+		// is the leaf element (its own text is the filename; walk ::parent
+		// for the rest of the path). For pad files this is the parent
+		// *directory* element instead: pad files never store a name, it's
+		// synthesized from ::size on demand, see file_storage::file_name()
+		path_index_t path_element_index = path_element::torrent_root;
 
-		// the number of characters in the name. If this is
-		// name_is_owned, name is 0-terminated and owned by this object
-		// (i.e. it should be freed in the destructor). If
-		// the len is not name_is_owned, the name pointer does not belong
-		// to this object, and it's not 0-terminated
-		// meaningless when pad_file is set, name is then unused (nullptr)
-		std::uint64_t name_len:12;
-		std::uint64_t pad_file:1;
-		std::uint64_t hidden_attribute:1;
-		std::uint64_t executable_attribute:1;
-		std::uint64_t symlink_attribute:1;
+		// a symlink never has a v2 merkle root (it carries no payload of
+		// its own), so these two never need to be meaningful at the same
+		// time; symlink_attribute selects which one to interpret
+		union
+		{
+			// offset into file_storage::m_info_section where this file's
+			// SHA-256 merkle tree root is stored, or file_storage::no_root_hash
+			// if this file has none. Meaningful unless symlink_attribute is set
+			std::int32_t root_offset = -1;
 
-		// make it available for logging
-	private:
-		// This string is not necessarily 0-terminated!
-		// that's why it's private, to keep people away from it.
-		// unused (nullptr) when pad_file is set, see filename()
-		char const* name = nullptr;
-	public:
-		// offset into file_storage::m_info_section where this file's SHA-256
-		// merkle tree root is stored, or file_storage::no_root_hash if this
-		// file has none
-		std::int32_t root_offset = -1;
-
-		// the index into file_storage::m_paths. To get
-		// the full path to this file, concatenate the path
-		// from that array with the 'name' field in
-		// this struct
-		// values for path_index include:
-		// no_path means no path (i.e. single file torrent)
-		// path_is_absolute means the filename
-		// in this field contains the full, absolute path
-		// to the file
-		aux::path_index_t path_index = file_entry::no_path;
+			// index into file_storage::m_path_elements identifying this
+			// symlink's resolved target: a real file's leaf, a real
+			// directory, or another symlink's own leaf. Only meaningful
+			// when symlink_attribute is set
+			path_index_t symlink_element_index;
+		};
 	};
 
 } // aux namespace
@@ -243,14 +269,18 @@ public:
 
 #ifndef BOOST_NO_EXCEPTIONS
 		// internal
-		// ``filename`` is *borrowed*, i.e. it is the caller's responsibility to
-		// make sure it stays valid throughout the lifetime of this file_storage
-		// object or any copy of it. If ``filename`` is empty, the filename from
-		// ``path`` is used and not borrowed. ``root_hash_offset`` is the byte
-		// offset of the v2 (BEP 52) merkle tree root hash within the buffer
-		// this file_storage was constructed with (see the ``file_storage(char
-		// const*)`` constructor); use ``file_storage::no_root_hash`` when
-		// there is none.
+		// deprecated: prefer make_directory()/add_file()/add_symlink(), the
+		// path_index_t-based primitives, which don't need to split a joined
+		// path string on every call. ``filename`` is *borrowed*, i.e. it is
+		// the caller's responsibility to make sure it stays valid throughout
+		// the lifetime of this file_storage object or any copy of it. If
+		// ``filename`` is empty, the filename from ``path`` is used and not
+		// borrowed. ``root_hash_offset`` is the byte offset of the v2 (BEP
+		// 52) merkle tree root hash within the buffer this file_storage was
+		// constructed with (see the ``file_storage(char const*)``
+		// constructor); use ``file_storage::no_root_hash`` when there is
+		// none.
+		TORRENT_DEPRECATED
 		TORRENT_UNEXPORT void add_file_borrow(string_view filename,
 			std::string const& path,
 			std::int64_t file_size,
@@ -302,18 +332,20 @@ public:
 		// The overloads that take an `error_code` reference will report failures
 		// via that variable, otherwise `system_error` is thrown.
 		TORRENT_DEPRECATED
-		void add_file(std::string const& path, std::int64_t file_size
-			, file_flags_t file_flags = {}
-			, std::time_t mtime = 0, string_view symlink_path = string_view()
-			, char const* root_hash = nullptr);
+		void add_file(std::string const& path,
+			std::int64_t file_size,
+			file_flags_t file_flags = {},
+			std::time_t mtime = 0,
+			string_view symlink_path = string_view(),
+			char const* root_hash = nullptr);
 #endif
 #endif // BOOST_NO_EXCEPTIONS
 
 		// internal
-		// this overload does not copy the ``filename`` string; it is borrowed
-		// by reference and the caller must keep it alive for the lifetime of
-		// this ``file_storage`` object. This is useful when constructing the
-		// file list from a memory-mapped .torrent file.
+		// deprecated: prefer make_directory()/add_file()/add_symlink(), see
+		// the string_view overload above. Same as that overload, but
+		// reports failures via ``ec`` rather than throwing.
+		TORRENT_DEPRECATED
 		TORRENT_UNEXPORT void add_file_borrow(error_code& ec,
 			string_view filename,
 			std::string const& path,
@@ -327,15 +359,93 @@ public:
 		// this overload reports failures through the ``ec`` reference rather
 		// than throwing.
 		TORRENT_DEPRECATED
-		void add_file(error_code& ec, std::string const& path, std::int64_t file_size
-			, file_flags_t file_flags = {}
-			, std::time_t mtime = 0, string_view symlink_path = string_view()
-			, char const* root_hash = nullptr);
+		void add_file(error_code& ec,
+			std::string const& path,
+			std::int64_t file_size,
+			file_flags_t file_flags = {},
+			std::time_t mtime = 0,
+			string_view symlink_path = string_view(),
+			char const* root_hash = nullptr);
 #endif
+
+		// internal
+		// creates a new path_element as a child of ``parent`` (aux::path_
+		// element::torrent_root for a top-level directory) and returns its
+		// index. Used for directory components as well as file and symlink
+		// leaves; no dedup lookup, always creates a new entry, so callers
+		// doing bulk work (parsing a torrent, walking a directory tree) are
+		// expected to cache and reuse indices for repeated (parent, name)
+		// pairs themselves. ``name`` is borrowed (the caller guarantees it
+		// outlives this file_storage) when ``borrow`` is true, otherwise
+		// heap-copied.
+		TORRENT_UNEXPORT aux::path_index_t make_directory(
+			aux::path_index_t parent, string_view name, bool borrow = false);
+
+		// internal
+		// adds a file named ``filename`` directly under directory ``dir``
+		// (as returned by make_directory(), aux::path_element::torrent_root
+		// for the torrent's own root, or aux::path_element::no_root_dir to
+		// omit file_storage::name() when reconstructing this file's path,
+		// the single-file-torrent convention). ``filename`` is borrowed
+		// (the caller guarantees it outlives this file_storage) when
+		// ``borrow`` is true, otherwise heap-copied. ``root_hash_offset``
+		// is the byte offset of this file's v2 merkle tree root within the
+		// buffer this file_storage was constructed with (see the
+		// ``file_storage(char const*)`` constructor), or
+		// file_storage::no_root_hash if this file has none. Returns the new
+		// file's own path_index_t. Not for symlinks, see add_symlink().
+		TORRENT_UNEXPORT aux::path_index_t add_file(error_code& ec,
+			string_view filename,
+			bool borrow,
+			aux::path_index_t dir,
+			std::int64_t file_size,
+			file_flags_t file_flags = {},
+			std::int64_t mtime = 0,
+			std::int32_t root_hash_offset = no_root_hash);
+
+		// internal
+		// adds a symlink placeholder named ``filename`` directly under
+		// directory ``dir``, same conventions as add_file() above.
+		// Symlinks are always empty (0-byte) files. The symlink
+		// self-points until a caller resolves it via
+		// internal_set_symlink_target(); this is the deferred-placeholder
+		// case used while parsing a real .torrent, before the rest of the
+		// file list/tree has been parsed. Returns the new symlink's own
+		// path_index_t.
+		TORRENT_UNEXPORT aux::path_index_t add_symlink(error_code& ec,
+			string_view filename,
+			bool borrow,
+			aux::path_index_t dir,
+			file_flags_t file_flags,
+			std::int64_t mtime);
+
+		// internal
+		// same as the overload above, but for the deprecated, low-level
+		// string-based add_file() API (and tests) only: ``target``, if
+		// non-empty, is the raw (not yet validated) target text, stored as
+		// its own fresh path_element rather than resolved against the
+		// tree, since it doesn't necessarily correspond to any file this
+		// file_storage knows about.
+		TORRENT_UNEXPORT aux::path_index_t add_symlink(error_code& ec,
+			string_view filename,
+			bool borrow,
+			aux::path_index_t dir,
+			file_flags_t file_flags,
+			std::int64_t mtime,
+			string_view target);
+
+		// internal
+		// sets the already-resolved symlink target for the file at
+		// ``index`` (must have flag_symlink set) to path_element
+		// ``target``.
+		TORRENT_UNEXPORT void internal_set_symlink_target(
+			file_index_t index, aux::path_index_t target);
 
 #if TORRENT_ABI_VERSION < 4
 		// internal
-		TORRENT_UNEXPORT void rename_file_impl(file_index_t index, std::string const& new_filename);
+		// sets ``ec`` if ``new_filename`` has too many directory components
+		TORRENT_UNEXPORT void rename_file_impl(
+			file_index_t index, std::string const& new_filename, error_code& ec);
 #endif
 
 		// returns a list of file_slice objects representing the portions of
@@ -492,21 +602,6 @@ public:
 		TORRENT_DEPRECATED int file_first_piece_node(file_index_t index) const;
 		TORRENT_DEPRECATED int file_first_block_node(file_index_t index) const;
 
-		// internal
-		// returns the crc32 hash of file_path(index). There's no need for
-		// clients to call it.
-		TORRENT_DEPRECATED std::uint32_t file_path_hash(
-			file_index_t index, std::string const& save_path) const;
-
-		// internal
-		// this will add the CRC32 hash of all directory entries to the table. No
-		// filename will be included, just directories. Every depth of directories
-		// are added separately to allow test for collisions with files at all
-		// levels. i.e. if one path in the torrent is ``foo/bar/baz``, the CRC32
-		// hashes for ``foo``, ``foo/bar`` and ``foo/bar/baz`` will be added to
-		// the set. There's no need for clients to call it.
-		TORRENT_DEPRECATED void all_path_hashes(std::unordered_set<std::uint32_t>& table) const;
-
 		// the file is a pad file. It's required to contain zeros
 		// at it will not be saved to disk. Its purpose is to make
 		// the following file start on a piece boundary.
@@ -524,21 +619,70 @@ public:
 		static inline constexpr file_flags_t flag_symlink = 3_bit;
 
 		// internal
-		// returns all directories used in the torrent. Files in the torrent are
-		// located in one of these directories. This is not a tree, it's a flat
-		// list of all *leaf* directories. i.e. the union of the parent paths of
-		// all files. There's no need for clients to call it.
-		TORRENT_DEPRECATED
-		aux::vector<std::string, aux::path_index_t> const& paths() const { return m_paths; }
+		// per-path_element data computed by compute_element_hashes(): every
+		// element's crc32 hash of its full path from the torrent root
+		// (lower-case, no trailing separator), and whether the element is
+		// used as a directory (is some other element's parent). Pad files
+		// are never represented here, whether as the directory they
+		// synthesize their own leaf name under or otherwise: they never
+		// touch disk, so a naming collision involving one (or a directory
+		// only ever referenced by one) is never a real conflict, see
+		// resolve_duplicate_filenames(). The torrent's own root directory
+		// (file_storage::name()) has no entry of its own either: a file
+		// legitimately reconstructs to exactly that name when it has no
+		// sub-directory components (e.g. single-file torrents), so it
+		// isn't a real collision.
+		struct element_hashes
+		{
+			aux::vector<std::uint32_t, aux::path_index_t> crc;
+			aux::vector<bool, aux::path_index_t> is_dir;
+		};
+
+		// internal
+		// computes element_hashes for this file_storage. A path_element's
+		// parent always has a lower index than the element itself, so this
+		// is a single forward pass, each element extending its parent's
+		// already-computed hash rather than being rebuilt from the root.
+		element_hashes compute_element_hashes() const;
+
+		// internal
+		// returns the crc32 hash of file_path(idx, ""), using an
+		// element_hashes already computed by compute_element_hashes() for
+		// this file_storage, instead of re-walking idx's whole path chain
+		// from the root. idx must not be a pad file: a pad-file naming
+		// collision is never a real conflict (see
+		// resolve_duplicate_filenames()), so callers skip them rather than
+		// hash them.
+		std::uint32_t file_hash(element_hashes const& eh, file_index_t idx) const;
+
+		// internal
+		// hashes every path element (via compute_element_hashes()), then
+		// returns that result if any non-pad file's hash (file_hash())
+		// collides with a directory's hash or another file's hash;
+		// std::nullopt if there's no collision at all. The full computation
+		// always runs, even once a collision is found: its only caller,
+		// resolve_duplicate_filenames(), needs every file's and directory's
+		// hash to find and rename all conflicts, not just the first, so
+		// stopping early would just move the same work into that caller.
+		std::optional<element_hashes> has_duplicate_filenames() const;
+
+		// internal
+		// reconstructs the full path (rooted at file_storage::name()) of the
+		// directory identified by ``index``, as produced by
+		// compute_element_hashes().
+		std::string internal_directory_path(aux::path_index_t index) const;
 
 		// returns a bitmask of flags from file_flags_t that apply
 		// to file at ``index``.
 		file_flags_t file_flags(file_index_t index) const;
 
+#if TORRENT_ABI_VERSION < 5
 		// returns true if the file at the specified index has been renamed to
 		// have an absolute path, i.e. is not anchored in the save path of the
 		// torrent.
+		TORRENT_DEPRECATED
 		bool file_absolute_path(file_index_t index) const;
+#endif
 
 		// returns the index of the file at the given offset or piece in the torrent
 		file_index_t file_index_at_offset(std::int64_t offset) const;
@@ -556,7 +700,10 @@ public:
 #if TORRENT_USE_INVARIANT_CHECKS
 		// internal
 		bool owns_name(file_index_t const f) const
-		{ return m_files[f].name_len == aux::file_entry::name_is_owned; }
+		{
+			return m_path_elements[m_files[f].path_element_index].name_len
+				== aux::path_element::name_is_owned;
+		}
 #endif
 
 #if TORRENT_ABI_VERSION <= 2
@@ -593,30 +740,27 @@ public:
 		std::int64_t file_offset(aux::file_entry const& fe) const;
 #endif
 
-		// validate any symlinks, to ensure they all point to
-		// other files or directories inside this storage. Any invalid symlinks
-		// are updated to point to themselves. There's no need for clients to
-		// call it.
-		TORRENT_DEPRECATED void sanitize_symlinks();
-
 		// returns true if this torrent contains v2 metadata.
 		bool v2() const { return m_v2; }
 
+#if TORRENT_ABI_VERSION < 4
 		// internal
-		// this is an optimization for create_torrent
-		std::string const& internal_symlink(file_index_t index) const;
+		// reconstructs a symlink's target path; used by create_torrent
+		std::string internal_symlink(file_index_t index) const;
+#endif
 
 		// internal
 		void remove_tail_padding();
 
 	private:
-		friend struct renamed_files;
-
 #if TORRENT_ABI_VERSION < 4
 		// internal
 		void canonicalize_impl(bool backwards_compatible);
 #endif
 
+		// backwards-compatibility wrapper for add_file(): resolves a joined
+		// path string into an owned path_element chain, then calls
+		// add_file_impl().
 		void add_file_borrow_impl(error_code& ec,
 			string_view filename,
 			std::string const& path,
@@ -626,14 +770,46 @@ public:
 			string_view symlink_path,
 			std::int32_t root_hash_offset);
 
+		// the one primitive that actually inserts a file_entry. Used
+		// directly by the path_index_t-based add_file() overload, and
+		// indirectly (via add_file_borrow_impl() and
+		// resolve_owned_directory()) by the deprecated, joined-path-string
+		// add_file() overloads.
+		aux::path_index_t add_file_impl(error_code& ec,
+			string_view filename,
+			bool filename_borrow,
+			aux::path_index_t dir,
+			std::int64_t file_size,
+			file_flags_t file_flags,
+			std::int64_t mtime,
+			std::int32_t root_hash_offset);
+
+		// records ``mtime`` for the most recently added file (last_file()),
+		// growing m_mtime on demand. A no-op when mtime is 0 (the common
+		// case; m_mtime then stays empty entirely).
+		void set_last_file_mtime(std::int64_t mtime);
+
 		// converts a pointer into m_info_section into an offset relative to
 		// m_info_section, or no_root_hash if root_hash is nullptr
 		std::int32_t root_hash_to_offset(char const* root_hash) const;
 
-		std::string internal_file_path(file_index_t index) const;
 		file_index_t last_file() const noexcept;
 
-		aux::path_index_t get_or_add_path(string_view path);
+		// resolves the stored text of a path_element
+		string_view path_element_name(aux::path_element const& e) const;
+
+		// walks ``leaf``'s parent chain (root to leaf) and appends each
+		// component's text, separator-joined, to ``out``. Iterative, since
+		// the chain depth is derived from an untrusted .torrent file.
+		// Returns the terminal sentinel the chain is rooted at (torrent_root,
+		// path_is_absolute, pad_directory, or no_root_dir).
+		aux::path_index_t reconstruct_path(aux::path_index_t leaf, std::string& out) const;
+
+#if TORRENT_ABI_VERSION == 1
+		// recovers a file_entry's index from its address in m_files. Used by
+		// the deprecated ABI-1 accessors that take a file_entry reference.
+		file_index_t index_of(aux::file_entry const& fe) const;
+#endif
 
 		// the number of bytes in a regular piece
 		// (i.e. not the potentially truncated last piece)
@@ -646,17 +822,24 @@ public:
 		// v2 torrents
 		bool m_v2 = false;
 
-		// TODO: can we remove set_name?
-		void update_path_index(aux::file_entry& e, std::string const& path
-			, bool set_name = true);
+		// splits a definitely-relative ``path`` into a chain of owned
+		// directory path_elements (not including path's own last
+		// component), rooted at torrent_root if the chain matches name(), or
+		// at the no_root_dir sentinel otherwise. Returns the terminal
+		// directory's index (compare against aux::path_element::no_root_dir
+		// to tell which of those two applied), and path's own last
+		// component in ``leaf_out``. Sets ``ec`` and returns {} if ``path``
+		// has too many directory components.
+		aux::path_index_t resolve_owned_directory(
+			std::string const& path, string_view& leaf_out, error_code& ec);
 
 		// the list of files that this torrent consists of
 		aux::vector<aux::file_entry, file_index_t> m_files;
 
-		// for files that are symlinks, the symlink
-		// path_index in the aux::file_entry indexes
-		// this vector of strings
-		std::vector<std::string> m_symlinks;
+		// the number of files in m_files that are symlinks; used to detect
+		// "all files added so far have been symlinks" for v1/v2 ambiguity
+		// purposes.
+		int m_num_symlinks = 0;
 
 		// the modification times of each file. This vector
 		// is empty if no file have a modification time.
@@ -664,12 +847,11 @@ public:
 		// index in m_files
 		aux::vector<std::time_t, file_index_t> m_mtime;
 
-		// all unique paths files have. The aux::file_entry::path_index
-		// points into this array. The paths don't include the root directory
-		// name for multi-file torrents. The m_name field need to be
-		// prepended to these paths, and the filename of a specific file
-		// entry appended, to form full file paths
-		aux::vector<std::string, aux::path_index_t> m_paths;
+		// the tree of path components (directories and filenames) files
+		// reference. aux::file_entry::path_element_index points into this
+		// array; walking aux::path_element::parent links reconstructs a
+		// file's full path (see reconstruct_path()).
+		aux::vector<aux::path_element, aux::path_index_t> m_path_elements;
 
 		// name of torrent. For multi-file torrents
 		// this is always the root directory

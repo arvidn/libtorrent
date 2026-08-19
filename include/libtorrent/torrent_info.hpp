@@ -102,6 +102,17 @@ namespace aux {
 		// protects against malicious torrents with a deeply nested directory
 		// structure.
 		int max_directory_depth = 100;
+
+		// the max number of other symlinks a symlink target is allowed to
+		// be resolved through. It bounds the work spent resolving a single
+		// symlink against a maliciously long or cyclic chain.
+		int max_symlink_hops = 8;
+
+		// the max number of symlinks allowed in the torrent. Resolving
+		// symlink targets is not cheap, and a malicious torrent with a very
+		// large number of symlinks may pose a DoS attack, stalling torrent
+		// parsing.
+		int max_symlinks = 5000;
 	};
 
 	using torrent_info_flags_t = flags::bitfield_flag<std::uint8_t, struct torrent_info_flags_tag>;

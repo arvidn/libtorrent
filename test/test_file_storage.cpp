@@ -10,12 +10,16 @@ see LICENSE file.
 */
 
 #include <iostream>
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/crc.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 #include "test.hpp"
 #include "setup_transfer.hpp"
 #include "test_utils.hpp"
 
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/aux_/path.hpp"
+#include "libtorrent/aux_/string_util.hpp"
 
 using namespace lt;
 
@@ -82,11 +86,6 @@ void setup_test_storage(file_storage& st)
 	TEST_EQUAL(st.num_pieces(), (100000 + 0x3fff) / 0x4000);
 }
 
-#if TORRENT_ABI_VERSION < 4
-constexpr aux::path_index_t operator""_path(unsigned long long i)
-{ return aux::path_index_t(static_cast<std::uint32_t>(i)); }
-#endif
-
 } // anonymous namespace
 
 #if TORRENT_ABI_VERSION < 4
@@ -94,57 +93,75 @@ TORRENT_TEST(coalesce_path)
 {
 	file_storage st;
 	st.set_piece_length(0x4000);
+
+	// the number of directory entries referenced by the torrent so far (not
+	// counting the torrent's own root). add_file() resolves each path
+	// independently and does not deduplicate, so files sharing a directory
+	// each get their own path_element for it.
+	auto count_dirs = [&] {
+		auto const eh = st.compute_element_hashes();
+		std::size_t count = 0;
+		for (auto const idx : eh.is_dir.range())
+			if (eh.is_dir[idx])
+				++count;
+		return count;
+	};
+
 	st.add_file_borrow({}, combine_path("test", "a"), 10000);
-	TEST_EQUAL(st.paths().size(), 1);
-	TEST_EQUAL(st.paths()[0_path], "");
+	TEST_EQUAL(count_dirs(), 0u); // no sub-directories yet
 	st.add_file_borrow({}, combine_path("test", "b"), 20000);
-	TEST_EQUAL(st.paths().size(), 1);
-	TEST_EQUAL(st.paths()[0_path], "");
+	TEST_EQUAL(count_dirs(), 0u);
 	st.add_file_borrow({}, combine_path("test", combine_path("c", "a")), 30000);
-	TEST_EQUAL(st.paths().size(), 2);
-	TEST_EQUAL(st.paths()[0_path], "");
-	TEST_EQUAL(st.paths()[1_path], "c");
+	TEST_EQUAL(count_dirs(), 1u); // "test/c"
 
-	// make sure that two files with the same path shares the path entry
+	// a second file under the same directory gets its own "test/c"
+	// path_element; add_file() does not deduplicate
 	st.add_file_borrow({}, combine_path("test", combine_path("c", "b")), 40000);
-	TEST_EQUAL(st.paths().size(), 2);
-	TEST_EQUAL(st.paths()[0_path], "");
-	TEST_EQUAL(st.paths()[1_path], "c");
+	TEST_EQUAL(count_dirs(), 2u);
 
-	// cause pad files to be created, to make sure the pad files also share the
-	// same path entries
+	// cause pad files to be created; pad files reference the pad-directory
+	// sentinel directly, so they don't add another path_element, and
+	// compute_element_hashes() deliberately doesn't track pad-only
+	// directories at all (a naming collision involving a pad file is
+	// never a real conflict, see resolve_duplicate_filenames())
 	st.canonicalize();
 
-	TEST_EQUAL(st.paths().size(), 3);
-	TEST_EQUAL(st.paths()[0_path], "");
-	TEST_EQUAL(st.paths()[1_path], "c");
-	TEST_EQUAL(st.paths()[2_path], ".pad");
+	TEST_EQUAL(count_dirs(), 2u); // "test/c" (x2)
 }
 
 TORRENT_TEST(rename_file)
 {
-	// test rename_file
+	// test rename_file_impl
 	file_storage st;
 	setup_test_storage(st);
 
-	st.rename_file_impl(file_index_t{0}, combine_path("test", combine_path("c", "d")));
+	error_code ec;
+	st.rename_file_impl(file_index_t{0}, combine_path("test", combine_path("c", "d")), ec);
+	TEST_CHECK(!ec);
 	TEST_EQUAL(st.file_path(file_index_t{0}, "."), combine_path(".", combine_path("test"
 		, combine_path("c", "d"))));
 	TEST_EQUAL(st.file_path(file_index_t{0}, ""), combine_path("test"
 		, combine_path("c", "d")));
 
-	// files with absolute paths should ignore the save_path argument
-	// passed in to file_path()
-#ifdef TORRENT_WINDOWS
-	st.rename_file_impl(file_index_t{0}, "c:\\tmp\\a");
-	TEST_EQUAL(st.file_path(file_index_t{0}, "."), "c:\\tmp\\a");
-#else
-	st.rename_file_impl(file_index_t{0}, "/tmp/a");
-	TEST_EQUAL(st.file_path(file_index_t{0}, "."), "/tmp/a");
-#endif
+	st.rename_file_impl(file_index_t{0}, combine_path("test", "renamed"), ec);
+	TEST_CHECK(!ec);
+	TEST_EQUAL(
+		st.file_path(file_index_t{0}, "."), combine_path(".", combine_path("test", "renamed")));
+}
 
-	st.rename_file_impl(file_index_t{0}, combine_path("test__", "a"));
-	TEST_EQUAL(st.file_path(file_index_t{0}, "."), combine_path(".", combine_path("test__", "a")));
+TORRENT_TEST(rename_file_absolute)
+{
+	// an absolute new_filename detaches the file from save_path, see
+	// torrent_info::rename_file()
+	file_storage st;
+	setup_test_storage(st);
+
+	std::string const abs = combine_path(complete("."), combine_path("some", "where"));
+	error_code ec;
+	st.rename_file_impl(file_index_t{0}, abs, ec);
+	TEST_CHECK(!ec);
+	TEST_CHECK(st.file_absolute_path(file_index_t{0}));
+	TEST_EQUAL(st.file_path(file_index_t{0}, "save_path"), abs);
 }
 
 TORRENT_TEST(rename_pad_file)
@@ -157,16 +174,59 @@ TORRENT_TEST(rename_pad_file)
 	st.add_file_borrow(
 		{}, combine_path("test", combine_path(".pad", "6384")), 6384, file_storage::flag_pad_file);
 
+	// pad files live under name()/.pad
 	std::string const pad_path = combine_path("test", combine_path(".pad", "6384"));
 	TEST_EQUAL(st.file_path(file_index_t{1}, ""), pad_path);
 
-	st.rename_file_impl(file_index_t{1}, combine_path("test", "renamed"));
+	error_code ec;
+	st.rename_file_impl(file_index_t{1}, combine_path("test", "renamed"), ec);
+	TEST_CHECK(!ec);
 
 	// the rename had no effect
 	TEST_EQUAL(st.file_path(file_index_t{1}, ""), pad_path);
 	TEST_EQUAL(std::string(st.file_name(file_index_t{1})), "6384");
 }
 #endif
+
+#if TORRENT_ABI_VERSION < 4
+TORRENT_TEST(rename_file2)
+{
+	// test rename_file_impl, starting from a single bare (root-less) file
+	file_storage st;
+	st.add_file_borrow({}, "a", 10000);
+	TEST_EQUAL(st.file_path(file_index_t{0}, ""), "a");
+
+	error_code ec;
+	st.rename_file_impl(file_index_t{0}, combine_path("test", combine_path("c", "d")), ec);
+	TEST_CHECK(!ec);
+	TEST_EQUAL(st.file_path(file_index_t{0}, "."), combine_path(".", combine_path("test", combine_path("c", "d"))));
+	TEST_EQUAL(st.file_path(file_index_t{0}, ""), combine_path("test", combine_path("c", "d")));
+
+	st.rename_file_impl(file_index_t{0}, combine_path("tmp", "a"), ec);
+	TEST_CHECK(!ec);
+	TEST_EQUAL(st.file_path(file_index_t{0}, "."), combine_path("tmp", "a"));
+}
+#endif
+
+TORRENT_TEST(file_hash_matches_file_path)
+{
+	// resolve_duplicate_filenames()'s rename-candidate loop hashes a
+	// full file_path() string directly (lower-cased, byte for byte) and
+	// looks that hash up alongside file_hash()'s, so the two must agree
+	// on every file, or a colliding rename candidate goes undetected
+	file_storage st;
+	setup_test_storage(st);
+
+	file_storage::element_hashes const eh = st.compute_element_hashes();
+	for (file_index_t const i : st.file_range())
+	{
+		boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
+		for (char const c : st.file_path(i))
+			crc.process_byte(aux::to_lower(c) & 0xff);
+
+		TEST_EQUAL(crc.checksum(), st.file_hash(eh, i));
+	}
+}
 
 TORRENT_TEST(set_name)
 {
@@ -177,36 +237,8 @@ TORRENT_TEST(set_name)
 	setup_test_storage(st);
 
 	st.set_name("test_2");
-	TEST_EQUAL(st.file_path(file_index_t{0}, "."), combine_path(".", combine_path("test_2"
-		, "a")));
+	TEST_EQUAL(st.file_path(file_index_t{0}, "."), combine_path(".", combine_path("test_2", "a")));
 }
-
-#if TORRENT_ABI_VERSION < 4
-TORRENT_TEST(rename_file2)
-{
-	// test rename_file
-	file_storage st;
-	st.add_file_borrow({}, "a", 10000);
-	TEST_EQUAL(st.file_path(file_index_t{0}, ""), "a");
-
-	st.rename_file_impl(file_index_t{0}, combine_path("test", combine_path("c", "d")));
-	TEST_EQUAL(st.file_path(file_index_t{0}, "."), combine_path(".", combine_path("test", combine_path("c", "d"))));
-	TEST_EQUAL(st.file_path(file_index_t{0}, ""), combine_path("test", combine_path("c", "d")));
-
-#ifdef TORRENT_WINDOWS
-	st.rename_file_impl(file_index_t{0}, "c:\\tmp\\a");
-	TEST_EQUAL(st.file_path(file_index_t{0}, "."), "c:\\tmp\\a");
-	TEST_EQUAL(st.file_path(file_index_t{0}, "c:\\test-1\\test2"), "c:\\tmp\\a");
-#else
-	st.rename_file_impl(file_index_t{0}, "/tmp/a");
-	TEST_EQUAL(st.file_path(file_index_t{0}, "."), "/tmp/a");
-	TEST_EQUAL(st.file_path(file_index_t{0}, "/usr/local/temp"), "/tmp/a");
-#endif
-
-	st.rename_file_impl(file_index_t{0}, combine_path("tmp", "a"));
-	TEST_EQUAL(st.file_path(file_index_t{0}, "."), combine_path("tmp", "a"));
-}
-#endif
 
 TORRENT_TEST(pointer_offset)
 {
@@ -216,9 +248,13 @@ TORRENT_TEST(pointer_offset)
 
 	file_storage st{roothash};
 	st.set_piece_length(16 * 1024);
+	st.set_name("test-torrent-1");
 
-	st.add_file_borrow(
-		{filename, 5}, combine_path("test-torrent-1", "test1"), 10, file_flags_t{}, 0, {}, 0);
+	error_code ec;
+	// roothash is the file_storage(char const*) buffer itself, so its offset
+	// within that buffer is 0
+	st.add_file(ec, {filename, 5}, true, aux::path_element::torrent_root, 10, file_flags_t{}, 0, 0);
+	TEST_CHECK(!ec);
 
 	// test filename_ptr and filename_len
 #if TORRENT_ABI_VERSION <= 2
@@ -290,22 +326,6 @@ TORRENT_TEST(map_file)
 	TEST_EQUAL(rq.piece, 7_piece);
 	TEST_EQUAL(rq.start, 298);
 	TEST_EQUAL(rq.length, 841);
-}
-
-TORRENT_TEST(file_path_hash)
-{
-	// test file_path_hash and path_hash. Make sure we can detect a path
-	// whose name collides with
-	file_storage fs;
-	fs.set_piece_length(512);
-	fs.add_file_borrow({}, combine_path("temp_storage", "Foo"), 17);
-	fs.add_file_borrow({}, combine_path("temp_storage", "foo"), 612);
-
-	std::printf("path: %s\n", fs.file_path(0_file).c_str());
-	std::printf("file: %s\n", fs.file_path(1_file).c_str());
-	std::uint32_t file_hash0 = fs.file_path_hash(0_file, "a");
-	std::uint32_t file_hash1 = fs.file_path_hash(1_file, "a");
-	TEST_EQUAL(file_hash0, file_hash1);
 }
 
 #if TORRENT_ABI_VERSION < 4
@@ -523,163 +543,6 @@ TORRENT_TEST(map_block_mid)
 		TEST_EQUAL(file.size, 1);
 		++offset;
 	}
-}
-
-#ifdef TORRENT_WINDOWS
-#define SEP "\\"
-#else
-#define SEP "/"
-#endif
-
-TORRENT_TEST(sanitize_symlinks)
-{
-	file_storage fs;
-	fs.set_piece_length(1024);
-
-	// invalid
-#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
-	fs.add_file_borrow({}, "test/0", 0, file_storage::flag_symlink, 0, "C:\\invalid\\target\\path");
-#else
-	fs.add_file_borrow({}, "test/0", 0, file_storage::flag_symlink, 0, "/invalid/target/path");
-#endif
-
-	// there is no file with this name, so this is invalid
-	fs.add_file_borrow({}, "test/1", 0, file_storage::flag_symlink, 0, "ZZ");
-
-	// there is no file with this name, so this is invalid
-	fs.add_file_borrow({}, "test/2", 0, file_storage::flag_symlink, 0, "B" SEP "B" SEP "ZZ");
-
-	// this should be OK
-	fs.add_file_borrow({}, "test/3", 0, file_storage::flag_symlink, 0, "0");
-
-	// this should be OK
-	fs.add_file_borrow({}, "test/4", 0, file_storage::flag_symlink, 0, "A");
-
-	// this is advanced, but OK
-	fs.add_file_borrow({}, "test/5", 0, file_storage::flag_symlink, 0, "4" SEP "B");
-
-	// this is advanced, but OK
-	fs.add_file_borrow({}, "test/6", 0, file_storage::flag_symlink, 0, "5" SEP "C");
-
-	// this is not OK
-	fs.add_file_borrow(
-		{}, "test/7", 0, file_storage::flag_symlink, 0, "4" SEP "B" SEP "C" SEP "ZZ");
-
-	// this is the only actual content
-	fs.add_file_borrow({}, "test/A" SEP "B" SEP "C", 10000);
-	fs.set_num_pieces(int((fs.total_size() + 1023) / 1024));
-
-	fs.sanitize_symlinks();
-
-	// these were all invalid symlinks, so they're made to point to themselves
-	TEST_EQUAL(fs.symlink(file_index_t{0}), "test" SEP "0");
-	TEST_EQUAL(fs.symlink(file_index_t{1}), "test" SEP "1");
-	TEST_EQUAL(fs.symlink(file_index_t{2}), "test" SEP "2");
-
-	// ok
-	TEST_EQUAL(fs.symlink(file_index_t{3}), "test" SEP "0");
-	TEST_EQUAL(fs.symlink(file_index_t{4}), "test" SEP "A");
-	TEST_EQUAL(fs.symlink(file_index_t{5}), "test" SEP "4" SEP "B");
-	TEST_EQUAL(fs.symlink(file_index_t{6}), "test" SEP "5" SEP "C");
-
-	// does not point to a valid file
-	TEST_EQUAL(fs.symlink(file_index_t{7}), "test" SEP "7");
-}
-
-TORRENT_TEST(sanitize_symlinks_single_file)
-{
-	file_storage fs;
-	fs.set_piece_length(1024);
-	fs.add_file_borrow({}, "test", 1);
-	fs.set_num_pieces(int((fs.total_size() + 1023) / 1024));
-
-	fs.sanitize_symlinks();
-
-	TEST_EQUAL(fs.file_path(file_index_t{0}), "test");
-}
-
-TORRENT_TEST(sanitize_symlinks_cascade)
-{
-	file_storage fs;
-	fs.set_piece_length(1024);
-
-	fs.add_file_borrow({}, "test/0", 0, file_storage::flag_symlink, 0, "1" SEP "ZZ");
-	fs.add_file_borrow({}, "test/1", 0, file_storage::flag_symlink, 0, "2");
-	fs.add_file_borrow({}, "test/2", 0, file_storage::flag_symlink, 0, "3");
-	fs.add_file_borrow({}, "test/3", 0, file_storage::flag_symlink, 0, "4");
-	fs.add_file_borrow({}, "test/4", 0, file_storage::flag_symlink, 0, "5");
-	fs.add_file_borrow({}, "test/5", 0, file_storage::flag_symlink, 0, "6");
-	fs.add_file_borrow({}, "test/6", 0, file_storage::flag_symlink, 0, "7");
-	fs.add_file_borrow({}, "test/7", 0, file_storage::flag_symlink, 0, "A");
-	fs.add_file_borrow({}, "test/no-exist", 0, file_storage::flag_symlink, 0, "1" SEP "ZZZ");
-
-	// this is the only actual content
-	fs.add_file_borrow({}, "test/A" SEP "ZZ", 10000);
-	fs.set_num_pieces(int((fs.total_size() + 1023) / 1024));
-
-	fs.sanitize_symlinks();
-
-	TEST_EQUAL(fs.symlink(file_index_t{0}), "test" SEP "1" SEP "ZZ");
-	TEST_EQUAL(fs.symlink(file_index_t{1}), "test" SEP "2");
-	TEST_EQUAL(fs.symlink(file_index_t{2}), "test" SEP "3");
-	TEST_EQUAL(fs.symlink(file_index_t{3}), "test" SEP "4");
-	TEST_EQUAL(fs.symlink(file_index_t{4}), "test" SEP "5");
-	TEST_EQUAL(fs.symlink(file_index_t{5}), "test" SEP "6");
-	TEST_EQUAL(fs.symlink(file_index_t{6}), "test" SEP "7");
-	TEST_EQUAL(fs.symlink(file_index_t{7}), "test" SEP "A");
-	TEST_EQUAL(fs.symlink(file_index_t{8}), "test" SEP "no-exist");
-}
-
-TORRENT_TEST(sanitize_symlinks_circular)
-{
-	file_storage fs;
-	fs.set_piece_length(1024);
-
-	fs.add_file_borrow({}, "test/0", 0, file_storage::flag_symlink, 0, "1");
-	fs.add_file_borrow({}, "test/1", 0, file_storage::flag_symlink, 0, "0");
-
-	// when this is resolved, we end up in an infinite loop. Make sure we can
-	// handle that
-	fs.add_file_borrow({}, "test/2", 0, file_storage::flag_symlink, 0, "0/ZZ");
-
-	// this is the only actual content
-	fs.add_file_borrow({}, "test/A" SEP "ZZ", 10000);
-	fs.set_num_pieces(int((fs.total_size() + 1023) / 1024));
-
-	fs.sanitize_symlinks();
-
-	TEST_EQUAL(fs.symlink(file_index_t{0}), "test" SEP "1");
-	TEST_EQUAL(fs.symlink(file_index_t{1}), "test" SEP "0");
-
-	// this was invalid, so it points to itself
-	TEST_EQUAL(fs.symlink(file_index_t{2}), "test" SEP "2");
-}
-
-TORRENT_TEST(sanitize_symlinks_lexicographic)
-{
-	// an `is_directory` based on a single lower_bound() would miss directories
-	// whose name is a strict prefix of another m_paths entry, when a sibling
-	// path sorts between them. e.g. m_paths {"A.bar", "A/B"}: "A.bar" sorts
-	// before "A/B" because '.' (0x2E) < '/' (0x2F), so a search for "A" lands
-	// on "A.bar" and would incorrectly conclude "A" is not a directory symlink.
-	file_storage fs;
-	fs.set_piece_length(1024);
-
-#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
-	fs.add_file_borrow({}, "test\\A.bar\\leaf", 100);
-	fs.add_file_borrow({}, "test\\A\\B\\leaf", 100);
-	fs.add_file_borrow({}, "test\\sym", 0, file_storage::flag_symlink, 0, "A");
-#else
-	fs.add_file_borrow({}, "test/A.bar/leaf", 100);
-	fs.add_file_borrow({}, "test/A/B/leaf", 100);
-	fs.add_file_borrow({}, "test/sym", 0, file_storage::flag_symlink, 0, "A");
-#endif
-
-	fs.set_num_pieces(int((fs.total_size() + 1023) / 1024));
-	fs.sanitize_symlinks();
-
-	// the symlink resolves to the "A" directory in the torrent
-	TEST_EQUAL(fs.symlink(file_index_t{2}), "test" SEP "A");
 }
 
 TORRENT_TEST(query_symlinks)
@@ -991,10 +854,8 @@ TORRENT_TEST(large_filename)
 	// yes, this creates an invalid string_view, as it claims to be larger than
 	// the allocation. This should be OK though as the test for size never
 	// actually looks at the string
-	TEST_THROW(fs1.add_file_borrow(string_view("0", 1 << 12), "test/path/", 10));
-
 	error_code ec;
-	fs1.add_file_borrow(ec, string_view("0", 1 << 12), "test/path/", 10);
+	fs1.add_file(ec, string_view("0", 1 << 12), true, aux::path_element::torrent_root, 10);
 	TEST_EQUAL(ec, make_error_code(boost::system::errc::filename_too_long));
 }
 
@@ -1200,10 +1061,12 @@ TORRENT_TEST(v2_detection_1)
 {
 	file_storage fs = make_v2_storage();
 	fs.set_piece_length(0x8000);
-	// passing in a root hash (the last argument) makes it follow v2 rules, to
-	// add pad files
-	fs.add_file_borrow({}, "test/0", 0x5000, {}, 0, "symlink-test-1");
-	fs.add_file_borrow({}, "test/1", 0x5000, {}, 0, "symlink-test-2");
+	// symlinks (always 0 bytes) don't participate in v1/v2 detection, so
+	// adding some up front doesn't lock in v1 mode; passing in a root hash
+	// (the last argument) on a later, real file makes it follow v2 rules,
+	// to add pad files
+	fs.add_file_borrow({}, "test/0", 0x5000, file_storage::flag_symlink, 0, "symlink-test-1");
+	fs.add_file_borrow({}, "test/1", 0x5000, file_storage::flag_symlink, 0, "symlink-test-2");
 
 	fs.add_file_borrow({}, "test/2", 0x2000, {}, 0, {}, 0);
 	// it's an error to add a v1 file to a v2 torrent
@@ -1214,10 +1077,11 @@ TORRENT_TEST(v2_detection_2)
 {
 	file_storage fs = make_v2_storage();
 	fs.set_piece_length(0x8000);
-	// passing in a root hash (the last argument) makes it follow v2 rules, to
-	// add pad files
-	fs.add_file_borrow({}, "test/0", 0x5000, {}, 0, "symlink-test-1");
-	fs.add_file_borrow({}, "test/1", 0x5000, {}, 0, "symlink-test-2");
+	// symlinks (always 0 bytes) don't participate in v1/v2 detection, so
+	// adding some up front doesn't lock in v1 mode; a later, real file
+	// with no root hash then follows v1 rules
+	fs.add_file_borrow({}, "test/0", 0x5000, file_storage::flag_symlink, 0, "symlink-test-1");
+	fs.add_file_borrow({}, "test/1", 0x5000, file_storage::flag_symlink, 0, "symlink-test-2");
 
 	fs.add_file_borrow({}, "test/2", 0x2000);
 
