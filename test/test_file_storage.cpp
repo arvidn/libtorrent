@@ -127,7 +127,7 @@ TORRENT_TEST(rename_file)
 	file_storage st;
 	setup_test_storage(st);
 
-	st.rename_file(file_index_t{0}, combine_path("test", combine_path("c", "d")));
+	st.rename_file_impl(file_index_t{0}, combine_path("test", combine_path("c", "d")));
 	TEST_EQUAL(st.file_path(file_index_t{0}, "."), combine_path(".", combine_path("test"
 		, combine_path("c", "d"))));
 	TEST_EQUAL(st.file_path(file_index_t{0}, ""), combine_path("test"
@@ -136,16 +136,15 @@ TORRENT_TEST(rename_file)
 	// files with absolute paths should ignore the save_path argument
 	// passed in to file_path()
 #ifdef TORRENT_WINDOWS
-	st.rename_file(file_index_t{0}, "c:\\tmp\\a");
+	st.rename_file_impl(file_index_t{0}, "c:\\tmp\\a");
 	TEST_EQUAL(st.file_path(file_index_t{0}, "."), "c:\\tmp\\a");
 #else
-	st.rename_file(file_index_t{0}, "/tmp/a");
+	st.rename_file_impl(file_index_t{0}, "/tmp/a");
 	TEST_EQUAL(st.file_path(file_index_t{0}, "."), "/tmp/a");
 #endif
 
-	st.rename_file(file_index_t{0}, combine_path("test__", "a"));
-	TEST_EQUAL(st.file_path(file_index_t{0}, "."), combine_path(".", combine_path("test__"
-		, "a")));
+	st.rename_file_impl(file_index_t{0}, combine_path("test__", "a"));
+	TEST_EQUAL(st.file_path(file_index_t{0}, "."), combine_path(".", combine_path("test__", "a")));
 }
 
 TORRENT_TEST(rename_pad_file)
@@ -161,7 +160,7 @@ TORRENT_TEST(rename_pad_file)
 	std::string const pad_path = combine_path("test", combine_path(".pad", "6384"));
 	TEST_EQUAL(st.file_path(file_index_t{1}, ""), pad_path);
 
-	st.rename_file(file_index_t{1}, combine_path("test", "renamed"));
+	st.rename_file_impl(file_index_t{1}, combine_path("test", "renamed"));
 
 	// the rename had no effect
 	TEST_EQUAL(st.file_path(file_index_t{1}, ""), pad_path);
@@ -190,21 +189,21 @@ TORRENT_TEST(rename_file2)
 	st.add_file("a", 10000);
 	TEST_EQUAL(st.file_path(file_index_t{0}, ""), "a");
 
-	st.rename_file(file_index_t{0}, combine_path("test", combine_path("c", "d")));
+	st.rename_file_impl(file_index_t{0}, combine_path("test", combine_path("c", "d")));
 	TEST_EQUAL(st.file_path(file_index_t{0}, "."), combine_path(".", combine_path("test", combine_path("c", "d"))));
 	TEST_EQUAL(st.file_path(file_index_t{0}, ""), combine_path("test", combine_path("c", "d")));
 
 #ifdef TORRENT_WINDOWS
-	st.rename_file(file_index_t{0}, "c:\\tmp\\a");
+	st.rename_file_impl(file_index_t{0}, "c:\\tmp\\a");
 	TEST_EQUAL(st.file_path(file_index_t{0}, "."), "c:\\tmp\\a");
 	TEST_EQUAL(st.file_path(file_index_t{0}, "c:\\test-1\\test2"), "c:\\tmp\\a");
 #else
-	st.rename_file(file_index_t{0}, "/tmp/a");
+	st.rename_file_impl(file_index_t{0}, "/tmp/a");
 	TEST_EQUAL(st.file_path(file_index_t{0}, "."), "/tmp/a");
 	TEST_EQUAL(st.file_path(file_index_t{0}, "/usr/local/temp"), "/tmp/a");
 #endif
 
-	st.rename_file(file_index_t{0}, combine_path("tmp", "a"));
+	st.rename_file_impl(file_index_t{0}, combine_path("tmp", "a"));
 	TEST_EQUAL(st.file_path(file_index_t{0}, "."), combine_path("tmp", "a"));
 }
 #endif

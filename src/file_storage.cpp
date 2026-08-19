@@ -488,12 +488,6 @@ TORRENT_VERSION_NAMESPACE_4
 #endif // TORRENT_ABI_VERSION
 
 #if TORRENT_ABI_VERSION < 4
-	void file_storage::rename_file(file_index_t const index
-		, std::string const& new_filename)
-	{
-		rename_file_impl(index, new_filename);
-	}
-
 	void file_storage::rename_file_impl(file_index_t const index
 		, std::string const& new_filename)
 	{

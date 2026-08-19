@@ -436,13 +436,8 @@ public:
 			, char const* root_hash = nullptr);
 
 #if TORRENT_ABI_VERSION < 4
-		// renames the file at ``index`` to ``new_filename``. Keep in mind
-		// that filenames are expected to be UTF-8 encoded.
-		TORRENT_DEPRECATED
-		void rename_file(file_index_t index, std::string const& new_filename);
-
 		// internal
-		void rename_file_impl(file_index_t index, std::string const& new_filename);
+		TORRENT_UNEXPORT void rename_file_impl(file_index_t index, std::string const& new_filename);
 #endif
 
 #if TORRENT_ABI_VERSION == 1

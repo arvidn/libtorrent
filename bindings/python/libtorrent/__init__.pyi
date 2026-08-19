@@ -1737,11 +1737,6 @@ class file_storage(metaclass=_BoostBaseClass):
         piece_size( (file_storage)arg1, (object)arg2) -> int :
         """
 
-    def rename_file(self, _index: int, _path: str) -> None:
-        """
-        rename_file( (file_storage)arg1, (object)arg2, (str)arg3) -> None :
-        """
-
     def root(self, arg2: int) -> sha256_hash:
         """
         root( (file_storage)arg1, (object)arg2) -> sha256_hash :
