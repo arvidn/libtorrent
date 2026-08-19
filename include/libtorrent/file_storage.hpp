@@ -72,9 +72,7 @@ namespace libtorrent {
 		// the modification time of this file specified in posix time.
 		std::time_t mtime;
 
-		// a SHA-1 hash of the content of the file, or zeros, if no
-		// file hash was present in the torrent file. It can be used to potentially
-		// find alternative sources for the file.
+		// always a default constructed hash.
 		sha1_hash filehash;
 
 		// set to true for files that are not part of the data of the torrent.
@@ -307,9 +305,7 @@ public:
 		// the file that's being added.
 		// This memory is *borrowed*, i.e. it is the caller's
 		// responsibility to make sure it stays valid throughout the lifetime
-		// of this file_storage object or any copy of it. The same thing applies
-		// to ``filehash``, which is an optional pointer to a 20 byte binary
-		// SHA-1 hash of the file.
+		// of this file_storage object or any copy of it.
 		//
 		// if ``filename`` is empty, the filename from ``path`` is used and not
 		// borrowed.
@@ -585,9 +581,7 @@ public:
 #endif
 
 #if TORRENT_ABI_VERSION < 4
-		// The ``hash()`` is a SHA-1 hash of the file, or 0 if none was
-		// provided in the torrent file. This can potentially be used to
-		// join a bittorrent network with other file sharing networks.
+		// always returns a default constructed hash.
 		TORRENT_DEPRECATED
 		sha1_hash hash(file_index_t index) const;
 #endif
@@ -772,9 +766,6 @@ public:
 			std::string const& path,
 			std::int64_t const file_size,
 			file_flags_t const file_flags,
-#if TORRENT_ABI_VERSION < 4
-			char const* filehash,
-#endif
 			std::int64_t const mtime,
 			string_view const symlink_path,
 			std::int32_t const root_hash_offset);
@@ -805,19 +796,6 @@ public:
 
 		// the list of files that this torrent consists of
 		aux::vector<aux::file_entry, file_index_t> m_files;
-
-#if TORRENT_ABI_VERSION < 4
-		// if there are sha1 hashes for each individual file there are as many
-		// entries in this array as the m_files array. Each entry in m_files has
-		// a corresponding hash pointer in this array. The reason to split it up
-		// in separate arrays is to save memory in case the torrent doesn't have
-		// file hashes
-		// the pointers in this vector are pointing into the .torrent file in
-		// memory which is _not_ owned by this file_storage object. It's simply
-		// a non-owning pointer. It is the user's responsibility that the hash
-		// stays valid throughout the lifetime of this file_storage object.
-		aux::vector<char const*, file_index_t> m_file_hashes;
-#endif
 
 		// for files that are symlinks, the symlink
 		// path_index in the aux::file_entry indexes
