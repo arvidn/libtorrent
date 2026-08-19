@@ -31,8 +31,9 @@ jobs:
 
       - name: update package lists
         continue-on-error: true
+        timeout-minutes: 5
         run: |
-          sudo apt update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=10 -o Acquire::https::Timeout=10 update
 
       - uses: Chocobo1/setup-ccache-action@v1
         with:
@@ -43,8 +44,8 @@ jobs:
 
       - name: install dependencies
         run: |
-          sudo apt install python3-docutils python3-pygments python3-pil gsfonts inkscape icoutils graphviz hunspell imagemagick rsync
-          sudo apt install libboost-tools-dev libboost-python-dev libboost-dev libboost-system-dev libboost-json-dev python3-setuptools
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python3-docutils python3-pygments python3-pil gsfonts inkscape icoutils graphviz hunspell imagemagick rsync
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libboost-tools-dev libboost-python-dev libboost-dev libboost-system-dev libboost-json-dev python3-setuptools
           python3 -m pip install aafigure
           python3 -m pip install websockets
           echo "using gcc ;" >>~/user-config.jam

@@ -31,6 +31,14 @@ Two optional build features (defined in `fuzzers/Jamfile`):
   and invariant checks all off. Combine with `test-coverage=on` to measure
   code coverage from an existing corpus.
 
+The default-build also pins `<deprecated-functions>1` (`TORRENT_ABI_VERSION=1`,
+the oldest/most inclusive ABI -- see the table in the top-level `CLAUDE.md`),
+so every fuzzer target, not just `bdecode_entry` (below), compiles and fuzzes
+the full set of deprecated APIs alongside the current ones. `TORRENT_ABI_VERSION`
+guards in the codebase are exact-match (`== 1`) or lower-bound (`>= N`) checks,
+never upper-bound, so ABI 1 is a strict superset of what any higher ABI value
+compiles; this is safe project-wide.
+
 ### Running a fuzzer
 
 Run a specific fuzzer against a corpus (single job):
@@ -75,6 +83,14 @@ deduplicate and minimize:
 
 (Passing the same directory as both source and destination is safe; libFuzzer
 reads all inputs first, then writes the minimized set back.)
+
+### bdecode_node.cpp vs bdecode_entry.cpp
+
+`bdecode_node.cpp` fuzzes the modern `lt::bdecode(span<char const>, ...)`
+from `bdecode.hpp`; `bdecode_entry.cpp` fuzzes the deprecated,
+`TORRENT_ABI_VERSION == 1`-only `lt::bdecode<InIt>()` overloads in
+`bencode.hpp`. They share no code path. `bdecode_entry` degrades to a
+no-op stub if built at any other ABI, rather than failing to compile.
 
 ### Structure
 

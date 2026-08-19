@@ -171,7 +171,7 @@ jobs:
 
     - name: install openssl (linux)
       if: runner.os == 'Linux'
-      run: sudo apt-get install libssl-dev
+      run: sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libssl-dev
 
     - name: setup msbuild (windows)
       if: runner.os == 'Windows'

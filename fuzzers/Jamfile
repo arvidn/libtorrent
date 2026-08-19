@@ -45,6 +45,7 @@ project fuzzers
 	<asserts>on
 	<debug-symbols>on
 	<webtorrent>on
+	<deprecated-functions>1
 	;
 
 local TARGETS ;
@@ -58,6 +59,7 @@ rule fuzzer ( name )
 fuzzer torrent_info ;
 fuzzer parse_magnet_uri ;
 fuzzer bdecode_node ;
+fuzzer bdecode_entry ;
 fuzzer parse_int ;
 fuzzer piece_layers ;
 fuzzer hash_picker ;
