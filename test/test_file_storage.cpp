@@ -212,28 +212,13 @@ TORRENT_TEST(pointer_offset)
 {
 	// test applying pointer offset
 	char const filename[] = "test1fooba";
-#if TORRENT_ABI_VERSION < 4
-	char const filehash[] = "01234567890123456789-----";
-#endif
 	char const roothash[] = "01234567890123456789012345678912-----";
 
 	file_storage st{roothash};
 	st.set_piece_length(16 * 1024);
 
-	st.add_file_borrow({filename, 5},
-		combine_path("test-torrent-1", "test1"),
-		10,
-		file_flags_t{},
-#if TORRENT_ABI_VERSION < 4
-		filehash,
-#endif
-		0,
-		{},
-#if TORRENT_ABI_VERSION < 4
-		roothash);
-#else
-		0);
-#endif
+	st.add_file_borrow(
+		{filename, 5}, combine_path("test-torrent-1", "test1"), 10, file_flags_t{}, 0, {}, 0);
 
 	// test filename_ptr and filename_len
 #if TORRENT_ABI_VERSION <= 2

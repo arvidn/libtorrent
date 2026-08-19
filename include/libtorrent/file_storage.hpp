@@ -300,15 +300,24 @@ public:
 		void reserve(int num_files);
 
 		// internal
-		// Adds a file to the file storage. The ``add_file_borrow`` version
-		// expects that ``filename`` is the file name (without a path) of
-		// the file that's being added.
-		// This memory is *borrowed*, i.e. it is the caller's
-		// responsibility to make sure it stays valid throughout the lifetime
-		// of this file_storage object or any copy of it.
-		//
-		// if ``filename`` is empty, the filename from ``path`` is used and not
-		// borrowed.
+		// ``filename`` is *borrowed*, i.e. it is the caller's responsibility to
+		// make sure it stays valid throughout the lifetime of this file_storage
+		// object or any copy of it. If ``filename`` is empty, the filename from
+		// ``path`` is used and not borrowed. ``root_hash_offset`` is the byte
+		// offset of the v2 (BEP 52) merkle tree root hash within the buffer
+		// this file_storage was constructed with (see the ``file_storage(char
+		// const*)`` constructor); use ``file_storage::no_root_hash`` when
+		// there is none.
+#ifndef BOOST_NO_EXCEPTIONS
+		TORRENT_UNEXPORT void add_file_borrow(string_view filename,
+			std::string const& path,
+			std::int64_t file_size,
+			file_flags_t file_flags = {},
+			std::int64_t mtime = 0,
+			string_view symlink_path = string_view(),
+			std::int32_t root_hash_offset = no_root_hash);
+
+		// Adds a file to the file storage.
 		//
 		// The ``path`` argument is the full path (in the torrent file) to
 		// the file to add. Note that this is not supposed to be an absolute
@@ -339,11 +348,6 @@ public:
 		// computed. When creating torrents, the file hashes will be
 		// computed by the piece hashes.
 		//
-		// ``add_file_borrow()`` additionally has an overload taking
-		// ``root_hash_offset``, the byte offset of the root hash within
-		// that same buffer, instead of a pointer. Use
-		// ``file_storage::no_root_hash`` when there is none.
-		//
 		// If more files than one are added, certain restrictions to their paths
 		// apply. In a multi-file file storage (torrent), all files must share
 		// the same root directory.
@@ -354,70 +358,17 @@ public:
 		//
 		// The overloads that take an `error_code` reference will report failures
 		// via that variable, otherwise `system_error` is thrown.
-#ifndef BOOST_NO_EXCEPTIONS
-#if TORRENT_ABI_VERSION < 4
-		TORRENT_DEPRECATED
-		TORRENT_UNEXPORT void add_file_borrow(string_view filename,
-			std::string const& path,
-			std::int64_t file_size,
-			file_flags_t file_flags,
-			char const* filehash,
-			std::int64_t mtime = 0,
-			string_view symlink_path = string_view(),
-			char const* root_hash = nullptr);
-#endif
-#if TORRENT_ABI_VERSION < 5
-		TORRENT_DEPRECATED
-		TORRENT_UNEXPORT void add_file_borrow(string_view filename,
-			std::string const& path,
-			std::int64_t file_size,
-			file_flags_t file_flags,
-			std::int64_t mtime,
-			string_view symlink_path,
-			char const* root_hash);
-#endif
-		TORRENT_UNEXPORT void add_file_borrow(string_view filename,
-			std::string const& path,
-			std::int64_t file_size,
-			file_flags_t file_flags = {},
-			std::int64_t mtime = 0,
-			string_view symlink_path = string_view(),
-			std::int32_t root_hash_offset = no_root_hash);
 		void add_file(std::string const& path, std::int64_t file_size
 			, file_flags_t file_flags = {}
 			, std::time_t mtime = 0, string_view symlink_path = string_view()
 			, char const* root_hash = nullptr);
 #endif // BOOST_NO_EXCEPTIONS
-#if TORRENT_ABI_VERSION < 4
-		TORRENT_DEPRECATED
-		TORRENT_UNEXPORT void add_file_borrow(error_code& ec,
-			string_view filename,
-			std::string const& path,
-			std::int64_t file_size,
-			file_flags_t file_flags,
-			char const* filehash,
-			std::int64_t mtime = 0,
-			string_view symlink_path = string_view(),
-			char const* root_hash = nullptr);
-#endif
-#if TORRENT_ABI_VERSION < 5
-		TORRENT_DEPRECATED
-		TORRENT_UNEXPORT void add_file_borrow(error_code& ec,
-			string_view filename,
-			std::string const& path,
-			std::int64_t file_size,
-			file_flags_t file_flags,
-			std::int64_t mtime,
-			string_view symlink_path,
-			char const* root_hash);
-#endif
+
 		// internal
-		// these overloads report failures through the ``ec`` reference
-		// rather than throwing. ``add_file_borrow()`` does not copy the
-		// ``filename`` string; it is borrowed by reference and the caller
-		// must keep it alive for the lifetime of this ``file_storage``
-		// object. This is useful when constructing the file list from a
-		// memory-mapped .torrent file.
+		// this overload does not copy the ``filename`` string; it is borrowed
+		// by reference and the caller must keep it alive for the lifetime of
+		// this ``file_storage`` object. This is useful when constructing the
+		// file list from a memory-mapped .torrent file.
 		TORRENT_UNEXPORT void add_file_borrow(error_code& ec,
 			string_view filename,
 			std::string const& path,
@@ -426,6 +377,9 @@ public:
 			std::int64_t mtime = 0,
 			string_view symlink_path = string_view(),
 			std::int32_t root_hash_offset = no_root_hash);
+
+		// this overload reports failures through the ``ec`` reference rather
+		// than throwing.
 		void add_file(error_code& ec, std::string const& path, std::int64_t file_size
 			, file_flags_t file_flags = {}
 			, std::time_t mtime = 0, string_view symlink_path = string_view()
@@ -439,15 +393,6 @@ public:
 #if TORRENT_ABI_VERSION == 1
 #include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 
-		TORRENT_DEPRECATED
-		TORRENT_UNEXPORT void add_file_borrow(char const* filename,
-			int filename_len,
-			std::string const& path,
-			std::int64_t file_size,
-			file_flags_t file_flags = {},
-			char const* filehash = nullptr,
-			std::int64_t mtime = 0,
-			string_view symlink_path = string_view());
 		TORRENT_DEPRECATED
 		void add_file(file_entry const& fe, char const* filehash = nullptr);
 

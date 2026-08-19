@@ -465,25 +465,16 @@ TORRENT_VERSION_NAMESPACE_4
 
 #if TORRENT_ABI_VERSION == 1
 
-	void file_storage::add_file_borrow(char const* filename, int filename_len
-		, std::string const& path, std::int64_t file_size, file_flags_t file_flags
-		, char const* filehash, std::int64_t mtime, string_view symlink_path)
-	{
-		TORRENT_ASSERT(filename_len >= 0);
-		add_file_borrow({filename, std::size_t(filename_len)}, path, file_size
-			, file_flags, filehash, mtime, symlink_path);
-	}
-
 	void file_storage::add_file(file_entry const& fe, char const* filehash)
 	{
+		TORRENT_UNUSED(filehash);
 		file_flags_t flags = {};
 		if (fe.pad_file) flags |= file_storage::flag_pad_file;
 		if (fe.hidden_attribute) flags |= file_storage::flag_hidden;
 		if (fe.executable_attribute) flags |= file_storage::flag_executable;
 		if (fe.symlink_attribute) flags |= file_storage::flag_symlink;
 
-		add_file_borrow({}, fe.path, fe.size, flags, filehash, fe.mtime
-			, fe.symlink_path);
+		add_file_borrow({}, fe.path, fe.size, flags, fe.mtime, fe.symlink_path);
 	}
 #endif // TORRENT_ABI_VERSION
 
@@ -732,32 +723,6 @@ TORRENT_VERSION_NAMESPACE_4
 		if (ec) aux::throw_ex<system_error>(ec);
 	}
 
-#if TORRENT_ABI_VERSION < 4
-	void file_storage::add_file_borrow(string_view filename
-		, std::string const& path, std::int64_t const file_size
-		, file_flags_t const file_flags, char const* filehash
-		, std::int64_t const mtime, string_view const symlink_path
-		, char const* root_hash)
-	{
-		TORRENT_UNUSED(filehash);
-		std::int32_t const root_hash_offset = root_hash_to_offset(root_hash);
-		error_code ec;
-		add_file_borrow_impl(
-			ec, filename, path, file_size, file_flags, mtime, symlink_path, root_hash_offset);
-		if (ec) aux::throw_ex<system_error>(ec);
-	}
-#endif
-#if TORRENT_ABI_VERSION < 5
-	void file_storage::add_file_borrow(string_view filename
-		, std::string const& path, std::int64_t const file_size
-		, file_flags_t const file_flags, std::int64_t const mtime
-		, string_view const symlink_path, char const* root_hash)
-	{
-		std::int32_t const root_hash_offset = root_hash_to_offset(root_hash);
-		add_file_borrow(
-			filename, path, file_size, file_flags, mtime, symlink_path, root_hash_offset);
-	}
-#endif
 	void file_storage::add_file_borrow(string_view filename,
 		std::string const& path,
 		std::int64_t const file_size,
@@ -781,31 +746,6 @@ TORRENT_VERSION_NAMESPACE_4
 		add_file_borrow_impl(
 			ec, {}, path, file_size, file_flags, mtime, symlink_path, root_hash_offset);
 	}
-
-#if TORRENT_ABI_VERSION < 4
-	void file_storage::add_file_borrow(error_code& ec, string_view filename
-		, std::string const& path, std::int64_t const file_size
-		, file_flags_t const file_flags, char const* filehash
-		, std::int64_t const mtime, string_view const symlink_path
-		, char const* root_hash)
-	{
-		TORRENT_UNUSED(filehash);
-		std::int32_t const root_hash_offset = root_hash_to_offset(root_hash);
-		add_file_borrow_impl(
-			ec, filename, path, file_size, file_flags, mtime, symlink_path, root_hash_offset);
-	}
-#endif
-#if TORRENT_ABI_VERSION < 5
-	void file_storage::add_file_borrow(error_code& ec, string_view filename
-		, std::string const& path, std::int64_t const file_size
-		, file_flags_t const file_flags, std::int64_t const mtime
-		, string_view const symlink_path, char const* root_hash)
-	{
-		std::int32_t const root_hash_offset = root_hash_to_offset(root_hash);
-		add_file_borrow(
-			ec, filename, path, file_size, file_flags, mtime, symlink_path, root_hash_offset);
-	}
-#endif
 
 	void file_storage::add_file_borrow(error_code& ec,
 		string_view filename,
