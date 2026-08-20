@@ -699,8 +699,10 @@ feature openssl-version : 1.1 pre1.1 : composite propagated ;
 # 4: libtorrent-2.1
 # on: oldest supported version
 # off: most recent version
+# default ("2") must match TORRENT_ABI_VERSION's fallback in export.hpp
 feature deprecated-functions : 2 on off 1 3 4 : composite propagated link-incompatible ;
 feature.compose <deprecated-functions>off : <define>TORRENT_ABI_VERSION=100 ;
+feature.compose <deprecated-functions>on : <define>TORRENT_ABI_VERSION=1 ;
 feature.compose <deprecated-functions>1 : <define>TORRENT_ABI_VERSION=1 ;
 feature.compose <deprecated-functions>2 : <define>TORRENT_ABI_VERSION=2 ;
 feature.compose <deprecated-functions>3 : <define>TORRENT_ABI_VERSION=3 ;
