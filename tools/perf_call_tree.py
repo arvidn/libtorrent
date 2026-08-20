@@ -42,6 +42,9 @@ import math
 from pathlib import Path
 import re
 import subprocess
+import time
+from typing import Iterable
+from typing import Iterator
 from typing import Optional
 
 
@@ -67,24 +70,51 @@ class Node:
         return node
 
 
-def run_perf_script(perf_data: Path) -> str:
-    """Run 'perf script' on perf_data and return its stdout. Exits with a clear
-    message if perf is missing or fails."""
-    cmd = ["perf", "script", "-i", str(perf_data)]
+# fields requested from 'perf script'. this is deliberately narrower than the
+# default field set (which includes 'period' and, when available, 'cpu') --
+# every field perf is asked for costs it work to compute, and none of the
+# omitted ones are used by parse_samples(). 'cpu' is left out entirely rather
+# than made conditional: an explicit '-F' request errors out for *all* fields
+# if any single one isn't available for the recorded event (e.g. samples
+# taken without system-wide '-a' have no per-event cpu attribute), and the
+# header regex already treats cpu as optional.
+_PERF_SCRIPT_FIELDS = "comm,pid,tid,time,ip,sym,dso"
+
+
+def run_perf_script(perf_data: Path) -> Iterator[str]:
+    """Run 'perf script' on perf_data and yield its stdout lines as they are
+    produced, rather than buffering the whole (potentially huge) text output
+    before parsing starts -- this lets perf's own symbol resolution and this
+    process's line parsing overlap on separate cores, and avoids holding two
+    full copies of the text in memory. '--no-inline' skips per-address DWARF
+    inline-frame lookup, which parse_samples() never uses but which is
+    otherwise the dominant cost of 'perf script' on binaries with debug info.
+    Exits with a clear message if perf is missing or fails."""
+    cmd = [
+        "perf",
+        "script",
+        "-i",
+        str(perf_data),
+        "--no-inline",
+        "-F",
+        _PERF_SCRIPT_FIELDS,
+    ]
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True)
     except FileNotFoundError:
         raise SystemExit(
             "ERROR: 'perf' is not installed or not in PATH.\n"
             "  Debian/Ubuntu: sudo apt install linux-perf (or linux-tools-*)\n"
             "  Fedora/RHEL:   sudo dnf install perf"
         )
-    except subprocess.CalledProcessError as e:
-        raise SystemExit(
-            f"ERROR: '{' '.join(cmd)}' exited with code {e.returncode}\n\n"
-            f"perf output:\n{e.stderr.strip()}"
-        )
-    return result.stdout
+    assert proc.stdout is not None
+    try:
+        yield from proc.stdout
+    finally:
+        proc.stdout.close()
+        returncode = proc.wait()
+        if returncode != 0:
+            raise SystemExit(f"ERROR: '{' '.join(cmd)}' exited with code {returncode}")
 
 
 # a stack frame line from 'perf script' looks like:
@@ -316,12 +346,13 @@ def frame_symbol(
 
 
 def parse_samples(
-    text: str,
+    lines: Iterable[str],
     strip_ret: bool = True,
     collapse_tmpl: bool = True,
     abbrev_ns: bool = True,
 ) -> tuple[list[list[tuple[str, bool]]], list[tuple[str, float]]]:
-    """Parse 'perf script' output into a list of call stacks. Each stack is a
+    """Parse 'perf script' output (as an iterable of lines, e.g. streamed
+    directly from the perf process) into a list of call stacks. Each stack is a
     list of (function name, is_system) pairs ordered root -> leaf, where
     is_system marks kernel or libc frames. A synthetic frame identifying the
     originating thread (comm + tid) is prepended to every stack, so each thread
@@ -351,7 +382,7 @@ def parse_samples(
         frames = []
         have_record = False
 
-    for line in text.splitlines():
+    for line in lines:
         if line.strip() == "":
             flush()
             continue
@@ -849,8 +880,12 @@ def main(
     collapse_tmpl: bool = True,
     abbrev_ns: bool = True,
 ) -> None:
-    text = run_perf_script(perf_data)
-    samples, events = parse_samples(text, strip_ret, collapse_tmpl, abbrev_ns)
+    start = time.perf_counter()
+    samples, events = parse_samples(
+        run_perf_script(perf_data), strip_ret, collapse_tmpl, abbrev_ns
+    )
+    elapsed = time.perf_counter() - start
+    print(f"'perf script' + parsing: {elapsed:.2f}s ({len(samples)} samples)")
     if not samples:
         raise SystemExit(
             f"ERROR: no call-stack samples found in {perf_data}.\n"
