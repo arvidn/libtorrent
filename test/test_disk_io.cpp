@@ -95,7 +95,7 @@ static void disk_io_test_suite_impl(lt::disk_io_constructor_type disk_io,
 	{
 		int const file_size = piece_size * 2 + i * 11;
 		total_size += file_size;
-		fs.add_file("test-torrent/file-" + std::to_string(i), file_size, {});
+		fs.add_file_borrow({}, "test-torrent/file-" + std::to_string(i), file_size, {});
 	}
 	fs.set_num_pieces(int((total_size + piece_size - 1) / piece_size));
 
@@ -336,7 +336,7 @@ static void hash2_before_flush_impl(
 	lt::file_storage fs;
 	fs.set_piece_length(piece_size);
 	int const file_size = piece_size * 3 + 17;
-	fs.add_file("hash2_before_flush_torrent/file-0", file_size, {});
+	fs.add_file_borrow({}, "hash2_before_flush_torrent/file-0", file_size, {});
 	fs.set_num_pieces(int((file_size + piece_size - 1) / piece_size));
 
 	lt::storage_holder storage = add_test_torrent(*disk_thread,
@@ -500,7 +500,7 @@ static void unaligned_cross_block_read_impl(
 	fs.set_piece_length(piece_size);
 	// one extra, never-written piece to raise a no-op storage fence on.
 	int const file_size = piece_size * (num_test_pieces + 1);
-	fs.add_file("unaligned_read_torrent/file-0", file_size, {});
+	fs.add_file_borrow({}, "unaligned_read_torrent/file-0", file_size, {});
 	fs.set_num_pieces(int((file_size + piece_size - 1) / piece_size));
 
 	lt::storage_holder storage =
@@ -711,7 +711,7 @@ static void clear_during_flush_impl(
 	lt::file_storage fs;
 	fs.set_piece_length(piece_size);
 	int const file_size = piece_size * 4;
-	fs.add_file("clear_during_flush_torrent/file-0", file_size, {});
+	fs.add_file_borrow({}, "clear_during_flush_torrent/file-0", file_size, {});
 	fs.set_num_pieces(int((file_size + piece_size - 1) / piece_size));
 
 	lt::aux::vector<lt::download_priority_t, lt::file_index_t> priorities;

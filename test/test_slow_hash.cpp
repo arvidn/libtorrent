@@ -84,7 +84,7 @@ void hash_job_retry_test(lt::disk_io_constructor_type disk_io
 	int const piece_size = 2 * lt::default_block_size;
 	lt::file_storage fs;
 	fs.set_piece_length(piece_size);
-	fs.add_file("test-retry/file-0", piece_size, {});
+	fs.add_file_borrow({}, "test-retry/file-0", piece_size, {});
 	fs.set_num_pieces(1);
 
 	// Step 1: pre-create the file so the retried hash job can read block 1.

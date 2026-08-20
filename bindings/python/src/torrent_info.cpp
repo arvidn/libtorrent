@@ -273,36 +273,6 @@ namespace {
 		python_deprecated("send_stats is deprecated");
 		return ae.send_stats;
 	}
-	std::int64_t get_size(file_entry const& fe)
-	{
-		python_deprecated("file_entry is deprecated");
-		return fe.size;
-	}
-	std::int64_t get_offset(file_entry const& fe)
-	{
-		python_deprecated("file_entry is deprecated");
-		return fe.offset;
-	}
-	bool get_pad_file(file_entry const& fe)
-	{
-		python_deprecated("file_entry is deprecated");
-		return fe.pad_file;
-	}
-	bool get_executable_attribute(file_entry const& fe)
-	{
-		python_deprecated("file_entry is deprecated");
-		return fe.executable_attribute;
-	}
-	bool get_hidden_attribute(file_entry const& fe)
-	{
-		python_deprecated("file_entry is deprecated");
-		return fe.hidden_attribute;
-	}
-	bool get_symlink_attribute(file_entry const& fe)
-	{
-		python_deprecated("file_entry is deprecated");
-		return fe.symlink_attribute;
-	}
 #endif
 
 } // namespace unnamed
@@ -395,14 +365,6 @@ std::shared_ptr<torrent_info> bencoded_constructor1(dict d, dict limits)
 }
 #endif
 
-#if TORRENT_ABI_VERSION == 1
-std::shared_ptr<file_entry> file_entry_constructor()
-{
-	python_deprecated("file_entry is deprecated");
-	return std::make_shared<file_entry>();
-}
-#endif
-
 using by_value = return_value_policy<return_by_value>;
 void bind_torrent_info()
 {
@@ -449,25 +411,19 @@ void bind_torrent_info()
 		.def("__init__", make_constructor(&sha256_constructor0))
 
 #if TORRENT_ABI_VERSION < 4
-		.def(
-			"add_tracker",
+		.def("add_tracker",
 			(add_tracker1)&torrent_info::add_tracker,
-			(arg("url"), arg("tier") = 0, arg("source") = announce_entry::source_client)
-		)
-		.def(
-			"add_url_seed",
+			(arg("url"), arg("tier") = 0, arg("source") = announce_entry::source_client))
+		.def("add_url_seed",
 			&torrent_info::add_url_seed,
 			(arg("url"),
-			 arg("extern_auth") = std::string{},
-			 arg("extra_headers") = web_seed_entry::headers_t{})
-		)
-		.def(
-			"add_http_seed",
+				arg("extern_auth") = std::string{},
+				arg("extra_headers") = web_seed_entry::headers_t{}))
+		.def("add_http_seed",
 			depr(&torrent_info::add_http_seed),
 			(arg("url"),
-			 arg("extern_auth") = std::string{},
-			 arg("extra_headers") = web_seed_entry::headers_t{})
-		)
+				arg("extern_auth") = std::string{},
+				arg("extra_headers") = web_seed_entry::headers_t{}))
 		.def("web_seeds", get_web_seeds)
 		.def("set_web_seeds", set_web_seeds)
 #endif
@@ -502,10 +458,6 @@ void bind_torrent_info()
 		.def("orig_files", depr(&torrent_info::orig_files), return_internal_reference<>())
 #endif
 
-#if TORRENT_ABI_VERSION == 1
-		.def("file_at", depr(&torrent_info::file_at))
-#endif // TORRENT_ABI_VERSION
-
 		.def("is_valid", &torrent_info::is_valid)
 		.def("priv", &torrent_info::priv)
 		.def("is_i2p", &torrent_info::is_i2p)
@@ -525,21 +477,6 @@ void bind_torrent_info()
 		.def("info_section", &get_info_section)
 		.def("map_block", map_block)
 		.def("map_file", &torrent_info::map_file);
-
-#if TORRENT_ABI_VERSION == 1
-	class_<file_entry>("file_entry", no_init)
-		.def("__init__", make_constructor(&file_entry_constructor))
-		.def_readwrite("path", &file_entry::path)
-		.def_readwrite("symlink_path", &file_entry::symlink_path)
-		.def_readwrite("filehash", &file_entry::filehash)
-		.def_readwrite("mtime", &file_entry::mtime)
-		.add_property("pad_file", &get_pad_file)
-		.add_property("executable_attribute", &get_executable_attribute)
-		.add_property("hidden_attribute", &get_hidden_attribute)
-		.add_property("symlink_attribute", &get_symlink_attribute)
-		.add_property("offset", &get_offset)
-		.add_property("size", &get_size);
-#endif
 
 	class_<announce_entry>("announce_entry", init<std::string const&>())
 		.def_readwrite("url", &announce_entry::url)

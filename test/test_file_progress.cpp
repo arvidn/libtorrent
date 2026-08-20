@@ -22,13 +22,13 @@ TORRENT_TEST(init)
 	const int piece_size = 256;
 
 	file_storage fs;
-	fs.add_file("torrent/1", 0);
-	fs.add_file("torrent/2", 10);
-	fs.add_file("torrent/3", 20);
-	fs.add_file("torrent/4", 30);
-	fs.add_file("torrent/5", 40);
-	fs.add_file("torrent/6", 100000);
-	fs.add_file("torrent/7", 30);
+	fs.add_file_borrow({}, "torrent/1", 0);
+	fs.add_file_borrow({}, "torrent/2", 10);
+	fs.add_file_borrow({}, "torrent/3", 20);
+	fs.add_file_borrow({}, "torrent/4", 30);
+	fs.add_file_borrow({}, "torrent/5", 40);
+	fs.add_file_borrow({}, "torrent/6", 100000);
+	fs.add_file_borrow({}, "torrent/7", 30);
 	fs.set_piece_length(piece_size);
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 
@@ -59,8 +59,8 @@ TORRENT_TEST(init2)
 	const int piece_size = 256;
 
 	file_storage fs;
-	fs.add_file("torrent/1", 100000);
-	fs.add_file("torrent/2", 10);
+	fs.add_file_borrow({}, "torrent/1", 100000);
+	fs.add_file_borrow({}, "torrent/2", 10);
 	fs.set_piece_length(piece_size);
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 
@@ -89,9 +89,9 @@ TORRENT_TEST(update_simple_sequential)
 	int const piece_size = 256;
 
 	file_storage fs;
-	fs.add_file("torrent/1", 100000);
-	fs.add_file("torrent/2", 100);
-	fs.add_file("torrent/3", 45000);
+	fs.add_file_borrow({}, "torrent/1", 100000);
+	fs.add_file_borrow({}, "torrent/2", 100);
+	fs.add_file_borrow({}, "torrent/3", 45000);
 	fs.set_piece_length(piece_size);
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 
@@ -123,9 +123,9 @@ TORRENT_TEST(pad_file_completion_callback)
 	int const piece_size = 256;
 
 	file_storage fs;
-	fs.add_file("torrent/1", 100000);
-	fs.add_file("torrent/2", 100, file_storage::flag_pad_file);
-	fs.add_file("torrent/3", 45000);
+	fs.add_file_borrow({}, "torrent/1", 100000);
+	fs.add_file_borrow({}, "torrent/2", 100, file_storage::flag_pad_file);
+	fs.add_file_borrow({}, "torrent/3", 45000);
 	fs.set_piece_length(piece_size);
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 

@@ -111,7 +111,7 @@ int run_test(test_case const& t)
 	{
 		for (int i = 0; i < t.num_files; ++i)
 		{
-			fs.add_file("test/" + std::to_string(i), file_size);
+			fs.add_file_borrow({}, "test/" + std::to_string(i), file_size);
 			file_size *= 2;
 		}
 		std::int64_t const total_size = fs.total_size();

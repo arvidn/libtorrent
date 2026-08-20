@@ -44,9 +44,9 @@ TORRENT_TEST(truncate_small_files)
 	using lt::combine_path;
 
 	lt::file_storage fs;
-	fs.add_file(combine_path("test", "a"), 100);
-	fs.add_file(combine_path("test", "b"), 900);
-	fs.add_file(combine_path("test", "c"), 10);
+	fs.add_file_borrow({}, combine_path("test", "a"), 100);
+	fs.add_file_borrow({}, combine_path("test", "b"), 900);
+	fs.add_file_borrow({}, combine_path("test", "c"), 10);
 
 	create_file(combine_path("test", "a"), 99);
 	create_file(combine_path("test", "b"), 899);
@@ -66,9 +66,9 @@ TORRENT_TEST(truncate_large_files)
 	using lt::combine_path;
 
 	lt::file_storage fs;
-	fs.add_file(combine_path("test", "a"), 100);
-	fs.add_file(combine_path("test", "b"), 900);
-	fs.add_file(combine_path("test", "c"), 10);
+	fs.add_file_borrow({}, combine_path("test", "a"), 100);
+	fs.add_file_borrow({}, combine_path("test", "b"), 900);
+	fs.add_file_borrow({}, combine_path("test", "c"), 10);
 
 	create_file(combine_path("test", "a"), 101);
 	create_file(combine_path("test", "b"), 901);

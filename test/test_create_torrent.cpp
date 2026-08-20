@@ -92,7 +92,7 @@ TORRENT_TEST(auto_piece_size)
 #if TORRENT_ABI_VERSION < 4
 		{
 			lt::file_storage fs;
-			fs.add_file("a", t.first);
+			fs.add_file_borrow({}, "a", t.first);
 			lt::create_torrent ct(fs, 0);
 			TEST_CHECK(ct.piece_length() == static_cast<int>(t.second));
 		}
@@ -116,7 +116,7 @@ int test_piece_size(int const piece_size, lt::create_flags_t const f = {})
 #if TORRENT_ABI_VERSION < 4
 	{
 		lt::file_storage fs;
-		fs.add_file("a", 100 * MiB);
+		fs.add_file_borrow({}, "a", 100 * MiB);
 		lt::create_torrent ct2(fs, piece_size, f);
 		TEST_EQUAL(ct2.piece_length(), ct.piece_length());
 	}

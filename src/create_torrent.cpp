@@ -199,11 +199,11 @@ namespace {
 				// target as well (e.g. to reject symlinks pointing at files
 				// the predicate excluded earlier)
 				if (!pred(combine_path(torrent_root, sym_path))) return;
-				fs.add_file(l, 0, file_flags, std::time_t(s.mtime), sym_path);
+				fs.add_file_borrow({}, l, 0, file_flags, std::time_t(s.mtime), sym_path);
 			}
 			else
 			{
-				fs.add_file(l, s.file_size, file_flags, std::time_t(s.mtime));
+				fs.add_file_borrow({}, l, s.file_size, file_flags, std::time_t(s.mtime));
 			}
 		}
 	}
@@ -420,7 +420,7 @@ namespace {
 		file_storage ret;
 		ret.set_piece_length(piece_size);
 		for (auto const& f : files)
-			ret.add_file(f.filename, f.size, f.flags);
+			ret.add_file_borrow({}, f.filename, f.size, f.flags);
 		ret.set_num_pieces(aux::calc_num_pieces(ret));
 		return ret;
 	}

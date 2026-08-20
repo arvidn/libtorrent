@@ -419,42 +419,6 @@ TORRENT_VERSION_NAMESPACE_4
 		bool v1() const;
 		bool v2() const;
 
-#if TORRENT_ABI_VERSION == 1
-		// deprecated in 1.0. Use the variants that take an index instead
-		// internal_file_entry is no longer exposed in the API
-		using file_iterator = file_storage::iterator;
-		using reverse_file_iterator = file_storage::reverse_iterator;
-
-		// This class will need some explanation. First of all, to get a list of
-		// all files in the torrent, you can use ``begin_files()``,
-		// ``end_files()``, ``rbegin_files()`` and ``rend_files()``. These will
-		// give you standard vector iterators with the type
-		// ``internal_file_entry``, which is an internal type.
-		//
-		// You can resolve it into the public representation of a file
-		// (``file_entry``) using the ``file_storage::at`` function, which takes
-		// an index and an iterator.
-		TORRENT_DEPRECATED
-		file_iterator begin_files() const { return files_impl().begin_deprecated(); }
-		TORRENT_DEPRECATED
-		file_iterator end_files() const { return files_impl().end_deprecated(); }
-		reverse_file_iterator rbegin_files() const { return files_impl().rbegin_deprecated(); }
-		TORRENT_DEPRECATED
-		reverse_file_iterator rend_files() const { return files_impl().rend_deprecated(); }
-
-		TORRENT_DEPRECATED
-		file_iterator file_at_offset(std::int64_t offset) const
-		{ return files_impl().file_at_offset_deprecated(offset); }
-
-#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
-
-		TORRENT_DEPRECATED
-		file_entry file_at(int index) const { return files_impl().at_deprecated(index); }
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-#endif // TORRENT_ABI_VERSION
-
 		// If you need index-access to files you can use the ``num_files()`` along
 		// with the ``file_path()``, ``file_size()``-family of functions to access
 		// files using indices.

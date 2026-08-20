@@ -1076,9 +1076,9 @@ TORRENT_TEST(fastresume_spanning_piece_missing_file)
 	delete_dirs(save_path);
 
 	file_storage fs;
-	fs.add_file(combine_path("test", "first"), resume_piece_size / 2);
-	fs.add_file(combine_path("test", "missing"), resume_piece_size / 2);
-	fs.add_file(combine_path("test", "unchecked"), resume_piece_size);
+	fs.add_file_borrow({}, combine_path("test", "first"), resume_piece_size / 2);
+	fs.add_file_borrow({}, combine_path("test", "missing"), resume_piece_size / 2);
+	fs.add_file_borrow({}, combine_path("test", "unchecked"), resume_piece_size);
 	fs.set_piece_length(resume_piece_size);
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 
@@ -1447,10 +1447,10 @@ namespace {
 file_storage make_fs()
 {
 	file_storage fs;
-	fs.add_file(combine_path("readwrite", "1"), 3);
-	fs.add_file(combine_path("readwrite", "2"), 9);
-	fs.add_file(combine_path("readwrite", "3"), 81);
-	fs.add_file(combine_path("readwrite", "4"), 6561);
+	fs.add_file_borrow({}, combine_path("readwrite", "1"), 3);
+	fs.add_file_borrow({}, combine_path("readwrite", "2"), 9);
+	fs.add_file_borrow({}, combine_path("readwrite", "3"), 81);
+	fs.add_file_borrow({}, combine_path("readwrite", "4"), 6561);
 	fs.set_piece_length(0x1000);
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	return fs;
@@ -1635,11 +1635,11 @@ TORRENT_TEST(readwrite_error)
 TORRENT_TEST(readwrite_zero_size_files)
 {
 	file_storage fs;
-	fs.add_file(combine_path("readwrite", "1"), 3);
-	fs.add_file(combine_path("readwrite", "2"), 0);
-	fs.add_file(combine_path("readwrite", "3"), 81);
-	fs.add_file(combine_path("readwrite", "4"), 0);
-	fs.add_file(combine_path("readwrite", "5"), 6561);
+	fs.add_file_borrow({}, combine_path("readwrite", "1"), 3);
+	fs.add_file_borrow({}, combine_path("readwrite", "2"), 0);
+	fs.add_file_borrow({}, combine_path("readwrite", "3"), 81);
+	fs.add_file_borrow({}, combine_path("readwrite", "4"), 0);
+	fs.add_file_borrow({}, combine_path("readwrite", "5"), 6561);
 	fs.set_piece_length(0x1000);
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	test_read_fileop fop(10000000);
@@ -1814,10 +1814,13 @@ TORRENT_TEST(move_pread_storage_reset)
 TORRENT_TEST(storage_paths_string_pooling)
 {
 	file_storage file_storage;
-	file_storage.add_file(combine_path("test_storage", "root.txt"), 0x4000);
-	file_storage.add_file(combine_path("test_storage", combine_path("sub", "test1.txt")), 0x4000);
-	file_storage.add_file(combine_path("test_storage", combine_path("sub", "test2.txt")), 0x4000);
-	file_storage.add_file(combine_path("test_storage", combine_path("sub", "test3.txt")), 0x4000);
+	file_storage.add_file_borrow({}, combine_path("test_storage", "root.txt"), 0x4000);
+	file_storage.add_file_borrow(
+		{}, combine_path("test_storage", combine_path("sub", "test1.txt")), 0x4000);
+	file_storage.add_file_borrow(
+		{}, combine_path("test_storage", combine_path("sub", "test2.txt")), 0x4000);
+	file_storage.add_file_borrow(
+		{}, combine_path("test_storage", combine_path("sub", "test3.txt")), 0x4000);
 
 	// "sub" paths should point to same string item, so paths.size() must not grow
 	TEST_CHECK(file_storage.paths().size() <= 2);
@@ -1902,7 +1905,7 @@ void test_unaligned_read(lt::disk_io_constructor_type constructor, Fun fun)
 		= constructor(ioc, pack, cnt);
 
 	lt::file_storage fs;
-	fs.add_file("test", lt::default_block_size * 2);
+	fs.add_file_borrow({}, "test", lt::default_block_size * 2);
 	fs.set_num_pieces(1);
 	fs.set_piece_length(lt::default_block_size * 2);
 

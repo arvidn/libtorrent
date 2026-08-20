@@ -32,7 +32,7 @@ namespace {
 	void truncate_part_file(std::string const& filename, std::int64_t const size)
 	{
 		file_storage fs;
-		fs.add_file(libtorrent::filename(filename), size);
+		fs.add_file_borrow({}, libtorrent::filename(filename), size);
 		storage_error se;
 		truncate_files(fs, parent_path(filename), se);
 		TEST_CHECK(!se);

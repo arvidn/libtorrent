@@ -83,7 +83,7 @@ TORRENT_TEST(file_pool_size)
 			{
 				char filename[50];
 				snprintf(filename, sizeof(filename), "root/file-%d", i);
-				fs.add_file(filename, 0x400);
+				fs.add_file_borrow({}, filename, 0x400);
 			}
 			atp.ti = std::make_shared<torrent_info>(*atp.ti);
 			atp.ti->remap_files(fs);

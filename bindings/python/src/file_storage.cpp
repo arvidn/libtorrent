@@ -38,62 +38,6 @@ namespace {
 		}
 	}
 
-#if TORRENT_ABI_VERSION == 1
-	void add_file_deprecated(file_storage& ct, file_entry const& fe)
-	{
-		python_deprecated("this overload of add_file() is deprecated");
-		ct.add_file(fe);
-	}
-
-	struct FileIter
-	{
-		using value_type = lt::file_entry;
-		using reference = lt::file_entry;
-		using pointer = lt::file_entry*;
-		using difference_type = int;
-		using iterator_category = std::forward_iterator_tag;
-
-		FileIter(file_storage const& fs, file_index_t i)
-			: m_fs(&fs)
-			, m_i(i)
-		{}
-		FileIter(FileIter const&) = default;
-		FileIter()
-			: m_fs(nullptr)
-			, m_i(0)
-		{}
-		lt::file_entry operator*() const { return m_fs->at(m_i); }
-
-		FileIter operator++()
-		{
-			m_i++;
-			return *this;
-		}
-		FileIter operator++(int) { return FileIter(*m_fs, m_i++); }
-
-		bool operator==(FileIter const& rhs) const { return m_fs == rhs.m_fs && m_i == rhs.m_i; }
-
-		int operator-(FileIter const& rhs) const
-		{
-			assert(rhs.m_fs == m_fs);
-			return m_i - rhs.m_i;
-		}
-
-		FileIter& operator=(FileIter const&) = default;
-
-		file_storage const* m_fs;
-		file_index_t m_i;
-	};
-
-	FileIter begin_files(file_storage const& self)
-	{
-		python_deprecated("__iter__ is deprecated");
-		return FileIter(self, file_index_t(0));
-	}
-
-	FileIter end_files(file_storage const& self) { return FileIter(self, self.end_file()); }
-#endif // TORRENT_ABI_VERSION
-
 #if TORRENT_ABI_VERSION < 5
 	std::shared_ptr<file_storage> file_storage_constructor()
 	{
@@ -123,6 +67,7 @@ namespace {
 	}
 #endif
 
+#if TORRENT_ABI_VERSION < 5
 	void add_file0(
 		file_storage& fs,
 		string_view const file,
@@ -132,6 +77,7 @@ namespace {
 		string_view const link
 	)
 	{
+		python_deprecated("add_file is deprecated");
 		fs.add_file(std::string(file), size, flags, md, std::string(link));
 	}
 
@@ -160,6 +106,7 @@ namespace {
 		python_deprecated("add_file with bytes is deprecated");
 		fs.add_file(std::string(file), size, flags, md, link.arr);
 	}
+#endif
 
 	struct dummy_file_flags
 	{};
@@ -170,14 +117,6 @@ namespace {
 		file_storage_check_index(fs, index);
 		return fs.file_path(index, base);
 	}
-
-#if TORRENT_ABI_VERSION == 1
-	file_entry file_storage_at(file_storage const& fs, file_index_t index)
-	{
-		file_storage_check_index(fs, index);
-		return fs.at(index);
-	}
-#endif
 
 	void set_name0(file_storage& fs, string_view const name) { fs.set_name(std::string(name)); }
 
@@ -223,6 +162,7 @@ void bind_file_storage()
 				.def("__init__", make_constructor(&file_storage_constructor))
 #endif
 				.def("is_valid", &file_storage::is_valid)
+#if TORRENT_ABI_VERSION < 5
 				.def("add_file",
 					add_file0,
 					(arg("path"),
@@ -244,13 +184,8 @@ void bind_file_storage()
 						arg("flags") = 0,
 						arg("mtime") = 0,
 						arg("linkpath") = ""))
+#endif
 				.def("num_files", &file_storage::num_files)
-#if TORRENT_ABI_VERSION == 1
-				.def("at", depr(file_storage_at))
-				.def("add_file", add_file_deprecated, arg("entry"))
-				.def("__iter__", boost::python::range(&begin_files, &end_files))
-				.def("__len__", depr(&file_storage::num_files))
-#endif // TORRENT_ABI_VERSION
 #if TORRENT_ABI_VERSION < 4
 				.def("hash", &wrap_file_check<sha1_hash, &file_storage::hash>)
 #endif

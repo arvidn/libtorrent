@@ -1,5 +1,7 @@
 2.2.0 not released
 
+	* deprecate file_storage::add_file()
+	* remove deprecated file_entry type and the file_storage iterator API
 	* remove deprecated filehash field
 	* remove deprecated rename_file() on file_storage
 	* optimize padfile memory usage

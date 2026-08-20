@@ -20,40 +20,6 @@ else:
     _Entry, TorrentFileDict, load_torrent_limits = dict, dict, dict
 
 
-class FileEntryTest(unittest.TestCase):
-    def test_attributes(self) -> None:
-        if lt.api_version < 2:
-            with self.assertWarns(DeprecationWarning):
-                fe = lt.file_entry()
-
-            fe.path = os.path.join("path", "file.txt")
-            path = fe.path
-            self.assertEqual(path, os.path.join("path", "file.txt"))
-
-            fe.symlink_path = os.path.join("path", "other.txt")
-            self.assertEqual(fe.symlink_path, os.path.join("path", "other.txt"))
-
-            fe.filehash = lt.sha1_hash(b"a" * 20)
-            self.assertEqual(fe.filehash, lt.sha1_hash(b"a" * 20))
-
-            fe.mtime = 123456
-            self.assertEqual(fe.mtime, 123456)
-
-            with self.assertWarns(DeprecationWarning):
-                self.assertFalse(fe.pad_file)
-            with self.assertWarns(DeprecationWarning):
-                self.assertFalse(fe.executable_attribute)
-            with self.assertWarns(DeprecationWarning):
-                self.assertFalse(fe.hidden_attribute)
-            with self.assertWarns(DeprecationWarning):
-                self.assertFalse(fe.symlink_attribute)
-
-            with self.assertWarns(DeprecationWarning):
-                self.assertEqual(fe.offset, 0)
-            with self.assertWarns(DeprecationWarning):
-                self.assertEqual(fe.size, 0)
-
-
 class InfoHashTest(unittest.TestCase):
     def test_sha1(self) -> None:
         sha1 = lt.sha1_hash(lib.get_random_bytes(20))
@@ -573,9 +539,3 @@ class FieldTest(unittest.TestCase):
         self.assertEqual(file_slice.file_index, 0)
         self.assertEqual(file_slice.offset, 100)
         self.assertEqual(file_slice.size, 200)
-
-    def test_file_at(self) -> None:
-        if lt.api_version < 2:
-            with self.assertWarns(DeprecationWarning):
-                fe = self.ti.file_at(0)
-            self.assertEqual(fe.path, self.ti.layout().file_path(0))

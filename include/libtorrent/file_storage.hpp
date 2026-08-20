@@ -37,64 +37,6 @@ see LICENSE file.
 
 namespace libtorrent {
 
-#if TORRENT_ABI_VERSION == 1
-	// information about a file in a file_storage
-	struct TORRENT_DEPRECATED_EXPORT file_entry
-	{
-#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
-		// hidden
-		file_entry();
-		// hidden
-		~file_entry();
-		file_entry(file_entry const&) = default;
-		file_entry& operator=(file_entry const&) & = default;
-		file_entry(file_entry&&) noexcept = default;
-		file_entry& operator=(file_entry&&) & = default;
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
-		// the full path of this file. The paths are unicode strings
-		// encoded in UTF-8.
-		std::string path;
-
-		// the path which this is a symlink to, or empty if this is
-		// not a symlink. This field is only used if the ``symlink_attribute`` is set.
-		std::string symlink_path;
-
-		// the offset of this file inside the torrent
-		std::int64_t offset;
-
-		// the size of the file (in bytes) and ``offset`` is the byte offset
-		// of the file within the torrent. i.e. the sum of all the sizes of the files
-		// before it in the list.
-		std::int64_t size;
-
-		// the modification time of this file specified in posix time.
-		std::time_t mtime;
-
-		// always a default constructed hash.
-		sha1_hash filehash;
-
-		// set to true for files that are not part of the data of the torrent.
-		// They are just there to make sure the next file is aligned to a particular byte offset
-		// or piece boundary. These files should typically be hidden from an end user. They are
-		// not written to disk.
-		bool pad_file:1;
-
-		// true if the file was marked as hidden (on windows).
-		bool hidden_attribute:1;
-
-		// true if the file was marked as executable (posix)
-		bool executable_attribute:1;
-
-		// true if the file was a symlink. If this is the case
-		// the ``symlink_index`` refers to a string which specifies the original location
-		// where the data for this file was found.
-		bool symlink_attribute:1;
-	};
-
-#endif // TORRENT_ABI_VERSION
-
 namespace aux {
 	struct path_index_tag;
 	using path_index_t = aux::strong_typedef<std::uint32_t, path_index_tag>;
@@ -358,10 +300,13 @@ public:
 		//
 		// The overloads that take an `error_code` reference will report failures
 		// via that variable, otherwise `system_error` is thrown.
+#if TORRENT_ABI_VERSION < 5
+		TORRENT_DEPRECATED
 		void add_file(std::string const& path, std::int64_t file_size
 			, file_flags_t file_flags = {}
 			, std::time_t mtime = 0, string_view symlink_path = string_view()
 			, char const* root_hash = nullptr);
+#endif
 #endif // BOOST_NO_EXCEPTIONS
 
 		// internal
@@ -380,57 +325,18 @@ public:
 
 		// this overload reports failures through the ``ec`` reference rather
 		// than throwing.
+#if TORRENT_ABI_VERSION < 5
+		TORRENT_DEPRECATED
 		void add_file(error_code& ec, std::string const& path, std::int64_t file_size
 			, file_flags_t file_flags = {}
 			, std::time_t mtime = 0, string_view symlink_path = string_view()
 			, char const* root_hash = nullptr);
+#endif
 
 #if TORRENT_ABI_VERSION < 4
 		// internal
 		TORRENT_UNEXPORT void rename_file_impl(file_index_t index, std::string const& new_filename);
 #endif
-
-#if TORRENT_ABI_VERSION == 1
-#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
-
-		TORRENT_DEPRECATED
-		void add_file(file_entry const& fe, char const* filehash = nullptr);
-
-		// all functions depending on aux::file_entry
-		// were deprecated in 1.0. Use the variants that take an
-		// index instead
-		using iterator = std::vector<aux::file_entry>::const_iterator;
-		using reverse_iterator = std::vector<aux::file_entry>::const_reverse_iterator;
-
-		TORRENT_DEPRECATED
-		iterator file_at_offset(std::int64_t offset) const;
-		TORRENT_DEPRECATED
-		iterator begin() const { return m_files.begin(); }
-		TORRENT_DEPRECATED
-		iterator end() const { return m_files.end(); }
-		TORRENT_DEPRECATED
-		reverse_iterator rbegin() const { return m_files.rbegin(); }
-		TORRENT_DEPRECATED
-		reverse_iterator rend() const { return m_files.rend(); }
-		TORRENT_DEPRECATED
-		aux::file_entry const& internal_at(int const index) const;
-		TORRENT_DEPRECATED
-		file_entry at(iterator i) const;
-
-		// returns a file_entry with information about the file
-		// at ``index``. Index must be in the range [0, ``num_files()`` ).
-		TORRENT_DEPRECATED
-		file_entry at(int index) const;
-
-		iterator begin_deprecated() const { return m_files.begin(); }
-		iterator end_deprecated() const { return m_files.end(); }
-		reverse_iterator rbegin_deprecated() const { return m_files.rbegin(); }
-		reverse_iterator rend_deprecated() const { return m_files.rend(); }
-		iterator file_at_offset_deprecated(std::int64_t offset) const;
-		file_entry at_deprecated(int index) const;
-
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-#endif // TORRENT_ABI_VERSION
 
 		// returns a list of file_slice objects representing the portions of
 		// files the specified piece index, byte offset and size range overlaps.

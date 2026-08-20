@@ -144,7 +144,7 @@ file_storage make_fs(std::vector<std::int64_t> const& file_sizes, int const piec
 	file_storage fs;
 	int i = 0;
 	for (std::int64_t const sz : file_sizes)
-		fs.add_file(combine_path("t", "f" + std::to_string(i++)), sz);
+		fs.add_file_borrow({}, combine_path("t", "f" + std::to_string(i++)), sz);
 	fs.set_piece_length(piece_length);
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	return fs;

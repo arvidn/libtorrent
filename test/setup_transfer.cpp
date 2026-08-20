@@ -820,7 +820,7 @@ lt::file_storage make_file_storage(span<const int> const file_sizes
 			, int(i) / 5);
 		std::string full_path = combine_path(dirname, filename);
 
-		fs.add_file(full_path, file_sizes[i]);
+		fs.add_file_borrow({}, full_path, file_sizes[i]);
 	}
 
 	fs.set_piece_length(piece_size);

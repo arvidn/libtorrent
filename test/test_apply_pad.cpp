@@ -58,7 +58,8 @@ lt::file_storage make_fs(std::vector<file_ent> const files, int const piece_size
 	{
 		char filename[200];
 		std::snprintf(filename, sizeof(filename), "t/test%d", int(i++));
-		fs.add_file(filename, e.size, e.pad ? file_storage::flag_pad_file : file_flags_t{});
+		fs.add_file_borrow(
+			{}, filename, e.size, e.pad ? file_storage::flag_pad_file : file_flags_t{});
 	}
 
 	fs.set_piece_length(piece_size);
