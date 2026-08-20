@@ -26,7 +26,7 @@ TORRENT_TEST(stat_cache)
 	{
 		char buf[50];
 		std::snprintf(buf, sizeof(buf), "test_torrent/test-%d", i);
-		fs.add_file(buf, (i + 1) * 10);
+		fs.add_file_borrow({}, buf, (i + 1) * 10);
 	}
 	renamed_files rf;
 	filenames fn(fs, rf);

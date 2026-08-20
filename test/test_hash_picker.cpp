@@ -71,8 +71,8 @@ TORRENT_TEST(pick_piece_layer)
 	file_storage fs;
 	fs.set_piece_length(16 * 1024);
 
-	fs.add_file("test/tmp1", 4 * 512 * 16 * 1024);
-	fs.add_file("test/tmp2", 4 * 512 * 16 * 1024);
+	fs.add_file_borrow({}, "test/tmp1", 4 * 512 * 16 * 1024);
+	fs.add_file_borrow({}, "test/tmp2", 4 * 512 * 16 * 1024);
 
 	aux::vector<aux::merkle_tree, file_index_t> trees;
 
@@ -157,7 +157,7 @@ TORRENT_TEST(hash_picker_empty_trees)
 {
 	file_storage fs;
 	fs.set_piece_length(16 * 1024);
-	fs.add_file("test/tmp1", 4 * 512 * 16 * 1024);
+	fs.add_file_borrow({}, "test/tmp1", 4 * 512 * 16 * 1024);
 
 	aux::vector<aux::merkle_tree, file_index_t> trees;
 
@@ -173,7 +173,7 @@ TORRENT_TEST(reject_piece_request)
 	file_storage fs;
 	fs.set_piece_length(16 * 1024);
 
-	fs.add_file("test/tmp1", 4 * 512 * 16 * 1024);
+	fs.add_file_borrow({}, "test/tmp1", 4 * 512 * 16 * 1024);
 
 	aux::vector<aux::merkle_tree, file_index_t> trees;
 	auto const root = from_hex("0000000000000000000000000000000000000000000000000000000000000001");
@@ -197,7 +197,7 @@ TORRENT_TEST(reject_block_hash_request)
 	fs.set_piece_length(16 * default_block_size);
 
 	// 100 pieces means m_piece_hash_requested only has a single 512-piece bucket
-	fs.add_file("test/tmp1", 100 * 16 * default_block_size);
+	fs.add_file_borrow({}, "test/tmp1", 100 * 16 * default_block_size);
 
 	aux::vector<aux::merkle_tree, file_index_t> trees;
 	auto const root = from_hex("0000000000000000000000000000000000000000000000000000000000000001");
@@ -224,7 +224,7 @@ TORRENT_TEST(add_leaf_hashes)
 	file_storage fs;
 	fs.set_piece_length(16 * 1024);
 
-	fs.add_file("test/tmp1", 4 * 512 * 16 * 1024);
+	fs.add_file_borrow({}, "test/tmp1", 4 * 512 * 16 * 1024);
 
 	aux::vector<aux::merkle_tree, file_index_t> trees;
 	auto const full_tree = build_tree(4 * 512);
@@ -271,7 +271,7 @@ TORRENT_TEST(add_piece_hashes)
 	file_storage fs;
 	fs.set_piece_length(4 * 16 * 1024);
 
-	fs.add_file("test/tmp1", 4 * 1024 * 16 * 1024);
+	fs.add_file_borrow({}, "test/tmp1", 4 * 1024 * 16 * 1024);
 
 	aux::vector<aux::merkle_tree, file_index_t> trees;
 	auto const full_tree = build_tree(4 * 1024);
@@ -302,7 +302,7 @@ TORRENT_TEST(add_piece_hashes_marks_request_complete)
 	file_storage fs;
 	fs.set_piece_length(4 * 16 * 1024);
 
-	fs.add_file("test/tmp1", 4 * 512 * 16 * 1024);
+	fs.add_file_borrow({}, "test/tmp1", 4 * 512 * 16 * 1024);
 
 	aux::vector<aux::merkle_tree, file_index_t> trees;
 	auto const full_tree = build_tree(4 * 512);
@@ -339,7 +339,7 @@ TORRENT_TEST(add_piece_hashes_padded)
 	file_storage fs;
 	fs.set_piece_length(4 * 16 * 1024);
 
-	fs.add_file("test/tmp1", 4 * 1029 * 16 * 1024);
+	fs.add_file_borrow({}, "test/tmp1", 4 * 1029 * 16 * 1024);
 
 	aux::vector<aux::merkle_tree, file_index_t> trees;
 	auto const full_tree = build_tree(4 * 1029);
@@ -369,7 +369,7 @@ TORRENT_TEST(add_piece_hashes_unpadded)
 	file_storage fs;
 	fs.set_piece_length(4 * 16 * 1024);
 
-	fs.add_file("test/tmp1", 4 * 1029 * 16 * 1024);
+	fs.add_file_borrow({}, "test/tmp1", 4 * 1029 * 16 * 1024);
 
 	aux::vector<aux::merkle_tree, file_index_t> trees;
 	auto const full_tree = build_tree(4 * 1029);
@@ -398,7 +398,7 @@ TORRENT_TEST(add_bad_hashes)
 	file_storage fs;
 	fs.set_piece_length(4 * 16 * 1024);
 
-	fs.add_file("test/tmp1", 4 * 512 * 16 * 1024);
+	fs.add_file_borrow({}, "test/tmp1", 4 * 512 * 16 * 1024);
 
 	aux::vector<aux::merkle_tree, file_index_t> trees;
 	auto const full_tree = build_tree(4 * 512);
@@ -426,7 +426,7 @@ TORRENT_TEST(bad_block_hash)
 	file_storage fs;
 	fs.set_piece_length(16 * 1024);
 
-	fs.add_file("test/tmp1", 4 * 512 * 16 * 1024);
+	fs.add_file_borrow({}, "test/tmp1", 4 * 512 * 16 * 1024);
 
 	auto const full_tree = build_tree(4 * 512);
 
@@ -459,7 +459,7 @@ TORRENT_TEST(set_block_hash)
 	file_storage fs;
 	fs.set_piece_length(4 * 16 * 1024);
 
-	fs.add_file("test/tmp1", 4 * 512 * 16 * 1024);
+	fs.add_file_borrow({}, "test/tmp1", 4 * 512 * 16 * 1024);
 
 	aux::vector<aux::merkle_tree, file_index_t> trees;
 	auto const full_tree = build_tree(4 * 512);
@@ -487,7 +487,7 @@ TORRENT_TEST(set_block_hash_fail)
 	file_storage fs;
 	fs.set_piece_length(4 * 16 * 1024);
 
-	fs.add_file("test/tmp1", 4 * 512 * 16 * 1024);
+	fs.add_file_borrow({}, "test/tmp1", 4 * 512 * 16 * 1024);
 
 	aux::vector<aux::merkle_tree, file_index_t> trees;
 	auto full_tree = build_tree(4 * 512);
@@ -527,7 +527,7 @@ TORRENT_TEST(set_block_hash_pass)
 	file_storage fs;
 	fs.set_piece_length(4 * 16 * 1024);
 
-	fs.add_file("test/tmp1", 4 * 512 * 16 * 1024);
+	fs.add_file_borrow({}, "test/tmp1", 4 * 512 * 16 * 1024);
 
 	aux::vector<aux::merkle_tree, file_index_t> trees;
 	auto full_tree = build_tree(4 * 512);
@@ -563,7 +563,7 @@ TORRENT_TEST(pass_piece)
 	file_storage fs;
 	fs.set_piece_length(4 * 16 * 1024);
 
-	fs.add_file("test/tmp1", 4 * 512 * 16 * 1024);
+	fs.add_file_borrow({}, "test/tmp1", 4 * 512 * 16 * 1024);
 
 	auto const full_tree = build_tree(4 * 512);
 
@@ -600,7 +600,7 @@ TORRENT_TEST(only_pick_have_pieces)
 	file_storage fs;
 	fs.set_piece_length(16 * 1024);
 
-	fs.add_file("test/tmp1", 4 * 512 * 16 * 1024);
+	fs.add_file_borrow({}, "test/tmp1", 4 * 512 * 16 * 1024);
 
 	aux::vector<aux::merkle_tree, file_index_t> trees;
 	sha256_hash root = from_hex("0000000000000000000000000000000000000000000000000000000000000001");
@@ -633,7 +633,7 @@ TORRENT_TEST(validate_hash_request)
 {
 	file_storage fs;
 	fs.set_piece_length(16 * 1024);
-	fs.add_file("test/tmp1", 2048 * 16 * 1024);
+	fs.add_file_borrow({}, "test/tmp1", 2048 * 16 * 1024);
 
 	// the merkle tree for this file has 2048 blocks
 	int const num_leaves = merkle_num_leafs(2048);
@@ -704,8 +704,8 @@ TORRENT_TEST(validate_hash_request_pad_file)
 {
 	file_storage fs;
 	fs.set_piece_length(16 * 1024);
-	fs.add_file("test/tmp1", 2048 * 16 * 1024);
-	fs.add_file(".pad/16384", 16 * 1024, file_storage::flag_pad_file);
+	fs.add_file_borrow({}, "test/tmp1", 2048 * 16 * 1024);
+	fs.add_file_borrow({}, ".pad/16384", 16 * 1024, file_storage::flag_pad_file);
 
 	// sanity: requests for the regular file are still accepted
 	TEST_CHECK(validate_hash_request(aux::hash_request(file_index_t{0}, 0, 0, 1, 0), fs));
@@ -720,8 +720,8 @@ TORRENT_TEST(validate_hash_request_empty_file)
 {
 	file_storage fs;
 	fs.set_piece_length(16 * 1024);
-	fs.add_file("test/tmp1", 2048 * 16 * 1024);
-	fs.add_file("test/empty", 0);
+	fs.add_file_borrow({}, "test/tmp1", 2048 * 16 * 1024);
+	fs.add_file_borrow({}, "test/empty", 0);
 
 	// sanity: requests for the regular file are still accepted
 	TEST_CHECK(validate_hash_request(aux::hash_request(file_index_t{0}, 0, 0, 1, 0), fs));
@@ -739,7 +739,7 @@ TORRENT_TEST(validate_hash_request_single_block_file)
 	// base=0, index=0, count=1 — must be rejected.
 	file_storage fs;
 	fs.set_piece_length(16 * 1024);
-	fs.add_file("test/tmp1", 16 * 1024);
+	fs.add_file_borrow({}, "test/tmp1", 16 * 1024);
 
 	TEST_EQUAL(merkle_num_leafs(fs.file_num_blocks(file_index_t{0})), 1);
 	TEST_EQUAL(merkle_num_layers(merkle_num_leafs(fs.file_num_blocks(file_index_t{0}))), 0);

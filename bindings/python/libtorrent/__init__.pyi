@@ -36,7 +36,6 @@ Instructions on adding new types, assuming the tooling told you something was mi
 """
 
 from collections.abc import Callable
-from collections.abc import Iterator
 import datetime
 from typing import Final
 from typing import Literal
@@ -1519,27 +1518,6 @@ class file_completed_alert(torrent_alert):
     @property
     def index(self) -> int: ...
 
-class file_entry(metaclass=_BoostBaseClass):
-    __instance_size__: int
-
-    filehash: sha1_hash
-    mtime: int
-    path: str
-    symlink_path: str
-
-    @property
-    def executable_attribute(self) -> bool: ...
-    @property
-    def hidden_attribute(self) -> bool: ...
-    @property
-    def offset(self) -> int: ...
-    @property
-    def pad_file(self) -> bool: ...
-    @property
-    def size(self) -> int: ...
-    @property
-    def symlink_attribute(self) -> bool: ...
-
 class file_error_alert(torrent_alert):
     def filename(self) -> str:
         """
@@ -1623,7 +1601,6 @@ class file_storage(metaclass=_BoostBaseClass):
             constructing a file_storage directly is deprecated, use create_torrent and create_file_entry instead
         """
 
-    @overload
     def add_file(
         self,
         path: str,
@@ -1634,17 +1611,6 @@ class file_storage(metaclass=_BoostBaseClass):
     ) -> None:
         """
         add_file( (file_storage)arg1, (str)path, (int)size [, (object)flags=0 [, (int)mtime=0 [, (str)linkpath='']]]) -> None :
-        """
-
-    @overload
-    def add_file(self, entry: file_entry) -> None:
-        """
-        add_file( (file_storage)arg1, (file_entry)entry) -> None :
-        """
-
-    def at(self, _index: int) -> file_entry:
-        """
-        at( (file_storage)arg1, (int)arg2) -> file_entry :
         """
 
     def file_absolute_path(self, arg2: int) -> bool:
@@ -1775,16 +1741,6 @@ class file_storage(metaclass=_BoostBaseClass):
     def v2(self) -> bool:
         """
         v2( (file_storage)arg1) -> bool :
-        """
-
-    def __iter__(self) -> Iterator[file_entry]:
-        """
-        __iter__( (object)arg1) -> object :
-        """
-
-    def __len__(self) -> int:
-        """
-        __len__( (file_storage)arg1) -> int :
         """
 
 class fingerprint(metaclass=_BoostBaseClass):
@@ -4927,11 +4883,6 @@ class torrent_info(metaclass=_BoostBaseClass):
     def creator(self) -> str:
         """
         creator( (torrent_info)arg1) -> str :
-        """
-
-    def file_at(self, _index: int) -> file_entry:
-        """
-        file_at( (torrent_info)arg1, (int)arg2) -> file_entry :
         """
 
     def files(self) -> file_storage:

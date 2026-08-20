@@ -98,79 +98,36 @@ class FileStorageTest(unittest.TestCase):
         self.assertEqual(ti.layout().num_files(), 1)
 
     def test_add_file(self) -> None:
-        ti = _build_layout([(os.path.join("path", "file1.txt"), 1024)])
-        fs = ti.layout()
-        fs.add_file(os.path.join("path", "file2.txt"), 512)
-        self.assertEqual(fs.num_files(), 2)
-        self.assertEqual(fs.file_path(1), os.path.join("path", "file2.txt"))
-        self.assertEqual(fs.file_size(1), 512)
+        if lt.api_version < 5:
+            ti = _build_layout([(os.path.join("path", "file1.txt"), 1024)])
+            fs = ti.layout()
+            fs.add_file(os.path.join("path", "file2.txt"), 512)
+            self.assertEqual(fs.num_files(), 2)
+            self.assertEqual(fs.file_path(1), os.path.join("path", "file2.txt"))
+            self.assertEqual(fs.file_size(1), 512)
 
-        ti = _build_layout([(os.path.join("path", "file1.txt"), 1024)])
-        fs = ti.layout()
-        fs.add_file(os.path.join("path", "file2.txt"), 512, linkpath="file1.txt")
-        self.assertEqual(fs.symlink(1), os.path.join("path", "file1.txt"))
+            ti = _build_layout([(os.path.join("path", "file1.txt"), 1024)])
+            fs = ti.layout()
+            fs.add_file(os.path.join("path", "file2.txt"), 512, linkpath="file1.txt")
+            self.assertEqual(fs.symlink(1), os.path.join("path", "file1.txt"))
 
     def test_add_file_bytes(self) -> None:
-        ti = _build_layout([(os.path.join("path", "file1.txt"), 1024)])
-        fs = ti.layout()
-        with self.assertWarns(DeprecationWarning):
-            fs.add_file(os.path.join(b"path", b"file2.txt"), 512)  # type: ignore
-        self.assertEqual(fs.file_path(1), os.path.join("path", "file2.txt"))
-
-        ti = _build_layout([(os.path.join("path", "file1.txt"), 1024)])
-        fs = ti.layout()
-        with self.assertWarns(DeprecationWarning):
-            fs.add_file(
-                os.path.join("path", "file2.txt"),
-                512,
-                linkpath=b"file1.txt",
-            )
-        self.assertEqual(fs.symlink(1), os.path.join("path", "file1.txt"))
-
-    def test_add_file_entry(self) -> None:
-        if lt.api_version < 2:
+        if lt.api_version < 5:
             ti = _build_layout([(os.path.join("path", "file1.txt"), 1024)])
             fs = ti.layout()
             with self.assertWarns(DeprecationWarning):
-                fe = lt.file_entry()
-            fe.path = os.path.join("path", "file2.txt")
-            with self.assertWarns(DeprecationWarning):
-                fs.add_file(fe)
+                fs.add_file(os.path.join(b"path", b"file2.txt"), 512)  # type: ignore
+            self.assertEqual(fs.file_path(1), os.path.join("path", "file2.txt"))
 
-    def test_at_invalid(self) -> None:
-        if lt.api_version < 2:
-            ti = _build_layout([("test.txt", 1024)])
+            ti = _build_layout([(os.path.join("path", "file1.txt"), 1024)])
             fs = ti.layout()
             with self.assertWarns(DeprecationWarning):
-                with self.assertRaises(IndexError):
-                    fs.at(1)
-            with self.assertWarns(DeprecationWarning):
-                with self.assertRaises(IndexError):
-                    fs.at(-1)
-
-    def test_at(self) -> None:
-        if lt.api_version < 2:
-            ti = _build_layout([(os.path.join("path", "test.txt"), 1024)])
-            fs = ti.layout()
-            with self.assertWarns(DeprecationWarning):
-                fe = fs.at(0)
-            self.assertEqual(fe.path, os.path.join("path", "test.txt"))
-            with self.assertWarns(DeprecationWarning):
-                self.assertEqual(fe.size, 1024)
-
-    def test_iter(self) -> None:
-        if lt.api_version < 2:
-            ti = _build_layout([("test.txt", 1024)])
-            fs = ti.layout()
-            with self.assertWarns(DeprecationWarning):
-                self.assertEqual([fe.path for fe in fs], ["test.txt"])
-
-    def test_len(self) -> None:
-        if lt.api_version < 2:
-            ti = _build_layout([("test.txt", 1024)])
-            fs = ti.layout()
-            with self.assertWarns(DeprecationWarning):
-                self.assertEqual(len(fs), 1)
+                fs.add_file(
+                    os.path.join("path", "file2.txt"),
+                    512,
+                    linkpath=b"file1.txt",
+                )
+            self.assertEqual(fs.symlink(1), os.path.join("path", "file1.txt"))
 
     def test_symlink(self) -> None:
         ti = _build_layout([(os.path.join("path", "test.txt"), 1024)])

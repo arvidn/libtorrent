@@ -291,9 +291,6 @@ struct anonymous_mode_alert;
 struct mmap_cache_alert;
 TORRENT_VERSION_NAMESPACE_4_END
 
-// include/libtorrent/file_storage.hpp
-struct file_entry;
-
 // include/libtorrent/fingerprint.hpp
 struct fingerprint;
 

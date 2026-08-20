@@ -46,10 +46,10 @@ file_storage make_v2_storage() { return file_storage(dummy_root_hash); }
 
 void setup_test_storage(file_storage& st)
 {
-	st.add_file(combine_path("test", "a"), 10000);
-	st.add_file(combine_path("test", "b"), 20000);
-	st.add_file(combine_path("test", combine_path("c", "a")), 30000);
-	st.add_file(combine_path("test", combine_path("c", "b")), 40000);
+	st.add_file_borrow({}, combine_path("test", "a"), 10000);
+	st.add_file_borrow({}, combine_path("test", "b"), 20000);
+	st.add_file_borrow({}, combine_path("test", combine_path("c", "a")), 30000);
+	st.add_file_borrow({}, combine_path("test", combine_path("c", "b")), 40000);
 
 	st.set_piece_length(0x4000);
 	st.set_num_pieces(aux::calc_num_pieces(st));
@@ -94,19 +94,19 @@ TORRENT_TEST(coalesce_path)
 {
 	file_storage st;
 	st.set_piece_length(0x4000);
-	st.add_file(combine_path("test", "a"), 10000);
+	st.add_file_borrow({}, combine_path("test", "a"), 10000);
 	TEST_EQUAL(st.paths().size(), 1);
 	TEST_EQUAL(st.paths()[0_path], "");
-	st.add_file(combine_path("test", "b"), 20000);
+	st.add_file_borrow({}, combine_path("test", "b"), 20000);
 	TEST_EQUAL(st.paths().size(), 1);
 	TEST_EQUAL(st.paths()[0_path], "");
-	st.add_file(combine_path("test", combine_path("c", "a")), 30000);
+	st.add_file_borrow({}, combine_path("test", combine_path("c", "a")), 30000);
 	TEST_EQUAL(st.paths().size(), 2);
 	TEST_EQUAL(st.paths()[0_path], "");
 	TEST_EQUAL(st.paths()[1_path], "c");
 
 	// make sure that two files with the same path shares the path entry
-	st.add_file(combine_path("test", combine_path("c", "b")), 40000);
+	st.add_file_borrow({}, combine_path("test", combine_path("c", "b")), 40000);
 	TEST_EQUAL(st.paths().size(), 2);
 	TEST_EQUAL(st.paths()[0_path], "");
 	TEST_EQUAL(st.paths()[1_path], "c");
@@ -153,9 +153,9 @@ TORRENT_TEST(rename_pad_file)
 	// their size
 	file_storage st;
 	st.set_piece_length(0x4000);
-	st.add_file(combine_path("test", "a"), 10000);
-	st.add_file(
-		combine_path("test", combine_path(".pad", "6384")), 6384, file_storage::flag_pad_file);
+	st.add_file_borrow({}, combine_path("test", "a"), 10000);
+	st.add_file_borrow(
+		{}, combine_path("test", combine_path(".pad", "6384")), 6384, file_storage::flag_pad_file);
 
 	std::string const pad_path = combine_path("test", combine_path(".pad", "6384"));
 	TEST_EQUAL(st.file_path(file_index_t{1}, ""), pad_path);
@@ -186,7 +186,7 @@ TORRENT_TEST(rename_file2)
 {
 	// test rename_file
 	file_storage st;
-	st.add_file("a", 10000);
+	st.add_file_borrow({}, "a", 10000);
 	TEST_EQUAL(st.file_path(file_index_t{0}, ""), "a");
 
 	st.rename_file_impl(file_index_t{0}, combine_path("test", combine_path("c", "d")));
@@ -269,13 +269,13 @@ TORRENT_TEST(map_file)
 	// test map_file
 	file_storage fs;
 	fs.set_piece_length(512);
-	fs.add_file(combine_path("temp_storage", "test1.tmp"), 17);
-	fs.add_file(combine_path("temp_storage", "test2.tmp"), 612);
-	fs.add_file(combine_path("temp_storage", "test3.tmp"), 0);
-	fs.add_file(combine_path("temp_storage", "test4.tmp"), 0);
-	fs.add_file(combine_path("temp_storage", "test5.tmp"), 3253);
+	fs.add_file_borrow({}, combine_path("temp_storage", "test1.tmp"), 17);
+	fs.add_file_borrow({}, combine_path("temp_storage", "test2.tmp"), 612);
+	fs.add_file_borrow({}, combine_path("temp_storage", "test3.tmp"), 0);
+	fs.add_file_borrow({}, combine_path("temp_storage", "test4.tmp"), 0);
+	fs.add_file_borrow({}, combine_path("temp_storage", "test5.tmp"), 3253);
 	// size: 3882
-	fs.add_file(combine_path("temp_storage", "test6.tmp"), 841);
+	fs.add_file_borrow({}, combine_path("temp_storage", "test6.tmp"), 841);
 	// size: 4723
 
 	peer_request rq = fs.map_file(file_index_t{0}, 0, 10);
@@ -298,8 +298,8 @@ TORRENT_TEST(file_path_hash)
 	// whose name collides with
 	file_storage fs;
 	fs.set_piece_length(512);
-	fs.add_file(combine_path("temp_storage", "Foo"), 17);
-	fs.add_file(combine_path("temp_storage", "foo"), 612);
+	fs.add_file_borrow({}, combine_path("temp_storage", "Foo"), 17);
+	fs.add_file_borrow({}, combine_path("temp_storage", "foo"), 612);
 
 	std::printf("path: %s\n", fs.file_path(0_file).c_str());
 	std::printf("file: %s\n", fs.file_path(1_file).c_str());
@@ -314,9 +314,9 @@ TORRENT_TEST(canonicalize_pad)
 {
 	file_storage fs;
 	fs.set_piece_length(0x4000);
-	fs.add_file(combine_path("s", "2"), 0x7000);
-	fs.add_file(combine_path("s", "1"), 1);
-	fs.add_file(combine_path("s", "3"), 0x7001);
+	fs.add_file_borrow({}, combine_path("s", "2"), 0x7000);
+	fs.add_file_borrow({}, combine_path("s", "1"), 1);
+	fs.add_file_borrow({}, combine_path("s", "3"), 0x7001);
 	TEST_EQUAL(fs.size_on_disk(), 0x7000 + 1 + 0x7001);
 
 	fs.canonicalize();
@@ -352,10 +352,10 @@ TORRENT_TEST(canonicalize_path)
 {
 	file_storage fs;
 	fs.set_piece_length(0x4000);
-	fs.add_file(combine_path("b", combine_path("2", "a")), 0x4000);
-	fs.add_file(combine_path("b", combine_path("1", "a")), 0x4000);
-	fs.add_file(combine_path("b", combine_path("3", "a")), 0x4000);
-	fs.add_file(combine_path("b", "11"), 0x4000);
+	fs.add_file_borrow({}, combine_path("b", combine_path("2", "a")), 0x4000);
+	fs.add_file_borrow({}, combine_path("b", combine_path("1", "a")), 0x4000);
+	fs.add_file_borrow({}, combine_path("b", combine_path("3", "a")), 0x4000);
+	fs.add_file_borrow({}, combine_path("b", "11"), 0x4000);
 
 	fs.canonicalize();
 
@@ -373,9 +373,9 @@ TORRENT_TEST(piece_range_exclusive)
 	int const piece_size = 16;
 	file_storage fs;
 	fs.set_piece_length(piece_size);
-	fs.add_file(combine_path("temp_storage", "0"), piece_size);
-	fs.add_file(combine_path("temp_storage", "1"), piece_size * 4 + 1);
-	fs.add_file(combine_path("temp_storage", "2"), piece_size * 4 - 1);
+	fs.add_file_borrow({}, combine_path("temp_storage", "0"), piece_size);
+	fs.add_file_borrow({}, combine_path("temp_storage", "1"), piece_size * 4 + 1);
+	fs.add_file_borrow({}, combine_path("temp_storage", "2"), piece_size * 4 - 1);
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	//        +---+---+---+---+---+---+---+---+---+
 	// pieces | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
@@ -396,9 +396,9 @@ TORRENT_TEST(piece_range_inclusive)
 	int const piece_size = 16;
 	file_storage fs;
 	fs.set_piece_length(piece_size);
-	fs.add_file(combine_path("temp_storage", "0"), piece_size);
-	fs.add_file(combine_path("temp_storage", "1"), piece_size * 4 + 1);
-	fs.add_file(combine_path("temp_storage", "2"), piece_size * 4 - 1);
+	fs.add_file_borrow({}, combine_path("temp_storage", "0"), piece_size);
+	fs.add_file_borrow({}, combine_path("temp_storage", "1"), piece_size * 4 + 1);
+	fs.add_file_borrow({}, combine_path("temp_storage", "2"), piece_size * 4 - 1);
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	//        +---+---+---+---+---+---+---+---+---+
 	// pieces | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
@@ -419,8 +419,8 @@ TORRENT_TEST(piece_range)
 	int const piece_size = 0x4000;
 	file_storage fs;
 	fs.set_piece_length(piece_size);
-	fs.add_file(combine_path("temp_storage", "0"), piece_size * 3);
-	fs.add_file(combine_path("temp_storage", "1"), piece_size * 3 + 0x30);
+	fs.add_file_borrow({}, combine_path("temp_storage", "0"), piece_size * 3);
+	fs.add_file_borrow({}, combine_path("temp_storage", "1"), piece_size * 3 + 0x30);
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	//        +---+---+---+---+---+---+---+
 	// pieces | 0 | 1 | 2 | 3 | 4 | 5 | 6 |
@@ -443,7 +443,7 @@ TORRENT_TEST(piece_size_last_piece)
 {
 	file_storage fs;
 	fs.set_piece_length(1024);
-	fs.add_file("0", 100);
+	fs.add_file_borrow({}, "0", 100);
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	TEST_EQUAL(fs.piece_size(0_piece), 100);
 }
@@ -452,7 +452,7 @@ TORRENT_TEST(piece_size_middle_piece)
 {
 	file_storage fs;
 	fs.set_piece_length(1024);
-	fs.add_file("0", 2000);
+	fs.add_file_borrow({}, "0", 2000);
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	TEST_EQUAL(fs.piece_size(0_piece), 1024);
 	TEST_EQUAL(fs.piece_size(1_piece), 2000 - 1024);
@@ -462,11 +462,11 @@ TORRENT_TEST(file_index_at_offset)
 {
 	file_storage fs;
 	fs.set_piece_length(1024);
-	fs.add_file("test/0", 1);
-	fs.add_file("test/1", 2);
-	fs.add_file("test/2", 3);
-	fs.add_file("test/3", 4);
-	fs.add_file("test/4", 5);
+	fs.add_file_borrow({}, "test/0", 1);
+	fs.add_file_borrow({}, "test/1", 2);
+	fs.add_file_borrow({}, "test/2", 3);
+	fs.add_file_borrow({}, "test/3", 4);
+	fs.add_file_borrow({}, "test/4", 5);
 	std::int64_t offset = 0;
 	for (int f : {0, 1, 1, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4})
 	{
@@ -478,11 +478,11 @@ TORRENT_TEST(map_block_start)
 {
 	file_storage fs;
 	fs.set_piece_length(1024);
-	fs.add_file("test/0", 1);
-	fs.add_file("test/1", 2);
-	fs.add_file("test/2", 3);
-	fs.add_file("test/3", 4);
-	fs.add_file("test/4", 5);
+	fs.add_file_borrow({}, "test/0", 1);
+	fs.add_file_borrow({}, "test/1", 2);
+	fs.add_file_borrow({}, "test/2", 3);
+	fs.add_file_borrow({}, "test/3", 4);
+	fs.add_file_borrow({}, "test/4", 5);
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	int len = 0;
 	for (int f : {0, 1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5})
@@ -506,11 +506,11 @@ TORRENT_TEST(map_block_mid)
 {
 	file_storage fs;
 	fs.set_piece_length(1024);
-	fs.add_file("test/0", 1);
-	fs.add_file("test/1", 2);
-	fs.add_file("test/2", 3);
-	fs.add_file("test/3", 4);
-	fs.add_file("test/4", 5);
+	fs.add_file_borrow({}, "test/0", 1);
+	fs.add_file_borrow({}, "test/1", 2);
+	fs.add_file_borrow({}, "test/2", 3);
+	fs.add_file_borrow({}, "test/3", 4);
+	fs.add_file_borrow({}, "test/4", 5);
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	int offset = 0;
 	for (int f : {0, 1, 1, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4})
@@ -538,34 +538,35 @@ TORRENT_TEST(sanitize_symlinks)
 
 	// invalid
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
-	fs.add_file("test/0", 0, file_storage::flag_symlink, 0, "C:\\invalid\\target\\path");
+	fs.add_file_borrow({}, "test/0", 0, file_storage::flag_symlink, 0, "C:\\invalid\\target\\path");
 #else
-	fs.add_file("test/0", 0, file_storage::flag_symlink, 0, "/invalid/target/path");
+	fs.add_file_borrow({}, "test/0", 0, file_storage::flag_symlink, 0, "/invalid/target/path");
 #endif
 
 	// there is no file with this name, so this is invalid
-	fs.add_file("test/1", 0, file_storage::flag_symlink, 0, "ZZ");
+	fs.add_file_borrow({}, "test/1", 0, file_storage::flag_symlink, 0, "ZZ");
 
 	// there is no file with this name, so this is invalid
-	fs.add_file("test/2", 0, file_storage::flag_symlink, 0, "B" SEP "B" SEP "ZZ");
+	fs.add_file_borrow({}, "test/2", 0, file_storage::flag_symlink, 0, "B" SEP "B" SEP "ZZ");
 
 	// this should be OK
-	fs.add_file("test/3", 0, file_storage::flag_symlink, 0, "0");
+	fs.add_file_borrow({}, "test/3", 0, file_storage::flag_symlink, 0, "0");
 
 	// this should be OK
-	fs.add_file("test/4", 0, file_storage::flag_symlink, 0, "A");
+	fs.add_file_borrow({}, "test/4", 0, file_storage::flag_symlink, 0, "A");
 
 	// this is advanced, but OK
-	fs.add_file("test/5", 0, file_storage::flag_symlink, 0, "4" SEP "B");
+	fs.add_file_borrow({}, "test/5", 0, file_storage::flag_symlink, 0, "4" SEP "B");
 
 	// this is advanced, but OK
-	fs.add_file("test/6", 0, file_storage::flag_symlink, 0, "5" SEP "C");
+	fs.add_file_borrow({}, "test/6", 0, file_storage::flag_symlink, 0, "5" SEP "C");
 
 	// this is not OK
-	fs.add_file("test/7", 0, file_storage::flag_symlink, 0, "4" SEP "B" SEP "C" SEP "ZZ");
+	fs.add_file_borrow(
+		{}, "test/7", 0, file_storage::flag_symlink, 0, "4" SEP "B" SEP "C" SEP "ZZ");
 
 	// this is the only actual content
-	fs.add_file("test/A" SEP "B" SEP "C", 10000);
+	fs.add_file_borrow({}, "test/A" SEP "B" SEP "C", 10000);
 	fs.set_num_pieces(int((fs.total_size() + 1023) / 1024));
 
 	fs.sanitize_symlinks();
@@ -589,7 +590,7 @@ TORRENT_TEST(sanitize_symlinks_single_file)
 {
 	file_storage fs;
 	fs.set_piece_length(1024);
-	fs.add_file("test", 1);
+	fs.add_file_borrow({}, "test", 1);
 	fs.set_num_pieces(int((fs.total_size() + 1023) / 1024));
 
 	fs.sanitize_symlinks();
@@ -602,18 +603,18 @@ TORRENT_TEST(sanitize_symlinks_cascade)
 	file_storage fs;
 	fs.set_piece_length(1024);
 
-	fs.add_file("test/0", 0, file_storage::flag_symlink, 0, "1" SEP "ZZ");
-	fs.add_file("test/1", 0, file_storage::flag_symlink, 0, "2");
-	fs.add_file("test/2", 0, file_storage::flag_symlink, 0, "3");
-	fs.add_file("test/3", 0, file_storage::flag_symlink, 0, "4");
-	fs.add_file("test/4", 0, file_storage::flag_symlink, 0, "5");
-	fs.add_file("test/5", 0, file_storage::flag_symlink, 0, "6");
-	fs.add_file("test/6", 0, file_storage::flag_symlink, 0, "7");
-	fs.add_file("test/7", 0, file_storage::flag_symlink, 0, "A");
-	fs.add_file("test/no-exist", 0, file_storage::flag_symlink, 0, "1" SEP "ZZZ");
+	fs.add_file_borrow({}, "test/0", 0, file_storage::flag_symlink, 0, "1" SEP "ZZ");
+	fs.add_file_borrow({}, "test/1", 0, file_storage::flag_symlink, 0, "2");
+	fs.add_file_borrow({}, "test/2", 0, file_storage::flag_symlink, 0, "3");
+	fs.add_file_borrow({}, "test/3", 0, file_storage::flag_symlink, 0, "4");
+	fs.add_file_borrow({}, "test/4", 0, file_storage::flag_symlink, 0, "5");
+	fs.add_file_borrow({}, "test/5", 0, file_storage::flag_symlink, 0, "6");
+	fs.add_file_borrow({}, "test/6", 0, file_storage::flag_symlink, 0, "7");
+	fs.add_file_borrow({}, "test/7", 0, file_storage::flag_symlink, 0, "A");
+	fs.add_file_borrow({}, "test/no-exist", 0, file_storage::flag_symlink, 0, "1" SEP "ZZZ");
 
 	// this is the only actual content
-	fs.add_file("test/A" SEP "ZZ", 10000);
+	fs.add_file_borrow({}, "test/A" SEP "ZZ", 10000);
 	fs.set_num_pieces(int((fs.total_size() + 1023) / 1024));
 
 	fs.sanitize_symlinks();
@@ -634,15 +635,15 @@ TORRENT_TEST(sanitize_symlinks_circular)
 	file_storage fs;
 	fs.set_piece_length(1024);
 
-	fs.add_file("test/0", 0, file_storage::flag_symlink, 0, "1");
-	fs.add_file("test/1", 0, file_storage::flag_symlink, 0, "0");
+	fs.add_file_borrow({}, "test/0", 0, file_storage::flag_symlink, 0, "1");
+	fs.add_file_borrow({}, "test/1", 0, file_storage::flag_symlink, 0, "0");
 
 	// when this is resolved, we end up in an infinite loop. Make sure we can
 	// handle that
-	fs.add_file("test/2", 0, file_storage::flag_symlink, 0, "0/ZZ");
+	fs.add_file_borrow({}, "test/2", 0, file_storage::flag_symlink, 0, "0/ZZ");
 
 	// this is the only actual content
-	fs.add_file("test/A" SEP "ZZ", 10000);
+	fs.add_file_borrow({}, "test/A" SEP "ZZ", 10000);
 	fs.set_num_pieces(int((fs.total_size() + 1023) / 1024));
 
 	fs.sanitize_symlinks();
@@ -665,13 +666,13 @@ TORRENT_TEST(sanitize_symlinks_lexicographic)
 	fs.set_piece_length(1024);
 
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
-	fs.add_file("test\\A.bar\\leaf", 100);
-	fs.add_file("test\\A\\B\\leaf", 100);
-	fs.add_file("test\\sym", 0, file_storage::flag_symlink, 0, "A");
+	fs.add_file_borrow({}, "test\\A.bar\\leaf", 100);
+	fs.add_file_borrow({}, "test\\A\\B\\leaf", 100);
+	fs.add_file_borrow({}, "test\\sym", 0, file_storage::flag_symlink, 0, "A");
 #else
-	fs.add_file("test/A.bar/leaf", 100);
-	fs.add_file("test/A/B/leaf", 100);
-	fs.add_file("test/sym", 0, file_storage::flag_symlink, 0, "A");
+	fs.add_file_borrow({}, "test/A.bar/leaf", 100);
+	fs.add_file_borrow({}, "test/A/B/leaf", 100);
+	fs.add_file_borrow({}, "test/sym", 0, file_storage::flag_symlink, 0, "A");
 #endif
 
 	fs.set_num_pieces(int((fs.total_size() + 1023) / 1024));
@@ -685,10 +686,10 @@ TORRENT_TEST(query_symlinks)
 {
 	file_storage fs;
 	fs.set_piece_length(1024);
-	fs.add_file("test/0", 0, file_storage::flag_symlink, 0, "0");
-	fs.add_file("test/1", 0, file_storage::flag_symlink, 0, "1");
-	fs.add_file("test/2", 0, file_storage::flag_symlink, 0, "2");
-	fs.add_file("test/3", 0, file_storage::flag_symlink, 0, "3");
+	fs.add_file_borrow({}, "test/0", 0, file_storage::flag_symlink, 0, "0");
+	fs.add_file_borrow({}, "test/1", 0, file_storage::flag_symlink, 0, "1");
+	fs.add_file_borrow({}, "test/2", 0, file_storage::flag_symlink, 0, "2");
+	fs.add_file_borrow({}, "test/3", 0, file_storage::flag_symlink, 0, "3");
 
 	auto const& ret1 = fs.symlink(file_index_t{0});
 	auto const& ret2 = fs.symlink(file_index_t{1});
@@ -707,10 +708,10 @@ TORRENT_TEST(query_symlinks2)
 {
 	file_storage fs;
 	fs.set_piece_length(1024);
-	fs.add_file("test/0", 10);
-	fs.add_file("test/1", 10);
-	fs.add_file("test/2", 10);
-	fs.add_file("test/3", 10);
+	fs.add_file_borrow({}, "test/0", 10);
+	fs.add_file_borrow({}, "test/1", 10);
+	fs.add_file_borrow({}, "test/2", 10);
+	fs.add_file_borrow({}, "test/3", 10);
 
 	TEST_CHECK(fs.symlink(file_index_t{0}).empty());
 	TEST_CHECK(fs.symlink(file_index_t{1}).empty());
@@ -722,13 +723,13 @@ TORRENT_TEST(files_compatible)
 {
 	file_storage fs1;
 	fs1.set_piece_length(0x4000);
-	fs1.add_file("test/0", 1);
-	fs1.add_file("test/1", 2);
+	fs1.add_file_borrow({}, "test/0", 1);
+	fs1.add_file_borrow({}, "test/1", 2);
 
 	file_storage fs2;
 	fs2.set_piece_length(0x4000);
-	fs2.add_file("test/0", 1);
-	fs2.add_file("test/1", 2);
+	fs2.add_file_borrow({}, "test/0", 1);
+	fs2.add_file_borrow({}, "test/1", 2);
 
 	TEST_CHECK(lt::aux::files_compatible(fs1, fs2));
 }
@@ -737,12 +738,12 @@ TORRENT_TEST(files_compatible_num_files)
 {
 	file_storage fs1;
 	fs1.set_piece_length(0x4000);
-	fs1.add_file("test/0", 1);
-	fs1.add_file("test/1", 2);
+	fs1.add_file_borrow({}, "test/0", 1);
+	fs1.add_file_borrow({}, "test/1", 2);
 
 	file_storage fs2;
 	fs2.set_piece_length(0x4000);
-	fs2.add_file("test/0", 3);
+	fs2.add_file_borrow({}, "test/0", 3);
 
 	TEST_CHECK(!lt::aux::files_compatible(fs1, fs2));
 }
@@ -751,13 +752,13 @@ TORRENT_TEST(files_compatible_size)
 {
 	file_storage fs1;
 	fs1.set_piece_length(0x4000);
-	fs1.add_file("test/0", 2);
-	fs1.add_file("test/1", 1);
+	fs1.add_file_borrow({}, "test/0", 2);
+	fs1.add_file_borrow({}, "test/1", 1);
 
 	file_storage fs2;
 	fs2.set_piece_length(0x4000);
-	fs2.add_file("test/0", 1);
-	fs2.add_file("test/1", 2);
+	fs2.add_file_borrow({}, "test/0", 1);
+	fs2.add_file_borrow({}, "test/1", 2);
 
 	TEST_CHECK(!lt::aux::files_compatible(fs1, fs2));
 }
@@ -766,13 +767,13 @@ TORRENT_TEST(files_compatible_name)
 {
 	file_storage fs1;
 	fs1.set_piece_length(0x4000);
-	fs1.add_file("test/1", 1);
-	fs1.add_file("test/0", 2);
+	fs1.add_file_borrow({}, "test/1", 1);
+	fs1.add_file_borrow({}, "test/0", 2);
 
 	file_storage fs2;
 	fs2.set_piece_length(0x4000);
-	fs2.add_file("test/0", 1);
-	fs2.add_file("test/1", 2);
+	fs2.add_file_borrow({}, "test/0", 1);
+	fs2.add_file_borrow({}, "test/1", 2);
 
 	TEST_CHECK(!lt::aux::files_compatible(fs1, fs2));
 }
@@ -781,13 +782,13 @@ TORRENT_TEST(files_compatible_hidden)
 {
 	file_storage fs1;
 	fs1.set_piece_length(0x4000);
-	fs1.add_file("test/0", 1);
-	fs1.add_file("test/1", 2, file_storage::flag_hidden);
+	fs1.add_file_borrow({}, "test/0", 1);
+	fs1.add_file_borrow({}, "test/1", 2, file_storage::flag_hidden);
 
 	file_storage fs2;
 	fs2.set_piece_length(0x4000);
-	fs2.add_file("test/0", 1);
-	fs2.add_file("test/1", 2);
+	fs2.add_file_borrow({}, "test/0", 1);
+	fs2.add_file_borrow({}, "test/1", 2);
 
 	// hidden attribute does not affect compatibility
 	TEST_CHECK(lt::aux::files_compatible(fs1, fs2));
@@ -797,13 +798,13 @@ TORRENT_TEST(files_compatible_pad)
 {
 	file_storage fs1;
 	fs1.set_piece_length(0x4000);
-	fs1.add_file("test/0", 1);
-	fs1.add_file("test/1", 2, file_storage::flag_pad_file);
+	fs1.add_file_borrow({}, "test/0", 1);
+	fs1.add_file_borrow({}, "test/1", 2, file_storage::flag_pad_file);
 
 	file_storage fs2;
 	fs2.set_piece_length(0x4000);
-	fs2.add_file("test/0", 1);
-	fs2.add_file("test/1", 2);
+	fs2.add_file_borrow({}, "test/0", 1);
+	fs2.add_file_borrow({}, "test/1", 2);
 
 	// pad attribute does affect compatibility
 	TEST_CHECK(!lt::aux::files_compatible(fs1, fs2));
@@ -813,17 +814,17 @@ TORRENT_TEST(files_compatible_empty_file_order)
 {
 	file_storage fs1;
 	fs1.set_piece_length(0x4000);
-	fs1.add_file("test/0", 1);
-	fs1.add_file("test/1", 0);
-	fs1.add_file("test/2", 0);
-	fs1.add_file("test/3", 0);
+	fs1.add_file_borrow({}, "test/0", 1);
+	fs1.add_file_borrow({}, "test/1", 0);
+	fs1.add_file_borrow({}, "test/2", 0);
+	fs1.add_file_borrow({}, "test/3", 0);
 
 	file_storage fs2;
 	fs2.set_piece_length(0x4000);
-	fs2.add_file("test/0", 1);
-	fs2.add_file("test/3", 0);
-	fs2.add_file("test/2", 0);
-	fs2.add_file("test/1", 0);
+	fs2.add_file_borrow({}, "test/0", 1);
+	fs2.add_file_borrow({}, "test/3", 0);
+	fs2.add_file_borrow({}, "test/2", 0);
+	fs2.add_file_borrow({}, "test/1", 0);
 
 	// order of empty files does not affect compatibility
 	TEST_CHECK(lt::aux::files_compatible(fs1, fs2));
@@ -833,13 +834,13 @@ TORRENT_TEST(files_compatible_mtime)
 {
 	file_storage fs1;
 	fs1.set_piece_length(0x4000);
-	fs1.add_file("test/0", 1, {}, 1234);
-	fs1.add_file("test/1", 2, {}, 1235);
+	fs1.add_file_borrow({}, "test/0", 1, {}, 1234);
+	fs1.add_file_borrow({}, "test/1", 2, {}, 1235);
 
 	file_storage fs2;
 	fs2.set_piece_length(0x4000);
-	fs2.add_file("test/0", 1, {}, 1234);
-	fs2.add_file("test/1", 2, {}, 1234);
+	fs2.add_file_borrow({}, "test/0", 1, {}, 1234);
+	fs2.add_file_borrow({}, "test/1", 2, {}, 1234);
 
 	// mtime does not affect compatibility
 	TEST_CHECK(lt::aux::files_compatible(fs1, fs2));
@@ -849,13 +850,13 @@ TORRENT_TEST(files_compatible_piece_size)
 {
 	file_storage fs1;
 	fs1.set_piece_length(0x8000);
-	fs1.add_file("test/0", 1);
-	fs1.add_file("test/1", 2);
+	fs1.add_file_borrow({}, "test/0", 1);
+	fs1.add_file_borrow({}, "test/1", 2);
 
 	file_storage fs2;
 	fs2.set_piece_length(0x4000);
-	fs2.add_file("test/0", 1);
-	fs2.add_file("test/1", 2);
+	fs2.add_file_borrow({}, "test/0", 1);
+	fs2.add_file_borrow({}, "test/1", 2);
 
 	TEST_CHECK(!lt::aux::files_compatible(fs1, fs2));
 }
@@ -864,13 +865,13 @@ TORRENT_TEST(files_compatible_different_symlink)
 {
 	file_storage fs1;
 	fs1.set_piece_length(0x4000);
-	fs1.add_file("test/0", 1);
-	fs1.add_file("test/1", 2, file_storage::flag_symlink, 0, "test/0");
+	fs1.add_file_borrow({}, "test/0", 1);
+	fs1.add_file_borrow({}, "test/1", 2, file_storage::flag_symlink, 0, "test/0");
 
 	file_storage fs2;
 	fs2.set_piece_length(0x4000);
-	fs2.add_file("test/0", 1);
-	fs2.add_file("test/1", 2, file_storage::flag_symlink, 0, "test/1");
+	fs2.add_file_borrow({}, "test/0", 1);
+	fs2.add_file_borrow({}, "test/1", 2, file_storage::flag_symlink, 0, "test/1");
 
 	TEST_CHECK(!lt::aux::files_compatible(fs1, fs2));
 }
@@ -879,13 +880,13 @@ TORRENT_TEST(files_compatible_same_symlink)
 {
 	file_storage fs1;
 	fs1.set_piece_length(0x4000);
-	fs1.add_file("test/0", 1);
-	fs1.add_file("test/1", 2, file_storage::flag_symlink, 0, "test/0");
+	fs1.add_file_borrow({}, "test/0", 1);
+	fs1.add_file_borrow({}, "test/1", 2, file_storage::flag_symlink, 0, "test/0");
 
 	file_storage fs2;
 	fs2.set_piece_length(0x4000);
-	fs2.add_file("test/0", 1);
-	fs2.add_file("test/1", 2, file_storage::flag_symlink, 0, "test/0");
+	fs2.add_file_borrow({}, "test/0", 1);
+	fs2.add_file_borrow({}, "test/1", 2, file_storage::flag_symlink, 0, "test/0");
 
 	TEST_CHECK(lt::aux::files_compatible(fs1, fs2));
 }
@@ -894,18 +895,18 @@ TORRENT_TEST(remove_tail_padding_not_last)
 {
 	file_storage fs1;
 	fs1.set_piece_length(0x4000);
-	fs1.add_file("test/0", 1);
-	fs1.add_file("test/1", 2, file_storage::flag_pad_file);
-	fs1.add_file("test/2", 0);
-	fs1.add_file("test/3", 0);
+	fs1.add_file_borrow({}, "test/0", 1);
+	fs1.add_file_borrow({}, "test/1", 2, file_storage::flag_pad_file);
+	fs1.add_file_borrow({}, "test/2", 0);
+	fs1.add_file_borrow({}, "test/3", 0);
 
 	fs1.remove_tail_padding();
 
 	file_storage fs2;
 	fs2.set_piece_length(0x4000);
-	fs2.add_file("test/0", 1);
-	fs2.add_file("test/2", 0);
-	fs2.add_file("test/3", 0);
+	fs2.add_file_borrow({}, "test/0", 1);
+	fs2.add_file_borrow({}, "test/2", 0);
+	fs2.add_file_borrow({}, "test/3", 0);
 
 	TEST_CHECK(lt::aux::files_compatible(fs1, fs2));
 }
@@ -914,14 +915,14 @@ TORRENT_TEST(remove_tail_padding_last)
 {
 	file_storage fs1;
 	fs1.set_piece_length(0x4000);
-	fs1.add_file("test/0", 1);
-	fs1.add_file("test/1", 2, file_storage::flag_pad_file);
+	fs1.add_file_borrow({}, "test/0", 1);
+	fs1.add_file_borrow({}, "test/1", 2, file_storage::flag_pad_file);
 
 	fs1.remove_tail_padding();
 
 	file_storage fs2;
 	fs2.set_piece_length(0x4000);
-	fs2.add_file("test/0", 1);
+	fs2.add_file_borrow({}, "test/0", 1);
 
 	TEST_CHECK(lt::aux::files_compatible(fs1, fs2));
 }
@@ -930,19 +931,19 @@ TORRENT_TEST(remove_tail_padding_no_op)
 {
 	file_storage fs1;
 	fs1.set_piece_length(0x4000);
-	fs1.add_file("test/0", 1);
-	fs1.add_file("test/1", 0);
-	fs1.add_file("test/2", 0);
-	fs1.add_file("test/3", 0);
+	fs1.add_file_borrow({}, "test/0", 1);
+	fs1.add_file_borrow({}, "test/1", 0);
+	fs1.add_file_borrow({}, "test/2", 0);
+	fs1.add_file_borrow({}, "test/3", 0);
 
 	fs1.remove_tail_padding();
 
 	file_storage fs2;
 	fs2.set_piece_length(0x4000);
-	fs2.add_file("test/0", 1);
-	fs2.add_file("test/1", 0);
-	fs2.add_file("test/2", 0);
-	fs2.add_file("test/3", 0);
+	fs2.add_file_borrow({}, "test/0", 1);
+	fs2.add_file_borrow({}, "test/1", 0);
+	fs2.add_file_borrow({}, "test/2", 0);
+	fs2.add_file_borrow({}, "test/3", 0);
 
 	TEST_CHECK(lt::aux::files_compatible(fs1, fs2));
 }
@@ -954,14 +955,14 @@ TORRENT_TEST(large_files)
 {
 	file_storage fs1;
 	fs1.set_piece_length(0x4000);
-	TEST_THROW(fs1.add_file("test/0", int_max / 2 * lt::default_block_size + 1));
+	TEST_THROW(fs1.add_file_borrow({}, "test/0", int_max / 2 * lt::default_block_size + 1));
 
 	error_code ec;
-	fs1.add_file(ec, "test/0", int_max * lt::default_block_size + 1);
+	fs1.add_file_borrow(ec, {}, "test/0", int_max * lt::default_block_size + 1);
 	TEST_EQUAL(ec, make_error_code(boost::system::errc::file_too_large));
 
 	// should not throw
-	TEST_NOTHROW(fs1.add_file("test/0", int_max / 2 * lt::default_block_size));
+	TEST_NOTHROW(fs1.add_file_borrow({}, "test/0", int_max / 2 * lt::default_block_size));
 }
 
 TORRENT_TEST(large_offset)
@@ -969,17 +970,18 @@ TORRENT_TEST(large_offset)
 	file_storage fs1;
 	fs1.set_piece_length(0x4000);
 	for (int i = 0; i < 16; ++i)
-		fs1.add_file(("test/" + std::to_string(i)).c_str(), int_max / 2 * lt::default_block_size);
+		fs1.add_file_borrow(
+			{}, ("test/" + std::to_string(i)).c_str(), int_max / 2 * lt::default_block_size);
 
 	// this exceeds the 2^48-1 limit
-	TEST_THROW(fs1.add_file("test/16", 262144));
+	TEST_THROW(fs1.add_file_borrow({}, "test/16", 262144));
 
 	error_code ec;
-	fs1.add_file(ec, "test/8", 262144);
+	fs1.add_file_borrow(ec, {}, "test/8", 262144);
 	TEST_EQUAL(ec, make_error_code(errors::torrent_invalid_length));
 
 	// this should be OK, but just
-	fs1.add_file("test/8", 262143);
+	fs1.add_file_borrow({}, "test/8", 262143);
 }
 
 TORRENT_TEST(large_filename)
@@ -1002,20 +1004,20 @@ TORRENT_TEST(piece_size2)
 	fs.set_piece_length(0x8000);
 	// passing in a root hash (the last argument) makes it follow v2 rules, to
 	// add pad files
-	fs.add_file("test/0", 0x5000, {}, 0, {}, dummy_root_hash);
+	fs.add_file_borrow({}, "test/0", 0x5000, {}, 0, {}, 0);
 
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	TEST_EQUAL(fs.num_pieces(), 1);
 	TEST_EQUAL(fs.piece_size2(0_piece), 0x5000);
 
-	fs.add_file("test/1", 0x2000, {}, 0, {}, dummy_root_hash);
-	fs.add_file("test/2", 0x8000, {}, 0, {}, dummy_root_hash);
+	fs.add_file_borrow({}, "test/1", 0x2000, {}, 0, {}, 0);
+	fs.add_file_borrow({}, "test/2", 0x8000, {}, 0, {}, 0);
 
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	TEST_EQUAL(fs.num_pieces(), 3);
 	TEST_EQUAL(fs.piece_size2(2_piece), 0x8000);
 
-	fs.add_file("test/3", 8, {}, 0, {}, dummy_root_hash);
+	fs.add_file_borrow({}, "test/3", 8, {}, 0, {}, 0);
 
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	TEST_EQUAL(fs.num_pieces(), 4);
@@ -1024,7 +1026,7 @@ TORRENT_TEST(piece_size2)
 	TEST_EQUAL(fs.piece_size2(2_piece), 0x8000);
 	TEST_EQUAL(fs.piece_size2(3_piece), 8);
 
-	fs.add_file("test/4", 0x8001, {}, 0, {}, dummy_root_hash);
+	fs.add_file_borrow({}, "test/4", 0x8001, {}, 0, {}, 0);
 
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	TEST_EQUAL(fs.num_pieces(), 6);
@@ -1042,12 +1044,12 @@ TORRENT_TEST(file_num_blocks)
 {
 	file_storage fs = make_v2_storage();
 	fs.set_piece_length(0x8000);
-	fs.add_file("test/0", 0x5000, {}, 0, {}, dummy_root_hash);
-	fs.add_file("test/1", 0x2000, {}, 0, {}, dummy_root_hash);
-	fs.add_file("test/2", 0x8000, {}, 0, {}, dummy_root_hash);
-	fs.add_file("test/3", 0x8001, {}, 0, {}, dummy_root_hash);
-	fs.add_file("test/4", 1, {}, 0, {}, dummy_root_hash);
-	fs.add_file("test/5", 0, {}, 0, {}, dummy_root_hash);
+	fs.add_file_borrow({}, "test/0", 0x5000, {}, 0, {}, 0);
+	fs.add_file_borrow({}, "test/1", 0x2000, {}, 0, {}, 0);
+	fs.add_file_borrow({}, "test/2", 0x8000, {}, 0, {}, 0);
+	fs.add_file_borrow({}, "test/3", 0x8001, {}, 0, {}, 0);
+	fs.add_file_borrow({}, "test/4", 1, {}, 0, {}, 0);
+	fs.add_file_borrow({}, "test/5", 0, {}, 0, {}, 0);
 
 	fs.canonicalize();
 
@@ -1074,12 +1076,12 @@ TORRENT_TEST(file_num_pieces)
 {
 	file_storage fs = make_v2_storage();
 	fs.set_piece_length(0x8000);
-	fs.add_file("test/0", 0x5000, {}, 0, {}, dummy_root_hash);
-	fs.add_file("test/1", 0x2000, {}, 0, {}, dummy_root_hash);
-	fs.add_file("test/2", 0x8000, {}, 0, {}, dummy_root_hash);
-	fs.add_file("test/3", 0x8001, {}, 0, {}, dummy_root_hash);
-	fs.add_file("test/4", 1, {}, 0, {}, dummy_root_hash);
-	fs.add_file("test/5", 0, {}, 0, {}, dummy_root_hash);
+	fs.add_file_borrow({}, "test/0", 0x5000, {}, 0, {}, 0);
+	fs.add_file_borrow({}, "test/1", 0x2000, {}, 0, {}, 0);
+	fs.add_file_borrow({}, "test/2", 0x8000, {}, 0, {}, 0);
+	fs.add_file_borrow({}, "test/3", 0x8001, {}, 0, {}, 0);
+	fs.add_file_borrow({}, "test/4", 1, {}, 0, {}, 0);
+	fs.add_file_borrow({}, "test/5", 0, {}, 0, {}, 0);
 
 	fs.canonicalize();
 
@@ -1108,7 +1110,7 @@ int first_piece_node(int piece_size, int file_size)
 {
 	file_storage fs = make_v2_storage();
 	fs.set_piece_length(piece_size);
-	fs.add_file("test/0", file_size, {}, 0, {}, dummy_root_hash);
+	fs.add_file_borrow({}, "test/0", file_size, {}, 0, {}, 0);
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	return fs.file_first_piece_node(file_index_t{0});
 }
@@ -1117,7 +1119,7 @@ int first_block_node(int file_size)
 {
 	file_storage fs = make_v2_storage();
 	fs.set_piece_length(0x10000);
-	fs.add_file("test/0", file_size, {}, 0, {}, dummy_root_hash);
+	fs.add_file_borrow({}, "test/0", file_size, {}, 0, {}, 0);
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	return fs.file_first_block_node(file_index_t{0});
 }
@@ -1176,9 +1178,9 @@ TORRENT_TEST(mismatching_file_hash1)
 	st.set_piece_length(0x4000);
 
 	error_code ec;
-	st.add_file(ec, combine_path("test", "a"), 10000);
+	st.add_file_borrow(ec, {}, combine_path("test", "a"), 10000);
 	TEST_CHECK(!ec);
-	st.add_file(ec, combine_path("test", "B"), 10000, {}, 0, {}, dummy_root_hash);
+	st.add_file_borrow(ec, {}, combine_path("test", "B"), 10000, {}, 0, {}, 0);
 	TEST_CHECK(ec);
 }
 
@@ -1188,9 +1190,9 @@ TORRENT_TEST(mismatching_file_hash2)
 	st.set_piece_length(0x4000);
 
 	error_code ec;
-	st.add_file(ec, combine_path("test", "B"), 10000, {}, 0, {}, dummy_root_hash);
+	st.add_file_borrow(ec, {}, combine_path("test", "B"), 10000, {}, 0, {}, 0);
 	TEST_CHECK(!ec);
-	st.add_file(ec, combine_path("test", "a"), 10000);
+	st.add_file_borrow(ec, {}, combine_path("test", "a"), 10000);
 	TEST_CHECK(ec);
 }
 
@@ -1200,12 +1202,12 @@ TORRENT_TEST(v2_detection_1)
 	fs.set_piece_length(0x8000);
 	// passing in a root hash (the last argument) makes it follow v2 rules, to
 	// add pad files
-	fs.add_file("test/0", 0x5000, {}, 0, "symlink-test-1");
-	fs.add_file("test/1", 0x5000, {}, 0, "symlink-test-2");
+	fs.add_file_borrow({}, "test/0", 0x5000, {}, 0, "symlink-test-1");
+	fs.add_file_borrow({}, "test/1", 0x5000, {}, 0, "symlink-test-2");
 
-	fs.add_file("test/2", 0x2000, {}, 0, {}, dummy_root_hash);
+	fs.add_file_borrow({}, "test/2", 0x2000, {}, 0, {}, 0);
 	// it's an error to add a v1 file to a v2 torrent
-	TEST_THROW(fs.add_file("test/3", 0x2000));
+	TEST_THROW(fs.add_file_borrow({}, "test/3", 0x2000));
 }
 
 TORRENT_TEST(v2_detection_2)
@@ -1214,13 +1216,13 @@ TORRENT_TEST(v2_detection_2)
 	fs.set_piece_length(0x8000);
 	// passing in a root hash (the last argument) makes it follow v2 rules, to
 	// add pad files
-	fs.add_file("test/0", 0x5000, {}, 0, "symlink-test-1");
-	fs.add_file("test/1", 0x5000, {}, 0, "symlink-test-2");
+	fs.add_file_borrow({}, "test/0", 0x5000, {}, 0, "symlink-test-1");
+	fs.add_file_borrow({}, "test/1", 0x5000, {}, 0, "symlink-test-2");
 
-	fs.add_file("test/2", 0x2000);
+	fs.add_file_borrow({}, "test/2", 0x2000);
 
 	// it's an error to add a v1 file to a v2 torrent
-	TEST_THROW(fs.add_file("test/3", 0x2000, {}, 0, {}, dummy_root_hash));
+	TEST_THROW(fs.add_file_borrow({}, "test/3", 0x2000, {}, 0, {}, 0));
 }
 
 TORRENT_TEST(blocks_in_piece2)
@@ -1235,7 +1237,7 @@ TORRENT_TEST(blocks_in_piece2)
 	{
 		file_storage fs = make_v2_storage();
 		fs.set_piece_length(0x8000);
-		fs.add_file("test/0", t.first, {}, 0, {}, dummy_root_hash);
+		fs.add_file_borrow({}, "test/0", t.first, {}, 0, {}, 0);
 		fs.set_num_pieces(aux::calc_num_pieces(fs));
 		TEST_EQUAL(fs.blocks_in_piece2(0_piece), t.second);
 	}
@@ -1251,10 +1253,10 @@ TORRENT_TEST(file_index_for_root)
 	});
 	file_storage fs{buf.data()};
 	fs.set_piece_length(0x8000);
-	fs.add_file("test/0", 0x8000, {}, 0, {}, buf.data() + off[0]);
-	fs.add_file("test/1", 0x8000, {}, 0, {}, buf.data() + off[1]);
-	fs.add_file("test/2", 0x8000, {}, 0, {}, buf.data() + off[2]);
-	fs.add_file("test/3", 0x8000, {}, 0, {}, buf.data() + off[3]);
+	fs.add_file_borrow({}, "test/0", 0x8000, {}, 0, {}, off[0]);
+	fs.add_file_borrow({}, "test/1", 0x8000, {}, 0, {}, off[1]);
+	fs.add_file_borrow({}, "test/2", 0x8000, {}, 0, {}, off[2]);
+	fs.add_file_borrow({}, "test/3", 0x8000, {}, 0, {}, off[3]);
 
 	TEST_EQUAL(fs.file_index_for_root(sha256_hash("11111111111111111111111111111111")), file_index_t{0});
 	TEST_EQUAL(fs.file_index_for_root(sha256_hash("22222222222222222222222222222222")), file_index_t{1});
@@ -1276,16 +1278,16 @@ TORRENT_TEST(size_on_disk)
 
 	std::int64_t size_on_disk = 0;
 	TEST_EQUAL(fs.size_on_disk(), size_on_disk);
-	fs.add_file("test/0", 100, {}, 0, {}, buf.data() + off[0]);
+	fs.add_file_borrow({}, "test/0", 100, {}, 0, {}, off[0]);
 	size_on_disk += 100;
 	TEST_EQUAL(fs.size_on_disk(), size_on_disk);
-	fs.add_file("test/1", 800, {}, 0, {}, buf.data() + off[1]);
+	fs.add_file_borrow({}, "test/1", 800, {}, 0, {}, off[1]);
 	size_on_disk += 800;
 	TEST_EQUAL(fs.size_on_disk(), size_on_disk);
-	fs.add_file("test/2", 333, {}, 0, {}, buf.data() + off[2]);
+	fs.add_file_borrow({}, "test/2", 333, {}, 0, {}, off[2]);
 	size_on_disk += 333;
 	TEST_EQUAL(fs.size_on_disk(), size_on_disk);
-	fs.add_file("test/3", 1337, {}, 0, {}, buf.data() + off[3]);
+	fs.add_file_borrow({}, "test/3", 1337, {}, 0, {}, off[3]);
 	size_on_disk += 1337;
 	TEST_EQUAL(fs.size_on_disk(), size_on_disk);
 	TEST_CHECK(fs.size_on_disk() < fs.total_size());
@@ -1303,14 +1305,14 @@ TORRENT_TEST(size_on_disk_explicit_pads)
 
 	std::int64_t size_on_disk = 0;
 	TEST_EQUAL(fs.size_on_disk(), size_on_disk);
-	fs.add_file("test/0", 100, {}, 0, {}, buf.data() + off[0]);
+	fs.add_file_borrow({}, "test/0", 100, {}, 0, {}, off[0]);
 	size_on_disk += 100;
 	TEST_EQUAL(fs.size_on_disk(), size_on_disk);
 
 	// when adding a pad file, size_on_disk does not increment
-	fs.add_file("test/pad/0", 80, file_storage::flag_pad_file, 0, {}, buf.data() + off[1]);
+	fs.add_file_borrow({}, "test/pad/0", 80, file_storage::flag_pad_file, 0, {}, off[1]);
 	TEST_EQUAL(fs.size_on_disk(), size_on_disk);
-	fs.add_file("test/2", 333, {}, 0, {}, buf.data() + off[2]);
+	fs.add_file_borrow({}, "test/2", 333, {}, 0, {}, off[2]);
 	size_on_disk += 333;
 	TEST_EQUAL(fs.size_on_disk(), size_on_disk);
 	TEST_CHECK(fs.size_on_disk() < fs.total_size());
@@ -1326,10 +1328,10 @@ TORRENT_TEST(test_renamed_files)
 	});
 	file_storage fs{buf.data()};
 	fs.set_piece_length(0x8000);
-	fs.add_file("test/0", 0x8000, {}, 0, {}, buf.data() + off[0]);
-	fs.add_file("test/1", 0x8000, {}, 0, {}, buf.data() + off[1]);
-	fs.add_file("test/2/1", 0x8000, {}, 0, {}, buf.data() + off[2]);
-	fs.add_file("test/2/2", 0x8000, {}, 0, {}, buf.data() + off[3]);
+	fs.add_file_borrow({}, "test/0", 0x8000, {}, 0, {}, off[0]);
+	fs.add_file_borrow({}, "test/1", 0x8000, {}, 0, {}, off[1]);
+	fs.add_file_borrow({}, "test/2/1", 0x8000, {}, 0, {}, off[2]);
+	fs.add_file_borrow({}, "test/2/2", 0x8000, {}, 0, {}, off[3]);
 
 	renamed_files rf;
 
@@ -1391,10 +1393,10 @@ TORRENT_TEST(renamed_files_round_trip)
 	});
 	file_storage fs{buf.data()};
 	fs.set_piece_length(0x8000);
-	fs.add_file("test/0", 0x8000, {}, 0, {}, buf.data() + off[0]);
-	fs.add_file("test/1", 0x8000, {}, 0, {}, buf.data() + off[1]);
-	fs.add_file("test/2/1", 0x8000, {}, 0, {}, buf.data() + off[2]);
-	fs.add_file("test/2/2", 0x8000, {}, 0, {}, buf.data() + off[3]);
+	fs.add_file_borrow({}, "test/0", 0x8000, {}, 0, {}, off[0]);
+	fs.add_file_borrow({}, "test/1", 0x8000, {}, 0, {}, off[1]);
+	fs.add_file_borrow({}, "test/2/1", 0x8000, {}, 0, {}, off[2]);
+	fs.add_file_borrow({}, "test/2/2", 0x8000, {}, 0, {}, off[3]);
 
 	renamed_files rf;
 

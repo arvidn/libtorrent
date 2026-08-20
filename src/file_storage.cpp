@@ -322,16 +322,6 @@ TORRENT_VERSION_NAMESPACE_4_END
 		}
 	}
 
-#if TORRENT_ABI_VERSION == 1
-	file_entry::file_entry(): offset(0), size(0)
-		, mtime(0), pad_file(false), hidden_attribute(false)
-		, executable_attribute(false)
-		, symlink_attribute(false)
-	{}
-
-	file_entry::~file_entry() = default;
-#endif // TORRENT_ABI_VERSION
-
 namespace aux {
 
 file_name_view::file_name_view(std::uint64_t const pad_size)
@@ -463,21 +453,6 @@ file_entry::~file_entry()
 
 TORRENT_VERSION_NAMESPACE_4
 
-#if TORRENT_ABI_VERSION == 1
-
-	void file_storage::add_file(file_entry const& fe, char const* filehash)
-	{
-		TORRENT_UNUSED(filehash);
-		file_flags_t flags = {};
-		if (fe.pad_file) flags |= file_storage::flag_pad_file;
-		if (fe.hidden_attribute) flags |= file_storage::flag_hidden;
-		if (fe.executable_attribute) flags |= file_storage::flag_executable;
-		if (fe.symlink_attribute) flags |= file_storage::flag_symlink;
-
-		add_file_borrow({}, fe.path, fe.size, flags, fe.mtime, fe.symlink_path);
-	}
-#endif // TORRENT_ABI_VERSION
-
 #if TORRENT_ABI_VERSION < 4
 	void file_storage::rename_file_impl(file_index_t const index
 		, std::string const& new_filename)
@@ -489,29 +464,6 @@ TORRENT_VERSION_NAMESPACE_4
 		update_path_index(m_files[index], new_filename);
 	}
 #endif // TORRENT_ABI_VERSION
-
-#if TORRENT_ABI_VERSION == 1
-	file_storage::iterator file_storage::file_at_offset_deprecated(std::int64_t offset) const
-	{
-		// find the file iterator and file offset
-		aux::file_entry target;
-		TORRENT_ASSERT(offset <= max_file_offset);
-		target.offset = aux::numeric_cast<std::uint64_t>(offset);
-		TORRENT_ASSERT(!compare_file_offset(target, m_files.front()));
-
-		auto file_iter = std::upper_bound(
-			begin_deprecated(), end_deprecated(), target, compare_file_offset);
-
-		TORRENT_ASSERT(file_iter != begin_deprecated());
-		--file_iter;
-		return file_iter;
-	}
-
-	file_storage::iterator file_storage::file_at_offset(std::int64_t offset) const
-	{
-		return file_at_offset_deprecated(offset);
-	}
-#endif
 
 	file_index_t file_storage::file_index_at_offset(std::int64_t const offset) const
 	{
@@ -628,39 +580,6 @@ TORRENT_VERSION_NAMESPACE_4
 		return ret;
 	}
 
-#if TORRENT_ABI_VERSION == 1
-	file_entry file_storage::at(int index) const
-	{
-		return at_deprecated(index);
-	}
-
-	aux::file_entry const& file_storage::internal_at(int const index) const
-	{
-		TORRENT_ASSERT(index >= 0);
-		TORRENT_ASSERT(index < int(m_files.size()));
-		return m_files[file_index_t(index)];
-	}
-
-	file_entry file_storage::at_deprecated(int index) const
-	{
-		TORRENT_ASSERT_PRECOND(index >= 0 && index < int(m_files.size()));
-		file_entry ret;
-		aux::file_entry const& ife = m_files[index];
-		ret.path = file_path(index);
-		ret.offset = ife.offset;
-		ret.size = ife.size;
-		ret.mtime = mtime(index);
-		ret.pad_file = ife.pad_file;
-		ret.hidden_attribute = ife.hidden_attribute;
-		ret.executable_attribute = ife.executable_attribute;
-		ret.symlink_attribute = ife.symlink_attribute;
-		if (ife.symlink_index != aux::file_entry::not_a_symlink)
-			ret.symlink_path = symlink(index);
-		ret.filehash = hash(index);
-		return ret;
-	}
-#endif // TORRENT_ABI_VERSION
-
 	int file_storage::num_files() const noexcept
 	{ return int(m_files.size()); }
 
@@ -712,6 +631,7 @@ TORRENT_VERSION_NAMESPACE_4
 	}
 
 #ifndef BOOST_NO_EXCEPTIONS
+#if TORRENT_ABI_VERSION < 5
 	void file_storage::add_file(std::string const& path, std::int64_t const file_size
 		, file_flags_t const file_flags, std::time_t const mtime, string_view const symlink_path
 		, char const* root_hash)
@@ -722,6 +642,7 @@ TORRENT_VERSION_NAMESPACE_4
 			ec, {}, path, file_size, file_flags, mtime, symlink_path, root_hash_offset);
 		if (ec) aux::throw_ex<system_error>(ec);
 	}
+#endif
 
 	void file_storage::add_file_borrow(string_view filename,
 		std::string const& path,
@@ -738,6 +659,7 @@ TORRENT_VERSION_NAMESPACE_4
 	}
 #endif // BOOST_NO_EXCEPTIONS
 
+#if TORRENT_ABI_VERSION < 5
 	void file_storage::add_file(error_code& ec, std::string const& path
 		, std::int64_t const file_size, file_flags_t const file_flags, std::time_t const mtime
 		, string_view symlink_path, char const* root_hash)
@@ -746,6 +668,7 @@ TORRENT_VERSION_NAMESPACE_4
 		add_file_borrow_impl(
 			ec, {}, path, file_size, file_flags, mtime, symlink_path, root_hash_offset);
 	}
+#endif
 
 	void file_storage::add_file_borrow(error_code& ec,
 		string_view filename,
@@ -1328,13 +1251,7 @@ namespace {
 		return fe.pad_file;
 	}
 
-	std::int64_t file_storage::file_offset(aux::file_entry const& fe) const
-	{
-		return fe.offset;
-	}
-
-	file_entry file_storage::at(file_storage::iterator i) const
-	{ return at_deprecated(int(i - m_files.begin())); }
+	std::int64_t file_storage::file_offset(aux::file_entry const& fe) const { return fe.offset; }
 #endif // TORRENT_ABI_VERSION
 
 	void file_storage::swap(file_storage& ti) noexcept
