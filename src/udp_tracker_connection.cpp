@@ -50,6 +50,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/aux_/ip_helpers.hpp" // for is_v6
 #include "libtorrent/peer.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/string_util.hpp" // for is_i2p_url
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/socket_io.hpp"
@@ -93,6 +94,19 @@ namespace libtorrent {
 			tracker_connection::fail(ec, operation_t::parse_address);
 			return;
 		}
+
+#if TORRENT_USE_I2P
+		// TODO: the UDP tracker protocol cannot be carried over I2P here: I2P
+		// only exposes SAM STREAM (TCP-like) sessions in this codebase, not
+		// SAM DATAGRAM sessions, which would be required. Fail immediately,
+		// rather than leaking the .i2p hostname to the regular resolver.
+		if (is_i2p_url(tracker_req().url))
+		{
+			tracker_connection::fail(error_code(errors::unsupported_url_protocol)
+				, operation_t::hostname_lookup);
+			return;
+		}
+#endif
 
 		aux::session_settings const& settings = m_man.settings();
 

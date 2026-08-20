@@ -3692,9 +3692,23 @@ namespace {
 			else
 #endif
 			{
-				ADD_OUTSTANDING_ASYNC("torrent::on_peer_name_lookup");
-				m_ses.get_resolver().async_resolve(i.hostname, aux::resolver_interface::abort_on_shutdown
-					, std::bind(&torrent::on_peer_name_lookup, shared_from_this(), _1, _2, i.port, v));
+				// there's no mechanism to connect to a peer by hostname through
+				// a proxy, so with proxy_hostnames set, drop hostnamed peers
+				// instead of leaking them to the regular resolver. a literal IP
+				// address in i.hostname isn't a leak, since no real resolution
+				// happens. this only matters when peer connections are actually
+				// proxied, so with no proxy configured (or one that doesn't
+				// proxy peer connections) resolve normally
+				aux::proxy_settings const& ps = m_ses.proxy();
+				if (!settings().get_bool(settings_pack::proxy_hostnames)
+					|| aux::is_ip_address(i.hostname)
+					|| ps.type == settings_pack::none
+					|| !ps.proxy_peer_connections)
+				{
+					ADD_OUTSTANDING_ASYNC("torrent::on_peer_name_lookup");
+					m_ses.get_resolver().async_resolve(i.hostname, aux::resolver_interface::abort_on_shutdown
+						, std::bind(&torrent::on_peer_name_lookup, shared_from_this(), _1, _2, i.port, v));
+				}
 			}
 		}
 
@@ -6394,6 +6408,22 @@ namespace {
 		update_want_tick();
 	}
 
+namespace {
+	// true when a web seed's hostname should be forwarded to the proxy
+	// (via CONNECT for HTTP-type proxies, or SOCKS5's native domain-name
+	// addressing) rather than resolved locally
+	bool web_seed_hostname_via_proxy(aux::proxy_settings const& ps, std::string const& hostname)
+	{
+		return ps.proxy_hostnames
+			&& !aux::is_ip_address(hostname)
+			&& ps.proxy_peer_connections
+			&& (ps.type == settings_pack::http
+				|| ps.type == settings_pack::http_pw
+				|| ps.type == settings_pack::socks5
+				|| ps.type == settings_pack::socks5_pw);
+	}
+}
+
 	void torrent::connect_to_url_seed(std::list<web_seed_t>::iterator web)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -6541,11 +6571,10 @@ namespace {
 				, [self = shared_from_this(), web, proxy_port](error_code const& e, std::vector<address> const& addrs)
 				{ self->wrap(&torrent::on_proxy_name_lookup, e, addrs, web, proxy_port); });
 		}
-		else if (ps.proxy_hostnames
-			&& (ps.type == settings_pack::socks5
-				|| ps.type == settings_pack::socks5_pw)
-			&& ps.proxy_peer_connections)
+		else if (web_seed_hostname_via_proxy(ps, hostname))
 		{
+			// the hostname is resolved by the proxy itself; there's no local
+			// address to pass, so use a placeholder
 			connect_web_seed(web, {address(), std::uint16_t(port)});
 		}
 		else
@@ -6636,6 +6665,16 @@ namespace {
 			if (m_ses.alerts().should_post<peer_blocked_alert>())
 				m_ses.alerts().emplace_alert<peer_blocked_alert>(get_handle()
 					, a, peer_blocked_alert::ip_filter);
+			return;
+		}
+
+		if (web_seed_hostname_via_proxy(m_ses.proxy(), hostname))
+		{
+			// let the proxy resolve the web seed's hostname itself, instead
+			// of leaking it to the local resolver. connect_web_seed() forces
+			// the hostname into the CONNECT request in this case. there's no
+			// local address to pass, so use a placeholder
+			connect_web_seed(web, tcp::endpoint(address(), std::uint16_t(port)));
 			return;
 		}
 
@@ -6736,7 +6775,12 @@ namespace {
 		TORRENT_ASSERT(is_single_thread());
 		if (m_abort) return;
 
-		if (m_ip_filter && m_ip_filter->access(a.address()) & ip_filter::blocked)
+		// when the hostname is resolved by the proxy (see
+		// settings_pack::proxy_hostnames), "a" is an unspecified-address
+		// placeholder and there's no IP known here to filter against
+		bool const address_known = !a.address().is_unspecified();
+		if (address_known
+			&& m_ip_filter && m_ip_filter->access(a.address()) & ip_filter::blocked)
 		{
 			if (m_ses.alerts().should_post<peer_blocked_alert>())
 				m_ses.alerts().emplace_alert<peer_blocked_alert>(get_handle()
@@ -6814,8 +6858,12 @@ namespace {
 		}
 
 		// The SSRF mitigation for web seeds is that any HTTP server on the
-		// local network may not use any query string parameters
+		// local network may not use any query string parameters. this can't
+		// be evaluated when the hostname is resolved by the proxy (see
+		// settings_pack::proxy_hostnames), since peer_info.addr is then an
+		// unspecified placeholder rather than the real target address
 		if (settings().get_bool(settings_pack::ssrf_mitigation)
+			&& address_known
 			&& aux::is_local(web->peer_info.addr)
 			&& path.find('?') != std::string::npos)
 		{
@@ -6843,7 +6891,8 @@ namespace {
 			&& !is_ip;
 
 		if (!is_ip
-			&& settings().get_bool(settings_pack::proxy_send_host_in_connect))
+			&& (proxy_hostnames
+				|| settings().get_bool(settings_pack::proxy_send_host_in_connect)))
 		{
 			if (auto* inner1 = boost::get<http_stream>(&s))
 			{
