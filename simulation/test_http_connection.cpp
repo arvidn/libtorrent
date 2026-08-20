@@ -42,6 +42,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/http_connection.hpp"
 #include "libtorrent/aux_/resolver.hpp"
 #include "libtorrent/random.hpp"
+#include "libtorrent/flags.hpp"
 
 #include "make_proxy_settings.hpp"
 
@@ -57,12 +58,19 @@ using chrono::duration_cast;
 
 struct sim_config : sim::default_config
 {
+	// counts how many times each hostname was looked up via the regular
+	// (non-proxied) resolver, for tests that need to assert a hostname was
+	// (or wasn't) leaked to it
+	std::map<std::string, int> lookup_count;
+
 	chrono::high_resolution_clock::duration hostname_lookup(
 		asio::ip::address const& requestor
 		, std::string hostname
 		, std::vector<asio::ip::address>& result
 		, boost::system::error_code& ec) override
 	{
+		++lookup_count[hostname];
+
 		if (hostname == "try-next.com")
 		{
 			result.push_back(make_address_v4("10.0.0.10"));
@@ -600,7 +608,17 @@ TORRENT_TEST(http_connection_http_error)
 	test_proxy_failure(settings_pack::http);
 }
 
-void test_connection_ssl_proxy(bool const with_hostname)
+using ssl_proxy_flags_t = flags::bitfield_flag<std::uint32_t, struct ssl_proxy_test_tag>;
+constexpr ssl_proxy_flags_t send_host_in_connect = 0_bit;
+constexpr ssl_proxy_flags_t proxy_hostnames = 1_bit;
+
+// exercises http_connection's CONNECT-tunnel host handling. Either
+// send_host_in_connect or proxy_hostnames is enough to force the hostname
+// (rather than a locally resolved IP) into the CONNECT request; unlike
+// send_host_in_connect, proxy_hostnames additionally skips the local
+// resolve altogether, since the whole point is to never hand the
+// hostname to the regular resolver.
+void test_connection_ssl_proxy(ssl_proxy_flags_t const flags)
 {
 	using sim::asio::ip::address_v4;
 	sim_config network_cfg;
@@ -613,33 +631,25 @@ void test_connection_ssl_proxy(bool const with_hostname)
 	sim::http_server http_proxy(proxy_ios, 4445);
 
 	lt::aux::proxy_settings ps = make_proxy_settings(settings_pack::http);
-	ps.send_host_in_connect = with_hostname;
+	ps.send_host_in_connect = bool(flags & send_host_in_connect);
+	ps.proxy_hostnames = bool(flags & proxy_hostnames);
+
+	bool const expect_hostname = bool(flags & (send_host_in_connect | proxy_hostnames));
+	std::string const expected_target = expect_hostname
+		? "test-hostname.com:8080" : "10.0.0.2:8080";
 
 	int client_counter = 0;
 	int proxy_counter = 0;
 
-	std::string expected_target = with_hostname ? "test-hostname.com:8080" : "10.0.0.2:8080";
-
 	http_proxy.register_handler(expected_target
-		, [&proxy_counter, with_hostname, expected_target](std::string method, std::string req, std::map<std::string, std::string>& headers)
+		, [&](std::string method, std::string, std::map<std::string, std::string>& headers)
 		{
 			proxy_counter++;
 			TEST_EQUAL(method, "CONNECT");
-
-			// Host header is always sent to comply with RFC 9110 and RFC 9112 requirements.
-			// The send_host_in_connect setting controls the format:
-			// - true: Host header contains domain:port format
-			// - false: Host header contains ip:port format
-			if (with_hostname)
-			{
-				// When send_host_in_connect is true, Host header should contain domain:port
-				TEST_EQUAL(headers["host"], "test-hostname.com:8080");
-			}
-			else
-			{
-				// When send_host_in_connect is false, Host header should contain ip:port
-				TEST_EQUAL(headers["host"], "10.0.0.2:8080");
-			}
+			// the Host header is always present (RFC 9110/9112) and mirrors
+			// the CONNECT target: the hostname when either setting forces
+			// it, otherwise the locally resolved IP
+			TEST_EQUAL(headers["host"], expected_target);
 			return sim::send_response(403, "Not supported", 1337);
 		});
 
@@ -664,32 +674,48 @@ void test_connection_ssl_proxy(bool const with_hostname)
 #endif
 		);
 
-	// Use hostname when testing with_hostname=true, IP when with_hostname=false
-	std::string target_host = with_hostname ? "test-hostname.com" : "10.0.0.2";
-	h->start(target_host, 8080, seconds(1), &ps, true /*ssl*/);
+	h->start("test-hostname.com", 8080, seconds(1), &ps, true /*ssl*/);
 
 	sim.run();
 
 	TEST_EQUAL(client_counter, 1);
 	TEST_EQUAL(proxy_counter, 1);
+
+	// proxy_hostnames must skip the local resolve entirely; without it,
+	// the target is always resolved locally first, even where the
+	// resolved IP then goes unused in favor of the hostname in CONNECT
+	TEST_EQUAL(network_cfg.lookup_count["test-hostname.com"] > 0, !bool(flags & proxy_hostnames));
 }
 
-// Tests SSL proxy connection with send_host_in_connect=false.
-// Uses IP address for connection and Host header should contain ip:port format.
-// This verifies that the Host header is always present and contains the target IP:port.
+// baseline: neither flag set. The target is resolved locally and the
+// CONNECT line / Host header carry the resolved IP.
 TORRENT_TEST(http_connection_ssl_proxy_no_hostname)
 {
-	test_connection_ssl_proxy(false);
+	test_connection_ssl_proxy({});
 }
 
-// Tests SSL proxy connection with send_host_in_connect=true.
-// Uses hostname for connection and Host header should contain domain:port format.
-// This ensures proper hostname handling when send_host_in_connect is enabled.
+// send_host_in_connect alone forces the hostname into CONNECT, but still
+// resolves locally first (proxy_hostnames is what skips that).
 TORRENT_TEST(http_connection_ssl_proxy_hostname)
 {
-	test_connection_ssl_proxy(true);
+	test_connection_ssl_proxy(send_host_in_connect);
 }
 
+// proxy_hostnames alone (send_host_in_connect left at its default false)
+// must also force the hostname into CONNECT, and skip the local resolve
+// entirely.
+TORRENT_TEST(http_connection_ssl_http_proxy_with_proxy_hostnames)
+{
+	test_connection_ssl_proxy(proxy_hostnames);
+}
+
+// both flags set together: the hostname must still be forced into CONNECT,
+// and the local resolve must still be skipped, exactly as with
+// proxy_hostnames alone.
+TORRENT_TEST(http_connection_ssl_http_proxy_with_both_flags)
+{
+	test_connection_ssl_proxy(send_host_in_connect | proxy_hostnames);
+}
 
 // TODO: test http proxy with password
 // TODO: test socks5 with password

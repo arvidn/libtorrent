@@ -46,6 +46,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp" // for is_v4
+#include "libtorrent/string_util.hpp" // for string_ends_with
+#include "libtorrent/flags.hpp"
 
 #include <boost/optional.hpp>
 #include <iostream>
@@ -2382,5 +2384,172 @@ TORRENT_TEST(tracker_i2p_kind_not_leaked_to_regular_tracker)
 	TEST_EQUAL(max_reported_peers, num_compact_peers);
 }
 
+// regression test: a udp:// tracker with a .i2p hostname has no way to
+// actually be reached (this codebase has no SAM datagram support), so it
+// must fail immediately instead of leaking the hostname to the regular
+// resolver.
+TORRENT_TEST(udp_tracker_i2p_no_dns_leak)
+{
+	struct sim_config : sim::default_config
+	{
+		int i2p_lookups = 0;
+
+		chrono::high_resolution_clock::duration hostname_lookup(
+			asio::ip::address const& requestor
+			, std::string hostname
+			, std::vector<asio::ip::address>& result
+			, boost::system::error_code& ec) override
+		{
+			if (string_ends_with(hostname, ".i2p")) ++i2p_lookups;
+			return default_config::hostname_lookup(requestor, hostname, result, ec);
+		}
+	};
+
+	sim_config network_cfg;
+	sim::simulation sim{network_cfg};
+
+	lt::session_proxy zombie;
+	asio::io_context ios(sim, { addr("50.0.0.1") });
+	settings_pack pack = settings();
+	pack.set_str(settings_pack::listen_interfaces, "50.0.0.1:6881");
+
+	auto ses = std::make_shared<lt::session>(pack, ios);
+
+	bool error_seen = false;
+	error_code got_error;
+	ses->set_alert_notify([&] {
+		post(ios, [&] {
+			std::vector<lt::alert*> alerts;
+			ses->pop_alerts(&alerts);
+			for (lt::alert* a : alerts)
+			{
+				if (auto const* te = alert_cast<tracker_error_alert>(a))
+				{
+					error_seen = true;
+					got_error = te->error;
+				}
+			}
+		});
+	});
+
+	lt::add_torrent_params params = ::create_torrent(1);
+	params.flags &= ~lt::torrent_flags::auto_managed;
+	params.flags &= ~lt::torrent_flags::paused;
+	params.ti->add_tracker("udp://tracker.i2p:6969/announce", 0);
+	params.save_path = save_path(0);
+	ses->async_add_torrent(params);
+
+	sim::timer t(sim, lt::seconds(10), [&](boost::system::error_code const&)
+	{
+		zombie = ses->abort();
+		ses.reset();
+	});
+	sim.run();
+
+	TEST_CHECK(error_seen);
+	TEST_EQUAL(got_error, error_code(errors::unsupported_url_protocol));
+	TEST_EQUAL(network_cfg.i2p_lookups, 0);
+}
+
 #endif // TORRENT_USE_I2P
+
+using peer_hostname_flags_t = flags::bitfield_flag<std::uint32_t, struct peer_hostname_test_tag>;
+constexpr peer_hostname_flags_t proxy_hostnames = 0_bit;
+constexpr peer_hostname_flags_t no_proxy_configured = 1_bit;
+constexpr peer_hostname_flags_t configure_proxy = 2_bit;
+
+// a non-compact tracker peer list can carry a hostname (rather than a raw
+// IP) in the "ip" field. Regular bittorrent peer connections have no
+// mechanism to be proxied by hostname, so with proxy_hostnames set and a
+// proxy actually configured, such peers must be dropped rather than
+// resolved via the regular resolver.
+void test_peer_hostname_resolve(peer_hostname_flags_t const flags)
+{
+	struct sim_config : sim::default_config
+	{
+		int peer_lookups = 0;
+
+		chrono::high_resolution_clock::duration hostname_lookup(
+			asio::ip::address const& requestor
+			, std::string hostname
+			, std::vector<asio::ip::address>& result
+			, boost::system::error_code& ec) override
+		{
+			if (hostname == "peer.example.com") ++peer_lookups;
+			return default_config::hostname_lookup(requestor, hostname, result, ec);
+		}
+	};
+
+	sim_config network_cfg;
+	sim::simulation sim{network_cfg};
+
+	sim::asio::io_context tracker_ios(sim, addr("3.0.0.1"));
+	sim::http_server http(tracker_ios, 8080);
+
+	http.register_handler("/announce"
+		, [](std::string, std::string, std::map<std::string, std::string>&)
+	{
+		std::string const peer_host = "peer.example.com";
+		std::string const peer_dict = "d2:ip" + std::to_string(peer_host.size())
+			+ ":" + peer_host + "4:porti6881ee";
+		std::string const body = "d8:intervali1800e5:peersl" + peer_dict + "ee";
+		return sim::send_response(200, "OK", int(body.size())) + body;
+	});
+
+	lt::session_proxy zombie;
+	asio::io_context ios(sim, { addr("50.0.0.1") });
+	settings_pack pack = settings();
+	pack.set_str(settings_pack::listen_interfaces, "50.0.0.1:6881");
+	if (!(flags & no_proxy_configured))
+		pack.set_bool(settings_pack::proxy_hostnames, bool(flags & proxy_hostnames));
+	if (flags & configure_proxy)
+	{
+		pack.set_int(settings_pack::proxy_type, settings_pack::socks5);
+		pack.set_str(settings_pack::proxy_hostname, "60.0.0.1");
+		pack.set_int(settings_pack::proxy_port, 4444);
+	}
+
+	auto ses = std::make_shared<lt::session>(pack, ios);
+
+	lt::add_torrent_params params = ::create_torrent(1);
+	params.flags &= ~lt::torrent_flags::auto_managed;
+	params.flags &= ~lt::torrent_flags::paused;
+	params.ti->add_tracker("http://3.0.0.1:8080/announce", 0);
+	params.save_path = save_path(0);
+	ses->async_add_torrent(params);
+
+	sim::timer t(sim, lt::seconds(10), [&](boost::system::error_code const&)
+	{
+		zombie = ses->abort();
+		ses.reset();
+	});
+	sim.run();
+
+	bool const proxy_hostnames_enabled = bool(flags & no_proxy_configured)
+		? true : bool(flags & proxy_hostnames);
+	TEST_EQUAL(network_cfg.peer_lookups > 0
+		, !(proxy_hostnames_enabled && bool(flags & configure_proxy)));
+}
+
+// regression test: without proxy_hostnames, a hostnamed peer from the
+// tracker is still resolved normally.
+TORRENT_TEST(peer_hostname_resolved_without_proxy_hostnames)
+{
+	test_peer_hostname_resolve({});
+}
+
+// with proxy_hostnames set and a proxy actually configured, the hostnamed
+// peer must not be leaked to the regular resolver.
+TORRENT_TEST(peer_hostname_not_leaked_with_proxy_hostnames)
+{
+	test_peer_hostname_resolve(proxy_hostnames | configure_proxy);
+}
+
+// regression test: with default settings (no proxy configured, so
+// proxy_hostnames defaults to true but there's no proxy to leak a
+// resolution to), a hostnamed peer from the tracker must still be resolved.
+TORRENT_TEST(peer_hostname_resolved_with_default_settings)
+{
+	test_peer_hostname_resolve(no_proxy_configured);
+}
 

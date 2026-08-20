@@ -884,7 +884,10 @@ namespace aux {
 			prefer_rc4,
 
 			// if true, hostname lookups are done via the configured proxy (if
-			// any). This is only supported by SOCKS5 and HTTP.
+			// any). This is only supported by SOCKS5 and HTTP. Since the
+			// hostname is never resolved locally in this case, ip_filter and
+			// ssrf_mitigation cannot be applied to these connections, as
+			// their target IP is never known to the client.
 			proxy_hostnames,
 
 			// if true, peer connections are made (and accepted) over the
@@ -998,6 +1001,10 @@ namespace aux {
 			//
 			// Web seeds on global IPs (i.e. not local network) may not redirect
 			// to a local network address
+			//
+			// this mitigation does not apply to connections whose hostname is
+			// resolved by a proxy (see proxy_hostnames), since the target IP
+			// is never known to the client in that case
 			ssrf_mitigation,
 
 			// when disabled, any tracker or web seed with an IDNA hostname
@@ -1031,6 +1038,14 @@ namespace aux {
 			// connecting to. When this option is true, the hostname will be
 			// sent. This feature can be useful if the proxy is used to
 			// man-in-the-middle connections.
+			//
+			// this only controls what's put in the CONNECT request and Host
+			// header, it does not affect whether the hostname is resolved
+			// locally first. proxy_hostnames controls that, and is also
+			// what's required to keep the hostname from reaching the
+			// regular resolver (and ip_filter) before the CONNECT request
+			// is sent. The two settings are orthogonal and independently
+			// combinable.
 			proxy_send_host_in_connect,
 
 			// When set, downloaded files will have the no-copy-on-write flag

@@ -1,3 +1,10 @@
+2.0.15 not released
+
+	* fix DNS leak of i2p udp tracker hostnames
+	* fix DNS leak of hostnamed peers from trackers
+	* extend proxy_hostnames to HTTP proxies for web seeds
+	* fix ip_filter/ssrf_mitigation false positives on proxied web seeds
+
 2.0.14 released
 
 	* fix issue in merkle tree
