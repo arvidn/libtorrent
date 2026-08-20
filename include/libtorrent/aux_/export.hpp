@@ -28,7 +28,8 @@ see LICENSE file.
 # ifdef TORRENT_NO_DEPRECATE
 #  define TORRENT_ABI_VERSION 100
 # else
-#  define TORRENT_ABI_VERSION 1
+// must match the default in the Jamfile and CMakeLists.txt
+#define TORRENT_ABI_VERSION 2
 # endif
 #endif
 
