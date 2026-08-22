@@ -6026,12 +6026,14 @@ namespace {
 
 			set_error(err.ec, err.file());
 			pause();
-			return;
+		}
+		else if (alerts().should_post<file_prio_alert>())
+		{
+			alerts().emplace_alert<file_prio_alert>(get_handle());
 		}
 
-		if (alerts().should_post<file_prio_alert>())
-			alerts().emplace_alert<file_prio_alert>(get_handle());
-
+		// apply queued priorities even on failure; m_file_priority reflects
+		// the storage's actual state, and m_storage stays valid after pause()
 		if (!m_deferred_file_priorities.empty() && !m_abort)
 		{
 			auto new_priority = m_file_priority;
@@ -6049,7 +6051,6 @@ namespace {
 				download_priority_t const prio = p.second;
 				new_priority[index] = prio;
 			}
-			m_deferred_file_priorities.clear();
 			prioritize_files(std::move(new_priority));
 		}
 	}
@@ -6062,6 +6063,21 @@ namespace {
 			, valid_metadata() ? &m_torrent_file->layout() : nullptr);
 
 		m_deferred_file_priorities.clear();
+
+		// defer if a file priority update is already outstanding, like
+		// set_file_priority() does; concurrent async_set_file_priority() jobs
+		// can complete out of order and silently clobber this update.
+		// on_file_priority() applies the deferred priorities once the
+		// outstanding job completes.
+		if (m_outstanding_file_priority)
+		{
+			// m_deferred_file_priorities is empty here, and file_index_t
+			// increases monotonically, so end() is always the correct hint
+			for (file_index_t const i : new_priority.range())
+				m_deferred_file_priorities.emplace_hint(
+					m_deferred_file_priorities.end(), i, new_priority[i]);
+			return;
+		}
 
 		// storage may be NULL during shutdown
 		if (m_storage)
