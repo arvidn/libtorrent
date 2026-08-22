@@ -20,6 +20,11 @@ see LICENSE file.
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/aux_/path.hpp"
 
+// file_storage::paths(), all_path_hashes() and file_path_hash() are
+// deprecated as public API but are still called internally while
+// resolving duplicate filenames.
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
+
 #ifdef TORRENT_WINDOWS
 #define TORRENT_SEPARATOR '\\'
 #else
