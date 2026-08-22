@@ -24,6 +24,7 @@ see LICENSE file.
 #include <memory>
 
 using namespace lt;
+using namespace std::chrono_literals;
 
 using lt::portmap_protocol;
 
@@ -31,6 +32,15 @@ namespace {
 
 int g_port = 0;
 std::string g_local_address;
+
+// when non-empty, used as the host in the advertised SSDP Location header
+// instead of g_local_address, to let tests inject hosts upnp.cpp's SSRF
+// check is expected to reject
+std::string g_location_host_override;
+
+#ifndef TORRENT_DISABLE_LOGGING
+std::vector<std::string> g_log_messages;
+#endif
 
 char const* soap_add_response[] = {
 	"<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
@@ -79,12 +89,14 @@ void incoming_msearch(broadcast_socket& sock, udp::endpoint const& from, span<ch
 
 	TORRENT_ASSERT(g_port != 0);
 	TORRENT_ASSERT(!g_local_address.empty());
+	std::string const& location_host =
+		g_location_host_override.empty() ? g_local_address : g_location_host_override;
 	char buf[sizeof(msg) + 64];
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wformat-nonliteral"
 #endif
-	int const len = std::snprintf(buf, sizeof(buf), msg, g_local_address.c_str(), g_port);
+	int const len = std::snprintf(buf, sizeof(buf), msg, location_host.c_str(), g_port);
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
@@ -131,7 +143,7 @@ std::list<callback_info> callbacks;
 			, aux::listen_socket_handle const&) const override
 		{
 			std::cout << "UPnP: " << msg << std::endl;
-			//TODO: store the log and verify that some key messages are there
+			g_log_messages.emplace_back(msg);
 		}
 	#endif
 	};
@@ -313,6 +325,72 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 	callbacks.clear();
 }
 
+// regression test for the SSRF check in invalid_upnp_host()/invalid_upnp_address():
+// a v4-mapped IPv6 literal (e.g. "::ffff:127.0.0.1") must be normalized to its
+// embedded IPv4 address before the loopback/link-local/multicast checks run.
+// advertise such a host in the SSDP Location header and confirm upnp.cpp
+// rejects the rootdevice outright, without ever connecting to it.
+// relies on log_portmap() to observe the rejection, so it can't run when
+// logging is compiled out.
+#ifndef TORRENT_DISABLE_LOGGING
+void run_upnp_ssrf_test()
+{
+	auto const ipf = pick_upnp_interface();
+	g_local_address = ipf.interface_address.to_string();
+
+	error_code ec;
+	lt::io_context ios;
+	// its udp::sockets reference ios during teardown, so must precede it here
+	broadcast_socket sock(uep("239.255.255.250", 1900));
+	aux::session_settings sett;
+
+	sock.open([&sock](udp::endpoint const& from,
+				  span<char const> buffer) { incoming_msearch(sock, from, buffer); },
+		ios,
+		ec);
+
+	g_port = 6666; // arbitrary; the malicious host is rejected before connecting
+	g_location_host_override = "[::ffff:127.0.0.1]";
+
+	upnp_callback cb;
+	auto upnp_handler = std::make_shared<upnp>(ios,
+		sett,
+		cb,
+		ipf.interface_address.to_v4(),
+		ipf.netmask.to_v4(),
+		ipf.name,
+		aux::listen_socket_handle());
+	upnp_handler->start();
+
+	for (int i = 0; i < 20; ++i)
+	{
+		ios.restart();
+		ios.run_for(100ms);
+	}
+
+	// note: router_model() is not checked here, real UPnP routers on the test
+	// network may legitimately answer the multicast search and get accepted;
+	// this test only cares whether the malicious host was rejected.
+	bool found_rejection = false;
+	for (auto const& msg : g_log_messages)
+	{
+		if (msg.find("invalid address") != std::string::npos
+			&& msg.find("::ffff:127.0.0.1") != std::string::npos)
+		{
+			found_rejection = true;
+			break;
+		}
+	}
+	TEST_CHECK(found_rejection);
+
+	upnp_handler->close();
+	sock.close();
+
+	g_location_host_override.clear();
+	g_log_messages.clear();
+}
+#endif // TORRENT_DISABLE_LOGGING
+
 } // anonymous namespace
 
 TORRENT_TEST(upnp_wipconn)
@@ -329,6 +407,10 @@ TORRENT_TEST(upnp_wanipconnection2)
 {
 	run_upnp_test(combine_path("..", "root3.xml").c_str(), "WANIPConnection", 2);
 }
+
+#ifndef TORRENT_DISABLE_LOGGING
+TORRENT_TEST(upnp_ssrf_v4_mapped_loopback) { run_upnp_ssrf_test(); }
+#endif
 
 TORRENT_TEST(upnp_max_mappings)
 {

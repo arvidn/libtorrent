@@ -43,6 +43,7 @@ see LICENSE file.
 #include <cstdlib>
 #include <cstdio> // for snprintf
 #include <cstdarg>
+#include <algorithm>
 #include <functional>
 
 using namespace std::placeholders;
@@ -158,17 +159,28 @@ namespace {
 	address_v4 const ssdp_multicast_addr = make_address_v4("239.255.255.250");
 	int const ssdp_port = 1900;
 
-	// reject Location/control-URL hosts a real IGD would never use, to block
+	// reject Location/control-URL addresses a real IGD would never use, to block
 	// SSRF via forged SSDP replies or device descriptions. RFC1918 stays
-	// allowed since that is where real devices live. only IP literals are
-	// checked here, not DNS names.
+	// allowed since that is where real devices live.
+	bool invalid_upnp_address(address const& addr)
+	{
+		address const a = normalize_address(addr);
+		return a.is_unspecified() || a.is_loopback() || aux::is_link_local(a) || a.is_multicast();
+	}
+
 	bool invalid_upnp_host(std::string const& hostname)
 	{
 		error_code ec;
 		address const addr = make_address(hostname.c_str(), ec);
-		if (ec) return false;
-		return addr.is_unspecified() || addr.is_loopback() || aux::is_link_local(addr)
-			|| addr.is_multicast();
+		return !ec && invalid_upnp_address(addr);
+	}
+
+	void filter_upnp_endpoints(aux::http_connection&, std::vector<tcp::endpoint>& endpoints)
+	{
+		auto const end = std::remove_if(endpoints.begin(),
+			endpoints.end(),
+			[](tcp::endpoint const& ep) { return invalid_upnp_address(ep.address()); });
+		endpoints.erase(end, endpoints.end());
 	}
 }
 
@@ -448,17 +460,18 @@ void upnp::connect(rootdevice& d)
 		log("connecting to: %s", d.url.c_str());
 #endif
 		if (d.upnp_connection) d.upnp_connection->close();
-		d.upnp_connection = std::make_shared<aux::http_connection>(m_io_service
-			, m_resolver
-			, std::bind(&upnp::on_upnp_xml, self(), _1, _2
-				, std::ref(d), _4), default_max_bottled_buffer_size
-			, http_connect_handler()
-			, http_filter_handler()
-			, hostname_filter_handler()
+		d.upnp_connection = std::make_shared<aux::http_connection>(m_io_service,
+			m_resolver,
+			std::bind(&upnp::on_upnp_xml, self(), _1, _2, std::ref(d), _4),
+			default_max_bottled_buffer_size,
+			http_connect_handler(),
+			filter_upnp_endpoints,
+			hostname_filter_handler()
 #if TORRENT_USE_SSL
-			, &m_ssl_ctx
+				,
+			&m_ssl_ctx
 #endif
-			);
+		);
 		d.upnp_connection->get(d.url, seconds(30));
 	}
 	catch (std::exception const& exc)
@@ -882,17 +895,18 @@ void upnp::update_map(rootdevice& d, port_mapping_t const i)
 		}
 
 		if (d.upnp_connection) d.upnp_connection->close();
-		d.upnp_connection = std::make_shared<http_connection>(m_io_service
-			, m_resolver
-			, std::bind(&upnp::on_upnp_map_response, self(), _1, _2
-				, std::ref(d), i, _4), default_max_bottled_buffer_size
-			, std::bind(&upnp::create_port_mapping, self(), _1, std::ref(d), i)
-			, http_filter_handler()
-			, hostname_filter_handler()
+		d.upnp_connection = std::make_shared<http_connection>(m_io_service,
+			m_resolver,
+			std::bind(&upnp::on_upnp_map_response, self(), _1, _2, std::ref(d), i, _4),
+			default_max_bottled_buffer_size,
+			std::bind(&upnp::create_port_mapping, self(), _1, std::ref(d), i),
+			filter_upnp_endpoints,
+			hostname_filter_handler()
 #if TORRENT_USE_SSL
-			, &m_ssl_ctx
+				,
+			&m_ssl_ctx
 #endif
-			);
+		);
 
 		bind_info_t bi{m.device, m.local_ep.address()};
 		d.upnp_connection->start(d.hostname, d.port
@@ -901,17 +915,18 @@ void upnp::update_map(rootdevice& d, port_mapping_t const i)
 	else if (m.act == portmap_action::del)
 	{
 		if (d.upnp_connection) d.upnp_connection->close();
-		d.upnp_connection = std::make_shared<aux::http_connection>(m_io_service
-			, m_resolver
-			, std::bind(&upnp::on_upnp_unmap_response, self(), _1, _2
-				, std::ref(d), i, _4), default_max_bottled_buffer_size
-			, std::bind(&upnp::delete_port_mapping, self(), std::ref(d), i)
-			, http_filter_handler()
-			, hostname_filter_handler()
+		d.upnp_connection = std::make_shared<aux::http_connection>(m_io_service,
+			m_resolver,
+			std::bind(&upnp::on_upnp_unmap_response, self(), _1, _2, std::ref(d), i, _4),
+			default_max_bottled_buffer_size,
+			std::bind(&upnp::delete_port_mapping, self(), std::ref(d), i),
+			filter_upnp_endpoints,
+			hostname_filter_handler()
 #if TORRENT_USE_SSL
-			, &m_ssl_ctx
+				,
+			&m_ssl_ctx
 #endif
-			);
+		);
 		bind_info_t bi{m.device, m.local_ep.address()};
 		d.upnp_connection->start(d.hostname, d.port
 			, seconds(10), nullptr, false, 5, bi);
@@ -1140,17 +1155,18 @@ void upnp::on_upnp_xml(error_code const& e
 	}
 
 	if (d.upnp_connection) d.upnp_connection->close();
-	d.upnp_connection = std::make_shared<http_connection>(m_io_service
-		, m_resolver
-		, std::bind(&upnp::on_upnp_get_ip_address_response, self(), _1, _2
-			, std::ref(d), _4), default_max_bottled_buffer_size
-		, std::bind(&upnp::get_ip_address, self(), std::ref(d))
-		, http_filter_handler()
-		, hostname_filter_handler()
+	d.upnp_connection = std::make_shared<http_connection>(m_io_service,
+		m_resolver,
+		std::bind(&upnp::on_upnp_get_ip_address_response, self(), _1, _2, std::ref(d), _4),
+		default_max_bottled_buffer_size,
+		std::bind(&upnp::get_ip_address, self(), std::ref(d)),
+		filter_upnp_endpoints,
+		hostname_filter_handler()
 #if TORRENT_USE_SSL
-		, &m_ssl_ctx
+			,
+		&m_ssl_ctx
 #endif
-		);
+	);
 	d.upnp_connection->start(d.hostname, d.port, seconds(10));
 }
 
