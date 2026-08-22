@@ -781,3 +781,52 @@ TORRENT_TEST(file_priority_stress_test)
 	}
 	std::cout << '\n';
 }
+
+// a burst of prioritize_files() calls issued without waiting for any to
+// complete; each supersedes the last, so the final call must take effect
+TORRENT_TEST(prioritize_files_multiple_calls)
+{
+	add_torrent_params atp = generate_torrent();
+	int const num_files = atp.ti->num_files();
+
+	lt::aux::vector<lt::download_priority_t, lt::file_index_t> local_prios(
+		static_cast<std::size_t>(num_files), lt::default_priority);
+
+	atp.save_path = ".";
+	atp.file_priorities = local_prios;
+
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(atp);
+
+	std::mt19937 rng(0x82daf973);
+	for (int round = 0; round < 40; ++round)
+	{
+		for (int i = 0; i < 32; ++i)
+		{
+			for (auto& p : local_prios)
+				p = rand_prio(rng);
+			h.prioritize_files(
+				std::vector<lt::download_priority_t>(local_prios.begin(), local_prios.end()));
+		}
+
+		auto tp = h.get_file_priorities();
+		for (int i = 0; i < 20 && tp != local_prios; ++i)
+		{
+			std::this_thread::sleep_for(100ms);
+			tp = h.get_file_priorities();
+		}
+
+		if (tp != local_prios)
+		{
+			std::cout << "round " << round << "\ntorrent file prios:\n";
+			for (auto const p : tp)
+				std::cout << " " << p;
+			std::cout << "\nexpected file prios:\n";
+			for (auto const p : local_prios)
+				std::cout << " " << p;
+			std::cout << '\n';
+			TEST_CHECK(tp == local_prios);
+			return;
+		}
+	}
+}
