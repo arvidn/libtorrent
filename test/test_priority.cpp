@@ -781,3 +781,60 @@ TORRENT_TEST(file_priority_stress_test)
 	}
 	std::cout << '\n';
 }
+
+// regression test for whole-torrent priority updates being lost when issued
+// while a previous update is still outstanding. Each call supersedes the
+// previous one, so the last one must take effect.
+TORRENT_TEST_DISK_IO(prioritize_files_multiple_calls)
+{
+	add_torrent_params atp = generate_torrent();
+	int const num_files = atp.ti->num_files();
+
+	lt::aux::vector<lt::download_priority_t, lt::file_index_t> local_prios(
+		static_cast<std::size_t>(num_files), lt::default_priority);
+
+	atp.save_path = ".";
+	atp.file_priorities = local_prios;
+
+	lt::session_params sp(settings());
+	sp.disk_io_constructor = disk_io;
+	lt::session ses(sp);
+	torrent_handle h = ses.add_torrent(atp);
+
+	std::mt19937 rng(0x82daf973);
+
+	for (int round = 0; round < 40; ++round)
+	{
+		// a burst of whole-torrent updates, issued without waiting for any of
+		// them to complete. The last one is the one that must take effect
+		for (int i = 0; i < 32; ++i)
+		{
+			for (auto& p : local_prios)
+				p = rand_prio(rng);
+			h.prioritize_files(
+				std::vector<lt::download_priority_t>(local_prios.begin(), local_prios.end()));
+		}
+
+		// the last update is deferred until the in-flight one completes, so
+		// converging takes two disk round-trips. Allow plenty of time for it
+		auto tp = h.get_file_priorities();
+		for (int i = 0; i < 20 && tp != local_prios; ++i)
+		{
+			std::this_thread::sleep_for(lt::milliseconds(500));
+			tp = h.get_file_priorities();
+		}
+
+		if (tp != local_prios)
+		{
+			std::cout << "round " << round << "\ntorrent file prios:\n";
+			for (auto const p : tp)
+				std::cout << " " << p;
+			std::cout << "\nexpected file prios:\n";
+			for (auto const p : local_prios)
+				std::cout << " " << p;
+			std::cout << '\n';
+			TEST_CHECK(tp == local_prios);
+			return;
+		}
+	}
+}

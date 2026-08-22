@@ -6063,6 +6063,19 @@ namespace {
 
 		m_deferred_file_priorities.clear();
 
+		// if there's already an outstanding file priority update, we have to
+		// defer this one, just like set_file_priority() does. Two concurrent
+		// async_set_file_priority() jobs may have their completion handlers
+		// delivered out of order, in which case the stale one would overwrite
+		// this update and it would be silently lost. on_file_priority() applies
+		// the deferred priorities once the outstanding update completes.
+		if (m_outstanding_file_priority)
+		{
+			for (file_index_t const i : new_priority.range())
+				m_deferred_file_priorities[i] = new_priority[i];
+			return;
+		}
+
 		// storage may be NULL during shutdown
 		if (m_storage)
 		{
