@@ -555,20 +555,25 @@ TORRENT_VERSION_NAMESPACE_4
 		int file_num_blocks(file_index_t index) const;
 		index_range<piece_index_t::diff_type> file_piece_range(file_index_t) const;
 
-		// index of first piece node in the merkle tree
-		int file_first_piece_node(file_index_t index) const;
-		int file_first_block_node(file_index_t index) const;
+		// index of first piece node in the merkle tree. There's no need for
+		// clients to call these.
+		TORRENT_DEPRECATED int file_first_piece_node(file_index_t index) const;
+		TORRENT_DEPRECATED int file_first_block_node(file_index_t index) const;
 
-		// returns the crc32 hash of file_path(index)
-		std::uint32_t file_path_hash(file_index_t index, std::string const& save_path) const;
+		// internal
+		// returns the crc32 hash of file_path(index). There's no need for
+		// clients to call it.
+		TORRENT_DEPRECATED std::uint32_t file_path_hash(
+			file_index_t index, std::string const& save_path) const;
 
+		// internal
 		// this will add the CRC32 hash of all directory entries to the table. No
 		// filename will be included, just directories. Every depth of directories
 		// are added separately to allow test for collisions with files at all
 		// levels. i.e. if one path in the torrent is ``foo/bar/baz``, the CRC32
 		// hashes for ``foo``, ``foo/bar`` and ``foo/bar/baz`` will be added to
-		// the set.
-		void all_path_hashes(std::unordered_set<std::uint32_t>& table) const;
+		// the set. There's no need for clients to call it.
+		TORRENT_DEPRECATED void all_path_hashes(std::unordered_set<std::uint32_t>& table) const;
 
 		// the file is a pad file. It's required to contain zeros
 		// at it will not be saved to disk. Its purpose is to make
@@ -590,7 +595,8 @@ TORRENT_VERSION_NAMESPACE_4
 		// returns all directories used in the torrent. Files in the torrent are
 		// located in one of these directories. This is not a tree, it's a flat
 		// list of all *leaf* directories. i.e. the union of the parent paths of
-		// all files.
+		// all files. There's no need for clients to call it.
+		TORRENT_DEPRECATED
 		aux::vector<std::string, aux::path_index_t> const& paths() const { return m_paths; }
 
 		// returns a bitmask of flags from file_flags_t that apply
@@ -656,8 +662,9 @@ TORRENT_VERSION_NAMESPACE_4
 
 		// validate any symlinks, to ensure they all point to
 		// other files or directories inside this storage. Any invalid symlinks
-		// are updated to point to themselves.
-		void sanitize_symlinks();
+		// are updated to point to themselves. There's no need for clients to
+		// call it.
+		TORRENT_DEPRECATED void sanitize_symlinks();
 
 		// returns true if this torrent contains v2 metadata.
 		bool v2() const { return m_v2; }

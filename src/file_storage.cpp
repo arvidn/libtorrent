@@ -1072,8 +1072,7 @@ namespace {
 		}
 	}
 
-	void file_storage::all_path_hashes(
-		std::unordered_set<std::uint32_t>& table) const
+	void file_storage::all_path_hashes(std::unordered_set<std::uint32_t>& table) const
 	{
 		boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
 
@@ -1088,8 +1087,8 @@ namespace {
 			process_path_lowercase(table, crc, p);
 	}
 
-	std::uint32_t file_storage::file_path_hash(file_index_t const index
-		, std::string const& save_path) const
+	std::uint32_t file_storage::file_path_hash(
+		file_index_t const index, std::string const& save_path) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
 		aux::file_entry const& fe = m_files[index];

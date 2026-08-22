@@ -15,6 +15,10 @@ see LICENSE file.
 #include "libtorrent/aux_/peer_connection.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 
+// file_storage::file_first_piece_node() and file_first_block_node() are
+// deprecated as public API but are still called internally here.
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
+
 namespace libtorrent::aux
 {
 	namespace
@@ -149,7 +153,8 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 
 				// number of blocks from the start of the file
 				int const first_block = static_cast<int>(req->piece) * blocks_per_piece;
-				node_index const nidx(req->file, m_files.file_first_block_node(req->file) + first_block);
+				node_index const nidx(
+					req->file, m_files.file_first_block_node(req->file) + first_block);
 				hash_request hash_req(req->file
 					, 0
 					, first_block
@@ -384,7 +389,8 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		file_index_t const f = m_files.file_index_at_piece(index);
 		if (m_files.file_size(f) <= m_files.piece_length()) return true;
 		piece_index_t const file_first_piece(int(m_files.file_offset(f) / m_files.piece_length()));
-		return m_merkle_trees[f].has_node(m_files.file_first_piece_node(f) + int(index - file_first_piece));
+		return m_merkle_trees[f].has_node(
+			m_files.file_first_piece_node(f) + int(index - file_first_piece));
 	}
 
 	bool hash_picker::have_all(file_index_t const file) const
