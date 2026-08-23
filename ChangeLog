@@ -13,6 +13,8 @@
 
 2.1.2 not released
 
+	* fix file priority updates being lost when issued in quick succession
+	* deprecate internal functions of file_storage
 	* optimize loading torrents
 	* fix mis-attribution of tracker source when loading a torrent file
 	* fix race between async_hash() and force_recheck()

@@ -5963,12 +5963,14 @@ namespace {
 
 			set_error(err.ec, err.file());
 			pause();
-			return;
+		}
+		else if (alerts().should_post<file_prio_alert>())
+		{
+			alerts().emplace_alert<file_prio_alert>(get_handle());
 		}
 
-		if (alerts().should_post<file_prio_alert>())
-			alerts().emplace_alert<file_prio_alert>(get_handle());
-
+		// apply queued priorities even on failure; m_file_priority reflects
+		// the storage's actual state, and m_storage stays valid after pause()
 		if (!m_deferred_file_priorities.empty()
 			&& !(m_flags & torrent_internal_flags::torrent_aborted))
 		{
@@ -5987,7 +5989,6 @@ namespace {
 				download_priority_t const prio = p.second;
 				new_priority[index] = prio;
 			}
-			m_deferred_file_priorities.clear();
 			prioritize_files(std::move(new_priority));
 		}
 	}

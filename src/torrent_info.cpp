@@ -50,6 +50,10 @@ see LICENSE file.
 #include <ctime>
 #include <array>
 
+// file_storage::sanitize_symlinks() is deprecated as public API but is
+// still called internally while parsing torrent files.
+#include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
+
 namespace libtorrent {
 
 #if TORRENT_ABI_VERSION < 4
