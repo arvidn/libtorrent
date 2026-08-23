@@ -1575,58 +1575,197 @@ TORRENT_TEST(parse_invalid_torrents_no_throw)
 
 namespace {
 
-	std::vector<char> make_v1_torrent_with_path_depth(int const depth)
+// builds a v1 .torrent buffer directly from raw path components, one
+// list per file, bypassing create_torrent's own path handling. This
+// gives tests exact byte-level control over path elements, including
+// ones that aren't valid on any filesystem, the way an adversarial or
+// simply old/non-conforming .torrent file might contain them. Every
+// file is 1 byte, so a single placeholder piece hash always suffices.
+std::vector<char> make_v1_torrent_raw(std::vector<std::vector<std::string>> const& file_paths)
+{
+	entry::list_type files;
+	for (auto const& path_components : file_paths)
 	{
 		entry::list_type path;
-		for (int i = 0; i < depth - 1; ++i)
-			path.emplace_back("d");
-		path.emplace_back("file.txt");
+		for (auto const& c : path_components)
+			path.emplace_back(c);
 
 		entry file;
 		file["length"] = 1;
 		file["path"] = path;
-
-		entry::list_type files;
 		files.emplace_back(std::move(file));
-
-		entry info;
-		info["name"] = "root";
-		info["piece length"] = 16 * 1024;
-		info["pieces"] = "aaaaaaaaaaaaaaaaaaaa";
-		info["files"] = files;
-
-		entry torrent;
-		torrent["info"] = info;
-		return bencode(torrent);
 	}
+
+	entry info;
+	info["name"] = "root";
+	info["piece length"] = 16 * 1024;
+	info["pieces"] = "aaaaaaaaaaaaaaaaaaaa";
+	info["files"] = files;
+
+	entry torrent;
+	torrent["info"] = info;
+	return bencode(torrent);
+}
+
+std::vector<char> make_v1_torrent_with_path_depth(int const depth)
+{
+	std::vector<std::string> path;
+	for (int i = 0; i < depth - 1; ++i)
+		path.emplace_back("d");
+	path.emplace_back("file.txt");
+	return make_v1_torrent_raw({path});
+}
+
+// builds a v2-only .torrent whose "file tree" nests `depth` single-child
+// directories before the (single-block, so no piece layer needed) leaf
+// file. extract_files2() walks this with an explicit stack rather than
+// recursion, and checks the stack depth rather than a flat list length
+// (as the v1 "path" list check does), so it needs its own coverage.
+std::vector<char> make_v2_torrent_with_tree_depth(int const depth)
+{
+	entry file_meta;
+	file_meta["length"] = 1;
+	file_meta["pieces root"] = std::string(32, '\x01');
+
+	entry leaf;
+	leaf[""] = file_meta;
+
+	entry node;
+	node["file.txt"] = leaf;
+
+	for (int i = 0; i < depth - 1; ++i)
+	{
+		entry dir;
+		dir["d"] = node;
+		node = dir;
+	}
+
+	entry info;
+	info["name"] = "root";
+	info["piece length"] = 16 * 1024;
+	info["meta version"] = 2;
+	info["file tree"] = node;
+
+	entry torrent;
+	torrent["info"] = info;
+	return bencode(torrent);
+}
+
+// builds a v1 .torrent whose sole symlink has a "symlink path" (the
+// link's target, not the link's own location) of `depth` raw
+// components, to exercise extract_single_file()'s separate depth check
+// on the target list. This is checked purely at parse time, before
+// sanitize_symlinks() ever tries to resolve the (here, dangling) target.
+std::vector<char> make_v1_symlink_target_depth_torrent(int const depth)
+{
+	entry::list_type target;
+	for (int i = 0; i < depth; ++i)
+		target.emplace_back("d");
+
+	entry::list_type link_path;
+	link_path.emplace_back("link");
+
+	entry link_file;
+	link_file["path"] = link_path;
+	link_file["attr"] = "l";
+	link_file["symlink path"] = target;
+
+	entry::list_type regular_path;
+	regular_path.emplace_back("regular.txt");
+	entry regular_file;
+	regular_file["length"] = 1;
+	regular_file["path"] = regular_path;
+
+	entry::list_type files;
+	files.emplace_back(std::move(link_file));
+	files.emplace_back(std::move(regular_file));
+
+	entry info;
+	info["name"] = "root";
+	info["piece length"] = 16 * 1024;
+	info["pieces"] = "aaaaaaaaaaaaaaaaaaaa";
+	info["files"] = files;
+
+	entry torrent;
+	torrent["info"] = info;
+	return bencode(torrent);
+}
+
+load_torrent_limits make_limits_with_directory_depth(int const max_depth)
+{
+	load_torrent_limits cfg;
+	cfg.max_directory_depth = max_depth;
+	return cfg;
+}
+
+// every case builds a torrent whose path/tree/symlink-target depth is
+// pushed to `depth`, loads it with `cfg`, and checks the resulting
+// error (default-constructed error_code means "expect success"). The
+// three builders share this exact test shape even though the depth
+// check they each exercise lives in a different function
+// (extract_single_file() for v1 paths and symlink targets,
+// extract_files2() for the v2 file tree).
+struct depth_case_t
+{
+	std::vector<char> (*builder)(int);
+	int depth;
+	load_torrent_limits cfg;
+	error_code expected; // default: expect success
+};
+
+std::vector<depth_case_t> const depth_cases = {
+	// v1: the "path" list length is checked directly, so bdecode's own
+	// (much shallower) structural nesting is never a factor
+	{make_v1_torrent_with_path_depth, 50, load_torrent_limits{}, error_code()},
+	{make_v1_torrent_with_path_depth,
+		200,
+		load_torrent_limits{},
+		errors::torrent_directory_too_deep},
+	{make_v1_torrent_with_path_depth,
+		20,
+		make_limits_with_directory_depth(5),
+		errors::torrent_directory_too_deep},
+
+	// v2: each directory level is itself a nested bencode dict, so with
+	// both limits at their default of 100, a sufficiently deep tree
+	// hits bdecode's own structural depth limit
+	// (load_torrent_limits::max_decode_depth) before
+	// extract_files2()'s separate max_directory_depth check ever runs
+	{make_v2_torrent_with_tree_depth, 50, load_torrent_limits{}, error_code()},
+	{make_v2_torrent_with_tree_depth, 200, load_torrent_limits{}, bdecode_errors::depth_exceeded},
+	// max_directory_depth=5 is small enough that extract_files2()'s own
+	// check fires well before bdecode's default depth limit could
+	{make_v2_torrent_with_tree_depth,
+		20,
+		make_limits_with_directory_depth(5),
+		errors::torrent_directory_too_deep},
+
+	// symlink target list depth is checked independently of the
+	// symlink's own path depth
+	{make_v1_symlink_target_depth_torrent, 50, load_torrent_limits{}, error_code()},
+	{make_v1_symlink_target_depth_torrent,
+		200,
+		load_torrent_limits{},
+		errors::torrent_directory_too_deep},
+	{make_v1_symlink_target_depth_torrent,
+		20,
+		make_limits_with_directory_depth(5),
+		errors::torrent_directory_too_deep},
+};
 
 } // anonymous namespace
 
-TORRENT_TEST(load_torrent_directory_depth_v1_within_limit)
+TORRENT_TEST(load_torrent_directory_depth)
 {
-	auto const buf = make_v1_torrent_with_path_depth(50);
-	error_code ec;
-	auto const atp = load_torrent_buffer(buf, ec, load_torrent_limits{});
-	TEST_CHECK(!ec);
-	TEST_CHECK(atp.ti);
-}
-
-TORRENT_TEST(load_torrent_directory_depth_v1_exceeds_default)
-{
-	auto const buf = make_v1_torrent_with_path_depth(200);
-	error_code ec;
-	auto const atp = load_torrent_buffer(buf, ec, load_torrent_limits{});
-	TEST_EQUAL(ec, errors::torrent_directory_too_deep);
-}
-
-TORRENT_TEST(load_torrent_directory_depth_v1_configurable)
-{
-	auto const buf = make_v1_torrent_with_path_depth(20);
-	error_code ec;
-	load_torrent_limits cfg;
-	cfg.max_directory_depth = 5;
-	auto const atp = load_torrent_buffer(buf, ec, cfg);
-	TEST_EQUAL(ec, errors::torrent_directory_too_deep);
+	for (auto const& t : depth_cases)
+	{
+		auto const buf = t.builder(t.depth);
+		error_code ec;
+		auto const atp = load_torrent_buffer(buf, ec, t.cfg);
+		TEST_EQUAL(ec, t.expected);
+		if (!t.expected)
+			TEST_CHECK(atp.ti);
+	}
 }
 
 namespace {
@@ -1730,7 +1869,47 @@ namespace {
 			{"test/filler-1", 0x4000, {}, "test/filler-1"},
 			{"test/.pad/1234/filler-2", 0x4000, {}, "test/.pad/1234/filler-2"},
 		},
+		{
+			// two directories differing only by case are allowed to coexist
+			// unrenamed, unlike two files. They may fold together into a
+			// single directory on a case-insensitive filesystem, but that's
+			// harmless since directories don't carry content of their own
+			{"test/Dir/a", 0x4000, {}, "test/Dir/a"},
+			{"test/dir/b", 0x4000, {}, "test/dir/b"},
+		},
+		{
+			// a leading-dot ("hidden") filename has no extension in the
+			// conventional sense: remove_extension()/extension() find the
+			// leading '.' itself and treat everything after it (in its
+			// original, non-lowercased case) as the "extension", so the
+			// disambiguating counter is spliced in before that leading dot
+			// rather than appended after the name
+			{"test/.hidden", 0x4000, {}, "test/.hidden"},
+			{"test/.HIDDEN", 0x4000, {}, "test/.1.HIDDEN"},
+		},
+		{
+			// the first attempt at a disambiguated name ("a.1.txt") is
+			// itself already taken by an unrelated, pre-existing file, so
+			// the counter must skip past it and try again
+			{"test/a.txt", 0x4000, {}, "test/a.txt"},
+			{"test/a.1.txt", 0x4000, {}, "test/a.1.txt"},
+			// duplicate of a.txt; ".1.txt" is taken, so this becomes ".2.txt"
+			{"test/A.txt", 0x4000, {}, "test/A.2.txt"},
+			{"test/filler", 0x4000, {}, "test/filler"},
+		},
 	};
+
+	std::string resolved_path(lt::add_torrent_params const& atp, lt::file_index_t const i)
+	{
+		std::string p;
+		auto const it = atp.renamed_files.find(i);
+		if (it == atp.renamed_files.end())
+			p = atp.ti->layout().file_path(i);
+		else
+			p = it->second;
+		convert_path_to_posix(p);
+		return p;
+	}
 
 	void test_resolve_duplicates(aux::vector<file_t, file_index_t> const& test)
 	{
@@ -1746,20 +1925,10 @@ namespace {
 			t.set_hash(i, sha1_hash::max());
 
 		std::vector<char> const tmp = t.generate_buf();
-		auto atp = load_torrent_buffer(tmp);
+		auto const atp = load_torrent_buffer(tmp);
 		for (auto const i : t.file_range())
 		{
-			std::string p;
-			auto it = atp.renamed_files.find(i);
-			if (it == atp.renamed_files.end())
-			{
-				p = atp.ti->layout().file_path(i);
-			}
-			else
-			{
-				p = it->second;
-			}
-			convert_path_to_posix(p);
+			std::string const p = resolved_path(atp, i);
 			std::printf("%s == %s\n", p.c_str(), std::string(test[i].expected_filename).c_str());
 
 			TEST_EQUAL(p, test[i].expected_filename);
@@ -1772,6 +1941,168 @@ TORRENT_TEST(resolve_duplicates)
 {
 	for (auto const& t : test_cases)
 		test_resolve_duplicates(t);
+}
+
+namespace {
+
+// N files that all sanitize to the identical name, forcing the
+// duplicate-resolver's ".N" counter loop to run. Every failed attempt at
+// finding a free "name.<n>.ext" counts against load_torrent_limits::
+// max_duplicate_filenames, shared across the whole torrent, so an
+// identical set of N inputs is used to probe both sides of a given
+// limit: with 2 duplicates (1 file needs renaming) the counter never
+// increments past 0, but with 3 duplicates (2 files need renaming) the
+// second rename's first attempt collides with the first rename's
+// result, incrementing the counter to 1.
+std::vector<char> make_v1_torrent_with_n_duplicates(int const n)
+{
+	std::vector<std::vector<std::string>> paths;
+	for (int i = 0; i < n; ++i)
+		paths.push_back({"dir", "dup.txt"});
+	return make_v1_torrent_raw(paths);
+}
+
+struct duplicate_limit_case_t
+{
+	int n;
+	int max_duplicate_filenames;
+	error_code expected; // default: expect success
+};
+
+std::vector<duplicate_limit_case_t> const duplicate_limit_cases = {
+	// 2 duplicates need only 1 (always-successful) rename attempt, so the
+	// collision counter never increments past 0
+	{2, 0, error_code()},
+	// 3 duplicates need a second rename whose first attempt collides with
+	// the first rename's result, incrementing the counter to 1
+	{3, 0, errors::too_many_duplicate_filenames},
+};
+
+} // anonymous namespace
+
+TORRENT_TEST(load_torrent_duplicate_filenames_configurable)
+{
+	for (auto const& t : duplicate_limit_cases)
+	{
+		auto const buf = make_v1_torrent_with_n_duplicates(t.n);
+		error_code ec;
+		load_torrent_limits cfg;
+		cfg.max_duplicate_filenames = t.max_duplicate_filenames;
+		auto const atp = load_torrent_buffer(buf, ec, cfg);
+		TEST_EQUAL(ec, t.expected);
+		if (!t.expected)
+			TEST_CHECK(atp.ti);
+	}
+}
+
+namespace {
+
+// each case builds a v1 torrent straight from raw path components (via
+// make_v1_torrent_raw(), bypassing create_torrent's own path handling),
+// loads it through load_torrent_buffer() end-to-end (not just
+// sanitize_append_path_element() in isolation), and checks the resulting
+// file paths and rename count. This locks in a baseline for the current
+// path-sanitization and duplicate-filename-resolution rules, so a future
+// change to either ruleset has something concrete to diff against.
+struct raw_path_sanitize_case
+{
+	std::vector<std::vector<std::string>> paths;
+	std::vector<std::string> expected;
+	std::size_t expected_renamed;
+};
+
+std::vector<raw_path_sanitize_case> const raw_path_sanitize_cases = {
+	{// every directory name here is chosen to be distinct, so none of
+		// these accidentally collide with one another.
+		{
+			// a valid name is passed through unchanged (positive case)
+			{"valid_name", "leaf.txt"},
+			// '/' embedded in a path element is silently dropped, not
+			// replaced with '_' -- it does not act as a path separator here
+			{"a/b", "leaf2.txt"},
+			// a control character is replaced with '_', one '_' per invalid
+			// character (negative case: invalid, but not rejected outright)
+			{std::string("x\x01y", 3), "leaf3.txt"},
+			// ".." sanitizes to a directory that's entirely made of dots, which
+			// is reverted (never a real directory traversal)
+			{"..", "leaf4.txt"},
+			// an invalid character in the leaf itself, not just a directory
+			{"dir5", std::string("bad\x02name.txt", 12)},
+		},
+		{
+			"root/valid_name/leaf.txt",
+			"root/ab/leaf2.txt",
+			"root/x_y/leaf3.txt",
+			"root/_/leaf4.txt",
+			"root/dir5/bad_name.txt",
+		},
+		0},
+	{// two different, individually invalid raw directory names ('/' and
+		// '\\', both entirely filtered out by the sanitizer) collapse to the
+		// identical sanitized name "_". Current behavior: directories are
+		// exempt from collision-renaming (unlike files), so both are left
+		// alone and simply fold together into the same "_" directory. A
+		// third, top-level file whose raw name also sanitizes to "_" then
+		// collides with that directory and, unlike the directories
+		// themselves, must be renamed.
+		{
+			{"/", "fileA"},
+			{"\\", "fileB"},
+			{"/"},
+		},
+		{
+			"root/_/fileA",
+			"root/_/fileB",
+			// the two merged directories are not renamed; only the
+			// colliding file is
+			"root/_.1",
+		},
+		1},
+	{// two different, individually invalid raw filenames (each with a
+		// distinct control character) sanitize to the identical name.
+		// Unlike directories, files are never allowed to collide, so the
+		// second one is disambiguated exactly like a plain
+		// case-insensitive collision would be.
+		{
+			{"dir", std::string("x\x01", 2)},
+			{"dir", std::string("x\x02", 2)},
+		},
+		{
+			"root/dir/x_",
+			"root/dir/x_.1",
+		},
+		1},
+};
+
+void test_raw_path_sanitize_case(raw_path_sanitize_case const& t)
+{
+	auto const buf = make_v1_torrent_raw(t.paths);
+
+	error_code ec;
+	auto const atp = load_torrent_buffer(buf, ec, load_torrent_limits{});
+	TEST_CHECK(!ec);
+	TEST_CHECK(atp.ti);
+	if (!atp.ti)
+		return;
+
+	TEST_EQUAL(atp.renamed_files.size(), t.expected_renamed);
+	TEST_EQUAL(atp.ti->layout().num_files(), int(t.expected.size()));
+
+	for (lt::file_index_t const i : atp.ti->layout().file_range())
+	{
+		std::string const p = resolved_path(atp, i);
+		std::string const& expected = t.expected[std::size_t(static_cast<int>(i))];
+		std::printf("%s == %s\n", p.c_str(), expected.c_str());
+		TEST_EQUAL(p, expected);
+	}
+}
+
+} // anonymous namespace
+
+TORRENT_TEST(load_torrent_sanitize_regression)
+{
+	for (auto const& t : raw_path_sanitize_cases)
+		test_raw_path_sanitize_case(t);
 }
 
 namespace {
