@@ -522,6 +522,7 @@ Tribler
 gzipped
 processes'
 versioning
+versioned
 cstdint
 cloneable
 inline
@@ -677,3 +678,13 @@ sl
 hasher256
 ffff
 RFC1918
+com1
+lpt1
+ZWSP
+ZWNJ
+ZWJ
+bidi
+LRM
+RLM
+sanitization
+ruleset

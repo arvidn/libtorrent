@@ -72,6 +72,7 @@
 #include "libtorrent/mmap_disk_io.hpp"
 #include "libtorrent/natpmp.hpp"
 #include "libtorrent/operations.hpp"
+#include "libtorrent/path_sanitize_flags.hpp"
 #include "libtorrent/peer_class.hpp"
 #include "libtorrent/peer_class_type_filter.hpp"
 #include "libtorrent/peer_connection_handle.hpp"

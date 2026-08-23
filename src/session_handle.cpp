@@ -251,9 +251,23 @@ namespace {
 			atp.save_path = std::move(resume_data.save_path);
 		}
 
+		// the ruleset used to sanitize the file layout on disk must be
+		// preserved, otherwise a later re-parse of the info-dict could
+		// derive different file names than the ones actually on disk.
 		if (!atp.ti)
 		{
 			atp.ti = std::move(resume_data.ti);
+			atp.sanitize_flags = resume_data.sanitize_flags;
+		}
+		else
+		{
+			// atp.ti was supplied by the caller rather than recovered from
+			// resume data, so resume_data.sanitize_flags describes a
+			// torrent_info that isn't actually being used here. A caller
+			// still using this deprecated field is overwhelmingly likely to
+			// have also built ti with one of the deprecated torrent_info
+			// constructors, which default to path_sanitize_flags::deprecated_default.
+			atp.sanitize_flags = path_sanitize_flags::deprecated_default;
 		}
 
 		if (!resume_data.trackers.empty())

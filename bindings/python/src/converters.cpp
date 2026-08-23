@@ -27,6 +27,7 @@
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/kademlia/announce_flags.hpp"
 #include "libtorrent/write_resume_data.hpp"
+#include "libtorrent/path_sanitize_flags.hpp"
 #include <vector>
 #include <map>
 
@@ -446,6 +447,7 @@ void bind_converters()
 	to_python_converter<lt::file_progress_flags_t, from_bitfield_flag<lt::file_progress_flags_t>>();
 	to_python_converter<lt::write_torrent_flags_t, from_bitfield_flag<lt::write_torrent_flags_t>>();
 	to_python_converter<lt::picker_flags_t, from_bitfield_flag<lt::picker_flags_t>>();
+	to_python_converter<lt::path_sanitize_flags_t, from_bitfield_flag<lt::path_sanitize_flags_t>>();
 	to_python_converter<lt::string_view, from_string_view>();
 
 	// work-around types
@@ -559,4 +561,5 @@ void bind_converters()
 	to_bitfield_flag<lt::file_progress_flags_t>();
 	to_bitfield_flag<lt::write_torrent_flags_t>();
 	to_bitfield_flag<lt::picker_flags_t>();
+	to_bitfield_flag<lt::path_sanitize_flags_t>();
 }

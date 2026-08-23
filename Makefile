@@ -500,6 +500,7 @@ HEADERS = \
   mmap_disk_io.hpp             \
   natpmp.hpp                   \
   operations.hpp               \
+  path_sanitize_flags.hpp      \
   peer_class.hpp               \
   peer_class_type_filter.hpp   \
   peer_connection_handle.hpp   \
@@ -982,6 +983,7 @@ TEST_SOURCES = \
   test_resolve_links.cpp \
   test_resume.cpp \
   test_rtc.cpp \
+  test_sanitizer.cpp \
   test_session.cpp \
   test_session_params.cpp \
   test_settings_pack.cpp \
@@ -1113,6 +1115,7 @@ TEST_TORRENTS = \
   pad_file_symlink.torrent \
   parent_path.torrent \
   sample.torrent \
+  sanitize_limits.torrent \
   similar.torrent \
   similar2.torrent \
   single_multi_file.torrent \

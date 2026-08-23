@@ -118,6 +118,14 @@ namespace {
 		ret.created_by = rd.dict_find_string_value("created by", "");
 		ret.comment = rd.dict_find_string_value("comment", "");
 
+		// a missing key means this resume data predates path-sanitizer
+		// versioning. libtorrent_2_1 is defined to match the ruleset that
+		// was unconditionally in effect before this flag existed, so it's
+		// the correct value to assume here too.
+		ret.sanitize_flags = path_sanitize_flags_t(
+			static_cast<std::uint32_t>(rd.dict_find_int_value("sanitize_flags",
+				static_cast<std::uint32_t>(path_sanitize_flags::libtorrent_2_1))));
+
 		bdecode_node const info = rd.dict_find_dict("info");
 		if (info)
 		{
@@ -135,6 +143,7 @@ namespace {
 				error_code err;
 				load_torrent_limits cfg{};
 				cfg.max_pieces = piece_limit;
+				cfg.sanitize_flags = ret.sanitize_flags;
 				auto ti = std::make_shared<torrent_info>(info, err, cfg, from_info_section);
 
 				if (err)

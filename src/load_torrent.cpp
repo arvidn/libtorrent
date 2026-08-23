@@ -383,6 +383,7 @@ namespace aux {
 		, error_code& ec, load_torrent_limits const& cfg)
 	{
 		add_torrent_params ret;
+		ret.sanitize_flags = cfg.sanitize_flags;
 		std::shared_ptr<torrent_info> ti = aux::parse_torrent_file(torrent_file, ec, cfg, ret);
 		if (ec) return {};
 		if (ti)

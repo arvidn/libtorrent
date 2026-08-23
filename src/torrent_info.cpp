@@ -65,51 +65,106 @@ namespace libtorrent {
 	// Which characters are valid is primarily determined by the
 	// filesystem, so this logic is an approximation. Note that forward- and
 	// backslash are filtered unconditionally and separately from this function.
-	bool valid_path_character(std::int32_t const c)
+	// "invalid_chars" is the (possibly empty) platform-specific reserved-character
+	// set, precomputed once by the caller from "sanitize_flags" rather than
+	// re-derived on every call, since this runs once per code point of every
+	// path element parsed.
+	bool valid_path_character(std::int32_t const c, string_view const invalid_chars)
 	{
-#ifdef TORRENT_WINDOWS
-		// On windows, both the filesystem and the operating system impose
-		// restrictions.
-		constexpr string_view invalid_chars = "?<>\"|\b*:"_sv;
-#elif defined TORRENT_ANDROID
-		// The Android kernel probably has similar restrictions as Linux (i.e.
-		// very few) but it appears some user-space system libraries impose
-		// additional restrictions, and it's probably more common to use FAT32
-		// style filesystems, which also further restricts valid characters
-		// https://cs.android.com/android/platform/superproject/+/master:frameworks/base/core/java/android/os/FileUtils.java;l=997?q=isValidFatFilenameChar
-		constexpr string_view invalid_chars = "\"*:<>?|"_sv;
-#else
-		constexpr string_view invalid_chars = ""_sv;
-#endif
 		// C0 controls and DEL
 		if (c < 32 || c == 0x7f) return false;
 		// C1 controls
 		if (c >= 0x80 && c <= 0x9f) return false;
 		if (c > 127) return true;
-		return std::find(invalid_chars.begin(), invalid_chars.end(), static_cast<char>(c))
-			== invalid_chars.end();
+
+		// most builds run with an empty invalid_chars (no platform-specific
+		// restrictions apply), so skip the search entirely in that case
+		// rather than relying on the optimizer to prove it out at a call
+		// site where invalid_chars is a runtime value, not a constant.
+		if (invalid_chars.empty())
+			return true;
+
+		return invalid_chars.find_first_of(static_cast<char>(c)) == string_view::npos;
 	}
 
-	bool filter_path_character(std::int32_t const c)
+	// "filter_extra_formatting_chars" mirrors
+	// path_sanitize_flags::filter_unicode_formatting_chars, precomputed once
+	// by the caller (see valid_path_character() above).
+	bool filter_path_character(std::int32_t const c, bool const filter_extra_formatting_chars)
 	{
-		// Unicode formatting characters that are zero-width, invisible, or
-		// change writing direction. These can be used to spoof filenames so
-		// that they appear identical to legitimate names but resolve to a
-		// different path:
+		// Unicode directional marks and bidi embedding/override controls,
+		// used to spoof filenames so they appear identical to legitimate
+		// names but resolve to a different path:
 		// https://security.stackexchange.com/questions/158802/how-can-this-executable-have-an-avi-extension
-		// - U+061C: Arabic letter mark
-		// - U+200B-200D: ZWSP, ZWNJ, ZWJ
 		// - U+200E-200F: LRM, RLM
 		// - U+202A-202E: LRE, RLE, PDF, LRO, RLO (bidi embedding/override)
-		// - U+2060-2064: word joiner and invisible math operators
-		// - U+2066-2069: LRI, RLI, FSI, PDI (bidi isolates, Unicode 6.3+)
-		// - U+FEFF: byte order mark / zero-width no-break space
-		if (c == 0x061c || (c >= 0x200b && c <= 0x200f) || (c >= 0x202a && c <= 0x202e)
-			|| (c >= 0x2060 && c <= 0x2064) || (c >= 0x2066 && c <= 0x2069) || c == 0xfeff)
+		if ((c >= 0x200e && c <= 0x200f) || (c >= 0x202a && c <= 0x202e))
 			return true;
+
+		if (filter_extra_formatting_chars)
+		{
+			// further zero-width or invisible formatting characters, usable
+			// for the same kind of spoofing as above
+			// - U+061C: Arabic letter mark
+			// - U+200B-200D: ZWSP, ZWNJ, ZWJ
+			// - U+2060-2064: word joiner and invisible math operators
+			// - U+2066-2069: LRI, RLI, FSI, PDI (bidi isolates, Unicode 6.3+)
+			// - U+FEFF: byte order mark / zero-width no-break space
+			if (c == 0x061c || (c >= 0x200b && c <= 0x200d) || (c >= 0x2060 && c <= 0x2064)
+				|| (c >= 0x2066 && c <= 0x2069) || c == 0xfeff)
+				return true;
+		}
 
 		if (c > 127) return false;
 		return c == '/' || c == '\\' || c == '\0';
+	}
+
+	// matches a DOS/Windows reserved device name. Windows treats the
+	// ISO/IEC 8859-1 superscript digits as valid COM#/LPT# digits too, e.g.
+	// "com\xc2\xb9" is "com" + superscript 1 (U+00B9) in UTF-8
+	bool is_reserved_dos_name(string_view const name)
+	{
+		// longest entry is "clock$"; to_lower() cannot change the byte
+		// length, so anything longer can never match
+		if (name.size() > 6)
+			return false;
+
+		static constexpr std::array<char const*, 31> reserved_names = {{"con",
+			"prn",
+			"aux",
+			"clock$",
+			"nul",
+			"com0",
+			"com1",
+			"com2",
+			"com3",
+			"com4",
+			"com5",
+			"com6",
+			"com7",
+			"com8",
+			"com9",
+			"com\xc2\xb9", // superscript 1 (U+00B9)
+			"com\xc2\xb2", // superscript 2 (U+00B2)
+			"com\xc2\xb3", // superscript 3 (U+00B3)
+			"lpt0",
+			"lpt1",
+			"lpt2",
+			"lpt3",
+			"lpt4",
+			"lpt5",
+			"lpt6",
+			"lpt7",
+			"lpt8",
+			"lpt9",
+			"lpt\xc2\xb9", // superscript 1 (U+00B9)
+			"lpt\xc2\xb2", // superscript 2 (U+00B2)
+			"lpt\xc2\xb3"}}; // superscript 3 (U+00B3)
+
+		return std::any_of(
+			reserved_names.begin(), reserved_names.end(), [name](char const* const reserved) {
+				return aux::string_equal_no_case(name, reserved);
+			});
 	}
 
 	} // anonymous namespace
@@ -181,68 +236,49 @@ std::string sanitize_encoding(string_view const source)
 	// result instead (this is the only case where "path" is written to).
 	// This lets the common case, an already-valid element, skip allocating
 	// and copying into "path" entirely.
-	bool sanitize_path_element(std::string& path, string_view element, bool const force_element)
+bool sanitize_path_element(std::string& path,
+	string_view element,
+	path_sanitize_flags_t const sanitize_flags,
+	bool const force_element)
+{
+	bool const limit_unicode_chars =
+		bool(sanitize_flags & path_sanitize_flags::limit_unicode_characters);
+	bool const trim_trailing =
+		bool(sanitize_flags & path_sanitize_flags::trim_trailing_spaces_and_dots);
+	bool const filter_extra_formatting_chars =
+		bool(sanitize_flags & path_sanitize_flags::filter_unicode_formatting_chars);
+
+	// on windows, both the filesystem and the operating system impose
+	// restrictions. The Android kernel probably has similar restrictions
+	// as Linux (i.e. very few) but it appears some user-space system
+	// libraries impose additional restrictions, and it's probably more
+	// common to use FAT32 style filesystems, which also further
+	// restricts valid characters:
+	// https://cs.android.com/android/platform/superproject/+/master:frameworks/base/core/java/android/os/FileUtils.java;l=997?q=isValidFatFilenameChar
+	string_view const invalid_chars =
+		(sanitize_flags & path_sanitize_flags::sanitize_invalid_chars_win)		 ? "?<>\"|\b*:"_sv
+		: (sanitize_flags & path_sanitize_flags::sanitize_invalid_chars_android) ? "\"*:<>?|"_sv
+																				 : string_view{};
+
+	if (element.size() == 1 && element[0] == '.' && !force_element)
+		return false;
+
+	if (element.empty())
 	{
-		if (element.size() == 1 && element[0] == '.' && !force_element)
-			return false;
+		path += "_";
+		return false;
+	}
 
-		if (element.empty())
-		{
-			path += "_";
-			return false;
-		}
-
-#if !TORRENT_USE_UNC_PATHS && defined TORRENT_WINDOWS
-#pragma message ("building for windows without UNC paths is deprecated")
-
-		// if we're not using UNC paths on windows, there
-		// are certain filenames we're not allowed to use
-		static const char const* reserved_names[] =
-		{
-			"con", "prn", "aux", "clock$", "nul",
-			"com0", "com1", "com2", "com3", "com4",
-			"com5", "com6", "com7", "com8", "com9",
-			"lpt0", "lpt1", "lpt2", "lpt3", "lpt4",
-			"lpt5", "lpt6", "lpt7", "lpt8", "lpt9"
-		};
-		int num_names = sizeof(reserved_names)/sizeof(reserved_names[0]);
-
-		// this is not very efficient, but it only affects some specific
-		// windows builds for now anyway (not even the default windows build)
-		std::string pe(element);
-		char const* file_end = strrchr(pe.c_str(), '.');
-		std::string name = file_end
-			? std::string(pe.data(), file_end)
-			: pe;
-		std::transform(name.begin(), name.end(), name.begin(), &to_lower);
-		char const** str = std::find(reserved_names, reserved_names + num_names, name);
-		if (str != reserved_names + num_names)
-		{
-			pe = "_" + pe;
-			element = string_view();
-		}
-#endif
-#ifdef TORRENT_WINDOWS
-		// this counts the number of unicode characters
-		// we've added (which is different from the number
-		// of bytes)
-		int unicode_chars = 0;
-#endif
-
-		int added = 0;
-		// the number of dots we've added
-		char num_dots = 0;
-		bool found_extension = false;
-
-		// until "changed" becomes true, nothing has been written to "path"
-		// (it stays empty), because every byte processed so far is a
-		// byte-for-byte match of "element" itself. The moment something
-		// needs to diverge (a character dropped, substituted, or the
-		// element truncated) materialize() copies the bytes processed up to
-		// that point into "path", and every subsequent byte is written
-		// there too.
-		bool changed = false;
-		auto const materialize = [&](std::size_t const prefix_len) {
+	// until "changed" becomes true, nothing has been written to "path"
+	// (it stays empty), because every byte processed so far is a
+	// byte-for-byte match of "element" itself. The moment something
+	// needs to diverge (a character dropped, substituted, or the
+	// element truncated) materialize() copies the bytes processed up to
+	// that point into "path", and every subsequent byte is written
+	// there too.
+	bool changed = false;
+	auto const materialize =
+		[&](std::size_t const prefix_len) {
 			if (changed)
 				return;
 			// the sanitized output can never exceed the input length (dropped
@@ -254,97 +290,100 @@ std::string sanitize_encoding(string_view const source)
 			changed = true;
 		};
 
-		int seq_len = 0;
-		for (std::size_t i = 0; i < element.size(); i += std::size_t(seq_len))
+	// counts characters, not bytes like "added" below
+	int unicode_chars = 0;
+
+	int added = 0;
+	// the number of dots we've added
+	char num_dots = 0;
+	bool found_extension = false;
+
+	int seq_len = 0;
+	for (std::size_t i = 0; i < element.size(); i += std::size_t(seq_len))
+	{
+		std::int32_t code_point;
+		std::tie(code_point, seq_len) = parse_utf8_codepoint(element.substr(i));
+
+		if (code_point >= 0 && filter_path_character(code_point, filter_extra_formatting_chars))
 		{
-			std::int32_t code_point;
-			std::tie(code_point, seq_len) = parse_utf8_codepoint(element.substr(i));
+			materialize(i);
+			continue;
+		}
 
-			if (code_point >= 0 && filter_path_character(code_point))
-			{
-				materialize(i);
-				continue;
-			}
-
-			if (code_point < 0 || !valid_path_character(code_point))
-			{
-				materialize(i);
-				// invalid utf8 sequence, replace with "_"
-				path += '_';
-				++added;
-#ifdef TORRENT_WINDOWS
-				++unicode_chars;
-#endif
-				continue;
-			}
-
-			// validation passed, add it to the output string (if it's
-			// already diverged from "element"; otherwise this byte is
-			// already implicitly "copied" by leaving "path" untouched)
-			if (changed)
-			{
-				path.append(element.data() + i, std::size_t(seq_len));
-			}
-
-			if (code_point == '.') ++num_dots;
-
-			added += seq_len;
-#ifdef TORRENT_WINDOWS
+		if (code_point < 0 || !valid_path_character(code_point, invalid_chars))
+		{
+			materialize(i);
+			// invalid utf8 sequence, replace with "_"
+			path += '_';
+			++added;
 			++unicode_chars;
-#endif
-
-			// any given path element should not
-			// be more than 255 characters
-			// if we exceed 240, pick up any potential
-			// file extension and add that too
-#ifdef TORRENT_WINDOWS
-			if (unicode_chars >= 240 && !found_extension)
-#else
-			if (added >= 240 && !found_extension)
-#endif
-			{
-				int dot = -1;
-				for (int j = int(element.size()) - 1;
-					j > std::max(int(element.size()) - 10, int(i)); --j)
-				{
-					if (element[aux::numeric_cast<std::size_t>(j)] != '.') continue;
-					dot = j;
-					break;
-				}
-				// there is no extension
-				if (dot == -1)
-				{
-					materialize(i + std::size_t(seq_len));
-					break;
-				}
-				found_extension = true;
-				TORRENT_ASSERT(dot > 0);
-				// if the extension isn't immediately adjacent, the bytes
-				// in between are dropped, which requires materializing
-				if (std::size_t(dot) != i + std::size_t(seq_len))
-					materialize(i + std::size_t(seq_len));
-				i = std::size_t(dot - seq_len);
-			}
+			continue;
 		}
 
-		if (added == num_dots && added <= 2)
+		// validation passed, add it to the output string (if it's
+		// already diverged from "element"; otherwise this byte is
+		// already implicitly "copied" by leaving "path" untouched)
+		if (changed)
 		{
-			if (changed)
-			{
-				// revert the invalid filename
-				path.clear();
-			}
-			if (force_element)
-			{
-				// replace it with an underscore
-				path += "_";
-			}
-			// the result ("_" or nothing) never equals the all-dots
-			// "element" that got us here
-			return false;
+			path.append(element.data() + i, std::size_t(seq_len));
 		}
 
-#ifdef TORRENT_WINDOWS
+		if (code_point == '.')
+			++num_dots;
+
+		added += seq_len;
+		++unicode_chars;
+
+		// any given path element should not
+		// be more than 255 characters
+		// if we exceed 240, pick up any potential
+		// file extension and add that too
+		if ((limit_unicode_chars ? unicode_chars : added) >= 240 && !found_extension)
+		{
+			int dot = -1;
+			for (int j = int(element.size()) - 1; j > std::max(int(element.size()) - 10, int(i));
+				 --j)
+			{
+				if (element[aux::numeric_cast<std::size_t>(j)] != '.')
+					continue;
+				dot = j;
+				break;
+			}
+			// there is no extension
+			if (dot == -1)
+			{
+				materialize(i + std::size_t(seq_len));
+				break;
+			}
+			found_extension = true;
+			TORRENT_ASSERT(dot > 0);
+			// if the extension isn't immediately adjacent, the bytes
+			// in between are dropped, which requires materializing
+			if (std::size_t(dot) != i + std::size_t(seq_len))
+				materialize(i + std::size_t(seq_len));
+			i = std::size_t(dot - seq_len);
+		}
+	}
+
+	if (added == num_dots && added <= 2)
+	{
+		if (changed)
+		{
+			// revert the invalid filename
+			path.clear();
+		}
+		if (force_element)
+		{
+			// replace it with an underscore
+			path += "_";
+		}
+		// the result ("_" or nothing) never equals the all-dots
+		// "element" that got us here
+		return false;
+	}
+
+	if (trim_trailing)
+	{
 		// remove trailing spaces and dots. These aren't allowed in
 		// filenames on windows. Count how many need trimming from
 		// whichever of "path" or "element" currently holds the content,
@@ -371,13 +410,36 @@ std::string sanitize_encoding(string_view const source)
 		{
 			path += "_";
 		}
-#endif
-
-		if (changed && path.empty())
-			path = "_";
-
-		return !changed;
 	}
+
+	if (sanitize_flags & path_sanitize_flags::filter_dos_reserved_names)
+	{
+		// this must run last, against the fully sanitized result rather
+		// than the raw "element". Otherwise a reserved name hidden behind
+		// a character dropped or trimmed by one of the rules above (a
+		// filtered unicode formatting character, or a trailing space/dot)
+		// would slip past this check unnoticed, only for the reserved
+		// name to reappear once the rest of sanitization strips those
+		// characters away.
+		string_view const current = changed ? string_view(path) : element;
+		std::string::size_type const dot = current.find_first_of('.');
+		if (is_reserved_dos_name(dot == string_view::npos ? current : current.substr(0, dot)))
+		{
+			// pull in the whole current content, not just the part up to
+			// "dot": materialize() is meant to be called with a growing
+			// prefix while walking "element" left to right, not as a
+			// one-shot substitute after the fact
+			if (!changed)
+				materialize(element.size());
+			path.insert(dot == string_view::npos ? path.size() : dot, "_");
+		}
+	}
+
+	if (changed && path.empty())
+		path = "_";
+
+	return !changed;
+}
 }
 
 namespace {
@@ -584,14 +646,17 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 	// lookup itself. The underlying path_element still borrows ``raw``
 	// directly when sanitizing didn't change it, only copying the
 	// sanitized text when it did.
-	aux::path_index_t cached_directory(
-		file_storage& fs, dir_cache_t& cache, aux::path_index_t const parent, string_view const raw)
+	aux::path_index_t cached_directory(file_storage& fs,
+		dir_cache_t& cache,
+		aux::path_index_t const parent,
+		string_view const raw,
+		load_torrent_limits const& cfg)
 	{
 		auto const it = cache.find(dir_cache_key(parent, raw));
 		if (it != cache.end())
 			return it->second;
 		std::string sanitized;
-		bool const unchanged = aux::sanitize_path_element(sanitized, raw, true);
+		bool const unchanged = aux::sanitize_path_element(sanitized, raw, cfg.sanitize_flags, true);
 		aux::path_index_t const dir =
 			fs.make_directory(parent, unchanged ? raw : string_view(sanitized), unchanged);
 		cache.emplace(dir_cache_key(parent, raw), dir);
@@ -957,7 +1022,8 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 			string_view const raw = {info_buffer + (p.string_offset() - info_offset),
 				static_cast<std::size_t>(p.string_length())};
 
-			bool const unchanged = aux::sanitize_path_element(name_scratch, raw);
+			bool const unchanged =
+				aux::sanitize_path_element(name_scratch, raw, cfg.sanitize_flags);
 			if (!unchanged && name_scratch.empty())
 			{
 				ec = errors::torrent_missing_name;
@@ -1016,7 +1082,8 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 					{
 						name_raw = raw;
 						std::string sanitized;
-						name_borrow = aux::sanitize_path_element(sanitized, raw, true);
+						name_borrow =
+							aux::sanitize_path_element(sanitized, raw, cfg.sanitize_flags, true);
 						if (name_borrow)
 							name = raw;
 						else
@@ -1027,7 +1094,7 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 					}
 					else
 					{
-						dir = cached_directory(files, dir_cache, dir, raw);
+						dir = cached_directory(files, dir_cache, dir, raw, cfg);
 					}
 				}
 			}
@@ -1171,7 +1238,8 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 				// component, its name always needs sanitizing regardless of
 				// dir_cache
 				std::string sanitized;
-				bool const name_borrow = aux::sanitize_path_element(sanitized, raw, true);
+				bool const name_borrow =
+					aux::sanitize_path_element(sanitized, raw, cfg.sanitize_flags, true);
 				string_view const name = name_borrow ? raw : string_view(sanitized);
 
 				// single_file: no directory nesting, and file_storage::name()
@@ -1210,7 +1278,7 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 				if (child_nonempty)
 				{
 					aux::path_index_t const child_dir =
-						cached_directory(target, dir_cache, frame.dir, raw);
+						cached_directory(target, dir_cache, frame.dir, raw, cfg);
 					// note: `frame` is invalidated by push_back below; we're done with it
 					stack.push_back({value.dict_items().begin(), child_dir});
 				}
@@ -1435,10 +1503,13 @@ TORRENT_VERSION_NAMESPACE_4
 #endif
 		}
 #ifndef BOOST_NO_EXCEPTIONS
-		if (!parse_torrent_file(e, ec, load_torrent_limits{}))
+		if (!parse_torrent_file(e,
+				ec,
+				load_torrent_limits{.sanitize_flags = path_sanitize_flags::deprecated_default}))
 			aux::throw_ex<system_error>(ec);
 #else
-		parse_torrent_file(e, ec, load_torrent_limits{});
+		parse_torrent_file(
+			e, ec, load_torrent_limits{.sanitize_flags = path_sanitize_flags::deprecated_default});
 #endif
 		INVARIANT_CHECK;
 	}
@@ -1459,7 +1530,8 @@ TORRENT_VERSION_NAMESPACE_4
 #if TORRENT_ABI_VERSION < 4
 #ifndef BOOST_NO_EXCEPTIONS
 	torrent_info::torrent_info(bdecode_node const& torrent_file)
-		: torrent_info(torrent_file, load_torrent_limits{})
+		: torrent_info(torrent_file,
+			  load_torrent_limits{.sanitize_flags = path_sanitize_flags::deprecated_default})
 	{}
 
 	torrent_info::torrent_info(char const* buffer, int size)
@@ -1467,11 +1539,14 @@ TORRENT_VERSION_NAMESPACE_4
 	{}
 
 	torrent_info::torrent_info(span<char const> buffer, from_span_t)
-		: torrent_info(buffer, load_torrent_limits{}, from_span)
+		: torrent_info(buffer,
+			  load_torrent_limits{.sanitize_flags = path_sanitize_flags::deprecated_default},
+			  from_span)
 	{}
 
 	torrent_info::torrent_info(std::string const& filename)
-		: torrent_info(filename, load_torrent_limits{})
+		: torrent_info(filename,
+			  load_torrent_limits{.sanitize_flags = path_sanitize_flags::deprecated_default})
 	{}
 
 	torrent_info::torrent_info(bdecode_node const& torrent_file
@@ -1520,7 +1595,9 @@ TORRENT_VERSION_NAMESPACE_4
 	torrent_info::torrent_info(bdecode_node const& torrent_file
 		, error_code& ec)
 	{
-		parse_torrent_file(torrent_file, ec, load_torrent_limits{});
+		parse_torrent_file(torrent_file,
+			ec,
+			load_torrent_limits{.sanitize_flags = path_sanitize_flags::deprecated_default});
 		INVARIANT_CHECK;
 	}
 
@@ -1533,7 +1610,8 @@ TORRENT_VERSION_NAMESPACE_4
 	{
 		bdecode_node e = bdecode(buffer, ec);
 		if (ec) return;
-		parse_torrent_file(e, ec, load_torrent_limits{});
+		parse_torrent_file(
+			e, ec, load_torrent_limits{.sanitize_flags = path_sanitize_flags::deprecated_default});
 
 		INVARIANT_CHECK;
 	}
@@ -1546,7 +1624,8 @@ TORRENT_VERSION_NAMESPACE_4
 
 		bdecode_node e = bdecode(buf, ec);
 		if (ec) return;
-		parse_torrent_file(e, ec, load_torrent_limits{});
+		parse_torrent_file(
+			e, ec, load_torrent_limits{.sanitize_flags = path_sanitize_flags::deprecated_default});
 
 		INVARIANT_CHECK;
 	}
@@ -1658,6 +1737,7 @@ TORRENT_VERSION_NAMESPACE_4
 	{
 		load_torrent_limits cfg;
 		cfg.max_pieces = max_pieces;
+		cfg.sanitize_flags = path_sanitize_flags::deprecated_default;
 		parse_info_section_impl(info, ec, cfg);
 		return !ec;
 	}
@@ -1782,7 +1862,8 @@ TORRENT_VERSION_NAMESPACE_4
 		}
 
 		std::string name;
-		bool const name_unchanged = aux::sanitize_path_element(name, name_ent.string_value());
+		bool const name_unchanged =
+			aux::sanitize_path_element(name, name_ent.string_value(), cfg.sanitize_flags);
 		if (name_unchanged)
 			name = std::string(name_ent.string_value());
 		if (name.empty())
