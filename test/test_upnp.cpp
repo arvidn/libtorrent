@@ -18,13 +18,13 @@ see LICENSE file.
 #include "test.hpp"
 #include "setup_transfer.hpp"
 #include "libtorrent/aux_/path.hpp"
+#include <algorithm>
 #include <fstream>
 #include <functional>
 #include <iostream>
 #include <memory>
 
 using namespace lt;
-using namespace std::chrono_literals;
 
 using lt::portmap_protocol;
 
@@ -118,6 +118,24 @@ struct callback_info
 };
 
 std::list<callback_info> callbacks;
+
+// polls the io_context in short bursts until either condition() returns
+// true or timeout elapses, so a stuck expectation fails the test with a
+// clear message instead of relying on the external per-test time limit.
+bool wait_for(
+	lt::io_context& ios, lt::seconds const timeout, std::function<bool()> const& condition)
+{
+	auto const deadline = lt::clock_type::now() + timeout;
+	for (;;)
+	{
+		if (condition())
+			return true;
+		if (lt::clock_type::now() >= deadline)
+			return false;
+		ios.restart();
+		ios.run_for(lt::milliseconds(100));
+	}
+}
 
 	struct upnp_callback final : aux::portmap_callback
 	{
@@ -269,16 +287,24 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 		, ipf.interface_address.to_v4(), ipf.netmask.to_v4(), ipf.name, aux::listen_socket_handle());
 	upnp_handler->start();
 
-	for (int i = 0; i < 20; ++i)
+	// give up cleanly (rather than relying on the external per-test time
+	// limit) if an expected outcome never materializes, so a regression
+	// shows up as a clear, fast failure instead of an apparent hang.
+	auto const bail = [&](char const* msg) {
+		TEST_ERROR(msg);
+		upnp_handler->close();
+		sock.close();
+		stop_web_server();
+		callbacks.clear();
+	};
+
+	if (!wait_for(ios, lt::seconds(5), [&] { return !upnp_handler->router_model().empty(); }))
 	{
-		ios.restart();
-		ios.run_for(lt::milliseconds(100));
-		if (!upnp_handler->router_model().empty())
-			break;
+		bail("timed out waiting for router discovery");
+		return;
 	}
 
 	std::cout << "router: " << upnp_handler->router_model() << std::endl;
-	TEST_CHECK(!upnp_handler->router_model().empty());
 
 	// the internal-client endpoint becomes the source address upnp.cpp binds
 	// the outgoing AddPortMapping connection to (see bind_info_t in
@@ -289,12 +315,10 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 	auto const mapping2 = upnp_handler->add_mapping(
 		portmap_protocol::udp, 501, tcp::endpoint(ipf.interface_address.to_v4(), 501), "");
 
-	for (int i = 0; i < 40; ++i)
+	if (!wait_for(ios, lt::seconds(10), [&] { return callbacks.size() >= 2; }))
 	{
-		ios.restart();
-		ios.run_for(lt::milliseconds(100));
-		if (callbacks.size() >= 2)
-			break;
+		bail("timed out waiting for AddPortMapping responses");
+		return;
 	}
 
 	callback_info expected1 = {mapping1, 500, error_code()};
@@ -309,12 +333,12 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 	upnp_handler->close();
 	sock.close();
 
-	for (int i = 0; i < 40; ++i)
+	if (!wait_for(ios, lt::seconds(10), [&] { return callbacks.size() >= 4; }))
 	{
-		ios.restart();
-		ios.run_for(lt::milliseconds(100));
-		if (callbacks.size() >= 4)
-			break;
+		TEST_ERROR("timed out waiting for DeletePortMapping responses");
+		stop_web_server();
+		callbacks.clear();
+		return;
 	}
 
 	// there should have been two DeleteMapping calls
@@ -362,26 +386,19 @@ void run_upnp_ssrf_test()
 		aux::listen_socket_handle());
 	upnp_handler->start();
 
-	for (int i = 0; i < 20; ++i)
-	{
-		ios.restart();
-		ios.run_for(100ms);
-	}
-
 	// note: router_model() is not checked here, real UPnP routers on the test
 	// network may legitimately answer the multicast search and get accepted;
 	// this test only cares whether the malicious host was rejected.
-	bool found_rejection = false;
-	for (auto const& msg : g_log_messages)
-	{
-		if (msg.find("invalid address") != std::string::npos
-			&& msg.find("::ffff:127.0.0.1") != std::string::npos)
-		{
-			found_rejection = true;
-			break;
-		}
-	}
-	TEST_CHECK(found_rejection);
+	auto const found_rejection = [&] {
+		return std::any_of(
+			g_log_messages.begin(), g_log_messages.end(), [](std::string const& msg) {
+				return msg.find("invalid address") != std::string::npos
+					&& msg.find("::ffff:127.0.0.1") != std::string::npos;
+			});
+	};
+
+	if (!wait_for(ios, lt::seconds(5), found_rejection))
+		TEST_ERROR("timed out waiting for the malicious control URL to be rejected");
 
 	upnp_handler->close();
 	sock.close();
