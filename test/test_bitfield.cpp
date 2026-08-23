@@ -179,6 +179,67 @@ TORRENT_TEST(test_iterator_arithmetic)
 	TEST_EQUAL(std::count((test1.begin() + 30) + 10, test1.begin() + 50, true), 1);
 }
 
+// adding an offset that's >= 32 to an iterator that isn't itself aligned on a
+// 32 bit word boundary must still carry into the right word
+TORRENT_TEST(test_iterator_arithmetic_word_carry)
+{
+	bitfield test1(128);
+	test1.set_bit(64);
+	bitfield::const_iterator it = (test1.begin() + 20) + 44;
+	TEST_CHECK(it == test1.begin() + 64);
+	TEST_EQUAL(*it, true);
+	TEST_EQUAL(std::count(test1.begin() + 5, it, true), 0);
+}
+
+// cross-check operator+() against ground truth built from operator++(),
+// varying start offset, step size, and word-boundary alignment
+TORRENT_TEST(test_iterator_arithmetic_exhaustive)
+{
+	bitfield test1(256);
+	for (int i = 0; i < test1.size(); i += 3)
+		test1.set_bit(i);
+
+	std::array<int, 13> const starts{{0, 1, 5, 20, 31, 32, 33, 63, 64, 65, 96, 127, 150}};
+	std::array<int, 14> const steps{{0, 1, 5, 12, 20, 31, 32, 33, 44, 63, 64, 65, 96, 100}};
+
+	for (int const start : starts)
+	{
+		if (start > test1.size())
+			continue;
+
+		// ground truth for the starting position, independent of
+		// operator+()'s carry logic
+		bitfield::const_iterator ref = test1.begin();
+		for (int i = 0; i < start; ++i)
+			++ref;
+
+		bitfield::const_iterator const from = test1.begin() + start;
+		TEST_CHECK(from == ref);
+
+		for (int const step : steps)
+		{
+			if (start + step > test1.size())
+				continue;
+
+			bitfield::const_iterator expected = ref;
+			for (int i = 0; i < step; ++i)
+				++expected;
+
+			// single addition
+			TEST_CHECK(from + step == expected);
+
+			// chained addition, split the step in two at an arbitrary point
+			int const first_half = step / 2;
+			TEST_CHECK((from + first_half) + (step - first_half) == expected);
+
+			if (start + step < test1.size())
+				TEST_EQUAL(*(from + step), *expected);
+			else
+				TEST_CHECK(expected == test1.end());
+		}
+	}
+}
+
 TORRENT_TEST(test_assign)
 {
 	std::array<char, 16> b;
