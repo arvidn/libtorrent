@@ -1043,7 +1043,7 @@ void upnp::on_upnp_xml(error_code const& e
 				, d.url.c_str(), e.message().c_str());
 		}
 #endif
-		d.disabled = true;
+		disable_device(d, e);
 		return;
 	}
 
@@ -1053,7 +1053,7 @@ void upnp::on_upnp_xml(error_code const& e
 		log("error while fetching control url from: %s: incomplete HTTP message"
 			, d.url.c_str());
 #endif
-		d.disabled = true;
+		disable_device(d, errors::http_parse_error);
 		return;
 	}
 
@@ -1066,7 +1066,7 @@ void upnp::on_upnp_xml(error_code const& e
 				, d.url.c_str(), p.message().c_str());
 		}
 #endif
-		d.disabled = true;
+		disable_device(d, error_code(p.status_code(), http_category()));
 		return;
 	}
 
@@ -1079,7 +1079,7 @@ void upnp::on_upnp_xml(error_code const& e
 		log("could not find a port mapping interface in response from: %s"
 			, d.url.c_str());
 #endif
-		d.disabled = true;
+		disable_device(d, errors::http_parse_error);
 		return;
 	}
 	d.service_namespace = s.service_type;
@@ -1134,7 +1134,7 @@ void upnp::on_upnp_xml(error_code const& e
 				, d.control_url.c_str(), ec.message().c_str());
 		}
 #endif
-		d.disabled = true;
+		disable_device(d, ec);
 		return;
 	}
 
@@ -1150,7 +1150,7 @@ void upnp::on_upnp_xml(error_code const& e
 				d.hostname.c_str());
 		}
 #endif
-		d.disabled = true;
+		disable_device(d, error_code(boost::system::errc::host_unreachable, generic_category()));
 		return;
 	}
 
@@ -1224,6 +1224,30 @@ void upnp::disable(error_code const& ec)
 	error_code e;
 	m_unicast.socket.close(e);
 	m_multicast.socket.close(e);
+}
+
+void upnp::disable_device(rootdevice& d, error_code const& ec)
+{
+	TORRENT_ASSERT(is_single_thread());
+	d.disabled = true;
+
+	// any mapping action still queued on this device (add or delete) will
+	// never be attempted now, since update_map()/next() refuse to touch a
+	// disabled device. fail them here instead of dropping them silently.
+	for (auto& m : d.mapping)
+	{
+		if (m.act == portmap_action::none)
+			continue;
+		portmap_protocol const proto = m.protocol;
+		m.act = portmap_action::none;
+		m_callback.on_port_mapping(port_mapping_t(static_cast<int>(&m - d.mapping.data())),
+			address(),
+			0,
+			proto,
+			ec,
+			portmap_transport::upnp,
+			m_listen_handle);
+	}
 }
 
 void find_error_code(int const type, string_view string, error_code_parse_state& state)
@@ -1442,7 +1466,18 @@ void upnp::on_upnp_map_response(error_code const& e
 				, e.message().c_str());
 		}
 #endif
-		d.disabled = true;
+		// unlike on_upnp_unmap_response, this mapping's action was already
+		// consumed (update_map() clears it before issuing the request), so
+		// it won't be picked up by disable_device()'s queue drain below.
+		// report it explicitly, or the caller never hears back about it.
+		m_callback.on_port_mapping(mapping,
+			address(),
+			0,
+			d.mapping[mapping].protocol,
+			e,
+			portmap_transport::upnp,
+			m_listen_handle);
+		disable_device(d, e);
 		return;
 	}
 

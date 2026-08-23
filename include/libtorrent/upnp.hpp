@@ -229,6 +229,12 @@ private:
 	void on_expire(error_code const& e);
 
 	void disable(error_code const& ec);
+	// disables a single device (as opposed to disable(), which disables the
+	// whole upnp instance) and fails, with ec, any mapping actions still
+	// queued on it. once a device is disabled, next()/update_map() must
+	// never be called for it again, so any pending actions would otherwise
+	// be silently dropped without ever notifying the caller.
+	void disable_device(rootdevice& d, error_code const& ec);
 	void return_error(port_mapping_t mapping, int code);
 #ifndef TORRENT_DISABLE_LOGGING
 	bool should_log() const;
