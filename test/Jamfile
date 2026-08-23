@@ -149,6 +149,7 @@ run test_socket_io.cpp ;
 run test_part_file.cpp ;
 run test_peer_list.cpp ;
 run test_torrent_info.cpp ;
+run test_sanitizer.cpp ;
 run test_time.cpp ;
 run test_file_storage.cpp ;
 run test_peer_priority.cpp ;
@@ -311,6 +312,7 @@ alias deterministic-tests :
 	test_remap_files
 	test_resolve_links
 	test_resume
+	test_sanitizer
 	test_session
 	test_session_params
 	test_settings_pack

@@ -41,10 +41,11 @@ see LICENSE file.
 #include "libtorrent/index_range.hpp"
 #include "libtorrent/aux_/merkle_tree.hpp"
 #include "libtorrent/web_seed_entry.hpp"
+#include "libtorrent/path_sanitize_flags.hpp"
 
 namespace libtorrent {
 
-	struct invariant_access;
+struct invariant_access;
 
 namespace aux {
 
@@ -52,8 +53,10 @@ namespace aux {
 // Returns true if "element" needed no sanitization, in which case "path"
 // is left untouched and the caller can use "element" itself (borrowed,
 // no copy). Returns false if "path" holds the sanitized result instead.
-TORRENT_EXTRA_EXPORT bool sanitize_path_element(
-	std::string& path, string_view element, bool force_element = false);
+TORRENT_EXTRA_EXPORT bool sanitize_path_element(std::string& path,
+	string_view element,
+	path_sanitize_flags_t sanitize_flags,
+	bool force_element = false);
 TORRENT_EXTRA_EXPORT std::string sanitize_encoding(string_view source);
 
 #if TORRENT_ABI_VERSION < 4
@@ -64,7 +67,7 @@ TORRENT_EXTRA_EXPORT std::string sanitize_encoding(string_view source);
 		std::vector<std::pair<std::string, int>> nodes;
 	};
 #endif
-}
+	}
 
 	// hidden
 #if TORRENT_ABI_VERSION < 4
@@ -116,6 +119,13 @@ TORRENT_EXTRA_EXPORT std::string sanitize_encoding(string_view source);
 		// large number of symlinks may pose a DoS attack, stalling torrent
 		// parsing.
 		int max_symlinks = 5000;
+
+		// the path-sanitization ruleset to apply while building the file
+		// layout. See
+		// ``add_torrent_params::sanitize_flags`` for why this must be
+		// preserved for the lifetime of a torrent rather than always using
+		// the newest ruleset.
+		path_sanitize_flags_t sanitize_flags = path_sanitize_flags::default_flags;
 	};
 
 	using torrent_info_flags_t = flags::bitfield_flag<std::uint8_t, struct torrent_info_flags_tag>;

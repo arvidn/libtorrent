@@ -916,6 +916,8 @@ struct dummy17
 {};
 struct dummy_announce_flags
 {};
+struct dummy_path_sanitize_flags
+{};
 
 void bind_session()
 {
@@ -1062,7 +1064,8 @@ void bind_session()
 		.add_property("comment", PROP(&add_torrent_params::comment))
 		.add_property("created_by", PROP(&add_torrent_params::created_by))
 		.add_property("creation_date", PROP(&add_torrent_params::creation_date))
-		.add_property("root_certificate", PROP(&add_torrent_params::root_certificate));
+		.add_property("root_certificate", PROP(&add_torrent_params::root_certificate))
+		.add_property("sanitize_flags", PROP(&add_torrent_params::sanitize_flags));
 
 #ifndef TORRENT_DISABLE_DHT
 	class_<lt::dht::dht_state>("dht_state")
@@ -1167,6 +1170,21 @@ void bind_session()
 	}
 #endif
 	;
+
+	{
+		scope s = class_<dummy_path_sanitize_flags>("path_sanitize_flags");
+		s.attr("limit_unicode_characters") = lt::path_sanitize_flags::limit_unicode_characters;
+		s.attr("trim_trailing_spaces_and_dots") =
+			lt::path_sanitize_flags::trim_trailing_spaces_and_dots;
+		s.attr("filter_dos_reserved_names") = lt::path_sanitize_flags::filter_dos_reserved_names;
+		s.attr("sanitize_invalid_chars_win") = lt::path_sanitize_flags::sanitize_invalid_chars_win;
+		s.attr("sanitize_invalid_chars_android") =
+			lt::path_sanitize_flags::sanitize_invalid_chars_android;
+		s.attr("filter_unicode_formatting_chars") =
+			lt::path_sanitize_flags::filter_unicode_formatting_chars;
+		s.attr("default_flags") = lt::path_sanitize_flags::default_flags;
+		s.attr("all") = lt::path_sanitize_flags::all;
+	}
 
 	enum_<lt::portmap_protocol>("portmap_protocol")
 		.value("none", lt::portmap_protocol::none)

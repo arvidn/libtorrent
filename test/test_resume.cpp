@@ -1164,6 +1164,80 @@ TORRENT_TEST(resume_info_dict)
 	TEST_CHECK(atp.ti->info_hashes() == p.ti->info_hashes());
 }
 
+TORRENT_TEST(sanitize_flags_missing_key_defaults_to_legacy)
+{
+	// resume data written before path-sanitizer versioning existed has no
+	// "sanitize_flags" key. libtorrent_2_1 is defined to match the ruleset
+	// that was unconditionally in effect before this flag existed (each bit
+	// was carved out of what used to be unconditional, platform-gated
+	// behavior), so it must default to that, not an all-zero value, or an
+	// upgrade could silently re-sanitize an existing torrent's files under
+	// different rules than the ones used to create them on disk. This is
+	// pinned to libtorrent_2_1 specifically, not default_flags, since
+	// default_flags moves forward as newer rules are added (e.g.
+	// libtorrent_2_2) while this fallback must stay fixed to the ruleset
+	// that was actually in effect for pre-versioning resume data.
+
+	add_torrent_params p = generate_torrent();
+	entry rd;
+	rd["file-format"] = "libtorrent resume file";
+	rd["name"] = p.ti->name();
+	rd["info-hash"] = p.ti->info_hashes().v1;
+	rd["info"] = bdecode(p.ti->info_section());
+	std::vector<char> const resume_data = bencode(rd);
+
+	error_code ec;
+	add_torrent_params atp = read_resume_data(resume_data, ec);
+	TEST_CHECK(!ec);
+	TEST_CHECK(atp.sanitize_flags == path_sanitize_flags::libtorrent_2_1);
+	TEST_CHECK(atp.ti->sanitize_flags() == path_sanitize_flags::libtorrent_2_1);
+}
+
+TORRENT_TEST(sanitize_flags_roundtrip)
+{
+	// an explicit sanitize_flags value survives a write/read resume data
+	// round-trip.
+
+	add_torrent_params p = generate_torrent();
+	p.sanitize_flags = path_sanitize_flags::default_flags;
+
+	std::vector<char> const resume_data = write_resume_data_buf(p);
+
+	error_code ec;
+	add_torrent_params atp = read_resume_data(resume_data, ec);
+	TEST_CHECK(!ec);
+	TEST_CHECK(atp.sanitize_flags == path_sanitize_flags::default_flags);
+}
+
+TORRENT_TEST(sanitize_flags_pinned_through_save_resume_data)
+{
+	// the sanitize_flags ruleset pinned on a live torrent at add-time must
+	// be the value torrent::write_resume_data() actually reports, not the
+	// add_torrent_params default. This exercises the real
+	// torrent_handle::save_resume_data() path, as opposed to calling the
+	// free write_resume_data_buf() function directly on a hand-built
+	// add_torrent_params, which bypasses the torrent entirely.
+
+	lt::add_torrent_params p = generate_torrent();
+	p.save_path = ".";
+	p.sanitize_flags = lt::path_sanitize_flags_t{};
+	TEST_CHECK(p.sanitize_flags != lt::path_sanitize_flags::default_flags);
+
+	lt::session ses(settings());
+	lt::torrent_handle h = ses.add_torrent(p);
+
+	h.save_resume_data();
+
+	save_resume_data_alert const* a = alert_cast<save_resume_data_alert>(wait_for_alert(
+		ses, save_resume_data_alert::alert_type, "sanitize_flags_pinned_through_save_resume_data"));
+
+	TEST_CHECK(a);
+	if (a == nullptr)
+		return;
+
+	TEST_CHECK(a->params.sanitize_flags == lt::path_sanitize_flags_t{});
+}
+
 TORRENT_TEST(zero_file_prio)
 {
 	test_zero_file_prio();

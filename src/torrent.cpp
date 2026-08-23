@@ -194,6 +194,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		aux::session_interface& ses, add_torrent_params const& p, bool const session_paused)
 		: m_flags((p.flags & torrent_flags::public_flags)
 			  | (session_paused ? torrent_internal_flags::session_paused : torrent_flags_t{}))
+		, m_sanitize_flags(p.sanitize_flags)
 		, m_ses(ses)
 		, m_complete(0xffffff)
 		, m_max_connections(0xffffff)
@@ -7470,6 +7471,7 @@ namespace {
 		ret.created_by = m_created_by;
 		ret.creation_date = m_creation_date;
 		ret.info_hashes = m_info_hash;
+		ret.sanitize_flags = m_sanitize_flags;
 		if (valid_metadata()) ret.name = m_torrent_file->name();
 		else if (m_name) ret.name = *m_name;
 
@@ -8237,6 +8239,7 @@ namespace {
 		{
 			load_torrent_limits cfg;
 			cfg.max_pieces = sett.get_int(settings_pack::max_piece_count);
+			cfg.sanitize_flags = m_sanitize_flags;
 			info = std::make_shared<torrent_info>(metadata, ec, cfg, from_info_section);
 			// ec is an output parameter set by torrent_info's constructor on
 			// parse failure; cppcheck doesn't see the constructor definition

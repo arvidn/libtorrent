@@ -283,6 +283,14 @@ namespace libtorrent::aux {
 		// the internal bits.
 		torrent_flags_t m_flags{};
 
+		// the path-sanitization ruleset pinned for this torrent at
+		// add-time. See
+		// add_torrent_params::sanitize_flags. Used to parse the info-dict
+		// into a file layout whenever that happens after add() (e.g. when
+		// metadata arrives for a magnet link), so a torrent keeps resolving
+		// its files the same way regardless of later library upgrades.
+		path_sanitize_flags_t m_sanitize_flags = path_sanitize_flags::default_flags;
+
 		// helper: set or clear `bit` in m_flags based on `value`.
 		void set_flag(torrent_flags_t const bit, bool const value)
 		{

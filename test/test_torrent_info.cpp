@@ -701,10 +701,13 @@ namespace {
 // untouched so the caller can borrow "element" directly. This collapses
 // that into a plain returned string for the tests below, and checks the
 // borrow invariant along the way.
-std::string sanitize(string_view const element, bool const force_element = false)
+std::string sanitize(string_view const element,
+	bool const force_element = false,
+	lt::path_sanitize_flags_t const sanitize_flags = lt::path_sanitize_flags::default_flags)
 {
 	std::string path;
-	bool const unchanged = lt::aux::sanitize_path_element(path, element, force_element);
+	bool const unchanged =
+		lt::aux::sanitize_path_element(path, element, sanitize_flags, force_element);
 	if (unchanged)
 	{
 		TEST_CHECK(path.empty());
@@ -762,32 +765,141 @@ TORRENT_TEST(sanitize_path_truncate_utf)
 		".jpg");
 }
 
+TORRENT_TEST(sanitize_path_truncate_unicode_chars)
+{
+	// path_sanitize_flags::limit_unicode_characters selects whether the
+	// 240-limit counts unicode characters (code points) or encoded UTF-8
+	// bytes. Build a multi-byte character run long enough that the two
+	// rules truncate at different points, and exercise both rulesets
+	// explicitly so the test doesn't depend on the platform's default.
+
+	// U+00A9 (copyright sign), 2 bytes per character
+	std::string const two_byte_char = "\xC2\xA9";
+
+	std::string long_element;
+	for (int i = 0; i < 300; ++i)
+		long_element += two_byte_char;
+
+	// counting characters: truncated after 240 characters (480 bytes)
+	std::string expected_by_chars;
+	for (int i = 0; i < 240; ++i)
+		expected_by_chars += two_byte_char;
+	TEST_EQUAL(sanitize(long_element, false, lt::path_sanitize_flags::limit_unicode_characters),
+		expected_by_chars);
+
+	// counting bytes: truncated after 240 bytes (120 characters)
+	std::string expected_by_bytes;
+	for (int i = 0; i < 120; ++i)
+		expected_by_bytes += two_byte_char;
+	TEST_EQUAL(sanitize(long_element, false, lt::path_sanitize_flags_t{}), expected_by_bytes);
+}
+
+TORRENT_TEST(sanitize_path_dos_reserved_names)
+{
+	// path_sanitize_flags::filter_dos_reserved_names inserts "_" right
+	// after the base name of a reserved device name, keeping the rest
+	// (including any extension) intact, rather than dropping the element.
+	lt::path_sanitize_flags_t const filter = lt::path_sanitize_flags::filter_dos_reserved_names;
+
+	// a reserved name gets "_" appended
+	TEST_EQUAL(sanitize("con", false, filter), "con_");
+	// force_element doesn't matter here, the result is already non-empty
+	TEST_EQUAL(sanitize("con", true, filter), "con_");
+
+	// the extension, and the original casing, are both preserved
+	TEST_EQUAL(sanitize("con.txt", false, filter), "con_.txt");
+	TEST_EQUAL(sanitize("CoM1", false, filter), "CoM1_");
+
+	// windows treats the superscript digits U+00B9/00B2/00B3 as valid
+	// COM#/LPT# digits too (encoded here as UTF-8)
+	TEST_EQUAL(sanitize("com\xc2\xb9.txt", false, filter), "com\xc2\xb9_.txt");
+	TEST_EQUAL(sanitize("lpt\xc2\xb2", false, filter), "lpt\xc2\xb2_");
+
+	// the *first* dot delimits the base name: "nul.tar.gz" is equivalent
+	// to "nul", not "nul.tar", so "_" goes right after "nul"
+	TEST_EQUAL(sanitize("nul.tar.gz", false, filter), "nul_.tar.gz");
+
+	// a name that isn't reserved is untouched
+	TEST_EQUAL(sanitize("console", false, filter), "console");
+
+	// the substituted element is fed back through the normal
+	// sanitization, so e.g. a filtered character in the extension is
+	// still dropped
+	TEST_EQUAL(sanitize("con.a/b", false, filter), "con_.ab");
+
+	// ... and the 240-character limit still applies too. The reserved-name
+	// check runs after truncation (see sanitize_path_dos_reserved_names_
+	// hidden_by_other_rules below for why), so the inserted "_" adds one
+	// byte on top of the 240-byte truncation point.
+	std::string const long_element = "nul." + std::string(240, 'x');
+	std::string const long_expected = "nul_." + std::string(236, 'x');
+	TEST_EQUAL(sanitize(long_element, false, filter), long_expected);
+
+	// with the flag clear, reserved names are left alone
+	TEST_EQUAL(sanitize("con", false, lt::path_sanitize_flags_t{}), "con");
+}
+
+TORRENT_TEST(sanitize_path_dos_reserved_names_hidden_by_other_rules)
+{
+	// path_sanitize_flags::filter_dos_reserved_names must catch a reserved
+	// name that only becomes one *after* other sanitization rules run,
+	// otherwise a name hidden behind a character dropped or trimmed later
+	// would slip past the check unnoticed, only to reappear once the rest
+	// of sanitization strips those characters away.
+	lt::path_sanitize_flags_t const filter = lt::path_sanitize_flags::filter_dos_reserved_names
+		| lt::path_sanitize_flags::filter_unicode_formatting_chars
+		| lt::path_sanitize_flags::trim_trailing_spaces_and_dots;
+
+	// U+200B (zero-width space, encoded here as UTF-8) sits between "co"
+	// and "n"; once filter_unicode_formatting_chars strips it out, the
+	// base name becomes the reserved "con"
+	TEST_EQUAL(sanitize("co\xe2\x80\x8bn.txt", false, filter), "con_.txt");
+
+	// a trailing space, once trim_trailing_spaces_and_dots removes it,
+	// turns "CON " into the reserved "CON"
+	TEST_EQUAL(sanitize("CON ", false, filter), "CON_");
+
+	// sanity check: with filter_dos_reserved_names clear, the other rules
+	// still filter/trim these the same way, but the now-reserved name is
+	// left alone
+	lt::path_sanitize_flags_t const no_dos_filter =
+		lt::path_sanitize_flags::filter_unicode_formatting_chars
+		| lt::path_sanitize_flags::trim_trailing_spaces_and_dots;
+	TEST_EQUAL(sanitize("co\xe2\x80\x8bn.txt", false, no_dos_filter), "con.txt");
+	TEST_EQUAL(sanitize("CON ", false, no_dos_filter), "CON");
+}
+
 TORRENT_TEST(sanitize_path_trailing_dots)
 {
 	TEST_EQUAL(sanitize("a"), "a");
 	TEST_EQUAL(sanitize("c"), "c");
-#ifdef TORRENT_WINDOWS
-	TEST_EQUAL(sanitize("abc..."), "abc");
-	TEST_EQUAL(sanitize("abc."), "abc");
-	TEST_EQUAL(sanitize("a. . ."), "a");
-#else
-	TEST_EQUAL(sanitize("abc..."), "abc...");
-	TEST_EQUAL(sanitize("abc."), "abc.");
-	TEST_EQUAL(sanitize("a. . ."), "a. . .");
-#endif
+
+	// path_sanitize_flags::trim_trailing_spaces_and_dots selects whether
+	// trailing dots are stripped. Exercise both rulesets explicitly so the
+	// test doesn't depend on the platform's default.
+	lt::path_sanitize_flags_t const trim = lt::path_sanitize_flags::trim_trailing_spaces_and_dots;
+	TEST_EQUAL(sanitize("abc...", false, trim), "abc");
+	TEST_EQUAL(sanitize("abc.", false, trim), "abc");
+	TEST_EQUAL(sanitize("a. . .", false, trim), "a");
+
+	TEST_EQUAL(sanitize("abc...", false, lt::path_sanitize_flags_t{}), "abc...");
+	TEST_EQUAL(sanitize("abc.", false, lt::path_sanitize_flags_t{}), "abc.");
+	TEST_EQUAL(sanitize("a. . .", false, lt::path_sanitize_flags_t{}), "a. . .");
 }
 
 TORRENT_TEST(sanitize_path_trailing_spaces)
 {
 	TEST_EQUAL(sanitize("a"), "a");
 	TEST_EQUAL(sanitize("c"), "c");
-#ifdef TORRENT_WINDOWS
-	TEST_EQUAL(sanitize("abc   "), "abc");
-	TEST_EQUAL(sanitize("abc "), "abc");
-#else
-	TEST_EQUAL(sanitize("abc   "), "abc   ");
-	TEST_EQUAL(sanitize("abc "), "abc ");
-#endif
+
+	// see path_sanitize_flags::trim_trailing_spaces_and_dots, tested
+	// explicitly here so this runs the same on every platform.
+	lt::path_sanitize_flags_t const trim = lt::path_sanitize_flags::trim_trailing_spaces_and_dots;
+	TEST_EQUAL(sanitize("abc   ", false, trim), "abc");
+	TEST_EQUAL(sanitize("abc ", false, trim), "abc");
+
+	TEST_EQUAL(sanitize("abc   ", false, lt::path_sanitize_flags_t{}), "abc   ");
+	TEST_EQUAL(sanitize("abc ", false, lt::path_sanitize_flags_t{}), "abc ");
 }
 
 TORRENT_TEST(sanitize_path)
@@ -810,13 +922,15 @@ TORRENT_TEST(sanitize_path)
 	TEST_EQUAL(sanitize("/.."), "");
 	TEST_EQUAL(sanitize("."), "");
 
-#ifdef TORRENT_WINDOWS
-	TEST_EQUAL(sanitize("dev:"), "dev_");
-	TEST_EQUAL(sanitize("c:"), "c_");
-#else
-	TEST_EQUAL(sanitize("dev:"), "dev:");
-	TEST_EQUAL(sanitize("c:"), "c:");
-#endif
+	// see path_sanitize_flags::sanitize_invalid_chars_win /
+	// sanitize_invalid_chars_android for the flag-driven coverage; ":" is
+	// invalid under either, tested explicitly here so this runs the same
+	// on every platform.
+	TEST_EQUAL(
+		sanitize("dev:", false, lt::path_sanitize_flags::sanitize_invalid_chars_win), "dev_");
+	TEST_EQUAL(sanitize("c:", false, lt::path_sanitize_flags::sanitize_invalid_chars_win), "c_");
+	TEST_EQUAL(sanitize("dev:", false, lt::path_sanitize_flags_t{}), "dev:");
+	TEST_EQUAL(sanitize("c:", false, lt::path_sanitize_flags_t{}), "c:");
 
 	// leading backslash is filtered out regardless of platform
 	TEST_EQUAL(sanitize("\\c"), "c");
@@ -829,15 +943,18 @@ TORRENT_TEST(sanitize_path)
 	// an empty element sanitizes to "_"
 	TEST_EQUAL(sanitize(""), "_");
 
-	// on windows, trailing spaces are trimmed; when nothing is left, the
-	// result is "_"
-#ifdef TORRENT_WINDOWS
-	TEST_EQUAL(sanitize("   "), "_");
-	TEST_EQUAL(sanitize("\b?filename=4"), "__filename=4");
-#else
-	TEST_EQUAL(sanitize("   "), "   ");
-	TEST_EQUAL(sanitize("\b?filename=4"), "_?filename=4");
-#endif
+	// path_sanitize_flags::trim_trailing_spaces_and_dots: trailing spaces
+	// are trimmed; when nothing is left, the result is "_". Tested
+	// explicitly here so this runs the same on every platform.
+	TEST_EQUAL(sanitize("   ", false, lt::path_sanitize_flags::trim_trailing_spaces_and_dots), "_");
+	TEST_EQUAL(sanitize("   ", false, lt::path_sanitize_flags_t{}), "   ");
+
+	// "\b" is always invalid (a C0 control); "?" only under
+	// sanitize_invalid_chars_win / _android
+	TEST_EQUAL(
+		sanitize("\b?filename=4", false, lt::path_sanitize_flags::sanitize_invalid_chars_win),
+		"__filename=4");
+	TEST_EQUAL(sanitize("\b?filename=4", false, lt::path_sanitize_flags_t{}), "_?filename=4");
 
 	TEST_EQUAL(sanitize("filename=4"), "filename=4");
 
@@ -981,13 +1098,14 @@ TORRENT_TEST(sanitize_path_force)
 	TEST_EQUAL(sanitize("/..", true), "_");
 	TEST_EQUAL(sanitize(".", true), "_");
 
-#ifdef TORRENT_WINDOWS
-	TEST_EQUAL(sanitize("dev:", true), "dev_");
-	TEST_EQUAL(sanitize("c:", true), "c_");
-#else
-	TEST_EQUAL(sanitize("dev:", true), "dev:");
-	TEST_EQUAL(sanitize("c:", true), "c:");
-#endif
+	// see path_sanitize_flags::sanitize_invalid_chars_win /
+	// sanitize_invalid_chars_android for the flag-driven coverage; ":" is
+	// invalid under either, tested explicitly here so this runs the same
+	// on every platform.
+	TEST_EQUAL(sanitize("dev:", true, lt::path_sanitize_flags::sanitize_invalid_chars_win), "dev_");
+	TEST_EQUAL(sanitize("c:", true, lt::path_sanitize_flags::sanitize_invalid_chars_win), "c_");
+	TEST_EQUAL(sanitize("dev:", true, lt::path_sanitize_flags_t{}), "dev:");
+	TEST_EQUAL(sanitize("c:", true, lt::path_sanitize_flags_t{}), "c:");
 
 	// leading backslash is filtered out regardless of platform
 	TEST_EQUAL(sanitize("\\c", true), "c");
@@ -999,13 +1117,16 @@ TORRENT_TEST(sanitize_path_force)
 	TEST_EQUAL(sanitize("abc", true), "abc");
 	TEST_EQUAL(sanitize("", true), "_");
 
-#ifdef TORRENT_WINDOWS
-	TEST_EQUAL(sanitize("   ", true), "_");
-	TEST_EQUAL(sanitize("\b?filename=4", true), "__filename=4");
-#else
-	TEST_EQUAL(sanitize("   ", true), "   ");
-	TEST_EQUAL(sanitize("\b?filename=4", true), "_?filename=4");
-#endif
+	// see path_sanitize_flags::trim_trailing_spaces_and_dots, tested
+	// explicitly here so this runs the same on every platform.
+	TEST_EQUAL(sanitize("   ", true, lt::path_sanitize_flags::trim_trailing_spaces_and_dots), "_");
+	TEST_EQUAL(sanitize("   ", true, lt::path_sanitize_flags_t{}), "   ");
+
+	// "\b" is always invalid (a C0 control); "?" only under
+	// sanitize_invalid_chars_win / _android
+	TEST_EQUAL(sanitize("\b?filename=4", true, lt::path_sanitize_flags::sanitize_invalid_chars_win),
+		"__filename=4");
+	TEST_EQUAL(sanitize("\b?filename=4", true, lt::path_sanitize_flags_t{}), "_?filename=4");
 
 	TEST_EQUAL(sanitize("filename=4", true), "filename=4");
 
@@ -1075,11 +1196,42 @@ TORRENT_TEST(sanitize_path_zeroes)
 
 TORRENT_TEST(sanitize_path_colon)
 {
-#ifdef TORRENT_WINDOWS
-	TEST_EQUAL(sanitize("foo:bar"), "foo_bar");
-#else
-	TEST_EQUAL(sanitize("foo:bar"), "foo:bar");
-#endif
+	// sanitize_invalid_chars_win and sanitize_invalid_chars_android reject
+	// the same set of printable characters (win additionally lists "\b",
+	// but that's already a C0 control, rejected unconditionally)
+	TEST_EQUAL(
+		sanitize("foo:bar", false, lt::path_sanitize_flags::sanitize_invalid_chars_win), "foo_bar");
+	TEST_EQUAL(sanitize("foo:bar", false, lt::path_sanitize_flags::sanitize_invalid_chars_android),
+		"foo_bar");
+	TEST_EQUAL(sanitize("foo:bar", false, lt::path_sanitize_flags_t{}), "foo:bar");
+}
+
+TORRENT_TEST(sanitize_path_unicode_formatting_chars)
+{
+	// the bidi marks/overrides (U+200E/F, U+202A-E) are always filtered;
+	// path_sanitize_flags::filter_unicode_formatting_chars additionally
+	// filters other zero-width/invisible characters, e.g. U+200B (ZWSP)
+	// here, which some users need to disable
+	lt::path_sanitize_flags_t const filter =
+		lt::path_sanitize_flags::filter_unicode_formatting_chars;
+
+	TEST_EQUAL(sanitize("foo\xe2\x80\x8e"
+						"bar",
+				   false,
+				   lt::path_sanitize_flags_t{}),
+		"foobar");
+
+	TEST_EQUAL(sanitize("foo\xe2\x80\x8b"
+						"bar",
+				   false,
+				   filter),
+		"foobar");
+	TEST_EQUAL(sanitize("foo\xe2\x80\x8b"
+						"bar",
+				   false,
+				   lt::path_sanitize_flags_t{}),
+		"foo\xe2\x80\x8b"
+		"bar");
 }
 
 TORRENT_TEST(sanitize_path_borrow)
@@ -1087,13 +1239,15 @@ TORRENT_TEST(sanitize_path_borrow)
 	// an element that needs no sanitization is borrowed: the function
 	// returns true and leaves "path" untouched
 	std::string path;
-	TEST_CHECK(lt::aux::sanitize_path_element(path, "readme.txt"));
+	TEST_CHECK(
+		lt::aux::sanitize_path_element(path, "readme.txt", lt::path_sanitize_flags::default_flags));
 	TEST_CHECK(path.empty());
 
 	// an element that needs sanitizing is materialized into "path", and the
 	// function returns false
 	path.clear();
-	TEST_CHECK(!lt::aux::sanitize_path_element(path, "foo\\bar"));
+	TEST_CHECK(
+		!lt::aux::sanitize_path_element(path, "foo\\bar", lt::path_sanitize_flags::default_flags));
 	TEST_EQUAL(path, "foobar");
 }
 
@@ -1657,6 +1811,73 @@ TORRENT_TEST(load_torrent_directory_depth)
 			TEST_CHECK(atp.ti);
 	}
 }
+
+TORRENT_TEST(load_torrent_default_sanitize_flags)
+{
+	// a caller who doesn't override load_torrent_limits::sanitize_flags
+	// gets the newest ruleset known to this version of libtorrent, stamped
+	// onto the returned add_torrent_params.
+	auto const buf = make_v1_torrent_with_path_depth(1);
+	error_code ec;
+	auto const atp = load_torrent_buffer(buf, ec, load_torrent_limits{});
+	TEST_CHECK(!ec);
+	TEST_CHECK(atp.sanitize_flags == path_sanitize_flags::default_flags);
+	TEST_CHECK(atp.ti);
+}
+
+TORRENT_TEST(load_torrent_explicit_sanitize_flags)
+{
+	// an explicit override in load_torrent_limits is honored and threaded
+	// through to the resulting add_torrent_params.
+	auto const buf = make_v1_torrent_with_path_depth(1);
+	error_code ec;
+	load_torrent_limits cfg;
+	cfg.sanitize_flags = path_sanitize_flags_t{};
+	auto const atp = load_torrent_buffer(buf, ec, cfg);
+	TEST_CHECK(!ec);
+	TEST_CHECK(atp.sanitize_flags == path_sanitize_flags_t{});
+	TEST_CHECK(atp.ti);
+}
+
+#if TORRENT_ABI_VERSION < 4
+TORRENT_TEST(deprecated_constructor_sanitize_flags)
+{
+	// the deprecated torrent_info constructors have no way to specify a
+	// ruleset, so they default to libtorrent_2_1 rather than
+	// default_flags: a caller still using them is far more likely to be
+	// dealing with a pre-existing torrent than a freshly created one.
+	auto const buf = make_v1_torrent_raw({{"con"}});
+	torrent_info const ti(buf.data(), int(buf.size()));
+
+	error_code ec;
+	load_torrent_limits cfg;
+	cfg.sanitize_flags = path_sanitize_flags::libtorrent_2_1;
+	auto const atp = load_torrent_buffer(buf, ec, cfg);
+	TEST_CHECK(!ec);
+	TEST_CHECK(atp.ti);
+	if (atp.ti)
+	{
+		TEST_EQUAL(
+			ti.layout().file_path(file_index_t{0}), atp.ti->layout().file_path(file_index_t{0}));
+	}
+
+#ifdef TORRENT_WINDOWS
+	// filter_dos_reserved_names is only part of default_flags on windows,
+	// making this the one platform where libtorrent_2_1 (used above) and
+	// default_flags actually disagree: "con" survives libtorrent_2_1
+	// unchanged, but default_flags renames it to "con_".
+	error_code ec2;
+	auto const atp2 = load_torrent_buffer(buf, ec2, load_torrent_limits{});
+	TEST_CHECK(!ec2);
+	TEST_CHECK(atp2.ti);
+	if (atp2.ti)
+	{
+		TEST_CHECK(
+			ti.layout().file_path(file_index_t{0}) != atp2.ti->layout().file_path(file_index_t{0}));
+	}
+#endif
+}
+#endif
 
 namespace {
 

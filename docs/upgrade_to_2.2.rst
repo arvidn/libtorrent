@@ -53,3 +53,46 @@ and ``create_file_entry`` instead, see `Creating torrents`_ in the 2.1
 upgrade guide.
 
 .. _`Creating torrents`: upgrade_to_2.1-ref.html#creating-torrents
+
+configurable filename sanitization
+==================================
+
+The rules for sanitizing filenames found in a torrent's info-dict are now
+controlled by ``path_sanitize_flags_t``, exposed via
+``add_torrent_params::sanitize_flags`` and
+``load_torrent_limits::sanitize_flags``. It defaults to
+``path_sanitize_flags::default_flags``, which now also filters DOS/Windows
+reserved device names (e.g. ``con``, ``com1``) on Windows, via the new
+``path_sanitize_flags::filter_dos_reserved_names`` bit. This also includes
+``path_sanitize_flags::filter_unicode_formatting_chars``, which makes the
+filtering of unicode formatting characters (introduced in libtorrent 2.1)
+optional.
+
+The ruleset that was actually in effect in earlier releases is preserved
+under versioned names, ``path_sanitize_flags::libtorrent_2_0`` and
+``path_sanitize_flags::libtorrent_2_1``, matching the naming of the new
+``path_sanitize_flags::libtorrent_2_2`` (equivalent to ``default_flags``).
+Resume data written before this feature existed is interpreted using
+``libtorrent_2_0`` or ``libtorrent_2_1``, based on the ``libtorrent-version``
+recorded in it, rather than ``default_flags``, so an upgrade never silently
+re-sanitizes an existing torrent's files under different rules than the
+ones used to create them on disk.
+
+Changing this ruleset for a torrent that already has files on disk can make
+libtorrent look for them under different names than the ones actually
+there. The ordinary resume data round trip pins and restores it
+automatically; only clients overriding ``sanitize_flags`` themselves, or
+reconstructing ``add_torrent_params`` from a .torrent file rather than
+resume data, need to take care.
+
+The deprecated ``torrent_info`` constructors that take no
+``load_torrent_limits`` default to ``libtorrent_2_1`` rather than
+``default_flags``, since callers still using them cannot supply a ruleset
+and are most likely dealing with pre-existing torrents.
+
+Clients that cache a torrent's info-dict separately from its resume data
+(e.g. a stored .torrent file re-parsed on startup, independently of the
+fast-resume file) must propagate the ``sanitize_flags`` recovered by
+``read_resume_data()`` into the ``load_torrent_limits`` used for that
+separate re-parse themselves; libtorrent has no way to reconcile the two
+once they come from different calls.

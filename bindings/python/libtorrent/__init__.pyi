@@ -677,6 +677,7 @@ class add_torrent_params(metaclass=_BoostBaseClass):
     renamed_files: dict[int, str]
     resume_data: list[str]
     root_certificate: str
+    sanitize_flags: int
     save_path: str
     seeding_time: int
     storage_mode: int
@@ -2215,6 +2216,17 @@ class options_t(metaclass=_BoostBaseClass):
     delete_files: int
 
 class oversized_file_alert(torrent_alert): ...
+
+class path_sanitize_flags(metaclass=_BoostBaseClass):
+    __instance_size__: int
+    all: int
+    default_flags: int
+    filter_dos_reserved_names: int
+    filter_unicode_formatting_chars: int
+    limit_unicode_characters: int
+    sanitize_invalid_chars_android: int
+    sanitize_invalid_chars_win: int
+    trim_trailing_spaces_and_dots: int
 
 class pause_flags_t(metaclass=_BoostBaseClass):
     __instance_size__: int

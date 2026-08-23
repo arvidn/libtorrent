@@ -27,6 +27,7 @@ see LICENSE file.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/torrent_flags.hpp"
+#include "libtorrent/path_sanitize_flags.hpp"
 #include "libtorrent/info_hash.hpp"
 #include "libtorrent/download_priority.hpp"
 #include "libtorrent/client_data.hpp"
@@ -355,6 +356,20 @@ TORRENT_VERSION_NAMESPACE_3
 		// this is a map of file indices in the torrent and new filenames to be
 		// applied before the torrent is added.
 		aux::noexcept_movable<std::map<file_index_t, std::string>> renamed_files;
+
+		// the path-sanitization ruleset used to build this torrent's file
+		// layout on disk. This defaults to
+		// the newest ruleset known to this version of libtorrent
+		// (``path_sanitize_flags::default_flags``), but once a torrent has
+		// been added, its actual on-disk file layout depends on whichever
+		// ruleset was in effect at the time. Changing this value for a
+		// torrent that has already downloaded files can make libtorrent look
+		// for those files under different names than the ones actually on
+		// disk. ``load_torrent_*()`` and ``read_resume_data()`` both set this
+		// field to whatever ruleset they actually used, so round-tripping an
+		// ``add_torrent_params`` object through resume data preserves it
+		// automatically. It cannot be changed after the torrent is added.
+		path_sanitize_flags_t sanitize_flags = path_sanitize_flags::default_flags;
 
 		// the posix time of the last time payload was received or sent for this
 		// torrent, respectively. A value of 0 means we don't know when we last

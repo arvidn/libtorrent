@@ -58,6 +58,7 @@ set(libtorrent_include_files
 	mmap_disk_io.hpp
 	natpmp.hpp
 	operations.hpp
+	path_sanitize_flags.hpp
 	peer_class.hpp
 	peer_class_type_filter.hpp
 	peer_connection_handle.hpp
