@@ -263,20 +263,26 @@ class http_handler(BaseHTTPRequestHandler):
 
 
 if __name__ == '__main__':
-    port = int(sys.argv[1])
-    chunked_encoding = sys.argv[2] != '0'
-    use_ssl = sys.argv[3] != '0'
-    keepalive = sys.argv[4] != '0'
-    min_interval = sys.argv[5]
-    expected_host = sys.argv[6] if len(sys.argv) > 6 else ''
+    chunked_encoding = sys.argv[1] != '0'
+    use_ssl = sys.argv[2] != '0'
+    keepalive = sys.argv[3] != '0'
+    min_interval = sys.argv[4]
+    expect_host_header = sys.argv[5] != '0' if len(sys.argv) > 5 else False
     print('python version: %s' % sys.version_info.__str__())
 
     http_handler.protocol_version = 'HTTP/1.1'
-    httpd = http_server_with_timeout(('0.0.0.0', port), http_handler)
+    httpd = http_server_with_timeout(('0.0.0.0', 0), http_handler)
+    port = httpd.server_address[1]
+    if expect_host_header:
+        expected_host = f'127.0.0.1:{port}'
+
     if use_ssl:
         ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         ctx.load_cert_chain("../ssl/server.pem")
         httpd.socket = ctx.wrap_socket(httpd.socket, server_side=True)
+
+    print(f'LISTENING_PORT {port}')
+    sys.stdout.flush()
 
     while True:
         httpd.handle_request()

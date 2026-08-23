@@ -288,7 +288,6 @@ if __name__ == '__main__':
 
     debug('starting socks.py %s' % " ".join(sys.argv))
     debug('python version: %s' % sys.version_info.__str__())
-    listen_port = 8002
     i = 1
     while i < len(sys.argv):
         if sys.argv[i] == '--username':
@@ -297,21 +296,21 @@ if __name__ == '__main__':
         elif sys.argv[i] == '--password':
             password = sys.argv[i + 1]
             i += 1
-        elif sys.argv[i] == '--port':
-            listen_port = int(sys.argv[i + 1])
-            i += 1
         elif sys.argv[i] == '--allow-v4':
             allow_v4 = True
         else:
             if sys.argv[i] != '--help':
                 debug('unknown option "%s"' % sys.argv[i])
-            print('usage: socks.py [--username <user> --password <password>] [--port <listen-port>]')
+            print('usage: socks.py [--username <user> --password <password>] [--allow-v4]')
             sys.stdout.flush()
             sys.exit(1)
         i += 1
 
-    debug('Listening on port %d...' % listen_port)
-    server = MyTCPServer(('localhost', listen_port), SocksHandler)
+    server = MyTCPServer(('localhost', 0), SocksHandler)
     server.timeout = 190
+    listen_port = server.server_address[1]
+    debug(f'Listening on port {listen_port}...')
+    print(f'LISTENING_PORT {listen_port}')
+    sys.stdout.flush()
     while True:
         server.handle_request()

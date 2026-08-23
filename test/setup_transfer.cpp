@@ -13,9 +13,17 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
+#include <array>
 #include <map>
 #include <tuple>
 #include <functional>
+#include <thread>
+#include <future>
+#include <string>
+#include <string_view>
+#include <cstdlib>
+#include <charconv>
+#include <stdexcept>
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/hasher.hpp"
@@ -43,6 +51,8 @@ see LICENSE file.
 #ifndef _WIN32
 #include <spawn.h>
 #include <csignal>
+#include <unistd.h>
+#include <poll.h>
 #endif
 
 using namespace lt;
@@ -50,6 +60,7 @@ using namespace std::chrono_literals;
 
 #if defined TORRENT_WINDOWS
 #include <conio.h>
+#include <io.h> // for _write, _fileno
 #endif
 
 #if defined TORRENT_WINDOWS
@@ -553,35 +564,200 @@ void print_ses_rate(lt::clock_type::time_point const start_time
 
 #ifdef _WIN32
 using pid_type = DWORD;
+using native_handle = HANDLE;
 #else
 using pid_type = pid_t;
+using native_handle = int;
 #endif
 
 namespace {
 
-// returns 0 on failure, otherwise pid
-pid_type async_run(char const* cmdline)
+// reads a chunk into buf. returns 0 on EOF or error
+std::size_t native_read(native_handle const h, span<char> const buf)
 {
+#ifdef _WIN32
+	DWORD n = 0;
+	if (!ReadFile(h, buf.data(), DWORD(buf.size()), &n, nullptr))
+		return 0;
+	return std::size_t(n);
+#else
+	ssize_t n;
+	do
+	{
+		n = ::read(h, buf.data(), static_cast<std::size_t>(buf.size()));
+	}
+	while (n < 0 && errno == EINTR);
+	if (n <= 0)
+		return 0;
+	return std::size_t(n);
+#endif
+}
+
+// best-effort write to this process' current stdout, ignores errors and
+// gives up (dropping the remainder of buf) rather than blocking forever if
+// stdout isn't draining. the destination is resolved on every call (via the
+// CRT/kernel fd table) rather than captured once, so it tracks whichever
+// redirection is currently in effect.
+void write_stdout(span<char const> buf)
+{
+	while (!buf.empty())
+	{
+		std::size_t written = 0;
+#ifdef _WIN32
+		int const n = ::_write(_fileno(stdout), buf.data(), static_cast<unsigned>(buf.size()));
+		if (n <= 0)
+			return;
+		written = std::size_t(n);
+#else
+		// a regular file (the common case; test/main.cpp redirects stdout to
+		// one per test) is always reported writable here, so this only
+		// bounds the wait when stdout is a pipe/socket to a slow consumer
+		pollfd pfd{};
+		pfd.fd = STDOUT_FILENO;
+		pfd.events = POLLOUT;
+		if (::poll(&pfd, 1, 5000) <= 0 || !(pfd.revents & POLLOUT))
+			return;
+		ssize_t n;
+		do
+		{
+			n = ::write(STDOUT_FILENO, buf.data(), static_cast<std::size_t>(buf.size()));
+		}
+		while (n < 0 && errno == EINTR);
+		if (n <= 0)
+			return;
+		written = std::size_t(n);
+#endif
+		buf = buf.subspan(std::ptrdiff_t(written));
+	}
+}
+
+void native_close(native_handle const h)
+{
+#ifdef _WIN32
+	CloseHandle(h);
+#else
+	::close(h);
+#endif
+}
+
+// reads lines from read_end until EOF. a line of the form
+// "LISTENING_PORT <n>" reports the child's bound port through
+// port_promise and is not forwarded; every other line is forwarded to
+// this process' current stdout via write_stdout(), which tracks whichever
+// test is currently running. that's correct because test/main.cpp
+// guarantees every proxy/web/websocket server is stopped (and this thread
+// joined) before the owning test's iteration ends, so a server's entire
+// lifetime, and hence all its output, falls within that test's own stdout
+// redirection window. closes read_end before returning.
+void stdout_drain(native_handle const read_end, std::promise<int> port_promise)
+{
+	static constexpr std::string_view port_prefix = "LISTENING_PORT ";
+
+	bool port_reported = false;
+	std::string pending;
+	std::array<char, 4096> buf;
+	for (;;)
+	{
+		std::size_t const n = native_read(read_end, buf);
+		if (n == 0)
+			break;
+		pending.append(buf.data(), n);
+		std::string::size_type pos;
+		while ((pos = pending.find('\n')) != std::string::npos)
+		{
+			std::string const line = pending.substr(0, pos + 1);
+			pending.erase(0, pos + 1);
+			if (!port_reported && line.rfind(port_prefix, 0) == 0)
+			{
+				char const* const num_begin = line.data() + port_prefix.size();
+				// exclude the trailing '\n', and a '\r' before it: python's
+				// stdout is line-buffered text mode on windows, which
+				// translates '\n' to "\r\n" even when redirected to a pipe
+				char const* num_end = line.data() + line.size() - 1;
+				if (num_end > num_begin && *(num_end - 1) == '\r')
+					--num_end;
+				int port = -1;
+				auto const result = std::from_chars(num_begin, num_end, port);
+				port_reported = true;
+				if (result.ec == std::errc() && result.ptr == num_end && port >= 0)
+				{
+					port_promise.set_value(port);
+					continue;
+				}
+				// a malformed port report is a hard error, not something to
+				// silently ignore in the hope of a later, well-formed one
+				port_promise.set_exception(std::make_exception_ptr(std::runtime_error(
+					"malformed LISTENING_PORT line: \"" + line.substr(0, line.size() - 1) + "\"")));
+			}
+			write_stdout(line);
+		}
+	}
+	if (!pending.empty())
+		write_stdout(pending);
+	if (!port_reported)
+		port_promise.set_value(-1);
+	native_close(read_end);
+}
+
+struct spawned_process
+{
+	pid_type pid = 0;
+	int port = -1;
+	// keeps running for the child's entire lifetime, not just until the
+	// port is reported. see the comment where it's started, in async_run().
+	std::thread stdout_reader;
+};
+
+void stop_and_join(pid_type pid, std::thread& reader);
+
+// spawns cmdline and waits (with a timeout) for the child to report the
+// port it bound to, by printing "LISTENING_PORT <port>" to stdout before
+// doing anything else useful. returns pid == 0 on failure to spawn, or
+// port == -1 if the child exited or timed out without reporting one. throws
+// std::runtime_error if the child reports a malformed port.
+spawned_process async_run(char const* cmdline)
+{
+	std::promise<int> port_promise;
+	std::future<int> port_future = port_promise.get_future();
+	spawned_process proc;
+
 #ifdef _WIN32
 	char buf[2048];
 	std::snprintf(buf, sizeof(buf), "%s", cmdline);
 
 	std::printf("CreateProcess %s\n", buf);
+
+	SECURITY_ATTRIBUTES sa{};
+	sa.nLength = sizeof(sa);
+	sa.bInheritHandle = TRUE;
+
+	HANDLE read_end = nullptr;
+	HANDLE write_end = nullptr;
+	if (!CreatePipe(&read_end, &write_end, &sa, 0))
+	{
+		std::printf("ERROR: CreatePipe failed (%d)\n", int(GetLastError()));
+		return {};
+	}
+	// the parent's end of the pipe must not be inherited by the child
+	SetHandleInformation(read_end, HANDLE_FLAG_INHERIT, 0);
+
 	PROCESS_INFORMATION pi;
 	STARTUPINFOA startup{};
 	startup.cb = sizeof(startup);
 	startup.dwFlags = STARTF_USESTDHANDLES;
 	startup.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
-	startup.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+	startup.hStdOutput = write_end;
 	startup.hStdError = GetStdHandle(STD_OUTPUT_HANDLE);
 	int const ret = CreateProcessA(nullptr, buf, nullptr, nullptr, TRUE
 		, 0, nullptr, nullptr, &startup, &pi);
+	CloseHandle(write_end);
 
 	if (ret == 0)
 	{
 		int const error = GetLastError();
 		std::printf("ERROR: (%d) %s\n", error, error_code(error, system_category()).message().c_str());
-		return 0;
+		CloseHandle(read_end);
+		return {};
 	}
 
 	DWORD len = sizeof(buf);
@@ -595,9 +771,12 @@ pid_type async_run(char const* cmdline)
 	{
 		std::printf("launched: %s\n", buf);
 	}
-	return pi.dwProcessId;
+	CloseHandle(pi.hThread);
+	CloseHandle(pi.hProcess);
+
+	proc.pid = pi.dwProcessId;
 #else
-	pid_type p;
+	pid_type pid;
 	char arg_storage[4096];
 	char* argp = arg_storage;
 	std::vector<char*> argv;
@@ -615,14 +794,64 @@ pid_type async_run(char const* cmdline)
 	*argp = '\0';
 	argv.push_back(nullptr);
 
-	int ret = posix_spawnp(&p, argv[0], nullptr, nullptr, &argv[0], nullptr);
+	int pipefd[2];
+	if (::pipe(pipefd) != 0)
+	{
+		std::printf("ERROR (%d) %s\n", errno, strerror(errno));
+		return {};
+	}
+	native_handle const read_end = pipefd[0];
+	native_handle const write_end = pipefd[1];
+
+	posix_spawn_file_actions_t actions;
+	posix_spawn_file_actions_init(&actions);
+	posix_spawn_file_actions_adddup2(&actions, write_end, STDOUT_FILENO);
+	posix_spawn_file_actions_addclose(&actions, read_end);
+	posix_spawn_file_actions_addclose(&actions, write_end);
+
+	int const ret = posix_spawnp(&pid, argv[0], &actions, nullptr, &argv[0], nullptr);
+	posix_spawn_file_actions_destroy(&actions);
+	::close(write_end);
+
 	if (ret != 0)
 	{
 		std::printf("ERROR (%d) %s\n", errno, strerror(errno));
-		return 0;
+		::close(read_end);
+		return {};
 	}
-	return p;
+
+	proc.pid = pid;
 #endif
+
+	// this thread must keep running for as long as the child does, not
+	// just until it reports its port: something has to keep draining the
+	// pipe, or the OS pipe buffer fills up once the child produces more
+	// output (e.g. web_server.py logs every request), and the child then
+	// blocks on its next write to stdout, hanging the server and the test.
+	proc.stdout_reader = std::thread(stdout_drain, read_end, std::move(port_promise));
+
+	if (port_future.wait_for(30s) != std::future_status::ready)
+	{
+		std::printf("ERROR: timed out waiting for the process to report its listening port\n");
+		return proc;
+	}
+	try
+	{
+		proc.port = port_future.get();
+	}
+	catch (...)
+	{
+		// proc.stdout_reader is still joinable at this point; its destructor
+		// would call std::terminate() if we let this exception unwind past
+		// it without joining first
+		stop_and_join(proc.pid, proc.stdout_reader);
+		throw;
+	}
+	if (proc.port < 0)
+	{
+		std::printf("ERROR: process exited without reporting a listening port\n");
+	}
+	return proc;
 }
 
 void stop_process(pid_type p)
@@ -639,12 +868,20 @@ void stop_process(pid_type p)
 #endif
 }
 
+void stop_and_join(pid_type const pid, std::thread& reader)
+{
+	stop_process(pid);
+	if (reader.joinable())
+		reader.join();
+}
+
 } // anonymous namespace
 
 struct proxy_t
 {
 	pid_type pid;
 	int type;
+	std::thread stdout_reader;
 };
 
 // maps port to proxy type
@@ -658,65 +895,21 @@ void stop_proxy(int port)
 
 	std::printf("stopping proxy on port %d\n", port);
 
-	stop_process(it->second.pid);
+	stop_and_join(it->second.pid, it->second.stdout_reader);
 	running_proxies.erase(it);
 }
 
 void stop_all_proxies()
 {
-	std::map<int, proxy_t> proxies = running_proxies;
+	std::map<int, proxy_t> proxies = std::move(running_proxies);
 	running_proxies.clear();
-	for (auto const& i : proxies)
+	for (auto& i : proxies)
 	{
-		stop_process(i.second.pid);
+		stop_and_join(i.second.pid, i.second.stdout_reader);
 	}
 }
 
 namespace {
-
-#ifdef TORRENT_BUILD_SIMULATOR
-void wait_for_port(int) {}
-#else
-void wait_for_port(int const port)
-{
-	// wait until the python program is ready to accept connections
-	int i = 0;
-	io_context ios;
-	for (;;)
-	{
-		tcp::socket s(ios);
-		error_code ec;
-		s.open(tcp::v4(), ec);
-		if (ec)
-		{
-			std::printf("ERROR opening probe socket: (%d) %s\n"
-				, ec.value(), ec.message().c_str());
-			return;
-		}
-		s.connect(tcp::endpoint(make_address("127.0.0.1")
-			, std::uint16_t(port)), ec);
-		if (ec)
-		{
-			if (i == 100)
-			{
-				std::printf("ERROR: somehow the python program still hasn't "
-					"opened its socket on port %d\n", port);
-				return;
-			}
-			++i;
-			std::this_thread::sleep_for(lt::milliseconds(500));
-			continue;
-		}
-		if (ec)
-		{
-			std::printf("ERROR connecting probe socket: (%d) %s\n"
-				, ec.value(), ec.message().c_str());
-			return;
-		}
-		return;
-	}
-}
-#endif
 
 std::vector<std::string> get_python()
 {
@@ -736,26 +929,44 @@ std::vector<std::string> get_python()
 	return ret;
 }
 
-int find_available_port()
+// stops and joins proc if it failed to spawn or never reported a listening
+// port, in which case the caller should try the next python interpreter.
+bool spawn_failed(spawned_process& proc)
 {
-	int port = 2000 + (std::int64_t(::getpid()) + ::unit_test::g_test_idx + std::rand()) % 60000;
-	error_code ec;
-	io_context ios;
-
-	// make sure the port we pick is free
-	do {
-		++port;
-		tcp::socket s(ios);
-		s.open(tcp::v4(), ec);
-		if (ec) break;
-		s.bind(tcp::endpoint(make_address("127.0.0.1")
-			, std::uint16_t(port)), ec);
-	} while (ec);
-	return port;
+	if (proc.pid == 0)
+		return true;
+	if (proc.port < 0)
+	{
+		stop_and_join(proc.pid, proc.stdout_reader);
+		return true;
+	}
+	return false;
 }
+
+// tries cmdlines in order until one reports a listening port. throws
+// std::runtime_error, naming label, if none of them do.
+spawned_process spawn_with_retry(std::vector<std::string> const& cmdlines, char const* label)
+{
+	for (std::string const& cmdline : cmdlines)
+	{
+		std::printf("%s starting %s...\n", time_now_string().c_str(), label);
+		std::printf("%s\n", cmdline.c_str());
+		spawned_process proc = async_run(cmdline.c_str());
+		if (!spawn_failed(proc))
+		{
+			std::printf(
+				"%s launched, listening on port %d\n", time_now_string().c_str(), proc.port);
+			return proc;
+		}
+	}
+	throw std::runtime_error(
+		std::string("failed to spawn ") + label + ": exhausted all python interpreters");
+}
+
 } // anonymous namespace
 
-// returns a port on success and -1 on failure
+// returns a port on success, or throws std::runtime_error if no python
+// interpreter could spawn the proxy
 int start_proxy(int proxy_type)
 {
 	using namespace lt;
@@ -763,10 +974,17 @@ int start_proxy(int proxy_type)
 	std::map<int, proxy_t> :: iterator i = running_proxies.begin();
 	for (; i != running_proxies.end(); ++i)
 	{
-		if (i->second.type == proxy_type) { return i->first; }
+		if (i->second.type == proxy_type)
+		{
+			// every current caller stops its own proxy before returning
+			// (test/main.cpp's per-test cleanup backstops that too), so a
+			// proxy of this type should never already be running here
+			std::string const msg = "proxy type " + std::to_string(proxy_type)
+				+ " is already running on port " + std::to_string(i->first);
+			TORRENT_ASSERT_FAIL_VAL(msg);
+			return i->first;
+		}
 	}
-
-	int const port = find_available_port();
 
 	char const* type = "";
 	char const* auth = "";
@@ -798,23 +1016,18 @@ int start_proxy(int proxy_type)
 			cmd = ".." SEPARATOR "http_proxy.py";
 			break;
 	}
-	std::vector<std::string> python_exes = get_python();
-	for (auto const& python_exe : python_exes)
+	std::vector<std::string> cmdlines;
+	for (auto const& python_exe : get_python())
 	{
 		char buf[1024];
-		std::snprintf(buf, sizeof(buf), "%s %s --port %d%s", python_exe.c_str(), cmd, port, auth);
-
-		std::printf("%s starting proxy on port %d (%s %s)...\n", time_now_string().c_str(), port, type, auth);
-		std::printf("%s\n", buf);
-		pid_type r = async_run(buf);
-		if (r == 0) continue;
-		proxy_t t = { r, proxy_type };
-		running_proxies.insert(std::make_pair(port, t));
-		std::printf("%s launched\n", time_now_string().c_str());
-		wait_for_port(port);
-		return port;
+		std::snprintf(buf, sizeof(buf), "%s %s%s", python_exe.c_str(), cmd, auth);
+		cmdlines.emplace_back(buf);
 	}
-	abort();
+	std::string const label = std::string(type) + " proxy";
+	spawned_process proc = spawn_with_retry(cmdlines, label.c_str());
+	int const port = proc.port;
+	running_proxies.emplace(port, proxy_t{proc.pid, proxy_type, std::move(proc.stdout_reader)});
+	return port;
 }
 
 using namespace lt;
@@ -1235,99 +1448,83 @@ setup_transfer(lt::session* ses1, lt::session* ses2, lt::session* ses3
 
 namespace {
 pid_type web_server_pid = 0;
+std::thread web_server_reader;
 }
 
 int start_web_server(
 	bool ssl, bool chunked_encoding, bool keepalive, int min_interval, bool expect_host_header)
 {
-	int const port = find_available_port();
-	char expected_host[200] = {};
-	if (expect_host_header)
-		std::snprintf(expected_host, sizeof(expected_host), "127.0.0.1:%d", port);
+	// only one web_server.py is ever tracked at a time; callers must
+	// stop_web_server() before starting another one
+	TORRENT_ASSERT(web_server_pid == 0);
+	TORRENT_ASSERT(!web_server_reader.joinable());
 
-	std::vector<std::string> python_exes = get_python();
-
-	for (auto const& python_exe : python_exes)
+	std::vector<std::string> cmdlines;
+	for (auto const& python_exe : get_python())
 	{
 		char buf[300];
 		std::snprintf(buf,
 			sizeof(buf),
-			"%s .." SEPARATOR "web_server.py %d %d %d %d %d %s",
+			"%s .." SEPARATOR "web_server.py %d %d %d %d %d",
 			python_exe.c_str(),
-			port,
 			chunked_encoding,
 			ssl,
 			keepalive,
 			min_interval,
-			expected_host);
-
-		std::printf("%s starting web_server on port %d...\n", time_now_string().c_str(), port);
-
-		std::printf("%s\n", buf);
-		pid_type r = async_run(buf);
-		if (r == 0) continue;
-		web_server_pid = r;
-		std::printf("%s launched\n", time_now_string().c_str());
-		wait_for_port(port);
-		return port;
+			expect_host_header);
+		cmdlines.emplace_back(buf);
 	}
-	abort();
+	spawned_process proc = spawn_with_retry(cmdlines, "web_server.py");
+	int const port = proc.port;
+	web_server_pid = proc.pid;
+	web_server_reader = std::move(proc.stdout_reader);
+	return port;
 }
 
 void stop_web_server()
 {
 	if (web_server_pid == 0) return;
 	std::printf("stopping web server\n");
-	stop_process(web_server_pid);
+	stop_and_join(web_server_pid, web_server_reader);
 	web_server_pid = 0;
 }
 
 namespace {
 pid_type websocket_server_pid = 0;
+std::thread websocket_server_reader;
 }
 
 int start_websocket_server(bool ssl, int min_interval)
 {
-	int port = 2000 + static_cast<int>(aux::random(6000));
-	error_code ec;
-	io_context ios;
+	// only one websocket_server.py is ever tracked at a time; callers must
+	// stop_websocket_server() before starting another one
+	TORRENT_ASSERT(websocket_server_pid == 0);
+	TORRENT_ASSERT(!websocket_server_reader.joinable());
 
-	// make sure the port we pick is free
-	do {
-		++port;
-		tcp::socket s(ios);
-		s.open(tcp::v4(), ec);
-		if (ec) break;
-		s.bind(tcp::endpoint(make_address("127.0.0.1")
-			, std::uint16_t(port)), ec);
-	} while (ec);
-
-	std::vector<std::string> python_exes = get_python();
-
-	for (auto const& python_exe : python_exes)
+	std::vector<std::string> cmdlines;
+	for (auto const& python_exe : get_python())
 	{
 		char buf[200];
-		std::snprintf(buf, sizeof(buf), "%s ../websocket_server.py %d %d %d"
-			, python_exe.c_str(), port, ssl, min_interval);
-
-		std::printf("%s starting websocket server on port %d...\n", time_now_string().c_str(), port);
-
-		std::printf("%s\n", buf);
-		pid_type r = async_run(buf);
-		if (r == 0) continue;
-		websocket_server_pid = r;
-		std::printf("%s launched\n", time_now_string().c_str());
-		wait_for_port(port);
-		return port;
+		std::snprintf(buf,
+			sizeof(buf),
+			"%s ../websocket_server.py %d %d",
+			python_exe.c_str(),
+			ssl,
+			min_interval);
+		cmdlines.emplace_back(buf);
 	}
-	abort();
+	spawned_process proc = spawn_with_retry(cmdlines, "websocket_server.py");
+	int const port = proc.port;
+	websocket_server_pid = proc.pid;
+	websocket_server_reader = std::move(proc.stdout_reader);
+	return port;
 }
 
 void stop_websocket_server()
 {
 	if (websocket_server_pid == 0) return;
 	std::printf("stopping websocket server\n");
-	stop_process(websocket_server_pid);
+	stop_and_join(websocket_server_pid, websocket_server_reader);
 	websocket_server_pid = 0;
 }
 

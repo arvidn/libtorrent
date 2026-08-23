@@ -226,6 +226,7 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 	{
 		std::printf("failed to open file 'upnp.xml': %s\n", strerror(errno));
 		TEST_CHECK(false);
+		stop_web_server();
 		return;
 	}
 #ifdef __clang__
