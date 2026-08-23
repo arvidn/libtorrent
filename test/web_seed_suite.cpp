@@ -370,6 +370,7 @@ int EXPORT run_http_suite(int proxy,
 			std::printf("error creating hashes for test torrent: %s\n"
 				, ec.message().c_str());
 			TEST_CHECK(false);
+			stop_web_server();
 			return 0;
 		}
 

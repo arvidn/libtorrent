@@ -511,6 +511,14 @@ int EXPORT main(int argc, char const* argv[])
 		}
 #endif
 
+		// unconditionally, regardless of how the test exited: makes sure a
+		// test can never leak a running web_server.py/websocket_server.py/
+		// proxy past its own iteration, even if an exception is thrown
+		// between a call site's start and stop.
+		stop_web_server();
+		stop_websocket_server();
+		stop_all_proxies();
+
 		if (!tests_to_run.empty()) tests_to_run.erase(t.name);
 
 		if (::unit_test::g_test_failures > 0)

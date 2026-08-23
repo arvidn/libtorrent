@@ -15,6 +15,7 @@ import http.server
 import select
 import socket
 import socketserver
+import sys
 import traceback
 import urllib.parse
 
@@ -533,7 +534,6 @@ class Main:
 
     def __init__(self):
         self.parser = argparse.ArgumentParser("Simple HTTP proxy")
-        self.parser.add_argument("--port", type=int, default=8080)
         self.parser.add_argument("--basic-auth")
         self.parser.add_argument("--timeout", type=int, default=30)
         self.parser.add_argument("--bind-host", default="localhost")
@@ -546,7 +546,7 @@ class Main:
         """Command-line entry point for http_proxy."""
         self.args = self.parser.parse_args()
 
-        self.address = (self.args.bind_host, self.args.port)
+        self.address = (self.args.bind_host, 0)
 
         if self.args.basic_auth:
             Handler.basic_auth = base64.b64encode(
@@ -557,6 +557,8 @@ class Main:
         Handler.timeout = self.args.timeout
 
         self.server = _ThreadingHTTPServer(self.address, Handler)
+        print(f'LISTENING_PORT {self.server.server_address[1]}')
+        sys.stdout.flush()
         self.server.serve_forever()
 
     def shutdown(self):

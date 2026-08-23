@@ -56,6 +56,7 @@ TORRENT_TEST_DISK_IO(web_seed_redirect)
 		std::printf("error creating hashes for test torrent: %s\n"
 			, ec.message().c_str());
 		TEST_ERROR("failed to create hashes");
+		stop_web_server();
 		return;
 	}
 
