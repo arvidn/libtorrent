@@ -1067,6 +1067,9 @@ namespace libtorrent::aux {
 			, int port
 			, std::list<web_seed_t>::iterator);
 
+		// an unspecified address in "a" means it's a placeholder (the hostname
+		// is resolved by the proxy, see settings_pack::proxy_hostnames), so it
+		// must not be used for ip_filter or SSRF checks
 		void connect_web_seed(std::list<web_seed_t>::iterator web, tcp::endpoint a);
 
 		// this is the asio callback that is called when a name

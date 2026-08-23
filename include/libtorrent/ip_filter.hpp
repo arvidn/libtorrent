@@ -115,6 +115,10 @@ namespace aux {
 // IPv6 range).
 //
 // A default constructed ip_filter does not filter any address.
+//
+// this filter cannot be applied to connections whose hostname is resolved
+// by a proxy instead of locally (see settings_pack::proxy_hostnames), since
+// the target IP is never known to the client in that case.
 struct TORRENT_EXPORT ip_filter
 {
 	ip_filter();

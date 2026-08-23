@@ -44,6 +44,20 @@ using namespace std::placeholders;
 
 namespace libtorrent::aux {
 
+namespace {
+
+// true when an HTTP-type proxy is expected to resolve "hostname" itself,
+// via the hostname embedded in the CONNECT request. This only applies to
+// SSL; the plaintext case doesn't use a CONNECT tunnel at all, so the
+// hostname never needs to be forwarded this way (see http_connection::start()).
+bool proxy_hostname_via_http_connect(aux::proxy_settings const& ps, bool const ssl)
+{
+	return ps.proxy_hostnames
+		&& (ps.type == settings_pack::http || ps.type == settings_pack::http_pw) && ssl;
+}
+
+}
+
 http_connection::http_connection(io_context& ios
 	, aux::resolver_interface& resolver
 	, http_handler handler
@@ -333,9 +347,9 @@ void http_connection::start(std::string const& hostname, int port
 		}
 		else
 #endif
-		if (ps && ps->proxy_hostnames
-			&& (ps->type == settings_pack::socks5
-				|| ps->type == settings_pack::socks5_pw))
+			if (ps && ps->proxy_hostnames
+				&& (ps->type == settings_pack::socks5 || ps->type == settings_pack::socks5_pw
+					|| proxy_hostname_via_http_connect(*ps, ssl)))
 		{
 			m_hostname = hostname;
 			m_port = std::uint16_t(port);
@@ -553,7 +567,12 @@ void http_connection::connect()
 		}
 	}
 
-	if (m_proxy.send_host_in_connect)
+	// when proxy_hostnames steered us away from resolving the hostname
+	// locally (above), the CONNECT request must carry the hostname instead
+	// of a (nonexistent) locally resolved IP
+	bool const proxy_hostname_in_connect = proxy_hostname_via_http_connect(m_proxy, m_ssl);
+
+	if (m_proxy.send_host_in_connect || proxy_hostname_in_connect)
 	{
 		if (auto* inner1 = std::get_if<http_stream>(&*m_sock))
 		{

@@ -14,9 +14,11 @@ see LICENSE file.
 #include "libtorrent/session.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/aux_/deadline_timer.hpp"
+#include "libtorrent/ip_filter.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/aux_/path.hpp"
+#include "libtorrent/flags.hpp"
 #include "simulator/http_server.hpp"
 #include "simulator/http_proxy.hpp"
 #include "settings.hpp"
@@ -455,6 +457,116 @@ TORRENT_TEST(multi_file_redirect_through_proxy)
 	);
 
 	TEST_EQUAL(seeding, true);
+}
+
+using web_seed_proxy_flags_t = flags::bitfield_flag<std::uint32_t, struct web_seed_proxy_test_tag>;
+constexpr web_seed_proxy_flags_t proxy_hostnames = 0_bit;
+constexpr web_seed_proxy_flags_t block_bogon_range = 1_bit;
+
+// verifies that a web seed's hostname, when going through an HTTP-type
+// proxy with proxy_hostnames set, is resolved by the proxy and never
+// leaked to the client's own (regular) resolver.
+void test_web_seed_http_proxy_hostnames(web_seed_proxy_flags_t const flags)
+{
+	struct sim_config : sim::default_config
+	{
+		asio::ip::address client_addr = make_address_v4("10.0.0.1");
+		int client_lookups = 0;
+
+		chrono::high_resolution_clock::duration hostname_lookup(asio::ip::address const& requestor,
+			std::string hostname,
+			std::vector<asio::ip::address>& result,
+			boost::system::error_code& ec) override
+		{
+			if (hostname == "webseed.example.com")
+			{
+				if (requestor == client_addr)
+					++client_lookups;
+				result.push_back(make_address_v4("2.2.2.2"));
+				return duration_cast<chrono::high_resolution_clock::duration>(
+					chrono::milliseconds(100));
+			}
+			return default_config::hostname_lookup(requestor, hostname, result, ec);
+		}
+	};
+
+	sim_config network_cfg;
+	sim::simulation sim{network_cfg};
+
+	sim::asio::io_context client_ios(sim, network_cfg.client_addr);
+	sim::asio::io_context proxy_ios(sim, make_address_v4("50.50.50.50"));
+	sim::http_proxy http_p(proxy_ios, 4445);
+
+	sim::asio::io_context web_server(sim, make_address_v4("2.2.2.2"));
+	sim::http_server http(web_server, 8080);
+
+	std::vector<lt::create_file_entry> files;
+	files.emplace_back("test-file", 0x8000);
+	lt::add_torrent_params params = ::create_torrent(std::move(files));
+	params.url_seeds.push_back("http://webseed.example.com:8080/");
+
+	file_storage const& fs = params.ti->layout();
+	serve_content_for(http, "/test-file", fs, file_index_t(0));
+
+	settings_pack pack = settings();
+	pack.set_int(settings_pack::proxy_type, settings_pack::http);
+	pack.set_str(settings_pack::proxy_hostname, "50.50.50.50");
+	pack.set_int(settings_pack::proxy_port, 4445);
+	pack.set_bool(settings_pack::proxy_hostnames, bool(flags & proxy_hostnames));
+
+	lt::session_proxy zombie;
+	auto ses = std::make_shared<lt::session>(pack, client_ios);
+
+	if (flags & block_bogon_range)
+	{
+		// a common "bogon" ip_filter rule; the placeholder address used for
+		// a hostname resolved by the proxy must never be checked against
+		// this, or it would block every such connection
+		ip_filter filter;
+		filter.add_rule(
+			make_address_v4("0.0.0.0"), make_address_v4("0.255.255.255"), ip_filter::blocked);
+		ses->set_ip_filter(filter);
+	}
+
+	bool seeding = false;
+	print_alerts(*ses, [&](lt::session&, lt::alert const* a) {
+		if (lt::alert_cast<lt::torrent_finished_alert>(a))
+			seeding = true;
+	});
+
+	ses->async_add_torrent(params);
+
+	sim::timer t(sim, lt::seconds(60), [&](boost::system::error_code const&) {
+		zombie = ses->abort();
+		ses.reset();
+	});
+
+	sim.run();
+
+	TEST_EQUAL(seeding, true);
+	TEST_EQUAL(network_cfg.client_lookups > 0, !bool(flags & proxy_hostnames));
+}
+
+// regression test: proxy_hostnames=false (the default) must keep resolving
+// the web seed hostname locally.
+TORRENT_TEST(web_seed_http_proxy_without_proxy_hostnames)
+{
+	test_web_seed_http_proxy_hostnames({});
+}
+
+// with proxy_hostnames=true, a web seed behind an HTTP proxy must not leak
+// its hostname to the regular resolver.
+TORRENT_TEST(web_seed_http_proxy_with_proxy_hostnames)
+{
+	test_web_seed_http_proxy_hostnames(proxy_hostnames);
+}
+
+// regression test: an ip_filter rule covering the 0.0.0.0/8 bogon range
+// (a common filter list entry) must not block a web seed whose hostname is
+// resolved by the proxy, since its placeholder address falls in that range.
+TORRENT_TEST(web_seed_http_proxy_hostnames_bogon_filter)
+{
+	test_web_seed_http_proxy_hostnames(proxy_hostnames | block_bogon_range);
 }
 
 // this is expected to fail, since the files are not aligned and redirected to
