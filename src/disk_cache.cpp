@@ -575,12 +575,16 @@ keep_going:
 			goto keep_going;
 
 		disk_job* rj = nullptr;
-		view.modify(piece_iter, [&rj, cursor](cached_piece_entry& e) {
+		bool notify_hashed = false;
+		view.modify(piece_iter, [&rj, cursor, &notify_hashed](cached_piece_entry& e) {
 			rj = std::exchange(e.hash_job, nullptr);
 			e.hasher_cursor = cursor;
 			e.flags &= ~cached_piece_entry::hashing_flag;
+			notify_hashed = bool(e.flags & cached_piece_entry::notify_hashed_flag);
 		});
 		if (rj) retry_jobs.push_back(rj);
+		if (notify_hashed)
+			m_flushing_cv.notify_all();
 
 		DLOG("kick_hasher: no attached hash job\n");
 		return false;
@@ -590,11 +594,15 @@ keep_going:
 	{
 		// All blocks have been hashed, but no async_hash() job is pending.
 		// Mark the piece for flushing so the next optimistic flush picks it up.
-		view.modify(piece_iter, [cursor](cached_piece_entry& e) {
+		bool notify_hashed = false;
+		view.modify(piece_iter, [cursor, &notify_hashed](cached_piece_entry& e) {
 			e.hasher_cursor = cursor;
 			e.flags &= ~cached_piece_entry::hashing_flag;
 			e.flags |= cached_piece_entry::force_flush_flag;
+			notify_hashed = bool(e.flags & cached_piece_entry::notify_hashed_flag);
 		});
+		if (notify_hashed)
+			m_flushing_cv.notify_all();
 
 		return true;
 	}
@@ -613,23 +621,30 @@ keep_going:
 	bool const will_retry = !job.block_hashes.empty();
 
 	sha1_hash piece_hash;
+	bool notify_hashed = false;
 	bool const force_flush = cursor == piece_iter->blocks_in_piece()
 		|| bool(piece_iter->flags & cached_piece_entry::piece_hash_returned_flag);
-	view.modify(piece_iter, [&piece_hash, force_flush, cursor, will_retry](cached_piece_entry& e) {
-		e.hash_job = nullptr;
-		if (force_flush) e.flags |= cached_piece_entry::force_flush_flag;
-		e.hasher_cursor = cursor;
-		e.flags &= ~cached_piece_entry::hashing_flag;
-		// only mark the hash as returned when we're delivering it inline.
-		// In the retry case do_job(hash) -> hash_piece's scope_end sets
-		// the flag once the v2 block hashes are actually in the job. If we
-		// set it eagerly, flush_to_disk could evict the cpe between here
-		// and the retry, forcing do_job(hash) to read everything back
-		// from disk instead of reusing the cached state.
-		if (!will_retry) e.flags |= cached_piece_entry::piece_hash_returned_flag;
-		TORRENT_ASSERT(bool(e.ph) == bool(e.flags & cached_piece_entry::v1_hashes_flag));
-		piece_hash = e.ph ? e.ph->final_hash() : sha1_hash{};
-	});
+	view.modify(piece_iter,
+		[&piece_hash, &notify_hashed, force_flush, cursor, will_retry](cached_piece_entry& e) {
+			e.hash_job = nullptr;
+			if (force_flush)
+				e.flags |= cached_piece_entry::force_flush_flag;
+			e.hasher_cursor = cursor;
+			e.flags &= ~cached_piece_entry::hashing_flag;
+			// only mark the hash as returned when we're delivering it inline.
+			// In the retry case do_job(hash) -> hash_piece's scope_end sets
+			// the flag once the v2 block hashes are actually in the job. If we
+			// set it eagerly, flush_to_disk could evict the cpe between here
+			// and the retry, forcing do_job(hash) to read everything back
+			// from disk instead of reusing the cached state.
+			if (!will_retry)
+				e.flags |= cached_piece_entry::piece_hash_returned_flag;
+			TORRENT_ASSERT(bool(e.ph) == bool(e.flags & cached_piece_entry::v1_hashes_flag));
+			piece_hash = e.ph ? e.ph->final_hash() : sha1_hash{};
+			notify_hashed = bool(e.flags & cached_piece_entry::notify_hashed_flag);
+		});
+	if (notify_hashed)
+		m_flushing_cv.notify_all();
 
 	job.piece_hash = piece_hash;
 	if (will_retry)
@@ -1145,7 +1160,7 @@ void disk_cache::flush_storage(std::function<int(bitfield&, span<disk_job* const
 		{
 			view.modify(piece_iter, [](cached_piece_entry& e)
 				{ e.flags |= cached_piece_entry::notify_flushed_flag; });
-			m_flushing_cv.wait(l, [&] {
+			m_flushing_cv.wait(l, [&piece_iter, &view, storage, piece] {
 				piece_iter = view.find(piece_location{storage, piece});
 				return piece_iter == view.end()
 					|| !(piece_iter->flags & cached_piece_entry::flushing_flag);
@@ -1164,6 +1179,72 @@ void disk_cache::flush_storage(std::function<int(bitfield&, span<disk_job* const
 		flush_piece_impl(view, piece_iter, f, l, blocks, clear_piece_fun);
 		TORRENT_ASSERT(l.owns_lock());
 		TORRENT_ASSERT(!(piece_iter->flags & cached_piece_entry::flushing_flag));
+	}
+}
+
+// Waits for any hasher thread still mid-kick on a piece of `storage` to
+// finish, and drops any not-yet-claimed opportunistic hash request. This is
+// unrelated to dirty writes: flush_piece_impl() already runs safely
+// concurrently with an active hasher (see the "held-alive buffer" handling
+// there). It exists because hashing_flag and needs_hasher_kick_flag are set
+// outside of any disk_job, opportunistically off block insertion, so they
+// are invisible to this storage's job fence and must be waited out
+// separately before remove_storage() runs.
+//
+// Only called from do_job(stop_torrent), after its
+// TORRENT_ASSERT(num_outstanding_jobs() == 1): every write is therefore
+// already flushed and none can newly arrive, so needs_hasher_kick_flag is
+// dropped rather than waited on, since insert() cannot set it again past
+// this point. Fences also guarantee at most one stop_torrent job in
+// progress per storage, so at most one caller can ever wait here:
+// notify_hashed_flag is a plain single-owner flag, asserted clear before
+// use, like notify_flushed_flag.
+void disk_cache::wait_for_hashing(storage_index_t const storage)
+{
+	std::unique_lock<std::mutex> l(m_mutex);
+
+	INVARIANT_CHECK;
+
+	auto& range_view = m_pieces.template get<0>();
+	auto& view = m_pieces.template get<3>();
+	auto const [begin, end] = range_view.equal_range(storage, compare_storage());
+
+	std::vector<piece_index_t> pieces;
+	for (auto i = begin; i != end; ++i)
+		pieces.push_back(i->piece.piece);
+
+	for (auto const piece : pieces)
+	{
+		auto piece_iter = view.find(piece_location{storage, piece});
+		if (piece_iter == view.end())
+			continue;
+
+		// Not yet claimed by a hasher thread: kick_pending_hashers() clears
+		// this together with setting hashing_flag in a single modify(), so
+		// the two flags are never both set. Nobody will claim it after this
+		// point either (see comment above), so just drop it.
+		if (piece_iter->flags & cached_piece_entry::needs_hasher_kick_flag)
+		{
+			view.modify(piece_iter, [](cached_piece_entry& e) {
+				e.flags &= ~cached_piece_entry::needs_hasher_kick_flag;
+			});
+		}
+
+		if (!(piece_iter->flags & cached_piece_entry::hashing_flag))
+			continue;
+
+		TORRENT_ASSERT(!(piece_iter->flags & cached_piece_entry::notify_hashed_flag));
+		view.modify(piece_iter,
+			[](cached_piece_entry& e) { e.flags |= cached_piece_entry::notify_hashed_flag; });
+		m_flushing_cv.wait(l, [&piece_iter, &view, storage, piece] {
+			piece_iter = view.find(piece_location{storage, piece});
+			return piece_iter == view.end()
+				|| !(piece_iter->flags & cached_piece_entry::hashing_flag);
+		});
+		if (piece_iter == view.end())
+			continue;
+		view.modify(piece_iter,
+			[](cached_piece_entry& e) { e.flags &= ~cached_piece_entry::notify_hashed_flag; });
 	}
 }
 
