@@ -241,6 +241,7 @@ public:
 		// of files to be added is known up-front.
 		void reserve(int num_files);
 
+#ifndef BOOST_NO_EXCEPTIONS
 		// internal
 		// ``filename`` is *borrowed*, i.e. it is the caller's responsibility to
 		// make sure it stays valid throughout the lifetime of this file_storage
@@ -250,7 +251,6 @@ public:
 		// this file_storage was constructed with (see the ``file_storage(char
 		// const*)`` constructor); use ``file_storage::no_root_hash`` when
 		// there is none.
-#ifndef BOOST_NO_EXCEPTIONS
 		TORRENT_UNEXPORT void add_file_borrow(string_view filename,
 			std::string const& path,
 			std::int64_t file_size,
@@ -259,6 +259,7 @@ public:
 			string_view symlink_path = string_view(),
 			std::int32_t root_hash_offset = no_root_hash);
 
+#if TORRENT_ABI_VERSION < 5
 		// Adds a file to the file storage.
 		//
 		// The ``path`` argument is the full path (in the torrent file) to
@@ -300,7 +301,6 @@ public:
 		//
 		// The overloads that take an `error_code` reference will report failures
 		// via that variable, otherwise `system_error` is thrown.
-#if TORRENT_ABI_VERSION < 5
 		TORRENT_DEPRECATED
 		void add_file(std::string const& path, std::int64_t file_size
 			, file_flags_t file_flags = {}
@@ -323,9 +323,9 @@ public:
 			string_view symlink_path = string_view(),
 			std::int32_t root_hash_offset = no_root_hash);
 
+#if TORRENT_ABI_VERSION < 5
 		// this overload reports failures through the ``ec`` reference rather
 		// than throwing.
-#if TORRENT_ABI_VERSION < 5
 		TORRENT_DEPRECATED
 		void add_file(error_code& ec, std::string const& path, std::int64_t file_size
 			, file_flags_t file_flags = {}
@@ -429,9 +429,7 @@ public:
 #if TORRENT_ABI_VERSION < 4
 		TORRENT_DEPRECATED
 		void canonicalize();
-#endif
 
-#if TORRENT_ABI_VERSION < 4
 		// always returns a default constructed hash.
 		TORRENT_DEPRECATED
 		sha1_hash hash(file_index_t index) const;
