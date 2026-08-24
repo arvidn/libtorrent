@@ -470,7 +470,7 @@ public:
 		// where this file starts. It can be used to map the file to a piece
 		// index (given the piece size).
 		sha256_hash root(file_index_t index) const;
-		char const* root_ptr(file_index_t const index) const;
+		char const* root_ptr(file_index_t index) const;
 		std::string symlink(file_index_t index) const;
 		std::time_t mtime(file_index_t index) const;
 		std::string file_path(file_index_t index, std::string const& save_path = "") const;
@@ -622,11 +622,11 @@ public:
 		void add_file_borrow_impl(error_code& ec,
 			string_view filename,
 			std::string const& path,
-			std::int64_t const file_size,
-			file_flags_t const file_flags,
-			std::int64_t const mtime,
-			string_view const symlink_path,
-			std::int32_t const root_hash_offset);
+			std::int64_t file_size,
+			file_flags_t file_flags,
+			std::int64_t mtime,
+			string_view symlink_path,
+			std::int32_t root_hash_offset);
 
 		// converts a pointer into m_info_section into an offset relative to
 		// m_info_section, or no_root_hash if root_hash is nullptr
