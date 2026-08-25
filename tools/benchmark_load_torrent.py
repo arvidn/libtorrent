@@ -171,7 +171,7 @@ CASES: list[Case] = [
         "extension_truncation",
         "1000 files with 260-char names ending in '.txt'. Every file's"
         " path component crosses the 240-char threshold in"
-        " sanitize_append_path_element(), which scans the last 10 bytes"
+        " sanitize_path_element(), which scans the last 10 bytes"
         " for an extension and replays the loop with the extension"
         " appended. No existing case puts a '.' in the long-name window,"
         " so this is the only one that takes that branch.",
@@ -183,7 +183,7 @@ CASES: list[Case] = [
         "5000 small files whose name padding is the invalid-utf8 byte"
         " 0xFF. Every byte of every path component takes the 'invalid"
         " utf8 sequence, replace with _' branch of"
-        " sanitize_append_path_element(). Same shape as many_files but"
+        " sanitize_path_element(). Same shape as many_files but"
         " on the per-byte slow path; the delta isolates the cost of"
         " utf8 validation.",
         "--num-files 5000 --file-size 16K --file-name-len 64" " --invalid-utf8-names",
