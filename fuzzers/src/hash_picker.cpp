@@ -52,7 +52,10 @@ extern "C" int LLVMFuzzerInitialize(int*, char***)
 	int const num_pieces = 4 * 512;
 
 	g_fs.set_piece_length(piece_size);
-	g_fs.add_file_borrow({}, "test/tmp1", std::int64_t(num_pieces) * piece_size);
+	g_fs.set_name("test");
+	error_code ec;
+	g_fs.add_file(
+		ec, "tmp1", false, aux::path_element::torrent_root, std::int64_t(num_pieces) * piece_size);
 
 	char const root[32] = {};
 	g_trees.emplace_back(
