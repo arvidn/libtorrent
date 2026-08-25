@@ -109,9 +109,12 @@ int run_test(test_case const& t)
 	int const piece_size = 0x8000;
 
 	{
+		fs.set_name("test");
 		for (int i = 0; i < t.num_files; ++i)
 		{
-			fs.add_file_borrow({}, "test/" + std::to_string(i), file_size);
+			lt::error_code ec;
+			fs.add_file(
+				ec, std::to_string(i), false, lt::aux::path_element::torrent_root, file_size);
 			file_size *= 2;
 		}
 		std::int64_t const total_size = fs.total_size();
