@@ -1,5 +1,6 @@
 import os
 import random
+import subprocess
 import sys
 import tempfile
 import time
@@ -7,6 +8,7 @@ from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import Iterator
+from typing import List
 from typing import TYPE_CHECKING
 from typing import TypeVar
 from typing import Union
@@ -31,6 +33,34 @@ def get_isolated_settings() -> settings_pack:
         "listen_interfaces": "127.0.0.1:0",
         "dht_bootstrap_nodes": "",
     }
+
+
+def run_script(args: List[str], **kwargs: Any) -> "subprocess.CompletedProcess[str]":
+    # Like subprocess.run(..., check=True), but includes the captured
+    # stdout/stderr in the raised error. subprocess.CalledProcessError's
+    # __str__ doesn't include them, so a failure here is otherwise
+    # undiagnosable from CI logs alone.
+    try:
+        return subprocess.run(
+            args,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+            universal_newlines=True,
+            **kwargs,
+        )
+    except subprocess.CalledProcessError as exc:
+        raise AssertionError(
+            f"{args} exited with {exc.returncode}\n"
+            f"--- stdout ---\n{exc.stdout}\n"
+            f"--- stderr ---\n{exc.stderr}"
+        ) from exc
+    except subprocess.TimeoutExpired as exc:
+        raise AssertionError(
+            f"{args} timed out\n"
+            f"--- stdout ---\n{exc.stdout!r}\n"
+            f"--- stderr ---\n{exc.stderr!r}"
+        ) from exc
 
 
 def loop_until_timeout(timeout: float, msg: str = "condition") -> Iterator[None]:

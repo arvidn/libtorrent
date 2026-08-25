@@ -3,7 +3,6 @@ import http.server
 import logging
 import os
 import pathlib
-import subprocess
 import sys
 import tempfile
 import threading
@@ -14,6 +13,7 @@ import unittest
 
 import libtorrent as lt
 
+from . import lib
 from . import tdummy
 
 if TYPE_CHECKING:
@@ -67,13 +67,9 @@ class TestSimpleClient(unittest.TestCase):
         self.tempdir.cleanup()
 
     def test_download_from_web_seed(self) -> None:
-        proc = subprocess.run(
+        proc = lib.run_script(
             [sys.executable, str(self.script_path), str(self.torrent_path)],
             cwd=self.tempdir_path,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=True,
-            universal_newlines=True,
             timeout=20,
         )
 
