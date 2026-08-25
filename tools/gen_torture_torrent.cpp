@@ -57,13 +57,13 @@ namespace {
 		// ".txt"). It eats into the length budget of --file-name-len, so
 		// a 260-char name with a 4-char suffix is "f_<idx>_xxx...xxx.txt"
 		// with the padding filling the gap. The point is to put a '.'
-		// near the end of long names so sanitize_append_path_element()
+		// near the end of long names so sanitize_path_element()
 		// takes the extension-pickup branch when added >= 240.
 		std::string file_name_suffix;
 		// if true, generated directory and file names are padded with the
 		// invalid-UTF-8 byte 0xFF instead of 'x'. Forces every padded byte
 		// through the "invalid utf8 sequence, replace with _" branch in
-		// sanitize_append_path_element().
+		// sanitize_path_element().
 		bool invalid_utf8_names = false;
 		// the last 'num_symlinks' files are emitted with the symlink flag
 		// instead of as regular files. 'symlink_mode' picks what they
@@ -163,12 +163,12 @@ options:
                        --file-name-len, so a 260-char name with a
                        4-char suffix has 4 fewer pad bytes. Used to
                        get a '.' into the last 10 chars of long names
-                       so sanitize_append_path_element() takes the
+                       so sanitize_path_element() takes the
                        extension-pickup branch
   --invalid-utf8-names pad directory and file names with the
                        invalid-utf8 byte 0xFF instead of 'x'. Every
                        padded byte then goes through the "replace with
-                       _" branch of sanitize_append_path_element()
+                       _" branch of sanitize_path_element()
   --num-trackers N     add N synthetic tracker URLs (default 0)
   --num-tiers T        distribute the synthetic trackers across T tiers
                        round-robin (default 1, i.e. all in tier 0).
@@ -273,7 +273,7 @@ Examples:
 
 	// File names are pad('f_<idx>_', file_name_len - suffix.size()) + suffix,
 	// so the requested total length is preserved while the suffix sits at the
-	// end (where the extension-pickup logic in sanitize_append_path_element()
+	// end (where the extension-pickup logic in sanitize_path_element()
 	// looks for it).
 	std::string file_name(
 		int const idx, int const len, char const pad_char, std::string const& suffix)
@@ -481,7 +481,7 @@ try
 	// --file-name-len has to fit the longest 'f_<idx>_' prefix plus the
 	// suffix. Otherwise file_name() silently produces names longer than
 	// requested, defeating cases tuned to a specific length (e.g. the
-	// >240-char branch in sanitize_append_path_element).
+	// >240-char branch in sanitize_path_element).
 	{
 		char buf[64];
 		std::snprintf(buf, sizeof(buf), "f_%d_", cfg.num_files - 1);

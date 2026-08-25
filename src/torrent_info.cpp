@@ -154,32 +154,33 @@ namespace aux {
 		return valid_encoding;
 	}
 
-	// it's important that every call adds a path element to the path, even if
-	// the name is invalid. It can never be empty. Empty files have special
-	// meaning in v2 torrents (it means the previous path element was the
-	// filename). Also, If we're adding the torrent name as the first path
-	// element, in a multi-file torrent, we must have a directory name.
-	void sanitize_append_path_element(std::string& path, string_view element, bool const force_element)
+	// sanitizes a single path element. The result can never be empty. Empty
+	// files have special meaning in v2 torrents (it means the previous path
+	// element was the filename). Also, if we're adding the torrent name as
+	// the first path element, in a multi-file torrent, we must have a
+	// directory name.
+	//
+	// returns true if "element" needed no sanitization at all, in which case
+	// "path" is left untouched and the caller can use "element" itself
+	// (borrowed, no copy). Returns false if "path" holds the sanitized
+	// result instead (this is the only case where "path" is written to).
+	// This lets the common case, an already-valid element, skip allocating
+	// and copying into "path" entirely.
+	bool sanitize_path_element(std::string& path, string_view element, bool const force_element)
 	{
-		if (element.size() == 1 && element[0] == '.' && !force_element) return;
+		if (element.size() == 1 && element[0] == '.' && !force_element)
+			return false;
 
 #ifdef TORRENT_WINDOWS
 #define TORRENT_SEPARATOR '\\'
 #else
 #define TORRENT_SEPARATOR '/'
 #endif
-		path.reserve(path.size() + element.size() + 2);
-		int added_separator = 0;
-		if (!path.empty())
-		{
-			path += TORRENT_SEPARATOR;
-			added_separator = 1;
-		}
 
 		if (element.empty())
 		{
 			path += "_";
-			return;
+			return false;
 		}
 
 #if !TORRENT_USE_UNC_PATHS && defined TORRENT_WINDOWS
@@ -224,6 +225,26 @@ namespace aux {
 		char num_dots = 0;
 		bool found_extension = false;
 
+		// until "changed" becomes true, nothing has been written to "path"
+		// (it stays empty), because every byte processed so far is a
+		// byte-for-byte match of "element" itself. The moment something
+		// needs to diverge (a character dropped, substituted, or the
+		// element truncated) materialize() copies the bytes processed up to
+		// that point into "path", and every subsequent byte is written
+		// there too.
+		bool changed = false;
+		auto const materialize = [&](std::size_t const prefix_len) {
+			if (changed)
+				return;
+			// the sanitized output can never exceed the input length (dropped
+			// or substituted characters only shrink it), plus a byte or two
+			// for a trailing "_" appended after the loop. reserving up front
+			// avoids repeated reallocation as bytes are appended below.
+			path.reserve(element.size() + 2);
+			path.assign(element.data(), prefix_len);
+			changed = true;
+		};
+
 		int seq_len = 0;
 		for (std::size_t i = 0; i < element.size(); i += std::size_t(seq_len))
 		{
@@ -232,11 +253,13 @@ namespace aux {
 
 			if (code_point >= 0 && filter_path_character(code_point))
 			{
+				materialize(i);
 				continue;
 			}
 
 			if (code_point < 0 || !valid_path_character(code_point))
 			{
+				materialize(i);
 				// invalid utf8 sequence, replace with "_"
 				path += '_';
 				++added;
@@ -246,11 +269,12 @@ namespace aux {
 				continue;
 			}
 
-			// validation passed, add it to the output string
-			for (std::size_t k = i; k < i + std::size_t(seq_len); ++k)
+			// validation passed, add it to the output string (if it's
+			// already diverged from "element"; otherwise this byte is
+			// already implicitly "copied" by leaving "path" untouched)
+			if (changed)
 			{
-				TORRENT_ASSERT(element[k] != 0);
-				path.push_back(element[k]);
+				path.append(element.data() + i, std::size_t(seq_len));
 			}
 
 			if (code_point == '.') ++num_dots;
@@ -279,52 +303,71 @@ namespace aux {
 					break;
 				}
 				// there is no extension
-				if (dot == -1) break;
+				if (dot == -1)
+				{
+					materialize(i + std::size_t(seq_len));
+					break;
+				}
 				found_extension = true;
 				TORRENT_ASSERT(dot > 0);
+				// if the extension isn't immediately adjacent, the bytes
+				// in between are dropped, which requires materializing
+				if (std::size_t(dot) != i + std::size_t(seq_len))
+					materialize(i + std::size_t(seq_len));
 				i = std::size_t(dot - seq_len);
 			}
 		}
 
 		if (added == num_dots && added <= 2)
 		{
+			if (changed)
+			{
+				// revert the invalid filename
+				path.clear();
+			}
 			if (force_element)
 			{
-				// revert the invalid filename and replace it with an underscore
-				path.erase(path.end() - added, path.end());
+				// replace it with an underscore
 				path += "_";
 			}
-			else
-			{
-				// revert everything
-				path.erase(path.end() - added - added_separator, path.end());
-			}
-			return;
+			// the result ("_" or nothing) never equals the all-dots
+			// "element" that got us here
+			return false;
 		}
 
 #ifdef TORRENT_WINDOWS
-		// remove trailing spaces and dots. These aren't allowed in filenames on windows
-		for (int i = int(path.size()) - 1; i >= 0; --i)
+		// remove trailing spaces and dots. These aren't allowed in
+		// filenames on windows. Count how many need trimming from
+		// whichever of "path" or "element" currently holds the content,
+		// so an element with no trailing space/dot doesn't lose the
+		// borrow optimization.
 		{
-			if (path[i] != ' ' && path[i] != '.') break;
-			path.resize(i);
-			--added;
-			TORRENT_ASSERT(added >= 0);
+			string_view current = changed ? string_view(path) : element;
+			std::size_t const orig_size = current.size();
+			while (!current.empty() && (current.back() == ' ' || current.back() == '.'))
+				current.remove_suffix(1);
+			int const trim = int(orig_size - current.size());
+			if (trim > 0)
+			{
+				if (changed)
+					path.resize(path.size() - std::size_t(trim));
+				else
+					materialize(element.size() - std::size_t(trim));
+				added -= trim;
+				TORRENT_ASSERT(added >= 0);
+			}
 		}
 
 		if (force_element && added == 0)
 		{
 			path += "_";
 		}
-		else if (added == 0 && added_separator)
-		{
-			// remove the separator added at the beginning
-			path.erase(path.end() - 1);
-			return;
-		}
 #endif
 
-		if (path.empty()) path = "_";
+		if (changed && path.empty())
+			path = "_";
+
+		return !changed;
 	}
 }
 
@@ -464,8 +507,7 @@ namespace {
 		if (it != cache.end())
 			return it->second;
 		std::string sanitized;
-		aux::sanitize_append_path_element(sanitized, raw, true);
-		bool const unchanged = (string_view(sanitized) == raw);
+		bool const unchanged = aux::sanitize_path_element(sanitized, raw, true);
 		aux::path_index_t const dir =
 			fs.make_directory(parent, unchanged ? raw : string_view(sanitized), unchanged);
 		cache.emplace(dir_cache_key(parent, raw), dir);
@@ -804,8 +846,8 @@ namespace {
 			while (!raw.empty() && raw.front() == TORRENT_SEPARATOR)
 				raw.remove_prefix(1);
 
-			aux::sanitize_append_path_element(name_scratch, raw);
-			if (name_scratch.empty())
+			bool const unchanged = aux::sanitize_path_element(name_scratch, raw);
+			if (!unchanged && name_scratch.empty())
 			{
 				ec = errors::torrent_missing_name;
 				return false;
@@ -815,8 +857,8 @@ namespace {
 			// file_storage::name() is not prepended when reconstructing
 			// this file's path (it already equals the file's own name)
 			dir = aux::path_element::no_root_dir;
-			name_borrow = (string_view(name_scratch) == raw);
-			name = name_borrow ? raw : string_view(name_scratch);
+			name_borrow = unchanged;
+			name = unchanged ? raw : string_view(name_scratch);
 			name_raw = raw;
 		}
 		else
@@ -859,8 +901,7 @@ namespace {
 					{
 						name_raw = raw;
 						std::string sanitized;
-						aux::sanitize_append_path_element(sanitized, raw, true);
-						name_borrow = (string_view(sanitized) == raw);
+						name_borrow = aux::sanitize_path_element(sanitized, raw, true);
 						if (name_borrow)
 							name = raw;
 						else
@@ -991,8 +1032,7 @@ namespace {
 				// component, its name always needs sanitizing regardless of
 				// dir_cache
 				std::string sanitized;
-				aux::sanitize_append_path_element(sanitized, raw, true);
-				bool const name_borrow = (string_view(sanitized) == raw);
+				bool const name_borrow = aux::sanitize_path_element(sanitized, raw, true);
 				string_view const name = name_borrow ? raw : string_view(sanitized);
 
 				// single_file: no directory nesting, and file_storage::name()
@@ -1539,7 +1579,9 @@ TORRENT_VERSION_NAMESPACE_4
 		}
 
 		std::string name;
-		aux::sanitize_append_path_element(name, name_ent.string_value());
+		bool const name_unchanged = aux::sanitize_path_element(name, name_ent.string_value());
+		if (name_unchanged)
+			name = std::string(name_ent.string_value());
 		if (name.empty())
 		{
 			// the fallback name is always based on the v1 (SHA-1) info-hash,

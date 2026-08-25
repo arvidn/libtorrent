@@ -12,7 +12,7 @@ see LICENSE file.
 extern "C" int LLVMFuzzerTestOneInput(uint8_t const* data, size_t size)
 {
 	std::string out;
-	lt::aux::sanitize_append_path_element(out, {reinterpret_cast<char const*>(data), size});
+	lt::aux::sanitize_path_element(out, {reinterpret_cast<char const*>(data), size});
 	return 0;
 }
 
