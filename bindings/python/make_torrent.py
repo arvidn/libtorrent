@@ -19,7 +19,7 @@ parent_input = os.path.split(input)[0]
 # if we have a single file, use it because os.walk does not work on a single files
 if os.path.isfile(input):
     size = os.path.getsize(input)
-    fs.append(libtorrent.create_file_entry(input, size))
+    fs.append(libtorrent.create_file_entry(os.path.basename(input), size))
 
 for root, dirs, files in os.walk(input):
     # skip directories starting with .

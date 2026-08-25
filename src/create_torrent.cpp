@@ -406,10 +406,22 @@ namespace {
 		ret.reserve(static_cast<std::size_t>(fs.num_files()));
 		for (auto const i : fs.file_range())
 		{
+			// create_file_entry::filename is documented to be relative to
+			// the torrent root; an absolute path can't be represented in
+			// the generated file list. A file_storage may legitimately
+			// hold one (e.g. after torrent_info::rename_file() detaches a
+			// file from save_path), so this can't rely on a precondition
+			// the way file_storage's own primitives do
+			std::string path = fs.file_path(i);
+			if (is_complete(path))
+				aux::throw_ex<system_error>(make_error_code(boost::system::errc::invalid_argument));
+
 			if (fs.file_flags(i) & file_storage::flag_symlink)
-				ret.emplace_back(fs.file_path(i), 0, fs.file_flags(i), fs.mtime(i), fs.internal_symlink(i));
+				ret.emplace_back(
+					std::move(path), 0, fs.file_flags(i), fs.mtime(i), fs.internal_symlink(i));
 			else
-				ret.push_back({fs.file_path(i), fs.file_size(i), fs.file_flags(i), fs.mtime(i), {}});
+				ret.push_back(
+					{std::move(path), fs.file_size(i), fs.file_flags(i), fs.mtime(i), {}});
 		}
 		return ret;
 	}
@@ -436,6 +448,7 @@ namespace {
 			// level, since nothing here needs to address individual
 			// directories or dedupe them against each other
 			bool const has_dir = has_parent_path(f.filename);
+			TORRENT_ASSERT_PRECOND(!has_dir || lsplit_path(f.filename).first == ret.name());
 			aux::path_index_t const dir =
 				has_dir ? aux::path_element::torrent_root : aux::path_element::no_root_dir;
 			string_view const leaf =
@@ -660,6 +673,16 @@ TORRENT_VERSION_NAMESPACE_4
 		// return instead of crash in release mode
 		if (m_files.size() == 0)
 			aux::throw_ex<system_error>(errors::no_files_in_torrent);
+
+		// create_file_entry::filename is documented to be relative to the
+		// torrent root; an absolute path can't be represented in the
+		// generated file list
+		for (auto const& f : m_files)
+		{
+			TORRENT_ASSERT_PRECOND(!is_complete(f.filename));
+			if (is_complete(f.filename))
+				aux::throw_ex<system_error>(make_error_code(boost::system::errc::invalid_argument));
+		}
 
 		if (m_total_size == 0)
 			aux::throw_ex<system_error>(errors::torrent_invalid_length);
