@@ -24,11 +24,11 @@ see LICENSE file.
 namespace libtorrent {
 
 namespace errors {
-	// libtorrent uses boost.system's ``error_code`` class to represent
-	// errors. libtorrent has its own error category
-	// libtorrent_category() with the error codes defined by
-	// error_code_enum.
-	// clang-format off
+// libtorrent uses boost.system's ``error_code`` class to represent
+// errors. libtorrent has its own error category
+// libtorrent_category() with the error codes defined by
+// error_code_enum.
+// clang-format off
 	enum error_code_enum
 	{
 		// Not an error
@@ -469,7 +469,6 @@ namespace errors {
 		// the number of error codes
 		error_code_max
 	};
-	// clang-format on
 
 	// HTTP errors are reported in the libtorrent::http_category, with error code enums in
 	// the ``libtorrent::errors`` namespace.
@@ -493,6 +492,7 @@ namespace errors {
 		bad_gateway = 502,
 		service_unavailable = 503
 	};
+	// clang-format on
 
 	// hidden
 	TORRENT_EXPORT boost::system::error_code make_error_code(error_code_enum e);
