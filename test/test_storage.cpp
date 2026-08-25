@@ -546,6 +546,51 @@ void test_rename(std::string const& test_path)
 	TEST_EQUAL(s->names().file_path(0_file), "new_filename");
 }
 
+template <typename StorageType>
+void test_rename_to_existing(std::string const& test_path)
+{
+	delete_dirs("temp_storage");
+
+	std::vector<char> buf;
+	typename file_pool_type<StorageType>::type fp;
+	aux::session_settings set;
+	auto [s, info] = setup_torrent<StorageType>(fp, buf, test_path, set);
+	file_storage const& fs = info->layout();
+
+	std::string const original_filename = fs.file_path(0_file);
+	std::string const source_path = fs.file_path(0_file, test_path);
+	std::string const new_filename = combine_path("temp_storage", "existing.tmp");
+	std::string const destination_path = combine_path(test_path, new_filename);
+	std::string const source_content = "source content";
+	std::string const destination_content = "destination content";
+
+	error_code ec;
+	create_directories(parent_path(source_path), ec);
+	TEST_CHECK(!ec);
+	std::ofstream(source_path, std::ios::binary)
+		.write(source_content.data(), static_cast<std::streamsize>(source_content.size()));
+	std::ofstream(destination_path, std::ios::binary)
+		.write(
+			destination_content.data(), static_cast<std::streamsize>(destination_content.size()));
+
+	storage_error se;
+	s->rename_file(0_file, new_filename, se);
+
+	TEST_CHECK(se.ec == boost::system::errc::file_exists);
+	TEST_CHECK(se.operation == operation_t::file_rename);
+	TEST_EQUAL(static_cast<int>(se.file()), 0);
+	TEST_EQUAL(s->names().file_path(0_file), original_filename);
+
+	std::vector<char> content;
+	TEST_EQUAL(load_file(source_path, content, ec), 0);
+	TEST_CHECK(!ec);
+	TEST_EQUAL(std::string(content.begin(), content.end()), source_content);
+
+	TEST_EQUAL(load_file(destination_path, content, ec), 0);
+	TEST_CHECK(!ec);
+	TEST_EQUAL(std::string(content.begin(), content.end()), destination_content);
+}
+
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 namespace {
 std::int64_t file_size_on_disk(std::string const& path)
@@ -941,9 +986,23 @@ TORRENT_TEST(remove_posix_disk_io)
 	test_remove<posix_storage>(current_working_directory());
 }
 
-TORRENT_TEST(rename_pread_disk_io)
+TORRENT_TEST(rename_pread_disk_io) { test_rename<pread_storage>(current_working_directory()); }
+
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
+TORRENT_TEST(rename_to_existing_mmap_disk_io)
 {
-	test_rename<pread_storage>(current_working_directory());
+	test_rename_to_existing<mmap_storage>(current_working_directory());
+}
+#endif
+
+TORRENT_TEST(rename_to_existing_posix_disk_io)
+{
+	test_rename_to_existing<posix_storage>(current_working_directory());
+}
+
+TORRENT_TEST(rename_to_existing_pread_disk_io)
+{
+	test_rename_to_existing<pread_storage>(current_working_directory());
 }
 
 TORRENT_TEST(remove_pread_disk_io)
