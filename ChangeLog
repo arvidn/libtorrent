@@ -1,5 +1,6 @@
 2.1.2 not released
 
+	* prevent pread disk I/O from overwriting files when renaming
 	* fix file priority updates being lost when issued in quick succession
 	* deprecate internal functions of file_storage
 	* optimize loading torrents
@@ -2352,4 +2353,3 @@ Initial release 0.9
 	* supports compact=1
 	* selective downloading
 	* ip filter
-
