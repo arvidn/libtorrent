@@ -1,13 +1,14 @@
 import hashlib
 import pathlib
 import random
-import subprocess
 import sys
 import tempfile
 from typing import Set
 import unittest
 
 import libtorrent as lt
+
+from . import lib
 
 
 class TestMakeTorrent(unittest.TestCase):
@@ -32,13 +33,9 @@ class TestMakeTorrent(unittest.TestCase):
         file_path = self.tempdir_path / name
         file_path.write_bytes(data)
 
-        proc = subprocess.run(
+        proc = lib.run_script(
             [sys.executable, str(self.script_path), str(file_path), self.tracker_url],
             cwd=self.tempdir_path,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=True,
-            universal_newlines=True,
         )
 
         self.assertEqual(proc.stderr, "")
@@ -56,7 +53,7 @@ class TestMakeTorrent(unittest.TestCase):
         (self.tempdir_path / "test1.txt").write_bytes(data1)
         (self.tempdir_path / "test2.txt").write_bytes(data2)
 
-        proc = subprocess.run(
+        proc = lib.run_script(
             [
                 sys.executable,
                 str(self.script_path),
@@ -64,10 +61,6 @@ class TestMakeTorrent(unittest.TestCase):
                 self.tracker_url,
             ],
             cwd=self.tempdir_path,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=True,
-            universal_newlines=True,
         )
 
         self.assertEqual(proc.stderr, "")

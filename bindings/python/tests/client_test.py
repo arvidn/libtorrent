@@ -124,11 +124,13 @@ class TestClient(unittest.TestCase):
         finally:
             proc.kill()
 
-        # process should complete without errors or warnings
-        self.assertEqual(returncode, 0)
         assert proc.stderr is not None  # helps mypy
-        self.assertEqual(proc.stderr.read(), "")
+        stderr = proc.stderr.read()
         proc.stderr.close()
+
+        # process should complete without errors or warnings
+        self.assertEqual(returncode, 0, msg=f"--- stderr ---\n{stderr}")
+        self.assertEqual(stderr, "")
 
         # fastresume should be written
         fastresume = pathlib.Path(f"{file_path}.fastresume")
