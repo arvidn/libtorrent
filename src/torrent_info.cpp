@@ -484,6 +484,30 @@ namespace {
 		cache.emplace(dir_cache_key(parent, raw), leaf);
 	}
 
+	// buffers record_leaf()'s arguments instead of inserting into dir_cache
+	// right away. The vast majority of torrents have no symlinks at all, in
+	// which case dir_cache never needs a single file leaf (only
+	// cached_directory()'s own directory entries, which are inserted
+	// eagerly, independent of this), so hashing and inserting every file's
+	// leaf into dir_cache up front would be wasted work. Flushed into
+	// dir_cache (see flush_leaf_stash()) only once the whole file list has
+	// been parsed and it's known whether any symlink actually needs it.
+	struct leaf_stash_entry
+	{
+		aux::path_index_t parent;
+		string_view raw;
+		aux::path_index_t leaf;
+	};
+	using leaf_stash_t = std::vector<leaf_stash_entry>;
+
+	// replays every buffered leaf into cache, in the same order they were
+	// originally seen, preserving record_leaf()'s first-wins semantics
+	void flush_leaf_stash(dir_cache_t& cache, leaf_stash_t const& stash)
+	{
+		for (auto const& e : stash)
+			record_leaf(cache, e.parent, e.raw, e.leaf);
+	}
+
 	// per-symlink bookkeeping stashed at parse time, consumed by
 	// resolve_symlinks() once the whole file list/tree has been parsed
 	// (so every real file's own path_element chain, leaf included,
@@ -521,7 +545,7 @@ namespace {
 
 	// inserts the file_entry (or symlink placeholder) for one parsed file,
 	// shared between the v1 and v2 file-list/file-tree parsers. ``name_raw``
-	// is skipped as a dir_cache key for pad files, since they don't own a
+	// is skipped as a leaf_stash entry for pad files, since they don't own a
 	// real path_element (see extract_single_file()); v2 never reaches here
 	// with a pad file, so the check is a no-op on that path.
 	bool finish_file_entry(file_storage& files,
@@ -534,7 +558,7 @@ namespace {
 		std::time_t const mtime,
 		std::int32_t const pieces_root_offset,
 		std::vector<string_view> symlink_path,
-		dir_cache_t& dir_cache,
+		leaf_stash_t& leaf_stash,
 		symlink_stash_t& symlink_stash,
 		load_torrent_limits const& cfg,
 		error_code& ec)
@@ -546,7 +570,7 @@ namespace {
 				files.add_symlink(ec, name, name_borrow, dir, file_flags, mtime);
 			if (ec)
 				return false;
-			record_leaf(dir_cache, dir, name_raw, leaf);
+			leaf_stash.push_back({dir, name_raw, leaf});
 			if (!symlink_path.empty()
 				&& !stash_symlink(symlink_stash, this_file, leaf, std::move(symlink_path), cfg, ec))
 				return false;
@@ -558,7 +582,7 @@ namespace {
 			if (ec)
 				return false;
 			if (!(file_flags & file_storage::flag_pad_file))
-				record_leaf(dir_cache, dir, name_raw, leaf);
+				leaf_stash.push_back({dir, name_raw, leaf});
 		}
 		return true;
 	}
@@ -649,7 +673,7 @@ namespace {
 		string_view const raw,
 		std::ptrdiff_t const info_offset,
 		load_torrent_limits const& cfg,
-		dir_cache_t& dir_cache,
+		leaf_stash_t& leaf_stash,
 		symlink_stash_t& symlink_stash,
 		error_code& ec)
 	{
@@ -722,7 +746,7 @@ namespace {
 			mtime,
 			pieces_root_offset,
 			std::move(symlink_path),
-			dir_cache,
+			leaf_stash,
 			symlink_stash,
 			cfg,
 			ec);
@@ -735,6 +759,7 @@ namespace {
 	bool extract_single_file(bdecode_node const& dict,
 		file_storage& files,
 		dir_cache_t& dir_cache,
+		leaf_stash_t& leaf_stash,
 		symlink_stash_t& symlink_stash,
 		std::ptrdiff_t const info_offset,
 		char const* info_buffer,
@@ -911,7 +936,7 @@ namespace {
 			mtime,
 			file_storage::no_root_hash,
 			std::move(symlink_path),
-			dir_cache,
+			leaf_stash,
 			symlink_stash,
 			cfg,
 			ec);
@@ -946,6 +971,7 @@ namespace {
 		// tree depth (the tree structure itself already dedupes across
 		// depths, unlike v1's flat per-file path lists)
 		dir_cache_t dir_cache;
+		leaf_stash_t leaf_stash;
 		symlink_stash_t symlink_stash;
 
 		std::vector<stack_frame> stack;
@@ -1005,7 +1031,7 @@ namespace {
 						raw,
 						info_offset,
 						cfg,
-						dir_cache,
+						leaf_stash,
 						symlink_stash,
 						ec))
 				{
@@ -1044,6 +1070,8 @@ namespace {
 			is_multi_file = true;
 		}
 
+		if (!symlink_stash.empty())
+			flush_leaf_stash(dir_cache, leaf_stash);
 		resolve_symlinks(target, dir_cache, symlink_stash, cfg);
 		return true;
 	}
@@ -1065,6 +1093,7 @@ namespace {
 		// persists across every file in the list, deduping directories
 		// shared between them
 		dir_cache_t dir_cache;
+		leaf_stash_t leaf_stash;
 		symlink_stash_t symlink_stash;
 
 		for (bdecode_node const item : list.list_items())
@@ -1072,6 +1101,7 @@ namespace {
 			if (!extract_single_file(item,
 					target,
 					dir_cache,
+					leaf_stash,
 					symlink_stash,
 					info_offset,
 					info_buffer,
@@ -1082,6 +1112,8 @@ namespace {
 		}
 		// resolves every stashed symlink target, rewriting invalid ones to
 		// point to themselves
+		if (!symlink_stash.empty())
+			flush_leaf_stash(dir_cache, leaf_stash);
 		resolve_symlinks(target, dir_cache, symlink_stash, cfg);
 		return true;
 	}
@@ -1438,6 +1470,7 @@ TORRENT_VERSION_NAMESPACE_4
 		// resolve_one()'s hop budget countdown (hops_left-- == 0) never
 		// triggers for a negative value, silently defeating the bound
 		TORRENT_ASSERT_PRECOND(cfg.max_symlink_hops >= 0);
+		cfg.max_symlink_hops = std::max(cfg_in.max_symlink_hops, 0);
 		if (info.type() != bdecode_node::dict_t)
 		{
 			ec = errors::torrent_info_no_dict;
@@ -1609,6 +1642,7 @@ TORRENT_VERSION_NAMESPACE_4
 				// if there's no list of files, there has to be a length
 				// field.
 				dir_cache_t single_file_dir_cache;
+				leaf_stash_t single_file_leaf_stash;
 				// a genuine single-file torrent's lone file has nothing else
 				// it could resolve a symlink target to, so this stash is
 				// deliberately never passed to resolve_symlinks(), since the
@@ -1618,6 +1652,7 @@ TORRENT_VERSION_NAMESPACE_4
 				if (!extract_single_file(info,
 						version == 2 ? v1_files : files,
 						single_file_dir_cache,
+						single_file_leaf_stash,
 						single_file_symlink_stash,
 						info_offset,
 						m_info_section.get(),
