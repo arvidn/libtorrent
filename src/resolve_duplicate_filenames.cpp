@@ -39,6 +39,8 @@ namespace {
 		aux::path_index_t dir;
 	};
 
+	}
+
 	std::map<file_index_t, std::string> resolve_duplicate_filenames_slow(file_storage const& fs,
 		file_storage::element_hashes const& eh,
 		int const max_duplicate_filenames,
@@ -61,7 +63,7 @@ namespace {
 		// both replace with '_'), get distinct path_elements with an
 		// identical hash. That's harmless: two directories folding
 		// together on disk loses nothing, unlike a file colliding with
-		// anything, so it's never treated as a real collision below --
+		// anything, so it's never treated as a real collision below,
 		// only a *file* landing on an already-seen hash is.
 		files.reserve(eh.crc.size() + aux::numeric_cast<std::size_t>(fs.num_files()));
 		for (auto const idx : eh.is_dir.range())
@@ -71,6 +73,26 @@ namespace {
 		// keep track of the total number of name collisions. If there are too
 		// many, it's probably a malicious torrent and we should just fail
 		int num_collisions = 0;
+
+		// bounds the total cost of scanning a hash bucket for a real match,
+		// whether or not one is found. num_collisions above only counts
+		// confirmed duplicates' failed rename attempts, so a torrent with
+		// many distinct (non-colliding) names steered onto the same crc,
+		// crc32 is linear, so this is cheap to construct deliberately,
+		// could otherwise force O(n^2) scanning here without ever tripping
+		// that counter. Scaled to the torrent's own non-pad file count so
+		// it never bites a large, legitimate torrent: a benign hash keeps
+		// buckets effectively O(1), so this only engages when something is
+		// actually piling up. Pad files are excluded since they're skipped
+		// below and never contribute to bucket_scan_cost, so counting them
+		// here would let them inflate the budget without ever spending it.
+		std::int64_t num_pad_files = 0;
+		for (auto const i : fs.file_range())
+			if (fs.pad_file_at(i))
+				++num_pad_files;
+		std::int64_t const max_bucket_scan = (std::int64_t(fs.num_files()) - num_pad_files) * 16;
+		std::int64_t bucket_scan_cost = 0;
+
 		for (auto const i : fs.file_range())
 		{
 			// pad files never touch disk, so a naming collision involving
@@ -94,6 +116,13 @@ namespace {
 			{
 				files.insert({hash, {i, aux::path_index_t{}}});
 				continue;
+			}
+
+			bucket_scan_cost += std::distance(range.first, range.second);
+			if (bucket_scan_cost > max_bucket_scan)
+			{
+				ec = errors::too_many_duplicate_filenames;
+				return {};
 			}
 
 			std::string const this_name = fs.file_path(i);
@@ -141,8 +170,6 @@ namespace {
 		}
 		return ret;
 	}
-
-}
 
 	std::map<file_index_t, std::string> resolve_duplicate_filenames(
 		file_storage const& fs
