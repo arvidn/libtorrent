@@ -835,6 +835,15 @@ void file_storage::rename_file_impl(
 			}
 		}
 
+		// only the deprecated add_file_borrow() path can build a ``dir``
+		// this deep, it has no depth limit of its own
+		if (!is_pad_file && dir < m_path_elements.end_index()
+			&& m_path_elements[dir].depth >= std::numeric_limits<std::uint16_t>::max())
+		{
+			ec = errors::torrent_directory_too_deep;
+			return {};
+		}
+
 		m_files.emplace_back();
 		aux::file_entry& e = m_files.back();
 
@@ -848,14 +857,6 @@ void file_storage::rename_file_impl(
 		}
 		else
 		{
-			// only the deprecated add_file_borrow() path can build a
-			// ``dir`` this deep, it has no depth limit of its own
-			if (dir < m_path_elements.end_index()
-				&& m_path_elements[dir].depth >= std::numeric_limits<std::uint16_t>::max())
-			{
-				ec = errors::torrent_directory_too_deep;
-				return {};
-			}
 			e.path_element_index = make_directory(dir, filename, borrow);
 		}
 
