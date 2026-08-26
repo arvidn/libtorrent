@@ -17,6 +17,7 @@ see LICENSE file.
 #include "settings.hpp" // for settings()
 
 #include "libtorrent/file_storage.hpp"
+#include "libtorrent/aux_/resolve_duplicate_filenames.hpp"
 #include "libtorrent/load_torrent.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -1883,6 +1884,49 @@ TORRENT_TEST(load_torrent_duplicate_filenames_configurable)
 		TEST_EQUAL(ec, t.expected);
 		if (!t.expected)
 			TEST_CHECK(atp.ti);
+	}
+}
+
+TORRENT_TEST(resolve_duplicate_filenames_bucket_scan_cap)
+{
+	// unlike duplicate_limit_cases above, this isn't exercising a real
+	// naming collision: every file here has a distinct name, so
+	// resolve_duplicate_filenames_slow() never finds a match and never
+	// renames anything, max_duplicate_filenames (the counter that bounds
+	// failed rename attempts) never comes into play. Instead,
+	// element_hashes::crc is doctored after the fact so every file's hash
+	// collides, simulating what a crafted, non-keyed hash could otherwise
+	// force for real: an ever-growing single bucket, scanned in full on
+	// every subsequent lookup. This is what the size-scaled bucket-scan
+	// budget, independent of max_duplicate_filenames, is meant to catch.
+	auto build = [](int const n) {
+		file_storage fs;
+		fs.set_piece_length(0x4000);
+		for (int i = 0; i < n; ++i)
+			fs.add_file_borrow({}, combine_path("dir", "file" + std::to_string(i)), 1);
+
+		file_storage::element_hashes eh = fs.compute_element_hashes();
+		for (auto const idx : eh.is_dir.range())
+			if (!eh.is_dir[idx])
+				eh.crc[idx] = 0xdeadbeefu;
+		return std::make_pair(std::move(fs), std::move(eh));
+	};
+
+	// cumulative scan cost for n all-colliding, distinct files is
+	// 1 + 2 + ... + (n - 1), i.e. n * (n - 1) / 2
+	{
+		// 10 * 9 / 2 == 45, comfortably under the 10 * 16 == 160 budget
+		auto [fs, eh] = build(10);
+		error_code ec;
+		aux::resolve_duplicate_filenames_slow(fs, eh, 10000, ec);
+		TEST_CHECK(!ec);
+	}
+	{
+		// 200 * 199 / 2 == 19900, well past the 200 * 16 == 3200 budget
+		auto [fs, eh] = build(200);
+		error_code ec;
+		aux::resolve_duplicate_filenames_slow(fs, eh, 10000, ec);
+		TEST_EQUAL(ec, errors::too_many_duplicate_filenames);
 	}
 }
 
