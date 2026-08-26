@@ -30,6 +30,7 @@ see LICENSE file.
 #include "libtorrent/aux_/stat_cache.hpp"
 #include "libtorrent/aux_/readwrite.hpp"
 #include "libtorrent/hex.hpp" // to_hex
+#include "libtorrent/aux_/scope_end.hpp"
 
 #include <sys/types.h>
 
@@ -123,15 +124,23 @@ namespace libtorrent::aux {
 
 			download_priority_t const old_prio = m_file_priority[i];
 			download_priority_t new_prio = prio[i];
+
+			m_file_priority[i] = new_prio;
+
+			// in case there's an error, we make sure m_file_priority is only
+			// updated for the successful files. By leaving failed files as
+			// priority 0, we allow re-trying them.
+			auto restore_prio = aux::scope_end([&] {
+				m_file_priority[i] = old_prio;
+				prio = m_file_priority;
+			});
+
 			if (old_prio == dont_download && new_prio != dont_download)
 			{
 				// move stuff out of the part file
 				auto f = open_file(sett, i, open_mode::write, ec);
 				if (ec)
-				{
-					prio = m_file_priority;
 					return;
-				}
 				TORRENT_ASSERT(f);
 
 				if (m_part_file && use_partfile(i))
@@ -153,7 +162,6 @@ namespace libtorrent::aux {
 						{
 							ec.file(i);
 							ec.operation = operation_t::partfile_write;
-							prio = m_file_priority;
 							return;
 						}
 					}
@@ -178,13 +186,12 @@ namespace libtorrent::aux {
 				{
 					ec.file(i);
 					ec.operation = operation_t::file_stat;
-					prio = m_file_priority;
 					return;
 				}
 				use_partfile(i, !file_exists);
 			}
 			ec.ec.clear();
-			m_file_priority[i] = new_prio;
+			restore_prio.disarm();
 
 			if (m_file_priority[i] == dont_download && use_partfile(i))
 			{
