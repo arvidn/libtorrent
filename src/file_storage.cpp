@@ -239,7 +239,7 @@ TORRENT_VERSION_NAMESPACE_4
 		// so a single forward pass over it visits components root-first
 		// without a separate reversal. Stack-allocated (falling back to the
 		// heap past TORRENT_ALLOCA's cutoff) rather than a heap-allocated
-		// vector, since this runs on hot paths like files_compatible()
+		// vector, since this runs on hot paths like file_path()
 		int const depth = is_root_path_index(leaf) ? 0 : int(m_path_elements[leaf].depth);
 
 		TORRENT_ALLOCA(chain, aux::path_index_t, depth);
@@ -254,6 +254,30 @@ TORRENT_VERSION_NAMESPACE_4
 			append_path(out, path_element_name(m_path_elements[e]));
 
 		return idx;
+	}
+
+	bool file_storage::path_chain_equal(
+		aux::path_index_t li, file_storage const& rhs, aux::path_index_t ri) const
+	{
+		for (;;)
+		{
+			bool const l_root = is_root_path_index(li);
+			bool const r_root = is_root_path_index(ri);
+			if (l_root != r_root)
+				return false;
+			// both chains need to bottom out the same way, torrent_root vs
+			// no_root_dir; see path_chain_equal()'s declaration for why
+			// that's enough, without also comparing name()
+			if (l_root)
+				return li == ri;
+
+			if (path_element_name(m_path_elements[li])
+				!= rhs.path_element_name(rhs.m_path_elements[ri]))
+				return false;
+
+			li = m_path_elements[li].parent;
+			ri = rhs.m_path_elements[ri].parent;
+		}
 	}
 
 TORRENT_VERSION_NAMESPACE_4_END
@@ -1588,6 +1612,12 @@ namespace aux {
 		if (lhs.piece_length() != rhs.piece_length())
 			return false;
 
+		// files_compatible()'s only caller (torrent_info.cpp) builds lhs
+		// and rhs from the same "name"/"name.utf-8" key of a single info
+		// dict, so they're always the same torrent; path_chain_equal()
+		// below relies on this rather than separately comparing name()
+		TORRENT_ASSERT_PRECOND(lhs.name() == rhs.name());
+
 		// for compatibility, only non-empty, non-pad files matter (symlinks
 		// are always empty, but always relevant, since their target still
 		// needs to match). those files all need to match in index, name,
@@ -1605,17 +1635,37 @@ namespace aux {
 			if (!lhs_relevant) continue;
 
 			// we deliberately ignore file attributes like "hidden",
-			// "executable" and mtime here. It's not critical they match
-			if (lhs.pad_file_at(i) != rhs.pad_file_at(i)
-				|| lhs.file_size(i) != rhs.file_size(i)
-				|| lhs.file_path(i) != rhs.file_path(i)
-				|| lhs.file_offset(i) != rhs.file_offset(i))
+			// "executable" and mtime here. It's not critical they match.
+			// cheap checks first, the path walk below is the expensive one
+			if (lhs.pad_file_at(i) != rhs.pad_file_at(i) || lhs.file_offset(i) != rhs.file_offset(i)
+				|| lhs.file_size(i) != rhs.file_size(i))
 			{
 				return false;
 			}
 
-			if ((lhs.file_flags(i) & file_storage::flag_symlink)
-				&& lhs.symlink(i) != rhs.symlink(i))
+			// compare paths (and, for symlinks, targets) one path_element
+			// at a time instead of building either side's full path
+			// string. Both sides always come from parsing a .torrent file
+			// (see torrent_info.cpp), so every chain here is split, never
+			// the single, unsplit path_element an absolute rename produces.
+			if (!lhs.path_chain_equal(
+					lhs.m_files[i].path_element_index, rhs, rhs.m_files[i].path_element_index))
+			{
+				return false;
+			}
+
+			// symlink_element_index aliases root_offset in file_entry's
+			// union, so it's only meaningful when symlink_attribute is set;
+			// check both sides agree on that before reading it on either
+			bool const lhs_symlink = bool(lhs.file_flags(i) & file_storage::flag_symlink);
+			bool const rhs_symlink = bool(rhs.file_flags(i) & file_storage::flag_symlink);
+			if (lhs_symlink != rhs_symlink)
+				return false;
+
+			if (lhs_symlink
+				&& !lhs.path_chain_equal(lhs.m_files[i].symlink_element_index,
+					rhs,
+					rhs.m_files[i].symlink_element_index))
 			{
 				return false;
 			}
