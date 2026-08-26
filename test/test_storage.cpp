@@ -982,6 +982,7 @@ TORRENT_TEST_DISK_IO(check_files_allocate) { test_check_files_all_threads(zero_p
 
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 TORRENT_TEST(test_pre_allocate_mmap) { test_pre_allocate<mmap_storage>(); }
+TORRENT_TEST(test_pre_allocate_pread) { test_pre_allocate<pread_storage>(); }
 #endif
 
 // posix_storage is meant to only use the most portable API for disk I/O, and so
