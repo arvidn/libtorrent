@@ -166,6 +166,10 @@ namespace aux {
 		};
 	};
 
+	// forward declared so file_storage can grant it friend access; see the
+	// definition below the class for documentation
+	TORRENT_EXTRA_EXPORT bool files_compatible(file_storage const& lhs, file_storage const& rhs);
+
 } // aux namespace
 
 	// represents a window of a file in a torrent.
@@ -752,6 +756,11 @@ public:
 		// internal
 		void remove_tail_padding();
 
+		// grants direct access to m_files, m_path_elements, m_name and
+		// path_element_name(), so it can compare two file_storage objects'
+		// paths without building either side's full path string
+		friend bool aux::files_compatible(file_storage const& lhs, file_storage const& rhs);
+
 	private:
 #if TORRENT_ABI_VERSION < 4
 		// internal
@@ -804,6 +813,17 @@ public:
 		// Returns the terminal sentinel the chain is rooted at (torrent_root,
 		// path_is_absolute, pad_directory, or no_root_dir).
 		aux::path_index_t reconstruct_path(aux::path_index_t leaf, std::string& out) const;
+
+		// compares the path_element chain rooted at ``li`` against the one
+		// rooted at ``ri`` in ``rhs``, leaf to root, without building
+		// either side's full path string (as reconstruct_path() would).
+		// Doesn't compare name(), even though a chain rooted at
+		// torrent_root implies it's prepended: files_compatible(), the
+		// only caller, already guarantees lhs and rhs share a name(). Used
+		// for both a file's own path (path_element_index) and, for
+		// symlinks, its target (symlink_element_index).
+		bool path_chain_equal(
+			aux::path_index_t li, file_storage const& rhs, aux::path_index_t ri) const;
 
 #if TORRENT_ABI_VERSION == 1
 		// recovers a file_entry's index from its address in m_files. Used by
