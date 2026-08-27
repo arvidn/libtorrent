@@ -880,18 +880,23 @@ namespace {
 			bdecode_node p = dict.dict_find_list("path.utf-8");
 			if (!p) p = dict.dict_find_list("path");
 
-			if (p && p.list_size() > 0)
-			{
-				if (p.list_size() > cfg.max_directory_depth)
-				{
-					ec = errors::torrent_directory_too_deep;
-					return false;
-				}
+			bool const has_path = p && p.list_items().begin() != bdecode_node::items_end_t{};
 
-				int const last = p.list_size() - 1;
-				int idx = 0;
-				for (bdecode_node const e : p.list_items())
+			if (has_path)
+			{
+				auto it = p.list_items().begin();
+				auto const end = p.list_items().end();
+				for (int idx = 0; it != end; ++it, ++idx)
 				{
+					if (idx >= cfg.max_directory_depth)
+					{
+						ec = errors::torrent_directory_too_deep;
+						return false;
+					}
+
+					bdecode_node const e = *it;
+					bool const is_last = it.is_last();
+
 					if (e.type() != bdecode_node::string_t)
 					{
 						ec = errors::torrent_invalid_name;
@@ -909,7 +914,7 @@ namespace {
 						return false;
 					}
 
-					if (idx == last)
+					if (is_last)
 					{
 						name_raw = raw;
 						std::string sanitized;
@@ -926,7 +931,6 @@ namespace {
 					{
 						dir = cached_directory(files, dir_cache, dir, raw);
 					}
-					++idx;
 				}
 			}
 			else if (file_flags & file_storage::flag_pad_file)
@@ -990,9 +994,8 @@ namespace {
 		// by max_directory_depth to defend against malicious torrents.
 		struct stack_frame
 		{
-			bdecode_node tree;
+			bdecode_node::dict_iterator it;
 			aux::path_index_t dir;
-			int index;
 		};
 
 		// dedupes directories shared between sibling entries at the same
@@ -1003,28 +1006,36 @@ namespace {
 		symlink_stash_t symlink_stash;
 
 		std::vector<stack_frame> stack;
-		stack.push_back({tree, aux::path_element::torrent_root, 0});
+		stack.push_back({tree.dict_items().begin(), aux::path_element::torrent_root});
 
 		while (!stack.empty())
 		{
 			stack_frame& frame = stack.back();
-			if (frame.index >= frame.tree.dict_size())
+			if (frame.it == bdecode_node::items_end_t{})
 			{
 				stack.pop_back();
 				continue;
 			}
 
-			auto e = frame.tree.dict_at_node(frame.index);
-			++frame.index;
+			// true only for the very first entry of the whole tree walk;
+			// is_multi_file is forced true below once that entry is
+			// consumed, so this must be re-read every iteration rather
+			// than hoisted
+			bool const is_first = !is_multi_file;
 
-			if (e.second.type() != bdecode_node::dict_t || e.first.string_value().empty())
+			bdecode_node const key = frame.it.key_node();
+			bdecode_node const value = frame.it.value_node();
+			bool const is_last = frame.it.is_last();
+			++frame.it;
+
+			if (value.type() != bdecode_node::dict_t || key.string_value().empty())
 			{
 				ec = errors::torrent_file_parse_failed;
 				return false;
 			}
 
-			string_view const raw = {info_buffer + (e.first.string_offset() - info_offset),
-				static_cast<size_t>(e.first.string_length())};
+			string_view const raw = {info_buffer + (key.string_offset() - info_offset),
+				static_cast<size_t>(key.string_length())};
 
 			// each path component becomes its own path_element, whose
 			// stored name length is a std::uint16_t
@@ -1034,8 +1045,27 @@ namespace {
 				return false;
 			}
 
-			bool const leaf_node = e.second.dict_size() == 1 && e.second.dict_at(0).first.empty();
-			bool const single_file = leaf_node && !is_multi_file && frame.tree.dict_size() == 1;
+			// a leaf ("file") entry's value dict has exactly one entry,
+			// keyed by the empty string, mapping to the file's metadata.
+			// determine this with a lookahead instead of dict_size(), since
+			// we're about to consume these entries one way or another anyway
+			bool leaf_node = false;
+			bdecode_node leaf_value;
+			auto const child_it = value.dict_items().begin();
+			bool const child_nonempty = child_it != bdecode_node::items_end_t{};
+			if (child_nonempty)
+			{
+				auto const first = *child_it;
+				if (first.first.empty() && child_it.is_last())
+				{
+					leaf_node = true;
+					leaf_value = first.second;
+				}
+			}
+
+			// the single-file shortcut only applies when the root file-tree
+			// dict has exactly one entry, and this is that entry
+			bool const single_file = leaf_node && is_first && is_last;
 
 			if (leaf_node)
 			{
@@ -1048,7 +1078,7 @@ namespace {
 
 				// single_file: no directory nesting, and file_storage::name()
 				// is not prepended when reconstructing this file's path
-				if (!extract_single_file2(e.second.dict_at(0).second,
+				if (!extract_single_file2(leaf_value,
 						target,
 						single_file ? aux::path_element::no_root_dir : frame.dir,
 						name,
@@ -1079,12 +1109,12 @@ namespace {
 
 				// don't push a frame we would immediately pop. An empty
 				// subdirectory contributes no files; just skip it.
-				if (e.second.dict_size() > 0)
+				if (child_nonempty)
 				{
 					aux::path_index_t const child_dir =
 						cached_directory(target, dir_cache, frame.dir, raw);
 					// note: `frame` is invalidated by push_back below; we're done with it
-					stack.push_back({e.second, child_dir, 0});
+					stack.push_back({value.dict_items().begin(), child_dir});
 				}
 			}
 
