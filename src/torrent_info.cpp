@@ -171,12 +171,6 @@ namespace aux {
 		if (element.size() == 1 && element[0] == '.' && !force_element)
 			return false;
 
-#ifdef TORRENT_WINDOWS
-#define TORRENT_SEPARATOR '\\'
-#else
-#define TORRENT_SEPARATOR '/'
-#endif
-
 		if (element.empty())
 		{
 			path += "_";
@@ -400,10 +394,9 @@ namespace {
 	// components at all (BEP 47 requires a non-empty list, but we tolerate
 	// the torrent as a non-symlink instead of rejecting it outright).
 	//
-	// components are left unsanitized (only stripped of a leading path
-	// separator, matching how file/directory raw components are extracted)
-	// so resolve_one() can match them directly, byte for byte, against
-	// dir_cache without re-sanitizing.
+	// components are left fully unsanitized, matching how file/directory
+	// raw components are extracted, so resolve_one() can match them
+	// directly, byte for byte, against dir_cache without re-sanitizing.
 	bool parse_symlink_path(bdecode_node const& dict,
 		load_torrent_limits const& cfg,
 		file_flags_t& file_flags,
@@ -425,9 +418,7 @@ namespace {
 					ec = errors::torrent_directory_too_deep;
 					return false;
 				}
-				string_view pe = item.string_value();
-				while (!pe.empty() && pe.front() == TORRENT_SEPARATOR)
-					pe.remove_prefix(1);
+				string_view const pe = item.string_value();
 				// BEP 47 forbids "." and ".." in symlink path components.
 				// We tolerate them for backwards compatibility with
 				// non-conforming torrents by dropping them, leaving the
@@ -465,11 +456,11 @@ namespace {
 	// how symlink targets get resolved after the whole file list/tree has
 	// been parsed, see resolve_symlinks().
 	//
-	// keyed by the raw, unsanitized component text (only stripped of a
-	// leading path separator), so a lookup never needs to sanitize first;
-	// sanitizing only happens on a cache miss, when a new path_element is
-	// actually created. ``name`` always borrows: it points into the
-	// persistent info-section buffer, which outlives the whole parse.
+	// keyed by the fully raw, unsanitized component text, so a lookup
+	// never needs to sanitize first; sanitizing only happens on a cache
+	// miss, when a new path_element is actually created. ``name`` always
+	// borrows: it points into the persistent info-section buffer, which
+	// outlives the whole parse.
 	struct dir_cache_key
 	{
 		dir_cache_key(aux::path_index_t const p, string_view const n)
@@ -866,10 +857,8 @@ namespace {
 				return false;
 			}
 
-			string_view raw = {info_buffer + (p.string_offset() - info_offset),
+			string_view const raw = {info_buffer + (p.string_offset() - info_offset),
 				static_cast<std::size_t>(p.string_length())};
-			while (!raw.empty() && raw.front() == TORRENT_SEPARATOR)
-				raw.remove_prefix(1);
 
 			bool const unchanged = aux::sanitize_path_element(name_scratch, raw);
 			if (!unchanged && name_scratch.empty())
@@ -909,10 +898,8 @@ namespace {
 						return false;
 					}
 
-					string_view raw = {info_buffer + (e.string_offset() - info_offset),
+					string_view const raw = {info_buffer + (e.string_offset() - info_offset),
 						static_cast<std::size_t>(e.string_length())};
-					while (!raw.empty() && raw.front() == TORRENT_SEPARATOR)
-						raw.remove_prefix(1);
 
 					// each path component becomes its own path_element,
 					// whose stored name length is a std::uint16_t
@@ -1036,10 +1023,8 @@ namespace {
 				return false;
 			}
 
-			string_view raw = {info_buffer + (e.first.string_offset() - info_offset),
+			string_view const raw = {info_buffer + (e.first.string_offset() - info_offset),
 				static_cast<size_t>(e.first.string_length())};
-			while (!raw.empty() && raw.front() == TORRENT_SEPARATOR)
-				raw.remove_prefix(1);
 
 			// each path component becomes its own path_element, whose
 			// stored name length is a std::uint16_t
