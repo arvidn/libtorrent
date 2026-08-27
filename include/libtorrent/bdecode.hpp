@@ -329,6 +329,13 @@ struct TORRENT_EXPORT bdecode_node
 			m_token_idx += m_tokens[m_token_idx].next_item;
 			return *this;
 		}
+		// true if this is the last item in the list, i.e. incrementing
+		// this iterator would reach items_end_t{}
+		bool is_last() const
+		{
+			return m_tokens[m_token_idx + m_tokens[m_token_idx].next_item].type
+				== aux::bdecode_token::end;
+		}
 		friend bool operator==(list_iterator const& it, items_end_t)
 		{
 			return it.m_tokens[it.m_token_idx].type == aux::bdecode_token::end;
@@ -390,11 +397,30 @@ struct TORRENT_EXPORT bdecode_node
 			int const value_idx = m_token_idx + m_tokens[m_token_idx].next_item;
 			return {key.string_value(), bdecode_node(m_tokens, m_buffer, value_idx)};
 		}
+		// returns the key at the iterator's current position as a bdecode_node,
+		// rather than a resolved string_view
+		bdecode_node key_node() const { return bdecode_node(m_tokens, m_buffer, m_token_idx); }
+		// returns the value at the iterator's current position. Equivalent to
+		// (*this).second, but avoids resolving the key's string_view when
+		// only the value is needed
+		bdecode_node value_node() const
+		{
+			int const value_idx = m_token_idx + m_tokens[m_token_idx].next_item;
+			return bdecode_node(m_tokens, m_buffer, value_idx);
+		}
 		dict_iterator& operator++()
 		{
 			int const value_idx = m_token_idx + m_tokens[m_token_idx].next_item;
 			m_token_idx = value_idx + m_tokens[value_idx].next_item;
 			return *this;
+		}
+		// true if this is the last (key, value) pair in the dict, i.e.
+		// incrementing this iterator would reach items_end_t{}
+		bool is_last() const
+		{
+			int const value_idx = m_token_idx + m_tokens[m_token_idx].next_item;
+			return m_tokens[value_idx + m_tokens[value_idx].next_item].type
+				== aux::bdecode_token::end;
 		}
 		friend bool operator==(dict_iterator const& it, items_end_t)
 		{

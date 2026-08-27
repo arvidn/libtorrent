@@ -143,6 +143,37 @@ TORRENT_TEST(list_items_empty)
 	TEST_EQUAL(count, 0);
 }
 
+// test list_iterator::is_last()
+TORRENT_TEST(list_is_last)
+{
+	char b[] = "li12453e3:aaai1ee";
+	error_code ec;
+	bdecode_node e = bdecode(b, ec);
+	TEST_CHECK(!ec);
+	TEST_EQUAL(e.type(), bdecode_node::list_t);
+	TEST_EQUAL(e.list_size(), 3);
+
+	auto it = e.list_items().begin();
+	TEST_CHECK(!it.is_last());
+	++it;
+	TEST_CHECK(!it.is_last());
+	++it;
+	TEST_CHECK(it.is_last());
+}
+
+// test list_iterator::is_last() on a single-item list
+TORRENT_TEST(list_is_last_single_item)
+{
+	char b[] = "li1ee";
+	error_code ec;
+	bdecode_node e = bdecode(b, ec);
+	TEST_CHECK(!ec);
+	TEST_EQUAL(e.list_size(), 1);
+
+	auto it = e.list_items().begin();
+	TEST_CHECK(it.is_last());
+}
+
 // test dict
 TORRENT_TEST(dict)
 {
@@ -208,6 +239,37 @@ TORRENT_TEST(dict_items_empty)
 		++count;
 	}
 	TEST_EQUAL(count, 0);
+}
+
+// test dict_iterator::is_last()
+TORRENT_TEST(dict_is_last)
+{
+	char b[] = "d1:ai12453e1:b3:aaa1:c3:bbbe";
+	error_code ec;
+	bdecode_node e = bdecode(b, ec);
+	TEST_CHECK(!ec);
+	TEST_EQUAL(e.type(), bdecode_node::dict_t);
+	TEST_EQUAL(e.dict_size(), 3);
+
+	auto it = e.dict_items().begin();
+	TEST_CHECK(!it.is_last());
+	++it;
+	TEST_CHECK(!it.is_last());
+	++it;
+	TEST_CHECK(it.is_last());
+}
+
+// test dict_iterator::is_last() on a single-entry dict
+TORRENT_TEST(dict_is_last_single_item)
+{
+	char b[] = "d1:ai1ee";
+	error_code ec;
+	bdecode_node e = bdecode(b, ec);
+	TEST_CHECK(!ec);
+	TEST_EQUAL(e.dict_size(), 1);
+
+	auto it = e.dict_items().begin();
+	TEST_CHECK(it.is_last());
 }
 
 // test list_items()/dict_items() over nested containers
@@ -1456,4 +1518,41 @@ TORRENT_TEST(dict_at_node)
 	TEST_EQUAL(e.dict_at_node(0).second.string_offset(), 8);
 	TEST_EQUAL(e.dict_at_node(1).first.string_offset(), 13);
 	TEST_EQUAL(e.dict_at_node(1).second.string_offset(), 19);
+}
+
+// test dict_iterator::key_node() and dict_iterator::value_node(), which
+// return the key and value at the iterator's current position as
+// bdecode_nodes, matching what dict_at_node() returns for the same entry
+TORRENT_TEST(dict_iterator_key_value_node)
+{
+	char const b[] = "d3:foo3:bar4:test4:teste";
+	error_code ec;
+	bdecode_node e = bdecode(b, ec);
+	TEST_CHECK(!ec);
+	std::printf("%s\n", print_entry(e).c_str());
+
+	auto it = e.dict_items().begin();
+	TEST_EQUAL(it.key_node().type(), bdecode_node::string_t);
+	TEST_EQUAL(it.key_node().string_value(), std::string("foo"));
+	TEST_EQUAL(it.key_node().string_offset(), e.dict_at_node(0).first.string_offset());
+	TEST_EQUAL((*it).first, std::string("foo"));
+
+	TEST_EQUAL(it.value_node().type(), bdecode_node::string_t);
+	TEST_EQUAL(it.value_node().string_value(), std::string("bar"));
+	TEST_EQUAL(it.value_node().string_offset(), e.dict_at_node(0).second.string_offset());
+	TEST_EQUAL((*it).second.string_value(), std::string("bar"));
+
+	++it;
+	TEST_EQUAL(it.key_node().type(), bdecode_node::string_t);
+	TEST_EQUAL(it.key_node().string_value(), std::string("test"));
+	TEST_EQUAL(it.key_node().string_offset(), e.dict_at_node(1).first.string_offset());
+	TEST_EQUAL((*it).first, std::string("test"));
+
+	TEST_EQUAL(it.value_node().type(), bdecode_node::string_t);
+	TEST_EQUAL(it.value_node().string_value(), std::string("test"));
+	TEST_EQUAL(it.value_node().string_offset(), e.dict_at_node(1).second.string_offset());
+	TEST_EQUAL((*it).second.string_value(), std::string("test"));
+
+	++it;
+	TEST_CHECK(it == bdecode_node::items_end_t{});
 }
