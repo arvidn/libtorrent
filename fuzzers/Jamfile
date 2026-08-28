@@ -63,6 +63,7 @@ fuzzer bdecode_entry ;
 fuzzer parse_int ;
 fuzzer piece_layers ;
 fuzzer hash_picker ;
+fuzzer merkle_tree_add_hashes ;
 fuzzer sanitize_path ;
 fuzzer escape_path ;
 fuzzer file_storage_add_file ;
