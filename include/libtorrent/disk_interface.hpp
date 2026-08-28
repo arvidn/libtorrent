@@ -302,7 +302,7 @@ namespace file_open_mode {
 		// potentially outstanding operations against the file (such as read,
 		// write, move, etc.).
 		virtual void async_rename_file(storage_index_t storage
-			, file_index_t index, std::string name
+			, file_index_t index, std::string const& name
 			, std::function<void(std::string const&, file_index_t, storage_error const&)> handler) = 0;
 
 		// This function is called when some file(s) on disk have been requested
