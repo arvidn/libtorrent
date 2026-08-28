@@ -29,7 +29,7 @@ using lt::portmap_protocol;
 
 namespace {
 
-broadcast_socket* sock = nullptr;
+std::unique_ptr<broadcast_socket> sock;
 int g_port = 0;
 std::string g_local_address;
 
@@ -243,7 +243,7 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 	xml.write(soap_add_response[igd_version-1], sizeof(soap_add_response[igd_version-1])-1);
 	xml.close();
 
-	sock = new broadcast_socket(uep("239.255.255.250", 1900));
+	sock = std::make_unique<broadcast_socket>(uep("239.255.255.250", 1900));
 
 	lt::io_context ios;
 	aux::session_settings sett;
@@ -259,7 +259,8 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 	{
 		ios.restart();
 		ios.run_for(lt::milliseconds(100));
-		if (!upnp_handler->router_model().empty()) break;
+		if (!upnp_handler->router_model().empty())
+			break;
 	}
 
 	std::cout << "router: " << upnp_handler->router_model() << std::endl;
@@ -278,7 +279,8 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 	{
 		ios.restart();
 		ios.run_for(lt::milliseconds(100));
-		if (callbacks.size() >= 2) break;
+		if (callbacks.size() >= 2)
+			break;
 	}
 
 	callback_info expected1 = {mapping1, 500, error_code()};
@@ -297,7 +299,8 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 	{
 		ios.restart();
 		ios.run_for(lt::milliseconds(100));
-		if (callbacks.size() >= 4) break;
+		if (callbacks.size() >= 4)
+			break;
 	}
 
 	// there should have been two DeleteMapping calls
@@ -306,8 +309,6 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 	stop_web_server();
 
 	callbacks.clear();
-
-	delete sock;
 }
 
 } // anonymous namespace
