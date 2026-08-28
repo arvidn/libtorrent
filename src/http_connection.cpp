@@ -563,6 +563,7 @@ void http_connection::on_resolve(error_code const& e
 	if (m_filter_handler) m_filter_handler(*this, m_endpoints);
 	if (m_endpoints.empty())
 	{
+		callback(error_code(boost::system::errc::host_unreachable, generic_category()));
 		close();
 		return;
 	}
