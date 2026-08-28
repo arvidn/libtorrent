@@ -314,13 +314,15 @@ namespace aux {
 			}
 		}
 
-		out.comment = torrent_file.dict_find_string_value("comment.utf-8");
-		if (out.comment.empty()) out.comment = torrent_file.dict_find_string_value("comment");
-		aux::verify_encoding(out.comment);
+		string_view comment = torrent_file.dict_find_string_value("comment.utf-8");
+		if (comment.empty())
+			comment = torrent_file.dict_find_string_value("comment");
+		out.comment = aux::sanitize_encoding(comment);
 
-		out.created_by = torrent_file.dict_find_string_value("created by.utf-8");
-		if (out.created_by.empty()) out.created_by = torrent_file.dict_find_string_value("created by");
-		aux::verify_encoding(out.created_by);
+		string_view created_by = torrent_file.dict_find_string_value("created by.utf-8");
+		if (created_by.empty())
+			created_by = torrent_file.dict_find_string_value("created by");
+		out.created_by = aux::sanitize_encoding(created_by);
 
 		out.info_hashes = ti->info_hashes();
 

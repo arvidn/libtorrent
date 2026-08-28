@@ -54,7 +54,7 @@ namespace aux {
 // no copy). Returns false if "path" holds the sanitized result instead.
 TORRENT_EXTRA_EXPORT bool sanitize_path_element(
 	std::string& path, string_view element, bool force_element = false);
-TORRENT_EXTRA_EXPORT bool verify_encoding(std::string& target);
+TORRENT_EXTRA_EXPORT std::string sanitize_encoding(string_view source);
 
 #if TORRENT_ABI_VERSION < 4
 	struct internal_drained_state

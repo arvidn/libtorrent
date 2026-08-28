@@ -116,43 +116,58 @@ namespace libtorrent {
 
 namespace aux {
 
-	// fixes invalid UTF-8 sequences
-	bool verify_encoding(std::string& target)
+// fixes invalid UTF-8 sequences, returning a sanitized copy of "source".
+// Since the common case is that "source" is already valid UTF-8, this
+// avoids re-encoding every codepoint into a scratch buffer just to
+// discard it; only once an invalid sequence is found do we start
+// building the sanitized copy, seeded with the valid prefix copied
+// verbatim from "source".
+std::string sanitize_encoding(string_view const source)
+{
+	if (source.empty())
+		return {};
+
+	std::string ret;
+	bool valid_encoding = true;
+
+	string_view ptr = source;
+	while (!ptr.empty())
 	{
-		if (target.empty()) return true;
+		string_view const start = ptr;
 
-		std::string tmp_path;
-		tmp_path.reserve(target.size()+5);
-		bool valid_encoding = true;
+		// decode a single utf-8 character
+		auto [codepoint, len] = parse_utf8_codepoint(ptr);
 
-		string_view ptr = target;
-		while (!ptr.empty())
+		// this was the last character, and nothing was
+		// written to the destination buffer (i.e. the source character was
+		// truncated)
+		if (codepoint == -1)
 		{
-			// decode a single utf-8 character
-			auto [codepoint, len] = parse_utf8_codepoint(ptr);
-
-			// this was the last character, and nothing was
-			// written to the destination buffer (i.e. the source character was
-			// truncated)
-			if (codepoint == -1)
+			if (valid_encoding)
 			{
-				codepoint = '_';
+				// this is the first invalid sequence found. capture
+				// everything decoded so far verbatim and continue
+				// rebuilding from here
+				ret.reserve(source.size() + 5);
+				ret.assign(source.data(), std::size_t(start.data() - source.data()));
 				valid_encoding = false;
 			}
-
-			ptr = ptr.substr(std::min(std::size_t(len), ptr.size()));
-
-			// encode codepoint into utf-8
-			append_utf8_codepoint(tmp_path, codepoint);
+			codepoint = '_';
 		}
 
-		// the encoding was not valid utf-8
-		// save the original encoding and replace the
-		// commonly used path with the correctly
-		// encoded string
-		if (!valid_encoding) target = tmp_path;
-		return valid_encoding;
+		ptr = ptr.substr(std::min(std::size_t(len), ptr.size()));
+
+		// encode codepoint into utf-8, unless everything decoded so far
+		// has been valid, in which case "ret" is left untouched
+		if (!valid_encoding)
+			append_utf8_codepoint(ret, codepoint);
 	}
+
+	// the common case: the source was already valid utf-8, just copy it
+	if (valid_encoding)
+		return std::string(source);
+	return ret;
+}
 
 	// sanitizes a single path element. The result can never be empty. Empty
 	// files have special meaning in v2 torrents (it means the previous path
