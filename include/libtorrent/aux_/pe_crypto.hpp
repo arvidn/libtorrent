@@ -57,6 +57,17 @@ namespace libtorrent::aux {
 	};
 
 	// TODO: 3 dh_key_exchange should probably move into its own file
+
+	// Diffie-Hellman key exchange for BitTorrent Message Stream Encryption
+	// (MSE/PE, see BEP unofficial spec). MSE is deep-packet-inspection
+	// obfuscation, not a confidentiality guarantee against a targeted
+	// adversary: it has no authentication, so it is trivially defeated by an
+	// active man-in-the-middle, and RC4 is not a secure cipher by modern
+	// standards. Accordingly the local secret exponent is deliberately
+	// generated with aux::random_bytes() (a fast, non-cryptographic PRNG)
+	// rather than aux::crypto_random_bytes(): a stronger PRNG would not
+	// change what MSE actually protects against, and there is no plan to
+	// harden this into a real cryptographic channel.
 	class TORRENT_EXTRA_EXPORT dh_key_exchange
 	{
 	public:

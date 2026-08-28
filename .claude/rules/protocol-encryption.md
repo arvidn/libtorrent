@@ -93,6 +93,16 @@ spec). `key = 2^random % prime`.
 - `get_secret()` -- shared secret S
 - `get_hash_xor_mask()` -- `hash('req3', S)` for SKEY obfuscation
 
+The local secret exponent is generated with `aux::random_bytes()` (a
+non-cryptographic PRNG), not `aux::crypto_random_bytes()`. This is
+deliberate, not an oversight: MSE is DPI obfuscation, unauthenticated and
+trivially defeated by an active man-in-the-middle, and RC4 is not a secure
+cipher by modern standards -- so a stronger PRNG here would not change what
+MSE actually protects against. Do not report this as a vulnerability without
+also proposing hardening the rest of the handshake (authentication, a modern
+cipher); a PRNG swap alone would not meaningfully change the security
+posture.
+
 ### RC4 Key Derivation
 
 For outgoing connections (client):
