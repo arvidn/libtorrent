@@ -1493,6 +1493,11 @@ status_t pread_disk_io::do_job(aux::job::stop_torrent&, aux::pread_disk_job* j)
 	// if this assert fails, something's wrong with the fence logic
 	TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
 	flush_storage(j->storage);
+	// remove_storage() (reached via release_files() -> ... -> on_torrent_aborted()
+	// -> storage_holder::reset()) asserts no piece of this storage is mid-hash.
+	// Opportunistic hashing isn't a disk_job, so the fence above doesn't wait
+	// for it on its own, so do that explicitly here.
+	m_cache.wait_for_hashing(j->storage->storage_index());
 	j->storage->release_files(j->error);
 	return j->error ? disk_status::fatal_disk_error : status_t{};
 }

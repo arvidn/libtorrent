@@ -48,6 +48,10 @@ see LICENSE file.
 #include <fstream>
 #include <iostream>
 
+#ifndef TORRENT_WINDOWS
+#include <sys/stat.h>
+#endif
+
 using namespace std::placeholders;
 using namespace lt;
 
@@ -620,7 +624,6 @@ void test_rename_to_existing(
 	disk_io->abort(true);
 }
 
-#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 namespace {
 std::int64_t file_size_on_disk(std::string const& path)
 {
@@ -753,7 +756,6 @@ void test_pre_allocate()
 		}
 	}
 }
-#endif // TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 
 using lt::operator""_bit;
 using check_files_flag_t = lt::flags::bitfield_flag<std::uint64_t, struct check_files_flag_type_tag>;
@@ -982,6 +984,9 @@ TORRENT_TEST_DISK_IO(check_files_allocate) { test_check_files_all_threads(zero_p
 
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 TORRENT_TEST(test_pre_allocate_mmap) { test_pre_allocate<mmap_storage>(); }
+#endif
+#ifndef TORRENT_WINDOWS
+TORRENT_TEST(test_pre_allocate_pread) { test_pre_allocate<pread_storage>(); }
 #endif
 
 // posix_storage is meant to only use the most portable API for disk I/O, and so

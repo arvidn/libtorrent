@@ -234,6 +234,14 @@ struct TORRENT_EXTRA_EXPORT cached_piece_entry
 	// set if this piece requires v1 SHA1 hashing (ph member is allocated).
 	static constexpr cached_piece_flags v1_hashes_flag = 4_bit;
 
+	// set by disk_cache::wait_for_hashing() while it waits on m_flushing_cv
+	// for hashing_flag to clear on this piece; kick_hasher() and hash_piece()
+	// only notify_all() when this is set, to avoid signalling when nobody is
+	// waiting. Safe as a single-owner flag (asserted clear before use)
+	// because wait_for_hashing() only runs from do_job(stop_torrent), and
+	// fences guarantee at most one such job per storage at a time.
+	static constexpr cached_piece_flags notify_hashed_flag = 5_bit;
+
 	// set when a block is inserted into this piece and the hasher thread
 	// should be woken to make hashing progress. Cleared when the hasher
 	// thread picks it up. Used to coalesce multiple insertions into a
@@ -477,11 +485,15 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 					if (cbe.has_buf() || cbe.get_write_job()) ++actual_unhashed;
 				}
 			}
-			view.modify(piece_iter, [&](cached_piece_entry& e) {
+			bool notify_hashed = false;
+			view.modify(piece_iter, [&notify_hashed, blocks_in_piece](cached_piece_entry& e) {
 				e.flags |= cached_piece_entry::force_flush_flag | cached_piece_entry::piece_hash_returned_flag;
 				e.flags &= ~cached_piece_entry::hashing_flag;
 				e.hasher_cursor = static_cast<std::uint16_t>(blocks_in_piece);
+				notify_hashed = bool(e.flags & cached_piece_entry::notify_hashed_flag);
 			});
+			if (notify_hashed)
+				m_flushing_cv.notify_all();
 			TORRENT_ASSERT(m_num_unhashed >= actual_unhashed);
 			m_num_unhashed -= actual_unhashed;
 			{
@@ -620,6 +632,13 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 	void flush_storage(std::function<int(bitfield&, span<disk_job* const>)> f,
 		storage_index_t storage,
 		std::function<void(jobqueue_t, disk_job*)> clear_piece_fun);
+
+	// waits for any hasher thread still mid-kick on a piece belonging to
+	// storage to finish. Only meaningful (and only called) after a
+	// stop_torrent fence job has confirmed num_outstanding_jobs() == 1 for
+	// this storage; see the definition for why that makes a flushing-side
+	// wait unnecessary here, unlike flush_storage() above.
+	void wait_for_hashing(storage_index_t storage);
 
 	// called when a storage index is removed, so leftover entries cannot
 	// collide with a future torrent that reuses the index. Any still-attached
