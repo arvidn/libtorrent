@@ -102,7 +102,7 @@ namespace {
 		int num_similar = 0;
 		int num_collections = 0;
 		// length in bytes of synthetic 'comment' / 'created by' strings.
-		// They go through aux::verify_encoding() in parse_torrent_file().
+		// They go through aux::sanitize_encoding() in parse_torrent_file().
 		// 0 means "do not set the field".
 		int comment_len = 0;
 		int created_by_len = 0;
@@ -689,7 +689,7 @@ try
 	}
 
 	// synthesize a 'comment' / 'created by' field. We use ASCII-printable
-	// padding so aux::verify_encoding() takes the fast path; the cost being
+	// padding so aux::sanitize_encoding() takes the fast path; the cost being
 	// measured is the per-byte UTF-8 validation itself, not error recovery.
 	if (cfg.comment_len > 0)
 	{

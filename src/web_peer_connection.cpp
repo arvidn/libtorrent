@@ -85,8 +85,7 @@ web_peer_connection::web_peer_connection(peer_connection_args& pack, aux::web_se
 
 		if (!m_basic_auth.empty()) m_basic_auth = base64encode(m_basic_auth);
 
-		m_server_string = m_host;
-		aux::verify_encoding(m_server_string);
+		m_server_string = aux::sanitize_encoding(m_host);
 	}
 
 	if (!m_settings.get_bool(settings_pack::report_web_seed_downloads))

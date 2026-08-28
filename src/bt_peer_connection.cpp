@@ -2072,9 +2072,8 @@ namespace {
 		auto const client_info = root.dict_find_string_value("v");
 		if (!client_info.empty())
 		{
-			m_client_version = std::string(client_info);
 			// the client name is supposed to be UTF-8
-			aux::verify_encoding(m_client_version);
+			m_client_version = aux::sanitize_encoding(client_info);
 		}
 
 		int const reqq = int(root.dict_find_int_value("reqq"));

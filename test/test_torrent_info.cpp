@@ -500,7 +500,7 @@ test_failing_torrent_t test_error_torrents[] = {
 // TODO: torrent with an SSL cert
 // TODO: torrent with attributes (executable and hidden)
 // TODO: torrent_info constructor that takes an invalid bencoded buffer
-// TODO: verify_encoding with a string that triggers character replacement
+// TODO: sanitize_encoding with a string that triggers character replacement
 
 #if TORRENT_ABI_VERSION < 4
 TORRENT_TEST(add_tracker)
@@ -1096,93 +1096,67 @@ TORRENT_TEST(sanitize_path_borrow)
 	TEST_EQUAL(path, "foobar");
 }
 
-TORRENT_TEST(verify_encoding)
+TORRENT_TEST(sanitize_encoding)
 {
-	using aux::verify_encoding;
+	using aux::sanitize_encoding;
 
-	// verify_encoding
+	// sanitize_encoding
 	std::string test = "\b?filename=4";
-	TEST_CHECK(verify_encoding(test));
-	TEST_CHECK(test == "\b?filename=4");
+	TEST_EQUAL(sanitize_encoding(test), test);
 
 	test = "filename=4";
-	TEST_CHECK(verify_encoding(test));
-	TEST_CHECK(test == "filename=4");
+	TEST_EQUAL(sanitize_encoding(test), test);
 
 	// valid 2-byte sequence
 	test = "filename\xc2\xa1";
-	TEST_CHECK(verify_encoding(test));
-	std::printf("%s\n", test.c_str());
-	TEST_CHECK(test == "filename\xc2\xa1");
+	TEST_EQUAL(sanitize_encoding(test), test);
 
 	// truncated 2-byte sequence
 	test = "filename\xc2";
-	TEST_CHECK(!verify_encoding(test));
-	std::printf("%s\n", test.c_str());
-	TEST_CHECK(test == "filename_");
+	TEST_EQUAL(sanitize_encoding(test), "filename_");
 
 	// valid 3-byte sequence
 	test = "filename\xe2\x9f\xb9";
-	TEST_CHECK(verify_encoding(test));
-	std::printf("%s\n", test.c_str());
-	TEST_CHECK(test == "filename\xe2\x9f\xb9");
+	TEST_EQUAL(sanitize_encoding(test), test);
 
 	// truncated 3-byte sequence
 	test = "filename\xe2\x9f";
-	TEST_CHECK(!verify_encoding(test));
-	std::printf("%s\n", test.c_str());
-	TEST_CHECK(test == "filename_");
+	TEST_EQUAL(sanitize_encoding(test), "filename_");
 
 	// truncated 3-byte sequence
 	test = "filename\xe2";
-	TEST_CHECK(!verify_encoding(test));
-	std::printf("%s\n", test.c_str());
-	TEST_CHECK(test == "filename_");
+	TEST_EQUAL(sanitize_encoding(test), "filename_");
 
 	// valid 4-byte sequence
 	test = "filename\xf0\x9f\x92\x88";
-	TEST_CHECK(verify_encoding(test));
-	std::printf("%s\n", test.c_str());
-	TEST_CHECK(test == "filename\xf0\x9f\x92\x88");
+	TEST_EQUAL(sanitize_encoding(test), test);
 
 	// truncated 4-byte sequence
 	test = "filename\xf0\x9f\x92";
-	TEST_CHECK(!verify_encoding(test));
-	std::printf("%s\n", test.c_str());
-	TEST_CHECK(test == "filename_");
+	TEST_EQUAL(sanitize_encoding(test), "filename_");
 
 	// 5-byte utf-8 sequence (not allowed)
 	test = "filename\xf8\x9f\x9f\x9f\x9f""foobar";
-	TEST_CHECK(!verify_encoding(test));
-	std::printf("%s\n", test.c_str());
-	TEST_CHECK(test == "filename_foobar");
+	TEST_EQUAL(sanitize_encoding(test), "filename_foobar");
 
 	// redundant (overlong) 2-byte sequence
 	// ascii code 0x2e encoded with a leading 0
 	test = "filename\xc0\xae";
-	TEST_CHECK(!verify_encoding(test));
-	std::printf("%s\n", test.c_str());
-	TEST_CHECK(test == "filename_");
+	TEST_EQUAL(sanitize_encoding(test), "filename_");
 
 	// redundant (overlong) 3-byte sequence
 	// ascii code 0x2e encoded with two leading 0s
 	test = "filename\xe0\x80\xae";
-	TEST_CHECK(!verify_encoding(test));
-	std::printf("%s\n", test.c_str());
-	TEST_CHECK(test == "filename_");
+	TEST_EQUAL(sanitize_encoding(test), "filename_");
 
 	// redundant (overlong) 4-byte sequence
 	// ascii code 0x2e encoded with three leading 0s
 	test = "filename\xf0\x80\x80\xae";
-	TEST_CHECK(!verify_encoding(test));
-	std::printf("%s\n", test.c_str());
-	TEST_CHECK(test == "filename_");
+	TEST_EQUAL(sanitize_encoding(test), "filename_");
 
 	// missing byte header
 	test = "filename\xed\0\x80";
-	TEST_CHECK(!verify_encoding(test));
-	fprintf(stdout, "%s\n", test.c_str());
-	TEST_CHECK(test == "filename_");
+	TEST_EQUAL(sanitize_encoding(test), "filename_");
 }
 
 namespace {

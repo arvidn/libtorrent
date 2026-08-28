@@ -241,7 +241,7 @@ CASES: list[Case] = [
     mk_case(
         "long_comment",
         "1 MiB 'comment' + 1 MiB 'created by' fields. Both go through"
-        " aux::verify_encoding() in parse_torrent_file(), which scans"
+        " aux::sanitize_encoding() in parse_torrent_file(), which scans"
         " the string byte-by-byte for utf-8 validity. Isolates that"
         " cost from everything else. v1 only.",
         "--num-files 10 --file-size 16K --comment-len 1048576"
