@@ -16,6 +16,7 @@
 
 2.1.2 not released
 
+	* prevent pread disk I/O from overwriting files when renaming
 	* fix file priority updates being lost when issued in quick succession
 	* deprecate internal functions of file_storage
 	* optimize loading torrents
@@ -67,6 +68,13 @@
 	* libtorrent now requires C++17 to build
 	* added support for WebTorrent
 	* removed support for BEP 17 web seeds (in favor of BEP 19)
+
+2.0.15 not released
+
+	* fix DNS leak of i2p udp tracker hostnames
+	* fix DNS leak of hostnamed peers from trackers
+	* extend proxy_hostnames to HTTP proxies for web seeds
+	* fix ip_filter/ssrf_mitigation false positives on proxied web seeds
 
 2.0.14 released
 
@@ -2361,4 +2369,3 @@ Initial release 0.9
 	* supports compact=1
 	* selective downloading
 	* ip filter
-

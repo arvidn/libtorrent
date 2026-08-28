@@ -943,9 +943,8 @@ void test_stop_tracker_timeout(int const timeout)
 	// the web server records each stopped announce it actually receives to this
 	// file. We count real deliveries rather than client-side log alerts: a stop
 	// announce coalesced behind a removed torrent is still delivered but produces
-	// no client alert (its requester, the torrent, is gone by then). The path is
-	// derived from the port so concurrent test runs don't clobber each other.
-	std::string const stopped_file = web_server_stopped_announces_path(port);
+	// no client alert (its requester, the torrent, is gone by then).
+	std::string const stopped_file = web_server_stopped_announces_path();
 	{
 		std::ofstream clear_f(stopped_file, std::ios::trunc);
 	}

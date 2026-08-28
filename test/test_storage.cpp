@@ -546,6 +546,80 @@ void test_rename(std::string const& test_path)
 	TEST_EQUAL(s->names().file_path(0_file), "new_filename");
 }
 
+void test_rename_to_existing(
+	std::string const& test_path, lt::disk_io_constructor_type const& disk_constructor)
+{
+	delete_dirs("temp_storage");
+
+	std::vector<char> buf;
+	auto info = setup_torrent_info(buf);
+	file_storage const& fs = info->layout();
+	boost::asio::io_context ios;
+	aux::session_settings settings;
+	counters cnt;
+	auto disk_io = disk_constructor(ios, settings, cnt);
+	aux::vector<download_priority_t, file_index_t> priorities;
+	renamed_files renamed;
+	storage_params params{fs,
+		renamed,
+		test_path,
+		{},
+		storage_mode_allocate,
+		priorities,
+		sha1_hash{},
+		info->v1(),
+		info->v2()};
+	auto const storage = disk_io->new_torrent(std::move(params), {});
+
+	std::string const source_path = fs.file_path(0_file, test_path);
+	std::string const new_filename = combine_path("temp_storage", "existing.tmp");
+	std::string const destination_path = combine_path(test_path, new_filename);
+	std::string const source_content = "source content";
+	std::string const destination_content = "destination content";
+
+	error_code ec;
+	create_directories(parent_path(source_path), ec);
+	TEST_CHECK(!ec);
+	std::ofstream(source_path, std::ios::binary)
+		.write(source_content.data(), static_cast<std::streamsize>(source_content.size()));
+	std::ofstream(destination_path, std::ios::binary)
+		.write(
+			destination_content.data(), static_cast<std::streamsize>(destination_content.size()));
+
+	storage_error se;
+	bool done = false;
+	std::string renamed_to;
+	file_index_t renamed_index{-1};
+	disk_io->async_rename_file(storage,
+		0_file,
+		new_filename,
+		[&](std::string const& name, file_index_t const index, storage_error const& error) {
+			renamed_to = name;
+			renamed_index = index;
+			se = error;
+			done = true;
+		});
+	disk_io->submit_jobs();
+	run_until(ios, done);
+
+	TEST_CHECK(se.ec == boost::system::errc::file_exists);
+	TEST_CHECK(se.operation == operation_t::file_rename);
+	TEST_EQUAL(static_cast<int>(se.file()), 0);
+	TEST_EQUAL(renamed_to, new_filename);
+	TEST_EQUAL(renamed_index, 0_file);
+
+	std::vector<char> content;
+	TEST_EQUAL(load_file(source_path, content, ec), 0);
+	TEST_CHECK(!ec);
+	TEST_EQUAL(std::string(content.begin(), content.end()), source_content);
+
+	TEST_EQUAL(load_file(destination_path, content, ec), 0);
+	TEST_CHECK(!ec);
+	TEST_EQUAL(std::string(content.begin(), content.end()), destination_content);
+
+	disk_io->abort(true);
+}
+
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 namespace {
 std::int64_t file_size_on_disk(std::string const& path)
@@ -941,9 +1015,11 @@ TORRENT_TEST(remove_posix_disk_io)
 	test_remove<posix_storage>(current_working_directory());
 }
 
-TORRENT_TEST(rename_pread_disk_io)
+TORRENT_TEST(rename_pread_disk_io) { test_rename<pread_storage>(current_working_directory()); }
+
+TORRENT_TEST_DISK_IO(rename_to_existing)
 {
-	test_rename<pread_storage>(current_working_directory());
+	test_rename_to_existing(current_working_directory(), disk_io);
 }
 
 TORRENT_TEST(remove_pread_disk_io)

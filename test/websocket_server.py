@@ -41,8 +41,7 @@ async def handle(websocket):
 
 
 async def main() -> None:
-    port = int(sys.argv[1])
-    use_ssl = sys.argv[2] != '0'
+    use_ssl = sys.argv[1] != '0'
     print('python version: %s' % sys.version_info.__str__())
 
     if use_ssl:
@@ -51,7 +50,10 @@ async def main() -> None:
     else:
         ssl_context = None
 
-    await websockets.serve(handle, '127.0.0.1', port, ssl=ssl_context)
+    server = await websockets.serve(handle, '127.0.0.1', 0, ssl=ssl_context)
+    port = server.sockets[0].getsockname()[1]
+    print(f'LISTENING_PORT {port}')
+    sys.stdout.flush()
 
 if __name__ == '__main__':
     loop = asyncio.new_event_loop()

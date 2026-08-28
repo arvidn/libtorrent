@@ -120,9 +120,10 @@ EXPORT int start_web_server(bool ssl = false,
 
 EXPORT void stop_web_server();
 
-// path where web_server.py records the stopped announces it receives. Derived
-// from the server's port so it is unique across concurrently running servers.
-EXPORT std::string web_server_stopped_announces_path(int port);
+// path where web_server.py records the stopped announces it receives, for
+// the most recently started web server (start_web_server() must have been
+// called first).
+EXPORT std::string web_server_stopped_announces_path();
 
 EXPORT int start_websocket_server(bool ssl = false, int min_interval = 30);
 EXPORT void stop_websocket_server();

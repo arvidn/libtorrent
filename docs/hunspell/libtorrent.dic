@@ -80,6 +80,7 @@ downloader
 bitset
 kB
 hostname
+hostnames
 indices
 dht
 lsd
