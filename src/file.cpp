@@ -541,7 +541,7 @@ typedef struct _FILE_ALLOCATED_RANGE_BUFFER {
 		return permissions;
 	}
 
-	int open_file(std::string const filename, open_mode_t const mode)
+	int open_file(std::string const& filename, open_mode_t const mode)
 	{
 		int ret = ::open(filename.c_str(), file_flags(mode), file_perms(mode));
 
