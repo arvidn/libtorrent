@@ -382,25 +382,103 @@ std::string sanitize_encoding(string_view const source)
 
 namespace {
 
-	file_flags_t get_file_attributes(bdecode_node const& dict)
+// n must already be resolved to the "attr" entry of a file dict (or a
+// default-constructed node, if there was none)
+file_flags_t get_file_attributes(bdecode_node const& attr)
+{
+	file_flags_t file_flags = {};
+	if (attr.type() == bdecode_node::string_t)
 	{
-		file_flags_t file_flags = {};
-		bdecode_node const attr = dict.dict_find_string("attr");
-		if (attr)
+		for (char const c : attr.string_value())
 		{
-			for (char const c : attr.string_value())
+			switch (c)
 			{
-				switch (c)
-				{
-					case 'l': file_flags |= file_storage::flag_symlink; break;
-					case 'x': file_flags |= file_storage::flag_executable; break;
-					case 'h': file_flags |= file_storage::flag_hidden; break;
-					case 'p': file_flags |= file_storage::flag_pad_file; break;
-				}
+				case 'l':
+					file_flags |= file_storage::flag_symlink;
+					break;
+				case 'x':
+					file_flags |= file_storage::flag_executable;
+					break;
+				case 'h':
+					file_flags |= file_storage::flag_hidden;
+					break;
+				case 'p':
+					file_flags |= file_storage::flag_pad_file;
+					break;
 			}
 		}
-		return file_flags;
 	}
+	return file_flags;
+}
+
+// dict_find_*() re-scans the whole dictionary from the start on every
+// call; a file dict (or the top-level info dict) is looked up for
+// several distinct keys, so resolving all of them in one pass over
+// dict_items() avoids paying for that scan once per key. Every field
+// keeps the raw node (rather than the type-checked result dict_find_*()
+// would give), so callers apply the same type check dict_find_*() would
+// have via as_list()/as_dict()/as_string()/node_int_value() below.
+std::int64_t node_int_value(bdecode_node const& n, std::int64_t const default_val)
+{
+	return (n.type() == bdecode_node::int_t) ? n.int_value() : default_val;
+}
+
+bdecode_node as_list(bdecode_node const& n)
+{
+	return (n.type() == bdecode_node::list_t) ? n : bdecode_node();
+}
+
+bdecode_node as_dict(bdecode_node const& n)
+{
+	return (n.type() == bdecode_node::dict_t) ? n : bdecode_node();
+}
+
+bdecode_node as_string(bdecode_node const& n)
+{
+	return (n.type() == bdecode_node::string_t) ? n : bdecode_node();
+}
+
+// every key looked up in a single file's dict, across get_file_attributes(),
+// extract_single_file(), extract_single_file2() and parse_symlink_path()
+struct file_dict_fields
+{
+	bdecode_node attr;
+	bdecode_node length;
+	bdecode_node mtime;
+	bdecode_node name_utf8;
+	bdecode_node name;
+	bdecode_node path_utf8;
+	bdecode_node path;
+	bdecode_node symlink_path;
+	bdecode_node pieces_root;
+};
+
+file_dict_fields scan_file_dict(bdecode_node const& dict)
+{
+	file_dict_fields f;
+	for (auto const& [key, value] : dict.dict_items())
+	{
+		if (key == "attr" && !f.attr)
+			f.attr = value;
+		else if (key == "length" && !f.length)
+			f.length = value;
+		else if (key == "mtime" && !f.mtime)
+			f.mtime = value;
+		else if (key == "name.utf-8" && !f.name_utf8)
+			f.name_utf8 = value;
+		else if (key == "name" && !f.name)
+			f.name = value;
+		else if (key == "path.utf-8" && !f.path_utf8)
+			f.path_utf8 = value;
+		else if (key == "path" && !f.path)
+			f.path = value;
+		else if (key == "symlink path" && !f.symlink_path)
+			f.symlink_path = value;
+		else if (key == "pieces root" && !f.pieces_root)
+			f.pieces_root = value;
+	}
+	return f;
+}
 
 	// parses the "symlink path" list into symlink_path, as a sequence of
 	// raw (unsanitized) path components, dropping "." and ".." components
@@ -412,54 +490,54 @@ namespace {
 	// components are left fully unsanitized, matching how file/directory
 	// raw components are extracted, so resolve_one() can match them
 	// directly, byte for byte, against dir_cache without re-sanitizing.
-	bool parse_symlink_path(bdecode_node const& dict,
-		load_torrent_limits const& cfg,
-		file_flags_t& file_flags,
-		std::vector<string_view>& symlink_path,
-		error_code& ec)
+bool parse_symlink_path(bdecode_node const& symlink_path_node,
+	load_torrent_limits const& cfg,
+	file_flags_t& file_flags,
+	std::vector<string_view>& symlink_path,
+	error_code& ec)
+{
+	if (bdecode_node const s_p = symlink_path_node)
 	{
-		if (bdecode_node const s_p = dict.dict_find_list("symlink path"))
+		int count = 0;
+		for (bdecode_node const item : s_p.list_items())
 		{
-			int count = 0;
-			for (bdecode_node const item : s_p.list_items())
+			if (item.type() != bdecode_node::string_t)
 			{
-				if (item.type() != bdecode_node::string_t)
-				{
-					ec = errors::torrent_invalid_name;
-					return false;
-				}
-				if (++count > cfg.max_directory_depth)
-				{
-					ec = errors::torrent_directory_too_deep;
-					return false;
-				}
-				string_view const pe = item.string_value();
-				// BEP 47 forbids "." and ".." in symlink path components.
-				// We tolerate them for backwards compatibility with
-				// non-conforming torrents by dropping them, leaving the
-				// remaining components to be interpreted relative to the
-				// torrent root.
-				if (pe == "." || pe == "..")
-					continue;
-				symlink_path.push_back(pe);
+				ec = errors::torrent_invalid_name;
+				return false;
 			}
-			if (symlink_path.empty())
+			if (++count > cfg.max_directory_depth)
 			{
-				// technically this is an invalid torrent: an empty
-				// "symlink path" list, or one made up entirely of "." /
-				// ".." components, leaves no real target
-				file_flags &= ~file_storage::flag_symlink;
+				ec = errors::torrent_directory_too_deep;
+				return false;
 			}
+			string_view const pe = item.string_value();
+			// BEP 47 forbids "." and ".." in symlink path components.
+			// We tolerate them for backwards compatibility with
+			// non-conforming torrents by dropping them, leaving the
+			// remaining components to be interpreted relative to the
+			// torrent root.
+			if (pe == "." || pe == "..")
+				continue;
+			symlink_path.push_back(pe);
 		}
-		else
+		if (symlink_path.empty())
 		{
-			// technically this is an invalid torrent. "symlink path" must exist
+			// technically this is an invalid torrent: an empty
+			// "symlink path" list, or one made up entirely of "." /
+			// ".." components, leaves no real target
 			file_flags &= ~file_storage::flag_symlink;
 		}
-		// symlink targets are validated later, as it may point to a file or
-		// directory we haven't parsed yet
-		return true;
 	}
+	else
+	{
+		// technically this is an invalid torrent. "symlink path" must exist
+		file_flags &= ~file_storage::flag_symlink;
+	}
+	// symlink targets are validated later, as it may point to a file or
+	// directory we haven't parsed yet
+	return true;
+}
 
 	// caches (parent, raw name) -> path_index_t within a single parse:
 	// directories via cached_directory() (find-or-create, so files
@@ -731,7 +809,9 @@ namespace {
 			return false;
 		}
 
-		file_flags_t file_flags = get_file_attributes(dict);
+		file_dict_fields const f = scan_file_dict(dict);
+
+		file_flags_t file_flags = get_file_attributes(f.attr);
 
 		if (file_flags & file_storage::flag_pad_file)
 		{
@@ -741,8 +821,8 @@ namespace {
 
 		// symlinks have an implied "size" of zero. i.e. they use up 0 bytes of
 		// the torrent payload space
-		std::int64_t const file_size = (file_flags & file_storage::flag_symlink)
-			? 0 : dict.dict_find_int_value("length", -1);
+		std::int64_t const file_size =
+			(file_flags & file_storage::flag_symlink) ? 0 : node_int_value(f.length, -1);
 
 		// if a file is too big, it will cause integer overflow in our
 		// calculations of the size of the merkle tree (which is all 'int'
@@ -755,20 +835,19 @@ namespace {
 			return false;
 		}
 
-		auto const mtime = static_cast<std::time_t>(dict.dict_find_int_value("mtime", 0));
+		auto const mtime = static_cast<std::time_t>(node_int_value(f.mtime, 0));
 
 		std::int32_t pieces_root_offset = file_storage::no_root_hash;
 
 		std::vector<string_view> symlink_path;
 		if ((file_flags & file_storage::flag_symlink)
-			&& !parse_symlink_path(dict, cfg, file_flags, symlink_path, ec))
+			&& !parse_symlink_path(as_list(f.symlink_path), cfg, file_flags, symlink_path, ec))
 			return false;
 
 		if (symlink_path.empty() && file_size > 0)
 		{
-			bdecode_node const root = dict.dict_find_string("pieces root");
-			if (!root || root.type() != bdecode_node::string_t
-				|| root.string_length() != sha256_hash::size())
+			bdecode_node const root = as_string(f.pieces_root);
+			if (!root || root.string_length() != sha256_hash::size())
 			{
 				ec = errors::torrent_missing_pieces_root;
 				return false;
@@ -821,7 +900,9 @@ namespace {
 			return false;
 		}
 
-		file_flags_t file_flags = get_file_attributes(dict);
+		file_dict_fields const f = scan_file_dict(dict);
+
+		file_flags_t file_flags = get_file_attributes(f.attr);
 
 		// a pad file reserves piece-alignment bytes, but a symlink is
 		// always zero-length, so there's nothing for the pad attribute to
@@ -835,8 +916,8 @@ namespace {
 
 		// symlinks have an implied "size" of zero. i.e. they use up 0 bytes of
 		// the torrent payload space
-		std::int64_t const file_size = (file_flags & file_storage::flag_symlink)
-			? 0 : dict.dict_find_int_value("length", -1);
+		std::int64_t const file_size =
+			(file_flags & file_storage::flag_symlink) ? 0 : node_int_value(f.length, -1);
 
 		// if a file is too big, it will cause integer overflow in our
 		// calculations of the size of the merkle tree (which is all 'int'
@@ -849,7 +930,7 @@ namespace {
 			return false;
 		}
 
-		auto const mtime(static_cast<std::time_t>(dict.dict_find_int_value("mtime", 0)));
+		auto const mtime(static_cast<std::time_t>(node_int_value(f.mtime, 0)));
 
 		aux::path_index_t dir = aux::path_element::torrent_root;
 		string_view name;
@@ -864,8 +945,9 @@ namespace {
 		{
 			// prefer the name.utf-8 because if it exists, it is more likely to be
 			// correctly encoded
-			bdecode_node p = dict.dict_find_string("name.utf-8");
-			if (!p) p = dict.dict_find_string("name");
+			bdecode_node p = as_string(f.name_utf8);
+			if (!p)
+				p = as_string(f.name);
 			if (!p || p.string_length() == 0)
 			{
 				ec = errors::torrent_missing_name;
@@ -892,8 +974,9 @@ namespace {
 		}
 		else
 		{
-			bdecode_node p = dict.dict_find_list("path.utf-8");
-			if (!p) p = dict.dict_find_list("path");
+			bdecode_node p = as_list(f.path_utf8);
+			if (!p)
+				p = as_list(f.path);
 
 			bool const has_path = p && p.list_items().begin() != bdecode_node::items_end_t{};
 
@@ -970,7 +1053,7 @@ namespace {
 
 		std::vector<string_view> symlink_path;
 		if ((file_flags & file_storage::flag_symlink)
-			&& !parse_symlink_path(dict, cfg, file_flags, symlink_path, ec))
+			&& !parse_symlink_path(as_list(f.symlink_path), cfg, file_flags, symlink_path, ec))
 			return false;
 
 		return finish_file_entry(files,
@@ -1186,6 +1269,60 @@ namespace {
 			flush_leaf_stash(dir_cache, leaf_stash);
 		resolve_symlinks(target, dir_cache, symlink_stash, cfg);
 		return true;
+	}
+
+	// every key looked up in the top-level info dict by parse_info_section_impl()
+	struct info_dict_fields
+	{
+		bdecode_node meta_version;
+		bdecode_node files;
+		bdecode_node length;
+		bdecode_node piece_length;
+		bdecode_node name_utf8;
+		bdecode_node name;
+		bdecode_node file_tree;
+		bdecode_node pieces;
+		bdecode_node priv;
+#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
+		bdecode_node similar;
+		bdecode_node collections;
+#endif
+		bdecode_node ssl_cert;
+	};
+
+	info_dict_fields scan_info_dict(bdecode_node const& info)
+	{
+		info_dict_fields f;
+		for (auto const& [key, value] : info.dict_items())
+		{
+			if (key == "meta version" && !f.meta_version)
+				f.meta_version = value;
+			else if (key == "files" && !f.files)
+				f.files = value;
+			else if (key == "length" && !f.length)
+				f.length = value;
+			else if (key == "piece length" && !f.piece_length)
+				f.piece_length = value;
+			else if (key == "name.utf-8" && !f.name_utf8)
+				f.name_utf8 = value;
+			else if (key == "name" && !f.name)
+				f.name = value;
+			else if (key == "file tree" && !f.file_tree)
+				f.file_tree = value;
+			else if (key == "pieces" && !f.pieces)
+				f.pieces = value;
+			else if (key == "private" && !f.priv)
+				f.priv = value;
+#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
+			else if (key == "similar" && !f.similar)
+				f.similar = value;
+			else if (key == "collections" && !f.collections)
+				f.collections = value;
+#endif
+			else if (key == "ssl-cert" && !f.ssl_cert)
+				f.ssl_cert = value;
+		}
+		return f;
 	}
 
 #if TORRENT_ABI_VERSION < 4
@@ -1573,8 +1710,10 @@ TORRENT_VERSION_NAMESPACE_4
 		// point into our copy of the buffer.
 		std::ptrdiff_t const info_offset = info.data_offset();
 
+		info_dict_fields const info_fields = scan_info_dict(info);
+
 		// check for a version key
-		int const version = int(info.dict_find_int_value("meta version", -1));
+		int const version = int(node_int_value(info_fields.meta_version, -1));
 		if (version > 0)
 		{
 			char error_string[200];
@@ -1595,8 +1734,8 @@ TORRENT_VERSION_NAMESPACE_4
 		// hybrid (v1+v2) torrent that also carries a "files"/"length"
 		// listing alongside "meta version" >= 2, mirroring the check
 		// further down that decides whether this ends up a v2-only torrent.
-		bdecode_node const files_node = info.dict_find_list("files");
-		bdecode_node const length_key = info.dict_find("length");
+		bdecode_node const files_node = as_list(info_fields.files);
+		bdecode_node const length_key = info_fields.length;
 		bool const need_v1_hash = version < 2 || bool(files_node) || bool(length_key);
 		bool const need_v2_hash = version >= 2;
 
@@ -1612,7 +1751,7 @@ TORRENT_VERSION_NAMESPACE_4
 			m_info_hash.v2.clear();
 
 		// extract piece length
-		std::int64_t const piece_length = info.dict_find_int_value("piece length", -1);
+		std::int64_t const piece_length = node_int_value(info_fields.piece_length, -1);
 		if (piece_length <= 0 || piece_length > file_storage::max_piece_size)
 		{
 			ec = errors::torrent_missing_piece_length;
@@ -1631,8 +1770,9 @@ TORRENT_VERSION_NAMESPACE_4
 		files.set_piece_length(static_cast<int>(piece_length));
 
 		// extract file name (or the directory name if it's a multi file libtorrent)
-		bdecode_node name_ent = info.dict_find_string("name.utf-8");
-		if (!name_ent) name_ent = info.dict_find_string("name");
+		bdecode_node name_ent = as_string(info_fields.name_utf8);
+		if (!name_ent)
+			name_ent = as_string(info_fields.name);
 		if (!name_ent)
 		{
 			ec = errors::torrent_missing_name;
@@ -1669,7 +1809,7 @@ TORRENT_VERSION_NAMESPACE_4
 		if (version >= 2)
 			v1_files.set_piece_length(files.piece_length());
 
-		bdecode_node const file_tree_node = info.dict_find_dict("file tree");
+		bdecode_node const file_tree_node = as_dict(info_fields.file_tree);
 		if (version >= 2 && file_tree_node)
 		{
 			if (!extract_files2(file_tree_node,
@@ -1816,7 +1956,7 @@ TORRENT_VERSION_NAMESPACE_4
 			return;
 		}
 
-		bdecode_node const pieces = info.dict_find_string("pieces");
+		bdecode_node const pieces = as_string(info_fields.pieces);
 		if (!pieces)
 		{
 			// whenever a v1 info-hash is computed (a v1 torrent, or a hybrid
@@ -1850,11 +1990,11 @@ TORRENT_VERSION_NAMESPACE_4
 			TORRENT_ASSERT(m_piece_hashes < m_info_section_size);
 		}
 
-		m_flags |= (info.dict_find_int_value("private", 0) != 0)
-			? private_torrent : torrent_info_flags_t{};
+		m_flags |=
+			(node_int_value(info_fields.priv, 0) != 0) ? private_torrent : torrent_info_flags_t{};
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
-		bdecode_node const similar = info.dict_find_list("similar");
+		bdecode_node const similar = as_list(info_fields.similar);
 		if (similar)
 		{
 			for (bdecode_node const item : similar.list_items())
@@ -1869,7 +2009,7 @@ TORRENT_VERSION_NAMESPACE_4
 			}
 		}
 
-		bdecode_node const collections = info.dict_find_list("collections");
+		bdecode_node const collections = as_list(info_fields.collections);
 		if (collections)
 		{
 			for (bdecode_node const str : collections.list_items())
@@ -1883,7 +2023,7 @@ TORRENT_VERSION_NAMESPACE_4
 		}
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 
-		if (bdecode_node const ssl_cert = info.dict_find_string("ssl-cert"))
+		if (bdecode_node const ssl_cert = as_string(info_fields.ssl_cert))
 		{
 			m_flags |= ssl_torrent;
 			m_ssl_cert_offset = aux::numeric_cast<std::int32_t>(ssl_cert.string_offset() - info_offset);
