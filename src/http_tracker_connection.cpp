@@ -39,6 +39,7 @@ see LICENSE file.
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/aux_/parse_url.hpp"
 #include "libtorrent/aux_/array.hpp"
+#include "libtorrent/aux_/ip_helpers.hpp"
 
 namespace libtorrent::aux {
 
@@ -50,18 +51,25 @@ namespace libtorrent::aux {
 			return len >= 0 && len % entry_size == 0;
 		}
 
-		// SSRF mitigation: an announce/scrape to a loopback address must look
-		// like a standard BitTorrent announce (the /announce path prefix) --
-		// otherwise a tracker URL (or a follower coalescing onto an
-		// already-connected loopback address with a different path, e.g. a
-		// scrape) could be used to make arbitrary requests against services
-		// running on localhost. Used both by on_filter() (the initial,
+		// SSRF mitigation. Only call this when ssrf_mitigation is enabled.
+		// link-local addresses (which includes cloud provider instance
+		// metadata endpoints such as 169.254.169.254) are never a
+		// legitimate tracker target and are unconditionally blocked. A
+		// loopback address is only blocked if the request doesn't look
+		// like a standard BitTorrent announce (the /announce path prefix)
+		// -- this allows local test trackers, while still preventing a
+		// tracker URL (or a follower coalescing onto an already-connected
+		// loopback address with a different path, e.g. a scrape) from
+		// being used to make arbitrary requests against services running
+		// on localhost. Used both by on_filter() (the initial,
 		// per-endpoint-list check at resolve time) and send_request() (a
 		// per-dispatch check, since followers reusing a connection never
 		// go through on_filter() again).
-		bool ssrf_blocks(bool const ssrf_mitigation, address const& addr, string_view const path)
+		bool ssrf_blocks(address const& addr, string_view const path)
 		{
-			return ssrf_mitigation && aux::is_loopback(addr) && path.substr(0, 9) != "/announce";
+			if (aux::is_link_local(addr))
+				return true;
+			return aux::is_loopback(addr) && path.substr(0, 9) != "/announce";
 		}
 	}
 
@@ -124,7 +132,7 @@ namespace libtorrent::aux {
 			error_code ec;
 			std::tie(std::ignore, std::ignore, std::ignore, std::ignore, path) =
 				parse_url_components(url, ec);
-			if (!ec && ssrf_blocks(ssrf_mitigation, m_tracker_ip, path))
+			if (!ec && ssrf_blocks(m_tracker_ip, path))
 			{
 				fail(errors::ssrf_mitigation, operation_t::bittorrent);
 				return;
@@ -578,9 +586,8 @@ namespace libtorrent::aux {
 		auto const ls = bind_socket();
 		if (ls.get() != nullptr)
 		{
-			endpoints.erase(std::remove_if(endpoints.begin(), endpoints.end()
-				, [&](tcp::endpoint const& ep) { return !ls.can_route(ep.address()); })
-				, endpoints.end());
+			std::erase_if(
+				endpoints, [&](tcp::endpoint const& ep) { return !ls.can_route(ep.address()); });
 		}
 
 		if (endpoints.empty())
@@ -594,12 +601,15 @@ namespace libtorrent::aux {
 		if (ssrf_mitigation
 			&& std::find_if(endpoints.begin(),
 				   endpoints.end(),
-				   [](tcp::endpoint const& ep) { return aux::is_loopback(ep.address()); })
+				   [](tcp::endpoint const& ep) {
+					   return aux::is_link_local(ep.address()) || aux::is_loopback(ep.address());
+				   })
 				!= endpoints.end())
 		{
-			// there is at least one loopback address in here. Parse the path
-			// once and remove any endpoint ssrf_blocks() rejects for it (see
-			// that function for the actual mitigation logic).
+			// there is at least one link-local or loopback address in here.
+			// Parse the path once and remove any endpoint that's rejected by
+			// ssrf_blocks() (see that function for the actual mitigation
+			// logic).
 			std::string path;
 
 			error_code ec;
@@ -611,12 +621,8 @@ namespace libtorrent::aux {
 				return;
 			}
 
-			endpoints.erase(std::remove_if(endpoints.begin(),
-								endpoints.end(),
-								[&](tcp::endpoint const& ep) {
-									return ssrf_blocks(ssrf_mitigation, ep.address(), path);
-								}),
-				endpoints.end());
+			std::erase_if(endpoints,
+				[&](tcp::endpoint const& ep) { return ssrf_blocks(ep.address(), path); });
 
 			if (endpoints.empty())
 			{
