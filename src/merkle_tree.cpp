@@ -329,6 +329,16 @@ namespace {
 		// TODO: this can be optimized by using m_tree as storage to fill this
 		// tree into, and then clear it if the hashes fail
 		int const leaf_count = merkle_num_leafs(int(hashes.size()));
+
+		// hashes.size() (and so leaf_count, once rounded up to a power of 2)
+		// is not bounds-checked against the destination layer by the caller,
+		// only the un-rounded count is. Reject any request whose padded span
+		// would run past the end of the layer it's inserted into.
+		int const dest_layer_size = 1 << merkle_get_layer(dest_start_idx);
+		int const dest_layer_offset = merkle_get_layer_offset(dest_start_idx);
+		if (dest_layer_offset + leaf_count > dest_layer_size)
+			return {};
+
 		aux::vector<sha256_hash> tree(merkle_num_nodes(leaf_count));
 		std::copy(hashes.begin(), hashes.end(), tree.end() - leaf_count);
 
@@ -338,6 +348,12 @@ namespace {
 			int const leaf_layer_size = num_leafs();
 			// assuming uncle_hashes lead all the way to the root, they tell us
 			// how many layers down we are
+			// uncle_hashes.size() is caller-controlled; bound it before using it
+			// as a shift exponent below, it's otherwise unrelated to leaf_count
+			int const max_proof_layers =
+				merkle_num_layers(leaf_layer_size) - merkle_num_layers(leaf_count);
+			if (uncle_hashes.size() > max_proof_layers)
+				return {};
 			int const insert_layer_size = leaf_count << uncle_hashes.size();
 			if (leaf_layer_size != insert_layer_size)
 			{
