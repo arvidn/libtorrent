@@ -999,6 +999,14 @@ namespace aux {
 			// tracker request to loopback will be rejected. This applies to
 			// trackers that redirect to loopback as well.
 			//
+			// HTTP(S) tracker requests to a link-local address (including
+			// cloud provider instance metadata endpoints) are always
+			// rejected, since no legitimate tracker is deployed there. This
+			// applies to trackers that redirect to a link-local address as
+			// well. Trackers on the rest of the local network (private IP
+			// address ranges) are not restricted, to support self-hosted
+			// trackers on a LAN.
+			//
 			// Web seeds that end up on the client's local network (i.e. in a
 			// private IP address range) may not include query string arguments.
 			// This applies to web seeds redirecting to the local network as
