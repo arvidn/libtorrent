@@ -480,7 +480,7 @@ void upnp::connect(rootdevice& d)
 #ifndef TORRENT_DISABLE_LOGGING
 		log("connection failed to: %s %s", d.url.c_str(), exc.what());
 #endif
-		d.disabled = true;
+		disable_device(d, errors::http_parse_error);
 	}
 }
 
