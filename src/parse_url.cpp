@@ -240,7 +240,8 @@ exit:
 			&& std::get<2>(oa) == std::get<2>(ob);
 	}
 
-	bool is_valid_tracker_url(string_view const url)
+	bool is_valid_url(
+		string_view const url, std::initializer_list<string_view> const allowed_schemes)
 	{
 		if (url.empty())
 		{
@@ -255,18 +256,26 @@ exit:
 			if (uc <= 0x20 || uc == 0x7f) return false;
 		}
 
-		if (!string_begins_no_case("http://", url) && !string_begins_no_case("https://", url)
-#if TORRENT_USE_RTC
-			&& !string_begins_no_case("wss://", url) && !string_begins_no_case("ws://", url)
-#endif
-			&& !string_begins_no_case("udp://", url))
-		{
+		bool const scheme_ok = std::any_of(allowed_schemes.begin(),
+			allowed_schemes.end(),
+			[url](string_view const scheme) { return string_begins_no_case(scheme, url); });
+		if (!scheme_ok)
 			return false;
-		}
 
 		error_code ec;
 		parse_url_components(url, ec);
 		return !ec;
 	}
 
+	bool is_valid_tracker_url(string_view const url)
+	{
+		return is_valid_url(url,
+			{"http://"_sv,
+				"https://"_sv,
+#if TORRENT_USE_RTC
+				"ws://"_sv,
+				"wss://"_sv,
+#endif
+				"udp://"_sv});
+	}
 }

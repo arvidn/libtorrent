@@ -1181,13 +1181,13 @@ MUTABLE_TEST_TORRENTS = \
   test3_pad_files.torrent
 
 TEST_EXTRA = Jamfile \
-  Jamfile                    \
   CMakeLists.txt             \
   $(addprefix test_torrents/,${TEST_TORRENTS}) \
   $(addprefix mutable_test_torrents/,${MUTABLE_TEST_TORRENTS}) \
   root1.xml                          \
   root2.xml                          \
   root3.xml                          \
+  root_bad_control_url.xml           \
   ssl/regenerate_test_certificate.sh \
   ssl/dhparams.pem                   \
   ssl/invalid_peer_certificate.pem   \
@@ -1207,10 +1207,7 @@ TEST_EXTRA = Jamfile \
   web_server.py \
   websocket_server.py \
   socks.py \
-  http_proxy.py \
-  root1.xml \
-  root2.xml \
-  root3.xml
+  http_proxy.py
 
 dist: FORCE
 	(cd docs; make)

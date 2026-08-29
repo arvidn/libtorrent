@@ -137,34 +137,33 @@ bool wait_for(
 	}
 }
 
-	struct upnp_callback final : aux::portmap_callback
+struct upnp_callback final : aux::portmap_callback
+{
+	void on_port_mapping(port_mapping_t const mapping,
+		address const& ip,
+		int port,
+		portmap_protocol const protocol,
+		error_code const& err,
+		portmap_transport,
+		aux::listen_socket_handle const&) override
 	{
-		void on_port_mapping(port_mapping_t const mapping
-			, address const& ip, int port
-			, portmap_protocol const protocol, error_code const& err
-			, portmap_transport, aux::listen_socket_handle const&) override
-		{
-			callback_info info = {mapping, port, err};
-			callbacks.push_back(info);
-			std::cout << "mapping: " << static_cast<int>(mapping)
-				<< ", port: " << port << ", IP: " << ip
-				<< ", proto: " << static_cast<int>(protocol)
-				<< ", error: \"" << err.message() << "\"\n";
-		}
-	#ifndef TORRENT_DISABLE_LOGGING
-		bool should_log_portmap(portmap_transport) const override
-		{
-			return true;
-		}
+		callback_info info = {mapping, port, err};
+		callbacks.push_back(info);
+		std::cout << "mapping: " << static_cast<int>(mapping) << ", port: " << port
+				  << ", IP: " << ip << ", proto: " << static_cast<int>(protocol) << ", error: \""
+				  << err.message() << "\"\n";
+	}
+#ifndef TORRENT_DISABLE_LOGGING
+	bool should_log_portmap(portmap_transport) const override { return true; }
 
-		void log_portmap(portmap_transport, char const* msg
-			, aux::listen_socket_handle const&) const override
-		{
-			std::cout << "UPnP: " << msg << std::endl;
-			g_log_messages.emplace_back(msg);
-		}
-	#endif
-	};
+	void log_portmap(
+		portmap_transport, char const* msg, aux::listen_socket_handle const&) const override
+	{
+		std::cout << "UPnP: " << msg << std::endl;
+		g_log_messages.emplace_back(msg);
+	}
+#endif
+};
 
 aux::ip_interface pick_upnp_interface()
 {
@@ -408,7 +407,121 @@ void run_upnp_ssrf_test()
 }
 #endif // TORRENT_DISABLE_LOGGING
 
+// runs a device description advertising a malformed control URL (an
+// injection attempt, or an unsupported scheme) for its WANIPConnection
+// service, and verifies upnp.cpp rejects it outright rather than acting on
+// it: no port mapping ever succeeds through that device.
+void run_upnp_reject_test(char const* root_filename)
+{
+	auto const ipf = pick_upnp_interface();
+	g_local_address = ipf.interface_address.to_string();
+
+	g_port = start_web_server();
+
+	std::vector<char> buf;
+	error_code ec;
+	load_file(root_filename, buf, ec);
+	buf.push_back(0);
+
+	FILE* xml_file = fopen("upnp.xml", "w+");
+	if (xml_file == nullptr)
+	{
+		std::printf("failed to open file 'upnp.xml': %s\n", strerror(errno));
+		TEST_CHECK(false);
+		stop_web_server();
+		return;
+	}
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wformat-nonliteral"
+#endif
+	std::fprintf(xml_file, &buf[0], g_local_address.c_str(), g_port);
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+	fclose(xml_file);
+
+	lt::io_context ios;
+	// its udp::sockets reference ios during teardown, so must precede it here
+	broadcast_socket sock(uep("239.255.255.250", 1900));
+	aux::session_settings sett;
+
+	sock.open([&sock](udp::endpoint const& from,
+				  span<char const> buffer) { incoming_msearch(sock, from, buffer); },
+		ios,
+		ec);
+
+	upnp_callback cb;
+	auto upnp_handler = std::make_shared<upnp>(ios,
+		sett,
+		cb,
+		ipf.interface_address.to_v4(),
+		ipf.netmask.to_v4(),
+		ipf.name,
+		aux::listen_socket_handle());
+	upnp_handler->start();
+
+	if (!wait_for(ios, lt::seconds(5), [&] { return !upnp_handler->router_model().empty(); }))
+	{
+		TEST_ERROR("timed out waiting for router discovery");
+		upnp_handler->close();
+		sock.close();
+		stop_web_server();
+		return;
+	}
+
+	// the device itself is discovered (router_model() is populated from the
+	// device description before the control URL is validated), but its
+	// WANIPConnection control URL is rejected, so no mapping can ever be
+	// requested through it
+	std::cout << "router: " << upnp_handler->router_model() << std::endl;
+
+	auto const mapping1 = upnp_handler->add_mapping(
+		portmap_protocol::tcp, 500, tcp::endpoint(ipf.interface_address.to_v4(), 500), "");
+	TORRENT_UNUSED(mapping1);
+
+#ifndef TORRENT_DISABLE_LOGGING
+	// the malformed control URL must have been rejected. This is checked via
+	// the log rather than the callback/mapping count: on a machine where a
+	// real UPnP router is reachable on the same network, that router also
+	// answers the discovery broadcast and may complete a real mapping of its
+	// own, which would make a callback-count assertion depend on unrelated
+	// network state instead of on this fake device's (rejected) response.
+	auto const rejected = [&] {
+		return std::any_of(g_log_messages.begin(), g_log_messages.end(), [](std::string const& m) {
+			return m.find("rejecting invalid control URL") != std::string::npos
+				&& m.find("udp://") != std::string::npos;
+		});
+	};
+	if (!wait_for(ios, lt::seconds(5), rejected))
+		TEST_ERROR("timed out waiting for the malformed control URL to be rejected");
+#else
+	for (int i = 0; i < 40; ++i)
+	{
+		ios.restart();
+		ios.run_for(lt::milliseconds(100));
+	}
+#endif
+
+	upnp_handler->close();
+	sock.close();
+	stop_web_server();
+
+	callbacks.clear();
+#ifndef TORRENT_DISABLE_LOGGING
+	g_log_messages.clear();
+#endif
+}
+
 } // anonymous namespace
+
+TORRENT_TEST(upnp_invalid_control_url_scheme)
+{
+	// the WANIPConnection controlURL uses udp://, which is meaningless for
+	// UPnP SOAP control requests (always plain HTTP(S)); upnp.cpp must
+	// reject it rather than trying to connect to it
+	run_upnp_reject_test(combine_path("..", "root_bad_control_url.xml").c_str());
+}
 
 TORRENT_TEST(upnp_wipconn)
 {

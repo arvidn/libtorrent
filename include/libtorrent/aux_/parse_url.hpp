@@ -15,6 +15,7 @@ see LICENSE file.
 
 #include <tuple>
 #include <string>
+#include <initializer_list>
 
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/error_code.hpp"
@@ -40,6 +41,13 @@ namespace libtorrent::aux {
 	// arguments are "info_hash", "port", "key", "event", "uploaded",
 	// "downloaded", "left" or "corrupt".
 	TORRENT_EXTRA_EXPORT bool has_tracker_query_string(string_view query_string);
+
+	// returns true if url contains no control characters or space (which
+	// would allow HTTP header/CRLF injection), starts with one of
+	// allowed_schemes (each including the trailing "://", e.g. "http://"),
+	// and parses successfully via parse_url_components()
+	TORRENT_EXTRA_EXPORT bool is_valid_url(
+		string_view url, std::initializer_list<string_view> allowed_schemes);
 
 	// returns true if the url is a valid tracker url (http, https, udp, ws, wss)
 	TORRENT_EXTRA_EXPORT bool is_valid_tracker_url(string_view url);
