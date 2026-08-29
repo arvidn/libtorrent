@@ -319,7 +319,7 @@ A disk job is essentially one of:
 	elevator cursor moving up and down along the ordered queue of read jobs. If
 	we have enough space in the cache we'll read read_cache_line_size number of
 	blocks and stick those in the cache. This defaults to 32 blocks. If the
-	system supports asynchronous I/O (Windows, Linux, Mac OS X, BSD, Solars for
+	system supports asynchronous I/O (Windows, Linux, Mac OS X, BSD, Solaris for
 	instance), jobs will be issued immediately to the OS. This especially
 	increases read throughput, since the OS has a much greater flexibility to
 	reorder the read jobs.

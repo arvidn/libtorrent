@@ -1,0 +1,8 @@
+{
+    "name": "libtorrent-docs",
+    "private": true,
+    "description": "Spell-checking tooling for the libtorrent documentation build",
+    "devDependencies": {
+        "cspell": "8.19.4"
+    }
+}

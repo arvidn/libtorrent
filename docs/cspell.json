@@ -1,0 +1,21 @@
+{
+    "$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
+    "version": "0.2",
+    "language": "en",
+    "dictionaryDefinitions": [
+        {
+            "name": "libtorrent-terms",
+            "path": "./settings.dic",
+            "addWords": false
+        },
+        {
+            "name": "libtorrent-version",
+            "path": "./version.dic",
+            "addWords": false
+        }
+    ],
+    "dictionaries": [
+        "libtorrent-terms",
+        "libtorrent-version"
+    ]
+}

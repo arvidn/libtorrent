@@ -71,22 +71,32 @@ blocks stripped out. This is what the spell checker runs over.
 | Script | Output | Source |
 |--------|--------|--------|
 | `gen_reference_doc.py` | `reference-*.rst`, `reference.rst`, `single-page-ref.rst`, `plain_text_out.txt` | public headers |
-| `gen_settings_doc.py` | `settings.rst` + appends settings names to `hunspell/settings.dic` | `settings_pack.hpp` |
+| `gen_settings_doc.py` | `settings.rst` + appends settings names to `settings.dic` | `settings_pack.hpp` |
 | `gen_stats_doc.py` | `stats_counters.rst` | `session_stats.cpp`, `performance_counters.hpp` |
 | `gen_todo.py` | `todo.html` | `src/*.cpp`, headers |
 | `filter-rst.py` | `*-plain.txt` (prose-only) | a hand-written `.rst` file |
 
 `gen_settings_doc.py` doubles as a dictionary source: it splits every setting
-name on `_` and adds the parts to `hunspell/settings.dic`, so setting-name
+name on `_` and adds the parts to `settings.dic`, so setting-name
 fragments are not flagged as misspellings.
 
-## Spell Checking (hunspell)
+## Spell Checking (cspell)
 
-Spell checking uses **hunspell**, run via `make spell-check` from `docs/`:
+Spell checking uses **[cspell](https://cspell.org/)**, run via `make spell-check`
+from `docs/`. cspell is pinned to an exact version via `docs/package.json` +
+`docs/package-lock.json` (the lockfile records a sha512 integrity hash for
+every package in cspell's dependency tree, not just cspell itself), so
+install it once with `npm ci` before running the checker for the first time
+or after the pin changes:
 
 ```sh
+cd docs && npm ci
 cd docs && make spell-check
 ```
+
+`docs/makefile` invokes the locally-installed binary at
+`node_modules/.bin/cspell` (overridable via `make CSPELL=cspell spell-check`
+to use a system-wide install instead).
 
 The flow:
 1. Generated reference prose is in `plain_text_out.txt` (from
@@ -95,20 +105,23 @@ The flow:
    `filter-rst.py` (e.g. `manual.rst` -> `manual-plain.txt`). `filter-rst.py`
    strips RST directives (`.. ` lines) and indented literal/code blocks so
    only natural-language text remains.
-3. `hunspell -l` lists misspelled words from each plain-text file into
-   `hunspell-report.txt`, using dictionary `hunspell/en_US` plus the project
-   word list `hunspell/libtorrent.dic` (settings text uses the generated
-   `hunspell/settings.dic`). HTML manuals are checked with `-H` (HTML mode).
-4. If `hunspell-report.txt` is non-empty the target **fails** and prints the
-   offending words.
+3. `cspell` checks every plain-text file plus the built HTML manuals in one
+   invocation, using `docs/cspell.json` (which loads the project word list
+   `settings.dic`, a superset of `libtorrent.dic` with
+   setting-name fragments added). cspell reports each misspelling as
+   `file:line:col`, unlike the old hunspell-based check, which only produced a
+   flat, location-less word list.
+4. `cspell` exits non-zero on any misspelling, which fails the `make` target
+   directly.
 
 ### Fixing spell-check failures
 
 Either correct the typo in the source, or -- if the word is a real term,
-identifier, or acronym -- add it to **`docs/hunspell/libtorrent.dic`** (one
-word per line). `hunspell/en_US.{aff,dic}` is the stock English dictionary and
-should not be edited. `hunspell/settings.dic` is generated (en_US + the
-settings names + a copy of `libtorrent.dic`); do not hand-edit it.
+identifier, or acronym -- add it to **`docs/libtorrent.dic`** (one
+word per line). `docs/settings.dic` is generated (setting-name
+fragments + a copy of `libtorrent.dic`); do not hand-edit it. cspell's stock
+English dictionaries are bundled with the tool and are not vendored in the
+repo.
 
 ## Building the HTML
 
@@ -125,10 +138,11 @@ the checked-in hand-written `.rst` manuals).
 
 ## CI
 
-`.github/workflows/docs.yml` installs `python3-docutils`, `hunspell`,
-`graphviz`, `imagemagick`, `aafigure`, etc., then runs
-`make spell-check html`. A documentation warning, an undocumented public
-symbol, a `TODO:` in a doc comment, or a spelling error all fail the build.
+`.github/workflows/docs.yml` installs `python3-docutils`, `graphviz`,
+`imagemagick`, `aafigure`, etc., runs `npm ci` in `docs/` to install the
+pinned `cspell`, then runs `make spell-check html`. A documentation warning,
+an undocumented public symbol, a `TODO:` in a doc comment, or a spelling
+error all fail the build.
 
 ## Key Files
 
@@ -139,6 +153,8 @@ symbol, a `TODO:` in a doc comment, or a spelling error all fail the build.
 | `docs/gen_stats_doc.py` | `stats_counters.rst` |
 | `docs/filter-rst.py` | strip RST markup to prose for spell checking |
 | `docs/makefile` | `html`, `rst`, `spell-check`, `stage`, `clean` targets |
-| `docs/hunspell/libtorrent.dic` | project word list (edit to whitelist terms) |
-| `docs/hunspell/en_US.{aff,dic}` | stock English dictionary (do not edit) |
+| `docs/cspell.json` | cspell config (loads `settings.dic`) |
+| `docs/package.json` / `docs/package-lock.json` | pins cspell + its dependency tree by version and integrity hash |
+| `docs/libtorrent.dic` | project word list (edit to whitelist terms) |
+| `docs/settings.dic` | generated: `libtorrent.dic` + setting-name fragments |
 | `.github/workflows/docs.yml` | CI: spell-check + build |

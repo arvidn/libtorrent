@@ -73,6 +73,9 @@ dist
 # python binary
 bindings/python/compile_cmd
 
+# node/npm
+docs/node_modules
+
 # binaries in the examples directory
 examples/bt_get
 examples/bt_get2
