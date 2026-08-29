@@ -19,7 +19,6 @@ see LICENSE file.
 #include <algorithm>
 #include <numeric>
 #include <limits>
-#include <functional>
 #include <tuple>
 
 #include "libtorrent/aux_/piece_picker.hpp"
@@ -42,8 +41,6 @@ see LICENSE file.
 
 // this is really only useful for debugging unit tests
 //#define TORRENT_PICKER_LOG
-
-using namespace std::placeholders;
 
 namespace {
 template <typename C, typename V>
@@ -2029,6 +2026,8 @@ namespace {
 			TORRENT_ALLOCA(ordered_partials, downloading_piece const*
 				, m_downloads[piece_pos::piece_downloading].size());
 			int num_ordered_partials = 0;
+			std::int64_t num_free_blocks = 0;
+			bool has_unusable_partials = false;
 
 			// now, copy over the pointers. We also apply a filter here to not
 			// include ineligible pieces in certain modes. For instance, a piece
@@ -2042,31 +2041,63 @@ namespace {
 				TORRENT_ASSERT(m_piece_map[dp.index].download_queue()
 					== piece_pos::piece_downloading);
 
+				int const free_blocks =
+					blocks_in_piece(dp.index) - dp.finished - dp.writing - dp.requested;
+				TORRENT_ASSERT(free_blocks >= 0);
+
 				ordered_partials[num_ordered_partials++] = &dp;
+				num_free_blocks += free_blocks;
+				has_unusable_partials |= dp.locked || free_blocks == 0;
 			}
 
-			// now, sort the list.
+			auto const partial_less = [this](downloading_piece const* lhs,
+										  downloading_piece const* rhs) {
+				return partial_compare_rarest_first(lhs, rhs);
+			};
+			auto const heap_compare = [&partial_less](downloading_piece const* lhs,
+										  downloading_piece const* rhs) {
+				return partial_less(rhs, lhs);
+			};
+			auto heap_end = ordered_partials.begin() + num_ordered_partials;
+			constexpr std::int64_t partial_heap_capacity_ratio = 10;
+			bool const use_heap = !(options & on_parole) && !has_unusable_partials
+				&& std::int64_t(num_blocks) * partial_heap_capacity_ratio < num_free_blocks;
+
 			if (options & rarest_first)
 			{
 				ret |= picker_log_alert::rarest_first_partials;
 
-				// TODO: this could probably be optimized by incrementally
-				// calling partial_sort to sort one more element in the list. Because
-				// chances are that we'll just need a single piece, and once we've
-				// picked from it we're done. Sorting the rest of the list in that
-				// case is a waste of time.
-				std::sort(ordered_partials.begin(), ordered_partials.begin() + num_ordered_partials
-					, std::bind(&piece_picker::partial_compare_rarest_first, this
-						, _1, _2));
+				// A heap avoids ordering partials we won't consume. Once the
+				// request reaches a tenth of their free-block capacity, sorting is
+				// cheaper than repeatedly restoring the heap. Keep the sorted scan
+				// when candidates may be rejected or the peer is on parole.
+				if (use_heap)
+					std::make_heap(ordered_partials.begin(), heap_end, heap_compare);
+				else
+					std::sort(ordered_partials.begin(), heap_end, partial_less);
 			}
 
 			for (int i = 0; i < num_ordered_partials; ++i)
 			{
+				if ((options & rarest_first) && use_heap && i > 0)
+				{
+					std::pop_heap(ordered_partials.begin(), heap_end, heap_compare);
+					--heap_end;
+				}
+				auto const* partial = ((options & rarest_first) && use_heap)
+					? ordered_partials.front()
+					: ordered_partials[i];
+
 				ret |= picker_log_alert::prioritize_partials;
 
-				num_blocks = add_blocks_downloading(*ordered_partials[i], pieces
-					, interesting_blocks, backup_blocks
-					, num_blocks, prefer_contiguous_blocks, peer, options);
+				num_blocks = add_blocks_downloading(*partial,
+					pieces,
+					interesting_blocks,
+					backup_blocks,
+					num_blocks,
+					prefer_contiguous_blocks,
+					peer,
+					options);
 				if (num_blocks <= 0) return ret;
 				if (int(backup_blocks.size()) >= num_blocks)
 					break;
