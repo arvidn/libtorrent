@@ -38,6 +38,7 @@ see LICENSE file.
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/aux_/pe_crypto.hpp"
 #include "libtorrent/aux_/piece_picker.hpp"
+#include "libtorrent/aux_/torrent_peer.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/ip_filter.hpp"
@@ -171,6 +172,7 @@ namespace pp_bench {
 	using lt::piece_block;
 	using lt::piece_index_t;
 	using lt::typed_bitfield;
+	using lt::aux::ipv4_peer;
 	using lt::aux::piece_picker;
 
 	constexpr int num_pieces = 100000;
@@ -199,6 +201,17 @@ namespace pp_bench {
 	{
 		counters pc;
 		std::vector<piece_index_t> const empty_suggested;
+		lt::tcp::endpoint const endpoint;
+		std::array<ipv4_peer, 8> peers = {{
+			ipv4_peer(endpoint, false, {}),
+			ipv4_peer(endpoint, false, {}),
+			ipv4_peer(endpoint, false, {}),
+			ipv4_peer(endpoint, false, {}),
+			ipv4_peer(endpoint, false, {}),
+			ipv4_peer(endpoint, false, {}),
+			ipv4_peer(endpoint, false, {}),
+			ipv4_peer(endpoint, false, {}),
+		}};
 
 		// picks with the defaults shared by every pick_pieces() benchmark below
 		// (rarest-first, no suggestions, 20 connected peers). `picked` is
@@ -219,6 +232,22 @@ namespace pp_bench {
 				empty_suggested,
 				20,
 				pc);
+		};
+		auto const pick_partials = [&](piece_picker const& picker,
+									   typed_bitfield<piece_index_t> const& bits,
+									   int const num_blocks,
+									   std::vector<piece_block>& picked) {
+			picked.clear();
+			picker.pick_pieces(bits,
+				picked,
+				num_blocks,
+				0,
+				nullptr,
+				piece_picker::rarest_first | piece_picker::prioritize_partials,
+				empty_suggested,
+				20,
+				pc);
+			do_not_optimize(picked);
 		};
 
 		// scenario 1: inc_refcount()/dec_refcount() taking a peer's bitfield try
@@ -398,6 +427,105 @@ namespace pp_bench {
 				p.piece_priorities(prios);
 				do_not_optimize(prios);
 			}));
+		}
+
+		// scenario 8: prioritizing rare partial pieces orders every eligible
+		// partial even when the request can be satisfied by just one or a few of
+		// them. The availability levels repeat to resemble a swarm where many
+		// pieces have the same rank, while still exercising both branches of the
+		// partial-piece comparator.
+		struct partial_case
+		{
+			int count;
+			char const* one_block_name;
+			char const* few_blocks_name;
+			char const* all_blocks_name;
+		};
+		partial_case const partial_cases[] = {
+			{100,
+				"piece picker: rare partials, 100, 1 block",
+				"piece picker: rare partials, 100, 16 blocks",
+				nullptr},
+			{1000,
+				"piece picker: rare partials, 1000, 1 block",
+				"piece picker: rare partials, 1000, 16 blocks",
+				nullptr},
+			{5000,
+				"piece picker: rare partials, 5000, 1 block",
+				"piece picker: rare partials, 5000, 16 blocks",
+				"piece picker: rare partials, 5000, all blocks"},
+		};
+		for (auto const& c : partial_cases)
+		{
+			piece_picker p = make_picker();
+			for (int i = 0; i < c.count; ++i)
+			{
+				piece_index_t const piece(i);
+				for (int availability = 0; availability <= i % 8; ++availability)
+					p.inc_refcount(piece, &peers[std::size_t(availability)]);
+				p.mark_as_downloading(piece_block(piece, 0), nullptr);
+			}
+
+			typed_bitfield<piece_index_t> const all_pieces(num_pieces, true);
+			std::vector<piece_block> picked;
+
+			results.emplace_back(
+				c.one_block_name, analyze([&] { pick_partials(p, all_pieces, 1, picked); }));
+			results.emplace_back(
+				c.few_blocks_name, analyze([&] { pick_partials(p, all_pieces, 16, picked); }));
+			if (c.all_blocks_name != nullptr)
+			{
+				results.emplace_back(c.all_blocks_name,
+					analyze([&] { pick_partials(p, all_pieces, c.count * 3, picked); }));
+			}
+		}
+
+		// Exercise both sides of the heap/sort crossover with partials at
+		// different completion levels. This catches thresholds based on nominal
+		// piece capacity instead of the blocks that are actually selectable.
+		struct partial_boundary_case
+		{
+			int free_blocks;
+			char const* below_name;
+			char const* at_name;
+			char const* above_name;
+		};
+		partial_boundary_case const partial_boundary_cases[] = {
+			{1,
+				"piece picker: rare partial boundary, 1 free, below",
+				"piece picker: rare partial boundary, 1 free, at",
+				"piece picker: rare partial boundary, 1 free, above"},
+			{2,
+				"piece picker: rare partial boundary, 2 free, below",
+				"piece picker: rare partial boundary, 2 free, at",
+				"piece picker: rare partial boundary, 2 free, above"},
+			{3,
+				"piece picker: rare partial boundary, 3 free, below",
+				"piece picker: rare partial boundary, 3 free, at",
+				"piece picker: rare partial boundary, 3 free, above"},
+		};
+		for (auto const& c : partial_boundary_cases)
+		{
+			constexpr int partial_count = 1000;
+			piece_picker p = make_picker();
+			for (int i = 0; i < partial_count; ++i)
+			{
+				piece_index_t const piece(i);
+				for (int availability = 0; availability <= i % 8; ++availability)
+					p.inc_refcount(piece, &peers[std::size_t(availability)]);
+				for (int block = 0; block < 4 - c.free_blocks; ++block)
+					p.mark_as_downloading(piece_block(piece, block), nullptr);
+			}
+
+			typed_bitfield<piece_index_t> const all_pieces(num_pieces, true);
+			std::vector<piece_block> picked;
+			int const boundary = partial_count * c.free_blocks / 10;
+			results.emplace_back(
+				c.below_name, analyze([&] { pick_partials(p, all_pieces, boundary - 1, picked); }));
+			results.emplace_back(
+				c.at_name, analyze([&] { pick_partials(p, all_pieces, boundary, picked); }));
+			results.emplace_back(
+				c.above_name, analyze([&] { pick_partials(p, all_pieces, boundary + 1, picked); }));
 		}
 	}
 
