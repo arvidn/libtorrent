@@ -1111,6 +1111,24 @@ void upnp::on_upnp_xml(error_code const& e
 			+ to_string(d.port).data() + s.control_url;
 	}
 
+	// reject outright rather than sanitize: control_url is untrusted and
+	// later formatted verbatim into a raw HTTP request (see post()), so any
+	// stray characters risk header/request splicing. Unlike tracker URLs,
+	// UPnP control is always HTTP(S) SOAP, so ws(s):// and udp:// are invalid.
+	if (!aux::is_valid_url(d.control_url, {"http://"_sv, "https://"_sv}))
+	{
+#ifndef TORRENT_DISABLE_LOGGING
+		if (should_log())
+		{
+			log("rejecting invalid control URL '%s' in response from %s",
+				d.control_url.c_str(),
+				d.url.c_str());
+		}
+#endif
+		disable_device(d, errors::http_parse_error);
+		return;
+	}
+
 #ifndef TORRENT_DISABLE_LOGGING
 	if (should_log())
 	{

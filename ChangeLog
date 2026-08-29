@@ -1,5 +1,6 @@
 2.2.0 not released
 
+	* reject invalid controlURL from UPnP router
 	* deprecate file_storage::file_absolute_path()
 	* avoid copying file path strings out of the info-section
 	* drop backwards compatibility for resolving symlinks relative to their own directory
