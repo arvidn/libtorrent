@@ -64,27 +64,40 @@ namespace libtorrent::aux {
 
 		// otherwise it's likely to be just the path, or a relative path
 		std::string url = referrer;
+		std::size_t const scheme_end = url.find("://");
+
+		// the referrer is not a valid full URL
+		if (scheme_end == std::string::npos)
+			return location;
+
+		std::size_t const authority_start = scheme_end + 3;
+		std::size_t const suffix = url.find_first_of("?#", authority_start);
+		std::size_t const path_end = suffix == std::string::npos ? url.size() : suffix;
 
 		if (location[0] == '/')
 		{
 			// it's an absolute path. replace the path component of
 			// referrer with location.
 
-			// first skip the url scheme of the referer
-			std::size_t i = url.find("://");
+			// find the end of the authority without considering slashes in the
+			// query string or fragment
+			std::size_t const path_start = url.find('/', authority_start);
+			url.resize(std::min(path_start, path_end));
 
-			// if the referrer doesn't appear to have a proper URL scheme
-			// just return the location verbatim (and probably fail)
-			if (i == std::string::npos)
-				return location;
-
-			// then skip the hostname and port, it's fine for this to fail, in
-			// case the referrer doesn't have a path component, it's just the
-			// url-scheme and hostname, in which case we just append the location
-			i = url.find_first_of('/', i + 3);
-			if (i != std::string::npos)
-				url.resize(i);
-
+			url += location;
+		}
+		else if (location[0] == '?')
+		{
+			// a query reference replaces the current query and fragment
+			url.resize(path_end);
+			url += location;
+		}
+		else if (location[0] == '#')
+		{
+			// a fragment reference preserves the current path and query
+			std::size_t const fragment = url.find('#', authority_start);
+			if (fragment != std::string::npos)
+				url.resize(fragment);
 			url += location;
 		}
 		else
@@ -92,18 +105,15 @@ namespace libtorrent::aux {
 			// some web servers send out relative paths
 			// in the location header.
 
-			// remove the leaf filename
-			// first skip the url scheme of the referer
-			std::size_t start = url.find("://");
-
-			// the referrer is not a valid full URL
-			if (start == std::string::npos)
-				return location;
+			// remove the query string and fragment before finding the leaf
+			// filename
+			url.resize(path_end);
 
 			std::size_t end = url.find_last_of('/');
 			// if the / we find is part of the scheme, there is no / in the path
 			// component or hostname.
-			if (end <= start + 2) end = std::string::npos;
+			if (end <= scheme_end + 2)
+				end = std::string::npos;
 
 			// if this fails, the referrer is just url-scheme and hostname. We can
 			// just append the location to it.
@@ -646,4 +656,3 @@ restart_response:
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
-
