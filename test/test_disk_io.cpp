@@ -16,6 +16,7 @@ see LICENSE file.
 #include "setup_transfer.hpp"
 #include "test_utils.hpp"
 #include "libtorrent/disk_interface.hpp"
+#include "libtorrent/disk_observer.hpp"
 #include "libtorrent/session_params.hpp" // for disk_io_constructor_type
 #include "libtorrent/settings_pack.hpp" // for default_settings
 #include "libtorrent/flags.hpp"
@@ -36,6 +37,16 @@ namespace test_mode {
 	using lt::operator ""_bit;
 constexpr disk_test_mode_t v1 = 0_bit;
 constexpr disk_test_mode_t v2 = 1_bit;
+}
+
+namespace {
+
+struct counting_disk_observer final : lt::disk_observer
+{
+	void on_disk() override { ++calls; }
+	int calls = 0;
+};
+
 }
 
 // Create a storage for the already-populated `fs` on `disk`. `fs` must outlive
@@ -886,4 +897,80 @@ TORRENT_TEST(disk_io_partial_read_fence_pread)
 TORRENT_TEST_DISK_IO(test_pread_disk_io_stacked_fence)
 {
 	disk_io_test_suite(disk_io, 3, false, true);
+}
+
+// A storage fence owns writes until it lowers, so they have not reached the
+// disk cache when async_write() returns. They still own receive buffers and
+// must count towards max_queued_disk_bytes just like cached writes do.
+TORRENT_TEST(pread_fenced_writes_apply_back_pressure)
+{
+#ifdef TORRENT_SIMULATE_SLOW_WRITE
+	lt::io_context ios;
+	lt::counters cnt;
+	lt::settings_pack sett = lt::default_settings();
+	sett.set_int(lt::settings_pack::aio_threads, 1);
+	sett.set_int(lt::settings_pack::hashing_threads, 0);
+	sett.set_int(lt::settings_pack::max_queued_disk_bytes, 2 * lt::default_block_size);
+	auto disk_thread = lt::pread_disk_io_constructor(ios, sett, cnt);
+
+	lt::file_storage fs;
+	fs.set_piece_length(lt::default_block_size);
+	fs.add_file("fenced_back_pressure/file", 3 * lt::default_block_size, {});
+	fs.set_num_pieces(3);
+	lt::storage_holder storage =
+		add_test_torrent(*disk_thread, fs, "fenced_back_pressure_store", true, false);
+
+	int clears_done = 0;
+	int writes_done = 0;
+	auto observer = std::make_shared<counting_disk_observer>();
+	std::vector<char> const buffer(std::size_t(lt::default_block_size), 'x');
+
+	// Occupy the only disk thread in a slow write. This keeps the clear-piece
+	// fence queued while the second write is synchronously parked behind it.
+	bool const first = disk_thread->async_write(
+		storage,
+		lt::peer_request{0_piece, 0, lt::default_block_size},
+		buffer.data(),
+		observer,
+		[&writes_done](lt::storage_error const& e) {
+			TEST_CHECK(!e.ec);
+			++writes_done;
+		},
+		lt::disk_interface::flush_piece);
+	TEST_EQUAL(first, false);
+	disk_thread->submit_jobs();
+
+	auto const write_deadline = lt::aux::time_now() + 10s;
+	while (cnt[lt::counters::num_writing_threads] == 0 && lt::aux::time_now() < write_deadline)
+		std::this_thread::sleep_for(1ms);
+	TEST_CHECK(cnt[lt::counters::num_writing_threads] > 0);
+
+	disk_thread->async_clear_piece(
+		storage, 2_piece, [&clears_done](lt::piece_index_t) { ++clears_done; });
+	bool const second = disk_thread->async_write(
+		storage,
+		lt::peer_request{1_piece, 0, lt::default_block_size},
+		buffer.data(),
+		observer,
+		[&writes_done](lt::storage_error const& e) {
+			TEST_CHECK(!e.ec);
+			++writes_done;
+		},
+		lt::disk_interface::flush_piece);
+
+	TEST_EQUAL(second, true);
+	TEST_EQUAL(observer->calls, 0);
+	TEST_CHECK(cnt[lt::counters::blocked_disk_jobs] > 0);
+
+	disk_thread->submit_jobs();
+	auto const deadline = lt::aux::time_now() + 20s;
+	while ((clears_done != 1 || writes_done != 2 || observer->calls != 1)
+		&& lt::aux::time_now() < deadline)
+		ios.run_for(5ms);
+
+	TEST_EQUAL(clears_done, 1);
+	TEST_EQUAL(writes_done, 2);
+	TEST_EQUAL(observer->calls, 1);
+	disk_thread->abort(true);
+#endif // TORRENT_SIMULATE_SLOW_WRITE
 }
