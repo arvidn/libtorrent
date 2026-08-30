@@ -256,6 +256,10 @@ namespace libtorrent {
 			num_leafs /= 2;
 		}
 
+		// if this fires, leaves was larger than num_leafs, i.e. the caller
+		// passed in more leaves than it claimed, and they were silently
+		// hashed in anyway instead of being ignored
+		TORRENT_ASSERT(leaves.size() == 1);
 		return scratch_space[0];
 	}
 
