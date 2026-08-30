@@ -1182,6 +1182,9 @@ void bind_session()
 			lt::path_sanitize_flags::sanitize_invalid_chars_android;
 		s.attr("filter_unicode_formatting_chars") =
 			lt::path_sanitize_flags::filter_unicode_formatting_chars;
+		s.attr("libtorrent_2_0") = lt::path_sanitize_flags::libtorrent_2_0;
+		s.attr("libtorrent_2_1") = lt::path_sanitize_flags::libtorrent_2_1;
+		s.attr("libtorrent_2_2") = lt::path_sanitize_flags::libtorrent_2_2;
 		s.attr("default_flags") = lt::path_sanitize_flags::default_flags;
 		s.attr("all") = lt::path_sanitize_flags::all;
 	}

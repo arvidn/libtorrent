@@ -2223,6 +2223,9 @@ class path_sanitize_flags(metaclass=_BoostBaseClass):
     default_flags: int
     filter_dos_reserved_names: int
     filter_unicode_formatting_chars: int
+    libtorrent_2_0: int
+    libtorrent_2_1: int
+    libtorrent_2_2: int
     limit_unicode_characters: int
     sanitize_invalid_chars_android: int
     sanitize_invalid_chars_win: int
@@ -4768,6 +4771,7 @@ class load_torrent_limits(dict):
     max_pieces: Literal[0x200000]
     max_decode_depth: Literal[100]
     max_decode_tokens: Literal[3000000]
+    sanitize_flags: int
 
 class tracker_source(int):
     source_client: int
