@@ -95,13 +95,21 @@ namespace {
 
 	struct stack_frame
 	{
-		stack_frame() : token(0), state(0) {}
-		explicit stack_frame(int const t): token(std::uint32_t(t)), state(0) {}
+		stack_frame() = default;
+		explicit stack_frame(int const t)
+			: token(std::uint32_t(t))
+		{}
 		// this is an index into m_tokens
-		std::uint32_t token:31;
+		std::uint32_t token:31 = 0;
 		// this is used for dictionaries to indicate whether we're
-		// reading a key or a vale. 0 means key 1 is value
-		std::uint32_t state:1;
+		// reading a key or a value. 0 means key 1 is value
+		std::uint32_t state:1 = 0;
+
+		// index, into m_tokens, of the most recently parsed key in this
+		// dict. used to check sort order and duplicates against the next
+		// key as it's parsed. -1 means no key has been parsed yet in this
+		// dict.
+		std::int32_t prev_key_token = -1;
 	};
 
 	// diff between current and next item offset
@@ -222,6 +230,7 @@ namespace aux {
 	bdecode_node::bdecode_node(bdecode_node const& n)
 		: m_tokens(n.m_tokens)
 		, m_root_tokens(n.m_root_tokens)
+		, m_has_soft_error(n.m_has_soft_error)
 		, m_buffer(n.m_buffer)
 		, m_token_idx(n.m_token_idx)
 		, m_last_index(n.m_last_index)
@@ -236,6 +245,7 @@ namespace aux {
 		if (&n == this) return *this;
 		m_tokens = n.m_tokens;
 		m_root_tokens = n.m_root_tokens;
+		m_has_soft_error = n.m_has_soft_error;
 		m_buffer = n.m_buffer;
 		m_token_idx = n.m_token_idx;
 		m_last_index = n.m_last_index;
@@ -252,8 +262,10 @@ namespace aux {
 
 	bdecode_node::bdecode_node(bdecode_node&&) noexcept = default;
 
-	bdecode_node::bdecode_node(bdecode_token const* tokens, span<char const> buf, int idx)
+	bdecode_node::bdecode_node(
+		bdecode_token const* tokens, bool has_soft_error, span<char const> buf, int idx)
 		: m_root_tokens(tokens)
+		, m_has_soft_error(has_soft_error)
 		, m_buffer(buf)
 		, m_token_idx(idx)
 	{
@@ -268,13 +280,14 @@ namespace aux {
 
 		// otherwise, return a reference to this node, but without
 		// being an owning root node
-		return {m_tokens.data(), m_buffer, m_token_idx};
+		return {m_tokens.data(), m_has_soft_error, m_buffer, m_token_idx};
 	}
 
 	void bdecode_node::clear()
 	{
 		m_tokens.clear();
 		m_root_tokens = nullptr;
+		m_has_soft_error = false;
 		m_token_idx = -1;
 		m_size = -1;
 		m_last_index = -1;
@@ -292,92 +305,11 @@ namespace aux {
 	bool bdecode_node::has_soft_error(span<char> error) const
 	{
 		if (type() == none_t) return false;
+		if (!m_has_soft_error)
+			return false;
 
-		bdecode_token const* tokens = m_root_tokens;
-		int token = m_token_idx;
-
-		// we don't know what the original depth_limit was
-		// so this has to go on the heap
-		std::vector<int> stack;
-		// make the initial allocation the default depth_limit
-		stack.reserve(100);
-
-		do
-		{
-			switch (tokens[token].type)
-			{
-			case bdecode_token::integer:
-				if (m_buffer[tokens[token].offset + 1] == '0'
-					&& m_buffer[tokens[token].offset + 2] != 'e')
-				{
-					std::snprintf(error.data(), std::size_t(error.size()), "leading zero in integer");
-					return true;
-				}
-				break;
-			case bdecode_token::string:
-			case bdecode_token::long_string:
-				if (m_buffer[tokens[token].offset] == '0'
-					&& m_buffer[tokens[token].offset + 1] != ':')
-				{
-					std::snprintf(error.data(), std::size_t(error.size()), "leading zero in string length");
-					return true;
-				}
-				break;
-			case bdecode_token::dict:
-			case bdecode_token::list:
-				stack.push_back(token);
-				break;
-			case bdecode_token::end:
-				auto const parent = stack.back();
-				stack.pop_back();
-				if (tokens[parent].type == bdecode_token::dict
-					&& token != parent + 1)
-				{
-					// this is the end of a non-empty dict
-					// check the sort order of the keys
-					int k1 = parent + 1;
-					for (;;)
-					{
-						// skip to the first key's value
-						int const v1 = k1 + tokens[k1].next_item;
-						// then to the next key
-						int const k2 = v1 + tokens[v1].next_item;
-
-						// check if k1 was the last key in the dict
-						if (k2 == token)
-							break;
-
-						int const v2 = k2 + tokens[k2].next_item;
-
-						int const k1_start = tokens[k1].offset + tokens[k1].start_offset();
-						int const k1_len = tokens[v1].offset - k1_start;
-						int const k2_start = tokens[k2].offset + tokens[k2].start_offset();
-						int const k2_len = tokens[v2].offset - k2_start;
-
-						int const min_len = std::min(k1_len, k2_len);
-						int const cmp = std::memcmp(m_buffer.data() + k1_start,
-							m_buffer.data() + k2_start,
-							std::size_t(min_len));
-						if (cmp > 0 || (cmp == 0 && k1_len > k2_len))
-						{
-							std::snprintf(error.data(), std::size_t(error.size()), "unsorted dictionary key");
-							return true;
-						}
-						else if (cmp == 0 && k1_len == k2_len)
-						{
-							std::snprintf(error.data(), std::size_t(error.size()), "duplicate dictionary key");
-							return true;
-						}
-
-						k1 = k2;
-					}
-				}
-				break;
-			}
-
-			++token;
-		} while (!stack.empty());
-		return false;
+		std::snprintf(error.data(), std::size_t(error.size()), "%s", "non-canonical bencoding");
+		return true;
 	}
 
 	bdecode_node::type_t bdecode_node::type() const noexcept
@@ -440,7 +372,7 @@ namespace aux {
 		m_last_token = token;
 		m_last_index = i;
 
-		return {tokens, m_buffer, token};
+		return {tokens, m_has_soft_error, m_buffer, token};
 	}
 
 	string_view bdecode_node::list_string_value_at(int i
@@ -495,7 +427,7 @@ namespace aux {
 		TORRENT_ASSERT(type() == list_t);
 		TORRENT_ASSERT(m_root_tokens[m_token_idx].type == bdecode_token::list);
 
-		return {m_root_tokens, m_buffer, m_token_idx + 1};
+		return {m_root_tokens, m_has_soft_error, m_buffer, m_token_idx + 1};
 	}
 
 	std::pair<bdecode_node, bdecode_node> bdecode_node::dict_at_node(int i) const
@@ -544,8 +476,8 @@ namespace aux {
 		int value_token = token + tokens[token].next_item;
 		TORRENT_ASSERT(tokens[token].type != bdecode_token::end);
 
-		return std::make_pair(
-			bdecode_node(tokens, m_buffer, token), bdecode_node(tokens, m_buffer, value_token));
+		return std::make_pair(bdecode_node(tokens, m_has_soft_error, m_buffer, token),
+			bdecode_node(tokens, m_has_soft_error, m_buffer, value_token));
 	}
 
 	std::pair<string_view, bdecode_node> bdecode_node::dict_at(int const i) const
@@ -597,7 +529,7 @@ namespace aux {
 		TORRENT_ASSERT(type() == dict_t);
 		TORRENT_ASSERT(m_root_tokens[m_token_idx].type == bdecode_token::dict);
 
-		return {m_root_tokens, m_buffer, m_token_idx + 1};
+		return {m_root_tokens, m_has_soft_error, m_buffer, m_token_idx + 1};
 	}
 
 	bdecode_node bdecode_node::dict_find(string_view key) const
@@ -623,7 +555,7 @@ namespace aux {
 				token += t.next_item;
 				TORRENT_ASSERT(tokens[token].type != bdecode_token::end);
 
-				return {tokens, m_buffer, token};
+				return {tokens, m_has_soft_error, m_buffer, token};
 			}
 
 			// skip key
@@ -775,6 +707,7 @@ namespace aux {
 */
 		m_tokens.swap(n.m_tokens);
 		std::swap(m_root_tokens, n.m_root_tokens);
+		std::swap(m_has_soft_error, n.m_has_soft_error);
 		std::swap(m_buffer, n.m_buffer);
 		std::swap(m_token_idx, n.m_token_idx);
 		std::swap(m_last_index, n.m_last_index);
@@ -845,18 +778,18 @@ namespace aux {
 
 			int const current_frame = sp;
 
+			bool const in_dict = current_frame > 0
+				&& ret.m_tokens[stack[current_frame - 1].token].type == bdecode_token::dict;
+			// the current parent is a dict and we are parsing a key
+			bool const parsing_dict_key = in_dict && stack[current_frame - 1].state == 0;
+
 			// if we're currently parsing a dictionary, assert that
 			// every other node is a string.
-			if (current_frame > 0
-				&& ret.m_tokens[stack[current_frame - 1].token].type == bdecode_token::dict)
+			if (parsing_dict_key)
 			{
-				if (stack[current_frame - 1].state == 0)
-				{
-					// the current parent is a dict and we are parsing a key.
-					// only allow a digit (for a string) or 'e' to terminate
-					if (!numeric(t) && t != 'e')
-						TORRENT_FAIL_BDECODE(bdecode_errors::expected_digit);
-				}
+				// only allow a digit (for a string) or 'e' to terminate
+				if (!numeric(t) && t != 'e')
+					TORRENT_FAIL_BDECODE(bdecode_errors::expected_digit);
 			}
 
 			switch (t)
@@ -892,6 +825,11 @@ namespace aux {
 						start = int_start;
 						TORRENT_FAIL_BDECODE(e);
 					}
+					if (!ret.m_has_soft_error && int_start[1] == '0' && int_start[2] != 'e')
+					{
+						ret.m_has_soft_error = true;
+					}
+
 					ret.m_tokens.emplace_back(int_start - orig_start
 						, 1, bdecode_token::integer, 1);
 					TORRENT_ASSERT(*start == 'e');
@@ -973,6 +911,41 @@ namespace aux {
 					if (header > aux::bdecode_token::long_string_max_header)
 						TORRENT_FAIL_BDECODE(bdecode_errors::limit_exceeded);
 
+					if (!ret.m_has_soft_error && str_start[0] == '0' && str_start[1] != ':')
+					{
+						ret.m_has_soft_error = true;
+					}
+
+					// once a soft error has been found anywhere, there's no
+					// need to keep checking sort order and duplicates
+					if (parsing_dict_key && !ret.m_has_soft_error)
+					{
+						// compare this key against the previous key in this
+						// dict to check sort order and duplicates, mirroring
+						// what the BEP3 sorted-keys requirement demands
+						stack_frame& frame = stack[current_frame - 1];
+						if (frame.prev_key_token != -1)
+						{
+							// a key's token is always immediately followed by
+							// its value's token, regardless of the value's type
+							bdecode_token const& prev_key =
+								ret.m_tokens[std::size_t(frame.prev_key_token)];
+							int const prev_start = int(prev_key.offset) + prev_key.start_offset();
+							int const prev_len =
+								int(ret.m_tokens[std::size_t(frame.prev_key_token) + 1].offset)
+								- prev_start;
+							int const min_len = std::min(int(len), prev_len);
+							int const cmp =
+								std::memcmp(orig_start + prev_start, start, std::size_t(min_len));
+							if (cmp > 0 || (cmp == 0 && prev_len >= int(len)))
+							{
+								// unsorted, or a duplicate key
+								ret.m_has_soft_error = true;
+							}
+						}
+						frame.prev_key_token = int(ret.m_tokens.size());
+					}
+
 					ret.m_tokens.emplace_back(str_start - orig_start
 						, 1, bdecode_token::string, std::uint32_t(header));
 					start += len;
@@ -980,8 +953,7 @@ namespace aux {
 				}
 			}
 
-			if (current_frame > 0
-				&& ret.m_tokens[stack[current_frame - 1].token].type == bdecode_token::dict)
+			if (in_dict)
 			{
 				// the next item we parse is the opposite
 				// state is an unsigned 1-bit member. adding 1 will flip the bit

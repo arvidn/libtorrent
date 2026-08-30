@@ -196,7 +196,7 @@ TORRENT_TEST(dict)
 	TEST_EQUAL(e.dict_find_string_value("X"), "0123456789");
 	char error_string[200];
 	TEST_CHECK(e.has_soft_error(error_string));
-	TEST_EQUAL(std::string(error_string), std::string("unsorted dictionary key"));
+	TEST_EQUAL(std::string(error_string), std::string("non-canonical bencoding"));
 }
 
 // test dict_items()
@@ -350,35 +350,35 @@ TORRENT_TEST(dict_unordered_keys)
 		error_code ec;
 		bdecode_node e = bdecode(b, ec);
 		TEST_CHECK(e.has_soft_error(error_string));
-		TEST_EQUAL(std::string(error_string), std::string("unsorted dictionary key"));
+		TEST_EQUAL(std::string(error_string), std::string("non-canonical bencoding"));
 	}
 	{
 		char b[] = "d2:bai1e2:aai2ee";
 		error_code ec;
 		bdecode_node e = bdecode(b, ec);
 		TEST_CHECK(e.has_soft_error(error_string));
-		TEST_EQUAL(std::string(error_string), std::string("unsorted dictionary key"));
+		TEST_EQUAL(std::string(error_string), std::string("non-canonical bencoding"));
 	}
 	{
 		char b[] = "d2:aai1e1:ai2ee";
 		error_code ec;
 		bdecode_node e = bdecode(b, ec);
 		TEST_CHECK(e.has_soft_error(error_string));
-		TEST_EQUAL(std::string(error_string), std::string("unsorted dictionary key"));
+		TEST_EQUAL(std::string(error_string), std::string("non-canonical bencoding"));
 	}
 	{
 		char b[] = "d1:ai1e2:aai2ee";
 		error_code ec;
 		bdecode_node e = bdecode(b, ec);
 		TEST_CHECK(!e.has_soft_error(error_string));
-		TEST_EQUAL(std::string(error_string), std::string("unsorted dictionary key"));
+		TEST_EQUAL(std::string(error_string), std::string("non-canonical bencoding"));
 	}
 	{
 		char b[] = "d2:aai1e1:bi2ee";
 		error_code ec;
 		bdecode_node e = bdecode(b, ec);
 		TEST_CHECK(!e.has_soft_error(error_string));
-		TEST_EQUAL(std::string(error_string), std::string("unsorted dictionary key"));
+		TEST_EQUAL(std::string(error_string), std::string("non-canonical bencoding"));
 	}
 }
 
@@ -389,7 +389,7 @@ TORRENT_TEST(dict_duplicate_key)
 	bdecode_node e = bdecode(b, ec);
 	char error_string[200];
 	TEST_CHECK(e.has_soft_error(error_string));
-	TEST_EQUAL(std::string(error_string), std::string("duplicate dictionary key"));
+	TEST_EQUAL(std::string(error_string), std::string("non-canonical bencoding"));
 }
 
 // premature e
@@ -460,7 +460,7 @@ TORRENT_TEST(leading_zero_length_prefix)
 		bdecode_node e = bdecode(b, ec, &pos);
 		char error_string[200];
 		TEST_CHECK(e.has_soft_error(error_string));
-		TEST_EQUAL(std::string(error_string), std::string("leading zero in string length"));
+		TEST_EQUAL(std::string(error_string), std::string("non-canonical bencoding"));
 		std::printf("%s\n", print_entry(e).c_str());
 	}
 	{
@@ -554,7 +554,7 @@ TORRENT_TEST(int_leading_zero)
 		bdecode_node e = bdecode(b, ec);
 		char error_string[200];
 		TEST_CHECK(e.has_soft_error(error_string));
-		TEST_EQUAL(std::string(error_string), std::string("leading zero in integer"));
+		TEST_EQUAL(std::string(error_string), std::string("non-canonical bencoding"));
 		std::printf("%s\n", print_entry(e).c_str());
 	}
 	{
