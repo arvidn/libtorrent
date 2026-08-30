@@ -3,6 +3,11 @@ cmake_minimum_required(VERSION 3.20.0 FATAL_ERROR) # Configurable policies: <= C
 cmake_policy(SET CMP0091 NEW)
 cmake_policy(SET CMP0092 NEW)
 
+# cmake 3.30+ - drop support for Findboost module.
+if(POLICY CMP0167)
+  cmake_policy(SET CMP0167 OLD)
+endif()
+
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules)
 include(LibtorrentMacros)
 
