@@ -309,6 +309,11 @@ load_torrent_limits dict_to_limits(dict limits)
 			ret.max_decode_tokens = extract<int>(value);
 			continue;
 		}
+		else if (key == "sanitize_flags")
+		{
+			ret.sanitize_flags = extract<lt::path_sanitize_flags_t>(value);
+			continue;
+		}
 	}
 	return ret;
 }

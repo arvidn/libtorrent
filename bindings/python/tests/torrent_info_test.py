@@ -214,6 +214,30 @@ class ConstructorWithLimitsTest(unittest.TestCase):
                 load_torrent_limits({"max_buffer_size": 1}),
             )
 
+    def test_load_sanitize_flags_limit(self) -> None:
+        # name embeds a zero-width space (U+200B), which
+        # filter_unicode_formatting_chars strips out (it's part of
+        # default_flags), but an empty sanitize_flags value leaves alone.
+        name = "foo\u200bbar.txt"
+        entry = TorrentFileDict(
+            {
+                b"info": {
+                    b"name": name.encode(),
+                    b"piece length": 16 * 1024,
+                    b"pieces": lib.get_random_bytes(20),
+                    b"length": 1024,
+                }
+            }
+        )
+
+        ti_default = lt.torrent_info(entry)
+        self.assertEqual(ti_default.name(), "foobar.txt")
+
+        ti_unfiltered = lt.torrent_info(
+            entry, load_torrent_limits({"sanitize_flags": 0})
+        )
+        self.assertEqual(ti_unfiltered.name(), name)
+
 
 class FieldTest(unittest.TestCase):
     def setUp(self) -> None:
