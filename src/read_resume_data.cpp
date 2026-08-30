@@ -23,7 +23,9 @@ see LICENSE file.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
+#include "libtorrent/aux_/string_util.hpp" // for parse_decimal
 #include "libtorrent/download_priority.hpp" // for default_priority
+#include "libtorrent/path_sanitize_flags.hpp"
 
 namespace libtorrent {
 
@@ -60,6 +62,30 @@ namespace {
 			return {};
 		}
 		return {str.data(), int(str.size()) * CHAR_BIT};
+	}
+
+	// resume data predating "sanitize_flags" (libtorrent < 2.2) doesn't
+	// record which ruleset was used to derive the on-disk file names.
+	// "libtorrent-version" has been written unconditionally since 2017
+	// though, so use it to tell libtorrent-2.0-vintage resume data (no
+	// unicode-formatting-character filtering) apart from 2.1-vintage
+	// (filtered), rather than guessing wrong for one of the two.
+	path_sanitize_flags_t sanitize_flags_for_version(string_view const version)
+	{
+		auto const dot1 = version.find('.');
+		if (dot1 == string_view::npos)
+			return path_sanitize_flags::libtorrent_2_0;
+		auto const dot2 = version.find('.', dot1 + 1);
+		string_view const major_str = version.substr(0, dot1);
+		string_view const minor_str = version.substr(dot1 + 1, dot2 - (dot1 + 1));
+
+		auto const major = aux::parse_decimal(major_str);
+		auto const minor = aux::parse_decimal(minor_str);
+		if (!major || !minor)
+			return path_sanitize_flags::libtorrent_2_0;
+
+		return (*major > 2 || (*major == 2 && *minor >= 1)) ? path_sanitize_flags::libtorrent_2_1
+															: path_sanitize_flags::libtorrent_2_0;
 	}
 
 } // anonyous namespace
@@ -118,13 +144,18 @@ namespace {
 		ret.created_by = rd.dict_find_string_value("created by", "");
 		ret.comment = rd.dict_find_string_value("comment", "");
 
-		// a missing key means this resume data predates path-sanitizer
-		// versioning. libtorrent_2_1 is defined to match the ruleset that
-		// was unconditionally in effect before this flag existed, so it's
-		// the correct value to assume here too.
-		ret.sanitize_flags = path_sanitize_flags_t(
-			static_cast<std::uint32_t>(rd.dict_find_int_value("sanitize_flags",
-				static_cast<std::uint32_t>(path_sanitize_flags::libtorrent_2_1))));
+		if (bdecode_node const n = rd.dict_find_int("sanitize_flags"))
+		{
+			ret.sanitize_flags = path_sanitize_flags_t(static_cast<std::uint32_t>(n.int_value()));
+		}
+		else
+		{
+			// a missing key means this resume data predates path-sanitizer
+			// versioning; infer the ruleset in effect at the time from the
+			// writer's recorded libtorrent version instead of assuming one.
+			ret.sanitize_flags =
+				sanitize_flags_for_version(rd.dict_find_string_value("libtorrent-version"));
+		}
 
 		bdecode_node const info = rd.dict_find_dict("info");
 		if (info)
