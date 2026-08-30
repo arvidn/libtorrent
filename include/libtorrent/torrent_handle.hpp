@@ -11,6 +11,7 @@ Copyright (c) 2019, Andrei Kurushin
 Copyright (c) 2019, ghbplayer
 Copyright (c) 2025, Vladimir Golovnev (glassez)
 Copyright (c) 2021, Mark Scott
+Copyright (c) 2024-2026 Martin Rodriguez Reboredo
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,
@@ -298,8 +299,8 @@ namespace aux {
 		void add_piece(piece_index_t piece, std::vector<char> data, add_piece_flags_t flags = {}) const;
 
 		// This function starts an asynchronous read operation of the specified
-		// piece from this torrent. You must have completed the download of the
-		// specified piece before calling this function.
+		// pieces from this torrent. You must have completed the download of the
+		// specified pieces before calling this function.
 		//
 		// When the read operation is completed, it is passed back through an
 		// alert, read_piece_alert. Since this alert is a response to an explicit
@@ -311,7 +312,11 @@ namespace aux {
 		// .. note:: the size of the buffer passed back in the alert is not
 		//    necessarily piece_length() long. The last piece or pieces at the end
 		//    of files (in v2 and hybrid torrents) are not full size.
+		//
+		// ``read_piece()`` requests a single piece.
+		// ``read_piece_range()`` requests a range of pieces.
 		void read_piece(piece_index_t piece) const;
+		void read_piece_range(const index_range<piece_index_t>& range) const;
 
 		// These functions set the first piece and the last piece of the range
 		// for the piece picker. They start downloading from the specified piece
@@ -321,9 +326,13 @@ namespace aux {
 		// then the functions do nothing.
 		void set_sequential_range(piece_index_t first_piece, piece_index_t last_piece) const;
 		void set_sequential_range(piece_index_t first_piece) const;
-		// Returns true if this piece has been completely downloaded and written
-		// to disk, and false otherwise.
+		// Returns true if pieces have been completely downloaded and written to
+		// disk, and false otherwise.
+		//
+		// ``have_piece()`` checks for a single piece.
+		// ``have_piece_range()`` does so for a range of pieces.
 		bool have_piece(piece_index_t piece) const;
+		bool have_piece_range(const index_range<piece_index_t>& range) const;
 
 #if TORRENT_ABI_VERSION == 1
 		// internal
@@ -436,14 +445,25 @@ namespace aux {
 		// ``deadline`` is the number of milliseconds until this piece should be
 		// completed.
 		//
-		// ``reset_piece_deadline`` removes the deadline from the piece. If it
+		// ``set_piece_range_deadline()`` sets deadlines for a range of pieces.
+		//
+		// ``deadlines`` vector of deadlines of each individual piece. If its
+		// length does not coincide with the range then it's truncated from its
+		// first index to an equal size or its last value is used as filler.
+		//
+		// ``reset_piece_deadline()`` removes the deadline from the piece. If it
 		// hasn't already been downloaded, it will no longer be considered a
 		// priority.
+		//
+		// ``reset_piece_range_deadline()`` does so for a range of pieces.
 		//
 		// ``clear_piece_deadlines()`` removes deadlines on all pieces in
 		// the torrent. As if reset_piece_deadline() was called on all pieces.
 		void set_piece_deadline(piece_index_t index, int deadline, deadline_flags_t flags = {}) const;
+		void set_piece_range_deadline(const index_range<piece_index_t>& range, int deadline, deadline_flags_t flags = {}) const;
+		void set_piece_range_deadline(const index_range<piece_index_t>& range, std::vector<int>&& deadlines, deadline_flags_t flags = {}) const;
 		void reset_piece_deadline(piece_index_t index) const;
+		void reset_piece_range_deadline(const index_range<piece_index_t>& range) const;
 		void clear_piece_deadlines() const;
 
 #if TORRENT_ABI_VERSION == 1
@@ -1152,6 +1172,7 @@ namespace aux {
 		void prioritize_pieces(std::vector<download_priority_t> const& pieces) const;
 		void prioritize_pieces(std::vector<std::pair<piece_index_t, download_priority_t>> const& pieces) const;
 		std::vector<download_priority_t> get_piece_priorities() const;
+		void get_piece_priorities(std::vector<download_priority_t>& priorities) const;
 
 #if TORRENT_ABI_VERSION == 1
 		TORRENT_DEPRECATED
@@ -1204,6 +1225,7 @@ namespace aux {
 		download_priority_t file_priority(file_index_t index) const;
 		void prioritize_files(std::vector<download_priority_t> const& files) const;
 		std::vector<download_priority_t> get_file_priorities() const;
+		void get_file_priorities(std::vector<download_priority_t>& priorities) const;
 
 		// ``post_file_priorities()`` will trigger a file_priorities_alert to be
 		// posted, containing the download priority of each file in the torrent.

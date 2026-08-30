@@ -8,6 +8,7 @@ Copyright (c) 2016, 2019, Steven Siloti
 Copyright (c) 2018, Pavel Pimenov
 Copyright (c) 2021, Denis Kuzmenok
 Copyright (c) 2021, Mark Scott
+Copyright (c) 2024-2026, Martin Rodriguez Reboredo
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,
@@ -2901,6 +2902,11 @@ get_out:
 		auto const i = find_dl_piece(state, index);
 		TORRENT_ASSERT(i != m_downloads[state].end());
 		return bool(i->passed_hash_check);
+	}
+
+	bool piece_picker::have_piece_range(const index_range<piece_index_t>& range) const
+	{
+		return std::all_of(range.begin(), range.end(), [this](piece_index_t index) { return have_piece(index); });
 	}
 
 	std::vector<piece_picker::downloading_piece>::iterator piece_picker::find_dl_piece(
