@@ -236,7 +236,8 @@ namespace {
 				int const blocks_in_piece = blocks_per_piece();
 				for (int b = 0; b < int(m_tree.size()); b += blocks_in_piece)
 				{
-					auto const leafs = span<sha256_hash const>(m_tree).subspan(b);
+					auto const leafs = span<sha256_hash const>(m_tree)
+						.subspan(b, std::min(blocks_in_piece, int(m_tree.size()) - b));
 					ret.push_back(merkle_root_scratch(leafs, blocks_in_piece, sha256_hash{}, scratch_space));
 				}
 				break;
