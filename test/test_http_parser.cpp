@@ -558,6 +558,26 @@ TORRENT_TEST(http_parser)
 	TEST_EQUAL(aux::resolve_redirect_location("my-custom-scheme://example.com/a/b", "c/d")
 		, "my-custom-scheme://example.com/a/c/d");
 
+	// query strings and fragments are not part of the path
+
+	TEST_EQUAL(aux::resolve_redirect_location("http://example.com?path=/old", "/new"),
+		"http://example.com/new");
+
+	TEST_EQUAL(aux::resolve_redirect_location("http://example.com#path=/old", "/new"),
+		"http://example.com/new");
+
+	TEST_EQUAL(aux::resolve_redirect_location("http://example.com/a/b?path=/old", "new"),
+		"http://example.com/a/new");
+
+	TEST_EQUAL(aux::resolve_redirect_location("http://example.com/a/b#path=/old", "new"),
+		"http://example.com/a/new");
+
+	TEST_EQUAL(aux::resolve_redirect_location("http://example.com/a/b?old=1#old", "?new=/path"),
+		"http://example.com/a/b?new=/path");
+
+	TEST_EQUAL(aux::resolve_redirect_location("http://example.com/a/b?old=1#old", "#new/path"),
+		"http://example.com/a/b?old=1#new/path");
+
 	// if the referrer is invalid, just respond the verbatim location
 
 	TEST_EQUAL(aux::resolve_redirect_location("example.com/a/b", "/c/d")
