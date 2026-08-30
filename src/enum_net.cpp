@@ -48,6 +48,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <functional>
 #include <cstdlib> // for wcstombscstombs
+#include <cerrno>
+#include <vector>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -254,11 +256,21 @@ namespace {
 	int read_nl_sock(int sock, std::uint32_t const seq, std::uint32_t const pid
 		, std::function<void(nlmsghdr const*)> on_msg)
 	{
-		std::array<char, 4096> buf;
+		std::vector<char> buf;
 		for (;;)
 		{
-			int const read_len = int(recv(sock, buf.data(), buf.size(), 0));
+			ssize_t packet_size;
+			do { packet_size = recv(sock, nullptr, 0, MSG_PEEK | MSG_TRUNC); }
+			while (packet_size < 0 && errno == EINTR);
+			if (packet_size < 0) return -1;
+			if (packet_size == 0) { errno = EIO; return -1; }
+			if (packet_size > 1024 * 1024) { errno = EMSGSIZE; return -1; }
+			buf.resize(static_cast<std::size_t>(packet_size));
+			int read_len;
+			do { read_len = int(recv(sock, buf.data(), buf.size(), MSG_TRUNC)); }
+			while (read_len < 0 && errno == EINTR);
 			if (read_len < 0) return -1;
+			if (read_len != packet_size) { errno = EMSGSIZE; return -1; }
 
 			auto const* nl_hdr = reinterpret_cast<nlmsghdr const*>(buf.data());
 			int len = read_len;
