@@ -318,12 +318,17 @@ struct TORRENT_EXPORT bdecode_node
 
 	struct list_iterator
 	{
-		list_iterator(aux::bdecode_token const* tokens, span<char const> buf, int idx)
+		list_iterator(
+			aux::bdecode_token const* tokens, bool has_soft_error, span<char const> buf, int idx)
 			: m_tokens(tokens)
+			, m_has_soft_error(has_soft_error)
 			, m_buffer(buf)
 			, m_token_idx(idx)
 		{}
-		bdecode_node operator*() const { return bdecode_node(m_tokens, m_buffer, m_token_idx); }
+		bdecode_node operator*() const
+		{
+			return bdecode_node(m_tokens, m_has_soft_error, m_buffer, m_token_idx);
+		}
 		list_iterator& operator++()
 		{
 			m_token_idx += m_tokens[m_token_idx].next_item;
@@ -344,6 +349,7 @@ struct TORRENT_EXPORT bdecode_node
 
 	private:
 		aux::bdecode_token const* m_tokens;
+		bool m_has_soft_error;
 		span<char const> m_buffer;
 		int m_token_idx;
 	};
@@ -351,16 +357,19 @@ struct TORRENT_EXPORT bdecode_node
 	template <typename Iterator>
 	struct item_range
 	{
-		item_range(aux::bdecode_token const* tokens, span<char const> buf, int b)
+		item_range(
+			aux::bdecode_token const* tokens, bool has_soft_error, span<char const> buf, int b)
 			: m_tokens(tokens)
+			, m_has_soft_error(has_soft_error)
 			, m_buffer(buf)
 			, m_begin(b)
 		{}
-		Iterator begin() const { return Iterator(m_tokens, m_buffer, m_begin); }
+		Iterator begin() const { return Iterator(m_tokens, m_has_soft_error, m_buffer, m_begin); }
 		items_end_t end() const { return {}; }
 
 	private:
 		aux::bdecode_token const* m_tokens;
+		bool m_has_soft_error;
 		span<char const> m_buffer;
 		int m_begin;
 	};
@@ -386,27 +395,33 @@ struct TORRENT_EXPORT bdecode_node
 
 	struct dict_iterator
 	{
-		dict_iterator(aux::bdecode_token const* tokens, span<char const> buf, int idx)
+		dict_iterator(
+			aux::bdecode_token const* tokens, bool has_soft_error, span<char const> buf, int idx)
 			: m_tokens(tokens)
+			, m_has_soft_error(has_soft_error)
 			, m_buffer(buf)
 			, m_token_idx(idx)
 		{}
 		std::pair<string_view, bdecode_node> operator*() const
 		{
-			bdecode_node const key(m_tokens, m_buffer, m_token_idx);
+			bdecode_node const key(m_tokens, m_has_soft_error, m_buffer, m_token_idx);
 			int const value_idx = m_token_idx + m_tokens[m_token_idx].next_item;
-			return {key.string_value(), bdecode_node(m_tokens, m_buffer, value_idx)};
+			return {
+				key.string_value(), bdecode_node(m_tokens, m_has_soft_error, m_buffer, value_idx)};
 		}
 		// returns the key at the iterator's current position as a bdecode_node,
 		// rather than a resolved string_view
-		bdecode_node key_node() const { return bdecode_node(m_tokens, m_buffer, m_token_idx); }
+		bdecode_node key_node() const
+		{
+			return bdecode_node(m_tokens, m_has_soft_error, m_buffer, m_token_idx);
+		}
 		// returns the value at the iterator's current position. Equivalent to
 		// (*this).second, but avoids resolving the key's string_view when
 		// only the value is needed
 		bdecode_node value_node() const
 		{
 			int const value_idx = m_token_idx + m_tokens[m_token_idx].next_item;
-			return bdecode_node(m_tokens, m_buffer, value_idx);
+			return bdecode_node(m_tokens, m_has_soft_error, m_buffer, value_idx);
 		}
 		dict_iterator& operator++()
 		{
@@ -430,6 +445,7 @@ struct TORRENT_EXPORT bdecode_node
 
 	private:
 		aux::bdecode_token const* m_tokens;
+		bool m_has_soft_error;
 		span<char const> m_buffer;
 		int m_token_idx;
 	};
@@ -500,12 +516,13 @@ struct TORRENT_EXPORT bdecode_node
 	// decode().
 	void switch_underlying_buffer(char const* buf) noexcept;
 
-	// returns true if there is a non-fatal error in the bencoding of this node
-	// or its children
+	// returns true if there is a non-fatal error anywhere in the bencoded
+	// buffer this node was parsed from (not just this node or its children)
 	bool has_soft_error(span<char> error) const;
 
 private:
-	bdecode_node(aux::bdecode_token const* tokens, span<char const> buf, int idx);
+	bdecode_node(
+		aux::bdecode_token const* tokens, bool has_soft_error, span<char const> buf, int idx);
 
 	// if this is the root node, that owns all the tokens, they live in this
 	// vector. If this is a sub-node, this field is not used, instead the
@@ -515,6 +532,11 @@ private:
 	// this points to the root nodes token vector
 	// for the root node, this points to its own m_tokens member
 	aux::bdecode_token const* m_root_tokens = nullptr;
+
+	// true if bdecode() found a non-fatal issue anywhere in the whole
+	// buffer this tree was parsed from. the same value is copied into
+	// every node (root and sub-nodes alike) when it's constructed.
+	bool m_has_soft_error = false;
 
 	// this is the original buffer that was parsed
 	span<char const> m_buffer;
