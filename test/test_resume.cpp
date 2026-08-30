@@ -1164,33 +1164,116 @@ TORRENT_TEST(resume_info_dict)
 	TEST_CHECK(atp.ti->info_hashes() == p.ti->info_hashes());
 }
 
-TORRENT_TEST(sanitize_flags_missing_key_defaults_to_legacy)
-{
-	// resume data written before path-sanitizer versioning existed has no
-	// "sanitize_flags" key. libtorrent_2_1 is defined to match the ruleset
-	// that was unconditionally in effect before this flag existed (each bit
-	// was carved out of what used to be unconditional, platform-gated
-	// behavior), so it must default to that, not an all-zero value, or an
-	// upgrade could silently re-sanitize an existing torrent's files under
-	// different rules than the ones used to create them on disk. This is
-	// pinned to libtorrent_2_1 specifically, not default_flags, since
-	// default_flags moves forward as newer rules are added (e.g.
-	// libtorrent_2_2) while this fallback must stay fixed to the ruleset
-	// that was actually in effect for pre-versioning resume data.
+namespace {
 
-	add_torrent_params p = generate_torrent();
+add_torrent_params sanitize_flags_fallback_for(
+	add_torrent_params const& p, char const* const libtorrent_version)
+{
 	entry rd;
 	rd["file-format"] = "libtorrent resume file";
 	rd["name"] = p.ti->name();
 	rd["info-hash"] = p.ti->info_hashes().v1;
 	rd["info"] = bdecode(p.ti->info_section());
+	if (libtorrent_version)
+		rd["libtorrent-version"] = libtorrent_version;
 	std::vector<char> const resume_data = bencode(rd);
 
 	error_code ec;
 	add_torrent_params atp = read_resume_data(resume_data, ec);
 	TEST_CHECK(!ec);
-	TEST_CHECK(atp.sanitize_flags == path_sanitize_flags::libtorrent_2_1);
-	TEST_CHECK(atp.ti->sanitize_flags() == path_sanitize_flags::libtorrent_2_1);
+	return atp;
+}
+
+} // anonymous namespace
+
+TORRENT_TEST(sanitize_flags_missing_key_defaults_by_writer_version)
+{
+	// resume data written before path-sanitizer versioning existed has no
+	// "sanitize_flags" key, so the ruleset in effect for it can only be
+	// inferred, never known for certain, or an upgrade could silently
+	// re-sanitize an existing torrent's files under different rules than
+	// the ones used to create them on disk. libtorrent has recorded a
+	// "libtorrent-version" string in resume data since 2017, which lets
+	// libtorrent-2.0-vintage data (no unicode-formatting-character
+	// filtering) be told apart from 2.1-vintage (filtered), rather than
+	// assuming one of the two for both. Resume data old enough to lack
+	// even "libtorrent-version" predates that (pre-2.0), so it falls back
+	// to libtorrent_2_0, the more conservative of the two rulesets.
+
+	add_torrent_params const p = generate_torrent();
+
+	{
+		add_torrent_params const atp = sanitize_flags_fallback_for(p, nullptr);
+		TEST_CHECK(atp.sanitize_flags == path_sanitize_flags::libtorrent_2_0);
+	}
+	{
+		add_torrent_params const atp = sanitize_flags_fallback_for(p, "2.0.13.0");
+		TEST_CHECK(atp.sanitize_flags == path_sanitize_flags::libtorrent_2_0);
+	}
+	{
+		add_torrent_params const atp = sanitize_flags_fallback_for(p, "2.1.1.0");
+		TEST_CHECK(atp.sanitize_flags == path_sanitize_flags::libtorrent_2_1);
+	}
+}
+
+TORRENT_TEST(sanitize_flags_malformed_version_falls_back_safely)
+{
+	// a "libtorrent-version" field that's absent, empty, or not a
+	// well-formed dotted version string must never crash or be
+	// misread as a modern version; it must fall back to libtorrent_2_0,
+	// the same conservative ruleset used when the field is missing
+	// entirely.
+
+	add_torrent_params const p = generate_torrent();
+
+	char const* const malformed[] = {
+		"", // present but empty
+		"2", // no dot at all
+		"garbage", // no dot, non-numeric
+		"not.valid.ver", // has a dot, but non-numeric major
+		"a.1.0.0", // non-numeric major
+		"2.b.0.0", // non-numeric minor
+		".1.0.0", // empty major
+		"2..0.0", // empty minor
+		"2.-1.0.0", // negative minor, parses but doesn't meet >= 1
+		"+2.1.0.0", // leading '+' is rejected by from_chars
+	};
+
+	for (char const* const version : malformed)
+	{
+		add_torrent_params const atp = sanitize_flags_fallback_for(p, version);
+		TEST_CHECK(atp.sanitize_flags == path_sanitize_flags::libtorrent_2_0);
+	}
+}
+
+TORRENT_TEST(sanitize_flags_version_boundary_cases)
+{
+	// the libtorrent_2_0 / libtorrent_2_1 split happens exactly at
+	// version 2.1; verify the boundary and a few shapes of well-formed
+	// version strings around it.
+
+	add_torrent_params const p = generate_torrent();
+
+	struct version_case
+	{
+		char const* version;
+		path_sanitize_flags_t expected;
+	};
+
+	version_case const cases[] = {
+		{"1.2.19.0", path_sanitize_flags::libtorrent_2_0}, // pre-2.0
+		{"2.0.99.0", path_sanitize_flags::libtorrent_2_0}, // just below the boundary
+		{"2.1", path_sanitize_flags::libtorrent_2_1}, // no tiny/revision component
+		{"2.1.0.0", path_sanitize_flags::libtorrent_2_1}, // exactly at the boundary
+		{"2.1.1.0-custom", path_sanitize_flags::libtorrent_2_1}, // trailing garbage after minor
+		{"3.0.0.0", path_sanitize_flags::libtorrent_2_1}, // future major version
+	};
+
+	for (auto const& c : cases)
+	{
+		add_torrent_params const atp = sanitize_flags_fallback_for(p, c.version);
+		TEST_CHECK(atp.sanitize_flags == c.expected);
+	}
 }
 
 TORRENT_TEST(sanitize_flags_roundtrip)
