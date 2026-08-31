@@ -54,13 +54,15 @@ namespace libtorrent::aux {
 	{
 		if (location.empty()) return referrer;
 
+		bool const network_path = location.size() > 1 && location[0] == '/' && location[1] == '/';
 		error_code ec;
 		using std::ignore;
 		std::tie(ignore, ignore, ignore, ignore, ignore)
 			= parse_url_components(location, ec);
 
 		// if location is a full URL, just return it
-		if (!ec) return location;
+		if (!network_path && !ec)
+			return location;
 
 		// otherwise it's likely to be just the path, or a relative path
 		std::string url = referrer;
@@ -74,7 +76,13 @@ namespace libtorrent::aux {
 		std::size_t const suffix = url.find_first_of("?#", authority_start);
 		std::size_t const path_end = suffix == std::string::npos ? url.size() : suffix;
 
-		if (location[0] == '/')
+		if (network_path)
+		{
+			// a network-path reference preserves only the referrer's scheme
+			url.resize(scheme_end + 1);
+			url += location;
+		}
+		else if (location[0] == '/')
 		{
 			// it's an absolute path. replace the path component of
 			// referrer with location.
