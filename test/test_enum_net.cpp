@@ -54,6 +54,10 @@ TORRENT_TEST(is_local)
 	TEST_CHECK(!ec);
 	TEST_CHECK(!is_local(make_address("::ffff:14.14.251.63", ec)));
 	TEST_CHECK(!ec);
+	TEST_CHECK(is_local(make_address("0.0.0.0", ec)));
+	TEST_CHECK(!ec);
+	TEST_CHECK(is_local(make_address("::", ec)));
+	TEST_CHECK(!ec);
 }
 
 TORRENT_TEST(match_addr_mask)

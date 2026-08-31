@@ -3445,12 +3445,12 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 				if (ep.address().is_unspecified()) return;
 				if (aux::is_v6(ep))
 				{
-					if (!aux::is_local(ep.address()) && !ep.address().is_loopback())
+					if (!aux::is_local(ep.address()))
 						req.ipv6.push_back(ep.address().to_v6());
 				}
 				else
 				{
-					if (!aux::is_local(ep.address()) && !ep.address().is_loopback())
+					if (!aux::is_local(ep.address()))
 						req.ipv4.push_back(ep.address().to_v4());
 				}
 			});

@@ -993,19 +993,19 @@ namespace aux {
 			// when enabled, tracker and web seed requests are subject to
 			// certain restrictions.
 			//
-			// An HTTP(s) tracker requests to localhost (loopback)
-			// must have the request path start with "/announce". This is the
-			// conventional bittorrent tracker request. Any other HTTP(S)
-			// tracker request to loopback will be rejected. This applies to
-			// trackers that redirect to loopback as well.
+			// An HTTP(s) tracker request to a local network address (this
+			// includes loopback, as well as private ranges such as RFC1918
+			// and IPv6 ULA/site-local addresses) must have the request path
+			// start with "/announce". This is the conventional bittorrent
+			// tracker request. Any other HTTP(S) tracker request to a local
+			// network address will be rejected. This applies to trackers
+			// that redirect to a local network address as well.
 			//
 			// HTTP(S) tracker requests to a link-local address (including
 			// cloud provider instance metadata endpoints) are always
 			// rejected, since no legitimate tracker is deployed there. This
 			// applies to trackers that redirect to a link-local address as
-			// well. Trackers on the rest of the local network (private IP
-			// address ranges) are not restricted, to support self-hosted
-			// trackers on a LAN.
+			// well.
 			//
 			// Web seeds that end up on the client's local network (i.e. in a
 			// private IP address range) may not include query string arguments.
@@ -1018,6 +1018,12 @@ namespace aux {
 			// this mitigation does not apply to connections whose hostname is
 			// resolved by a proxy (see proxy_hostnames), since the target IP
 			// is never known to the client in that case
+			//
+			// when routing tracker requests through a plain (non-SSL) HTTP
+			// proxy, this check is performed against the proxy's own address
+			// rather than the tracker's, since that is the address actually
+			// connected to. A local or LAN HTTP proxy may therefore have
+			// this restriction applied to it as well
 			ssrf_mitigation,
 
 			// when disabled, any tracker or web seed with an IDNA hostname
