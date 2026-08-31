@@ -319,11 +319,16 @@ TORRENT_VERSION_NAMESPACE_4_END
 		return ret;
 	}
 
-	aux::file_name_view renamed_files::file_name(
-		file_storage const& fs, file_index_t const index) const
+	string_view renamed_files::file_name(file_storage const& fs, file_index_t const index) const
 	{
 		auto i = m_renamed_files.find(index);
-		if (i == m_renamed_files.end()) return fs.file_name(index);
+		if (i == m_renamed_files.end())
+		{
+			// pad files cannot be renamed and have no stored name
+			if (fs.pad_file_at(index))
+				return {};
+			return fs.file_name(index);
+		}
 
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < fs.end_file());
 		aux::rename_entry const& re = i->second;
@@ -418,10 +423,6 @@ TORRENT_VERSION_NAMESPACE_4_END
 	}
 
 namespace aux {
-
-file_name_view::file_name_view(std::uint64_t const pad_size)
-	: m_name(std::to_string(pad_size))
-{}
 
 path_element::path_element(path_element const& pe)
 	: parent(pe.parent)
@@ -533,7 +534,7 @@ void file_storage::rename_file_impl(
 	char const* file_storage::file_name_ptr(file_index_t const index) const
 	{
 		// pad files have no stored name, it's generated from their size on
-		// demand, see file_name()
+		// demand, see file_path()
 		if (m_files[index].pad_file)
 			return nullptr;
 		return path_element_name(m_path_elements[m_files[index].path_element_index]).data();
@@ -1302,13 +1303,18 @@ namespace {
 		return ret;
 	}
 
-	aux::file_name_view file_storage::file_name(file_index_t const index) const
+	string_view file_storage::file_name(file_index_t const index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
 		aux::file_entry const& fe = m_files[index];
+#if TORRENT_ABI_VERSION >= 5
+		// pad files have no stored name; synthesize one from file_path()
+		// (which prefixes it with the .pad directory) if you need one
+		TORRENT_ASSERT_PRECOND(!fe.pad_file);
+#endif
 		if (fe.pad_file)
-			return aux::file_name_view(fe.size);
-		return {path_element_name(m_path_elements[fe.path_element_index])};
+			return {};
+		return path_element_name(m_path_elements[fe.path_element_index]);
 	}
 
 	std::int64_t file_storage::file_size(file_index_t const index) const

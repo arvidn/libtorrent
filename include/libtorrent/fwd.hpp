@@ -182,7 +182,6 @@ struct peer_plugin;
 struct crypto_plugin;
 
 // include/libtorrent/file_storage.hpp
-struct file_name_view;
 struct file_slice;
 TORRENT_VERSION_NAMESPACE_4
 class file_storage;

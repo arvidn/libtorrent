@@ -2311,8 +2311,8 @@ TORRENT_VERSION_NAMESPACE_4
 	{
 		for (auto const i : m_files.file_range())
 		{
-			// pad files don't store a name, it's generated from their size
-			// on demand, none of the checks below apply to them
+			// pad files don't store a name, calling file_name() on one is
+			// a precondition failure; none of the checks below apply to them
 			if (m_files.pad_file_at(i))
 				continue;
 
@@ -2326,7 +2326,7 @@ TORRENT_VERSION_NAMESPACE_4
 			else
 			{
 				// name must be a null terminated string
-				aux::file_name_view const name = m_files.file_name(i);
+				string_view const name = m_files.file_name(i);
 				TORRENT_ASSERT(name.data()[name.size()] == '\0');
 			}
 		}
