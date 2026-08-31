@@ -178,6 +178,7 @@ run test_sha1_hash.cpp ;
 run test_span.cpp ;
 run test_bitfield.cpp ;
 run test_crc32.cpp ;
+run test_siphash.cpp ;
 run test_ffs.cpp ;
 run test_ed25519.cpp ;
 run test_gzip.cpp ;
@@ -315,6 +316,7 @@ alias deterministic-tests :
 	test_session_params
 	test_settings_pack
 	test_sha1_hash
+	test_siphash
 	test_sliding_average
 	test_socket_io
 	test_span
