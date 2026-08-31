@@ -111,10 +111,9 @@ TORRENT_TEST(resolve_links)
 			for (file_index_t idx{0}; idx != links.end_index(); ++idx)
 			{
 				TORRENT_ASSERT(idx < file_index_t{fs.num_files()});
-				std::printf("%*s --> %s\n"
-					, int(fs.file_name(idx).size())
-					, fs.file_name(idx).data()
-					, links[idx].c_str());
+				std::string const name =
+					fs.pad_file_at(idx) ? "(pad file)" : std::string(fs.file_name(idx));
+				std::printf("%*s --> %s\n", int(name.size()), name.data(), links[idx].c_str());
 			}
 		}
 

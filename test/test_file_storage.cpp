@@ -166,8 +166,8 @@ TORRENT_TEST(rename_file_absolute)
 
 TORRENT_TEST(rename_pad_file)
 {
-	// pad files cannot be renamed, their name is always synthesized from
-	// their size
+	// pad files cannot be renamed, and have no stored name of their own;
+	// file_path() synthesizes one from their size, file_name() does not
 	file_storage st;
 	st.set_piece_length(0x4000);
 	st.add_file_borrow({}, combine_path("test", "a"), 10000);
@@ -184,7 +184,7 @@ TORRENT_TEST(rename_pad_file)
 
 	// the rename had no effect
 	TEST_EQUAL(st.file_path(file_index_t{1}, ""), pad_path);
-	TEST_EQUAL(std::string(st.file_name(file_index_t{1})), "6384");
+	TEST_EQUAL(std::string(st.file_name(file_index_t{1})), "");
 }
 #endif
 

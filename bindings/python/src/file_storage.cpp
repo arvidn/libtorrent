@@ -149,6 +149,8 @@ namespace {
 	std::string file_storage_file_name(file_storage const& fs, file_index_t index)
 	{
 		file_storage_check_index(fs, index);
+		if (fs.pad_file_at(index))
+			return std::string();
 		return std::string(fs.file_name(index));
 	}
 }

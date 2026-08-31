@@ -16,7 +16,6 @@ see LICENSE file.
 
 #include <string>
 #include <vector>
-#include <variant>
 #include <optional>
 #include <unordered_map>
 #include <map>
@@ -41,32 +40,6 @@ namespace libtorrent {
 namespace aux {
 	struct path_index_tag;
 	using path_index_t = aux::strong_typedef<std::uint32_t, path_index_tag>;
-
-	// a file's name. For ordinary files this is a view into a string
-	// owned elsewhere, exactly like a string_view. Pad files have no
-	// stored name; one is generated from the pad file's size each time
-	// this is asked for.
-	struct TORRENT_EXPORT file_name_view
-	{
-		file_name_view(string_view name)
-			: m_name(name)
-		{} // NOLINT
-		explicit file_name_view(std::uint64_t pad_size);
-
-		// converting to string_view or std::string is explicit since, for
-		// pad files, the returned string_view may refer to storage owned by
-		// this object; the caller must not outlive it when taking a view
-		explicit operator string_view() const
-		{
-			return std::visit([](auto const& n) { return string_view(n); }, m_name);
-		}
-		explicit operator std::string() const { return std::string(string_view(*this)); }
-		char const* data() const { return string_view(*this).data(); }
-		std::size_t size() const { return string_view(*this).size(); }
-
-	private:
-		std::variant<string_view, std::string> m_name;
-	};
 
 	// internal
 	// a single path-component node in file_storage's path tree. Both
@@ -144,8 +117,8 @@ namespace aux {
 		// index into file_storage::m_path_elements. For ordinary files this
 		// is the leaf element (its own text is the filename; walk ::parent
 		// for the rest of the path). For pad files this is the parent
-		// *directory* element instead: pad files never store a name, it's
-		// synthesized from ::size on demand, see file_storage::file_name()
+		// *directory* element instead: pad files never store a name, one
+		// is synthesized from ::size on demand, see file_storage::file_path()
 		path_index_t path_element_index = path_element::torrent_root;
 
 		// a symlink never has a v2 merkle root (it carries no payload of
@@ -573,7 +546,12 @@ public:
 		//
 		// ``file_name()`` returns *just* the name of the file, whereas
 		// ``file_path()`` returns the path (inside the torrent file) with
-		// the filename appended.
+		// the filename appended. Pad files have no stored name;
+		// ``file_name()`` returns an empty string for them (calling it on
+		// a pad file is a precondition failure as of
+		// TORRENT_ABI_VERSION 5). Use ``file_path()``, which synthesizes a
+		// name from the pad file's size, if a display name is needed for
+		// one.
 		//
 		// ``symlink()`` returns the path the file at ``index`` is a symlink
 		// to. If the file is not a symlink, the returned string is empty.
@@ -586,7 +564,7 @@ public:
 		std::string symlink(file_index_t index) const;
 		std::time_t mtime(file_index_t index) const;
 		std::string file_path(file_index_t index, std::string const& save_path = "") const;
-		aux::file_name_view file_name(file_index_t index) const;
+		string_view file_name(file_index_t index) const;
 		std::int64_t file_size(file_index_t index) const;
 		bool pad_file_at(file_index_t index) const;
 		std::int64_t file_offset(file_index_t index) const;
@@ -917,11 +895,12 @@ namespace aux {
 		// honoring any rename recorded in this object.
 		// ``file_path()`` returns the full on-disk path (prepending
 		// ``save_path`` to relative paths). ``file_name()`` returns
-		// just the leaf filename. ``file_absolute_path()`` returns
-		// true if the recorded rename is an absolute path (in which
-		// case ``save_path`` is ignored).
+		// just the leaf filename (pad files cannot be renamed, so this
+		// defers to ``fs.file_name()`` for them, empty string and all).
+		// ``file_absolute_path()`` returns true if the recorded rename is
+		// an absolute path (in which case ``save_path`` is ignored).
 		std::string file_path(file_storage const& fs, file_index_t index, std::string const& save_path = "") const;
-		aux::file_name_view file_name(file_storage const& fs, file_index_t index) const;
+		string_view file_name(file_storage const& fs, file_index_t index) const;
 		bool file_absolute_path(file_storage const& fs, file_index_t index) const;
 
 		// records that the file at ``index`` in ``fs`` should be

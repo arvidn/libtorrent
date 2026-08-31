@@ -2306,7 +2306,7 @@ done:
 
 					bool const complete = file_progress[idx] == fs.file_size(i);
 
-					std::string title{fs.file_name(i)};
+					std::string title = pad_file ? "(pad file)" : std::string(fs.file_name(i));
 					if (!complete)
 					{
 						std::snprintf(str, sizeof(str), " (%.1f%%)", progress / 10.0);
