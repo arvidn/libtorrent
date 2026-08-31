@@ -709,15 +709,15 @@ namespace {
 				first = std::make_unique<stalled_ssl_peer>(
 					sim, peer1, lt::tcp::endpoint(peer0, std::uint16_t(port)));
 				first->start([&] {
-						start_second = std::make_unique<sim::timer>(
-							sim, lt::seconds(1), [&](boost::system::error_code const& ec) {
-								if (ec)
-									return;
-								second = std::make_unique<stalled_ssl_peer>(
-									sim, peer2, lt::tcp::endpoint(peer0, std::uint16_t(port)));
-								second->start([] {});
-							});
-					});
+					start_second = std::make_unique<sim::timer>(
+						sim, lt::seconds(1), [&](boost::system::error_code const& ec) {
+							if (ec)
+								return;
+							second = std::make_unique<stalled_ssl_peer>(
+								sim, peer2, lt::tcp::endpoint(peer0, std::uint16_t(port)));
+							second->start([] {});
+						});
+				});
 			}
 			else if (auto const* e = alert_cast<peer_disconnected_alert>(a))
 			{

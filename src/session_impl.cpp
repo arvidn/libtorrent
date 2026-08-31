@@ -1072,7 +1072,7 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 
 #ifdef TORRENT_SSL_PEERS
 		{
-			auto const sockets = std::move(m_incoming_sockets);
+			auto const& sockets = m_incoming_sockets;
 			for (auto const& s : sockets)
 			{
 				s.second->cancel();
