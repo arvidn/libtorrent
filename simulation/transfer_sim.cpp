@@ -13,6 +13,8 @@ see LICENSE file.
 
 #include "transfer_sim.hpp"
 
+#include <string_view>
+
 using lt::settings_pack;
 
 void no_init(lt::session& ses0, lt::session& ses1) {}
@@ -180,6 +182,26 @@ bool run_matrix_test(test_transfer_flags_t flags, existing_files_mode const file
 	if (flags & tx::resume_restart)
 		handler.add(restore_from_resume());
 
+#ifndef TORRENT_DISABLE_LOGGING
+	// torrent::penalize_peers() bans a peer outright when it's the sole
+	// contributor to a failed piece (v1) or the bad block is known via
+	// merkle proof (v2/hybrid). that's a separate mechanism from smart_ban,
+	// and this single-seed topology always triggers it before smart_ban's
+	// own attribution logic runs
+	bool generic_banned_peer = false;
+	if (flags & tx::corruption)
+	{
+		handler.add([&generic_banned_peer](lt::session&, lt::alert const* a) {
+			if (auto const* log = lt::alert_cast<lt::torrent_log_alert>(a))
+			{
+				if (std::string_view(log->log_message()).find("Too many corrupt pieces")
+					!= std::string_view::npos)
+					generic_banned_peer = true;
+			}
+		});
+	}
+#endif
+
 	// when testing disable_v1_hashes, use bad v1 hashes to exercise
 	// that the setting actually bypasses v1 validation
 	if (flags & tx::disable_v1_hashes)
@@ -202,6 +224,9 @@ bool run_matrix_test(test_transfer_flags_t flags, existing_files_mode const file
 	if (flags & tx::corruption)
 	{
 		TEST_CHECK(int(passed.size()) < expected_pieces);
+#ifndef TORRENT_DISABLE_LOGGING
+		TEST_CHECK(generic_banned_peer);
+#endif
 	}
 	else
 	{

@@ -12,10 +12,13 @@ see LICENSE file.
 #include "libtorrent/fwd.hpp"
 #include "libtorrent/flags.hpp"
 #include "libtorrent/time.hpp"
+#include "libtorrent/create_torrent.hpp"
 #include <functional>
 
 #ifndef TORRENT_SETUP_SWARM_HPP_INCLUDED
 #define TORRENT_SETUP_SWARM_HPP_INCLUDED
+
+struct test_disk;
 
 using lt::operator""_bit;
 using swarm_test_t = lt::flags::bitfield_flag<std::uint64_t, struct swarm_test_type_tag>;
@@ -64,6 +67,24 @@ void setup_swarm(int num_nodes
 	, std::function<void(lt::add_torrent_params&)> add_torrent
 	, std::function<void(lt::alert const*, lt::session&)> on_alert
 	, std::function<bool(int, lt::session&)> terminate);
+
+// like the above, but lets a test customize a specific node's (non-real)
+// test_disk and the layout of the generated test torrent. v1-only code
+// paths, such as smart_ban, need create_torrent::v1_only in torrent_flags.
+void setup_swarm(int num_nodes,
+	swarm_test_t type,
+	sim::simulation& sim,
+	lt::settings_pack const& default_settings,
+	lt::add_torrent_params const& default_add_torrent,
+	std::function<void(lt::session&)> init_session,
+	std::function<void(lt::settings_pack&)> new_session,
+	std::function<void(lt::add_torrent_params&)> add_torrent,
+	std::function<void(lt::alert const*, lt::session&)> on_alert,
+	std::function<bool(int, lt::session&)> terminate,
+	std::function<void(test_disk&, int)> customize_disk,
+	int piece_size,
+	int num_pieces,
+	lt::create_flags_t torrent_flags);
 
 struct dsl_config : sim::default_config
 {

@@ -189,6 +189,39 @@ void setup_swarm(int num_nodes
 	, std::function<void(lt::alert const*, lt::session&)> on_alert
 	, std::function<bool(int, lt::session&)> terminate)
 {
+	setup_swarm(num_nodes,
+		type,
+		sim,
+		default_settings,
+		default_add_torrent,
+		init_session,
+		new_session,
+		add_torrent,
+		on_alert,
+		terminate,
+		{},
+		0x4000,
+		-1,
+		{});
+}
+
+void setup_swarm(int num_nodes,
+	swarm_test_t const type,
+	sim::simulation& sim,
+	lt::settings_pack const& default_settings,
+	lt::add_torrent_params const& default_add_torrent,
+	std::function<void(lt::session&)> init_session,
+	std::function<void(lt::settings_pack&)> new_session,
+	std::function<void(lt::add_torrent_params&)> add_torrent,
+	std::function<void(lt::alert const*, lt::session&)> on_alert,
+	std::function<bool(int, lt::session&)> terminate,
+	std::function<void(test_disk&, int)> customize_disk,
+	int const piece_size,
+	int const num_pieces,
+	lt::create_flags_t const torrent_flags)
+{
+	int const pieces = num_pieces >= 0 ? num_pieces : (type & swarm_test::large_torrent) ? 50 : 9;
+
 	asio::io_context ios(sim);
 	lt::time_point start_time(lt::clock_type::now());
 
@@ -209,11 +242,11 @@ void setup_swarm(int num_nodes
 		if (ec) std::printf("failed to create directory: \"%s\": %s\n"
 			, path.c_str(), ec.message().c_str());
 		std::ofstream file(lt::combine_path(path, "temporary").c_str());
-		atp = ::create_torrent(&file, "temporary", 0x4000, (type & swarm_test::large_torrent) ? 50 : 9, false);
+		atp = ::create_torrent(&file, "temporary", piece_size, pieces, false, torrent_flags);
 	}
 	else
 	{
-		atp = ::create_test_torrent(0x4000, (type & swarm_test::large_torrent) ? 50 : 9, {});
+		atp = ::create_test_torrent(piece_size, pieces, torrent_flags);
 	}
 
 	if (bool(type & swarm_test::download) && bool(type & swarm_test::upload))
@@ -244,18 +277,15 @@ void setup_swarm(int num_nodes
 
 		if (!(type & swarm_test::real_disk))
 		{
-			if (type & swarm_test::download)
-			{
-				// in download tests, session 0 is a downloader and every other session
-				// is a seed. save path 0 is where the files are, so that's for seeds
-				params.disk_io_constructor = test_disk().set_seed(i > 0);
-			}
-			else
-			{
-				// in seed tests, session 0 is a seed and every other session
-				// a downloader. save path 0 is where the files are, so that's for seeds
-				params.disk_io_constructor = test_disk().set_seed(i == 0);
-			}
+			// in download tests, session 0 is a downloader and every other session
+			// is a seed. in seed tests, session 0 is a seed and every other
+			// session a downloader. save path 0 is where the files are, so
+			// that's for seeds
+			test_disk disk = (type & swarm_test::download) ? test_disk().set_seed(i > 0)
+														   : test_disk().set_seed(i == 0);
+			if (customize_disk)
+				customize_disk(disk, i);
+			params.disk_io_constructor = disk;
 		}
 
 		if (i == 0) new_session(params.settings);
@@ -424,4 +454,3 @@ void setup_swarm(int num_nodes
 
 	sim.run();
 }
-
