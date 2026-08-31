@@ -76,13 +76,13 @@ namespace aux {
 				// routing of this prefix by default.
 
 				address_v6 const a6 = a.to_v6();
-				return a6.is_loopback()
-					|| a6.is_link_local()
-					|| a6.is_site_local()
+				return a6.is_loopback() || a6.is_link_local() || a6.is_site_local()
 					|| a6.is_multicast_link_local()
 					|| a6.is_multicast_site_local()
 					//  fc00::/7, unique local address
-					|| (a6.to_bytes()[0] & 0xfe) == 0xfc;
+					|| (a6.to_bytes()[0] & 0xfe) == 0xfc
+					// the kernel treats the unspecified address as loopback when connecting
+					|| a6.is_unspecified();
 			}
 			address_v4 a4 = a.to_v4();
 			std::uint32_t const ip = a4.to_uint();
@@ -92,7 +92,8 @@ namespace aux {
 				|| (ip & 0xffff0000) == 0xa9fe0000 // 169.254.x.x
 				|| (ip & 0xff000000) == 0x7f000000 // 127.x.x.x
 				|| (ip & 0xffc00000) == 0x64400000 // 100.64.0.0/10
-				);
+				// the kernel treats 0.0.0.0 as loopback when connecting
+				|| a4.is_unspecified());
 		}
 		catch (std::exception const&) { return false; }
 	}

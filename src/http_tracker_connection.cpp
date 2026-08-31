@@ -54,22 +54,23 @@ namespace libtorrent::aux {
 		// SSRF mitigation. Only call this when ssrf_mitigation is enabled.
 		// link-local addresses (which includes cloud provider instance
 		// metadata endpoints such as 169.254.169.254) are never a
-		// legitimate tracker target and are unconditionally blocked. A
-		// loopback address is only blocked if the request doesn't look
-		// like a standard BitTorrent announce (the /announce path prefix)
-		// -- this allows local test trackers, while still preventing a
-		// tracker URL (or a follower coalescing onto an already-connected
-		// loopback address with a different path, e.g. a scrape) from
-		// being used to make arbitrary requests against services running
-		// on localhost. Used both by on_filter() (the initial,
-		// per-endpoint-list check at resolve time) and send_request() (a
-		// per-dispatch check, since followers reusing a connection never
-		// go through on_filter() again).
+		// legitimate tracker target and are unconditionally blocked. Other
+		// local addresses (loopback, RFC1918, IPv6 ULA/site-local) are only
+		// blocked if the request doesn't look like a standard BitTorrent
+		// announce (the /announce path prefix) -- running a tracker on the
+		// local network or loopback is a supported setup, so this only
+		// prevents a tracker URL (or a follower coalescing onto an
+		// already-connected local address with a different path, e.g. a
+		// scrape) from being used to make arbitrary requests against
+		// unrelated services on that host. Used both by on_filter() (the
+		// initial, per-endpoint-list check at resolve time) and
+		// send_request() (a per-dispatch check, since followers reusing a
+		// connection never go through on_filter() again).
 		bool ssrf_blocks(address const& addr, string_view const path)
 		{
 			if (aux::is_link_local(addr))
 				return true;
-			return aux::is_loopback(addr) && path.substr(0, 9) != "/announce";
+			return aux::is_local(addr) && path.substr(0, 9) != "/announce";
 		}
 	}
 
@@ -125,8 +126,12 @@ namespace libtorrent::aux {
 		// (see m_tracker_ip) never goes through on_filter()'s per-endpoint
 		// check, since that only runs at DNS-resolution time for the first
 		// request. On the very first dispatch m_tracker_ip is still
-		// default-constructed (not loopback), so this is a no-op then.
-		if (ssrf_mitigation)
+		// default-constructed (unspecified), meaning we have not connected
+		// yet and on_filter() has already vetted the endpoint, so skip the
+		// check then. is_local() treats the unspecified address as local
+		// (the kernel routes a connect() to it as loopback), so it must not
+		// be passed to ssrf_blocks() here.
+		if (ssrf_mitigation && !m_tracker_ip.is_unspecified())
 		{
 			std::string path;
 			error_code ec;
@@ -601,15 +606,13 @@ namespace libtorrent::aux {
 		if (ssrf_mitigation
 			&& std::find_if(endpoints.begin(),
 				   endpoints.end(),
-				   [](tcp::endpoint const& ep) {
-					   return aux::is_link_local(ep.address()) || aux::is_loopback(ep.address());
-				   })
+				   [](tcp::endpoint const& ep) { return aux::is_local(ep.address()); })
 				!= endpoints.end())
 		{
-			// there is at least one link-local or loopback address in here.
-			// Parse the path once and remove any endpoint that's rejected by
-			// ssrf_blocks() (see that function for the actual mitigation
-			// logic).
+			// there is at least one link-local or other local address in
+			// here. Parse the path once and remove any endpoint that's
+			// rejected by ssrf_blocks() (see that function for the actual
+			// mitigation logic).
 			std::string path;
 
 			error_code ec;
