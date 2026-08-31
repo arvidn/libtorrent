@@ -11,7 +11,7 @@ see LICENSE file.
 */
 
 #include "libtorrent/aux_/smart_ban.hpp"
-#include "libtorrent/hasher.hpp"
+#include "libtorrent/aux_/siphash.hpp"
 #include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/aux_/peer_connection.hpp"
 #include "libtorrent/peer_info.hpp"
@@ -26,12 +26,12 @@ see LICENSE file.
 #endif
 
 #include <algorithm>
+#include <cinttypes>
 #include <utility>
 #include <vector>
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/aux_/socket_io.hpp"
-#include "libtorrent/hex.hpp" // to_hex
 #endif
 
 namespace libtorrent::aux {
@@ -39,7 +39,7 @@ namespace libtorrent::aux {
 void smart_ban::on_piece_pass(piece_index_t const p)
 {
 	// has this piece failed earlier? If it has, go through the
-	// CRCs from the time it failed and ban the peers that
+	// hashes from the time it failed and ban the peers that
 	// sent bad blocks
 	auto i = m_block_hashes.lower_bound(piece_block(p, 0));
 	if (i == m_block_hashes.end() || i->first.piece_index != p)
@@ -98,7 +98,7 @@ void smart_ban::on_piece_pass(piece_index_t const p)
 void smart_ban::on_piece_failed(piece_index_t const p)
 {
 	// The piece failed the hash check. Record
-	// the CRC and origin peer of every block
+	// the hash and origin peer of every block
 
 	// if the torrent is aborted, no point in starting
 	// a bunch of read operations on it
@@ -162,8 +162,7 @@ void smart_ban::on_read_failed_block(piece_block const b,
 	if (error)
 		return;
 
-	hasher h;
-	h.update({buffer.data(), block_size});
+	std::uint64_t const digest = aux::siphash24(m_salt, {buffer.data(), block_size});
 
 	auto const range = m_torrent.find_peers(a);
 
@@ -172,7 +171,7 @@ void smart_ban::on_read_failed_block(piece_block const b,
 		return;
 
 	torrent_peer* p = (*range.first);
-	block_entry e = {p, h.final()};
+	block_entry e = {p, digest};
 
 	auto i = m_block_hashes.lower_bound(b);
 
@@ -197,12 +196,12 @@ void smart_ban::on_read_failed_block(piece_block const b,
 					client = info.client.c_str();
 				}
 				m_torrent.debug_log("BANNING PEER [ p: %d | b: %d | c: %s"
-									" | hash1: %s | hash2: %s | ip: %s ]",
+									" | hash1: %016" PRIx64 " | hash2: %016" PRIx64 " | ip: %s ]",
 					static_cast<int>(b.piece_index),
 					b.block_index,
 					client,
-					aux::to_hex(i->second.digest).c_str(),
-					aux::to_hex(e.digest).c_str(),
+					i->second.digest,
+					e.digest,
 					aux::print_endpoint(p->ip()).c_str());
 			}
 #endif
@@ -227,12 +226,12 @@ void smart_ban::on_read_failed_block(piece_block const b,
 			p->connection->get_peer_info(info);
 			client = info.client.c_str();
 		}
-		m_torrent.debug_log("STORE BLOCK CRC [ p: %d | b: %d | c: %s"
-							" | digest: %s | ip: %s ]",
+		m_torrent.debug_log("STORE BLOCK HASH [ p: %d | b: %d | c: %s"
+							" | digest: %016" PRIx64 " | ip: %s ]",
 			static_cast<int>(b.piece_index),
 			b.block_index,
 			client,
-			aux::to_hex(e.digest).c_str(),
+			e.digest,
 			aux::print_address(p->ip().address()).c_str());
 	}
 #endif
@@ -250,9 +249,7 @@ void smart_ban::on_read_ok_block(std::pair<piece_block, block_entry> const b,
 	if (error)
 		return;
 
-	hasher h;
-	h.update({buffer.data(), block_size});
-	sha1_hash const ok_digest = h.final();
+	std::uint64_t const ok_digest = aux::siphash24(m_salt, {buffer.data(), block_size});
 
 	if (b.second.digest == ok_digest)
 		return;
@@ -282,12 +279,12 @@ void smart_ban::on_read_ok_block(std::pair<piece_block, block_entry> const b,
 			client = info.client.c_str();
 		}
 		m_torrent.debug_log("BANNING PEER [ p: %d | b: %d | c: %s"
-							" | ok_digest: %s | bad_digest: %s | ip: %s ]",
+							" | ok_digest: %016" PRIx64 " | bad_digest: %016" PRIx64 " | ip: %s ]",
 			static_cast<int>(b.first.piece_index),
 			b.first.block_index,
 			client,
-			aux::to_hex(ok_digest).c_str(),
-			aux::to_hex(b.second.digest).c_str(),
+			ok_digest,
+			b.second.digest,
 			aux::print_address(p->ip().address()).c_str());
 	}
 #endif

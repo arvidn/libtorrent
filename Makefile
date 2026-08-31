@@ -415,6 +415,7 @@ SOURCES = \
   sha1.cpp                        \
   sha1_hash.cpp                   \
   sha256.cpp                      \
+  siphash.cpp                     \
   smart_ban.cpp                   \
   socket_io.cpp                   \
   socket_type.cpp                 \
@@ -674,6 +675,7 @@ HEADERS = \
   aux_/sha1.hpp                     \
   aux_/sha256.hpp                   \
   aux_/sha512.hpp                   \
+  aux_/siphash.hpp                  \
   aux_/sliding_average.hpp          \
   aux_/socket_io.hpp                \
   aux_/socket_type.hpp              \
@@ -985,6 +987,7 @@ TEST_SOURCES = \
   test_settings_pack.cpp \
   test_sha1_hash.cpp \
   test_similar_torrent.cpp \
+  test_siphash.cpp \
   test_sliding_average.cpp \
   test_socket_io.cpp \
   test_span.cpp \

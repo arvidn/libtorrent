@@ -17,10 +17,11 @@ see LICENSE file.
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/piece_block.hpp"
-#include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/units.hpp"
+#include "libtorrent/aux_/siphash.hpp"
 
+#include <cstdint>
 #include <map>
 
 namespace libtorrent::aux {
@@ -50,11 +51,11 @@ struct TORRENT_EXTRA_EXPORT smart_ban
 	void on_erase_peers(span<torrent_peer* const> peers);
 
 private:
-	// this entry ties a specific block CRC to a peer.
+	// this entry ties a specific block hash to a peer.
 	struct block_entry
 	{
 		torrent_peer* peer;
-		sha1_hash digest;
+		std::uint64_t digest;
 	};
 
 	void on_read_failed_block(piece_block b,
@@ -70,9 +71,12 @@ private:
 
 	torrent& m_torrent;
 
-	// this table maps a piece_block (piece and block index pair) to a
-	// peer and the block CRC. The CRC is calculated from the data in the
-	// block + the salt
+	// per-instance key for siphash24(), so a peer cannot craft a block
+	// colliding with another peer's hash
+	siphash_key m_salt = aux::random_siphash_key();
+
+	// maps a piece_block to the peer and hash (salted with m_salt) of the
+	// block data it sent
 	std::map<piece_block, block_entry> m_block_hashes;
 };
 

@@ -258,6 +258,7 @@ set(libtorrent_aux_include_files
 	sha1.hpp
 	sha256.hpp
 	sha512.hpp
+	siphash.hpp
 	sliding_average.hpp
 	smart_ban.hpp
 	socket_io.hpp
@@ -420,6 +421,7 @@ set(sources
 	sha1.cpp
 	sha1_hash.cpp
 	sha256.cpp
+	siphash.cpp
 	smart_ban.cpp
 	socket_io.cpp
 	socket_type.cpp
