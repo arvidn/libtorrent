@@ -1343,6 +1343,36 @@ namespace libtorrent::aux {
 		}
 
 		bool is_ssl_torrent() const { return bool(m_flags & torrent_internal_flags::ssl_torrent); }
+
+#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
+		// identifies this torrent's trust domain: the SHA-256 fingerprint of
+		// its SSL root certificate (resolved from
+		// add_torrent_params::root_certificate if given, otherwise the
+		// certificate embedded in the .torrent file), computed once by
+		// init_ssl(). All-zero for torrents that aren't SSL torrents.
+		// resolve_links links file data between two torrents only when
+		// their trust domains are equal, without re-parsing either
+		// certificate on every comparison. Only meaningful when
+		// resolve_links_disabled() is false.
+		sha256_hash const& trust_domain() const
+		{
+			static sha256_hash const none;
+#ifdef TORRENT_SSL_PEERS
+			return m_trust_domain ? *m_trust_domain : none;
+#else
+			return none;
+#endif
+		}
+
+		// true if this torrent's certificate isn't verified, so
+		// trust_domain() can't be trusted to gate aux::resolve_links.
+		// Irrelevant once settings_pack::enforce_torrent_trust_domain is
+		// off, since resolve_links stops checking trust domains at all.
+		bool resolve_links_disabled() const
+		{
+			return bool(m_flags & torrent_internal_flags::resolve_links_disabled);
+		}
+#endif
 #ifdef TORRENT_SSL_PEERS
 		void set_ssl_cert(std::string const& certificate
 			, std::string const& private_key
@@ -1542,6 +1572,14 @@ namespace libtorrent::aux {
 		// add_torrent_params struct are needed later in the torrent object's life
 		// cycle, and not in the constructor. So we need to save it here
 		std::unique_ptr<add_torrent_params> m_add_torrent_params;
+
+#if !defined TORRENT_DISABLE_MUTABLE_TORRENTS && defined TORRENT_SSL_PEERS
+		// only ever assigned by init_ssl(), so this doesn't exist at all in
+		// builds without TORRENT_SSL_PEERS. Null for the vast majority of
+		// torrents that aren't SSL torrents, to avoid the extra 32 bytes per
+		// torrent; see trust_domain()
+		std::unique_ptr<sha256_hash> m_trust_domain;
+#endif
 
 		// if the torrent is started without metadata, it may
 		// still be given a name until the metadata is received

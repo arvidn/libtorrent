@@ -1161,6 +1161,46 @@ torrents published by this root certificate (only if it has a "star cert").
 
 .. _`RFC 2818`: https://www.ietf.org/rfc/rfc2818.txt
 
+mutable torrents
+----------------
+
+libtorrent can link identical files between torrents that share the same
+piece layout, to avoid downloading the same data twice (see
+similar_torrents() and collections() on torrent_info, part of BEP 38). This
+is done purely by comparing piece hashes, which by itself says nothing about
+who published the data.
+
+For SSL torrents this matters. The point of an SSL torrent's root
+certificate is to establish which publisher's peers are trusted to serve a
+given piece of content. If file-linking reused file data across two SSL
+torrents purely because their piece hashes happen to match, an attacker
+could craft a torrent with a piece layout identical to some other, private
+SSL torrent, whose root certificate the attacker does not control. Once
+that crafted torrent is cross-referenced against the private one (via
+similar_torrents() or a shared collection), the private torrent's file data
+would end up seeded into the attacker's swarm, letting the attacker
+exfiltrate content they were never issued a certificate for.
+
+To prevent this, an SSL torrent's root certificate identifies its *trust
+domain*: its SHA-256 fingerprint, computed once when the torrent is added.
+File-linking compares the trust domains of the two torrents and only
+reuses file data when they're equal, never between an SSL torrent and a
+non-SSL torrent, or between two SSL torrents with different root
+certificates. Torrents without a root certificate share the same all-zero
+trust domain and remain unrestricted among themselves, exactly as before.
+This is controlled by settings_pack::enforce_torrent_trust_domain, which
+is enabled by default; when disabled, file-linking reuses data purely by
+piece hash, ignoring certificates entirely.
+
+An SSL torrent whose certificate has not been, or could not be, verified
+(for example because it failed to parse) is excluded from file-linking
+entirely, in either direction, rather than falling back to some default
+trust domain, as long as enforce_torrent_trust_domain is enabled. It also
+does not fall back to being treated as a non-SSL torrent for any other
+purpose. When enforce_torrent_trust_domain is disabled this exclusion does
+not apply either, consistent with file-linking otherwise ignoring
+certificates entirely in that mode.
+
 testing
 -------
 

@@ -1121,6 +1121,18 @@ namespace aux {
 			// afterwards, not ones already running.
 			enable_smart_ban,
 
+			// when set to true (the default), mutable-torrent file linking
+			// (see similar_torrents() and collections() on torrent_info)
+			// compares the SHA-256 fingerprint of each SSL torrent's root
+			// certificate before reusing file data between two torrents:
+			// linking only happens when the fingerprints match, or between
+			// two torrents that both lack a certificate. This stops a
+			// torrent crafted with matching piece hashes, but signed by a
+			// different certificate authority, from pulling file data
+			// across an SSL torrent's trust boundary. Set to false to link
+			// purely by piece hash, ignoring certificates.
+			enforce_torrent_trust_domain,
+
 			max_bool_setting_internal
 		};
 

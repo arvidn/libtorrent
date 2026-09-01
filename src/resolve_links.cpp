@@ -15,8 +15,13 @@ see LICENSE file.
 namespace libtorrent::aux {
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
-resolve_links::resolve_links(std::shared_ptr<torrent_info const> ti)
+
+resolve_links::resolve_links(std::shared_ptr<torrent_info const> ti,
+	bool const enforce_trust_domain,
+	sha256_hash const& trust_domain)
 	: m_torrent_file(std::move(ti))
+	, m_enforce_trust_domain(enforce_trust_domain)
+	, m_trust_domain(trust_domain)
 {
 	TORRENT_ASSERT(m_torrent_file);
 
@@ -45,8 +50,18 @@ resolve_links::resolve_links(std::shared_ptr<torrent_info const> ti)
 	m_links.resize(m_torrent_file->num_files());
 }
 
-void resolve_links::match(torrent_info const& ti, filenames const fs, std::string const& save_path)
+void resolve_links::match(torrent_info const& ti,
+	filenames const fs,
+	std::string const& save_path,
+	sha256_hash const& trust_domain)
 {
+	// an SSL torrent's data must not end up seeded into a swarm trusting a
+	// different certificate authority just because the piece hashes match.
+	// Torrents that aren't SSL torrents share the same all-zero trust
+	// domain and are unrestricted by this check.
+	if (m_enforce_trust_domain && m_trust_domain != trust_domain)
+		return;
+
 	if (m_torrent_file->v2() && ti.v2())
 	{
 		match_v2(fs, save_path);

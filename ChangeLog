@@ -1,5 +1,6 @@
 2.2.0 not released
 
+	* restrict sharing files across SSL torrents
 	* add versioned path-sanitization
 	* reject invalid controlURL from UPnP router
 	* deprecate file_storage::file_absolute_path()

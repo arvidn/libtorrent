@@ -251,6 +251,7 @@ namespace {
 		SET(apply_filter_to_dht, true, nullptr),
 		SET(disable_tracker_connection_reuse, false, nullptr),
 		SET(enable_smart_ban, true, nullptr),
+		SET(enforce_torrent_trust_domain, true, nullptr),
 	}});
 
 	CONSTEXPR_SETTINGS

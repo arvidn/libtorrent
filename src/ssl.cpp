@@ -14,8 +14,14 @@ see LICENSE file.
 
 #if TORRENT_USE_SSL
 
+#include <array>
+#include "libtorrent/aux_/scope_end.hpp"
+
 #ifdef TORRENT_USE_OPENSSL
 #include <openssl/x509v3.h> // for GENERAL_NAME
+#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
+#include <openssl/evp.h> // for EVP_sha256, EVP_MAX_MD_SIZE
+#endif
 #endif
 
 #ifdef TORRENT_USE_GNUTLS
@@ -24,7 +30,7 @@ see LICENSE file.
 
 namespace libtorrent::aux::ssl {
 
-void set_trust_certificate(native_context_type nc, string_view pem, error_code &ec)
+sha256_hash set_trust_certificate(native_context_type nc, string_view pem, error_code& ec)
 {
 #if defined TORRENT_USE_OPENSSL
 	// create a new X.509 certificate store
@@ -32,7 +38,7 @@ void set_trust_certificate(native_context_type nc, string_view pem, error_code &
 	if (!cert_store)
 	{
 		ec = error_code(int(ERR_get_error()), error::get_ssl_category());
-		return;
+		return {};
 	}
 
 	// wrap the PEM certificate in a BIO, for openssl to read
@@ -48,25 +54,78 @@ void set_trust_certificate(native_context_type nc, string_view pem, error_code &
 	{
 		X509_STORE_free(cert_store);
 		ec = error_code(int(ERR_get_error()), error::get_ssl_category());
-		return;
+		return {};
 	}
+	auto se = aux::scope_end([&] { X509_free(cert); });
 
 	// add cert to cert_store
 	X509_STORE_add_cert(cert_store, cert);
-	X509_free(cert);
 
-	// and lastly, replace the default cert store with ours
+	// and replace the default cert store with ours
 	SSL_CTX_set_cert_store(nc, cert_store);
 
-#elif defined TORRENT_USE_GNUTLS
-    gnutls_datum_t ca;
-    ca.data = reinterpret_cast<unsigned char*>(const_cast<char*>(pem.data()));
-    ca.size = unsigned(pem.size());
+	sha256_hash fingerprint;
+#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
+	// fingerprint the same parsed certificate used for the trust store,
+	// rather than re-parsing the PEM text
+	std::array<unsigned char, EVP_MAX_MD_SIZE> md;
+	unsigned int md_len = 0;
+	if (X509_digest(cert, EVP_sha256(), md.data(), &md_len) != 1)
+	{
+		ec = error_code(int(ERR_get_error()), error::get_ssl_category());
+		return {};
+	}
+	TORRENT_ASSERT(md_len == static_cast<unsigned int>(sha256_hash::size()));
+	fingerprint.assign(reinterpret_cast<char const*>(md.data()));
+#endif
+	return fingerprint;
 
-	// Warning: returns the number of certificates processed or a negative error code on error
-	int ret = gnutls_certificate_set_x509_trust_mem(nc, &ca, GNUTLS_X509_FMT_PEM);
-	if(ret < 0)
+#elif defined TORRENT_USE_GNUTLS
+	gnutls_datum_t ca;
+	ca.data = reinterpret_cast<unsigned char*>(const_cast<char*>(pem.data()));
+	ca.size = unsigned(pem.size());
+
+	// parse a single certificate, rather than using
+	// gnutls_certificate_set_x509_trust_mem() directly, so the certificate
+	// that's trusted is the exact same one that's fingerprinted below. A
+	// PEM blob containing more than one certificate only has its first
+	// certificate trusted, matching the OpenSSL branch above.
+	gnutls_x509_crt_t crt;
+	int ret = gnutls_x509_crt_init(&crt);
+	if (ret < 0)
+	{
 		ec = error_code(ret, error::get_ssl_category());
+		return {};
+	}
+	auto se = aux::scope_end([&] { gnutls_x509_crt_deinit(crt); });
+
+	ret = gnutls_x509_crt_import(crt, &ca, GNUTLS_X509_FMT_PEM);
+	if (ret < 0)
+	{
+		ec = error_code(ret, error::get_ssl_category());
+		return {};
+	}
+
+	ret = gnutls_certificate_set_x509_trust(nc, &crt, 1);
+	if (ret < 0)
+	{
+		ec = error_code(ret, error::get_ssl_category());
+		return {};
+	}
+
+	sha256_hash fingerprint;
+#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
+	std::array<unsigned char, 32> buf;
+	size_t buf_size = buf.size();
+	ret = gnutls_x509_crt_get_fingerprint(crt, GNUTLS_DIG_SHA256, buf.data(), &buf_size);
+	if (ret < 0)
+	{
+		ec = error_code(ret, error::get_ssl_category());
+		return {};
+	}
+	fingerprint.assign(reinterpret_cast<char const*>(buf.data()));
+#endif
+	return fingerprint;
 #endif
 }
 

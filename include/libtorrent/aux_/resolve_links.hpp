@@ -30,13 +30,22 @@ namespace libtorrent::aux {
 	// in other torrents.
 	struct TORRENT_EXTRA_EXPORT resolve_links
 	{
-		explicit resolve_links(std::shared_ptr<torrent_info const> ti);
+		// trust_domain is this torrent's trust domain (see
+		// torrent::trust_domain()), an all-zero hash for torrents that
+		// aren't SSL torrents. The caller is responsible for not
+		// constructing a resolve_links, and not calling match(), for a
+		// torrent for which torrent::resolve_links_disabled() is true.
+		explicit resolve_links(std::shared_ptr<torrent_info const> ti,
+			bool enforce_trust_domain = true,
+			sha256_hash const& trust_domain = sha256_hash());
 
-		// check to see if any files are shared with this torrent
-		void match(
-			torrent_info const& ti
-			, filenames const fs
-			, std::string const& save_path);
+		// check to see if any files are shared with this torrent.
+		// trust_domain is ti's owning torrent's trust domain, following the
+		// same convention as the constructor's.
+		void match(torrent_info const& ti,
+			filenames const fs,
+			std::string const& save_path,
+			sha256_hash const& trust_domain = sha256_hash());
 
 		aux::vector<std::string, file_index_t> const& get_links() const&
 		{ return m_links; }
@@ -63,6 +72,14 @@ namespace libtorrent::aux {
 
 		// maps file root hash to file index, in m_torrent_file
 		std::unordered_multimap<sha256_hash, file_index_t> m_file_roots;
+
+		// when true, match() refuses to link files across a trust-domain
+		// boundary. Set from settings_pack::enforce_torrent_trust_domain
+		// by the caller.
+		bool m_enforce_trust_domain = true;
+
+		// this torrent's trust domain (see the constructor's documentation)
+		sha256_hash m_trust_domain;
 	};
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 
