@@ -165,7 +165,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		{
 			auto const req = std::find_if(m_piece_block_requests.begin(), m_piece_block_requests.end()
 				, [now](piece_block_request const& e)
-					{ return e.last_request == min_time() || e.last_request - now > min_request_interval; });
+					{ return e.last_request == min_time() || now - e.last_request > min_request_interval; });
 			if (req != m_piece_block_requests.end())
 			{
 				int const blocks_per_piece = m_files.piece_length() / default_block_size;
