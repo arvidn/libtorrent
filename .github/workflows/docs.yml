@@ -30,9 +30,14 @@ jobs:
 
       - name: install dependencies
         run: |
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python3-docutils python3-pygments python3-pil gsfonts inkscape icoutils graphviz hunspell imagemagick
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python3-docutils python3-pygments python3-pil gsfonts inkscape icoutils graphviz imagemagick
           python3 -m pip install aafigure
           ~/.local/bin/aafigure --version
+
+      - name: install cspell
+        run: |
+          cd docs
+          npm ci
 
       - name: spell-check
         run: |

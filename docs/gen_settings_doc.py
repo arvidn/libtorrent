@@ -139,7 +139,7 @@ for line in f:
 
         names.append(line)
 
-dictionary = open("hunspell/settings.dic", "w+")
+dictionary = open("settings.dic", "w+")
 for w in sorted(all_names):
     dictionary.write(w + "\n")
 dictionary.close()

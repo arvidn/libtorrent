@@ -92,6 +92,12 @@ DOCS_PAGES = \
   docs/python_binding.html        \
   docs/tuning-ref.html            \
   docs/settings.rst               \
+  docs/settings.dic               \
+  docs/libtorrent.dic             \
+  docs/version.dic                \
+  docs/cspell.json                \
+  docs/package.json               \
+  docs/package-lock.json          \
   docs/stats_counters.rst         \
   docs/troubleshooting.html       \
   docs/udp_tracker_protocol.html  \

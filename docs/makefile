@@ -13,6 +13,12 @@ ifndef AAFIGURE
 AAFIGURE=aafigure
 endif
 
+# cspell is pinned via package.json/package-lock.json; run `npm ci` in this
+# directory once to install it. Override CSPELL to use a different binary.
+ifndef CSPELL
+CSPELL:=node_modules/.bin/cspell
+endif
+
 REFERENCE_TARGETS = \
 	manual-ref \
 	tutorial-ref \
@@ -137,9 +143,9 @@ favicon-64.png: img/logo-color.svg
 single-page-ref.rst: gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp settings-ref.rst stats_counters.rst
 	python3 gen_reference_doc.py --single-page
 
-settings.rst hunspell/settings.dic: ../include/libtorrent/settings_pack.hpp hunspell/libtorrent.dic
+settings.rst settings.dic: ../include/libtorrent/settings_pack.hpp libtorrent.dic
 	python3 gen_settings_doc.py || { rm $@; exit 1; }
-	cat hunspell/libtorrent.dic >>hunspell/settings.dic
+	cat libtorrent.dic >>settings.dic
 
 stats_counters.rst: ../src/session_stats.cpp ../include/libtorrent/performance_counters.hpp
 	python3 gen_stats_doc.py || { rm $@; exit 1; }
@@ -156,9 +162,13 @@ img/troubleshooting_thumb.png: img/troubleshooting.png
 todo.html:gen_todo.py ../src/*.cpp ../include/libtorrent/*.hpp
 	python3 gen_todo.py
 
-$(REFERENCE_TARGETS:=.rst) plain_text_out.txt settings-ref.rst:gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp manual.rst tuning.rst tutorial.rst features.rst settings.rst stats_counters.rst hunspell/settings.dic
+$(REFERENCE_TARGETS:=.rst) plain_text_out.txt settings-ref.rst:gen_reference_doc.py ../include/libtorrent/*.hpp ../include/libtorrent/kademlia/*.hpp manual.rst tuning.rst tutorial.rst features.rst settings.rst stats_counters.rst settings.dic
 	python3 gen_reference_doc.py --plain-output
 
+# spell checking uses cspell (https://cspell.org/), run against the plain-text
+# and HTML files. cspell reports file:line:column for every misspelling,
+# unlike the hunspell-based checker it replaced. Words that are correct but
+# not in cspell's built-in dictionaries go in libtorrent.dic.
 spell-check:plain_text_out.txt $(MANUAL_TARGETS:=.html) manual.rst settings.rst tutorial.rst
 	python3 filter-rst.py manual.rst >manual-plain.txt
 	python3 filter-rst.py tutorial.rst >tutorial-plain.txt
@@ -168,17 +178,11 @@ spell-check:plain_text_out.txt $(MANUAL_TARGETS:=.html) manual.rst settings.rst 
 	python3 filter-rst.py upgrade_to_2.0.rst >upgrade-2_0-plain.txt
 	python3 filter-rst.py upgrade_to_2.1.rst >upgrade-2_1-plain.txt
 	python3 filter-rst.py upgrade_to_2.2.rst >upgrade-2_2-plain.txt
-	hunspell -i UTF-8 -d hunspell/en_US -p hunspell/libtorrent.dic -l plain_text_out.txt >hunspell-report.txt
-	hunspell -i UTF-8 -d hunspell/en_US -p hunspell/libtorrent.dic -l manual-plain.txt >>hunspell-report.txt
-	hunspell -i UTF-8 -d hunspell/en_US -p hunspell/libtorrent.dic -l tutorial-plain.txt >>hunspell-report.txt
-	hunspell -i UTF-8 -d hunspell/en_US -p hunspell/libtorrent.dic -l tuning-plain.txt >>hunspell-report.txt
-	hunspell -i UTF-8 -d hunspell/en_US -p hunspell/libtorrent.dic -l upgrade-1_2-plain.txt >>hunspell-report.txt
-	hunspell -i UTF-8 -d hunspell/en_US -p hunspell/libtorrent.dic -l upgrade-2_0-plain.txt >>hunspell-report.txt
-	hunspell -i UTF-8 -d hunspell/en_US -p hunspell/libtorrent.dic -l upgrade-2_1-plain.txt >>hunspell-report.txt
-	hunspell -i UTF-8 -d hunspell/en_US -p hunspell/libtorrent.dic -l upgrade-2_2-plain.txt >>hunspell-report.txt
-	hunspell -i UTF-8 -d hunspell/en_US -p hunspell/settings.dic -l settings-plain.txt >>hunspell-report.txt
-	hunspell -i UTF-8 -d hunspell/en_US -p hunspell/libtorrent.dic -H -l $(MANUAL_TARGETS:=.html) >>hunspell-report.txt
-	@if [ -s hunspell-report.txt ]; then echo 'spellcheck failed, fix words or add to dictionary:'; cat hunspell-report.txt; false; fi;
+	$(CSPELL) --no-progress --no-summary --config cspell.json \
+		plain_text_out.txt manual-plain.txt tutorial-plain.txt tuning-plain.txt \
+		settings-plain.txt upgrade-1_2-plain.txt upgrade-2_0-plain.txt \
+		upgrade-2_1-plain.txt upgrade-2_2-plain.txt \
+		$(MANUAL_TARGETS:=.html)
 
 %.epub:%.rst
 	rst2epub --exit-status=2 $< $@
@@ -233,5 +237,5 @@ $(WEB_PATH)/img/%.png: img/%.png
 	cp $< $@
 
 clean:
-	rm -f $(TARGETS:=.html) $(TARGETS:=.pdf) $(FIGURES:=.png) $(REFERENCE_TARGETS:=.rst) settings.rst todo.html reference*.html stats_counters.rst hunspell/settings.dic favicon-16.png favicon-32.png favicon-64.png favicon.ico
+	rm -f $(TARGETS:=.html) $(TARGETS:=.pdf) $(FIGURES:=.png) $(REFERENCE_TARGETS:=.rst) settings.rst todo.html reference*.html stats_counters.rst settings.dic favicon-16.png favicon-32.png favicon-64.png favicon.ico
 

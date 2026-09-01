@@ -39,9 +39,10 @@ enumerated on this page, please contact arvid@libtorrent.org or the `mailing lis
 	against the documentation.
 
 	For updates, please submit a `pull request`_. All documentation is in
-	restructured text (rst_). All documentation is spell checked with hunspell
-	which can be invoked via ``make spell-check`` in the docs directory. If
-	words are missing, please add them to ``docs/hunspell/libtorrent.dic``
+	restructured text (rst_). All documentation is spell checked with cspell_
+	which can be invoked via ``make spell-check`` in the docs directory (run
+	``npm ci`` there first, to install the pinned cspell). If words are
+	missing, please add them to ``docs/libtorrent.dic``
 
 3. Code
 	Contributing code for new features or bug-fixes is highly welcome. If you're interested
@@ -60,4 +61,5 @@ For outstanding things to do, see the `todo list`_.
 .. _`pull request`: https://github.com/arvidn/libtorrent
 .. _`todo list`: todo.html
 .. _rst: https://docutils.sourceforge.io/rst.html
+.. _cspell: https://cspell.org/
 

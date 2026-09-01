@@ -107,7 +107,7 @@ substitute_file(
     },
 )
 substitute_file(
-    "docs/hunspell/libtorrent.dic",
+    "docs/version.dic",
     {
         "LT": lambda ln: re.sub(
             "LT[0-9A-Za-z]{4}", f"LT{format_fingerprint(v)}", ln),

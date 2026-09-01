@@ -5,7 +5,8 @@ exclude: |
     (?x)^(
         # These files are vendored from elsewhere, don't process them
         LICENSE|
-        docs/hunspell/.*|
+        docs/libtorrent\.dic|
+        docs/version\.dic|
         src/ed25519/.*|
         include/libtorrent/aux_/route\.h|
         test/.*\.xml|

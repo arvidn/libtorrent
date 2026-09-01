@@ -44,7 +44,7 @@ jobs:
 
       - name: install dependencies
         run: |
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python3-docutils python3-pygments python3-pil gsfonts inkscape icoutils graphviz hunspell imagemagick rsync
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y python3-docutils python3-pygments python3-pil gsfonts inkscape icoutils graphviz imagemagick rsync
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libboost-tools-dev libboost-python-dev libboost-dev libboost-system-dev libboost-json-dev python3-setuptools
           python3 -m pip install aafigure
           python3 -m pip install websockets
