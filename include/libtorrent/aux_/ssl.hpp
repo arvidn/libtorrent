@@ -17,6 +17,7 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/aux_/export.hpp"
+#include "libtorrent/sha1_hash.hpp"
 
 #if TORRENT_USE_SSL
 
@@ -167,7 +168,12 @@ context_handle_type get_context_handle(stream<T>& s)
 #endif
 }
 
-TORRENT_EXTRA_EXPORT void set_trust_certificate(native_context_type nc, string_view pem, error_code &ec);
+// sets the root certificate to trust for peer verification. Returns the
+// SHA-256 fingerprint of that certificate (all-zero if TORRENT_DISABLE_MUTABLE_TORRENTS
+// is defined, or on error), computed from the same parse used to set up
+// trust rather than a second one; see torrent::trust_domain().
+TORRENT_EXTRA_EXPORT sha256_hash set_trust_certificate(
+	native_context_type nc, string_view pem, error_code& ec);
 
 TORRENT_EXTRA_EXPORT void set_server_name_callback(context_handle_type c, server_name_callback_type cb, void* arg, error_code& ec);
 TORRENT_EXTRA_EXPORT void set_host_name(stream_handle_type s, std::string const& name, error_code& ec);

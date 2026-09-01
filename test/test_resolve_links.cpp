@@ -17,6 +17,7 @@ see LICENSE file.
 
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/aux_/resolve_links.hpp"
+#include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/aux_/path.hpp" // for combine_path
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/create_torrent.hpp"
@@ -28,6 +29,7 @@ see LICENSE file.
 #include "settings.hpp"
 
 #include <functional>
+#include <future>
 
 using namespace lt;
 using namespace std::placeholders;
@@ -158,6 +160,116 @@ TORRENT_TEST(range_lookup_duplicated_files)
 
 	TEST_EQUAL(num_matches, 1);
 }
+
+namespace {
+
+std::vector<lt::create_file_entry> single_file_1024()
+{
+	std::vector<lt::create_file_entry> fs;
+	fs.emplace_back("test_resolve_links_dir/tmp1", 1024);
+	return fs;
+}
+
+std::size_t count_matches(aux::resolve_links const& l)
+{
+	aux::vector<std::string, file_index_t> const& links = l.get_links();
+	return std::size_t(std::count_if(
+		links.begin(), links.end(), [](std::string const& link) { return !link.empty(); }));
+}
+
+struct trust_domain_test_t
+{
+	sha256_hash fingerprint1;
+	sha256_hash fingerprint2;
+	bool enforce_trust_domain;
+	std::size_t expected_matches;
+};
+
+} // anonymous namespace
+
+// resolve_links treats the SSL fingerprint as an opaque hash: it only
+// compares fingerprint1 against fingerprint2 for equality, never re-derives
+// either from a certificate. So this exercises that comparison directly,
+// with arbitrary distinct hashes, rather than through real certificates and
+// ssl::set_trust_certificate() (that parsing/fingerprinting behavior is
+// covered separately, see ssl_cert_fingerprint below).
+TORRENT_TEST(resolve_links_trust_domain)
+{
+	sha256_hash const trust_domain_a = sha256_hash::max();
+	sha256_hash const trust_domain_b = sha256_hash("01234567890123456789012345678901");
+
+	std::vector<trust_domain_test_t> const trust_domain_tests = {
+		// same trust domain: an SSL torrent's files may be linked from
+		// another SSL torrent trusting the same certificate authority
+		{trust_domain_a, trust_domain_a, true, 1},
+
+		// different trust domain: matching piece hashes must not link file
+		// data across an SSL torrent's trust boundary
+		{trust_domain_a, trust_domain_b, true, 0},
+
+		// settings_pack::enforce_torrent_trust_domain = false links
+		// regardless of trust domain
+		{trust_domain_a, trust_domain_b, false, 1},
+	};
+
+	for (trust_domain_test_t const& e : trust_domain_tests)
+	{
+		lt::create_torrent t1(single_file_1024(), 1024, lt::create_torrent::v1_only);
+		lt::create_torrent t2(single_file_1024(), 1024, lt::create_torrent::v1_only);
+		t1.set_hash(0_piece, sha1_hash::max());
+		t2.set_hash(0_piece, sha1_hash::max());
+
+		auto ti1 = load_torrent_buffer(bencode(t1.generate())).ti;
+		auto atp2 = load_torrent_buffer(bencode(t2.generate()));
+		renamed_files rf;
+		rf.import_filenames(atp2.ti->layout(), atp2.renamed_files);
+
+		aux::resolve_links l(ti1, e.enforce_trust_domain, e.fingerprint1);
+		l.match(*atp2.ti, filenames(atp2.ti->layout(), rf), ".", e.fingerprint2);
+
+		TEST_EQUAL(count_matches(l), e.expected_matches);
+	}
+}
+
+#ifdef TORRENT_SSL_PEERS
+
+// an SSL torrent whose certificate fails to parse must not be silently
+// treated as a plain (non-SSL) torrent: is_ssl_torrent() must stay true (so
+// it doesn't fall back to un-encrypted peer connections), and it must be
+// excluded from resolve_links (so its files can never be linked with
+// another torrent's storage based on the resulting all-zero fingerprint).
+TORRENT_TEST(ssl_torrent_invalid_certificate)
+{
+	lt::create_torrent t(single_file_1024(), 1024, lt::create_torrent::v1_only);
+	t.set_hash(0_piece, sha1_hash::max());
+
+	add_torrent_params atp = load_torrent_buffer(bencode(t.generate()));
+	atp.save_path = ".";
+	atp.root_certificate = "not a certificate";
+
+	lt::session ses(settings());
+	torrent_handle const h = ses.add_torrent(atp);
+	auto const tor = h.native_handle();
+
+	// session_handle::add_torrent() is a synchronous call into the network
+	// thread, so torrent::start() (and its init_ssl() call) has already run
+	// by the time it returns; this just marshals the read of internal state
+	// onto the network thread, it isn't waiting for anything to happen
+	std::promise<std::pair<bool, bool>> result;
+	post(ses.get_context(), [tor, &result] {
+		result.set_value({tor->is_ssl_torrent(), tor->resolve_links_disabled()});
+	});
+	auto const [is_ssl, disabled] = result.get_future().get();
+
+	TEST_CHECK(is_ssl);
+	TEST_CHECK(disabled);
+
+	torrent_status const st = h.status();
+	TEST_CHECK(st.errc);
+	TEST_CHECK(st.error_file == torrent_status::error_file_ssl_ctx);
+}
+
+#endif // TORRENT_SSL_PEERS
 
 TORRENT_TEST(pick_up_existing_file)
 {

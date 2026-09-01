@@ -33,6 +33,7 @@ see LICENSE file.
 #include <functional>
 #include <tuple>
 #include <fstream>
+#include <sstream>
 #include <iostream>
 
 #ifdef TORRENT_UTP_LOG_ENABLE
@@ -583,6 +584,16 @@ void test_malicious_peer()
 }
 
 
+// reads a fixture certificate from test/ssl/
+std::string read_test_ssl_file(std::string const& name)
+{
+	std::string const path = combine_path("..", combine_path("ssl", name));
+	std::ifstream f(path);
+	std::stringstream buf;
+	buf << f.rdbuf();
+	return buf.str();
+}
+
 void test_ssl_magnet(bool const seed_has_cert)
 {
 	error_code ec;
@@ -655,10 +666,7 @@ void test_ssl_magnet(bool const seed_has_cert)
 	addp2.flags &= ~torrent_flags::paused;
 	addp2.flags &= ~torrent_flags::auto_managed;
 
-	std::ifstream rootf(combine_path("..", combine_path("ssl", "root_ca_cert.pem")));
-	std::stringstream buffer;
-	buffer << rootf.rdbuf();
-	addp2.root_certificate = buffer.str();
+	addp2.root_certificate = read_test_ssl_file("root_ca_cert.pem");
 
 	torrent_handle tor2 = ses2.add_torrent(addp2, ec);
 
@@ -702,9 +710,61 @@ void test_ssl_magnet(bool const seed_has_cert)
 	}
 }
 
+// the fixture .pem files are "openssl x509 -text" dumps: a human-readable
+// description of the certificate precedes the actual PEM block. Returns just
+// the PEM block, a differently-formatted (but equivalent) encoding of the
+// same certificate.
+std::string strip_pem_preamble(std::string const& pem)
+{
+	auto const pos = pem.find("-----BEGIN CERTIFICATE-----");
+	TEST_CHECK(pos != std::string::npos);
+	return pem.substr(pos);
+}
 
+// mirrors what torrent::init_ssl() does: set up a throwaway trust store just
+// to get at the fingerprint set_trust_certificate() computes as a side effect
+sha256_hash fingerprint_cert(std::string const& pem)
+{
+	aux::ssl::context ctx(aux::ssl::context::tls);
+	error_code ec;
+	sha256_hash const fp = aux::ssl::set_trust_certificate(ctx.native_handle(), pem, ec);
+	if (ec)
+	{
+		std::printf("set_trust_certificate() failed: %s (pem size: %d)\n",
+			ec.message().c_str(),
+			int(pem.size()));
+		TEST_CHECK(!ec);
+	}
+	return fp;
+}
 
 } // anonymous namespace
+
+TORRENT_TEST(ssl_cert_fingerprint)
+{
+	std::string const cert_a = read_test_ssl_file("root_ca_cert.pem");
+	std::string const cert_b = read_test_ssl_file("server.pem");
+
+	// deterministic: the same certificate fingerprints the same way twice
+	TEST_CHECK(fingerprint_cert(cert_a) == fingerprint_cert(cert_a));
+
+	// PEM formatting (here, a human-readable text dump preceding the actual
+	// PEM block) does not affect the fingerprint, since it's derived from
+	// the parsed certificate's DER encoding, not the raw PEM text
+	TEST_CHECK(fingerprint_cert(cert_a) == fingerprint_cert(strip_pem_preamble(cert_a)));
+
+	// different certificates fingerprint differently
+	TEST_CHECK(fingerprint_cert(cert_a) != fingerprint_cert(cert_b));
+
+	// invalid input is reported as an error, with an all-zero fingerprint,
+	// not a crash or a bogus hash
+	aux::ssl::context ctx(aux::ssl::context::tls);
+	error_code ec;
+	sha256_hash const fp =
+		aux::ssl::set_trust_certificate(ctx.native_handle(), "not a certificate", ec);
+	TEST_CHECK(ec);
+	TEST_CHECK(fp.is_all_zeros());
+}
 
 TORRENT_TEST(malicious_peer)
 {

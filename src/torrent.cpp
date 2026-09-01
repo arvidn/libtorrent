@@ -573,6 +573,9 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 		update_want_tick();
 
+		bool const has_root_cert =
+			m_add_torrent_params && !m_add_torrent_params->root_certificate.empty();
+
 		// Some of these calls may log to the torrent debug log, which requires a
 		// call to get_handle(), which requires the torrent object to be fully
 		// constructed, as it relies on get_shared_from_this()
@@ -606,12 +609,18 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 				do_connect_boost();
 			}
 
-			if (!p.root_certificate.empty())
+			if (has_root_cert)
 			{
 				m_flags |= torrent_internal_flags::ssl_torrent;
-#ifdef TORRENT_SSL_PEERS
-				init_ssl(p.root_certificate);
+#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
+				// cleared by init_ssl() below once the certificate is
+				// verified; see resolve_links
+				m_flags |= torrent_internal_flags::resolve_links_disabled;
 #endif
+				// the init_ssl() call itself is deferred until after
+				// update_state_list() below: it may fail and call pause(),
+				// whose invariant check requires this torrent's state-list
+				// membership to already be established
 			}
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -683,6 +692,13 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		update_want_peers();
 		update_want_scrape();
 		update_state_list();
+
+#ifdef TORRENT_SSL_PEERS
+		if (has_root_cert)
+		{
+			init_ssl(m_add_torrent_params->root_certificate);
+		}
+#endif
 
 		if (m_torrent_file->is_valid())
 		{
@@ -1838,8 +1854,14 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			return;
 		}
 
-		// set the root certificate as trust
+		// set the root certificate as trust; this also fingerprints the
+		// certificate for resolve_links, see trust_domain()
+#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
+		m_trust_domain = std::make_unique<sha256_hash>(
+			ssl::set_trust_certificate(ctx->native_handle(), cert, ec));
+#else
 		ssl::set_trust_certificate(ctx->native_handle(), cert, ec);
+#endif
 		if (ec)
 		{
 			set_error(ec, torrent_status::error_file_ssl_ctx);
@@ -1858,6 +1880,11 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 		// if all went well, set the torrent ssl context to this one
 		m_ssl_ctx = std::move(ctx);
+#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
+		// the certificate is now verified and the fingerprint above is
+		// trustworthy; resolve_links may consider this torrent
+		m_flags &= ~torrent_internal_flags::resolve_links_disabled;
+#endif
 		// tell the client we need a cert for this torrent
 		alerts().emplace_alert<torrent_need_cert_alert>(get_handle());
 	}
@@ -1936,10 +1963,22 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		if (!is_ssl_torrent() && !cert.empty())
 		{
 			m_flags |= torrent_internal_flags::ssl_torrent;
+#ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
+			m_flags |= torrent_internal_flags::resolve_links_disabled;
+#endif
 #ifdef TORRENT_SSL_PEERS
 			init_ssl(cert);
 #endif
 		}
+#ifdef TORRENT_SSL_PEERS
+		// covers both a certificate that just failed to verify above, and
+		// one that failed earlier in start(), which left the flag already
+		// set so the block above was skipped. m_error is not used here
+		// since it may be set for unrelated reasons by the time init() is
+		// re-invoked (e.g. from set_metadata()).
+		if (is_ssl_torrent() && !m_ssl_ctx)
+			return;
+#endif
 
 		if (m_torrent_file->num_pieces() > piece_picker::max_pieces)
 		{
@@ -2073,38 +2112,44 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 		aux::vector<std::string, file_index_t> links;
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
-		if (!m_torrent_file->similar_torrents().empty()
-			|| !m_torrent_file->collections().empty())
+		// resolve_links_disabled() guards trust-domain integrity, which is
+		// moot once match() stops consulting trust domains at all.
+		bool const enforce_trust_domain =
+			settings().get_bool(settings_pack::enforce_torrent_trust_domain);
+		if ((!enforce_trust_domain || !resolve_links_disabled())
+			&& (!m_torrent_file->similar_torrents().empty()
+				|| !m_torrent_file->collections().empty()))
 		{
-			resolve_links res(m_torrent_file);
+			resolve_links res(m_torrent_file, enforce_trust_domain, trust_domain());
 
-			for (auto const& ih : m_torrent_file->similar_torrents())
-			{
-				std::shared_ptr<torrent> t = m_ses.find_torrent(info_hash_t(ih)).lock();
-				if (!t) continue;
+			auto const match_torrent = [&](std::shared_ptr<torrent> const& t) {
+				if (enforce_trust_domain && t->resolve_links_disabled())
+					return;
 
 				// Only attempt to reuse files from torrents that are seeding.
 				// TODO: this could be optimized by looking up which files are
 				// complete and just look at those
-				if (!t->is_seed()) continue;
+				if (!t->is_seed())
+					return;
 
-				auto ti = t->get_torrent_file();
-				res.match(*ti, filenames(ti->layout(), t->m_renamed_files), t->save_path());
+				auto const ti = t->get_torrent_file();
+				res.match(*ti,
+					filenames(ti->layout(), t->m_renamed_files),
+					t->save_path(),
+					t->trust_domain());
+			};
+
+			for (auto const& ih : m_torrent_file->similar_torrents())
+			{
+				std::shared_ptr<torrent> t = m_ses.find_torrent(info_hash_t(ih)).lock();
+				if (!t)
+					continue;
+				match_torrent(t);
 			}
 			for (auto const& c : m_torrent_file->collections())
 			{
-				std::vector<std::shared_ptr<torrent>> ts = m_ses.find_collection(c);
-
-				for (auto const& t : ts)
-				{
-					// Only attempt to reuse files from torrents that are seeding.
-					// TODO: this could be optimized by looking up which files are
-					// complete and just look at those
-					if (!t->is_seed()) continue;
-
-					auto ti = t->get_torrent_file();
-					res.match(*ti, filenames(ti->layout(), t->m_renamed_files), t->save_path());
-				}
+				for (auto const& t : m_ses.find_collection(c))
+					match_torrent(t);
 			}
 
 			links = std::move(res).get_links();

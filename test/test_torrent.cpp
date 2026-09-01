@@ -23,7 +23,7 @@ see LICENSE file.
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/extensions.hpp"
-#include "libtorrent/aux_/path.hpp" // for combine_path, current_working_directory
+#include "libtorrent/aux_/path.hpp" // for combine_path, current_path
 #include "libtorrent/magnet_uri.hpp"
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/span.hpp"

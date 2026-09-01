@@ -67,6 +67,13 @@ namespace libtorrent::aux::torrent_internal_flags {
 	// hashes instead, see torrent::get_smart_ban().
 	constexpr lt::torrent_flags_t smart_ban_enabled = 56_bit;
 
+	// set for SSL torrents with an unverified certificate, see
+	// torrent::init_ssl(). Excludes the torrent from aux::resolve_links,
+	// since trust_domain() can't be trusted; moot once
+	// settings_pack::enforce_torrent_trust_domain is off, as resolve_links
+	// no longer checks trust domains at all.
+	constexpr lt::torrent_flags_t resolve_links_disabled = 57_bit;
+
 	// peer-side helpers combining the public bit with the internal bit so
 	// "is the torrent operating in this mode right now?" is a single
 	// flag test.
