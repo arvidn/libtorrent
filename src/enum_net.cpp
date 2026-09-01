@@ -264,7 +264,7 @@ namespace {
 			while (packet_size < 0 && errno == EINTR);
 			if (packet_size < 0) return -1;
 			if (packet_size == 0) { errno = EIO; return -1; }
-			if (packet_size > 1024 * 1024) { errno = EMSGSIZE; return -1; }
+			if (packet_size > 16 * 1024) { errno = EMSGSIZE; return -1; }
 			buf.resize(static_cast<std::size_t>(packet_size));
 			int read_len;
 			do { read_len = int(recv(sock, buf.data(), buf.size(), MSG_TRUNC)); }
