@@ -149,7 +149,7 @@ TORRENT_VERSION_NAMESPACE_4
 	aux::path_index_t file_storage::resolve_owned_directory(
 		std::string const& path, string_view& leaf_out, error_code& ec)
 	{
-		TORRENT_ASSERT(!is_complete(path));
+		TORRENT_ASSERT(!is_absolute(path));
 		TORRENT_ASSERT(path[0] != '/');
 
 		// split the string into the leaf filename
@@ -355,7 +355,7 @@ TORRENT_VERSION_NAMESPACE_4_END
 		if (fs.pad_file_at(index))
 			return;
 
-		if (is_complete(new_filename))
+		if (is_absolute(new_filename))
 		{
 			auto& entry = m_renamed_files[index];
 			entry.path = new_filename;
@@ -463,7 +463,7 @@ void file_storage::rename_file_impl(
 
 	string_view leaf;
 	aux::path_index_t dir;
-	if (is_complete(new_filename))
+	if (is_absolute(new_filename))
 	{
 		// an absolute new_filename detaches the file from save_path,
 		// see torrent_info::rename_file()
@@ -738,7 +738,7 @@ void file_storage::rename_file_impl(
 		string_view const symlink_path,
 		std::int32_t const root_hash_offset)
 	{
-		TORRENT_ASSERT_PRECOND(!is_complete(filename));
+		TORRENT_ASSERT_PRECOND(!is_absolute(filename));
 
 		if (!filename.empty())
 		{
@@ -771,7 +771,7 @@ void file_storage::rename_file_impl(
 
 		aux::path_index_t dir;
 		string_view leaf;
-		if (is_complete(path))
+		if (is_absolute(path))
 		{
 			dir = aux::path_element::path_is_absolute;
 			leaf = path;
@@ -813,7 +813,7 @@ void file_storage::rename_file_impl(
 		// only look like a complete path when dir says so (i.e. it really is
 		// the whole path, see file_absolute_path())
 		TORRENT_ASSERT_PRECOND(
-			dir == aux::path_element::path_is_absolute || !is_complete(filename));
+			dir == aux::path_element::path_is_absolute || !is_absolute(filename));
 
 		if (file_size > max_file_size)
 		{
@@ -944,7 +944,7 @@ void file_storage::rename_file_impl(
 		// be absolute: a self-pointing symlink (see below) would then have
 		// no relative representation to fall back on
 		TORRENT_ASSERT_PRECOND(
-			dir != aux::path_element::path_is_absolute && !is_complete(filename));
+			dir != aux::path_element::path_is_absolute && !is_absolute(filename));
 
 		if (filename.size() >= (1 << 12))
 		{
@@ -988,7 +988,7 @@ void file_storage::rename_file_impl(
 		// be absolute: a self-pointing symlink (see below) would then have
 		// no relative representation to fall back on
 		TORRENT_ASSERT_PRECOND(
-			dir != aux::path_element::path_is_absolute && !is_complete(filename));
+			dir != aux::path_element::path_is_absolute && !is_absolute(filename));
 
 		if (filename.size() >= (1 << 12))
 		{
@@ -1010,7 +1010,7 @@ void file_storage::rename_file_impl(
 		e.symlink_attribute = true;
 
 		// an absolute target is never valid, see add_file()
-		TORRENT_ASSERT_PRECOND(target.empty() || !is_complete(target));
+		TORRENT_ASSERT_PRECOND(target.empty() || !is_absolute(target));
 
 		// a non-empty target is relative to the torrent root (like a real
 		// file's path, see add_file()), so name() is prepended when
@@ -1018,7 +1018,7 @@ void file_storage::rename_file_impl(
 		// unsplit path_element rather than one per directory level, since
 		// unlike a real file's path, nothing ever needs to address or
 		// dedupe individual components of a symlink target
-		e.symlink_element_index = (!target.empty() && !is_complete(target))
+		e.symlink_element_index = (!target.empty() && !is_absolute(target))
 			? make_directory(aux::path_element::torrent_root, target, false)
 			: e.path_element_index;
 

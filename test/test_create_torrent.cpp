@@ -176,7 +176,7 @@ namespace {
 
 void test_round_trip_torrent(std::string const& name)
 {
-	std::string const root_dir = lt::parent_path(lt::current_working_directory());
+	std::string const root_dir = lt::parent_path(lt::current_path());
 	std::string const filename = lt::combine_path(lt::combine_path(root_dir, "test_torrents"), name);
 	std::vector<char> v2_buffer;
 	lt::error_code ec;

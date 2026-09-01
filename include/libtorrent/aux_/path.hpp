@@ -86,8 +86,8 @@ namespace libtorrent {
 
 	// file is expected to exist, link will be created to point to it. If hard
 	// links are not supported by the filesystem or OS, the file will be copied.
-	TORRENT_EXTRA_EXPORT void hard_link(std::string const& file
-		, std::string const& link, error_code& ec);
+	TORRENT_EXTRA_EXPORT void create_hard_link(
+		std::string const& file, std::string const& link, error_code& ec);
 
 	// split out a path segment from the left side or right side
 	TORRENT_EXTRA_EXPORT std::pair<string_view, string_view> rsplit_path(string_view p);
@@ -124,9 +124,9 @@ namespace libtorrent {
 		string_view base, string_view target, error_code& ec);
 
 	// internal used by create_torrent.hpp
-	TORRENT_EXTRA_EXPORT std::string complete(string_view f);
-	TORRENT_EXTRA_EXPORT bool is_complete(string_view f);
-	TORRENT_EXTRA_EXPORT std::string current_working_directory();
+	TORRENT_EXTRA_EXPORT std::string absolute(string_view f);
+	TORRENT_EXTRA_EXPORT bool is_absolute(string_view f);
+	TORRENT_EXTRA_EXPORT std::string current_path();
 #if TORRENT_USE_UNC_PATHS
 	TORRENT_EXTRA_EXPORT std::string canonicalize_path(string_view f);
 #endif

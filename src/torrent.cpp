@@ -207,7 +207,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		, m_tracker_timer(ses.get_context())
 		, m_inactivity_timer(ses.get_context())
 		, m_trackerid(p.trackerid)
-		, m_save_path(complete(p.save_path))
+		, m_save_path(absolute(p.save_path))
 		, m_part_file_dir(p.part_file_dir)
 		, m_stats_counters(ses.stats_counters())
 		, m_added_time(p.added_time ? p.added_time : aux::posix_time())
@@ -241,7 +241,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			m_flags |= torrent_internal_flags::announce_to_trackers
 				| torrent_internal_flags::announce_to_lsd | torrent_internal_flags::announce_to_dht;
 		}
-		TORRENT_ASSERT_PRECOND(!is_complete(m_part_file_dir));
+		TORRENT_ASSERT_PRECOND(!is_absolute(m_part_file_dir));
 		// This is stored in 2 bits
 		TORRENT_ASSERT_PRECOND(static_cast<std::uint8_t>(p.storage_mode) < 4);
 
@@ -9241,7 +9241,7 @@ namespace {
 #else
 			std::string const& path = save_path;
 #endif
-			m_save_path = complete(path);
+			m_save_path = absolute(path);
 			return;
 		}
 

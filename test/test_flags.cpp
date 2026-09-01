@@ -31,8 +31,7 @@ namespace {
 
 std::string file(std::string const& name)
 {
-	return combine_path(parent_path(current_working_directory())
-		, combine_path("test_torrents", name));
+	return combine_path(parent_path(current_path()), combine_path("test_torrents", name));
 }
 
 void print_alerts(lt::session& ses)

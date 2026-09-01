@@ -170,7 +170,7 @@ TORRENT_TEST(directory)
 	if (ec) std::printf("create_directory: %s\n", ec.message().c_str());
 	TEST_CHECK(!ec);
 
-	std::string cwd = current_working_directory();
+	std::string cwd = current_path();
 
 	touch_file(combine_path("file_test_dir", "abc"), 10);
 	touch_file(combine_path("file_test_dir", "def"), 100);
@@ -302,19 +302,19 @@ TORRENT_TEST(paths)
 #endif
 
 #ifdef TORRENT_WINDOWS
-	TEST_EQUAL(is_complete("c:\\"), true);
-	TEST_EQUAL(is_complete("c:\\foo\\bar"), true);
-	TEST_EQUAL(is_complete("\\\\foo\\bar"), true);
-	TEST_EQUAL(is_complete("foo/bar"), false);
-	TEST_EQUAL(is_complete("\\\\"), true);
+	TEST_EQUAL(is_absolute("c:\\"), true);
+	TEST_EQUAL(is_absolute("c:\\foo\\bar"), true);
+	TEST_EQUAL(is_absolute("\\\\foo\\bar"), true);
+	TEST_EQUAL(is_absolute("foo/bar"), false);
+	TEST_EQUAL(is_absolute("\\\\"), true);
 #else
-	TEST_EQUAL(is_complete("/foo/bar"), true);
-	TEST_EQUAL(is_complete("foo/bar"), false);
-	TEST_EQUAL(is_complete("/"), true);
-	TEST_EQUAL(is_complete(""), false);
+	TEST_EQUAL(is_absolute("/foo/bar"), true);
+	TEST_EQUAL(is_absolute("foo/bar"), false);
+	TEST_EQUAL(is_absolute("/"), true);
+	TEST_EQUAL(is_absolute(""), false);
 #endif
 
-	// is_complete must honor the string_view length and not read past it.
+	// is_absolute must honor the string_view length and not read past it.
 	// Pass substring views that view into the middle of longer buffers, so
 	// that any read past the view's end would (with a sanitizer) flag UB
 	// or (on Windows) potentially see ':' '\\' bytes and falsely report a
@@ -324,19 +324,19 @@ TORRENT_TEST(paths)
 		std::string const rel = "foo/bar";
 		// view just "c" out of "c:\\foo" — the ':' and '\\' are past the
 		// view and must not be consulted.
-		TEST_EQUAL(is_complete(string_view(drive).substr(0, 1)), false);
+		TEST_EQUAL(is_absolute(string_view(drive).substr(0, 1)), false);
 		// view "c:" out of "c:\\foo" — drive letter without separator.
-		TEST_EQUAL(is_complete(string_view(drive).substr(0, 2)), false);
+		TEST_EQUAL(is_absolute(string_view(drive).substr(0, 2)), false);
 		// view "f" out of "foo/bar" — must not read past view to find '/'.
-		TEST_EQUAL(is_complete(string_view(rel).substr(0, 1)), false);
+		TEST_EQUAL(is_absolute(string_view(rel).substr(0, 1)), false);
 	}
 
-	TEST_EQUAL(complete("."), current_working_directory());
+	TEST_EQUAL(absolute("."), current_path());
 
 #ifdef TORRENT_WINDOWS
-	TEST_EQUAL(complete(".\\foobar"), current_working_directory() + "\\foobar");
+	TEST_EQUAL(absolute(".\\foobar"), current_path() + "\\foobar");
 #else
-	TEST_EQUAL(complete("./foobar"), current_working_directory() + "/foobar");
+	TEST_EQUAL(absolute("./foobar"), current_path() + "/foobar");
 #endif
 }
 
@@ -460,7 +460,7 @@ TORRENT_TEST(hard_link)
 	ofstream("original_file").write(str.data(), str.size());
 
 	error_code ec;
-	hard_link("original_file", "second_link", ec);
+	create_hard_link("original_file", "second_link", ec);
 
 	if (ec)
 		std::printf("hard_link failed: [%s] %s\n", ec.category().name(), ec.message().c_str());
@@ -737,7 +737,7 @@ TORRENT_TEST(unc_tests)
 
 	if (support_hard_links)
 	{
-		lt::hard_link(long_file_name2, long_file_name1, ec);
+		lt::create_hard_link(long_file_name2, long_file_name1, ec);
 		TEST_EQUAL(ec, error_code());
 		TEST_CHECK(exists(long_file_name1));
 

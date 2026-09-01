@@ -54,7 +54,7 @@ namespace libtorrent::aux {
 
 		std::unique_lock<std::mutex> l(m_mutex);
 
-		TORRENT_ASSERT(is_complete(p));
+		TORRENT_ASSERT(is_absolute(p));
 		auto& key_view = m_files.template get<0>();
 		file_id const file_key{st, file_index};
 		auto i = key_view.find(file_key);

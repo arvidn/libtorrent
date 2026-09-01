@@ -48,7 +48,7 @@ namespace {
 	void test_short_read(std::string const& test_dir)
 	{
 		error_code ec;
-		std::string const cwd = complete(".");
+		std::string const cwd = absolute(".");
 		std::string const path = combine_path(cwd, test_dir);
 		std::string const part_file_path = combine_path(path, "partfile.parts");
 		int const piece_size = 16 * 0x4000;
@@ -100,7 +100,7 @@ namespace {
 TORRENT_TEST(part_file)
 {
 	error_code ec;
-	std::string cwd = complete(".");
+	std::string cwd = absolute(".");
 
 	remove_all(combine_path(cwd, "partfile_test_dir"), ec);
 	if (ec) std::printf("remove_all: %s\n", ec.message().c_str());
@@ -207,7 +207,7 @@ TORRENT_TEST(part_file_short_read) { test_short_read<aux::part_file>("partfile_s
 TORRENT_TEST(posix_part_file)
 {
 	error_code ec;
-	std::string cwd = complete(".");
+	std::string cwd = absolute(".");
 
 	remove_all(combine_path(cwd, "partfile_test_dir"), ec);
 	if (ec) std::printf("remove_all: %s\n", ec.message().c_str());

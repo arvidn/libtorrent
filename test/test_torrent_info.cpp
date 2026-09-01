@@ -1182,7 +1182,7 @@ TORRENT_TEST(symlink_hop_limit)
 	// (11 - i); with the default max_symlink_hops == 8, index 3 (needs
 	// exactly 8 hops) resolves for real, index 2 (needs 9) doesn't and
 	// is left self-pointing instead
-	std::string const root_dir = parent_path(current_working_directory());
+	std::string const root_dir = parent_path(current_path());
 	std::string const filename =
 		combine_path(combine_path(root_dir, "test_torrents"), "symlink_hop_limit.torrent");
 
@@ -1222,7 +1222,7 @@ TORRENT_TEST(symlink_count_limit)
 	// max_duplicate_filenames precedent (an operation that isn't cheap,
 	// capped explicitly, rejected outright rather than silently
 	// truncated)
-	std::string const root_dir = parent_path(current_working_directory());
+	std::string const root_dir = parent_path(current_path());
 	std::string const filename =
 		combine_path(combine_path(root_dir, "test_torrents"), "symlink2.torrent");
 
@@ -1332,7 +1332,7 @@ TORRENT_TEST(parse_torrents)
 	std::cout << ti3.name() << std::endl;
 	TEST_EQUAL(ti3.name(), "test2..test3.......test4");
 
-	std::string root_dir = parent_path(current_working_directory());
+	std::string root_dir = parent_path(current_path());
 	for (auto const& t : test_torrents)
 	{
 		std::printf("loading %s\n", t.file);
@@ -1402,7 +1402,7 @@ TORRENT_TEST(parse_torrents)
 
 TORRENT_TEST(parse_invalid_torrents)
 {
-	std::string const root_dir = parent_path(current_working_directory());
+	std::string const root_dir = parent_path(current_path());
 	for (auto const& e : test_error_torrents)
 	{
 		error_code ec;
@@ -1444,7 +1444,7 @@ TORRENT_TEST(parse_invalid_torrents)
 
 TORRENT_TEST(parse_invalid_torrents_no_throw)
 {
-	std::string const root_dir = parent_path(current_working_directory());
+	std::string const root_dir = parent_path(current_path());
 	for (auto const& e : test_error_torrents)
 	{
 		error_code ec;
@@ -2115,7 +2115,7 @@ namespace {
 
 TORRENT_TEST(set_metadata_resolve_duplicate_filenames)
 {
-	std::string const root_dir = parent_path(current_working_directory());
+	std::string const root_dir = parent_path(current_path());
 
 	lt::session_params p = settings();
 	p.settings.set_int(lt::settings_pack::alert_mask,
@@ -2168,8 +2168,8 @@ TORRENT_TEST(copy)
 	using namespace lt;
 
 	std::shared_ptr<torrent_info const> a = load_torrent_file(
-		combine_path(parent_path(current_working_directory())
-		, combine_path("test_torrents", "sample.torrent"))).ti;
+		combine_path(parent_path(current_path()), combine_path("test_torrents", "sample.torrent")))
+												.ti;
 
 	// the padding file's name in the .torrent is "0", but pad files never
 	// store a name, it's always synthesized from their size
@@ -2227,7 +2227,7 @@ TORRENT_TEST(copy_ptr)
 #if TORRENT_ABI_VERSION < 4
 TORRENT_TEST(torrent_info_with_hashes_roundtrip)
 {
-	std::string const root_dir = parent_path(current_working_directory());
+	std::string const root_dir = parent_path(current_path());
 	std::string const filename = combine_path(combine_path(root_dir, "test_torrents"), "v2_only.torrent");
 
 	error_code ec;
@@ -2274,7 +2274,7 @@ TORRENT_TEST(torrent_info_with_hashes_roundtrip)
 
 TORRENT_TEST(write_torrent_file_session_roundtrip)
 {
-	std::string const root_dir = combine_path(parent_path(current_working_directory()), "test_torrents");
+	std::string const root_dir = combine_path(parent_path(current_path()), "test_torrents");
 
 	auto const files = {
 		"base.torrent",
