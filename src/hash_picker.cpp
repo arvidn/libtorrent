@@ -177,7 +177,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 					, 0
 					, first_block
 					, blocks_per_piece
-					, layers_to_verify(nidx) + merkle_num_layers(blocks_per_piece));
+					, layers_to_verify(nidx));
 				req->num_requests++;
 				req->last_request = now;
 				std::sort(m_piece_block_requests.begin(), m_piece_block_requests.end());
