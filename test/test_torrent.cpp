@@ -578,7 +578,7 @@ TORRENT_TEST(rename_file)
 	TEST_EQUAL(info->files().file_path(0_file), "renamed2");
 
 	// an absolute new_filename detaches the file from save_path
-	std::string const abs = combine_path(complete("."), combine_path("test3", "detached"));
+	std::string const abs = combine_path(absolute("."), combine_path("test3", "detached"));
 	info->rename_file(1_file, abs);
 	TEST_CHECK(info->files().file_absolute_path(1_file));
 	TEST_EQUAL(info->files().file_path(1_file, "save_path"), abs);
@@ -728,11 +728,11 @@ TORRENT_TEST(test_move_storage_no_metadata)
 	p.save_path = "save_path";
 	torrent_handle h = ses.add_torrent(std::move(p));
 
-	TEST_EQUAL(h.status().save_path, complete("save_path"));
+	TEST_EQUAL(h.status().save_path, absolute("save_path"));
 
 	h.move_storage("save_path_1");
 
-	TEST_EQUAL(h.status().save_path, complete("save_path_1"));
+	TEST_EQUAL(h.status().save_path, absolute("save_path_1"));
 }
 
 TORRENT_TEST(test_have_piece_no_metadata)
@@ -912,7 +912,7 @@ TORRENT_TEST(test_calc_bytes_all_pieces_two_pad)
 TORRENT_TEST(symlinks_restore)
 {
 	// downloading test torrent with symlinks
-	std::string const work_dir = current_working_directory();
+	std::string const work_dir = current_path();
 	lt::add_torrent_params p = load_torrent_file(combine_path(
 		combine_path(parent_path(work_dir), "test_torrents"), "symlink2.torrent"));
 	p.flags &= ~lt::torrent_flags::paused;

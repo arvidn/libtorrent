@@ -202,10 +202,11 @@ TORRENT_TEST(aligned_zero_priority_no_file)
 			atp.save_path = ".";
 			atp.file_priorities.push_back(lt::download_priority_t{1});
 			atp.file_priorities.push_back(lt::download_priority_t{0});
-			std::string filename = lt::combine_path(lt::current_working_directory()
-				, lt::combine_path(atp.save_path, atp.ti->layout().file_path(lt::file_index_t{1})));
-			partfile = lt::combine_path(lt::current_working_directory()
-				, lt::combine_path(atp.save_path, "." + lt::aux::to_hex(atp.ti->info_hashes().v1.to_string()) + ".parts"));
+			std::string filename = lt::combine_path(lt::current_path(),
+				lt::combine_path(atp.save_path, atp.ti->layout().file_path(lt::file_index_t{1})));
+			partfile = lt::combine_path(lt::current_path(),
+				lt::combine_path(atp.save_path,
+					"." + lt::aux::to_hex(atp.ti->info_hashes().v1.to_string()) + ".parts"));
 			lt::error_code ec;
 			lt::remove(filename, ec);
 			TEST_CHECK(!ec);
@@ -237,8 +238,8 @@ TORRENT_TEST(zero_priority_missing_partfile)
 			atp.file_priorities.push_back(lt::download_priority_t{1});
 			atp.file_priorities.push_back(lt::download_priority_t{1});
 			atp.file_priorities.push_back(lt::download_priority_t{0});
-			std::string const filename = lt::combine_path(lt::current_working_directory()
-				, lt::combine_path(atp.save_path, atp.ti->layout().file_path(lt::file_index_t{2})));
+			std::string const filename = lt::combine_path(lt::current_path(),
+				lt::combine_path(atp.save_path, atp.ti->layout().file_path(lt::file_index_t{2})));
 
 			std::cout << "removing: " << filename << "\n";
 			lt::error_code ec;

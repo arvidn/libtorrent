@@ -431,7 +431,7 @@ int EXPORT main(int argc, char const* argv[])
 #else
 	process_id = getpid();
 #endif
-	std::string const root_dir = current_working_directory();
+	std::string const root_dir = current_path();
 	std::string const unit_dir_prefix = combine_path(root_dir, "test_tmp_" + std::to_string(process_id) + "_");
 	std::printf("test: %s\ncwd_prefix = \"%s\"\n", executable, unit_dir_prefix.c_str());
 

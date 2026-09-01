@@ -175,7 +175,7 @@ namespace {
 #if TORRENT_USE_UNC_PATHS
 		// UNC paths must be absolute
 		// network paths are already UNC paths
-		std::string prepared_path = complete(path);
+		std::string prepared_path = absolute(path);
 		if (prepared_path.substr(0,2) != "\\\\")
 			prepared_path = "\\\\?\\" + prepared_path;
 		std::replace(prepared_path.begin(), prepared_path.end(), '/', '\\');
@@ -369,8 +369,7 @@ namespace {
 #endif
 	}
 
-	void hard_link(std::string const& file, std::string const& link
-		, error_code& ec)
+	void create_hard_link(std::string const& file, std::string const& link, error_code& ec)
 	{
 		native_path_string n_exist = convert_to_native_path_string(file);
 		native_path_string n_link = convert_to_native_path_string(link);
@@ -624,7 +623,7 @@ namespace {
 
 	void append_path(std::string& branch, string_view leaf)
 	{
-		TORRENT_ASSERT(!is_complete(leaf));
+		TORRENT_ASSERT(!is_absolute(leaf));
 		if (branch.empty() || branch == ".")
 		{
 			branch.assign(leaf.data(), leaf.size());
@@ -647,7 +646,7 @@ namespace {
 
 	std::string combine_path(string_view lhs, string_view rhs)
 	{
-		TORRENT_ASSERT(!is_complete(rhs));
+		TORRENT_ASSERT(!is_absolute(rhs));
 		if (lhs.empty() || lhs == ".") return std::string(rhs);
 		if (rhs.empty() || rhs == ".") return std::string(lhs);
 
@@ -751,7 +750,7 @@ namespace {
 		return ret;
 	}
 
-	std::string current_working_directory()
+	std::string current_path()
 	{
 #if defined TORRENT_WINDOWS
 #define GetCurrentDir_ ::_wgetcwd
@@ -949,15 +948,16 @@ namespace {
 		return { p.substr(0, sep), p.substr(sep + 1) };
 	}
 
-	std::string complete(string_view f)
+	std::string absolute(string_view f)
 	{
-		if (is_complete(f)) return std::string(f);
+		if (is_absolute(f))
+			return std::string(f);
 		auto parts = lsplit_path(f);
 		if (parts.first == ".") f = parts.second;
-		return combine_path(current_working_directory(), f);
+		return combine_path(current_path(), f);
 	}
 
-	bool is_complete(string_view f)
+	bool is_absolute(string_view f)
 	{
 		if (f.empty()) return false;
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)

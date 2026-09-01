@@ -128,9 +128,10 @@ void test_transfer(lt::session& ses,
 	p.flags |= torrent_flags::sequential_download;
 	p.save_path = save_path;
 	torrent_handle th = ses.add_torrent(p, ec);
-	std::printf("adding torrent, save_path = \"%s\" cwd = \"%s\" torrent = \"%s\"\n"
-		, save_path.c_str(), current_working_directory().c_str()
-		, p.ti->name().c_str());
+	std::printf("adding torrent, save_path = \"%s\" cwd = \"%s\" torrent = \"%s\"\n",
+		save_path.c_str(),
+		current_path().c_str(),
+		p.ti->name().c_str());
 
 	std::vector<announce_entry> empty;
 	th.replace_trackers(empty);

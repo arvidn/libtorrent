@@ -89,7 +89,7 @@ mmap_storage::mmap_storage(storage_params const& params, aux::file_view_pool& po
 	: m_files(params.files)
 	, m_renamed_files(params.renamed_files)
 	, m_file_priority(params.priorities)
-	, m_save_path(complete(params.path))
+	, m_save_path(absolute(params.path))
 	, m_part_file_dir(params.part_file_dir)
 	, m_part_file_name("." + aux::to_hex(params.info_hash) + ".parts")
 	, m_pool(pool)
@@ -428,7 +428,8 @@ mmap_storage::mmap_storage(storage_params const& params, aux::file_view_pool& po
 		if (exists(old_name, ec.ec))
 		{
 			std::string new_path;
-			if (is_complete(new_filename)) new_path = new_filename;
+			if (is_absolute(new_filename))
+				new_path = new_filename;
 			else new_path = combine_path(m_save_path, new_filename);
 			std::string new_dir = parent_path(new_path);
 

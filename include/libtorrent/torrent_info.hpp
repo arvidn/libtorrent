@@ -269,7 +269,7 @@ TORRENT_VERSION_NAMESPACE_4
 		//
 		// The ``new_filename`` can both be a relative path, in which case the
 		// file name is relative to the ``save_path`` of the torrent. If the
-		// ``new_filename`` is an absolute path (i.e. ``is_complete(new_filename)
+		// ``new_filename`` is an absolute path (i.e. ``is_absolute(new_filename)
 		// == true``), then the file is detached from the ``save_path`` of the
 		// torrent. In this case the file is not moved when move_storage() is
 		// invoked.

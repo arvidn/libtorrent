@@ -40,7 +40,7 @@ namespace libtorrent { namespace aux {
 		, move_flags_t const flags, storage_error& ec)
 	{
 		status_t ret{};
-		std::string const new_save_path = complete(destination_save_path);
+		std::string const new_save_path = absolute(destination_save_path);
 
 		// check to see if any of the files exist
 		if (flags == move_flags_t::fail_if_exist)
@@ -354,7 +354,7 @@ std::int64_t get_filesize(stat_cache& stat, file_index_t const file_index
 
 				error_code err;
 				std::string file_path = fs.file_path(idx, save_path);
-				hard_link(s, file_path, err);
+				create_hard_link(s, file_path, err);
 				if (err == boost::system::errc::no_such_file_or_directory)
 				{
 					// we create directories lazily, so it's possible it hasn't
@@ -369,7 +369,7 @@ std::int64_t get_filesize(stat_cache& stat, file_index_t const file_index
 						return false;
 					}
 
-					hard_link(s, file_path, err);
+					create_hard_link(s, file_path, err);
 				}
 
 				// if the file already exists, that's not an error

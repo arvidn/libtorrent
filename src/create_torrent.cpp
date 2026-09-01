@@ -120,7 +120,8 @@ namespace {
 				error_code sym_ec;
 				std::string sym_path = aux::get_symlink_path(f, sym_ec);
 				if (sym_ec) return;
-				if (!is_complete(sym_path)) sym_path = combine_path(parent_path(f), sym_path);
+				if (!is_absolute(sym_path))
+					sym_path = combine_path(parent_path(f), sym_path);
 				std::string const torrent_root = combine_path(p, lsplit_path(l).first);
 				sym_path = lexically_relative_normal(torrent_root, sym_path, sym_ec);
 				// drop symlinks whose target is outside the torrent root
@@ -190,7 +191,8 @@ namespace {
 				error_code sym_ec;
 				std::string sym_path = aux::get_symlink_path(f, sym_ec);
 				if (sym_ec) return;
-				if (!is_complete(sym_path)) sym_path = combine_path(parent_path(f), sym_path);
+				if (!is_absolute(sym_path))
+					sym_path = combine_path(parent_path(f), sym_path);
 				std::string const torrent_root = combine_path(p, lsplit_path(l).first);
 				sym_path = lexically_relative_normal(torrent_root, sym_path, sym_ec);
 				// drop symlinks whose target is outside the torrent root
@@ -413,7 +415,7 @@ namespace {
 			// file from save_path), so this can't rely on a precondition
 			// the way file_storage's own primitives do
 			std::string path = fs.file_path(i);
-			if (is_complete(path))
+			if (is_absolute(path))
 				aux::throw_ex<system_error>(make_error_code(boost::system::errc::invalid_argument));
 
 			if (fs.file_flags(i) & file_storage::flag_symlink)
@@ -480,7 +482,7 @@ namespace {
 		, std::function<bool(std::string)> p, create_flags_t const flags)
 	{
 		std::vector<create_file_entry> ret;
-		add_files_impl(ret, parent_path(complete(file)), filename(file), p, flags);
+		add_files_impl(ret, parent_path(absolute(file)), filename(file), p, flags);
 		return ret;
 	}
 
@@ -488,8 +490,7 @@ namespace {
 		, create_flags_t const flags)
 	{
 		std::vector<create_file_entry> ret;
-		add_files_impl(ret, parent_path(complete(file)), filename(file)
-			, default_pred, flags);
+		add_files_impl(ret, parent_path(absolute(file)), filename(file), default_pred, flags);
 		return ret;
 	}
 
@@ -497,13 +498,12 @@ namespace {
 	void add_files(file_storage& fs, std::string const& file
 		, std::function<bool(std::string)> p, create_flags_t const flags)
 	{
-		add_files_impl(fs, parent_path(complete(file)), filename(file), p, flags);
+		add_files_impl(fs, parent_path(absolute(file)), filename(file), p, flags);
 	}
 
 	void add_files(file_storage& fs, std::string const& file, create_flags_t const flags)
 	{
-		add_files_impl(fs, parent_path(complete(file)), filename(file)
-			, default_pred, flags);
+		add_files_impl(fs, parent_path(absolute(file)), filename(file), default_pred, flags);
 	}
 #endif
 
@@ -679,8 +679,8 @@ TORRENT_VERSION_NAMESPACE_4
 		// generated file list
 		for (auto const& f : m_files)
 		{
-			TORRENT_ASSERT_PRECOND(!is_complete(f.filename));
-			if (is_complete(f.filename))
+			TORRENT_ASSERT_PRECOND(!is_absolute(f.filename));
+			if (is_absolute(f.filename))
 				aux::throw_ex<system_error>(make_error_code(boost::system::errc::invalid_argument));
 		}
 

@@ -353,7 +353,8 @@ namespace aux {
 		if (exists(old_name, ec.ec))
 		{
 			std::string new_path;
-			if (is_complete(new_filename)) new_path = new_filename;
+			if (is_absolute(new_filename))
+				new_path = new_filename;
 			else new_path = combine_path(m_save_path, new_filename);
 			std::string new_dir = parent_path(new_path);
 

@@ -156,7 +156,7 @@ TORRENT_TEST(rename_file_absolute)
 	file_storage st;
 	setup_test_storage(st);
 
-	std::string const abs = combine_path(complete("."), combine_path("some", "where"));
+	std::string const abs = combine_path(absolute("."), combine_path("some", "where"));
 	error_code ec;
 	st.rename_file_impl(file_index_t{0}, abs, ec);
 	TEST_CHECK(!ec);

@@ -365,7 +365,7 @@ namespace {
 		if (params.save_path.empty())
 			aux::throw_ex<system_error>(error_code(errors::invalid_save_path));
 
-		TORRENT_ASSERT_PRECOND(!is_complete(params.part_file_dir));
+		TORRENT_ASSERT_PRECOND(!is_absolute(params.part_file_dir));
 
 #if TORRENT_ABI_VERSION < 3
 		if (!params.info_hashes.has_v1() && !params.info_hashes.has_v2() && !params.ti)
@@ -397,7 +397,7 @@ namespace {
 
 	torrent_handle session_handle::add_torrent(add_torrent_params&& params, error_code& ec)
 	{
-		TORRENT_ASSERT_PRECOND(!is_complete(params.part_file_dir));
+		TORRENT_ASSERT_PRECOND(!is_absolute(params.part_file_dir));
 
 		if (params.save_path.empty())
 		{
@@ -452,7 +452,7 @@ namespace {
 			params.ti = std::make_shared<torrent_info>(*params.ti);
 
 		auto p = std::make_unique<add_torrent_params>(std::move(params));
-		p->save_path = complete(p->save_path);
+		p->save_path = absolute(p->save_path);
 
 #if TORRENT_ABI_VERSION == 1
 		handle_backwards_compatible_resume_data(*p);

@@ -43,7 +43,7 @@ add_torrent_test_flag_t const set_invalid_info_hash_v2 = 8_bit;
 
 lt::error_code test_add_torrent(std::string file, add_torrent_test_flag_t const flags)
 {
-	std::string const root_dir = lt::parent_path(lt::current_working_directory());
+	std::string const root_dir = lt::parent_path(lt::current_path());
 	std::string const filename = lt::combine_path(lt::combine_path(root_dir, "test_torrents"), file);
 
 	lt::add_torrent_params atp;

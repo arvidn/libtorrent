@@ -68,7 +68,7 @@ constexpr int half = piece_size / 2;
 
 void delete_dirs(std::string path)
 {
-	path = complete(path);
+	path = absolute(path);
 	error_code ec;
 	remove_all(path, ec);
 	if (ec && ec != boost::system::errc::no_such_file_or_directory)
@@ -344,9 +344,10 @@ void run_storage_tests(std::shared_ptr<torrent_info const> info
 	TORRENT_ASSERT(fs.num_files() > 0);
 	{
 	error_code ec;
-	create_directory(complete("temp_storage"), ec);
-	if (ec) std::cout << "create_directory '" << complete("temp_storage")
-		<< "': " << ec.message() << std::endl;
+	create_directory(absolute("temp_storage"), ec);
+	if (ec)
+		std::cout << "create_directory '" << absolute("temp_storage") << "': " << ec.message()
+				  << std::endl;
 	}
 	int const num_pieces = fs.num_pieces();
 	TEST_EQUAL(info->num_pieces(), num_pieces);
@@ -364,7 +365,7 @@ void run_storage_tests(std::shared_ptr<torrent_info const> info
 	typename file_pool_type<StorageType>::type fp;
 	boost::asio::io_context ios;
 	aux::vector<download_priority_t, file_index_t> priorities;
-	std::string const cwd = current_working_directory();
+	std::string const cwd = current_path();
 	renamed_files rf;
 	storage_params p{
 		fs,
@@ -648,7 +649,7 @@ std::int64_t file_size_on_disk(std::string const& path)
 template <typename StorageType>
 void test_pre_allocate()
 {
-	std::string const test_path = complete("pre_allocate_test_path");
+	std::string const test_path = absolute("pre_allocate_test_path");
 	delete_dirs(combine_path(test_path, "temp_storage"));
 
 	bool const supports_prealloc = fs_supports_prealloc();
@@ -769,7 +770,7 @@ void test_check_files(check_files_flag_t const flags,
 	int const aio_threads = 1,
 	int const hashing_threads = 0)
 {
-	std::string const test_path = current_working_directory();
+	std::string const test_path = current_path();
 
 	error_code ec;
 	constexpr int piece_size_check = 16 * 1024;
@@ -901,7 +902,7 @@ void test_check_files(check_files_flag_t const flags,
 template <typename StorageType>
 void run_test()
 {
-	std::string const test_path = current_working_directory();
+	std::string const test_path = current_path();
 	std::cout << "\n=== " << test_path << " ===\n" << std::endl;
 
 	std::vector<char> piece0 = new_piece(piece_size);
@@ -943,7 +944,7 @@ void run_test()
 		run_storage_tests<StorageType>(info, storage_mode);
 
 		// make sure the files have the correct size
-		std::string const base = complete("temp_storage");
+		std::string const base = absolute("temp_storage");
 
 		// these files should have been allocated as 0 size
 		TEST_CHECK(exists(combine_path(base, "test3.tmp")));
@@ -999,43 +1000,25 @@ TORRENT_TEST(test_pre_allocate_posix)
 */
 
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
-TORRENT_TEST(rename_mmap_disk_io)
-{
-	test_rename<mmap_storage>(current_working_directory());
-}
+TORRENT_TEST(rename_mmap_disk_io) { test_rename<mmap_storage>(current_path()); }
 
-TORRENT_TEST(remove_mmap_disk_io)
-{
-	test_remove<mmap_storage>(current_working_directory());
-}
+TORRENT_TEST(remove_mmap_disk_io) { test_remove<mmap_storage>(current_path()); }
 #endif
 
-TORRENT_TEST(rename_posix_disk_io)
-{
-	test_rename<posix_storage>(current_working_directory());
-}
+TORRENT_TEST(rename_posix_disk_io) { test_rename<posix_storage>(current_path()); }
 
-TORRENT_TEST(remove_posix_disk_io)
-{
-	test_remove<posix_storage>(current_working_directory());
-}
+TORRENT_TEST(remove_posix_disk_io) { test_remove<posix_storage>(current_path()); }
 
-TORRENT_TEST(rename_pread_disk_io) { test_rename<pread_storage>(current_working_directory()); }
+TORRENT_TEST(rename_pread_disk_io) { test_rename<pread_storage>(current_path()); }
 
-TORRENT_TEST_DISK_IO(rename_to_existing)
-{
-	test_rename_to_existing(current_working_directory(), disk_io);
-}
+TORRENT_TEST_DISK_IO(rename_to_existing) { test_rename_to_existing(current_path(), disk_io); }
 
-TORRENT_TEST(remove_pread_disk_io)
-{
-	test_remove<pread_storage>(current_working_directory());
-}
+TORRENT_TEST(remove_pread_disk_io) { test_remove<pread_storage>(current_path()); }
 
 
 void test_fastresume(bool const test_deprecated)
 {
-	std::string test_path = current_working_directory();
+	std::string test_path = current_path();
 	error_code ec;
 	std::cout << "\n\n=== test fastresume ===" << std::endl;
 	delete_dirs("tmp1");
@@ -1046,8 +1029,8 @@ void test_fastresume(bool const test_deprecated)
 	ofstream file(combine_path(test_path, "tmp1/temporary").c_str());
 	add_torrent_params atp = ::create_torrent(&file);
 	file.close();
-	TEST_CHECK(exists(complete("tmp1/temporary")));
-	if (!exists(complete("tmp1/temporary")))
+	TEST_CHECK(exists(absolute("tmp1/temporary")));
+	if (!exists(absolute("tmp1/temporary")))
 		return;
 
 	entry resume;
@@ -1153,7 +1136,7 @@ TORRENT_TEST(fastresume_deprecated)
 TORRENT_TEST(fastresume_spanning_piece_missing_file)
 {
 	int const resume_piece_size = 0x4000;
-	std::string const save_path = complete("temp_storage_spanning_resume");
+	std::string const save_path = absolute("temp_storage_spanning_resume");
 	delete_dirs(save_path);
 
 	file_storage fs;
@@ -1286,7 +1269,7 @@ namespace {
 
 void test_rename_file_fastresume(bool test_deprecated)
 {
-	std::string test_path = current_working_directory();
+	std::string test_path = current_path();
 	error_code ec;
 	std::cout << "\n\n=== test rename file in fastresume ===" << std::endl;
 	delete_dirs("tmp2");
@@ -1739,8 +1722,8 @@ template <typename StorageType>
 void test_move_storage_to_self()
 {
 	// call move_storage with the path to the existing storage. should be a no-op
-	std::string const save_path = current_working_directory();
-	std::string const test_path = complete("temp_storage");
+	std::string const save_path = current_path();
+	std::string const test_path = absolute("temp_storage");
 	delete_dirs(test_path);
 
 	aux::session_settings set;
@@ -1773,7 +1756,7 @@ void test_move_storage_to_self()
 template <typename StorageType>
 void test_move_storage_into_self()
 {
-	std::string const save_path = current_working_directory();
+	std::string const save_path = current_path();
 	delete_dirs("temp_storage");
 
 	aux::session_settings set;
@@ -1803,8 +1786,8 @@ void test_move_storage_into_self()
 template <typename StorageType>
 void test_move_storage_reset(move_flags_t const flags)
 {
-	std::string const save_path = current_working_directory();
-	std::string const test_path = complete("temp_storage2");
+	std::string const save_path = current_path();
+	std::string const test_path = absolute("temp_storage2");
 	delete_dirs(test_path);
 
 	aux::session_settings set;
@@ -1895,10 +1878,10 @@ TORRENT_TEST(move_pread_storage_reset)
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 TORRENT_TEST(dont_move_intermingled_files)
 {
-	std::string const save_path = complete("save_path_1");
+	std::string const save_path = absolute("save_path_1");
 	delete_dirs(combine_path(save_path, "temp_storage"));
 
-	std::string const test_path = complete("save_path_2");
+	std::string const test_path = absolute("save_path_2");
 	delete_dirs(combine_path(test_path, "temp_storage"));
 
 	aux::session_settings set;
@@ -1975,7 +1958,7 @@ void test_unaligned_read(lt::disk_io_constructor_type constructor, Fun fun)
 	fs.set_num_pieces(1);
 	fs.set_piece_length(lt::default_block_size * 2);
 
-	std::string const save_path = complete("save_path");
+	std::string const save_path = absolute("save_path");
 	delete_dirs(combine_path(save_path, "test"));
 
 	lt::aux::vector<lt::download_priority_t, lt::file_index_t> prios;
@@ -2213,7 +2196,7 @@ void test_part_file(lt::storage_mode_t const storage_mode, part_file_flag_t cons
 	typename file_pool_type<StorageType>::type fp;
 	boost::asio::io_context ios;
 	aux::vector<download_priority_t, file_index_t> priorities = {1_pri, 0_pri};
-	std::string const cwd = current_working_directory();
+	std::string const cwd = current_path();
 	std::string download_dir = combine_path(cwd, "part_file_test_" + std::to_string(test_index));
 	std::string const part_file_dir = combine_path(download_dir, "part_file_dir");
 	++test_index;
@@ -2387,7 +2370,7 @@ static void test_write_vec_partfile(
 
 	aux::session_settings set;
 	file_pool_type<pread_storage>::type fp;
-	std::string const cwd = current_working_directory();
+	std::string const cwd = current_path();
 	std::string const download_dir = combine_path(cwd, "pread_vec_partfile_test");
 	delete_dirs(download_dir);
 	renamed_files rf;
