@@ -276,6 +276,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 			return add_hashes_result(false);
 
 		add_hashes_result ret(true);
+		ret.block_request = valid_block_request;
 
 		auto& dst_tree = m_merkle_trees[req.file];
 		int const dest_start_idx = merkle_to_flat_index(base_layer_idx, req.index);

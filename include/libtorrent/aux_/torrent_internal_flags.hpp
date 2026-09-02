@@ -62,9 +62,7 @@ namespace libtorrent::aux::torrent_internal_flags {
 	// latched from settings_pack::enable_smart_ban once the torrent has
 	// valid metadata (see torrent::init()) and never changed afterwards,
 	// so a later settings_pack update cannot strand a ban evaluation that's
-	// already in flight for a piece. Also folds in the v1-only restriction,
-	// v2 (and hybrid) torrents identify bad peers via their merkle block
-	// hashes instead, see torrent::get_smart_ban().
+	// already in flight for a piece.
 	constexpr lt::torrent_flags_t smart_ban_enabled = 56_bit;
 
 	// set for SSL torrents with an unverified certificate, see

@@ -72,6 +72,10 @@ namespace libtorrent::aux
 		explicit add_hashes_result(bool const v) : valid(v) {}
 
 		bool valid;
+		// true for a single-piece, block-layer request (matches_block_request());
+		// req.base == 0 alone can't distinguish that from a multi-piece
+		// piece-layer request when m_piece_layer == 0.
+		bool block_request = false;
 		// the vector contains the block indices (within the piece) that failed
 		// the hash check
 		std::vector<std::pair<piece_index_t, std::vector<int>>> hash_failed;
