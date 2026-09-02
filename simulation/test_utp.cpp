@@ -117,7 +117,7 @@ TORRENT_TEST(utp_pmtud)
 	TEST_EQUAL(metric(cnt, "utp.utp_packets_in"), 593);
 	TEST_EQUAL(metric(cnt, "utp.utp_payload_pkts_in"), 72);
 
-	TEST_EQUAL(metric(cnt, "utp.utp_packets_out"), 604);
+	TEST_EQUAL(metric(cnt, "utp.utp_packets_out"), 603);
 
 	// we don't expect any invalid packets, since we're talking to ourself
 	TEST_EQUAL(metric(cnt, "utp.utp_invalid_pkts_in"), 0);
@@ -143,7 +143,7 @@ TORRENT_TEST(utp_plain)
 	TEST_EQUAL(metric(cnt, "utp.utp_packets_in"), 590);
 	TEST_EQUAL(metric(cnt, "utp.utp_payload_pkts_in"), 77);
 
-	TEST_EQUAL(metric(cnt, "utp.utp_packets_out"), 598);
+	TEST_EQUAL(metric(cnt, "utp.utp_packets_out"), 597);
 
 	// we don't expect any invalid packets, since we're talking to ourself
 	TEST_EQUAL(metric(cnt, "utp.utp_invalid_pkts_in"), 0);
@@ -166,13 +166,13 @@ TORRENT_TEST(utp_buffer_bloat)
 	TEST_EQUAL(metric(cnt, "utp.utp_fast_retransmit"), 0);
 	TEST_EQUAL(metric(cnt, "utp.utp_packet_resend"), 0);
 
-	TEST_EQUAL(metric(cnt, "utp.utp_samples_above_target"), 429);
-	TEST_EQUAL(metric(cnt, "utp.utp_samples_below_target"), 152);
+	TEST_EQUAL(metric(cnt, "utp.utp_samples_above_target"), 430);
+	TEST_EQUAL(metric(cnt, "utp.utp_samples_below_target"), 151);
 
-	TEST_EQUAL(metric(cnt, "utp.utp_packets_in"), 633);
-	TEST_EQUAL(metric(cnt, "utp.utp_payload_pkts_in"), 84);
+	TEST_EQUAL(metric(cnt, "utp.utp_packets_in"), 635);
+	TEST_EQUAL(metric(cnt, "utp.utp_payload_pkts_in"), 86);
 
-	TEST_EQUAL(metric(cnt, "utp.utp_packets_out"), 633);
+	TEST_EQUAL(metric(cnt, "utp.utp_packets_out"), 634);
 
 	// we don't expect any invalid packets, since we're talking to ourself
 	TEST_EQUAL(metric(cnt, "utp.utp_invalid_pkts_in"), 0);
@@ -209,6 +209,11 @@ TORRENT_TEST(utp_straw)
 	TEST_EQUAL(metric(cnt, "utp.utp_redundant_pkts_in"), 0);
 }
 
+// the send buffer here is smaller than a single piece, so kernel-buffer
+// backpressure dominates the congestion control feedback loop, making
+// these counters unusually sensitive to piece-request order; an unrelated
+// change (e.g. piece_picker's random selection) can shift them even
+// though the transfer still completes correctly.
 TORRENT_TEST(utp_small_kernel_send_buf)
 {
 #if TORRENT_UTP_LOG
@@ -222,15 +227,15 @@ TORRENT_TEST(utp_small_kernel_send_buf)
 	TEST_EQUAL(metric(cnt, "utp.utp_packet_loss"), 0);
 	TEST_EQUAL(metric(cnt, "utp.utp_timeout"), 0);
 	TEST_EQUAL(metric(cnt, "utp.utp_fast_retransmit"), 0);
-	TEST_EQUAL(metric(cnt, "utp.utp_packet_resend"), 263);
+	TEST_EQUAL(metric(cnt, "utp.utp_packet_resend"), 140);
 
 	TEST_EQUAL(metric(cnt, "utp.utp_samples_above_target"), 0);
-	TEST_EQUAL(metric(cnt, "utp.utp_samples_below_target"), 1010);
+	TEST_EQUAL(metric(cnt, "utp.utp_samples_below_target"), 604);
 
-	TEST_EQUAL(metric(cnt, "utp.utp_packets_in"), 1018);
-	TEST_EQUAL(metric(cnt, "utp.utp_payload_pkts_in"), 69);
+	TEST_EQUAL(metric(cnt, "utp.utp_packets_in"), 612);
+	TEST_EQUAL(metric(cnt, "utp.utp_payload_pkts_in"), 72);
 
-	TEST_EQUAL(metric(cnt, "utp.utp_packets_out"), 1035);
+	TEST_EQUAL(metric(cnt, "utp.utp_packets_out"), 630);
 
 	// we don't expect any invalid packets, since we're talking to ourself
 	TEST_EQUAL(metric(cnt, "utp.utp_invalid_pkts_in"), 0);

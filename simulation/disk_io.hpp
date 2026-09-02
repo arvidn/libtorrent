@@ -67,10 +67,12 @@ struct test_disk
 		ret.recover_full_disk = true;
 		return ret;
 	}
-	test_disk send_corrupt_data(int const blocks) const
+	test_disk send_corrupt_data(
+		int const blocks, lt::piece_index_t const piece = lt::piece_index_t{-1}) const
 	{
 		auto ret = *this;
 		ret.corrupt_data_in = blocks;
+		ret.corrupt_piece = piece;
 		return ret;
 	}
 
@@ -104,6 +106,10 @@ struct test_disk
 
 	// after sending this many blocks, send corrupt data
 	int corrupt_data_in = std::numeric_limits<int>::max();
+
+	// restricts corrupt_data_in to blocks of this piece; the default
+	// (-1) matches every piece
+	lt::piece_index_t corrupt_piece{-1};
 
 	// after having written this many bytes, fail with disk-full
 	int space_left = std::numeric_limits<int>::max();

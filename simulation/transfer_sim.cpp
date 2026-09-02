@@ -197,19 +197,18 @@ bool run_matrix_test(test_transfer_flags_t flags, existing_files_mode const file
 		handler.add(restore_from_resume());
 
 #ifndef TORRENT_DISABLE_LOGGING
-	// torrent::penalize_peers() bans a peer outright when it's the sole
-	// contributor to a failed piece (v1) or the bad block is known via
-	// merkle proof (v2/hybrid). that's a separate mechanism from smart_ban,
-	// and this single-seed topology always triggers it before smart_ban's
-	// own attribution logic runs
+	// a corrupt-data peer may be banned by smart_ban ("BANNING PEER") or
+	// by torrent::penalize_peers() ("Too many corrupt pieces"), whichever
+	// mechanism gets there first; either firing proves the ban happened
 	bool generic_banned_peer = false;
 	if (flags & tx::corruption)
 	{
 		handler.add([&generic_banned_peer](lt::session&, lt::alert const* a) {
 			if (auto const* log = lt::alert_cast<lt::torrent_log_alert>(a))
 			{
-				if (std::string_view(log->log_message()).find("Too many corrupt pieces")
-					!= std::string_view::npos)
+				std::string_view const msg = log->log_message();
+				if (msg.find("Too many corrupt pieces") != std::string_view::npos
+					|| msg.find("BANNING PEER") != std::string_view::npos)
 					generic_banned_peer = true;
 			}
 		});

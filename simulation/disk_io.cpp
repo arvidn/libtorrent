@@ -374,14 +374,29 @@ struct test_disk_io final : lt::disk_interface
 		m_v1 = params.v1;
 		m_v2 = params.v2;
 		m_blocks_per_piece = fs.piece_length() / lt::default_block_size;
-		m_have.resize(m_files->num_pieces() * m_blocks_per_piece, m_state.files == existing_files_mode::full_valid);
 		m_pad_bytes = compute_pad_bytes(fs);
 
-		if (m_state.files == existing_files_mode::partial_valid)
+		// a remove_torrent() + new_torrent() pair re-adds the same
+		// underlying files; m_have tracks what's actually been written to
+		// them, so it must survive that round-trip rather than being
+		// re-derived from existing_files_mode. A size change means a
+		// different torrent, with no such state to preserve.
+		int const required_size = m_files->num_pieces() * m_blocks_per_piece;
+		if (m_have.size() != required_size)
 		{
-			// we have the first half of the blocks
-			for (std::size_t i = 0; i < m_have.size() / 2u; ++i)
-				m_have.set_bit(i);
+			// resize() preserves existing bits, so clear first to avoid
+			// leaking a previous, differently-sized torrent's bits in
+			m_have.resize(0);
+			m_have.resize(required_size, m_state.files == existing_files_mode::full_valid);
+			m_corrupt.resize(0);
+			m_corrupt.resize(required_size);
+
+			if (m_state.files == existing_files_mode::partial_valid)
+			{
+				// we have the first half of the blocks
+				for (std::size_t i = 0; i < m_have.size() / 2u; ++i)
+					m_have.set_bit(i);
+			}
 		}
 
 		return lt::storage_holder(lt::storage_index_t{0}, *this);
@@ -396,7 +411,6 @@ struct test_disk_io final : lt::disk_interface
 		m_v1 = false;
 		m_v2 = false;
 		m_blocks_per_piece = 0;
-		m_have.clear();
 	}
 
 	void abort(bool) override {}
@@ -418,9 +432,17 @@ struct test_disk_io final : lt::disk_interface
 		queue_event(seek_time + m_state.read_time, [this, r, h = std::move(h)]() mutable {
 			lt::disk_buffer_holder buf(*this, new char[lt::default_block_size]);
 
-			if (m_have.get_bit(block_index(r)))
+			if (m_corrupt.get_bit(block_index(r)))
 			{
-				if (m_state.corrupt_data_in-- <= 0)
+				// a real disk returns whatever wrong bytes were actually
+				// stored, not uninitialized memory
+				lt::aux::random_bytes({buf.data(), r.length});
+			}
+			else if (m_have.get_bit(block_index(r)))
+			{
+				bool const piece_matches = m_state.corrupt_piece == lt::piece_index_t{-1}
+					|| r.piece == m_state.corrupt_piece;
+				if (piece_matches && m_state.corrupt_data_in-- <= 0)
 					lt::aux::random_bytes({buf.data(), r.length});
 				else
 					generate_block(buf.data(), r
@@ -478,7 +500,16 @@ struct test_disk_io final : lt::disk_interface
 			if (valid)
 			{
 				m_have.set_bit(block_index(r));
+				m_corrupt.clear_bit(block_index(r));
 				m_state.space_left -= lt::default_block_size;
+			}
+			else
+			{
+				// a real disk stores whatever bytes it's given; mark this
+				// block written so hashing it later mismatches, rather than
+				// being treated as never written
+				m_have.clear_bit(block_index(r));
+				m_corrupt.set_bit(block_index(r));
 			}
 
 			post(m_ioc, [h=std::move(h)]{ h(lt::storage_error()); });
@@ -520,7 +551,9 @@ struct test_disk_io final : lt::disk_interface
 			int const block_idx = static_cast<int>(piece) * m_blocks_per_piece;
 			for (int i = 0; i < payload_blocks; ++i)
 			{
-				if (m_have.get_bit(block_idx + i))
+				// a corrupt block was still written, so it must still
+				// produce a (mismatching) hash below rather than bail out here
+				if (m_have.get_bit(block_idx + i) || m_corrupt.get_bit(block_idx + i))
 					continue;
 
 				lt::sha1_hash ph{};
@@ -543,6 +576,22 @@ struct test_disk_io final : lt::disk_interface
 					, m_files->piece_size(piece)
 					, m_files->piece_size2(piece)
 					, block_hashes, pads_in_piece(m_pad_bytes, piece));
+
+			// substitute a mismatching hash for each block actually
+			// written with the wrong content, and for the whole-piece v1
+			// hash if any of them were
+			bool any_corrupt = false;
+			for (int i = 0; i < payload_blocks; ++i)
+			{
+				if (!m_corrupt.get_bit(block_idx + i))
+					continue;
+				any_corrupt = true;
+				if (i < int(block_hashes.size()))
+					block_hashes[i] = rand_sha256();
+			}
+			if (any_corrupt)
+				hash = rand_sha1();
+
 			post(m_ioc, [h=std::move(h), piece, hash]{ h(piece, hash, lt::storage_error{}); });
 		});
 	}
@@ -560,7 +609,11 @@ struct test_disk_io final : lt::disk_interface
 			int const block_idx = static_cast<int>(piece) * m_blocks_per_piece
 				+ offset / lt::default_block_size;
 			lt::sha256_hash hash;
-			if (!m_have.get_bit(block_idx))
+			if (m_corrupt.get_bit(block_idx))
+			{
+				hash = rand_sha256();
+			}
+			else if (!m_have.get_bit(block_idx))
 			{
 				if (m_state.files == existing_files_mode::full_invalid)
 					hash = rand_sha256();
@@ -779,6 +832,11 @@ private:
 	// when computing the hash of a piece where not all blocks are written, will
 	// fail
 	lt::bitfield m_have;
+
+	// marks blocks written with the wrong content, as opposed to a block
+	// never written at all (absent from m_have); a corrupt block still
+	// produces a mismatching hash, the way a real disk would
+	lt::bitfield m_corrupt;
 
 	int m_blocks_per_piece = 0;
 

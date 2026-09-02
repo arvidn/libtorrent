@@ -312,11 +312,11 @@ namespace libtorrent::aux {
 
 		std::unique_ptr<hash_picker> m_hash_picker;
 
-		// bans peers that send corrupt data for v1 torrents, by comparing
-		// what different peers sent for the same block once a piece fails
-		// its hash check. Only allocated for v1 torrents (see
-		// get_smart_ban()); v2 torrents identify bad peers via merkle
-		// block hashes instead.
+		// bans peers that send corrupt data, by comparing what different
+		// peers sent for the same block once a piece fails its hash check.
+		// Lazily allocated, see get_smart_ban(). Needed for v2 too: a
+		// failed piece may get reset and re-downloaded, possibly from a
+		// different peer, before its block hashes are known.
 		std::unique_ptr<aux::smart_ban> m_smart_ban;
 
 		// TODO: make this a raw pointer. perhaps keep the shared_ptr
@@ -934,8 +934,8 @@ namespace libtorrent::aux {
 		void we_have(piece_index_t index, bool loading_resume = false);
 
 		// process the v2 block hashes for a piece
-		boost::tribool on_blocks_hashed(piece_index_t piece
-			, span<sha256_hash const> block_hashes);
+		boost::tribool on_blocks_hashed(
+			piece_index_t piece, span<sha256_hash const> block_hashes, bool found_on_disk);
 
 	public:
 

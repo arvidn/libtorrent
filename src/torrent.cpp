@@ -1948,10 +1948,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 		// latch this for the lifetime of the torrent, so a settings_pack
 		// update can't strand a ban evaluation already in flight for a
-		// piece. v2 (and hybrid) torrents identify bad peers via their
-		// merkle block hashes instead, see get_smart_ban().
-		if (settings().get_bool(settings_pack::enable_smart_ban)
-			&& !m_torrent_file->info_hashes().has_v2())
+		// piece.
+		if (settings().get_bool(settings_pack::enable_smart_ban))
 			m_flags |= torrent_internal_flags::smart_ban_enabled;
 
 		if (int(m_file_priority.size()) > m_torrent_file->num_files())
@@ -2765,7 +2763,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			// merkle tree. They are most likely invalid.
 			if (torrent_file().info_hashes().has_v2() && !bool(hash_passed[0] == false))
 			{
-				hash_passed[1] = on_blocks_hashed(piece, block_hashes);
+				hash_passed[1] = on_blocks_hashed(piece, block_hashes, true);
 			}
 		}
 		else
@@ -4559,7 +4557,7 @@ namespace {
 			if (!block_hashes.empty())
 			{
 				TORRENT_ASSERT(torrent_file().info_hashes().has_v2());
-				v2_passed = on_blocks_hashed(piece, block_hashes);
+				v2_passed = on_blocks_hashed(piece, block_hashes, false);
 			}
 		}
 
@@ -4751,8 +4749,11 @@ namespace {
 		update_want_tick();
 	}
 
-	boost::tribool torrent::on_blocks_hashed(piece_index_t const piece
-		, span<sha256_hash const> const block_hashes)
+	// found_on_disk: a checking pass rather than a peer download, so a
+	// failure cannot be attributed to any peer
+	boost::tribool torrent::on_blocks_hashed(piece_index_t const piece,
+		span<sha256_hash const> const block_hashes,
+		bool const found_on_disk)
 	{
 		boost::tribool ret = boost::indeterminate;
 		need_hash_picker();
@@ -4870,7 +4871,7 @@ namespace {
 			for (piece_index_t verified_piece : adjacent_verified)
 			{
 				if (m_picker->have_piece(verified_piece)) continue;
-				// we_have() has not been called yet for this piece — confirm the bit is clear
+					// we_have() has not been called yet for this piece, confirm the bit is clear
 #if TORRENT_USE_INVARIANT_CHECKS
 				TORRENT_ASSERT(!m_file_progress.have_piece(verified_piece));
 #endif
@@ -4885,6 +4886,18 @@ namespace {
 		{
 			ret = true;
 		}
+
+		// hand these block hashes to smart_ban so it can attribute a bad
+		// block once its authoritative hash is known, without a disk read
+		// or a successful re-download; a pass cleans itself up via
+		// we_have() -> smart_ban::on_piece_pass(). Excludes found_on_disk,
+		// since a check has no peer to attribute a failure to.
+		if (!found_on_disk && (!ret || boost::indeterminate(ret)))
+		{
+			if (aux::smart_ban* sb = get_smart_ban())
+				sb->record_block_hashes(piece, block_hashes);
+		}
+
 		return ret;
 	}
 
@@ -7377,6 +7390,23 @@ namespace {
 		need_hash_picker();
 		if (!m_hash_picker) return true;
 		add_hashes_result const result = m_hash_picker->add_hashes(req, hashes);
+
+		// a block-layer request whose batch just proved authentic against
+		// the merkle root can resolve smart_ban's pending entries for
+		// these blocks immediately, without a re-download
+		if (result.valid && result.block_request)
+		{
+			if (aux::smart_ban* sb = get_smart_ban())
+			{
+				// matches_block_request() only accepts one whole,
+				// piece-aligned piece, so req.index alone picks it
+				file_storage const& fs = m_torrent_file->layout();
+				piece_index_t const piece = fs.piece_index_at_file(req.file)
+					+ piece_index_t::diff_type(req.index / fs.blocks_per_piece());
+				sb->check_block_hash(piece, hashes.first(req.count));
+			}
+		}
+
 		for (auto& p : result.hash_failed)
 		{
 			if (torrent_file().info_hashes().has_v1() && have_piece(p.first))
