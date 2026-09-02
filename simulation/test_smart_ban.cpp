@@ -124,12 +124,6 @@ void run_bans_correct_peer(lt::create_flags_t const torrent_flags)
 
 TORRENT_TEST(smart_ban_bans_correct_peer) { run_bans_correct_peer(create_torrent::v1_only); }
 
-// disabled: pick_hashes() computes an out-of-range proof_layers count for a
-// single-piece file (src/hash_picker.cpp, the m_piece_block_requests branch),
-// tripping the validate_hash_request() assert in write_hash_request() as
-// soon as any peer receives a block. Needs a fix in hash_picker before these
-// can be re-enabled.
+TORRENT_TEST(v2_hash_failure_bans_correct_peer) { run_bans_correct_peer(create_torrent::v2_only); }
 
-// TORRENT_TEST(v2_hash_failure_bans_correct_peer) { run_bans_correct_peer(create_torrent::v2_only); }
-
-// TORRENT_TEST(hybrid_hash_failure_bans_correct_peer) { run_bans_correct_peer({}); }
+TORRENT_TEST(hybrid_hash_failure_bans_correct_peer) { run_bans_correct_peer({}); }
