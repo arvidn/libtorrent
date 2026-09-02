@@ -432,6 +432,29 @@ namespace {
 		// the same as the piece layer
 		int const base = piece_levels();
 
+		// hash_picker only ever requests whole, piece-aligned ranges at the
+		// block layer (either a single piece, or the entire block layer in
+		// one call), so an insertion here must never start or end in the
+		// middle of a piece. This is what makes the running
+		// current_piece_matched count below sound: a piece's blocks always
+		// arrive together in the same call.
+#if TORRENT_USE_ASSERTS
+		if (dest_start_idx >= first_leaf)
+		{
+			int const blocks_per_piece = 1 << base;
+			int const pos = dest_start_idx - first_leaf;
+			TORRENT_ASSERT(pos % blocks_per_piece == 0);
+			TORRENT_ASSERT(leaf_count % blocks_per_piece == 0 || pos + leaf_count == m_num_blocks);
+		}
+#endif
+
+		// count of the current piece's matched block hashes, needed because a
+		// single matching leaf does not prove a multi-block piece is valid.
+		// The leaf layer below is scanned once in increasing order, so pieces
+		// are never revisited and a running count reset per piece suffices.
+		piece_index_t current_piece = piece_index_t(-1);
+		int current_piece_matched = 0;
+
 		// TODO: a piece outside of this range may also fail, if one of the uncle
 		// hashes is at the layer right above the block hashes
 		for (int layer_size = leaf_count; layer_size != 0; layer_size /= 2)
@@ -448,12 +471,11 @@ namespace {
 						// they can be verified. This assert ensures we're at the
 						// leaf layer of the file tree
 						TORRENT_ASSERT(dst_idx >= first_leaf);
-
 						int const pos = dst_idx - first_leaf;
-						auto const piece = piece_index_t{pos >> m_blocks_per_piece_log} + file_piece_offset;
 						int const block = pos & ((1 << m_blocks_per_piece_log) - 1);
-
+						auto const piece = piece_index_t{pos >> m_blocks_per_piece_log} + file_piece_offset;
 						TORRENT_ASSERT(pos < m_num_blocks);
+
 						if (!ret.failed.empty() && ret.failed.back().first == piece)
 							ret.failed.back().second.push_back(block);
 						else
@@ -466,12 +488,31 @@ namespace {
 					}
 					else if (dst_idx >= first_leaf)
 					{
-						// this covers the case where pieces are a single block.
-						// The common case is covered below
-						auto const piece = piece_index_t{(dst_idx - first_leaf) >> m_blocks_per_piece_log} + file_piece_offset;
+						int const pos = dst_idx - first_leaf;
+						int const block = pos & ((1 << m_blocks_per_piece_log) - 1);
+						auto const piece = piece_index_t{pos >> m_blocks_per_piece_log} + file_piece_offset;
 
-						if (ret.passed.empty() || ret.passed.back() != piece)
+						// padding leaves are always zero (see check_invariant()),
+						// so they never reach this branch
+						TORRENT_ASSERT(pos < m_num_blocks);
+
+						if (piece != current_piece)
+						{
+							current_piece = piece;
+							current_piece_matched = 0;
+						}
+
+						int const piece_block_start = pos - block;
+						int const piece_blocks =
+							std::min(blocks_per_piece(), m_num_blocks - piece_block_start);
+
+						if (++current_piece_matched == piece_blocks)
+						{
+							// piece order is strictly increasing, so this can
+							// only trigger once per piece
+							TORRENT_ASSERT(ret.passed.empty() || ret.passed.back() != piece);
 							ret.passed.push_back(piece);
+						}
 					}
 				}
 

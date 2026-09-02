@@ -263,6 +263,25 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 					&& (req.count > 512 || unpadded_count != m_files.file_num_pieces(req.file) - req.index))))
 			return add_hashes_result(false);
 
+		// we only ever request block hashes for one whole piece at a time
+		// (see pick_hashes()), aligned to a piece boundary, even for a file's
+		// last, possibly short, piece (the tail is padded rather than
+		// truncated). The bookkeeping in m_piece_block_requests below indexes
+		// by req.index / blocks_per_piece and assumes req.index refers to the
+		// start of a piece. Reject anything else, rather than silently
+		// mishandling a response that only partially covers a piece.
+		// When the piece layer and the block layer coincide (blocks_per_piece
+		// == 1), such requests go through the m_piece_layer case above
+		// instead, batched up to 512 pieces at a time.
+		if (req.base == 0 && m_piece_layer != 0)
+		{
+			int const blocks_per_piece = m_files.piece_length() / default_block_size;
+			if (req.index % blocks_per_piece != 0
+				|| req.index >= m_files.file_num_blocks(req.file)
+				|| req.count != blocks_per_piece)
+				return add_hashes_result(false);
+		}
+
 		// for now we only support receiving hashes at the piece and leaf layers
 		if (req.base != m_piece_layer && req.base != 0)
 			return add_hashes_result(false);
