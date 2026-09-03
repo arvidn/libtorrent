@@ -138,14 +138,6 @@ namespace libtorrent::aux {
 		// reconnect for this torrent_peer.
 		std::uint32_t fast_reconnects:4;
 
-		// for every valid piece we receive where this
-		// torrent_peer was one of the participants, we increase
-		// this value. For every invalid piece we receive
-		// where this torrent_peer was a participant, we decrease
-		// this value. If it sinks below a threshold, its
-		// considered a bad torrent_peer and will be banned.
-		signed trust_points:4; // [-7, 8]
-
 		// a bitmap combining the peer_source flags
 		// from peer_info.
 		std::uint32_t source:6;
@@ -177,8 +169,8 @@ namespace libtorrent::aux {
 		std::uint32_t is_rtc_addr:1;
 #endif
 
-		// if this is true, the torrent_peer has previously
-		// participated in a piece that failed the piece
+		// if this is true, the torrent_peer has repeatedly
+		// participated in pieces that failed the piece
 		// hash check. This will put the torrent_peer on parole
 		// and only request entire pieces. If a piece pass
 		// that was partially requested from this torrent_peer it
