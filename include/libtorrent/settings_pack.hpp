@@ -455,11 +455,12 @@ namespace aux {
 			upnp_ignore_nonrouters,
 
 			// ``use_parole_mode`` specifies if parole mode should be used. Parole
-			// mode means that peers that participate in pieces that fail the hash
-			// check are put in a mode where they are only allowed to download
-			// whole pieces. If the whole piece a peer in parole mode fails the
-			// hash check, it is banned. If a peer participates in a piece that
-			// passes the hash check, it is taken out of parole mode.
+			// mode means that peers that repeatedly participate in pieces that
+			// fail the hash check (three times) are put in a mode where they are
+			// only allowed to download whole pieces. If the whole piece a peer in
+			// parole mode fails the hash check, it is banned. If a peer
+			// participates in a piece that passes the hash check, it is taken out
+			// of parole mode.
 			use_parole_mode,
 
 #if TORRENT_ABI_VERSION == 1

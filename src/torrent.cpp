@@ -4920,8 +4920,8 @@ namespace {
 			add_suggest_piece(index);
 		}
 
-		// increase the trust point of all peers that sent
-		// parts of this piece.
+		// clear the parole flag of all peers that sent parts of this piece;
+		// they've now proven themselves on this piece.
 		std::set<torrent_peer*> const peers = [&]
 		{
 			std::vector<torrent_peer*> const downloaders = m_picker->get_downloaders(index);
@@ -4942,10 +4942,6 @@ namespace {
 			if (p == nullptr) continue;
 			TORRENT_ASSERT(p->in_use);
 			p->on_parole = false;
-			int trust_points = p->trust_points;
-			++trust_points;
-			if (trust_points > 8) trust_points = 8;
-			p->trust_points = trust_points;
 			if (p->connection)
 			{
 				auto* peer = static_cast<peer_connection*>(p->connection);
@@ -5093,6 +5089,7 @@ namespace {
 	void torrent::penalize_peers(std::set<torrent_peer*> const& peers
 		, piece_index_t const index, bool const known_bad_peer)
 	{
+		bool const parole_mode = settings().get_bool(settings_pack::use_parole_mode);
 		for (auto* p : peers)
 		{
 			if (p == nullptr) continue;
@@ -5109,57 +5106,67 @@ namespace {
 				allow_disconnect = peer->received_invalid_data(index, known_bad_peer);
 			}
 
-			if (settings().get_bool(settings_pack::use_parole_mode))
-				p->on_parole = true;
+			p->hashfails = aux::clamp_assign<std::uint8_t>(int(p->hashfails) + 1);
 
-			int hashfails = p->hashfails;
-			int trust_points = p->trust_points;
-
-			// we decrease more than we increase, to keep the
-			// allowed failed/passed ratio low.
-			trust_points -= 2;
-			++hashfails;
-			if (trust_points < -7) trust_points = -7;
-			p->trust_points = trust_points;
-			if (hashfails > 255) hashfails = 255;
-			p->hashfails = std::uint8_t(hashfails);
-
-			// either, we have received too many failed hashes
-			// or this was the only peer that sent us this piece.
-			// if we have failed more than 3 pieces from this peer,
-			// don't trust it regardless.
-			if (p->trust_points <= -7
-				|| (known_bad_peer && allow_disconnect))
+			if (parole_mode)
 			{
-				// we don't trust this peer anymore
-				// ban it.
-				if (m_ses.alerts().should_post<peer_ban_alert>())
+				// require a few strikes before putting an ambiguously-blamed
+				// peer on parole (restricted to single-sourced pieces); one
+				// unlucky piece shared with a bad peer shouldn't cost an
+				// otherwise good peer its ability to source multiple blocks
+				// in parallel.
+				constexpr int parole_threshold = 3;
+				if (p->hashfails >= parole_threshold)
 				{
-					peer_id const pid = p->connection
-						? p->connection->pid() : peer_id();
-					m_ses.alerts().emplace_alert<peer_ban_alert>(
-						get_handle(), p->ip(), pid);
-				}
-
-				// mark the peer as banned
-				ban_peer(p);
-				update_want_peers();
-				inc_stats_counter(counters::banned_for_hash_failure);
-
-				if (p->connection)
-				{
-					auto* peer = static_cast<peer_connection*>(p->connection);
-#ifndef TORRENT_DISABLE_LOGGING
-					if (should_log())
-					{
-						debug_log("*** BANNING PEER: \"%s\" Too many corrupt pieces"
-							, print_endpoint(p->ip()).c_str());
-					}
-					peer->peer_log(peer_log_alert::info, peer_log_alert::banning_peer, "Too many corrupt pieces");
-#endif
-					peer->disconnect(errors::too_many_corrupt_pieces, operation_t::bittorrent);
+					p->on_parole = true;
+					p->hashfails = 0;
 				}
 			}
+
+			// we can only fairly blame this peer for the bad piece if we
+			// know, with confidence, that it's responsible: either it was
+			// the sole source of the piece, or smart_ban/the hash-picker
+			// attributed the specific bad block to it. Docking trust for
+			// every peer that merely participated in an ambiguous piece
+			// failure would eventually ban innocent peers that happen to
+			// keep sharing failing pieces with a bad one.
+			if (!known_bad_peer)
+				continue;
+
+			// only disconnect if the peer implementation is fine with it;
+			// it may ask not to be (e.g. a web seed marking a file as
+			// not-have instead of being disconnected outright).
+			if (!allow_disconnect)
+				continue;
+
+			// we don't trust this peer anymore
+			// ban it.
+			if (!ban_peer(p))
+				continue;
+
+			if (m_ses.alerts().should_post<peer_ban_alert>())
+			{
+				peer_id const pid = p->connection ? p->connection->pid() : peer_id();
+				m_ses.alerts().emplace_alert<peer_ban_alert>(get_handle(), p->ip(), pid);
+			}
+
+			update_want_peers();
+			inc_stats_counter(counters::banned_for_hash_failure);
+
+			if (!p->connection)
+				continue;
+
+			auto* peer = static_cast<peer_connection*>(p->connection);
+#ifndef TORRENT_DISABLE_LOGGING
+			if (should_log())
+			{
+				debug_log("*** BANNING PEER: \"%s\" Too many corrupt pieces",
+					print_endpoint(p->ip()).c_str());
+			}
+			peer->peer_log(
+				peer_log_alert::info, peer_log_alert::banning_peer, "Too many corrupt pieces");
+#endif
+			peer->disconnect(errors::too_many_corrupt_pieces, operation_t::bittorrent);
 		}
 	}
 
@@ -7649,9 +7656,6 @@ namespace {
 
 				// don't save peers that don't work
 				if (int(p->failcount) > 0) continue;
-
-				// don't save peers that appear to send corrupt data
-				if (int(p->trust_points) < 0) continue;
 
 				if (p->last_connected == 0)
 				{

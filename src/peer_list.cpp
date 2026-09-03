@@ -81,7 +81,9 @@ namespace {
 		if (lhs.connectable != rhs.connectable)
 			return int(lhs.connectable) < int(rhs.connectable);
 
-		return lhs.trust_points < rhs.trust_points;
+		// prefer to drop peers that have a history of sending us
+		// corrupt data
+		return lhs.hashfails > rhs.hashfails;
 	}
 
 	// this returns true if lhs is a better connect candidate than rhs

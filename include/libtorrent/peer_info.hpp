@@ -134,7 +134,7 @@ TORRENT_VERSION_NAMESPACE_4
 		TORRENT_DEPRECATED static inline constexpr peer_flags_t queued = 8_bit;
 #endif
 
-		// The peer has participated in a piece that failed the
+		// The peer has repeatedly participated in pieces that failed the
 		// hash check, and is now "on parole", which means we're
 		// only requesting whole pieces from this peer until
 		// it either fails that piece or proves that it doesn't
@@ -257,7 +257,8 @@ TORRENT_VERSION_NAMESPACE_4
 		int receive_buffer_watermark;
 
 		// the number of pieces this peer has participated in sending us that
-		// turned out to fail the hash check.
+		// turned out to fail the hash check, since the last time it was placed
+		// on parole (or since it connected, if it has never been on parole).
 		int num_hashfails;
 
 		// this is the number of requests we have sent to this peer that we
