@@ -1,5 +1,6 @@
 2.1.2 not released
 
+	* fix web seed coalesced requests for v2 torrents
 	* fix pre-allocation after enabling files with pread disk I/O
 	* fix race between stop torrent and hasher threads in pread_storage
 	* prevent pread disk I/O from overwriting files when renaming
