@@ -144,9 +144,12 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 
 		if (!m_piece_block_requests.empty())
 		{
-			auto const req = std::find_if(m_piece_block_requests.begin(), m_piece_block_requests.end()
-				, [now](piece_block_request const& e)
-					{ return e.last_request == min_time() || e.last_request - now > min_request_interval; });
+			auto const req = std::find_if(m_piece_block_requests.begin(),
+				m_piece_block_requests.end(),
+				[now](piece_block_request const& e) {
+					return e.last_request == min_time()
+						|| now - e.last_request > min_request_interval;
+				});
 			if (req != m_piece_block_requests.end())
 			{
 				int const blocks_per_piece = m_files.piece_length() / default_block_size;
@@ -155,11 +158,8 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 				int const first_block = static_cast<int>(req->piece) * blocks_per_piece;
 				node_index const nidx(
 					req->file, m_files.file_first_block_node(req->file) + first_block);
-				hash_request hash_req(req->file
-					, 0
-					, first_block
-					, blocks_per_piece
-					, layers_to_verify(nidx) + merkle_num_layers(blocks_per_piece));
+				hash_request hash_req(
+					req->file, 0, first_block, blocks_per_piece, layers_to_verify(nidx));
 				req->num_requests++;
 				req->last_request = now;
 				std::sort(m_piece_block_requests.begin(), m_piece_block_requests.end());
