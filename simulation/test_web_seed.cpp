@@ -308,6 +308,8 @@ TORRENT_TEST(multi_file_redirect_pad_files)
 	file_storage const& fs = params.ti->layout();
 
 	bool seeding = false;
+	bool hash_failure = false;
+	bool peer_error = false;
 
 	run_test(
 		[&params](lt::session& ses)
@@ -317,6 +319,10 @@ TORRENT_TEST(multi_file_redirect_pad_files)
 		[&](lt::session&, lt::alert const* alert) {
 			if (lt::alert_cast<lt::torrent_finished_alert>(alert))
 				seeding = true;
+			else if (lt::alert_cast<lt::hash_failed_alert>(alert))
+				hash_failure = true;
+			else if (lt::alert_cast<lt::peer_error_alert>(alert))
+				peer_error = true;
 		},
 		[&fs](sim::simulation& sim, lt::session&)
 		{
@@ -344,6 +350,7 @@ TORRENT_TEST(multi_file_redirect_pad_files)
 
 	TEST_EQUAL(seeding, true);
 }
+
 // test that a web seed can redirect files to separate web servers (as long as
 // they are piece aligned)
 TORRENT_TEST(multi_file_redirect)

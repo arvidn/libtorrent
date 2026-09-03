@@ -953,6 +953,7 @@ TEST_SOURCES = \
   test_listen_socket.cpp \
   test_lsd.cpp \
   test_magnet.cpp \
+  test_merge_block_requests.cpp \
   test_merkle.cpp \
   test_merkle_tree.cpp \
   test_mmap.cpp \

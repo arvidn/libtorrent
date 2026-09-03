@@ -206,6 +206,7 @@ set(libtorrent_aux_include_files
 	link.hpp
 	listen_socket_handle.hpp
 	lsd.hpp
+	merge_block_requests.hpp
 	merkle.hpp
 	merkle_tree.hpp
 	mmap_storage.hpp

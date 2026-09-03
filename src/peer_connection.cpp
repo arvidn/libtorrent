@@ -26,6 +26,7 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/peer_connection.hpp"
+#include "libtorrent/aux_/merge_block_requests.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/alert_types.hpp"
@@ -4088,7 +4089,7 @@ namespace {
 				continue;
 			}
 
-			int piece_sz = t->piece_size_for_req(block.block.piece_index);
+			int const piece_sz = t->piece_size_for_req(block.block.piece_index);
 			peer_request r = t->to_req(block.block, piece_sz);
 			if (m_download_queue.empty())
 				m_counters.inc_stats_counter(counters::num_peers_down_requests);
@@ -4105,35 +4106,34 @@ namespace {
 			// blocks that are in the same piece into larger requests
 			if (m_request_large_blocks)
 			{
-				int const blocks_per_piece = t->torrent_file().blocks_per_piece();
+				aux::request_merger merger(
+					block.block, piece_sz, t->torrent_file().piece_length(), t->block_size());
 
 				while (!m_request_queue.empty())
 				{
-					// check to see if this block is connected to the previous one
-					// if it is, merge them, otherwise, break this merge loop
+					// cheap check first, so a block that wouldn't be merged
+					// anyway never triggers a piece_size_for_req() lookup below
 					pending_block const& front = m_request_queue.front();
-					if (static_cast<int>(front.block.piece_index) * blocks_per_piece + front.block.block_index
-						!= static_cast<int>(block.block.piece_index) * blocks_per_piece + block.block.block_index + 1)
+					if (!merger.continues(front.block))
 						break;
-					// the merge loop can cross into a new piece when the previous
-					// piece had all blocks contiguous; refresh piece_sz then
+
 					bool const new_piece = front.block.piece_index != block.block.piece_index;
+					// the merge loop can cross into a new piece when the previous
+					// piece had all blocks contiguous; only look up its size then
+					int const next_piece_sz = new_piece
+						? t->piece_size_for_req(front.block.piece_index)
+						: merger.piece_size();
+
+					int const bs = merger.merge(front.block, next_piece_sz);
+
 					block = m_request_queue.front();
 					m_request_queue.erase(m_request_queue.begin());
-					if (new_piece) piece_sz = t->piece_size_for_req(block.block.piece_index);
-					TORRENT_ASSERT(validate_piece_request(t->to_req(block.block, piece_sz)));
-
-					if (m_download_queue.empty())
-						m_counters.inc_stats_counter(counters::num_peers_down_requests);
+					TORRENT_ASSERT(
+						validate_piece_request(t->to_req(block.block, merger.piece_size())));
 
 					block.send_buffer_offset = aux::numeric_cast<std::uint32_t>(m_send_buffer.size());
 					m_download_queue.push_back(block);
 					if (m_queued_time_critical) --m_queued_time_critical;
-
-					int const block_offset = block.block.block_index * t->block_size();
-					int const bs = std::min(piece_sz - block_offset, t->block_size());
-					TORRENT_ASSERT(bs > 0);
-					TORRENT_ASSERT(bs <= t->block_size());
 
 					r.length += bs;
 					m_outstanding_bytes += bs;
