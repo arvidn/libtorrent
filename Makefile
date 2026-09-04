@@ -617,6 +617,7 @@ HEADERS = \
   aux_/link.hpp                     \
   aux_/listen_socket_handle.hpp     \
   aux_/lsd.hpp                      \
+  aux_/merge_block_requests.hpp     \
   aux_/merkle.hpp                   \
   aux_/merkle_tree.hpp              \
   aux_/mmap.hpp                     \
