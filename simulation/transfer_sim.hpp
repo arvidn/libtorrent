@@ -115,6 +115,11 @@ void run_test(
 
 	setup(*ses[0], *ses[1]);
 
+	// unless the test deliberately corrupts data (tx::corruption), no piece
+	// should ever fail its hash check or ban a peer
+	bool hash_failure = false;
+	bool peer_error = false;
+
 	// only monitor alerts for session 0 (the downloader)
 	print_alerts(*ses[0], [&](lt::session& ses, lt::alert const* a) {
 		if (auto ta = lt::alert_cast<lt::add_torrent_alert>(a))
@@ -127,6 +132,10 @@ void run_test(
 					ta->handle.connect_peer(lt::tcp::endpoint(peer1, 6881));
 			}
 		}
+		else if (lt::alert_cast<lt::hash_failed_alert>(a))
+			hash_failure = true;
+		else if (lt::alert_cast<lt::peer_error_alert>(a))
+			peer_error = true;
 		on_alert(ses, a);
 	}, 0);
 
@@ -237,6 +246,24 @@ void run_test(
 			}
 		}
 #endif
+
+		// a piece failing its hash check is expected: when the seed deliberately
+		// sends corrupt data (tx::corruption); when the downloader starts out
+		// with deliberately wrong data already on disk (existing_files_mode::
+		// full_invalid / partial_valid), since that's discovered via the same
+		// piece-verification path as a bad download; and when a piece is
+		// in flight but incomplete at the moment resume data is saved
+		// (tx::resume_restart), which can legitimately need re-verifying once
+		// restored
+		bool const expect_hash_failure = bool(flags & tx::corruption)
+			|| bool(flags & tx::resume_restart)
+			|| downloader_disk_constructor.files == existing_files_mode::full_invalid
+			|| downloader_disk_constructor.files == existing_files_mode::partial_valid;
+		if (!expect_hash_failure)
+		{
+			TEST_CHECK(!hash_failure);
+			TEST_CHECK(!peer_error);
+		}
 
 		test(ses);
 
