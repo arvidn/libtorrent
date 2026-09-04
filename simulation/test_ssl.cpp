@@ -50,6 +50,7 @@ see LICENSE file.
 #include <memory>
 #include <functional>
 #include <utility>
+#include <vector>
 
 using namespace lt;
 using namespace sim;
@@ -561,6 +562,40 @@ namespace {
 		std::function<void(bool)> m_done;
 	};
 
+	// opens a TCP connection to an SSL listener but deliberately never sends a
+	// TLS ClientHello. This keeps one incoming handshake pending on the server.
+	struct stalled_ssl_peer
+	{
+		stalled_ssl_peer(
+			sim::simulation& sim, address const& source, lt::tcp::endpoint const& target)
+			: m_ios(sim, source)
+			, m_sock(m_ios)
+			, m_target(target)
+		{}
+
+		void start(std::function<void()> on_connected)
+		{
+			m_connected = std::move(on_connected);
+			m_sock.async_connect(m_target, [this](error_code const& ec) { on_connect(ec); });
+		}
+
+	private:
+		void on_connect(error_code const& ec)
+		{
+			TEST_CHECK(!ec);
+			if (ec)
+				return;
+
+			if (m_connected)
+				m_connected();
+		}
+
+		sim::asio::io_context m_ios;
+		lt::tcp::socket m_sock;
+		lt::tcp::endpoint m_target;
+		std::function<void()> m_connected;
+	};
+
 	void run_malicious_peer_attack(
 		attack_config const& atk, lt::add_torrent_params const& atp_template)
 	{
@@ -630,6 +665,190 @@ namespace {
 		sim.run();
 	}
 
+	void run_ssl_handshake_connection_limit_test(lt::add_torrent_params const& atp_template)
+	{
+		address const peer0 = addr("50.0.0.1");
+		address const peer1 = addr("50.0.0.2");
+		address const peer2 = addr("50.0.0.3");
+		int const port = 6881;
+
+		sim::default_config network_cfg;
+		sim::simulation sim{network_cfg};
+		sim::asio::io_context ios0{sim, peer0};
+
+		lt::session_proxy zombie;
+
+		lt::session_params params;
+		lt::settings_pack& pack = params.settings;
+		pack = settings();
+		pack.set_int(settings_pack::connections_limit, 1);
+		pack.set_int(settings_pack::connections_slack, 0);
+
+		char iface[50];
+		std::snprintf(iface, sizeof(iface), "50.0.0.1:%ds", port);
+		pack.set_str(settings_pack::listen_interfaces, iface);
+
+		params.disk_io_constructor = test_disk().set_seed(true);
+		auto ses = std::make_shared<lt::session>(params, ios0);
+
+		std::unique_ptr<stalled_ssl_peer> first;
+		std::unique_ptr<stalled_ssl_peer> second;
+		std::unique_ptr<sim::timer> start_second;
+		bool connection_rejected = false;
+
+		print_alerts(*ses, [&](lt::session&, lt::alert const* a) {
+			if (auto* ta = alert_cast<add_torrent_alert>(a))
+			{
+				torrent_handle h = ta->handle;
+				h.set_ssl_certificate(ssl_fixture_path("peer_certificate.pem"),
+					ssl_fixture_path("peer_private_key.pem"),
+					ssl_fixture_path("dhparams.pem"),
+					"test");
+			}
+			else if (alert_cast<torrent_finished_alert>(a))
+			{
+				first = std::make_unique<stalled_ssl_peer>(
+					sim, peer1, lt::tcp::endpoint(peer0, std::uint16_t(port)));
+				first->start([&] {
+					start_second = std::make_unique<sim::timer>(
+						sim, lt::seconds(1), [&](boost::system::error_code const& ec) {
+							if (ec)
+								return;
+							second = std::make_unique<stalled_ssl_peer>(
+								sim, peer2, lt::tcp::endpoint(peer0, std::uint16_t(port)));
+							second->start([] {});
+						});
+				});
+			}
+			else if (auto const* e = alert_cast<peer_disconnected_alert>(a))
+			{
+				if (e->error == error_code(errors::too_many_connections))
+					connection_rejected = true;
+			}
+		});
+
+		ses->async_add_torrent(atp_template);
+
+		sim::timer give_up(sim, lt::seconds(5), [&](boost::system::error_code const&) {
+			TEST_CHECK(second);
+			TEST_CHECK(connection_rejected);
+
+			zombie = ses->abort();
+			ses.reset();
+		});
+
+		sim.run();
+	}
+
+	// pending SSL handshakes must be bounded by connections_limit (+
+	// connections_slack), the same way incoming_connection() already bounds
+	// plain TCP accepts synchronously, at accept time. A peer that never starts
+	// the TLS handshake must not be able to occupy more than that many slots.
+	void run_ssl_pending_handshake_limit()
+	{
+		address const peer0 = addr("50.0.0.1");
+		int const port = 6881;
+		int const connections_limit = 5;
+		int const connections_slack = 0;
+		int const allowed = connections_limit + connections_slack;
+		int const num_attackers = 4 * connections_limit;
+
+		sim::default_config network_cfg;
+		sim::simulation sim{network_cfg};
+		sim::asio::io_context ios0{sim, peer0};
+
+		lt::session_proxy zombie;
+
+		lt::session_params params;
+		lt::settings_pack& pack = params.settings;
+		pack = settings();
+		pack.set_int(settings_pack::connections_limit, connections_limit);
+		pack.set_int(settings_pack::connections_slack, connections_slack);
+
+		// this session only ever listens on its SSL port, like
+		// run_malicious_peer_attack() above
+		char iface[50];
+		std::snprintf(iface, sizeof(iface), "50.0.0.1:%ds", port);
+		pack.set_str(settings_pack::listen_interfaces, iface);
+
+		params.disk_io_constructor = test_disk().set_seed(true);
+		auto ses = std::make_shared<lt::session>(params, ios0);
+
+		std::string const root_cert = read_file("root_ca_cert.pem");
+		lt::add_torrent_params const atp = make_ssl_test_torrent(root_cert);
+
+		// attacker sockets: connect to the SSL port, then never send the
+		// TLS ClientHello that ssl_stream::async_accept_handshake() is waiting
+		// for. Reserved up front so these vectors never reallocate and
+		// invalidate async_connect's captured reference below.
+		std::size_t const num_attackers_sz = std::size_t(num_attackers);
+		std::vector<std::unique_ptr<sim::asio::io_context>> attacker_ios;
+		std::vector<lt::tcp::socket> attacker_socks;
+		attacker_ios.reserve(num_attackers_sz);
+		attacker_socks.reserve(num_attackers_sz);
+		int connected = 0;
+		int rejected = 0;
+
+		print_alerts(*ses, [&](lt::session&, lt::alert const* a) {
+			if (auto* ta = alert_cast<add_torrent_alert>(a))
+			{
+				torrent_handle h = ta->handle;
+				h.set_ssl_certificate(ssl_fixture_path("peer_certificate.pem"),
+					ssl_fixture_path("peer_private_key.pem"),
+					ssl_fixture_path("dhparams.pem"),
+					"test");
+			}
+			else if (alert_cast<torrent_finished_alert>(a))
+			{
+				// note: i starts at 1, since make_io_context(sim, 0) would
+				// collide with the seed's own address, 50.0.0.1
+				for (int i = 1; i <= num_attackers; ++i)
+				{
+					attacker_ios.push_back(make_io_context(sim, i));
+					attacker_socks.emplace_back(*attacker_ios.back());
+					attacker_socks.back().async_connect(
+						lt::tcp::endpoint(peer0, std::uint16_t(port)), [&](error_code const& ec) {
+							TEST_CHECK(!ec);
+							if (!ec)
+								++connected;
+						});
+				}
+			}
+			else if (auto const* e = alert_cast<peer_disconnected_alert>(a))
+			{
+				if (e->error == error_code(errors::too_many_connections))
+					++rejected;
+			}
+		});
+
+		ses->async_add_torrent(atp);
+
+		sim::timer give_up(sim, lt::seconds(30), [&](boost::system::error_code const&) {
+			std::printf("attackers: %d allowed: %d connected: %d rejected: %d\n",
+				num_attackers,
+				allowed,
+				connected,
+				rejected);
+
+			TEST_CHECK(num_attackers > allowed);
+
+			// the TCP accept itself always succeeds, rejection happens
+			// afterwards by closing the socket, so every attacker connects
+			// regardless of the limit
+			TEST_EQUAL(connected, num_attackers);
+
+			// Assert the rejection alert rather than client-side socket closure.
+			// The simulator's socket destructor does not propagate a close to its
+			// peer.
+			TEST_EQUAL(rejected, num_attackers - allowed);
+
+			zombie = ses->abort();
+			ses.reset();
+		});
+
+		sim.run();
+	}
+
 } // anonymous namespace
 
 TORRENT_TEST(ssl_transfer_matrix)
@@ -660,6 +879,14 @@ TORRENT_TEST(ssl_malicious_peer)
 		std::cout << "::endgroup::\n";
 	}
 }
+
+TORRENT_TEST(ssl_handshake_connection_limit)
+{
+	std::string const root_cert = read_file("root_ca_cert.pem");
+	run_ssl_handshake_connection_limit_test(make_ssl_test_torrent(root_cert));
+}
+
+TORRENT_TEST(ssl_pending_handshake_limit) { run_ssl_pending_handshake_limit(); }
 
 #else
 
