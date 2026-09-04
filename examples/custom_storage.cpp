@@ -216,7 +216,7 @@ struct temp_disk_io final : lt::disk_interface
 
 	void async_rename_file(lt::storage_index_t
 		, lt::file_index_t const idx
-		, std::string const name
+		, std::string const& name
 		, std::function<void(std::string const&, lt::file_index_t, lt::storage_error const&)> handler) override
 	{
 		post(m_ioc, [=]{ handler(name, idx, lt::storage_error()); });
