@@ -807,10 +807,10 @@ namespace {
 					attacker_ios.push_back(make_io_context(sim, i));
 					attacker_socks.emplace_back(*attacker_ios.back());
 					attacker_socks.back().async_connect(
-						lt::tcp::endpoint(peer0, std::uint16_t(port)),
-						[&](error_code const& ec) {
+						lt::tcp::endpoint(peer0, std::uint16_t(port)), [&](error_code const& ec) {
 							TEST_CHECK(!ec);
-							if (!ec) ++connected;
+							if (!ec)
+								++connected;
 						});
 				}
 			}
@@ -824,8 +824,11 @@ namespace {
 		ses->async_add_torrent(atp);
 
 		sim::timer give_up(sim, lt::seconds(30), [&](boost::system::error_code const&) {
-			std::printf("attackers: %d allowed: %d connected: %d rejected: %d\n"
-				, num_attackers, allowed, connected, rejected);
+			std::printf("attackers: %d allowed: %d connected: %d rejected: %d\n",
+				num_attackers,
+				allowed,
+				connected,
+				rejected);
 
 			TEST_CHECK(num_attackers > allowed);
 
@@ -883,10 +886,7 @@ TORRENT_TEST(ssl_handshake_connection_limit)
 	run_ssl_handshake_connection_limit_test(make_ssl_test_torrent(root_cert));
 }
 
-TORRENT_TEST(ssl_pending_handshake_limit)
-{
-	run_ssl_pending_handshake_limit();
-}
+TORRENT_TEST(ssl_pending_handshake_limit) { run_ssl_pending_handshake_limit(); }
 
 #else
 
