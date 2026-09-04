@@ -1,5 +1,6 @@
 2.0.15 not released
 
+	* fix shutdown issue with SSL torrents
 	* fix bug in hash-picker timeout
 	* fix DNS leak of i2p udp tracker hostnames
 	* fix DNS leak of hostnamed peers from trackers

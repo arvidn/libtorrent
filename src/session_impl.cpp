@@ -1093,13 +1093,15 @@ bool ssl_server_name_callback(ssl::stream_handle_type stream_handle, std::string
 		m_lsd_announce_timer.cancel();
 
 #ifdef TORRENT_SSL_PEERS
+		// close(), for a socket with a pending async_accept_handshake(), only
+		// cancels the operation, the completion handler still runs later,
+		// asynchronously, and touches the socket. So it must stay alive in
+		// m_incoming_sockets until ssl_handshake() observes the cancellation
+		// and erases it there
+		for (auto const& s : m_incoming_sockets)
 		{
-			auto const sockets = std::move(m_incoming_sockets);
-			for (auto const& s : sockets)
-			{
-				s->close(ec);
-				TORRENT_ASSERT(!ec);
-			}
+			s->close(ec);
+			TORRENT_ASSERT(!ec);
 		}
 #endif
 
