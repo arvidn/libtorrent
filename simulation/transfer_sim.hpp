@@ -40,6 +40,13 @@ see LICENSE file.
 #include "setup_transfer.hpp" // for addr()
 #include "disk_io.hpp"
 
+#if TORRENT_USE_SSL
+// reads the content of a file under test/ssl/ (e.g. to embed a root
+// certificate directly into a torrent, as opposed to passing a path to
+// set_ssl_certificate(), which loads the file itself)
+std::string read_ssl_fixture(std::string const& name);
+#endif
+
 template <typename Setup, typename HandleAlerts, typename Test>
 void run_test(
 	Setup setup
@@ -63,6 +70,16 @@ void run_test(
 	address peer0 = addr(peer0_ip[use_ipv6]);
 	address peer1 = addr(peer1_ip[use_ipv6]);
 	address proxy = (flags & tx::ipv6) ? addr("2001::2") : addr("50.50.50.50");
+
+	// an SSL torrent's peer connections are always TLS-wrapped, regardless of
+	// which port they're made over, so both sessions listen on an SSL port
+	// instead of a plain one, and the torrent's root certificate is embedded
+	// in the .torrent file created below
+	char const* const listen_port = (flags & tx::ssl) ? "6881s" : "6881";
+#if TORRENT_USE_SSL
+	std::string const ssl_root_cert =
+		(flags & tx::ssl) ? read_ssl_fixture("root_ca_cert.pem") : std::string();
+#endif
 
 	// setup the simulation
 	sim::default_config network_cfg;
@@ -93,7 +110,8 @@ void run_test(
 	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_disabled);
 	pack.set_int(settings_pack::allowed_enc_level, settings_pack::pe_plaintext);
 
-	pack.set_str(settings_pack::listen_interfaces, make_ep_string(peer0_ip[use_ipv6], use_ipv6, "6881"));
+	pack.set_str(settings_pack::listen_interfaces,
+		make_ep_string(peer0_ip[use_ipv6], use_ipv6, listen_port));
 	// create session
 	std::shared_ptr<lt::session> ses[2];
 
@@ -102,7 +120,8 @@ void run_test(
 	params.disk_io_constructor = downloader_disk_constructor;
 	ses[0] = std::make_shared<lt::session>(params, ios0);
 
-	pack.set_str(settings_pack::listen_interfaces, make_ep_string(peer1_ip[use_ipv6], use_ipv6, "6881"));
+	pack.set_str(settings_pack::listen_interfaces,
+		make_ep_string(peer1_ip[use_ipv6], use_ipv6, listen_port));
 	if (flags & tx::resume_restart)
 	{
 		// if we don't enable this, the second connection attempt will be
@@ -124,12 +143,20 @@ void run_test(
 	print_alerts(*ses[0], [&](lt::session& ses, lt::alert const* a) {
 		if (auto ta = lt::alert_cast<lt::add_torrent_alert>(a))
 		{
+			lt::torrent_handle h = ta->handle;
+#if TORRENT_USE_SSL
+			if (flags & tx::ssl)
+				h.set_ssl_certificate(sim::ssl_fixture_path("peer_certificate.pem"),
+					sim::ssl_fixture_path("peer_private_key.pem"),
+					sim::ssl_fixture_path("dhparams.pem"),
+					"test");
+#endif
 			if (!(flags & tx::web_seed))
 			{
 				if (flags & tx::connect_proxy)
-					ta->handle.connect_peer(lt::tcp::endpoint(proxy, 3000));
+					h.connect_peer(lt::tcp::endpoint(proxy, 3000));
 				else
-					ta->handle.connect_peer(lt::tcp::endpoint(peer1, 6881));
+					h.connect_peer(lt::tcp::endpoint(peer1, 6881));
 			}
 		}
 		else if (lt::alert_cast<lt::hash_failed_alert>(a))
@@ -139,7 +166,25 @@ void run_test(
 		on_alert(ses, a);
 	}, 0);
 
+#if TORRENT_USE_SSL
+	print_alerts(
+		*ses[1],
+		[&](lt::session&, lt::alert const* a) {
+			if (!(flags & tx::ssl))
+				return;
+			if (auto ta = lt::alert_cast<lt::add_torrent_alert>(a))
+			{
+				lt::torrent_handle h = ta->handle;
+				h.set_ssl_certificate(sim::ssl_fixture_path("peer_certificate.pem"),
+					sim::ssl_fixture_path("peer_private_key.pem"),
+					sim::ssl_fixture_path("dhparams.pem"),
+					"test");
+			}
+		},
+		1);
+#else
 	print_alerts(*ses[1], [](lt::session&, lt::alert const*){}, 1);
+#endif
 
 	int const piece_size = (flags & tx::small_pieces) ? lt::default_block_size
 		: (flags & tx::large_pieces) ? (4 * lt::default_block_size)
@@ -156,8 +201,16 @@ void run_test(
 
 	int const num_files = (flags & tx::multiple_files) ? 3 : 1;
 
-	lt::add_torrent_params atp = ::create_test_torrent(piece_size, num_pieces, cflags
-		, num_files, bool(flags & tx::bad_v1_hashes));
+	lt::add_torrent_params atp = ::create_test_torrent(piece_size,
+		num_pieces,
+		cflags,
+		num_files,
+		bool(flags & tx::bad_v1_hashes)
+#if TORRENT_USE_SSL
+			,
+		ssl_root_cert
+#endif
+	);
 	// this is unused by the test disk I/O
 	atp.save_path = ".";
 	atp.flags &= ~lt::torrent_flags::auto_managed;
@@ -218,6 +271,13 @@ void run_test(
 	if (flags & tx::magnet_download)
 	{
 		atp.info_hashes = atp.ti->info_hashes();
+#if TORRENT_USE_SSL
+		// the root certificate normally travels embedded in the .torrent
+		// file (ti), which a magnet download doesn't have, so give it to
+		// the downloader directly instead
+		if (flags & tx::ssl)
+			atp.root_certificate = ssl_root_cert;
+#endif
 		atp.ti.reset();
 	}
 
@@ -344,9 +404,14 @@ void run_all_combinations(F fun)
 					for (test_transfer_flags_t magnet : {test_transfer_flags_t{}, tx::magnet_download})
 						for (test_transfer_flags_t multi_file : {test_transfer_flags_t{}, tx::multiple_files})
 							for (test_transfer_flags_t resume : {tx::resume_restart, test_transfer_flags_t{}})
-								if (fun(piece_size | bt_version | magnet
-									| multi_file | web_seed | corruption | resume))
-									return;
+#if TORRENT_USE_SSL
+								for (test_transfer_flags_t ssl : {test_transfer_flags_t{}, tx::ssl})
+#else
+								for (test_transfer_flags_t ssl : {test_transfer_flags_t{}})
+#endif
+									if (fun(piece_size | bt_version | magnet | multi_file | web_seed
+											| corruption | resume | ssl))
+										return;
 }
 
 #endif

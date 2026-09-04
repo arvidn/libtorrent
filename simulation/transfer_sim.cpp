@@ -14,10 +14,24 @@ see LICENSE file.
 #include "transfer_sim.hpp"
 
 #include <string_view>
+#if TORRENT_USE_SSL
+#include <fstream>
+#include <sstream>
+#endif
 
 using lt::settings_pack;
 
 void no_init(lt::session& ses0, lt::session& ses1) {}
+
+#if TORRENT_USE_SSL
+std::string read_ssl_fixture(std::string const& name)
+{
+	std::ifstream f(sim::ssl_fixture_path(name));
+	std::stringstream buf;
+	buf << f.rdbuf();
+	return buf.str();
+}
+#endif
 
 record_finished_pieces::record_finished_pieces(std::set<lt::piece_index_t>& p)
 	: m_passed(&p)
@@ -153,19 +167,19 @@ bool run_matrix_test(test_transfer_flags_t flags, existing_files_mode const file
 
 	std::stringstream test_name;
 	test_name << ((flags & tx::small_pieces) ? "small_pieces"
-			: (flags & tx::large_pieces) ? "large_pieces"
-			: (flags & tx::odd_pieces) ? "odd_pieces"
-			: "normal_pieces")
-		<< "-" << ((flags & tx::corruption) ? "corruption" : "valid")
-		<< "-" << ((flags & tx::v2_only) ? "v2_only"
-			: (flags & tx::v1_only) ? "v1_only"
-			: (flags & tx::disable_v1_hashes) ? "hybrid_disable_v1"
-			: "hybrid")
-		<< "-" << ((flags & tx::magnet_download) ? "magnet" : "torrent")
-		<< "-" << ((flags & tx::multiple_files) ? "multi_file" : "single_file")
-		<< "-" << ((flags & tx::web_seed) ? "web_seed" : "bt_peers")
-		<< "-" << ((flags & tx::resume_restart) ? "resume_restart" : "continuous")
-		<< "-" << files;
+			: (flags & tx::large_pieces)	 ? "large_pieces"
+			: (flags & tx::odd_pieces)		 ? "odd_pieces"
+											 : "normal_pieces")
+			  << "-" << ((flags & tx::corruption) ? "corruption" : "valid") << "-"
+			  << ((flags & tx::v2_only)					   ? "v2_only"
+						 : (flags & tx::v1_only)		   ? "v1_only"
+						 : (flags & tx::disable_v1_hashes) ? "hybrid_disable_v1"
+														   : "hybrid")
+			  << "-" << ((flags & tx::magnet_download) ? "magnet" : "torrent") << "-"
+			  << ((flags & tx::multiple_files) ? "multi_file" : "single_file") << "-"
+			  << ((flags & tx::web_seed) ? "web_seed" : "bt_peers") << "-"
+			  << ((flags & tx::resume_restart) ? "resume_restart" : "continuous") << "-"
+			  << ((flags & tx::ssl) ? "ssl" : "plaintext") << "-" << files;
 
 	std::cout << "::group::case-" << test_name.str() << "\n";
 	std::cout << "\n\nTEST CASE: " << test_name.str() << "\n\n";
