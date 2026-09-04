@@ -138,6 +138,7 @@ run test_packet_buffer.cpp ;
 run test_timestamp_history.cpp ;
 run test_bloom_filter.cpp ;
 run test_identify_client.cpp ;
+run test_merge_block_requests.cpp ;
 run test_merkle.cpp ;
 run test_merkle_tree.cpp ;
 run test_precomputed_block_hashes.cpp ;
@@ -295,6 +296,7 @@ alias deterministic-tests :
 	test_ip_voter
 	test_listen_socket
 	test_magnet
+	test_merge_block_requests
 	test_merkle
 	test_merkle_tree
 	test_mmap

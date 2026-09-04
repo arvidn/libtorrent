@@ -411,6 +411,8 @@ void test_web_seed_transfer(std::vector<lt::create_file_entry> files,
 		expect_seeding);
 
 	bool seeding = false;
+	bool hash_failure = false;
+	bool peer_error = false;
 
 	run_test(
 		[&](lt::session& ses) {
@@ -431,6 +433,10 @@ void test_web_seed_transfer(std::vector<lt::create_file_entry> files,
 		[&](lt::session&, lt::alert const* alert) {
 			if (lt::alert_cast<lt::torrent_finished_alert>(alert))
 				seeding = true;
+			else if (lt::alert_cast<lt::hash_failed_alert>(alert))
+				hash_failure = true;
+			else if (lt::alert_cast<lt::peer_error_alert>(alert))
+				peer_error = true;
 		},
 		[&](sim::simulation& sim, lt::session&) {
 			std::unique_ptr<sim::asio::io_context> proxy_ios;
@@ -495,6 +501,8 @@ void test_web_seed_transfer(std::vector<lt::create_file_entry> files,
 		});
 
 	TEST_EQUAL(seeding, expect_seeding);
+	TEST_CHECK(!hash_failure);
+	TEST_CHECK(!peer_error);
 }
 
 using web_seed_proxy_flags_t = flags::bitfield_flag<std::uint32_t, struct web_seed_proxy_test_tag>;
