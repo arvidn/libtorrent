@@ -1037,6 +1037,19 @@ void node::incoming_request(msg const& m, entry& e)
 			return;
 		}
 
+		// a put that carries a public key or signature claims to be a mutable
+		// put; if it isn't well-formed (seq, k and sig all present) reject it
+		// rather than silently storing the value as an immutable item under
+		// sha1(v). keying on k/sig keeps such a request larger than the error
+		// reply (a 32-byte key or 64-byte signature), so the reply can't be
+		// used to amplify traffic; it also sits after the write-token check
+		if ((msg_keys[3] || msg_keys[4]) && !mutable_put)
+		{
+			m_counters.inc_stats_counter(counters::dht_invalid_put);
+			incoming_error(e, "malformed mutable put");
+			return;
+		}
+
 		if (!mutable_put)
 		{
 			m_storage.put_immutable_item(target, buf, m.addr.address());
