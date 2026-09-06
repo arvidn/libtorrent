@@ -19,12 +19,14 @@ see LICENSE file.
 #include "setup_transfer.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include <algorithm>
+#include <array>
 #include <fstream>
 #include <functional>
 #include <iostream>
 #include <memory>
 
 using namespace lt;
+using namespace std::chrono_literals;
 
 using lt::portmap_protocol;
 
@@ -42,25 +44,36 @@ std::string g_location_host_override;
 std::vector<std::string> g_log_messages;
 #endif
 
-char const* soap_add_response[] = {
+// TEST-NET-3 (RFC 5737), never a real ISP-assigned address. Embedded in the
+// fake device's GetExternalIPAddress response so a mapping callback can be
+// proven to have come from the fake test device rather than from an
+// unrelated, real UPnP router that happens to also be reachable on the same
+// network the test runs on.
+char const* const test_external_ip = "203.0.113.1";
+
+string_view soap_add_response[] = {
 	"<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
 	"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
 	"<s:Body><u:AddPortMapping xmlns:u=\"urn:schemas-upnp-org:service:WANIPConnection:1\">"
-	"</u:AddPortMapping></s:Body></s:Envelope>",
+	"<NewExternalIPAddress>203.0.113.1</NewExternalIPAddress>"
+	"</u:AddPortMapping></s:Body></s:Envelope>"_sv,
 	"<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
 	"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
 	"<s:Body><u:AddPortMapping xmlns:u=\"urn:schemas-upnp-org:service:WANIPConnection:2\">"
-	"</u:AddPortMapping></s:Body></s:Envelope>"};
+	"<NewExternalIPAddress>203.0.113.1</NewExternalIPAddress>"
+	"</u:AddPortMapping></s:Body></s:Envelope>"_sv};
 
-char const* soap_delete_response[] = {
+string_view soap_delete_response[] = {
 	"<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
 	"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
 	"<s:Body><u:DeletePortMapping xmlns:u=\"urn:schemas-upnp-org:service:WANIPConnection:1\">"
-	"</u:DeletePortMapping></s:Body></s:Envelope>",
+	"</u:DeletePortMapping></s:Body></s:Envelope>"_sv,
 	"<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" "
 	"s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">"
 	"<s:Body><u:DeletePortMapping xmlns:u=\"urn:schemas-upnp-org:service:WANIPConnection:2\">"
-	"</u:DeletePortMapping></s:Body></s:Envelope>"};
+	"</u:DeletePortMapping></s:Body></s:Envelope>"_sv};
+
+void send_rootdevice_response(broadcast_socket& sock, udp::endpoint const& to);
 
 void incoming_msearch(broadcast_socket& sock, udp::endpoint const& from, span<char const> buffer)
 {
@@ -78,32 +91,38 @@ void incoming_msearch(broadcast_socket& sock, udp::endpoint const& from, span<ch
 
 	std::cout << "< incoming m-search from " << from << std::endl;
 
-	char const msg[] = "HTTP/1.1 200 OK\r\n"
-					   "ST:upnp:rootdevice\r\n"
-					   "USN:uuid:000f-66d6-7296000099dc::upnp:rootdevice\r\n"
-					   "Location: http://%s:%d/upnp.xml\r\n"
-					   "Server: Custom/1.0 UPnP/1.0 Proc/Ver\r\n"
-					   "EXT:\r\n"
-					   "Cache-Control:max-age=180\r\n"
-					   "DATE: Fri, 02 Jan 1970 08:10:38 GMT\r\n\r\n";
+	send_rootdevice_response(sock, from);
+}
+
+void send_rootdevice_response(broadcast_socket& sock, udp::endpoint const& to)
+{
+	constexpr string_view msg = "HTTP/1.1 200 OK\r\n"
+								"ST:upnp:rootdevice\r\n"
+								"USN:uuid:000f-66d6-7296000099dc::upnp:rootdevice\r\n"
+								"Location: http://%s:%d/upnp.xml\r\n"
+								"Server: Custom/1.0 UPnP/1.0 Proc/Ver\r\n"
+								"EXT:\r\n"
+								"Cache-Control:max-age=180\r\n"
+								"DATE: Fri, 02 Jan 1970 08:10:38 GMT\r\n\r\n"_sv;
 
 	TORRENT_ASSERT(g_port != 0);
 	TORRENT_ASSERT(!g_local_address.empty());
 	std::string const& location_host =
 		g_location_host_override.empty() ? g_local_address : g_location_host_override;
-	char buf[sizeof(msg) + 64];
+	std::array<char, msg.size() + 65> buf;
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wformat-nonliteral"
 #endif
-	int const len = std::snprintf(buf, sizeof(buf), msg, location_host.c_str(), g_port);
+	int const len =
+		std::snprintf(buf.data(), buf.size(), msg.data(), location_host.c_str(), g_port);
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
 	error_code ec;
-	sock.send_to(buf, len, from, ec);
+	sock.send_to(buf.data(), len, to, ec);
 
-	std::cout << "> sending response to " << aux::print_endpoint(from) << std::endl;
+	std::cout << "> sending response to " << aux::print_endpoint(to) << std::endl;
 
 	if (ec) std::cout << "*** error sending " << ec.message() << std::endl;
 }
@@ -113,8 +132,11 @@ struct callback_info
 	port_mapping_t mapping;
 	int port;
 	error_code ec;
+	address ip;
 	bool operator==(callback_info const& e)
-	{ return mapping == e.mapping && port == e.port && !ec == !e.ec; }
+	{
+		return mapping == e.mapping && port == e.port && !ec == !e.ec && ip == e.ip;
+	}
 };
 
 std::list<callback_info> callbacks;
@@ -133,7 +155,7 @@ bool wait_for(
 		if (lt::clock_type::now() >= deadline)
 			return false;
 		ios.restart();
-		ios.run_for(lt::milliseconds(100));
+		ios.run_for(100ms);
 	}
 }
 
@@ -147,7 +169,7 @@ struct upnp_callback final : aux::portmap_callback
 		portmap_transport,
 		aux::listen_socket_handle const&) override
 	{
-		callback_info info = {mapping, port, err};
+		callback_info info = {mapping, port, err, ip};
 		callbacks.push_back(info);
 		std::cout << "mapping: " << static_cast<int>(mapping) << ", port: " << port
 				  << ", IP: " << ip << ", proto: " << static_cast<int>(protocol) << ", error: \""
@@ -268,7 +290,8 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 	fclose(xml_file);
 
 	std::ofstream xml(control_name, std::ios::trunc);
-	xml.write(soap_add_response[igd_version-1], sizeof(soap_add_response[igd_version-1])-1);
+	xml.write(soap_add_response[igd_version - 1].data(),
+		static_cast<std::streamsize>(soap_add_response[igd_version - 1].length()));
 	xml.close();
 
 	lt::io_context ios;
@@ -286,6 +309,11 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 		, ipf.interface_address.to_v4(), ipf.netmask.to_v4(), ipf.name, aux::listen_socket_handle());
 	upnp_handler->start();
 
+	// real NICs often don't loop multicast back to the sender (WiFi client
+	// isolation, non-hairpinning switches), unlike CI's network, so unicast
+	// the advertisement straight to upnp.cpp's SSDP port instead.
+	send_rootdevice_response(sock, udp::endpoint(ipf.interface_address.to_v4(), 1900));
+
 	// give up cleanly (rather than relying on the external per-test time
 	// limit) if an expected outcome never materializes, so a regression
 	// shows up as a clear, fast failure instead of an apparent hang.
@@ -297,7 +325,7 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 		callbacks.clear();
 	};
 
-	if (!wait_for(ios, lt::seconds(5), [&] { return !upnp_handler->router_model().empty(); }))
+	if (!wait_for(ios, 5s, [&] { return !upnp_handler->router_model().empty(); }))
 	{
 		bail("timed out waiting for router discovery");
 		return;
@@ -314,25 +342,43 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 	auto const mapping2 = upnp_handler->add_mapping(
 		portmap_protocol::udp, 501, tcp::endpoint(ipf.interface_address.to_v4(), 501), "");
 
-	if (!wait_for(ios, lt::seconds(10), [&] { return callbacks.size() >= 2; }))
+	// the external IP in the expected callbacks pins these mappings to the
+	// fake device: pick_upnp_interface() runs on a real, non-loopback
+	// interface (required by the SSRF check below), so a real UPnP router
+	// reachable on the same network may also answer the discovery broadcast
+	// and complete these same mappings on its own. Without the IP check, its
+	// callbacks would be indistinguishable from the fake device's.
+	callback_info const expected1 = {mapping1, 500, error_code(), make_address(test_external_ip)};
+	callback_info const expected2 = {mapping2, 501, error_code(), make_address(test_external_ip)};
+
+	if (!wait_for(ios, 10s, [&] {
+			return std::count(callbacks.begin(), callbacks.end(), expected1) >= 1
+				&& std::count(callbacks.begin(), callbacks.end(), expected2) >= 1;
+		}))
 	{
 		bail("timed out waiting for AddPortMapping responses");
 		return;
 	}
 
-	callback_info expected1 = {mapping1, 500, error_code()};
-	callback_info expected2 = {mapping2, 501, error_code()};
 	TEST_EQUAL(std::count(callbacks.begin(), callbacks.end(), expected1), 1);
 	TEST_EQUAL(std::count(callbacks.begin(), callbacks.end(), expected2), 1);
 
+	std::size_t const callbacks_after_add = callbacks.size();
+
 	xml.open(control_name, std::ios::trunc);
-	xml.write(soap_delete_response[igd_version-1], sizeof(soap_delete_response[igd_version-1])-1);
+	xml.write(soap_delete_response[igd_version - 1].data(),
+		static_cast<std::streamsize>(soap_delete_response[igd_version - 1].length()));
 	xml.close();
 
 	upnp_handler->close();
 	sock.close();
 
-	if (!wait_for(ios, lt::seconds(10), [&] { return callbacks.size() >= 4; }))
+	// unlike add-mapping, on_upnp_unmap_response() reports every device's
+	// completion identically (an unspecified address and no device-specific
+	// error code), so a real router that also completed the add above cannot
+	// be told apart from the fake device here. Only require our own two
+	// deletes to have arrived, not an exact total.
+	if (!wait_for(ios, 10s, [&] { return callbacks.size() >= callbacks_after_add + 2; }))
 	{
 		TEST_ERROR("timed out waiting for DeletePortMapping responses");
 		stop_web_server();
@@ -340,8 +386,7 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 		return;
 	}
 
-	// there should have been two DeleteMapping calls
-	TEST_EQUAL(callbacks.size(), 4);
+	TEST_CHECK(callbacks.size() >= callbacks_after_add + 2);
 
 	stop_web_server();
 
@@ -385,6 +430,11 @@ void run_upnp_ssrf_test()
 		aux::listen_socket_handle());
 	upnp_handler->start();
 
+	// real NICs often don't loop multicast back to the sender (WiFi client
+	// isolation, non-hairpinning switches), unlike CI's network, so unicast
+	// the advertisement straight to upnp.cpp's SSDP port instead.
+	send_rootdevice_response(sock, udp::endpoint(ipf.interface_address.to_v4(), 1900));
+
 	// note: router_model() is not checked here, real UPnP routers on the test
 	// network may legitimately answer the multicast search and get accepted;
 	// this test only cares whether the malicious host was rejected.
@@ -396,7 +446,7 @@ void run_upnp_ssrf_test()
 			});
 	};
 
-	if (!wait_for(ios, lt::seconds(5), found_rejection))
+	if (!wait_for(ios, 5s, found_rejection))
 		TEST_ERROR("timed out waiting for the malicious control URL to be rejected");
 
 	upnp_handler->close();
@@ -461,7 +511,12 @@ void run_upnp_reject_test(char const* root_filename)
 		aux::listen_socket_handle());
 	upnp_handler->start();
 
-	if (!wait_for(ios, lt::seconds(5), [&] { return !upnp_handler->router_model().empty(); }))
+	// real NICs often don't loop multicast back to the sender (WiFi client
+	// isolation, non-hairpinning switches), unlike CI's network, so unicast
+	// the advertisement straight to upnp.cpp's SSDP port instead.
+	send_rootdevice_response(sock, udp::endpoint(ipf.interface_address.to_v4(), 1900));
+
+	if (!wait_for(ios, 5s, [&] { return !upnp_handler->router_model().empty(); }))
 	{
 		TEST_ERROR("timed out waiting for router discovery");
 		upnp_handler->close();
@@ -493,13 +548,13 @@ void run_upnp_reject_test(char const* root_filename)
 				&& m.find("udp://") != std::string::npos;
 		});
 	};
-	if (!wait_for(ios, lt::seconds(5), rejected))
+	if (!wait_for(ios, 5s, rejected))
 		TEST_ERROR("timed out waiting for the malformed control URL to be rejected");
 #else
 	for (int i = 0; i < 40; ++i)
 	{
 		ios.restart();
-		ios.run_for(lt::milliseconds(100));
+		ios.run_for(100ms);
 	}
 #endif
 
