@@ -53,6 +53,7 @@ see LICENSE file.
 
 using namespace lt;
 using namespace sim;
+using namespace std::chrono_literals;
 
 namespace {
 
@@ -310,7 +311,7 @@ namespace {
 			bool(cfg.flags & downloader_has_ssl_port) && !expect_complete;
 		bool const expect_peer_error = bool(cfg.flags & use_ssl_port) && expect_ssl_disconnect;
 
-		sim::timer t(sim, lt::seconds(30), [&](boost::system::error_code const&) {
+		sim::timer t(sim, 30s, [&](boost::system::error_code const&) {
 			bool const complete = tor_downloader.status().is_seeding;
 			std::printf("EXPECT: %s RESULT: %s peer_errors: %d (expect %d) ssl_disconnects: %d "
 						"(expect %d)\n",
@@ -616,12 +617,135 @@ namespace {
 
 		ses->async_add_torrent(atp);
 
-		sim::timer give_up(sim, lt::seconds(30), [&](boost::system::error_code const&) {
+		sim::timer give_up(sim, 30s, [&](boost::system::error_code const&) {
 			std::printf("EXPECT: %s RESULT: %s (%s)\n",
 				(atk.flags & expect_success) ? "success" : "rejected",
 				result ? "success" : "rejected",
 				done ? "completed" : "timed out");
 			TEST_EQUAL(result, bool(atk.flags & expect_success));
+
+			zombie = ses->abort();
+			ses.reset();
+		});
+
+		sim.run();
+	}
+
+	// pending SSL handshakes must be bounded by connections_limit (+
+	// connections_slack), the same way incoming_connection() bounds plain
+	// TCP accepts synchronously, at accept time. attackers below connect but
+	// never start the TLS handshake, so once the limit is reached the
+	// remaining connection attempts must be rejected rather than left
+	// occupying a pending handshake slot indefinitely.
+	void run_ssl_pending_handshake_limit()
+	{
+		address const peer0 = addr("50.0.0.1");
+		int const port = 6881;
+		int const connections_limit = 5;
+		int const connections_slack = 0;
+		int const allowed = connections_limit + connections_slack;
+		int const num_attackers = 4 * connections_limit;
+
+		sim::default_config network_cfg;
+		sim::simulation sim{network_cfg};
+		sim::asio::io_context ios0{sim, peer0};
+
+		lt::session_proxy zombie;
+
+		lt::session_params params;
+		lt::settings_pack& pack = params.settings;
+		pack = settings();
+		pack.set_int(settings_pack::connections_limit, connections_limit);
+		pack.set_int(settings_pack::connections_slack, connections_slack);
+		// longer than the 30s check below, so the sockets admitted into a
+		// pending handshake slot are still pending (not timed out) when the
+		// test distinguishes them from the rejected ones
+		pack.set_int(settings_pack::handshake_timeout, 60);
+
+		// this session only ever listens on its SSL port, like
+		// run_malicious_peer_attack() above
+		std::array<char, 50> iface;
+		std::snprintf(iface.data(), iface.size(), "50.0.0.1:%ds", port);
+		pack.set_str(settings_pack::listen_interfaces, iface.data());
+
+		params.disk_io_constructor = test_disk().set_seed(true);
+		auto ses = std::make_shared<lt::session>(params, ios0);
+
+		std::string const root_cert = read_file("root_ca_cert.pem");
+		lt::add_torrent_params const atp = make_ssl_test_torrent(root_cert);
+
+		// attacker sockets: connect to the SSL port, then never send the
+		// TLS ClientHello ssl_stream::async_accept_handshake() is waiting
+		// for. reserved up front so these vectors never reallocate and
+		// invalidate async_connect's captured reference below
+		std::size_t const num_attackers_sz = std::size_t(num_attackers);
+		std::vector<std::unique_ptr<sim::asio::io_context>> attacker_ios;
+		std::vector<lt::tcp::socket> attacker_socks;
+		attacker_ios.reserve(num_attackers_sz);
+		attacker_socks.reserve(num_attackers_sz);
+		int connected = 0;
+
+		print_alerts(*ses, [&](lt::session&, lt::alert const* a) {
+			if (auto* ta = alert_cast<add_torrent_alert>(a))
+			{
+				torrent_handle h = ta->handle;
+				h.set_ssl_certificate(ssl_fixture_path("peer_certificate.pem"),
+					ssl_fixture_path("peer_private_key.pem"),
+					ssl_fixture_path("dhparams.pem"),
+					"test");
+			}
+			else if (alert_cast<torrent_finished_alert>(a))
+			{
+				// note: i starts at 1, since make_io_context(sim, 0) would
+				// collide with the seed's own address, 50.0.0.1
+				for (int i = 1; i <= num_attackers; ++i)
+				{
+					attacker_ios.push_back(make_io_context(sim, i));
+					attacker_socks.emplace_back(*attacker_ios.back());
+					attacker_socks.back().async_connect(
+						lt::tcp::endpoint(peer0, std::uint16_t(port)), [&](error_code const& ec) {
+							TEST_CHECK(!ec);
+							if (!ec)
+								++connected;
+						});
+				}
+			}
+		});
+
+		ses->async_add_torrent(atp);
+
+		sim::timer give_up(sim, 30s, [&](boost::system::error_code const&) {
+			// a non-blocking read directly tells us whether the seed closed
+			// each connection, without leaving an async operation pending
+			// to cancel at teardown
+			int closed = 0;
+			for (lt::tcp::socket& sock : attacker_socks)
+			{
+				error_code ec;
+				sock.non_blocking(true, ec);
+				std::array<char, 1> buf{};
+				sock.read_some(boost::asio::buffer(buf), ec);
+				if (ec && ec != boost::asio::error::would_block)
+					++closed;
+			}
+
+			std::printf("attackers: %d allowed: %d connected: %d closed: %d\n",
+				num_attackers,
+				allowed,
+				connected,
+				closed);
+
+			TEST_CHECK(num_attackers > allowed);
+
+			// the TCP accept itself always succeeds, rejection happens
+			// afterwards by closing the socket, so every attacker connects
+			// regardless of the limit
+			TEST_EQUAL(connected, num_attackers);
+
+			// only `allowed` pending SSL handshakes may occupy a slot at
+			// once; the rest must be closed, just like plain TCP accepts
+			// beyond the limit already are in incoming_connection()
+			TEST_EQUAL(closed, num_attackers - allowed);
 
 			zombie = ses->abort();
 			ses.reset();
@@ -660,6 +784,8 @@ TORRENT_TEST(ssl_malicious_peer)
 		std::cout << "::endgroup::\n";
 	}
 }
+
+TORRENT_TEST(ssl_pending_handshake_limit) { run_ssl_pending_handshake_limit(); }
 
 #else
 
