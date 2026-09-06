@@ -640,6 +640,10 @@ namespace {
 			// hash failure, clear all the internal nodes
 			// the whole piece failed the hash check. Clear all block hashes
 			// in this piece and report a hash failure
+			//
+			// we can't tell which block in the subtree is wrong, only that
+			// their combined hash no longer matches, so none of them can
+			// still be vouched for individually
 			merkle_clear_tree(m_tree, leafs_size, first_leaf + leafs_start);
 			m_tree[root_index] = root;
 			return std::make_tuple(set_block_result::hash_failed, leafs_start, leafs_size);

@@ -326,10 +326,22 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 			for (int i = req.index; i < req.index + req.count; i += 512)
 				m_piece_hash_requested[req.file][i / 512].have = true;
 		}
+		else
+		{
+			// stop re-requesting this piece's block hashes now that we have
+			// them; entries are only ever removed here
+			int const blocks_per_piece = m_files.piece_length() / default_block_size;
+			piece_block_request const resolved(req.file, piece_index_t::diff_type{req.index / blocks_per_piece});
+			auto const it = std::find(m_piece_block_requests.begin(), m_piece_block_requests.end(), resolved);
+			if (it != m_piece_block_requests.end())
+				m_piece_block_requests.erase(it);
+		}
 
 		return ret;
 	}
 
+	// h must be the hash of data already written to disk; add_hashes() later
+	// trusts it when reconciling against the network-proven hash
 	set_block_hash_result hash_picker::set_block_hash(piece_index_t const piece
 		, int const offset, sha256_hash const& h)
 	{
