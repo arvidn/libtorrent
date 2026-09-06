@@ -81,6 +81,32 @@ namespace libtorrent::aux {
 
 	// properly shuts down SSL sockets. holder keeps s alive
 	void async_shutdown(socket_type& s, std::shared_ptr<void> holder);
+
+#if TORRENT_USE_SSL
+	template <typename Handler>
+	struct accept_ssl_handshake_visitor
+	{
+		Handler h;
+		template <typename T>
+		void operator()(ssl_stream<T>& s)
+		{
+			s.async_accept_handshake(std::move(h));
+		}
+		template <typename T>
+		void operator()(T&)
+		{
+			TORRENT_ASSERT_FAIL();
+		}
+	};
+
+	// assuming s is an SSL socket (is_ssl(s) == true), accept the incoming
+	// TLS handshake as a server. handler is invoked as handler(error_code)
+	template <typename Handler>
+	void async_accept_ssl_handshake(socket_type& s, Handler handler)
+	{
+		std::visit(accept_ssl_handshake_visitor<Handler>{std::move(handler)}, s.var());
+	}
+#endif
 }
 
 #endif

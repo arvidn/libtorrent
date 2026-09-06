@@ -436,9 +436,8 @@ namespace aux {
 
 			void incoming_connection(socket_type);
 			std::int64_t num_connections_with_pending() const;
-			std::int64_t connection_limit(
-				tcp::endpoint const& endp, socket_type_t type);
-			void reject_incoming_connection(
+			std::int64_t connection_limit(tcp::endpoint const& endp, socket_type_t type);
+			bool reject_incoming_connection(
 				tcp::endpoint const& endp, socket_type_t type, std::int64_t limit);
 
 			std::weak_ptr<torrent> find_torrent(info_hash_t const&) const override;
@@ -1025,7 +1024,7 @@ namespace aux {
 			// are performing SSL handshake. When we shut down
 			// the session, all of these are disconnected, otherwise
 			// they would linger and stall or hang session shutdown
-			std::map<std::unique_ptr<socket_type>, std::shared_ptr<deadline_timer>, unique_ptr_less>
+			std::map<std::unique_ptr<socket_type>, std::unique_ptr<deadline_timer>, unique_ptr_less>
 				m_incoming_sockets;
 #endif
 
@@ -1088,9 +1087,9 @@ namespace aux {
 #endif
 #ifdef TORRENT_SSL_PEERS
 			void on_incoming_utp_ssl(socket_type s);
-			bool can_accept_peer(tcp::endpoint const& endp, socket_type_t type);
-			void arm_ssl_handshake_timer(
-				socket_type* s, std::shared_ptr<deadline_timer> const& timer);
+			// stashes s in m_incoming_sockets and starts its TLS handshake.
+			// shared by the TCP and uTP incoming SSL accept paths
+			void start_ssl_handshake(socket_type s);
 			void ssl_handshake(error_code const& ec, socket_type* s);
 			void ssl_handshake_timeout(error_code const& ec, socket_type* s);
 #endif

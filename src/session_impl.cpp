@@ -2894,14 +2894,18 @@ retry:
 		{
 			error_code endpoint_ec;
 			tcp::endpoint const endp = s.remote_endpoint(endpoint_ec);
-			if (endpoint_ec) return;
+			if (endpoint_ec)
+				return;
 
-			bool const reject = !can_accept_peer(endp, socket_type_t::tcp_ssl);
-			if (reject)
-				reject_incoming_connection(endp,
-					socket_type_t::tcp_ssl,
-					connection_limit(endp, socket_type_t::tcp_ssl));
-			if (reject) return;
+			if (reject_incoming_connection(
+					endp, socket_type_t::tcp_ssl, connection_limit(endp, socket_type_t::tcp_ssl)))
+			{
+				// close explicitly rather than relying on the destructor, to
+				// make sure the peer is notified the connection was rejected
+				error_code close_ec;
+				s.close(close_ec);
+				return;
+			}
 		}
 #endif
 
@@ -2930,20 +2934,7 @@ retry:
 		if (ssl == transport::ssl)
 		{
 			TORRENT_ASSERT(is_ssl(c));
-
-			// save the socket so we can cancel the handshake
-			auto socket = std::make_unique<socket_type>(std::move(c));
-			auto sock = socket.get();
-			auto timer = std::make_shared<deadline_timer>(m_io_context);
-			auto iter = m_incoming_sockets.emplace(std::move(socket), timer).first;
-
-			arm_ssl_handshake_timer(sock, timer);
-			// for SSL connections, incoming_connection() is called
-			// after the handshake is done
-			ADD_OUTSTANDING_ASYNC("session_impl::ssl_handshake");
-			std::get<ssl_stream<tcp::socket>>(*iter->first)
-				.async_accept_handshake(
-					[this, sock](error_code const& err) { ssl_handshake(err, sock); });
+			start_ssl_handshake(std::move(c));
 		}
 		else
 #endif
@@ -2960,30 +2951,45 @@ retry:
 
 		error_code ec;
 		tcp::endpoint const endp = s.remote_endpoint(ec);
-		if (ec) return;
+		if (ec)
+			return;
 
-		if (!can_accept_peer(endp, socket_type_t::utp_ssl))
+		if (reject_incoming_connection(
+				endp, socket_type_idx(s), connection_limit(endp, socket_type_idx(s))))
 		{
-			reject_incoming_connection(endp,
-				socket_type_t::utp_ssl,
-				connection_limit(endp, socket_type_t::utp_ssl));
+			// close explicitly rather than relying on the destructor, to
+			// make sure the peer is notified the connection was rejected
+			error_code close_ec;
+			s.close(close_ec);
 			return;
 		}
 
-		// save the socket so we can cancel the handshake
+		start_ssl_handshake(std::move(s));
+	}
 
+	void session_impl::start_ssl_handshake(socket_type s)
+	{
+		TORRENT_ASSERT(is_ssl(s));
+
+		// save the socket so we can cancel the handshake
 		auto socket = std::make_unique<socket_type>(std::move(s));
-		auto sock = socket.get();
-		auto timer = std::make_shared<deadline_timer>(m_io_context);
-		auto iter = m_incoming_sockets.emplace(std::move(socket), timer).first;
-		arm_ssl_handshake_timer(sock, timer);
+		auto const sock = socket.get();
+		auto timer = std::make_unique<deadline_timer>(m_io_context);
+		auto const iter = m_incoming_sockets.emplace(std::move(socket), std::move(timer)).first;
+
+		iter->second->expires_after(seconds(m_settings.get_int(settings_pack::handshake_timeout)));
+		ADD_OUTSTANDING_ASYNC("session_impl::ssl_handshake_timeout");
+		// destroying the timer right after cancel(), as ssl_handshake() does
+		// via m_incoming_sockets.erase(), is fine: the completion handler
+		// below only touches sock, not the timer itself
+		iter->second->async_wait(
+			[this, sock](error_code const& ec) { ssl_handshake_timeout(ec, sock); });
 
 		// for SSL connections, incoming_connection() is called
 		// after the handshake is done
 		ADD_OUTSTANDING_ASYNC("session_impl::ssl_handshake");
-		std::get<ssl_stream<utp_stream>>(*iter->first)
-			.async_accept_handshake(
-				[this, sock](error_code const& err) { ssl_handshake(err, sock); });
+		async_accept_ssl_handshake(
+			*iter->first, [this, sock](error_code const& err) { ssl_handshake(err, sock); });
 	}
 
 	// to test SSL connections, one can use this openssl command template:
@@ -2991,28 +2997,6 @@ retry:
 	// openssl s_client -cert <client-cert>.pem -key <client-private-key>.pem
 	//   -CAfile <torrent-cert>.pem  -debug -connect 127.0.0.1:4433 -tls1
 	//   -servername <hex-encoded-info-hash>
-
-	bool session_impl::can_accept_peer(tcp::endpoint const& endp, socket_type_t const type)
-	{
-		std::int64_t const limit =
-			connection_limit(endp, type)
-			+ m_settings.get_int(settings_pack::connections_slack);
-		return num_connections_with_pending() < limit;
-	}
-
-	void session_impl::arm_ssl_handshake_timer(
-		socket_type* const sock, std::shared_ptr<deadline_timer> const& timer)
-	{
-		timer->expires_after(seconds(m_settings.get_int(settings_pack::handshake_timeout)));
-
-		ADD_OUTSTANDING_ASYNC("session_impl::ssl_handshake_timeout");
-		// ssl_handshake() may erase the map entry before this canceled handler
-		// runs. Keep the timer alive until the handler completes.
-		timer->async_wait([this, sock, timer](error_code const& ec) {
-			TORRENT_UNUSED(timer);
-			ssl_handshake_timeout(ec, sock);
-		});
-	}
 
 	void session_impl::ssl_handshake(error_code const& ec, socket_type* sock)
 	{
@@ -3089,22 +3073,27 @@ retry:
 		return ret;
 	}
 
-	std::int64_t session_impl::connection_limit(
-		tcp::endpoint const& endp, socket_type_t const type)
+	std::int64_t session_impl::connection_limit(tcp::endpoint const& endp, socket_type_t const type)
 	{
 		peer_class_set pcs;
 		set_peer_classes(&pcs, endp.address(), type);
 		int connection_limit_factor = m_rates.max_connection_limit_factor(pcs);
-		if (connection_limit_factor == 0) connection_limit_factor = 100;
+		if (connection_limit_factor == 0)
+			connection_limit_factor = 100;
 
-		return std::int64_t(m_settings.get_int(settings_pack::connections_limit))
-			* 100 / connection_limit_factor;
+		return std::int64_t(m_settings.get_int(settings_pack::connections_limit)) * 100
+			/ connection_limit_factor;
 	}
 
-	void session_impl::reject_incoming_connection(
+	// limit is passed in, rather than computed here, since some callers
+	// (incoming_connection()) need it again afterwards for peer_exceeds_limit()
+	bool session_impl::reject_incoming_connection(
 		tcp::endpoint const& endp, socket_type_t const type, std::int64_t const limit)
 	{
-		TORRENT_UNUSED(limit);
+		if (num_connections_with_pending()
+			< limit + m_settings.get_int(settings_pack::connections_slack))
+			return false;
+
 		if (m_alerts.should_post<peer_disconnected_alert>())
 		{
 			m_alerts.emplace_alert<peer_disconnected_alert>(torrent_handle(),
@@ -3125,6 +3114,7 @@ retry:
 				m_settings.get_int(settings_pack::connections_slack));
 		}
 #endif
+		return true;
 	}
 
 	void session_impl::incoming_connection(socket_type s)
@@ -3274,18 +3264,12 @@ retry:
 			return;
 		}
 
+		// don't allow more connections than the max setting weighed by the
+		// peer class' setting; limit is kept for the peer_exceeds_limit()
+		// check below
 		std::int64_t const limit = connection_limit(endp, socket_type_idx(s));
-
-		// don't allow more connections than the max setting
-		// weighed by the peer class' setting
-		bool reject = num_connections_with_pending()
-			>= limit + m_settings.get_int(settings_pack::connections_slack);
-
-		if (reject)
-		{
-			reject_incoming_connection(endp, socket_type_idx(s), limit);
+		if (reject_incoming_connection(endp, socket_type_idx(s), limit))
 			return;
-		}
 
 		// if we don't have any active torrents, there's no
 		// point in accepting this connection. If, however,
@@ -3333,7 +3317,7 @@ retry:
 			// in case we've exceeded the limit, let this peer know that
 			// as soon as it's received the handshake, it needs to either
 			// disconnect or pick another peer to disconnect
-			if (num_connections() >= limit)
+			if (num_connections_with_pending() >= limit)
 				c->peer_exceeds_limit();
 
 			TORRENT_ASSERT(!c->m_in_constructor);
