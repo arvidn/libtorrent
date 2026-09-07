@@ -373,13 +373,54 @@ namespace {
 		// is valid.
 		int const insert_root_idx = dest_start_idx >> base_num_layers;
 
+		// first fill in the subtree of known hashes from the base layer
+		auto const num_leafs = merkle_num_leafs(m_num_blocks);
+		auto const first_leaf = merkle_first_leaf(num_leafs);
+
 		// start with validating the proofs, and inserting them as we go.
 		if (!merkle_validate_and_insert_proofs(m_tree, insert_root_idx, tree[0], uncle_hashes))
 			return {};
 
-		// first fill in the subtree of known hashes from the base layer
-		auto const num_leafs = merkle_num_leafs(m_num_blocks);
-		auto const first_leaf = merkle_first_leaf(num_leafs);
+		// if insert_root_idx is a leaf, the walk above may have just
+		// populated its sibling leaf too (the first uncle hash), which the
+		// main loop below won't see since it only walks "hashes". A
+		// successful return means anything touched is proven correct. With
+		// no uncle hashes there was no walk, so the sibling wasn't touched
+		// and nothing was learned about it.
+		if (!uncle_hashes.empty()
+			&& insert_root_idx >= first_leaf && insert_root_idx - first_leaf < m_num_blocks)
+		{
+			// insert_root_idx == 0 only happens for a single-block tree, where
+			// the root is the leaf itself and has no sibling. callers (e.g.
+			// hash_picker) are expected to reject such requests before they
+			// reach here.
+			TORRENT_ASSERT(insert_root_idx > 0);
+			int const sibling_idx = merkle_get_sibling(insert_root_idx);
+			int const sibling_block = sibling_idx - first_leaf;
+			if (sibling_block >= 0 && sibling_block < m_num_blocks)
+			{
+				// merkle_validate_and_insert_proofs() only returns true once
+				// it has hashed this sibling together with insert_root_idx
+				// into a proven ancestor, so m_tree[sibling_idx] is
+				// necessarily non-zero here.
+				TORRENT_ASSERT(!m_tree[sibling_idx].is_all_zeros());
+				bool const already_verified = m_block_verified.get_bit(sibling_block);
+				m_block_verified.set_bit(sibling_block);
+
+				// when a piece is a single block, a verified block is a
+				// verified piece. Otherwise, the piece can only pass once all
+				// of its blocks are known, which is handled below. Only
+				// report it the first time it becomes verified, since a
+				// later call may re-learn the same sibling hash via a
+				// different proof.
+				if (m_blocks_per_piece_log == 0 && !already_verified)
+				{
+					auto const piece = piece_index_t{sibling_block} + file_piece_offset;
+					if (ret.passed.empty() || ret.passed.back() != piece)
+						ret.passed.push_back(piece);
+				}
+			}
+		}
 
 		// this is the start of the leaf layer of "tree". We'll use this
 		// variable to step upwards towards the root
