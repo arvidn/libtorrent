@@ -32,6 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 */
 
+#include <algorithm>
 #include <iostream>
 
 #include "libtorrent/aux_/merkle.hpp"
@@ -1010,4 +1011,60 @@ TORRENT_TEST(add_hashes_zero_block_hash)
 
 	TEST_CHECK(!result);
 	TEST_CHECK(t.verified_leafs() == none_set(num_blocks));
+}
+
+// a single-leaf (count==1) add_hashes() call for a leaf that a prior
+// set_block() call already gave the correct value must still insert the
+// sibling's hash from the proof's first uncle hash, and mark it verified.
+// The target leaf's own value doesn't change, but the proof is the only
+// place that sibling hash comes from.
+TORRENT_TEST(single_leaf_resubmission_populates_sibling)
+{
+	int const blocks_per_piece = 4;
+	aux::merkle_tree t(num_blocks, blocks_per_piece, f[0].data());
+
+	// downloaded block 0's data and hashed it locally; stored speculatively,
+	// unverified (nothing else is known yet, so this can't be reconciled)
+	auto const set_ret = t.set_block(0, f[511]);
+	TEST_CHECK(std::get<0>(set_ret) == aux::merkle_tree::set_block_result::unknown);
+
+	// a peer now sends us the network-proven hash for that SAME single
+	// block; it matches what we already have, but the sibling's hash
+	// (present as the proof's first uncle hash) is new information
+	int const sibling = merkle_get_sibling(511);
+	auto const result = t.add_hashes(511, pdiff(0), range(f, 511, 1), build_proof(f, 511));
+	TEST_CHECK(result);
+
+	TEST_CHECK(t.has_node(sibling));
+	TEST_CHECK(t[sibling] == f[sibling]);
+	TEST_CHECK(t.blocks_verified(1, 1));
+}
+
+// when there's a single block per piece, verifying the sibling leaf via the
+// proof also verifies its whole piece, so that piece must show up in
+// add_hashes()'s passed list, not just as a set bit in blocks_verified()
+TORRENT_TEST(single_leaf_resubmission_reports_sibling_piece_passed)
+{
+	int const blocks_per_piece = 1;
+	aux::merkle_tree t(num_blocks, blocks_per_piece, f[0].data());
+
+	auto const set_ret = t.set_block(0, f[511]);
+	TEST_CHECK(std::get<0>(set_ret) == aux::merkle_tree::set_block_result::unknown);
+
+	int const sibling = merkle_get_sibling(511);
+	auto const result = t.add_hashes(511, pdiff(0), range(f, 511, 1), build_proof(f, 511));
+	TEST_CHECK(result);
+	if (!result) return;
+
+	TEST_CHECK(t.has_node(sibling));
+	TEST_CHECK(t[sibling] == f[sibling]);
+	TEST_CHECK(t.blocks_verified(1, 1));
+
+	// block 0 (the requested leaf, already known via set_block()) and block 1
+	// (the sibling, populated from the proof) both complete a whole piece
+	TEST_EQUAL(result->passed.size(), 2);
+	TEST_CHECK(std::find(result->passed.begin(), result->passed.end()
+		, 0_piece) != result->passed.end());
+	TEST_CHECK(std::find(result->passed.begin(), result->passed.end()
+		, 1_piece) != result->passed.end());
 }

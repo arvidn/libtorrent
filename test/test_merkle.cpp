@@ -1452,6 +1452,89 @@ TORRENT_TEST(validate_and_insert_proofs_existing_sibling_short_uncles)
 	o, o, o, o,o, f, o, o}));
 }
 
+// covers a pre-existing (not freshly written) target_node_idx match
+TORRENT_TEST(validate_and_insert_proofs_existing_target)
+{
+// full tree:
+//       ah
+//    ad      eh
+//  ab  cd  ef  gh
+// a b c d  e f g h
+
+	v tree(15);
+	tree[0] = ah;
+	tree[11] = e; // pre-existing, matching
+
+	v const proofs{f, gh, ad};
+
+	TEST_CHECK(merkle_validate_and_insert_proofs(tree, 11, e, proofs));
+	TEST_CHECK((tree == v{
+	          ah,
+	     ad,       eh,
+	  o,    o,  ef,   gh,
+	o, o, o, o,e, f, o, o}));
+}
+
+// companion to validate_and_insert_proofs_existing_sibling_walk_failure: a
+// pre-existing target must survive a failed walk just like a pre-existing
+// sibling does, while everything freshly written during the attempt (here,
+// both a sibling and a computed parent) is still cleaned up.
+TORRENT_TEST(validate_and_insert_proofs_existing_target_walk_failure)
+{
+// full tree:
+//       ah
+//    ad      eh
+//  ab  cd  ef  gh
+// a b c d  e f g h
+
+	v tree(15);
+	tree[0] = ah;
+	tree[2] = ad; // wrong "eh" at layer 1, will fail at the parent check
+	tree[11] = e; // pre-existing, matching
+
+	v const proofs{f, gh, ad};
+
+	TEST_CHECK(!merkle_validate_and_insert_proofs(tree, 11, e, proofs));
+
+	// the pre-existing target must survive, along with the pre-existing
+	// (wrong) node that caused the failure; everything this call itself
+	// wrote along the way must be cleaned back up
+	TEST_CHECK((tree == v{
+	          ah,
+	      o,       ad,
+	  o,    o,   o,    o,
+	o, o, o, o,e, o, o, o}));
+}
+
+// same idea, but the contradiction is detected on the very first step (a
+// pre-existing sibling that disagrees with the proof) rather than higher up
+// the walk, so target_node_idx's cleanup never gets to advance past it at
+// all. The pre-existing target, and the pre-existing (wrong) sibling that
+// caused the failure, must both survive untouched.
+TORRENT_TEST(validate_and_insert_proofs_existing_target_immediate_contradiction)
+{
+// full tree:
+//       ah
+//    ad      eh
+//  ab  cd  ef  gh
+// a b c d  e f g h
+
+	v tree(15);
+	tree[0] = ah;
+	tree[11] = e; // pre-existing, matching
+	tree[12] = g; // contradicts the proof (which is f)
+
+	v const proofs{f, gh, ad};
+
+	TEST_CHECK(!merkle_validate_and_insert_proofs(tree, 11, e, proofs));
+
+	TEST_CHECK((tree == v{
+	          ah,
+	      o,        o,
+	  o,    o,   o,    o,
+	o, o, o, o,e, g, o, o}));
+}
+
 // an all-zero hash is the sentinel for "this node is unknown" throughout the
 // tree, so it must never be accepted as a node hash, no matter what proof
 // comes with it
