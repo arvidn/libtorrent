@@ -1317,6 +1317,31 @@ TORRENT_TEST(validate_and_insert_proofs_root_fail)
 	o, o, o, o,o, o, o, o}));
 }
 
+// a request targeting the root has nothing to anchor a proof into, so
+// uncle hashes alongside it must be rejected.
+TORRENT_TEST(validate_and_insert_proofs_root_with_uncles_rejected)
+{
+// full tree:
+//       ah
+//    ad      eh
+//  ab  cd  ef  gh
+// a b c d  e f g h
+
+	v tree(15);
+	tree[0] = ah;
+
+	v const proofs{ad};
+
+	TEST_CHECK(!merkle_validate_and_insert_proofs(tree, 0, ah, proofs));
+
+	// nothing happens to the tree in this case
+	TEST_CHECK((tree == v{
+	          ah,
+	      o,        o,
+	  o,    o,   o,    o,
+	o, o, o, o,o, o, o, o}));
+}
+
 TORRENT_TEST(validate_and_insert_proofs_too_many_uncles)
 {
 // full tree:
