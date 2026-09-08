@@ -324,15 +324,24 @@ namespace libtorrent {
 		if (node.is_all_zeros())
 			return false;
 
-		if (target_tree[target_node_idx] == node)
-			return true;
-
-		if (!target_tree[target_node_idx].is_all_zeros())
+		// a proof for the root is meaningless, there's nothing above it to
+		// anchor into. reject rather than assume callers never pass one.
+		if (target_node_idx == 0 && !uncle_hashes.empty())
 			return false;
 
+		bool const target_matches = target_tree[target_node_idx] == node;
+
+		if (!target_matches && !target_tree[target_node_idx].is_all_zeros())
+			return false;
+
+		// with no proof, a match against the existing tree is all there is
+		// to go on; there's no sibling information to walk or miss.
 		if (uncle_hashes.empty())
-			return false;
+			return target_matches;
 
+		// a leaf can already match "node" while its sibling remains
+		// unproven; walk the proof regardless, since that's the only way
+		// to validate it.
 		int cursor = target_node_idx;
 		target_tree[cursor] = node;
 
@@ -395,17 +404,24 @@ namespace libtorrent {
 		// we get here if we never reached a known hash in the tree, i.e. the
 		// uncle_hashes failed to prove the specified node hash.
 		// we now need to clear up the hashes we inserted while walking up.
+		// target_node_idx itself is only ours to clear if target_matches was
+		// false, i.e. we're the ones who wrote it; every other slot visited
+		// here was necessarily written by this call, since the walk only
+		// ever advances into slots it already confirmed were all-zero.
 		int clear_cursor = target_node_idx;
 		int undo_iter = 0;
 		while (clear_cursor > cursor)
 		{
 			int const proof_idx = merkle_get_sibling(clear_cursor);
-			target_tree[clear_cursor].clear();
-			if (wrote_sibling & (std::uint32_t(1) << undo_iter)) target_tree[proof_idx].clear();
+			if (clear_cursor != target_node_idx || !target_matches)
+				target_tree[clear_cursor].clear();
+			if (wrote_sibling & (std::uint32_t(1) << undo_iter))
+				target_tree[proof_idx].clear();
 			clear_cursor = merkle_get_parent(clear_cursor);
 			++undo_iter;
 		}
-		target_tree[cursor].clear();
+		if (cursor != target_node_idx || !target_matches)
+			target_tree[cursor].clear();
 		return false;
 	}
 

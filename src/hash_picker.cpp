@@ -230,23 +230,27 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		if (req.count + num_uncle_hashes != hashes.size())
 			return add_hashes_result(false);
 
-		// for now we rely on only requesting piece hashes in 512-piece chunks,
-		// aligned to (and starting within) the actual number of pieces. The
-		// bookkeeping in m_piece_hash_requested below and in hashes_rejected()
-		// indexes by req.index / 512 and assumes req.index is a multiple of 512
-		// referring to an existing bucket. validate_hash_request() only bounds
-		// req.index against the padded piece layer, so a peer could otherwise
-		// send a request that is misaligned or points into the padding region,
-		// corrupting the wrong bucket or writing out of bounds.
-		if (req.base == m_piece_layer
-			&& (req.index % 512 != 0 || req.index >= m_files.file_num_pieces(req.file)
-				|| (req.count != 512
-					&& (req.count > 512
-						|| unpadded_count != m_files.file_num_pieces(req.file) - req.index))))
-			return add_hashes_result(false);
+		int const blocks_per_piece = m_files.piece_length() / default_block_size;
 
-		// for now we only support receiving hashes at the piece and leaf layers
-		if (req.base != m_piece_layer && req.base != 0)
+		// a request must match one of our two known shapes: a 512-piece
+		// chunk aligned to the piece layer, or one whole piece's block
+		// hashes. m_piece_hash_requested/m_piece_block_requests below index
+		// by req.index / 512 and req.index / blocks_per_piece, assuming that
+		// alignment.
+		//
+		// when blocks_per_piece == 1, m_piece_layer == 0, so both shapes have
+		// req.base == 0; check them independently rather than branching on
+		// req.base.
+		bool const valid_piece_layer_request = req.base == m_piece_layer && req.index % 512 == 0
+			&& req.index < m_files.file_num_pieces(req.file)
+			&& (req.count == 512
+				|| (req.count <= 512
+					&& unpadded_count == m_files.file_num_pieces(req.file) - req.index));
+
+		bool const valid_block_request = req.base == 0 && req.index % blocks_per_piece == 0
+			&& req.index < m_files.file_num_blocks(req.file) && req.count == blocks_per_piece;
+
+		if (!valid_piece_layer_request && !valid_block_request)
 			return add_hashes_result(false);
 
 		// the incoming list of hashes is really two separate lists, the lowest
@@ -280,10 +284,10 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		ret.hash_failed = std::move(results->failed);
 		ret.hash_passed = std::move(results->passed);
 
-		// the hashes passed validation and were added to the tree. Mark the
-		// corresponding entries in m_piece_hash_requested as "have" so we won't
-		// request them again. This mirrors the bookkeeping in hashes_rejected().
-		if (req.base == m_piece_layer)
+		// mark the resolved entries as "have" so we won't request them again.
+		// dispatch on valid_piece_layer_request, not req.base, since both
+		// request shapes have req.base == 0 when m_piece_layer == 0.
+		if (valid_piece_layer_request)
 		{
 			// req.base == m_piece_layer implies the file's merkle tree has more
 			// than m_piece_layer layers above its leaves, which is only true when
@@ -295,10 +299,23 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 			for (int i = req.index; i < req.index + req.count; i += 512)
 				m_piece_hash_requested[req.file][i / 512].have = true;
 		}
+		else
+		{
+			// stop re-requesting this piece's block hashes now that we have
+			// them; entries are only ever removed here
+			piece_block_request const resolved(
+				req.file, piece_index_t::diff_type{req.index / blocks_per_piece});
+			auto const it =
+				std::find(m_piece_block_requests.begin(), m_piece_block_requests.end(), resolved);
+			if (it != m_piece_block_requests.end())
+				m_piece_block_requests.erase(it);
+		}
 
 		return ret;
 	}
 
+	// h must be the hash of data already written to disk; add_hashes() later
+	// trusts it when reconciling against the network-proven hash
 	set_block_hash_result hash_picker::set_block_hash(piece_index_t const piece
 		, int const offset, sha256_hash const& h)
 	{

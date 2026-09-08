@@ -1084,11 +1084,13 @@ TORRENT_TEST(validate_and_insert_proofs_mixed)
 	v const proofs{f, gh, ad};
 
 	TEST_CHECK(merkle_validate_and_insert_proofs(tree, 11, e, proofs));
+	// clang-format off
 	TEST_CHECK((tree == v{
 	          ah,
 	     ad,       eh,
 	  o,    o,  ef,   gh,
 	o, o, o, o,e, f, o, o}));
+	// clang-format on
 }
 
 TORRENT_TEST(validate_and_insert_proofs_mixed_failure)
@@ -1154,11 +1156,13 @@ TORRENT_TEST(validate_and_insert_proofs_left)
 	v const proofs{b, cd, eh};
 
 	TEST_CHECK(merkle_validate_and_insert_proofs(tree, 7, a, proofs));
+	// clang-format off
 	TEST_CHECK((tree == v{
 	          ah,
 	     ad,       eh,
 	  ab,   cd,  o,    o,
 	a, b, o, o,o, o, o, o}));
+	// clang-format on
 }
 
 TORRENT_TEST(validate_and_insert_proofs_right)
@@ -1175,11 +1179,13 @@ TORRENT_TEST(validate_and_insert_proofs_right)
 	v const proofs{g, ef, ad};
 
 	TEST_CHECK(merkle_validate_and_insert_proofs(tree, 14, h, proofs));
+	// clang-format off
 	TEST_CHECK((tree == v{
 	          ah,
 	     ad,       eh,
 	  o,    o,   ef,   gh,
 	o, o, o, o,o, o, g, h}));
+	// clang-format on
 }
 
 TORRENT_TEST(validate_and_insert_proofs_early_success)
@@ -1198,11 +1204,13 @@ TORRENT_TEST(validate_and_insert_proofs_early_success)
 	v const proofs{f, gh, ad};
 
 	TEST_CHECK(merkle_validate_and_insert_proofs(tree, 11, e, proofs));
+	// clang-format off
 	TEST_CHECK((tree == v{
 	          ah,
 	     ad,       eh,
 	  o,    o,  ef,   gh,
 	o, o, o, o,e, f, o, o}));
+	// clang-format on
 }
 
 TORRENT_TEST(validate_and_insert_proofs_early_failure)
@@ -1223,11 +1231,13 @@ TORRENT_TEST(validate_and_insert_proofs_early_failure)
 	TEST_CHECK(!merkle_validate_and_insert_proofs(tree, 11, e, proofs));
 
 	// make sure tree was correctly restored
+	// clang-format off
 	TEST_CHECK((tree == v{
 	          ah,
 	     ad,       ah,
 	  o,    o,   o,    o,
 	o, o, o, o,o, o, o, o}));
+	// clang-format on
 }
 
 
@@ -1247,11 +1257,13 @@ TORRENT_TEST(validate_and_insert_proofs_no_uncles)
 	TEST_CHECK(!merkle_validate_and_insert_proofs(tree, 1, ad, proofs));
 
 	// make sure tree was correctly restored
+	// clang-format off
 	TEST_CHECK((tree == v{
 	          ah,
 	      o,        o,
 	  o,    o,   o,    o,
 	o, o, o, o,o, o, o, o}));
+	// clang-format on
 }
 
 TORRENT_TEST(validate_and_insert_proofs_root)
@@ -1271,11 +1283,13 @@ TORRENT_TEST(validate_and_insert_proofs_root)
 	TEST_CHECK(merkle_validate_and_insert_proofs(tree, 0, ah, proofs));
 
 	// nothing happens to the tree in this case, we already had the root
+	// clang-format off
 	TEST_CHECK((tree == v{
 	          ah,
 	      o,        o,
 	  o,    o,   o,    o,
 	o, o, o, o,o, o, o, o}));
+	// clang-format on
 }
 
 TORRENT_TEST(validate_and_insert_proofs_root_fail)
@@ -1295,11 +1309,40 @@ TORRENT_TEST(validate_and_insert_proofs_root_fail)
 	TEST_CHECK(!merkle_validate_and_insert_proofs(tree, 0, a, proofs));
 
 	// nothing happens to the tree in this case
+	// clang-format off
 	TEST_CHECK((tree == v{
 	          ah,
 	      o,        o,
 	  o,    o,   o,    o,
 	o, o, o, o,o, o, o, o}));
+	// clang-format on
+}
+
+// a request targeting the root has nothing to anchor a proof into, so
+// uncle hashes alongside it must be rejected.
+TORRENT_TEST(validate_and_insert_proofs_root_with_uncles_rejected)
+{
+	// full tree:
+	//       ah
+	//    ad      eh
+	//  ab  cd  ef  gh
+	// a b c d  e f g h
+
+	v tree(15);
+	tree[0] = ah;
+
+	v const proofs{ad};
+
+	TEST_CHECK(!merkle_validate_and_insert_proofs(tree, 0, ah, proofs));
+
+	// nothing happens to the tree in this case
+	// clang-format off
+	TEST_CHECK((tree == v{
+	          ah,
+	      o,        o,
+	  o,    o,   o,    o,
+	o, o, o, o,o, o, o, o}));
+	// clang-format on
 }
 
 TORRENT_TEST(validate_and_insert_proofs_too_many_uncles)
@@ -1316,11 +1359,13 @@ TORRENT_TEST(validate_and_insert_proofs_too_many_uncles)
 	v const proofs{f, gh, ad, a, b, c , d};
 
 	TEST_CHECK(merkle_validate_and_insert_proofs(tree, 11, e, proofs));
+	// clang-format off
 	TEST_CHECK((tree == v{
 	          ah,
 	     ad,       eh,
 	  o,    o,  ef,   gh,
 	o, o, o, o,e, f, o, o}));
+	// clang-format on
 }
 
 // A pre-existing sibling slot that already holds the same value the proof
@@ -1442,6 +1487,95 @@ TORRENT_TEST(validate_and_insert_proofs_existing_sibling_short_uncles)
 	      o,        o,
 	  o,    o,   o,    o,
 	o, o, o, o,o, f, o, o}));
+	// clang-format on
+}
+
+// covers a pre-existing (not freshly written) target_node_idx match
+TORRENT_TEST(validate_and_insert_proofs_existing_target)
+{
+	// full tree:
+	//       ah
+	//    ad      eh
+	//  ab  cd  ef  gh
+	// a b c d  e f g h
+
+	v tree(15);
+	tree[0] = ah;
+	tree[11] = e; // pre-existing, matching
+
+	v const proofs{f, gh, ad};
+
+	TEST_CHECK(merkle_validate_and_insert_proofs(tree, 11, e, proofs));
+	// clang-format off
+	TEST_CHECK((tree == v{
+	          ah,
+	     ad,       eh,
+	  o,    o,  ef,   gh,
+	o, o, o, o,e, f, o, o}));
+	// clang-format on
+}
+
+// companion to validate_and_insert_proofs_existing_sibling_walk_failure: a
+// pre-existing target must survive a failed walk just like a pre-existing
+// sibling does, while everything freshly written during the attempt (here,
+// both a sibling and a computed parent) is still cleaned up.
+TORRENT_TEST(validate_and_insert_proofs_existing_target_walk_failure)
+{
+	// full tree:
+	//       ah
+	//    ad      eh
+	//  ab  cd  ef  gh
+	// a b c d  e f g h
+
+	v tree(15);
+	tree[0] = ah;
+	tree[2] = ad; // wrong "eh" at layer 1, will fail at the parent check
+	tree[11] = e; // pre-existing, matching
+
+	v const proofs{f, gh, ad};
+
+	TEST_CHECK(!merkle_validate_and_insert_proofs(tree, 11, e, proofs));
+
+	// the pre-existing target must survive, along with the pre-existing
+	// (wrong) node that caused the failure; everything this call itself
+	// wrote along the way must be cleaned back up
+	// clang-format off
+	TEST_CHECK((tree == v{
+	          ah,
+	      o,       ad,
+	  o,    o,   o,    o,
+	o, o, o, o,e, o, o, o}));
+	// clang-format on
+}
+
+// same idea, but the contradiction is detected on the very first step (a
+// pre-existing sibling that disagrees with the proof) rather than higher up
+// the walk, so target_node_idx's cleanup never gets to advance past it at
+// all. The pre-existing target, and the pre-existing (wrong) sibling that
+// caused the failure, must both survive untouched.
+TORRENT_TEST(validate_and_insert_proofs_existing_target_immediate_contradiction)
+{
+	// full tree:
+	//       ah
+	//    ad      eh
+	//  ab  cd  ef  gh
+	// a b c d  e f g h
+
+	v tree(15);
+	tree[0] = ah;
+	tree[11] = e; // pre-existing, matching
+	tree[12] = g; // contradicts the proof (which is f)
+
+	v const proofs{f, gh, ad};
+
+	TEST_CHECK(!merkle_validate_and_insert_proofs(tree, 11, e, proofs));
+
+	// clang-format off
+	TEST_CHECK((tree == v{
+	          ah,
+	      o,        o,
+	  o,    o,   o,    o,
+	o, o, o, o,e, g, o, o}));
 	// clang-format on
 }
 

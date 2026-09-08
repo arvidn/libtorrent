@@ -1279,6 +1279,8 @@ namespace {
 		if (!m_recv_buffer.packet_finished()) return;
 
 		auto new_end = std::remove(m_hash_requests.begin(), m_hash_requests.end(), hr);
+		if (new_end == m_hash_requests.end())
+			return;
 		m_hash_requests.erase(new_end, m_hash_requests.end());
 
 		std::vector<sha256_hash> hashes;
