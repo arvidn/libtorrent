@@ -308,8 +308,9 @@ namespace libtorrent {
 			return false;
 
 		// a proof for the root is meaningless, there's nothing above it to
-		// anchor into. callers are expected to never request one
-		TORRENT_ASSERT(target_node_idx != 0 || uncle_hashes.empty());
+		// anchor into. reject rather than assume callers never pass one.
+		if (target_node_idx == 0 && !uncle_hashes.empty())
+			return false;
 
 		bool const target_matches = target_tree[target_node_idx] == node;
 

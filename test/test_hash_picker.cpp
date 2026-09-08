@@ -279,8 +279,7 @@ TORRENT_TEST(block_hash_request_resolved_stops_reissue)
 	// answer any hash request; it's kept separate from the picker's own
 	// (initially empty) tree
 	aux::merkle_tree server_tree(100 * 16, 16, full_tree[0].data());
-	server_tree.load_tree(
-		full_tree, std::vector<bool>(std::size_t(merkle_num_leafs(100 * 16)), false));
+	server_tree.load_tree(full_tree, bitfield(merkle_num_leafs(100 * 16)));
 
 	aux::vector<aux::merkle_tree, file_index_t> trees;
 	trees.emplace_back(100 * 16, 16, full_tree[0].data());
@@ -294,7 +293,7 @@ TORRENT_TEST(block_hash_request_resolved_stops_reissue)
 		span<sha256_hash const>());
 	TEST_CHECK(piece_result);
 
-	hash_picker picker(fs, trees);
+	aux::hash_picker picker(fs, trees);
 
 	// a failed piece hash makes the picker ask for the block hashes of that
 	// piece, which is a request at the block layer (base 0)
@@ -305,19 +304,19 @@ TORRENT_TEST(block_hash_request_resolved_stops_reissue)
 	// block-hash re-request path exercised below
 	typed_bitfield<piece_index_t> const pieces(100, false);
 
-	hash_request const picked = picker.pick_hashes(pieces);
+	aux::hash_request const picked = picker.pick_hashes(pieces);
 	TEST_EQUAL(picked.base, 0);
 
 	auto const hashes =
 		server_tree.get_hashes(picked.base, picked.index, picked.count, picked.proof_layers);
-	add_hashes_result const result = picker.add_hashes(picked, hashes);
+	aux::add_hashes_result const result = picker.add_hashes(picked, hashes);
 	TEST_CHECK(result.valid);
 
 	std::this_thread::sleep_for(4s);
 
 	// this piece's block hashes are now fully known, so even well past
 	// min_request_interval, the resolved request must not be reissued
-	TEST_CHECK(picker.pick_hashes(pieces) == hash_request());
+	TEST_CHECK(picker.pick_hashes(pieces) == aux::hash_request());
 }
 
 TORRENT_TEST(add_leaf_hashes)

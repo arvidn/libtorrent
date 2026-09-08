@@ -1069,10 +1069,12 @@ TORRENT_TEST(single_leaf_resubmission_populates_sibling)
 	TEST_CHECK(t.blocks_verified(1, 1));
 }
 
-// when there's a single block per piece, verifying the sibling leaf via the
-// proof also verifies its whole piece, so that piece must show up in
-// add_hashes()'s passed list, not just as a set bit in blocks_verified()
-TORRENT_TEST(single_leaf_resubmission_reports_sibling_piece_passed)
+// when there's a single block per piece, the sibling leaf populated from the
+// proof's first uncle hash is only proven correct, not backed by downloaded
+// data (no set_block() was ever called for it). It must not show up in
+// add_hashes()'s passed list, even though blocks_verified() reports it
+// verified.
+TORRENT_TEST(single_leaf_resubmission_does_not_report_unknown_sibling_passed)
 {
 	int const blocks_per_piece = 1;
 	aux::merkle_tree t(num_blocks, blocks_per_piece, f[0].data());
@@ -1090,11 +1092,46 @@ TORRENT_TEST(single_leaf_resubmission_reports_sibling_piece_passed)
 	TEST_CHECK(t[sibling] == f[sibling]);
 	TEST_CHECK(t.blocks_verified(1, 1));
 
-	// block 0 (the requested leaf, already known via set_block()) and block 1
-	// (the sibling, populated from the proof) both complete a whole piece
-	TEST_EQUAL(result->passed.size(), 2);
+	// block 0 (the requested leaf, already known via set_block()) completes
+	// its whole piece; block 1 (the sibling, only ever proven via this
+	// proof, never downloaded) must not, despite also being verified
+	TEST_EQUAL(result->passed.size(), 1);
 	TEST_CHECK(
 		std::find(result->passed.begin(), result->passed.end(), 0_piece) != result->passed.end());
 	TEST_CHECK(
+		std::find(result->passed.begin(), result->passed.end(), 1_piece) == result->passed.end());
+}
+
+// mirror of the case above: the sibling's block was already downloaded and
+// hashed via set_block() (but left unverified, since nothing else was known
+// yet), while the requested leaf itself is new. Reconciling the sibling's
+// data-backed hash against the proof must report the sibling's piece as
+// passed; the requested leaf's own piece must not, since its data was
+// never downloaded.
+TORRENT_TEST(single_leaf_resubmission_reports_previously_known_sibling_passed)
+{
+	int const blocks_per_piece = 1;
+	aux::merkle_tree t(num_blocks, blocks_per_piece, f[0].data());
+
+	int const sibling = merkle_get_sibling(511);
+	auto const set_ret = t.set_block(1, f[sibling]);
+	TEST_CHECK(std::get<0>(set_ret) == aux::merkle_tree::set_block_result::unknown);
+
+	auto const result = t.add_hashes(511, pdiff(0), range(f, 511, 1), build_proof(f, 511));
+	TEST_CHECK(result);
+	if (!result)
+		return;
+
+	TEST_CHECK(t.has_node(sibling));
+	TEST_CHECK(t[sibling] == f[sibling]);
+	TEST_CHECK(t.blocks_verified(0, 2));
+
+	// block 1 (the sibling, already known via set_block() before this call)
+	// completes its whole piece once reconciled; block 0 (the requested
+	// leaf, only just proven, never downloaded) must not
+	TEST_EQUAL(result->passed.size(), 1);
+	TEST_CHECK(
 		std::find(result->passed.begin(), result->passed.end(), 1_piece) != result->passed.end());
+	TEST_CHECK(
+		std::find(result->passed.begin(), result->passed.end(), 0_piece) == result->passed.end());
 }
