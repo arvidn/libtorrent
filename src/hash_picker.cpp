@@ -245,6 +245,24 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 						|| unpadded_count != m_files.file_num_pieces(req.file) - req.index))))
 			return add_hashes_result(false);
 
+		// we only ever request block hashes for one whole piece at a time
+		// (see pick_hashes()), aligned to a piece boundary, even for a file's
+		// last, possibly short, piece (the tail is padded rather than
+		// truncated). The bookkeeping in m_piece_block_requests below indexes
+		// by req.index / blocks_per_piece and assumes req.index refers to the
+		// start of a piece. Reject anything else, rather than silently
+		// mishandling a response that only partially covers a piece.
+		// When the piece layer and the block layer coincide (blocks_per_piece
+		// == 1), such requests go through the m_piece_layer case above
+		// instead, batched up to 512 pieces at a time.
+		if (req.base == 0 && m_piece_layer != 0)
+		{
+			int const blocks_per_piece = m_files.piece_length() / default_block_size;
+			if (req.index % blocks_per_piece != 0 || req.index >= m_files.file_num_blocks(req.file)
+				|| req.count != blocks_per_piece)
+				return add_hashes_result(false);
+		}
+
 		// for now we only support receiving hashes at the piece and leaf layers
 		if (req.base != m_piece_layer && req.base != 0)
 			return add_hashes_result(false);
@@ -295,10 +313,24 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 			for (int i = req.index; i < req.index + req.count; i += 512)
 				m_piece_hash_requested[req.file][i / 512].have = true;
 		}
+		else
+		{
+			// stop re-requesting this piece's block hashes now that we have
+			// them; entries are only ever removed here
+			int const blocks_per_piece = m_files.piece_length() / default_block_size;
+			piece_block_request const resolved(
+				req.file, piece_index_t::diff_type{req.index / blocks_per_piece});
+			auto const it =
+				std::find(m_piece_block_requests.begin(), m_piece_block_requests.end(), resolved);
+			if (it != m_piece_block_requests.end())
+				m_piece_block_requests.erase(it);
+		}
 
 		return ret;
 	}
 
+	// h must be the hash of data already written to disk; add_hashes() later
+	// trusts it when reconciling against the network-proven hash
 	set_block_hash_result hash_picker::set_block_hash(piece_index_t const piece
 		, int const offset, sha256_hash const& h)
 	{

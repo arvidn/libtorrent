@@ -10,6 +10,7 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
+#include <algorithm>
 #include <iostream>
 
 #include "libtorrent/aux_/merkle.hpp"
@@ -689,6 +690,53 @@ TORRENT_TEST(add_hashes_full_tree_existing_invalid_blocks)
 	}
 }
 
+// a piece must only be reported as passed once every one of its blocks has
+// matched; a partial set of already-known, matching blocks must not be
+// enough, but the full set must still be recognized once it is.
+TORRENT_TEST(add_hashes_full_tree_existing_valid_blocks_partial_piece)
+{
+	for (int piece_index : {0, 63})
+	{
+		for (int blocks_per_piece : {2, 4})
+		{
+			for (int known_count = 1; known_count <= blocks_per_piece; ++known_count)
+			{
+				aux::merkle_tree t(num_blocks, blocks_per_piece, f[0].data());
+
+				// pre-confirm only the piece's first known_count blocks; the
+				// rest (if any) are established by add_hashes() below
+				int const piece_start = piece_index * blocks_per_piece;
+				for (int i = piece_start; i < piece_start + known_count; ++i)
+				{
+					auto const set_ret = t.set_block(i, f[511 + i]);
+					TEST_CHECK(std::get<0>(set_ret) == aux::merkle_tree::set_block_result::unknown);
+				}
+
+				// add the entire block layer
+				auto const result =
+					t.add_hashes(511, pdiff(10), range(f, 511, 512), span<sha256_hash const>());
+
+				TEST_CHECK(result);
+				if (!result)
+					return;
+
+				auto const& res = *result;
+				TEST_EQUAL(res.failed.size(), 0);
+
+				piece_index_t const piece(piece_index + 10);
+				bool const piece_passed =
+					std::find(res.passed.begin(), res.passed.end(), piece) != res.passed.end();
+
+				// only once every block was already confirmed may the piece
+				// be reported as passed
+				TEST_EQUAL(piece_passed, known_count == blocks_per_piece);
+
+				TEST_CHECK(t.verified_leafs() == all_set(num_blocks));
+			}
+		}
+	}
+}
+
 TORRENT_TEST(set_block_full_block_layer)
 {
 	int const blocks_per_piece = 4;
@@ -976,8 +1024,11 @@ TORRENT_TEST(add_hashes_zero_block_hash)
 {
 	// a peer can ask us to insert a single block hash of all zeros. that's the
 	// same value an unknown node has, so the insert must be rejected rather
-	// than silently marking the block as verified
-	aux::merkle_tree t(num_blocks, 4, f[0].data());
+	// than silently marking the block as verified. blocks_per_piece is 1 so a
+	// lone leaf is a whole piece, as add_hashes() requires; a multi-leaf piece
+	// wouldn't exercise this guard anyway, since the root of several leaves
+	// isn't all-zero just because one of them is.
+	aux::merkle_tree t(num_blocks, 1, f[0].data());
 
 	std::vector<sha256_hash> const hashes{sha256_hash{}};
 	std::vector<sha256_hash> const proofs{rand_sha256()};
@@ -986,4 +1037,64 @@ TORRENT_TEST(add_hashes_zero_block_hash)
 
 	TEST_CHECK(!result);
 	TEST_CHECK(t.verified_leafs() == none_set(num_blocks));
+}
+
+// a single-leaf (count==1) add_hashes() call for a leaf that a prior
+// set_block() call already gave the correct value must still insert the
+// sibling's hash from the proof's first uncle hash, and mark it verified.
+// The target leaf's own value doesn't change, but the proof is the only
+// place that sibling hash comes from.
+TORRENT_TEST(single_leaf_resubmission_populates_sibling)
+{
+	// blocks_per_piece is 1 so a lone leaf is a whole piece, as add_hashes()
+	// requires; this also matches how it can happen for real, e.g. the
+	// trailing, less-than-512 batch of a piece-hash request.
+	int const blocks_per_piece = 1;
+	aux::merkle_tree t(num_blocks, blocks_per_piece, f[0].data());
+
+	// downloaded block 0's data and hashed it locally; stored speculatively,
+	// unverified (nothing else is known yet, so this can't be reconciled)
+	auto const set_ret = t.set_block(0, f[511]);
+	TEST_CHECK(std::get<0>(set_ret) == aux::merkle_tree::set_block_result::unknown);
+
+	// a peer now sends us the network-proven hash for that SAME single
+	// block; it matches what we already have, but the sibling's hash
+	// (present as the proof's first uncle hash) is new information
+	int const sibling = merkle_get_sibling(511);
+	auto const result = t.add_hashes(511, pdiff(0), range(f, 511, 1), build_proof(f, 511));
+	TEST_CHECK(result);
+
+	TEST_CHECK(t.has_node(sibling));
+	TEST_CHECK(t[sibling] == f[sibling]);
+	TEST_CHECK(t.blocks_verified(1, 1));
+}
+
+// when there's a single block per piece, verifying the sibling leaf via the
+// proof also verifies its whole piece, so that piece must show up in
+// add_hashes()'s passed list, not just as a set bit in blocks_verified()
+TORRENT_TEST(single_leaf_resubmission_reports_sibling_piece_passed)
+{
+	int const blocks_per_piece = 1;
+	aux::merkle_tree t(num_blocks, blocks_per_piece, f[0].data());
+
+	auto const set_ret = t.set_block(0, f[511]);
+	TEST_CHECK(std::get<0>(set_ret) == aux::merkle_tree::set_block_result::unknown);
+
+	int const sibling = merkle_get_sibling(511);
+	auto const result = t.add_hashes(511, pdiff(0), range(f, 511, 1), build_proof(f, 511));
+	TEST_CHECK(result);
+	if (!result)
+		return;
+
+	TEST_CHECK(t.has_node(sibling));
+	TEST_CHECK(t[sibling] == f[sibling]);
+	TEST_CHECK(t.blocks_verified(1, 1));
+
+	// block 0 (the requested leaf, already known via set_block()) and block 1
+	// (the sibling, populated from the proof) both complete a whole piece
+	TEST_EQUAL(result->passed.size(), 2);
+	TEST_CHECK(
+		std::find(result->passed.begin(), result->passed.end(), 0_piece) != result->passed.end());
+	TEST_CHECK(
+		std::find(result->passed.begin(), result->passed.end(), 1_piece) != result->passed.end());
 }

@@ -262,6 +262,64 @@ TORRENT_TEST(block_hash_request_reissued_after_timeout)
 	TEST_CHECK(picker.pick_hashes(pieces) == picked);
 }
 
+TORRENT_TEST(block_hash_request_resolved_stops_reissue)
+{
+	using namespace std::chrono_literals;
+
+	file_storage fs;
+	// 16 blocks per piece, so a block index is 16 times the piece index
+	fs.set_piece_length(16 * default_block_size);
+
+	// 100 pieces means m_piece_hash_requested only has a single 512-piece bucket
+	fs.add_file("test/tmp1", 100 * 16 * default_block_size);
+
+	auto const full_tree = build_tree(100 * 16);
+
+	// a fully populated reference tree, standing in for a peer that can
+	// answer any hash request; it's kept separate from the picker's own
+	// (initially empty) tree
+	aux::merkle_tree server_tree(100 * 16, 16, full_tree[0].data());
+	server_tree.load_tree(
+		full_tree, std::vector<bool>(std::size_t(merkle_num_leafs(100 * 16)), false));
+
+	aux::vector<aux::merkle_tree, file_index_t> trees;
+	trees.emplace_back(100 * 16, 16, full_tree[0].data());
+
+	// establish the piece layer up front; layers_to_verify() needs an
+	// already-known ancestor to bound the block-hash proof it requests
+	int const piece_layer_start = merkle_first_leaf(merkle_num_leafs(100));
+	auto const piece_result = trees.front().add_hashes(piece_layer_start,
+		piece_index_t::diff_type(0),
+		span<sha256_hash const>(full_tree).subspan(piece_layer_start, 100),
+		span<sha256_hash const>());
+	TEST_CHECK(piece_result);
+
+	hash_picker picker(fs, trees);
+
+	// a failed piece hash makes the picker ask for the block hashes of that
+	// piece, which is a request at the block layer (base 0)
+	picker.verify_block_hashes(40_piece);
+
+	// an all-false bitfield means we don't have any piece data, so the
+	// piece-layer request loop never has anything to offer, isolating the
+	// block-hash re-request path exercised below
+	typed_bitfield<piece_index_t> const pieces(100, false);
+
+	hash_request const picked = picker.pick_hashes(pieces);
+	TEST_EQUAL(picked.base, 0);
+
+	auto const hashes =
+		server_tree.get_hashes(picked.base, picked.index, picked.count, picked.proof_layers);
+	add_hashes_result const result = picker.add_hashes(picked, hashes);
+	TEST_CHECK(result.valid);
+
+	std::this_thread::sleep_for(4s);
+
+	// this piece's block hashes are now fully known, so even well past
+	// min_request_interval, the resolved request must not be reissued
+	TEST_CHECK(picker.pick_hashes(pieces) == hash_request());
+}
+
 TORRENT_TEST(add_leaf_hashes)
 {
 	file_storage fs;
