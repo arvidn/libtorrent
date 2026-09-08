@@ -377,6 +377,17 @@ namespace {
 		auto const num_leafs = merkle_num_leafs(m_num_blocks);
 		auto const first_leaf = merkle_first_leaf(num_leafs);
 
+		// merkle_validate_and_insert_proofs() below writes insert_root_idx's
+		// slot, and its sibling's if it's a leaf, the first time either is
+		// seen, so has_node() can no longer tell "already known" from
+		// "just proven" afterward. Snapshot both first: only an
+		// already-known hash is backed by downloaded data (set_block()),
+		// and only that may be reported as passed below.
+		bool const insert_root_already_known = has_node(insert_root_idx);
+		bool const sibling_already_known = !uncle_hashes.empty() && insert_root_idx >= first_leaf
+			&& insert_root_idx - first_leaf < m_num_blocks
+			&& has_node(merkle_get_sibling(insert_root_idx));
+
 		// start with validating the proofs, and inserting them as we go.
 		if (!merkle_validate_and_insert_proofs(m_tree, insert_root_idx, tree[0], uncle_hashes))
 			return {};
@@ -413,7 +424,7 @@ namespace {
 				// report it the first time it becomes verified, since a
 				// later call may re-learn the same sibling hash via a
 				// different proof.
-				if (m_blocks_per_piece_log == 0 && !already_verified)
+				if (m_blocks_per_piece_log == 0 && !already_verified && sibling_already_known)
 				{
 					auto const piece = piece_index_t{sibling_block} + file_piece_offset;
 					if (ret.passed.empty() || ret.passed.back() != piece)
@@ -463,7 +474,9 @@ namespace {
 			{
 				int const dst_idx = dest_cursor + i;
 				int const src_idx = source_cursor + i;
-				if (has_node(dst_idx))
+				// dst_idx == insert_root_idx was already written above by
+				// merkle_validate_and_insert_proofs()
+				if (dst_idx == insert_root_idx ? insert_root_already_known : has_node(dst_idx))
 				{
 					if (m_tree[dst_idx] != tree[src_idx])
 					{
