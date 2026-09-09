@@ -1155,3 +1155,16 @@ TORRENT_TEST(single_leaf_resubmission_reports_previously_known_sibling_passed)
 	TEST_CHECK(
 		std::find(result->passed.begin(), result->passed.end(), 0_piece) == result->passed.end());
 }
+
+// allocate_full() must preserve the implicit verified bit of a
+// single-block tree; add_hashes() with no uncle_hashes is the simplest
+// way to trigger it.
+TORRENT_TEST(single_block_tree_allocate_full_preserves_verified_bit)
+{
+	aux::merkle_tree t(1, 1, f[0].data());
+
+	auto const result = t.add_hashes(0, pdiff(0), range(f, 0, 1), span<sha256_hash const>());
+	TEST_CHECK(result);
+
+	TEST_CHECK(t.blocks_verified(0, 1));
+}
