@@ -221,6 +221,68 @@ TORRENT_TEST(reject_block_hash_request)
 	picker.hashes_rejected(picked);
 }
 
+TORRENT_TEST(block_hash_request_cleared_on_success)
+{
+	file_storage fs;
+	// 16 blocks per piece, so a block index is 16 times the piece index
+	fs.set_piece_length(16 * default_block_size);
+
+	// 100 pieces means m_piece_hash_requested only has a single 512-piece bucket
+	fs.add_file("test/tmp1", 100 * 16 * default_block_size);
+
+	auto const full_tree = build_tree(100 * 16);
+
+	// the piece-layer hash for piece 40 must already be known for a piece
+	// hash check to have failed in the first place, so load the complete
+	// tree rather than starting from just the root
+	aux::vector<aux::merkle_tree, file_index_t> trees;
+	trees.emplace_back(100 * 16, 16, full_tree[0].data());
+	trees.front().load_tree(full_tree, bitfield(merkle_num_leafs(100 * 16)));
+
+	aux::hash_picker picker(fs, trees);
+
+	// a failed piece hash makes the picker ask for the block hashes of that
+	// piece, which is a request at the block layer (base 0)
+	picker.verify_block_hashes(piece_index_t{40});
+
+	// an all-false bitfield means we don't have any piece data, so the
+	// piece-layer request loop never has anything to offer, isolating the
+	// block-hash request path exercised below
+	typed_bitfield<piece_index_t> const pieces(100, false);
+
+	auto const picked = picker.pick_hashes(pieces);
+	TEST_EQUAL(picked.base, 0);
+	TEST_EQUAL(picked.count, 16);
+
+	int const first_leaf = full_tree.end_index() - merkle_num_leafs(100 * 16);
+	int const base_num_layers = merkle_num_layers(picked.count);
+	int const num_uncle_hashes = std::max(0, picked.proof_layers - base_num_layers + 1);
+
+	std::vector<sha256_hash> hashes;
+	for (int i = 0; i < picked.count; ++i)
+		hashes.push_back(full_tree[first_leaf + picked.index + i]);
+	int node = first_leaf + picked.index;
+	for (int i = 0; i < base_num_layers; ++i)
+		node = merkle_get_parent(node);
+	for (int i = 0; i < num_uncle_hashes; ++i)
+	{
+		hashes.push_back(full_tree[merkle_get_sibling(node)]);
+		node = merkle_get_parent(node);
+	}
+
+	auto const result = picker.add_hashes(picked, hashes);
+	TEST_CHECK(result.valid);
+
+	using namespace std::chrono_literals;
+	std::this_thread::sleep_for(4s);
+
+	// the block-hash request has now been satisfied, so once
+	// min_request_interval has elapsed it must not be reissued: there's
+	// nothing else for pick_hashes() to offer, since all piece hashes are
+	// already known and no other block request is queued
+	TEST_CHECK(picker.pick_hashes(pieces) == aux::hash_request());
+}
+
 TORRENT_TEST(block_hash_request_reissued_after_timeout)
 {
 	using namespace std::chrono_literals;

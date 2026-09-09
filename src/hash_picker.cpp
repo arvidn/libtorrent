@@ -296,6 +296,24 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 				m_piece_hash_requested[req.file][i / 512].have = true;
 		}
 
+		// a request at the block layer whose shape matches the per-piece
+		// block-hash requests issued by verify_block_hashes()/pick_hashes()
+		// satisfies the m_piece_block_requests entry it was serving. This is
+		// checked independently of the piece-layer bookkeeping above because,
+		// when m_piece_layer == 0 (i.e. blocks_per_piece == 1), the piece
+		// layer and the block layer are the same layer and a single request
+		// can be both at once.
+		int const blocks_per_piece = m_files.blocks_per_piece();
+		if (req.base == 0 && req.count == blocks_per_piece && req.index % blocks_per_piece == 0)
+		{
+			piece_block_request const key(
+				req.file, piece_index_t::diff_type(req.index / blocks_per_piece));
+			auto const it =
+				std::find(m_piece_block_requests.begin(), m_piece_block_requests.end(), key);
+			if (it != m_piece_block_requests.end())
+				m_piece_block_requests.erase(it);
+		}
+
 		return ret;
 	}
 

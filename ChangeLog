@@ -1,5 +1,6 @@
 2.1.2 not released
 
+	* fix block hash requests being re-requested forever after being satisfied
 	* fix web seed coalesced requests for v2 torrents
 	* fix pre-allocation after enabling files with pread disk I/O
 	* fix race between stop torrent and hasher threads in pread_storage
