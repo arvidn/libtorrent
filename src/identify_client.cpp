@@ -100,13 +100,15 @@ namespace {
 	{
 		if (id[0] != '-' || id[1] != 'T' || id[2] != 'R' || id[7] != '-')
 			return {};
-		if (id[3] < '0' || id[3] > '2') return {};
+		if (id[3] < '0' || id[3] > '2')
+			return {};
 		if (!aux::is_digit(char(id[4])) || !aux::is_digit(char(id[5])))
 			return {};
 
 		fingerprint ret("TR", 0, 0, 0, 0);
 		ret.major_version = decode_digit(std::uint8_t(id[3]));
-		ret.minor_version = decode_digit(std::uint8_t(id[4])) * 10 + decode_digit(std::uint8_t(id[5]));
+		ret.minor_version =
+			decode_digit(std::uint8_t(id[4])) * 10 + decode_digit(std::uint8_t(id[5]));
 		ret.tag_version = decode_digit(std::uint8_t(id[6]));
 		return {ret};
 	}
@@ -414,7 +416,8 @@ namespace aux {
 
 		// look for transmission legacy style id
 		std::optional<fingerprint> f = parse_transmission_legacy_style(p);
-		if (f) return lookup(*f);
+		if (f)
+			return lookup(*f);
 
 		// look for azureus style id
 		f = parse_az_style(p);
