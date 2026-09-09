@@ -24,21 +24,11 @@ see LICENSE file.
 #include "libtorrent/span.hpp"
 #include "libtorrent/aux_/throw.hpp"
 
-#if defined __GLIBC__
-#include <malloc.h>
-#elif defined _MSC_VER
-#include <malloc.h>
-#elif defined __FreeBSD__
-#include <malloc_np.h>
-#elif defined __APPLE__
-#include <malloc/malloc.h>
-#endif
-
 namespace libtorrent {
 namespace aux {
 
 // the buffer is allocated once and cannot be resized. The size() may be
-// larger than requested, in case the underlying allocator over allocated. In
+// larger than requested, since allocations are rounded up to 8 bytes. In
 // order to "grow" an allocation, create a new buffer and initialize it by
 // the range of bytes from the existing, and move-assign the new over the
 // old.
@@ -55,27 +45,13 @@ public:
 
 		if (size <= 0) return;
 
-		// this rounds up the size to be 8 bytes aligned
-		// it mostly makes sense for platforms without support
-		// for a variation of "malloc_size()"
+		// round up the size to be 8 bytes aligned
 		size = (size + 7) & (~difference_type(0x7));
 
-		// we have to use malloc here, to be compatible with the fancy query
-		// functions below
 		m_begin = static_cast<char*>(std::malloc(static_cast<std::size_t>(size)));
 		if (m_begin == nullptr) aux::throw_ex<std::bad_alloc>();
 
-		// the actual allocation may be larger than we requested. If so, let the
-		// user take advantage of every single byte
-#if (defined __GLIBC__ && !defined __UCLIBC__) || defined __FreeBSD__
-		m_size = static_cast<difference_type>(::malloc_usable_size(m_begin));
-#elif defined _MSC_VER
-		m_size = static_cast<difference_type>(::_msize(m_begin));
-#elif defined __APPLE__
-		m_size = static_cast<difference_type>(::malloc_size(m_begin));
-#else
 		m_size = size;
-#endif
 	}
 
 	// allocate an uninitialized buffer of the specified size
