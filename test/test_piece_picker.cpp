@@ -2324,6 +2324,33 @@ TORRENT_TEST(set_pad_bytes)
 	TEST_EQUAL(blocks[3].state, piece_picker::block_info::state_finished);
 }
 
+TORRENT_TEST(set_pad_bytes_short_last_piece)
+{
+	// the last piece is shorter than a full piece (2 blocks instead of 4)
+	// and its last block is a pad block. add_download_piece() must use the
+	// actual number of blocks in this short piece, not the nominal
+	// per-piece block count, to tell payload blocks from pad blocks.
+	auto p = std::make_shared<piece_picker>(
+		std::int64_t(default_piece_size) + 2 * default_block_size, default_piece_size);
+	p->set_pad_bytes(1_piece, default_block_size);
+
+	bool const ret = p->mark_as_downloading({1_piece, 0}, tmp_peer);
+	TEST_EQUAL(ret, true);
+
+	auto const dl = p->get_download_queue();
+
+	TEST_EQUAL(dl.size(), 1);
+	TEST_EQUAL(dl[0].finished, 1);
+	TEST_EQUAL(dl[0].writing, 0);
+	TEST_EQUAL(dl[0].requested, 1);
+	TEST_EQUAL(dl[0].index, 1_piece);
+
+	auto const blocks = p->blocks_for_piece(dl[0]);
+	TEST_EQUAL(blocks.size(), 2);
+	TEST_EQUAL(blocks[0].state, piece_picker::block_info::state_requested);
+	TEST_EQUAL(blocks[1].state, piece_picker::block_info::state_finished);
+}
+
 TORRENT_TEST(set_pad_bytes_overflow)
 {
 	int const ps = file_storage::max_piece_size;
