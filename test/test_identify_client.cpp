@@ -24,8 +24,8 @@ TORRENT_TEST(identify_client)
 
 	// Transmission's legacy "-TRXYYR-" encoding (0.80 through 3.00) must
 	// not be parsed as three separate Azureus-style version components.
-	TEST_EQUAL(aux::identify_client_impl(peer_id("-TR2210-............")), "Transmission 2.21");
-	TEST_EQUAL(aux::identify_client_impl(peer_id("-TR2220-............")), "Transmission 2.22");
-	TEST_EQUAL(aux::identify_client_impl(peer_id("-TR2830-............")), "Transmission 2.83");
+	TEST_EQUAL(aux::identify_client_impl(peer_id("-TR2210-............")), "Transmission 2.21.0");
+	TEST_EQUAL(aux::identify_client_impl(peer_id("-TR2220-............")), "Transmission 2.22.0");
+	TEST_EQUAL(aux::identify_client_impl(peer_id("-TR2830-............")), "Transmission 2.83.0");
 }
 

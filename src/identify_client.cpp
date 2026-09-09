@@ -94,17 +94,9 @@ namespace {
 		return {ret};
 	}
 
-	// Transmission's legacy peer-ID encoding, used from release 0.80 up to
-	// 3.00: "-TRXYYR-" where X is a single base-10 major-version digit and
-	// YY is a two-digit base-10 minor version, e.g. "-TR2210-" means
-	// Transmission 2.21. This is a different scheme from the modern
-	// Azureus-style "-TRXYZR-" base62 encoding used from 3.00 onwards, so
-	// parse_az_style() alone misidentifies these as X.Y.Z (e.g. "2.2.1"
-	// instead of "2.21"). Only X in ['0', '2'] is treated as legacy, since
-	// that is the documented range for this encoding; 3.0 and later
-	// versions use the standard Azureus-style parsing below.
+	// Transmission legacy encoding (0.80 - 3.00): "-TRXYYR-".
 	// https://github.com/transmission/transmission/blob/main/docs/Peer-ID-and-User-Agent.md
-	std::optional<std::string> parse_transmission_legacy_style(const peer_id& id)
+	std::optional<fingerprint> parse_transmission_legacy_style(const peer_id& id)
 	{
 		if (id[0] != '-' || id[1] != 'T' || id[2] != 'R' || id[7] != '-')
 			return {};
@@ -112,10 +104,11 @@ namespace {
 		if (!aux::is_digit(char(id[4])) || !aux::is_digit(char(id[5])))
 			return {};
 
-		char identity[32];
-		std::snprintf(identity, sizeof(identity), "Transmission %c.%c%c"
-			, char(id[3]), char(id[4]), char(id[5]));
-		return {identity};
+		fingerprint ret("TR", 0, 0, 0, 0);
+		ret.major_version = decode_digit(std::uint8_t(id[3]));
+		ret.minor_version = decode_digit(std::uint8_t(id[4])) * 10 + decode_digit(std::uint8_t(id[5]));
+		ret.tag_version = decode_digit(std::uint8_t(id[6]));
+		return {ret};
 	}
 
 	// checks if a peer id can possibly contain a mainline-style
@@ -419,13 +412,12 @@ namespace aux {
 		if (is_equ_zero && PID[12] == '\0')
 			return "Experimental 3.1";
 
-		// Transmission's legacy "-TRXYYR-" peer-ID encoding needs to be
-		// special-cased before the generic Azureus-style parser below;
-		// see parse_transmission_legacy_style() for details.
-		if (auto const t = parse_transmission_legacy_style(p)) return *t;
+		// look for transmission legacy style id
+		std::optional<fingerprint> f = parse_transmission_legacy_style(p);
+		if (f) return lookup(*f);
 
 		// look for azureus style id
-		std::optional<fingerprint> f = parse_az_style(p);
+		f = parse_az_style(p);
 		if (f) return lookup(*f);
 
 		// look for shadow style id
