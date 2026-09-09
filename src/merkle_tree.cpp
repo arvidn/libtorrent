@@ -983,6 +983,11 @@ namespace {
 		m_tree = aux::vector<sha256_hash>(build_vector());
 		m_mode = mode_t::full_tree;
 		m_block_verified.resize(m_num_blocks, false);
+
+		// a single block equals the root hash, so it's implicitly verified,
+		// an invariant check_invariant() relies on.
+		if (m_num_blocks == 1)
+			m_block_verified.set_bit(0);
 	}
 
 	void merkle_tree::optimize_storage()
