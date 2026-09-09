@@ -5017,10 +5017,7 @@ namespace {
 		// means that block's peer has since disconnected, and still counts
 		// as an (untraceable) participant.
 		TORRENT_ASSERT(downloaders.size() == std::size_t(m_picker->blocks_in_piece(index)));
-		TORRENT_ASSERT(
-			downloaders.size() >= std::size_t(m_picker->pad_bytes_in_piece(index) / block_size()));
-		int const payload_blocks =
-			int(downloaders.size()) - m_picker->pad_bytes_in_piece(index) / block_size();
+		int const payload_blocks = m_picker->payload_blocks_in_piece(index);
 
 		// build a set of all peers that participated in this piece, to
 		// penalize the ones responsible for the bad data.
