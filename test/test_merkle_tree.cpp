@@ -497,6 +497,14 @@ TORRENT_TEST(merkle_tree_get_hashes)
 		auto h = t.get_hashes(1, 128, 64, 0);
 		TEST_CHECK(s(h) == range(f, 255 + 128, 64));
 	}
+
+	// a single leaf (count == 1) has no internal subtree of its own, so its
+	// immediate sibling must be included as the first proof hash
+	{
+		auto h = t.get_hashes(0, 0, 1, 8);
+		TEST_CHECK(s(h).first(1) == range(f, 511, 1));
+		TEST_CHECK(s(h).subspan(1) == s(build_proof(f, 511)));
+	}
 }
 
 //                             0
