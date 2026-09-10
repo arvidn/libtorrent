@@ -262,6 +262,7 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		bool const valid_piece_layer_request = req.base == m_piece_layer
 			&& req.index % 512 == 0
 			&& req.index < m_files.file_num_pieces(req.file)
+			&& !m_piece_hash_requested[req.file].empty()
 			&& (req.count == 512
 				|| (req.count <= 512
 					&& unpadded_count == m_files.file_num_pieces(req.file) - req.index));
@@ -383,7 +384,8 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		// only requests at the piece layer are recorded in
 		// m_piece_hash_requested.
 		if (req.base != m_piece_layer || req.index % 512 != 0 || req.count > 512
-			|| req.index >= m_files.file_num_pieces(req.file))
+			|| req.index >= m_files.file_num_pieces(req.file)
+			|| m_piece_hash_requested[req.file].empty())
 			return;
 
 		for (int i = req.index; i < req.index + req.count; i += 512)
