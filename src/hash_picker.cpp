@@ -299,10 +299,13 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 			for (int i = req.index; i < req.index + req.count; i += 512)
 				m_piece_hash_requested[req.file][i / 512].have = true;
 		}
-		else
+		// stop re-requesting this piece's block hashes now that we have them;
+		// entries are only ever removed here. This is independent of
+		// valid_piece_layer_request because, when m_piece_layer == 0 (i.e.
+		// blocks_per_piece == 1), the piece layer and the block layer are
+		// the same layer and a single request can satisfy both at once.
+		if (valid_block_request)
 		{
-			// stop re-requesting this piece's block hashes now that we have
-			// them; entries are only ever removed here
 			piece_block_request const resolved(
 				req.file, piece_index_t::diff_type{req.index / blocks_per_piece});
 			auto const it =

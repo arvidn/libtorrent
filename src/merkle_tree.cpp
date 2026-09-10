@@ -953,6 +953,11 @@ namespace {
 		m_tree = aux::vector<sha256_hash>(build_vector());
 		m_mode = mode_t::full_tree;
 		m_block_verified.resize(m_num_blocks, false);
+
+		// a single block equals the root hash, so it's implicitly verified,
+		// an invariant check_invariant() relies on.
+		if (m_num_blocks == 1)
+			m_block_verified.set_bit(0);
 	}
 
 	void merkle_tree::optimize_storage()
@@ -1042,27 +1047,54 @@ namespace {
 			}
 		}
 
-		// the number of layers up the tree which can be computed from the base layer hashes
-		// subtract one because the base layer doesn't count
-		int const base_tree_layers = merkle_num_layers(merkle_num_leafs(count)) - 1;
+		// proof_idx climbs one layer per iteration, starting at
+		// layer_start_idx (i == 0). Whether *its* sibling at that layer
+		// needs to be sent depends on how tall a subtree the count leaves,
+		// already gathered above, form on their own: every node of that
+		// subtree, at every one of its layers, is implied by those leaves.
+		// Example with count == 4 (implied_layers == 2: the subtree is 2
+		// layers tall):
+		//
+		//    i    proof_idx's sibling
+		//   ---   ----------------------------------------------------
+		//    2    not implied, must be pushed (first hash sent to peer)
+		//    1    implied: still inside the 4-leaf subtree, both
+		//         children already sit in `ret`
+		//    0    implied: layer_start_idx's sibling is itself one of
+		//         the other 3 requested leaves, already in `ret`
+		//
+		// pushed whenever i >= implied_layers. count == 1 has no subtree
+		// at all (implied_layers == 0), so even the leaf's own sibling at
+		// i == 0 isn't implied, and gets pushed too
+		int const implied_layers = merkle_num_layers(merkle_num_leafs(count));
 
 		int proof_idx = layer_start_idx;
-		for (int i = 0; i < proof_layers; ++i)
+		for (int i = 0; i < implied_layers; ++i, proof_idx = merkle_get_parent(proof_idx))
 		{
-			proof_idx = merkle_get_parent(proof_idx);
+			// if this assert fires, the requester set proof_layers too high
+			// and it wasn't correctly validated
+			TORRENT_ASSERT(proof_idx > 0);
+		}
 
-			// if this assert fire, the requester set proof_layers too high
+		for (int i = implied_layers; i <= proof_layers;
+			 ++i, proof_idx = merkle_get_parent(proof_idx))
+		{
+			// if this assert fires, the requester set proof_layers too high
 			// and it wasn't correctly validated
 			TORRENT_ASSERT(proof_idx > 0);
 
-			if (i >= base_tree_layers)
-			{
-				int const sibling = merkle_get_sibling(proof_idx);
-				if (!has_node(proof_idx) || !has_node(sibling))
-					return {};
+			int const sibling = merkle_get_sibling(proof_idx);
 
-				ret.push_back(get_impl(sibling, scratch_space));
-			}
+			// a sibling past the last real block is a padding leaf; its
+			// value is always the well-known all-zero leaf pad, never a
+			// stored node. padding only exists at the leaf layer
+			bool const sibling_is_real =
+				i > 0 || base != 0 || sibling < m_num_blocks + layer_start_idx - index;
+
+			if (!has_node(proof_idx) || (sibling_is_real && !has_node(sibling)))
+				return {};
+
+			ret.push_back(sibling_is_real ? get_impl(sibling, scratch_space) : sha256_hash{});
 		}
 
 		return ret;

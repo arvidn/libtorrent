@@ -473,6 +473,14 @@ TORRENT_TEST(merkle_tree_get_hashes)
 		auto h = t.get_hashes(1, 128, 64, 0);
 		TEST_CHECK(s(h) == range(f, 255 + 128, 64));
 	}
+
+	// a single leaf (count == 1) has no internal subtree of its own, so its
+	// immediate sibling must be included as the first proof hash
+	{
+		auto h = t.get_hashes(0, 0, 1, 8);
+		TEST_CHECK(s(h).first(1) == range(f, 511, 1));
+		TEST_CHECK(s(h).subspan(1) == s(build_proof(f, 511)));
+	}
 }
 
 //                             0
@@ -1134,4 +1142,17 @@ TORRENT_TEST(single_leaf_resubmission_reports_previously_known_sibling_passed)
 		std::find(result->passed.begin(), result->passed.end(), 1_piece) != result->passed.end());
 	TEST_CHECK(
 		std::find(result->passed.begin(), result->passed.end(), 0_piece) == result->passed.end());
+}
+
+// allocate_full() must preserve the implicit verified bit of a
+// single-block tree; add_hashes() with no uncle_hashes is the simplest
+// way to trigger it.
+TORRENT_TEST(single_block_tree_allocate_full_preserves_verified_bit)
+{
+	aux::merkle_tree t(1, 1, f[0].data());
+
+	auto const result = t.add_hashes(0, pdiff(0), range(f, 0, 1), span<sha256_hash const>());
+	TEST_CHECK(result);
+
+	TEST_CHECK(t.blocks_verified(0, 1));
 }
