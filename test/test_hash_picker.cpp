@@ -367,6 +367,44 @@ TORRENT_TEST(block_hash_request_cleared_when_piece_and_block_layer_coincide)
 	TEST_CHECK(picker.pick_hashes(pieces) == hash_request());
 }
 
+TORRENT_TEST(block_hash_request_retried_when_piece_and_block_layer_coincide)
+{
+	file_storage fs;
+	// one block per piece, so m_piece_layer == 0 and the piece and block
+	// layers coincide
+	fs.set_piece_length(default_block_size);
+
+	// piece 512 starts a fresh 512-piece bucket with only one piece left in
+	// it, so its block-hash request also has the tail-chunk shape of a
+	// piece-layer request
+	fs.add_file("test/tmp1", 513 * default_block_size);
+
+	auto const full_tree = build_tree(513);
+
+	aux::vector<aux::merkle_tree, file_index_t> trees;
+	trees.emplace_back(513, 1, full_tree[0].data());
+	trees.front().load_tree(full_tree, std::vector<bool>(std::size_t(merkle_num_leafs(513)), false));
+
+	hash_picker picker(fs, trees);
+
+	picker.verify_block_hashes(512_piece);
+
+	typed_bitfield<piece_index_t> const pieces(513, false);
+
+	hash_request const picked = picker.pick_hashes(pieces);
+	TEST_EQUAL(picked.base, 0);
+	TEST_EQUAL(picked.index, 512);
+	TEST_EQUAL(picked.count, 1);
+
+	picker.hashes_rejected(picked);
+
+	// the request satisfies both the block-layer and piece-layer shapes at
+	// once; a rejection must reset the block-request bookkeeping so the
+	// request is immediately retryable (e.g. from another peer), regardless
+	// of which bookkeeping branch runs
+	TEST_CHECK(picker.pick_hashes(pieces) == picked);
+}
+
 TORRENT_TEST(add_leaf_hashes)
 {
 	file_storage fs;
