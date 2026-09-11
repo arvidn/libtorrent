@@ -97,6 +97,7 @@ void bind_session_settings()
         .def_readwrite("type", &proxy_settings::type)
         .def_readwrite("proxy_peer_connections", &proxy_settings::proxy_peer_connections)
         .def_readwrite("proxy_hostnames", &proxy_settings::proxy_hostnames)
+        .def_readwrite("proxy_accept_incoming", &proxy_settings::proxy_accept_incoming)
     ;
 #endif
    }
