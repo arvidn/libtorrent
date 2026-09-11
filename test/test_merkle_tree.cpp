@@ -1156,3 +1156,17 @@ TORRENT_TEST(single_block_tree_allocate_full_preserves_verified_bit)
 
 	TEST_CHECK(t.blocks_verified(0, 1));
 }
+
+// insert_root_idx == 0 only happens for a single-block tree, where the root
+// is the leaf itself and has no sibling. merkle_get_sibling() asserts
+// tree_node > 0, so add_hashes() must not evaluate it for this tree's lone
+// leaf, even when a peer sends a (bogus, since none can exist) non-empty
+// uncle_hashes list for it.
+TORRENT_TEST(add_hashes_single_block_tree_rejects_uncle_hashes)
+{
+	aux::merkle_tree t(1, 1, f[0].data());
+
+	std::vector<sha256_hash> const bogus_proof{rand_sha256()};
+	auto const result = t.add_hashes(0, pdiff(0), range(f, 0, 1), bogus_proof);
+	TEST_CHECK(!result);
+}

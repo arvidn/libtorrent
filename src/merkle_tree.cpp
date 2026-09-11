@@ -362,8 +362,9 @@ namespace {
 		// already-known hash is backed by downloaded data (set_block()),
 		// and only that may be reported as passed below.
 		bool const insert_root_already_known = has_node(insert_root_idx);
+		// insert_root_idx > 0 since the root node has no sibling.
 		bool const sibling_already_known = !uncle_hashes.empty() && insert_root_idx >= first_leaf
-			&& insert_root_idx - first_leaf < m_num_blocks
+			&& insert_root_idx > 0 && insert_root_idx - first_leaf < m_num_blocks
 			&& has_node(merkle_get_sibling(insert_root_idx));
 
 		// start with validating the proofs, and inserting them as we go.
@@ -376,13 +377,10 @@ namespace {
 		// successful return means anything touched is proven correct. With
 		// no uncle hashes there was no walk, so the sibling wasn't touched
 		// and nothing was learned about it.
-		if (!uncle_hashes.empty() && insert_root_idx >= first_leaf
+		if (!uncle_hashes.empty() && insert_root_idx > 0 && insert_root_idx >= first_leaf
 			&& insert_root_idx - first_leaf < m_num_blocks)
 		{
-			// insert_root_idx == 0 only happens for a single-block tree, where
-			// the root is the leaf itself and has no sibling. callers (e.g.
-			// hash_picker) are expected to reject such requests before they
-			// reach here.
+			// the root node has no sibling.
 			TORRENT_ASSERT(insert_root_idx > 0);
 			int const sibling_idx = merkle_get_sibling(insert_root_idx);
 			int const sibling_block = sibling_idx - first_leaf;

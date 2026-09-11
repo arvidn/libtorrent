@@ -367,6 +367,44 @@ TORRENT_TEST(block_hash_request_cleared_when_piece_and_block_layer_coincide)
 	TEST_CHECK(picker.pick_hashes(pieces) == aux::hash_request());
 }
 
+TORRENT_TEST(block_hash_request_retried_when_piece_and_block_layer_coincide)
+{
+	file_storage fs;
+	// one block per piece, so m_piece_layer == 0 and the piece and block
+	// layers coincide
+	fs.set_piece_length(default_block_size);
+
+	// piece 512 starts a fresh 512-piece bucket with only one piece left in
+	// it, so its block-hash request also has the tail-chunk shape of a
+	// piece-layer request
+	fs.add_file("test/tmp1", 513 * default_block_size);
+
+	auto const full_tree = build_tree(513);
+
+	aux::vector<aux::merkle_tree, file_index_t> trees;
+	trees.emplace_back(513, 1, full_tree[0].data());
+	trees.front().load_tree(full_tree, bitfield(merkle_num_leafs(513), false));
+
+	aux::hash_picker picker(fs, trees);
+
+	picker.verify_block_hashes(512_piece);
+
+	typed_bitfield<piece_index_t> const pieces(513, false);
+
+	aux::hash_request const picked = picker.pick_hashes(pieces);
+	TEST_EQUAL(picked.base, 0);
+	TEST_EQUAL(picked.index, 512);
+	TEST_EQUAL(picked.count, 1);
+
+	picker.hashes_rejected(picked);
+
+	// the request satisfies both the block-layer and piece-layer shapes at
+	// once; a rejection must reset the block-request bookkeeping so the
+	// request is immediately retryable (e.g. from another peer), regardless
+	// of which bookkeeping branch runs
+	TEST_CHECK(picker.pick_hashes(pieces) == picked);
+}
+
 TORRENT_TEST(add_leaf_hashes)
 {
 	file_storage fs;
@@ -893,6 +931,39 @@ TORRENT_TEST(validate_hash_request_single_block_file)
 	TEST_EQUAL(merkle_num_layers(merkle_num_leafs(fs.file_num_blocks(file_index_t{0}))), 0);
 
 	TEST_CHECK(!validate_hash_request(aux::hash_request(file_index_t{0}, 0, 0, 1, 0), fs));
+}
+
+// a file whose size is <= piece_length has no piece-layer bookkeeping at
+// all (see the hash_picker constructor), so hashes_rejected() must handle
+// a rejected block-hash request for such a file without touching the
+// empty m_piece_hash_requested[file] vector.
+TORRENT_TEST(hashes_rejected_single_piece_file_does_not_crash)
+{
+	file_storage fs;
+	fs.set_piece_length(default_block_size);
+	fs.add_file("test/tmp1", default_block_size);
+
+	aux::vector<aux::merkle_tree, file_index_t> trees;
+	auto const root = from_hex("0000000000000000000000000000000000000000000000000000000000000001");
+	trees.emplace_back(1, 1, root.data());
+
+	aux::hash_picker picker(fs, trees);
+
+	// the only piece failed verification, so the picker asks for its block
+	// hash directly, a base-0 request indistinguishable in shape from a
+	// piece-layer chunk request when m_piece_layer == 0
+	picker.verify_block_hashes(0_piece);
+
+	typed_bitfield<piece_index_t> const pieces(1, false);
+
+	aux::hash_request const picked = picker.pick_hashes(pieces);
+	TEST_EQUAL(picked.base, 0);
+	TEST_EQUAL(picked.index, 0);
+	TEST_EQUAL(picked.count, 1);
+
+	// this must return without touching m_piece_hash_requested[0], which is
+	// empty
+	picker.hashes_rejected(picked);
 }
 
 // when blocks_per_piece == 1, a block-hash request is always for a lone

@@ -218,11 +218,29 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		return {};
 	}
 
+	bool hash_picker::matches_piece_layer_request(hash_request const& req) const
+	{
+		int const unpadded_count =
+			std::min(req.count, m_files.file_num_pieces(req.file) - req.index);
+		return req.base == m_piece_layer && req.index % 512 == 0
+			&& req.index < m_files.file_num_pieces(req.file)
+			&& !m_piece_hash_requested[req.file].empty()
+			&& (req.count == 512
+				|| (req.count <= 512
+					&& unpadded_count == m_files.file_num_pieces(req.file) - req.index));
+	}
+
+	bool hash_picker::matches_block_request(hash_request const& req) const
+	{
+		int const blocks_per_piece = m_files.piece_length() / default_block_size;
+		return req.base == 0 && req.index % blocks_per_piece == 0
+			&& req.index < m_files.file_num_blocks(req.file) && req.count == blocks_per_piece;
+	}
+
 	add_hashes_result hash_picker::add_hashes(hash_request const& req, span<sha256_hash const> hashes)
 	{
 		TORRENT_ASSERT(validate_hash_request(req, m_files));
 
-		int const unpadded_count = std::min(req.count, m_files.file_num_pieces(req.file) - req.index);
 		int const leaf_count = merkle_num_leafs(req.count);
 		int const base_num_layers = merkle_num_layers(leaf_count);
 		int const num_uncle_hashes = std::max(0, req.proof_layers - base_num_layers + 1);
@@ -232,23 +250,11 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 
 		int const blocks_per_piece = m_files.piece_length() / default_block_size;
 
-		// a request must match one of our two known shapes: a 512-piece
-		// chunk aligned to the piece layer, or one whole piece's block
-		// hashes. m_piece_hash_requested/m_piece_block_requests below index
-		// by req.index / 512 and req.index / blocks_per_piece, assuming that
-		// alignment.
-		//
-		// when blocks_per_piece == 1, m_piece_layer == 0, so both shapes have
-		// req.base == 0; check them independently rather than branching on
-		// req.base.
-		bool const valid_piece_layer_request = req.base == m_piece_layer && req.index % 512 == 0
-			&& req.index < m_files.file_num_pieces(req.file)
-			&& (req.count == 512
-				|| (req.count <= 512
-					&& unpadded_count == m_files.file_num_pieces(req.file) - req.index));
-
-		bool const valid_block_request = req.base == 0 && req.index % blocks_per_piece == 0
-			&& req.index < m_files.file_num_blocks(req.file) && req.count == blocks_per_piece;
+		// m_piece_hash_requested/m_piece_block_requests below index by
+		// req.index / 512 and req.index / blocks_per_piece, assuming the
+		// request matches one of the two shapes checked here.
+		bool const valid_piece_layer_request = matches_piece_layer_request(req);
+		bool const valid_block_request = matches_block_request(req);
 
 		if (!valid_piece_layer_request && !valid_block_request)
 			return add_hashes_result(false);
@@ -360,16 +366,34 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 
 	void hash_picker::hashes_rejected(hash_request const& req)
 	{
-		// only requests at the piece layer are recorded in
-		// m_piece_hash_requested.
-		if (req.base != m_piece_layer || req.index % 512 != 0 || req.count > 512
-			|| req.index >= m_files.file_num_pieces(req.file))
-			return;
+		int const blocks_per_piece = m_files.piece_length() / default_block_size;
 
-		for (int i = req.index; i < req.index + req.count; i += 512)
+		// req may match both shapes below when blocks_per_piece == 1; resolve it
+		// the same way pick_hashes() would, preferring the block-request queue.
+		// The queue entry can already be gone if another copy of this request
+		// was resolved by a different peer first, so clamp rather than assert.
+		if (matches_block_request(req))
 		{
-			m_piece_hash_requested[req.file][i / 512].last_request = min_time();
-			--m_piece_hash_requested[req.file][i / 512].num_requests;
+			piece_block_request const resolved(
+				req.file, piece_index_t::diff_type{req.index / blocks_per_piece});
+			auto const it =
+				std::find(m_piece_block_requests.begin(), m_piece_block_requests.end(), resolved);
+			if (it != m_piece_block_requests.end())
+			{
+				it->last_request = min_time();
+				it->num_requests = std::max(0, it->num_requests - 1);
+				return;
+			}
+		}
+
+		if (matches_piece_layer_request(req))
+		{
+			for (int i = req.index; i < req.index + req.count; i += 512)
+			{
+				auto& piece_req = m_piece_hash_requested[req.file][i / 512];
+				piece_req.last_request = min_time();
+				piece_req.num_requests = std::max(0, piece_req.num_requests - 1);
+			}
 		}
 
 		// this is for a future per-block request feature
