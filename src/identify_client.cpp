@@ -100,9 +100,11 @@ namespace {
 	{
 		if (id[0] != '-' || id[1] != 'T' || id[2] != 'R' || id[7] != '-')
 			return {};
-		if (id[3] < '0' || id[3] > '2')
+		if (id[3] < '0' || id[3] > '3')
 			return {};
 		if (!aux::is_digit(char(id[4])) || !aux::is_digit(char(id[5])))
+			return {};
+		if (!aux::is_digit(char(id[6])) && (id[6] < 'A' || id[6] > 'Z'))
 			return {};
 
 		fingerprint ret("TR", 0, 0, 0, 0);
