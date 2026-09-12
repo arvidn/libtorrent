@@ -567,8 +567,13 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 
 	void build_netmask_impl(span<unsigned char> mask, int prefix_bits)
 	{
-		TORRENT_ASSERT(prefix_bits <= mask.size() * 8);
 		TORRENT_ASSERT(prefix_bits >= 0);
+		// a prefix length that doesn't fit the address would run the fill loop
+		// below past the end of mask. the netlink prefix fields feeding this are
+		// a single byte, so an out of range value can arrive from a malformed
+		// message. cap it to a full mask, the same way the Windows path already
+		// bounds the prefix length.
+		prefix_bits = std::min(prefix_bits, int(mask.size()) * 8);
 		int i = 0;
 		while (prefix_bits >= 8)
 		{
