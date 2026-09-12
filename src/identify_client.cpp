@@ -94,6 +94,25 @@ namespace {
 		return {ret};
 	}
 
+	// Transmission legacy encoding (0.80 - 3.00): "-TRXYYR-".
+	// https://github.com/transmission/transmission/blob/main/docs/Peer-ID-and-User-Agent.md
+	std::optional<fingerprint> parse_transmission_legacy_style(const peer_id& id)
+	{
+		if (id[0] != '-' || id[1] != 'T' || id[2] != 'R' || id[7] != '-')
+			return {};
+		if (id[3] < '0' || id[3] > '2')
+			return {};
+		if (!aux::is_digit(char(id[4])) || !aux::is_digit(char(id[5])))
+			return {};
+
+		fingerprint ret("TR", 0, 0, 0, 0);
+		ret.major_version = decode_digit(std::uint8_t(id[3]));
+		ret.minor_version =
+			decode_digit(std::uint8_t(id[4])) * 10 + decode_digit(std::uint8_t(id[5]));
+		ret.tag_version = decode_digit(std::uint8_t(id[6]));
+		return {ret};
+	}
+
 	// checks if a peer id can possibly contain a mainline-style
 	// identification
 	std::optional<fingerprint> parse_mainline_style(const peer_id& id)
@@ -395,8 +414,13 @@ namespace aux {
 		if (is_equ_zero && PID[12] == '\0')
 			return "Experimental 3.1";
 
+		// look for transmission legacy style id
+		std::optional<fingerprint> f = parse_transmission_legacy_style(p);
+		if (f)
+			return lookup(*f);
+
 		// look for azureus style id
-		std::optional<fingerprint> f = parse_az_style(p);
+		f = parse_az_style(p);
 		if (f) return lookup(*f);
 
 		// look for shadow style id

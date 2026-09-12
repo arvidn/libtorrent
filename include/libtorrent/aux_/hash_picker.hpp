@@ -149,6 +149,15 @@ namespace libtorrent::aux
 		int layers_to_verify(node_index idx) const;
 		int file_num_layers(file_index_t idx) const;
 
+		// a request must match one of hash_picker's two known shapes: a
+		// 512-piece chunk aligned to the piece layer, or one whole piece's
+		// block hashes. When blocks_per_piece == 1, m_piece_layer == 0, so
+		// both shapes have req.base == 0 and a single request can satisfy
+		// both at once; the two are therefore checked independently rather
+		// than one being derived from req.base.
+		bool matches_piece_layer_request(hash_request const& req) const;
+		bool matches_block_request(hash_request const& req) const;
+
 		struct piece_hash_request
 		{
 			time_point last_request = min_time();

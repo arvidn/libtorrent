@@ -4988,21 +4988,31 @@ namespace {
 
 		std::vector<torrent_peer*> const downloaders = m_picker->get_downloaders(index);
 
-		// decrease the trust point of all peers that sent
-		// parts of this piece.
-		// first, build a set of all peers that participated
+		// pad-file bytes are synthesized locally and never downloaded; they
+		// always occupy a piece's trailing blocks. Excluding them keeps a
+		// lone real downloader from appearing to share the piece with an
+		// unidentified participant. A null entry among the payload blocks
+		// means that block's peer has since disconnected, and still counts
+		// as an (untraceable) participant.
+		TORRENT_ASSERT(downloaders.size() == std::size_t(m_picker->blocks_in_piece(index)));
+		int const payload_blocks = m_picker->payload_blocks_in_piece(index);
+
+		// build a set of all peers that participated in this piece, to
+		// penalize the ones responsible for the bad data.
 		// if we know which blocks failed, just include the peer(s) sending those
 		// blocks
 		std::set<torrent_peer*> const peers = [&]
 		{
 			std::set<torrent_peer*> ret;
-			if (!blocks.empty() && !downloaders.empty())
+			if (!blocks.empty())
 			{
 				for (auto const b : blocks) ret.insert(downloaders[std::size_t(b)]);
 			}
 			else
 			{
-				std::copy(downloaders.begin(), downloaders.end(), std::inserter(ret, ret.begin()));
+				std::copy(downloaders.begin(),
+					downloaders.begin() + payload_blocks,
+					std::inserter(ret, ret.begin()));
 			}
 			return ret;
 		}();
