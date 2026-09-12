@@ -17,6 +17,7 @@ see LICENSE file.
 
 #include <cctype>
 #include <algorithm>
+#include <array>
 #include <cstdio>
 #include <cstring>
 #include <optional>
@@ -40,7 +41,7 @@ namespace {
 	// object if the peer id matched the azureus style encoding
 	// the returned fingerprint contains information about the
 	// client's id
-	std::optional<fingerprint> parse_az_style(const peer_id& id)
+	std::optional<fingerprint> parse_az_style(peer_id const& id)
 	{
 		fingerprint ret("..", 0, 0, 0, 0);
 
@@ -62,7 +63,7 @@ namespace {
 
 	// checks if a peer id can possibly contain a shadow-style
 	// identification
-	std::optional<fingerprint> parse_shadow_style(const peer_id& id)
+	std::optional<fingerprint> parse_shadow_style(peer_id const& id)
 	{
 		fingerprint ret("..", 0, 0, 0, 0);
 
@@ -96,7 +97,7 @@ namespace {
 
 	// Transmission legacy encoding (0.80 - 3.00): "-TRXYYR-".
 	// https://github.com/transmission/transmission/blob/main/docs/Peer-ID-and-User-Agent.md
-	std::optional<fingerprint> parse_transmission_legacy_style(const peer_id& id)
+	std::optional<fingerprint> parse_transmission_legacy_style(peer_id const& id)
 	{
 		if (id[0] != '-' || id[1] != 'T' || id[2] != 'R' || id[7] != '-')
 			return {};
@@ -117,16 +118,21 @@ namespace {
 
 	// checks if a peer id can possibly contain a mainline-style
 	// identification
-	std::optional<fingerprint> parse_mainline_style(const peer_id& id)
+	std::optional<fingerprint> parse_mainline_style(peer_id const& id)
 	{
-		char ids[21];
-		std::copy(id.begin(), id.end(), ids);
+		std::array<char, 21> ids;
+		std::copy(id.begin(), id.end(), ids.begin());
 		ids[20] = 0;
 		fingerprint ret("..", 0, 0, 0, 0);
 		ret.name[1] = 0;
 		ret.tag_version = 0;
-		if (std::sscanf(ids, "%1c%3d-%3d-%3d--", &ret.name[0], &ret.major_version, &ret.minor_version
-			, &ret.revision_version) != 4
+		if (std::sscanf(ids.data(),
+				"%1c%3d-%3d-%3d--",
+				&ret.name[0],
+				&ret.major_version,
+				&ret.minor_version,
+				&ret.revision_version)
+				!= 4
 			|| !aux::is_print(ret.name[0]))
 			return {};
 
@@ -141,111 +147,108 @@ namespace {
 
 	// only support BitTorrentSpecification
 	// must be ordered alphabetically
-	const map_entry name_map[] =
-	{
-		  {"7T", "aTorrent for android"}
-		, {"A",  "ABC"}
-		, {"AB", "AnyEvent BitTorrent"}
-		, {"AG", "Ares"}
-		, {"AR", "Arctic Torrent"}
-		, {"AT", "Artemis"}
-		, {"AV", "Avicora"}
-		, {"AX", "BitPump"}
-		, {"AZ", "Azureus"}
-		, {"A~", "Ares"}
-		, {"BB", "BitBuddy"}
-		, {"BC", "BitComet"}
-		, {"BE", "baretorrent"}
-		, {"BF", "Bitflu"}
-		, {"BG", "BTG"}
-		, {"BI", "BiglyBT"}
-		, {"BL", "BitBlinder"}
-		, {"BP", "BitTorrent Pro"}
-		, {"BR", "BitRocket"}
-		, {"BS", "BTSlave"}
-		, {"BT", "BitTorrent"}
-		, {"BU", "BigUp"}
-		, {"BW", "BitWombat"}
-		, {"BX", "BittorrentX"}
-		, {"CD", "Enhanced CTorrent"}
-		, {"CT", "CTorrent"}
-		, {"DE", "Deluge"}
-		, {"DP", "Propagate Data Client"}
-		, {"EB", "EBit"}
-		, {"ES", "electric sheep"}
-		, {"FC", "FileCroc"}
-		, {"FT", "FoxTorrent"}
-		, {"FW", "FrostWire"}
-		, {"FX", "Freebox BitTorrent"}
-		, {"GS", "GSTorrent"}
-		, {"HK", "Hekate"}
-		, {"HL", "Halite"}
-		, {"HN", "Hydranode"}
-		, {"IL", "iLivid"}
-		, {"KC", "Koinonein"}
-		, {"KG", "KGet"}
-		, {"KT", "KTorrent"}
-		, {"LC", "LeechCraft"}
-		, {"LH", "LH-ABC"}
-		, {"LK", "Linkage"}
-		, {"LP", "lphant"}
-		, {"LR", "LibreTorrent"}
-		, {"LT", "libtorrent"}
-		, {"LW", "Limewire"}
-		, {"M",  "Mainline"}
-		, {"ML", "MLDonkey"}
-		, {"MO", "Mono Torrent"}
-		, {"MP", "MooPolice"}
-		, {"MR", "Miro"}
-		, {"MT", "Moonlight Torrent"}
-		, {"NX", "Net Transport"}
-		, {"O",  "Osprey Permaseed"}
-		, {"OS", "OneSwarm"}
-		, {"OT", "OmegaTorrent"}
-		, {"PD", "Pando"}
-		, {"Q",  "BTQueue"}
-		, {"QD", "QQDownload"}
-		, {"QT", "Qt 4"}
-		, {"R",  "Tribler"}
-		, {"RT", "Retriever"}
-		, {"RZ", "RezTorrent"}
-		, {"S",  "Shadow"}
-		, {"SB", "Swiftbit"}
-		, {"SD", "Xunlei"}
-		, {"SK", "spark"}
-		, {"SN", "ShareNet"}
-		, {"SS", "SwarmScope"}
-		, {"ST", "SymTorrent"}
-		, {"SZ", "Shareaza"}
-		, {"S~", "Shareaza (beta)"}
-		, {"T",  "BitTornado"}
-		, {"TB", "Torch"}
-		, {"TL", "Tribler"}
-		, {"TN", "Torrent.NET"}
-		, {"TR", "Transmission"}
-		, {"TS", "TorrentStorm"}
-		, {"TT", "TuoTu"}
-		, {"U",  "UPnP"}
-		, {"UL", "uLeecher"}
-		, {"UM", "uTorrent Mac"}
-		, {"UT", "uTorrent"}
-		, {"VG", "Vagaa"}
-		, {"WD", "WebTorrent Desktop"}
-		, {"WT", "BitLet"}
-		, {"WW", "WebTorrent"}
-		, {"WY", "FireTorrent"}
-		, {"XF", "Xfplay"}
-		, {"XL", "Xunlei"}
-		, {"XS", "XSwifter"}
-		, {"XT", "XanTorrent"}
-		, {"XX", "Xtorrent"}
-		, {"ZO", "Zona"}
-		, {"ZT", "ZipTorrent"}
-		, {"lt", "rTorrent"}
-		, {"pX", "pHoeniX"}
-		, {"qB", "qBittorrent"}
-		, {"st", "SharkTorrent"}
-	};
+	std::array<map_entry, 102> const name_map = {{{"7T", "aTorrent for android"},
+		{"A", "ABC"},
+		{"AB", "AnyEvent BitTorrent"},
+		{"AG", "Ares"},
+		{"AR", "Arctic Torrent"},
+		{"AT", "Artemis"},
+		{"AV", "Avicora"},
+		{"AX", "BitPump"},
+		{"AZ", "Azureus"},
+		{"A~", "Ares"},
+		{"BB", "BitBuddy"},
+		{"BC", "BitComet"},
+		{"BE", "baretorrent"},
+		{"BF", "Bitflu"},
+		{"BG", "BTG"},
+		{"BI", "BiglyBT"},
+		{"BL", "BitBlinder"},
+		{"BP", "BitTorrent Pro"},
+		{"BR", "BitRocket"},
+		{"BS", "BTSlave"},
+		{"BT", "BitTorrent"},
+		{"BU", "BigUp"},
+		{"BW", "BitWombat"},
+		{"BX", "BittorrentX"},
+		{"CD", "Enhanced CTorrent"},
+		{"CT", "CTorrent"},
+		{"DE", "Deluge"},
+		{"DP", "Propagate Data Client"},
+		{"EB", "EBit"},
+		{"ES", "electric sheep"},
+		{"FC", "FileCroc"},
+		{"FT", "FoxTorrent"},
+		{"FW", "FrostWire"},
+		{"FX", "Freebox BitTorrent"},
+		{"GS", "GSTorrent"},
+		{"HK", "Hekate"},
+		{"HL", "Halite"},
+		{"HN", "Hydranode"},
+		{"IL", "iLivid"},
+		{"KC", "Koinonein"},
+		{"KG", "KGet"},
+		{"KT", "KTorrent"},
+		{"LC", "LeechCraft"},
+		{"LH", "LH-ABC"},
+		{"LK", "Linkage"},
+		{"LP", "lphant"},
+		{"LR", "LibreTorrent"},
+		{"LT", "libtorrent"},
+		{"LW", "Limewire"},
+		{"M", "Mainline"},
+		{"ML", "MLDonkey"},
+		{"MO", "Mono Torrent"},
+		{"MP", "MooPolice"},
+		{"MR", "Miro"},
+		{"MT", "Moonlight Torrent"},
+		{"NX", "Net Transport"},
+		{"O", "Osprey Permaseed"},
+		{"OS", "OneSwarm"},
+		{"OT", "OmegaTorrent"},
+		{"PD", "Pando"},
+		{"Q", "BTQueue"},
+		{"QD", "QQDownload"},
+		{"QT", "Qt 4"},
+		{"R", "Tribler"},
+		{"RT", "Retriever"},
+		{"RZ", "RezTorrent"},
+		{"S", "Shadow"},
+		{"SB", "Swiftbit"},
+		{"SD", "Xunlei"},
+		{"SK", "spark"},
+		{"SN", "ShareNet"},
+		{"SS", "SwarmScope"},
+		{"ST", "SymTorrent"},
+		{"SZ", "Shareaza"},
+		{"S~", "Shareaza (beta)"},
+		{"T", "BitTornado"},
+		{"TB", "Torch"},
+		{"TL", "Tribler"},
+		{"TN", "Torrent.NET"},
+		{"TR", "Transmission"},
+		{"TS", "TorrentStorm"},
+		{"TT", "TuoTu"},
+		{"U", "UPnP"},
+		{"UL", "uLeecher"},
+		{"UM", "uTorrent Mac"},
+		{"UT", "uTorrent"},
+		{"VG", "Vagaa"},
+		{"WD", "WebTorrent Desktop"},
+		{"WT", "BitLet"},
+		{"WW", "WebTorrent"},
+		{"WY", "FireTorrent"},
+		{"XF", "Xfplay"},
+		{"XL", "Xunlei"},
+		{"XS", "XSwifter"},
+		{"XT", "XanTorrent"},
+		{"XX", "Xtorrent"},
+		{"ZO", "Zona"},
+		{"ZT", "ZipTorrent"},
+		{"lt", "rTorrent"},
+		{"pX", "pHoeniX"},
+		{"qB", "qBittorrent"},
+		{"st", "SharkTorrent"}}};
 
 	struct generic_map_entry
 	{
@@ -254,46 +257,43 @@ namespace {
 		char const* name;
 	};
 	// non-standard names
-	const generic_map_entry generic_mappings[] =
-	{
-		{0, "Deadman Walking-", "Deadman"}
-		, {5, "Azureus", "Azureus 2.0.3.2"}
-		, {0, "DansClient", "XanTorrent"}
-		, {4, "btfans", "SimpleBT"}
-		, {0, "PRC.P---", "Bittorrent Plus! II"}
-		, {0, "P87.P---", "Bittorrent Plus!"}
-		, {0, "S587Plus", "Bittorrent Plus!"}
-		, {0, "martini", "Martini Man"}
-		, {0, "Plus---", "Bittorrent Plus"}
-		, {0, "turbobt", "TurboBT"}
-		, {0, "a00---0", "Swarmy"}
-		, {0, "a02---0", "Swarmy"}
-		, {0, "T00---0", "Teeweety"}
-		, {0, "BTDWV-", "Deadman Walking"}
-		, {2, "BS", "BitSpirit"}
-		, {0, "-SP", "BitSpirit 3.6"}
-		, {0, "Pando-", "Pando"}
-		, {0, "LIME", "LimeWire"}
-		, {0, "btuga", "BTugaXP"}
-		, {0, "oernu", "BTugaXP"}
-		, {0, "Mbrst", "Burst!"}
-		, {0, "PEERAPP", "PeerApp"}
-		, {0, "Plus", "Plus!"}
-		, {0, "-Qt-", "Qt"}
-		, {0, "exbc", "BitComet"}
-		, {0, "DNA", "BitTorrent DNA"}
-		, {0, "-G3", "G3 Torrent"}
-		, {0, "-FG", "FlashGet"}
-		, {0, "-ML", "MLdonkey"}
-		, {0, "-MG", "Media Get"}
-		, {0, "XBT", "XBT"}
-		, {0, "OP", "Opera"}
-		, {2, "RS", "Rufus"}
-		, {0, "AZ2500BT", "BitTyrant"}
-		, {0, "btpd/", "BitTorrent Protocol Daemon"}
-		, {0, "TIX", "Tixati"}
-		, {0, "QVOD", "Qvod"}
-	};
+	std::array<generic_map_entry, 37> const generic_mappings = {{{0, "Deadman Walking-", "Deadman"},
+		{5, "Azureus", "Azureus 2.0.3.2"},
+		{0, "DansClient", "XanTorrent"},
+		{4, "btfans", "SimpleBT"},
+		{0, "PRC.P---", "Bittorrent Plus! II"},
+		{0, "P87.P---", "Bittorrent Plus!"},
+		{0, "S587Plus", "Bittorrent Plus!"},
+		{0, "martini", "Martini Man"},
+		{0, "Plus---", "Bittorrent Plus"},
+		{0, "turbobt", "TurboBT"},
+		{0, "a00---0", "Swarmy"},
+		{0, "a02---0", "Swarmy"},
+		{0, "T00---0", "Teeweety"},
+		{0, "BTDWV-", "Deadman Walking"},
+		{2, "BS", "BitSpirit"},
+		{0, "-SP", "BitSpirit 3.6"},
+		{0, "Pando-", "Pando"},
+		{0, "LIME", "LimeWire"},
+		{0, "btuga", "BTugaXP"},
+		{0, "oernu", "BTugaXP"},
+		{0, "Mbrst", "Burst!"},
+		{0, "PEERAPP", "PeerApp"},
+		{0, "Plus", "Plus!"},
+		{0, "-Qt-", "Qt"},
+		{0, "exbc", "BitComet"},
+		{0, "DNA", "BitTorrent DNA"},
+		{0, "-G3", "G3 Torrent"},
+		{0, "-FG", "FlashGet"},
+		{0, "-ML", "MLdonkey"},
+		{0, "-MG", "Media Get"},
+		{0, "XBT", "XBT"},
+		{0, "OP", "Opera"},
+		{2, "RS", "Rufus"},
+		{0, "AZ2500BT", "BitTyrant"},
+		{0, "btpd/", "BitTorrent Protocol Daemon"},
+		{0, "TIX", "Tixati"},
+		{0, "QVOD", "Qvod"}}};
 
 	bool compare_id(map_entry const& lhs, map_entry const& rhs)
 	{
@@ -303,25 +303,22 @@ namespace {
 
 	std::string lookup(fingerprint const& f)
 	{
-		char identity[200];
+		std::array<char, 200> identity;
 
-		const int size = sizeof(name_map)/sizeof(name_map[0]);
-		const map_entry tmp = {f.name, ""};
-		const map_entry* i =
-			std::lower_bound(name_map, name_map + size
-				, tmp, &compare_id);
+		map_entry const tmp = {f.name, ""};
+		auto const i = std::lower_bound(name_map.begin(), name_map.end(), tmp, &compare_id);
 
 #ifndef NDEBUG
-		for (int j = 1; j < size; ++j)
+		for (std::size_t j = 1; j < name_map.size(); ++j)
 		{
 			TORRENT_ASSERT(compare_id(name_map[j-1]
 				, name_map[j]));
 		}
 #endif
 
-		char temp[3];
+		std::array<char, 3> temp;
 		char const* name = nullptr;
-		if (i < name_map + size && std::equal(f.name, f.name + 2, i->id))
+		if (i != name_map.end() && std::equal(f.name, f.name + 2, i->id))
 		{
 			name = i->name;
 		}
@@ -329,25 +326,32 @@ namespace {
 		{
 			// if we don't have this client in the list
 			// just use the one or two letter code
-			std::memcpy(temp, f.name, 2);
+			std::memcpy(temp.data(), f.name, 2);
 			temp[2] = 0;
-			name = temp;
+			name = temp.data();
 		}
 
-		int num_chars = std::snprintf(identity, sizeof(identity), "%s %d.%d.%d", name
-			, f.major_version, f.minor_version, f.revision_version);
+		int num_chars = std::snprintf(identity.data(),
+			identity.size(),
+			"%s %d.%d.%d",
+			name,
+			f.major_version,
+			f.minor_version,
+			f.revision_version);
 
-		if (f.tag_version != 0 && num_chars > 0 && num_chars < int(sizeof(identity)))
+		if (f.tag_version != 0 && num_chars > 0 && num_chars < int(identity.size()))
 		{
-			std::snprintf(identity + num_chars, sizeof(identity) - aux::numeric_cast<std::size_t>(num_chars)
-				, ".%d", f.tag_version);
+			std::snprintf(identity.data() + num_chars,
+				identity.size() - aux::numeric_cast<std::size_t>(num_chars),
+				".%d",
+				f.tag_version);
 		}
 		else if (num_chars < 0)
 		{
 			identity[0] = '\0';
 		}
 
-		return identity;
+		return identity.data();
 	}
 
 	bool find_string(char const* id, char const* search)
