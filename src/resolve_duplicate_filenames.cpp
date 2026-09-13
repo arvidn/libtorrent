@@ -97,14 +97,30 @@ namespace {
 			// increase the counter
 			std::uint32_t const hash = fs.file_path_hash(i, "");
 			auto range = files.equal_range(hash);
+			if (range.first == range.second)
+			{
+				files.insert({hash, {i, 0}});
+				continue;
+			}
+			std::string const this_name = fs.file_path(i);
 			auto const match = std::find_if(
 				range.first, range.second, [&](std::pair<std::uint32_t, name_entry> const& o) {
-					std::string const other_name = o.second.idx < file_index_t{}
-						? combine_path(fs.name(),
-							  string_view(paths[std::size_t(-static_cast<int>(o.second.idx) - 1)])
-								  .substr(0, std::size_t(o.second.length)))
-						: fs.file_path(o.second.idx);
-					return aux::string_equal_no_case(other_name, fs.file_path(i));
+					// fs.file_path(idx) only gives a file's original name.
+					// a file already renamed must be matched against the
+					// name recorded in ret, or a later file with that
+					// literal name would go undetected and collide with it.
+					// directories are never renamed, so the idx < 0 branch
+					// needs no such check.
+					if (o.second.idx < file_index_t{})
+						return aux::string_equal_no_case(
+							combine_path(fs.name(),
+								string_view(paths[std::size_t(-static_cast<int>(o.second.idx) - 1)])
+									.substr(0, std::size_t(o.second.length))),
+							this_name);
+					auto const renamed = ret.find(o.second.idx);
+					return renamed != ret.end()
+						? aux::string_equal_no_case(renamed->second, this_name)
+						: aux::string_equal_no_case(fs.file_path(o.second.idx), this_name);
 				});
 
 			if (match == range.second)
@@ -122,7 +138,7 @@ namespace {
 				&& fs.file_size(i) == fs.file_size(other_idx))
 				continue;
 
-			std::string filename = fs.file_path(i);
+			std::string filename = this_name;
 			std::string base = remove_extension(filename);
 			std::string ext = extension(filename);
 			int cnt = 0;

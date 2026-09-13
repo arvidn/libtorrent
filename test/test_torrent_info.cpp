@@ -1724,6 +1724,15 @@ namespace {
 			{"test/filler-1", 0x4000, {}, "test/filler-1"},
 			{"test/.pad/1234/filler-2", 0x4000, {}, "test/.pad/1234/filler-2"},
 		},
+		{
+			// duplicate of temporary.txt, renamed to Temporary.1.txt
+			{"test/temporary.txt", 0x4000, {}, "test/temporary.txt"},
+			{"test/Temporary.txt", 0x4000, {}, "test/Temporary.1.txt"},
+			// this file's literal name collides with the renamed name above,
+			// so it must be detected and renamed too, rather than colliding
+			// with it on disk
+			{"test/TEMPORARY.1.TXT", 0x4000, {}, "test/TEMPORARY.1.1.TXT"},
+		},
 	};
 
 	void test_resolve_duplicates(aux::vector<file_t, file_index_t> const& test)
