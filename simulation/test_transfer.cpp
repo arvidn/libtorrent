@@ -283,22 +283,29 @@ TORRENT_TEST(disable_v1_hashes_bad_v1_disabled)
 
 TORRENT_TEST(is_finished)
 {
-	run_test(no_init
-		, [](lt::session& ses, lt::alert const* a) {
-			if (alert_cast<piece_finished_alert>(a))
-			{
-				TEST_EQUAL(is_finished(ses), false);
-				std::vector<download_priority_t> prio(4, dont_download);
-				ses.get_torrents()[0].prioritize_files(prio);
-				// applying the priorities is asynchronous. the torrent may not
-				// finish immediately
-			}
+	bool prioritized = false;
+	run_test(
+		no_init,
+		[&prioritized](lt::session& ses, lt::alert const* a) {
+			if (!alert_cast<piece_finished_alert>(a))
+				return;
+
+			// further pieces may already be in flight and complete before
+			// file priorities take effect below, so only assert on the first one
+			if (prioritized)
+				return;
+			prioritized = true;
+
+			TEST_EQUAL(is_finished(ses), false);
+			std::vector<download_priority_t> prio(4, dont_download);
+			ses.get_torrents()[0].prioritize_files(prio);
+			// applying the priorities is asynchronous. the torrent may not
+			// finish immediately
 		},
 		[](std::shared_ptr<lt::session> ses[2]) {
-				TEST_EQUAL(is_finished(*ses[0]), true);
-				TEST_EQUAL(is_finished(*ses[1]), true);
-		}
-	);
+			TEST_EQUAL(is_finished(*ses[0]), true);
+			TEST_EQUAL(is_finished(*ses[1]), true);
+		});
 }
 
 TORRENT_TEST(v1_only_magnet)
