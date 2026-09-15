@@ -53,6 +53,70 @@ for i in urls:
     open(os.path.join('corpus', 'parse_url', '%d' % counter), 'w+').write(i)
     counter += 1
 
+
+# minimal bencode helpers, just enough to build resume-data dicts by hand
+def bencode_str(s):
+    if isinstance(s, str):
+        s = s.encode('utf-8')
+    return b'%d:' % len(s) + s
+
+
+def bencode_int(i):
+    return b'i%de' % i
+
+
+def bencode_list(items):
+    return b'l' + b''.join(items) + b'e'
+
+
+def bencode_dict(pairs):
+    return b'd' + b''.join(bencode_str(k) + v for k, v in pairs) + b'e'
+
+
+# seeds a blind bencode mutator is unlikely to ever stumble onto: valid
+# "mapped_files"/"mapped_path_elements" structures, plus the malformed
+# shapes (empty rename string, wrong value type, non-decimal key) that
+# read_resume_data() must silently drop rather than hand back. "file-format"
+# and "info-hash" are required on every one: read_resume_data() bails out
+# before ever reaching mapped_files/mapped_path_elements without them.
+def resume_dict(extra_pairs):
+    return bencode_dict([
+        ('file-format', bencode_str('libtorrent resume file')),
+        ('info-hash', bencode_str(b'a' * 20)),
+    ] + extra_pairs)
+
+
+resume_data_seeds = {
+    'valid_minimal': resume_dict([]),
+    'valid_with_renames': resume_dict([
+        ('mapped_files', bencode_list([bencode_str('a.txt'), bencode_str('dir/b.txt')])),
+        ('mapped_path_elements', bencode_dict([('0', bencode_str('renamed-dir'))])),
+    ]),
+    'mapped_files_empty_string': resume_dict([
+        ('mapped_files', bencode_list(
+            [bencode_str('a.txt'), bencode_str(''), bencode_str('c.txt')])),
+    ]),
+    'mapped_files_wrong_type': resume_dict([
+        ('mapped_files', bencode_list([bencode_str('a.txt'), bencode_int(1)])),
+    ]),
+    'mapped_path_elements_empty_string': resume_dict([
+        ('mapped_path_elements', bencode_dict([('0', bencode_str(''))])),
+    ]),
+    'mapped_path_elements_wrong_type': resume_dict([
+        ('mapped_path_elements', bencode_dict([('0', bencode_int(1))])),
+    ]),
+    'mapped_path_elements_non_decimal_key': resume_dict([
+        ('mapped_path_elements', bencode_dict([('abc', bencode_str('renamed'))])),
+    ]),
+    'mapped_path_elements_negative_key': resume_dict([
+        ('mapped_path_elements', bencode_dict([('-1', bencode_str('renamed'))])),
+    ]),
+}
+
+for name, data in resume_data_seeds.items():
+    with open(os.path.join('corpus', 'resume_data', name), 'wb+') as f:
+        f.write(data)
+
 counter = 0
 tracker_fields = ['interval', 'min interval', 'tracker id', 'failure reason',
     'warning message', 'complete', 'incomplete', 'downloaded', 'downloaders', 'external ip']

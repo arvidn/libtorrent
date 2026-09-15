@@ -75,14 +75,36 @@ namespace {
 
 struct test_torrent_t
 {
-	test_torrent_t(char const* f, std::function<void(lt::add_torrent_params)> atp = {}) // NOLINT
-		: file(f), test(std::move(atp)) {}
+	test_torrent_t(char const* f,
+		std::function<void(lt::add_torrent_params)> atp = {}, // NOLINT
+		load_torrent_limits c = {})
+		: file(f)
+		, test(std::move(atp))
+		, cfg(c)
+	{}
 
 	char const* file;
 	std::function<void(lt::add_torrent_params atp)> test;
+	// most entries rely on the default-constructed value (matching
+	// load_torrent_file(filename)'s own default); a few duplicate-name
+	// collision cases pin this to pre-deduplicate_per_directory behavior,
+	// since they lock in resolve_duplicate_filenames()'s specific
+	// tie-break rules rather than the current default
+	load_torrent_limits cfg;
 };
 
 using namespace lt;
+
+// pins the resolve_duplicate_filenames() whole-tree pass (renamed_files
+// populated, directories exempt from collision-renaming), for tests that
+// lock in that specific algorithm's tie-break rules rather than
+// default_flags' current behavior
+load_torrent_limits whole_tree_dedup_cfg()
+{
+	load_torrent_limits c;
+	c.sanitize_flags = path_sanitize_flags::libtorrent_2_1;
+	return c;
+}
 
 #if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 #define SEPARATOR "\\"
@@ -131,7 +153,8 @@ static test_torrent_t const test_torrents[] = {
 			TEST_EQUAL(atp.ti->num_files(), 2);
 			TEST_CHECK(atp.ti->layout().file_path(file_index_t{0}) == combine_path(combine_path("temp", "foo"), "bar.txt"));
 			TEST_EQUAL(atp.renamed_files.find(file_index_t{1})->second, combine_path(combine_path("temp", "foo"), "bar.1.txt"));
-		}},
+		},
+		whole_tree_dedup_cfg()},
 	{"pad_file.torrent",
 		[](lt::add_torrent_params atp) {
 			TEST_EQUAL(atp.ti->num_files(), 2);
@@ -290,7 +313,8 @@ static test_torrent_t const test_torrents[] = {
 			TEST_EQUAL(atp.ti->layout().file_path(file_index_t{0}), "test2" SEPARATOR "_" SEPARATOR "foo");
 			TEST_EQUAL(atp.ti->layout().file_path(file_index_t{1}), "test2" SEPARATOR "_" SEPARATOR "foo");
 			TEST_EQUAL(atp.renamed_files[file_index_t{1}], "test2" SEPARATOR "_" SEPARATOR "foo.1");
-		}},
+		},
+		whole_tree_dedup_cfg()},
 	{"v2.torrent",
 		[](lt::add_torrent_params atp) {
 			TEST_EQUAL(atp.ti->num_files(), 1);
@@ -353,7 +377,8 @@ static test_torrent_t const test_torrents[] = {
 			TEST_EQUAL(atp.ti->layout().file_path(file_index_t{1}), "test" SEPARATOR "_"_sv);
 			TEST_EQUAL(atp.ti->layout().file_path(file_index_t{2}), "test" SEPARATOR "stress_test2"_sv);
 			TEST_EQUAL(atp.renamed_files[file_index_t{1}], "test" SEPARATOR "_.1"_sv);
-		}},
+		},
+		whole_tree_dedup_cfg()},
 	{"v2_symlinks.torrent",
 		[](lt::add_torrent_params atp) {
 			TEST_CHECK(atp.ti->num_files() > 3);
@@ -432,8 +457,16 @@ static test_torrent_t const test_torrents[] = {
 
 struct test_failing_torrent_t
 {
+	test_failing_torrent_t(char const* f, error_code e, load_torrent_limits c = {}) // NOLINT
+		: file(f)
+		, error(e)
+		, cfg(c)
+	{}
+
 	char const* file;
 	error_code error; // the expected error
+	// see test_torrent_t::cfg
+	load_torrent_limits cfg;
 };
 
 test_failing_torrent_t test_error_torrents[] = {
@@ -479,7 +512,13 @@ test_failing_torrent_t test_error_torrents[] = {
 	{"v2_zero_root.torrent", errors::torrent_missing_pieces_root},
 	{"v2_zero_root_small.torrent", errors::torrent_missing_pieces_root},
 	{"v2_empty_filename.torrent", errors::torrent_file_parse_failed},
-	{"duplicate_files2.torrent", errors::too_many_duplicate_filenames},
+	// pins the whole-tree resolve_duplicate_filenames_slow() pass: its
+	// restart-from-1 probing across 118 duplicates of the same name
+	// exhausts the default max_duplicate_filenames, unlike
+	// deduplicate_per_directory's counter-resuming algorithm (part of
+	// default_flags), which resolves the same input without ever
+	// approaching that limit
+	{"duplicate_files2.torrent", errors::too_many_duplicate_filenames, whole_tree_dedup_cfg()},
 };
 
 } // anonymous namespace
@@ -1500,7 +1539,7 @@ TORRENT_TEST(parse_torrents)
 		sanity_check(old_ti);
 #endif
 
-		lt::add_torrent_params atp = lt::load_torrent_file(filename);
+		lt::add_torrent_params atp = lt::load_torrent_file(filename, t.cfg);
 #if TORRENT_ABI_VERSION < 4
 		TEST_CHECK(atp.info_hashes == old_ti->info_hashes());
 #endif
@@ -1566,7 +1605,7 @@ TORRENT_TEST(parse_invalid_torrents)
 
 		try
 		{
-			auto add_torrent_params = load_torrent_file(filename);
+			auto add_torrent_params = load_torrent_file(filename, e.cfg);
 		}
 		catch (lt::system_error const& err)
 		{
@@ -1584,7 +1623,7 @@ TORRENT_TEST(parse_invalid_torrents)
 
 		try
 		{
-			add_torrent_params atp = load_torrent_file(filename);
+			add_torrent_params atp = load_torrent_file(filename, e.cfg);
 			TORRENT_ASSERT(!e.error);
 		}
 		catch (system_error const& err)
@@ -1606,7 +1645,7 @@ TORRENT_TEST(parse_invalid_torrents_no_throw)
 		std::string const filename = combine_path(combine_path(root_dir, "test_torrents")
 			, e.file);
 
-		auto const atp = load_torrent_file(filename, ec, load_torrent_limits{});
+		auto const atp = load_torrent_file(filename, ec, e.cfg);
 		// minimal validation that the return value is empty
 		TEST_EQUAL(atp.name, "");
 		TORRENT_ASSERT(!atp.ti);
@@ -2019,6 +2058,57 @@ namespace {
 			// with it on disk
 			{"test/TEMPORARY.1.TXT", 0x4000, {}, "test/TEMPORARY.1.1.TXT"},
 		},
+		// the 2nd file's rename ("A.1") is only reachable, when the 4th
+		// file's own name collides with it, by looking up its accepted
+		// name in the renamed-files map: the 4th file's own hash bucket
+		// holds no entry under its literal, pre-rename name "A", since
+		// the 1st "A" occupies that slot and the 2nd "A" was renamed away
+		// from it. So the bucket the 4th file's collision check actually
+		// scans is keyed by the *candidate* string "A.1" itself, which
+		// only the renamed-files lookup, not file_storage, can resolve
+		// back to the 2nd file.
+		{
+			{"test/A", 0x4000, {}, "test/A"},
+			{"test/A", 0x4000, {}, "test/A.1"},
+			{"test/A.1", 0x4000, {}, "test/A.1.1"},
+			{"test/A", 0x4000, {}, "test/A.2"},
+		},
+		// same collision, 2nd and 3rd files swapped: the pre-existing
+		// literal "A.1" is consumed before either duplicate "A" is
+		// renamed, so both duplicates skip past it in turn
+		{
+			{"test/A", 0x4000, {}, "test/A"},
+			{"test/A.1", 0x4000, {}, "test/A.1"},
+			{"test/A", 0x4000, {}, "test/A.2"},
+			{"test/A", 0x4000, {}, "test/A.3"},
+		},
+		// same set, literal "A.1" moved first: doesn't change the outcome,
+		// since it's still consumed before any "A" needs renaming
+		{
+			{"test/A.1", 0x4000, {}, "test/A.1"},
+			{"test/A", 0x4000, {}, "test/A"},
+			{"test/A", 0x4000, {}, "test/A.2"},
+			{"test/A", 0x4000, {}, "test/A.3"},
+		},
+		// literal "A.1" last: the first two duplicate "A"s claim "A.1" and
+		// "A.2" before the literal "A.1" is ever seen, so it collides with
+		// the 2nd file's rename and needs disambiguating in turn
+		{
+			{"test/A", 0x4000, {}, "test/A"},
+			{"test/A", 0x4000, {}, "test/A.1"},
+			{"test/A", 0x4000, {}, "test/A.2"},
+			{"test/A.1", 0x4000, {}, "test/A.1.1"},
+		},
+		// one level deeper: a literal "A.2" is also present, so the 4th
+		// file's rename ("A.1", colliding with the 2nd file's "A.1") must
+		// itself be disambiguated against the 5th file's literal "A.2"
+		{
+			{"test/A", 0x4000, {}, "test/A"},
+			{"test/A", 0x4000, {}, "test/A.1"},
+			{"test/A", 0x4000, {}, "test/A.2"},
+			{"test/A.1", 0x4000, {}, "test/A.1.1"},
+			{"test/A.2", 0x4000, {}, "test/A.1.2"},
+		},
 	};
 
 	std::string resolved_path(lt::add_torrent_params const& atp, lt::file_index_t const i)
@@ -2047,7 +2137,12 @@ namespace {
 			t.set_hash(i, sha1_hash::max());
 
 		std::vector<char> const tmp = t.generate_buf();
-		auto const atp = load_torrent_buffer(tmp);
+		// this test locks in resolve_duplicate_filenames()'s own tie-break
+		// rules (directory precedence over files, case-fold exemption for
+		// directories, pad-file coincidence handling), so it pins that
+		// whole-tree pass explicitly rather than default_flags' current
+		// deduplicate_per_directory behavior
+		auto const atp = load_torrent_buffer(tmp, whole_tree_dedup_cfg());
 		for (auto const i : t.file_range())
 		{
 			std::string const p = resolved_path(atp, i);
@@ -2108,7 +2203,12 @@ TORRENT_TEST(load_torrent_duplicate_filenames_configurable)
 	{
 		auto const buf = make_v1_torrent_with_n_duplicates(t.n);
 		error_code ec;
-		load_torrent_limits cfg;
+		// this exercises resolve_duplicate_filenames_slow()'s own counter
+		// behavior specifically (restarting the ".N" probe from 1 on every
+		// call), not deduplicate_per_directory's counter-resuming
+		// algorithm (part of default_flags), which would resolve the same
+		// input without ever exhausting this limit
+		load_torrent_limits cfg = whole_tree_dedup_cfg();
 		cfg.max_duplicate_filenames = t.max_duplicate_filenames;
 		auto const atp = load_torrent_buffer(buf, ec, cfg);
 		TEST_EQUAL(ec, t.expected);
@@ -2168,9 +2268,12 @@ namespace {
 // make_v1_torrent_raw(), bypassing create_torrent's own path handling),
 // loads it through load_torrent_buffer() end-to-end (not just
 // sanitize_path_element() in isolation), and checks the resulting
-// file paths and rename count. This locks in a baseline for the current
-// path-sanitization and duplicate-filename-resolution rules, so a future
-// change to either ruleset has something concrete to diff against.
+// file paths and rename count. This locks in a baseline for the
+// path-sanitization and duplicate-filename-resolution rules of the
+// whole-tree resolve_duplicate_filenames() pass specifically (hence
+// pinning deduplicate_per_directory off below, even though it's part of
+// default_flags), so a future change to either ruleset has something
+// concrete to diff against.
 struct raw_path_sanitize_case
 {
 	std::vector<std::vector<std::string>> paths;
@@ -2246,7 +2349,7 @@ void test_raw_path_sanitize_case(raw_path_sanitize_case const& t)
 	auto const buf = make_v1_torrent_raw(t.paths);
 
 	error_code ec;
-	auto const atp = load_torrent_buffer(buf, ec, load_torrent_limits{});
+	auto const atp = load_torrent_buffer(buf, ec, whole_tree_dedup_cfg());
 	TEST_CHECK(!ec);
 	TEST_CHECK(atp.ti);
 	if (!atp.ti)
@@ -2271,6 +2374,350 @@ TORRENT_TEST(load_torrent_sanitize_regression)
 	for (auto const& t : raw_path_sanitize_cases)
 		test_raw_path_sanitize_case(t);
 }
+
+namespace {
+
+// same shape as raw_path_sanitize_case, but exercised with
+// path_sanitize_flags::deduplicate_per_directory set, resolved via
+// aux::resolve_directory_duplicates() (the function torrent::init()
+// calls) directly against the parsed, undeduped layout, rather than
+// resolve_duplicate_filenames()'s whole-tree pass. Never mutates
+// file_storage, so the raw names still show up in atp.ti->layout();
+// only the renamed_files this produces reflects the deduped ones.
+struct dedup_per_directory_case
+{
+	std::vector<std::vector<std::string>> paths;
+	std::vector<std::string> expected;
+	// non-empty only for cases where the same raw "paths" collide the
+	// same way under the whole-tree resolve_duplicate_filenames() pass
+	// (via whole_tree_dedup_cfg()): a plain run of duplicate filenames,
+	// with no directory-renaming or dash/dot-suffixed literal names
+	// involved, so the only difference between the two passes' output
+	// is "-N" vs the whole-tree pass's own ".N". Left empty for cases
+	// that exercise deduplicate_per_directory-only behavior (directory
+	// renaming, or a literal name already shaped like one pass's own
+	// suffix), where the two passes don't produce comparable output at
+	// all.
+	std::vector<std::string> whole_tree_expected;
+};
+
+std::vector<dedup_per_directory_case> const dedup_per_directory_cases = {
+	// a run of identical names resumes the "-N" counter from the last
+	// one picked, rather than rescanning from 1 each time. Nothing here
+	// is specific to deduplicate_per_directory (no directory renaming,
+	// no literal name already shaped like a suffix), so the whole-tree
+	// pass resolves the identical collision the same way, just with its
+	// own ".N" instead
+	{
+		{
+			{"dir", "dup.txt"},
+			{"dir", "dup.txt"},
+			{"dir", "dup.txt"},
+		},
+		{
+			"root/dir/dup.txt",
+			"root/dir/dup-1.txt",
+			"root/dir/dup-2.txt",
+		},
+		{
+			"root/dir/dup.txt",
+			"root/dir/dup.1.txt",
+			"root/dir/dup.2.txt",
+		},
+	},
+	// a real, pre-existing "dup-1.txt" is not clobbered: the second
+	// "dup.txt" duplicate's first attempt collides with it, so it
+	// advances to "dup-2.txt" instead
+	{
+		{
+			{"dir", "dup.txt"},
+			{"dir", "dup-1.txt"},
+			{"dir", "dup.txt"},
+		},
+		{
+			"root/dir/dup.txt",
+			"root/dir/dup-1.txt",
+			"root/dir/dup-2.txt",
+		},
+		{},
+	},
+	// unlike the default algorithm, directories are not exempt from
+	// collision-renaming here: two distinct raw names ('/' and '\\',
+	// both entirely filtered out) sanitize to the identical directory
+	// name "_", so the second one is renamed to "_-1" rather than
+	// merging into the first
+	{
+		{
+			{"/", "fileA"},
+			{"\\", "fileB"},
+		},
+		{
+			"root/_/fileA",
+			"root/_-1/fileB",
+		},
+		{},
+	},
+	// matching is case-insensitive here too, same as the default
+	// algorithm, so names differing only in case still collide; the
+	// second one is renamed, keeping its own original case. Again
+	// nothing here is specific to deduplicate_per_directory, so the
+	// whole-tree pass produces the same rename with its own ".N"
+	{
+		{
+			{"dir", "Foo.txt"},
+			{"dir", "foo.txt"},
+		},
+		{
+			"root/dir/Foo.txt",
+			"root/dir/foo-1.txt",
+		},
+		{
+			"root/dir/Foo.txt",
+			"root/dir/foo.1.txt",
+		},
+	},
+	// two directories differing only by case collide here too, unlike
+	// the whole-tree algorithm (see resolve_duplicates' "test/Dir/a" /
+	// "test/dir/b" case, pinned to whole_tree_dedup_cfg()), where they fold
+	// together unrenamed
+	{
+		{
+			{"Dir", "a"},
+			{"dir", "b"},
+		},
+		{
+			"root/Dir/a",
+			"root/dir-1/b",
+		},
+		{},
+	},
+	// same as above, but the two directory names differ in case at more
+	// than one position, and the files inside ("A", "B") don't collide
+	// with each other at all: it's the directory collision alone that
+	// triggers the rename, regardless of whether the files share a name
+	{
+		{
+			{"dupdir", "A"},
+			{"DupDir", "B"},
+		},
+		{
+			"root/dupdir/A",
+			"root/DupDir-1/B",
+		},
+		{},
+	},
+	// a file colliding with a directory is resolved the same way as any
+	// other collision here: whichever was created first (lowest
+	// path_index_t) keeps the name. The bare file "a" is parsed before
+	// "a/b" ever needs a directory named "a", so the file's own leaf
+	// gets the lower index and keeps "a"; the directory is renamed
+	// instead. This differs from the whole-tree algorithm's rule (see
+	// resolve_duplicates' "test/a" / "test/a/b" case, pinned to
+	// whole_tree_dedup_cfg()), which always renames the file regardless
+	// of parse order; deduplicate_per_directory doesn't need to match
+	// that, only be deterministic for identical input
+	{
+		{
+			{"a"},
+			{"a", "b"},
+		},
+		{
+			"root/a",
+			"root/a-1/b",
+		},
+		{},
+	},
+};
+
+void test_dedup_per_directory_case(dedup_per_directory_case const& t)
+{
+	auto const buf = make_v1_torrent_raw(t.paths);
+
+	error_code ec;
+	load_torrent_limits cfg;
+	cfg.sanitize_flags =
+		path_sanitize_flags::default_flags | path_sanitize_flags::deduplicate_per_directory;
+	auto const atp = load_torrent_buffer(buf, ec, cfg);
+	TEST_CHECK(!ec);
+	TEST_CHECK(atp.ti);
+	if (!atp.ti)
+		return;
+
+	// deduplicate_per_directory's own resolution runs eagerly, once, at
+	// load_torrent() time (see aux::resolve_directory_duplicates()),
+	// landing in atp.renamed_path_elements rather than mutating
+	// file_storage or populating the unrelated atp.renamed_files (that
+	// one's reserved for genuinely arbitrary renames).
+	TEST_CHECK(atp.renamed_files.empty());
+	TEST_EQUAL(atp.ti->layout().num_files(), int(t.expected.size()));
+
+	renamed_files renamed;
+	renamed.import_path_elements(atp.ti->layout(), atp.renamed_path_elements);
+	filenames const names(atp.ti->layout(), renamed);
+
+	for (lt::file_index_t const i : atp.ti->layout().file_range())
+	{
+		std::string p = names.file_path(i);
+		convert_path_to_posix(p);
+		std::string const& expected = t.expected[std::size_t(static_cast<int>(i))];
+		std::printf("%s == %s\n", p.c_str(), expected.c_str());
+		TEST_EQUAL(p, expected);
+	}
+
+	if (t.whole_tree_expected.empty())
+		return;
+
+	// confirm the whole-tree pass resolves the identical raw input the
+	// same way, but with its own ".N" suffix, unaffected by
+	// deduplicate_per_directory's "-N"
+	error_code whole_tree_ec;
+	auto const whole_tree_atp = load_torrent_buffer(buf, whole_tree_ec, whole_tree_dedup_cfg());
+	TEST_CHECK(!whole_tree_ec);
+	TEST_CHECK(whole_tree_atp.ti);
+	if (!whole_tree_atp.ti)
+		return;
+
+	TEST_EQUAL(whole_tree_atp.ti->layout().num_files(), int(t.whole_tree_expected.size()));
+	for (lt::file_index_t const i : whole_tree_atp.ti->layout().file_range())
+	{
+		std::string const p = resolved_path(whole_tree_atp, i);
+		std::string const& expected = t.whole_tree_expected[std::size_t(static_cast<int>(i))];
+		std::printf("whole-tree: %s == %s\n", p.c_str(), expected.c_str());
+		TEST_EQUAL(p, expected);
+	}
+}
+
+} // anonymous namespace
+
+TORRENT_TEST(load_torrent_dedup_per_directory)
+{
+	for (auto const& t : dedup_per_directory_cases)
+		test_dedup_per_directory_case(t);
+}
+
+// regression test for aux::resolve_directory_duplicates() resuming its
+// "-N" counter across every member of a colliding group, instead of
+// restarting it at 0 for each one. Directories "name-1", "name-2" and
+// "name-3" occupy the first three candidates; "name", "Name" and a bare
+// file also named "name" are one case-insensitively colliding group.
+// "name" (created first) keeps its name; "Name" burns through the three
+// taken candidates before landing on "name-4"; the file then resumes
+// from 4 and lands on "name-5" on its first try. Restarting from 0 for
+// the file would re-probe "name-1" through "name-4" (all already taken)
+// first, burning four collisions it didn't need to.
+// max_duplicate_filenames is tuned so the group's first three failed
+// probes (for "Name") stay within budget, but those four extra ones
+// would tip it over.
+TORRENT_TEST(dedup_per_directory_resumes_directory_counter)
+{
+	auto const buf = make_v1_torrent_raw({
+		{"dir", "name-1", "x"},
+		{"dir", "name-2", "y"},
+		{"dir", "name-3", "z"},
+		{"dir", "name", "first"},
+		{"dir", "Name", "second"},
+		{"dir", "name"},
+	});
+
+	error_code ec;
+	load_torrent_limits cfg;
+	cfg.sanitize_flags =
+		path_sanitize_flags::default_flags | path_sanitize_flags::deduplicate_per_directory;
+	cfg.max_duplicate_filenames = 3;
+	auto const atp = load_torrent_buffer(buf, ec, cfg);
+	TEST_CHECK(!ec);
+	TEST_CHECK(atp.ti);
+	if (!atp.ti)
+		return;
+
+	std::vector<std::string> const expected = {
+		"root/dir/name-1/x",
+		"root/dir/name-2/y",
+		"root/dir/name-3/z",
+		"root/dir/name/first",
+		// keeps "Name"'s own case, not "name"'s: a renamed candidate is
+		// built from the colliding member's own name, not the group's
+		"root/dir/Name-4/second",
+		"root/dir/name-5",
+	};
+	TEST_EQUAL(atp.ti->layout().num_files(), int(expected.size()));
+
+	renamed_files renamed;
+	renamed.import_path_elements(atp.ti->layout(), atp.renamed_path_elements);
+	filenames const names(atp.ti->layout(), renamed);
+
+	for (lt::file_index_t const i : atp.ti->layout().file_range())
+	{
+		std::string p = names.file_path(i);
+		convert_path_to_posix(p);
+		std::string const& e = expected[std::size_t(static_cast<int>(i))];
+		std::printf("%s == %s\n", p.c_str(), e.c_str());
+		TEST_EQUAL(p, e);
+	}
+}
+
+#if TORRENT_ABI_VERSION < 4
+namespace {
+
+// the brute-force approach find_renamed_files() exists to avoid; cross-
+// checked against it below instead of hand-maintaining expected (file,
+// new name) pairs per case.
+std::map<file_index_t, std::string> find_renamed_files_brute_force(
+	file_storage const& fs, std::map<path_index_t, std::string> const& renames)
+{
+	std::map<file_index_t, std::string> ret;
+	if (renames.empty())
+		return ret;
+	renamed_files rf;
+	rf.import_path_elements(fs, renames);
+	filenames const names(fs, rf);
+	for (file_index_t const i : fs.file_range())
+	{
+		std::string renamed_path = names.file_path(i);
+		if (renamed_path != fs.file_path(i))
+			ret.emplace(i, std::move(renamed_path));
+	}
+	return ret;
+}
+
+void test_find_renamed_files_case(dedup_per_directory_case const& t)
+{
+	auto const buf = make_v1_torrent_raw(t.paths);
+	error_code ec;
+	load_torrent_limits cfg;
+	cfg.sanitize_flags =
+		path_sanitize_flags::default_flags | path_sanitize_flags::deduplicate_per_directory;
+	auto const atp = load_torrent_buffer(buf, ec, cfg);
+	TEST_CHECK(!ec);
+	TEST_CHECK(atp.ti);
+	if (!atp.ti)
+		return;
+
+	file_storage const& fs = atp.ti->layout();
+	auto const renames = aux::resolve_directory_duplicates(fs, cfg, ec);
+	TEST_CHECK(!ec);
+
+	std::map<file_index_t, std::string> actual;
+	for (auto& [i, renamed] : aux::find_renamed_files(fs, renames))
+		actual.emplace(i, std::move(renamed));
+
+	TEST_CHECK(actual == find_renamed_files_brute_force(fs, renames));
+}
+
+} // anonymous namespace
+
+TORRENT_TEST(find_renamed_files)
+{
+	for (auto const& t : dedup_per_directory_cases)
+		test_find_renamed_files_case(t);
+
+	// an empty renames map means nothing to look for, regardless of fs
+	file_storage fs;
+	fs.set_piece_length(0x4000);
+	fs.add_file_borrow({}, combine_path("dir", "a"), 1);
+	TEST_CHECK(aux::find_renamed_files(fs, {}).empty());
+}
+#endif
 
 namespace {
 
@@ -2301,19 +2748,25 @@ namespace {
 	void test_set_metadata_resolve_duplicate_filenames(
 		lt::session& ses, test_torrent_t const& t, std::string const& filename)
 	{
-		lt::add_torrent_params const ref = lt::load_torrent_file(filename);
+		lt::add_torrent_params const ref = lt::load_torrent_file(filename, t.cfg);
 
 		auto const is = ref.ti->info_section();
 		std::vector<char> const info_section(is.begin(), is.end());
 
-		// simulate a genuine magnet link add: no metadata (and none of the
-		// knowledge, like the disambiguated file names, that only comes from
-		// having already parsed a full .torrent file), but keep the fields
-		// that come from outside the info dict (trackers, web seeds, DHT
-		// nodes, ...), the same way a real magnet URI might supply them
-		lt::add_torrent_params atp = ref;
-		atp.ti.reset();
-		atp.renamed_files.clear();
+		// built from scratch, not copied from ref and cleared, so a future
+		// add_torrent_params field can't leak through unnoticed (as
+		// renamed_path_elements once did here). Fields copied are exactly
+		// what a real magnet URI supplies (see parse_magnet_uri()), plus
+		// sanitize_flags so set_metadata() re-runs t.cfg's own ruleset
+		// instead of default_flags
+		lt::add_torrent_params atp;
+		atp.info_hashes = ref.info_hashes;
+		atp.trackers = ref.trackers;
+		atp.tracker_tiers = ref.tracker_tiers;
+		atp.dht_nodes = ref.dht_nodes;
+		atp.url_seeds = ref.url_seeds;
+		atp.flags = ref.flags;
+		atp.sanitize_flags = ref.sanitize_flags;
 		atp.save_path = ".";
 
 		lt::torrent_handle h = ses.add_torrent(atp);
@@ -2337,6 +2790,10 @@ namespace {
 			lt::add_torrent_params result = atp;
 			result.ti = rda->params.ti;
 			result.renamed_files = rda->params.renamed_files;
+			result.renamed_path_elements = rda->params.renamed_path_elements;
+			result.merkle_trees = rda->params.merkle_trees;
+			result.merkle_tree_mask = rda->params.merkle_tree_mask;
+			result.verified_leaf_hashes = rda->params.verified_leaf_hashes;
 			t.test(std::move(result));
 		}
 
@@ -2501,6 +2958,51 @@ TORRENT_TEST(torrent_info_with_hashes_roundtrip)
 	std::vector<char> out_buffer = serialize(*ti);
 
 	TEST_EQUAL(out_buffer, data);
+}
+
+// torrent_info(data, ec, from_span) always parses with
+// path_sanitize_flags::deprecated_default, which predates deduplicate_
+// per_directory, so collision resolution here always goes through the
+// pre-2.2 whole-tree pass (test_sanitizer.cpp's sanitize_limits_
+// combinations exercises deduplicate_per_directory through this same
+// deprecated ctor mechanism explicitly, with the flag set). torrent_
+// info::parse_torrent_file() folds every rename into file_storage in
+// place via rename_file(), one file at a time; this locks in that a
+// torrent whose directories actually collide (sanitize_limits.torrent,
+// see test_sanitizer.cpp) loads through that path without producing
+// two files with the same resolved path
+TORRENT_TEST(torrent_info_deprecated_ctor_directory_collision)
+{
+	std::string const root_dir = parent_path(current_path());
+	std::string const filename =
+		combine_path(combine_path(root_dir, "test_torrents"), "sanitize_limits.torrent");
+
+	error_code ec;
+	std::vector<char> data;
+	TEST_CHECK(load_file(filename, data, ec) == 0);
+
+	torrent_info const ti(data, ec, from_span);
+	TEST_CHECK(!ec);
+	if (ec)
+		std::printf(" loading(\"%s\") -> failed %s\n", filename.c_str(), ec.message().c_str());
+
+	std::map<std::string, file_index_t> seen;
+	for (auto const i : ti.files().file_range())
+	{
+		std::string path = ti.files().file_path(i);
+		convert_path_to_posix(path);
+		for (char& c : path)
+			c = char(std::tolower(static_cast<unsigned char>(c)));
+		auto const it = seen.find(path);
+		TEST_CHECK(it == seen.end());
+		if (it != seen.end())
+			std::printf("duplicate resolved path: \"%s\" for file %d and %d\n",
+				path.c_str(),
+				int(it->second),
+				int(i));
+		else
+			seen.emplace(std::move(path), i);
+	}
 }
 #endif
 

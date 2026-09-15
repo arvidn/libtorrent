@@ -327,6 +327,7 @@ class AddTorrentParamsdict(TypedDict, total=False):
     peers: NotRequired[list[tuple[str, int]]]
     piece_priorities: NotRequired[list[int]]
     renamed_files: NotRequired[dict[int, str]]
+    renamed_path_elements: NotRequired[dict[int, str]]
     resume_data: NotRequired[list[str]]
     save_path: NotRequired[str]
     seeding_time: NotRequired[int]
@@ -675,6 +676,7 @@ class add_torrent_params(metaclass=_BoostBaseClass):
     peers: list[tuple[str, int]]
     piece_priorities: list[int]
     renamed_files: dict[int, str]
+    renamed_path_elements: dict[int, str]
     resume_data: list[str]
     root_certificate: str
     sanitize_flags: int
@@ -2221,6 +2223,7 @@ class path_sanitize_flags(metaclass=_BoostBaseClass):
     __instance_size__: int
     all: int
     default_flags: int
+    deduplicate_per_directory: int
     filter_dos_reserved_names: int
     filter_unicode_formatting_chars: int
     libtorrent_2_0: int
@@ -4170,14 +4173,16 @@ class AnnounceEntrydict(TypedDict):
 
 class renamed_files(metaclass=_BoostBaseClass):
     __instance_size__: int
-    def file_path(self, fs: file_storage, index: int, save_path: str = "") -> str:
+    def file_path(
+        self, torrent_name: str, index: int, save_path: str = ""
+    ) -> str | None:
         """
-        file_path( (renamed_files)arg1, (file_storage)fs, (object)index [, (str)save_path='']) -> str :
+        file_path( (renamed_files)arg1, (str)torrent_name, (object)index [, (str)save_path='']) -> object :
         """
 
-    def file_name(self, fs: file_storage, index: int) -> str:
+    def file_name(self, index: int) -> str | None:
         """
-        file_name( (renamed_files)arg1, (file_storage)fs, (object)index) -> str :
+        file_name( (renamed_files)arg1, (object)index) -> object :
         """
 
     def file_absolute_path(self, fs: file_storage, index: int) -> bool:
@@ -4198,6 +4203,21 @@ class renamed_files(metaclass=_BoostBaseClass):
     def export_filenames(self, fs: file_storage) -> dict[int, str]:
         """
         export_filenames( (renamed_files)arg1, (file_storage)arg2) -> dict :
+        """
+
+    def rename_entry(self, idx: int, new_name: str) -> None:
+        """
+        rename_entry( (renamed_files)arg1, (object)idx, (object)new_name) -> None :
+        """
+
+    def import_path_elements(self, fs: file_storage, renames: dict[int, str]) -> None:
+        """
+        import_path_elements( (renamed_files)arg1, (file_storage)fs, (object)renames) -> None :
+        """
+
+    def export_path_elements(self, fs: file_storage) -> dict[int, str]:
+        """
+        export_path_elements( (renamed_files)arg1, (file_storage)fs) -> object :
         """
 
 class filenames(metaclass=_BoostBaseClass):

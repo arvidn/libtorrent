@@ -27,6 +27,7 @@ see LICENSE file.
 #include "libtorrent/peer_request.hpp"
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/string_view.hpp"
+#include "libtorrent/span.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/index_range.hpp"
 #include "libtorrent/flags.hpp"
@@ -541,34 +542,32 @@ public:
 		// time when a file was last modified when the torrent
 		// was created, or 0 if it was not included in the torrent file.
 		//
-		// ``file_path()`` returns the full path to a file.
-		//
 		// ``file_size()`` returns the size of a file.
 		//
 		// ``pad_file_at()`` returns true if the file at the given
-		// index is a pad-file.
+		// index is a pad file.
 		//
-		// ``file_name()`` returns *just* the name of the file, whereas
-		// ``file_path()`` returns the path (inside the torrent file) with
-		// the filename appended. Pad files have no stored name;
-		// ``file_name()`` returns an empty string for them (calling it on
-		// a pad file is a precondition failure as of
-		// TORRENT_ABI_VERSION 5). Use ``file_path()``, which synthesizes a
-		// name from the pad file's size, if a display name is needed for
-		// one.
+		// ``file_path()`` returns the full path to a file, relative the
+		// torrent root.
 		//
 		// ``symlink()`` returns the path the file at ``index`` is a symlink
 		// to. If the file is not a symlink, the returned string is empty.
+		//
+		// ``file_name()`` returns *just* the name of the file. Pad files do not
+		// have names and it's not allowed to be called for pad files.
+		// They take an optional path_names, vector, that can be used to override the file- and directory names of the torrent.
 		//
 		// ``file_offset()`` returns the byte offset within the torrent file
 		// where this file starts. It can be used to map the file to a piece
 		// index (given the piece size).
 		sha256_hash root(file_index_t index) const;
 		char const* root_ptr(file_index_t index) const;
-		std::string symlink(file_index_t index) const;
+		std::string symlink(file_index_t index, span<string_view const> path_names = {}) const;
 		std::time_t mtime(file_index_t index) const;
-		std::string file_path(file_index_t index, std::string const& save_path = "") const;
-		string_view file_name(file_index_t index) const;
+		std::string file_path(file_index_t index,
+			std::string const& save_path = "",
+			span<string_view const> path_names = {}) const;
+		string_view file_name(file_index_t index, span<string_view const> path_names = {}) const;
 		std::int64_t file_size(file_index_t index) const;
 		bool pad_file_at(file_index_t index) const;
 		std::int64_t file_offset(file_index_t index) const;
@@ -625,14 +624,20 @@ public:
 		// internal
 		// returns which path elements are used as a directory (are some
 		// other element's parent), indexed the same way as
-		// compute_element_hashes()'s result.
+		// compute_element_hashes()'s result. A separate call, rather
+		// than bundled with it, since it's only needed once a real
+		// collision is already confirmed, not for the initial collision
+		// check itself.
 		aux::vector<bool, path_index_t> compute_is_dir() const;
 
 		// internal
 		// returns the crc32 hash of file_path(idx, ""), using hashes
 		// already computed by compute_element_hashes() for this
 		// file_storage, instead of re-walking idx's whole path chain
-		// from the root. idx must not be a pad file.
+		// from the root. idx must not be a pad file: a pad-file naming
+		// collision is never a real conflict (see
+		// resolve_duplicate_filenames()), so callers skip them rather than
+		// hash them.
 		std::uint32_t file_hash(
 			aux::vector<std::uint32_t, path_index_t> const& eh, file_index_t idx) const;
 
@@ -653,8 +658,30 @@ public:
 		// internal
 		// reconstructs the full path (rooted at file_storage::name()) of the
 		// directory identified by ``index``, as produced by
-		// compute_is_dir().
+		// compute_element_hashes().
 		std::string internal_directory_path(path_index_t index) const;
+
+		// internal
+		// returns the parent of path_element ``idx``, one of
+		// aux::path_element's sentinel values if it has no real parent.
+		path_index_t parent_of(path_index_t idx) const;
+
+		// internal
+		// returns the path_index_t of the file (or symlink) at ``index``'s
+		// own leaf path_element. Meaningless for a pad file, which has no
+		// leaf of its own (see aux::file_entry::path_element_index).
+		path_index_t file_path_element(file_index_t index) const;
+
+		// internal
+		// one past the highest path_index_t this file_storage has assigned,
+		// for validating a path_index_t read back from an external source
+		// is actually in range.
+		path_index_t end_path_element() const;
+
+		// internal
+		// returns the stored text of every path_element, indexed by
+		// path_index_t.
+		aux::vector<string_view, path_index_t> all_path_element_names() const;
 
 		// returns a bitmask of flags from file_flags_t that apply
 		// to file at ``index``.
@@ -791,8 +818,12 @@ public:
 		// component's text, separator-joined, to ``out``. Iterative, since
 		// the chain depth is derived from an untrusted .torrent file.
 		// Returns the terminal sentinel the chain is rooted at (torrent_root,
-		// path_is_absolute, pad_directory, or no_root_dir).
-		path_index_t reconstruct_path(path_index_t leaf, std::string& out) const;
+		// path_is_absolute, pad_directory, or no_root_dir). ``path_names``,
+		// when given, is indexed by path_index_t instead of this
+		// file_storage's own stored names; see file_path()'s own comment
+		// for why this exists.
+		path_index_t reconstruct_path(
+			path_index_t leaf, std::string& out, span<string_view const> path_names = {}) const;
 
 		// compares the path_element chain rooted at ``li`` against the one
 		// rooted at ``ri`` in ``rhs``, leaf to root, without building
@@ -892,16 +923,24 @@ namespace aux {
 	// to mutate the file_storage object itself.
 	struct TORRENT_EXPORT renamed_files
 	{
-		// returns information about the file at ``index`` in ``fs``,
-		// honoring any rename recorded in this object.
-		// ``file_path()`` returns the full on-disk path (prepending
-		// ``save_path`` to relative paths). ``file_name()`` returns
-		// just the leaf filename (pad files cannot be renamed, so this
-		// defers to ``fs.file_name()`` for them, empty string and all).
-		// ``file_absolute_path()`` returns true if the recorded rename is
-		// an absolute path (in which case ``save_path`` is ignored).
-		std::string file_path(file_storage const& fs, file_index_t index, std::string const& save_path = "") const;
-		string_view file_name(file_storage const& fs, file_index_t index) const;
+		// resolves the file at ``index``'s rename, if one was recorded
+		// with rename_file(): the full on-disk path (prepending
+		// ``save_path`` to relative paths), or std::nullopt if index
+		// has no such rename. ``torrent_name`` is the torrent's own
+		// name(), needed to reconstruct a rename recorded in full_path
+		// mode. Only resolves a rename recorded directly against
+		// ``index``, not renames to path elements (directories, or a
+		// file's own leaf name) recorded via rename_entry().
+		std::optional<std::string> file_path(
+			string_view torrent_name, file_index_t index, std::string const& save_path = "") const;
+
+		// same as file_path(), for just the leaf filename.
+		std::optional<string_view> file_name(file_index_t index) const;
+
+		// returns true if the recorded rename for ``index`` in ``fs`` is
+		// an absolute path (in which case ``save_path`` is ignored when
+		// resolving it). false if index has no recorded rename, or a
+		// relative one.
 		bool file_absolute_path(file_storage const& fs, file_index_t index) const;
 
 		// records that the file at ``index`` in ``fs`` should be
@@ -909,16 +948,71 @@ namespace aux {
 		// ``file_storage`` is not modified.
 		void rename_file(file_storage const& fs, file_index_t index, std::string const& new_filename);
 
+		// records that path_element ``idx`` (as file_storage assigns
+		// them) should be presented as ``new_name``, without
+		// file_storage itself being mutated. Unlike rename_file(), this
+		// renames one tree component in place, which applies to every
+		// file beneath it too.
+		//
+		// ``new_name`` must name a single path component: a path
+		// separator ('/' or '\'), or an embedded null byte, makes this
+		// call a no-op.
+		//
+		// must only be called before constructing any ``filenames`` view
+		// over this object (i.e. during initial torrent load). A
+		// ``filenames`` view caches direct references into the strings
+		// held here to stay lightweight; renaming an entry it has
+		// already cached is undefined behavior.
+		void rename_entry(path_index_t idx, string_view new_name);
+
 		// bulk import or export the set of file renames recorded in
 		// this object. ``import_filenames()`` adds the given renames
 		// (dropping entries whose file index is out of range).
-		// ``export_filenames()`` returns the current renames as a map
-		// suitable for serializing and later passing back to
+		// ``export_filenames()`` returns the current file renames as a
+		// map suitable for serializing and later passing back to
 		// ``import_filenames()``.
-		void import_filenames(file_storage const& fs, std::map<file_index_t, std::string> const& renamed_files);
+		void import_filenames(
+			file_storage const& fs, std::map<file_index_t, std::string> const& renamed_files);
 		std::map<file_index_t, std::string> export_filenames(file_storage const& fs) const;
+
+		// same as import_filenames()/export_filenames(), for the
+		// per-path-element renames rename_entry() records (dropping
+		// entries whose path_index_t is out of range, or whose name is
+		// not a single path component, same as rename_entry(), on
+		// import).
+		//
+		// export_path_elements()'s keys are opaque ``path_index_t``
+		// values, only meaningful relative to ``fs``.
+		//
+		// same precondition as rename_entry(): must only be called
+		// before constructing any ``filenames`` view over this object.
+		void import_path_elements(
+			file_storage const& fs, std::map<path_index_t, std::string> const& renames);
+		std::map<path_index_t, std::string> export_path_elements(file_storage const& fs) const;
+
+		// internal
+		// direct, uncopied access to the per-path-element rename map.
+		// The returned reference is invalidated by any later call to
+		// rename_entry() or import_path_elements() on this object.
+		std::map<path_index_t, std::string> const& path_elements() const
+		{
+			return m_renamed_path_elements;
+		}
+
+#if TORRENT_USE_ASSERTS
+		// internal
+		// bumped by every mutation. Lets a ``filenames`` view assert
+		// that none of its cached per-path-element renames have been
+		// invalidated by a later mutation on this object.
+		int generation() const { return m_generation; }
+#endif
+
 	private:
 		std::unordered_map<file_index_t, aux::rename_entry> m_renamed_files;
+		std::map<path_index_t, std::string> m_renamed_path_elements;
+#if TORRENT_USE_ASSERTS
+		int m_generation = 0;
+#endif
 	};
 
 	// a lightweight view that pairs a ``file_storage`` with the rename
@@ -926,14 +1020,40 @@ namespace aux {
 	// of ``file_storage`` that downstream code (e.g. the disk I/O
 	// backends) needs, with file paths automatically resolved through
 	// the rename layer.
+	//
+	// ``rf``'s per-path-element renames must not change while this
+	// view is alive: the cached table below holds direct references
+	// into strings owned by ``rf``, not copies, to stay lightweight.
+	// Renaming after construction is undefined behavior; a debug
+	// build (TORRENT_USE_ASSERTS) catches it via
+	// ``renamed_files::generation()``.
 	struct TORRENT_EXPORT filenames
 	{
 		// construct a view over ``fs`` with the renames recorded in
-		// ``rf`` applied. Both references must outlive the view.
+		// ``rf`` applied. Both references must outlive the view. If
+		// ``rf`` has any per-element renames, builds a path_index_t-
+		// indexed name table once, up front, starting from the names
+		// already in ``fs`` and overlaying the per-element renames
+		// recorded in ``rf``, so every file_path() call through this
+		// view resolves via a plain array index rather than a map
+		// lookup per path_element visited; left empty otherwise (the
+		// common case), skipping that walk entirely.
 		filenames(file_storage const& fs, renamed_files const& rf)
 			: m_files(fs)
 			, m_renames(rf)
-		{}
+		{
+#if TORRENT_USE_ASSERTS
+			m_generation = rf.generation();
+#endif
+			if (rf.path_elements().empty())
+				return;
+			m_path_names = fs.all_path_element_names();
+			for (auto const& [idx, name] : rf.path_elements())
+			{
+				if (idx < fs.end_path_element())
+					m_path_names[idx] = string_view(name);
+			}
+		}
 
 		// the underlying file_storage this view resolves renamed paths
 		// against.
@@ -972,20 +1092,38 @@ namespace aux {
 		// underlying ``renamed_files``.
 		std::string file_path(file_index_t const index, std::string const& save_path = "") const
 		{
-			return m_renames.file_path(m_files, index, save_path);
+			TORRENT_ASSERT(m_generation == m_renames.generation());
+			TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < m_files.end_file());
+			if (auto p = m_renames.file_path(m_files.name(), index, save_path))
+				return std::move(*p);
+			return m_files.file_path(index, save_path, m_path_names);
 		}
 		string_view file_name(file_index_t const index) const
 		{
-			return m_renames.file_name(m_files, index);
+			TORRENT_ASSERT(m_generation == m_renames.generation());
+			TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < m_files.end_file());
+			if (auto n = m_renames.file_name(index))
+				return *n;
+			// pad files cannot be renamed and have no stored name
+			if (m_files.pad_file_at(index))
+				return {};
+			return m_files.file_name(index, m_path_names);
 		}
 		bool file_absolute_path(file_index_t const index) const
 		{
+			TORRENT_ASSERT(m_generation == m_renames.generation());
+			TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < m_files.end_file());
 			return m_renames.file_absolute_path(m_files, index);
 		}
 
 		// If the file at ``index`` is a symbolic link, its link target is returned.
 		// otherwise an empty string.
-		std::string symlink(file_index_t const index) const { return m_files.symlink(index); }
+		std::string symlink(file_index_t const index) const
+		{
+			TORRENT_ASSERT(m_generation == m_renames.generation());
+			TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < m_files.end_file());
+			return m_files.symlink(index, m_path_names);
+		}
 
 		// all file indices in the underlying file_storage. Convenient in
 		// range-for loops.
@@ -1040,6 +1178,10 @@ namespace aux {
 	private:
 		file_storage const& m_files;
 		renamed_files const& m_renames;
+		aux::vector<string_view, path_index_t> m_path_names;
+#if TORRENT_USE_ASSERTS
+		int m_generation = 0;
+#endif
 	};
 
 namespace aux {

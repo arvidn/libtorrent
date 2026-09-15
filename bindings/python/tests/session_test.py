@@ -367,6 +367,8 @@ class AddTorrentParamsTest(unittest.TestCase):
         self.assertEqual(atp.piece_priorities, [1])
         atp.renamed_files = {}
         self.assertEqual(atp.renamed_files, {})
+        atp.renamed_path_elements = {}
+        self.assertEqual(atp.renamed_path_elements, {})
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5988")
     def test_name_assign_bytes_deprecated(self) -> None:
@@ -524,6 +526,13 @@ class AddTorrentParamsTest(unittest.TestCase):
         atp = lt.add_torrent_params()
         atp.renamed_files = {0: "test.txt"}
         self.assertEqual(atp.renamed_files, {0: "test.txt"})
+
+    def test_renamed_path_elements(self) -> None:
+        atp = lt.add_torrent_params()
+        atp.renamed_path_elements = {3: "docs-1", 7: "readme-1.txt"}
+        self.assertEqual(atp.renamed_path_elements, {3: "docs-1", 7: "readme-1.txt"})
+        for key in atp.renamed_path_elements:
+            self.assertIsInstance(key, int)
 
     def test_renamed_files_ascii_bytes(self) -> None:
         atp = lt.add_torrent_params()

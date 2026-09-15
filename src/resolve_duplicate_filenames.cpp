@@ -8,6 +8,8 @@ see LICENSE file.
 */
 
 #include <map>
+#include <algorithm>
+#include <unordered_set>
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/crc.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -16,6 +18,7 @@ see LICENSE file.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/file_storage.hpp"
+#include "libtorrent/torrent_info.hpp" // for load_torrent_limits
 #include "libtorrent/aux_/string_util.hpp"
 #include "libtorrent/aux_/resolve_duplicate_filenames.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
@@ -214,4 +217,210 @@ namespace {
 		return resolve_duplicate_filenames_slow(fs, *eh, max_duplicate_filenames, ec);
 	}
 
+	namespace {
+
+	// finds the first "base-N[ext]" rejected by neither taken() nor the
+	// shared collision budget, starting the search at cnt + 1 and
+	// leaving cnt at whichever N was accepted, so a later call (another
+	// member of the same colliding group) resumes the count instead of
+	// restarting it. std::nullopt, with ec set, once num_collisions
+	// exceeds cfg.max_duplicate_filenames.
+	template <typename Taken>
+	std::optional<std::string> next_dedup_candidate(string_view const base,
+		string_view const ext,
+		std::uint32_t& cnt,
+		int& num_collisions,
+		load_torrent_limits const& cfg,
+		Taken&& taken,
+		error_code& ec)
+	{
+		std::string candidate;
+		for (;;)
+		{
+			++cnt;
+			// reuses candidate's existing buffer across iterations,
+			// rather than materializing a fresh concatenated string
+			// each time
+			candidate.assign(base);
+			candidate += '-';
+			candidate += std::to_string(cnt);
+			candidate.append(ext);
+			if (!taken(string_view(candidate)))
+				break;
+			if (++num_collisions > cfg.max_duplicate_filenames)
+			{
+				ec = errors::too_many_duplicate_filenames;
+				return std::nullopt;
+			}
+		}
+		return candidate;
+	}
+
+	// true if any two elements (directory or file/symlink leaf) share a
+	// hash. Lets resolve_directory_duplicates() skip building and sorting
+	// its combined entry list when there's nothing to resolve, at no
+	// extra cost: it's the same scan either way.
+	bool has_collision(aux::vector<std::uint32_t, path_index_t> const& eh)
+	{
+		std::unordered_set<std::uint32_t> seen;
+		seen.reserve(eh.size());
+		for (auto const c : eh)
+			if (!seen.insert(c).second)
+				return true;
+		return false;
+	}
+
+	// a single directory or file/symlink leaf: its parent, its own
+	// path_index_t, and name.
+	struct combined_entry
+	{
+		path_index_t parent;
+		path_index_t self;
+		string_view name;
+	};
+
+	// compares a combined_entry against a bare path_index_t in either
+	// argument order, so std::equal_range can binary-search "entries"
+	// (sorted primarily by parent) for the sub-range belonging to one
+	// parent
+	struct parent_less
+	{
+		bool operator()(combined_entry const& e, path_index_t const p) const
+		{
+			return e.parent < p;
+		}
+		bool operator()(path_index_t const p, combined_entry const& e) const
+		{
+			return p < e.parent;
+		}
+	};
+	}
+
+	std::map<path_index_t, std::string> resolve_directory_duplicates(
+		file_storage const& fs, load_torrent_limits const& cfg, error_code& ec)
+	{
+		std::map<path_index_t, std::string> ret;
+
+		aux::vector<std::uint32_t, path_index_t> const eh = fs.compute_element_hashes();
+		if (!has_collision(eh))
+			return ret;
+
+		aux::vector<string_view, path_index_t> const names = fs.all_path_element_names();
+
+		std::vector<combined_entry> entries;
+		entries.reserve(static_cast<std::size_t>(eh.size()));
+		// the only path_index_t that isn't a real directory or file/symlink
+		// leaf (a symlink target's own opaque path_element) can't reach
+		// this function: it only exists via the deprecated
+		// add_symlink(target) construction path, never a parsed .torrent.
+		for (path_index_t const idx : eh.range())
+			entries.push_back({fs.parent_of(idx), idx, names[idx]});
+
+		// self is the tiebreak: a path_index_t says nothing about two
+		// siblings' relative creation order, so sorting by it too is what
+		// makes group_begin, below, deterministically the earliest-created
+		// member of a colliding group, deciding which one keeps its name.
+		std::sort(
+			entries.begin(), entries.end(), [](combined_entry const& a, combined_entry const& b) {
+				if (a.parent != b.parent)
+					return a.parent < b.parent;
+				int const c = string_compare_no_case(a.name, b.name);
+				if (c != 0)
+					return c < 0;
+				return a.self < b.self;
+			});
+
+		// shared across every colliding group in this call, matching
+		// next_dedup_candidate()'s contract: too many failed rename
+		// attempts overall fails the whole thing, not just one group
+		int num_collisions = 0;
+
+		std::size_t i = 0;
+		while (i < entries.size())
+		{
+			std::size_t const group_begin = i;
+			path_index_t const parent = entries[i].parent;
+			string_view const group_name = entries[i].name;
+			while (i < entries.size() && entries[i].parent == parent
+				&& string_compare_no_case(entries[i].name, group_name) == 0)
+				++i;
+			std::size_t const group_end = i;
+
+			if (group_end - group_begin == 1)
+				continue;
+
+			auto const parent_range =
+				std::equal_range(entries.begin(), entries.end(), parent, parent_less{});
+
+			// guards against a fresh candidate clobbering a real, separate
+			// collision: an entry's literal, not-yet-renamed name
+			auto const already_exists = [&](string_view const candidate) {
+				auto const it = std::lower_bound(parent_range.first,
+					parent_range.second,
+					candidate,
+					[](combined_entry const& e, string_view const cand) {
+						return string_compare_no_case(e.name, cand) < 0;
+					});
+				return it != parent_range.second
+					&& string_compare_no_case(it->name, candidate) == 0;
+			};
+
+			// group_begin (the earliest-created member) keeps its name;
+			// every other member needs one, sharing a single counter so
+			// a second, third, etc. collision on this same original name
+			// resumes probing where the previous one left off
+			std::uint32_t cnt = 0;
+			for (std::size_t k = group_begin + 1; k < group_end; ++k)
+			{
+				// split on this member's own name, not the group's, so a
+				// renamed candidate keeps its own case rather than
+				// whichever member's case the group happened to be keyed
+				// on
+				auto const [base, ext] = split_base_ext(entries[k].name);
+				auto candidate =
+					next_dedup_candidate(base, ext, cnt, num_collisions, cfg, already_exists, ec);
+				if (!candidate)
+					return {};
+				ret.emplace(entries[k].self, *std::move(candidate));
+			}
+		}
+		return ret;
+	}
+
+#if TORRENT_ABI_VERSION < 4
+	std::vector<std::pair<file_index_t, std::string>> find_renamed_files(
+		file_storage const& fs, std::map<path_index_t, std::string> const& renames)
+	{
+		std::vector<std::pair<file_index_t, std::string>> ret;
+		if (renames.empty())
+			return ret;
+
+		renamed_files rf;
+		rf.import_path_elements(fs, renames);
+		filenames const names(fs, rf);
+
+		for (file_index_t const i : fs.file_range())
+		{
+			// pad files have no leaf path_element and can't be renamed
+			if (fs.pad_file_at(i))
+				continue;
+
+			for (path_index_t idx = fs.file_path_element(i); idx != aux::path_element::torrent_root
+				 && idx != aux::path_element::path_is_absolute
+				 && idx != aux::path_element::no_root_dir;
+				 idx = fs.parent_of(idx))
+			{
+				if (renames.count(idx))
+					goto found;
+			}
+			continue;
+
+		found:
+			std::string renamed_path = names.file_path(i);
+			if (renamed_path != fs.file_path(i))
+				ret.emplace_back(i, std::move(renamed_path));
+		}
+		return ret;
+	}
+#endif
 }

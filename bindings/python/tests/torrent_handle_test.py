@@ -834,31 +834,32 @@ class RenamedFilesClassTest(unittest.TestCase):
     def test_file_path(self) -> None:
         rf = lt.renamed_files()
         rf.rename_file(self.fs, 0, "new_name.txt")
-        path = rf.file_path(self.fs, 0)
+        path = rf.file_path(self.fs.name(), 0)
         self.assertIsInstance(path, str)
+        assert path is not None
         self.assertIn("new_name.txt", path)
 
     def test_file_path_with_save_path(self) -> None:
         rf = lt.renamed_files()
         rf.rename_file(self.fs, 0, "new_name.txt")
-        path = rf.file_path(self.fs, 0, str(pathlib.Path("/") / "save" / "path"))
+        path = rf.file_path(self.fs.name(), 0, str(pathlib.Path("/") / "save" / "path"))
         self.assertIsInstance(path, str)
+        assert path is not None
         self.assertIn("new_name.txt", path)
 
     def test_file_name(self) -> None:
         rf = lt.renamed_files()
         rf.rename_file(self.fs, 0, "new_name.txt")
-        name = rf.file_name(self.fs, 0)
-        self.assertIsInstance(name, str)
+        name = rf.file_name(0)
         self.assertEqual(name, "new_name.txt")
 
-    def test_file_name_unrenamed(self) -> None:
+    def test_file_path_and_name_unrenamed(self) -> None:
         rf = lt.renamed_files()
-        # Unrenamed file: falls back to the file_storage name
-        name = rf.file_name(self.fs, 0)
-        self.assertIsInstance(name, str)
-        original_name = os.fsdecode(self.torrent.files[0].path_split[-1])
-        self.assertEqual(name, original_name)
+        # an unrenamed index has no flat rename recorded, so both
+        # resolve to None rather than falling back to file_storage's
+        # own name for it
+        self.assertIsNone(rf.file_path(self.fs.name(), 0))
+        self.assertIsNone(rf.file_name(0))
 
     def test_file_absolute_path(self) -> None:
         rf = lt.renamed_files()
@@ -878,6 +879,39 @@ class RenamedFilesClassTest(unittest.TestCase):
         rf = lt.renamed_files()
         rf.import_filenames(self.fs, filenames)
         self.assertEqual(rf.export_filenames(self.fs), filenames)
+
+    def test_rename_entry_and_export(self) -> None:
+        # rename_entry() records a per-path-element rename directly,
+        # without validating the index against any file_storage; export_
+        # path_elements() likewise just returns what was recorded
+        rf = lt.renamed_files()
+        rf.rename_entry(0, "renamed_dir")
+        self.assertEqual(rf.export_path_elements(self.fs), {0: "renamed_dir"})
+        for key in rf.export_path_elements(self.fs):
+            self.assertIsInstance(key, int)
+
+    def test_import_path_elements(self) -> None:
+        ct = lt.create_torrent(
+            [
+                lt.create_file_entry("dir/a.txt", 1),
+                lt.create_file_entry("dir/sub/b.txt", 1),
+            ]
+        )
+        fs = ct.files()
+
+        rf = lt.renamed_files()
+        rf.import_path_elements(fs, {0: "renamed_dir"})
+        self.assertEqual(rf.export_path_elements(fs), {0: "renamed_dir"})
+
+    def test_import_path_elements_out_of_range_dropped(self) -> None:
+        ct = lt.create_torrent([lt.create_file_entry("dir/a.txt", 1)])
+        fs = ct.files()
+
+        rf = lt.renamed_files()
+        # an index beyond fs's own path elements is silently dropped,
+        # the same way import_filenames() drops out-of-range file indices
+        rf.import_path_elements(fs, {1000: "unreachable"})
+        self.assertEqual(rf.export_path_elements(fs), {})
 
 
 class FilenamesClassTest(unittest.TestCase):

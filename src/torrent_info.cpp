@@ -48,6 +48,7 @@ see LICENSE file.
 #include <set>
 #include <ctime>
 #include <array>
+#include <optional>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/functional/hash.hpp>
@@ -646,6 +647,13 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 	// lookup itself. The underlying path_element still borrows ``raw``
 	// directly when sanitizing didn't change it, only copying the
 	// sanitized text when it did.
+	//
+	// path_sanitize_flags::deduplicate_per_directory's collision
+	// resolution has nothing to do with parsing: it runs later, against
+	// the finished tree (see aux::resolve_directory_duplicates(), called
+	// from load_torrent()), and never mutates fs, so this always creates
+	// (or reuses) a directory under its literal sanitized name, even if
+	// that collides with a sibling.
 	path_index_t cached_directory(file_storage& fs,
 		dir_cache_t& cache,
 		path_index_t const parent,
@@ -686,13 +694,13 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 	struct file_leaf_entry
 	{
 		path_index_t dir;
-		string_view raw;
 		path_index_t leaf;
+		string_view raw;
 	};
 	using leaf_stash_t = std::vector<file_leaf_entry>;
 
-	// replays every buffered leaf into cache, in the same order they were
-	// originally seen, preserving record_leaf()'s first-wins semantics
+	// replays every buffered leaf into cache, in the order they were
+	// parsed in.
 	void flush_leaf_stash(dir_cache_t& cache, leaf_stash_t const& stash)
 	{
 		for (auto const& e : stash)
@@ -738,7 +746,11 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 	// shared between the v1 and v2 file-list/file-tree parsers. ``name_raw``
 	// is skipped as a leaf_stash entry for pad files, since they don't own a
 	// real path_element (see extract_single_file()); v2 never reaches here
-	// with a pad file, so the check is a no-op on that path.
+	// with a pad file, so the check is a no-op on that path. ``leaf_stash``
+	// only ever feeds symlink-target resolution (see flush_leaf_stash()):
+	// path_sanitize_flags::deduplicate_per_directory's own collision
+	// resolution has nothing to do with parsing, see
+	// aux::resolve_directory_duplicates().
 	bool finish_file_entry(file_storage& files,
 		path_index_t const dir,
 		string_view const name,
@@ -761,7 +773,7 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 				files.add_symlink(ec, name, name_borrow, dir, file_flags, mtime);
 			if (ec)
 				return false;
-			leaf_stash.push_back({dir, name_raw, leaf});
+			leaf_stash.push_back({dir, leaf, name_raw});
 			if (!symlink_path.empty()
 				&& !stash_symlink(symlink_stash, this_file, leaf, std::move(symlink_path), cfg, ec))
 				return false;
@@ -773,7 +785,7 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 			if (ec)
 				return false;
 			if (!(file_flags & file_storage::flag_pad_file))
-				leaf_stash.push_back({dir, name_raw, leaf});
+				leaf_stash.push_back({dir, leaf, name_raw});
 		}
 		return true;
 	}
@@ -1244,9 +1256,12 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 
 				// single_file: no directory nesting, and file_storage::name()
 				// is not prepended when reconstructing this file's path
+				path_index_t const leaf_parent =
+					single_file ? aux::path_element::no_root_dir : frame.dir;
+
 				if (!extract_single_file2(leaf_value,
 						target,
-						single_file ? aux::path_element::no_root_dir : frame.dir,
+						leaf_parent,
 						name,
 						name_borrow,
 						raw,
@@ -2184,13 +2199,28 @@ TORRENT_VERSION_NAMESPACE_4
 
 		if (ti)
 		{
-			auto const renamed_files = aux::resolve_duplicate_filenames(ti->layout(), cfg.max_duplicate_filenames, ec);
-			if (ec) return false;
-			// For backwards compatibility, make sure the file_storage has updated
-			// filenames as well
-			for (auto const& entry : renamed_files)
+			if (cfg.sanitize_flags & path_sanitize_flags::deduplicate_per_directory)
 			{
-				ti->rename_file(entry.first, entry.second);
+				auto const renames = aux::resolve_directory_duplicates(ti->layout(), cfg, ec);
+				if (ec)
+					return false;
+				// For backwards compatibility, make sure the file_storage has updated
+				// filenames as well
+				for (auto& [i, renamed] : aux::find_renamed_files(ti->layout(), renames))
+					ti->rename_file(i, std::move(renamed));
+			}
+			else
+			{
+				auto const renamed_files =
+					aux::resolve_duplicate_filenames(ti->layout(), cfg.max_duplicate_filenames, ec);
+				if (ec)
+					return false;
+				// For backwards compatibility, make sure the file_storage has updated
+				// filenames as well
+				for (auto const& entry : renamed_files)
+				{
+					ti->rename_file(entry.first, entry.second);
+				}
 			}
 			*this = std::move(*ti);
 		}

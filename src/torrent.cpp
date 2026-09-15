@@ -2007,9 +2007,11 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		file_storage const& fs = m_torrent_file->layout();
 		if (m_add_torrent_params)
 		{
-			m_renamed_files.import_filenames(m_torrent_file->layout()
-				, m_add_torrent_params->renamed_files);
+			m_renamed_files.import_filenames(fs, m_add_torrent_params->renamed_files);
+			m_renamed_files.import_path_elements(fs, m_add_torrent_params->renamed_path_elements);
 		}
+
+		m_filenames.emplace(fs, m_renamed_files);
 
 		construct_storage();
 
@@ -5538,8 +5540,8 @@ namespace {
 		else
 		{
 			file_storage const& fs = m_torrent_file->layout();
-			alerts().emplace_alert<file_renamed_alert>(get_handle()
-				, filename, m_renamed_files.file_path(fs, file_idx), file_idx);
+			alerts().emplace_alert<file_renamed_alert>(
+				get_handle(), filename, m_filenames->file_path(file_idx), file_idx);
 			m_renamed_files.rename_file(fs, file_idx, filename);
 
 			set_need_save_resume(torrent_handle::if_state_changed);
@@ -7662,7 +7664,11 @@ namespace {
 
 		// write renamed files
 		if (valid_metadata())
+		{
 			ret.renamed_files = m_renamed_files.export_filenames(m_torrent_file->layout());
+			ret.renamed_path_elements =
+				m_renamed_files.export_path_elements(m_torrent_file->layout());
+		}
 
 		// write local peers
 		std::vector<torrent_peer const*> deferred_peers;
@@ -8327,7 +8333,8 @@ namespace {
 			, sett.get_int(settings_pack::metadata_token_limit));
 
 		std::shared_ptr<torrent_info> info;
-		std::map<file_index_t, std::string> renamed_files;
+		std::map<file_index_t, std::string> whole_tree_renames;
+		std::map<path_index_t, std::string> structural_renames;
 		if (!ec)
 		{
 			load_torrent_limits cfg;
@@ -8338,15 +8345,30 @@ namespace {
 			// parse failure; cppcheck doesn't see the constructor definition
 			// (in torrent_info.cpp) from this translation unit
 			// cppcheck-suppress identicalInnerCondition
-			if (!ec)
+			if (!ec && (cfg.sanitize_flags & path_sanitize_flags::deduplicate_per_directory))
 			{
-				renamed_files = aux::resolve_duplicate_filenames(
+				structural_renames = aux::resolve_directory_duplicates(info->layout(), cfg, ec);
+#if TORRENT_ABI_VERSION < 4
+				// for backwards compatibility, make sure the file_storage
+				// returned by the deprecated files() has updated filenames
+				// as well.
+				if (!ec)
+				{
+					for (auto& [i, renamed] :
+						aux::find_renamed_files(info->layout(), structural_renames))
+						info->rename_file(i, std::move(renamed));
+				}
+#endif
+			}
+			else if (!ec)
+			{
+				whole_tree_renames = aux::resolve_duplicate_filenames(
 					info->layout(), cfg.max_duplicate_filenames, ec);
 #if TORRENT_ABI_VERSION < 4
 				// for backwards compatibility, make sure the file_storage
 				// returned by the deprecated files() has updated filenames
 				// as well
-				for (auto const& entry : renamed_files)
+				for (auto const& entry : whole_tree_renames)
 					info->rename_file(entry.first, entry.second);
 #endif
 			}
@@ -8404,7 +8426,8 @@ namespace {
 
 		m_name_idx.clear();
 		m_torrent_file = info;
-		m_renamed_files.import_filenames(m_torrent_file->layout(), renamed_files);
+		m_renamed_files.import_filenames(m_torrent_file->layout(), whole_tree_renames);
+		m_renamed_files.import_path_elements(m_torrent_file->layout(), structural_renames);
 		m_info_hash = m_torrent_file->info_hashes();
 		{
 			std::lock_guard<std::mutex> l(m_torrent_file_mutex);
@@ -9938,8 +9961,7 @@ namespace {
 
 		if (m_storage && file >= file_index_t(0))
 		{
-			file_storage const& fs = m_torrent_file->layout();
-			return m_renamed_files.file_path(fs, file, m_save_path);
+			return m_filenames->file_path(file, m_save_path);
 		}
 		else
 		{
