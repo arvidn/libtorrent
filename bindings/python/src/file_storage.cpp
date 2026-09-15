@@ -212,6 +212,29 @@ namespace {
 	{
 		return std::string(rf.file_name(fs, index));
 	}
+
+	void filenames_check_index(filenames const& names, file_index_t const index)
+	{
+		if (index < file_index_t{0} || index >= names.end_file())
+		{
+			PyErr_SetString(PyExc_IndexError, "invalid file index");
+			throw_error_already_set();
+		}
+	}
+
+	template <typename Ret, Ret (filenames::*fun)(file_index_t) const>
+	Ret wrap_filenames_check(filenames const& names, file_index_t const i)
+	{
+		filenames_check_index(names, i);
+		return (names.*fun)(i);
+	}
+
+	std::string filenames_file_path(
+		filenames const& names, file_index_t const index, std::string const& save_path)
+	{
+		filenames_check_index(names, index);
+		return names.file_path(index, save_path);
+	}
 }
 
 void bind_file_storage()
@@ -323,6 +346,29 @@ void bind_file_storage()
 		)
 		.def("import_filenames", &renamed_files::import_filenames, (arg("fs"), arg("filenames")))
 		.def("export_filenames", &renamed_files::export_filenames);
+
+	// filenames stores bare references to the file_storage and
+	// renamed_files it's constructed from (it never copies them), so the
+	// Python objects for both must be kept alive for as long as the
+	// filenames object itself is
+	class_<filenames>("filenames",
+		init<file_storage const&,
+			renamed_files const&>()[with_custodian_and_ward<1, 2, with_custodian_and_ward<1, 3>>()])
+		.def(
+			"file_flags", &wrap_filenames_check<file_flags_t, &filenames::file_flags>, arg("index"))
+		.def("file_size", &wrap_filenames_check<std::int64_t, &filenames::file_size>, arg("index"))
+		.def("file_offset",
+			&wrap_filenames_check<std::int64_t, &filenames::file_offset>,
+			arg("index"))
+		.def("file_path", &filenames_file_path, (arg("index"), arg("save_path") = ""))
+		.def("file_absolute_path",
+			&wrap_filenames_check<bool, &filenames::file_absolute_path>,
+			arg("index"))
+		.def("symlink", &wrap_filenames_check<std::string, &filenames::symlink>, arg("index"))
+		.def("root", &wrap_filenames_check<sha256_hash, &filenames::root>, arg("index"))
+		.def("num_files", &filenames::num_files)
+		.def("num_pieces", &filenames::num_pieces)
+		.def("piece_length", &filenames::piece_length);
 }
 
 #ifdef _MSC_VER
