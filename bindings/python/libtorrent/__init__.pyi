@@ -4228,6 +4228,63 @@ class renamed_files(metaclass=_BoostBaseClass):
         export_filenames( (renamed_files)arg1, (file_storage)arg2) -> dict :
         """
 
+class filenames(metaclass=_BoostBaseClass):
+    __instance_size__: int
+    def __init__(self, fs: file_storage, rf: renamed_files) -> None:
+        """
+        __init__( (object)arg1, (file_storage)arg2, (renamed_files)arg3) -> None :
+        """
+
+    def file_flags(self, index: int) -> int:
+        """
+        file_flags( (filenames)arg1, (object)index) -> object :
+        """
+
+    def file_size(self, index: int) -> int:
+        """
+        file_size( (filenames)arg1, (object)index) -> int :
+        """
+
+    def file_offset(self, index: int) -> int:
+        """
+        file_offset( (filenames)arg1, (object)index) -> int :
+        """
+
+    def file_path(self, index: int, save_path: str = "") -> str:
+        """
+        file_path( (filenames)arg1, (object)index [, (str)save_path='']) -> str :
+        """
+
+    def file_absolute_path(self, index: int) -> bool:
+        """
+        file_absolute_path( (filenames)arg1, (object)index) -> bool :
+        """
+
+    def symlink(self, index: int) -> str:
+        """
+        symlink( (filenames)arg1, (object)index) -> str :
+        """
+
+    def root(self, index: int) -> sha256_hash:
+        """
+        root( (filenames)arg1, (object)index) -> sha256_hash :
+        """
+
+    def num_files(self) -> int:
+        """
+        num_files( (filenames)arg1) -> int :
+        """
+
+    def num_pieces(self) -> int:
+        """
+        num_pieces( (filenames)arg1) -> int :
+        """
+
+    def piece_length(self) -> int:
+        """
+        piece_length( (filenames)arg1) -> int :
+        """
+
 class torrent_handle(metaclass=_BoostBaseClass):
     __instance_size__: int
     alert_when_available: int
