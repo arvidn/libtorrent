@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import gc
 import os
 import pathlib
 import random
+import sys
 import tempfile
 from typing import Any
 from typing import Callable
@@ -876,6 +878,106 @@ class RenamedFilesClassTest(unittest.TestCase):
         rf = lt.renamed_files()
         rf.import_filenames(self.fs, filenames)
         self.assertEqual(rf.export_filenames(self.fs), filenames)
+
+
+class FilenamesClassTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.torrent = tdummy.get_default()
+        self.fs = self.torrent.torrent_info().layout()
+
+    def test_file_path_unrenamed_falls_back_to_file_storage(self) -> None:
+        rf = lt.renamed_files()
+        names = lt.filenames(self.fs, rf)
+        self.assertEqual(names.file_path(0), self.fs.file_path(0))
+
+    def test_file_path_renamed(self) -> None:
+        rf = lt.renamed_files()
+        rf.rename_file(self.fs, 0, "new_name.txt")
+        names = lt.filenames(self.fs, rf)
+        self.assertIn("new_name.txt", names.file_path(0))
+
+    def test_file_size_and_offset_match_file_storage(self) -> None:
+        rf = lt.renamed_files()
+        names = lt.filenames(self.fs, rf)
+        self.assertEqual(names.file_size(0), self.fs.file_size(0))
+        self.assertEqual(names.file_offset(0), self.fs.file_offset(0))
+
+    def test_num_files_and_pieces_match_file_storage(self) -> None:
+        rf = lt.renamed_files()
+        names = lt.filenames(self.fs, rf)
+        self.assertEqual(names.num_files(), self.fs.num_files())
+        self.assertEqual(names.num_pieces(), self.fs.num_pieces())
+        self.assertEqual(names.piece_length(), self.fs.piece_length())
+
+    def test_file_flags_matches_file_storage(self) -> None:
+        rf = lt.renamed_files()
+        names = lt.filenames(self.fs, rf)
+        self.assertEqual(names.file_flags(0), self.fs.file_flags(0))
+
+    def test_file_absolute_path_matches_file_storage(self) -> None:
+        rf = lt.renamed_files()
+        names = lt.filenames(self.fs, rf)
+        self.assertEqual(names.file_absolute_path(0), self.fs.file_absolute_path(0))
+
+    def test_symlink_matches_file_storage(self) -> None:
+        rf = lt.renamed_files()
+        names = lt.filenames(self.fs, rf)
+        self.assertEqual(names.symlink(0), self.fs.symlink(0))
+
+    def test_root_matches_file_storage(self) -> None:
+        rf = lt.renamed_files()
+        names = lt.filenames(self.fs, rf)
+        self.assertEqual(names.root(0), self.fs.root(0))
+
+    def test_invalid_index_raises_index_error(self) -> None:
+        rf = lt.renamed_files()
+        names = lt.filenames(self.fs, rf)
+        for index in (self.fs.num_files(), -1):
+            with self.assertRaises(IndexError):
+                names.file_flags(index)
+            with self.assertRaises(IndexError):
+                names.file_size(index)
+            with self.assertRaises(IndexError):
+                names.file_offset(index)
+            with self.assertRaises(IndexError):
+                names.file_path(index)
+            with self.assertRaises(IndexError):
+                names.file_absolute_path(index)
+            with self.assertRaises(IndexError):
+                names.symlink(index)
+            with self.assertRaises(IndexError):
+                names.root(index)
+
+    def test_outlives_original_python_references(self) -> None:
+        # filenames holds bare references to the file_storage and
+        # renamed_files it was constructed from; the binding must keep
+        # both alive for as long as the filenames object itself is, even
+        # after the original Python objects referring to them go away
+        rf = lt.renamed_files()
+        rf.rename_file(self.fs, 0, "new_name.txt")
+        names = lt.filenames(self.fs, rf)
+        del rf
+        gc.collect()
+        self.assertIn("new_name.txt", names.file_path(0))
+
+    def test_custodian_and_ward_holds_references(self) -> None:
+        # a missing with_custodian_and_ward could still pass
+        # test_outlives_original_python_references by luck, since UB isn't
+        # guaranteed to crash or corrupt data. custodian-and-ward holds one
+        # Python reference to each ward for as long as the custodian is
+        # alive, so the refcount is a deterministic signal that fs and rf
+        # are actually kept alive.
+        rf = lt.renamed_files()
+        fs_refcount_before = sys.getrefcount(self.fs)
+        rf_refcount_before = sys.getrefcount(rf)
+
+        names = lt.filenames(self.fs, rf)
+        self.assertEqual(sys.getrefcount(self.fs), fs_refcount_before + 1)
+        self.assertEqual(sys.getrefcount(rf), rf_refcount_before + 1)
+
+        del names
+        self.assertEqual(sys.getrefcount(self.fs), fs_refcount_before)
+        self.assertEqual(sys.getrefcount(rf), rf_refcount_before)
 
 
 class CertificateTest(TorrentHandleTest):

@@ -1,5 +1,6 @@
 2.1.2 not released
 
+	* add missing python binding for filenames class
 	* fix edge case in filename deduplication
 	* fix web seed coalesced requests for v2 torrents
 	* fix pre-allocation after enabling files with pread disk I/O
