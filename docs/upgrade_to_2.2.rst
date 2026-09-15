@@ -68,6 +68,15 @@ reserved device names (e.g. ``con``, ``com1``) on Windows, via the new
 filtering of unicode formatting characters (introduced in libtorrent 2.1)
 optional.
 
+Also new, and part of ``default_flags``, is
+``path_sanitize_flags::deduplicate_per_directory``. Like the whole-tree
+pass, it runs once the file layout has already been parsed, but it
+resolves collisions against each path element's own siblings rather than
+across the whole tree. Unlike that whole-tree pass, it also renames
+directories that collide case-insensitively with a sibling instead of
+silently folding them together, and disambiguates with a ``-N`` suffix
+rather than the ``.N`` used by the whole-tree pass.
+
 The ruleset that was actually in effect in earlier releases is preserved
 under versioned names, ``path_sanitize_flags::libtorrent_2_0`` and
 ``path_sanitize_flags::libtorrent_2_1``, matching the naming of the new

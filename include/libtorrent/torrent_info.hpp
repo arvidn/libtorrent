@@ -22,6 +22,7 @@ see LICENSE file.
 #include <vector>
 #include <map>
 #include <memory>
+#include <utility>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/shared_array.hpp>
@@ -327,6 +328,11 @@ TORRENT_VERSION_NAMESPACE_4
 
 		// internal
 		std::vector<announce_entry> const& internal_trackers() const { return m_urls; }
+
+		// internal
+		// applies per-path-element renames to the ``file_storage`` returned
+		// by the deprecated ``files()``
+		void internal_rename_path_elements(std::map<path_index_t, std::string> const& renames);
 #endif
 
 		// These two functions are related to `BEP 38`_ (mutable torrents). The

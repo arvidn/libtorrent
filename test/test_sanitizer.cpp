@@ -12,11 +12,13 @@ see LICENSE file.
 #include "libtorrent/path_sanitize_flags.hpp"
 #include "libtorrent/aux_/path.hpp" // for combine_path, current_path, parent_path
 #include "libtorrent/aux_/escape_string.hpp" // for convert_path_to_posix
+#include "libtorrent/aux_/string_util.hpp" // for aux::to_lower
 
 #include "test.hpp"
 
 #include <initializer_list>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 using namespace lt;
@@ -58,6 +60,13 @@ std::vector<std::string> apply_overrides(
 	return files;
 }
 
+std::string lower_case(std::string s)
+{
+	for (char& c : s)
+		c = aux::to_lower(c);
+	return s;
+}
+
 } // anonymous namespace
 
 // sanitize_limits.torrent (see test_torrents/) packs one file or directory per
@@ -70,8 +79,11 @@ std::vector<std::string> apply_overrides(
 // existing file, literal ".." path elements attempting to escape the download
 // directory, elements that only turn into ".." once another rule strips a
 // character, invalid UTF-8, the Windows/Android-invalid character sets,
-// embedded path separators, unicode formatting characters, and trailing
-// dots/spaces.
+// embedded path separators, unicode formatting characters, trailing
+// dots/spaces, two distinct groups of duplicate filenames colliding
+// with each other's disambiguated names in the same directory, and two
+// such groups whose disambiguated names only differ from each other by
+// case.
 //
 // Each test case below is expressed as a delta against the baseline (no
 // sanitize_flags set at all) rather than repeating the full file list: only the
@@ -159,6 +171,21 @@ TORRENT_TEST(sanitize_limits_combinations)
 		"sanitizer_test/formatting_chars/bidi_override_name.txt", // 59
 		"sanitizer_test/trailing/report...", // 60
 		"sanitizer_test/trailing/notes   ", // 61
+		"sanitizer_test/docs-1", // 62
+		"sanitizer_test/dup_ctrl/alpha", // 63
+		"sanitizer_test/dup_ctrl/alpha.1", // 64
+		"sanitizer_test/dup_ctrl/alpha-1", // 65
+		"sanitizer_test/cross_group_dedup/alpha-1", // 66
+		"sanitizer_test/cross_group_dedup/alpha-1.1", // 67
+		"sanitizer_test/cross_group_dedup/alpha-2", // 68
+		"sanitizer_test/cross_group_dedup/alpha-2.1", // 69
+		"sanitizer_test/whole_tree_dedup/beta.txt", // 70
+		"sanitizer_test/whole_tree_dedup/beta.1.txt", // 71
+		"sanitizer_test/whole_tree_dedup/beta.1.1.txt", // 72
+		"sanitizer_test/case_cross_group_dedup/widget", // 73
+		"sanitizer_test/case_cross_group_dedup/widget.1", // 74
+		"sanitizer_test/case_cross_group_dedup/WIDGET-3", // 75
+		"sanitizer_test/case_cross_group_dedup/Widget-3.1", // 76
 	};
 
 	std::vector<override_t> const unicode_length_override = {
@@ -288,6 +315,97 @@ TORRENT_TEST(sanitize_limits_combinations)
 		{3, "sanitizer_test/hidden_reserved/con_.txt"},
 	};
 
+	// unlike the baseline's whole-tree pass, deduplicate_per_directory
+	// doesn't exempt directories from collision-renaming: "Docs"/"docs"/
+	// the bare top-level file "docs" (entry 46) are all one case-
+	// insensitively colliding group under the root, resolved together.
+	// "Docs" (created first) keeps its name. The directory "docs" tries
+	// "docs-1" first, but entry 62's raw name is the literal "docs-1",
+	// already taken, so it's rejected up front and "docs" lands on
+	// "docs-2" instead; "docs" (entry 46) then continues that same
+	// group's numbering and lands on "docs-3". Entry 62 was never part
+	// of this collision group to begin with (its own name never
+	// literally matched "docs"/"Docs"), and nothing here ever renames it
+	// after the fact, so it's untouched, matching the baseline.
+	std::vector<override_t> const docs_dedup_override = {
+		{43, "sanitizer_test/docs-2/notes.txt"},
+		{45, "sanitizer_test/docs-2/same.txt"},
+		{46, "sanitizer_test/docs-3"},
+	};
+
+	// contrast with entry 62 above: entries 63 and 64 both have the raw
+	// name "alpha" (no '-' or '.'), and entry 65 already occupies the
+	// "alpha-1" slot entry 64 tries first. Entry 64's candidates are the
+	// plain "alpha-1", "alpha-2", ... sequence, correctly skipping the
+	// taken "alpha-1" for "alpha-2".
+	std::vector<override_t> const dup_ctrl_override = {
+		{64, "sanitizer_test/dup_ctrl/alpha-2"},
+	};
+
+	// two distinct groups colliding in the same directory: entries 66-67
+	// are both literally "alpha-1", entries 68-69 both literally
+	// "alpha-2". Each group keeps its first (earliest-created) member
+	// unrenamed and only needs to rename its second. split_base_ext()
+	// keeps a trailing "-<digits>" as part of the base, so entry 67's
+	// candidates are built from the base "alpha-1" (its own full name),
+	// landing on "alpha-1-1"; likewise entry 69 lands on "alpha-2-1".
+	// The two groups' candidates never share a base, so, unlike a
+	// stripped base would, they can't collide with each other here.
+	std::vector<override_t> const cross_group_dedup_override = {
+		{67, "sanitizer_test/cross_group_dedup/alpha-1-1"},
+		{69, "sanitizer_test/cross_group_dedup/alpha-2-1"},
+	};
+
+	// entry 71 (a literal duplicate of entry 70's "beta.txt") and entry 72
+	// (a distinct, literal "beta.1.txt") probe the same numbering:
+	// whichever pass renames entry 71 to "beta.1.txt" first must still be
+	// visible when entry 72 is checked, or entry 72 goes untouched and
+	// collides with it. Under the whole-tree pass (every case below
+	// except the two using this override), resolve_duplicate_filenames_
+	// slow() renames entry 71 to "beta.1.txt", and entry 72 then collides
+	// with that rename and is bumped to "beta.1.1.txt" in turn (see
+	// baseline above).
+	//
+	// deduplicate_per_directory's file/symlink pass groups by literal
+	// name rather than by probing a shared counter, so entry 72 (a
+	// distinct group of its own) never collides with entry 71's rename:
+	// entry 71 lands on "beta-1.txt" and entry 72 is left as "beta.1.txt".
+	std::vector<override_t> const whole_tree_dedup_override = {
+		{71, "sanitizer_test/whole_tree_dedup/beta-1.txt"},
+		{72, "sanitizer_test/whole_tree_dedup/beta.1.txt"},
+	};
+
+	// two colliding groups under one directory, "widget"/"widget" (entries
+	// 73-74) and "WIDGET-3"/"Widget-3" (entries 75-76). Entry 74's own
+	// name "widget" has no extension, so its first candidate "widget-1"
+	// is accepted outright. Entry 76's own name "Widget-3" keeps its
+	// "-3" as part of the base, so its candidate is built from
+	// "Widget-3", landing on "Widget-3-1" rather than anything that
+	// could be mistaken, case-insensitively, for the first group's
+	// "widget-1".
+	std::vector<override_t> const case_cross_group_dedup_override = {
+		{74, "sanitizer_test/case_cross_group_dedup/widget-1"},
+		{76, "sanitizer_test/case_cross_group_dedup/Widget-3-1"},
+	};
+
+	// entries 39 and 41 (see the baseline above) collide under every
+	// case, but only deduplicate_per_directory routes their resolution
+	// through the per-directory pass instead of the whole-tree one, so
+	// only there do they pick up its "-N" suffix instead of the
+	// whole-tree pass's ".N"
+	std::vector<override_t> const per_directory_dup_override = {
+		{39, "sanitizer_test/duplicates/readme-1.txt"},
+		{41, "sanitizer_test/duplicates/notes-1.txt"},
+	};
+
+	// same reasoning as above, but this collision only exists once
+	// filter_dos_reserved_names has renamed entry 47's "con" to "con_",
+	// so it only surfaces under "all", where that flag and
+	// deduplicate_per_directory are both set
+	std::vector<override_t> const per_directory_reserved_collision_override = {
+		{48, "sanitizer_test/reserved_collision/con_-1"},
+	};
+
 	sanitize_test_case const cases[] = {
 		{"none", path_sanitize_flags_t{}, {}},
 		{"limit_unicode_characters",
@@ -311,6 +429,14 @@ TORRENT_TEST(sanitize_limits_combinations)
 		{"filter_unicode_formatting_chars",
 			path_sanitize_flags::filter_unicode_formatting_chars,
 			concat({formatting_hidden_override, dotdot_fmt_override, formatting_overrides})},
+		{"deduplicate_per_directory",
+			path_sanitize_flags::deduplicate_per_directory,
+			concat({docs_dedup_override,
+				dup_ctrl_override,
+				per_directory_dup_override,
+				cross_group_dedup_override,
+				whole_tree_dedup_override,
+				case_cross_group_dedup_override})},
 		{"all",
 			path_sanitize_flags::all,
 			concat({unicode_length_override,
@@ -320,7 +446,14 @@ TORRENT_TEST(sanitize_limits_combinations)
 				formatting_overrides,
 				trailing_overrides,
 				dotdot_trim_override,
-				dotdot_fmt_override})},
+				dotdot_fmt_override,
+				docs_dedup_override,
+				dup_ctrl_override,
+				per_directory_dup_override,
+				per_directory_reserved_collision_override,
+				cross_group_dedup_override,
+				whole_tree_dedup_override,
+				case_cross_group_dedup_override})},
 	};
 
 	std::string const filename = combine_path(
@@ -328,6 +461,8 @@ TORRENT_TEST(sanitize_limits_combinations)
 
 	for (auto const& c : cases)
 	{
+		std::printf("case: %s\n", c.name);
+
 		std::vector<std::string> const expected = apply_overrides(baseline, c.overrides);
 
 		load_torrent_limits cfg;
@@ -344,17 +479,104 @@ TORRENT_TEST(sanitize_limits_combinations)
 		auto const& fs = atp.ti->layout();
 		TEST_EQUAL(fs.num_files(), int(expected.size()));
 
+		// deduplicate_per_directory's own resolution runs eagerly, once,
+		// at load_torrent() time (see aux::resolve_directory_duplicates()),
+		// landing in atp.renamed_path_elements rather than mutating
+		// file_storage or the unrelated atp.renamed_files, so check
+		// against that instead.
+		bool const per_directory = bool(c.flags & path_sanitize_flags::deduplicate_per_directory);
+		renamed_files per_directory_renamed;
+		if (per_directory)
+			per_directory_renamed.import_path_elements(fs, atp.renamed_path_elements);
+		filenames const per_directory_names(fs, per_directory_renamed);
+
+		// every rule above resolves collisions among files, so no two
+		// non-pad files should ever end up sharing a resolved path
+		// (case-insensitively); this is the invariant deduplicate_per_
+		// directory and the whole-tree pass both exist to guarantee, and
+		// catches a colliding pair even when no test case happens to
+		// assert its exact (wrong) resulting names
+		std::unordered_map<std::string, file_index_t> seen;
+
 		int idx = 0;
 		for (auto const i : fs.file_range())
 		{
-			if (idx < int(expected.size()))
+			std::string path;
+			if (per_directory)
+			{
+				path = per_directory_names.file_path(i);
+			}
+			else
 			{
 				auto const it = atp.renamed_files.find(i);
-				std::string path = (it != atp.renamed_files.end()) ? it->second : fs.file_path(i);
-				convert_path_to_posix(path);
-				TEST_EQUAL(path, expected[std::size_t(idx)]);
+				path = (it != atp.renamed_files.end()) ? it->second : fs.file_path(i);
 			}
+			convert_path_to_posix(path);
+
+			if (idx < int(expected.size()))
+				TEST_EQUAL(path, expected[std::size_t(idx)]);
 			++idx;
+
+			if (fs.pad_file_at(i))
+				continue;
+
+			auto const ins = seen.emplace(lower_case(path), i);
+			if (!ins.second)
+			{
+				std::printf("duplicate resolved path (case-insensitive): \"%s\" "
+							"for file %d and file %d\n",
+					path.c_str(),
+					int(ins.first->second),
+					int(i));
+				TEST_ERROR("duplicate resolved path");
+			}
 		}
+
+#if TORRENT_ABI_VERSION < 4
+		// torrent_info::parse_torrent_file() (the deprecated ABI<4
+		// constructor path) takes a completely different route to the
+		// same result: it folds every rename directly into file_storage
+		// via rename_file(), one file at a time, for both algorithms.
+		// This is the only coverage of that path against a torrent whose
+		// directories actually collide, so a regression specific to its
+		// deduplicate_per_directory branch wouldn't otherwise be caught.
+		try
+		{
+			torrent_info const ti2(filename, cfg);
+
+			TEST_EQUAL(ti2.files().num_files(), int(expected.size()));
+
+			std::unordered_map<std::string, file_index_t> seen2;
+			int idx2 = 0;
+			for (auto const i : ti2.files().file_range())
+			{
+				std::string path = ti2.files().file_path(i);
+				convert_path_to_posix(path);
+
+				if (idx2 < int(expected.size()))
+					TEST_EQUAL(path, expected[std::size_t(idx2)]);
+				++idx2;
+
+				if (ti2.files().pad_file_at(i))
+					continue;
+
+				auto const ins = seen2.emplace(lower_case(path), i);
+				if (!ins.second)
+				{
+					std::printf("duplicate resolved path (case-insensitive) via "
+								"the deprecated torrent_info ctor: \"%s\" for "
+								"file %d and file %d\n",
+						path.c_str(),
+						int(ins.first->second),
+						int(i));
+					TEST_ERROR("duplicate resolved path");
+				}
+			}
+		}
+		catch (system_error const& e)
+		{
+			TEST_ERROR(e.what());
+		}
+#endif
 	}
 }

@@ -62,6 +62,12 @@ constexpr path_sanitize_flags_t sanitize_invalid_chars_android = 4_bit;
 // characters need to survive sanitization.
 constexpr path_sanitize_flags_t filter_unicode_formatting_chars = 5_bit;
 
+// deduplicates directory entries: colliding path elements (files,
+// symlinks, or directories) under the same parent are renamed, unlike
+// the default whole-tree pass, which only renames files and never
+// directories.
+constexpr path_sanitize_flags_t deduplicate_per_directory = 6_bit;
+
 // all bits combined
 constexpr path_sanitize_flags_t all = path_sanitize_flags_t::all();
 
@@ -87,8 +93,10 @@ constexpr path_sanitize_flags_t libtorrent_2_1 =
 	path_sanitize_flags::libtorrent_2_0 | path_sanitize_flags::filter_unicode_formatting_chars;
 
 // the ruleset introduced in libtorrent 2.2: ``libtorrent_2_1`` plus
-// ``filter_dos_reserved_names`` on Windows.
+// ``filter_dos_reserved_names`` on Windows, plus
+// ``deduplicate_per_directory`` on every platform.
 constexpr path_sanitize_flags_t libtorrent_2_2 = path_sanitize_flags::libtorrent_2_1
+	| path_sanitize_flags::deduplicate_per_directory
 #ifdef TORRENT_WINDOWS
 	| path_sanitize_flags::filter_dos_reserved_names
 #endif

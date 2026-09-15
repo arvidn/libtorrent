@@ -386,7 +386,19 @@ namespace aux {
 		ret.sanitize_flags = cfg.sanitize_flags;
 		std::shared_ptr<torrent_info> ti = aux::parse_torrent_file(torrent_file, ec, cfg, ret);
 		if (ec) return {};
-		if (ti)
+		if (ti && (cfg.sanitize_flags & path_sanitize_flags::deduplicate_per_directory))
+		{
+			ret.renamed_path_elements = aux::resolve_directory_duplicates(ti->layout(), cfg, ec);
+			if (ec)
+				return {};
+#if TORRENT_ABI_VERSION < 4
+			// for backwards compatibility, make sure the file_storage
+			// returned by the deprecated files() has updated filenames
+			// as well.
+			ti->internal_rename_path_elements(ret.renamed_path_elements);
+#endif
+		}
+		else if (ti)
 		{
 			ret.renamed_files = aux::resolve_duplicate_filenames(ti->layout(), cfg.max_duplicate_filenames, ec);
 			if (ec) return {};

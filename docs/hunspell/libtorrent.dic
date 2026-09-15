@@ -209,6 +209,7 @@ pre
 GCC
 prioritization
 nullptr
+nullopt
 nothrow
 precompute
 recomputation
@@ -691,5 +692,8 @@ bidi
 LRM
 RLM
 sanitization
+deduplicate
+deduplicates
+disambiguates
 ruleset
 exfiltrate

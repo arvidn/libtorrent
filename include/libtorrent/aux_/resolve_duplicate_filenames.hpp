@@ -16,7 +16,7 @@ see LICENSE file.
 #include "libtorrent/fwd.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/export.hpp"
-#include "libtorrent/file_storage.hpp"
+#include "libtorrent/file_storage.hpp" // for path_index_t
 #include "libtorrent/aux_/vector.hpp"
 
 namespace libtorrent::aux {
@@ -33,6 +33,14 @@ namespace libtorrent::aux {
 		aux::vector<std::uint32_t, path_index_t> const& eh,
 		int max_duplicate_filenames,
 		error_code& ec);
+
+	// internal
+	// deduplicates directory entries: renames whichever siblings (files,
+	// symlinks, or directories) collide, case-insensitively, under the
+	// same parent. Returns each rename as a (path_index_t, new name)
+	// pair, or an empty map with ec set on error.
+	TORRENT_EXTRA_EXPORT std::map<path_index_t, std::string> resolve_directory_duplicates(
+		file_storage const& fs, load_torrent_limits const& cfg, error_code& ec);
 }
 
 #endif

@@ -7,16 +7,15 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
-// Fuzzes aux::resolve_duplicate_filenames() and checks the invariants it
-// exists to uphold: every file's finalized name (renamed or not) must be
-// unique on disk, case-insensitively, and must not equal any directory
-// path implied by the file tree (directories are never renamed). Pad
-// files are excluded from the file-vs-file check since same-size pad
+// Fuzzes aux::resolve_duplicate_filenames() (the whole-tree pass) and
+// aux::resolve_directory_duplicates() (the deduplicate_per_directory
+// pass) against the same generated file tree, checking each upholds its
+// own uniqueness invariant. Pad files are excluded, since same-size pad
 // files are intentionally allowed to alias.
 //
 // Input decodes into a small number of files from a tiny shared
 // name/extension alphabet, rather than raw path bytes. Extensions shaped
-// like the ".N" suffix resolve_duplicate_filenames() itself generates let
+// like the ".N" and "-N" suffixes the two passes themselves generate let
 // small mutations reach an exact collision, including a later file
 // colliding with an already-renamed one, instead of relying on chance.
 
@@ -25,6 +24,7 @@ see LICENSE file.
 #include <cstdint>
 #include <cstdlib>
 #include <map>
+#include <set>
 #include <string>
 #include <unordered_set>
 #include <utility>
@@ -33,12 +33,19 @@ see LICENSE file.
 #include "libtorrent/aux_/string_util.hpp" // for to_lower
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/file_storage.hpp"
+#include "libtorrent/torrent_info.hpp" // for load_torrent_limits
 
 using namespace lt;
 
 namespace {
 
-std::array<char const*, 5> const names = {"a", "b", "A.b", "temp", "TMP"};
+// the "-1"/"-2"/"temp-1"/"TMP-1" entries are shaped like the "-N" suffix
+// resolve_directory_duplicates() generates (base + "-" + cnt + ext, see
+// next_dedup_candidate()), so a small mutation can land a literal name on
+// an already-generated candidate instead of relying on chance, mirroring
+// what the ".1"/".2" extensions below do for resolve_duplicate_filenames().
+std::array<char const*, 9> const names = {
+	"a", "b", "A.b", "temp", "TMP", "a-1", "b-1", "temp-1", "TMP-1"};
 std::array<char const*, 7> const exts = {"", ".txt", ".Txt", ".1", ".1.txt", ".2", ".2.Txt"};
 int const num_names = int(names.size());
 int const num_exts = int(exts.size());
@@ -109,6 +116,7 @@ extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, size_t size)
 	// this from fs directly, rather than tracking prefixes by hand while
 	// generating the tree above, keeps the invariant in sync with whatever
 	// resolve_duplicate_filenames() itself considers a real collision.
+	aux::vector<std::uint32_t, path_index_t> const eh = fs.compute_element_hashes();
 	aux::vector<bool, path_index_t> const is_dir = fs.compute_is_dir();
 	std::unordered_set<std::string> directories;
 	for (auto const idx : is_dir.range())
@@ -131,6 +139,41 @@ extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, size_t size)
 		if (!resolved.insert(name).second)
 			std::abort();
 		if (directories.count(name))
+			std::abort();
+	}
+
+	// deduplicate_per_directory's namespace is per-parent rather than
+	// whole-tree: the same name may legitimately appear in two unrelated
+	// directories, so the invariant here is scoped to siblings (elements
+	// sharing a parent) instead of full resolved paths. Both files and
+	// directories are renamed by this pass, so both are checked, keyed
+	// by (parent, resolved lower-case name), reusing eh and fs, which
+	// neither pass mutates.
+	load_torrent_limits const cfg;
+	error_code ec2;
+	std::map<path_index_t, std::string> const dir_renamed_map =
+		aux::resolve_directory_duplicates(fs, cfg, ec2);
+	if (ec2)
+		return 0;
+
+	aux::vector<string_view, path_index_t> const orig_names = fs.all_path_element_names();
+	auto const resolved_name = [&](path_index_t const idx) {
+		auto const it = dir_renamed_map.find(idx);
+		std::string name = it != dir_renamed_map.end() ? it->second : std::string(orig_names[idx]);
+		std::transform(name.begin(), name.end(), name.begin(), &aux::to_lower);
+		return name;
+	};
+
+	// every path_index_t here is either a real directory or a file's own
+	// leaf (this fuzzer never adds a symlink, so there's no third kind of
+	// path_element to worry about), so a single unfiltered walk covers
+	// both without a second pass over fs.file_range().
+	std::set<std::pair<std::uint32_t, std::string>> siblings;
+	for (auto const idx : eh.range())
+	{
+		auto const key =
+			std::make_pair(static_cast<std::uint32_t>(fs.parent_of(idx)), resolved_name(idx));
+		if (!siblings.insert(key).second)
 			std::abort();
 	}
 
