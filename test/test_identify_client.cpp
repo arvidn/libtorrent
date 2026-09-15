@@ -27,5 +27,13 @@ TORRENT_TEST(identify_client)
 	TEST_EQUAL(aux::identify_client_impl(peer_id("-TR2210-............")), "Transmission 2.21.0");
 	TEST_EQUAL(aux::identify_client_impl(peer_id("-TR2220-............")), "Transmission 2.22.0");
 	TEST_EQUAL(aux::identify_client_impl(peer_id("-TR2830-............")), "Transmission 2.83.0");
+	TEST_EQUAL(aux::identify_client_impl(peer_id("-TR3000-............")), "Transmission 3.0.0");
+	TEST_EQUAL(aux::identify_client_impl(peer_id("-TR300Z-............")), "Transmission 3.0.0.35");
+	TEST_EQUAL(aux::identify_client_impl(peer_id("-TR300X-............")), "Transmission 3.0.0.33");
+
+	// a non-digit, non-uppercase-letter suffix is not a valid legacy
+	// Transmission encoding and must not be parsed as one.
+	TEST_EQUAL(aux::identify_client_impl(peer_id("-TR300!-............")),
+		"Unknown [-TR300!-............]");
 }
 

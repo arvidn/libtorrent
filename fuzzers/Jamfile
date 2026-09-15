@@ -67,6 +67,7 @@ fuzzer merkle_tree_add_hashes ;
 fuzzer sanitize_path ;
 fuzzer escape_path ;
 fuzzer file_storage_add_file ;
+fuzzer resolve_duplicate_filenames ;
 fuzzer udp_tracker ;
 fuzzer natpmp ;
 fuzzer base32decode ;

@@ -2010,6 +2010,15 @@ namespace {
 			{"test/A.txt", 0x4000, {}, "test/A.2.txt"},
 			{"test/filler", 0x4000, {}, "test/filler"},
 		},
+		{
+			// duplicate of temporary.txt, renamed to Temporary.1.txt
+			{"test/temporary.txt", 0x4000, {}, "test/temporary.txt"},
+			{"test/Temporary.txt", 0x4000, {}, "test/Temporary.1.txt"},
+			// this file's literal name collides with the renamed name above,
+			// so it must be detected and renamed too, rather than colliding
+			// with it on disk
+			{"test/TEMPORARY.1.TXT", 0x4000, {}, "test/TEMPORARY.1.1.TXT"},
+		},
 	};
 
 	std::string resolved_path(lt::add_torrent_params const& atp, lt::file_index_t const i)
