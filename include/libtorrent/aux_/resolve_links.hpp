@@ -43,7 +43,7 @@ namespace libtorrent::aux {
 		// trust_domain is ti's owning torrent's trust domain, following the
 		// same convention as the constructor's.
 		void match(torrent_info const& ti,
-			filenames const fs,
+			filenames const& fs,
 			std::string const& save_path,
 			sha256_hash const& trust_domain = sha256_hash());
 

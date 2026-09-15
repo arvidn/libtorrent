@@ -27,7 +27,14 @@ A summary report (report.html) is written under ./load-torrent/ in the
 current working directory, with one row per (case, variant) linking to
 the per-case directory.
 
-All cases stay within the load_torrent_limits defaults.
+All cases stay within the load_torrent_limits defaults, except the ones
+whose name ends in "_2_1_dedup" (many_files_2_1_dedup,
+many_duplicates_2_1_dedup): those pin sanitize_flags explicitly to
+libtorrent_2_1 (via benchmark_load_torrent's optional [sanitize-flags]
+argument), giving many_files and many_duplicates a stable comparison
+point against libtorrent_2_1's older whole-tree duplicate-filename
+resolution pass that survives path_sanitize_flags::default_flags
+moving on to a newer ruleset.
 """
 
 from argparse import ArgumentParser
@@ -68,9 +75,12 @@ EXE_SUFFIX = ".exe" if platform.system() == "Windows" else ""
 #   max_pieces            = 0x200000 (~2.1M)
 #   max_decode_depth      = 100
 #   max_decode_tokens     = 3,000,000
-#   max_duplicate_filenames = 500   (per-resolution-pass collision count,
-#                                    which grows quadratically with the
-#                                    number of duplicates of one name)
+#   max_duplicate_filenames = 500   (per-resolution-pass collision count;
+#                                    grows quadratically with the number
+#                                    of duplicates of one name under the
+#                                    legacy whole-tree pass, but not
+#                                    under deduplicate_per_directory's
+#                                    counter-resuming probe)
 #   max_directory_depth   = 100
 #
 # Each case below loads cleanly under those defaults. A few of the
@@ -94,6 +104,14 @@ class Case:
     # ITERATIONS default" (sentinel, so the default can sit before
     # ITERATIONS is defined later in the file).
     iterations: int = 0
+    # forwarded as benchmark_load_torrent's optional [sanitize-flags]
+    # argument when non-empty ("2.0", "2.1", "2.2" or "default", matching
+    # the named rulesets in path_sanitize_flags.hpp), pinning which
+    # ruleset -- and so which duplicate-filename-resolution algorithm --
+    # this case measures regardless of what path_sanitize_flags::
+    # default_flags happens to select in a given build. Empty means "use
+    # the build default", i.e. no argument is passed at all.
+    sanitize_flags: str = ""
 
 
 def mk_case(name: str, desc: str, flags: str, **kw: object) -> Case:
@@ -130,8 +148,26 @@ CASES: list[Case] = [
     mk_case(
         "many_files",
         "5000 small files. Exercises file-entry parsing and (for v2) the"
-        " v2 file tree dict walk.",
+        " v2 file tree dict walk. Uses path_sanitize_flags::default_flags,"
+        " whatever ruleset that currently selects (see many_files_2_1_dedup"
+        " for the same shape pinned to libtorrent_2_1's older whole-tree"
+        " duplicate-filename resolution pass, for a stable comparison"
+        " point that survives default_flags moving on to a newer ruleset).",
         "--num-files 5000 --file-size 16K",
+    ),
+    mk_case(
+        "many_files_2_1_dedup",
+        "same shape as many_files, but pinned to libtorrent_2_1's"
+        " whole-tree duplicate-filename resolution pass, predating"
+        " deduplicate_per_directory, regardless of what"
+        " path_sanitize_flags::default_flags currently selects. With no"
+        " actual duplicates in this case, both algorithms short-circuit"
+        " via file_storage::has_duplicate_filenames()'s cheap CRC"
+        " pre-check, so this pair is mainly a regression check that the"
+        " two stay comparably fast in the common no-duplicate case, not a"
+        " meaningful which-is-faster comparison.",
+        "--num-files 5000 --file-size 16K",
+        sanitize_flags="2.1",
     ),
     mk_case(
         "many_pad_files",
@@ -278,11 +314,30 @@ CASES: list[Case] = [
         "many_duplicates",
         "30 file entries whose filenames differ only in capitalization."
         " They are distinct dict keys in v2's file tree but collide under"
-        " libtorrent's case-insensitive resolve_duplicate_filenames(), so"
-        " all three variants exercise the rename path. Collisions grow"
-        " quadratically with the number of dups, so 30 gives ~406"
-        " collisions (under the default 500-collision limit).",
+        " libtorrent's case-insensitive duplicate-filename resolution, so"
+        " all three variants exercise the rename path. Uses"
+        " path_sanitize_flags::default_flags, whatever ruleset that"
+        " currently selects (see many_duplicates_2_1_dedup for the same"
+        " shape pinned to libtorrent_2_1's older whole-tree pass, for a"
+        " stable comparison point that survives default_flags moving on"
+        " to a newer ruleset).",
         "--num-files 1000 --file-size 16K --num-duplicates 30",
+    ),
+    mk_case(
+        "many_duplicates_2_1_dedup",
+        "same shape and duplicate count as many_duplicates, but pinned to"
+        " libtorrent_2_1's whole-tree resolve_duplicate_filenames() pass,"
+        " predating deduplicate_per_directory, regardless of what"
+        " path_sanitize_flags::default_flags currently selects."
+        " Collisions grow quadratically with the number of dups under"
+        " this pass, so 30 gives ~406 collisions (under the default"
+        " 500-collision limit); deduplicate_per_directory's"
+        " counter-resuming probe (exercised by many_duplicates whenever"
+        " default_flags selects libtorrent_2_2 or newer) doesn't grow"
+        " quadratically with the dup count, so it has much more headroom"
+        " at the same collision count.",
+        "--num-files 1000 --file-size 16K --num-duplicates 30",
+        sanitize_flags="2.1",
     ),
     mk_case(
         "huge_files",
@@ -441,7 +496,11 @@ def wrap_with_profiler(cmd: list[str], output_dir: Path) -> tuple[list[str], str
 
 
 def run_heaptrack(
-    bench: Path, torrent: Path, iterations: int, output_dir: Path
+    bench: Path,
+    torrent: Path,
+    iterations: int,
+    output_dir: Path,
+    sanitize_flags: str = "",
 ) -> tuple[Path, str]:
     """Run the benchmark a second time under heaptrack, generate a
     collapsed-stack flamegraph from the trace, and render an allocation
@@ -466,7 +525,7 @@ def run_heaptrack(
         str(bench),
         str(torrent),
         str(iterations),
-    ]
+    ] + ([sanitize_flags] if sanitize_flags else [])
     rc = subprocess.call(heap_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
     if rc != 0:
         return heap_html, f"heaptrack exited with code {rc}"
@@ -554,7 +613,9 @@ def run_one(
     result.torrent_size = torrent.stat().st_size
 
     iterations = case.iterations or ITERATIONS
-    cmd = [str(bench), str(torrent), str(iterations)]
+    cmd = [str(bench), str(torrent), str(iterations)] + (
+        [case.sanitize_flags] if case.sanitize_flags else []
+    )
     full_cmd, profiler_kind = wrap_with_profiler(cmd, output_dir)
     run_out_path = output_dir / "run.out"
 
@@ -604,7 +665,9 @@ def run_one(
             result.profile_html = str(trace_path.relative_to(benchmarks_dir))
 
     if with_heaptrack:
-        heap_html, err = run_heaptrack(bench, torrent, iterations, output_dir)
+        heap_html, err = run_heaptrack(
+            bench, torrent, iterations, output_dir, case.sanitize_flags
+        )
         if err:
             print(f"  warning: heaptrack pass: {err}")
         elif heap_html.exists():

@@ -1198,59 +1198,68 @@ TORRENT_TEST(test_renamed_files)
 	fs.add_file_borrow({}, "test/2/2", 0x8000, {}, 0, {}, off[3]);
 
 	renamed_files rf;
+	// flat (file_index_t) renames are resolved through rf's live state
+	// regardless of when this view was constructed, so building it once
+	// up front and reusing it across the rename_file() calls below is
+	// fine, unlike a path_index_t-keyed rename (not exercised here).
+	filenames const names(fs, rf);
 
 #ifdef TORRENT_WINDOWS
-	TEST_EQUAL(rf.file_path(fs, 0_file, "d:\\root"), "d:\\root\\test\\0");
-	TEST_EQUAL(rf.file_path(fs, 1_file, "d:\\root"), "d:\\root\\test\\1");
-	TEST_EQUAL(rf.file_path(fs, 2_file, "d:\\root"), "d:\\root\\test\\2\\1");
-	TEST_EQUAL(rf.file_path(fs, 3_file, "d:\\root"), "d:\\root\\test\\2\\2");
+	TEST_EQUAL(names.file_path(0_file, "d:\\root"), "d:\\root\\test\\0");
+	TEST_EQUAL(names.file_path(1_file, "d:\\root"), "d:\\root\\test\\1");
+	TEST_EQUAL(names.file_path(2_file, "d:\\root"), "d:\\root\\test\\2\\1");
+	TEST_EQUAL(names.file_path(3_file, "d:\\root"), "d:\\root\\test\\2\\2");
 #else
-	TEST_EQUAL(rf.file_path(fs, 0_file, "/root"), "/root/test/0");
-	TEST_EQUAL(rf.file_path(fs, 1_file, "/root"), "/root/test/1");
-	TEST_EQUAL(rf.file_path(fs, 2_file, "/root"), "/root/test/2/1");
-	TEST_EQUAL(rf.file_path(fs, 3_file, "/root"), "/root/test/2/2");
+	TEST_EQUAL(names.file_path(0_file, "/root"), "/root/test/0");
+	TEST_EQUAL(names.file_path(1_file, "/root"), "/root/test/1");
+	TEST_EQUAL(names.file_path(2_file, "/root"), "/root/test/2/1");
+	TEST_EQUAL(names.file_path(3_file, "/root"), "/root/test/2/2");
 #endif
 
-	TEST_EQUAL(std::string(rf.file_name(fs, 0_file)), "0");
-	TEST_EQUAL(std::string(rf.file_name(fs, 1_file)), "1");
-	TEST_EQUAL(std::string(rf.file_name(fs, 2_file)), "1");
-	TEST_EQUAL(std::string(rf.file_name(fs, 3_file)), "2");
+	TEST_EQUAL(std::string(names.file_name(0_file)), "0");
+	TEST_EQUAL(std::string(names.file_name(1_file)), "1");
+	TEST_EQUAL(std::string(names.file_name(2_file)), "1");
+	TEST_EQUAL(std::string(names.file_name(3_file)), "2");
 
 	// no root path
 	rf.rename_file(fs, 0_file, "foobar");
 #ifdef TORRENT_WINDOWS
-	TEST_EQUAL(rf.file_path(fs, 0_file, "d:\\root"), "d:\\root\\foobar");
+	TEST_EQUAL(names.file_path(0_file, "d:\\root"), "d:\\root\\foobar");
 #else
-	TEST_EQUAL(rf.file_path(fs, 0_file, "/root"), "/root/foobar");
+	TEST_EQUAL(names.file_path(0_file, "/root"), "/root/foobar");
 #endif
 	// an empty save_path resolves the rename relative to nothing, i.e. just
 	// the new (bare) filename
-	TEST_EQUAL(rf.file_path(fs, 0_file), "foobar");
-	TEST_EQUAL(std::string(rf.file_name(fs, 0_file)), "foobar");
+	TEST_EQUAL(*rf.file_path(fs.name(), 0_file), "foobar");
+	TEST_EQUAL(*rf.file_name(0_file), "foobar");
+	TEST_EQUAL(std::string(names.file_name(0_file)), "foobar");
 
 	// full path
 #ifdef TORRENT_WINDOWS
 	rf.rename_file(fs, 1_file, "test\\bar");
-	TEST_EQUAL(rf.file_path(fs, 1_file, "d:\\root"), "d:\\root\\test\\bar");
-	TEST_EQUAL(rf.file_path(fs, 1_file), "test\\bar");
+	TEST_EQUAL(*rf.file_path(fs.name(), 1_file, "d:\\root"), "d:\\root\\test\\bar");
+	TEST_EQUAL(*rf.file_path(fs.name(), 1_file), "test\\bar");
+	TEST_EQUAL(names.file_path(1_file, "d:\\root"), "d:\\root\\test\\bar");
 #else
 	rf.rename_file(fs, 1_file, "test/bar");
-	TEST_EQUAL(rf.file_path(fs, 1_file, "/root"), "/root/test/bar");
-	TEST_EQUAL(rf.file_path(fs, 1_file), "test/bar");
+	TEST_EQUAL(*rf.file_path(fs.name(), 1_file, "/root"), "/root/test/bar");
+	TEST_EQUAL(*rf.file_path(fs.name(), 1_file), "test/bar");
+	TEST_EQUAL(names.file_path(1_file, "/root"), "/root/test/bar");
 #endif
-	TEST_EQUAL(std::string(rf.file_name(fs, 1_file)), "bar");
+	TEST_EQUAL(std::string(names.file_name(1_file)), "bar");
 
 	// absolute path
 #ifdef TORRENT_WINDOWS
 	rf.rename_file(fs, 2_file, "c:\\foobar\\foo");
-	TEST_EQUAL(rf.file_path(fs, 2_file, "d:\\root"), "c:\\foobar\\foo");
+	TEST_EQUAL(names.file_path(2_file, "d:\\root"), "c:\\foobar\\foo");
 #else
 	rf.rename_file(fs, 2_file, "/foobar/foo");
-	TEST_EQUAL(rf.file_path(fs, 2_file, "/root"), "/foobar/foo");
+	TEST_EQUAL(names.file_path(2_file, "/root"), "/foobar/foo");
 #endif
 	// an absolute rename ignores save_path entirely, empty or not
-	TEST_EQUAL(rf.file_path(fs, 2_file), rf.file_path(fs, 2_file, "/root"));
-	TEST_EQUAL(std::string(rf.file_name(fs, 2_file)), "foo");
+	TEST_EQUAL(*rf.file_path(fs.name(), 2_file), *rf.file_path(fs.name(), 2_file, "/root"));
+	TEST_EQUAL(*rf.file_name(2_file), "foo");
+	TEST_EQUAL(std::string(names.file_name(2_file)), "foo");
 }
 
 
@@ -1297,25 +1306,27 @@ TORRENT_TEST(renamed_files_round_trip)
 	auto const save_path = std::string("/root");
 #endif
 
-	std::string const path0 = rf.file_path(fs, 0_file, save_path);
-	std::string const path1 = rf.file_path(fs, 1_file, save_path);
-	std::string const path2 = rf.file_path(fs, 2_file, save_path);
-	std::string const path3 = rf.file_path(fs, 3_file, save_path);
+	filenames const names(fs, rf);
+	std::string const path0 = names.file_path(0_file, save_path);
+	std::string const path1 = names.file_path(1_file, save_path);
+	std::string const path2 = names.file_path(2_file, save_path);
+	std::string const path3 = names.file_path(3_file, save_path);
 
 	// round-trip: export then import into a fresh renamed_files
 	auto const exported = rf.export_filenames(fs);
 	renamed_files rf2;
 	rf2.import_filenames(fs, exported);
+	filenames const names2(fs, rf2);
 
-	TEST_EQUAL(rf2.file_path(fs, 0_file, save_path), path0);
-	TEST_EQUAL(rf2.file_path(fs, 1_file, save_path), path1);
-	TEST_EQUAL(rf2.file_path(fs, 2_file, save_path), path2);
-	TEST_EQUAL(rf2.file_path(fs, 3_file, save_path), path3);
+	TEST_EQUAL(names2.file_path(0_file, save_path), path0);
+	TEST_EQUAL(names2.file_path(1_file, save_path), path1);
+	TEST_EQUAL(names2.file_path(2_file, save_path), path2);
+	TEST_EQUAL(names2.file_path(3_file, save_path), path3);
 
-	TEST_EQUAL(std::string(rf2.file_name(fs, 0_file)), std::string(rf.file_name(fs, 0_file)));
-	TEST_EQUAL(std::string(rf2.file_name(fs, 1_file)), std::string(rf.file_name(fs, 1_file)));
-	TEST_EQUAL(std::string(rf2.file_name(fs, 2_file)), std::string(rf.file_name(fs, 2_file)));
-	TEST_EQUAL(std::string(rf2.file_name(fs, 3_file)), std::string(rf.file_name(fs, 3_file)));
+	TEST_EQUAL(std::string(names2.file_name(0_file)), std::string(names.file_name(0_file)));
+	TEST_EQUAL(std::string(names2.file_name(1_file)), std::string(names.file_name(1_file)));
+	TEST_EQUAL(std::string(names2.file_name(2_file)), std::string(names.file_name(2_file)));
+	TEST_EQUAL(std::string(names2.file_name(3_file)), std::string(names.file_name(3_file)));
 
 	TEST_EQUAL(rf2.file_absolute_path(fs, 0_file), rf.file_absolute_path(fs, 0_file));
 	TEST_EQUAL(rf2.file_absolute_path(fs, 1_file), rf.file_absolute_path(fs, 1_file));

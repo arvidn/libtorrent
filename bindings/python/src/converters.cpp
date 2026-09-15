@@ -419,6 +419,7 @@ void bind_converters()
 	to_python_converter<lt::piece_index_t, from_strong_typedef<lt::piece_index_t>>();
 	to_python_converter<lt::download_priority_t, from_strong_typedef<lt::download_priority_t>>();
 	to_python_converter<lt::file_index_t, from_strong_typedef<lt::file_index_t>>();
+	to_python_converter<lt::path_index_t, from_strong_typedef<lt::path_index_t>>();
 	to_python_converter<lt::port_mapping_t, from_strong_typedef<lt::port_mapping_t>>();
 	to_python_converter<lt::peer_class_t, from_strong_typedef<lt::peer_class_t>>();
 	to_python_converter<lt::connection_type_t, from_bitfield_flag<lt::connection_type_t>>();
@@ -469,6 +470,10 @@ void bind_converters()
 	to_python_converter<
 		std::map<lt::file_index_t, std::string>,
 		map_to_dict<std::map<lt::file_index_t, std::string>>>();
+	to_python_converter<lt::aux::noexcept_movable<std::map<lt::path_index_t, std::string>>,
+		map_to_dict<lt::aux::noexcept_movable<std::map<lt::path_index_t, std::string>>>>();
+	to_python_converter<std::map<lt::path_index_t, std::string>,
+		map_to_dict<std::map<lt::path_index_t, std::string>>>();
 	to_python_converter<lt::session_flags_t, from_bitfield_flag<lt::session_flags_t>>();
 
 #if TORRENT_ABI_VERSION == 1
@@ -492,6 +497,7 @@ void bind_converters()
 	tuple_to_endpoint<lt::udp::endpoint>();
 	tuple_to_pair<lt::piece_index_t, lt::download_priority_t>();
 	dict_to_map<lt::file_index_t, std::string>();
+	dict_to_map<lt::path_index_t, std::string>();
 	list_to_vector<std::vector<int>>();
 	list_to_vector<std::vector<lt::download_priority_t>>();
 	list_to_vector<std::vector<std::string>>();
@@ -518,6 +524,9 @@ void bind_converters()
 		lt::file_index_t,
 		std::string,
 		lt::aux::noexcept_movable<std::map<lt::file_index_t, std::string>>>();
+	dict_to_map<lt::path_index_t,
+		std::string,
+		lt::aux::noexcept_movable<std::map<lt::path_index_t, std::string>>>();
 
 	// bitfield types
 	list_to_bitfield<lt::typed_bitfield<lt::piece_index_t>, lt::piece_index_t>();
@@ -530,6 +539,7 @@ void bind_converters()
 	to_strong_typedef<lt::piece_index_t>();
 	to_strong_typedef<lt::download_priority_t>();
 	to_strong_typedef<lt::file_index_t>();
+	to_strong_typedef<lt::path_index_t>();
 	to_strong_typedef<lt::port_mapping_t>();
 	to_strong_typedef<lt::peer_class_t>();
 	to_enum_class<lt::move_flags_t>();

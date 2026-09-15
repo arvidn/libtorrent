@@ -20,6 +20,7 @@ see LICENSE file.
 #include <ctime>
 
 #include "libtorrent/storage_defs.hpp"
+#include "libtorrent/file_storage.hpp" // for path_index_t
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/version.hpp"
 #include "libtorrent/socket.hpp" // for tcp::endpoint
@@ -356,6 +357,13 @@ TORRENT_VERSION_NAMESPACE_3
 		// this is a map of file indices in the torrent and new filenames to be
 		// applied before the torrent is added.
 		aux::noexcept_movable<std::map<file_index_t, std::string>> renamed_files;
+
+		// per-path-element renames (directories as well as individual
+		// files), as used by path_sanitize_flags::deduplicate_per_directory's
+		// collision resolution. The keys are opaque ``path_index_t``
+		// values, only meaningful relative to this torrent's own file
+		// layout.
+		aux::noexcept_movable<std::map<path_index_t, std::string>> renamed_path_elements;
 
 		// the path-sanitization ruleset used to build this torrent's file
 		// layout on disk. This defaults to

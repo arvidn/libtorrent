@@ -51,7 +51,7 @@ resolve_links::resolve_links(std::shared_ptr<torrent_info const> ti,
 }
 
 void resolve_links::match(torrent_info const& ti,
-	filenames const fs,
+	filenames const& fs,
 	std::string const& save_path,
 	sha256_hash const& trust_domain)
 {
