@@ -28,6 +28,9 @@ EXPORT lt::add_torrent_params generate_torrent(bool with_files = false, bool wit
 EXPORT int load_file(std::string const& filename, std::vector<char>& v
 	, lt::error_code& ec, int limit = 8000000);
 
+// does not follow symlinks, to avoid deleting things outside the test sandbox
+EXPORT void remove_all(std::string const& f, lt::error_code& ec);
+
 EXPORT void init_rand_address();
 EXPORT lt::address rand_v4();
 EXPORT lt::address rand_v6();
