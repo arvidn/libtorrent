@@ -2573,6 +2573,12 @@ get_out:
 		}
 	}
 
+	void piece_picker::clear_all_peers()
+	{
+		for (auto& b : m_block_info)
+			b.peer = nullptr;
+	}
+
 	// the first bool is true if this is the only peer that has requested and downloaded
 	// blocks from this piece.
 	// the second bool is true if this is the only active peer that is requesting

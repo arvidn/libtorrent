@@ -1302,7 +1302,9 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 	void torrent::clear_peers()
 	{
 		disconnect_all(error_code(), operation_t::unknown);
-		if (m_peer_list) m_peer_list->clear();
+		if (m_peer_list)
+			m_peer_list->clear();
+		all_peers_erased();
 	}
 
 	void torrent::set_sequential_range(piece_index_t first_piece, piece_index_t last_piece)
@@ -5425,7 +5427,11 @@ namespace {
 		// if there are any other peers allocated still, we need to clear them
 		// now. They can't be cleared later because the allocator will already
 		// have been destructed
-		if (m_peer_list) m_peer_list->clear();
+		if (m_peer_list)
+		{
+			m_peer_list->clear();
+			all_peers_erased();
+		}
 		m_connections.clear();
 		m_outgoing_pids.clear();
 		m_peers_to_disconnect.clear();
@@ -12073,6 +12079,7 @@ namespace {
 	// plugin an erasure notification without adding a new virtual to the
 	// public torrent_plugin interface (which would break ABI).
 	void smart_ban_notify_erase_peers(torrent_plugin* ext, span<aux::torrent_peer* const> peers);
+	void smart_ban_notify_clear_peers(torrent_plugin* ext);
 #endif
 
 	// this is called when torrent_peers are removed from the peer_list
@@ -12094,6 +12101,21 @@ namespace {
 #if TORRENT_USE_INVARIANT_CHECKS
 		m_picker->check_peers();
 #endif
+	}
+
+	void torrent::all_peers_erased()
+	{
+#ifndef TORRENT_DISABLE_EXTENSIONS
+		for (auto const& ext : m_extensions)
+			smart_ban_notify_clear_peers(ext.get());
+#endif
+
+		if (!has_picker())
+			return;
+
+		// clear_all_peers() already nulls every peer pointer unconditionally,
+		// so check_peers() would have nothing to catch here
+		m_picker->clear_all_peers();
 	}
 
 #if TORRENT_ABI_VERSION == 1
