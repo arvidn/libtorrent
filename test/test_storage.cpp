@@ -1032,6 +1032,188 @@ TORRENT_TEST(remove_pread_disk_io)
 	test_remove<pread_storage>(current_working_directory());
 }
 
+#if TORRENT_HAS_SYMLINK
+// sanitize_symlinks() rewrites a symlink whose target does not name any file
+// in the torrent to point to itself (see TORRENT_TEST(sanitize_symlinks) in
+// test_file_storage.cpp). rename_file()'s existence check must not follow the
+// final symlink component, since stat() on a self-referencing symlink fails
+// with ELOOP, indistinguishable from a real error.
+TORRENT_TEST_DISK_IO(rename_self_referencing_symlink)
+{
+	std::string const test_path = current_working_directory();
+	delete_dirs("symlink_rename_storage");
+
+	std::vector<lt::create_file_entry> fs;
+	fs.emplace_back("symlink_rename_storage/data", 0x4000);
+	fs.emplace_back(
+		"symlink_rename_storage/link", 0, file_storage::flag_symlink, 0, "nonexistent-file");
+
+	lt::create_torrent t(std::move(fs), 0x4000, create_torrent::v1_only | create_torrent::symlinks);
+	for (auto const i : t.piece_range())
+		t.set_hash(i, sha1_hash::max());
+
+	lt::add_torrent_params atp = load_torrent_buffer(t.generate_buf());
+
+	// the invalid target must have been sanitized into a self-reference
+	TEST_EQUAL(atp.ti->layout().symlink(1_file), combine_path("symlink_rename_storage", "link"));
+
+	boost::asio::io_context ios;
+	counters cnt;
+	aux::session_settings sett;
+	std::unique_ptr<disk_interface> io = disk_io(ios, sett, cnt);
+
+	renamed_files rf;
+	aux::vector<download_priority_t, file_index_t> priorities;
+	storage_params p{atp.ti->layout(),
+		rf,
+		test_path,
+		{},
+		storage_mode_sparse,
+		priorities,
+		sha1_hash{},
+		atp.ti->v1(),
+		atp.ti->v2()};
+	auto st = io->new_torrent(std::move(p), std::shared_ptr<void>());
+
+	bool done = false;
+	bool oversized = false;
+	add_torrent_params frd;
+	aux::vector<std::string, file_index_t> links;
+	io->async_check_files(
+		st, &frd, links, std::bind(&on_check_resume_data, _1, _2, &done, &oversized));
+	io->submit_jobs();
+	ios.restart();
+	run_until(ios, done);
+
+	bool rename_done = false;
+	storage_error rename_error;
+	io->async_rename_file(
+		st, 1_file, "renamed-link", [&](std::string const&, file_index_t, storage_error const& e) {
+			rename_error = e;
+			rename_done = true;
+		});
+	io->submit_jobs();
+	ios.restart();
+	run_until(ios, rename_done);
+
+	// renaming the symlink entry itself must succeed regardless of what it
+	// points to, just like renaming any other file
+	TEST_CHECK(!rename_error);
+
+	std::string const new_link_path =
+		combine_path(test_path, combine_path("symlink_rename_storage", "renamed-link"));
+	char buf[512];
+	TEST_CHECK(::readlink(new_link_path.c_str(), buf, sizeof(buf)) > 0);
+
+	bool release_done = false;
+	io->async_release_files(st, [&] { release_done = true; });
+	io->submit_jobs();
+	ios.restart();
+	run_until(ios, release_done);
+
+	io->abort(true);
+}
+
+// async_delete_files() (session_handle::delete_files) removes each
+// file_storage entry directly via remove() (plain unlink(), never following
+// the final symlink component), so a dangling or self-referencing symlink
+// target doesn't affect it. These are regression tests for that.
+void test_delete_files(lt::disk_io_constructor_type const disk_io,
+	lt::add_torrent_params const& atp,
+	std::string const& test_path,
+	std::string const& dir_name)
+{
+	boost::asio::io_context ios;
+	counters cnt;
+	aux::session_settings sett;
+	std::unique_ptr<disk_interface> io = disk_io(ios, sett, cnt);
+
+	renamed_files rf;
+	rf.import_filenames(atp.ti->layout(), atp.renamed_files);
+	aux::vector<download_priority_t, file_index_t> priorities;
+	storage_params p{atp.ti->layout(),
+		rf,
+		test_path,
+		{},
+		storage_mode_sparse,
+		priorities,
+		sha1_hash{},
+		atp.ti->v1(),
+		atp.ti->v2()};
+	auto st = io->new_torrent(std::move(p), std::shared_ptr<void>());
+
+	bool done = false;
+	bool oversized = false;
+	add_torrent_params frd;
+	aux::vector<std::string, file_index_t> links;
+	io->async_check_files(
+		st, &frd, links, std::bind(&on_check_resume_data, _1, _2, &done, &oversized));
+	io->submit_jobs();
+	ios.restart();
+	run_until(ios, done);
+
+	bool delete_done = false;
+	storage_error delete_error;
+	io->async_delete_files(st, session::delete_files, [&](storage_error const& e) {
+		delete_error = e;
+		delete_done = true;
+	});
+	io->submit_jobs();
+	ios.restart();
+	run_until(ios, delete_done);
+
+	TEST_CHECK(!delete_error);
+	TEST_CHECK(!exists(combine_path(test_path, dir_name)));
+
+	io->abort(true);
+}
+
+// a symlink whose target names a real sibling ends up dangling if that
+// sibling gets deduplication-renamed
+TORRENT_TEST_DISK_IO(delete_files_dangling_symlink)
+{
+	std::string const test_path = current_working_directory();
+	delete_dirs("symlink_delete_storage");
+
+	std::vector<lt::create_file_entry> fs;
+	fs.emplace_back("symlink_delete_storage/temporary.txt", 0x4000);
+	fs.emplace_back("symlink_delete_storage/Temporary.txt", 0x4000);
+	fs.emplace_back(
+		"symlink_delete_storage/link", 0, file_storage::flag_symlink, 0, "Temporary.txt");
+
+	lt::create_torrent t(std::move(fs), 0x4000, create_torrent::v1_only | create_torrent::symlinks);
+	for (auto const i : t.piece_range())
+		t.set_hash(i, sha1_hash::max());
+
+	lt::add_torrent_params atp = load_torrent_buffer(t.generate_buf());
+	TEST_CHECK(atp.renamed_files.find(1_file) != atp.renamed_files.end());
+
+	test_delete_files(disk_io, atp, test_path, "symlink_delete_storage");
+}
+
+// an invalid target (one that names no sibling at all) gets sanitized by
+// sanitize_symlinks() into a self-reference (see
+// TORRENT_TEST(sanitize_symlinks) in test_file_storage.cpp)
+TORRENT_TEST_DISK_IO(delete_files_self_referencing_symlink)
+{
+	std::string const test_path = current_working_directory();
+	delete_dirs("symlink_delete_storage");
+
+	std::vector<lt::create_file_entry> fs;
+	fs.emplace_back("symlink_delete_storage/data", 0x4000);
+	fs.emplace_back(
+		"symlink_delete_storage/link", 0, file_storage::flag_symlink, 0, "nonexistent-file");
+
+	lt::create_torrent t(std::move(fs), 0x4000, create_torrent::v1_only | create_torrent::symlinks);
+	for (auto const i : t.piece_range())
+		t.set_hash(i, sha1_hash::max());
+
+	lt::add_torrent_params atp = load_torrent_buffer(t.generate_buf());
+	TEST_EQUAL(atp.ti->layout().symlink(1_file), combine_path("symlink_delete_storage", "link"));
+
+	test_delete_files(disk_io, atp, test_path, "symlink_delete_storage");
+}
+#endif // TORRENT_HAS_SYMLINK
 
 void test_fastresume(bool const test_deprecated)
 {
