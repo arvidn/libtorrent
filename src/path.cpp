@@ -45,7 +45,6 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/aux_/path.hpp"
-#include "libtorrent/aux_/directory.hpp"
 #include "libtorrent/aux_/string_util.hpp"
 #include <cstring>
 #include <algorithm> // for std::replace
@@ -873,28 +872,6 @@ namespace {
 			return;
 		}
 #endif // TORRENT_WINDOWS
-	}
-
-	void remove_all(std::string const& f, error_code& ec)
-	{
-		ec.clear();
-
-		file_status s;
-		stat_file(f, &s, ec);
-		if (ec) return;
-
-		if (s.mode & file_status::directory)
-		{
-			for (aux::directory i(f, ec); !i.done(); i.next(ec))
-			{
-				if (ec) return;
-				std::string p = i.file();
-				if (p == "." || p == "..") continue;
-				remove_all(combine_path(f, p), ec);
-				if (ec) return;
-			}
-		}
-		remove(f, ec);
 	}
 
 	std::pair<string_view, string_view> rsplit_path(string_view p)

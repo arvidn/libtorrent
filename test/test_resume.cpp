@@ -1207,7 +1207,7 @@ void test_seed_mode(test_mode_t const flags)
 	if (flags & test_mode::missing_all_files)
 	{
 		lt::error_code ec;
-		lt::remove_all("test_resume", ec);
+		remove_all("test_resume", ec);
 		TEST_CHECK(!ec);
 	}
 
