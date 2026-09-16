@@ -385,11 +385,11 @@ void remove_all(std::string const& f, lt::error_code& ec)
 	ec.clear();
 
 	file_status s;
-	stat_file(f, &s, ec);
+	stat_file(f, &s, ec, dont_follow_links);
 	if (ec)
 		return;
 
-	if (s.mode & file_status::directory)
+	if ((s.mode & file_status::directory) && !(s.mode & file_status::symlink))
 	{
 		for (aux::directory i(f, ec); !i.done(); i.next(ec))
 		{
