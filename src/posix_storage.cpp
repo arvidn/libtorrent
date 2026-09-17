@@ -350,7 +350,7 @@ namespace aux {
 		if (index < file_index_t(0) || index >= files().end_file()) return;
 		std::string const old_name = m_renamed_files.file_path(m_files, index, m_save_path);
 
-		if (exists(old_name, ec.ec))
+		if (exists(old_name, ec.ec, dont_follow_links))
 		{
 			std::string new_path;
 			if (is_complete(new_filename)) new_path = new_filename;
@@ -358,7 +358,7 @@ namespace aux {
 			std::string new_dir = parent_path(new_path);
 
 			error_code best_effort;
-			if (exists(new_path, best_effort))
+			if (exists(new_path, best_effort, dont_follow_links))
 			{
 				// We don't want to overwrite an existing file
 				ec.ec = error_code(boost::system::errc::file_exists, generic_category());
