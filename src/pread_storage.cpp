@@ -325,7 +325,7 @@ namespace libtorrent::aux {
 		// fail later when we try to write to the file the first time, because
 		// the user then will have had a chance to make the destination directory
 		// valid.
-		if (exists(old_name, ec.ec))
+		if (exists(old_name, ec.ec, dont_follow_links))
 		{
 			std::string new_path;
 			if (is_complete(new_filename)) new_path = new_filename;
@@ -333,7 +333,7 @@ namespace libtorrent::aux {
 			std::string new_dir = parent_path(new_path);
 
 			error_code best_effort;
-			if (exists(new_path, best_effort))
+			if (exists(new_path, best_effort, dont_follow_links))
 			{
 				// We don't want to overwrite an existing file
 				ec.ec = error_code(boost::system::errc::file_exists, generic_category());

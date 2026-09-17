@@ -827,10 +827,10 @@ namespace {
 		return ret;
 	}
 #endif
-	bool exists(std::string const& f, error_code& ec)
+	bool exists(std::string const& f, error_code& ec, file_status_flag_t const flags)
 	{
 		file_status s;
-		stat_file(f, &s, ec);
+		stat_file(f, &s, ec, flags);
 		if (ec)
 		{
 			// if the filename is too long, the file also cannot exist

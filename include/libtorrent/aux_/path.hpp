@@ -77,7 +77,8 @@ namespace libtorrent {
 		, error_code& ec);
 	TORRENT_EXTRA_EXPORT void create_directory(std::string const& f, error_code& ec);
 	TORRENT_EXTRA_EXPORT void remove(std::string const& f, error_code& ec);
-	TORRENT_EXTRA_EXPORT bool exists(std::string const& f, error_code& ec);
+	TORRENT_EXTRA_EXPORT bool exists(
+		std::string const& f, error_code& ec, file_status_flag_t flags = {});
 	TORRENT_EXTRA_EXPORT bool is_directory(std::string const& f
 		, error_code& ec);
 

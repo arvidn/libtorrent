@@ -1087,8 +1087,10 @@ TORRENT_TEST_DISK_IO(rename_self_referencing_symlink)
 
 	bool rename_done = false;
 	storage_error rename_error;
-	io->async_rename_file(
-		st, 1_file, "renamed-link", [&](std::string const&, file_index_t, storage_error const& e) {
+	io->async_rename_file(st,
+		1_file,
+		combine_path("symlink_rename_storage", "renamed-link"),
+		[&](std::string const&, file_index_t, storage_error const& e) {
 			rename_error = e;
 			rename_done = true;
 		});
