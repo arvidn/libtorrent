@@ -1482,6 +1482,26 @@ TORRENT_TEST(clear_peer)
 	TEST_CHECK(dls == expected_dls5);
 }
 
+TORRENT_TEST(clear_all_peers)
+{
+	// test clear_all_peers
+	auto p = setup_picker("1123333", "       ", "", "");
+	p->mark_as_downloading({0_piece, 0}, &tmp1);
+	p->mark_as_downloading({0_piece, 1}, &tmp2);
+	p->mark_as_downloading({0_piece, 2}, &tmp3);
+	p->mark_as_downloading({1_piece, 1}, &tmp1);
+	p->mark_as_downloading({2_piece, 1}, &tmp2);
+	p->mark_as_downloading({3_piece, 1}, &tmp3);
+
+	std::vector<torrent_peer*> const all_null{nullptr, nullptr, nullptr, nullptr};
+
+	p->clear_all_peers();
+	TEST_CHECK(p->get_downloaders(0_piece) == all_null);
+	TEST_CHECK(p->get_downloaders(1_piece) == all_null);
+	TEST_CHECK(p->get_downloaders(2_piece) == all_null);
+	TEST_CHECK(p->get_downloaders(3_piece) == all_null);
+}
+
 TORRENT_TEST(have_all_have_none)
 {
 	// test have_all and have_none

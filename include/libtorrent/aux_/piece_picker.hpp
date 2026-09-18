@@ -336,6 +336,10 @@ namespace libtorrent::aux {
 		// peer pointer
 		void clear_peer(aux::torrent_peer* peer);
 
+		// like clear_peer(), but unconditionally, avoiding a pointer match
+		// over m_block_info per peer when every torrent_peer is invalid at once
+		void clear_all_peers();
+
 #if TORRENT_USE_INVARIANT_CHECKS
 		// this is an invariant check
 		void check_peers();

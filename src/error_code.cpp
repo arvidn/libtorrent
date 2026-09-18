@@ -186,7 +186,7 @@ namespace libtorrent {
 			 "fastresume not modified since last save",
 			 "invalid save_path",
 			 "too many duplicate filenames",
-			 "",
+			 "file type on disk does not match the type declared by the torrent",
 			 "",
 			 "",
 			 "",

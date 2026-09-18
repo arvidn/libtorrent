@@ -1408,7 +1408,7 @@ namespace aux {
 
 		// Renames the file with the given index asynchronously. The rename
 		// operation is complete when either a file_renamed_alert or
-		// file_rename_failed_alert is posted.
+		// file_rename_failed_alert is posted. ``new_name`` must not be empty.
 		void rename_file(file_index_t index, std::string const& new_name) const;
 
 #if TORRENT_ABI_VERSION == 1

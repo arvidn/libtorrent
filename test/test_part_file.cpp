@@ -13,6 +13,7 @@ see LICENSE file.
 
 #include "test.hpp"
 #include "test_utils.hpp"
+#include "setup_transfer.hpp"
 #include "libtorrent/aux_/part_file.hpp"
 #include "libtorrent/aux_/posix_part_file.hpp"
 #include "libtorrent/aux_/path.hpp"

@@ -49,6 +49,7 @@ struct TORRENT_EXTRA_EXPORT smart_ban
 	void on_piece_pass(piece_index_t p);
 	void on_piece_failed(piece_index_t p);
 	void on_erase_peers(span<torrent_peer* const> peers);
+	void on_clear_peers();
 
 private:
 	// this entry ties a specific block hash to a peer.

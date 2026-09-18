@@ -1270,7 +1270,9 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 	void torrent::clear_peers()
 	{
 		disconnect_all(error_code(), operation_t::unknown);
-		if (m_peer_list) m_peer_list->clear();
+		if (m_peer_list)
+			m_peer_list->clear();
+		all_peers_erased();
 	}
 
 	void torrent::set_sequential_range(piece_index_t first_piece, piece_index_t last_piece)
@@ -5417,7 +5419,11 @@ namespace {
 		// if there are any other peers allocated still, we need to clear them
 		// now. They can't be cleared later because the allocator will already
 		// have been destructed
-		if (m_peer_list) m_peer_list->clear();
+		if (m_peer_list)
+		{
+			m_peer_list->clear();
+			all_peers_erased();
+		}
 		m_connections.clear();
 		m_outgoing_pids.clear();
 		m_peers_to_disconnect.clear();
@@ -9260,9 +9266,11 @@ namespace {
 		INVARIANT_CHECK;
 
 		file_storage const& fs = m_torrent_file->layout();
-		TORRENT_ASSERT(index >= file_index_t(0));
-		TORRENT_ASSERT(index < fs.end_file());
-		TORRENT_UNUSED(fs);
+		TORRENT_ASSERT_PRECOND(index >= file_index_t(0));
+		TORRENT_ASSERT_PRECOND(index < fs.end_file());
+		// avoid indexing fs out of bounds in release builds
+		if (index < file_index_t(0) || index >= fs.end_file())
+			return;
 
 		// storage may be nullptr during shutdown
 		if (!m_storage)
@@ -12064,6 +12072,19 @@ namespace {
 #if TORRENT_USE_INVARIANT_CHECKS
 		m_picker->check_peers();
 #endif
+	}
+
+	void torrent::all_peers_erased()
+	{
+		if (m_smart_ban)
+			m_smart_ban->on_clear_peers();
+
+		if (!has_picker())
+			return;
+
+		// clear_all_peers() already nulls every peer pointer unconditionally,
+		// so check_peers() would have nothing to catch here
+		m_picker->clear_all_peers();
 	}
 
 #if TORRENT_ABI_VERSION == 1

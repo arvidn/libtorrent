@@ -23,6 +23,7 @@ see LICENSE file.
 #include "libtorrent/aux_/scope_end.hpp"
 #include "test.hpp"
 #include "test_utils.hpp"
+#include "setup_transfer.hpp"
 #include <algorithm>
 #include <cerrno>
 #include <vector>

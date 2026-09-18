@@ -375,6 +375,10 @@ namespace errors {
 		// configured limit.
 		too_many_duplicate_filenames,
 
+		// A file on disk is a symlink where the torrent declares a regular
+		// file, or vice versa, so it's not safe to assume ownership of it
+		mismatching_file_type,
+
 
 		// The HTTP header was not correctly formatted
 		http_parse_error = 150,

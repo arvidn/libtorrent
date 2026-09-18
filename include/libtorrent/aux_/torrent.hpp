@@ -631,6 +631,11 @@ namespace libtorrent::aux {
 		bool delete_files(remove_flags_t options);
 		void peers_erased(std::vector<torrent_peer*> const& peers);
 
+		// like peers_erased(), but for when every torrent_peer is invalid
+		// at once, avoiding a pointer match per peer on the extension and
+		// picker side
+		void all_peers_erased();
+
 #if TORRENT_ABI_VERSION == 1
 #if !TORRENT_NO_FPU
 		void file_progress_float(aux::vector<float, file_index_t>& fp);

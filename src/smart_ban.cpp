@@ -150,6 +150,8 @@ void smart_ban::on_erase_peers(span<torrent_peer* const> peers)
 	});
 }
 
+void smart_ban::on_clear_peers() { m_block_hashes.clear(); }
+
 void smart_ban::on_read_failed_block(piece_block const b,
 	address const& a,
 	disk_buffer_holder buffer,

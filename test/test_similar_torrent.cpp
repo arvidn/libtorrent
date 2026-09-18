@@ -114,12 +114,12 @@ std::array<bool, 2> test(
 
 	if (sflags & st::no_files)
 	{
-		lt::remove_all("test-torrent-1", ec);
-		TORRENT_ASSERT(!ec);
+		remove_all("test-torrent-1", ec);
+		TEST_CHECK(!ec);
 	}
 
-	lt::remove_all("test-torrent-2", ec);
-	TORRENT_ASSERT(!ec);
+	remove_all("test-torrent-2", ec);
+	TEST_CHECK(!ec);
 
 	lt::settings_pack pack;
 	pack.set_bool(lt::settings_pack::enable_dht, false);
