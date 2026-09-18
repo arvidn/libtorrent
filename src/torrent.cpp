@@ -9276,9 +9276,11 @@ namespace {
 		INVARIANT_CHECK;
 
 		file_storage const& fs = m_torrent_file->layout();
-		TORRENT_ASSERT(index >= file_index_t(0));
-		TORRENT_ASSERT(index < fs.end_file());
-		TORRENT_UNUSED(fs);
+		TORRENT_ASSERT_PRECOND(index >= file_index_t(0));
+		TORRENT_ASSERT_PRECOND(index < fs.end_file());
+		// avoid indexing fs out of bounds in release builds
+		if (index < file_index_t(0) || index >= fs.end_file())
+			return;
 
 		// storage may be nullptr during shutdown
 		if (!m_storage)

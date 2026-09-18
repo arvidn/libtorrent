@@ -34,6 +34,7 @@ namespace libtorrent {
 
 	std::string libtorrent_error_category::message(int ev) const
 	{
+		// clang-format off
 		static aux::array<char const*, errors::error_code_max> msgs{
 			{"no error",
 			 "torrent file collides with file from another torrent",
@@ -185,7 +186,7 @@ namespace libtorrent {
 			 "fastresume not modified since last save",
 			 "invalid save_path",
 			 "too many duplicate filenames",
-			 "",
+			 "file type on disk does not match the type declared by the torrent",
 			 "",
 			 "",
 			 "",
@@ -282,6 +283,7 @@ namespace libtorrent {
 			 "a file in the v2 metadata has the pad attribute set",
 			 "directory structure in torrent file exceeds depth limit"}
 		};
+		// clang-format on
 		if (ev < 0 || ev >= msgs.end_index())
 			return "Unknown error";
 		return msgs[ev];

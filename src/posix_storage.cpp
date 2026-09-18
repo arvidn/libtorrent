@@ -347,57 +347,9 @@ namespace aux {
 
 	void posix_storage::rename_file(file_index_t const index, std::string const& new_filename, storage_error& ec)
 	{
-		if (index < file_index_t(0) || index >= files().end_file()) return;
-		std::string const old_name = m_renamed_files.file_path(m_files, index, m_save_path);
-
-		if (exists(old_name, ec.ec, dont_follow_links))
-		{
-			std::string new_path;
-			if (is_complete(new_filename)) new_path = new_filename;
-			else new_path = combine_path(m_save_path, new_filename);
-			std::string new_dir = parent_path(new_path);
-
-			error_code best_effort;
-			if (exists(new_path, best_effort, dont_follow_links))
-			{
-				// We don't want to overwrite an existing file
-				ec.ec = error_code(boost::system::errc::file_exists, generic_category());
-				ec.file(index);
-				ec.operation = operation_t::file_rename;
-				return;
-			}
-
-			// create any missing directories that the new filename
-			// lands in
-			create_directories(new_dir, ec.ec);
-			if (ec.ec)
-			{
-				ec.file(index);
-				ec.operation = operation_t::file_rename;
-				return;
-			}
-
-			rename(old_name, new_path, ec.ec);
-
-			if (ec.ec == boost::system::errc::no_such_file_or_directory)
-				ec.ec.clear();
-
-			if (ec)
-			{
-				ec.file(index);
-				ec.operation = operation_t::file_rename;
-				return;
-			}
-		}
-		else if (ec.ec)
-		{
-			// if exists fails, report that error
-			ec.file(index);
-			ec.operation = operation_t::file_rename;
-			return;
-		}
-
-		m_renamed_files.rename_file(files(), index, new_filename);
+		TORRENT_ASSERT(index >= file_index_t(0));
+		TORRENT_ASSERT(index < files().end_file());
+		aux::rename_file(files(), m_renamed_files, index, new_filename, m_save_path, ec);
 	}
 
 	status_t posix_storage::initialize(settings_interface const&, storage_error& ec)
