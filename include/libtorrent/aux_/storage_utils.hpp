@@ -43,6 +43,19 @@ namespace libtorrent::aux {
 	delete_files(filenames const& fs, std::string const& save_path
 		, std::string const& part_file, remove_flags_t options, storage_error& ec);
 
+	// renames the file at ``index`` to ``new_filename`` on disk (or, if the
+	// file doesn't exist on disk yet, just records the rename in
+	// ``renamed`` so it's created under the new name later). A rename that
+	// fails because the source and destination are on different
+	// filesystems falls back to copying the file and removing the
+	// original.
+	TORRENT_EXTRA_EXPORT void rename_file(file_storage const& fs,
+		renamed_files& renamed,
+		file_index_t index,
+		std::string const& new_filename,
+		std::string const& save_path,
+		storage_error& ec);
+
 	TORRENT_EXTRA_EXPORT bool
 	verify_resume_data(add_torrent_params const& rd
 		, aux::vector<std::string, file_index_t> const& links

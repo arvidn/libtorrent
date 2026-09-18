@@ -314,78 +314,10 @@ namespace libtorrent::aux {
 	void pread_storage::rename_file(file_index_t const index, std::string const& new_filename
 		, storage_error& ec)
 	{
-		if (index < file_index_t(0) || index >= files().end_file()) return;
-		std::string const old_name = m_renamed_files.file_path(files(), index, m_save_path);
+		TORRENT_ASSERT(index >= file_index_t(0));
+		TORRENT_ASSERT(index < files().end_file());
 		m_pool.release(storage_index(), index);
-
-		// if the old file doesn't exist, just succeed and change the filename
-		// that will be created. This shortcut is important because the
-		// destination directory may not exist yet, which would cause a failure
-		// even though we're not moving a file (yet). It's better for it to
-		// fail later when we try to write to the file the first time, because
-		// the user then will have had a chance to make the destination directory
-		// valid.
-		if (exists(old_name, ec.ec, dont_follow_links))
-		{
-			std::string new_path;
-			if (is_complete(new_filename)) new_path = new_filename;
-			else new_path = combine_path(m_save_path, new_filename);
-			std::string new_dir = parent_path(new_path);
-
-			error_code best_effort;
-			if (exists(new_path, best_effort, dont_follow_links))
-			{
-				// We don't want to overwrite an existing file
-				ec.ec = error_code(boost::system::errc::file_exists, generic_category());
-				ec.file(index);
-				ec.operation = operation_t::file_rename;
-				return;
-			}
-
-			// create any missing directories that the new filename
-			// lands in
-			create_directories(new_dir, ec.ec);
-			if (ec.ec)
-			{
-				ec.file(index);
-				ec.operation = operation_t::file_rename;
-				return;
-			}
-
-			rename(old_name, new_path, ec.ec);
-
-			// if old_name doesn't exist, that's not an error
-			// here. Once we start writing to the file, it will
-			// be written to the new filename
-			if (ec.ec == boost::system::errc::no_such_file_or_directory)
-				ec.ec.clear();
-
-			if (ec)
-			{
-				ec.ec.clear();
-				copy_file(old_name, new_path, ec);
-
-				if (ec)
-				{
-					ec.file(index);
-					return;
-				}
-
-				error_code ignore;
-				remove(old_name, ignore);
-			}
-		}
-		else if (ec.ec)
-		{
-			// if exists fails, report that error
-			ec.file(index);
-			ec.operation = operation_t::file_rename;
-			return;
-		}
-
-		// if old path doesn't exist, just record the rename
-		// so it will get the new name when it is created.
-		m_renamed_files.rename_file(files(), index, new_filename);
+		aux::rename_file(files(), m_renamed_files, index, new_filename, m_save_path, ec);
 	}
 
 	void pread_storage::release_files(storage_error&)

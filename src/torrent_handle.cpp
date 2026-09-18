@@ -236,6 +236,10 @@ namespace libtorrent {
 
 	void torrent_handle::rename_file(file_index_t index, std::string const& new_name) const
 	{
+		TORRENT_ASSERT_PRECOND(!new_name.empty());
+		TORRENT_ASSERT_PRECOND(index >= file_index_t(0));
+		if (new_name.empty() || index < file_index_t(0))
+			return;
 		async_call(&aux::torrent::rename_file, index, new_name);
 	}
 
