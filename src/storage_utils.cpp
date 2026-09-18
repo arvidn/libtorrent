@@ -56,7 +56,8 @@ namespace libtorrent { namespace aux {
 					// files moved out to absolute paths are ignored
 					if (f.file_absolute_path(i)) continue;
 
-					stat_file(f.file_path(i, new_save_path), &s, err);
+					// a dangling symlink still counts as existing
+					stat_file(f.file_path(i, new_save_path), &s, err, dont_follow_links);
 					if (err != boost::system::errc::no_such_file_or_directory)
 					{
 						ec.ec = err;
@@ -114,7 +115,8 @@ namespace libtorrent { namespace aux {
 			std::string const new_path = combine_path(new_save_path, f.file_path(i));
 
 			error_code ignore;
-			if (flags == move_flags_t::dont_replace && exists(new_path, ignore))
+			// a dangling symlink still counts as existing
+			if (flags == move_flags_t::dont_replace && exists(new_path, ignore, dont_follow_links))
 			{
 				ret |= disk_status::need_full_check;
 				continue;
@@ -420,13 +422,9 @@ namespace libtorrent { namespace aux {
 			}
 			else if (old_is_symlink)
 			{
-				// copy_file() would follow the symlink and copy whatever
-				// it points to, instead of moving the link itself. new_dir
-				// may not have the same relation to save_path as old_name's
-				// directory does (new_filename can be an absolute path, or
-				// move the file to a different depth in the tree), so the
-				// target must be re-anchored to save_path, not to old_name's
-				// directory
+				// copy_file() would dereference the link; new_filename may
+				// sit at an unrelated depth or be absolute, so the target
+				// is anchored to save_path, not to new_dir directly
 				std::string const target =
 					lexically_relative(new_dir, combine_path(save_path, fs.symlink(index)));
 				create_symlink(target, new_path, ec);
@@ -789,8 +787,9 @@ std::int64_t get_filesize(stat_cache& stat, file_index_t const file_index
 	{
 		se.ec.clear();
 
+		// lstat: rename() moves the entry itself, regardless of what it resolves to
 		file_status s;
-		stat_file(inf, &s, se.ec);
+		stat_file(inf, &s, se.ec, dont_follow_links);
 		if (se)
 		{
 			se.operation = operation_t::file_stat;
