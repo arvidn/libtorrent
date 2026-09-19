@@ -230,6 +230,7 @@ These are also run automatically by the pre-commit hooks.
 - ABI versioning via `TORRENT_VERSION_NAMESPACE_2/3/4` inline namespace macros (defined in `include/libtorrent/aux_/export.hpp`); `_2` = v1.2, `_3` = v2, `_4` = v2.1
 - Warnings are treated as errors in CI (both gcc and clang)
 - Changes to ABI (fields/ordering of public classes) must target `master`, not `RC_*` stable branches
+- `TORRENT_EXPORT_EXTRA` marks a symbol exported only for test access; it is private/internal, not public API, and is exempt from the ABI-stability rules above (safe to change on `RC_*` branches). Do not treat `TORRENT_EXPORT_EXTRA` as indicating public or ABI-sensitive status; `TORRENT_EXPORT` is the public one
 - `settings_pack` enum values must be appended at the end of each enum group (int, bool, string) — never inserted in the middle — to avoid changing the numeric values of existing settings and breaking ABI
 - prefer the C++ counterparts to C headers
 - do not use using-statements in header files
