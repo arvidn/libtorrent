@@ -10,6 +10,7 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
+#include <filesystem>
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_params.hpp"
 #include "libtorrent/torrent_handle.hpp"
@@ -29,6 +30,7 @@ see LICENSE file.
 #include <cstdint>
 
 using namespace libtorrent;
+namespace filesystem = std::filesystem;
 namespace lt = libtorrent;
 using std::ignore;
 
@@ -60,8 +62,8 @@ void test_remove_torrent(remove_flags_t const remove_options
 	int const num_pieces = (test == mid_download) ? 500 : 100;
 
 	error_code ec;
-	remove_all("tmp1_remove", ec);
-	remove_all("tmp2_remove", ec);
+	filesystem::remove_all("tmp1_remove");
+	filesystem::remove_all("tmp2_remove");
 	create_directory("tmp1_remove", ec);
 	std::ofstream file("tmp1_remove/temporary");
 	add_torrent_params atp = ::create_torrent(&file, "temporary"
@@ -241,7 +243,7 @@ TORRENT_TEST(remove_auto_managed_torrent)
 	lt::session ses(pack);
 
 	error_code ec;
-	remove_all("tmp_auto_remove", ec);
+	filesystem::remove_all("tmp_auto_remove");
 	create_directory("tmp_auto_remove", ec);
 	std::ofstream file("tmp_auto_remove/temporary");
 	add_torrent_params atp =

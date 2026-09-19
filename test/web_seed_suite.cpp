@@ -10,6 +10,7 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
+#include <filesystem>
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_params.hpp"
 #include "libtorrent/aux_/path.hpp"
@@ -34,6 +35,7 @@ see LICENSE file.
 #include <iostream>
 
 using namespace lt;
+namespace filesystem = std::filesystem;
 
 namespace {
 
@@ -73,7 +75,7 @@ void test_transfer(lt::session& ses,
 	save_path += proxy_name[proxy];
 
 	error_code ec;
-	remove_all(save_path, ec);
+	filesystem::remove_all(save_path);
 
 	static char const* test_name[] = {"no", "SOCKS4", "SOCKS5", "SOCKS5 password", "HTTP", "HTTP password"};
 

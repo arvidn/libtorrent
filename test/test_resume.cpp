@@ -10,6 +10,7 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
+#include <filesystem>
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_params.hpp"
 #include "libtorrent/add_torrent_params.hpp"
@@ -42,6 +43,7 @@ see LICENSE file.
 #define SEP "/"
 #endif
 using namespace lt;
+namespace filesystem = std::filesystem;
 
 namespace {
 
@@ -1363,9 +1365,7 @@ void test_seed_mode(test_mode_t const flags)
 
 	if (flags & test_mode::missing_all_files)
 	{
-		lt::error_code ec;
-		remove_all("test_resume", ec);
-		TEST_CHECK(!ec);
+		filesystem::remove_all("test_resume");
 	}
 
 	if (flags & test_mode::extended_files)

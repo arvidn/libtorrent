@@ -8,6 +8,7 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
+#include <filesystem>
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/session_params.hpp"
@@ -30,6 +31,7 @@ see LICENSE file.
 #endif
 
 using namespace lt;
+namespace filesystem = std::filesystem;
 
 namespace {
 
@@ -41,8 +43,8 @@ void test_transfer()
 
 	// in case the previous run was terminated
 	error_code ec;
-	remove_all("tmp1_utp", ec);
-	remove_all("tmp2_utp", ec);
+	filesystem::remove_all("tmp1_utp");
+	filesystem::remove_all("tmp2_utp");
 
 	// these are declared before the session objects
 	// so that they are destructed last. This enables
@@ -128,9 +130,8 @@ TORRENT_TEST(utp)
 {
 	test_transfer();
 
-	error_code ec;
-	remove_all("tmp1_utp", ec);
-	remove_all("tmp2_utp", ec);
+	filesystem::remove_all("tmp1_utp");
+	filesystem::remove_all("tmp2_utp");
 }
 
 TORRENT_TEST(compare_less_wrap)
