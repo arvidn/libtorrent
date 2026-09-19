@@ -5428,10 +5428,8 @@ namespace {
 		// now. They can't be cleared later because the allocator will already
 		// have been destructed
 		if (m_peer_list)
-		{
 			m_peer_list->clear();
-			all_peers_erased();
-		}
+		all_peers_erased();
 		m_connections.clear();
 		m_outgoing_pids.clear();
 		m_peers_to_disconnect.clear();
