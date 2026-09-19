@@ -7,6 +7,7 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
+#include <filesystem>
 #include "test.hpp"
 #include "setup_transfer.hpp" // for load_file
 #include "test_utils.hpp"
@@ -18,6 +19,8 @@ see LICENSE file.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/load_torrent.hpp"
+
+namespace filesystem = std::filesystem;
 
 namespace {
 
@@ -114,12 +117,10 @@ std::array<bool, 2> test(
 
 	if (sflags & st::no_files)
 	{
-		remove_all("test-torrent-1", ec);
-		TEST_CHECK(!ec);
+		filesystem::remove_all("test-torrent-1");
 	}
 
-	remove_all("test-torrent-2", ec);
-	TEST_CHECK(!ec);
+	filesystem::remove_all("test-torrent-2");
 
 	lt::settings_pack pack;
 	pack.set_bool(lt::settings_pack::enable_dht, false);

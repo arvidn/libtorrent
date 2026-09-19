@@ -10,6 +10,7 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
+#include <filesystem>
 #include <sys/stat.h> // for chmod
 
 #include "libtorrent/session.hpp"
@@ -27,6 +28,8 @@ see LICENSE file.
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/open_mode.hpp"
 #include "libtorrent/load_torrent.hpp"
+
+namespace filesystem = std::filesystem;
 
 namespace {
 
@@ -172,9 +175,7 @@ void test_checking(int const flags, lt::disk_io_constructor_type disk_io)
 
 	if (flags & force_recheck)
 	{
-		remove_all("test_torrent_dir_tmp", ec);
-		if (ec) std::printf("ERROR: removing \"test_torrent_dir_tmp\": (%d) %s\n"
-			, ec.value(), ec.message().c_str());
+		filesystem::remove_all("test_torrent_dir_tmp");
 		rename("test_torrent_dir", "test_torrent_dir_tmp", ec);
 		if (ec) std::printf("ERROR: renaming dir \"test_torrent_dir\": (%d) %s\n"
 			, ec.value(), ec.message().c_str());
@@ -199,9 +200,7 @@ void test_checking(int const flags, lt::disk_io_constructor_type disk_io)
 
 		// now, move back the files and force-recheck. make sure we pick up the
 		// files this time
-		remove_all("test_torrent_dir", ec);
-		if (ec) fprintf(stdout, "ERROR: removing \"test_torrent_dir\": (%d) %s\n"
-			, ec.value(), ec.message().c_str());
+		filesystem::remove_all("test_torrent_dir");
 		rename("test_torrent_dir_tmp", "test_torrent_dir", ec);
 		if (ec) fprintf(stdout, "ERROR: renaming dir \"test_torrent_dir_tmp\": (%d) %s\n"
 			, ec.value(), ec.message().c_str());
@@ -273,9 +272,7 @@ void test_checking(int const flags, lt::disk_io_constructor_type disk_io)
 		}
 	}
 
-	remove_all("test_torrent_dir", ec);
-	if (ec) std::printf("ERROR: removing test_torrent_dir: (%d) %s\n"
-		, ec.value(), ec.message().c_str());
+	filesystem::remove_all("test_torrent_dir");
 }
 
 } // anonymous namespace
@@ -369,8 +366,7 @@ TORRENT_TEST_DISK_IO(discrete_checking)
 			, "torrent checked", pop_alerts::pop_all, seconds(50)));
 		TEST_CHECK(tor1.status({}).is_seeding);
 	}
-	remove_all("test_torrent_dir", ec);
-	if (ec) fprintf(stdout, "ERROR: removing test_torrent_dir: (%d) %s\n", ec.value(), ec.message().c_str());
+	filesystem::remove_all("test_torrent_dir");
 }
 
 // When need_picker() re-creates the piece picker, make sure we preserve the
@@ -444,5 +440,5 @@ TORRENT_TEST_DISK_IO(preserve_file_priorities)
 	TEST_EQUAL(prios[2], default_priority);
 	TEST_EQUAL(prios[3], default_priority);
 
-	remove_all(test_dir, ec);
+	filesystem::remove_all(test_dir);
 }

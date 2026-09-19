@@ -9,6 +9,7 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
+#include <filesystem>
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_params.hpp"
 #include "test.hpp"
@@ -21,6 +22,8 @@ see LICENSE file.
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/load_torrent.hpp"
+
+namespace filesystem = std::filesystem;
 
 namespace {
 
@@ -38,9 +41,7 @@ void test_read_piece(int flags)
 
 	// in case the previous run was terminated
 	error_code ec;
-	remove_all("tmp1_read_piece", ec);
-	if (ec) std::printf("ERROR: removing tmp1_read_piece: (%d) %s\n"
-		, ec.value(), ec.message().c_str());
+	filesystem::remove_all("tmp1_read_piece");
 
 	create_directory("tmp1_read_piece", ec);
 	if (ec) std::printf("ERROR: creating directory tmp1_read_piece: (%d) %s\n"
@@ -111,9 +112,7 @@ void test_read_piece(int flags)
 		}
 	}
 
-	remove_all("tmp1_read_piece", ec);
-	if (ec) std::printf("ERROR: removing tmp1_read_piece: (%d) %s\n"
-		, ec.value(), ec.message().c_str());
+	filesystem::remove_all("tmp1_read_piece");
 }
 
 } // anonymous namespace

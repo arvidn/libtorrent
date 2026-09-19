@@ -12,6 +12,8 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
+#include <filesystem>
+#include <system_error>
 #include "test.hpp"
 #include "disk_io_test.hpp"
 #include "setup_transfer.hpp"
@@ -54,6 +56,7 @@ see LICENSE file.
 
 using namespace std::placeholders;
 using namespace lt;
+namespace filesystem = std::filesystem;
 
 namespace {
 
@@ -69,12 +72,11 @@ constexpr int half = piece_size / 2;
 void delete_dirs(std::string path)
 {
 	path = absolute(path);
-	error_code ec;
-	remove_all(path, ec);
-	if (ec && ec != boost::system::errc::no_such_file_or_directory)
+	std::error_code ec;
+	filesystem::remove_all(path, ec);
+	if (ec)
 	{
-		std::printf("remove_all \"%s\": %s\n"
-			, path.c_str(), ec.message().c_str());
+		std::printf("remove_all \"%s\": %s\n", path.c_str(), ec.message().c_str());
 	}
 	TEST_CHECK(!exists(path));
 }
@@ -1744,10 +1746,7 @@ void test_rename_file_fastresume(bool test_deprecated)
 	resume_ent = write_resume_data(resume);
 	std::cout << resume_ent.to_string() << "\n";
 
-	remove_all(combine_path(test_path, "tmp2"), ec);
-	if (ec && ec != boost::system::errc::no_such_file_or_directory)
-		std::cout << "remove_all '" << combine_path(test_path, "tmp2")
-		<< "': " << ec.message() << std::endl;
+	filesystem::remove_all(combine_path(test_path, "tmp2"));
 }
 
 } // anonymous namespace

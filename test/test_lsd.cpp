@@ -13,6 +13,7 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
+#include <filesystem>
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/torrent_status.hpp"
@@ -23,6 +24,8 @@ see LICENSE file.
 #include "test_utils.hpp"
 #include "setup_transfer.hpp"
 #include <iostream>
+
+namespace filesystem = std::filesystem;
 
 namespace {
 
@@ -98,16 +101,15 @@ TORRENT_TEST(lsd)
 	using namespace lt;
 
 	// in case the previous run was terminated
-	error_code ec;
-	remove_all("./tmp1_lsd", ec);
-	remove_all("./tmp2_lsd", ec);
-	remove_all("./tmp3_lsd", ec);
+	filesystem::remove_all("./tmp1_lsd");
+	filesystem::remove_all("./tmp2_lsd");
+	filesystem::remove_all("./tmp3_lsd");
 
 	test_lsd();
 
-	remove_all("./tmp1_lsd", ec);
-	remove_all("./tmp2_lsd", ec);
-	remove_all("./tmp3_lsd", ec);
+	filesystem::remove_all("./tmp1_lsd");
+	filesystem::remove_all("./tmp2_lsd");
+	filesystem::remove_all("./tmp3_lsd");
 }
 
 

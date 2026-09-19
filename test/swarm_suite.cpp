@@ -11,6 +11,7 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
+#include <filesystem>
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/alert_types.hpp"
@@ -26,6 +27,8 @@ see LICENSE file.
 #include "setup_transfer.hpp"
 #include "settings.hpp"
 #include "swarm_suite.hpp"
+
+namespace filesystem = std::filesystem;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -48,10 +51,9 @@ void test_swarm(test_flags_t const flags)
 		);
 
 	// in case the previous run was terminated
-	error_code ec;
-	remove_all("tmp1_swarm", ec);
-	remove_all("tmp2_swarm", ec);
-	remove_all("tmp3_swarm", ec);
+	filesystem::remove_all("tmp1_swarm");
+	filesystem::remove_all("tmp2_swarm");
+	filesystem::remove_all("tmp3_swarm");
 
 	// these are declared before the session objects
 	// so that they are destructed last. This enables
@@ -229,9 +231,9 @@ void test_swarm(test_flags_t const flags)
 	TEST_CHECK(!exists("tmp2_swarm/temporary"));
 	TEST_CHECK(!exists("tmp3_swarm/temporary"));
 
-	remove_all("tmp1_swarm", ec);
-	remove_all("tmp2_swarm", ec);
-	remove_all("tmp3_swarm", ec);
+	filesystem::remove_all("tmp1_swarm");
+	filesystem::remove_all("tmp2_swarm");
+	filesystem::remove_all("tmp3_swarm");
 }
 
 #ifdef _MSC_VER

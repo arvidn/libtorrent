@@ -10,6 +10,7 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
+#include <filesystem>
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/session_params.hpp"
@@ -33,6 +34,7 @@ see LICENSE file.
 
 using namespace lt;
 using namespace std::chrono_literals;
+namespace filesystem = std::filesystem;
 using std::ignore;
 
 namespace {
@@ -53,11 +55,10 @@ bool on_alert(alert const* a)
 
 void cleanup()
 {
-	error_code ec;
-	remove_all("tmp1_priority", ec);
-	remove_all("tmp2_priority", ec);
-	remove_all("tmp1_priority_moved", ec);
-	remove_all("tmp2_priority_moved", ec);
+	filesystem::remove_all("tmp1_priority");
+	filesystem::remove_all("tmp2_priority");
+	filesystem::remove_all("tmp1_priority_moved");
+	filesystem::remove_all("tmp2_priority_moved");
 }
 
 void test_transfer(settings_pack const& sett,

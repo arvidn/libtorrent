@@ -9,6 +9,7 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
+#include <filesystem>
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_settings.hpp"
 #include "libtorrent/session_params.hpp"
@@ -22,6 +23,8 @@ see LICENSE file.
 #include "test_utils.hpp"
 #include "setup_transfer.hpp"
 #include "settings.hpp"
+
+namespace filesystem = std::filesystem;
 
 namespace {
 
@@ -123,10 +126,9 @@ TORRENT_TEST(auto_unchoke)
 	using namespace lt;
 
 	// in case the previous run was terminated
-	error_code ec;
-	remove_all("./tmp1_unchoke", ec);
-	remove_all("./tmp2_unchoke", ec);
-	remove_all("./tmp3_unchoke", ec);
+	filesystem::remove_all("./tmp1_unchoke");
+	filesystem::remove_all("./tmp2_unchoke");
+	filesystem::remove_all("./tmp3_unchoke");
 
 	test_swarm();
 
@@ -134,7 +136,7 @@ TORRENT_TEST(auto_unchoke)
 	TEST_CHECK(!exists("./tmp2_unchoke/temporary"));
 	TEST_CHECK(!exists("./tmp3_unchoke/temporary"));
 
-	remove_all("./tmp1_unchoke", ec);
-	remove_all("./tmp2_unchoke", ec);
-	remove_all("./tmp3_unchoke", ec);
+	filesystem::remove_all("./tmp1_unchoke");
+	filesystem::remove_all("./tmp2_unchoke");
+	filesystem::remove_all("./tmp3_unchoke");
 }

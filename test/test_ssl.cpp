@@ -10,6 +10,7 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
+#include <filesystem>
 #include "libtorrent/session.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/aux_/path.hpp"
@@ -43,6 +44,7 @@ see LICENSE file.
 
 using namespace std::placeholders;
 using namespace lt;
+namespace filesystem = std::filesystem;
 using std::ignore;
 
 namespace {
@@ -124,8 +126,8 @@ void test_ssl(int const test_idx, bool const use_utp)
 
 	// in case the previous run was terminated
 	error_code ec;
-	remove_all("tmp1_ssl", ec);
-	remove_all("tmp2_ssl", ec);
+	filesystem::remove_all("tmp1_ssl");
+	filesystem::remove_all("tmp2_ssl");
 
 	int port = 1024 + std::rand() % 50000;
 	settings_pack sett = settings();
@@ -529,7 +531,7 @@ bool try_connect(lt::session& ses1, int port
 void test_malicious_peer()
 {
 	error_code ec;
-	remove_all("tmp3_ssl", ec);
+	filesystem::remove_all("tmp3_ssl");
 
 	// set up session
 	int port = 1024 + std::rand() % 50000;
@@ -597,8 +599,8 @@ std::string read_test_ssl_file(std::string const& name)
 void test_ssl_magnet(bool const seed_has_cert)
 {
 	error_code ec;
-	remove_all("tmp4_ssl", ec);
-	remove_all("tmp5_ssl", ec);
+	filesystem::remove_all("tmp4_ssl");
+	filesystem::remove_all("tmp5_ssl");
 
 	// set up session
 	int port = 1024 + rand() % 50000;

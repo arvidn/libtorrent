@@ -7,6 +7,7 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
+#include <filesystem>
 #include "libtorrent/config.hpp"
 
 #include "test.hpp"
@@ -28,6 +29,7 @@ see LICENSE file.
 
 using namespace lt;
 using namespace std::chrono_literals;
+namespace filesystem = std::filesystem;
 
 // posts "fun" onto ses's network thread and runs it against the torrent's
 // internal object. Mirrors post_torrent() in test_fast_extension.cpp.
@@ -93,8 +95,8 @@ static void test_webtorrent_transfer(bool const use_metadata_transfer)
 	std::string const suffix = use_metadata_transfer ? "_webtorrent_metadata" : "_webtorrent";
 
 	error_code ec;
-	remove_all("tmp1" + suffix, ec);
-	remove_all("tmp2" + suffix, ec);
+	filesystem::remove_all("tmp1" + suffix);
+	filesystem::remove_all("tmp2" + suffix);
 
 	// declared before the sessions so they're destructed last, letting the
 	// sessions shut down in parallel

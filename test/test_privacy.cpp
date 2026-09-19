@@ -9,6 +9,7 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
+#include <filesystem>
 #include "test.hpp"
 #include "setup_transfer.hpp"
 #include "dht_server.hpp"
@@ -28,6 +29,7 @@ see LICENSE file.
 #include <fstream>
 
 using namespace lt;
+namespace filesystem = std::filesystem;
 
 namespace {
 
@@ -102,7 +104,7 @@ session_proxy test_proxy(settings_pack::proxy_type_t proxy_type, flags_t flags)
 	auto s = std::make_unique<lt::session>(sett);
 
 	error_code ec;
-	remove_all("tmp1_privacy", ec);
+	filesystem::remove_all("tmp1_privacy");
 	create_directory("tmp1_privacy", ec);
 	std::ofstream file(combine_path("tmp1_privacy", "temporary").c_str());
 	add_torrent_params addp = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);

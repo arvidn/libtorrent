@@ -16,6 +16,8 @@ see LICENSE file.
 #include <random> // for std::mt19937, std::random_device
 #include <charconv> // for std::from_chars
 #include <cinttypes> // for PRIu32
+#include <filesystem>
+#include <system_error>
 #include <boost/config.hpp>
 #include <fcntl.h>
 #include <cstdio>
@@ -55,6 +57,7 @@ see LICENSE file.
 #endif
 
 using namespace lt;
+namespace filesystem = std::filesystem;
 
 namespace {
 
@@ -276,17 +279,20 @@ struct unit_directory_guard
 			TEST_ERROR("Failed to change directory: " + ec.message());
 			return;
 		}
-		remove_all(dir, ec);
+		// a destructor must not throw; use the non-throwing overload here.
+		std::error_code fs_ec;
+		filesystem::remove_all(dir, fs_ec);
 #ifdef TORRENT_WINDOWS
-		if (ec.value() == ERROR_SHARING_VIOLATION)
+		if (fs_ec.value() == ERROR_SHARING_VIOLATION)
 		{
 			// on windows, files are removed in the background, and we may need
 			// to wait a little bit
 			std::this_thread::sleep_for(milliseconds(400));
-			remove_all(dir, ec);
+			filesystem::remove_all(dir, fs_ec);
 		}
 #endif
-		if (ec) std::cerr << "Failed to remove unit test directory: " << ec.message() << "\n";
+		if (fs_ec)
+			std::cerr << "Failed to remove unit test directory: " << fs_ec.message() << "\n";
 	}
 private:
 	std::string dir;

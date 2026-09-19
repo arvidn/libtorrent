@@ -24,6 +24,7 @@ see LICENSE file.
 #include <cstdlib>
 #include <charconv>
 #include <stdexcept>
+#include <filesystem>
 
 #include "libtorrent/session.hpp"
 #include "libtorrent/hasher.hpp"
@@ -39,7 +40,6 @@ see LICENSE file.
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/path.hpp"
-#include "libtorrent/aux_/directory.hpp"
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/disk_interface.hpp" // for default_block_size
 #include "libtorrent/aux_/ip_helpers.hpp"
@@ -58,6 +58,7 @@ see LICENSE file.
 
 using namespace lt;
 using namespace std::chrono_literals;
+namespace filesystem = std::filesystem;
 
 #if defined TORRENT_WINDOWS
 #include <conio.h>
@@ -345,32 +346,6 @@ int load_file(std::string const& filename, std::vector<char>& v
 	if (r != s) return -3;
 
 	return 0;
-}
-
-void remove_all(std::string const& f, lt::error_code& ec)
-{
-	ec.clear();
-
-	file_status s;
-	stat_file(f, &s, ec, dont_follow_links);
-	if (ec)
-		return;
-
-	if ((s.mode & file_status::directory) && !(s.mode & file_status::symlink))
-	{
-		for (aux::directory i(f, ec); !i.done(); i.next(ec))
-		{
-			if (ec)
-				return;
-			std::string const p = i.file();
-			if (p == "." || p == "..")
-				continue;
-			remove_all(combine_path(f, p), ec);
-			if (ec)
-				return;
-		}
-	}
-	remove(f, ec);
 }
 
 namespace {
@@ -1314,8 +1289,8 @@ std::tuple<torrent_handle, torrent_handle, torrent_handle> setup_transfer(lt::se
 			param.flags = atp->flags;
 		}
 		file.close();
-		remove_all(combine_path("tmp2" + suffix, "temporary"), ec);
-		remove_all(combine_path("tmp3" + suffix, "temporary"), ec);
+		filesystem::remove_all(combine_path("tmp2" + suffix, "temporary"));
+		filesystem::remove_all(combine_path("tmp3" + suffix, "temporary"));
 		std::printf("generated torrent: %s %s\n", aux::to_hex(param.ti->info_hashes().v2).c_str(), file_path.c_str());
 	}
 	else
