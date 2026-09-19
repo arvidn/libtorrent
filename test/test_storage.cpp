@@ -43,6 +43,7 @@ see LICENSE file.
 #include "libtorrent/aux_/readwrite.hpp"
 #include "libtorrent/load_torrent.hpp"
 
+#include <array>
 #include <memory>
 #include <functional> // for bind
 #include <fstream>
@@ -1108,7 +1109,7 @@ TORRENT_TEST_DISK_IO(rename_self_referencing_symlink)
 	fs.emplace_back("symlink_rename_storage/data", 0x4000);
 	fs.emplace_back(
 		"symlink_rename_storage/link", 0, file_storage::flag_symlink, 0, "nonexistent-file");
-	lt::add_torrent_params atp = load_symlink_torrent(std::move(fs));
+	lt::add_torrent_params const atp = load_symlink_torrent(std::move(fs));
 
 	// the invalid target must have been sanitized into a self-reference
 	TEST_EQUAL(atp.ti->layout().symlink(1_file), combine_path("symlink_rename_storage", "link"));
@@ -1138,8 +1139,8 @@ TORRENT_TEST_DISK_IO(rename_self_referencing_symlink)
 
 	std::string const new_link_path =
 		combine_path(test_path, combine_path("symlink_rename_storage", "renamed-link"));
-	char buf[512];
-	TEST_CHECK(::readlink(new_link_path.c_str(), buf, sizeof(buf)) > 0);
+	std::array<char, 512> buf;
+	TEST_CHECK(::readlink(new_link_path.c_str(), buf.data(), buf.size()) > 0);
 
 	close_symlink_torrent(*io, st, ios);
 }
@@ -1159,7 +1160,7 @@ TORRENT_TEST_DISK_IO(rename_valid_symlink)
 	std::vector<lt::create_file_entry> fs;
 	fs.emplace_back("symlink_rename_valid/sub/data", 0x4000);
 	fs.emplace_back("symlink_rename_valid/sub/link", 0, file_storage::flag_symlink, 0, "data");
-	lt::add_torrent_params atp = load_symlink_torrent(std::move(fs));
+	lt::add_torrent_params const atp = load_symlink_torrent(std::move(fs));
 
 	// a valid target naming a real sibling is left untouched by
 	// sanitize_symlinks()
@@ -1255,7 +1256,7 @@ TORRENT_TEST_DISK_IO(delete_files_dangling_symlink)
 	fs.emplace_back("symlink_delete_storage/Temporary.txt", 0x4000);
 	fs.emplace_back(
 		"symlink_delete_storage/link", 0, file_storage::flag_symlink, 0, "Temporary.txt");
-	lt::add_torrent_params atp = load_symlink_torrent(std::move(fs));
+	lt::add_torrent_params const atp = load_symlink_torrent(std::move(fs));
 	TEST_CHECK(atp.renamed_files.find(1_file) != atp.renamed_files.end());
 
 	test_delete_files(disk_io, atp, test_path, "symlink_delete_storage");
@@ -1273,7 +1274,7 @@ TORRENT_TEST_DISK_IO(delete_files_self_referencing_symlink)
 	fs.emplace_back("symlink_delete_storage/data", 0x4000);
 	fs.emplace_back(
 		"symlink_delete_storage/link", 0, file_storage::flag_symlink, 0, "nonexistent-file");
-	lt::add_torrent_params atp = load_symlink_torrent(std::move(fs));
+	lt::add_torrent_params const atp = load_symlink_torrent(std::move(fs));
 	TEST_EQUAL(atp.ti->layout().symlink(1_file), combine_path("symlink_delete_storage", "link"));
 
 	test_delete_files(disk_io, atp, test_path, "symlink_delete_storage");
@@ -1293,7 +1294,7 @@ TORRENT_TEST_DISK_IO(move_storage_self_referencing_symlink)
 	std::vector<lt::create_file_entry> fs;
 	fs.emplace_back("symlink_move_self/data", 0x4000);
 	fs.emplace_back("symlink_move_self/link", 0, file_storage::flag_symlink, 0, "nonexistent-file");
-	lt::add_torrent_params atp = load_symlink_torrent(std::move(fs));
+	lt::add_torrent_params const atp = load_symlink_torrent(std::move(fs));
 
 	// the invalid target must have been sanitized into a self-reference
 	TEST_EQUAL(atp.ti->layout().symlink(1_file), combine_path("symlink_move_self", "link"));
@@ -1335,8 +1336,8 @@ TORRENT_TEST_DISK_IO(move_storage_self_referencing_symlink)
 	// anything) it resolves to
 	std::string const new_link_path =
 		combine_path(new_test_path, combine_path("symlink_move_self", "link"));
-	char buf[512];
-	TEST_CHECK(::readlink(new_link_path.c_str(), buf, sizeof(buf)) > 0);
+	std::array<char, 512> buf;
+	TEST_CHECK(::readlink(new_link_path.c_str(), buf.data(), buf.size()) > 0);
 
 	close_symlink_torrent(*io, st, ios);
 }
@@ -1358,7 +1359,7 @@ TORRENT_TEST_DISK_IO(move_storage_with_symlink)
 	std::vector<lt::create_file_entry> fs;
 	fs.emplace_back("symlink_move_storage/data", 0x4000);
 	fs.emplace_back("symlink_move_storage/link", 0, file_storage::flag_symlink, 0, "data");
-	lt::add_torrent_params atp = load_symlink_torrent(std::move(fs));
+	lt::add_torrent_params const atp = load_symlink_torrent(std::move(fs));
 	TEST_EQUAL(atp.ti->layout().symlink(1_file), combine_path("symlink_move_storage", "data"));
 
 	error_code ec;
