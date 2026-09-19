@@ -793,7 +793,8 @@ mmap_storage::mmap_storage(storage_params const& params, aux::file_view_pool& po
 #ifdef TORRENT_SIMULATE_SLOW_READ
 		std::this_thread::sleep_for(milliseconds(100));
 #endif
-		std::int64_t const start_offset = static_cast<int>(piece) * std::int64_t(files().piece_length()) + offset;
+		std::int64_t const start_offset =
+			torrent_byte_offset(piece, offset, files().piece_length());
 		file_index_t const file_index = files().file_index_at_offset(start_offset);
 		std::int64_t const file_offset = start_offset - files().file_offset(file_index);
 		TORRENT_ASSERT(file_offset >= 0);

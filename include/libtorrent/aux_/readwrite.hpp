@@ -20,6 +20,7 @@ see LICENSE file.
 #include "libtorrent/assert.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/alloca.hpp"
+#include "libtorrent/piece_block.hpp"
 
 namespace libtorrent::aux {
 
@@ -100,11 +101,11 @@ int readwrite_impl(file_storage const& files, span<Char> buf
 	TORRENT_ASSERT(offset >= 0);
 	TORRENT_ASSERT(buf.size() > 0);
 
-	TORRENT_ASSERT(static_cast<int>(piece) * static_cast<std::int64_t>(files.piece_length())
-		+ offset + buf.size() <= files.total_size());
+	TORRENT_ASSERT(torrent_byte_offset(piece, offset, files.piece_length()) + buf.size()
+		<= files.total_size());
 
 	// find the file iterator and file offset
-	std::int64_t const torrent_offset = static_cast<int>(piece) * std::int64_t(files.piece_length()) + offset;
+	std::int64_t const torrent_offset = torrent_byte_offset(piece, offset, files.piece_length());
 	file_index_t file_index = files.file_index_at_offset(torrent_offset);
 	TORRENT_ASSERT(torrent_offset >= files.file_offset(file_index));
 	TORRENT_ASSERT(torrent_offset < files.file_offset(file_index) + files.file_size(file_index));
@@ -232,11 +233,11 @@ int readwrite_vec_impl(file_storage const& files, span<span<Char> const> bufs
 	const int size = bufs_size(bufs);
 	TORRENT_ASSERT(size > 0);
 
-	TORRENT_ASSERT(static_cast<int>(piece) * static_cast<std::int64_t>(files.piece_length())
-		+ offset + size <= files.total_size());
+	TORRENT_ASSERT(
+		torrent_byte_offset(piece, offset, files.piece_length()) + size <= files.total_size());
 
 	// find the file iterator and file offset
-	std::int64_t const torrent_offset = static_cast<int>(piece) * std::int64_t(files.piece_length()) + offset;
+	std::int64_t const torrent_offset = torrent_byte_offset(piece, offset, files.piece_length());
 	file_index_t file_index = files.file_index_at_offset(torrent_offset);
 	TORRENT_ASSERT(torrent_offset >= files.file_offset(file_index));
 	TORRENT_ASSERT(torrent_offset < files.file_offset(file_index) + files.file_size(file_index));

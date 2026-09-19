@@ -31,7 +31,7 @@ struct request_merger
 		: m_piece_length(piece_length)
 		, m_block_size(block_size)
 		, m_piece_size(first_piece_size)
-		, m_end(start_offset(first)
+		, m_end(torrent_byte_offset(first, piece_length, block_size)
 			  + std::min(first_piece_size - first.block_index * block_size, block_size))
 	{}
 
@@ -42,7 +42,10 @@ struct request_merger
 	// short of the next piece's nominal start, so the offsets won't match.
 	// Use this to skip an expensive piece_size_for_req() lookup before
 	// calling merge() when it wouldn't merge anyway.
-	bool continues(piece_block const next) const { return start_offset(next) == m_end; }
+	bool continues(piece_block const next) const
+	{
+		return torrent_byte_offset(next, m_piece_length, m_block_size) == m_end;
+	}
 
 	// requires continues(next). Merges "next" in and returns the (always
 	// positive) number of bytes it contributes.
@@ -66,12 +69,6 @@ struct request_merger
 	int piece_size() const { return m_piece_size; }
 
 private:
-	std::int64_t start_offset(piece_block const b) const
-	{
-		return std::int64_t(static_cast<int>(b.piece_index)) * m_piece_length
-			+ std::int64_t(b.block_index) * m_block_size;
-	}
-
 	// the nominal, fixed piece length for this torrent
 	int m_piece_length;
 	int m_block_size;
