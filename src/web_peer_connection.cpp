@@ -37,6 +37,7 @@ see LICENSE file.
 #include "libtorrent/hex.hpp" // for is_hex
 #include "libtorrent/aux_/random.hpp"
 #include "libtorrent/aux_/torrent.hpp"
+#include "libtorrent/piece_block.hpp"
 #include "libtorrent/aux_/http_parser.hpp"
 
 namespace libtorrent::aux {
@@ -510,8 +511,7 @@ void web_peer_connection::write_request(peer_request const& r)
 	{
 		file_request_t file_req;
 		file_req.file_index = file_index_t(0);
-		file_req.start = std::int64_t(static_cast<int>(req.piece)) * info.piece_length()
-			+ req.start;
+		file_req.start = torrent_byte_offset(req.piece, req.start, info.piece_length());
 		file_req.length = req.length;
 
 		request += "GET ";
@@ -535,10 +535,8 @@ void web_peer_connection::write_request(peer_request const& r)
 		// excludes pad bytes. map_block requires a torrent-contiguous byte span,
 		// so compute the actual span from req start to end of last block (pr).
 		int const map_length = info.v2()
-			? int(static_cast<int>(pr.piece) * std::int64_t(piece_size)
-				+ pr.start + pr.length
-				- static_cast<int>(req.piece) * std::int64_t(piece_size)
-				- req.start)
+			? int(torrent_byte_offset(pr.piece, pr.start + pr.length, piece_size)
+				  - torrent_byte_offset(req.piece, req.start, piece_size))
 			: req.length;
 		std::vector<file_slice> files = info.layout().map_block(req.piece, req.start
 			, map_length);

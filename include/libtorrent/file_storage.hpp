@@ -103,7 +103,7 @@ namespace aux {
 	struct file_entry
 	{
 		// the offset of this file inside the torrent
-		std::uint64_t offset = 0;
+		std::int64_t offset = 0;
 
 		// the size of this file. 60 bits, since that's what's left in this
 		// word alongside the 4 single-bit flags below

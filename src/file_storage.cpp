@@ -13,6 +13,7 @@ see LICENSE file.
 */
 
 #include "libtorrent/file_storage.hpp"
+#include "libtorrent/piece_block.hpp"
 #include "libtorrent/aux_/string_util.hpp" // for allocate_string_copy
 #include "libtorrent/index_range.hpp"
 #include "libtorrent/aux_/path.hpp"
@@ -107,7 +108,7 @@ TORRENT_VERSION_NAMESPACE_4
 		// find the file iterator and file offset
 		aux::file_entry target;
 		TORRENT_ASSERT(max_file_offset / piece_length() > static_cast<int>(index));
-		target.offset = aux::numeric_cast<std::uint64_t>(std::int64_t(piece_length()) * static_cast<int>(index));
+		target.offset = aux::torrent_byte_offset(index, 0, piece_length());
 		TORRENT_ASSERT(!compare_file_offset(target, m_files.front()));
 
 		auto const file_iter = std::upper_bound(
@@ -119,7 +120,7 @@ TORRENT_VERSION_NAMESPACE_4
 		// this static cast is safe because the resulting value is capped by
 		// piece_length(), which fits in an int
 		return static_cast<int>(
-			std::min(static_cast<std::uint64_t>(piece_length()), file_iter->offset - target.offset));
+			std::min(static_cast<std::int64_t>(piece_length()), file_iter->offset - target.offset));
 	}
 
 	int file_storage::blocks_in_piece2(piece_index_t const index) const
@@ -489,7 +490,7 @@ void file_storage::rename_file_impl(
 		TORRENT_ASSERT(offset <= max_file_offset);
 		// find the file iterator and file offset
 		aux::file_entry target;
-		target.offset = aux::numeric_cast<std::uint64_t>(offset);
+		target.offset = offset;
 		TORRENT_ASSERT(!compare_file_offset(target, m_files.front()));
 
 		auto file_iter = std::upper_bound(
@@ -502,12 +503,13 @@ void file_storage::rename_file_impl(
 
 	file_index_t file_storage::file_index_at_piece(piece_index_t const piece) const
 	{
-		return file_index_at_offset(static_cast<int>(piece) * std::int64_t(piece_length()));
+		return file_index_at_offset(aux::torrent_byte_offset(piece, 0, piece_length()));
 	}
 
 	file_index_t file_storage::last_file_index_at_piece(piece_index_t const piece) const
 	{
-		return file_index_at_offset(static_cast<int>(piece) * std::int64_t(piece_length()) + piece_size(piece) - 1);
+		return file_index_at_offset(
+			aux::torrent_byte_offset(piece, piece_size(piece) - 1, piece_length()));
 	}
 
 	file_index_t file_storage::file_index_for_root(sha256_hash const& root_hash) const
@@ -567,13 +569,13 @@ void file_storage::rename_file_impl(
 		// find the file iterator and file offset
 		aux::file_entry target;
 		TORRENT_ASSERT(max_file_offset / m_piece_length > static_cast<int>(piece));
-		target.offset = aux::numeric_cast<std::uint64_t>(static_cast<int>(piece) * std::int64_t(m_piece_length) + offset);
-		TORRENT_ASSERT_PRECOND(std::int64_t(target.offset) <= m_total_size - size);
+		target.offset = aux::torrent_byte_offset(piece, offset, m_piece_length);
+		TORRENT_ASSERT_PRECOND(target.offset <= m_total_size - size);
 		TORRENT_ASSERT(!compare_file_offset(target, m_files.front()));
 
 		// in case the size is past the end, fix it up
-		if (std::int64_t(target.offset) > m_total_size - size)
-			size = m_total_size - std::int64_t(target.offset);
+		if (target.offset > m_total_size - size)
+			size = m_total_size - target.offset;
 
 		auto file_iter = std::upper_bound(
 			m_files.begin(), m_files.end(), target, compare_file_offset);
@@ -581,7 +583,7 @@ void file_storage::rename_file_impl(
 		TORRENT_ASSERT(file_iter != m_files.begin());
 		--file_iter;
 
-		std::int64_t file_offset = std::int64_t(target.offset) - std::int64_t(file_iter->offset);
+		std::int64_t file_offset = target.offset - file_iter->offset;
 		for (; size > 0; file_offset -= file_iter->size, ++file_iter)
 		{
 			TORRENT_ASSERT(file_iter != m_files.end());
@@ -886,7 +888,7 @@ void file_storage::rename_file_impl(
 		}
 
 		e.size = aux::numeric_cast<std::uint64_t>(file_size);
-		e.offset = aux::numeric_cast<std::uint64_t>(m_total_size);
+		e.offset = m_total_size;
 		e.pad_file = is_pad_file;
 		e.hidden_attribute = bool(file_flags & file_storage::flag_hidden);
 		e.executable_attribute = bool(file_flags & file_storage::flag_executable);
@@ -925,7 +927,7 @@ void file_storage::rename_file_impl(
 			pad.size = static_cast<std::uint64_t>(pad_size);
 			TORRENT_ASSERT(m_total_size <= max_file_offset);
 			TORRENT_ASSERT(m_total_size > 0);
-			pad.offset = static_cast<std::uint64_t>(m_total_size);
+			pad.offset = m_total_size;
 			pad.path_element_index = aux::path_element::pad_directory;
 			pad.pad_file = true;
 			m_total_size += pad_size;
@@ -962,7 +964,7 @@ void file_storage::rename_file_impl(
 		// caller via internal_set_symlink_target(), once the rest of the
 		// file list/tree has been parsed
 		m_files.emplace_back(aux::file_entry{
-			.offset = aux::numeric_cast<std::uint64_t>(m_total_size),
+			.offset = m_total_size,
 			.hidden_attribute = bool(file_flags & file_storage::flag_hidden),
 			.executable_attribute = bool(file_flags & file_storage::flag_executable),
 			.symlink_attribute = true,
@@ -1005,7 +1007,7 @@ void file_storage::rename_file_impl(
 		// piece-boundary end-of-file padding applies to them
 		e.path_element_index = make_directory(dir, filename, borrow);
 		e.size = 0;
-		e.offset = aux::numeric_cast<std::uint64_t>(m_total_size);
+		e.offset = m_total_size;
 		e.hidden_attribute = bool(file_flags & file_storage::flag_hidden);
 		e.executable_attribute = bool(file_flags & file_storage::flag_executable);
 		e.symlink_attribute = true;
@@ -1064,7 +1066,7 @@ void file_storage::rename_file_impl(
 				m_files.erase(m_files.begin() + int(f));
 				while (f < end_file())
 				{
-					m_files[f].offset = static_cast<std::uint64_t>(m_total_size);
+					m_files[f].offset = m_total_size;
 					TORRENT_ASSERT(m_files[f].size == 0);
 					++f;
 				}
@@ -1332,7 +1334,7 @@ namespace {
 	std::int64_t file_storage::file_offset(file_index_t const index) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
-		return std::int64_t(m_files[index].offset);
+		return m_files[index].offset;
 	}
 
 	int file_storage::file_num_pieces(file_index_t const index) const
@@ -1346,7 +1348,7 @@ namespace {
 		// this function only works for v2 torrents, where files are guaranteed to
 		// be aligned to pieces
 		TORRENT_ASSERT(f.pad_file == false);
-		TORRENT_ASSERT((static_cast<std::int64_t>(f.offset) % m_piece_length) == 0);
+		TORRENT_ASSERT((f.offset % m_piece_length) == 0);
 		return aux::numeric_cast<int>(
 			(static_cast<std::int64_t>(f.size) + m_piece_length - 1) / m_piece_length);
 	}
@@ -1367,7 +1369,7 @@ namespace {
 		// this function only works for v2 torrents, where files are guaranteed to
 		// be aligned to pieces
 		TORRENT_ASSERT(f.pad_file == false);
-		TORRENT_ASSERT((static_cast<std::int64_t>(f.offset) % m_piece_length) == 0);
+		TORRENT_ASSERT((f.offset % m_piece_length) == 0);
 		return int((f.size + default_block_size - 1) / default_block_size);
 	}
 
@@ -1466,10 +1468,7 @@ namespace {
 		return fe.pad_file;
 	}
 
-	std::int64_t file_storage::file_offset(aux::file_entry const& fe) const
-	{
-		return std::int64_t(fe.offset);
-	}
+	std::int64_t file_storage::file_offset(aux::file_entry const& fe) const { return fe.offset; }
 #endif // TORRENT_ABI_VERSION
 
 	void file_storage::swap(file_storage& ti) noexcept
@@ -1559,7 +1558,7 @@ namespace {
 				new_files.emplace_back();
 				auto& pad = new_files.back();
 				pad.size = static_cast<std::uint64_t>(pad_size);
-				pad.offset = static_cast<std::uint64_t>(off);
+				pad.offset = off;
 				off += pad_size;
 				pad.path_element_index = aux::path_element::pad_directory;
 				pad.pad_file = true;
@@ -1584,7 +1583,7 @@ namespace {
 
 			auto& file = new_files.back();
 			TORRENT_ASSERT(off < max_file_offset - static_cast<std::int64_t>(file.size));
-			file.offset = static_cast<std::uint64_t>(off);
+			file.offset = off;
 			off += file.size;
 			on_disk += file.size;
 
@@ -1685,7 +1684,7 @@ namespace aux {
 	{
 		peer_request const range = fs.map_file(file, 0, 1);
 		std::int64_t const file_size = fs.file_size(file);
-		std::int64_t const piece_size = fs.piece_length();
+		int const piece_size = fs.piece_length();
 		piece_index_t const begin_piece = range.start == 0 ? range.piece : piece_index_t(static_cast<int>(range.piece) + 1);
 		// the last piece is potentially smaller than the other pieces, so the
 		// generic logic doesn't really work. If this file is the last file, the
@@ -1693,7 +1692,9 @@ namespace aux {
 		// contained within the last file.
 		piece_index_t const end_piece = (file == file_index_t(fs.num_files() - 1))
 			? piece_index_t(fs.num_pieces())
-			: piece_index_t(int((static_cast<int>(range.piece) * piece_size + range.start + file_size + 1) / piece_size));
+			: piece_index_t(
+				  int((torrent_byte_offset(range.piece, range.start, piece_size) + file_size + 1)
+					  / piece_size));
 		return {begin_piece, end_piece};
 	}
 
@@ -1703,9 +1704,10 @@ namespace aux {
 	{
 		peer_request const range = fs.map_file(file, 0, 1);
 		std::int64_t const file_size = fs.file_size(file);
-		std::int64_t const piece_size = fs.piece_length();
-		piece_index_t const end_piece = piece_index_t(int((static_cast<int>(range.piece)
-			* piece_size + range.start + file_size - 1) / piece_size + 1));
+		int const piece_size = fs.piece_length();
+		piece_index_t const end_piece = piece_index_t(int(
+			(torrent_byte_offset(range.piece, range.start, piece_size) + file_size - 1) / piece_size
+			+ 1));
 		return {range.piece, end_piece};
 	}
 
