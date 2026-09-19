@@ -1618,7 +1618,7 @@ void write_handler(torrent_info const& ti,
 	disk.submit_jobs();
 }
 
-void generate_data(std::string const path, torrent_info const& ti)
+void generate_data(std::string const& path, torrent_info const& ti)
 {
 	io_context ios;
 	counters stats_counters;
