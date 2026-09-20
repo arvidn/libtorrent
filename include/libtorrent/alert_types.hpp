@@ -3127,25 +3127,28 @@ TORRENT_VERSION_NAMESPACE_4
 
 TORRENT_VERSION_NAMESPACE_4_END
 
-	// this alert may be posted when the initial checking of resume data and files
-	// on disk (just existence, not piece hashes) completes. If a file belonging
-	// to the torrent is found on disk, but is larger than the file in the
-	// torrent, that's when this alert is posted.
-	// the client may want to call truncate_files() in that case, or perhaps
-	// interpret it as a sign that some other file is in the way, that shouldn't
-	// be overwritten.
-	struct TORRENT_EXPORT oversized_file_alert final : torrent_alert
-	{
-		// internal
-		explicit oversized_file_alert(aux::stack_allocator& alloc, torrent_handle h);
-		TORRENT_DEFINE_ALERT(oversized_file_alert, 98)
+// this alert may be posted when the initial checking of resume data and files
+// on disk (just existence, not piece hashes) completes. If a file belonging
+// to the torrent is found on disk, but is larger than the file in the
+// torrent, that's when this alert is posted.
+// the client may want to call truncate_files() in that case, or perhaps
+// interpret it as a sign that some other file is in the way, that shouldn't
+// be overwritten. If files in the torrent have been renamed, pass a
+// filenames view (built from torrent_handle::get_renamed_files()) rather
+// than the torrent_info's file_storage directly, to truncate the files at
+// their current on-disk paths.
+struct TORRENT_EXPORT oversized_file_alert final : torrent_alert
+{
+	// internal
+	explicit oversized_file_alert(aux::stack_allocator& alloc, torrent_handle h);
+	TORRENT_DEFINE_ALERT(oversized_file_alert, 98)
 
-		static constexpr alert_category_t static_category = alert_category::storage;
-		std::string message() const override;
+	static constexpr alert_category_t static_category = alert_category::storage;
+	std::string message() const override;
 
-		// hidden
-		file_index_t reserved;
-	};
+	// hidden
+	file_index_t reserved;
+};
 
 	// this alert is posted when two separate torrents (magnet links) resolve to
 	// the same torrent, thus causing the same torrent being added twice. In

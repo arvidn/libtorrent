@@ -20,9 +20,12 @@ see LICENSE file.
 
 namespace libtorrent {
 
+namespace {
+
 #ifdef TORRENT_WINDOWS
 
-void truncate_files(file_storage const& fs, std::string const& save_path, storage_error& ec)
+template <typename FileStorage>
+void truncate_files_impl(FileStorage const& fs, std::string const& save_path, storage_error& ec)
 {
 	for (auto i : fs.file_range())
 	{
@@ -98,7 +101,8 @@ void truncate_files(file_storage const& fs, std::string const& save_path, storag
 
 #else
 
-void truncate_files(file_storage const& fs, std::string const& save_path, storage_error& ec)
+template <typename FileStorage>
+void truncate_files_impl(FileStorage const& fs, std::string const& save_path, storage_error& ec)
 {
 	for (auto i : fs.file_range())
 	{
@@ -156,4 +160,15 @@ void truncate_files(file_storage const& fs, std::string const& save_path, storag
 
 #endif
 
+} // namespace
+
+void truncate_files(file_storage const& fs, std::string const& save_path, storage_error& ec)
+{
+	truncate_files_impl(fs, save_path, ec);
+}
+
+void truncate_files(filenames const& fs, std::string const& save_path, storage_error& ec)
+{
+	truncate_files_impl(fs, save_path, ec);
+}
 }
