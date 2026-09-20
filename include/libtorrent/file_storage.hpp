@@ -851,9 +851,16 @@ namespace aux {
 		// paths. ``file_absolute_path()`` returns true if the recorded
 		// rename is an absolute path (in which case ``save_path`` is
 		// ignored).
+		// file_name() returns the filename (the leaf, not the full path) for
+		// the file at ``index``, applying any rename recorded in the
+		// underlying ``renamed_files``.
 		std::string file_path(file_index_t const index, std::string const& save_path = "") const
 		{
 			return m_renames.file_path(m_files, index, save_path);
+		}
+		string_view file_name(file_index_t const index) const
+		{
+			return m_renames.file_name(m_files, index);
 		}
 		bool file_absolute_path(file_index_t const index) const
 		{
