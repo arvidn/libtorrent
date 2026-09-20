@@ -361,6 +361,7 @@ void bind_file_storage()
 			&wrap_filenames_check<std::int64_t, &filenames::file_offset>,
 			arg("index"))
 		.def("file_path", &filenames_file_path, (arg("index"), arg("save_path") = ""))
+		.def("file_name", &wrap_filenames_check<string_view, &filenames::file_name>, arg("index"))
 		.def("file_absolute_path",
 			&wrap_filenames_check<bool, &filenames::file_absolute_path>,
 			arg("index"))

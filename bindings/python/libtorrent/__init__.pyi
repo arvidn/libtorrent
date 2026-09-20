@@ -4255,6 +4255,11 @@ class filenames(metaclass=_BoostBaseClass):
         file_path( (filenames)arg1, (object)index [, (str)save_path='']) -> str :
         """
 
+    def file_name(self, index: int) -> str:
+        """
+        file_name( (filenames)arg1, (object)index) -> str :
+        """
+
     def file_absolute_path(self, index: int) -> bool:
         """
         file_absolute_path( (filenames)arg1, (object)index) -> bool :

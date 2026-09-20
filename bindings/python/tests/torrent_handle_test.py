@@ -896,6 +896,17 @@ class FilenamesClassTest(unittest.TestCase):
         names = lt.filenames(self.fs, rf)
         self.assertIn("new_name.txt", names.file_path(0))
 
+    def test_file_name_unrenamed_falls_back_to_file_storage(self) -> None:
+        rf = lt.renamed_files()
+        names = lt.filenames(self.fs, rf)
+        self.assertEqual(names.file_name(0), self.fs.file_name(0))
+
+    def test_file_name_renamed(self) -> None:
+        rf = lt.renamed_files()
+        rf.rename_file(self.fs, 0, "new_name.txt")
+        names = lt.filenames(self.fs, rf)
+        self.assertEqual(names.file_name(0), "new_name.txt")
+
     def test_file_size_and_offset_match_file_storage(self) -> None:
         rf = lt.renamed_files()
         names = lt.filenames(self.fs, rf)
@@ -942,6 +953,8 @@ class FilenamesClassTest(unittest.TestCase):
             with self.assertRaises(IndexError):
                 names.file_path(index)
             with self.assertRaises(IndexError):
+                names.file_name(index)
+            with self.assertRaises(IndexError):
                 names.file_absolute_path(index)
             with self.assertRaises(IndexError):
                 names.symlink(index)
@@ -959,6 +972,7 @@ class FilenamesClassTest(unittest.TestCase):
         del rf
         gc.collect()
         self.assertIn("new_name.txt", names.file_path(0))
+        self.assertEqual("new_name.txt", names.file_name(0))
 
     def test_custodian_and_ward_holds_references(self) -> None:
         # a missing with_custodian_and_ward could still pass
