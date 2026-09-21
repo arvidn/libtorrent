@@ -1321,15 +1321,15 @@ TORRENT_TEST(coalesce_path)
 	lt::file_storage const& fs = ti->layout();
 
 	// pad files should be created, to make sure "c" is shared between the
-	// two files under it. compute_element_hashes() deliberately doesn't
-	// track the pad files' own ".pad" directory at all (a naming
-	// collision involving a pad file is never a real conflict, see
+	// two files under it. compute_is_dir() deliberately doesn't track the
+	// pad files' own ".pad" directory at all (a naming collision
+	// involving a pad file is never a real conflict, see
 	// resolve_duplicate_filenames())
 
-	auto const eh = fs.compute_element_hashes();
+	auto const is_dir = fs.compute_is_dir();
 	std::size_t dir_count = 0;
-	for (auto const idx : eh.is_dir.range())
-		if (eh.is_dir[idx])
+	for (auto const idx : is_dir.range())
+		if (is_dir[idx])
 			++dir_count;
 	TEST_EQUAL(dir_count, 1u); // "test/c"
 }

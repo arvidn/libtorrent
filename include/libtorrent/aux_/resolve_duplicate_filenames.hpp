@@ -16,19 +16,21 @@ see LICENSE file.
 #include "libtorrent/fwd.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/export.hpp"
-#include "libtorrent/file_storage.hpp" // for file_storage::element_hashes
+#include "libtorrent/file_storage.hpp"
+#include "libtorrent/aux_/vector.hpp"
 
 namespace libtorrent::aux {
 	std::map<file_index_t, std::string> resolve_duplicate_filenames(file_storage const& fs, int max_duplicate_filenames, error_code& ec);
 
 	// internal
-	// does the actual duplicate-resolution work, given element_hashes
-	// already computed by resolve_duplicate_filenames(). Exposed (only) for
-	// unit tests that need to feed it a crafted element_hashes to exercise
-	// its collision-scanning cost bound.
+	// does the actual duplicate-resolution work, given per-path_element
+	// crc32 hashes already computed by resolve_duplicate_filenames() (see
+	// file_storage::compute_element_hashes()). Exposed (only) for unit
+	// tests that need to feed it a crafted hash array to exercise its
+	// collision-scanning cost bound.
 	TORRENT_EXTRA_EXPORT std::map<file_index_t, std::string> resolve_duplicate_filenames_slow(
 		file_storage const& fs,
-		file_storage::element_hashes const& eh,
+		aux::vector<std::uint32_t, aux::path_index_t> const& eh,
 		int max_duplicate_filenames,
 		error_code& ec);
 }

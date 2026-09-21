@@ -31,7 +31,6 @@ see LICENSE file.
 #include <algorithm>
 #include <functional>
 #include <set>
-#include <unordered_set>
 #include <atomic>
 
 // resolve_duplicate_filenames_slow() hashes an actual, native-separator
@@ -1169,7 +1168,7 @@ namespace {
 		}
 	}
 
-	file_storage::element_hashes file_storage::compute_element_hashes() const
+	aux::vector<std::uint32_t, aux::path_index_t> file_storage::compute_element_hashes() const
 	{
 		using crc32_t = boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true>;
 
@@ -1182,11 +1181,10 @@ namespace {
 		// parent's already-computed boundary crc (the crc of its full path,
 		// rooted at m_name, with no trailing separator). live_crcs holds
 		// the (still extendable) crc objects, so a child can keep building
-		// on its parent's; the returned element_hashes::crc only needs the
-		// finalized checksum of each.
+		// on its parent's; the returned array only needs the finalized
+		// checksum of each.
 		aux::vector<crc32_t, aux::path_index_t> live_crcs(m_path_elements.size(), root_crc);
 		aux::vector<std::uint32_t, aux::path_index_t> crcs(m_path_elements.size(), std::uint32_t());
-		aux::vector<bool, aux::path_index_t> is_dir(m_path_elements.size(), false);
 
 		for (auto const idx : m_path_elements.range())
 		{
@@ -1212,47 +1210,52 @@ namespace {
 			}
 			live_crcs[idx] = crc;
 			crcs[idx] = crc.checksum();
-
-			if (!top_level)
-				is_dir[e.parent] = true;
 		}
 
 		// pad files are deliberately not accounted for here: they never
 		// touch disk, so a naming collision involving one, or involving a
 		// directory only ever referenced by one, is never a real conflict
 		// (see resolve_duplicate_filenames()).
-		return {std::move(crcs), std::move(is_dir)};
+		return crcs;
 	}
 
-	std::uint32_t file_storage::file_hash(element_hashes const& eh, file_index_t const idx) const
+	aux::vector<bool, aux::path_index_t> file_storage::compute_is_dir() const
 	{
-		// a pad file never touches disk, so a naming collision involving
-		// one is never a real conflict (see resolve_duplicate_filenames()),
-		// and is therefore never hashed here; its path_element_index can
-		// even be one of the path_element sentinels rather than a real
-		// m_path_elements index (e.g. the pad_directory sentinel, or
-		// torrent_root for one living directly under the root), so this
-		// would be more than a lookup away from eh.crc anyway.
-		TORRENT_ASSERT_PRECOND(!m_files[idx].pad_file);
-		return eh.crc[m_files[idx].path_element_index];
-	}
-
-	std::optional<file_storage::element_hashes> file_storage::has_duplicate_filenames() const
-	{
-		element_hashes eh = compute_element_hashes();
-
-		// seed with every directory's hash. Two different directories are
-		// allowed to collide with each other (see resolve_duplicate_filenames.cpp
-		// for why that's fine, and legitimately not limited to add_file()'s
-		// lack of dedup), so this only needs the hash values, not a
-		// multimap of them; only a *file* landing on an already-seen hash
-		// (directory or file) is a real collision.
-		std::unordered_set<std::uint32_t> seen;
-		seen.reserve(m_path_elements.size() + m_files.size());
-
+		aux::vector<bool, aux::path_index_t> is_dir(m_path_elements.size(), false);
 		for (auto const idx : m_path_elements.range())
-			if (eh.is_dir[idx])
-				seen.insert(eh.crc[idx]);
+		{
+			aux::path_element const& e = m_path_elements[idx];
+			if (!is_root_path_index(e.parent))
+				is_dir[e.parent] = true;
+		}
+		return is_dir;
+	}
+
+	std::uint32_t file_storage::file_hash(
+		aux::vector<std::uint32_t, aux::path_index_t> const& eh, file_index_t const idx) const
+	{
+		// a pad file's path_element_index can be one of the path_element
+		// sentinels (e.g. pad_directory) rather than a real m_path_elements
+		// index, so this would be more than a lookup away from eh anyway
+		TORRENT_ASSERT_PRECOND(!m_files[idx].pad_file);
+		return eh[m_files[idx].path_element_index];
+	}
+
+	std::optional<aux::vector<std::uint32_t, aux::path_index_t>>
+	file_storage::has_duplicate_filenames() const
+	{
+		aux::vector<std::uint32_t, aux::path_index_t> eh = compute_element_hashes();
+
+		// counts how many path elements, directories or file leaves alike,
+		// share each hash. Two directories folding together only bumps
+		// their shared hash's count, never checked below, so that's
+		// tolerated exactly as before; a *file* whose own hash's count is
+		// more than one means something else (a directory or another
+		// file) already has that same hash, which is a real collision.
+		std::unordered_map<std::uint32_t, int> count;
+		count.reserve(eh.size());
+		for (auto const c : eh)
+			++count[c];
 
 		for (auto const i : file_range())
 		{
@@ -1260,7 +1263,11 @@ namespace {
 			// file_hash()
 			if (m_files[i].pad_file)
 				continue;
-			if (!seen.insert(file_hash(eh, i)).second)
+			// every non-pad file's own hash was already tallied above (it's
+			// one of eh's elements), so it's always present here
+			auto const it = count.find(file_hash(eh, i));
+			TORRENT_ASSERT(it != count.end());
+			if (it->second > 1)
 				return eh;
 		}
 		return std::nullopt;
