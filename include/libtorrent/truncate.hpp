@@ -18,8 +18,10 @@ namespace libtorrent {
 
 // Truncates files larger than specified in the file_storage, saved under
 // the specified save_path.
+// The overload that takes filenames support taking renamed and de-duplicated files into account.
 TORRENT_EXPORT void truncate_files(file_storage const& fs, std::string const& save_path, storage_error& ec);
-
+TORRENT_EXPORT void truncate_files(
+	filenames const& fs, std::string const& save_path, storage_error& ec);
 }
 
 #endif
