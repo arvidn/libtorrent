@@ -99,10 +99,10 @@ TORRENT_TEST(coalesce_path)
 	// independently and does not deduplicate, so files sharing a directory
 	// each get their own path_element for it.
 	auto count_dirs = [&] {
-		auto const eh = st.compute_element_hashes();
+		auto const is_dir = st.compute_is_dir();
 		std::size_t count = 0;
-		for (auto const idx : eh.is_dir.range())
-			if (eh.is_dir[idx])
+		for (auto const idx : is_dir.range())
+			if (is_dir[idx])
 				++count;
 		return count;
 	};
@@ -121,9 +121,9 @@ TORRENT_TEST(coalesce_path)
 
 	// cause pad files to be created; pad files reference the pad-directory
 	// sentinel directly, so they don't add another path_element, and
-	// compute_element_hashes() deliberately doesn't track pad-only
-	// directories at all (a naming collision involving a pad file is
-	// never a real conflict, see resolve_duplicate_filenames())
+	// compute_is_dir() deliberately doesn't track pad-only directories at
+	// all (a naming collision involving a pad file is never a real
+	// conflict, see resolve_duplicate_filenames())
 	st.canonicalize();
 
 	TEST_EQUAL(count_dirs(), 2u); // "test/c" (x2)
@@ -217,7 +217,7 @@ TORRENT_TEST(file_hash_matches_file_path)
 	file_storage st;
 	setup_test_storage(st);
 
-	file_storage::element_hashes const eh = st.compute_element_hashes();
+	aux::vector<std::uint32_t, aux::path_index_t> const eh = st.compute_element_hashes();
 	for (file_index_t const i : st.file_range())
 	{
 		boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;

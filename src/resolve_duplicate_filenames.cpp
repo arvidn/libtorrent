@@ -14,6 +14,7 @@ see LICENSE file.
 
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/assert.hpp"
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/aux_/string_util.hpp"
 #include "libtorrent/aux_/resolve_duplicate_filenames.hpp"
@@ -42,7 +43,7 @@ namespace {
 	}
 
 	std::map<file_index_t, std::string> resolve_duplicate_filenames_slow(file_storage const& fs,
-		file_storage::element_hashes const& eh,
+		aux::vector<std::uint32_t, aux::path_index_t> const& eh,
 		int const max_duplicate_filenames,
 		error_code& ec)
 	{
@@ -65,10 +66,23 @@ namespace {
 		// together on disk loses nothing, unlike a file colliding with
 		// anything, so it's never treated as a real collision below,
 		// only a *file* landing on an already-seen hash is.
-		files.reserve(eh.crc.size() + aux::numeric_cast<std::size_t>(fs.num_files()));
-		for (auto const idx : eh.is_dir.range())
-			if (eh.is_dir[idx])
-				files.insert({eh.crc[idx], {file_index_t{-1}, idx}});
+		files.reserve(eh.size() + aux::numeric_cast<std::size_t>(fs.num_files()));
+
+		// computed as its own pass here, rather than folded into
+		// compute_element_hashes(), since this is the only caller, reached
+		// only once has_duplicate_filenames() has already confirmed a real
+		// collision; the common, collision-free case never pays for it
+		aux::vector<bool, aux::path_index_t> const is_dir = fs.compute_is_dir();
+
+		// eh and is_dir must come from the same file_storage state: eh is
+		// indexed below by is_dir's range, so a caller-supplied eh
+		// computed for a different fs (or a stale one) would be an
+		// out-of-bounds access rather than a clean failure
+		TORRENT_ASSERT_PRECOND(eh.size() == is_dir.size());
+
+		for (auto const idx : is_dir.range())
+			if (is_dir[idx])
+				files.insert({eh[idx], {file_index_t{-1}, idx}});
 
 		// keep track of the total number of name collisions. If there are too
 		// many, it's probably a malicious torrent and we should just fail

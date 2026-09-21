@@ -102,18 +102,18 @@ extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, size_t size)
 	filenames const names_view(fs, rf);
 
 	// the set of directory paths that actually manifest on disk, mirroring
-	// compute_element_hashes()'s own is_dir bit: a path_element referenced
-	// only by pad files (or by nothing at all) never gets is_dir set, since
-	// pad files never touch disk and so neither does a directory that only
-	// ever holds them, see compute_element_hashes()'s doc comment. Deriving
+	// compute_is_dir()'s own bit: a path_element referenced only by pad
+	// files (or by nothing at all) never gets is_dir set, since pad files
+	// never touch disk and so neither does a directory that only ever
+	// holds them, see compute_element_hashes()'s doc comment. Deriving
 	// this from fs directly, rather than tracking prefixes by hand while
 	// generating the tree above, keeps the invariant in sync with whatever
 	// resolve_duplicate_filenames() itself considers a real collision.
-	file_storage::element_hashes const eh = fs.compute_element_hashes();
+	aux::vector<bool, aux::path_index_t> const is_dir = fs.compute_is_dir();
 	std::unordered_set<std::string> directories;
-	for (auto const idx : eh.is_dir.range())
+	for (auto const idx : is_dir.range())
 	{
-		if (!eh.is_dir[idx])
+		if (!is_dir[idx])
 			continue;
 		std::string dir_path = fs.internal_directory_path(idx);
 		std::transform(dir_path.begin(), dir_path.end(), dir_path.begin(), &aux::to_lower);

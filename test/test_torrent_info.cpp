@@ -2124,21 +2124,23 @@ TORRENT_TEST(resolve_duplicate_filenames_bucket_scan_cap)
 	// resolve_duplicate_filenames_slow() never finds a match and never
 	// renames anything, max_duplicate_filenames (the counter that bounds
 	// failed rename attempts) never comes into play. Instead,
-	// element_hashes::crc is doctored after the fact so every file's hash
-	// collides, simulating what a crafted, non-keyed hash could otherwise
-	// force for real: an ever-growing single bucket, scanned in full on
-	// every subsequent lookup. This is what the size-scaled bucket-scan
-	// budget, independent of max_duplicate_filenames, is meant to catch.
+	// the computed hash array is doctored after the fact so every file's
+	// hash collides, simulating what a crafted, non-keyed hash could
+	// otherwise force for real: an ever-growing single bucket, scanned in
+	// full on every subsequent lookup. This is what the size-scaled
+	// bucket-scan budget, independent of max_duplicate_filenames, is
+	// meant to catch.
 	auto build = [](int const n) {
 		file_storage fs;
 		fs.set_piece_length(0x4000);
 		for (int i = 0; i < n; ++i)
 			fs.add_file_borrow({}, combine_path("dir", "file" + std::to_string(i)), 1);
 
-		file_storage::element_hashes eh = fs.compute_element_hashes();
-		for (auto const idx : eh.is_dir.range())
-			if (!eh.is_dir[idx])
-				eh.crc[idx] = 0xdeadbeefu;
+		aux::vector<std::uint32_t, aux::path_index_t> eh = fs.compute_element_hashes();
+		aux::vector<bool, aux::path_index_t> const is_dir = fs.compute_is_dir();
+		for (auto const idx : is_dir.range())
+			if (!is_dir[idx])
+				eh[idx] = 0xdeadbeefu;
 		return std::make_pair(std::move(fs), std::move(eh));
 	};
 

@@ -601,57 +601,56 @@ public:
 		static inline constexpr file_flags_t flag_symlink = 3_bit;
 
 		// internal
-		// per-path_element data computed by compute_element_hashes(): every
-		// element's crc32 hash of its full path from the torrent root
-		// (lower-case, no trailing separator), and whether the element is
-		// used as a directory (is some other element's parent). Pad files
-		// are never represented here, whether as the directory they
-		// synthesize their own leaf name under or otherwise: they never
-		// touch disk, so a naming collision involving one (or a directory
-		// only ever referenced by one) is never a real conflict, see
+		// computes, for every path_element, the crc32 hash of its full
+		// path from the torrent root (lower-case, no trailing separator).
+		// A path_element's parent always has a lower index than the
+		// element itself, so this is a single forward pass, each element
+		// extending its parent's already-computed hash rather than being
+		// rebuilt from the root. Pad files are never represented here,
+		// whether as the directory they synthesize their own leaf name
+		// under or otherwise: they never touch disk, so a naming
+		// collision involving one (or a directory only ever referenced
+		// by one) is never a real conflict, see
 		// resolve_duplicate_filenames(). The torrent's own root directory
 		// (file_storage::name()) has no entry of its own either: a file
 		// legitimately reconstructs to exactly that name when it has no
 		// sub-directory components (e.g. single-file torrents), so it
 		// isn't a real collision.
-		struct element_hashes
-		{
-			aux::vector<std::uint32_t, aux::path_index_t> crc;
-			aux::vector<bool, aux::path_index_t> is_dir;
-		};
+		aux::vector<std::uint32_t, aux::path_index_t> compute_element_hashes() const;
 
 		// internal
-		// computes element_hashes for this file_storage. A path_element's
-		// parent always has a lower index than the element itself, so this
-		// is a single forward pass, each element extending its parent's
-		// already-computed hash rather than being rebuilt from the root.
-		element_hashes compute_element_hashes() const;
+		// returns which path elements are used as a directory (are some
+		// other element's parent), indexed the same way as
+		// compute_element_hashes()'s result.
+		aux::vector<bool, aux::path_index_t> compute_is_dir() const;
 
 		// internal
-		// returns the crc32 hash of file_path(idx, ""), using an
-		// element_hashes already computed by compute_element_hashes() for
-		// this file_storage, instead of re-walking idx's whole path chain
-		// from the root. idx must not be a pad file: a pad-file naming
-		// collision is never a real conflict (see
-		// resolve_duplicate_filenames()), so callers skip them rather than
-		// hash them.
-		std::uint32_t file_hash(element_hashes const& eh, file_index_t idx) const;
+		// returns the crc32 hash of file_path(idx, ""), using hashes
+		// already computed by compute_element_hashes() for this
+		// file_storage, instead of re-walking idx's whole path chain
+		// from the root. idx must not be a pad file.
+		std::uint32_t file_hash(
+			aux::vector<std::uint32_t, aux::path_index_t> const& eh, file_index_t idx) const;
 
 		// internal
 		// hashes every path element (via compute_element_hashes()), then
 		// returns that result if any non-pad file's hash (file_hash())
-		// collides with a directory's hash or another file's hash;
-		// std::nullopt if there's no collision at all. The full computation
-		// always runs, even once a collision is found: its only caller,
-		// resolve_duplicate_filenames(), needs every file's and directory's
-		// hash to find and rename all conflicts, not just the first, so
-		// stopping early would just move the same work into that caller.
-		std::optional<element_hashes> has_duplicate_filenames() const;
+		// appears more than once among every element's hash (a file
+		// colliding with a directory or another file); std::nullopt if
+		// every file's hash is unique (two directories folding together,
+		// with no file involved, is fine and never flagged). The full
+		// computation always runs, even once a collision is found: its
+		// only caller, resolve_duplicate_filenames(), needs every file's
+		// and directory's hash to find and rename all conflicts, not just
+		// the first, so stopping early would just move the same work into
+		// that caller.
+		std::optional<aux::vector<std::uint32_t, aux::path_index_t>>
+		has_duplicate_filenames() const;
 
 		// internal
 		// reconstructs the full path (rooted at file_storage::name()) of the
 		// directory identified by ``index``, as produced by
-		// compute_element_hashes().
+		// compute_is_dir().
 		std::string internal_directory_path(aux::path_index_t index) const;
 
 		// returns a bitmask of flags from file_flags_t that apply
