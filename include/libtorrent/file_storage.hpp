@@ -37,67 +37,72 @@ see LICENSE file.
 
 namespace libtorrent {
 
+// this type represents one node (a directory component or a file's own
+// leaf name) in a file_storage's internal path tree, naming a single
+// tree component rather than a whole file path. Assigned in
+// file_storage's own parse/construction order; only meaningful
+// relative to the specific file_storage that produced it.
+using path_index_t = aux::strong_typedef<std::uint32_t, struct path_index_tag>;
+
 namespace aux {
-	struct path_index_tag;
-	using path_index_t = aux::strong_typedef<std::uint32_t, path_index_tag>;
 
-	// internal
-	// a single path-component node in file_storage's path tree. Both
-	// directory components and filenames are represented as path_element
-	// nodes; a file's full path is reconstructed by walking ``parent``
-	// links from its leaf element up to the root. Only file_storage
-	// constructs and resolves these, so all fields are public and mutated
-	// directly by file_storage::make_directory().
-	struct path_element
-	{
-		path_element() = default;
-		path_element(path_element const&);
-		path_element(path_element&&) noexcept;
-		path_element& operator=(path_element const&) = delete;
-		path_element& operator=(path_element&&) = delete;
-		~path_element();
+// internal
+// a single path-component node in file_storage's path tree. Both
+// directory components and filenames are represented as path_element
+// nodes; a file's full path is reconstructed by walking ``parent``
+// links from its leaf element up to the root. Only file_storage
+// constructs and resolves these, so all fields are public and mutated
+// directly by file_storage::make_directory().
+struct path_element
+{
+	path_element() = default;
+	path_element(path_element const&);
+	path_element(path_element&&) noexcept;
+	path_element& operator=(path_element const&) = delete;
+	path_element& operator=(path_element&&) = delete;
+	~path_element();
 
-		// sentinel parent for a top-level element
-		static inline constexpr path_index_t torrent_root{(std::uint32_t(1) << 30) - 1};
-		// sentinel parent for an absolute path; the element's own text is
-		// the entire path, never split into components
-		static inline constexpr path_index_t path_is_absolute{(std::uint32_t(1) << 30) - 2};
-		// sentinel identifying the pad-file directory. Resolves to
-		// name()/".pad" without a real path_element: nothing is ever nested
-		// under it (pad files reference it directly as their own directory,
-		// synthesizing their leaf name from their size on demand), so
-		// there's nothing to dedupe or store.
-		static inline constexpr path_index_t pad_directory{(std::uint32_t(1) << 30) - 3};
-		// sentinel parent for a chain (or a lone element) that doesn't root
-		// at file_storage::name(): a single-file torrent's lone file, or a
-		// path added/renamed that doesn't share the torrent's own name.
-		// name() is not prepended when reconstructing a path under it,
-		// unlike a chain rooted at torrent_root.
-		static inline constexpr path_index_t no_root_dir{(std::uint32_t(1) << 30) - 4};
+	// sentinel parent for a top-level element
+	static inline constexpr path_index_t torrent_root{(std::uint32_t(1) << 30) - 1};
+	// sentinel parent for an absolute path; the element's own text is
+	// the entire path, never split into components
+	static inline constexpr path_index_t path_is_absolute{(std::uint32_t(1) << 30) - 2};
+	// sentinel identifying the pad-file directory. Resolves to
+	// name()/".pad" without a real path_element: nothing is ever nested
+	// under it (pad files reference it directly as their own directory,
+	// synthesizing their leaf name from their size on demand), so
+	// there's nothing to dedupe or store.
+	static inline constexpr path_index_t pad_directory{(std::uint32_t(1) << 30) - 3};
+	// sentinel parent for a chain (or a lone element) that doesn't root
+	// at file_storage::name(): a single-file torrent's lone file, or a
+	// path added/renamed that doesn't share the torrent's own name.
+	// name() is not prepended when reconstructing a path under it,
+	// unlike a chain rooted at torrent_root.
+	static inline constexpr path_index_t no_root_dir{(std::uint32_t(1) << 30) - 4};
 
-		// sentinel name_len meaning name_ptr is an owned, 0-terminated copy
-		static inline constexpr std::uint16_t name_is_owned = 0xffff;
+	// sentinel name_len meaning name_ptr is an owned, 0-terminated copy
+	static inline constexpr std::uint16_t name_is_owned = 0xffff;
 
-		path_index_t parent = path_element::torrent_root;
+	path_index_t parent = path_element::torrent_root;
 
-		// borrowed: name_ptr points to name_len bytes owned by the caller
-		// (any buffer, not necessarily file_storage::m_info_section), not
-		// necessarily 0-terminated
-		// owned (name_len == name_is_owned): name_ptr is heap-allocated,
-		// 0-terminated, freed by this object
-		std::uint16_t name_len = 0;
+	// borrowed: name_ptr points to name_len bytes owned by the caller
+	// (any buffer, not necessarily file_storage::m_info_section), not
+	// necessarily 0-terminated
+	// owned (name_len == name_is_owned): name_ptr is heap-allocated,
+	// 0-terminated, freed by this object
+	std::uint16_t name_len = 0;
 
-		// this element's own depth: 1 for a top-level element (parent is one
-		// of the sentinels above), or 1 + parent's depth otherwise. Lets
-		// file_storage::reconstruct_path() size its output buffer without a
-		// preliminary walk up to the root. Kept the same width as name_len
-		// (rather than a wider type) so this struct stays 16 bytes; relies
-		// on callers keeping directory nesting within std::uint16_t, see
-		// load_torrent_limits::max_directory_depth
-		std::uint16_t depth = 0;
+	// this element's own depth: 1 for a top-level element (parent is one
+	// of the sentinels above), or 1 + parent's depth otherwise. Lets
+	// file_storage::reconstruct_path() size its output buffer without a
+	// preliminary walk up to the root. Kept the same width as name_len
+	// (rather than a wider type) so this struct stays 16 bytes; relies
+	// on callers keeping directory nesting within std::uint16_t, see
+	// load_torrent_limits::max_directory_depth
+	std::uint16_t depth = 0;
 
-		char const* name_ptr = nullptr;
-	};
+	char const* name_ptr = nullptr;
+};
 
 	// internal
 	struct file_entry
@@ -143,7 +148,7 @@ namespace aux {
 	// definition below the class for documentation
 	TORRENT_EXTRA_EXPORT bool files_compatible(file_storage const& lhs, file_storage const& rhs);
 
-} // aux namespace
+	} // aux namespace
 
 	// represents a window of a file in a torrent.
 	//
@@ -355,8 +360,8 @@ public:
 		// pairs themselves. ``name`` is borrowed (the caller guarantees it
 		// outlives this file_storage) when ``borrow`` is true, otherwise
 		// heap-copied.
-		TORRENT_UNEXPORT aux::path_index_t make_directory(
-			aux::path_index_t parent, string_view name, bool borrow = false);
+		TORRENT_UNEXPORT path_index_t make_directory(
+			path_index_t parent, string_view name, bool borrow = false);
 
 		// internal
 		// adds a file named ``filename`` directly under directory ``dir``
@@ -371,10 +376,10 @@ public:
 		// ``file_storage(char const*)`` constructor), or
 		// file_storage::no_root_hash if this file has none. Returns the new
 		// file's own path_index_t. Not for symlinks, see add_symlink().
-		TORRENT_UNEXPORT aux::path_index_t add_file(error_code& ec,
+		TORRENT_UNEXPORT path_index_t add_file(error_code& ec,
 			string_view filename,
 			bool borrow,
-			aux::path_index_t dir,
+			path_index_t dir,
 			std::int64_t file_size,
 			file_flags_t file_flags = {},
 			std::int64_t mtime = 0,
@@ -389,10 +394,10 @@ public:
 		// case used while parsing a real .torrent, before the rest of the
 		// file list/tree has been parsed. Returns the new symlink's own
 		// path_index_t.
-		TORRENT_UNEXPORT aux::path_index_t add_symlink(error_code& ec,
+		TORRENT_UNEXPORT path_index_t add_symlink(error_code& ec,
 			string_view filename,
 			bool borrow,
-			aux::path_index_t dir,
+			path_index_t dir,
 			file_flags_t file_flags,
 			std::int64_t mtime);
 
@@ -403,10 +408,10 @@ public:
 		// its own fresh path_element rather than resolved against the
 		// tree, since it doesn't necessarily correspond to any file this
 		// file_storage knows about.
-		TORRENT_UNEXPORT aux::path_index_t add_symlink(error_code& ec,
+		TORRENT_UNEXPORT path_index_t add_symlink(error_code& ec,
 			string_view filename,
 			bool borrow,
-			aux::path_index_t dir,
+			path_index_t dir,
 			file_flags_t file_flags,
 			std::int64_t mtime,
 			string_view target);
@@ -415,8 +420,7 @@ public:
 		// sets the already-resolved symlink target for the file at
 		// ``index`` (must have flag_symlink set) to path_element
 		// ``target``.
-		TORRENT_UNEXPORT void internal_set_symlink_target(
-			file_index_t index, aux::path_index_t target);
+		TORRENT_UNEXPORT void internal_set_symlink_target(file_index_t index, path_index_t target);
 
 #if TORRENT_ABI_VERSION < 4
 		// internal
@@ -616,13 +620,13 @@ public:
 		// legitimately reconstructs to exactly that name when it has no
 		// sub-directory components (e.g. single-file torrents), so it
 		// isn't a real collision.
-		aux::vector<std::uint32_t, aux::path_index_t> compute_element_hashes() const;
+		aux::vector<std::uint32_t, path_index_t> compute_element_hashes() const;
 
 		// internal
 		// returns which path elements are used as a directory (are some
 		// other element's parent), indexed the same way as
 		// compute_element_hashes()'s result.
-		aux::vector<bool, aux::path_index_t> compute_is_dir() const;
+		aux::vector<bool, path_index_t> compute_is_dir() const;
 
 		// internal
 		// returns the crc32 hash of file_path(idx, ""), using hashes
@@ -630,7 +634,7 @@ public:
 		// file_storage, instead of re-walking idx's whole path chain
 		// from the root. idx must not be a pad file.
 		std::uint32_t file_hash(
-			aux::vector<std::uint32_t, aux::path_index_t> const& eh, file_index_t idx) const;
+			aux::vector<std::uint32_t, path_index_t> const& eh, file_index_t idx) const;
 
 		// internal
 		// hashes every path element (via compute_element_hashes()), then
@@ -644,14 +648,13 @@ public:
 		// and directory's hash to find and rename all conflicts, not just
 		// the first, so stopping early would just move the same work into
 		// that caller.
-		std::optional<aux::vector<std::uint32_t, aux::path_index_t>>
-		has_duplicate_filenames() const;
+		std::optional<aux::vector<std::uint32_t, path_index_t>> has_duplicate_filenames() const;
 
 		// internal
 		// reconstructs the full path (rooted at file_storage::name()) of the
 		// directory identified by ``index``, as produced by
 		// compute_is_dir().
-		std::string internal_directory_path(aux::path_index_t index) const;
+		std::string internal_directory_path(path_index_t index) const;
 
 		// returns a bitmask of flags from file_flags_t that apply
 		// to file at ``index``.
@@ -761,10 +764,10 @@ public:
 		// indirectly (via add_file_borrow_impl() and
 		// resolve_owned_directory()) by the deprecated, joined-path-string
 		// add_file() overloads.
-		aux::path_index_t add_file_impl(error_code& ec,
+		path_index_t add_file_impl(error_code& ec,
 			string_view filename,
 			bool filename_borrow,
-			aux::path_index_t dir,
+			path_index_t dir,
 			std::int64_t file_size,
 			file_flags_t file_flags,
 			std::int64_t mtime,
@@ -789,7 +792,7 @@ public:
 		// the chain depth is derived from an untrusted .torrent file.
 		// Returns the terminal sentinel the chain is rooted at (torrent_root,
 		// path_is_absolute, pad_directory, or no_root_dir).
-		aux::path_index_t reconstruct_path(aux::path_index_t leaf, std::string& out) const;
+		path_index_t reconstruct_path(path_index_t leaf, std::string& out) const;
 
 		// compares the path_element chain rooted at ``li`` against the one
 		// rooted at ``ri`` in ``rhs``, leaf to root, without building
@@ -799,8 +802,7 @@ public:
 		// only caller, already guarantees lhs and rhs share a name(). Used
 		// for both a file's own path (path_element_index) and, for
 		// symlinks, its target (symlink_element_index).
-		bool path_chain_equal(
-			aux::path_index_t li, file_storage const& rhs, aux::path_index_t ri) const;
+		bool path_chain_equal(path_index_t li, file_storage const& rhs, path_index_t ri) const;
 
 #if TORRENT_ABI_VERSION == 1
 		// recovers a file_entry's index from its address in m_files. Used by
@@ -827,7 +829,7 @@ public:
 		// to tell which of those two applied), and path's own last
 		// component in ``leaf_out``. Sets ``ec`` and returns {} if ``path``
 		// has too many directory components.
-		aux::path_index_t resolve_owned_directory(
+		path_index_t resolve_owned_directory(
 			std::string const& path, string_view& leaf_out, error_code& ec);
 
 		// the list of files that this torrent consists of
@@ -848,7 +850,7 @@ public:
 		// reference. aux::file_entry::path_element_index points into this
 		// array; walking aux::path_element::parent links reconstructs a
 		// file's full path (see reconstruct_path()).
-		aux::vector<aux::path_element, aux::path_index_t> m_path_elements;
+		aux::vector<aux::path_element, path_index_t> m_path_elements;
 
 		// name of torrent. For multi-file torrents
 		// this is always the root directory

@@ -37,13 +37,13 @@ namespace {
 		// file_index_t{-1} means this entry is a directory, identified by
 		// `dir` rather than a real file index
 		file_index_t idx;
-		aux::path_index_t dir;
+		path_index_t dir;
 	};
 
 	}
 
 	std::map<file_index_t, std::string> resolve_duplicate_filenames_slow(file_storage const& fs,
-		aux::vector<std::uint32_t, aux::path_index_t> const& eh,
+		aux::vector<std::uint32_t, path_index_t> const& eh,
 		int const max_duplicate_filenames,
 		error_code& ec)
 	{
@@ -72,7 +72,7 @@ namespace {
 		// compute_element_hashes(), since this is the only caller, reached
 		// only once has_duplicate_filenames() has already confirmed a real
 		// collision; the common, collision-free case never pays for it
-		aux::vector<bool, aux::path_index_t> const is_dir = fs.compute_is_dir();
+		aux::vector<bool, path_index_t> const is_dir = fs.compute_is_dir();
 
 		// eh and is_dir must come from the same file_storage state: eh is
 		// indexed below by is_dir's range, so a caller-supplied eh
@@ -128,7 +128,7 @@ namespace {
 			// something to compare it against
 			if (range.first == range.second)
 			{
-				files.insert({hash, {i, aux::path_index_t{}}});
+				files.insert({hash, {i, path_index_t{}}});
 				continue;
 			}
 
@@ -159,7 +159,7 @@ namespace {
 
 			if (match == range.second)
 			{
-				files.insert({hash, {i, aux::path_index_t{}}});
+				files.insert({hash, {i, path_index_t{}}});
 				continue;
 			}
 
@@ -179,7 +179,7 @@ namespace {
 				std::uint32_t const new_hash = crc.checksum();
 				if (files.find(new_hash) == files.end())
 				{
-					files.insert({new_hash, {i, aux::path_index_t{}}});
+					files.insert({new_hash, {i, path_index_t{}}});
 					break;
 				}
 				++num_collisions;

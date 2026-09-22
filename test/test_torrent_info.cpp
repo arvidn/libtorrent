@@ -2136,8 +2136,8 @@ TORRENT_TEST(resolve_duplicate_filenames_bucket_scan_cap)
 		for (int i = 0; i < n; ++i)
 			fs.add_file_borrow({}, combine_path("dir", "file" + std::to_string(i)), 1);
 
-		aux::vector<std::uint32_t, aux::path_index_t> eh = fs.compute_element_hashes();
-		aux::vector<bool, aux::path_index_t> const is_dir = fs.compute_is_dir();
+		aux::vector<std::uint32_t, path_index_t> eh = fs.compute_element_hashes();
+		aux::vector<bool, path_index_t> const is_dir = fs.compute_is_dir();
 		for (auto const idx : is_dir.range())
 			if (!is_dir[idx])
 				eh[idx] = 0xdeadbeefu;

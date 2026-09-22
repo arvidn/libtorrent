@@ -618,14 +618,14 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 	// outlives the whole parse.
 	struct dir_cache_key
 	{
-		dir_cache_key(aux::path_index_t const p, string_view const n)
+		dir_cache_key(path_index_t const p, string_view const n)
 			: parent(p)
 			, name(n)
 		{}
 
 		bool operator==(dir_cache_key const&) const = default;
 
-		aux::path_index_t parent;
+		path_index_t parent;
 		string_view name;
 	};
 
@@ -633,12 +633,12 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 	{
 		std::size_t operator()(dir_cache_key const& k) const
 		{
-			std::size_t seed = std::hash<aux::path_index_t>{}(k.parent);
+			std::size_t seed = std::hash<path_index_t>{}(k.parent);
 			boost::hash_combine(seed, std::hash<string_view>{}(k.name));
 			return seed;
 		}
 	};
-	using dir_cache_t = std::unordered_map<dir_cache_key, aux::path_index_t, dir_cache_hash>;
+	using dir_cache_t = std::unordered_map<dir_cache_key, path_index_t, dir_cache_hash>;
 
 	// looks up (parent, raw) in cache, creating (and caching) a new
 	// directory via fs.make_directory() on a miss. Sanitizing ``raw`` is
@@ -646,9 +646,9 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 	// lookup itself. The underlying path_element still borrows ``raw``
 	// directly when sanitizing didn't change it, only copying the
 	// sanitized text when it did.
-	aux::path_index_t cached_directory(file_storage& fs,
+	path_index_t cached_directory(file_storage& fs,
 		dir_cache_t& cache,
-		aux::path_index_t const parent,
+		path_index_t const parent,
 		string_view const raw,
 		load_torrent_limits const& cfg)
 	{
@@ -657,7 +657,7 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 			return it->second;
 		std::string sanitized;
 		bool const unchanged = aux::sanitize_path_element(sanitized, raw, cfg.sanitize_flags, true);
-		aux::path_index_t const dir =
+		path_index_t const dir =
 			fs.make_directory(parent, unchanged ? raw : string_view(sanitized), unchanged);
 		cache.emplace(dir_cache_key(parent, raw), dir);
 		return dir;
@@ -668,9 +668,9 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 	// cached_directory()): first inserted entry for a given (parent, raw)
 	// key wins.
 	void record_leaf(dir_cache_t& cache,
-		aux::path_index_t const parent,
+		path_index_t const parent,
 		string_view const raw,
-		aux::path_index_t const leaf)
+		path_index_t const leaf)
 	{
 		cache.emplace(dir_cache_key(parent, raw), leaf);
 	}
@@ -685,9 +685,9 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 	// been parsed and it's known whether any symlink actually needs it.
 	struct leaf_stash_entry
 	{
-		aux::path_index_t parent;
+		path_index_t parent;
 		string_view raw;
-		aux::path_index_t leaf;
+		path_index_t leaf;
 	};
 	using leaf_stash_t = std::vector<leaf_stash_entry>;
 
@@ -709,7 +709,7 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 	// directory to keep.
 	struct pending_symlink
 	{
-		aux::path_index_t own_leaf;
+		path_index_t own_leaf;
 		std::vector<string_view> target;
 	};
 	using symlink_stash_t = std::unordered_map<file_index_t, pending_symlink>;
@@ -720,7 +720,7 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 	// outright rather than accepted and slowly resolved).
 	bool stash_symlink(symlink_stash_t& symlink_stash,
 		file_index_t const this_file,
-		aux::path_index_t const leaf,
+		path_index_t const leaf,
 		std::vector<string_view> target,
 		load_torrent_limits const& cfg,
 		error_code& ec)
@@ -740,7 +740,7 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 	// real path_element (see extract_single_file()); v2 never reaches here
 	// with a pad file, so the check is a no-op on that path.
 	bool finish_file_entry(file_storage& files,
-		aux::path_index_t const dir,
+		path_index_t const dir,
 		string_view const name,
 		bool const name_borrow,
 		string_view const name_raw,
@@ -757,7 +757,7 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 		file_index_t const this_file = files.end_file();
 		if (file_flags & file_storage::flag_symlink)
 		{
-			aux::path_index_t const leaf =
+			path_index_t const leaf =
 				files.add_symlink(ec, name, name_borrow, dir, file_flags, mtime);
 			if (ec)
 				return false;
@@ -768,7 +768,7 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 		}
 		else
 		{
-			aux::path_index_t const leaf = files.add_file(
+			path_index_t const leaf = files.add_file(
 				ec, name, name_borrow, dir, file_size, file_flags, mtime, pieces_root_offset);
 			if (ec)
 				return false;
@@ -794,10 +794,10 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 	// path_element created while parsing files (directories via
 	// cached_directory(), leaves via record_leaf()).
 	bool resolve_one(dir_cache_t const& cache,
-		std::unordered_map<aux::path_index_t, pending_symlink const*> const& owner,
+		std::unordered_map<path_index_t, pending_symlink const*> const& owner,
 		std::vector<string_view> const& target,
 		load_torrent_limits const& cfg,
-		aux::path_index_t& out)
+		path_index_t& out)
 	{
 		// walks ``target`` directly, with no copy; a real use never
 		// dereferences a hop, so ``spliced`` is only materialized the
@@ -805,7 +805,7 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 		std::vector<string_view> spliced;
 		std::vector<string_view> const* components = &target;
 		std::size_t idx = 0;
-		aux::path_index_t cur = aux::path_element::torrent_root;
+		path_index_t cur = aux::path_element::torrent_root;
 		int hops_left = cfg.max_symlink_hops;
 		while (idx < components->size())
 		{
@@ -843,14 +843,14 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 		symlink_stash_t const& stash,
 		load_torrent_limits const& cfg)
 	{
-		std::unordered_map<aux::path_index_t, pending_symlink const*> owner;
+		std::unordered_map<path_index_t, pending_symlink const*> owner;
 		owner.reserve(stash.size());
 		for (auto const& item : stash)
 			owner.emplace(item.second.own_leaf, &item.second);
 
 		for (auto const& item : stash)
 		{
-			aux::path_index_t resolved;
+			path_index_t resolved;
 			bool const ok = resolve_one(cache, owner, item.second.target, cfg, resolved);
 			files.internal_set_symlink_target(item.first, ok ? resolved : item.second.own_leaf);
 		}
@@ -858,7 +858,7 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 
 	bool extract_single_file2(bdecode_node const& dict,
 		file_storage& files,
-		aux::path_index_t const dir,
+		path_index_t const dir,
 		string_view const name,
 		bool const name_borrow,
 		string_view const raw,
@@ -997,7 +997,7 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 
 		auto const mtime(static_cast<std::time_t>(node_int_value(f.mtime, 0)));
 
-		aux::path_index_t dir = aux::path_element::torrent_root;
+		path_index_t dir = aux::path_element::torrent_root;
 		string_view name;
 		bool name_borrow = false;
 		// owns the sanitized leaf text when name_borrow is false
@@ -1160,7 +1160,7 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 		struct stack_frame
 		{
 			bdecode_node::dict_iterator it;
-			aux::path_index_t dir;
+			path_index_t dir;
 		};
 
 		// dedupes directories shared between sibling entries at the same
@@ -1277,7 +1277,7 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 				// subdirectory contributes no files; just skip it.
 				if (child_nonempty)
 				{
-					aux::path_index_t const child_dir =
+					path_index_t const child_dir =
 						cached_directory(target, dir_cache, frame.dir, raw, cfg);
 					// note: `frame` is invalidated by push_back below; we're done with it
 					stack.push_back({value.dict_items().begin(), child_dir});

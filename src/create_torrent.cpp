@@ -451,7 +451,7 @@ namespace {
 			// directories or dedupe them against each other
 			bool const has_dir = has_parent_path(f.filename);
 			TORRENT_ASSERT_PRECOND(!has_dir || lsplit_path(f.filename).first == ret.name());
-			aux::path_index_t const dir =
+			path_index_t const dir =
 				has_dir ? aux::path_element::torrent_root : aux::path_element::no_root_dir;
 			string_view const leaf =
 				has_dir ? lsplit_path(f.filename).second : string_view(f.filename);
