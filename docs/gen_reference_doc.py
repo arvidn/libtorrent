@@ -1009,7 +1009,8 @@ for filename in files:
 
         if (line == 'namespace aux {' or
                 line == 'namespace ssl {' or
-                line == 'namespace libtorrent { namespace aux {') \
+                line == 'namespace libtorrent { namespace aux {' or
+                line == 'namespace libtorrent::aux {') \
                 and not internal:
             lno = consume_block(lno - 1, lines)
             context = ''
