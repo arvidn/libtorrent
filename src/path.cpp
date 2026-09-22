@@ -467,6 +467,23 @@ namespace {
 		return f.substr(0, aux::numeric_cast<std::size_t>(ext - &f[0]));
 	}
 
+	// splits "name" into (base, extension) at the last '.', without
+	// allocating. A single leading dot with no other dots yields no
+	// extension; multiple dots split at the last one even if the name
+	// starts with '.', unlike extension(). name must contain no path
+	// separator; see sanitize_path_element().
+	std::pair<string_view, string_view> split_base_ext(string_view const name)
+	{
+		TORRENT_ASSERT(name.find('/') == string_view::npos);
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
+		TORRENT_ASSERT(name.find('\\') == string_view::npos);
+#endif
+		std::size_t const dot = name.rfind('.');
+		if (dot == 0 || dot == string_view::npos)
+			return {name, string_view()};
+		return {name.substr(0, dot), name.substr(dot)};
+	}
+
 	bool is_root_path(std::string const& f)
 	{
 		if (f.empty()) return false;

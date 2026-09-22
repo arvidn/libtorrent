@@ -91,6 +91,23 @@ namespace libtorrent::aux {
 			{ return to_lower(c1) == to_lower(c2); });
 	}
 
+	int string_compare_no_case(string_view const s1, string_view const s2)
+	{
+		std::size_t const n = std::min(s1.size(), s2.size());
+		for (std::size_t i = 0; i < n; ++i)
+		{
+			// unsigned, so ordering bytes >= 0x80 doesn't depend on
+			// whether char is signed on this platform
+			auto const c1 = static_cast<unsigned char>(to_lower(s1[i]));
+			auto const c2 = static_cast<unsigned char>(to_lower(s2[i]));
+			if (c1 != c2)
+				return c1 < c2 ? -1 : 1;
+		}
+		if (s1.size() != s2.size())
+			return s1.size() < s2.size() ? -1 : 1;
+		return 0;
+	}
+
 	// generate a url-safe random string
 	void url_random(span<char> dest)
 	{

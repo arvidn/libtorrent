@@ -48,6 +48,9 @@ the second will then warn if it has no comment of its own).
 - A comment beginning with `hidden` excludes the symbol entirely. A comment
   beginning with `internal` excludes it from the public docs (but `--internal`
   includes it).
+- Anything declared inside `namespace aux` (or `namespace ssl`) is already
+  skipped entirely by the parser unless `--internal` is passed, so functions
+  and classes in `aux::` do not need an explicit `// internal` comment.
 - Every public, non-trivial member must be documented. Undocumented
   symbols print `WARNING: ... is not documented`. Trivial members
   (destructors, default/copy/move ctors, assignment, comparison/stream/

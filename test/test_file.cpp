@@ -342,6 +342,51 @@ TORRENT_TEST(paths)
 #endif
 }
 
+namespace {
+
+struct split_base_ext_case
+{
+	char const* name;
+	char const* base;
+	char const* ext;
+};
+
+std::vector<split_base_ext_case> const split_base_ext_cases = {
+	{"foo.txt", "foo", ".txt"},
+	{"dir", "dir", ""},
+	// a leading dot isn't treated as an extension
+	{".bashrc", ".bashrc", ""},
+	// only the last '.' splits off the extension
+	{"archive.tar.gz", "archive.tar", ".gz"},
+	// multiple leading dots still split at the last one
+	{"..", ".", "."},
+	{"..bashrc", ".", ".bashrc"},
+	{"...gitignore", "..", ".gitignore"},
+	// a trailing "-<digits>" is just part of the base, not stripped
+	{"docs-1", "docs-1", ""},
+	{"docs-1.txt", "docs-1", ".txt"},
+};
+
+} // anonymous namespace
+
+TORRENT_TEST(split_base_ext)
+{
+	for (auto const& t : split_base_ext_cases)
+	{
+		auto const [base, ext] = split_base_ext(string_view(t.name));
+		std::string const base_str(base);
+		std::string const ext_str(ext);
+		std::printf("%s -> (%s, %s) == (%s, %s)\n",
+			t.name,
+			base_str.c_str(),
+			ext_str.c_str(),
+			t.base,
+			t.ext);
+		TEST_EQUAL(base_str, t.base);
+		TEST_EQUAL(ext_str, t.ext);
+	}
+}
+
 TORRENT_TEST(path_compare)
 {
 	TEST_EQUAL(path_compare("a/b/c", "x", "a/b/c", "x"), 0);
