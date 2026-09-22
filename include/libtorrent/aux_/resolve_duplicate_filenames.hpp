@@ -30,7 +30,7 @@ namespace libtorrent::aux {
 	// collision-scanning cost bound.
 	TORRENT_EXTRA_EXPORT std::map<file_index_t, std::string> resolve_duplicate_filenames_slow(
 		file_storage const& fs,
-		aux::vector<std::uint32_t, aux::path_index_t> const& eh,
+		aux::vector<std::uint32_t, path_index_t> const& eh,
 		int max_duplicate_filenames,
 		error_code& ec);
 }

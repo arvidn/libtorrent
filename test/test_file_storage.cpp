@@ -217,7 +217,7 @@ TORRENT_TEST(file_hash_matches_file_path)
 	file_storage st;
 	setup_test_storage(st);
 
-	aux::vector<std::uint32_t, aux::path_index_t> const eh = st.compute_element_hashes();
+	aux::vector<std::uint32_t, path_index_t> const eh = st.compute_element_hashes();
 	for (file_index_t const i : st.file_range())
 	{
 		boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;

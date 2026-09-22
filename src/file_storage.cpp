@@ -55,7 +55,7 @@ namespace {
 	}
 
 	// the sentinels a path_index_t chain walk (or depth count) stops at
-	bool is_root_path_index(aux::path_index_t const idx)
+	bool is_root_path_index(path_index_t const idx)
 	{
 		return idx == aux::path_element::torrent_root || idx == aux::path_element::path_is_absolute
 			|| idx == aux::path_element::no_root_dir;
@@ -146,7 +146,7 @@ TORRENT_VERSION_NAMESPACE_4
 	// depth itself, see torrent_info.cpp's max_directory_depth), it's also
 	// the only place that needs to guard against overflowing path_element::
 	// depth; sets ``ec`` and returns {} if ``path`` is too deep.
-	aux::path_index_t file_storage::resolve_owned_directory(
+	path_index_t file_storage::resolve_owned_directory(
 		std::string const& path, string_view& leaf_out, error_code& ec)
 	{
 		TORRENT_ASSERT(!is_absolute(path));
@@ -168,12 +168,12 @@ TORRENT_VERSION_NAMESPACE_4
 		// if the path *does* contain the name of the torrent (as we expect)
 		// strip it before adding the remaining components to the tree
 		bool const no_root_dir_out = (lsplit_path(branch_path).first != m_name);
-		aux::path_index_t const parent =
+		path_index_t const parent =
 			no_root_dir_out ? aux::path_element::no_root_dir : aux::path_element::torrent_root;
 		if (!no_root_dir_out)
 			branch_path = lsplit_path(branch_path).second;
 
-		aux::path_index_t dir = parent;
+		path_index_t dir = parent;
 		while (!branch_path.empty())
 		{
 			if (!is_root_path_index(dir)
@@ -189,8 +189,8 @@ TORRENT_VERSION_NAMESPACE_4
 		return dir;
 	}
 
-	aux::path_index_t file_storage::make_directory(
-		aux::path_index_t const parent, string_view const name, bool const borrow)
+	path_index_t file_storage::make_directory(
+		path_index_t const parent, string_view const name, bool const borrow)
 	{
 		// nothing is ever nested under the pad-file directory
 		TORRENT_ASSERT(parent != aux::path_element::pad_directory);
@@ -222,7 +222,7 @@ TORRENT_VERSION_NAMESPACE_4
 		return e.name_ptr ? string_view(e.name_ptr) : string_view();
 	}
 
-	aux::path_index_t file_storage::reconstruct_path(aux::path_index_t leaf, std::string& out) const
+	path_index_t file_storage::reconstruct_path(path_index_t leaf, std::string& out) const
 	{
 		if (leaf == aux::path_element::pad_directory)
 		{
@@ -242,22 +242,22 @@ TORRENT_VERSION_NAMESPACE_4
 		// vector, since this runs on hot paths like file_path()
 		int const depth = is_root_path_index(leaf) ? 0 : int(m_path_elements[leaf].depth);
 
-		TORRENT_ALLOCA(chain, aux::path_index_t, depth);
-		aux::path_index_t idx = leaf;
+		TORRENT_ALLOCA(chain, path_index_t, depth);
+		path_index_t idx = leaf;
 		for (int i = depth - 1; i >= 0; --i)
 		{
 			chain[i] = idx;
 			idx = m_path_elements[idx].parent;
 		}
 
-		for (aux::path_index_t const e : chain)
+		for (path_index_t const e : chain)
 			append_path(out, path_element_name(m_path_elements[e]));
 
 		return idx;
 	}
 
 	bool file_storage::path_chain_equal(
-		aux::path_index_t li, file_storage const& rhs, aux::path_index_t ri) const
+		path_index_t li, file_storage const& rhs, path_index_t ri) const
 	{
 		for (;;)
 		{
@@ -463,7 +463,7 @@ void file_storage::rename_file_impl(
 		return;
 
 	string_view leaf;
-	aux::path_index_t dir;
+	path_index_t dir;
 	if (is_absolute(new_filename))
 	{
 		// an absolute new_filename detaches the file from save_path,
@@ -707,10 +707,10 @@ void file_storage::rename_file_impl(
 			ec, filename, path, file_size, file_flags, mtime, symlink_path, root_hash_offset);
 	}
 
-	aux::path_index_t file_storage::add_file(error_code& ec,
+	path_index_t file_storage::add_file(error_code& ec,
 		string_view filename,
 		bool const borrow,
-		aux::path_index_t const dir,
+		path_index_t const dir,
 		std::int64_t const file_size,
 		file_flags_t const file_flags,
 		std::int64_t const mtime,
@@ -771,7 +771,7 @@ void file_storage::rename_file_impl(
 				m_name = lsplit_path(path).first;
 		}
 
-		aux::path_index_t dir;
+		path_index_t dir;
 		string_view leaf;
 		if (is_absolute(path))
 		{
@@ -800,10 +800,10 @@ void file_storage::rename_file_impl(
 		}
 	}
 
-	aux::path_index_t file_storage::add_file_impl(error_code& ec,
+	path_index_t file_storage::add_file_impl(error_code& ec,
 		string_view filename,
 		bool const borrow,
-		aux::path_index_t const dir,
+		path_index_t const dir,
 		std::int64_t const file_size,
 		file_flags_t const file_flags,
 		std::int64_t const mtime,
@@ -896,7 +896,7 @@ void file_storage::rename_file_impl(
 
 		set_last_file_mtime(mtime);
 
-		aux::path_index_t const ret = e.path_element_index;
+		path_index_t const ret = e.path_element_index;
 
 		m_total_size += e.size;
 
@@ -935,10 +935,10 @@ void file_storage::rename_file_impl(
 		return ret;
 	}
 
-	aux::path_index_t file_storage::add_symlink(error_code& ec,
+	path_index_t file_storage::add_symlink(error_code& ec,
 		string_view const filename,
 		bool const borrow,
-		aux::path_index_t const dir,
+		path_index_t const dir,
 		file_flags_t const file_flags,
 		std::int64_t const mtime)
 	{
@@ -957,7 +957,7 @@ void file_storage::rename_file_impl(
 		// symlinks are always empty files, so none of add_file_impl()'s
 		// size validation, v1/v2 root-hash ambiguity handling, or
 		// piece-boundary end-of-file padding applies to them
-		aux::path_index_t const leaf = make_directory(dir, filename, borrow);
+		path_index_t const leaf = make_directory(dir, filename, borrow);
 
 		// deferred placeholder: self-point until resolved later by the
 		// caller via internal_set_symlink_target(), once the rest of the
@@ -978,10 +978,10 @@ void file_storage::rename_file_impl(
 		return leaf;
 	}
 
-	aux::path_index_t file_storage::add_symlink(error_code& ec,
+	path_index_t file_storage::add_symlink(error_code& ec,
 		string_view const filename,
 		bool const borrow,
-		aux::path_index_t const dir,
+		path_index_t const dir,
 		file_flags_t const file_flags,
 		std::int64_t const mtime,
 		string_view const target)
@@ -1041,7 +1041,7 @@ void file_storage::rename_file_impl(
 	}
 
 	void file_storage::internal_set_symlink_target(
-		file_index_t const index, aux::path_index_t const target)
+		file_index_t const index, path_index_t const target)
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
 		aux::file_entry& e = m_files[index];
@@ -1122,7 +1122,7 @@ void file_storage::rename_file_impl(
 			!= aux::path_element::path_is_absolute);
 
 		std::string path;
-		aux::path_index_t const root = reconstruct_path(fe.symlink_element_index, path);
+		path_index_t const root = reconstruct_path(fe.symlink_element_index, path);
 
 		std::string ret;
 		// same rule file_path() uses: the target isn't prepended with
@@ -1168,7 +1168,7 @@ namespace {
 		}
 	}
 
-	aux::vector<std::uint32_t, aux::path_index_t> file_storage::compute_element_hashes() const
+	aux::vector<std::uint32_t, path_index_t> file_storage::compute_element_hashes() const
 	{
 		using crc32_t = boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true>;
 
@@ -1183,8 +1183,8 @@ namespace {
 		// the (still extendable) crc objects, so a child can keep building
 		// on its parent's; the returned array only needs the finalized
 		// checksum of each.
-		aux::vector<crc32_t, aux::path_index_t> live_crcs(m_path_elements.size(), root_crc);
-		aux::vector<std::uint32_t, aux::path_index_t> crcs(m_path_elements.size(), std::uint32_t());
+		aux::vector<crc32_t, path_index_t> live_crcs(m_path_elements.size(), root_crc);
+		aux::vector<std::uint32_t, path_index_t> crcs(m_path_elements.size(), std::uint32_t());
 
 		for (auto const idx : m_path_elements.range())
 		{
@@ -1219,9 +1219,9 @@ namespace {
 		return crcs;
 	}
 
-	aux::vector<bool, aux::path_index_t> file_storage::compute_is_dir() const
+	aux::vector<bool, path_index_t> file_storage::compute_is_dir() const
 	{
-		aux::vector<bool, aux::path_index_t> is_dir(m_path_elements.size(), false);
+		aux::vector<bool, path_index_t> is_dir(m_path_elements.size(), false);
 		for (auto const idx : m_path_elements.range())
 		{
 			aux::path_element const& e = m_path_elements[idx];
@@ -1232,7 +1232,7 @@ namespace {
 	}
 
 	std::uint32_t file_storage::file_hash(
-		aux::vector<std::uint32_t, aux::path_index_t> const& eh, file_index_t const idx) const
+		aux::vector<std::uint32_t, path_index_t> const& eh, file_index_t const idx) const
 	{
 		// a pad file's path_element_index can be one of the path_element
 		// sentinels (e.g. pad_directory) rather than a real m_path_elements
@@ -1241,10 +1241,10 @@ namespace {
 		return eh[m_files[idx].path_element_index];
 	}
 
-	std::optional<aux::vector<std::uint32_t, aux::path_index_t>>
+	std::optional<aux::vector<std::uint32_t, path_index_t>>
 	file_storage::has_duplicate_filenames() const
 	{
-		aux::vector<std::uint32_t, aux::path_index_t> eh = compute_element_hashes();
+		aux::vector<std::uint32_t, path_index_t> eh = compute_element_hashes();
 
 		// counts how many path elements, directories or file leaves alike,
 		// share each hash. Two directories folding together only bumps
@@ -1273,10 +1273,10 @@ namespace {
 		return std::nullopt;
 	}
 
-	std::string file_storage::internal_directory_path(aux::path_index_t const index) const
+	std::string file_storage::internal_directory_path(path_index_t const index) const
 	{
 		std::string path;
-		aux::path_index_t const root = reconstruct_path(index, path);
+		path_index_t const root = reconstruct_path(index, path);
 
 		std::string ret;
 		if (root != aux::path_element::no_root_dir)
@@ -1296,7 +1296,7 @@ namespace {
 			return std::string(path_element_name(m_path_elements[fe.path_element_index]));
 
 		std::string path;
-		aux::path_index_t const root = reconstruct_path(fe.path_element_index, path);
+		path_index_t const root = reconstruct_path(fe.path_element_index, path);
 
 		std::string ret = save_path;
 		// single-file torrents' lone file, and paths that don't share the

@@ -53,7 +53,7 @@ extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, size_t size)
 	// reuse the same path_element instead of fs.make_directory() (which
 	// never dedupes on its own) allocating a fresh one per file, mirroring
 	// cached_directory() in torrent_info.cpp.
-	std::map<std::pair<std::uint32_t, std::string>, aux::path_index_t> dir_cache;
+	std::map<std::pair<std::uint32_t, std::string>, path_index_t> dir_cache;
 	std::size_t pos = 0;
 	while (pos < size && fs.num_files() < 64)
 	{
@@ -63,7 +63,7 @@ extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, size_t size)
 		if (pos + std::size_t(depth) + 2 > size)
 			break;
 
-		aux::path_index_t dir = aux::path_element::torrent_root;
+		path_index_t dir = aux::path_element::torrent_root;
 		for (int d = 0; d < depth; ++d)
 		{
 			string_view const component = names[data[pos++] % num_names];
@@ -109,7 +109,7 @@ extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, size_t size)
 	// this from fs directly, rather than tracking prefixes by hand while
 	// generating the tree above, keeps the invariant in sync with whatever
 	// resolve_duplicate_filenames() itself considers a real collision.
-	aux::vector<bool, aux::path_index_t> const is_dir = fs.compute_is_dir();
+	aux::vector<bool, path_index_t> const is_dir = fs.compute_is_dir();
 	std::unordered_set<std::string> directories;
 	for (auto const idx : is_dir.range())
 	{
