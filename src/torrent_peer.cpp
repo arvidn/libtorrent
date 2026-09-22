@@ -127,37 +127,9 @@ namespace libtorrent::aux {
 	}
 
 	torrent_peer::torrent_peer(std::uint16_t port_, bool conn, peer_source_flags_t const src)
-		: connection(nullptr)
-		, port(port_)
-		, failcount(0)
+		: port(port_)
 		, connectable(conn)
-		, optimistically_unchoked(false)
-		, seed(false)
-		, upload_only(false)
-		, maybe_upload_only(false)
-		, fast_reconnects(0)
 		, source(static_cast<std::uint8_t>(src))
-#if !defined TORRENT_DISABLE_ENCRYPTION
-		// assume no support in order to
-		// prefer opening non-encrypted
-		// connections. If it fails, we'll
-		// retry with encryption
-		, pe_support(false)
-#endif
-		, is_v6_addr(false)
-#if TORRENT_USE_I2P
-		, is_i2p_addr(false)
-#endif
-#if TORRENT_USE_RTC
-		, is_rtc_addr(false)
-#endif
-		, on_parole(false)
-		, banned(false)
-		, supports_utp(true) // assume peers support utp
-		, confirmed_supports_utp(false)
-		, supports_holepunch(false)
-		, web_seed(false)
-		, protocol_v2(false)
 	{}
 
 	std::uint32_t torrent_peer::rank(aux::external_ip const& external, int external_port) const

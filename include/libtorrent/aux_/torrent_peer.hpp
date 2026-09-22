@@ -76,7 +76,7 @@ namespace libtorrent::aux {
 
 		// if the torrent_peer is connected now, this
 		// will refer to a valid peer_connection
-		peer_connection_interface* connection;
+		peer_connection_interface* connection = nullptr;
 
 		// as computed by hashing our IP with the remote
 		// IP of this peer
@@ -105,7 +105,7 @@ namespace libtorrent::aux {
 
 		// the number of failed connection attempts
 		// this torrent_peer has
-		std::uint32_t failcount:5; // [0, 31]
+		std::uint32_t failcount:5 = 0; // [0, 31]
 
 		// incoming peers (that don't advertise their listen port)
 		// will not be considered connectable. Peers that
@@ -117,26 +117,26 @@ namespace libtorrent::aux {
 		// when the optimistic unchoke is moved to
 		// another torrent_peer, this torrent_peer will be choked
 		// if this is true
-		std::uint32_t optimistically_unchoked:1;
+		std::uint32_t optimistically_unchoked:1 = false;
 
 		// this is true if the torrent_peer is a seed, and we know for sure
 		// because we have connected to it and it told us it was a seed
-		std::uint32_t seed:1;
+		std::uint32_t seed:1 = false;
 
 		// this peer confirmed via BEP-21 (LTEP upload_only=1) that it will
 		// not download any more. A seed is upload_only by implication,
 		// but a partial seed can be upload_only without being a seed, so
 		// this is tracked separately from seed:1.
-		std::uint32_t upload_only:1;
+		std::uint32_t upload_only:1 = false;
 
 		// we've been told that this peer is upload-only, but we don't know for
 		// sure because we haven't connected to it yet. If we are finished, we
 		// will de-prioritize peers that may be seeds
-		std::uint32_t maybe_upload_only:1;
+		std::uint32_t maybe_upload_only:1 = false;
 
 		// the number of times we have allowed a fast
 		// reconnect for this torrent_peer.
-		std::uint32_t fast_reconnects:4;
+		std::uint32_t fast_reconnects:4 = 0;
 
 		// a bitmap combining the peer_source flags
 		// from peer_info.
@@ -155,18 +155,20 @@ namespace libtorrent::aux {
 		// type (true = encrypted, false = standard).
 		// This will be toggled everytime either an
 		// encrypted or non-encrypted handshake fails.
-		std::uint32_t pe_support:1;
+		// defaults to false (assume no support) to prefer opening
+		// non-encrypted connections first
+		std::uint32_t pe_support:1 = false;
 #endif
 
 		// this is true if the v6 union member in addr is
 		// the one to use, false if it's the v4 one
-		std::uint32_t is_v6_addr:1;
+		std::uint32_t is_v6_addr:1 = false;
 #if TORRENT_USE_I2P
 		// set if the i2p_destination is in use in the addr union
-		std::uint32_t is_i2p_addr:1;
+		std::uint32_t is_i2p_addr:1 = false;
 #endif
 #if TORRENT_USE_RTC
-		std::uint32_t is_rtc_addr:1;
+		std::uint32_t is_rtc_addr:1 = false;
 #endif
 
 		// if this is true, the torrent_peer has repeatedly
@@ -176,26 +178,26 @@ namespace libtorrent::aux {
 		// that was partially requested from this torrent_peer it
 		// will leave parole mode and continue download
 		// pieces as normal peers.
-		std::uint32_t on_parole:1;
+		std::uint32_t on_parole:1 = false;
 
 		// is set to true if this torrent_peer has been banned
-		std::uint32_t banned:1;
+		std::uint32_t banned:1 = false;
 
-		// we think this torrent_peer supports uTP
-		std::uint32_t supports_utp:1;
+		// we think this torrent_peer supports uTP; assumed true until proven otherwise
+		std::uint32_t supports_utp:1 = true;
 		// we have been connected via uTP at least once
-		std::uint32_t confirmed_supports_utp:1;
-		std::uint32_t supports_holepunch:1;
+		std::uint32_t confirmed_supports_utp:1 = false;
+		std::uint32_t supports_holepunch:1 = false;
 		// this is set to one for web seeds. Web seeds
 		// are not stored in the policy m_peers list,
 		// and are exempt from connect candidate bookkeeping
 		// so, any torrent_peer with the web_seed bit set, is
 		// never considered a connect candidate
-		std::uint32_t web_seed:1;
+		std::uint32_t web_seed:1 = false;
 		// this peer supports protocol version 2
-		std::uint32_t protocol_v2:1;
+		std::uint32_t protocol_v2:1 = false;
 #if TORRENT_USE_ASSERTS
-		std::uint32_t in_use = true;
+		std::uint32_t in_use:1 {true};
 #endif
 	};
 
