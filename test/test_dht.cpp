@@ -1511,6 +1511,80 @@ TORRENT_TEST(put_v6)
 		test_put(rand_v6);
 }
 
+// a put that carries a public key or signature but is not a complete mutable
+// put must be rejected with error 203, not silently stored as an immutable item
+TORRENT_TEST(put_malformed_mutable)
+{
+	dht_test_setup t(udp::endpoint(rand_v4(), 20));
+	bdecode_node response;
+
+	public_key pk;
+	secret_key sk;
+	get_test_keypair(pk, sk);
+
+	sha1_hash const target_id = hasher(pk.bytes).final();
+
+	// obtain a write token for the mutable target
+	send_dht_request(t.dht_node, "get", t.source, &response
+		, msg_args().target(target_id));
+
+	key_desc_t const get_desc[] =
+	{
+		{ "r", bdecode_node::dict_t, 0, key_desc_t::parse_children },
+		{ "id", bdecode_node::string_t, 20, 0},
+		{ "token", bdecode_node::string_t, 0, 0},
+		{ "ip", bdecode_node::string_t, 0, key_desc_t::optional | key_desc_t::last_child},
+		{ "y", bdecode_node::string_t, 1, 0},
+	};
+	bdecode_node get_keys[5];
+	bool const got_token = verify_message(response, get_desc, get_keys, t.error_string);
+	TEST_CHECK(got_token);
+	std::string const token = got_token ? std::string(get_keys[2].string_value()) : std::string();
+
+	entry const value("payload");
+	sequence_number const seq(4);
+
+	char buffer[1200];
+	span<char const> const itemv(buffer, bencode(buffer, value));
+	signature const sig = sign_mutable_item(itemv, span<char const>(), seq, pk, sk);
+
+	// each of these carries the public key or signature (so it claims to be a
+	// mutable put and reuses the token above) but is missing one of seq/sig.
+	// the last one carries a valid signature, which is never checked because
+	// the missing seq makes it a malformed mutable put first
+	msg_args const malformed[] =
+	{
+		msg_args().token(token).value(value).key(pk).seq(seq), // k + seq, no sig
+		msg_args().token(token).value(value).key(pk),          // k only
+		msg_args().token(token).value(value).key(pk).sig(sig), // k + sig, no seq
+	};
+
+	for (auto const& args : malformed)
+	{
+		send_dht_request(t.dht_node, "put", t.source, &response, args);
+		std::printf("malformed put response: %s\n", print_entry(response).c_str());
+		bdecode_node err_keys[2];
+		bool const is_err = verify_message(response, err_desc, err_keys, t.error_string);
+		TEST_CHECK(is_err);
+		if (is_err)
+		{
+			TEST_EQUAL(err_keys[0].string_value(), "e");
+			TEST_EQUAL(err_keys[1].list_at(0).int_value(), 203);
+			TEST_EQUAL(err_keys[1].list_at(1).string_value(), "malformed mutable put");
+		}
+	}
+
+	// a correctly signed mutable put with the same key is still accepted
+	send_dht_request(t.dht_node, "put", t.source, &response
+		, msg_args().token(token).value(value).key(pk).sig(sig).seq(seq));
+	std::printf("valid put response: %s\n", print_entry(response).c_str());
+
+	key_desc_t const ok_desc[] = {{ "y", bdecode_node::string_t, 1, 0}};
+	bdecode_node ok_keys[1];
+	TEST_CHECK(verify_message(response, ok_desc, ok_keys, t.error_string));
+	TEST_EQUAL(ok_keys[0].string_value(), "r");
+}
+
 namespace {
 
 void test_routing_table(address(&rand_addr)())
