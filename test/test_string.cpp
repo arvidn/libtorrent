@@ -117,6 +117,32 @@ TORRENT_TEST(string_equal_no_case)
 	TEST_CHECK(!string_ends_with("foo", "foobar"));
 }
 
+TORRENT_TEST(string_compare_no_case)
+{
+	TEST_EQUAL(string_compare_no_case("foobar", "FOOBAR"), 0);
+	TEST_EQUAL(string_compare_no_case("AbC", "aBc"), 0);
+	TEST_EQUAL(string_compare_no_case("", ""), 0);
+
+	TEST_CHECK(string_compare_no_case("abc", "abd") < 0);
+	TEST_CHECK(string_compare_no_case("abd", "abc") > 0);
+	TEST_CHECK(string_compare_no_case("Abc", "abd") < 0);
+
+	// a shorter string that's a prefix of the longer one sorts first
+	TEST_CHECK(string_compare_no_case("abc", "abcd") < 0);
+	TEST_CHECK(string_compare_no_case("abcd", "abc") > 0);
+	TEST_CHECK(string_compare_no_case("", "a") < 0);
+	TEST_CHECK(string_compare_no_case("a", "") > 0);
+
+	// bytes >= 0x80 must sort by their unsigned value, regardless of
+	// whether char is signed on this platform (0x7f < 0xff, not the
+	// reverse a signed comparison of the raw char values would give)
+	TEST_CHECK(string_compare_no_case("\x7f", "\xff") < 0);
+	TEST_CHECK(string_compare_no_case("\xff", "\x7f") > 0);
+	TEST_CHECK(string_compare_no_case("\x80", "\x81") < 0);
+	TEST_CHECK(string_compare_no_case("\xfe", "\xff") < 0);
+	TEST_EQUAL(string_compare_no_case("\xff", "\xff"), 0);
+}
+
 TORRENT_TEST(to_string)
 {
 	TEST_CHECK(to_string(345).data() == std::string("345"));

@@ -94,6 +94,11 @@ namespace libtorrent {
 
 	TORRENT_EXTRA_EXPORT std::string extension(std::string const& f);
 	TORRENT_EXTRA_EXPORT std::string remove_extension(std::string const& f);
+
+	// internal
+	// splits "name" into (base, extension) at the last '.'.
+	TORRENT_EXTRA_EXPORT std::pair<string_view, string_view> split_base_ext(string_view name);
+
 	TORRENT_EXTRA_EXPORT bool is_root_path(std::string const& f);
 	TORRENT_EXTRA_EXPORT bool path_equal(std::string const& lhs, std::string const& rhs);
 

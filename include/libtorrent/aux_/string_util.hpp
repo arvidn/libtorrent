@@ -33,7 +33,6 @@ namespace libtorrent::aux {
 		std::array<char, 4 + std::numeric_limits<std::int64_t>::digits10>
 		to_string(std::int64_t n);
 
-	// internal
 	inline bool is_digit(char c)
 	{ return c >= '0' && c <= '9'; }
 	inline void ensure_trailing_slash(std::string& url)
@@ -42,7 +41,6 @@ namespace libtorrent::aux {
 			url += '/';
 	}
 
-	// internal
 	TORRENT_EXTRA_EXPORT string_view strip_string(string_view in);
 
 	// parses the leading decimal digits of the string and returns the value.
@@ -59,6 +57,12 @@ namespace libtorrent::aux {
 
 	TORRENT_EXTRA_EXPORT bool string_begins_no_case(string_view s1, string_view s2);
 	TORRENT_EXTRA_EXPORT bool string_equal_no_case(string_view s1, string_view s2);
+
+	// case-insensitive, byte-wise ordering: -1, 0 or 1 for s1 < s2, s1 ==
+	// s2 or s1 > s2. Compares directly against the given string_views, so
+	// callers doing this in a hot loop don't need to allocate a
+	// lowercased copy of either one first.
+	TORRENT_EXTRA_EXPORT int string_compare_no_case(string_view s1, string_view s2);
 
 	TORRENT_EXTRA_EXPORT void url_random(span<char> dest);
 
