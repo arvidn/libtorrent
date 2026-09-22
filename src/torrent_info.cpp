@@ -164,7 +164,7 @@ namespace aux {
 	{
 		if (element.size() == 1 && element[0] == '.' && !force_element) return;
 
-#ifdef TORRENT_WINDOWS
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 #define TORRENT_SEPARATOR '\\'
 #else
 #define TORRENT_SEPARATOR '/'

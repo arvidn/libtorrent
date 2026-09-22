@@ -447,7 +447,7 @@ namespace {
 		{
 			auto const idx = static_cast<std::size_t>(i);
 			if (f[idx] == '/') break;
-#ifdef TORRENT_WINDOWS
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 			if (f[idx] == '\\') break;
 #endif
 			if (f[idx] != '.') continue;
@@ -459,7 +459,7 @@ namespace {
 	std::string remove_extension(std::string const& f)
 	{
 		char const* slash = std::strrchr(f.c_str(), '/');
-#ifdef TORRENT_WINDOWS
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 		slash = std::max((char const*)std::strrchr(f.c_str(), '\\'), slash);
 #endif
 		char const* ext = std::strrchr(f.c_str(), '.');
@@ -566,9 +566,9 @@ namespace {
 	{
 		if (f.empty()) return f;
 
-		#ifdef TORRENT_WINDOWS
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 		if (f == "\\\\") return "";
-		#endif
+#endif
 		if (f == "/") return "";
 
 		int len = int(f.size());
@@ -577,11 +577,11 @@ namespace {
 		while (len > 0)
 		{
 			--len;
-			#ifdef TORRENT_WINDOWS
+#if defined(TORRENT_WINDOWS) || defined(TORRENT_OS2)
 			if (f[std::size_t(len)] == '/' || f[std::size_t(len)] == '\\') break;
-			#else
+#else
 			if (f[std::size_t(len)] == '/') break;
-			#endif
+#endif
 		}
 
 		if (f[std::size_t(len)] == '/' || f[std::size_t(len)] == '\\') ++len;
