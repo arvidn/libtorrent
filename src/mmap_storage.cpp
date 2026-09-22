@@ -88,6 +88,7 @@ error_code translate_error(std::error_code const& err, bool const write)
 mmap_storage::mmap_storage(storage_params const& params, aux::file_view_pool& pool)
 	: m_files(params.files)
 	, m_renamed_files(params.renamed_files)
+	, m_filenames(m_files, m_renamed_files)
 	, m_file_priority(params.priorities)
 	, m_save_path(absolute(params.path))
 	, m_part_file_dir(params.part_file_dir)
@@ -114,11 +115,6 @@ mmap_storage::mmap_storage(storage_params const& params, aux::file_view_pool& po
 		// this may be called from a different
 		// thread than the disk thread
 		m_pool.release(storage_index());
-	}
-
-	filenames mmap_storage::names() const
-	{
-		return {m_files, m_renamed_files};
 	}
 
 	// these forward to the precomputed_block_hashes data structure, adding the
@@ -164,7 +160,7 @@ mmap_storage::mmap_storage(storage_params const& params, aux::file_view_pool& po
 		if (prio.size() > m_file_priority.size())
 			m_file_priority.resize(prio.size(), default_priority);
 
-		filenames const fs = names();
+		filenames const& fs = m_filenames;
 		for (file_index_t i : prio.range())
 		{
 			// pad files always have priority 0.
@@ -343,7 +339,7 @@ mmap_storage::mmap_storage(storage_params const& params, aux::file_view_pool& po
 			m_file_created.resize(files().num_files(), false);
 		}
 
-		filenames const fs = names();
+		filenames const& fs = m_filenames;
 		status_t ret{};
 		// if some files have priority 0, we need to check if they exist on the
 		// filesystem, in which case we won't use a partfile for them.
@@ -388,7 +384,7 @@ mmap_storage::mmap_storage(storage_params const& params, aux::file_view_pool& po
 	{
 		m_stat_cache.reserve(files().num_files());
 
-		if (aux::has_any_file(names(), m_save_path, m_stat_cache, ec))
+		if (aux::has_any_file(m_filenames, m_save_path, m_stat_cache, ec))
 			return true;
 
 		if (ec) return false;
@@ -417,7 +413,7 @@ mmap_storage::mmap_storage(storage_params const& params, aux::file_view_pool& po
 		TORRENT_ASSERT(index >= file_index_t(0));
 		TORRENT_ASSERT(index < files().end_file());
 		m_pool.release(storage_index(), index);
-		aux::rename_file(files(), m_renamed_files, index, new_filename, m_save_path, ec);
+		aux::rename_file(m_filenames, m_renamed_files, index, new_filename, m_save_path, ec);
 	}
 
 	void mmap_storage::release_files(storage_error&)
@@ -450,19 +446,15 @@ mmap_storage::mmap_storage(storage_params const& params, aux::file_view_pool& po
 			m_part_file_dir.empty() ? m_save_path : combine_path(m_save_path, m_part_file_dir)
 			, m_part_file_name);
 
-		aux::delete_files(names()
-			, m_save_path
-			, part_file
-			, options
-			, ec);
+		aux::delete_files(m_filenames, m_save_path, part_file, options, ec);
 	}
 
 	bool mmap_storage::verify_resume_data(add_torrent_params const& rd
 		, aux::vector<std::string, file_index_t> const& links
 		, storage_error& ec)
 	{
-		return aux::verify_resume_data(rd, links, names()
-			, m_file_priority, m_stat_cache, m_save_path, ec);
+		return aux::verify_resume_data(
+			rd, links, m_filenames, m_file_priority, m_stat_cache, m_save_path, ec);
 	}
 
 	std::pair<status_t, std::string> mmap_storage::move_storage(std::string save_path
@@ -488,12 +480,7 @@ mmap_storage::mmap_storage(storage_params const& params, aux::file_view_pool& po
 			m_part_file->move_partfile(new_part_file_dir, e);
 		};
 		std::tie(ret, m_save_path) = aux::move_storage(
-			names()
-			, m_save_path
-			, std::move(save_path)
-			, std::move(move_partfile)
-			, flags
-			, ec);
+			m_filenames, m_save_path, std::move(save_path), std::move(move_partfile), flags, ec);
 
 		// clear the stat cache in case the new location has new files
 		m_stat_cache.clear();
@@ -958,13 +945,17 @@ mmap_storage::mmap_storage(storage_params const& params, aux::file_view_pool& po
 		}
 
 		try {
-			return m_pool.open_file(storage_index(), m_save_path, file
-				, names(), mode
+			return m_pool.open_file(storage_index(),
+				m_save_path,
+				file,
+				m_filenames,
+				mode
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
-				, std::shared_ptr<std::mutex>(m_file_open_unmap_lock
-					, &m_file_open_unmap_lock.get()[int(file)])
+				,
+				std::shared_ptr<std::mutex>(
+					m_file_open_unmap_lock, &m_file_open_unmap_lock.get()[int(file)])
 #endif
-				);
+			);
 		}
 		catch (storage_error const& se)
 		{

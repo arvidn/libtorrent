@@ -39,25 +39,22 @@ static_assert(sizeof(off_t) >= 8, "64 bit file operations are required");
 namespace libtorrent {
 namespace aux {
 
-	posix_storage::posix_storage(storage_params const& p)
-		: m_files(p.files)
-		, m_renamed_files(std::move(p.renamed_files))
-		, m_save_path(p.path)
-		, m_part_file_dir(p.part_file_dir)
-		, m_file_priority(p.priorities)
-		, m_part_file_name("." + to_hex(p.info_hash) + ".parts")
-	{}
+posix_storage::posix_storage(storage_params const& p)
+	: m_files(p.files)
+	, m_renamed_files(std::move(p.renamed_files))
+	, m_filenames(m_files, m_renamed_files)
+	, m_save_path(p.path)
+	, m_part_file_dir(p.part_file_dir)
+	, m_file_priority(p.priorities)
+	, m_part_file_name("." + to_hex(p.info_hash) + ".parts")
+{}
 
-	filenames posix_storage::names() const
-	{
-		return {m_files, m_renamed_files};
-	}
-
-	posix_storage::~posix_storage()
-	{
-		error_code ec;
-		if (m_part_file) m_part_file->flush_metadata(ec);
-	}
+posix_storage::~posix_storage()
+{
+	error_code ec;
+	if (m_part_file)
+		m_part_file->flush_metadata(ec);
+}
 
 	void posix_storage::need_partfile()
 	{
@@ -78,7 +75,7 @@ namespace aux {
 		if (prio.size() > m_file_priority.size())
 			m_file_priority.resize(prio.size(), default_priority);
 
-		filenames const fs = names();
+		filenames const& fs = m_filenames;
 		for (file_index_t i : prio.range())
 		{
 			// pad files always have priority 0.
@@ -273,15 +270,15 @@ namespace aux {
 	bool posix_storage::has_any_file(storage_error& error)
 	{
 		m_stat_cache.reserve(files().num_files());
-		return aux::has_any_file(names(), m_save_path, m_stat_cache, error);
+		return aux::has_any_file(m_filenames, m_save_path, m_stat_cache, error);
 	}
 
 	bool posix_storage::verify_resume_data(add_torrent_params const& rd
 		, vector<std::string, file_index_t> const& links
 		, storage_error& ec)
 	{
-		return aux::verify_resume_data(rd, links, names()
-			, m_file_priority, m_stat_cache, m_save_path, ec);
+		return aux::verify_resume_data(
+			rd, links, m_filenames, m_file_priority, m_stat_cache, m_save_path, ec);
 	}
 
 	void posix_storage::release_files()
@@ -304,11 +301,7 @@ namespace aux {
 			m_part_file_dir.empty() ? m_save_path : combine_path(m_save_path, m_part_file_dir)
 			, m_part_file_name);
 
-		aux::delete_files(names()
-			, m_save_path
-			, part_file
-			, options
-			, error);
+		aux::delete_files(m_filenames, m_save_path, part_file, options, error);
 	}
 
 	std::pair<status_t, std::string> posix_storage::move_storage(std::string const& sp
@@ -331,13 +324,8 @@ namespace aux {
 			}
 			m_part_file->move_partfile(new_part_file_dir, e);
 		};
-		std::tie(ret, m_save_path) = aux::move_storage(
-			names()
-			, m_save_path
-			, sp
-			, std::move(move_partfile)
-			, flags
-			, ec);
+		std::tie(ret, m_save_path) =
+			aux::move_storage(m_filenames, m_save_path, sp, std::move(move_partfile), flags, ec);
 
 		// clear the stat cache in case the new location has new files
 		m_stat_cache.clear();
@@ -349,14 +337,14 @@ namespace aux {
 	{
 		TORRENT_ASSERT(index >= file_index_t(0));
 		TORRENT_ASSERT(index < files().end_file());
-		aux::rename_file(files(), m_renamed_files, index, new_filename, m_save_path, ec);
+		aux::rename_file(m_filenames, m_renamed_files, index, new_filename, m_save_path, ec);
 	}
 
 	status_t posix_storage::initialize(settings_interface const&, storage_error& ec)
 	{
 		m_stat_cache.reserve(files().num_files());
 
-		filenames const fs = names();
+		filenames const& fs = m_filenames;
 		// if some files have priority 0, we need to check if they exist on the
 		// filesystem, in which case we won't use a partfile for them.
 		// this is to be backwards compatible with previous versions of
@@ -397,7 +385,7 @@ namespace aux {
 	file_pointer posix_storage::open_file(file_index_t idx, open_mode_t const mode
 		, std::int64_t const offset, storage_error& ec)
 	{
-		std::string const fn = m_renamed_files.file_path(m_files, idx, m_save_path);
+		std::string const fn = m_filenames.file_path(idx, m_save_path);
 
 		auto const* mode_str = (mode & open_mode::write)
 #ifdef TORRENT_WINDOWS

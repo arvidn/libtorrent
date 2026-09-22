@@ -97,7 +97,6 @@ namespace libtorrent::aux {
 			, disk_job_flags_t flags, storage_error&);
 
 		file_storage const& files() const { return m_files; }
-		filenames names() const;
 
 		bool set_need_tick()
 		{
@@ -151,6 +150,9 @@ namespace libtorrent::aux {
 		void need_partfile();
 
 		renamed_files m_renamed_files;
+
+		// the resolved, deduplicated file and directory names for this storage.
+		filenames m_filenames;
 
 		// in order to avoid calling stat() on each file multiple times
 		// during startup, cache the results in here, and clear it all

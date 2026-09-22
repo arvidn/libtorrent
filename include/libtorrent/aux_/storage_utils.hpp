@@ -48,8 +48,10 @@ namespace libtorrent::aux {
 	// ``renamed`` so it's created under the new name later). A rename that
 	// fails because the source and destination are on different
 	// filesystems falls back to copying the file and removing the
-	// original.
-	TORRENT_EXTRA_EXPORT void rename_file(file_storage const& fs,
+	// original. ``names`` resolves the file's current on-disk path,
+	// honoring any rename already recorded; ``renamed`` is where this
+	// call's own rename is recorded.
+	TORRENT_EXTRA_EXPORT void rename_file(filenames const& names,
 		renamed_files& renamed,
 		file_index_t index,
 		std::string const& new_filename,

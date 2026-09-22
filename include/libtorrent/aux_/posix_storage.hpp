@@ -32,8 +32,9 @@ namespace aux {
 	{
 		explicit posix_storage(storage_params const& p);
 		file_storage const& files() const { return m_files; }
-		filenames names() const;
 		~posix_storage();
+		posix_storage(posix_storage&&) = delete;
+		posix_storage& operator=(posix_storage&&) = delete;
 
 		int read(settings_interface const& sett
 			, span<char> buffer
@@ -75,6 +76,9 @@ namespace aux {
 
 		file_storage const& m_files;
 		renamed_files m_renamed_files;
+
+		// the resolved, deduplicated file and directory names for this storage.
+		filenames m_filenames;
 		std::string m_save_path;
 		std::string m_part_file_dir;
 		stat_cache m_stat_cache;

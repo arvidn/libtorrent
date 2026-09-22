@@ -43,6 +43,7 @@ namespace libtorrent::aux {
 pread_storage::pread_storage(storage_params const& params, file_pool& pool)
 	: m_files(params.files)
 	, m_renamed_files(params.renamed_files)
+	, m_filenames(m_files, m_renamed_files)
 	, m_file_priority(params.priorities)
 	, m_save_path(absolute(params.path))
 	, m_part_file_dir(params.part_file_dir)
@@ -65,11 +66,6 @@ pread_storage::pread_storage(storage_params const& params, file_pool& pool)
 		// this may be called from a different
 		// thread than the disk thread
 		m_pool.release(storage_index());
-	}
-
-	filenames pread_storage::names() const
-	{
-		return {m_files, m_renamed_files};
 	}
 
 	// these forward to the precomputed_block_hashes data structure, adding the
@@ -115,7 +111,7 @@ pread_storage::pread_storage(storage_params const& params, file_pool& pool)
 		if (prio.size() > m_file_priority.size())
 			m_file_priority.resize(prio.size(), default_priority);
 
-		filenames const fs = names();
+		filenames const& fs = m_filenames;
 		for (file_index_t i : prio.range())
 		{
 			// pad files always have priority 0.
@@ -241,7 +237,7 @@ pread_storage::pread_storage(storage_params const& params, file_pool& pool)
 			m_file_created.resize(files().num_files(), false);
 		}
 
-		filenames const fs = names();
+		filenames const& fs = m_filenames;
 		status_t ret{};
 		// if some files have priority 0, we need to check if they exist on the
 		// filesystem, in which case we won't use a partfile for them.
@@ -286,7 +282,7 @@ pread_storage::pread_storage(storage_params const& params, file_pool& pool)
 	{
 		m_stat_cache.reserve(files().num_files());
 
-		if (aux::has_any_file(names(), m_save_path, m_stat_cache, ec))
+		if (aux::has_any_file(m_filenames, m_save_path, m_stat_cache, ec))
 			return true;
 
 		if (ec) return false;
@@ -316,7 +312,7 @@ pread_storage::pread_storage(storage_params const& params, file_pool& pool)
 		TORRENT_ASSERT(index >= file_index_t(0));
 		TORRENT_ASSERT(index < files().end_file());
 		m_pool.release(storage_index(), index);
-		aux::rename_file(files(), m_renamed_files, index, new_filename, m_save_path, ec);
+		aux::rename_file(m_filenames, m_renamed_files, index, new_filename, m_save_path, ec);
 	}
 
 	void pread_storage::release_files(storage_error&)
@@ -348,19 +344,15 @@ pread_storage::pread_storage(storage_params const& params, file_pool& pool)
 			m_part_file_dir.empty() ? m_save_path : combine_path(m_save_path, m_part_file_dir)
 			, m_part_file_name);
 
-		aux::delete_files(names()
-			, m_save_path
-			, part_file
-			, options
-			, ec);
+		aux::delete_files(m_filenames, m_save_path, part_file, options, ec);
 	}
 
 	bool pread_storage::verify_resume_data(add_torrent_params const& rd
 		, aux::vector<std::string, file_index_t> const& links
 		, storage_error& ec)
 	{
-		return aux::verify_resume_data(rd, links, names()
-			, m_file_priority, m_stat_cache, m_save_path, ec);
+		return aux::verify_resume_data(
+			rd, links, m_filenames, m_file_priority, m_stat_cache, m_save_path, ec);
 	}
 
 	std::pair<status_t, std::string> pread_storage::move_storage(std::string save_path
@@ -386,12 +378,7 @@ pread_storage::pread_storage(storage_params const& params, file_pool& pool)
 			m_part_file->move_partfile(new_part_file_dir, e);
 		};
 		std::tie(ret, m_save_path) = aux::move_storage(
-			names()
-			, m_save_path
-			, save_path
-			, std::move(move_partfile)
-			, flags
-			, ec);
+			m_filenames, m_save_path, save_path, std::move(move_partfile), flags, ec);
 
 		// clear the stat cache in case the new location has new files
 		m_stat_cache.clear();
@@ -784,12 +771,16 @@ pread_storage::pread_storage(storage_params const& params, file_pool& pool)
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
 			int dummy = 0;
 #endif
-			return m_pool.open_file(storage_index(), m_save_path, file
-				, names(), mode
+			return m_pool.open_file(storage_index(),
+				m_save_path,
+				file,
+				m_filenames,
+				mode
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
-				, &dummy
+				,
+				&dummy
 #endif
-				);
+			);
 		}
 		catch (storage_error const& se)
 		{
