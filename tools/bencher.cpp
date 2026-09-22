@@ -151,10 +151,11 @@ std::vector<char> read_file(fs::path filename)
 	return buf;
 }
 
-std::array<char const*, 3> const benchmark_cases = {{
+std::array<char const*, 4> const benchmark_cases = {{
 	"base-v1.torrent",
 	"base-v2.torrent",
 	"many-pad-files.torrent",
+	"duplicate-files.torrent",
 }};
 
 // piece_picker benchmarks. These target specific worst cases in
