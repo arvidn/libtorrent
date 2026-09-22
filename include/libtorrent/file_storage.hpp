@@ -935,6 +935,10 @@ namespace aux {
 			, m_renames(rf)
 		{}
 
+		// the underlying file_storage this view resolves renamed paths
+		// against.
+		file_storage const& files() const { return m_files; }
+
 		// returns the file flags for the file at ``index``
 		file_flags_t file_flags(file_index_t const index) const
 		{ return m_files.file_flags(index); }

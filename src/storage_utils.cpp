@@ -326,18 +326,19 @@ namespace libtorrent { namespace aux {
 		}
 	}
 
-	void rename_file(file_storage const& fs,
+	void rename_file(filenames const& names,
 		renamed_files& renamed,
 		file_index_t const index,
 		std::string const& new_filename,
 		std::string const& save_path,
 		storage_error& ec)
 	{
+		file_storage const& fs = names.files();
 		TORRENT_ASSERT(index >= file_index_t(0));
 		TORRENT_ASSERT(index < fs.end_file());
 		if (index < file_index_t(0) || index >= fs.end_file())
 			return;
-		std::string const old_name = renamed.file_path(fs, index, save_path);
+		std::string const old_name = names.file_path(index, save_path);
 
 		// this also tells us whether old_name is itself a symlink, which
 		// is needed later in case the cross-filesystem fallback has to

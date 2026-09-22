@@ -551,7 +551,16 @@ void test_rename(std::string const& test_path)
 	}
 	TEST_CHECK(!se.ec);
 
-	TEST_EQUAL(s->names().file_path(0_file), "new_filename");
+	// verify the rename affects actual disk I/O, not just accounting:
+	// write piece 0 and confirm the data lands under the new name
+	buf.resize(0x4000);
+	span<char> const b = {&buf[0], 0x4000};
+	write(s, set, b, 0_piece, 0, aux::open_mode::write, se);
+	TEST_CHECK(!se.ec);
+	// a bare filename with no directory component resolves relative to
+	// the save path directly, not nested under the torrent's own name
+	TEST_CHECK(exists(combine_path(test_path, "new_filename")));
+	TEST_CHECK(!exists(combine_path(test_path, first_file)));
 }
 
 void test_rename_to_existing(
