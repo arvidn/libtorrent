@@ -1,4 +1,4 @@
-VERSION=2.1.1
+VERSION=2.1.2
 
 BUILD_CONFIG=release link=shared crypto=openssl warnings=off address-model=64
 

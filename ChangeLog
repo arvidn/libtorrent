@@ -1,4 +1,4 @@
-2.1.2 not released
+2.1.2 released
 
 	* add missing python binding for filenames class
 	* fix edge case in filename deduplication
