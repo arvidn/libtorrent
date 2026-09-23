@@ -657,8 +657,8 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 			return it->second;
 		std::string sanitized;
 		bool const unchanged = aux::sanitize_path_element(sanitized, raw, cfg.sanitize_flags, true);
-		path_index_t const dir =
-			fs.make_directory(parent, unchanged ? raw : string_view(sanitized), unchanged);
+		string_view const name = unchanged ? raw : string_view(sanitized);
+		path_index_t const dir = fs.make_directory(parent, name, unchanged);
 		cache.emplace(dir_cache_key(parent, raw), dir);
 		return dir;
 	}
@@ -683,20 +683,20 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 	// leaf into dir_cache up front would be wasted work. Flushed into
 	// dir_cache (see flush_leaf_stash()) only once the whole file list has
 	// been parsed and it's known whether any symlink actually needs it.
-	struct leaf_stash_entry
+	struct file_leaf_entry
 	{
-		path_index_t parent;
+		path_index_t dir;
 		string_view raw;
 		path_index_t leaf;
 	};
-	using leaf_stash_t = std::vector<leaf_stash_entry>;
+	using leaf_stash_t = std::vector<file_leaf_entry>;
 
 	// replays every buffered leaf into cache, in the same order they were
 	// originally seen, preserving record_leaf()'s first-wins semantics
 	void flush_leaf_stash(dir_cache_t& cache, leaf_stash_t const& stash)
 	{
 		for (auto const& e : stash)
-			record_leaf(cache, e.parent, e.raw, e.leaf);
+			record_leaf(cache, e.dir, e.raw, e.leaf);
 	}
 
 	// per-symlink bookkeeping stashed at parse time, consumed by
