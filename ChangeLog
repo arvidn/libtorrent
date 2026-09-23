@@ -17,7 +17,7 @@
 	* reuse tracker connections when announcing multiple torrents
 	* remove predictive pieces feature
 
-2.1.2 not released
+2.1.2 released
 
 	* add missing python binding for filenames class
 	* fix edge case in filename deduplication
@@ -77,7 +77,7 @@
 	* added support for WebTorrent
 	* removed support for BEP 17 web seeds (in favor of BEP 19)
 
-2.0.15 not released
+2.0.15 released
 
 	* fix edge cases in hash picker
 	* fix shutdown issue with SSL torrents

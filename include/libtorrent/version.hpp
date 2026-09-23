@@ -16,27 +16,27 @@ see LICENSE file.
 
 #define LIBTORRENT_VERSION_MAJOR 2
 #define LIBTORRENT_VERSION_MINOR 1
-#define LIBTORRENT_VERSION_TINY 1
+#define LIBTORRENT_VERSION_TINY 2
 
 // the format of this version is: MMmmtt
 // M = Major version, m = minor version, t = tiny version
 #define LIBTORRENT_VERSION_NUM ((LIBTORRENT_VERSION_MAJOR * 10000) + (LIBTORRENT_VERSION_MINOR * 100) + LIBTORRENT_VERSION_TINY)
 
-#define LIBTORRENT_VERSION "2.1.1.0"
-#define LIBTORRENT_REVISION "d918e4152"
+#define LIBTORRENT_VERSION "2.1.2.0"
+#define LIBTORRENT_REVISION "a610c6ef4"
 
 namespace libtorrent {
 
 	// the major, minor and tiny versions of libtorrent
 	constexpr int version_major = 2;
 	constexpr int version_minor = 1;
-	constexpr int version_tiny = 1;
+	constexpr int version_tiny = 2;
 
 	// the libtorrent version in string form
-	constexpr char const* version_str = "2.1.1.0";
+	constexpr char const* version_str = "2.1.2.0";
 
 	// the git commit of this libtorrent version
-	constexpr std::uint64_t version_revision = 0xd918e4152;
+	constexpr std::uint64_t version_revision = 0xa610c6ef4;
 
 	// returns the libtorrent version as string form in this format:
 	// "<major>.<minor>.<tiny>.<tag>"

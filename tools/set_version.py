@@ -116,7 +116,10 @@ substitute_file(
 substitute_file(
     "Jamfile",
     {
-        "VERSION = ": lambda ln: f"VERSION = {v[0]}.{v[1]}.{v[2]} ;{nl}",
+        "VERSION = ": lambda ln: re.sub(
+            r"^VERSION = [0-9]+\.[0-9]+\.[0-9]+ ;",
+            f"VERSION = {v[0]}.{v[1]}.{v[2]} ;", ln
+        ),
     },
 )
 substitute_file(
