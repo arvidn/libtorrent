@@ -70,9 +70,11 @@ namespace libtorrent::aux {
 		return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v';
 	}
 
-	char to_lower(char c)
+	char to_lower(char const c)
 	{
-		return (c >= 'A' && c <= 'Z') ? char(c - 'A' + 'a') : c;
+		auto const uc = static_cast<unsigned char>(c);
+		unsigned const is_upper = static_cast<unsigned>(uc - 'A') < 26;
+		return char(uc | (is_upper << 5));
 	}
 
 	bool string_begins_no_case(string_view s1, string_view s2)
