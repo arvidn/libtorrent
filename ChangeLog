@@ -58,7 +58,7 @@
 	* added support for WebTorrent
 	* removed support for BEP 17 web seeds (in favor of BEP 19)
 
-2.0.15 not released
+2.0.15 released
 
 	* fix edge cases in hash picker
 	* fix shutdown issue with SSL torrents

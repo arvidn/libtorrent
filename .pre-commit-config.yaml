@@ -151,8 +151,10 @@ repos:
     name: Run flake8-pyi
     entry: flake8
     # Ignore rationale: 1. Allow Black to do formatting;
-    #                   2. Detect archaic typing.
-    args: ["--ignore=E301,E302,E305,E501,E701,E704,Y015,Y021,Y053"]
+    #                   2. Detect archaic typing;
+    #                   3. flake8-pyi 26.5.0 dropped its F821 forward-
+    #                      reference monkey patch and recommends this.
+    args: ["--ignore=E301,E302,E305,E501,E701,E704,F821,Y015,Y021,Y053"]
     language: system
     types: [pyi]
 - repo: https://github.com/PyCQA/flake8
