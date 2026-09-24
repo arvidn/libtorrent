@@ -879,6 +879,58 @@ TORRENT_TEST(disk_io_partial_read_fence_pread)
 		lt::pread_disk_io_constructor, 0x8000, read_case::partial_fence);
 }
 
+// flushing a piece with missing blocks counts only the blocks that were written
+TORRENT_TEST_DISK_IO(test_disk_io_num_blocks_written)
+{
+	lt::io_context ios;
+	lt::counters cnt;
+	lt::settings_pack sett = lt::default_settings();
+	std::unique_ptr<lt::disk_interface> disk_thread = disk_io(ios, sett, cnt);
+
+	int const piece_size = 4 * lt::default_block_size;
+	lt::file_storage fs;
+	fs.set_piece_length(piece_size);
+	fs.add_file("test-torrent/file", piece_size * 2, {});
+	fs.set_num_pieces(2);
+	lt::storage_holder storage =
+		add_test_torrent(*disk_thread, fs, "test_torrent_store_blocks_written", true, false);
+
+	std::vector<char> const buffer = generate_piece(lt::piece_index_t{0}, piece_size);
+	int writes_done = 0;
+	// blocks 0 and 2 of a four-block piece
+	for (int const block : {0, 2})
+	{
+		lt::peer_request req;
+		req.piece = lt::piece_index_t{0};
+		req.start = block * lt::default_block_size;
+		req.length = lt::default_block_size;
+		disk_thread->async_write(
+			storage, req, buffer.data() + req.start, {}, [&](lt::storage_error const& ec) {
+				TEST_CHECK(!ec);
+				++writes_done;
+			});
+	}
+	// release_files is a fence, the writes are flushed before it runs
+	bool released = false;
+	disk_thread->async_release_files(storage, [&] { released = true; });
+	disk_thread->submit_jobs();
+
+	auto const start_time = lt::aux::time_now();
+	while (!released || writes_done < 2)
+	{
+		ios.run_for(5ms);
+		if (lt::aux::time_now() - start_time > lt::seconds(10))
+		{
+			TEST_ERROR("timeout");
+			break;
+		}
+	}
+	TEST_EQUAL(writes_done, 2);
+	TEST_EQUAL(cnt[lt::counters::num_blocks_written], 2);
+
+	disk_thread->abort(true);
+}
+
 // like test_pread_disk_io_fence, but raises a SECOND, stacked fence in the
 // middle of each piece (after its first block), leaving a partial piece queued
 // between two fences. Exercises forward progress when a stacked fence is
