@@ -8,9 +8,6 @@ see LICENSE file.
 */
 
 #include <map>
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/crc.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/error_code.hpp"
@@ -20,6 +17,7 @@ see LICENSE file.
 #include "libtorrent/aux_/resolve_duplicate_filenames.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/aux_/path.hpp"
+#include "libtorrent/aux_/crc32c.hpp"
 
 // file_storage::paths(), all_path_hashes() and file_path_hash() are
 // deprecated as public API but are still called internally while
@@ -29,13 +27,6 @@ see LICENSE file.
 namespace libtorrent::aux {
 
 namespace {
-
-	template <class CRC>
-	void process_string_lowercase(CRC& crc, string_view str)
-	{
-		for (char const c : str)
-			crc.process_byte(aux::to_lower(c) & 0xff);
-	}
 
 	struct name_entry
 	{
@@ -179,9 +170,8 @@ namespace {
 				std::snprintf(new_ext, sizeof(new_ext), ".%d%s", cnt, ext.c_str());
 				filename = base + new_ext;
 
-				boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
-				process_string_lowercase(crc, filename);
-				std::uint32_t const new_hash = crc.checksum();
+				std::uint32_t const new_hash =
+					aux::crc32c_finish(aux::crc32c_mix_lowercase(aux::crc32c_init, filename));
 				if (files.find(new_hash) == files.end())
 				{
 					files.insert({new_hash, {i, path_index_t{}}});

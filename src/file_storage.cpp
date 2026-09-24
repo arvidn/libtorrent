@@ -22,10 +22,7 @@ see LICENSE file.
 #include "libtorrent/disk_interface.hpp" // for default_block_size
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/aux_/throw.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/crc.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include "libtorrent/aux_/crc32c.hpp"
 
 #include <cstring>
 #include <algorithm>
@@ -1158,32 +1155,19 @@ void file_storage::rename_file_impl(
 		return m_mtime[index];
 	}
 
-namespace {
-
-		template <class CRC>
-		void process_string_lowercase(CRC& crc, string_view str)
-		{
-			for (char const c : str)
-				crc.process_byte(aux::to_lower(c) & 0xff);
-		}
-	}
-
 	aux::vector<std::uint32_t, path_index_t> file_storage::compute_element_hashes() const
 	{
-		using crc32_t = boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true>;
-
-		crc32_t root_crc;
-		process_string_lowercase(root_crc, m_name);
+		std::uint32_t const root_crc = aux::crc32c_mix_lowercase(aux::crc32c_init, m_name);
 
 		// a path_element's parent always has a lower index than the element
 		// itself (a parent must already exist before a child can reference
 		// it), so a single forward pass lets each element extend its
-		// parent's already-computed boundary crc (the crc of its full path,
-		// rooted at m_name, with no trailing separator). live_crcs holds
-		// the (still extendable) crc objects, so a child can keep building
-		// on its parent's; the returned array only needs the finalized
-		// checksum of each.
-		aux::vector<crc32_t, path_index_t> live_crcs(m_path_elements.size(), root_crc);
+		// parent's already-computed boundary crc (the running, not yet
+		// finalized, crc32c state of its full path, rooted at m_name, with
+		// no trailing separator). live_crcs holds that still-extendable
+		// state, so a child can keep building on its parent's; the
+		// returned array only needs the finalized checksum of each.
+		aux::vector<std::uint32_t, path_index_t> live_crcs(m_path_elements.size(), root_crc);
 		aux::vector<std::uint32_t, path_index_t> crcs(m_path_elements.size(), std::uint32_t());
 
 		for (auto const idx : m_path_elements.range())
@@ -1191,7 +1175,7 @@ namespace {
 			aux::path_element const& e = m_path_elements[idx];
 			bool const top_level = is_root_path_index(e.parent);
 
-			crc32_t crc;
+			std::uint32_t crc;
 			if (e.parent == aux::path_element::no_root_dir
 				|| e.parent == aux::path_element::path_is_absolute)
 			{
@@ -1200,16 +1184,16 @@ namespace {
 				// components (its lone element's own text is the whole
 				// path), so append_path() never prepends anything or
 				// inserts a separator before either one
-				process_string_lowercase(crc, path_element_name(e));
+				crc = aux::crc32c_mix_lowercase(aux::crc32c_init, path_element_name(e));
 			}
 			else
 			{
-				crc = top_level ? root_crc : live_crcs[e.parent];
-				crc.process_byte(TORRENT_SEPARATOR);
-				process_string_lowercase(crc, path_element_name(e));
+				std::uint32_t const parent_crc = top_level ? root_crc : live_crcs[e.parent];
+				std::uint32_t const with_sep = aux::crc32c_mix(parent_crc, TORRENT_SEPARATOR);
+				crc = aux::crc32c_mix_lowercase(with_sep, path_element_name(e));
 			}
 			live_crcs[idx] = crc;
-			crcs[idx] = crc.checksum();
+			crcs[idx] = aux::crc32c_finish(crc);
 		}
 
 		// pad files are deliberately not accounted for here: they never
