@@ -11,6 +11,7 @@ see LICENSE file.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated"
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#pragma GCC diagnostic ignored "-Wunreachable-code"
 #if __GNUC__ >= 9
 #pragma GCC diagnostic ignored "-Wdeprecated-copy"
 #endif
@@ -20,6 +21,7 @@ see LICENSE file.
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated"
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#pragma clang diagnostic ignored "-Wunreachable-code"
 #endif
 
 #ifdef _MSC_VER
