@@ -60,6 +60,7 @@
 
 2.0.15 released
 
+	* fix inline asm for crc32 computation
 	* fix edge cases in hash picker
 	* fix shutdown issue with SSL torrents
 	* fix bug in hash-picker timeout

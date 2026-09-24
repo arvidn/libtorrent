@@ -32,6 +32,11 @@ see LICENSE file.
 #pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
 #endif
 
+// For documentation on GCC's asm blocks, see:
+// https://gcc.gnu.org/onlinedocs/gcc/Extended-Asm.html
+// and the input- and output operand constraints specifically, see:
+// https://gcc.gnu.org/onlinedocs/gcc/Constraints.html
+
 namespace libtorrent::aux {
 
 	std::uint32_t crc32c_32(std::uint32_t v)
@@ -44,9 +49,7 @@ namespace libtorrent::aux {
 			// we can't use these because then we'd have to tell
 			// -msse4.2 to gcc on the command line
 //			return __builtin_ia32_crc32si(ret, v) ^ 0xffffffff;
-			asm ("crc32l\t" "(%1), %0"
-				: "=r"(ret)
-				: "r"(&v), "0"(ret));
+			asm("crc32l\t%1, %0" : "=r"(ret) : "r"(v), "0"(ret));
 			return ret ^ 0xffffffff;
 #else
 			return _mm_crc32_u32(ret, v) ^ 0xffffffff;
@@ -81,9 +84,7 @@ namespace libtorrent::aux {
 				// we can't use these because then we'd have to tell
 				// -msse4.2 to gcc on the command line
 //				ret = __builtin_ia32_crc32di(ret, buf[i]);
-				__asm__("crc32q\t" "(%1), %0"
-					: "=r"(ret)
-					: "r"(buf+i), "0"(ret));
+				__asm__("crc32q\t%1, %0" : "=r"(ret) : "r"(buf[i]), "0"(ret));
 #else
 				ret = _mm_crc32_u64(ret, buf[i]);
 #endif
@@ -99,12 +100,8 @@ namespace libtorrent::aux {
 				// -msse4.2 to gcc on the command line
 //				ret = __builtin_ia32_crc32si(ret, buf0[i*2]);
 //				ret = __builtin_ia32_crc32si(ret, buf0[i*2+1]);
-				asm ("crc32l\t" "(%1), %0"
-					: "=r"(ret)
-					: "r"(buf0+i*2), "0"(ret));
-				asm ("crc32l\t" "(%1), %0"
-					: "=r"(ret)
-					: "r"(buf0+i*2+1), "0"(ret));
+				asm("crc32l\t%1, %0" : "=r"(ret) : "r"(buf0[i * 2]), "0"(ret));
+				asm("crc32l\t%1, %0" : "=r"(ret) : "r"(buf0[i * 2 + 1]), "0"(ret));
 #else
 				ret = _mm_crc32_u32(ret, buf0[i*2]);
 				ret = _mm_crc32_u32(ret, buf0[i*2+1]);
