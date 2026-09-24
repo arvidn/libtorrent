@@ -81,7 +81,12 @@ TORRENT_TEST(pwrite_all_short_write)
 		return;
 	}
 
-	if (::signal(SIGXFSZ, SIG_IGN) == SIG_ERR)
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+	auto const sig_ignore = SIG_IGN;
+	auto const sig_error = SIG_ERR;
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
+	if (::signal(SIGXFSZ, sig_ignore) == sig_error)
 	{
 		TEST_ERROR("could not ignore SIGXFSZ");
 		return;

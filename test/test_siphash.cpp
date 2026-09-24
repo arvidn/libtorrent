@@ -11,18 +11,12 @@ see LICENSE file.
 
 #include "test.hpp"
 
-#include <boost/predef/other/endian.h>
-
 #include <array>
+#include <bit>
 #include <cstdint>
 #include <vector>
 
 using namespace lt;
-
-// read_word() (src/siphash.cpp) uses host-native byte order rather than
-// the spec's little-endian, so digests only match these vectors on
-// little-endian hosts; nothing meaningful to check on big-endian ones.
-#if BOOST_ENDIAN_LITTLE_BYTE
 
 namespace {
 
@@ -99,16 +93,20 @@ std::array<std::uint64_t, 64> const reference_vectors = {{
 
 TORRENT_TEST(siphash24_reference_vectors)
 {
-	// key bytes 0x00..0x0f as little-endian k0, k1 words
-	aux::siphash_key const key{0x0706050403020100ULL, 0x0f0e0d0c0b0a0908ULL};
-
-	std::vector<char> message;
-	for (int i = 0; i < int(reference_vectors.size()); ++i)
+	// read_word() (src/siphash.cpp) uses host-native byte order rather than
+	// the spec's little-endian, so digests only match these vectors on
+	// little-endian hosts; nothing meaningful to check on big-endian ones.
+	if constexpr (std::endian::native == std::endian::little)
 	{
-		std::uint64_t const digest = aux::siphash24(key, message);
-		TEST_EQUAL(digest, reference_vectors[std::size_t(i)]);
-		message.push_back(static_cast<char>(i));
+		// key bytes 0x00..0x0f as little-endian k0, k1 words
+		aux::siphash_key const key{0x0706050403020100ULL, 0x0f0e0d0c0b0a0908ULL};
+
+		std::vector<char> message;
+		for (int i = 0; i < int(reference_vectors.size()); ++i)
+		{
+			std::uint64_t const digest = aux::siphash24(key, message);
+			TEST_EQUAL(digest, reference_vectors[std::size_t(i)]);
+			message.push_back(static_cast<char>(i));
+		}
 	}
 }
-
-#endif // BOOST_ENDIAN_LITTLE_BYTE
