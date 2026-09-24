@@ -69,7 +69,7 @@ namespace libtorrent::aux {
 			aux::write_uint16(e2.port(), ptr);
 			std::uint32_t p;
 			std::memcpy(&p, buf.data(), 4);
-			ret = crc32c_32(p);
+			ret = crc32c(p);
 		}
 		else if (aux::is_v6(e1))
 		{
@@ -97,10 +97,10 @@ namespace libtorrent::aux {
 #endif
 				}
 			}
-			std::uint64_t addrbuf[4];
+			std::array<std::uint64_t, 4> addrbuf;
 			std::memcpy(&addrbuf[0], b1.data(), 16);
 			std::memcpy(&addrbuf[2], b2.data(), 16);
-			ret = aux::crc32c(addrbuf, 4);
+			ret = aux::crc32c(addrbuf);
 		}
 		else
 		{
@@ -120,7 +120,7 @@ namespace libtorrent::aux {
 			std::uint64_t addrbuf;
 			std::memcpy(&addrbuf, &b1[0], 4);
 			std::memcpy(reinterpret_cast<char*>(&addrbuf) + 4, &b2[0], 4);
-			ret = aux::crc32c(&addrbuf, 1);
+			ret = aux::crc32c(addrbuf);
 		}
 
 		return ret;

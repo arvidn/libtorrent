@@ -12,10 +12,9 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/crc32c.hpp"
 #include "libtorrent/aux_/cpuid.hpp"
-#include "libtorrent/aux_/byteswap.hpp"
+#include "libtorrent/aux_/string_util.hpp" // for to_lower
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
-#include <boost/crc.hpp>
 #if (defined _MSC_VER && _MSC_VER >= 1600 && (defined _M_IX86 || defined _M_X64))
 #include <nmmintrin.h>
 #endif
@@ -39,95 +38,196 @@ see LICENSE file.
 
 namespace libtorrent::aux {
 
-	std::uint32_t crc32c_32(std::uint32_t v)
-	{
+namespace {
+
+// each backend mixes 8, 32 or 64 bits into a running crc32c state.
+// kept separate from the higher-level functions below so that a loop
+// over many mix8/mix64 calls (e.g. hashing a path element) only needs
+// to pick a backend once, not on every call.
+
 #if TORRENT_HAS_SSE
-		if (aux::sse42_support)
-		{
-			std::uint32_t ret = 0xffffffff;
+struct backend_sse42
+{
+	static std::uint32_t mix8(std::uint32_t const state, std::uint8_t const b)
+	{
 #ifdef __GNUC__
-			// we can't use these because then we'd have to tell
-			// -msse4.2 to gcc on the command line
-//			return __builtin_ia32_crc32si(ret, v) ^ 0xffffffff;
-			asm("crc32l\t%1, %0" : "=r"(ret) : "r"(v), "0"(ret));
-			return ret ^ 0xffffffff;
+		std::uint32_t ret = state;
+		asm("crc32b\t%1, %0" : "=r"(ret) : "r"(b), "0"(ret));
+		return ret;
 #else
-			return _mm_crc32_u32(ret, v) ^ 0xffffffff;
+		return _mm_crc32_u8(state, b);
 #endif
-		}
+	}
+
+	static std::uint32_t mix32(std::uint32_t const state, std::uint32_t const v)
+	{
+#ifdef __GNUC__
+		std::uint32_t ret = state;
+		asm("crc32l\t%1, %0" : "=r"(ret) : "r"(v), "0"(ret));
+		return ret;
+#else
+		return _mm_crc32_u32(state, v);
+#endif
+	}
+
+	static std::uint32_t mix64(std::uint32_t const state, std::uint64_t const w)
+	{
+#if defined _M_AMD64 || defined __x86_64__ || defined __x86_64 || defined _M_X64 \
+	|| defined __amd64__
+#ifdef __GNUC__
+		std::uint64_t ret = state;
+		asm("crc32q\t%1, %0" : "=r"(ret) : "r"(w), "0"(ret));
+		return std::uint32_t(ret);
+#else
+		return std::uint32_t(_mm_crc32_u64(state, w));
+#endif
+#else
+		std::uint32_t ret = mix32(state, std::uint32_t(w));
+		ret = mix32(ret, std::uint32_t(w >> 32));
+		return ret;
+#endif
+	}
+};
 #endif
 
 #if TORRENT_HAS_ARM_CRC32
-		if (aux::arm_crc32c_support)
-		{
-			std::uint32_t ret = 0xffffffff;
-			return __crc32cw(ret, v) ^ 0xffffffff;
-		}
-#endif
-
-		boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
-		crc.process_bytes(&v, 4);
-		return crc.checksum();
-	}
-
-	std::uint32_t crc32c(std::uint64_t const* buf, int num_words)
+struct backend_arm
+{
+	static std::uint32_t mix8(std::uint32_t const state, std::uint8_t const b)
 	{
-#if TORRENT_HAS_SSE
-		if (aux::sse42_support)
-		{
-#if defined _M_AMD64 || defined __x86_64__ \
-	|| defined __x86_64 || defined _M_X64 || defined __amd64__
-			std::uint64_t ret = 0xffffffff;
-			for (int i = 0; i < num_words; ++i)
-			{
-#ifdef __GNUC__
-				// we can't use these because then we'd have to tell
-				// -msse4.2 to gcc on the command line
-//				ret = __builtin_ia32_crc32di(ret, buf[i]);
-				__asm__("crc32q\t%1, %0" : "=r"(ret) : "r"(buf[i]), "0"(ret));
-#else
-				ret = _mm_crc32_u64(ret, buf[i]);
-#endif
-			}
-			return std::uint32_t(ret) ^ 0xffffffff;
-#else
-			std::uint32_t ret = 0xffffffff;
-			std::uint32_t const* buf0 = reinterpret_cast<std::uint32_t const*>(buf);
-			for (int i = 0; i < num_words; ++i)
-			{
-#ifdef __GNUC__
-				// we can't use these because then we'd have to tell
-				// -msse4.2 to gcc on the command line
-//				ret = __builtin_ia32_crc32si(ret, buf0[i*2]);
-//				ret = __builtin_ia32_crc32si(ret, buf0[i*2+1]);
-				asm("crc32l\t%1, %0" : "=r"(ret) : "r"(buf0[i * 2]), "0"(ret));
-				asm("crc32l\t%1, %0" : "=r"(ret) : "r"(buf0[i * 2 + 1]), "0"(ret));
-#else
-				ret = _mm_crc32_u32(ret, buf0[i*2]);
-				ret = _mm_crc32_u32(ret, buf0[i*2+1]);
-#endif
-			}
-			return ret ^ 0xffffffff;
-#endif // amd64 or x86
-		}
-#endif // x86 or amd64 and gcc or msvc
-
-#if TORRENT_HAS_ARM_CRC32
-		if (aux::arm_crc32c_support)
-		{
-			std::uint32_t ret = 0xffffffff;
-			for (int i = 0; i < num_words; ++i)
-			{
-				ret = __crc32cd(ret, buf[i]);
-			}
-			return ret ^ 0xffffffff;
-		}
-#endif
-
-		boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
-		crc.process_bytes(buf, std::size_t(num_words) * 8);
-		return crc.checksum();
+		return __crc32cb(state, b);
 	}
+	static std::uint32_t mix32(std::uint32_t const state, std::uint32_t const v)
+	{
+		return __crc32cw(state, v);
+	}
+	static std::uint32_t mix64(std::uint32_t const state, std::uint64_t const w)
+	{
+		return __crc32cd(state, w);
+	}
+};
+#endif
+
+struct backend_software
+{
+	static std::uint32_t mix8(std::uint32_t const state, std::uint8_t const b)
+	{
+		// bit-serial update using the bit-reversed form of the crc32c
+		// polynomial, for this reflected variant
+		std::uint32_t crc = state ^ b;
+		for (int i = 0; i < 8; ++i)
+			crc = (crc & 1) ? (crc >> 1) ^ 0x82f63b78 : (crc >> 1);
+		return crc;
+	}
+
+	static std::uint32_t mix32(std::uint32_t state, std::uint32_t const v)
+	{
+		state = mix8(state, std::uint8_t(v));
+		state = mix8(state, std::uint8_t(v >> 8));
+		state = mix8(state, std::uint8_t(v >> 16));
+		state = mix8(state, std::uint8_t(v >> 24));
+		return state;
+	}
+
+	static std::uint32_t mix64(std::uint32_t state, std::uint64_t const w)
+	{
+		for (int i = 0; i < 8; ++i)
+			state = mix8(state, std::uint8_t(w >> (8 * i)));
+		return state;
+	}
+};
+
+template <class Backend>
+std::uint32_t mix_lowercase_impl(std::uint32_t state, string_view const str)
+{
+	std::size_t i = 0;
+	std::size_t const n = str.size();
+	for (; i + 8 <= n; i += 8)
+	{
+		std::uint64_t word = 0;
+		for (int j = 0; j < 8; ++j)
+			word |= std::uint64_t(std::uint8_t(aux::to_lower(str[i + std::size_t(j)]))) << (8 * j);
+		state = Backend::mix64(state, word);
+	}
+	for (; i < n; ++i)
+		state = Backend::mix8(state, std::uint8_t(aux::to_lower(str[i])));
+	return state;
+}
+
+template <class Backend>
+std::uint32_t mix_array_impl(std::uint32_t state, std::array<std::uint64_t, 4> const& v)
+{
+	for (std::uint64_t const w : v)
+		state = Backend::mix64(state, w);
+	return state;
+}
+
+} // anonymous namespace
+
+std::uint32_t crc32c(std::uint32_t const v)
+{
+#if TORRENT_HAS_SSE
+	if (aux::sse42_support)
+		return crc32c_finish(backend_sse42::mix32(crc32c_init, v));
+#endif
+#if TORRENT_HAS_ARM_CRC32
+	if (aux::arm_crc32c_support)
+		return crc32c_finish(backend_arm::mix32(crc32c_init, v));
+#endif
+	return crc32c_finish(backend_software::mix32(crc32c_init, v));
+}
+
+std::uint32_t crc32c(std::uint64_t const v)
+{
+#if TORRENT_HAS_SSE
+	if (aux::sse42_support)
+		return crc32c_finish(backend_sse42::mix64(crc32c_init, v));
+#endif
+#if TORRENT_HAS_ARM_CRC32
+	if (aux::arm_crc32c_support)
+		return crc32c_finish(backend_arm::mix64(crc32c_init, v));
+#endif
+	return crc32c_finish(backend_software::mix64(crc32c_init, v));
+}
+
+std::uint32_t crc32c(std::array<std::uint64_t, 4> const& v)
+{
+#if TORRENT_HAS_SSE
+	if (aux::sse42_support)
+		return crc32c_finish(mix_array_impl<backend_sse42>(crc32c_init, v));
+#endif
+#if TORRENT_HAS_ARM_CRC32
+	if (aux::arm_crc32c_support)
+		return crc32c_finish(mix_array_impl<backend_arm>(crc32c_init, v));
+#endif
+	return crc32c_finish(mix_array_impl<backend_software>(crc32c_init, v));
+}
+
+std::uint32_t crc32c_mix(std::uint32_t const state, std::uint8_t const b)
+{
+#if TORRENT_HAS_SSE
+	if (aux::sse42_support)
+		return backend_sse42::mix8(state, b);
+#endif
+#if TORRENT_HAS_ARM_CRC32
+	if (aux::arm_crc32c_support)
+		return backend_arm::mix8(state, b);
+#endif
+	return backend_software::mix8(state, b);
+}
+
+std::uint32_t crc32c_mix_lowercase(std::uint32_t const state, string_view const str)
+{
+#if TORRENT_HAS_SSE
+	if (aux::sse42_support)
+		return mix_lowercase_impl<backend_sse42>(state, str);
+#endif
+#if TORRENT_HAS_ARM_CRC32
+	if (aux::arm_crc32c_support)
+		return mix_lowercase_impl<backend_arm>(state, str);
+#endif
+	return mix_lowercase_impl<backend_software>(state, str);
+}
 }
 
 #ifdef __clang__

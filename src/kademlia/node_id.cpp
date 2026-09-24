@@ -97,14 +97,14 @@ node_id generate_id_impl(address const& ip_, std::uint32_t r)
 	{
 		std::uint32_t v;
 		std::memcpy(&v, ip, 4);
-		c = aux::crc32c_32(v);
+		c = aux::crc32c(v);
 	}
 	else
 	{
 		TORRENT_ASSERT(num_octets == 8);
 		std::uint64_t v;
 		std::memcpy(&v, ip, 8);
-		c = aux::crc32c(&v, 1);
+		c = aux::crc32c(v);
 	}
 	node_id id;
 
