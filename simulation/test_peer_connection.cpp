@@ -9,6 +9,7 @@ see LICENSE file.
 
 #include <array>
 #include <functional>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -19,6 +20,8 @@ see LICENSE file.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/disabled_disk_io.hpp"
 #include "libtorrent/aux_/random.hpp"
+#include "libtorrent/aux_/peer_connection.hpp"
+#include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/torrent_flags.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/load_torrent.hpp"
@@ -497,4 +500,90 @@ TORRENT_TEST(hybrid_honest_v2_claim_hash_request_not_rejected)
 {
 	// an unrecognized file-root gets a hash_reject reply, not a disconnect
 	run_metadata_edge_case(true, v2_claim_reserved, 21, true, false);
+}
+
+// Sending a time-critical request moves its bytes between two queues. This
+// must not change its estimated completion time when the rate is unchanged.
+TORRENT_TEST(download_queue_time)
+{
+	using namespace lt;
+	using namespace lt::aux;
+
+	sim::default_config cfg;
+	sim::simulation sim{cfg};
+	sim::asio::io_context ios{sim, make_address_v4("50.0.0.1")};
+	lt::session_proxy zombie;
+
+	lt::session_params sp;
+	sp.settings = settings();
+	sp.disk_io_constructor = lt::disabled_disk_io_constructor;
+	auto ses = std::make_shared<lt::session>(sp, ios);
+	fake_peer peer(sim, "60.0.0.1");
+
+	auto params = ::create_torrent(0, false);
+	params.flags &= ~(torrent_flags::auto_managed | torrent_flags::paused);
+	auto const ih = params.ti->info_hash();
+	torrent_handle h;
+	print_alerts(*ses, [&](lt::session&, lt::alert const* a) {
+		if (auto const* at = alert_cast<add_torrent_alert>(a))
+		{
+			h = at->handle;
+			peer.connect_to(ep("50.0.0.1", 6881), ih);
+			// Keep the peer choked so the regular picker does not interfere.
+			peer.send_have_all();
+		}
+	});
+	ses->async_add_torrent(std::move(params));
+
+	bool checked = false;
+	sim::timer t1(sim, seconds(1), [&](error_code const&) {
+		auto const tor = h.native_handle();
+		TEST_EQUAL(tor->num_peers(), 1);
+		if (tor->num_peers() != 1)
+			return;
+		auto* p = *tor->begin();
+		TEST_CHECK(p->request_queue().empty());
+		TEST_CHECK(p->download_queue().empty());
+
+		// No payload has arrived, so the estimate uses the 50 B/s floor.
+		TEST_EQUAL(total_milliseconds(p->download_queue_time()), 0);
+		TEST_EQUAL(total_milliseconds(p->download_queue_time(0x4000)), 327680);
+		// Converting bytes to milliseconds must not overflow a 32-bit int.
+		TEST_EQUAL(total_milliseconds(p->download_queue_time(std::numeric_limits<int>::max())),
+			42949672940LL);
+
+		TEST_CHECK(
+			p->add_request(piece_block(piece_index_t(0), 0), peer_connection::time_critical));
+		TEST_EQUAL(total_milliseconds(p->download_queue_time()), 327680);
+		TEST_EQUAL(total_milliseconds(p->download_queue_time(0x4000)), 655360);
+		p->send_block_requests();
+	});
+
+	sim::timer t2(sim, milliseconds(1500), [&](error_code const&) {
+		auto const tor = h.native_handle();
+		TEST_EQUAL(tor->num_peers(), 1);
+		if (tor->num_peers() != 1)
+			return;
+		auto* p = *tor->begin();
+		TEST_CHECK(p->request_queue().empty());
+		TEST_EQUAL(p->outstanding_bytes(), 0x4000);
+		TEST_EQUAL(total_milliseconds(p->download_queue_time()), 327680);
+		TEST_EQUAL(total_milliseconds(p->download_queue_time(0x4000)), 655360);
+
+		// Also cover a mixture of sent requests, queued urgent requests and
+		// an extra block. Unsent ordinary requests do not delay urgent ones.
+		TEST_CHECK(
+			p->add_request(piece_block(piece_index_t(1), 0), peer_connection::time_critical));
+		TEST_CHECK(p->add_request(piece_block(piece_index_t(2), 0)));
+		TEST_EQUAL(total_milliseconds(p->download_queue_time()), 655360);
+		TEST_EQUAL(total_milliseconds(p->download_queue_time(0x4000)), 983040);
+		checked = true;
+	});
+
+	sim::timer t3(sim, seconds(2), [&](error_code const&) {
+		zombie = ses->abort();
+		ses.reset();
+	});
+	sim.run();
+	TEST_CHECK(checked);
 }
