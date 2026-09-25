@@ -106,7 +106,8 @@ namespace {
 		int const num_pieces = 100;
 
 		remove_all(path, ec);
-		if (ec == boost::system::errc::no_such_file_or_directory) ec.clear();
+		if (ec == boost::system::errc::no_such_file_or_directory)
+			ec.clear();
 		TEST_CHECK(!ec);
 		create_directory(path, ec);
 		TEST_CHECK(!ec);
@@ -239,7 +240,10 @@ TORRENT_TEST(part_file)
 
 TORRENT_TEST(part_file_short_read) { test_short_read<aux::part_file>("partfile_short_read_dir"); }
 
-TORRENT_TEST(part_file_missing_piece) { test_missing_piece<aux::part_file>("partfile_missing_piece_dir"); }
+TORRENT_TEST(part_file_missing_piece)
+{
+	test_missing_piece<aux::part_file>("partfile_missing_piece_dir");
+}
 
 TORRENT_TEST(posix_part_file)
 {
