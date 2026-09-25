@@ -119,7 +119,7 @@ struct TORRENT_EXTRA_EXPORT disabled_disk_io final
 	}
 
 	void async_rename_file(storage_index_t
-		, file_index_t index, std::string name
+		, file_index_t index, std::string const& name
 		, std::function<void(std::string const&, file_index_t, storage_error const&)> handler) override
 	{
 		post(m_ios, [h = std::move(handler), index, n = std::move(name)] () mutable

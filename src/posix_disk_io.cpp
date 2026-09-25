@@ -315,7 +315,7 @@ namespace {
 
 		void async_rename_file(storage_index_t const storage
 			, file_index_t const idx
-			, std::string name
+			, std::string const& name
 			, std::function<void(std::string const&, file_index_t, storage_error const&)> handler) override
 		{
 			posix_storage* st = m_torrents[storage].get();
