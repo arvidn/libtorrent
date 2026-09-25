@@ -96,6 +96,41 @@ namespace {
 		TEST_CHECK(!ec);
 	}
 
+	template <typename PartFile>
+	void test_missing_piece(std::string const& test_dir)
+	{
+		error_code ec;
+		std::string const cwd = complete(".");
+		std::string const path = combine_path(cwd, test_dir);
+		int const piece_size = 16 * 0x4000;
+		int const num_pieces = 100;
+
+		remove_all(path, ec);
+		if (ec == boost::system::errc::no_such_file_or_directory)
+			ec.clear();
+		TEST_CHECK(!ec);
+		create_directory(path, ec);
+		TEST_CHECK(!ec);
+
+		PartFile pf(path, "partfile.parts", num_pieces, piece_size);
+
+		// piece 10 was never written, so it has no slot in the part file
+		std::array<char, 1024> read_buf;
+		read_buf.fill(0);
+		TEST_EQUAL(pf.read(read_buf, 10_piece, 0, ec), -1);
+		TEST_EQUAL(ec, errors::partfile_missing_piece);
+		TEST_CHECK(ec != boost::system::errc::no_such_file_or_directory);
+
+		ec.clear();
+		hasher ph;
+		TEST_EQUAL(pf.hash(ph, int(read_buf.size()), 10_piece, 0, ec), -1);
+		TEST_EQUAL(ec, errors::partfile_missing_piece);
+		TEST_CHECK(ec != boost::system::errc::no_such_file_or_directory);
+
+		remove_all(path, ec);
+		TEST_CHECK(!ec);
+	}
+
 } // anonymous namespace
 
 TORRENT_TEST(part_file)
@@ -205,6 +240,11 @@ TORRENT_TEST(part_file)
 
 TORRENT_TEST(part_file_short_read) { test_short_read<aux::part_file>("partfile_short_read_dir"); }
 
+TORRENT_TEST(part_file_missing_piece)
+{
+	test_missing_piece<aux::part_file>("partfile_missing_piece_dir");
+}
+
 TORRENT_TEST(posix_part_file)
 {
 	error_code ec;
@@ -313,4 +353,9 @@ TORRENT_TEST(posix_part_file)
 TORRENT_TEST(posix_part_file_short_read)
 {
 	test_short_read<aux::posix_part_file>("posix_partfile_short_read_dir");
+}
+
+TORRENT_TEST(posix_part_file_missing_piece)
+{
+	test_missing_piece<aux::posix_part_file>("posix_partfile_missing_piece_dir");
 }
