@@ -76,6 +76,7 @@ see LICENSE file.
 #include <csignal>
 #include <utility>
 #include <dirent.h>
+#include <poll.h>
 
 #endif
 
@@ -154,12 +155,9 @@ bool sleep_and_input(int* c, lt::time_duration const sleep)
 	lt::time_point const done = lt::clock_type::now() + sleep;
 	int ret = 0;
 retry:
-	fd_set set;
-	FD_ZERO(&set);
-	FD_SET(0, &set);
+	pollfd stdin_fd{0, POLLIN, 0};
 	auto const delay = total_milliseconds(done - lt::clock_type::now());
-	timeval tv = {int(delay / 1000), int((delay % 1000) * 1000) };
-	ret = select(1, &set, nullptr, nullptr, &tv);
+	ret = ::poll(&stdin_fd, 1, int(std::max<decltype(delay)>(0, delay)));
 	if (ret > 0)
 	{
 		*c = getc(stdin);
@@ -174,7 +172,7 @@ retry:
 
 	if (ret < 0 && errno != 0 && errno != ETIMEDOUT)
 	{
-		std::fprintf(stderr, "select failed: %s\n", strerror(errno));
+		std::fprintf(stderr, "poll failed: %s\n", strerror(errno));
 		std::this_thread::sleep_for(lt::milliseconds(500));
 	}
 
