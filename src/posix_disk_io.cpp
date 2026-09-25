@@ -25,6 +25,7 @@ see LICENSE file.
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/aux_/storage_free_list.hpp"
 
+#include <type_traits>
 #include <vector>
 
 namespace libtorrent {
@@ -32,6 +33,41 @@ namespace libtorrent {
 namespace {
 
 	using aux::posix_storage;
+
+	// move_storage() calls complete() on the destination path, which reads
+	// the process' current working directory and can throw
+	// boost::system::system_error if that fails. Unlike the other disk
+	// backends, posix_disk_io runs this call inline on the network thread,
+	// so an uncaught exception here would terminate the process rather than
+	// just fail the job. translate_error() tags the storage_error with
+	// operation_t::exception so callers can tell an exception apart from an
+	// ordinary, non-fatal error returned by f() itself.
+	template <typename Fun>
+	auto translate_error(storage_error& ec, Fun f) -> decltype(f())
+	{
+		using ret_type = decltype(f());
+		try
+		{
+			return f();
+		}
+		catch (boost::system::system_error const& err)
+		{
+			ec.ec = err.code();
+			ec.operation = operation_t::exception;
+		}
+		catch (std::bad_alloc const&)
+		{
+			ec.ec = errors::no_memory;
+			ec.operation = operation_t::exception;
+		}
+		catch (std::exception const&)
+		{
+			ec.ec = boost::asio::error::fault;
+			ec.operation = operation_t::exception;
+		}
+		if constexpr (!std::is_void_v<ret_type>)
+			return ret_type{};
+	}
 
 } // anonymous namespace
 
@@ -251,9 +287,10 @@ namespace {
 		{
 			posix_storage* st = m_torrents[storage].get();
 			storage_error ec;
-			status_t ret;
-			std::tie(ret, p) = st->move_storage(p, flags, ec);
-			post(m_ios, [=, h = std::move(handler)]{ h(ret, p, ec); });
+			auto result = translate_error(ec, [&] { return st->move_storage(p, flags, ec); });
+			if (ec.operation == operation_t::exception)
+				result.first |= disk_status::fatal_disk_error;
+			post(m_ios, [=, h = std::move(handler)] { h(result.first, result.second, ec); });
 		}
 
 		void async_release_files(storage_index_t storage, std::function<void()> handler) override
@@ -284,31 +321,33 @@ namespace {
 			add_torrent_params const* rd = resume_data ? resume_data : &tmp;
 
 			storage_error error;
-			status_t const ret = [&]
+			auto const ret_flag = st->initialize(m_settings, error);
+			status_t ret = ret_flag;
+			if (error)
 			{
-				auto const ret_flag = st->initialize(m_settings, error);
-				if (error) return disk_status::fatal_disk_error | ret_flag;
-
+				ret |= disk_status::fatal_disk_error;
+			}
+			else
+			{
 				bool const verify_success = st->verify_resume_data(*rd
 					, std::move(links), error);
 
-				if (m_settings.get_bool(settings_pack::no_recheck_incomplete_resume))
-					return ret_flag;
-
-				if (!aux::contains_resume_data(*rd))
+				if (!m_settings.get_bool(settings_pack::no_recheck_incomplete_resume))
 				{
-					// if we don't have any resume data, we still may need to trigger a
-					// full re-check, if there are *any* files.
-					storage_error ignore;
-					return ((st->has_any_file(ignore))
-						? disk_status::need_full_check | ret_flag
-						: ret_flag);
+					if (!aux::contains_resume_data(*rd))
+					{
+						// if we don't have any resume data, we still may need to trigger a
+						// full re-check, if there are *any* files.
+						storage_error ignore;
+						if (st->has_any_file(ignore))
+							ret |= disk_status::need_full_check;
+					}
+					else if (!verify_success)
+					{
+						ret |= disk_status::need_full_check;
+					}
 				}
-
-				return (verify_success
-					? ret_flag
-					: disk_status::need_full_check | ret_flag);
-			}();
+			}
 
 			post(m_ios, [error, ret, h = std::move(handler)]{ h(ret, error); });
 		}

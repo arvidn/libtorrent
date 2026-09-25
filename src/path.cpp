@@ -426,7 +426,8 @@ namespace {
 
 		// if we get here, we should copy the file
 		storage_error se;
-		aux::copy_file(file, link, se);
+		aux::copy_file_buffer buf;
+		aux::copy_file(file, link, se, buf);
 		ec = se.ec;
 	}
 
