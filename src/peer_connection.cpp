@@ -1100,9 +1100,10 @@ namespace {
 		// average of current rate and peak
 //		rate = (rate + m_download_rate_peak) / 2;
 
+		// Convert all outstanding bytes to milliseconds, including sent requests.
 		return milliseconds((std::int64_t(m_outstanding_bytes) + extra_bytes
-								+ std::int64_t(m_queued_time_critical) * t->block_size() * 1000)
-			/ rate);
+								+ std::int64_t(m_queued_time_critical) * t->block_size())
+			* 1000 / rate);
 	}
 
 	void peer_connection::add_stat(std::int64_t const downloaded, std::int64_t const uploaded)

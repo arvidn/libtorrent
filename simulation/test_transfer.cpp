@@ -10,6 +10,8 @@ see LICENSE file.
 #include "transfer_sim.hpp"
 #include "libtorrent/load_torrent.hpp"
 
+#include <set>
+
 using namespace sim;
 using namespace lt;
 
@@ -565,3 +567,40 @@ TORRENT_TEST(empty_file)
 	run_torrent_test(test_torrent(make_files(
 		{{0x3000, false}, {0, false}, {0x8000, false}}), 0x4000, {}));
 }
+
+#ifndef TORRENT_DISABLE_STREAMING
+// Deadline downloads must still complete with the corrected queue estimates
+// and the existing two-second scheduling limit.
+TORRENT_TEST(piece_deadlines)
+{
+	for (int const queue_time : {1, 3, 10})
+	{
+		std::set<piece_index_t> pieces_read;
+		int num_pieces = 0;
+		run_test(
+			[queue_time](lt::session& downloader, lt::session&) {
+				settings_pack pack;
+				pack.set_int(settings_pack::request_queue_time, queue_time);
+				pack.set_int(settings_pack::download_rate_limit, 32 * 1024);
+				downloader.apply_settings(pack);
+			},
+			[&](lt::session&, lt::alert const* a) {
+				if (auto const* at = alert_cast<add_torrent_alert>(a))
+				{
+					num_pieces = at->params.ti->num_pieces();
+					for (piece_index_t const piece : at->params.ti->piece_range())
+						at->handle.set_piece_deadline(
+							piece, int(piece) * 1000, torrent_handle::alert_when_available);
+				}
+				else if (auto const* rp = alert_cast<read_piece_alert>(a))
+				{
+					TEST_CHECK(!rp->error);
+					TEST_CHECK(pieces_read.insert(rp->piece).second);
+				}
+			},
+			expect_seed(true));
+		TEST_CHECK(num_pieces > 0);
+		TEST_EQUAL(int(pieces_read.size()), num_pieces);
+	}
+}
+#endif
