@@ -427,7 +427,7 @@ namespace libtorrent { namespace aux {
 				// sit at an unrelated depth or be absolute, so the target
 				// is anchored to save_path, not to new_dir directly
 				std::string const target =
-					lexically_relative(new_dir, combine_path(save_path, fs.symlink(index)));
+					lexically_relative(new_dir, combine_path(save_path, names.symlink(index)));
 				create_symlink(target, new_path, ec);
 			}
 			else

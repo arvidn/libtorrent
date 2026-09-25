@@ -346,6 +346,20 @@ namespace {
 			}
 		}
 
+		bdecode_node const mapped_path_elements = rd.dict_find_dict("mapped_path_elements");
+		if (mapped_path_elements)
+		{
+			for (auto const [key, value] : mapped_path_elements.dict_items())
+			{
+				auto const idx = aux::parse_decimal(key);
+				if (!idx || *idx < 0 || value.type() != bdecode_node::string_t
+					|| value.string_length() == 0)
+					continue;
+				ret.renamed_path_elements[path_index_t(static_cast<std::uint32_t>(*idx))] =
+					value.string_value();
+			}
+		}
+
 		ret.added_time = std::time_t(rd.dict_find_int_value("added_time", 0));
 		ret.completed_time = std::time_t(rd.dict_find_int_value("completed_time", 0));
 

@@ -22,6 +22,9 @@ see LICENSE file.
 #include <vector>
 #include <map>
 #include <memory>
+#include <unordered_map>
+#include <optional>
+#include <utility>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/shared_array.hpp>

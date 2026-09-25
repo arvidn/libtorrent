@@ -318,6 +318,37 @@ TORRENT_TEST(piece_priorities)
 	test_piece_priorities();
 }
 
+// renamed_path_elements round-trips through write_resume_data()/
+// read_resume_data() as its own "mapped_path_elements" dict, independent
+// of renamed_files' "mapped_files" list: a plain add_torrent_params, no
+// session needed, since this only exercises the bencode read/write side
+// (path_sanitize_flags::deduplicate_per_directory's actual collision
+// resolution is covered in test_torrent_info.cpp/test_sanitizer.cpp).
+TORRENT_TEST(renamed_path_elements_resume_round_trip)
+{
+	add_torrent_params const atp = generate_torrent();
+	add_torrent_params p;
+	p.ti = atp.ti;
+	// file 0's own leaf: guaranteed valid regardless of this torrent's
+	// tree shape, unlike an arbitrary hard-coded path_index_t
+	path_index_t const leaf = p.ti->layout().file_path_element(file_index_t(0));
+	p.renamed_path_elements[leaf] = "renamed-element";
+
+	std::vector<char> const resume_data = write_resume_data_buf(p);
+	add_torrent_params const loaded = read_resume_data(resume_data);
+
+	TEST_EQUAL(loaded.renamed_path_elements.size(), 1);
+	auto const it = loaded.renamed_path_elements.find(leaf);
+	TEST_CHECK(it != loaded.renamed_path_elements.end());
+	if (it != loaded.renamed_path_elements.end())
+		TEST_EQUAL(it->second, "renamed-element");
+
+	renamed_files renamed;
+	renamed.import_path_elements(p.ti->layout(), loaded.renamed_path_elements);
+	filenames const names(p.ti->layout(), renamed);
+	TEST_EQUAL(names.file_name(file_index_t(0)), "renamed-element");
+}
+
 TORRENT_TEST(test_non_metadata)
 {
 	lt::session ses(settings());
@@ -1100,6 +1131,37 @@ TORRENT_TEST(backwards_compatible_resume_info_dict)
 	auto torrent = h.torrent_file();
 	TEST_CHECK(torrent->info_hashes() == p.ti->info_hashes());
 	torrent_status s = h.status();
+}
+
+// same backwards-compatible mode as backwards_compatible_resume_info_dict
+// above, but for renamed_path_elements: handle_backwards_compatible_
+// resume_data() (session_handle.cpp) re-parses atp.resume_data with the
+// current read_resume_data(), which already extracts renamed_path_elements
+// correctly (see renamed_path_elements_resume_round_trip above), so this
+// specifically exercises whether that map actually gets carried over into
+// the add_torrent_params used to construct the torrent
+TORRENT_TEST(backwards_compatible_resume_renamed_path_elements)
+{
+	add_torrent_params const seed = generate_torrent();
+	path_index_t const leaf = seed.ti->layout().file_path_element(file_index_t(0));
+
+	add_torrent_params p;
+	p.ti = seed.ti;
+	p.renamed_path_elements[leaf] = "renamed-element";
+	std::vector<char> const resume_data = write_resume_data_buf(p);
+
+	add_torrent_params atp;
+	atp.resume_data = resume_data;
+	atp.save_path = ".";
+
+	session ses;
+	torrent_handle h = ses.add_torrent(atp);
+	renamed_files const rf = h.get_renamed_files();
+	TEST_EQUAL(rf.path_elements().size(), 1);
+	auto const it = rf.path_elements().find(leaf);
+	TEST_CHECK(it != rf.path_elements().end());
+	if (it != rf.path_elements().end())
+		TEST_EQUAL(it->second, "renamed-element");
 }
 #endif
 

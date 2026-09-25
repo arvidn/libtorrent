@@ -60,6 +60,17 @@ namespace {
 		return idx == aux::path_element::torrent_root || idx == aux::path_element::path_is_absolute
 			|| idx == aux::path_element::no_root_dir;
 	}
+
+	// sanitize_path_element() (torrent_info.cpp) always strips '/', '\'
+	// and '\0' out of a path element parsed from a .torrent file, so a
+	// path_index_t never legitimately names more than one tree
+	// component. A caller-supplied replacement name is held to the same
+	// constraint, or it could point outside the tree component it
+	// claims to replace.
+	bool has_path_separator(string_view const s)
+	{
+		return s.find_first_of("/\\\0"_sv) != string_view::npos;
+	}
 }
 
 TORRENT_VERSION_NAMESPACE_4
@@ -222,8 +233,13 @@ TORRENT_VERSION_NAMESPACE_4
 		return e.name_ptr ? string_view(e.name_ptr) : string_view();
 	}
 
-	path_index_t file_storage::reconstruct_path(path_index_t leaf, std::string& out) const
+	path_index_t file_storage::reconstruct_path(
+		path_index_t leaf, std::string& out, span<string_view const> const path_names) const
 	{
+		TORRENT_ASSERT_PRECOND(path_names.empty()
+			|| path_names.size()
+				== static_cast<std::ptrdiff_t>(static_cast<std::uint32_t>(end_path_element())));
+
 		if (leaf == aux::path_element::pad_directory)
 		{
 			// the pad-file directory is always name()/.pad, so bake the name
@@ -250,8 +266,24 @@ TORRENT_VERSION_NAMESPACE_4
 			idx = m_path_elements[idx].parent;
 		}
 
-		for (path_index_t const e : chain)
-			append_path(out, path_element_name(m_path_elements[e]));
+		// the path_names.empty() case is kept as its own loop, rather than
+		// folded into a single loop with a per-element branch, so the
+		// overwhelming majority of callers (nothing renamed) pay nothing
+		// beyond the one check done here. When path_names is given, it
+		// already holds every element's effective name (see
+		// file_storage::all_path_element_names() and renamed_files),
+		// so no further lookup is needed per element, just an index.
+		if (path_names.empty())
+		{
+			for (path_index_t const e : chain)
+				append_path(out, path_element_name(m_path_elements[e]));
+		}
+		else
+		{
+			for (path_index_t const e : chain)
+				append_path(
+					out, path_names[static_cast<std::ptrdiff_t>(static_cast<std::uint32_t>(e))]);
+		}
 
 		return idx;
 	}
@@ -282,31 +314,28 @@ TORRENT_VERSION_NAMESPACE_4
 
 TORRENT_VERSION_NAMESPACE_4_END
 
-	std::string renamed_files::file_path(
-		file_storage const& fs
-		, file_index_t const index
-		, std::string const& save_path) const
+// clang-format off
+	std::optional<std::string> renamed_files::file_path(
+		string_view const torrent_name, file_index_t const index, std::string const& save_path) const
 	{
 		auto i = m_renamed_files.find(index);
-		if (i == m_renamed_files.end()) return fs.file_path(index, save_path);
+		if (i == m_renamed_files.end())
+			return std::nullopt;
 
-		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < fs.end_file());
 		aux::rename_entry const& re = i->second;
 
 		std::string ret;
 
 		switch (re.mode)
 		{
-			case aux::rename_entry::full_path:
-			{
-				ret.reserve(save_path.size() + fs.name().size() + re.path.size() + 2);
+			case aux::rename_entry::full_path: {
+				ret.reserve(save_path.size() + torrent_name.size() + re.path.size() + 2);
 				ret.assign(save_path);
-				append_path(ret, fs.name());
+				append_path(ret, torrent_name);
 				append_path(ret, re.path);
 				break;
 			}
-			case aux::rename_entry::no_root_path:
-			{
+			case aux::rename_entry::no_root_path: {
 				ret.reserve(save_path.size() + re.path.size() + 1);
 				ret.assign(save_path);
 				append_path(ret, re.path);
@@ -319,21 +348,16 @@ TORRENT_VERSION_NAMESPACE_4_END
 		return ret;
 	}
 
-	string_view renamed_files::file_name(file_storage const& fs, file_index_t const index) const
+	std::optional<string_view> renamed_files::file_name(file_index_t const index) const
 	{
 		auto i = m_renamed_files.find(index);
 		if (i == m_renamed_files.end())
-		{
-			// pad files cannot be renamed and have no stored name
-			if (fs.pad_file_at(index))
-				return {};
-			return fs.file_name(index);
-		}
+			return std::nullopt;
 
-		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < fs.end_file());
 		aux::rename_entry const& re = i->second;
 		return rsplit_path(re.path).second;
 	}
+	// clang-format on
 
 	bool renamed_files::file_absolute_path(file_storage const& fs, file_index_t const index) const
 	{
@@ -413,12 +437,48 @@ TORRENT_VERSION_NAMESPACE_4_END
 		return ret;
 	}
 
-	void renamed_files::import_filenames(file_storage const& fs, std::map<file_index_t, std::string> const& renamed_files)
+	void renamed_files::import_filenames(
+		file_storage const& fs, std::map<file_index_t, std::string> const& renamed_files)
 	{
 		for (auto const& f : renamed_files)
 		{
 			if (f.first < file_index_t(0) || f.first >= fs.end_file()) continue;
 			rename_file(fs, file_index_t(f.first), f.second);
+		}
+	}
+
+	void renamed_files::rename_entry(path_index_t const idx, string_view const new_name)
+	{
+		TORRENT_ASSERT(!new_name.empty());
+		TORRENT_ASSERT_PRECOND(!has_path_separator(new_name));
+		if (new_name.empty() || has_path_separator(new_name))
+			return;
+		m_renamed_path_elements[idx] = std::string(new_name);
+#if TORRENT_USE_ASSERTS
+		++m_generation;
+#endif
+	}
+
+	std::map<path_index_t, std::string> renamed_files::export_path_elements(
+		file_storage const& fs) const
+	{
+		TORRENT_UNUSED(fs);
+		return m_renamed_path_elements;
+	}
+
+	void renamed_files::import_path_elements(
+		file_storage const& fs, std::map<path_index_t, std::string> const& renames)
+	{
+		for (auto const& [idx, name] : renames)
+		{
+			if (idx >= fs.end_path_element() || name.empty())
+				continue;
+			if (has_path_separator(name))
+				continue;
+			m_renamed_path_elements[idx] = name;
+#if TORRENT_USE_ASSERTS
+			++m_generation;
+#endif
 		}
 	}
 
@@ -1110,9 +1170,13 @@ void file_storage::rename_file_impl(
 		return m_info_section + off;
 	}
 
-	std::string file_storage::symlink(file_index_t const index) const
+	std::string file_storage::symlink(
+		file_index_t const index, span<string_view const> const path_names) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t{} && index < end_file());
+		TORRENT_ASSERT_PRECOND(path_names.empty()
+			|| path_names.size()
+				== static_cast<std::ptrdiff_t>(static_cast<std::uint32_t>(end_path_element())));
 		aux::file_entry const& fe = m_files[index];
 		if (!fe.symlink_attribute)
 			return {};
@@ -1122,7 +1186,7 @@ void file_storage::rename_file_impl(
 			!= aux::path_element::path_is_absolute);
 
 		std::string path;
-		path_index_t const root = reconstruct_path(fe.symlink_element_index, path);
+		path_index_t const root = reconstruct_path(fe.symlink_element_index, path, path_names);
 
 		std::string ret;
 		// same rule file_path() uses: the target isn't prepended with
@@ -1285,18 +1349,27 @@ namespace {
 		return ret;
 	}
 
-	std::string file_storage::file_path(
-		file_index_t const index, std::string const& save_path) const
+	std::string file_storage::file_path(file_index_t const index,
+		std::string const& save_path,
+		span<string_view const> const path_names) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
+		TORRENT_ASSERT_PRECOND(path_names.empty()
+			|| path_names.size()
+				== static_cast<std::ptrdiff_t>(static_cast<std::uint32_t>(end_path_element())));
 		aux::file_entry const& fe = m_files[index];
 
 		if (!fe.pad_file
 			&& m_path_elements[fe.path_element_index].parent == aux::path_element::path_is_absolute)
+		{
+			if (!path_names.empty())
+				return std::string(path_names[static_cast<std::ptrdiff_t>(
+					static_cast<std::uint32_t>(fe.path_element_index))]);
 			return std::string(path_element_name(m_path_elements[fe.path_element_index]));
+		}
 
 		std::string path;
-		path_index_t const root = reconstruct_path(fe.path_element_index, path);
+		path_index_t const root = reconstruct_path(fe.path_element_index, path, path_names);
 
 		std::string ret = save_path;
 		// single-file torrents' lone file, and paths that don't share the
@@ -1312,9 +1385,13 @@ namespace {
 		return ret;
 	}
 
-	string_view file_storage::file_name(file_index_t const index) const
+	string_view file_storage::file_name(
+		file_index_t const index, span<string_view const> const path_names) const
 	{
 		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
+		TORRENT_ASSERT_PRECOND(path_names.empty()
+			|| path_names.size()
+				== static_cast<std::ptrdiff_t>(static_cast<std::uint32_t>(end_path_element())));
 		aux::file_entry const& fe = m_files[index];
 #if TORRENT_ABI_VERSION >= 5
 		// pad files have no stored name; synthesize one from file_path()
@@ -1323,7 +1400,32 @@ namespace {
 #endif
 		if (fe.pad_file)
 			return {};
+		if (!path_names.empty())
+			return path_names[static_cast<std::ptrdiff_t>(
+				static_cast<std::uint32_t>(fe.path_element_index))];
 		return path_element_name(m_path_elements[fe.path_element_index]);
+	}
+
+	path_index_t file_storage::parent_of(path_index_t const idx) const
+	{
+		return m_path_elements[idx].parent;
+	}
+
+	path_index_t file_storage::file_path_element(file_index_t const index) const
+	{
+		TORRENT_ASSERT_PRECOND(index >= file_index_t(0) && index < end_file());
+		return m_files[index].path_element_index;
+	}
+
+	path_index_t file_storage::end_path_element() const { return m_path_elements.end_index(); }
+
+	aux::vector<string_view, path_index_t> file_storage::all_path_element_names() const
+	{
+		aux::vector<string_view, path_index_t> names;
+		names.reserve(m_path_elements.size());
+		for (auto const& e : m_path_elements)
+			names.push_back(path_element_name(e));
+		return names;
 	}
 
 	std::int64_t file_storage::file_size(file_index_t const index) const

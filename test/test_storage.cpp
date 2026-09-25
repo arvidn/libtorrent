@@ -1050,6 +1050,7 @@ lt::storage_holder add_symlink_torrent(disk_interface& io,
 {
 	renamed_files rf;
 	rf.import_filenames(atp.ti->layout(), atp.renamed_files);
+	rf.import_path_elements(atp.ti->layout(), atp.renamed_path_elements);
 	aux::vector<download_priority_t, file_index_t> priorities;
 	storage_params p{atp.ti->layout(),
 		rf,
@@ -1251,7 +1252,25 @@ TORRENT_TEST_DISK_IO(delete_files_dangling_symlink)
 	fs.emplace_back(
 		"symlink_delete_storage/link", 0, file_storage::flag_symlink, 0, "Temporary.txt");
 	lt::add_torrent_params const atp = load_symlink_torrent(std::move(fs));
-	TEST_CHECK(atp.renamed_files.find(1_file) != atp.renamed_files.end());
+	// the case-insensitive collision between file 0 and file 1 is resolved
+	// by path_sanitize_flags::deduplicate_per_directory (on by default, see
+	// aux::resolve_directory_duplicates()), landing in renamed_path_elements
+	// rather than renamed_files
+	path_index_t const leaf = atp.ti->layout().file_path_element(1_file);
+	auto const it = atp.renamed_path_elements.find(leaf);
+	TEST_CHECK(it != atp.renamed_path_elements.end());
+
+	// the symlink's target text ("Temporary.txt") resolves, during
+	// parsing, to that same leaf's path_index_t (see resolve_symlinks()
+	// in torrent_info.cpp), so the rename above must be reflected in the
+	// symlink's target too, not just in file 1's own path
+	if (it != atp.renamed_path_elements.end())
+	{
+		renamed_files rf;
+		rf.import_path_elements(atp.ti->layout(), atp.renamed_path_elements);
+		filenames const names(atp.ti->layout(), rf);
+		TEST_EQUAL(names.symlink(2_file), combine_path("symlink_delete_storage", it->second));
+	}
 
 	test_delete_files(disk_io, atp, test_path, "symlink_delete_storage");
 }

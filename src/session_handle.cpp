@@ -333,6 +333,7 @@ namespace {
 		atp.piece_priorities.swap(resume_data.piece_priorities);
 
 		atp.renamed_files = std::move(resume_data.renamed_files);
+		atp.renamed_path_elements = std::move(resume_data.renamed_path_elements);
 
 		if (!(atp.flags & add_torrent_params::flag_override_resume_data))
 		{

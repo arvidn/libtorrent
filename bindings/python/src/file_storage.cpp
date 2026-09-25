@@ -140,10 +140,19 @@ namespace {
 		return (fs.*fun)(i);
 	}
 
-	std::string
-	renamed_files_file_name(renamed_files const& rf, file_storage const& fs, file_index_t index)
+	object renamed_files_file_name(renamed_files const& rf, file_index_t index)
 	{
-		return std::string(rf.file_name(fs, index));
+		auto const name = rf.file_name(index);
+		return name ? object(std::string(*name)) : object();
+	}
+
+	object renamed_files_file_path(renamed_files const& rf,
+		std::string const& torrent_name,
+		file_index_t index,
+		std::string const& save_path)
+	{
+		auto const path = rf.file_path(torrent_name, index, save_path);
+		return path ? object(*path) : object();
 	}
 
 	std::string file_storage_file_name(file_storage const& fs, file_index_t index)
@@ -152,6 +161,12 @@ namespace {
 		if (fs.pad_file_at(index))
 			return std::string();
 		return std::string(fs.file_name(index));
+	}
+
+	std::string file_storage_symlink(file_storage const& fs, file_index_t index)
+	{
+		file_storage_check_index(fs, index);
+		return fs.symlink(index);
 	}
 
 	void filenames_check_index(filenames const& names, file_index_t const index)
@@ -214,7 +229,7 @@ void bind_file_storage()
 #if TORRENT_ABI_VERSION < 4
 				.def("hash", &wrap_file_check<sha1_hash, &file_storage::hash>)
 #endif
-				.def("symlink", &wrap_file_check<std::string, &file_storage::symlink>)
+				.def("symlink", &file_storage_symlink)
 				.def("file_path", &file_storage_file_path, (arg("idx"), arg("save_path") = ""))
 				.def("file_name", &file_storage_file_name, arg("idx"))
 				.def("file_size", &wrap_file_check<std::int64_t, &file_storage::file_size>)
@@ -270,18 +285,21 @@ void bind_file_storage()
 #endif
 
 	class_<renamed_files>("renamed_files")
-		.def(
-			"file_path", &renamed_files::file_path, (arg("fs"), arg("index"), arg("save_path") = "")
-		)
-		.def("file_name", &renamed_files_file_name, (arg("fs"), arg("index")))
+		.def("file_path",
+			&renamed_files_file_path,
+			(arg("torrent_name"), arg("index"), arg("save_path") = ""))
+		.def("file_name", &renamed_files_file_name, arg("index"))
 		.def("file_absolute_path", &renamed_files::file_absolute_path, (arg("fs"), arg("index")))
-		.def(
-			"rename_file",
+		.def("rename_file",
 			&renamed_files::rename_file,
-			(arg("fs"), arg("index"), arg("new_filename"))
-		)
+			(arg("fs"), arg("index"), arg("new_filename")))
 		.def("import_filenames", &renamed_files::import_filenames, (arg("fs"), arg("filenames")))
-		.def("export_filenames", &renamed_files::export_filenames);
+		.def("export_filenames", &renamed_files::export_filenames)
+		.def("rename_entry", &renamed_files::rename_entry, (arg("idx"), arg("new_name")))
+		.def("import_path_elements",
+			&renamed_files::import_path_elements,
+			(arg("fs"), arg("renames")))
+		.def("export_path_elements", &renamed_files::export_path_elements, arg("fs"));
 
 	// filenames stores bare references to the file_storage and
 	// renamed_files it's constructed from (it never copies them), so the

@@ -328,6 +328,10 @@ namespace libtorrent::aux {
 #endif
 		renamed_files m_renamed_files;
 
+		// the resolved, deduplicated file and directory names for this
+		// torrent. Not constructed until init() runs.
+		std::optional<filenames> m_filenames;
+
 		// This is the sum of all non-pad file sizes. In the next major version
 		// this is stored in file_storage and no longer need to be kept here.
 		std::int64_t m_size_on_disk = 0;

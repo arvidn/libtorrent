@@ -414,6 +414,10 @@ void dict_to_add_torrent_params(dict params, add_torrent_params& p)
 		{
 			p.renamed_files = extract<std::map<lt::file_index_t, std::string>>(value);
 		}
+		else if (key == "renamed_path_elements")
+		{
+			p.renamed_path_elements = extract<std::map<lt::path_index_t, std::string>>(value);
+		}
 		else if (key == "file_priorities")
 		{
 			p.file_priorities = extract<std::vector<download_priority_t>>(value);
@@ -1056,6 +1060,7 @@ void bind_session()
 		.add_property("merkle_tree", PROP(&add_torrent_params::merkle_tree))
 #endif
 		.add_property("renamed_files", PROP(&add_torrent_params::renamed_files))
+		.add_property("renamed_path_elements", PROP(&add_torrent_params::renamed_path_elements))
 
 #if TORRENT_ABI_VERSION == 1
 		.def_readwrite("url", &add_torrent_params::url)
@@ -1182,6 +1187,7 @@ void bind_session()
 			lt::path_sanitize_flags::sanitize_invalid_chars_android;
 		s.attr("filter_unicode_formatting_chars") =
 			lt::path_sanitize_flags::filter_unicode_formatting_chars;
+		s.attr("deduplicate_per_directory") = lt::path_sanitize_flags::deduplicate_per_directory;
 		s.attr("libtorrent_2_0") = lt::path_sanitize_flags::libtorrent_2_0;
 		s.attr("libtorrent_2_1") = lt::path_sanitize_flags::libtorrent_2_1;
 		s.attr("libtorrent_2_2") = lt::path_sanitize_flags::libtorrent_2_2;

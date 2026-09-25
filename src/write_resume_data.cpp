@@ -216,6 +216,18 @@ namespace {
 			}
 		}
 
+		// write renamed path elements. Indexed by a dict rather than a
+		// positional list like mapped_files above: a deep torrent can have
+		// far more path_elements than files, but renames are rare (only
+		// actual collisions), so a positional list would waste space
+		// proportional to the whole tree just to encode a handful of them.
+		if (!atp.renamed_path_elements.empty())
+		{
+			auto& pe = ret["mapped_path_elements"].dict();
+			for (auto const& ent : atp.renamed_path_elements)
+				pe[std::to_string(static_cast<std::uint32_t>(ent.first))] = ent.second;
+		}
+
 		// write local peers
 		if (!atp.peers.empty())
 		{
