@@ -7,6 +7,7 @@ Copyright (c) 2017, Pavel Pimenov
 Copyright (c) 2019, Steven Siloti
 Copyright (c) 2021, Denis Kuzmenok
 Copyright (c) 2021, Mark Scott
+Copyright (c) 2024-2026, Martin Rodriguez Reboredo
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,
@@ -264,6 +265,10 @@ namespace libtorrent::aux {
 		// returns true if we have the piece or if the piece
 		// has passed the hash check
 		bool have_piece(piece_index_t) const;
+
+		// returns true if we have the piece range or if the piece range
+		// has passed the hash check
+		bool have_piece_range(const index_range<piece_index_t>&) const;
 
 		// returns true if the piece has been completely downloaded and
 		// successfully flushed to disk (i.e. "finished").
