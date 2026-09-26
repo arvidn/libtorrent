@@ -61,7 +61,7 @@ namespace libtorrent::aux {
 			= parse_url_components(location, ec);
 
 		// if location is a full URL, just return it
-		if (!network_path && !ec)
+		if (location[0] != '/' && !ec)
 			return location;
 
 		// otherwise it's likely to be just the path, or a relative path

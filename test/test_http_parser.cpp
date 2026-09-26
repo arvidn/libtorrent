@@ -566,6 +566,9 @@ TORRENT_TEST(http_parser)
 				   "my-custom-scheme://example.com/a/b?old=1#old", "//test.com:8080/c?new=1#new"),
 		"my-custom-scheme://test.com:8080/c?new=1#new");
 
+	TEST_EQUAL(aux::resolve_redirect_location("http://example.com/a/b?old=1#old", "/a://b"),
+		"http://example.com/a://b");
+
 	// query strings and fragments are not part of the path
 
 	TEST_EQUAL(aux::resolve_redirect_location("http://example.com?path=/old", "/new"),
