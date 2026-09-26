@@ -902,9 +902,10 @@ TORRENT_TEST_DISK_IO(test_pread_disk_io_stacked_fence)
 // A storage fence owns writes until it lowers, so they have not reached the
 // disk cache when async_write() returns. They still own receive buffers and
 // must count towards max_queued_disk_bytes just like cached writes do.
-TORRENT_TEST(pread_fenced_writes_apply_back_pressure)
-{
+namespace {
 #ifdef TORRENT_SIMULATE_SLOW_WRITE
+void fenced_writes_apply_back_pressure(bool const abort_while_fenced)
+{
 	lt::io_context ios;
 	lt::counters cnt;
 	lt::settings_pack sett = lt::default_settings();
@@ -924,18 +925,21 @@ TORRENT_TEST(pread_fenced_writes_apply_back_pressure)
 	int writes_done = 0;
 	auto observer = std::make_shared<counting_disk_observer>();
 	std::vector<char> const buffer(std::size_t(lt::default_block_size), 'x');
+	auto const on_write = [&](lt::storage_error const& e) {
+		if (abort_while_fenced && e.ec)
+			TEST_EQUAL(e.ec, lt::error_code(boost::asio::error::operation_aborted));
+		else
+			TEST_CHECK(!e.ec);
+		++writes_done;
+	};
 
 	// Occupy the only disk thread in a slow write. This keeps the clear-piece
 	// fence queued while the second write is synchronously parked behind it.
-	bool const first = disk_thread->async_write(
-		storage,
+	bool const first = disk_thread->async_write(storage,
 		lt::peer_request{0_piece, 0, lt::default_block_size},
 		buffer.data(),
 		observer,
-		[&writes_done](lt::storage_error const& e) {
-			TEST_CHECK(!e.ec);
-			++writes_done;
-		},
+		on_write,
 		lt::disk_interface::flush_piece);
 	TEST_EQUAL(first, false);
 	disk_thread->submit_jobs();
@@ -947,30 +951,50 @@ TORRENT_TEST(pread_fenced_writes_apply_back_pressure)
 
 	disk_thread->async_clear_piece(
 		storage, 2_piece, [&clears_done](lt::piece_index_t) { ++clears_done; });
-	bool const second = disk_thread->async_write(
-		storage,
+	bool const second = disk_thread->async_write(storage,
 		lt::peer_request{1_piece, 0, lt::default_block_size},
 		buffer.data(),
 		observer,
-		[&writes_done](lt::storage_error const& e) {
-			TEST_CHECK(!e.ec);
-			++writes_done;
-		},
+		on_write,
 		lt::disk_interface::flush_piece);
 
 	TEST_EQUAL(second, true);
 	TEST_EQUAL(observer->calls, 0);
 	TEST_CHECK(cnt[lt::counters::blocked_disk_jobs] > 0);
 
+	// A peer can disappear while its write is parked. Back-pressure must not
+	// retain the observer or try to invoke it after destruction.
+	auto expired_observer = std::make_shared<counting_disk_observer>();
+	std::weak_ptr<lt::disk_observer> const weak_observer = expired_observer;
+	TEST_CHECK(disk_thread->async_write(storage,
+		lt::peer_request{2_piece, 0, lt::default_block_size},
+		buffer.data(),
+		expired_observer,
+		on_write,
+		lt::disk_interface::flush_piece));
+	expired_observer.reset();
+	TEST_CHECK(weak_observer.expired());
+
 	disk_thread->submit_jobs();
+	if (abort_while_fenced)
+		disk_thread->abort(true);
 	auto const deadline = lt::aux::time_now() + 20s;
-	while ((clears_done != 1 || writes_done != 2 || observer->calls != 1)
+	while ((clears_done != 1 || writes_done != 3 || observer->calls != 1)
 		&& lt::aux::time_now() < deadline)
 		ios.run_for(5ms);
 
 	TEST_EQUAL(clears_done, 1);
-	TEST_EQUAL(writes_done, 2);
+	TEST_EQUAL(writes_done, 3);
 	TEST_EQUAL(observer->calls, 1);
 	disk_thread->abort(true);
+}
 #endif // TORRENT_SIMULATE_SLOW_WRITE
+}
+
+TORRENT_TEST(pread_fenced_writes_apply_back_pressure)
+{
+#ifdef TORRENT_SIMULATE_SLOW_WRITE
+	fenced_writes_apply_back_pressure(false);
+	fenced_writes_apply_back_pressure(true);
+#endif
 }
