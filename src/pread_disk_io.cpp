@@ -1832,7 +1832,7 @@ int pread_disk_io::flush_cache_blocks(
 	{
 		std::int64_t const write_time = total_microseconds(clock_type::now() - start_time);
 
-		m_stats_counters.inc_stats_counter(counters::num_blocks_written, blocks.size());
+		m_stats_counters.inc_stats_counter(counters::num_blocks_written, ret);
 		m_stats_counters.inc_stats_counter(counters::num_write_ops);
 		m_stats_counters.inc_stats_counter(counters::disk_write_time, write_time);
 		m_stats_counters.inc_stats_counter(counters::disk_job_time, write_time);
