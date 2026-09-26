@@ -176,19 +176,16 @@ void copy_file(std::string const& inf, std::string const& newf, storage_error& s
 	}
 
 #ifdef TORRENT_WINRT
-	aux::win_file_handle out_handle = ::CreateFile2(f1.c_str()
-			, GENERIC_WRITE
-			, FILE_SHARE_WRITE
-			, OPEN_ALWAYS
-			, nullptr);
+	aux::win_file_handle out_handle =
+		::CreateFile2(f2.c_str(), GENERIC_WRITE, FILE_SHARE_WRITE, CREATE_ALWAYS, nullptr);
 #else
-	aux::win_file_handle out_handle = ::CreateFileW(f2.c_str()
-			, GENERIC_WRITE
-			, FILE_SHARE_WRITE
-			, nullptr
-			, OPEN_ALWAYS
-			, FILE_FLAG_WRITE_THROUGH
-			, nullptr);
+	aux::win_file_handle out_handle = ::CreateFileW(f2.c_str(),
+		GENERIC_WRITE,
+		FILE_SHARE_WRITE,
+		nullptr,
+		CREATE_ALWAYS,
+		FILE_FLAG_WRITE_THROUGH,
+		nullptr);
 #endif
 	if (out_handle.handle() == INVALID_HANDLE_VALUE)
 	{
@@ -202,6 +199,22 @@ void copy_file(std::string const& inf, std::string const& newf, storage_error& s
 		, nullptr, 0, nullptr, 0, &temp, nullptr) == 0)
 	{
 		se.operation = operation_t::iocontrol;
+		se.ec.assign(GetLastError(), system_category());
+		return;
+	}
+
+	LARGE_INTEGER size;
+	size.QuadPart = in_size;
+	if (::SetFilePointerEx(out_handle.handle(), size, nullptr, FILE_BEGIN) == FALSE)
+	{
+		se.operation = operation_t::file_seek;
+		se.ec.assign(GetLastError(), system_category());
+		return;
+	}
+
+	if (::SetEndOfFile(out_handle.handle()) == FALSE)
+	{
+		se.operation = operation_t::file_truncate;
 		se.ec.assign(GetLastError(), system_category());
 		return;
 	}
