@@ -1873,6 +1873,11 @@ void pread_disk_io::try_flush_cache(int const target_cache_size
 	jobqueue_t completed_jobs;
 	m_cache.flush_to_disk(
 		[&](bitfield& flushed, span<aux::disk_job* const> blocks) {
+			// complete the pieces flushed so far before writing the next one.
+			// Not without disk threads: add_completed_jobs() then flushes the
+			// cache itself (schedule_flush), which would nest a pass in this one
+			if (!completed_jobs.empty() && m_generic_threads.max_threads() > 0)
+				add_completed_jobs(std::move(completed_jobs));
 			return flush_cache_blocks(flushed, blocks, completed_jobs);
 		},
 		target_cache_size,

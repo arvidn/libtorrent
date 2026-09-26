@@ -1,3 +1,7 @@
+2.1.3 not released
+
+	* fix pread disk I/O holding back write completions until the end of a flush
+
 2.1.2 released
 
 	* add missing python binding for filenames class
