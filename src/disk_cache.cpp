@@ -251,25 +251,21 @@ bool disk_cache::try_clear_piece(piece_location const loc, disk_job* j, jobqueue
 	return true;
 }
 
-// we allow allocating more blocks even after we exceed the max size,
-// but communicate back to the allocator (typically the peer_connection)
-// that we have exceeded the limit via the out-parameter "exceeded". The
-// caller is expected to honor this by not allocating any more buffers
-// until the disk_observer object (passed in as "o") is invoked, indicating
-// that there's more room in the pool now. This caps the amount of over-
-// allocation to one block per peer connection.
-// returns true if this piece needs to have its hasher kicked
-insert_result_flags disk_cache::insert(piece_location const loc
-	, int const block_idx
-	, bool const force_flush
-	, std::shared_ptr<disk_observer> o
-	, disk_job* write_job
-	, piece_entry_params const& params)
+// Transfer one write buffer from pending accounting into the cache. The
+// combined back-pressure level does not change during this operation.
+// Returns true if this piece needs to have its hasher kicked.
+insert_result_flags disk_cache::insert_pending_write(piece_location const loc,
+	int const block_idx,
+	bool const force_flush,
+	disk_job* write_job,
+	piece_entry_params const& params)
 {
 	TORRENT_ASSERT(write_job != nullptr);
 	std::unique_lock<std::mutex> l(m_mutex);
 
 	INVARIANT_CHECK;
+	TORRENT_ASSERT(m_pending_write_blocks > 0);
+	--m_pending_write_blocks;
 
 	auto& view = m_pieces.template get<0>();
 	auto i = view.find(loc);
@@ -283,13 +279,14 @@ insert_result_flags disk_cache::insert(piece_location const loc
 	TORRENT_ASSERT(!(i->flags & cached_piece_entry::piece_hash_returned_flag));
 
 	cached_block_entry& blk = i->blocks[block_idx];
-	DLOG("disk_cache.insert: piece: %d blk: %d flushed: %d write_job: %p flushed_cursor: %d hashed_cursor: %d\n"
-		, static_cast<int>(i->piece.piece)
-		, block_idx
-		, blk.is_flushed()
-		, blk.get_write_job()
-		, i->flushed_cursor
-		, i->hasher_cursor);
+	DLOG("disk_cache.insert_pending_write: piece: %d blk: %d flushed: %d write_job: %p "
+		 "flushed_cursor: %d hashed_cursor: %d\n",
+		static_cast<int>(i->piece.piece),
+		block_idx,
+		blk.is_flushed(),
+		blk.get_write_job(),
+		i->flushed_cursor,
+		i->hasher_cursor);
 	TORRENT_ASSERT(!blk.has_buf());
 	TORRENT_ASSERT(blk.get_write_job() == nullptr);
 	TORRENT_ASSERT(block_idx >= i->flushed_cursor);
@@ -342,9 +339,6 @@ insert_result_flags disk_cache::insert(piece_location const loc
 
 	insert_result_flags ret{};
 
-	if (m_back_pressure.has_back_pressure(m_blocks + int(m_v2_hash_queue.size()), std::move(o)))
-		ret |= exceeded_limit;
-
 	// need_hasher_kick covers v1 hasher progress only; the caller wakes the
 	// hasher for v2 queue work itself (it knows storage->v2()).
 	if (params.v1 && i->hasher_cursor == block_idx
@@ -358,6 +352,24 @@ insert_result_flags disk_cache::insert(piece_location const loc
 	return ret;
 }
 
+bool disk_cache::add_pending_write(std::shared_ptr<disk_observer> o)
+{
+	std::unique_lock<std::mutex> l(m_mutex);
+	++m_pending_write_blocks;
+	return m_back_pressure.has_back_pressure(buffer_level(), std::move(o));
+}
+
+void disk_cache::remove_pending_writes(int const count)
+{
+	if (count == 0)
+		return;
+
+	std::unique_lock<std::mutex> l(m_mutex);
+	TORRENT_ASSERT(count <= m_pending_write_blocks);
+	m_pending_write_blocks -= count;
+	m_back_pressure.check_buffer_level(buffer_level());
+}
+
 void disk_cache::set_max_size(int const max_size)
 {
 	std::unique_lock<std::mutex> l(m_mutex);
@@ -367,7 +379,7 @@ void disk_cache::set_max_size(int const max_size)
 std::optional<int> disk_cache::flush_request() const
 {
 	std::unique_lock<std::mutex> l(m_mutex);
-	return m_back_pressure.should_flush(m_blocks + int(m_v2_hash_queue.size()));
+	return m_back_pressure.should_flush(buffer_level());
 }
 
 // this call can have 3 outcomes:
@@ -505,7 +517,7 @@ keep_going:
 	while (end < piece_iter->blocks_in_piece() && blocks_storage[end - cursor].data())
 		++end;
 
-	// insert() only sets needs_hasher_kick_flag for v1/hybrid pieces.
+	// insert_pending_write() only sets needs_hasher_kick_flag for v1/hybrid pieces.
 	TORRENT_ASSERT(piece_iter->flags & cached_piece_entry::v1_hashes_flag);
 	TORRENT_ASSERT(piece_iter->ph);
 
@@ -564,7 +576,7 @@ keep_going:
 	}
 
 	TORRENT_ASSERT(l.owns_lock());
-	m_back_pressure.check_buffer_level(m_blocks + int(m_v2_hash_queue.size()));
+	m_back_pressure.check_buffer_level(buffer_level());
 
 	auto& view = m_pieces.template get<4>();
 
@@ -727,8 +739,8 @@ Iter disk_cache::flush_piece_impl(View& view,
 
 	// Snapshot the pending write_job pointer for each block while we still
 	// hold the mutex. flushing_flag prevents other threads from flushing
-	// this piece, but disk_cache::insert() may still populate previously
-	// empty trailing slots (insert only requires block_idx >= hasher_cursor).
+	// this piece, but disk_cache::insert_pending_write() may still populate previously
+	// empty trailing slots (insertion only requires block_idx >= hasher_cursor).
 	// Reading cached_block_entry::write_state from outside the lock would
 	// race with that. Once a slot holds a disk_job the network thread won't
 	// touch it (nor the job's contents) until the disk thread takes it
@@ -932,7 +944,7 @@ void disk_cache::flush_to_disk(std::function<int(bitfield&, span<disk_job* const
 		// and if we're in fact below the low watermark. If so, we need to
 		// post the notification messages to the peers that are waiting for
 		// more buffers to received data into
-		m_back_pressure.check_buffer_level(m_blocks + int(m_v2_hash_queue.size()));
+		m_back_pressure.check_buffer_level(buffer_level());
 	});
 
 	// first we look for pieces that are ready to be flushed and should be
@@ -996,7 +1008,8 @@ void disk_cache::flush_to_disk(std::function<int(bitfield&, span<disk_job* const
 		// Cheap flushing is the preferred path (no read-back later), so we
 		// want to exhaust it here rather than fall through to the expensive
 		// pass.
-		if (m_blocks + int(m_v2_hash_queue.size()) <= target_blocks) return;
+		if (buffer_level() <= target_blocks)
+			return;
 
 		int const num_eligible_blocks = piece_iter->hasher_cursor - piece_iter->flushed_cursor;
 
@@ -1035,7 +1048,8 @@ void disk_cache::flush_to_disk(std::function<int(bitfield&, span<disk_job* const
 		// safety net pass: exit only on the actual level. See the comment
 		// in the cheap pass above for why we don't subtract the concurrent
 		// flushing count from this check.
-		if (m_blocks + int(m_v2_hash_queue.size()) <= target_blocks) return;
+		if (buffer_level() <= target_blocks)
+			return;
 
 		// skip pieces a hasher or another flush is currently using
 		if (piece_iter->flags
@@ -1073,7 +1087,8 @@ void disk_cache::flush_to_disk(std::function<int(bitfield&, span<disk_job* const
 	{
 		// safety-net pass: exit only on the actual level. See the comment
 		// in pass 3.
-		if (m_blocks + int(m_v2_hash_queue.size()) <= target_blocks) return;
+		if (buffer_level() <= target_blocks)
+			return;
 
 		if (piece_iter->flags & cached_piece_entry::flushing_flag)
 		{
@@ -1194,8 +1209,8 @@ void disk_cache::flush_storage(std::function<int(bitfield&, span<disk_job* const
 // Only called from do_job(stop_torrent), after its
 // TORRENT_ASSERT(num_outstanding_jobs() == 1): every write is therefore
 // already flushed and none can newly arrive, so needs_hasher_kick_flag is
-// dropped rather than waited on, since insert() cannot set it again past
-// this point. Fences also guarantee at most one stop_torrent job in
+// dropped rather than waited on, since insert_pending_write() cannot set it
+// again past this point. Fences also guarantee at most one stop_torrent job in
 // progress per storage, so at most one caller can ever wait here:
 // notify_hashed_flag is a plain single-owner flag, asserted clear before
 // use, like notify_flushed_flag.
@@ -1266,6 +1281,7 @@ std::tuple<std::int64_t, std::int64_t> disk_cache::stats() const
 void disk_cache::check_invariant() const
 {
 	// mutex must be held by caller
+	TORRENT_ASSERT(m_pending_write_blocks >= 0);
 	int dirty_blocks = 0;
 	int flushed_blocks = 0;
 	int unhashed_blocks = 0;
@@ -1304,9 +1320,9 @@ void disk_cache::check_invariant() const
 		TORRENT_ASSERT(piece_entry.flushed_cursor <= num_blocks);
 		TORRENT_ASSERT(piece_entry.hasher_cursor <= num_blocks);
 
-		// each block can contribute at most one v2 hash queue entry (insert()
-		// pushes once per write, and a block can only be written once per
-		// cycle), so v2_pending is bounded by blocks_in_piece.
+		// each block can contribute at most one v2 hash queue entry
+		// (insert_pending_write() pushes once per write, and a block can only be
+		// written once per cycle), so v2_pending is bounded by blocks_in_piece.
 		TORRENT_ASSERT(int(piece_entry.v2_pending) <= num_blocks);
 
 		// v2_pending >= (queue entries for this piece). The slack is the

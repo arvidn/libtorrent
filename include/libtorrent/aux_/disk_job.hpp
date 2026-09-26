@@ -129,7 +129,7 @@ namespace job {
 		std::uint16_t buffer_size;
 
 		// non-owning view of the bytes this write covers. Written once by
-		// disk_cache::insert() under the cache mutex; the flushing thread
+		// disk_cache::insert_pending_write() under the cache mutex; the flushing thread
 		// reads it without the mutex, so we need it to be stable across
 		// buffer moves between owners (wjob.buf <-> v2 hash queue entry).
 		char const* borrowed_buf = nullptr;
@@ -326,4 +326,3 @@ namespace job {
 }
 
 #endif // TORRENT_DISK_JOB_HPP
-

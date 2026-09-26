@@ -56,7 +56,7 @@ struct test_allocator : lt::buffer_allocator_interface
 
 // drives disk_cache directly without any storage layer.
 // The piece metadata (piece_size, piece_size2, v1, v2) is specified in the
-// constructor and passed straight to disk_cache::insert() via
+// constructor and passed straight to disk_cache::insert_pending_write() via
 // piece_entry_params - no file_storage or pread_storage involved.
 struct cache_fixture
 {
@@ -129,9 +129,9 @@ struct cache_fixture
 		, bool const force_flush = false
 		, char const fill = 0x5a)
 	{
-		return cache.insert(loc(piece), block, force_flush, nullptr
-			, make_write_job(piece, block, fill, lt::default_block_size)
-			, piece_params());
+		auto* const j = make_write_job(piece, block, fill, lt::default_block_size);
+		cache.add_pending_write({});
+		return cache.insert_pending_write(loc(piece), block, force_flush, j, piece_params());
 	}
 
 	lt::aux::insert_result_flags insert(
@@ -142,9 +142,9 @@ struct cache_fixture
 		, bool const force_flush = false
 		, char const fill = 0x5a)
 	{
-		return cache.insert(loc(piece), block, force_flush, nullptr
-			, make_write_job(piece, block, fill, buf_size)
-			, params);
+		auto* const j = make_write_job(piece, block, fill, buf_size);
+		cache.add_pending_write({});
+		return cache.insert_pending_write(loc(piece), block, force_flush, j, params);
 	}
 
 	// Simulate flushing: marks every block that has a write_job as flushed.

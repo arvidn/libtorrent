@@ -20,6 +20,10 @@ namespace libtorrent::aux {
 	{
 		// the disk storage this job applies to (if applicable)
 		std::shared_ptr<pread_storage> storage;
+
+		// true while a write buffer has been accounted for as pending but has
+		// not yet been transferred into the cache
+		bool pending_cache_insert = false;
 	};
 
 }

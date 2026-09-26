@@ -181,21 +181,20 @@ private:
 	void add_completed_jobs(jobqueue_t jobs);
 	void add_completed_jobs_impl(jobqueue_t jobs, jobqueue_t& completed);
 
-	// insert a write job's block into the cache. Returns the insert flags
-	// (need_hasher_kick / exceeded_limit). Does NOT kick the hasher or flush --
+	// insert a write job's block into the cache. Returns whether the piece hasher
+	// needs a kick. Does NOT kick the hasher or flush --
 	// that re-enters the fence (add_job/add_completed_jobs), so it must run with
 	// no fence mutex held. The repost callback in add_completed_jobs_impl() calls
 	// this while a fence mutex is held and defers kick_write_hashers() to after.
-	aux::insert_result_flags insert_write(aux::pread_disk_job* j, std::shared_ptr<disk_observer> o);
+	aux::insert_result_flags insert_write(aux::pread_disk_job* j);
 
 	// wake the hasher for blocks just inserted (and, with no hash threads, drain
 	// the v2 hash queue inline). Must run with no fence mutex held.
 	void kick_write_hashers();
 
 	// inserts a write job's block into the cache and performs the hasher kick and
-	// flush bookkeeping. Used by async_write() (inline, no fence). Returns true if
-	// the disk buffer pool is over its limit (back-pressure).
-	bool add_write_to_cache(aux::pread_disk_job* j, std::shared_ptr<disk_observer> o);
+	// flush bookkeeping. Used by async_write() (inline, no fence).
+	void add_write_to_cache(aux::pread_disk_job* j);
 
 	// the single place a read job consults the cache and is turned into queued
 	// work. It runs once the job is past the fence gate -- in add_job() with the
@@ -339,9 +338,17 @@ pread_disk_io::pread_disk_io(io_context& ios, settings_interface const& sett, co
 	, m_file_pool(sett.get_int(settings_pack::file_pool_size))
 	, m_stats_counters(cnt)
 	, m_ios(ios)
-	, m_completed_jobs([&](aux::disk_job** j, int const n) {
-		m_job_pool.free_jobs(reinterpret_cast<aux::pread_disk_job**>(j), n);
-		}, cnt)
+	, m_completed_jobs(
+		  [&](aux::disk_job** j, int const n) {
+			  int pending_writes = 0;
+			  for (int i = 0; i < n; ++i)
+				  if (static_cast<aux::pread_disk_job*>(j[i])->pending_cache_insert)
+					  ++pending_writes;
+
+			  m_cache.remove_pending_writes(pending_writes);
+			  m_job_pool.free_jobs(reinterpret_cast<aux::pread_disk_job**>(j), n);
+		  },
+		  cnt)
 	, m_cache(ios)
 	, m_generic_threads(std::bind(&pread_disk_io::thread_fun, this, _1, _2), ios)
 	, m_hash_threads(std::bind(&pread_disk_io::thread_fun, this, _1, _2), ios)
@@ -737,6 +744,12 @@ bool pread_disk_io::async_write(storage_index_t const storage, peer_request cons
 		return false;
 	}
 
+	// Account for the buffer before publishing the job to the fence. Once
+	// is_blocked() returns, a disk thread may immediately lower the fence and
+	// repost this job, so accounting afterwards would race that transfer.
+	j->pending_cache_insert = true;
+	bool const exceeded = m_cache.add_pending_write(std::move(o));
+
 	// a write counts as an outstanding job on the storage (like a read or hash),
 	// so a fence waits for buffered writes and their in-flight flush before it
 	// runs, rather than tearing the storage down under a flush. This does not
@@ -749,24 +762,19 @@ bool pread_disk_io::async_write(storage_index_t const storage, peer_request cons
 	// reset, for storage-wide fences the storage is about to go away. Parking
 	// keeps the block "writing" in the picker's view, so the piece isn't reported
 	// finished and its hash isn't requested before the block has been inserted.
-	// TODO: back-pressure (the disk_observer o) is dropped on the blocked path.
-	// async_write returns false (keep writing) but the cache's back-pressure
-	// (driven off m_blocks) can't see the parked writes, so a long-lived fence
-	// (e.g. move_storage) on a busy torrent can grow m_blocked_jobs unbounded.
-	// Carry the observer through to throttle the peer while its writes are parked.
 	if (j->storage->is_blocked(j, m_stats_counters))
 	{
-		return false;
+		schedule_flush();
+		return exceeded;
 	}
 
 	// is_blocked() marked j in_progress and counted it as outstanding.
-	bool const exceeded = add_write_to_cache(j, std::move(o));
+	add_write_to_cache(j);
 	schedule_flush();
 	return exceeded;
 }
 
-aux::insert_result_flags pread_disk_io::insert_write(
-	aux::pread_disk_job* j, std::shared_ptr<disk_observer> o)
+aux::insert_result_flags pread_disk_io::insert_write(aux::pread_disk_job* j)
 {
 	auto const& a = std::get<aux::job::write>(j->action);
 	piece_index_t const piece = a.piece;
@@ -784,10 +792,9 @@ aux::insert_result_flags pread_disk_io::insert_write(
 	TORRENT_ASSERT(a.buffer_size == std::min(piece_size - offset, default_block_size));
 	aux::disk_cache::piece_entry_params const piece_params{
 		fs.piece_size2(piece), piece_size, j->storage->v1(), j->storage->v2(), j->storage};
-	return m_cache.insert({j->storage->storage_index(), piece},
+	return m_cache.insert_pending_write({j->storage->storage_index(), piece},
 		offset / default_block_size,
 		force_flush,
-		std::move(o),
 		j,
 		piece_params);
 }
@@ -829,15 +836,16 @@ void pread_disk_io::kick_write_hashers()
 	}
 }
 
-bool pread_disk_io::add_write_to_cache(aux::pread_disk_job* j, std::shared_ptr<disk_observer> o)
+void pread_disk_io::add_write_to_cache(aux::pread_disk_job* j)
 {
-	auto const result = insert_write(j, std::move(o));
+	TORRENT_ASSERT(j->pending_cache_insert);
+	auto const result = insert_write(j);
+	j->pending_cache_insert = false;
 
 	// v1 wake-up signal comes from the cache; for v2 the insert may have
 	// pushed a queue entry the cache has no way to flag.
-	if ((result & aux::disk_cache::need_hasher_kick) || j->storage->v2()) kick_write_hashers();
-
-	return bool(result & aux::disk_cache::exceeded_limit);
+	if ((result & aux::disk_cache::need_hasher_kick) || j->storage->v2())
+		kick_write_hashers();
 }
 
 // schedule (or, with no generic threads, perform) a cache flush if the cache is
@@ -2238,7 +2246,9 @@ void pread_disk_io::add_completed_jobs_impl(jobqueue_t jobs, jobqueue_t& complet
 		auto* j = static_cast<aux::pread_disk_job*>(job);
 		if (std::holds_alternative<aux::job::write>(j->action))
 		{
-			auto const result = ctx.self->insert_write(j, {});
+			TORRENT_ASSERT(j->pending_cache_insert);
+			auto const result = ctx.self->insert_write(j);
+			j->pending_cache_insert = false;
 			if ((result & aux::disk_cache::need_hasher_kick) || j->storage->v2())
 				ctx.need_kick = true;
 		}

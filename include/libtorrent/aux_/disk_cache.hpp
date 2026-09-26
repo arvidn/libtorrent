@@ -550,9 +550,6 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 	// block unblocked the hasher.
 	static constexpr insert_result_flags need_hasher_kick = 0_bit;
 
-	// the disk cache is full and the peer needs back-pressure applied to it.
-	static constexpr insert_result_flags exceeded_limit = 1_bit;
-
 	// piece metadata required when inserting the first block of a new piece.
 	struct piece_entry_params
 	{
@@ -570,15 +567,20 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 		std::shared_ptr<pread_storage> storage;
 	};
 
-	// the return value indicates whether the piece needs its hasher kicked or
-	// whether the cache is full and the peer needs to stop downloading until
-	// we've flushed below the low watermark
-	insert_result_flags insert(piece_location loc
-		, int block_idx
-		, bool force_flush
-		, std::shared_ptr<disk_observer> o
-		, disk_job* write_job
-		, piece_entry_params const& params);
+	// Transfer one buffer previously accounted for by add_pending_write() into
+	// the cache. The return value indicates whether the piece needs its hasher
+	// kicked.
+	insert_result_flags insert_pending_write(piece_location loc,
+		int block_idx,
+		bool force_flush,
+		disk_job* write_job,
+		piece_entry_params const& params);
+
+	// Account for a newly allocated write buffer before it is published to a
+	// storage fence. A later insert_pending_write() transfers the same buffer
+	// into the cache without changing the combined back-pressure level.
+	bool add_pending_write(std::shared_ptr<disk_observer> o);
+	void remove_pending_writes(int count);
 
 	void set_max_size(int max_size);
 
@@ -682,18 +684,29 @@ private:
 		span<cached_block_entry> const blocks,
 		std::function<void(jobqueue_t, disk_job*)> clear_piece_fun);
 
+	// the number of buffers governed by m_back_pressure. Requires m_mutex.
+	int buffer_level() const
+	{
+		return m_blocks + int(m_v2_hash_queue.size()) + m_pending_write_blocks;
+	}
+
 	mutable std::mutex m_mutex;
 	std::condition_variable m_flushing_cv;
 	piece_container m_pieces;
 
 	// allocator used for all disk buffers in this cache. Set lazily on the
-	// first insert() call. All blocks share the same allocator.
+	// first insert_pending_write() call. All blocks share the same allocator.
 	buffer_allocator_interface* m_allocator = nullptr;
 
 	// the number of *dirty* blocks in the cache. i.e. blocks that need to be
 	// flushed to disk. The cache may (briefly) hold more buffers than this
 	// while finishing hashing blocks.
 	int m_blocks = 0;
+
+	// write buffers awaiting cache insertion, including buffers parked behind
+	// storage fences. They are not flushable yet, but still count against
+	// max_queued_disk_bytes.
+	int m_pending_write_blocks = 0;
 
 	// number of blocks in the cache belonging to v1 (or hybrid) pieces that
 	// have not yet been passed through the v1 piece hasher, i.e. where
@@ -706,8 +719,8 @@ private:
 	back_pressure m_back_pressure;
 
 	// FIFO queue of v2 block hashing work. Each entry owns its buffer (moved
-	// out of the originating write_job in insert()); the cbe reads through
-	// borrowed_buf while the entry is queued. Drained by drain_v2_hash_queue()
+	// out of the originating write_job in insert_pending_write()); the cbe reads
+	// through borrowed_buf while the entry is queued. Drained by drain_v2_hash_queue()
 	// from hasher threads: on success the buffer moves back into the cbe's
 	// write_job for the normal flush path; if the cbe is gone (clear_piece,
 	// flush completed) the buffer drops with the entry. cpe.v2_pending counts
@@ -857,11 +870,10 @@ void disk_cache::drain_v2_hash_queue(Fun store,
 					clear_piece_fun({}, clear_piece);
 				}
 			}
-			m_back_pressure.check_buffer_level(m_blocks + int(m_v2_hash_queue.size()));
+			m_back_pressure.check_buffer_level(buffer_level());
 		}
 	}
 }
 }
 
 #endif
-
