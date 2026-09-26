@@ -241,6 +241,7 @@ constexpr int DISK_WRITE_MODE = settings_pack::enable_os_cache;
 		SET(enable_set_file_valid_data, false, nullptr),
 		SET(socks5_udp_send_local_ep, false, nullptr),
 		SET(proxy_send_host_in_connect, false, nullptr),
+		SET(proxy_accept_incoming, false, nullptr),
 		SET(disk_disable_copy_on_write, false, nullptr),
 		SET(allow_multiple_connections_per_pid, false, nullptr),
 	}});
