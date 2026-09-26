@@ -767,10 +767,16 @@ TORRENT_TEST(partial_piece_order_filters_ineligible)
 TORRENT_TEST(partial_piece_order_equal_rank)
 {
 	// Equivalent partials may be visited in any order, but one piece should be
-	// exhausted before moving to the next one.
-	auto p = setup_picker("11111111", "        ", "", "11111111");
-	auto picked = pick_pieces(
-		p, "********", 4, 0, nullptr, options | piece_picker::prioritize_partials, empty_vector);
+	// exhausted before moving to the next one. Four requested blocks out of
+	// 48 free blocks exercise the heap path.
+	auto p = setup_picker("1111111111111111", "                ", "", "1111111111111111");
+	auto picked = pick_pieces(p,
+		"****************",
+		4,
+		0,
+		nullptr,
+		options | piece_picker::prioritize_partials,
+		empty_vector);
 	TEST_EQUAL(picked.size(), 4);
 
 	piece_index_t const first_piece = picked.front().piece_index;
