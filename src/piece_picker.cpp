@@ -2060,6 +2060,11 @@ namespace {
 				return partial_compare_rarest_first(rhs, lhs);
 			};
 			auto heap_end = ordered_partials.begin() + num_ordered_partials;
+			// Requests below 10% of the available blocks are a heuristic for
+			// visiting only a small fraction of the partials. For larger scans,
+			// restoring the heap after each extraction can cost more than
+			// sorting once. The crossover depends on the partials and their
+			// free-block distribution.
 			constexpr std::int64_t partial_heap_capacity_ratio = 10;
 			bool const rarest_first_partials = (options & rarest_first) && !(options & on_parole);
 			bool const use_heap = rarest_first_partials
@@ -2069,9 +2074,6 @@ namespace {
 			{
 				ret |= picker_log_alert::rarest_first_partials;
 
-				// A heap avoids ordering partials we won't consume. Once the
-				// request reaches a tenth of their free-block capacity, sorting is
-				// cheaper than repeatedly restoring the heap.
 				if (use_heap)
 					std::make_heap(ordered_partials.begin(), heap_end, heap_compare);
 				else
