@@ -44,31 +44,33 @@ using namespace lt;
 
 namespace {
 
-// build a SOCKS5 UDP forwarded packet for an IPv4 destination.
-// header layout (RFC 1928 section 7):
-//   2 bytes RSV (0x0000)
-//   1 byte  FRAG
-//   1 byte  ATYP (0x01 = IPv4)
-//   4 bytes addr
-//   2 bytes port
-//   N bytes payload
-std::vector<char> make_v4_packet(std::uint8_t const frag,
-	std::array<std::uint8_t, 4> const addr,
-	std::uint16_t const port,
-	span<char const> payload)
-{
-	std::vector<char> buf;
-	buf.push_back(0);
-	buf.push_back(0); // RSV
-	buf.push_back(char(frag));
-	buf.push_back(0x01); // ATYP = IPv4
-	for (auto b : addr)
-		buf.push_back(char(b));
-	buf.push_back(char(port >> 8));
-	buf.push_back(char(port & 0xff));
-	buf.insert(buf.end(), payload.begin(), payload.end());
-	return buf;
-}
+	// build a SOCKS5 UDP forwarded packet for an IPv4 destination.
+	// header layout (RFC 1928 section 7):
+	//   2 bytes RSV (0x0000)
+	//   1 byte  FRAG
+	//   1 byte  ATYP (0x01 = IPv4)
+	//   4 bytes addr
+	//   2 bytes port
+	//   N bytes payload
+	std::vector<char> make_v4_packet(
+		std::uint8_t const frag,
+		std::array<std::uint8_t, 4> const addr,
+		std::uint16_t const port,
+		span<char const> payload
+	)
+	{
+		std::vector<char> buf;
+		buf.push_back(0);
+		buf.push_back(0); // RSV
+		buf.push_back(char(frag));
+		buf.push_back(0x01); // ATYP = IPv4
+		for (auto b : addr)
+			buf.push_back(char(b));
+		buf.push_back(char(port >> 8));
+		buf.push_back(char(port & 0xff));
+		buf.insert(buf.end(), payload.begin(), payload.end());
+		return buf;
+	}
 
 	// build a SOCKS5 UDP forwarded packet for an IPv6 destination.
 	// header layout: 2 RSV + 1 FRAG + 1 ATYP(0x04) + 16 addr + 2 port + payload
@@ -114,7 +116,7 @@ std::vector<char> make_v4_packet(std::uint8_t const frag,
 		return buf;
 	}
 
-	} // anonymous namespace
+} // anonymous namespace
 
 TORRENT_TEST(socks5_unwrap_ipv4)
 {
@@ -189,44 +191,6 @@ TORRENT_TEST(socks5_unwrap_reject_fragmented)
 	pack.data = span<char>{buf.data(), int(buf.size())};
 
 	TEST_CHECK(!aux::socks5_unwrap(pack));
-}
-
-TORRENT_TEST(socks5_unwrap_reject_nonzero_reserved)
-{
-	std::array<char, 1> const payload{{'!'}};
-
-	for (std::size_t const reserved_byte : {std::size_t(0), std::size_t(1)})
-	{
-		for (int reserved_value = 1; reserved_value < 256; ++reserved_value)
-		{
-			auto buf = make_v4_packet(0, {{1, 2, 3, 4}}, 1, payload);
-			buf[reserved_byte] = char(reserved_value);
-
-			aux::udp_socket::packet pack;
-			pack.data = span<char>{buf.data(), int(buf.size())};
-
-			TEST_CHECK(!aux::socks5_unwrap(pack));
-		}
-	}
-}
-
-TORRENT_TEST(socks5_unwrap_reject_unknown_address_type)
-{
-	std::array<char, 4> const payload{{'t', 'e', 's', 't'}};
-
-	for (int address_type = 0; address_type < 256; ++address_type)
-	{
-		if (address_type == 1 || address_type == 3 || address_type == 4)
-			continue;
-
-		auto buf = make_v4_packet(0, {{1, 2, 3, 4}}, 1, payload);
-		buf[3] = char(address_type);
-
-		aux::udp_socket::packet pack;
-		pack.data = span<char>{buf.data(), int(buf.size())};
-
-		TEST_CHECK(!aux::socks5_unwrap(pack));
-	}
 }
 
 TORRENT_TEST(socks5_unwrap_reject_too_short)
