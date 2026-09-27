@@ -25,11 +25,9 @@ see LICENSE file.
 #include "setup_swarm.hpp"
 #include "utils.hpp"
 #include "simulator/socks_server.hpp"
-#include "simulator/packet.hpp"
 #include "simulator/utils.hpp"
 #include "fake_peer.hpp"
 #include <iostream>
-#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <functional>
@@ -316,60 +314,36 @@ TORRENT_TEST(socks5_udp_retry)
 
 namespace {
 
-struct udp_packet_filter : sim::sink
-{
-	udp_packet_filter(udp::endpoint source, std::function<bool(std::vector<std::uint8_t>&)> handler)
-		: m_source(source)
-		, m_handler(std::move(handler))
-	{}
-
-	void incoming_packet(sim::aux::packet p) override
-	{
-		if (p.type == sim::aux::packet::type_t::payload && p.from == m_source
-			&& !m_handler(p.buffer))
-			return;
-		auto next = p.hops.pop_front();
-		TEST_CHECK(next);
-		if (next)
-			next->incoming_packet(std::move(p));
-	}
-
-	std::string label() const override { return "SOCKS5 UDP packets"; }
-
-	udp::endpoint const m_source;
-	std::function<bool(std::vector<std::uint8_t>&)> const m_handler;
-};
-
 struct socks5_udp_config : sim::default_config
 {
-	socks5_udp_config(udp::endpoint source,
-		address destination,
-		std::function<bool(std::vector<std::uint8_t>&)> handler)
-		: m_filter(std::make_shared<udp_packet_filter>(source, std::move(handler)))
-		, m_destination(destination)
-	{}
-
-	sim::route incoming_route(address ip) override
+	chrono::high_resolution_clock::duration hostname_lookup(asio::ip::address const&,
+		std::string hostname,
+		std::vector<asio::ip::address>& result,
+		boost::system::error_code&) override
 	{
-		auto r = sim::default_config::incoming_route(ip);
-		if (ip == m_destination)
-			r.append(m_filter);
-		return r;
+		hostnames.push_back(std::move(hostname));
+		result.push_back(addr("2.2.2.2"));
+		return chrono::milliseconds(100);
 	}
 
-	std::shared_ptr<udp_packet_filter> m_filter;
-	address const m_destination;
+	std::vector<std::string> hostnames;
 };
 
 template <typename Send, typename Receive>
-void test_udp_socket(socks5_udp_config& cfg, Send const& send, Receive const& receive)
+void test_udp_socket(socks5_udp_config& cfg,
+	Send const& send,
+	Receive const& receive,
+	sim::socks_udp_header const header = {},
+	int const port = 8080)
 {
 	sim::simulation sim{cfg};
 	sim::asio::io_context ios{sim, addr("50.0.0.1")};
 	sim::asio::io_context proxy_ios{sim, addr("50.50.50.50")};
-	sim::socks_server socks5(proxy_ios, 5555, 5);
+	sim::socks_server socks5(proxy_ios, 5555, 5, 0, header);
 	socks5.bind_start_port(3000);
-	udp_server echo(sim, "2.2.2.2", 8080, [](char const* data, int size) {
+	int forwarded = 0;
+	udp_server echo(sim, "2.2.2.2", port, [&](char const* data, int size) {
+		++forwarded;
 		return std::vector<char>(data, data + size);
 	});
 
@@ -411,52 +385,27 @@ void test_udp_socket(socks5_udp_config& cfg, Send const& send, Receive const& re
 	});
 	sim.run();
 	TEST_EQUAL(socks5.cmd_counts()[2], 1);
+	TEST_EQUAL(forwarded, 1);
 }
 
-template <typename Mutate>
-void test_invalid_socks5_udp(int const num_invalid, Mutate const& mutate)
+void test_socks5_udp_reply(sim::socks_udp_header const header, bool const valid)
 {
-	int filtered = 0;
 	int received = 0;
-	socks5_udp_config cfg(udp::endpoint(addr("50.50.50.50"), 3000),
-		addr("50.0.0.1"),
-		[&](std::vector<std::uint8_t>& p) {
-			TEST_EQUAL(p.size(), 14);
-			if (p.size() != 14)
-				return true;
-			int const index = p.back();
-			if (index < num_invalid)
-				mutate(p, index);
-			++filtered;
-			return true;
-		});
+	socks5_udp_config cfg;
 	test_udp_socket(
 		cfg,
-		[&](lt::aux::udp_socket& socket) {
-			// The final reply is valid, so rejection cannot pass just because
-			// the receive path never delivered anything.
-			for (int i = 0; i <= num_invalid; ++i)
-			{
-				std::array<char, 4> const payload{{'t', 'e', 's', char(i)}};
-				error_code ec;
-				socket.send(udp::endpoint(addr("2.2.2.2"), 8080), payload, ec);
-				TEST_CHECK(!ec);
-			}
+		[](lt::aux::udp_socket& socket) {
+			error_code ec;
+			socket.send(udp::endpoint(addr("2.2.2.2"), 8080), {"test", 4}, ec);
+			TEST_CHECK(!ec);
 		},
 		[&](lt::aux::udp_socket::packet const& p) {
 			++received;
-			TEST_EQUAL(p.data.size(), 4);
-			if (p.data.size() == 4)
-			{
-				TEST_EQUAL(p.data[0], 't');
-				TEST_EQUAL(p.data[1], 'e');
-				TEST_EQUAL(p.data[2], 's');
-				TEST_EQUAL(p.data[3], num_invalid);
-			}
+			TEST_EQUAL(std::string(p.data.data(), p.data.size()), "test");
 			TEST_EQUAL(p.from, udp::endpoint(addr("2.2.2.2"), 8080));
-		});
-	TEST_EQUAL(filtered, num_invalid + 1);
-	TEST_EQUAL(received, 1);
+		},
+		header);
+	TEST_EQUAL(received, valid ? 1 : 0);
 }
 
 } // anonymous namespace
@@ -465,57 +414,43 @@ TORRENT_TEST(socks5_udp_hostname_length)
 {
 	std::array<std::string, 3> const hostnames{
 		{std::string(249, 'a'), std::string(255, 'b'), std::string(300, 'c')}};
-	std::vector<std::vector<std::uint8_t>> packets;
-	socks5_udp_config cfg(udp::endpoint(addr("50.0.0.1"), 8888),
-		addr("50.50.50.50"),
-		[&](std::vector<std::uint8_t>& p) {
-			packets.push_back(p);
-			// Inspect the encoded datagrams before the proxy tries to resolve
-			// these arbitrary hostnames.
-			return false;
-		});
-	test_udp_socket(
-		cfg,
-		[&](lt::aux::udp_socket& socket) {
-			for (int i = 0; i < int(hostnames.size()); ++i)
-			{
+	for (int i = 0; i < int(hostnames.size()); ++i)
+	{
+		auto const hostname = hostnames[i].substr(0, 255);
+		socks5_udp_config cfg;
+		int received = 0;
+		test_udp_socket(
+			cfg,
+			[&](lt::aux::udp_socket& socket) {
 				error_code ec;
 				socket.send_hostname(hostnames[i].c_str(), 6881 + i, {"!", 1}, ec);
 				TEST_CHECK(!ec);
-			}
-		},
-		[](lt::aux::udp_socket::packet const&) { TEST_ERROR("unexpected packet"); });
-
-	TEST_EQUAL(packets.size(), hostnames.size());
-	if (packets.size() != hostnames.size())
-		return;
-	for (int i = 0; i < int(hostnames.size()); ++i)
-	{
-		auto const& p = packets[i];
-		auto const len = std::min(hostnames[i].size(), std::size_t(255));
-		TEST_EQUAL(p.size(), len + 8);
-		if (p.size() != len + 8)
-			continue;
-		TEST_EQUAL(p[0], 0);
-		TEST_EQUAL(p[1], 0);
-		TEST_EQUAL(p[2], 0);
-		TEST_EQUAL(p[3], 3);
-		TEST_EQUAL(p[4], len);
-		TEST_CHECK(std::equal(hostnames[i].begin(), hostnames[i].begin() + len, p.begin() + 5));
-		TEST_EQUAL(p[5 + len], std::uint8_t((6881 + i) >> 8));
-		TEST_EQUAL(p[6 + len], std::uint8_t(6881 + i));
-		TEST_EQUAL(p[7 + len], '!');
+			},
+			[&](lt::aux::udp_socket::packet const& p) {
+				++received;
+				TEST_EQUAL(std::string(p.hostname), hostname);
+				TEST_EQUAL(std::string(p.data.data(), p.data.size()), "!");
+			},
+			{},
+			6881 + i);
+		TEST_EQUAL(cfg.hostnames.size(), 1);
+		if (cfg.hostnames.size() == 1)
+			TEST_EQUAL(cfg.hostnames[0], hostname);
+		TEST_EQUAL(received, 1);
 	}
 }
 
 TORRENT_TEST(socks5_udp_nonzero_reserved)
 {
-	test_invalid_socks5_udp(2, [](std::vector<std::uint8_t>& p, int const index) { p[index] = 1; });
+	test_socks5_udp_reply({1, -1}, false);
+	test_socks5_udp_reply({256, -1}, false);
+	// A valid reply proves that the same relay and receive path deliver data.
+	test_socks5_udp_reply({}, true);
 }
 
 TORRENT_TEST(socks5_udp_unknown_address_type)
 {
-	std::array<std::uint8_t, 4> const types{{0, 2, 5, 255}};
-	test_invalid_socks5_udp(int(types.size()),
-		[&](std::vector<std::uint8_t>& p, int const index) { p[3] = types[index]; });
+	for (int const type : {0, 2, 5, 255})
+		test_socks5_udp_reply({0, type}, false);
+	test_socks5_udp_reply({}, true);
 }
