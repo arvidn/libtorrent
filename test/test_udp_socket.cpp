@@ -31,158 +31,44 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "test.hpp"
-#include "libtorrent/aux_/alert_manager.hpp"
-#include "libtorrent/aux_/resolver.hpp"
-#include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/aux_/udp_socket.hpp"
-#include "libtorrent/settings_pack.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/span.hpp"
 
-#include <algorithm>
 #include <array>
-#include <chrono>
-#include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <string>
 #include <vector>
 
 using namespace lt;
 
 namespace {
-struct socks5_udp_test_server
+
+// build a SOCKS5 UDP forwarded packet for an IPv4 destination.
+// header layout (RFC 1928 section 7):
+//   2 bytes RSV (0x0000)
+//   1 byte  FRAG
+//   1 byte  ATYP (0x01 = IPv4)
+//   4 bytes addr
+//   2 bytes port
+//   N bytes payload
+std::vector<char> make_v4_packet(std::uint8_t const frag,
+	std::array<std::uint8_t, 4> const addr,
+	std::uint16_t const port,
+	span<char const> payload)
 {
-	explicit socks5_udp_test_server(io_context& ios)
-		: m_acceptor(ios, tcp::endpoint(make_address_v4("127.0.0.1"), 0))
-		, m_control_socket(ios)
-		, m_udp_socket(ios, udp::endpoint(make_address_v4("127.0.0.1"), 0))
-	{}
-
-	std::uint16_t port() const { return m_acceptor.local_endpoint().port(); }
-
-	void start()
-	{
-		receive_packet();
-		m_acceptor.async_accept(m_control_socket, [this](error_code const& ec) {
-			if (ec)
-			{
-				m_error = ec;
-				return;
-			}
-
-			boost::asio::async_read(m_control_socket,
-				boost::asio::buffer(m_control_buffer.data(), 3),
-				[this](error_code const& e, std::size_t const bytes) {
-					if (e)
-					{
-						m_error = e;
-						return;
-					}
-
-					m_valid_handshake = bytes == 3 && m_control_buffer[0] == 5
-						&& m_control_buffer[1] == 1 && m_control_buffer[2] == 0;
-					m_control_buffer[0] = 5;
-					m_control_buffer[1] = 0;
-					boost::asio::async_write(m_control_socket,
-						boost::asio::buffer(m_control_buffer.data(), 2),
-						[this](error_code const& write_error, std::size_t) {
-							if (write_error)
-							{
-								m_error = write_error;
-								return;
-							}
-							read_associate_request();
-						});
-				});
-		});
-	}
-
-	error_code m_error;
-	bool m_valid_handshake = true;
-	std::vector<std::vector<char>> packets;
-
-private:
-	void read_associate_request()
-	{
-		boost::asio::async_read(m_control_socket,
-			boost::asio::buffer(m_control_buffer.data(), 10),
-			[this](error_code const& ec, std::size_t const bytes) {
-				if (ec)
-				{
-					m_error = ec;
-					return;
-				}
-
-				m_valid_handshake = m_valid_handshake && bytes == 10 && m_control_buffer[0] == 5
-					&& m_control_buffer[1] == 3 && m_control_buffer[2] == 0
-					&& m_control_buffer[3] == 1;
-
-				m_control_buffer = {{5, 0, 0, 1, 127, 0, 0, 1, 0, 0}};
-				auto const udp_port = m_udp_socket.local_endpoint().port();
-				m_control_buffer[8] = char(udp_port >> 8);
-				m_control_buffer[9] = char(udp_port & 0xff);
-				boost::asio::async_write(m_control_socket,
-					boost::asio::buffer(m_control_buffer),
-					[this](error_code const& write_error, std::size_t) {
-						if (write_error)
-							m_error = write_error;
-					});
-			});
-	}
-
-	void receive_packet()
-	{
-		m_udp_socket.async_receive_from(boost::asio::buffer(m_udp_buffer),
-			m_sender,
-			[this](error_code const& ec, std::size_t const bytes) {
-				if (ec)
-				{
-					m_error = ec;
-					return;
-				}
-
-				packets.emplace_back(m_udp_buffer.begin(), m_udp_buffer.begin() + bytes);
-				if (packets.size() < 3)
-					receive_packet();
-			});
-	}
-
-	tcp::acceptor m_acceptor;
-	tcp::socket m_control_socket;
-	udp::socket m_udp_socket;
-	udp::endpoint m_sender;
-	std::array<char, 10> m_control_buffer{};
-	std::array<char, 512> m_udp_buffer{};
-};
-
-	// build a SOCKS5 UDP forwarded packet for an IPv4 destination.
-	// header layout (RFC 1928 section 7):
-	//   2 bytes RSV (0x0000)
-	//   1 byte  FRAG
-	//   1 byte  ATYP (0x01 = IPv4)
-	//   4 bytes addr
-	//   2 bytes port
-	//   N bytes payload
-	std::vector<char> make_v4_packet(
-		std::uint8_t const frag,
-		std::array<std::uint8_t, 4> const addr,
-		std::uint16_t const port,
-		span<char const> payload
-	)
-	{
-		std::vector<char> buf;
-		buf.push_back(0);
-		buf.push_back(0); // RSV
-		buf.push_back(char(frag));
-		buf.push_back(0x01); // ATYP = IPv4
-		for (auto b : addr)
-			buf.push_back(char(b));
-		buf.push_back(char(port >> 8));
-		buf.push_back(char(port & 0xff));
-		buf.insert(buf.end(), payload.begin(), payload.end());
-		return buf;
-	}
+	std::vector<char> buf;
+	buf.push_back(0);
+	buf.push_back(0); // RSV
+	buf.push_back(char(frag));
+	buf.push_back(0x01); // ATYP = IPv4
+	for (auto b : addr)
+		buf.push_back(char(b));
+	buf.push_back(char(port >> 8));
+	buf.push_back(char(port & 0xff));
+	buf.insert(buf.end(), payload.begin(), payload.end());
+	return buf;
+}
 
 	// build a SOCKS5 UDP forwarded packet for an IPv6 destination.
 	// header layout: 2 RSV + 1 FRAG + 1 ATYP(0x04) + 16 addr + 2 port + payload
@@ -228,7 +114,7 @@ private:
 		return buf;
 	}
 
-} // anonymous namespace
+	} // anonymous namespace
 
 TORRENT_TEST(socks5_unwrap_ipv4)
 {
@@ -292,84 +178,6 @@ TORRENT_TEST(socks5_unwrap_hostname_unresolvable)
 	TEST_EQUAL(pack.hostname, "example.org");
 	TEST_EQUAL(int(pack.data.size()), int(payload.size()));
 	TEST_CHECK(std::memcmp(pack.data.data(), payload.data(), payload.size()) == 0);
-}
-
-TORRENT_TEST(socks5_wrap_hostname_length)
-{
-	io_context ios;
-	socks5_udp_test_server server(ios);
-	server.start();
-
-	auto listen_socket = std::make_shared<aux::listen_socket_t>();
-	listen_socket->local_endpoint = tcp::endpoint(make_address_v4("127.0.0.1"), 0);
-	aux::udp_socket socket(ios, aux::listen_socket_handle(listen_socket));
-
-	error_code ec;
-	socket.bind(udp::endpoint(make_address_v4("127.0.0.1"), 0), ec);
-	TEST_CHECK(!ec);
-	if (ec)
-		return;
-
-	aux::alert_manager alerts(10);
-	aux::resolver resolver(ios);
-	aux::proxy_settings proxy;
-	proxy.hostname = "127.0.0.1";
-	proxy.port = server.port();
-	proxy.type = settings_pack::socks5;
-	socket.set_proxy_settings(proxy, alerts, resolver, false);
-
-	std::vector<std::string> const hostnames{
-		std::string(249, 'a'), std::string(255, 'b'), std::string(300, 'c')};
-	std::array<char, 1> const payload{{'!'}};
-	int num_sent = 0;
-
-	for (int i = 0; i < 200 && server.packets.size() < hostnames.size(); ++i)
-	{
-		ios.restart();
-		ios.run_for(std::chrono::milliseconds(10));
-
-		if (std::size_t(num_sent) != server.packets.size() || num_sent == int(hostnames.size()))
-			continue;
-
-		ec.clear();
-		socket.send_hostname(
-			hostnames[std::size_t(num_sent)].c_str(), 6881 + num_sent, payload, ec);
-		if (!ec)
-			++num_sent;
-	}
-
-	socket.close();
-	ios.restart();
-	ios.poll();
-
-	TEST_CHECK(!server.m_error);
-	TEST_CHECK(server.m_valid_handshake);
-	TEST_EQUAL(num_sent, int(hostnames.size()));
-	TEST_EQUAL(server.packets.size(), hostnames.size());
-	if (server.packets.size() != hostnames.size())
-		return;
-
-	for (std::size_t i = 0; i < hostnames.size(); ++i)
-	{
-		auto const& packet = server.packets[i];
-		auto const hostname_size = std::min(hostnames[i].size(), std::size_t(255));
-		TEST_EQUAL(packet.size(), hostname_size + 8);
-		if (packet.size() != hostname_size + 8)
-			continue;
-
-		TEST_EQUAL(std::uint8_t(packet[0]), 0);
-		TEST_EQUAL(std::uint8_t(packet[1]), 0);
-		TEST_EQUAL(std::uint8_t(packet[2]), 0);
-		TEST_EQUAL(std::uint8_t(packet[3]), 3);
-		TEST_EQUAL(std::uint8_t(packet[4]), hostname_size);
-		auto const hostname_end = packet.begin() + std::ptrdiff_t(5 + hostname_size);
-		TEST_CHECK(std::equal(packet.begin() + 5, hostname_end, hostnames[i].begin()));
-		auto const port_offset = 5 + hostname_size;
-		auto const port = (std::uint16_t(std::uint8_t(packet[port_offset])) << 8)
-			| std::uint8_t(packet[port_offset + 1]);
-		TEST_EQUAL(port, 6881 + int(i));
-		TEST_EQUAL(packet[port_offset + 2], payload[0]);
-	}
 }
 
 TORRENT_TEST(socks5_unwrap_reject_fragmented)

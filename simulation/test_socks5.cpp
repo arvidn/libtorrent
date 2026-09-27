@@ -13,6 +13,10 @@ see LICENSE file.
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/aux_/deadline_timer.hpp"
+#include "libtorrent/aux_/alert_manager.hpp"
+#include "libtorrent/aux_/resolver.hpp"
+#include "libtorrent/aux_/session_impl.hpp"
+#include "libtorrent/aux_/udp_socket.hpp"
 #include "simulator/http_server.hpp"
 #include "settings.hpp"
 #include "create_torrent.hpp"
@@ -21,9 +25,16 @@ see LICENSE file.
 #include "setup_swarm.hpp"
 #include "utils.hpp"
 #include "simulator/socks_server.hpp"
+#include "simulator/packet.hpp"
 #include "simulator/utils.hpp"
 #include "fake_peer.hpp"
 #include <iostream>
+#include <algorithm>
+#include <array>
+#include <cstdint>
+#include <functional>
+#include <string>
+#include <vector>
 
 using namespace sim;
 using namespace lt;
@@ -301,4 +312,146 @@ TORRENT_TEST(socks5_udp_retry)
 	// We run for 60 seconds. The sokcks5 retry interval is expected to be 5
 	// seconds, meaning there should have been 12 connection attempts
 	TEST_EQUAL(socks5.cmd_counts()[2], 12);
+}
+
+namespace {
+
+struct udp_packet_filter : sim::sink
+{
+	udp_packet_filter(udp::endpoint source, std::function<bool(std::vector<std::uint8_t>&)> handler)
+		: m_source(source)
+		, m_handler(std::move(handler))
+	{}
+
+	void incoming_packet(sim::aux::packet p) override
+	{
+		if (p.type == sim::aux::packet::type_t::payload && p.from == m_source
+			&& !m_handler(p.buffer))
+			return;
+		auto next = p.hops.pop_front();
+		TEST_CHECK(next);
+		if (next)
+			next->incoming_packet(std::move(p));
+	}
+
+	std::string label() const override { return "SOCKS5 UDP packets"; }
+
+	udp::endpoint const m_source;
+	std::function<bool(std::vector<std::uint8_t>&)> const m_handler;
+};
+
+struct socks5_udp_config : sim::default_config
+{
+	socks5_udp_config(udp::endpoint source, std::function<bool(std::vector<std::uint8_t>&)> handler)
+		: m_filter(std::make_shared<udp_packet_filter>(source, std::move(handler)))
+	{}
+
+	sim::route outgoing_route(address ip) override
+	{
+		auto r = sim::default_config::outgoing_route(ip);
+		if (ip == m_filter->m_source.address())
+			r.append(m_filter);
+		return r;
+	}
+
+	std::shared_ptr<udp_packet_filter> m_filter;
+};
+
+template <typename Send, typename Receive>
+void test_udp_socket(socks5_udp_config& cfg, Send const& send, Receive const& receive)
+{
+	sim::simulation sim{cfg};
+	sim::asio::io_context ios{sim, addr("50.0.0.1")};
+	sim::asio::io_context proxy_ios{sim, addr("50.50.50.50")};
+	sim::socks_server socks5(proxy_ios, 5555, 5);
+	socks5.bind_start_port(3000);
+	udp_server echo(sim, "2.2.2.2", 8080, [](char const* data, int size) {
+		return std::vector<char>(data, data + size);
+	});
+
+	auto ls = std::make_shared<lt::aux::listen_socket_t>();
+	ls->local_endpoint = tcp::endpoint(addr("50.0.0.1"), 8888);
+	lt::aux::udp_socket socket(ios, lt::aux::listen_socket_handle(ls));
+	error_code ec;
+	socket.bind(udp::endpoint(addr("50.0.0.1"), 8888), ec);
+	TEST_CHECK(!ec);
+	lt::aux::alert_manager alerts(10);
+	lt::aux::resolver resolver(ios);
+	lt::aux::proxy_settings proxy;
+	proxy.hostname = "50.50.50.50";
+	proxy.port = 5555;
+	proxy.type = settings_pack::socks5;
+	socket.set_proxy_settings(proxy, alerts, resolver, false);
+
+	std::function<void(error_code const&)> on_read = [&](error_code const& e) {
+		if (e)
+			return;
+		lt::aux::udp_socket::packet p;
+		error_code err;
+		if (socket.read({&p, 1}, err))
+			receive(p);
+		TEST_CHECK(
+			!err || err == boost::asio::error::would_block || err == boost::asio::error::try_again);
+		socket.async_read(on_read);
+	};
+	socket.async_read(on_read);
+
+	sim::timer send_timer(sim, lt::seconds(1), [&](error_code const&) {
+		TEST_CHECK(socket.active_socks5());
+		send(socket);
+	});
+	sim::timer shutdown(sim, lt::seconds(3), [&](error_code const&) {
+		socket.close();
+		socks5.stop();
+		echo.close();
+	});
+	sim.run();
+	TEST_EQUAL(socks5.cmd_counts()[2], 1);
+}
+
+} // anonymous namespace
+
+TORRENT_TEST(socks5_udp_hostname_length)
+{
+	std::array<std::string, 3> const hostnames{
+		{std::string(249, 'a'), std::string(255, 'b'), std::string(300, 'c')}};
+	std::vector<std::vector<std::uint8_t>> packets;
+	socks5_udp_config cfg(udp::endpoint(addr("50.0.0.1"), 8888), [&](std::vector<std::uint8_t>& p) {
+		packets.push_back(p);
+		// Inspect the encoded datagrams before the proxy tries to resolve
+		// these arbitrary hostnames.
+		return false;
+	});
+	test_udp_socket(
+		cfg,
+		[&](lt::aux::udp_socket& socket) {
+			for (int i = 0; i < int(hostnames.size()); ++i)
+			{
+				error_code ec;
+				socket.send_hostname(hostnames[i].c_str(), 6881 + i, {"!", 1}, ec);
+				TEST_CHECK(!ec);
+			}
+		},
+		[](lt::aux::udp_socket::packet const&) { TEST_ERROR("unexpected packet"); });
+
+	TEST_EQUAL(packets.size(), hostnames.size());
+	if (packets.size() != hostnames.size())
+		return;
+	for (int i = 0; i < int(hostnames.size()); ++i)
+	{
+		auto const& p = packets[i];
+		auto const len = std::min(hostnames[i].size(), std::size_t(255));
+		TEST_EQUAL(p.size(), len + 8);
+		if (p.size() != len + 8)
+			continue;
+		TEST_EQUAL(p[0], 0);
+		TEST_EQUAL(p[1], 0);
+		TEST_EQUAL(p[2], 0);
+		TEST_EQUAL(p[3], 3);
+		TEST_EQUAL(p[4], len);
+		TEST_CHECK(std::equal(hostnames[i].begin(), hostnames[i].begin() + len, p.begin() + 5));
+		TEST_EQUAL(p[5 + len], std::uint8_t((6881 + i) >> 8));
+		TEST_EQUAL(p[6 + len], std::uint8_t(6881 + i));
+		TEST_EQUAL(p[7 + len], '!');
+	}
 }
