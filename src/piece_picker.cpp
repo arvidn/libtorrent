@@ -2054,9 +2054,11 @@ namespace {
 										  downloading_piece const* rhs) {
 				return partial_compare_rarest_first(lhs, rhs);
 			};
-			auto const heap_compare = [&partial_less](downloading_piece const* lhs,
+			auto const heap_compare = [this](downloading_piece const* lhs,
 										  downloading_piece const* rhs) {
-				return partial_less(rhs, lhs);
+				// make_heap() puts the greatest element first; reverse the
+				// comparison to put the rarest partial at the front.
+				return partial_compare_rarest_first(rhs, lhs);
 			};
 			auto heap_end = ordered_partials.begin() + num_ordered_partials;
 			constexpr std::int64_t partial_heap_capacity_ratio = 10;
