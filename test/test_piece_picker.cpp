@@ -820,6 +820,32 @@ TORRENT_TEST(partial_piece_order_heap_multiple_pops)
 	TEST_EQUAL(picked[6].piece_index, 2_piece);
 }
 
+TORRENT_TEST(partial_piece_order_locked)
+{
+	// The rarest partial is locked. A small request must skip it and keep
+	// consuming the remaining partials in rarest-first order.
+	std::string const availability = "123" + std::string(29, '9');
+	std::string const empty(32, ' ');
+	std::string const partials(32, '1');
+	std::string const peer_pieces(32, '*');
+	auto p = setup_picker(availability.c_str(), empty.c_str(), "", partials.c_str());
+	p->lock_piece(0_piece);
+	auto const picked = pick_pieces(p,
+		peer_pieces.c_str(),
+		4,
+		0,
+		nullptr,
+		options | piece_picker::prioritize_partials,
+		empty_vector);
+	TEST_EQUAL(picked.size(), 4);
+	if (picked.size() != 4)
+		return;
+
+	for (int i = 0; i < 3; ++i)
+		TEST_EQUAL(picked[std::size_t(i)].piece_index, 1_piece);
+	TEST_EQUAL(picked[3].piece_index, 2_piece);
+}
+
 TORRENT_TEST(partial_piece_order_backup)
 {
 	// Requesting whole pieces from a different peer turns partial-piece blocks

@@ -2027,7 +2027,6 @@ namespace {
 				, m_downloads[piece_pos::piece_downloading].size());
 			int num_ordered_partials = 0;
 			std::int64_t num_free_blocks = 0;
-			bool has_unusable_partials = false;
 
 			// now, copy over the pointers. We also apply a filter here to not
 			// include ineligible pieces in certain modes. For instance, a piece
@@ -2046,8 +2045,8 @@ namespace {
 				TORRENT_ASSERT(free_blocks >= 0);
 
 				ordered_partials[num_ordered_partials++] = &dp;
-				num_free_blocks += free_blocks;
-				has_unusable_partials |= dp.locked || free_blocks == 0;
+				if (!dp.locked)
+					num_free_blocks += free_blocks;
 			}
 
 			auto const partial_less = [this](downloading_piece const* lhs,
@@ -2062,17 +2061,17 @@ namespace {
 			};
 			auto heap_end = ordered_partials.begin() + num_ordered_partials;
 			constexpr std::int64_t partial_heap_capacity_ratio = 10;
-			bool const use_heap = !(options & on_parole) && !has_unusable_partials
+			bool const rarest_first_partials = (options & rarest_first) && !(options & on_parole);
+			bool const use_heap = rarest_first_partials
 				&& std::int64_t(num_blocks) * partial_heap_capacity_ratio < num_free_blocks;
 
-			if (options & rarest_first)
+			if (rarest_first_partials)
 			{
 				ret |= picker_log_alert::rarest_first_partials;
 
 				// A heap avoids ordering partials we won't consume. Once the
 				// request reaches a tenth of their free-block capacity, sorting is
-				// cheaper than repeatedly restoring the heap. Keep the sorted scan
-				// when candidates may be rejected or the peer is on parole.
+				// cheaper than repeatedly restoring the heap.
 				if (use_heap)
 					std::make_heap(ordered_partials.begin(), heap_end, heap_compare);
 				else
@@ -2081,14 +2080,12 @@ namespace {
 
 			for (int i = 0; i < num_ordered_partials; ++i)
 			{
-				if ((options & rarest_first) && use_heap && i > 0)
+				if (use_heap && i > 0)
 				{
 					std::pop_heap(ordered_partials.begin(), heap_end, heap_compare);
 					--heap_end;
 				}
-				auto const* partial = ((options & rarest_first) && use_heap)
-					? ordered_partials.front()
-					: ordered_partials[i];
+				auto const* partial = use_heap ? ordered_partials.front() : ordered_partials[i];
 
 				ret |= picker_log_alert::prioritize_partials;
 
