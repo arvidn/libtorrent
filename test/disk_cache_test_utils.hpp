@@ -130,7 +130,7 @@ struct cache_fixture
 		, char const fill = 0x5a)
 	{
 		auto* const j = make_write_job(piece, block, fill, lt::default_block_size);
-		cache.add_pending_write({});
+		cache.add_pending_write(j, {});
 		return cache.insert_pending_write(loc(piece), block, force_flush, j, piece_params());
 	}
 
@@ -143,7 +143,7 @@ struct cache_fixture
 		, char const fill = 0x5a)
 	{
 		auto* const j = make_write_job(piece, block, fill, buf_size);
-		cache.add_pending_write({});
+		cache.add_pending_write(j, {});
 		return cache.insert_pending_write(loc(piece), block, force_flush, j, params);
 	}
 

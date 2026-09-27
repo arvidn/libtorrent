@@ -579,8 +579,10 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 	// Account for a newly allocated write buffer before it is published to a
 	// storage fence. A later insert_pending_write() transfers the same buffer
 	// into the cache without changing the combined back-pressure level.
-	bool add_pending_write(std::shared_ptr<disk_observer> o);
-	void remove_pending_writes(int count);
+	bool add_pending_write(disk_job* j, std::shared_ptr<disk_observer> o);
+
+	// Release a pending write buffer after insertion fails.
+	void remove_pending_write(disk_job* j);
 
 	void set_max_size(int max_size);
 

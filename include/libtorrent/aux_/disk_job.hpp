@@ -320,6 +320,9 @@ namespace job {
 
 		// this is true when the job is blocked by a storage_fence
 		mutable bool blocked = false;
+
+		// accounted for by disk_cache, but not inserted into a cached piece yet
+		bool pending_cache_insert = false;
 #endif
 	};
 

@@ -265,7 +265,7 @@ insert_result_flags disk_cache::insert_pending_write(piece_location const loc,
 
 	INVARIANT_CHECK;
 	TORRENT_ASSERT(m_pending_write_blocks > 0);
-	--m_pending_write_blocks;
+	TORRENT_ASSERT(write_job->pending_cache_insert);
 
 	auto& view = m_pieces.template get<0>();
 	auto i = view.find(loc);
@@ -305,7 +305,7 @@ insert_result_flags disk_cache::insert_pending_write(piece_location const loc,
 	// captured while wjob.buf is in scope, before any move that may empty
 	// it. flush reads through this without the cache mutex (see write_buf()).
 	TORRENT_ASSERT(wjob.borrowed_buf == nullptr);
-	wjob.borrowed_buf = wjob.buf.data();
+	char const* const buf = wjob.buf.data();
 
 	// move v2 blocks whose data falls inside piece_size2 onto the hash
 	// queue. The queue owns the buffer; the cache reaches the bytes through
@@ -326,6 +326,13 @@ insert_result_flags disk_cache::insert_pending_write(piece_location const loc,
 		}
 	}
 
+	// All potentially throwing allocations have succeeded. Transfer ownership
+	// and accounting together while holding the cache mutex.
+	--m_pending_write_blocks;
+#if TORRENT_USE_ASSERTS
+	write_job->pending_cache_insert = false;
+#endif
+	wjob.borrowed_buf = buf;
 	blk.write_state = write_job;
 	// queue-owned buffers contribute to the level via m_v2_hash_queue.size().
 	if (wjob.buf) ++m_blocks;
@@ -352,21 +359,30 @@ insert_result_flags disk_cache::insert_pending_write(piece_location const loc,
 	return ret;
 }
 
-bool disk_cache::add_pending_write(std::shared_ptr<disk_observer> o)
+bool disk_cache::add_pending_write(disk_job* j, std::shared_ptr<disk_observer> o)
 {
+	TORRENT_UNUSED(j);
 	std::unique_lock<std::mutex> l(m_mutex);
+	TORRENT_ASSERT(j->get_type() == job_action_t::write);
+	TORRENT_ASSERT(!j->pending_cache_insert);
+	bool const exceeded = m_back_pressure.has_back_pressure(buffer_level() + 1, std::move(o));
 	++m_pending_write_blocks;
-	return m_back_pressure.has_back_pressure(buffer_level(), std::move(o));
+#if TORRENT_USE_ASSERTS
+	j->pending_cache_insert = true;
+#endif
+	return exceeded;
 }
 
-void disk_cache::remove_pending_writes(int const count)
+void disk_cache::remove_pending_write(disk_job* j)
 {
-	if (count == 0)
-		return;
-
 	std::unique_lock<std::mutex> l(m_mutex);
-	TORRENT_ASSERT(count <= m_pending_write_blocks);
-	m_pending_write_blocks -= count;
+	TORRENT_ASSERT(j->pending_cache_insert);
+	TORRENT_ASSERT(m_pending_write_blocks > 0);
+	std::get<job::write>(j->action).buf.reset();
+	--m_pending_write_blocks;
+#if TORRENT_USE_ASSERTS
+	j->pending_cache_insert = false;
+#endif
 	m_back_pressure.check_buffer_level(buffer_level());
 }
 
