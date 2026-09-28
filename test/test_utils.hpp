@@ -46,8 +46,23 @@ EXPORT std::vector<char> serialize(lt::add_torrent_params atp);
 
 EXPORT lt::aux::vector<lt::sha256_hash> build_tree(int const size);
 
-EXPORT bool fs_supports_sparse_files();
-EXPORT bool fs_supports_prealloc();
+struct filesystem_features
+{
+	// holes created by ftruncate()/lseek()+write() stay unallocated on disk
+	bool sparse_files = false;
+	// posix_fallocate() (or the platform equivalent) actually reserves space
+	bool prealloc = false;
+	// requesting preallocation ends up using *more* disk space than the
+	// file's logical size, rather than merely being a no-op
+	bool prealloc_wastes_space = false;
+	// SEEK_HOLE/SEEK_DATA and FIEMAP can locate this filesystem's holes.
+	// aux::copy_file()'s sparse-preserving fast path relies on this, and can
+	// silently produce a fully allocated copy without it, even though
+	// sparse_files is true (e.g. jfs)
+	bool sparse_ranges_queryable = false;
+};
+
+EXPORT filesystem_features query_filesystem_features();
 
 #if defined _WIN32 && !defined TORRENT_MINGW
 int EXPORT truncate(char const* file, std::int64_t size);
