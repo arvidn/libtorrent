@@ -2037,6 +2037,11 @@ namespace {
 
 				if (!is_piece_free(dp.index, pieces)) continue;
 
+				// locked pieces can't be picked from (add_blocks_downloading()
+				// rejects them), so don't waste heap/sort work on them
+				if (dp.locked)
+					continue;
+
 				TORRENT_ASSERT(m_piece_map[dp.index].download_queue()
 					== piece_pos::piece_downloading);
 
@@ -2045,8 +2050,7 @@ namespace {
 				TORRENT_ASSERT(free_blocks >= 0);
 
 				ordered_partials[num_ordered_partials++] = &dp;
-				if (!dp.locked)
-					num_free_blocks += free_blocks;
+				num_free_blocks += free_blocks;
 			}
 
 			auto const partial_less = [this](downloading_piece const* lhs,
