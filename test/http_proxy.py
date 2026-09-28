@@ -529,6 +529,16 @@ class _ThreadingHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
 
     daemon_threads = True
 
+    def server_bind(self):
+        # HTTPServer.server_bind() reverse-resolves the bind address via
+        # socket.getfqdn(), which goes through mDNSResponder on macOS; the
+        # local network privacy permission blocks that for an unattended
+        # process, so it hangs retrying instead of failing fast. skip it,
+        # server_name isn't used anywhere here (see web_server.py).
+        socketserver.TCPServer.server_bind(self)
+        self.server_name = self.server_address[0]
+        self.server_port = self.server_address[1]
+
 
 class Main:
 

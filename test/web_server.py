@@ -6,6 +6,7 @@ import ssl
 import gzip
 import base64
 import socket
+import socketserver
 import traceback
 
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -27,6 +28,17 @@ except Exception:
 class http_server_with_timeout(HTTPServer):
     allow_reuse_address = True
     timeout = 250
+
+    def server_bind(self):
+        # HTTPServer.server_bind() reverse-resolves the bind address via
+        # socket.getfqdn(), which goes through mDNSResponder on macOS; the
+        # local network privacy permission blocks that for an unattended
+        # process, so it hangs retrying instead of failing fast, well past
+        # this script's caller's spawn timeout. skip it, server_name isn't
+        # used anywhere here.
+        socketserver.TCPServer.server_bind(self)
+        self.server_name = self.server_address[0]
+        self.server_port = self.server_address[1]
 
     def handle_timeout(self):
         print('TIMEOUT')
