@@ -11,6 +11,7 @@ see LICENSE file.
 #include <thread>
 #include <chrono>
 #include <cstring> // for std::memcmp
+#include <string> // for std::to_string
 #include "test.hpp"
 #include "disk_io_test.hpp"
 #include "setup_transfer.hpp"
@@ -315,13 +316,16 @@ static void disk_io_test_suite(lt::disk_io_constructor_type disk_io,
 
 // Verify that async_hash2 returns the correct SHA-256 for a block that has
 // been written but is still sitting in the disk cache (for pread_disk_io) /
-// store buffer (for mmap_disk_io). With hashing_threads=0 the hasher kick is
-// disabled, so no precomputed v2 block hash is stashed on the storage. With
-// aio_threads=0 there is no thread to flush the cache to disk. In this state
-// any hash2 implementation that falls through to a disk read would read zeros
-// (the block has not been written to disk yet) and produce a wrong hash.
-static void hash2_before_flush_impl(
-	lt::disk_io_constructor_type disk_io, disk_test_mode_t const flags, int const piece_size)
+// store buffer (for mmap_disk_io). With aio_threads=0 there is no thread to
+// flush the cache to disk. In this state any hash2 implementation that falls
+// through to a disk read would read zeros (the block has not been written to
+// disk yet) and produce a wrong hash. With `pad`, file-0 is followed by a pad
+// file, so in a hybrid torrent the block at its end is written with more bytes
+// than its v2 hash covers.
+static void hash2_before_flush_impl(lt::disk_io_constructor_type disk_io,
+	disk_test_mode_t const flags,
+	int const piece_size,
+	bool const pad)
 {
 	lt::io_context ios;
 	lt::counters cnt;
@@ -332,13 +336,21 @@ static void hash2_before_flush_impl(
 
 	std::cout << "hash2_before_flush: " << ((flags & test_mode::v1) ? "v1 " : "")
 			  << ((flags & test_mode::v2) ? "v2 " : "") << " piece_size: " << piece_size
-			  << std::endl;
+			  << (pad ? " pad" : "") << std::endl;
 
 	lt::file_storage fs;
 	fs.set_piece_length(piece_size);
 	int const file_size = piece_size * 3 + 17;
 	fs.add_file("hash2_before_flush_torrent/file-0", file_size, {});
-	fs.set_num_pieces(int((file_size + piece_size - 1) / piece_size));
+	if (pad)
+	{
+		int const pad_size = piece_size - 17;
+		fs.add_file("hash2_before_flush_torrent/.pad/" + std::to_string(pad_size),
+			pad_size,
+			lt::file_storage::flag_pad_file);
+		fs.add_file("hash2_before_flush_torrent/file-1", piece_size, {});
+	}
+	fs.set_num_pieces(int((fs.total_size() + piece_size - 1) / piece_size));
 
 	lt::storage_holder storage = add_test_torrent(*disk_thread,
 		fs,
@@ -383,27 +395,35 @@ static void hash2_before_flush_impl(
 			hh.update({buffer->data() + off, v2_size});
 			lt::sha256_hash const expected = hh.final();
 
-			disk_thread->async_hash2(storage,
-				p,
-				off,
-				lt::disk_job_flags_t{},
-				[&hashes_done, &any_mismatch, expected, p, off](
-					lt::piece_index_t, lt::sha256_hash const& hash, lt::storage_error const& e) {
-					if (e.ec)
-					{
-						std::cout << "ERROR: failed to hash2 (p: " << p << " off: " << off << "): ("
-								  << e.ec.value() << ") " << e.ec.message() << std::endl;
-						std::abort();
-					}
-					if (hash != expected)
-					{
-						std::cout << "MISMATCH at piece " << p << " offset " << off << ": expected "
-								  << expected << " got " << hash << std::endl;
-						any_mismatch = true;
-					}
-					++hashes_done;
-				});
-			++hashes_expected;
+			// pread_disk_io hashes v2 blocks as they are written, and the first
+			// async_hash2() of a block takes that hash. The second call misses
+			// it and hashes the block from the cache.
+			for (int i = 0; i < 2; ++i)
+			{
+				disk_thread->async_hash2(storage,
+					p,
+					off,
+					lt::disk_job_flags_t{},
+					[&hashes_done, &any_mismatch, expected, p, off](lt::piece_index_t,
+						lt::sha256_hash const& hash,
+						lt::storage_error const& e) {
+						if (e.ec)
+						{
+							std::cout << "ERROR: failed to hash2 (p: " << p << " off: " << off
+									  << "): (" << e.ec.value() << ") " << e.ec.message()
+									  << std::endl;
+							std::abort();
+						}
+						if (hash != expected)
+						{
+							std::cout << "MISMATCH at piece " << p << " offset " << off
+									  << ": expected " << expected << " got " << hash << std::endl;
+							any_mismatch = true;
+						}
+						++hashes_done;
+					});
+				++hashes_expected;
+			}
 
 			disk_thread->submit_jobs();
 		}
@@ -450,7 +470,8 @@ static void hash2_before_flush_suite(lt::disk_io_constructor_type disk_io)
 	{
 		for (int piece_size : {0x4000, 0x8000})
 		{
-			hash2_before_flush_impl(disk_io, flags, piece_size);
+			for (bool const pad : {false, true})
+				hash2_before_flush_impl(disk_io, flags, piece_size, pad);
 		}
 	}
 }
