@@ -60,8 +60,11 @@ namespace libtorrent::aux {
 		std::tie(ignore, ignore, ignore, ignore, ignore)
 			= parse_url_components(location, ec);
 
-		// if location is a full URL, just return it
-		if (location[0] != '/' && !ec)
+		// if location is a full URL, just return it. a leading '/', '?' or '#'
+		// means it's a relative reference, even if it happens to contain an
+		// embedded "scheme://" substring that parse_url_components() would
+		// otherwise mistake for a valid absolute URL.
+		if (location[0] != '/' && location[0] != '?' && location[0] != '#' && !ec)
 			return location;
 
 		// otherwise it's likely to be just the path, or a relative path

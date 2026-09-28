@@ -589,6 +589,17 @@ TORRENT_TEST(http_parser)
 	TEST_EQUAL(aux::resolve_redirect_location("http://example.com/a/b?old=1#old", "#new/path"),
 		"http://example.com/a/b?old=1#new/path");
 
+	// a query or fragment reference containing an embedded "scheme://" is
+	// still a relative reference, not an absolute URL
+
+	TEST_EQUAL(
+		aux::resolve_redirect_location("http://example.com/a/b", "?next=http://cdn.example.com/x"),
+		"http://example.com/a/b?next=http://cdn.example.com/x");
+
+	TEST_EQUAL(
+		aux::resolve_redirect_location("http://example.com/a/b", "#next=http://cdn.example.com/x"),
+		"http://example.com/a/b#next=http://cdn.example.com/x");
+
 	// if the referrer is invalid, just respond the verbatim location
 
 	TEST_EQUAL(aux::resolve_redirect_location("example.com/a/b", "/c/d")
