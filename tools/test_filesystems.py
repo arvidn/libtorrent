@@ -155,7 +155,7 @@ FILESYSTEMS: list[Filesystem] = [
     LoopFilesystem("f2fs", ["mkfs.f2fs", "-f"]),  # apt install f2fs-tools
     LoopFilesystem("jfs", ["mkfs.jfs", "-q"]),  # apt install jfsutils
     LoopFilesystem("nilfs2", ["mkfs.nilfs2", "-f"]),  # apt install nilfs-tools
-    LoopFilesystem("bcachefs", ["mkfs.bcachefs", "-f"]),  # apt install bcachefs-tools
+    # LoopFilesystem("bcachefs", ["mkfs.bcachefs", "-f"]),  # apt install bcachefs-tools
     ZfsFilesystem(),  # apt install zfsutils-linux
 ]
 
