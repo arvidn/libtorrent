@@ -9,6 +9,7 @@ see LICENSE file.
 */
 
 #include "test_utils.hpp"
+#include <string_view>
 #include "libtorrent/time.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/create_torrent.hpp"
@@ -139,9 +140,11 @@ std::vector<lt::create_file_entry> make_files(std::vector<file_ent> const files)
 	return fs;
 }
 
-#if defined TORRENT_WINDOWS
-bool fs_supports_sparse_files()
+filesystem_features query_filesystem_features()
 {
+#ifdef TORRENT_WINDOWS
+	filesystem_features ret;
+	ret.prealloc = true;
 #ifdef TORRENT_WINRT
 	HANDLE test = ::CreateFile2(L"test"
 			, GENERIC_WRITE
@@ -164,69 +167,63 @@ bool fs_supports_sparse_files()
 		, &fs_flags, fs_name, sizeof(fs_name)) != 0);
 	::CloseHandle(test);
 	printf("filesystem: %S\n", fs_name);
-	return (fs_flags & FILE_SUPPORTS_SPARSE_FILES) != 0;
-}
-
-#else
-
-bool fs_supports_sparse_files()
-{
-	int test = ::open("test", O_RDWR | O_CREAT, 0755);
-	TEST_CHECK(test >= 0);
-	struct statfs st{};
-	TEST_CHECK(fstatfs(test, &st) == 0);
-	::close(test);
-#ifdef TORRENT_LINUX
-	using fsword_t = decltype(statfs::f_type);
-	static fsword_t const ufs      = 0x00011954;
-	static fsword_t const zfs      = 0x2fc12fc1;
-	static fsword_t const f2fs     = 0xf2f52010;
-	static fsword_t const jfs      = 0x3153464a;
-	static fsword_t const nilfs2   = 0x3434;
-	static fsword_t const bcachefs = 0xca451a4e;
-	static const std::set<fsword_t> sparse_filesystems{
-		EXT4_SUPER_MAGIC, EXT3_SUPER_MAGIC, XFS_SUPER_MAGIC, fsword_t(BTRFS_SUPER_MAGIC)
-			, ufs, zfs, REISERFS_SUPER_MAGIC, TMPFS_MAGIC, OVERLAYFS_SUPER_MAGIC
-			, f2fs, jfs, nilfs2, bcachefs
-	};
-	printf("filesystem: %ld\n", long(st.f_type));
-	return sparse_filesystems.count(st.f_type);
-#else
-	printf("filesystem: (%d) %s\n", int(st.f_type), st.f_fstypename);
-	static const std::set<std::string> sparse_filesystems{
-		"ufs", "zfs", "ext4", "xfs", "apfs", "btrfs", "f2fs", "jfs", "nilfs2", "bcachefs"};
-	return sparse_filesystems.count(st.f_fstypename);
-#endif
-}
-
-#endif
-bool fs_supports_prealloc()
-{
-#ifdef TORRENT_WINDOWS
-	return true;
+	ret.sparse_files = (fs_flags & FILE_SUPPORTS_SPARSE_FILES) != 0;
+	return ret;
 #else
 	int test = ::open("__test__", O_RDWR | O_CREAT, 0755);
 	TEST_CHECK(test >= 0);
 	struct statfs st{};
 	TEST_CHECK(fstatfs(test, &st) == 0);
 	::close(test);
-	// notably, ZFS does not support fallocate(). Even if glibc implements it to
-	// write zeroes, ZFS (when compression is enabled) will not write them to
-	// disk.
 #ifdef TORRENT_LINUX
 	using fsword_t = decltype(statfs::f_type);
-	static fsword_t const ufs = 0x00011954;
-	static const std::set<fsword_t> prealloc_filesystems{
-		EXT4_SUPER_MAGIC, EXT3_SUPER_MAGIC, XFS_SUPER_MAGIC, fsword_t(BTRFS_SUPER_MAGIC)
-			, ufs, REISERFS_SUPER_MAGIC, TMPFS_MAGIC, OVERLAYFS_SUPER_MAGIC
+	struct fs_entry
+	{
+		fsword_t magic;
+		filesystem_features features;
+	};
+	static fs_entry const known_filesystems[] = {
+		{EXT4_SUPER_MAGIC, {true, true, false, true}},
+		{EXT3_SUPER_MAGIC, {true, true, false, true}},
+		{XFS_SUPER_MAGIC, {true, true, false, true}},
+		{fsword_t(BTRFS_SUPER_MAGIC), {true, true, false, true}},
+		{0x00011954 /* ufs */, {true, true, false, true}},
+		{REISERFS_SUPER_MAGIC, {true, true, false, true}},
+		{TMPFS_MAGIC, {true, true, false, true}},
+		{OVERLAYFS_SUPER_MAGIC, {true, true, false, true}},
+		{0x2fc12fc1 /* zfs */, {true, false, false, true}},
+		{fsword_t(0xf2f52010) /* f2fs */, {true, false, false, true}},
+		{0x3153464a /* jfs */, {true, false, false, false}},
+		{0x3434 /* nilfs2 */, {true, false, true, true}},
+		{fsword_t(0xca451a4e) /* bcachefs */, {true, false, false, true}},
 	};
 	printf("filesystem: %ld\n", long(st.f_type));
-	return prealloc_filesystems.count(st.f_type);
+	for (auto const& e : known_filesystems)
+		if (e.magic == st.f_type)
+			return e.features;
 #else
+	struct fs_entry
+	{
+		char const* name;
+		filesystem_features features;
+	};
+	static fs_entry const known_filesystems[] = {
+		{"ufs", {true, true, false, true}},
+		{"ext4", {true, true, false, true}},
+		{"xfs", {true, true, false, true}},
+		{"apfs", {true, true, false, true}},
+		{"btrfs", {true, true, false, true}},
+		{"zfs", {true, false, false, true}},
+		{"f2fs", {true, false, false, true}},
+		{"jfs", {true, false, false, false}},
+		{"nilfs2", {true, false, true, true}},
+		{"bcachefs", {true, false, false, true}},
+	};
 	printf("filesystem: (%d) %s\n", int(st.f_type), st.f_fstypename);
-	static const std::set<std::string> prealloc_filesystems{
-		"ufs", "ext4", "xfs", "apfs", "btrfs"};
-	return prealloc_filesystems.count(st.f_fstypename);
+	for (auto const& e : known_filesystems)
+		if (std::string_view(st.f_fstypename) == e.name)
+			return e.features;
 #endif
+	return {};
 #endif
 }

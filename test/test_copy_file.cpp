@@ -143,7 +143,8 @@ TORRENT_TEST(sparse_file)
 
 	// Find out if the filesystem we're running the test on supports sparse
 	// files. If not, we don't expect any of the files to be sparse
-	bool const supports_sparse_files = fs_supports_sparse_files();
+	filesystem_features const fs_features = query_filesystem_features();
+	bool const supports_sparse_files = fs_features.sparse_files;
 	printf("supports sparse files: %d\n", int(supports_sparse_files));
 
 	// make sure "sparse-1" is actually sparse
@@ -191,7 +192,13 @@ TORRENT_TEST(sparse_file)
 #else
 	TEST_CHECK(::stat("sparse-1.copy", &st) == 0);
 	printf("copy_size: %d\n", int(st.st_blocks) * 512);
-	TEST_CHECK(st.st_blocks * 512 < 500'000);
+	// copy_file()'s sparse-preserving path needs SEEK_HOLE/SEEK_DATA or
+	// FIEMAP to locate holes; a filesystem can support sparse files (checked
+	// above) without supporting either (e.g. jfs)
+	if (fs_features.sparse_ranges_queryable)
+	{
+		TEST_CHECK(st.st_blocks * 512 < 500'000);
+	}
 #endif
 
 	TEST_CHECK(compare_files("sparse-1", "sparse-1.copy"));
@@ -201,7 +208,7 @@ TORRENT_TEST(sparse_file)
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 TORRENT_TEST(sparse_file_trailing_hole)
 {
-	if (!fs_supports_sparse_files())
+	if (!query_filesystem_features().sparse_files)
 		return;
 
 	constexpr int size = 2'000'000;
@@ -217,7 +224,7 @@ TORRENT_TEST(sparse_file_trailing_hole)
 
 TORRENT_TEST(sparse_file_all_hole)
 {
-	if (!fs_supports_sparse_files())
+	if (!query_filesystem_features().sparse_files)
 		return;
 
 	constexpr int size = 2'000'000;
@@ -233,7 +240,7 @@ TORRENT_TEST(sparse_file_all_hole)
 
 TORRENT_TEST(sparse_file_replaces_longer_destination)
 {
-	if (!fs_supports_sparse_files())
+	if (!query_filesystem_features().sparse_files)
 		return;
 
 	constexpr int size = 2'000'000;
