@@ -50,6 +50,15 @@ jobs:
           echo "using darwin ;" >>~/user-config.jam
           echo "OPENSSL_ROOT=$(brew --prefix openssl@3)" >>"$GITHUB_ENV"
 
+      - name: disable UPnP test
+        # test_upnp needs to connect to its web_server over the host's LAN
+        # address; macOS's local network privacy permission has no way to
+        # be granted on an unattended CI runner, so it always fails here.
+        # mark it explicit (excluded from the default build) for this CI
+        # run only, rather than disabling it for other platforms or local
+        # macOS development.
+        run: echo 'explicit test_upnp ;' >>test/Jamfile
+
       - name: build and run tests
         run: (cd test; b2 ${{ matrix.config }} -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on deterministic-tests openssl-include="$OPENSSL_ROOT/include" openssl-lib="$OPENSSL_ROOT/lib")
 
@@ -162,7 +171,14 @@ jobs:
           # test_rtc hangs on macOS specifically when built via cmake (it
           # passes when built via b2 on the same runner); excluded pending
           # investigation into the cmake-specific cause
-          ctest --output-on-failure --exclude-regex '^test_rtc$'
+          #
+          # test_upnp needs to connect to its web_server over the host's LAN
+          # address; macOS's local network privacy permission has no way to
+          # be granted on an unattended CI runner, so it always fails here.
+          # CMakeLists.txt globs all test_*.cpp into ctest unconditionally
+          # (no per-target "explicit" like the b2 Jamfile), so it has to be
+          # excluded here instead.
+          ctest --output-on-failure --exclude-regex '^(test_rtc|test_upnp)$'
 
 
    ios_build:
