@@ -220,7 +220,7 @@ static void disk_io_test_suite_impl(lt::disk_io_constructor_type disk_io,
 						v2_hashes,
 						need_v1,
 						need_v2,
-						expected_v2 = std::move(expected_v2),
+						hash_expected_v2 = std::move(expected_v2),
 						expected_v1](lt::piece_index_t,
 						lt::sha1_hash const& v1_hash,
 						lt::storage_error const& e) {
@@ -233,11 +233,12 @@ static void disk_io_test_suite_impl(lt::disk_io_constructor_type disk_io,
 						}
 						if (need_v2)
 						{
-							TEST_EQUAL(v2_hashes->size(), expected_v2.size());
-							for (std::size_t i = 0; i < expected_v2.size(); ++i)
-								TEST_CHECK((*v2_hashes)[i] == expected_v2[i]);
+							TEST_EQUAL(v2_hashes->size(), hash_expected_v2.size());
+							for (std::size_t i = 0; i < hash_expected_v2.size(); ++i)
+								TEST_CHECK((*v2_hashes)[i] == hash_expected_v2[i]);
 						}
-						if (need_v1) TEST_CHECK(v1_hash == expected_v1);
+						if (need_v1)
+							TEST_CHECK(v1_hash == expected_v1);
 						++hashes_done;
 					});
 				++expect_hashes;
@@ -652,10 +653,10 @@ static void unaligned_cross_block_read_impl(
 		}
 		disk_thread->async_read(storage,
 			lt::peer_request{p, start, length},
-			[&reads_done, expected = std::move(expected)](
+			[&reads_done, read_expected = std::move(expected)](
 				lt::disk_buffer_holder b, lt::storage_error const& e) {
 				TEST_CHECK(!e.ec);
-				TEST_CHECK(std::memcmp(b.data(), expected.data(), expected.size()) == 0);
+				TEST_CHECK(std::memcmp(b.data(), read_expected.data(), read_expected.size()) == 0);
 				++reads_done;
 			});
 		++reads_expected;
