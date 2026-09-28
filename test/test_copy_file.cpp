@@ -9,6 +9,7 @@ see LICENSE file.
 
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/operations.hpp"
 #include "libtorrent/aux_/mmap.hpp"
 #include "libtorrent/aux_/open_mode.hpp"
 #include "libtorrent/aux_/storage_utils.hpp"
@@ -41,6 +42,14 @@ void write_file(std::string const& filename, int size)
 		v[std::size_t(i)] = char(i & 255);
 
 	std::ofstream(filename.c_str(), std::ios::binary).write(v.data(), std::streamsize(v.size()));
+}
+
+void print_copy_error(lt::storage_error const& ec)
+{
+	if (!ec)
+		return;
+	printf(
+		"copy_file failed: %s (%s)\n", ec.ec.message().c_str(), lt::operation_name(ec.operation));
 }
 
 bool compare_files(std::string const& file1, std::string const& file2)
@@ -95,11 +104,13 @@ TORRENT_TEST(basic)
 	lt::storage_error ec;
 	lt::aux::copy_file_buffer buf;
 	lt::aux::copy_file("basic-1", "basic-1.copy", ec, buf);
+	print_copy_error(ec);
 	TEST_CHECK(!ec);
 	TEST_CHECK(compare_files("basic-1", "basic-1.copy"));
 
 	write_file("basic-2", 1000000);
 	lt::aux::copy_file("basic-2", "basic-2.copy", ec, buf);
+	print_copy_error(ec);
 	TEST_CHECK(!ec);
 	TEST_CHECK(compare_files("basic-2", "basic-2.copy"));
 }
@@ -159,6 +170,7 @@ TORRENT_TEST(sparse_file)
 	lt::storage_error ec;
 	lt::aux::copy_file_buffer buf;
 	lt::aux::copy_file("sparse-1", "sparse-1.copy", ec, buf);
+	print_copy_error(ec);
 	TEST_CHECK(!ec);
 
 	// make sure the copy is sparse
@@ -198,6 +210,7 @@ TORRENT_TEST(sparse_file_trailing_hole)
 	lt::storage_error ec;
 	lt::aux::copy_file_buffer buf;
 	lt::aux::copy_file("sparse-trailing-hole", "sparse-trailing-hole.copy", ec, buf);
+	print_copy_error(ec);
 	TEST_CHECK(!ec);
 	TEST_CHECK(compare_files("sparse-trailing-hole", "sparse-trailing-hole.copy"));
 }
@@ -213,6 +226,7 @@ TORRENT_TEST(sparse_file_all_hole)
 	lt::storage_error ec;
 	lt::aux::copy_file_buffer buf;
 	lt::aux::copy_file("sparse-all-hole", "sparse-all-hole.copy", ec, buf);
+	print_copy_error(ec);
 	TEST_CHECK(!ec);
 	TEST_CHECK(compare_files("sparse-all-hole", "sparse-all-hole.copy"));
 }
@@ -229,6 +243,7 @@ TORRENT_TEST(sparse_file_replaces_longer_destination)
 	lt::storage_error ec;
 	lt::aux::copy_file_buffer buf;
 	lt::aux::copy_file("sparse-replace", "sparse-replace.copy", ec, buf);
+	print_copy_error(ec);
 	TEST_CHECK(!ec);
 	TEST_CHECK(compare_files("sparse-replace", "sparse-replace.copy"));
 }

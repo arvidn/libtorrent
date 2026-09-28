@@ -37,6 +37,14 @@ see LICENSE file.
 #include <copyfile.h>
 #endif
 
+#ifdef TORRENT_LINUX
+#include <sys/ioctl.h>
+#include <linux/fs.h> // for FS_IOC_FIEMAP
+#include <linux/fiemap.h>
+#include <array>
+#include <limits>
+#endif
+
 #endif
 
 namespace libtorrent {
@@ -441,6 +449,105 @@ std::int64_t copy_range(int const fd_in,
 #endif
 }
 
+#ifdef TORRENT_LINUX
+// returns false if FIEMAP is not supported by fd_in's filesystem, leaving
+// the caller to fall back to another method. Otherwise copies the data
+// extents, skipping holes between them, and returns true (se is set on
+// error).
+bool copy_sparse_regions_fiemap(int const fd_in,
+	int const fd_out,
+	std::int64_t const file_size,
+	copy_range_mode& m,
+	copy_file_buffer& buf,
+	storage_error& se)
+{
+	// struct fiemap ends in a flexible array member, so it cannot be used
+	// as a non-final member of another struct. Mirror its fixed header
+	// fields here, immediately followed by the (fixed-size) extents array.
+	struct fiemap_request
+	{
+		std::uint64_t fm_start;
+		std::uint64_t fm_length;
+		std::uint32_t fm_flags;
+		std::uint32_t fm_mapped_extents;
+		std::uint32_t fm_extent_count;
+		std::uint32_t fm_reserved;
+		std::array<fiemap_extent, 32> fm_extents;
+	};
+	static_assert(sizeof(fiemap_request) == sizeof(fiemap) + 32 * sizeof(fiemap_extent),
+		"fiemap_request must exactly match the kernel's struct fiemap layout");
+	fiemap_request req{};
+
+	std::uint64_t start = 0;
+	for (;;)
+	{
+		std::uint64_t const loop_start = start;
+		req.fm_start = start;
+		req.fm_length = std::uint64_t(file_size) - start;
+		// only the first call needs to flush dirty pages before mapping
+		// extents. Subsequent calls observe a file whose content we
+		// haven't changed since, so nothing new could have become dirty.
+		req.fm_flags = (loop_start == 0) ? FIEMAP_FLAG_SYNC : 0;
+		req.fm_extent_count = std::uint32_t(req.fm_extents.size());
+
+		int ioctl_ret;
+		do
+		{
+			ioctl_ret = ::ioctl(fd_in, FS_IOC_FIEMAP, &req);
+		}
+		while (ioctl_ret < 0 && errno == EINTR);
+
+		if (ioctl_ret < 0)
+		{
+			int const err = errno;
+			if (start == 0 && (err == ENOTTY || err == EOPNOTSUPP || err == EINVAL))
+				return false;
+			se.operation = operation_t::iocontrol;
+			se.ec.assign(err, system_category());
+			return true;
+		}
+
+		if (req.fm_mapped_extents == 0)
+			return true;
+
+		bool last_extent = false;
+		for (std::uint32_t i = 0; i < req.fm_mapped_extents; ++i)
+		{
+			fiemap_extent const& e = req.fm_extents[i];
+			if (e.fe_length > std::uint64_t(std::numeric_limits<std::int64_t>::max())
+				|| e.fe_logical >= std::uint64_t(file_size))
+			{
+				se.operation = operation_t::iocontrol;
+				se.ec = make_error_code(boost::system::errc::bad_message);
+				return true;
+			}
+			// the last extent may extend past file_size, since filesystems
+			// can report the full trailing block even when the file ends
+			// partway through it
+			std::uint64_t const extent_len =
+				std::min(e.fe_length, std::uint64_t(file_size) - e.fe_logical);
+			if (copy_range(fd_in, fd_out, off_t(e.fe_logical), std::int64_t(extent_len), m, buf, se)
+				< 0)
+				return true;
+			start = e.fe_logical + extent_len;
+			if (e.fe_flags & FIEMAP_EXTENT_LAST)
+				last_extent = true;
+		}
+		if (last_extent || start >= std::uint64_t(file_size))
+			return true;
+
+		// guard against a filesystem reporting extents that never reach
+		// file_size or the LAST flag, which would otherwise loop forever
+		if (start <= loop_start)
+		{
+			se.operation = operation_t::iocontrol;
+			se.ec = make_error_code(boost::system::errc::bad_message);
+			return true;
+		}
+	}
+}
+#endif
+
 } // anonymous namespace
 
 void copy_file(
@@ -513,9 +620,18 @@ void copy_file(
 
 	copy_range_mode m;
 
-#ifdef SEEK_HOLE
 	if (input_is_sparse)
 	{
+#ifdef TORRENT_LINUX
+		// one ioctl() call can report many extents, whereas SEEK_DATA/
+		// SEEK_HOLE needs a pair of lseek() calls per extent boundary.
+		// FIEMAP support is independent of whether SEEK_HOLE is defined,
+		// so this is not gated on it.
+		if (copy_sparse_regions_fiemap(infd.fd(), outfd.fd(), in_stat.st_size, m, buf, se))
+			return;
+#endif
+
+#ifdef SEEK_HOLE
 		std::int64_t ret = 0;
 		off_t data_start = 0;
 		off_t data_end = 0;
@@ -551,8 +667,8 @@ void copy_file(
 			if (ret <= 0) return;
 			if (data_end == in_stat.st_size) return;
 		}
-	}
 #endif
+	}
 
 	copy_range(infd.fd(), outfd.fd(), 0, in_stat.st_size, m, buf, se);
 }
