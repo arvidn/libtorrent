@@ -18,6 +18,8 @@ see LICENSE file.
 // windows part
 #include "libtorrent/aux_/windows.hpp"
 #include "libtorrent/aux_/win_file_handle.hpp"
+
+#include <algorithm>
 #else
 
 #ifndef _GNU_SOURCE
@@ -28,6 +30,8 @@ see LICENSE file.
 
 #include <unistd.h>
 #include <sys/stat.h>
+#include <algorithm>
+#include <vector>
 
 #if TORRENT_HAS_COPYFILE
 #include <copyfile.h>
@@ -86,18 +90,78 @@ std::pair<std::int64_t, std::int64_t> next_allocated_region(HANDLE file
 	return {out.FileOffset.QuadPart, out.FileOffset.QuadPart + out.Length.QuadPart};
 }
 
-void copy_range(HANDLE const in_handle, HANDLE const out_handle
-	, std::int64_t in_offset, std::int64_t len, storage_error& se)
+#if !defined(_WIN32_WINNT) || _WIN32_WINNT < 0x0602
+// FILE_STORAGE_INFO and the FileStorageInfo enumerator require the Windows 8
+// SDK. Define them locally so this builds against older _WIN32_WINNT
+// targets. GetFileInformationByHandleEx() itself has existed since Vista;
+// on pre-Windows-8 systems it simply fails this particular query, which
+// pick_buffer_size() already falls back on.
+struct FILE_STORAGE_INFO
 {
-	char buffer[16384];
+	ULONG LogicalBytesPerSector;
+	ULONG PhysicalBytesPerSectorForAtomicity;
+	ULONG PhysicalBytesPerSectorForPerformance;
+	ULONG FileSystemEffectivePhysicalBytesPerSectorForAtomicity;
+	ULONG Flags;
+	ULONG ByteOffsetForSectorAlignment;
+	ULONG ByteOffsetForPartitionAlignment;
+};
+int constexpr FileStorageInfo = 16;
+#endif
+
+// scales with the destination volume's physical sector size, mirroring the
+// POSIX fallback's use of st_blksize. FileStorageInfo is only available on
+// Windows 8 and later; querying it simply fails (returning false) on
+// older systems, in which case we fall back to min_size
+std::size_t pick_buffer_size(HANDLE const out_handle)
+{
+	std::size_t const min_size = 64 * 1024;
+	std::size_t const max_size = 16 * 1024 * 1024;
+
+	FILE_STORAGE_INFO info;
+	if (!GetFileInformationByHandleEx(out_handle,
+			static_cast<FILE_INFO_BY_HANDLE_CLASS>(FileStorageInfo),
+			&info,
+			sizeof(info)))
+		return min_size;
+
+	return std::clamp(
+		std::size_t(info.PhysicalBytesPerSectorForPerformance) * 64, min_size, max_size);
+}
+
+void copy_range(HANDLE const in_handle,
+	HANDLE const out_handle,
+	std::int64_t in_offset,
+	std::int64_t len,
+	copy_file_buffer& buf,
+	storage_error& se)
+{
+	if (buf.buffer.empty())
+	{
+		try
+		{
+			buf.buffer.resize(pick_buffer_size(out_handle));
+		}
+		catch (std::bad_alloc const&)
+		{
+			se.operation = operation_t::file_copy;
+			se.ec = errors::no_memory;
+			return;
+		}
+	}
+
 	while (len > 0)
 	{
 		OVERLAPPED in_ol{};
 		in_ol.Offset = in_offset & 0xffffffff;
 		in_ol.OffsetHigh = in_offset >> 32;
 		DWORD num_read = 0;
-		if (ReadFile(in_handle, buffer, DWORD(std::min(len, std::int64_t(sizeof(buffer))))
-			, &num_read, &in_ol) == 0)
+		if (ReadFile(in_handle,
+				buf.buffer.data(),
+				DWORD(std::min(len, std::int64_t(buf.buffer.size()))),
+				&num_read,
+				&in_ol)
+			== 0)
 		{
 			int const error = ::GetLastError();
 			if (error == ERROR_HANDLE_EOF) return;
@@ -109,8 +173,8 @@ void copy_range(HANDLE const in_handle, HANDLE const out_handle
 
 		len -= num_read;
 		error_code write_error;
-		int const num_written =
-			pwrite_all(out_handle, span<char const>(buffer, num_read), in_offset, write_error);
+		int const num_written = pwrite_all(
+			out_handle, span<char const>(buf.buffer.data(), num_read), in_offset, write_error);
 		if (write_error)
 		{
 			se.operation = operation_t::file_write;
@@ -123,9 +187,10 @@ void copy_range(HANDLE const in_handle, HANDLE const out_handle
 	return;
 }
 
-}
+} // anonymous namespace
 
-void copy_file(std::string const& inf, std::string const& newf, storage_error& se)
+void copy_file(
+	std::string const& inf, std::string const& newf, storage_error& se, copy_file_buffer& buf)
 {
 	se.ec.clear();
 	native_path_string f1 = convert_to_native_path_string(inf);
@@ -229,7 +294,8 @@ void copy_file(std::string const& inf, std::string const& newf, storage_error& s
 			return;
 		}
 
-		copy_range(in_handle.handle(), out_handle.handle(), data.first, data.second - data.first, se);
+		copy_range(
+			in_handle.handle(), out_handle.handle(), data.first, data.second - data.first, buf, se);
 		if (se) return;
 		// There's a possible time-of-check-time-of-use race here.
 		// The source file may have grown during the copy operation, in which
@@ -248,15 +314,49 @@ struct copy_range_mode
 	bool use_fallback = false;
 };
 
-ssize_t copy_range_fallback(int const fd_in, int const fd_out, off_t in_offset
-	, std::int64_t len, storage_error& se)
+// scales with the destination's reported block size to limit read/write
+// round-trips on high-latency, high-throughput drives and network filesystems
+std::size_t pick_buffer_size(int const fd_out)
 {
-	char buffer[16384];
+	std::size_t const min_size = 64 * 1024;
+	std::size_t const max_size = 16 * 1024 * 1024;
+
+	struct stat st
+	{};
+	if (::fstat(fd_out, &st) != 0 || st.st_blksize <= 0)
+		return min_size;
+
+	return std::clamp(std::size_t(st.st_blksize) * 64, min_size, max_size);
+}
+
+ssize_t copy_range_fallback(int const fd_in,
+	int const fd_out,
+	off_t in_offset,
+	std::int64_t len,
+	copy_file_buffer& buf,
+	storage_error& se)
+{
+	if (buf.buffer.empty())
+	{
+		try
+		{
+			buf.buffer.resize(pick_buffer_size(fd_out));
+		}
+		catch (std::bad_alloc const&)
+		{
+			se.operation = operation_t::file_copy;
+			se.ec = errors::no_memory;
+			return -1;
+		}
+	}
+
 	ssize_t total_copied = 0;
 	while (len > 0)
 	{
-		ssize_t num_read = ::pread(fd_in, buffer
-			, std::size_t(std::min(len, std::int64_t(sizeof(buffer)))), in_offset);
+		ssize_t const num_read = ::pread(fd_in,
+			buf.buffer.data(),
+			std::size_t(std::min(len, std::int64_t(buf.buffer.size()))),
+			in_offset);
 		if (num_read == 0) return total_copied;
 		if (num_read < 0)
 		{
@@ -267,8 +367,8 @@ ssize_t copy_range_fallback(int const fd_in, int const fd_out, off_t in_offset
 		len -= num_read;
 
 		error_code write_error;
-		int const num_written =
-			pwrite_all(fd_out, span<char const>(buffer, num_read), in_offset, write_error);
+		int const num_written = pwrite_all(
+			fd_out, span<char const>(buf.buffer.data(), num_read), in_offset, write_error);
 		if (write_error)
 		{
 			se.operation = operation_t::file_write;
@@ -282,12 +382,17 @@ ssize_t copy_range_fallback(int const fd_in, int const fd_out, off_t in_offset
 	return total_copied;
 }
 
-ssize_t copy_range(int const fd_in, int const fd_out, off_t in_offset
-	, std::int64_t len, copy_range_mode* const m, storage_error& se)
+ssize_t copy_range(int const fd_in,
+	int const fd_out,
+	off_t in_offset,
+	std::int64_t len,
+	copy_range_mode& m,
+	copy_file_buffer& buf,
+	storage_error& se)
 {
 #if TORRENT_HAS_COPY_FILE_RANGE
-	if (m->use_fallback)
-		return copy_range_fallback(fd_in, fd_out, in_offset, len, se);
+	if (m.use_fallback)
+		return copy_range_fallback(fd_in, fd_out, in_offset, len, buf, se);
 
 	ssize_t total_copied = 0;
 	off_t out_offset = in_offset;
@@ -301,8 +406,8 @@ ssize_t copy_range(int const fd_in, int const fd_out, off_t in_offset
 			int const err = errno;
 			if (err == EXDEV || err == ENOTSUP || err == ENOSYS)
 			{
-				m->use_fallback = true;
-				return copy_range_fallback(fd_in, fd_out, in_offset, len, se);
+				m.use_fallback = true;
+				return copy_range_fallback(fd_in, fd_out, in_offset, len, buf, se);
 			}
 			se.operation = operation_t::file_copy;
 			se.ec.assign(err, system_category());
@@ -315,13 +420,14 @@ ssize_t copy_range(int const fd_in, int const fd_out, off_t in_offset
 	return total_copied;
 #else
 	TORRENT_UNUSED(m);
-	return copy_range_fallback(fd_in, fd_out, in_offset, len, se);
+	return copy_range_fallback(fd_in, fd_out, in_offset, len, buf, se);
 #endif
 }
 
 } // anonymous namespace
 
-void copy_file(std::string const& inf, std::string const& newf, storage_error& se)
+void copy_file(
+	std::string const& inf, std::string const& newf, storage_error& se, copy_file_buffer& buf)
 {
 	se.ec.clear();
 	native_path_string f1 = convert_to_native_path_string(inf);
@@ -388,10 +494,11 @@ void copy_file(std::string const& inf, std::string const& newf, storage_error& s
 		return;
 	}
 
+	copy_range_mode m;
+
 #ifdef SEEK_HOLE
 	if (input_is_sparse)
 	{
-		copy_range_mode m;
 		ssize_t ret = 0;
 		off_t data_start = 0;
 		off_t data_end = 0;
@@ -423,15 +530,14 @@ void copy_file(std::string const& inf, std::string const& newf, storage_error& s
 				return;
 			}
 
-			ret = copy_range(infd.fd(), outfd.fd(), data_start, data_end - data_start, &m, se);
+			ret = copy_range(infd.fd(), outfd.fd(), data_start, data_end - data_start, m, buf, se);
 			if (ret <= 0) return;
 			if (data_end == in_stat.st_size) return;
 		}
 	}
 #endif
 
-	copy_range_mode m;
-	copy_range(infd.fd(), outfd.fd(), 0, in_stat.st_size, &m, se);
+	copy_range(infd.fd(), outfd.fd(), 0, in_stat.st_size, m, buf, se);
 }
 
 #endif // TORRENT_WINDOWS

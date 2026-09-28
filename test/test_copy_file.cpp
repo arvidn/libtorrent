@@ -93,12 +93,13 @@ TORRENT_TEST(basic)
 {
 	write_file("basic-1", 10);
 	lt::storage_error ec;
-	lt::aux::copy_file("basic-1", "basic-1.copy", ec);
+	lt::aux::copy_file_buffer buf;
+	lt::aux::copy_file("basic-1", "basic-1.copy", ec, buf);
 	TEST_CHECK(!ec);
 	TEST_CHECK(compare_files("basic-1", "basic-1.copy"));
 
 	write_file("basic-2", 1000000);
-	lt::aux::copy_file("basic-2", "basic-2.copy", ec);
+	lt::aux::copy_file("basic-2", "basic-2.copy", ec, buf);
 	TEST_CHECK(!ec);
 	TEST_CHECK(compare_files("basic-2", "basic-2.copy"));
 }
@@ -156,7 +157,8 @@ TORRENT_TEST(sparse_file)
 	}
 
 	lt::storage_error ec;
-	lt::aux::copy_file("sparse-1", "sparse-1.copy", ec);
+	lt::aux::copy_file_buffer buf;
+	lt::aux::copy_file("sparse-1", "sparse-1.copy", ec, buf);
 	TEST_CHECK(!ec);
 
 	// make sure the copy is sparse
@@ -194,7 +196,8 @@ TORRENT_TEST(sparse_file_trailing_hole)
 	write_sparse_file("sparse-trailing-hole", size, {{0, 'a'}});
 
 	lt::storage_error ec;
-	lt::aux::copy_file("sparse-trailing-hole", "sparse-trailing-hole.copy", ec);
+	lt::aux::copy_file_buffer buf;
+	lt::aux::copy_file("sparse-trailing-hole", "sparse-trailing-hole.copy", ec, buf);
 	TEST_CHECK(!ec);
 	TEST_CHECK(compare_files("sparse-trailing-hole", "sparse-trailing-hole.copy"));
 }
@@ -208,7 +211,8 @@ TORRENT_TEST(sparse_file_all_hole)
 	write_sparse_file("sparse-all-hole", size, {});
 
 	lt::storage_error ec;
-	lt::aux::copy_file("sparse-all-hole", "sparse-all-hole.copy", ec);
+	lt::aux::copy_file_buffer buf;
+	lt::aux::copy_file("sparse-all-hole", "sparse-all-hole.copy", ec, buf);
 	TEST_CHECK(!ec);
 	TEST_CHECK(compare_files("sparse-all-hole", "sparse-all-hole.copy"));
 }
@@ -223,7 +227,8 @@ TORRENT_TEST(sparse_file_replaces_longer_destination)
 	write_file("sparse-replace.copy", size * 2);
 
 	lt::storage_error ec;
-	lt::aux::copy_file("sparse-replace", "sparse-replace.copy", ec);
+	lt::aux::copy_file_buffer buf;
+	lt::aux::copy_file("sparse-replace", "sparse-replace.copy", ec, buf);
 	TEST_CHECK(!ec);
 	TEST_CHECK(compare_files("sparse-replace", "sparse-replace.copy"));
 }

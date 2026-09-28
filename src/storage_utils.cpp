@@ -106,6 +106,10 @@ namespace libtorrent { namespace aux {
 
 		// track how far we got in case of an error
 		file_index_t file_index{};
+		// reused by copy_file() across all files of this move, to avoid
+		// re-allocating the copy buffer (and re-querying the filesystem
+		// block size) for every file
+		copy_file_buffer copy_buf;
 		for (auto const i : f.file_range())
 		{
 			// files moved out to absolute paths are not moved
@@ -163,7 +167,7 @@ namespace libtorrent { namespace aux {
 				else
 #endif
 				{
-					copy_file(old_path, new_path, ec);
+					copy_file(old_path, new_path, ec, copy_buf);
 				}
 				if (!ec) copied_files[i] = true;
 			}
@@ -432,7 +436,8 @@ namespace libtorrent { namespace aux {
 			else
 #endif
 			{
-				copy_file(old_name, new_path, ec);
+				copy_file_buffer buf;
+				copy_file(old_name, new_path, ec, buf);
 			}
 			if (!ec)
 			{

@@ -708,7 +708,8 @@ TORRENT_TEST(unc_tests)
 	TEST_CHECK(exists(long_file_name2));
 
 	lt::storage_error se;
-	lt::aux::copy_file(long_file_name2, long_file_name1, se);
+	lt::aux::copy_file_buffer buf;
+	lt::aux::copy_file(long_file_name2, long_file_name1, se, buf);
 	TEST_EQUAL(se.ec, error_code());
 	if (se.ec)
 	{

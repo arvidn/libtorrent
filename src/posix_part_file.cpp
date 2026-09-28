@@ -340,7 +340,8 @@ namespace aux {
 			if (ec)
 			{
 				storage_error se;
-				aux::copy_file(old_path, new_path, se);
+				aux::copy_file_buffer buf;
+				aux::copy_file(old_path, new_path, se, buf);
 				ec = se.ec;
 				if (ec) return;
 				remove(old_path, ec);
