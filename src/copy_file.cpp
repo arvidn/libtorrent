@@ -329,7 +329,7 @@ std::size_t pick_buffer_size(int const fd_out)
 	return std::clamp(std::size_t(st.st_blksize) * 64, min_size, max_size);
 }
 
-ssize_t copy_range_fallback(int const fd_in,
+std::int64_t copy_range_fallback(int const fd_in,
 	int const fd_out,
 	off_t in_offset,
 	std::int64_t len,
@@ -350,7 +350,7 @@ ssize_t copy_range_fallback(int const fd_in,
 		}
 	}
 
-	ssize_t total_copied = 0;
+	std::int64_t total_copied = 0;
 	while (len > 0)
 	{
 		ssize_t const num_read = ::pread(fd_in,
@@ -382,7 +382,7 @@ ssize_t copy_range_fallback(int const fd_in,
 	return total_copied;
 }
 
-ssize_t copy_range(int const fd_in,
+std::int64_t copy_range(int const fd_in,
 	int const fd_out,
 	off_t in_offset,
 	std::int64_t len,
@@ -394,7 +394,7 @@ ssize_t copy_range(int const fd_in,
 	if (m.use_fallback)
 		return copy_range_fallback(fd_in, fd_out, in_offset, len, buf, se);
 
-	ssize_t total_copied = 0;
+	std::int64_t total_copied = 0;
 	off_t out_offset = in_offset;
 	ssize_t ret = 0;
 	do
@@ -499,7 +499,7 @@ void copy_file(
 #ifdef SEEK_HOLE
 	if (input_is_sparse)
 	{
-		ssize_t ret = 0;
+		std::int64_t ret = 0;
 		off_t data_start = 0;
 		off_t data_end = 0;
 		for (;;)
