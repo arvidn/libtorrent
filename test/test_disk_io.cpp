@@ -947,7 +947,7 @@ TORRENT_TEST(pread_disk_io_flush_completes_each_piece)
 }
 
 // with no disk threads, a flush pass runs on the thread that started it, and
-// completing jobs from inside it (add_completed_jobs -> schedule_flush) would
+// completing jobs from inside it runs the jobs a fence releases, which can
 // start a nested pass. So the completions of a pass are delivered when it ends.
 // The hash job is not submitted until the writes are posted, so the fence
 // behind it stays up, the writes queue behind the fence, and one pass finds all

@@ -178,8 +178,8 @@ private:
 	void thread_fun(aux::disk_io_thread_pool& pool
 		, executor_work_guard<io_context::executor_type> work);
 
-	void add_completed_jobs(jobqueue_t jobs);
-	void add_completed_jobs_impl(jobqueue_t jobs, jobqueue_t& completed);
+	void add_completed_jobs(jobqueue_t jobs, bool may_flush = true);
+	void add_completed_jobs_impl(jobqueue_t jobs, jobqueue_t& completed, bool may_flush);
 
 	// insert a write job's block into the cache. Returns the insert flags
 	// (need_hasher_kick / exceeded_limit). Does NOT kick the hasher or flush --
@@ -1874,10 +1874,11 @@ void pread_disk_io::try_flush_cache(int const target_cache_size
 	m_cache.flush_to_disk(
 		[&](bitfield& flushed, span<aux::disk_job* const> blocks) {
 			// complete the pieces flushed so far before writing the next one.
-			// Not without disk threads: add_completed_jobs() then flushes the
-			// cache itself (schedule_flush), which would nest a pass in this one
+			// Not without disk threads: add_completed_jobs() then runs the jobs a
+			// fence releases inline, and those can flush the cache, which would
+			// nest a pass in this one
 			if (!completed_jobs.empty() && m_generic_threads.max_threads() > 0)
-				add_completed_jobs(std::move(completed_jobs));
+				add_completed_jobs(std::move(completed_jobs), false);
 			return flush_cache_blocks(flushed, blocks, completed_jobs);
 		},
 		target_cache_size,
@@ -2193,7 +2194,7 @@ aux::disk_io_thread_pool& pread_disk_io::pool_for_job(aux::pread_disk_job* j)
 		return m_generic_threads;
 }
 
-void pread_disk_io::add_completed_jobs(jobqueue_t jobs)
+void pread_disk_io::add_completed_jobs(jobqueue_t jobs, bool const may_flush)
 {
 	jobqueue_t completed = std::move(jobs);
 	do
@@ -2202,13 +2203,14 @@ void pread_disk_io::add_completed_jobs(jobqueue_t jobs)
 		// a fence to be lowered, issuing the jobs queued up
 		// behind the fence
 		jobqueue_t new_jobs;
-		add_completed_jobs_impl(std::move(completed), new_jobs);
+		add_completed_jobs_impl(std::move(completed), new_jobs, may_flush);
 		TORRENT_ASSERT(completed.empty());
 		completed = std::move(new_jobs);
 	} while (!completed.empty());
 }
 
-void pread_disk_io::add_completed_jobs_impl(jobqueue_t jobs, jobqueue_t& completed)
+void pread_disk_io::add_completed_jobs_impl(
+	jobqueue_t jobs, jobqueue_t& completed, bool const may_flush)
 {
 	// When completing a job lowers a fence, job_complete() calls this repost
 	// callback -- still holding the fence's mutex -- once for each job that was
@@ -2308,11 +2310,13 @@ void pread_disk_io::add_completed_jobs_impl(jobqueue_t jobs, jobqueue_t& complet
 	if (ctx.need_kick) kick_write_hashers();
 
 	// every reposted write is in the cache now; flush if over the watermark.
-	schedule_flush();
+	if (may_flush)
+		schedule_flush();
 
 	// complete the reads we served from the cache, the same way the disk threads
 	// would have. This can lower further fences (re-entering via job_complete).
-	if (!ctx.cache_hits.empty()) add_completed_jobs(std::move(ctx.cache_hits));
+	if (!ctx.cache_hits.empty())
+		add_completed_jobs(std::move(ctx.cache_hits), may_flush);
 
 	// drain the storages queued in the loop above. With no generic threads the
 	// interrupt is a no-op and nothing else would drain m_fence_flush before the
