@@ -23,7 +23,7 @@ jobs:
 
    test:
       name: Tests
-      runs-on: macos-14
+      runs-on: macos-15
 
       strategy:
          matrix:
@@ -48,9 +48,10 @@ jobs:
           brew install boost-build boost openssl@3
           pip3 install websockets --break-system-packages
           echo "using darwin ;" >>~/user-config.jam
+          echo "OPENSSL_ROOT=$(brew --prefix openssl@3)" >>"$GITHUB_ENV"
 
       - name: build and run tests
-        run: (cd test; b2 ${{ matrix.config }} -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on deterministic-tests)
+        run: (cd test; b2 ${{ matrix.config }} -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on deterministic-tests openssl-include="$OPENSSL_ROOT/include" openssl-lib="$OPENSSL_ROOT/lib")
 
       - name: run tests (flaky)
         uses: nick-fields/retry@v4
@@ -58,12 +59,12 @@ jobs:
           timeout_minutes: 30
           retry_wait_seconds: 1
           max_attempts: 3
-          command: (cd test; b2 ${{ matrix.config }} -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on)
+          command: (cd test; b2 ${{ matrix.config }} -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on openssl-include="$OPENSSL_ROOT/include" openssl-lib="$OPENSSL_ROOT/lib")
 
 
    sim:
       name: Simulations
-      runs-on: macos-14
+      runs-on: macos-15
 
       steps:
       - name: checkout
@@ -83,16 +84,17 @@ jobs:
         run: |
           brew install boost-build boost openssl@3
           echo "using darwin ;" >>~/user-config.jam
+          echo "OPENSSL_ROOT=$(brew --prefix openssl@3)" >>"$GITHUB_ENV"
 
       - name: build and run simulations
         run: |
           cd simulation
-          b2 -l400 debug-iterators=on invariant-checks=full asserts=on
+          b2 -l400 debug-iterators=on invariant-checks=full asserts=on openssl-include="$OPENSSL_ROOT/include" openssl-lib="$OPENSSL_ROOT/lib"
 
 
    build:
       name: Build
-      runs-on: macos-14
+      runs-on: macos-15
 
       strategy:
          matrix:
@@ -116,15 +118,16 @@ jobs:
         run: |
           brew install boost-build boost openssl@3
           echo "using darwin ;" >>~/user-config.jam
+          echo "OPENSSL_ROOT=$(brew --prefix openssl@3)" >>"$GITHUB_ENV"
 
       - name: build library
         run: |
-          b2 ${{ matrix.config }} -l400 warnings-as-errors=on
+          b2 ${{ matrix.config }} -l400 warnings-as-errors=on openssl-include="$OPENSSL_ROOT/include" openssl-lib="$OPENSSL_ROOT/lib"
 
 
    cmake:
       name: cmake
-      runs-on: macos-14
+      runs-on: macos-15
 
       steps:
       - name: checkout
@@ -144,10 +147,11 @@ jobs:
         run: |
           brew install boost openssl@3 ninja
           pip3 install websockets --break-system-packages
+          echo "OPENSSL_ROOT=$(brew --prefix openssl@3)" >>"$GITHUB_ENV"
 
       - name: cmake configure
         run: |
-          cmake -B build-cmake -GNinja -DCMAKE_BUILD_TYPE=Debug -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dwebtorrent=on -Dasserts=on
+          cmake -B build-cmake -GNinja -DCMAKE_BUILD_TYPE=Debug -Dbuild_tests=ON -Dbuild_examples=ON -Dbuild_tools=ON -Dwebtorrent=on -Dasserts=on -DOPENSSL_ROOT_DIR="$OPENSSL_ROOT"
 
       - name: cmake build
         run: cmake --build build-cmake
@@ -163,7 +167,7 @@ jobs:
 
    ios_build:
       name: Build iOS
-      runs-on: macos-14
+      runs-on: macos-15
 
       steps:
       - name: checkout
