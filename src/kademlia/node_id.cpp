@@ -10,6 +10,7 @@ see LICENSE file.
 */
 
 #include <algorithm>
+#include <cstring>
 
 #include "libtorrent/kademlia/node_id.hpp"
 #include "libtorrent/kademlia/node_entry.hpp"
@@ -94,12 +95,16 @@ node_id generate_id_impl(address const& ip_, std::uint32_t r)
 	std::uint32_t c;
 	if (num_octets == 4)
 	{
-		c = aux::crc32c_32(*reinterpret_cast<std::uint32_t*>(ip));
+		std::uint32_t v;
+		std::memcpy(&v, ip, 4);
+		c = aux::crc32c_32(v);
 	}
 	else
 	{
 		TORRENT_ASSERT(num_octets == 8);
-		c = aux::crc32c(reinterpret_cast<std::uint64_t*>(ip), 1);
+		std::uint64_t v;
+		std::memcpy(&v, ip, 8);
+		c = aux::crc32c(&v, 1);
 	}
 	node_id id;
 

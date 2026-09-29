@@ -14,6 +14,7 @@ see LICENSE file.
 #include <cstdint>
 #include <string>
 #include <functional>
+#include <vector>
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/fwd.hpp"
@@ -26,6 +27,16 @@ see LICENSE file.
 namespace libtorrent::aux {
 
 	struct stat_cache;
+
+	// scratch space for copy_file(), reused across calls to avoid
+	// re-allocating (and, on POSIX, re-querying the filesystem block size
+	// for) the copy buffer for every file. Construct one instance per
+	// higher-level operation (e.g. once per move_storage() call, covering
+	// all its files) and pass it to every copy_file() call it makes
+	struct TORRENT_EXTRA_EXPORT copy_file_buffer
+	{
+		std::vector<char> buffer;
+	};
 
 	// moves the files in file_storage f from ``save_path`` to
 	// ``destination_save_path`` according to the rules defined by ``flags``.
@@ -97,8 +108,8 @@ namespace libtorrent::aux {
 	TORRENT_EXTRA_EXPORT void move_file(
 		std::string const& f, std::string const& newf, storage_error& se);
 
-	TORRENT_EXTRA_EXPORT void copy_file(std::string const& f
-		, std::string const& newf, storage_error& se);
+	TORRENT_EXTRA_EXPORT void copy_file(
+		std::string const& f, std::string const& newf, storage_error& se, copy_file_buffer& buf);
 }
 
 #endif

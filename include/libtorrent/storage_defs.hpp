@@ -32,6 +32,14 @@ namespace libtorrent {
 		// All pieces will be written to their final position, all files will be
 		// allocated in full when the torrent is first started. This mode minimizes
 		// fragmentation but could be a costly operation.
+		//
+		// On copy-on-write filesystems (e.g. btrfs, zfs, bcachefs, or
+		// log-structured filesystems such as nilfs2 and f2fs) this mode has no
+		// benefit and should be avoided. Those filesystems never overwrite a
+		// block in place, so a preallocated block is simply abandoned once the
+		// real piece data is written; the preallocation pass is pure wasted
+		// I/O and leaves extra garbage for the filesystem to reclaim. Use
+		// storage_mode_sparse there instead.
 		storage_mode_allocate,
 
 		// All pieces will be written to the place where they belong and sparse files

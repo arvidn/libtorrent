@@ -19,7 +19,6 @@ see LICENSE file.
 #include <algorithm>
 #include <numeric>
 #include <limits>
-#include <functional>
 #include <tuple>
 
 #include "libtorrent/aux_/piece_picker.hpp"
@@ -42,8 +41,6 @@ see LICENSE file.
 
 // this is really only useful for debugging unit tests
 //#define TORRENT_PICKER_LOG
-
-using namespace std::placeholders;
 
 namespace {
 template <typename C, typename V>
@@ -2017,6 +2014,7 @@ namespace {
 			TORRENT_ALLOCA(ordered_partials, downloading_piece const*
 				, m_downloads[piece_pos::piece_downloading].size());
 			int num_ordered_partials = 0;
+			std::int64_t num_free_blocks = 0;
 
 			// now, copy over the pointers. We also apply a filter here to not
 			// include ineligible pieces in certain modes. For instance, a piece
@@ -2027,34 +2025,72 @@ namespace {
 
 				if (!is_piece_free(dp.index, pieces)) continue;
 
+				// locked pieces can't be picked from (add_blocks_downloading()
+				// rejects them), so don't waste heap/sort work on them
+				if (dp.locked)
+					continue;
+
 				TORRENT_ASSERT(m_piece_map[dp.index].download_queue()
 					== piece_pos::piece_downloading);
 
+				int const free_blocks =
+					blocks_in_piece(dp.index) - dp.finished - dp.writing - dp.requested;
+				TORRENT_ASSERT(free_blocks >= 0);
+
 				ordered_partials[num_ordered_partials++] = &dp;
+				num_free_blocks += free_blocks;
 			}
 
-			// now, sort the list.
-			if (options & rarest_first)
+			auto const partial_less = [this](downloading_piece const* lhs,
+										  downloading_piece const* rhs) {
+				return partial_compare_rarest_first(lhs, rhs);
+			};
+			auto const heap_compare = [this](downloading_piece const* lhs,
+										  downloading_piece const* rhs) {
+				// make_heap() puts the greatest element first; reverse the
+				// comparison to put the rarest partial at the front.
+				return partial_compare_rarest_first(rhs, lhs);
+			};
+			auto heap_end = ordered_partials.begin() + num_ordered_partials;
+			// Requests below 10% of the available blocks are a heuristic for
+			// visiting only a small fraction of the partials. For larger scans,
+			// restoring the heap after each extraction can cost more than
+			// sorting once. The crossover depends on the partials and their
+			// free-block distribution.
+			constexpr std::int64_t partial_heap_capacity_ratio = 10;
+			bool const rarest_first_partials = (options & rarest_first) && !(options & on_parole);
+			bool const use_heap = rarest_first_partials
+				&& std::int64_t(num_blocks) * partial_heap_capacity_ratio < num_free_blocks;
+
+			if (rarest_first_partials)
 			{
 				ret |= picker_log_alert::rarest_first_partials;
 
-				// TODO: this could probably be optimized by incrementally
-				// calling partial_sort to sort one more element in the list. Because
-				// chances are that we'll just need a single piece, and once we've
-				// picked from it we're done. Sorting the rest of the list in that
-				// case is a waste of time.
-				std::sort(ordered_partials.begin(), ordered_partials.begin() + num_ordered_partials
-					, std::bind(&piece_picker::partial_compare_rarest_first, this
-						, _1, _2));
+				if (use_heap)
+					std::make_heap(ordered_partials.begin(), heap_end, heap_compare);
+				else
+					std::sort(ordered_partials.begin(), heap_end, partial_less);
 			}
 
 			for (int i = 0; i < num_ordered_partials; ++i)
 			{
+				if (use_heap && i > 0)
+				{
+					std::pop_heap(ordered_partials.begin(), heap_end, heap_compare);
+					--heap_end;
+				}
+				auto const* partial = use_heap ? ordered_partials.front() : ordered_partials[i];
+
 				ret |= picker_log_alert::prioritize_partials;
 
-				num_blocks = add_blocks_downloading(*ordered_partials[i], pieces
-					, interesting_blocks, backup_blocks
-					, num_blocks, prefer_contiguous_blocks, peer, options);
+				num_blocks = add_blocks_downloading(*partial,
+					pieces,
+					interesting_blocks,
+					backup_blocks,
+					num_blocks,
+					prefer_contiguous_blocks,
+					peer,
+					options);
 				if (num_blocks <= 0) return ret;
 				if (int(backup_blocks.size()) >= num_blocks)
 					break;

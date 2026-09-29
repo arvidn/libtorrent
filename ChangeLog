@@ -17,6 +17,11 @@
 	* reuse tracker connections when announcing multiple torrents
 	* remove predictive pieces feature
 
+2.1.3 not released
+
+	* improve copy_file throughput with dynamic buffer size
+	* fix disk.num_blocks_written over-counting with pread disk I/O
+
 2.1.2 released
 
 	* add missing python binding for filenames class

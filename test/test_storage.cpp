@@ -664,7 +664,12 @@ void test_pre_allocate()
 	std::string const test_path = absolute("pre_allocate_test_path");
 	delete_dirs(combine_path(test_path, "temp_storage"));
 
-	bool const supports_prealloc = fs_supports_prealloc();
+	filesystem_features const fs_features = query_filesystem_features();
+	bool const supports_prealloc = fs_features.prealloc;
+	// on some filesystems (nilfs2) preallocation isn't just a no-op, it
+	// actively inflates on-disk usage beyond the logical file size. There's
+	// nothing meaningful to assert about disk usage there.
+	bool const prealloc_wastes_space = fs_features.prealloc_wastes_space;
 	std::vector<char> buf;
 	typename file_pool_type<StorageType>::type fp;
 	io_context ios;
@@ -737,7 +742,7 @@ void test_pre_allocate()
 			{
 				TEST_CHECK(file_size_on_disk(path) >= fs.file_size(i));
 			}
-			else
+			else if (!prealloc_wastes_space)
 			{
 				TEST_CHECK(file_size_on_disk(path) <= fs.file_size(i));
 			}
@@ -763,7 +768,7 @@ void test_pre_allocate()
 		{
 			TEST_CHECK(file_size_on_disk(path) >= fs.file_size(i));
 		}
-		else
+		else if (!prealloc_wastes_space)
 		{
 			TEST_CHECK(file_size_on_disk(path) <= fs.file_size(i));
 		}
