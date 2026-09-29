@@ -164,9 +164,13 @@ void copy_range(HANDLE const in_handle,
 			== 0)
 		{
 			int const error = ::GetLastError();
-			if (error == ERROR_HANDLE_EOF) return;
-
 			se.operation = operation_t::file_read;
+			if (error == ERROR_HANDLE_EOF)
+			{
+				se.ec = errors::file_too_short;
+				return;
+			}
+
 			se.ec.assign(error, system_category());
 			return;
 		}
@@ -357,7 +361,12 @@ std::int64_t copy_range_fallback(int const fd_in,
 			buf.buffer.data(),
 			std::size_t(std::min(len, std::int64_t(buf.buffer.size()))),
 			in_offset);
-		if (num_read == 0) return total_copied;
+		if (num_read == 0)
+		{
+			se.operation = operation_t::file_read;
+			se.ec = errors::file_too_short;
+			return -1;
+		}
 		if (num_read < 0)
 		{
 			se.operation = operation_t::file_read;
@@ -414,9 +423,17 @@ std::int64_t copy_range(int const fd_in,
 			return -1;
 		}
 
+		if (ret == 0 && len > 0)
+		{
+			se.operation = operation_t::file_copy;
+			se.ec = errors::file_too_short;
+			return -1;
+		}
+
 		len -= ret;
 		total_copied += ret;
-	} while (len > 0 && ret > 0);
+	}
+	while (len > 0);
 	return total_copied;
 #else
 	TORRENT_UNUSED(m);
