@@ -266,14 +266,14 @@ namespace pp_bench {
 				char const* name;
 				int bits_set;
 			};
-			pp_case const cases[] = {
+			std::array<pp_case, 6> const cases{{
 				{"piece picker: refcount bitfield, 1 bit set", 1},
 				{"piece picker: refcount bitfield, 10 bits set", 10},
 				{"piece picker: refcount bitfield, 49 bits set", 49},
 				{"piece picker: refcount bitfield, 50 bits set", 50},
 				{"piece picker: refcount bitfield, 200 bits set", 200},
 				{"piece picker: refcount bitfield, 5000 bits set", 5000},
-			};
+			}};
 			for (auto const& c : cases)
 			{
 				piece_picker p = make_picker();
@@ -441,7 +441,7 @@ namespace pp_bench {
 			char const* few_blocks_name;
 			char const* all_blocks_name;
 		};
-		partial_case const partial_cases[] = {
+		std::array<partial_case, 2> const partial_cases{{
 			{100,
 				"piece picker: rare partials, 100, 1 block",
 				"piece picker: rare partials, 100, 16 blocks",
@@ -450,7 +450,7 @@ namespace pp_bench {
 				"piece picker: rare partials, 5000, 1 block",
 				"piece picker: rare partials, 5000, 16 blocks",
 				"piece picker: rare partials, 5000, all blocks"},
-		};
+		}};
 		for (auto const& c : partial_cases)
 		{
 			piece_picker p = make_picker();
@@ -486,7 +486,7 @@ namespace pp_bench {
 			char const* at_name;
 			char const* above_name;
 		};
-		partial_boundary_case const partial_boundary_cases[] = {
+		std::array<partial_boundary_case, 3> const partial_boundary_cases{{
 			{1,
 				"piece picker: rare partial boundary, 1 free, below",
 				"piece picker: rare partial boundary, 1 free, at",
@@ -499,7 +499,7 @@ namespace pp_bench {
 				"piece picker: rare partial boundary, 3 free, below",
 				"piece picker: rare partial boundary, 3 free, at",
 				"piece picker: rare partial boundary, 3 free, above"},
-		};
+		}};
 		for (auto const& c : partial_boundary_cases)
 		{
 			constexpr int partial_count = 1000;
