@@ -17,6 +17,8 @@ see LICENSE file.
 #include "libtorrent/session_stats.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "disk_io_test.hpp"
+#include "disk_cache_test_utils.hpp"
+#include "libtorrent/disk_observer.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/aux_/proxy_settings.hpp"
@@ -237,3 +239,83 @@ void run_rounds(lt::disk_io_constructor_type const& disk)
 }
 
 TORRENT_TEST_DISK_IO(error_handling) { run_rounds(disk_io); }
+
+// Exercise the pending-to-cache transfer directly so that piece and v2 queue
+// allocations fail before any unrelated session allocation can consume the fault.
+TORRENT_TEST(pending_write_allocation_failure)
+{
+	for (auto const mode : {test_mode::v1, test_mode::v2})
+	{
+		for (bool const retry : {false, true})
+		{
+			int failures = 0;
+			bool exhausted = false;
+			for (int round = 1; round < 32; ++round)
+			{
+				sim::default_config cfg;
+				sim::simulation sim{cfg};
+				lt::io_context ios{sim};
+				lt::aux::disk_cache cache{ios};
+				cache.set_max_size(1);
+				test_allocator alloc;
+				lt::aux::pread_disk_job j;
+				j.action = lt::aux::job::write{
+					{}, alloc.alloc(), lt::piece_index_t{0}, 0, lt::default_block_size};
+				lt::aux::piece_location const loc{lt::storage_index_t{0}, lt::piece_index_t{0}};
+				lt::aux::disk_cache::piece_entry_params const params{lt::default_block_size,
+					lt::default_block_size,
+					bool(mode & test_mode::v1),
+					bool(mode & test_mode::v2),
+					{}};
+				struct observer final : lt::disk_observer
+				{
+					void on_disk() override { ++calls; }
+					int calls = 0;
+				};
+				auto o = std::make_shared<observer>();
+				TEST_CHECK(cache.add_pending_write(&j, o));
+				bool failed = false;
+				g_alloc_counter = round;
+				try
+				{
+					cache.insert_pending_write(loc, 0, false, &j, params);
+				}
+				catch (std::bad_alloc const&)
+				{
+					failed = true;
+				}
+				exhausted = g_alloc_counter > 0;
+				g_alloc_counter = 1000000;
+				if (failed)
+				{
+					++failures;
+					TEST_EQUAL(cache.size(), 0);
+					TEST_CHECK(cache.flush_request().has_value());
+					TEST_CHECK(std::get<lt::aux::job::write>(j.action).buf);
+					TEST_CHECK(std::get<lt::aux::job::write>(j.action).borrowed_buf == nullptr);
+					if (retry)
+						cache.insert_pending_write(loc, 0, false, &j, params);
+					else
+						cache.remove_pending_write(&j);
+				}
+				if (!failed || retry)
+					TEST_EQUAL(cache.size(), 1);
+				lt::jobqueue_t aborted;
+				cache.remove_storage(lt::storage_index_t{0}, aborted);
+				while (!aborted.empty())
+					std::get<lt::aux::job::write>(aborted.pop_front()->action).buf.reset();
+				cache.flush_to_disk(
+					[](lt::bitfield&, lt::span<lt::aux::disk_job* const>) { return 0; },
+					0,
+					[](lt::jobqueue_t, lt::aux::disk_job*) {});
+				sim.run();
+				TEST_EQUAL(alloc.live, 0);
+				TEST_EQUAL(o->calls, 1);
+				if (exhausted)
+					break;
+			}
+			TEST_CHECK(failures > 0);
+			TEST_CHECK(exhausted);
+		}
+	}
+}
