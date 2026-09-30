@@ -42,9 +42,10 @@ jobs:
         run: |
           brew install boost-build boost openssl@3
           echo "using darwin ;" >>~/user-config.jam
+          echo "OPENSSL_ROOT=$(brew --prefix openssl@3)" >>"$GITHUB_ENV"
 
       - name: build and run tests
-        run: (cd test; b2 ${{ matrix.config }} -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on deterministic-tests)
+        run: (cd test; b2 ${{ matrix.config }} -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on deterministic-tests openssl-include="$OPENSSL_ROOT/include" openssl-lib="$OPENSSL_ROOT/lib")
 
       - name: run tests (flaky)
         uses: nick-fields/retry@v4
@@ -52,7 +53,7 @@ jobs:
           timeout_minutes: 30
           retry_wait_seconds: 1
           max_attempts: 3
-          command: (cd test; b2 ${{ matrix.config }} -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on)
+          command: (cd test; b2 ${{ matrix.config }} -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on openssl-include="$OPENSSL_ROOT/include" openssl-lib="$OPENSSL_ROOT/lib")
 
 
    sim:
@@ -77,11 +78,12 @@ jobs:
         run: |
           brew install boost-build boost openssl@3
           echo "using darwin ;" >>~/user-config.jam
+          echo "OPENSSL_ROOT=$(brew --prefix openssl@3)" >>"$GITHUB_ENV"
 
       - name: build and run simulations
         run: |
           cd simulation
-          b2 -l400 debug-iterators=on invariant-checks=full asserts=on
+          b2 -l400 debug-iterators=on invariant-checks=full asserts=on openssl-include="$OPENSSL_ROOT/include" openssl-lib="$OPENSSL_ROOT/lib"
 
 
    build:
@@ -111,10 +113,11 @@ jobs:
         run: |
           brew install boost-build boost openssl@3
           echo "using darwin ;" >>~/user-config.jam
+          echo "OPENSSL_ROOT=$(brew --prefix openssl@3)" >>"$GITHUB_ENV"
 
       - name: build library
         run: |
-          b2 ${{ matrix.config }} -l400 warnings-as-errors=on cxxstd=14
+          b2 ${{ matrix.config }} -l400 warnings-as-errors=on cxxstd=14 openssl-include="$OPENSSL_ROOT/include" openssl-lib="$OPENSSL_ROOT/lib"
 
 
    ios_build:
