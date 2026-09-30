@@ -467,6 +467,9 @@ namespace errors {
 		// configured maximum depth (see load_torrent_limits)
 		torrent_directory_too_deep,
 
+		// the requested piece has not been written to the part file
+		partfile_missing_piece,
+
 		// the number of error codes
 		error_code_max
 	};
