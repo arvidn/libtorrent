@@ -1,5 +1,6 @@
 2.1.3 not released
 
+	* fix out of bounds write in the alert_message C binding on non-positive size
 	* fix pread disk I/O holding back write completions until the end of a flush
 	* fix pread disk I/O async_hash2() of a cached block that ends in a pad file
 	* improve copy_file throughput with dynamic buffer size
