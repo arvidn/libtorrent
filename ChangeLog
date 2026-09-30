@@ -1,3 +1,5 @@
+	* reduce lock contention when hashing pieces
+
 2.0.15 released
 
 	* fix inline asm for crc32 computation

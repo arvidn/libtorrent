@@ -71,6 +71,9 @@ namespace libtorrent {
 
 namespace {
 
+	// files that are not memory mapped are hashed in chunks of this size
+	constexpr std::ptrdiff_t hash_read_size = 256 * 1024;
+
 error_code translate_error(std::error_code const& err, bool const write)
 {
 	// We don't really know why we failed to read or write. SIGBUS essentially
@@ -776,10 +779,20 @@ error_code translate_error(std::error_code const& err, bool const write)
 
 			if (!handle->has_memory_map())
 			{
-				scratch.resize(std::size_t(buf.size()));
-				int const ret = aux::pread_all(handle->fd(), scratch, file_offset, ec.ec);
-				if (ec) return -1;
-				ph.update(scratch);
+				// a single call may cover a whole piece, read it in bounded chunks
+				scratch.resize(std::size_t(std::min(buf.size(), hash_read_size)));
+				int ret = 0;
+				for (std::ptrdiff_t left = buf.size(); left > 0;)
+				{
+					span<char> const b(scratch.data(), std::min(left, std::ptrdiff_t(scratch.size())));
+					int const r = aux::pread_all(handle->fd(), b, file_offset + ret, ec.ec);
+					if (ec) return -1;
+					ph.update(b.first(r));
+					ret += r;
+					left -= r;
+					// pread_all() on windows does not report a short read as an error
+					if (r < b.size()) break;
+				}
 				return ret;
 			}
 

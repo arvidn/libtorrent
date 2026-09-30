@@ -1043,6 +1043,30 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		TORRENT_ASSERT(!v2 || int(j->d.h.block_hashes.size()) >= blocks_in_piece2);
 		TORRENT_ASSERT(v1 || v2);
 
+		// a v1 piece with none of its blocks in the store buffer (every piece of
+		// a recheck) is hashed with a single storage call, rather than one call
+		// per block
+		if (v1 && !v2 && !m_store_buffer.has_piece(j->storage->storage_index(), j->piece
+			, blocks_in_piece))
+		{
+			time_point const start_time = clock_type::now();
+			hasher h;
+			j->error.ec.clear();
+			int const ret = j->storage->hash(m_settings, h, piece_size, j->piece, 0
+				, file_mode, j->flags, j->error);
+			if (!j->error.ec)
+			{
+				std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+				m_stats_counters.inc_stats_counter(counters::num_read_back, blocks_in_piece);
+				m_stats_counters.inc_stats_counter(counters::num_blocks_read, blocks_in_piece);
+				m_stats_counters.inc_stats_counter(counters::num_read_ops);
+				m_stats_counters.inc_stats_counter(counters::disk_hash_time, read_time);
+				m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
+			}
+			j->d.h.piece_hash = h.final();
+			return ret >= 0 ? status_t::no_error : status_t::fatal_disk_error;
+		}
+
 		hasher h;
 		int ret = 0;
 		int offset = 0;

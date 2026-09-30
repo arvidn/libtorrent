@@ -37,6 +37,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <mutex>
 
 #include "libtorrent/storage_defs.hpp"
+#include "libtorrent/disk_interface.hpp" // for default_block_size
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/functional/hash.hpp>
@@ -116,6 +117,17 @@ struct store_buffer
 			return 0;
 
 		return f(buf1, buf2);
+	}
+
+	// returns true if any of the first `blocks` blocks of the piece is waiting
+	// to be written
+	bool has_piece(storage_index_t const torrent, piece_index_t const piece
+		, int const blocks) const
+	{
+		std::unique_lock<std::mutex> l(m_mutex);
+		for (int i = 0; i < blocks; ++i)
+			if (m_store_buffer.count({torrent, piece, i * default_block_size})) return true;
+		return false;
 	}
 
 	void insert(torrent_location const loc, char const* buf)

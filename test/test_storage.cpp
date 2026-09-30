@@ -64,6 +64,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional> // for bind
 #include <fstream>
 #include <iostream>
+#include <limits>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/variant/get.hpp>
@@ -873,6 +874,147 @@ void test_check_files_mmap(check_files_flag_t const flags)
 	test_check_files(flags, lt::mmap_disk_io_constructor);
 	test_check_files(flags, lt::mmap_disk_io_constructor, 0, 1);
 	test_check_files(flags, lt::mmap_disk_io_constructor, 0, 2);
+}
+
+// hash pieces that span several files and many 16 kiB blocks, with file slices
+// larger than the read chunk of the pread path. Every piece must match, and a
+// damaged or truncated file must fail only the pieces it touches.
+void test_hash_multi_block_pieces(bool const pread)
+{
+	std::string const test_path = current_working_directory();
+	delete_dirs("temp_storage");
+	error_code ec;
+	create_directory(combine_path(test_path, "temp_storage"), ec);
+	TEST_CHECK(!ec);
+
+	// piece 0: file 0 and most of file 1
+	// piece 1: the rest of file 1, file 2 (1 byte) and the start of file 3
+	// piece 2: the rest of file 3
+	constexpr int piece_size_hash = 32 * default_block_size;
+	int const sizes[] = {6 * default_block_size + 100, 45 * default_block_size, 1
+		, 18 * default_block_size + 1234};
+	auto file_path = [&](int const i)
+	{ return combine_path(test_path, combine_path("temp_storage", "hash" + std::to_string(i) + ".tmp")); };
+
+	file_storage fs;
+	for (int i = 0; i < 4; ++i)
+		fs.add_file(combine_path("temp_storage", "hash" + std::to_string(i) + ".tmp"), sizes[i]);
+
+	std::vector<char> const data = new_piece(std::size_t(fs.total_size()));
+	lt::create_torrent t(fs, piece_size_hash, create_torrent::v1_only);
+	TEST_EQUAL(t.num_pieces(), 3);
+
+	auto expected = [&](piece_index_t const p)
+	{
+		std::ptrdiff_t const start = std::ptrdiff_t(static_cast<int>(p)) * piece_size_hash;
+		std::ptrdiff_t const len = std::min(std::ptrdiff_t(piece_size_hash), std::ptrdiff_t(data.size()) - start);
+		return hasher(span<char const>(data).subspan(start, len)).final();
+	};
+
+	std::ptrdiff_t offset = 0;
+	for (int i = 0; i < 4; ++i)
+	{
+		ofstream(file_path(i).c_str()).write(data.data() + offset, sizes[i]);
+		offset += sizes[i];
+	}
+
+	aux::session_settings sett;
+	sett.set_int(settings_pack::aio_threads, 1);
+	sett.set_int(settings_pack::hashing_threads, 2);
+	if (pread)
+		sett.set_int(settings_pack::mmap_file_size_cutoff, std::numeric_limits<int>::max());
+	boost::asio::io_context ios;
+	counters cnt;
+	std::unique_ptr<disk_interface> io = mmap_disk_io_constructor(ios, sett, cnt);
+
+	aux::vector<download_priority_t, file_index_t> priorities;
+	sha1_hash info_hash;
+	storage_params p{fs, nullptr, test_path, storage_mode_sparse, priorities, info_hash};
+	auto st = io->new_torrent(std::move(p), std::shared_ptr<void>());
+
+	bool done = false;
+	bool oversized = false;
+	add_torrent_params frd;
+	aux::vector<std::string, file_index_t> links;
+	io->async_check_files(st, &frd, links
+		, std::bind(&on_check_resume_data, _1, _2, &done, &oversized));
+	io->submit_jobs();
+	ios.restart();
+	run_until(ios, done);
+
+	auto hash_piece = [&](piece_index_t const piece, sha1_hash& hash, storage_error& error)
+	{
+		bool piece_done = false;
+		io->async_hash(st, piece, {}
+			, disk_interface::sequential_access | disk_interface::volatile_read | disk_interface::v1_hash
+			, [&](piece_index_t, sha1_hash const& h, storage_error const& e)
+			{
+				hash = h;
+				error = e;
+				piece_done = true;
+			});
+		io->submit_jobs();
+		ios.restart();
+		run_until(ios, piece_done);
+	};
+
+	for (piece_index_t i(0); i < piece_index_t(3); ++i)
+	{
+		sha1_hash h;
+		storage_error e;
+		hash_piece(i, h, e);
+		TEST_CHECK(!e);
+		TEST_EQUAL(h, expected(i));
+	}
+
+	// flip one byte of piece 1 in file 1. Only piece 1 may fail
+	{
+		std::int64_t const pos = std::int64_t(piece_size_hash) + 5000;
+		std::fstream f(file_path(1), std::ios::in | std::ios::out | std::ios::binary);
+		f.seekp(pos - sizes[0]);
+		char const c = char(data[std::size_t(pos)] ^ 0x55);
+		f.write(&c, 1);
+	}
+	for (piece_index_t i(0); i < piece_index_t(3); ++i)
+	{
+		sha1_hash h;
+		storage_error e;
+		hash_piece(i, h, e);
+		TEST_CHECK(!e);
+		if (i == piece_index_t(1))
+			TEST_CHECK(h != expected(i));
+		else
+			TEST_EQUAL(h, expected(i));
+	}
+
+	// truncate file 3, which is the end of piece 2. Piece 2 must fail
+	bool released = false;
+	io->async_release_files(st, [&] { released = true; });
+	io->submit_jobs();
+	ios.restart();
+	run_until(ios, released);
+	ofstream(file_path(3).c_str()).write(data.data() + offset - sizes[3], sizes[3] - 1000);
+	{
+		sha1_hash h;
+		storage_error e;
+		hash_piece(piece_index_t(2), h, e);
+		TEST_CHECK(e || h != expected(piece_index_t(2)));
+		hash_piece(piece_index_t(0), h, e);
+		TEST_CHECK(!e);
+		TEST_EQUAL(h, expected(piece_index_t(0)));
+	}
+
+	io->abort(true);
+}
+
+TORRENT_TEST(hash_multi_block_pieces_mmap)
+{
+	test_hash_multi_block_pieces(false);
+}
+
+TORRENT_TEST(hash_multi_block_pieces_pread)
+{
+	test_hash_multi_block_pieces(true);
 }
 
 TORRENT_TEST(check_files_sparse_mmap)

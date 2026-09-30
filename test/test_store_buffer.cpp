@@ -184,3 +184,20 @@ TORRENT_TEST(store_buffer_get2)
 	check2_miss(sb, loc[7], loc[4]);
 }
 
+
+TORRENT_TEST(store_buffer_has_piece)
+{
+	int const bs = lt::default_block_size;
+	store_buffer sb;
+	TEST_CHECK(!sb.has_piece(st0, p0, 4));
+
+	sb.insert(torrent_location(st0, p0, 2 * bs), &buf1);
+	TEST_CHECK(sb.has_piece(st0, p0, 4));
+	// the block is outside the first two blocks
+	TEST_CHECK(!sb.has_piece(st0, p0, 2));
+	TEST_CHECK(!sb.has_piece(st0, p1, 4));
+	TEST_CHECK(!sb.has_piece(st1, p0, 4));
+
+	sb.erase(torrent_location(st0, p0, 2 * bs));
+	TEST_CHECK(!sb.has_piece(st0, p0, 4));
+}
