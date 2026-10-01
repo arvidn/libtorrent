@@ -7,7 +7,7 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
-// Fuzzes aux::resolve_duplicate_filenames() (the whole-tree pass) and
+// Fuzzes aux::resolve_duplicate_filenames() (the full-path pass) and
 // aux::resolve_directory_duplicates() (the deduplicate_per_directory
 // pass) against the same generated file tree, checking each upholds its
 // own uniqueness invariant. Pad files are excluded, since same-size pad
@@ -143,7 +143,7 @@ extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, size_t size)
 	}
 
 	// deduplicate_per_directory's namespace is per-parent rather than
-	// whole-tree: the same name may legitimately appear in two unrelated
+	// torrent-wide: the same name may legitimately appear in two unrelated
 	// directories, so the invariant here is scoped to siblings (elements
 	// sharing a parent) instead of full resolved paths. Both files and
 	// directories are renamed by this pass, so both are checked, keyed

@@ -8356,7 +8356,7 @@ namespace {
 					info->internal_rename_path_elements(structural_renames);
 #endif
 			}
-			else if (!ec)
+			else if (!ec && (cfg.sanitize_flags & path_sanitize_flags::deduplicate_full_path))
 			{
 				whole_tree_renames = aux::resolve_duplicate_filenames(
 					info->layout(), cfg.max_duplicate_filenames, ec);

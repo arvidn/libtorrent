@@ -95,14 +95,25 @@ struct test_torrent_t
 
 using namespace lt;
 
-// pins the resolve_duplicate_filenames() whole-tree pass (renamed_files
+// pins the resolve_duplicate_filenames() full-path pass (renamed_files
 // populated, directories exempt from collision-renaming), for tests that
 // lock in that specific algorithm's tie-break rules rather than
 // default_flags' current behavior
-load_torrent_limits whole_tree_dedup_cfg()
+load_torrent_limits full_path_dedup_cfg()
 {
 	load_torrent_limits c;
 	c.sanitize_flags = path_sanitize_flags::libtorrent_2_1;
+	return c;
+}
+
+// default_flags with both deduplication passes turned off, so colliding
+// file paths are left as-is
+load_torrent_limits no_dedup_cfg()
+{
+	load_torrent_limits c;
+	c.sanitize_flags = path_sanitize_flags::default_flags
+		& ~(path_sanitize_flags::deduplicate_full_path
+			| path_sanitize_flags::deduplicate_per_directory);
 	return c;
 }
 
@@ -154,7 +165,21 @@ static test_torrent_t const test_torrents[] = {
 			TEST_CHECK(atp.ti->layout().file_path(file_index_t{0}) == combine_path(combine_path("temp", "foo"), "bar.txt"));
 			TEST_EQUAL(atp.renamed_files.find(file_index_t{1})->second, combine_path(combine_path("temp", "foo"), "bar.1.txt"));
 		},
-		whole_tree_dedup_cfg()},
+		full_path_dedup_cfg()},
+	{"duplicate_files.torrent",
+		[](lt::add_torrent_params const& atp) {
+			// with deduplication disabled, both files keep the same path
+			TEST_EQUAL(atp.ti->num_files(), 2);
+			TEST_CHECK(atp.renamed_files.empty());
+			TEST_CHECK(atp.renamed_path_elements.empty());
+			std::string const path = combine_path(combine_path("temp", "foo"), "bar.txt");
+			TEST_EQUAL(atp.ti->layout().file_path(file_index_t{0}), path);
+			TEST_EQUAL(atp.ti->layout().file_path(file_index_t{1}), path);
+#if TORRENT_ABI_VERSION < 4
+			TEST_EQUAL(atp.ti->files().file_path(file_index_t{1}), path);
+#endif
+		},
+		no_dedup_cfg()},
 	{"pad_file.torrent",
 		[](lt::add_torrent_params atp) {
 			TEST_EQUAL(atp.ti->num_files(), 2);
@@ -314,7 +339,24 @@ static test_torrent_t const test_torrents[] = {
 			TEST_EQUAL(atp.ti->layout().file_path(file_index_t{1}), "test2" SEPARATOR "_" SEPARATOR "foo");
 			TEST_EQUAL(atp.renamed_files[file_index_t{1}], "test2" SEPARATOR "_" SEPARATOR "foo.1");
 		},
-		whole_tree_dedup_cfg()},
+		full_path_dedup_cfg()},
+	{"invalid_directory_name.torrent",
+		[](lt::add_torrent_params const& atp) {
+			// with deduplication disabled, two distinct raw directory names
+			// that sanitize to the same "_" leave both files on one path
+			TEST_EQUAL(atp.ti->num_files(), 2);
+			TEST_CHECK(atp.renamed_files.empty());
+			TEST_CHECK(atp.renamed_path_elements.empty());
+#if TORRENT_ABI_VERSION < 4
+			TEST_EQUAL(
+				atp.ti->files().file_path(file_index_t{1}), "test2" SEPARATOR "_" SEPARATOR "foo");
+#endif
+			TEST_EQUAL(
+				atp.ti->layout().file_path(file_index_t{0}), "test2" SEPARATOR "_" SEPARATOR "foo");
+			TEST_EQUAL(
+				atp.ti->layout().file_path(file_index_t{1}), "test2" SEPARATOR "_" SEPARATOR "foo");
+		},
+		no_dedup_cfg()},
 	{"v2.torrent",
 		[](lt::add_torrent_params atp) {
 			TEST_EQUAL(atp.ti->num_files(), 1);
@@ -378,7 +420,7 @@ static test_torrent_t const test_torrents[] = {
 			TEST_EQUAL(atp.ti->layout().file_path(file_index_t{2}), "test" SEPARATOR "stress_test2"_sv);
 			TEST_EQUAL(atp.renamed_files[file_index_t{1}], "test" SEPARATOR "_.1"_sv);
 		},
-		whole_tree_dedup_cfg()},
+		full_path_dedup_cfg()},
 	{"v2_symlinks.torrent",
 		[](lt::add_torrent_params atp) {
 			TEST_CHECK(atp.ti->num_files() > 3);
@@ -512,13 +554,13 @@ test_failing_torrent_t test_error_torrents[] = {
 	{"v2_zero_root.torrent", errors::torrent_missing_pieces_root},
 	{"v2_zero_root_small.torrent", errors::torrent_missing_pieces_root},
 	{"v2_empty_filename.torrent", errors::torrent_file_parse_failed},
-	// pins the whole-tree resolve_duplicate_filenames_slow() pass: its
+	// pins the full-path resolve_duplicate_filenames_slow() pass: its
 	// restart-from-1 probing across 118 duplicates of the same name
 	// exhausts the default max_duplicate_filenames, unlike
 	// deduplicate_per_directory's counter-resuming algorithm (part of
 	// default_flags), which resolves the same input without ever
 	// approaching that limit
-	{"duplicate_files2.torrent", errors::too_many_duplicate_filenames, whole_tree_dedup_cfg()},
+	{"duplicate_files2.torrent", errors::too_many_duplicate_filenames, full_path_dedup_cfg()},
 };
 
 } // anonymous namespace
@@ -1584,9 +1626,9 @@ namespace {
 		// this test locks in resolve_duplicate_filenames()'s own tie-break
 		// rules (directory precedence over files, case-fold exemption for
 		// directories, pad-file coincidence handling), so it pins that
-		// whole-tree pass explicitly rather than default_flags' current
+		// full-path pass explicitly rather than default_flags' current
 		// deduplicate_per_directory behavior
-		auto const atp = load_torrent_buffer(tmp, whole_tree_dedup_cfg());
+		auto const atp = load_torrent_buffer(tmp, full_path_dedup_cfg());
 		for (auto const i : t.file_range())
 		{
 			std::string const p = resolved_path(atp, i);
@@ -1652,7 +1694,7 @@ TORRENT_TEST(load_torrent_duplicate_filenames_configurable)
 		// call), not deduplicate_per_directory's counter-resuming
 		// algorithm (part of default_flags), which would resolve the same
 		// input without ever exhausting this limit
-		load_torrent_limits cfg = whole_tree_dedup_cfg();
+		load_torrent_limits cfg = full_path_dedup_cfg();
 		cfg.max_duplicate_filenames = t.max_duplicate_filenames;
 		auto const atp = load_torrent_buffer(buf, ec, cfg);
 		TEST_EQUAL(ec, t.expected);
@@ -1714,7 +1756,7 @@ namespace {
 // sanitize_path_element() in isolation), and checks the resulting
 // file paths and rename count. This locks in a baseline for the
 // path-sanitization and duplicate-filename-resolution rules of the
-// whole-tree resolve_duplicate_filenames() pass specifically (hence
+// full-path resolve_duplicate_filenames() pass specifically (hence
 // pinning deduplicate_per_directory off below, even though it's part of
 // default_flags), so a future change to either ruleset has something
 // concrete to diff against.
@@ -1793,7 +1835,7 @@ void test_raw_path_sanitize_case(raw_path_sanitize_case const& t)
 	auto const buf = make_v1_torrent_raw(t.paths);
 
 	error_code ec;
-	auto const atp = load_torrent_buffer(buf, ec, whole_tree_dedup_cfg());
+	auto const atp = load_torrent_buffer(buf, ec, full_path_dedup_cfg());
 	TEST_CHECK(!ec);
 	TEST_CHECK(atp.ti);
 	if (!atp.ti)
@@ -1825,7 +1867,7 @@ namespace {
 // path_sanitize_flags::deduplicate_per_directory set, resolved via
 // aux::resolve_directory_duplicates() (the function torrent::init()
 // calls) directly against the parsed, undeduped layout, rather than
-// resolve_duplicate_filenames()'s whole-tree pass. Never mutates
+// resolve_duplicate_filenames()'s full-path pass. Never mutates
 // file_storage, so the raw names still show up in atp.ti->layout();
 // only the renamed_files this produces reflects the deduped ones.
 struct dedup_per_directory_case
@@ -1833,23 +1875,26 @@ struct dedup_per_directory_case
 	std::vector<std::vector<std::string>> paths;
 	std::vector<std::string> expected;
 	// non-empty only for cases where the same raw "paths" collide the
-	// same way under the whole-tree resolve_duplicate_filenames() pass
-	// (via whole_tree_dedup_cfg()): a plain run of duplicate filenames,
+	// same way under the full-path resolve_duplicate_filenames() pass
+	// (via full_path_dedup_cfg()): a plain run of duplicate filenames,
 	// with no directory-renaming or dash/dot-suffixed literal names
 	// involved, so the only difference between the two passes' output
-	// is "-N" vs the whole-tree pass's own ".N". Left empty for cases
+	// is "-N" vs the full-path pass's own ".N". Left empty for cases
 	// that exercise deduplicate_per_directory-only behavior (directory
 	// renaming, or a literal name already shaped like one pass's own
 	// suffix), where the two passes don't produce comparable output at
 	// all.
-	std::vector<std::string> whole_tree_expected;
+	std::vector<std::string> full_path_expected;
+	// the same raw "paths" with neither deduplication bit set: no
+	// collision is resolved, so colliding entries keep their paths
+	std::vector<std::string> no_dedup_expected;
 };
 
 std::vector<dedup_per_directory_case> const dedup_per_directory_cases = {
 	// a run of identical names resumes the "-N" counter from the last
 	// one picked, rather than rescanning from 1 each time. Nothing here
 	// is specific to deduplicate_per_directory (no directory renaming,
-	// no literal name already shaped like a suffix), so the whole-tree
+	// no literal name already shaped like a suffix), so the full-path
 	// pass resolves the identical collision the same way, just with its
 	// own ".N" instead
 	{
@@ -1868,6 +1913,11 @@ std::vector<dedup_per_directory_case> const dedup_per_directory_cases = {
 			"root/dir/dup.1.txt",
 			"root/dir/dup.2.txt",
 		},
+		{
+			"root/dir/dup.txt",
+			"root/dir/dup.txt",
+			"root/dir/dup.txt",
+		},
 	},
 	// a real, pre-existing "dup-1.txt" is not clobbered: the second
 	// "dup.txt" duplicate's first attempt collides with it, so it
@@ -1884,6 +1934,11 @@ std::vector<dedup_per_directory_case> const dedup_per_directory_cases = {
 			"root/dir/dup-2.txt",
 		},
 		{},
+		{
+			"root/dir/dup.txt",
+			"root/dir/dup-1.txt",
+			"root/dir/dup.txt",
+		},
 	},
 	// unlike the default algorithm, directories are not exempt from
 	// collision-renaming here: two distinct raw names ('/' and '\\',
@@ -1900,12 +1955,16 @@ std::vector<dedup_per_directory_case> const dedup_per_directory_cases = {
 			"root/_-1/fileB",
 		},
 		{},
+		{
+			"root/_/fileA",
+			"root/_/fileB",
+		},
 	},
 	// matching is case-insensitive here too, same as the default
 	// algorithm, so names differing only in case still collide; the
 	// second one is renamed, keeping its own original case. Again
 	// nothing here is specific to deduplicate_per_directory, so the
-	// whole-tree pass produces the same rename with its own ".N"
+	// full-path pass produces the same rename with its own ".N"
 	{
 		{
 			{"dir", "Foo.txt"},
@@ -1919,10 +1978,14 @@ std::vector<dedup_per_directory_case> const dedup_per_directory_cases = {
 			"root/dir/Foo.txt",
 			"root/dir/foo.1.txt",
 		},
+		{
+			"root/dir/Foo.txt",
+			"root/dir/foo.txt",
+		},
 	},
 	// two directories differing only by case collide here too, unlike
-	// the whole-tree algorithm (see resolve_duplicates' "test/Dir/a" /
-	// "test/dir/b" case, pinned to whole_tree_dedup_cfg()), where they fold
+	// the full-path algorithm (see resolve_duplicates' "test/Dir/a" /
+	// "test/dir/b" case, pinned to full_path_dedup_cfg()), where they fold
 	// together unrenamed
 	{
 		{
@@ -1934,6 +1997,10 @@ std::vector<dedup_per_directory_case> const dedup_per_directory_cases = {
 			"root/dir-1/b",
 		},
 		{},
+		{
+			"root/Dir/a",
+			"root/dir/b",
+		},
 	},
 	// same as above, but the two directory names differ in case at more
 	// than one position, and the files inside ("A", "B") don't collide
@@ -1949,15 +2016,19 @@ std::vector<dedup_per_directory_case> const dedup_per_directory_cases = {
 			"root/DupDir-1/B",
 		},
 		{},
+		{
+			"root/dupdir/A",
+			"root/DupDir/B",
+		},
 	},
 	// a file colliding with a directory is resolved the same way as any
 	// other collision here: whichever was created first (lowest
 	// path_index_t) keeps the name. The bare file "a" is parsed before
 	// "a/b" ever needs a directory named "a", so the file's own leaf
 	// gets the lower index and keeps "a"; the directory is renamed
-	// instead. This differs from the whole-tree algorithm's rule (see
+	// instead. This differs from the full-path algorithm's rule (see
 	// resolve_duplicates' "test/a" / "test/a/b" case, pinned to
-	// whole_tree_dedup_cfg()), which always renames the file regardless
+	// full_path_dedup_cfg()), which always renames the file regardless
 	// of parse order; deduplicate_per_directory doesn't need to match
 	// that, only be deterministic for identical input
 	{
@@ -1970,6 +2041,10 @@ std::vector<dedup_per_directory_case> const dedup_per_directory_cases = {
 			"root/a-1/b",
 		},
 		{},
+		{
+			"root/a",
+			"root/a/b",
+		},
 	},
 };
 
@@ -2008,25 +2083,52 @@ void test_dedup_per_directory_case(dedup_per_directory_case const& t)
 		TEST_EQUAL(p, expected);
 	}
 
-	if (t.whole_tree_expected.empty())
+	// with neither deduplication bit set, nothing is renamed by either pass
+	error_code no_dedup_ec;
+	auto const no_dedup_atp = load_torrent_buffer(buf, no_dedup_ec, no_dedup_cfg());
+	TEST_CHECK(!no_dedup_ec);
+	TEST_CHECK(no_dedup_atp.ti);
+	if (no_dedup_atp.ti)
+	{
+		TEST_CHECK(no_dedup_atp.renamed_files.empty());
+		TEST_CHECK(no_dedup_atp.renamed_path_elements.empty());
+
+		file_storage const& no_dedup_fs = no_dedup_atp.ti->layout();
+		renamed_files no_dedup_renamed;
+		no_dedup_renamed.import_filenames(no_dedup_fs, no_dedup_atp.renamed_files);
+		no_dedup_renamed.import_path_elements(no_dedup_fs, no_dedup_atp.renamed_path_elements);
+		filenames const no_dedup_names(no_dedup_fs, no_dedup_renamed);
+
+		TEST_EQUAL(no_dedup_fs.num_files(), int(t.no_dedup_expected.size()));
+		for (lt::file_index_t const i : no_dedup_fs.file_range())
+		{
+			std::string p = no_dedup_names.file_path(i);
+			convert_path_to_posix(p);
+			std::string const& expected = t.no_dedup_expected[std::size_t(static_cast<int>(i))];
+			std::printf("no-dedup: %s == %s\n", p.c_str(), expected.c_str());
+			TEST_EQUAL(p, expected);
+		}
+	}
+
+	if (t.full_path_expected.empty())
 		return;
 
-	// confirm the whole-tree pass resolves the identical raw input the
+	// confirm the full-path pass resolves the identical raw input the
 	// same way, but with its own ".N" suffix, unaffected by
 	// deduplicate_per_directory's "-N"
-	error_code whole_tree_ec;
-	auto const whole_tree_atp = load_torrent_buffer(buf, whole_tree_ec, whole_tree_dedup_cfg());
-	TEST_CHECK(!whole_tree_ec);
-	TEST_CHECK(whole_tree_atp.ti);
-	if (!whole_tree_atp.ti)
+	error_code full_path_ec;
+	auto const full_path_atp = load_torrent_buffer(buf, full_path_ec, full_path_dedup_cfg());
+	TEST_CHECK(!full_path_ec);
+	TEST_CHECK(full_path_atp.ti);
+	if (!full_path_atp.ti)
 		return;
 
-	TEST_EQUAL(whole_tree_atp.ti->layout().num_files(), int(t.whole_tree_expected.size()));
-	for (lt::file_index_t const i : whole_tree_atp.ti->layout().file_range())
+	TEST_EQUAL(full_path_atp.ti->layout().num_files(), int(t.full_path_expected.size()));
+	for (lt::file_index_t const i : full_path_atp.ti->layout().file_range())
 	{
-		std::string const p = resolved_path(whole_tree_atp, i);
-		std::string const& expected = t.whole_tree_expected[std::size_t(static_cast<int>(i))];
-		std::printf("whole-tree: %s == %s\n", p.c_str(), expected.c_str());
+		std::string const p = resolved_path(full_path_atp, i);
+		std::string const& expected = t.full_path_expected[std::size_t(static_cast<int>(i))];
+		std::printf("full-path: %s == %s\n", p.c_str(), expected.c_str());
 		TEST_EQUAL(p, expected);
 	}
 }
@@ -2439,7 +2541,7 @@ TORRENT_TEST(torrent_info_with_hashes_roundtrip)
 // torrent_info(data, ec, from_span) always parses with
 // path_sanitize_flags::deprecated_default, which predates deduplicate_
 // per_directory, so collision resolution here always goes through the
-// pre-2.2 whole-tree pass (test_sanitizer.cpp's sanitize_limits_
+// pre-2.2 full-path pass (test_sanitizer.cpp's sanitize_limits_
 // combinations exercises deduplicate_per_directory through this same
 // deprecated ctor mechanism explicitly, with the flag set). torrent_
 // info::parse_torrent_file() folds every rename into file_storage in

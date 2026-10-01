@@ -85,8 +85,8 @@ std::string lower_case(std::string s)
 // such groups whose disambiguated names only differ from each other by
 // case.
 //
-// Each test case below is expressed as a delta against the baseline (no
-// sanitize_flags set at all) rather than repeating the full file list: only the
+// Each test case below is expressed as a delta against the baseline (only
+// deduplicate_full_path set) rather than repeating the full file list: only the
 // handful of entries a given flag combination actually changes are listed, by
 // index into the baseline below. Loading the torrent under every flag in
 // isolation, and with all of them together, locks in exactly which rule fires
@@ -315,7 +315,7 @@ TORRENT_TEST(sanitize_limits_combinations)
 		{3, "sanitizer_test/hidden_reserved/con_.txt"},
 	};
 
-	// unlike the baseline's whole-tree pass, deduplicate_per_directory
+	// unlike the baseline's full-path pass, deduplicate_per_directory
 	// doesn't exempt directories from collision-renaming: "Docs"/"docs"/
 	// the bare top-level file "docs" (entry 46) are all one case-
 	// insensitively colliding group under the root, resolved together.
@@ -360,7 +360,7 @@ TORRENT_TEST(sanitize_limits_combinations)
 	// (a distinct, literal "beta.1.txt") probe the same numbering:
 	// whichever pass renames entry 71 to "beta.1.txt" first must still be
 	// visible when entry 72 is checked, or entry 72 goes untouched and
-	// collides with it. Under the whole-tree pass (every case below
+	// collides with it. Under the full-path pass (every case below
 	// except the two using this override), resolve_duplicate_filenames_
 	// slow() renames entry 71 to "beta.1.txt", and entry 72 then collides
 	// with that rename and is bumped to "beta.1.1.txt" in turn (see
@@ -390,9 +390,9 @@ TORRENT_TEST(sanitize_limits_combinations)
 
 	// entries 39 and 41 (see the baseline above) collide under every
 	// case, but only deduplicate_per_directory routes their resolution
-	// through the per-directory pass instead of the whole-tree one, so
+	// through the per-directory pass instead of the full-path one, so
 	// only there do they pick up its "-N" suffix instead of the
-	// whole-tree pass's ".N"
+	// full-path pass's ".N"
 	std::vector<override_t> const per_directory_dup_override = {
 		{39, "sanitizer_test/duplicates/readme-1.txt"},
 		{41, "sanitizer_test/duplicates/notes-1.txt"},
@@ -406,31 +406,60 @@ TORRENT_TEST(sanitize_limits_combinations)
 		{48, "sanitizer_test/reserved_collision/con_-1"},
 	};
 
+	// with neither deduplication bit set, every entry the full-path pass
+	// renames in the baseline keeps its raw name, colliding with its sibling
+	std::vector<override_t> const no_dedup_overrides = {
+		{39, "sanitizer_test/duplicates/readme.txt"},
+		{41, "sanitizer_test/duplicates/notes.txt"},
+		{45, "sanitizer_test/docs/same.txt"},
+		{46, "sanitizer_test/docs"},
+		{64, "sanitizer_test/dup_ctrl/alpha"},
+		{67, "sanitizer_test/cross_group_dedup/alpha-1"},
+		{69, "sanitizer_test/cross_group_dedup/alpha-2"},
+		{71, "sanitizer_test/whole_tree_dedup/beta.txt"},
+		{72, "sanitizer_test/whole_tree_dedup/beta.1.txt"},
+		{74, "sanitizer_test/case_cross_group_dedup/widget"},
+		{76, "sanitizer_test/case_cross_group_dedup/Widget-3"},
+	};
+
+	// the baseline above is resolved by the full-path pass, so every
+	// single-rule case below keeps it on, to isolate that rule's effect
+	path_sanitize_flags_t const full_path = path_sanitize_flags::deduplicate_full_path;
+
 	sanitize_test_case const cases[] = {
-		{"none", path_sanitize_flags_t{}, {}},
+		{"none", path_sanitize_flags_t{}, no_dedup_overrides},
+		{"deduplicate_full_path", full_path, {}},
 		{"limit_unicode_characters",
-			path_sanitize_flags::limit_unicode_characters,
+			full_path | path_sanitize_flags::limit_unicode_characters,
 			unicode_length_override},
 		{"trim_trailing_spaces_and_dots",
-			path_sanitize_flags::trim_trailing_spaces_and_dots,
+			full_path | path_sanitize_flags::trim_trailing_spaces_and_dots,
 			concat({trim_hidden_override,
 				dotdot_trim_override,
 				dotdot_fmt_trim_partial_override,
 				trailing_overrides})},
 		{"filter_dos_reserved_names",
-			path_sanitize_flags::filter_dos_reserved_names,
+			full_path | path_sanitize_flags::filter_dos_reserved_names,
 			dos_reserved_overrides},
 		{"sanitize_invalid_chars_win",
-			path_sanitize_flags::sanitize_invalid_chars_win,
+			full_path | path_sanitize_flags::sanitize_invalid_chars_win,
 			win_android_override},
 		{"sanitize_invalid_chars_android",
-			path_sanitize_flags::sanitize_invalid_chars_android,
+			full_path | path_sanitize_flags::sanitize_invalid_chars_android,
 			win_android_override},
 		{"filter_unicode_formatting_chars",
-			path_sanitize_flags::filter_unicode_formatting_chars,
+			full_path | path_sanitize_flags::filter_unicode_formatting_chars,
 			concat({formatting_hidden_override, dotdot_fmt_override, formatting_overrides})},
 		{"deduplicate_per_directory",
 			path_sanitize_flags::deduplicate_per_directory,
+			concat({docs_dedup_override,
+				dup_ctrl_override,
+				per_directory_dup_override,
+				cross_group_dedup_override,
+				whole_tree_dedup_override,
+				case_cross_group_dedup_override})},
+		{"deduplicate_per_directory_and_full_path",
+			full_path | path_sanitize_flags::deduplicate_per_directory,
 			concat({docs_dedup_override,
 				dup_ctrl_override,
 				per_directory_dup_override,
@@ -479,6 +508,12 @@ TORRENT_TEST(sanitize_limits_combinations)
 		auto const& fs = atp.ti->layout();
 		TEST_EQUAL(fs.num_files(), int(expected.size()));
 
+		bool const deduplicated = bool(c.flags
+			& (path_sanitize_flags::deduplicate_full_path
+				| path_sanitize_flags::deduplicate_per_directory));
+		TEST_CHECK(deduplicated || atp.renamed_files.empty());
+		TEST_CHECK(deduplicated || atp.renamed_path_elements.empty());
+
 		// deduplicate_per_directory's own resolution runs eagerly, once,
 		// at load_torrent() time (see aux::resolve_directory_duplicates()),
 		// landing in atp.renamed_path_elements rather than mutating
@@ -493,7 +528,7 @@ TORRENT_TEST(sanitize_limits_combinations)
 		// every rule above resolves collisions among files, so no two
 		// non-pad files should ever end up sharing a resolved path
 		// (case-insensitively); this is the invariant deduplicate_per_
-		// directory and the whole-tree pass both exist to guarantee, and
+		// directory and the full-path pass both exist to guarantee, and
 		// catches a colliding pair even when no test case happens to
 		// assert its exact (wrong) resulting names
 		std::unordered_map<std::string, file_index_t> seen;
@@ -517,7 +552,7 @@ TORRENT_TEST(sanitize_limits_combinations)
 				TEST_EQUAL(path, expected[std::size_t(idx)]);
 			++idx;
 
-			if (fs.pad_file_at(i))
+			if (fs.pad_file_at(i) || !deduplicated)
 				continue;
 
 			auto const ins = seen.emplace(lower_case(path), i);
@@ -557,7 +592,7 @@ TORRENT_TEST(sanitize_limits_combinations)
 					TEST_EQUAL(path, expected[std::size_t(idx2)]);
 				++idx2;
 
-				if (ti2.files().pad_file_at(i))
+				if (ti2.files().pad_file_at(i) || !deduplicated)
 					continue;
 
 				auto const ins = seen2.emplace(lower_case(path), i);

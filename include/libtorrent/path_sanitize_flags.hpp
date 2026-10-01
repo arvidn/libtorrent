@@ -64,9 +64,27 @@ constexpr path_sanitize_flags_t filter_unicode_formatting_chars = 5_bit;
 
 // deduplicates directory entries: colliding path elements (files,
 // symlinks, or directories) under the same parent are renamed, unlike
-// the default whole-tree pass, which only renames files and never
-// directories.
+// ``deduplicate_full_path``, which only renames files and never
+// directories. Takes precedence over ``deduplicate_full_path`` when
+// both are set.
 constexpr path_sanitize_flags_t deduplicate_per_directory = 6_bit;
+
+// deduplicates file paths across the whole torrent: a file whose full
+// path collides, case-insensitively, with an earlier file's is renamed
+// by inserting ".N" before its extension. Directories are never
+// renamed, so two directories differing only by case are folded
+// together. Part of every ``libtorrent_M_N`` ruleset.
+//
+// .. warning::
+//   if neither this nor ``deduplicate_per_directory`` is set, colliding
+//   file paths are not resolved at all. Files with the same path (or,
+//   on a case-insensitive filesystem, paths differing only by case)
+//   are then backed by the same file on disk, overwriting each other's
+//   data. Such a torrent can never complete, and a malicious one can
+//   use this to make one file's content clobber another's. Only clear
+//   both bits if collisions are resolved some other way, e.g. by
+//   renaming files before adding the torrent.
+constexpr path_sanitize_flags_t deduplicate_full_path = 7_bit;
 
 // all bits combined
 constexpr path_sanitize_flags_t all = path_sanitize_flags_t::all();
@@ -75,7 +93,7 @@ constexpr path_sanitize_flags_t all = path_sanitize_flags_t::all();
 // before ``sanitize_flags`` existed as a concept: it did not strip the
 // zero-width/invisible unicode formatting characters that
 // ``filter_unicode_formatting_chars`` covers.
-constexpr path_sanitize_flags_t libtorrent_2_0 = path_sanitize_flags_t{}
+constexpr path_sanitize_flags_t libtorrent_2_0 = path_sanitize_flags::deduplicate_full_path
 #ifdef TORRENT_WINDOWS
 	| path_sanitize_flags::limit_unicode_characters
 	| path_sanitize_flags::trim_trailing_spaces_and_dots

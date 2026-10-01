@@ -1892,7 +1892,7 @@ TORRENT_VERSION_NAMESPACE_4
 				// filenames as well
 				ti->internal_rename_path_elements(renames);
 			}
-			else
+			else if (cfg.sanitize_flags & path_sanitize_flags::deduplicate_full_path)
 			{
 				auto const renamed_files =
 					aux::resolve_duplicate_filenames(ti->layout(), cfg.max_duplicate_filenames, ec);

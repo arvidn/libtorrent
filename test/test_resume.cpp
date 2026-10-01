@@ -1263,20 +1263,27 @@ TORRENT_TEST(sanitize_flags_missing_key_defaults_by_writer_version)
 	// assuming one of the two for both. Resume data old enough to lack
 	// even "libtorrent-version" predates that (pre-2.0), so it falls back
 	// to libtorrent_2_0, the more conservative of the two rulesets.
+	//
+	// every version predating "sanitize_flags" resolved duplicate
+	// filenames by full path, so that bit must be set regardless of
+	// which ruleset is inferred.
 
 	add_torrent_params const p = generate_torrent();
 
 	{
 		add_torrent_params const atp = sanitize_flags_fallback_for(p, nullptr);
 		TEST_CHECK(atp.sanitize_flags == path_sanitize_flags::libtorrent_2_0);
+		TEST_CHECK(atp.sanitize_flags & path_sanitize_flags::deduplicate_full_path);
 	}
 	{
 		add_torrent_params const atp = sanitize_flags_fallback_for(p, "2.0.13.0");
 		TEST_CHECK(atp.sanitize_flags == path_sanitize_flags::libtorrent_2_0);
+		TEST_CHECK(atp.sanitize_flags & path_sanitize_flags::deduplicate_full_path);
 	}
 	{
 		add_torrent_params const atp = sanitize_flags_fallback_for(p, "2.1.1.0");
 		TEST_CHECK(atp.sanitize_flags == path_sanitize_flags::libtorrent_2_1);
+		TEST_CHECK(atp.sanitize_flags & path_sanitize_flags::deduplicate_full_path);
 	}
 }
 
@@ -1307,6 +1314,7 @@ TORRENT_TEST(sanitize_flags_malformed_version_falls_back_safely)
 	{
 		add_torrent_params const atp = sanitize_flags_fallback_for(p, version);
 		TEST_CHECK(atp.sanitize_flags == path_sanitize_flags::libtorrent_2_0);
+		TEST_CHECK(atp.sanitize_flags & path_sanitize_flags::deduplicate_full_path);
 	}
 }
 
