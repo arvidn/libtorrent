@@ -103,6 +103,11 @@ TORRENT_TEST(build_netmask_v4)
 	TEST_CHECK(build_netmask(30, AF_INET) == make_address("255.255.255.252"));
 	TEST_CHECK(build_netmask(31, AF_INET) == make_address("255.255.255.254"));
 	TEST_CHECK(build_netmask(32, AF_INET) == make_address("255.255.255.255"));
+
+	// a prefix length that exceeds the address size is clamped to a full mask
+	// rather than writing past the end of the mask buffer
+	TEST_CHECK(build_netmask(33, AF_INET)  == make_address("255.255.255.255"));
+	TEST_CHECK(build_netmask(255, AF_INET) == make_address("255.255.255.255"));
 }
 
 TORRENT_TEST(build_netmask_v6)
@@ -130,6 +135,11 @@ TORRENT_TEST(build_netmask_v6)
 	TEST_CHECK(build_netmask(126, AF_INET6) == make_address("ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffc"));
 	TEST_CHECK(build_netmask(127, AF_INET6) == make_address("ffff:ffff:ffff:ffff:ffff:ffff:ffff:fffe"));
 	TEST_CHECK(build_netmask(128, AF_INET6) == make_address("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"));
+
+	// a prefix length that exceeds the address size is clamped to a full mask
+	// rather than writing past the end of the mask buffer
+	TEST_CHECK(build_netmask(129, AF_INET6) == make_address("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"));
+	TEST_CHECK(build_netmask(255, AF_INET6) == make_address("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"));
 }
 
 TORRENT_TEST(build_netmask_unknown)
