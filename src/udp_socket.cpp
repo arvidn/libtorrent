@@ -48,7 +48,8 @@ using namespace std::placeholders;
 std::size_t const tmp_buffer_size = 3 + 255 + 255;
 
 // used for SOCKS5 UDP wrapper header
-std::size_t const max_header_size = 255;
+std::size_t const max_hostname_size = 255;
+std::size_t const max_header_size = 7 + max_hostname_size;
 
 // this class hold the state of the SOCKS5 connection to maintain the UDP
 // ASSOCIATE tunnel. It's instantiated on the heap for two reasons:
@@ -362,7 +363,7 @@ void udp_socket::wrap(char const* hostname, int const port, span<char const> p
 	write_uint16(0, h); // reserved
 	write_uint8(0, h); // fragment
 	write_uint8(3, h); // atyp
-	std::size_t const hostlen = std::min(std::strlen(hostname), max_header_size - 7);
+	std::size_t const hostlen = std::min(std::strlen(hostname), max_hostname_size);
 	write_uint8(hostlen, h); // hostname len
 	std::memcpy(h, hostname, hostlen);
 	h += hostlen;
@@ -393,7 +394,8 @@ bool socks5_unwrap(udp_socket::packet& pack)
 	if (size <= 10) return false;
 
 	char* p = pack.data.data();
-	p += 2; // reserved
+	if (read_uint16(p) != 0)
+		return false; // reserved
 	int const frag = read_uint8(p);
 	// fragmentation is not supported
 	if (frag != 0) return false;
@@ -411,7 +413,7 @@ bool socks5_unwrap(udp_socket::packet& pack)
 		if (size <= 22) return false;
 		pack.from = read_v6_endpoint<udp::endpoint>(p);
 	}
-	else
+	else if (atyp == 3)
 	{
 		std::uint8_t const len = read_uint8(p);
 		// reserve 2 trailing bytes for the port that follows the hostname
@@ -426,6 +428,10 @@ bool socks5_unwrap(udp_socket::packet& pack)
 			pack.from = udp::endpoint(addr, port);
 		else
 			pack.hostname = hostname;
+	}
+	else
+	{
+		return false;
 	}
 
 	pack.data = span<char>{p, size - (p - pack.data.data())};
