@@ -7293,9 +7293,17 @@ namespace {
 		{
 			file_storage const& fs = m_torrent_file->files();
 			file_storage const& orig_fs = m_torrent_file->orig_files();
+
+			// orig_files() is the layout before duplicate resolution. A file
+			// that resolution renamed, and that the user renamed back to its
+			// original name, must still be recorded, or it would be renamed
+			// again when the torrent is loaded
+			file_storage resolved = orig_fs;
+			aux::resolve_duplicate_filenames(resolved);
 			for (auto const i : fs.file_range())
 			{
-				if (fs.file_path(i) != orig_fs.file_path(i))
+				if (fs.file_path(i) != orig_fs.file_path(i)
+					|| resolved.file_path(i) != orig_fs.file_path(i))
 					ret.renamed_files[i] = fs.file_path(i);
 			}
 		}

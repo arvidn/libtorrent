@@ -768,28 +768,19 @@ TORRENT_VERSION_NAMESPACE_3
 	{
 		INVARIANT_CHECK;
 
-		std::unordered_set<std::uint32_t> files;
-
-		std::string const empty_str;
-
-		// insert all directories first, to make sure no files
-		// are allowed to collied with them
-		m_files.all_path_hashes(files);
-		for (auto const i : m_files.file_range())
+		file_storage fs = m_files;
+		aux::resolve_duplicate_filenames(fs);
+		for (auto const i : fs.file_range())
 		{
-			// as long as this file already exists
-			// increase the counter
-			std::uint32_t const h = m_files.file_path_hash(i, empty_str);
-			if (!files.insert(h).second)
-			{
-				// This filename appears to already exist!
-				// If this happens, just start over and do it the slow way,
-				// comparing full file names and come up with new names
-				resolve_duplicate_filenames_slow();
-				return;
-			}
+			if (fs.file_path(i) == m_files.file_path(i)) continue;
+			copy_on_write();
+			m_files.rename_file(i, fs.file_path(i));
 		}
 	}
+
+TORRENT_VERSION_NAMESPACE_3_END
+
+namespace aux {
 
 namespace {
 
@@ -807,24 +798,22 @@ namespace {
 	};
 }
 
-	void torrent_info::resolve_duplicate_filenames_slow()
+	void resolve_duplicate_filenames_slow(file_storage& fs)
 	{
-		INVARIANT_CHECK;
-
 		// maps filename hash to file index
 		// or, if the file_index is negative, maps into the paths vector
 		std::unordered_multimap<std::uint32_t, name_entry> files;
 
-		std::vector<std::string> const& paths = m_files.paths();
-		files.reserve(paths.size() + aux::numeric_cast<std::size_t>(m_files.num_files()));
+		std::vector<std::string> const& paths = fs.paths();
+		files.reserve(paths.size() + aux::numeric_cast<std::size_t>(fs.num_files()));
 
 		// insert all directories first, to make sure no files
 		// are allowed to collied with them
 		{
 			boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
-			if (!m_files.name().empty())
+			if (!fs.name().empty())
 			{
-				process_string_lowercase(crc, m_files.name());
+				process_string_lowercase(crc, fs.name());
 			}
 			file_index_t path_index{-1};
 			for (auto const& path : paths)
@@ -847,18 +836,18 @@ namespace {
 		// keep track of the total number of name collisions. If there are too
 		// many, it's probably a malicious torrent and we should just fail
 		int num_collisions = 0;
-		for (auto const i : m_files.file_range())
+		for (auto const i : fs.file_range())
 		{
 			// as long as this file already exists
 			// increase the counter
-			std::uint32_t const hash = m_files.file_path_hash(i, "");
+			std::uint32_t const hash = fs.file_path_hash(i, "");
 			auto range = files.equal_range(hash);
 			auto const match = std::find_if(range.first, range.second, [&](std::pair<std::uint32_t, name_entry> const& o)
 			{
 				std::string const other_name = o.second.idx < file_index_t{}
-					? combine_path(m_files.name(), string_view(paths[std::size_t(-static_cast<int>(o.second.idx)-1)]).substr(0, std::size_t(o.second.length)))
-					: m_files.file_path(o.second.idx);
-				return string_equal_no_case(other_name, m_files.file_path(i));
+					? combine_path(fs.name(), string_view(paths[std::size_t(-static_cast<int>(o.second.idx)-1)]).substr(0, std::size_t(o.second.length)))
+					: fs.file_path(o.second.idx);
+				return string_equal_no_case(other_name, fs.file_path(i));
 			});
 
 			if (match == range.second)
@@ -871,12 +860,12 @@ namespace {
 			// the same size.
 			file_index_t const other_idx = match->second.idx;
 			if (other_idx >= file_index_t{}
-				&& (m_files.file_flags(i) & file_storage::flag_pad_file)
-				&& (m_files.file_flags(other_idx) & file_storage::flag_pad_file)
-				&& m_files.file_size(i) == m_files.file_size(other_idx))
+				&& (fs.file_flags(i) & file_storage::flag_pad_file)
+				&& (fs.file_flags(other_idx) & file_storage::flag_pad_file)
+				&& fs.file_size(i) == fs.file_size(other_idx))
 				continue;
 
-			std::string filename = m_files.file_path(i);
+			std::string filename = fs.file_path(i);
 			std::string base = remove_extension(filename);
 			std::string ext = extension(filename);
 			int cnt = 0;
@@ -903,8 +892,50 @@ namespace {
 				}
 			}
 
+			fs.rename_file(i, filename);
+		}
+	}
+
+	void resolve_duplicate_filenames(file_storage& fs)
+	{
+		std::unordered_set<std::uint32_t> files;
+
+		std::string const empty_str;
+
+		// insert all directories first, to make sure no files
+		// are allowed to collied with them
+		fs.all_path_hashes(files);
+		for (auto const i : fs.file_range())
+		{
+			// as long as this file already exists
+			// increase the counter
+			std::uint32_t const h = fs.file_path_hash(i, empty_str);
+			if (!files.insert(h).second)
+			{
+				// This filename appears to already exist!
+				// If this happens, just start over and do it the slow way,
+				// comparing full file names and come up with new names
+				resolve_duplicate_filenames_slow(fs);
+				return;
+			}
+		}
+	}
+
+} // namespace aux
+
+TORRENT_VERSION_NAMESPACE_3
+
+	void torrent_info::resolve_duplicate_filenames_slow()
+	{
+		INVARIANT_CHECK;
+
+		file_storage fs = m_files;
+		aux::resolve_duplicate_filenames_slow(fs);
+		for (auto const i : fs.file_range())
+		{
+			if (fs.file_path(i) == m_files.file_path(i)) continue;
 			copy_on_write();
-			m_files.rename_file(i, filename);
+			m_files.rename_file(i, fs.file_path(i));
 		}
 	}
 

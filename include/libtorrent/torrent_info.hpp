@@ -75,6 +75,11 @@ namespace aux {
 		, string_view element, bool force_element = false);
 	TORRENT_EXTRA_EXPORT bool verify_encoding(std::string& target);
 
+	// renames files in fs whose paths collide (case insensitively) with other
+	// files or directories
+	TORRENT_EXTRA_EXPORT void resolve_duplicate_filenames(file_storage& fs);
+	TORRENT_EXTRA_EXPORT void resolve_duplicate_filenames_slow(file_storage& fs);
+
 	struct internal_drained_state
 	{
 		aux::vector<lt::announce_entry> urls;

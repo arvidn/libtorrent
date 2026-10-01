@@ -1,3 +1,7 @@
+2.0.16 not released
+
+	* fix renaming sanitized files back to their original name
+
 2.0.15 released
 
 	* fix inline asm for crc32 computation
