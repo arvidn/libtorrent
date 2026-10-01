@@ -69,13 +69,26 @@ filtering of unicode formatting characters (introduced in libtorrent 2.1)
 optional.
 
 Also new, and part of ``default_flags``, is
-``path_sanitize_flags::deduplicate_per_directory``. Like the whole-tree
-pass, it runs once the file layout has already been parsed, but it
+``path_sanitize_flags::deduplicate_per_directory``. Like the existing
+deduplication, it runs once the file layout has already been parsed, but it
 resolves collisions against each path element's own siblings rather than
-across the whole tree. Unlike that whole-tree pass, it also renames
-directories that collide case-insensitively with a sibling instead of
-silently folding them together, and disambiguates with a ``-N`` suffix
-rather than the ``.N`` used by the whole-tree pass.
+comparing full file paths. Unlike the existing deduplication, it also
+renames directories that collide case-insensitively with a sibling instead
+of silently folding them together, and disambiguates with a ``-N`` suffix
+rather than ``.N``.
+
+The existing deduplication, which compares full file paths, is now
+controlled by its own bit, ``path_sanitize_flags::deduplicate_full_path``,
+which is part of every versioned ruleset. If ``deduplicate_per_directory``
+is set, it takes precedence. If neither bit is set, colliding filenames are
+not resolved at all.
+
+.. warning::
+  An empty (or hand-assembled) ``sanitize_flags`` value that leaves out both
+  deduplication bits lets files with colliding paths share the same file on
+  disk, overwriting each other's data. Build custom rulesets by adding to or
+  removing from one of the ``libtorrent_M_N`` constants, rather than
+  starting from zero.
 
 The ruleset that was actually in effect in earlier releases is preserved
 under versioned names, ``path_sanitize_flags::libtorrent_2_0`` and

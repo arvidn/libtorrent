@@ -32,7 +32,7 @@ whose name ends in "_2_1_dedup" (many_files_2_1_dedup,
 many_duplicates_2_1_dedup): those pin sanitize_flags explicitly to
 libtorrent_2_1 (via benchmark_load_torrent's optional [sanitize-flags]
 argument), giving many_files and many_duplicates a stable comparison
-point against libtorrent_2_1's older whole-tree duplicate-filename
+point against libtorrent_2_1's older full-path duplicate-filename
 resolution pass that survives path_sanitize_flags::default_flags
 moving on to a newer ruleset.
 """
@@ -78,7 +78,7 @@ EXE_SUFFIX = ".exe" if platform.system() == "Windows" else ""
 #   max_duplicate_filenames = 500   (per-resolution-pass collision count;
 #                                    grows quadratically with the number
 #                                    of duplicates of one name under the
-#                                    legacy whole-tree pass, but not
+#                                    legacy full-path pass, but not
 #                                    under deduplicate_per_directory's
 #                                    counter-resuming probe)
 #   max_directory_depth   = 100
@@ -150,7 +150,7 @@ CASES: list[Case] = [
         "5000 small files. Exercises file-entry parsing and (for v2) the"
         " v2 file tree dict walk. Uses path_sanitize_flags::default_flags,"
         " whatever ruleset that currently selects (see many_files_2_1_dedup"
-        " for the same shape pinned to libtorrent_2_1's older whole-tree"
+        " for the same shape pinned to libtorrent_2_1's older full-path"
         " duplicate-filename resolution pass, for a stable comparison"
         " point that survives default_flags moving on to a newer ruleset).",
         "--num-files 5000 --file-size 16K",
@@ -158,7 +158,7 @@ CASES: list[Case] = [
     mk_case(
         "many_files_2_1_dedup",
         "same shape as many_files, but pinned to libtorrent_2_1's"
-        " whole-tree duplicate-filename resolution pass, predating"
+        " full-path duplicate-filename resolution pass, predating"
         " deduplicate_per_directory, regardless of what"
         " path_sanitize_flags::default_flags currently selects. With no"
         " actual duplicates in this case, both algorithms short-circuit"
@@ -318,7 +318,7 @@ CASES: list[Case] = [
         " all three variants exercise the rename path. Uses"
         " path_sanitize_flags::default_flags, whatever ruleset that"
         " currently selects (see many_duplicates_2_1_dedup for the same"
-        " shape pinned to libtorrent_2_1's older whole-tree pass, for a"
+        " shape pinned to libtorrent_2_1's older full-path pass, for a"
         " stable comparison point that survives default_flags moving on"
         " to a newer ruleset).",
         "--num-files 1000 --file-size 16K --num-duplicates 30",
@@ -326,7 +326,7 @@ CASES: list[Case] = [
     mk_case(
         "many_duplicates_2_1_dedup",
         "same shape and duplicate count as many_duplicates, but pinned to"
-        " libtorrent_2_1's whole-tree resolve_duplicate_filenames() pass,"
+        " libtorrent_2_1's full-path resolve_duplicate_filenames() pass,"
         " predating deduplicate_per_directory, regardless of what"
         " path_sanitize_flags::default_flags currently selects."
         " Collisions grow quadratically with the number of dups under"

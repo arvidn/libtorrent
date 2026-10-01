@@ -238,6 +238,40 @@ class ConstructorWithLimitsTest(unittest.TestCase):
         )
         self.assertEqual(ti_unfiltered.name(), name)
 
+    def test_deduplicate_full_path_flag(self) -> None:
+        flags = lt.path_sanitize_flags
+        self.assertTrue(flags.libtorrent_2_0 & flags.deduplicate_full_path)
+        self.assertTrue(flags.default_flags & flags.deduplicate_full_path)
+
+        entry = TorrentFileDict(
+            {
+                b"info": {
+                    b"name": b"test",
+                    b"piece length": 16 * 1024,
+                    b"pieces": lib.get_random_bytes(20),
+                    b"files": [
+                        {b"length": 1024, b"path": [b"a.txt"]},
+                        {b"length": 1024, b"path": [b"a.txt"]},
+                    ],
+                }
+            }
+        )
+        buf = lt.bencode(entry)
+
+        full_path = lt.load_torrent_buffer(
+            buf, load_torrent_limits({"sanitize_flags": flags.libtorrent_2_1})
+        )
+        self.assertEqual(full_path.renamed_files, {1: os.path.join("test", "a.1.txt")})
+
+        no_dedup = lt.load_torrent_buffer(
+            buf,
+            load_torrent_limits(
+                {"sanitize_flags": flags.libtorrent_2_1 & ~flags.deduplicate_full_path}
+            ),
+        )
+        self.assertEqual(no_dedup.renamed_files, {})
+        self.assertEqual(no_dedup.renamed_path_elements, {})
+
 
 class FieldTest(unittest.TestCase):
     def setUp(self) -> None:

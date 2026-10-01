@@ -215,7 +215,7 @@ def load_torrent_buffer(arg1: bytes) -> add_torrent_params:
 
 @overload
 def load_torrent_buffer(
-    arg1: bytes, arg2: AddTorrentParamsdict | None = None
+    arg1: bytes, arg2: load_torrent_limits | None = None
 ) -> add_torrent_params:
     """
     load_torrent_buffer( (object)arg1, (dict)arg2) -> add_torrent_params :
@@ -228,7 +228,7 @@ def load_torrent_file(arg1: str) -> add_torrent_params:
     """
 
 @overload
-def load_torrent_file(arg1: str, arg2: AddTorrentParamsdict) -> add_torrent_params:
+def load_torrent_file(arg1: str, arg2: load_torrent_limits) -> add_torrent_params:
     """
     load_torrent_file( (str)arg1, (dict)arg2) -> add_torrent_params :
     """
@@ -241,7 +241,7 @@ def load_torrent_parsed(arg1: AddTorrentParamsdict) -> add_torrent_params:
 
 @overload
 def load_torrent_parsed(
-    arg1: AddTorrentParamsdict, arg2: AddTorrentParamsdict
+    arg1: AddTorrentParamsdict, arg2: load_torrent_limits
 ) -> add_torrent_params:
     """
     load_torrent_parsed( (object)arg1, (dict)arg2) -> add_torrent_params :
@@ -2223,6 +2223,7 @@ class path_sanitize_flags(metaclass=_BoostBaseClass):
     __instance_size__: int
     all: int
     default_flags: int
+    deduplicate_full_path: int
     deduplicate_per_directory: int
     filter_dos_reserved_names: int
     filter_unicode_formatting_chars: int

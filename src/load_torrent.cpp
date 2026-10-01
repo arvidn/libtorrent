@@ -398,7 +398,7 @@ namespace aux {
 			ti->internal_rename_path_elements(ret.renamed_path_elements);
 #endif
 		}
-		else if (ti)
+		else if (ti && (cfg.sanitize_flags & path_sanitize_flags::deduplicate_full_path))
 		{
 			ret.renamed_files = aux::resolve_duplicate_filenames(ti->layout(), cfg.max_duplicate_filenames, ec);
 			if (ec) return {};
