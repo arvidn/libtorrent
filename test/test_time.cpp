@@ -93,6 +93,16 @@ TORRENT_TEST(time)
 	t4.join();
 }
 
+TORRENT_TEST(elapsed_microseconds_clamps_negative)
+{
+	// Simulate a wall-clock step back: start is in the future relative to now.
+	time_point const start = clock_type::now() + seconds(3600);
+	TEST_EQUAL(elapsed_microseconds(start), 0);
+
+	time_point const past = clock_type::now() - milliseconds(1);
+	TEST_CHECK(elapsed_microseconds(past) >= 0);
+}
+
 TORRENT_TEST(test_time_conversion)
 {
 	int success = 0;

@@ -12,6 +12,7 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <chrono>
 
@@ -63,6 +64,14 @@ namespace libtorrent {
 	template<class T>
 	std::int64_t total_microseconds(T td)
 	{ return duration_cast<microseconds>(td).count(); }
+
+	// Elapsed microseconds since start using clock_type.
+	// On libstdc++, high_resolution_clock is system_clock and can step back;
+	// clamp so monotonic performance counters never see a negative duration.
+	inline std::int64_t elapsed_microseconds(time_point const start)
+	{
+		return (std::max)(std::int64_t(0), total_microseconds(clock_type::now() - start));
+	}
 
 }
 

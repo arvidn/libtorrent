@@ -511,7 +511,7 @@ status_t pread_disk_io::do_job(aux::job::partial_read& a, aux::pread_disk_job* j
 
 	if (!j->error.ec)
 	{
-		std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+		std::int64_t const read_time = elapsed_microseconds(start_time);
 
 		m_stats_counters.inc_stats_counter(counters::num_blocks_read);
 		m_stats_counters.inc_stats_counter(counters::num_read_ops);
@@ -546,7 +546,7 @@ status_t pread_disk_io::do_job(aux::job::read& a, aux::pread_disk_job* j)
 
 	if (!j->error.ec)
 	{
-		std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+		std::int64_t const read_time = elapsed_microseconds(start_time);
 
 		m_stats_counters.inc_stats_counter(counters::num_blocks_read);
 		m_stats_counters.inc_stats_counter(counters::num_read_ops);
@@ -1268,7 +1268,7 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 
 		if (!j->error.ec)
 		{
-			std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+			std::int64_t const read_time = elapsed_microseconds(start_time);
 
 			m_stats_counters.inc_stats_counter(counters::num_read_back, blocks_read_from_disk);
 			m_stats_counters.inc_stats_counter(counters::num_read_ops, blocks_read_from_disk);
@@ -1331,7 +1331,7 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 				}
 			}
 
-			std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+			std::int64_t const read_time = elapsed_microseconds(start_time);
 
 			m_stats_counters.inc_stats_counter(counters::num_read_back, blocks_to_read);
 			m_stats_counters.inc_stats_counter(counters::num_read_ops, 1);
@@ -1361,7 +1361,7 @@ status_t pread_disk_io::do_job(aux::job::hash2& a, aux::pread_disk_job* j)
 	if (auto pre = j->storage->take_precomputed_v2_block(a.piece, blk))
 	{
 		a.piece_hash2 = *pre;
-		std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+		std::int64_t const read_time = elapsed_microseconds(start_time);
 		m_stats_counters.inc_stats_counter(counters::disk_hash_time, read_time);
 		m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
 		return {};
@@ -1377,7 +1377,7 @@ status_t pread_disk_io::do_job(aux::job::hash2& a, aux::pread_disk_job* j)
 
 	if (!j->error.ec)
 	{
-		std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+		std::int64_t const read_time = elapsed_microseconds(start_time);
 
 		m_stats_counters.inc_stats_counter(counters::num_blocks_read);
 		m_stats_counters.inc_stats_counter(counters::num_read_ops);
@@ -1830,7 +1830,7 @@ int pread_disk_io::flush_cache_blocks(
 
 	if (!failed)
 	{
-		std::int64_t const write_time = total_microseconds(clock_type::now() - start_time);
+		std::int64_t const write_time = elapsed_microseconds(start_time);
 
 		m_stats_counters.inc_stats_counter(counters::num_blocks_written, ret);
 		m_stats_counters.inc_stats_counter(counters::num_write_ops);
