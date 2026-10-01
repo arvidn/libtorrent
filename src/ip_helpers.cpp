@@ -24,8 +24,29 @@ namespace aux {
 		return !ec;
 	}
 
-	bool is_global(address const& a)
+	namespace {
+
+	// a v4-mapped IPv6 address (::ffff:a.b.c.d) identifies the same host as the
+	// embedded IPv4 address. classify it by that address, otherwise a mapped
+	// loopback or private address such as ::ffff:127.0.0.1 is seen as neither
+	// local nor link-local and slips past filters that reject those (e.g. the
+	// local-address checks in ut_pex and ip_voter).
+	address unmap_v4_mapped(address const& a)
 	{
+		if (a.is_v6())
+		{
+			address_v6 const a6 = a.to_v6();
+			if (a6.is_v4_mapped())
+				return make_address_v4(v4_mapped, a6);
+		}
+		return a;
+	}
+
+	}
+
+	bool is_global(address const& a_in)
+	{
+		address const a = unmap_v4_mapped(a_in);
 		if (a.is_v6())
 		{
 			// https://www.iana.org/assignments/ipv6-address-space/ipv6-address-space.xhtml
@@ -39,8 +60,9 @@ namespace aux {
 		}
 	}
 
-	bool is_link_local(address const& a)
+	bool is_link_local(address const& a_in)
 	{
+		address const a = unmap_v4_mapped(a_in);
 		if (a.is_v6())
 		{
 			address_v6 const a6 = a.to_v6();
@@ -52,10 +74,11 @@ namespace aux {
 		return (ip & 0xffff0000) == 0xa9fe0000; // 169.254.x.x
 	}
 
-	bool is_local(address const& a)
+	bool is_local(address const& a_in)
 	{
 		try
 		{
+			address const a = unmap_v4_mapped(a_in);
 			if (a.is_v6())
 			{
 				// NOTE: site local is deprecated but by
