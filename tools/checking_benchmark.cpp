@@ -32,7 +32,20 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include <fstream>
 #include <iostream>
+#include <algorithm>
+#include <array>
+#include <cerrno>
 #include <chrono>
+#include <cstring>
+#include <iomanip>
+#include <string>
+#include <vector>
+
+#ifdef __linux__
+#include <fcntl.h>
+#include <sys/vfs.h>
+#include <unistd.h>
+#endif
 
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/session.hpp"
@@ -48,6 +61,8 @@ using namespace std::literals::chrono_literals;
 using std::chrono::milliseconds;
 
 namespace {
+
+constexpr char const* test_filename = "test_checking_file";
 
 void generate_block_fill(lt::span<char> buf, std::uint64_t& state)
 {
@@ -72,7 +87,7 @@ std::vector<char> generate_torrent(int num_pieces, std::string save_path
 	const int piece_size = 1024 * 1024;
 	const std::int64_t total_size = std::int64_t(piece_size) * num_pieces + 2356;
 
-	std::string const filename = "test_checking_file";
+	std::string const filename{test_filename};
 
 	std::vector<lt::create_file_entry> fs;
 	fs.emplace_back(filename, total_size);
@@ -117,16 +132,87 @@ std::vector<char> generate_torrent(int num_pieces, std::string save_path
 	return ret;
 }
 
-void run_test(std::string const& save_path, lt::create_flags_t const flags
-	, lt::disk_io_constructor_type disk)
+#ifdef __linux__
+void print_filesystem(std::string const& save_path)
 {
-	auto const torrent_buf = generate_torrent(7000, save_path, flags);
+	constexpr std::uint32_t zfs_magic = 0x2fc12fc1;
 
+	struct fs_magic
+	{
+		std::uint32_t magic;
+		char const* name;
+	};
+	// these are the f_type values from statfs(2)
+	constexpr std::array<fs_magic, 14> known{{{0xef53, "ext2/3/4"},
+		{0x9123683e, "btrfs"},
+		{0x58465342, "xfs"},
+		{0xf2f52010, "f2fs"},
+		{0xca451a4e, "bcachefs"},
+		{zfs_magic, "zfs"},
+		{0x01021994, "tmpfs"},
+		{0x794c7630, "overlayfs"},
+		{0x6969, "nfs"},
+		{0x65735546, "fuse"},
+		{0x5346544e, "ntfs"},
+		{0x2011bab0, "exfat"},
+		{0x4d44, "vfat"},
+		{0x73717368, "squashfs"}}};
+
+	struct statfs st = {};
+	if (::statfs(save_path.c_str(), &st) != 0)
+	{
+		std::cerr << "statfs() failed: " << std::strerror(errno) << " for path: " << save_path
+				  << '\n';
+		return;
+	}
+
+	auto const type = static_cast<std::uint32_t>(st.f_type);
+	std::cout << "filesystem: ";
+	auto const it = std::find_if(
+		known.begin(), known.end(), [&](fs_magic const& m) { return m.magic == type; });
+	std::cout << (it != known.end() ? it->name : "unknown") << '\n';
+
+	if (type == zfs_magic)
+	{
+		std::cout << "WARNING: the ZFS ARC is not cleared between runs, results\n"
+					 "will reflect a warm cache\n";
+	}
+}
+
+bool drop_file_cache(std::string const& filepath)
+{
+	int const fd = ::open(filepath.c_str(), O_RDONLY);
+	if (fd < 0)
+		return false;
+	// POSIX_FADV_DONTNEED does not evict dirty pages
+	bool const ok = ::fdatasync(fd) == 0 && ::posix_fadvise(fd, 0, 0, POSIX_FADV_DONTNEED) == 0;
+	::close(fd);
+	return ok;
+}
+#endif
+
+void drop_caches(std::string const& save_path)
+{
+#ifdef __linux__
+	if (drop_file_cache(save_path + "/" + std::string{test_filename}))
+		return;
+	std::cout << "failed to drop the file cache automatically\n";
+#else
+	(void)save_path;
+#endif
 	std::cout << "drop caches now. e.g. \"echo 1 | sudo tee /proc/sys/vm/drop_caches\"\n";
 	std::cout << "press enter to continue\n";
 
 	char dummy;
 	std::cin.read(&dummy, 1);
+}
+
+milliseconds run_test(std::string const& save_path,
+	std::vector<char> const& torrent_buf,
+	lt::disk_io_constructor_type disk,
+	int const hashing_threads)
+{
+	drop_caches(save_path);
 
 	lt::session_params params;
 	params.disk_io_constructor = disk;
@@ -135,7 +221,7 @@ void run_test(std::string const& save_path, lt::create_flags_t const flags
 	s.set_bool(lt::settings_pack::enable_upnp, false);
 	s.set_bool(lt::settings_pack::enable_natpmp, false);
 	s.set_bool(lt::settings_pack::enable_lsd, false);
-	s.set_int(lt::settings_pack::hashing_threads, 1);
+	s.set_int(lt::settings_pack::hashing_threads, hashing_threads);
 	s.set_int(lt::settings_pack::alert_mask
 		, lt::alert_category::error | lt::alert_category::storage | lt::alert_category::status);
 	s.set_str(lt::settings_pack::listen_interfaces, "");
@@ -164,11 +250,37 @@ void run_test(std::string const& save_path, lt::create_flags_t const flags
 	}
 done:
 	auto const end = lt::clock_type::now();
-	std::cout << "\n\nduration: "
-		<< (std::chrono::duration_cast<milliseconds>(end - start).count() / 1000.)
-		<< "s\n";
+	return std::chrono::duration_cast<milliseconds>(end - start);
 }
 
+struct result
+{
+	char const* torrent;
+	int hashing_threads;
+	// one duration per disk I/O backend, in the same order as the table columns
+	std::vector<milliseconds> durations;
+};
+
+void print_table(std::vector<char const*> const& disk_names, std::vector<result> const& results)
+{
+	std::cout << "\n| torrent | hashing threads |";
+	for (char const* name : disk_names)
+		std::cout << ' ' << name << " (s) |";
+	std::cout << "\n|---|---:|";
+	for (std::size_t i = 0; i < disk_names.size(); ++i)
+		std::cout << "---:|";
+	std::cout << '\n';
+
+	for (auto const& r : results)
+	{
+		std::cout << "| " << r.torrent << " | " << r.hashing_threads << " |";
+		for (auto const d : r.durations)
+		{
+			std::cout << ' ' << std::fixed << std::setprecision(3) << (d.count() / 1000.) << " |";
+		}
+		std::cout << '\n';
+	}
+}
 }
 
 int main(int argc, char const* argv[]) try
@@ -177,20 +289,50 @@ int main(int argc, char const* argv[]) try
 	if (argc > 1)
 		save_path = argv[1];
 
-#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
-	run_test(save_path, lt::create_torrent::v1_only, lt::mmap_disk_io_constructor);
-	std::cout << "v1-only, mmap disk I/O\n\n";
-	run_test(save_path, lt::create_torrent::v2_only, lt::mmap_disk_io_constructor);
-	std::cout << "v2-only, mmap disk I/O\n\n";
-	run_test(save_path, {}, lt::mmap_disk_io_constructor);
-	std::cout << "hybrid, mmap disk I/O\n\n";
+#ifdef __linux__
+	print_filesystem(save_path);
 #endif
-	run_test(save_path, lt::create_torrent::v1_only, lt::posix_disk_io_constructor);
-	std::cout << "v1-only, posix disk I/O\n\n";
-	run_test(save_path, lt::create_torrent::v2_only, lt::posix_disk_io_constructor);
-	std::cout << "v2-only, posix disk I/O\n\n";
-	run_test(save_path, {}, lt::posix_disk_io_constructor);
-	std::cout << "hybrid, posix disk I/O\n\n";
+
+	struct torrent_config
+	{
+		char const* name;
+		lt::create_flags_t flags;
+	};
+	struct disk_config
+	{
+		char const* name;
+		lt::disk_io_constructor_type constructor;
+	};
+	std::array<torrent_config, 3> const torrents{{{"v1-only", lt::create_torrent::v1_only},
+		{"v2-only", lt::create_torrent::v2_only},
+		{"hybrid", {}}}};
+	std::vector<disk_config> const disks{
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
+		{"mmap", lt::mmap_disk_io_constructor},
+#endif
+		{"posix", lt::posix_disk_io_constructor}};
+	constexpr std::array<int, 3> thread_counts{{1, 5, 10}};
+
+	std::vector<char const*> disk_names;
+	for (auto const& disk : disks)
+		disk_names.push_back(disk.name);
+
+	std::vector<result> results;
+	for (auto const& torrent : torrents)
+	{
+		auto const torrent_buf = generate_torrent(7000, save_path, torrent.flags);
+		for (int const threads : thread_counts)
+		{
+			result r{torrent.name, threads, {}};
+			for (auto const& disk : disks)
+			{
+				r.durations.push_back(run_test(save_path, torrent_buf, disk.constructor, threads));
+			}
+			results.push_back(std::move(r));
+		}
+	}
+
+	print_table(disk_names, results);
 }
 catch (lt::system_error const& e)
 {
