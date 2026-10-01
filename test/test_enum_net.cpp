@@ -34,6 +34,32 @@ TORRENT_TEST(is_local)
 	TEST_CHECK(!ec);
 }
 
+TORRENT_TEST(is_local_v4_mapped)
+{
+	error_code ec;
+	// a v4-mapped IPv6 address must be classified by its embedded IPv4
+	// address, otherwise a mapped loopback/private address slips past the
+	// local-address filters in ut_pex and ip_voter
+	TEST_CHECK(is_local(make_address("::ffff:127.0.0.1", ec)));
+	TEST_CHECK(!ec);
+	TEST_CHECK(is_local(make_address("::ffff:10.0.0.1", ec)));
+	TEST_CHECK(!ec);
+	TEST_CHECK(is_local(make_address("::ffff:192.168.1.1", ec)));
+	TEST_CHECK(!ec);
+	TEST_CHECK(!is_local(make_address("::ffff:8.8.8.8", ec)));
+	TEST_CHECK(!ec);
+
+	TEST_CHECK(is_link_local(make_address("::ffff:169.254.1.1", ec)));
+	TEST_CHECK(!ec);
+
+	TEST_CHECK(!is_global(make_address("::ffff:127.0.0.1", ec)));
+	TEST_CHECK(!ec);
+	TEST_CHECK(!is_global(make_address("::ffff:192.168.1.1", ec)));
+	TEST_CHECK(!ec);
+	TEST_CHECK(is_global(make_address("::ffff:8.8.8.8", ec)));
+	TEST_CHECK(!ec);
+}
+
 TORRENT_TEST(match_addr_mask)
 {
 	TEST_CHECK(match_addr_mask(
