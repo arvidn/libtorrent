@@ -494,7 +494,7 @@ namespace {
 						if (!ret.failed.empty() && ret.failed.back().first == piece)
 							ret.failed.back().second.push_back(block);
 						else
-							ret.failed.emplace_back(piece, std::vector<int>{block});
+							ret.failed.emplace_back(piece, std::vector<int>(1, block));
 
 						// now that this hash has been reported as failing, we
 						// can clear it. This will prevent it from being

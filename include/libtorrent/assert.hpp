@@ -114,6 +114,11 @@ extern TORRENT_EXPORT char const* libtorrent_assert_log;
 #define TORRENT_ASSERT_FAIL() assert(false)
 #endif
 
+// a violated invariant fails loudly here, rather than silently invoking
+// undefined behavior through the optimizer hint used below when asserts
+// are compiled out
+#define TORRENT_ASSUME(x) TORRENT_ASSERT(x)
+
 #else // TORRENT_USE_ASSERTS
 
 #define TORRENT_ASSERT_PRECOND_MSG(a, msg) do {} TORRENT_WHILE_0
@@ -126,6 +131,33 @@ extern TORRENT_EXPORT char const* libtorrent_assert_log;
 	TORRENT_WHILE_0
 #define TORRENT_ASSERT_FAIL_VAL(a) do {} TORRENT_WHILE_0
 #define TORRENT_ASSERT_FAIL() do {} TORRENT_WHILE_0
+
+// tells the optimizer that x is always true, undefined behavior otherwise
+#if defined __has_cpp_attribute
+// clang advertises [[assume]] in C++20 mode, but warns that it's an extension
+#if __has_cpp_attribute(assume) >= 202207L && __cplusplus >= 202302L
+#define TORRENT_ASSUME(x) [[assume(x)]]
+#endif
+#endif
+
+#ifndef TORRENT_ASSUME
+#if defined __GNUC__ || defined __clang__
+#define TORRENT_ASSUME(x) \
+	do \
+	{ \
+		if (!(x)) \
+			__builtin_unreachable(); \
+	} \
+	while (false)
+#elif defined _MSC_VER
+#define TORRENT_ASSUME(x) __assume(x)
+#else
+#define TORRENT_ASSUME(x) \
+	do \
+	{} \
+	while (false)
+#endif
+#endif
 
 #endif // TORRENT_USE_ASSERTS
 

@@ -1270,12 +1270,17 @@ void web_peer_connection::incoming_payload(char const* buf, int len)
 		// m_piece may not hold more than the response to the next BT request
 		TORRENT_ASSERT(front_request.length > piece_size);
 		TORRENT_ASSERT(int(m_piece.size()) == m_received_in_piece);
+		if (front_request.length <= piece_size)
+		{
+			disconnect(errors::invalid_piece, operation_t::bittorrent, peer_error);
+			return;
+		}
 
 		// copy_size is the number of bytes we need to add to the end of m_piece
 		// to not exceed the size of the next bittorrent request to be delivered.
 		// m_piece can only hold the response for a single BT request at a time
 		m_piece.resize(piece_size + copy_size);
-		std::memcpy(m_piece.data() + piece_size, buf, aux::numeric_cast<std::size_t>(copy_size));
+		std::memcpy(m_piece.data() + piece_size, buf, std::size_t(copy_size));
 		len -= copy_size;
 		buf += copy_size;
 
@@ -1340,8 +1345,12 @@ void web_peer_connection::maybe_harvest_piece()
 	peer_request const req = m_requests.front();
 	m_requests.pop_front();
 
-	incoming_piece(req, m_piece.data());
+	// m_piece must not hold the completed block while incoming_piece() runs,
+	// otherwise a disconnect() from within it would save the block as restart
+	// data for the next request
+	auto const piece = std::move(m_piece);
 	m_piece.clear();
+	incoming_piece(req, piece.data());
 }
 
 void web_peer_connection::get_specific_peer_info(peer_info& p) const
@@ -1380,6 +1389,11 @@ void web_peer_connection::handle_padfile()
 		{
 			peer_request const front_request = m_requests.front();
 			TORRENT_ASSERT(int(m_piece.size()) < front_request.length);
+			if (int(m_piece.size()) >= front_request.length)
+			{
+				disconnect(errors::invalid_piece, operation_t::bittorrent, peer_error);
+				return;
+			}
 
 			int pad_size = int(std::min(file_size
 					, front_request.length - std::int64_t(m_piece.size())));
@@ -1387,6 +1401,8 @@ void web_peer_connection::handle_padfile()
 			file_size -= pad_size;
 
 			incoming_zeroes(pad_size);
+			if (is_disconnecting())
+				return;
 
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log(peer_log_alert::info))
