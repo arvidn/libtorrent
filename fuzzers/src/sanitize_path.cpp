@@ -7,7 +7,7 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
-#include "libtorrent/torrent_info.hpp"
+#include "libtorrent/aux_/sanitize_path_element.hpp"
 #include "libtorrent/path_sanitize_flags.hpp"
 #include "path_sanitize_rulesets.hpp"
 

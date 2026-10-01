@@ -249,6 +249,7 @@ set(libtorrent_aux_include_files
 	resolver_interface.hpp
 	rtc_signaling.hpp
 	rtc_stream.hpp
+	sanitize_path_element.hpp
 	scope_end.hpp
 	session_call.hpp
 	session_impl.hpp
@@ -412,6 +413,7 @@ set(sources
 	resolver.cpp
 	rtc_signaling.cpp
 	rtc_stream.cpp
+	sanitize_path_element.cpp
 	session.cpp
 	session_call.cpp
 	session_handle.cpp

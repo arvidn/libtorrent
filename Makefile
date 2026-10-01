@@ -404,6 +404,7 @@ SOURCES = \
   resolve_duplicate_filenames.cpp \
   resolve_links.cpp               \
   resolver.cpp                    \
+  sanitize_path_element.cpp       \
   session.cpp                     \
   session_call.cpp                \
   session_handle.cpp              \
@@ -666,6 +667,7 @@ HEADERS = \
   aux_/resolver.hpp                 \
   aux_/resolver_interface.hpp       \
   aux_/route.h                      \
+  aux_/sanitize_path_element.hpp    \
   aux_/scope_end.hpp                \
   aux_/session_call.hpp             \
   aux_/session_impl.hpp             \
@@ -985,6 +987,7 @@ TEST_SOURCES = \
   test_resolve_links.cpp \
   test_resume.cpp \
   test_rtc.cpp \
+  test_sanitize_path_element.cpp \
   test_sanitizer.cpp \
   test_session.cpp \
   test_session_params.cpp \

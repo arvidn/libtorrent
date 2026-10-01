@@ -58,7 +58,7 @@ namespace {
 			|| idx == aux::path_element::no_root_dir;
 	}
 
-	// sanitize_path_element() (torrent_info.cpp) always strips '/', '\'
+	// sanitize_path_element() always strips '/', '\'
 	// and '\0' out of a path element parsed from a .torrent file, so a
 	// path_index_t never legitimately names more than one tree
 	// component. A caller-supplied replacement name is held to the same

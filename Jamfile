@@ -890,6 +890,7 @@ SOURCES =
 	receive_buffer
 	resolve_links
 	resolve_duplicate_filenames
+	sanitize_path_element
 	session
 	session_params
 	session_handle
