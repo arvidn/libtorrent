@@ -39,6 +39,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstring>
 #include <iomanip>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #ifdef __linux__
@@ -54,15 +55,16 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/mmap_disk_io.hpp"
 #include "libtorrent/posix_disk_io.hpp"
+#include "libtorrent/pread_disk_io.hpp"
 
 #include "libtorrent/aux_/path.hpp"
 
-using namespace std::literals::chrono_literals;
+using namespace std::literals;
 using std::chrono::milliseconds;
 
 namespace {
 
-constexpr char const* test_filename = "test_checking_file";
+constexpr std::string_view test_filename = "test_checking_file"sv;
 
 void generate_block_fill(lt::span<char> buf, std::uint64_t& state)
 {
@@ -80,8 +82,8 @@ void generate_block_fill(lt::span<char> buf, std::uint64_t& state)
 	}
 }
 
-std::vector<char> generate_torrent(int num_pieces, std::string save_path
-	, lt::create_flags_t const flags)
+std::vector<char> generate_torrent(
+	int num_pieces, std::string const& save_path, lt::create_flags_t const flags)
 {
 	// 1 MiB piece size
 	const int piece_size = 1024 * 1024;
@@ -140,7 +142,7 @@ void print_filesystem(std::string const& save_path)
 	struct fs_magic
 	{
 		std::uint32_t magic;
-		char const* name;
+		std::string_view name;
 	};
 	// these are the f_type values from statfs(2)
 	constexpr std::array<fs_magic, 14> known{{{0xef53, "ext2/3/4"},
@@ -170,7 +172,7 @@ void print_filesystem(std::string const& save_path)
 	std::cout << "filesystem: ";
 	auto const it = std::find_if(
 		known.begin(), known.end(), [&](fs_magic const& m) { return m.magic == type; });
-	std::cout << (it != known.end() ? it->name : "unknown") << '\n';
+	std::cout << (it != known.end() ? it->name : "unknown"sv) << '\n';
 
 	if (type == zfs_magic)
 	{
@@ -255,16 +257,17 @@ done:
 
 struct result
 {
-	char const* torrent;
+	std::string_view torrent;
 	int hashing_threads;
 	// one duration per disk I/O backend, in the same order as the table columns
 	std::vector<milliseconds> durations;
 };
 
-void print_table(std::vector<char const*> const& disk_names, std::vector<result> const& results)
+void print_table(
+	std::vector<std::string_view> const& disk_names, std::vector<result> const& results)
 {
 	std::cout << "\n| torrent | hashing threads |";
-	for (char const* name : disk_names)
+	for (std::string_view const name : disk_names)
 		std::cout << ' ' << name << " (s) |";
 	std::cout << "\n|---|---:|";
 	for (std::size_t i = 0; i < disk_names.size(); ++i)
@@ -295,12 +298,12 @@ int main(int argc, char const* argv[]) try
 
 	struct torrent_config
 	{
-		char const* name;
+		std::string_view name;
 		lt::create_flags_t flags;
 	};
 	struct disk_config
 	{
-		char const* name;
+		std::string_view name;
 		lt::disk_io_constructor_type constructor;
 	};
 	std::array<torrent_config, 3> const torrents{{{"v1-only", lt::create_torrent::v1_only},
@@ -310,10 +313,11 @@ int main(int argc, char const* argv[]) try
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 		{"mmap", lt::mmap_disk_io_constructor},
 #endif
-		{"posix", lt::posix_disk_io_constructor}};
+		{"posix", lt::posix_disk_io_constructor},
+		{"pread", lt::pread_disk_io_constructor}};
 	constexpr std::array<int, 3> thread_counts{{1, 5, 10}};
 
-	std::vector<char const*> disk_names;
+	std::vector<std::string_view> disk_names;
 	for (auto const& disk : disks)
 		disk_names.push_back(disk.name);
 
