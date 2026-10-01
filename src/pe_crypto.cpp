@@ -128,13 +128,15 @@ namespace libtorrent::aux {
 		std::array<char, 96> ret;
 		auto* begin = reinterpret_cast<unsigned char*>(ret.data());
 		int const len = BN_bn2bin(k.get(), begin);
+		// the key is smaller than the 768 bit prime
+		TORRENT_ASSUME(len >= 0 && len <= 96);
 
 		// TODO: it would be nice to be able to export to a fixed width field, so
 		// we wouldn't have to shift it later
 		if (len < 96)
 		{
-			std::memmove(begin + 96 - len, begin, aux::numeric_cast<std::size_t>(len));
-			std::memset(begin, 0, aux::numeric_cast<std::size_t>(96 - len));
+			std::memmove(begin + 96 - len, begin, std::size_t(len));
+			std::memset(begin, 0, std::size_t(96 - len));
 		}
 		return ret;
 	}
@@ -224,20 +226,15 @@ namespace libtorrent::aux {
 		std::array<char, 96> ret;
 		auto* begin = reinterpret_cast<std::uint8_t*>(ret.data());
 		std::uint8_t* end = mp::export_bits(k, begin, 8);
+		// export_bits() never writes before begin, or past the 96-byte buffer
+		TORRENT_ASSUME(begin <= end && end <= begin + 96);
 
 		// TODO: it would be nice to be able to export to a fixed width field, so
 		// we wouldn't have to shift it later
 		if (end < begin + 96)
 		{
 			int const len = int(end - begin);
-#if defined __GNUC__ && __GNUC__ == 12
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wstringop-overflow"
-#endif
 			std::memmove(begin + 96 - len, begin, aux::numeric_cast<std::size_t>(len));
-#if defined __GNUC__ && __GNUC__ == 12
-#pragma GCC diagnostic pop
-#endif
 			std::memset(begin, 0, aux::numeric_cast<std::size_t>(96 - len));
 		}
 		return ret;

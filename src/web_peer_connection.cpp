@@ -1290,7 +1290,7 @@ void web_peer_connection::incoming_payload(char const* buf, int len)
 		// to not exceed the size of the next bittorrent request to be delivered.
 		// m_piece can only hold the response for a single BT request at a time
 		m_piece.resize(piece_size + copy_size);
-		std::memcpy(m_piece.data() + piece_size, buf, aux::numeric_cast<std::size_t>(copy_size));
+		std::memcpy(m_piece.data() + piece_size, buf, std::size_t(copy_size));
 		len -= copy_size;
 		buf += copy_size;
 

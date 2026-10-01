@@ -644,17 +644,13 @@ restart_response:
 				// invalid chunk header. Return the body we've parsed out so far
 				return buffer.first(write_ptr - buffer.data());
 			}
-			span<char> chunk = buffer.subspan(
-				aux::numeric_cast<std::ptrdiff_t>(chunk_start - offset)
-				, aux::numeric_cast<std::ptrdiff_t>(chunk_end - chunk_start));
-#if defined __GNUC__ && __GNUC__ >= 7
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wstringop-overflow"
-#endif
+			// incoming() only records chunk ranges at or after m_body_start_pos
+			// (== offset here), and only for a strictly positive chunk_size
+			TORRENT_ASSUME(chunk_start >= offset && chunk_end > chunk_start);
+			span<char> chunk =
+				buffer.subspan(aux::numeric_cast<std::ptrdiff_t>(chunk_start - offset),
+					aux::numeric_cast<std::ptrdiff_t>(chunk_end - chunk_start));
 			std::memmove(write_ptr, chunk.data(), std::size_t(chunk.size()));
-#if defined __GNUC__ && __GNUC__ >= 7
-#pragma GCC diagnostic pop
-#endif
 			write_ptr += chunk.size();
 		}
 		return buffer.first(write_ptr - buffer.data());

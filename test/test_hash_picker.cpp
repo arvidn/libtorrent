@@ -637,7 +637,12 @@ TORRENT_TEST(bad_block_hash)
 	aux::add_hashes_result result = picker.add_hashes(aux::hash_request(0_file, 0, 0, 512, 10)
 		, hashes);
 	TEST_CHECK(result.valid);
-	TEST_CHECK((result.hash_failed == std::vector<std::pair<piece_index_t, std::vector<int>>>{{1_piece, {0}}}));
+	TEST_EQUAL(result.hash_failed.size(), 1);
+	if (result.hash_failed.size() == 1)
+	{
+		TEST_EQUAL(result.hash_failed[0].first, 1_piece);
+		TEST_CHECK(result.hash_failed[0].second == std::vector<int>{0});
+	}
 }
 
 TORRENT_TEST(set_block_hash)

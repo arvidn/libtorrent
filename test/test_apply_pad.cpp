@@ -11,6 +11,8 @@ see LICENSE file.
 #include "test_utils.hpp"
 #include "libtorrent/aux_/apply_pad_files.hpp"
 
+#include <utility>
+
 using namespace lt;
 
 namespace {
@@ -23,8 +25,8 @@ struct piece_byte
 
 struct expect_calls
 {
-	expect_calls(std::vector<piece_byte> const& calls)
-		: m_calls(calls)
+	expect_calls(std::vector<piece_byte> calls)
+		: m_calls(std::move(calls))
 	{}
 
 	void operator()(piece_index_t const piece, int const bytes)

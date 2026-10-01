@@ -306,9 +306,6 @@ rule warnings ( properties * )
 		result += <cflags>-Wpedantic ;
 		result += <cflags>-Wvla ;
 		result += <cxxflags>-Wno-error=noexcept-type ;
-		# these warnings seem to have a lot of false positives
-		result += <cxxflags>-Wno-error=stringop-overflow ;
-		result += <cxxflags>-Wno-error=array-bounds ;
 		if <target-os>windows in $(properties)
 		{
 			# mingw has false positives for this warning, on both 32 and 64
