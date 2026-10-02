@@ -63,6 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/kademlia/dht_observer.hpp"
 #include "libtorrent/kademlia/dht_tracker.hpp"
 
+#include <limits>
 #include <numeric>
 #include <cstdarg>
 #include <tuple>
@@ -3566,7 +3567,14 @@ TORRENT_TEST(generate_prefix_mask)
 		{  11, "ffe0000000000000000000000000000000000000" },
 		{  17, "ffff800000000000000000000000000000000000" },
 		{  37, "fffffffff8000000000000000000000000000000" },
+		{   8, "ff00000000000000000000000000000000000000" },
+		{ 159, "fffffffffffffffffffffffffffffffffffffffe" },
 		{ 160, "ffffffffffffffffffffffffffffffffffffffff" },
+		// out of range values are clamped to a full mask
+		{ 161, "ffffffffffffffffffffffffffffffffffffffff" },
+		{ 168, "ffffffffffffffffffffffffffffffffffffffff" },
+		{ 1000, "ffffffffffffffffffffffffffffffffffffffff" },
+		{ std::numeric_limits<int>::max(), "ffffffffffffffffffffffffffffffffffffffff" },
 	};
 
 	for (auto const& i : test)
