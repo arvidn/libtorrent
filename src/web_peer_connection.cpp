@@ -237,8 +237,8 @@ void web_peer_connection::disconnect(error_code const& ec
 
 	auto t = associated_torrent().lock();
 
-	if (!m_requests.empty() && !m_file_requests.empty()
-		&& !m_piece.empty() && m_web)
+	if (!m_requests.empty() && !m_file_requests.empty() && !m_piece.empty() && m_web
+		&& int(m_piece.size()) < m_requests.front().length)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::info))
@@ -809,6 +809,8 @@ void web_peer_connection::on_receive(error_code const& error
 	span<char const> recv_buffer = m_recv_buffer.get();
 	handle_padfile();
 	if (associated_torrent().expired()) return;
+	if (is_disconnecting())
+		return;
 
 	for (;;)
 	{
@@ -1008,6 +1010,8 @@ void web_peer_connection::on_receive(error_code const& error
 						return;
 					}
 					incoming_payload(recv_buffer.data(), copy_size);
+					if (is_disconnecting())
+						return;
 
 					recv_buffer = recv_buffer.subspan(copy_size);
 					m_chunk_pos -= copy_size;
@@ -1095,6 +1099,8 @@ void web_peer_connection::on_receive(error_code const& error
 					// in between each file request, there may be an implicit
 					// pad-file request
 					handle_padfile();
+					if (is_disconnecting())
+						return;
 					break;
 				}
 
@@ -1110,6 +1116,8 @@ void web_peer_connection::on_receive(error_code const& error
 			int const copy_size = std::min(file_req.length - m_received_body
 				, int(recv_buffer.size()));
 			incoming_payload(recv_buffer.data(), copy_size);
+			if (is_disconnecting())
+				return;
 			recv_buffer = recv_buffer.subspan(copy_size);
 
 			TORRENT_ASSERT(m_received_body <= file_req.length);
@@ -1126,6 +1134,8 @@ void web_peer_connection::on_receive(error_code const& error
 				// in between each file request, there may be an implicit
 				// pad-file request
 				handle_padfile();
+				if (is_disconnecting())
+					return;
 			}
 		}
 
@@ -1166,6 +1176,11 @@ void web_peer_connection::incoming_payload(char const* buf, int len)
 		// m_piece may not hold more than the response to the next BT request
 		TORRENT_ASSERT(front_request.length > piece_size);
 		TORRENT_ASSERT(int(m_piece.size()) == m_received_in_piece);
+		if (front_request.length <= piece_size)
+		{
+			disconnect(errors::invalid_piece, operation_t::bittorrent, peer_error);
+			return;
+		}
 
 		// copy_size is the number of bytes we need to add to the end of m_piece
 		// to not exceed the size of the next bittorrent request to be delivered.
@@ -1180,6 +1195,8 @@ void web_peer_connection::incoming_payload(char const* buf, int len)
 
 		TORRENT_ASSERT(front_request.length >= piece_size);
 		maybe_harvest_piece();
+		if (is_disconnecting())
+			return;
 	}
 }
 
@@ -1237,8 +1254,12 @@ void web_peer_connection::maybe_harvest_piece()
 	peer_request const req = m_requests.front();
 	m_requests.pop_front();
 
-	incoming_piece(req, m_piece.data());
+	// m_piece must not hold the completed block while incoming_piece() runs,
+	// otherwise a disconnect() from within it would save the block as restart
+	// data for the next request
+	auto const piece = std::move(m_piece);
 	m_piece.clear();
+	incoming_piece(req, piece.data());
 }
 
 void web_peer_connection::get_specific_peer_info(peer_info& p) const
@@ -1271,6 +1292,11 @@ void web_peer_connection::handle_padfile()
 		{
 			peer_request const front_request = m_requests.front();
 			TORRENT_ASSERT(int(m_piece.size()) < front_request.length);
+			if (int(m_piece.size()) >= front_request.length)
+			{
+				disconnect(errors::invalid_piece, operation_t::bittorrent, peer_error);
+				return;
+			}
 
 			int pad_size = int(std::min(file_size
 					, front_request.length - std::int64_t(m_piece.size())));
@@ -1278,6 +1304,8 @@ void web_peer_connection::handle_padfile()
 			file_size -= pad_size;
 
 			incoming_zeroes(pad_size);
+			if (is_disconnecting())
+				return;
 
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log(peer_log_alert::info))
