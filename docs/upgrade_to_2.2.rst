@@ -73,9 +73,11 @@ Also new, and part of ``default_flags``, is
 deduplication, it runs once the file layout has already been parsed, but it
 resolves collisions against each path element's own siblings rather than
 comparing full file paths. Unlike the existing deduplication, it also
-renames directories that collide case-insensitively with a sibling instead
-of silently folding them together, and disambiguates with a ``-N`` suffix
-rather than ``.N``.
+renames directories that collide with a sibling instead of silently folding
+them together, and disambiguates with a ``-N`` suffix rather than ``.N``.
+Both compare names case-insensitively as long as
+``path_sanitize_flags::case_insensitive_deduplication`` (described below)
+is set.
 
 The existing deduplication, which compares full file paths, is now
 controlled by its own bit, ``path_sanitize_flags::deduplicate_full_path``,
@@ -89,6 +91,21 @@ not resolved at all.
   disk, overwriting each other's data. Build custom rulesets by adding to or
   removing from one of the ``libtorrent_M_N`` constants, rather than
   starting from zero.
+
+Whether the deduplication passes compare names case-insensitively is also
+controlled by a bit, ``path_sanitize_flags::case_insensitive_deduplication``,
+which is part of every versioned ruleset. Clearing it makes them compare
+names exactly, so files whose names only differ by case (e.g.
+``Notes.txt`` and ``notes.txt``) are not renamed.
+
+.. warning::
+  Keep ``case_insensitive_deduplication`` set on Windows and macOS. Their
+  default filesystems are case-insensitive, so two files whose names only
+  differ by case are the same file on disk, and overwrite each other's data
+  unless one of them is renamed. The same applies to case-insensitive
+  filesystems on other platforms, such as FAT-formatted drives or network
+  shares. Only clear it when the save path is known to be on a
+  case-sensitive filesystem.
 
 The ruleset that was actually in effect in earlier releases is preserved
 under versioned names, ``path_sanitize_flags::libtorrent_2_0`` and

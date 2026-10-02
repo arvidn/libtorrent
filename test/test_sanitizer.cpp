@@ -83,10 +83,12 @@ std::string lower_case(std::string s)
 // dots/spaces, two distinct groups of duplicate filenames colliding
 // with each other's disambiguated names in the same directory, and two
 // such groups whose disambiguated names only differ from each other by
-// case.
+// case, and a duplicate whose disambiguated names are already taken, one
+// in the same case and one in a different case.
 //
 // Each test case below is expressed as a delta against the baseline (only
-// deduplicate_full_path set) rather than repeating the full file list: only the
+// deduplicate_full_path and case_insensitive_deduplication set) rather than
+// repeating the full file list: only the
 // handful of entries a given flag combination actually changes are listed, by
 // index into the baseline below. Loading the torrent under every flag in
 // isolation, and with all of them together, locks in exactly which rule fires
@@ -186,6 +188,10 @@ TORRENT_TEST(sanitize_limits_combinations)
 		"sanitizer_test/case_cross_group_dedup/widget.1", // 74
 		"sanitizer_test/case_cross_group_dedup/WIDGET-3", // 75
 		"sanitizer_test/case_cross_group_dedup/Widget-3.1", // 76
+		"sanitizer_test/case_candidates/foo.1.TXT", // 77
+		"sanitizer_test/case_candidates/FOO-1.TXT", // 78
+		"sanitizer_test/case_candidates/foo.TXT", // 79
+		"sanitizer_test/case_candidates/foo.2.TXT", // 80
 	};
 
 	std::vector<override_t> const unicode_length_override = {
@@ -406,8 +412,7 @@ TORRENT_TEST(sanitize_limits_combinations)
 		{48, "sanitizer_test/reserved_collision/con_-1"},
 	};
 
-	// with neither deduplication bit set, every entry the full-path pass
-	// renames in the baseline keeps its raw name, colliding with its sibling
+	// every entry the baseline renames, back to its raw, colliding name
 	std::vector<override_t> const no_dedup_overrides = {
 		{39, "sanitizer_test/duplicates/readme.txt"},
 		{41, "sanitizer_test/duplicates/notes.txt"},
@@ -420,15 +425,48 @@ TORRENT_TEST(sanitize_limits_combinations)
 		{72, "sanitizer_test/whole_tree_dedup/beta.1.txt"},
 		{74, "sanitizer_test/case_cross_group_dedup/widget"},
 		{76, "sanitizer_test/case_cross_group_dedup/Widget-3"},
+		{80, "sanitizer_test/case_candidates/foo.TXT"},
+	};
+
+	// the baseline renames these only because of a case-only collision.
+	// Entry 80 is not one of them: its first candidate, "foo.1.TXT", is
+	// taken by entry 77 in the same case. The upper-case extension makes
+	// its case-insensitive hash differ from its case-sensitive one
+	std::vector<override_t> const case_sensitive_overrides = {
+		{41, "sanitizer_test/duplicates/notes.txt"},
+		{45, "sanitizer_test/docs/same.txt"},
+		{76, "sanitizer_test/case_cross_group_dedup/Widget-3"},
+	};
+
+	// entry 80's first per-directory candidate, "foo-1.TXT", is taken by
+	// entry 78 only by case. The names are chosen to sort the same
+	// case-sensitively and case-insensitively, so a case-insensitive
+	// lookup in the case-sensitively sorted siblings would find entry 78
+	std::vector<override_t> const per_directory_case_candidates_override = {
+		{80, "sanitizer_test/case_candidates/foo-2.TXT"},
+	};
+
+	// applied on top of the case-insensitive per-directory overrides.
+	// "Docs" and "docs" no longer collide, so only the file "docs" (entry
+	// 46) is renamed, skipping the taken "docs-1"
+	std::vector<override_t> const case_sensitive_per_directory_overrides = {
+		{41, "sanitizer_test/duplicates/notes.txt"},
+		{43, "sanitizer_test/docs/notes.txt"},
+		{45, "sanitizer_test/docs/same.txt"},
+		{46, "sanitizer_test/docs-2"},
+		{76, "sanitizer_test/case_cross_group_dedup/Widget-3"},
+		{80, "sanitizer_test/case_candidates/foo-1.TXT"},
 	};
 
 	// the baseline above is resolved by the full-path pass, so every
 	// single-rule case below keeps it on, to isolate that rule's effect
-	path_sanitize_flags_t const full_path = path_sanitize_flags::deduplicate_full_path;
+	path_sanitize_flags_t const full_path = path_sanitize_flags::deduplicate_full_path
+		| path_sanitize_flags::case_insensitive_deduplication;
 
 	sanitize_test_case const cases[] = {
 		{"none", path_sanitize_flags_t{}, no_dedup_overrides},
 		{"deduplicate_full_path", full_path, {}},
+		{"case_sensitive", path_sanitize_flags::deduplicate_full_path, case_sensitive_overrides},
 		{"limit_unicode_characters",
 			full_path | path_sanitize_flags::limit_unicode_characters,
 			unicode_length_override},
@@ -451,13 +489,25 @@ TORRENT_TEST(sanitize_limits_combinations)
 			full_path | path_sanitize_flags::filter_unicode_formatting_chars,
 			concat({formatting_hidden_override, dotdot_fmt_override, formatting_overrides})},
 		{"deduplicate_per_directory",
+			path_sanitize_flags::deduplicate_per_directory
+				| path_sanitize_flags::case_insensitive_deduplication,
+			concat({docs_dedup_override,
+				dup_ctrl_override,
+				per_directory_dup_override,
+				cross_group_dedup_override,
+				whole_tree_dedup_override,
+				case_cross_group_dedup_override,
+				per_directory_case_candidates_override})},
+		{"deduplicate_per_directory_case_sensitive",
 			path_sanitize_flags::deduplicate_per_directory,
 			concat({docs_dedup_override,
 				dup_ctrl_override,
 				per_directory_dup_override,
 				cross_group_dedup_override,
 				whole_tree_dedup_override,
-				case_cross_group_dedup_override})},
+				case_cross_group_dedup_override,
+				per_directory_case_candidates_override,
+				case_sensitive_per_directory_overrides})},
 		{"deduplicate_per_directory_and_full_path",
 			full_path | path_sanitize_flags::deduplicate_per_directory,
 			concat({docs_dedup_override,
@@ -465,7 +515,8 @@ TORRENT_TEST(sanitize_limits_combinations)
 				per_directory_dup_override,
 				cross_group_dedup_override,
 				whole_tree_dedup_override,
-				case_cross_group_dedup_override})},
+				case_cross_group_dedup_override,
+				per_directory_case_candidates_override})},
 		{"all",
 			path_sanitize_flags::all,
 			concat({unicode_length_override,
@@ -482,7 +533,8 @@ TORRENT_TEST(sanitize_limits_combinations)
 				per_directory_reserved_collision_override,
 				cross_group_dedup_override,
 				whole_tree_dedup_override,
-				case_cross_group_dedup_override})},
+				case_cross_group_dedup_override,
+				per_directory_case_candidates_override})},
 	};
 
 	std::string const filename = combine_path(
@@ -508,6 +560,8 @@ TORRENT_TEST(sanitize_limits_combinations)
 		auto const& fs = atp.ti->layout();
 		TEST_EQUAL(fs.num_files(), int(expected.size()));
 
+		bool const case_sensitive =
+			!(c.flags & path_sanitize_flags::case_insensitive_deduplication);
 		bool const deduplicated = bool(c.flags
 			& (path_sanitize_flags::deduplicate_full_path
 				| path_sanitize_flags::deduplicate_per_directory));
@@ -555,10 +609,10 @@ TORRENT_TEST(sanitize_limits_combinations)
 			if (fs.pad_file_at(i) || !deduplicated)
 				continue;
 
-			auto const ins = seen.emplace(lower_case(path), i);
+			auto const ins = seen.emplace(case_sensitive ? path : lower_case(path), i);
 			if (!ins.second)
 			{
-				std::printf("duplicate resolved path (case-insensitive): \"%s\" "
+				std::printf("duplicate resolved path: \"%s\" "
 							"for file %d and file %d\n",
 					path.c_str(),
 					int(ins.first->second),
@@ -595,10 +649,10 @@ TORRENT_TEST(sanitize_limits_combinations)
 				if (ti2.files().pad_file_at(i) || !deduplicated)
 					continue;
 
-				auto const ins = seen2.emplace(lower_case(path), i);
+				auto const ins = seen2.emplace(case_sensitive ? path : lower_case(path), i);
 				if (!ins.second)
 				{
-					std::printf("duplicate resolved path (case-insensitive) via "
+					std::printf("duplicate resolved path via "
 								"the deprecated torrent_info ctor: \"%s\" for "
 								"file %d and file %d\n",
 						path.c_str(),

@@ -39,13 +39,27 @@ namespace {
 		path_index_t dir;
 	};
 
+	bool is_case_sensitive(load_torrent_limits const& cfg)
+	{
+		return !(cfg.sanitize_flags & path_sanitize_flags::case_insensitive_deduplication);
+	}
+
+	int compare_names(string_view const lhs, string_view const rhs, bool const case_sensitive)
+	{
+		return case_sensitive ? lhs.compare(rhs) : string_compare_no_case(lhs, rhs);
+	}
 	}
 
 	std::map<file_index_t, std::string> resolve_duplicate_filenames_slow(file_storage const& fs,
 		aux::vector<std::uint32_t, path_index_t> const& eh,
 		int const max_duplicate_filenames,
+		bool const case_sensitive,
 		error_code& ec)
 	{
+		auto const names_equal = [case_sensitive](string_view const lhs, string_view const rhs) {
+			return case_sensitive ? lhs == rhs : aux::string_equal_no_case(lhs, rhs);
+		};
+
 		// maps filename hash to either a file index or (if idx is negative) a
 		// directory, to make sure no files are allowed to collide with them
 		std::unordered_multimap<std::uint32_t, name_entry> files;
@@ -57,8 +71,9 @@ namespace {
 		// checking for an existing entry is correct, not just convenient.
 		// The parser's dedup cache (cached_directory() in
 		// torrent_info.cpp) keys a directory by its raw, unsanitized text,
-		// while this hash is computed from the sanitized, lowercased text,
-		// so two raw strings that only differ in case, or that sanitize
+		// while this hash is computed from the sanitized (and, unless
+		// case-sensitive, lowercased) text, so two raw strings that only
+		// differ in case, or that sanitize
 		// to the same result (e.g. two different characters the sanitizer
 		// both replace with '_'), get distinct path_elements with an
 		// identical hash. That's harmless: two directories folding
@@ -148,12 +163,11 @@ namespace {
 					// directories are never renamed, so the idx < 0 branch
 					// needs no such check.
 					if (o.second.idx < file_index_t{})
-						return aux::string_equal_no_case(
-							fs.internal_directory_path(o.second.dir), this_name);
+						return names_equal(fs.internal_directory_path(o.second.dir), this_name);
 					auto const renamed = ret.find(o.second.idx);
 					return renamed != ret.end()
-						? aux::string_equal_no_case(renamed->second, this_name)
-						: aux::string_equal_no_case(fs.file_path(o.second.idx), this_name);
+						? names_equal(renamed->second, this_name)
+						: names_equal(fs.file_path(o.second.idx), this_name);
 				});
 
 			if (match == range.second)
@@ -173,8 +187,9 @@ namespace {
 				std::snprintf(new_ext, sizeof(new_ext), ".%d%s", cnt, ext.c_str());
 				filename = base + new_ext;
 
-				std::uint32_t const new_hash =
-					aux::crc32c_finish(aux::crc32c_mix_lowercase(aux::crc32c_init, filename));
+				std::uint32_t const new_hash = aux::crc32c_finish(case_sensitive
+						? aux::crc32c_mix(aux::crc32c_init, filename)
+						: aux::crc32c_mix_lowercase(aux::crc32c_init, filename));
 				if (files.find(new_hash) == files.end())
 				{
 					files.insert({new_hash, {i, path_index_t{}}});
@@ -193,18 +208,17 @@ namespace {
 	}
 
 	std::map<file_index_t, std::string> resolve_duplicate_filenames(
-		file_storage const& fs
-		, int const max_duplicate_filenames
-		, error_code& ec)
+		file_storage const& fs, load_torrent_limits const& cfg, error_code& ec)
 	{
 		// has_duplicate_filenames() always hashes the whole path tree, even
 		// once it's found a collision, since resolve_duplicate_filenames_slow()
 		// below needs every file's and directory's hash to find and rename
 		// all conflicts, not just the first one.
-		auto eh = fs.has_duplicate_filenames();
+		bool const cs = is_case_sensitive(cfg);
+		auto eh = fs.has_duplicate_filenames(cs);
 		if (!eh)
 			return {};
-		return resolve_duplicate_filenames_slow(fs, *eh, max_duplicate_filenames, ec);
+		return resolve_duplicate_filenames_slow(fs, *eh, cfg.max_duplicate_filenames, cs, ec);
 	}
 
 	namespace {
@@ -291,7 +305,8 @@ namespace {
 	{
 		std::map<path_index_t, std::string> ret;
 
-		aux::vector<std::uint32_t, path_index_t> const eh = fs.compute_element_hashes();
+		bool const cs = is_case_sensitive(cfg);
+		aux::vector<std::uint32_t, path_index_t> const eh = fs.compute_element_hashes(cs);
 		if (!has_collision(eh))
 			return ret;
 
@@ -311,10 +326,10 @@ namespace {
 		// makes group_begin, below, deterministically the earliest-created
 		// member of a colliding group, deciding which one keeps its name.
 		std::sort(
-			entries.begin(), entries.end(), [](combined_entry const& a, combined_entry const& b) {
+			entries.begin(), entries.end(), [cs](combined_entry const& a, combined_entry const& b) {
 				if (a.parent != b.parent)
 					return a.parent < b.parent;
-				int const c = string_compare_no_case(a.name, b.name);
+				int const c = compare_names(a.name, b.name, cs);
 				if (c != 0)
 					return c < 0;
 				return a.self < b.self;
@@ -332,7 +347,7 @@ namespace {
 			path_index_t const parent = entries[i].parent;
 			string_view const group_name = entries[i].name;
 			while (i < entries.size() && entries[i].parent == parent
-				&& string_compare_no_case(entries[i].name, group_name) == 0)
+				&& compare_names(entries[i].name, group_name, cs) == 0)
 				++i;
 			std::size_t const group_end = i;
 
@@ -348,11 +363,10 @@ namespace {
 				auto const it = std::lower_bound(parent_range.first,
 					parent_range.second,
 					candidate,
-					[](combined_entry const& e, string_view const cand) {
-						return string_compare_no_case(e.name, cand) < 0;
+					[cs](combined_entry const& e, string_view const cand) {
+						return compare_names(e.name, cand, cs) < 0;
 					});
-				return it != parent_range.second
-					&& string_compare_no_case(it->name, candidate) == 0;
+				return it != parent_range.second && compare_names(it->name, candidate, cs) == 0;
 			};
 
 			// group_begin (the earliest-created member) keeps its name;

@@ -40,9 +40,12 @@ constexpr std::uint32_t crc32c_finish(std::uint32_t const state) { return state 
 // mixes a single byte into a running crc32c state
 TORRENT_EXTRA_EXPORT std::uint32_t crc32c_mix(std::uint32_t state, std::uint8_t byte);
 
+// case-sensitive counterpart of crc32c_mix_lowercase()
+TORRENT_EXTRA_EXPORT std::uint32_t crc32c_mix(std::uint32_t state, string_view str);
+
 // mixes str into a running crc32c state, lower-casing each character
 // first. Used for path element hashing (duplicate filename
-// resolution), where names must compare case-insensitively.
+// resolution) when names compare case-insensitively.
 TORRENT_EXTRA_EXPORT std::uint32_t crc32c_mix_lowercase(std::uint32_t state, string_view str);
 }
 

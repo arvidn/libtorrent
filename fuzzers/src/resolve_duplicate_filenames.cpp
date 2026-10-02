@@ -11,7 +11,8 @@ see LICENSE file.
 // aux::resolve_directory_duplicates() (the deduplicate_per_directory
 // pass) against the same generated file tree, checking each upholds its
 // own uniqueness invariant. Pad files are excluded, since same-size pad
-// files are intentionally allowed to alias.
+// files are intentionally allowed to alias. Each tree is checked twice,
+// with and without path_sanitize_flags::case_insensitive_deduplication.
 //
 // Input decodes into a small number of files from a tiny shared
 // name/extension alphabet, rather than raw path bytes. Extensions shaped
@@ -23,6 +24,7 @@ see LICENSE file.
 #include <array>
 #include <cstdint>
 #include <cstdlib>
+#include <initializer_list>
 #include <map>
 #include <set>
 #include <string>
@@ -44,11 +46,16 @@ namespace {
 // next_dedup_candidate()), so a small mutation can land a literal name on
 // an already-generated candidate instead of relying on chance, mirroring
 // what the ".1"/".2" extensions below do for resolve_duplicate_filenames().
-std::array<char const*, 9> const names = {
-	"a", "b", "A.b", "temp", "TMP", "a-1", "b-1", "temp-1", "TMP-1"};
+// "A" and "Temp" are case-only variants of "a" and "temp", so directories
+// (not just file leaves, via the extensions) can collide only by case, both
+// with sibling directories and with extension-less files.
+std::array<char const*, 11> const names = {
+	"a", "b", "A", "A.b", "temp", "Temp", "TMP", "a-1", "b-1", "temp-1", "TMP-1"};
 std::array<char const*, 7> const exts = {"", ".txt", ".Txt", ".1", ".1.txt", ".2", ".2.Txt"};
 int const num_names = int(names.size());
 int const num_exts = int(exts.size());
+
+void check_dedup(file_storage const& fs, bool case_sensitive);
 
 } // anonymous namespace
 
@@ -98,11 +105,32 @@ extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, size_t size)
 		fs.add_file(ec, leaf, false, dir, file_size, flags);
 	}
 
+	for (bool const case_sensitive : {false, true})
+		check_dedup(fs, case_sensitive);
+
+	return 0;
+}
+
+namespace {
+
+void check_dedup(file_storage const& fs, bool const case_sensitive)
+{
+	// the invariants must compare names the same way the passes do, or a
+	// case-only difference would be reported as a collision, or hide one
+	auto const normalize = [case_sensitive](std::string& name) {
+		if (!case_sensitive)
+			std::transform(name.begin(), name.end(), name.begin(), &aux::to_lower);
+	};
+
+	load_torrent_limits cfg;
+	if (case_sensitive)
+		cfg.sanitize_flags &= ~path_sanitize_flags::case_insensitive_deduplication;
+
 	error_code ec;
 	std::map<file_index_t, std::string> const renamed_map =
-		aux::resolve_duplicate_filenames(fs, 500, ec);
+		aux::resolve_duplicate_filenames(fs, cfg, ec);
 	if (ec)
-		return 0;
+		return;
 
 	renamed_files rf;
 	rf.import_filenames(fs, renamed_map);
@@ -116,7 +144,7 @@ extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, size_t size)
 	// this from fs directly, rather than tracking prefixes by hand while
 	// generating the tree above, keeps the invariant in sync with whatever
 	// resolve_duplicate_filenames() itself considers a real collision.
-	aux::vector<std::uint32_t, path_index_t> const eh = fs.compute_element_hashes();
+	aux::vector<std::uint32_t, path_index_t> const eh = fs.compute_element_hashes(case_sensitive);
 	aux::vector<bool, path_index_t> const is_dir = fs.compute_is_dir();
 	std::unordered_set<std::string> directories;
 	for (auto const idx : is_dir.range())
@@ -124,7 +152,7 @@ extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, size_t size)
 		if (!is_dir[idx])
 			continue;
 		std::string dir_path = fs.internal_directory_path(idx);
-		std::transform(dir_path.begin(), dir_path.end(), dir_path.begin(), &aux::to_lower);
+		normalize(dir_path);
 		directories.insert(std::move(dir_path));
 	}
 
@@ -135,7 +163,7 @@ extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, size_t size)
 			continue;
 
 		std::string name = names_view.file_path(i);
-		std::transform(name.begin(), name.end(), name.begin(), &aux::to_lower);
+		normalize(name);
 		if (!resolved.insert(name).second)
 			std::abort();
 		if (directories.count(name))
@@ -147,20 +175,19 @@ extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, size_t size)
 	// directories, so the invariant here is scoped to siblings (elements
 	// sharing a parent) instead of full resolved paths. Both files and
 	// directories are renamed by this pass, so both are checked, keyed
-	// by (parent, resolved lower-case name), reusing eh and fs, which
+	// by (parent, resolved normalized name), reusing eh and fs, which
 	// neither pass mutates.
-	load_torrent_limits const cfg;
 	error_code ec2;
 	std::map<path_index_t, std::string> const dir_renamed_map =
 		aux::resolve_directory_duplicates(fs, cfg, ec2);
 	if (ec2)
-		return 0;
+		return;
 
 	aux::vector<string_view, path_index_t> const orig_names = fs.all_path_element_names();
 	auto const resolved_name = [&](path_index_t const idx) {
 		auto const it = dir_renamed_map.find(idx);
 		std::string name = it != dir_renamed_map.end() ? it->second : std::string(orig_names[idx]);
-		std::transform(name.begin(), name.end(), name.begin(), &aux::to_lower);
+		normalize(name);
 		return name;
 	};
 
@@ -176,6 +203,6 @@ extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, size_t size)
 		if (!siblings.insert(key).second)
 			std::abort();
 	}
-
-	return 0;
 }
+
+} // anonymous namespace
