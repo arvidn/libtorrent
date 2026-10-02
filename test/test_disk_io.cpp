@@ -1108,3 +1108,69 @@ TORRENT_TEST_DISK_IO(test_pread_disk_io_stacked_fence)
 {
 	disk_io_test_suite(disk_io, 3, false, true);
 }
+
+// the last block of this piece is all pad and is never written, so the piece
+// is not complete in the cache and its hash reads the pad from disk. The
+// block that was written must still be flushed once the piece is hashed,
+// without a flush_piece flag and without other disk jobs to trigger a flush
+TORRENT_TEST_DISK_IO(test_disk_io_flush_after_hash_with_pad)
+{
+	lt::io_context ios;
+	lt::counters cnt;
+	lt::settings_pack sett = lt::default_settings();
+	sett.set_int(lt::settings_pack::hashing_threads, 1);
+	sett.set_int(lt::settings_pack::aio_threads, 1);
+	std::unique_ptr<lt::disk_interface> disk_thread = disk_io(ios, sett, cnt);
+
+	int const piece_size = 2 * lt::default_block_size;
+	int const file_size = lt::default_block_size - 100;
+	lt::file_storage fs;
+	fs.set_piece_length(piece_size);
+	fs.add_file("test-torrent/file-0", file_size, {});
+	fs.add_file("test-torrent/.pad/16484", piece_size - file_size, lt::file_storage::flag_pad_file);
+	fs.add_file("test-torrent/file-1", piece_size, {});
+	fs.set_num_pieces(2);
+	lt::storage_holder storage =
+		add_test_torrent(*disk_thread, fs, "test_torrent_store_pad", true, false);
+
+	lt::piece_index_t const piece{0};
+	std::vector<char> buffer = generate_piece(piece, piece_size);
+	std::fill(buffer.begin() + file_size, buffer.end(), char(0));
+
+	int writes_done = 0;
+	disk_thread->async_write(storage,
+		lt::peer_request{piece, 0, lt::default_block_size},
+		buffer.data(),
+		{},
+		[&](lt::storage_error const& ec) {
+			TEST_CHECK(!ec);
+			++writes_done;
+		});
+
+	bool hashed = false;
+	disk_thread->async_hash(storage,
+		piece,
+		{},
+		lt::disk_interface::v1_hash,
+		[&](lt::piece_index_t, lt::sha1_hash const& h, lt::storage_error const& ec) {
+			TEST_CHECK(!ec);
+			TEST_CHECK(h == lt::hasher(buffer).final());
+			hashed = true;
+		});
+	disk_thread->submit_jobs();
+
+	auto const start_time = lt::aux::time_now();
+	while (!hashed || writes_done < 1)
+	{
+		ios.run_for(5ms);
+		if (lt::aux::time_now() - start_time > lt::seconds(10))
+		{
+			TEST_ERROR("timeout");
+			break;
+		}
+	}
+	TEST_CHECK(hashed);
+	TEST_EQUAL(writes_done, 1);
+
+	disk_thread->abort(true);
+}

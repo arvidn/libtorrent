@@ -1282,6 +1282,11 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 
 	if (hpr == aux::disk_cache::hash_piece_result::deferred) return disk_status::job_deferred;
 
+	// hash_piece() marked the piece to be flushed. This job may run on a
+	// hashing thread, so wake up a generic thread to flush it
+	if (hpr == aux::disk_cache::hash_piece_result::completed)
+		m_generic_threads.interrupt();
+
 	// Fast path for a piece that isn't in the cache at all: read the whole
 	// piece from disk in a single I/O operation, rather than one read per
 	// 16 kiB block. v1's addressing spans whatever files/pad-files the piece
