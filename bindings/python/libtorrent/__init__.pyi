@@ -2222,6 +2222,7 @@ class oversized_file_alert(torrent_alert): ...
 class path_sanitize_flags(metaclass=_BoostBaseClass):
     __instance_size__: int
     all: int
+    case_insensitive_deduplication: int
     default_flags: int
     deduplicate_full_path: int
     deduplicate_per_directory: int

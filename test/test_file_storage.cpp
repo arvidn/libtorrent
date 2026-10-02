@@ -211,20 +211,29 @@ TORRENT_TEST(rename_file2)
 TORRENT_TEST(file_hash_matches_file_path)
 {
 	// resolve_duplicate_filenames()'s rename-candidate loop hashes a
-	// full file_path() string directly (lower-cased, byte for byte) and
-	// looks that hash up alongside file_hash()'s, so the two must agree
-	// on every file, or a colliding rename candidate goes undetected
+	// full file_path() string directly (lower-cased unless case-sensitive,
+	// byte for byte) and looks that hash up alongside file_hash()'s, so the
+	// two must agree on every file, or a colliding rename candidate goes
+	// undetected
 	file_storage st;
-	setup_test_storage(st);
+	st.add_file_borrow({}, combine_path("Test", "A"), 10000);
+	st.add_file_borrow({}, combine_path("Test", "b"), 20000);
+	st.add_file_borrow({}, combine_path("Test", combine_path("C", "a")), 30000);
+	st.set_piece_length(0x4000);
+	st.set_num_pieces(aux::calc_num_pieces(st));
 
-	aux::vector<std::uint32_t, path_index_t> const eh = st.compute_element_hashes();
-	for (file_index_t const i : st.file_range())
+	for (bool const case_sensitive : {false, true})
 	{
-		boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
-		for (char const c : st.file_path(i))
-			crc.process_byte(aux::to_lower(c) & 0xff);
+		aux::vector<std::uint32_t, path_index_t> const eh =
+			st.compute_element_hashes(case_sensitive);
+		for (file_index_t const i : st.file_range())
+		{
+			boost::crc_optimal<32, 0x1EDC6F41, 0xFFFFFFFF, 0xFFFFFFFF, true, true> crc;
+			for (char const c : st.file_path(i))
+				crc.process_byte((case_sensitive ? c : aux::to_lower(c)) & 0xff);
 
-		TEST_EQUAL(crc.checksum(), st.file_hash(eh, i));
+			TEST_EQUAL(crc.checksum(), st.file_hash(eh, i));
+		}
 	}
 }
 

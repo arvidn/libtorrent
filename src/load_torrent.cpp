@@ -400,7 +400,7 @@ namespace aux {
 		}
 		else if (ti && (cfg.sanitize_flags & path_sanitize_flags::deduplicate_full_path))
 		{
-			ret.renamed_files = aux::resolve_duplicate_filenames(ti->layout(), cfg.max_duplicate_filenames, ec);
+			ret.renamed_files = aux::resolve_duplicate_filenames(ti->layout(), cfg, ec);
 			if (ec) return {};
 #if TORRENT_ABI_VERSION < 4
 			// For backwards compatibility, make sure the file_storage has updated

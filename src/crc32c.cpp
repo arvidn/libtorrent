@@ -137,8 +137,8 @@ struct backend_software
 	}
 };
 
-template <class Backend>
-std::uint32_t mix_lowercase_impl(std::uint32_t state, string_view const str)
+template <class Backend, class Transform>
+std::uint32_t mix_string_impl(std::uint32_t state, string_view const str, Transform const t)
 {
 	std::size_t i = 0;
 	std::size_t const n = str.size();
@@ -146,12 +146,24 @@ std::uint32_t mix_lowercase_impl(std::uint32_t state, string_view const str)
 	{
 		std::uint64_t word = 0;
 		for (int j = 0; j < 8; ++j)
-			word |= std::uint64_t(std::uint8_t(aux::to_lower(str[i + std::size_t(j)]))) << (8 * j);
+			word |= std::uint64_t(std::uint8_t(t(str[i + std::size_t(j)]))) << (8 * j);
 		state = Backend::mix64(state, word);
 	}
 	for (; i < n; ++i)
-		state = Backend::mix8(state, std::uint8_t(aux::to_lower(str[i])));
+		state = Backend::mix8(state, std::uint8_t(t(str[i])));
 	return state;
+}
+
+template <class Backend>
+std::uint32_t mix_lowercase_impl(std::uint32_t const state, string_view const str)
+{
+	return mix_string_impl<Backend>(state, str, [](char const c) { return aux::to_lower(c); });
+}
+
+template <class Backend>
+std::uint32_t mix_impl(std::uint32_t const state, string_view const str)
+{
+	return mix_string_impl<Backend>(state, str, [](char const c) { return c; });
 }
 
 template <class Backend>
@@ -214,6 +226,19 @@ std::uint32_t crc32c_mix(std::uint32_t const state, std::uint8_t const b)
 		return backend_arm::mix8(state, b);
 #endif
 	return backend_software::mix8(state, b);
+}
+
+std::uint32_t crc32c_mix(std::uint32_t const state, string_view const str)
+{
+#if TORRENT_HAS_SSE
+	if (aux::sse42_support)
+		return mix_impl<backend_sse42>(state, str);
+#endif
+#if TORRENT_HAS_ARM_CRC32
+	if (aux::arm_crc32c_support)
+		return mix_impl<backend_arm>(state, str);
+#endif
+	return mix_impl<backend_software>(state, str);
 }
 
 std::uint32_t crc32c_mix_lowercase(std::uint32_t const state, string_view const str)

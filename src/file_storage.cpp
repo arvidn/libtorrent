@@ -1229,9 +1229,14 @@ void file_storage::internal_rename_path_element(path_index_t const idx, string_v
 		return m_mtime[index];
 	}
 
-	aux::vector<std::uint32_t, path_index_t> file_storage::compute_element_hashes() const
+	aux::vector<std::uint32_t, path_index_t> file_storage::compute_element_hashes(
+		bool const case_sensitive) const
 	{
-		std::uint32_t const root_crc = aux::crc32c_mix_lowercase(aux::crc32c_init, m_name);
+		auto const mix = [case_sensitive](std::uint32_t const state, string_view const str) {
+			return case_sensitive ? aux::crc32c_mix(state, str)
+								  : aux::crc32c_mix_lowercase(state, str);
+		};
+		std::uint32_t const root_crc = mix(aux::crc32c_init, m_name);
 
 		// a path_element's parent always has a lower index than the element
 		// itself (a parent must already exist before a child can reference
@@ -1258,13 +1263,13 @@ void file_storage::internal_rename_path_element(path_index_t const idx, string_v
 				// components (its lone element's own text is the whole
 				// path), so append_path() never prepends anything or
 				// inserts a separator before either one
-				crc = aux::crc32c_mix_lowercase(aux::crc32c_init, path_element_name(e));
+				crc = mix(aux::crc32c_init, path_element_name(e));
 			}
 			else
 			{
 				std::uint32_t const parent_crc = top_level ? root_crc : live_crcs[e.parent];
 				std::uint32_t const with_sep = aux::crc32c_mix(parent_crc, TORRENT_SEPARATOR);
-				crc = aux::crc32c_mix_lowercase(with_sep, path_element_name(e));
+				crc = mix(with_sep, path_element_name(e));
 			}
 			live_crcs[idx] = crc;
 			crcs[idx] = aux::crc32c_finish(crc);
@@ -1299,10 +1304,10 @@ void file_storage::internal_rename_path_element(path_index_t const idx, string_v
 		return eh[m_files[idx].path_element_index];
 	}
 
-	std::optional<aux::vector<std::uint32_t, path_index_t>>
-	file_storage::has_duplicate_filenames() const
+	std::optional<aux::vector<std::uint32_t, path_index_t>> file_storage::has_duplicate_filenames(
+		bool const case_sensitive) const
 	{
-		aux::vector<std::uint32_t, path_index_t> eh = compute_element_hashes();
+		aux::vector<std::uint32_t, path_index_t> eh = compute_element_hashes(case_sensitive);
 
 		// counts how many path elements, directories or file leaves alike,
 		// share each hash. Two directories folding together only bumps

@@ -1894,8 +1894,7 @@ TORRENT_VERSION_NAMESPACE_4
 			}
 			else if (cfg.sanitize_flags & path_sanitize_flags::deduplicate_full_path)
 			{
-				auto const renamed_files =
-					aux::resolve_duplicate_filenames(ti->layout(), cfg.max_duplicate_filenames, ec);
+				auto const renamed_files = aux::resolve_duplicate_filenames(ti->layout(), cfg, ec);
 				if (ec)
 					return false;
 				// For backwards compatibility, make sure the file_storage has updated

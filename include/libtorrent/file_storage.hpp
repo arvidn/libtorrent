@@ -619,7 +619,8 @@ public:
 
 		// internal
 		// computes, for every path_element, the crc32 hash of its full
-		// path from the torrent root (lower-case, no trailing separator).
+		// path from the torrent root (no trailing separator), lower-cased
+		// unless ``case_sensitive`` is set.
 		// A path_element's parent always has a lower index than the
 		// element itself, so this is a single forward pass, each element
 		// extending its parent's already-computed hash rather than being
@@ -633,7 +634,7 @@ public:
 		// legitimately reconstructs to exactly that name when it has no
 		// sub-directory components (e.g. single-file torrents), so it
 		// isn't a real collision.
-		aux::vector<std::uint32_t, path_index_t> compute_element_hashes() const;
+		aux::vector<std::uint32_t, path_index_t> compute_element_hashes(bool case_sensitive) const;
 
 		// internal
 		// returns which path elements are used as a directory (are some
@@ -667,7 +668,8 @@ public:
 		// and directory's hash to find and rename all conflicts, not just
 		// the first, so stopping early would just move the same work into
 		// that caller.
-		std::optional<aux::vector<std::uint32_t, path_index_t>> has_duplicate_filenames() const;
+		std::optional<aux::vector<std::uint32_t, path_index_t>> has_duplicate_filenames(
+			bool case_sensitive) const;
 
 		// internal
 		// reconstructs the full path (rooted at file_storage::name()) of the

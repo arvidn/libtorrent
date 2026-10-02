@@ -70,10 +70,11 @@ constexpr path_sanitize_flags_t filter_unicode_formatting_chars = 5_bit;
 constexpr path_sanitize_flags_t deduplicate_per_directory = 6_bit;
 
 // deduplicates file paths across the whole torrent: a file whose full
-// path collides, case-insensitively, with an earlier file's is renamed
-// by inserting ".N" before its extension. Directories are never
-// renamed, so two directories differing only by case are folded
-// together. Part of every ``libtorrent_M_N`` ruleset.
+// path collides with an earlier file's is renamed by inserting ".N"
+// before its extension. Directories are never renamed, so two
+// directories that collide are folded together. Paths are compared
+// case-insensitively if ``case_insensitive_deduplication`` is set. Part
+// of every ``libtorrent_M_N`` ruleset.
 //
 // .. warning::
 //   if neither this nor ``deduplicate_per_directory`` is set, colliding
@@ -86,6 +87,20 @@ constexpr path_sanitize_flags_t deduplicate_per_directory = 6_bit;
 //   renaming files before adding the torrent.
 constexpr path_sanitize_flags_t deduplicate_full_path = 7_bit;
 
+// compare filenames case-insensitively when deduplicating, in both
+// ``deduplicate_full_path`` and ``deduplicate_per_directory``, so names
+// differing only by case (e.g. "Notes.txt" and "notes.txt") are
+// considered colliding, and one of them is renamed. Part of every
+// ``libtorrent_M_N`` ruleset.
+//
+// .. warning::
+//   only clear this when the files are saved to a case-sensitive
+//   filesystem. On a case-insensitive one (the default on Windows and
+//   macOS), names differing only by case refer to the same file on
+//   disk, and are then not renamed apart, so they overwrite each
+//   other's data.
+constexpr path_sanitize_flags_t case_insensitive_deduplication = 8_bit;
+
 // all bits combined
 constexpr path_sanitize_flags_t all = path_sanitize_flags_t::all();
 
@@ -94,6 +109,7 @@ constexpr path_sanitize_flags_t all = path_sanitize_flags_t::all();
 // zero-width/invisible unicode formatting characters that
 // ``filter_unicode_formatting_chars`` covers.
 constexpr path_sanitize_flags_t libtorrent_2_0 = path_sanitize_flags::deduplicate_full_path
+	| path_sanitize_flags::case_insensitive_deduplication
 #ifdef TORRENT_WINDOWS
 	| path_sanitize_flags::limit_unicode_characters
 	| path_sanitize_flags::trim_trailing_spaces_and_dots

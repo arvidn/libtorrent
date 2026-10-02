@@ -272,6 +272,45 @@ class ConstructorWithLimitsTest(unittest.TestCase):
         self.assertEqual(no_dedup.renamed_files, {})
         self.assertEqual(no_dedup.renamed_path_elements, {})
 
+    def test_case_insensitive_deduplication_flag(self) -> None:
+        flags = lt.path_sanitize_flags
+        self.assertTrue(flags.libtorrent_2_0 & flags.case_insensitive_deduplication)
+        self.assertTrue(flags.default_flags & flags.case_insensitive_deduplication)
+        self.assertTrue(flags.all & flags.case_insensitive_deduplication)
+
+        entry = TorrentFileDict(
+            {
+                b"info": {
+                    b"name": b"test",
+                    b"piece length": 16 * 1024,
+                    b"pieces": lib.get_random_bytes(20),
+                    b"files": [
+                        {b"length": 1024, b"path": [b"A.txt"]},
+                        {b"length": 1024, b"path": [b"a.txt"]},
+                    ],
+                }
+            }
+        )
+        buf = lt.bencode(entry)
+
+        insensitive = lt.load_torrent_buffer(
+            buf, load_torrent_limits({"sanitize_flags": flags.libtorrent_2_1})
+        )
+        self.assertEqual(
+            insensitive.renamed_files, {1: os.path.join("test", "a.1.txt")}
+        )
+
+        sensitive = lt.load_torrent_buffer(
+            buf,
+            load_torrent_limits(
+                {
+                    "sanitize_flags": flags.libtorrent_2_1
+                    & ~flags.case_insensitive_deduplication
+                }
+            ),
+        )
+        self.assertEqual(sensitive.renamed_files, {})
+
 
 class FieldTest(unittest.TestCase):
     def setUp(self) -> None:

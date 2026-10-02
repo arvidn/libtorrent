@@ -1189,6 +1189,8 @@ void bind_session()
 			lt::path_sanitize_flags::filter_unicode_formatting_chars;
 		s.attr("deduplicate_per_directory") = lt::path_sanitize_flags::deduplicate_per_directory;
 		s.attr("deduplicate_full_path") = lt::path_sanitize_flags::deduplicate_full_path;
+		s.attr("case_insensitive_deduplication") =
+			lt::path_sanitize_flags::case_insensitive_deduplication;
 		s.attr("libtorrent_2_0") = lt::path_sanitize_flags::libtorrent_2_0;
 		s.attr("libtorrent_2_1") = lt::path_sanitize_flags::libtorrent_2_1;
 		s.attr("libtorrent_2_2") = lt::path_sanitize_flags::libtorrent_2_2;

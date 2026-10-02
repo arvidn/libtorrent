@@ -8358,8 +8358,7 @@ namespace {
 			}
 			else if (!ec && (cfg.sanitize_flags & path_sanitize_flags::deduplicate_full_path))
 			{
-				whole_tree_renames = aux::resolve_duplicate_filenames(
-					info->layout(), cfg.max_duplicate_filenames, ec);
+				whole_tree_renames = aux::resolve_duplicate_filenames(info->layout(), cfg, ec);
 #if TORRENT_ABI_VERSION < 4
 				// for backwards compatibility, make sure the file_storage
 				// returned by the deprecated files() has updated filenames

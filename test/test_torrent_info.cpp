@@ -106,8 +106,6 @@ load_torrent_limits full_path_dedup_cfg()
 	return c;
 }
 
-// default_flags with both deduplication passes turned off, so colliding
-// file paths are left as-is
 load_torrent_limits no_dedup_cfg()
 {
 	load_torrent_limits c;
@@ -1722,7 +1720,7 @@ TORRENT_TEST(resolve_duplicate_filenames_bucket_scan_cap)
 		for (int i = 0; i < n; ++i)
 			fs.add_file_borrow({}, combine_path("dir", "file" + std::to_string(i)), 1);
 
-		aux::vector<std::uint32_t, path_index_t> eh = fs.compute_element_hashes();
+		aux::vector<std::uint32_t, path_index_t> eh = fs.compute_element_hashes(false);
 		aux::vector<bool, path_index_t> const is_dir = fs.compute_is_dir();
 		for (auto const idx : is_dir.range())
 			if (!is_dir[idx])
@@ -1736,14 +1734,14 @@ TORRENT_TEST(resolve_duplicate_filenames_bucket_scan_cap)
 		// 10 * 9 / 2 == 45, comfortably under the 10 * 16 == 160 budget
 		auto [fs, eh] = build(10);
 		error_code ec;
-		aux::resolve_duplicate_filenames_slow(fs, eh, 10000, ec);
+		aux::resolve_duplicate_filenames_slow(fs, eh, 10000, false, ec);
 		TEST_CHECK(!ec);
 	}
 	{
 		// 200 * 199 / 2 == 19900, well past the 200 * 16 == 3200 budget
 		auto [fs, eh] = build(200);
 		error_code ec;
-		aux::resolve_duplicate_filenames_slow(fs, eh, 10000, ec);
+		aux::resolve_duplicate_filenames_slow(fs, eh, 10000, false, ec);
 		TEST_EQUAL(ec, errors::too_many_duplicate_filenames);
 	}
 }
@@ -1885,8 +1883,7 @@ struct dedup_per_directory_case
 	// suffix), where the two passes don't produce comparable output at
 	// all.
 	std::vector<std::string> full_path_expected;
-	// the same raw "paths" with neither deduplication bit set: no
-	// collision is resolved, so colliding entries keep their paths
+	// with neither deduplication bit set
 	std::vector<std::string> no_dedup_expected;
 };
 
@@ -2083,7 +2080,6 @@ void test_dedup_per_directory_case(dedup_per_directory_case const& t)
 		TEST_EQUAL(p, expected);
 	}
 
-	// with neither deduplication bit set, nothing is renamed by either pass
 	error_code no_dedup_ec;
 	auto const no_dedup_atp = load_torrent_buffer(buf, no_dedup_ec, no_dedup_cfg());
 	TEST_CHECK(!no_dedup_ec);
@@ -2139,6 +2135,63 @@ TORRENT_TEST(load_torrent_dedup_per_directory)
 {
 	for (auto const& t : dedup_per_directory_cases)
 		test_dedup_per_directory_case(t);
+}
+
+// exact duplicates must still be renamed when case-only differences aren't
+TORRENT_TEST(load_torrent_case_sensitive_dedup)
+{
+	auto const buf = make_v1_torrent_raw({
+		{"dir", "Foo.txt"},
+		{"dir", "foo.txt"},
+		{"dir", "foo.txt"},
+		{"Dir", "a"},
+		{"dir", "b"},
+	});
+
+	auto const resolve = [&](path_sanitize_flags_t const dedup) {
+		load_torrent_limits cfg;
+		cfg.sanitize_flags = path_sanitize_flags::libtorrent_2_1
+			& ~(path_sanitize_flags::deduplicate_full_path
+				| path_sanitize_flags::deduplicate_per_directory
+				| path_sanitize_flags::case_insensitive_deduplication);
+		cfg.sanitize_flags |= dedup;
+		error_code ec;
+		auto const atp = load_torrent_buffer(buf, ec, cfg);
+		TEST_CHECK(!ec);
+		std::vector<std::string> ret;
+		if (!atp.ti)
+			return ret;
+		file_storage const& fs = atp.ti->layout();
+		renamed_files rf;
+		rf.import_filenames(fs, atp.renamed_files);
+		rf.import_path_elements(fs, atp.renamed_path_elements);
+		filenames const names(fs, rf);
+		for (lt::file_index_t const i : fs.file_range())
+		{
+			std::string p = names.file_path(i);
+			convert_path_to_posix(p);
+			ret.push_back(std::move(p));
+		}
+		return ret;
+	};
+
+	std::vector<std::string> const full_path = {
+		"root/dir/Foo.txt",
+		"root/dir/foo.txt",
+		"root/dir/foo.1.txt",
+		"root/Dir/a",
+		"root/dir/b",
+	};
+	TEST_CHECK(resolve(path_sanitize_flags::deduplicate_full_path) == full_path);
+
+	std::vector<std::string> const per_directory = {
+		"root/dir/Foo.txt",
+		"root/dir/foo.txt",
+		"root/dir/foo-1.txt",
+		"root/Dir/a",
+		"root/dir/b",
+	};
+	TEST_CHECK(resolve(path_sanitize_flags::deduplicate_per_directory) == per_directory);
 }
 
 // regression test for aux::resolve_directory_duplicates() resuming its

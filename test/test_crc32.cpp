@@ -109,6 +109,26 @@ TORRENT_TEST(crc32c_mix_lowercase)
 	}
 }
 
+TORRENT_TEST(crc32c_mix_string)
+{
+	using namespace lt;
+
+	// lengths past two words cover both the batched 8-byte path and every
+	// tail size; mixed case catches any accidental folding
+	std::string s;
+	for (int len = 0; len < 20; ++len)
+	{
+		s += char((len % 2) ? 'A' + (len % 26) : 'a' + (len % 26));
+		std::uint32_t const got = aux::crc32c_finish(aux::crc32c_mix(aux::crc32c_init, s));
+		TEST_EQUAL(got, crc32c_mix_buffer(s.data(), int(s.size())));
+	}
+
+	TEST_CHECK(
+		aux::crc32c_mix(aux::crc32c_init, "Foo") != aux::crc32c_mix(aux::crc32c_init, "foo"));
+	TEST_EQUAL(aux::crc32c_mix(aux::crc32c_init, "foo"),
+		aux::crc32c_mix_lowercase(aux::crc32c_init, "Foo"));
+}
+
 TORRENT_TEST(crc32c_mix_compose)
 {
 	using namespace lt;
