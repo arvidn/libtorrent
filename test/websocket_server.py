@@ -20,6 +20,7 @@ logger.addHandler(logging.StreamHandler(sys.stdout))
 async def handle(websocket):
     # the tracker behavior to simulate:
     # normal: respond to every announce
+    # silent: never respond
     # failure: respond to every announce with a failure reason
     # bare-failure: send a failure reason without an info_hash (like trackers
     #   do for requests they can't parse), then respond normally
@@ -41,6 +42,8 @@ async def handle(websocket):
 
             request = json.loads(message)
 
+            if mode == 'silent':
+                continue
             info_hash = request["info_hash"]
 
             if mode == 'failure':

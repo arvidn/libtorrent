@@ -19,9 +19,11 @@ see LICENSE file.
 
 #include "libtorrent/aux_/rtc_signaling.hpp" // for rtc_offer and rtc_answer
 #include "libtorrent/aux_/websocket_stream.hpp"
+#include "libtorrent/aux_/deadline_timer.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/peer_id.hpp"
+#include "libtorrent/time.hpp"
 #include "libtorrent/aux_/resolver_interface.hpp"
 #include "libtorrent/aux_/tracker_manager.hpp" // for tracker_connection
 #include "libtorrent/aux_/ssl.hpp"
@@ -84,6 +86,10 @@ private:
 	void on_connect(error_code const& ec);
 	void on_read(error_code ec, std::size_t bytes_read);
 	void on_write(error_code const& ec, std::size_t bytes_written);
+	// the time by which the tracker must have responded to req
+	time_point request_deadline(tracker_request const& req) const;
+	void update_announce_timer();
+	void on_announce_timeout(error_code const& ec);
 	// wraps tracker_connection::fail
 	void fail(error_code const& ec, operation_t op);
 	// does the actual work of close(); takes the real failure reason so
@@ -99,7 +105,12 @@ private:
 	std::string m_write_data;
 
 	using tracker_message = std::variant<tracker_request, tracker_answer>;
-	std::deque<std::tuple<tracker_message, std::weak_ptr<request_callback>>> m_pending;
+	// messages not sent yet. For requests, the time_point is the deadline
+	// by which the tracker must have responded (see request_deadline()),
+	// which runs from the time the request is queued, so a request stuck
+	// behind a connection attempt or write that never completes still
+	// times out
+	std::deque<std::tuple<tracker_message, std::weak_ptr<request_callback>, time_point>> m_pending;
 
 	// pending is true from the point a request is sent until its first
 	// tracker_response is delivered. close() reports an error for any
@@ -113,6 +124,9 @@ private:
 		std::weak_ptr<request_callback> cb;
 		tracker_request req;
 		bool pending = true;
+		time_point deadline;
+		// when the request was sent
+		time_point sent;
 	};
 	// on_read() holds an iterator into m_callbacks across a reentrant call
 	// into cb->on_rtc_offer()/on_rtc_answer(), which may indirectly insert
@@ -122,6 +136,8 @@ private:
 	// iterator across that call.
 	std::map<sha1_hash, callback_entry> m_callbacks;
 	std::map<sha1_hash, int> m_offer_quota;
+
+	deadline_timer m_announce_timer;
 
 	bool m_sending = false;
 };

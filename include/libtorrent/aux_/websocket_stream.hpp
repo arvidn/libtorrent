@@ -179,6 +179,8 @@ private:
 	void on_keepalive(error_code ec);
 	void on_ping(error_code ec);
 	void arm_keepalive();
+	// closes the underlying TCP socket, aborting any outstanding operation
+	void close_socket();
 
 	io_context& m_io_service;
 	resolver_interface& m_resolver;

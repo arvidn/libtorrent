@@ -949,6 +949,59 @@ TORRENT_TEST(websocket_tracker)
 	std::printf("done\n");
 }
 
+TORRENT_TEST(websocket_tracker_timeout)
+{
+    int const http_port = start_websocket_server(false, 30, "silent");
+
+    settings_pack pack = settings();
+    pack.set_bool(settings_pack::announce_to_all_trackers, true);
+    pack.set_int(settings_pack::tracker_completion_timeout, 1);
+
+    auto s = std::make_unique<lt::session>(pack);
+
+    error_code ec;
+    remove_all("tmp5_tracker", ec);
+    create_directory("tmp5_tracker", ec);
+
+    std::ofstream file(combine_path("tmp5_tracker", "temporary").c_str());
+    add_torrent_params addp = ::create_torrent(
+        &file, "temporary", 16 * 1024, 13, false);
+    file.close();
+
+    char tracker_url[200];
+    std::snprintf(tracker_url, sizeof(tracker_url),
+        "ws://127.0.0.1:%d/announce", http_port);
+    addp.trackers.push_back(tracker_url);
+
+    addp.flags &= ~torrent_flags::paused;
+    addp.flags &= ~torrent_flags::auto_managed;
+    addp.flags |= torrent_flags::seed_mode;
+    addp.save_path = "tmp5_tracker";
+
+    torrent_handle h = s->add_torrent(addp);
+
+    const alert* a = wait_for_alert(*s, tracker_error_alert::alert_type, "s");
+
+    TEST_CHECK(a);
+
+    if (a)
+    {
+        auto const* te = alert_cast<tracker_error_alert>(a);
+        TEST_CHECK(te);
+
+        if (te)
+        {
+            TEST_EQUAL(te->error, errors::timed_out);
+            TEST_CHECK(te->op == operation_t::timer);
+            TEST_CHECK(std::string(te->failure_reason()).find("tracker announce timed out")
+                != std::string::npos);
+        }
+    }
+
+    s.reset();
+    stop_websocket_server();
+}
+
 namespace {
 
 struct tracker_alert_counts
