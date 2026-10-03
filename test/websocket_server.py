@@ -18,6 +18,11 @@ logger.addHandler(logging.StreamHandler(sys.stdout))
 
 
 async def handle(websocket):
+    # the tracker behavior to simulate:
+    # normal: respond to every announce
+    # failure: respond to every announce with a failure reason
+    mode = sys.argv[3] if len(sys.argv) > 3 else 'normal'
+
     try:
         while True:
             message = await websocket.recv()
@@ -29,6 +34,15 @@ async def handle(websocket):
                 file=sys.stderr)
 
             request = json.loads(message)
+
+            info_hash = request["info_hash"]
+
+            if mode == 'failure':
+                await websocket.send(json.dumps({
+                    "action": "announce",
+                    "failure reason": "test failure",
+                    "info_hash": info_hash}))
+                continue
             response = {}
             response["info_hash"] = request["info_hash"]
             response["interval"] = 120

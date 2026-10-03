@@ -823,6 +823,42 @@ TORRENT_TEST(parse_websocket_tracker_invalid_response)
 	}
 }
 
+TORRENT_TEST(parse_websocket_tracker_failure_reason)
+{
+	char const response[] =
+		R"({"action":"announce","failure reason":"tracker rejected announce","info_hash":"xxxxxxxxxxxxxxxxxxxx"})";
+
+	error_code ec;
+	auto ret = aux::parse_websocket_tracker_response(
+		{response, long(std::strlen(response))}, ec);
+
+	TEST_EQUAL(ec, error_code{});
+	TEST_CHECK(std::holds_alternative<aux::websocket_tracker_response>(ret));
+
+	if (std::holds_alternative<aux::websocket_tracker_response>(ret))
+	{
+		auto const& parsed = std::get<aux::websocket_tracker_response>(ret);
+
+		TEST_EQUAL(parsed.failure_reason, "tracker rejected announce");
+		TEST_CHECK(!parsed.resp);
+		TEST_CHECK(!parsed.offer);
+		TEST_CHECK(!parsed.answer);
+	}
+}
+
+TORRENT_TEST(parse_websocket_tracker_invalid_failure_reason)
+{
+	char const response[] =
+		R"({"action":"announce","failure reason":123,"info_hash":"xxxxxxxxxxxxxxxxxxxx"})";
+
+	error_code ec;
+	auto ret = aux::parse_websocket_tracker_response(
+		{response, long(std::strlen(response))}, ec);
+
+	TEST_EQUAL(ec, error_code(errors::invalid_tracker_response));
+	TEST_CHECK(std::holds_alternative<std::string>(ret));
+}
+
 TORRENT_TEST(parse_websocket_tracker_missing_interval)
 {
 	char const response[] =
@@ -911,6 +947,24 @@ TORRENT_TEST(websocket_tracker)
 	std::printf("stop_websocket_server\n");
 	stop_websocket_server();
 	std::printf("done\n");
+}
+
+// a failure reason in response to an announce is reported as a tracker error
+// (it used to leave the announce pending, i.e. "updating", forever)
+TORRENT_TEST(websocket_tracker_failure_reason)
+{
+	int const port = start_websocket_server(false, 30, "failure");
+	{
+		lt::session s(websocket_tracker_settings());
+		add_websocket_tracker_torrent(s, "tmp6_tracker", websocket_tracker_url(port));
+
+		auto const counts = count_tracker_alerts(s, seconds(5));
+		TEST_EQUAL(counts.replies, 0);
+		TEST_CHECK(counts.errors >= 1);
+		TEST_EQUAL(counts.last_error, error_code(errors::tracker_failure));
+		TEST_EQUAL(counts.last_failure_reason, "test failure");
+	}
+	stop_websocket_server();
 }
 #endif
 

@@ -434,32 +434,54 @@ void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_r
 
 	if (cb)
 	{
-		if (response.offer)
+		if (!response.failure_reason.empty())
 		{
-			auto const quota = m_offer_quota.find(response.info_hash);
-			if (quota != m_offer_quota.end() && quota->second > 0)
+			// a failure reason is only the outcome of our announce if one
+			// is outstanding. Otherwise it refers to something else, e.g.
+			// aquatic reports an answer of ours for an offer it no longer
+			// knows about this way, and must not be reported as a failed
+			// announce
+			if (cit->second.pending)
 			{
-				--quota->second;
+				// mark it so close() won't also report an error for it
+				cit->second.pending = false;
 
-				response.offer->answer_callback = [info_hash = response.info_hash,
-													  self = shared_from_this(),
-													  id = response.offer->id,
-													  pid = response.offer->pid](
-													  peer_id const& local_pid,
-													  aux::rtc_answer const& answer) {
-					self->queue_answer(
-						{std::move(info_hash), std::move(local_pid), std::move(answer)});
-					self->start();
-				};
-
-				cb->on_rtc_offer(*response.offer);
+				cb->tracker_request_error(
+					cit->second.req,
+					errors::tracker_failure,
+					operation_t::bittorrent,
+					response.failure_reason,
+					seconds32{120});
 			}
 		}
-
-		if(response.answer)
+		else
 		{
-			cb->on_rtc_answer(*response.answer);
-		}
+			if (response.offer)
+			{
+				auto const quota = m_offer_quota.find(response.info_hash);
+				if (quota != m_offer_quota.end() && quota->second > 0)
+				{
+					--quota->second;
+
+					response.offer->answer_callback = [info_hash = response.info_hash,
+														self = shared_from_this(),
+														id = response.offer->id,
+														pid = response.offer->pid](
+														peer_id const& local_pid,
+														aux::rtc_answer const& answer) {
+						self->queue_answer(
+							{std::move(info_hash), std::move(local_pid), std::move(answer)});
+						self->start();
+					};
+
+					cb->on_rtc_offer(*response.offer);
+				}
+			}
+
+			if (response.answer)
+			{
+				cb->on_rtc_answer(*response.answer);
+			}
 
 		if(response.resp)
 		{
@@ -645,6 +667,17 @@ parse_websocket_tracker_response(span<char const> message, error_code& ec) try
 			{sdp.data(), sdp.size()}});
 	}
 
+	if (auto it = payload.find("failure reason"); it != payload.end())
+	{
+		if (!it->value().is_string())
+		{
+			ec = error_code(errors::invalid_tracker_response);
+			return "failure reason is not a string";
+		}
+
+		response.failure_reason = utf8_latin1(it->value().as_string());
+	}
+
 	// A successful tracker announce response must contain an interval.
 	// WebRTC offer/answer messages and tracker failure messages are handled
 	// separately above.
@@ -675,8 +708,13 @@ parse_websocket_tracker_response(span<char const> message, error_code& ec) try
 		resp.incomplete = int(get_int64("incomplete", -1));
 		resp.downloaded = int(get_int64("downloaded", -1));
 	}
-	else if (!response.offer && !response.answer)
+	else if (response.failure_reason.empty()
+		&& !response.offer
+		&& !response.answer)
 	{
+		// This is neither a tracker failure nor a WebRTC signalling
+		// message, and it lacks the interval required for a successful
+		// tracker announce response.
 		ec = error_code(errors::invalid_tracker_response);
 		return "missing interval in tracker response";
 	}
