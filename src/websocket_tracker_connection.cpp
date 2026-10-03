@@ -419,8 +419,13 @@ void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_r
 			cb->debug_log("*** WEBSOCKET_TRACKER_READ [ ERROR: %s ]", std::get<std::string>(ret).c_str());
 		}
 #endif
-		fail(ec, operation_t::handshake);
-		close(ec, operation_t::handshake);
+		// this connection is shared by every torrent announcing to this
+		// tracker, so a single message we can't make sense of (e.g. a
+		// failure reason without an info_hash, which both reference
+		// trackers send for requests they can't parse) must not tear it
+		// down for all of them. Ignore it; a request it may have been the
+		// response to will time out
+		do_read();
 		return;
 	}
 
@@ -453,6 +458,13 @@ void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_r
 					response.failure_reason,
 					seconds32{120});
 			}
+#ifndef TORRENT_DISABLE_LOGGING
+			else if (auto cb_ = requester())
+			{
+				cb_->debug_log("*** WEBSOCKET_TRACKER_READ [ ignoring failure reason, no announce outstanding: %s ]"
+					, response.failure_reason.c_str());
+			}
+#endif
 		}
 		else
 		{
@@ -483,17 +495,31 @@ void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_r
 				cb->on_rtc_answer(*response.answer);
 			}
 
-		if(response.resp)
-		{
-			response.resp->interval = std::max(response.resp->interval
-				, seconds32{m_man.settings().get_int(settings_pack::min_websocket_announce_interval)});
+			// a response is only the outcome of our announce if one is
+			// outstanding. Otherwise it's a duplicate, or a response to a
+			// message that isn't an announce of ours (e.g. aquatic also
+			// responds to the announces carrying our answers), which must
+			// not be taken as a new announce outcome (it would postpone our
+			// next announce)
+			if (response.resp && !cit->second.pending)
+			{
+#ifndef TORRENT_DISABLE_LOGGING
+				if (auto cb_ = requester())
+					cb_->debug_log("*** WEBSOCKET_TRACKER_READ [ ignoring response, no announce outstanding ]");
+#endif
+			}
+			else if (response.resp)
+			{
+				response.resp->interval = std::max(response.resp->interval
+					, seconds32{m_man.settings().get_int(settings_pack::min_websocket_announce_interval)});
 
-			// this request's outcome has just been reported to its
-			// requester; mark it so close() won't also report an error
-			// for it.
-			cit->second.pending = false;
+				// this request's outcome has just been reported to its
+				// requester; mark it so close() won't also report an error
+				// for it.
+				cit->second.pending = false;
 
-			cb->tracker_response(cit->second.req, {}, {}, *response.resp);
+				cb->tracker_response(cit->second.req, {}, {}, *response.resp);
+			}
 		}
 	}
 	else

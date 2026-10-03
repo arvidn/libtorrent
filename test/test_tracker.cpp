@@ -949,6 +949,78 @@ TORRENT_TEST(websocket_tracker)
 	std::printf("done\n");
 }
 
+namespace {
+
+struct tracker_alert_counts
+{
+	int replies = 0;
+	int errors = 0;
+	error_code last_error;
+	operation_t last_op = operation_t::unknown;
+	std::string last_failure_reason;
+};
+
+// collects the tracker reply and error alerts posted during d
+tracker_alert_counts count_tracker_alerts(lt::session& s, lt::time_duration const d)
+{
+	tracker_alert_counts ret;
+	auto const end = clock_type::now() + d;
+	std::vector<alert*> alerts;
+	for (auto now = clock_type::now(); now < end; now = clock_type::now())
+	{
+		s.wait_for_alert(end - now);
+		s.pop_alerts(&alerts);
+		for (auto const* a : alerts)
+		{
+			std::printf("%s: %s\n", a->what(), a->message().c_str());
+			if (alert_cast<tracker_reply_alert>(a)) ++ret.replies;
+			if (auto const* te = alert_cast<tracker_error_alert>(a))
+			{
+				++ret.errors;
+				ret.last_error = te->error;
+				ret.last_op = te->op;
+				ret.last_failure_reason = te->failure_reason();
+			}
+		}
+	}
+	return ret;
+}
+
+lt::settings_pack websocket_tracker_settings()
+{
+	settings_pack pack = settings();
+	pack.set_bool(settings_pack::announce_to_all_trackers, true);
+	// don't depend on an external STUN server
+	pack.set_str(settings_pack::webtorrent_stun_server, "");
+	return pack;
+}
+
+torrent_handle add_websocket_tracker_torrent(lt::session& s, char const* save_path
+	, std::string const& tracker_url)
+{
+	error_code ec;
+	remove_all(save_path, ec);
+	create_directory(save_path, ec);
+
+	std::ofstream file(combine_path(save_path, "temporary").c_str());
+	add_torrent_params addp = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
+	file.close();
+
+	addp.trackers.push_back(tracker_url);
+	addp.flags &= ~torrent_flags::paused;
+	addp.flags &= ~torrent_flags::auto_managed;
+	addp.flags |= torrent_flags::seed_mode;
+	addp.save_path = save_path;
+	return s.add_torrent(addp);
+}
+
+std::string websocket_tracker_url(int const port)
+{
+	return "ws://127.0.0.1:" + std::to_string(port) + "/announce";
+}
+
+} // anonymous namespace
+
 // a failure reason in response to an announce is reported as a tracker error
 // (it used to leave the announce pending, i.e. "updating", forever)
 TORRENT_TEST(websocket_tracker_failure_reason)
@@ -963,6 +1035,62 @@ TORRENT_TEST(websocket_tracker_failure_reason)
 		TEST_CHECK(counts.errors >= 1);
 		TEST_EQUAL(counts.last_error, error_code(errors::tracker_failure));
 		TEST_EQUAL(counts.last_failure_reason, "test failure");
+	}
+	stop_websocket_server();
+}
+
+// a failure reason without an info_hash (sent by trackers for requests they
+// can't parse) can't be attributed to any torrent. It used to close the
+// connection, failing every torrent announcing over it
+TORRENT_TEST(websocket_tracker_bare_failure_keeps_connection)
+{
+	int const port = start_websocket_server(false, 30, "bare-failure");
+	{
+		lt::session s(websocket_tracker_settings());
+		add_websocket_tracker_torrent(s, "tmp7_tracker", websocket_tracker_url(port));
+
+		auto const counts = count_tracker_alerts(s, seconds(5));
+		// add_websocket_tracker_torrent() creates a hybrid v1/v2 torrent, so the single torrent
+		// generates two announces and therefore two successful tracker replies.
+		TEST_EQUAL(counts.replies, 2);
+		TEST_EQUAL(counts.errors, 0);
+	}
+	stop_websocket_server();
+}
+
+// a failure reason arriving when no announce is outstanding isn't the outcome
+// of an announce, and must not be reported as one
+TORRENT_TEST(websocket_tracker_stale_failure_ignored)
+{
+	int const port = start_websocket_server(false, 30, "stale-failure");
+	{
+		lt::session s(websocket_tracker_settings());
+		add_websocket_tracker_torrent(s, "tmp8_tracker", websocket_tracker_url(port));
+
+		auto const counts = count_tracker_alerts(s, seconds(5));
+		// add_websocket_tracker_torrent() creates a hybrid v1/v2 torrent, so the single torrent
+		// generates two announces and therefore two successful tracker replies.
+		TEST_EQUAL(counts.replies, 2);
+		TEST_EQUAL(counts.errors, 0);
+	}
+	stop_websocket_server();
+}
+
+// only the first response is the outcome of an announce. Responses with no
+// announce outstanding (e.g. aquatic's responses to the announces carrying
+// our answers) must not be taken as new announce outcomes
+TORRENT_TEST(websocket_tracker_duplicate_response_ignored)
+{
+	int const port = start_websocket_server(false, 30, "duplicate-response");
+	{
+		lt::session s(websocket_tracker_settings());
+		add_websocket_tracker_torrent(s, "tmp9_tracker", websocket_tracker_url(port));
+
+		auto const counts = count_tracker_alerts(s, seconds(5));
+		// add_websocket_tracker_torrent() creates a hybrid v1/v2 torrent, so the single torrent
+		// generates two announces and therefore two successful tracker replies.
+		TEST_EQUAL(counts.replies, 2);
+		TEST_EQUAL(counts.errors, 0);
 	}
 	stop_websocket_server();
 }
