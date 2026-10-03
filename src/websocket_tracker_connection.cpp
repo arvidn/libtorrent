@@ -520,13 +520,14 @@ void websocket_tracker_connection::fail(error_code const& ec, operation_t const 
 TORRENT_EXTRA_EXPORT std::variant<websocket_tracker_response, std::string>
 parse_websocket_tracker_response(span<char const> message, error_code& ec) try
 {
-	json::object payload = json::parse({message.data(), size_t(message.size())}).as_object();
+	json::object payload = json::parse(
+		{message.data(), size_t(message.size())}).as_object();
 
 	auto it_info_hash = payload.find("info_hash");
-	if (it_info_hash == payload.end())
+	if (it_info_hash == payload.end() || !it_info_hash->value().is_string())
 	{
 		ec = error_code(errors::invalid_tracker_response);
-		return "no info hash in message";
+		return "no or invalid info hash in message";
 	}
 
 	auto const raw_info_hash = utf8_latin1(it_info_hash->value().as_string());
@@ -539,103 +540,160 @@ parse_websocket_tracker_response(span<char const> message, error_code& ec) try
 	websocket_tracker_response response;
 	response.info_hash = sha1_hash(span<char const>{raw_info_hash.data(), 20});
 
+	auto get_string = [&payload](char const* key) -> std::optional<std::string>
+	{
+		if (auto it = payload.find(key); it != payload.end()
+			&& it->value().is_string())
+		{
+			return utf8_latin1(it->value().as_string());
+		}
+		return std::nullopt;
+	};
+
 	if (auto it = payload.find("offer"); it != payload.end())
 	{
+		if (!it->value().is_object())
+		{
+			ec = error_code(errors::invalid_tracker_response);
+			return "offer is not an object";
+		}
+
 		json::object& payload_offer = it->value().as_object();
-		auto const& sdp = payload_offer["sdp"].as_string();
+		auto const it_sdp = payload_offer.find("sdp");
+		auto const id = get_string("offer_id");
+		auto const pid = get_string("peer_id");
+
+		if (it_sdp == payload_offer.end() || !it_sdp->value().is_string()
+			|| !id || !pid)
+		{
+			ec = error_code(errors::invalid_tracker_response);
+			return "missing required offer fields";
+		}
+
+		auto const& sdp = it_sdp->value().as_string();
 		if (sdp.size() > aux::RTC_MAX_SDP_SIZE)
 		{
 			ec = error_code(errors::invalid_tracker_response);
 			return "offer SDP too large";
 		}
-		auto id = utf8_latin1(payload["offer_id"].as_string());
-		auto pid = utf8_latin1(payload["peer_id"].as_string());
-		if (id.size() != aux::RTC_OFFER_ID_LEN)
+
+		if (id->size() != aux::RTC_OFFER_ID_LEN)
 		{
 			ec = error_code(errors::invalid_tracker_response);
-			return "invalid offer_id size " + std::to_string(id.size());
+			return "invalid offer_id size " + std::to_string(id->size());
 		}
-		if (pid.size() != 20)
+
+		if (pid->size() != 20)
 		{
 			ec = error_code(errors::invalid_tracker_response);
-			return "invalid peer_id size " + std::to_string(pid.size());
+			return "invalid peer_id size " + std::to_string(pid->size());
 		}
 
 		aux::rtc_offer_id oid;
-		std::copy(id.begin(), id.end(), oid.begin());
-		response.offer.emplace(aux::rtc_offer{std::move(oid), peer_id(pid), {sdp.data(), sdp.size()}, nullptr});
+		std::copy(id->begin(), id->end(), oid.begin());
+		response.offer.emplace(aux::rtc_offer{
+			std::move(oid),
+			peer_id(*pid),
+			{sdp.data(), sdp.size()},
+			nullptr});
 	}
 
 	if (auto it = payload.find("answer"); it != payload.end())
 	{
+		if (!it->value().is_object())
+		{
+			ec = error_code(errors::invalid_tracker_response);
+			return "answer is not an object";
+		}
+
 		json::object& payload_answer = it->value().as_object();
-		auto const& sdp = payload_answer["sdp"].as_string();
+		auto const it_sdp = payload_answer.find("sdp");
+		auto const id = get_string("offer_id");
+		auto const pid = get_string("peer_id");
+
+		if (it_sdp == payload_answer.end() || !it_sdp->value().is_string()
+			|| !id || !pid)
+		{
+			ec = error_code(errors::invalid_tracker_response);
+			return "missing required answer fields";
+		}
+
+		auto const& sdp = it_sdp->value().as_string();
 		if (sdp.size() > aux::RTC_MAX_SDP_SIZE)
 		{
 			ec = error_code(errors::invalid_tracker_response);
 			return "answer SDP too large";
 		}
-		auto id = utf8_latin1(payload["offer_id"].as_string());
-		auto pid = utf8_latin1(payload["peer_id"].as_string());
-		if (id.size() != aux::RTC_OFFER_ID_LEN)
+
+		if (id->size() != aux::RTC_OFFER_ID_LEN)
 		{
 			ec = error_code(errors::invalid_tracker_response);
-			return "invalid offer_id size " + std::to_string(id.size());
+			return "invalid offer_id size " + std::to_string(id->size());
 		}
-		if (pid.size() != 20)
+
+		if (pid->size() != 20)
 		{
 			ec = error_code(errors::invalid_tracker_response);
-			return "invalid peer_id size " + std::to_string(pid.size());
+			return "invalid peer_id size " + std::to_string(pid->size());
 		}
 
 		aux::rtc_offer_id oid;
-		std::copy(id.begin(), id.end(), oid.begin());
-		response.answer.emplace(aux::rtc_answer{std::move(oid), peer_id(pid), {sdp.data(), sdp.size()}});
+		std::copy(id->begin(), id->end(), oid.begin());
+		response.answer.emplace(aux::rtc_answer{
+			std::move(oid),
+			peer_id(*pid),
+			{sdp.data(), sdp.size()}});
 	}
 
-	if (payload.find("interval") != payload.end())
+	// A successful tracker announce response must contain an interval.
+	// WebRTC offer/answer messages and tracker failure messages are handled
+	// separately above.
+	if (auto interval_it = payload.find("interval"); interval_it != payload.end())
 	{
+		if (!interval_it->value().is_int64())
+		{
+			ec = error_code(errors::invalid_tracker_response);
+			return "invalid interval";
+		}
+
 		tracker_response& resp = response.resp.emplace();
 
-		if (auto it = payload.find("interval"); it != payload.end())
-			resp.interval = seconds32{it->value().as_int64()};
-		else
-			resp.interval = seconds32{120};
+		auto get_int64 = [&payload](char const* key, std::int64_t default_val)
+			-> std::int64_t
+		{
+			if (auto it = payload.find(key); it != payload.end()
+				&& it->value().is_int64())
+			{
+				return it->value().as_int64();
+			}
+			return default_val;
+		};
 
-		if (auto it = payload.find("min_interval"); it != payload.end())
-			resp.min_interval = seconds32{it->value().as_int64()};
-		else
-			resp.min_interval = seconds32{60};
-
-		if (auto it = payload.find("complete"); it != payload.end())
-			resp.complete = int(it->value().as_int64());
-		else
-			resp.complete = -1;
-
-		if (auto it = payload.find("incomplete"); it != payload.end())
-			resp.incomplete = int(it->value().as_int64());
-		else
-			resp.incomplete = -1;
-
-		if (auto it = payload.find("downloaded"); it != payload.end())
-			resp.downloaded = int(it->value().as_int64());
-		else
-			resp.downloaded = -1;
+		resp.interval = seconds32{interval_it->value().as_int64()};
+		resp.min_interval = seconds32{get_int64("min_interval", 60)};
+		resp.complete = int(get_int64("complete", -1));
+		resp.incomplete = int(get_int64("incomplete", -1));
+		resp.downloaded = int(get_int64("downloaded", -1));
+	}
+	else if (!response.offer && !response.answer)
+	{
+		ec = error_code(errors::invalid_tracker_response);
+		return "missing interval in tracker response";
 	}
 
 	return response;
 }
-catch(boost::system::system_error const& e)
+catch (boost::system::system_error const& e)
 {
 	ec = error_code(errors::invalid_tracker_response);
 	return e.code().message();
 }
-catch(std::system_error const& e)
+catch (std::system_error const& e)
 {
 	ec = error_code(errors::invalid_tracker_response);
 	return e.code().message();
 }
-catch(std::exception const& e)
+catch (std::exception const& e)
 {
 	ec = error_code(errors::invalid_tracker_response);
 	return std::string(e.what());

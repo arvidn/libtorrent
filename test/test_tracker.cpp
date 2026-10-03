@@ -756,7 +756,7 @@ TORRENT_TEST(parse_websocket_tracker_invalid_json)
 
 TORRENT_TEST(parse_websocket_tracker_invalid_response)
 {
-	std::array<char const*, 14> responses = {// not an object
+	std::array<char const*, 18> responses = {// not an object
 		R"([ "foo" ])",
 
 		// info_hash too short
@@ -796,7 +796,19 @@ TORRENT_TEST(parse_websocket_tracker_invalid_response)
 		R"({"action":"announce","offer": "foo","offer_id":"yyyyyyyyyyyyyyyyyyyy","peer_id":"-LT2000-p!SALH(DnYsi","info_hash":"xxxxxxxxxxxxxxxxxxxx"})",
 
 		// answer not an object
-		R"({"action":"announce","answer": ["foo","bar"],"offer_id":"yyyyyyyyyyyyyyyyyyyy","peer_id":"-LT2000-p!SALH(DnYsi","info_hash":"xxxxxxxxxxxxxxxxxxxx"})"};
+		R"({"action":"announce","answer": ["foo","bar"],"offer_id":"yyyyyyyyyyyyyyyyyyyy","peer_id":"-LT2000-p!SALH(DnYsi","info_hash":"xxxxxxxxxxxxxxxxxxxx"})",
+
+		// info_hash is an integer instead of a string
+		R"({"complete":1,"incomplete":0,"action":"announce","interval":120,"info_hash":12345})",
+
+		// sdp is a number instead of a string
+		R"({"action":"announce","offer":{"type":"offer","sdp":12345},"offer_id":"yyyyyyyyyyyyyyyyyyyy","peer_id":"-LT2000-p!SALH(DnYsi","info_hash":"xxxxxxxxxxxxxxxxxxxx"})",
+
+		// offer_id is an array instead of a string
+		R"({"action":"announce","offer":{"type":"offer","sdp":"SDP\r\n"},"offer_id":["yy"],"peer_id":"-LT2000-p!SALH(DnYsi","info_hash":"xxxxxxxxxxxxxxxxxxxx"})",
+
+		// peer_id is null
+		R"({"action":"announce","offer":{"type":"offer","sdp":"SDP\r\n"},"offer_id":"yyyyyyyyyyyyyyyyyyyy","peer_id":null,"info_hash":"xxxxxxxxxxxxxxxxxxxx"})"};
 
 	for(const auto& response : responses)
 	{
@@ -808,6 +820,48 @@ TORRENT_TEST(parse_websocket_tracker_invalid_response)
 		TEST_EQUAL(ec, error_code(errors::invalid_tracker_response));
 		TEST_CHECK(std::holds_alternative<std::string>(ret));
 		std::cout << "message: " << std::get<std::string>(ret) << std::endl;
+	}
+}
+
+TORRENT_TEST(parse_websocket_tracker_missing_interval)
+{
+	char const response[] =
+		R"({"action":"announce","complete":1,"incomplete":0,"info_hash":"xxxxxxxxxxxxxxxxxxxx"})";
+
+	error_code ec;
+	auto ret = aux::parse_websocket_tracker_response(
+		{response, long(std::strlen(response))}, ec);
+
+	TEST_EQUAL(ec, error_code(errors::invalid_tracker_response));
+	TEST_CHECK(std::holds_alternative<std::string>(ret));
+
+	if (std::holds_alternative<std::string>(ret))
+		TEST_EQUAL(std::get<std::string>(ret), "missing interval in tracker response");
+}
+
+TORRENT_TEST(parse_websocket_tracker_announce_response_fields)
+{
+	std::array<char const*, 4> responses = {
+		R"({"action":"announce","complete":1,"interval":120,"info_hash":"xxxxxxxxxxxxxxxxxxxx"})",
+		R"({"action":"announce","incomplete":2,"interval":120,"info_hash":"xxxxxxxxxxxxxxxxxxxx"})",
+		R"({"action":"announce","downloaded":3,"interval":120,"info_hash":"xxxxxxxxxxxxxxxxxxxx"})",
+		R"({"action":"announce","min_interval":300,"interval":120,"info_hash":"xxxxxxxxxxxxxxxxxxxx"})"
+	};
+
+	for (auto const& response : responses)
+	{
+		error_code ec;
+		auto ret = aux::parse_websocket_tracker_response(
+			{response, long(std::strlen(response))}, ec);
+
+		TEST_EQUAL(ec, error_code{});
+		TEST_CHECK(std::holds_alternative<aux::websocket_tracker_response>(ret));
+
+		if (std::holds_alternative<aux::websocket_tracker_response>(ret))
+		{
+			auto const& parsed = std::get<aux::websocket_tracker_response>(ret);
+			TEST_CHECK(parsed.resp);
+		}
 	}
 }
 
