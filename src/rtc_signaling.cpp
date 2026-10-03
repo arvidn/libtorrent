@@ -363,7 +363,7 @@ rtc_signaling::connection& rtc_signaling::create_connection(rtc_offer_id const& 
 		return it->second;
 
 #ifndef TORRENT_DISABLE_LOGGING
-	debug_log("*** RTC signaling creating connection");
+	debug_log("*** RTC signaling creating connection [ offer: %s ]", offer_id_hex(offer_id).c_str());
 #endif
 
 	rtc::Configuration config;
@@ -383,6 +383,12 @@ rtc_signaling::connection& rtc_signaling::create_connection(rtc_offer_id const& 
 		if (state == rtc::PeerConnection::State::Failed)
 		{
 			auto& io_context = self->m_io_context;
+#ifndef TORRENT_DISABLE_LOGGING
+			// debug_log() must be called on the network thread
+			post(io_context, [self]() {
+				self->debug_log("*** RTC signaling PeerConnection state: failed");
+			});
+#endif
 			// on_data_channel() also reports the failure to the offer's
 			// batch, if its description hadn't been generated yet
 			post(io_context, std::bind(&rtc_signaling::on_data_channel
@@ -404,6 +410,11 @@ rtc_signaling::connection& rtc_signaling::create_connection(rtc_offer_id const& 
 
 		auto& io_context = self->m_io_context;
 
+#ifndef TORRENT_DISABLE_LOGGING
+		post(io_context, [self, state]() {
+			self->debug_log("*** RTC signaling gathering state: %d", int(state));
+		});
+#endif
 
 		if (state != rtc::PeerConnection::GatheringState::Complete) return;
 
@@ -486,6 +497,10 @@ void rtc_signaling::report_offer(std::uint64_t const batch_id, error_code const&
 	offer_batch batch = std::move(it->second);
 	m_offer_batches.erase(it);
 
+#ifndef TORRENT_DISABLE_LOGGING
+	debug_log("*** RTC signaling offer batch complete [ batch: %llu generated: %d requested: %d ]"
+		, static_cast<unsigned long long>(batch_id), batch.generated(), batch.requested());
+#endif
 	batch.complete();
 }
 
@@ -516,7 +531,8 @@ void rtc_signaling::on_generated_offer(error_code const& ec, rtc_offer offer)
 	if (ec)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-	debug_log("*** RTC signaling generated offer");
+		debug_log("*** RTC signaling failed to generate offer [ offer: %s ]: %s"
+			, offer_id_hex(offer.id).c_str(), ec.message().c_str());
 #endif
 		// the offer can't be used, release its resources now rather than
 		// holding on to them until the connection times out
@@ -525,20 +541,31 @@ void rtc_signaling::on_generated_offer(error_code const& ec, rtc_offer offer)
 		return;
 	}
 
+#ifndef TORRENT_DISABLE_LOGGING
+	debug_log("*** RTC signaling generated offer [ offer: %s ]", offer_id_hex(offer.id).c_str());
+#endif
 	report_offer(std::exchange(it->second.batch_id, 0), ec, std::move(offer));
 }
 
 void rtc_signaling::on_generated_answer(error_code const& ec, rtc_answer answer, rtc_offer offer)
 {
+	auto const it = m_connections.find(answer.offer_id);
+	if (it == m_connections.end())
+		return;
+
 	if (ec)
 	{
-		// Ignore
+#ifndef TORRENT_DISABLE_LOGGING
+		debug_log("*** RTC signaling failed to generate answer [ offer: %s ]: %s"
+			, offer_id_hex(answer.offer_id).c_str(), ec.message().c_str());
+#endif
+		// release its resources now rather than holding on to them until
+		// the connection times out
+		remove_connection(it);
 		return;
 	}
-	if (m_connections.find(answer.offer_id) == m_connections.end())
-		return;
 #ifndef TORRENT_DISABLE_LOGGING
-	debug_log("*** RTC signaling generated answer");
+	debug_log("*** RTC signaling generated answer [ offer: %s ]", offer_id_hex(answer.offer_id).c_str());
 #endif
 	TORRENT_ASSERT(offer.answer_callback);
 	offer.answer_callback(m_torrent->pid(), answer);
@@ -557,7 +584,9 @@ void rtc_signaling::on_data_channel(error_code const& ec
 	if (ec)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		debug_log("*** RTC negotiation failed");
+		debug_log("*** RTC negotiation failed [ offer: %s %s ]: %s"
+			, offer_id_hex(offer_id).c_str(), conn.incoming ? "incoming" : "outgoing"
+			, ec.message().c_str());
 #endif
 		// an outgoing offer that fails or times out before it was generated
 		// (e.g. ICE gathering never completed) must still be reported to
