@@ -62,13 +62,19 @@ public:
 	void set_session(aux::session_interface* ses)
 	{
 		std::lock_guard<std::mutex> l(m_mutex);
+		if (m_ses == ses)
+		{
+			++m_refs;
+			return;
+		}
 		m_ses = ses;
+		m_refs = 1;
 	}
 
 	void unset_session(aux::session_interface* ses)
 	{
 		std::lock_guard<std::mutex> l(m_mutex);
-		if (m_ses == ses)
+		if (m_ses == ses && --m_refs == 0)
 			m_ses = nullptr;
 	}
 
@@ -80,16 +86,17 @@ public:
 		auto &alerts = m_ses->alerts();
 		if (!alerts.should_post<log_alert>()) return;
 
-		using ::operator<<;
 		std::ostringstream ss;
 		ss << "libdatachannel: ";
-		ss << level  << " " << message;
+		ss << level << " " << message;
 		alerts.emplace_alert<log_alert>(ss.str().c_str());
 	}
 
 private:
 	std::mutex m_mutex;
 	aux::session_interface* m_ses = nullptr;
+	// the number of rtc_signaling objects alive for m_ses
+	int m_refs = 0;
 };
 
 static rtc_log_appender appender;
@@ -110,9 +117,9 @@ rtc_signaling::rtc_signaling(io_context& ioc, torrent* t, rtc_stream_handler han
 
 	static std::once_flag flag;
 #if DEBUG_RTC
-	std::call_once(flag, [this]() {
-		appender.set_session(&m_torrent->session());
+	appender.set_session(&m_torrent->session());
 
+	std::call_once(flag, []() {
 		using namespace std::placeholders;
 		rtc::InitLogger(rtc::LogLevel::Debug
 				, std::bind(&rtc_log_appender::write, &appender, _1, _2));
