@@ -109,7 +109,9 @@ EXPORT int start_web_server(bool ssl = false,
 
 EXPORT void stop_web_server();
 
-EXPORT int start_websocket_server(bool ssl = false, int min_interval = 30);
+// mode is the tracker behavior to simulate, see websocket_server.py
+EXPORT int start_websocket_server(
+	bool ssl = false, int min_interval = 30, char const* mode = "normal");
 EXPORT void stop_websocket_server();
 
 EXPORT int start_proxy(int type);

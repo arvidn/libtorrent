@@ -1521,7 +1521,7 @@ pid_type websocket_server_pid = 0;
 std::thread websocket_server_reader;
 }
 
-int start_websocket_server(bool ssl, int min_interval)
+int start_websocket_server(bool ssl, int min_interval, char const* mode)
 {
 	// only one websocket_server.py is ever tracked at a time; callers must
 	// stop_websocket_server() before starting another one
@@ -1534,10 +1534,11 @@ int start_websocket_server(bool ssl, int min_interval)
 		char buf[200];
 		std::snprintf(buf,
 			sizeof(buf),
-			"%s ../websocket_server.py %d %d",
+			"%s ../websocket_server.py %d %d %s",
 			python_exe.c_str(),
 			ssl,
-			min_interval);
+			min_interval,
+			mode);
 		cmdlines.emplace_back(buf);
 	}
 	spawned_process proc = spawn_with_retry(cmdlines, "websocket_server.py");
