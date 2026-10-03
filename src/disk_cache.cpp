@@ -87,8 +87,8 @@ span<char const> cached_block_entry::buf(int const block_size) const
 	{
 		TORRENT_ASSERT((*j)->get_type() == aux::job_action_t::write);
 		auto const& job = std::get<job::write>((*j)->action);
-		TORRENT_ASSERT(block_size == job.buffer_size);
-		return {job.borrowed_buf, job.buffer_size};
+		TORRENT_ASSERT(block_size <= job.buffer_size);
+		return {job.borrowed_buf, block_size};
 	}
 	return {nullptr, 0};
 }

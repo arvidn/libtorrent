@@ -333,6 +333,8 @@ TORRENT_EXPORT int torrent_get_status(int tor, torrent_status* s, int struct_siz
 
 TORRENT_EXPORT int alert_message(libtorrent_alert const* alert, char* buf, int size)
 {
+	if (size <= 0)
+		return -1;
 	auto const* a = reinterpret_cast<lt::alert const*>(alert);
 	auto const msg = a->message();
 	std::strncpy(buf, msg.c_str(), size - 1);

@@ -17,6 +17,8 @@ see LICENSE file.
 #include "libtorrent/time.hpp"
 #include "libtorrent/load_torrent.hpp"
 #include "libtorrent/hasher.hpp"
+#include "libtorrent/read_resume_data.hpp"
+#include "libtorrent/write_resume_data.hpp"
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/aux_/torrent.hpp"
@@ -1019,4 +1021,74 @@ TORRENT_TEST(tracker_source_attribution)
 			TEST_EQUAL(trackers[0].source, announce_entry::source_magnet_link);
 		ses.remove_torrent(h);
 	}
+}
+
+// a file whose name was changed by duplicate resolution, and then renamed by
+// the user back to its original (colliding) name, must keep the user's name
+// across a resume data round trip
+TORRENT_TEST(resume_keeps_user_rename_to_original_duplicate_name)
+{
+	std::string const resolved_name = combine_path("dup", "Foo-1.txt");
+	std::string const user_name = combine_path("dup", "Foo.txt");
+
+	std::vector<char> torrent;
+	{
+		std::vector<lt::create_file_entry> fs;
+		fs.emplace_back("dup/foo.txt", 1024);
+		fs.emplace_back("dup/Foo.txt", 1024);
+		lt::create_torrent t(std::move(fs), 16 * 1024, lt::create_torrent::v1_only);
+		t.set_hash(0_piece, sha1_hash::max());
+		bencode(std::back_inserter(torrent), t.generate());
+	}
+
+	// add_torrent_params::renamed_path_elements is what carries the
+	// default per-directory duplicate-name resolution into the torrent's
+	// rename map; file_storage itself is immutable and never reflects it.
+	add_torrent_params resume;
+	{
+		lt::session ses(settings());
+		add_torrent_params p = load_torrent_buffer(torrent);
+		{
+			lt::renamed_files rf;
+			rf.import_filenames(p.ti->layout(), p.renamed_files);
+			rf.import_path_elements(p.ti->layout(), p.renamed_path_elements);
+			lt::filenames const fn(p.ti->layout(), rf);
+			TEST_EQUAL(fn.file_path(1_file), resolved_name);
+		}
+		p.save_path = ".";
+		p.flags |= torrent_flags::paused;
+		torrent_handle h = ses.add_torrent(std::move(p));
+
+		h.rename_file(1_file, user_name);
+		alert const* a =
+			wait_for_alert(ses, file_renamed_alert::alert_type, "ses", pop_alerts::cache_alerts);
+		TEST_CHECK(a);
+		{
+			lt::renamed_files const rf = h.get_renamed_files();
+			lt::filenames const fn(h.torrent_file()->layout(), rf);
+			TEST_EQUAL(fn.file_path(1_file), user_name);
+		}
+
+		h.save_resume_data();
+		a = wait_for_alert(
+			ses, save_resume_data_alert::alert_type, "ses", pop_alerts::cache_alerts);
+		TEST_CHECK(a);
+		if (!a)
+			return;
+		resume = alert_cast<save_resume_data_alert>(a)->params;
+	}
+
+	// the resume data round trip, as it would happen across sessions
+	error_code ec;
+	add_torrent_params p = read_resume_data(write_resume_data_buf(resume), ec);
+	TEST_CHECK(!ec);
+	p.ti = load_torrent_buffer(torrent).ti;
+	p.save_path = ".";
+	p.flags |= torrent_flags::paused;
+
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(std::move(p));
+	lt::renamed_files const rf = h.get_renamed_files();
+	lt::filenames const fn(h.torrent_file()->layout(), rf);
+	TEST_EQUAL(fn.file_path(1_file), user_name);
 }

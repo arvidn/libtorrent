@@ -40,6 +40,7 @@ see LICENSE file.
 #include "libtorrent/kademlia/dht_observer.hpp"
 #include "libtorrent/kademlia/dht_tracker.hpp"
 
+#include <limits>
 #include <numeric>
 #include <cstdarg>
 #include <tuple>
@@ -3673,13 +3674,20 @@ TORRENT_TEST(dht_node_add_node_ip_filter)
 TORRENT_TEST(generate_prefix_mask)
 {
 	std::vector<std::pair<int, char const*>> const test = {
-		{   0, "0000000000000000000000000000000000000000" },
-		{   1, "8000000000000000000000000000000000000000" },
-		{   2, "c000000000000000000000000000000000000000" },
-		{  11, "ffe0000000000000000000000000000000000000" },
-		{  17, "ffff800000000000000000000000000000000000" },
-		{  37, "fffffffff8000000000000000000000000000000" },
-		{ 160, "ffffffffffffffffffffffffffffffffffffffff" },
+		{0, "0000000000000000000000000000000000000000"},
+		{1, "8000000000000000000000000000000000000000"},
+		{2, "c000000000000000000000000000000000000000"},
+		{11, "ffe0000000000000000000000000000000000000"},
+		{17, "ffff800000000000000000000000000000000000"},
+		{37, "fffffffff8000000000000000000000000000000"},
+		{8, "ff00000000000000000000000000000000000000"},
+		{159, "fffffffffffffffffffffffffffffffffffffffe"},
+		{160, "ffffffffffffffffffffffffffffffffffffffff"},
+		// out of range values are clamped to a full mask
+		{161, "ffffffffffffffffffffffffffffffffffffffff"},
+		{168, "ffffffffffffffffffffffffffffffffffffffff"},
+		{1000, "ffffffffffffffffffffffffffffffffffffffff"},
+		{std::numeric_limits<int>::max(), "ffffffffffffffffffffffffffffffffffffffff"},
 	};
 
 	for (auto const& i : test)
