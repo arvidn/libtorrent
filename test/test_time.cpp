@@ -93,14 +93,11 @@ TORRENT_TEST(time)
 	t4.join();
 }
 
-TORRENT_TEST(elapsed_microseconds_clamps_negative)
+TORRENT_TEST(elapsed_microseconds_uses_monotonic_clock)
 {
-	// Simulate a wall-clock step back: start is in the future relative to now.
-	time_point const start = clock_type::now() + seconds(3600);
-	TEST_EQUAL(elapsed_microseconds(start), 0);
-
-	time_point const past = clock_type::now() - milliseconds(1);
-	TEST_CHECK(elapsed_microseconds(past) >= 0);
+	static_assert(aux::steady_clock::is_steady);
+	auto const past = aux::steady_clock::now() - milliseconds(1);
+	TEST_CHECK(elapsed_microseconds(past) >= 1000);
 }
 
 TORRENT_TEST(test_time_conversion)

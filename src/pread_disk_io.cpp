@@ -499,7 +499,7 @@ void pread_disk_io::perform_job(aux::pread_disk_job* j, jobqueue_t& completed_jo
 status_t pread_disk_io::do_job(aux::job::partial_read& a, aux::pread_disk_job* j)
 {
 	TORRENT_ASSERT(a.buf);
-	time_point const start_time = clock_type::now();
+	auto const start_time = aux::steady_clock::now();
 
 	span<char> const b = {a.buf.data() + a.buffer_offset, a.buffer_size};
 
@@ -533,7 +533,7 @@ status_t pread_disk_io::do_job(aux::job::read& a, aux::pread_disk_job* j)
 		return disk_status::fatal_disk_error;
 	}
 
-	time_point const start_time = clock_type::now();
+	auto const start_time = aux::steady_clock::now();
 
 	aux::open_mode_t const file_mode = file_mode_for_job(j);
 	span<char> const b = {a.buf.data(), a.buffer_size};
@@ -1184,7 +1184,7 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 	auto hash_partial_piece = [&](lt::aux::piece_hasher* ph,
 								  int const hasher_cursor,
 								  span<char const*> const blocks) {
-		time_point const start_time = clock_type::now();
+		auto const start_time = aux::steady_clock::now();
 
 		// v1 hashing is contiguous from hasher_cursor; v2 may need any
 		// earlier block that's still missing its hash.
@@ -1244,7 +1244,8 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 						, file_mode, j->flags, j->error);
 					++blocks_read_from_disk;
 				}
-				if (j->error) break;
+				if (j->error)
+					break;
 			}
 			else
 			{
@@ -1253,11 +1254,13 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 					TORRENT_ASSERT(ph);
 					ph->update({ buf, len });
 				}
-				if (len2 > 0) ph2.update({buf, len2});
+				if (len2 > 0)
+					ph2.update({buf, len2});
 			}
 			offset += default_block_size;
 
-			if (len2 > 0) a.block_hashes[i] = ph2.final();
+			if (len2 > 0)
+				a.block_hashes[i] = ph2.final();
 		}
 
 		if (v1)
@@ -1296,7 +1299,7 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 	// with no further I/O.
 	if (hpr == aux::disk_cache::hash_piece_result::not_in_cache)
 	{
-		time_point const start_time = clock_type::now();
+		auto const start_time = aux::steady_clock::now();
 
 		int const read_len = v1 ? piece_size : piece_size2;
 		std::unique_ptr<char[]> buf(new char[std::size_t(read_len)]);
@@ -1350,7 +1353,7 @@ status_t pread_disk_io::do_job(aux::job::hash2& a, aux::pread_disk_job* j)
 
 	DLOG("do_hash2: reading (piece: %d offset: %d)\n", int(a.piece), int(a.offset));
 
-	time_point const start_time = clock_type::now();
+	auto const start_time = aux::steady_clock::now();
 
 	TORRENT_ASSERT(piece_size > a.offset);
 	std::ptrdiff_t const len = std::min(default_block_size, piece_size - a.offset);
@@ -1627,7 +1630,7 @@ void pread_disk_io::add_job(aux::pread_disk_job* j, bool const user_add)
 	// stamp the job on the network thread, where add_job runs. The matching
 	// measurement happens when the completion handler runs (also on the
 	// network thread), so the latency includes both disk queues.
-	j->start_time = clock_type::now();
+	j->start_time = aux::steady_clock::now();
 #endif
 	// if this happens, it means we started to shut down
 	// the disk threads too early. We have to post all jobs
@@ -1772,7 +1775,7 @@ int pread_disk_io::flush_cache_blocks(
 		m_stats_counters.inc_stats_counter(counters::num_running_disk_jobs, -1);
 	});
 
-	time_point const start_time = clock_type::now();
+	auto const start_time = aux::steady_clock::now();
 
 	bool failed = false;
 
