@@ -100,15 +100,15 @@ namespace libtorrent { namespace aux {
 		if (flags == move_flags_t::reset_save_path_unchecked)
 			return { status_t{}, new_save_path };
 
-		// indices of all files we ended up copying. These need to be deleted
-		// later
-		aux::vector<bool, file_index_t> copied_files(std::size_t(f.num_files()), false);
-
-		// track how far we got in case of an error
-		file_index_t file_index{};
-		// reused by copy_file() across all files of this move, to avoid
-		// re-allocating the copy buffer (and re-querying the filesystem
-		// block size) for every file
+		enum class file_move
+		{
+			untouched,
+			renamed,
+			copied
+		};
+		aux::vector<file_move, file_index_t> file_moves(
+			std::size_t(f.num_files()), file_move::untouched);
+		// reuse the copy buffer across all files in this move
 		copy_file_buffer copy_buf;
 		for (auto const i : f.file_range())
 		{
@@ -130,6 +130,8 @@ namespace libtorrent { namespace aux {
 			// volumes, the source should not be deleted until they've all been
 			// copied. That would let us rollback with higher confidence.
 			move_file(old_path, new_path, ec);
+			if (!ec)
+				file_moves[i] = file_move::renamed;
 
 			// if the source file doesn't exist. That's not a problem
 			// we just ignore that file
@@ -169,13 +171,13 @@ namespace libtorrent { namespace aux {
 				{
 					copy_file(old_path, new_path, ec, copy_buf);
 				}
-				if (!ec) copied_files[i] = true;
+				if (!ec)
+					file_moves[i] = file_move::copied;
 			}
 
 			if (ec)
 			{
 				ec.file(i);
-				file_index = i;
 				break;
 			}
 		}
@@ -195,17 +197,14 @@ namespace libtorrent { namespace aux {
 		if (ec)
 		{
 			// rollback
-			while (--file_index >= file_index_t(0))
+			file_index_t i = f.end_file();
+			while (--i >= file_index_t(0))
 			{
-				// files moved out to absolute paths are not moved
-				if (f.file_absolute_path(file_index)) continue;
+				if (file_moves[i] != file_move::renamed)
+					continue;
 
-				// if we ended up copying the file, don't do anything during
-				// roll-back
-				if (copied_files[file_index]) continue;
-
-				std::string const old_path = combine_path(save_path, f.file_path(file_index));
-				std::string const new_path = combine_path(new_save_path, f.file_path(file_index));
+				std::string const old_path = combine_path(save_path, f.file_path(i));
+				std::string const new_path = combine_path(new_save_path, f.file_path(i));
 
 				// ignore errors when rolling back
 				storage_error ignore;
@@ -230,9 +229,9 @@ namespace libtorrent { namespace aux {
 			if (has_parent_path(f.file_path(i)))
 				subdirs.insert(parent_path(f.file_path(i)));
 
-			// if we ended up renaming the file instead of moving it, there's no
-			// need to delete the source.
-			if (copied_files[i] == false) continue;
+			// only a copied file still has its source to remove
+			if (file_moves[i] != file_move::copied)
+				continue;
 
 			std::string const old_path = combine_path(save_path, f.file_path(i));
 
