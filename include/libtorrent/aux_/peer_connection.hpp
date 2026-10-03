@@ -765,8 +765,10 @@ namespace libtorrent::aux {
 
 		void do_update_interest();
 		void fill_send_buffer();
-		void on_disk_read_complete(disk_buffer_holder buffer
-			, storage_error const& error, peer_request const&, time_point issue_time);
+		void on_disk_read_complete(disk_buffer_holder buffer,
+			storage_error const& error,
+			peer_request const&,
+			aux::steady_clock::time_point issue_time);
 		void on_disk_write_complete(storage_error const& error,
 			peer_request const&,
 			std::shared_ptr<aux::torrent>,

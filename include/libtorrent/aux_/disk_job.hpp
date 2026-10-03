@@ -304,7 +304,7 @@ namespace job {
 		// elapsed time is bucketed into the disk_read_latency* histogram, so
 		// the measured interval includes both the disk-thread queue and the
 		// completion queue. Only present in disk-latency-stats builds.
-		time_point start_time{};
+		steady_clock::time_point start_time{};
 #endif
 
 #if TORRENT_USE_ASSERTS
