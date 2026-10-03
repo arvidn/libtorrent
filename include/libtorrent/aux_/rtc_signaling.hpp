@@ -33,6 +33,8 @@ see LICENSE file.
 #include <queue>
 #include <vector>
 #include <chrono>
+#include <cstdint>
+#include <map>
 #include <unordered_map>
 
 namespace rtc {
@@ -107,13 +109,27 @@ private:
 		std::optional<peer_id> pid;
 		bool incoming = false;
 
+		description_handler handler;
+
+		// for outgoing offers, the offer_batch this offer has not yet been
+		// reported to, or 0 once it has. Every outgoing offer must be
+		// reported to its batch exactly once (success or failure), or
+		// the batch never completes and the tracker announce waiting on
+		// it is never sent
+		std::uint64_t batch_id = 0;
+
 		deadline_timer timer;
 	};
 
 	rtc_offer_id generate_offer_id() const;
 
+	using connection_map = std::unordered_map<rtc_offer_id, connection, boost::hash<rtc_offer_id>>;
+
 	connection& create_connection(rtc_offer_id const& offer_id, description_handler handler);
+	connection remove_connection(connection_map::iterator it);
+	void report_offer(std::uint64_t batch_id, error_code const& ec, rtc_offer offer);
 	void on_generated_offer(error_code const& ec, rtc_offer offer);
+	void on_description_generated(error_code const& ec, rtc_offer_id offer_id, std::string description);
 	void on_generated_answer(error_code const& ec, rtc_answer answer, rtc_offer offer);
 	void on_data_channel(error_code const& ec, rtc_offer_id offer_id, std::shared_ptr<rtc::DataChannel> dc);
 
@@ -129,16 +145,31 @@ private:
 	{
 		offer_batch(int count, offers_handler handler);
 
-		void add(error_code const& ec, rtc_offer offer);
+		// returns true once every offer in the batch has been reported
+		bool add(error_code const& ec, rtc_offer offer);
 		bool is_complete() const;
 
+		// invokes the handler. The error is only reported if no offer
+		// could be generated at all; a partially failed batch still
+		// delivers the offers that succeeded
+		void complete();
+
+		int requested() const { return m_requested; }
+		int generated() const { return int(m_offers.size()); }
+
 	private:
+		int m_requested;
 		int m_count;
+		error_code m_error;
 		offers_handler m_handler;
 		std::vector<rtc_offer> m_offers;
 	};
 
-	std::queue<offer_batch> m_offer_batches;
+	// outstanding batches, keyed by batch id. Offers are routed to the
+	// batch they were generated for, so that a failed or slow offer in one
+	// batch can't steal offers from (and stall) another one
+	std::map<std::uint64_t, offer_batch> m_offer_batches;
+	std::uint64_t m_next_batch_id = 1;
 };
 
 }
