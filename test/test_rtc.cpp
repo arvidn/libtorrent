@@ -550,6 +550,128 @@ void test_offer_batches_are_independent()
 	sig->close();
 }
 
+// regression test for https://github.com/arvidn/libtorrent/issues/7281
+// when libdatachannel can't create the ICE agent's UDP socket (e.g. the
+// process ran out of file descriptors), createDataChannel() throws. That
+// exception used to escape generate_offers(), leaving its batch waiting for
+// offers that were never going to be created, stalling the announce
+void test_offer_creation_failure()
+{
+	time_point const start_time = clock_type::now();
+
+	session_mock ses(io_context);
+	aux::torrent tor(ses,
+		false,
+		parse_magnet_uri(
+			"magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
+
+	int calls = 0;
+	error_code result;
+	int num_offers = -1;
+
+	auto offers_handler = [&](error_code const& ec
+		, std::vector<rtc_offer> const& offers)
+	{
+		++calls;
+		result = ec;
+		num_offers = int(offers.size());
+		success = true;
+	};
+
+	auto sig = std::make_shared<rtc_signaling>(
+		io_context
+		, &tor
+		, [](rtc_stream_init) {}
+		, []()
+		{
+			throw std::runtime_error("test offer creation failure");
+		});
+
+	bool threw = false;
+	try
+	{
+		sig->generate_offers(1, offers_handler);
+	}
+	catch (std::exception const& e)
+	{
+		threw = true;
+		std::cout << "generate_offers() threw: " << e.what() << std::endl;
+	}
+
+	TEST_CHECK(!threw);
+
+	run_test();
+
+	TEST_EQUAL(calls, 1);
+	TEST_EQUAL(result, boost::system::errc::make_error_code(
+		boost::system::errc::resource_unavailable_try_again));
+	TEST_EQUAL(num_offers, 0);
+
+	ses.print_alerts(start_time);
+	sig->close();
+}
+
+// when only some of a batch's offers fail to be created, the batch must still
+// complete, delivering the offers that succeeded without an error. The
+// failure happens after the connection was created, which is where
+// libdatachannel throws when it can't open a UDP socket
+void test_offer_creation_partial_failure()
+{
+	time_point const start_time = clock_type::now();
+
+	session_mock ses(io_context);
+	aux::torrent tor(ses,
+		false,
+		parse_magnet_uri(
+			"magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
+
+	int calls = 0;
+	error_code result;
+	int num_offers = -1;
+
+	auto offers_handler = [&](error_code const& ec
+		, std::vector<rtc_offer> const& offers)
+	{
+		++calls;
+		result = ec;
+		num_offers = int(offers.size());
+		success = true;
+	};
+
+	int hook_calls = 0;
+	auto sig = std::make_shared<rtc_signaling>(
+		io_context
+		, &tor
+		, [](rtc_stream_init) {}
+		, [&]()
+		{
+			if (++hook_calls == 2)
+				throw std::runtime_error("test offer creation failure");
+		});
+
+	bool threw = false;
+	try
+	{
+		sig->generate_offers(3, offers_handler);
+	}
+	catch (std::exception const& e)
+	{
+		threw = true;
+		std::cout << "generate_offers() threw: " << e.what() << std::endl;
+	}
+
+	TEST_CHECK(!threw);
+	TEST_EQUAL(hook_calls, 3);
+
+	run_test();
+
+	TEST_EQUAL(calls, 1);
+	TEST_EQUAL(result, error_code{});
+	TEST_EQUAL(num_offers, 2);
+
+	ses.print_alerts(start_time);
+	sig->close();
+}
 
 } // namespace
 
@@ -560,6 +682,8 @@ TORRENT_TEST(signaling_stream) { test_stream(); }
 TORRENT_TEST(write_exact_chunk_boundary) { test_write_exact_chunk_boundary(); }
 TORRENT_TEST(signaling_offer_timeout) { test_offer_timeout(); }
 TORRENT_TEST(signaling_offer_batches_are_independent) { test_offer_batches_are_independent(); }
+TORRENT_TEST(signaling_offer_creation_failure) { test_offer_creation_failure(); }
+TORRENT_TEST(signaling_offer_creation_partial_failure) { test_offer_creation_partial_failure(); }
 #else
 TORRENT_TEST(disabled) {}
 #endif // TORRENT_USE_RTC

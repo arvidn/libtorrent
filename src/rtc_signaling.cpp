@@ -17,6 +17,7 @@ see LICENSE file.
 #include "libtorrent/aux_/alert_manager.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/aux_/random.hpp"
+#include "libtorrent/hex.hpp"
 #include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/aux_/rtc_signaling.hpp"
 #include "libtorrent/aux_/rtc_stream.hpp"
@@ -42,6 +43,13 @@ namespace errc = boost::system::errc;
 namespace {
 
 template <class T> std::weak_ptr<T> make_weak_ptr(std::shared_ptr<T> ptr) { return ptr; }
+
+#ifndef TORRENT_DISABLE_LOGGING
+std::string offer_id_hex(rtc_offer_id const& id)
+{
+	return aux::to_hex({id.data(), int(id.size())});
+}
+#endif
 
 #if DEBUG_RTC
 class rtc_log_appender
@@ -89,10 +97,12 @@ static rtc_log_appender appender;
 
 }
 
-rtc_signaling::rtc_signaling(io_context& ioc, torrent* t, rtc_stream_handler handler)
+rtc_signaling::rtc_signaling(io_context& ioc, torrent* t, rtc_stream_handler handler
+	, offer_creation_hook offer_creation_hook)
 	: m_io_context(ioc)
 	, m_torrent(t)
 	, m_rtc_stream_handler(std::move(handler))
+	, m_offer_creation_hook(std::move(offer_creation_hook))
 {
 #ifndef TORRENT_DISABLE_LOGGING
 	debug_log("*** RTC signaling created");
@@ -186,18 +196,54 @@ void rtc_signaling::generate_offers(int const count, offers_handler handler)
 
 			conn.batch_id = batch_id;
 
+			// test hook, called where libdatachannel may throw (e.g. when it
+			// can't open a UDP socket), once the connection already exists
+			if (m_offer_creation_hook)
+				m_offer_creation_hook();
 
-			auto& io_context = self->m_io_context;
-			post(io_context, std::bind(&rtc_signaling::on_data_channel
-				, std::move(self)
-				, error_code{}
-				, std::move(offer_id)
-				, std::move(dc_)
+			auto dc = conn.peer_connection->createDataChannel("webtorrent");
+			dc->onOpen([weak_this = weak_from_this(), offer_id, weak_dc = make_weak_ptr(dc)]()
+			{
+				// Warning: this is called from another thread
+				auto self = weak_this.lock();
+				auto dc_ = weak_dc.lock();
+				if (!self || !dc_) return;
+
+				auto& io_context = self->m_io_context;
+				post(io_context, std::bind(&rtc_signaling::on_data_channel
+					, std::move(self)
+					, error_code{}
+					, offer_id
+					, std::move(dc_)
+				));
+			});
+
+			// We need to maintain the DataChannel alive
+			conn.data_channel = std::move(dc);
+		}
+		catch (std::exception const& e)
+		{
+			TORRENT_UNUSED(e);
+#ifndef TORRENT_DISABLE_LOGGING
+			debug_log("*** RTC signaling failed to create offer [ offer: %s ]: %s"
+				, offer_id_hex(offer_id).c_str(), e.what());
+#endif
+			// libdatachannel throws synchronously when it can't set up the
+			// ICE transport, typically because no more UDP sockets can be
+			// opened. Release whatever was allocated for this offer right
+			// away and still report the failure (asynchronously, like any
+			// other outcome), otherwise the batch would never complete and
+			// the announce waiting on it would never be sent
+			if (auto const it = m_connections.find(offer_id); it != m_connections.end())
+				remove_connection(it);
+
+			post(m_io_context, std::bind(&rtc_signaling::report_offer
+				, shared_from_this()
+				, batch_id
+				, errc::make_error_code(errc::resource_unavailable_try_again)
+				, rtc_offer{offer_id, pid, {}, {}}
 			));
-		});
-
-		// We need to maintain the DataChannel alive
-		conn.data_channel = std::move(dc);
+		}
 	}
 }
 
