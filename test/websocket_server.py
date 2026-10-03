@@ -17,10 +17,20 @@ logger.setLevel(logging.INFO)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 
 
+# the number of connections accepted so far
+connections = 0
+
+
 async def handle(websocket):
+    global connections
+    connections += 1
+    connection_index = connections
+
     # the tracker behavior to simulate:
     # normal: respond to every announce
     # silent: never respond
+    # silent-first-connection: never respond on the first connection, respond
+    #   normally on any later connection
     # failure: respond to every announce with a failure reason
     # bare-failure: send a failure reason without an info_hash (like trackers
     #   do for requests they can't parse), then respond normally
@@ -44,6 +54,9 @@ async def handle(websocket):
 
             if mode == 'silent':
                 continue
+            if mode == 'silent-first-connection' and connection_index == 1:
+                continue
+
             info_hash = request["info_hash"]
 
             if mode == 'failure':

@@ -200,6 +200,10 @@ private:
 	connect_handler m_connect_handler;
 
 	bool m_open;
+
+	// a ping was sent and nothing (including its pong) has been received
+	// since
+	bool m_awaiting_pong = false;
 	deadline_timer m_keepalive_timer;
 };
 

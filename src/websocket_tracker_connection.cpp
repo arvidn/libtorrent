@@ -338,7 +338,11 @@ void websocket_tracker_connection::on_announce_timeout(error_code const& ec)
 	auto const now = clock_type::now();
 	std::vector<std::pair<std::weak_ptr<request_callback>, tracker_request>> timed_out;
 
-	// Expire announces that have already been sent.
+	// set if the timeouts suggest the connection itself is dead, rather
+	// than the tracker not responding to some request (e.g. aquatic
+	// silently drops announces in some cases)
+	bool connection_dead = false;
+
 	for (auto it = m_callbacks.begin(); it != m_callbacks.end();)
 	{
 		if (!it->second.pending || it->second.deadline > now)
@@ -347,21 +351,25 @@ void websocket_tracker_connection::on_announce_timeout(error_code const& ec)
 			continue;
 		}
 
+		// nothing at all was received since this request was sent, not
+		// even responses to other torrents' requests
+		if (m_last_receive <= it->second.sent)
+			connection_dead = true;
+
 		timed_out.emplace_back(it->second.cb, it->second.req);
 		m_offer_quota.erase(it->first);
 		it = m_callbacks.erase(it);
 	}
 
-	// Expire announces that are still queued and haven't been sent yet.
-	// This also covers a request stuck waiting for connection establishment
-	// or a write operation.
+	// requests that couldn't even be sent before their deadline. The
+	// connection is stuck connecting, or writing
 	auto const pending_end = std::remove_if(m_pending.begin(), m_pending.end()
 		, [&](auto const& item)
 	{
 		auto const* req = std::get_if<tracker_request>(&std::get<0>(item));
-		if (!req || std::get<2>(item) > now)
-			return false;
+		if (!req || std::get<2>(item) > now) return false;
 
+		connection_dead = true;
 		timed_out.emplace_back(std::get<1>(item), *req);
 		return true;
 	});
@@ -370,10 +378,35 @@ void websocket_tracker_connection::on_announce_timeout(error_code const& ec)
 #ifndef TORRENT_DISABLE_LOGGING
 	if (auto cb = requester())
 	{
-		cb->debug_log("*** WEBSOCKET_TRACKER_TIMEOUT [ url: %s timed-out: %d ]"
-			, tracker_req().url.c_str(), int(timed_out.size()));
+		cb->debug_log("*** WEBSOCKET_TRACKER_TIMEOUT [ url: %s timed-out: %d connection-dead: %d ]"
+			, tracker_req().url.c_str(), int(timed_out.size()), int(connection_dead));
 	}
 #endif
+
+	// if the connection itself is dead, all outstanding announces on it
+	// have failed. Remove them before closing so close() does not report
+	// them using the underlying socket error. They are reported below as
+	// tracker timeouts with a consistent error and message.
+	if (connection_dead)
+	{
+		for (auto it = m_callbacks.begin(); it != m_callbacks.end();)
+		{
+			if (!it->second.pending)
+			{
+				++it;
+				continue;
+			}
+
+			timed_out.emplace_back(it->second.cb, it->second.req);
+			m_offer_quota.erase(it->first);
+			it = m_callbacks.erase(it);
+		}
+
+		// close() now has no pending announce callbacks to report. Its
+		// purpose here is to tear down the dead connection and remove it
+		// from tracker_manager so subsequent announces establish a new one.
+		close(error::operation_aborted, operation_t::unknown);
+	}
 
 	for (auto const& [cb, req] : timed_out)
 	{
@@ -388,7 +421,8 @@ void websocket_tracker_connection::on_announce_timeout(error_code const& ec)
 		}
 	}
 
-	update_announce_timer();
+	if (!connection_dead)
+		update_announce_timer();
 }
 
 void websocket_tracker_connection::do_send(tracker_request const& req)
@@ -511,6 +545,7 @@ void websocket_tracker_connection::on_connect(error_code const& ec)
 		return;
 	}
 
+	m_last_receive = clock_type::now();
 	send_pending();
 	do_read();
 }
@@ -531,6 +566,8 @@ void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_r
 		}
 		return;
 	}
+
+	m_last_receive = clock_type::now();
 
 	auto const& buf = m_read_buffer.data();
 

@@ -139,6 +139,11 @@ private:
 
 	deadline_timer m_announce_timer;
 
+	// the last time anything was received on this connection (or when it
+	// was established). Used to tell a tracker that doesn't respond to a
+	// request apart from a connection that's dead
+	time_point m_last_receive = min_time();
+
 	bool m_sending = false;
 };
 

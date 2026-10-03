@@ -1147,6 +1147,62 @@ TORRENT_TEST(websocket_tracker_duplicate_response_ignored)
 	}
 	stop_websocket_server();
 }
+
+// when an announce times out without anything at all having been received on
+// the connection, the connection is presumed dead (e.g. half-open) and is
+// replaced. It used to be reused, making every subsequent announce time out
+// as well
+TORRENT_TEST(websocket_tracker_dead_connection_replaced)
+{
+	int const port = start_websocket_server(false, 30, "silent-first-connection");
+	{
+		settings_pack pack = websocket_tracker_settings();
+		pack.set_int(settings_pack::tracker_completion_timeout, 2);
+		lt::session s(pack);
+		torrent_handle h = add_websocket_tracker_torrent(s, "tmp10_tracker"
+			, websocket_tracker_url(port));
+
+		auto counts = count_tracker_alerts(s, seconds(5));
+		TEST_EQUAL(counts.replies, 0);
+		TEST_CHECK(counts.errors >= 1);
+		TEST_EQUAL(counts.last_error, error_code(errors::timed_out));
+		TEST_CHECK(counts.last_op == operation_t::timer);
+
+		// the server only responds on new connections
+		h.force_reannounce(0, -1, torrent_handle::ignore_min_interval);
+
+		counts = count_tracker_alerts(s, seconds(5));
+		// add_websocket_tracker_torrent() creates a hybrid v1/v2 torrent, so the single torrent
+		// generates two announces and therefore two successful tracker replies.
+		TEST_EQUAL(counts.replies, 2);
+		TEST_EQUAL(counts.errors, 0);
+	}
+	stop_websocket_server();
+}
+
+// the announce deadline also covers establishing the connection. A server
+// that accepts the TCP connection but never completes the WebSocket handshake
+// used to leave the announce queued, "updating", forever
+TORRENT_TEST(websocket_tracker_handshake_timeout)
+{
+	// the kernel completes the TCP handshake for a listening socket even
+	// though nothing ever accepts the connection, so the WebSocket
+	// handshake never completes
+	lt::io_context ioc;
+	tcp::acceptor acceptor(ioc, tcp::endpoint(make_address_v4("127.0.0.1"), 0));
+	int const port = acceptor.local_endpoint().port();
+
+	settings_pack pack = websocket_tracker_settings();
+	pack.set_int(settings_pack::tracker_completion_timeout, 2);
+	lt::session s(pack);
+	add_websocket_tracker_torrent(s, "tmp11_tracker", websocket_tracker_url(port));
+
+	auto const counts = count_tracker_alerts(s, seconds(6));
+	TEST_EQUAL(counts.replies, 0);
+	TEST_CHECK(counts.errors >= 1);
+	TEST_EQUAL(counts.last_error, error_code(errors::timed_out));
+	TEST_CHECK(counts.last_op == operation_t::timer);
+}
 #endif
 
 namespace {
