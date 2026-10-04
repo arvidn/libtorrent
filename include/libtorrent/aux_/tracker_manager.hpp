@@ -361,10 +361,8 @@ using tracker_request_flags_t = flags::bitfield_flag<std::uint8_t, struct tracke
 			unsupported
 		};
 
-		paused_event_support get_websocket_paused_support(
-			std::string const& url) const;
-		void set_websocket_paused_support(
-			std::string const& url, paused_event_support support);
+		paused_event_support get_websocket_paused_support(std::string const& url) const;
+		void set_websocket_paused_support(std::string const& url, paused_event_support support);
 #endif
 
 		void remove_request(aux::http_tracker_connection const* c);

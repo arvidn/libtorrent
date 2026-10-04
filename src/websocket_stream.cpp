@@ -147,12 +147,10 @@ void websocket_stream::do_resolve(std::string hostname, std::uint16_t port)
 void websocket_stream::close_socket()
 {
 	error_code ignore;
-	std::visit(rtc::overloaded
-		{
-			[&](stream_type& stream) { stream.next_layer().close(ignore); }
-			, [&](ssl_stream_type& stream) { stream.next_layer().next_layer().close(ignore); }
-		}
-		, m_stream);
+	std::visit(
+		rtc::overloaded{[&](stream_type& stream) { stream.next_layer().close(ignore); },
+			[&](ssl_stream_type& stream) { stream.next_layer().next_layer().close(ignore); }},
+		m_stream);
 }
 
 void websocket_stream::on_resolve(error_code const& ec, std::vector<address> const& addresses)
@@ -160,7 +158,8 @@ void websocket_stream::on_resolve(error_code const& ec, std::vector<address> con
 	COMPLETE_ASYNC("websocket_stream::on_resolve");
 
 	// the connection attempt was aborted by close()
-	if (!m_connect_handler) return;
+	if (!m_connect_handler)
+		return;
 	if (ec)
 	{
 		if (auto handler = std::exchange(m_connect_handler, nullptr))
@@ -200,7 +199,8 @@ void websocket_stream::on_tcp_connect(error_code const& ec)
 	COMPLETE_ASYNC("websocket_stream::on_tcp_connect");
 
 	// the connection attempt was aborted by close()
-	if (!m_connect_handler) return;
+	if (!m_connect_handler)
+		return;
 	if (ec)
 	{
 		if (auto handler = std::exchange(m_connect_handler, nullptr))
@@ -246,7 +246,8 @@ void websocket_stream::on_ssl_handshake(error_code const& ec)
 	COMPLETE_ASYNC("websocket_stream::on_ssl_handshake");
 
 	// the connection attempt was aborted by close()
-	if (!m_connect_handler) return;
+	if (!m_connect_handler)
+		return;
 	if (ec)
 	{
 		if (auto handler = std::exchange(m_connect_handler, nullptr))
@@ -303,17 +304,17 @@ void websocket_stream::on_handshake(error_code const& ec)
 	// keep track of pongs, to detect a connection that silently went away
 	// (see on_keepalive()). Control frames are delivered while a read is
 	// outstanding
-	std::visit([&](auto& stream)
-		{
-			stream.control_callback([weak_self = std::weak_ptr<websocket_stream>(shared_from_this())]
-				(websocket::frame_type const kind, auto const&)
-				{
+	std::visit(
+		[&](auto& stream) {
+			stream.control_callback(
+				[weak_self = std::weak_ptr<websocket_stream>(shared_from_this())](
+					websocket::frame_type const kind, auto const&) {
 					auto self = weak_self.lock();
 					if (self && kind == websocket::frame_type::pong)
 						self->m_awaiting_pong = false;
 				});
-		}
-		, m_stream);
+		},
+		m_stream);
 
 	arm_keepalive();
 
@@ -327,7 +328,8 @@ void websocket_stream::on_read(error_code ec, std::size_t bytes_read, read_handl
 
 	if (ec) m_open = false;
 	// anything received proves the connection is still alive
-	else m_awaiting_pong = false;
+	else
+		m_awaiting_pong = false;
 
 	post(m_io_service, std::bind(std::move(handler), ec, bytes_read));
 }

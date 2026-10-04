@@ -104,8 +104,10 @@ static rtc_log_appender appender;
 
 }
 
-rtc_signaling::rtc_signaling(io_context& ioc, torrent* t, rtc_stream_handler handler
-	, offer_creation_hook offer_creation_hook)
+rtc_signaling::rtc_signaling(io_context& ioc,
+	torrent* t,
+	rtc_stream_handler handler,
+	offer_creation_hook offer_creation_hook)
 	: m_io_context(ioc)
 	, m_torrent(t)
 	, m_rtc_stream_handler(std::move(handler))
@@ -173,9 +175,13 @@ void rtc_signaling::generate_offers(int const count, offers_handler handler)
 	std::uint64_t const batch_id = m_next_batch_id++;
 
 #ifndef TORRENT_DISABLE_LOGGING
-	debug_log("*** RTC signaling generating %d offers [ batch: %llu connections: %d incoming: %d pending-batches: %d ]"
-		, count, static_cast<unsigned long long>(batch_id), int(m_connections.size())
-		, m_num_incoming_connections, int(m_offer_batches.size()));
+	debug_log("*** RTC signaling generating %d offers [ batch: %llu connections: %d incoming: %d "
+			  "pending-batches: %d ]",
+		count,
+		static_cast<unsigned long long>(batch_id),
+		int(m_connections.size()),
+		m_num_incoming_connections,
+		int(m_offer_batches.size()));
 #endif
 	m_offer_batches.emplace(batch_id, offer_batch(count, std::move(handler)));
 
@@ -186,20 +192,21 @@ void rtc_signaling::generate_offers(int const count, offers_handler handler)
 
 		try
 		{
-			auto& conn = create_connection(offer_id, [weak_this = weak_from_this(), offer_id, pid]
-				(error_code const& ec, std::string sdp)
-			{
-				auto self = weak_this.lock();
-				if (!self) return;
+			auto& conn = create_connection(offer_id,
+				[weak_this = weak_from_this(), offer_id, pid](
+					error_code const& ec, std::string sdp) {
+					auto self = weak_this.lock();
+					if (!self)
+						return;
 
-				auto& io_context = self->m_io_context;
-				rtc_offer offer{offer_id, pid, std::move(sdp), {}};
-				post(io_context, std::bind(&rtc_signaling::on_generated_offer
-					, std::move(self)
-					, ec
-					, std::move(offer)
-				));
-			});
+					auto& io_context = self->m_io_context;
+					rtc_offer offer{offer_id, pid, std::move(sdp), {}};
+					post(io_context,
+						std::bind(&rtc_signaling::on_generated_offer,
+							std::move(self),
+							ec,
+							std::move(offer)));
+				});
 
 			conn.batch_id = batch_id;
 
@@ -209,20 +216,20 @@ void rtc_signaling::generate_offers(int const count, offers_handler handler)
 				m_offer_creation_hook();
 
 			auto dc = conn.peer_connection->createDataChannel("webtorrent");
-			dc->onOpen([weak_this = weak_from_this(), offer_id, weak_dc = make_weak_ptr(dc)]()
-			{
+			dc->onOpen([weak_this = weak_from_this(), offer_id, weak_dc = make_weak_ptr(dc)]() {
 				// Warning: this is called from another thread
 				auto self = weak_this.lock();
 				auto dc_ = weak_dc.lock();
-				if (!self || !dc_) return;
+				if (!self || !dc_)
+					return;
 
 				auto& io_context = self->m_io_context;
-				post(io_context, std::bind(&rtc_signaling::on_data_channel
-					, std::move(self)
-					, error_code{}
-					, offer_id
-					, std::move(dc_)
-				));
+				post(io_context,
+					std::bind(&rtc_signaling::on_data_channel,
+						std::move(self),
+						error_code{},
+						offer_id,
+						std::move(dc_)));
 			});
 
 			// We need to maintain the DataChannel alive
@@ -232,8 +239,9 @@ void rtc_signaling::generate_offers(int const count, offers_handler handler)
 		{
 			TORRENT_UNUSED(e);
 #ifndef TORRENT_DISABLE_LOGGING
-			debug_log("*** RTC signaling failed to create offer [ offer: %s ]: %s"
-				, offer_id_hex(offer_id).c_str(), e.what());
+			debug_log("*** RTC signaling failed to create offer [ offer: %s ]: %s",
+				offer_id_hex(offer_id).c_str(),
+				e.what());
 #endif
 			// libdatachannel throws synchronously when it can't set up the
 			// ICE transport, typically because no more UDP sockets can be
@@ -244,12 +252,12 @@ void rtc_signaling::generate_offers(int const count, offers_handler handler)
 			if (auto const it = m_connections.find(offer_id); it != m_connections.end())
 				remove_connection(it);
 
-			post(m_io_context, std::bind(&rtc_signaling::report_offer
-				, shared_from_this()
-				, batch_id
-				, errc::make_error_code(errc::resource_unavailable_try_again)
-				, rtc_offer{offer_id, pid, {}, {}}
-			));
+			post(m_io_context,
+				std::bind(&rtc_signaling::report_offer,
+					shared_from_this(),
+					batch_id,
+					errc::make_error_code(errc::resource_unavailable_try_again),
+					rtc_offer{offer_id, pid, {}, {}}));
 		}
 	}
 }
@@ -363,7 +371,8 @@ rtc_signaling::connection& rtc_signaling::create_connection(rtc_offer_id const& 
 		return it->second;
 
 #ifndef TORRENT_DISABLE_LOGGING
-	debug_log("*** RTC signaling creating connection [ offer: %s ]", offer_id_hex(offer_id).c_str());
+	debug_log(
+		"*** RTC signaling creating connection [ offer: %s ]", offer_id_hex(offer_id).c_str());
 #endif
 
 	rtc::Configuration config;
@@ -372,72 +381,75 @@ rtc_signaling::connection& rtc_signaling::create_connection(rtc_offer_id const& 
 		config.iceServers.emplace_back(std::move(stun_server));
 
 	auto pc = std::make_shared<rtc::PeerConnection>(config);
-	pc->onStateChange([weak_this = weak_from_this(), weak_pc = make_weak_ptr(pc), offer_id]
-		(rtc::PeerConnection::State state)
-	{
+	pc->onStateChange([weak_this = weak_from_this(), weak_pc = make_weak_ptr(pc), offer_id](
+						  rtc::PeerConnection::State state) {
 		// Warning: this is called from another thread
 		auto self = weak_this.lock();
 		auto pc_ = weak_pc.lock();
-		if (!self || !pc_) return;
+		if (!self || !pc_)
+			return;
 
 		if (state == rtc::PeerConnection::State::Failed)
 		{
 			auto& io_context = self->m_io_context;
 #ifndef TORRENT_DISABLE_LOGGING
 			// debug_log() must be called on the network thread
-			post(io_context, [self]() {
-				self->debug_log("*** RTC signaling PeerConnection state: failed");
-			});
+			post(io_context,
+				[self]() { self->debug_log("*** RTC signaling PeerConnection state: failed"); });
 #endif
 			// on_data_channel() also reports the failure to the offer's
 			// batch, if its description hadn't been generated yet
-			post(io_context, std::bind(&rtc_signaling::on_data_channel
-				, std::move(self)
-				, error_code(boost::asio::error::connection_refused)
-				, offer_id
-				, nullptr
-			));
+			post(io_context,
+				std::bind(&rtc_signaling::on_data_channel,
+					std::move(self),
+					error_code(boost::asio::error::connection_refused),
+					offer_id,
+					nullptr));
 		}
 	});
 
-	pc->onGatheringStateChange([weak_this = weak_from_this(), weak_pc = make_weak_ptr(pc), offer_id]
-		(rtc::PeerConnection::GatheringState state)
-	{
-		// Warning: this is called from another thread
-		auto self = weak_this.lock();
-		auto pc_ = weak_pc.lock();
-		if (!self || !pc_) return;
+	pc->onGatheringStateChange(
+		[weak_this = weak_from_this(), weak_pc = make_weak_ptr(pc), offer_id](
+			rtc::PeerConnection::GatheringState state) {
+			// Warning: this is called from another thread
+			auto self = weak_this.lock();
+			auto pc_ = weak_pc.lock();
+			if (!self || !pc_)
+				return;
 
-		auto& io_context = self->m_io_context;
+			auto& io_context = self->m_io_context;
 
 #ifndef TORRENT_DISABLE_LOGGING
-		post(io_context, [self, state]() {
-			self->debug_log("*** RTC signaling gathering state: %d", int(state));
-		});
+			post(io_context, [self, state]() {
+				self->debug_log("*** RTC signaling gathering state: %d", int(state));
+			});
 #endif
 
-		if (state != rtc::PeerConnection::GatheringState::Complete) return;
+			if (state != rtc::PeerConnection::GatheringState::Complete)
+				return;
 
-		auto const description = pc_->localDescription();
-		if (!description)
-		{
-			// gathering completed without a local description, which
-			// means it can't be used. Report it rather than dereferencing
-			// an empty optional
-			post(io_context, std::bind(&rtc_signaling::on_description_generated
-				, std::move(self)
-				, error_code(boost::asio::error::connection_refused)
-				, offer_id
-				, std::string()));
-			return;
-		}
+			auto const description = pc_->localDescription();
+			if (!description)
+			{
+				// gathering completed without a local description, which
+				// means it can't be used. Report it rather than dereferencing
+				// an empty optional
+				post(io_context,
+					std::bind(&rtc_signaling::on_description_generated,
+						std::move(self),
+						error_code(boost::asio::error::connection_refused),
+						offer_id,
+						std::string()));
+				return;
+			}
 
-		post(io_context, std::bind(&rtc_signaling::on_description_generated
-			, std::move(self)
-			, error_code{}
-			, offer_id
-			, std::string(*description)));
-	});
+			post(io_context,
+				std::bind(&rtc_signaling::on_description_generated,
+					std::move(self),
+					error_code{},
+					offer_id,
+					std::string(*description)));
+		});
 
 	pc->onDataChannel([weak_this = weak_from_this(), offer_id]
 		(std::shared_ptr<rtc::DataChannel> dc)
@@ -461,10 +473,10 @@ rtc_signaling::connection& rtc_signaling::create_connection(rtc_offer_id const& 
 	conn.peer_connection = std::move(pc);
 	conn.handler = std::move(handler);
 	conn.timer.expires_after(timeout);
-	conn.timer.async_wait([self = shared_from_this(), offer_id](error_code const& ec)
-	{
+	conn.timer.async_wait([self = shared_from_this(), offer_id](error_code const& ec) {
 		// the timer is cancelled when the connection is removed
-		if (ec == boost::asio::error::operation_aborted) return;
+		if (ec == boost::asio::error::operation_aborted)
+			return;
 		self->on_data_channel(boost::asio::error::timed_out, offer_id, nullptr);
 	});
 
@@ -485,12 +497,15 @@ rtc_signaling::connection rtc_signaling::remove_connection(connection_map::itera
 	return conn;
 }
 
-void rtc_signaling::report_offer(std::uint64_t const batch_id, error_code const& ec, rtc_offer offer)
+void rtc_signaling::report_offer(
+	std::uint64_t const batch_id, error_code const& ec, rtc_offer offer)
 {
 	auto const it = m_offer_batches.find(batch_id);
-	if (it == m_offer_batches.end()) return;
+	if (it == m_offer_batches.end())
+		return;
 
-	if (!it->second.add(ec, std::move(offer))) return;
+	if (!it->second.add(ec, std::move(offer)))
+		return;
 
 	// detach the batch before invoking its handler, in case it calls back
 	// into this object
@@ -498,27 +513,29 @@ void rtc_signaling::report_offer(std::uint64_t const batch_id, error_code const&
 	m_offer_batches.erase(it);
 
 #ifndef TORRENT_DISABLE_LOGGING
-	debug_log("*** RTC signaling offer batch complete [ batch: %llu generated: %d requested: %d ]"
-		, static_cast<unsigned long long>(batch_id), batch.generated(), batch.requested());
+	debug_log("*** RTC signaling offer batch complete [ batch: %llu generated: %d requested: %d ]",
+		static_cast<unsigned long long>(batch_id),
+		batch.generated(),
+		batch.requested());
 #endif
 	batch.complete();
 }
 
 void rtc_signaling::on_description_generated(
-	error_code const& ec,
-	rtc_offer_id offer_id,
-	std::string description)
+	error_code const& ec, rtc_offer_id offer_id, std::string description)
 {
 	auto const it = m_connections.find(offer_id);
 
 	// the connection is gone if it already failed or timed out, in which
 	// case its outcome was reported then
-	if (it == m_connections.end()) return;
+	if (it == m_connections.end())
+		return;
 
 	// the handler is only ever invoked once per connection. Clearing it
 	// guarantees that even if gathering were to complete more than once
 	auto const handler = std::exchange(it->second.handler, description_handler{});
-	if (handler) handler(ec, description);
+	if (handler)
+		handler(ec, description);
 }
 
 void rtc_signaling::on_generated_offer(error_code const& ec, rtc_offer offer)
@@ -526,13 +543,15 @@ void rtc_signaling::on_generated_offer(error_code const& ec, rtc_offer offer)
 	auto const it = m_connections.find(offer.id);
 	// if the connection is gone, it already failed or timed out and its
 	// outcome was reported to its batch at that point
-	if (it == m_connections.end()) return;
+	if (it == m_connections.end())
+		return;
 
 	if (ec)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		debug_log("*** RTC signaling failed to generate offer [ offer: %s ]: %s"
-			, offer_id_hex(offer.id).c_str(), ec.message().c_str());
+		debug_log("*** RTC signaling failed to generate offer [ offer: %s ]: %s",
+			offer_id_hex(offer.id).c_str(),
+			ec.message().c_str());
 #endif
 		// the offer can't be used, release its resources now rather than
 		// holding on to them until the connection times out
@@ -556,8 +575,9 @@ void rtc_signaling::on_generated_answer(error_code const& ec, rtc_answer answer,
 	if (ec)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		debug_log("*** RTC signaling failed to generate answer [ offer: %s ]: %s"
-			, offer_id_hex(answer.offer_id).c_str(), ec.message().c_str());
+		debug_log("*** RTC signaling failed to generate answer [ offer: %s ]: %s",
+			offer_id_hex(answer.offer_id).c_str(),
+			ec.message().c_str());
 #endif
 		// release its resources now rather than holding on to them until
 		// the connection times out
@@ -565,7 +585,8 @@ void rtc_signaling::on_generated_answer(error_code const& ec, rtc_answer answer,
 		return;
 	}
 #ifndef TORRENT_DISABLE_LOGGING
-	debug_log("*** RTC signaling generated answer [ offer: %s ]", offer_id_hex(answer.offer_id).c_str());
+	debug_log(
+		"*** RTC signaling generated answer [ offer: %s ]", offer_id_hex(answer.offer_id).c_str());
 #endif
 	TORRENT_ASSERT(offer.answer_callback);
 	offer.answer_callback(m_torrent->pid(), answer);
@@ -584,9 +605,10 @@ void rtc_signaling::on_data_channel(error_code const& ec
 	if (ec)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
-		debug_log("*** RTC negotiation failed [ offer: %s %s ]: %s"
-			, offer_id_hex(offer_id).c_str(), conn.incoming ? "incoming" : "outgoing"
-			, ec.message().c_str());
+		debug_log("*** RTC negotiation failed [ offer: %s %s ]: %s",
+			offer_id_hex(offer_id).c_str(),
+			conn.incoming ? "incoming" : "outgoing",
+			ec.message().c_str());
 #endif
 		// an outgoing offer that fails or times out before it was generated
 		// (e.g. ICE gathering never completed) must still be reported to
@@ -594,8 +616,8 @@ void rtc_signaling::on_data_channel(error_code const& ec
 		// would stall forever
 		if (conn.batch_id != 0)
 		{
-			report_offer(std::exchange(conn.batch_id, 0), ec
-				, rtc_offer{offer_id, m_torrent->pid(), {}, {}});
+			report_offer(
+				std::exchange(conn.batch_id, 0), ec, rtc_offer{offer_id, m_torrent->pid(), {}, {}});
 		}
 		return;
 	}

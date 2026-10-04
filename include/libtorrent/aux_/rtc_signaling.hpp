@@ -79,8 +79,10 @@ struct TORRENT_EXTRA_EXPORT rtc_signaling final : std::enable_shared_from_this<r
 	using rtc_stream_handler = std::function<void(rtc_stream_init)>;
 	using offer_creation_hook = std::function<void()>;
 
-	explicit rtc_signaling(io_context& ioc, torrent* t, rtc_stream_handler handler
-		, offer_creation_hook offer_creation_hook = {});
+	explicit rtc_signaling(io_context& ioc,
+		torrent* t,
+		rtc_stream_handler handler,
+		offer_creation_hook offer_creation_hook = {});
 	~rtc_signaling();
 	rtc_signaling& operator=(rtc_signaling const&) = delete;
 	rtc_signaling(rtc_signaling const&) = delete;
@@ -131,7 +133,8 @@ private:
 	connection remove_connection(connection_map::iterator it);
 	void report_offer(std::uint64_t batch_id, error_code const& ec, rtc_offer offer);
 	void on_generated_offer(error_code const& ec, rtc_offer offer);
-	void on_description_generated(error_code const& ec, rtc_offer_id offer_id, std::string description);
+	void on_description_generated(
+		error_code const& ec, rtc_offer_id offer_id, std::string description);
 	void on_generated_answer(error_code const& ec, rtc_answer answer, rtc_offer offer);
 	void on_data_channel(error_code const& ec, rtc_offer_id offer_id, std::shared_ptr<rtc::DataChannel> dc);
 

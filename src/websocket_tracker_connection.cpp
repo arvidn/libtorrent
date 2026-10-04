@@ -70,12 +70,10 @@ void report_error(std::weak_ptr<request_callback> const& cb,
 }
 }
 
-websocket_tracker_connection::websocket_tracker_connection(
-	io_context& ios,
+websocket_tracker_connection::websocket_tracker_connection(io_context& ios,
 	tracker_manager& man,
 	tracker_request const& req,
-	std::weak_ptr<request_callback> cb
-)
+	std::weak_ptr<request_callback> cb)
 	: tracker_connection(man, req, ios, cb)
 	, m_io_context(ios)
 	, m_ssl_context(req.ssl_ctx)
@@ -237,8 +235,8 @@ void websocket_tracker_connection::queue_request(tracker_request req, std::weak_
 
 void websocket_tracker_connection::queue_answer(tracker_answer ans)
 {
-	m_pending.emplace_back(tracker_message{std::move(ans)}, std::weak_ptr<request_callback>{}
-		, max_time());
+	m_pending.emplace_back(
+		tracker_message{std::move(ans)}, std::weak_ptr<request_callback>{}, max_time());
 	if (is_open()) send_pending();
 }
 
@@ -250,7 +248,8 @@ time_point websocket_tracker_connection::request_deadline(tracker_request const&
 		: settings.get_int(settings_pack::tracker_completion_timeout);
 
 	// a timeout of 0 (or less) disables it
-	if (timeout <= 0) return max_time();
+	if (timeout <= 0)
+		return max_time();
 	return clock_type::now() + seconds(timeout);
 }
 
@@ -278,8 +277,7 @@ void websocket_tracker_connection::update_announce_timer()
 	ADD_OUTSTANDING_ASYNC("websocket_tracker_connection::on_announce_timeout");
 	m_announce_timer.expires_at(earliest);
 	m_announce_timer.async_wait(
-		std::bind(&websocket_tracker_connection::on_announce_timeout
-			, shared_from_this(), _1));
+		std::bind(&websocket_tracker_connection::on_announce_timeout, shared_from_this(), _1));
 }
 
 void websocket_tracker_connection::send_pending()
@@ -308,12 +306,7 @@ void websocket_tracker_connection::send_pending()
 				TORRENT_ASSERT(existing == m_callbacks.end() || !existing->second.pending);
 #endif
 				// the deadline was set when the request was queued
-				m_callbacks[m.info_hash] = callback_entry{
-					cb,
-					m,
-					true,
-					deadline,
-					clock_type::now()};
+				m_callbacks[m.info_hash] = callback_entry{cb, m, true, deadline, clock_type::now()};
 			}
 
 			if (cb.lock())
@@ -369,7 +362,7 @@ void websocket_tracker_connection::on_announce_timeout(error_code const& ec)
 			connection_dead = true;
 
 			if (it->second.req.event == event_t::paused)
-       			paused_event_failed = true;
+				paused_event_failed = true;
 		}
 
 		timed_out.emplace_back(it->second.cb, it->second.req);
@@ -379,23 +372,25 @@ void websocket_tracker_connection::on_announce_timeout(error_code const& ec)
 
 	// requests that couldn't even be sent before their deadline. The
 	// connection is stuck connecting, or writing
-	auto const pending_end = std::remove_if(m_pending.begin(), m_pending.end()
-		, [&](auto const& item)
-	{
-		auto const* req = std::get_if<tracker_request>(&std::get<0>(item));
-		if (!req || std::get<2>(item) > now) return false;
+	auto const pending_end =
+		std::remove_if(m_pending.begin(), m_pending.end(), [&](auto const& item) {
+			auto const* req = std::get_if<tracker_request>(&std::get<0>(item));
+			if (!req || std::get<2>(item) > now)
+				return false;
 
-		connection_dead = true;
-		timed_out.emplace_back(std::get<1>(item), *req);
-		return true;
-	});
+			connection_dead = true;
+			timed_out.emplace_back(std::get<1>(item), *req);
+			return true;
+		});
 	m_pending.erase(pending_end, m_pending.end());
 
 #ifndef TORRENT_DISABLE_LOGGING
 	if (auto cb = requester())
 	{
-		cb->debug_log("*** WEBSOCKET_TRACKER_TIMEOUT [ url: %s timed-out: %d connection-dead: %d ]"
-			, tracker_req().url.c_str(), int(timed_out.size()), int(connection_dead));
+		cb->debug_log("*** WEBSOCKET_TRACKER_TIMEOUT [ url: %s timed-out: %d connection-dead: %d ]",
+			tracker_req().url.c_str(),
+			int(timed_out.size()),
+			int(connection_dead));
 	}
 #endif
 
@@ -430,8 +425,7 @@ void websocket_tracker_connection::on_announce_timeout(error_code const& ec)
 		if (paused_event_failed)
 		{
 			m_man.set_websocket_paused_support(
-				tracker_req().url,
-				tracker_manager::paused_event_support::unsupported);
+				tracker_req().url, tracker_manager::paused_event_support::unsupported);
 		}
 
 		// close() now has no pending announce callbacks to report. Its
@@ -444,8 +438,7 @@ void websocket_tracker_connection::on_announce_timeout(error_code const& ec)
 	{
 		if (auto c = cb.lock())
 		{
-			c->tracker_request_error(
-				req,
+			c->tracker_request_error(req,
 				errors::timed_out,
 				operation_t::timer,
 				"tracker announce timed out",
@@ -504,10 +497,10 @@ void websocket_tracker_connection::do_send(tracker_request const& req)
 
 #ifndef TORRENT_DISABLE_LOGGING
 	if (auto cb = requester())
-		cb->debug_log("*** WEBSOCKET_TRACKER_WRITE [ url: %s size: %ld, data: %s ]"
-			, tracker_req().url.c_str()
-			, long(m_write_data.size())
-			, m_write_data.c_str());
+		cb->debug_log("*** WEBSOCKET_TRACKER_WRITE [ url: %s size: %ld, data: %s ]",
+			tracker_req().url.c_str(),
+			long(m_write_data.size()),
+			m_write_data.c_str());
 #endif
 
 	ADD_OUTSTANDING_ASYNC("websocket_tracker_connection::on_write");
@@ -534,10 +527,10 @@ void websocket_tracker_connection::do_send(tracker_answer const& ans)
 
 #ifndef TORRENT_DISABLE_LOGGING
 	if (auto cb = requester())
-		cb->debug_log("*** WEBSOCKET_TRACKER_WRITE [ url: %s size: %ld, data: %s ]"
-			, tracker_req().url.c_str()
-			, long(m_write_data.size())
-			, m_write_data.c_str());
+		cb->debug_log("*** WEBSOCKET_TRACKER_WRITE [ url: %s size: %ld, data: %s ]",
+			tracker_req().url.c_str(),
+			long(m_write_data.size()),
+			m_write_data.c_str());
 #endif
 
 	ADD_OUTSTANDING_ASYNC("websocket_tracker_connection::on_write");
@@ -607,8 +600,7 @@ void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_r
 				if (entry.pending && entry.req.event == event_t::paused)
 				{
 					m_man.set_websocket_paused_support(
-						entry.req.url,
-						tracker_manager::paused_event_support::unsupported);
+						entry.req.url, tracker_manager::paused_event_support::unsupported);
 					break;
 				}
 			}
@@ -623,10 +615,10 @@ void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_r
 #ifndef TORRENT_DISABLE_LOGGING
 	std::string str(static_cast<char const*>(buf.data()), buf.size());
 	if (auto cb = requester())
-		cb->debug_log("*** WEBSOCKET_TRACKER_READ [ url: %s size: %ld, data: %s ]"
-			, tracker_req().url.c_str()
-			, long(str.size())
-			, str.c_str());
+		cb->debug_log("*** WEBSOCKET_TRACKER_READ [ url: %s size: %ld, data: %s ]",
+			tracker_req().url.c_str(),
+			long(str.size()),
+			str.c_str());
 #endif
 
 	auto ret = parse_websocket_tracker_response({static_cast<char const*>(buf.data()), long(buf.size())}, ec);
@@ -677,15 +669,13 @@ void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_r
 						!= tracker_manager::paused_event_support::unsupported)
 				{
 					m_man.set_websocket_paused_support(
-						cit->second.req.url,
-						tracker_manager::paused_event_support::unsupported);
+						cit->second.req.url, tracker_manager::paused_event_support::unsupported);
 				}
 
 				// mark it so close() won't also report an error for it
 				cit->second.pending = false;
 
-				cb->tracker_request_error(
-					cit->second.req,
+				cb->tracker_request_error(cit->second.req,
 					errors::tracker_failure,
 					operation_t::bittorrent,
 					response.failure_reason,
@@ -696,8 +686,9 @@ void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_r
 #ifndef TORRENT_DISABLE_LOGGING
 			else if (auto cb_ = requester())
 			{
-				cb_->debug_log("*** WEBSOCKET_TRACKER_READ [ ignoring failure reason, no announce outstanding: %s ]"
-					, response.failure_reason.c_str());
+				cb_->debug_log("*** WEBSOCKET_TRACKER_READ [ ignoring failure reason, no announce "
+							   "outstanding: %s ]",
+					response.failure_reason.c_str());
 			}
 #endif
 		}
@@ -711,11 +702,11 @@ void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_r
 					--quota->second;
 
 					response.offer->answer_callback = [info_hash = response.info_hash,
-														self = shared_from_this(),
-														id = response.offer->id,
-														pid = response.offer->pid](
-														peer_id const& local_pid,
-														aux::rtc_answer const& answer) {
+														  self = shared_from_this(),
+														  id = response.offer->id,
+														  pid = response.offer->pid](
+														  peer_id const& local_pid,
+														  aux::rtc_answer const& answer) {
 						self->queue_answer(
 							{std::move(info_hash), std::move(local_pid), std::move(answer)});
 						self->start();
@@ -740,21 +731,22 @@ void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_r
 			{
 #ifndef TORRENT_DISABLE_LOGGING
 				if (auto cb_ = requester())
-					cb_->debug_log("*** WEBSOCKET_TRACKER_READ [ ignoring response, no announce outstanding ]");
+					cb_->debug_log("*** WEBSOCKET_TRACKER_READ [ ignoring response, no announce "
+								   "outstanding ]");
 #endif
 			}
 			else if (response.resp)
 			{
-				response.resp->interval = std::max(response.resp->interval
-					, seconds32{m_man.settings().get_int(settings_pack::min_websocket_announce_interval)});
+				response.resp->interval = std::max(response.resp->interval,
+					seconds32{
+						m_man.settings().get_int(settings_pack::min_websocket_announce_interval)});
 
 				if (cit->second.req.event == event_t::paused
 					&& m_man.get_websocket_paused_support(cit->second.req.url)
 						!= tracker_manager::paused_event_support::unsupported)
 				{
 					m_man.set_websocket_paused_support(
-						cit->second.req.url,
-						tracker_manager::paused_event_support::supported);
+						cit->second.req.url, tracker_manager::paused_event_support::supported);
 				}
 
 				// this request's outcome has just been reported to its
@@ -815,8 +807,7 @@ void websocket_tracker_connection::fail(error_code const& ec, operation_t const 
 TORRENT_EXTRA_EXPORT std::variant<websocket_tracker_response, std::string>
 parse_websocket_tracker_response(span<char const> message, error_code& ec) try
 {
-	json::object payload = json::parse(
-		{message.data(), size_t(message.size())}).as_object();
+	json::object payload = json::parse({message.data(), size_t(message.size())}).as_object();
 
 	auto it_info_hash = payload.find("info_hash");
 	if (it_info_hash == payload.end() || !it_info_hash->value().is_string())
@@ -835,10 +826,8 @@ parse_websocket_tracker_response(span<char const> message, error_code& ec) try
 	websocket_tracker_response response;
 	response.info_hash = sha1_hash(span<char const>{raw_info_hash.data(), 20});
 
-	auto get_string = [&payload](char const* key) -> std::optional<std::string>
-	{
-		if (auto it = payload.find(key); it != payload.end()
-			&& it->value().is_string())
+	auto get_string = [&payload](char const* key) -> std::optional<std::string> {
+		if (auto it = payload.find(key); it != payload.end() && it->value().is_string())
 		{
 			return utf8_latin1(it->value().as_string());
 		}
@@ -858,8 +847,7 @@ parse_websocket_tracker_response(span<char const> message, error_code& ec) try
 		auto const id = get_string("offer_id");
 		auto const pid = get_string("peer_id");
 
-		if (it_sdp == payload_offer.end() || !it_sdp->value().is_string()
-			|| !id || !pid)
+		if (it_sdp == payload_offer.end() || !it_sdp->value().is_string() || !id || !pid)
 		{
 			ec = error_code(errors::invalid_tracker_response);
 			return "missing required offer fields";
@@ -886,11 +874,8 @@ parse_websocket_tracker_response(span<char const> message, error_code& ec) try
 
 		aux::rtc_offer_id oid;
 		std::copy(id->begin(), id->end(), oid.begin());
-		response.offer.emplace(aux::rtc_offer{
-			std::move(oid),
-			peer_id(*pid),
-			{sdp.data(), sdp.size()},
-			nullptr});
+		response.offer.emplace(
+			aux::rtc_offer{std::move(oid), peer_id(*pid), {sdp.data(), sdp.size()}, nullptr});
 	}
 
 	if (auto it = payload.find("answer"); it != payload.end())
@@ -906,8 +891,7 @@ parse_websocket_tracker_response(span<char const> message, error_code& ec) try
 		auto const id = get_string("offer_id");
 		auto const pid = get_string("peer_id");
 
-		if (it_sdp == payload_answer.end() || !it_sdp->value().is_string()
-			|| !id || !pid)
+		if (it_sdp == payload_answer.end() || !it_sdp->value().is_string() || !id || !pid)
 		{
 			ec = error_code(errors::invalid_tracker_response);
 			return "missing required answer fields";
@@ -934,10 +918,8 @@ parse_websocket_tracker_response(span<char const> message, error_code& ec) try
 
 		aux::rtc_offer_id oid;
 		std::copy(id->begin(), id->end(), oid.begin());
-		response.answer.emplace(aux::rtc_answer{
-			std::move(oid),
-			peer_id(*pid),
-			{sdp.data(), sdp.size()}});
+		response.answer.emplace(
+			aux::rtc_answer{std::move(oid), peer_id(*pid), {sdp.data(), sdp.size()}});
 	}
 
 	if (auto it = payload.find("failure reason"); it != payload.end())
@@ -964,11 +946,8 @@ parse_websocket_tracker_response(span<char const> message, error_code& ec) try
 
 		tracker_response& resp = response.resp.emplace();
 
-		auto get_int64 = [&payload](char const* key, std::int64_t default_val)
-			-> std::int64_t
-		{
-			if (auto it = payload.find(key); it != payload.end()
-				&& it->value().is_int64())
+		auto get_int64 = [&payload](char const* key, std::int64_t default_val) -> std::int64_t {
+			if (auto it = payload.find(key); it != payload.end() && it->value().is_int64())
 			{
 				return it->value().as_int64();
 			}
@@ -981,9 +960,7 @@ parse_websocket_tracker_response(span<char const> message, error_code& ec) try
 		resp.incomplete = int(get_int64("incomplete", -1));
 		resp.downloaded = int(get_int64("downloaded", -1));
 	}
-	else if (response.failure_reason.empty()
-		&& !response.offer
-		&& !response.answer)
+	else if (response.failure_reason.empty() && !response.offer && !response.answer)
 	{
 		// This is neither a tracker failure nor a WebRTC signalling
 		// message, and it lacks the interval required for a successful

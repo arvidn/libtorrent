@@ -494,8 +494,8 @@ namespace libtorrent::aux {
 	}
 
 #if TORRENT_USE_RTC
-	tracker_manager::paused_event_support
-		tracker_manager::get_websocket_paused_support(std::string const& url) const
+	tracker_manager::paused_event_support tracker_manager::get_websocket_paused_support(
+		std::string const& url) const
 	{
 		auto const i = m_websocket_paused_support.find(url);
 		if (i == m_websocket_paused_support.end())

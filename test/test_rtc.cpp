@@ -448,7 +448,8 @@ void test_write_exact_chunk_boundary()
 struct unresponsive_stun_server
 {
 	unresponsive_stun_server()
-		: sock(io_context, boost::asio::ip::udp::endpoint(boost::asio::ip::make_address("127.0.0.1"), 0))
+		: sock(io_context,
+			  boost::asio::ip::udp::endpoint(boost::asio::ip::make_address("127.0.0.1"), 0))
 	{}
 	std::string address() const
 	{
@@ -470,13 +471,15 @@ void test_offer_timeout()
 	session_mock ses(io_context);
 	ses.mutable_settings().set_str(settings_pack::webtorrent_stun_server, stun.address());
 	ses.mutable_settings().set_int(settings_pack::webtorrent_connection_timeout, 1);
-	aux::torrent tor(ses, false, parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
+	aux::torrent tor(ses,
+		false,
+		parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
 
 	int calls = 0;
 	auto offers_handler = [&](error_code const& ec, std::vector<rtc_offer> const& offers) {
 		++calls;
-		std::cout << "Batch completed with " << int(offers.size()) << " offers, ec: "
-			<< ec.message() << std::endl;
+		std::cout << "Batch completed with " << int(offers.size())
+				  << " offers, ec: " << ec.message() << std::endl;
 		TEST_EQUAL(ec, error_code(boost::asio::error::timed_out));
 		TEST_CHECK(offers.empty());
 		success = true;
@@ -504,33 +507,37 @@ void test_offer_batches_are_independent()
 	unresponsive_stun_server stun;
 	session_mock ses(io_context);
 	ses.mutable_settings().set_int(settings_pack::webtorrent_connection_timeout, 3);
-	aux::torrent tor(ses, false, parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
+	aux::torrent tor(ses,
+		false,
+		parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
 
 	bool slow_done = false;
 	bool fast_done = false;
 
 	auto slow_handler = [&](error_code const& ec, std::vector<rtc_offer> const& offers) {
-		std::cout << "Slow batch completed with " << int(offers.size()) << " offers, ec: "
-			<< ec.message() << std::endl;
+		std::cout << "Slow batch completed with " << int(offers.size())
+				  << " offers, ec: " << ec.message() << std::endl;
 		TEST_CHECK(!slow_done);
 		// these offers can't be generated before they time out, and must not
 		// have been given offers belonging to the other batch
 		TEST_EQUAL(ec, error_code(boost::asio::error::timed_out));
 		TEST_CHECK(offers.empty());
 		slow_done = true;
-		if (fast_done) success = true;
+		if (fast_done)
+			success = true;
 	};
 
 	auto fast_handler = [&](error_code const& ec, std::vector<rtc_offer> const& offers) {
-		std::cout << "Fast batch completed with " << int(offers.size()) << " offers, ec: "
-			<< ec.message() << std::endl;
+		std::cout << "Fast batch completed with " << int(offers.size())
+				  << " offers, ec: " << ec.message() << std::endl;
 		TEST_CHECK(!fast_done);
 		TEST_CHECK(!ec);
 		TEST_EQUAL(int(offers.size()), 2);
 		// must not have to wait for the slow batch
 		TEST_CHECK(!slow_done);
 		fast_done = true;
-		if (slow_done) success = true;
+		if (slow_done)
+			success = true;
 	};
 
 	auto sig = std::make_shared<rtc_signaling>(io_context, &tor, [](rtc_stream_init) {});
@@ -562,16 +569,13 @@ void test_offer_creation_failure()
 	session_mock ses(io_context);
 	aux::torrent tor(ses,
 		false,
-		parse_magnet_uri(
-			"magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
+		parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
 
 	int calls = 0;
 	error_code result;
 	int num_offers = -1;
 
-	auto offers_handler = [&](error_code const& ec
-		, std::vector<rtc_offer> const& offers)
-	{
+	auto offers_handler = [&](error_code const& ec, std::vector<rtc_offer> const& offers) {
 		++calls;
 		result = ec;
 		num_offers = int(offers.size());
@@ -579,13 +583,10 @@ void test_offer_creation_failure()
 	};
 
 	auto sig = std::make_shared<rtc_signaling>(
-		io_context
-		, &tor
-		, [](rtc_stream_init) {}
-		, []()
-		{
-			throw std::runtime_error("test offer creation failure");
-		});
+		io_context,
+		&tor,
+		[](rtc_stream_init) {},
+		[]() { throw std::runtime_error("test offer creation failure"); });
 
 	bool threw = false;
 	try
@@ -603,8 +604,8 @@ void test_offer_creation_failure()
 	run_test();
 
 	TEST_EQUAL(calls, 1);
-	TEST_EQUAL(result, boost::system::errc::make_error_code(
-		boost::system::errc::resource_unavailable_try_again));
+	TEST_EQUAL(result,
+		boost::system::errc::make_error_code(boost::system::errc::resource_unavailable_try_again));
 	TEST_EQUAL(num_offers, 0);
 
 	ses.print_alerts(start_time);
@@ -622,16 +623,13 @@ void test_offer_creation_partial_failure()
 	session_mock ses(io_context);
 	aux::torrent tor(ses,
 		false,
-		parse_magnet_uri(
-			"magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
+		parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
 
 	int calls = 0;
 	error_code result;
 	int num_offers = -1;
 
-	auto offers_handler = [&](error_code const& ec
-		, std::vector<rtc_offer> const& offers)
-	{
+	auto offers_handler = [&](error_code const& ec, std::vector<rtc_offer> const& offers) {
 		++calls;
 		result = ec;
 		num_offers = int(offers.size());
@@ -640,11 +638,10 @@ void test_offer_creation_partial_failure()
 
 	int hook_calls = 0;
 	auto sig = std::make_shared<rtc_signaling>(
-		io_context
-		, &tor
-		, [](rtc_stream_init) {}
-		, [&]()
-		{
+		io_context,
+		&tor,
+		[](rtc_stream_init) {},
+		[&]() {
 			if (++hook_calls == 2)
 				throw std::runtime_error("test offer creation failure");
 		});
