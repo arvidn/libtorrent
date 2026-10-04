@@ -32,6 +32,24 @@ using namespace std::placeholders;
 
 namespace libtorrent::aux {
 
+bool is_tracker_protocol_supported(string_view const url)
+{
+	string_view const protocol = url.substr(0, url.find(':'));
+	if (protocol == "http")
+		return true;
+#if TORRENT_USE_SSL
+	if (protocol == "https")
+		return true;
+#endif
+	if (protocol == "udp")
+		return true;
+#if TORRENT_USE_RTC
+	if (protocol == "ws" || protocol == "wss")
+		return true;
+#endif
+	return false;
+}
+
 	timeout_handler::timeout_handler(io_context& ios)
 		: m_start_time(clock_type::now())
 		, m_read_time(m_start_time)
@@ -380,11 +398,23 @@ namespace libtorrent::aux {
 			return;
         }
 #endif
-		// we need to post the error to avoid deadlock
-		else if (auto r = c.lock())
-			post(ios, std::bind(&request_callback::tracker_request_error, r, std::move(req)
-				, errors::unsupported_url_protocol, operation_t::parse_address
-				, "", seconds32(0)));
+		else
+		{
+			// torrent::tracker_supported() is supposed to keep trackers with
+			// an unsupported scheme out of announce_with_tracker() entirely,
+			// so this should never actually be reached.
+			TORRENT_ASSERT(!is_tracker_protocol_supported(req.url));
+			// we need to post the error to avoid deadlock
+			if (auto r = c.lock())
+				post(ios,
+					std::bind(&request_callback::tracker_request_error,
+						r,
+						std::move(req),
+						errors::unsupported_url_protocol,
+						operation_t::parse_address,
+						"",
+						seconds32(0)));
+		}
 	}
 
 	bool tracker_manager::incoming_packet(udp::endpoint const& ep
