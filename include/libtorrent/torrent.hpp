@@ -1004,6 +1004,12 @@ namespace libtorrent {
 		bool i2p_compatible_tracker(std::string const& url) const;
 #endif
 
+		// combines i2p-mixing policy (when enabled) with URL-scheme
+		// support. update_tracker_timer() and announce_with_tracker() must
+		// agree on this, or a tracker that's always skipped can still pull
+		// the timer back to "now", spinning the CPU.
+		bool tracker_supported(std::string const& url) const;
+
 		// this is the asio callback that is called when a name
 		// lookup for a PEER is completed.
 		void on_peer_name_lookup(error_code const&

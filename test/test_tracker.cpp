@@ -69,6 +69,20 @@ using namespace lt;
 //   malformed peers in peer list of dictionaries
 //   uneven number of bytes in peers and peers6 string responses
 
+TORRENT_TEST(tracker_protocol_supported)
+{
+	TEST_CHECK(is_tracker_protocol_supported("http://tracker.com/announce"));
+	TEST_CHECK(is_tracker_protocol_supported("udp://tracker.com:80/announce"));
+	TEST_CHECK(!is_tracker_protocol_supported("foo://tracker.com/announce"));
+	TEST_CHECK(!is_tracker_protocol_supported("tracker.com/announce"));
+
+#if TORRENT_USE_SSL
+	TEST_CHECK(is_tracker_protocol_supported("https://tracker.com/announce"));
+#else
+	TEST_CHECK(!is_tracker_protocol_supported("https://tracker.com/announce"));
+#endif
+}
+
 TORRENT_TEST(parse_hostname_peers)
 {
 	char const response[] = "d5:peersld7:peer id20:aaaaaaaaaaaaaaaaaaaa"

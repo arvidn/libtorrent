@@ -85,6 +85,12 @@ namespace aux {
 	struct resolver_interface;
 }
 
+// true if this build can dispatch the URL scheme of a tracker announce
+// URL, regardless of whether the tracker is actually reachable. Shared by
+// tracker_manager::queue_request() and torrent::tracker_supported() so
+// they can never disagree about which trackers are dispatchable.
+TORRENT_EXTRA_EXPORT bool is_tracker_protocol_supported(string_view url);
+
 using tracker_request_flags_t = flags::bitfield_flag<std::uint8_t, struct tracker_request_flags_tag>;
 
 // Kinds of tracker announces. This is typically indicated as the ``&event=``
