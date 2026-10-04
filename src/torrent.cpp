@@ -2989,6 +2989,14 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 	}
 #endif
 
+	bool torrent::tracker_supported(std::string const& url) const
+	{
+#if TORRENT_USE_I2P
+		if (!i2p_compatible_tracker(url)) return false;
+#endif
+		return is_tracker_protocol_supported(url);
+	}
+
 namespace {
 	void refresh_endpoint_list(aux::session_interface& ses
 		, std::string const& url
@@ -3238,12 +3246,10 @@ namespace {
 			req.trackerid = ae.trackerid.empty() ? m_trackerid : ae.trackerid;
 			req.url = ae.url;
 
+			// update_tracker_timer() applies the same skip, so the timer
+			// doesn't keep firing for a tracker that's never contacted.
+			if (!tracker_supported(req.url)) continue;
 #if TORRENT_USE_I2P
-			// if we don't allow mixing normal peers into this i2p torrent,
-			// skip non-i2p trackers. update_tracker_timer() applies the
-			// same skip so the timer doesn't keep firing for trackers we'll
-			// never contact.
-			if (!i2p_compatible_tracker(req.url)) continue;
 			// req is reused across iterations, so set the i2p bit to match
 			// this tracker rather than only ever OR-ing it in.
 			if (is_i2p_url(req.url)) req.kind |= tracker_request::i2p;
@@ -3432,8 +3438,8 @@ namespace {
 		req.kind |= tracker_request::scrape_request;
 		auto& ae = m_trackers[idx];
 
+		if (!tracker_supported(ae.url)) return;
 #if TORRENT_USE_I2P
-		if (!i2p_compatible_tracker(ae.url)) return;
 		if (is_i2p_url(ae.url)) req.kind |= tracker_request::i2p;
 #endif
 		refresh_endpoint_list(m_ses, ae.url, is_ssl_torrent(), bool(m_complete_sent), ae.endpoints);
@@ -10180,14 +10186,12 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 			++idx;
 #endif
-#if TORRENT_USE_I2P
 			// Skip trackers that announce_with_tracker() will skip too.
 			// Without this, those trackers' default next_announce
 			// (time_point32::min()) drives the timer to fire immediately,
 			// calling announce_with_tracker() which skips again, looping
 			// forever and spinning the CPU.
-			if (!i2p_compatible_tracker(t.url)) continue;
-#endif
+			if (!tracker_supported(t.url)) continue;
 			for (auto const& aep : t.endpoints)
 			{
 				auto ep_state_iter = std::find_if(listen_socket_states.begin()

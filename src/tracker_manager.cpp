@@ -53,6 +53,17 @@ constexpr tracker_request_flags_t tracker_request::scrape_request;
 constexpr tracker_request_flags_t tracker_request::i2p;
 constexpr tracker_request_flags_t tracker_request::high_priority;
 
+bool is_tracker_protocol_supported(string_view const url)
+{
+	string_view const protocol = url.substr(0, url.find(':'));
+	if (protocol == "http") return true;
+#if TORRENT_USE_SSL
+	if (protocol == "https") return true;
+#endif
+	if (protocol == "udp") return true;
+	return false;
+}
+
 	timeout_handler::timeout_handler(io_context& ios)
 		: m_start_time(clock_type::now())
 		, m_read_time(m_start_time)
@@ -330,6 +341,11 @@ constexpr tracker_request_flags_t tracker_request::high_priority;
 			con->start();
 			return;
 		}
+
+		// torrent::tracker_supported() is supposed to keep trackers with
+		// an unsupported scheme out of announce_with_tracker() entirely,
+		// so this should never actually be reached.
+		TORRENT_ASSERT(!is_tracker_protocol_supported(req.url));
 
 		// we need to post the error to avoid deadlock
 		if (auto r = c.lock())

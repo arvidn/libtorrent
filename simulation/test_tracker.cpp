@@ -1331,6 +1331,56 @@ TORRENT_TEST(try_next)
 	TEST_EQUAL(got_announce, true);
 }
 
+// torrent::update_tracker_timer() must skip exactly the trackers that
+// torrent::announce_with_tracker() skips, or a tracker that's always
+// skipped (its URL scheme unsupported by this build) keeps pulling the
+// per-torrent tracker timer back to "now", spinning the CPU with no actual
+// socket I/O. torrent::tracker_supported() generalizes the equivalent skip
+// already in place for i2p-incompatible trackers to cover any unsupported
+// URL scheme.
+TORRENT_TEST(unsupported_tracker_protocol_skipped)
+{
+	tracker_test(
+		[](lt::add_torrent_params& p, lt::session&) {
+			for (int i = 0; i < 150; ++i)
+			{
+				char url[64];
+				std::snprintf(url, sizeof(url), "foo://tracker-%d.example.com/announce", i);
+				p.trackers.push_back(url);
+			}
+			p.trackers.push_back("http://tracker.com:8080/announce");
+			return 20;
+		}
+		, [](std::string method, std::string, std::map<std::string, std::string>&)
+		{
+			TEST_EQUAL(method, "GET");
+			char response[500];
+			int const size = std::snprintf(response, sizeof(response)
+				, "d8:intervali1800e5:peers0:e");
+			return sim::send_response(200, "OK", size) + response;
+		}
+		, [](torrent_handle) {}
+		, [](torrent_handle h)
+		{
+			bool found_working = false;
+			for (auto const& ae : h.trackers())
+			{
+				if (ae.url == "http://tracker.com:8080/announce")
+				{
+					found_working = true;
+					continue;
+				}
+				// never dispatched, so still at its pristine default state
+				for (auto const& aep : ae.endpoints)
+				{
+					TEST_EQUAL(aep.info_hashes[protocol_version::V1].fails, 0);
+					TEST_CHECK(!aep.info_hashes[protocol_version::V1].last_error);
+				}
+			}
+			TEST_CHECK(found_working);
+		});
+}
+
 TORRENT_TEST(clear_error)
 {
 	// make sure we clear the error from a previous attempt when succeeding
