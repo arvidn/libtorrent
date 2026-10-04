@@ -129,7 +129,7 @@ namespace {
 
 			if (!error.ec)
 			{
-				std::int64_t const read_time = elapsed_microseconds(start_time);
+				std::int64_t const read_time = total_microseconds(aux::steady_clock::now() - start_time);
 
 				m_stats_counters.inc_stats_counter(counters::num_blocks_read);
 				m_stats_counters.inc_stats_counter(counters::num_read_ops);
@@ -155,7 +155,7 @@ namespace {
 
 			if (!error.ec)
 			{
-				std::int64_t const write_time = elapsed_microseconds(start_time);
+				std::int64_t const write_time = total_microseconds(aux::steady_clock::now() - start_time);
 
 				m_stats_counters.inc_stats_counter(counters::num_blocks_written);
 				m_stats_counters.inc_stats_counter(counters::num_write_ops);
@@ -224,7 +224,7 @@ namespace {
 
 			if (!error.ec)
 			{
-				std::int64_t const read_time = elapsed_microseconds(start_time);
+				std::int64_t const read_time = total_microseconds(aux::steady_clock::now() - start_time);
 
 				m_stats_counters.inc_stats_counter(counters::num_read_back, blocks_to_read);
 				m_stats_counters.inc_stats_counter(counters::num_blocks_read, blocks_to_read);
@@ -268,7 +268,7 @@ namespace {
 
 			if (!error.ec)
 			{
-				std::int64_t const read_time = elapsed_microseconds(start_time);
+				std::int64_t const read_time = total_microseconds(aux::steady_clock::now() - start_time);
 
 				m_stats_counters.inc_stats_counter(counters::num_read_back);
 				m_stats_counters.inc_stats_counter(counters::num_blocks_read);

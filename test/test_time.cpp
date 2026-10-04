@@ -93,13 +93,6 @@ TORRENT_TEST(time)
 	t4.join();
 }
 
-TORRENT_TEST(elapsed_microseconds_uses_monotonic_clock)
-{
-	static_assert(aux::steady_clock::is_steady);
-	auto const past = aux::steady_clock::now() - milliseconds(1);
-	TEST_CHECK(elapsed_microseconds(past) >= 1000);
-}
-
 TORRENT_TEST(test_time_conversion)
 {
 	int success = 0;

@@ -70,11 +70,7 @@ namespace libtorrent {
 #else
 	using steady_clock = std::chrono::steady_clock;
 #endif
-	}
-
-	inline std::int64_t elapsed_microseconds(aux::steady_clock::time_point const start)
-	{
-		return total_microseconds(aux::steady_clock::now() - start);
+	static_assert(steady_clock::is_steady, "steady_clock must be steady");
 	}
 
 }
