@@ -290,7 +290,7 @@ void websocket_tracker_connection::send_pending()
 	m_pending.pop_front();
 
 	std::visit(
-		[this, cb = callback, deadline = deadline](auto const& m) {
+		[this, cb = callback, deadline_copy = deadline](auto const& m) {
 			// record every sent request, even ones whose callback has
 			// already expired, so m_callbacks always reflects whether the
 			// connection's current request is still pending (used by
@@ -306,7 +306,8 @@ void websocket_tracker_connection::send_pending()
 				TORRENT_ASSERT(existing == m_callbacks.end() || !existing->second.pending);
 #endif
 				// the deadline was set when the request was queued
-				m_callbacks[m.info_hash] = callback_entry{cb, m, true, deadline, clock_type::now()};
+				m_callbacks[m.info_hash] =
+					callback_entry{cb, m, true, deadline_copy, clock_type::now()};
 			}
 
 			if (cb.lock())
