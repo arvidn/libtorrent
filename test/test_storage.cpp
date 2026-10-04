@@ -64,6 +64,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <functional> // for bind
 #include <fstream>
 #include <iostream>
+#include <tuple> // for std::tie
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/variant/get.hpp>
@@ -1552,6 +1553,134 @@ TORRENT_TEST(readwrite_zero_size_files)
 
 	TEST_EQUAL(ret, fs.total_size());
 	TEST_CHECK(check_pattern(buf, 0));
+}
+
+TORRENT_TEST(move_storage_rolls_back_after_partfile_error)
+{
+	std::string const source = complete("partfile_rollback_source");
+	std::string const destination = complete("partfile_rollback_destination");
+	delete_dirs(source);
+	delete_dirs(destination);
+
+	file_storage fs;
+	std::array<char const*, 2> const names = {{"first", "second"}};
+	error_code ec;
+	create_directories(combine_path(source, "payload"), ec);
+	TEST_CHECK(!ec);
+	for (char const* const name : names)
+	{
+		std::string const path = combine_path("payload", name);
+		fs.add_file(path, 1);
+		std::ofstream(combine_path(source, path).c_str()).put('x');
+	}
+
+	storage_error se;
+	bool partfile_move_attempted = false;
+	status_t status;
+	std::string save_path;
+	std::tie(status, save_path) = aux::move_storage(
+		fs,
+		source,
+		destination,
+		[&](std::string const&, error_code& error) {
+			partfile_move_attempted = true;
+			error = boost::system::errc::make_error_code(boost::system::errc::permission_denied);
+		},
+		move_flags_t::always_replace_files,
+		se);
+
+	TEST_CHECK(partfile_move_attempted);
+	TEST_CHECK((status & status_t::fatal_disk_error) != status_t{});
+	TEST_EQUAL(save_path, source);
+	TEST_CHECK(se.operation == operation_t::partfile_move);
+	for (char const* const name : names)
+	{
+		std::string const path = combine_path("payload", name);
+		TEST_CHECK(exists(combine_path(source, path)));
+		TEST_CHECK(!exists(combine_path(destination, path)));
+	}
+}
+
+TORRENT_TEST(move_storage_rollback_preserves_skipped_files)
+{
+	std::string const source = complete("partfile_rollback_skip_source");
+	std::string const destination = complete("partfile_rollback_skip_destination");
+	delete_dirs(source);
+	delete_dirs(destination);
+
+	error_code ec;
+	create_directories(combine_path(source, "payload"), ec);
+	TEST_CHECK(!ec);
+	create_directories(combine_path(destination, "payload"), ec);
+	TEST_CHECK(!ec);
+	std::ofstream(combine_path(source, "payload/first").c_str()).put('s');
+	std::ofstream(combine_path(source, "payload/second").c_str()).put('m');
+	std::ofstream(combine_path(destination, "payload/first").c_str()).put('d');
+
+	file_storage fs;
+	fs.add_file("payload/first", 1);
+	fs.add_file("payload/second", 1);
+	storage_error se;
+	status_t status;
+	std::string save_path;
+	std::tie(status, save_path) = aux::move_storage(
+		fs,
+		source,
+		destination,
+		[](std::string const&, error_code& error) {
+			error = boost::system::errc::make_error_code(boost::system::errc::permission_denied);
+		},
+		move_flags_t::dont_replace,
+		se);
+
+	TEST_CHECK((status & status_t::fatal_disk_error) != status_t{});
+	TEST_EQUAL(save_path, source);
+	TEST_EQUAL(std::ifstream(combine_path(source, "payload/first").c_str()).get(), 's');
+	TEST_EQUAL(std::ifstream(combine_path(destination, "payload/first").c_str()).get(), 'd');
+	TEST_EQUAL(std::ifstream(combine_path(source, "payload/second").c_str()).get(), 'm');
+	TEST_CHECK(!exists(combine_path(destination, "payload/second")));
+}
+
+TORRENT_TEST(move_storage_rollback_preserves_missing_source_files)
+{
+	std::string const source = complete("partfile_rollback_missing_source");
+	std::string const destination = complete("partfile_rollback_missing_destination");
+	delete_dirs(source);
+	delete_dirs(destination);
+
+	error_code ec;
+	create_directories(combine_path(source, "payload"), ec);
+	TEST_CHECK(!ec);
+	create_directories(combine_path(destination, "payload"), ec);
+	TEST_CHECK(!ec);
+	// "first" is declared in file_storage below but never created in source;
+	// "destination/payload/first" is a pre-existing, unrelated file that a
+	// rollback must not disturb.
+	std::ofstream(combine_path(source, "payload/second").c_str()).put('m');
+	std::ofstream(combine_path(destination, "payload/first").c_str()).put('d');
+
+	file_storage fs;
+	fs.add_file("payload/first", 1);
+	fs.add_file("payload/second", 1);
+	storage_error se;
+	status_t status;
+	std::string save_path;
+	std::tie(status, save_path) = aux::move_storage(
+		fs,
+		source,
+		destination,
+		[](std::string const&, error_code& error) {
+			error = boost::system::errc::make_error_code(boost::system::errc::permission_denied);
+		},
+		move_flags_t::always_replace_files,
+		se);
+
+	TEST_CHECK((status & status_t::fatal_disk_error) != status_t{});
+	TEST_EQUAL(save_path, source);
+	TEST_CHECK(!exists(combine_path(source, "payload/first")));
+	TEST_EQUAL(std::ifstream(combine_path(destination, "payload/first").c_str()).get(), 'd');
+	TEST_EQUAL(std::ifstream(combine_path(source, "payload/second").c_str()).get(), 'm');
+	TEST_CHECK(!exists(combine_path(destination, "payload/second")));
 }
 
 template <typename StorageType>

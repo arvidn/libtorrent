@@ -211,6 +211,12 @@ namespace libtorrent { namespace aux {
 		// later
 		aux::vector<bool, file_index_t> copied_files(std::size_t(f.num_files()), false);
 
+		// indices of files left untouched: either the destination already had
+		// them (dont_replace) or the source didn't have them to begin with. A
+		// rollback must leave these alone too, since there's nothing to undo
+		// for them
+		aux::vector<bool, file_index_t> skipped_files(std::size_t(f.num_files()), false);
+
 		// track how far we got in case of an error
 		file_index_t file_index{};
 		for (auto const i : f.file_range())
@@ -225,6 +231,7 @@ namespace libtorrent { namespace aux {
 			if (flags == move_flags_t::dont_replace && exists(new_path, ignore))
 			{
 				if (ret == status_t::no_error) ret = status_t::need_full_check;
+				skipped_files[i] = true;
 				continue;
 			}
 
@@ -236,7 +243,10 @@ namespace libtorrent { namespace aux {
 			// if the source file doesn't exist. That's not a problem
 			// we just ignore that file
 			if (ec.ec == boost::system::errc::no_such_file_or_directory)
+			{
 				ec.ec.clear();
+				skipped_files[i] = true;
+			}
 			else if (ec
 				&& ec.ec != boost::system::errc::invalid_argument
 				&& ec.ec != boost::system::errc::permission_denied)
@@ -266,6 +276,7 @@ namespace libtorrent { namespace aux {
 				ec.ec = e;
 				ec.file(torrent_status::error_file_partfile);
 				ec.operation = operation_t::partfile_move;
+				file_index = f.end_file();
 			}
 		}
 
@@ -280,6 +291,9 @@ namespace libtorrent { namespace aux {
 				// if we ended up copying the file, don't do anything during
 				// roll-back
 				if (copied_files[file_index]) continue;
+
+				// nothing was moved for this file to begin with
+				if (skipped_files[file_index]) continue;
 
 				std::string const old_path = combine_path(save_path, f.file_path(file_index));
 				std::string const new_path = combine_path(new_save_path, f.file_path(file_index));

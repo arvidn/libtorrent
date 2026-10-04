@@ -1,5 +1,6 @@
 2.0.16 not released
 
+	* fix rollback of move-storage
 	* fix renaming sanitized files back to their original name
 
 2.0.15 released
