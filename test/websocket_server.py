@@ -40,6 +40,9 @@ async def handle(websocket):
     #   the outcome of the announce (like aquatic does when an answer arrives
     #   for an offer it no longer knows about)
     # duplicate-response: respond to every announce twice
+    # paused-failure: reject paused announces, respond normally to others
+    # paused-close: close the connection when receiving a paused announce
+    # paused-required: reject announces that don't contain event=paused
     mode = sys.argv[3] if len(sys.argv) > 3 else 'normal'
 
     try:
@@ -64,6 +67,24 @@ async def handle(websocket):
                 continue
 
             info_hash = request["info_hash"]
+
+            if mode == 'paused-close' and request.get("event") == "paused":
+                await websocket.close()
+                return
+
+            if mode == 'paused-failure' and request.get("event") == "paused":
+                await websocket.send(json.dumps({
+                    "action": "announce",
+                    "failure reason": "paused event not supported",
+                    "info_hash": info_hash}))
+                continue
+
+            if mode == 'paused-required' and request.get("event") != "paused":
+                await websocket.send(json.dumps({
+                    "action": "announce",
+                    "failure reason": "expected paused event",
+                    "info_hash": info_hash}))
+                continue
 
             if mode == 'failure':
                 await websocket.send(json.dumps({

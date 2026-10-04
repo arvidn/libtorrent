@@ -493,6 +493,24 @@ namespace libtorrent::aux {
 		m_abort = true;
 	}
 
+#if TORRENT_USE_RTC
+	tracker_manager::paused_event_support
+		tracker_manager::get_websocket_paused_support(std::string const& url) const
+	{
+		auto const i = m_websocket_paused_support.find(url);
+		if (i == m_websocket_paused_support.end())
+			return paused_event_support::unknown;
+
+		return i->second;
+	}
+
+	void tracker_manager::set_websocket_paused_support(
+		std::string const& url, paused_event_support support)
+	{
+		m_websocket_paused_support[url] = support;
+	}
+#endif
+
 	void tracker_manager::abort_all_requests(bool all)
 	{
 		// this is called from the destructor too, which is not subject to the

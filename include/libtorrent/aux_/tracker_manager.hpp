@@ -353,6 +353,20 @@ using tracker_request_flags_t = flags::bitfield_flag<std::uint8_t, struct tracke
 		void abort_all_requests(bool all = false);
 		void stop();
 
+#if TORRENT_USE_RTC
+		enum class paused_event_support
+		{
+			unknown,
+			supported,
+			unsupported
+		};
+
+		paused_event_support get_websocket_paused_support(
+			std::string const& url) const;
+		void set_websocket_paused_support(
+			std::string const& url, paused_event_support support);
+#endif
+
 		void remove_request(aux::http_tracker_connection const* c);
 		void remove_request(aux::udp_tracker_connection const* c);
 #if TORRENT_USE_RTC
@@ -399,6 +413,8 @@ using tracker_request_flags_t = flags::bitfield_flag<std::uint8_t, struct tracke
 #if TORRENT_USE_RTC
 		// websocket connections by URL
 		std::unordered_map<std::string, std::shared_ptr<aux::websocket_tracker_connection>> m_websocket_conns;
+		// learned paused-event support by WebSocket tracker
+		std::unordered_map<std::string, paused_event_support> m_websocket_paused_support;
 #endif
 
 		send_fun_t m_send_fun;

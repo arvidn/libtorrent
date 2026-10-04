@@ -1067,6 +1067,48 @@ torrent_handle add_websocket_tracker_torrent(lt::session& s, char const* save_pa
 	return s.add_torrent(addp);
 }
 
+torrent_handle add_partial_seed_websocket_tracker_torrent(
+    lt::session& s, char const* save_path, std::string const& tracker_url)
+{
+    error_code ec;
+    remove_all(save_path, ec);
+    create_directory(save_path, ec);
+
+    int const piece_size = 16 * 1024;
+
+    create_directory(combine_path(save_path, "partial"), ec);
+
+    // Make the first piece complete on disk. The second piece is deliberately
+    // not downloaded and is marked dont_download, making this a partial seed.
+    auto const piece = generate_piece(0_piece, piece_size);
+    std::ofstream file(combine_path(save_path, "partial/file1").c_str());
+    file.write(piece.data(), std::streamsize(piece.size()));
+    file.close();
+
+    std::vector<create_file_entry> files;
+    files.emplace_back("partial/file1", piece_size);
+    files.emplace_back("partial/file2", piece_size);
+
+    add_torrent_params addp = make_torrent(
+        std::move(files), piece_size, lt::create_torrent::v1_only);
+
+    addp.trackers.push_back(tracker_url);
+    addp.file_priorities = { 1_pri, dont_download };
+    addp.flags &= ~torrent_flags::paused;
+    addp.flags &= ~torrent_flags::auto_managed;
+    addp.save_path = save_path;
+
+    torrent_handle h = s.add_torrent(addp);
+
+    for (int i = 0; i < 50 && !h.status().is_finished; ++i)
+        std::this_thread::sleep_for(100ms);
+
+    TEST_CHECK(h.status().is_finished);
+    TEST_CHECK(!h.status().is_seeding);
+
+    return h;
+}
+
 std::string websocket_tracker_url(int const port)
 {
 	return "ws://127.0.0.1:" + std::to_string(port) + "/announce";
@@ -1090,6 +1132,118 @@ TORRENT_TEST(websocket_tracker_failure_reason)
 		TEST_EQUAL(counts.last_failure_reason, "test failure");
 	}
 	stop_websocket_server();
+}
+
+TORRENT_TEST(websocket_tracker_paused_supported)
+{
+    int const port = start_websocket_server(false, 30, "paused-required");
+    {
+        settings_pack pack = websocket_tracker_settings();
+        pack.set_int(settings_pack::tracker_completion_timeout, 2);
+        lt::session s(pack);
+
+        torrent_handle h = add_partial_seed_websocket_tracker_torrent(
+            s, "tmp13_tracker", websocket_tracker_url(port));
+
+        // The initial announce is paused and should succeed.
+        auto const* a = wait_for_alert(s, tracker_reply_alert::alert_type, "s");
+        TEST_CHECK(a);
+
+        // Paused support was learned. A subsequent announce should still
+        // include event=paused and succeed.
+        h.force_reannounce(0, -1, torrent_handle::ignore_min_interval);
+
+        a = wait_for_alert(s, tracker_reply_alert::alert_type, "s");
+        TEST_CHECK(a);
+
+        // Verify that the tracker remains known to support paused.
+        h.force_reannounce(0, -1, torrent_handle::ignore_min_interval);
+
+        a = wait_for_alert(s, tracker_reply_alert::alert_type, "s");
+        TEST_CHECK(a);
+    }
+    stop_websocket_server();
+}
+
+TORRENT_TEST(websocket_tracker_paused_failure)
+{
+    int const port = start_websocket_server(false, 30, "paused-failure");
+    {
+        settings_pack pack = websocket_tracker_settings();
+        pack.set_int(settings_pack::tracker_completion_timeout, 2);
+        lt::session s(pack);
+
+        torrent_handle h = add_partial_seed_websocket_tracker_torrent(
+            s, "tmp14_tracker", websocket_tracker_url(port));
+
+        // The initial announce is paused and the tracker rejects it.
+        auto const* a = wait_for_alert(s, tracker_error_alert::alert_type, "s");
+        TEST_CHECK(a);
+
+        auto const* te = alert_cast<tracker_error_alert>(a);
+        TEST_CHECK(te);
+
+        if (te)
+        {
+            TEST_EQUAL(te->error, error_code(errors::tracker_failure));
+        }
+
+        // The tracker is now known not to support paused. The next announce
+        // must omit the paused event and succeed.
+        h.force_reannounce(0, -1, torrent_handle::ignore_min_interval);
+
+        a = wait_for_alert(s, tracker_reply_alert::alert_type, "s");
+        TEST_CHECK(a);
+
+        // Verify that paused remains disabled for subsequent announces.
+        h.force_reannounce(0, -1, torrent_handle::ignore_min_interval);
+
+        a = wait_for_alert(s, tracker_reply_alert::alert_type, "s");
+        TEST_CHECK(a);
+    }
+    stop_websocket_server();
+}
+
+TORRENT_TEST(websocket_tracker_paused_connection_close)
+{
+    int const port = start_websocket_server(false, 30, "paused-close");
+    {
+        settings_pack pack = websocket_tracker_settings();
+        pack.set_int(settings_pack::tracker_completion_timeout, 2);
+        lt::session s(pack);
+
+        torrent_handle h = add_partial_seed_websocket_tracker_torrent(
+            s, "tmp15_tracker", websocket_tracker_url(port));
+
+        // The initial paused announce causes the tracker to close the
+        // WebSocket connection.
+        auto const* a = wait_for_alert(s, tracker_error_alert::alert_type, "s");
+        TEST_CHECK(a);
+
+        auto const* te = alert_cast<tracker_error_alert>(a);
+        TEST_CHECK(te);
+
+        if (te)
+        {
+            TEST_EQUAL(te->error,
+                error_code(boost::asio::error::operation_aborted));
+        }
+
+        // The connection-close path also learns that paused is unsupported.
+        // A new connection should therefore send the next announce without
+        // event=paused and succeed.
+        h.force_reannounce(0, -1, torrent_handle::ignore_min_interval);
+
+        a = wait_for_alert(s, tracker_reply_alert::alert_type, "s");
+        TEST_CHECK(a);
+
+        // Verify that the learned unsupported state persists.
+        h.force_reannounce(0, -1, torrent_handle::ignore_min_interval);
+
+        a = wait_for_alert(s, tracker_reply_alert::alert_type, "s");
+        TEST_CHECK(a);
+    }
+    stop_websocket_server();
 }
 
 // a failure reason without an info_hash (sent by trackers for requests they
