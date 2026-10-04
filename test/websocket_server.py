@@ -31,6 +31,8 @@ async def handle(websocket):
     # silent: never respond
     # silent-first-connection: never respond on the first connection, respond
     #   normally on any later connection
+    # malformed-first-connection: send an unparseable tracker response on the
+    #   first connection, respond normally on later connections
     # failure: respond to every announce with a failure reason
     # bare-failure: send a failure reason without an info_hash (like trackers
     #   do for requests they can't parse), then respond normally
@@ -55,6 +57,10 @@ async def handle(websocket):
             if mode == 'silent':
                 continue
             if mode == 'silent-first-connection' and connection_index == 1:
+                continue
+            if mode == 'malformed-first-connection' and connection_index == 1:
+                await websocket.send(json.dumps({
+                    "action": "announce"}))
                 continue
 
             info_hash = request["info_hash"]
