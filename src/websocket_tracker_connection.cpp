@@ -319,6 +319,11 @@ void websocket_tracker_connection::send_pending()
 			if (cb.lock())
 				m_requester = cb;
 
+			if constexpr (std::is_same_v<std::decay_t<decltype(m)>, tracker_request>)
+				m_sending_request = m.info_hash;
+			else
+				m_sending_request.reset();
+
 			do_send(m);
 
 			if constexpr (std::is_same_v<std::decay_t<decltype(m)>, tracker_request>)
@@ -351,10 +356,15 @@ void websocket_tracker_connection::on_announce_timeout(error_code const& ec)
 			continue;
 		}
 
-		// nothing at all was received since this request was sent, not
-		// even responses to other torrents' requests
-		if (m_last_receive <= it->second.sent)
+		// The connection is dead if this request's WebSocket write is still
+		// outstanding, or if nothing at all was received since the request was sent.
+		// In the former case, incoming traffic from other torrents must not make a
+		// stalled write look healthy.
+		if ((m_sending_request && *m_sending_request == it->first)
+			|| m_last_receive <= it->second.sent)
+		{
 			connection_dead = true;
+		}
 
 		timed_out.emplace_back(it->second.cb, it->second.req);
 		m_offer_quota.erase(it->first);
@@ -711,6 +721,7 @@ void websocket_tracker_connection::on_write(error_code const& ec, std::size_t /*
 {
 	COMPLETE_ASYNC("websocket_tracker_connection::on_write");
 	m_write_data.clear();
+	m_sending_request.reset();
 	m_sending = false;
 	if (ec)
 	{

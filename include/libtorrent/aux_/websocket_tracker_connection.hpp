@@ -144,7 +144,11 @@ private:
 	// request apart from a connection that's dead
 	time_point m_last_receive = min_time();
 
+	// m_sending is true while the single outstanding WebSocket write is in
+	// progress. m_sending_request identifies it when that write is a tracker
+	// announce; an RTC answer leaves it empty.
 	bool m_sending = false;
+	std::optional<sha1_hash> m_sending_request;
 };
 
 struct websocket_tracker_response {
