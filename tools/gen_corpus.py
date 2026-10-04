@@ -3409,6 +3409,244 @@ def generate_sdp_offer(outdir: str) -> None:
     print(f"Generated {c.count} sdp_offer corpus files in {outdir}")
 
 
+def generate_dht_node_responses(outdir: str) -> None:
+    """Seed corpus for fuzzers/src/dht_node_responses.cpp.
+
+    Wire format: [1 byte opcode = data[0] % 5][payload]
+      0 - raw incoming packet (payload = a raw bencoded DHT message),
+          exercising the request-parsing / incoming-request side
+      1 - start a get_peers(TARGET) lookup
+      2 - start an announce(TARGET, ...) lookup
+      3 - add_node() on a fresh fake address, triggering a real outbound
+          ping (captured by the fuzzer's send_fun, by tid)
+      4 - deliver a reply to the least-recently-replaced pending query:
+          [1 byte selector][payload]
+            selector bit 0: 1 = bare ping reply (payload = up to 20 bytes,
+                                 the replying peer's claimed id)
+                             0 = "nodes"-bearing response (payload =
+                                 20-byte id + 4-byte ipv4 + 2-byte port of
+                                 one candidate)
+            selector value, mod however many queries are pending, also
+            picks which one this replies to
+
+    TARGET is fixed at 20 bytes of 0x42 (see g_target in the .cpp), not
+    derived from fuzz input, so a seed can make a candidate's claimed id
+    collide with it directly instead of needing a 160-bit preimage.
+    heard_about() (from an incoming query, or a response's "nodes" field)
+    only ever reaches the replacement cache; only a reply to one of our
+    own outgoing queries promotes a peer into the live bucket, which is
+    why bootstrapping the table takes opcode 3 then opcode 4, in that
+    order, rather than opcode 0 alone.
+    """
+    c = Corpus(outdir)
+
+    target_id = bytes([0x42]) * 20
+
+    c.add("start_get_peers", bytes([1]))
+    c.add("start_announce", bytes([2]))
+    c.add("add_node", bytes([3]))
+
+    # promotes a fake peer straight into the live bucket at distance 0 from
+    # TARGET, so the very next get_peers/announce traversal queries it
+    # directly, which is what reaches obfuscated_get_peers::invoke()'s
+    # generate_prefix_mask(shared_prefix + 3) with shared_prefix == 160
+    c.add("ping_reply_claims_target_id", bytes([4, 0x01]) + target_id)
+
+    # same, via a "nodes" entry in a traversal response instead of a direct
+    # ping reply
+    c.add(
+        "node_response_claims_target_id",
+        bytes([4, 0x00]) + target_id + bytes([5, 6, 7, 8]) + struct.pack(">H", 6881),
+    )
+
+    # well-formed incoming queries, for the raw request-handling path
+    def query(q: str, a: dict) -> bytes:
+        return bytes([0]) + _bencode({"t": b"aa", "y": "q", "q": q, "a": a})
+
+    fake_id = bytes(range(20))
+    c.add("raw_ping_request", query("ping", {"id": fake_id}))
+    c.add(
+        "raw_find_node_request",
+        query("find_node", {"id": fake_id, "target": target_id}),
+    )
+    c.add(
+        "raw_get_peers_request",
+        query("get_peers", {"id": fake_id, "info_hash": target_id}),
+    )
+    c.add(
+        "raw_announce_peer_request",
+        query(
+            "announce_peer",
+            {"id": fake_id, "info_hash": target_id, "port": 6881, "token": b"tok"},
+        ),
+    )
+
+    c.add("empty", b"")
+    c.add("opcode_4_no_selector", bytes([4]))  # reply opcode with no payload
+
+    print(f"Generated {c.count} dht_node_responses corpus files in {outdir}")
+
+
+# shared across the dht_*_reply corpus generators below: the id of the
+# candidate node these replies claim to be from, and a BEP 5 compact node
+# entry (20-byte id + 4-byte ipv4 + 2-byte port) for "nodes" fields
+DHT_FAKE_ID = bytes([0x11]) * 20
+DHT_COMPACT_NODE = bytes([0x77]) * 20 + bytes([3, 3, 3, 3]) + struct.pack(">H", 6881)
+
+
+def generate_dht_get_peers_reply(outdir: str) -> None:
+    """Seed corpus for fuzzers/src/dht_get_peers_reply.cpp.
+
+    Wire format: [1 byte selector: bit 0 selects obfuscated_get_peers over
+    plain get_peers][bencoded "r" dict, delivered as the reply to the one
+    query the harness's seeded candidate triggers]
+    """
+    c = Corpus(outdir)
+
+    compact_peer = bytes([1, 2, 3, 4]) + struct.pack(">H", 6881)
+
+    for sel, tag in [(0, "plain"), (1, "obfuscated")]:
+        c.add(f"{tag}_minimal", bytes([sel]), _bencode({"id": DHT_FAKE_ID}))
+        c.add(
+            f"{tag}_with_token",
+            bytes([sel]),
+            _bencode({"id": DHT_FAKE_ID, "token": b"tok"}),
+        )
+        c.add(
+            f"{tag}_with_nodes",
+            bytes([sel]),
+            _bencode({"id": DHT_FAKE_ID, "nodes": DHT_COMPACT_NODE}),
+        )
+        c.add(
+            f"{tag}_values_mainline",  # single string: BEP 23 compact-peer blob
+            bytes([sel]),
+            _bencode({"id": DHT_FAKE_ID, "values": [compact_peer * 2]}),
+        )
+        c.add(
+            f"{tag}_values_list",  # multiple strings: libtorrent/uTorrent format
+            bytes([sel]),
+            _bencode({"id": DHT_FAKE_ID, "values": [compact_peer, compact_peer]}),
+        )
+        c.add(f"{tag}_missing_id", bytes([sel]), _bencode({}))
+        c.add(f"{tag}_bad_id_length", bytes([sel]), _bencode({"id": b"short"}))
+
+    print(f"Generated {c.count} dht_get_peers_reply corpus files in {outdir}")
+
+
+def generate_dht_get_item_reply(outdir: str) -> None:
+    """Seed corpus for fuzzers/src/dht_get_item_reply.cpp.
+
+    Wire format: [1 byte selector: bit 0 selects a mutable-item traversal
+    (pk + salt) over immutable (target hash)][bencoded "r" dict, delivered
+    as the reply to the one query the harness's seeded candidate triggers]
+    """
+    c = Corpus(outdir)
+
+    pk = bytes([0x22]) * 32
+    sig = bytes([0x33]) * 64
+
+    for sel, tag in [(0, "immutable"), (1, "mutable")]:
+        c.add(f"{tag}_minimal", bytes([sel]), _bencode({"id": DHT_FAKE_ID}))
+        c.add(
+            f"{tag}_with_value",
+            bytes([sel]),
+            _bencode({"id": DHT_FAKE_ID, "v": b"hello"}),
+        )
+        c.add(
+            f"{tag}_with_signed_value",
+            bytes([sel]),
+            _bencode({"id": DHT_FAKE_ID, "v": b"hello", "k": pk, "seq": 1, "sig": sig}),
+        )
+        c.add(
+            f"{tag}_seq_without_sig",
+            bytes([sel]),
+            _bencode({"id": DHT_FAKE_ID, "v": b"hello", "seq": 1}),
+        )
+        c.add(f"{tag}_missing_id", bytes([sel]), _bencode({"v": b"hello"}))
+
+    print(f"Generated {c.count} dht_get_item_reply corpus files in {outdir}")
+
+
+def generate_dht_sample_infohashes_reply(outdir: str) -> None:
+    """Seed corpus for fuzzers/src/dht_sample_infohashes_reply.cpp.
+
+    Wire format: [bencoded "r" dict, delivered as the reply to the one
+    query the harness's seeded candidate triggers], no selector byte,
+    this fuzzer has only one traversal shape.
+    """
+    c = Corpus(outdir)
+
+    samples = bytes([0x44]) * 20 + bytes([0x55]) * 20
+
+    def add(name: str, r: dict) -> None:
+        c.add(name, _bencode(r))
+
+    add("minimal", {"id": DHT_FAKE_ID, "interval": 300, "num": 2, "samples": samples})
+    add(
+        "with_nodes",
+        {
+            "id": DHT_FAKE_ID,
+            "interval": 300,
+            "num": 2,
+            "samples": samples,
+            "nodes": DHT_COMPACT_NODE,
+        },
+    )
+    add("missing_samples", {"id": DHT_FAKE_ID, "interval": 300, "num": 2})
+    add(
+        "samples_not_multiple_of_20",
+        {"id": DHT_FAKE_ID, "interval": 300, "num": 2, "samples": b"short"},
+    )
+    add(
+        "interval_too_large",
+        {"id": DHT_FAKE_ID, "interval": 99999, "num": 2, "samples": samples},
+    )
+    add(
+        "interval_negative",
+        {"id": DHT_FAKE_ID, "interval": -1, "num": 2, "samples": samples},
+    )
+    add("missing_id", {"interval": 300, "num": 2, "samples": samples})
+
+    print(f"Generated {c.count} dht_sample_infohashes_reply corpus files in {outdir}")
+
+
+def generate_dht_put_item_request(outdir: str) -> None:
+    """Seed corpus for fuzzers/src/dht_put_item_request.cpp.
+
+    Wire format: [1 byte opcode][remaining bytes]
+      opcode bit 0: 1 = mutable item (pk + salt + seq + sig), 0 = immutable
+      opcode bit 1: 1 = use a deliberately wrong write token
+      opcode bit 2: 1 = use a deliberately wrong signature (mutable only;
+                    otherwise the harness signs the value for real with a
+                    fixed keypair, which is what makes the storage/CAS
+                    path reachable at all, see the .cpp's comment)
+
+    For a mutable item, the first half of the remaining bytes (up to 32)
+    is the salt and the first 8 bytes overlap into the sequence number;
+    the rest is the item's value. For immutable, all of it is the value.
+    """
+    c = Corpus(outdir)
+
+    def add(name: str, opcode: int, payload: bytes) -> None:
+        c.add(name, bytes([opcode]) + payload)
+
+    seq_zero = struct.pack("<q", 0)
+    seq_small = struct.pack("<q", 5)
+
+    add("immutable_minimal", 0b000, b"hello world")
+    add("immutable_bad_token", 0b010, b"hello world")
+    add("immutable_empty_value", 0b000, b"")
+
+    salt = b"s" * 16
+    add("mutable_signed_valid", 0b001, salt + seq_zero + b"mutable value")
+    add("mutable_signed_valid_seq5", 0b001, salt + seq_small + b"mutable value")
+    add("mutable_bad_signature", 0b101, salt + seq_zero + b"mutable value")
+    add("mutable_bad_token", 0b011, salt + seq_zero + b"mutable value")
+    add("mutable_no_salt", 0b001, seq_zero + b"mutable value")
+
+    print(f"Generated {c.count} dht_put_item_request corpus files in {outdir}")
+
+
 def main() -> None:
     # Anchor output to the repo's fuzzers/corpus directory regardless of the
     # current working directory. This script lives in tools/, so the repo root
@@ -3435,6 +3673,11 @@ def main() -> None:
     generate_sdp_offer(corpus("sdp_offer"))
     generate_rtc_parse_endpoint(corpus("rtc_parse_endpoint"))
     generate_rtc_tracker_offer(corpus("rtc_tracker_offer"))
+    generate_dht_node_responses(corpus("dht_node_responses"))
+    generate_dht_get_peers_reply(corpus("dht_get_peers_reply"))
+    generate_dht_get_item_reply(corpus("dht_get_item_reply"))
+    generate_dht_sample_infohashes_reply(corpus("dht_sample_infohashes_reply"))
+    generate_dht_put_item_request(corpus("dht_put_item_request"))
 
 
 if __name__ == "__main__":
