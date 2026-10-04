@@ -105,6 +105,7 @@ see LICENSE file.
 #include "libtorrent/aux_/ssl.hpp"
 #include "libtorrent/aux_/apply_pad_files.hpp"
 #include "libtorrent/aux_/tracker_list.hpp"
+#include "libtorrent/aux_/tracker_manager.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/aux_/session_impl.hpp" // for tracker_logger
@@ -3110,6 +3111,15 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 	}
 #endif
 
+	bool torrent::tracker_supported(aux::announce_entry const& ae) const
+	{
+#if TORRENT_USE_I2P
+		if (!i2p_compatible_tracker(ae))
+			return false;
+#endif
+		return aux::is_tracker_protocol_supported(ae.url);
+	}
+
 	namespace {
 		void refresh_endpoint_list(aux::session_interface& ses,
 			bool const is_ssl,
@@ -3300,12 +3310,11 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			req.trackerid = ae.trackerid.empty() ? m_trackerid : ae.trackerid;
 			req.url = ae.url;
 
+			// update_tracker_timer() applies the same skip, so the timer
+			// doesn't keep firing for a tracker that's never contacted.
+			if (!tracker_supported(ae))
+				continue;
 #if TORRENT_USE_I2P
-			// if we don't allow mixing normal peers into this i2p torrent,
-			// skip non-i2p trackers. update_tracker_timer() applies the
-			// same skip so the timer doesn't keep firing for trackers we'll
-			// never contact.
-			if (!i2p_compatible_tracker(ae)) continue;
 			// req is reused across iterations, so set the i2p bit to match
 			// this tracker rather than only ever OR-ing it in.
 			if (ae.i2p)
@@ -3591,8 +3600,9 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		req.trackerid = ae.trackerid.empty() ? m_trackerid : ae.trackerid;
 		req.url = ae.url;
 
+		if (!tracker_supported(ae))
+			return;
 #if TORRENT_USE_I2P
-		if (!i2p_compatible_tracker(ae)) return;
 		if (ae.i2p) req.kind |= tracker_request::i2p;
 #endif
 
@@ -3664,8 +3674,9 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 		req.kind |= tracker_request::scrape_request;
 
+		if (!tracker_supported(ae))
+			return;
 #if TORRENT_USE_I2P
-		if (!i2p_compatible_tracker(ae)) return;
 		if (ae.i2p) req.kind |= tracker_request::i2p;
 #endif
 		refresh_endpoint_list(m_ses, is_ssl_torrent(), bool(m_complete_sent), ae);
@@ -10565,14 +10576,13 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 			++idx;
 #endif
-#if TORRENT_USE_I2P
 			// Skip trackers that announce_with_tracker() will skip too.
 			// Without this, those trackers' default next_announce
 			// (time_point32::min()) drives the timer to fire immediately,
 			// calling announce_with_tracker() which skips again, looping
 			// forever and spinning the CPU.
-			if (!i2p_compatible_tracker(t)) continue;
-#endif
+			if (!tracker_supported(t))
+				continue;
 			for (auto const& aep : t.endpoints)
 			{
 				auto ep_state_iter = std::find_if(listen_socket_states.begin(),
