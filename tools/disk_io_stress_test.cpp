@@ -27,6 +27,7 @@ see LICENSE file.
 #include <random>
 #include <algorithm>
 #include <chrono>
+#include <map>
 #include <vector>
 #include <iostream>
 #include <iomanip>
@@ -43,6 +44,7 @@ constexpr disk_test_mode_t read_random_order = 2_bit;
 constexpr disk_test_mode_t flush_files = 3_bit;
 constexpr disk_test_mode_t clear_pieces = 4_bit;
 constexpr disk_test_mode_t unaligned_read = 5_bit;
+constexpr disk_test_mode_t hot_read = 6_bit;
 }
 
 std::mt19937 random_engine(std::random_device{}());
@@ -56,7 +58,8 @@ private:
 	bool& m_exceeded;
 };
 
-bool check_block_fill(lt::peer_request const& req, lt::span<char const> buf)
+// bytes past the end of the piece's payload are pad bytes, which are zero
+bool check_block_fill(lt::peer_request const& req, int const payload, lt::span<char const> buf)
 {
 	// generate_block_fill() fills each block with the 4-byte word value derived
 	// from the block index, repeated. So the expected byte at piece offset `off`
@@ -67,7 +70,8 @@ bool check_block_fill(lt::peer_request const& req, lt::span<char const> buf)
 	{
 		int const off = req.start + i;
 		int const v = (static_cast<int>(req.piece) << 8) | ((off / lt::default_block_size) & 0xff);
-		if (buf[i] != reinterpret_cast<char const*>(&v)[off % 4])
+		char const expected = off >= payload ? '\0' : reinterpret_cast<char const*>(&v)[off % 4];
+		if (buf[i] != expected)
 		{
 			std::cout << "buffer diverged at offset: " << i << '\n';
 			return false;
@@ -87,6 +91,13 @@ void generate_block_fill(lt::peer_request const& req, lt::span<char> buf)
 		std::memcpy(buf.data() + offset, reinterpret_cast<char const*>(&v), tail);
 }
 
+enum class torrent_type
+{
+	v1,
+	v2,
+	hybrid,
+};
+
 struct test_case
 {
 	int num_files;
@@ -96,6 +107,7 @@ struct test_case
 	int file_pool_size;
 	disk_test_mode_t flags;
 	std::string disk_backend;
+	torrent_type version = torrent_type::v1;
 };
 
 int run_test(test_case const& t)
@@ -106,7 +118,10 @@ int run_test(test_case const& t)
 		? 0x1000
 		: 1337;
 
-	int const piece_size = 0x8000;
+	int const piece_length = 0x8000;
+
+	bool const has_v1 = t.version != torrent_type::v2;
+	bool const has_v2 = t.version != torrent_type::v1;
 
 	{
 		fs.set_name("test");
@@ -115,12 +130,39 @@ int run_test(test_case const& t)
 			lt::error_code ec;
 			fs.add_file(
 				ec, std::to_string(i), false, lt::aux::path_element::torrent_root, file_size);
+
+			// the files of v2 torrents start at piece boundaries. The last file isn't
+			// padded
+			std::int64_t const tail = file_size % piece_length;
+			if (has_v2 && tail != 0 && i + 1 < t.num_files)
+			{
+				// pad files never store a name
+				fs.add_file(ec,
+					{},
+					false,
+					lt::aux::path_element::pad_directory,
+					piece_length - tail,
+					lt::file_storage::flag_pad_file);
+			}
 			file_size *= 2;
 		}
 		std::int64_t const total_size = fs.total_size();
-		int const num_pieces = static_cast<int>((total_size + piece_size - 1) / piece_size);
+		int const num_pieces = static_cast<int>((total_size + piece_length - 1) / piece_length);
 		fs.set_num_pieces(num_pieces);
-		fs.set_piece_length(piece_size);
+		fs.set_piece_length(piece_length);
+	}
+
+	// the two sizes only differ for hybrid torrents, where a file's last
+	// piece has a pad tail. The bittorrent engine never writes blocks that
+	// are entirely pad, but the block straddling the end of the file data is
+	// written in full, pad bytes included, so that's what the back-end is
+	// tested against
+	lt::aux::vector<int, lt::piece_index_t> written_size;
+	lt::aux::vector<int, lt::piece_index_t> data_size;
+	for (lt::piece_index_t const p : fs.piece_range())
+	{
+		written_size.push_back(has_v1 ? fs.piece_size(p) : fs.piece_size2(p));
+		data_size.push_back(has_v2 ? fs.piece_size2(p) : fs.piece_size(p));
 	}
 	lt::io_context ioc;
 	lt::counters cnt;
@@ -154,14 +196,18 @@ int run_test(test_case const& t)
 	}
 
 	std::cerr << "RUNNING: -f " << t.num_files << " -q " << t.queue_size << " -t " << t.num_threads
-			  << " -r " << t.read_multiplier << " -p " << t.file_pool_size
+			  << " -r " << t.read_multiplier << " -p " << t.file_pool_size << " -V "
+			  << (t.version == torrent_type::v1			 ? "v1"
+						 : t.version == torrent_type::v2 ? "v2"
+														 : "hybrid")
 			  << ((t.flags & test_mode::sparse) ? "" : " alloc")
 			  << ((t.flags & test_mode::even_file_sizes) ? " even-size" : "")
 			  << ((t.flags & test_mode::read_random_order) ? " random-read" : "")
 			  << ((t.flags & test_mode::flush_files) ? " flush" : "")
 			  << ((t.flags & test_mode::clear_pieces) ? " clear" : "")
-			  << ((t.flags & test_mode::unaligned_read) ? " unaligned-read" : "") << " -d "
-			  << t.disk_backend << "\n";
+			  << ((t.flags & test_mode::unaligned_read) ? " unaligned-read" : "")
+			  << ((t.flags & test_mode::hot_read) ? " hot-read" : "") << " -d " << t.disk_backend
+			  << "\n";
 
 	try
 	{
@@ -172,12 +218,15 @@ int run_test(test_case const& t)
 		lt::aux::vector<lt::download_priority_t, lt::file_index_t> prios;
 		std::string save_path = "./scratch-area";
 		lt::renamed_files rf;
-		lt::storage_params params(fs, rf
-			, save_path
-			, {}
-			, (t.flags & test_mode::sparse) ? lt::storage_mode_sparse : lt::storage_mode_allocate
-			, prios
-			, lt::sha1_hash("01234567890123456789"), true, true);
+		lt::storage_params params(fs,
+			rf,
+			save_path,
+			{},
+			(t.flags & test_mode::sparse) ? lt::storage_mode_sparse : lt::storage_mode_allocate,
+			prios,
+			lt::sha1_hash("01234567890123456789"),
+			has_v1,
+			has_v2);
 
 		auto abort_disk = lt::aux::scope_end([&] { disk_io->abort(true); });
 
@@ -186,13 +235,10 @@ int run_test(test_case const& t)
 		std::vector<lt::peer_request> blocks_to_write;
 		for (lt::piece_index_t p : fs.piece_range())
 		{
-			int const local_piece_size = fs.piece_size(p);
-			for (int offset = 0, left = local_piece_size;
-				offset < local_piece_size;
-				offset += lt::default_block_size, left -= lt::default_block_size)
+			for (int offset = 0; offset < data_size[p]; offset += lt::default_block_size)
 			{
 				blocks_to_write.push_back(
-					{lt::piece_index_t{p}, offset, std::min(lt::default_block_size, left)});
+					{p, offset, std::min(lt::default_block_size, written_size[p] - offset)});
 			}
 		}
 		std::shuffle(blocks_to_write.begin(), blocks_to_write.end(), random_engine);
@@ -221,6 +267,29 @@ int run_test(test_case const& t)
 		bool write_exceeded = false;
 		auto observer = std::make_shared<write_throttle>(write_exceeded);
 
+		// the bittorrent engine never reads a block before its piece has passed
+		// async_hash(), so back-ends aren't required to serve earlier reads
+		std::map<lt::piece_index_t, std::vector<lt::peer_request>> deferred_reads;
+
+		auto const queue_read = [&](lt::peer_request const& req) {
+			if (t.flags & test_mode::read_random_order)
+			{
+				std::uniform_int_distribution<> d(0, blocks_to_read.end_index());
+				blocks_to_read.insert(blocks_to_read.begin() + d(random_engine), req);
+			}
+			else
+			{
+				blocks_to_read.push_back(req);
+			}
+			// if read_multiplier > 1, put this block more times in the
+			// read queue
+			for (int i = 1; i < t.read_multiplier; ++i)
+			{
+				std::uniform_int_distribution<> d(0, blocks_to_read.end_index());
+				blocks_to_read.insert(blocks_to_read.begin() + d(random_engine), req);
+			}
+		};
+
 		lt::add_torrent_params atp;
 
 		int job_idx = 0;
@@ -243,6 +312,47 @@ int run_test(test_case const& t)
 		}
 
 		int job_counter = 0;
+
+		auto const issue_read = [&](lt::peer_request req) {
+			// the piece is complete and hashed by the time it's read back, so
+			// any range of it can be read. Random offsets and lengths exercise
+			// the back-end's unaligned and block-spanning read path
+			if (t.flags & test_mode::unaligned_read)
+			{
+				int const this_piece_size = written_size[req.piece];
+				std::uniform_int_distribution<int> start_dist(0, this_piece_size - 1);
+				req.start = start_dist(random_engine);
+				int const max_len = std::min(lt::default_block_size, this_piece_size - req.start);
+				std::uniform_int_distribution<int> len_dist(1, max_len);
+				req.length = len_dist(random_engine);
+			}
+
+			in_flight.insert(job_idx);
+			++outstanding_read;
+			disk_io->async_read(
+				tor, req, [&, req, job_idx](lt::disk_buffer_holder h, lt::storage_error const& ec) {
+					TORRENT_ASSERT(in_flight.count(job_idx));
+					in_flight.erase(job_idx);
+					TORRENT_ASSERT(outstanding_read > 0);
+					--outstanding_read;
+					++job_counter;
+					if (ec)
+					{
+						std::cerr << "async_read() failed: " << ec.ec.message() << " "
+								  << lt::operation_name(ec.operation) << " "
+								  << static_cast<int>(ec.file()) << "\n";
+						throw std::runtime_error("async_read failed");
+					}
+
+					if (!check_block_fill(req, data_size[req.piece], {h.data(), req.length}))
+					{
+						std::cerr << "read buffer mismatch: (" << req.piece << ", " << req.start
+								  << ")\n";
+						throw std::runtime_error("read buffer mismatch!");
+					}
+				});
+			++job_idx;
+		};
 
 		using clock = std::chrono::steady_clock;
 		auto last_print = clock::now();
@@ -271,55 +381,9 @@ int run_test(test_case const& t)
 			{
 				if (!blocks_to_read.empty() && outstanding_read < t.queue_size)
 				{
-					auto req = blocks_to_read.back();
+					auto const req = blocks_to_read.back();
 					blocks_to_read.erase(blocks_to_read.end() - 1);
-
-					// once the whole piece has been written (it's no longer counted
-					// in blocks_per_piece) its entire content is known, so read a
-					// randomly sized range at a random offset within it. This gives
-					// a mix of aligned and unaligned, single-block and
-					// block-spanning reads of varying sizes, exercising the disk
-					// back-end's spanning/partial read path. (While the piece is
-					// still being written we can only safely read the block we just
-					// wrote, so the request is left as-is.)
-					if ((t.flags & test_mode::unaligned_read)
-						&& blocks_per_piece.count(req.piece) == 0)
-					{
-						int const this_piece_size = fs.piece_size(req.piece);
-						std::uniform_int_distribution<int> start_dist(0, this_piece_size - 1);
-						req.start = start_dist(random_engine);
-						int const max_len =
-							std::min(lt::default_block_size, this_piece_size - req.start);
-						std::uniform_int_distribution<int> len_dist(1, max_len);
-						req.length = len_dist(random_engine);
-					}
-
-					in_flight.insert(job_idx);
-					++outstanding_read;
-					disk_io->async_read(tor, req, [&, req, job_idx](lt::disk_buffer_holder h, lt::storage_error const& ec)
-					{
-						TORRENT_ASSERT(in_flight.count(job_idx));
-						in_flight.erase(job_idx);
-						TORRENT_ASSERT(outstanding_read > 0);
-						--outstanding_read;
-						++job_counter;
-						if (ec)
-						{
-							std::cerr << "async_write() failed: " << ec.ec.message()
-								<< " " << lt::operation_name(ec.operation)
-								<< " " << static_cast<int>(ec.file()) << "\n";
-							throw std::runtime_error("async_read failed");
-						}
-
-						int const block_size =
-							std::min(fs.piece_size(req.piece) - req.start, req.length);
-						if (!check_block_fill(req, {h.data(), block_size}))
-						{
-							std::cerr << "read buffer mismatch: (" << req.piece << ", " << req.start << ")\n";
-							throw std::runtime_error("read buffer mismatch!");
-						}
-					});
-					++job_idx;
+					issue_read(req);
 				}
 			}
 
@@ -329,6 +393,13 @@ int run_test(test_case const& t)
 				blocks_to_write.erase(blocks_to_write.end() - 1);
 
 				generate_block_fill(req, {write_buffer.data(), lt::default_block_size});
+				int const payload = data_size[req.piece];
+				if (req.start + req.length > payload)
+				{
+					std::fill(write_buffer.begin() + (payload - req.start),
+						write_buffer.begin() + req.length,
+						'\0');
+				}
 
 				in_flight.insert(job_idx);
 				++outstanding_write;
@@ -350,25 +421,10 @@ int run_test(test_case const& t)
 					});
 				if (exceeded) write_exceeded = true;
 				++job_idx;
-				if (t.flags & test_mode::read_random_order)
-				{
-					std::uniform_int_distribution<> d(0, blocks_to_read.end_index());
-					blocks_to_read.insert(blocks_to_read.begin() + d(random_engine), req);
-				}
-				else
-				{
-					blocks_to_read.push_back(req);
-				}
-				// if read_multiplier > 1, put this block more times in the
-				// read queue
-				for (int i = 1; i < t.read_multiplier; ++i)
-				{
-					std::uniform_int_distribution<> d(0, blocks_to_read.end_index());
-					blocks_to_read.insert(blocks_to_read.begin() + d(random_engine), req);
-				}
+				deferred_reads[req.piece].push_back(req);
 
 				// once all blocks of a piece have been submitted, issue async_hash()
-				// to verify and flush it — matching real libtorrent behaviour.
+				// to verify and flush it, matching real libtorrent behaviour
 				auto it = blocks_per_piece.find(req.piece);
 				TORRENT_ASSERT(it != blocks_per_piece.end());
 				it->second -= 1;
@@ -376,10 +432,17 @@ int run_test(test_case const& t)
 				{
 					blocks_per_piece.erase(it);
 					++outstanding_hash;
-					disk_io->async_hash(tor, req.piece, {}
-						, lt::disk_interface::v1_hash | lt::disk_interface::flush_piece
-						, [&](lt::piece_index_t, lt::sha1_hash const&, lt::storage_error const& ec)
-						{
+					// kept alive by the handler, async_hash() fills it in
+					auto const v2_hashes = std::make_shared<std::vector<lt::sha256_hash>>(
+						has_v2 ? std::size_t(fs.blocks_in_piece2(req.piece)) : 0);
+					disk_io->async_hash(tor,
+						req.piece,
+						*v2_hashes,
+						(has_v1 ? lt::disk_interface::v1_hash : lt::disk_job_flags_t{})
+							| lt::disk_interface::flush_piece,
+						[&, v2_hashes](lt::piece_index_t const piece,
+							lt::sha1_hash const&,
+							lt::storage_error const& ec) {
 							TORRENT_ASSERT(outstanding_hash > 0);
 							--outstanding_hash;
 							++job_counter;
@@ -388,6 +451,22 @@ int run_test(test_case const& t)
 								std::cerr << "async_hash() failed: " << ec.ec.message()
 									<< " " << lt::operation_name(ec.operation) << "\n";
 								throw std::runtime_error("async_hash failed");
+							}
+							auto const dr = deferred_reads.find(piece);
+							if (dr != deferred_reads.end())
+							{
+								for (auto const& deferred : dr->second)
+								{
+									// read some blocks right away, while they may still be
+									// in the write cache
+									if ((t.flags & test_mode::hot_read)
+										&& std::uniform_int_distribution<int>(0, 9)(random_engine)
+											== 0)
+										issue_read(deferred);
+									else
+										queue_read(deferred);
+								}
+								deferred_reads.erase(dr);
 							}
 						});
 				}
@@ -491,6 +570,10 @@ void print_usage()
 				 "      read completed pieces back with requests of random offset and\n"
 				 "      size (a mix of aligned, unaligned and block-spanning reads),\n"
 				 "      exercising the disk back-end's spanning/partial read path\n"
+				 "   hot-read\n"
+				 "      read a tenth of the blocks of a piece as soon as it has been hashed,\n"
+				 "      to hit blocks that are still in the write cache. These reads are\n"
+				 "      issued once, regardless of -r, and bypass the -q queue limit\n"
 				 "   -f <val>\n"
 				 "      specifies the number of files to use in the test torrent\n"
 				 "   -q <val>\n"
@@ -501,12 +584,15 @@ void print_usage()
 				 "      specifies the number of disk I/O threads to use\n"
 				 "   -r <val>\n"
 				 "      specifies the read multiplier. Each block that's written, is read this "
-				 "many times\n"
+				 "      many times\n"
 				 "   -p <val>\n"
 				 "      specifies the file pool size. This is the number of files to keep open\n"
 				 "   -d <disk-backend>\n"
 				 "      Specifies which disk back-end to test. options are: default, mmap, pread, "
-				 "posix, disabled\n";
+				 "      posix, disabled\n"
+				 "   -V <version>\n"
+				 "      the kind of torrent to test: v1, v2 or hybrid (default is v1). The files\n"
+				 "      of v2 and hybrid torrents are aligned to piece boundaries\n";
 }
 
 int main(int argc, char const* argv[])
@@ -516,7 +602,8 @@ int main(int argc, char const* argv[])
 		namespace tm = test_mode;
 
 		// a curated subset of the full suite, just to catch trivial hangs and
-		// crashes: baseline, random read order, release-files, small file pool
+		// crashes: baseline, random read order, release-files, small file pool,
+		// unaligned reads, v2 and hybrid torrents, hot reads
 		bool const smoke = (argc == 2);
 
 		std::vector<test_case> tests;
@@ -553,6 +640,25 @@ int main(int argc, char const* argv[])
 					10,
 					tm::sparse | tm::read_random_order | tm::unaligned_read,
 					backend});
+				tests.push_back({7,
+					32,
+					4,
+					3,
+					10,
+					tm::sparse | tm::read_random_order | tm::unaligned_read,
+					backend,
+					torrent_type::v2});
+				// hybrid is the only case where the v1 piece size differs from the
+				// v2 one, the tail being pad bytes
+				tests.push_back({7,
+					32,
+					4,
+					3,
+					10,
+					tm::sparse | tm::read_random_order | tm::unaligned_read,
+					backend,
+					torrent_type::hybrid});
+				tests.push_back({7, 32, 4, 3, 10, tm::sparse | tm::hot_read, backend});
 				continue;
 			}
 
@@ -574,6 +680,47 @@ int main(int argc, char const* argv[])
 				10,
 				tm::sparse | tm::read_random_order | tm::unaligned_read,
 				backend});
+
+			// v2 torrents
+			tests.push_back(
+				{20, 32, 16, 3, 10, tm::sparse | tm::read_random_order, backend, torrent_type::v2});
+			tests.push_back({20,
+				32,
+				16,
+				3,
+				10,
+				tm::sparse | tm::read_random_order | tm::unaligned_read,
+				backend,
+				torrent_type::v2});
+
+			// hybrid torrents, whose pieces have a pad-byte tail
+			tests.push_back({20,
+				32,
+				16,
+				3,
+				10,
+				tm::sparse | tm::read_random_order,
+				backend,
+				torrent_type::hybrid});
+			tests.push_back({20,
+				32,
+				16,
+				3,
+				10,
+				tm::sparse | tm::read_random_order | tm::unaligned_read,
+				backend,
+				torrent_type::hybrid});
+
+			// reads of blocks that may still be in the write cache
+			tests.push_back({20, 32, 16, 3, 10, tm::sparse | tm::hot_read, backend});
+			tests.push_back({20,
+				32,
+				16,
+				3,
+				10,
+				tm::sparse | tm::hot_read | tm::unaligned_read,
+				backend,
+				torrent_type::v2});
 
 			// test with small pool size
 			tests.push_back({10, 32, 16, 3, 1, tm::sparse | tm::read_random_order, backend});
@@ -605,7 +752,7 @@ int main(int argc, char const* argv[])
 
 		if (opt.substr(0, 1) == "-")
 		{
-			if (argc < 1)
+			if (argc < 2)
 			{
 				std::cerr << "missing value associated with \"" << opt << "\"\n";
 				print_usage();
@@ -623,6 +770,22 @@ int main(int argc, char const* argv[])
 				tc.file_pool_size = std::atoi(argv[1]);
 			else if (opt == "-d")
 				tc.disk_backend = argv[1];
+			else if (opt == "-V")
+			{
+				lt::string_view const v(argv[1]);
+				if (v == "v1")
+					tc.version = torrent_type::v1;
+				else if (v == "v2")
+					tc.version = torrent_type::v2;
+				else if (v == "hybrid")
+					tc.version = torrent_type::hybrid;
+				else
+				{
+					std::cerr << "invalid torrent version \"" << v << "\"\n";
+					print_usage();
+					return 1;
+				}
+			}
 			else
 			{
 				std::cerr << "unknown option \"" << opt << "\"\n";
@@ -645,6 +808,8 @@ int main(int argc, char const* argv[])
 			tc.flags |= test_mode::clear_pieces;
 		else if (opt == "unaligned-read")
 			tc.flags |= test_mode::unaligned_read;
+		else if (opt == "hot-read")
+			tc.flags |= test_mode::hot_read;
 		else
 		{
 			std::cerr << "unknown option \"" << opt << "\"\n";
