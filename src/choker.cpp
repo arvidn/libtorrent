@@ -162,17 +162,49 @@ namespace {
 		//   |             V             |
 		//   +---------------------------+
 		//   0%    num have pieces     100%
+		//
+		// We perform the following modifications to handle dishonest peers
+		// (liars):
+		// 1. Instead of relying on the peer's estimate, we estimate the
+		//    proportion of a file that a peer has as
+		//      max(claims_to_have, min(uploaded_by_us, 50%)).
+		//    This prevents a very popular type of liars (always report 0%)
+		//    from aking too much advantage: they will eventually get
+		//    depriortized as our estimate grows.
+		//
+		// 2. The ramp-up for liars remains too slow. Hence we also calculate a
+		//    "honesty" ratio as (sent_blks / (claimed_blks + 1)) to
+		//    quickly increase the penalty for no-report and divide Chow's
+		//    progress-score with it. 
+		//
+		// Part 2 requires some float32 ops which should be okay on most
+		// machines. Fixed-point math would involve range limits which isn't
+		// savory.  Just integer math would be acceptable at least for the
+		// no-report type of liar, but more subtle liars would be harder to
+		// handle.  I like to keep incentives smooth.
+		//
+		// Alternatively, the simplest approach is:
+		//   if (says_has == 0 && given / piece_length > 2) return 0;
+
 		std::shared_ptr<torrent> const t = peer->associated_torrent().lock();
 		TORRENT_ASSERT(t);
 
-		std::int64_t const total_size = t->torrent_file().total_size();
+		torrent_info const f = t->torrent_file();
+		std::int64_t const total_size = f.total_size();
 		if (total_size == 0) return 0;
+
+		std::int64_t const piece_length = std::int64_t(f.piece_length());
+		std::int64_t const given = peer->statistics().total_payload_upload();
+		std::int64_t const says_has = peer->num_have_pieces();
+		float const dishonesty = std::min(1.f
+			, 1.f * float(given) / float(piece_length) / float(says_has + 1));
+
 		// Cap the given_size so that it never causes the score to increase
-		std::int64_t const given_size = std::min(peer->statistics().total_payload_upload()
-			, total_size / 2);
-		std::int64_t const have_size = std::max(given_size
-			, std::int64_t(t->torrent_file().piece_length()) * peer->num_have_pieces());
-		return int(std::abs((have_size - total_size / 2) * 2000 / total_size));
+		std::int64_t has = std::max(says_has * piece_length
+			, std::min(given, total_size / 2));
+
+		return int(std::abs(has - total_size / 2) * 2000 / total_size
+			/ dishonesty);
 	}
 
 	// return true if 'lhs' peer should be preferred to be unchoke over 'rhs'
