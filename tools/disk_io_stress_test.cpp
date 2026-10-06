@@ -21,6 +21,7 @@ see LICENSE file.
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/add_torrent_params.hpp"
 #include "libtorrent/aux_/scope_end.hpp"
+#include "libtorrent/hasher.hpp"
 
 #include <filesystem>
 
@@ -31,6 +32,7 @@ see LICENSE file.
 #include <vector>
 #include <iostream>
 #include <iomanip>
+#include <thread>
 
 using disk_test_mode_t = lt::flags::bitfield_flag<std::uint8_t, struct disk_test_mode_tag>;
 
@@ -58,7 +60,6 @@ private:
 	bool& m_exceeded;
 };
 
-// bytes past the end of the piece's payload are pad bytes, which are zero
 bool check_block_fill(lt::peer_request const& req, int const payload, lt::span<char const> buf)
 {
 	// generate_block_fill() fills each block with the 4-byte word value derived
@@ -80,15 +81,30 @@ bool check_block_fill(lt::peer_request const& req, int const payload, lt::span<c
 	return true;
 }
 
-void generate_block_fill(lt::peer_request const& req, lt::span<char> buf)
+// bytes past the end of the piece's payload are pad bytes, which are zero
+void generate_block_fill(lt::peer_request const& req, int const payload, lt::span<char> buf)
 {
 	int const v = (static_cast<int>(req.piece) << 8) | ((req.start / lt::default_block_size) & 0xff);
+	int const data = std::clamp(payload - req.start, 0, int(buf.size()));
 	int offset = 0;
-	int const tail = buf.size() % 4;
-	for (; offset < buf.size() - tail; offset += 4)
+	int const tail = data % 4;
+	for (; offset < data - tail; offset += 4)
 		std::memcpy(buf.data() + offset, reinterpret_cast<char const*>(&v), 4);
 	if (tail > 0)
 		std::memcpy(buf.data() + offset, reinterpret_cast<char const*>(&v), tail);
+	std::fill(buf.begin() + data, buf.end(), '\0');
+}
+
+// the content of a piece as it ends up on disk, including pad blocks that are
+// never written
+void generate_piece_fill(lt::piece_index_t const p, int const payload, lt::span<char> buf)
+{
+	for (int offset = 0; offset < buf.size(); offset += lt::default_block_size)
+	{
+		generate_block_fill({p, offset, 0},
+			payload,
+			buf.subspan(offset, std::min(lt::default_block_size, int(buf.size()) - offset)));
+	}
 }
 
 enum class torrent_type
@@ -163,6 +179,43 @@ int run_test(test_case const& t)
 	{
 		written_size.push_back(has_v1 ? fs.piece_size(p) : fs.piece_size2(p));
 		data_size.push_back(has_v2 ? fs.piece_size2(p) : fs.piece_size(p));
+	}
+
+	// the expected hashes are computed up front rather than in the hash
+	// handler, hashing in the submit loop would stall job submission and
+	// take pressure off the disk back-end
+	lt::aux::vector<lt::sha1_hash, lt::piece_index_t> expected_v1(std::size_t(fs.num_pieces()));
+	lt::aux::vector<std::vector<lt::sha256_hash>, lt::piece_index_t> expected_v2(
+		std::size_t(fs.num_pieces()));
+	{
+		int const num_workers = std::max(1, int(std::thread::hardware_concurrency()));
+		std::vector<std::thread> workers;
+		for (int w = 0; w < num_workers; ++w)
+		{
+			workers.emplace_back([&, w] {
+				lt::aux::vector<char> buf(piece_length);
+				lt::piece_index_t const begin(fs.num_pieces() * w / num_workers);
+				lt::piece_index_t const end(fs.num_pieces() * (w + 1) / num_workers);
+				for (lt::piece_index_t p = begin; p < end; ++p)
+				{
+					lt::span<char> const piece_buf(buf.data(), written_size[p]);
+					generate_piece_fill(p, data_size[p], piece_buf);
+					if (has_v1)
+						expected_v1[p] = lt::hasher(piece_buf).final();
+					if (!has_v2)
+						continue;
+					for (int offset = 0; offset < data_size[p]; offset += lt::default_block_size)
+					{
+						expected_v2[p].push_back(lt::hasher256(
+							piece_buf.subspan(
+								offset, std::min(lt::default_block_size, data_size[p] - offset)))
+													 .final());
+					}
+				}
+			});
+		}
+		for (auto& w : workers)
+			w.join();
 	}
 	lt::io_context ioc;
 	lt::counters cnt;
@@ -392,14 +445,7 @@ int run_test(test_case const& t)
 				auto const req = blocks_to_write.back();
 				blocks_to_write.erase(blocks_to_write.end() - 1);
 
-				generate_block_fill(req, {write_buffer.data(), lt::default_block_size});
-				int const payload = data_size[req.piece];
-				if (req.start + req.length > payload)
-				{
-					std::fill(write_buffer.begin() + (payload - req.start),
-						write_buffer.begin() + req.length,
-						'\0');
-				}
+				generate_block_fill(req, data_size[req.piece], {write_buffer.data(), req.length});
 
 				in_flight.insert(job_idx);
 				++outstanding_write;
@@ -441,7 +487,7 @@ int run_test(test_case const& t)
 						(has_v1 ? lt::disk_interface::v1_hash : lt::disk_job_flags_t{})
 							| lt::disk_interface::flush_piece,
 						[&, v2_hashes](lt::piece_index_t const piece,
-							lt::sha1_hash const&,
+							lt::sha1_hash const& v1_hash,
 							lt::storage_error const& ec) {
 							TORRENT_ASSERT(outstanding_hash > 0);
 							--outstanding_hash;
@@ -451,6 +497,19 @@ int run_test(test_case const& t)
 								std::cerr << "async_hash() failed: " << ec.ec.message()
 									<< " " << lt::operation_name(ec.operation) << "\n";
 								throw std::runtime_error("async_hash failed");
+							}
+							if (has_v1 && v1_hash != expected_v1[piece])
+							{
+								std::cerr << "async_hash() returned wrong v1 hash for piece "
+										  << piece << "\n";
+								throw std::runtime_error("v1 hash mismatch");
+							}
+							if (has_v2 && *v2_hashes != expected_v2[piece])
+							{
+								std::cerr
+									<< "async_hash() returned wrong v2 block hashes for piece "
+									<< piece << "\n";
+								throw std::runtime_error("v2 hash mismatch");
 							}
 							auto const dr = deferred_reads.find(piece);
 							if (dr != deferred_reads.end())
