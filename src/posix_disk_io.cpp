@@ -121,7 +121,7 @@ namespace {
 				return;
 			}
 
-			time_point const start_time = clock_type::now();
+			auto const start_time = aux::steady_clock::now();
 
 			span<char> const buf = {buffer.data(), r.length};
 
@@ -129,7 +129,7 @@ namespace {
 
 			if (!error.ec)
 			{
-				std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+				std::int64_t const read_time = total_microseconds(aux::steady_clock::now() - start_time);
 
 				m_stats_counters.inc_stats_counter(counters::num_blocks_read);
 				m_stats_counters.inc_stats_counter(counters::num_read_ops);
@@ -148,14 +148,14 @@ namespace {
 		{
 			span<char> const b = { const_cast<char*>(buf), r.length };
 
-			time_point const start_time = clock_type::now();
+			auto const start_time = aux::steady_clock::now();
 
 			storage_error error;
 			m_torrents[storage]->write(m_settings, b, r.piece, r.start, error);
 
 			if (!error.ec)
 			{
-				std::int64_t const write_time = total_microseconds(clock_type::now() - start_time);
+				std::int64_t const write_time = total_microseconds(aux::steady_clock::now() - start_time);
 
 				m_stats_counters.inc_stats_counter(counters::num_blocks_written);
 				m_stats_counters.inc_stats_counter(counters::num_write_ops);
@@ -171,7 +171,7 @@ namespace {
 			, span<sha256_hash> block_hashes, disk_job_flags_t flags
 			, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler) override
 		{
-			time_point const start_time = clock_type::now();
+			auto const start_time = aux::steady_clock::now();
 
 			bool const v1 = bool(flags & disk_interface::v1_hash);
 			bool const v2 = !block_hashes.empty();
@@ -224,7 +224,7 @@ namespace {
 
 			if (!error.ec)
 			{
-				std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+				std::int64_t const read_time = total_microseconds(aux::steady_clock::now() - start_time);
 
 				m_stats_counters.inc_stats_counter(counters::num_read_back, blocks_to_read);
 				m_stats_counters.inc_stats_counter(counters::num_blocks_read, blocks_to_read);
@@ -239,7 +239,7 @@ namespace {
 		void async_hash2(storage_index_t storage, piece_index_t const piece, int offset, disk_job_flags_t
 			, std::function<void(piece_index_t, sha256_hash const&, storage_error const&)> handler) override
 		{
-			time_point const start_time = clock_type::now();
+			auto const start_time = aux::steady_clock::now();
 
 			disk_buffer_holder buffer =
 				disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("hash buffer"));
@@ -268,7 +268,7 @@ namespace {
 
 			if (!error.ec)
 			{
-				std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+				std::int64_t const read_time = total_microseconds(aux::steady_clock::now() - start_time);
 
 				m_stats_counters.inc_stats_counter(counters::num_read_back);
 				m_stats_counters.inc_stats_counter(counters::num_blocks_read);
