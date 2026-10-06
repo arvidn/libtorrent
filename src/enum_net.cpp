@@ -829,23 +829,23 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 
 		if (GetAdaptersAddresses != nullptr)
 		{
-			ULONG buf_size = 10000;
-			std::vector<char> buffer(buf_size);
-			PIP_ADAPTER_ADDRESSES adapter_addresses
-				= reinterpret_cast<IP_ADAPTER_ADDRESSES*>(&buffer[0]);
+			std::vector<IP_ADAPTER_ADDRESSES> buffer(32);
+			ULONG buf_size = ULONG(buffer.size() * sizeof(IP_ADAPTER_ADDRESSES));
+			IP_ADAPTER_ADDRESSES* adapter_addresses = buffer.data();
 
 			DWORD res = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER
 				| GAA_FLAG_SKIP_ANYCAST, nullptr, adapter_addresses, &buf_size);
 			if (res == ERROR_BUFFER_OVERFLOW)
 			{
-				buffer.resize(buf_size);
-				adapter_addresses = reinterpret_cast<IP_ADAPTER_ADDRESSES*>(&buffer[0]);
+				buffer.resize((buf_size + sizeof(IP_ADAPTER_ADDRESSES) - 1) / sizeof(IP_ADAPTER_ADDRESSES));
+				buf_size = ULONG(buffer.size() * sizeof(IP_ADAPTER_ADDRESSES));
+				adapter_addresses = buffer.data();
 				res = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER
 					| GAA_FLAG_SKIP_ANYCAST, nullptr, adapter_addresses, &buf_size);
 			}
 			if (res != NO_ERROR)
 			{
-				ec = error_code(WSAGetLastError(), system_category());
+				ec = error_code(res, system_category());
 				return std::vector<ip_interface>();
 			}
 

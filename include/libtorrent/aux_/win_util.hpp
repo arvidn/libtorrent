@@ -102,6 +102,10 @@ namespace libtorrent { namespace aux {
 		static constexpr char const* library_name = "advapi32.dll";
 	};
 
+	struct rpcrt4 {
+		static constexpr char const* library_name = "rpcrt4.dll";
+	};
+
 } // namespace aux
 } // namespace libtorrent
 

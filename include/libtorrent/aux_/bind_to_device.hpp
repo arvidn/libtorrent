@@ -42,6 +42,22 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <netinet/in.h>
 #endif
 
+#ifdef TORRENT_WINDOWS
+#include "libtorrent/aux_/windows.hpp"
+#include "libtorrent/aux_/win_util.hpp"
+#include "libtorrent/string_view.hpp"
+#include <ws2tcpip.h>
+// NET_LUID and NET_IFINDEX live in ifdef.h. Avoid <iphlpapi.h> for these,
+// since it drags in iprtrmib.h -> mprapi.h -> wincrypt.h, which #defines
+// X509_NAME to a CryptoAPI encoding-type constant and clobbers OpenSSL's
+// X509_NAME type in any translation unit that also includes <openssl/x509.h>.
+#include <ifdef.h>
+#include <rpc.h>
+#include <rpcdce.h>
+#include <array>
+#include <cstring>
+#endif
+
 namespace libtorrent { namespace aux {
 
 #if defined SO_BINDTODEVICE
@@ -124,6 +140,117 @@ namespace libtorrent { namespace aux {
 	}
 
 #define TORRENT_HAS_BINDTODEVICE 1
+
+#elif defined TORRENT_WINDOWS
+
+// ConvertInterfaceGuidToLuid(), ConvertInterfaceLuidToIndex() and NET_LUID /
+// NET_IFINDEX are Vista-and-later additions, not declared by the SDK headers
+// when targeting earlier versions of windows
+#if _WIN32_WINNT >= 0x0600
+
+	// binding the source address alone does not constrain outbound
+	// routing on multihomed Windows hosts; IP_UNICAST_IF / IPV6_UNICAST_IF
+	// select the actual outgoing interface
+	struct bind_to_device
+	{
+		// IP_UNICAST_IF takes the interface index in network byte order,
+		// IPV6_UNICAST_IF takes it in host byte order, not a typo:
+		// https://learn.microsoft.com/en-us/windows/win32/winsock/ipproto-ip-socket-options
+		// https://learn.microsoft.com/en-us/windows/win32/winsock/ipproto-ipv6-socket-options
+		// m_if_index_v4 is pre-swapped here rather than at every data() call
+		bind_to_device(unsigned long if_index_v4, unsigned long if_index_v6)
+			: m_if_index_v4(htonl(if_index_v4)), m_if_index_v6(if_index_v6) {}
+		template<class Protocol>
+		int level(Protocol const& p) const
+		{ return is_v6(p) ? IPPROTO_IPV6 : IPPROTO_IP; }
+		template<class Protocol>
+		int name(Protocol const& p) const
+		{ return is_v6(p) ? IPV6_UNICAST_IF : IP_UNICAST_IF; }
+		template<class Protocol>
+		char const* data(Protocol const& p) const
+		{
+			return is_v6(p)
+				? reinterpret_cast<char const*>(&m_if_index_v6)
+				: reinterpret_cast<char const*>(&m_if_index_v4);
+		}
+		template<class Protocol>
+		size_t size(Protocol const&) const { return sizeof(m_if_index_v4); }
+	private:
+		template <class Protocol>
+		static bool is_v6(Protocol const& p) { return p.family() == AF_INET6; }
+		unsigned long m_if_index_v4;
+		unsigned long m_if_index_v6;
+	};
+
+	template <typename T>
+	void bind_device(T& sock, char const* device, error_code& ec)
+	{
+		using UuidFromStringA_t = RPC_STATUS (RPC_ENTRY *)(RPC_CSTR, UUID*);
+		auto UuidFromString = get_library_procedure<rpcrt4, UuidFromStringA_t>("UuidFromStringA");
+		using ConvertInterfaceGuidToLuid_t = DWORD (WINAPI *)(GUID const*, NET_LUID*);
+		auto ConvertInterfaceGuidToLuid = get_library_procedure<iphlpapi, ConvertInterfaceGuidToLuid_t>(
+			"ConvertInterfaceGuidToLuid");
+		using ConvertInterfaceLuidToIndex_t = DWORD (WINAPI *)(NET_LUID const*, NET_IFINDEX*);
+		auto ConvertInterfaceLuidToIndex = get_library_procedure<iphlpapi, ConvertInterfaceLuidToIndex_t>(
+			"ConvertInterfaceLuidToIndex");
+
+		if (UuidFromString == nullptr || ConvertInterfaceGuidToLuid == nullptr
+			|| ConvertInterfaceLuidToIndex == nullptr)
+		{
+			ec = error_code(boost::system::errc::not_supported, generic_category());
+			return;
+		}
+
+		// device names on windows are the adapter's interface GUID, formatted
+		// as "{xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}"
+		string_view name = device;
+		if (name.size() == 38 && name.front() == '{' && name.back() == '}')
+			name = name.substr(1, 36);
+
+		if (name.size() != 36)
+		{
+			ec = error_code(boost::system::errc::no_such_device, generic_category());
+			return;
+		}
+
+		std::array<char, 37> guid_str;
+		std::memcpy(guid_str.data(), name.data(), name.size());
+		guid_str[36] = '\0';
+
+		UUID guid;
+		// RPC_S_OK is always 0; compared as a literal since RPC_S_OK itself
+		// (declared in winerror.h) isn't reliably visible with
+		// WIN32_LEAN_AND_MEAN defined on all SDKs
+		if (UuidFromString(reinterpret_cast<RPC_CSTR>(guid_str.data()), &guid) != 0)
+		{
+			ec = error_code(boost::system::errc::no_such_device, generic_category());
+			return;
+		}
+
+		NET_LUID luid;
+		if (ConvertInterfaceGuidToLuid(&guid, &luid) != NO_ERROR)
+		{
+			ec = error_code(boost::system::errc::no_such_device, generic_category());
+			return;
+		}
+
+		NET_IFINDEX if_index;
+		if (ConvertInterfaceLuidToIndex(&luid, &if_index) != NO_ERROR)
+		{
+			ec = error_code(boost::system::errc::no_such_device, generic_category());
+			return;
+		}
+
+		sock.set_option(bind_to_device(if_index, if_index), ec);
+	}
+
+#define TORRENT_HAS_BINDTODEVICE 1
+
+#else // _WIN32_WINNT >= 0x0600
+
+#define TORRENT_HAS_BINDTODEVICE 0
+
+#endif // _WIN32_WINNT >= 0x0600
 
 #else
 
