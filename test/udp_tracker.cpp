@@ -39,7 +39,8 @@ struct udp_tracker
 	int m_port = 0;
 	bool m_abort = false;
 
-	std::shared_ptr<std::thread> m_thread;
+	// declared after m_ios so it is joined before the io_context is destroyed
+	std::jthread m_thread;
 
 	void on_udp_receive(error_code const& ec, size_t const bytes_transferred
 		, udp::endpoint* from, char* buffer, std::size_t const size)
@@ -173,7 +174,7 @@ struct udp_tracker
 		std::printf("%s: UDP tracker [%p] initialized on port %d\n"
 			, time_now_string().c_str(), static_cast<void*>(this), m_port);
 
-		m_thread = std::make_shared<std::thread>(&udp_tracker::thread_fun, this);
+		m_thread = std::jthread(&udp_tracker::thread_fun, this);
 	}
 
 	void stop()
@@ -190,7 +191,6 @@ struct udp_tracker
 		std::printf("%s: UDP tracker [%p], ~udp_tracker\n"
 			, time_now_string().c_str(), static_cast<void*>(this));
 		post(m_ios, std::bind(&udp_tracker::stop, this));
-		if (m_thread) m_thread->join();
 	}
 
 	int port() const { return m_port; }

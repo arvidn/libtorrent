@@ -189,7 +189,7 @@ int run_test(test_case const& t)
 		std::size_t(fs.num_pieces()));
 	{
 		int const num_workers = std::max(1, int(std::thread::hardware_concurrency()));
-		std::vector<std::thread> workers;
+		std::vector<std::jthread> workers;
 		for (int w = 0; w < num_workers; ++w)
 		{
 			workers.emplace_back([&, w] {
@@ -214,8 +214,6 @@ int run_test(test_case const& t)
 				}
 			});
 		}
-		for (auto& w : workers)
-			w.join();
 	}
 	lt::io_context ioc;
 	lt::counters cnt;

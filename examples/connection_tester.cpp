@@ -1500,7 +1500,7 @@ std::vector<char> generate_torrent(int num_pieces,
 
 	if (do_v1)
 	{
-		std::vector<std::thread> threads;
+		std::vector<std::jthread> threads;
 		threads.reserve(std::size_t(num_threads));
 		lt::aux::vector<lt::sha1_hash, piece_index_t> hashes{static_cast<std::size_t>(num_pieces)};
 		lt::file_slice current_file;
@@ -1547,7 +1547,7 @@ std::vector<char> generate_torrent(int num_pieces,
 		auto const piece_map = compute_piece_to_file_map(t);
 		lt::aux::vector<sha256_hash, piece_index_t> v2_hashes{static_cast<std::size_t>(num_pieces)};
 
-		std::vector<std::thread> threads;
+		std::vector<std::jthread> threads;
 		threads.reserve(std::size_t(num_threads));
 		for (int i = 0; i < num_threads; ++i)
 		{
@@ -2246,8 +2246,8 @@ int main(int argc, char* argv[])
 		ios[i % num_threads].poll_one();
 	}
 
-	std::thread t1(&io_thread, &ios[0]);
-	std::thread t2(&io_thread, &ios[1]);
+	std::jthread t1(&io_thread, &ios[0]);
+	std::jthread t2(&io_thread, &ios[1]);
 
 	t1.join();
 	t2.join();

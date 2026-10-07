@@ -57,7 +57,7 @@ TORRENT_TEST(threads)
 {
 	std::condition_variable cond;
 	std::mutex m;
-	std::vector<std::thread> threads;
+	std::vector<std::jthread> threads;
 	int waiting = 0;
 	for (int i = 0; i < 20; ++i)
 	{
@@ -76,7 +76,6 @@ TORRENT_TEST(threads)
 	cond.notify_all();
 	l.unlock();
 
-	for (auto& t : threads) t.join();
 	threads.clear();
 
 	waiting = 0;
@@ -99,7 +98,7 @@ TORRENT_TEST(threads)
 	cond.notify_all();
 	l.unlock();
 
-	for (auto& t : threads) t.join();
+	threads.clear();
 
 	TEST_CHECK(c == 0);
 }

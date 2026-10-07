@@ -39,7 +39,8 @@ struct dht_server
 	udp::socket m_socket;
 	int m_port;
 
-	std::shared_ptr<std::thread> m_thread;
+	// declared after m_ios so it is joined before the io_context is destroyed
+	std::jthread m_thread;
 
 	dht_server()
 		: m_dht_requests(0)
@@ -69,14 +70,13 @@ struct dht_server
 
 		std::printf("%s: DHT initialized on port %d\n", time_now_string().c_str(), m_port);
 
-		m_thread = std::make_shared<std::thread>(&dht_server::thread_fun, this);
+		m_thread = std::jthread(&dht_server::thread_fun, this);
 	}
 
 	~dht_server()
 	{
 		m_socket.cancel();
 		m_socket.close();
-		if (m_thread) m_thread->join();
 	}
 
 	int port() const { return m_port; }

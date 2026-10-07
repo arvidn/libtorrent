@@ -298,7 +298,7 @@ void test_hash_job_dispatched_by_hasher(test_mode_t const mode)
 	// pread_disk_io::thread_fun, so a v2-only piece has a hashing window
 	// too. Call try_hash_piece after a short sleep so the hasher is
 	// reliably mid-run.
-	std::thread t([&]() {
+	std::jthread t([&]() {
 		f.cache.kick_pending_hashers(completed, retry);
 		f.cache.drain_v2_hash_queue(
 			[&block_hashes](std::shared_ptr<lt::aux::pread_storage> const&,
@@ -367,7 +367,7 @@ void test_hash_job_retry_when_piece_incomplete(test_mode_t const mode)
 	// Slow hashing gives us a wide window. Run the hasher and the v2 drain
 	// on the same thread, park the hash job while hashing_flag is set, then
 	// let the hasher finish.
-	std::thread t([&]() {
+	std::jthread t([&]() {
 		f.cache.kick_pending_hashers(completed, retry);
 		f.cache.drain_v2_hash_queue(
 			[&block_hashes](std::shared_ptr<lt::aux::pread_storage> const&,
@@ -446,7 +446,7 @@ void test_drop_held_alive_buffers(test_mode_t const mode)
 
 	jobqueue_t completed, retry;
 
-	std::thread hasher_thread([&]() { f.cache.kick_pending_hashers(completed, retry); });
+	std::jthread hasher_thread([&]() { f.cache.kick_pending_hashers(completed, retry); });
 	// Wait until kick_hasher has released the mutex inside its slow hash
 	// update. The 50ms is comfortably inside the ~1.6s slow-hash window.
 	std::this_thread::sleep_for(std::chrono::milliseconds(50));
@@ -494,7 +494,7 @@ void test_clear_piece_during_hashing(test_mode_t const mode)
 	clear_job->action = job::clear_piece{{}, 0_piece};
 
 	jobqueue_t completed, retry;
-	std::thread hasher_thread([&]() { f.cache.kick_pending_hashers(completed, retry); });
+	std::jthread hasher_thread([&]() { f.cache.kick_pending_hashers(completed, retry); });
 
 	// Give the hasher time to set hashing_flag and release the mutex inside
 	// its slow-hash update. The window is ~1.6s per block; 50ms is well inside.
@@ -566,9 +566,7 @@ void test_flush_storage_during_hashing(test_mode_t const mode)
 
 	// With slow hashing each block takes ~1.6 s. Run the hasher in a
 	// background thread so flush_storage() races with it.
-	std::thread hasher_thread([&]() {
-		f.cache.kick_pending_hashers(completed, retry);
-	});
+	std::jthread hasher_thread([&]() { f.cache.kick_pending_hashers(completed, retry); });
 
 	// Give the hasher time to set hashing_flag and release the mutex.
 	std::this_thread::sleep_for(std::chrono::milliseconds(50));
@@ -607,7 +605,7 @@ void test_kick_hasher_keep_going_fills_hole(test_mode_t const mode)
 	f.insert(0_piece, 2);
 
 	jobqueue_t completed, retry;
-	std::thread hasher_thread([&]() { f.cache.kick_pending_hashers(completed, retry); });
+	std::jthread hasher_thread([&]() { f.cache.kick_pending_hashers(completed, retry); });
 
 	// Wait until kick_hasher has released the mutex inside its slow-hash
 	// update on block 0. 50ms is comfortably inside the ~1.6s slow window.
