@@ -20,6 +20,7 @@ see LICENSE file.
 #include <deque>
 #include <fstream>
 #include <regex>
+#include <thread>
 #include <algorithm> // for min()/max()
 
 #include "libtorrent/config.hpp"
@@ -1659,8 +1660,7 @@ int main(int argc, char* argv[])
 		else add_torrent(ses, std::string(i));
 	}
 
-	std::thread resume_data_loader([&ses]
-	{
+	std::jthread resume_data_loader([&ses] {
 		// load resume files
 		lt::error_code ec;
 		std::string const resume_dir = path_append(save_path, ".resume");
@@ -1676,7 +1676,8 @@ int main(int argc, char* argv[])
 			for (auto const& e : ents)
 			{
 				// only load resume files of the form <info-hash>.resume
-				if (!is_resume_file(e)) continue;
+				if (!is_resume_file(e))
+					continue;
 				std::string const file = path_append(resume_dir, e);
 
 				std::vector<char> resume_data;

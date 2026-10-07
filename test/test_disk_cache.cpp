@@ -835,7 +835,7 @@ TORRENT_TEST(flush_storage_concurrent_same_storage)
 	// Background flush: parks inside the callback while flushing_flag is set on
 	// piece 0 and the cache mutex is released. Flushes nothing -- the waiting
 	// flush_storage() flushes the blocks once it wakes.
-	std::thread bg([&] {
+	std::jthread bg([&] {
 		f.cache.flush_to_disk(
 			[&](bitfield&, span<disk_job* const>) -> int {
 				std::unique_lock<std::mutex> lk(mtx);
@@ -862,8 +862,8 @@ TORRENT_TEST(flush_storage_concurrent_same_storage)
 		++finished;
 		cv.notify_all();
 	};
-	std::thread a(storage_flusher);
-	std::thread b(storage_flusher);
+	std::jthread a(storage_flusher);
+	std::jthread b(storage_flusher);
 
 	// wait until the skipper returns. A timeout guards against a regression
 	// where neither skips and both wait forever on the background flush.

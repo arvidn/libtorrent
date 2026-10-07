@@ -71,10 +71,10 @@ TORRENT_TEST(time)
 	std::mutex m;
 	std::condition_variable cv;
 	std::atomic<int> ready{0};
-	std::thread t1(&check_timer_loop, std::ref(m), std::ref(last), std::ref(cv), std::ref(ready));
-	std::thread t2(&check_timer_loop, std::ref(m), std::ref(last), std::ref(cv), std::ref(ready));
-	std::thread t3(&check_timer_loop, std::ref(m), std::ref(last), std::ref(cv), std::ref(ready));
-	std::thread t4(&check_timer_loop, std::ref(m), std::ref(last), std::ref(cv), std::ref(ready));
+	std::jthread t1(&check_timer_loop, std::ref(m), std::ref(last), std::ref(cv), std::ref(ready));
+	std::jthread t2(&check_timer_loop, std::ref(m), std::ref(last), std::ref(cv), std::ref(ready));
+	std::jthread t3(&check_timer_loop, std::ref(m), std::ref(last), std::ref(cv), std::ref(ready));
+	std::jthread t4(&check_timer_loop, std::ref(m), std::ref(last), std::ref(cv), std::ref(ready));
 
 	while (ready.load() < 4)
 		std::this_thread::yield();
@@ -86,11 +86,6 @@ TORRENT_TEST(time)
 		std::lock_guard<std::mutex> l(m);
 	}
 	cv.notify_all();
-
-	t1.join();
-	t2.join();
-	t3.join();
-	t4.join();
 }
 
 TORRENT_TEST(test_time_conversion)

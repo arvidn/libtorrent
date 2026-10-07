@@ -9,6 +9,8 @@ import feature : feature ;
 import package ;
 import virtual-target ;
 import cast ;
+import regex ;
+import version ;
 
 # we need version numbers in the form X.Y.Z in order to trigger the built-in
 # support for generating symlinks to the installed library
@@ -247,6 +249,27 @@ rule linking ( properties * )
 		}
 	}
 
+	return $(result) ;
+}
+
+rule experimental-library ( properties * )
+{
+	local result ;
+	# Apple clang 16 and 17 (Xcode 16.0 through 26.3) ship a libc++ based on
+	# LLVM 18 and 19, where std::jthread and std::stop_token are only
+	# available behind -fexperimental-library. Apple clang 21 (Xcode 26.4) is
+	# based on LLVM 21, where they are part of the regular library. Both are
+	# header-only, so libc++experimental.a is not needed at link time.
+	# This must apply to every translation unit that includes libtorrent
+	# headers, since it changes what the standard headers declare
+	if <toolset>darwin in $(properties)
+	{
+		local v = [ feature.get-values <toolset-darwin:version> : $(properties) ] ;
+		if $(v) && [ version.version-less [ regex.split $(v) \\. ] : 21 ]
+		{
+			result += <cxxflags>-fexperimental-library ;
+		}
+	}
 	return $(result) ;
 }
 
@@ -1019,6 +1042,7 @@ local usage-requirements =
 	# in old versions of boost, without this define
 	<define>_HAS_AUTO_PTR_ETC=0
 	<conditional>@linking
+	<conditional>@experimental-library
 # msvc optimizations
 	<toolset>msvc,<variant>release:<linkflags>"/OPT:ICF=5"
 	<toolset>msvc,<variant>release:<linkflags>"/OPT:REF"

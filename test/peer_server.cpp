@@ -34,7 +34,8 @@ struct peer_server
 	tcp::acceptor m_acceptor{m_ios};
 	int m_port = 0;
 
-	std::shared_ptr<std::thread> m_thread;
+	// declared after m_ios so it is joined before the io_context is destroyed
+	std::jthread m_thread;
 
 	peer_server()
 	{
@@ -67,7 +68,7 @@ struct peer_server
 
 		std::printf("%s: PEER peer initialized on port %d\n", time_now_string().c_str(), m_port);
 
-		m_thread = std::make_shared<std::thread>(&peer_server::thread_fun, this);
+		m_thread = std::jthread(&peer_server::thread_fun, this);
 	}
 
 	~peer_server()
@@ -75,7 +76,6 @@ struct peer_server
 		error_code ignore;
 		m_acceptor.cancel(ignore);
 		m_acceptor.close(ignore);
-		if (m_thread) m_thread->join();
 	}
 
 	int port() const { return m_port; }

@@ -657,6 +657,17 @@ elseif(MSVC)
 	)
 endif()
 
+# Apple clang 16 and 17 (Xcode 16.0 through 26.3) ship a libc++ based on
+# LLVM 18 and 19, where std::jthread and std::stop_token are only available
+# behind -fexperimental-library. Apple clang 21 (Xcode 26.4) is based on LLVM
+# 21, where they are part of the regular library. Both are header-only, so
+# libc++experimental.a is not needed at link time.
+# PUBLIC because this changes what the standard headers declare, so every
+# translation unit that includes libtorrent headers must agree
+if (CMAKE_CXX_COMPILER_ID STREQUAL AppleClang AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 21)
+	target_compile_options(torrent-rasterbar PUBLIC -fexperimental-library)
+endif()
+
 # Unconditional platform-specific settings
 if (WIN32)
 	target_link_libraries(torrent-rasterbar
