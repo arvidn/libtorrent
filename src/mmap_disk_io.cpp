@@ -117,7 +117,7 @@ struct TORRENT_EXTRA_EXPORT mmap_disk_io final
 		, add_torrent_params const* resume_data
 		, aux::vector<std::string, file_index_t> links
 		, std::function<void(status_t, storage_error const&)> handler) override;
-	void async_rename_file(storage_index_t storage, file_index_t index, std::string name
+	void async_rename_file(storage_index_t storage, file_index_t index, std::string const& name
 		, std::function<void(std::string const&, file_index_t, storage_error const&)> handler) override;
 	void async_stop_torrent(storage_index_t storage
 		, std::function<void()> handler) override;
@@ -797,7 +797,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	}
 
 	void mmap_disk_io::async_rename_file(storage_index_t const storage
-		, file_index_t const index, std::string name
+		, file_index_t const index, std::string const& name
 		, std::function<void(std::string const&, file_index_t, storage_error const&)> handler)
 	{
 		aux::mmap_disk_job* j = m_job_pool.allocate_job<aux::job::rename_file>(

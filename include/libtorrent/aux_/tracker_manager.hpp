@@ -298,7 +298,7 @@ namespace libtorrent::aux {
 
 	protected:
 
-		void fail_impl(error_code const& ec, operation_t op, std::string msg = std::string()
+		void fail_impl(error_code const& ec, operation_t op, std::string const& msg = std::string()
 			, seconds32 interval = seconds32(0), seconds32 min_interval = seconds32(0));
 
 		tracker_request m_req;

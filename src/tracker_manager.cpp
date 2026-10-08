@@ -166,7 +166,7 @@ bool is_tracker_protocol_supported(string_view const url)
 	}
 
 	void tracker_connection::fail_impl(error_code const& ec, operation_t const op
-		, std::string const msg, seconds32 const interval, seconds32 const min_interval)
+		, std::string const& msg, seconds32 const interval, seconds32 const min_interval)
 	{
 		// fail() only posts this call, so m_req is not necessarily still
 		// pending by the time it runs: the connection's own logic may have
