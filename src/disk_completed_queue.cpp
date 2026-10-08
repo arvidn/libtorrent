@@ -121,7 +121,7 @@ void disk_completed_queue::call_job_handlers()
 				|| std::holds_alternative<aux::job::partial_read>(j->action))
 			&& !(j->flags & aux::disk_job::aborted))
 		{
-			std::int64_t const ms = total_milliseconds(clock_type::now() - j->start_time);
+			std::int64_t const ms = total_milliseconds(aux::steady_clock::now() - j->start_time);
 			constexpr std::int64_t max_bucket =
 				counters::disk_read_latency20 - counters::disk_read_latency1;
 			int const bucket =
