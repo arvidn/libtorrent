@@ -1942,7 +1942,7 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 	ADD_OUTSTANDING_ASYNC("pread_disk_io::work");
 	std::thread::id const thread_id = std::this_thread::get_id();
 
-	aux::set_thread_name("libtorrent-disk-thread");
+	aux::set_thread_name("lt-disk-thread");
 
 	DLOG("started disk thread\n");
 
