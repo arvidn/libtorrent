@@ -5529,7 +5529,7 @@ namespace {
 		// 0: success, piece passed hash check
 		// -1: disk failure
 
-		int const disk_rtt = int(total_microseconds(clock_type::now() - issue_time));
+		int const disk_rtt = std::max(0, int(total_microseconds(clock_type::now() - issue_time)));
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(peer_log_alert::info))
