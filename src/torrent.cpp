@@ -2688,13 +2688,12 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		if (error)
 		{
 			if (error.ec == boost::system::errc::no_such_file_or_directory
-				|| error.ec == boost::asio::error::eof
-				|| error.ec == lt::errors::file_too_short
+				|| error.ec == boost::asio::error::eof || error.ec == lt::errors::file_too_short
 				|| error.ec == lt::errors::partfile_missing_piece
 #ifdef TORRENT_WINDOWS
 				|| error.ec == error_code(ERROR_HANDLE_EOF, system_category())
 #endif
-				)
+			)
 			{
 				TORRENT_ASSERT(error.file() >= file_index_t(0));
 
