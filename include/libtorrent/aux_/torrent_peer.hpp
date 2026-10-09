@@ -196,6 +196,12 @@ namespace libtorrent::aux {
 		std::uint32_t web_seed:1 = false;
 		// this peer supports protocol version 2
 		std::uint32_t protocol_v2:1 = false;
+
+		// newer peers added in the same IPv6 /56, saturating. An entry is
+		// evicted by the newest once this saturates, which bounds how much
+		// of the peer list one prefix can take over
+		std::uint32_t duplicate_prefix:4 = 0;
+		static constexpr int max_duplicate_prefix = (1 << 4) - 1;
 #if TORRENT_USE_ASSERTS
 		std::uint32_t in_use:1 {true};
 #endif

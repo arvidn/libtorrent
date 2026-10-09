@@ -17,6 +17,7 @@ see LICENSE file.
 #define TORRENT_POLICY_HPP_INCLUDED
 
 #include <algorithm>
+#include <utility>
 
 #include "libtorrent/fwd.hpp"
 #include "libtorrent/aux_/string_util.hpp" // for allocate_string_copy
@@ -191,6 +192,9 @@ namespace libtorrent::aux {
 			, pex_flags_t flags, tcp::endpoint const& remote);
 		bool insert_peer(torrent_peer* p, iterator iter
 			, pex_flags_t flags, torrent_state* state);
+
+		void mark_duplicate_prefix(iterator new_peer, torrent_state* state);
+		std::pair<int, int> prefix_run(iterator pos, torrent_peer const& p) const;
 
 		void find_connect_candidates(std::vector<torrent_peer*>& peers
 			, int session_time, torrent_state* state);
