@@ -48,6 +48,7 @@ see LICENSE file.
 namespace libtorrent::aux {
 
 using namespace std::placeholders;
+using namespace std::chrono_literals;
 namespace errc = boost::system::errc;
 namespace error = boost::asio::error;
 namespace json = boost::json;
@@ -432,49 +433,7 @@ void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_r
 	if (cit != m_callbacks.end())
 		cb = cit->second.cb.lock();
 
-	if (cb)
-	{
-		if (response.offer)
-		{
-			auto const quota = m_offer_quota.find(response.info_hash);
-			if (quota != m_offer_quota.end() && quota->second > 0)
-			{
-				--quota->second;
-
-				response.offer->answer_callback = [info_hash = response.info_hash,
-													  self = shared_from_this(),
-													  id = response.offer->id,
-													  pid = response.offer->pid](
-													  peer_id const& local_pid,
-													  aux::rtc_answer const& answer) {
-					self->queue_answer(
-						{std::move(info_hash), std::move(local_pid), std::move(answer)});
-					self->start();
-				};
-
-				cb->on_rtc_offer(*response.offer);
-			}
-		}
-
-		if(response.answer)
-		{
-			cb->on_rtc_answer(*response.answer);
-		}
-
-		if(response.resp)
-		{
-			response.resp->interval = std::max(response.resp->interval
-				, seconds32{m_man.settings().get_int(settings_pack::min_websocket_announce_interval)});
-
-			// this request's outcome has just been reported to its
-			// requester; mark it so close() won't also report an error
-			// for it.
-			cit->second.pending = false;
-
-			cb->tracker_response(cit->second.req, {}, {}, *response.resp);
-		}
-	}
-	else
+	if (!cb)
 	{
 #ifndef TORRENT_DISABLE_LOGGING
 		if (auto cb_ = requester())
@@ -482,6 +441,67 @@ void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_r
 #endif
 		m_callbacks.erase(response.info_hash);
 		m_offer_quota.erase(response.info_hash);
+		do_read();
+		return;
+	}
+
+	if (!response.failure_reason.empty())
+	{
+		// a failure reason only represents the outcome of an outstanding
+		// announce. Otherwise it may be a stale response to an announce
+		// we no longer track.
+		if (cit->second.pending)
+		{
+			// mark it so close() won't also report an error for it
+			cit->second.pending = false;
+
+			cb->tracker_request_error(cit->second.req,
+				errors::tracker_failure,
+				operation_t::bittorrent,
+				response.failure_reason,
+				120s);
+		}
+		do_read();
+		return;
+	}
+
+	if (response.offer)
+	{
+		auto const quota = m_offer_quota.find(response.info_hash);
+		if (quota != m_offer_quota.end() && quota->second > 0)
+		{
+			--quota->second;
+
+			response.offer->answer_callback = [info_hash = response.info_hash,
+												  self = shared_from_this(),
+												  id = response.offer->id,
+												  pid = response.offer->pid](
+												  peer_id const& local_pid,
+												  aux::rtc_answer const& answer) {
+				self->queue_answer({std::move(info_hash), std::move(local_pid), std::move(answer)});
+				self->start();
+			};
+
+			cb->on_rtc_offer(*response.offer);
+		}
+	}
+
+	if (response.answer)
+	{
+		cb->on_rtc_answer(*response.answer);
+	}
+
+	if (response.resp && cit->second.pending)
+	{
+		response.resp->interval = std::max(response.resp->interval,
+			seconds32{m_man.settings().get_int(settings_pack::min_websocket_announce_interval)});
+
+		// this request's outcome has just been reported to its
+		// requester; mark it so close() won't also report an error
+		// for it.
+		cit->second.pending = false;
+
+		cb->tracker_response(cit->second.req, {}, {}, *response.resp);
 	}
 
 	do_read();
@@ -591,6 +611,12 @@ parse_websocket_tracker_response(span<char const> message, error_code& ec) try
 		aux::rtc_offer_id oid;
 		std::copy(id.begin(), id.end(), oid.begin());
 		response.answer.emplace(aux::rtc_answer{std::move(oid), peer_id(pid), {sdp.data(), sdp.size()}});
+	}
+
+	if (auto it = payload.find("failure reason"); it != payload.end())
+	{
+		auto const& reason = it->value().as_string();
+		response.failure_reason.assign(reason.data(), reason.size());
 	}
 
 	if (payload.find("interval") != payload.end())
