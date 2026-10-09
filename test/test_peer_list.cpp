@@ -22,6 +22,7 @@ see LICENSE file.
 #include "test.hpp"
 #include "setup_transfer.hpp"
 #include <vector>
+#include <array>
 #include <memory> // for shared_ptr
 #include <cstdarg>
 
@@ -1230,6 +1231,203 @@ TORRENT_TEST(new_peer_size_limit)
 		+ has_peer(p, ep("10.0.0.5", 8080))
 		+ has_peer(p, ep("10.0.0.6", 8080))
 		, 5);
+}
+
+// a flood of addresses spread over one IPv6 /56 must only evict its own
+// older entries, never peers from other prefixes
+TORRENT_TEST(ipv6_prefix_flood)
+{
+	torrent_state st = init_state();
+	st.max_peerlist_size = 5;
+	mock_torrent t(&st);
+	peer_list p(allocator);
+	t.m_p = &p;
+
+	torrent_peer* peer1 = add_peer(p, st, ep("2001:db8:1::1", 8080));
+	TEST_CHECK(peer1);
+	// the /56 adjacent to the flood prefix
+	torrent_peer* peer2 = add_peer(p, st, ep("2001:db8:ffff:100::1", 8080));
+	TEST_CHECK(peer2);
+	torrent_peer* peer3 = add_peer(p, st, ep("10.0.0.1", 8080));
+	TEST_CHECK(peer3);
+	TEST_EQUAL(p.num_peers(), 3);
+
+	torrent_peer* newest = nullptr;
+	torrent_peer* previous = nullptr;
+	for (int i = 1; i <= 20; ++i)
+	{
+		previous = newest;
+		// one address per /64 within the /56
+		newest = p.add_peer(
+			ep(("2001:db8:ffff:" + std::to_string(i) + "::1").c_str(), 8080), {}, {}, &st);
+		TEST_CHECK(newest);
+		TEST_CHECK(p.num_peers() <= 5);
+		st.erased.clear();
+	}
+
+	TEST_EQUAL(p.num_peers(), 5);
+	TEST_CHECK(has_peer(p, ep("2001:db8:1::1", 8080)));
+	TEST_CHECK(has_peer(p, ep("2001:db8:ffff:100::1", 8080)));
+	TEST_CHECK(has_peer(p, ep("10.0.0.1", 8080)));
+	TEST_EQUAL(int(peer1->duplicate_prefix), 0);
+	TEST_EQUAL(int(peer2->duplicate_prefix), 0);
+	TEST_EQUAL(int(peer3->duplicate_prefix), 0);
+
+	// only the two newest flood entries survive, and the older of them is
+	// the preferred eviction candidate
+	TEST_CHECK(has_peer(p, ep("2001:db8:ffff:19::1", 8080)));
+	TEST_CHECK(has_peer(p, ep("2001:db8:ffff:20::1", 8080)));
+	if (has_peer(p, ep("2001:db8:ffff:19::1", 8080)))
+		TEST_EQUAL(int(previous->duplicate_prefix), 1);
+	TEST_EQUAL(int(newest->duplicate_prefix), 0);
+}
+
+// a connected entry counts newer arrivals in its prefix but is never
+// evicted by them
+TORRENT_TEST(ipv6_prefix_connected)
+{
+	torrent_state st = init_state();
+	mock_torrent t(&st);
+	peer_list p(allocator);
+	t.m_p = &p;
+
+	torrent_peer* peer1 = add_peer(p, st, ep("2001:db8::1", 8080));
+	TEST_CHECK(peer1);
+	connect_peer(p, t, st);
+	TEST_CHECK(peer1->connection);
+
+	for (int i = 1; i <= torrent_peer::max_duplicate_prefix + 2; ++i)
+	{
+		TEST_CHECK(
+			p.add_peer(ep(("2001:db8:0:" + std::to_string(i) + "::1").c_str(), 8080), {}, {}, &st));
+		TEST_CHECK(p.has_peer(peer1));
+		TEST_EQUAL(
+			int(peer1->duplicate_prefix), std::min(i, int(torrent_peer::max_duplicate_prefix)));
+		st.erased.clear();
+	}
+	TEST_EQUAL(p.num_peers(), torrent_peer::max_duplicate_prefix + 2);
+}
+
+// peers added through incoming connections count against their prefix too
+TORRENT_TEST(ipv6_prefix_incoming)
+{
+	torrent_state st = init_state();
+	mock_torrent t(&st);
+	peer_list p(allocator);
+	t.m_p = &p;
+
+	torrent_peer* peer1 = add_peer(p, st, ep("2001:db8::1", 8080));
+	TEST_CHECK(peer1);
+	torrent_peer* peer2 = add_peer(p, st, ep("2001:db8:0:1::1", 8080));
+	TEST_CHECK(peer2);
+	TEST_EQUAL(int(peer1->duplicate_prefix), 1);
+	TEST_EQUAL(int(peer2->duplicate_prefix), 0);
+
+	auto con_in = std::make_shared<mock_peer_connection>(&t, false, ep("2001:db8:0:2::1", 3561));
+	con_in->set_local_ep(ep("2001:db8:cafe::1", 3000));
+	TEST_CHECK(p.new_connection(*con_in, 0, &st));
+	TEST_EQUAL(con_in->was_disconnected(), false);
+	TEST_EQUAL(p.num_peers(), 3);
+	TEST_EQUAL(st.erased.size(), 0);
+	TEST_EQUAL(int(peer1->duplicate_prefix), 2);
+	TEST_EQUAL(int(peer2->duplicate_prefix), 1);
+	torrent_peer const* peer3 = con_in->peer_info_struct();
+	TEST_CHECK(peer3);
+	if (peer3)
+		TEST_EQUAL(int(peer3->duplicate_prefix), 0);
+}
+
+// among otherwise equal peers, those without duplicates in their prefix are
+// preferred as connect candidates
+TORRENT_TEST(ipv6_prefix_connect_candidates)
+{
+	torrent_state st = init_state();
+	mock_torrent t(&st);
+	peer_list p(allocator);
+	t.m_p = &p;
+
+	// not local, since local peers are always ranked first
+	TEST_CHECK(add_peer(p, st, ep("1.2.3.4", 8080)));
+	TEST_CHECK(add_peer(p, st, ep("2001:db8:1::1", 8080)));
+	TEST_CHECK(add_peer(p, st, ep("2001:db8:2::1", 8080)));
+
+	// twice as many as the prefix can hold
+	int const flood = 2 * (torrent_peer::max_duplicate_prefix + 1);
+	for (int i = 1; i <= flood; ++i)
+	{
+		TEST_CHECK(p.add_peer(
+			ep(("2001:db8:ffff:" + std::to_string(i) + "::1").c_str(), 8080), {}, {}, &st));
+		st.erased.clear();
+	}
+	// the flood prefix is capped
+	TEST_EQUAL(p.num_peers(), 3 + torrent_peer::max_duplicate_prefix + 1);
+	std::array<unsigned char, 7> const flood_prefix{{0x20, 0x01, 0x0d, 0xb8, 0xff, 0xff, 0x00}};
+
+	auto const in_flood = [&flood_prefix](torrent_peer const* tp) {
+		return tp->is_v6_addr
+			&& std::equal(flood_prefix.begin(),
+				flood_prefix.end(),
+				static_cast<ipv6_peer const*>(tp)->addr.begin());
+	};
+
+	// the three legitimate peers are picked before any entry with
+	// duplicates. The newest flood entry has none and ranks equal to them
+	int legit = 0;
+	for (int i = 0; i < 4; ++i)
+	{
+		torrent_peer* tp = p.connect_one_peer(0, &st);
+		TEST_CHECK(tp);
+		if (!tp)
+			break;
+		if (i < 3)
+			TEST_EQUAL(int(tp->duplicate_prefix), 0);
+		if (!in_flood(tp))
+			++legit;
+		t.connect_to_peer(tp);
+	}
+	TEST_EQUAL(legit, 3);
+}
+
+// one /56 holds at most max_duplicate_prefix + 1 unconnected entries. The
+// oldest is erased by each newer arrival once the cap is reached, so a long
+// flood can't take over the list
+TORRENT_TEST(ipv6_prefix_cap)
+{
+	torrent_state st = init_state();
+	int const cap = torrent_peer::max_duplicate_prefix + 1;
+	// well above what the list ever reaches, so the prefix cap is the only
+	// thing limiting it
+	st.max_peerlist_size = 2 * cap;
+	mock_torrent t(&st);
+	peer_list p(allocator);
+	t.m_p = &p;
+
+	int const flood = 4 * cap;
+	std::array<char, 64> buf;
+	for (int i = 0; i < flood; ++i)
+	{
+		std::snprintf(buf.data(), buf.size(), "2001:db8:ffff:%x::1", unsigned(i));
+		TEST_CHECK(p.add_peer(ep(buf.data(), 8080), {}, {}, &st));
+		TEST_EQUAL(p.num_peers(), std::min(i + 1, cap));
+		TEST_EQUAL(int(st.erased.size()), i < cap ? 0 : 1);
+		st.erased.clear();
+	}
+	TEST_CHECK(!has_peer(p, ep("2001:db8:ffff:0::1", 8080)));
+	for (int i = flood - cap; i < flood; ++i)
+	{
+		std::snprintf(buf.data(), buf.size(), "2001:db8:ffff:%x::1", unsigned(i));
+		TEST_CHECK(has_peer(p, ep(buf.data(), 8080)));
+	}
+
+	// a peer in the adjacent /56 is unaffected
+	torrent_peer* legit = add_peer(p, st, ep("2001:db8:ffff:100::1", 8080));
+	TEST_CHECK(legit);
+	TEST_EQUAL(p.num_peers(), cap + 1);
+	TEST_EQUAL(int(legit->duplicate_prefix), 0);
+	std::snprintf(buf.data(), buf.size(), "2001:db8:ffff:%x::1", unsigned(flood));
+	TEST_CHECK(p.add_peer(ep(buf.data(), 8080), {}, {}, &st));
+	TEST_EQUAL(p.num_peers(), cap + 1);
+	TEST_EQUAL(int(legit->duplicate_prefix), 0);
 }
 
 TORRENT_TEST(peer_info_comparison)

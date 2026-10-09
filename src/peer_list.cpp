@@ -71,6 +71,9 @@ namespace {
 		if (lhs.failcount != rhs.failcount)
 			return lhs.failcount > rhs.failcount;
 
+		if (lhs.duplicate_prefix != rhs.duplicate_prefix)
+			return lhs.duplicate_prefix > rhs.duplicate_prefix;
+
 		bool const lhs_resume_data_source = lhs.peer_source() == peer_info::resume_data;
 		bool const rhs_resume_data_source = rhs.peer_source() == peer_info::resume_data;
 
@@ -99,6 +102,9 @@ namespace {
 		bool const rhs_local = aux::is_local(rhs->address());
 		if (lhs_local != rhs_local) return int(lhs_local) > int(rhs_local);
 
+		if (lhs->duplicate_prefix != rhs->duplicate_prefix)
+			return lhs->duplicate_prefix < rhs->duplicate_prefix;
+
 		if (lhs->last_connected != rhs->last_connected)
 			return lhs->last_connected < rhs->last_connected;
 
@@ -118,6 +124,17 @@ namespace {
 		std::uint32_t const lhs_peer_rank = lhs->rank(external, external_port);
 		std::uint32_t const rhs_peer_rank = rhs->rank(external, external_port);
 		return lhs_peer_rank > rhs_peer_rank;
+	}
+
+	// whether o is in the same /56 as p
+	bool same_prefix(aux::torrent_peer const& p, aux::torrent_peer const& o)
+	{
+		TORRENT_ASSERT(p.is_v6_addr);
+		if (!o.is_v6_addr)
+			return false;
+		auto const& a = static_cast<aux::ipv6_peer const&>(p).addr;
+		auto const& b = static_cast<aux::ipv6_peer const&>(o).addr;
+		return std::equal(a.begin(), a.begin() + 7, b.begin());
 	}
 
 } // anonymous namespace
@@ -334,6 +351,9 @@ namespace libtorrent::aux {
 		TORRENT_ASSERT(pe.in_use);
 		if (&pe == m_locked_peer) return false;
 		if (pe.connection) return false;
+		// otherwise a flood of untried entries would be immune to eviction
+		if (pe.duplicate_prefix)
+			return true;
 		if (is_connect_candidate(pe)) return false;
 
 		return (pe.failcount > 0)
@@ -517,8 +537,7 @@ namespace libtorrent::aux {
 		// TODO: 2 it would be nice if there was a way to iterate over these
 		// torrent_peer objects in the order they are allocated in the pool
 		// instead. It would probably be more efficient
-		for (int iterations = std::min(int(m_peers.size()), 300);
-			iterations > 0; --iterations)
+		for (int iterations = std::min(int(m_peers.size()), 300); iterations > 0; --iterations)
 		{
 			++state->loop_counter;
 
@@ -854,11 +873,12 @@ namespace libtorrent::aux {
 
 				iter = m_peers.insert(iter, p);
 
-				if (m_round_robin >= iter - m_peers.begin()) ++m_round_robin;
+				if (m_round_robin >= iter - m_peers.begin())
+					++m_round_robin;
 
-				i = *iter;
-
+				i = p;
 				i->source = static_cast<std::uint8_t>(peer_info::incoming);
+				mark_duplicate_prefix(iter, state);
 			}
 		}
 
@@ -1020,8 +1040,8 @@ namespace libtorrent::aux {
 			if (int(m_peers.size()) >= max_peerlist_size)
 				return false;
 
-			// since some peers were removed, we need to
-			// update the iterator to make it valid again
+				// since some peers were removed, we need to
+				// update the iterator to make it valid again
 #if TORRENT_USE_I2P
 			if (p->is_i2p_addr)
 			{
@@ -1036,9 +1056,19 @@ namespace libtorrent::aux {
 				, p->address(), peer_address_compare());
 		}
 
+		// once p is in the list, nothing may throw, since the caller frees p
+		// on failure. mark_duplicate_prefix records erased entries in
+		// state->erased, so make room for the whole run up front
+		if (p->is_v6_addr)
+		{
+			auto const [first, last] = prefix_run(iter, *p);
+			state->erased.reserve(state->erased.size() + std::size_t(last - first));
+		}
+
 		iter = m_peers.insert(iter, p);
 
-		if (m_round_robin >= iter - m_peers.begin()) ++m_round_robin;
+		if (m_round_robin >= iter - m_peers.begin())
+			++m_round_robin;
 
 #if !defined TORRENT_DISABLE_ENCRYPTION
 		if (flags & pex_encryption) p->pe_support = true;
@@ -1054,7 +1084,60 @@ namespace libtorrent::aux {
 		if (is_connect_candidate(*p))
 			update_connect_candidates(1);
 
+		// erasing runs the invariant check, so the connect candidate count
+		// must be settled first
+		mark_duplicate_prefix(iter, state);
+
 		return true;
+	}
+
+	// a /56 is shared by unrelated subscribers, so older entries in it are
+	// kept but count the newer arrivals in their prefix. Once that count
+	// saturates the entry is replaced by the newest, which bounds how much of
+	// the list one prefix can hold
+	void peer_list::mark_duplicate_prefix(iterator const new_peer, torrent_state* state)
+	{
+		TORRENT_ASSERT(is_single_thread());
+		TORRENT_ASSERT(new_peer != m_peers.end());
+		torrent_peer const& p = **new_peer;
+		if (!p.is_v6_addr)
+			return;
+
+		auto [i, end] = prefix_run(new_peer, p);
+		while (i < end)
+		{
+			torrent_peer* const o = m_peers[i];
+			if (o == &p)
+			{
+				++i;
+				continue;
+			}
+			if (o->duplicate_prefix < torrent_peer::max_duplicate_prefix)
+			{
+				++o->duplicate_prefix;
+			}
+			else if (o->connection == nullptr && o != m_locked_peer)
+			{
+				erase_peer(m_peers.begin() + i, state);
+				--end;
+				continue;
+			}
+			++i;
+		}
+	}
+
+	// m_peers is sorted by address, so the entries sharing p's /56 form a
+	// contiguous run around pos, returned as [first, last) indices
+	std::pair<int, int> peer_list::prefix_run(iterator const pos, torrent_peer const& p) const
+	{
+		TORRENT_ASSERT(p.is_v6_addr);
+		int first = int(pos - m_peers.begin());
+		while (first > 0 && same_prefix(p, *m_peers[first - 1]))
+			--first;
+		int last = int(pos - m_peers.begin());
+		while (last < int(m_peers.size()) && same_prefix(p, *m_peers[last]))
+			++last;
+		return {first, last};
 	}
 
 	void peer_list::update_peer(torrent_peer* p, peer_source_flags_t const src
