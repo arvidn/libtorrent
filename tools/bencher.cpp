@@ -37,12 +37,17 @@ see LICENSE file.
 
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/aux_/pe_crypto.hpp"
+#include "libtorrent/aux_/peer_list.hpp"
 #include "libtorrent/aux_/piece_picker.hpp"
+#include "libtorrent/aux_/stat.hpp"
 #include "libtorrent/aux_/torrent_peer.hpp"
+#include "libtorrent/aux_/torrent_peer_allocator.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/load_torrent.hpp"
+#include "libtorrent/peer_connection_interface.hpp"
+#include "libtorrent/peer_id.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/span.hpp"
@@ -527,6 +532,155 @@ namespace pp_bench {
 
 } // namespace pp_bench
 
+// peer_list benchmarks. m_peers is a deque sorted by address, so inserting
+// or erasing a known entry shifts every trailing element and cost scales
+// with list size. A minimal peer_connection_interface stand-in drives
+// connection_closed() and set_connection() without pulling in the real
+// peer_connection machinery.
+namespace pl_bench {
+
+using lt::make_address_v4;
+using lt::aux::peer_list;
+using lt::aux::torrent_peer;
+using lt::aux::torrent_peer_allocator;
+using lt::aux::torrent_state;
+
+constexpr int num_peers = 3000; // matches settings_pack::max_peerlist_size's default
+
+struct bench_peer_connection final : lt::peer_connection_interface
+{
+	explicit bench_peer_connection(lt::tcp::endpoint const& remote)
+		: m_remote(remote)
+	{}
+
+#if TORRENT_USE_I2P
+	std::string const& destination() const override { return m_i2p_dest; }
+	std::string const& local_i2p_endpoint() const override { return m_i2p_dest; }
+#endif
+	lt::tcp::endpoint const& remote() const override { return m_remote; }
+	lt::tcp::endpoint local_endpoint() const override { return {}; }
+	void disconnect(lt::error_code const&, lt::operation_t, lt::disconnect_severity_t) override {}
+	lt::peer_id const& pid() const override { return m_id; }
+	lt::peer_id our_pid() const override { return m_id; }
+	void set_holepunch_mode() override {}
+	torrent_peer* peer_info_struct() const override { return m_tp; }
+	void set_peer_info(torrent_peer* pi) override { m_tp = pi; }
+	bool is_outgoing() const override { return true; }
+	void add_stat(std::int64_t, std::int64_t) override {}
+	bool fast_reconnect() const override { return true; }
+	bool is_choked() const override { return false; }
+	bool failed() const override { return false; }
+	lt::aux::stat const& statistics() const override { return m_stat; }
+	void get_peer_info(lt::peer_info&) const override {}
+#ifndef TORRENT_DISABLE_LOGGING
+	bool should_log(lt::peer_log_alert::direction_t) const override { return false; }
+	void peer_log(lt::peer_log_alert::direction_t,
+		lt::peer_log_alert::event_t,
+		char const*,
+		...) const noexcept override
+	{}
+#endif
+
+	lt::tcp::endpoint m_remote;
+	lt::peer_id m_id{};
+	torrent_peer* m_tp = nullptr;
+	lt::aux::stat m_stat;
+#if TORRENT_USE_I2P
+	std::string m_i2p_dest;
+#endif
+};
+
+// +1 so index 0 doesn't map to the unspecified (0.0.0.0) address, which
+// add_peer() rejects
+lt::tcp::endpoint addr(std::uint32_t const i)
+{
+	return lt::tcp::endpoint(make_address_v4(i + 1), 6881);
+}
+
+torrent_state make_state()
+{
+	torrent_state st;
+	st.max_peerlist_size = 1'000'000; // large enough that add_peer() never evicts
+	st.port = 6881;
+	return st;
+}
+
+void run(std::vector<std::pair<char const*, stats>>& results)
+{
+	static torrent_peer_allocator allocator;
+
+	// scenario 1: add_peer() with no eviction pressure. The list is filled
+	// with every odd address, leaving even addresses free; probe is one of
+	// those free, mid-range addresses. Pairing add with erase keeps the
+	// list size, and so the shift cost, steady across samples.
+	{
+		peer_list p(allocator);
+		torrent_state st = make_state();
+		for (int i = 0; i < num_peers; ++i)
+			p.add_peer(addr(std::uint32_t(2 * i)), {}, {}, &st);
+		st.erased.clear();
+
+		lt::tcp::endpoint const probe = addr(std::uint32_t(num_peers + 1)); // even, mid-range
+		results.emplace_back("peer_list: add peer", analyze([&] {
+			torrent_peer* const tp = p.add_peer(probe, {}, {}, &st);
+			do_not_optimize(tp);
+			p.erase_peer(tp, &st);
+			st.erased.clear();
+		}));
+	}
+
+	// scenario 2: connection_closed() is O(1) on its own. set_connection()
+	// reconnects the peer between samples so each call measures
+	// connection_closed() against the same steady state, rather than
+	// draining the list of connected peers.
+	{
+		peer_list p(allocator);
+		torrent_state st = make_state();
+		for (int i = 0; i < num_peers; ++i)
+			p.add_peer(addr(std::uint32_t(i)), {}, {}, &st);
+		st.erased.clear();
+
+		torrent_peer* const tp = p.connect_one_peer(0, &st);
+		st.erased.clear();
+		bench_peer_connection c(tp->ip());
+		c.set_peer_info(tp);
+		p.set_connection(tp, &c);
+
+		results.emplace_back("peer_list: disconnect peer", analyze([&] {
+			p.connection_closed(c, 0, &st);
+			p.set_connection(tp, &c);
+		}));
+	}
+
+	// scenario 3: evicting peers. erase_peers()'s weeding pass only runs
+	// once the list is full, so adding one more peer to a full list
+	// measures that pass plus the insert it makes room for. Every peer,
+	// including the newly inserted one, is failcount-maxed so each
+	// sample finds the list in the same, fully-evictable state.
+	{
+		peer_list p(allocator);
+		torrent_state st = make_state();
+		st.max_peerlist_size = num_peers;
+		for (int i = 0; i < num_peers; ++i)
+		{
+			torrent_peer* const tp = p.add_peer(addr(std::uint32_t(i)), {}, {}, &st);
+			p.set_failcount(tp, 3);
+		}
+		st.erased.clear();
+
+		std::uint32_t next_addr = num_peers;
+		results.emplace_back("peer_list: evict peers", analyze([&] {
+			torrent_peer* const tp = p.add_peer(addr(next_addr++), {}, {}, &st);
+			do_not_optimize(tp);
+			if (tp != nullptr)
+				p.set_failcount(tp, 3);
+			st.erased.clear();
+		}));
+	}
+}
+
+} // namespace pl_bench
+
 // ip_filter benchmark. access() resolves an address against a std::set of
 // non-overlapping ranges (O(log n) in the number of ranges), so its cost
 // depends on how many rules the filter holds rather than on where the
@@ -728,6 +882,7 @@ try
 	}
 
 	pp_bench::run(results);
+	pl_bench::run(results);
 	ipf_bench::run(results);
 	merkle_bench::run(results);
 
