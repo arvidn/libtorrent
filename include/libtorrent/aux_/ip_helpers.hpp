@@ -25,6 +25,11 @@ namespace aux {
 	TORRENT_EXTRA_EXPORT bool is_teredo(address const& addr);
 	TORRENT_EXTRA_EXPORT bool is_ip_address(std::string const& host);
 
+	// whether two IPv6 addresses share a /56, the unit used to bound how many
+	// peer list entries one network can claim
+	TORRENT_EXTRA_EXPORT bool same_v6_prefix(
+		address_v6::bytes_type const& a, address_v6::bytes_type const& b);
+
 	// internal
 	template <typename Endpoint>
 	bool is_v4(Endpoint const& ep)
