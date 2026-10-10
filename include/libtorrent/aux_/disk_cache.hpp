@@ -682,6 +682,9 @@ private:
 		span<cached_block_entry> const blocks,
 		std::function<void(jobqueue_t, disk_job*)> clear_piece_fun);
 
+	// the number of buffers governed by m_back_pressure. Requires m_mutex.
+	int buffer_level() const { return m_blocks + int(m_v2_hash_queue.size()); }
+
 	mutable std::mutex m_mutex;
 	std::condition_variable m_flushing_cv;
 	piece_container m_pieces;
@@ -857,11 +860,10 @@ void disk_cache::drain_v2_hash_queue(Fun store,
 					clear_piece_fun({}, clear_piece);
 				}
 			}
-			m_back_pressure.check_buffer_level(m_blocks + int(m_v2_hash_queue.size()));
+			m_back_pressure.check_buffer_level(buffer_level());
 		}
 	}
 }
 }
 
 #endif
-

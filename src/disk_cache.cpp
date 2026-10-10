@@ -283,13 +283,14 @@ insert_result_flags disk_cache::insert(piece_location const loc
 	TORRENT_ASSERT(!(i->flags & cached_piece_entry::piece_hash_returned_flag));
 
 	cached_block_entry& blk = i->blocks[block_idx];
-	DLOG("disk_cache.insert: piece: %d blk: %d flushed: %d write_job: %p flushed_cursor: %d hashed_cursor: %d\n"
-		, static_cast<int>(i->piece.piece)
-		, block_idx
-		, blk.is_flushed()
-		, blk.get_write_job()
-		, i->flushed_cursor
-		, i->hasher_cursor);
+	DLOG("disk_cache.insert: piece: %d blk: %d flushed: %d write_job: %p "
+		 "flushed_cursor: %d hashed_cursor: %d\n",
+		static_cast<int>(i->piece.piece),
+		block_idx,
+		blk.is_flushed(),
+		blk.get_write_job(),
+		i->flushed_cursor,
+		i->hasher_cursor);
 	TORRENT_ASSERT(!blk.has_buf());
 	TORRENT_ASSERT(blk.get_write_job() == nullptr);
 	TORRENT_ASSERT(block_idx >= i->flushed_cursor);
@@ -308,7 +309,7 @@ insert_result_flags disk_cache::insert(piece_location const loc
 	// captured while wjob.buf is in scope, before any move that may empty
 	// it. flush reads through this without the cache mutex (see write_buf()).
 	TORRENT_ASSERT(wjob.borrowed_buf == nullptr);
-	wjob.borrowed_buf = wjob.buf.data();
+	char const* const buf = wjob.buf.data();
 
 	// move v2 blocks whose data falls inside piece_size2 onto the hash
 	// queue. The queue owns the buffer; the cache reaches the bytes through
@@ -329,6 +330,9 @@ insert_result_flags disk_cache::insert(piece_location const loc
 		}
 	}
 
+	// All potentially throwing allocations have succeeded. Transfer ownership
+	// and accounting together while holding the cache mutex.
+	wjob.borrowed_buf = buf;
 	blk.write_state = write_job;
 	// queue-owned buffers contribute to the level via m_v2_hash_queue.size().
 	if (wjob.buf) ++m_blocks;
@@ -367,7 +371,7 @@ void disk_cache::set_max_size(int const max_size)
 std::optional<int> disk_cache::flush_request() const
 {
 	std::unique_lock<std::mutex> l(m_mutex);
-	return m_back_pressure.should_flush(m_blocks + int(m_v2_hash_queue.size()));
+	return m_back_pressure.should_flush(buffer_level());
 }
 
 // this call can have 3 outcomes:
@@ -564,7 +568,7 @@ keep_going:
 	}
 
 	TORRENT_ASSERT(l.owns_lock());
-	m_back_pressure.check_buffer_level(m_blocks + int(m_v2_hash_queue.size()));
+	m_back_pressure.check_buffer_level(buffer_level());
 
 	auto& view = m_pieces.template get<4>();
 
@@ -728,7 +732,7 @@ Iter disk_cache::flush_piece_impl(View& view,
 	// Snapshot the pending write_job pointer for each block while we still
 	// hold the mutex. flushing_flag prevents other threads from flushing
 	// this piece, but disk_cache::insert() may still populate previously
-	// empty trailing slots (insert only requires block_idx >= hasher_cursor).
+	// empty trailing slots (insertion only requires block_idx >= hasher_cursor).
 	// Reading cached_block_entry::write_state from outside the lock would
 	// race with that. Once a slot holds a disk_job the network thread won't
 	// touch it (nor the job's contents) until the disk thread takes it
@@ -932,7 +936,7 @@ void disk_cache::flush_to_disk(std::function<int(bitfield&, span<disk_job* const
 		// and if we're in fact below the low watermark. If so, we need to
 		// post the notification messages to the peers that are waiting for
 		// more buffers to received data into
-		m_back_pressure.check_buffer_level(m_blocks + int(m_v2_hash_queue.size()));
+		m_back_pressure.check_buffer_level(buffer_level());
 	});
 
 	// first we look for pieces that are ready to be flushed and should be
@@ -996,7 +1000,8 @@ void disk_cache::flush_to_disk(std::function<int(bitfield&, span<disk_job* const
 		// Cheap flushing is the preferred path (no read-back later), so we
 		// want to exhaust it here rather than fall through to the expensive
 		// pass.
-		if (m_blocks + int(m_v2_hash_queue.size()) <= target_blocks) return;
+		if (buffer_level() <= target_blocks)
+			return;
 
 		int const num_eligible_blocks = piece_iter->hasher_cursor - piece_iter->flushed_cursor;
 
@@ -1035,7 +1040,8 @@ void disk_cache::flush_to_disk(std::function<int(bitfield&, span<disk_job* const
 		// safety net pass: exit only on the actual level. See the comment
 		// in the cheap pass above for why we don't subtract the concurrent
 		// flushing count from this check.
-		if (m_blocks + int(m_v2_hash_queue.size()) <= target_blocks) return;
+		if (buffer_level() <= target_blocks)
+			return;
 
 		// skip pieces a hasher or another flush is currently using
 		if (piece_iter->flags
@@ -1073,7 +1079,8 @@ void disk_cache::flush_to_disk(std::function<int(bitfield&, span<disk_job* const
 	{
 		// safety-net pass: exit only on the actual level. See the comment
 		// in pass 3.
-		if (m_blocks + int(m_v2_hash_queue.size()) <= target_blocks) return;
+		if (buffer_level() <= target_blocks)
+			return;
 
 		if (piece_iter->flags & cached_piece_entry::flushing_flag)
 		{
