@@ -206,7 +206,8 @@ private:
 	aux::disk_job_pool<aux::mmap_disk_job> m_job_pool;
 
 	// disk cache
-	aux::disk_buffer_pool m_buffer_pool;
+	// this backend calls expire_buffers(), which allows for a larger cache
+	aux::disk_buffer_pool m_buffer_pool{1024};
 
 	counters& m_stats_counters;
 
@@ -272,6 +273,11 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 				return now + 1min;
 			m_file_pool.close_oldest();
 			return now + interval;
+		});
+
+		m_tick.add([this](aux::steady_clock::time_point const now) {
+			m_buffer_pool.expire_buffers();
+			return now + aux::disk_buffer_pool::expire_interval;
 		});
 	}
 
