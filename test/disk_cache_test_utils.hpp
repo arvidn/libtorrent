@@ -129,9 +129,9 @@ struct cache_fixture
 		, bool const force_flush = false
 		, char const fill = 0x5a)
 	{
-		return cache.insert(loc(piece), block, force_flush, nullptr
-			, make_write_job(piece, block, fill, lt::default_block_size)
-			, piece_params());
+		auto* const j = make_write_job(piece, block, fill, lt::default_block_size);
+		cache.account_pending_write(j, {});
+		return cache.insert(loc(piece), block, force_flush, j, piece_params());
 	}
 
 	lt::aux::insert_result_flags insert(
@@ -142,9 +142,9 @@ struct cache_fixture
 		, bool const force_flush = false
 		, char const fill = 0x5a)
 	{
-		return cache.insert(loc(piece), block, force_flush, nullptr
-			, make_write_job(piece, block, fill, buf_size)
-			, params);
+		auto* const j = make_write_job(piece, block, fill, buf_size);
+		cache.account_pending_write(j, {});
+		return cache.insert(loc(piece), block, force_flush, j, params);
 	}
 
 	// Simulate flushing: marks every block that has a write_job as flushed.

@@ -251,25 +251,21 @@ bool disk_cache::try_clear_piece(piece_location const loc, disk_job* j, jobqueue
 	return true;
 }
 
-// we allow allocating more blocks even after we exceed the max size,
-// but communicate back to the allocator (typically the peer_connection)
-// that we have exceeded the limit via the out-parameter "exceeded". The
-// caller is expected to honor this by not allocating any more buffers
-// until the disk_observer object (passed in as "o") is invoked, indicating
-// that there's more room in the pool now. This caps the amount of over-
-// allocation to one block per peer connection.
-// returns true if this piece needs to have its hasher kicked
-insert_result_flags disk_cache::insert(piece_location const loc
-	, int const block_idx
-	, bool const force_flush
-	, std::shared_ptr<disk_observer> o
-	, disk_job* write_job
-	, piece_entry_params const& params)
+// Transfer one write buffer from pending accounting into the cache. The
+// combined back-pressure level does not change during this operation.
+// Returns true if this piece needs to have its hasher kicked.
+insert_result_flags disk_cache::insert(piece_location const loc,
+	int const block_idx,
+	bool const force_flush,
+	disk_job* write_job,
+	piece_entry_params const& params)
 {
 	TORRENT_ASSERT(write_job != nullptr);
 	std::unique_lock<std::mutex> l(m_mutex);
 
 	INVARIANT_CHECK;
+	TORRENT_ASSERT(m_pending_write_blocks > 0);
+	TORRENT_ASSERT(write_job->pending_cache_insert);
 
 	auto& view = m_pieces.template get<0>();
 	auto i = view.find(loc);
@@ -332,6 +328,10 @@ insert_result_flags disk_cache::insert(piece_location const loc
 
 	// All potentially throwing allocations have succeeded. Transfer ownership
 	// and accounting together while holding the cache mutex.
+	--m_pending_write_blocks;
+#if TORRENT_USE_ASSERTS
+	write_job->pending_cache_insert = false;
+#endif
 	wjob.borrowed_buf = buf;
 	blk.write_state = write_job;
 	// queue-owned buffers contribute to the level via m_v2_hash_queue.size().
@@ -346,9 +346,6 @@ insert_result_flags disk_cache::insert(piece_location const loc
 
 	insert_result_flags ret{};
 
-	if (m_back_pressure.has_back_pressure(m_blocks + int(m_v2_hash_queue.size()), std::move(o)))
-		ret |= exceeded_limit;
-
 	// need_hasher_kick covers v1 hasher progress only; the caller wakes the
 	// hasher for v2 queue work itself (it knows storage->v2()).
 	if (params.v1 && i->hasher_cursor == block_idx
@@ -360,6 +357,33 @@ insert_result_flags disk_cache::insert(piece_location const loc
 	}
 
 	return ret;
+}
+
+bool disk_cache::account_pending_write(disk_job* j, std::shared_ptr<disk_observer> o)
+{
+	TORRENT_UNUSED(j);
+	std::unique_lock<std::mutex> l(m_mutex);
+	TORRENT_ASSERT(j->get_type() == job_action_t::write);
+	TORRENT_ASSERT(!j->pending_cache_insert);
+	bool const exceeded = m_back_pressure.has_back_pressure(buffer_level() + 1, std::move(o));
+	++m_pending_write_blocks;
+#if TORRENT_USE_ASSERTS
+	j->pending_cache_insert = true;
+#endif
+	return exceeded;
+}
+
+void disk_cache::cancel_pending_write(disk_job* j)
+{
+	std::unique_lock<std::mutex> l(m_mutex);
+	TORRENT_ASSERT(j->pending_cache_insert);
+	TORRENT_ASSERT(m_pending_write_blocks > 0);
+	std::get<job::write>(j->action).buf.reset();
+	--m_pending_write_blocks;
+#if TORRENT_USE_ASSERTS
+	j->pending_cache_insert = false;
+#endif
+	m_back_pressure.check_buffer_level(buffer_level());
 }
 
 void disk_cache::set_max_size(int const max_size)
@@ -1201,8 +1225,8 @@ void disk_cache::flush_storage(std::function<int(bitfield&, span<disk_job* const
 // Only called from do_job(stop_torrent), after its
 // TORRENT_ASSERT(num_outstanding_jobs() == 1): every write is therefore
 // already flushed and none can newly arrive, so needs_hasher_kick_flag is
-// dropped rather than waited on, since insert() cannot set it again past
-// this point. Fences also guarantee at most one stop_torrent job in
+// dropped rather than waited on, since insert() cannot set it
+// again past this point. Fences also guarantee at most one stop_torrent job in
 // progress per storage, so at most one caller can ever wait here:
 // notify_hashed_flag is a plain single-owner flag, asserted clear before
 // use, like notify_flushed_flag.
@@ -1273,6 +1297,7 @@ std::tuple<std::int64_t, std::int64_t> disk_cache::stats() const
 void disk_cache::check_invariant() const
 {
 	// mutex must be held by caller
+	TORRENT_ASSERT(m_pending_write_blocks >= 0);
 	int dirty_blocks = 0;
 	int flushed_blocks = 0;
 	int unhashed_blocks = 0;
@@ -1311,9 +1336,9 @@ void disk_cache::check_invariant() const
 		TORRENT_ASSERT(piece_entry.flushed_cursor <= num_blocks);
 		TORRENT_ASSERT(piece_entry.hasher_cursor <= num_blocks);
 
-		// each block can contribute at most one v2 hash queue entry (insert()
-		// pushes once per write, and a block can only be written once per
-		// cycle), so v2_pending is bounded by blocks_in_piece.
+		// each block can contribute at most one v2 hash queue entry
+		// (insert() pushes once per write, and a block can only be
+		// written once per cycle), so v2_pending is bounded by blocks_in_piece.
 		TORRENT_ASSERT(int(piece_entry.v2_pending) <= num_blocks);
 
 		// v2_pending >= (queue entries for this piece). The slack is the
