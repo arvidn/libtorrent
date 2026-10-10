@@ -65,6 +65,30 @@ namespace {
 	// TODO: 2 make this configurable in dht_settings
 	constexpr time_duration announce_interval = minutes(30);
 
+	// the write token only proves the announcer can receive at its address,
+	// and one host can receive on every address of its prefix. This bounds
+	// how many entries per info-hash one /56 can claim
+	constexpr int max_peers_per_prefix = 16;
+
+	using peer_iterator = std::vector<peer_entry>::iterator;
+
+	// peers is sorted by address, so the entries sharing the /56 of prefix
+	// form a contiguous run around pos
+	std::pair<peer_iterator, peer_iterator> prefix_run(std::vector<peer_entry>& peers,
+		peer_iterator const pos,
+		address_v6::bytes_type const& prefix)
+	{
+		auto first = pos;
+		while (first != peers.begin()
+			&& aux::same_v6_prefix(prefix, std::prev(first)->addr.address().to_v6().to_bytes()))
+			--first;
+		auto last = pos;
+		while (last != peers.end()
+			&& aux::same_v6_prefix(prefix, last->addr.address().to_v6().to_bytes()))
+			++last;
+		return {first, last};
+	}
+
 	struct dht_immutable_item
 	{
 		// the actual value
@@ -320,17 +344,37 @@ namespace {
 			if (i != peersv.end() && i->addr == endp)
 			{
 				*i = peer;
+				return;
 			}
-			else if (int(peersv.size()) >= m_settings.get_int(settings_pack::dht_max_peers))
+
+			if (aux::is_v6(endp))
+			{
+				auto const run = prefix_run(peersv, i, endp.address().to_v6().to_bytes());
+				if (run.second - run.first >= max_peers_per_prefix)
+				{
+					// replace rather than drop, so a peer in a contested prefix
+					// can still get in. The list doesn't grow, so dht_max_peers
+					// doesn't apply
+					auto const oldest = std::min_element(
+						run.first, run.second, [](peer_entry const& lhs, peer_entry const& rhs) {
+							return lhs.added < rhs.added;
+						});
+					// the new entry belongs within the run, so sorting it
+					// restores the order without shifting the rest
+					*oldest = peer;
+					std::sort(run.first, run.second);
+					return;
+				}
+			}
+
+			if (int(peersv.size()) >= m_settings.get_int(settings_pack::dht_max_peers))
 			{
 				// we're at capacity, drop the announce
 				return;
 			}
-			else
-			{
-				peersv.insert(i, peer);
-				m_counters.peers += 1;
-			}
+
+			peersv.insert(i, peer);
+			m_counters.peers += 1;
 		}
 
 		bool get_immutable_item(sha1_hash const& target

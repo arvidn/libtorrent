@@ -27,6 +27,10 @@ see LICENSE file.
 #include "libtorrent/kademlia/dht_observer.hpp"
 
 #include <numeric>
+#include <algorithm>
+#include <array>
+#include <cstdio>
+#include <vector>
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -259,6 +263,105 @@ TORRENT_TEST(peer_limit)
 	}
 	dht_storage_counters cnt = s->counters();
 	TEST_EQUAL(cnt.peers, 42);
+}
+
+namespace {
+
+// the per-/56 limit in dht_storage.cpp
+int const peers_per_prefix = 16;
+
+// an address in the /56 selected by prefix, all within 2001:db8::/48
+tcp::endpoint v6_peer(int const prefix, int const host)
+{
+	std::array<char, 64> buf;
+	std::snprintf(
+		buf.data(), buf.size(), "2001:db8:0:%02x00::%x", unsigned(prefix), unsigned(host + 1));
+	return ep(buf.data(), 6881);
+}
+
+std::vector<tcp::endpoint> stored_v6_peers(dht_storage_interface& s, sha1_hash const& ih)
+{
+	entry peers;
+	s.get_peers(ih, false, false, address_v6(), peers);
+	std::vector<tcp::endpoint> ret;
+	if (!peers.find_key("values"))
+		return ret;
+	for (auto const& e : peers["values"].list())
+	{
+		TEST_EQUAL(e.string().size(), 18);
+		ret.push_back(aux::read_v6_endpoint<tcp::endpoint>(e.string().begin()));
+	}
+	return ret;
+}
+
+bool has_peer(std::vector<tcp::endpoint> const& peers, tcp::endpoint const& p)
+{
+	return std::find(peers.begin(), peers.end(), p) != peers.end();
+}
+
+} // anonymous namespace
+
+TORRENT_TEST(peer_prefix_limit)
+{
+	auto sett = test_settings();
+	// IPv6 replies are sized at a quarter of this, make sure we see all
+	sett.set_int(settings_pack::dht_max_peers_reply, 4000);
+	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
+
+	for (int i = 0; i < 2 * peers_per_prefix; ++i)
+	{
+		s->announce_peer(n1, v6_peer(0, i), "", false);
+		TEST_CHECK(s->counters().peers <= peers_per_prefix);
+	}
+	TEST_EQUAL(s->counters().peers, peers_per_prefix);
+
+	// the oldest entries were replaced, the newest survive
+	std::vector<tcp::endpoint> stored = stored_v6_peers(*s, n1);
+	TEST_EQUAL(int(stored.size()), peers_per_prefix);
+	for (int i = 0; i < 2 * peers_per_prefix; ++i)
+		TEST_EQUAL(has_peer(stored, v6_peer(0, i)), i >= peers_per_prefix);
+
+	// the adjacent /56 is counted separately
+	for (int i = 0; i < peers_per_prefix; ++i)
+		s->announce_peer(n1, v6_peer(1, i), "", false);
+	TEST_EQUAL(s->counters().peers, 2 * peers_per_prefix);
+
+	// refreshing a stored endpoint of a full prefix evicts nothing
+	s->announce_peer(n1, v6_peer(0, peers_per_prefix), "", false);
+	TEST_EQUAL(s->counters().peers, 2 * peers_per_prefix);
+	stored = stored_v6_peers(*s, n1);
+	TEST_EQUAL(int(stored.size()), 2 * peers_per_prefix);
+	for (int i = peers_per_prefix; i < 2 * peers_per_prefix; ++i)
+		TEST_CHECK(has_peer(stored, v6_peer(0, i)));
+}
+
+// a full prefix keeps replacing its oldest entry even once the torrent is
+// at dht_max_peers, since the list doesn't grow
+TORRENT_TEST(peer_prefix_limit_full)
+{
+	auto sett = test_settings();
+	sett.set_int(settings_pack::dht_max_peers_reply, 4000);
+	sett.set_int(settings_pack::dht_max_peers, peers_per_prefix + 4);
+	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
+
+	for (int i = 0; i < 2 * peers_per_prefix; ++i)
+		s->announce_peer(n1, v6_peer(0, i), "", false);
+	TEST_EQUAL(s->counters().peers, peers_per_prefix);
+
+	// the flooded prefix left room for other prefixes
+	for (int i = 0; i < 10; ++i)
+		s->announce_peer(n1, v6_peer(1, i), "", false);
+	TEST_EQUAL(s->counters().peers, peers_per_prefix + 4);
+	s->announce_peer(n1, v6_peer(2, 0), "", false);
+	TEST_EQUAL(s->counters().peers, peers_per_prefix + 4);
+
+	s->announce_peer(n1, v6_peer(0, 2 * peers_per_prefix), "", false);
+	TEST_EQUAL(s->counters().peers, peers_per_prefix + 4);
+	std::vector<tcp::endpoint> const stored = stored_v6_peers(*s, n1);
+	TEST_EQUAL(int(stored.size()), peers_per_prefix + 4);
+	TEST_CHECK(has_peer(stored, v6_peer(0, 2 * peers_per_prefix)));
+	TEST_CHECK(!has_peer(stored, v6_peer(0, peers_per_prefix)));
+	TEST_CHECK(!has_peer(stored, v6_peer(2, 0)));
 }
 
 TORRENT_TEST(torrent_limit)

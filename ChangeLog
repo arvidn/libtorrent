@@ -1,5 +1,6 @@
 2.1.3 not released
 
+	* mitigate DHT peer storage flooding from a single IPv6 prefix
 	* fix CPU issue when tracker list includes invalid entries
 	* fix out of bounds write in the alert_message C binding on non-positive size
 	* fix pread disk I/O holding back write completions until the end of a flush
