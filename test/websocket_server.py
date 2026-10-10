@@ -24,6 +24,9 @@ async def handle(websocket):
     # stale-failure: respond normally, then send a failure reason that isn't
     #   the outcome of the announce (like aquatic does when an answer arrives
     #   for an offer it no longer knows about)
+    # bare-failure: inject a failure response without an info_hash, then send
+    #   a normal, correlated response on the same connection. Tests that the
+    #   client ignores the uncorrelated failure without closing the connection.
     mode = sys.argv[3] if len(sys.argv) > 3 else 'normal'
 
     try:
@@ -44,6 +47,10 @@ async def handle(websocket):
                     "failure reason": "test failure",
                     "info_hash": info_hash}))
                 continue
+
+            if mode == 'bare-failure':
+                await websocket.send(json.dumps({
+                    "failure reason": "Invalid request"}))
 
             response = {}
             response["info_hash"] = info_hash

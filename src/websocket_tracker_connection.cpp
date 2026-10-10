@@ -428,8 +428,22 @@ void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_r
 	TORRENT_ASSERT(std::holds_alternative<websocket_tracker_response>(ret));
 	auto response = std::move(std::get<websocket_tracker_response>(ret));
 
+	if (!response.info_hash)
+	{
+#ifndef TORRENT_DISABLE_LOGGING
+		if (auto cb = requester())
+			cb->debug_log("*** WEBSOCKET_TRACKER_READ [ ignoring failure reason without an "
+						  "info_hash: %s ]",
+				response.failure_reason.c_str());
+#endif
+		do_read();
+		return;
+	}
+
+	auto const& info_hash = *response.info_hash;
+
 	std::shared_ptr<request_callback> cb;
-	auto const cit = m_callbacks.find(response.info_hash);
+	auto const cit = m_callbacks.find(info_hash);
 	if (cit != m_callbacks.end())
 		cb = cit->second.cb.lock();
 
@@ -439,8 +453,8 @@ void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_r
 		if (auto cb_ = requester())
 			cb_->debug_log("*** WEBSOCKET_TRACKER_READ [ warning: no callback for info_hash ]");
 #endif
-		m_callbacks.erase(response.info_hash);
-		m_offer_quota.erase(response.info_hash);
+		m_callbacks.erase(info_hash);
+		m_offer_quota.erase(info_hash);
 		do_read();
 		return;
 	}
@@ -467,18 +481,18 @@ void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_r
 
 	if (response.offer)
 	{
-		auto const quota = m_offer_quota.find(response.info_hash);
+		auto const quota = m_offer_quota.find(info_hash);
 		if (quota != m_offer_quota.end() && quota->second > 0)
 		{
 			--quota->second;
 
-			response.offer->answer_callback = [info_hash = response.info_hash,
+			response.offer->answer_callback = [hash = info_hash,
 												  self = shared_from_this(),
 												  id = response.offer->id,
 												  pid = response.offer->pid](
 												  peer_id const& local_pid,
 												  aux::rtc_answer const& answer) {
-				self->queue_answer({std::move(info_hash), std::move(local_pid), std::move(answer)});
+				self->queue_answer({std::move(hash), std::move(local_pid), std::move(answer)});
 				self->start();
 			};
 
@@ -545,6 +559,17 @@ parse_websocket_tracker_response(span<char const> message, error_code& ec) try
 	auto it_info_hash = payload.find("info_hash");
 	if (it_info_hash == payload.end())
 	{
+		// Trackers may send a failure reason when they cannot parse a request.
+		// Without an info_hash, the response cannot be correlated to an announce.
+		if (auto it = payload.find("failure reason");
+			it != payload.end() && it->value().is_string())
+		{
+			websocket_tracker_response response;
+			auto const& reason = it->value().as_string();
+			response.failure_reason.assign(reason.data(), reason.size());
+			return response;
+		}
+
 		ec = error_code(errors::invalid_tracker_response);
 		return "no info hash in message";
 	}
