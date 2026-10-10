@@ -86,9 +86,11 @@ namespace libtorrent::aux {
 	// known cap (other systems)
 	std::int64_t read_ahead_limit(handle_type handle);
 #ifdef TORRENT_LINUX
-	// the uncached lookup behind read_ahead_limit(), with the sysfs root as a
-	// parameter (for tests)
-	TORRENT_EXTRA_EXPORT std::int64_t device_read_ahead_limit(std::string const& sysfs, dev_t dev);
+	// the uncached lookup behind read_ahead_limit(), with the sysfs root and
+	// the mountinfo file as parameters (for tests). `fd` is only used for
+	// btrfs, and may be -1
+	TORRENT_EXTRA_EXPORT std::int64_t device_read_ahead_limit(
+		std::string const& sysfs, std::string const& mountinfo, dev_t dev, handle_type fd);
 #endif
 	void sync_file(handle_type handle, std::int64_t offset, std::int64_t len);
 

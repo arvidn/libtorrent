@@ -55,6 +55,9 @@ see LICENSE file.
 #include <mutex>
 #include <string>
 #include <unordered_map>
+#include <vector>
+#include <sstream>
+#include <fstream>
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/throw.hpp"
@@ -93,7 +96,15 @@ see LICENSE file.
 #include <linux/fs.h>
 #include <sys/ioctl.h>
 #include <sys/sysmacros.h> // for major(), minor()
+#include <sys/vfs.h> // for fstatfs()
 #include <fcntl.h> // for AT_EMPTY_PATH, AT_STATX_DONT_SYNC
+#if __has_include(<linux/btrfs.h>) && __has_include(<linux/magic.h>)
+#include <linux/btrfs.h> // for BTRFS_IOC_FS_INFO
+#include <linux/magic.h> // for BTRFS_SUPER_MAGIC
+#define TORRENT_HAS_BTRFS_FS_INFO 1
+#else
+#define TORRENT_HAS_BTRFS_FS_INFO 0
+#endif
 #ifdef TORRENT_ANDROID
 #include <sys/syscall.h>
 #endif
@@ -350,10 +361,43 @@ namespace {
 		return kib < 0 ? -1 : std::int64_t(kib) * 1024;
 	}
 
+	// the rsize of the NFS mount with device number `id` ("major:minor"), in
+	// bytes; -1 if it's not an NFS mount
+	std::int64_t nfs_rsize(std::string const& mountinfo, std::string const& id)
+	{
+		std::ifstream in(mountinfo);
+		std::string line;
+		while (std::getline(in, line))
+		{
+			// mount-id parent-id major:minor root mount-point options
+			// [optional fields...] - fstype source super-options
+			std::istringstream fields(line);
+			std::vector<std::string> f;
+			for (std::string t; fields >> t;)
+				f.push_back(t);
+			if (f.size() < 10 || f[2] != id)
+				continue;
+			auto const sep = std::find(f.begin() + 6, f.end(), "-");
+			if (f.end() - sep < 4)
+				continue;
+			if (sep[1].compare(0, 3, "nfs") != 0)
+				return -1;
+			std::string const opts = "," + sep[3] + ",";
+			auto const pos = opts.find(",rsize=");
+			if (pos == std::string::npos)
+				return -1;
+			return std::strtoll(opts.c_str() + pos + 7, nullptr, 10);
+		}
+		return -1;
+	}
+
 	// the most one POSIX_FADV_WILLNEED can read on the device, in bytes; -1
 	// if unknown. Linux caps it at max(io_pages, ra_pages) of the file
 	// system's backing device (bdi), so this looks for the bdi
-	std::int64_t device_cap(std::string const& sysfs, dev_t const dev)
+	std::int64_t device_cap(std::string const& sysfs,
+		std::string const& mountinfo,
+		dev_t const dev,
+		handle_type const fd)
 	{
 		std::string const id = std::to_string(major(dev)) + ":" + std::to_string(minor(dev));
 
@@ -375,20 +419,62 @@ namespace {
 				return std::max(ra, read_sysfs_kib(dir + "max_sectors_kb"));
 		}
 
-		// FUSE, NFS: a bdi named after st_dev. Its io_pages is not exported
+		// FUSE, NFS: a bdi named after st_dev. Its io_pages is not exported;
+		// NFS sets it to rsize
 		std::int64_t const ra = read_sysfs_kib(sysfs + "/class/bdi/" + id + "/read_ahead_kb");
 		if (ra >= 0)
-			return ra;
+			return std::max(ra, nfs_rsize(mountinfo, id));
 
+#if TORRENT_HAS_BTRFS_FS_INFO
+		// btrfs: st_dev is per subvolume, and the bdi is named "btrfs-N".
+		// /sys/fs/btrfs/<fsid>/bdi links to it (Linux 5.9 and later)
+		struct statfs sfs
+		{};
+		if (fd >= 0 && ::fstatfs(fd, &sfs) == 0
+			&& static_cast<std::uint32_t>(sfs.f_type) == BTRFS_SUPER_MAGIC)
+		{
+			btrfs_ioctl_fs_info_args args{};
+			if (::ioctl(fd, BTRFS_IOC_FS_INFO, &args) == 0)
+			{
+				char uuid[37];
+				std::uint8_t const* u = args.fsid;
+				std::snprintf(uuid,
+					sizeof(uuid),
+					"%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+					u[0],
+					u[1],
+					u[2],
+					u[3],
+					u[4],
+					u[5],
+					u[6],
+					u[7],
+					u[8],
+					u[9],
+					u[10],
+					u[11],
+					u[12],
+					u[13],
+					u[14],
+					u[15]);
+				return read_sysfs_kib(sysfs + "/fs/btrfs/" + uuid + "/bdi/read_ahead_kb");
+			}
+		}
+#else
+		TORRENT_UNUSED(fd);
+#endif
 		return -1;
 	}
 	}
 
-	std::int64_t device_read_ahead_limit(std::string const& sysfs, dev_t const dev)
+	std::int64_t device_read_ahead_limit(std::string const& sysfs,
+		std::string const& mountinfo,
+		dev_t const dev,
+		handle_type const fd)
 	{
-		// not found (btrfs, overlayfs, tmpfs, SMB, ...): the kernel's default
+		// not found (overlayfs, tmpfs, SMB, ...): the kernel's default
 		// read-ahead window, which no default cap is below
-		std::int64_t const cap = device_cap(sysfs, dev);
+		std::int64_t const cap = device_cap(sysfs, mountinfo, dev, fd);
 		if (cap <= 0)
 			return 128 * 1024;
 		// rounded down to a power of two. Pieces are powers of two, so the
@@ -442,7 +528,8 @@ namespace {
 			if (it != cache.end() && it->second.expires > now)
 				return it->second.limit;
 		}
-		std::int64_t const limit = device_read_ahead_limit("/sys", dev);
+		std::int64_t const limit =
+			device_read_ahead_limit("/sys", "/proc/self/mountinfo", dev, handle);
 		std::lock_guard<std::mutex> l(cache_mutex);
 		cache[dev] = entry{limit, now + refresh};
 		return limit;

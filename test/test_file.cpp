@@ -812,6 +812,7 @@ void link_dev(std::string const& sys, char const* id, std::string const& target)
 TORRENT_TEST(device_read_ahead_limit)
 {
 	std::string const sys = complete("fake_sysfs");
+	std::string const mountinfo = complete("fake_mountinfo");
 	error_code ec;
 	remove_all(sys, ec);
 	make_dirs(sys + "/dev/block");
@@ -834,9 +835,18 @@ TORRENT_TEST(device_read_ahead_limit)
 	// FUSE and NFS: a bdi named after the device number
 	make_bdi(sys, "0:74", "8192");
 	make_bdi(sys, "0:59", "128");
+	make_bdi(sys, "0:60", "128");
+
+	write_file(mountinfo,
+		"24 1 8:1 / / rw,relatime shared:1 - ext4 /dev/sda1 rw\n"
+		"36 24 0:59 /volume1/data /mnt/nas rw,relatime shared:2 - nfs4 10.0.0.1:/volume1/data "
+		"rw,vers=4.2,rsize=1048576,wsize=1048576\n"
+		"37 24 0:60 / /mnt/small rw - nfs 10.0.0.2:/export rw,vers=3,rsize=65536,wsize=65536\n"
+		"38 24 0:74 / /mnt/fuse rw,nosuid shared:3 - fuse.sshfs user@host:/data "
+		"rw,user_id=0,group_id=0\n");
 
 	auto const limit = [&](unsigned int major_, unsigned int minor_) {
-		return aux::device_read_ahead_limit(sys, makedev(major_, minor_));
+		return aux::device_read_ahead_limit(sys, mountinfo, makedev(major_, minor_), -1);
 	};
 
 	TEST_EQUAL(limit(8, 0), 1024 * 1024);
@@ -845,8 +855,10 @@ TORRENT_TEST(device_read_ahead_limit)
 	TEST_EQUAL(limit(8, 32), 512 * 1024);
 	TEST_EQUAL(limit(8, 17), 128 * 1024);
 	TEST_EQUAL(limit(0, 74), 8 * 1024 * 1024);
-	TEST_EQUAL(limit(0, 59), 128 * 1024);
-	// unknown (btrfs, overlayfs, tmpfs, ...): the default read-ahead window
+	// NFS: io_pages is rsize
+	TEST_EQUAL(limit(0, 59), 1024 * 1024);
+	TEST_EQUAL(limit(0, 60), 128 * 1024);
+	// unknown (overlayfs, tmpfs, ...): the default read-ahead window
 	TEST_EQUAL(limit(0, 99), 128 * 1024);
 }
 #endif
