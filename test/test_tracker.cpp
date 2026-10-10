@@ -669,7 +669,9 @@ TORRENT_TEST(parse_websocket_tracker_response)
 	{
 		auto parsed = std::get<aux::websocket_tracker_response>(ret);
 
-		TEST_EQUAL(std::string(parsed.info_hash.data(), parsed.info_hash.size()), "xxxxxxxxxxxxxxxxxxxx");
+		TEST_CHECK(parsed.info_hash
+			&& std::string(parsed.info_hash->data(), parsed.info_hash->size())
+				== "xxxxxxxxxxxxxxxxxxxx");
 		TEST_CHECK(!parsed.offer);
 		TEST_CHECK(!parsed.answer);
 		TEST_CHECK(parsed.resp);
@@ -699,7 +701,9 @@ TORRENT_TEST(parse_websocket_tracker_response_offer)
 	{
 		auto parsed = std::get<aux::websocket_tracker_response>(ret);
 
-		TEST_EQUAL(std::string(parsed.info_hash.data(), parsed.info_hash.size()), "xxxxxxxxxxxxxxxxxxxx");
+		TEST_CHECK(parsed.info_hash
+			&& std::string(parsed.info_hash->data(), parsed.info_hash->size())
+				== "xxxxxxxxxxxxxxxxxxxx");
 		TEST_CHECK(!parsed.resp);
 		TEST_CHECK(!parsed.answer);
 		TEST_CHECK(parsed.offer);
@@ -728,7 +732,9 @@ TORRENT_TEST(parse_websocket_tracker_response_answer)
 	{
 		auto parsed = std::get<aux::websocket_tracker_response>(ret);
 
-		TEST_EQUAL(std::string(parsed.info_hash.data(), parsed.info_hash.size()), "xxxxxxxxxxxxxxxxxxxx");
+		TEST_CHECK(parsed.info_hash
+			&& std::string(parsed.info_hash->data(), parsed.info_hash->size())
+				== "xxxxxxxxxxxxxxxxxxxx");
 		TEST_CHECK(!parsed.resp);
 		TEST_CHECK(!parsed.offer);
 		TEST_CHECK(parsed.answer);
@@ -809,6 +815,38 @@ TORRENT_TEST(parse_websocket_tracker_invalid_response)
 		TEST_CHECK(std::holds_alternative<std::string>(ret));
 		std::cout << "message: " << std::get<std::string>(ret) << std::endl;
 	}
+}
+
+// A failure reason without an info_hash is valid, but a response without
+// either an info_hash or a string failure reason is invalid.
+TORRENT_TEST(parse_websocket_tracker_bare_failure_reason)
+{
+	char const response[] = R"({"failure reason":"Invalid request"})";
+
+	error_code ec;
+	auto ret = aux::parse_websocket_tracker_response(string_view(response), ec);
+
+	TEST_EQUAL(ec, error_code{});
+	TEST_CHECK(std::holds_alternative<aux::websocket_tracker_response>(ret));
+
+	if (std::holds_alternative<aux::websocket_tracker_response>(ret))
+	{
+		auto const& parsed = std::get<aux::websocket_tracker_response>(ret);
+
+		TEST_CHECK(!parsed.info_hash);
+		TEST_EQUAL(parsed.failure_reason, "Invalid request");
+		TEST_CHECK(!parsed.resp);
+		TEST_CHECK(!parsed.offer);
+		TEST_CHECK(!parsed.answer);
+	}
+
+	// A missing info_hash without a string failure reason is still invalid.
+	char const no_info_hash[] = R"({"action":"announce","interval":120})";
+	ec.clear();
+	ret = aux::parse_websocket_tracker_response(string_view(no_info_hash), ec);
+
+	TEST_EQUAL(ec, error_code(errors::invalid_tracker_response));
+	TEST_CHECK(std::holds_alternative<std::string>(ret));
 }
 
 TORRENT_TEST(parse_websocket_tracker_failure_reason)
@@ -1014,6 +1052,26 @@ TORRENT_TEST(websocket_tracker_stale_failure_ignored)
 		auto const counts = count_tracker_alerts(s, seconds(5));
 		// add_websocket_tracker_torrent() creates a hybrid v1/v2 torrent, so the single torrent
 		// generates two announces and therefore two successful tracker replies.
+		TEST_EQUAL(counts.replies, 2);
+		TEST_EQUAL(counts.errors, 0);
+	}
+	stop_websocket_server();
+}
+
+// A hashless failure cannot be correlated to an announce. The server sends
+// a normal response afterwards on the same connection; both announces must
+// still succeed without tracker errors.
+TORRENT_TEST(websocket_tracker_bare_failure_keeps_connection)
+{
+	int const port = start_websocket_server(false, 30, "bare-failure");
+	{
+		lt::session s(websocket_tracker_settings());
+		add_websocket_tracker_torrent(s, "tmp_bare_failure_tracker", websocket_tracker_url(port));
+
+		auto const counts = count_tracker_alerts(s, seconds(5));
+
+		// The hybrid torrent produces two announces and should receive
+		// a normal response for each after the uncorrelated failure.
 		TEST_EQUAL(counts.replies, 2);
 		TEST_EQUAL(counts.errors, 0);
 	}
