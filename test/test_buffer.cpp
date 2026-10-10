@@ -16,6 +16,7 @@ see LICENSE file.
 
 #include "libtorrent/aux_/buffer.hpp"
 #include "libtorrent/aux_/chained_buffer.hpp"
+#include "libtorrent/aux_/disk_buffer_pool.hpp"
 #include "libtorrent/socket.hpp"
 
 #include "test.hpp"
@@ -295,4 +296,40 @@ TORRENT_TEST(chained_buffer)
 		TEST_EQUAL(b.size(), 5);
 	}
 	TEST_CHECK(buffer_list.empty());
+}
+
+TORRENT_TEST(disk_buffer_pool_reuse)
+{
+	lt::aux::disk_buffer_pool pool;
+	char* const a = pool.allocate_buffer("test");
+	TEST_CHECK(a != nullptr);
+	TEST_EQUAL(pool.in_use(), 1);
+	pool.free_buffer(a);
+	TEST_EQUAL(pool.in_use(), 0);
+	// freed buffers are handed out again, most recently freed first
+	TEST_CHECK(pool.allocate_buffer("test") == a);
+	pool.free_buffer(a);
+}
+
+TORRENT_TEST(disk_buffer_pool_bulk_and_expire)
+{
+	lt::aux::disk_buffer_pool pool(1024);
+	std::vector<char*> bufs;
+	for (int i = 0; i < 1500; ++i)
+		bufs.push_back(pool.allocate_buffer("test"));
+	TEST_EQUAL(pool.in_use(), 1500);
+
+	// more than the cache limit, the excess is released immediately
+	pool.free_multiple_buffers(bufs);
+	TEST_EQUAL(pool.in_use(), 0);
+
+	// the cache gradually drains when nothing is allocated
+	for (int i = 0; i < 20; ++i)
+		pool.expire_buffers();
+
+	for (char*& b : span<char*>(bufs).first(10))
+		b = pool.allocate_buffer("test");
+	TEST_EQUAL(pool.in_use(), 10);
+	pool.free_multiple_buffers(span<char*>(bufs).first(10));
+	TEST_EQUAL(pool.in_use(), 0);
 }

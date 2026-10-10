@@ -21,6 +21,7 @@ see LICENSE file.
 #if TORRENT_DEBUG_BUFFER_POOL
 #include <map>
 #endif
+#include <chrono>
 #include <vector>
 #include <mutex>
 #include <functional>
@@ -38,7 +39,13 @@ namespace aux {
 	struct TORRENT_EXTRA_EXPORT disk_buffer_pool final
 		: buffer_allocator_interface
 	{
-		explicit disk_buffer_pool();
+		// how often backends should call expire_buffers()
+		static constexpr std::chrono::seconds expire_interval{5};
+
+		// max_cached_buffers is the number of freed buffers kept for reuse. A
+		// larger cache should only be used by callers that also call
+		// expire_buffers() periodically
+		explicit disk_buffer_pool(int max_cached_buffers = 64);
 		~disk_buffer_pool();
 		disk_buffer_pool(disk_buffer_pool const&) = delete;
 		disk_buffer_pool& operator=(disk_buffer_pool const&) = delete;
@@ -47,6 +54,10 @@ namespace aux {
 		void free_disk_buffer(char* b) override { free_buffer(b); }
 		void free_buffer(char* buf);
 		void free_multiple_buffers(span<char*> bufvec) override;
+
+		// releases cached buffers that were not needed since the previous
+		// call. Meant to be called periodically, every expire_interval
+		void expire_buffers();
 
 		int in_use() const
 		{
@@ -58,9 +69,16 @@ namespace aux {
 		void rename_buffer(char* buf, char const* category) override;
 #endif
 	private:
+		int const m_max_cached_buffers;
 
-		void free_buffer_impl(char* buf, std::unique_lock<std::mutex>& l);
-		char* allocate_buffer_impl(std::unique_lock<std::mutex>& l, char const* category);
+		// freed buffers kept for reuse (LIFO), protected by m_pool_mutex.
+		// Capacity is reserved up front so that pushing never allocates
+		// while the mutex is held
+		std::vector<char*> m_free_buffers;
+
+		// the fewest cached buffers seen since the last expire_buffers().
+		// Buffers below this level in the stack were not needed at all
+		int m_low_water = 0;
 
 		// number of disk buffers currently allocated
 		int m_in_use = 0;

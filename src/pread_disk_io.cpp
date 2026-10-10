@@ -279,7 +279,8 @@ private:
 	aux::file_pool m_file_pool;
 
 	// disk cache
-	aux::disk_buffer_pool m_buffer_pool;
+	// this backend calls expire_buffers(), which allows for a larger cache
+	aux::disk_buffer_pool m_buffer_pool{1024};
 
 	counters& m_stats_counters;
 
@@ -365,6 +366,11 @@ pread_disk_io::pread_disk_io(io_context& ios, settings_interface const& sett, co
 			return now + 1min;
 		m_file_pool.close_oldest();
 		return now + interval;
+	});
+
+	m_tick.add([this](aux::steady_clock::time_point const now) {
+		m_buffer_pool.expire_buffers();
+		return now + aux::disk_buffer_pool::expire_interval;
 	});
 }
 
