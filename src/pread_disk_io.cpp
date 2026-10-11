@@ -183,9 +183,10 @@ private:
 
 	// insert a write job's block (already accounted for by
 	// disk_cache::account_pending_write(), see async_write()) into the cache.
-	// Returns the insert flags (need_hasher_kick). Does NOT kick the hasher or
-	// flush -- that re-enters the fence (add_job/add_completed_jobs), so it
-	// must run with no fence mutex held. The repost callback in
+	// Returns the insert flags (need_hasher_kick). If insert() throws, the
+	// pending-write accounting is rolled back and the exception propagates.
+	// Does NOT kick the hasher or flush, that re-enters the fence,
+	// so it must run with no fence mutex held. The repost callback in
 	// add_completed_jobs_impl() calls this while a fence mutex is held and
 	// defers kick_write_hashers() to after.
 	aux::insert_result_flags insert_write(aux::pread_disk_job* j);
@@ -793,11 +794,16 @@ aux::insert_result_flags pread_disk_io::insert_write(aux::pread_disk_job* j)
 	TORRENT_ASSERT(a.buffer_size == std::min(piece_size - offset, default_block_size));
 	aux::disk_cache::piece_entry_params const piece_params{
 		fs.piece_size2(piece), piece_size, j->storage->v1(), j->storage->v2(), j->storage};
-	return m_cache.insert({j->storage->storage_index(), piece},
+
+	// undo the pending-write accounting if insert() throws, so a failed allocation doesn't leak it
+	auto cancel = aux::scope_end([&] { m_cache.cancel_pending_write(j); });
+	auto const result = m_cache.insert({j->storage->storage_index(), piece},
 		offset / default_block_size,
 		force_flush,
 		j,
 		piece_params);
+	cancel.disarm();
+	return result;
 }
 
 void pread_disk_io::kick_write_hashers()

@@ -567,7 +567,7 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 		std::shared_ptr<pread_storage> storage;
 	};
 
-	// Transfer one buffer previously accounted for by account_pending_write() into
+	// Transfer a buffer already accounted for by account_pending_write() into
 	// the cache. The return value indicates whether the piece needs its hasher
 	// kicked.
 	insert_result_flags insert(piece_location loc,
