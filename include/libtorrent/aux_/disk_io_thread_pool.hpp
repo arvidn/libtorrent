@@ -92,11 +92,6 @@ namespace libtorrent::aux {
 		// if it returns false the thread should not exit
 		bool try_thread_exit(std::thread::id id);
 
-		// get the thread id of the first thread in the internal vector
-		// since this is the first thread it will remain the same until the first
-		// thread exits
-		// it can be used to trigger maintenance jobs which should only run on one thread
-		std::thread::id first_thread_id();
 		int num_threads()
 		{
 			std::lock_guard<std::mutex> l(m_mutex);

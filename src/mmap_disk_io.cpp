@@ -30,6 +30,7 @@ see LICENSE file.
 #include "libtorrent/aux_/platform_util.hpp" // for set_thread_name
 #include "libtorrent/aux_/disk_job_pool.hpp"
 #include "libtorrent/aux_/disk_io_thread_pool.hpp"
+#include "libtorrent/aux_/disk_tick_thread.hpp"
 #include "libtorrent/aux_/store_buffer.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/aux_/alloca.hpp"
@@ -216,12 +217,11 @@ private:
 
 	aux::disk_completed_queue m_completed_jobs;
 
-	// storages that have had write activity recently and will get ticked
-	// soon, for deferred actions (say, flushing partfile metadata)
-	std::vector<std::pair<time_point, std::weak_ptr<aux::mmap_storage>>> m_need_tick;
-	std::mutex m_need_tick_mutex;
-
 	aux::storage_array<aux::mmap_storage> m_torrents;
+
+	// declared after the file pool and the storages it ticks, so it's
+	// stopped before they are destroyed
+	aux::disk_tick_thread m_tick;
 
 	std::atomic_flag m_jobs_aborted = ATOMIC_FLAG_INIT;
 
@@ -246,6 +246,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 	// for _1 and _2
 	using namespace std::placeholders;
+	using namespace std::chrono_literals;
 
 	mmap_disk_io::mmap_disk_io(io_context& ios, settings_interface const& sett, counters& cnt)
 		: m_store_buffer(ios)
@@ -253,13 +254,25 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		, m_file_pool(sett.get_int(settings_pack::file_pool_size))
 		, m_stats_counters(cnt)
 		, m_ios(ios)
-		, m_completed_jobs([&](aux::disk_job** j, int const n) {
-			m_job_pool.free_jobs(reinterpret_cast<aux::mmap_disk_job**>(j), n);
-			}, cnt)
+		, m_completed_jobs(
+			  [&](aux::disk_job** j, int const n) {
+				  m_job_pool.free_jobs(reinterpret_cast<aux::mmap_disk_job**>(j), n);
+			  },
+			  cnt)
+		, m_tick(ios)
 		, m_generic_threads(std::bind(&mmap_disk_io::thread_fun, this, _1, _2), ios)
 		, m_hash_threads(std::bind(&mmap_disk_io::thread_fun, this, _1, _2), ios)
 	{
 		settings_updated();
+
+		m_tick.add([this](aux::steady_clock::time_point const now) {
+			seconds const interval(m_settings.get_int(settings_pack::close_file_interval));
+			// check again in a minute, in case the setting changed
+			if (interval <= 0s)
+				return now + 1min;
+			m_file_pool.close_oldest();
+			return now + interval;
+		});
 	}
 
 	std::vector<open_file_state> mmap_disk_io::get_status(storage_index_t const st) const
@@ -278,10 +291,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		return {idx, *this};
 	}
 
-	void mmap_disk_io::remove_torrent(storage_index_t const idx)
-	{
-		m_torrents.remove(idx);
-	}
+	void mmap_disk_io::remove_torrent(storage_index_t const idx) { m_torrents.remove(idx); }
 
 #if TORRENT_USE_ASSERTS
 	mmap_disk_io::~mmap_disk_io()
@@ -324,6 +334,13 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			j->flags |= aux::disk_job::aborted;
 		});
 		l.unlock();
+
+		// no maintenance once teardown has started. The destructor joins the
+		// thread, so a non-waiting abort never blocks on in-flight maintenance
+		if (wait)
+			m_tick.join();
+		else
+			m_tick.abort();
 
 		// if there are no disk threads, we can't wait for the jobs here, because
 		// we'd stall indefinitely
@@ -520,10 +537,16 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		m_store_buffer.erase({j->storage->storage_index(), a.piece, a.offset});
 
+		if (!j->storage->set_need_tick())
 		{
-			std::lock_guard<std::mutex> l(m_need_tick_mutex);
-			if (!j->storage->set_need_tick())
-				m_need_tick.emplace_back(aux::time_now() + minutes(2), j->storage);
+			bool const queued = m_tick.schedule(aux::steady_clock::now() + 2min,
+				[st = std::weak_ptr<aux::mmap_storage>(j->storage)] {
+					if (auto s = st.lock())
+						s->do_tick();
+				});
+			// if the tick can't be queued, flush right away instead
+			if (!queued)
+				j->storage->do_tick();
 		}
 
 		return ret != a.buffer_size
@@ -1333,7 +1356,6 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		TORRENT_UNUSED(work);
 
 		ADD_OUTSTANDING_ASYNC("mmap_disk_io::work");
-		std::thread::id const thread_id = std::this_thread::get_id();
 
 		aux::set_thread_name("libtorrent-disk-thread");
 
@@ -1362,54 +1384,14 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		++m_num_running_threads;
 		m_stats_counters.inc_stats_counter(counters::num_running_threads, 1);
 
-		// we call close_oldest_file on the file_pool regularly. This is the next
-		// time we should call it
-		time_point next_close_oldest_file = min_time();
-
 		for (;;)
 		{
-			aux::mmap_disk_job* j = nullptr;
 			auto const result = pool.wait_for_job(l);
 			if (result == aux::wait_result::exit_thread) break;
-			j = static_cast<aux::mmap_disk_job*>(pool.pop_front());
+			auto* const j = static_cast<aux::mmap_disk_job*>(pool.pop_front());
 			l.unlock();
 
 			TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
-
-			if (&pool == &m_generic_threads && thread_id == pool.first_thread_id())
-			{
-				time_point const now = aux::time_now();
-				{
-					std::unique_lock<std::mutex> l2(m_need_tick_mutex);
-					while (!m_need_tick.empty() && m_need_tick.front().first < now)
-					{
-						std::shared_ptr<aux::mmap_storage> st = m_need_tick.front().second.lock();
-						m_need_tick.erase(m_need_tick.begin());
-						if (st)
-						{
-							l2.unlock();
-							st->tick();
-							l2.lock();
-						}
-					}
-				}
-
-				if (now > next_close_oldest_file)
-				{
-					seconds const interval(m_settings.get_int(settings_pack::close_file_interval));
-					if (interval <= seconds(0))
-					{
-						// check again in one minute, in case the setting changed
-						next_close_oldest_file = now + minutes(1);
-					}
-					else
-					{
-						next_close_oldest_file = now + interval;
-						m_file_pool.close_oldest();
-					}
-				}
-			}
-
 			execute_job(j);
 
 			l.lock();

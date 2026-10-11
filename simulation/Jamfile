@@ -54,6 +54,7 @@ run test_pe_crypto.cpp ;
 run test_metadata_extension.cpp ;
 run test_tracker.cpp ;
 run test_thread_pool.cpp ;
+run test_disk_tick_thread.cpp ;
 run test_ip_filter.cpp ;
 run test_outgoing_interfaces.cpp ;
 run test_dht_rate_limit.cpp ;

@@ -334,6 +334,7 @@ SOURCES = \
   disk_cache.cpp                  \
   disk_completed_queue.cpp        \
   disk_io_thread_pool.cpp         \
+  disk_tick_thread.cpp            \
   disk_job_fence.cpp              \
   disk_job_pool.cpp               \
   drive_info.cpp                  \
@@ -582,6 +583,7 @@ HEADERS = \
   aux_/visit_block_iovecs.hpp       \
   aux_/disk_completed_queue.hpp     \
   aux_/disk_io_thread_pool.hpp      \
+  aux_/disk_tick_thread.hpp         \
   aux_/disk_job_fence.hpp           \
   aux_/disk_job_pool.hpp            \
   aux_/drive_info.hpp               \
@@ -818,6 +820,7 @@ SIM_SOURCES = \
   test_dht_bootstrap.cpp \
   test_dht_rate_limit.cpp \
   test_dht_storage.cpp \
+  test_disk_tick_thread.cpp \
   test_error_handling.cpp \
   test_fast_extensions.cpp \
   test_http_connection.cpp \
@@ -927,6 +930,7 @@ TEST_SOURCES = \
   test_direct_dht.cpp \
   test_disk_cache.cpp \
   test_disk_io.cpp \
+  test_disk_tick_thread.cpp \
   test_slow_hash.cpp \
   test_dos_blocker.cpp \
   test_ed25519.cpp \

@@ -835,6 +835,7 @@ SOURCES =
 	disk_cache
 	disk_completed_queue
 	disk_io_thread_pool
+	disk_tick_thread
 	disabled_disk_io
 	disk_job_fence
 	disk_job_pool
