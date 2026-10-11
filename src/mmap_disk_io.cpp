@@ -425,7 +425,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		if (!j->error.ec)
 		{
-			std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+			std::int64_t const read_time = std::max<std::int64_t>(0, total_microseconds(clock_type::now() - start_time));
 
 			m_stats_counters.inc_stats_counter(counters::num_blocks_read);
 			m_stats_counters.inc_stats_counter(counters::num_read_ops);
@@ -459,7 +459,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		if (!j->error.ec)
 		{
-			std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+			std::int64_t const read_time = std::max<std::int64_t>(0, total_microseconds(clock_type::now() - start_time));
 
 			m_stats_counters.inc_stats_counter(counters::num_blocks_read);
 			m_stats_counters.inc_stats_counter(counters::num_read_ops);
@@ -491,7 +491,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		if (!j->error.ec)
 		{
-			std::int64_t const write_time = total_microseconds(clock_type::now() - start_time);
+			std::int64_t const write_time = std::max<std::int64_t>(0, total_microseconds(clock_type::now() - start_time));
 
 			m_stats_counters.inc_stats_counter(counters::num_blocks_written);
 			m_stats_counters.inc_stats_counter(counters::num_write_ops);
@@ -973,7 +973,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		if (!j->error.ec)
 		{
-			std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+			std::int64_t const read_time = std::max<std::int64_t>(0, total_microseconds(clock_type::now() - start_time));
 			m_stats_counters.inc_stats_counter(counters::disk_hash_time, read_time);
 			m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
 		}
@@ -1006,7 +1006,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			if (auto pre = j->storage->take_precomputed_v2_block(a.piece, blk))
 			{
 				a.piece_hash2 = *pre;
-				std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+				std::int64_t const read_time = std::max<std::int64_t>(0, total_microseconds(clock_type::now() - start_time));
 				m_stats_counters.inc_stats_counter(counters::disk_hash_time, read_time);
 				m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
 				return {};
@@ -1033,7 +1033,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		if (!j->error.ec)
 		{
-			std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+			std::int64_t const read_time = std::max<std::int64_t>(0, total_microseconds(clock_type::now() - start_time));
 
 			m_stats_counters.inc_stats_counter(counters::disk_hash_time, read_time);
 			m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);

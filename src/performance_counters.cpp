@@ -73,21 +73,26 @@ namespace libtorrent {
 	// increment or decrement
 	std::int64_t counters::inc_stats_counter(int const c, std::int64_t const value) TORRENT_COUNTER_NOEXCEPT
 	{
-		// if c >= num_stats_counters, it means it's not
-		// a monotonically increasing counter, but a gauge
-		// and it's allowed to be decremented
-		TORRENT_ASSERT(value >= 0 || c >= num_stats_counters);
 		TORRENT_ASSERT(c >= 0);
 		TORRENT_ASSERT(c < num_counters);
 
+		// monotonic stats counters must never decrease; clamp negative increments
+		// caused by wall-clock steps when high_resolution_clock is not steady
+		std::int64_t const val = (c < num_stats_counters && value < 0) ? 0 : value;
+
+		// if c >= num_stats_counters, it means it's not
+		// a monotonically increasing counter, but a gauge
+		// and it's allowed to be decremented
+		TORRENT_ASSERT(val >= 0 || c >= num_stats_counters);
+
 #ifdef ATOMIC_LLONG_LOCK_FREE
-		std::int64_t pv = m_stats_counter[c].fetch_add(value, std::memory_order_relaxed);
-		TORRENT_ASSERT(pv + value >= 0);
-		return pv + value;
+		std::int64_t pv = m_stats_counter[c].fetch_add(val, std::memory_order_relaxed);
+		TORRENT_ASSERT(pv + val >= 0);
+		return pv + val;
 #else
 		std::lock_guard<std::mutex> l(m_mutex);
-		TORRENT_ASSERT(m_stats_counter[c] + value >= 0);
-		return m_stats_counter[c] += value;
+		TORRENT_ASSERT(m_stats_counter[c] + val >= 0);
+		return m_stats_counter[c] += val;
 #endif
 	}
 
