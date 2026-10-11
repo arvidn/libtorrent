@@ -188,7 +188,10 @@ namespace libtorrent::aux {
 		// to make all storage instances share the pool
 		aux::file_pool& m_pool;
 
-		// used for skipped files
+		// used for skipped files. tick() runs outside the job fence that
+		// serializes every other access, so creating and destroying the
+		// part file must be locked against it
+		std::mutex m_part_file_mutex;
 		std::unique_ptr<part_file> m_part_file;
 
 		// this is a bitfield with one bit per file. A bit being set means
