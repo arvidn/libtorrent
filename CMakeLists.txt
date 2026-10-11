@@ -174,6 +174,7 @@ set(libtorrent_aux_include_files
 	mmap_disk_job.hpp
 	disk_job.hpp
 	disk_io_thread_pool.hpp
+	disk_tick_thread.hpp
 	disk_job_fence.hpp
 	disk_job_pool.hpp
 	drive_info.hpp
@@ -340,6 +341,7 @@ set(sources
 	disk_cache.cpp
 	disk_completed_queue.cpp
 	disk_io_thread_pool.cpp
+	disk_tick_thread.cpp
 	disk_job_fence.cpp
 	disk_job_pool.cpp
 	drive_info.cpp

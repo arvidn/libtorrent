@@ -142,13 +142,6 @@ namespace libtorrent::aux {
 		return to_exit > 0;
 	}
 
-	std::thread::id disk_io_thread_pool::first_thread_id()
-	{
-		std::lock_guard<std::mutex> l(m_mutex);
-		if (m_threads.empty()) return {};
-		return m_threads.front().get_id();
-	}
-
 	void disk_io_thread_pool::job_queued(int const queue_size)
 	{
 		// this check is not strictly necessary

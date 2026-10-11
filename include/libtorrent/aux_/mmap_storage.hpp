@@ -99,12 +99,8 @@ namespace libtorrent::aux {
 		file_storage const& files() const { return m_files; }
 		filenames names() const;
 
-		bool set_need_tick()
-		{
-			bool const prev = m_need_tick;
-			m_need_tick = true;
-			return prev;
-		}
+		// returns whether a tick was already pending
+		bool set_need_tick() { return m_need_tick.exchange(true); }
 
 		void do_tick()
 		{
@@ -132,8 +128,7 @@ namespace libtorrent::aux {
 		void drop_precomputed_v2(piece_index_t piece);
 
 	private:
-
-		bool m_need_tick = false;
+		std::atomic<bool> m_need_tick{false};
 		bool m_use_mmap_writes = false;
 
 		file_storage const& m_files;
