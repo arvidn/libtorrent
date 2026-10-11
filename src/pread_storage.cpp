@@ -99,6 +99,7 @@ namespace libtorrent::aux {
 
 	void pread_storage::need_partfile()
 	{
+		std::lock_guard<std::mutex> l(m_part_file_mutex);
 		if (m_part_file) return;
 
 		m_part_file = std::make_unique<part_file>(
@@ -344,7 +345,10 @@ namespace libtorrent::aux {
 		// if there's a part file open, make sure to destruct it to have it
 		// release the underlying part file. Otherwise we may not be able to
 		// delete it
-		if (m_part_file) m_part_file.reset();
+		{
+			std::lock_guard<std::mutex> l(m_part_file_mutex);
+			m_part_file.reset();
+		}
 		std::string const part_file = combine_path(
 			m_part_file_dir.empty() ? m_save_path : combine_path(m_save_path, m_part_file_dir)
 			, m_part_file_name);
@@ -803,6 +807,7 @@ namespace libtorrent::aux {
 	bool pread_storage::tick()
 	{
 		error_code ec;
+		std::lock_guard<std::mutex> l(m_part_file_mutex);
 		if (m_part_file) m_part_file->flush_metadata(ec);
 
 		return false;
