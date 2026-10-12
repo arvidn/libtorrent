@@ -144,7 +144,9 @@ enum class if_state : std::uint8_t {
 		, tcp const& protocol
 		, char const* device_name, int port, error_code& ec)
 	{
-		tcp::endpoint bind_ep(address_v4::any(), std::uint16_t(port));
+		tcp::endpoint bind_ep(protocol == boost::asio::ip::tcp::v6() ? address(address_v6::any())
+																	 : address(address_v4::any()),
+			std::uint16_t(port));
 
 		address ip = make_address(device_name, ec);
 		if (!ec)
