@@ -526,6 +526,53 @@ pread_storage::pread_storage(
 		});
 	}
 
+	void pread_storage::prefetch_piece(settings_interface const& sett,
+		piece_index_t const piece,
+		int const offset,
+		int length,
+		open_mode_t const mode,
+		storage_error& error)
+	{
+		length = std::min(length, files().piece_size(piece) - offset);
+		if (length <= 0)
+			return;
+		for (auto const& s : files().map_block(piece, offset, length))
+		{
+			if (!read_ahead_file(s.file_index))
+				continue;
+			auto handle = open_file(sett, s.file_index, mode, error);
+			if (error)
+				return;
+			advise_will_need(handle->fd(), s.offset, s.size, read_ahead_limit(handle->fd()));
+		}
+	}
+
+	std::int64_t pread_storage::piece_read_ahead_limit(settings_interface const& sett,
+		piece_index_t const piece,
+		open_mode_t const mode,
+		storage_error& error)
+	{
+		for (auto const& s : files().map_block(piece, 0, files().piece_size(piece)))
+		{
+			if (!read_ahead_file(s.file_index))
+				continue;
+			auto handle = open_file(sett, s.file_index, mode, error);
+			if (error)
+				return -1;
+			return read_ahead_limit(handle->fd());
+		}
+		return -1;
+	}
+
+	bool pread_storage::read_ahead_file(file_index_t const index) const
+	{
+		if (files().pad_file_at(index))
+			return false;
+		// not read from the file, see read()
+		return !(index < m_file_priority.end_index() && m_file_priority[index] == dont_download
+			&& use_partfile(index));
+	}
+
 	int pread_storage::write(settings_interface const& sett
 		, span<char const> buffer
 		, piece_index_t const piece, int const offset

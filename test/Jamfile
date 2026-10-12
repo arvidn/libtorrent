@@ -190,6 +190,7 @@ run test_alert_types.cpp ;
 run test_udp_socket.cpp ;
 run test_magnet.cpp ;
 run test_storage.cpp ;
+run test_read_ahead.cpp ;
 run test_readwrite.cpp ;
 run test_back_pressure.cpp ;
 run test_store_buffer.cpp ;
@@ -308,6 +309,7 @@ alias deterministic-tests :
 	test_piece_picker
 	test_precomputed_block_hashes
 	test_primitives
+	test_read_ahead
 	test_read_resume
 	test_receive_buffer
 	test_recheck

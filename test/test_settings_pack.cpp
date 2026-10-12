@@ -113,6 +113,7 @@ TORRENT_TEST(test_name)
 	TEST_NAME(predictive_piece_announce);
 	TEST_NAME(max_metadata_size);
 	TEST_NAME(num_optimistic_unchoke_slots);
+	TEST_NAME(disk_read_ahead);
 
 	TEST_EQUAL(name_for_setting(settings_pack::peer_tos), std::string("peer_dscp"));
 	TEST_EQUAL(setting_by_name("peer_tos"), settings_pack::peer_dscp); \

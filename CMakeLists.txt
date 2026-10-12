@@ -240,6 +240,7 @@ set(libtorrent_aux_include_files
 	puff.hpp
 	random.hpp
 	range.hpp
+	read_ahead.hpp
 	readwrite.hpp
 	receive_buffer.hpp
 	request_blocks.hpp
@@ -404,6 +405,7 @@ set(sources
 	proxy_settings.cpp
 	puff.cpp
 	random.cpp
+	read_ahead.cpp
 	read_resume_data.cpp
 	receive_buffer.cpp
 	request_blocks.cpp

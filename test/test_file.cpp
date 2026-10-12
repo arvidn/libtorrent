@@ -34,6 +34,11 @@ see LICENSE file.
 #ifndef TORRENT_WINDOWS
 #include <csignal>
 #include <sys/resource.h>
+#ifdef TORRENT_LINUX
+#include <fstream>
+#include <unistd.h> // for symlink()
+#include <sys/sysmacros.h> // for makedev()
+#endif
 #endif
 
 using namespace lt;
@@ -771,3 +776,77 @@ TORRENT_TEST(to_file_open_mode)
 	TEST_CHECK(aux::to_file_open_mode(aux::open_mode::write | aux::open_mode::no_atime, false) == (file_open_mode::read_write | file_open_mode::no_atime));
 	TEST_CHECK(aux::to_file_open_mode(aux::open_mode::write, true) == (file_open_mode::read_write | file_open_mode::mmapped));
 }
+
+#ifdef TORRENT_LINUX
+namespace {
+void write_file(std::string const& path, char const* content) { std::ofstream(path) << content; }
+
+void make_dirs(std::string const& path)
+{
+	error_code ec;
+	create_directories(path, ec);
+	TEST_CHECK(!ec);
+}
+
+void make_disk(std::string const& sys, char const* name, char const* ra, char const* max_sectors)
+{
+	std::string const queue = sys + "/devices/" + name + "/queue";
+	make_dirs(queue);
+	write_file(queue + "/read_ahead_kb", ra);
+	write_file(queue + "/max_sectors_kb", max_sectors);
+}
+
+void make_bdi(std::string const& sys, char const* name, char const* ra)
+{
+	make_dirs(sys + "/class/bdi/" + name);
+	write_file(sys + "/class/bdi/" + name + "/read_ahead_kb", ra);
+}
+
+void link_dev(std::string const& sys, char const* id, std::string const& target)
+{
+	TEST_EQUAL(
+		::symlink(("../../devices/" + target).c_str(), (sys + "/dev/block/" + id).c_str()), 0);
+}
+}
+
+TORRENT_TEST(device_read_ahead_limit)
+{
+	std::string const sys = complete("fake_sysfs");
+	error_code ec;
+	remove_all(sys, ec);
+	make_dirs(sys + "/dev/block");
+
+	// disks and partitions: max(read_ahead_kb, max_sectors_kb), rounded
+	// down to a power of two; a partition uses the queue of its disk
+	make_disk(sys, "sda", "128", "1280");
+	make_dirs(sys + "/devices/sda/sda1");
+	link_dev(sys, "8:0", "sda");
+	link_dev(sys, "8:1", "sda/sda1");
+	make_disk(sys, "sdb", "4096", "1280");
+	make_dirs(sys + "/devices/sdb/sdb1");
+	link_dev(sys, "8:16", "sdb");
+	link_dev(sys, "8:17", "sdb/sdb1");
+	make_disk(sys, "sdc", "0", "512");
+	link_dev(sys, "8:32", "sdc");
+
+	// FUSE on sdb1: its own bdi, not the disk's
+	make_bdi(sys, "8:17-fuseblk", "128");
+	// FUSE and NFS: a bdi named after the device number
+	make_bdi(sys, "0:74", "8192");
+	make_bdi(sys, "0:59", "128");
+
+	auto const limit = [&](unsigned int major_, unsigned int minor_) {
+		return aux::device_read_ahead_limit(sys, makedev(major_, minor_));
+	};
+
+	TEST_EQUAL(limit(8, 0), 1024 * 1024);
+	TEST_EQUAL(limit(8, 1), 1024 * 1024);
+	TEST_EQUAL(limit(8, 16), 4 * 1024 * 1024);
+	TEST_EQUAL(limit(8, 32), 512 * 1024);
+	TEST_EQUAL(limit(8, 17), 128 * 1024);
+	TEST_EQUAL(limit(0, 74), 8 * 1024 * 1024);
+	TEST_EQUAL(limit(0, 59), 128 * 1024);
+	// unknown (btrfs, overlayfs, tmpfs, ...): the default read-ahead window
+	TEST_EQUAL(limit(0, 99), 128 * 1024);
+}
+#endif
