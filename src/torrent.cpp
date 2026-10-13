@@ -802,6 +802,14 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		// this means that the invariant check that this is called from the
 		// network thread cannot be maintained
 
+		// other than at shutdown, the torrent must be destructed on the
+		// network thread. The peer list returns its entries to the session's
+		// peer allocator, which is not thread safe, and extensions expect
+		// their destructors to run on the network thread, like their
+		// callbacks. The disk storage holds a reference to the torrent and
+		// may be released from another thread, so whoever does that has to
+		// hand the last reference over to the network thread
+
 		TORRENT_ASSERT(m_peer_class == peer_class_t{0});
 		TORRENT_ASSERT(m_connections.empty());
 		// just in case, make sure the session accounting is kept right
