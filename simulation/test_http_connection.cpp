@@ -16,7 +16,7 @@ see LICENSE file.
 #include "simulator/simulator.hpp"
 #include "http_server.hpp"
 #include "simulator/http_proxy.hpp"
-#include "simulator/socks_server.hpp"
+#include "socks_server.hpp"
 #include "simulator/utils.hpp"
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/aux_/proxy_settings.hpp"

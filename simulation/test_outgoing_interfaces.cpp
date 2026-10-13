@@ -15,7 +15,7 @@ see LICENSE file.
 #include "settings.hpp"
 #include "create_torrent.hpp"
 #include "simulator/simulator.hpp"
-#include "simulator/socks_server.hpp"
+#include "socks_server.hpp"
 #include "simulator/utils.hpp"
 #include "fake_peer.hpp"
 #include "utils.hpp"

@@ -15,7 +15,7 @@ see LICENSE file.
 #include <iostream>
 
 #include "simulator/simulator.hpp"
-#include "simulator/socks_server.hpp"
+#include "socks_server.hpp"
 #include "simulator/utils.hpp"
 #include "http_server.hpp"
 
