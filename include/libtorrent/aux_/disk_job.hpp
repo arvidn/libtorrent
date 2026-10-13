@@ -201,7 +201,7 @@ namespace job {
 
 	struct check_fastresume
 	{
-		std::function<void(status_t, storage_error const&)> handler;
+		std::function<void(status_t, storage_error const&, typed_bitfield<piece_index_t>)> handler;
 
 		// optional, passed in
 		// this is a vector of hard-links to create. Each element corresponds to
@@ -211,6 +211,11 @@ namespace job {
 
 		// optional, passed in
 		add_torrent_params const* resume_data;
+
+		// passed out
+		// a hint of which pieces are known to not be on disk at all; see
+		// disk_interface::async_check_files()
+		typed_bitfield<piece_index_t> checked_pieces;
 	};
 
 	struct rename_file

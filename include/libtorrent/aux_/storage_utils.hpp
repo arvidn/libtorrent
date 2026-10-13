@@ -20,6 +20,7 @@ see LICENSE file.
 #include "libtorrent/fwd.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/units.hpp"
+#include "libtorrent/bitfield.hpp"
 #include "libtorrent/disk_interface.hpp" // for status_t
 #include "libtorrent/session_types.hpp"
 #include "libtorrent/error_code.hpp"
@@ -85,6 +86,16 @@ namespace libtorrent::aux {
 		, std::string const& save_path
 		, stat_cache& cache
 		, storage_error& ec);
+
+	// a cleared bit lets the hash check skip the piece, so it must be proof
+	// of absence. An empty ``partfile_has_piece`` (no part file open) is
+	// not that proof for the dont_download files redirected to it
+	TORRENT_EXTRA_EXPORT typed_bitfield<piece_index_t> check_pieces(filenames const& fs,
+		aux::vector<download_priority_t, file_index_t> const& file_priority,
+		stat_cache& stat,
+		std::string const& save_path,
+		std::function<bool(file_index_t)> const& use_partfile,
+		std::function<bool(piece_index_t)> const& partfile_has_piece);
 
 	TORRENT_EXTRA_EXPORT int read_zeroes(span<char> bufs);
 

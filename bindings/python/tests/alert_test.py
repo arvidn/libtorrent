@@ -1357,11 +1357,13 @@ class FastresumeRejectedAlertTest(TorrentAlertTest):
         self.assert_torrent_alert(alert, handle)
         self.assertIsInstance(alert.error.value(), int)
         self.assertNotEqual(alert.error.value(), 0)
-        self.assertEqual(alert.error.category(), lt.libtorrent_category())
+        # the directory is caught by initialize()'s stat() of the file,
+        # before any actual resume data comparison runs
+        self.assertEqual(alert.error.category(), lt.generic_category())
         self.assertEqual(alert.file_path(), self.file_path)
-        self.assertEqual(alert.op, lt.operation_t.check_resume)
+        self.assertEqual(alert.op, lt.operation_t.file_stat)
         if lt.api_version < 2:
-            self.assertEqual(alert.operation, "check_resume")
+            self.assertEqual(alert.operation, "file_stat")
             self.assertIsInstance(alert.msg, str)
 
     @unittest.skip("https://github.com/arvidn/libtorrent/issues/5967")
@@ -1377,7 +1379,7 @@ class FastresumeRejectedAlertTest(TorrentAlertTest):
 
         if lt.api_version < 2:
             with self.assertWarns(DeprecationWarning):
-                self.assertEqual(alert.operation, "check_resume")
+                self.assertEqual(alert.operation, "file_stat")
             with self.assertWarns(DeprecationWarning):
                 self.assertIsInstance(alert.msg, str)
 

@@ -418,6 +418,17 @@ TORRENT_TEST(piece_range_exclusive)
 		== lt::index_range<piece_index_t>{1_piece, 5_piece}));
 	TEST_CHECK((aux::file_piece_range_exclusive(fs, 2_file)
 		== lt::index_range<piece_index_t>{6_piece, 9_piece}));
+
+	// the filenames view (used by check_pieces()'s dont_download
+	// resolution) shares the same piece-layout math as file_storage
+	renamed_files const rf;
+	filenames const names(fs, rf);
+	TEST_CHECK((aux::file_piece_range_exclusive(names, 0_file)
+		== lt::index_range<piece_index_t>{0_piece, 1_piece}));
+	TEST_CHECK((aux::file_piece_range_exclusive(names, 1_file)
+		== lt::index_range<piece_index_t>{1_piece, 5_piece}));
+	TEST_CHECK((aux::file_piece_range_exclusive(names, 2_file)
+		== lt::index_range<piece_index_t>{6_piece, 9_piece}));
 }
 
 TORRENT_TEST(piece_range_inclusive)
@@ -474,7 +485,7 @@ TORRENT_TEST(piece_range_short_file_owns_no_piece)
 	file_storage fs;
 	fs.set_piece_length(piece_size);
 	// "middle" starts mid-piece (piece 1, local offset 4) and ends at local
-	// offset 7, nowhere near the end of piece 1 (offset 16) -- it shares
+	// offset 7, nowhere near the end of piece 1 (offset 16), so it shares
 	// piece 1 with both neighbors and exclusively owns no piece at all
 	fs.add_file_borrow({}, combine_path("temp_storage", "0"), 20);
 	fs.add_file_borrow({}, combine_path("temp_storage", "middle"), 3);

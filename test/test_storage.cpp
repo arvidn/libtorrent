@@ -85,8 +85,15 @@ void delete_dirs(std::string path)
 	TEST_CHECK(!exists(path));
 }
 
-void on_check_resume_data(lt::status_t const status, storage_error const& error, bool* done, bool* oversized)
+void on_check_resume_data(lt::status_t const status,
+	storage_error const& error,
+	lt::typed_bitfield<lt::piece_index_t> const& checked_pieces,
+	bool* done,
+	bool* oversized,
+	lt::typed_bitfield<lt::piece_index_t>* checked_pieces_out)
 {
+	if (checked_pieces_out)
+		*checked_pieces_out = checked_pieces;
 	std::cout << time_now_string() << " on_check_resume_data ret: "
 		<< int(static_cast<std::uint8_t>(status));
 
@@ -856,13 +863,27 @@ void test_check_files(check_files_flag_t const flags,
 	bool oversized = false;
 	add_torrent_params frd;
 	aux::vector<std::string, file_index_t> links;
-	io->async_check_files(st, &frd, links
-		, std::bind(&on_check_resume_data, _1, _2, &done, &oversized));
+	lt::typed_bitfield<lt::piece_index_t> checked_pieces;
+	io->async_check_files(st,
+		&frd,
+		links,
+		std::bind(&on_check_resume_data, _1, _2, _3, &done, &oversized, &checked_pieces));
 	io->submit_jobs();
 	ios.restart();
 	run_until(ios, done);
 
 	TEST_EQUAL(oversized, bool(flags & test_oversized));
+
+	// test1.tmp (piece 0) and test3.tmp (piece 3) are written to disk with
+	// the correct (or, under test_oversized, larger) size; test2.tmp
+	// (pieces 1 and 2) is never created at all. This should hold
+	// regardless of zero_prio (which routes file presence through the
+	// part-file path in check_pieces() instead of the plain size check).
+	TEST_EQUAL(checked_pieces.size(), info->num_pieces());
+	TEST_CHECK(checked_pieces.get_bit(0_piece));
+	TEST_CHECK(!checked_pieces.get_bit(1_piece));
+	TEST_CHECK(!checked_pieces.get_bit(2_piece));
+	TEST_CHECK(checked_pieces.get_bit(3_piece));
 
 	for (auto const i : info->piece_range())
 	{
@@ -984,6 +1005,95 @@ namespace {
 		test_check_files(flags, disk_io, 0, 1);
 		test_check_files(flags, disk_io, 0, 2);
 	}
+
+	// end-to-end regression test, through the real disk_interface: a small,
+	// non-piece-aligned, dont_download file with no data anywhere used to
+	// make file_piece_range_exclusive() return an inverted range and hang
+	// check_pieces() forever (see piece_range_short_file_owns_no_piece in
+	// test_file_storage.cpp for the isolated case). This also exercises a
+	// cleanly exclusive dont_download file to confirm check_pieces() still
+	// clears the piece it alone owns.
+	void test_check_pieces_dont_download(lt::disk_io_constructor_type const disk_constructor)
+	{
+		std::string const test_path = current_path();
+		constexpr int piece_size_check = 16;
+		error_code ec;
+		delete_dirs("temp_storage");
+
+		// piece 0: owned by "0" (present). piece 1: shared by "0" (tail),
+		// "middle" (dont_download, absent, owns no piece exclusively, the
+		// hang-prone layout) and "2" (present, head). piece 2: owned
+		// exclusively by "soloprio" (dont_download, absent, cleanly aligned).
+		std::vector<lt::create_file_entry> fs;
+		fs.emplace_back("temp_storage/0", 20);
+		fs.emplace_back("temp_storage/middle", 3);
+		fs.emplace_back("temp_storage/2", 9);
+		fs.emplace_back("temp_storage/soloprio", piece_size_check);
+
+		std::vector<char> const data0 = new_piece(20);
+		std::vector<char> const data2 = new_piece(9);
+
+		lt::create_torrent t(std::move(fs), piece_size_check, lt::create_torrent::v1_only);
+		for (piece_index_t i{0}; i < piece_index_t(t.num_pieces()); ++i)
+			t.set_hash(i, sha1_hash::max());
+		TEST_EQUAL(t.num_pieces(), 3);
+
+		create_directory(combine_path(test_path, "temp_storage"), ec);
+		if (ec)
+			std::cout << "create_directory: " << ec.message() << std::endl;
+
+		ofstream(combine_path(test_path, combine_path("temp_storage", "0")).c_str())
+			.write(data0.data(), std::streamsize(data0.size()));
+		ofstream(combine_path(test_path, combine_path("temp_storage", "2")).c_str())
+			.write(data2.data(), std::streamsize(data2.size()));
+		// "middle" and "soloprio" are deliberately never created
+
+		std::shared_ptr<torrent_info const> info = load_torrent_buffer(bencode(t.generate())).ti;
+
+		aux::session_settings sett;
+		boost::asio::io_context ios;
+		counters cnt;
+		std::unique_ptr<disk_interface> io = disk_constructor(ios, sett, cnt);
+
+		aux::vector<download_priority_t, file_index_t> priorities;
+		priorities.resize(std::size_t(info->num_files()), 1_pri);
+		priorities[1_file] = dont_download; // "middle"
+		priorities[3_file] = dont_download; // "soloprio"
+
+		renamed_files rf;
+		storage_params p{info->layout(),
+			rf,
+			test_path,
+			{},
+			storage_mode_sparse,
+			priorities,
+			sha1_hash{},
+			info->v1(),
+			info->v2()};
+
+		auto st = io->new_torrent(std::move(p), std::shared_ptr<void>());
+
+		bool done = false;
+		bool oversized = false;
+		add_torrent_params frd;
+		aux::vector<std::string, file_index_t> links;
+		lt::typed_bitfield<lt::piece_index_t> checked_pieces;
+		io->async_check_files(st,
+			&frd,
+			links,
+			std::bind(&on_check_resume_data, _1, _2, _3, &done, &oversized, &checked_pieces));
+		io->submit_jobs();
+		ios.restart();
+		run_until(ios, done);
+
+		TEST_EQUAL(checked_pieces.size(), info->num_pieces());
+		TEST_CHECK(checked_pieces.get_bit(0_piece)); // "0" is present
+		TEST_CHECK(checked_pieces.get_bit(1_piece)); // shared; nothing proves it's absent
+		TEST_CHECK(!checked_pieces.get_bit(2_piece)); // "soloprio" owns it alone, absent everywhere
+
+		io->abort(true);
+		delete_dirs("temp_storage");
+	}
 } // anonymous namespace
 
 TORRENT_TEST_DISK_IO(check_files_sparse)
@@ -1003,6 +1113,8 @@ TORRENT_TEST_DISK_IO(check_files_oversized)
 
 TORRENT_TEST_DISK_IO(check_files_allocate) { test_check_files_all_threads(zero_prio, disk_io); }
 
+TORRENT_TEST_DISK_IO(check_pieces_dont_download) { test_check_pieces_dont_download(disk_io); }
+
 namespace {
 // synchronously drives async_check_files() with no resume data, which is
 // what makes the backend consult has_any_file() to decide whether a
@@ -1013,11 +1125,14 @@ status_t run_check_files(lt::disk_interface& io, lt::io_context& ios, lt::storag
 	bool done = false;
 	add_torrent_params frd;
 	aux::vector<std::string, file_index_t> links;
-	io.async_check_files(st, &frd, links, [&](status_t const s, storage_error const& e) {
-		result = s;
-		TEST_CHECK(!e);
-		done = true;
-	});
+	io.async_check_files(st,
+		&frd,
+		links,
+		[&](status_t const s, storage_error const& e, typed_bitfield<piece_index_t>) {
+			result = s;
+			TEST_CHECK(!e);
+			done = true;
+		});
 	io.submit_jobs();
 	ios.restart();
 	run_until(ios, done);
@@ -1345,7 +1460,7 @@ lt::storage_holder add_symlink_torrent(disk_interface& io,
 	add_torrent_params frd;
 	aux::vector<std::string, file_index_t> links;
 	io.async_check_files(
-		st, &frd, links, std::bind(&on_check_resume_data, _1, _2, &done, &oversized));
+		st, &frd, links, std::bind(&on_check_resume_data, _1, _2, _3, &done, &oversized, nullptr));
 	io.submit_jobs();
 	ios.restart();
 	run_until(ios, done);
@@ -1857,6 +1972,245 @@ TORRENT_TEST(fastresume_spanning_piece_missing_file)
 	TEST_CHECK(!valid);
 	TEST_EQUAL(se.ec, error_code(errors::mismatching_file_size));
 	TEST_EQUAL(static_cast<int>(se.file()), 1);
+
+	delete_dirs(save_path);
+}
+
+namespace {
+
+bool partfile_true(file_index_t) { return true; }
+bool partfile_false(file_index_t) { return false; }
+std::function<bool(piece_index_t)> const no_partfile;
+
+}
+
+TORRENT_TEST(check_pieces)
+{
+	int const piece_size_check = 0x4000;
+	std::string const save_path = absolute("temp_storage_check_pieces");
+	delete_dirs(save_path);
+
+	file_storage fs;
+	// piece 0 is shared between "first" (present) and "missing" (absent);
+	// since "missing" never exists on disk, piece 0 must be reported as
+	// known-absent even though "first" is fully present
+	fs.add_file_borrow({}, combine_path("test", "first"), piece_size_check / 2);
+	fs.add_file_borrow({}, combine_path("test", "missing"), piece_size_check / 2);
+	// piece 1 is owned exclusively by "unchecked", and is fully present
+	fs.add_file_borrow({}, combine_path("test", "unchecked"), piece_size_check);
+	// piece 2 is owned exclusively by "zeroprio", absent on disk, but has
+	// zero priority, so whether it's known-absent depends on the part
+	// file hooks
+	fs.add_file_borrow({}, combine_path("test", "zeroprio"), piece_size_check);
+	fs.set_piece_length(piece_size_check);
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
+	TEST_EQUAL(fs.num_pieces(), 3);
+
+	error_code ec;
+	create_directories(combine_path(save_path, "test"), ec);
+	TEST_CHECK(!ec);
+
+	std::vector<char> const half_piece(std::size_t(piece_size_check / 2), 'x');
+	std::vector<char> const full_piece(std::size_t(piece_size_check), 'x');
+	ofstream(fs.file_path(0_file, save_path).c_str())
+		.write(half_piece.data(), std::streamsize(half_piece.size()));
+	ofstream(fs.file_path(2_file, save_path).c_str())
+		.write(full_piece.data(), std::streamsize(full_piece.size()));
+	// "missing" (file 1) and "zeroprio" (file 3) are deliberately never
+	// created
+
+	aux::vector<download_priority_t, file_index_t> priorities;
+	priorities.resize(std::size_t(fs.num_files()), 1_pri);
+	priorities[3_file] = dont_download;
+
+	aux::stat_cache stat;
+	lt::renamed_files const rf;
+	lt::filenames const fn(fs, rf);
+
+	{
+		// redirected to a part file that isn't open: not proof of absence
+		typed_bitfield<piece_index_t> const pieces =
+			aux::check_pieces(fn, priorities, stat, save_path, partfile_true, no_partfile);
+
+		TEST_EQUAL(pieces.size(), 3);
+		TEST_CHECK(!pieces.get_bit(0_piece)); // "missing" clears the shared piece
+		TEST_CHECK(pieces.get_bit(1_piece)); // "unchecked" is fully present
+		TEST_CHECK(pieces.get_bit(2_piece)); // "zeroprio" is exempt, left unknown
+	}
+
+	{
+		// redirected to a part file that doesn't hold the piece
+		typed_bitfield<piece_index_t> const pieces = aux::check_pieces(
+			fn, priorities, stat, save_path, partfile_true, [](piece_index_t) { return false; });
+
+		TEST_CHECK(!pieces.get_bit(0_piece));
+		TEST_CHECK(pieces.get_bit(1_piece));
+		TEST_CHECK(!pieces.get_bit(2_piece));
+	}
+
+	{
+		// redirected to a part file that does hold the piece
+		typed_bitfield<piece_index_t> const pieces = aux::check_pieces(
+			fn, priorities, stat, save_path, partfile_true, [](piece_index_t) { return true; });
+
+		TEST_CHECK(!pieces.get_bit(0_piece));
+		TEST_CHECK(pieces.get_bit(1_piece));
+		TEST_CHECK(pieces.get_bit(2_piece));
+	}
+
+	{
+		// not redirected to a part file: stat'ed at its expected path like
+		// any other file, and it's not there
+		typed_bitfield<piece_index_t> const pieces =
+			aux::check_pieces(fn, priorities, stat, save_path, partfile_false, no_partfile);
+
+		TEST_CHECK(!pieces.get_bit(0_piece));
+		TEST_CHECK(pieces.get_bit(1_piece));
+		TEST_CHECK(!pieces.get_bit(2_piece));
+	}
+
+	delete_dirs(save_path);
+}
+
+TORRENT_TEST(check_pieces_pad_file)
+{
+	int const piece_size_check = 0x4000;
+	std::string const save_path = absolute("temp_storage_check_pieces_pad_file");
+	delete_dirs(save_path);
+
+	file_storage fs;
+	// the piece is complete once "real" is on disk; the pad file is
+	// never created on disk at all, and must not make the piece look
+	// incomplete
+	fs.add_file_borrow({}, combine_path("test", "real"), piece_size_check / 2);
+	fs.add_file_borrow(
+		{}, combine_path("test", "pad"), piece_size_check / 2, file_storage::flag_pad_file);
+	fs.set_piece_length(piece_size_check);
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
+	TEST_EQUAL(fs.num_pieces(), 1);
+
+	error_code ec;
+	create_directories(combine_path(save_path, "test"), ec);
+	TEST_CHECK(!ec);
+
+	std::vector<char> const half_piece(std::size_t(piece_size_check / 2), 'x');
+	ofstream(fs.file_path(0_file, save_path).c_str())
+		.write(half_piece.data(), std::streamsize(half_piece.size()));
+	// "pad" (file 1) is deliberately never created
+
+	aux::vector<download_priority_t, file_index_t> priorities;
+	aux::stat_cache stat;
+	lt::renamed_files const rf;
+	lt::filenames const fn(fs, rf);
+	typed_bitfield<piece_index_t> const pieces =
+		aux::check_pieces(fn, priorities, stat, save_path, partfile_true, no_partfile);
+
+	TEST_EQUAL(pieces.size(), 1);
+	TEST_CHECK(pieces.get_bit(0_piece));
+
+	delete_dirs(save_path);
+}
+
+TORRENT_TEST(check_pieces_truncated)
+{
+	int const piece_size_check = 0x4000;
+	std::string const save_path = absolute("temp_storage_check_pieces_truncated");
+	delete_dirs(save_path);
+
+	file_storage fs;
+	// "short" spans pieces 0-2 but is only truncated to 1.5 pieces on
+	// disk: piece 0 is fully covered, piece 1 is only half covered (so
+	// it must still be cleared, along with piece 2, which has nothing)
+	fs.add_file_borrow({}, combine_path("test", "short"), piece_size_check * 3);
+	// piece 3 is owned exclusively by "next" and is fully present;
+	// clearing "short"'s own range must never reach into it
+	fs.add_file_borrow({}, combine_path("test", "next"), piece_size_check);
+	fs.set_piece_length(piece_size_check);
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
+	TEST_EQUAL(fs.num_pieces(), 4);
+
+	error_code ec;
+	create_directories(combine_path(save_path, "test"), ec);
+	TEST_CHECK(!ec);
+
+	std::vector<char> const truncated(std::size_t(piece_size_check + piece_size_check / 2), 'x');
+	std::vector<char> const full_piece(std::size_t(piece_size_check), 'x');
+	ofstream(fs.file_path(0_file, save_path).c_str())
+		.write(truncated.data(), std::streamsize(truncated.size()));
+	ofstream(fs.file_path(1_file, save_path).c_str())
+		.write(full_piece.data(), std::streamsize(full_piece.size()));
+
+	aux::vector<download_priority_t, file_index_t> priorities;
+	aux::stat_cache stat;
+	lt::renamed_files const rf;
+	lt::filenames const fn(fs, rf);
+
+	typed_bitfield<piece_index_t> const pieces =
+		aux::check_pieces(fn, priorities, stat, save_path, partfile_true, no_partfile);
+
+	TEST_CHECK(pieces.get_bit(0_piece)); // fully covered by the 1.5 pieces on disk
+	TEST_CHECK(!pieces.get_bit(1_piece)); // only half covered
+	TEST_CHECK(!pieces.get_bit(2_piece)); // not covered at all
+	TEST_CHECK(pieces.get_bit(3_piece)); // belongs to "next", untouched by file 0
+
+	delete_dirs(save_path);
+}
+
+TORRENT_TEST(check_pieces_directory)
+{
+	int const piece_size_check = 0x4000;
+	std::string const save_path = absolute("temp_storage_check_pieces_directory");
+	delete_dirs(save_path);
+
+	file_storage fs;
+	fs.add_file_borrow({}, combine_path("test", "only"), piece_size_check);
+	fs.set_piece_length(piece_size_check);
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
+	TEST_EQUAL(fs.num_pieces(), 1);
+
+	error_code ec;
+	create_directories(fs.file_path(0_file, save_path), ec);
+	TEST_CHECK(!ec);
+
+	aux::vector<download_priority_t, file_index_t> priorities;
+	aux::stat_cache stat;
+	lt::renamed_files const rf;
+	lt::filenames const fn(fs, rf);
+
+	typed_bitfield<piece_index_t> const pieces =
+		aux::check_pieces(fn, priorities, stat, save_path, partfile_true, no_partfile);
+
+	// a directory is reported as the is_a_directory error, not proof of
+	// absence; it must not clear the piece
+	TEST_CHECK(pieces.get_bit(0_piece));
+
+	delete_dirs(save_path);
+}
+
+TORRENT_TEST(has_any_file_directory)
+{
+	std::string const save_path = absolute("temp_storage_has_any_file_directory");
+	delete_dirs(save_path);
+
+	file_storage fs;
+	fs.add_file_borrow({}, combine_path("test", "only"), 1000);
+	fs.set_piece_length(0x4000);
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
+
+	error_code ec;
+	create_directories(fs.file_path(0_file, save_path), ec);
+	TEST_CHECK(!ec);
+
+	aux::stat_cache stat;
+	lt::renamed_files const rf;
+	lt::filenames const fn(fs, rf);
+	storage_error serr;
+
+	// a directory is not evidence of real torrent data, same as a
+	// missing file; only reachable here for a dont_download file,
+	// whose data may live in a partfile instead
+	TEST_CHECK(!aux::has_any_file(fn, save_path, stat, serr));
+	TEST_CHECK(!serr);
 
 	delete_dirs(save_path);
 }
@@ -2794,8 +3148,12 @@ void test_unaligned_read(lt::disk_io_constructor_type constructor, Fun fun)
 
 	int outstanding = 0;
 	lt::add_torrent_params atp;
-	disk_io->async_check_files(t, &atp, lt::aux::vector<std::string, lt::file_index_t>{}
-		, [&](lt::status_t, lt::storage_error const&) { --outstanding; });
+	disk_io->async_check_files(t,
+		&atp,
+		lt::aux::vector<std::string, lt::file_index_t>{},
+		[&](lt::status_t, lt::storage_error const&, lt::typed_bitfield<lt::piece_index_t>) {
+			--outstanding;
+		});
 	++outstanding;
 	disk_io->submit_jobs();
 	sync(ioc, outstanding);

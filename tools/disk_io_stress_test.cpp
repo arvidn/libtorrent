@@ -346,8 +346,11 @@ int run_test(test_case const& t)
 		int job_idx = 0;
 		in_flight.insert(job_idx);
 		++outstanding_read;
-		disk_io->async_check_files(tor, &atp, lt::aux::vector<std::string, lt::file_index_t>{}
-			, [&, job_idx](lt::status_t, lt::storage_error const&) {
+		disk_io->async_check_files(tor,
+			&atp,
+			lt::aux::vector<std::string, lt::file_index_t>{},
+			[&, job_idx](
+				lt::status_t, lt::storage_error const&, lt::typed_bitfield<lt::piece_index_t>) {
 				TORRENT_ASSERT(in_flight.count(job_idx));
 				in_flight.erase(job_idx);
 				TORRENT_ASSERT(outstanding_read > 0);

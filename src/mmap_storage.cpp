@@ -461,6 +461,20 @@ mmap_storage::mmap_storage(storage_params const& params, aux::file_view_pool& po
 			rd, links, m_filenames, m_file_priority, m_stat_cache, m_save_path, ec);
 	}
 
+	typed_bitfield<piece_index_t> mmap_storage::check_pieces()
+	{
+		std::function<bool(piece_index_t)> has_piece;
+		if (m_part_file)
+			has_piece = [this](piece_index_t const p) { return m_part_file->has_piece(p); };
+		return aux::check_pieces(
+			m_filenames,
+			m_file_priority,
+			m_stat_cache,
+			m_save_path,
+			[this](file_index_t const i) { return use_partfile(i); },
+			has_piece);
+	}
+
 	std::pair<status_t, std::string> mmap_storage::move_storage(std::string save_path
 		, move_flags_t const flags, storage_error& ec)
 	{

@@ -136,10 +136,11 @@ struct TORRENT_EXTRA_EXPORT pread_disk_io final
 		, std::function<void()> handler = std::function<void()>()) override;
 	void async_delete_files(storage_index_t storage, remove_flags_t options
 		, std::function<void(storage_error const&)> handler) override;
-	void async_check_files(storage_index_t storage
-		, add_torrent_params const* resume_data
-		, aux::vector<std::string, file_index_t> links
-		, std::function<void(status_t, storage_error const&)> handler) override;
+	void async_check_files(storage_index_t storage,
+		add_torrent_params const* resume_data,
+		aux::vector<std::string, file_index_t> links,
+		std::function<void(status_t, storage_error const&, typed_bitfield<piece_index_t>)> handler)
+		override;
 	void async_rename_file(storage_index_t storage, file_index_t index, std::string name
 		, std::function<void(std::string const&, file_index_t, storage_error const&)> handler) override;
 	void async_stop_torrent(storage_index_t storage
@@ -1069,21 +1070,20 @@ void pread_disk_io::async_delete_files(storage_index_t const storage
 	add_fence_job(j);
 }
 
-void pread_disk_io::async_check_files(storage_index_t const storage
-	, add_torrent_params const* resume_data
-	, aux::vector<std::string, file_index_t> links
-	, std::function<void(status_t, storage_error const&)> handler)
+void pread_disk_io::async_check_files(storage_index_t const storage,
+	add_torrent_params const* resume_data,
+	aux::vector<std::string, file_index_t> links,
+	std::function<void(status_t, storage_error const&, typed_bitfield<piece_index_t>)> handler)
 {
 	aux::vector<std::string, file_index_t>* links_vector = nullptr;
 	if (!links.empty()) links_vector = new aux::vector<std::string, file_index_t>(std::move(links));
 
-	aux::pread_disk_job* j = m_job_pool.allocate_job<aux::job::check_fastresume>(
-		{},
+	aux::pread_disk_job* j = m_job_pool.allocate_job<aux::job::check_fastresume>({},
 		m_torrents[storage]->shared_from_this(),
 		std::move(handler),
 		links_vector,
-		resume_data
-	);
+		resume_data,
+		typed_bitfield<piece_index_t>{});
 
 	add_fence_job(j);
 }
@@ -1508,21 +1508,26 @@ status_t pread_disk_io::do_job(aux::job::check_fastresume& a, aux::pread_disk_jo
 	if (m_settings.get_bool(settings_pack::no_recheck_incomplete_resume))
 		return status_t{} | ret_flag;
 
+	status_t need_check{};
 	if (!aux::contains_resume_data(*rd))
 	{
 		// if we don't have any resume data, we still may need to trigger a
 		// full re-check, if there are *any* files.
 		storage_error ignore;
-		return ((j->storage->has_any_file(ignore))
-			? disk_status::need_full_check
-			: status_t{})
-			| ret_flag;
+		if (j->storage->has_any_file(ignore))
+			need_check = disk_status::need_full_check;
+	}
+	else if (!verify_success)
+	{
+		need_check = disk_status::need_full_check;
 	}
 
-	return (verify_success
-		? status_t{}
-		: disk_status::need_full_check)
-		| ret_flag;
+	// only worth the stat pass when we're actually about to hash-check
+	// every piece; resume data we trust needs no hint here
+	if (need_check & disk_status::need_full_check)
+		a.checked_pieces = j->storage->check_pieces();
+
+	return need_check | ret_flag;
 }
 
 status_t pread_disk_io::do_job(aux::job::rename_file& a, aux::pread_disk_job* j)

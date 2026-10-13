@@ -300,6 +300,12 @@ namespace libtorrent::aux {
 		m_dirty_metadata = true;
 	}
 
+	bool part_file::has_piece(piece_index_t const piece)
+	{
+		std::lock_guard<std::mutex> l(m_mutex);
+		return m_piece_map.find(piece) != m_piece_map.end();
+	}
+
 	void part_file::move_partfile(std::string const& path, error_code& ec)
 	{
 		std::lock_guard<std::mutex> l(m_mutex);

@@ -9,6 +9,7 @@ see LICENSE file.
 */
 
 #include "libtorrent/aux_/stat_cache.hpp"
+#include "libtorrent/aux_/path.hpp"
 #include "libtorrent/error_code.hpp"
 #include "test.hpp"
 #include "test_utils.hpp"
@@ -64,4 +65,33 @@ TORRENT_TEST(stat_cache)
 	sc.set_cache(15_file, 1000);
 	TEST_CHECK(sc.get_filesize(15_file, fn, save_path, ec) == 1000);
 	TEST_CHECK(!ec);
+}
+
+TORRENT_TEST(stat_cache_directory)
+{
+	file_storage fs;
+	fs.add_file_borrow({}, "stat_cache_test_dir/test.txt", 1000);
+	renamed_files rf;
+	filenames fn(fs, rf);
+
+	std::string const save_path = absolute(".");
+	std::string const file_path = fn.file_path(0_file, save_path);
+
+	error_code ec;
+	create_directories(file_path, ec);
+	TEST_CHECK(!ec);
+
+	aux::stat_cache sc;
+	// a directory in place of the expected file must be reported as an
+	// error, never a valid (and misleading) size
+	TEST_EQUAL(sc.get_filesize(0_file, fn, save_path, ec), aux::stat_cache::file_error);
+	TEST_EQUAL(ec, error_code(boost::system::errc::is_a_directory, generic_category()));
+
+	// the cached entry must report the same thing on a second call
+	ec.clear();
+	TEST_EQUAL(sc.get_filesize(0_file, fn, save_path, ec), aux::stat_cache::file_error);
+	TEST_EQUAL(ec, error_code(boost::system::errc::is_a_directory, generic_category()));
+
+	remove(file_path, ec);
+	remove(parent_path(file_path), ec);
 }

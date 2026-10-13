@@ -20,6 +20,8 @@ see LICENSE file.
 #include "libtorrent/aux_/storage_utils.hpp" // for read_zeroes, move_storage
 #include "libtorrent/aux_/readwrite.hpp"
 
+#include <functional>
+
 #if defined TORRENT_SIMULATE_SLOW_READ || defined TORRENT_SIMULATE_SLOW_WRITE
 #include <thread>
 #endif
@@ -304,6 +306,20 @@ posix_storage::~posix_storage()
 	{
 		return aux::verify_resume_data(
 			rd, links, m_filenames, m_file_priority, m_stat_cache, m_save_path, ec);
+	}
+
+	typed_bitfield<piece_index_t> posix_storage::check_pieces()
+	{
+		std::function<bool(piece_index_t)> has_piece;
+		if (m_part_file)
+			has_piece = [this](piece_index_t const p) { return m_part_file->has_piece(p); };
+		return aux::check_pieces(
+			m_filenames,
+			m_file_priority,
+			m_stat_cache,
+			m_save_path,
+			[this](file_index_t const i) { return use_partfile(i); },
+			has_piece);
 	}
 
 	void posix_storage::release_files()
