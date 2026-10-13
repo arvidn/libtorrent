@@ -449,8 +449,12 @@ namespace libtorrent::aux {
 		// connections.
 		bool is_self_connection(peer_id const& pid) const;
 
-		void on_resume_data_checked(status_t status, storage_error const& error);
-		void on_force_recheck(status_t status, storage_error const& error);
+		void on_resume_data_checked(status_t status,
+			storage_error const& error,
+			typed_bitfield<piece_index_t> checked_pieces);
+		void on_force_recheck(status_t status,
+			storage_error const& error,
+			typed_bitfield<piece_index_t> checked_pieces);
 		void on_piece_hashed(aux::vector<sha256_hash> block_hashes,
 			piece_index_t piece,
 			sha1_hash const& piece_hash,
@@ -458,6 +462,14 @@ namespace libtorrent::aux {
 			std::uint8_t picker_gen);
 		void files_checked();
 		void start_checking();
+
+		// shared tail of a checking pass completing: called from
+		// on_piece_hashed() when the last outstanding hash job returns,
+		// and from start_checking() when every remaining piece was
+		// skipped (have, or known-absent via m_checkable_pieces) without
+		// ever dispatching a hash job, so on_piece_hashed() would
+		// otherwise never run to detect completion.
+		void finish_checking_files();
 
 		void start_announcing();
 		void stop_announcing();
@@ -1669,6 +1681,15 @@ namespace libtorrent::aux {
 
 		// the number of pieces we completed the check of
 		piece_index_t m_num_checked_pieces{0};
+
+		// one bit per piece, populated at the start of a checking pass from
+		// async_check_files()'s stat pass. A clear bit means the piece is
+		// known not to be on disk at all; start_checking()/on_piece_hashed()
+		// skip it without dispatching a hash job. A set bit means nothing
+		// more than "unknown, must hash it to find out", never a have-piece
+		// signal, and must never be fed into the piece_picker.
+		// Empty means no information is available (check everything).
+		typed_bitfield<piece_index_t> m_checkable_pieces;
 
 		// bumped every time the picker is reset for a fresh check
 		// (force_recheck(), handle_inconsistent_hashes()). in-flight disk

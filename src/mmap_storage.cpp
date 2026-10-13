@@ -461,6 +461,37 @@ mmap_storage::mmap_storage(storage_params const& params, aux::file_view_pool& po
 			rd, links, m_filenames, m_file_priority, m_stat_cache, m_save_path, ec);
 	}
 
+	typed_bitfield<piece_index_t> mmap_storage::check_pieces()
+	{
+		typed_bitfield<piece_index_t> pieces =
+			aux::build_check_pieces(m_filenames, m_file_priority, m_stat_cache, m_save_path);
+
+		// build_check_pieces() skips dont_download files, since their data
+		// may be redirected to the part file instead of their expected
+		// path. Resolve those here, where use_partfile() and m_part_file
+		// are available.
+		for (file_index_t const i : m_file_priority.range())
+		{
+			if (m_file_priority[i] != dont_download || m_filenames.pad_file_at(i))
+				continue;
+
+			if (!use_partfile(i))
+			{
+				// initialize() already confirmed this file has real data at
+				// its expected path; check it like any other file
+				aux::clear_missing_pieces(m_filenames, i, m_stat_cache, m_save_path, pieces);
+				continue;
+			}
+
+			if (!m_part_file)
+				continue;
+			for (piece_index_t const p : aux::file_piece_range_exclusive(m_filenames, i))
+				if (!m_part_file->has_piece(p))
+					pieces.clear_bit(p);
+		}
+		return pieces;
+	}
+
 	std::pair<status_t, std::string> mmap_storage::move_storage(std::string save_path
 		, move_flags_t const flags, storage_error& ec)
 	{

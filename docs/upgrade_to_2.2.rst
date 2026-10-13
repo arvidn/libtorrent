@@ -34,6 +34,17 @@ built into the ``torrent`` object directly, controlled by the
 ``create_smart_ban_plugin()`` is deprecated, constructs nothing and always
 returns a null pointer.
 
+disk_interface::async_check_files() signature change
+====================================================
+
+``disk_interface::async_check_files()``'s completion handler takes a new
+trailing parameter, a ``typed_bitfield<piece_index_t>``: a hint of which
+pieces are known not to be on disk at all, used to skip hash-checking them
+during a full check without a wasted hash attempt. A custom
+``disk_interface`` implementation must update its override to the new
+signature; passing a default-constructed (empty) bitfield reproduces the
+previous behavior exactly.
+
 file_storage isn't constructible
 ================================
 

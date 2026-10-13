@@ -64,7 +64,7 @@ namespace {
 		void operator()(job::check_fastresume& j) const
 		{
 			if (!j.handler) return;
-			j.handler(m_job.ret, m_job.error);
+			j.handler(m_job.ret, m_job.error, std::move(j.checked_pieces));
 		}
 
 		void operator()(job::rename_file& j) const

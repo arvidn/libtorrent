@@ -322,6 +322,11 @@ namespace aux {
 		m_dirty_metadata = true;
 	}
 
+	bool posix_part_file::has_piece(piece_index_t const piece) const
+	{
+		return m_piece_map.find(piece) != m_piece_map.end();
+	}
+
 	void posix_part_file::move_partfile(std::string const& path, error_code& ec)
 	{
 		flush_metadata_impl(ec);

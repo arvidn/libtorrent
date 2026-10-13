@@ -48,6 +48,11 @@ namespace libtorrent::aux {
 		// piece in the part file
 		void free_piece(piece_index_t piece);
 
+		// returns true if this piece has a slot allocated in the part file.
+		// Note that a slot being allocated doesn't necessarily mean the
+		// whole piece has been written to it.
+		bool has_piece(piece_index_t piece);
+
 		void move_partfile(std::string const& path, error_code& ec);
 
 		// the function is called for every block of data belonging to the

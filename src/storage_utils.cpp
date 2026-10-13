@@ -497,6 +497,60 @@ std::int64_t get_filesize(stat_cache& stat, file_index_t const file_index
 
 }
 
+void clear_missing_pieces(filenames const& fs,
+	file_index_t const file_index,
+	stat_cache& stat,
+	std::string const& save_path,
+	typed_bitfield<piece_index_t>& pieces)
+{
+	error_code err;
+	std::int64_t on_disk_size = stat.get_filesize(file_index, fs, save_path, err);
+	if (on_disk_size < 0)
+	{
+		// a transient stat error (permissions, I/O, ...) is not proof of
+		// absence; only a confirmed "doesn't exist" is certain enough to
+		// act on
+		if (err != boost::system::errc::no_such_file_or_directory)
+			return;
+		on_disk_size = 0;
+	}
+
+	std::int64_t const expected = fs.file_size(file_index);
+	if (on_disk_size >= expected)
+		return;
+
+	piece_index_t const first_missing = fs.map_file(file_index, on_disk_size, 0).piece;
+	piece_index_t const end_clear = aux::file_piece_range_inclusive(fs, file_index)._end;
+
+	for (piece_index_t p = first_missing; p < end_clear; ++p)
+		pieces.clear_bit(p);
+}
+
+typed_bitfield<piece_index_t> build_check_pieces(filenames const& fs,
+	aux::vector<download_priority_t, file_index_t> const& file_priority,
+	stat_cache& stat,
+	std::string const& save_path)
+{
+	typed_bitfield<piece_index_t> pieces;
+	pieces.resize(fs.num_pieces(), true);
+
+	for (file_index_t const file_index : fs.file_range())
+	{
+		if (fs.pad_file_at(file_index))
+			continue;
+		if (fs.file_size(file_index) == 0)
+			continue;
+		// zero-priority files may legitimately live in a part file
+		// instead of their expected path; resolved separately by each
+		// storage's check_pieces(), which has access to use_partfile()
+		if (file_index < file_priority.end_index() && file_priority[file_index] == dont_download)
+			continue;
+
+		clear_missing_pieces(fs, file_index, stat, save_path, pieces);
+	}
+	return pieces;
+}
+
 	bool verify_resume_data(add_torrent_params const& rd
 		, aux::vector<std::string, file_index_t> const& links
 		, filenames const& fs

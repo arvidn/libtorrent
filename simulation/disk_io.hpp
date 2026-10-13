@@ -20,6 +20,7 @@ see LICENSE file.
 
 #include <array>
 #include <limits>
+#include <memory>
 #include <string>
 
 std::array<char, 0x4000> generate_block_fill(lt::piece_index_t const p, int const block);
@@ -113,6 +114,12 @@ struct test_disk
 
 	// after having written this many bytes, fail with disk-full
 	int space_left = std::numeric_limits<int>::max();
+
+	// number of async_hash()/async_hash2() calls dispatched so far. A
+	// shared_ptr so it keeps counting across the copies test_disk's fluent
+	// setters make, and so the caller can read it back after handing a
+	// copy to disk_io_constructor.
+	std::shared_ptr<int> num_hash_calls = std::make_shared<int>(0);
 };
 
 std::ostream& operator<<(std::ostream& os, existing_files_mode const mode);

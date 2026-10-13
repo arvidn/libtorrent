@@ -1238,6 +1238,8 @@ namespace aux {
 	// only the instantiations explicitly defined in file_storage.cpp are used
 	extern template index_range<piece_index_t> file_piece_range_exclusive(
 		file_storage const&, file_index_t);
+	extern template index_range<piece_index_t> file_piece_range_exclusive(
+		filenames const&, file_index_t);
 	extern template index_range<piece_index_t> file_piece_range_inclusive(
 		file_storage const&, file_index_t);
 	extern template index_range<piece_index_t> file_piece_range_inclusive(

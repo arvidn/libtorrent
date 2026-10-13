@@ -535,6 +535,7 @@ struct test_disk_io final : lt::disk_interface
 		, std::function<void(lt::piece_index_t, lt::sha1_hash const&, lt::storage_error const&)> handler) override
 	{
 		TORRENT_ASSERT(m_files);
+		++*m_state.num_hash_calls;
 
 		auto const seek_time = disk_seek(piece, 0, m_blocks_per_piece * lt::default_block_size);
 
@@ -601,6 +602,7 @@ struct test_disk_io final : lt::disk_interface
 		, std::function<void(lt::piece_index_t, lt::sha256_hash const&, lt::storage_error const&)> handler) override
 	{
 		TORRENT_ASSERT(m_files);
+		++*m_state.num_hash_calls;
 
 		auto const seek_time = disk_seek(piece, offset, m_blocks_per_piece * lt::default_block_size);
 
@@ -653,10 +655,12 @@ struct test_disk_io final : lt::disk_interface
 		});
 	}
 
-	void async_check_files(lt::storage_index_t
-		, lt::add_torrent_params const* p
-		, lt::aux::vector<std::string, lt::file_index_t>
-		, std::function<void(lt::status_t, lt::storage_error const&)> handler) override
+	void async_check_files(lt::storage_index_t,
+		lt::add_torrent_params const* p,
+		lt::aux::vector<std::string, lt::file_index_t>,
+		std::function<void(
+			lt::status_t, lt::storage_error const&, lt::typed_bitfield<lt::piece_index_t>)> handler)
+		override
 	{
 		TORRENT_ASSERT(m_files);
 
@@ -669,9 +673,43 @@ struct test_disk_io final : lt::disk_interface
 		if (p && lt::aux::contains_resume_data(*p))
 			ret = lt::status_t{};
 
-		queue_event(lt::microseconds(1), [this,ret,h=std::move(handler)] () mutable {
-			post(m_ioc, [ret,h=std::move(h)] { h(ret, lt::storage_error()); });
-		});
+		lt::typed_bitfield<lt::piece_index_t> checked_pieces;
+		// only worth it when we're actually about to hash-check every
+		// piece; resume data we trust (or no files at all) needs no hint
+		if (ret & lt::disk_status::need_full_check)
+		{
+			checked_pieces.resize(m_files->num_pieces(), true);
+			// full_invalid means the files exist on disk with the wrong
+			// content (a real backend would see the right file size and have
+			// no reason to skip hashing it); m_have deliberately stays empty
+			// for this mode (see async_hash()), so leave every bit set rather
+			// than reading m_have's ground truth below
+			if (m_state.files != existing_files_mode::full_invalid)
+			{
+				for (int p2 = 0; p2 < m_files->num_pieces(); ++p2)
+				{
+					int const base = p2 * m_blocks_per_piece;
+					bool any = false;
+					for (int b = 0; b < m_blocks_per_piece; ++b)
+					{
+						if (m_have.get_bit(base + b))
+						{
+							any = true;
+							break;
+						}
+					}
+					if (!any)
+						checked_pieces.clear_bit(lt::piece_index_t{p2});
+				}
+			}
+		}
+
+		queue_event(
+			lt::microseconds(1), [this, ret, checked_pieces, h = std::move(handler)]() mutable {
+				post(m_ioc, [ret, checked_pieces, h = std::move(h)]() mutable {
+					h(ret, lt::storage_error(), std::move(checked_pieces));
+				});
+			});
 	}
 
 	void async_rename_file(lt::storage_index_t

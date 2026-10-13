@@ -20,6 +20,7 @@ see LICENSE file.
 #include "libtorrent/fwd.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/units.hpp"
+#include "libtorrent/bitfield.hpp"
 #include "libtorrent/disk_interface.hpp" // for status_t
 #include "libtorrent/session_types.hpp"
 #include "libtorrent/error_code.hpp"
@@ -85,6 +86,27 @@ namespace libtorrent::aux {
 		, std::string const& save_path
 		, stat_cache& cache
 		, storage_error& ec);
+
+	// returns a bitfield (fs.num_pieces() bits) with a bit cleared only
+	// where the on-disk file size proves the piece can't be complete.
+	// ``dont_download`` files are left untouched, since their data may
+	// live in a part file instead; see storage::check_pieces() for how
+	// those are resolved.
+	TORRENT_EXTRA_EXPORT typed_bitfield<piece_index_t> build_check_pieces(filenames const& fs,
+		aux::vector<download_priority_t, file_index_t> const& file_priority,
+		stat_cache& stat,
+		std::string const& save_path);
+
+	// clears bits in ``pieces`` for the part of ``file_index`` missing
+	// from disk. Leaves bits untouched if the file is present and long
+	// enough, or a stat error isn't "doesn't exist" (not proof of
+	// absence). Shared by build_check_pieces() and by check_pieces()'s
+	// own ``dont_download`` resolution.
+	TORRENT_EXTRA_EXPORT void clear_missing_pieces(filenames const& fs,
+		file_index_t file_index,
+		stat_cache& stat,
+		std::string const& save_path,
+		typed_bitfield<piece_index_t>& pieces);
 
 	TORRENT_EXTRA_EXPORT int read_zeroes(span<char> bufs);
 
