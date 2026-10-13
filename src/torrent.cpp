@@ -2174,10 +2174,14 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 		if (!(m_flags & torrent_flags::no_verify_files))
 		{
-			m_ses.disk_thread().async_check_files(
-				m_storage, m_add_torrent_params ? m_add_torrent_params.get() : nullptr
-				, std::move(links), [self = shared_from_this()](status_t st, storage_error const& error)
-				{ self->on_resume_data_checked(st, error); });
+			m_ses.disk_thread().async_check_files(m_storage,
+				m_add_torrent_params ? m_add_torrent_params.get() : nullptr,
+				std::move(links),
+				[self = shared_from_this()](status_t st,
+					storage_error const& error,
+					typed_bitfield<piece_index_t> checked_pieces) {
+					self->on_resume_data_checked(st, error, std::move(checked_pieces));
+				});
 #ifndef TORRENT_DISABLE_LOGGING
 			debug_log("init, async_check_files");
 #endif
@@ -2185,7 +2189,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		}
 		else
 		{
-			on_resume_data_checked({}, storage_error{});
+			on_resume_data_checked({}, storage_error{}, {});
 		}
 
 		update_want_peers();
@@ -2239,8 +2243,10 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		return m_outgoing_pids.count(pid) > 0;
 	}
 
-	void torrent::on_resume_data_checked(status_t const status
-		, storage_error const& error) try
+	void torrent::on_resume_data_checked(status_t const status,
+		storage_error const& error,
+		typed_bitfield<piece_index_t> checked_pieces)
+	try
 	{
 #if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(m_flags & torrent_internal_flags::outstanding_check_files);
@@ -2467,6 +2473,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 		if (should_start_full_check)
 		{
+			m_checkable_pieces = std::move(checked_pieces);
 			stop_announcing();
 			set_state(torrent_status::checking_files);
 			if (should_check_files()) start_checking();
@@ -2476,6 +2483,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		}
 		else
 		{
+			m_checkable_pieces.clear();
 			files_checked();
 		}
 
@@ -2518,6 +2526,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		// completion handler must not touch the picker state we're about
 		// to discard.
 		++m_picker_generation;
+		m_checkable_pieces.clear();
 
 		// removing the piece picker will clear the user priorities
 		// instead, just clear which pieces we have
@@ -2550,13 +2559,21 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		// filesystem for files again
 		m_ses.disk_thread().async_release_files(m_storage);
 
-		m_ses.disk_thread().async_check_files(m_storage, nullptr
-			, {}, [self = shared_from_this()](status_t st, storage_error const& error)
-			{ self->on_force_recheck(st, error); });
+		m_ses.disk_thread().async_check_files(m_storage,
+			nullptr,
+			{},
+			[self = shared_from_this()](status_t st,
+				storage_error const& error,
+				typed_bitfield<piece_index_t> checked_pieces) {
+				self->on_force_recheck(st, error, std::move(checked_pieces));
+			});
 		m_ses.deferred_submit_jobs();
 	}
 
-	void torrent::on_force_recheck(status_t const status, storage_error const& error) try
+	void torrent::on_force_recheck(status_t const status,
+		storage_error const& error,
+		typed_bitfield<piece_index_t> checked_pieces)
+	try
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -2585,11 +2602,13 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			|| (status & disk_status::file_exist);
 		if (!has_error_status)
 		{
+			m_checkable_pieces.clear();
 			// if there are no files, just start
 			files_checked();
 		}
 		else
 		{
+			m_checkable_pieces = std::move(checked_pieces);
 			m_progress_ppm = 0;
 			m_checking_piece = piece_index_t(0);
 			m_num_checked_pieces = piece_index_t(0);
@@ -2636,17 +2655,23 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 		std::uint8_t const gen = m_picker_generation;
 
+		// set once a hash job is actually dispatched below. If every
+		// remaining piece gets skipped instead (have, or known-absent via
+		// m_checkable_pieces), on_piece_hashed() never runs to detect
+		// completion, so start_checking() has to do it itself.
+		bool dispatched = false;
+
 		for (int i = 0; i < num_outstanding; ++i)
 		{
-			if (has_picker())
+			// skip pieces we already have, and pieces known to not be on
+			// disk at all (see m_checkable_pieces)
+			while (m_checking_piece < m_torrent_file->end_piece()
+				&& ((has_picker() && m_picker->have_piece(m_checking_piece))
+					|| (m_checking_piece < m_checkable_pieces.end_index()
+						&& !m_checkable_pieces.get_bit(m_checking_piece))))
 			{
-				// skip pieces we already have
-				while (m_checking_piece < m_torrent_file->end_piece()
-					&& m_picker->have_piece(m_checking_piece))
-				{
-					++m_checking_piece;
-					++m_num_checked_pieces;
-				}
+				++m_checking_piece;
+				++m_num_checked_pieces;
 			}
 
 			if (m_checking_piece >= m_torrent_file->end_piece()) break;
@@ -2664,6 +2689,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			// completion handler inline, before this call even returns.
 			piece_index_t const piece = m_checking_piece;
 			++m_checking_piece;
+			dispatched = true;
 
 			span<sha256_hash> v2_span(hashes);
 			m_ses.disk_thread().async_hash(m_storage,
@@ -2681,6 +2707,17 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		debug_log("start_checking, m_checking_piece: %d"
 			, static_cast<int>(m_checking_piece));
 #endif
+		if (!dispatched && m_num_checked_pieces >= m_torrent_file->end_piece())
+		{
+			// every remaining piece was skipped without ever dispatching a
+			// hash job; nothing will call on_piece_hashed() to notice
+			// we're done. Defer it rather than finishing inline: callers
+			// like do_resume() are still unwinding their own state/flag
+			// bookkeeping on this stack, same as a real disk completion
+			// would never re-enter them synchronously.
+			post(m_ses.get_context(),
+				[self = shared_from_this()] { self->wrap(&torrent::finish_checking_files); });
+		}
 	}
 	catch (...) { handle_exception(); }
 
@@ -2820,21 +2857,17 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 				m_picker->mark_as_finished(piece_block(piece, i), nullptr);
 		}
 
-		if (m_checking_piece < m_torrent_file->end_piece() && has_picker())
+		// skip pieces we already have, and pieces known to not be on disk
+		// at all (see m_checkable_pieces). If this reaches end_piece(), we
+		// already have outstanding jobs for the remaining pieces; we just
+		// need to wait for them to finish
+		while (m_checking_piece < m_torrent_file->end_piece()
+			&& ((has_picker() && m_picker->have_piece(m_checking_piece))
+				|| (m_checking_piece < m_checkable_pieces.end_index()
+					&& !m_checkable_pieces.get_bit(m_checking_piece))))
 		{
-			// skip pieces we already have
-			while (m_picker->have_piece(m_checking_piece))
-			{
-				++m_checking_piece;
-				++m_num_checked_pieces;
-				if (m_checking_piece >= m_torrent_file->end_piece())
-				{
-					// actually, we already have outstanding jobs for
-					// the remaining pieces. We just need to wait for them
-					// to finish
-					break;
-				}
-			}
+			++m_checking_piece;
+			++m_num_checked_pieces;
 		}
 
 		if (m_num_checked_pieces < m_torrent_file->end_piece())
@@ -2892,6 +2925,24 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("on_piece_hashed, completed");
 #endif
+		finish_checking_files();
+	}
+	catch (...)
+	{
+		handle_exception();
+	}
+
+	void torrent::finish_checking_files()
+	{
+		// the deferred post in start_checking() can land after the torrent
+		// was aborted or removed, or after a force_recheck() (or similar
+		// reset) superseded this checking pass
+		if (m_flags & (torrent_internal_flags::torrent_aborted | torrent_internal_flags::deleted))
+			return;
+		if (m_state != torrent_status::checking_files)
+			return;
+		if (m_num_checked_pieces < m_torrent_file->end_piece())
+			return;
 
 		auto const& pack = settings();
 		auto get_int_setting = [&pack](int const name) {
@@ -2919,7 +2970,6 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		m_checking_piece = piece_index_t(0);
 		m_num_checked_pieces = piece_index_t(0);
 	}
-	catch (...) { handle_exception(); }
 
 #if TORRENT_ABI_VERSION == 1
 	void torrent::use_interface(std::string net_interfaces)

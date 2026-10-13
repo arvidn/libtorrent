@@ -65,6 +65,9 @@ namespace libtorrent::aux {
 		bool verify_resume_data(add_torrent_params const& rd
 			, aux::vector<std::string, file_index_t> const& links
 			, storage_error&);
+		// a hint of which pieces are known to not be on disk at all; see
+		// disk_interface::async_check_files()
+		typed_bitfield<piece_index_t> check_pieces();
 		bool tick();
 
 		int read(settings_interface const&, span<char> buffer

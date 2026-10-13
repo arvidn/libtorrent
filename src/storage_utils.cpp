@@ -495,6 +495,69 @@ std::int64_t get_filesize(stat_cache& stat, file_index_t const file_index
 	return -1;
 }
 
+void clear_missing_pieces(filenames const& fs,
+	file_index_t const file_index,
+	stat_cache& stat,
+	std::string const& save_path,
+	typed_bitfield<piece_index_t>& pieces)
+{
+	error_code err;
+	std::int64_t on_disk_size = stat.get_filesize(file_index, fs, save_path, err);
+	if (on_disk_size < 0)
+	{
+		// a transient stat error (permissions, I/O, ...) is not proof of
+		// absence; only a confirmed "doesn't exist" is certain enough to
+		// act on. this also covers is_a_directory, whose size bears no
+		// relation to the torrent's file content
+		if (err != boost::system::errc::no_such_file_or_directory)
+			return;
+		on_disk_size = 0;
+	}
+
+	std::int64_t const expected = fs.file_size(file_index);
+	if (on_disk_size >= expected)
+		return;
+
+	piece_index_t const first_missing = fs.map_file(file_index, on_disk_size, 0).piece;
+	piece_index_t const end_clear = aux::file_piece_range_inclusive(fs, file_index)._end;
+
+	for (piece_index_t p = first_missing; p < end_clear; ++p)
+		pieces.clear_bit(p);
+}
+
+}
+
+typed_bitfield<piece_index_t> check_pieces(filenames const& fs,
+	aux::vector<download_priority_t, file_index_t> const& file_priority,
+	stat_cache& stat,
+	std::string const& save_path,
+	std::function<bool(file_index_t)> const& use_partfile,
+	std::function<bool(piece_index_t)> const& partfile_has_piece)
+{
+	typed_bitfield<piece_index_t> pieces;
+	pieces.resize(fs.num_pieces(), true);
+
+	for (file_index_t const i : fs.file_range())
+	{
+		if (fs.pad_file_at(i) || fs.file_size(i) == 0)
+			continue;
+
+		// a zero-priority file is only redirected to the part file if the
+		// storage says so; otherwise its data is at its expected path
+		bool const skipped = i < file_priority.end_index() && file_priority[i] == dont_download;
+		if (!skipped || !use_partfile(i))
+		{
+			clear_missing_pieces(fs, i, stat, save_path, pieces);
+			continue;
+		}
+
+		if (!partfile_has_piece)
+			continue;
+		for (piece_index_t const p : aux::file_piece_range_exclusive(fs, i))
+			if (!partfile_has_piece(p))
+				pieces.clear_bit(p);
+	}
+	return pieces;
 }
 
 	bool verify_resume_data(add_torrent_params const& rd
@@ -653,14 +716,18 @@ std::int64_t get_filesize(stat_cache& stat, file_index_t const file_index
 
 			if (sz < 0)
 			{
-				if (ec && ec.ec != boost::system::errc::no_such_file_or_directory)
+				if (ec && ec.ec != boost::system::errc::no_such_file_or_directory
+					&& ec.ec != boost::system::errc::is_a_directory)
 				{
 					ec.file(i);
 					ec.operation = operation_t::file_stat;
 					cache.clear();
 					return false;
 				}
-				// some files not existing is expected and not an error
+				// missing, or a directory in its place, is not evidence
+				// either way; the directory case only reaches here for a
+				// dont_download file, whose data may live in a partfile
+				// instead
 				ec.ec.clear();
 			}
 

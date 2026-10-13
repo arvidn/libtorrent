@@ -19,6 +19,7 @@ see LICENSE file.
 
 #include "libtorrent/fwd.hpp"
 #include "libtorrent/units.hpp"
+#include "libtorrent/bitfield.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/export.hpp"
@@ -285,10 +286,22 @@ namespace file_open_mode {
 		// Any file with a piece set in the ``resume_data->have_pieces`` bitmask
 		// should exist on disk, this should be verified. Pad files and files
 		// with zero priority may be skipped.
-		virtual void async_check_files(storage_index_t storage
-			, add_torrent_params const* resume_data
-			, aux::vector<std::string, file_index_t> links
-			, std::function<void(status_t, storage_error const&)> handler) = 0;
+		//
+		// The handler's ``typed_bitfield<piece_index_t>`` argument is a hint
+		// of which pieces are worth hash-checking: a cleared bit means the
+		// implementation is certain the piece is not on disk (its file is
+		// missing, or lies entirely past the on-disk end of a truncated
+		// file), so the caller can skip hash-checking it without even trying.
+		// A set bit means nothing more than "unknown, hash-check it to find
+		// out", and must never be treated as a have-piece signal. An empty
+		// bitfield means no information is available, i.e. every piece is
+		// worth checking (this is also what a default-constructed bitfield
+		// means, for implementations that don't support this feature).
+		virtual void async_check_files(storage_index_t storage,
+			add_torrent_params const* resume_data,
+			aux::vector<std::string, file_index_t> links,
+			std::function<void(status_t, storage_error const&, typed_bitfield<piece_index_t>)>
+				handler) = 0;
 
 		// This is called when a torrent is stopped. It gives the disk I/O
 		// object an opportunity to flush any data to disk that's currently kept

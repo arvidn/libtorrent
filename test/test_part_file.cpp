@@ -158,11 +158,17 @@ TORRENT_TEST(part_file)
 
 		TEST_CHECK(!exists(combine_path(combine_path(cwd, "partfile_test_dir"), "partfile.parts")));
 
+		// nothing has been written yet, no piece has a slot
+		TEST_CHECK(!pf.has_piece(10_piece));
+
 		// write something to the metadata file
 		for (int i = 0; i < 1024; ++i) buf[std::size_t(i)] = char(i & 0xff);
 
 		pf.write(buf, 10_piece, 0, ec);
 		if (ec) std::printf("part_file::write: %s\n", ec.message().c_str());
+
+		TEST_CHECK(pf.has_piece(10_piece));
+		TEST_CHECK(!pf.has_piece(11_piece));
 
 		pf.flush_metadata(ec);
 		if (ec) std::printf("flush_metadata: %s\n", ec.message().c_str());
@@ -222,7 +228,9 @@ TORRENT_TEST(part_file)
 		}, 10 * piece_size, 1024, ec);
 		if (ec) std::printf("export_file: %s\n", ec.message().c_str());
 
+		TEST_CHECK(pf.has_piece(10_piece));
 		pf.free_piece(10_piece);
+		TEST_CHECK(!pf.has_piece(10_piece));
 
 		pf.flush_metadata(ec);
 		if (ec) std::printf("flush_metadata: %s\n", ec.message().c_str());
@@ -268,11 +276,17 @@ TORRENT_TEST(posix_part_file)
 
 		TEST_CHECK(!exists(combine_path(combine_path(cwd, "partfile_test_dir"), "partfile.parts")));
 
+		// nothing has been written yet, no piece has a slot
+		TEST_CHECK(!pf.has_piece(10_piece));
+
 		// write something to the metadata file
 		for (int i = 0; i < 1024; ++i) buf[std::size_t(i)] = char(i & 0xff);
 
 		pf.write(buf, 10_piece, 0, ec);
 		if (ec) std::printf("posix_part_file::write: %s\n", ec.message().c_str());
+
+		TEST_CHECK(pf.has_piece(10_piece));
+		TEST_CHECK(!pf.has_piece(11_piece));
 
 		pf.flush_metadata(ec);
 		if (ec) std::printf("flush_metadata: %s\n", ec.message().c_str());
@@ -332,7 +346,9 @@ TORRENT_TEST(posix_part_file)
 		}, 10 * piece_size, 1024, ec);
 		if (ec) std::printf("export_file: %s\n", ec.message().c_str());
 
+		TEST_CHECK(pf.has_piece(10_piece));
 		pf.free_piece(10_piece);
+		TEST_CHECK(!pf.has_piece(10_piece));
 
 		pf.flush_metadata(ec);
 		if (ec) std::printf("flush_metadata: %s\n", ec.message().c_str());

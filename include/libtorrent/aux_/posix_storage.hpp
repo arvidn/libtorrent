@@ -15,6 +15,7 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/stat_cache.hpp"
 #include "libtorrent/file_storage.hpp"
+#include "libtorrent/bitfield.hpp"
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/aux_/open_mode.hpp" // for aux::open_mode_t
@@ -53,6 +54,9 @@ namespace aux {
 		bool verify_resume_data(add_torrent_params const& rd
 			, aux::vector<std::string, file_index_t> const& links
 			, storage_error& ec);
+		// a hint of which pieces are known to not be on disk at all; see
+		// disk_interface::async_check_files()
+		typed_bitfield<piece_index_t> check_pieces();
 
 		void release_files();
 

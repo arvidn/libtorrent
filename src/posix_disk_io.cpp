@@ -314,10 +314,11 @@ namespace {
 			post(m_ios, [=, h = std::move(handler)]{ h(error); });
 		}
 
-		void async_check_files(storage_index_t storage
-			, add_torrent_params const* resume_data
-			, aux::vector<std::string, file_index_t> links
-			, std::function<void(status_t, storage_error const&)> handler) override
+		void async_check_files(storage_index_t storage,
+			add_torrent_params const* resume_data,
+			aux::vector<std::string, file_index_t> links,
+			std::function<void(status_t, storage_error const&, typed_bitfield<piece_index_t>)>
+				handler) override
 		{
 			posix_storage* st = m_torrents[storage].get();
 
@@ -327,6 +328,7 @@ namespace {
 			storage_error error;
 			auto const ret_flag = st->initialize(m_settings, error);
 			status_t ret = ret_flag;
+			typed_bitfield<piece_index_t> checked_pieces;
 			if (error)
 			{
 				ret |= disk_status::fatal_disk_error;
@@ -338,22 +340,34 @@ namespace {
 
 				if (!m_settings.get_bool(settings_pack::no_recheck_incomplete_resume))
 				{
+					bool need_check = false;
 					if (!aux::contains_resume_data(*rd))
 					{
 						// if we don't have any resume data, we still may need to trigger a
 						// full re-check, if there are *any* files.
 						storage_error ignore;
-						if (st->has_any_file(ignore))
-							ret |= disk_status::need_full_check;
+						need_check = st->has_any_file(ignore);
 					}
-					else if (!verify_success)
+					else
+					{
+						need_check = !verify_success;
+					}
+
+					if (need_check)
 					{
 						ret |= disk_status::need_full_check;
+						// only worth the stat pass when we're actually about
+						// to hash-check every piece; resume data we trust
+						// needs no hint here
+						checked_pieces = st->check_pieces();
 					}
 				}
 			}
 
-			post(m_ios, [error, ret, h = std::move(handler)]{ h(ret, error); });
+			post(m_ios,
+				[error, ret, cp = std::move(checked_pieces), h = std::move(handler)]() mutable {
+					h(ret, error, std::move(cp));
+				});
 		}
 
 		void async_rename_file(storage_index_t const storage

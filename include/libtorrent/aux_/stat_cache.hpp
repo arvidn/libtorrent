@@ -32,7 +32,8 @@ namespace libtorrent::aux {
 		void reserve(int num_files);
 
 		// returns the size of the file unless an error occurs, in which case ec
-		// is set to indicate the error.
+		// is set to indicate the error. A directory is reported as the
+		// is_a_directory error, never as a (misleading) size.
 		std::int64_t get_filesize(file_index_t i, filenames const& fn
 			, std::string const& save_path, error_code& ec);
 

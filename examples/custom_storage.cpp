@@ -206,12 +206,15 @@ struct temp_disk_io final : lt::disk_interface
 		post(m_ioc, [=]{ handler(lt::storage_error()); });
 	}
 
-	void async_check_files(lt::storage_index_t
-		, lt::add_torrent_params const*
-		, lt::aux::vector<std::string, lt::file_index_t>
-		, std::function<void(lt::status_t, lt::storage_error const&)> handler) override
+	void async_check_files(lt::storage_index_t,
+		lt::add_torrent_params const*,
+		lt::aux::vector<std::string, lt::file_index_t>,
+		std::function<void(
+			lt::status_t, lt::storage_error const&, lt::typed_bitfield<lt::piece_index_t>)> handler)
+		override
 	{
-		post(m_ioc, [=]{ handler(lt::status_t{}, lt::storage_error()); });
+		// an empty bitfield means "no information", i.e. check every piece
+		post(m_ioc, [=] { handler(lt::status_t{}, lt::storage_error(), {}); });
 	}
 
 	void async_rename_file(lt::storage_index_t
