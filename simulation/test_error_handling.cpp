@@ -23,7 +23,7 @@ see LICENSE file.
 #include "libtorrent/aux_/random.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "simulator/simulator.hpp"
-#include "simulator/socks_server.hpp"
+#include "socks_server.hpp"
 #include "simulator/utils.hpp"
 #include "setup_swarm.hpp"
 #include "utils.hpp"

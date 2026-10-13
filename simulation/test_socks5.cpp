@@ -20,7 +20,7 @@ see LICENSE file.
 #include "simulator/simulator.hpp"
 #include "setup_swarm.hpp"
 #include "utils.hpp"
-#include "simulator/socks_server.hpp"
+#include "socks_server.hpp"
 #include "simulator/utils.hpp"
 #include "fake_peer.hpp"
 #include <iostream>

@@ -820,6 +820,8 @@ SIM_SOURCES = \
   setup_dht.hpp \
   setup_swarm.cpp \
   setup_swarm.hpp \
+  socks_server.cpp \
+  socks_server.hpp \
   test_allow_multiple_connections_per_pid.cpp \
   test_auto_manage.cpp \
   test_checking.cpp \
@@ -870,7 +872,6 @@ LIBSIM_SOURCES = \
   simulation.cpp \
   simulator.cpp \
   sink_forwarder.cpp \
-  socks_server.cpp \
   tcp_socket.cpp \
   udp_socket.cpp
 
@@ -890,7 +891,6 @@ LIBSIM_HEADERS = \
   sink.hpp \
   sink_forwarder.hpp \
   ssl.hpp \
-  socks_server.hpp \
   utils.hpp
 
 LIBSIM_EXTRA = \
