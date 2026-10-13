@@ -1774,9 +1774,15 @@ namespace aux {
 		// generic logic doesn't really work. If this file is the last file, the
 		// last piece doesn't overlap with any other file and it's entirely
 		// contained within the last file.
+		// a file that starts mid-piece and doesn't reach that piece's end
+		// owns no piece exclusively; clamp rather than let end fall below
+		// begin, which would otherwise describe a backwards range.
 		piece_index_t const end_piece = (file == file_index_t(fs.num_files() - 1))
 			? piece_index_t(fs.num_pieces())
-			: piece_index_t(int((static_cast<int>(range.piece) * piece_size + range.start + file_size + 1) / piece_size));
+			: std::max(begin_piece,
+				  piece_index_t(
+					  int((static_cast<int>(range.piece) * piece_size + range.start + file_size + 1)
+						  / piece_size)));
 		return {begin_piece, end_piece};
 	}
 
