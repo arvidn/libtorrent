@@ -22,6 +22,7 @@ see LICENSE file.
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/socket_io.hpp"
+#include "libtorrent/aux_/scope_end.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/aux_/tracker_manager.hpp"
 
@@ -388,8 +389,10 @@ void websocket_tracker_connection::on_connect(error_code const& ec)
 void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_read */)
 {
 	COMPLETE_ASYNC("websocket_tracker_connection::on_read");
+	auto reissue_read = aux::scope_end([this] { do_read(); });
 	if (ec)
 	{
+		reissue_read.disarm();
 		if (ec != websocket::error::closed)
 		{
 			fail(ec, operation_t::sock_read);
@@ -413,6 +416,7 @@ void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_r
 	auto ret = parse_websocket_tracker_response({static_cast<char const*>(buf.data()), long(buf.size())}, ec);
 	if (ec)
 	{
+		reissue_read.disarm();
 #ifndef TORRENT_DISABLE_LOGGING
 		if (auto cb = requester())
 		{
@@ -436,7 +440,6 @@ void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_r
 						  "info_hash: %s ]",
 				response.failure_reason.c_str());
 #endif
-		do_read();
 		return;
 	}
 
@@ -455,7 +458,6 @@ void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_r
 #endif
 		m_callbacks.erase(info_hash);
 		m_offer_quota.erase(info_hash);
-		do_read();
 		return;
 	}
 
@@ -475,7 +477,6 @@ void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_r
 				response.failure_reason,
 				120s);
 		}
-		do_read();
 		return;
 	}
 
@@ -517,8 +518,6 @@ void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_r
 
 		cb->tracker_response(cit->second.req, {}, {}, *response.resp);
 	}
-
-	do_read();
 }
 
 void websocket_tracker_connection::on_write(error_code const& ec, std::size_t /* bytes_written */)
