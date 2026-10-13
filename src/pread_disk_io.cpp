@@ -239,6 +239,9 @@ private:
 		, bool optimistic
 		, std::unique_lock<std::mutex>& l);
 	void flush_storage(std::shared_ptr<aux::pread_storage> const& storage);
+	// collects the completed jobs rather than posting them
+	void flush_storage(
+		std::shared_ptr<aux::pread_storage> const& storage, jobqueue_t& completed_jobs);
 
 	// flush any storages queued in m_fence_flush (a fence is waiting on their
 	// outstanding writes). m_job_mutex is held on entry and exit; it is released
@@ -1921,9 +1924,17 @@ void pread_disk_io::try_flush_cache(int const target_cache_size
 
 void pread_disk_io::flush_storage(std::shared_ptr<aux::pread_storage> const& storage)
 {
+	jobqueue_t completed_jobs;
+	flush_storage(storage, completed_jobs);
+	if (!completed_jobs.empty())
+		add_completed_jobs(std::move(completed_jobs));
+}
+
+void pread_disk_io::flush_storage(
+	std::shared_ptr<aux::pread_storage> const& storage, jobqueue_t& completed_jobs)
+{
 	storage_index_t const torrent = storage->storage_index();
 	DLOG("flush_storage (%d)\n", torrent);
-	jobqueue_t completed_jobs;
 	m_cache.flush_storage(
 		[&](bitfield& flushed, span<aux::disk_job* const> blocks) {
 			return flush_cache_blocks(flushed, blocks, completed_jobs);
@@ -1933,8 +1944,6 @@ void pread_disk_io::flush_storage(std::shared_ptr<aux::pread_storage> const& sto
 			clear_piece_jobs(std::move(aborted), clear, completed_jobs);
 		});
 	DLOG("flush_storage - done (%d left)\n", m_cache.size());
-	if (!completed_jobs.empty())
-		add_completed_jobs(std::move(completed_jobs));
 }
 
 void pread_disk_io::flush_fenced_storages(std::unique_lock<std::mutex>& l)
@@ -1947,11 +1956,19 @@ void pread_disk_io::flush_fenced_storages(std::unique_lock<std::mutex>& l)
 	// fence's wait for m_outstanding_jobs == 0 can finish and it runs.
 	while (!m_fence_flush.empty())
 	{
-		auto const st = std::move(m_fence_flush.back());
-		m_fence_flush.pop_back();
-		st->set_in_fence_flush(false);
-		l.unlock();
-		flush_storage(st);
+		jobqueue_t completed_jobs;
+		{
+			auto const st = std::move(m_fence_flush.back());
+			m_fence_flush.pop_back();
+			st->set_in_fence_flush(false);
+			l.unlock();
+			flush_storage(st, completed_jobs);
+		}
+		// posting the completions may lower the fence, after which the torrent
+		// can be removed. st is released first so this thread cannot be left
+		// holding the last reference to the storage
+		if (!completed_jobs.empty())
+			add_completed_jobs(std::move(completed_jobs));
 		l.lock();
 	}
 }
