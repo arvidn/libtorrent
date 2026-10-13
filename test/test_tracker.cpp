@@ -660,7 +660,7 @@ TORRENT_TEST(parse_websocket_tracker_response)
 	char const response[] = R"({"complete":1,"incomplete":0,"action":"announce","interval":120,"info_hash":"xxxxxxxxxxxxxxxxxxxx"})";
 
 	error_code ec;
-	auto ret = aux::parse_websocket_tracker_response({response, long(std::strlen(response))}, ec);
+	auto ret = aux::parse_websocket_tracker_response(string_view(response), ec);
 
 	TEST_EQUAL(ec, error_code{});
 	TEST_CHECK(std::holds_alternative<aux::websocket_tracker_response>(ret));
@@ -692,7 +692,7 @@ TORRENT_TEST(parse_websocket_tracker_response_offer)
 		R"({"action":"announce","offer":{"type":"offer","sdp":"SDP\r\n"},"offer_id":"yyyyyyyyyyyyyyyyyyyy","peer_id":"-LT2000-p!SALH(DnYsi","info_hash":"xxxxxxxxxxxxxxxxxxxx"})";
 
 	error_code ec;
-	auto ret = aux::parse_websocket_tracker_response({response, long(std::strlen(response))}, ec);
+	auto ret = aux::parse_websocket_tracker_response(string_view(response), ec);
 
 	TEST_EQUAL(ec, error_code{});
 	TEST_CHECK(std::holds_alternative<aux::websocket_tracker_response>(ret));
@@ -723,7 +723,7 @@ TORRENT_TEST(parse_websocket_tracker_response_answer)
 		R"({"action":"announce","answer":{"type":"answer","sdp":"SDP\r\n"},"offer_id":"yyyyyyyyyyyyyyyyyyyy","peer_id":"-LT2000-p!SALH(DnYsi","info_hash":"xxxxxxxxxxxxxxxxxxxx"})";
 
 	error_code ec;
-	auto ret = aux::parse_websocket_tracker_response({response, long(std::strlen(response))}, ec);
+	auto ret = aux::parse_websocket_tracker_response(string_view(response), ec);
 
 	TEST_EQUAL(ec, error_code{});
 	TEST_CHECK(std::holds_alternative<aux::websocket_tracker_response>(ret));
@@ -753,7 +753,7 @@ TORRENT_TEST(parse_websocket_tracker_invalid_json)
 	char const response[] = R"({"invalid":foo)";
 
 	error_code ec;
-	auto ret = aux::parse_websocket_tracker_response({response, long(std::strlen(response))}, ec);
+	auto ret = aux::parse_websocket_tracker_response(string_view(response), ec);
 
 	TEST_EQUAL(ec, error_code(errors::invalid_tracker_response));
 	TEST_CHECK(std::holds_alternative<std::string>(ret));
@@ -807,7 +807,7 @@ TORRENT_TEST(parse_websocket_tracker_invalid_response)
 	for(const auto& response : responses)
 	{
 		error_code ec;
-		auto ret = aux::parse_websocket_tracker_response({response, long(std::strlen(response))}, ec);
+		auto ret = aux::parse_websocket_tracker_response(string_view(response), ec);
 
 		std::cout << "tracker response: " << response << std::endl;
 		std::cout << "error: " << ec.message() << std::endl;
@@ -855,7 +855,7 @@ TORRENT_TEST(parse_websocket_tracker_failure_reason)
 		R"({"failure reason":"tracker rejected announce","info_hash":"xxxxxxxxxxxxxxxxxxxx"})";
 
 	error_code ec;
-	auto ret = aux::parse_websocket_tracker_response({response, long(std::strlen(response))}, ec);
+	auto ret = aux::parse_websocket_tracker_response(string_view(response), ec);
 
 	TEST_EQUAL(ec, error_code{});
 	TEST_CHECK(std::holds_alternative<aux::websocket_tracker_response>(ret));
@@ -880,7 +880,7 @@ TORRENT_TEST(parse_websocket_tracker_failure_reason_unicode)
 		R"({"failure reason":"tracker rejected \u2014 announce","info_hash":"xxxxxxxxxxxxxxxxxxxx"})";
 
 	error_code ec;
-	auto ret = aux::parse_websocket_tracker_response({response, long(std::strlen(response))}, ec);
+	auto ret = aux::parse_websocket_tracker_response(string_view(response), ec);
 
 	TEST_EQUAL(ec, error_code{});
 	TEST_CHECK(std::holds_alternative<aux::websocket_tracker_response>(ret));
@@ -897,7 +897,7 @@ TORRENT_TEST(parse_websocket_tracker_invalid_failure_reason)
 	char const response[] = R"({"failure reason":123,"info_hash":"xxxxxxxxxxxxxxxxxxxx"})";
 
 	error_code ec;
-	auto ret = aux::parse_websocket_tracker_response({response, long(std::strlen(response))}, ec);
+	auto ret = aux::parse_websocket_tracker_response(string_view(response), ec);
 
 	TEST_EQUAL(ec, error_code(errors::invalid_tracker_response));
 	TEST_CHECK(std::holds_alternative<std::string>(ret));
