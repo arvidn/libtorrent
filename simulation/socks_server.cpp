@@ -32,13 +32,18 @@ using boost::system::error_code;
 namespace sim {
 using namespace aux;
 
-socks_server::socks_server(
-	io_context& ios, unsigned short listen_port, int version, std::uint32_t const flags)
+socks_server::socks_server(io_context& ios,
+	unsigned short listen_port,
+	int version,
+	std::uint32_t const flags,
+	socks_udp_header const header)
 	: m_ios(ios)
 	, m_listen_socket(ios)
-	, m_conn(std::make_shared<socks_connection>(m_ios, version, m_cmd_counts, flags, m_bind_port))
+	, m_conn(std::make_shared<socks_connection>(
+		  m_ios, version, m_cmd_counts, flags, m_bind_port, header))
 	, m_version(version)
 	, m_flags(flags)
+	, m_udp_header(header)
 {
 	m_cmd_counts.fill(0);
 	address local_ip = ios.get_ips().front();
@@ -76,8 +81,8 @@ void socks_server::on_accept(error_code const& ec)
 	m_conn->start();
 
 	// create a new connection to accept into
-	m_conn =
-		std::make_shared<socks_connection>(m_ios, m_version, m_cmd_counts, m_flags, m_bind_port);
+	m_conn = std::make_shared<socks_connection>(
+		m_ios, m_version, m_cmd_counts, m_flags, m_bind_port, m_udp_header);
 
 	// now we can accept another connection
 	m_listen_socket.async_accept(
@@ -94,7 +99,8 @@ socks_connection::socks_connection(asio::io_context& ios,
 	int version,
 	std::array<int, 3>& cmd_counts,
 	std::uint32_t const flags,
-	int& bind_port)
+	int& bind_port,
+	socks_udp_header const header)
 	: m_bind_port(bind_port)
 	, m_ios(ios)
 	, m_udp_resolver(ios)
@@ -109,6 +115,7 @@ socks_connection::socks_connection(asio::io_context& ios,
 	, m_command(0)
 	, m_cmd_counts(cmd_counts)
 	, m_flags(flags)
+	, m_udp_header(header)
 {}
 
 void socks_connection::start()
@@ -654,7 +661,7 @@ void socks_connection::on_read_udp(
 		if (atyp == 3)
 		{
 			// hostname
-			int const len = buf[4];
+			int const len = static_cast<unsigned char>(buf[4]);
 
 			buf += 5;
 			bytes_transferred -= 5;
@@ -745,10 +752,11 @@ void socks_connection::on_read_udp(
 		if (it != m_name_mapping.left.end())
 		{
 			std::vector<char> header(7 + it->second.size());
-			header[0] = 0; // RSV
-			header[1] = 0;
+			header[0] = static_cast<char>(m_udp_header.reserved >> 8); // RSV
+			header[1] = static_cast<char>(m_udp_header.reserved & 0xff);
 			header[2] = 0; // fragment
-			header[3] = 3; // ATYP
+			header[3] = static_cast<char>(
+				m_udp_header.address_type < 0 ? 3 : m_udp_header.address_type); // ATYP
 			header[4] = static_cast<char>(it->second.size());
 			int idx = 5;
 			std::copy(it->second.begin(), it->second.end(), header.data() + idx);
@@ -769,10 +777,11 @@ void socks_connection::on_read_udp(
 			// add UDP ASSOCIATE header and forward to client
 			std::uint32_t const from_addr = m_udp_from.address().to_v4().to_uint();
 			std::array<char, 10> header;
-			header[0] = 0; // RSV
-			header[1] = 0;
+			header[0] = static_cast<char>(m_udp_header.reserved >> 8); // RSV
+			header[1] = static_cast<char>(m_udp_header.reserved & 0xff);
 			header[2] = 0; // fragment
-			header[3] = 1; // ATYP
+			header[3] = static_cast<char>(
+				m_udp_header.address_type < 0 ? 1 : m_udp_header.address_type); // ATYP
 			header[4] = (from_addr >> 24) & 0xff; // Address
 			header[5] = (from_addr >> 16) & 0xff;
 			header[6] = (from_addr >> 8) & 0xff;

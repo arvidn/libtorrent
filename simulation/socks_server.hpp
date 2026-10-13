@@ -53,13 +53,22 @@ enum socks_flag
 	udp_associate_respond_empty_hostname = 2
 };
 
+// Override UDP response fields to simulate malformed proxy replies.
+struct socks_udp_header
+{
+	std::uint16_t reserved = 0;
+	// A negative value preserves the address type of the forwarded packet.
+	int address_type = -1;
+};
+
 struct socks_connection : std::enable_shared_from_this<socks_connection>
 {
 	socks_connection(asio::io_context& ios,
 		int version,
 		std::array<int, 3>& cmd_counts,
 		std::uint32_t flags,
-		int& bind_port);
+		int& bind_port,
+		socks_udp_header header);
 
 	asio::ip::tcp::socket& socket() { return m_client_connection; }
 
@@ -145,6 +154,7 @@ private:
 	std::array<int, 3>& m_cmd_counts;
 
 	std::uint32_t const m_flags;
+	socks_udp_header const m_udp_header;
 };
 
 // This is a very simple socks4 and 5 server that only supports a single
@@ -154,7 +164,8 @@ struct socks_server
 	socks_server(asio::io_context& ios,
 		unsigned short listen_port,
 		int version = 5,
-		std::uint32_t flags = 0);
+		std::uint32_t flags = 0,
+		socks_udp_header header = {});
 
 	void stop();
 
@@ -186,6 +197,7 @@ private:
 	std::array<int, 3> m_cmd_counts;
 
 	std::uint32_t const m_flags;
+	socks_udp_header const m_udp_header;
 };
 
 }
