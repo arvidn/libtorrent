@@ -178,7 +178,7 @@ void socks_connection::on_handshake2(error_code const& ec, size_t bytes_transfer
 		return;
 	}
 
-	if (std::count(m_out_buffer, m_out_buffer + bytes_transferred, 0) == 0)
+	if (std::count(m_out_buffer.begin(), m_out_buffer.begin() + bytes_transferred, 0) == 0)
 	{
 		std::printf(
 			"socks_connection: could not find auth-method 0 (no-auth) in socks handshake\n");
