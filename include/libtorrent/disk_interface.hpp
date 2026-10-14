@@ -186,13 +186,14 @@ namespace file_open_mode {
 		// it should be flushed to disk
 		static constexpr disk_job_flags_t flush_piece = 7_bit;
 
-		// this is called when a new torrent is added. The shared_ptr can be
-		// used to hold the internal torrent object alive as long as there are
-		// outstanding disk operations on the storage.
+		// this is called when a new torrent is added. The shared_ptr owns the
+		// object ``p.files`` refers into. Holding on to it keeps that
+		// reference valid as long as there are outstanding disk operations on
+		// the storage.
 		// The returned storage_holder is an owning reference to the underlying
 		// storage that was just created. It is fundamentally a storage_index_t
-		virtual storage_holder new_torrent(storage_params const& p
-			, std::shared_ptr<void> const& torrent) = 0;
+		virtual storage_holder new_torrent(
+			storage_params const& p, std::shared_ptr<void> const& owner) = 0;
 
 		// remove the storage with the specified index. This is not expected to
 		// delete any files from disk, just to clean up any resources associated

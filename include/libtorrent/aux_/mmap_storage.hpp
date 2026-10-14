@@ -112,7 +112,7 @@ namespace libtorrent::aux {
 			tick();
 		}
 
-		void set_owner(std::shared_ptr<void> const& tor) { m_torrent = tor; }
+		void set_owner(std::shared_ptr<void> const& owner) { m_owner = owner; }
 
 		storage_index_t storage_index() const { return m_storage_index; }
 		void set_storage_index(storage_index_t st) { m_storage_index = st; }
@@ -138,13 +138,9 @@ namespace libtorrent::aux {
 
 		file_storage const& m_files;
 
-		// the reason for this to be a void pointer
-		// is to avoid creating a dependency on the
-		// torrent. This shared_ptr is here only
-		// to keep the torrent object alive until
-		// the storage destructs. This is because
-		// the file_storage object is owned by the torrent.
-		std::shared_ptr<void> m_torrent;
+		// keeps whatever owns m_files alive until the storage destructs. It's
+		// opaque to avoid a dependency on the torrent
+		std::shared_ptr<void> m_owner;
 
 		storage_index_t m_storage_index{0};
 
