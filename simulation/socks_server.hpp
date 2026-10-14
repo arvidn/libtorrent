@@ -21,6 +21,8 @@ All rights reserved.
 
 #include "simulator/simulator.hpp"
 
+#include <array>
+
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #if __GNUC__ >= 9
@@ -131,15 +133,15 @@ private:
 	asio::ip::udp::endpoint m_udp_associate_ep;
 	asio::ip::udp::endpoint m_udp_from;
 
-	std::array<char, 1500> m_udp_buffer;
+	std::array<char, 1500> m_udp_buffer{};
 
 	// receive buffer for data going out, i.e. client -> proxy (us) -> server
-	char m_out_buffer[65536];
+	std::array<char, 65536> m_out_buffer{};
 	// buffer size
 	int m_num_out_bytes;
 
 	// receive buffer for data coming in, i.e. server -> proxy (us) -> client
-	char m_in_buffer[65536];
+	std::array<char, 65536> m_in_buffer{};
 	// buffer size
 	int m_num_in_bytes;
 
