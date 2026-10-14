@@ -800,12 +800,10 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		// the torrent must be destructed on the network thread. The peer list
 		// returns its entries to the session's peer allocator, which is not
 		// thread safe, and extensions expect their destructors to run on the
-		// network thread, like their callbacks. The disk storage holds a
-		// reference to the torrent and may be released from another thread,
-		// so whoever does that has to hand the last reference over to the
-		// network thread. At shutdown, the thread destructing the session
-		// registers itself as the network thread first, so this holds for
-		// torrents kept alive by the disk I/O until then as well
+		// network thread, like their callbacks. This is why the disk I/O is
+		// not handed a reference to the torrent, only to its torrent_info.
+		// At shutdown, the thread destructing the session registers itself
+		// as the network thread first
 		TORRENT_ASSERT(m_ses.is_single_thread());
 
 		TORRENT_ASSERT(m_peer_class == peer_class_t{0});
@@ -1930,9 +1928,12 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			m_torrent_file->v2()
 		};
 
-		// the shared_from_this() will create an intentional
-		// cycle of ownership, se the hpp file for description.
-		m_storage = m_ses.disk_thread().new_torrent(params, shared_from_this());
+		// the storage references m_torrent_file's file_storage, so the disk I/O
+		// keeps the torrent_info alive while it has jobs for the storage. It
+		// must not keep the torrent alive, that has to be destructed on the
+		// network thread
+		m_storage = m_ses.disk_thread().new_torrent(
+			params, std::const_pointer_cast<torrent_info>(m_torrent_file));
 	}
 
 	peer_connection* torrent::find_lowest_ranking_peer() const
