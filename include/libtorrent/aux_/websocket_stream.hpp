@@ -79,10 +79,10 @@ struct TORRENT_EXTRA_EXPORT websocket_stream
 	using read_handler = std::function<void(error_code const&, std::size_t)>;
 	using write_handler = std::function<void(error_code const&, std::size_t)>;
 
-	websocket_stream(io_context& ios
-		, resolver_interface& resolver
-		, ssl::context* ssl_ctx
-	);
+	websocket_stream(io_context& ios,
+		resolver_interface& resolver,
+		ssl::context* ssl_ctx,
+		seconds keepalive_period = seconds(10));
 
 	~websocket_stream() = default;
 	websocket_stream& operator=(websocket_stream const&) = delete;
@@ -179,6 +179,8 @@ private:
 	void on_keepalive(error_code ec);
 	void on_ping(error_code ec);
 	void arm_keepalive();
+	// closes the underlying TCP socket, aborting any outstanding operation
+	void close_socket();
 
 	io_context& m_io_service;
 	resolver_interface& m_resolver;
@@ -198,6 +200,11 @@ private:
 	connect_handler m_connect_handler;
 
 	bool m_open;
+
+	// a ping was sent and nothing (including its pong) has been received
+	// since
+	bool m_awaiting_pong = false;
+	seconds m_keepalive_period;
 	deadline_timer m_keepalive_timer;
 };
 

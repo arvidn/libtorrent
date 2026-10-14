@@ -11,6 +11,28 @@ from datetime import datetime
 sys.path = sys.path[1:]
 
 import websockets
+from websockets.legacy.server import serve
+
+class IgnorePongProtocol(websockets.WebSocketServerProtocol):
+    async def pong(self, data=b''):
+        # Deliberately suppress automatic pong responses to test stale-connection
+        # detection when a WebSocket peer silently stops responding.
+        return
+
+
+class IgnorePongOnceProtocol(websockets.WebSocketServerProtocol):
+    connection_count = 0
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.suppress_pongs = type(self).connection_count == 0
+        type(self).connection_count += 1
+
+    async def pong(self, data=b''):
+        if self.suppress_pongs:
+            # Keep the first connection open but stop it proving liveness.
+            return
+        await super().pong(data)
 
 logger = logging.getLogger('websockets')
 logger.setLevel(logging.INFO)
@@ -27,7 +49,12 @@ async def handle(websocket):
     # bare-failure: inject a failure response without an info_hash, then send
     #   a normal, correlated response on the same connection. Tests that the
     #   client ignores the uncorrelated failure without closing the connection.
+    # reconnect: suppress pongs on the first connection, respond to its initial
+    #   hybrid-torrent announces, then ignore further announces on that socket.
+    #   A replacement connection responds normally.
     mode = sys.argv[3] if len(sys.argv) > 3 else 'normal'
+    announce_count = 0
+    stale_connection = mode == 'reconnect' and getattr(websocket, 'suppress_pongs', False)
 
     try:
         while True:
@@ -41,6 +68,13 @@ async def handle(websocket):
 
             request = json.loads(message)
             info_hash = request["info_hash"]
+            announce_count += 1
+
+            # The test torrent is hybrid and sends one initial announce for
+            # each info hash. Let those complete, then stop responding on the
+            # first connection. Only a fresh connection will receive a reply.
+            if stale_connection and announce_count > 2:
+                continue
 
             if mode == 'failure':
                 await websocket.send(json.dumps({
@@ -79,7 +113,14 @@ async def main() -> None:
     else:
         ssl_context = None
 
-    server = await websockets.serve(handle, '127.0.0.1', 0, ssl=ssl_context)
+    mode = sys.argv[3] if len(sys.argv) > 3 else 'normal'
+    kwargs = {}
+    if mode == 'ignore-pong':
+        kwargs['create_protocol'] = IgnorePongProtocol
+    elif mode == 'reconnect':
+        kwargs['create_protocol'] = IgnorePongOnceProtocol
+
+    server = await serve(handle, '127.0.0.1', 0, ssl=ssl_context, **kwargs)
     port = server.sockets[0].getsockname()[1]
     print(f'LISTENING_PORT {port}')
     sys.stdout.flush()
