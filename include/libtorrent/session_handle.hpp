@@ -1098,15 +1098,14 @@ namespace aux { struct torrent; }
 		{ return m_impl.lock(); }
 
 	private:
+		template <typename Fun, typename... Args>
+		TORRENT_UNEXPORT void async_call(Fun f, Args&&... a) const;
 
 		template <typename Fun, typename... Args>
-		void async_call(Fun f, Args&&... a) const;
-
-		template <typename Fun, typename... Args>
-		void sync_call(Fun f, Args&&... a) const;
+		TORRENT_UNEXPORT void sync_call(Fun f, Args&&... a) const;
 
 		template <typename Ret, typename Fun, typename... Args>
-		Ret sync_call_ret(Fun f, Args&&... a) const;
+		TORRENT_UNEXPORT Ret sync_call_ret(Fun f, Args&&... a) const;
 
 		explicit session_handle(std::weak_ptr<aux::session_impl> impl)
 			: m_impl(std::move(impl))
