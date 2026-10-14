@@ -9,6 +9,8 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
+#include <cstdint>
+
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/bitfield.hpp"
@@ -19,7 +21,10 @@ namespace libtorrent {
 	{
 		TORRENT_ASSERT(layer >= 0);
 		TORRENT_ASSERT(layer < int(sizeof(int) * 8));
-		return (1 << layer) - 1;
+		// shift in 64 bits. the largest tree this library builds has
+		// merkle_num_nodes() == INT_MAX, whose layer count makes "layer" reach
+		// 31, where "1 << layer" would overflow a signed int (undefined behavior)
+		return int((std::int64_t(1) << layer) - 1);
 	}
 
 	int merkle_to_flat_index(int const layer, int const offset)
@@ -270,14 +275,18 @@ namespace libtorrent {
 	{
 		TORRENT_ASSERT(idx >= 0);
 		int layer = 1;
-		while (idx > (1 << layer) - 2) layer++;
+		// shift in 64 bits. valid node indices reach INT_MAX - 1 for the largest
+		// tree this library builds, which drives "layer" to 31, where
+		// "1 << layer" would overflow a signed int (undefined behavior)
+		while (idx > (std::int64_t(1) << layer) - 2)
+			layer++;
 		return layer - 1;
 	}
 
 	// returns the start of the layer, offset `idx` falls into.
 	int merkle_get_layer_offset(int idx)
 	{
-		return idx - ((1 << merkle_get_layer(idx)) - 1);
+		return idx - int((std::int64_t(1) << merkle_get_layer(idx)) - 1);
 	}
 
 	// generates the pad hash for the tree level with "pieces" nodes, given the
