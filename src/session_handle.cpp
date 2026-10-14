@@ -35,25 +35,35 @@ namespace libtorrent {
 	{
 		std::shared_ptr<session_impl> s = m_impl.lock();
 		if (!s) aux::throw_ex<system_error>(errors::invalid_session_handle);
-		dispatch(s->get_context(), [s, f, packed_args = std::make_tuple(std::forward<Args>(a)...)]() mutable
-		{
+		auto& ses = *s;
+		dispatch(ses.get_context(),
+			[simpl = std::move(s),
+				f,
+				packed_args = std::make_tuple(std::forward<Args>(a)...)]() mutable {
 #ifndef BOOST_NO_EXCEPTIONS
-			try {
-#endif
-				std::apply([&](auto&&... args)
+				try
 				{
-					(s.get()->*f)(std::forward<Args>(args)...);
-				}, packed_args);
-#ifndef BOOST_NO_EXCEPTIONS
-			} catch (system_error const& e) {
-				s->alerts().emplace_alert<session_error_alert>(e.code(), e.what());
-			} catch (std::exception const& e) {
-				s->alerts().emplace_alert<session_error_alert>(error_code(), e.what());
-			} catch (...) {
-				s->alerts().emplace_alert<session_error_alert>(error_code(), "unknown error");
-			}
 #endif
-		});
+					std::apply(
+						[&](auto&&... args) { (simpl.get()->*f)(std::forward<Args>(args)...); },
+						packed_args);
+#ifndef BOOST_NO_EXCEPTIONS
+				}
+				catch (system_error const& e)
+				{
+					simpl->alerts().emplace_alert<session_error_alert>(e.code(), e.what());
+				}
+				catch (std::exception const& e)
+				{
+					simpl->alerts().emplace_alert<session_error_alert>(error_code(), e.what());
+				}
+				catch (...)
+				{
+					simpl->alerts().emplace_alert<session_error_alert>(
+						error_code(), "unknown error");
+				}
+#endif
+			});
 	}
 
 	template<typename Fun, typename... Args>
