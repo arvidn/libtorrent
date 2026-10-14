@@ -1471,15 +1471,14 @@ namespace aux {
 		bool in_session() const;
 
 	private:
+		template <typename Fun, typename... Args>
+		TORRENT_UNEXPORT void async_call(Fun f, Args&&... a) const;
 
-		template<typename Fun, typename... Args>
-		void async_call(Fun f, Args&&... a) const;
+		template <typename Fun, typename... Args>
+		TORRENT_UNEXPORT void sync_call(Fun f, Args&&... a) const;
 
-		template<typename Fun, typename... Args>
-		void sync_call(Fun f, Args&&... a) const;
-
-		template<typename Ret, typename Fun, typename... Args>
-		Ret sync_call_ret(Ret def, Fun f, Args&&... a) const;
+		template <typename Ret, typename Fun, typename... Args>
+		TORRENT_UNEXPORT Ret sync_call_ret(Ret def, Fun f, Args&&... a) const;
 
 		explicit torrent_handle(std::weak_ptr<aux::torrent> const& t)
 		{ if (!t.expired()) m_torrent = t; }
