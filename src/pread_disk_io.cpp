@@ -24,6 +24,7 @@ see LICENSE file.
 #include "libtorrent/aux_/platform_util.hpp" // for set_thread_name
 #include "libtorrent/aux_/disk_job_pool.hpp"
 #include "libtorrent/aux_/disk_io_thread_pool.hpp"
+#include "libtorrent/aux_/disk_tick_thread.hpp"
 #include "libtorrent/aux_/disk_cache.hpp"
 #include "libtorrent/aux_/visit_block_iovecs.hpp"
 #include "libtorrent/aux_/time.hpp"
@@ -181,21 +182,23 @@ private:
 	void add_completed_jobs(jobqueue_t jobs, bool may_flush = true);
 	void add_completed_jobs_impl(jobqueue_t jobs, jobqueue_t& completed, bool may_flush);
 
-	// insert a write job's block into the cache. Returns the insert flags
-	// (need_hasher_kick / exceeded_limit). Does NOT kick the hasher or flush --
-	// that re-enters the fence (add_job/add_completed_jobs), so it must run with
-	// no fence mutex held. The repost callback in add_completed_jobs_impl() calls
-	// this while a fence mutex is held and defers kick_write_hashers() to after.
-	aux::insert_result_flags insert_write(aux::pread_disk_job* j, std::shared_ptr<disk_observer> o);
+	// insert a write job's block (already accounted for by
+	// disk_cache::account_pending_write(), see async_write()) into the cache.
+	// Returns the insert flags (need_hasher_kick). If insert() throws, the
+	// pending-write accounting is rolled back and the exception propagates.
+	// Does NOT kick the hasher or flush, that re-enters the fence,
+	// so it must run with no fence mutex held. The repost callback in
+	// add_completed_jobs_impl() calls this while a fence mutex is held and
+	// defers kick_write_hashers() to after.
+	aux::insert_result_flags insert_write(aux::pread_disk_job* j);
 
 	// wake the hasher for blocks just inserted (and, with no hash threads, drain
 	// the v2 hash queue inline). Must run with no fence mutex held.
 	void kick_write_hashers();
 
 	// inserts a write job's block into the cache and performs the hasher kick and
-	// flush bookkeeping. Used by async_write() (inline, no fence). Returns true if
-	// the disk buffer pool is over its limit (back-pressure).
-	bool add_write_to_cache(aux::pread_disk_job* j, std::shared_ptr<disk_observer> o);
+	// flush bookkeeping. Used by async_write() (inline, no fence).
+	void add_write_to_cache(aux::pread_disk_job* j);
 
 	// the single place a read job consults the cache and is turned into queued
 	// work. It runs once the job is past the fence gate -- in add_job() with the
@@ -276,7 +279,8 @@ private:
 	aux::file_pool m_file_pool;
 
 	// disk cache
-	aux::disk_buffer_pool m_buffer_pool;
+	// this backend calls expire_buffers(), which allows for a larger cache
+	aux::disk_buffer_pool m_buffer_pool{1024};
 
 	counters& m_stats_counters;
 
@@ -287,12 +291,11 @@ private:
 
 	aux::disk_completed_queue m_completed_jobs;
 
-	// storages that have had write activity recently and will get ticked
-	// soon, for deferred actions (say, flushing partfile metadata)
-	std::vector<std::pair<time_point, std::weak_ptr<aux::pread_storage>>> m_need_tick;
-	std::mutex m_need_tick_mutex;
-
 	aux::storage_array<aux::pread_storage> m_torrents;
+
+	// declared after the file pool and the storages it ticks, so it's
+	// stopped before they are destroyed
+	aux::disk_tick_thread m_tick;
 
 	// storages that have a fence queued behind their outstanding cache writes.
 	// Those writes won't flush on their own (they can be partial pieces the
@@ -333,20 +336,42 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> pread_disk_io_constructor(
 
 // for _1 and _2
 using namespace std::placeholders;
+using namespace std::chrono_literals;
 
 pread_disk_io::pread_disk_io(io_context& ios, settings_interface const& sett, counters& cnt)
 	: m_settings(sett)
 	, m_file_pool(sett.get_int(settings_pack::file_pool_size))
 	, m_stats_counters(cnt)
 	, m_ios(ios)
-	, m_completed_jobs([&](aux::disk_job** j, int const n) {
-		m_job_pool.free_jobs(reinterpret_cast<aux::pread_disk_job**>(j), n);
-		}, cnt)
+	, m_completed_jobs(
+		  [&](aux::disk_job** j, int const n) {
+#if TORRENT_USE_ASSERTS
+			  for (int i = 0; i < n; ++i)
+				  TORRENT_ASSERT(!j[i]->pending_cache_insert);
+#endif
+			  m_job_pool.free_jobs(reinterpret_cast<aux::pread_disk_job**>(j), n);
+		  },
+		  cnt)
+	, m_tick(ios)
 	, m_cache(ios)
 	, m_generic_threads(std::bind(&pread_disk_io::thread_fun, this, _1, _2), ios)
 	, m_hash_threads(std::bind(&pread_disk_io::thread_fun, this, _1, _2), ios)
 {
 	settings_updated();
+
+	m_tick.add([this](aux::steady_clock::time_point const now) {
+		seconds const interval(m_settings.get_int(settings_pack::close_file_interval));
+		// check again in a minute, in case the setting changed
+		if (interval <= 0s)
+			return now + 1min;
+		m_file_pool.close_oldest();
+		return now + interval;
+	});
+
+	m_tick.add([this](aux::steady_clock::time_point const now) {
+		m_buffer_pool.expire_buffers();
+		return now + aux::disk_buffer_pool::expire_interval;
+	});
 }
 
 std::vector<open_file_state> pread_disk_io::get_status(storage_index_t const st) const
@@ -431,6 +456,13 @@ void pread_disk_io::abort(bool const wait)
 	});
 	l.unlock();
 
+	// no maintenance once teardown has started. The destructor joins the
+	// thread, so a non-waiting abort never blocks on in-flight maintenance
+	if (wait)
+		m_tick.join();
+	else
+		m_tick.abort();
+
 	// if there are no disk threads, we can't wait for the jobs here, because
 	// we'd stall indefinitely
 	if (no_threads)
@@ -499,7 +531,7 @@ void pread_disk_io::perform_job(aux::pread_disk_job* j, jobqueue_t& completed_jo
 status_t pread_disk_io::do_job(aux::job::partial_read& a, aux::pread_disk_job* j)
 {
 	TORRENT_ASSERT(a.buf);
-	time_point const start_time = clock_type::now();
+	auto const start_time = aux::steady_clock::now();
 
 	span<char> const b = {a.buf.data() + a.buffer_offset, a.buffer_size};
 
@@ -511,7 +543,7 @@ status_t pread_disk_io::do_job(aux::job::partial_read& a, aux::pread_disk_job* j
 
 	if (!j->error.ec)
 	{
-		std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+		std::int64_t const read_time = total_microseconds(aux::steady_clock::now() - start_time);
 
 		m_stats_counters.inc_stats_counter(counters::num_blocks_read);
 		m_stats_counters.inc_stats_counter(counters::num_read_ops);
@@ -533,7 +565,7 @@ status_t pread_disk_io::do_job(aux::job::read& a, aux::pread_disk_job* j)
 		return disk_status::fatal_disk_error;
 	}
 
-	time_point const start_time = clock_type::now();
+	auto const start_time = aux::steady_clock::now();
 
 	aux::open_mode_t const file_mode = file_mode_for_job(j);
 	span<char> const b = {a.buf.data(), a.buffer_size};
@@ -546,7 +578,7 @@ status_t pread_disk_io::do_job(aux::job::read& a, aux::pread_disk_job* j)
 
 	if (!j->error.ec)
 	{
-		std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+		std::int64_t const read_time = total_microseconds(aux::steady_clock::now() - start_time);
 
 		m_stats_counters.inc_stats_counter(counters::num_blocks_read);
 		m_stats_counters.inc_stats_counter(counters::num_read_ops);
@@ -737,6 +769,13 @@ bool pread_disk_io::async_write(storage_index_t const storage, peer_request cons
 		return false;
 	}
 
+	// Account for the buffer before publishing the job to the fence. Once
+	// is_blocked() returns, a disk thread may immediately lower the fence and
+	// repost this job, so accounting afterwards would race that transfer.
+	auto free_job = aux::scope_end([&] { m_job_pool.free_job(j); });
+	bool const exceeded = m_cache.account_pending_write(j, std::move(o));
+	free_job.disarm();
+
 	// a write counts as an outstanding job on the storage (like a read or hash),
 	// so a fence waits for buffered writes and their in-flight flush before it
 	// runs, rather than tearing the storage down under a flush. This does not
@@ -749,24 +788,19 @@ bool pread_disk_io::async_write(storage_index_t const storage, peer_request cons
 	// reset, for storage-wide fences the storage is about to go away. Parking
 	// keeps the block "writing" in the picker's view, so the piece isn't reported
 	// finished and its hash isn't requested before the block has been inserted.
-	// TODO: back-pressure (the disk_observer o) is dropped on the blocked path.
-	// async_write returns false (keep writing) but the cache's back-pressure
-	// (driven off m_blocks) can't see the parked writes, so a long-lived fence
-	// (e.g. move_storage) on a busy torrent can grow m_blocked_jobs unbounded.
-	// Carry the observer through to throttle the peer while its writes are parked.
 	if (j->storage->is_blocked(j, m_stats_counters))
 	{
-		return false;
+		schedule_flush();
+		return exceeded;
 	}
 
 	// is_blocked() marked j in_progress and counted it as outstanding.
-	bool const exceeded = add_write_to_cache(j, std::move(o));
+	add_write_to_cache(j);
 	schedule_flush();
 	return exceeded;
 }
 
-aux::insert_result_flags pread_disk_io::insert_write(
-	aux::pread_disk_job* j, std::shared_ptr<disk_observer> o)
+aux::insert_result_flags pread_disk_io::insert_write(aux::pread_disk_job* j)
 {
 	auto const& a = std::get<aux::job::write>(j->action);
 	piece_index_t const piece = a.piece;
@@ -784,12 +818,16 @@ aux::insert_result_flags pread_disk_io::insert_write(
 	TORRENT_ASSERT(a.buffer_size == std::min(piece_size - offset, default_block_size));
 	aux::disk_cache::piece_entry_params const piece_params{
 		fs.piece_size2(piece), piece_size, j->storage->v1(), j->storage->v2(), j->storage};
-	return m_cache.insert({j->storage->storage_index(), piece},
+
+	// undo the pending-write accounting if insert() throws, so a failed allocation doesn't leak it
+	auto cancel = aux::scope_end([&] { m_cache.cancel_pending_write(j); });
+	auto const result = m_cache.insert({j->storage->storage_index(), piece},
 		offset / default_block_size,
 		force_flush,
-		std::move(o),
 		j,
 		piece_params);
+	cancel.disarm();
+	return result;
 }
 
 void pread_disk_io::kick_write_hashers()
@@ -829,15 +867,14 @@ void pread_disk_io::kick_write_hashers()
 	}
 }
 
-bool pread_disk_io::add_write_to_cache(aux::pread_disk_job* j, std::shared_ptr<disk_observer> o)
+void pread_disk_io::add_write_to_cache(aux::pread_disk_job* j)
 {
-	auto const result = insert_write(j, std::move(o));
+	auto const result = insert_write(j);
 
 	// v1 wake-up signal comes from the cache; for v2 the insert may have
 	// pushed a queue entry the cache has no way to flag.
-	if ((result & aux::disk_cache::need_hasher_kick) || j->storage->v2()) kick_write_hashers();
-
-	return bool(result & aux::disk_cache::exceeded_limit);
+	if ((result & aux::disk_cache::need_hasher_kick) || j->storage->v2())
+		kick_write_hashers();
 }
 
 // schedule (or, with no generic threads, perform) a cache flush if the cache is
@@ -1184,7 +1221,7 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 	auto hash_partial_piece = [&](lt::aux::piece_hasher* ph,
 								  int const hasher_cursor,
 								  span<char const*> const blocks) {
-		time_point const start_time = clock_type::now();
+		auto const start_time = aux::steady_clock::now();
 
 		// v1 hashing is contiguous from hasher_cursor; v2 may need any
 		// earlier block that's still missing its hash.
@@ -1244,7 +1281,8 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 						, file_mode, j->flags, j->error);
 					++blocks_read_from_disk;
 				}
-				if (j->error) break;
+				if (j->error)
+					break;
 			}
 			else
 			{
@@ -1253,11 +1291,13 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 					TORRENT_ASSERT(ph);
 					ph->update({ buf, len });
 				}
-				if (len2 > 0) ph2.update({buf, len2});
+				if (len2 > 0)
+					ph2.update({buf, len2});
 			}
 			offset += default_block_size;
 
-			if (len2 > 0) a.block_hashes[i] = ph2.final();
+			if (len2 > 0)
+				a.block_hashes[i] = ph2.final();
 		}
 
 		if (v1)
@@ -1268,7 +1308,8 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 
 		if (!j->error.ec)
 		{
-			std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+			std::int64_t const read_time =
+				total_microseconds(aux::steady_clock::now() - start_time);
 
 			m_stats_counters.inc_stats_counter(counters::num_read_back, blocks_read_from_disk);
 			m_stats_counters.inc_stats_counter(counters::num_read_ops, blocks_read_from_disk);
@@ -1281,6 +1322,11 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 		m_cache.hash_piece({j->storage->storage_index(), a.piece}, j, hash_partial_piece);
 
 	if (hpr == aux::disk_cache::hash_piece_result::deferred) return disk_status::job_deferred;
+
+	// hash_piece() marked the piece to be flushed. This job may run on a
+	// hashing thread, so wake up a generic thread to flush it
+	if (hpr == aux::disk_cache::hash_piece_result::completed)
+		m_generic_threads.interrupt();
 
 	// Fast path for a piece that isn't in the cache at all: read the whole
 	// piece from disk in a single I/O operation, rather than one read per
@@ -1296,7 +1342,7 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 	// with no further I/O.
 	if (hpr == aux::disk_cache::hash_piece_result::not_in_cache)
 	{
-		time_point const start_time = clock_type::now();
+		auto const start_time = aux::steady_clock::now();
 
 		int const read_len = v1 ? piece_size : piece_size2;
 		std::unique_ptr<char[]> buf(new char[std::size_t(read_len)]);
@@ -1331,7 +1377,8 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 				}
 			}
 
-			std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+			std::int64_t const read_time =
+				total_microseconds(aux::steady_clock::now() - start_time);
 
 			m_stats_counters.inc_stats_counter(counters::num_read_back, blocks_to_read);
 			m_stats_counters.inc_stats_counter(counters::num_read_ops, 1);
@@ -1350,7 +1397,7 @@ status_t pread_disk_io::do_job(aux::job::hash2& a, aux::pread_disk_job* j)
 
 	DLOG("do_hash2: reading (piece: %d offset: %d)\n", int(a.piece), int(a.offset));
 
-	time_point const start_time = clock_type::now();
+	auto const start_time = aux::steady_clock::now();
 
 	TORRENT_ASSERT(piece_size > a.offset);
 	std::ptrdiff_t const len = std::min(default_block_size, piece_size - a.offset);
@@ -1361,7 +1408,7 @@ status_t pread_disk_io::do_job(aux::job::hash2& a, aux::pread_disk_job* j)
 	if (auto pre = j->storage->take_precomputed_v2_block(a.piece, blk))
 	{
 		a.piece_hash2 = *pre;
-		std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+		std::int64_t const read_time = total_microseconds(aux::steady_clock::now() - start_time);
 		m_stats_counters.inc_stats_counter(counters::disk_hash_time, read_time);
 		m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
 		return {};
@@ -1377,7 +1424,7 @@ status_t pread_disk_io::do_job(aux::job::hash2& a, aux::pread_disk_job* j)
 
 	if (!j->error.ec)
 	{
-		std::int64_t const read_time = total_microseconds(clock_type::now() - start_time);
+		std::int64_t const read_time = total_microseconds(aux::steady_clock::now() - start_time);
 
 		m_stats_counters.inc_stats_counter(counters::num_blocks_read);
 		m_stats_counters.inc_stats_counter(counters::num_read_ops);
@@ -1627,7 +1674,7 @@ void pread_disk_io::add_job(aux::pread_disk_job* j, bool const user_add)
 	// stamp the job on the network thread, where add_job runs. The matching
 	// measurement happens when the completion handler runs (also on the
 	// network thread), so the latency includes both disk queues.
-	j->start_time = clock_type::now();
+	j->start_time = aux::steady_clock::now();
 #endif
 	// if this happens, it means we started to shut down
 	// the disk threads too early. We have to post all jobs
@@ -1772,7 +1819,7 @@ int pread_disk_io::flush_cache_blocks(
 		m_stats_counters.inc_stats_counter(counters::num_running_disk_jobs, -1);
 	});
 
-	time_point const start_time = clock_type::now();
+	auto const start_time = aux::steady_clock::now();
 
 	bool failed = false;
 
@@ -1794,6 +1841,18 @@ int pread_disk_io::flush_cache_blocks(
 		storage_error error;
 		storage->write(m_settings, iovec
 			, a.piece, a.offset, file_mode, j->flags, error);
+
+		if (!storage->set_need_tick())
+		{
+			bool const queued = m_tick.schedule(aux::steady_clock::now() + 2min,
+				[st = std::weak_ptr<aux::pread_storage>(pj->storage)] {
+					if (auto s = st.lock())
+						s->do_tick();
+				});
+			// if the tick can't be queued, flush right away instead
+			if (!queued)
+				pj->storage->do_tick();
+		}
 
 		int i = start_idx;
 		for (auto* j2 : blocks.subspan(start_idx, count))
@@ -1830,7 +1889,7 @@ int pread_disk_io::flush_cache_blocks(
 
 	if (!failed)
 	{
-		std::int64_t const write_time = total_microseconds(clock_type::now() - start_time);
+		std::int64_t const write_time = total_microseconds(aux::steady_clock::now() - start_time);
 
 		m_stats_counters.inc_stats_counter(counters::num_blocks_written, ret);
 		m_stats_counters.inc_stats_counter(counters::num_write_ops);
@@ -1940,7 +1999,6 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 	TORRENT_UNUSED(work);
 
 	ADD_OUTSTANDING_ASYNC("pread_disk_io::work");
-	std::thread::id const thread_id = std::this_thread::get_id();
 
 	aux::set_thread_name("lt-disk-thread");
 
@@ -1950,10 +2008,6 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 
 	++m_num_running_threads;
 	m_stats_counters.inc_stats_counter(counters::num_running_threads, 1);
-
-	// we call close_oldest_file on the file_pool regularly. This is the next
-	// time we should call it
-	time_point next_close_oldest_file = min_time();
 
 	for (;;)
 	{
@@ -2068,40 +2122,6 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 		l.unlock();
 
 		TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
-
-		if (&pool == &m_generic_threads && thread_id == pool.first_thread_id())
-		{
-			time_point const now = aux::time_now();
-			{
-				std::unique_lock<std::mutex> l2(m_need_tick_mutex);
-				while (!m_need_tick.empty() && m_need_tick.front().first < now)
-				{
-					std::shared_ptr<aux::pread_storage> st = m_need_tick.front().second.lock();
-					m_need_tick.erase(m_need_tick.begin());
-					if (st)
-					{
-						l2.unlock();
-						st->tick();
-						l2.lock();
-					}
-				}
-			}
-
-			if (now > next_close_oldest_file)
-			{
-				seconds const interval(m_settings.get_int(settings_pack::close_file_interval));
-				if (interval <= seconds(0))
-				{
-					// check again in one minute, in case the setting changed
-					next_close_oldest_file = now + minutes(1);
-				}
-				else
-				{
-					next_close_oldest_file = now + interval;
-					m_file_pool.close_oldest();
-				}
-			}
-		}
 
 		execute_job(j);
 
@@ -2245,7 +2265,7 @@ void pread_disk_io::add_completed_jobs_impl(
 		auto* j = static_cast<aux::pread_disk_job*>(job);
 		if (std::holds_alternative<aux::job::write>(j->action))
 		{
-			auto const result = ctx.self->insert_write(j, {});
+			auto const result = ctx.self->insert_write(j);
 			if ((result & aux::disk_cache::need_hasher_kick) || j->storage->v2())
 				ctx.need_kick = true;
 		}

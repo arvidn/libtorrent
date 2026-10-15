@@ -13,6 +13,7 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 
 #include <mutex>
+#include <atomic>
 #include <memory>
 #include <optional>
 
@@ -89,12 +90,8 @@ namespace libtorrent::aux {
 
 		file_storage const& files() const { return m_files; }
 
-		bool set_need_tick()
-		{
-			bool const prev = m_need_tick;
-			m_need_tick = true;
-			return prev;
-		}
+		// returns whether a tick was already pending
+		bool set_need_tick() { return m_need_tick.exchange(true); }
 
 		void do_tick()
 		{
@@ -102,7 +99,7 @@ namespace libtorrent::aux {
 			tick();
 		}
 
-		void set_owner(std::shared_ptr<void> const& tor) { m_torrent = tor; }
+		void set_owner(std::shared_ptr<void> const& owner) { m_owner = owner; }
 
 		storage_index_t storage_index() const { return m_storage_index; }
 		void set_storage_index(storage_index_t st) { m_storage_index = st; }
@@ -131,17 +128,12 @@ namespace libtorrent::aux {
 		void drop_precomputed_v2(piece_index_t piece);
 
 	private:
-
-		bool m_need_tick = false;
+		std::atomic<bool> m_need_tick{false};
 		file_storage const& m_files;
 
-		// the reason for this to be a void pointer
-		// is to avoid creating a dependency on the
-		// torrent. This shared_ptr is here only
-		// to keep the torrent object alive until
-		// the storage destructs. This is because
-		// the file_storage object is owned by the torrent.
-		std::shared_ptr<void> m_torrent;
+		// keeps whatever owns m_files alive until the storage destructs. It's
+		// opaque to avoid a dependency on the torrent
+		std::shared_ptr<void> m_owner;
 
 		storage_index_t m_storage_index{0};
 
@@ -190,7 +182,10 @@ namespace libtorrent::aux {
 		// to make all storage instances share the pool
 		aux::file_pool& m_pool;
 
-		// used for skipped files
+		// used for skipped files. tick() runs outside the job fence that
+		// serializes every other access, so creating and destroying the
+		// part file must be locked against it
+		std::mutex m_part_file_mutex;
 		std::unique_ptr<part_file> m_part_file;
 
 		// this is a bitfield with one bit per file. A bit being set means

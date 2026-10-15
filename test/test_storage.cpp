@@ -46,10 +46,13 @@ see LICENSE file.
 #include "libtorrent/load_torrent.hpp"
 
 #include <array>
+#include <atomic>
 #include <memory>
 #include <functional> // for bind
 #include <fstream>
 #include <iostream>
+#include <thread>
+#include <tuple> // for std::tie
 
 #ifndef TORRENT_WINDOWS
 #include <sys/stat.h>
@@ -1031,6 +1034,62 @@ TORRENT_TEST(rename_pread_disk_io) { test_rename<pread_storage>(current_path());
 TORRENT_TEST_DISK_IO(rename_to_existing) { test_rename_to_existing(current_path(), disk_io); }
 
 TORRENT_TEST(remove_pread_disk_io) { test_remove<pread_storage>(current_path()); }
+
+// tick() runs on a disk thread outside the job fence, so it can race the jobs
+// that create and destroy the part file. Drive both sides from separate
+// threads so thread sanitizer gets to see any unsynchronized access
+template <typename StorageType>
+void test_tick_partfile_race(std::string const& test_path)
+{
+	delete_dirs(combine_path(test_path, "temp_storage"));
+
+	std::vector<char> buf;
+	typename file_pool_type<StorageType>::type fp;
+	aux::session_settings set;
+	auto info = setup_torrent_info(buf);
+
+	// a skipped file that doesn't exist on disk makes the storage use a part file
+	aux::vector<download_priority_t, file_index_t> priorities{lt::dont_download};
+	renamed_files rf;
+	storage_params p{info->layout(),
+		rf,
+		test_path,
+		{},
+		storage_mode_sparse,
+		priorities,
+		sha1_hash{},
+		info->v1(),
+		info->v2()};
+	auto s = make_storage<StorageType>(p, fp);
+	storage_error se;
+	s->initialize(set, se);
+	TEST_CHECK(!se.ec);
+
+	std::atomic<bool> done{false};
+	std::thread ticker([&] {
+		while (!done)
+			s->tick();
+	});
+
+	// set_file_priority() recreates the part file even with unchanged
+	// priorities, so each iteration is one destroy and one create
+	for (int i = 0; i < 200; ++i)
+	{
+		s->delete_files(session::delete_files, se);
+		s->set_file_priority(set, priorities, se);
+		TEST_CHECK(!se.ec);
+	}
+	done = true;
+	ticker.join();
+}
+
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
+TORRENT_TEST(tick_partfile_race_mmap) { test_tick_partfile_race<mmap_storage>(current_path()); }
+#endif
+
+#ifndef TORRENT_WINDOWS
+TORRENT_TEST(tick_partfile_race_pread) { test_tick_partfile_race<pread_storage>(current_path()); }
+#endif
 
 #if TORRENT_HAS_SYMLINK
 // builds and loads a torrent for a symlink test. Piece hashes are
@@ -2129,6 +2188,137 @@ TORRENT_TEST(readwrite_zero_size_files)
 
 	TEST_EQUAL(ret, fs.total_size());
 	TEST_CHECK(check_pattern(buf, 0));
+}
+
+TORRENT_TEST(move_storage_rolls_back_after_partfile_error)
+{
+	std::string const source = absolute("partfile_rollback_source");
+	std::string const destination = absolute("partfile_rollback_destination");
+	delete_dirs(source);
+	delete_dirs(destination);
+
+	file_storage fs;
+	std::array<char const*, 2> const names = {{"first", "second"}};
+	error_code ec;
+	create_directories(combine_path(source, "payload"), ec);
+	TEST_CHECK(!ec);
+	for (char const* const name : names)
+	{
+		std::string const path = combine_path("payload", name);
+		fs.add_file_borrow({}, path, 1);
+		std::ofstream(combine_path(source, path).c_str()).put('x');
+	}
+
+	renamed_files const rf;
+	storage_error se;
+	bool partfile_move_attempted = false;
+	status_t status;
+	std::string save_path;
+	std::tie(status, save_path) = aux::move_storage(
+		filenames(fs, rf),
+		source,
+		destination,
+		[&](std::string const&, error_code& error) {
+			partfile_move_attempted = true;
+			error = boost::system::errc::make_error_code(boost::system::errc::permission_denied);
+		},
+		move_flags_t::always_replace_files,
+		se);
+
+	TEST_CHECK(partfile_move_attempted);
+	TEST_CHECK((status & disk_status::fatal_disk_error) != status_t{});
+	TEST_EQUAL(save_path, source);
+	TEST_CHECK(se.operation == operation_t::partfile_move);
+	for (char const* const name : names)
+	{
+		std::string const path = combine_path("payload", name);
+		TEST_CHECK(exists(combine_path(source, path)));
+		TEST_CHECK(!exists(combine_path(destination, path)));
+	}
+}
+
+TORRENT_TEST(move_storage_rollback_preserves_skipped_files)
+{
+	std::string const source = absolute("partfile_rollback_skip_source");
+	std::string const destination = absolute("partfile_rollback_skip_destination");
+	delete_dirs(source);
+	delete_dirs(destination);
+
+	error_code ec;
+	create_directories(combine_path(source, "payload"), ec);
+	TEST_CHECK(!ec);
+	create_directories(combine_path(destination, "payload"), ec);
+	TEST_CHECK(!ec);
+	std::ofstream(combine_path(source, "payload/first").c_str()).put('s');
+	std::ofstream(combine_path(source, "payload/second").c_str()).put('m');
+	std::ofstream(combine_path(destination, "payload/first").c_str()).put('d');
+
+	file_storage fs;
+	fs.add_file_borrow({}, "payload/first", 1);
+	fs.add_file_borrow({}, "payload/second", 1);
+	renamed_files const rf;
+	storage_error se;
+	status_t status;
+	std::string save_path;
+	std::tie(status, save_path) = aux::move_storage(
+		filenames(fs, rf),
+		source,
+		destination,
+		[](std::string const&, error_code& error) {
+			error = boost::system::errc::make_error_code(boost::system::errc::permission_denied);
+		},
+		move_flags_t::dont_replace,
+		se);
+
+	TEST_CHECK((status & disk_status::fatal_disk_error) != status_t{});
+	TEST_EQUAL(save_path, source);
+	TEST_EQUAL(std::ifstream(combine_path(source, "payload/first").c_str()).get(), 's');
+	TEST_EQUAL(std::ifstream(combine_path(destination, "payload/first").c_str()).get(), 'd');
+	TEST_EQUAL(std::ifstream(combine_path(source, "payload/second").c_str()).get(), 'm');
+	TEST_CHECK(!exists(combine_path(destination, "payload/second")));
+}
+
+TORRENT_TEST(move_storage_rollback_preserves_missing_source_files)
+{
+	std::string const source = absolute("partfile_rollback_missing_source");
+	std::string const destination = absolute("partfile_rollback_missing_destination");
+	delete_dirs(source);
+	delete_dirs(destination);
+
+	error_code ec;
+	create_directories(combine_path(source, "payload"), ec);
+	TEST_CHECK(!ec);
+	create_directories(combine_path(destination, "payload"), ec);
+	TEST_CHECK(!ec);
+	// "first" is declared in file_storage below but never created in source;
+	// "destination/payload/first" is a pre-existing, unrelated file that a
+	// rollback must not disturb.
+	std::ofstream(combine_path(source, "payload/second").c_str()).put('m');
+	std::ofstream(combine_path(destination, "payload/first").c_str()).put('d');
+
+	file_storage fs;
+	fs.add_file_borrow({}, "payload/first", 1);
+	fs.add_file_borrow({}, "payload/second", 1);
+	renamed_files const rf;
+	storage_error se;
+	status_t status;
+	std::string save_path;
+	std::tie(status, save_path) = aux::move_storage(
+		filenames(fs, rf),
+		source,
+		destination,
+		[](std::string const&, error_code& error) {
+			error = boost::system::errc::make_error_code(boost::system::errc::permission_denied);
+		},
+		move_flags_t::always_replace_files,
+		se);
+
+	TEST_CHECK((status & disk_status::fatal_disk_error) != status_t{});
+	TEST_EQUAL(save_path, source);
+	TEST_CHECK(!exists(combine_path(source, "payload/first")));
+	TEST_EQUAL(std::ifstream(combine_path(destination, "payload/first").c_str()).get(), 'd');
+	TEST_EQUAL(std::ifstream(combine_path(source, "payload/second").c_str()).get(), 'm');
+	TEST_CHECK(!exists(combine_path(destination, "payload/second")));
 }
 
 template <typename StorageType>

@@ -107,6 +107,7 @@ see LICENSE file.
 #include "libtorrent/aux_/ssl.hpp"
 #include "libtorrent/aux_/apply_pad_files.hpp"
 #include "libtorrent/aux_/tracker_list.hpp"
+#include "libtorrent/aux_/tracker_manager.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/aux_/session_impl.hpp" // for tracker_logger
@@ -797,10 +798,14 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		// been closed by the time the torrent is destructed. And they are
 		// supposed to be closed. So we can still do the invariant check.
 
-		// however, the torrent object may be destructed from the main
-		// thread when shutting down, if the disk cache has references to it.
-		// this means that the invariant check that this is called from the
-		// network thread cannot be maintained
+		// the torrent must be destructed on the network thread. The peer list
+		// returns its entries to the session's peer allocator, which is not
+		// thread safe, and extensions expect their destructors to run on the
+		// network thread, like their callbacks. This is why the disk I/O is
+		// not handed a reference to the torrent, only to its torrent_info.
+		// At shutdown, the thread destructing the session registers itself
+		// as the network thread first
+		TORRENT_ASSERT(m_ses.is_single_thread());
 
 		TORRENT_ASSERT(m_peer_class == peer_class_t{0});
 		TORRENT_ASSERT(m_connections.empty());
@@ -1909,9 +1914,12 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			m_torrent_file->v1() && !(m_flags & torrent_flags::disable_v1_hashes),
 			m_torrent_file->v2()};
 
-		// the shared_from_this() will create an intentional
-		// cycle of ownership, se the hpp file for description.
-		m_storage = m_ses.disk_thread().new_torrent(params, shared_from_this());
+		// the storage references m_torrent_file's file_storage, so the disk I/O
+		// keeps the torrent_info alive while it has jobs for the storage. It
+		// must not keep the torrent alive, that has to be destructed on the
+		// network thread
+		m_storage = m_ses.disk_thread().new_torrent(
+			params, std::const_pointer_cast<torrent_info>(m_torrent_file));
 	}
 
 	peer_connection* torrent::find_lowest_ranking_peer() const
@@ -2704,12 +2712,12 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		if (error)
 		{
 			if (error.ec == boost::system::errc::no_such_file_or_directory
-				|| error.ec == boost::asio::error::eof
-				|| error.ec == lt::errors::file_too_short
+				|| error.ec == boost::asio::error::eof || error.ec == lt::errors::file_too_short
+				|| error.ec == lt::errors::partfile_missing_piece
 #ifdef TORRENT_WINDOWS
 				|| error.ec == error_code(ERROR_HANDLE_EOF, system_category())
 #endif
-				)
+			)
 			{
 				TORRENT_ASSERT(error.file() >= file_index_t(0));
 
@@ -3129,6 +3137,15 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 	}
 #endif
 
+	bool torrent::tracker_supported(aux::announce_entry const& ae) const
+	{
+#if TORRENT_USE_I2P
+		if (!i2p_compatible_tracker(ae))
+			return false;
+#endif
+		return aux::is_tracker_protocol_supported(ae.url);
+	}
+
 	namespace {
 		void refresh_endpoint_list(aux::session_interface& ses,
 			bool const is_ssl,
@@ -3321,12 +3338,11 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			req.trackerid = ae.trackerid.empty() ? m_trackerid : ae.trackerid;
 			req.url = ae.url;
 
+			// update_tracker_timer() applies the same skip, so the timer
+			// doesn't keep firing for a tracker that's never contacted.
+			if (!tracker_supported(ae))
+				continue;
 #if TORRENT_USE_I2P
-			// if we don't allow mixing normal peers into this i2p torrent,
-			// skip non-i2p trackers. update_tracker_timer() applies the
-			// same skip so the timer doesn't keep firing for trackers we'll
-			// never contact.
-			if (!i2p_compatible_tracker(ae)) continue;
 			// req is reused across iterations, so set the i2p bit to match
 			// this tracker rather than only ever OR-ing it in.
 			if (ae.i2p)
@@ -3615,8 +3631,9 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		req.trackerid = ae.trackerid.empty() ? m_trackerid : ae.trackerid;
 		req.url = ae.url;
 
+		if (!tracker_supported(ae))
+			return;
 #if TORRENT_USE_I2P
-		if (!i2p_compatible_tracker(ae)) return;
 		if (ae.i2p) req.kind |= tracker_request::i2p;
 #endif
 
@@ -3688,8 +3705,9 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 		req.kind |= tracker_request::scrape_request;
 
+		if (!tracker_supported(ae))
+			return;
 #if TORRENT_USE_I2P
-		if (!i2p_compatible_tracker(ae)) return;
 		if (ae.i2p) req.kind |= tracker_request::i2p;
 #endif
 		refresh_endpoint_list(
@@ -10608,14 +10626,13 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 			++idx;
 #endif
-#if TORRENT_USE_I2P
 			// Skip trackers that announce_with_tracker() will skip too.
 			// Without this, those trackers' default next_announce
 			// (time_point32::min()) drives the timer to fire immediately,
 			// calling announce_with_tracker() which skips again, looping
 			// forever and spinning the CPU.
-			if (!i2p_compatible_tracker(t)) continue;
-#endif
+			if (!tracker_supported(t))
+				continue;
 			for (auto const& aep : t.endpoints)
 			{
 				auto ep_state_iter = std::find_if(listen_socket_states.begin(),

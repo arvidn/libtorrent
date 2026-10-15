@@ -567,8 +567,13 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 
 	void build_netmask_impl(span<unsigned char> mask, int prefix_bits)
 	{
-		TORRENT_ASSERT(prefix_bits <= mask.size() * 8);
 		TORRENT_ASSERT(prefix_bits >= 0);
+		// a prefix length that doesn't fit the address would run the fill loop
+		// below past the end of mask. the netlink prefix fields feeding this are
+		// a single byte, so an out of range value can arrive from a malformed
+		// message. cap it to a full mask, the same way the Windows path already
+		// bounds the prefix length.
+		prefix_bits = std::min(prefix_bits, int(mask.size()) * 8);
 		int i = 0;
 		while (prefix_bits >= 8)
 		{
@@ -826,23 +831,24 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 
 		if (GetAdaptersAddresses != nullptr)
 		{
-			ULONG buf_size = 10000;
-			std::vector<char> buffer(buf_size);
-			PIP_ADAPTER_ADDRESSES adapter_addresses
-				= reinterpret_cast<IP_ADAPTER_ADDRESSES*>(&buffer[0]);
+			std::vector<IP_ADAPTER_ADDRESSES> buffer(32);
+			ULONG buf_size = ULONG(buffer.size() * sizeof(IP_ADAPTER_ADDRESSES));
+			IP_ADAPTER_ADDRESSES* adapter_addresses = buffer.data();
 
 			DWORD res = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER
 				| GAA_FLAG_SKIP_ANYCAST, nullptr, adapter_addresses, &buf_size);
 			if (res == ERROR_BUFFER_OVERFLOW)
 			{
-				buffer.resize(buf_size);
-				adapter_addresses = reinterpret_cast<IP_ADAPTER_ADDRESSES*>(&buffer[0]);
+				buffer.resize(
+					(buf_size + sizeof(IP_ADAPTER_ADDRESSES) - 1) / sizeof(IP_ADAPTER_ADDRESSES));
+				buf_size = ULONG(buffer.size() * sizeof(IP_ADAPTER_ADDRESSES));
+				adapter_addresses = buffer.data();
 				res = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER
 					| GAA_FLAG_SKIP_ANYCAST, nullptr, adapter_addresses, &buf_size);
 			}
 			if (res != NO_ERROR)
 			{
-				ec = error_code(WSAGetLastError(), system_category());
+				ec = error_code(res, system_category());
 				return std::vector<ip_interface>();
 			}
 

@@ -6459,6 +6459,12 @@ retry:
 
 	session_impl::~session_impl()
 	{
+		// the network thread has exited by now, so this is the only thread
+		// touching session state. Registering it lets the single thread checks
+		// hold for everything destructed from here, including torrents kept
+		// alive by the disk I/O
+		thread_started();
+
 		// since we're destructing the session, no more alerts will make it out to
 		// the user. So stop posting them now
 		m_alerts.set_alert_mask({});

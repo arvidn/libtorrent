@@ -18,6 +18,17 @@ logger.addHandler(logging.StreamHandler(sys.stdout))
 
 
 async def handle(websocket):
+    # the tracker behavior to simulate:
+    # normal: respond to every announce
+    # failure: respond to every announce with a failure reason
+    # stale-failure: respond normally, then send a failure reason that isn't
+    #   the outcome of the announce (like aquatic does when an answer arrives
+    #   for an offer it no longer knows about)
+    # bare-failure: inject a failure response without an info_hash, then send
+    #   a normal, correlated response on the same connection. Tests that the
+    #   client ignores the uncorrelated failure without closing the connection.
+    mode = sys.argv[3] if len(sys.argv) > 3 else 'normal'
+
     try:
         while True:
             message = await websocket.recv()
@@ -29,12 +40,30 @@ async def handle(websocket):
                 file=sys.stderr)
 
             request = json.loads(message)
+            info_hash = request["info_hash"]
+
+            if mode == 'failure':
+                await websocket.send(json.dumps({
+                    "failure reason": "test failure",
+                    "info_hash": info_hash}))
+                continue
+
+            if mode == 'bare-failure':
+                await websocket.send(json.dumps({
+                    "failure reason": "Invalid request"}))
+
             response = {}
-            response["info_hash"] = request["info_hash"]
+            response["info_hash"] = info_hash
             response["interval"] = 120
             response["min_interval"] = 60
 
             await websocket.send(json.dumps(response))
+
+            if mode == 'stale-failure':
+                await websocket.send(json.dumps({
+                    "failure reason": "Could not find the offer corresponding"
+                    " to your answer. It may have expired.",
+                    "info_hash": info_hash}))
 
     except Exception as e:
         print(e)

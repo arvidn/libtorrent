@@ -127,10 +127,11 @@ private:
 };
 
 struct websocket_tracker_response {
-	sha1_hash info_hash;
+	std::optional<sha1_hash> info_hash;
 	std::optional<tracker_response> resp;
 	std::optional<aux::rtc_offer> offer;
 	std::optional<aux::rtc_answer> answer;
+	std::string failure_reason;
 };
 
 TORRENT_EXTRA_EXPORT std::variant<websocket_tracker_response, std::string>

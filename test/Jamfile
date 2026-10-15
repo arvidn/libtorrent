@@ -156,6 +156,7 @@ run test_time.cpp ;
 run test_file_storage.cpp ;
 run test_peer_priority.cpp ;
 run test_threads.cpp ;
+run test_disk_tick_thread.cpp ;
 run test_tailqueue.cpp ;
 run test_bandwidth_limiter.cpp ;
 run test_buffer.cpp ;
@@ -347,5 +348,6 @@ alias deterministic-tests :
 	test_truncate
 	test_vector_utils
 	test_disk_io
+	test_disk_tick_thread
 	test_slow_hash
 	;

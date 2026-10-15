@@ -470,6 +470,9 @@ namespace errors {
 		// (see load_torrent_limits)
 		too_many_symlinks,
 
+		// the requested piece has not been written to the part file
+		partfile_missing_piece,
+
 		// the number of error codes
 		error_code_max
 	};

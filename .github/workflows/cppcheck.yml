@@ -8,7 +8,7 @@ on:
       - src/**
       - include/**
       - examples/**
-      - simulations/**
+      - simulation/**
       - tools/**
 
 concurrency:

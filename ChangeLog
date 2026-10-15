@@ -20,6 +20,11 @@
 
 2.1.3 not released
 
+	* fix close_file_interval for pread_disk_io
+	* fix pread disk I/O delaying a piece's writes after hashing it on a hashing thread
+	* fix (rare) data race with part files
+	* mitigate DHT peer storage flooding from a single IPv6 prefix
+	* fix CPU issue when tracker list includes invalid entries
 	* fix out of bounds write in the alert_message C binding on non-positive size
 	* fix pread disk I/O holding back write completions until the end of a flush
 	* fix pread disk I/O async_hash2() of a cached block that ends in a pad file
@@ -88,6 +93,8 @@
 
 2.0.16 not released
 
+	* fix bind_to_device on windows
+	* fix rollback of move-storage
 	* fix renaming sanitized files back to their original name
 
 2.0.15 released

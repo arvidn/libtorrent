@@ -104,6 +104,28 @@ struct ws_request_callback : request_callback
 #endif
 };
 
+TORRENT_TEST(tracker_protocol_supported)
+{
+	TEST_CHECK(is_tracker_protocol_supported("http://tracker.com/announce"));
+	TEST_CHECK(is_tracker_protocol_supported("udp://tracker.com:80/announce"));
+	TEST_CHECK(!is_tracker_protocol_supported("foo://tracker.com/announce"));
+	TEST_CHECK(!is_tracker_protocol_supported("tracker.com/announce"));
+
+#if TORRENT_USE_SSL
+	TEST_CHECK(is_tracker_protocol_supported("https://tracker.com/announce"));
+#else
+	TEST_CHECK(!is_tracker_protocol_supported("https://tracker.com/announce"));
+#endif
+
+#if TORRENT_USE_RTC
+	TEST_CHECK(is_tracker_protocol_supported("ws://tracker.com/announce"));
+	TEST_CHECK(is_tracker_protocol_supported("wss://tracker.com/announce"));
+#else
+	TEST_CHECK(!is_tracker_protocol_supported("ws://tracker.com/announce"));
+	TEST_CHECK(!is_tracker_protocol_supported("wss://tracker.com/announce"));
+#endif
+}
+
 TORRENT_TEST(empty_and_num_requests)
 {
 	io_context ios;

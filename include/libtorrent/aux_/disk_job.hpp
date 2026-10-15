@@ -304,7 +304,7 @@ namespace job {
 		// elapsed time is bucketed into the disk_read_latency* histogram, so
 		// the measured interval includes both the disk-thread queue and the
 		// completion queue. Only present in disk-latency-stats builds.
-		time_point start_time{};
+		steady_clock::time_point start_time{};
 #endif
 
 #if TORRENT_USE_ASSERTS
@@ -320,10 +320,12 @@ namespace job {
 
 		// this is true when the job is blocked by a storage_fence
 		mutable bool blocked = false;
+
+		// accounted for by disk_cache, but not inserted into a cached piece yet
+		bool pending_cache_insert = false;
 #endif
 	};
 
 }
 
 #endif // TORRENT_DISK_JOB_HPP
-

@@ -14,6 +14,8 @@ see LICENSE file.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp"
 
+#include <algorithm>
+
 namespace libtorrent {
 namespace aux {
 
@@ -29,6 +31,11 @@ namespace aux {
 		error_code ec;
 		make_address(host, ec);
 		return !ec;
+	}
+
+	bool same_v6_prefix(address_v6::bytes_type const& a, address_v6::bytes_type const& b)
+	{
+		return std::equal(a.begin(), a.begin() + 7, b.begin());
 	}
 
 	bool is_global(address const& addr)
@@ -110,10 +117,6 @@ namespace aux {
 		catch (std::exception const&) { return false; }
 	}
 
-	address ensure_v6(address const& a)
-	{
-		return a == address_v4() ? address_v6() : a;
-	}
-
+	address ensure_v6(address const& a) { return a == address_v4() ? address_v6() : a; }
 }
 }

@@ -468,6 +468,46 @@ TORRENT_TEST(piece_range)
 		== lt::index_range<piece_index_t>{3_piece, 7_piece}));
 }
 
+TORRENT_TEST(piece_range_short_file_owns_no_piece)
+{
+	int const piece_size = 16;
+	file_storage fs;
+	fs.set_piece_length(piece_size);
+	// "middle" starts mid-piece (piece 1, local offset 4) and ends at local
+	// offset 7, nowhere near the end of piece 1 (offset 16) -- it shares
+	// piece 1 with both neighbors and exclusively owns no piece at all
+	fs.add_file_borrow({}, combine_path("temp_storage", "0"), 20);
+	fs.add_file_borrow({}, combine_path("temp_storage", "middle"), 3);
+	fs.add_file_borrow({}, combine_path("temp_storage", "2"), 17);
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
+	//        +----------------+--+-------------------------+
+	// pieces | 0              | 1                | 2       |
+	//        +----------------+--+-------------------------+
+	// files  |      0         |m |            2            |
+	//        +----------------+--+-------------------------+
+	TEST_EQUAL(fs.num_pieces(), 3);
+
+	// "0" fully owns piece 0; piece 1 is split between "0", "middle" and "2"
+	TEST_CHECK((aux::file_piece_range_inclusive(fs, 0_file)
+		== lt::index_range<piece_index_t>{0_piece, 2_piece}));
+	TEST_CHECK((aux::file_piece_range_exclusive(fs, 0_file)
+		== lt::index_range<piece_index_t>{0_piece, 1_piece}));
+
+	// "middle" only ever touches piece 1 (inclusive is correct and
+	// well-formed); it owns no piece exclusively, so the exclusive range
+	// must be empty, not inverted (begin > end)
+	TEST_CHECK((aux::file_piece_range_inclusive(fs, 1_file)
+		== lt::index_range<piece_index_t>{1_piece, 2_piece}));
+	TEST_CHECK((aux::file_piece_range_exclusive(fs, 1_file)
+		== lt::index_range<piece_index_t>{2_piece, 2_piece}));
+
+	// "2" is the last file: it owns piece 2 exclusively (piece 1 is shared)
+	TEST_CHECK((aux::file_piece_range_inclusive(fs, 2_file)
+		== lt::index_range<piece_index_t>{1_piece, 3_piece}));
+	TEST_CHECK((aux::file_piece_range_exclusive(fs, 2_file)
+		== lt::index_range<piece_index_t>{2_piece, 3_piece}));
+}
+
 TORRENT_TEST(piece_size_last_piece)
 {
 	file_storage fs;

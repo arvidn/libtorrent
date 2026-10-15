@@ -64,6 +64,14 @@ namespace libtorrent {
 	std::int64_t total_microseconds(T td)
 	{ return duration_cast<microseconds>(td).count(); }
 
+	namespace aux {
+#if defined TORRENT_BUILD_SIMULATOR
+	using steady_clock = clock_type;
+#else
+	using steady_clock = std::chrono::steady_clock;
+#endif
+	static_assert(steady_clock::is_steady, "steady_clock must be steady");
+	}
 }
 
 #endif // TORRENT_TIME_HPP_INCLUDED
