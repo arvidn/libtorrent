@@ -13,6 +13,7 @@ see LICENSE file.
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/bitfield.hpp"
 #include <iostream>
+#include <limits>
 
 using namespace lt;
 
@@ -150,6 +151,14 @@ TORRENT_TEST(get_layer)
 	TEST_EQUAL(merkle_get_layer(13), 3);
 	TEST_EQUAL(merkle_get_layer(14), 3);
 	TEST_EQUAL(merkle_get_layer(15), 4);
+
+	// the largest tree this library builds has merkle_num_nodes() == INT_MAX, so
+	// valid node indices reach INT_MAX - 1. those fall in layer 30, which starts
+	// at (1 << 30) - 1. computing the layer for them used to evaluate "1 << 31",
+	// signed overflow (undefined behavior).
+	TEST_EQUAL(merkle_get_layer((1 << 30) - 1), 30);
+	TEST_EQUAL(merkle_get_layer(1 << 30), 30);
+	TEST_EQUAL(merkle_get_layer(std::numeric_limits<int>::max() - 1), 30);
 }
 
 TORRENT_TEST(get_layer_offset)
@@ -171,6 +180,12 @@ TORRENT_TEST(get_layer_offset)
 	TEST_EQUAL(merkle_get_layer_offset(13), 6);
 	TEST_EQUAL(merkle_get_layer_offset(14), 7);
 	TEST_EQUAL(merkle_get_layer_offset(15), 0);
+
+	// regression for the signed overflow in the layer computation for the upper
+	// range of valid node indices (see get_layer)
+	TEST_EQUAL(merkle_get_layer_offset((1 << 30) - 1), 0);
+	TEST_EQUAL(merkle_get_layer_offset(1 << 30), 1);
+	TEST_EQUAL(merkle_get_layer_offset(std::numeric_limits<int>::max() - 1), (1 << 30) - 1);
 }
 
 TORRENT_TEST(merkle_num_layers)
@@ -246,6 +261,11 @@ TORRENT_TEST(merkle_layer_start)
 	TEST_EQUAL(merkle_layer_start(7), 127);
 	TEST_EQUAL(merkle_layer_start(8), 255);
 	TEST_EQUAL(merkle_layer_start(9), 511);
+
+	// "1 << layer" used to overflow a signed int at layer 31 (undefined
+	// behavior); the assert in merkle_layer_start permits layers up to 31
+	TEST_EQUAL(merkle_layer_start(30), (1 << 30) - 1);
+	TEST_EQUAL(merkle_layer_start(31), std::numeric_limits<int>::max());
 }
 
 TORRENT_TEST(merkle_to_flat_index)

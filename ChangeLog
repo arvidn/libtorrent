@@ -1,5 +1,6 @@
 2.1.3 not released
 
+	* fix signed-shift undefined behavior in merkle tree layer-index helpers
 	* fix pread disk I/O delaying a piece's writes after hashing it on a hashing thread
 	* fix (rare) data race with part files
 	* mitigate DHT peer storage flooding from a single IPv6 prefix
