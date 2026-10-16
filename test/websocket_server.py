@@ -13,13 +13,6 @@ sys.path = sys.path[1:]
 import websockets
 from websockets.legacy.server import serve
 
-class IgnorePongProtocol(websockets.WebSocketServerProtocol):
-    async def pong(self, data=b''):
-        # Deliberately suppress automatic pong responses to test stale-connection
-        # detection when a WebSocket peer silently stops responding.
-        return
-
-
 class IgnorePongOnceProtocol(websockets.WebSocketServerProtocol):
     connection_count = 0
 
@@ -86,6 +79,11 @@ async def handle(websocket):
                 await websocket.send(json.dumps({
                     "failure reason": "Invalid request"}))
 
+            # Delay one response on the replacement connection to test that
+            # it stays alive across multiple ping/pong intervals.
+            if mode == 'reconnect' and not stale_connection and announce_count == 2:
+                await asyncio.sleep(22)
+
             response = {}
             response["info_hash"] = info_hash
             response["interval"] = 120
@@ -115,9 +113,7 @@ async def main() -> None:
 
     mode = sys.argv[3] if len(sys.argv) > 3 else 'normal'
     kwargs = {}
-    if mode == 'ignore-pong':
-        kwargs['create_protocol'] = IgnorePongProtocol
-    elif mode == 'reconnect':
+    if mode == 'reconnect':
         kwargs['create_protocol'] = IgnorePongOnceProtocol
 
     server = await serve(handle, '127.0.0.1', 0, ssl=ssl_context, **kwargs)
