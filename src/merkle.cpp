@@ -269,9 +269,12 @@ namespace libtorrent {
 	int merkle_get_layer(int idx)
 	{
 		TORRENT_ASSERT(idx >= 0);
-		int layer = 1;
-		while (idx > (1 << layer) - 2) layer++;
-		return layer - 1;
+		TORRENT_ASSERT(idx < std::numeric_limits<int>::max());
+		// the layer is floor(log2(idx + 1)). Shift idx down rather than shifting
+		// 1 up, since (1 << 31) overflows for the last layer of the largest tree
+		int layer = 0;
+		for (int i = idx + 1; i > 1; i >>= 1) ++layer;
+		return layer;
 	}
 
 	// returns the start of the layer, offset `idx` falls into.
