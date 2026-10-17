@@ -1859,6 +1859,33 @@ TORRENT_TEST(clear_missing_pieces)
 	delete_dirs(save_path);
 }
 
+TORRENT_TEST(has_any_file_directory)
+{
+	std::string const save_path = absolute("temp_storage_has_any_file_directory");
+	delete_dirs(save_path);
+
+	file_storage fs;
+	fs.add_file_borrow({}, combine_path("test", "only"), 1000);
+	fs.set_piece_length(0x4000);
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
+
+	error_code ec;
+	create_directories(fs.file_path(0_file, save_path), ec);
+	TEST_CHECK(!ec);
+
+	aux::stat_cache stat;
+	lt::renamed_files const rf;
+	lt::filenames const fn(fs, rf);
+	storage_error serr;
+
+	// a stray directory is not evidence of real torrent data, the same
+	// as if the file were simply missing
+	TEST_CHECK(!aux::has_any_file(fn, save_path, stat, serr));
+	TEST_CHECK(!serr);
+
+	delete_dirs(save_path);
+}
+
 namespace {
 
 bool got_file_rename_alert(alert const* a)

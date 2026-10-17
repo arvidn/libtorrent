@@ -707,14 +707,18 @@ typed_bitfield<piece_index_t> build_check_pieces(filenames const& fs,
 
 			if (sz < 0)
 			{
-				if (ec && ec.ec != boost::system::errc::no_such_file_or_directory)
+				if (ec && ec.ec != boost::system::errc::no_such_file_or_directory
+					&& ec.ec != boost::system::errc::is_a_directory)
 				{
 					ec.file(i);
 					ec.operation = operation_t::file_stat;
 					cache.clear();
 					return false;
 				}
-				// some files not existing is expected and not an error
+				// missing, or a directory in its place, is not evidence
+				// either way; the directory case only reaches here for a
+				// dont_download file, whose data may live in a partfile
+				// instead
 				ec.ec.clear();
 			}
 
@@ -768,7 +772,11 @@ typed_bitfield<piece_index_t> build_check_pieces(filenames const& fs,
 			{
 				ec.file(file_index);
 				ec.operation = operation_t::file_stat;
-				ec.ec = err;
+				// report a directory the same way as a size mismatch,
+				// since fastresume_rejected_alert expects a
+				// libtorrent_category error here, not a raw POSIX one
+				ec.ec = (err == boost::system::errc::is_a_directory) ? errors::mismatching_file_size
+																	 : err;
 				break;
 			}
 
