@@ -1022,6 +1022,38 @@ std::string websocket_tracker_url(int const port)
 
 } // anonymous namespace
 
+// Verify that stale-connection detection lets the tracker manager establish a
+// fresh WebSocket connection and complete subsequent announces.
+TORRENT_TEST(websocket_tracker_recovers_after_stale_connection)
+{
+	int const port = start_websocket_server(false, 30, "reconnect");
+	{
+		lt::session s(websocket_tracker_settings());
+		torrent_handle const h = add_websocket_tracker_torrent(
+			s, "tmp_websocket_reconnect_tracker", websocket_tracker_url(port));
+
+		auto const initial = count_tracker_alerts(s, seconds(5));
+		TEST_EQUAL(initial.replies, 2);
+		TEST_EQUAL(initial.errors, 0);
+
+		// The server stops answering pings on the first connection. With the
+		// default 10-second keepalive, stale detection closes it after the
+		// unanswered ping remains outstanding for another keepalive period.
+		auto const stale_wait = count_tracker_alerts(s, seconds(22));
+		TEST_EQUAL(stale_wait.errors, 0);
+
+		// The replacement connection delays one announce response by 22 seconds.
+		// Keep that request pending across two keepalive intervals to verify that
+		// successful pong responses prevent the connection from being marked stale.
+		h.force_reannounce(0, torrent_handle::ignore_min_interval | torrent_handle::high_priority);
+
+		auto const recovered = count_tracker_alerts(s, seconds(30));
+		TEST_EQUAL(recovered.replies, 2);
+		TEST_EQUAL(recovered.errors, 0);
+	}
+	stop_websocket_server();
+}
+
 // a failure reason in response to an announce is reported as a tracker error
 // (it used to leave the announce pending, i.e. "updating", forever)
 TORRENT_TEST(websocket_tracker_failure_reason)
