@@ -549,7 +549,7 @@ mmap_storage::mmap_storage(
 			TORRENT_ASSERT(handle);
 
 			if (!handle->has_memory_map())
-				return aux::pread_all(handle->fd(), buf, file_offset, ec.ec);
+				return pread_reopen(sett, file_index, mode, handle, buf, file_offset, ec);
 
 			int ret = 0;
 			span<byte const> file_range = handle->range();
@@ -744,7 +744,8 @@ mmap_storage::mmap_storage(
 			if (!handle->has_memory_map())
 			{
 				scratch.resize(std::size_t(buf.size()));
-				int const ret = aux::pread_all(handle->fd(), scratch, file_offset, ec.ec);
+				int const ret =
+					pread_reopen(sett, file_index, mode, handle, scratch, file_offset, ec);
 				if (ec) return -1;
 				ph.update(scratch);
 				return ret;
@@ -830,7 +831,8 @@ mmap_storage::mmap_storage(
 		if (!handle->has_memory_map())
 		{
 			std::vector<char> scratch(static_cast<std::size_t>(len));
-			int const ret = aux::pread_all(handle->fd(), scratch, file_offset, error.ec);
+			int const ret =
+				pread_reopen(sett, file_index, mode, handle, scratch, file_offset, error);
 			if (error)
 			{
 				error.file(file_index);
@@ -930,6 +932,22 @@ mmap_storage::mmap_storage(
 		// the optional should be set here
 		TORRENT_ASSERT(static_cast<bool>(h));
 		return h;
+	}
+
+	// reads buf at file_offset with pread, and on EIO again through a new open (see
+	// file_pool_impl::pread_reopen)
+	int mmap_storage::pread_reopen(settings_interface const& sett,
+		file_index_t const file_index,
+		aux::open_mode_t const mode,
+		std::shared_ptr<aux::file_mapping>& handle,
+		span<char> const buf,
+		std::int64_t const file_offset,
+		storage_error& ec) const
+	{
+		return m_pool.pread_reopen(
+			storage_index(), file_index, handle, buf, file_offset, ec, [&](storage_error& e) {
+				return open_file(sett, file_index, mode, e);
+			});
 	}
 
 	std::shared_ptr<aux::file_mapping> mmap_storage::open_file_impl(settings_interface const& sett
