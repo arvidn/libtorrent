@@ -72,6 +72,7 @@ run test_v2.cpp ;
 #run test_file_pool.cpp ;
 run test_save_resume.cpp ;
 run test_priority.cpp ;
+run test_check_files_skip.cpp ;
 run test_error_handling.cpp ;
 run test_timeout.cpp ;
 run test_peer_connection.cpp ;

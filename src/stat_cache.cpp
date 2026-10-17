@@ -83,6 +83,10 @@ namespace libtorrent::aux {
 			file_status s;
 			std::string const file_path = fn.file_path(i, save_path);
 			stat_file(file_path, &s, ec);
+			// a directory's size bears no relation to the torrent's file
+			// content; report it as an error rather than a misleading size
+			if (!ec && (s.mode & file_status::directory))
+				ec = error_code(boost::system::errc::is_a_directory, generic_category());
 			if (ec)
 			{
 				set_error_impl(i, ec);

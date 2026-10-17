@@ -1826,6 +1826,8 @@ namespace aux {
 	// explicit instantiations for the file-layout types these are used with
 	template TORRENT_EXTRA_EXPORT index_range<piece_index_t> file_piece_range_exclusive(
 		file_storage const&, file_index_t);
+	template TORRENT_EXTRA_EXPORT index_range<piece_index_t> file_piece_range_exclusive(
+		filenames const&, file_index_t);
 	template TORRENT_EXTRA_EXPORT index_range<piece_index_t> file_piece_range_inclusive(
 		file_storage const&, file_index_t);
 	template TORRENT_EXTRA_EXPORT index_range<piece_index_t> file_piece_range_inclusive(
