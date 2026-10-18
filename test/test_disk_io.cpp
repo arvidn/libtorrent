@@ -1220,6 +1220,139 @@ TORRENT_TEST(pread_fenced_writes_apply_back_pressure)
 #endif
 }
 
+// with disable_hash_checks a hash job must still flush and evict the piece,
+// and the data must land on disk, without any hash being computed
+static void test_skip_hash(lt::disk_io_constructor_type disk_io, bool const v1, bool const v2)
+{
+	lt::io_context ios;
+	lt::counters cnt;
+	lt::settings_pack sett = lt::default_settings();
+	sett.set_int(lt::settings_pack::hashing_threads, 1);
+	sett.set_int(lt::settings_pack::aio_threads, 1);
+	sett.set_bool(lt::settings_pack::disable_hash_checks, true);
+	std::unique_ptr<lt::disk_interface> disk_thread = disk_io(ios, sett, cnt);
+
+	int const piece_size = 4 * lt::default_block_size;
+	int const num_pieces = 3;
+	lt::file_storage fs;
+	fs.set_piece_length(piece_size);
+	fs.add_file("test-torrent/file", piece_size * num_pieces, {});
+	fs.set_num_pieces(num_pieces);
+	lt::storage_holder storage =
+		add_test_torrent(*disk_thread, fs, "test_torrent_skip_hash", v1, v2);
+
+	// the setting is latched when the torrent is added, flipping it
+	// afterwards must not re-enable hashing
+	sett.set_bool(lt::settings_pack::disable_hash_checks, false);
+	disk_thread->settings_updated();
+
+	std::vector<std::vector<char>> buffers;
+	for (lt::piece_index_t const p : fs.piece_range())
+		buffers.push_back(generate_piece(p, piece_size));
+
+	// request hashes the way the engine does, the backend is expected to
+	// skip the work
+	lt::disk_job_flags_t const hash_flags = lt::disk_interface::flush_piece
+		| (v1 ? lt::disk_interface::v1_hash : lt::disk_job_flags_t{});
+	lt::aux::vector<lt::sha256_hash> v2_hashes(v2 ? piece_size / lt::default_block_size : 0);
+
+	int writes_done = 0;
+	int hashes_done = 0;
+	for (lt::piece_index_t const p : fs.piece_range())
+	{
+		auto const& buf = buffers[std::size_t(static_cast<int>(p))];
+		// out of order, so nothing in the cache can rely on sequential arrival
+		for (int b = piece_size / lt::default_block_size - 1; b >= 0; --b)
+		{
+			disk_thread->async_write(storage,
+				lt::peer_request{p, b * lt::default_block_size, lt::default_block_size},
+				buf.data() + b * lt::default_block_size,
+				{},
+				[&](lt::storage_error const& ec) {
+					TEST_CHECK(!ec);
+					++writes_done;
+				});
+		}
+		disk_thread->async_hash(storage,
+			p,
+			v2_hashes,
+			hash_flags,
+			[&](lt::piece_index_t, lt::sha1_hash const& h, lt::storage_error const& ec) {
+				TEST_CHECK(!ec);
+				if (ec)
+					std::cout << "hash error: " << ec.ec.message() << std::endl;
+				TEST_CHECK(h.is_all_zeros());
+				++hashes_done;
+			});
+	}
+	disk_thread->submit_jobs();
+
+	int const expect_writes = num_pieces * piece_size / lt::default_block_size;
+	auto const start_time = lt::aux::time_now();
+	// a backend without worker threads holds no work on ios, so run_for()
+	// leaves it stopped once the handlers have run
+	ios.restart();
+	for (;;)
+	{
+		ios.run_for(5ms);
+		disk_thread->update_stats_counters(cnt);
+		if (hashes_done == num_pieces && writes_done == expect_writes
+			&& cnt[lt::counters::cached_blocks] == 0 && cnt[lt::counters::num_unhashed] == 0)
+			break;
+		if (lt::aux::time_now() - start_time > 10s)
+		{
+			TEST_ERROR("timeout");
+			break;
+		}
+	}
+	TEST_EQUAL(hashes_done, num_pieces);
+	TEST_EQUAL(writes_done, expect_writes);
+	TEST_EQUAL(cnt[lt::counters::cached_blocks], 0);
+	TEST_EQUAL(cnt[lt::counters::num_unhashed], 0);
+	TEST_EQUAL(cnt[lt::counters::num_read_back], 0);
+	for (auto const& h : v2_hashes)
+		TEST_CHECK(h.is_all_zeros());
+
+	// read it all back, the cache is empty so this comes from disk
+	int reads_done = 0;
+	for (lt::piece_index_t const p : fs.piece_range())
+	{
+		auto const& buf = buffers[std::size_t(static_cast<int>(p))];
+		for (int b = 0; b < piece_size / lt::default_block_size; ++b)
+		{
+			disk_thread->async_read(storage,
+				lt::peer_request{p, b * lt::default_block_size, lt::default_block_size},
+				[&,
+					expected = lt::span<char const>(buf).subspan(
+						b * lt::default_block_size, lt::default_block_size)](
+					lt::disk_buffer_holder h, lt::storage_error const& ec) {
+					TEST_CHECK(!ec);
+					TEST_CHECK(
+						std::memcmp(h.data(), expected.data(), std::size_t(expected.size())) == 0);
+					++reads_done;
+				});
+		}
+	}
+	disk_thread->submit_jobs();
+	ios.restart();
+	while (reads_done < expect_writes)
+	{
+		ios.run_for(5ms);
+		if (lt::aux::time_now() - start_time > 20s)
+		{
+			TEST_ERROR("timeout");
+			break;
+		}
+	}
+	TEST_EQUAL(reads_done, expect_writes);
+
+	disk_thread->abort(true);
+}
+
+TORRENT_TEST_DISK_IO(test_disk_io_skip_hash_hybrid) { test_skip_hash(disk_io, true, true); }
+TORRENT_TEST_DISK_IO(test_disk_io_skip_hash_v2) { test_skip_hash(disk_io, false, true); }
+TORRENT_TEST_DISK_IO(test_disk_io_skip_hash_v1) { test_skip_hash(disk_io, true, false); }
+
 // the last block of this piece is all pad and is never written, so the piece
 // is not complete in the cache and its hash reads the pad from disk. The
 // block that was written must still be flushed once the piece is hashed,

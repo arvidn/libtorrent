@@ -39,25 +39,24 @@ static_assert(sizeof(off_t) >= 8, "64 bit file operations are required");
 namespace libtorrent {
 namespace aux {
 
-	posix_storage::posix_storage(storage_params const& p)
-		: m_files(p.files)
-		, m_renamed_files(std::move(p.renamed_files))
-		, m_save_path(p.path)
-		, m_part_file_dir(p.part_file_dir)
-		, m_file_priority(p.priorities)
-		, m_part_file_name("." + to_hex(p.info_hash) + ".parts")
-	{}
+posix_storage::posix_storage(storage_params const& p, bool const disable_hash_checks)
+	: m_disable_hash_checks(disable_hash_checks)
+	, m_files(p.files)
+	, m_renamed_files(std::move(p.renamed_files))
+	, m_save_path(p.path)
+	, m_part_file_dir(p.part_file_dir)
+	, m_file_priority(p.priorities)
+	, m_part_file_name("." + to_hex(p.info_hash) + ".parts")
+{}
 
-	filenames posix_storage::names() const
-	{
-		return {m_files, m_renamed_files};
-	}
+filenames posix_storage::names() const { return {m_files, m_renamed_files}; }
 
-	posix_storage::~posix_storage()
-	{
-		error_code ec;
-		if (m_part_file) m_part_file->flush_metadata(ec);
-	}
+posix_storage::~posix_storage()
+{
+	error_code ec;
+	if (m_part_file)
+		m_part_file->flush_metadata(ec);
+}
 
 	void posix_storage::need_partfile()
 	{

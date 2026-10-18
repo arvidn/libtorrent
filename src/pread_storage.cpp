@@ -40,23 +40,24 @@ see LICENSE file.
 
 namespace libtorrent::aux {
 
-	pread_storage::pread_storage(storage_params const& params
-		, file_pool& pool)
-		: m_files(params.files)
-		, m_renamed_files(params.renamed_files)
-		, m_file_priority(params.priorities)
-		, m_save_path(complete(params.path))
-		, m_part_file_dir(params.part_file_dir)
-		, m_part_file_name("." + to_hex(params.info_hash) + ".parts")
-		, m_pool(pool)
-		, m_allocate_files(params.mode == storage_mode_allocate)
-		, m_v1(params.v1)
-		, m_v2(params.v2)
-	{
-		// a torrent must be either v1 or v2 (or both)
-		TORRENT_ASSERT(m_v1 || m_v2);
-		TORRENT_ASSERT(files().num_files() > 0);
-	}
+pread_storage::pread_storage(
+	storage_params const& params, file_pool& pool, bool const disable_hash_checks)
+	: m_files(params.files)
+	, m_renamed_files(params.renamed_files)
+	, m_file_priority(params.priorities)
+	, m_save_path(complete(params.path))
+	, m_part_file_dir(params.part_file_dir)
+	, m_part_file_name("." + to_hex(params.info_hash) + ".parts")
+	, m_pool(pool)
+	, m_allocate_files(params.mode == storage_mode_allocate)
+	, m_v1(params.v1)
+	, m_v2(params.v2)
+	, m_disable_hash_checks(disable_hash_checks)
+{
+	// a torrent must be either v1 or v2 (or both)
+	TORRENT_ASSERT(m_v1 || m_v2);
+	TORRENT_ASSERT(files().num_files() > 0);
+}
 
 	pread_storage::~pread_storage()
 	{

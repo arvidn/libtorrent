@@ -5330,9 +5330,7 @@ namespace {
 
 			bool const seed_mode = t->seed_mode();
 
-			if (seed_mode
-				&& !t->verified_piece(r.piece)
-				&& !m_settings.get_bool(settings_pack::disable_hash_checks))
+			if (seed_mode && !t->verified_piece(r.piece) && !t->disable_hash_checks())
 			{
 				// we're still verifying the hash of this piece
 				// so we can't return it yet.
@@ -5460,14 +5458,12 @@ namespace {
 #endif
 
 		// we're using the piece hashes here, we need the torrent to be loaded
-		if (!m_settings.get_bool(settings_pack::disable_hash_checks)
-			&& t->info_hash().has_v1() && !t->disable_v1_hashes())
+		if (!t->disable_hash_checks() && t->info_hash().has_v1() && !t->disable_v1_hashes())
 		{
 			hash_failed[protocol_version::V1] = piece_hash != t->torrent_file().hash_for_piece(piece);
 		}
 
-		if (!m_settings.get_bool(settings_pack::disable_hash_checks)
-			&& t->info_hash().has_v2())
+		if (!t->disable_hash_checks() && t->info_hash().has_v2())
 		{
 			hash_failed[protocol_version::V2] = false;
 
