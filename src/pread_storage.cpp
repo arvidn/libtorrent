@@ -462,6 +462,84 @@ pread_storage::pread_storage(
 		});
 	}
 
+	// vectored counterpart to read(), used to coalesce several contiguous
+	// block reads (from the same piece) into a single preadv() call. Each
+	// entry in bufs is filled independently, same as if read() had been
+	// called once per entry.
+	int pread_storage::readv(settings_interface const& sett,
+		span<span<char> const> bufs,
+		piece_index_t const piece,
+		int offset,
+		open_mode_t const mode,
+		disk_job_flags_t const flags,
+		storage_error& error)
+	{
+		return readwrite_vec(files(),
+			bufs,
+			piece,
+			offset,
+			error,
+			[this, mode, flags, &sett](file_index_t const file_index,
+				std::int64_t const file_offset,
+				span<span<char> const> const vec,
+				storage_error& ec) {
+				// reading from a pad file yields zeroes
+				if (files().pad_file_at(file_index))
+				{
+					int ret = 0;
+					for (auto const& b : vec)
+						ret += read_zeroes(b);
+					return ret;
+				}
+
+				if (file_index < m_file_priority.end_index()
+					&& m_file_priority[file_index] == dont_download && use_partfile(file_index))
+				{
+					TORRENT_ASSERT(m_part_file);
+
+					// skipped files served from the part file are rare (this only
+					// matters for a seed with some files deprioritized), so no
+					// need to vectorize this path -- just read each buffer in turn.
+					peer_request map = files().map_file(file_index, file_offset, 0);
+					int ret = 0;
+					for (auto const& b : vec)
+					{
+						error_code e;
+						int const r = m_part_file->read(b, map.piece, map.start, e);
+						if (e)
+						{
+							ec.ec = e;
+							ec.file(file_index);
+							ec.operation = operation_t::partfile_read;
+							return -1;
+						}
+						ret += r;
+						map.start += int(b.size());
+					}
+					return ret;
+				}
+
+				auto handle = open_file(sett, file_index, mode, ec);
+				if (ec)
+					return -1;
+
+				// set this unconditionally in case the upper layer would like to treat
+				// short reads as errors
+				ec.operation = operation_t::file_read;
+
+				int const ret = preadv_all(handle->fd(), vec, file_offset, ec.ec);
+				if (ec.ec)
+				{
+					ec.file(file_index);
+					return ret;
+				}
+				if (flags & disk_interface::volatile_read)
+					advise_dont_need(handle->fd(), file_offset, bufs_size(vec));
+
+				return ret;
+			});
+	}
+
 	int pread_storage::write(settings_interface const& sett
 		, span<span<char const> const> buffers
 		, piece_index_t const piece, int offset

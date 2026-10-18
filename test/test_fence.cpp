@@ -12,6 +12,8 @@ see LICENSE file.
 
 #include "libtorrent/aux_/disk_job.hpp"
 #include "libtorrent/aux_/disk_job_fence.hpp"
+#include "libtorrent/aux_/disk_io_thread_pool.hpp"
+#include "libtorrent/io_context.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "test.hpp"
 
@@ -207,4 +209,75 @@ TORRENT_TEST(double_fence)
 	// to make sure all outstanding jobs are completed, so we must
 	// complete them before we're done
 	fence.job_complete(&test_job[9], jobs);
+}
+
+TORRENT_TEST(disk_io_thread_pool_extract_matching)
+{
+	io_context ios;
+	aux::disk_io_thread_pool pool(
+		[](aux::disk_io_thread_pool&, executor_work_guard<io_context::executor_type>) {}, ios);
+
+	disk_job test_job[6];
+
+	// tag job[0..2] as "matching" with an arbitrary flag bit, standing in for
+	// whatever real predicate a caller (e.g. collect_read_batch()) would use.
+	for (int i = 0; i < 3; ++i)
+		test_job[i].flags = aux::disk_job::in_progress;
+
+	auto const matches = [](aux::disk_job* j) {
+		return bool(j->flags & aux::disk_job::in_progress);
+	};
+
+	// stops at the first non-matching job, preserving queue order
+	for (auto& j : test_job)
+		pool.push_back(&j);
+
+	jobqueue_t batch;
+	pool.extract_matching(batch, 10, matches);
+
+	TEST_EQUAL(batch.size(), 3);
+	TEST_CHECK(batch.first() == &test_job[0]);
+	while (!batch.empty())
+	{
+		TEST_CHECK(matches(batch.first()));
+		batch.pop_front();
+	}
+
+	TEST_EQUAL(pool.queue_size(), 3);
+	TEST_CHECK(pool.pop_front() == &test_job[3]);
+	TEST_CHECK(pool.pop_front() == &test_job[4]);
+	TEST_CHECK(pool.pop_front() == &test_job[5]);
+	TEST_CHECK(pool.empty());
+
+	// max_match caps how many matching jobs are extracted, even when more
+	// of them would have matched the predicate.
+	for (int i = 0; i < 3; ++i)
+		pool.push_back(&test_job[i]);
+
+	jobqueue_t capped_batch;
+	pool.extract_matching(capped_batch, 2, matches);
+
+	TEST_EQUAL(capped_batch.size(), 2);
+	TEST_CHECK(capped_batch.first() == &test_job[0]);
+	TEST_EQUAL(pool.queue_size(), 1);
+	TEST_CHECK(pool.pop_front() == &test_job[2]);
+	TEST_CHECK(pool.empty());
+
+	// a predicate that matches nothing leaves the queue untouched.
+	// test_job[3] was never tagged, so it doesn't match.
+	pool.push_back(&test_job[3]);
+
+	jobqueue_t empty_batch;
+	pool.extract_matching(empty_batch, 10, matches);
+
+	TEST_CHECK(empty_batch.empty());
+	TEST_EQUAL(pool.queue_size(), 1);
+	TEST_CHECK(pool.pop_front() == &test_job[3]);
+	TEST_CHECK(pool.empty());
+
+	// calling it on an empty queue is a no-op.
+	jobqueue_t noop_batch;
+	pool.extract_matching(noop_batch, 10, matches);
+	TEST_CHECK(noop_batch.empty());
+	TEST_CHECK(pool.empty());
 }
