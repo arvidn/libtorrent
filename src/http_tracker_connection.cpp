@@ -49,26 +49,6 @@ namespace libtorrent::aux {
 			return len >= 0 && len % entry_size == 0;
 		}
 
-		// returns true if the path (excluding the query string) could resolve
-		// to something other than itself on the server. i.e. it has a
-		// dot-segment, a backslash or a percent-encoded '.', '/' or '\\'
-		bool path_may_be_rewritten(string_view path)
-		{
-			path = path.substr(0, path.find('?'));
-			if (path.find("/.") != string_view::npos) return true;
-			if (path.find('\\') != string_view::npos) return true;
-			for (std::size_t i = path.find('%'); i != string_view::npos
-				; i = path.find('%', i + 1))
-			{
-				string_view const code = path.substr(i + 1, 2);
-				if (string_equal_no_case(code, "2e")
-					|| string_equal_no_case(code, "2f")
-					|| string_equal_no_case(code, "5c"))
-					return true;
-			}
-			return false;
-		}
-
 	}
 
 	http_tracker_connection::http_tracker_connection(
@@ -350,8 +330,12 @@ namespace libtorrent::aux {
 
 			// this is mitigation for Server Side request forgery. Any tracker
 			// announce to localhost need to look like a standard BitTorrent
-			// announce
-			if (path.substr(0, 9) != "/announce" || path_may_be_rewritten(path))
+			// announce. Anything after "/announce" (and before the query
+			// string) that could introduce a path separator, like "/../", a
+			// backslash or a percent-encoding, could make the server resolve it
+			// to a different path
+			if (path.substr(0, 9) != "/announce"
+				|| path.find_first_of("/\\%", 9) < path.find('?'))
 			{
 				for (auto i = endpoints.begin(); i != endpoints.end();)
 				{
