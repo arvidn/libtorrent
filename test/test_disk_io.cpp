@@ -11,8 +11,11 @@ see LICENSE file.
 #include <iostream>
 #include <thread>
 #include <chrono>
+#include <cstdint>
 #include <cstring> // for std::memcmp
+#include <memory>
 #include <string> // for std::to_string
+#include <vector>
 #include "test.hpp"
 #include "disk_io_test.hpp"
 #include "setup_transfer.hpp"
@@ -31,6 +34,10 @@ see LICENSE file.
 #include "libtorrent/aux_/scope_end.hpp"
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/hasher.hpp"
+#include "libtorrent/aux_/pread_disk_job.hpp"
+#include "libtorrent/aux_/pread_storage.hpp"
+#include "libtorrent/aux_/file_pool.hpp"
+#include "libtorrent/aux_/storage_utils.hpp"
 
 using namespace std::chrono_literals;
 
@@ -1419,4 +1426,167 @@ TORRENT_TEST_DISK_IO(test_disk_io_flush_after_hash_with_pad)
 	}
 	TEST_CHECK(hashed);
 	TEST_EQUAL(writes_done, 1);
+}
+
+namespace {
+
+void set_read_job(lt::aux::pread_disk_job& j,
+	std::shared_ptr<lt::aux::pread_storage> const& storage,
+	lt::piece_index_t const piece,
+	int const offset,
+	int const size)
+{
+	j.flags = {};
+	j.action = lt::aux::job::read{};
+	j.storage = storage;
+	auto& r = std::get<lt::aux::job::read>(j.action);
+	r.piece = piece;
+	r.offset = offset;
+	r.buffer_size = std::uint16_t(size);
+}
+
+}
+
+// Covers what collect_read_batch()'s predicate rejects, and that the expected
+// end offset advances across merged jobs. Every other read test only ever
+// queues a contiguous run of same-storage reads, so a predicate that stopped
+// rejecting would go unnoticed there and hand peers the wrong bytes. The queue
+// mechanics the predicate drives (stop at the first non-match, order, the
+// match cap) are covered by test_fence.cpp's disk_io_thread_pool_extract_matching.
+// collect_read_batch() only compares the storage pointer, piece and offset, so
+// this runs against two storages instead of a disk_interface session, and
+// nothing here touches the disk.
+TORRENT_TEST(pread_disk_io_collect_read_batch)
+{
+	// m_files is held by reference, so fs has to outlive both storages
+	lt::file_storage fs;
+	fs.set_piece_length(lt::default_block_size);
+	fs.add_file("test-torrent/file", lt::default_block_size, {});
+	fs.set_num_pieces(1);
+
+	lt::aux::vector<lt::download_priority_t, lt::file_index_t> priorities;
+	lt::renamed_files rf;
+	lt::storage_params const params{
+		fs,
+		rf,
+		"test_collect_read_batch",
+		{},
+		lt::storage_mode_t::storage_mode_sparse,
+		priorities,
+		lt::sha1_hash{},
+		true,
+		false,
+	};
+	lt::aux::file_pool files;
+	auto const storage_a = std::make_shared<lt::aux::pread_storage>(params, files);
+	auto const storage_b = std::make_shared<lt::aux::pread_storage>(params, files);
+
+	lt::io_context ios;
+	lt::aux::disk_io_thread_pool pool(
+		[](lt::aux::disk_io_thread_pool&, lt::executor_work_guard<lt::io_context::executor_type>) {
+		},
+		ios);
+
+	// the expected end offset advances with each merged job, so a contiguous run
+	// merges and the first non-contiguous job is rejected
+	{
+		lt::aux::pread_disk_job first;
+		set_read_job(first, storage_a, lt::piece_index_t(0), 0, 16384);
+
+		lt::aux::pread_disk_job test_job[3];
+		set_read_job(test_job[0], storage_a, lt::piece_index_t(0), 16384, 16384);
+		set_read_job(test_job[1], storage_a, lt::piece_index_t(0), 32768, 16384);
+		set_read_job(test_job[2], storage_a, lt::piece_index_t(0), 65536, 16384); // gap
+
+		for (auto& j : test_job)
+			pool.push_back(&j);
+
+		lt::jobqueue_t batch;
+		lt::aux::collect_read_batch(&first, pool, batch);
+
+		// ascending offsets, the order readv() fills the iovec in
+		TEST_EQUAL(batch.size(), 2);
+		TEST_CHECK(batch.first() == &test_job[0]);
+		batch.pop_front();
+		TEST_CHECK(batch.first() == &test_job[1]);
+		batch.pop_front();
+
+		TEST_CHECK(pool.pop_front() == &test_job[2]);
+		TEST_CHECK(pool.empty());
+	}
+
+	// a job on a different storage never matches, even with a contiguous offset
+	{
+		lt::aux::pread_disk_job first;
+		set_read_job(first, storage_a, lt::piece_index_t(0), 0, 16384);
+
+		lt::aux::pread_disk_job other;
+		set_read_job(other, storage_b, lt::piece_index_t(0), 16384, 16384);
+		pool.push_back(&other);
+
+		lt::jobqueue_t batch;
+		lt::aux::collect_read_batch(&first, pool, batch);
+
+		TEST_CHECK(batch.empty());
+		TEST_CHECK(pool.pop_front() == &other);
+		TEST_CHECK(pool.empty());
+	}
+
+	// a job for a different piece never matches
+	{
+		lt::aux::pread_disk_job first;
+		set_read_job(first, storage_a, lt::piece_index_t(0), 0, 16384);
+
+		lt::aux::pread_disk_job other;
+		set_read_job(other, storage_a, lt::piece_index_t(1), 16384, 16384);
+		pool.push_back(&other);
+
+		lt::jobqueue_t batch;
+		lt::aux::collect_read_batch(&first, pool, batch);
+
+		TEST_CHECK(batch.empty());
+		TEST_CHECK(pool.pop_front() == &other);
+		TEST_CHECK(pool.empty());
+	}
+
+	// a non-read job never matches, even with a matching storage/piece/offset
+	{
+		lt::aux::pread_disk_job first;
+		set_read_job(first, storage_a, lt::piece_index_t(0), 0, 16384);
+
+		lt::aux::pread_disk_job other;
+		other.flags = {};
+		other.storage = storage_a;
+		other.action = lt::aux::job::write{};
+		auto& w = std::get<lt::aux::job::write>(other.action);
+		w.piece = lt::piece_index_t(0);
+		w.offset = 16384;
+		w.buffer_size = 16384;
+		pool.push_back(&other);
+
+		lt::jobqueue_t batch;
+		lt::aux::collect_read_batch(&first, pool, batch);
+
+		TEST_CHECK(batch.empty());
+		TEST_CHECK(pool.pop_front() == &other);
+		TEST_CHECK(pool.empty());
+	}
+
+	// an aborted read job never matches, even with a matching storage/piece/offset
+	{
+		lt::aux::pread_disk_job first;
+		set_read_job(first, storage_a, lt::piece_index_t(0), 0, 16384);
+
+		lt::aux::pread_disk_job other;
+		set_read_job(other, storage_a, lt::piece_index_t(0), 16384, 16384);
+		other.flags |= lt::aux::disk_job::aborted;
+		pool.push_back(&other);
+
+		lt::jobqueue_t batch;
+		lt::aux::collect_read_batch(&first, pool, batch);
+
+		TEST_CHECK(batch.empty());
+		TEST_CHECK(pool.pop_front() == &other);
+		TEST_CHECK(pool.empty());
+	}
 }

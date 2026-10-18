@@ -35,6 +35,7 @@ see LICENSE file.
 #include "libtorrent/aux_/disk_completed_queue.hpp"
 #include "libtorrent/aux_/debug_disk_thread.hpp"
 #include "libtorrent/aux_/scope_end.hpp"
+#include "libtorrent/aux_/storage_utils.hpp"
 
 #include <functional>
 #include <memory>
@@ -161,6 +162,15 @@ struct TORRENT_EXTRA_EXPORT pread_disk_io final
 
 	status_t do_job(aux::job::partial_read& a, aux::pread_disk_job* j);
 	status_t do_job(aux::job::read& a, aux::pread_disk_job* j);
+
+	// services a batch of 2 or more job::read jobs -- collected by
+	// collect_read_batch() because they're contiguous reads from the same
+	// piece of the same storage -- with a single readv() call. jobs is
+	// consumed (moved out of) and every job in it is pushed onto the disk
+	// I/O thread's completed-jobs queue, same as execute_job() would do for
+	// a single job.
+	void execute_read_batch(jobqueue_t jobs);
+
 	status_t do_job(aux::job::write& a, aux::pread_disk_job* j);
 	status_t do_job(aux::job::hash& a, aux::pread_disk_job* j);
 	status_t do_job(aux::job::hash2& a, aux::pread_disk_job* j);
@@ -588,6 +598,76 @@ status_t pread_disk_io::do_job(aux::job::read& a, aux::pread_disk_job* j)
 	}
 	TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
 	return status_t{};
+}
+
+void pread_disk_io::execute_read_batch(jobqueue_t jobs)
+{
+	TORRENT_ASSERT(!jobs.empty());
+
+	int const count = jobs.size();
+	auto* const j0 = static_cast<aux::pread_disk_job*>(jobs.first());
+
+	m_stats_counters.inc_stats_counter(counters::num_running_disk_jobs, count);
+	auto se = aux::scope_end(
+		[&] { m_stats_counters.inc_stats_counter(counters::num_running_disk_jobs, -count); });
+
+	status_t const ret = translate_error(j0, [&] {
+		TORRENT_ALLOCA(iovec, span<char>, count);
+		int i = 0;
+		for (auto it = jobs.iterate(); it.get(); it.next(), ++i)
+		{
+			auto& a = std::get<aux::job::read>(static_cast<aux::pread_disk_job*>(it.get())->action);
+			a.buf = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"));
+			if (!a.buf)
+			{
+				j0->error.ec = error::no_memory;
+				j0->error.operation = operation_t::alloc_cache_piece;
+				return disk_status::fatal_disk_error;
+			}
+			iovec[i] = span<char>(a.buf.data(), std::ptrdiff_t(a.buffer_size));
+		}
+
+		auto& a0 = std::get<aux::job::read>(j0->action);
+		auto const start_time = aux::steady_clock::now();
+
+		int const r = j0->storage->readv(
+			m_settings, iovec, a0.piece, a0.offset, file_mode_for_job(j0), j0->flags, j0->error);
+
+		TORRENT_ASSERT(r >= 0 || j0->error.ec);
+		TORRENT_UNUSED(r);
+
+		if (!j0->error.ec)
+		{
+			std::int64_t const read_time =
+				total_microseconds(aux::steady_clock::now() - start_time);
+
+			// one readv() call served `count` blocks: num_read_ops -- the
+			// syscall count -- goes up by 1, not by count, which is the
+			// whole point of batching.
+			m_stats_counters.inc_stats_counter(counters::num_blocks_read, count);
+			m_stats_counters.inc_stats_counter(counters::num_read_ops);
+			m_stats_counters.inc_stats_counter(counters::disk_read_time, read_time);
+			m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
+		}
+		return status_t{};
+	});
+
+	// a readv() spanning multiple jobs either serves all of them or fails
+	// as a whole (see collect_read_batch(): everything in the batch is a
+	// cache-miss read of already-flushed, immutable piece data, so there's
+	// no partial-success case worth threading through separately). Give
+	// every job in the batch the same outcome.
+	storage_error const result = j0->error;
+	jobqueue_t completed_jobs;
+	while (!jobs.empty())
+	{
+		auto* const j = static_cast<aux::pread_disk_job*>(jobs.pop_front());
+		j->error = result;
+		j->ret = ret;
+		TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
+		completed_jobs.push_back(j);
+	}
+	add_completed_jobs(std::move(completed_jobs));
 }
 
 status_t pread_disk_io::do_job(aux::job::write&, aux::pread_disk_job*)
@@ -2142,11 +2222,27 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 			m_generic_threads.interrupt();
 		}
 
+		// opportunistically pull other already-queued job::read jobs that
+		// extend this one's byte range (same storage, same piece,
+		// contiguous offset) out of the queue, so they can all be serviced
+		// by a single readv() call below instead of one pread() each. Only
+		// bother scanning when there's something queued to look at.
+		jobqueue_t read_batch;
+		if (&pool == &m_generic_threads && j->get_type() == aux::job_action_t::read
+			&& !(j->flags & aux::disk_job::aborted) && !pool.empty())
+		{
+			read_batch.push_back(j);
+			aux::collect_read_batch(j, pool, read_batch);
+		}
+
 		l.unlock();
 
 		TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
 
-		execute_job(j);
+		if (read_batch.size() > 1)
+			execute_read_batch(std::move(read_batch));
+		else
+			execute_job(j);
 
 		// If a hash job ran on the hash thread, hash_piece() may have set
 		// force_flush_flag on the piece. Wake a generic thread to flush those blocks.

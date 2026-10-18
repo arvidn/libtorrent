@@ -98,37 +98,58 @@ namespace libtorrent::aux {
 			return int(m_threads.size());
 		}
 
-		// TODO: the job mutex must be held when this is called
+		// precondition: the job mutex must be held when this is called
 		void append(jobqueue_t jobs)
 		{
 			m_queued_jobs.append(std::move(jobs));
 		}
 
-		// TODO: the job mutex must be held when this is called
+		// precondition: the job mutex must be held when this is called
 		void push_back(aux::disk_job* j)
 		{
 			m_queued_jobs.push_back(j);
 		}
 
-		// TODO: the job mutex must be held when this is called
+		// precondition: the job mutex must be held when this is called
 		aux::disk_job* pop_front()
 		{
 			return m_queued_jobs.pop_front();
 		}
 
-		// TODO: the job mutex must be held when this is called
+		// precondition: the job mutex must be held when this is called
 		bool empty() const
 		{
 			return m_queued_jobs.empty();
 		}
 
-		// TODO: the job mutex must be held when this is called
+		// pulls up to max_match jobs matching pred off the front of the
+		// queue into out, stopping at the first non-matching job rather
+		// than scanning the rest of the queue.
+		// precondition: the job mutex must be held when this is called
+		template <typename Pred>
+		void extract_matching(jobqueue_t& out, int const max_match, Pred pred)
+		{
+			int matched = 0;
+			while (matched < max_match && !m_queued_jobs.empty())
+			{
+				aux::disk_job* j = m_queued_jobs.pop_front();
+				if (!pred(j))
+				{
+					m_queued_jobs.push_front(j);
+					break;
+				}
+				out.push_back(j);
+				++matched;
+			}
+		}
+
+		// precondition: the job mutex must be held when this is called
 		int queue_size() const
 		{
 			return m_queued_jobs.size();
 		}
 
-		// TODO: the job mutex must be held when this is called
+		// precondition: the job mutex must be held when this is called
 		void submit_jobs()
 		{
 			if (m_queued_jobs.empty()) return;
