@@ -13,11 +13,7 @@ sys.path = sys.path[1:]
 import websockets
 from websockets.legacy.server import serve
 
-class IgnorePongProtocol(websockets.WebSocketServerProtocol):
-    async def pong(self, data=b''):
-        # Deliberately suppress automatic pong responses to test stale-connection
-        # detection when a WebSocket peer silently stops responding.
-        return
+server_mode = 'normal'
 
 
 class IgnorePongOnceProtocol(websockets.WebSocketServerProtocol):
@@ -25,7 +21,7 @@ class IgnorePongOnceProtocol(websockets.WebSocketServerProtocol):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.suppress_pongs = type(self).connection_count == 0
+        self.suppress_pongs = server_mode == 'reconnect' and type(self).connection_count == 0
         type(self).connection_count += 1
 
     async def pong(self, data=b''):
@@ -34,12 +30,18 @@ class IgnorePongOnceProtocol(websockets.WebSocketServerProtocol):
             return
         await super().pong(data)
 
+connection_count = 0
+
 logger = logging.getLogger('websockets')
 logger.setLevel(logging.INFO)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 
 
 async def handle(websocket):
+    global connection_count
+    connection_number = connection_count
+    connection_count += 1
+
     # the tracker behavior to simulate:
     # normal: respond to every announce
     # failure: respond to every announce with a failure reason
@@ -52,6 +54,8 @@ async def handle(websocket):
     # reconnect: suppress pongs on the first connection, respond to its initial
     #   hybrid-torrent announces, then ignore further announces on that socket.
     #   A replacement connection responds normally.
+    # pong: delay a reannounce response while answering pings; ignore announces
+    #   on replacement connections so reconnecting cannot satisfy the test.
     mode = sys.argv[3] if len(sys.argv) > 3 else 'normal'
     announce_count = 0
     stale_connection = mode == 'reconnect' and getattr(websocket, 'suppress_pongs', False)
@@ -70,10 +74,13 @@ async def handle(websocket):
             info_hash = request["info_hash"]
             announce_count += 1
 
-            # The test torrent is hybrid and sends one initial announce for
-            # each info hash. Let those complete, then stop responding on the
-            # first connection. Only a fresh connection will receive a reply.
+            # Let the initial hybrid-torrent announces complete on the first
+            # connection, then require stale-connection recovery for later ones.
             if stale_connection and announce_count > 2:
+                continue
+
+            # This scenario only succeeds if the original connection survives.
+            if mode == 'pong' and connection_number > 0:
                 continue
 
             if mode == 'failure':
@@ -85,6 +92,11 @@ async def handle(websocket):
             if mode == 'bare-failure':
                 await websocket.send(json.dumps({
                     "failure reason": "Invalid request"}))
+
+            # Delay a reannounce response without sending application data.
+            # The pong scenario must survive this delay on the original socket.
+            if mode == 'pong' and announce_count == 3:
+                await asyncio.sleep(22)
 
             response = {}
             response["info_hash"] = info_hash
@@ -104,6 +116,7 @@ async def handle(websocket):
 
 
 async def main() -> None:
+    global server_mode
     use_ssl = sys.argv[1] != '0'
     print('python version: %s' % sys.version_info.__str__())
 
@@ -113,14 +126,9 @@ async def main() -> None:
     else:
         ssl_context = None
 
-    mode = sys.argv[3] if len(sys.argv) > 3 else 'normal'
-    kwargs = {}
-    if mode == 'ignore-pong':
-        kwargs['create_protocol'] = IgnorePongProtocol
-    elif mode == 'reconnect':
-        kwargs['create_protocol'] = IgnorePongOnceProtocol
-
-    server = await serve(handle, '127.0.0.1', 0, ssl=ssl_context, **kwargs)
+    server_mode = sys.argv[3] if len(sys.argv) > 3 else 'normal'
+    server = await serve(handle, '127.0.0.1', 0, ssl=ssl_context,
+        create_protocol=IgnorePongOnceProtocol)
     port = server.sockets[0].getsockname()[1]
     print(f'LISTENING_PORT {port}')
     sys.stdout.flush()

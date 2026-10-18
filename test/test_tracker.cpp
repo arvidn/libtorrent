@@ -32,23 +32,9 @@ see LICENSE file.
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/socket_io.hpp"
-#include "libtorrent/aux_/websocket_stream.hpp"
-#include "libtorrent/aux_/resolver_interface.hpp"
-#include "libtorrent/io_context.hpp"
 
 #include <array>
-#include <condition_variable>
-#include <functional>
 #include <iostream>
-#include <mutex>
-#include <thread>
-
-#if TORRENT_USE_RTC
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/asio/buffer.hpp>
-#include <boost/beast/core/flat_buffer.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-#endif
 
 using namespace lt;
 using namespace std::chrono_literals;
@@ -1036,186 +1022,55 @@ std::string websocket_tracker_url(int const port)
 
 } // anonymous namespace
 
-// A missing pong must cause a stale WebSocket connection to be closed, while
-// a server that responds to pings must keep the connection alive.
-namespace {
-
-struct websocket_test_resolver final : aux::resolver_interface
-{
-	explicit websocket_test_resolver(io_context& ios)
-		: m_ios(ios)
-	{}
-
-	void async_resolve(std::string const&, aux::resolver_flags, callback_t handler) override
-	{
-		post(m_ios, [callback = std::move(handler)]() mutable {
-			std::vector<address> addresses{address_v4::loopback()};
-			callback({}, addresses);
-		});
-	}
-
-	void abort() override {}
-	void set_cache_timeout(seconds) override {}
-
-	io_context& m_ios;
-};
-
-void test_websocket_pong_liveness(char const* mode, bool expect_disconnect)
-{
-	// Run a local server that either replies to pings or deliberately ignores
-	// them, then connect a websocket_stream with a short keepalive interval.
-	// The server returns an announce response first; mode controls whether
-	// subsequent WebSocket ping frames receive pong replies.
-	int const port = start_websocket_server(false, 30, mode);
-	io_context ios;
-	auto work = make_work_guard(ios);
-	websocket_test_resolver resolver(ios);
-	auto stream = std::make_shared<aux::websocket_stream>(ios, resolver, nullptr, seconds(1));
-	boost::beast::flat_buffer buffer;
-	std::mutex mutex;
-	std::condition_variable cv;
-	bool connected = false;
-	bool response_received = false;
-	bool read_completed = false;
-	error_code read_error;
-	std::string const announce = R"({"info_hash":"01234567890123456789"})";
-
-	// Keep a read pending after consuming each response. A stale connection
-	// should complete that read with an error when its TCP socket is closed.
-	auto start_read = std::make_shared<std::function<void()>>();
-	*start_read = [&, stream, start_read] {
-		stream->async_read(buffer, [&, stream, start_read](error_code const& ec, std::size_t) {
-			if (ec)
-			{
-				{
-					std::lock_guard<std::mutex> l(mutex);
-					read_completed = true;
-					read_error = ec;
-				}
-				cv.notify_one();
-				return;
-			}
-
-			buffer.consume(buffer.size());
-			{
-				std::lock_guard<std::mutex> l(mutex);
-				response_received = true;
-			}
-			cv.notify_one();
-			(*start_read)();
-		});
-	};
-
-	// Start reading only after connect and announce write have both succeeded,
-	// so the test observes connection liveness rather than setup failures.
-	stream->async_connect(websocket_tracker_url(port), [&](error_code const& ec) {
-		if (ec)
-		{
-			std::lock_guard<std::mutex> l(mutex);
-			read_completed = true;
-			read_error = ec;
-			cv.notify_one();
-			return;
-		}
-
-		{
-			std::lock_guard<std::mutex> l(mutex);
-			connected = true;
-		}
-		cv.notify_one();
-
-		stream->async_write(
-			boost::asio::buffer(announce), [&](error_code const& write_ec, std::size_t) {
-				if (write_ec)
-				{
-					std::lock_guard<std::mutex> l(mutex);
-					read_completed = true;
-					read_error = write_ec;
-					cv.notify_one();
-					return;
-				}
-				(*start_read)();
-			});
-	});
-
-	// Run asynchronous operations on a dedicated thread while the test waits
-	// for the initial response and then checks the expected liveness behavior.
-	std::thread io_thread([&] { ios.run(); });
-
-	{
-		std::unique_lock<std::mutex> l(mutex);
-		bool const got_response =
-			cv.wait_for(l, seconds(5), [&] { return response_received || read_completed; });
-		TEST_CHECK(got_response);
-		TEST_CHECK(connected);
-		TEST_CHECK(response_received);
-
-		if (expect_disconnect)
-		{
-			// With pong replies suppressed, stale detection should close the
-			// socket and make the outstanding read fail within the timeout.
-			bool const disconnected = cv.wait_for(l, seconds(5), [&] { return read_completed; });
-			TEST_CHECK(disconnected);
-			TEST_CHECK(read_completed);
-			TEST_CHECK(bool(read_error));
-		}
-		else
-		{
-			// A responsive server should keep the idle connection open beyond
-			// the stale-detection timeout.
-			bool const disconnected = cv.wait_for(l, seconds(3), [&] { return read_completed; });
-			TEST_CHECK(!disconnected);
-			TEST_CHECK(!read_completed);
-		}
-	}
-
-	// Stop the event loop before releasing the recursive read callback and
-	// tearing down the stream and test server.
-	ios.stop();
-	io_thread.join();
-	*start_read = {};
-	stream.reset();
-	stop_websocket_server();
-}
-
-} // anonymous namespace
-
-TORRENT_TEST(websocket_pong_keeps_connection_alive)
-{
-	test_websocket_pong_liveness("normal", false);
-}
-
-TORRENT_TEST(websocket_missing_pong_closes_stale_connection)
-{
-	test_websocket_pong_liveness("ignore-pong", true);
-}
-
-// Verify that stale-connection detection lets the tracker manager establish a
-// fresh WebSocket connection and complete subsequent announces.
-TORRENT_TEST(websocket_tracker_recovers_after_stale_connection)
+// Missing pongs must cause stale-connection recovery.
+TORRENT_TEST(websocket_tracker_recovers_when_pongs_stop)
 {
 	int const port = start_websocket_server(false, 30, "reconnect");
 	{
 		lt::session s(websocket_tracker_settings());
 		torrent_handle const h = add_websocket_tracker_torrent(
-			s, "tmp_websocket_reconnect_tracker", websocket_tracker_url(port));
+			s, "tmp_websocket_no_pong_tracker", websocket_tracker_url(port));
 
 		auto const initial = count_tracker_alerts(s, seconds(5));
 		TEST_EQUAL(initial.replies, 2);
 		TEST_EQUAL(initial.errors, 0);
 
-		// The server stops answering pings on the first connection. With the
-		// default 10-second keepalive, stale detection closes it after the
-		// unanswered ping remains outstanding for another keepalive period.
+		// The first connection stops answering pings and ignores later announces.
 		auto const stale_wait = count_tracker_alerts(s, seconds(22));
+		TEST_EQUAL(stale_wait.replies, 0);
 		TEST_EQUAL(stale_wait.errors, 0);
 
-		// Bypass the tracker's min_interval so recovery can be checked promptly.
 		h.force_reannounce(0, torrent_handle::ignore_min_interval | torrent_handle::high_priority);
 
-		auto const recovered = count_tracker_alerts(s, seconds(10));
+		// Successful replies now require a replacement connection.
+		auto const recovered = count_tracker_alerts(s, seconds(5));
 		TEST_EQUAL(recovered.replies, 2);
 		TEST_EQUAL(recovered.errors, 0);
+	}
+	stop_websocket_server();
+}
+
+// Pongs must keep a connection alive while an announce response is delayed.
+TORRENT_TEST(websocket_tracker_pongs_keep_delayed_announce_alive)
+{
+	int const port = start_websocket_server(false, 30, "pong");
+	{
+		lt::session s(websocket_tracker_settings());
+		torrent_handle const h = add_websocket_tracker_torrent(
+			s, "tmp_websocket_pong_tracker", websocket_tracker_url(port));
+
+		auto const initial = count_tracker_alerts(s, seconds(5));
+		TEST_EQUAL(initial.replies, 2);
+		TEST_EQUAL(initial.errors, 0);
+
+		h.force_reannounce(0, torrent_handle::ignore_min_interval | torrent_handle::high_priority);
+
+		// The server delays the response for 22 seconds without sending application
+		// data. It answers pings, and refuses announces on replacement connections,
+		// so a reconnect cannot make this test pass accidentally.
+		auto const delayed = count_tracker_alerts(s, seconds(25));
+		TEST_EQUAL(delayed.replies, 2);
+		TEST_EQUAL(delayed.errors, 0);
 	}
 	stop_websocket_server();
 }
