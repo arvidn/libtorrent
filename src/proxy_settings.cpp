@@ -47,6 +47,7 @@ void init(proxy_settings& p, Settings const& sett)
 	p.type = settings_pack::proxy_type_t(sett.get_int(settings_pack::proxy_type));
 	p.port = std::uint16_t(sett.get_int(settings_pack::proxy_port));
 	p.proxy_hostnames = sett.get_bool(settings_pack::proxy_hostnames);
+	p.proxy_accept_incoming = sett.get_bool(settings_pack::proxy_accept_incoming);
 	p.proxy_peer_connections = sett.get_bool(
 		settings_pack::proxy_peer_connections);
 	p.proxy_tracker_connections = sett.get_bool(
