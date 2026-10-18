@@ -1013,7 +1013,11 @@ namespace libtorrent {
 	}
 
 	bool torrent_handle::in_session() const
-	{ return !sync_call_ret<bool>(false, &aux::torrent::is_aborted); }
+	{
+		// cheaply check if the weak_ptr has expired first
+		auto t = m_torrent.lock();
+		return t && !sync_call_ret<bool>(false, &aux::torrent::is_aborted);
+	}
 
 	static_assert(std::is_nothrow_move_constructible<torrent_handle>::value
 		, "should be nothrow move constructible");
