@@ -1,5 +1,6 @@
 2.1.3 not released
 
+	* fix signed overflow in merkle_get_layer() for the largest v2 merkle trees
 	* fix close_file_interval for pread_disk_io
 	* fix pread disk I/O delaying a piece's writes after hashing it on a hashing thread
 	* fix (rare) data race with part files
