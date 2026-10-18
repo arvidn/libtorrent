@@ -139,6 +139,71 @@ void test_offers()
 	sig->close();
 }
 
+// A connection timeout must complete the pending offer batch even when
+// ICE gathering has not completed. Use a silent local STUN endpoint so this
+// test doesn't depend on an external server. The follow-up wait also catches
+// a late gathering callback attempting to complete the batch a second time.
+void test_offer_timeout_completes_batch()
+{
+	time_point const start_time = clock_type::now();
+
+	session_mock ses(io_context);
+	ses.mutable_settings().set_int(settings_pack::webtorrent_connection_timeout, 1);
+
+	boost::asio::ip::udp::socket stun_sink(
+		io_context, boost::asio::ip::udp::endpoint(boost::asio::ip::address_v4::loopback(), 0));
+	ses.mutable_settings().set_str(settings_pack::webtorrent_stun_server,
+		"stun:127.0.0.1:" + std::to_string(stun_sink.local_endpoint().port()));
+
+	aux::torrent tor(ses,
+		false,
+		parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
+
+	std::shared_ptr<rtc_signaling> sig;
+	int callback_count = 0;
+	error_code callback_error;
+
+	auto offers_handler = [&](error_code const& ec, std::vector<rtc_offer> offers) {
+		++callback_count;
+		callback_error = ec;
+		TEST_CHECK(offers.empty());
+	};
+
+	auto handler = [&](rtc_stream_init) {};
+	sig = std::make_shared<rtc_signaling>(io_context, &tor, handler);
+	sig->generate_offers(1, offers_handler);
+
+	auto const deadline = clock_type::now() + 10s;
+	while (callback_count == 0 && clock_type::now() < deadline)
+	{
+		if (io_context.stopped())
+			io_context.restart();
+		io_context.run_one_until(deadline);
+	}
+
+	TEST_EQUAL(callback_count, 1);
+	TEST_EQUAL(callback_error, boost::asio::error::timed_out);
+
+	// Allow any late libdatachannel callbacks to run. The completion must
+	// remain once-only even if gathering reports after the timeout.
+	boost::asio::steady_timer settle_timer(io_context);
+	settle_timer.expires_after(2s);
+	bool settled = false;
+	settle_timer.async_wait([&](error_code const& ec) { settled = !ec; });
+	while (!settled)
+	{
+		if (io_context.stopped())
+			io_context.restart();
+		io_context.run_one();
+	}
+
+	TEST_EQUAL(callback_count, 1);
+
+	sig->close();
+	stun_sink.close();
+	ses.print_alerts(start_time);
+}
+
 void test_connectivity()
 {
 	time_point const start_time = clock_type::now();
@@ -443,6 +508,7 @@ void test_write_exact_chunk_boundary()
 
 TORRENT_TEST(parse_endpoint) { test_parse_endpoint(); }
 TORRENT_TEST(signaling_offers) { test_offers(); }
+TORRENT_TEST(signaling_offer_timeout_completes_batch) { test_offer_timeout_completes_batch(); }
 TORRENT_TEST(signaling_connectivity) { test_connectivity(); }
 TORRENT_TEST(signaling_stream) { test_stream(); }
 TORRENT_TEST(write_exact_chunk_boundary) { test_write_exact_chunk_boundary(); }

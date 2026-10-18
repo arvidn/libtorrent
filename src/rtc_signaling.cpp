@@ -30,6 +30,7 @@ see LICENSE file.
 #include <utility>
 #include <sstream>
 #include <mutex>
+#include <atomic>
 
 // Enable this to pass libdatachannel log to the last created session
 #define DEBUG_RTC 0
@@ -308,22 +309,37 @@ rtc_signaling::connection& rtc_signaling::create_connection(rtc_offer_id const& 
 		config.iceServers.emplace_back(std::move(stun_server));
 
 	auto pc = std::make_shared<rtc::PeerConnection>(config);
-	pc->onStateChange([weak_this = weak_from_this(), weak_pc = make_weak_ptr(pc), offer_id, handler]
-		(rtc::PeerConnection::State state)
-	{
+
+	// ICE gathering, peer-connection failure and the connection timeout can
+	// race to complete this operation. All of them must share one completion
+	// gate, otherwise one offer may be counted as both failed and successful
+	// by offer_batch.
+	auto const completed = std::make_shared<std::atomic_bool>(false);
+	description_handler const complete_description = [completion_handler = std::move(handler),
+														 completed](error_code const& ec,
+														 std::string const& description) {
+		if (completed->exchange(true))
+			return;
+		completion_handler(ec, description);
+	};
+
+	pc->onStateChange([weak_this = weak_from_this(),
+						  weak_pc = make_weak_ptr(pc),
+						  offer_id,
+						  complete_description](rtc::PeerConnection::State state) {
 		// Warning: this is called from another thread
 		auto self = weak_this.lock();
 		auto pc_ = weak_pc.lock();
-		if (!self || !pc_) return;
+		if (!self || !pc_)
+			return;
 
 		if (state == rtc::PeerConnection::State::Failed)
 		{
 			error_code const ec = boost::asio::error::connection_refused;
+			if (pc_->gatheringState() != rtc::PeerConnection::GatheringState::Complete)
+				complete_description(ec, "");
+
 			auto& io_context = self->m_io_context;
-
-			if(pc_->gatheringState() != rtc::PeerConnection::GatheringState::Complete)
-				post(io_context, std::bind(std::move(handler), ec, ""));
-
 			post(io_context, std::bind(&rtc_signaling::on_data_channel
 				, std::move(self)
 				, ec
@@ -334,7 +350,7 @@ rtc_signaling::connection& rtc_signaling::create_connection(rtc_offer_id const& 
 	});
 
 	pc->onGatheringStateChange(
-		[weak_this = weak_from_this(), weak_pc = make_weak_ptr(pc), handler_ = std::move(handler)](
+		[weak_this = weak_from_this(), weak_pc = make_weak_ptr(pc), complete_description](
 			rtc::PeerConnection::GatheringState state) {
 			// Warning: this is called from another thread
 			auto self = weak_this.lock();
@@ -344,9 +360,8 @@ rtc_signaling::connection& rtc_signaling::create_connection(rtc_offer_id const& 
 
 			if (state == rtc::PeerConnection::GatheringState::Complete)
 			{
-				auto& io_context = self->m_io_context;
 				auto description = *pc_->localDescription();
-				post(io_context, std::bind(std::move(handler_), error_code{}, description));
+				complete_description(error_code{}, description);
 			}
 		});
 
@@ -370,6 +385,7 @@ rtc_signaling::connection& rtc_signaling::create_connection(rtc_offer_id const& 
 	time_duration const timeout = seconds(std::max(connection_timeout, 1));
 	connection conn(m_io_context);
 	conn.peer_connection = std::move(pc);
+	conn.description_completion = complete_description;
 	conn.timer.expires_after(timeout);
 	conn.timer.async_wait(std::bind(&rtc_signaling::on_data_channel
 		, shared_from_this()
@@ -429,6 +445,12 @@ void rtc_signaling::on_data_channel(error_code const& ec
 
 	if (ec)
 	{
+		// A timeout may remove the connection before ICE gathering completes.
+		// Complete the offer/answer operation as well, or an announce waiting
+		// for generated offers can remain pending indefinitely.
+		if (conn.description_completion)
+			conn.description_completion(ec, "");
+
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("*** RTC negotiation failed");
 #endif
