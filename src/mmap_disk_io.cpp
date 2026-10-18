@@ -291,7 +291,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	{
 		TORRENT_ASSERT(params.files.is_valid());
 
-		auto storage = std::make_shared<aux::mmap_storage>(params, m_file_pool);
+		auto storage = std::make_shared<aux::mmap_storage>(
+			params, m_file_pool, m_settings.get_bool(settings_pack::disable_hash_checks));
 		storage->set_owner(owner);
 		storage_index_t const idx = m_torrents.add(std::move(storage));
 		return {idx, *this};
@@ -530,7 +531,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		// doesn't have to re-read the block from disk. v2 pieces don't span
 		// file boundaries, so for hybrid torrents the block may extend past
 		// the v2 piece end into v1 padding; hash only the v2 portion.
-		if (!j->error.ec && ret == a.buffer_size && j->storage->v2())
+		if (!j->error.ec && ret == a.buffer_size && j->storage->v2()
+			&& !j->storage->disable_hash_checks())
 		{
 			int const piece_size2 = j->storage->files().piece_size2(a.piece);
 			if (a.offset < piece_size2)
@@ -901,6 +903,9 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		// we're not using a cache. This is the simple path
 		// just read straight from the file
 		TORRENT_ASSERT(m_magic == 0x1337);
+
+		if (j->storage->disable_hash_checks())
+			return status_t{};
 
 		bool const v1 = bool(j->flags & disk_interface::v1_hash);
 		bool const v2 = !a.block_hashes.empty();
