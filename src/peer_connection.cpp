@@ -5315,9 +5315,16 @@ namespace {
 		// don't just pop the front element here, since in seed mode one request may
 		// be blocked because we have to verify the hash first, so keep going with the
 		// next request. However, only let each peer have one hash verification outstanding
-		// at any given time
-		for (int i = 0; i < int(m_requests.size())
-			&& (send_buffer_size() + m_reading_bytes < buffer_size_watermark); ++i)
+		// at any given time.
+		// The requests this loop reads or rejects leave m_requests in one erase
+		// after it: erasing each one would move all the requests queued behind it
+		// (up to max_allowed_in_request_queue) once per block sent. The ones it
+		// skips are moved down to m_requests[0, keep).
+		int keep = 0;
+		int i = 0;
+		for (; i < int(m_requests.size())
+			 && (send_buffer_size() + m_reading_bytes < buffer_size_watermark);
+			 ++i)
 		{
 			TORRENT_ASSERT(t->ready_for_connections());
 			peer_request const& r = m_requests[i];
@@ -5334,10 +5341,18 @@ namespace {
 			{
 				// we're still verifying the hash of this piece
 				// so we can't return it yet.
-				if (t->verifying_piece(r.piece)) continue;
+				if (t->verifying_piece(r.piece))
+				{
+					m_requests[keep++] = r;
+					continue;
+				}
 
 				// only have three outstanding hash check per peer
-				if (m_outstanding_piece_verification >= 3) continue;
+				if (m_outstanding_piece_verification >= 3)
+				{
+					m_requests[keep++] = r;
+					continue;
+				}
 
 				++m_outstanding_piece_verification;
 
@@ -5361,6 +5376,7 @@ namespace {
 				{ conn->wrap(&peer_connection::on_seed_mode_hashed, p, ph, h2, e); });
 
 				t->verifying(r.piece);
+				m_requests[keep++] = r;
 				continue;
 			}
 
@@ -5371,7 +5387,11 @@ namespace {
 				// it very soon, so we have told our peers we have it.
 				// hold off on sending it. If the piece fails later
 				// we will reject this request
-				if (t->is_predictive_piece(r.piece)) continue;
+				if (t->is_predictive_piece(r.piece))
+				{
+					m_requests[keep++] = r;
+					continue;
+				}
 #endif
 #ifndef TORRENT_DISABLE_LOGGING
 				peer_log(peer_log_alert::info, peer_log_alert::piece_failed
@@ -5409,12 +5429,14 @@ namespace {
 					, flags);
 			}
 			m_last_sent_payload.set(m_connect, clock_type::now());
-			m_requests.erase(m_requests.begin() + i);
+		}
+
+		if (keep < i)
+		{
+			m_requests.erase(m_requests.begin() + keep, m_requests.begin() + i);
 
 			if (m_requests.empty())
 				m_counters.inc_stats_counter(counters::num_peers_up_requests, -1);
-
-			--i;
 		}
 		m_ses.deferred_submit_jobs();
 
