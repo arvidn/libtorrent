@@ -2582,7 +2582,20 @@ retry:
 	void session_impl::on_udp_writeable(std::weak_ptr<session_udp_socket> sock, error_code const& ec)
 	{
 		COMPLETE_ASYNC("session_impl::on_udp_writeable");
-		if (ec) return;
+		if (ec)
+		{
+			// abort() closed the socket. uTP sockets stalled on it would never be told,
+			// so they would stay stalled, should_delete() would never be true, and
+			// on_tick() would keep the io_context running forever.
+			if (m_abort)
+			{
+				m_utp_socket_manager.writable();
+#ifdef TORRENT_SSL_PEERS
+				m_ssl_utp_socket_manager.writable();
+#endif
+			}
+			return;
+		}
 
 		auto s = sock.lock();
 		if (!s) return;
