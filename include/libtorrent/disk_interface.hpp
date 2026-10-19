@@ -84,6 +84,11 @@ namespace disk_status {
 	// kick_hasher will post it to completed_jobs once hashing finishes.
 	// perform_job() checks this flag before writing j->ret.
 	constexpr status_t job_deferred = 4_bit;
+
+	// returned from check_fastresume when resume data is valid but its
+	// ``have_pieces`` bitfield is shorter than the torrent; hash-checking
+	// resumes from where the bitfield ends, rather than from piece 0.
+	constexpr status_t partial_check = 5_bit;
 }
 
 	// internal

@@ -354,13 +354,21 @@ namespace {
 					}
 
 					if (need_check)
-					{
 						ret |= disk_status::need_full_check;
-						// only worth the stat pass when we're actually about
-						// to hash-check every piece; resume data we trust
-						// needs no hint here
+
+					// a partial have_pieces bitfield means the resume was
+					// interrupted mid-check; torrent resumes the check from
+					// where it left off even though verify_resume_data()
+					// succeeded
+					if (verify_success && !rd->have_pieces.empty()
+						&& rd->have_pieces.size() < st->files().num_pieces())
+						ret |= disk_status::partial_check;
+
+					// only worth the stat pass when we're actually about
+					// to hash-check pieces; resume data we trust in full
+					// needs no hint here
+					if (ret & (disk_status::need_full_check | disk_status::partial_check))
 						checked_pieces = st->check_pieces();
-					}
 				}
 			}
 
