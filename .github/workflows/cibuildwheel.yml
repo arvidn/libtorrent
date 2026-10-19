@@ -270,7 +270,7 @@ jobs:
         # Publish a checksum file alongside the wheels so users can verify
         # the integrity of what they download (PyPI records hashes, but the
         # GitHub release assets had none).
-        (cd wheelhouse && sha256sum -- *.whl > SHA256SUMS)
-        cat wheelhouse/SHA256SUMS
-        gh release upload "$GITHUB_REF_NAME" "${wheels[@]}" wheelhouse/SHA256SUMS \
+        (cd wheelhouse && sha256sum -- *.whl > SHA256SUMS-wheels)
+        cat wheelhouse/SHA256SUMS-wheels
+        gh release upload "$GITHUB_REF_NAME" "${wheels[@]}" wheelhouse/SHA256SUMS-wheels \
           --clobber --repo "$GITHUB_REPOSITORY"

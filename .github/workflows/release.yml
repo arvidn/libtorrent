@@ -138,6 +138,6 @@ jobs:
           cd dist
           # Publish a checksum file alongside the tarball so users can verify
           # the integrity of what they download.
-          sha256sum -- libtorrent-rasterbar-*.tar.gz > SHA256SUMS
-          cat SHA256SUMS
-          gh release upload "$GITHUB_REF_NAME" libtorrent-rasterbar-*.tar.gz SHA256SUMS --clobber --repo "$GITHUB_REPOSITORY"
+          sha256sum -- libtorrent-rasterbar-*.tar.gz > SHA256SUMS-source
+          cat SHA256SUMS-source
+          gh release upload "$GITHUB_REF_NAME" libtorrent-rasterbar-*.tar.gz SHA256SUMS-source --clobber --repo "$GITHUB_REPOSITORY"
