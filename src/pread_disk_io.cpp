@@ -1522,9 +1522,16 @@ status_t pread_disk_io::do_job(aux::job::check_fastresume& a, aux::pread_disk_jo
 		need_check = disk_status::need_full_check;
 	}
 
+	// a partial have_pieces bitfield means the resume was interrupted
+	// mid-check; torrent resumes the check from where it left off even
+	// though verify_resume_data() succeeded
+	if (verify_success && !rd->have_pieces.empty()
+		&& rd->have_pieces.size() < j->storage->files().num_pieces())
+		need_check |= disk_status::partial_check;
+
 	// only worth the stat pass when we're actually about to hash-check
-	// every piece; resume data we trust needs no hint here
-	if (need_check & disk_status::need_full_check)
+	// pieces; resume data we trust in full needs no hint here
+	if (need_check & (disk_status::need_full_check | disk_status::partial_check))
 		a.checked_pieces = j->storage->check_pieces();
 
 	return need_check | ret_flag;

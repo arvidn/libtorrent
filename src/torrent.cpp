@@ -2362,12 +2362,10 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 		bool should_start_full_check = has_error_status;
 
-		// if we got a partial pieces bitfield, it means we were in the middle of
-		// checking this torrent. pick it up where we left off
-		if (!has_error_status
-			&& m_add_torrent_params
-			&& !m_add_torrent_params->have_pieces.empty()
-			&& m_add_torrent_params->have_pieces.size() < m_torrent_file->num_pieces())
+		// a partial pieces bitfield means we were in the middle of checking
+		// this torrent; pick it up where we left off, rather than discarding
+		// it and starting over
+		if (!has_error_status && (status & disk_status::partial_check) && m_add_torrent_params)
 		{
 			m_checking_piece = m_num_checked_pieces
 				= m_add_torrent_params->have_pieces.end_index();
