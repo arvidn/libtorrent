@@ -281,6 +281,29 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		});
 	}
 
+	namespace {
+
+	// a non-global IPv6 address (e.g. a unique local address, fc00::/7) on a
+	// device that also has a preferred global IPv6 address is not used to
+	// reach the internet. Source address selection picks the global one for
+	// global destinations (RFC 6724, rule 6). Without a global address on the
+	// device (e.g. NAT66) the non-global address may be the only way out
+	bool non_global_next_to_global(span<ip_interface const> const ifs
+		, ip_interface const& ipface)
+	{
+		address const& addr = ipface.interface_address;
+		if (!addr.is_v6() || is_global(addr)) return false;
+		return std::any_of(ifs.begin(), ifs.end(), [&](ip_interface const& i)
+		{
+			return i.interface_address.is_v6()
+				&& i.preferred
+				&& is_global(i.interface_address)
+				&& string_view(i.name) == ipface.name;
+		});
+	}
+
+	} // anonymous namespace
+
 	// To comply with BEP 45 multi homed clients must run separate DHT nodes
 	// on each interface they use to talk to the DHT. This is enforced
 	// by prohibiting creating a listen socket on [::] and 0.0.0.0. Instead the list of
@@ -335,7 +358,8 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 					|| (!is_global(ipface.interface_address)
 						&& !(ipface.flags & if_flags::pointopoint)
 						&& has_any_internet_route(routes)
-						&& !has_internet_route(ipface.name, family(ipface.interface_address), routes));
+						&& !has_internet_route(ipface.name, family(ipface.interface_address), routes))
+					|| non_global_next_to_global(ifs, ipface);
 
 				eps.emplace_back(ipface.interface_address, uep.port, uep.device
 					, uep.ssl, uep.flags | listen_socket_t::was_expanded
@@ -2046,7 +2070,8 @@ namespace {
 
 				bool const local = iface.local
 					|| ipface.interface_address.is_loopback()
-					|| is_link_local(ipface.interface_address);
+					|| is_link_local(ipface.interface_address)
+					|| non_global_next_to_global(ifs, ipface);
 
 				eps.emplace_back(ipface.interface_address, iface.port, iface.device
 					, ssl, flags | (local ? listen_socket_t::local_network : listen_socket_flags_t{}));

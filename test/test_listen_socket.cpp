@@ -487,6 +487,56 @@ TORRENT_TEST(expand_unspecified_loopback)
 	test_expand_unspecified_if_address("127.1.1.1", eps_t{ ep("127.1.1.1", 6881, local)});
 }
 
+TORRENT_TEST(expand_unspecified_ula_with_global)
+{
+	// the OS won't use the ULA to reach the internet when there's a global
+	// address on the same device
+	std::vector<ip_route> const routes = {
+		rt("::", "eth0", "fe80::1"),
+	};
+	std::vector<ip_interface> const ifs = {
+		ifc("2001:db8::2", "eth0")
+		, ifc("fd00::2", "eth0")
+	};
+	eps_t eps = { ep("::", 6881) };
+
+	aux::expand_unspecified_address(ifs, routes, eps);
+
+	TEST_CHECK((eps == eps_t{ ep("2001:db8::2", 6881, global), ep("fd00::2", 6881, local) }));
+}
+
+TORRENT_TEST(expand_unspecified_ula_only)
+{
+	// e.g. NAT66, the ULA is the only way out
+	std::vector<ip_route> const routes = {
+		rt("::", "eth0", "fe80::1"),
+	};
+	std::vector<ip_interface> const ifs = { ifc("fd00::2", "eth0") };
+	eps_t eps = { ep("::", 6881) };
+
+	aux::expand_unspecified_address(ifs, routes, eps);
+
+	TEST_CHECK((eps == eps_t{ ep("fd00::2", 6881, global) }));
+}
+
+TORRENT_TEST(expand_unspecified_ula_other_device)
+{
+	// a ULA on a different device (e.g. a VPN doing NAT66) is left alone
+	std::vector<ip_route> const routes = {
+		rt("::", "eth0", "fe80::1"),
+		rt("::", "tun0", "fe80::2"),
+	};
+	std::vector<ip_interface> const ifs = {
+		ifc("2001:db8::2", "eth0")
+		, ifc("fd00::2", "tun0")
+	};
+	eps_t eps = { ep("::", 6881) };
+
+	aux::expand_unspecified_address(ifs, routes, eps);
+
+	TEST_CHECK((eps == eps_t{ ep("2001:db8::2", 6881, global), ep("fd00::2", 6881, global) }));
+}
+
 namespace {
 std::vector<aux::listen_endpoint_t> to_endpoint(listen_interface_t const& iface
 	, span<ip_interface const> const ifs)
@@ -534,5 +584,21 @@ TORRENT_TEST(interface_to_endpoint)
 
 	TEST_CHECK((to_endpoint(ift("eth0", 1234), ifs2)
 		== eps{ep("10.0.1.1", 1234, "eth0", ls::was_expanded | ls::accept_incoming)}));
+}
+
+TORRENT_TEST(interface_to_endpoint_ula)
+{
+	std::vector<ip_interface> const ifs = {
+		ifc("2001:db8::2", "eth0")
+		, ifc("fd00::2", "eth0")
+		, ifc("fd00::3", "eth1")
+	};
+
+	TEST_CHECK((to_endpoint(ift("eth0", 1234), ifs)
+		== eps{ep("2001:db8::2", 1234, "eth0", ls::was_expanded | ls::accept_incoming)
+		, ep("fd00::2", 1234, "eth0", ls::was_expanded | ls::accept_incoming | ls::local_network)}));
+
+	TEST_CHECK((to_endpoint(ift("eth1", 1234), ifs)
+		== eps{ep("fd00::3", 1234, "eth1", ls::was_expanded | ls::accept_incoming)}));
 }
 
