@@ -141,6 +141,3 @@ jobs:
           sha256sum -- libtorrent-rasterbar-*.tar.gz > SHA256SUMS
           cat SHA256SUMS
           gh release upload "$GITHUB_REF_NAME" libtorrent-rasterbar-*.tar.gz SHA256SUMS --clobber --repo "$GITHUB_REPOSITORY"
-
-
-
