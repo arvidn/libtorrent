@@ -2516,18 +2516,18 @@ namespace {
 		// make sure this request
 		// is legal and that the peer
 		// is not choked
-		if (r.piece < piece_index_t(0)
-			|| r.piece >= t->torrent_file().end_piece()
+		if (r.piece < piece_index_t(0) || r.piece >= t->torrent_file().end_piece()
 			|| (!t->user_have_piece(r.piece)
 #ifndef TORRENT_DISABLE_PREDICTIVE_PIECES
 				&& !t->is_predictive_piece(r.piece)
 #endif
 				&& !t->seed_mode())
-			|| r.start < 0
-			|| r.start >= ti.piece_size(r.piece)
+			|| r.start < 0 || r.start >= ti.piece_size(r.piece)
 			|| r.length <= 0
-			|| r.length + r.start > ti.piece_size(r.piece)
-			|| r.length > t->block_size())
+			// check the length against the block size before adding it to
+			// start. both are peer supplied and a length of INT_MAX would
+			// overflow the sum
+			|| r.length > t->block_size() || r.length + r.start > ti.piece_size(r.piece))
 		{
 			m_counters.inc_stats_counter(counters::invalid_piece_requests);
 
