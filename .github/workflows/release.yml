@@ -136,4 +136,11 @@ jobs:
            GH_TOKEN: ${{ github.token }}
         run: |
           cd dist
-          gh release upload "$GITHUB_REF_NAME" libtorrent-rasterbar-*.tar.gz --clobber --repo "$GITHUB_REPOSITORY"
+          # Publish a checksum file alongside the tarball so users can verify
+          # the integrity of what they download.
+          sha256sum -- libtorrent-rasterbar-*.tar.gz > SHA256SUMS
+          cat SHA256SUMS
+          gh release upload "$GITHUB_REF_NAME" libtorrent-rasterbar-*.tar.gz SHA256SUMS --clobber --repo "$GITHUB_REPOSITORY"
+
+
+
