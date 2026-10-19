@@ -56,7 +56,8 @@ namespace libtorrent::aux {
 		// an empty vector. Any file whose index is not represented by the vector
 		// (because the vector is too short) are assumed to have priority 1.
 		// this is used to treat files with priority 0 slightly differently.
-		mmap_storage(storage_params const& params, aux::file_view_pool&);
+		mmap_storage(
+			storage_params const& params, aux::file_view_pool&, bool disable_hash_checks = false);
 
 		// hidden
 		~mmap_storage();
@@ -95,9 +96,14 @@ namespace libtorrent::aux {
 		int hash(settings_interface const&, hasher& ph, std::ptrdiff_t len
 			, piece_index_t piece, int offset, aux::open_mode_t mode
 			, disk_job_flags_t flags, storage_error&);
-		int hash2(settings_interface const&, hasher256& ph, std::ptrdiff_t len
-			, piece_index_t piece, int offset, aux::open_mode_t mode
-			, disk_job_flags_t flags, storage_error&);
+		int hash2(settings_interface const&,
+			hasher256& ph,
+			std::ptrdiff_t len,
+			piece_index_t piece,
+			int offset,
+			aux::open_mode_t mode,
+			disk_job_flags_t flags,
+			storage_error&);
 
 		file_storage const& files() const { return m_files; }
 
@@ -117,6 +123,7 @@ namespace libtorrent::aux {
 
 		bool v1() const { return m_v1; }
 		bool v2() const { return m_v2; }
+		bool disable_hash_checks() const { return m_disable_hash_checks; }
 
 		// SHA-256 block hashes computed inline during write jobs (see
 		// m_precomputed_v2). Consumed by hash/hash2 jobs to avoid re-reading the
@@ -214,6 +221,9 @@ namespace libtorrent::aux {
 		// whether this torrent has v1 and/or v2 piece hashes
 		bool m_v1;
 		bool m_v2;
+		// latched for the lifetime of the storage, it must agree with the
+		// torrent's view of the setting
+		bool m_disable_hash_checks;
 
 		// SHA-256 block hashes computed during write jobs. An entry is added
 		// when the first block of a piece is written and removed by

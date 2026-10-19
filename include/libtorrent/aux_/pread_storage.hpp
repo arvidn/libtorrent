@@ -42,7 +42,8 @@ namespace libtorrent::aux {
 		// constructs the pread_storage based on the given storage_params.
 		// ``file_pool`` is the cache of file handles that the storage will use.
 		// All files it opens will ask the file_pool to open them.
-		pread_storage(storage_params const& params, aux::file_pool&);
+		pread_storage(
+			storage_params const& params, aux::file_pool&, bool disable_hash_checks = false);
 
 		// hidden
 		~pread_storage();
@@ -117,6 +118,7 @@ namespace libtorrent::aux {
 
 		bool v1() const { return m_v1; }
 		bool v2() const { return m_v2; }
+		bool disable_hash_checks() const { return m_disable_hash_checks; }
 
 		// SHA-256 block hashes deposited by the v2 hash queue
 		// (disk_cache::drain_v2_hash_queue) for later consumption by hash and
@@ -205,6 +207,9 @@ namespace libtorrent::aux {
 		// this is a v2 torrent. If both v1 and v2 are set, it's a hybrid
 		// torrent
 		bool m_v2;
+		// latched for the lifetime of the storage, it must agree with the
+		// torrent's view of the setting
+		bool m_disable_hash_checks;
 
 		// SHA-256 block hashes deposited by the v2 hash queue
 		// (disk_cache::drain_v2_hash_queue) as each v2 block is hashed in

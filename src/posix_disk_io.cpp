@@ -90,7 +90,8 @@ namespace {
 			// make sure we can remove this torrent without causing a memory
 			// allocation, by causing the allocation now instead
 			storage_index_t const idx = m_free_slots.new_index(m_torrents.end_index());
-			auto storage = std::make_unique<posix_storage>(params);
+			auto storage = std::make_unique<posix_storage>(
+				params, m_settings.get_bool(settings_pack::disable_hash_checks));
 			if (idx == m_torrents.end_index()) m_torrents.emplace_back(std::move(storage));
 			else m_torrents[idx] = std::move(storage);
 			return {idx, *this};
@@ -173,6 +174,15 @@ namespace {
 			, span<sha256_hash> block_hashes, disk_job_flags_t flags
 			, std::function<void(piece_index_t, sha1_hash const&, storage_error const&)> handler) override
 		{
+			// writes go straight to the file, so there is nothing to flush
+			// before completing the job
+			if (m_torrents[storage]->disable_hash_checks())
+			{
+				post(
+					m_ios, [=, h = std::move(handler)] { h(piece, sha1_hash{}, storage_error{}); });
+				return;
+			}
+
 			auto const start_time = aux::steady_clock::now();
 
 			bool const v1 = bool(flags & disk_interface::v1_hash);

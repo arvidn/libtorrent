@@ -41,8 +41,9 @@ static_assert(sizeof(off_t) >= 8, "64 bit file operations are required");
 namespace libtorrent {
 namespace aux {
 
-posix_storage::posix_storage(storage_params const& p)
-	: m_files(p.files)
+posix_storage::posix_storage(storage_params const& p, bool const disable_hash_checks)
+	: m_disable_hash_checks(disable_hash_checks)
+	, m_files(p.files)
 	, m_renamed_files(std::move(p.renamed_files))
 	, m_filenames(m_files, m_renamed_files)
 	, m_save_path(p.path)

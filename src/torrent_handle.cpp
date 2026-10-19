@@ -1014,9 +1014,29 @@ namespace libtorrent {
 
 	bool torrent_handle::in_session() const
 	{
-		// cheaply check if the weak_ptr has expired first
-		auto t = m_torrent.lock();
-		return t && !sync_call_ret<bool>(false, &aux::torrent::is_aborted);
+		// cheaply check if the weak_ptr has expired first, without locking
+		// it; a locked shared_ptr held across the sync_call_ret() below could
+		// end up being the torrent's last reference, and its destruction
+		// must happen on the network thread, not here
+		if (m_torrent.expired())
+			return false;
+
+#ifndef BOOST_NO_EXCEPTIONS
+		try
+		{
+			return !sync_call_ret<bool>(false, &aux::torrent::is_aborted);
+		}
+		catch (system_error const& e)
+		{
+			// the torrent may have been removed and fully destructed between
+			// the expiry check above and sync_call_ret()'s own lock attempt
+			if (e.code() == errors::invalid_torrent_handle)
+				return false;
+			throw;
+		}
+#else
+		return !sync_call_ret<bool>(false, &aux::torrent::is_aborted);
+#endif
 	}
 
 	static_assert(std::is_nothrow_move_constructible<torrent_handle>::value

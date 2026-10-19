@@ -85,7 +85,8 @@ error_code translate_error(std::error_code const& err, bool const write)
 } // namespace
 
 
-mmap_storage::mmap_storage(storage_params const& params, aux::file_view_pool& pool)
+mmap_storage::mmap_storage(
+	storage_params const& params, aux::file_view_pool& pool, bool const disable_hash_checks)
 	: m_files(params.files)
 	, m_renamed_files(params.renamed_files)
 	, m_filenames(m_files, m_renamed_files)
@@ -97,6 +98,7 @@ mmap_storage::mmap_storage(storage_params const& params, aux::file_view_pool& po
 	, m_allocate_files(params.mode == storage_mode_allocate)
 	, m_v1(params.v1)
 	, m_v2(params.v2)
+	, m_disable_hash_checks(disable_hash_checks)
 {
 	TORRENT_ASSERT(files().num_files() > 0);
 	TORRENT_ASSERT(m_v1 || m_v2);

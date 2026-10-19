@@ -49,6 +49,7 @@ see LICENSE file.
 #include <algorithm> // for std::min
 #include <climits> // for IOV_MAX
 #include <cstring>
+#include <memory> // for unique_ptr
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/throw.hpp"
@@ -179,18 +180,22 @@ namespace {
 		if (bufs.size() == 1)
 			return pwrite_all(handle, bufs[0], file_offset, ec);
 
-		int ret = 0;
-		// TODO: if we have more than 1 buffer, coalesce into a single buffer
-		// and a single call
+		// bufs is always one contiguous range in the file (callers only ever
+		// batch adjacent byte ranges), so write it in one call from a scratch
+		// buffer instead of issuing a separate write per source buffer.
+		span<char const>::index_type total = 0;
+		for (auto const& b : bufs)
+			total += b.size();
+
+		std::unique_ptr<char[]> const scratch(new char[std::size_t(total)]);
+		span<char const>::index_type pos = 0;
 		for (auto const& b : bufs)
 		{
-			int r = pwrite_all(handle, b, file_offset, ec);
-			if (ec) return -1;
-			TORRENT_ASSERT(r > 0);
-			file_offset += r;
-			ret += r;
+			std::memcpy(scratch.get() + pos, b.data(), std::size_t(b.size()));
+			pos += b.size();
 		}
-		return ret;
+
+		return pwrite_all(handle, {scratch.get(), total}, file_offset, ec);
 	}
 #endif
 

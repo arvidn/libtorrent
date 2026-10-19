@@ -5270,9 +5270,8 @@ namespace {
 			TORRENT_ASSERT(r.length > 0);
 			TORRENT_ASSERT(r.start >= 0);
 
-			if (seed_mode
-				&& !t->verified_piece(r.piece)
-				&& !m_settings.get_bool(settings_pack::disable_hash_checks))
+			if (seed_mode && !t->verified_piece(r.piece)
+				&& !(tflags & torrent_internal_flags::disable_hash_checks))
 			{
 				// we're still verifying the hash of this piece
 				// so we can't return it yet.
@@ -5394,14 +5393,13 @@ namespace {
 #endif
 
 		// we're using the piece hashes here, we need the torrent to be loaded
-		if (!m_settings.get_bool(settings_pack::disable_hash_checks) && m_ti->info_hashes().has_v1()
+		if (!(tflags & torrent_internal_flags::disable_hash_checks) && m_ti->info_hashes().has_v1()
 			&& !(tflags & torrent_flags::disable_v1_hashes))
 		{
 			hash_failed[protocol_version::V1] = piece_hash != m_ti->hash_for_piece(piece);
 		}
 
-		if (!m_settings.get_bool(settings_pack::disable_hash_checks)
-			&& m_ti->info_hashes().has_v2())
+		if (!(tflags & torrent_internal_flags::disable_hash_checks) && m_ti->info_hashes().has_v2())
 		{
 			hash_failed[protocol_version::V2] = false;
 

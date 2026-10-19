@@ -1914,6 +1914,12 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			m_torrent_file->v1() && !(m_flags & torrent_flags::disable_v1_hashes),
 			m_torrent_file->v2()};
 
+		// latched here rather than in the constructor so it is read at the
+		// same time the backend reads it for the storage. Once it is part of
+		// storage_params this can move to the constructor
+		set_flag(torrent_internal_flags::disable_hash_checks,
+			settings().get_bool(settings_pack::disable_hash_checks));
+
 		// the storage references m_torrent_file's file_storage, so the disk I/O
 		// keeps the torrent_info alive while it has jobs for the storage. It
 		// must not keep the torrent alive, that has to be destructed on the
@@ -2799,7 +2805,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		boost::tribool hash_passed[2]
 			= { boost::indeterminate, boost::indeterminate };
 
-		if (!settings().get_bool(settings_pack::disable_hash_checks))
+		if (!(m_flags & torrent_internal_flags::disable_hash_checks))
 		{
 			if (torrent_file().info_hashes().has_v1()
 				&& !(m_flags & torrent_flags::disable_v1_hashes))
@@ -4607,13 +4613,13 @@ namespace {
 		boost::tribool passed = boost::indeterminate;
 		boost::tribool v2_passed = boost::indeterminate;
 
-		if (settings().get_bool(settings_pack::disable_hash_checks))
-		{
-			passed = v2_passed = true;
-		}
-		else if (error)
+		if (error)
 		{
 			passed = v2_passed = false;
+		}
+		else if (m_flags & torrent_internal_flags::disable_hash_checks)
+		{
+			passed = v2_passed = true;
 		}
 		else
 		{
@@ -12077,14 +12083,9 @@ namespace {
 
 		std::uint8_t const gen = m_picker_generation;
 
-		if (settings().get_bool(settings_pack::disable_hash_checks))
-		{
-			// short-circuit the hash check if it's disabled
-			m_picker->started_hash_job(piece);
-			on_piece_verified(std::move(hashes), piece, sha1_hash(), storage_error{}, gen);
-			return;
-		}
-
+		// with disable_hash_checks the backend returns zero hashes, but the
+		// job is still posted. It is what tells the backend the piece is
+		// complete and can be flushed and evicted
 		span<sha256_hash> v2_span(hashes);
 		// mark the piece as hashing before dispatching: with 0 disk threads
 		// (aio_threads=0, e.g. simulations), async_hash() may invoke its

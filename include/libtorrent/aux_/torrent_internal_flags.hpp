@@ -72,6 +72,12 @@ namespace libtorrent::aux::torrent_internal_flags {
 	// no longer checks trust domains at all.
 	constexpr lt::torrent_flags_t resolve_links_disabled = 57_bit;
 
+	// latched from settings_pack::disable_hash_checks at construct_storage()
+	// time, at the same time the disk backend latches it for the storage. The
+	// two must not diverge, so this cannot be re-read from the live settings
+	// later.
+	constexpr lt::torrent_flags_t disable_hash_checks = 58_bit;
+
 	// peer-side helpers combining the public bit with the internal bit so
 	// "is the torrent operating in this mode right now?" is a single
 	// flag test.
