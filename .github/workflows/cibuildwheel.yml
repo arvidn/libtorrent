@@ -272,5 +272,5 @@ jobs:
         # GitHub release assets had none).
         (cd wheelhouse && sha256sum -- *.whl > SHA256SUMS)
         cat wheelhouse/SHA256SUMS
-       gh release upload "$GITHUB_REF_NAME" "${wheels[@]}" wheelhouse/SHA256SUMS \
+        gh release upload "$GITHUB_REF_NAME" "${wheels[@]}" wheelhouse/SHA256SUMS \
           --clobber --repo "$GITHUB_REPOSITORY"
