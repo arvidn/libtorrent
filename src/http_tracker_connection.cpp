@@ -331,11 +331,11 @@ namespace libtorrent::aux {
 			// this is mitigation for Server Side request forgery. Any tracker
 			// announce to localhost need to look like a standard BitTorrent
 			// announce. Anything after "/announce" (and before the query
-			// string) that could introduce a path separator, like "/../", a
-			// backslash or a percent-encoding, could make the server resolve it
-			// to a different path
+			// string or fragment) that could introduce a path separator, like
+			// "/../", a backslash or a percent-encoding, could make the server
+			// resolve it to a different path
 			if (path.substr(0, 9) != "/announce"
-				|| path.find_first_of("/\\%", 9) < path.find('?'))
+				|| path.find_first_of("/\\%", 9) < path.find_first_of("?#"))
 			{
 				for (auto i = endpoints.begin(); i != endpoints.end();)
 				{

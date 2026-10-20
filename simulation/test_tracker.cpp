@@ -1857,6 +1857,12 @@ TORRENT_TEST(ssrf_dot_segments)
 
 	// a standard announce path is still allowed
 	TEST_CHECK(test_ssrf("/announce.php", true, "http://127.0.0.1:8080/announce.php"));
+
+	// separators in the query string or fragment are not part of the path
+	TEST_CHECK(test_ssrf("/announce", true, "http://127.0.0.1:8080/announce?path=a/b/c"));
+	// the fragment is currently sent to the tracker as part of the request
+	// path, with the announce arguments appended after it
+	TEST_CHECK(test_ssrf("/announce#a/b/c", true, "http://127.0.0.1:8080/announce#a/b/c"));
 }
 
 bool test_idna(char const* tracker_url, char const* redirect
