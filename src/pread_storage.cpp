@@ -40,8 +40,7 @@ see LICENSE file.
 
 namespace libtorrent::aux {
 
-pread_storage::pread_storage(
-	storage_params const& params, file_pool& pool, bool const disable_hash_checks)
+pread_storage::pread_storage(storage_params const& params, file_pool& pool)
 	: m_files(params.files)
 	, m_renamed_files(params.renamed_files)
 	, m_filenames(m_files, m_renamed_files)
@@ -53,7 +52,7 @@ pread_storage::pread_storage(
 	, m_allocate_files(params.mode == storage_mode_allocate)
 	, m_v1(params.v1)
 	, m_v2(params.v2)
-	, m_disable_hash_checks(disable_hash_checks)
+	, m_disable_hash_checks(params.disable_hash_checks)
 {
 	// a torrent must be either v1 or v2 (or both)
 	TORRENT_ASSERT(m_v1 || m_v2);

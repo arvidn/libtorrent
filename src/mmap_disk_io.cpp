@@ -292,8 +292,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	{
 		TORRENT_ASSERT(params.files.is_valid());
 
-		auto storage = std::make_shared<aux::mmap_storage>(
-			params, m_file_pool, m_settings.get_bool(settings_pack::disable_hash_checks));
+		auto storage = std::make_shared<aux::mmap_storage>(params, m_file_pool);
 		storage->set_owner(owner);
 		storage_index_t const idx = m_torrents.add(std::move(storage));
 		return {idx, *this};

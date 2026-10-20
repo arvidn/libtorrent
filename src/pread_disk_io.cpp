@@ -393,8 +393,7 @@ storage_holder pread_disk_io::new_torrent(storage_params const& params
 	std::lock_guard<std::mutex> l(m_job_mutex);
 	m_fence_flush.reserve(static_cast<std::size_t>(m_torrents.num_slots() + 1));
 
-	auto storage = std::make_shared<aux::pread_storage>(
-		params, m_file_pool, m_settings.get_bool(settings_pack::disable_hash_checks));
+	auto storage = std::make_shared<aux::pread_storage>(params, m_file_pool);
 	storage->set_owner(owner);
 	storage_index_t const idx = m_torrents.add(std::move(storage));
 	return {idx, *this};
