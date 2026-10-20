@@ -42,8 +42,7 @@ namespace libtorrent::aux {
 		// constructs the pread_storage based on the given storage_params.
 		// ``file_pool`` is the cache of file handles that the storage will use.
 		// All files it opens will ask the file_pool to open them.
-		pread_storage(
-			storage_params const& params, aux::file_pool&, bool disable_hash_checks = false);
+		pread_storage(storage_params const& params, aux::file_pool&);
 
 		// hidden
 		~pread_storage();

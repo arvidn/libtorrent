@@ -559,9 +559,8 @@ namespace aux {
 			// be correct, and not tested to match the hashes in the torrent this
 			// is only useful for simulation and testing purposes (typically
 			// combined with disabled_storage). The value is captured when a
-			// torrent's storage is created, which is when the torrent is
-			// added, or when its metadata is received for magnet links.
-			// Changing it later does not affect such torrents.
+			// torrent is added to the session. Changing it later does not
+			// affect torrents that have already been added.
 			disable_hash_checks,
 
 			// if this is true, i2p torrents are allowed to also get peers from

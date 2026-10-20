@@ -56,8 +56,7 @@ namespace libtorrent::aux {
 		// an empty vector. Any file whose index is not represented by the vector
 		// (because the vector is too short) are assumed to have priority 1.
 		// this is used to treat files with priority 0 slightly differently.
-		mmap_storage(
-			storage_params const& params, aux::file_view_pool&, bool disable_hash_checks = false);
+		mmap_storage(storage_params const& params, aux::file_view_pool&);
 
 		// hidden
 		~mmap_storage();

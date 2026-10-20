@@ -247,6 +247,9 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		// This is stored in 2 bits
 		TORRENT_ASSERT_PRECOND(static_cast<std::uint8_t>(p.storage_mode) < 4);
 
+		set_flag(torrent_internal_flags::disable_hash_checks,
+			settings().get_bool(settings_pack::disable_hash_checks));
+
 		if (p.flags & torrent_flags::need_save_resume)
 		{
 			m_need_save_resume_data |= torrent_handle::if_metadata_changed;
@@ -1912,13 +1915,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			m_file_priority,
 			m_info_hash.get_best(),
 			m_torrent_file->v1() && !(m_flags & torrent_flags::disable_v1_hashes),
-			m_torrent_file->v2()};
-
-		// latched here rather than in the constructor so it is read at the
-		// same time the backend reads it for the storage. Once it is part of
-		// storage_params this can move to the constructor
-		set_flag(torrent_internal_flags::disable_hash_checks,
-			settings().get_bool(settings_pack::disable_hash_checks));
+			m_torrent_file->v2(),
+			bool(m_flags & torrent_internal_flags::disable_hash_checks)};
 
 		// the storage references m_torrent_file's file_storage, so the disk I/O
 		// keeps the torrent_info alive while it has jobs for the storage. It

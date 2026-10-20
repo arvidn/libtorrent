@@ -94,11 +94,19 @@ namespace libtorrent {
 		// per-file priorities, info-hash and protocol-version flags.
 		// ``v1`` indicates that the torrent has v1 metadata (a SHA-1
 		// info-hash); ``v2`` that it has v2 metadata (BEP 52). A hybrid
-		// torrent has both set.
-		storage_params(file_storage const& f, lt::renamed_files const& mf
-			, string_view sp, string_view pfd, storage_mode_t const sm
-			, aux::vector<download_priority_t, file_index_t> const& prio
-			, sha1_hash const& ih, bool v1_torrent, bool v2_torrent)
+		// torrent has both set. ``skip_hash_checks`` requests that the
+		// storage never compute piece or block hashes, see
+		// disable_hash_checks.
+		storage_params(file_storage const& f,
+			lt::renamed_files const& mf,
+			string_view sp,
+			string_view pfd,
+			storage_mode_t const sm,
+			aux::vector<download_priority_t, file_index_t> const& prio,
+			sha1_hash const& ih,
+			bool v1_torrent,
+			bool v2_torrent,
+			bool skip_hash_checks = false)
 			: files(f)
 			, renamed_files(mf)
 			, path(sp)
@@ -108,6 +116,7 @@ namespace libtorrent {
 			, info_hash(ih)
 			, v1(v1_torrent)
 			, v2(v2_torrent)
+			, disable_hash_checks(skip_hash_checks)
 		{}
 		// the file layout (sizes, paths, flags) of the torrent
 		file_storage const& files;
@@ -140,6 +149,14 @@ namespace libtorrent {
 		// hybrid torrent has both flags set.
 		bool v1;
 		bool v2;
+
+		// when true, the storage must not compute any piece or block hashes.
+		// Hash jobs still flush and evict the piece but report empty hashes,
+		// and the torrent treats all downloaded data as correct. This is
+		// fixed for the lifetime of the storage, since the torrent and the
+		// disk back-end must agree on it. Set from
+		// settings_pack::disable_hash_checks when the torrent is added.
+		bool disable_hash_checks;
 	};
 }
 

@@ -31,7 +31,7 @@ namespace aux {
 
 	struct TORRENT_EXTRA_EXPORT posix_storage
 	{
-		explicit posix_storage(storage_params const& p, bool disable_hash_checks = false);
+		explicit posix_storage(storage_params const& p);
 		file_storage const& files() const { return m_files; }
 		bool disable_hash_checks() const { return m_disable_hash_checks; }
 		~posix_storage();

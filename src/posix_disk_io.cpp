@@ -90,8 +90,7 @@ namespace {
 			// make sure we can remove this torrent without causing a memory
 			// allocation, by causing the allocation now instead
 			storage_index_t const idx = m_free_slots.new_index(m_torrents.end_index());
-			auto storage = std::make_unique<posix_storage>(
-				params, m_settings.get_bool(settings_pack::disable_hash_checks));
+			auto storage = std::make_unique<posix_storage>(params);
 			if (idx == m_torrents.end_index()) m_torrents.emplace_back(std::move(storage));
 			else m_torrents[idx] = std::move(storage);
 			return {idx, *this};

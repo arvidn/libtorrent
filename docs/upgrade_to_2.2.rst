@@ -45,6 +45,17 @@ during a full check without a wasted hash attempt. A custom
 signature; passing a default-constructed (empty) bitfield reproduces the
 previous behavior exactly.
 
+storage_params carries disable_hash_checks
+==========================================
+
+``storage_params`` has a new field, ``disable_hash_checks``. The disk I/O
+subsystem no longer reads ``settings_pack::disable_hash_checks`` when a
+torrent's storage is created; the torrent latches the setting when it is
+added and passes it along in ``storage_params``. A custom
+``disk_interface`` honoring the setting must read it from the
+``storage_params`` instead. The field defaults to false for callers
+constructing ``storage_params`` directly.
+
 file_storage isn't constructible
 ================================
 

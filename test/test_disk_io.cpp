@@ -58,7 +58,8 @@ static lt::storage_holder add_test_torrent(lt::disk_interface& disk,
 	lt::file_storage const& fs,
 	char const* const save_path,
 	bool const v1,
-	bool const v2)
+	bool const v2,
+	bool const disable_hash_checks = false)
 {
 	lt::aux::vector<lt::download_priority_t, lt::file_index_t> priorities;
 	lt::renamed_files rf;
@@ -72,6 +73,7 @@ static lt::storage_holder add_test_torrent(lt::disk_interface& disk,
 		lt::sha1_hash{},
 		v1,
 		v2,
+		disable_hash_checks,
 	};
 	return disk.new_torrent(params, std::shared_ptr<void>());
 }
@@ -1230,7 +1232,6 @@ static void test_skip_hash(lt::disk_io_constructor_type disk_io, bool const v1, 
 	lt::settings_pack sett = lt::default_settings();
 	sett.set_int(lt::settings_pack::hashing_threads, 1);
 	sett.set_int(lt::settings_pack::aio_threads, 1);
-	sett.set_bool(lt::settings_pack::disable_hash_checks, true);
 	std::unique_ptr<lt::disk_interface> disk_thread = disk_io(ios, sett, cnt);
 
 	int const piece_size = 4 * lt::default_block_size;
@@ -1240,12 +1241,7 @@ static void test_skip_hash(lt::disk_io_constructor_type disk_io, bool const v1, 
 	fs.add_file_borrow({}, "test-torrent/file", piece_size * num_pieces, {});
 	fs.set_num_pieces(num_pieces);
 	lt::storage_holder storage =
-		add_test_torrent(*disk_thread, fs, "test_torrent_skip_hash", v1, v2);
-
-	// the setting is latched when the torrent is added, flipping it
-	// afterwards must not re-enable hashing
-	sett.set_bool(lt::settings_pack::disable_hash_checks, false);
-	disk_thread->settings_updated();
+		add_test_torrent(*disk_thread, fs, "test_torrent_skip_hash", v1, v2, true);
 
 	std::vector<std::vector<char>> buffers;
 	for (lt::piece_index_t const p : fs.piece_range())
