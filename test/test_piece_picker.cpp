@@ -1760,6 +1760,109 @@ TORRENT_TEST(prefer_cnotiguous_blocks)
 	TEST_CHECK(std::find(picked.begin(), picked.end(), piece_block(2_piece, 2)) == picked.end());
 }
 
+TORRENT_TEST(web_seed_partial_pressure)
+{
+	// Exercise both partial-piece limits, including the 16 MiB piece size
+	// where two partials are below the byte limit and three exceed it.
+	struct scenario
+	{
+		int blocks;
+		int partials;
+		int peers;
+		bool pressure;
+	};
+	for (auto const c :
+		{scenario{1024, 2, 20, false}, scenario{1024, 3, 20, true}, scenario{4, 2, 1, true}})
+		for (bool const fragmented : {false, true})
+			for (int const peer_type : {0, 1, 2})
+				for (auto const order : {piece_picker::sequential, piece_picker::rarest_first})
+				{
+					auto p = setup_picker("1111", "    ", "", "", c.blocks * default_block_size);
+					// In rarest-first mode, visit the partial pieces before fresh ones.
+					for (piece_index_t i{c.partials}; i < 4_piece; ++i)
+						p->inc_refcount(i, &tmp2);
+					for (piece_index_t i{0}; i < piece_index_t{c.partials}; ++i)
+					{
+						if (fragmented)
+						{
+							// Competing peers leave isolated free blocks in the partials.
+							for (int b = 1; b < c.blocks; b += 2)
+								p->mark_as_downloading({i, b}, &tmp1);
+						}
+						else
+						{
+							// A stopped peer has supplied just the first block.
+							p->mark_as_finished({i, 0}, &tmp1);
+						}
+					}
+
+					ipv4_peer peer(endp, false, {});
+					peer.web_seed = peer_type == 2;
+					std::vector<piece_block> picked;
+					p->pick_pieces(string2vec("****"),
+						picked,
+						2,
+						c.blocks,
+						peer_type == 0 ? nullptr : &peer,
+						order,
+						empty_vector,
+						c.peers,
+						pc);
+					TEST_CHECK(verify_pick(p, picked));
+
+					bool const contiguous = peer.web_seed || !c.pressure;
+					TEST_EQUAL(picked.size(), contiguous ? c.blocks - (fragmented ? 0 : 1) : 2);
+					if (picked.empty())
+						continue;
+					if (contiguous && fragmented)
+						TEST_CHECK(picked.front().piece_index >= piece_index_t{c.partials});
+					else
+						TEST_CHECK(picked.front().piece_index < piece_index_t{c.partials});
+					for (std::size_t b = 1; b < picked.size(); ++b)
+					{
+						TEST_EQUAL(picked[b].piece_index, picked.front().piece_index);
+						TEST_EQUAL(picked[b].block_index,
+							picked[b - 1].block_index + (fragmented && !contiguous ? 2 : 1));
+					}
+				}
+}
+
+TORRENT_TEST(web_seed_partial_fallback)
+{
+	// Preserve the existing small-block fallback when a complete piece is
+	// unavailable, and honor an explicitly requested partial-piece policy.
+	for (bool const prioritize : {false, true})
+	{
+		auto p = setup_picker("1111", "    ", "", "", 1024 * default_block_size);
+		for (piece_index_t i{0}; i < 3_piece; ++i)
+			for (int b = 1; b < 1024; b += 2)
+				p->mark_as_downloading({i, b}, &tmp1);
+		if (!prioritize)
+			p->set_piece_priority(3_piece, dont_download);
+
+		ipv4_peer peer(endp, false, {});
+		peer.web_seed = true;
+		std::vector<piece_block> picked;
+		p->pick_pieces(string2vec("****"),
+			picked,
+			2,
+			1024,
+			&peer,
+			piece_picker::sequential
+				| (prioritize ? piece_picker::prioritize_partials : picker_options_t{}),
+			empty_vector,
+			20,
+			pc);
+		TEST_CHECK(verify_pick(p, picked));
+		TEST_EQUAL(picked.size(), 2);
+		for (auto const& b : picked)
+		{
+			TEST_CHECK(b.piece_index < 3_piece);
+			TEST_EQUAL(b.block_index % 2, 0);
+		}
+	}
+}
+
 TORRENT_TEST(prefer_aligned_whole_pieces)
 {
 	auto p = setup_picker("2222221222222222", "                ", "", "");

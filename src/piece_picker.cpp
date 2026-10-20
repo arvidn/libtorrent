@@ -1978,9 +1978,11 @@ namespace {
 		// _bytes_. The larger the pieces are, the fewer partial pieces we want.
 		// 2048 corresponds to 32 MiB
 		// TODO: 2 make the 2048 limit configurable
+		// Web seeds need large contiguous requests to amortize HTTP overhead.
+		// Preserve their normal picking behavior even with many partial pieces.
 		const int num_partials = int(m_downloads[piece_pos::piece_downloading].size());
-		if (num_partials > num_peers * 3 / 2
-			|| num_partials * blocks_per_piece() > 2048)
+		if ((peer == nullptr || !peer->web_seed)
+			&& (num_partials > num_peers * 3 / 2 || num_partials * blocks_per_piece() > 2048))
 		{
 			// if we have too many partial pieces, prioritize completing
 			// them. In order for this to have an affect, also disable
