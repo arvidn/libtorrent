@@ -334,6 +334,12 @@ namespace {
 				if (fs.pad_file_at(f) || fs.file_size(f) <= fs.piece_length())
 					continue;
 
+				// files with identical content have the same root, and share a
+				// single entry in "piece layers"
+				std::string const root = fs.root(f).to_string();
+				if (piece_layers.find(root) != piece_layers.end())
+					continue;
+
 				aux::merkle_tree t(fs.file_num_blocks(f), fs.blocks_per_piece(), fs.root_ptr(f));
 
 				std::vector<bool> const& verified = (f >= atp.verified_leaf_hashes.end_index())
@@ -353,7 +359,7 @@ namespace {
 				if (int(piece_layer.size()) != fs.file_num_pieces(f))
 					aux::throw_ex<system_error>(errors::torrent_invalid_piece_layer);
 
-				auto& layer = piece_layers[t.root().to_string()].string();
+				auto& layer = piece_layers[root].string();
 
 				for (auto const& h : piece_layer)
 					layer += h.to_string();
