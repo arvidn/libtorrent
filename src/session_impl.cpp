@@ -2609,7 +2609,8 @@ retry:
 			return;
 		}
 
-		auto s = std::static_pointer_cast<aux::listen_socket_t>(si)->udp_sock;
+		auto ls = std::static_pointer_cast<aux::listen_socket_t>(si);
+		auto& s = ls->udp_sock;
 
 		s->sock.send_hostname(hostname, port, p, ec, flags);
 
@@ -2618,8 +2619,11 @@ retry:
 		{
 			s->write_blocked = true;
 			ADD_OUTSTANDING_ASYNC("session_impl::on_udp_writeable");
-			s->sock.async_write(std::bind(&session_impl::on_udp_writeable
-				, this, s, _1));
+			s->sock.async_write(std::bind(&session_impl::on_udp_writeable,
+				this,
+				std::weak_ptr<listen_socket_t>(ls),
+				ls->ssl,
+				_1));
 		}
 	}
 
@@ -2636,7 +2640,8 @@ retry:
 			return;
 		}
 
-		auto s = std::static_pointer_cast<aux::listen_socket_t>(si)->udp_sock;
+		auto ls = std::static_pointer_cast<aux::listen_socket_t>(si);
+		auto& s = ls->udp_sock;
 
 		// the destination address family matching the local socket's address
 		// family does not hold for proxies that we talk to over IPv4 but can
@@ -2651,35 +2656,37 @@ retry:
 		{
 			s->write_blocked = true;
 			ADD_OUTSTANDING_ASYNC("session_impl::on_udp_writeable");
-			s->sock.async_write(std::bind(&session_impl::on_udp_writeable
-				, this, s, _1));
+			s->sock.async_write(std::bind(&session_impl::on_udp_writeable,
+				this,
+				std::weak_ptr<listen_socket_t>(ls),
+				ls->ssl,
+				_1));
 		}
 	}
 
-	void session_impl::on_udp_writeable(std::weak_ptr<session_udp_socket> sock, error_code const& ec)
+	void session_impl::on_udp_writeable(
+		std::weak_ptr<listen_socket_t> ls, transport const ssl, error_code const&)
 	{
 		COMPLETE_ASYNC("session_impl::on_udp_writeable");
-		if (ec) return;
 
-		auto s = sock.lock();
-		if (!s) return;
+		if (auto l = ls.lock())
+		{
+			l->udp_sock->write_blocked = false;
+		}
 
-		s->write_blocked = false;
-
+		// the error is ignored on purpose. Stalled uTP sockets only discover
+		// a closed socket by retrying the send, and they are never deleted
+		// while stalled
 #ifdef TORRENT_SSL_PEERS
-		auto i = std::find_if(
-			m_listen_sockets.begin(), m_listen_sockets.end()
-			, [&s] (std::shared_ptr<listen_socket_t> const& ls) { return ls->udp_sock == s; });
+		if (ssl == transport::ssl)
+		{
+			m_ssl_utp_socket_manager.writable(ls);
+			return;
+		}
+#else
+		TORRENT_UNUSED(ssl);
 #endif
-
-		// notify the utp socket manager it can start sending on the socket again
-		struct utp_socket_manager& mgr =
-#ifdef TORRENT_SSL_PEERS
-			(i != m_listen_sockets.end() && (*i)->ssl == transport::ssl) ? m_ssl_utp_socket_manager :
-#endif
-			m_utp_socket_manager;
-
-		mgr.writable();
+		m_utp_socket_manager.writable(ls);
 	}
 
 
