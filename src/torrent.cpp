@@ -7229,10 +7229,10 @@ namespace {
 		// The SSRF mitigation for web seeds is that any HTTP server on the
 		// local network may not use any query string parameters. this can't
 		// be evaluated when the hostname is resolved by the proxy (see
-		// settings_pack::proxy_hostnames), since peer_info.addr is then an
+		// settings_pack::proxy_hostnames), since the endpoint address is then an
 		// unspecified placeholder rather than the real target address
 		if (settings().get_bool(settings_pack::ssrf_mitigation) && address_known
-			&& aux::is_local(web->peer_info.addr) && path.find('?') != std::string::npos)
+			&& aux::is_local(a.address()) && path.find('?') != std::string::npos)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log())
