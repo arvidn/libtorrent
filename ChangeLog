@@ -12,6 +12,7 @@
 	* fix pread disk I/O async_hash2() of a cached block that ends in a pad file
 	* improve copy_file throughput with dynamic buffer size
 	* fix disk.num_blocks_written over-counting with pread disk I/O
+	* fix uTP sockets stalling when the socket is closed while waiting for it to become writable
 
 2.1.2 released
 
