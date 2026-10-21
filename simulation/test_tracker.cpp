@@ -1844,6 +1844,27 @@ TORRENT_TEST(ssrf_query_string)
 	TEST_CHECK(test_ssrf("/announce", false, "http://tracker.com:8080/announce?event=abc"));
 }
 
+TORRENT_TEST(ssrf_dot_segments)
+{
+	// paths that start with /announce but that the server resolves to some
+	// other path must not be allowed to reach localhost
+	TEST_CHECK(!test_ssrf("/api/x", true, "http://127.0.0.1:8080/announce/../api/x"));
+	TEST_CHECK(!test_ssrf("/api/x", true, "http://localhost:8080/announce/../api/x"));
+	TEST_CHECK(!test_ssrf("/api/x", true, "http://[::1]:8080/announce/../api/x"));
+	TEST_CHECK(!test_ssrf("/api/x", true, "http://127.0.0.1:8080/announce/./../api/x"));
+	TEST_CHECK(!test_ssrf("/announce", true, "http://127.0.0.1:8080/announce/."));
+	TEST_CHECK(test_ssrf("/api/x", false, "http://127.0.0.1:8080/announce/../api/x"));
+
+	// a standard announce path is still allowed
+	TEST_CHECK(test_ssrf("/announce.php", true, "http://127.0.0.1:8080/announce.php"));
+
+	// separators in the query string or fragment are not part of the path
+	TEST_CHECK(test_ssrf("/announce", true, "http://127.0.0.1:8080/announce?path=a/b/c"));
+	// the fragment is currently sent to the tracker as part of the request
+	// path, with the announce arguments appended after it
+	TEST_CHECK(test_ssrf("/announce#a/b/c", true, "http://127.0.0.1:8080/announce#a/b/c"));
+}
+
 bool test_idna(char const* tracker_url, char const* redirect
 	, bool const feature_on)
 {
