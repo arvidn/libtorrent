@@ -36,6 +36,7 @@ TORRENT_TEST(slow_hash_tests_skipped) {}
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/time.hpp"
+#include "libtorrent/aux_/scope_end.hpp"
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/error_code.hpp"
@@ -80,6 +81,8 @@ void hash_job_retry_test(lt::disk_io_constructor_type disk_io
 	sett.set_int(lt::settings_pack::hashing_threads, 2);
 	sett.set_int(lt::settings_pack::aio_threads, 1);
 	std::unique_ptr<lt::disk_interface> disk_thread = disk_io(ios, sett, cnt);
+	// ~pread_disk_io asserts that abort() has been called
+	auto const abort_guard = lt::aux::scope_end([&] { disk_thread->abort(true); });
 
 	int const piece_size = 2 * lt::default_block_size;
 	lt::file_storage fs;
@@ -165,8 +168,6 @@ void hash_job_retry_test(lt::disk_io_constructor_type disk_io
 	}
 
 	TEST_EQUAL(hashes_done, 1);
-
-	disk_thread->abort(true);
 }
 
 // add_piece() dispatches a block write and, once the piece's blocks are all
