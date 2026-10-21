@@ -267,5 +267,7 @@ jobs:
           exit 0
         fi
         echo "uploading ${#wheels[@]} wheel(s)"
-        gh release upload "$GITHUB_REF_NAME" "${wheels[@]}" \
+        (cd wheelhouse && sha256sum -- *.whl > SHA256SUMS-wheels)
+        cat wheelhouse/SHA256SUMS-wheels
+        gh release upload "$GITHUB_REF_NAME" "${wheels[@]}" wheelhouse/SHA256SUMS-wheels \
           --clobber --repo "$GITHUB_REPOSITORY"
