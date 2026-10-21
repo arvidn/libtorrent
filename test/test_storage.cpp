@@ -36,6 +36,7 @@ see LICENSE file.
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/aux_/stat_cache.hpp"
 #include "libtorrent/aux_/random.hpp"
+#include "libtorrent/aux_/scope_end.hpp"
 #include "libtorrent/mmap_disk_io.hpp"
 #include "libtorrent/posix_disk_io.hpp"
 #include "libtorrent/pread_disk_io.hpp"
@@ -566,6 +567,8 @@ void test_rename_to_existing(
 	aux::session_settings settings;
 	counters cnt;
 	auto disk_io = disk_constructor(ios, settings, cnt);
+	// ~pread_disk_io asserts that abort() has been called
+	auto const abort_guard = lt::aux::scope_end([&] { disk_io->abort(true); });
 	aux::vector<download_priority_t, file_index_t> priorities;
 	renamed_files renamed;
 	storage_params params{fs,
@@ -624,8 +627,6 @@ void test_rename_to_existing(
 	TEST_EQUAL(load_file(destination_path, content, ec), 0);
 	TEST_CHECK(!ec);
 	TEST_EQUAL(std::string(content.begin(), content.end()), destination_content);
-
-	disk_io->abort(true);
 }
 
 namespace {
@@ -819,6 +820,8 @@ void test_check_files(check_files_flag_t const flags,
 	sett.set_int(settings_pack::aio_threads, aio_threads);
 	sett.set_int(settings_pack::hashing_threads, hashing_threads);
 	std::unique_ptr<disk_interface> io = disk_constructor(ios, sett, cnt);
+	// ~pread_disk_io asserts that abort() has been called
+	auto const abort_guard = lt::aux::scope_end([&] { io->abort(true); });
 
 	aux::vector<download_priority_t, file_index_t> priorities;
 
@@ -902,8 +905,6 @@ void test_check_files(check_files_flag_t const flags,
 	TEST_EQUAL(outstanding, 0);
 	TEST_EQUAL(hashes_done, 2);
 	TEST_CHECK(release_done);
-
-	io->abort(true);
 }
 
 // TODO: 2 split this test up into smaller parts
@@ -1026,6 +1027,8 @@ void seed_partfile_piece(lt::disk_io_constructor_type const disk_constructor,
 	boost::asio::io_context ios;
 	counters cnt;
 	std::unique_ptr<disk_interface> io = disk_constructor(ios, sett, cnt);
+	// ~pread_disk_io asserts that abort() has been called
+	auto const abort_guard = lt::aux::scope_end([&] { io->abort(true); });
 
 	renamed_files rf;
 	storage_params p{info->layout(),
@@ -1055,7 +1058,6 @@ void seed_partfile_piece(lt::disk_io_constructor_type const disk_constructor,
 	run_until(ios, done);
 
 	st.reset();
-	io->abort(true);
 }
 
 // a dont_download file whose real path exists but is empty (e.g. a
@@ -1100,6 +1102,10 @@ void test_read_dont_download_empty_placeholder(lt::disk_io_constructor_type cons
 	boost::asio::io_context ios;
 	counters cnt;
 	std::unique_ptr<disk_interface> io = disk_constructor(ios, sett, cnt);
+	// ~pread_disk_io asserts that abort() has been called. The explicit abort()
+	// below still has to stay, since the files have to be closed before
+	// delete_dirs() removes them
+	auto const abort_guard = lt::aux::scope_end([&] { io->abort(true); });
 	renamed_files rf;
 	storage_params p{info->layout(),
 		rf,
@@ -1175,6 +1181,10 @@ void test_has_any_file_partfile_only(lt::disk_io_constructor_type const disk_con
 	boost::asio::io_context ios;
 	counters cnt;
 	std::unique_ptr<disk_interface> io = disk_constructor(ios, sett, cnt);
+	// ~pread_disk_io asserts that abort() has been called. The explicit abort()
+	// below still has to stay, since the files have to be closed before
+	// delete_dirs() removes them
+	auto const abort_guard = lt::aux::scope_end([&] { io->abort(true); });
 	renamed_files rf;
 	storage_params p{info->layout(),
 		rf,
@@ -1401,6 +1411,9 @@ TORRENT_TEST_DISK_IO(rename_self_referencing_symlink)
 	counters cnt;
 	aux::session_settings sett;
 	std::unique_ptr<disk_interface> io = disk_io(ios, sett, cnt);
+	// ~pread_disk_io asserts that abort() has been called, which
+	// close_symlink_torrent() below only does on the non-throwing path
+	auto const abort_guard = lt::aux::scope_end([&] { io->abort(true); });
 	lt::storage_holder st = add_symlink_torrent(*io, ios, atp, test_path);
 
 	bool rename_done = false;
@@ -1464,6 +1477,9 @@ TORRENT_TEST_DISK_IO(rename_valid_symlink)
 	counters cnt;
 	aux::session_settings sett;
 	std::unique_ptr<disk_interface> io = disk_io(ios, sett, cnt);
+	// ~pread_disk_io asserts that abort() has been called, which
+	// close_symlink_torrent() below only does on the non-throwing path
+	auto const abort_guard = lt::aux::scope_end([&] { io->abort(true); });
 	lt::storage_holder st = add_symlink_torrent(*io, ios, atp, test_path);
 
 	bool rename_done = false;
@@ -1509,6 +1525,9 @@ void test_delete_files(lt::disk_io_constructor_type const disk_io,
 	counters cnt;
 	aux::session_settings sett;
 	std::unique_ptr<disk_interface> io = disk_io(ios, sett, cnt);
+	// ~pread_disk_io asserts that abort() has been called, which
+	// close_symlink_torrent() below only does on the non-throwing path
+	auto const abort_guard = lt::aux::scope_end([&] { io->abort(true); });
 	lt::storage_holder st = add_symlink_torrent(*io, ios, atp, test_path);
 
 	bool delete_done = false;
@@ -1595,6 +1614,9 @@ TORRENT_TEST_DISK_IO(move_storage_self_referencing_symlink)
 	counters cnt;
 	aux::session_settings sett;
 	std::unique_ptr<disk_interface> io = disk_io(ios, sett, cnt);
+	// ~pread_disk_io asserts that abort() has been called, which
+	// close_symlink_torrent() below only does on the non-throwing path
+	auto const abort_guard = lt::aux::scope_end([&] { io->abort(true); });
 	lt::storage_holder st = add_symlink_torrent(*io, ios, atp, test_path);
 
 	bool move_done = false;
@@ -1658,6 +1680,9 @@ TORRENT_TEST_DISK_IO(move_storage_with_symlink)
 	counters cnt;
 	aux::session_settings sett;
 	std::unique_ptr<disk_interface> io = disk_io(ios, sett, cnt);
+	// ~pread_disk_io asserts that abort() has been called, which
+	// close_symlink_torrent() below only does on the non-throwing path
+	auto const abort_guard = lt::aux::scope_end([&] { io->abort(true); });
 	lt::storage_holder st = add_symlink_torrent(*io, ios, atp, test_path);
 
 	bool move_done = false;
@@ -2776,6 +2801,8 @@ void test_unaligned_read(lt::disk_io_constructor_type constructor, Fun fun)
 
 	std::unique_ptr<lt::disk_interface> disk_io
 		= constructor(ioc, pack, cnt);
+	// ~pread_disk_io asserts that abort() has been called
+	auto const abort_guard = lt::aux::scope_end([&] { disk_io->abort(true); });
 
 	lt::file_storage fs;
 	fs.add_file("test", lt::default_block_size * 2);
@@ -2811,7 +2838,6 @@ void test_unaligned_read(lt::disk_io_constructor_type constructor, Fun fun)
 	fun(disk_io.get(), t, ioc, outstanding);
 
 	t.reset();
-	disk_io->abort(true);
 }
 
 struct write_handler
