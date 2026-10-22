@@ -60,7 +60,7 @@ namespace libtorrent {
 
 // the from_string member functions are deprecated starting
 // in boost 1.66.0
-#if BOOST_VERSION >= 106600 && !defined TORRENT_BUILD_SIMULATOR
+#if BOOST_VERSION >= 106600
 	using boost::asio::ip::make_address;
 	using boost::asio::ip::make_address_v4;
 	using boost::asio::ip::make_address_v6;

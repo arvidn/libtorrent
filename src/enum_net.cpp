@@ -650,9 +650,9 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			ip_interface wan;
 			wan.interface_address = ip;
 			if (ip.is_v4())
-				wan.netmask = address_v4::from_string("255.0.0.0");
+				wan.netmask = make_address_v4("255.0.0.0");
 			else
-				wan.netmask = address_v6::from_string("ffff::");
+				wan.netmask = make_address_v6("ffff::");
 			std::strcpy(wan.name, "eth0");
 			std::strcpy(wan.friendly_name, "Ethernet");
 			std::strcpy(wan.description, "Simulator Ethernet Adapter");
@@ -1048,7 +1048,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			if (ip.is_v4())
 			{
 				r.destination = address_v4();
-				r.netmask = address_v4::from_string("255.0.0.0");
+				r.netmask = make_address_v4("255.0.0.0");
 				address_v4::bytes_type b = ip.to_v4().to_bytes();
 				b[3] = 1;
 				r.gateway = address_v4(b);
@@ -1056,7 +1056,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			else
 			{
 				r.destination = address_v6();
-				r.netmask = address_v6::from_string("ffff:ffff:ffff:ffff::0");
+				r.netmask = make_address_v6("ffff:ffff:ffff:ffff::0");
 				address_v6::bytes_type b = ip.to_v6().to_bytes();
 				b[14] = 1;
 				r.gateway = address_v6(b);
@@ -1259,9 +1259,9 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			{
 
 				ip_route r;
-				r.destination = address::from_string(adapter->IpAddressList.IpAddress.String, ec);
-				r.gateway = address::from_string(adapter->GatewayList.IpAddress.String, ec);
-				r.netmask = address::from_string(adapter->IpAddressList.IpMask.String, ec);
+				r.destination = make_address(adapter->IpAddressList.IpAddress.String, ec);
+				r.gateway = make_address(adapter->GatewayList.IpAddress.String, ec);
+				r.netmask = make_address(adapter->IpAddressList.IpMask.String, ec);
 				strncpy(r.name, adapter->AdapterName, sizeof(r.name) - 1);
 				r.name[sizeof(r.name) - 1] = '\0';
 

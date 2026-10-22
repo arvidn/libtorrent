@@ -39,8 +39,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/platform_util.hpp" // for total_physical_ram
 #include "libtorrent/disk_interface.hpp" // for default_block_size
 
-#include <boost/asio/post.hpp>
-
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
 #ifdef TORRENT_BSD

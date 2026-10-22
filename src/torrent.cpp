@@ -651,7 +651,6 @@ bool is_downloading_state(int const st)
 				std::string str;
 				for (auto const& peer : p.peers)
 				{
-					error_code ec;
 					str += peer.address().to_string();
 					str += ' ';
 				}
@@ -2195,7 +2194,6 @@ bool is_downloading_state(int const st)
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log() && !m_add_torrent_params->peers.empty())
 			{
-				error_code ec;
 				std::string str;
 				for (auto const& peer : m_add_torrent_params->peers)
 				{
@@ -2867,7 +2865,6 @@ bool is_downloading_state(int const st)
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log() && !peers.empty())
 		{
-			error_code ec;
 			std::string str;
 			for (auto const& peer : peers)
 			{
@@ -3540,7 +3537,6 @@ bool is_downloading_state(int const st)
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log() && (!resp.peers4.empty() || !resp.peers6.empty()))
 		{
-			error_code ec;
 			std::string str;
 			for (auto const& peer : resp.peers4)
 			{
@@ -3777,7 +3773,6 @@ bool is_downloading_state(int const st)
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log())
 			{
-				error_code ec;
 				debug_log("blocked ip from tracker: %s", host.address().to_string().c_str());
 			}
 #endif
@@ -3794,7 +3789,6 @@ bool is_downloading_state(int const st)
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log())
 			{
-				error_code ec;
 				debug_log("name-lookup add_peer() [ %s ] connect-candidates: %d"
 					, host.address().to_string().c_str()
 					, m_peer_list ? m_peer_list->num_connect_candidates() : -1);
@@ -4578,7 +4572,6 @@ bool is_downloading_state(int const st)
 			m_peer_class = peer_class_t{0};
 		}
 
-		error_code ec;
 		m_inactivity_timer.cancel();
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -9255,7 +9248,6 @@ bool is_downloading_state(int const st)
 		// if m_waiting_tracker is 0, expires_at() is undefined
 		if (m_waiting_tracker && m_tracker_timer.expiry() == next_announce) return;
 
-		error_code ec;
 		auto self = shared_from_this();
 
 		m_tracker_timer.expires_at(next_announce);
@@ -9333,7 +9325,6 @@ bool is_downloading_state(int const st)
 		TORRENT_ASSERT(is_single_thread());
 		if (!m_announcing) return;
 
-		error_code ec;
 		m_tracker_timer.cancel();
 
 		m_announcing = false;

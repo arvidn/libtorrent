@@ -175,12 +175,7 @@ bool node::verify_token(string_view token, sha1_hash const& info_hash
 	}
 
 	hasher h1;
-	std::string address;
-	try {
-		address = addr.address().to_string();
-	} catch (...) {
-		return false;
-	}
+	std::string const address = addr.address().to_string();
 	h1.update(address);
 	h1.update(m_secret[0]);
 	h1.update(info_hash);

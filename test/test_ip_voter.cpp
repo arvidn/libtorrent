@@ -68,7 +68,7 @@ TORRENT_TEST(test_random)
 
 	ip_voter ipv;
 
-	address_v4 addr1(address_v4::from_string("51.41.61.132"));
+	address_v4 addr1(make_address_v4("51.41.61.132"));
 
 	bool new_ip = cast_vote(ipv, addr1, rand_v4());
 	TEST_CHECK(new_ip);
@@ -87,8 +87,8 @@ TORRENT_TEST(two_ips)
 
 	ip_voter ipv;
 
-	address_v4 addr1(address_v4::from_string("51.1.1.1"));
-	address_v4 addr2(address_v4::from_string("53.3.3.3"));
+	address_v4 addr1(make_address_v4("51.1.1.1"));
+	address_v4 addr2(make_address_v4("53.3.3.3"));
 
 	// addr1 is the first address we see, which is the one we pick. Even though
 	// we'll have as many votes for addr2, we shouldn't flap, since addr2 never
@@ -114,9 +114,9 @@ TORRENT_TEST(one_ip)
 
 	ip_voter ipv;
 
-	address_v4 start_addr(address_v4::from_string("93.12.63.174"));
-	address_v4 addr1(address_v4::from_string("51.1.1.1"));
-	address_v4 addr2(address_v4::from_string("53.3.3.3"));
+	address_v4 start_addr(make_address_v4("93.12.63.174"));
+	address_v4 addr1(make_address_v4("51.1.1.1"));
+	address_v4 addr2(make_address_v4("53.3.3.3"));
 
 	bool new_ip = cast_vote(ipv, start_addr, rand_v4());
 	TEST_CHECK(new_ip);
@@ -163,9 +163,9 @@ TORRENT_TEST(ip_voter_1)
 	// adds 50 legitimate responses from different peers
 	// and 50 malicious responses from the same peer
 	error_code ec;
-	address real_external = address_v4::from_string("5.5.5.5", ec);
+	address real_external = make_address_v4("5.5.5.5", ec);
 	TEST_CHECK(!ec);
-	address malicious = address_v4::from_string("4.4.4.4", ec);
+	address malicious = make_address_v4("4.4.4.4", ec);
 	TEST_CHECK(!ec);
 	for (int i = 0; i < 50; ++i)
 	{
@@ -185,11 +185,11 @@ TORRENT_TEST(ip_voter_2)
 	// adds 50 legitimate responses from different peers
 	// and 50 consistent malicious responses from the same peer
 	error_code ec;
-	address malicious = address_v4::from_string("4.4.4.4", ec);
+	address malicious = make_address_v4("4.4.4.4", ec);
 	TEST_CHECK(!ec);
-	address real_external1 = address_v4::from_string("5.5.5.5", ec);
+	address real_external1 = make_address_v4("5.5.5.5", ec);
 	TEST_CHECK(!ec);
-	address malicious_external = address_v4::from_string("3.3.3.3", ec);
+	address malicious_external = make_address_v4("3.3.3.3", ec);
 	TEST_CHECK(!ec);
 
 	address malicious2;
@@ -197,11 +197,11 @@ TORRENT_TEST(ip_voter_2)
 	address malicious_external2;
 	if (supports_ipv6())
 	{
-		malicious2 = address_v6::from_string("2f90::", ec);
+		malicious2 = make_address_v6("2f90::", ec);
 		TEST_CHECK(!ec);
-		real_external2 = address_v6::from_string("2f80::", ec);
+		real_external2 = make_address_v6("2f80::", ec);
 		TEST_CHECK(!ec);
-		malicious_external2 = address_v6::from_string("2f70::", ec);
+		malicious_external2 = make_address_v6("2f70::", ec);
 		TEST_CHECK(!ec);
 	}
 

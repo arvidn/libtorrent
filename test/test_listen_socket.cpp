@@ -61,8 +61,8 @@ namespace
 	ip_interface ifc(char const* ip, char const* device, char const* netmask = nullptr)
 	{
 		ip_interface ipi;
-		ipi.interface_address = address::from_string(ip);
-		if (netmask) ipi.netmask = address::from_string(netmask);
+		ipi.interface_address = make_address(ip);
+		if (netmask) ipi.netmask = make_address(netmask);
 		std::strncpy(ipi.name, device, sizeof(ipi.name) - 1);
 		return ipi;
 	}
@@ -71,8 +71,8 @@ namespace
 		, char const* netmask = nullptr)
 	{
 		ip_interface ipi;
-		ipi.interface_address = address::from_string(ip);
-		if (netmask) ipi.netmask = address::from_string(netmask);
+		ipi.interface_address = make_address(ip);
+		if (netmask) ipi.netmask = make_address(netmask);
 		std::strncpy(ipi.name, device, sizeof(ipi.name) - 1);
 		ipi.flags = flags;
 		return ipi;
@@ -81,8 +81,8 @@ namespace
 	ip_route rt(char const* ip, char const* device, char const* gateway)
 	{
 		ip_route ret;
-		ret.destination = address::from_string(ip);
-		ret.gateway = address::from_string(gateway);
+		ret.destination = make_address(ip);
+		ret.gateway = make_address(gateway);
 		std::strncpy(ret.name, device, sizeof(ret.name) - 1);
 		ret.name[sizeof(ret.name) - 1] = '\0';
 		return ret;
@@ -91,7 +91,7 @@ namespace
 	aux::listen_endpoint_t ep(char const* ip, int port
 		, tp ssl, aux::listen_socket_flags_t const flags)
 	{
-		return aux::listen_endpoint_t(address::from_string(ip), port, std::string{}
+		return aux::listen_endpoint_t(make_address(ip), port, std::string{}
 			, ssl, flags);
 	}
 
@@ -99,7 +99,7 @@ namespace
 		, tp ssl = tp::plaintext
 		, std::string device = {})
 	{
-		return aux::listen_endpoint_t(address::from_string(ip), port, device, ssl
+		return aux::listen_endpoint_t(make_address(ip), port, device, ssl
 			, aux::listen_socket_t::accept_incoming);
 	}
 
@@ -107,7 +107,7 @@ namespace
 		, std::string device
 		, tp ssl = tp::plaintext)
 	{
-		return aux::listen_endpoint_t(address::from_string(ip), port, device, ssl
+		return aux::listen_endpoint_t(make_address(ip), port, device, ssl
 			, aux::listen_socket_t::accept_incoming);
 	}
 
@@ -115,14 +115,14 @@ namespace
 		, std::string device
 		, aux::listen_socket_flags_t const flags)
 	{
-		return aux::listen_endpoint_t(address::from_string(ip), port, device
+		return aux::listen_endpoint_t(make_address(ip), port, device
 			, tp::plaintext, flags);
 	}
 
 	aux::listen_endpoint_t ep(char const* ip, int port
 		, aux::listen_socket_flags_t const flags)
 	{
-		return aux::listen_endpoint_t(address::from_string(ip), port, std::string{}
+		return aux::listen_endpoint_t(make_address(ip), port, std::string{}
 			, tp::plaintext, flags);
 	}
 
@@ -130,7 +130,7 @@ namespace
 		, int const original_port, char const* device = "")
 	{
 		auto s = std::make_shared<aux::listen_socket_t>();
-		s->local_endpoint = tcp::endpoint(address::from_string(ip)
+		s->local_endpoint = tcp::endpoint(make_address(ip)
 			, aux::numeric_cast<std::uint16_t>(port));
 		s->original_port = original_port;
 		s->device = device;
@@ -160,9 +160,9 @@ TORRENT_TEST(partition_listen_sockets_wildcard2specific)
 	TEST_EQUAL(eps.size(), 1);
 	TEST_EQUAL(std::distance(sockets.begin(), remove_iter), 1);
 	TEST_EQUAL(std::distance(remove_iter, sockets.end()), 1);
-	test_equal(*sockets.front(), address_v4::from_string("4.4.4.4"), 6881, "", tp::plaintext);
+	test_equal(*sockets.front(), make_address_v4("4.4.4.4"), 6881, "", tp::plaintext);
 	test_equal(*sockets.back(), address_v4(), 6881, "", tp::plaintext);
-	test_equal(eps.front(), address_v4::from_string("4.4.4.5"), 6881, "", tp::plaintext);
+	test_equal(eps.front(), make_address_v4("4.4.4.5"), 6881, "", tp::plaintext);
 }
 
 TORRENT_TEST(partition_listen_sockets_port_change)
@@ -196,7 +196,7 @@ TORRENT_TEST(partition_listen_sockets_device_bound)
 	auto remove_iter = aux::partition_listen_sockets(eps, sockets);
 	TEST_EQUAL(std::distance(sockets.begin(), remove_iter), 1);
 	TEST_EQUAL(std::distance(remove_iter, sockets.end()), 1);
-	test_equal(*sockets.front(), address_v4::from_string("4.4.4.5"), 6881, "", tp::plaintext);
+	test_equal(*sockets.front(), make_address_v4("4.4.4.5"), 6881, "", tp::plaintext);
 	test_equal(*sockets.back(), address_v4(), 6881, "", tp::plaintext);
 	TEST_EQUAL(eps.size(), 2);
 }
@@ -216,10 +216,10 @@ TORRENT_TEST(partition_listen_sockets_device_ip_change)
 	auto remove_iter = aux::partition_listen_sockets(eps, sockets);
 	TEST_EQUAL(std::distance(sockets.begin(), remove_iter), 1);
 	TEST_EQUAL(std::distance(remove_iter, sockets.end()), 1);
-	test_equal(*sockets.front(), address_v4::from_string("10.10.10.10"), 6881, "enp3s0", tp::plaintext);
-	test_equal(*sockets.back(), address_v4::from_string("4.4.4.4"), 6881, "enp3s0", tp::plaintext);
+	test_equal(*sockets.front(), make_address_v4("10.10.10.10"), 6881, "enp3s0", tp::plaintext);
+	test_equal(*sockets.back(), make_address_v4("4.4.4.4"), 6881, "enp3s0", tp::plaintext);
 	TEST_EQUAL(eps.size(), 1);
-	test_equal(eps.front(), address_v4::from_string("4.4.4.5"), 6881, "enp3s0", tp::plaintext);
+	test_equal(eps.front(), make_address_v4("4.4.4.5"), 6881, "enp3s0", tp::plaintext);
 }
 
 TORRENT_TEST(partition_listen_sockets_original_port)
@@ -287,13 +287,13 @@ TORRENT_TEST(expand_devices)
 
 	std::vector<aux::listen_endpoint_t> eps = {
 		{
-			address::from_string("127.0.0.1"),
+			make_address("127.0.0.1"),
 			6881, // port
 			"", // device
 			aux::transport::plaintext,
 			aux::listen_socket_flags_t{} },
 		{
-			address::from_string("192.168.1.2"),
+			make_address("192.168.1.2"),
 			6881, // port
 			"", // device
 			aux::transport::plaintext,
@@ -304,19 +304,19 @@ TORRENT_TEST(expand_devices)
 
 	TEST_CHECK((eps == std::vector<aux::listen_endpoint_t>{
 		{
-			address::from_string("127.0.0.1"),
+			make_address("127.0.0.1"),
 			6881, // port
 			"lo", // device
 			aux::transport::plaintext,
 			aux::listen_socket_flags_t{},
-			address::from_string("255.0.0.0") },
+			make_address("255.0.0.0") },
 		{
-			address::from_string("192.168.1.2"),
+			make_address("192.168.1.2"),
 			6881, // port
 			"eth0", // device
 			aux::transport::plaintext,
 			aux::listen_socket_flags_t{},
-			address::from_string("255.255.255.0") },
+			make_address("255.255.255.0") },
 		}));
 }
 

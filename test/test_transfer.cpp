@@ -342,7 +342,7 @@ void test_transfer(int proxy_type, settings_pack const& sett
 			// so we need to reconnect as well
 			std::printf("%s: reconnecting peer\n", time_now_string().c_str());
 			error_code ec2;
-			tor2.connect_peer(tcp::endpoint(address::from_string("127.0.0.1", ec2)
+			tor2.connect_peer(tcp::endpoint(make_address("127.0.0.1", ec2)
 				, ses1.listen_port()));
 
 			TEST_CHECK(tor2.status().is_finished == false);

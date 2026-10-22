@@ -490,14 +490,14 @@ std::shared_ptr<torrent_info> setup_peer(tcp::socket& s, sha1_hash& ih
 	if (incoming)
 	{
 		error_code ec;
-		s.connect(tcp::endpoint(address::from_string("127.0.0.1", ec), ses->listen_port()), ec);
+		s.connect(tcp::endpoint(make_address("127.0.0.1", ec), ses->listen_port()), ec);
 		if (ec) TEST_ERROR(ec.message());
 	}
 	else
 	{
 		tcp::acceptor l(lt::get_io_service(s));
 		l.open(tcp::v4());
-		l.bind(tcp::endpoint(address_v4::from_string("127.0.0.1"), 0));
+		l.bind(tcp::endpoint(make_address_v4("127.0.0.1"), 0));
 		l.listen();
 		tcp::endpoint addr = l.local_endpoint();
 

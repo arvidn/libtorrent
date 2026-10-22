@@ -121,19 +121,19 @@ int main(int argc, char* argv[])
 	std::cout << "mapping ports TCP: " << argv[1]
 		<< " UDP: " << argv[2] << std::endl;
 
-	ios.reset();
-	ios.run(ec);
+	ios.restart();
+	ios.run();
 	timer.expires_after(seconds(2));
 	timer.async_wait([&] (error_code const&) { ios.io_service::stop(); });
 	std::cout << "removing mapping " << tcp_map << std::endl;
 	natpmp_handler->delete_mapping(tcp_map);
 
-	ios.reset();
-	ios.run(ec);
+	ios.restart();
+	ios.run();
 	std::cout << "removing mappings" << std::endl;
 	natpmp_handler->close();
 
-	ios.reset();
-	ios.run(ec);
+	ios.restart();
+	ios.run();
 	std::cout << "closing" << std::endl;
 }

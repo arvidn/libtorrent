@@ -33,10 +33,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_io_thread_pool.hpp"
 #include "libtorrent/assert.hpp"
 
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/asio/executor_work_guard.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-
 #include <algorithm>
 
 namespace {

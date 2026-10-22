@@ -1782,13 +1782,10 @@ namespace {
 				address_v6::bytes_type bytes;
 				std::copy(myip.begin(), myip.end(), bytes.begin());
 				address_v6 ipv6_address(bytes);
-				if (ipv6_address.is_v4_mapped()) {
-					auto const bytes = ipv6_address.to_bytes();
-					address_v4 const v4_addr(address_v4::bytes_type{{bytes[12], bytes[13], bytes[14], bytes[15]}});
+				if (ipv6_address.is_v4_mapped())
 					m_ses.set_external_address(local_endpoint()
-						, v4_addr
+						, boost::asio::ip::make_address_v4(boost::asio::ip::v4_mapped, ipv6_address)
 						, aux::session_interface::source_peer, remote().address());
-				}
 				else
 					m_ses.set_external_address(local_endpoint()
 						, ipv6_address

@@ -396,7 +396,7 @@ namespace aux { struct block_cache_reference; }
 				m_job_cond.notify_all();
 			}
 
-			void thread_fun(disk_io_thread_pool& pool, boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work) override
+			void thread_fun(disk_io_thread_pool& pool, io_work_guard work) override
 			{
 				ADD_OUTSTANDING_ASYNC("disk_io_thread::work");
 				m_owner.thread_fun(*this, pool);

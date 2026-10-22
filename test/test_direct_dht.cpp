@@ -110,7 +110,7 @@ TORRENT_TEST(direct_dht_request)
 
 	entry r;
 	r["q"] = "test_good";
-	requester.dht_direct_request(udp::endpoint(address::from_string("127.0.0.1")
+	requester.dht_direct_request(udp::endpoint(make_address("127.0.0.1")
 		, responder.listen_port()), r, reinterpret_cast<void*>(12345));
 
 	dht_direct_response_alert* ra = get_direct_response(requester);
@@ -118,7 +118,7 @@ TORRENT_TEST(direct_dht_request)
 	if (ra)
 	{
 		bdecode_node response = ra->response();
-		TEST_EQUAL(ra->endpoint.address(), address::from_string("127.0.0.1"));
+		TEST_EQUAL(ra->endpoint.address(), make_address("127.0.0.1"));
 		TEST_EQUAL(ra->endpoint.port(), responder.listen_port());
 		TEST_EQUAL(response.type(), bdecode_node::dict_t);
 		TEST_EQUAL(response.dict_find_dict("r").dict_find_int_value("good"), 1);
@@ -127,14 +127,14 @@ TORRENT_TEST(direct_dht_request)
 
 	// failed request
 
-	requester.dht_direct_request(udp::endpoint(address::from_string("127.0.0.1"), 53545)
+	requester.dht_direct_request(udp::endpoint(make_address("127.0.0.1"), 53545)
 		, r, reinterpret_cast<void*>(123456));
 
 	ra = get_direct_response(requester);
 	TEST_CHECK(ra);
 	if (ra)
 	{
-		TEST_EQUAL(ra->endpoint.address(), address::from_string("127.0.0.1"));
+		TEST_EQUAL(ra->endpoint.address(), make_address("127.0.0.1"));
 		TEST_EQUAL(ra->endpoint.port(), 53545);
 		TEST_EQUAL(ra->response().type(), bdecode_node::none_t);
 		TEST_EQUAL(ra->userdata, reinterpret_cast<void*>(123456));

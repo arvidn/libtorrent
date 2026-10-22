@@ -780,7 +780,7 @@ else()
 endif()
 
 # Boost
-find_public_dependency(Boost REQUIRED)
+find_public_dependency(Boost 1.66 REQUIRED)
 target_include_directories(torrent-rasterbar PUBLIC ${Boost_INCLUDE_DIRS})
 if (Boost_MAJOR_VERSION LESS_EQUAL 1 AND Boost_MINOR_VERSION LESS 69)
 	find_package(Boost REQUIRED COMPONENTS system)

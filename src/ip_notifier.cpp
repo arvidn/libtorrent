@@ -32,12 +32,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #include "libtorrent/aux_/ip_notifier.hpp"
 #include "libtorrent/assert.hpp"
-
-#if !defined TORRENT_BUILD_SIMULATOR
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/asio/post.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
-#endif
+#include "libtorrent/io_service.hpp"
 
 #if defined TORRENT_BUILD_SIMULATOR
 // TODO: simulator support

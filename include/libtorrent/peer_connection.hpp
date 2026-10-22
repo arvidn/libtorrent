@@ -54,7 +54,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/disk_observer.hpp"
 #include "libtorrent/peer_connection_interface.hpp"
 #include "libtorrent/socket.hpp" // for tcp::endpoint
-#include "libtorrent/io_service_fwd.hpp"
+#include "libtorrent/io_service.hpp"
 #include "libtorrent/receive_buffer.hpp"
 #include "libtorrent/aux_/allocating_handler.hpp"
 #include "libtorrent/aux_/time.hpp"
@@ -847,7 +847,7 @@ namespace aux {
 
 		// keep the io_service running as long as we
 		// have peer connections
-		boost::asio::executor_work_guard<boost::asio::io_context::executor_type> m_work;
+		io_work_guard m_work;
 
 		// the time when we last got a part of a
 		// piece packet from this peer

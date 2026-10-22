@@ -40,10 +40,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/time.hpp"
 #include "libtorrent/close_reason.hpp"
-
-#include "libtorrent/aux_/disable_warnings_push.hpp"
-#include <boost/asio/post.hpp>
-#include "libtorrent/aux_/disable_warnings_pop.hpp"
+#include "libtorrent/io_service.hpp"
 
 #include <functional>
 

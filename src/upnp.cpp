@@ -233,7 +233,6 @@ void upnp::discover_device_impl()
 		"MX:3\r\n"
 		"\r\n\r\n";
 
-	error_code ec;
 #ifdef TORRENT_DEBUG_UPNP
 	// simulate packet loss
 	if (m_retry_count & 1)
@@ -674,7 +673,6 @@ void upnp::on_reply(aux::socket_package& s, error_code const& ec, std::size_t co
 	// check back in a little bit to see if we have seen any
 	// devices at one of our default routes. If not, we want to override
 	// ignoring them and use them instead (better than not working).
-	error_code ignore;
 	m_map_timer.expires_after(seconds(1));
 	ADD_OUTSTANDING_ASYNC("upnp::map_timer");
 	m_map_timer.async_wait(std::bind(&upnp::map_timer, self(), _1));
@@ -1488,7 +1486,6 @@ void upnp::on_upnp_map_response(error_code const& e
 			if (next_expire < now || next_expire > m.expires)
 			{
 				ADD_OUTSTANDING_ASYNC("upnp::on_expire");
-				error_code ec;
 				m_refresh_timer.expires_at(m.expires);
 				m_refresh_timer.async_wait(std::bind(&upnp::on_expire, self(), _1));
 			}
@@ -1640,7 +1637,6 @@ void upnp::on_expire(error_code const& ec)
 	if (next_expire != max_time())
 	{
 		ADD_OUTSTANDING_ASYNC("upnp::on_expire");
-		error_code e;
 		m_refresh_timer.expires_at(next_expire);
 		m_refresh_timer.async_wait(std::bind(&upnp::on_expire, self(), _1));
 	}

@@ -164,7 +164,7 @@ int copy_buffers(T const& b, char* target)
 	for (typename T::const_iterator i = b.begin()
 		, end(b.end()); i != end; ++i)
 	{
-		memcpy(target, boost::asio::buffer_data(*i), boost::asio::buffer_size(*i));
+		memcpy(target, i->data(), boost::asio::buffer_size(*i));
 		target += boost::asio::buffer_size(*i);
 		copied += int(boost::asio::buffer_size(*i));
 	}

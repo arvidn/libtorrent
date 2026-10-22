@@ -65,7 +65,6 @@ namespace libtorrent {
 
 	std::string print_endpoint(address const& addr, int port)
 	{
-		error_code ec;
 		char buf[200];
 		if (addr.is_v6())
 			std::snprintf(buf, sizeof(buf), "[%s]:%d", addr.to_string().c_str(), port);

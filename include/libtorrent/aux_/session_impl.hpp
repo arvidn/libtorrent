@@ -51,7 +51,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/ip_voter.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/socket.hpp"
-#include <boost/asio/dispatch.hpp>
+#include "libtorrent/io_service.hpp"
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/tracker_manager.hpp"
 #include "libtorrent/debug.hpp"
@@ -972,7 +972,7 @@ namespace aux {
 
 			// keep the io_service alive until we have posted the job
 			// to clear the undead peers
-			std::unique_ptr<boost::asio::executor_work_guard<boost::asio::io_context::executor_type>> m_work;
+			std::unique_ptr<io_work_guard> m_work;
 
 			// this maps sockets to their peer_connection
 			// object. It is the complete list of all connected

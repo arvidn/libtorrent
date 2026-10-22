@@ -482,14 +482,7 @@ void natpmp::send_map_request(port_mapping_t const i)
 			return;
 		}
 		auto const local_bytes = local_addr.is_v4()
-			? [&]() {
-				auto v4_bytes = local_addr.to_v4().to_bytes();
-				address_v6::bytes_type v6_bytes{};
-				v6_bytes[10] = 0xff;
-				v6_bytes[11] = 0xff;
-				std::copy(v4_bytes.begin(), v4_bytes.end(), v6_bytes.begin() + 12);
-				return v6_bytes;
-			}()
+			? boost::asio::ip::make_address_v6(boost::asio::ip::v4_mapped, local_addr.to_v4()).to_bytes()
 			: local_addr.to_v6().to_bytes();
 		out = std::copy(local_bytes.begin(), local_bytes.end(), out);
 		out = std::copy(m.nonce.begin(), m.nonce.end(), out);
@@ -507,37 +500,18 @@ void natpmp::send_map_request(port_mapping_t const i)
 		if (!m.external_address.is_unspecified())
 		{
 			external_addr = m.external_address.is_v4()
-				? [&]() {
-					auto v4_bytes = m.external_address.to_v4().to_bytes();
-					address_v6::bytes_type v6_bytes{};
-					v6_bytes[10] = 0xff;
-					v6_bytes[11] = 0xff;
-					std::copy(v4_bytes.begin(), v4_bytes.end(), v6_bytes.begin() + 12);
-					return address_v6(v6_bytes);
-				}()
+				? boost::asio::ip::make_address_v6(boost::asio::ip::v4_mapped, m.external_address.to_v4())
 				: m.external_address.to_v6();
 		}
 		else if (is_local(local_addr))
 		{
 			external_addr = local_addr.is_v4()
-				? [&]() {
-					address_v6::bytes_type v6_bytes{};
-					v6_bytes[10] = 0xff;
-					v6_bytes[11] = 0xff;
-					return address_v6(v6_bytes);
-				}()
+				? boost::asio::ip::make_address_v6(boost::asio::ip::v4_mapped, address_v4())
 				: address_v6();
 		}
 		else if (local_addr.is_v4())
 		{
-			external_addr = [&]() {
-			auto v4_bytes = local_addr.to_v4().to_bytes();
-			address_v6::bytes_type v6_bytes{};
-			v6_bytes[10] = 0xff;
-			v6_bytes[11] = 0xff;
-			std::copy(v4_bytes.begin(), v4_bytes.end(), v6_bytes.begin() + 12);
-			return address_v6(v6_bytes);
-		}();
+			external_addr = boost::asio::ip::make_address_v6(boost::asio::ip::v4_mapped, local_addr.to_v4());
 		}
 		else
 		{
@@ -779,10 +753,8 @@ void natpmp::on_reply(error_code const& e
 	if (version == version_pcp)
 	{
 		external_addr = read_v6_address(in);
-		if (external_addr.to_v6().is_v4_mapped()) {
-			auto const bytes = external_addr.to_v6().to_bytes();
-			external_addr = address_v4(address_v4::bytes_type{{bytes[12], bytes[13], bytes[14], bytes[15]}});
-		}
+		if (external_addr.to_v6().is_v4_mapped())
+			external_addr = boost::asio::ip::make_address_v4(boost::asio::ip::v4_mapped, external_addr.to_v6());
 	}
 
 	if (version == version_natpmp)
@@ -903,7 +875,6 @@ void natpmp::update_expiration_timer()
 		log("next expiration [ idx: %d ttl: %" PRId64 " ]"
 			, static_cast<int>(min_index), total_seconds(min_expire - aux::time_now()));
 #endif
-		error_code ec;
 		if (m_next_refresh >= port_mapping_t{}) m_refresh_timer.cancel();
 
 		ADD_OUTSTANDING_ASYNC("natpmp::mapping_expired");
@@ -945,7 +916,6 @@ void natpmp::close_impl()
 		if (m.protocol == portmap_protocol::none) continue;
 		m.act = portmap_action::del;
 	}
-	error_code ec;
 	m_refresh_timer.cancel();
 	m_currently_mapping = port_mapping_t{-1};
 	update_mapping(port_mapping_t{});

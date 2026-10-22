@@ -187,7 +187,6 @@ namespace libtorrent {
 #if TORRENT_USE_I2P
 		if (is_i2p_addr) return dest().to_string();
 #endif // TORRENT_USE_I2P
-		error_code ec;
 		return address().to_string();
 	}
 #endif

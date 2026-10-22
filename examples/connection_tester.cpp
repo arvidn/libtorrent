@@ -873,7 +873,6 @@ void generate_data(char const* path, torrent_info const& ti)
 
 void io_thread(io_service* ios)
 {
-	error_code ec;
 	ios->run();
 }
 

@@ -82,7 +82,6 @@ namespace libtorrent {
 		}
 
 		ADD_OUTSTANDING_ASYNC("timeout_handler::timeout_callback");
-		error_code ec;
 		m_timeout.expires_at(m_read_time + seconds(timeout));
 		m_timeout.async_wait(std::bind(
 			&timeout_handler::timeout_callback, shared_from_this(), _1));
@@ -100,7 +99,6 @@ namespace libtorrent {
 	{
 		m_abort = true;
 		m_completion_timeout = 0;
-		error_code ec;
 		m_timeout.cancel();
 	}
 
@@ -136,7 +134,6 @@ namespace libtorrent {
 				: std::min(int(m_completion_timeout - total_seconds(m_read_time - m_start_time)), timeout);
 		}
 		ADD_OUTSTANDING_ASYNC("timeout_handler::timeout_callback");
-		error_code ec;
 		m_timeout.expires_at(m_read_time + seconds(timeout));
 		m_timeout.async_wait(
 			std::bind(&timeout_handler::timeout_callback, shared_from_this(), _1));

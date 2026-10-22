@@ -281,7 +281,7 @@ void web_peer_connection::disconnect(error_code const& ec
 	{
 		// if the web server doesn't support keepalive and we were
 		// disconnected as a graceful EOF, reconnect right away
-		if (t) boost::asio::post(get_io_service(), 
+		if (t) boost::asio::post(get_io_service(),
 			std::bind(&torrent::maybe_connect_web_seeds, t));
 	}
 

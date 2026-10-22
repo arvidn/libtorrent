@@ -408,7 +408,6 @@ void http_connection::on_timeout(std::weak_ptr<http_connection> p
 		&& (c->m_start_time + (c->m_completion_timeout * 2) > now))
 	{
 		ADD_OUTSTANDING_ASYNC("http_connection::on_timeout");
-		error_code ec;
 		c->m_timer.expires_at(c->m_start_time + c->m_completion_timeout * 2);
 		c->m_timer.async_wait(std::bind(&http_connection::on_timeout, p, _1));
 		return;
@@ -439,7 +438,6 @@ void http_connection::on_timeout(std::weak_ptr<http_connection> p
 	}
 
 	ADD_OUTSTANDING_ASYNC("http_connection::on_timeout");
-	error_code ec;
 	c->m_timer.expires_at(c->m_start_time + c->m_completion_timeout);
 	c->m_timer.async_wait(std::bind(&http_connection::on_timeout, p, _1));
 }
@@ -654,7 +652,6 @@ void http_connection::callback(error_code e, span<char> data)
 		if (m_parser.finished()) e.clear();
 	}
 	m_called = true;
-	error_code ec;
 	m_timer.cancel();
 	if (m_handler) m_handler(e, m_parser, data, *this);
 }
@@ -804,7 +801,6 @@ void http_connection::on_read(error_code const& e
 		}
 		else if (m_bottled && m_parser.finished())
 		{
-			error_code ec;
 			m_timer.cancel();
 			callback(e, span<char>(m_recvbuffer)
 				.first(m_read_pos)
@@ -882,7 +878,6 @@ void http_connection::on_assign_bandwidth(error_code const& e)
 		, std::bind(&http_connection::on_read
 			, shared_from_this(), _1, _2));
 
-	error_code ec;
 	m_limiter_timer_active = true;
 	m_limiter_timer.expires_after(milliseconds(250));
 	ADD_OUTSTANDING_ASYNC("http_connection::on_assign_bandwidth");
@@ -896,7 +891,6 @@ void http_connection::rate_limit(int limit)
 
 	if (!m_limiter_timer_active)
 	{
-		error_code ec;
 		m_limiter_timer_active = true;
 		m_limiter_timer.expires_after(milliseconds(250));
 		ADD_OUTSTANDING_ASYNC("http_connection::on_assign_bandwidth");

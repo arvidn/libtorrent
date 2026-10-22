@@ -285,16 +285,10 @@ std::string print_endpoint(lt::tcp::endpoint const& ep)
 	using namespace lt;
 	char buf[200];
 	address const& addr = ep.address();
-	std::string addr_str;
-	try {
-		addr_str = addr.to_string();
-	} catch (...) {
-		addr_str = "invalid-address";
-	}
 	if (addr.is_v6())
-		std::snprintf(buf, sizeof(buf), "[%s]:%d", addr_str.c_str(), ep.port());
+		std::snprintf(buf, sizeof(buf), "[%s]:%d", addr.to_string().c_str(), ep.port());
 	else
-		std::snprintf(buf, sizeof(buf), "%s:%d", addr_str.c_str(), ep.port());
+		std::snprintf(buf, sizeof(buf), "%s:%d", addr.to_string().c_str(), ep.port());
 	return buf;
 }
 

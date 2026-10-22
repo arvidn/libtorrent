@@ -121,13 +121,7 @@ namespace libtorrent {
 		if (addr.is_v4())
 			return addr.to_v4() == address_v4::any();
 		else if (addr.to_v6().is_v4_mapped())
-		{
-			auto bytes = addr.to_v6().to_bytes();
-			return address_v4(((static_cast<uint32_t>(bytes[12]) << 24) |
-							  (static_cast<uint32_t>(bytes[13]) << 16) |
-							  (static_cast<uint32_t>(bytes[14]) << 8) |
-							  static_cast<uint32_t>(bytes[15]))) == address_v4::any();
-		}
+			return boost::asio::ip::make_address_v4(boost::asio::ip::v4_mapped, addr.to_v6()) == address_v4::any();
 		else
 			return addr.to_v6() == address_v6::any();
 	}

@@ -340,8 +340,8 @@ namespace {
 #ifdef TORRENT_BUILD_SIMULATOR
 		sim.run();
 #else
+		ec.clear();
 		ios.run();
-		if (ios.stopped()) ec.clear();
 #endif
 	}
 

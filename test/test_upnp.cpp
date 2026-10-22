@@ -224,7 +224,7 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 	xml.write(soap_add_response[igd_version-1], sizeof(soap_add_response[igd_version-1])-1);
 	xml.close();
 
-	sock = new broadcast_socket(udp::endpoint(address_v4::from_string("239.255.255.250")
+	sock = new broadcast_socket(udp::endpoint(make_address_v4("239.255.255.250")
 		, 1900));
 
 	lt::io_service ios;
@@ -243,8 +243,8 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 
 	for (int i = 0; i < 20; ++i)
 	{
-		ios.reset();
-		ios.poll(ec);
+		ios.restart();
+		ios.poll();
 		if (ec)
 		{
 			std::printf("io_service::run(): %s\n", ec.message().c_str());
@@ -265,8 +265,8 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 
 	for (int i = 0; i < 40; ++i)
 	{
-		ios.reset();
-		ios.poll(ec);
+		ios.restart();
+		ios.poll();
 		if (ec)
 		{
 			std::printf("io_service::run(): %s\n", ec.message().c_str());
@@ -291,8 +291,8 @@ void run_upnp_test(char const* root_filename, char const* control_name, int igd_
 
 	for (int i = 0; i < 40; ++i)
 	{
-		ios.reset();
-		ios.poll(ec);
+		ios.restart();
+		ios.poll();
 		if (ec)
 		{
 			std::printf("io_service::run(): %s\n", ec.message().c_str());

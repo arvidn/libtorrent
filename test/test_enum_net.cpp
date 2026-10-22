@@ -43,26 +43,26 @@ using boost::none;
 TORRENT_TEST(is_local)
 {
 	error_code ec;
-	TEST_CHECK(is_local(address::from_string("192.168.0.1", ec)));
+	TEST_CHECK(is_local(make_address("192.168.0.1", ec)));
 	TEST_CHECK(!ec);
-	TEST_CHECK(is_local(address::from_string("10.1.1.56", ec)));
+	TEST_CHECK(is_local(make_address("10.1.1.56", ec)));
 	TEST_CHECK(!ec);
-	TEST_CHECK(is_local(address::from_string("100.64.0.0", ec)));
+	TEST_CHECK(is_local(make_address("100.64.0.0", ec)));
 	TEST_CHECK(!ec);
-	TEST_CHECK(is_local(address::from_string("100.127.255.255", ec)));
+	TEST_CHECK(is_local(make_address("100.127.255.255", ec)));
 	TEST_CHECK(!ec);
-	TEST_CHECK(!is_local(address::from_string("14.14.251.63", ec)));
+	TEST_CHECK(!is_local(make_address("14.14.251.63", ec)));
 	TEST_CHECK(!ec);
 }
 
 TORRENT_TEST(is_loopback)
 {
 	error_code ec;
-	TEST_CHECK(is_loopback(address::from_string("127.0.0.1", ec)));
+	TEST_CHECK(is_loopback(make_address("127.0.0.1", ec)));
 	TEST_CHECK(!ec);
 	if (supports_ipv6())
 	{
-		TEST_CHECK(is_loopback(address::from_string("::1", ec)));
+		TEST_CHECK(is_loopback(make_address("::1", ec)));
 		TEST_CHECK(!ec);
 	}
 }
@@ -71,7 +71,7 @@ TORRENT_TEST(is_any)
 {
 	TEST_CHECK(is_any(address_v4::any()));
 	error_code ec;
-	TEST_CHECK(!is_any(address::from_string("31.53.21.64", ec)));
+	TEST_CHECK(!is_any(make_address("31.53.21.64", ec)));
 	TEST_CHECK(!ec);
 	if (supports_ipv6())
 	{
@@ -83,35 +83,35 @@ TORRENT_TEST(is_any)
 TORRENT_TEST(match_addr_mask)
 {
 	TEST_CHECK(match_addr_mask(
-		address::from_string("10.0.1.176"),
-		address::from_string("10.0.1.176"),
-		address::from_string("255.255.255.0")));
+		make_address("10.0.1.176"),
+		make_address("10.0.1.176"),
+		make_address("255.255.255.0")));
 
 	TEST_CHECK(match_addr_mask(
-		address::from_string("10.0.1.3"),
-		address::from_string("10.0.3.3"),
-		address::from_string("255.255.0.0")));
+		make_address("10.0.1.3"),
+		make_address("10.0.3.3"),
+		make_address("255.255.0.0")));
 
 	TEST_CHECK(!match_addr_mask(
-		address::from_string("10.0.1.3"),
-		address::from_string("10.1.3.3"),
-		address::from_string("255.255.0.0")));
+		make_address("10.0.1.3"),
+		make_address("10.1.3.3"),
+		make_address("255.255.0.0")));
 
 	TEST_CHECK(match_addr_mask(
-		address::from_string("ff00:1234::"),
-		address::from_string("ff00:5678::"),
-		address::from_string("ffff::")));
+		make_address("ff00:1234::"),
+		make_address("ff00:5678::"),
+		make_address("ffff::")));
 
 	TEST_CHECK(!match_addr_mask(
-		address::from_string("ff00:1234::"),
-		address::from_string("ff00:5678::"),
-		address::from_string("ffff:f000::")));
+		make_address("ff00:1234::"),
+		make_address("ff00:5678::"),
+		make_address("ffff:f000::")));
 
 	// different scope IDs always means a mismatch
 	TEST_CHECK(!match_addr_mask(
-		address::from_string("ff00:1234::%1"),
-		address::from_string("ff00:1234::%2"),
-		address::from_string("ffff::")));
+		make_address("ff00:1234::%1"),
+		make_address("ff00:1234::%2"),
+		make_address("ffff::")));
 }
 
 TORRENT_TEST(is_ip_address)
@@ -187,9 +187,9 @@ namespace {
 	ip_route rt(char const* ip, char const* device, char const* gateway, char const* mask)
 	{
 		ip_route ret;
-		ret.destination = address::from_string(ip);
-		ret.gateway = address::from_string(gateway);
-		ret.netmask = address::from_string(mask);
+		ret.destination = make_address(ip);
+		ret.gateway = make_address(gateway);
+		ret.netmask = make_address(mask);
 		std::strncpy(ret.name, device, sizeof(ret.name) - 1);
 		ret.name[sizeof(ret.name) - 1] = '\0';
 		return ret;
@@ -198,8 +198,8 @@ namespace {
 	ip_interface ip(char const* addr, char const* name)
 	{
 		ip_interface ret;
-		ret.interface_address = address::from_string(addr);
-		ret.netmask = address::from_string("255.255.255.255");
+		ret.interface_address = make_address(addr);
+		ret.netmask = make_address("255.255.255.255");
 		std::strncpy(ret.name, name, sizeof(ret.name) - 1);
 		ret.name[sizeof(ret.name) - 1] = '\0';
 		return ret;
@@ -213,15 +213,15 @@ TORRENT_TEST(get_gateway_basic)
 		rt("::", "eth0", "2a02::1234", "ffff::")
 	};
 
-	TEST_CHECK(get_gateway(ip("192.168.0.130", "eth0"), routes) == address::from_string("192.168.0.1"));
-	TEST_CHECK(get_gateway(ip("2a02::4567", "eth0"), routes) == address::from_string("2a02::1234"));
+	TEST_CHECK(get_gateway(ip("192.168.0.130", "eth0"), routes) == make_address("192.168.0.1"));
+	TEST_CHECK(get_gateway(ip("2a02::4567", "eth0"), routes) == make_address("2a02::1234"));
 
 	// the device name does not match the route
 	TEST_CHECK(get_gateway(ip("192.168.0.130", "eth1"), routes) == none);
 	TEST_CHECK(get_gateway(ip("2a02::4567", "eth1"), routes) == none);
 
 	// for IPv6, the address family and device name matches, so it's a match
-	TEST_CHECK(get_gateway(ip("2a02:8000::0123:4567", "eth0"), routes) == address::from_string("2a02::1234"));
+	TEST_CHECK(get_gateway(ip("2a02:8000::0123:4567", "eth0"), routes) == make_address("2a02::1234"));
 }
 
 TORRENT_TEST(get_gateway_no_default_route)
@@ -256,7 +256,7 @@ TORRENT_TEST(get_gateway_loopback)
 		rt("::", "lo", "::2", "ffff:ffff:ffff:ffff::")
 	};
 
-	TEST_CHECK(get_gateway(ip("127.0.0.1", "lo"), routes) == address::from_string("127.1.1.1"));
+	TEST_CHECK(get_gateway(ip("127.0.0.1", "lo"), routes) == make_address("127.1.1.1"));
 
 	// with IPv6, there are no gateways for local or loopback addresses
 	TEST_CHECK(get_gateway(ip("::1", "lo"), routes) == none);
@@ -269,8 +269,8 @@ TORRENT_TEST(get_gateway_multi_homed)
 		rt("0.0.0.0", "eth1", "10.0.0.1", "255.0.0.0")
 	};
 
-	TEST_CHECK(get_gateway(ip("192.168.0.130", "eth0"), routes) == address::from_string("192.168.0.1"));
-	TEST_CHECK(get_gateway(ip("10.0.1.130", "eth1"), routes) == address::from_string("10.0.0.1"));
+	TEST_CHECK(get_gateway(ip("192.168.0.130", "eth0"), routes) == make_address("192.168.0.1"));
+	TEST_CHECK(get_gateway(ip("10.0.1.130", "eth1"), routes) == make_address("10.0.0.1"));
 }
 
 TORRENT_TEST(has_internet_route)

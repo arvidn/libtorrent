@@ -142,7 +142,6 @@ namespace libtorrent { namespace dht {
 		if (m_running && n.second)
 		{
 			ADD_OUTSTANDING_ASYNC("dht_tracker::connection_timeout");
-			error_code ec;
 			n.first->second.connection_timer.expires_after(seconds(1));
 			n.first->second.connection_timer.async_wait(
 				std::bind(&dht_tracker::connection_timeout, self(), n.first->first, _1));
@@ -195,7 +194,6 @@ namespace libtorrent { namespace dht {
 	void dht_tracker::stop()
 	{
 		m_running = false;
-		error_code ec;
 		m_key_refresh_timer.cancel();
 		for (auto& n : m_nodes)
 			n.second.connection_timer.cancel();
@@ -254,7 +252,6 @@ namespace libtorrent { namespace dht {
 
 		tracker_node& n = it->second;
 		time_duration const d = n.dht.connection_timeout();
-		error_code ec;
 		deadline_timer& timer = n.connection_timer;
 		timer.expires_after(d);
 		ADD_OUTSTANDING_ASYNC("dht_tracker::connection_timeout");
@@ -273,7 +270,6 @@ namespace libtorrent { namespace dht {
 		m_blocker.set_block_timer(m_settings.block_timeout);
 		m_blocker.set_rate_limit(m_settings.block_ratelimit);
 
-		error_code ec;
 		m_refresh_timer.expires_after(seconds(5));
 		ADD_OUTSTANDING_ASYNC("dht_tracker::refresh_timeout");
 		m_refresh_timer.async_wait(
@@ -286,7 +282,6 @@ namespace libtorrent { namespace dht {
 		if (e || !m_running) return;
 
 		ADD_OUTSTANDING_ASYNC("dht_tracker::refresh_key");
-		error_code ec;
 		m_key_refresh_timer.expires_after(key_refresh);
 		m_key_refresh_timer.async_wait(std::bind(&dht_tracker::refresh_key, self(), _1));
 

@@ -48,8 +48,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/alert_manager.hpp"
 #include "libtorrent/debug.hpp"
-
-#include <boost/asio/post.hpp>
+#include "libtorrent/io_service.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/aux_/array.hpp"

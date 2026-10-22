@@ -85,7 +85,7 @@ TORRENT_TEST(dos_blocker)
 	log_t l;
 	dos_blocker b;
 
-	address spammer = address_v4::from_string("10.10.10.10");
+	address spammer = make_address_v4("10.10.10.10");
 
 	time_point now = clock_type::now();
 	for (int i = 0; i < 1000; ++i)
