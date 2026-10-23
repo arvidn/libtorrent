@@ -1189,6 +1189,9 @@ namespace libtorrent::aux {
 		// this is true while there is an outstanding
 		// async write job on the socket
 		bool m_socket_is_writing = false;
+		// true while a loop over m_requests that erases from it is running.
+		// Used to catch re-entrant mutation invalidating its iterators
+		bool m_iterating_requests = false;
 		bool is_single_thread() const;
 #endif
 	};
