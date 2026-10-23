@@ -1,5 +1,6 @@
 2.2.0 not released
 
+	* add proxy_trusted_tls_origination setting to let a trusted HTTP proxy originate TLS for tracker requests
 	* mitigate peer list flooding from a single IPv6 prefix
 	* restrict sharing files across SSL torrents
 	* add versioned path-sanitization
