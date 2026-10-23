@@ -166,13 +166,13 @@ TORRENT_TEST(utp_buffer_bloat)
 	TEST_EQUAL(metric(cnt, "utp.utp_fast_retransmit"), 0);
 	TEST_EQUAL(metric(cnt, "utp.utp_packet_resend"), 0);
 
-	TEST_EQUAL(metric(cnt, "utp.utp_samples_above_target"), 430);
-	TEST_EQUAL(metric(cnt, "utp.utp_samples_below_target"), 151);
+	TEST_EQUAL(metric(cnt, "utp.utp_samples_above_target"), 429);
+	TEST_EQUAL(metric(cnt, "utp.utp_samples_below_target"), 152);
 
-	TEST_EQUAL(metric(cnt, "utp.utp_packets_in"), 635);
-	TEST_EQUAL(metric(cnt, "utp.utp_payload_pkts_in"), 86);
+	TEST_EQUAL(metric(cnt, "utp.utp_packets_in"), 633);
+	TEST_EQUAL(metric(cnt, "utp.utp_payload_pkts_in"), 85);
 
-	TEST_EQUAL(metric(cnt, "utp.utp_packets_out"), 634);
+	TEST_EQUAL(metric(cnt, "utp.utp_packets_out"), 633);
 
 	// we don't expect any invalid packets, since we're talking to ourself
 	TEST_EQUAL(metric(cnt, "utp.utp_invalid_pkts_in"), 0);
@@ -191,15 +191,15 @@ TORRENT_TEST(utp_straw)
 
 	std::vector<std::int64_t> cnt = utp_test(cfg);
 
-	TEST_EQUAL(metric(cnt, "utp.utp_packet_loss"), 64);
-	TEST_EQUAL(metric(cnt, "utp.utp_timeout"), 32);
-	TEST_EQUAL(metric(cnt, "utp.utp_fast_retransmit"), 67);
-	TEST_EQUAL(metric(cnt, "utp.utp_packet_resend"), 130);
+	TEST_EQUAL(metric(cnt, "utp.utp_packet_loss"), 60);
+	TEST_EQUAL(metric(cnt, "utp.utp_timeout"), 34);
+	TEST_EQUAL(metric(cnt, "utp.utp_fast_retransmit"), 64);
+	TEST_EQUAL(metric(cnt, "utp.utp_packet_resend"), 135);
 
 	TEST_EQUAL(metric(cnt, "utp.utp_samples_above_target"), 0);
-	TEST_EQUAL(metric(cnt, "utp.utp_samples_below_target"), 269);
+	TEST_EQUAL(metric(cnt, "utp.utp_samples_below_target"), 267);
 
-	TEST_EQUAL(metric(cnt, "utp.utp_packets_in"), 394);
+	TEST_EQUAL(metric(cnt, "utp.utp_packets_in"), 389);
 	TEST_EQUAL(metric(cnt, "utp.utp_payload_pkts_in"), 53);
 
 	TEST_EQUAL(metric(cnt, "utp.utp_packets_out"), 531);

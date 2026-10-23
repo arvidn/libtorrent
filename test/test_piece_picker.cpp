@@ -267,6 +267,14 @@ std::vector<piece_block> pick_pieces(std::shared_ptr<piece_picker> const& p
 	return picked;
 }
 
+std::set<piece_index_t> piece_set(std::vector<piece_block> const& picked)
+{
+	std::set<piece_index_t> ret;
+	for (auto const& b : picked)
+		ret.insert(b.piece_index);
+	return ret;
+}
+
 piece_index_t test_pick(std::shared_ptr<piece_picker> const& p
 	, picker_options_t const options = piece_picker::rarest_first)
 {
@@ -1777,6 +1785,220 @@ TORRENT_TEST(prefer_aligned_whole_pieces)
 	TEST_CHECK(picked_pieces.size() == 4);
 	std::set<piece_index_t> const expected_pieces{4_piece,5_piece,6_piece,7_piece};
 	TEST_CHECK(picked_pieces == expected_pieces);
+}
+
+TORRENT_TEST(expand_piece)
+{
+	// 11 pieces. making one piece the rarest forces the picker to pick
+	// that one first, which is where prefer_contiguous_blocks causes it
+	// to expand into neighboring pieces.
+	auto const rarest_at = [](int const pos) {
+		std::string avail(11, '2');
+		avail[std::size_t(pos)] = '1';
+		return avail;
+	};
+	std::string const have_none(11, ' ');
+	std::string const bitfield(11, '*');
+
+	// odd span: the extra pieces beyond the rarest one split evenly
+	// between backward and forward
+	{
+		auto p = setup_picker(rarest_at(5).c_str(), have_none.c_str(), "", "");
+		auto picked = pick_pieces(p,
+			bitfield.c_str(),
+			3 * blocks_per_piece,
+			3 * blocks_per_piece,
+			nullptr,
+			piece_picker::rarest_first);
+		TEST_CHECK(piece_set(picked) == (std::set<piece_index_t>{4_piece, 5_piece, 6_piece}));
+	}
+
+	// even span: the extra pieces split evenly except for one, which
+	// goes backward because backward is tried first each round
+	{
+		auto p = setup_picker(rarest_at(5).c_str(), have_none.c_str(), "", "");
+		auto picked = pick_pieces(p,
+			bitfield.c_str(),
+			4 * blocks_per_piece,
+			4 * blocks_per_piece,
+			nullptr,
+			piece_picker::rarest_first);
+		TEST_CHECK(
+			piece_set(picked) == (std::set<piece_index_t>{3_piece, 4_piece, 5_piece, 6_piece}));
+	}
+
+	// backwards blocked immediately (piece 4 already flushed): the
+	// entire budget falls forward
+	{
+		std::string have = have_none;
+		have[4] = 'X';
+		auto p = setup_picker(rarest_at(5).c_str(), have.c_str(), "", "");
+		auto picked = pick_pieces(p,
+			bitfield.c_str(),
+			3 * blocks_per_piece,
+			3 * blocks_per_piece,
+			nullptr,
+			piece_picker::rarest_first);
+		TEST_CHECK(piece_set(picked) == (std::set<piece_index_t>{5_piece, 6_piece, 7_piece}));
+	}
+
+	// forwards blocked immediately (piece 6 already flushed): the
+	// entire budget falls backward
+	{
+		std::string have = have_none;
+		have[6] = 'X';
+		auto p = setup_picker(rarest_at(5).c_str(), have.c_str(), "", "");
+		auto picked = pick_pieces(p,
+			bitfield.c_str(),
+			3 * blocks_per_piece,
+			3 * blocks_per_piece,
+			nullptr,
+			piece_picker::rarest_first);
+		TEST_CHECK(piece_set(picked) == (std::set<piece_index_t>{3_piece, 4_piece, 5_piece}));
+	}
+
+	// both sides blocked (pieces 4 and 6 flushed): piece 5 is picked alone,
+	// so only ask for exactly that much, to avoid the picker moving on to
+	// (unpredictably) pick additional, unrelated pieces to fill the request
+	{
+		std::string have = have_none;
+		have[4] = 'X';
+		have[6] = 'X';
+		auto p = setup_picker(rarest_at(5).c_str(), have.c_str(), "", "");
+		auto picked = pick_pieces(p,
+			bitfield.c_str(),
+			1 * blocks_per_piece,
+			3 * blocks_per_piece,
+			nullptr,
+			piece_picker::rarest_first);
+		TEST_CHECK(piece_set(picked) == (std::set<piece_index_t>{5_piece}));
+	}
+
+	// clamped at the start of the torrent: the unused backward budget
+	// falls forward
+	{
+		auto p = setup_picker(rarest_at(0).c_str(), have_none.c_str(), "", "");
+		auto picked = pick_pieces(p,
+			bitfield.c_str(),
+			3 * blocks_per_piece,
+			3 * blocks_per_piece,
+			nullptr,
+			piece_picker::rarest_first);
+		TEST_CHECK(piece_set(picked) == (std::set<piece_index_t>{0_piece, 1_piece, 2_piece}));
+	}
+
+	// clamped at the end of the torrent: the unused forward budget
+	// falls backward
+	{
+		auto p = setup_picker(rarest_at(10).c_str(), have_none.c_str(), "", "");
+		auto picked = pick_pieces(p,
+			bitfield.c_str(),
+			3 * blocks_per_piece,
+			3 * blocks_per_piece,
+			nullptr,
+			piece_picker::rarest_first);
+		TEST_CHECK(piece_set(picked) == (std::set<piece_index_t>{8_piece, 9_piece, 10_piece}));
+	}
+}
+
+TORRENT_TEST(expand_piece_align_expanded_pieces)
+{
+	// 12 pieces. making one piece the rarest forces the picker to pick
+	// that one first, which is where align_expanded_pieces determines
+	// which grid cell gets expanded to.
+	auto const rarest_at = [](int const pos) {
+		std::string avail(12, '2');
+		avail[std::size_t(pos)] = '1';
+		return avail;
+	};
+	std::string const have_none(12, ' ');
+	std::string const bitfield(12, '*');
+	auto const align = piece_picker::rarest_first | piece_picker::align_expanded_pieces;
+
+	// a single piece worth of contiguous blocks means every piece is its
+	// own alignment cell, regardless of which piece is requested
+	for (int const pos : {0, 5, 11})
+	{
+		auto p = setup_picker(rarest_at(pos).c_str(), have_none.c_str(), "", "");
+		auto picked = pick_pieces(
+			p, bitfield.c_str(), 1 * blocks_per_piece, 1 * blocks_per_piece, nullptr, align);
+		TEST_CHECK(piece_set(picked) == (std::set<piece_index_t>{piece_index_t(pos)}));
+	}
+
+	// 2-piece alignment cells: (0,1) (2,3) (4,5) ... (10,11). both pieces
+	// in a cell expand to the same range
+	{
+		auto p4 = setup_picker(rarest_at(4).c_str(), have_none.c_str(), "", "");
+		auto picked4 = pick_pieces(
+			p4, bitfield.c_str(), 2 * blocks_per_piece, 2 * blocks_per_piece, nullptr, align);
+		TEST_CHECK(piece_set(picked4) == (std::set<piece_index_t>{4_piece, 5_piece}));
+
+		auto p5 = setup_picker(rarest_at(5).c_str(), have_none.c_str(), "", "");
+		auto picked5 = pick_pieces(
+			p5, bitfield.c_str(), 2 * blocks_per_piece, 2 * blocks_per_piece, nullptr, align);
+		TEST_CHECK(piece_set(picked5) == (std::set<piece_index_t>{4_piece, 5_piece}));
+
+		// aligned to the start and end of the torrent too
+		auto p0 = setup_picker(rarest_at(0).c_str(), have_none.c_str(), "", "");
+		auto picked0 = pick_pieces(
+			p0, bitfield.c_str(), 2 * blocks_per_piece, 2 * blocks_per_piece, nullptr, align);
+		TEST_CHECK(piece_set(picked0) == (std::set<piece_index_t>{0_piece, 1_piece}));
+
+		auto p11 = setup_picker(rarest_at(11).c_str(), have_none.c_str(), "", "");
+		auto picked11 = pick_pieces(
+			p11, bitfield.c_str(), 2 * blocks_per_piece, 2 * blocks_per_piece, nullptr, align);
+		TEST_CHECK(piece_set(picked11) == (std::set<piece_index_t>{10_piece, 11_piece}));
+	}
+
+	// the alignment grid depends on contiguous_blocks: the same piece (4)
+	// falls in a different cell when the requested contiguous size changes
+	{
+		auto p_2 = setup_picker(rarest_at(4).c_str(), have_none.c_str(), "", "");
+		auto picked_2 = pick_pieces(
+			p_2, bitfield.c_str(), 2 * blocks_per_piece, 2 * blocks_per_piece, nullptr, align);
+		TEST_CHECK(piece_set(picked_2) == (std::set<piece_index_t>{4_piece, 5_piece}));
+
+		auto p_3 = setup_picker(rarest_at(4).c_str(), have_none.c_str(), "", "");
+		auto picked_3 = pick_pieces(
+			p_3, bitfield.c_str(), 3 * blocks_per_piece, 3 * blocks_per_piece, nullptr, align);
+		TEST_CHECK(piece_set(picked_3) == (std::set<piece_index_t>{3_piece, 4_piece, 5_piece}));
+
+		TEST_CHECK(piece_set(picked_2) != piece_set(picked_3));
+
+		// piece 6 falls at the start of its own 3-piece cell
+		auto p6_3 = setup_picker(rarest_at(6).c_str(), have_none.c_str(), "", "");
+		auto picked6_3 = pick_pieces(
+			p6_3, bitfield.c_str(), 3 * blocks_per_piece, 3 * blocks_per_piece, nullptr, align);
+		TEST_CHECK(piece_set(picked6_3) == (std::set<piece_index_t>{6_piece, 7_piece, 8_piece}));
+	}
+
+	// an obstruction inside the alignment cell (piece 3 already flushed)
+	// stops the backward expansion at the obstruction, it does not spill
+	// over into a different cell. only ask for exactly that much, to avoid
+	// the picker moving on to pick additional, unrelated pieces
+	{
+		std::string have = have_none;
+		have[3] = 'X';
+		auto p = setup_picker(rarest_at(5).c_str(), have.c_str(), "", "");
+		auto picked = pick_pieces(
+			p, bitfield.c_str(), 2 * blocks_per_piece, 3 * blocks_per_piece, nullptr, align);
+		TEST_CHECK(piece_set(picked) == (std::set<piece_index_t>{4_piece, 5_piece}));
+	}
+
+	// the alignment cell for the last piece of a torrent can extend past
+	// the end of the torrent; the range must be clamped, not read out of
+	// bounds. only ask for exactly that much, same reasoning as above
+	{
+		std::string const avail10(10, '2');
+		std::string avail10_rarest = avail10;
+		avail10_rarest[9] = '1';
+		std::string const have10(10, ' ');
+		std::string const bitfield10(10, '*');
+		auto p = setup_picker(avail10_rarest.c_str(), have10.c_str(), "", "");
+		auto picked = pick_pieces(
+			p, bitfield10.c_str(), 1 * blocks_per_piece, 3 * blocks_per_piece, nullptr, align);
+		TEST_CHECK(piece_set(picked) == (std::set<piece_index_t>{9_piece}));
+	}
 }
 
 TORRENT_TEST(parole_mode)
