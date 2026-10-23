@@ -161,15 +161,18 @@ void http_connection::get(std::string const& url,
 		return;
 	}
 
-	bool const ssl = (protocol == "https");
+	bool ssl = (protocol == "https");
 
 	std::stringstream request;
 
+	bool const http_proxy = ps && (ps->type == settings_pack::http
+		|| ps->type == settings_pack::http_pw);
+
+	if (http_proxy && ssl && ps->tls_origination) ssl = false;
+
 	// exclude ssl here, because SSL assumes CONNECT support in the
 	// proxy and is handled at the lower layer
-	if (ps && (ps->type == settings_pack::http
-		|| ps->type == settings_pack::http_pw)
-		&& !ssl)
+	if (http_proxy && !ssl)
 	{
 		// if we're using an http proxy and not an ssl
 		// connection, just do a regular http proxy request
@@ -225,7 +228,8 @@ namespace {
 		return lhs.type == rhs.type && lhs.port == rhs.port && lhs.hostname == rhs.hostname
 			&& lhs.username == rhs.username && lhs.password == rhs.password
 			&& lhs.proxy_hostnames == rhs.proxy_hostnames
-			&& lhs.send_host_in_connect == rhs.send_host_in_connect;
+			&& lhs.send_host_in_connect == rhs.send_host_in_connect
+			&& lhs.tls_origination == rhs.tls_origination;
 	}
 }
 

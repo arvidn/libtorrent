@@ -252,6 +252,7 @@ namespace {
 		SET(disable_tracker_connection_reuse, false, nullptr),
 		SET(enable_smart_ban, true, nullptr),
 		SET(enforce_torrent_trust_domain, true, nullptr),
+		SET(proxy_tls_origination, false, nullptr),
 	}});
 
 	CONSTEXPR_SETTINGS
