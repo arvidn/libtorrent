@@ -1075,6 +1075,11 @@ if (MSVC)
 	)
 endif()
 
+# Tests, examples and tools use some internal functions.
+if(build_tests OR build_examples OR build_tools)
+    target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_EXPORT_EXTRA)
+endif()
+
 # === build tools ===
 if (build_tools)
 	add_subdirectory(tools)
@@ -1087,10 +1092,8 @@ endif()
 
 # === build tests ===
 if(build_tests)
-	enable_testing()
-	# this will make some internal functions available in the DLL interface
-	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_EXPORT_EXTRA)
-	add_subdirectory(test)
+    enable_testing()
+    add_subdirectory(test)
 endif()
 
 feature_summary(DEFAULT_DESCRIPTION WHAT ALL)
