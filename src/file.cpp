@@ -47,9 +47,14 @@ see LICENSE file.
 #include "libtorrent/aux_/path.hpp" // for convert_to_native_path_string
 #include "libtorrent/aux_/string_util.hpp"
 #include <algorithm> // for std::min
+#include <chrono>
 #include <climits> // for IOV_MAX
+#include <cstdio>
 #include <cstring>
 #include <memory> // for unique_ptr
+#include <mutex>
+#include <string>
+#include <unordered_map>
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/throw.hpp"
@@ -87,6 +92,8 @@ see LICENSE file.
 
 #include <linux/fs.h>
 #include <sys/ioctl.h>
+#include <sys/sysmacros.h> // for major(), minor()
+#include <fcntl.h> // for AT_EMPTY_PATH, AT_STATX_DONT_SYNC
 #ifdef TORRENT_ANDROID
 #include <sys/syscall.h>
 #endif
@@ -392,6 +399,139 @@ namespace {
 		TORRENT_UNUSED(handle);
 		TORRENT_UNUSED(offset);
 		TORRENT_UNUSED(len);
+#endif
+	}
+
+#ifdef TORRENT_LINUX
+	namespace {
+	// a sysfs value in kiB, as bytes; -1 if it can't be read
+	std::int64_t read_sysfs_kib(std::string const& path)
+	{
+		std::FILE* f = std::fopen(path.c_str(), "re");
+		if (f == nullptr)
+			return -1;
+		long long kib = -1;
+		if (std::fscanf(f, "%lld", &kib) != 1)
+			kib = -1;
+		std::fclose(f);
+		return kib < 0 ? -1 : std::int64_t(kib) * 1024;
+	}
+
+	// the most one POSIX_FADV_WILLNEED can read on the device, in bytes; -1
+	// if unknown. Linux caps it at max(io_pages, ra_pages) of the file
+	// system's backing device (bdi), so this looks for the bdi
+	std::int64_t device_cap(std::string const& sysfs, dev_t const dev)
+	{
+		std::string const id = std::to_string(major(dev)) + ":" + std::to_string(minor(dev));
+
+		// FUSE on a block device (ntfs-3g, ...): st_dev is the block device,
+		// but FUSE replaces its bdi with its own, named with this suffix
+		std::int64_t const fuseblk =
+			read_sysfs_kib(sysfs + "/class/bdi/" + id + "-fuseblk/read_ahead_kb");
+		if (fuseblk >= 0)
+			return fuseblk;
+
+		// block devices: the request queue of the device itself, or of its
+		// disk when the file system is on a partition. io_pages is
+		// max_sectors_kb
+		for (char const* queue : {"/queue/", "/../queue/"})
+		{
+			std::string const dir = sysfs + "/dev/block/" + id + queue;
+			std::int64_t const ra = read_sysfs_kib(dir + "read_ahead_kb");
+			if (ra >= 0)
+				return std::max(ra, read_sysfs_kib(dir + "max_sectors_kb"));
+		}
+
+		// FUSE, NFS: a bdi named after st_dev. Its io_pages is not exported
+		std::int64_t const ra = read_sysfs_kib(sysfs + "/class/bdi/" + id + "/read_ahead_kb");
+		if (ra >= 0)
+			return ra;
+
+		return -1;
+	}
+	}
+
+	std::int64_t device_read_ahead_limit(std::string const& sysfs, dev_t const dev)
+	{
+		// not found (btrfs, overlayfs, tmpfs, SMB, ...): the kernel's default
+		// read-ahead window, which no default cap is below
+		std::int64_t const cap = device_cap(sysfs, dev);
+		if (cap <= 0)
+			return 128 * 1024;
+		// rounded down to a power of two. Pieces are powers of two, so the
+		// hints split them evenly; and the page cache reads 4 kiB pages in bios
+		// of at most 1 MiB, so a 1280 kiB hint (the default max_sectors_kb cap)
+		// is read as a 1 MiB and a 256 kiB I/O. Measured on a loop device: 1 MiB
+		// hints gave 1.6x larger device reads than 1280 kiB ones
+		std::int64_t limit = 4096;
+		while (limit * 2 <= cap)
+			limit *= 2;
+		return limit;
+	}
+#endif
+
+	std::int64_t read_ahead_limit(handle_type const handle)
+	{
+#ifdef TORRENT_LINUX
+		// read-ahead can be changed at runtime: look it up again after this
+		constexpr auto refresh = std::chrono::seconds(30);
+
+		dev_t dev;
+#if defined AT_STATX_DONT_SYNC && defined STATX_BASIC_STATS \
+		&& (!defined TORRENT_ANDROID || __ANDROID_API__ >= 30)
+		// not fstat(): on FUSE and NFS it revalidates the attributes with the
+		// server (on FUSE, a GETATTR after every read, since reads invalidate
+		// atime). The device number needs no round trip
+		struct statx stx
+		{};
+		if (::statx(handle, "", AT_EMPTY_PATH | AT_STATX_DONT_SYNC, 0, &stx) != 0)
+			return 128 * 1024;
+		dev = makedev(stx.stx_dev_major, stx.stx_dev_minor);
+#else
+		struct stat st
+		{};
+		if (::fstat(handle, &st) != 0)
+			return 128 * 1024;
+		dev = st.st_dev;
+#endif
+
+		struct entry
+		{
+			std::int64_t limit;
+			std::chrono::steady_clock::time_point expires;
+		};
+		static std::mutex cache_mutex;
+		static std::unordered_map<dev_t, entry> cache;
+		auto const now = std::chrono::steady_clock::now();
+		{
+			std::lock_guard<std::mutex> l(cache_mutex);
+			auto const it = cache.find(dev);
+			if (it != cache.end() && it->second.expires > now)
+				return it->second.limit;
+		}
+		std::int64_t const limit = device_read_ahead_limit("/sys", dev);
+		std::lock_guard<std::mutex> l(cache_mutex);
+		cache[dev] = entry{limit, now + refresh};
+		return limit;
+#else
+		TORRENT_UNUSED(handle);
+		return 0;
+#endif
+	}
+
+	void advise_will_need(
+		handle_type handle, std::int64_t const offset, std::int64_t const len, std::int64_t chunk)
+	{
+#if (TORRENT_HAS_FADVISE && defined POSIX_FADV_WILLNEED)
+		if (chunk <= 0)
+			chunk = len;
+		for (std::int64_t o = offset; o < offset + len; o += chunk)
+			::posix_fadvise(handle, o, std::min(chunk, offset + len - o), POSIX_FADV_WILLNEED);
+#else
+		TORRENT_UNUSED(handle);
+		TORRENT_UNUSED(offset);
+		TORRENT_UNUSED(len);
+		TORRENT_UNUSED(chunk);
 #endif
 	}
 
