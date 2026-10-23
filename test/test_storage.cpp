@@ -2212,6 +2212,108 @@ TORRENT_TEST(mmap_disk_io) { run_test<mmap_storage>(); }
 TORRENT_TEST(posix_disk_io) { run_test<posix_storage>(); }
 TORRENT_TEST(pread_disk_io) { run_test<pread_storage>(); }
 
+// pread_storage::prefetch_piece() only hints the kernel to read ahead. It must
+// skip pad files and the slices of files kept in the part file, neither of
+// which exists on disk, and it must never create a file. The same goes for
+// piece_read_ahead_limit()
+TORRENT_TEST(prefetch_piece_pread)
+{
+	std::string const test_path = complete("prefetch_piece_test");
+	delete_dirs(combine_path(test_path, "temp_storage"));
+
+	// piece 0: test1 and a pad file
+	// piece 1: test2 (not downloaded, in the part file)
+	// piece 2: the rest of test2 and the start of test3
+	// piece 3: the rest of test3
+	int const piece_len = 0x8000;
+	file_storage fs;
+	fs.set_piece_length(piece_len);
+	fs.add_file(combine_path("temp_storage", "test1.tmp"), 0x6000);
+	fs.add_file(combine_path("temp_storage", combine_path(".pad", "8192")),
+		0x2000,
+		file_storage::flag_pad_file);
+	fs.add_file(combine_path("temp_storage", "test2.tmp"), 0xe000);
+	fs.add_file(combine_path("temp_storage", "test3.tmp"), 0x6000);
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
+	TEST_EQUAL(fs.num_pieces(), 4);
+
+	aux::session_settings set;
+	aux::file_pool fp;
+	aux::vector<download_priority_t, file_index_t> priorities{
+		lt::default_priority,
+		lt::default_priority,
+		lt::dont_download,
+		lt::default_priority,
+	};
+	renamed_files rf;
+	storage_params p{
+		fs, rf, test_path, {}, storage_mode_sparse, priorities, sha1_hash{}, true, false};
+	auto s = std::make_shared<pread_storage>(p, fp);
+	storage_error se;
+	s->initialize(set, se);
+	TEST_CHECK(!se);
+
+	for (piece_index_t const i : fs.piece_range())
+	{
+		std::vector<char> buf = new_piece(std::size_t(fs.piece_size(i)));
+		int const ret = write(s, set, buf, i, 0, aux::open_mode::write, se);
+		TEST_EQUAL(ret, fs.piece_size(i));
+		TEST_CHECK(!se);
+	}
+	std::string const test2 = fs.file_path(file_index_t{2}, test_path);
+	TEST_CHECK(!exists(test2));
+
+	aux::open_mode_t const mode = aux::open_mode::read_only;
+	for (piece_index_t const i : fs.piece_range())
+	{
+		s->prefetch_piece(set, i, 0, fs.piece_size(i), mode, se);
+		TEST_CHECK(!se);
+		// from the second block, with a length past the end of the piece
+		s->prefetch_piece(set, i, default_block_size, piece_len, mode, se);
+		TEST_CHECK(!se);
+	}
+	// nothing left after the offset
+	s->prefetch_piece(set, 3_piece, fs.piece_size(3_piece), piece_len, mode, se);
+	TEST_CHECK(!se);
+	TEST_CHECK(!exists(test2));
+	TEST_CHECK(!exists(fs.file_path(file_index_t{1}, test_path)));
+
+	// the limit of the first file of the piece that is hinted: 0 if there is
+	// no known one (other systems than Linux), -1 if no file is hinted
+#ifdef TORRENT_LINUX
+	std::int64_t const least = 4096;
+#else
+	std::int64_t const least = 0;
+#endif
+	TEST_CHECK(s->piece_read_ahead_limit(set, 0_piece, mode, se) >= least);
+	TEST_CHECK(!se);
+	// only test2, which is in the part file
+	TEST_EQUAL(s->piece_read_ahead_limit(set, 1_piece, mode, se), -1);
+	TEST_CHECK(!se);
+	// test3's
+	TEST_CHECK(s->piece_read_ahead_limit(set, 2_piece, mode, se) >= least);
+	TEST_CHECK(!se);
+	TEST_CHECK(s->piece_read_ahead_limit(set, 3_piece, mode, se) >= least);
+	TEST_CHECK(!se);
+	TEST_CHECK(!exists(test2));
+	TEST_CHECK(!exists(fs.file_path(file_index_t{1}, test_path)));
+
+	// a missing file is an error, and is not created
+	release_files(s, se);
+	TEST_CHECK(!se);
+	std::string const test3 = fs.file_path(file_index_t{3}, test_path);
+	error_code ec;
+	remove(test3, ec);
+	TEST_CHECK(!ec);
+	s->prefetch_piece(set, 3_piece, 0, fs.piece_size(3_piece), mode, se);
+	TEST_CHECK(se.ec);
+	TEST_CHECK(!exists(test3));
+	se = storage_error{};
+	TEST_EQUAL(s->piece_read_ahead_limit(set, 3_piece, mode, se), -1);
+	TEST_CHECK(se.ec);
+	TEST_CHECK(!exists(test3));
+}
+
 namespace {
 
 file_storage make_fs()
