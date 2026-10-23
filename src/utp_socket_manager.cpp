@@ -215,16 +215,23 @@ namespace libtorrent::aux {
 		m_stalled_sockets.push_back(s);
 	}
 
-	void utp_socket_manager::writable()
+	void utp_socket_manager::writable(std::weak_ptr<utp_socket_interface> sock)
 	{
-		if (!m_stalled_sockets.empty())
+		if (m_stalled_sockets.empty())
+			return;
+
+		auto const iface = sock.lock();
+		m_temp_sockets.clear();
+		m_stalled_sockets.swap(m_temp_sockets);
+		for (auto const& s : m_temp_sockets)
 		{
-			m_temp_sockets.clear();
-			m_stalled_sockets.swap(m_temp_sockets);
-			for (auto const &s : m_temp_sockets)
+			// sockets on other interfaces are still blocked
+			if (s->m_sock.lock() != iface)
 			{
-				s->writable();
+				m_stalled_sockets.push_back(s);
+				continue;
 			}
+			s->writable();
 		}
 	}
 
@@ -241,7 +248,7 @@ namespace libtorrent::aux {
 		{
 			m_temp_sockets.clear();
 			m_drained_event.swap(m_temp_sockets);
-			for (auto const &s : m_temp_sockets)
+			for (auto const& s : m_temp_sockets)
 				s->socket_drained();
 		}
 	}

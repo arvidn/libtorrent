@@ -36,6 +36,7 @@ see LICENSE file.
 #include <fstream>
 #include <cstdarg>
 #include <cstdio> // for vsnprintf
+#include <limits>
 
 using namespace lt;
 using namespace std::placeholders;
@@ -1181,6 +1182,49 @@ TORRENT_TEST(invalid_request)
 	req.start = 0;
 	req.length = 0x4000;
 	send_request(s, req);
+}
+
+// a request with a length of INT_MAX used to overflow when added to the
+// start offset. it must be rejected like any other invalid request
+TORRENT_TEST(invalid_request_length_overflow)
+{
+	std::cout << "\n === test request length overflow ===\n" << std::endl;
+
+	info_hash_t ih;
+	std::shared_ptr<lt::session> ses;
+	io_context ios;
+	tcp::socket s(ios);
+	setup_peer(s, ios, ih, ses, true, false, false, torrent_flags::seed_mode);
+
+	char recv_buffer[1000];
+	do_handshake(s, ih, recv_buffer);
+	print_session_log(*ses);
+	send_have_none(s);
+
+	peer_request req;
+	req.piece = 0_piece;
+	req.start = 1;
+	req.length = std::numeric_limits<int>::max();
+	send_request(s, req);
+
+	bool rejected = false;
+	while (!rejected)
+	{
+		int const len = read_message(s, recv_buffer);
+		if (len == -1)
+			break;
+		auto const buffer = span<char const>(recv_buffer).first(len);
+		print_message(buffer);
+		if (len != 13 || buffer[0] != 0x10)
+			continue;
+
+		char const* ptr = buffer.data() + 1;
+		TEST_EQUAL(aux::read_int32(ptr), 0);
+		TEST_EQUAL(aux::read_int32(ptr), 1);
+		TEST_EQUAL(aux::read_int32(ptr), std::numeric_limits<int>::max());
+		rejected = true;
+	}
+	TEST_CHECK(rejected);
 }
 
 namespace {

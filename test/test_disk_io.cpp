@@ -11,8 +11,11 @@ see LICENSE file.
 #include <iostream>
 #include <thread>
 #include <chrono>
+#include <cstdint>
 #include <cstring> // for std::memcmp
+#include <memory>
 #include <string> // for std::to_string
+#include <vector>
 #include "test.hpp"
 #include "disk_io_test.hpp"
 #include "setup_transfer.hpp"
@@ -28,8 +31,13 @@ see LICENSE file.
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/time.hpp"
+#include "libtorrent/aux_/scope_end.hpp"
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/hasher.hpp"
+#include "libtorrent/aux_/pread_disk_job.hpp"
+#include "libtorrent/aux_/pread_storage.hpp"
+#include "libtorrent/aux_/file_pool.hpp"
+#include "libtorrent/aux_/storage_utils.hpp"
 
 using namespace std::chrono_literals;
 
@@ -93,6 +101,8 @@ static void disk_io_test_suite_impl(lt::disk_io_constructor_type disk_io,
 	sett.set_int(lt::settings_pack::hashing_threads, hasher_threads);
 	sett.set_int(lt::settings_pack::aio_threads, disk_threads);
 	std::unique_ptr<lt::disk_interface> disk_thread = disk_io(ios, sett, cnt);
+	// ~pread_disk_io asserts that abort() has been called
+	auto const abort_guard = lt::aux::scope_end([&] { disk_thread->abort(true); });
 
 	std::cout << "disk_io_test_suite: "
 		<< ((flags & test_mode::v1) ? "v1 " : "")
@@ -293,8 +303,6 @@ static void disk_io_test_suite_impl(lt::disk_io_constructor_type disk_io,
 	TEST_EQUAL(blocks_written, expect_written);
 	TEST_EQUAL(hashes_done, expect_hashes);
 	TEST_EQUAL(clears_done, expect_clears);
-
-	disk_thread->abort(true);
 }
 
 static void disk_io_test_suite(lt::disk_io_constructor_type disk_io,
@@ -347,6 +355,8 @@ static void hash2_before_flush_impl(lt::disk_io_constructor_type disk_io,
 	sett.set_int(lt::settings_pack::hashing_threads, 0);
 	sett.set_int(lt::settings_pack::aio_threads, 0);
 	std::unique_ptr<lt::disk_interface> disk_thread = disk_io(ios, sett, cnt);
+	// ~pread_disk_io asserts that abort() has been called
+	auto const abort_guard = lt::aux::scope_end([&] { disk_thread->abort(true); });
 
 	std::cout << "hash2_before_flush: " << ((flags & test_mode::v1) ? "v1 " : "")
 			  << ((flags & test_mode::v2) ? "v2 " : "") << " piece_size: " << piece_size
@@ -475,8 +485,6 @@ static void hash2_before_flush_impl(lt::disk_io_constructor_type disk_io,
 	TEST_EQUAL(hashes_done, hashes_expected);
 	TEST_EQUAL(cleared, num_pieces);
 	TEST_CHECK(!any_mismatch);
-
-	disk_thread->abort(true);
 }
 
 static void hash2_before_flush_suite(lt::disk_io_constructor_type disk_io)
@@ -525,6 +533,8 @@ static void unaligned_cross_block_read_impl(
 	sett.set_int(lt::settings_pack::hashing_threads, 0);
 	sett.set_int(lt::settings_pack::aio_threads, 2);
 	std::unique_ptr<lt::disk_interface> disk_thread = disk_io(ios, sett, cnt);
+	// ~pread_disk_io asserts that abort() has been called
+	auto const abort_guard = lt::aux::scope_end([&] { disk_thread->abort(true); });
 
 	int const block_size = std::min(lt::default_block_size, piece_size);
 	TEST_CHECK(piece_size >= 2 * block_size);
@@ -712,8 +722,6 @@ static void unaligned_cross_block_read_impl(
 	}
 	disk_thread->submit_jobs();
 	drive([&] { return drained < num_test_pieces; }, "timeout (drain)");
-
-	disk_thread->abort(true);
 }
 
 #ifdef TORRENT_SIMULATE_SLOW_WRITE
@@ -740,6 +748,8 @@ static void clear_during_flush_impl(
 	sett.set_int(lt::settings_pack::hashing_threads, 2);
 	sett.set_int(lt::settings_pack::aio_threads, 2);
 	std::unique_ptr<lt::disk_interface> disk_thread = disk_io(ios, sett, cnt);
+	// ~pread_disk_io asserts that abort() has been called
+	auto const abort_guard = lt::aux::scope_end([&] { disk_thread->abort(true); });
 
 	std::cout << "clear_during_flush: " << ((flags & test_mode::v1) ? "v1 " : "")
 			  << ((flags & test_mode::v2) ? "v2 " : "") << " piece_size: " << piece_size
@@ -853,8 +863,6 @@ static void clear_during_flush_impl(
 	TEST_EQUAL(blocks_written, expect_written);
 	TEST_EQUAL(hashes_done, expect_hashes);
 	TEST_EQUAL(clears_done, expect_clears);
-
-	disk_thread->abort(true);
 }
 
 static void clear_during_flush_suite(lt::disk_io_constructor_type disk_io)
@@ -904,6 +912,8 @@ TORRENT_TEST(pread_disk_io_flush_completes_each_piece)
 	lt::settings_pack sett = lt::default_settings();
 	sett.set_int(lt::settings_pack::aio_threads, 1);
 	std::unique_ptr<lt::disk_interface> disk_thread = lt::pread_disk_io_constructor(ios, sett, cnt);
+	// ~pread_disk_io asserts that abort() has been called
+	auto const abort_guard = lt::aux::scope_end([&] { disk_thread->abort(true); });
 
 	int const piece_size = lt::default_block_size;
 	int const num_pieces = 5;
@@ -955,8 +965,6 @@ TORRENT_TEST(pread_disk_io_flush_completes_each_piece)
 	auto const first = *std::min_element(completed.begin() + 1, completed.end());
 	auto const last = *std::max_element(completed.begin() + 1, completed.end());
 	TEST_CHECK(last - first >= std::chrono::milliseconds(200));
-
-	disk_thread->abort(true);
 #endif
 }
 
@@ -975,6 +983,8 @@ TORRENT_TEST(pread_disk_io_flush_no_disk_threads)
 	sett.set_int(lt::settings_pack::aio_threads, 0);
 	sett.set_int(lt::settings_pack::hashing_threads, 1);
 	std::unique_ptr<lt::disk_interface> disk_thread = lt::pread_disk_io_constructor(ios, sett, cnt);
+	// ~pread_disk_io asserts that abort() has been called
+	auto const abort_guard = lt::aux::scope_end([&] { disk_thread->abort(true); });
 
 	int const piece_size = lt::default_block_size;
 	int const num_pieces = 11;
@@ -1033,8 +1043,6 @@ TORRENT_TEST(pread_disk_io_flush_no_disk_threads)
 	}
 	TEST_EQUAL(num_completed, num_pieces - 1);
 	TEST_EQUAL(written_at_first_completion, num_pieces - 1);
-
-	disk_thread->abort(true);
 #endif
 }
 
@@ -1069,6 +1077,8 @@ TORRENT_TEST_DISK_IO(test_disk_io_num_blocks_written)
 	lt::counters cnt;
 	lt::settings_pack sett = lt::default_settings();
 	std::unique_ptr<lt::disk_interface> disk_thread = disk_io(ios, sett, cnt);
+	// ~pread_disk_io asserts that abort() has been called
+	auto const abort_guard = lt::aux::scope_end([&] { disk_thread->abort(true); });
 
 	int const piece_size = 4 * lt::default_block_size;
 	lt::file_storage fs;
@@ -1110,8 +1120,6 @@ TORRENT_TEST_DISK_IO(test_disk_io_num_blocks_written)
 	}
 	TEST_EQUAL(writes_done, 2);
 	TEST_EQUAL(cnt[lt::counters::num_blocks_written], 2);
-
-	disk_thread->abort(true);
 }
 
 // like test_pread_disk_io_fence, but raises a SECOND, stacked fence in the
@@ -1137,6 +1145,8 @@ void fenced_writes_apply_back_pressure(bool const abort_while_fenced)
 	sett.set_int(lt::settings_pack::hashing_threads, 0);
 	sett.set_int(lt::settings_pack::max_queued_disk_bytes, 2 * lt::default_block_size);
 	auto disk_thread = lt::pread_disk_io_constructor(ios, sett, cnt);
+	// ~pread_disk_io asserts that abort() has been called
+	auto const abort_guard = lt::aux::scope_end([&] { disk_thread->abort(true); });
 
 	lt::file_storage fs;
 	fs.set_piece_length(lt::default_block_size);
@@ -1210,7 +1220,6 @@ void fenced_writes_apply_back_pressure(bool const abort_while_fenced)
 	TEST_EQUAL(clears_done, 1);
 	TEST_EQUAL(writes_done, 3);
 	TEST_EQUAL(observer->calls, 1);
-	disk_thread->abort(true);
 }
 #endif // TORRENT_SIMULATE_SLOW_WRITE
 }
@@ -1233,6 +1242,8 @@ static void test_skip_hash(lt::disk_io_constructor_type disk_io, bool const v1, 
 	sett.set_int(lt::settings_pack::hashing_threads, 1);
 	sett.set_int(lt::settings_pack::aio_threads, 1);
 	std::unique_ptr<lt::disk_interface> disk_thread = disk_io(ios, sett, cnt);
+	// ~pread_disk_io asserts that abort() has been called
+	auto const abort_guard = lt::aux::scope_end([&] { disk_thread->abort(true); });
 
 	int const piece_size = 4 * lt::default_block_size;
 	int const num_pieces = 3;
@@ -1342,8 +1353,6 @@ static void test_skip_hash(lt::disk_io_constructor_type disk_io, bool const v1, 
 		}
 	}
 	TEST_EQUAL(reads_done, expect_writes);
-
-	disk_thread->abort(true);
 }
 
 TORRENT_TEST_DISK_IO(test_disk_io_skip_hash_hybrid) { test_skip_hash(disk_io, true, true); }
@@ -1362,6 +1371,8 @@ TORRENT_TEST_DISK_IO(test_disk_io_flush_after_hash_with_pad)
 	sett.set_int(lt::settings_pack::hashing_threads, 1);
 	sett.set_int(lt::settings_pack::aio_threads, 1);
 	std::unique_ptr<lt::disk_interface> disk_thread = disk_io(ios, sett, cnt);
+	// ~pread_disk_io asserts that abort() has been called
+	auto const abort_guard = lt::aux::scope_end([&] { disk_thread->abort(true); });
 
 	int const piece_size = 2 * lt::default_block_size;
 	int const file_size = lt::default_block_size - 100;
@@ -1413,6 +1424,167 @@ TORRENT_TEST_DISK_IO(test_disk_io_flush_after_hash_with_pad)
 	}
 	TEST_CHECK(hashed);
 	TEST_EQUAL(writes_done, 1);
+}
 
-	disk_thread->abort(true);
+namespace {
+
+void set_read_job(lt::aux::pread_disk_job& j,
+	std::shared_ptr<lt::aux::pread_storage> const& storage,
+	lt::piece_index_t const piece,
+	int const offset,
+	int const size)
+{
+	j.flags = {};
+	j.action = lt::aux::job::read{};
+	j.storage = storage;
+	auto& r = std::get<lt::aux::job::read>(j.action);
+	r.piece = piece;
+	r.offset = offset;
+	r.buffer_size = std::uint16_t(size);
+}
+
+}
+
+// Covers what collect_read_batch()'s predicate rejects, and that the expected
+// end offset advances across merged jobs. Every other read test only ever
+// queues a contiguous run of same-storage reads, so a predicate that stopped
+// rejecting would go unnoticed there and hand peers the wrong bytes. The queue
+// mechanics the predicate drives (stop at the first non-match, order, the
+// match cap) are covered by test_fence.cpp's disk_io_thread_pool_extract_matching.
+// collect_read_batch() only compares the storage pointer, piece and offset, so
+// this runs against two storages instead of a disk_interface session, and
+// nothing here touches the disk.
+TORRENT_TEST(pread_disk_io_collect_read_batch)
+{
+	// m_files is held by reference, so fs has to outlive both storages
+	lt::file_storage fs;
+	fs.set_piece_length(lt::default_block_size);
+	fs.add_file_borrow({}, "test-torrent/file", lt::default_block_size, {});
+	fs.set_num_pieces(1);
+
+	lt::aux::vector<lt::download_priority_t, lt::file_index_t> priorities;
+	lt::renamed_files rf;
+	lt::storage_params const params{
+		fs,
+		rf,
+		"test_collect_read_batch",
+		{},
+		lt::storage_mode_t::storage_mode_sparse,
+		priorities,
+		lt::sha1_hash{},
+		true,
+		false,
+	};
+	lt::aux::file_pool files;
+	auto const storage_a = std::make_shared<lt::aux::pread_storage>(params, files);
+	auto const storage_b = std::make_shared<lt::aux::pread_storage>(params, files);
+
+	lt::io_context ios;
+	lt::aux::disk_io_thread_pool pool(
+		[](lt::aux::disk_io_thread_pool&, lt::executor_work_guard<lt::io_context::executor_type>) {
+		},
+		ios);
+
+	// the expected end offset advances with each merged job, so a contiguous run
+	// merges and the first non-contiguous job is rejected
+	{
+		lt::aux::pread_disk_job first;
+		set_read_job(first, storage_a, lt::piece_index_t(0), 0, 16384);
+
+		lt::aux::pread_disk_job test_job[3];
+		set_read_job(test_job[0], storage_a, lt::piece_index_t(0), 16384, 16384);
+		set_read_job(test_job[1], storage_a, lt::piece_index_t(0), 32768, 16384);
+		set_read_job(test_job[2], storage_a, lt::piece_index_t(0), 65536, 16384); // gap
+
+		for (auto& j : test_job)
+			pool.push_back(&j);
+
+		lt::jobqueue_t batch;
+		lt::aux::collect_read_batch(&first, pool, batch);
+
+		// ascending offsets, the order readv() fills the iovec in
+		TEST_EQUAL(batch.size(), 2);
+		TEST_CHECK(batch.first() == &test_job[0]);
+		batch.pop_front();
+		TEST_CHECK(batch.first() == &test_job[1]);
+		batch.pop_front();
+
+		TEST_CHECK(pool.pop_front() == &test_job[2]);
+		TEST_CHECK(pool.empty());
+	}
+
+	// a job on a different storage never matches, even with a contiguous offset
+	{
+		lt::aux::pread_disk_job first;
+		set_read_job(first, storage_a, lt::piece_index_t(0), 0, 16384);
+
+		lt::aux::pread_disk_job other;
+		set_read_job(other, storage_b, lt::piece_index_t(0), 16384, 16384);
+		pool.push_back(&other);
+
+		lt::jobqueue_t batch;
+		lt::aux::collect_read_batch(&first, pool, batch);
+
+		TEST_CHECK(batch.empty());
+		TEST_CHECK(pool.pop_front() == &other);
+		TEST_CHECK(pool.empty());
+	}
+
+	// a job for a different piece never matches
+	{
+		lt::aux::pread_disk_job first;
+		set_read_job(first, storage_a, lt::piece_index_t(0), 0, 16384);
+
+		lt::aux::pread_disk_job other;
+		set_read_job(other, storage_a, lt::piece_index_t(1), 16384, 16384);
+		pool.push_back(&other);
+
+		lt::jobqueue_t batch;
+		lt::aux::collect_read_batch(&first, pool, batch);
+
+		TEST_CHECK(batch.empty());
+		TEST_CHECK(pool.pop_front() == &other);
+		TEST_CHECK(pool.empty());
+	}
+
+	// a non-read job never matches, even with a matching storage/piece/offset
+	{
+		lt::aux::pread_disk_job first;
+		set_read_job(first, storage_a, lt::piece_index_t(0), 0, 16384);
+
+		lt::aux::pread_disk_job other;
+		other.flags = {};
+		other.storage = storage_a;
+		other.action = lt::aux::job::write{};
+		auto& w = std::get<lt::aux::job::write>(other.action);
+		w.piece = lt::piece_index_t(0);
+		w.offset = 16384;
+		w.buffer_size = 16384;
+		pool.push_back(&other);
+
+		lt::jobqueue_t batch;
+		lt::aux::collect_read_batch(&first, pool, batch);
+
+		TEST_CHECK(batch.empty());
+		TEST_CHECK(pool.pop_front() == &other);
+		TEST_CHECK(pool.empty());
+	}
+
+	// an aborted read job never matches, even with a matching storage/piece/offset
+	{
+		lt::aux::pread_disk_job first;
+		set_read_job(first, storage_a, lt::piece_index_t(0), 0, 16384);
+
+		lt::aux::pread_disk_job other;
+		set_read_job(other, storage_a, lt::piece_index_t(0), 16384, 16384);
+		other.flags |= lt::aux::disk_job::aborted;
+		pool.push_back(&other);
+
+		lt::jobqueue_t batch;
+		lt::aux::collect_read_batch(&first, pool, batch);
+
+		TEST_CHECK(batch.empty());
+		TEST_CHECK(pool.pop_front() == &other);
+		TEST_CHECK(pool.empty());
+	}
 }

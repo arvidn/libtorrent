@@ -74,6 +74,13 @@ namespace libtorrent::aux {
 			, piece_index_t piece, int offset, aux::open_mode_t mode
 			, disk_job_flags_t flags
 			, storage_error&);
+		int readv(settings_interface const& sett,
+			span<span<char> const> bufs,
+			piece_index_t const piece,
+			int offset,
+			open_mode_t const mode,
+			disk_job_flags_t const flags,
+			storage_error& error);
 		int write(settings_interface const&, span<char const> buffer
 			, piece_index_t piece, int offset, aux::open_mode_t mode
 			, disk_job_flags_t flags

@@ -70,7 +70,15 @@ namespace libtorrent::aux {
 		{
 			if (aux::is_link_local(addr))
 				return true;
-			return aux::is_local(addr) && path.substr(0, 9) != "/announce";
+			if (!aux::is_local(addr))
+				return false;
+
+			// anything after "/announce" (and before the query string or
+			// fragment) that could introduce a path separator, like
+			// "/../", a backslash or a percent-encoding, could make the
+			// server resolve it to a different path
+			return path.substr(0, 9) != "/announce"
+				|| path.find_first_of("/\\%", 9) < path.find_first_of("?#");
 		}
 	}
 

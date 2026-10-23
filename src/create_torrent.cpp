@@ -544,6 +544,16 @@ namespace {
 		, settings_pack const& sett, disk_io_constructor_type disk_io
 		, std::function<void(piece_index_t)> const& f, error_code& ec)
 	{
+		// disable_hash_checks makes the disk backends skip computing hashes
+		// entirely, which defeats the purpose of hashing files to create a
+		// torrent
+		TORRENT_ASSERT_PRECOND(!sett.get_bool(settings_pack::disable_hash_checks));
+		if (sett.get_bool(settings_pack::disable_hash_checks))
+		{
+			ec = make_error_code(boost::system::errc::invalid_argument);
+			return;
+		}
+
 #ifdef TORRENT_BUILD_SIMULATOR
 		sim::default_config conf;
 		sim::simulation sim{conf};

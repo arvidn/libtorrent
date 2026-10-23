@@ -24,6 +24,8 @@ see LICENSE file.
 #include "libtorrent/disk_interface.hpp" // for status_t
 #include "libtorrent/session_types.hpp"
 #include "libtorrent/error_code.hpp"
+#include "libtorrent/aux_/disk_job.hpp"
+#include "libtorrent/aux_/disk_io_thread_pool.hpp"
 
 namespace libtorrent::aux {
 
@@ -121,6 +123,45 @@ namespace libtorrent::aux {
 
 	TORRENT_EXTRA_EXPORT void copy_file(
 		std::string const& f, std::string const& newf, storage_error& se, copy_file_buffer& buf);
+
+	// upper bound on how many job::read jobs collect_read_batch() merges into
+	// one read call, bounding the iovec array and the queue scan regardless
+	// of queue depth.
+	constexpr int max_read_batch_blocks = 128;
+
+	// pulls other queued job::read jobs with the same storage, piece and a
+	// contiguous offset into batch, stopping at the first non-matching job
+	// instead of scanning further, since an unbounded scan held the job
+	// mutex long enough to stall hash-thread dispatch and regress v2
+	// torrents. Safe to merge since every job here is a cache miss reading
+	// flushed, immutable data, so nothing races a buffered write. DiskJob
+	// only needs a `storage` member comparable via get().
+	// precondition: the job mutex must be held when this is called
+	template <typename DiskJob>
+	void collect_read_batch(DiskJob* first, disk_io_thread_pool& pool, jobqueue_t& batch)
+	{
+		auto const& fa = std::get<job::read>(first->action);
+		auto const storage = first->storage.get();
+		piece_index_t const piece = fa.piece;
+		std::int32_t end_offset = fa.offset + std::int32_t(fa.buffer_size);
+
+		pool.extract_matching(batch, max_read_batch_blocks - 1, [&](disk_job* j) {
+			if (j->get_type() != job_action_t::read)
+				return false;
+			if (j->flags & disk_job::aborted)
+				return false;
+			auto* const pj = static_cast<DiskJob*>(j);
+			if (pj->storage.get() != storage)
+				return false;
+			auto const& a = std::get<job::read>(j->action);
+			if (a.piece != piece)
+				return false;
+			if (a.offset != end_offset)
+				return false;
+			end_offset += std::int32_t(a.buffer_size);
+			return true;
+		});
+	}
 }
 
 #endif

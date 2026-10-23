@@ -8,7 +8,7 @@ see LICENSE file.
 */
 
 // Shared helpers for peer-connection fuzzers (peer_conn, rtc_peer_conn,
-// ut_metadata, ut_pex).
+// ut_metadata, ut_pex, and transitively seed_conn via seed_session.hpp).
 
 #pragma once
 
@@ -26,6 +26,7 @@ see LICENSE file.
 #include "libtorrent/session.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/peer_id.hpp"
 #include "libtorrent/aux_/io_bytes.hpp"
 #include "libtorrent/span.hpp"
 #include "libtorrent/socket.hpp"
@@ -221,9 +222,16 @@ inline lt::error_code read_with_timeout(lt::io_context& ios,
 // reserved/extension bytes (pass {} for none; only the first 8 are used).
 // The BEP 10 (extended) and BEP 6 (FAST) bits are always forced on so those
 // message handlers are reachable regardless of what the fuzzer provided.
-// `info_hash` is the 20-byte info-hash to advertise.
-inline void send_bt_handshake(
-	lt::tcp::socket& s, lt::sha1_hash const& info_hash, lt::span<char const> const reserved = {})
+// `info_hash` is the 20-byte info-hash to advertise. `peer_id` is the
+// 20-byte peer-id to advertise, defaulting to all zeros like every
+// existing caller relies on; pass non-zero to survive past the handshake,
+// since all-zero collides with the local, not-yet-handshaked connection's
+// own default and trips bt_peer_connection's duplicate-peer-id check
+// (torrent::find_peer()) as a self-match.
+inline void send_bt_handshake(lt::tcp::socket& s,
+	lt::sha1_hash const& info_hash,
+	lt::span<char const> const reserved = {},
+	lt::peer_id const& peer_id = lt::peer_id())
 {
 	std::array<char, 68> hs{};
 	std::memcpy(hs.data(),
@@ -237,6 +245,7 @@ inline void send_bt_handshake(
 	hs[25] |= 0x10; // BEP 10: extended protocol (byte 5, bit 4)
 	hs[27] |= 0x04; // BEP 6: FAST extension (byte 7, bit 2)
 	std::memcpy(hs.data() + 28, info_hash.data(), 20);
+	std::memcpy(hs.data() + 48, peer_id.data(), 20);
 	lt::error_code ignore;
 	boost::asio::write(s, boost::asio::buffer(hs), ignore);
 }

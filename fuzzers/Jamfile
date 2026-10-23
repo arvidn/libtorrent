@@ -93,6 +93,7 @@ fuzzer dht_put_item_request ;
 fuzzer utp ;
 fuzzer resume_data ;
 fuzzer peer_conn ;
+fuzzer seed_conn ;
 fuzzer pe_crypto_state ;
 fuzzer rtc_peer_conn ;
 fuzzer idna ;
@@ -126,6 +127,7 @@ local LARGE_TARGETS =
 	sanitize_path
 	upnp
 	peer_conn
+	seed_conn
 	pe_crypto_state
 	rtc_peer_conn
 	http_tracker
