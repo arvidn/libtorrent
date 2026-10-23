@@ -57,6 +57,7 @@ see LICENSE file.
 #include "libtorrent/aux_/array.hpp"
 #include "libtorrent/aux_/set_socket_buffer.hpp"
 #include "libtorrent/aux_/set_traffic_class.hpp"
+#include "libtorrent/aux_/scope_end.hpp"
 
 #if TORRENT_USE_ASSERTS
 #include <set>
@@ -2626,6 +2627,7 @@ namespace {
 			TORRENT_ASSERT(r.piece < t->torrent_file().end_piece());
 			TORRENT_ASSERT(r.length <= default_block_size);
 			TORRENT_ASSERT(r.length > 0);
+			TORRENT_ASSERT(!m_iterating_requests);
 
 			m_requests.push_back(r);
 
@@ -2644,6 +2646,11 @@ namespace {
 	void peer_connection::reject_piece(piece_index_t const index)
 	{
 		TORRENT_ASSERT(is_single_thread());
+#if TORRENT_USE_ASSERTS
+		TORRENT_ASSERT(!m_iterating_requests);
+		m_iterating_requests = true;
+		auto const iterating_guard = aux::scope_end([this] { m_iterating_requests = false; });
+#endif
 		for (auto i = m_requests.begin(); i != m_requests.end();)
 		{
 			peer_request const r = *i;
@@ -3324,6 +3331,7 @@ namespace {
 #endif
 		if (is_disconnecting()) return;
 
+		TORRENT_ASSERT(!m_iterating_requests);
 		auto const i = std::find(m_requests.begin(), m_requests.end(), r);
 
 		if (i != m_requests.end())
@@ -3854,6 +3862,11 @@ namespace {
 		m_last_choke.set(m_connect, aux::time_now());
 		m_num_invalid_requests = 0;
 
+#if TORRENT_USE_ASSERTS
+		TORRENT_ASSERT(!m_iterating_requests);
+		m_iterating_requests = true;
+		auto const iterating_guard = aux::scope_end([this] { m_iterating_requests = false; });
+#endif
 		// reject the requests we have in the queue
 		// except the allowed fast pieces
 		for (auto i = m_requests.begin(); i != m_requests.end();)
@@ -5262,6 +5275,11 @@ namespace {
 	void peer_connection::fill_send_buffer()
 	{
 		TORRENT_ASSERT(is_single_thread());
+#if TORRENT_USE_ASSERTS
+		TORRENT_ASSERT(!m_iterating_requests);
+		m_iterating_requests = true;
+		auto const iterating_guard = aux::scope_end([this] { m_iterating_requests = false; });
+#endif
 #ifdef TORRENT_EXPENSIVE_INVARIANT_CHECKS
 		INVARIANT_CHECK;
 #endif
