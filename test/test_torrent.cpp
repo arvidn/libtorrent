@@ -1041,10 +1041,14 @@ bool web_seed_ssrf_blocked(std::string const& url)
 	p.url_seeds.push_back(url);
 	ses.add_torrent(std::move(p));
 
-	return wait_for_alert(ses, "ses", [&](lt::alert const* a) {
-		auto const* usa = alert_cast<url_seed_alert>(a);
-		return usa && usa->error == lt::errors::ssrf_mitigation;
-	}, lt::seconds(5));
+	return wait_for_alert(
+		ses,
+		"ses",
+		[&](lt::alert const* a) {
+			auto const* usa = alert_cast<url_seed_alert>(a);
+			return usa && usa->error == lt::errors::ssrf_mitigation;
+		},
+		lt::seconds(5));
 }
 
 } // anonymous namespace
