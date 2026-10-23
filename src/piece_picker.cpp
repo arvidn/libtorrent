@@ -2837,37 +2837,54 @@ get_out:
 		// contiguous pieces we want
 		int const blocks = blocks_per_piece();
 		int const whole_pieces = (contiguous_blocks + blocks - 1) / blocks;
+		piece_index_t::diff_type const span(whole_pieces);
 
-		piece_index_t start = piece;
 		piece_index_t lower_limit;
-
-		if (options & align_expanded_pieces)
-		{
-			lower_limit = piece_index_t(static_cast<int>(piece) - (static_cast<int>(piece) % whole_pieces));
-		}
-		else
-		{
-			lower_limit = piece_index_t(static_cast<int>(piece) - whole_pieces + 1);
-			if (lower_limit < piece_index_t(0)) lower_limit = piece_index_t(0);
-		}
-
-		while (start > lower_limit && can_pick(prev(start), have))
-			--start;
-
-		TORRENT_ASSERT(start >= piece_index_t(0));
-		piece_index_t end = next(piece);
 		piece_index_t upper_limit;
 		if (options & align_expanded_pieces)
 		{
-			upper_limit = piece_index_t(static_cast<int>(lower_limit) + whole_pieces);
+			lower_limit = piece - piece_index_t::diff_type(static_cast<int>(piece) % whole_pieces);
+			upper_limit = lower_limit + span;
 		}
 		else
 		{
-			upper_limit = piece_index_t(static_cast<int>(start) + whole_pieces);
+			lower_limit = piece_index_t(0);
+			upper_limit = have.end_index();
 		}
-		if (upper_limit > have.end_index()) upper_limit = have.end_index();
-		while (end < upper_limit && can_pick(end, have))
-			++end;
+		if (upper_limit > have.end_index())
+			upper_limit = have.end_index();
+
+		piece_index_t start = piece;
+		piece_index_t end = next(piece);
+
+		// expand outwards in both directions, alternating, so the picked
+		// piece ends up roughly centered in the range. this avoids biasing
+		// web seed requests towards lower piece indices
+		bool can_expand_back = true;
+		bool can_expand_fwd = true;
+		while ((can_expand_back || can_expand_fwd) && (end - start) < span)
+		{
+			if (can_expand_back)
+			{
+				if (start > lower_limit && can_pick(prev(start), have))
+					--start;
+				else
+					can_expand_back = false;
+			}
+
+			if ((end - start) >= span)
+				break;
+
+			if (can_expand_fwd)
+			{
+				if (end < upper_limit && can_pick(end, have))
+					++end;
+				else
+					can_expand_fwd = false;
+			}
+		}
+
+		TORRENT_ASSERT(start >= piece_index_t(0));
 		return {start, end};
 	}
 
