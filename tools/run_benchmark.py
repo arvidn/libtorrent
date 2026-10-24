@@ -812,6 +812,15 @@ def main() -> None:
         " Piece size is 1 MiB, so total size is num_pieces MiB.",
     )
     p.add_argument(
+        "--cleanup",
+        action="store_true",
+        help="Delete the test payload (and resume data) once it is no longer"
+        " needed, rather than leaving it for the next run to remove. Use this"
+        " when --save-path is on a size limited filesystem, such as a ramdisk."
+        " The canonical upload payload is shared by all backends, so it is"
+        " kept until the last of them has run.",
+    )
+    p.add_argument(
         "--disk-cache-size",
         type=int,
         default=100,
@@ -1003,6 +1012,14 @@ def main() -> None:
                         variant=variant,
                         io_backend=io_backend,
                     )
+
+                if args.cleanup:
+                    # the upload payload is reused by the following backends,
+                    # so keep it for the last one
+                    last_backend = io_backend == args.io_backends[-1]
+                    if mode != "upload" or last_backend:
+                        reset_download(args.save_path, variant, args.num_pieces)
+                        upload_payload_ready = False
 
 
 def run_test(
