@@ -31,7 +31,7 @@ void disk_completed_queue::abort_job(io_context& ioc, aux::disk_job* j)
 {
 	j->ret = disk_status::fatal_disk_error;
 	j->error = storage_error(boost::asio::error::operation_aborted);
-	j->flags |= aux::disk_job::aborted;
+	j->state |= aux::disk_job::aborted;
 #if TORRENT_USE_ASSERTS
 	TORRENT_ASSERT(j->job_posted == false);
 	j->job_posted = true;
@@ -57,7 +57,7 @@ void disk_completed_queue::abort_jobs(io_context& ioc, jobqueue_t jobs)
 		auto* j = i.get();
 		j->ret = disk_status::fatal_disk_error;
 		j->error = storage_error(boost::asio::error::operation_aborted);
-		j->flags |= aux::disk_job::aborted;
+		j->state |= aux::disk_job::aborted;
 #if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(j->job_posted == false);
 		j->job_posted = true;
@@ -119,7 +119,7 @@ void disk_completed_queue::call_job_handlers()
 		// the completion queue.
 		if ((std::holds_alternative<aux::job::read>(j->action)
 				|| std::holds_alternative<aux::job::partial_read>(j->action))
-			&& !(j->flags & aux::disk_job::aborted))
+			&& !(j->state & aux::disk_job::aborted))
 		{
 			std::int64_t const ms = total_milliseconds(aux::steady_clock::now() - j->start_time);
 			constexpr std::int64_t max_bucket =

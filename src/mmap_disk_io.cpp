@@ -336,10 +336,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		// abort outstanding jobs belonging to this torrent
 
 		DLOG("aborting hash jobs\n");
-		m_hash_threads.visit_jobs([](aux::disk_job* j)
-		{
-			j->flags |= aux::disk_job::aborted;
-		});
+		m_hash_threads.visit_jobs([](aux::disk_job* j) { j->state |= aux::disk_job::aborted; });
 		l.unlock();
 
 		// no maintenance once teardown has started. The destructor joins the
@@ -381,7 +378,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	void mmap_disk_io::perform_job(aux::mmap_disk_job* j, jobqueue_t& completed_jobs)
 	{
 		TORRENT_ASSERT(j->next == nullptr);
-		TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
+		TORRENT_ASSERT((j->state & aux::disk_job::in_progress) || !j->storage);
 
 #if DEBUG_DISK_THREAD
 		{
@@ -793,7 +790,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			// really gain from being cancelled. They can also be restarted
 			// easily.
 			if (j->flags & disk_interface::volatile_read)
-				j->flags |= aux::disk_job::aborted;
+				j->state |= aux::disk_job::aborted;
 		});
 	}
 
@@ -1268,7 +1265,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		if (ret == aux::disk_job_fence::fence_post_fence)
 		{
 			std::unique_lock<std::mutex> l(m_job_mutex);
-			TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
+			TORRENT_ASSERT((j->state & aux::disk_job::in_progress) || !j->storage);
 			m_generic_threads.push_back(j);
 			l.unlock();
 
@@ -1303,7 +1300,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			return;
 		}
 
-		TORRENT_ASSERT(!(j->flags & aux::mmap_disk_job::in_progress));
+		TORRENT_ASSERT(!(j->state & aux::disk_job::in_progress));
 
 		DLOG("add_job: %s (outstanding: %d)\n"
 			, print_job(*j).c_str()
@@ -1324,7 +1321,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		std::unique_lock<std::mutex> l(m_job_mutex);
 
-		TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
+		TORRENT_ASSERT((j->state & aux::disk_job::in_progress) || !j->storage);
 
 		auto& q = pool_for_job(j);
 		q.push_back(j);
@@ -1361,7 +1358,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	void mmap_disk_io::execute_job(aux::mmap_disk_job* j)
 	{
 		jobqueue_t completed_jobs;
-		if (j->flags & aux::disk_job::aborted)
+		if (j->state & aux::disk_job::aborted)
 		{
 			j->ret = disk_status::fatal_disk_error;
 			j->error = storage_error(boost::asio::error::operation_aborted);
@@ -1417,7 +1414,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			auto* const j = static_cast<aux::mmap_disk_job*>(pool.pop_front());
 			l.unlock();
 
-			TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
+			TORRENT_ASSERT((j->state & aux::disk_job::in_progress) || !j->storage);
 			execute_job(j);
 
 			l.lock();
@@ -1522,9 +1519,9 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		for (auto i = jobs.iterate(); i.get(); i.next())
 		{
 			auto* j = static_cast<aux::mmap_disk_job*>(i.get());
-			TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
+			TORRENT_ASSERT((j->state & aux::disk_job::in_progress) || !j->storage);
 
-			if (j->flags & aux::disk_job::fence)
+			if (j->state & aux::disk_job::fence)
 			{
 				m_stats_counters.inc_stats_counter(
 					counters::num_fenced_read + static_cast<int>(j->get_type()), -1);
@@ -1535,7 +1532,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 				ret += j->storage->job_complete(j, new_jobs);
 
 			TORRENT_ASSERT(ret == new_jobs.size());
-			TORRENT_ASSERT(!(j->flags & aux::disk_job::in_progress));
+			TORRENT_ASSERT(!(j->state & aux::disk_job::in_progress));
 #if TORRENT_USE_ASSERTS
 			TORRENT_ASSERT(j->job_posted == false);
 			j->job_posted = true;
@@ -1575,7 +1572,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 				while (!new_jobs.empty())
 				{
 					auto* j = static_cast<aux::mmap_disk_job*>(new_jobs.pop_front());
-					TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
+					TORRENT_ASSERT((j->state & aux::disk_job::in_progress) || !j->storage);
 					j->ret = disk_status::fatal_disk_error;
 					j->error = storage_error(boost::asio::error::operation_aborted);
 					completed.push_back(j);

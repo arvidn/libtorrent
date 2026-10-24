@@ -169,28 +169,28 @@ namespace file_open_mode {
 	struct TORRENT_EXPORT disk_interface
 	{
 		// force making a copy of the cached block, rather than getting a
-		// reference to a block already in the cache. This is used the block is
-		// expected to be overwritten very soon, by async_write(), and we need
+		// reference to a block already in the cache. This is used when the block
+		// is expected to be overwritten very soon, by async_write(), and we need
 		// access to the previous content.
 		static inline constexpr disk_job_flags_t force_copy = 0_bit;
 
 		// hint that there may be more disk operations with sequential access to
 		// the file
-		static inline constexpr disk_job_flags_t sequential_access = 3_bit;
+		static inline constexpr disk_job_flags_t sequential_access = 1_bit;
 
 		// don't keep the read block in cache. This is a hint that this block is
 		// unlikely to be read again anytime soon, and caching it would be
 		// wasteful.
-		static inline constexpr disk_job_flags_t volatile_read = 4_bit;
+		static inline constexpr disk_job_flags_t volatile_read = 2_bit;
 
 		// compute a v1 piece hash. This is only used by the async_hash() call.
 		// If this flag is not set in the async_hash() call, the SHA-1 piece
 		// hash does not need to be computed.
-		static inline constexpr disk_job_flags_t v1_hash = 5_bit;
+		static inline constexpr disk_job_flags_t v1_hash = 3_bit;
 
 		// this flag instructs a hash job that we just completed this piece, and
 		// it should be flushed to disk
-		static constexpr disk_job_flags_t flush_piece = 7_bit;
+		static constexpr disk_job_flags_t flush_piece = 4_bit;
 
 		// this is called when a new torrent is added. The shared_ptr owns the
 		// object ``p.files`` refers into. Holding on to it keeps that

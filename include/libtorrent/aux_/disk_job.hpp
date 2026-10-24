@@ -249,59 +249,67 @@ namespace job {
 
 }
 
-	// disk_job is a generic base class to disk io subsystem-specifit jobs (e.g.
-	// mmap_disk_job). They are always allocated from the network thread, posted
-	// (as pointers) to the disk I/O thread, and then passed back
-	// to the network thread for completion handling and to be freed.
-	// each disk_job can belong to at most one tailqueue.
-	struct TORRENT_EXTRA_EXPORT disk_job : tailqueue_node<disk_job>
-	{
-		void call_callback();
+// state the disk subsystem keeps on a job while it's in flight. Kept
+// separate from disk_job_flags_t, which only carries flags passed in across
+// the disk_interface boundary, so the two bit spaces can't collide
+using disk_job_state_t = flags::bitfield_flag<std::uint8_t, struct disk_job_state_tag>;
 
-		// this is set by the storage object when a fence is raised
-		// for this job. It means that this no other jobs on the same
-		// storage will execute in parallel with this one. It's used
-		// to lower the fence when the job has completed
-		static inline constexpr disk_job_flags_t fence = 1_bit;
+// disk_job is a generic base class to disk io subsystem-specifit jobs (e.g.
+// mmap_disk_job). They are always allocated from the network thread, posted
+// (as pointers) to the disk I/O thread, and then passed back
+// to the network thread for completion handling and to be freed.
+// each disk_job can belong to at most one tailqueue.
+struct TORRENT_EXTRA_EXPORT disk_job : tailqueue_node<disk_job>
+{
+	void call_callback();
 
-		// this job is currently being performed, or it's hanging
-		// on a cache piece that may be flushed soon
-		static inline constexpr disk_job_flags_t in_progress = 2_bit;
+	// this is set by the storage object when a fence is raised
+	// for this job. It means that this no other jobs on the same
+	// storage will execute in parallel with this one. It's used
+	// to lower the fence when the job has completed
+	static inline constexpr disk_job_state_t fence = 0_bit;
 
-		// this is set for jobs that we're no longer interested in. Any aborted
-		// job that's executed should immediately fail with operation_aborted
-		// instead of executing
-		static inline constexpr disk_job_flags_t aborted = 6_bit;
+	// this job is currently being performed, or it's hanging
+	// on a cache piece that may be flushed soon
+	static inline constexpr disk_job_state_t in_progress = 1_bit;
 
-		// flags controlling this job
-		disk_job_flags_t flags;
+	// this is set for jobs that we're no longer interested in. Any aborted
+	// job that's executed should immediately fail with operation_aborted
+	// instead of executing
+	static inline constexpr disk_job_state_t aborted = 2_bit;
 
-		// passed out
-		// return value of operation
-		status_t ret{};
+	// flags controlling this job, passed in by the caller
+	disk_job_flags_t flags{};
 
-		// the error code from the file operation
-		// on error, this also contains the path of the
-		// file the disk operation failed on
-		storage_error error;
+	// in-flight state owned by the disk subsystem
+	disk_job_state_t state{};
 
-		std::variant<job::read
-			, job::write
-			, job::hash
-			, job::hash2
-			, job::move_storage
-			, job::release_files
-			, job::delete_files
-			, job::check_fastresume
-			, job::rename_file
-			, job::stop_torrent
-			, job::file_priority
-			, job::clear_piece
-			, job::partial_read
-		> action;
+	// passed out
+	// return value of operation
+	status_t ret{};
 
-		// the type of job this is
-		job_action_t get_type() const { return job_action_t(action.index()); }
+	// the error code from the file operation
+	// on error, this also contains the path of the
+	// file the disk operation failed on
+	storage_error error;
+
+	std::variant<job::read,
+		job::write,
+		job::hash,
+		job::hash2,
+		job::move_storage,
+		job::release_files,
+		job::delete_files,
+		job::check_fastresume,
+		job::rename_file,
+		job::stop_torrent,
+		job::file_priority,
+		job::clear_piece,
+		job::partial_read>
+		action;
+
+	// the type of job this is
+	job_action_t get_type() const { return job_action_t(action.index()); }
 
 #if TORRENT_DISK_LATENCY_STATS
 		// the time this job was added to the disk job queue, stamped on the
@@ -329,8 +337,7 @@ namespace job {
 		// accounted for by disk_cache, but not inserted into a cached piece yet
 		bool pending_cache_insert = false;
 #endif
-	};
-
+};
 }
 
 #endif // TORRENT_DISK_JOB_HPP

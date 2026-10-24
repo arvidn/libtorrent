@@ -56,6 +56,14 @@ added and passes it along in ``storage_params``. A custom
 ``storage_params`` instead. The field defaults to false for callers
 constructing ``storage_params`` directly.
 
+disk_job_flags_t values changed
+===============================
+
+The in-flight state the disk I/O subsystem keeps on a job no longer shares the
+``disk_job_flags_t`` bit space, and the flags in ``disk_interface`` have been
+renumbered accordingly. This only affects custom disk back ends, which need a
+recompile.
+
 file_storage isn't constructible
 ================================
 
