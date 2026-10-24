@@ -821,6 +821,13 @@ def main() -> None:
         " kept until the last of them has run.",
     )
     p.add_argument(
+        "--keep-perf-data",
+        action="store_true",
+        help="Keep each test's perf.data capture. By default it is deleted"
+        " once profile.html and profile.txt have been generated from it, as"
+        " it is typically gigabytes.",
+    )
+    p.add_argument(
         "--disk-cache-size",
         type=int,
         default=100,
@@ -954,6 +961,7 @@ def main() -> None:
                         transfer_mode="download",
                         variant=variant,
                         io_backend=io_backend,
+                        keep_perf_data=args.keep_perf_data,
                     )
                 elif mode == "dual":
                     reset_download(args.save_path, variant, args.num_pieces)
@@ -974,6 +982,7 @@ def main() -> None:
                         transfer_mode="dual",
                         variant=variant,
                         io_backend=io_backend,
+                        keep_perf_data=args.keep_perf_data,
                     )
                 else:  # upload
                     # the upload test needs a complete, canonical payload to
@@ -1011,6 +1020,7 @@ def main() -> None:
                         transfer_mode="upload",
                         variant=variant,
                         io_backend=io_backend,
+                        keep_perf_data=args.keep_perf_data,
                     )
 
                 if args.cleanup:
@@ -1040,6 +1050,7 @@ def run_test(
     transfer_mode: str,
     variant: str,
     io_backend: str,
+    keep_perf_data: bool,
 ) -> None:
     benchmarks_dir = (results_path / "benchmarks").resolve()
     output_dir = benchmarks_dir / name
@@ -1255,9 +1266,12 @@ def run_test(
     # perf-based profiling is Linux only
     if platform.system() == "Linux":
         print("generating call tree report...")
+        perf_data = output_dir / "perf.data"
         perf_call_tree.main(
-            output_dir / "perf.data", output_dir / "profile.html", 0.1
+            perf_data, output_dir / "profile.html", 0.1
         )
+        if not keep_perf_data:
+            perf_data.unlink(missing_ok=True)
 
     parse_session_stats.main(output_dir / "counters.log", 8, output_dir)
 
@@ -1288,6 +1302,7 @@ def write_test_summary(output_dir: Path, name: str) -> None:
         ("events.log", "events.log (libtorrent alerts)"),
         ("test.out", "test.out (connection_tester output)"),
         ("profile.html", "profile.html (call tree)"),
+        ("profile.txt", "profile.txt (call tree, text)"),
     ):
         if (output_dir / fname).exists():
             links.append((fname, label))
