@@ -14,6 +14,7 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/debug.hpp"
 #include "libtorrent/aux_/buffer.hpp"
+#include "libtorrent/span.hpp"
 
 #include <deque>
 #include <type_traits>
@@ -34,26 +35,38 @@ see LICENSE file.
 
 namespace libtorrent::aux {
 
-	// TODO: 2 this type should probably be renamed to send_buffer
-	struct TORRENT_EXTRA_EXPORT chained_buffer : private single_threaded
+// a buffer the chained_buffer neither owns nor may modify, whose bytes the
+// caller keeps alive until they have been sent. Deliberately has no size(),
+// so that no later message is coalesced into the bytes behind it
+struct borrowed_buffer
+{
+	explicit borrowed_buffer(span<char const> b)
+		: m_buf(b)
+	{}
+
+	// chained_buffer holds a mutable pointer even for buffers it only reads
+	// from, hence the cast. is_exclusive() is what keeps anything from
+	// writing through it
+	char* data() const { return const_cast<char*>(m_buf.data()); }
+	bool is_exclusive() const { return false; }
+
+private:
+	span<char const> m_buf;
+};
+
+// TODO: 2 this type should probably be renamed to send_buffer
+struct TORRENT_EXTRA_EXPORT chained_buffer : private single_threaded
+{
+	chained_buffer() { thread_started(); }
+
+private:
+	// destructs/frees the holder object
+	using destruct_holder_fun = void (*)(void*);
+	using move_construct_holder_fun = void (*)(void*, void*);
+
+	struct buffer_t
 	{
-		chained_buffer(): m_bytes(0), m_capacity(0)
-		{
-			thread_started();
-#if TORRENT_USE_ASSERTS
-			m_destructed = false;
-#endif
-		}
-
-	private:
-
-		// destructs/frees the holder object
-		using destruct_holder_fun = void (*)(void*);
-		using move_construct_holder_fun = void (*)(void*, void*);
-
-		struct buffer_t
-		{
-			buffer_t() {}
+		buffer_t() {}
 #if TORRENT_CPP98_DEQUE
 			buffer_t(buffer_t&& rhs) noexcept
 			{
@@ -95,7 +108,7 @@ namespace libtorrent::aux {
 			char* buf = nullptr; // the first byte of the buffer
 			int size = 0; // the total size of the buffer
 			int used_size = 0; // this is the number of bytes to send/receive
-		};
+	};
 
 	public:
 
@@ -208,20 +221,20 @@ namespace libtorrent::aux {
 		// this is the number of bytes in the send buf.
 		// this will always be equal to the sum of the
 		// size of all buffers in vec
-		int m_bytes;
+		int m_bytes = 0;
 
 		// the total size of all buffers in the chain
 		// including unused space
-		int m_capacity;
+		int m_capacity = 0;
 
 		// this is the vector of buffers used when
 		// invoking the async write call
 		std::vector<boost::asio::const_buffer> m_tmp_vec;
 
 #if TORRENT_USE_ASSERTS
-		bool m_destructed;
+		bool m_destructed = false;
 #endif
-	};
+};
 }
 
 #endif

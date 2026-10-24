@@ -109,8 +109,8 @@ namespace {
 			, std::function<void(disk_buffer_holder block, storage_error const& se)> handler
 			, disk_job_flags_t) override
 		{
-			disk_buffer_holder buffer =
-				disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"));
+			disk_buffer_holder buffer = disk_buffer_holder(
+				m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"), true);
 			storage_error error;
 			if (!buffer)
 			{

@@ -566,7 +566,7 @@ status_t pread_disk_io::do_job(aux::job::partial_read& a, aux::pread_disk_job* j
 
 status_t pread_disk_io::do_job(aux::job::read& a, aux::pread_disk_job* j)
 {
-	a.buf = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"));
+	a.buf = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"), true);
 	if (!a.buf)
 	{
 		j->error.ec = error::no_memory;
@@ -615,7 +615,8 @@ void pread_disk_io::execute_read_batch(jobqueue_t jobs)
 		for (auto it = jobs.iterate(); it.get(); it.next(), ++i)
 		{
 			auto& a = std::get<aux::job::read>(static_cast<aux::pread_disk_job*>(it.get())->action);
-			a.buf = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"));
+			a.buf = disk_buffer_holder(
+				m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"), true);
 			if (!a.buf)
 			{
 				j0->error.ec = error::no_memory;
@@ -738,11 +739,14 @@ bool pread_disk_io::prepare_read(aux::pread_disk_job* j)
 		// the callback returns -1 if the buffer could not be allocated, else a
 		// bitmask of which sides were found: 2 = first block, 1 = second block.
 		int const ret = m_cache.get2(loc, block_idx, [&](char const* buf1, char const* buf2) {
-			buffer =
-				disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"));
-			if (!buffer) return -1;
-			if (buf1) std::memcpy(buffer.data(), buf1 + read_offset, std::size_t(len1));
-			if (buf2) std::memcpy(buffer.data() + len1, buf2, std::size_t(a.buffer_size - len1));
+			buffer = disk_buffer_holder(
+				m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"), true);
+			if (!buffer)
+				return -1;
+			if (buf1)
+				std::memcpy(buffer.data(), buf1 + read_offset, std::size_t(len1));
+			if (buf2)
+				std::memcpy(buffer.data() + len1, buf2, std::size_t(a.buffer_size - len1));
 			return (buf1 ? 2 : 0) | (buf2 ? 1 : 0);
 		});
 
@@ -794,8 +798,8 @@ bool pread_disk_io::prepare_read(aux::pread_disk_job* j)
 	// an aligned read request for one block.
 	if (!m_cache.get(loc, block_idx, [&](span<char const> buf) {
 			TORRENT_ASSERT_VAL(read_offset + int(a.buffer_size) <= buf.size(), read_offset);
-			buffer =
-				disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"));
+			buffer = disk_buffer_holder(
+				m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"), true);
 			if (!buffer) return;
 			std::memcpy(buffer.data(), buf.data() + read_offset, std::size_t(a.buffer_size));
 		}))

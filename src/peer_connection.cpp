@@ -135,7 +135,6 @@ namespace {
 		, m_has_metadata(true)
 		, m_exceeded_limit(false)
 		, m_slow_start(true)
-		, m_mutates_send_buffer(false)
 	{
 		m_counters.inc_stats_counter(counters::num_tcp_peers
 			+ static_cast<std::uint8_t>(socket_type_idx(m_socket)));
@@ -5377,11 +5376,6 @@ namespace {
 				if (read_mode == settings_pack::disable_os_cache)
 					flags |= disk_interface::volatile_read;
 
-				// the block is encrypted in place on its way out, so we cannot
-				// send a buffer the disk subsystem may still hand to someone else
-				if (mutates_send_buffer())
-					flags |= disk_interface::force_copy;
-
 				auto const issue_time = clock_type::now();
 				m_disk_thread.async_read(t->storage(), r
 					, [conn = self(), r, issue_time](disk_buffer_holder buf, storage_error const& ec)
@@ -5786,11 +5780,7 @@ namespace {
 			auto const [next_barrier, inject_vec] = hit_send_barrier(vec);
 			for (auto i = inject_vec.rbegin(); i != inject_vec.rend(); ++i)
 			{
-				// this const_cast is a here because chained_buffer need to be
-				// fixed.
-				auto* ptr = const_cast<char*>(i->data());
-				m_send_buffer.prepend_buffer(span<char>(ptr, i->size())
-					, static_cast<int>(i->size()));
+				m_send_buffer.prepend_buffer(borrowed_buffer(*i), static_cast<int>(i->size()));
 			}
 			set_send_barrier(next_barrier);
 		}

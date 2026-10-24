@@ -938,6 +938,7 @@ TEST_SOURCES = \
   test_dht.cpp \
   test_dht_storage.cpp \
   test_direct_dht.cpp \
+  test_disk_buffer_holder.cpp \
   test_disk_cache.cpp \
   test_disk_io.cpp \
   test_disk_tick_thread.cpp \

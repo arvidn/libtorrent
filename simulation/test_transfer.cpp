@@ -51,6 +51,26 @@ TORRENT_TEST(encryption_tcp)
 	);
 }
 
+// a seed that encrypts its send buffer in place has to copy a non-exclusive
+// disk buffer before queueing it. The transfer succeeds either way, so only
+// the seed's own buffers show the difference. This asserts the non-exclusive
+// path was reached at all, which no other test does
+TORRENT_TEST(encryption_non_exclusive_read_buffers)
+{
+	auto const seed_disk = test_disk();
+	run_test(
+		[](lt::session& ses0, lt::session& ses1) {
+			enable_enc(ses0);
+			enable_enc(ses1);
+		},
+		[](lt::session&, lt::alert const*) {},
+		expect_seed(true),
+		{},
+		test_disk(),
+		seed_disk);
+	TEST_CHECK(*seed_disk.non_exclusive_reads > 0);
+}
+
 TORRENT_TEST(no_proxy_tcp_ipv6)
 {
 	run_test(

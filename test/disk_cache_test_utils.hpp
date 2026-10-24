@@ -46,7 +46,7 @@ struct test_allocator : lt::buffer_allocator_interface
 	lt::disk_buffer_holder alloc(int const size = lt::default_block_size)
 	{
 		++live;
-		return lt::disk_buffer_holder(*this, new char[static_cast<size_t>(size)]);
+		return lt::disk_buffer_holder(*this, new char[static_cast<size_t>(size)], true);
 	}
 
 	virtual ~test_allocator() = default;
