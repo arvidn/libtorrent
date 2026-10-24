@@ -36,9 +36,11 @@
 # to the first child). every level is collapsed by default.
 
 from argparse import ArgumentParser
+from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 import html
 import math
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -81,7 +83,27 @@ class Node:
 _PERF_SCRIPT_FIELDS = "comm,pid,tid,time,ip,sym,dso"
 
 
-def run_perf_script(perf_data: Path) -> Iterator[str]:
+def list_tids(perf_data: Path) -> list[str]:
+    """The thread ids that have samples in perf_data. No stacks are requested, so
+    this does not unwind anything and is fast."""
+    try:
+        out = subprocess.run(
+            ["perf", "script", "-i", str(perf_data), "-F", "tid"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            check=True,
+        ).stdout
+    except FileNotFoundError:
+        raise SystemExit(
+            "ERROR: 'perf' is not installed or not in PATH.\n"
+            "  Debian/Ubuntu: sudo apt install linux-perf (or linux-tools-*)\n"
+            "  Fedora/RHEL:   sudo dnf install perf"
+        )
+    return sorted(set(out.split()), key=int)
+
+
+def run_perf_script(perf_data: Path, tid: Optional[str] = None) -> Iterator[str]:
     """Run 'perf script' on perf_data and yield its stdout lines as they are
     produced, rather than buffering the whole (potentially huge) text output
     before parsing starts -- this lets perf's own symbol resolution and this
@@ -89,7 +111,11 @@ def run_perf_script(perf_data: Path) -> Iterator[str]:
     full copies of the text in memory. '--no-inline' skips per-address DWARF
     inline-frame lookup, which parse_samples() never uses but which is
     otherwise the dominant cost of 'perf script' on binaries with debug info.
-    Exits with a clear message if perf is missing or fails."""
+    Exits with a clear message if perf is missing or fails.
+
+    When tid is given only that thread's samples are processed. perf's DWARF
+    unwinder fails to unwind most threads when it processes several threads of
+    the same process in one run, so the caller runs one pass per thread."""
     cmd = [
         "perf",
         "script",
@@ -99,6 +125,8 @@ def run_perf_script(perf_data: Path) -> Iterator[str]:
         "-F",
         _PERF_SCRIPT_FIELDS,
     ]
+    if tid is not None:
+        cmd += ["--tid", tid]
     try:
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True)
     except FileNotFoundError:
@@ -410,6 +438,37 @@ def parse_samples(
             )
         )
     flush()
+    return samples, events
+
+
+def parse_threads(
+    perf_data: Path,
+    strip_ret: bool = True,
+    collapse_tmpl: bool = True,
+    abbrev_ns: bool = True,
+) -> tuple[list[list[tuple[str, bool]]], list[tuple[str, float]]]:
+    """Run 'perf script' once per thread and merge the results. See
+    run_perf_script() for why. The passes run concurrently, since most of the
+    time is spent in the perf processes."""
+    tids = list_tids(perf_data)
+    if not tids:
+        return parse_samples(
+            run_perf_script(perf_data), strip_ret, collapse_tmpl, abbrev_ns
+        )
+
+    def one(
+        tid: str,
+    ) -> tuple[list[list[tuple[str, bool]]], list[tuple[str, float]]]:
+        return parse_samples(
+            run_perf_script(perf_data, tid), strip_ret, collapse_tmpl, abbrev_ns
+        )
+
+    samples: list[list[tuple[str, bool]]] = []
+    events: list[tuple[str, float]] = []
+    with ThreadPoolExecutor(max_workers=min(len(tids), os.cpu_count() or 1)) as pool:
+        for s, e in pool.map(one, tids):
+            samples += s
+            events += e
     return samples, events
 
 
@@ -881,9 +940,7 @@ def main(
     abbrev_ns: bool = True,
 ) -> None:
     start = time.perf_counter()
-    samples, events = parse_samples(
-        run_perf_script(perf_data), strip_ret, collapse_tmpl, abbrev_ns
-    )
+    samples, events = parse_threads(perf_data, strip_ret, collapse_tmpl, abbrev_ns)
     elapsed = time.perf_counter() - start
     print(f"'perf script' + parsing: {elapsed:.2f}s ({len(samples)} samples)")
     if not samples:
