@@ -2214,7 +2214,8 @@ TORRENT_TEST(pread_disk_io) { run_test<pread_storage>(); }
 
 // pread_storage::prefetch_piece() only hints the kernel to read ahead. It must
 // skip pad files and the slices of files kept in the part file, neither of
-// which exists on disk, and it must never create a file
+// which exists on disk, and it must never create a file. The same goes for
+// piece_read_ahead_limit()
 TORRENT_TEST(prefetch_piece_pread)
 {
 	std::string const test_path = complete("prefetch_piece_test");
@@ -2277,13 +2278,22 @@ TORRENT_TEST(prefetch_piece_pread)
 	TEST_CHECK(!exists(test2));
 	TEST_CHECK(!exists(fs.file_path(file_index_t{1}, test_path)));
 
-	// the pieces with a file hinted
-	TEST_CHECK(s->read_ahead_piece(0_piece));
+	// the limit of the first file of the piece that is hinted: 0 if there is
+	// no known one (other systems than Linux, or tmpfs), -1 if no file is
+	// hinted
+	std::int64_t const least = 0;
+	TEST_CHECK(s->piece_read_ahead_limit(set, 0_piece, mode, se) >= least);
+	TEST_CHECK(!se);
 	// only test2, which is in the part file
-	TEST_CHECK(!s->read_ahead_piece(1_piece));
+	TEST_EQUAL(s->piece_read_ahead_limit(set, 1_piece, mode, se), -1);
+	TEST_CHECK(!se);
 	// test3's
-	TEST_CHECK(s->read_ahead_piece(2_piece));
-	TEST_CHECK(s->read_ahead_piece(3_piece));
+	TEST_CHECK(s->piece_read_ahead_limit(set, 2_piece, mode, se) >= least);
+	TEST_CHECK(!se);
+	TEST_CHECK(s->piece_read_ahead_limit(set, 3_piece, mode, se) >= least);
+	TEST_CHECK(!se);
+	TEST_CHECK(!exists(test2));
+	TEST_CHECK(!exists(fs.file_path(file_index_t{1}, test_path)));
 
 	// a missing file is an error, and is not created
 	release_files(s, se);
@@ -2293,6 +2303,10 @@ TORRENT_TEST(prefetch_piece_pread)
 	remove(test3, ec);
 	TEST_CHECK(!ec);
 	s->prefetch_piece(set, 3_piece, 0, fs.piece_size(3_piece), mode, se);
+	TEST_CHECK(se.ec);
+	TEST_CHECK(!exists(test3));
+	se = storage_error{};
+	TEST_EQUAL(s->piece_read_ahead_limit(set, 3_piece, mode, se), -1);
 	TEST_CHECK(se.ec);
 	TEST_CHECK(!exists(test3));
 }

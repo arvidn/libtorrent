@@ -79,8 +79,22 @@ namespace libtorrent::aux {
 
 	void advise_dont_need(handle_type handle, std::int64_t offset, std::int64_t len);
 	// ask the kernel to start reading [offset, offset + len) into the page
-	// cache
-	void advise_will_need(handle_type handle, std::int64_t offset, std::int64_t len);
+	// cache, in calls of at most `chunk` bytes (0: one call)
+	void advise_will_need(
+		handle_type handle, std::int64_t offset, std::int64_t len, std::int64_t chunk);
+	// the size to split advise_will_need() calls into for this file: Linux
+	// caps a POSIX_FADV_WILLNEED at max(read-ahead window, max I/O size) of
+	// the backing device and silently drops the rest. Looked up in sysfs per
+	// device and cached, rounded down to a power of two; 0 when the cap isn't
+	// known (other systems, or a device not found)
+	std::int64_t read_ahead_limit(handle_type handle);
+#ifdef TORRENT_LINUX
+	// the uncached lookup behind read_ahead_limit(), with the sysfs root and
+	// the mountinfo file as parameters (for tests). `fd` is only used for
+	// btrfs, and may be -1
+	TORRENT_EXTRA_EXPORT std::int64_t device_read_ahead_limit(
+		std::string const& sysfs, std::string const& mountinfo, dev_t dev, handle_type fd);
+#endif
 	void sync_file(handle_type handle, std::int64_t offset, std::int64_t len);
 
 	struct TORRENT_EXTRA_EXPORT file_handle

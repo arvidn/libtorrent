@@ -1088,8 +1088,9 @@ namespace aux {
 			apply_filter_to_dht,
 
 			// ``disk_read_ahead`` if true, reads of a piece ask the operating
-			// system to read ahead of them, in windows of 1 MiB (at least 1/64
-			// of the piece), up to two windows past the one being read: in the
+			// system to read ahead of them, in windows of the file system's
+			// read-ahead size (1 MiB where it isn't known, and at least 1/64 of
+			// the piece), up to two windows past the one being read: in the
 			// piece, then in the pieces requested after it. Only runs of at
 			// least three contiguous blocks of a piece, read together or one
 			// after the other, are read ahead of: a few scattered blocks of a

@@ -31,11 +31,11 @@ namespace libtorrent::aux {
 // concurrently. The kernel sees small, interleaved reads, which its own
 // read-ahead doesn't take for a sequential stream, and reads only the
 // blocks requested. Instead, a piece being read is split into windows of
-// 1 MiB (at least a 64th of the piece), and a read has its own window and
-// the next `ahead` ones hinted, each window once. Like the kernel's
-// read-ahead for one sequential reader, that stays a few windows ahead of
-// the reads, here for any number of concurrent readers of the piece, and
-// no further.
+// the file system's read-ahead size (1 MiB where it isn't known, and at
+// least a 64th of the piece), and a read has its own window and the next
+// `ahead` ones hinted, each window once. Like the kernel's read-ahead for
+// one sequential reader, that stays a few windows ahead of the reads, here
+// for any number of concurrent readers of the piece, and no further.
 //
 // Near the end of a piece, the windows ahead are those of the pieces
 // requested after it from the same storage, in the order they were
@@ -108,9 +108,11 @@ struct TORRENT_EXTRA_EXPORT read_ahead
 		int length,
 		steady_clock::time_point now);
 
-	// `limit` is the window size in bytes, 0 for default_window; the window
-	// is at least a 64th of the piece. -1: the piece has nothing to hint.
-	// If the piece has been added already, this does nothing
+	// `limit` is the largest read-ahead hint the kernel takes in one call
+	// for the piece's file, in bytes; 0 if it isn't known. The window is
+	// that (default_window if 0), but at least a 64th of the piece. -1: the
+	// piece has nothing to hint. If the piece has been added already, this
+	// does nothing
 	void add_piece(storage_index_t,
 		piece_index_t,
 		int piece_size,
@@ -120,11 +122,8 @@ struct TORRENT_EXTRA_EXPORT read_ahead
 	// forget the pieces of a storage, whose index may be reused
 	void remove_storage(storage_index_t);
 
-	// the window size by default. Linux caps one POSIX_FADV_WILLNEED at
-	// max(read-ahead window, max I/O size) of the file system's backing
-	// device and drops the rest: most take 1 MiB whole (disks: their
-	// max_sectors_kb, 1280 by default; NFS: its rsize, 1 MiB by default),
-	// FUSE and SMB with their default read-ahead only its first 128 kiB
+	// the window size when the limit isn't known: most devices take a
+	// POSIX_FADV_WILLNEED of 1 MiB whole
 	static constexpr int default_window = 1024 * 1024;
 	// the most pieces kept by default: those read or requested within `ttl`
 	// at several GiB/s with 1 MiB pieces

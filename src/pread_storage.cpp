@@ -621,20 +621,25 @@ pread_storage::pread_storage(
 			auto handle = open_file(sett, s.file_index, mode, error);
 			if (error)
 				return;
-			// one hint for the whole slice: each hint is its own request to the
-			// device, so smaller ones would make the reads smaller
-			advise_will_need(handle->fd(), s.offset, s.size);
+			advise_will_need(handle->fd(), s.offset, s.size, read_ahead_limit(handle->fd()));
 		}
 	}
 
-	bool pread_storage::read_ahead_piece(piece_index_t const piece) const
+	std::int64_t pread_storage::piece_read_ahead_limit(settings_interface const& sett,
+		piece_index_t const piece,
+		open_mode_t const mode,
+		storage_error& error)
 	{
 		for (auto const& s : files().map_block(piece, 0, files().piece_size(piece)))
 		{
-			if (read_ahead_file(s.file_index))
-				return true;
+			if (!read_ahead_file(s.file_index))
+				continue;
+			auto handle = open_file(sett, s.file_index, mode, error);
+			if (error)
+				return -1;
+			return read_ahead_limit(handle->fd());
 		}
-		return false;
+		return -1;
 	}
 
 	bool pread_storage::read_ahead_file(file_index_t const index) const

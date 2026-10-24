@@ -419,19 +419,30 @@ void pread_disk_io::prefetch(
 
 	aux::read_ahead::result r;
 	{
-		std::lock_guard<std::mutex> l(m_prefetch_mutex);
+		std::unique_lock<std::mutex> l(m_prefetch_mutex);
 		for (;;)
 		{
 			r = m_read_ahead.on_read(
 				st, piece, piece_size, offset, length, aux::steady_clock::now());
 			if (r.what != action::lookup)
 				break;
-			// this piece, or one requested after it: the default window size
-			m_read_ahead.add_piece(st,
-				r.piece,
-				storage->files().piece_size(r.piece),
-				storage->read_ahead_piece(r.piece) ? 0 : -1,
-				aux::steady_clock::now());
+			// this piece, or one requested after it. Opens the file: not
+			// under the lock
+			l.unlock();
+			std::int64_t limit = -1;
+			try
+			{
+				storage_error ec;
+				limit =
+					storage->piece_read_ahead_limit(m_settings, r.piece, file_mode_for_job(j), ec);
+				if (ec)
+					limit = -1;
+			}
+			catch (...)
+			{}
+			l.lock();
+			m_read_ahead.add_piece(
+				st, r.piece, storage->files().piece_size(r.piece), limit, aux::steady_clock::now());
 		}
 	}
 	if (r.what != action::hint)

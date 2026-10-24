@@ -98,15 +98,18 @@ namespace libtorrent::aux {
 
 		// ask the kernel to read [offset, offset + length) of the piece ahead,
 		// for every file slice it covers (pad files and part-file slices
-		// excluded)
+		// excluded), in hints of aux::read_ahead_limit() bytes (one per slice
+		// when that is 0)
 		void prefetch_piece(settings_interface const&,
 			piece_index_t piece,
 			int offset,
 			int length,
 			aux::open_mode_t mode,
 			storage_error&);
-		// whether prefetch_piece() hints any of the piece
-		bool read_ahead_piece(piece_index_t piece) const;
+		// aux::read_ahead_limit() of the first file of the piece that
+		// prefetch_piece() would hint; -1 if there is none
+		std::int64_t piece_read_ahead_limit(
+			settings_interface const&, piece_index_t piece, aux::open_mode_t mode, storage_error&);
 
 		file_storage const& files() const { return m_files; }
 		filenames names() const;
