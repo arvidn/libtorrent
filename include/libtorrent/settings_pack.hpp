@@ -1135,6 +1135,10 @@ namespace aux {
 			// purely by piece hash, ignoring certificates.
 			enforce_torrent_trust_domain,
 
+			// if true, tracker requests over an HTTP proxy are sent in plain text
+			// and the proxy is expected to originate TLS.
+			proxy_tls_origination,
+
 			max_bool_setting_internal
 		};
 
