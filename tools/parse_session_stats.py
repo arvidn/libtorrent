@@ -33,12 +33,20 @@
 # libtorrent session
 
 import os
+import re
 import sys
 import math
-from multiprocessing.pool import ThreadPool
+import functools
+from multiprocessing import Pool
 from pathlib import Path
 from argparse import ArgumentParser
-from typing import Optional
+from typing import Any
+
+import numpy as np
+from matplotlib import colormaps
+from matplotlib.colors import to_hex
+from matplotlib.figure import Figure
+from matplotlib.ticker import EngFormatter
 
 
 line_graph = 0
@@ -48,16 +56,11 @@ diff = 3
 
 
 def graph_colors() -> list[str]:
-    colors: list[str] = []
-
-    pattern = [[0, 0, 1], [0, 1, 0], [1, 0, 0], [1, 0, 1], [0, 1, 1], [1, 1, 0]]
-    brightness = [0xD8, 0xBB, 0x60]
-
-    for op in range(3):
-        for c in pattern:
-            c = [v * brightness[op] for v in c]
-            colors.append("#%02x%02x%02x" % (c[0], c[1], c[2]))
-    return colors
+    # tab20 alternates dark and light variants of 10 hues. Taking the dark ones
+    # first makes graphs with up to 10 series use plain tab10, and the light
+    # variants only kick in beyond that
+    tab20 = [to_hex(c) for c in colormaps["tab20"].colors]
+    return tab20[0::2] + tab20[1::2]
 
 
 def gradient_colors(num_colors: int) -> list[str]:
@@ -73,22 +76,52 @@ def gradient_colors(num_colors: int) -> list[str]:
     return colors
 
 
-def plot_fun(script: Path) -> None:
-    try:
-        ret = os.system(f"gnuplot \"{script}\" 2>/dev/null")
-    except Exception as e:
-        print("please install gnuplot: sudo apt install gnuplot")
-        raise e
-    if ret != 0 and ret != 256:
-        print("gnuplot failed: %d\n" % ret)
-        raise Exception("abort")
-
-    sys.stdout.write(".")
-    sys.stdout.flush()
-
-
 def to_title(key: str) -> str:
     return key.replace("_", " ").replace(".", " - ")
+
+
+def format_bytes(n: int) -> str:
+    for suffix in ("B", "KiB", "MiB"):
+        if n < 1024 or suffix == "MiB":
+            return f"{n} {suffix}"
+        n //= 1024
+    raise AssertionError
+
+
+def bucket_range(key: str) -> str:
+    # socket_{send,recv}_sizeN counts buffers of size [2^N, 2^(N+1)). The
+    # first bucket also holds everything smaller, the last one is unbounded
+    # (see session_impl::sent_buffer())
+    m = re.fullmatch(r"sock_bufs\.socket_(?:send|recv)_size(\d+)", key)
+    if m:
+        n = int(m.group(1))
+        if n == 20:
+            return f">= {format_bytes(1 << n)}"
+        lo = 0 if n == 3 else 1 << n
+        return f"[{format_bytes(lo)}, {format_bytes(1 << (n + 1))})"
+
+    # disk_read_latencyN counts jobs that took [30 * (N-1), 30 * N) ms, the
+    # last bucket is unbounded (see disk_completed_queue.cpp)
+    m = re.fullmatch(r"disk\.disk_read_latency(\d+)", key)
+    if m:
+        n = int(m.group(1))
+        if n == 20:
+            return f">= {30 * (n - 1)} ms"
+        return f"[{30 * (n - 1)}, {30 * n}) ms"
+    return ""
+
+
+def series_label(key: str) -> str:
+    rng = bucket_range(key)
+    if not rng:
+        return to_title(key)
+    # the category prefix is just noise for these long series
+    return f"{to_title(key.split('.', 1)[1])} {rng}"
+
+
+@functools.lru_cache(maxsize=1)
+def load_data(path: Path) -> np.ndarray:
+    return np.loadtxt(path, delimiter="\t", ndmin=2)
 
 
 def gen_report(
@@ -98,10 +131,11 @@ def gen_report(
     unit: str,
     lines: list[str],
     short_unit: str,
+    description: str,
     generation: int,
     log_file: Path,
-    options: dict[str, int],
-) -> Optional[Path]:
+    options: dict[str, Any],
+) -> bool:
     filename = output_dir / f"{name}_{generation:04d}.png"
     thumb = output_dir / f"{name}_{generation:04d}_thumb.png"
 
@@ -113,197 +147,208 @@ def gen_report(
 
         if dst1.st_mtime > src.st_mtime and dst2.st_mtime > src.st_mtime:
             sys.stdout.write(".")
-            return None
+            sys.stdout.flush()
+            return False
 
     except Exception:
         pass
 
-    script = output_dir / f"{name}_{generation:04d}.gnuplot"
-    with open(script, "w") as out:
-        print("set term png size 1200,700", file=out)
-        print('set output "%s"' % filename, file=out)
-        if "allow-negative" not in options:
-            print("set yrange [0:*]", file=out)
-        print("set tics nomirror", file=out)
-        print("set key box", file=out)
-        print("set key left top", file=out)
+    data = load_data(log_file)
+    if data.shape[0] == 0:
+        return False
 
-        colors = graph_colors()
+    series: list[tuple[str, np.ndarray]] = []
+    for k in lines:
+        if k not in keys:
+            print('"%s" not found' % k)
+            continue
+        series.append((k, data[:, keys.index(k) + 1]))
 
-        try:
-            if "gradient" in options:
-                colors = gradient_colors(options["gradient"])
-        except Exception:
-            pass
+    if not series:
+        return False
 
-        first = True
-        color = 0
-        if options["type"] == histogram:
-            binwidth = options["binwidth"]
-            numbins = int(options["numbins"])
+    if options.get("cumulative"):
+        # rate per sample, the first sample has no predecessor
+        series = [(k, np.diff(y, prepend=y[0])) for k, y in series]
 
-            print("binwidth=%f" % binwidth, file=out)
-            print("set boxwidth binwidth", file=out)
-            print("bin(x,width)=width*floor(x/width) + binwidth/2", file=out)
-            print("set xrange [0:%f]" % (binwidth * numbins), file=out)
-            print('set xlabel "%s"' % unit, file=out)
-            print('set ylabel "number"', file=out)
+    if "normalize" in options:
+        norm_key = options["normalize"]
+        if norm_key not in keys:
+            print('"%s" not found' % norm_key)
+            return False
+        den = data[:, keys.index(norm_key) + 1]
+        if options.get("cumulative"):
+            den = np.diff(den, prepend=den[0])
+        # no denominator events in a sample means no data, not zero
+        series = [
+            (k, np.divide(y, den, out=np.full_like(y, np.nan), where=den != 0))
+            for k, y in series
+        ]
 
-            k = lines[0]
-            try:
-                column = keys.index(k) + 2
-            except Exception:
-                print('"%s" not found' % k)
-                return None
-            print(
-                'plot "%s" using (bin($%d,binwidth)):(1.0) smooth freq with boxes'
-                % (log_file, column),
-                file=out,
+    # converts the counter's native unit into the base unit in short_unit, so
+    # that matplotlib can pick the SI prefix
+    if "scale" in options:
+        series = [(k, y * options["scale"]) for k, y in series]
+
+    colors = graph_colors()
+    if "gradient" in options:
+        colors = gradient_colors(options["gradient"])
+    series_colors = [colors[i % len(colors)] for i in range(len(series))]
+
+    x = data[:, 0]
+    fig = Figure(figsize=(12, 7), dpi=100)
+    ax = fig.subplots()
+
+    if options["type"] == histogram:
+        binwidth = options["binwidth"]
+        numbins = int(options["numbins"])
+        ax.hist(series[0][1], bins=np.arange(numbins + 1) * binwidth)
+        ax.set_xlim(0, binwidth * numbins)
+        ax.set_xlabel(unit)
+        ax.set_ylabel("number")
+    else:
+        ax.set_xlabel("time (s)")
+        rate = options.get("cumulative") and "normalize" not in options
+        ax.set_ylabel(f"{unit} / s" if rate else unit)
+        # ratios read better as plain numbers than with an SI prefix
+        if "normalize" not in options:
+            ax.yaxis.set_major_formatter(EngFormatter(unit=short_unit))
+
+        if options["type"] == stacked:
+            ax.stackplot(
+                x,
+                [y for _, y in series],
+                labels=[series_label(k) for k, _ in series],
+                colors=series_colors,
+                step="post",
             )
-            print("", file=out)
-            print("", file=out)
-            print("", file=out)
-
-        elif options["type"] == stacked:
-            print("set xrange [0:*]", file=out)
-            print('set ylabel "%s"' % unit, file=out)
-            print('set xlabel "time (s)"', file=out)
-            print('set format y "%%.1s%%c%s";' % short_unit, file=out)
-            print("set style fill solid 1.0 noborder", file=out)
-            print("plot", end=" ", file=out)
-            graph = ""
-            plot_expression = ""
-            for k in lines:
-                try:
-                    column = keys.index(k) + 2
-                except Exception:
-                    print('"%s" not found' % k)
-                    continue
-                if not first:
-                    plot_expression = ", " + plot_expression
-                    graph += "+"
-                axis = "x1y1"
-                graph += "$%d" % column
-                plot_expression = (
-                    ' "%s" using 1:(%s) title "%s" axes %s with filledcurves x1 lc rgb "%s"'
-                    % (log_file, graph, to_title(k), axis, colors[color % len(colors)])
-                    + plot_expression
-                )
-                first = False
-                color += 1
-            print(plot_expression, file=out)
         elif options["type"] == diff:
-            print("set xrange [0:*]", file=out)
-            print('set ylabel "%s"' % unit, file=out)
-            print('set xlabel "time (s)"', file=out)
-            print('set format y "%%.1s%%c%s";' % short_unit, file=out)
-            graph = ""
-            title = ""
-            for k in lines:
-                try:
-                    column = keys.index(k) + 2
-                except Exception:
-                    print('"%s" not found' % k)
-                    continue
-                if not first:
-                    graph += "-"
-                    title += " - "
-                graph += "$%d" % column
-                title += to_title(k)
-                first = False
-            print(
-                'plot "%s" using 1:(%s) title "%s" with step'
-                % (log_file, graph, title),
-                file=out,
-            )
+            y = series[0][1] - sum(v for _, v in series[1:])
+            ax.step(x, y, where="post", label=" - ".join(series_label(k) for k, _ in series))
         else:
-            print("set xrange [0:*]", file=out)
-            print('set ylabel "%s"' % unit, file=out)
-            print('set xlabel "time (s)"', file=out)
-            print('set format y "%%.1s%%c%s";' % short_unit, file=out)
-            print("plot", end=" ", file=out)
-            for k in lines:
-                try:
-                    column = keys.index(k) + 2
-                except Exception:
-                    print('"%s" not found' % k)
-                    continue
-                if not first:
-                    print(", ", end=" ", file=out)
-                axis = "x1y1"
-                print(
-                    ' "%s" using 1:%d title "%s" axes %s with steps lc rgb "%s"'
-                    % (
-                        log_file,
-                        column,
-                        to_title(k),
-                        axis,
-                        colors[color % len(colors)],
-                    ),
-                    end=" ",
-                    file=out,
-                )
-                first = False
-                color += 1
-            print("", file=out)
+            for (k, y), c in zip(series, series_colors):
+                ax.step(x, y, where="post", label=series_label(k), color=c)
 
-        print("set term png size 150,100", file=out)
-        print('set output "%s"' % thumb, file=out)
-        print("set key off", file=out)
-        print("unset tics", file=out)
-        print('set format x ""', file=out)
-        print('set format y ""', file=out)
-        print('set xlabel ""', file=out)
-        print('set ylabel ""', file=out)
-        print('set y2label ""', file=out)
-        print("set rmargin 0", file=out)
-        print("set lmargin 0", file=out)
-        print("set tmargin 0", file=out)
-        print("set bmargin 0", file=out)
-        print("replot", file=out)
-    return script
+    if options["type"] != histogram:
+        ax.set_xlim(left=0)
+    if "allow-negative" not in options:
+        ax.set_ylim(bottom=0)
+    ax.spines[["top", "right"]].set_visible(False)
+    if options["type"] != histogram:
+        ax.legend(loc="best", frameon=True, fontsize="small")
+
+    ax.set_title(f"{name}: {description}" if description else name)
+    fig.tight_layout()
+    fig.savefig(filename)
+
+    legend = ax.get_legend()
+    if legend is not None:
+        legend.remove()
+    ax.set_title("")
+    ax.set_xlabel("")
+    ax.set_ylabel("")
+    ax.set_xticks([])
+    ax.set_yticks([])
+    fig.set_size_inches(1.5, 1.0)
+    fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
+    fig.savefig(thumb)
+
+    sys.stdout.write(".")
+    sys.stdout.flush()
+    return True
+
+
+categories = ["network", "disk", "bittorrent"]
 
 
 def gen_html(
-    reports: list[tuple[str, str, str, str, list[str], dict[str, int]]],
+    reports: list[tuple[str, str, str, str, list[str], dict[str, Any]]],
     num_generations: int,
     output_dir: Path,
 ) -> None:
     with open(output_dir / "index.html", "w+") as file:
 
         css = """img { margin: 0}
-#head { display: block }
-#graphs { white-space:nowrap; }
-h1 { line-height: 1; display: inline }
-h2 { line-height: 1; display: inline; font-size: 1em; font-weight: normal};"""
+.tabs { position: sticky; top: 0; background: white; border-bottom: 1px solid #888; padding-top: 0.5em }
+.tabs button { font-size: 1.5em; font-weight: bold; padding: 0.2em 1em; margin-right: 0.2em;
+  border: 1px solid #888; border-bottom: none; border-radius: 0.4em 0.4em 0 0;
+  background: #eee; cursor: pointer }
+.tabs button.active { background: white; margin-bottom: -1px; padding-bottom: calc(0.2em + 1px) }
+.pane { display: none }
+.pane.active { display: block }
+.pane > div { margin: 0.5em 0 0.5em 1.5em }
+.graphs { white-space:nowrap; }
+dialog { padding: 0; border: none; max-width: 100vw; max-height: 100vh; overflow: auto; cursor: pointer }
+dialog img { display: block; max-width: none }
+h2 { line-height: 1; display: inline; font-size: 1.2em }
+.desc { line-height: 1; display: inline; font-size: 1em; font-weight: normal }"""
+
+        script = """function show(name) {
+  for (const e of document.querySelectorAll('.tabs button, .pane')) {
+    e.classList.toggle('active', e.dataset.tab === name);
+  }
+  history.replaceState(null, '', '#' + name);
+}
+for (const b of document.querySelectorAll('.tabs button')) {
+  b.addEventListener('click', () => show(b.dataset.tab));
+}
+const viewer = document.getElementById('viewer');
+document.addEventListener('click', (e) => {
+  const a = e.target.closest('.graphs a');
+  if (!a || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey) return;
+  e.preventDefault();
+  document.getElementById('full').src = a.getAttribute('href');
+  viewer.showModal();
+});
+viewer.addEventListener('click', () => viewer.close());
+const initial = location.hash.slice(1);
+show(document.querySelector('.tabs button[data-tab="' + initial + '"]')
+  ? initial : document.querySelector('.tabs button').dataset.tab);"""
 
         print(
             '<html><head><style type="text/css">%s</style></head><body>' % css,
             file=file,
         )
 
-        for i in reports:
-            print(
-                '<div id="head"><h1>%s </h1><h2>%s</h2><div><div id="graphs">'
-                % (i[0], i[3]),
-                file=file,
-            )
-            for g in range(num_generations):
+        print('<div class="tabs">', file=file)
+        for category in categories:
+            print('<button data-tab="%s">%s</button>' % (category, category), file=file)
+        print("</div>", file=file)
+
+        for category in categories:
+            print('<div class="pane" data-tab="%s">' % category, file=file)
+            for i in reports:
+                if i[5]["category"] != category:
+                    continue
                 print(
-                    '<a href="%s_%04d.png"><img src="%s_%04d_thumb.png"></a>'
-                    % (i[0], g, i[0], g),
+                    '<div><h2>%s </h2><span class="desc">%s</span><div class="graphs">'
+                    % (i[0], i[3]),
                     file=file,
                 )
+                for g in range(num_generations):
+                    print(
+                        '<a href="%s_%04d.png"><img loading="lazy" src="%s_%04d_thumb.png"></a>'
+                        % (i[0], g, i[0], g),
+                        file=file,
+                    )
+                print("</div></div>", file=file)
             print("</div>", file=file)
 
+        print('<dialog id="viewer"><img id="full"></dialog>', file=file)
+        print("<script>%s</script>" % script, file=file)
         print("</body></html>", file=file)
 
 
+def write_generation(path: Path, rows: list[str]) -> None:
+    with open(path, "w") as f:
+        f.writelines(rows)
+
+
 def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
-    thread_pool = ThreadPool(num_threads)
+    pool = Pool(num_threads)
     output_dir.mkdir(parents=True, exist_ok=True)
     g = 0
-    with open(input_file) as stat, open(output_dir / f"counters.{g:04}.dat", "w+") as data_out:
+    with open(input_file) as stat:
         print("looking for stats header")
         while True:
             line = stat.readline()
@@ -317,24 +362,27 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
         print("found")
         keys = line.split("session stats header:")[1].strip().split(", ")
 
-        idx = 0
+        rows: list[str] = []
         for line in stat:
             if "session stats (" not in line:
                 continue
-            data_out.write(
-                f"{idx}\t" + line.split(" values): ")[1].strip().replace(", ", "\t")
+            rows.append(
+                f"{len(rows)}\t" + line.split(" values): ")[1].strip().replace(", ", "\t")
                 + "\n"
             )
-            idx += 1
-            if idx >= 3600:
+            if len(rows) >= 3600:
+                write_generation(output_dir / f"counters.{g:04}.dat", rows)
                 g += 1
-                data_out.close()
-                data_out = open(output_dir / f"counters.{g:04}.dat", "w+")
-                idx = 0
+                rows = []
 
-    num_generations = g + 1
+    # an input without samples still gets one (empty) generation
+    if rows or g == 0:
+        write_generation(output_dir / f"counters.{g:04}.dat", rows)
+        g += 1
 
-    reports: list[tuple[str, str, str, str, list[str], dict[str, int]]] = [
+    num_generations = g
+
+    reports: list[tuple[str, str, str, str, list[str], dict[str, Any]]] = [
         (
             "torrents",
             "num",
@@ -350,7 +398,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
                 "ses.num_queued_seeding_torrents",
                 "ses.num_queued_download_torrents",
             ],
-            {"type": stacked},
+            {"category": "bittorrent", "type": stacked},
         ),
         (
             "peers",
@@ -358,7 +406,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
             "",
             "num connected peers",
             ["peer.num_peers_connected", "peer.num_peers_half_open"],
-            {"type": stacked},
+            {"category": "network", "type": stacked},
         ),
         (
             "peers_max",
@@ -366,7 +414,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
             "",
             "num connected peers",
             ["peer.num_peers_connected", "peer.num_peers_half_open"],
-            {},
+            {"category": "network"},
         ),
         (
             "peer_churn",
@@ -380,7 +428,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
                 "peer.missed_connection_attempts",
                 "peer.no_peer_connection_attempts",
             ],
-            {},
+            {"category": "network"},
         ),
         (
             "new_peers",
@@ -388,7 +436,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
             "",
             "",
             ["peer.incoming_connections", "peer.connection_attempts"],
-            {},
+            {"category": "network", "cumulative": 1},
         ),
         (
             "connection_attempts",
@@ -396,7 +444,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
             "",
             "",
             ["peer.connection_attempt_loops", "peer.connection_attempts"],
-            {},
+            {"category": "network", "cumulative": 1},
         ),
         (
             "pieces",
@@ -408,7 +456,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
                 "ses.num_piece_passed",
                 "ses.num_piece_failed",
             ],
-            {},
+            {"category": "bittorrent", "cumulative": 1},
         ),
         (
             "disk_write_queue",
@@ -416,7 +464,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
             "B",
             "bytes queued up by peers, to be written to disk",
             ["disk.queued_write_bytes"],
-            {},
+            {"category": "disk"},
         ),
         (
             "peers_requests",
@@ -430,7 +478,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
                 "peer.choked_piece_requests",
                 "peer.cancelled_piece_requests",
             ],
-            {},
+            {"category": "bittorrent", "cumulative": 1},
         ),
         (
             "peers_upload",
@@ -445,7 +493,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
                 "peer.num_peers_up_unchoked",
                 "peer.num_peers_up_requests",
             ],
-            {},
+            {"category": "bittorrent"},
         ),
         (
             "peers_download",
@@ -458,7 +506,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
                 "peer.num_peers_down_requests",
                 "peer.num_peers_down_disk",
             ],
-            {},
+            {"category": "bittorrent"},
         ),
         (
             "peer_errors",
@@ -480,7 +528,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
                 "peer.invalid_arg_peers",
                 "peer.aborted_peers",
             ],
-            {"type": stacked},
+            {"category": "network", "type": stacked, "cumulative": 1},
         ),
         (
             "peer_errors_incoming",
@@ -488,7 +536,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
             "",
             "number of peers by incoming or outgoing connection",
             ["peer.error_incoming_peers", "peer.error_outgoing_peers"],
-            {},
+            {"category": "network", "cumulative": 1},
         ),
         (
             "peer_errors_transport",
@@ -496,7 +544,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
             "",
             "number of peers by transport protocol",
             ["peer.error_tcp_peers", "peer.error_utp_peers"],
-            {},
+            {"category": "network", "cumulative": 1},
         ),
         (
             "peer_errors_encryption",
@@ -507,7 +555,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
                 "peer.error_encrypted_peers",
                 "peer.error_rc4_peers",
             ],
-            {},
+            {"category": "network", "cumulative": 1},
         ),
         (
             "incoming requests",
@@ -515,7 +563,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
             "",
             "incoming 16kiB block requests",
             ["ses.num_incoming_request"],
-            {},
+            {"category": "bittorrent", "cumulative": 1},
         ),
         (
             "waste",
@@ -527,7 +575,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
                 "net.recv_redundant_bytes",
                 "net.recv_ip_overhead_bytes",
             ],
-            {"type": stacked},
+            {"category": "bittorrent", "type": stacked, "cumulative": 1},
         ),
         (
             "waste by source",
@@ -542,15 +590,21 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
                 "ses.waste_piece_end_game",
                 "ses.waste_piece_closing",
             ],
-            {"type": stacked},
+            {"category": "bittorrent", "type": stacked, "cumulative": 1},
         ),
         (
             "disk_time",
             "% of total disk job time",
-            "%%",
+            "%",
             "proportion of time spent by the disk thread",
             ["disk.disk_read_time", "disk.disk_write_time", "disk.disk_hash_time"],
-            {"type": stacked},
+            {
+                "category": "disk",
+                "type": stacked,
+                "cumulative": 1,
+                "normalize": "disk.disk_job_time",
+                "scale": 100,
+            },
         ),
         (
             "disk_queue",
@@ -564,7 +618,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
                 "disk.queued_disk_jobs",
                 "disk.blocked_disk_jobs",
             ],
-            {},
+            {"category": "disk"},
         ),
         (
             "disk fences",
@@ -572,7 +626,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
             "",
             "number of jobs currently blocked by a fence job",
             ["disk.blocked_disk_jobs"],
-            {},
+            {"category": "disk"},
         ),
         (
             "fence jobs",
@@ -590,7 +644,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
                 "disk.num_fenced_file_priority",
                 "disk.num_fenced_clear_piece",
             ],
-            {"type": stacked},
+            {"category": "disk", "type": stacked},
         ),
         (
             "disk threads",
@@ -598,7 +652,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
             "",
             "number of disk threads currently writing",
             ["disk.num_writing_threads", "disk.num_running_threads"],
-            {},
+            {"category": "disk"},
         ),
         (
             "connection_type",
@@ -616,7 +670,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
                 "peer.num_ssl_http_proxy_peers",
                 "peer.num_ssl_utp_peers",
             ],
-            {},
+            {"category": "network"},
         ),
         # (
         #     "uTP delay",
@@ -665,7 +719,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
                 "utp.utp_invalid_pkts_in",
                 "utp.utp_redundant_pkts_in",
             ],
-            {"type": stacked},
+            {"category": "network", "type": stacked, "cumulative": 1},
         ),
         (
             "boost.asio messages",
@@ -682,7 +736,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
                 "net.on_accept_counter",
                 "net.on_disk_counter",
             ],
-            {"type": stacked},
+            {"category": "network", "type": stacked, "cumulative": 1},
         ),
         (
             "send_buffer_sizes",
@@ -709,7 +763,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
                 "sock_bufs.socket_send_size19",
                 "sock_bufs.socket_send_size20",
             ],
-            {"type": stacked, "gradient": 18},
+            {"category": "network", "type": stacked, "gradient": 18, "cumulative": 1},
         ),
         (
             "recv_buffer_sizes",
@@ -736,15 +790,15 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
                 "sock_bufs.socket_recv_size19",
                 "sock_bufs.socket_recv_size20",
             ],
-            {"type": stacked, "gradient": 18},
+            {"category": "network", "type": stacked, "gradient": 18, "cumulative": 1},
         ),
         (
             "request latency",
-            "us",
-            "",
+            "latency",
+            "s",
             "latency from receiving requests to sending response",
             ["disk.request_latency"],
-            {},
+            {"category": "disk", "scale": 1e-6},
         ),
         (
             "disk_read_latency",
@@ -774,7 +828,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
                 "disk.disk_read_latency19",
                 "disk.disk_read_latency20",
             ],
-            {"type": stacked, "gradient": 20},
+            {"category": "disk", "type": stacked, "gradient": 20, "cumulative": 1},
         ),
         (
             "incoming messages",
@@ -802,7 +856,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
                 "ses.num_incoming_metadata",
                 "ses.num_incoming_extended",
             ],
-            {"type": stacked},
+            {"category": "bittorrent", "type": stacked, "cumulative": 1},
         ),
         (
             "outgoing messages",
@@ -830,7 +884,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
                 "ses.num_outgoing_metadata",
                 "ses.num_outgoing_extended",
             ],
-            {"type": stacked},
+            {"category": "bittorrent", "type": stacked, "cumulative": 1},
         ),
         (
             "request in balance",
@@ -842,7 +896,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
                 "ses.num_outgoing_piece",
                 "ses.num_outgoing_reject",
             ],
-            {"type": diff},
+            {"category": "bittorrent", "type": diff},
         ),
         (
             "request out balance",
@@ -854,7 +908,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
                 "ses.num_incoming_piece",
                 "ses.num_incoming_reject",
             ],
-            {"type": diff},
+            {"category": "bittorrent", "type": diff},
         ),
         (
             "piece_picker_invocations",
@@ -871,7 +925,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
                 "picker.interesting_piece_picks",
                 "picker.hash_fail_piece_picks",
             ],
-            {"type": stacked},
+            {"category": "bittorrent", "type": stacked, "cumulative": 1},
         ),
         (
             "piece_picker_loops",
@@ -888,7 +942,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
                 "picker.piece_picker_rand_loops",
                 "picker.piece_picker_busy_loops",
             ],
-            {"type": stacked},
+            {"category": "bittorrent", "type": stacked, "cumulative": 1},
         ),
         (
             "async_accept",
@@ -896,7 +950,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
             "",
             "",
             ["ses.num_outstanding_accept"],
-            {},
+            {"category": "network"},
         ),
         (
             "queued_trackers",
@@ -904,7 +958,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
             "",
             "",
             ["tracker.num_queued_tracker_announces"],
-            {},
+            {"category": "bittorrent"},
         ),
         (
             "file_pool_size",
@@ -912,7 +966,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
             "",
             "",
             ["disk.file_pool_size"],
-            {},
+            {"category": "disk"},
         ),
         (
             "file_pool_misses",
@@ -920,7 +974,7 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
             "",
             "",
             ["disk.file_pool_misses", "disk.file_pool_thread_stall", "disk.file_pool_race"],
-            {},
+            {"category": "disk", "cumulative": 1},
         ),
         # (
         #     "picker_full_partials_distribution",
@@ -940,27 +994,42 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
         # ),
         (
             "disk_cache",
-            "disk cache size",
+            "blocks",
             "",
             "",
-            [ "disk.cached_blocks", "disk.disk_blocks_in_use", "disk.num_unhashed" ]
+            [ "disk.cached_blocks", "disk.disk_blocks_in_use", "disk.num_unhashed" ],
+            {"category": "disk"},
         ),
         (
             "disk_io",
             "disk operations",
             "",
             "",
-            [ "disk.num_write_ops", "disk.num_read_back", "disk.num_blocks_hashed"]
+            [ "disk.num_write_ops", "disk.num_read_back", "disk.num_blocks_hashed"],
+            {"category": "disk", "cumulative": 1},
+        ),
+        (
+            "blocks per read op",
+            "blocks per read call",
+            "",
+            "average number of blocks read per read operation",
+            ["disk.num_blocks_read"],
+            {"category": "disk", "cumulative": 1, "normalize": "disk.num_read_ops"},
+        ),
+        (
+            "blocks per write op",
+            "blocks per write call",
+            "",
+            "average number of blocks written per read operation",
+            ["disk.num_blocks_written"],
+            {"category": "disk", "cumulative": 1, "normalize": "disk.num_write_ops"},
         ),
     ]
 
     print("generating graphs")
 
-    scripts = []
-    g = 0
-
     for g in range(num_generations):
-        scripts: list[Path] = []
+        tasks = []
         print(f"[{' ' * len(reports)}] {g:04}\r[", end="", flush=True)
         for rep in reports:
             try:
@@ -970,24 +1039,26 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
             if "type" not in options:
                 options["type"] = line_graph
 
-            script = gen_report(
-                output_dir,
-                keys,
-                rep[0],
-                rep[1],
-                rep[4],
-                rep[2],
-                g,
-                output_dir / f"counters.{g:04}.dat",
-                options,
+            tasks.append(
+                (
+                    output_dir,
+                    keys,
+                    rep[0],
+                    rep[1],
+                    rep[4],
+                    rep[2],
+                    rep[3],
+                    g,
+                    output_dir / f"counters.{g:04}.dat",
+                    options,
+                )
             )
-            if script is not None:
-                scripts.append(script)
 
-        # run gnuplot on all scripts, in parallel
-        thread_pool.map(plot_fun, scripts)
-        scripts = []
+        pool.starmap(gen_report, tasks)
         print()
+
+    pool.close()
+    pool.join()
 
     print("\ngenerating html")
     gen_html(reports, num_generations, output_dir)
@@ -1001,7 +1072,7 @@ if __name__ == "__main__":
         help="libtorrent log file to parse. It must include the session_stats log entries",
     )
     p.add_argument(
-        "--threads", default=8, type=int, help="The number of threads to run gnuplot in"
+        "--threads", default=os.cpu_count() or 1, type=int, help="The number of processes to render graphs in"
     )
     p.add_argument(
         "--output-dir",

@@ -361,6 +361,7 @@ def render_chart(
     *,
     palette: str | None = None,
     baseline: float | None = None,
+    higher_is_better: bool = True,
 ) -> bool:
     """Render a grouped bar chart of `rate_field` (backends along the x
     axis, one bar per torrent variant within each group) to `out_path` as
@@ -373,6 +374,8 @@ def render_chart(
     `baseline`, when set, pins the y-axis lower limit (the bars are drawn
     from 0 but clipped to this limit, so they appear anchored to it instead
     of to matplotlib's autoscaled floor).
+    `higher_is_better` selects the arrow and wording appended to the y-axis
+    label, so the reader can tell which direction is the good one.
     """
     try:
         import matplotlib
@@ -423,7 +426,16 @@ def render_chart(
     ax.set_xticks(x_base)
     ax.set_xticklabels(backends)
     ax.set_xlabel("disk I/O backend")
+    # the y label is rotated 90 degrees counterclockwise, so a right arrow
+    # points up on the page and a left arrow points down
+    arrow, better = (
+        ("\u2192", "higher") if higher_is_better else ("\u2190", "lower")
+    )
     ax.set_ylabel(ylabel)
+    # a tick-less twin axis, used only to carry the direction label
+    ax2 = ax.twinx()
+    ax2.set_yticks([])
+    ax2.set_ylabel(f"{arrow} {better} is better")
     ax.set_title(title)
     ax.legend(title="variant")
     fig.tight_layout()
@@ -570,7 +582,7 @@ def update_results(
         if render_chart(
             mode_results, "max_rss_mib", mem_title,
             benchmarks_dir / mem_chart, ylabel="MiB",
-            palette="viridis", baseline=1.0,
+            palette="viridis", baseline=1.0, higher_is_better=False,
         ):
             doc_parts.append(
                 f".. image:: {mem_chart}\n"
@@ -823,6 +835,14 @@ def main() -> None:
     )
 
     args = p.parse_args()
+
+    # not created on demand: a missing path is usually an unmounted volume,
+    # and creating it would silently benchmark the root filesystem instead
+    if not args.save_path.is_dir():
+        raise SystemExit(
+            f"ERROR: --save-path {args.save_path} does not exist or is not a"
+            " directory. Is the volume mounted?"
+        )
 
     check_perf_environment()
     # evaluate both eagerly (not "or") so both warnings get printed before
