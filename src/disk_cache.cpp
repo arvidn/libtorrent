@@ -298,9 +298,9 @@ insert_result_flags disk_cache::insert(piece_location const loc,
 		== std::min(default_block_size, params.piece_size - block_idx * default_block_size));
 	// All write jobs must use the same disk buffer allocator
 	if (!m_allocator)
-		m_allocator = wjob.buf.m_allocator;
+		m_allocator = wjob.buf.allocator();
 	else
-		TORRENT_ASSERT(m_allocator == wjob.buf.m_allocator);
+		TORRENT_ASSERT(m_allocator == wjob.buf.allocator());
 
 	// captured while wjob.buf is in scope, before any move that may empty
 	// it. flush reads through this without the cache mutex (see write_buf()).

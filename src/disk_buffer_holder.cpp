@@ -8,22 +8,57 @@ see LICENSE file.
 */
 
 #include "libtorrent/disk_buffer_holder.hpp"
+#include <cstdint>
 #include <utility>
 
 namespace libtorrent {
 
-	disk_buffer_holder::disk_buffer_holder(
-		buffer_allocator_interface& alloc, char* const buf) noexcept
-		: m_allocator(&alloc)
-		, m_buf(buf)
-	{}
+namespace {
 
-	disk_buffer_holder::disk_buffer_holder(disk_buffer_holder&& h) noexcept
-		: m_allocator(h.m_allocator)
-		, m_buf(h.m_buf)
-	{
-		h.m_buf = nullptr;
-	}
+// the bit marks the exclusive case, so that a holder with no allocator reads
+// as non-exclusive, which is the conservative answer
+constexpr std::uintptr_t exclusive_bit = 1;
+static_assert(alignof(buffer_allocator_interface) > exclusive_bit,
+	"no spare low bit in buffer_allocator_interface*");
+}
+
+buffer_allocator_interface* disk_buffer_holder::allocator() const noexcept
+{
+	return reinterpret_cast<buffer_allocator_interface*>(
+		reinterpret_cast<std::uintptr_t>(m_allocator) & ~exclusive_bit);
+}
+
+bool disk_buffer_holder::is_exclusive() const noexcept
+{
+	return (reinterpret_cast<std::uintptr_t>(m_allocator) & exclusive_bit) != 0;
+}
+
+void disk_buffer_holder::swap(disk_buffer_holder& h) noexcept
+{
+	using std::swap;
+	swap(h.m_allocator, m_allocator);
+	swap(h.m_buf, m_buf);
+}
+
+disk_buffer_holder::disk_buffer_holder(buffer_allocator_interface& alloc, char* const buf) noexcept
+	: disk_buffer_holder(alloc, buf, false)
+{}
+
+disk_buffer_holder::disk_buffer_holder(
+	buffer_allocator_interface& alloc, char* const buf, bool const exclusive) noexcept
+	: m_allocator(reinterpret_cast<buffer_allocator_interface*>(
+		  reinterpret_cast<std::uintptr_t>(&alloc) | (exclusive ? exclusive_bit : 0)))
+	, m_buf(buf)
+{}
+
+disk_buffer_holder::disk_buffer_holder(disk_buffer_holder&& h) noexcept
+	: m_allocator(h.m_allocator)
+	, m_buf(h.m_buf)
+{
+	h.m_buf = nullptr;
+	// a holder with no buffer must not claim exclusive access to one
+	h.m_allocator = h.allocator();
+}
 
 	disk_buffer_holder& disk_buffer_holder::operator=(disk_buffer_holder&& h) & noexcept
 	{
@@ -34,15 +69,17 @@ namespace libtorrent {
 
 	void disk_buffer_holder::reset()
 	{
-		if (m_buf) m_allocator->free_disk_buffer(m_buf);
+		if (m_buf)
+			allocator()->free_disk_buffer(m_buf);
 		m_buf = nullptr;
+		m_allocator = allocator();
 	}
 
 #if TORRENT_DEBUG_BUFFER_POOL
 	void disk_buffer_holder::rename(char const* category)
 	{
 		if (m_buf != nullptr)
-			m_allocator->rename_buffer(m_buf, category);
+			allocator()->rename_buffer(m_buf, category);
 	}
 #endif
 

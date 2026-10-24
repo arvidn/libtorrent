@@ -115,6 +115,11 @@ struct test_disk
 	// after having written this many bytes, fail with disk-full
 	int space_left = std::numeric_limits<int>::max();
 
+	// number of read buffers handed to the engine non-exclusively. Asserted
+	// non-zero, so a test cannot pass without having exercised that path. A
+	// shared_ptr for the same reason as num_hash_calls
+	std::shared_ptr<int> non_exclusive_reads = std::make_shared<int>(0);
+
 	// number of async_hash()/async_hash2() calls dispatched so far. A
 	// shared_ptr so it keeps counting across the copies test_disk's fluent
 	// setters make, and so the caller can read it back after handing a

@@ -319,25 +319,27 @@ namespace libtorrent::aux {
 #endif
 
 	public:
-		// these functions encrypt the send buffer if m_rc4_encrypted
-		// is true, otherwise it passes the call to the
-		// peer_connection functions of the same names
+		// the Holder must provide bool is_exclusive() const: a buffer whose
+		// owner may hand it out again cannot go out by reference while
+		// hit_send_barrier() encrypts in place
 		template <typename Holder>
-		void append_const_send_buffer(Holder holder, int size)
+		void append_const_send_buffer(Holder holder, int const size)
 		{
 #if !defined TORRENT_DISABLE_ENCRYPTION
-			if (!m_enc_handler.is_send_plaintext())
+			if (m_enc_handler.mutates_send_buffer() && !holder.is_exclusive())
 			{
-				// if we're encrypting this buffer, we need to make a copy
-				// since we'll mutate it
-				aux::buffer buf(size, {holder.data(), size});
-				append_send_buffer(std::move(buf), size);
+				append_send_buffer(aux::buffer(size, {holder.data(), size}), size);
+				return;
 			}
-			else
 #endif
-			{
-				append_send_buffer(std::move(holder), size);
-			}
+			append_send_buffer(std::move(holder), size);
+		}
+
+		// append bytes the caller keeps alive until they have been sent, and
+		// that this connection must not modify
+		void append_const_send_buffer(span<char const> buf)
+		{
+			append_const_send_buffer(borrowed_buffer(buf), int(buf.size()));
 		}
 
 	private:

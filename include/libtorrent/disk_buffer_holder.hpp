@@ -62,8 +62,17 @@ namespace libtorrent {
 
 		// construct a buffer holder that will free the held buffer
 		// using a disk buffer pool directly (there's only one
-		// disk_buffer_pool per session)
+		// disk_buffer_pool per session).
+		//
+		// ``exclusive`` declares that this block is the caller's alone: the disk
+		// subsystem has not handed it to anyone else and will not hand it out
+		// again. A disk_interface serving a read out of a buffer it keeps, or
+		// may hand out again, must leave it false; one returning a freshly
+		// allocated block should pass true. When it is false the engine copies
+		// the block before anything that would modify it in place. The
+		// two-argument overload implies false.
 		disk_buffer_holder(buffer_allocator_interface& alloc, char* buf) noexcept;
+		disk_buffer_holder(buffer_allocator_interface& alloc, char* buf, bool exclusive) noexcept;
 
 		// default construct a holder that does not own any buffer
 		disk_buffer_holder() noexcept = default;
@@ -79,15 +88,11 @@ namespace libtorrent {
 		void reset();
 
 		// swap pointers of two disk buffer holders.
-		void swap(disk_buffer_holder& h) noexcept
-		{
-			using std::swap;
-			swap(h.m_allocator, m_allocator);
-			swap(h.m_buf, m_buf);
-		}
+		void swap(disk_buffer_holder& h) noexcept;
 
-		// if this returns true, the buffer may not be modified in place
-		bool is_mutable() const noexcept { return false; }
+		// true if nothing else references this buffer, so it may be modified
+		// in place
+		bool is_exclusive() const noexcept;
 
 		// implicitly convertible to true if the object is currently holding a
 		// buffer
@@ -102,6 +107,11 @@ namespace libtorrent {
 		friend struct disk_buffer_ref;
 		friend struct aux::disk_cache;
 
+		buffer_allocator_interface* allocator() const noexcept;
+
+		// the low bit records an exclusively owned buffer, keeping this class
+		// down to two pointers. Every member that touches it is defined
+		// out-of-line, so the tagging stays invisible to callers
 		buffer_allocator_interface* m_allocator = nullptr;
 		char* m_buf = nullptr;
 	};

@@ -20,6 +20,7 @@ see LICENSE file.
 #include "libtorrent/load_torrent.hpp"
 #include "libtorrent/span.hpp"
 
+#include <map>
 #include <utility> // for exchange()
 
 namespace {
@@ -415,9 +416,10 @@ struct test_disk_io final : lt::disk_interface
 
 	void abort(bool) override {}
 
-	void async_read(lt::storage_index_t const storage, lt::peer_request const& r
-		, std::function<void(lt::disk_buffer_holder block, lt::storage_error const& se)> h
-		, lt::disk_job_flags_t) override
+	void async_read(lt::storage_index_t const storage,
+		lt::peer_request const& r,
+		std::function<void(lt::disk_buffer_holder block, lt::storage_error const& se)> h,
+		lt::disk_job_flags_t const flags) override
 	{
 		TORRENT_ASSERT(static_cast<std::uint32_t>(storage) == 0);
 		TORRENT_ASSERT(m_files);
@@ -429,25 +431,45 @@ struct test_disk_io final : lt::disk_interface
 
 		auto const seek_time = disk_seek(r.piece, r.start, lt::default_block_size);
 
-		queue_event(seek_time + m_state.read_time, [this, r, h = std::move(h)]() mutable {
-			lt::disk_buffer_holder buf(*this, new char[lt::default_block_size]);
+		queue_event(seek_time + m_state.read_time, [this, r, flags, h = std::move(h)]() mutable {
+			bool const have = m_have.get_bit(block_index(r));
+			bool const stored_corrupt = m_corrupt.get_bit(block_index(r));
 
-			if (m_corrupt.get_bit(block_index(r)))
+			// corrupt_data_in must advance once per read of a block we have,
+			// regardless of how the read is served
+			bool inject_corrupt = false;
+			if (!stored_corrupt && have)
+			{
+				bool const piece_matches = m_state.corrupt_piece == lt::piece_index_t{-1}
+					|| r.piece == m_state.corrupt_piece;
+				if (piece_matches && m_state.corrupt_data_in-- <= 0)
+					inject_corrupt = true;
+			}
+
+			// a back end serving reads out of a cache cannot claim exclusive
+			// access to what it hands out. Modelling that holds the engine to
+			// the non-exclusive contract in every simulation
+			bool const exclusive = !have || stored_corrupt || inject_corrupt
+				|| bool(flags & lt::disk_interface::force_copy);
+
+			lt::disk_buffer_holder buf(*this, new char[lt::default_block_size], exclusive);
+
+			if (stored_corrupt || inject_corrupt)
 			{
 				// a real disk returns whatever wrong bytes were actually
 				// stored, not uninitialized memory
 				lt::aux::random_bytes({buf.data(), r.length});
 			}
-			else if (m_have.get_bit(block_index(r)))
+			else if (have)
 			{
-				bool const piece_matches = m_state.corrupt_piece == lt::piece_index_t{-1}
-					|| r.piece == m_state.corrupt_piece;
-				if (piece_matches && m_state.corrupt_data_in-- <= 0)
-					lt::aux::random_bytes({buf.data(), r.length});
-				else
-					generate_block(buf.data(), r
-						, pads_in_req(m_pad_bytes, r, m_files->piece_size(r.piece))
-						, m_files->piece_size(r.piece));
+				int const piece_size = m_files->piece_size(r.piece);
+				int const pad_bytes = pads_in_req(m_pad_bytes, r, piece_size);
+				generate_block(buf.data(), r, pad_bytes, piece_size);
+				if (!exclusive)
+				{
+					m_tracked[buf.data()] = {r, pad_bytes, piece_size};
+					++*m_state.non_exclusive_reads;
+				}
 			}
 
 			post(m_ioc, [h=std::move(h), b=std::move(buf)] () mutable { h(std::move(b), lt::storage_error{}); });
@@ -749,12 +771,18 @@ struct test_disk_io final : lt::disk_interface
 	// implements buffer_allocator_interface
 	void free_disk_buffer(char* buf) override
 	{
+		auto const i = m_tracked.find(buf);
+		if (i != m_tracked.end())
+		{
+			check_intact(i->second, buf);
+			m_tracked.erase(i);
+		}
 		delete[] buf;
 	}
 	void free_multiple_buffers(lt::span<char*> bufvec) override
 	{
 		for (auto buf : bufvec)
-			delete[] buf;
+			free_disk_buffer(buf);
 	}
 
 	void update_stats_counters(lt::counters&) const override {}
@@ -776,6 +804,26 @@ private:
 	int block_index(lt::peer_request const& r) const
 	{
 		return static_cast<int>(r.piece) * m_blocks_per_piece + r.start / lt::default_block_size;
+	}
+
+	// enough to regenerate the content, cheaper than keeping a copy of it
+	struct tracked_buffer
+	{
+		lt::peer_request req;
+		int pad_bytes = 0;
+		int piece_size = 0;
+	};
+
+	void check_intact(tracked_buffer const& b, char const* buf)
+	{
+		std::array<char, lt::default_block_size> expected;
+		generate_block(expected.data(), b.req, b.pad_bytes, b.piece_size);
+		if (std::memcmp(buf, expected.data(), std::size_t(b.req.length)) == 0)
+			return;
+
+		TEST_ERROR("engine modified a disk buffer it was handed non-exclusively, piece "
+			+ std::to_string(static_cast<int>(b.req.piece)) + " offset "
+			+ std::to_string(b.req.start));
 	}
 
 	bool validate_block(lt::file_storage const& fs, char const* b, lt::peer_request const& r) const
@@ -882,6 +930,9 @@ private:
 	lt::io_context& m_ioc;
 
 	std::unordered_map<lt::piece_index_t, int> m_pad_bytes;
+
+	// non-exclusive read buffers not yet freed
+	std::map<char*, tracked_buffer> m_tracked;
 };
 
 std::unique_ptr<lt::disk_interface> test_disk::operator()(

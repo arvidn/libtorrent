@@ -96,6 +96,9 @@ public:
 	char const* data() const { return m_begin; }
 	difference_type size() const { return m_size; }
 
+	// owns its allocation, so nothing else can reference it
+	bool is_exclusive() const { return true; }
+
 	bool empty() const { return m_size == 0; }
 	char& operator[](index_type const i) { TORRENT_ASSERT(i < size()); return m_begin[i]; }
 	char const& operator[](difference_type const i) const { TORRENT_ASSERT(i < size()); return m_begin[i]; }

@@ -168,10 +168,10 @@ namespace file_open_mode {
 	// the constructor. The callbacks will be run in the network thread.
 	struct TORRENT_EXPORT disk_interface
 	{
-		// force making a copy of the cached block, rather than getting a
-		// reference to a block already in the cache. This is used when the block
-		// is expected to be overwritten very soon, by async_write(), and we need
-		// access to the previous content.
+		// return a copy of the block, not a reference into the cache. The
+		// returned buffer must still hold the content it was read with once the
+		// completion handler runs, even if the cache entry it came from has
+		// been overwritten or evicted by then.
 		static inline constexpr disk_job_flags_t force_copy = 0_bit;
 
 		// hint that there may be more disk operations with sequential access to

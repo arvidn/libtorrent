@@ -215,6 +215,7 @@ run test_similar_torrent.cpp ;
 run test_truncate.cpp ;
 run test_copy_file.cpp ;
 run test_disk_cache.cpp ;
+run test_disk_buffer_holder.cpp ;
 
 # turn these tests into simulations
 run test_resume.cpp ;
