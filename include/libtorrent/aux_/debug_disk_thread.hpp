@@ -101,8 +101,21 @@ inline std::string print_job(aux::disk_job const& j)
 
 	std::stringstream ss;
 	std::visit(print_visitor(ss), j.action);
-	if (j.flags & aux::disk_job::fence) ss << "fence ";
+	if (j.state & aux::disk_job::fence)
+		ss << "fence ";
+	if (j.state & aux::disk_job::in_progress)
+		ss << "in_progress ";
+	if (j.state & aux::disk_job::aborted)
+		ss << "aborted ";
 	if (j.flags & disk_interface::force_copy) ss << "force_copy ";
+	if (j.flags & disk_interface::sequential_access)
+		ss << "sequential_access ";
+	if (j.flags & disk_interface::volatile_read)
+		ss << "volatile_read ";
+	if (j.flags & disk_interface::v1_hash)
+		ss << "v1_hash ";
+	if (j.flags & disk_interface::flush_piece)
+		ss << "flush_piece ";
 	return ss.str();
 }
 

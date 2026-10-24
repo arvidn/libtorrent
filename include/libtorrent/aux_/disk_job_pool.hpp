@@ -37,6 +37,7 @@ namespace aux {
 			disk_job j{
 				tailqueue_node<disk_job>{},
 				flags,
+				disk_job_state_t{},
 				status_t{},
 				storage_error{},
 				JobType{std::forward<Args>(args)...},

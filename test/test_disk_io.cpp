@@ -1577,7 +1577,7 @@ TORRENT_TEST(pread_disk_io_collect_read_batch)
 
 		lt::aux::pread_disk_job other;
 		set_read_job(other, storage_a, lt::piece_index_t(0), 16384, 16384);
-		other.flags |= lt::aux::disk_job::aborted;
+		other.state |= lt::aux::disk_job::aborted;
 		pool.push_back(&other);
 
 		lt::jobqueue_t batch;

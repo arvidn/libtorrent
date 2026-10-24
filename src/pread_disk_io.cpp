@@ -461,10 +461,7 @@ void pread_disk_io::abort(bool const wait)
 	// abort outstanding jobs belonging to this torrent
 
 	DLOG("aborting hash jobs\n");
-	m_hash_threads.visit_jobs([](aux::disk_job* j)
-	{
-		j->flags |= aux::disk_job::aborted;
-	});
+	m_hash_threads.visit_jobs([](aux::disk_job* j) { j->state |= aux::disk_job::aborted; });
 	l.unlock();
 
 	// no maintenance once teardown has started. The destructor joins the
@@ -562,7 +559,7 @@ status_t pread_disk_io::do_job(aux::job::partial_read& a, aux::pread_disk_job* j
 		m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
 	}
 
-	TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
+	TORRENT_ASSERT((j->state & aux::disk_job::in_progress) || !j->storage);
 	return status_t{};
 }
 
@@ -596,7 +593,7 @@ status_t pread_disk_io::do_job(aux::job::read& a, aux::pread_disk_job* j)
 		m_stats_counters.inc_stats_counter(counters::disk_read_time, read_time);
 		m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
 	}
-	TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
+	TORRENT_ASSERT((j->state & aux::disk_job::in_progress) || !j->storage);
 	return status_t{};
 }
 
@@ -664,7 +661,7 @@ void pread_disk_io::execute_read_batch(jobqueue_t jobs)
 		auto* const j = static_cast<aux::pread_disk_job*>(jobs.pop_front());
 		j->error = result;
 		j->ret = ret;
-		TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
+		TORRENT_ASSERT((j->state & aux::disk_job::in_progress) || !j->storage);
 		completed_jobs.push_back(j);
 	}
 	add_completed_jobs(std::move(completed_jobs));
@@ -947,7 +944,7 @@ void pread_disk_io::kick_write_hashers()
 		// set, e.g. it arrived from the fence backlog) must not be re-registered
 		// with the fence -- run it directly. With no hash threads everything runs
 		// inline here anyway. Otherwise it's a fresh job; add_job() handles it.
-		if (j->flags & aux::disk_job::in_progress)
+		if (j->state & aux::disk_job::in_progress)
 			execute_job(j);
 		else
 			add_job(j);
@@ -1139,7 +1136,7 @@ void pread_disk_io::abort_hash_jobs(storage_index_t const storage)
 		// really gain from being cancelled. They can also be restarted
 		// easily.
 		if (j->flags & disk_interface::volatile_read)
-			j->flags |= aux::disk_job::aborted;
+			j->state |= aux::disk_job::aborted;
 	});
 }
 
@@ -1754,7 +1751,7 @@ void pread_disk_io::add_fence_job(aux::pread_disk_job* j, bool const user_add)
 		std::unique_lock<std::mutex> l(m_job_mutex);
 		if (ret == aux::disk_job_fence::fence_post_fence)
 		{
-			TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
+			TORRENT_ASSERT((j->state & aux::disk_job::in_progress) || !j->storage);
 			m_generic_threads.push_back(j);
 		}
 
@@ -1799,7 +1796,7 @@ void pread_disk_io::add_job(aux::pread_disk_job* j, bool const user_add)
 		return;
 	}
 
-	TORRENT_ASSERT(!(j->flags & aux::disk_job::in_progress));
+	TORRENT_ASSERT(!(j->state & aux::disk_job::in_progress));
 
 	DLOG("add_job: %s (outstanding: %d)\n"
 		, print_job(*j).c_str()
@@ -1837,7 +1834,7 @@ void pread_disk_io::add_job(aux::pread_disk_job* j, bool const user_add)
 
 	std::unique_lock<std::mutex> l(m_job_mutex);
 
-	TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
+	TORRENT_ASSERT((j->state & aux::disk_job::in_progress) || !j->storage);
 
 	auto& q = pool_for_job(j);
 	q.push_back(j);
@@ -1888,7 +1885,7 @@ void pread_disk_io::submit_jobs()
 void pread_disk_io::execute_job(aux::pread_disk_job* j)
 {
 	jobqueue_t completed_jobs;
-	if (j->flags & aux::disk_job::aborted)
+	if (j->state & aux::disk_job::aborted)
 	{
 		j->ret = disk_status::fatal_disk_error;
 		j->error = storage_error(boost::asio::error::operation_aborted);
@@ -2185,7 +2182,7 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 				// is already set). Calling is_blocked() on a job that already has
 				// in_progress set would double-increment m_outstanding_jobs and
 				// would deadlock any pending fence.
-				if (j->storage && !(j->flags & aux::disk_job::in_progress)
+				if (j->storage && !(j->state & aux::disk_job::in_progress)
 					&& j->storage->is_blocked(j, m_stats_counters))
 				{
 					DLOG("blocked job: %s (torrent: %d total: %d)\n"
@@ -2240,7 +2237,7 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 		// bother scanning when there's something queued to look at.
 		jobqueue_t read_batch;
 		if (&pool == &m_generic_threads && j->get_type() == aux::job_action_t::read
-			&& !(j->flags & aux::disk_job::aborted) && !pool.empty())
+			&& !(j->state & aux::disk_job::aborted) && !pool.empty())
 		{
 			read_batch.push_back(j);
 			aux::collect_read_batch(j, pool, read_batch);
@@ -2248,7 +2245,7 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 
 		l.unlock();
 
-		TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
+		TORRENT_ASSERT((j->state & aux::disk_job::in_progress) || !j->storage);
 
 		if (read_batch.size() > 1)
 			execute_read_batch(std::move(read_batch));
@@ -2414,13 +2411,13 @@ void pread_disk_io::add_completed_jobs_impl(
 	{
 		auto* j = static_cast<aux::pread_disk_job*>(i.get());
 
-		if (j->flags & aux::disk_job::fence)
+		if (j->state & aux::disk_job::fence)
 		{
 			m_stats_counters.inc_stats_counter(
 				counters::num_fenced_read + static_cast<int>(j->get_type()), -1);
 		}
 
-		if (j->flags & aux::disk_job::in_progress)
+		if (j->state & aux::disk_job::in_progress)
 		{
 			TORRENT_ASSERT(j->storage);
 			if (j->storage) ret += j->storage->job_complete(j, repost);
@@ -2434,7 +2431,7 @@ void pread_disk_io::add_completed_jobs_impl(
 		// very writes) would wait forever. Queue the storage in m_fence_flush so a
 		// generic thread drains them, the same way add_fence_job() does when a fence
 		// is first raised over outstanding writes.
-		if ((j->flags & aux::disk_job::fence) && j->storage && j->storage->has_fence())
+		if ((j->state & aux::disk_job::fence) && j->storage && j->storage->has_fence())
 		{
 			std::lock_guard<std::mutex> l(m_job_mutex);
 			if (!j->storage->in_fence_flush())
@@ -2445,7 +2442,7 @@ void pread_disk_io::add_completed_jobs_impl(
 			need_fence_flush = true;
 		}
 
-		TORRENT_ASSERT(!(j->flags & aux::disk_job::in_progress));
+		TORRENT_ASSERT(!(j->state & aux::disk_job::in_progress));
 #if TORRENT_USE_ASSERTS
 		TORRENT_ASSERT(j->job_posted == false);
 		j->job_posted = true;
@@ -2498,7 +2495,7 @@ void pread_disk_io::add_completed_jobs_impl(
 			while (!ctx.to_pool.empty())
 			{
 				auto* j = static_cast<aux::pread_disk_job*>(ctx.to_pool.pop_front());
-				TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
+				TORRENT_ASSERT((j->state & aux::disk_job::in_progress) || !j->storage);
 				j->ret = disk_status::fatal_disk_error;
 				j->error = storage_error(boost::asio::error::operation_aborted);
 				completed.push_back(j);

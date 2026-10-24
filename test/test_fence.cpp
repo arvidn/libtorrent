@@ -219,13 +219,13 @@ TORRENT_TEST(disk_io_thread_pool_extract_matching)
 
 	disk_job test_job[6];
 
-	// tag job[0..2] as "matching" with an arbitrary flag bit, standing in for
+	// tag job[0..2] as "matching" with an arbitrary state bit, standing in for
 	// whatever real predicate a caller (e.g. collect_read_batch()) would use.
 	for (int i = 0; i < 3; ++i)
-		test_job[i].flags = aux::disk_job::in_progress;
+		test_job[i].state = aux::disk_job::in_progress;
 
 	auto const matches = [](aux::disk_job* j) {
-		return bool(j->flags & aux::disk_job::in_progress);
+		return bool(j->state & aux::disk_job::in_progress);
 	};
 
 	// stops at the first non-matching job, preserving queue order

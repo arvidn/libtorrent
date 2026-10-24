@@ -30,7 +30,7 @@ namespace aux {
 		// append each unblocked job to the queue (mmap_disk_io then dispatches
 		// them). A re-armed fence is prioritized, matching the original order.
 		return job_complete(j, [&jobs](disk_job* bj) {
-			if (bj->flags & disk_job::fence)
+			if (bj->state & disk_job::fence)
 				jobs.push_front(bj);
 			else
 				jobs.push_back(bj);
@@ -41,12 +41,12 @@ namespace aux {
 	{
 		std::lock_guard<std::mutex> l(m_mutex);
 
-		TORRENT_ASSERT(j->flags & disk_job::in_progress);
-		j->flags &= ~disk_job::in_progress;
+		TORRENT_ASSERT(j->state & disk_job::in_progress);
+		j->state &= ~disk_job::in_progress;
 
 		TORRENT_ASSERT(m_outstanding_jobs > 0);
 		--m_outstanding_jobs;
-		if (j->flags & disk_job::fence)
+		if (j->state & disk_job::fence)
 		{
 			// a fence job just completed. Make sure the fence logic
 			// works by asserting m_outstanding_jobs is in fact 0 now
@@ -62,7 +62,7 @@ namespace aux {
 			while (!m_blocked_jobs.empty())
 			{
 				disk_job* bj = m_blocked_jobs.pop_front();
-				if (bj->flags & disk_job::fence)
+				if (bj->state & disk_job::fence)
 				{
 					// we encountered another fence. We cannot post anymore
 					// jobs from the blocked jobs queue. We have to go back
@@ -71,8 +71,8 @@ namespace aux {
 					// executing currently, we should add the fence job.
 					if (m_outstanding_jobs == 0 && ret == 0)
 					{
-						TORRENT_ASSERT(!(bj->flags & disk_job::in_progress));
-						bj->flags |= disk_job::in_progress;
+						TORRENT_ASSERT(!(bj->state & disk_job::in_progress));
+						bj->state |= disk_job::in_progress;
 						++m_outstanding_jobs;
 						++ret;
 #if TORRENT_USE_ASSERTS
@@ -89,8 +89,8 @@ namespace aux {
 					TORRENT_ASSERT(m_has_fence > 0 || m_blocked_jobs.size() == 0);
 					return ret;
 				}
-				TORRENT_ASSERT(!(bj->flags & disk_job::in_progress));
-				bj->flags |= disk_job::in_progress;
+				TORRENT_ASSERT(!(bj->state & disk_job::in_progress));
+				bj->state |= disk_job::in_progress;
 
 				++m_outstanding_jobs;
 				++ret;
@@ -114,10 +114,10 @@ namespace aux {
 
 		// this is the fence job
 		disk_job* bj = m_blocked_jobs.pop_front();
-		TORRENT_ASSERT(bj->flags & disk_job::fence);
+		TORRENT_ASSERT(bj->state & disk_job::fence);
 
-		TORRENT_ASSERT(!(bj->flags & disk_job::in_progress));
-		bj->flags |= disk_job::in_progress;
+		TORRENT_ASSERT(!(bj->state & disk_job::in_progress));
+		bj->state |= disk_job::in_progress;
 
 		++m_outstanding_jobs;
 #if TORRENT_USE_ASSERTS
@@ -139,8 +139,8 @@ namespace aux {
 		// this job still needs to get queued up
 		if (m_has_fence == 0)
 		{
-			TORRENT_ASSERT(!(j->flags & disk_job::in_progress));
-			j->flags |= disk_job::in_progress;
+			TORRENT_ASSERT(!(j->state & disk_job::in_progress));
+			j->state |= disk_job::in_progress;
 			++m_outstanding_jobs;
 			return false;
 		}
@@ -173,9 +173,9 @@ namespace aux {
 	// j is the fence job. It must have exclusive access to the storage
 	int disk_job_fence::raise_fence(disk_job* j, counters& cnt)
 	{
-		TORRENT_ASSERT(!(j->flags & disk_job::in_progress));
-		TORRENT_ASSERT(!(j->flags & disk_job::fence));
-		j->flags |= disk_job::fence;
+		TORRENT_ASSERT(!(j->state & disk_job::in_progress));
+		TORRENT_ASSERT(!(j->state & disk_job::fence));
+		j->state |= disk_job::fence;
 
 		std::lock_guard<std::mutex> l(m_mutex);
 
@@ -192,7 +192,7 @@ namespace aux {
 			// after this, without being passed through is_blocked()
 			// that's why we're accounting for it here
 
-			j->flags |= disk_job::in_progress;
+			j->state |= disk_job::in_progress;
 			++m_outstanding_jobs;
 			return fence_post_fence;
 		}

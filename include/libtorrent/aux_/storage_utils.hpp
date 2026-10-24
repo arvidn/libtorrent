@@ -148,7 +148,7 @@ namespace libtorrent::aux {
 		pool.extract_matching(batch, max_read_batch_blocks - 1, [&](disk_job* j) {
 			if (j->get_type() != job_action_t::read)
 				return false;
-			if (j->flags & disk_job::aborted)
+			if (j->state & disk_job::aborted)
 				return false;
 			auto* const pj = static_cast<DiskJob*>(j);
 			if (pj->storage.get() != storage)
