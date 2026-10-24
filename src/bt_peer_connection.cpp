@@ -162,6 +162,7 @@ namespace {
 	{
 		if (m_enc_handler.switch_send_crypto(std::move(crypto), send_buffer_size() - get_send_barrier()))
 			set_send_barrier(send_buffer_size());
+		m_mutates_send_buffer = m_enc_handler.mutates_send_buffer();
 	}
 
 	void bt_peer_connection::switch_recv_crypto(std::shared_ptr<crypto_plugin> crypto)
@@ -2663,14 +2664,10 @@ namespace {
 
 		send_buffer({msg, 13});
 
-		if (buffer.is_mutable())
-		{
-			append_send_buffer(std::move(buffer), r.length);
-		}
-		else
-		{
-			append_const_send_buffer(std::move(buffer), r.length);
-		}
+		// async_read() asks for disk_interface::force_copy whenever this
+		// connection transforms its send buffer in place, so this block is
+		// either exclusively ours to mutate or never written to
+		append_send_buffer(std::move(buffer), r.length);
 
 		m_payloads.emplace_back(send_buffer_size() - r.length, r.length);
 		setup_send();
@@ -3755,6 +3752,10 @@ namespace {
 			peer_log(peer_log_alert::outgoing, peer_log_alert::send_barrier
 				, "encrypted block s = %d", next_barrier);
 #endif
+		// encrypt() retires the last barrier once a bounded encrypted run has
+		// been consumed, which is the other way this connection stops mutating
+		// its send buffer
+		m_mutates_send_buffer = m_enc_handler.mutates_send_buffer();
 		return std::make_tuple(next_barrier, out_iovec);
 	}
 #endif

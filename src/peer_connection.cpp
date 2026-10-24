@@ -106,7 +106,8 @@ namespace {
 		, m_peer_info(pack.peerinfo)
 		, m_counters(*pack.stats_counters)
 		, m_num_pieces(0)
-		, m_max_out_request_queue(aux::clamp_assign<std::uint16_t>(m_settings.get_int(settings_pack::max_out_request_queue)))
+		, m_max_out_request_queue(aux::clamp_assign<std::uint16_t>(
+			  m_settings.get_int(settings_pack::max_out_request_queue)))
 		, m_remote(pack.endp)
 		, m_disk_thread(*pack.disk_thread)
 		, m_ios(*pack.ios)
@@ -133,6 +134,7 @@ namespace {
 		, m_has_metadata(true)
 		, m_exceeded_limit(false)
 		, m_slow_start(true)
+		, m_mutates_send_buffer(false)
 	{
 		m_counters.inc_stats_counter(counters::num_tcp_peers
 			+ static_cast<std::uint8_t>(socket_type_idx(m_socket)));
@@ -5373,6 +5375,11 @@ namespace {
 				auto const read_mode = m_settings.get_int(settings_pack::disk_io_read_mode);
 				if (read_mode == settings_pack::disable_os_cache)
 					flags |= disk_interface::volatile_read;
+
+				// the block is encrypted in place on its way out, so we cannot
+				// send a buffer the disk subsystem may still hand to someone else
+				if (mutates_send_buffer())
+					flags |= disk_interface::force_copy;
 
 				auto const issue_time = clock_type::now();
 				m_disk_thread.async_read(t->storage(), r

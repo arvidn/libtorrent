@@ -120,6 +120,16 @@ namespace libtorrent::aux {
 			return i->mapping;
 		}
 
+		// a read-only handle is about to be replaced by a read-write one. Take
+		// it out of the pool before opening, so that it can be closed first:
+		// some file systems refuse to open a file for writing while it is open
+		// read-only
+		if (i != key_view.end())
+		{
+			defer_destruction2 = std::move(i->mapping);
+			key_view.erase(i);
+		}
+
 		if (int(m_files.size()) >= m_size - 1)
 		{
 			// the file cache is at its maximum size, close
@@ -139,6 +149,7 @@ namespace libtorrent::aux {
 #endif
 
 		l.unlock();
+		defer_destruction2.reset();
 
 		try
 		{
