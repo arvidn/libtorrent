@@ -930,6 +930,33 @@ def gen_html(
     return "\n".join(parts)
 
 
+# nodes below this percent of their thread's samples are left out of the text
+# tree
+_TEXT_THRESHOLD = 0.01
+
+
+def gen_text(root: Node) -> str:
+    """Render the fully expanded call tree as plain text, one section per
+    thread. Percentages are relative to the thread's own sample count, as in
+    the HTML. Nodes below _TEXT_THRESHOLD are left out; the tree itself is not
+    modified."""
+    lines: list[str] = []
+    for thread in sorted_children(root):
+        min_count = thread.count * _TEXT_THRESHOLD / 100.0
+        todo: list[tuple[Node, int]] = [(thread, 0)]
+        while todo:
+            node, depth = todo.pop()
+            pct = 100.0 * node.count / thread.count
+            lines.append(f"{'  ' * depth}{pct:.2f}% {node.count} {node.name}")
+            todo.extend(
+                (c, depth + 1)
+                for c in reversed(sorted_children(node))
+                if c.count >= min_count
+            )
+        lines.append("")
+    return "\n".join(lines)
+
+
 def main(
     perf_data: Path,
     output: Path,
@@ -952,6 +979,9 @@ def main(
     hist_html = gen_histograms(events, interval)
     root = build_tree(samples)
     total = root.count
+    text_output = output.with_suffix(".txt")
+    text_output.write_text(gen_text(root), encoding="utf-8")
+    print(f"wrote {text_output}")
     prune(root, total * threshold / 100.0)
     page = gen_html(root, total, f"call tree: {perf_data.name}", hist_html)
     output.write_text(page, encoding="utf-8")
