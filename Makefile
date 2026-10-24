@@ -398,6 +398,7 @@ SOURCES = \
   proxy_settings.cpp              \
   puff.cpp                        \
   random.cpp                      \
+  read_ahead.cpp                  \
   read_resume_data.cpp            \
   receive_buffer.cpp              \
   request_blocks.cpp              \
@@ -657,6 +658,7 @@ HEADERS = \
   aux_/puff.hpp                     \
   aux_/random.hpp                   \
   aux_/range.hpp                    \
+  aux_/read_ahead.hpp               \
   aux_/readwrite.hpp                \
   aux_/receive_buffer.hpp           \
   aux_/request_blocks.hpp           \
@@ -972,6 +974,7 @@ TEST_SOURCES = \
   test_primitives.cpp \
   test_priority.cpp \
   test_privacy.cpp \
+  test_read_ahead.cpp \
   test_read_piece.cpp \
   test_read_resume.cpp \
   test_readwrite.cpp \

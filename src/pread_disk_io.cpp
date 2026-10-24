@@ -33,13 +33,20 @@ see LICENSE file.
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/aux_/storage_array.hpp"
 #include "libtorrent/aux_/disk_completed_queue.hpp"
+#include "libtorrent/aux_/read_ahead.hpp"
 #include "libtorrent/aux_/debug_disk_thread.hpp"
 #include "libtorrent/aux_/scope_end.hpp"
 #include "libtorrent/aux_/storage_utils.hpp"
 
+#include <atomic>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <vector>
+
+#if TORRENT_HAS_FADVISE
+#include <fcntl.h> // for POSIX_FADV_WILLNEED
+#endif
 
 namespace libtorrent {
 namespace {
@@ -285,6 +292,24 @@ private:
 
 	settings_interface const& m_settings;
 
+	// read-ahead for peer requests (settings_pack::disk_read_ahead), see
+	// aux::read_ahead. A window is hinted by the disk thread of the first read
+	// that has it in reach, so the hints of a piece are spread over the
+	// threads reading it as they progress
+	void prefetch(aux::pread_disk_job* j, piece_index_t piece, int offset, int length);
+	static constexpr int prefetch_ahead = 2;
+	static constexpr aux::steady_clock::duration prefetch_ttl = milliseconds(1000);
+	std::atomic<bool> m_prefetch_enabled{false};
+	std::mutex m_prefetch_mutex;
+	aux::read_ahead m_read_ahead{prefetch_ahead, prefetch_ttl};
+	// the piece of the last read passed on to m_read_ahead, only used by
+	// async_read() on the network thread. A peer's reads of a piece are
+	// queued together, and m_read_ahead ignores the ones after the first for
+	// `prefetch_ttl`
+	storage_index_t m_queued_storage{0};
+	piece_index_t m_queued_piece{-1};
+	aux::steady_clock::time_point m_queued_time;
+
 	// LRU cache of open files
 	aux::file_pool m_file_pool;
 
@@ -384,6 +409,49 @@ pread_disk_io::pread_disk_io(io_context& ios, settings_interface const& sett, co
 	});
 }
 
+void pread_disk_io::prefetch(
+	aux::pread_disk_job* j, piece_index_t const piece, int const offset, int const length)
+{
+	using action = aux::read_ahead::action;
+	aux::pread_storage* const storage = j->storage.get();
+	storage_index_t const st = storage->storage_index();
+	int const piece_size = storage->files().piece_size(piece);
+
+	aux::read_ahead::result r;
+	{
+		std::lock_guard<std::mutex> l(m_prefetch_mutex);
+		for (;;)
+		{
+			r = m_read_ahead.on_read(
+				st, piece, piece_size, offset, length, aux::steady_clock::now());
+			if (r.what != action::lookup)
+				break;
+			// this piece, or one requested after it: the default window size
+			m_read_ahead.add_piece(st,
+				r.piece,
+				storage->files().piece_size(r.piece),
+				storage->read_ahead_piece(r.piece) ? 0 : -1,
+				aux::steady_clock::now());
+		}
+	}
+	if (r.what != action::hint)
+		return;
+
+	for (auto const& h : r.hints)
+	{
+		// only a hint: errors are left to the read, which must not fail
+		// because of it
+		try
+		{
+			storage_error ec;
+			storage->prefetch_piece(
+				m_settings, h.piece, h.offset, h.length, file_mode_for_job(j), ec);
+		}
+		catch (...)
+		{}
+	}
+}
+
 std::vector<open_file_state> pread_disk_io::get_status(storage_index_t const st) const
 {
 	return m_file_pool.get_status(st);
@@ -418,6 +486,12 @@ void pread_disk_io::remove_torrent(storage_index_t const idx)
 	m_cache.remove_storage(idx, aborted);
 	TORRENT_ASSERT(aborted.empty());
 	m_completed_jobs.abort_jobs(m_ios, std::move(aborted));
+	{
+		std::lock_guard<std::mutex> l(m_prefetch_mutex);
+		m_read_ahead.remove_storage(idx);
+	}
+	if (m_queued_storage == idx)
+		m_queued_piece = piece_index_t{-1};
 	m_torrents.remove(idx);
 }
 
@@ -500,6 +574,10 @@ void pread_disk_io::settings_updated()
 
 	m_generic_threads.set_max_threads(num_threads);
 	m_hash_threads.set_max_threads(num_hash_threads);
+
+#if TORRENT_HAS_FADVISE && defined POSIX_FADV_WILLNEED
+	m_prefetch_enabled = m_settings.get_bool(settings_pack::disk_read_ahead);
+#endif
 }
 
 void pread_disk_io::perform_job(aux::pread_disk_job* j, jobqueue_t& completed_jobs)
@@ -576,7 +654,11 @@ status_t pread_disk_io::do_job(aux::job::read& a, aux::pread_disk_job* j)
 		return disk_status::fatal_disk_error;
 	}
 
+	// the read-ahead hints count as read time
 	auto const start_time = aux::steady_clock::now();
+
+	if (m_prefetch_enabled)
+		prefetch(j, a.piece, a.offset, a.buffer_size);
 
 	aux::open_mode_t const file_mode = file_mode_for_job(j);
 	span<char> const b = {a.buf.data(), a.buffer_size};
@@ -628,7 +710,17 @@ void pread_disk_io::execute_read_batch(jobqueue_t jobs)
 		}
 
 		auto& a0 = std::get<aux::job::read>(j0->action);
+		// the read-ahead hints count as read time
 		auto const start_time = aux::steady_clock::now();
+
+		// one hint for the whole batch, as do_job() gives one read
+		if (m_prefetch_enabled)
+		{
+			int length = 0;
+			for (auto const& b : iovec)
+				length += int(b.size());
+			prefetch(j0, a0.piece, a0.offset, length);
+		}
 
 		int const r = j0->storage->readv(
 			m_settings, iovec, a0.piece, a0.offset, file_mode_for_job(j0), j0->flags, j0->error);
@@ -715,6 +807,22 @@ void pread_disk_io::async_read(storage_index_t storage, peer_request const& r
 		r.piece,
 		r.start // offset
 	);
+
+	// the order of the requests is the order the disk threads get to
+	// them: the read-ahead follows it from one piece to the next
+	if (m_prefetch_enabled)
+	{
+		auto const now = aux::steady_clock::now();
+		if (storage != m_queued_storage || r.piece != m_queued_piece
+			|| now - m_queued_time >= prefetch_ttl)
+		{
+			m_queued_storage = storage;
+			m_queued_piece = r.piece;
+			m_queued_time = now;
+			std::lock_guard<std::mutex> l(m_prefetch_mutex);
+			m_read_ahead.on_request(storage, r.piece, r.start, now);
+		}
+	}
 
 	add_job(j);
 }

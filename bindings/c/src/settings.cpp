@@ -89,6 +89,7 @@ int settings_key(int const tag)
 		case SET_DISK_DISABLE_COPY_ON_WRITE: return sp::disk_disable_copy_on_write;
 		case SET_ALLOW_MULTIPLE_CONNECTIONS_PER_PID: return sp::allow_multiple_connections_per_pid;
 		case SET_APPLY_FILTER_TO_DHT: return sp::apply_filter_to_dht;
+		case SET_DISK_READ_AHEAD: return sp::disk_read_ahead;
 		case SET_TRACKER_COMPLETION_TIMEOUT: return sp::tracker_completion_timeout;
 		case SET_TRACKER_RECEIVE_TIMEOUT: return sp::tracker_receive_timeout;
 		case SET_STOP_TRACKER_TIMEOUT: return sp::stop_tracker_timeout;
