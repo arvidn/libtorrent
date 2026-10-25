@@ -110,6 +110,12 @@ namespace libtorrent::aux {
 			m_queued_jobs.push_back(j);
 		}
 
+		// for jobs that should be serviced ahead of whatever's already
+		// queued, e.g. a speculative read-ahead hint that only pays off if
+		// it beats the job it's hinting ahead of.
+		// precondition: the job mutex must be held when this is called
+		void push_front(aux::disk_job* j) { m_queued_jobs.push_front(j); }
+
 		// precondition: the job mutex must be held when this is called
 		aux::disk_job* pop_front()
 		{

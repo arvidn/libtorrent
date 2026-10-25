@@ -408,6 +408,7 @@ set(sources
 	proxy_settings.cpp
 	puff.cpp
 	random.cpp
+	read_ahead.cpp
 	read_resume_data.cpp
 	receive_buffer.cpp
 	request_blocks.cpp

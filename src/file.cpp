@@ -395,6 +395,25 @@ namespace {
 #endif
 	}
 
+	void advise_willneed(handle_type handle, std::int64_t offset, std::int64_t len)
+	{
+#if (TORRENT_HAS_FADVISE && defined POSIX_FADV_WILLNEED)
+		::posix_fadvise(handle, offset, len, POSIX_FADV_WILLNEED);
+#elif defined F_RDADVISE
+		// ra_count is an int, so a single advisory covers at most INT_MAX
+		// bytes. The offset is still a full off_t
+		struct radvisory ra
+		{};
+		ra.ra_offset = offset;
+		ra.ra_count = static_cast<int>(std::min<std::int64_t>(len, INT_MAX));
+		::fcntl(handle, F_RDADVISE, &ra);
+#else
+		TORRENT_UNUSED(handle);
+		TORRENT_UNUSED(offset);
+		TORRENT_UNUSED(len);
+#endif
+	}
+
 	void sync_file(handle_type handle, std::int64_t offset, std::int64_t len)
 	{
 #if TORRENT_USE_SYNC_FILE_RANGE

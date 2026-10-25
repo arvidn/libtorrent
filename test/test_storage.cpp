@@ -283,7 +283,7 @@ int read(std::shared_ptr<mmap_storage> s
 	, aux::open_mode_t mode
 	, storage_error& ec)
 {
-	return s->read(sett, buf, piece, offset, mode, disk_job_flags_t{}, ec);
+	return s->read(sett, buf, piece, offset, mode, disk_job_flags_t{}, {}, ec);
 }
 
 void release_files(std::shared_ptr<mmap_storage> s, storage_error& ec)
@@ -335,7 +335,7 @@ int read(std::shared_ptr<pread_storage> s
 	, aux::open_mode_t mode
 	, storage_error& ec)
 {
-	return s->read(sett, buf, piece, offset, mode, disk_job_flags_t{}, ec);
+	return s->read(sett, buf, piece, offset, mode, disk_job_flags_t{}, {}, ec);
 }
 
 void release_files(std::shared_ptr<pread_storage> s, storage_error& ec)
@@ -1461,6 +1461,41 @@ TORRENT_TEST(rename_pread_disk_io) { test_rename<pread_storage>(current_path());
 TORRENT_TEST_DISK_IO(rename_to_existing) { test_rename_to_existing(current_path(), disk_io); }
 
 TORRENT_TEST(remove_pread_disk_io) { test_remove<pread_storage>(current_path()); }
+
+TORRENT_TEST(pread_issue_read_ahead)
+{
+	std::string const test_path = current_path();
+	delete_dirs(combine_path(test_path, "temp_storage"));
+
+	aux::session_settings set;
+	aux::file_pool fp;
+	std::vector<char> buf;
+	auto [s, info] = setup_torrent<pread_storage>(fp, buf, test_path, set);
+
+	// unlike the per-job advise it normally rides along with,
+	// issue_read_ahead() opens the file itself; calling it before the
+	// file has ever been touched must not crash
+	s->issue_read_ahead(set, 0_piece, {0, 1}, aux::open_mode::read_only);
+
+	std::vector<char> piece0 = new_piece(0x4000);
+	span<char> const piece0_span(piece0.data(), std::ptrdiff_t(piece0.size()));
+	storage_error ec;
+	write(s, set, piece0_span, 0_piece, 0, aux::open_mode::write, ec);
+	TEST_CHECK(!ec);
+
+	// and calling it again once the file is open and holds real data
+	// must not disturb a subsequent read of that same data
+	s->issue_read_ahead(set, 0_piece, {0, 1}, aux::open_mode::read_only);
+
+	std::vector<char> read_buf(0x4000);
+	span<char> const read_buf_span(read_buf.data(), std::ptrdiff_t(read_buf.size()));
+	read(s, set, read_buf_span, 0_piece, 0, aux::open_mode::read_only, ec);
+	TEST_CHECK(!ec);
+	TEST_CHECK(read_buf == piece0);
+
+	release_files(s, ec);
+	TEST_CHECK(!ec);
+}
 
 // tick() runs on a disk thread outside the job fence, so it can race the jobs
 // that create and destroy the part file. Drive both sides from separate
@@ -3438,6 +3473,46 @@ TORRENT_TEST(posix_unaligned_read_both_store_buffer)
 	test_unaligned_read(lt::posix_disk_io_constructor, none_from_store_buffer);
 }
 
+// new_piece_hint is a pure latency optimization (see
+// disk_interface::new_piece_hint): a backend that acts on it (pread_disk_io,
+// via a willneed job dispatched ahead of the queue) or ignores it (mmap,
+// posix) must produce the same read result either way.
+TORRENT_TEST_DISK_IO(new_piece_hint_does_not_disrupt_the_read)
+{
+	test_unaligned_read(disk_io,
+		[](lt::disk_interface* d,
+			lt::storage_holder const& t,
+			lt::io_context& ioc,
+			int& outstanding) {
+			std::vector<char> write_buffer(default_block_size * 2);
+			aux::random_bytes(write_buffer);
+
+			peer_request const req0{0_piece, 0, default_block_size};
+			peer_request const req1{0_piece, default_block_size, default_block_size};
+
+			++outstanding;
+			d->async_write(t, req0, write_buffer.data(), {}, write_handler(outstanding));
+			++outstanding;
+			d->async_write(
+				t, req1, write_buffer.data() + default_block_size, {}, write_handler(outstanding));
+			d->submit_jobs();
+			sync(ioc, outstanding);
+
+			// a fresh connection's first request for a piece, with an
+			// established read-ahead window: exercises the flag end to end
+			// without disrupting the read it rides along with. the hint names
+			// the piece's second block, the only one past the request
+			++outstanding;
+			d->async_read(t,
+				req0,
+				read_handler(outstanding, write_buffer.data()),
+				disk_interface::new_piece_hint,
+				read_ahead_hint{1, 1});
+			d->submit_jobs();
+			sync(ioc, outstanding);
+		});
+}
+
 TORRENT_TEST(iovec_bufs)
 {
 	span<char const> iov[10];
@@ -3695,8 +3770,8 @@ static void test_write_vec_partfile(
 	if (ec) print_error("write", wret, ec);
 
 	std::vector<char> read_buf(static_cast<std::size_t>(ps));
-	int const rret = s->read(set, read_buf, 0_piece, 0
-		, aux::open_mode::read_only, disk_job_flags_t{}, ec);
+	int const rret =
+		s->read(set, read_buf, 0_piece, 0, aux::open_mode::read_only, disk_job_flags_t{}, {}, ec);
 	TEST_EQUAL(rret, ps);
 	TEST_CHECK(!ec);
 	if (ec) print_error("read", rret, ec);
@@ -3716,5 +3791,36 @@ TORRENT_TEST(pread_write_vec_partfile_multi_buf)
 		test_write_vec_partfile({{2, 1_pri}, {2, 0_pri}}, sm);
 		// 0-priority file (2 blocks) in the middle, normal files on both sides
 		test_write_vec_partfile({{1, 1_pri}, {2, 0_pri}, {1, 1_pri}}, sm);
+	}
+}
+
+// a hint starting at the end of the torrent has nothing to advise on.
+// the predictor never produces one, but the function takes raw block
+// indices and must not run off the end of the file list
+TORRENT_TEST(read_ahead_range_end_of_torrent)
+{
+	using namespace lt;
+	file_storage fs;
+	int const ps = 0x8000;
+	fs.add_file_borrow({}, "single", ps + 0x6000);
+	fs.set_piece_length(ps);
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
+	TEST_EQUAL(fs.num_pieces(), 2);
+
+	aux::vector<download_priority_t, file_index_t> const prio;
+	auto const no_part = [](file_index_t) { return false; };
+	piece_index_t const last(1);
+
+	// the last piece is 0x6000 bytes: one full block and one half block
+	auto const at_end = aux::get_read_ahead_range(fs, prio, no_part, last, {2, 1});
+	TEST_CHECK(!at_end.has_value());
+
+	auto const mid = aux::get_read_ahead_range(fs, prio, no_part, last, {1, 1});
+	TEST_CHECK(mid.has_value());
+	if (mid)
+	{
+		TEST_EQUAL(mid->file_index, file_index_t(0));
+		TEST_EQUAL(mid->offset, ps + 0x4000);
+		TEST_EQUAL(mid->size, 0x2000);
 	}
 }

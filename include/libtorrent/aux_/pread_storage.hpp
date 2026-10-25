@@ -70,16 +70,21 @@ namespace libtorrent::aux {
 		typed_bitfield<piece_index_t> check_pieces();
 		bool tick();
 
-		int read(settings_interface const&, span<char> buffer
-			, piece_index_t piece, int offset, aux::open_mode_t mode
-			, disk_job_flags_t flags
-			, storage_error&);
+		int read(settings_interface const&,
+			span<char> buffer,
+			piece_index_t piece,
+			int offset,
+			aux::open_mode_t mode,
+			disk_job_flags_t flags,
+			read_ahead_hint read_ahead,
+			storage_error&);
 		int readv(settings_interface const& sett,
 			span<span<char> const> bufs,
 			piece_index_t const piece,
 			int offset,
 			open_mode_t const mode,
 			disk_job_flags_t const flags,
+			read_ahead_hint read_ahead,
 			storage_error& error);
 		int write(settings_interface const&, span<char const> buffer
 			, piece_index_t piece, int offset, aux::open_mode_t mode
@@ -99,6 +104,17 @@ namespace libtorrent::aux {
 			, disk_job_flags_t flags, storage_error&);
 
 		file_storage const& files() const { return m_files; }
+
+		// issues a speculative posix_fadvise(WILLNEED) for the hinted
+		// blocks of piece, truncated to the rest of whichever file they
+		// start in. best-effort; errors opening the file are silently
+		// ignored, this is just a hint. called both inline from
+		// read()/readv() and from the willneed job dispatched ahead of the
+		// queue by pread_disk_io, see disk_interface::new_piece_hint.
+		void issue_read_ahead(settings_interface const& sett,
+			piece_index_t piece,
+			read_ahead_hint read_ahead,
+			aux::open_mode_t mode) const;
 
 		// returns whether a tick was already pending
 		bool set_need_tick() { return m_need_tick.exchange(true); }
@@ -165,8 +181,8 @@ namespace libtorrent::aux {
 		mutable aux::stat_cache m_stat_cache;
 
 		// helper function to open a file in the file pool with the right mode
-		std::shared_ptr<aux::file_handle> open_file(settings_interface const&, file_index_t
-			, aux::open_mode_t, storage_error&) const;
+		std::shared_ptr<aux::file_handle> open_file(
+			settings_interface const&, file_index_t, aux::open_mode_t, storage_error&) const;
 		std::shared_ptr<aux::file_handle> open_file_impl(settings_interface const&
 			, file_index_t, aux::open_mode_t, storage_error&) const;
 

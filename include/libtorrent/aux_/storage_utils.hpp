@@ -14,6 +14,7 @@ see LICENSE file.
 #include <cstdint>
 #include <string>
 #include <functional>
+#include <optional>
 #include <vector>
 
 #include "libtorrent/config.hpp"
@@ -21,7 +22,8 @@ see LICENSE file.
 #include "libtorrent/span.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/bitfield.hpp"
-#include "libtorrent/disk_interface.hpp" // for status_t
+#include "libtorrent/disk_interface.hpp" // for status_t, read_ahead_hint
+#include "libtorrent/file_storage.hpp" // for file_slice
 #include "libtorrent/session_types.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/disk_job.hpp"
@@ -98,6 +100,20 @@ namespace libtorrent::aux {
 		std::string const& save_path,
 		std::function<bool(file_index_t)> const& use_partfile,
 		std::function<bool(piece_index_t)> const& partfile_has_piece);
+
+	// computes the file byte range to speculatively advise the OS to
+	// prefetch for a read-ahead hint in piece, truncated to the rest of
+	// whichever file the hint starts in. the hint is expected to already
+	// be bounded to the piece; this only clamps to the file, since piece
+	// and file boundaries don't generally coincide. returns nullopt if
+	// there's nothing to advise on: a pad file, or a skipped, zero-priority
+	// file served from the part file, neither of which have real on-disk
+	// data at this location
+	TORRENT_EXTRA_EXPORT std::optional<file_slice> get_read_ahead_range(file_storage const& fs,
+		aux::vector<download_priority_t, file_index_t> const& file_priority,
+		std::function<bool(file_index_t)> const& use_partfile,
+		piece_index_t piece,
+		read_ahead_hint read_ahead);
 
 	TORRENT_EXTRA_EXPORT int read_zeroes(span<char> bufs);
 
