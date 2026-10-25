@@ -161,6 +161,7 @@ struct bulk_free_buffer;
 
 // include/libtorrent/disk_interface.hpp
 struct open_file_state;
+struct read_ahead_hint;
 struct disk_interface;
 struct storage_holder;
 

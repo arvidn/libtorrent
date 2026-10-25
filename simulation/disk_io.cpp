@@ -466,7 +466,8 @@ struct test_disk_io final : lt::disk_interface
 	void async_read(lt::storage_index_t const storage,
 		lt::peer_request const& r,
 		std::function<void(lt::disk_buffer_holder block, lt::storage_error const& se)> h,
-		lt::disk_job_flags_t const flags) override
+		lt::disk_job_flags_t const flags,
+		lt::read_ahead_hint = {}) override
 	{
 		TORRENT_ASSERT(static_cast<std::uint32_t>(storage) == 0);
 		TORRENT_ASSERT(m_files);

@@ -144,6 +144,16 @@ namespace libtorrent::aux {
 			if (!m_last) m_last = e;
 			++m_size;
 		}
+		void insert_after(T* pos, T* e) &
+		{
+			TORRENT_ASSERT(e->next == nullptr);
+			TORRENT_ASSERT(pos != nullptr);
+			e->next = pos->next;
+			pos->next = e;
+			if (pos == m_last)
+				m_last = e;
+			++m_size;
+		}
 		void push_back(T* e) &
 		{
 			TORRENT_ASSERT(e->next == nullptr);

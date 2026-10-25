@@ -154,6 +154,20 @@ namespace file_open_mode {
 
 	using disk_job_flags_t = flags::bitfield_flag<std::uint8_t, struct disk_job_flags_tag>;
 
+	// a speculative read-ahead hint passed to disk_interface::async_read().
+	// It names a range of blocks, in the same piece as the request, that the
+	// caller believes are likely to be requested next. The range never
+	// extends past the end of the piece and never overlaps blocks hinted
+	// earlier on the same connection, so a disk backend can advise it
+	// verbatim. ``num_blocks`` of 0 means no hint.
+	struct TORRENT_EXPORT read_ahead_hint
+	{
+		// the first block of the range, as a block index within the piece
+		int first_block = 0;
+		// the number of blocks in the range
+		int num_blocks = 0;
+	};
+
 	// The disk_interface is the customization point for disk I/O in libtorrent.
 	// implement this interface and provide a factory function to the session constructor
 	// use custom disk I/O. All functions on the disk subsystem (implementing
@@ -192,6 +206,15 @@ namespace file_open_mode {
 		// it should be flushed to disk
 		static constexpr disk_job_flags_t flush_piece = 4_bit;
 
+		// hint, on an async_read() call, that this is the first request for a
+		// new piece and read_ahead is non-empty. a disk backend that supports
+		// it may use this to advise the kernel of the upcoming piece ahead
+		// of the read job itself, e.g. by servicing it out of turn rather
+		// than waiting its place in the ordinary queue. purely a latency
+		// optimization; a backend that ignores this flag behaves exactly as
+		// if it had not been set.
+		static constexpr disk_job_flags_t new_piece_hint = 5_bit;
+
 		// this is called when a new torrent is added. The shared_ptr owns the
 		// object ``p.files`` refers into. Holding on to it keeps that
 		// reference valid as long as there are outstanding disk operations on
@@ -223,9 +246,15 @@ namespace file_open_mode {
 		// necessarily aligned to blocks (but it is most of the time). However,
 		// all writes (passed to ``async_write``) are guaranteed to be block
 		// aligned.
-		virtual void async_read(storage_index_t storage, peer_request const& r
-			, std::function<void(disk_buffer_holder, storage_error const&)> handler
-			, disk_job_flags_t flags = {}) = 0;
+		//
+		// ``read_ahead`` is a hint for blocks, in the same piece as ``r``,
+		// that the caller believes are likely to be requested next, for
+		// speculative read-ahead. See read_ahead_hint.
+		virtual void async_read(storage_index_t storage,
+			peer_request const& r,
+			std::function<void(disk_buffer_holder, storage_error const&)> handler,
+			disk_job_flags_t flags = {},
+			read_ahead_hint read_ahead = {}) = 0;
 		virtual bool async_write(storage_index_t storage, peer_request const& r
 			, char const* buf, std::shared_ptr<disk_observer> o
 			, std::function<void(storage_error const&)> handler
