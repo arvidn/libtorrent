@@ -1716,12 +1716,15 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		X509* cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
 
 		// Go through the alternate names in the certificate looking for matching DNS entries
-		auto* gens = static_cast<GENERAL_NAMES*>(
-			X509_get_ext_d2i(cert, NID_subject_alt_name, nullptr, nullptr));
+		// X509_get_ext_d2i() returns a newly allocated copy, owned by us
+		std::unique_ptr<GENERAL_NAMES, decltype(&GENERAL_NAMES_free)> const gens(
+			static_cast<GENERAL_NAMES*>(
+				X509_get_ext_d2i(cert, NID_subject_alt_name, nullptr, nullptr)),
+			&GENERAL_NAMES_free);
 
-		for (int i = 0; i < sk_GENERAL_NAME_num(gens); ++i)
+		for (int i = 0; i < sk_GENERAL_NAME_num(gens.get()); ++i)
 		{
-			GENERAL_NAME* gen = sk_GENERAL_NAME_value(gens, i);
+			GENERAL_NAME* gen = sk_GENERAL_NAME_value(gens.get(), i);
 			if (gen->type != GEN_DNS) continue;
 			ASN1_IA5STRING* domain = gen->d.dNSName;
 			if (ASN1_STRING_type(domain) != V_ASN1_IA5STRING || !ASN1_STRING_get0_data(domain) || !ASN1_STRING_length(domain)) continue;

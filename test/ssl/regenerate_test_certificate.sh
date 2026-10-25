@@ -27,7 +27,12 @@ openssl req  -new  -keyout newkey.pem -out newreq.pem -passin pass:test -passout
 
 cp newkey.pem peer_private_key.pem
 
-openssl ca  -policy policy_anything -out newcert.pem -days 99999 -passin pass:test -infiles newreq.pem
+# the subject alternative name exercises the SAN code path in
+# torrent::verify_peer_cert(). It intentionally doesn't match the torrent
+# name, the peer is accepted by the common name
+printf "basicConstraints=CA:FALSE\nsubjectAltName=DNS:peer.test\n" > peer_ext.cnf
+
+openssl ca  -policy policy_anything -extfile peer_ext.cnf -out newcert.pem -days 99999 -passin pass:test -infiles newreq.pem
 
 cp newcert.pem peer_certificate.pem
 
