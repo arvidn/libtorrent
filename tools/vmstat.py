@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 import os
+from pathlib import Path
 import platform
 from time import monotonic
 
@@ -338,6 +339,7 @@ def plot_output(filename: str, keys: list[str]) -> None:
 
         matplotlib.use("Agg")  # headless backend; no display required
         import matplotlib.pyplot as plt
+        import plot_png
     except ImportError:
         return
 
@@ -365,10 +367,9 @@ def plot_output(filename: str, keys: list[str]) -> None:
     nonzero = {k for k in keys if k}
 
     mib = 1024 * 1024
-    dpi = 100
-    # draw the lines a single device pixel wide; matplotlib's ~1.5 pt default
-    # is thick for the dense, spiky disk-I/O curves.
-    line_width = 72.0 / dpi
+    # draw the lines a single pixel wide at display size; matplotlib's ~1.5 pt
+    # default is thick for the dense, spiky disk-I/O curves.
+    line_width = 72.0 / plot_png.DISPLAY_DPI
     for plot in plots:
         names = [n for n in plot.lines if n in nonzero and n in cols]
         if not names:
@@ -419,8 +420,15 @@ def plot_output(filename: str, keys: list[str]) -> None:
         # vertical grid always; horizontal grid on whichever axis has data
         ax.grid(True, axis="x")
         (ax if has_count else ax_mb).grid(True, axis="y")
-        # always top-left; matplotlib's auto-placement does a poor job here
-        ax.legend(handles=handles, loc="upper left")
+        # automatic placement only avoids the lines of the axis that owns the
+        # legend, so use the one with most of them. It is raised above the
+        # other axis so its legend isn't drawn over by the other axis' lines.
+        legend_ax, other_ax = (
+            (ax, ax_mb) if len(ax.lines) >= len(ax_mb.lines) else (ax_mb, ax)
+        )
+        legend_ax.set_zorder(other_ax.get_zorder() + 1)
+        legend_ax.patch.set_visible(False)
+        legend_ax.legend(handles=handles, loc="best")
 
         # pin the plot box to the shared summary-page margins (see plot_layout)
         # so these line up with the piece-pass-order and latency plots.
@@ -430,5 +438,5 @@ def plot_output(filename: str, keys: list[str]) -> None:
             bottom=0.09,
             top=0.93,
         )
-        fig.savefig(f"{output_dir}/{in_file}-{plot.name}.png", dpi=dpi)
+        plot_png.save_png(fig, Path(f"{output_dir}/{in_file}-{plot.name}.png"))
         plt.close(fig)

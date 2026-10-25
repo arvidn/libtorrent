@@ -48,6 +48,11 @@ from matplotlib.colors import to_hex
 from matplotlib.figure import Figure
 from matplotlib.ticker import EngFormatter
 
+import plot_png
+
+THUMB_WIDTH = 150
+THUMB_HEIGHT = 100
+GRAPH_WIDTH = 1200
 
 line_graph = 0
 histogram = 1
@@ -196,7 +201,7 @@ def gen_report(
     series_colors = [colors[i % len(colors)] for i in range(len(series))]
 
     x = data[:, 0]
-    fig = Figure(figsize=(12, 7), dpi=100)
+    fig = Figure(figsize=(12, 7))
     ax = fig.subplots()
 
     if options["type"] == histogram:
@@ -239,7 +244,7 @@ def gen_report(
 
     ax.set_title(f"{name}: {description}" if description else name)
     fig.tight_layout()
-    fig.savefig(filename)
+    plot_png.save_png(fig, filename)
 
     legend = ax.get_legend()
     if legend is not None:
@@ -249,9 +254,12 @@ def gen_report(
     ax.set_ylabel("")
     ax.set_xticks([])
     ax.set_yticks([])
+    # the default line width is heavy at thumbnail size
+    for line in ax.lines:
+        line.set_linewidth(72.0 / plot_png.DISPLAY_DPI)
     fig.set_size_inches(1.5, 1.0)
     fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
-    fig.savefig(thumb)
+    plot_png.save_png(fig, thumb)
 
     sys.stdout.write(".")
     sys.stdout.flush()
@@ -279,7 +287,7 @@ def gen_html(
 .pane > div { margin: 0.5em 0 0.5em 1.5em }
 .graphs { white-space:nowrap; }
 dialog { padding: 0; border: none; max-width: 100vw; max-height: 100vh; overflow: auto; cursor: pointer }
-dialog img { display: block; max-width: none }
+dialog img { display: block; max-width: none; width: %dpx }
 h2 { line-height: 1; display: inline; font-size: 1.2em }
 .desc { line-height: 1; display: inline; font-size: 1em; font-weight: normal }"""
 
@@ -306,7 +314,7 @@ show(document.querySelector('.tabs button[data-tab="' + initial + '"]')
   ? initial : document.querySelector('.tabs button').dataset.tab);"""
 
         print(
-            '<html><head><style type="text/css">%s</style></head><body>' % css,
+            '<html><head><style type="text/css">%s</style></head><body>' % (css % GRAPH_WIDTH),
             file=file,
         )
 
@@ -327,8 +335,8 @@ show(document.querySelector('.tabs button[data-tab="' + initial + '"]')
                 )
                 for g in range(num_generations):
                     print(
-                        '<a href="%s_%04d.png"><img loading="lazy" src="%s_%04d_thumb.png"></a>'
-                        % (i[0], g, i[0], g),
+                        '<a href="%s_%04d.png"><img loading="lazy" width="%d" height="%d" src="%s_%04d_thumb.png"></a>'
+                        % (i[0], g, THUMB_WIDTH, THUMB_HEIGHT, i[0], g),
                         file=file,
                     )
                 print("</div></div>", file=file)

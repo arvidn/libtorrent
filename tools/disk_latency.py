@@ -213,6 +213,7 @@ def plot_latency(
         import matplotlib.colors as mcolors
         import matplotlib.pyplot as plt
         import numpy as np
+        import plot_png
     except ImportError:
         return False
 
@@ -273,7 +274,7 @@ def plot_latency(
     ax.set_xlabel("time (s)")
     ax.set_ylabel("read latency (ms)")
     ax.set_title(title)
-    fig.savefig(out_path, dpi=100)
+    plot_png.save_png(fig, out_path)
     plt.close(fig)
     return True
 

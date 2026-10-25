@@ -53,6 +53,7 @@ def plot_piece_downloads(
 
         matplotlib.use("Agg")  # headless backend; no display required
         import matplotlib.pyplot as plt
+        import plot_png
     except ImportError:
         return False
 
@@ -82,7 +83,7 @@ def plot_piece_downloads(
         bottom=0.09,
         top=0.93,
     )
-    fig.savefig(output, dpi=100)
+    plot_png.save_png(fig, output)
     plt.close(fig)
     return True
 

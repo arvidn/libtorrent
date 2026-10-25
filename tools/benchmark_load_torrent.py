@@ -59,6 +59,7 @@ SCRIPT_DIR = Path(__file__).parent.resolve()
 sys.path.insert(0, str(SCRIPT_DIR))
 
 import perf_call_tree  # noqa: E402
+import plot_png  # noqa: E402
 
 ROOT_DIR = SCRIPT_DIR.parent
 TOOLS_DIR = ROOT_DIR / "tools"
@@ -706,12 +707,12 @@ def render_chart(
     title: str,
     ylabel: str,
     out_path: Path,
-) -> None:
+) -> int:
     """Render a grouped bar chart of `value_fn(r)` for each (case,
     variant), with one group per case along the x-axis and one bar per
     variant within each group. Bars for missing or zero values are
     omitted, which keeps the log y-axis clean (zero has no place on a
-    log scale).
+    log scale). Returns the width in pixels to embed the image at.
     """
     by_key = {(r.case, r.variant): r for r in results}
     case_names = [c.name for c in CASES]
@@ -770,8 +771,10 @@ def render_chart(
     ax.grid(True, axis="y", which="major", linestyle="-", alpha=0.5)
     ax.grid(True, axis="y", which="minor", linestyle=":", alpha=0.3)
     fig.tight_layout()
-    fig.savefig(out_path, dpi=100)
+    plot_png.save_png(fig, out_path)
+    display_width: int = round(fig.get_figwidth() * plot_png.DISPLAY_DPI)
     plt.close(fig)
+    return display_width
 
 
 def write_report(benchmarks_dir: Path, results: list[Result], report_name: str) -> Path:
@@ -826,9 +829,12 @@ def write_report(benchmarks_dir: Path, results: list[Result], report_name: str) 
         ),
     ]
     for fname, title, ylabel, fn in charts:
-        render_chart(results, fn, title, ylabel, benchmarks_dir / fname)
+        width = render_chart(results, fn, title, ylabel, benchmarks_dir / fname)
         parts.append(f"<h2>{title}</h2>")
-        parts.append(f"<p><img src='{fname}' alt='{title}' style='max-width:100%'></p>")
+        parts.append(
+            f"<p><img src='{fname}' alt='{title}' width='{width}'"
+            " style='max-width:100%;height:auto'></p>"
+        )
 
     # per-case details with profile links and full per-variant table
     parts.append("<h2>Per-case details</h2>")
