@@ -348,6 +348,25 @@ namespace libtorrent {
 			disk_read_latency19,
 			disk_read_latency20,
 
+			// the number of block requests, including duplicate and
+			// backward ones, for data that had already been handed to the
+			// disk backend as a read-ahead hint ("hot"), versus ones for
+			// data that hadn't ("cold"); a piece's first request is
+			// always cold. independent of whether the request pattern
+			// itself was sequential enough to grow or shrink read-ahead
+			// confidence.
+			num_read_ahead_hot_blocks,
+			num_read_ahead_cold_blocks,
+
+			// the number of blocks actually requested for read-ahead (the
+			// sum of the read_ahead hint sizes that were greater than 0)
+			num_read_ahead_issued_blocks,
+
+			// of the blocks issued for read-ahead above, the number that
+			// were never subsequently requested before the piece was left,
+			// i.e. wasted speculative I/O
+			num_read_ahead_wasted_blocks,
+
 			num_stats_counters
 		};
 

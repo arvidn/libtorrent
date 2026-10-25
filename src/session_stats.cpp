@@ -399,6 +399,23 @@ namespace {
 		METRIC(disk, disk_read_latency19),
 		METRIC(disk, disk_read_latency20),
 
+		// the number of block requests, including duplicate and backward
+		// ones, for data the disk backend had already been told, as a
+		// read-ahead hint, to prefetch ("hot"), versus ones it hadn't
+		// ("cold"); a piece's first request is always cold. hot-rate is
+		// num_read_ahead_hot_blocks / (num_read_ahead_hot_blocks + num_read_ahead_cold_blocks)
+		METRIC(disk, num_read_ahead_hot_blocks),
+		METRIC(disk, num_read_ahead_cold_blocks),
+
+		// the number of blocks actually requested for speculative
+		// read-ahead (the sum of the read_ahead hint sizes that were
+		// greater than 0), and of those, the number that were never
+		// subsequently requested before the piece was left, i.e. wasted
+		// speculative I/O. The wasted fraction is
+		// num_read_ahead_wasted_blocks / num_read_ahead_issued_blocks
+		METRIC(disk, num_read_ahead_issued_blocks),
+		METRIC(disk, num_read_ahead_wasted_blocks),
+
 		// for each kind of disk job, a counter of how many jobs of that kind
 		// are currently blocked by a disk fence
 		METRIC(disk, num_fenced_read),

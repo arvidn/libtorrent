@@ -145,3 +145,23 @@ TORRENT_TEST(tailqueue)
 	free_chain(t1);
 	free_chain(t2);
 }
+
+TORRENT_TEST(insert_after)
+{
+	aux::tailqueue<test_node> t;
+	build_chain(t, "ac");
+
+	t.insert_after(t.first(), new test_node('b'));
+	check_chain(t, "abc");
+
+	// inserting after the last element must update it
+	t.insert_after(t.last(), new test_node('d'));
+	check_chain(t, "abcd");
+	TEST_EQUAL(t.last()->name, 'd');
+	TEST_EQUAL(t.size(), 4);
+
+	t.push_back(new test_node('e'));
+	check_chain(t, "abcde");
+
+	free_chain(t);
+}

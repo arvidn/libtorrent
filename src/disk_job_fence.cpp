@@ -242,6 +242,8 @@ namespace aux {
 				return counters::num_fenced_clear_piece;
 			case job_action_t::partial_read:
 				return counters::num_fenced_read;
+			case job_action_t::willneed:
+				return counters::num_fenced_read;
 			case job_action_t::num_job_ids:
 				break;
 		}
