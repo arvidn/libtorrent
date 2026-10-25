@@ -409,17 +409,20 @@ pread_storage::pread_storage(storage_params const& params, file_pool& pool)
 		return { ret, m_save_path };
 	}
 
-	int pread_storage::read(settings_interface const& sett
-		, span<char> buffer
-		, piece_index_t const piece, int const offset
-		, open_mode_t const mode
-		, disk_job_flags_t const flags
-		, storage_error& error)
+	int pread_storage::read(settings_interface const& sett,
+		span<char> buffer,
+		piece_index_t const piece,
+		int const offset,
+		open_mode_t const mode,
+		disk_job_flags_t const flags,
+		int const read_ahead,
+		storage_error& error)
 	{
 #ifdef TORRENT_SIMULATE_SLOW_READ
 		std::this_thread::sleep_for(milliseconds(100));
 #endif
-		return readwrite(files(), buffer, piece, offset, error
+		// clang-format off
+		int const bytes_read = readwrite(files(), buffer, piece, offset, error
 			, [this, mode, flags, &sett](file_index_t const file_index
 				, std::int64_t const file_offset
 				, span<char> buf, storage_error& ec)
@@ -464,6 +467,10 @@ pread_storage::pread_storage(storage_params const& params, file_pool& pool)
 
 			return ret;
 		});
+		// clang-format on
+		if (!error.ec && read_ahead > 0)
+			issue_read_ahead(sett, piece, offset + int(buffer.size()), read_ahead, mode);
+		return bytes_read;
 	}
 
 	// vectored counterpart to read(), used to coalesce several contiguous
@@ -476,9 +483,11 @@ pread_storage::pread_storage(storage_params const& params, file_pool& pool)
 		int offset,
 		open_mode_t const mode,
 		disk_job_flags_t const flags,
+		int read_ahead,
 		storage_error& error)
 	{
-		return readwrite_vec(files(),
+		int const total_len = offset + bufs_size(bufs);
+		int const bytes_read = readwrite_vec(files(),
 			bufs,
 			piece,
 			offset,
@@ -542,6 +551,33 @@ pread_storage::pread_storage(storage_params const& params, file_pool& pool)
 
 				return ret;
 			});
+		if (!error.ec && read_ahead > 0)
+			issue_read_ahead(sett, piece, total_len, read_ahead, mode);
+		return bytes_read;
+	}
+
+	void pread_storage::issue_read_ahead(settings_interface const& sett,
+		piece_index_t const piece,
+		int const piece_offset,
+		int const read_ahead_blocks,
+		open_mode_t const mode) const
+	{
+		auto const range = aux::get_read_ahead_range(
+			files(),
+			m_file_priority,
+			[this](file_index_t const i) { return use_partfile(i); },
+			piece,
+			piece_offset,
+			read_ahead_blocks);
+		if (!range)
+			return;
+
+		storage_error ec;
+		auto handle = open_file(sett, range->file_index, mode, ec);
+		if (ec)
+			return;
+
+		advise_willneed(handle->fd(), range->file_offset, range->length);
 	}
 
 	int pread_storage::write(settings_interface const& sett

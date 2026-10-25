@@ -348,6 +348,22 @@ namespace libtorrent {
 			disk_read_latency19,
 			disk_read_latency20,
 
+			// the number of ordinary forward block requests that landed
+			// inside a still-fresh read-ahead hint ("hits"), versus ones
+			// that didn't ("misses"). A piece's first request, duplicate
+			// requests and backward requests are neither.
+			num_read_ahead_hits,
+			num_read_ahead_misses,
+
+			// the number of blocks actually requested for read-ahead (the
+			// sum of the read_ahead hint sizes that were greater than 0)
+			num_read_ahead_issued_blocks,
+
+			// of the blocks issued for read-ahead above, the number that
+			// were never subsequently requested before their tracking
+			// slot was evicted, i.e. wasted speculative I/O
+			num_read_ahead_wasted_blocks,
+
 			num_stats_counters
 		};
 

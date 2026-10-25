@@ -892,6 +892,7 @@ SOURCES =
 	listen_socket_handle
 	merkle
 	merkle_tree
+	read_ahead
 	peer_connection
 	platform_util
 	bt_peer_connection

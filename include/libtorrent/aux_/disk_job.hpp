@@ -102,6 +102,12 @@ namespace job {
 		// the range of blocks a hash jobs holds references
 		// to is always the last block in the piece.
 		std::int32_t offset;
+
+		// passed in
+		// the number of additional blocks, beyond this request, to
+		// speculatively read ahead. 0 means no read-ahead. See
+		// disk_interface::async_read().
+		std::uint16_t read_ahead = 0;
 	};
 
 	// write jobs write one block (16 kiB) to a piece. These are always aligned

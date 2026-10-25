@@ -14,6 +14,7 @@ see LICENSE file.
 #include <cstdint>
 #include <string>
 #include <functional>
+#include <optional>
 #include <vector>
 
 #include "libtorrent/config.hpp"
@@ -98,6 +99,31 @@ namespace libtorrent::aux {
 		std::string const& save_path,
 		std::function<bool(file_index_t)> const& use_partfile,
 		std::function<bool(piece_index_t)> const& partfile_has_piece);
+
+	// a file and the byte range within it to speculatively advise the OS
+	// to prefetch; see get_read_ahead_range()
+	struct TORRENT_EXTRA_EXPORT read_ahead_range
+	{
+		file_index_t file_index;
+		std::int64_t file_offset;
+		std::int64_t length;
+	};
+
+	// computes the byte range to speculatively read ahead into, for
+	// read_ahead_blocks blocks beyond piece_offset in piece, truncated to
+	// the rest of whichever file piece_offset falls into. read_ahead_blocks
+	// is expected to already be bounded to the current piece; this only
+	// clamps to the file, since piece and file boundaries don't generally
+	// coincide. returns nullopt if there's nothing to advise on: a pad
+	// file, or a skipped, zero-priority file served from the part file,
+	// neither of which have real on-disk data at this location
+	TORRENT_EXTRA_EXPORT std::optional<read_ahead_range> get_read_ahead_range(
+		file_storage const& fs,
+		aux::vector<download_priority_t, file_index_t> const& file_priority,
+		std::function<bool(file_index_t)> const& use_partfile,
+		piece_index_t piece,
+		int piece_offset,
+		int read_ahead_blocks);
 
 	TORRENT_EXTRA_EXPORT int read_zeroes(span<char> bufs);
 
