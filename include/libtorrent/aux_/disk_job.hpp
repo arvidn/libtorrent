@@ -29,24 +29,25 @@ see LICENSE file.
 
 namespace libtorrent::aux {
 
-	// internal
-	enum class job_action_t : std::uint8_t
-	{
-		read
-		, write
-		, hash
-		, hash2
-		, move_storage
-		, release_files
-		, delete_files
-		, check_fastresume
-		, rename_file
-		, stop_torrent
-		, file_priority
-		, clear_piece
-		, partial_read
-		, num_job_ids
-	};
+// internal
+enum class job_action_t : std::uint8_t
+{
+	read,
+	write,
+	hash,
+	hash2,
+	move_storage,
+	release_files,
+	delete_files,
+	check_fastresume,
+	rename_file,
+	stop_torrent,
+	file_priority,
+	clear_piece,
+	partial_read,
+	willneed,
+	num_job_ids
+};
 
 namespace job {
 
@@ -102,6 +103,12 @@ namespace job {
 		// the range of blocks a hash jobs holds references
 		// to is always the last block in the piece.
 		std::int32_t offset;
+
+		// passed in
+		// the number of additional blocks, beyond this request, to
+		// speculatively read ahead. 0 means no read-ahead. See
+		// disk_interface::async_read().
+		std::uint16_t read_ahead = 0;
 	};
 
 	// write jobs write one block (16 kiB) to a piece. These are always aligned
@@ -247,6 +254,22 @@ namespace job {
 		piece_index_t piece;
 	};
 
+	// a speculative posix_fadvise(WILLNEED) hint, carrying no data and
+	// expecting no reply; see disk_interface::new_piece_hint. Queued ahead
+	// of whatever else is pending, since it only pays off if it beats the
+	// read job it's hinting ahead of.
+	struct willneed
+	{
+		// the piece to advise into
+		piece_index_t piece;
+
+		// the byte offset within piece to start the hint at
+		std::int32_t offset;
+
+		// the number of blocks beyond offset to advise, see
+		// disk_interface::async_read()'s read_ahead parameter
+		std::uint16_t read_ahead;
+	};
 }
 
 // state the disk subsystem keeps on a job while it's in flight. Kept
@@ -305,7 +328,8 @@ struct TORRENT_EXTRA_EXPORT disk_job : tailqueue_node<disk_job>
 		job::stop_torrent,
 		job::file_priority,
 		job::clear_piece,
-		job::partial_read>
+		job::partial_read,
+		job::willneed>
 		action;
 
 	// the type of job this is

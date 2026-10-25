@@ -95,6 +95,12 @@ inline std::string print_job(aux::disk_job const& j)
 				<< " buf-offset: " << j.buffer_offset << " size: " << j.buffer_size << " )";
 		}
 
+		void operator()(job::willneed const& j) const
+		{
+			m_ss << "willneed( piece: " << j.piece << " offset: " << j.offset
+				 << " read-ahead: " << j.read_ahead << " )";
+		}
+
 	private:
 		std::stringstream& m_ss;
 	};

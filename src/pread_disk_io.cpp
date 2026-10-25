@@ -55,11 +55,10 @@ aux::open_mode_t file_mode_for_job(aux::pread_disk_job* j)
 #if TORRENT_USE_ASSERTS
 bool valid_flags(disk_job_flags_t const flags)
 {
-	return (flags & ~(disk_interface::force_copy
-			| disk_interface::sequential_access
-			| disk_interface::volatile_read
-			| disk_interface::v1_hash
-			| disk_interface::flush_piece))
+	return (flags
+			   & ~(disk_interface::force_copy | disk_interface::sequential_access
+				   | disk_interface::volatile_read | disk_interface::v1_hash
+				   | disk_interface::flush_piece | disk_interface::new_piece_hint))
 		== disk_job_flags_t{};
 }
 #endif
@@ -120,9 +119,11 @@ struct TORRENT_EXTRA_EXPORT pread_disk_io final
 
 	void abort(bool wait) override;
 
-	void async_read(storage_index_t storage, peer_request const& r
-		, std::function<void(disk_buffer_holder, storage_error const&)> handler
-		, disk_job_flags_t flags = {}) override;
+	void async_read(storage_index_t storage,
+		peer_request const& r,
+		std::function<void(disk_buffer_holder, storage_error const&)> handler,
+		disk_job_flags_t flags = {},
+		int read_ahead = 0) override;
 	bool async_write(storage_index_t storage, peer_request const& r
 		, char const* buf, std::shared_ptr<disk_observer> o
 		, std::function<void(storage_error const&)> handler
@@ -185,6 +186,7 @@ struct TORRENT_EXTRA_EXPORT pread_disk_io final
 	status_t do_job(aux::job::stop_torrent& a, aux::pread_disk_job* j);
 	status_t do_job(aux::job::file_priority& a, aux::pread_disk_job* j);
 	status_t do_job(aux::job::clear_piece& a, aux::pread_disk_job* j);
+	status_t do_job(aux::job::willneed& a, aux::pread_disk_job* j);
 
 private:
 
@@ -239,8 +241,10 @@ private:
 
 	void perform_job(aux::pread_disk_job* j, jobqueue_t& completed_jobs);
 
-	// this queues up another job to be submitted
-	void add_job(aux::pread_disk_job* j, bool user_add = true);
+	// this queues up another job to be submitted. priority jumps it ahead
+	// of whatever's already queued (but behind anything already executing);
+	// see job::willneed, the only user of it so far.
+	void add_job(aux::pread_disk_job* j, bool user_add = true, bool priority = false);
 	void add_fence_job(aux::pread_disk_job* j, bool user_add = true);
 
 	void execute_job(aux::pread_disk_job* j);
@@ -544,8 +548,8 @@ status_t pread_disk_io::do_job(aux::job::partial_read& a, aux::pread_disk_job* j
 
 	span<char> const b = {a.buf.data() + a.buffer_offset, a.buffer_size};
 
-	int const ret = j->storage->read(m_settings, b
-		, a.piece, a.offset, file_mode_for_job(j), j->flags, j->error);
+	int const ret = j->storage->read(
+		m_settings, b, a.piece, a.offset, file_mode_for_job(j), j->flags, 0, j->error);
 
 	TORRENT_ASSERT(ret >= 0 || j->error.ec);
 	TORRENT_UNUSED(ret);
@@ -579,8 +583,8 @@ status_t pread_disk_io::do_job(aux::job::read& a, aux::pread_disk_job* j)
 	aux::open_mode_t const file_mode = file_mode_for_job(j);
 	span<char> const b = {a.buf.data(), a.buffer_size};
 
-	int const ret = j->storage->read(m_settings, b
-		, a.piece, a.offset, file_mode, j->flags, j->error);
+	int const ret = j->storage->read(
+		m_settings, b, a.piece, a.offset, file_mode, j->flags, a.read_ahead, j->error);
 
 	TORRENT_ASSERT(ret >= 0 || j->error.ec);
 	TORRENT_UNUSED(ret);
@@ -612,6 +616,7 @@ void pread_disk_io::execute_read_batch(jobqueue_t jobs)
 	status_t const ret = translate_error(j0, [&] {
 		TORRENT_ALLOCA(iovec, span<char>, count);
 		int i = 0;
+		int max_reach = 0;
 		for (auto it = jobs.iterate(); it.get(); it.next(), ++i)
 		{
 			auto& a = std::get<aux::job::read>(static_cast<aux::pread_disk_job*>(it.get())->action);
@@ -624,13 +629,26 @@ void pread_disk_io::execute_read_batch(jobqueue_t jobs)
 				return disk_status::fatal_disk_error;
 			}
 			iovec[i] = span<char>(a.buf.data(), std::ptrdiff_t(a.buffer_size));
+
+			// each job's own read_ahead is relative to its own position in
+			// the batch (block i), not to the batch's end; re-anchor it so a
+			// peer further into the batch isn't truncated by whichever job
+			// happened to be first
+			max_reach = std::max(max_reach, i + a.read_ahead);
 		}
 
 		auto& a0 = std::get<aux::job::read>(j0->action);
 		auto const start_time = aux::steady_clock::now();
+		int const read_ahead = std::max(0, max_reach - (count - 1));
 
-		int const r = j0->storage->readv(
-			m_settings, iovec, a0.piece, a0.offset, file_mode_for_job(j0), j0->flags, j0->error);
+		int const r = j0->storage->readv(m_settings,
+			iovec,
+			a0.piece,
+			a0.offset,
+			file_mode_for_job(j0),
+			j0->flags,
+			read_ahead,
+			j0->error);
 
 		TORRENT_ASSERT(r >= 0 || j0->error.ec);
 		TORRENT_UNUSED(r);
@@ -679,9 +697,11 @@ status_t pread_disk_io::do_job(aux::job::write&, aux::pread_disk_job*)
 	return {};
 }
 
-void pread_disk_io::async_read(storage_index_t storage, peer_request const& r
-	, std::function<void(disk_buffer_holder, storage_error const&)> handler
-	, disk_job_flags_t const flags)
+void pread_disk_io::async_read(storage_index_t storage,
+	peer_request const& r,
+	std::function<void(disk_buffer_holder, storage_error const&)> handler,
+	disk_job_flags_t const flags,
+	int const read_ahead)
 {
 	TORRENT_ASSERT(valid_flags(flags));
 	TORRENT_ASSERT(r.length <= default_block_size);
@@ -698,6 +718,25 @@ void pread_disk_io::async_read(storage_index_t storage, peer_request const& r
 		return;
 	}
 
+	bool const issued_hint_job = read_ahead > 0 && (flags & disk_interface::new_piece_hint)
+		&& m_settings.get_bool(settings_pack::enable_read_ahead);
+	if (issued_hint_job)
+	{
+		// gives the kernel a head start on the piece transition without
+		// waiting behind whatever else is already queued. posix_fadvise()
+		// is not the cheap, non-blocking call its name suggests, so this
+		// runs as its own job on a disk thread rather than inline here on
+		// the network thread; jumping the queue (but not the fence, nor
+		// anything already executing) is what makes the head start real.
+		aux::pread_disk_job* hint_job =
+			m_job_pool.allocate_job<aux::job::willneed>(disk_job_flags_t{},
+				m_torrents[storage]->shared_from_this(),
+				r.piece,
+				r.start + r.length,
+				std::uint16_t(read_ahead));
+		add_job(hint_job, true, true);
+	}
+
 	// async_read() does not consult the cache itself. It posts a read job that
 	// carries the request verbatim -- including an unaligned start that spans two
 	// blocks -- and lets add_job() funnel it. A job arriving while a fence is up
@@ -705,15 +744,16 @@ void pread_disk_io::async_read(storage_index_t storage, peer_request const& r
 	// can never bypass the fence and read stale data ahead of a queued write.
 	// prepare_read() is the single point where the cache decides whether a read is
 	// served from the cache, turned into a partial_read, or read from disk.
-	aux::pread_disk_job* j = m_job_pool.allocate_job<aux::job::read>(
-		flags,
+	// when the hint job above was issued it already covers this read-ahead
+	// window, so the read job itself must not advise it a second time.
+	aux::pread_disk_job* j = m_job_pool.allocate_job<aux::job::read>(flags,
 		m_torrents[storage]->shared_from_this(),
 		std::move(handler),
 		disk_buffer_holder{},
 		std::uint16_t(r.length), // buffer_size
 		r.piece,
-		r.start // offset
-	);
+		r.start, // offset
+		std::uint16_t(issued_hint_job ? 0 : read_ahead));
 
 	add_job(j);
 }
@@ -1454,7 +1494,7 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 		span<char> const buf_span{buf.get(), read_len};
 
 		j->error.ec.clear();
-		j->storage->read(m_settings, buf_span, a.piece, 0, file_mode, j->flags, j->error);
+		j->storage->read(m_settings, buf_span, a.piece, 0, file_mode, j->flags, 0, j->error);
 
 		if (!j->error.ec)
 		{
@@ -1752,6 +1792,11 @@ status_t pread_disk_io::do_job(aux::job::clear_piece& a, aux::pread_disk_job* j)
 	return {};
 }
 
+status_t pread_disk_io::do_job(aux::job::willneed& a, aux::pread_disk_job* j)
+{
+	j->storage->issue_read_ahead(m_settings, a.piece, a.offset, a.read_ahead, file_mode_for_job(j));
+	return {};
+}
 
 void pread_disk_io::add_fence_job(aux::pread_disk_job* j, bool const user_add)
 {
@@ -1802,7 +1847,7 @@ void pread_disk_io::add_fence_job(aux::pread_disk_job* j, bool const user_add)
 	if (m_generic_threads.max_threads() == 0 && user_add) immediate_execute();
 }
 
-void pread_disk_io::add_job(aux::pread_disk_job* j, bool const user_add)
+void pread_disk_io::add_job(aux::pread_disk_job* j, bool const user_add, bool const priority)
 {
 	TORRENT_ASSERT(!j->storage || j->storage->files().is_valid());
 	TORRENT_ASSERT(j->next == nullptr);
@@ -1863,7 +1908,10 @@ void pread_disk_io::add_job(aux::pread_disk_job* j, bool const user_add)
 	TORRENT_ASSERT((j->state & aux::disk_job::in_progress) || !j->storage);
 
 	auto& q = pool_for_job(j);
-	q.push_back(j);
+	if (priority)
+		q.push_front(j);
+	else
+		q.push_back(j);
 	l.unlock();
 	// if we literally have 0 disk threads, we have to execute the jobs
 	// immediately. If add job is called internally by the pread_disk_io,
