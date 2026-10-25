@@ -223,9 +223,16 @@ namespace file_open_mode {
 		// necessarily aligned to blocks (but it is most of the time). However,
 		// all writes (passed to ``async_write``) are guaranteed to be block
 		// aligned.
-		virtual void async_read(storage_index_t storage, peer_request const& r
-			, std::function<void(disk_buffer_holder, storage_error const&)> handler
-			, disk_job_flags_t flags = {}) = 0;
+		//
+		// ``read_ahead`` is a hint for the number of additional blocks,
+		// beyond ``r``, that the caller believes are likely to be requested
+		// next, for speculative read-ahead. It does not take the end of the
+		// piece into account. 0 means no read-ahead.
+		virtual void async_read(storage_index_t storage,
+			peer_request const& r,
+			std::function<void(disk_buffer_holder, storage_error const&)> handler,
+			disk_job_flags_t flags = {},
+			int read_ahead = 0) = 0;
 		virtual bool async_write(storage_index_t storage, peer_request const& r
 			, char const* buf, std::shared_ptr<disk_observer> o
 			, std::function<void(storage_error const&)> handler

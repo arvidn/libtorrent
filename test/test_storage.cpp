@@ -283,7 +283,7 @@ int read(std::shared_ptr<mmap_storage> s
 	, aux::open_mode_t mode
 	, storage_error& ec)
 {
-	return s->read(sett, buf, piece, offset, mode, disk_job_flags_t{}, ec);
+	return s->read(sett, buf, piece, offset, mode, disk_job_flags_t{}, 0, ec);
 }
 
 void release_files(std::shared_ptr<mmap_storage> s, storage_error& ec)
@@ -335,7 +335,7 @@ int read(std::shared_ptr<pread_storage> s
 	, aux::open_mode_t mode
 	, storage_error& ec)
 {
-	return s->read(sett, buf, piece, offset, mode, disk_job_flags_t{}, ec);
+	return s->read(sett, buf, piece, offset, mode, disk_job_flags_t{}, 0, ec);
 }
 
 void release_files(std::shared_ptr<pread_storage> s, storage_error& ec)
@@ -3606,8 +3606,8 @@ static void test_write_vec_partfile(
 	if (ec) print_error("write", wret, ec);
 
 	std::vector<char> read_buf(static_cast<std::size_t>(ps));
-	int const rret = s->read(set, read_buf, 0_piece, 0
-		, aux::open_mode::read_only, disk_job_flags_t{}, ec);
+	int const rret =
+		s->read(set, read_buf, 0_piece, 0, aux::open_mode::read_only, disk_job_flags_t{}, 0, ec);
 	TEST_EQUAL(rret, ps);
 	TEST_CHECK(!ec);
 	if (ec) print_error("read", rret, ec);

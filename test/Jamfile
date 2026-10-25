@@ -199,6 +199,7 @@ run test_store_buffer.cpp ;
 run test_mmap.cpp ;
 run test_session.cpp ;
 run test_session_params.cpp ;
+run test_read_ahead.cpp ;
 run test_read_piece.cpp ;
 run test_remove_torrent.cpp ;
 run test_flags.cpp ;
@@ -312,6 +313,7 @@ alias deterministic-tests :
 	test_piece_picker
 	test_precomputed_block_hashes
 	test_primitives
+	test_read_ahead
 	test_read_resume
 	test_receive_buffer
 	test_recheck
