@@ -8,6 +8,7 @@ import shutil
 import signal
 import subprocess
 import parse_session_stats
+import plot_png
 import perf_call_tree
 import parse_piece_downloads
 import disk_latency
@@ -29,6 +30,9 @@ EXAMPLES_DIR = ROOT_DIR / "examples"
 # and the payload directory.
 VARIANT_FLAGS = {"v1": "1", "v2": "2", "hybrid": "h"}
 
+# variants that are run unless --variants says otherwise
+DEFAULT_VARIANTS = ["v1", "v2"]
+
 # disk I/O backends to exercise. Passed to client_test via "-i".
 IO_BACKENDS = ["mmap", "pread", "posix"]
 
@@ -37,26 +41,32 @@ IO_BACKENDS = ["mmap", "pread", "posix"]
 # at once. Each selected mode is run through the full variant/backend matrix.
 MODES = ["download", "upload", "dual"]
 
-# fixed properties of the generated test torrents. connection_tester's
-# gen-torrent uses a 1 MiB piece size (the "-s" flag is the piece count, not
-# the piece size), and we always generate this many files per torrent.
+# connection_tester's gen-torrent uses a 1 MiB piece size (the "-s" flag is the
+# piece count, not the piece size).
 PIECE_SIZE_MIB = 1
-NUM_FILES = 15
 
 if platform.system() == "Windows":
     exe = ".exe"
 
 
-def torrent_path(variant: str, num_pieces: int) -> Path:
-    return EXAMPLES_DIR / f"cpu_benchmark-{variant}-{num_pieces}p.torrent"
+def torrent_name(variant: str, num_pieces: int, num_files: int) -> str:
+    # the file count is part of the name so that a torrent generated with a
+    # different --num-files isn't reused
+    return f"cpu_benchmark-{variant}-{num_pieces}p-{num_files}f"
 
 
-def reset_download(save_path: Path, variant: str, num_pieces: int) -> None:
+def torrent_path(variant: str, num_pieces: int, num_files: int) -> Path:
+    return EXAMPLES_DIR / f"{torrent_name(variant, num_pieces, num_files)}.torrent"
+
+
+def reset_download(
+    save_path: Path, variant: str, num_pieces: int, num_files: int
+) -> None:
     rm_file_or_dir(Path(".ses_state"))
     rm_file_or_dir(save_path / ".resume")
     # the payload directory is named after the torrent file stem
     # (see generate_torrent() in connection_tester.cpp).
-    rm_file_or_dir(payload_dir(save_path, variant, num_pieces))
+    rm_file_or_dir(payload_dir(save_path, variant, num_pieces, num_files))
 
 
 def gen_data(torrent: Path, save_path: Path, *, with_resume: bool = False) -> None:
@@ -78,8 +88,10 @@ def gen_data(torrent: Path, save_path: Path, *, with_resume: bool = False) -> No
     subprocess.check_call(cmd)
 
 
-def payload_dir(save_path: Path, variant: str, num_pieces: int) -> Path:
-    return save_path / f"cpu_benchmark-{variant}-{num_pieces}p"
+def payload_dir(
+    save_path: Path, variant: str, num_pieces: int, num_files: int
+) -> Path:
+    return save_path / torrent_name(variant, num_pieces, num_files)
 
 
 def drop_file_cache(path: Path) -> None:
@@ -362,12 +374,13 @@ def render_chart(
     palette: str | None = None,
     baseline: float | None = None,
     higher_is_better: bool = True,
-) -> bool:
+) -> int:
     """Render a grouped bar chart of `rate_field` (backends along the x
     axis, one bar per torrent variant within each group) to `out_path` as
-    a PNG. Mirrors render_pivot's stable ordering. Returns True on success,
-    False if matplotlib is not installed -- in which case the caller skips
-    emitting the image so the report stays valid without the dependency.
+    a PNG. Mirrors render_pivot's stable ordering. Returns the width in
+    pixels to embed the image at, or 0 if matplotlib is not installed -- in
+    which case the caller skips emitting the image so the report stays valid
+    without the dependency.
 
     `palette` names a matplotlib colormap to draw the per-variant bar colors
     from (defaults to matplotlib's property-cycle colors).
@@ -382,7 +395,7 @@ def render_chart(
         matplotlib.use("Agg")  # headless backend; no display required
         import matplotlib.pyplot as plt
     except ImportError:
-        return False
+        return 0
 
     backends = sorted(
         {r["io_backend"] for r in mode_results},
@@ -439,9 +452,10 @@ def render_chart(
     ax.set_title(title)
     ax.legend(title="variant")
     fig.tight_layout()
-    fig.savefig(out_path, dpi=100)
+    plot_png.save_png(fig, out_path)
+    width = round(fig.get_figwidth() * plot_png.DISPLAY_DPI)
     plt.close(fig)
-    return True
+    return width
 
 
 def build_config_header(
@@ -449,6 +463,7 @@ def build_config_header(
     download_peers: int,
     upload_peers: int,
     num_pieces: int,
+    num_files: int,
     disk_cache_mib: int,
     aio_threads: int,
     hasher_threads: int,
@@ -471,7 +486,7 @@ def build_config_header(
         f":Download peers: {download_peers}",
         f":Upload peers: {upload_peers}",
         f":Torrent size: {total_mib} MiB ({num_pieces} pieces x"
-        f" {PIECE_SIZE_MIB} MiB, {NUM_FILES} files)",
+        f" {PIECE_SIZE_MIB} MiB, {num_files} files)",
         f":Disk cache: {disk_cache_mib} MiB (max_queued_disk_bytes)",
         f":AIO threads: {aio_threads} (aio_threads)",
         f":Hasher threads: {hasher_threads} (hashing_threads)",
@@ -553,13 +568,14 @@ def update_results(
             direction = rate_field[: -len("_rate_mbps")]
             slug = mode_key if len(subs) == 1 else f"{mode_key}_{direction}"
             chart_name = f"chart_{slug}.png"
-            if render_chart(
+            if width := render_chart(
                 mode_results, rate_field, sub_heading,
                 benchmarks_dir / chart_name,
             ):
                 doc_parts.append(
                     f".. image:: {chart_name}\n"
-                    f"   :alt: {sub_heading}\n\n"
+                    f"   :alt: {sub_heading}\n"
+                    f"   :width: {width}px\n\n"
                 )
         # disk read-latency matrix for this mode, right under the rate
         # matrices (so it follows the Upload rate section). The cell value is
@@ -579,14 +595,15 @@ def update_results(
         doc_parts.append("\n")
         mem_title = f"{heading}: {mem_heading}"
         mem_chart = f"chart_{mode_key}_rss.png"
-        if render_chart(
+        if width := render_chart(
             mode_results, "max_rss_mib", mem_title,
             benchmarks_dir / mem_chart, ylabel="MiB",
             palette="viridis", baseline=1.0, higher_is_better=False,
         ):
             doc_parts.append(
                 f".. image:: {mem_chart}\n"
-                f"   :alt: {mem_title}\n\n"
+                f"   :alt: {mem_title}\n"
+                f"   :width: {width}px\n\n"
             )
 
     rst_text = "".join(doc_parts)
@@ -771,20 +788,21 @@ def main() -> None:
     )
     p.add_argument(
         "--results-path",
-        default=".",
+        default="benchmarks",
         type=Path,
-        help="Directory to write benchmark results and per-test logs to"
-        " (in a 'benchmarks' subdirectory). Defaults to the current working"
-        " directory, independent of --save-path -- so the payload data can"
-        " live on a fast/non-ZFS volume while results stay in the repo.",
+        help="Directory to write benchmark results and per-test logs to."
+        " Defaults to 'benchmarks' in the current working directory,"
+        " independent of --save-path -- so the payload data can live on a"
+        " fast/non-ZFS volume while results stay in the repo.",
     )
     p.add_argument(
         "--variants",
         nargs="+",
         choices=list(VARIANT_FLAGS.keys()),
-        default=list(VARIANT_FLAGS.keys()),
+        default=DEFAULT_VARIANTS,
         help="Torrent metadata variants to test. Each selected variant is"
-        " run through the full backend/test matrix.",
+        " run through the full backend/test matrix. Hybrid torrents are only"
+        " tested when listed explicitly.",
     )
     p.add_argument(
         "--io-backends",
@@ -810,6 +828,12 @@ def main() -> None:
         default=10000,
         help="Number of pieces in the generated test torrent."
         " Piece size is 1 MiB, so total size is num_pieces MiB.",
+    )
+    p.add_argument(
+        "--num-files",
+        type=int,
+        default=15,
+        help="Number of files in the generated test torrent.",
     )
     p.add_argument(
         "--cleanup",
@@ -852,6 +876,9 @@ def main() -> None:
 
     args = p.parse_args()
 
+    if args.num_files < 1:
+        p.error("--num-files must be at least 1")
+
     # not created on demand: a missing path is usually an unmounted volume,
     # and creating it would silently benchmark the root filesystem instead
     if not args.save_path.is_dir():
@@ -886,7 +913,7 @@ def main() -> None:
     )
 
     for variant in args.variants:
-        torrent = torrent_path(variant, args.num_pieces)
+        torrent = torrent_path(variant, args.num_pieces, args.num_files)
         # v2/hybrid torrents have a "<torrent>.merkle" sidecar holding the
         # precomputed per-file merkle trees; gen-torrent writes it alongside the
         # .torrent. The upload/dual tests load it instead of rehashing the whole
@@ -903,7 +930,7 @@ def main() -> None:
                     "-s",  # num pieces
                     str(args.num_pieces),
                     "-n",  # num files
-                    str(NUM_FILES),
+                    str(args.num_files),
                     "-V",  # metadata version
                     VARIANT_FLAGS[variant],
                     "-t",  # output torrent file
@@ -917,14 +944,16 @@ def main() -> None:
 
     config_header = build_config_header(
         args.save_path, args.download_peers, args.upload_peers,
-        args.num_pieces, args.disk_cache_size, args.aio_threads,
+        args.num_pieces, args.num_files, args.disk_cache_size, args.aio_threads,
         args.hasher_threads,
     )
     max_queued_disk_bytes = args.disk_cache_size * 1024 * 1024
 
     for variant in args.variants:
-        torrent = torrent_path(variant, args.num_pieces)
-        data_dir = payload_dir(args.save_path, variant, args.num_pieces)
+        torrent = torrent_path(variant, args.num_pieces, args.num_files)
+        data_dir = payload_dir(
+            args.save_path, variant, args.num_pieces, args.num_files
+        )
         # whether the canonical upload payload + resume data (from gen_data)
         # for this variant is currently intact on disk. The payload depends
         # only on the variant, not the io_backend, so once generated it is
@@ -943,7 +972,9 @@ def main() -> None:
                 continue
             for io_backend in args.io_backends:
                 if mode == "download":
-                    reset_download(args.save_path, variant, args.num_pieces)
+                    reset_download(
+                        args.save_path, variant, args.num_pieces, args.num_files
+                    )
                     run_test(
                         f"download-{variant}-{io_backend}",
                         "upload",
@@ -964,7 +995,9 @@ def main() -> None:
                         keep_perf_data=args.keep_perf_data,
                     )
                 elif mode == "dual":
-                    reset_download(args.save_path, variant, args.num_pieces)
+                    reset_download(
+                        args.save_path, variant, args.num_pieces, args.num_files
+                    )
                     run_test(
                         f"dual-{variant}-{io_backend}",
                         "dual",
@@ -999,7 +1032,8 @@ def main() -> None:
                         rm_file_or_dir(Path(".ses_state"))
                     else:
                         reset_download(
-                            args.save_path, variant, args.num_pieces
+                            args.save_path, variant, args.num_pieces,
+                            args.num_files,
                         )
                         gen_data(torrent, args.save_path, with_resume=True)
                         upload_payload_ready = True
@@ -1028,7 +1062,10 @@ def main() -> None:
                     # so keep it for the last one
                     last_backend = io_backend == args.io_backends[-1]
                     if mode != "upload" or last_backend:
-                        reset_download(args.save_path, variant, args.num_pieces)
+                        reset_download(
+                            args.save_path, variant, args.num_pieces,
+                            args.num_files,
+                        )
                         upload_payload_ready = False
 
 
@@ -1052,7 +1089,7 @@ def run_test(
     io_backend: str,
     keep_perf_data: bool,
 ) -> None:
-    benchmarks_dir = (results_path / "benchmarks").resolve()
+    benchmarks_dir = results_path.resolve()
     output_dir = benchmarks_dir / name
 
     rm_file_or_dir(output_dir)
@@ -1325,7 +1362,8 @@ def write_test_summary(output_dir: Path, name: str) -> None:
     if imgs:
         parts.append("<h2>resource usage</h2>")
         parts += [
-            f'<p><img src="{img}" alt="{alt}" style="max-width:100%"></p>'
+            f'<p><img src="{img}" alt="{alt}" width="{plot_png.DISPLAY_DPI * 12}"'
+            ' style="max-width:100%;height:auto"></p>'
             for img, alt in imgs
         ]
 

@@ -49,6 +49,7 @@ jobs:
             tools/parse_piece_downloads.py \
             tools/perf_call_tree.py \
             tools/plot_layout.py \
+            tools/plot_png.py \
             tools/test_filesystems.py \
             tools/vmstat.py
 

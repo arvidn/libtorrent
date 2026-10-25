@@ -3,9 +3,11 @@
 
 import argparse
 import json
+from pathlib import Path
 from typing import NamedTuple
 
 import matplotlib.pyplot as plt
+import plot_png
 
 
 class LatencyStats(NamedTuple):
@@ -106,7 +108,11 @@ def plot_comparison(
     ax.legend()
 
     fig.tight_layout()
-    fig.savefig(output_path)
+    # other formats are inferred from the extension by matplotlib
+    if Path(output_path).suffix.lower() == ".png":
+        plot_png.save_png(fig, Path(output_path))
+    else:
+        fig.savefig(output_path)
 
 
 def main() -> None:
