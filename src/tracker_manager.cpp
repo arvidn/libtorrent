@@ -316,6 +316,13 @@ bool is_tracker_protocol_supported(string_view const url)
 		return key;
 	}
 
+	bool tracker_manager::has_queued_http() const
+	{
+		auto const& seq = m_http_conns.get<0>();
+		return std::any_of(
+			seq.begin(), seq.end(), [](http_pool_entry const& e) { return !e.started; });
+	}
+
 	void tracker_manager::start_next_queued()
 	{
 		if (m_num_started_http >= m_settings.get_int(settings_pack::max_concurrent_http_announces))
