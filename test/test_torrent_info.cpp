@@ -1740,6 +1740,7 @@ TORRENT_TEST(write_torrent_file_session_roundtrip)
 		"v2_multiple_files.torrent",
 		"v2_symlinks.torrent",
 		"v2_hybrid.torrent",
+		"v2_identical_files.torrent",
 		"empty-files-1.torrent",
 		"empty-files-2.torrent",
 		"empty-files-3.torrent",
@@ -1823,6 +1824,36 @@ TORRENT_TEST(write_torrent_file_session_roundtrip)
 			TEST_CHECK(out_buffer == data);
 		}
 	}
+}
+
+// files with identical content have the same "pieces root", and share a single
+// entry in "piece layers". It must be written once, both when only the first of
+// them has its merkle tree (as loaded from a .torrent file) and when all of them
+// do (as in the resume data of a torrent whose files have been checked)
+TORRENT_TEST(write_torrent_file_identical_files)
+{
+	std::string const filename =
+		combine_path(combine_path(parent_path(current_working_directory()), "test_torrents"),
+			"v2_identical_files.torrent");
+	error_code ec;
+	std::vector<char> data;
+	TEST_CHECK(load_file(filename, data, ec) == 0);
+	TEST_CHECK(!ec);
+
+	add_torrent_params atp = load_torrent_buffer(data);
+	file_storage const& fs = atp.ti->files();
+	TEST_EQUAL(fs.num_files(), 3);
+	TEST_CHECK(fs.root(file_index_t{0}) == fs.root(file_index_t{1}));
+	TEST_CHECK(fs.root(file_index_t{0}) == fs.root(file_index_t{2}));
+
+	TEST_CHECK(write_torrent_file_buf(atp, {}) == data);
+
+	for (file_index_t const f : {file_index_t{1}, file_index_t{2}})
+	{
+		atp.merkle_trees[f] = atp.merkle_trees[file_index_t{0}];
+		atp.merkle_tree_mask[f] = atp.merkle_tree_mask[file_index_t{0}];
+	}
+	TEST_CHECK(write_torrent_file_buf(atp, {}) == data);
 }
 
 TORRENT_TEST(add_tracker_reject_invalid_url)
