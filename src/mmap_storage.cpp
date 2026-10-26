@@ -147,6 +147,8 @@ mmap_storage::mmap_storage(
 		m_precomputed_v2.drop(piece);
 	}
 
+	void mmap_storage::clear_precomputed_v2() { m_precomputed_v2.clear(); }
+
 	void mmap_storage::need_partfile()
 	{
 		std::lock_guard<std::mutex> l(m_part_file_mutex);

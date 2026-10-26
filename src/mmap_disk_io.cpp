@@ -1118,6 +1118,10 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		// if this assert fails, something's wrong with the fence logic
 		TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
 
+		// the check that follows must hash what is on disk now, not v2 block
+		// hashes left over from when the pieces were downloaded
+		j->storage->clear_precomputed_v2();
+
 		add_torrent_params const* rd = a.resume_data;
 		add_torrent_params tmp;
 		if (rd == nullptr) rd = &tmp;

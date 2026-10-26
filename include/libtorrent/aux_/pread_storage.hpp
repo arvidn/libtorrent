@@ -136,6 +136,7 @@ namespace libtorrent::aux {
 		aux::vector<sha256_hash> take_precomputed_v2(piece_index_t piece);
 		std::optional<sha256_hash> take_precomputed_v2_block(piece_index_t piece, int block);
 		void drop_precomputed_v2(piece_index_t piece);
+		void clear_precomputed_v2();
 
 	private:
 		std::atomic<bool> m_need_tick{false};

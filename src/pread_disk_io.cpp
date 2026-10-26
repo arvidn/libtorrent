@@ -1579,6 +1579,20 @@ status_t pread_disk_io::do_job(aux::job::check_fastresume& a, aux::pread_disk_jo
 	// if this assert fails, something's wrong with the fence logic
 	TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
 	flush_storage(j->storage);
+
+	// the check that follows must hash what is on disk now. Pieces left in
+	// the cache keep the hashes computed when they were downloaded, and
+	// async_hash() would answer from those without reading the files, so a
+	// piece whose file was deleted since would pass its v1 check. Drop them,
+	// and any v2 block hashes left over from then too
+	m_cache.wait_for_hashing(j->storage->storage_index());
+	jobqueue_t aborted;
+	m_cache.remove_storage(j->storage->storage_index(), aborted);
+	TORRENT_ASSERT(aborted.empty());
+	if (!aborted.empty())
+		m_completed_jobs.abort_jobs(m_ios, std::move(aborted));
+	j->storage->clear_precomputed_v2();
+
 	add_torrent_params const* rd = a.resume_data;
 	add_torrent_params tmp;
 	if (rd == nullptr) rd = &tmp;
