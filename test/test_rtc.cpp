@@ -439,10 +439,81 @@ void test_write_exact_chunk_boundary()
 	sig2->close();
 }
 
+void test_offer_creation_failure()
+{
+	session_mock ses(io_context);
+	aux::torrent tor(ses,
+		false,
+		parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
+	int callbacks = 0;
+	auto sig = std::make_shared<rtc_signaling>(
+		io_context,
+		&tor,
+		[](rtc_stream_init) {},
+		[](rtc::Configuration&) { throw std::runtime_error("simulated allocation failure"); });
+	sig->generate_offers(1, [&](error_code const& ec, std::vector<rtc_offer> const& offers) {
+		++callbacks;
+		TEST_EQUAL(ec,
+			boost::system::errc::make_error_code(
+				boost::system::errc::resource_unavailable_try_again));
+		TEST_CHECK(offers.empty());
+		success = true;
+	});
+	run_test();
+	TEST_EQUAL(callbacks, 1);
+	sig->close();
+}
+
+void test_offer_udp_port_exhaustion_recovery()
+{
+	using udp = boost::asio::ip::udp;
+	udp::socket occupied(
+		io_context, udp::endpoint(boost::asio::ip::make_address_v4("127.0.0.1"), 0));
+	auto const port = occupied.local_endpoint().port();
+	session_mock ses(io_context);
+	aux::torrent tor(ses,
+		false,
+		parse_magnet_uri("magnet:?xt=urn:btih:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd"));
+	auto sig = std::make_shared<rtc_signaling>(
+		io_context,
+		&tor,
+		[](rtc_stream_init) {},
+		[port](rtc::Configuration& config) {
+			config.bindAddress = std::string("127.0.0.1");
+			config.portRangeBegin = port;
+			config.portRangeEnd = port;
+		});
+	int callbacks = 0;
+	sig->generate_offers(1, [&](error_code const& ec, std::vector<rtc_offer> const& offers) {
+		++callbacks;
+		TEST_CHECK(ec);
+		TEST_CHECK(offers.empty());
+		success = true;
+	});
+	run_test();
+	TEST_EQUAL(callbacks, 1);
+
+	occupied.close();
+	sig->generate_offers(1, [&](error_code const& ec, std::vector<rtc_offer> const& offers) {
+		++callbacks;
+		TEST_CHECK(!ec);
+		TEST_EQUAL(int(offers.size()), 1);
+		success = true;
+	});
+	run_test();
+	TEST_EQUAL(callbacks, 2);
+	sig->close();
+}
+
 } // namespace
 
 TORRENT_TEST(parse_endpoint) { test_parse_endpoint(); }
 TORRENT_TEST(signaling_offers) { test_offers(); }
+TORRENT_TEST(signaling_offer_creation_failure) { test_offer_creation_failure(); }
+TORRENT_TEST(signaling_offer_udp_port_exhaustion_recovery)
+{
+	test_offer_udp_port_exhaustion_recovery();
+}
 TORRENT_TEST(signaling_connectivity) { test_connectivity(); }
 TORRENT_TEST(signaling_stream) { test_stream(); }
 TORRENT_TEST(write_exact_chunk_boundary) { test_write_exact_chunk_boundary(); }
