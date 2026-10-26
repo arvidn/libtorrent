@@ -21,7 +21,6 @@ see LICENSE file.
 namespace {
 
 std::vector<lt::torrent_handle> handles;
-std::vector<int> free_handle_slots;
 
 int find_handle(lt::torrent_handle h)
 {
@@ -48,29 +47,18 @@ int add_handle(lt::torrent_handle const& h)
 		return i - handles.begin();
 	}
 
-	if (free_handle_slots.empty())
-	{
-		handles.push_back(h);
-		return handles.size() - 1;
-	}
-
-	int const ret = free_handle_slots.back();
-	free_handle_slots.pop_back();
-	handles[ret] = h;
-	return ret;
+	handles.push_back(h);
+	return handles.size() - 1;
 }
 
+// the emptied slot is picked up again by add_handle(). There is no separate
+// list of free slots, since an index in it would be left pointing past the
+// end of handles once the slots after it are popped
 void remove_handle(int const h)
 {
 	handles[h] = lt::torrent_handle{};
 	if (h == int(handles.size() - 1))
-	{
 		handles.pop_back();
-	}
-	else
-	{
-		free_handle_slots.push_back(h);
-	}
 }
 
 int set_int_value(void* dst, int* size, int val)
