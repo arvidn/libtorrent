@@ -43,6 +43,7 @@ see LICENSE file.
 
 #include "libtorrent/aux_/part_file.hpp"
 #include "libtorrent/aux_/io_bytes.hpp"
+#include "libtorrent/aux_/ceil_div.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/vector.hpp"
 #include "libtorrent/aux_/path.hpp"
@@ -338,7 +339,8 @@ namespace libtorrent::aux {
 		if (m_piece_map.empty()) return;
 
 		piece_index_t piece(int(offset / m_piece_size));
-		piece_index_t const end = piece_index_t(int(((offset + size) + m_piece_size - 1) / m_piece_size));
+		piece_index_t const end = piece_index_t(
+			static_cast<int>(aux::ceil_div(offset + size, std::int64_t(m_piece_size))));
 
 		std::unique_ptr<char[]> buf;
 

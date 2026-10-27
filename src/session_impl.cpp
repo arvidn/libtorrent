@@ -58,6 +58,7 @@ see LICENSE file.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/aux_/bt_peer_connection.hpp"
+#include "libtorrent/aux_/ceil_div.hpp"
 #include "libtorrent/peer_connection_handle.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/socket.hpp"
@@ -3480,7 +3481,7 @@ retry:
 		int const header = (ipv6 ? 40 : 20) + 20;
 		int const mtu = 1500;
 		int const packet_size = mtu - header;
-		int const overhead = std::max(1, (bytes + packet_size - 1) / packet_size) * header;
+		int const overhead = std::max(1, aux::ceil_div(bytes, packet_size)) * header;
 		m_stats_counters.inc_stats_counter(counters::sent_ip_overhead_bytes
 			, overhead);
 		m_stats_counters.inc_stats_counter(counters::recv_ip_overhead_bytes

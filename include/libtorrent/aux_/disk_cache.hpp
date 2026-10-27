@@ -25,6 +25,7 @@ see LICENSE file.
 #include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/aux_/disk_job.hpp"
+#include "libtorrent/aux_/ceil_div.hpp"
 #include "libtorrent/aux_/disk_io_thread_pool.hpp" // for jobqueue_t
 #include "libtorrent/aux_/unique_ptr.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
@@ -185,10 +186,7 @@ struct TORRENT_EXTRA_EXPORT cached_piece_entry
 	int piece_size;
 
 	// the number of blocks in this piece, derived from piece_size.
-	int blocks_in_piece() const
-	{
-		return (piece_size + default_block_size - 1) / default_block_size;
-	}
+	int blocks_in_piece() const { return ceil_div(piece_size, default_block_size); }
 
 	// the number of blocks that have been hashed so far. Specifically for the
 	// v1 SHA1 hash of the piece, so all blocks are contiguous starting at block

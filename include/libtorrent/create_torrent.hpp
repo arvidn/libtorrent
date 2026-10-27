@@ -20,6 +20,7 @@ see LICENSE file.
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/session_params.hpp" // for disk_io_constructor_type
 #include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/aux_/ceil_div.hpp"
 #include "libtorrent/aux_/path.hpp" // for combine_path etc.
 #include "libtorrent/fwd.hpp"
 #include "libtorrent/aux_/throw.hpp"
@@ -452,7 +453,8 @@ TORRENT_VERSION_NAMESPACE_4
 			TORRENT_ASSERT_PRECOND(f >= file_index_t{0});
 			TORRENT_ASSERT_PRECOND(f < m_files.end_index());
 			using t = piece_index_t::diff_type;
-			return {t{0}, t{int((m_files[f].size + m_piece_length - 1) / m_piece_length)}};
+			return {t{0},
+				t{static_cast<int>(aux::ceil_div(m_files[f].size, std::int64_t(m_piece_length)))}};
 		}
 
 		// the total number of bytes of all files and pad files

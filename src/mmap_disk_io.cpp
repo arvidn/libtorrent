@@ -16,6 +16,7 @@ see LICENSE file.
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 
 #include "libtorrent/aux_/mmap_storage.hpp"
+#include "libtorrent/aux_/ceil_div.hpp"
 #include "libtorrent/mmap_disk_io.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/aux_/throw.hpp"
@@ -912,7 +913,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		int const piece_size = v1 ? j->storage->files().piece_size(a.piece) : 0;
 		int const piece_size2 = v2 ? j->storage->files().piece_size2(a.piece) : 0;
-		int const blocks_in_piece = v1 ? (piece_size + default_block_size - 1) / default_block_size : 0;
+		int const blocks_in_piece = v1 ? aux::ceil_div(piece_size, default_block_size) : 0;
 		int const blocks_in_piece2 = v2 ? j->storage->files().blocks_in_piece2(a.piece) : 0;
 		aux::open_mode_t const file_mode = file_mode_for_job(j);
 

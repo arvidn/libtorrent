@@ -16,6 +16,7 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 
 #include "libtorrent/aux_/enum_net.hpp"
+#include "libtorrent/aux_/ceil_div.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/socket_type.hpp"
 #include "libtorrent/span.hpp"
@@ -839,8 +840,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 				| GAA_FLAG_SKIP_ANYCAST, nullptr, adapter_addresses, &buf_size);
 			if (res == ERROR_BUFFER_OVERFLOW)
 			{
-				buffer.resize(
-					(buf_size + sizeof(IP_ADAPTER_ADDRESSES) - 1) / sizeof(IP_ADAPTER_ADDRESSES));
+				buffer.resize(aux::ceil_div(std::size_t(buf_size), sizeof(IP_ADAPTER_ADDRESSES)));
 				buf_size = ULONG(buffer.size() * sizeof(IP_ADAPTER_ADDRESSES));
 				adapter_addresses = buffer.data();
 				res = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER
