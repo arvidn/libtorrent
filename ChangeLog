@@ -1,5 +1,6 @@
 2.0.16 not released
 
+	* don't use an IPv6 address the OS never picks for global destinations (e.g. a ULA next to a global address)
 	* fix bind_to_device on windows
 	* fix rollback of move-storage
 	* fix renaming sanitized files back to their original name

@@ -281,6 +281,48 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		});
 	}
 
+	namespace {
+
+	// RFC 6724 section 2.1, the default policy table's labels
+	int policy_label(address_v6 const& a)
+	{
+		static struct { char const* prefix; int len; int label; } const table[] = {
+			{"::1", 128, 0}, {"::ffff:0:0", 96, 4}, {"::", 96, 3}, {"2001::", 32, 5},
+			{"2002::", 16, 2}, {"3ffe::", 16, 12}, {"fec0::", 10, 11}, {"fc00::", 7, 13},
+		};
+		for (auto const& r : table)
+			if (match_addr_mask(a, make_address_v6(r.prefix), build_netmask(r.len, AF_INET6)))
+				return r.label;
+		return 1; // ::/0
+	}
+
+	// never the OS's source for a global destination: a preferred native global
+	// address on the same device wins (RFC 6724 rules 3, 5, 6), e.g. over a ULA
+	bool never_source_for_global(span<ip_interface const> const ifs
+		, ip_interface const& ipface)
+	{
+		address const& a = ipface.interface_address;
+		if (!a.is_v6() || policy_label(a.to_v6()) == 1) return false;
+		return std::any_of(ifs.begin(), ifs.end(), [&](ip_interface const& i)
+		{
+			return i.preferred
+				&& i.interface_address.is_v6()
+				&& is_global(i.interface_address)
+				&& policy_label(i.interface_address.to_v6()) == 1
+				&& string_view(i.name) == ipface.name;
+		});
+	}
+
+	// RFC 6724 rule 6: it's still the source for its own label (a ULA for fc00::/7)
+	bool same_label(address const& local, address const& remote)
+	{
+		if (!local.is_v6() || !remote.is_v6()) return false;
+		int const l = policy_label(local.to_v6());
+		return l != 1 && l == policy_label(remote.to_v6());
+	}
+
+	} // anonymous namespace
+
 	// To comply with BEP 45 multi homed clients must run separate DHT nodes
 	// on each interface they use to talk to the DHT. This is enforced
 	// by prohibiting creating a listen socket on [::] and 0.0.0.0. Instead the list of
@@ -335,7 +377,8 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 					|| (!is_global(ipface.interface_address)
 						&& !(ipface.flags & if_flags::pointopoint)
 						&& has_any_internet_route(routes)
-						&& !has_internet_route(ipface.name, family(ipface.interface_address), routes));
+						&& !has_internet_route(ipface.name, family(ipface.interface_address), routes))
+					|| never_source_for_global(ifs, ipface);
 
 				eps.emplace_back(ipface.interface_address, uep.port, uep.device
 					, uep.ssl, uep.flags | listen_socket_t::was_expanded
@@ -387,7 +430,7 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		if (local_endpoint.address() == addr) return true;
 		if (local_endpoint.address().is_unspecified()) return true;
 		if (match_addr_mask(addr, local_endpoint.address(), netmask)) return true;
-		return !(flags & local_network);
+		return !(flags & local_network) || same_label(local_endpoint.address(), addr);
 	}
 
 	void session_impl::init_peer_class_filter(bool unlimited_local)
@@ -2046,7 +2089,8 @@ namespace {
 
 				bool const local = iface.local
 					|| ipface.interface_address.is_loopback()
-					|| is_link_local(ipface.interface_address);
+					|| is_link_local(ipface.interface_address)
+					|| never_source_for_global(ifs, ipface);
 
 				eps.emplace_back(ipface.interface_address, iface.port, iface.device
 					, ssl, flags | (local ? listen_socket_t::local_network : listen_socket_flags_t{}));
@@ -5213,7 +5257,9 @@ namespace {
 					with_gateways.push_back(ls);
 
 				if (ls->flags & listen_socket_t::proxy
-					|| match_addr_mask(ls->local_endpoint.address(), remote_address, ls->netmask))
+					|| match_addr_mask(ls->local_endpoint.address(), remote_address, ls->netmask)
+					|| ((ls->flags & listen_socket_t::local_network)
+						&& same_label(ls->local_endpoint.address(), remote_address)))
 				{
 					// is this better than the previous match?
 					match = ls;
