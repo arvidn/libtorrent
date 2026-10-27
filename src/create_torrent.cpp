@@ -15,6 +15,7 @@ see LICENSE file.
 #include "libtorrent/mmap_disk_io.hpp" // for hasher_thread_divisor
 #include "libtorrent/disk_interface.hpp"
 #include "libtorrent/aux_/merkle.hpp" // for merkle_*()
+#include "libtorrent/aux_/ceil_div.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/aux_/throw.hpp"
@@ -288,8 +289,7 @@ namespace {
 	// be aligned to pieces
 	int file_num_pieces(std::int64_t const size, int const piece_length)
 	{
-		return aux::numeric_cast<int>(
-			(static_cast<std::int64_t>(size) + piece_length - 1) / piece_length);
+		return aux::numeric_cast<int>(aux::ceil_div(size, std::int64_t(piece_length)));
 	}
 
 } // anonymous namespace
@@ -386,6 +386,9 @@ namespace {
 		std::int64_t ret = 0;
 		for (auto const& f : files)
 		{
+			TORRENT_ASSERT_PRECOND(f.size >= 0);
+			if (f.size < 0)
+				aux::throw_ex<system_error>(errors::torrent_invalid_length);
 			if (std::numeric_limits<std::int64_t>::max() - ret < f.size)
 				aux::throw_ex<system_error>(make_error_code(
 					boost::system::errc::file_too_large));
@@ -396,7 +399,7 @@ namespace {
 
 	int calc_num_pieces(std::int64_t const total_size, int const piece_size)
 	{
-		return aux::numeric_cast<int>((total_size + piece_size - 1) / piece_size);
+		return aux::numeric_cast<int>(aux::ceil_div(total_size, std::int64_t(piece_size)));
 	}
 
 #if TORRENT_ABI_VERSION < 4
@@ -804,7 +807,8 @@ namespace {
 				continue;
 			}
 
-			if (int(hashes.size()) != (files[i].size + piece_size - 1) / piece_size) return false;
+			if (int(hashes.size()) != aux::ceil_div(files[i].size, std::int64_t(piece_size)))
+				return false;
 			if (std::any_of(hashes.begin(), hashes.end(), [](sha256_hash const& h)
 				{ return h.is_all_zeros(); }))
 			{
@@ -818,7 +822,7 @@ namespace {
 		, std::int64_t const total_size
 		, int const piece_length)
 	{
-		if (int(piece_hash.size()) != (total_size + piece_length - 1) / piece_length)
+		if (int(piece_hash.size()) != aux::ceil_div(total_size, std::int64_t(piece_length)))
 			return false;
 
 		return !std::any_of(piece_hash.begin(), piece_hash.end()

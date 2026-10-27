@@ -142,7 +142,7 @@ namespace libtorrent {
 		int const b = size() & 31;
 		resize(bits);
 		if (s >= size()) return;
-		int const old_size_words = (s + 31) / 32;
+		int const old_size_words = aux::ceil_div(s, 32);
 		int const new_size_words = num_words();
 		if (val)
 		{
@@ -171,7 +171,7 @@ namespace libtorrent {
 			m_buf.reset();
 			return;
 		}
-		int const new_size_words = (bits + 31) / 32;
+		int const new_size_words = aux::ceil_div(bits, 32);
 		int const cur_size_words = num_words();
 		if (cur_size_words != new_size_words)
 		{

@@ -271,7 +271,7 @@ insert_result_flags disk_cache::insert(piece_location const loc,
 	auto i = view.find(loc);
 	if (i == view.end())
 	{
-		int const num_blocks = (params.piece_size + default_block_size - 1) / default_block_size;
+		int const num_blocks = ceil_div(params.piece_size, default_block_size);
 		i = m_pieces.emplace(loc, params.piece_size2, params.piece_size, num_blocks, params.v1)
 				.first;
 	}

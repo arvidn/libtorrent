@@ -50,6 +50,7 @@ see LICENSE file.
 #include <functional>
 
 #include "libtorrent/aux_/torrent.hpp"
+#include "libtorrent/aux_/ceil_div.hpp"
 
 #ifdef TORRENT_SSL_PEERS
 #include "libtorrent/aux_/ssl_stream.hpp"
@@ -835,7 +836,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		}
 
 		const int piece_size = piece_size_for_req(piece);
-		const int blocks_in_piece = (piece_size + block_size() - 1) / block_size();
+		const int blocks_in_piece = aux::ceil_div(piece_size, block_size());
 
 		TORRENT_ASSERT(blocks_in_piece > 0);
 		TORRENT_ASSERT(piece_size > 0);
@@ -1465,7 +1466,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			return;
 
 		int const piece_size = piece_size_for_req(piece);
-		int const blocks_in_piece = (piece_size + block_size() - 1) / block_size();
+		int const blocks_in_piece = aux::ceil_div(piece_size, block_size());
 
 		if (m_deleted) return;
 
@@ -2002,8 +2003,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			return;
 		}
 
-		int const blocks_per_piece
-			= (m_torrent_file->piece_length() + default_block_size - 1) / default_block_size;
+		int const blocks_per_piece =
+			aux::ceil_div(m_torrent_file->piece_length(), default_block_size);
 		if (blocks_per_piece > piece_picker::max_blocks_per_piece)
 		{
 			set_error(errors::invalid_piece_size, torrent_status::error_file_none);
