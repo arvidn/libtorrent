@@ -96,6 +96,18 @@ namespace libtorrent::aux {
 			, piece_index_t piece, int offset, aux::open_mode_t mode
 			, disk_job_flags_t flags, storage_error&);
 
+		// ask the kernel to read [offset, offset + length) of the piece ahead,
+		// for every file slice it covers (pad files and part-file slices
+		// excluded)
+		void prefetch_piece(settings_interface const&,
+			piece_index_t piece,
+			int offset,
+			int length,
+			aux::open_mode_t mode,
+			storage_error&);
+		// whether prefetch_piece() hints any of the piece
+		bool read_ahead_piece(piece_index_t piece) const;
+
 		file_storage const& files() const { return m_files; }
 		filenames names() const;
 
@@ -168,6 +180,10 @@ namespace libtorrent::aux {
 
 		bool use_partfile(file_index_t index) const;
 		void use_partfile(file_index_t index, bool b);
+
+		// whether the piece data in this file is in the file, for
+		// prefetch_piece(): not a pad file nor in the part file
+		bool read_ahead_file(file_index_t index) const;
 
 		aux::vector<download_priority_t, file_index_t> m_file_priority;
 		std::string m_save_path;

@@ -395,6 +395,17 @@ namespace {
 #endif
 	}
 
+	void advise_will_need(handle_type handle, std::int64_t const offset, std::int64_t const len)
+	{
+#if (TORRENT_HAS_FADVISE && defined POSIX_FADV_WILLNEED)
+		::posix_fadvise(handle, offset, len, POSIX_FADV_WILLNEED);
+#else
+		TORRENT_UNUSED(handle);
+		TORRENT_UNUSED(offset);
+		TORRENT_UNUSED(len);
+#endif
+	}
+
 	void sync_file(handle_type handle, std::int64_t offset, std::int64_t len)
 	{
 #if TORRENT_USE_SYNC_FILE_RANGE
