@@ -559,6 +559,7 @@ HEADERS = \
   aux_/bind_to_device.hpp           \
   aux_/buffer.hpp                   \
   aux_/byteswap.hpp                 \
+  aux_/ceil_div.hpp                 \
   aux_/bloom_filter.hpp             \
   aux_/bt_peer_connection.hpp       \
   aux_/container_wrapper.hpp        \
@@ -1190,12 +1191,17 @@ TEST_EXTRA = Jamfile \
   root3.xml                          \
   ssl/regenerate_test_certificate.sh \
   ssl/dhparams.pem                   \
+  ssl/cn_mismatch_certificate.pem    \
   ssl/invalid_peer_certificate.pem   \
   ssl/invalid_peer_private_key.pem   \
   ssl/peer_certificate.pem           \
   ssl/peer_private_key.pem           \
   ssl/root_ca_cert.pem               \
   ssl/root_ca_private.pem            \
+  ssl/san_certificate.pem            \
+  ssl/san_mismatch_certificate.pem   \
+  ssl/san_mismatch_cn_match_certificate.pem \
+  ssl/san_wildcard_certificate.pem   \
   ssl/server.pem                     \
   zeroes.gz \
   corrupt.gz \

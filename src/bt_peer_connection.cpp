@@ -36,6 +36,7 @@ see LICENSE file.
 #include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/aux_/io_bytes.hpp"
 #include "libtorrent/aux_/io.hpp"
+#include "libtorrent/aux_/ceil_div.hpp"
 #include "libtorrent/aux_/socket_io.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
@@ -977,7 +978,8 @@ namespace {
 		// if we don't have the metadata, we cannot
 		// verify the bitfield size
 		if (t->valid_metadata()
-			&& m_recv_buffer.packet_size() - 1 != (t->torrent_file().num_pieces() + CHAR_BIT - 1) / CHAR_BIT)
+			&& m_recv_buffer.packet_size() - 1
+				!= aux::ceil_div(t->torrent_file().num_pieces(), CHAR_BIT))
 		{
 			disconnect(errors::invalid_bitfield_size, operation_t::bittorrent, peer_error);
 			return;
