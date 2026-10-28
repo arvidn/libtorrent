@@ -147,8 +147,6 @@ mmap_storage::mmap_storage(
 		m_precomputed_v2.drop(piece);
 	}
 
-	void mmap_storage::clear_precomputed_v2() { m_precomputed_v2.clear(); }
-
 	void mmap_storage::need_partfile()
 	{
 		std::lock_guard<std::mutex> l(m_part_file_mutex);
@@ -328,6 +326,10 @@ mmap_storage::mmap_storage(
 	status_t mmap_storage::initialize(settings_interface const& sett, storage_error& ec)
 	{
 		m_stat_cache.reserve(files().num_files());
+
+		// a check follows, which must hash what is on disk now, not v2 block
+		// hashes left over from when the pieces were downloaded
+		m_precomputed_v2.clear();
 
 		auto const di = aux::get_drive_info(m_save_path);
 		if (di == aux::drive_info::remote)

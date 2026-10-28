@@ -1,6 +1,6 @@
 2.1.3 not released
 
-	* fix force_recheck() of a downloaded hybrid torrent failing with torrent_inconsistent_hashes after a file was deleted (pread disk I/O answered the check from its cache)
+	* fix force_recheck() reusing stale hashes from the pread disk cache
 	* fix web seed SSRF mitigation not applying to IPv6 addresses
 	* fix signed overflow validating a peer request with a length of INT_MAX
 	* fix pread disk I/O flushing stalls when disable_hash_checks is enabled. The setting is now latched when a torrent is added

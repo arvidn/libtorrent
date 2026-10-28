@@ -98,8 +98,6 @@ pread_storage::pread_storage(
 		m_precomputed_v2.drop(piece);
 	}
 
-	void pread_storage::clear_precomputed_v2() { m_precomputed_v2.clear(); }
-
 	void pread_storage::need_partfile()
 	{
 		std::lock_guard<std::mutex> l(m_part_file_mutex);
@@ -232,6 +230,10 @@ pread_storage::pread_storage(
 	status_t pread_storage::initialize(settings_interface const& sett, storage_error& ec)
 	{
 		m_stat_cache.reserve(files().num_files());
+
+		// a check follows, which must hash what is on disk now, not v2 block
+		// hashes left over from when the pieces were downloaded
+		m_precomputed_v2.clear();
 
 #ifdef TORRENT_WINDOWS
 		// don't do full file allocations on network drives
