@@ -307,23 +307,38 @@ enum attack_flags_t
 	valid_sni_hash = 4,
 	invalid_sni_hash = 8,
 	valid_bittorrent_hash = 16,
+	// signed by the root CA, CN doesn't match, a SAN DNS entry matches the
+	// torrent name
+	san_certificate = 32,
+	// signed by the root CA, neither CN nor SAN DNS entry match
+	san_mismatch_certificate = 64,
+	// signed by the root CA, no SAN and CN doesn't match
+	cn_mismatch_certificate = 128,
+	// signed by the root CA, CN doesn't match, SAN DNS entry is "*"
+	san_wildcard_certificate = 256,
+	// signed by the root CA, SAN DNS entry doesn't match, CN is "*"
+	san_mismatch_cn_match_certificate = 512,
 };
 
-attack_t const attacks[] =
-{
+attack_t const attacks[] = {
 	// positive test
-	{ valid_certificate | valid_sni_hash | valid_bittorrent_hash, true},
+	{valid_certificate | valid_sni_hash | valid_bittorrent_hash, true},
 
 	// SNI
-	{ valid_certificate | invalid_sni_hash | valid_bittorrent_hash, false},
-	{ valid_certificate | valid_bittorrent_hash, false},
+	{valid_certificate | invalid_sni_hash | valid_bittorrent_hash, false},
+	{valid_certificate | valid_bittorrent_hash, false},
 
 	// certificate
-	{ valid_sni_hash | valid_bittorrent_hash, false},
-	{ invalid_certificate | valid_sni_hash | valid_bittorrent_hash, false},
+	{valid_sni_hash | valid_bittorrent_hash, false},
+	{invalid_certificate | valid_sni_hash | valid_bittorrent_hash, false},
+	{san_certificate | valid_sni_hash | valid_bittorrent_hash, true},
+	{san_mismatch_certificate | valid_sni_hash | valid_bittorrent_hash, false},
+	{cn_mismatch_certificate | valid_sni_hash | valid_bittorrent_hash, false},
+	{san_wildcard_certificate | valid_sni_hash | valid_bittorrent_hash, true},
+	{san_mismatch_cn_match_certificate | valid_sni_hash | valid_bittorrent_hash, true},
 
 	// bittorrent hash
-	{ valid_certificate | valid_sni_hash, false},
+	{valid_certificate | valid_sni_hash, false},
 };
 
 const int num_attacks = sizeof(attacks)/sizeof(attacks[0]);
@@ -336,6 +351,16 @@ bool try_connect(lt::session& ses1, int port
 	std::printf("\nMALICIOUS PEER TEST: ");
 	if (flags & invalid_certificate) std::printf("invalid-certificate ");
 	else if (flags & valid_certificate) std::printf("valid-certificate ");
+	else if (flags & san_certificate)
+		std::printf("SAN-certificate ");
+	else if (flags & san_mismatch_certificate)
+		std::printf("SAN-mismatch-certificate ");
+	else if (flags & cn_mismatch_certificate)
+		std::printf("CN-mismatch-certificate ");
+	else if (flags & san_wildcard_certificate)
+		std::printf("SAN-wildcard-certificate ");
+	else if (flags & san_mismatch_cn_match_certificate)
+		std::printf("SAN-mismatch-CN-match-certificate ");
 	else std::printf("no-certificate ");
 
 	if (flags & invalid_sni_hash) std::printf("invalid-SNI-hash ");
@@ -380,10 +405,22 @@ bool try_connect(lt::session& ses1, int port
 		certificate = combine_path("..", combine_path("ssl", "invalid_peer_certificate.pem"));
 		private_key = combine_path("..", combine_path("ssl", "invalid_peer_private_key.pem"));
 	}
+	else if (flags & san_certificate)
+		certificate = combine_path("..", combine_path("ssl", "san_certificate.pem"));
+	else if (flags & san_mismatch_certificate)
+		certificate = combine_path("..", combine_path("ssl", "san_mismatch_certificate.pem"));
+	else if (flags & cn_mismatch_certificate)
+		certificate = combine_path("..", combine_path("ssl", "cn_mismatch_certificate.pem"));
+	else if (flags & san_wildcard_certificate)
+		certificate = combine_path("..", combine_path("ssl", "san_wildcard_certificate.pem"));
+	else if (flags & san_mismatch_cn_match_certificate)
+		certificate =
+			combine_path("..", combine_path("ssl", "san_mismatch_cn_match_certificate.pem"));
 
-	// TODO: test using a signed certificate with the wrong info-hash in DN
-
-	if (flags & (valid_certificate | invalid_certificate))
+	if (flags
+		& (valid_certificate | invalid_certificate | san_certificate | san_mismatch_certificate
+			| cn_mismatch_certificate | san_wildcard_certificate
+			| san_mismatch_cn_match_certificate))
 	{
 		std::printf("set_password_callback\n");
 		ctx.set_password_callback(

@@ -16,6 +16,7 @@ see LICENSE file.
 #include <algorithm>
 #include <mutex>
 #include <cstring>
+#include <iterator>
 #include <vector>
 
 #ifdef TORRENT_WINDOWS
