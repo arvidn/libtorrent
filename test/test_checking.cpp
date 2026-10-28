@@ -555,6 +555,11 @@ TORRENT_TEST(recreated_picker_pad_bytes)
 	std::vector<download_priority_t> prio(std::size_t(files.num_files()), default_priority);
 	prio[std::size_t(static_cast<int>(big))] = dont_download;
 	h.prioritize_files(prio);
+	// the disk thread checks whether the skipped file exists. Deleting it
+	// first races with that check, which fails on Windows while the file is
+	// still open, and the error puts the old priority back
+	TEST_CHECK(wait_for_alert(ses, file_prio_alert::alert_type
+		, "skip file", pop_alerts::pop_all, seconds(30)));
 
 	remove(files.file_path(big, "."), ec);
 	TEST_CHECK(!ec);
