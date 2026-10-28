@@ -107,7 +107,7 @@ jobs:
 
       strategy:
          matrix:
-            config: [ webtorrent=off crypto=built-in, webtorrent=off release ]
+            config: [ webtorrent=off crypto=built-in define=_LIBCPP_REMOVE_TRANSITIVE_INCLUDES=1, webtorrent=off release ]
 
       steps:
       - name: checkout
