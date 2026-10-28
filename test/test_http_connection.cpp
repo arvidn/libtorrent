@@ -22,6 +22,7 @@ see LICENSE file.
 #include "libtorrent/aux_/storage_utils.hpp"
 #include "libtorrent/aux_/random.hpp"
 
+#include <algorithm>
 #include <iostream>
 #include <optional>
 
@@ -252,4 +253,61 @@ TORRENT_TEST(http_connect_with_host_header) { run_suite("http", settings_pack::h
 TORRENT_TEST(no_keepalive)
 {
 	run_suite("http", settings_pack::none, 0);
+}
+
+// the server sends a response without a content-length that exactly fills
+// the initial receive buffer, and then closes the connection. The receive
+// buffer is grown while waiting for more data, and the parser passed to the
+// handler on EOF must refer to the new buffer, not the freed one
+TORRENT_TEST(get_body_after_receive_buffer_grows)
+{
+	tcp::acceptor acceptor(ios, tcp::endpoint(make_address_v4("127.0.0.1"), 0));
+	int const port = acceptor.local_endpoint().port();
+
+	std::string response = "HTTP/1.1 200 OK\r\n\r\n";
+	std::size_t const header_size = response.size();
+	response.resize(4096, 'x');
+
+	tcp::socket server(ios);
+	acceptor.async_accept(server, [&](error_code const& ec) {
+		if (ec)
+			return;
+		boost::asio::async_write(
+			server, boost::asio::buffer(response), [&](error_code const&, std::size_t) {
+				error_code ignore;
+				server.shutdown(tcp::socket::shutdown_send, ignore);
+			});
+	});
+
+	int called = 0;
+	auto handler = [&](error_code const& ec,
+					   aux::http_parser const& parser,
+					   span<char const> data,
+					   aux::http_connection&) {
+		++called;
+		TEST_EQUAL(ec, error_code(boost::asio::error::eof));
+		TEST_CHECK(parser.header_finished());
+		span<char const> const body = parser.get_body();
+		TEST_EQUAL(body.size(), int(response.size() - header_size));
+		TEST_CHECK(body == data);
+		TEST_CHECK(std::all_of(body.begin(), body.end(), [](char c) { return c == 'x'; }));
+	};
+
+	auto h = std::make_shared<aux::http_connection>(ios,
+		res,
+		handler,
+		1024 * 1024,
+		aux::http_connect_handler(),
+		aux::http_filter_handler(),
+		aux::hostname_filter_handler()
+#if TORRENT_USE_SSL
+			,
+		nullptr
+#endif
+	);
+	h->get("http://127.0.0.1:" + std::to_string(port) + "/", seconds(5));
+	ios.restart();
+	ios.run();
+
+	TEST_EQUAL(called, 1);
 }
