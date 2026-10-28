@@ -158,6 +158,13 @@ namespace libtorrent::aux {
 			return m_send_barriers.empty() || m_send_barriers.back().next != INT_MAX;
 		}
 
+		// true while encrypt() may still transform send buffers in place. Unlike
+		// is_send_plaintext(), this stays true across a bounded encrypted tail
+		// (a barrier with a finite byte count, e.g. the handshake sent as IA),
+		// which is exactly the window where buffers are mutated but the
+		// connection ends up plaintext
+		bool mutates_send_buffer() const { return !m_send_barriers.empty(); }
+
 		bool is_recv_plaintext() const
 		{
 			return m_dec_handler.get() == nullptr;

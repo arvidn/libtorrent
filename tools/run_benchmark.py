@@ -642,10 +642,11 @@ def check_perf_environment() -> None:
         print()
 
 
-def check_matplotlib() -> None:
+def check_matplotlib() -> bool:
     """Warn once, up front, if matplotlib is missing. Without it render_chart
     silently skips the per-mode bar charts; the RST/HTML tables are still
     produced. find_spec avoids importing the (heavy) module just to probe.
+    Returns True if the warning was printed.
     """
     import importlib.util
     if importlib.util.find_spec("matplotlib") is None:
@@ -655,6 +656,25 @@ def check_matplotlib() -> None:
             " produced).\n"
             "    install it with: pip install matplotlib\n"
         )
+        return True
+    return False
+
+
+def check_docutils() -> bool:
+    """Warn once, up front, if docutils is missing. Without it update_results
+    silently skips rendering results.html (results.rst is still produced).
+    find_spec avoids importing the module just to probe.
+    Returns True if the warning was printed.
+    """
+    import importlib.util
+    if importlib.util.find_spec("docutils") is None:
+        print(
+            "warning: docutils is not installed; results.html will not be"
+            " generated (results.rst is still produced).\n"
+            "    install it with: pip install docutils\n"
+        )
+        return True
+    return False
 
 
 def suggest_dirty_limit_if_high_ram() -> None:
@@ -805,8 +825,13 @@ def main() -> None:
     args = p.parse_args()
 
     check_perf_environment()
-    check_matplotlib()
+    # evaluate both eagerly (not "or") so both warnings get printed before
+    # exiting, rather than short-circuiting after the first one found.
+    missing_matplotlib = check_matplotlib()
+    missing_docutils = check_docutils()
     suggest_dirty_limit_if_high_ram()
+    if missing_matplotlib or missing_docutils:
+        raise SystemExit(1)
 
     subprocess.check_call(
         [

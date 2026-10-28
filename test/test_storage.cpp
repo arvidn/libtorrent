@@ -36,6 +36,7 @@ see LICENSE file.
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/aux_/stat_cache.hpp"
 #include "libtorrent/aux_/random.hpp"
+#include "libtorrent/aux_/scope_end.hpp"
 #include "libtorrent/mmap_disk_io.hpp"
 #include "libtorrent/posix_disk_io.hpp"
 #include "libtorrent/pread_disk_io.hpp"
@@ -566,6 +567,8 @@ void test_rename_to_existing(
 	aux::session_settings settings;
 	counters cnt;
 	auto disk_io = disk_constructor(ios, settings, cnt);
+	// ~pread_disk_io asserts that abort() has been called
+	auto const abort_guard = lt::aux::scope_end([&] { disk_io->abort(true); });
 	aux::vector<download_priority_t, file_index_t> priorities;
 	renamed_files renamed;
 	storage_params params{fs,
@@ -624,8 +627,6 @@ void test_rename_to_existing(
 	TEST_EQUAL(load_file(destination_path, content, ec), 0);
 	TEST_CHECK(!ec);
 	TEST_EQUAL(std::string(content.begin(), content.end()), destination_content);
-
-	disk_io->abort(true);
 }
 
 namespace {
@@ -819,6 +820,8 @@ void test_check_files(check_files_flag_t const flags,
 	sett.set_int(settings_pack::aio_threads, aio_threads);
 	sett.set_int(settings_pack::hashing_threads, hashing_threads);
 	std::unique_ptr<disk_interface> io = disk_constructor(ios, sett, cnt);
+	// ~pread_disk_io asserts that abort() has been called
+	auto const abort_guard = lt::aux::scope_end([&] { io->abort(true); });
 
 	aux::vector<download_priority_t, file_index_t> priorities;
 
@@ -902,8 +905,6 @@ void test_check_files(check_files_flag_t const flags,
 	TEST_EQUAL(outstanding, 0);
 	TEST_EQUAL(hashes_done, 2);
 	TEST_CHECK(release_done);
-
-	io->abort(true);
 }
 
 // TODO: 2 split this test up into smaller parts
@@ -990,6 +991,228 @@ TORRENT_TEST_DISK_IO(check_files_oversized)
 }
 
 TORRENT_TEST_DISK_IO(check_files_allocate) { test_check_files_all_threads(zero_prio, disk_io); }
+
+namespace {
+// synchronously drives async_check_files() with no resume data, which is
+// what makes the backend consult has_any_file() to decide whether a
+// full recheck is needed.
+status_t run_check_files(lt::disk_interface& io, lt::io_context& ios, lt::storage_holder const& st)
+{
+	status_t result{};
+	bool done = false;
+	add_torrent_params frd;
+	aux::vector<std::string, file_index_t> links;
+	io.async_check_files(st, &frd, links, [&](status_t const s, storage_error const& e) {
+		result = s;
+		TEST_CHECK(!e);
+		done = true;
+	});
+	io.submit_jobs();
+	ios.restart();
+	run_until(ios, done);
+	return result;
+}
+
+// seeds the part file with `data` for `piece`, through a throwaway
+// disk_interface, while `priorities` keeps that piece's file from ever
+// being created at its real path.
+void seed_partfile_piece(lt::disk_io_constructor_type const disk_constructor,
+	std::shared_ptr<torrent_info const> const& info,
+	aux::vector<download_priority_t, file_index_t> const& priorities,
+	std::string const& test_path,
+	piece_index_t const piece,
+	lt::span<char const> data)
+{
+	aux::session_settings sett;
+	boost::asio::io_context ios;
+	counters cnt;
+	std::unique_ptr<disk_interface> io = disk_constructor(ios, sett, cnt);
+	// ~pread_disk_io asserts that abort() has been called
+	auto const abort_guard = lt::aux::scope_end([&] { io->abort(true); });
+
+	renamed_files rf;
+	storage_params p{info->layout(),
+		rf,
+		test_path,
+		{},
+		storage_mode_sparse,
+		priorities,
+		sha1_hash{},
+		info->v1(),
+		info->v2()};
+	storage_holder st = io->new_torrent(std::move(p), std::shared_ptr<void>());
+
+	run_check_files(*io, ios, st);
+
+	bool done = false;
+	io->async_write(st,
+		lt::peer_request{piece, 0, int(data.size())},
+		data.data(),
+		{},
+		[&done](storage_error const& e) {
+			TEST_CHECK(!e);
+			done = true;
+		});
+	io->submit_jobs();
+	ios.restart();
+	run_until(ios, done);
+
+	st.reset();
+}
+
+// a dont_download file whose real path exists but is empty (e.g. a
+// truncated placeholder) must still be routed through the part file if
+// that's where its data actually lives, consistently across all three
+// storage backends.
+void test_read_dont_download_empty_placeholder(lt::disk_io_constructor_type const disk_constructor)
+{
+	std::string const test_path = current_working_directory();
+	constexpr int piece_size_check = 16;
+	error_code ec;
+	delete_dirs("temp_storage");
+
+	std::vector<lt::create_file_entry> fs;
+	fs.emplace_back("temp_storage/dontdownload", piece_size_check);
+
+	std::vector<char> const data0 = new_piece(piece_size_check);
+
+	lt::create_torrent t(std::move(fs), piece_size_check, lt::create_torrent::v1_only);
+	t.set_hash(0_piece, sha1_hash::max());
+	TEST_EQUAL(t.num_pieces(), 1);
+
+	create_directory(combine_path(test_path, "temp_storage"), ec);
+	if (ec)
+		std::cout << "create_directory: " << ec.message() << std::endl;
+
+	std::shared_ptr<torrent_info const> info = load_torrent_buffer(bencode(t.generate())).ti;
+
+	aux::vector<download_priority_t, file_index_t> priorities;
+	priorities.resize(std::size_t(info->num_files()), dont_download);
+
+	// populate the part file with the only piece, while the file
+	// doesn't exist at its real path at all.
+	seed_partfile_piece(disk_constructor, info, priorities, test_path, 0_piece, data0);
+
+	// a 0-byte placeholder now sits at the file's real path, as if it
+	// had been preallocated or truncated externally, while its actual
+	// data still lives in the part file written above.
+	ofstream(combine_path(test_path, combine_path("temp_storage", "dontdownload")).c_str());
+
+	aux::session_settings sett;
+	boost::asio::io_context ios;
+	counters cnt;
+	std::unique_ptr<disk_interface> io = disk_constructor(ios, sett, cnt);
+	// ~pread_disk_io asserts that abort() has been called. The explicit abort()
+	// below still has to stay, since the files have to be closed before
+	// delete_dirs() removes them
+	auto const abort_guard = lt::aux::scope_end([&] { io->abort(true); });
+	renamed_files rf;
+	storage_params p{info->layout(),
+		rf,
+		test_path,
+		{},
+		storage_mode_sparse,
+		priorities,
+		sha1_hash{},
+		info->v1(),
+		info->v2()};
+	storage_holder st = io->new_torrent(std::move(p), std::shared_ptr<void>());
+
+	run_check_files(*io, ios, st);
+
+	bool done = false;
+	io->async_read(st,
+		lt::peer_request{0_piece, 0, piece_size_check},
+		[&](lt::disk_buffer_holder h, storage_error const& e) {
+			TEST_CHECK(!e);
+			if (!e)
+			{
+				TEST_CHECK(lt::span<char const>(h.data(), piece_size_check)
+					== lt::span<char const>(data0.data(), piece_size_check));
+			}
+			done = true;
+		});
+	io->submit_jobs();
+	ios.restart();
+	run_until(ios, done);
+
+	st.reset();
+	io->abort(true);
+	delete_dirs("temp_storage");
+}
+
+// a torrent whose only on-disk data lives in the part file must still
+// trigger a full recheck, consistently across all three storage
+// backends.
+void test_has_any_file_partfile_only(lt::disk_io_constructor_type const disk_constructor)
+{
+	std::string const test_path = current_working_directory();
+	constexpr int piece_size_check = 16;
+	error_code ec;
+	delete_dirs("temp_storage");
+
+	std::vector<lt::create_file_entry> fs;
+	fs.emplace_back("temp_storage/dontdownload", piece_size_check);
+
+	std::vector<char> const data0 = new_piece(piece_size_check);
+
+	lt::create_torrent t(std::move(fs), piece_size_check, lt::create_torrent::v1_only);
+	t.set_hash(0_piece, sha1_hash::max());
+	TEST_EQUAL(t.num_pieces(), 1);
+
+	create_directory(combine_path(test_path, "temp_storage"), ec);
+	if (ec)
+		std::cout << "create_directory: " << ec.message() << std::endl;
+
+	std::shared_ptr<torrent_info const> info = load_torrent_buffer(bencode(t.generate())).ti;
+
+	aux::vector<download_priority_t, file_index_t> priorities;
+	priorities.resize(std::size_t(info->num_files()), dont_download);
+
+	// write the file's only piece while its priority is 0, so it's
+	// routed into the part file; the file never exists at its real path.
+	seed_partfile_piece(disk_constructor, info, priorities, test_path, 0_piece, data0);
+
+	TEST_CHECK(!exists(combine_path(combine_path(test_path, "temp_storage"), "dontdownload")));
+
+	// fresh disk_interface, no resume data. the only evidence this
+	// torrent has any data at all is the part file.
+	aux::session_settings sett;
+	boost::asio::io_context ios;
+	counters cnt;
+	std::unique_ptr<disk_interface> io = disk_constructor(ios, sett, cnt);
+	// ~pread_disk_io asserts that abort() has been called. The explicit abort()
+	// below still has to stay, since the files have to be closed before
+	// delete_dirs() removes them
+	auto const abort_guard = lt::aux::scope_end([&] { io->abort(true); });
+	renamed_files rf;
+	storage_params p{info->layout(),
+		rf,
+		test_path,
+		{},
+		storage_mode_sparse,
+		priorities,
+		sha1_hash{},
+		info->v1(),
+		info->v2()};
+	storage_holder st = io->new_torrent(std::move(p), std::shared_ptr<void>());
+
+	status_t const status = run_check_files(*io, ios, st);
+
+	TEST_CHECK(status & lt::disk_status::need_full_check);
+
+	st.reset();
+	io->abort(true);
+	delete_dirs("temp_storage");
+}
+} // anonymous namespace
+
+TORRENT_TEST_DISK_IO(read_dont_download_empty_placeholder)
+{
+	test_read_dont_download_empty_placeholder(disk_io);
+}
+
+TORRENT_TEST_DISK_IO(has_any_file_partfile_only) { test_has_any_file_partfile_only(disk_io); }
 
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 TORRENT_TEST(test_pre_allocate_mmap) { test_pre_allocate<mmap_storage>(); }
@@ -1188,6 +1411,9 @@ TORRENT_TEST_DISK_IO(rename_self_referencing_symlink)
 	counters cnt;
 	aux::session_settings sett;
 	std::unique_ptr<disk_interface> io = disk_io(ios, sett, cnt);
+	// ~pread_disk_io asserts that abort() has been called, which
+	// close_symlink_torrent() below only does on the non-throwing path
+	auto const abort_guard = lt::aux::scope_end([&] { io->abort(true); });
 	lt::storage_holder st = add_symlink_torrent(*io, ios, atp, test_path);
 
 	bool rename_done = false;
@@ -1251,6 +1477,9 @@ TORRENT_TEST_DISK_IO(rename_valid_symlink)
 	counters cnt;
 	aux::session_settings sett;
 	std::unique_ptr<disk_interface> io = disk_io(ios, sett, cnt);
+	// ~pread_disk_io asserts that abort() has been called, which
+	// close_symlink_torrent() below only does on the non-throwing path
+	auto const abort_guard = lt::aux::scope_end([&] { io->abort(true); });
 	lt::storage_holder st = add_symlink_torrent(*io, ios, atp, test_path);
 
 	bool rename_done = false;
@@ -1296,6 +1525,9 @@ void test_delete_files(lt::disk_io_constructor_type const disk_io,
 	counters cnt;
 	aux::session_settings sett;
 	std::unique_ptr<disk_interface> io = disk_io(ios, sett, cnt);
+	// ~pread_disk_io asserts that abort() has been called, which
+	// close_symlink_torrent() below only does on the non-throwing path
+	auto const abort_guard = lt::aux::scope_end([&] { io->abort(true); });
 	lt::storage_holder st = add_symlink_torrent(*io, ios, atp, test_path);
 
 	bool delete_done = false;
@@ -1382,6 +1614,9 @@ TORRENT_TEST_DISK_IO(move_storage_self_referencing_symlink)
 	counters cnt;
 	aux::session_settings sett;
 	std::unique_ptr<disk_interface> io = disk_io(ios, sett, cnt);
+	// ~pread_disk_io asserts that abort() has been called, which
+	// close_symlink_torrent() below only does on the non-throwing path
+	auto const abort_guard = lt::aux::scope_end([&] { io->abort(true); });
 	lt::storage_holder st = add_symlink_torrent(*io, ios, atp, test_path);
 
 	bool move_done = false;
@@ -1445,6 +1680,9 @@ TORRENT_TEST_DISK_IO(move_storage_with_symlink)
 	counters cnt;
 	aux::session_settings sett;
 	std::unique_ptr<disk_interface> io = disk_io(ios, sett, cnt);
+	// ~pread_disk_io asserts that abort() has been called, which
+	// close_symlink_torrent() below only does on the non-throwing path
+	auto const abort_guard = lt::aux::scope_end([&] { io->abort(true); });
 	lt::storage_holder st = add_symlink_torrent(*io, ios, atp, test_path);
 
 	bool move_done = false;
@@ -2563,6 +2801,8 @@ void test_unaligned_read(lt::disk_io_constructor_type constructor, Fun fun)
 
 	std::unique_ptr<lt::disk_interface> disk_io
 		= constructor(ioc, pack, cnt);
+	// ~pread_disk_io asserts that abort() has been called
+	auto const abort_guard = lt::aux::scope_end([&] { disk_io->abort(true); });
 
 	lt::file_storage fs;
 	fs.add_file("test", lt::default_block_size * 2);
@@ -2598,7 +2838,6 @@ void test_unaligned_read(lt::disk_io_constructor_type constructor, Fun fun)
 	fun(disk_io.get(), t, ioc, outstanding);
 
 	t.reset();
-	disk_io->abort(true);
 }
 
 struct write_handler

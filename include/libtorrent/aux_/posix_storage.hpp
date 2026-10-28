@@ -30,8 +30,9 @@ namespace aux {
 
 	struct TORRENT_EXTRA_EXPORT posix_storage
 	{
-		explicit posix_storage(storage_params const& p);
+		explicit posix_storage(storage_params const& p, bool disable_hash_checks = false);
 		file_storage const& files() const { return m_files; }
+		bool disable_hash_checks() const { return m_disable_hash_checks; }
 		filenames names() const;
 		~posix_storage();
 
@@ -65,6 +66,9 @@ namespace aux {
 		status_t initialize(settings_interface const&, storage_error& ec);
 
 	private:
+		// latched for the lifetime of the storage, it must agree with the
+		// torrent's view of the setting
+		bool m_disable_hash_checks;
 
 		file_pointer open_file(file_index_t idx, open_mode_t mode, std::int64_t offset
 			, storage_error& ec);

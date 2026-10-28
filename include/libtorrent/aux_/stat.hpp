@@ -19,6 +19,7 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/array.hpp"
+#include "libtorrent/aux_/ceil_div.hpp"
 
 namespace libtorrent::aux {
 
@@ -134,7 +135,7 @@ namespace libtorrent::aux {
 			const int header = (ipv6 ? 40 : 20) + 20;
 			const int mtu = 1500;
 			const int packet_size = mtu - header;
-			const int overhead = (std::max)(1, (bytes_transferred + packet_size - 1) / packet_size) * header;
+			const int overhead = (std::max)(1, ceil_div(bytes_transferred, packet_size)) * header;
 			m_stat[download_ip_protocol].add(overhead);
 			m_stat[upload_ip_protocol].add(overhead);
 		}

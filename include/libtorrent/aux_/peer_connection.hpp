@@ -735,6 +735,14 @@ namespace libtorrent::aux {
 				, span<span<char const>>());
 		}
 
+		// true if hit_send_barrier() mutates the buffers it is handed, i.e. the
+		// payload is transformed in place on its way out. Such a connection
+		// cannot send a disk buffer the disk subsystem may hand out to someone
+		// else, so its reads need disk_interface::force_copy. Recorded by the
+		// derived class whenever its send path changes state, rather than
+		// polled, since only the derived class knows when that happens
+		bool mutates_send_buffer() const { return m_mutates_send_buffer; }
+
 		void attach_to_torrent(info_hash_t const& ih);
 
 		bool validate_piece_request(peer_request const& p) const;
@@ -1178,6 +1186,10 @@ namespace libtorrent::aux {
 		// outstanding requests need to increase at the same pace to keep up.
 		bool m_slow_start:1;
 
+		// set by the derived class while its send path transforms buffers in
+		// place. See mutates_send_buffer()
+		bool m_mutates_send_buffer:1;
+
 #if TORRENT_USE_ASSERTS
 	public:
 		bool m_in_constructor = true;
@@ -1189,6 +1201,9 @@ namespace libtorrent::aux {
 		// this is true while there is an outstanding
 		// async write job on the socket
 		bool m_socket_is_writing = false;
+		// true while a loop over m_requests that erases from it is running.
+		// Used to catch re-entrant mutation invalidating its iterators
+		bool m_iterating_requests = false;
 		bool is_single_thread() const;
 #endif
 	};

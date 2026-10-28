@@ -68,22 +68,21 @@ int readwrite_vec(file_storage const& files, span<span<char const> const> bufs
 }
 
 #if TORRENT_USE_ASSERTS
-namespace {
-
-	inline int count_bufs(span<span<char const> const> bufs, int bytes)
-	{
-		std::ptrdiff_t size = 0;
-		int count = 0;
-		if (bytes == 0) return count;
-		for (auto b : bufs)
-		{
-			++count;
-			size += b.size();
-			if (size >= bytes) return count;
-		}
+template <typename Char>
+int count_bufs(span<span<Char> const> bufs, int bytes)
+{
+	std::ptrdiff_t size = 0;
+	int count = 0;
+	if (bytes == 0)
 		return count;
+	for (auto b : bufs)
+	{
+		++count;
+		size += b.size();
+		if (size >= bytes)
+			return count;
 	}
-
+	return count;
 }
 #endif
 
@@ -256,7 +255,7 @@ int readwrite_vec_impl(file_storage const& files, span<span<Char> const> bufs
 	// system call will need to make its own copy as well
 	TORRENT_ALLOCA(current_buf, span<Char>, bufs.size());
 	copy_bufs(bufs, size, current_buf);
-	TORRENT_ASSERT(count_bufs(current_buf, size) == int(bufs.size()));
+	TORRENT_ASSERT(count_bufs(span<span<Char> const>(current_buf), size) == int(bufs.size()));
 
 	TORRENT_ALLOCA(tmp_buf, span<Char>, bufs.size());
 	while (bytes_left > 0)
@@ -288,7 +287,8 @@ int readwrite_vec_impl(file_storage const& files, span<span<Char> const> bufs
 
 		// make a copy of the iovec array that _just_ covers the next
 		// file_bytes_left bytes, i.e. just this one operation
-		int const tmp_bufs_used = copy_bufs(span<span<Char const> const>(current_buf), file_bytes_left, tmp_buf);
+		int const tmp_bufs_used =
+			copy_bufs(span<span<Char> const>(current_buf), file_bytes_left, tmp_buf);
 
 		int const bytes_transferred = op(file_index, file_offset
 			, tmp_buf.first(tmp_bufs_used), ec);
@@ -303,7 +303,8 @@ int readwrite_vec_impl(file_storage const& files, span<span<Char> const> bufs
 		current_buf = advance_bufs(current_buf, bytes_transferred);
 		bytes_left -= bytes_transferred;
 		file_offset += bytes_transferred;
-		TORRENT_ASSERT(count_bufs(current_buf, bytes_left) <= int(bufs.size()));
+		TORRENT_ASSERT(
+			count_bufs(span<span<Char> const>(current_buf), bytes_left) <= int(bufs.size()));
 
 		// if the file operation returned 0, we've hit end-of-file. We're done
 		if (bytes_transferred == 0)

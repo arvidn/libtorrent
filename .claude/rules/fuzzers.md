@@ -104,7 +104,8 @@ session-level fuzzers additionally implement `LLVMFuzzerInitialize`:
 
 - `LLVMFuzzerInitialize(argc, argv)` — implemented only by the
   session-level fuzzers (`add_torrent`, `pe_conn`, `peer_conn`,
-  `piece_layers`, `rtc_peer_conn`, `ut_metadata`, `ut_pex`, `web_seed`).
+  `piece_layers`, `rtc_peer_conn`, `seed_conn`, `ut_metadata`, `ut_pex`,
+  `web_seed`).
   Called once at startup to set up global state (sessions, sockets,
   servers) that persists across all test inputs. The many pure-function
   fuzzers (e.g. `bdecode_node`, `parse_magnet_uri`, `gzip`,
@@ -221,6 +222,95 @@ feature (default `off` -> `DEBUG_LOGGING=0`). Build with
 the alert mask and makes `wait_for_disconnect` print the last 10 interesting
 alerts (connect and routine peer-log noise excluded) before each disconnect
 -- useful for tracing which message paths were hit.
+
+### seed_conn.cpp
+
+Connects to a live libtorrent session that is always a complete seed, and
+sends fuzz-controlled protocol messages. This is the counterpart to
+`peer_conn.cpp`: `peer_conn`'s local session only ever downloads, so it
+never has any piece of any torrent, which means `incoming_request()`'s
+request-validity check (`src/peer_connection.cpp`) always short-circuits on
+its "we don't have this piece" clause before reaching the rest of the
+check (or the piece-serving code below it) -- that whole area is dead code
+as far as `peer_conn` is concerned. `seed_conn` exists to actually reach it.
+
+Session and torrent setup is in `seed_session.hpp`
+(`write_seed_file()`, `build_seed_torrent()`, `wait_for_listen()`,
+`wait_for_torrents_checked()`), which in turn includes `peer_session.hpp`
+for the generic networking helpers (`configure_fuzz_session()`,
+`connect_to_session()`, `send_bt_handshake()`, `send_bt_message()`,
+`send_extended_message()`, `wait_for_disconnect()`).
+
+**Session setup (`LLVMFuzzerInitialize`):** creates a session on
+`127.0.0.1:0` with the same disabled ancillary services and short timeouts
+as `peer_conn`, then adds four torrents, built from two layouts:
+
+- **hybrid** (v1 + v2): one file, 32768-byte (2-block) pieces, with a short
+  last piece (20000 bytes) -- covers multi-block pieces and a non-power-of-2
+  final piece.
+- **v1-only**: two files, 16384-byte (1-block) pieces, sized so a piece
+  straddles the file boundary and the last piece is short.
+
+Each layout is added twice: once with `torrent_flags::seed_mode` (the data
+is trusted up front; each piece is only actually hashed against its real
+on-disk content the first time any peer requests it -- see
+`peer_connection::incoming_request()`'s `seed_mode && !t->verified_piece()`
+branch, which issues an `async_hash()` job and completes in
+`on_seed_mode_hashed()`), and once added with resume data claiming every
+piece is already had (`add_torrent_params::have_pieces`, all bits set), the
+ordinary fast-resume path a real client takes when it already finished a
+download, straight to being a seed without a disk hash check. Both
+variants' file content is real and correct for the hashes in their
+torrent, so every on-demand hash check succeeds and
+all four torrents remain seeds for the lifetime of the process; each piece's
+on-demand verification is naturally only novel the first time any input
+requests it, after which it's already verified for the rest of the run
+(same persistent-global-state tradeoff as `peer_conn`'s pre-resolved
+magnets). Files live under a fixed path,
+`fuzzer_seed_torrent/<layout>/<seedmode|realseed>/f<i>`, reused as is
+across runs rather than rewritten every time (`seed_file_matches()`), so
+repeated invocations don't pile up stale directories. `seed_file_lock`
+holds an flock() over that write-or-reuse-then-hash sequence, so
+concurrent libFuzzer worker processes (`-jobs`/`-workers`), which all run
+in the same working directory and so share these same paths, can't have
+one's write_seed_file() truncate a file another is midway through
+hashing. The seedmode/realseed segment, being part of each file's path and
+so part of the bencoded info dict, is what gives a layout's two variants
+distinct info-hashes without needing distinct file content.
+Readiness is a `torrent_checked_alert` per torrent (fires once each is a
+confirmed seed), not `torrent_resumed_alert`.
+
+**Per-input flow (`LLVMFuzzerTestOneInput`):**
+
+1. Opens a TCP connection to `127.0.0.1:g_fz.listen_port`.
+2. Sends a 68-byte BT handshake using `data[0..7]` as the reserved bytes,
+   with the same bit layout as `peer_conn`: byte 0 bit 0x01 picks which
+   hash to advertise for the hybrid torrents (v2/best vs. v1 SHA-1; the
+   v1-only torrents only have one hash, so this bit is ignored for them),
+   and bits 0x02/0x04 form a 2-bit torrent selector: 0 = hybrid/seed_mode,
+   1 = hybrid/real-seed, 2 = v1-only/seed_mode, 3 = v1-only/real-seed.
+3. Sends a fixed (not fuzz-derived) `interested` message. Loopback
+   connections are put in the "local" peer class
+   (`session_impl::m_local_peer_class`), which has `ignore_unchoke_slots`
+   set, so `incoming_interested()` unchokes immediately rather than
+   waiting for the choker's next tick -- this reliably reaches
+   `incoming_request()` on the very first fuzzed message without the fuzz
+   data having to fight the choker. No BEP10 extended handshake is sent
+   (unlike `peer_conn`): this fuzzer targets the core
+   request/piece/choke/cancel machinery, not BEP10 extensions.
+4. Parses the remaining fuzz data as a sequence of BT messages using the
+   exact same wire format as `peer_conn` (see below) and sends each with a
+   correct length prefix.
+5. Closes the socket and waits for disconnect, same as `peer_conn`.
+
+The wire format (type/len/payload framing, the msg_type 20 special case) is
+identical to `peer_conn`'s -- see **Corpus wire format (peer_conn)** below;
+`seed_conn` just has a different, 1-byte handshake-reserved-byte meaning for
+the torrent selector and no extended-handshake prefix. A `request` message
+(msg_type 6, a 12-byte piece/start/length payload) is not special-cased: its
+payload bytes map directly onto the wire fields `incoming_request()` parses,
+so any fuzzed length value -- including values like `INT_MAX` that can
+overflow a signed sum against the piece size -- reaches it unmodified.
 
 ### Corpus wire format (peer_conn)
 

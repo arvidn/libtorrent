@@ -988,6 +988,7 @@ namespace libtorrent::aux {
 		}
 
 		bool disable_v1_hashes() const { return m_disable_v1_hashes; }
+		bool disable_hash_checks() const { return m_disable_hash_checks; }
 
 		// like torrent_info::piece_size_for_req(), but when disable_v1_hashes
 		// was set at the time the torrent was added, the engine treats the torrent
@@ -1790,6 +1791,12 @@ namespace libtorrent::aux {
 		// doesn't cause a mismatch between the storage (which was set up as
 		// v2-only) and the engine's block-sizing logic.
 		bool m_disable_v1_hashes:1;
+
+		// latched when the storage is created. The disk backend latches it at
+		// the same time for the storage, and the two must not diverge.
+		// TODO: in master, add this to storage_params so the backends take it
+		// from there instead of reading the setting in new_torrent()
+		bool m_disable_hash_checks:1;
 		// ----
 
 		// the maximum number of uploads for this torrent

@@ -61,8 +61,11 @@ namespace aux {
 			, udp::endpoint const& ep, span<char const> p);
 
 		// if the UDP socket failed with an EAGAIN or EWOULDBLOCK, this will be
-		// called once the socket is writeable again
-		void writable();
+		// called once the socket is writeable again. Sockets stalled on other
+		// interfaces are still blocked and stay stalled. An expired interface
+		// matches sockets whose interface is also gone, they must be woken to
+		// fail and be deleted
+		void writable(std::weak_ptr<utp_socket_interface> sock);
 
 		// when the upper layer has drained the underlying UDP socket, this is
 		// called, and uTP sockets will send their ACKs. This ensures ACKs at

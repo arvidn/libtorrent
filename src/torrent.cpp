@@ -50,6 +50,7 @@ see LICENSE file.
 #include <functional>
 
 #include "libtorrent/aux_/torrent.hpp"
+#include "libtorrent/aux_/ceil_div.hpp"
 
 #ifdef TORRENT_SSL_PEERS
 #include "libtorrent/aux_/ssl_stream.hpp"
@@ -208,10 +209,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		, m_state(torrent_status::checking_resume_data)
 	{}
 
-	torrent::torrent(
-		aux::session_interface& ses
-		, bool const session_paused
-		, add_torrent_params&& p)
+	torrent::torrent(aux::session_interface& ses, bool const session_paused, add_torrent_params&& p)
 		: torrent_hot_members(ses, p, session_paused)
 		, m_total_uploaded(p.total_uploaded)
 		, m_total_downloaded(p.total_downloaded)
@@ -250,6 +248,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		, m_enable_lsd(!bool(p.flags & torrent_flags::disable_lsd))
 		, m_i2p(bool(p.flags & torrent_flags::i2p_torrent))
 		, m_disable_v1_hashes(false)
+		, m_disable_hash_checks(false)
 		, m_max_uploads((1 << 24) - 1)
 		, m_num_uploads(0)
 		, m_enable_pex(!bool(p.flags & torrent_flags::disable_pex))
@@ -258,7 +257,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 #if TORRENT_ABI_VERSION < 4
 		, m_v2_piece_layers_validated(false)
 #endif
-		, m_connect_boost_counter(static_cast<std::uint8_t>(settings().get_int(settings_pack::torrent_connect_boost)))
+		, m_connect_boost_counter(
+			  static_cast<std::uint8_t>(settings().get_int(settings_pack::torrent_connect_boost)))
 		, m_incomplete(0xffffff)
 		, m_announce_to_dht(!(p.flags & torrent_flags::paused))
 		, m_ssl_torrent(false)
@@ -836,7 +836,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		}
 
 		const int piece_size = piece_size_for_req(piece);
-		const int blocks_in_piece = (piece_size + block_size() - 1) / block_size();
+		const int blocks_in_piece = aux::ceil_div(piece_size, block_size());
 
 		TORRENT_ASSERT(blocks_in_piece > 0);
 		TORRENT_ASSERT(piece_size > 0);
@@ -1466,7 +1466,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			return;
 
 		int const piece_size = piece_size_for_req(piece);
-		int const blocks_in_piece = (piece_size + block_size() - 1) / block_size();
+		int const blocks_in_piece = aux::ceil_div(piece_size, block_size());
 
 		if (m_deleted) return;
 
@@ -1928,6 +1928,11 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			m_torrent_file->v2()
 		};
 
+		// latched here rather than in the constructor so it is read at the
+		// same time the backend reads it for the storage. Once it is part of
+		// storage_params this can move to the constructor
+		m_disable_hash_checks = settings().get_bool(settings_pack::disable_hash_checks);
+
 		// the storage references m_torrent_file's file_storage, so the disk I/O
 		// keeps the torrent_info alive while it has jobs for the storage. It
 		// must not keep the torrent alive, that has to be destructed on the
@@ -1998,8 +2003,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			return;
 		}
 
-		int const blocks_per_piece
-			= (m_torrent_file->piece_length() + default_block_size - 1) / default_block_size;
+		int const blocks_per_piece =
+			aux::ceil_div(m_torrent_file->piece_length(), default_block_size);
 		if (blocks_per_piece > piece_picker::max_blocks_per_piece)
 		{
 			set_error(errors::invalid_piece_size, torrent_status::error_file_none);
@@ -2748,7 +2753,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		boost::tribool hash_passed[2]
 			= { boost::indeterminate, boost::indeterminate };
 
-		if (!settings().get_bool(settings_pack::disable_hash_checks))
+		if (!m_disable_hash_checks)
 		{
 			if (torrent_file().info_hashes().has_v1() && !m_disable_v1_hashes)
 				hash_passed[0] = piece_hash == m_torrent_file->hash_for_piece(piece);
@@ -4517,13 +4522,13 @@ namespace {
 		boost::tribool passed = boost::indeterminate;
 		boost::tribool v2_passed = boost::indeterminate;
 
-		if (settings().get_bool(settings_pack::disable_hash_checks))
-		{
-			passed = v2_passed = true;
-		}
-		else if (error)
+		if (error)
 		{
 			passed = v2_passed = false;
+		}
+		else if (m_disable_hash_checks)
+		{
+			passed = v2_passed = true;
 		}
 		else
 		{
@@ -7225,10 +7230,10 @@ namespace {
 		// The SSRF mitigation for web seeds is that any HTTP server on the
 		// local network may not use any query string parameters. this can't
 		// be evaluated when the hostname is resolved by the proxy (see
-		// settings_pack::proxy_hostnames), since peer_info.addr is then an
+		// settings_pack::proxy_hostnames), since the endpoint address is then an
 		// unspecified placeholder rather than the real target address
 		if (settings().get_bool(settings_pack::ssrf_mitigation) && address_known
-			&& aux::is_local(web->peer_info.addr) && path.find('?') != std::string::npos)
+			&& aux::is_local(a.address()) && path.find('?') != std::string::npos)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log())
@@ -12003,14 +12008,9 @@ namespace {
 
 		std::uint8_t const gen = m_picker_generation;
 
-		if (settings().get_bool(settings_pack::disable_hash_checks))
-		{
-			// short-circuit the hash check if it's disabled
-			m_picker->started_hash_job(piece);
-			on_piece_verified(std::move(hashes), piece, sha1_hash(), storage_error{}, gen);
-			return;
-		}
-
+		// with disable_hash_checks the backend returns zero hashes, but the
+		// job is still posted. It is what tells the backend the piece is
+		// complete and can be flushed and evicted
 		span<sha256_hash> v2_span(hashes);
 		// mark the piece as hashing before dispatching: with 0 disk threads
 		// (aio_threads=0, e.g. simulations), async_hash() may invoke its

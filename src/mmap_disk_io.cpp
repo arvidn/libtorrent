@@ -16,6 +16,7 @@ see LICENSE file.
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 
 #include "libtorrent/aux_/mmap_storage.hpp"
+#include "libtorrent/aux_/ceil_div.hpp"
 #include "libtorrent/mmap_disk_io.hpp"
 #include "libtorrent/disk_buffer_holder.hpp"
 #include "libtorrent/aux_/throw.hpp"
@@ -291,7 +292,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	{
 		TORRENT_ASSERT(params.files.is_valid());
 
-		auto storage = std::make_shared<aux::mmap_storage>(params, m_file_pool);
+		auto storage = std::make_shared<aux::mmap_storage>(
+			params, m_file_pool, m_settings.get_bool(settings_pack::disable_hash_checks));
 		storage->set_owner(owner);
 		storage_index_t const idx = m_torrents.add(std::move(storage));
 		return {idx, *this};
@@ -530,7 +532,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		// doesn't have to re-read the block from disk. v2 pieces don't span
 		// file boundaries, so for hybrid torrents the block may extend past
 		// the v2 piece end into v1 padding; hash only the v2 portion.
-		if (!j->error.ec && ret == a.buffer_size && j->storage->v2())
+		if (!j->error.ec && ret == a.buffer_size && j->storage->v2()
+			&& !j->storage->disable_hash_checks())
 		{
 			int const piece_size2 = j->storage->files().piece_size2(a.piece);
 			if (a.offset < piece_size2)
@@ -902,12 +905,15 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		// just read straight from the file
 		TORRENT_ASSERT(m_magic == 0x1337);
 
+		if (j->storage->disable_hash_checks())
+			return status_t{};
+
 		bool const v1 = bool(j->flags & disk_interface::v1_hash);
 		bool const v2 = !a.block_hashes.empty();
 
 		int const piece_size = v1 ? j->storage->files().piece_size(a.piece) : 0;
 		int const piece_size2 = v2 ? j->storage->files().piece_size2(a.piece) : 0;
-		int const blocks_in_piece = v1 ? (piece_size + default_block_size - 1) / default_block_size : 0;
+		int const blocks_in_piece = v1 ? aux::ceil_div(piece_size, default_block_size) : 0;
 		int const blocks_in_piece2 = v2 ? j->storage->files().blocks_in_piece2(a.piece) : 0;
 		aux::open_mode_t const file_mode = file_mode_for_job(j);
 

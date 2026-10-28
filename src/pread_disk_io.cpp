@@ -26,6 +26,7 @@ see LICENSE file.
 #include "libtorrent/aux_/disk_io_thread_pool.hpp"
 #include "libtorrent/aux_/disk_tick_thread.hpp"
 #include "libtorrent/aux_/disk_cache.hpp"
+#include "libtorrent/aux_/ceil_div.hpp"
 #include "libtorrent/aux_/visit_block_iovecs.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/add_torrent_params.hpp"
@@ -35,6 +36,7 @@ see LICENSE file.
 #include "libtorrent/aux_/disk_completed_queue.hpp"
 #include "libtorrent/aux_/debug_disk_thread.hpp"
 #include "libtorrent/aux_/scope_end.hpp"
+#include "libtorrent/aux_/storage_utils.hpp"
 
 #include <functional>
 #include <memory>
@@ -161,6 +163,15 @@ struct TORRENT_EXTRA_EXPORT pread_disk_io final
 
 	status_t do_job(aux::job::partial_read& a, aux::pread_disk_job* j);
 	status_t do_job(aux::job::read& a, aux::pread_disk_job* j);
+
+	// services a batch of 2 or more job::read jobs -- collected by
+	// collect_read_batch() because they're contiguous reads from the same
+	// piece of the same storage -- with a single readv() call. jobs is
+	// consumed (moved out of) and every job in it is pushed onto the disk
+	// I/O thread's completed-jobs queue, same as execute_job() would do for
+	// a single job.
+	void execute_read_batch(jobqueue_t jobs);
+
 	status_t do_job(aux::job::write& a, aux::pread_disk_job* j);
 	status_t do_job(aux::job::hash& a, aux::pread_disk_job* j);
 	status_t do_job(aux::job::hash2& a, aux::pread_disk_job* j);
@@ -392,7 +403,8 @@ storage_holder pread_disk_io::new_torrent(storage_params const& params
 	std::lock_guard<std::mutex> l(m_job_mutex);
 	m_fence_flush.reserve(static_cast<std::size_t>(m_torrents.num_slots() + 1));
 
-	auto storage = std::make_shared<aux::pread_storage>(params, m_file_pool);
+	auto storage = std::make_shared<aux::pread_storage>(
+		params, m_file_pool, m_settings.get_bool(settings_pack::disable_hash_checks));
 	storage->set_owner(owner);
 	storage_index_t const idx = m_torrents.add(std::move(storage));
 	return {idx, *this};
@@ -587,6 +599,76 @@ status_t pread_disk_io::do_job(aux::job::read& a, aux::pread_disk_job* j)
 	}
 	TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
 	return status_t{};
+}
+
+void pread_disk_io::execute_read_batch(jobqueue_t jobs)
+{
+	TORRENT_ASSERT(!jobs.empty());
+
+	int const count = jobs.size();
+	auto* const j0 = static_cast<aux::pread_disk_job*>(jobs.first());
+
+	m_stats_counters.inc_stats_counter(counters::num_running_disk_jobs, count);
+	auto se = aux::scope_end(
+		[&] { m_stats_counters.inc_stats_counter(counters::num_running_disk_jobs, -count); });
+
+	status_t const ret = translate_error(j0, [&] {
+		TORRENT_ALLOCA(iovec, span<char>, count);
+		int i = 0;
+		for (auto it = jobs.iterate(); it.get(); it.next(), ++i)
+		{
+			auto& a = std::get<aux::job::read>(static_cast<aux::pread_disk_job*>(it.get())->action);
+			a.buf = disk_buffer_holder(m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"));
+			if (!a.buf)
+			{
+				j0->error.ec = error::no_memory;
+				j0->error.operation = operation_t::alloc_cache_piece;
+				return disk_status::fatal_disk_error;
+			}
+			iovec[i] = span<char>(a.buf.data(), std::ptrdiff_t(a.buffer_size));
+		}
+
+		auto& a0 = std::get<aux::job::read>(j0->action);
+		auto const start_time = aux::steady_clock::now();
+
+		int const r = j0->storage->readv(
+			m_settings, iovec, a0.piece, a0.offset, file_mode_for_job(j0), j0->flags, j0->error);
+
+		TORRENT_ASSERT(r >= 0 || j0->error.ec);
+		TORRENT_UNUSED(r);
+
+		if (!j0->error.ec)
+		{
+			std::int64_t const read_time =
+				total_microseconds(aux::steady_clock::now() - start_time);
+
+			// one readv() call served `count` blocks: num_read_ops -- the
+			// syscall count -- goes up by 1, not by count, which is the
+			// whole point of batching.
+			m_stats_counters.inc_stats_counter(counters::num_blocks_read, count);
+			m_stats_counters.inc_stats_counter(counters::num_read_ops);
+			m_stats_counters.inc_stats_counter(counters::disk_read_time, read_time);
+			m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
+		}
+		return status_t{};
+	});
+
+	// a readv() spanning multiple jobs either serves all of them or fails
+	// as a whole (see collect_read_batch(): everything in the batch is a
+	// cache-miss read of already-flushed, immutable piece data, so there's
+	// no partial-success case worth threading through separately). Give
+	// every job in the batch the same outcome.
+	storage_error const result = j0->error;
+	jobqueue_t completed_jobs;
+	while (!jobs.empty())
+	{
+		auto* const j = static_cast<aux::pread_disk_job*>(jobs.pop_front());
+		j->error = result;
+		j->ret = ret;
+		TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
+		completed_jobs.push_back(j);
+	}
+	add_completed_jobs(std::move(completed_jobs));
 }
 
 status_t pread_disk_io::do_job(aux::job::write&, aux::pread_disk_job*)
@@ -816,8 +898,14 @@ aux::insert_result_flags pread_disk_io::insert_write(aux::pread_disk_job* j)
 	// files. Even though v2 torrents guarantee that they are zero.
 	int const piece_size = j->storage->v1() ? fs.piece_size(piece) : fs.piece_size2(piece);
 	TORRENT_ASSERT(a.buffer_size == std::min(piece_size - offset, default_block_size));
-	aux::disk_cache::piece_entry_params const piece_params{
-		fs.piece_size2(piece), piece_size, j->storage->v1(), j->storage->v2(), j->storage};
+	// caching the piece as neither v1 nor v2 is what prevents hashing as
+	// blocks are written
+	bool const hash = !j->storage->disable_hash_checks();
+	aux::disk_cache::piece_entry_params const piece_params{fs.piece_size2(piece),
+		piece_size,
+		j->storage->v1() && hash,
+		j->storage->v2() && hash,
+		j->storage};
 
 	// undo the pending-write accounting if insert() throws, so a failed allocation doesn't leak it
 	auto cancel = aux::scope_end([&] { m_cache.cancel_pending_write(j); });
@@ -873,7 +961,8 @@ void pread_disk_io::add_write_to_cache(aux::pread_disk_job* j)
 
 	// v1 wake-up signal comes from the cache; for v2 the insert may have
 	// pushed a queue entry the cache has no way to flag.
-	if ((result & aux::disk_cache::need_hasher_kick) || j->storage->v2())
+	if ((result & aux::disk_cache::need_hasher_kick)
+		|| (j->storage->v2() && !j->storage->disable_hash_checks()))
 		kick_write_hashers();
 }
 
@@ -1169,12 +1258,27 @@ void pread_disk_io::async_clear_piece(storage_index_t const storage
 
 status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 {
+	if (j->storage->disable_hash_checks())
+	{
+		// hash_piece() is what marks the piece complete, flushable and
+		// evictable, so it is still called, with nothing to compute. This
+		// job runs on a generic thread, which flushes the piece before
+		// picking up its next job. The piece is cached as neither v1 nor
+		// v2, so there is never a hasher to defer to
+		auto const hpr = m_cache.hash_piece({j->storage->storage_index(), a.piece},
+			j,
+			[](aux::piece_hasher*, int, span<char const*>) {});
+		TORRENT_ASSERT(hpr != aux::disk_cache::hash_piece_result::deferred);
+		TORRENT_UNUSED(hpr);
+		return status_t{};
+	}
+
 	bool const v1 = bool(j->flags & disk_interface::v1_hash);
 	bool const v2 = !a.block_hashes.empty();
 
 	int const piece_size = v1 ? j->storage->files().piece_size(a.piece) : 0;
 	int const piece_size2 = v2 ? j->storage->files().piece_size2(a.piece) : 0;
-	int const blocks_in_piece = v1 ? (piece_size + default_block_size - 1) / default_block_size : 0;
+	int const blocks_in_piece = v1 ? aux::ceil_div(piece_size, default_block_size) : 0;
 	int const blocks_in_piece2 = v2 ? j->storage->files().blocks_in_piece2(a.piece) : 0;
 	aux::open_mode_t const file_mode = file_mode_for_job(j);
 
@@ -2119,11 +2223,27 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 			m_generic_threads.interrupt();
 		}
 
+		// opportunistically pull other already-queued job::read jobs that
+		// extend this one's byte range (same storage, same piece,
+		// contiguous offset) out of the queue, so they can all be serviced
+		// by a single readv() call below instead of one pread() each. Only
+		// bother scanning when there's something queued to look at.
+		jobqueue_t read_batch;
+		if (&pool == &m_generic_threads && j->get_type() == aux::job_action_t::read
+			&& !(j->flags & aux::disk_job::aborted) && !pool.empty())
+		{
+			read_batch.push_back(j);
+			aux::collect_read_batch(j, pool, read_batch);
+		}
+
 		l.unlock();
 
 		TORRENT_ASSERT((j->flags & aux::disk_job::in_progress) || !j->storage);
 
-		execute_job(j);
+		if (read_batch.size() > 1)
+			execute_read_batch(std::move(read_batch));
+		else
+			execute_job(j);
 
 		// If a hash job ran on the hash thread, hash_piece() may have set
 		// force_flush_flag on the piece. Wake a generic thread to flush those blocks.
@@ -2206,12 +2326,15 @@ void pread_disk_io::abort_jobs()
 
 aux::disk_io_thread_pool& pread_disk_io::pool_for_job(aux::pread_disk_job* j)
 {
-	if (m_hash_threads.max_threads() > 0
-		&& (j->get_type() == aux::job_action_t::hash
-			|| j->get_type() == aux::job_action_t::hash2))
-		return m_hash_threads;
-	else
+	if (m_hash_threads.max_threads() == 0)
 		return m_generic_threads;
+	if (j->get_type() == aux::job_action_t::hash2)
+		return m_hash_threads;
+	// with hash checks disabled the hash job only marks the piece for
+	// flushing, so run it where the flush happens
+	if (j->get_type() == aux::job_action_t::hash)
+		return j->storage->disable_hash_checks() ? m_generic_threads : m_hash_threads;
+	return m_generic_threads;
 }
 
 void pread_disk_io::add_completed_jobs(jobqueue_t jobs, bool const may_flush)
@@ -2266,7 +2389,8 @@ void pread_disk_io::add_completed_jobs_impl(
 		if (std::holds_alternative<aux::job::write>(j->action))
 		{
 			auto const result = ctx.self->insert_write(j);
-			if ((result & aux::disk_cache::need_hasher_kick) || j->storage->v2())
+			if ((result & aux::disk_cache::need_hasher_kick)
+				|| (j->storage->v2() && !j->storage->disable_hash_checks()))
 				ctx.need_kick = true;
 		}
 		else if (std::holds_alternative<aux::job::read>(j->action) && ctx.self->prepare_read(j))

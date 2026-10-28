@@ -39,25 +39,24 @@ static_assert(sizeof(off_t) >= 8, "64 bit file operations are required");
 namespace libtorrent {
 namespace aux {
 
-	posix_storage::posix_storage(storage_params const& p)
-		: m_files(p.files)
-		, m_renamed_files(std::move(p.renamed_files))
-		, m_save_path(p.path)
-		, m_part_file_dir(p.part_file_dir)
-		, m_file_priority(p.priorities)
-		, m_part_file_name("." + to_hex(p.info_hash) + ".parts")
-	{}
+posix_storage::posix_storage(storage_params const& p, bool const disable_hash_checks)
+	: m_disable_hash_checks(disable_hash_checks)
+	, m_files(p.files)
+	, m_renamed_files(std::move(p.renamed_files))
+	, m_save_path(p.path)
+	, m_part_file_dir(p.part_file_dir)
+	, m_file_priority(p.priorities)
+	, m_part_file_name("." + to_hex(p.info_hash) + ".parts")
+{}
 
-	filenames posix_storage::names() const
-	{
-		return {m_files, m_renamed_files};
-	}
+filenames posix_storage::names() const { return {m_files, m_renamed_files}; }
 
-	posix_storage::~posix_storage()
-	{
-		error_code ec;
-		if (m_part_file) m_part_file->flush_metadata(ec);
-	}
+posix_storage::~posix_storage()
+{
+	error_code ec;
+	if (m_part_file)
+		m_part_file->flush_metadata(ec);
+}
 
 	void posix_storage::need_partfile()
 	{
@@ -273,7 +272,32 @@ namespace aux {
 	bool posix_storage::has_any_file(storage_error& error)
 	{
 		m_stat_cache.reserve(files().num_files());
-		return aux::has_any_file(names(), m_save_path, m_stat_cache, error);
+
+		if (aux::has_any_file(names(), m_save_path, m_stat_cache, error))
+			return true;
+
+		if (error)
+			return false;
+
+		file_status s;
+		stat_file(combine_path(m_part_file_dir.empty() ? m_save_path
+													   : combine_path(m_save_path, m_part_file_dir),
+					  m_part_file_name),
+			&s,
+			error.ec);
+		if (!error)
+			return true;
+
+		// the part file not existing is expected
+		if (error.ec == boost::system::errc::no_such_file_or_directory)
+			error.ec.clear();
+
+		if (error)
+		{
+			error.file(torrent_status::error_file_partfile);
+			error.operation = operation_t::file_stat;
+		}
+		return false;
 	}
 
 	bool posix_storage::verify_resume_data(add_torrent_params const& rd
@@ -367,20 +391,20 @@ namespace aux {
 			if (m_file_priority[i] != dont_download || fs.pad_file_at(i))
 				continue;
 
-			file_status s;
-			std::string const file_path = fs.file_path(i, m_save_path);
 			error_code err;
-			stat_file(file_path, &s, err);
-
-			if (s.file_size > fs.file_size(i))
-				ret |= disk_status::oversized_file;
-
-			if (!err)
+			auto const size = m_stat_cache.get_filesize(i, fs, m_save_path, err);
+			if (!err && size > 0)
 			{
 				use_partfile(i, false);
+				if (size > fs.file_size(i))
+					ret |= disk_status::oversized_file;
 			}
 			else
 			{
+				// we may have earlier determined we *can't* use a partfile for
+				// this file, we need to be able to change our mind in case the
+				// file disappeared
+				use_partfile(i, true);
 				need_partfile();
 			}
 		}

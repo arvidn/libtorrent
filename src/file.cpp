@@ -49,6 +49,7 @@ see LICENSE file.
 #include <algorithm> // for std::min
 #include <climits> // for IOV_MAX
 #include <cstring>
+#include <memory> // for unique_ptr
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/throw.hpp"
@@ -179,16 +180,87 @@ namespace {
 		if (bufs.size() == 1)
 			return pwrite_all(handle, bufs[0], file_offset, ec);
 
-		int ret = 0;
-		// TODO: if we have more than 1 buffer, coalesce into a single buffer
-		// and a single call
+		// bufs is always one contiguous range in the file (callers only ever
+		// batch adjacent byte ranges), so write it in one call from a scratch
+		// buffer instead of issuing a separate write per source buffer.
+		span<char const>::index_type total = 0;
+		for (auto const& b : bufs)
+			total += b.size();
+
+		std::unique_ptr<char[]> const scratch(new char[std::size_t(total)]);
+		span<char const>::index_type pos = 0;
 		for (auto const& b : bufs)
 		{
-			int r = pwrite_all(handle, b, file_offset, ec);
-			if (ec) return -1;
-			TORRENT_ASSERT(r > 0);
+			std::memcpy(scratch.get() + pos, b.data(), std::size_t(b.size()));
+			pos += b.size();
+		}
+
+		return pwrite_all(handle, {scratch.get(), total}, file_offset, ec);
+	}
+#endif
+
+#if TORRENT_USE_PWRITEV
+	int preadv_all(handle_type const handle,
+		span<span<char> const> bufs,
+		std::int64_t file_offset,
+		error_code& ec)
+	{
+		int ret = 0;
+		TORRENT_ALLOCA(vec, iovec, bufs.size());
+		for (int i = 0; i < bufs.size(); ++i)
+		{
+			vec[i].iov_base = bufs[i].data();
+			vec[i].iov_len = static_cast<size_t>(bufs[i].size());
+		}
+
+		do
+		{
+			int const iovcnt = static_cast<int>(std::min<std::ptrdiff_t>(IOV_MAX, vec.size()));
+			ssize_t const r = ::preadv(handle, vec.data(), iovcnt, file_offset);
+			if (r == 0)
+			{
+				ec.assign(errors::file_too_short, libtorrent_category());
+				return -1;
+			}
+			if (r < 0)
+			{
+				ec = error_code(errno, system_category());
+				return -1;
+			}
+			ret += int(r);
 			file_offset += r;
-			ret += r;
+			vec = advance_iovec(vec, r);
+		}
+		while (vec.size() > 0);
+		return ret;
+	}
+#else
+	int preadv_all(handle_type const handle,
+		span<span<char> const> bufs,
+		std::int64_t file_offset,
+		error_code& ec)
+	{
+		TORRENT_ASSERT(bufs.size() > 0);
+		if (bufs.size() == 1)
+			return pread_all(handle, bufs[0], file_offset, ec);
+
+		// bufs is always one contiguous range in the file (callers only ever
+		// batch adjacent byte ranges), so read it in one call into a scratch
+		// buffer instead of issuing a separate read per destination buffer.
+		span<char>::index_type total = 0;
+		for (auto const& b : bufs)
+			total += b.size();
+
+		std::unique_ptr<char[]> const scratch = std::make_unique<char[]>(std::size_t(total));
+		int const ret = pread_all(handle, {scratch.get(), total}, file_offset, ec);
+		if (ec)
+			return -1;
+
+		span<char>::index_type pos = 0;
+		for (auto const& b : bufs)
+		{
+			std::memcpy(b.data(), scratch.get() + pos, std::size_t(b.size()));
+			pos += b.size();
 		}
 		return ret;
 	}
