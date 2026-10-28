@@ -145,7 +145,7 @@ TORRENT_TEST(clear_single_int)
 	sp.clear(settings_pack::max_out_request_queue);
 
 	// when cleared, we'll get the default value
-	TEST_EQUAL(sp.get_int(settings_pack::max_out_request_queue), 500);
+	TEST_EQUAL(sp.get_int(settings_pack::max_out_request_queue), 1500);
 }
 
 TORRENT_TEST(clear_single_bool)
