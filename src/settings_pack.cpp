@@ -221,6 +221,7 @@ namespace {
 		SET(disk_disable_copy_on_write, false, nullptr),
 		SET(allow_multiple_connections_per_pid, false, nullptr),
 		SET(apply_filter_to_dht, true, nullptr),
+		SET(disk_read_ahead, true, nullptr),
 	}});
 
 	CONSTEXPR_SETTINGS

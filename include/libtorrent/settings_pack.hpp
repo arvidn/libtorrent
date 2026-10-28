@@ -1087,6 +1087,22 @@ namespace aux {
 			// naturally evicted.
 			apply_filter_to_dht,
 
+			// ``disk_read_ahead`` if true, reads of a piece ask the operating
+			// system to read ahead of them, in windows of the file system's
+			// read-ahead size (1 MiB where it isn't known, and at least 1/64 of
+			// the piece), up to two windows past the one being read: in the
+			// piece, then in the pieces requested after it. Only runs of at
+			// least three contiguous blocks of a piece, read together or one
+			// after the other, are read ahead of: a few scattered blocks of a
+			// piece are not, even next to each other. The block reads that
+			// follow are then served from the page cache, and the storage sees
+			// a few large reads instead of many small ones. This
+			// matters most where each read request is costly: spinning disks
+			// and network file systems. Only the pread disk I/O uses this
+			// setting, and only where the operating system supports read-ahead
+			// hints (not on Windows or macOS).
+			disk_read_ahead,
+
 			max_bool_setting_internal
 		};
 

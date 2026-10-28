@@ -47,9 +47,17 @@ see LICENSE file.
 #include "libtorrent/aux_/path.hpp" // for convert_to_native_path_string
 #include "libtorrent/aux_/string_util.hpp"
 #include <algorithm> // for std::min
+#include <chrono>
 #include <climits> // for IOV_MAX
+#include <cstdio>
 #include <cstring>
 #include <memory> // for unique_ptr
+#include <mutex>
+#include <string>
+#include <unordered_map>
+#include <vector>
+#include <sstream>
+#include <fstream>
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/throw.hpp"
@@ -87,6 +95,16 @@ see LICENSE file.
 
 #include <linux/fs.h>
 #include <sys/ioctl.h>
+#include <sys/sysmacros.h> // for major(), minor()
+#include <sys/vfs.h> // for fstatfs()
+#include <fcntl.h> // for AT_EMPTY_PATH, AT_STATX_DONT_SYNC
+#if __has_include(<linux/btrfs.h>) && __has_include(<linux/magic.h>)
+#include <linux/btrfs.h> // for BTRFS_IOC_FS_INFO
+#include <linux/magic.h> // for BTRFS_SUPER_MAGIC
+#define TORRENT_HAS_BTRFS_FS_INFO 1
+#else
+#define TORRENT_HAS_BTRFS_FS_INFO 0
+#endif
 #ifdef TORRENT_ANDROID
 #include <sys/syscall.h>
 #endif
@@ -392,6 +410,214 @@ namespace {
 		TORRENT_UNUSED(handle);
 		TORRENT_UNUSED(offset);
 		TORRENT_UNUSED(len);
+#endif
+	}
+
+#ifdef TORRENT_LINUX
+	namespace {
+	// a sysfs value in kiB, as bytes; -1 if it can't be read
+	std::int64_t read_sysfs_kib(std::string const& path)
+	{
+		std::FILE* f = std::fopen(path.c_str(), "re");
+		if (f == nullptr)
+			return -1;
+		long long kib = -1;
+		if (std::fscanf(f, "%lld", &kib) != 1)
+			kib = -1;
+		std::fclose(f);
+		return kib < 0 ? -1 : std::int64_t(kib) * 1024;
+	}
+
+	// the rsize of the NFS mount with device number `id` ("major:minor"), in
+	// bytes; -1 if it's not an NFS mount
+	std::int64_t nfs_rsize(std::string const& mountinfo, std::string const& id)
+	{
+		std::ifstream in(mountinfo);
+		std::string line;
+		while (std::getline(in, line))
+		{
+			// mount-id parent-id major:minor root mount-point options
+			// [optional fields...] - fstype source super-options
+			std::istringstream fields(line);
+			std::vector<std::string> f;
+			for (std::string t; fields >> t;)
+				f.push_back(t);
+			if (f.size() < 10 || f[2] != id)
+				continue;
+			auto const sep = std::find(f.begin() + 6, f.end(), "-");
+			if (f.end() - sep < 4)
+				continue;
+			if (sep[1].compare(0, 3, "nfs") != 0)
+				return -1;
+			std::string const opts = "," + sep[3] + ",";
+			auto const pos = opts.find(",rsize=");
+			if (pos == std::string::npos)
+				return -1;
+			return std::strtoll(opts.c_str() + pos + 7, nullptr, 10);
+		}
+		return -1;
+	}
+
+	// the most one POSIX_FADV_WILLNEED can read on the device, in bytes; -1
+	// if unknown. Linux caps it at max(io_pages, ra_pages) of the file
+	// system's backing device (bdi), so this looks for the bdi
+	std::int64_t device_cap(std::string const& sysfs,
+		std::string const& mountinfo,
+		dev_t const dev,
+		handle_type const fd)
+	{
+		std::string const id = std::to_string(major(dev)) + ":" + std::to_string(minor(dev));
+
+		// FUSE on a block device (ntfs-3g, ...): st_dev is the block device,
+		// but FUSE replaces its bdi with its own, named with this suffix
+		std::int64_t const fuseblk =
+			read_sysfs_kib(sysfs + "/class/bdi/" + id + "-fuseblk/read_ahead_kb");
+		if (fuseblk >= 0)
+			return fuseblk;
+
+		// block devices: the request queue of the device itself, or of its
+		// disk when the file system is on a partition. io_pages is
+		// max_sectors_kb
+		for (char const* queue : {"/queue/", "/../queue/"})
+		{
+			std::string const dir = sysfs + "/dev/block/" + id + queue;
+			std::int64_t const ra = read_sysfs_kib(dir + "read_ahead_kb");
+			if (ra >= 0)
+				return std::max(ra, read_sysfs_kib(dir + "max_sectors_kb"));
+		}
+
+		// FUSE, NFS: a bdi named after st_dev. Its io_pages is not exported;
+		// NFS sets it to rsize
+		std::int64_t const ra = read_sysfs_kib(sysfs + "/class/bdi/" + id + "/read_ahead_kb");
+		if (ra >= 0)
+			return std::max(ra, nfs_rsize(mountinfo, id));
+
+#if TORRENT_HAS_BTRFS_FS_INFO
+		// btrfs: st_dev is per subvolume, and the bdi is named "btrfs-N".
+		// /sys/fs/btrfs/<fsid>/bdi links to it (Linux 5.9 and later)
+		struct statfs sfs
+		{};
+		if (fd >= 0 && ::fstatfs(fd, &sfs) == 0
+			&& static_cast<std::uint32_t>(sfs.f_type) == BTRFS_SUPER_MAGIC)
+		{
+			btrfs_ioctl_fs_info_args args{};
+			if (::ioctl(fd, BTRFS_IOC_FS_INFO, &args) == 0)
+			{
+				char uuid[37];
+				std::uint8_t const* u = args.fsid;
+				std::snprintf(uuid,
+					sizeof(uuid),
+					"%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+					u[0],
+					u[1],
+					u[2],
+					u[3],
+					u[4],
+					u[5],
+					u[6],
+					u[7],
+					u[8],
+					u[9],
+					u[10],
+					u[11],
+					u[12],
+					u[13],
+					u[14],
+					u[15]);
+				return read_sysfs_kib(sysfs + "/fs/btrfs/" + uuid + "/bdi/read_ahead_kb");
+			}
+		}
+#else
+		TORRENT_UNUSED(fd);
+#endif
+		return -1;
+	}
+	}
+
+	std::int64_t device_read_ahead_limit(std::string const& sysfs,
+		std::string const& mountinfo,
+		dev_t const dev,
+		handle_type const fd)
+	{
+		// not found (overlayfs, tmpfs, SMB, ...): unknown
+		std::int64_t const cap = device_cap(sysfs, mountinfo, dev, fd);
+		if (cap <= 0)
+			return 0;
+		// rounded down to a power of two. Pieces are powers of two, so the
+		// hints split them evenly; and the page cache reads 4 kiB pages in bios
+		// of at most 1 MiB, so a 1280 kiB hint (the default max_sectors_kb cap)
+		// is read as a 1 MiB and a 256 kiB I/O. Measured on a loop device: 1 MiB
+		// hints gave 1.6x larger device reads than 1280 kiB ones
+		std::int64_t limit = 4096;
+		while (limit * 2 <= cap)
+			limit *= 2;
+		return limit;
+	}
+#endif
+
+	std::int64_t read_ahead_limit(handle_type const handle)
+	{
+#ifdef TORRENT_LINUX
+		// read-ahead can be changed at runtime: look it up again after this
+		constexpr auto refresh = std::chrono::seconds(30);
+
+		dev_t dev;
+#if defined AT_STATX_DONT_SYNC && defined STATX_BASIC_STATS \
+		&& (!defined TORRENT_ANDROID || __ANDROID_API__ >= 30)
+		// not fstat(): on FUSE and NFS it revalidates the attributes with the
+		// server (on FUSE, a GETATTR after every read, since reads invalidate
+		// atime). The device number needs no round trip
+		struct statx stx
+		{};
+		if (::statx(handle, "", AT_EMPTY_PATH | AT_STATX_DONT_SYNC, 0, &stx) != 0)
+			return 0;
+		dev = makedev(stx.stx_dev_major, stx.stx_dev_minor);
+#else
+		struct stat st
+		{};
+		if (::fstat(handle, &st) != 0)
+			return 0;
+		dev = st.st_dev;
+#endif
+
+		struct entry
+		{
+			std::int64_t limit;
+			std::chrono::steady_clock::time_point expires;
+		};
+		static std::mutex cache_mutex;
+		static std::unordered_map<dev_t, entry> cache;
+		auto const now = std::chrono::steady_clock::now();
+		{
+			std::lock_guard<std::mutex> l(cache_mutex);
+			auto const it = cache.find(dev);
+			if (it != cache.end() && it->second.expires > now)
+				return it->second.limit;
+		}
+		std::int64_t const limit =
+			device_read_ahead_limit("/sys", "/proc/self/mountinfo", dev, handle);
+		std::lock_guard<std::mutex> l(cache_mutex);
+		cache[dev] = entry{limit, now + refresh};
+		return limit;
+#else
+		TORRENT_UNUSED(handle);
+		return 0;
+#endif
+	}
+
+	void advise_will_need(
+		handle_type handle, std::int64_t const offset, std::int64_t const len, std::int64_t chunk)
+	{
+#if (TORRENT_HAS_FADVISE && defined POSIX_FADV_WILLNEED)
+		if (chunk <= 0)
+			chunk = len;
+		for (std::int64_t o = offset; o < offset + len; o += chunk)
+			::posix_fadvise(handle, o, std::min(chunk, offset + len - o), POSIX_FADV_WILLNEED);
+#else
+		TORRENT_UNUSED(handle);
+		TORRENT_UNUSED(offset);
+		TORRENT_UNUSED(len);
+		TORRENT_UNUSED(chunk);
 #endif
 	}
 
