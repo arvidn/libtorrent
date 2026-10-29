@@ -84,7 +84,6 @@ repos:
                test/socks.py|
                test/web_server.py|
                test/websocket_server.py|
-               tools/benchmark_checking.py|
                tools/clean.py|
                tools/copyright.py|
                tools/dht_flood.py|
@@ -123,7 +122,6 @@ repos:
               test/socks.py|
               test/web_server.py|
               test/websocket_server.py|
-              tools/benchmark_checking.py|
               tools/clean.py|
               tools/copyright.py|
               tools/dht_flood.py|
@@ -172,7 +170,6 @@ repos:
             test/socks.py|
             test/websocket_server.py|
             test/web_server.py|
-            tools/benchmark_checking.py|
             tools/dht_flood.py|
             tools/gen_fwd.py|
             tools/parse_dht_stats.py|

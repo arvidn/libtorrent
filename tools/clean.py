@@ -44,7 +44,6 @@ def clean():
         '.lib',
         'CMakeFiles',
         'CMakeCache.txt',
-        'checking_benchmark',
         'cpu_benchmark',
     ]
 

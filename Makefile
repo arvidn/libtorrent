@@ -271,7 +271,6 @@ TOOLS_FILES= \
   dht_put.cpp            \
   dht_sample.cpp         \
   disk_io_stress_test.cpp\
-  checking_benchmark.cpp \
   gen_torture_torrent.cpp \
   benchmark_load_torrent.cpp \
   bencher.cpp            \
