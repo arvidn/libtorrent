@@ -21,6 +21,7 @@ see LICENSE file.
 #include <fstream>
 #include <regex>
 #include <thread>
+#include <optional>
 #include <algorithm> // for min()/max()
 
 #include "libtorrent/config.hpp"
@@ -615,6 +616,9 @@ int max_connections_per_torrent = 50;
 bool seed_mode = false;
 bool exit_on_finish = false;
 
+// while set, the session is paused and is resumed at this time
+std::optional<lt::time_point> resume_paused_at;
+
 bool share_mode = false;
 
 bool quit = false;
@@ -774,7 +778,8 @@ void set_torrent_params(lt::add_torrent_params& p)
 	p.download_limit = torrent_download_limit;
 
 	if (seed_mode) p.flags |= lt::torrent_flags::seed_mode;
-	if (share_mode) p.flags |= lt::torrent_flags::share_mode;
+	if (share_mode)
+		p.flags |= lt::torrent_flags::share_mode;
 	p.save_path = save_path;
 	p.storage_mode = allocation_mode;
 }
@@ -1364,7 +1369,8 @@ bool is_resume_file(std::string const& s)
 
 void print_usage()
 {
-	std::fprintf(stderr, R"(usage: client_test [OPTIONS] [TORRENT|MAGNETURL]
+	std::fprintf(stderr,
+		R"(usage: client_test [OPTIONS] [TORRENT|MAGNETURL]
 OPTIONS:
 
 CLIENT OPTIONS
@@ -1388,15 +1394,17 @@ CLIENT OPTIONS
                         through the main loop
   -O <log file>         print session stats counters to the specified log file
   -1                    exit on first torrent completing (useful for benchmarks)
+  -p <seconds>          start the session paused, and resume it after the
+                        specified number of seconds.
   -i <disk-io>          specify which disk I/O back-end to use. One of:
                         mmap, posix, pread, disabled
 )"
 #ifdef TORRENT_UTP_LOG_ENABLE
-R"(
+		R"(
   -q                    Enable uTP transport-level verbose logging
 )"
 #endif
-R"(
+		R"(
 LIBTORRENT SETTINGS
   --<name-of-setting>=<value>
                         set the libtorrent setting <name> to <value>
@@ -1432,7 +1440,7 @@ examples:
   --alert_mask=error,session_log,torrent_log,peer_log
   --alert_mask=error,dht,dht_log,dht_operation
   --alert_mask=all
-)") ;
+)");
 }
 
 } // anonymous namespace
@@ -1623,6 +1631,9 @@ int main(int argc, char* argv[])
 					loop_limit = atoi(arg);
 					break;
 				}
+				case 'p':
+					resume_paused_at = lt::clock_type::now() + lt::seconds(atoi(arg));
+					break;
 		}
 		++i; // skip the argument
 	}
@@ -1640,6 +1651,8 @@ int main(int argc, char* argv[])
 	}
 
 	lt::session ses(std::move(params));
+	if (resume_paused_at)
+		ses.pause();
 
 	if (rate_limit_locals)
 	{
@@ -1710,6 +1723,12 @@ int main(int argc, char* argv[])
 	while (!quit && loop_limit != 0)
 	{
 		if (loop_limit > 0) --loop_limit;
+
+		if (resume_paused_at && lt::clock_type::now() >= *resume_paused_at)
+		{
+			resume_paused_at.reset();
+			ses.resume();
+		}
 
 		ses.post_torrent_updates();
 		ses.post_session_stats();
