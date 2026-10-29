@@ -84,6 +84,25 @@ static lt::storage_holder add_test_torrent(lt::disk_interface& disk,
 	return disk.new_torrent(params, std::shared_ptr<void>());
 }
 
+#ifdef TORRENT_SIMULATE_SLOW_WRITE
+// a storage must be stopped before it's removed, to wait for any opportunistic
+// hashing of its pieces to finish
+static void stop_test_torrent(
+	lt::disk_interface& disk, lt::io_context& ios, lt::storage_holder const& storage)
+{
+	bool stopped = false;
+	disk.async_stop_torrent(storage, [&] {
+		stopped = true;
+		ios.stop();
+	});
+	disk.submit_jobs();
+	ios.restart();
+	ios.run_for(10s);
+	ios.restart();
+	TEST_CHECK(stopped);
+}
+#endif
+
 static void disk_io_test_suite_impl(lt::disk_io_constructor_type disk_io,
 	disk_test_mode_t const flags,
 	int const piece_size,
@@ -920,6 +939,8 @@ TORRENT_TEST(pread_disk_io_flush_completes_each_piece)
 	fs.set_num_pieces(num_pieces);
 	lt::storage_holder storage =
 		add_test_torrent(*disk_thread, fs, "test_flush_completes_each_piece", true, false);
+	auto const stop_guard =
+		lt::aux::scope_end([&] { stop_test_torrent(*disk_thread, ios, storage); });
 
 	// generated up front, so that the other pieces are cached while the first
 	// one is written, and a single pass writes them one after the other
@@ -991,6 +1012,8 @@ TORRENT_TEST(pread_disk_io_flush_no_disk_threads)
 	fs.set_num_pieces(num_pieces);
 	lt::storage_holder storage =
 		add_test_torrent(*disk_thread, fs, "test_flush_no_disk_threads", true, false);
+	auto const stop_guard =
+		lt::aux::scope_end([&] { stop_test_torrent(*disk_thread, ios, storage); });
 
 	std::vector<std::vector<char>> buffers;
 	for (lt::piece_index_t const p : fs.piece_range())
