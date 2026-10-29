@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 
+import contextlib
 import os
 import re
 import time
@@ -37,9 +38,20 @@ DEFAULT_VARIANTS = ["v1", "v2"]
 IO_BACKENDS = ["mmap", "pread", "posix"]
 
 # transfer modes to exercise. "download" measures the client downloading from
-# peers, "upload" measures it seeding to peers, and "dual" runs both directions
+# peers, "upload" measures it seeding to peers, "check" measures it hashing a
+# complete payload it has no resume data for, and "dual" runs both directions
 # at once. Each selected mode is run through the full variant/backend matrix.
-MODES = ["download", "upload", "dual"]
+# "check" runs right after "upload" so it can reuse the same payload.
+MODES = ["download", "upload", "check", "dual"]
+
+# modes that run against the canonical payload from gen_data rather than
+# downloading their own
+PAYLOAD_REUSE_MODES = {"upload", "check"}
+
+# seconds client_test keeps the torrent paused in check mode. This must exceed
+# the time run_test takes to attach the profiler, so the whole check is
+# captured.
+CHECK_START_DELAY = 4
 
 # connection_tester's gen-torrent uses a 1 MiB piece size (the "-s" flag is the
 # piece count, not the piece size).
@@ -266,6 +278,19 @@ def parse_test_out(path: Path) -> tuple[float, float]:
     if not m:
         return 0.0, 0.0
     return float(m.group(1)), float(m.group(2))
+
+
+def parse_check_rate(path: Path) -> float:
+    """Return the hash check rate in MB/s from the 'check rate: X MB/s' line
+    client_test writes to its events.log once a torrent completes checking
+    files. Returns 0.0 if there is no such line.
+    """
+    with open(path, encoding="utf-8", errors="replace") as f:
+        for line in f:
+            _, found, rest = line.partition("check rate: ")
+            if found:
+                return float(rest.split()[0])
+    return 0.0
 
 
 def parse_max_rss(path: Path) -> float:
@@ -504,6 +529,7 @@ def update_results(
     io_backend: str,
     upload_rate: float,
     download_rate: float,
+    check_rate: float,
     max_rss_bytes: float,
     read_latency_p95_ms: float,
     config_header: str,
@@ -528,6 +554,7 @@ def update_results(
         "io_backend": io_backend,
         "upload_rate_mbps": upload_rate,
         "download_rate_mbps": download_rate,
+        "check_rate_mbps": check_rate,
         "max_rss_mib": max_rss_bytes / (1024 * 1024),
         "read_latency_p95_ms": read_latency_p95_ms,
     })
@@ -536,14 +563,16 @@ def update_results(
     for r in results:
         by_mode.setdefault(r["transfer_mode"], []).append(r)
 
-    # one mode-section per transfer mode that has results. download- and
-    # upload-only modes get a single matrix for the rate that mode
+    # one mode-section per transfer mode that has results. download-only,
+    # upload-only and check modes get a single matrix for the rate that mode
     # actually exercises; dual mode gets one matrix per direction.
     sections = [
         ("download", "Download only",
          [("Download rate (MB/s)", "download_rate_mbps")]),
         ("upload", "Upload only",
          [("Upload rate (MB/s)", "upload_rate_mbps")]),
+        ("check", "Hash check",
+         [("Check rate (MB/s)", "check_rate_mbps")]),
         ("dual", "Upload & Download", [
             ("Download rate (MB/s)", "download_rate_mbps"),
             ("Upload rate (MB/s)", "upload_rate_mbps"),
@@ -563,7 +592,7 @@ def update_results(
                 )
             doc_parts.append(render_pivot(mode_results, rate_field, mode_key))
             doc_parts.append("\n")
-            # a single-direction mode (download/upload) needs no direction
+            # a single-direction mode (download/upload/check) needs no direction
             # suffix; dual mode has two charts, so disambiguate by direction.
             direction = rate_field[: -len("_rate_mbps")]
             slug = mode_key if len(subs) == 1 else f"{mode_key}_{direction}"
@@ -784,7 +813,7 @@ def main() -> None:
         "--save-path",
         default=".",
         type=Path,
-        help="The directory to download to or upload from",
+        help="The directory to download to, upload from or check",
     )
     p.add_argument(
         "--results-path",
@@ -818,9 +847,10 @@ def main() -> None:
         choices=MODES,
         default=MODES,
         help="Transfer modes to test. 'download' measures the client"
-        " downloading from peers, 'upload' measures it seeding to peers, and"
-        " 'dual' runs both directions at once. Each selected mode is run"
-        " through the full variant/backend matrix.",
+        " downloading from peers, 'upload' measures it seeding to peers,"
+        " 'check' measures it hash checking a complete payload without resume"
+        " data, and 'dual' runs both directions at once. Each selected mode is"
+        " run through the full variant/backend matrix.",
     )
     p.add_argument(
         "--num-pieces",
@@ -954,77 +984,71 @@ def main() -> None:
         data_dir = payload_dir(
             args.save_path, variant, args.num_pieces, args.num_files
         )
-        # whether the canonical upload payload + resume data (from gen_data)
-        # for this variant is currently intact on disk. The payload depends
-        # only on the variant, not the io_backend, so once generated it is
-        # reused across backends for the upload test. We iterate modes outer
-        # and backends inner (below), so all of this variant's upload runs are
-        # consecutive: gen_data runs exactly once per variant, never once per
-        # backend. We only ever reuse data gen_data produced -- never a
-        # download/dual test's output, which could be an incomplete download
-        # whose resume data would trigger a cache-warming recheck.
-        upload_payload_ready = False
-        # modes outer, backends inner. Run the selected modes in MODES order so
-        # the matrix is filled in a stable, predictable sequence regardless of
-        # the order they were passed on the command line.
-        for mode in MODES:
-            if mode not in args.modes:
-                continue
+        # whether the canonical payload (from gen_data) for this variant is
+        # currently intact on disk, and whether the resume file claiming every
+        # piece is present is too. The payload depends only on the variant,
+        # not the io_backend, so once generated it is reused across backends
+        # and from upload to check (MODES orders them adjacently). We iterate
+        # modes outer and backends inner (below), so gen_data runs at most once
+        # per such run of modes, never once per backend. We only ever reuse
+        # data gen_data produced -- never a download/dual test's output, which
+        # could be an incomplete download whose resume data would trigger a
+        # cache-warming recheck.
+        payload_ready = False
+        resume_ready = False
+        # run the selected modes in MODES order so the matrix is filled in a
+        # stable, predictable sequence regardless of the order they were
+        # passed on the command line.
+        selected_modes = [m for m in MODES if m in args.modes]
+        for mode_idx, mode in enumerate(selected_modes):
             for io_backend in args.io_backends:
+                common = dict(
+                    save_path=args.save_path,
+                    torrent=torrent,
+                    data_dir=data_dir,
+                    results=results,
+                    results_path=args.results_path,
+                    config_header=config_header,
+                    max_queued_disk_bytes=max_queued_disk_bytes,
+                    aio_threads=args.aio_threads,
+                    hasher_threads=args.hasher_threads,
+                    transfer_mode=mode,
+                    variant=variant,
+                    io_backend=io_backend,
+                    keep_perf_data=args.keep_perf_data,
+                )
                 if mode == "download":
                     reset_download(
                         args.save_path, variant, args.num_pieces, args.num_files
                     )
+                    payload_ready = resume_ready = False
                     run_test(
                         f"download-{variant}-{io_backend}",
                         "upload",
                         ["-1", "-i", io_backend],
                         args.download_peers,
-                        args.save_path,
-                        torrent,
-                        data_dir,
-                        results=results,
-                        results_path=args.results_path,
-                        config_header=config_header,
-                        max_queued_disk_bytes=max_queued_disk_bytes,
-                        aio_threads=args.aio_threads,
-                        hasher_threads=args.hasher_threads,
-                        transfer_mode="download",
-                        variant=variant,
-                        io_backend=io_backend,
-                        keep_perf_data=args.keep_perf_data,
+                        **common,
                     )
                 elif mode == "dual":
                     reset_download(
                         args.save_path, variant, args.num_pieces, args.num_files
                     )
+                    payload_ready = resume_ready = False
                     run_test(
                         f"dual-{variant}-{io_backend}",
                         "dual",
                         ["-1", "-i", io_backend],
                         args.download_peers,
-                        args.save_path,
-                        torrent,
-                        data_dir,
-                        results=results,
-                        results_path=args.results_path,
-                        config_header=config_header,
-                        max_queued_disk_bytes=max_queued_disk_bytes,
-                        aio_threads=args.aio_threads,
-                        hasher_threads=args.hasher_threads,
-                        transfer_mode="dual",
-                        variant=variant,
-                        io_backend=io_backend,
-                        keep_perf_data=args.keep_perf_data,
+                        **common,
                     )
-                else:  # upload
+                elif mode == "upload":
                     # the upload test needs a complete, canonical payload to
                     # serve. gen-data -R writes the payload and a resume file
                     # claiming every piece is present, so client_test comes up
                     # in the seeding state without a startup check pass (which
                     # would warm the page cache we want cold).
-                    if upload_payload_ready:
-                        # the first upload run for this variant already
+                    if payload_ready and resume_ready:
+                        # an earlier upload run for this variant already
                         # generated the canonical payload + resume; reuse it
                         # and just start from a fresh session. run_test still
                         # drops the page cache, so this run is cold despite
@@ -1036,42 +1060,66 @@ def main() -> None:
                             args.num_files,
                         )
                         gen_data(torrent, args.save_path, with_resume=True)
-                        upload_payload_ready = True
+                        payload_ready = resume_ready = True
                     run_test(
                         f"upload-{variant}-{io_backend}",
                         "download",
                         ["-e", "240", "-i", io_backend],
                         args.upload_peers,
-                        args.save_path,
-                        torrent,
-                        data_dir,
-                        results=results,
-                        results_path=args.results_path,
-                        config_header=config_header,
-                        max_queued_disk_bytes=max_queued_disk_bytes,
-                        aio_threads=args.aio_threads,
-                        hasher_threads=args.hasher_threads,
-                        transfer_mode="upload",
-                        variant=variant,
-                        io_backend=io_backend,
-                        keep_perf_data=args.keep_perf_data,
+                        **common,
                     )
-
-                if args.cleanup:
-                    # the upload payload is reused by the following backends,
-                    # so keep it for the last one
-                    last_backend = io_backend == args.io_backends[-1]
-                    if mode != "upload" or last_backend:
+                else:  # check
+                    if payload_ready:
+                        rm_file_or_dir(Path(".ses_state"))
+                    else:
                         reset_download(
                             args.save_path, variant, args.num_pieces,
                             args.num_files,
                         )
-                        upload_payload_ready = False
+                        gen_data(torrent, args.save_path)
+                        payload_ready = True
+                    # the check without resume data is what's measured, and
+                    # client_test saves resume data once the check completes,
+                    # so remove it before every run
+                    rm_file_or_dir(args.save_path / ".resume")
+                    resume_ready = False
+                    # "-p" keeps the torrent paused until the profiler is
+                    # attached, and "-1" exits once the check completes
+                    run_test(
+                        f"check-{variant}-{io_backend}",
+                        None,
+                        [
+                            "-1",
+                            "-p", str(CHECK_START_DELAY),
+                            "-i", io_backend,
+                        ],
+                        0,
+                        **common,
+                    )
+
+                if args.cleanup:
+                    # the canonical payload is reused by the following
+                    # backends, and by the next mode if it reuses it too, so
+                    # keep it until nothing else will
+                    last_backend = io_backend == args.io_backends[-1]
+                    next_mode = (
+                        selected_modes[mode_idx + 1]
+                        if mode_idx + 1 < len(selected_modes) else None
+                    )
+                    keep = mode in PAYLOAD_REUSE_MODES and (
+                        not last_backend or next_mode in PAYLOAD_REUSE_MODES
+                    )
+                    if not keep:
+                        reset_download(
+                            args.save_path, variant, args.num_pieces,
+                            args.num_files,
+                        )
+                        payload_ready = resume_ready = False
 
 
 def run_test(
     name: str,
-    action: str,
+    action: str | None,
     client_arg: list[str],
     num_peers: int,
     save_path: Path,
@@ -1089,6 +1137,10 @@ def run_test(
     io_backend: str,
     keep_perf_data: bool,
 ) -> None:
+    """Run one benchmark. `action` is the connection_tester command driving
+    the client, or None for a client_test run that exits by itself (check
+    mode).
+    """
     benchmarks_dir = results_path.resolve()
     output_dir = benchmarks_dir / name
 
@@ -1130,24 +1182,12 @@ def run_test(
         "--alert_mask=error,status,connect,performance_warning,storage,peer,torrent_log",
     ] + client_arg
 
-    test_cmd = [
-        str(EXAMPLES_DIR / f"connection_tester{exe}"),
-        action,
-        "-c",
-        f"{num_peers}",
-        "-d",
-        "127.0.0.1",
-        "-p",
-        f"{port}",
-        "-t",
-        str(torrent),
-        "-s",
-        str(save_path),
-    ]
-
     with (
         open(output_dir / "client.out", "w+") as client_out,
-        open(output_dir / "test.out", "w+") as test_out,
+        (
+            open(output_dir / "test.out", "w+")
+            if action is not None else contextlib.nullcontext()
+        ) as test_out,
     ):
         print(f"client_cmd: {' '.join(client_cmd)}")
         c = subprocess.Popen(
@@ -1243,14 +1283,31 @@ def run_test(
                     f"xctrace output:\n{msg}"
                 )
 
-        print(f"test_cmd: \"{' '.join(test_cmd)}\"")
-        t = subprocess.Popen(test_cmd, stdout=test_out, stderr=test_out)
+        if action is not None:
+            test_cmd = [
+                str(EXAMPLES_DIR / f"connection_tester{exe}"),
+                action,
+                "-c",
+                f"{num_peers}",
+                "-d",
+                "127.0.0.1",
+                "-p",
+                f"{port}",
+                "-t",
+                str(torrent),
+                "-s",
+                str(save_path),
+            ]
+            print(f"test_cmd: \"{' '.join(test_cmd)}\"")
+            t = subprocess.Popen(test_cmd, stdout=test_out, stderr=test_out)
+            driver = t
+        else:
+            driver = c
 
         out: dict[str, list[float]] = {}
-        while t.returncode is None:
+        while driver.poll() is None:
             capture_sample(c.pid, start, out)
             time.sleep(0.1)
-            t.poll()
         end = time.monotonic()
 
         if profiler is not None:
@@ -1261,24 +1318,29 @@ def run_test(
         keys = print_output_to_file(out, stats_filename)
         plot_output(stats_filename, keys)
 
-        t.wait()
+        if action is not None:
+            t.wait()
 
         # stop the client cleanly before reading counters.log -- otherwise
         # parse_session_stats may catch a half-written `session stats (`
         # line and crash on the split. SIGINT triggers client_test's
         # normal shutdown, which flushes and closes the stats file.
-        c.send_signal(signal.SIGINT)
+        if c.poll() is None:
+            c.send_signal(signal.SIGINT)
         c.wait()
 
     print(f"runtime {end-start:0.2f} seconds")
 
-    sent_rate, recv_rate = parse_test_out(output_dir / "test.out")
-    # connection_tester reports rates from its own perspective: bytes it sent
-    # are what the client downloaded, bytes it received are what the client
-    # uploaded. The rate already excludes connection_tester's startup (the v2
-    # merkle-tree build), so use it directly.
-    download_rate = sent_rate
-    upload_rate = recv_rate
+    if action is not None:
+        # connection_tester reports rates from its own perspective: bytes it
+        # sent are what the client downloaded, bytes it received are what the
+        # client uploaded. The rate already excludes connection_tester's
+        # startup (the v2 merkle-tree build), so use it directly.
+        download_rate, upload_rate = parse_test_out(output_dir / "test.out")
+        check_rate = 0.0
+    else:
+        download_rate = upload_rate = 0.0
+        check_rate = parse_check_rate(output_dir / "events.log")
     max_rss_bytes = parse_max_rss(output_dir / "memory_stats.log")
     # summarize disk read-job latency over the run and render the per-test
     # median/avg/p95 plot (embedded in summary.html). The peak interval p95 is
@@ -1296,7 +1358,8 @@ def run_test(
     )
     update_results(
         results, benchmarks_dir, transfer_mode, variant, io_backend,
-        upload_rate, download_rate, max_rss_bytes, latency.peak_p95_ms,
+        upload_rate, download_rate, check_rate, max_rss_bytes,
+        latency.peak_p95_ms,
         config_header,
     )
 
