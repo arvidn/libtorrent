@@ -616,6 +616,8 @@ int poll_interval = 5;
 int max_connections_per_torrent = 50;
 bool seed_mode = false;
 bool exit_on_finish = false;
+// set when exit_on_finish quits because a torrent failed, to exit with an error
+bool torrent_failed = false;
 
 // while set, the session is paused and is resumed at this time
 std::optional<lt::time_point> resume_paused_at;
@@ -1240,6 +1242,13 @@ bool handle_alert(client_state_t& client_state, lt::alert* a)
 		h.save_resume_data(torrent_handle::save_info_dict | torrent_handle::if_download_progress);
 		++num_outstanding_resume_data;
 		if (exit_on_finish) quit = true;
+	}
+
+	// a failed torrent will never finish, so don't wait for it
+	if (exit_on_finish && alert_cast<torrent_error_alert>(a))
+	{
+		torrent_failed = true;
+		quit = true;
 	}
 
 	if (save_resume_data_alert* p = alert_cast<save_resume_data_alert>(a))
@@ -2487,6 +2496,6 @@ done:
 
 	std::printf("closing session\n");
 
-	return 0;
+	return torrent_failed ? 1 : 0;
 }
 
