@@ -2112,7 +2112,7 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 
 	ADD_OUTSTANDING_ASYNC("pread_disk_io::work");
 
-	aux::set_thread_name("lt-disk-thread");
+	aux::set_thread_name(&pool == &m_hash_threads ? "lt-hash-thread" : "lt-disk-thread");
 
 	DLOG("started disk thread\n");
 

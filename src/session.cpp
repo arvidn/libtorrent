@@ -293,7 +293,7 @@ namespace {
 			// start a thread for the message pump
 			auto s = m_io_service;
 			m_thread = std::make_shared<std::thread>([=] {
-				aux::set_thread_name("lt-network-thread");
+				aux::set_thread_name("lt-net-thread");
 				s->run();
 			});
 		}
