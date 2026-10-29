@@ -22,6 +22,7 @@ see LICENSE file.
 #include <regex>
 #include <thread>
 #include <optional>
+#include <unordered_map>
 #include <algorithm> // for min()/max()
 
 #include "libtorrent/config.hpp"
@@ -619,6 +620,9 @@ bool exit_on_finish = false;
 // while set, the session is paused and is resumed at this time
 std::optional<lt::time_point> resume_paused_at;
 
+// when torrents currently checking files started, to log the check rate
+std::unordered_map<lt::torrent_handle, lt::time_point> checking_start;
+
 bool share_mode = false;
 
 bool quit = false;
@@ -998,6 +1002,47 @@ struct client_state_t
 bool handle_alert(client_state_t& client_state, lt::alert* a)
 {
 	using namespace lt;
+
+	if (auto const* p = alert_cast<state_changed_alert>(a))
+	{
+		if (p->state == torrent_status::checking_files)
+			checking_start[p->handle] = p->timestamp();
+	}
+
+	// the rate would be inflated if checking was interrupted
+	if (auto const* p = alert_cast<torrent_paused_alert>(a))
+		checking_start.erase(p->handle);
+
+	// a torrent added to a paused session doesn't start checking until it's resumed
+	if (auto const* p = alert_cast<torrent_resumed_alert>(a))
+	{
+		auto const it = checking_start.find(p->handle);
+		if (it != checking_start.end())
+			it->second = p->timestamp();
+	}
+
+	if (auto const* p = alert_cast<torrent_checked_alert>(a))
+	{
+		auto const it = checking_start.find(p->handle);
+		if (it != checking_start.end())
+		{
+			auto const ti = p->handle.torrent_file();
+			auto const elapsed = duration_cast<microseconds>(p->timestamp() - it->second);
+			if (g_log_file && ti && elapsed.count() > 0)
+			{
+				// MB is 10^6 bytes, to match connection_tester's rates
+				std::fprintf(g_log_file,
+					"[%" PRId64 "] %s: check rate: %.2f MB/s"
+					" (%" PRId64 " bytes in %" PRId64 " ms)\n",
+					std::int64_t(duration_cast<milliseconds>(p->timestamp() - first_ts).count()),
+					ti->name().c_str(),
+					double(ti->size_on_disk()) / double(elapsed.count()),
+					ti->size_on_disk(),
+					std::int64_t(duration_cast<milliseconds>(elapsed).count()));
+			}
+			checking_start.erase(it);
+		}
+	}
 
 	if (session_stats_alert* s = alert_cast<session_stats_alert>(a))
 	{
@@ -1393,7 +1438,8 @@ CLIENT OPTIONS
   -e <loops>            exit client after the specified number of iterations
                         through the main loop
   -O <log file>         print session stats counters to the specified log file
-  -1                    exit on first torrent completing (useful for benchmarks)
+  -1                    exit on first torrent completing, or with an error on
+                        the first torrent failing (useful for benchmarks)
   -p <seconds>          start the session paused, and resume it after the
                         specified number of seconds.
   -i <disk-io>          specify which disk I/O back-end to use. One of:
