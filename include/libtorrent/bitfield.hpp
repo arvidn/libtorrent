@@ -18,6 +18,7 @@ see LICENSE file.
 #include "libtorrent/aux_/unique_ptr.hpp"
 #include "libtorrent/aux_/byteswap.hpp"
 #include "libtorrent/aux_/ffs.hpp"
+#include "libtorrent/aux_/ceil_div.hpp"
 
 #include <bit>
 #include <cstring> // for memset and memcpy
@@ -58,7 +59,7 @@ namespace libtorrent {
 			resize(bits);
 			if (bits > 0)
 			{
-				std::memcpy(buf(), b, std::size_t((bits + 7) / 8));
+				std::memcpy(buf(), b, std::size_t(aux::ceil_div(bits, 8)));
 				clear_trailing_bits();
 			}
 		}
@@ -114,17 +115,11 @@ namespace libtorrent {
 
 		// returns the number of 32 bit words are needed to represent all bits in
 		// this bitfield.
-		int num_words() const noexcept
-		{
-			return (size() + 31) / 32;
-		}
+		int num_words() const noexcept { return aux::ceil_div(size(), 32); }
 
 		// returns the number of bytes needed to represent all bits in this
 		// bitfield
-		int num_bytes() const noexcept
-		{
-			return (size() + 7) / 8;
-		}
+		int num_bytes() const noexcept { return aux::ceil_div(size(), 8); }
 
 		// returns true if the bitfield has zero size.
 		bool empty() const noexcept { return size() == 0; }

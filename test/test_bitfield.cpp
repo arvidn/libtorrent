@@ -13,8 +13,11 @@ see LICENSE file.
 #include "test.hpp"
 #include "libtorrent/bitfield.hpp"
 #include "libtorrent/aux_/cpuid.hpp"
+#include "libtorrent/aux_/ceil_div.hpp"
+#include <cstdint>
 #include <cstdlib>
 #include <vector>
+#include <limits>
 
 using namespace lt;
 
@@ -590,4 +593,73 @@ TORRENT_TEST(visit_set_all_set_word_early_exit)
 
 	std::vector<int> const expected = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
 	TEST_CHECK(visited == expected);
+}
+
+TORRENT_TEST(ceil_div_zero)
+{
+	TEST_EQUAL(aux::ceil_div(0, 5), 0);
+	TEST_EQUAL(aux::ceil_div(0, 1), 0);
+}
+
+TORRENT_TEST(ceil_div_exact_multiple)
+{
+	TEST_EQUAL(aux::ceil_div(10, 5), 2);
+	TEST_EQUAL(aux::ceil_div(32, 32), 1);
+	TEST_EQUAL(aux::ceil_div(64, 32), 2);
+}
+
+TORRENT_TEST(ceil_div_remainder)
+{
+	TEST_EQUAL(aux::ceil_div(1, 5), 1);
+	TEST_EQUAL(aux::ceil_div(6, 5), 2);
+	TEST_EQUAL(aux::ceil_div(11, 5), 3);
+	TEST_EQUAL(aux::ceil_div(33, 32), 2);
+	TEST_EQUAL(aux::ceil_div(63, 32), 2);
+}
+
+TORRENT_TEST(ceil_div_one_below_and_at_boundary)
+{
+	// the two values flanking a divisor boundary must round differently
+	TEST_EQUAL(aux::ceil_div(31, 32), 1);
+	TEST_EQUAL(aux::ceil_div(32, 32), 1);
+	TEST_EQUAL(aux::ceil_div(33, 32), 2);
+}
+
+TORRENT_TEST(ceil_div_divisor_one)
+{
+	TEST_EQUAL(aux::ceil_div(0, 1), 0);
+	TEST_EQUAL(aux::ceil_div(1, 1), 1);
+	TEST_EQUAL(aux::ceil_div(12345, 1), 12345);
+}
+
+TORRENT_TEST(ceil_div_non_power_of_two_divisor)
+{
+	// exercises the plain division path, not the shift-optimized one
+	TEST_EQUAL(aux::ceil_div(0, 7), 0);
+	TEST_EQUAL(aux::ceil_div(1, 7), 1);
+	TEST_EQUAL(aux::ceil_div(7, 7), 1);
+	TEST_EQUAL(aux::ceil_div(8, 7), 2);
+	TEST_EQUAL(aux::ceil_div(21, 7), 3);
+	TEST_EQUAL(aux::ceil_div(22, 7), 4);
+}
+
+TORRENT_TEST(ceil_div_large_values_no_overflow)
+{
+	// this is the case (bits + divisor - 1) / divisor gets wrong (UB, signed
+	// overflow) when bits is close to INT_MAX
+	int const max = std::numeric_limits<int>::max();
+	TEST_EQUAL(aux::ceil_div(max, 32), (max / 32) + 1);
+	TEST_EQUAL(aux::ceil_div(max, 1), max);
+	TEST_EQUAL(aux::ceil_div(max - 1, max), 1);
+	TEST_EQUAL(aux::ceil_div(max, max), 1);
+}
+
+TORRENT_TEST(ceil_div_other_integral_types)
+{
+	TEST_EQUAL(aux::ceil_div(std::int64_t(10), std::int64_t(4)), 3);
+	TEST_EQUAL(aux::ceil_div(std::uint32_t(10), std::uint32_t(4)), 3u);
+	TEST_EQUAL(aux::ceil_div(std::size_t(10), std::size_t(4)), std::size_t(3));
+
+	std::int64_t const max64 = std::numeric_limits<std::int64_t>::max();
+	TEST_EQUAL(aux::ceil_div(max64, std::int64_t(32)), (max64 / 32) + 1);
 }

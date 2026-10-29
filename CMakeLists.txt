@@ -153,6 +153,7 @@ set(libtorrent_aux_include_files
 	bt_peer_connection.hpp
 	buffer.hpp
 	byteswap.hpp
+	ceil_div.hpp
 	chained_buffer.hpp
 	choker.hpp
 	copy_ptr.hpp

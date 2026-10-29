@@ -26,6 +26,7 @@ see LICENSE file.
 #include "libtorrent/aux_/disk_io_thread_pool.hpp"
 #include "libtorrent/aux_/disk_tick_thread.hpp"
 #include "libtorrent/aux_/disk_cache.hpp"
+#include "libtorrent/aux_/ceil_div.hpp"
 #include "libtorrent/aux_/visit_block_iovecs.hpp"
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/add_torrent_params.hpp"
@@ -1273,7 +1274,7 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 
 	int const piece_size = v1 ? j->storage->files().piece_size(a.piece) : 0;
 	int const piece_size2 = v2 ? j->storage->files().piece_size2(a.piece) : 0;
-	int const blocks_in_piece = v1 ? (piece_size + default_block_size - 1) / default_block_size : 0;
+	int const blocks_in_piece = v1 ? aux::ceil_div(piece_size, default_block_size) : 0;
 	int const blocks_in_piece2 = v2 ? j->storage->files().blocks_in_piece2(a.piece) : 0;
 	aux::open_mode_t const file_mode = file_mode_for_job(j);
 

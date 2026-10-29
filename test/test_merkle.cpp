@@ -12,7 +12,9 @@ see LICENSE file.
 #include "test.hpp"
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/bitfield.hpp"
+#include "libtorrent/file_storage.hpp"
 #include <iostream>
+#include <limits>
 
 using namespace lt;
 
@@ -150,6 +152,16 @@ TORRENT_TEST(get_layer)
 	TEST_EQUAL(merkle_get_layer(13), 3);
 	TEST_EQUAL(merkle_get_layer(14), 3);
 	TEST_EQUAL(merkle_get_layer(15), 4);
+
+	// the largest tree we accept (a v2 file just under max_num_pieces blocks)
+	// has std::numeric_limits<int>::max() nodes. Every node index must map to a
+	// layer without overflowing an int
+	int const num_nodes = merkle_num_nodes(merkle_num_leafs(file_storage::max_num_pieces));
+	TEST_EQUAL(num_nodes, std::numeric_limits<int>::max());
+	TEST_EQUAL(merkle_get_layer(num_nodes - 1), 30);
+	TEST_EQUAL(merkle_get_layer_offset(num_nodes - 1), (1 << 30) - 1);
+	TEST_EQUAL(merkle_get_layer((1 << 30) - 1), 30);
+	TEST_EQUAL(merkle_get_layer((1 << 30) - 2), 29);
 }
 
 TORRENT_TEST(get_layer_offset)

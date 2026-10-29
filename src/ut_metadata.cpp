@@ -33,6 +33,7 @@ see LICENSE file.
 #include "libtorrent/aux_/io_bytes.hpp"
 #include "libtorrent/performance_counters.hpp" // for counters
 #include "libtorrent/aux_/time.hpp"
+#include "libtorrent/aux_/ceil_div.hpp"
 
 #if TORRENT_USE_ASSERTS
 #include "libtorrent/hasher.hpp"
@@ -64,11 +65,6 @@ namespace {
 	{
 		request, piece, dont_have
 	};
-
-	int div_round_up(int numerator, int denominator)
-	{
-		return (numerator + denominator - 1) / denominator;
-	}
 
 	struct ut_metadata_peer_plugin;
 
@@ -134,7 +130,7 @@ namespace {
 			if (m_ti->is_valid()) return;
 			if (size <= 0 || size > 4 * 1024 * 1024) return;
 			m_metadata.resize(size);
-			m_requested_metadata.resize(div_round_up(size, 16 * 1024));
+			m_requested_metadata.resize(aux::ceil_div(size, 16 * 1024));
 		}
 
 		// explicitly disallow assignment, to silence msvc warning
@@ -240,7 +236,8 @@ namespace {
 
 			if (type == msg_t::piece)
 			{
-				TORRENT_ASSERT(piece >= 0 && piece < (m_tp.metadata().size() + 16 * 1024 - 1) / (16 * 1024));
+				TORRENT_ASSERT(piece >= 0
+					&& piece < aux::ceil_div(static_cast<int>(m_tp.metadata().size()), 16 * 1024));
 				TORRENT_ASSERT(m_pc.associated_torrent().lock()->valid_metadata());
 				TORRENT_ASSERT(m_tp.m_ti->is_valid());
 
@@ -332,7 +329,8 @@ namespace {
 				case msg_t::request:
 				{
 					if (!m_tp.m_ti->is_valid() || piece < 0
-						|| piece >= (m_tp.metadata().size() + 16 * 1024 - 1) / (16 * 1024))
+						|| piece
+							>= aux::ceil_div(static_cast<int>(m_tp.metadata().size()), 16 * 1024))
 					{
 #ifndef TORRENT_DISABLE_LOGGING
 						if (m_pc.should_log(peer_log_alert::info))
@@ -534,7 +532,7 @@ namespace {
 			}
 
 			m_metadata.resize(total_size);
-			m_requested_metadata.resize(div_round_up(total_size, 16 * 1024));
+			m_requested_metadata.resize(aux::ceil_div(total_size, 16 * 1024));
 		}
 
 		if (piece < 0 || piece >= m_requested_metadata.end_index())

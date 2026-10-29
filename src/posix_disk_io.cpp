@@ -18,6 +18,7 @@ see LICENSE file.
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
+#include "libtorrent/aux_/ceil_div.hpp"
 #include "libtorrent/aux_/posix_storage.hpp"
 #include "libtorrent/aux_/stat_cache.hpp"
 #include "libtorrent/file_storage.hpp"
@@ -204,7 +205,7 @@ namespace {
 
 			int const piece_size = v1 ? st->files().piece_size(piece) : 0;
 			int const piece_size2 = v2 ? st->files().piece_size2(piece) : 0;
-			int const blocks_in_piece = v1 ? (piece_size + default_block_size - 1) / default_block_size : 0;
+			int const blocks_in_piece = v1 ? aux::ceil_div(piece_size, default_block_size) : 0;
 			int const blocks_in_piece2 = v2 ? st->files().blocks_in_piece2(piece) : 0;
 
 			TORRENT_ASSERT(!v2 || int(block_hashes.size()) >= blocks_in_piece2);

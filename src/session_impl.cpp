@@ -58,6 +58,7 @@ see LICENSE file.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/aux_/bt_peer_connection.hpp"
+#include "libtorrent/aux_/ceil_div.hpp"
 #include "libtorrent/peer_connection_handle.hpp"
 #include "libtorrent/ip_filter.hpp"
 #include "libtorrent/socket.hpp"

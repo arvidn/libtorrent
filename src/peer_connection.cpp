@@ -26,6 +26,7 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/peer_connection.hpp"
+#include "libtorrent/aux_/ceil_div.hpp"
 #include "libtorrent/aux_/merge_block_requests.hpp"
 #include "libtorrent/entry.hpp"
 #include "libtorrent/bencode.hpp"
@@ -1169,7 +1170,7 @@ namespace {
 		// directions (packet + ACK) so add to both channels
 		int const header = (ipv6 ? 40 : 20) + 20;
 		int const packet_size = 1500 - header;
-		int const overhead = std::max(1, (bytes + packet_size - 1) / packet_size) * header;
+		int const overhead = std::max(1, aux::ceil_div(bytes, packet_size)) * header;
 		m_pending_stats.ip_overhead_recv += overhead;
 		m_pending_stats.ip_overhead_sent += overhead;
 	}
@@ -2619,7 +2620,7 @@ namespace {
 
 		// if we have choked the client
 		// ignore the request
-		int const blocks_per_piece = (ti.piece_length() + block_size() - 1) / block_size();
+		int const blocks_per_piece = aux::ceil_div(ti.piece_length(), block_size());
 
 		// disconnect peers that downloads more than foo times an allowed
 		// fast piece
@@ -5542,9 +5543,10 @@ namespace {
 		case set_block_hash_result::success:
 		{
 			t->need_picker();
+			TORRENT_ASSERT(result.num_verified >= 0);
 			int const blocks_per_piece = m_ti->layout().blocks_per_piece();
 			for (piece_index_t verified_piece = int(r.piece) + result.first_verified_block / blocks_per_piece
-				, end = int(verified_piece) + (result.num_verified + blocks_per_piece - 1) / blocks_per_piece
+				, end = int(verified_piece) + aux::ceil_div(result.num_verified, blocks_per_piece)
 				; verified_piece < end; ++verified_piece)
 			{
 				if (!t->picker().is_piece_finished(verified_piece)
@@ -6562,8 +6564,8 @@ namespace {
 			// download queue already
 			int outstanding_bytes = 0;
 			int const bs = block_size();
-			piece_block last_block(ti.last_piece()
-				, (t->piece_size_for_req(ti.last_piece()) + bs - 1) / bs);
+			piece_block last_block(
+				ti.last_piece(), aux::ceil_div(t->piece_size_for_req(ti.last_piece()), bs));
 
 			for (std::vector<pending_block>::const_iterator i = m_download_queue.begin()
 				, end(m_download_queue.end()); i != end; ++i)

@@ -42,6 +42,7 @@ see LICENSE file.
 #include <set>
 #include <map>
 #include <vector>
+#include <array>
 #include <cctype>
 #include <memory>
 #include <numeric>
@@ -51,6 +52,7 @@ see LICENSE file.
 
 #include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/aux_/torrent_internal_flags.hpp"
+#include "libtorrent/aux_/ceil_div.hpp"
 
 #ifdef TORRENT_SSL_PEERS
 #include "libtorrent/aux_/ssl_stream.hpp"
@@ -108,6 +110,7 @@ see LICENSE file.
 #include "libtorrent/aux_/apply_pad_files.hpp"
 #include "libtorrent/aux_/tracker_list.hpp"
 #include "libtorrent/aux_/tracker_manager.hpp"
+#include "libtorrent/aux_/scope_end.hpp"
 
 #ifndef TORRENT_DISABLE_LOGGING
 #include "libtorrent/aux_/session_impl.hpp" // for tracker_logger
@@ -841,7 +844,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		}
 
 		const int piece_size = piece_size_for_req(piece);
-		const int blocks_in_piece = (piece_size + block_size() - 1) / block_size();
+		const int blocks_in_piece = aux::ceil_div(piece_size, block_size());
 
 		TORRENT_ASSERT(blocks_in_piece > 0);
 		TORRENT_ASSERT(piece_size > 0);
@@ -1448,7 +1451,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			return;
 
 		int const piece_size = piece_size_for_req(piece);
-		int const blocks_in_piece = (piece_size + block_size() - 1) / block_size();
+		int const blocks_in_piece = aux::ceil_div(piece_size, block_size());
 
 		if (m_flags & torrent_internal_flags::deleted) return;
 
@@ -1700,6 +1703,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		// Go through the alternate names in the certificate looking for matching DNS entries
 		auto* gens = static_cast<GENERAL_NAMES*>(
 			X509_get_ext_d2i(cert, NID_subject_alt_name, nullptr, nullptr));
+		auto const free_gens = aux::scope_end([gens] { GENERAL_NAMES_free(gens); });
 
 		for (int i = 0; i < sk_GENERAL_NAME_num(gens); ++i)
 		{
@@ -1713,7 +1717,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			);
 
 #ifndef TORRENT_DISABLE_LOGGING
-			if (i > 1) names += " | n: ";
+			if (!names.empty())
+				names += " | n: ";
 			names.append(torrent_name.data(), torrent_name.size());
 #endif
 			if (torrent_name == "*"_sv || torrent_name == expected)
@@ -1774,38 +1779,46 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		// We don't use gnutls_x509_crt_check_hostname()
 		// as it doesn't handle wildcards the way we need here
 
-		char buf[256];
-		unsigned int seq = 0;
-		while(true) {
-			size_t len = sizeof(buf);
-			int ret = gnutls_x509_crt_get_subject_alt_name(cert, seq, buf, &len, nullptr);
-			if(ret == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE) break;
-			if(ret == GNUTLS_E_SUCCESS)
+		std::array<char, 256> buf;
+		for (unsigned int seq = 0;; ++seq)
+		{
+			size_t len = buf.size();
+			int const ret =
+				gnutls_x509_crt_get_subject_alt_name(cert, seq, buf.data(), &len, nullptr);
+			// a DNS name is at most 253 characters, longer entries are malformed
+			if (ret == GNUTLS_E_SHORT_MEMORY_BUFFER)
+				continue;
+			if (ret < 0)
+				break;
+			if (ret != GNUTLS_SAN_DNSNAME)
+				continue;
+
+			string_view const torrent_name(buf.data(), len);
+#ifndef TORRENT_DISABLE_LOGGING
+			if (!names.empty())
+				names += " | n: ";
+			names.append(torrent_name.data(), torrent_name.size());
+#endif
+			if (torrent_name == "*"_sv || torrent_name == expected)
 			{
-				string_view const torrent_name(buf, len);
 #ifndef TORRENT_DISABLE_LOGGING
-				if (!names.empty()) names += " | n: ";
-				names.append(torrent_name.data(), torrent_name.size());
-#endif
-				if (torrent_name == "*"_sv || torrent_name == expected)
-				{
-#ifndef TORRENT_DISABLE_LOGGING
-					match = true;
-					continue;
+				match = true;
+				// if we're logging, keep looping over all names,
+				// for completeness of the log
+				continue;
 #else
-					return true;
+				return true;
 #endif
-				}
 			}
-			++seq;
 		}
 
 		// no match in the alternate names, so try the common name
-		size_t len = sizeof(buf);
-		int ret = gnutls_x509_crt_get_dn_by_oid(cert, GNUTLS_OID_X520_COMMON_NAME, 0, 0, buf, &len);
+		size_t len = buf.size();
+		int ret = gnutls_x509_crt_get_dn_by_oid(
+			cert, GNUTLS_OID_X520_COMMON_NAME, 0, 0, buf.data(), &len);
 		if(ret == GNUTLS_E_SUCCESS)
 		{
-			string_view const torrent_name(buf, len);
+			string_view const torrent_name(buf.data(), len);
 #ifndef TORRENT_DISABLE_LOGGING
 			if (!names.empty()) names += " | n: ";
 			names.append(torrent_name.data(), torrent_name.size());
@@ -2006,8 +2019,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			return;
 		}
 
-		int const blocks_per_piece
-			= (m_torrent_file->piece_length() + default_block_size - 1) / default_block_size;
+		int const blocks_per_piece =
+			aux::ceil_div(m_torrent_file->piece_length(), default_block_size);
 		if (blocks_per_piece > piece_picker::max_blocks_per_piece)
 		{
 			set_error(errors::invalid_piece_size, torrent_status::error_file_none);

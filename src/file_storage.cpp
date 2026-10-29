@@ -19,6 +19,7 @@ see LICENSE file.
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/aux_/alloca.hpp"
+#include "libtorrent/aux_/ceil_div.hpp"
 #include "libtorrent/disk_interface.hpp" // for default_block_size
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/aux_/throw.hpp"
@@ -133,12 +134,12 @@ TORRENT_VERSION_NAMESPACE_4
 	int file_storage::blocks_in_piece2(piece_index_t const index) const
 	{
 		// the number of default_block_size in a piece size, rounding up
-		return (piece_size2(index) + default_block_size - 1) / default_block_size;
+		return aux::ceil_div(piece_size2(index), default_block_size);
 	}
 
 	int file_storage::blocks_per_piece() const
 	{
-		return (m_piece_length + default_block_size - 1) / default_block_size;
+		return aux::ceil_div(m_piece_length, default_block_size);
 	}
 
 	// splits a definitely-relative ``path`` (path is supposed to include
@@ -1458,7 +1459,7 @@ void file_storage::internal_rename_path_element(path_index_t const idx, string_v
 		TORRENT_ASSERT(f.pad_file == false);
 		TORRENT_ASSERT((f.offset % m_piece_length) == 0);
 		return aux::numeric_cast<int>(
-			(static_cast<std::int64_t>(f.size) + m_piece_length - 1) / m_piece_length);
+			aux::ceil_div(static_cast<std::int64_t>(f.size), std::int64_t(m_piece_length)));
 	}
 
 	index_range<piece_index_t::diff_type> file_storage::file_piece_range(file_index_t const file) const
@@ -1478,7 +1479,8 @@ void file_storage::internal_rename_path_element(path_index_t const idx, string_v
 		// be aligned to pieces
 		TORRENT_ASSERT(f.pad_file == false);
 		TORRENT_ASSERT((f.offset % m_piece_length) == 0);
-		return int((f.size + default_block_size - 1) / default_block_size);
+		return static_cast<int>(
+			aux::ceil_div(static_cast<std::int64_t>(f.size), std::int64_t(default_block_size)));
 	}
 
 	int file_storage::file_first_piece_node(file_index_t index) const
@@ -1836,7 +1838,7 @@ namespace aux {
 	int calc_num_pieces(file_storage const& fs)
 	{
 		return aux::numeric_cast<int>(
-			(fs.total_size() + fs.piece_length() - 1) / fs.piece_length());
+			aux::ceil_div(fs.total_size(), std::int64_t(fs.piece_length())));
 	}
 
 	} // namespace aux
