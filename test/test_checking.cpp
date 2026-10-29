@@ -446,3 +446,70 @@ TORRENT_TEST_DISK_IO(preserve_file_priorities)
 
 	remove_all(test_dir, ec);
 }
+
+// A seed has no piece picker, and the one made when it needs one again must
+// know the pad bytes too, or its byte counts include the padding. Skip and
+// delete the first file of a v2 torrent and recheck: what is wanted is the
+// second file, smaller than a piece, not the whole piece it sits in
+TORRENT_TEST(recreated_picker_pad_bytes)
+{
+	using namespace lt;
+
+	static char const* const test_dir = "test_torrent_dir_pad_bytes";
+	int const piece_size = 0x8000;
+	static std::array<int const, 2> const file_sizes{{2 * piece_size, 3000}};
+
+	auto fs = create_random_files(test_dir, file_sizes);
+
+	error_code ec;
+	lt::create_torrent ct(std::move(fs), piece_size, create_torrent::v2_only);
+	set_piece_hashes(ct, ".", ec);
+	TEST_CHECK(!ec);
+
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), ct.generate());
+	add_torrent_params p = load_torrent_buffer(buf);
+	TEST_CHECK(p.ti->is_valid());
+
+	file_storage const& files = p.ti->layout();
+	file_index_t big{-1};
+	for (auto const f : files.file_range())
+		if (!files.pad_file_at(f) && files.file_size(f) == 2 * piece_size)
+			big = f;
+	TEST_CHECK(big >= file_index_t{0});
+
+	p.save_path = ".";
+
+	session ses(settings());
+	torrent_handle h = ses.add_torrent(p, ec);
+	TEST_CHECK(!ec);
+	TEST_CHECK(wait_for_alert(
+		ses, torrent_checked_alert::alert_type, "initial check", pop_alerts::pop_all, seconds(30)));
+	TEST_CHECK(h.status().is_seeding);
+
+	// skipping a file gives the seed a new piece picker
+	std::vector<download_priority_t> prio(std::size_t(files.num_files()), default_priority);
+	prio[std::size_t(static_cast<int>(big))] = dont_download;
+	h.prioritize_files(prio);
+	// the disk thread checks whether the skipped file exists. Deleting it
+	// first races with that check, which fails on Windows while the file is
+	// still open, and the error puts the old priority back
+	TEST_CHECK(wait_for_alert(
+		ses, file_prio_alert::alert_type, "skip file", pop_alerts::pop_all, seconds(30)));
+
+	remove(files.file_path(big, "."), ec);
+	TEST_CHECK(!ec);
+	h.force_recheck();
+	TEST_CHECK(wait_for_alert(ses,
+		torrent_checked_alert::alert_type,
+		"recheck after file deletion",
+		pop_alerts::pop_all,
+		seconds(30)));
+
+	torrent_status const st = h.status();
+	TEST_EQUAL(st.total_wanted, 3000);
+	TEST_EQUAL(st.total_wanted_done, 3000);
+	TEST_CHECK(st.is_finished);
+
+	remove_all(test_dir, ec);
+}
