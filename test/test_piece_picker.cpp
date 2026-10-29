@@ -1760,6 +1760,172 @@ TORRENT_TEST(prefer_cnotiguous_blocks)
 	TEST_CHECK(std::find(picked.begin(), picked.end(), piece_block(2_piece, 2)) == picked.end());
 }
 
+namespace {
+
+enum class partial_state
+{
+	// a stopped peer has supplied just the first block
+	first_block_finished,
+	// competing peers leave isolated free blocks in the partials
+	fragmented,
+};
+
+// expect_contiguous false means the picker is expected to fall back to
+// completing the partial pieces
+void test_partial_limit(int const piece_blocks,
+	int const num_partials,
+	int const num_peers,
+	partial_state const state,
+	picker_options_t const extra_options,
+	bool const expect_contiguous)
+{
+	bool const fragmented = state == partial_state::fragmented;
+	for (auto const order : {piece_picker::sequential, piece_picker::rarest_first})
+	{
+		auto p = setup_picker("1111", "    ", "", "", piece_blocks * default_block_size);
+		// make the partial pieces the rarest, so rarest-first reaches them before
+		// the fresh ones
+		for (piece_index_t i{num_partials}; i < 4_piece; ++i)
+			p->inc_refcount(i, &tmp2);
+		for (piece_index_t i{0}; i < piece_index_t{num_partials}; ++i)
+		{
+			if (fragmented)
+			{
+				for (int b = 1; b < piece_blocks; b += 2)
+					p->mark_as_downloading({i, b}, &tmp1);
+			}
+			else
+			{
+				p->mark_as_finished({i, 0}, &tmp1);
+			}
+		}
+
+		std::vector<piece_block> picked;
+		p->pick_pieces(string2vec("****"),
+			picked,
+			2,
+			piece_blocks,
+			nullptr,
+			order | extra_options,
+			empty_vector,
+			num_peers,
+			pc);
+		TEST_CHECK(verify_pick(p, picked));
+
+		TEST_EQUAL(int(picked.size()), expect_contiguous ? piece_blocks - (fragmented ? 0 : 1) : 2);
+		if (picked.empty())
+			return;
+		if (expect_contiguous && fragmented)
+			TEST_CHECK(picked.front().piece_index >= piece_index_t{num_partials});
+		else
+			TEST_CHECK(picked.front().piece_index < piece_index_t{num_partials});
+		for (std::size_t b = 1; b < picked.size(); ++b)
+		{
+			TEST_EQUAL(picked[b].piece_index, picked.front().piece_index);
+			TEST_EQUAL(picked[b].block_index,
+				picked[b - 1].block_index + (fragmented && !expect_contiguous ? 2 : 1));
+		}
+	}
+}
+
+// ignore_partial_limit must not prevent picking the free blocks of
+// fragmented partial pieces
+void test_partial_limit_fallback(picker_options_t const extra_options, bool const allow_fresh_piece)
+{
+	auto p = setup_picker("1111", "    ", "", "", 1024 * default_block_size);
+	for (piece_index_t i{0}; i < 3_piece; ++i)
+		for (int b = 1; b < 1024; b += 2)
+			p->mark_as_downloading({i, b}, &tmp1);
+	if (!allow_fresh_piece)
+		p->set_piece_priority(3_piece, dont_download);
+
+	std::vector<piece_block> picked;
+	p->pick_pieces(string2vec("****"),
+		picked,
+		2,
+		1024,
+		nullptr,
+		piece_picker::sequential | piece_picker::ignore_partial_limit | extra_options,
+		empty_vector,
+		20,
+		pc);
+	TEST_CHECK(verify_pick(p, picked));
+	TEST_EQUAL(picked.size(), 2);
+	for (auto const& b : picked)
+	{
+		TEST_CHECK(b.piece_index < 3_piece);
+		TEST_EQUAL(b.block_index % 2, 0);
+	}
+}
+
+} // anonymous namespace
+
+// 2 partial 16 MiB pieces are below the 32 MiB partial byte limit
+TORRENT_TEST(partial_limit_below_byte_limit)
+{
+	test_partial_limit(1024, 2, 20, partial_state::first_block_finished, {}, true);
+}
+
+TORRENT_TEST(partial_limit_below_byte_limit_fragmented)
+{
+	test_partial_limit(1024, 2, 20, partial_state::fragmented, {}, true);
+}
+
+// 3 partial 16 MiB pieces exceed the 32 MiB partial byte limit
+TORRENT_TEST(partial_limit_byte_limit)
+{
+	test_partial_limit(1024, 3, 20, partial_state::first_block_finished, {}, false);
+}
+
+TORRENT_TEST(partial_limit_byte_limit_fragmented)
+{
+	test_partial_limit(1024, 3, 20, partial_state::fragmented, {}, false);
+}
+
+TORRENT_TEST(partial_limit_byte_limit_ignored)
+{
+	test_partial_limit(
+		1024, 3, 20, partial_state::first_block_finished, piece_picker::ignore_partial_limit, true);
+}
+
+TORRENT_TEST(partial_limit_byte_limit_ignored_fragmented)
+{
+	test_partial_limit(
+		1024, 3, 20, partial_state::fragmented, piece_picker::ignore_partial_limit, true);
+}
+
+// 2 partial pieces exceed the limit of 1.5 partials per peer
+TORRENT_TEST(partial_limit_peer_limit)
+{
+	test_partial_limit(4, 2, 1, partial_state::first_block_finished, {}, false);
+}
+
+TORRENT_TEST(partial_limit_peer_limit_fragmented)
+{
+	test_partial_limit(4, 2, 1, partial_state::fragmented, {}, false);
+}
+
+TORRENT_TEST(partial_limit_peer_limit_ignored)
+{
+	test_partial_limit(
+		4, 2, 1, partial_state::first_block_finished, piece_picker::ignore_partial_limit, true);
+}
+
+TORRENT_TEST(partial_limit_peer_limit_ignored_fragmented)
+{
+	test_partial_limit(
+		4, 2, 1, partial_state::fragmented, piece_picker::ignore_partial_limit, true);
+}
+
+// the only pickable pieces are fragmented partials
+TORRENT_TEST(ignore_partial_limit_fallback) { test_partial_limit_fallback({}, false); }
+
+// prioritize_partials still takes precedence over a fresh piece
+TORRENT_TEST(ignore_partial_limit_prioritize_partials)
+{
+	test_partial_limit_fallback(piece_picker::prioritize_partials, true);
+}
+
 TORRENT_TEST(prefer_aligned_whole_pieces)
 {
 	auto p = setup_picker("2222221222222222", "                ", "", "");
