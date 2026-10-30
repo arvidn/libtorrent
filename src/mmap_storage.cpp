@@ -954,8 +954,8 @@ mmap_storage::mmap_storage(
 		if (sett.get_bool(settings_pack::disk_disable_copy_on_write))
 			mode |= aux::open_mode::no_cow;
 
-		if (files().file_size(file) / default_block_size
-			<= sett.get_int(settings_pack::mmap_file_size_cutoff))
+		if (files().file_size(file)
+			< std::int64_t(sett.get_int(settings_pack::mmap_file_size_cutoff)) * default_block_size)
 			mode |= aux::open_mode::no_mmap;
 
 		// if we have a cache already, don't store the data twice by leaving it in the OS cache as well
