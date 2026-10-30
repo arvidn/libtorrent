@@ -610,13 +610,15 @@ def update_results(
         # matrices (so it follows the Upload rate section). The cell value is
         # the peak interval p95 read latency (from disk_latency.collect_latency);
         # it is only nonzero for disk-latency-stats builds and backends that
-        # have a disk job queue (mmap, pread -- not posix).
-        lat_heading = "Disk read latency (peak p95, ms)"
-        doc_parts.append(f"{lat_heading}\n{'-' * len(lat_heading)}\n\n")
-        doc_parts.append(
-            render_pivot(mode_results, "read_latency_p95_ms", mode_key)
-        )
-        doc_parts.append("\n")
+        # have a disk job queue (mmap, pread -- not posix). Only serving
+        # peers issues read jobs, hash jobs aren't counted.
+        if mode_key not in ("download", "check"):
+            lat_heading = "Disk read latency (peak p95, ms)"
+            doc_parts.append(f"{lat_heading}\n{'-' * len(lat_heading)}\n\n")
+            doc_parts.append(
+                render_pivot(mode_results, "read_latency_p95_ms", mode_key)
+            )
+            doc_parts.append("\n")
         # peak RSS matrix for this mode -- memory rather than throughput.
         mem_heading = "Max memory usage (MiB RSS)"
         doc_parts.append(f"{mem_heading}\n{'-' * len(mem_heading)}\n\n")
