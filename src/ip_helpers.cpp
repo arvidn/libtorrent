@@ -13,8 +13,15 @@ see LICENSE file.
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp"
+#include "libtorrent/aux_/string_util.hpp"
+
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/asio/ip/network_v6.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <algorithm>
+#include <string>
+#include <tuple>
 
 namespace libtorrent {
 namespace aux {
@@ -31,6 +38,34 @@ namespace aux {
 		error_code ec;
 		make_address(host, ec);
 		return !ec;
+	}
+
+	bool in_cidr_list(address const& addr, string_view cidrs)
+	{
+		address const a = normalize_address(addr);
+		while (!cidrs.empty())
+		{
+			string_view entry;
+			std::tie(entry, cidrs) = split_string(cidrs, ',');
+			std::string const str(strip_string(entry));
+			error_code ec;
+			if (a.is_v4())
+			{
+				auto const net = boost::asio::ip::make_network_v4(str, ec);
+				if (ec) continue;
+				if (network_v4(a.to_v4(), net.prefix_length()).canonical() == net.canonical())
+					return true;
+			}
+			else
+			{
+				auto const net = boost::asio::ip::make_network_v6(str, ec);
+				if (ec) continue;
+				address_v6 const v6(a.to_v6().to_bytes());
+				if (boost::asio::ip::network_v6(v6, net.prefix_length()).canonical() == net.canonical())
+					return true;
+			}
+		}
+		return false;
 	}
 
 	bool same_v6_prefix(address_v6::bytes_type const& a, address_v6::bytes_type const& b)

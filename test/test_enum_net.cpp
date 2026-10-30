@@ -35,6 +35,36 @@ TORRENT_TEST(is_loopback)
 	TEST_CHECK(!is_loopback(make_address("::ffff:192.168.0.1")));
 }
 
+TORRENT_TEST(in_cidr_list)
+{
+	string_view const def = "127.0.0.0/8,::1/128";
+	TEST_CHECK(in_cidr_list(make_address("127.0.0.1"), def));
+	TEST_CHECK(in_cidr_list(make_address("127.255.0.3"), def));
+	TEST_CHECK(in_cidr_list(make_address("::1"), def));
+	TEST_CHECK(in_cidr_list(make_address("::ffff:127.0.0.1"), def));
+	TEST_CHECK(!in_cidr_list(make_address("192.168.0.1"), def));
+	TEST_CHECK(!in_cidr_list(make_address("::2"), def));
+
+	TEST_CHECK(in_cidr_list(make_address("172.17.0.2"), " 10.0.0.0/8 , 172.16.0.0/12 "));
+	TEST_CHECK(in_cidr_list(make_address("fd00::5"), "fd00::/8"));
+	TEST_CHECK(in_cidr_list(make_address("1.2.3.4"), "0.0.0.0/0"));
+	TEST_CHECK(in_cidr_list(make_address("2001:db8::1"), "::/0"));
+	TEST_CHECK(!in_cidr_list(make_address("2001:db8::1"), "0.0.0.0/0"));
+	TEST_CHECK(!in_cidr_list(make_address("1.2.3.4"), "::/0"));
+
+	TEST_CHECK(!in_cidr_list(make_address("172.17.0.2"), "172.17.0.2"));
+	TEST_CHECK(in_cidr_list(make_address("172.17.0.2"), "172.17.0.2/32"));
+
+	TEST_CHECK(in_cidr_list(make_address("192.168.1.7"), "192.168.1.1/24"));
+	TEST_CHECK(!in_cidr_list(make_address("192.168.2.1"), "192.168.1.1/24"));
+	TEST_CHECK(in_cidr_list(make_address("fd00::7"), "fd00::1/8"));
+
+	TEST_CHECK(in_cidr_list(make_address("10.0.0.1"), "foo,10.0.0.0/33,,10.0.0.0/8"));
+	TEST_CHECK(!in_cidr_list(make_address("10.0.0.1"), "foo,10.0.0.0/33"));
+
+	TEST_CHECK(!in_cidr_list(make_address("127.0.0.1"), ""));
+}
+
 TORRENT_TEST(is_local)
 {
 	error_code ec;

@@ -3532,6 +3532,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		// if this torrent contains an SSL certificate, make sure
 		// any SSL tracker presents a certificate signed by it
 		req.ssl_ctx = m_ssl_ctx.get();
+		if (m_ssl_ctx) req.kind |= tracker_request::ssl_torrent;
 #endif
 
 		req.redundant = m_total_redundant_bytes;
