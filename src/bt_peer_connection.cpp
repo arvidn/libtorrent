@@ -539,7 +539,7 @@ namespace {
 			peer_log(peer_log_alert::info, peer_log_alert::encryption, "initiating encrypted handshake");
 #endif
 
-		m_dh_key_exchange.reset(new dh_key_exchange);
+		m_dh_key_exchange = std::make_unique<dh_key_exchange>();
 
 		int const pad_size = int(random(512));
 

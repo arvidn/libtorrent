@@ -21,14 +21,16 @@ namespace libtorrent::aux {
 	{
 		copy_ptr() = default;
 		explicit copy_ptr(T* t): m_ptr(t) {}
-		copy_ptr(copy_ptr const& p): m_ptr(p.m_ptr ? new T(*p.m_ptr) : nullptr) {}
+		copy_ptr(copy_ptr const& p)
+			: m_ptr(p.m_ptr ? std::make_unique<T>(*p.m_ptr) : nullptr)
+		{}
 		copy_ptr(copy_ptr&& p) noexcept = default;
 
 		void reset(T* t = nullptr) { m_ptr.reset(t); }
 		copy_ptr& operator=(copy_ptr const& p) &
 		{
 			if (m_ptr == p.m_ptr) return *this;
-			m_ptr.reset(p.m_ptr ? new T(*p.m_ptr) : nullptr);
+			m_ptr = p.m_ptr ? std::make_unique<T>(*p.m_ptr) : nullptr;
 			return *this;
 		}
 		copy_ptr& operator=(copy_ptr&& p) & noexcept = default;

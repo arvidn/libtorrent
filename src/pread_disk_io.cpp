@@ -1450,7 +1450,7 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 		auto const start_time = aux::steady_clock::now();
 
 		int const read_len = v1 ? piece_size : piece_size2;
-		std::unique_ptr<char[]> buf(new char[std::size_t(read_len)]);
+		auto buf = std::make_unique<char[]>(std::size_t(read_len));
 		span<char> const buf_span{buf.get(), read_len};
 
 		j->error.ec.clear();

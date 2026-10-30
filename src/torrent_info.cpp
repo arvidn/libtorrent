@@ -1157,6 +1157,7 @@ TORRENT_VERSION_NAMESPACE_4
 
 		// copy the info section
 		m_info_section_size = aux::numeric_cast<int>(section.size());
+		// use std::make_unique_for_overwrite() in C++ 20
 		char* ptr = new char[aux::numeric_cast<std::size_t>(m_info_section_size)];
 		std::memcpy(ptr, section.data(), aux::numeric_cast<std::size_t>(m_info_section_size));
 		m_info_section.reset(ptr);

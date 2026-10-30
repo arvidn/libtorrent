@@ -811,7 +811,7 @@ TORRENT_TEST(omit_stop_event)
 
 	asio::io_context ios(sim, { make_address_v4("123.0.0.3"), make_address_v6("ff::dead:beef")});
 	lt::settings_pack sett = settings();
-	std::unique_ptr<lt::session> ses(new lt::session(sett, ios));
+	auto ses = std::make_unique<lt::session>(sett, ios);
 
 	print_alerts(*ses);
 
