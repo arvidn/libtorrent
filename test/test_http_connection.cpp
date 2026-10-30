@@ -285,7 +285,10 @@ TORRENT_TEST(get_body_after_receive_buffer_grows)
 					   span<char const> data,
 					   aux::http_connection&) {
 		++called;
-		TEST_EQUAL(ec, error_code(boost::asio::error::eof));
+		// the error category is compared by address, and the test binary has
+		// a different instance of it than the library when it's a DLL
+		TEST_EQUAL(ec.value(), int(boost::asio::error::eof));
+		TEST_EQUAL(std::string(ec.category().name()), std::string("asio.misc"));
 		TEST_CHECK(parser.header_finished());
 		span<char const> const body = parser.get_body();
 		TEST_EQUAL(body.size(), int(response.size() - header_size));

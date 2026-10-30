@@ -820,9 +820,8 @@ void http_connection::on_read(error_code const& e
 	{
 		m_recvbuffer.resize(std::min(m_read_pos * 2, m_max_bottled_buffer_size));
 		// the parser refers to the receive buffer, which may just have been
-		// reallocated. Point it at the new buffer, since handlers may call
-		// get_body() on it if the connection is closed before the response
-		// is finished
+		// reallocated. Handlers may call get_body() on it if the connection
+		// is closed before the response is finished
 		m_parser.incoming(span<char const>(m_recvbuffer).first(m_read_pos), error);
 	}
 
