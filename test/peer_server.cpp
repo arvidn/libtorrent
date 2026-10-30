@@ -127,7 +127,7 @@ std::shared_ptr<peer_server> g_peer;
 
 int start_peer()
 {
-	g_peer.reset(new peer_server);
+	g_peer = std::make_shared<peer_server>();
 	return g_peer->port();
 }
 

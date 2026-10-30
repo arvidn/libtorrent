@@ -142,7 +142,7 @@ std::shared_ptr<dht_server> g_dht;
 
 int start_dht()
 {
-	g_dht.reset(new dht_server);
+	g_dht = std::make_shared<dht_server>();
 	return g_dht->port();
 }
 

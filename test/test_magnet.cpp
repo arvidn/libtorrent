@@ -176,7 +176,7 @@ TORRENT_TEST(magnet)
 	TEST_CHECK(!session_state2.dict_find("settings")
 		.dict_find("optimistic_disk_retry"));
 
-	s.reset(new lt::session(read_session_params(session_state2)));
+	s = std::make_unique<lt::session>(read_session_params(session_state2));
 
 #define CMP_SET(x) std::printf(#x ": %d %d\n"\
 	, s->get_settings().get_int(settings_pack:: x)\

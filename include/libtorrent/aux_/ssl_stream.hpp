@@ -27,6 +27,7 @@ see LICENSE file.
 #include <boost/system/system_error.hpp>
 
 #include <functional>
+#include <memory>
 
 namespace libtorrent::aux {
 
@@ -34,12 +35,12 @@ template <class Stream>
 struct ssl_stream
 {
 	ssl_stream(io_context& io_context, ssl::context& ctx)
-		: m_sock(new ssl::stream<Stream>(io_context, ctx))
+		: m_sock(std::make_unique<ssl::stream<Stream>>(io_context, ctx))
 	{}
 
 	template <typename S>
 	ssl_stream(S&& s, ssl::context& ctx)
-		: m_sock(new ssl::stream<Stream>(std::forward<S>(s), ctx))
+		: m_sock(std::make_unique<ssl::stream<Stream>>(std::forward<S>(s), ctx))
 	{}
 
 	ssl_stream(ssl_stream&&) = default;
