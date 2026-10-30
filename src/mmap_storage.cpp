@@ -327,6 +327,10 @@ mmap_storage::mmap_storage(
 	{
 		m_stat_cache.reserve(files().num_files());
 
+		// a check follows, which must hash what is on disk now, not v2 block
+		// hashes left over from when the pieces were downloaded
+		m_precomputed_v2.clear();
+
 		auto const di = aux::get_drive_info(m_save_path);
 		if (di == aux::drive_info::remote)
 		{

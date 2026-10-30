@@ -513,3 +513,93 @@ TORRENT_TEST(recreated_picker_pad_bytes)
 
 	remove_all(test_dir, ec);
 }
+
+// A full check must read the files, not answer from hashes the disk cache
+// kept from writing the pieces. Download a hybrid torrent, delete its last
+// file and recheck: that file's piece must be missing, rather than pass its
+// v1 check from the cache and fail its v2 one (torrent_inconsistent_hashes)
+TORRENT_TEST_DISK_IO(recheck_deleted_file_after_download)
+{
+	using namespace lt;
+
+	static char const* const src_dir = "test_torrent_dir_recheck_src";
+	static char const* const dst_dir = "test_torrent_dir_recheck_dst";
+	int const piece_size = 0x8000;
+	static std::array<int const, 2> const file_sizes{{5 * piece_size, 3000}};
+
+	auto fs = create_random_files(src_dir, file_sizes);
+
+	error_code ec;
+	lt::create_torrent ct(std::move(fs), piece_size);
+	set_piece_hashes(ct, ".", ec);
+	TEST_CHECK(!ec);
+
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), ct.generate());
+	add_torrent_params p = load_torrent_buffer(buf);
+	auto const ti = p.ti;
+	TEST_CHECK(ti->info_hashes().has_v1());
+	TEST_CHECK(ti->info_hashes().has_v2());
+
+	// the torrent's data as the pieces see it, pad files included
+	file_storage const& files = ti->layout();
+	std::vector<char> data;
+	file_index_t last_file{};
+	for (auto const f : files.file_range())
+	{
+		if (files.pad_file_at(f))
+		{
+			data.resize(data.size() + std::size_t(files.file_size(f)), '\0');
+			continue;
+		}
+		std::vector<char> content;
+		TEST_EQUAL(load_file(files.file_path(f, "."), content, ec), 0);
+		data.insert(data.end(), content.begin(), content.end());
+		last_file = f;
+	}
+
+	p.save_path = dst_dir;
+	p.flags &= ~(torrent_flags::auto_managed | torrent_flags::paused);
+	lt::session_params sp(settings());
+	sp.disk_io_constructor = disk_io;
+	session ses(sp);
+	torrent_handle h = ses.add_torrent(p, ec);
+	TEST_CHECK(!ec);
+	TEST_CHECK(wait_for_alert(
+		ses, torrent_checked_alert::alert_type, "initial check", pop_alerts::pop_all, seconds(30)));
+
+	// write every piece through the disk cache, as a download does
+	std::int64_t offset = 0;
+	for (auto const i : ti->piece_range())
+	{
+		h.add_piece(i, data.data() + offset);
+		offset += ti->piece_size(i);
+	}
+	wait_for_seeding(ses, "download");
+	TEST_CHECK(h.status().is_seeding);
+
+	h.pause();
+	TEST_CHECK(wait_for_alert(
+		ses, torrent_paused_alert::alert_type, "pause", pop_alerts::pop_all, seconds(30)));
+	remove(files.file_path(last_file, dst_dir), ec);
+	TEST_CHECK(!ec);
+	h.resume();
+
+	h.force_recheck();
+	TEST_CHECK(wait_for_alert(ses,
+		torrent_checked_alert::alert_type,
+		"recheck after file deletion",
+		pop_alerts::pop_all,
+		seconds(30)));
+
+	torrent_status const st = h.status();
+	TEST_CHECK(!st.errc);
+	if (st.errc)
+		std::printf("error: %s\n", st.errc.message().c_str());
+	// the deleted file's piece is gone, every other piece is still there
+	TEST_EQUAL(st.num_pieces, ti->num_pieces() - 1);
+	TEST_CHECK(!st.is_seeding);
+
+	remove_all(src_dir, ec);
+	remove_all(dst_dir, ec);
+}

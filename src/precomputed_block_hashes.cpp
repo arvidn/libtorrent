@@ -62,4 +62,9 @@ namespace libtorrent::aux {
 		m_hashes.erase(piece);
 	}
 
+	void precomputed_block_hashes::clear()
+	{
+		std::lock_guard<std::mutex> l(m_mutex);
+		m_hashes.clear();
+	}
 }
