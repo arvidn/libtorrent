@@ -2267,6 +2267,21 @@ namespace aux {
 			// vector against a spoofed source address.
 			dht_block_bytelimit,
 
+			// how long, in milliseconds, an HTTP(S) tracker connection is kept
+			// open after its last coalesced request has been answered, so
+			// that announces or scrapes to the same tracker arriving shortly
+			// afterwards reuse it instead of opening a new connection. The
+			// default of 1000ms lets most steady-state announces avoid
+			// re-establishing a TCP connection (and, for HTTPS trackers,
+			// re-doing the TLS handshake) between back-to-back requests. Set
+			// to 0 to close the connection as soon as its request queue is
+			// empty, which was the behaviour before this setting existed. An
+			// idle connection still counts towards max_concurrent_http_announces
+			// and max_tracker_connection_requests, and is closed by the
+			// server-side keep-alive timeout, in which case the next request
+			// transparently reconnects.
+			tracker_connection_idle_timeout,
+
 			max_int_setting_internal
 		};
 

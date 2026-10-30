@@ -395,6 +395,11 @@ namespace libtorrent::aux {
 		void inc_queued_requests();
 		void dec_queued_requests();
 
+		// true if any HTTP(S) tracker connection is waiting for a slot under
+		// max_concurrent_http_announces. Used by http_tracker_connection to
+		// avoid idling on a slot somebody else needs.
+		bool has_queued_http() const;
+
 		void incoming_error(error_code const& ec, udp::endpoint const& ep);
 		bool incoming_packet(udp::endpoint const& ep, span<char const> buf);
 
