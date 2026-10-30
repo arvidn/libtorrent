@@ -1416,6 +1416,7 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 				total_microseconds(aux::steady_clock::now() - start_time);
 
 			m_stats_counters.inc_stats_counter(counters::num_read_back, blocks_read_from_disk);
+			m_stats_counters.inc_stats_counter(counters::num_blocks_read, blocks_read_from_disk);
 			m_stats_counters.inc_stats_counter(counters::num_read_ops, blocks_read_from_disk);
 			m_stats_counters.inc_stats_counter(counters::disk_hash_time, read_time);
 			m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
@@ -1485,6 +1486,7 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 				total_microseconds(aux::steady_clock::now() - start_time);
 
 			m_stats_counters.inc_stats_counter(counters::num_read_back, blocks_to_read);
+			m_stats_counters.inc_stats_counter(counters::num_blocks_read, blocks_to_read);
 			m_stats_counters.inc_stats_counter(counters::num_read_ops, 1);
 			m_stats_counters.inc_stats_counter(counters::disk_hash_time, read_time);
 			m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
@@ -1519,10 +1521,12 @@ status_t pread_disk_io::do_job(aux::job::hash2& a, aux::pread_disk_job* j)
 	}
 
 	int ret = 0;
+	bool read_from_disk = false;
 	a.piece_hash2 = m_cache.hash2({j->storage->storage_index(), a.piece}, blk, [&] {
 		hasher256 h;
 		ret = j->storage->hash2(m_settings, h, len, a.piece, a.offset
 			, file_mode, j->flags, j->error);
+		read_from_disk = true;
 		return h.final();
 	});
 
@@ -1530,8 +1534,12 @@ status_t pread_disk_io::do_job(aux::job::hash2& a, aux::pread_disk_job* j)
 	{
 		std::int64_t const read_time = total_microseconds(aux::steady_clock::now() - start_time);
 
-		m_stats_counters.inc_stats_counter(counters::num_blocks_read);
-		m_stats_counters.inc_stats_counter(counters::num_read_ops);
+		if (read_from_disk)
+		{
+			m_stats_counters.inc_stats_counter(counters::num_read_back);
+			m_stats_counters.inc_stats_counter(counters::num_blocks_read);
+			m_stats_counters.inc_stats_counter(counters::num_read_ops);
+		}
 		m_stats_counters.inc_stats_counter(counters::disk_hash_time, read_time);
 		m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
 	}
