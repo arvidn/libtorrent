@@ -17,7 +17,7 @@ jobs:
 
    test:
       name: Tests
-      runs-on: macos-14
+      runs-on: macos-15
       continue-on-error: true
 
       strategy:
@@ -44,6 +44,15 @@ jobs:
           echo "using darwin ;" >>~/user-config.jam
           echo "OPENSSL_ROOT=$(brew --prefix openssl@3)" >>"$GITHUB_ENV"
 
+      - name: disable UPnP test
+        # test_upnp needs to connect to its web_server over the host's LAN
+        # address; macOS's local network privacy permission has no way to
+        # be granted on an unattended CI runner, so it always fails here.
+        # mark it explicit (excluded from the default build) for this CI
+        # run only, rather than disabling it for other platforms or local
+        # macOS development.
+        run: echo 'explicit test_upnp ;' >>test/Jamfile
+
       - name: build and run tests
         run: (cd test; b2 ${{ matrix.config }} -l400 warnings-as-errors=on debug-iterators=on invariant-checks=full asserts=on deterministic-tests openssl-include="$OPENSSL_ROOT/include" openssl-lib="$OPENSSL_ROOT/lib")
 
@@ -58,7 +67,7 @@ jobs:
 
    sim:
       name: Simulations
-      runs-on: macos-14
+      runs-on: macos-15
 
       steps:
       - name: checkout
@@ -88,7 +97,7 @@ jobs:
 
    build:
       name: Build
-      runs-on: macos-14
+      runs-on: macos-15
       continue-on-error: true
 
       strategy:
@@ -122,7 +131,7 @@ jobs:
 
    ios_build:
       name: Build iOS
-      runs-on: macos-14
+      runs-on: macos-15
       continue-on-error: true
 
       steps:
@@ -141,20 +150,20 @@ jobs:
         run: |
           echo "using darwin : ios_sim : clang++ : <compileflags>-Wno-deprecated-declarations
           <compileflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk\"
-          <compileflags>-mios-simulator-version-min=7
+          <compileflags>-mios-simulator-version-min=12
           <compileflags>-fobjc-abi-version=2
           <linkflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator.sdk\"
-          <linkflags>-mios-simulator-version-min=7
+          <linkflags>-mios-simulator-version-min=12
           <linkflags>-fobjc-abi-version=2 ;" >>~/user-config.jam;
 
           echo "using darwin : ios : clang++ : <compileflags>-Wno-deprecated-declarations
           <compileflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk\"
-          <compileflags>-mios-version-min=7
-          <compileflags>\"-arch armv7\"
+          <compileflags>-mios-version-min=12
+          <compileflags>\"-arch arm64\"
           <compileflags>-fobjc-abi-version=2
           <linkflags>\"-isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk\"
-          <linkflags>-mios-version-min=7
-          <linkflags>\"-arch armv7\"
+          <linkflags>-mios-version-min=12
+          <linkflags>\"-arch arm64\"
           <linkflags>-fobjc-abi-version=2 ;" >>~/user-config.jam;
 
       - name: build library
