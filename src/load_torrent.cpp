@@ -21,6 +21,8 @@ see LICENSE file.
 #include "libtorrent/aux_/resolve_duplicate_filenames.hpp"
 #include "libtorrent/aux_/parse_url.hpp" // for is_valid_tracker_url
 
+#include <map>
+
 namespace libtorrent {
 
 namespace {
@@ -89,7 +91,7 @@ namespace aux {
 			return;
 		}
 
-		std::map<sha256_hash, file_index_t> all_file_roots;
+		std::multimap<sha256_hash, file_index_t> all_file_roots;
 		for (file_index_t i : fs.file_range())
 		{
 			if (fs.file_size(i) <= fs.piece_length())
@@ -113,15 +115,15 @@ namespace aux {
 			}
 
 			sha256_hash const root(f.first);
-			auto file_index = all_file_roots.find(root);
-			if (file_index == all_file_roots.end())
+			auto const [first, last] = all_file_roots.equal_range(root);
+			if (first == last)
 			{
 				// This piece layer doesn't refer to any file in this torrent
 				ec = errors::torrent_invalid_piece_layer;
 				return;
 			}
 
-			file_index_t const file = file_index->second;
+			file_index_t const file = first->second;
 			string_view const piece_layer = f.second.string_value();
 			int const num_pieces = fs.file_num_pieces(file);
 			if (ptrdiff_t(piece_layer.size()) != num_pieces * sha256_hash::size())
@@ -138,12 +140,24 @@ namespace aux {
 			}
 
 			auto [sparse_tree, mask] = tree.build_sparse_vector();
+			auto verified = tree.verified_leafs();
+
+			// files with identical content share a root and a single entry in
+			// "piece layers". torrent_info rejects files of different sizes
+			// sharing a root, so they all have the same tree
+			for (auto it = std::next(first); it != last; ++it)
+			{
+				TORRENT_ASSERT(fs.file_size(it->second) == fs.file_size(file));
+				out.merkle_trees[it->second] = sparse_tree;
+				out.merkle_tree_mask[it->second] = mask;
+				out.verified_leaf_hashes[it->second] = verified;
+			}
 			out.merkle_trees[file] = std::move(sparse_tree);
 			out.merkle_tree_mask[file] = std::move(mask);
-			out.verified_leaf_hashes[file] = tree.verified_leafs();
+			out.verified_leaf_hashes[file] = std::move(verified);
 
 			// make sure we don't have duplicate piece layers
-			all_file_roots.erase(file_index);
+			all_file_roots.erase(first, last);
 		}
 	}
 

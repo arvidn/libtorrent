@@ -184,7 +184,7 @@ void run_test(
 					auto const req = fs.map_file(f, offset, len);
 					std::string ret;
 					ret.resize(req.length);
-					generate_block(&ret[0], req, 0, fs.piece_length());
+					generate_block(&ret[0], req, 0, fs.piece_length(), 0);
 					if (corrupt_counter < 0)
 						lt::aux::random_bytes(ret);
 					else if (corrupt_counter - len < 0)

@@ -1152,8 +1152,11 @@ TEST_TORRENTS = \
   v2_invalid_piece_layer.torrent \
   v2_invalid_piece_layer_root.torrent \
   v2_invalid_piece_layer_size.torrent \
+  v2_same_root_single_piece.torrent \
+  v2_same_root_multi_piece.torrent \
   v2_unknown_piece_layer_entry.torrent \
   v2_multiple_files.torrent \
+  v2_identical_files.torrent \
   v2_bad_file_alignment.torrent \
   v2_unordered_files.torrent \
   v2_overlong_integer.torrent \
