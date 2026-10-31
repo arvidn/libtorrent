@@ -334,6 +334,18 @@ namespace {
 				if (fs.pad_file_at(f) || fs.file_size(f) <= fs.piece_length())
 					continue;
 
+				// files with identical content have the same root, and share a
+				// single entry in "piece layers". torrent_info rejects files of
+				// different sizes sharing a root
+				std::string const root = fs.root(f).to_string();
+				auto const written = piece_layers.find(root);
+				if (written != piece_layers.end())
+				{
+					TORRENT_ASSERT(int(written->second.string().size())
+						== fs.file_num_pieces(f) * int(sha256_hash::size()));
+					continue;
+				}
+
 				aux::merkle_tree t(fs.file_num_blocks(f), fs.blocks_per_piece(), fs.root_ptr(f));
 
 				std::vector<bool> const& verified = (f >= atp.verified_leaf_hashes.end_index())
@@ -351,9 +363,13 @@ namespace {
 
 				auto const piece_layer = t.get_piece_layer();
 				if (int(piece_layer.size()) != fs.file_num_pieces(f))
-					aux::throw_ex<system_error>(errors::torrent_invalid_piece_layer);
+				{
+					if (!(flags & write_flags::allow_missing_piece_layer))
+						aux::throw_ex<system_error>(errors::torrent_invalid_piece_layer);
+					continue;
+				}
 
-				auto& layer = piece_layers[t.root().to_string()].string();
+				auto& layer = piece_layers[root].string();
 
 				for (auto const& h : piece_layer)
 					layer += h.to_string();
