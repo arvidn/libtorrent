@@ -341,3 +341,33 @@ TORRENT_TEST(conflict_readd)
 	TEST_EQUAL(removed, 2);
 	TEST_EQUAL(conflict, 1);
 }
+
+// files with the same "pieces root" are identified by that root in hash
+// requests and responses. Downloading only part of the second file, it can't
+// be verified without its piece layer
+TORRENT_TEST(magnet_identical_files)
+{
+	int const num_pieces = 8;
+	auto const disk = test_disk().set_content_period(num_pieces);
+
+	bool finished = false;
+	run_test([&](lt::session& ses0, lt::session& ses1) {
+		lt::add_torrent_params atp = ::create_identical_files_torrent(num_pieces, 4);
+		atp.flags &= ~lt::torrent_flags::auto_managed;
+		atp.flags &= ~lt::torrent_flags::paused;
+		ses1.async_add_torrent(atp);
+
+		atp.info_hashes = atp.ti->info_hashes();
+		atp.ti.reset();
+		atp.piece_priorities.assign(std::size_t(2 * num_pieces), lt::dont_download);
+		for (int i = num_pieces; i < num_pieces + num_pieces / 2; ++i)
+			atp.piece_priorities[std::size_t(i)] = lt::default_priority;
+		ses0.async_add_torrent(atp);
+	},
+	[&](lt::session&, lt::alert const* a) {
+		if (lt::alert_cast<lt::torrent_finished_alert>(a))
+			finished = true;
+	}, disk, disk);
+
+	TEST_CHECK(finished);
+}

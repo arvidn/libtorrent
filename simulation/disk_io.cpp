@@ -57,9 +57,11 @@ namespace {
 
 } // anonymous namespace
 
-std::array<char, 0x4000> generate_block_fill(lt::piece_index_t const p, int const block)
+std::array<char, 0x4000> generate_block_fill(lt::piece_index_t const p, int const block
+	, int const content_period)
 {
-	int const v = (static_cast<int>(p) << 8) | (block & 0xff);
+	int const piece = content_period > 0 ? static_cast<int>(p) % content_period : static_cast<int>(p);
+	int const v = (piece << 8) | (block & 0xff);
 	std::array<char, 0x4000> ret;
 	for (int i = 0; i < 0x4000; i += 4)
 	{
@@ -68,14 +70,15 @@ std::array<char, 0x4000> generate_block_fill(lt::piece_index_t const p, int cons
 	return ret;
 }
 
-lt::sha1_hash generate_hash1(lt::piece_index_t const p, int const piece_size, int const pad_bytes)
+lt::sha1_hash generate_hash1(lt::piece_index_t const p, int const piece_size, int const pad_bytes
+	, int const content_period)
 {
 	lt::hasher ret;
 	int const payload_size = piece_size - pad_bytes;
 	int offset = 0;
 	for (int block = 0; offset < payload_size; ++block)
 	{
-		auto const fill = generate_block_fill(p, block);
+		auto const fill = generate_block_fill(p, block, content_period);
 		for (int i = 0; i < lt::default_block_size;)
 		{
 			int const bytes = std::min(int(fill.size()), payload_size - offset);
@@ -97,7 +100,7 @@ lt::sha1_hash generate_hash1(lt::piece_index_t const p, int const piece_size, in
 }
 
 lt::sha1_hash generate_hash2(lt::piece_index_t p, lt::file_storage const& fs
-	, lt::span<lt::sha256_hash> const hashes, int const pad_bytes)
+	, lt::span<lt::sha256_hash> const hashes, int const pad_bytes, int const content_period)
 {
 	int const piece_size = fs.piece_size(p);
 	int const payload_size = piece_size - pad_bytes;
@@ -114,7 +117,7 @@ lt::sha1_hash generate_hash2(lt::piece_index_t p, lt::file_storage const& fs
 	for (int block = 0; block < blocks_to_read; ++block)
 	{
 		lt::hasher256 v2_hash;
-		auto const fill = generate_block_fill(p, block);
+		auto const fill = generate_block_fill(p, block, content_period);
 
 		bool const v2 = piece_size2 - offset > 0;
 
@@ -142,25 +145,26 @@ lt::sha1_hash generate_hash2(lt::piece_index_t p, lt::file_storage const& fs
 	return ret.final();
 }
 
-lt::sha256_hash generate_block_hash(lt::piece_index_t p, int const offset)
+lt::sha256_hash generate_block_hash(lt::piece_index_t p, int const offset, int const content_period)
 {
 	// TODO: this function is not correct for files whose size are not divisible
 	// by the block size (for the last block)
 	lt::hasher256 ret;
 	int const block = offset / lt::default_block_size;
-	auto const fill = generate_block_fill(p, block);
+	auto const fill = generate_block_fill(p, block, content_period);
 	for (int i = 0; i < lt::default_block_size; i += fill.size())
 		ret.update(fill);
 	return ret.final();
 }
 
-void generate_block(char* b, lt::peer_request r, int const pad_bytes, int const piece_size)
+void generate_block(char* b, lt::peer_request r, int const pad_bytes, int const piece_size
+	, int const content_period)
 {
 	// for now we don't support unaligned start address
 	char* end = b + r.length - pad_bytes;
 	while (b < end)
 	{
-		auto const fill = generate_block_fill(r.piece, (r.start / lt::default_block_size));
+		auto const fill = generate_block_fill(r.piece, (r.start / lt::default_block_size), content_period);
 
 		int const block_offset = r.start % int(fill.size());
 		int const bytes = std::min(std::min(int(fill.size() - block_offset), int(end - b)), piece_size - r.start);
@@ -233,7 +237,7 @@ std::shared_ptr<lt::torrent_info> create_test_torrent(int const piece_size
 	if (flags & lt::create_torrent::v1_only)
 	{
 		for (auto const i : fs.piece_range())
-			t.set_hash(i, generate_hash1(i, fs.piece_length(), pads_in_piece(pad_bytes, i)));
+			t.set_hash(i, generate_hash1(i, fs.piece_length(), pads_in_piece(pad_bytes, i), 0));
 	}
 	else
 	{
@@ -255,7 +259,7 @@ std::shared_ptr<lt::torrent_info> create_test_torrent(int const piece_size
 				auto const blocks_in_piece = fs.blocks_in_piece2(piece);
 				TORRENT_ASSERT(blocks_in_piece > 0);
 				TORRENT_ASSERT(blocks_in_piece <= int(blocks.size()));
-				auto const hash = generate_hash2(piece, fs, blocks, pads_in_piece(pad_bytes, piece));
+				auto const hash = generate_hash2(piece, fs, blocks, pads_in_piece(pad_bytes, piece), 0);
 				auto const piece_layer_hash = lt::merkle_root_scratch(
 					lt::span<lt::sha256_hash const>(blocks).first(blocks_in_piece)
 					, blocks_per_piece
@@ -283,6 +287,40 @@ lt::add_torrent_params create_test_torrent(
 {
 	lt::add_torrent_params params;
 	params.ti = ::create_test_torrent(lt::default_block_size * blocks_per_piece, num_pieces, flags, num_files);
+	// this is unused by the test disk I/O
+	params.save_path = ".";
+	return params;
+}
+
+lt::add_torrent_params create_identical_files_torrent(int const num_pieces
+	, int const blocks_per_piece)
+{
+	int const piece_size = lt::default_block_size * blocks_per_piece;
+	std::int64_t const file_size = std::int64_t(piece_size) * num_pieces;
+
+	lt::file_storage ifs;
+	ifs.add_file("test-torrent/file-1", file_size);
+	ifs.add_file("test-torrent/file-2", file_size);
+	lt::create_torrent t(ifs, piece_size, lt::create_torrent::v2_only);
+	lt::file_storage const& fs = t.files();
+
+	lt::aux::vector<lt::sha256_hash> blocks(blocks_per_piece);
+	std::vector<lt::sha256_hash> scratch_space;
+	for (auto const f : fs.file_range())
+	{
+		if (fs.pad_file_at(f)) continue;
+		auto const file_piece = fs.piece_index_at_file(f);
+		for (auto const p : fs.file_piece_range(f))
+		{
+			generate_hash2(file_piece + p, fs, blocks, 0, num_pieces);
+			t.set_hash2(f, p, lt::merkle_root_scratch(blocks, blocks_per_piece, {}, scratch_space));
+		}
+	}
+
+	std::vector<char> tmp;
+	bencode(std::back_inserter(tmp), t.generate());
+	lt::add_torrent_params params;
+	params.ti = std::make_shared<lt::torrent_info>(tmp, lt::from_span);
 	// this is unused by the test disk I/O
 	params.save_path = ".";
 	return params;
@@ -366,7 +404,7 @@ struct test_disk_io final : lt::disk_interface
 				else
 					generate_block(buf.data(), r
 						, pads_in_req(m_pad_bytes, r, m_files->piece_size(r.piece))
-						, m_files->piece_size(r.piece));
+						, m_files->piece_size(r.piece), m_state.content_period);
 			}
 
 			post(m_ioc, [h=std::move(h), b=std::move(buf)] () mutable { h(std::move(b), lt::storage_error{}); });
@@ -468,9 +506,11 @@ struct test_disk_io final : lt::disk_interface
 
 			lt::sha1_hash hash;
 			if (block_hashes.empty())
-				hash = generate_hash1(piece, m_files->piece_length(), pads_in_piece(m_pad_bytes, piece));
+				hash = generate_hash1(piece, m_files->piece_length(), pads_in_piece(m_pad_bytes, piece)
+					, m_state.content_period);
 			else
-				hash = generate_hash2(piece, *m_files, block_hashes, pads_in_piece(m_pad_bytes, piece));
+				hash = generate_hash2(piece, *m_files, block_hashes, pads_in_piece(m_pad_bytes, piece)
+					, m_state.content_period);
 			post(m_ioc, [h=std::move(h), piece, hash]{ h(piece, hash, lt::storage_error{}); });
 		});
 	}
@@ -495,7 +535,7 @@ struct test_disk_io final : lt::disk_interface
 			}
 			else
 			{
-				hash = generate_block_hash(piece, offset);
+				hash = generate_block_hash(piece, offset, m_state.content_period);
 			}
 			post(m_ioc, [h=std::move(h),piece, hash] { h(piece, hash, lt::storage_error{}); });
 		});
@@ -612,7 +652,8 @@ private:
 
 	bool validate_block(lt::file_storage const& fs, char const* b, lt::peer_request const& r) const
 	{
-		auto const fill = generate_block_fill(r.piece, r.start / lt::default_block_size);
+		auto const fill = generate_block_fill(r.piece, r.start / lt::default_block_size
+			, m_state.content_period);
 		int const piece_size = fs.piece_size(r.piece);
 		int payload_bytes = (piece_size - pads_in_piece(m_pad_bytes, r.piece)) - r.start;
 		int offset = 0;
