@@ -267,6 +267,12 @@ namespace libtorrent {
 
 		void maybe_send_hash_request();
 
+		// hash responses refer to files by "pieces root", which files with
+		// identical content share. Returns the file of the outstanding hash
+		// request the response matches, or the first file with the root
+		file_index_t file_for_hash_response(file_storage const& fs, sha256_hash const& root
+			, int base, int index, int count, int proof_layers) const;
+
 		// DHT extension
 		void write_dht_port(int listen_port);
 
