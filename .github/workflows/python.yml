@@ -21,7 +21,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-14, windows-latest ]
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-15, windows-latest ]
 
     steps:
     - uses: actions/checkout@v6
@@ -33,8 +33,12 @@ jobs:
     - name: dependencies (MacOS)
       if: runner.os == 'macOS'
       run: |
-        brew install boost-build boost boost-python3 python@3.14 openssl@3 python-setuptools
-        export PATH=$(brew --prefix)/opt/python@3.14/bin:$PATH
+        brew install boost-build boost boost-python3 openssl@3 python-setuptools
+        # boost-python3 is built against a single python version, the
+        # bindings must be built with that same interpreter to link
+        PY_VER=$(brew deps --direct boost-python3 | sed -n 's/^python@//p')
+        brew install python@$PY_VER
+        echo "PY_VER=$PY_VER" >>"$GITHUB_ENV"
 
     - name: update package lists (linux)
       if: runner.os == 'Linux'
@@ -117,8 +121,8 @@ jobs:
       run: |
         # Install to Homebrew's python site-packages. no need for --user and --prefix
         cd bindings/python
-        export PATH=$(brew --prefix)/opt/python@3.14/bin:$PATH
-        python3.14 setup.py build_ext install --install-lib $(brew --prefix)/lib/python3.14/site-packages
+        export PATH=$(brew --prefix)/opt/python@$PY_VER/bin:$PATH
+        python$PY_VER setup.py build_ext install --install-lib $(brew --prefix)/lib/python$PY_VER/site-packages
 
     - name: tests (Linux)
       if: runner.os == 'Linux'
@@ -130,5 +134,5 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         cd bindings/python
-        export PATH=$(brew --prefix)/opt/python@3.14/bin:$PATH
-        python3.14 test.py
+        export PATH=$(brew --prefix)/opt/python@$PY_VER/bin:$PATH
+        python$PY_VER test.py
