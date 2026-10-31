@@ -46,6 +46,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/fwd.hpp"
 #include "libtorrent/sha1_hash.hpp" // for sha256_hash
 
+#include "libtorrent/aux_/disable_warnings_push.hpp"
+#include <boost/functional/hash.hpp>
+#include "libtorrent/aux_/disable_warnings_pop.hpp"
+
 namespace libtorrent {
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
@@ -87,8 +91,20 @@ namespace libtorrent {
 		// maps file size to file index, in m_torrent_file
 		std::unordered_multimap<std::int64_t, file_index_t> m_file_sizes;
 
-		// maps file root hash to file index, in m_torrent_file
-		std::unordered_multimap<sha256_hash, file_index_t> m_file_roots;
+		struct root_size_hash
+		{
+			std::size_t operator()(std::pair<sha256_hash, std::int64_t> const& k) const
+			{
+				std::size_t ret = 0;
+				boost::hash_combine(ret, std::hash<sha256_hash>{}(k.first));
+				boost::hash_combine(ret, std::hash<std::int64_t>{}(k.second));
+				return ret;
+			}
+		};
+
+		// maps file root hash and size to file index, in m_torrent_file
+		std::unordered_multimap<std::pair<sha256_hash, std::int64_t>, file_index_t
+			, root_size_hash> m_file_roots;
 	};
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 
