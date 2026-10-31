@@ -184,6 +184,58 @@ TORRENT_TEST(range_lookup_duplicated_files)
 	TEST_EQUAL(num_matches, 1);
 }
 
+namespace {
+
+std::shared_ptr<torrent_info> make_v2_single_file(std::int64_t const size
+	, sha256_hash const& root)
+{
+	file_storage fs;
+	fs.add_file("test_resolve_links_dir/file", size);
+	lt::create_torrent t(fs, 16 * 1024, lt::create_torrent::v2_only);
+	// a file of a single piece has the piece hash as its root
+	t.set_hash2(file_index_t{0}, piece_index_t::diff_type{0}, root);
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), t.generate());
+	return std::make_shared<torrent_info>(buf, from_span);
+}
+
+int count_links(resolve_links const& l)
+{
+	auto const& links = l.get_links();
+	return int(std::count_if(links.begin(), links.end()
+		, std::bind(&resolve_links::link_t::ti, _1)));
+}
+
+}
+
+// v2 files are matched by "pieces root" and file size. BEP 52 doesn't
+// distinguish leaf hashes from interior nodes, so a file with different content
+// may have the same root, but not the same size
+TORRENT_TEST(v2_match_root_and_size)
+{
+	sha256_hash const root("01234567890123456789012345678901");
+	auto const ti = make_v2_single_file(16 * 1024, root);
+
+	{
+		resolve_links l(ti);
+		l.match(make_v2_single_file(16 * 1024, root), ".");
+		TEST_EQUAL(count_links(l), 1);
+	}
+
+	{
+		resolve_links l(ti);
+		l.match(make_v2_single_file(64, root), ".");
+		TEST_EQUAL(count_links(l), 0);
+	}
+
+	{
+		resolve_links l(ti);
+		l.match(make_v2_single_file(16 * 1024
+			, sha256_hash("98765432109876543210987654321098")), ".");
+		TEST_EQUAL(count_links(l), 0);
+	}
+}
+
 TORRENT_TEST(pick_up_existing_file)
 {
 	lt::session ses(settings());

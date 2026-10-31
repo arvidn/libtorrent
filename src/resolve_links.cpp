@@ -62,7 +62,7 @@ resolve_links::resolve_links(std::shared_ptr<torrent_info> ti)
 			m_file_sizes.insert({fs.file_size(i), i});
 
 		if (v2)
-			m_file_roots.insert({fs.root(i), i});
+			m_file_roots.insert({{fs.root(i), fs.file_size(i)}, i});
 	}
 
 	m_links.resize(m_torrent_file->num_files());
@@ -161,7 +161,9 @@ void resolve_links::match_v2(std::shared_ptr<const torrent_info> const& ti
 		// it in m_torrent_file
 		if (fs.pad_file_at(i)) continue;
 
-		auto const iter = m_file_roots.find(fs.root(i));
+		// BEP 52 doesn't distinguish leaf hashes from interior nodes, so a
+		// matching root alone doesn't imply identical content
+		auto const iter = m_file_roots.find({fs.root(i), fs.file_size(i)});
 		if (iter == m_file_roots.end()) continue;
 
 		auto const idx = iter->second;
