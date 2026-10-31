@@ -39,6 +39,7 @@ see LICENSE file.
 #include <sstream>
 #include <thread>
 #include <functional>
+#include <numeric> // for std::iota
 #include <iostream>
 #include <atomic>
 #include <array>
@@ -165,11 +166,6 @@ std::string leaf_path(std::string f)
 		return std::string(first, len);
 	}
 	return std::string(sep + 1);
-}
-
-namespace {
-std::random_device dev;
-std::mt19937 rng(dev());
 }
 
 // local copies of libtorrent's internal aux::merkle_* helpers, so this tool
@@ -326,6 +322,7 @@ std::vector<sha256_hash> get_hashes_for_request(file_merkle_tree const& ft,
 struct peer_conn
 {
 	peer_conn(io_context& ios,
+		std::mt19937& rng_,
 		int piece_count,
 		int blocks_pp,
 		int last_piece_size_,
@@ -335,15 +332,18 @@ struct peer_conn
 		bool seed_,
 		int churn_,
 		bool corrupt_,
-		bool flood_hashes_ = false)
+		bool flood_hashes_ = false,
+		bool random_block_order_ = false)
 		: s(ios)
 		, status_timer(ios)
+		, rng(rng_)
 		, read_pos(0)
 		, state(handshaking)
 		, choked(true)
 		, current_piece(-1)
 		, current_piece_is_allowed(false)
 		, block(0)
+		, random_block_order(random_block_order_)
 		, blocks_per_piece(blocks_pp)
 		, last_piece_blocks((last_piece_size_ + 0x3fff) / 0x4000)
 		, last_block_size(last_piece_size_ - ((last_piece_size_ + 0x3fff) / 0x4000 - 1) * 0x4000)
@@ -444,6 +444,9 @@ struct peer_conn
 	// interval is positive); emits a one-line state dump useful for
 	// diagnosing stalls.
 	boost::asio::steady_timer status_timer;
+	// owned by the thread driving this connection's io_context, so it is
+	// never shared across threads
+	std::mt19937& rng;
 	// per-connection scratch buffers reused across messages. We rely on each
 	// async_write being followed by the next one only from inside its
 	// completion handler, so writes on a single socket never overlap and the
@@ -470,6 +473,14 @@ struct peer_conn
 	piece_index_t current_piece; // the piece we're currently requesting blocks from
 	bool current_piece_is_allowed;
 	int block;
+	// when set, blocks within the current piece are requested in a shuffled
+	// order (see block_order) instead of sequentially, to exercise peers'
+	// read-ahead logic the way a real swarm's request pattern would.
+	bool random_block_order;
+	// the order the current piece's blocks are requested in, regenerated
+	// whenever a new piece is picked: the identity, or a shuffled
+	// permutation under random_block_order
+	std::vector<int> block_order;
 	int blocks_per_piece;
 	// number of blocks in the final (possibly partial) piece, and the size of
 	// the last block within that piece. for regular pieces, every block is
@@ -680,14 +691,25 @@ struct peer_conn
 		}
 		bool const is_last_piece = (static_cast<int>(current_piece) == num_pieces - 1);
 		int const this_blocks_per_piece = is_last_piece ? last_piece_blocks : blocks_per_piece;
+
+		if (block == 0)
+		{
+			block_order.resize(std::size_t(this_blocks_per_piece));
+			std::iota(block_order.begin(), block_order.end(), 0);
+			// piece completion is detected by the arrival of the block at
+			// the end of the piece, so that one must be requested last
+			if (random_block_order)
+				std::shuffle(block_order.begin(), block_order.end() - 1, rng);
+		}
+		int const this_block = block_order[std::size_t(block)];
 		int const this_block_size =
-			(is_last_piece && block == last_piece_blocks - 1) ? last_block_size : 16 * 1024;
+			(is_last_piece && this_block == last_piece_blocks - 1) ? last_block_size : 16 * 1024;
 
 		char* ptr = write_buf_proto;
 		write_uint32(13, ptr); // payload size
 		write_uint8(6, ptr); // request
 		write_uint32(static_cast<int>(current_piece), ptr);
-		write_uint32(block * 16 * 1024, ptr);
+		write_uint32(this_block * 16 * 1024, ptr);
 		write_uint32(this_block_size, ptr);
 		boost::asio::async_write(s,
 			boost::asio::buffer(write_buf_proto, 17),
@@ -987,7 +1009,11 @@ struct peer_conn
 				}
 				else
 				{
-					block = std::min(start / 0x4000, block);
+					// rewind to where the rejected block sits in the request
+					// order; a block not requested yet leaves the cursor alone
+					auto const pos =
+						std::find(block_order.begin(), block_order.begin() + block, start / 0x4000);
+					block = int(pos - block_order.begin());
 					if (block == 0)
 					{
 						pieces.push_back(current_piece);
@@ -1299,7 +1325,12 @@ struct peer_conn
 		"                       to use the v2 info hash and exercise the v2 path)\n"
 		"    -r <reconnects>    churn - number of reconnects per second\n"
 		"    -S <seconds>       print a per-connection STATUS line every\n"
-		"                       <seconds> seconds (0 disables, default)\n\n"
+		"                       <seconds> seconds (0 disables, default)\n"
+		"    -x <percent>       percentage of downloading connections that request\n"
+		"                       blocks within a piece in random order instead of\n"
+		"                       sequentially, to exercise a seed's read-ahead\n"
+		"                       logic the way a real swarm would (applies to\n"
+		"                       download and dual; default 0)\n\n"
 		"examples:\n\n"
 		"connection_tester gen-torrent -s 1024 -n 4 -t test.torrent\n"
 		"connection_tester upload -c 200 -d 127.0.0.1 -p 6881 -t test.torrent\n"
@@ -1946,6 +1977,7 @@ int main(int argc, char* argv[])
 	char const* destination_ip = "127.0.0.1";
 	int destination_port = 6881;
 	int churn = 0;
+	int random_block_order_percent = 0;
 	std::vector<std::string> trackers;
 	gen_version_t gen_version = gen_version_t::hybrid;
 	bool gen_resume_too = false;
@@ -2000,6 +2032,9 @@ int main(int argc, char* argv[])
 			case 'p': destination_port = atoi(opt); break;
 			case 'd': destination_ip = opt; break;
 			case 'r': churn = atoi(opt); break;
+			case 'x':
+				random_block_order_percent = atoi(opt);
+				break;
 			case 'S':
 				status_interval = std::chrono::seconds(atoi(opt));
 				break;
@@ -2216,6 +2251,9 @@ int main(int argc, char* argv[])
 
 	int const num_threads = 2;
 	io_context ios[num_threads];
+	std::array<std::mt19937, num_threads> rngs;
+	for (auto& r : rngs)
+		r.seed(std::random_device{}());
 	// must be destroyed before ios, which their sockets and timers are bound to
 	std::vector<std::unique_ptr<peer_conn>> conns;
 	conns.reserve(std::size_t(num_connections));
@@ -2231,8 +2269,13 @@ int main(int argc, char* argv[])
 		bool seed = false;
 		if (test_mode == upload_test) seed = true;
 		else if (test_mode == dual_test) seed = (i & 1);
+		// only downloading connections ever request blocks, so the random
+		// block order only applies to them.
+		bool const random_block_order = !seed && random_block_order_percent > 0
+			&& (std::rand() % 100) < random_block_order_percent;
 		// hash-stress connections all act as downloaders that flood HASH_REQUEST.
 		conns.push_back(std::make_unique<peer_conn>(ios[i % num_threads],
+			rngs[std::size_t(i % num_threads)],
 			atp.ti->num_pieces(),
 			atp.ti->piece_length() / 16 / 1024,
 			last_piece_size,
@@ -2242,7 +2285,8 @@ int main(int argc, char* argv[])
 			seed,
 			churn,
 			corrupt,
-			flood_hashes_all));
+			flood_hashes_all,
+			random_block_order));
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		ios[i % num_threads].poll_one();
 	}
