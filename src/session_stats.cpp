@@ -399,6 +399,23 @@ namespace {
 		METRIC(disk, disk_read_latency19),
 		METRIC(disk, disk_read_latency20),
 
+		// the number of ordinary forward block requests that landed inside
+		// a still-fresh read-ahead hint ("hits"), versus ones that didn't
+		// ("misses"). A piece's first request, duplicate requests and
+		// backward requests count as neither. hit-rate is
+		// num_read_ahead_hits / (num_read_ahead_hits + num_read_ahead_misses)
+		METRIC(disk, num_read_ahead_hits),
+		METRIC(disk, num_read_ahead_misses),
+
+		// the number of blocks actually requested for speculative
+		// read-ahead (the sum of the read_ahead hint sizes that were
+		// greater than 0), and of those, the number that were never
+		// subsequently requested before being evicted, i.e. wasted
+		// speculative I/O. The wasted fraction is
+		// num_read_ahead_wasted_blocks / num_read_ahead_issued_blocks
+		METRIC(disk, num_read_ahead_issued_blocks),
+		METRIC(disk, num_read_ahead_wasted_blocks),
+
 		// for each kind of disk job, a counter of how many jobs of that kind
 		// are currently blocked by a disk fence
 		METRIC(disk, num_fenced_read),

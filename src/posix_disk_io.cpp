@@ -105,9 +105,11 @@ namespace {
 
 		void abort(bool) override {}
 
-		void async_read(storage_index_t storage, peer_request const& r
-			, std::function<void(disk_buffer_holder block, storage_error const& se)> handler
-			, disk_job_flags_t) override
+		void async_read(storage_index_t storage,
+			peer_request const& r,
+			std::function<void(disk_buffer_holder block, storage_error const& se)> handler,
+			disk_job_flags_t,
+			int = 0) override
 		{
 			disk_buffer_holder buffer = disk_buffer_holder(
 				m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"), true);

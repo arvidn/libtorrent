@@ -97,9 +97,11 @@ struct TORRENT_EXTRA_EXPORT mmap_disk_io final
 
 	void abort(bool wait) override;
 
-	void async_read(storage_index_t storage, peer_request const& r
-		, std::function<void(disk_buffer_holder, storage_error const&)> handler
-		, disk_job_flags_t flags = {}) override;
+	void async_read(storage_index_t storage,
+		peer_request const& r,
+		std::function<void(disk_buffer_holder, storage_error const&)> handler,
+		disk_job_flags_t flags = {},
+		int read_ahead = 0) override;
 	bool async_write(storage_index_t storage, peer_request const& r
 		, char const* buf, std::shared_ptr<disk_observer> o
 		, std::function<void(storage_error const&)> handler
@@ -439,8 +441,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		span<char> const b = {a.buf.data() + a.buffer_offset, a.buffer_size};
 
-		int const ret = j->storage->read(m_settings, b
-			, a.piece, a.offset, file_mode_for_job(j), j->flags, j->error);
+		int const ret = j->storage->read(
+			m_settings, b, a.piece, a.offset, file_mode_for_job(j), j->flags, 0, j->error);
 
 		TORRENT_ASSERT(ret >= 0 || j->error.ec);
 		TORRENT_UNUSED(ret);
@@ -474,8 +476,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		aux::open_mode_t const file_mode = file_mode_for_job(j);
 		span<char> const b = {a.buf.data(), a.buffer_size};
 
-		int const ret = j->storage->read(m_settings, b
-			, a.piece, a.offset, file_mode, j->flags, j->error);
+		int const ret = j->storage->read(
+			m_settings, b, a.piece, a.offset, file_mode, j->flags, a.read_ahead, j->error);
 
 		TORRENT_ASSERT(ret >= 0 || j->error.ec);
 		TORRENT_UNUSED(ret);
@@ -559,9 +561,11 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			? disk_status::fatal_disk_error : status_t{};
 	}
 
-	void mmap_disk_io::async_read(storage_index_t storage, peer_request const& r
-		, std::function<void(disk_buffer_holder, storage_error const&)> handler
-		, disk_job_flags_t const flags)
+	void mmap_disk_io::async_read(storage_index_t storage,
+		peer_request const& r,
+		std::function<void(disk_buffer_holder, storage_error const&)> handler,
+		disk_job_flags_t const flags,
+		int const read_ahead)
 	{
 		TORRENT_ASSERT(valid_flags(flags));
 		TORRENT_ASSERT(r.length <= default_block_size);
@@ -676,15 +680,14 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			}
 		}
 
-		aux::mmap_disk_job* j = m_job_pool.allocate_job<aux::job::read>(
-			flags,
+		aux::mmap_disk_job* j = m_job_pool.allocate_job<aux::job::read>(flags,
 			m_torrents[storage]->shared_from_this(),
 			std::move(handler),
 			disk_buffer_holder{},
 			std::uint16_t(r.length), // buffer_size
 			r.piece,
-			r.start // offset
-		);
+			r.start, // offset
+			std::uint16_t(read_ahead));
 		add_job(j);
 	}
 

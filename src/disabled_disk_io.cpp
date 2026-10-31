@@ -51,9 +51,11 @@ struct TORRENT_EXTRA_EXPORT disabled_disk_io final
 
 	void settings_updated() override {}
 
-	void async_read(storage_index_t, peer_request const& r
-		, std::function<void(disk_buffer_holder, storage_error const&)> handler
-		, disk_job_flags_t) override
+	void async_read(storage_index_t,
+		peer_request const& r,
+		std::function<void(disk_buffer_holder, storage_error const&)> handler,
+		disk_job_flags_t,
+		int = 0) override
 	{
 		TORRENT_ASSERT(r.length <= default_block_size);
 		TORRENT_UNUSED(r);

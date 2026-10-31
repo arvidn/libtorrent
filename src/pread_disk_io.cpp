@@ -120,9 +120,11 @@ struct TORRENT_EXTRA_EXPORT pread_disk_io final
 
 	void abort(bool wait) override;
 
-	void async_read(storage_index_t storage, peer_request const& r
-		, std::function<void(disk_buffer_holder, storage_error const&)> handler
-		, disk_job_flags_t flags = {}) override;
+	void async_read(storage_index_t storage,
+		peer_request const& r,
+		std::function<void(disk_buffer_holder, storage_error const&)> handler,
+		disk_job_flags_t flags = {},
+		int read_ahead = 0) override;
 	bool async_write(storage_index_t storage, peer_request const& r
 		, char const* buf, std::shared_ptr<disk_observer> o
 		, std::function<void(storage_error const&)> handler
@@ -544,8 +546,8 @@ status_t pread_disk_io::do_job(aux::job::partial_read& a, aux::pread_disk_job* j
 
 	span<char> const b = {a.buf.data() + a.buffer_offset, a.buffer_size};
 
-	int const ret = j->storage->read(m_settings, b
-		, a.piece, a.offset, file_mode_for_job(j), j->flags, j->error);
+	int const ret = j->storage->read(
+		m_settings, b, a.piece, a.offset, file_mode_for_job(j), j->flags, 0, j->error);
 
 	TORRENT_ASSERT(ret >= 0 || j->error.ec);
 	TORRENT_UNUSED(ret);
@@ -579,8 +581,8 @@ status_t pread_disk_io::do_job(aux::job::read& a, aux::pread_disk_job* j)
 	aux::open_mode_t const file_mode = file_mode_for_job(j);
 	span<char> const b = {a.buf.data(), a.buffer_size};
 
-	int const ret = j->storage->read(m_settings, b
-		, a.piece, a.offset, file_mode, j->flags, j->error);
+	int const ret = j->storage->read(
+		m_settings, b, a.piece, a.offset, file_mode, j->flags, a.read_ahead, j->error);
 
 	TORRENT_ASSERT(ret >= 0 || j->error.ec);
 	TORRENT_UNUSED(ret);
@@ -612,6 +614,7 @@ void pread_disk_io::execute_read_batch(jobqueue_t jobs)
 	status_t const ret = translate_error(j0, [&] {
 		TORRENT_ALLOCA(iovec, span<char>, count);
 		int i = 0;
+		int max_reach = 0;
 		for (auto it = jobs.iterate(); it.get(); it.next(), ++i)
 		{
 			auto& a = std::get<aux::job::read>(static_cast<aux::pread_disk_job*>(it.get())->action);
@@ -624,13 +627,26 @@ void pread_disk_io::execute_read_batch(jobqueue_t jobs)
 				return disk_status::fatal_disk_error;
 			}
 			iovec[i] = span<char>(a.buf.data(), std::ptrdiff_t(a.buffer_size));
+
+			// each job's own read_ahead is relative to its own position in
+			// the batch (block i), not to the batch's end; re-anchor it so a
+			// peer further into the batch isn't truncated by whichever job
+			// happened to be first
+			max_reach = std::max(max_reach, i + a.read_ahead);
 		}
 
 		auto& a0 = std::get<aux::job::read>(j0->action);
 		auto const start_time = aux::steady_clock::now();
+		int const read_ahead = std::max(0, max_reach - (count - 1));
 
-		int const r = j0->storage->readv(
-			m_settings, iovec, a0.piece, a0.offset, file_mode_for_job(j0), j0->flags, j0->error);
+		int const r = j0->storage->readv(m_settings,
+			iovec,
+			a0.piece,
+			a0.offset,
+			file_mode_for_job(j0),
+			j0->flags,
+			read_ahead,
+			j0->error);
 
 		TORRENT_ASSERT(r >= 0 || j0->error.ec);
 		TORRENT_UNUSED(r);
@@ -679,9 +695,11 @@ status_t pread_disk_io::do_job(aux::job::write&, aux::pread_disk_job*)
 	return {};
 }
 
-void pread_disk_io::async_read(storage_index_t storage, peer_request const& r
-	, std::function<void(disk_buffer_holder, storage_error const&)> handler
-	, disk_job_flags_t const flags)
+void pread_disk_io::async_read(storage_index_t storage,
+	peer_request const& r,
+	std::function<void(disk_buffer_holder, storage_error const&)> handler,
+	disk_job_flags_t const flags,
+	int const read_ahead)
 {
 	TORRENT_ASSERT(valid_flags(flags));
 	TORRENT_ASSERT(r.length <= default_block_size);
@@ -705,15 +723,14 @@ void pread_disk_io::async_read(storage_index_t storage, peer_request const& r
 	// can never bypass the fence and read stale data ahead of a queued write.
 	// prepare_read() is the single point where the cache decides whether a read is
 	// served from the cache, turned into a partial_read, or read from disk.
-	aux::pread_disk_job* j = m_job_pool.allocate_job<aux::job::read>(
-		flags,
+	aux::pread_disk_job* j = m_job_pool.allocate_job<aux::job::read>(flags,
 		m_torrents[storage]->shared_from_this(),
 		std::move(handler),
 		disk_buffer_holder{},
 		std::uint16_t(r.length), // buffer_size
 		r.piece,
-		r.start // offset
-	);
+		r.start, // offset
+		std::uint16_t(read_ahead));
 
 	add_job(j);
 }
@@ -1453,7 +1470,7 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 		span<char> const buf_span{buf.get(), read_len};
 
 		j->error.ec.clear();
-		j->storage->read(m_settings, buf_span, a.piece, 0, file_mode, j->flags, j->error);
+		j->storage->read(m_settings, buf_span, a.piece, 0, file_mode, j->flags, 0, j->error);
 
 		if (!j->error.ec)
 		{
