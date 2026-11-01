@@ -94,19 +94,17 @@ namespace libtorrent {
 
 	bool filter_path_character(std::int32_t const c)
 	{
-		// Unicode formatting characters that are zero-width, invisible, or
-		// change writing direction. These can be used to spoof filenames so
-		// that they appear identical to legitimate names but resolve to a
-		// different path:
+		// Unicode formatting characters that can spoof filenames by changing
+		// their apparent order or meaning:
 		// https://security.stackexchange.com/questions/158802/how-can-this-executable-have-an-avi-extension
 		// - U+061C: Arabic letter mark
-		// - U+200B-200D: ZWSP, ZWNJ, ZWJ
-		// - U+200E-200F: LRM, RLM
+		// U+200A-200F are intentionally retained: spaces, joiners and marks in
+		// this range are significant in real text and emoji sequences.
 		// - U+202A-202E: LRE, RLE, PDF, LRO, RLO (bidi embedding/override)
 		// - U+2060-2064: word joiner and invisible math operators
 		// - U+2066-2069: LRI, RLI, FSI, PDI (bidi isolates, Unicode 6.3+)
 		// - U+FEFF: byte order mark / zero-width no-break space
-		if (c == 0x061c || (c >= 0x200b && c <= 0x200f) || (c >= 0x202a && c <= 0x202e)
+		if (c == 0x061c || (c >= 0x202a && c <= 0x202e)
 			|| (c >= 0x2060 && c <= 0x2064) || (c >= 0x2066 && c <= 0x2069) || c == 0xfeff)
 			return true;
 
