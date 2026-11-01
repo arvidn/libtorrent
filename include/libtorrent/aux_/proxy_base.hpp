@@ -22,7 +22,7 @@ see LICENSE file.
 
 namespace libtorrent::aux {
 
-struct proxy_base
+struct TORRENT_EXTRA_EXPORT proxy_base
 {
 	using next_layer_type = tcp::socket;
 	using lowest_layer_type = tcp::socket::lowest_layer_type;
