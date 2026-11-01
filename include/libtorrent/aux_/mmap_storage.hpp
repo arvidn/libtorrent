@@ -161,6 +161,13 @@ namespace libtorrent::aux {
 			, aux::open_mode_t, storage_error&) const;
 		std::shared_ptr<aux::file_mapping> open_file_impl(settings_interface const&
 			, file_index_t, aux::open_mode_t, storage_error&) const;
+		int pread_reopen(settings_interface const&,
+			file_index_t,
+			aux::open_mode_t,
+			std::shared_ptr<aux::file_mapping>&,
+			span<char>,
+			std::int64_t,
+			storage_error&) const;
 
 		bool use_partfile(file_index_t index) const;
 		void use_partfile(file_index_t index, bool b);
