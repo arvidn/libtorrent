@@ -20,8 +20,30 @@ see LICENSE file.
 #endif
 
 using lt::settings_pack;
+using namespace std::chrono_literals;
 
 void no_init(lt::session& ses0, lt::session& ses1) {}
+
+void i2p_network_config::build(sim::simulation& s)
+{
+	default_config::build(s);
+	// one way, per leg. i2p round trips are typically on the order of seconds
+	m_i2p_tunnel = std::make_shared<sim::queue>(s.get_io_context(), 0, 500ms, 0, "i2p tunnel");
+}
+
+sim::route i2p_network_config::channel_route(lt::address const src, lt::address const dst)
+{
+	sim::route ret = default_config::channel_route(src, dst);
+	if (src == m_sam_bridge || dst == m_sam_bridge)
+		ret.append(m_i2p_tunnel);
+	return ret;
+}
+
+void i2p_network_config::clear()
+{
+	m_i2p_tunnel.reset();
+	default_config::clear();
+}
 
 #if TORRENT_USE_SSL
 std::string read_ssl_fixture(std::string const& name)

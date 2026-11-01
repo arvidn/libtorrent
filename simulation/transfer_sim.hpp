@@ -12,11 +12,14 @@ see LICENSE file.
 
 #include <string>
 #include <array>
+#include <set>
 #include <iostream>
 
 #include "simulator/simulator.hpp"
 #include "socks_server.hpp"
+#include "sam_server.hpp"
 #include "simulator/utils.hpp"
+#include "simulator/queue.hpp"
 #include "http_server.hpp"
 
 #include "libtorrent/session.hpp"
@@ -47,6 +50,23 @@ see LICENSE file.
 std::string read_ssl_fixture(std::string const& name);
 #endif
 
+// a stream relayed through the SAM bridge crosses two delayed routes,
+// standing in for the outbound and inbound i2p tunnels
+struct i2p_network_config : sim::default_config
+{
+	explicit i2p_network_config(lt::address const& sam_bridge)
+		: m_sam_bridge(sam_bridge)
+	{}
+
+	void build(sim::simulation& s) override;
+	sim::route channel_route(lt::address src, lt::address dst) override;
+	void clear() override;
+
+private:
+	lt::address m_sam_bridge;
+	std::shared_ptr<sim::queue> m_i2p_tunnel;
+};
+
 template <typename Setup, typename HandleAlerts, typename Test>
 void run_test(
 	Setup setup
@@ -70,6 +90,7 @@ void run_test(
 	address peer0 = addr(peer0_ip[use_ipv6]);
 	address peer1 = addr(peer1_ip[use_ipv6]);
 	address proxy = (flags & tx::ipv6) ? addr("2001::2") : addr("50.50.50.50");
+	address const sam_bridge = (flags & tx::ipv6) ? addr("2001::3") : addr("60.60.60.60");
 
 	// an SSL torrent's peer connections are always TLS-wrapped, regardless of
 	// which port they're made over, so both sessions listen on an SSL port
@@ -82,7 +103,7 @@ void run_test(
 #endif
 
 	// setup the simulation
-	sim::default_config network_cfg;
+	i2p_network_config network_cfg{sam_bridge};
 	sim::simulation sim{network_cfg};
 	sim::asio::io_context ios0 { sim, peer0 };
 	sim::asio::io_context ios1 { sim, peer1 };
@@ -93,6 +114,10 @@ void run_test(
 	sim::socks_server socks4(proxy_ios, 4444, 4);
 	sim::socks_server socks5(proxy_ios, 5555, 5);
 	socks5.bind_start_port(3000);
+#if TORRENT_USE_I2P
+	sim::asio::io_context sam_ios{sim, sam_bridge};
+	sim::sam_server sam(sam_ios, 7656);
+#endif
 
 	lt::session_params params;
 	// setup settings pack to use for the session (customization point)
@@ -109,6 +134,14 @@ void run_test(
 	pack.set_int(settings_pack::in_enc_policy, settings_pack::pe_disabled);
 	pack.set_int(settings_pack::out_enc_policy, settings_pack::pe_disabled);
 	pack.set_int(settings_pack::allowed_enc_level, settings_pack::pe_plaintext);
+
+#if TORRENT_USE_I2P
+	if (flags & tx::i2p)
+	{
+		pack.set_str(settings_pack::i2p_hostname, sam_bridge.to_string());
+		pack.set_int(settings_pack::i2p_port, 7656);
+	}
+#endif
 
 	pack.set_str(settings_pack::listen_interfaces,
 		make_ep_string(peer0_ip[use_ipv6], use_ipv6, listen_port));
@@ -139,6 +172,29 @@ void run_test(
 	bool hash_failure = false;
 	bool peer_error = false;
 
+#if TORRENT_USE_I2P
+	// the seed's destination doesn't exist until its SAM session is up. The
+	// downloader's own lookup is queued until its session is
+	lt::torrent_handle i2p_downloader;
+	bool i2p_seed_ready = false;
+	auto const i2p_connect = [&] {
+		if (!i2p_downloader.is_valid() || !i2p_seed_ready)
+			return;
+		auto const dest = sam.destination(peer1);
+		// i2p_seed_ready is never reset, this relies on the seed's SAM
+		// session staying up for the whole test
+		TORRENT_ASSERT(dest);
+		i2p_downloader.connect_peer(*dest);
+		i2p_downloader = lt::torrent_handle();
+	};
+	sam.on_session([&](address const& a) {
+		if (a != peer1)
+			return;
+		i2p_seed_ready = true;
+		i2p_connect();
+	});
+#endif
+
 	// only monitor alerts for session 0 (the downloader)
 	print_alerts(*ses[0], [&](lt::session& ses, lt::alert const* a) {
 		if (auto ta = lt::alert_cast<lt::add_torrent_alert>(a))
@@ -151,7 +207,14 @@ void run_test(
 					sim::ssl_fixture_path("dhparams.pem"),
 					"test");
 #endif
-			if (!(flags & tx::web_seed))
+			if (flags & tx::i2p)
+			{
+#if TORRENT_USE_I2P
+				i2p_downloader = h;
+				i2p_connect();
+#endif
+			}
+			else if (!(flags & tx::web_seed))
 			{
 				if (flags & tx::connect_proxy)
 					h.connect_peer(lt::tcp::endpoint(proxy, 3000));
@@ -215,6 +278,8 @@ void run_test(
 	atp.save_path = ".";
 	atp.flags &= ~lt::torrent_flags::auto_managed;
 	atp.flags &= ~lt::torrent_flags::paused;
+	if (flags & tx::i2p)
+		atp.flags |= lt::torrent_flags::i2p_torrent;
 
 	sim::asio::io_context web_server(sim, lt::make_address_v4("2.2.2.2"));
 	sim::http_server http(web_server, 8080);

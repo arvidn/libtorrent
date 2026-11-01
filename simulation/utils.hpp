@@ -71,6 +71,7 @@ constexpr test_transfer_flags_t resume_restart = 12_bit;
 constexpr test_transfer_flags_t bad_v1_hashes = 13_bit;
 constexpr test_transfer_flags_t disable_v1_hashes = 14_bit;
 constexpr test_transfer_flags_t ssl = 15_bit;
+constexpr test_transfer_flags_t i2p = 16_bit;
 }
 
 void set_proxy(lt::session& ses,

@@ -18,6 +18,7 @@ project
 	<source>utils.cpp
 	<source>disk_io.cpp
 	<source>socks_server.cpp
+	<source>sam_server.cpp
 	<source>transfer_sim.cpp
 	<source>http_server.cpp
 	<source>ws_tracker_server.cpp
