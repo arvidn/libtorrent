@@ -1,15 +1,6 @@
 name: cppcheck
 
-on:
-   push:
-      branches: [ RC_2_1, master ]
-   pull_request:
-      paths:
-      - src/**
-      - include/**
-      - examples/**
-      - simulation/**
-      - tools/**
+on: workflow_dispatch
 
 concurrency:
    group: ${{ github.ref }}-${{ github.workflow }}-${{ github.event_name }}
