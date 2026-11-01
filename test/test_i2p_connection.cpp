@@ -16,6 +16,11 @@ see LICENSE file.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/assert.hpp"
+
+#ifdef _WIN32
+#include "libtorrent/aux_/windows.hpp"
+#endif
 
 #include <array>
 #include <chrono>
@@ -25,6 +30,7 @@ see LICENSE file.
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 
@@ -61,6 +67,7 @@ struct hang_watchdog
 				{
 					std::fprintf(stderr, "HANG DETECTED in phase: %s\n", m_phase.c_str());
 					std::fflush(stderr);
+					dump_main_thread();
 					std::_Exit(1);
 				}
 			}
@@ -88,7 +95,67 @@ struct hang_watchdog
 		m_last = now;
 	}
 
+	// logs without resetting the hang timer
+	void note(std::string const& msg)
+	{
+		std::lock_guard<std::mutex> l(m_mutex);
+		std::fprintf(stderr, "[%7.3f]     %s\n"
+			, std::chrono::duration<double>(std::chrono::steady_clock::now() - m_start).count()
+			, msg.c_str());
+		std::fflush(stderr);
+	}
+
 private:
+	void dump_main_thread()
+	{
+		// symbolizing may block forever, e.g. if the main thread is stuck
+		// inside dbghelp or holds the heap lock
+		std::thread([] {
+			std::this_thread::sleep_for(20s);
+			std::fprintf(stderr, "main thread stack dump timed out\n");
+			std::fflush(stderr);
+			std::_Exit(1);
+		}).detach();
+#ifdef _WIN32
+		if (m_main_thread == nullptr)
+		{
+			std::fprintf(stderr, "OpenThread failed: %lu\n", m_open_error);
+			return;
+		}
+		if (SuspendThread(m_main_thread) == DWORD(-1))
+		{
+			std::fprintf(stderr, "SuspendThread failed: %lu\n", GetLastError());
+			return;
+		}
+		CONTEXT ctx{};
+		ctx.ContextFlags = CONTEXT_FULL;
+		if (!GetThreadContext(m_main_thread, &ctx))
+		{
+			std::fprintf(stderr, "GetThreadContext failed: %lu\n", GetLastError());
+			return;
+		}
+#if defined _M_X64
+		std::fprintf(stderr, "main thread pc: %p\n", reinterpret_cast<void*>(ctx.Rip));
+#elif defined _M_IX86
+		std::fprintf(stderr, "main thread pc: %p\n", reinterpret_cast<void*>(std::uintptr_t(ctx.Eip)));
+#endif
+		std::fflush(stderr);
+		static std::array<char, 10000> stack;
+		print_backtrace(stack.data(), int(stack.size()), 50, &ctx);
+		std::fprintf(stderr, "main thread stack:\n%s\n", stack.data());
+#else
+		std::fprintf(stderr, "no main thread stack dump on this platform\n");
+#endif
+		std::fflush(stderr);
+	}
+
+#ifdef _WIN32
+	// constructed during static initialization, on the main thread
+	HANDLE const m_main_thread = OpenThread(
+		THREAD_SUSPEND_RESUME | THREAD_GET_CONTEXT | THREAD_QUERY_INFORMATION
+		, FALSE, GetCurrentThreadId());
+	DWORD const m_open_error = GetLastError();
+#endif
 	std::mutex m_mutex;
 	std::condition_variable m_cond;
 	std::chrono::steady_clock::time_point const m_start = std::chrono::steady_clock::now();
@@ -393,6 +460,7 @@ TORRENT_TEST(closed_sam_socket_fails_name_lookups)
 	std::string pending;
 	std::function<void(error_code const&, std::size_t)> const serve = [&](error_code const& ec,
 																		  std::size_t const len) {
+		g_watchdog.note("sam read: " + ec.message() + " len: " + std::to_string(len));
 		if (ec)
 			return;
 		pending.clear();
@@ -404,6 +472,7 @@ TORRENT_TEST(closed_sam_socket_fails_name_lookups)
 			{
 				error_code ignore;
 				sam_conn.close(ignore);
+				g_watchdog.note("sam closed: " + ignore.message());
 				return;
 			}
 			pending += replies[next_reply++];
@@ -415,12 +484,14 @@ TORRENT_TEST(closed_sam_socket_fails_name_lookups)
 		}
 		boost::asio::async_write(
 			sam_conn, boost::asio::buffer(pending), [&](error_code const& e, std::size_t) {
+				g_watchdog.note("sam write: " + e.message());
 				if (e)
 					return serve(e, 0);
 				sam_conn.async_read_some(boost::asio::buffer(buf), serve);
 			});
 	};
 	sam.async_accept(sam_conn, [&](error_code const& ec) {
+		g_watchdog.note("sam accept: " + ec.message());
 		if (ec)
 			return;
 		sam_conn.async_read_some(boost::asio::buffer(buf), serve);
@@ -431,12 +502,19 @@ TORRENT_TEST(closed_sam_socket_fails_name_lookups)
 	conn.open(
 		"127.0.0.1", sam.local_endpoint().port(), i2p_session_options{}, [&](error_code const& ec) {
 			open_ec = ec;
+			g_watchdog.note("open: " + ec.message());
 		});
 
 	auto const r1 = std::make_shared<lookup_result>();
 	auto const r2 = std::make_shared<lookup_result>();
-	conn.async_name_lookup("foo.i2p", record(r1));
-	conn.async_name_lookup("bar.i2p", record(r2));
+	conn.async_name_lookup("foo.i2p", [r1](error_code const& ec, char const* d) {
+		g_watchdog.note("foo.i2p: " + ec.message());
+		record(r1)(ec, d);
+	});
+	conn.async_name_lookup("bar.i2p", [r2](error_code const& ec, char const* d) {
+		g_watchdog.note("bar.i2p: " + ec.message());
+		record(r2)(ec, d);
+	});
 
 	run_to_completion(ios);
 
