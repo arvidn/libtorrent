@@ -2475,6 +2475,10 @@ retry:
 
 	void session_impl::on_i2p_open(error_code const& ec)
 	{
+		// the SAM session was closed or replaced
+		if (ec == boost::asio::error::operation_aborted)
+			return;
+
 		if (ec)
 		{
 			if (m_alerts.should_post<i2p_alert>())

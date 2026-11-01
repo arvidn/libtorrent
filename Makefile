@@ -951,6 +951,7 @@ TEST_SOURCES = \
   test_heterogeneous_queue.cpp \
   test_http_connection.cpp \
   test_http_parser.cpp \
+  test_i2p_connection.cpp \
   test_identify_client.cpp \
   test_info_hash.cpp \
   test_io.cpp \
