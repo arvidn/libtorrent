@@ -1044,8 +1044,9 @@ namespace libtorrent::aux {
 		void completed();
 
 #if TORRENT_USE_I2P
-		void on_i2p_resolve(error_code const& ec, char const* dest, peer_source_flags_t const source);
-		void add_i2p_peer(sha256_hash const& dest, peer_source_flags_t source);
+		void on_i2p_resolve(
+			error_code const& ec, char const* dest, peer_source_flags_t source, pex_flags_t flags);
+		void add_i2p_peer(sha256_hash const& dest, peer_source_flags_t source, pex_flags_t flags);
 		bool is_i2p() const { return m_i2p; }
 
 		// returns true if this tracker is compatible with the torrent's

@@ -81,6 +81,7 @@
 
 2.0.16 not released
 
+	* fix outgoing i2p connections on v2-only torrents
 	* reject loading v2 torrents where files of different sizes share a pieces root
 	* fix byte counts of a seed's re-created piece picker leaving out pad bytes (a v2 torrent rechecked after a skipped file was deleted stayed below 100%)
 	* fix bind_to_device on windows

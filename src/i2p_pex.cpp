@@ -253,7 +253,7 @@ namespace libtorrent { namespace {
 					sha256_hash remote;
 					std::copy(in, in + 32, remote.begin());
 					in += 32;
-					m_torrent.add_i2p_peer(remote, peer_info::pex);
+					m_torrent.add_i2p_peer(remote, peer_info::pex, pex_flags_t{});
 					peers_added = true;
 				}
 			}

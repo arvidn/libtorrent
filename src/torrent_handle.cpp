@@ -1186,7 +1186,7 @@ namespace libtorrent {
 		sha256_hash const& i2p_dest, peer_source_flags_t const source) const
 	{
 #if TORRENT_USE_I2P
-		async_call(&aux::torrent::add_i2p_peer, i2p_dest, source);
+		async_call(&aux::torrent::add_i2p_peer, i2p_dest, source, pex_flags_t{});
 #else
 		TORRENT_UNUSED(i2p_dest);
 		TORRENT_UNUSED(source);

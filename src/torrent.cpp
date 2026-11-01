@@ -3936,6 +3936,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		TORRENT_UNUSED(tracker_ips);
 #endif
 
+		pex_flags_t flags = v == protocol_version::V2 ? pex_lt_v2 : pex_flags_t(0);
+
 		// for each of the peers we got from the tracker
 		for (auto const& i : resp.peers)
 		{
@@ -3951,9 +3953,10 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 				if (string_ends_with(i.hostname, ".i2p"))
 				{
 					ADD_OUTSTANDING_ASYNC("torrent::on_i2p_resolve");
-					r.i2pconn->async_name_lookup(i.hostname.c_str()
-						, [self = shared_from_this()] (error_code const& ec, char const* dest)
-						{ self->torrent::on_i2p_resolve(ec, dest, peer_info::tracker); });
+					r.i2pconn->async_name_lookup(i.hostname.c_str(),
+						[self = shared_from_this(), flags](error_code const& ec, char const* dest) {
+							self->torrent::on_i2p_resolve(ec, dest, peer_info::tracker, flags);
+						});
 				}
 				else
 				{
@@ -3962,7 +3965,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 					// that in the i2p_peer object directly
 					torrent_state st = get_peer_list_state();
 					need_peer_list();
-					if (m_peer_list->add_i2p_peer(i.hostname, peer_info::tracker, {}, &st))
+					if (m_peer_list->add_i2p_peer(i.hostname, peer_info::tracker, flags, &st))
 						state_updated();
 					peers_erased(st.erased);
 				}
@@ -3996,7 +3999,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		{
 			for (auto const& i : resp.i2p_peers)
 			{
-				add_i2p_peer(i.destination, peer_info::tracker);
+				add_i2p_peer(i.destination, peer_info::tracker, flags);
 			}
 		}
 #endif
@@ -4009,8 +4012,6 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		// 2. it might make sense to have a tracker extension in the future where
 		//    trackers records a peer's internal and external IP, and match up
 		//    peers on the same local network
-
-		pex_flags_t flags = v == protocol_version::V2 ? pex_lt_v2 : pex_flags_t(0);
 
 		bool need_update = false;
 		for (auto const& i : resp.peers4)
@@ -4294,7 +4295,8 @@ namespace {
 #endif
 
 #if TORRENT_USE_I2P
-	void torrent::add_i2p_peer(sha256_hash const& dest, peer_source_flags_t const source)
+	void torrent::add_i2p_peer(
+		sha256_hash const& dest, peer_source_flags_t const source, pex_flags_t const flags)
 	{
 		// TODO: store i2p addresses as a 32 byte sha256 hash in the
 		// i2p_peer object, rather than resolving it into the full vase64
@@ -4310,12 +4312,17 @@ namespace {
 		destination += ".b32.i2p";
 
 		ADD_OUTSTANDING_ASYNC("torrent::on_i2p_resolve");
-		i2pconn.async_name_lookup(destination.c_str()
-			, [self = shared_from_this(), source] (error_code const& ec, char const* d)
-			{ self->torrent::on_i2p_resolve(ec, d, source); });
+		i2pconn.async_name_lookup(destination.c_str(),
+			[self = shared_from_this(), source, flags](error_code const& ec, char const* d) {
+				self->torrent::on_i2p_resolve(ec, d, source, flags);
+			});
 	}
 
-	void torrent::on_i2p_resolve(error_code const& ec, char const* dest, peer_source_flags_t const source) try
+	void torrent::on_i2p_resolve(error_code const& ec,
+		char const* dest,
+		peer_source_flags_t const source,
+		pex_flags_t const flags)
+	try
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -4330,7 +4337,7 @@ namespace {
 
 		need_peer_list();
 		torrent_state st = get_peer_list_state();
-		if (m_peer_list->add_i2p_peer(dest, source, {}, &st))
+		if (m_peer_list->add_i2p_peer(dest, source, flags, &st))
 			state_updated();
 		peers_erased(st.erased);
 

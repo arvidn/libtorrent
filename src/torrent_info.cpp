@@ -48,6 +48,7 @@ see LICENSE file.
 #include <algorithm>
 #include <set>
 #include <map>
+#include <cstring>
 #include <ctime>
 #include <array>
 
@@ -1288,23 +1289,26 @@ TORRENT_VERSION_NAMESPACE_4
 			// nodes, so a 64 byte file containing the two children of another
 			// file's root has the same root, despite different content. Such
 			// torrents are deliberately rejected. They have no legitimate use
-			aux::vector<std::pair<sha256_hash, std::int64_t>, file_index_t> root_sizes;
-			root_sizes.reserve(files.num_files());
+			std::vector<file_index_t> with_root;
+			with_root.reserve(std::size_t(files.num_files()));
 			for (file_index_t const i : files.file_range())
-			{
-				char const* const root = files.root_ptr(i);
-				if (root == nullptr)
-					continue;
-				root_sizes.emplace_back(sha256_hash(root), files.file_size(i));
-			}
-			std::sort(root_sizes.begin(), root_sizes.end());
-			auto const conflict = std::adjacent_find(root_sizes.begin(),
-				root_sizes.end(),
-				[](std::pair<sha256_hash, std::int64_t> const& lhs,
-					std::pair<sha256_hash, std::int64_t> const& rhs) {
-					return lhs.first == rhs.first && lhs.second != rhs.second;
+				if (files.root_ptr(i) != nullptr)
+					with_root.push_back(i);
+
+			auto const cmp_root = [&files](file_index_t const lhs, file_index_t const rhs) {
+				return std::memcmp(files.root_ptr(lhs), files.root_ptr(rhs), sha256_hash::size());
+			};
+			std::sort(with_root.begin(),
+				with_root.end(),
+				[&](file_index_t const lhs, file_index_t const rhs) {
+					return cmp_root(lhs, rhs) < 0;
 				});
-			if (conflict != root_sizes.end())
+			auto const conflict = std::adjacent_find(with_root.begin(),
+				with_root.end(),
+				[&](file_index_t const lhs, file_index_t const rhs) {
+					return cmp_root(lhs, rhs) == 0 && files.file_size(lhs) != files.file_size(rhs);
+				});
+			if (conflict != with_root.end())
 			{
 				// mark the torrent as invalid
 				m_files.set_piece_length(0);
