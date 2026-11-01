@@ -172,6 +172,14 @@ class PeerTestTest(TorrentHandleTest):
             peer_info = self.handle.get_peer_info()[0]
             self.assertEqual(peer_info.ip, ("127.0.0.1", seed.listen_port()))
 
+    def test_connect_i2p_peer(self) -> None:
+        # without a SAM bridge configured this has no effect, but the overload
+        # must be callable
+        dest = lt.sha256_hash(lib.get_random_bytes(32))
+        self.handle.connect_peer(dest)
+        self.handle.connect_peer(dest, source=0)
+        self.assertEqual(self.handle.get_peer_info(), [])
+
 
 class StatusTest(TorrentHandleTest):
     def test_status(self) -> None:

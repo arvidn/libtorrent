@@ -4300,8 +4300,11 @@ namespace {
 		// i2p_peer object, rather than resolving it into the full vase64
 		// destination. We should keep the full destination as a cache in the
 		// i2p_peer object still.
+
+		// i2p_connection queues lookups until the SAM session is up
+		if (settings().get_str(settings_pack::i2p_hostname).empty())
+			return;
 		i2p_connection& i2pconn = session().i2p_conn();
-		if (!i2pconn.is_open()) return;
 
 		std::string destination = base32encode_i2p(dest);
 		destination += ".b32.i2p";
