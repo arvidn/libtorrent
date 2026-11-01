@@ -310,6 +310,7 @@ private:
 		{ handle_error(invalid_response, h); return; }
 
 		int result = 0;
+		bool has_value = false;
 
 		for(;;)
 		{
@@ -356,6 +357,7 @@ private:
 			else if ("VALUE"_sv == name)
 			{
 				m_name_lookup = value;
+				has_value = !value.empty();
 			}
 			else if ("DESTINATION"_sv == name)
 			{
@@ -367,6 +369,14 @@ private:
 		if (ec)
 		{
 			std::forward<Handler>(h)(ec);
+			return;
+		}
+
+		// m_name_lookup still holds the name that was looked up, it must not be
+		// mistaken for the destination
+		if (m_state == read_name_lookup_response && !has_value)
+		{
+			std::forward<Handler>(h)(invalid_response);
 			return;
 		}
 
@@ -586,10 +596,12 @@ private:
 			return;
 		}
 
-		do_name_lookup("ME", aux::wrap_allocator(
-			[this](error_code const& e, char const* dst, Handler hn) {
-				set_local_endpoint(e, dst, std::move(hn));
-			}, std::move(h)));
+		do_name_lookup("ME",
+			aux::wrap_allocator(
+				[this, s = m_sam_socket](error_code const& e, char const* dst, Handler hn) {
+					set_local_endpoint(e, dst, s, std::move(hn));
+				},
+				std::move(h)));
 	}
 
 	using name_lookup_handler = std::function<void(error_code const&, char const*)>;
@@ -630,12 +642,23 @@ private:
 
 
 	template <typename Handler>
-	void set_local_endpoint(error_code const& ec, char const* dest, Handler h)
+	void set_local_endpoint(
+		error_code const& ec, char const* dest, std::shared_ptr<i2p_stream> const& s, Handler h)
 	{
 		if (!ec && dest != nullptr)
+		{
+			TORRENT_ASSERT(*dest != '\0');
 			m_i2p_local_endpoint = dest;
+		}
 		else
+		{
 			m_i2p_local_endpoint.clear();
+			// the SAM session is unusable without our destination. Closing it
+			// makes is_open() false, which is what the session's reconnect logic
+			// keys off of
+			error_code ignore;
+			s->close(ignore);
+		}
 
 		h(ec);
 	}
