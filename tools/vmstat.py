@@ -111,23 +111,21 @@ plots = [
     ),
     Plot(
         "read",
-        "libtorrent disk I/O (read)",
+        "libtorrent device I/O (read)",
         "Size",
         "count",
         [
             "read_bytes",
-            "read_chars",
             "read_count",
         ],
     ),
     Plot(
         "write",
-        "libtorrent disk I/O (write)",
+        "libtorrent device I/O (write)",
         "Size",
         "count",
         [
             "write_bytes",
-            "write_chars",
             "write_count",
         ],
     ),
@@ -330,6 +328,29 @@ def print_output_to_file(out: dict[str, list[float]], filename: str) -> list[str
     return [k if k in non_zero_keys else "" for k in keys]
 
 
+# width, in seconds, of the moving-average window used to smooth the noisy
+# cumulative-rate curves (disk read/write, page faults, ...) in plot_output().
+SMOOTH_WINDOW_SECONDS = 1.0
+
+
+def _moving_average(ys: list[float], window: int) -> list[float]:
+    """Causal simple moving average of `ys` over the trailing `window`
+    samples. Used to draw a low-pass line on top of noisy per-sample rates.
+    """
+    if window <= 1:
+        return list(ys)
+    out = []
+    buf: list[float] = []
+    total = 0.0
+    for y in ys:
+        buf.append(y)
+        total += y
+        if len(buf) > window:
+            total -= buf.pop(0)
+        out.append(total / len(buf))
+    return out
+
+
 def plot_output(filename: str, keys: list[str]) -> None:
     if "time" not in keys:
         return
@@ -370,6 +391,16 @@ def plot_output(filename: str, keys: list[str]) -> None:
     # draw the lines a single pixel wide at display size; matplotlib's ~1.5 pt
     # default is thick for the dense, spiky disk-I/O curves.
     line_width = 72.0 / plot_png.DISPLAY_DPI
+
+    # cumulative metrics (read/write bytes, counts, page faults, ...) are
+    # per-sample rates computed from a counter polled every ~0.1s, which is
+    # noisy; smooth them with a causal moving average over roughly
+    # SMOOTH_WINDOW_SECONDS and draw it on top of the faded raw line.
+    smoothed_names = {n for n, m in metrics.items() if m.cumulative}
+    diffs = [b - a for a, b in zip(t, t[1:]) if b > a]
+    sample_dt = sorted(diffs)[len(diffs) // 2] if diffs else 0.1
+    smooth_window = max(1, round(SMOOTH_WINDOW_SECONDS / sample_dt))
+
     for plot in plots:
         names = [n for n in plot.lines if n in nonzero and n in cols]
         if not names:
@@ -402,10 +433,31 @@ def plot_output(filename: str, keys: list[str]) -> None:
             else:
                 target = ax
                 ys = cols[name]
+            # fade the raw line when a smoothed overlay is drawn on top of it,
+            # so the low-pass trend reads clearly against the noise
+            do_smooth = name in smoothed_names
+            raw_alpha = 0.35 if do_smooth else 1.0
             (line,) = target.step(
-                t, ys, where="post", label=label, color=color, linewidth=line_width
+                t,
+                ys,
+                where="post",
+                label=label,
+                color=color,
+                linewidth=line_width,
+                alpha=raw_alpha,
             )
             handles.append(line)
+
+            if do_smooth and len(ys) >= 3:
+                avg_ys = _moving_average(ys, smooth_window)
+                (avg_line,) = target.plot(
+                    t,
+                    avg_ys,
+                    label=f"{label} (avg)",
+                    color=color,
+                    linewidth=line_width * 3,
+                )
+                handles.append(avg_line)
 
         ax.set_xlim(left=0)
         ax.set_ylim(bottom=0)
