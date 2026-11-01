@@ -1135,6 +1135,13 @@ namespace aux {
 			// purely by piece hash, ignoring certificates.
 			enforce_torrent_trust_domain,
 
+			// when set to true (the default), speculative read-ahead hints
+			// are issued to the disk subsystem while serving piece requests,
+			// based on the observed request pattern of each peer. Setting
+			// this to false disables the prediction entirely; peers are
+			// always hinted 0 blocks of read-ahead.
+			enable_read_ahead,
+
 			max_bool_setting_internal
 		};
 

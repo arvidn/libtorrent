@@ -84,10 +84,14 @@ namespace libtorrent::aux {
 		typed_bitfield<piece_index_t> check_pieces();
 		bool tick();
 
-		int read(settings_interface const&, span<char> buffer
-			, piece_index_t piece, int offset, aux::open_mode_t mode
-			, disk_job_flags_t flags
-			, storage_error&);
+		int read(settings_interface const&,
+			span<char> buffer,
+			piece_index_t piece,
+			int offset,
+			aux::open_mode_t mode,
+			disk_job_flags_t flags,
+			int read_ahead,
+			storage_error&);
 		int write(settings_interface const&, span<char const> buffer
 			, piece_index_t piece, int offset, aux::open_mode_t mode
 			, disk_job_flags_t flags
@@ -165,6 +169,17 @@ namespace libtorrent::aux {
 			, aux::open_mode_t, storage_error&) const;
 		std::shared_ptr<aux::file_mapping> open_file_impl(settings_interface const&
 			, file_index_t, aux::open_mode_t, storage_error&) const;
+
+		// issues a speculative read-ahead hint (madvise(WILLNEED) on a mapped
+		// file, posix_fadvise(WILLNEED) otherwise) for up to read_ahead_blocks
+		// beyond piece_offset in piece, truncated to the rest of whichever
+		// file piece_offset falls into. best-effort; errors opening the
+		// file are silently ignored, this is just a hint.
+		void issue_read_ahead(settings_interface const& sett,
+			piece_index_t piece,
+			int piece_offset,
+			int read_ahead_blocks,
+			aux::open_mode_t mode) const;
 
 		bool use_partfile(file_index_t index) const;
 		void use_partfile(file_index_t index, bool b);

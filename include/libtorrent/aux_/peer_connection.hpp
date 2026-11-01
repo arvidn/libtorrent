@@ -29,6 +29,7 @@ see LICENSE file.
 #include "libtorrent/aux_/bandwidth_socket.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/sliding_average.hpp"
+#include "libtorrent/aux_/read_ahead.hpp"
 #include "libtorrent/aux_/peer_class_set.hpp"
 #include "libtorrent/aux_/rate_limits.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
@@ -904,6 +905,11 @@ namespace libtorrent::aux {
 		// is essentially an estimate of the time it will take to completely
 		// receive a payload message after it has been requested.
 		sliding_average<int, 20> m_request_time;
+
+		// predicts how far ahead to speculatively read disk blocks when
+		// serving this peer's requests, based on the order it requests
+		// blocks in. See aux::read_ahead_predictor.
+		read_ahead_predictor m_read_ahead;
 
 		// keep the io_context running as long as we
 		// have peer connections

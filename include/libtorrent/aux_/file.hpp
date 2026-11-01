@@ -78,6 +78,7 @@ namespace libtorrent::aux {
 		handle_type handle, span<span<char> const> bufs, std::int64_t file_offset, error_code& ec);
 
 	void advise_dont_need(handle_type handle, std::int64_t offset, std::int64_t len);
+	void advise_willneed(handle_type handle, std::int64_t offset, std::int64_t len);
 	void sync_file(handle_type handle, std::int64_t offset, std::int64_t len);
 
 	struct TORRENT_EXTRA_EXPORT file_handle

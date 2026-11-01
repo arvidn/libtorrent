@@ -57,6 +57,16 @@ CHECK_START_DELAY = 4
 # piece count, not the piece size).
 PIECE_SIZE_MIB = 1
 
+# percentage of connection_tester's downloading connections that request
+# blocks within a piece in random order instead of sequentially (its "-x"
+# flag), applied to the modes where connection_tester acts as the
+# downloader against the real client's seed (upload and dual). A purely
+# sequential, single-piece-at-a-time requester never evicts a piece with an
+# unconsumed read-ahead bet, so it can't exercise that accounting at all;
+# mixing in some out-of-order peers makes the benchmark representative of a
+# real swarm instead.
+RANDOM_BLOCK_ORDER_PERCENT = 10
+
 if platform.system() == "Windows":
     exe = ".exe"
 
@@ -1041,6 +1051,7 @@ def main() -> None:
                         "dual",
                         ["-1", "-i", io_backend],
                         args.download_peers,
+                        tester_arg=["-x", str(RANDOM_BLOCK_ORDER_PERCENT)],
                         **common,
                     )
                 elif mode == "upload":
@@ -1068,6 +1079,7 @@ def main() -> None:
                         "download",
                         ["-e", "240", "-i", io_backend],
                         args.upload_peers,
+                        tester_arg=["-x", str(RANDOM_BLOCK_ORDER_PERCENT)],
                         **common,
                     )
                 else:  # check
@@ -1138,6 +1150,7 @@ def run_test(
     variant: str,
     io_backend: str,
     keep_perf_data: bool,
+    tester_arg: list[str] | None = None,
 ) -> None:
     """Run one benchmark. `action` is the connection_tester command driving
     the client, or None for a client_test run that exits by itself (check
@@ -1299,7 +1312,7 @@ def run_test(
                 str(torrent),
                 "-s",
                 str(save_path),
-            ]
+            ] + (tester_arg or [])
             print(f"test_cmd: \"{' '.join(test_cmd)}\"")
             t = subprocess.Popen(test_cmd, stdout=test_out, stderr=test_out)
             driver = t
