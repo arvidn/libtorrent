@@ -47,6 +47,7 @@ see LICENSE file.
 #include <iterator>
 #include <algorithm>
 #include <set>
+#include <map>
 #include <ctime>
 #include <array>
 
@@ -1478,6 +1479,7 @@ TORRENT_VERSION_NAMESPACE_4
 
 		// copy the info section
 		m_info_section_size = aux::numeric_cast<int>(section.size());
+		// use std::make_unique_for_overwrite() in C++ 20
 		char* ptr = new char[aux::numeric_cast<std::size_t>(m_info_section_size)];
 		std::memcpy(ptr, section.data(), aux::numeric_cast<std::size_t>(m_info_section_size));
 		m_info_section.reset(ptr);
@@ -1609,6 +1611,35 @@ TORRENT_VERSION_NAMESPACE_4
 				m_flags |= multifile;
 			else
 				m_flags &= ~multifile;
+
+			// files that share a "pieces root" are treated as identical, and
+			// share hashes. BEP 52 doesn't distinguish leaf hashes from interior
+			// nodes, so a 64 byte file containing the two children of another
+			// file's root has the same root, despite different content. Such
+			// torrents are deliberately rejected. They have no legitimate use
+			aux::vector<std::pair<sha256_hash, std::int64_t>, file_index_t> root_sizes;
+			root_sizes.reserve(files.num_files());
+			for (file_index_t const i : files.file_range())
+			{
+				char const* const root = files.root_ptr(i);
+				if (root == nullptr)
+					continue;
+				root_sizes.emplace_back(sha256_hash(root), files.file_size(i));
+			}
+			std::sort(root_sizes.begin(), root_sizes.end());
+			auto const conflict = std::adjacent_find(root_sizes.begin(),
+				root_sizes.end(),
+				[](std::pair<sha256_hash, std::int64_t> const& lhs,
+					std::pair<sha256_hash, std::int64_t> const& rhs) {
+					return lhs.first == rhs.first && lhs.second != rhs.second;
+				});
+			if (conflict != root_sizes.end())
+			{
+				// mark the torrent as invalid
+				m_files.set_piece_length(0);
+				ec = errors::torrent_inconsistent_file_roots;
+				return;
+			}
 		}
 		else if (version >= 2)
 		{

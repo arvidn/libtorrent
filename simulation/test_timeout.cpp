@@ -147,7 +147,7 @@ disconnects_t test_no_interest_timeout(int const num_peers
 	{
 		char ip[50];
 		std::snprintf(ip, sizeof(ip), "60.0.0.%d", i + 1);
-		peers.emplace_back(new fake_peer(sim, ip));
+		peers.push_back(std::make_unique<fake_peer>(sim, ip));
 	}
 
 	// add torrent

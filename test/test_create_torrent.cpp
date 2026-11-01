@@ -792,7 +792,8 @@ TORRENT_TEST(piece_layer)
 	t.set_hash2(0_file, p(0), lt::sha256_hash::max());
 	t.set_hash2(0_file, p(1), lt::sha256_hash::max());
 	t.set_hash2(1_file, p(0), lt::sha256_hash::max());
-	t.set_hash2(2_file, p(0), lt::sha256_hash::max());
+	// files of different sizes can't have the same root
+	t.set_hash2(2_file, p(0), lt::sha256_hash("abababababababababababababababab"));
 
 	std::vector<char> const buffer = lt::bencode(t.generate());
 	TEST_CHECK(buffer == t.generate_buf());

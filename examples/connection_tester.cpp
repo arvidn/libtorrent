@@ -2214,10 +2214,11 @@ int main(int argc, char* argv[])
 
 	bool const flood_hashes_all = (test_mode == hash_stress_test);
 
-	std::vector<peer_conn*> conns;
-	conns.reserve(std::size_t(num_connections));
 	int const num_threads = 2;
 	io_context ios[num_threads];
+	// must be destroyed before ios, which their sockets and timers are bound to
+	std::vector<std::unique_ptr<peer_conn>> conns;
+	conns.reserve(std::size_t(num_connections));
 	int const last_piece_size = atp.ti->piece_size(piece_index_t(atp.ti->num_pieces() - 1));
 
 	// start of the transfer window. This is after the merkle-tree build above,
@@ -2231,7 +2232,7 @@ int main(int argc, char* argv[])
 		if (test_mode == upload_test) seed = true;
 		else if (test_mode == dual_test) seed = (i & 1);
 		// hash-stress connections all act as downloaders that flood HASH_REQUEST.
-		conns.push_back(new peer_conn(ios[i % num_threads],
+		conns.push_back(std::make_unique<peer_conn>(ios[i % num_threads],
 			atp.ti->num_pieces(),
 			atp.ti->piece_length() / 16 / 1024,
 			last_piece_size,
@@ -2261,7 +2262,7 @@ int main(int argc, char* argv[])
 	std::int64_t total_hashes_sent = 0;
 	std::int64_t total_hash_rejects_sent = 0;
 
-	for (peer_conn* p : conns)
+	for (auto const& p : conns)
 	{
 		total_sent += p->blocks_sent;
 		total_received += p->blocks_received;
@@ -2270,7 +2271,6 @@ int main(int argc, char* argv[])
 		total_hash_requests += p->hash_requests_sent;
 		total_hashes_sent += p->hashes_sent;
 		total_hash_rejects_sent += p->hash_rejects_sent;
-		delete p;
 	}
 
 	double const sent_mb = double(total_sent * 0x4000) / 1000000.0;

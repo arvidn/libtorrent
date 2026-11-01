@@ -48,6 +48,10 @@ namespace libtorrent::aux {
 		// discard all of a piece's hashes (e.g. on clear_piece / re-download).
 		void drop(piece_index_t piece);
 
+		// discard the hashes of every piece (e.g. before a full check, which
+		// must hash what is on disk now).
+		void clear();
+
 	private:
 		mutable std::mutex m_mutex;
 		std::unordered_map<piece_index_t, aux::vector<sha256_hash>> m_hashes;

@@ -1342,6 +1342,13 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 		if (m_flags & torrent_internal_flags::have_all) pp->we_have_all();
 
+		// every picker needs the pad bytes, not only the first one. A seed's
+		// picker is released, and the one made here when it needs one again
+		// (say a file is skipped) would otherwise count the padding as
+		// payload in its byte counts (total_wanted, total_done)
+		aux::apply_pad_files(m_torrent_file->layout(),
+			[&](piece_index_t const piece, int const bytes) { pp->set_pad_bytes(piece, bytes); });
+
 		// initialize the file progress too
 		if (m_file_progress.empty())
 			m_file_progress.init(*pp, m_torrent_file->layout());
@@ -2119,9 +2126,9 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			aux::apply_pad_files(fs, [&](piece_index_t const piece, int const bytes)
 			{
 				m_padding_bytes += bytes;
+				// need_picker() has set the pad bytes in the picker
 				if (bytes == fs.piece_size(piece))
 					have_pieces.push_back(piece);
-				m_picker->set_pad_bytes(piece, bytes);
 			});
 
 			for (auto i : have_pieces)

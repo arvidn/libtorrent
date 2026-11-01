@@ -1416,6 +1416,7 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 				total_microseconds(aux::steady_clock::now() - start_time);
 
 			m_stats_counters.inc_stats_counter(counters::num_read_back, blocks_read_from_disk);
+			m_stats_counters.inc_stats_counter(counters::num_blocks_read, blocks_read_from_disk);
 			m_stats_counters.inc_stats_counter(counters::num_read_ops, blocks_read_from_disk);
 			m_stats_counters.inc_stats_counter(counters::disk_hash_time, read_time);
 			m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
@@ -1449,7 +1450,7 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 		auto const start_time = aux::steady_clock::now();
 
 		int const read_len = v1 ? piece_size : piece_size2;
-		std::unique_ptr<char[]> buf(new char[std::size_t(read_len)]);
+		auto buf = std::make_unique<char[]>(std::size_t(read_len));
 		span<char> const buf_span{buf.get(), read_len};
 
 		j->error.ec.clear();
@@ -1485,6 +1486,7 @@ status_t pread_disk_io::do_job(aux::job::hash& a, aux::pread_disk_job* j)
 				total_microseconds(aux::steady_clock::now() - start_time);
 
 			m_stats_counters.inc_stats_counter(counters::num_read_back, blocks_to_read);
+			m_stats_counters.inc_stats_counter(counters::num_blocks_read, blocks_to_read);
 			m_stats_counters.inc_stats_counter(counters::num_read_ops, 1);
 			m_stats_counters.inc_stats_counter(counters::disk_hash_time, read_time);
 			m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
@@ -1519,10 +1521,12 @@ status_t pread_disk_io::do_job(aux::job::hash2& a, aux::pread_disk_job* j)
 	}
 
 	int ret = 0;
+	bool read_from_disk = false;
 	a.piece_hash2 = m_cache.hash2({j->storage->storage_index(), a.piece}, blk, [&] {
 		hasher256 h;
 		ret = j->storage->hash2(m_settings, h, len, a.piece, a.offset
 			, file_mode, j->flags, j->error);
+		read_from_disk = true;
 		return h.final();
 	});
 
@@ -1530,8 +1534,12 @@ status_t pread_disk_io::do_job(aux::job::hash2& a, aux::pread_disk_job* j)
 	{
 		std::int64_t const read_time = total_microseconds(aux::steady_clock::now() - start_time);
 
-		m_stats_counters.inc_stats_counter(counters::num_blocks_read);
-		m_stats_counters.inc_stats_counter(counters::num_read_ops);
+		if (read_from_disk)
+		{
+			m_stats_counters.inc_stats_counter(counters::num_read_back);
+			m_stats_counters.inc_stats_counter(counters::num_blocks_read);
+			m_stats_counters.inc_stats_counter(counters::num_read_ops);
+		}
 		m_stats_counters.inc_stats_counter(counters::disk_hash_time, read_time);
 		m_stats_counters.inc_stats_counter(counters::disk_job_time, read_time);
 	}
@@ -1580,6 +1588,19 @@ status_t pread_disk_io::do_job(aux::job::check_fastresume& a, aux::pread_disk_jo
 	// if this assert fails, something's wrong with the fence logic
 	TORRENT_ASSERT(j->storage->num_outstanding_jobs() == 1);
 	flush_storage(j->storage);
+
+	// the check that follows must hash what is on disk now. Pieces left in
+	// the cache keep the hashes computed when they were downloaded, and
+	// async_hash() would answer from those without reading the files, so a
+	// piece whose file was deleted since would pass its v1 check. Drop them.
+	// initialize() drops any v2 block hashes left over from then too
+	m_cache.wait_for_hashing(j->storage->storage_index());
+	jobqueue_t aborted;
+	m_cache.remove_storage(j->storage->storage_index(), aborted);
+	TORRENT_ASSERT(aborted.empty());
+	if (!aborted.empty())
+		m_completed_jobs.abort_jobs(m_ios, std::move(aborted));
+
 	add_torrent_params const* rd = a.resume_data;
 	add_torrent_params tmp;
 	if (rd == nullptr) rd = &tmp;

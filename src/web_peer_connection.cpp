@@ -29,6 +29,7 @@ see LICENSE file.
 #include "libtorrent/aux_/invariant_check.hpp"
 #include "libtorrent/aux_/io_bytes.hpp"
 #include "libtorrent/aux_/parse_url.hpp"
+#include "libtorrent/aux_/piece_picker.hpp"
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
 #include "libtorrent/aux_/alert_manager.hpp" // for alert_manager
@@ -63,6 +64,10 @@ web_peer_connection::web_peer_connection(peer_connection_args& pack, aux::web_se
 	TORRENT_ASSERT(is_outgoing());
 
 	TORRENT_ASSERT(!m_torrent.lock()->is_upload_only());
+
+	// HTTP requests are expensive, keep requesting large contiguous ranges
+	// even when there are many partial pieces
+	picker_options(piece_picker::ignore_partial_limit);
 
 	// we only want left-over bandwidth
 	// TODO: introduce a web-seed default class which has a low download priority

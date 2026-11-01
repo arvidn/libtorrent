@@ -283,7 +283,8 @@ namespace libtorrent {
 			 "a file in the v2 metadata has the pad attribute set",
 			 "directory structure in torrent file exceeds depth limit",
 			 "too many symlinks in torrent file",
-			 "the specified piece has not been written to the part file"}
+			 "the specified piece has not been written to the part file",
+			 "files with the same root hash have different sizes"}
 		};
 		// clang-format on
 		if (ev < 0 || ev >= msgs.end_index())

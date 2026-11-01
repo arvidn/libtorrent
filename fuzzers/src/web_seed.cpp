@@ -56,7 +56,7 @@ extern "C" int LLVMFuzzerInitialize(int* /*argc*/, char*** /*argv*/)
 	// maybe_connect_web_seeds() fires every fast tick (every ~1 ms)
 	pack.set_int(settings_pack::tick_interval, -1);
 
-	g_ses = std::unique_ptr<session>(new lt::session(pack));
+	g_ses = std::make_unique<lt::session>(pack);
 
 	std::tie(g_acc, g_port) = make_tcp_server(g_ios);
 	if (g_port == 0) fuzz_init_failed("could not bind TCP server socket");

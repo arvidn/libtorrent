@@ -322,6 +322,10 @@ mmap_storage::mmap_storage(storage_params const& params, aux::file_view_pool& po
 	{
 		m_stat_cache.reserve(files().num_files());
 
+		// a check follows, which must hash what is on disk now, not v2 block
+		// hashes left over from when the pieces were downloaded
+		m_precomputed_v2.clear();
+
 		auto const di = aux::get_drive_info(m_save_path);
 		if (di == aux::drive_info::remote)
 		{
@@ -951,8 +955,8 @@ mmap_storage::mmap_storage(storage_params const& params, aux::file_view_pool& po
 		if (sett.get_bool(settings_pack::disk_disable_copy_on_write))
 			mode |= aux::open_mode::no_cow;
 
-		if (files().file_size(file) / default_block_size
-			<= sett.get_int(settings_pack::mmap_file_size_cutoff))
+		if (files().file_size(file)
+			< std::int64_t(sett.get_int(settings_pack::mmap_file_size_cutoff)) * default_block_size)
 			mode |= aux::open_mode::no_mmap;
 
 		// if we have a cache already, don't store the data twice by leaving it in the OS cache as well

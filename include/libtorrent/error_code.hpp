@@ -473,6 +473,10 @@ namespace errors {
 		// the requested piece has not been written to the part file
 		partfile_missing_piece,
 
+		// two files in the v2 metadata have the same root hash but different
+		// sizes
+		torrent_inconsistent_file_roots,
+
 		// the number of error codes
 		error_code_max
 	};

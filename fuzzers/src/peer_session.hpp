@@ -119,8 +119,12 @@ inline lt::add_torrent_params build_fuzz_torrent(bool const include_v2, char con
 				continue;
 			if (fe.size == 0)
 				continue;
+			// single-piece files use the piece hash as their root, and files
+			// of different sizes must not share a root
+			std::string hash(32, fill);
+			hash[0] = static_cast<char>(static_cast<int>(f));
 			for (lt::piece_index_t::diff_type i : t.file_piece_range(f))
-				t.set_hash2(f, i, lt::sha256_hash(std::string(32, fill).c_str()));
+				t.set_hash2(f, i, lt::sha256_hash(hash.c_str()));
 		}
 	}
 

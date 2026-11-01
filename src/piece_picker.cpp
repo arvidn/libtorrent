@@ -1968,8 +1968,8 @@ namespace {
 		// 2048 corresponds to 32 MiB
 		// TODO: 2 make the 2048 limit configurable
 		const int num_partials = int(m_downloads[piece_pos::piece_downloading].size());
-		if (num_partials > num_peers * 3 / 2
-			|| num_partials * blocks_per_piece() > 2048)
+		if (!(options & ignore_partial_limit)
+			&& (num_partials > num_peers * 3 / 2 || num_partials * blocks_per_piece() > 2048))
 		{
 			// if we have too many partial pieces, prioritize completing
 			// them. In order for this to have an affect, also disable

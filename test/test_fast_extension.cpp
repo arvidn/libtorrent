@@ -485,7 +485,7 @@ std::shared_ptr<torrent_info const> setup_peer(tcp::socket& s, io_context& ioc
 #if TORRENT_ABI_VERSION == 1
 	sett.set_bool(settings_pack::rate_limit_utp, true);
 #endif
-	ses.reset(new lt::session(sett));
+	ses = std::make_shared<lt::session>(sett);
 
 	p.flags &= ~torrent_flags::paused;
 	p.flags &= ~torrent_flags::auto_managed;

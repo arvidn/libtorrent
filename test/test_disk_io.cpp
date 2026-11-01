@@ -86,6 +86,25 @@ static lt::storage_holder add_test_torrent(lt::disk_interface& disk,
 	return disk.new_torrent(params, std::shared_ptr<void>());
 }
 
+#ifdef TORRENT_SIMULATE_SLOW_WRITE
+// a storage must be stopped before it's removed, to wait for any opportunistic
+// hashing of its pieces to finish
+static void stop_test_torrent(
+	lt::disk_interface& disk, lt::io_context& ios, lt::storage_holder const& storage)
+{
+	bool stopped = false;
+	disk.async_stop_torrent(storage, [&] {
+		stopped = true;
+		ios.stop();
+	});
+	disk.submit_jobs();
+	ios.restart();
+	ios.run_for(10s);
+	ios.restart();
+	TEST_CHECK(stopped);
+}
+#endif
+
 static void disk_io_test_suite_impl(lt::disk_io_constructor_type disk_io,
 	disk_test_mode_t const flags,
 	int const piece_size,
@@ -93,11 +112,11 @@ static void disk_io_test_suite_impl(lt::disk_io_constructor_type disk_io,
 	int const hasher_threads,
 	int const disk_threads,
 	bool const raise_fence,
-	bool const stacked_fence)
+	bool const stacked_fence,
+	lt::settings_pack sett)
 {
 	lt::io_context ios;
 	lt::counters cnt;
-	lt::settings_pack sett = lt::default_settings();
 	sett.set_int(lt::settings_pack::hashing_threads, hasher_threads);
 	sett.set_int(lt::settings_pack::aio_threads, disk_threads);
 	std::unique_ptr<lt::disk_interface> disk_thread = disk_io(ios, sett, cnt);
@@ -308,7 +327,8 @@ static void disk_io_test_suite_impl(lt::disk_io_constructor_type disk_io,
 static void disk_io_test_suite(lt::disk_io_constructor_type disk_io,
 	int const num_files,
 	bool const raise_fence = false,
-	bool const stacked_fence = false)
+	bool const stacked_fence = false,
+	lt::settings_pack const& sett = lt::default_settings())
 {
 	// posix_disk_io is single-threaded; disk_threads has no effect, so don't
 	// re-run the same configuration twice.
@@ -329,7 +349,8 @@ static void disk_io_test_suite(lt::disk_io_constructor_type disk_io,
 						hasher_threads,
 						disk_threads,
 						raise_fence,
-						stacked_fence);
+						stacked_fence,
+						sett);
 				}
 			}
 		}
@@ -892,6 +913,17 @@ TORRENT_TEST_DISK_IO(test_disk_io_clear_during_flush)
 
 TORRENT_TEST_DISK_IO(test_disk_io) { disk_io_test_suite(disk_io, 3); }
 
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
+// the default cutoff leaves every file in test_disk_io unmapped, so run the
+// suite again with every file memory mapped.
+TORRENT_TEST(test_disk_io_mmap_cutoff)
+{
+	lt::settings_pack sett = lt::default_settings();
+	sett.set_int(lt::settings_pack::mmap_file_size_cutoff, 0);
+	disk_io_test_suite(lt::mmap_disk_io_constructor, 3, false, false, sett);
+}
+#endif
+
 // same as test_pread_disk_io, but raises a fence (a no-op async_clear_piece)
 // before each piece's writes, so the writes and the hash are queued behind the
 // fence. This exercises that a piece's hash still reflects every write posted
@@ -923,6 +955,8 @@ TORRENT_TEST(pread_disk_io_flush_completes_each_piece)
 	fs.set_num_pieces(num_pieces);
 	lt::storage_holder storage =
 		add_test_torrent(*disk_thread, fs, "test_flush_completes_each_piece", true, false);
+	auto const stop_guard =
+		lt::aux::scope_end([&] { stop_test_torrent(*disk_thread, ios, storage); });
 
 	// generated up front, so that the other pieces are cached while the first
 	// one is written, and a single pass writes them one after the other
@@ -994,6 +1028,8 @@ TORRENT_TEST(pread_disk_io_flush_no_disk_threads)
 	fs.set_num_pieces(num_pieces);
 	lt::storage_holder storage =
 		add_test_torrent(*disk_thread, fs, "test_flush_no_disk_threads", true, false);
+	auto const stop_guard =
+		lt::aux::scope_end([&] { stop_test_torrent(*disk_thread, ios, storage); });
 
 	std::vector<std::vector<char>> buffers;
 	for (lt::piece_index_t const p : fs.piece_range())

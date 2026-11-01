@@ -541,7 +541,7 @@ namespace {
 			peer_log(peer_log_alert::info, peer_log_alert::encryption, "initiating encrypted handshake");
 #endif
 
-		m_dh_key_exchange.reset(new dh_key_exchange);
+		m_dh_key_exchange = std::make_unique<dh_key_exchange>();
 
 		int const pad_size = int(random(512));
 
@@ -1251,12 +1251,13 @@ namespace {
 		const char* ptr = recv_buffer.begin() + 1;
 
 		auto const file_root = sha256_hash(ptr);
-		file_index_t const file_index = files.file_index_for_root(file_root);
 		ptr += sha256_hash::size();
 		int const base = aux::read_int32(ptr);
 		int const index = aux::read_int32(ptr);
 		int const count = aux::read_int32(ptr);
 		int const proof_layers = aux::read_int32(ptr);
+		file_index_t const file_index =
+			file_for_hash_response(files, file_root, base, index, count, proof_layers);
 
 		hash_request const hr(file_index, base, index, count, proof_layers);
 
@@ -1343,12 +1344,13 @@ namespace {
 		const char* ptr = recv_buffer.begin() + 1;
 
 		auto const file_root = sha256_hash(ptr);
-		file_index_t const file_index = m_ti->layout().file_index_for_root(file_root);
 		ptr += sha256_hash::size();
 		int const base = aux::read_int32(ptr);
 		int const index = aux::read_int32(ptr);
 		int const count = aux::read_int32(ptr);
 		int const proof_layers = aux::read_int32(ptr);
+		file_index_t const file_index =
+			file_for_hash_response(m_ti->layout(), file_root, base, index, count, proof_layers);
 		hash_request hr(file_index, base, index, count, proof_layers);
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -1860,6 +1862,28 @@ namespace {
 #endif
 
 		send_buffer(buf);
+	}
+
+	file_index_t bt_peer_connection::file_for_hash_response(file_storage const& fs,
+		sha256_hash const& root,
+		int const base,
+		int const index,
+		int const count,
+		int const proof_layers) const
+	{
+		auto const req = std::find_if(
+			m_hash_requests.begin(), m_hash_requests.end(), [&](hash_request const& r) {
+				return fs.root(r.file) == root && r.base == base && r.index == index
+					&& r.count == count && r.proof_layers == proof_layers;
+			});
+		if (req == m_hash_requests.end())
+			return fs.file_index_for_root(root);
+
+		// torrents where files with the same root differ in size are rejected
+		// when loaded. Requests from peers name only the root, so we couldn't
+		// tell which tree they refer to
+		TORRENT_ASSERT(fs.file_size(req->file) == fs.file_size(fs.file_index_for_root(root)));
+		return req->file;
 	}
 
 	void bt_peer_connection::maybe_send_hash_request()

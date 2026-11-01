@@ -137,7 +137,10 @@ namespace libtorrent::aux {
 		// pick pieces in sequential order
 		static inline constexpr picker_options_t sequential = 4_bit;
 
-		// 5_bit is available
+		// don't fall back to completing partial pieces when there are too many
+		// of them. Used by peers that depend on large contiguous requests, such
+		// as web seeds
+		static inline constexpr picker_options_t ignore_partial_limit = 5_bit;
 
 		// only expands pieces (when prefer contiguous blocks is set)
 		// within properly aligned ranges, not the largest possible

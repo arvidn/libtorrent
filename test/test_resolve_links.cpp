@@ -185,6 +185,26 @@ struct trust_domain_test_t
 	std::size_t expected_matches;
 };
 
+std::shared_ptr<torrent_info const> make_v2_single_file(
+	std::int64_t const size, sha256_hash const& root)
+{
+	std::vector<lt::create_file_entry> fs;
+	fs.emplace_back("test_resolve_links_dir/file", size);
+	lt::create_torrent t(std::move(fs), 16 * 1024, lt::create_torrent::v2_only);
+	// a file of a single piece has the piece hash as its root
+	t.set_hash2(file_index_t{0}, piece_index_t::diff_type{0}, root);
+	return load_torrent_buffer(bencode(t.generate())).ti;
+}
+
+int match_links(
+	std::shared_ptr<torrent_info const> const& ti, std::shared_ptr<torrent_info const> const& other)
+{
+	aux::resolve_links l(ti);
+	renamed_files rf;
+	l.match(*other, filenames(other->layout(), rf), ".");
+	return int(count_matches(l));
+}
+
 } // anonymous namespace
 
 // resolve_links treats the SSL fingerprint as an opaque hash: it only
@@ -270,6 +290,21 @@ TORRENT_TEST(ssl_torrent_invalid_certificate)
 }
 
 #endif // TORRENT_SSL_PEERS
+
+// v2 files are matched by "pieces root" and file size. BEP 52 doesn't
+// distinguish leaf hashes from interior nodes, so a file with different content
+// may have the same root, but not the same size
+TORRENT_TEST(v2_match_root_and_size)
+{
+	sha256_hash const root("01234567890123456789012345678901");
+	auto const ti = make_v2_single_file(16 * 1024, root);
+
+	TEST_EQUAL(match_links(ti, make_v2_single_file(16 * 1024, root)), 1);
+	TEST_EQUAL(match_links(ti, make_v2_single_file(64, root)), 0);
+	TEST_EQUAL(match_links(ti,
+				   make_v2_single_file(16 * 1024, sha256_hash("98765432109876543210987654321098"))),
+		0);
+}
 
 TORRENT_TEST(pick_up_existing_file)
 {

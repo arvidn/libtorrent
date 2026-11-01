@@ -23,12 +23,19 @@ see LICENSE file.
 #include <memory>
 #include <string>
 
-std::array<char, 0x4000> generate_block_fill(lt::piece_index_t const p, int const block);
-lt::sha1_hash generate_hash1(lt::piece_index_t const p, lt::file_storage const& fs);
-lt::sha1_hash generate_hash2(lt::piece_index_t p, lt::file_storage const& fs
-	, lt::span<lt::sha256_hash> const hashes);
-lt::sha256_hash generate_block_hash(lt::piece_index_t p, int offset);
-void generate_block(char* b, lt::peer_request r, int pad_bytes, int piece_size);
+// content_period, when non-zero, makes the generated content repeat every
+// this many pieces
+std::array<char, 0x4000> generate_block_fill(lt::piece_index_t p, int block, int content_period);
+lt::sha1_hash generate_hash1(
+	lt::piece_index_t p, int piece_size, int pad_bytes, int content_period);
+lt::sha1_hash generate_hash2(lt::piece_index_t p,
+	int piece_size,
+	int piece_size2,
+	lt::span<lt::sha256_hash> hashes,
+	int pad_bytes,
+	int content_period);
+lt::sha256_hash generate_block_hash(lt::piece_index_t p, int offset, int content_period);
+void generate_block(char* b, lt::peer_request r, int pad_bytes, int piece_size, int content_period);
 lt::add_torrent_params create_test_torrent(int piece_size,
 	int num_pieces,
 	lt::create_flags_t flags,
@@ -38,6 +45,10 @@ lt::add_torrent_params create_test_torrent(int piece_size,
 lt::add_torrent_params create_test_torrent(
 	int num_pieces, lt::create_flags_t flags, int blocks_per_piece, int num_files = 1
 	, bool bad_v1_hashes = false);
+
+// a v2-only torrent with two identical files of num_pieces pieces each. The
+// test_disk must be configured with set_content_period(num_pieces)
+lt::add_torrent_params create_identical_files_torrent(int num_pieces, int blocks_per_piece);
 
 enum class existing_files_mode : std::uint8_t
 {
@@ -74,6 +85,12 @@ struct test_disk
 		auto ret = *this;
 		ret.corrupt_data_in = blocks;
 		ret.corrupt_piece = piece;
+		return ret;
+	}
+	test_disk set_content_period(int const pieces) const
+	{
+		auto ret = *this;
+		ret.content_period = pieces;
 		return ret;
 	}
 
@@ -125,6 +142,10 @@ struct test_disk
 	// setters make, and so the caller can read it back after handing a
 	// copy to disk_io_constructor.
 	std::shared_ptr<int> num_hash_calls = std::make_shared<int>(0);
+
+	// when non-zero, the generated content repeats every this many pieces, which
+	// makes piece-aligned files of this many pieces identical
+	int content_period = 0;
 };
 
 std::ostream& operator<<(std::ostream& os, existing_files_mode const mode);

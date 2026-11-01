@@ -20,6 +20,7 @@
 
 2.1.3 not released
 
+	* fix force_recheck() reusing stale hashes from the pread disk cache
 	* fix signed overflow in merkle_get_layer() for the largest v2 merkle trees
 	* fix memory leak verifying SSL torrent peer certificates with subject alt names
 	* fix web seed SSRF mitigation not applying to IPv6 addresses
@@ -99,6 +100,8 @@
 
 2.0.16 not released
 
+	* reject loading v2 torrents where files of different sizes share a pieces root
+	* fix byte counts of a seed's re-created piece picker leaving out pad bytes (a v2 torrent rechecked after a skipped file was deleted stayed below 100%)
 	* fix bind_to_device on windows
 	* fix rollback of move-storage
 	* fix renaming sanitized files back to their original name

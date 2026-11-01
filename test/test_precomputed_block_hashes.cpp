@@ -114,6 +114,17 @@ TORRENT_TEST(precomputed_block_hashes_drop)
 	TEST_CHECK(!cache.take_block(5_piece, 0).has_value());
 }
 
+// clear() discards the hashes of every piece
+TORRENT_TEST(precomputed_block_hashes_clear)
+{
+	precomputed_block_hashes cache;
+	cache.store(1_piece, 0, 2, test_hash(0));
+	cache.store(4_piece, 1, 2, test_hash(1));
+	cache.clear();
+	TEST_CHECK(cache.take(1_piece).empty());
+	TEST_CHECK(!cache.take_block(4_piece, 1).has_value());
+}
+
 // storing the same block twice overwrites the hash
 TORRENT_TEST(precomputed_block_hashes_overwrite)
 {

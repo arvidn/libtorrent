@@ -226,6 +226,10 @@ pread_storage::pread_storage(storage_params const& params, file_pool& pool)
 	{
 		m_stat_cache.reserve(files().num_files());
 
+		// a check follows, which must hash what is on disk now, not v2 block
+		// hashes left over from when the pieces were downloaded
+		m_precomputed_v2.clear();
+
 #ifdef TORRENT_WINDOWS
 		// don't do full file allocations on network drives
 		auto const file_name = convert_to_native_path_string(m_save_path);

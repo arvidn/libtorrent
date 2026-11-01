@@ -166,7 +166,7 @@ struct set_dont_frag
 udp_socket::udp_socket(io_context& ios, aux::listen_socket_handle ls)
 	: m_socket(ios)
 	, m_ioc(ios)
-	, m_buf(new receive_buffer())
+	, m_buf(std::make_unique<receive_buffer>())
 	, m_listen_socket(std::move(ls))
 	, m_bind_port(0)
 	, m_abort(true)
