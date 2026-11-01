@@ -10,10 +10,14 @@ see LICENSE file.
 #include "transfer_sim.hpp"
 #include "libtorrent/load_torrent.hpp"
 
+#include <functional>
 #include <set>
+#include <string_view>
+#include <variant>
 
 using namespace sim;
 using namespace lt;
+using namespace std::chrono_literals;
 
 TORRENT_TEST(socks4_tcp)
 {
@@ -110,6 +114,92 @@ TORRENT_TEST(socks5_tcp_ipv6)
 	);
 }
 */
+
+#if TORRENT_USE_I2P
+namespace {
+
+void run_i2p_test(test_transfer_flags_t const flags,
+	std::function<void(lt::session&, lt::session&)> setup = no_init,
+	std::function<void(lt::session&, lt::alert const*)> handler = {},
+	test_disk const seeder_disk = test_disk())
+{
+	bool i2p_peer = false;
+	bool ip_peer = false;
+	run_test(
+		[&](lt::session& ses0, lt::session& ses1) {
+			filter_ips(ses1);
+			setup(ses0, ses1);
+		},
+		[&](lt::session& ses, lt::alert const* a) {
+			if (auto const* pc = lt::alert_cast<lt::peer_connect_alert>(a))
+			{
+				if (std::holds_alternative<lt::sha256_hash>(pc->ep))
+					i2p_peer = true;
+				else
+					ip_peer = true;
+			}
+			if (handler)
+				handler(ses, a);
+		},
+		[&](std::shared_ptr<lt::session> ses[2]) {
+			expect_seed(!(flags & tx::corruption))(ses);
+			TEST_CHECK(i2p_peer);
+			TEST_CHECK(!ip_peer);
+		},
+		flags | tx::i2p,
+		test_disk(),
+		seeder_disk,
+		// SAM session setup alone takes several high latency round trips
+		120s);
+}
+
+}
+
+TORRENT_TEST(i2p) { run_i2p_test({}); }
+
+TORRENT_TEST(i2p_v2_only) { run_i2p_test(tx::v2_only); }
+
+TORRENT_TEST(i2p_v1_only) { run_i2p_test(tx::v1_only); }
+
+TORRENT_TEST(i2p_magnet) { run_i2p_test(tx::magnet_download); }
+
+TORRENT_TEST(i2p_resume_restart)
+{
+	run_i2p_test(tx::resume_restart, no_init, restore_from_resume());
+}
+
+#ifndef TORRENT_DISABLE_LOGGING
+// an i2p peer has no IP address, make sure it can still be banned for
+// sending corrupt data
+TORRENT_TEST(i2p_corruption)
+{
+	test_transfer_flags_t const flags = tx::corruption;
+	bool banned_peer = false;
+	run_i2p_test(
+		flags,
+		no_init,
+		[&](lt::session&, lt::alert const* a) {
+			if (auto const* log = lt::alert_cast<lt::torrent_log_alert>(a))
+			{
+				std::string_view const msg = log->log_message();
+				if (msg.find("Too many corrupt pieces") != std::string_view::npos
+					|| msg.find("BANNING PEER") != std::string_view::npos)
+					banned_peer = true;
+			}
+		},
+		test_disk().send_corrupt_data(num_pieces(flags) / 4 * blocks_per_piece(flags)));
+	TEST_CHECK(banned_peer);
+}
+#endif
+
+TORRENT_TEST(i2p_encryption)
+{
+	run_i2p_test({}, [](lt::session& ses0, lt::session& ses1) {
+		enable_enc(ses0);
+		enable_enc(ses1);
+	});
+}
+#endif
 
 TORRENT_TEST(no_proxy_tcp)
 {
