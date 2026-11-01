@@ -3993,7 +3993,10 @@ namespace {
 
 		need_peer_list();
 		torrent_state st = get_peer_list_state();
-		pex_flags_t const flags = v == protocol_version::V2 ? pex_lt_v2 : pex_flags_t(0);
+		pex_flags_t flags = v == protocol_version::V2 ? pex_lt_v2 : pex_flags_t(0);
+		// a v2-only torrent has no v1 info hash to connect with
+		if (!torrent_file().info_hashes().has_v1())
+			flags |= pex_lt_v2;
 		if (m_peer_list->add_i2p_peer(dest, peer_info::tracker, flags, &st))
 			state_updated();
 		peers_erased(st.erased);
