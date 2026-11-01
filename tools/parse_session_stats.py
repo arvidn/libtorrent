@@ -616,14 +616,17 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
         ),
         (
             "disk_queue",
-            "blocks (16kiB)",
+            "num",
             "",
-            "disk store-buffer size",
+            "number of disk jobs queued and in flight, by type",
             [
-                "disk.num_write_jobs",
-                "disk.num_read_jobs",
+                # drawn first (so drawn underneath) since these totals can
+                # coincide exactly with one of the more specific counts
+                # below, which would otherwise be hidden behind them
                 "disk.num_jobs",
                 "disk.queued_disk_jobs",
+                "disk.num_write_jobs",
+                "disk.num_read_jobs",
                 "disk.blocked_disk_jobs",
             ],
             {"category": "disk"},
