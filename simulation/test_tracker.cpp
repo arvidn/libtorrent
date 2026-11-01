@@ -36,6 +36,7 @@ see LICENSE file.
 
 using namespace lt;
 using namespace sim;
+using namespace std::chrono_literals;
 
 using chrono::duration_cast;
 
@@ -359,9 +360,9 @@ TORRENT_TEST(tracker_coalesce_keepalive_disabled) { test_tracker_coalesce_keepal
 // announce arriving within that window reuses it. Three torrents share one
 // tracker: the second is added while the first's connection is idle (inside
 // the window), the third after the window has expired. With the timeout set,
-// that is 2 connections for 3 announces; with it at 0 (the default, i.e. the
-// previous behaviour) every announce gets its own connection.
-void test_tracker_idle_keepalive(int const idle_timeout_ms)
+// that is 2 connections for 3 announces; with it at 0 (i.e. the previous
+// behaviour) every announce gets its own connection.
+void test_tracker_idle_keepalive(lt::milliseconds const idle_timeout)
 {
 	using sim::asio::ip::address_v4;
 	sim::default_config network_cfg;
@@ -382,7 +383,7 @@ void test_tracker_idle_keepalive(int const idle_timeout_ms)
 
 	lt::settings_pack pack = settings();
 	pack.set_str(settings_pack::listen_interfaces, "10.0.0.1:6881");
-	pack.set_int(settings_pack::tracker_connection_idle_timeout, idle_timeout_ms);
+	pack.set_int(settings_pack::tracker_connection_idle_timeout, int(idle_timeout.count()));
 	pack.set_int(settings_pack::torrent_connect_boost, 0);
 
 	auto ses = std::make_shared<lt::session>(pack, ios0);
@@ -398,13 +399,13 @@ void test_tracker_idle_keepalive(int const idle_timeout_ms)
 	// t=0: first torrent announces; its connection then idles (or closes)
 	add(0);
 	// t=1s: well inside a 3s idle window, long after the first response
-	sim::timer t_second(sim, lt::seconds(1), [&](boost::system::error_code const&) { add(1); });
+	sim::timer t_second(sim, 1s, [&](boost::system::error_code const&) { add(1); });
 	// t=6s: after the idle window has expired
-	sim::timer t_third(sim, lt::seconds(6), [&](boost::system::error_code const&) { add(2); });
+	sim::timer t_third(sim, 6s, [&](boost::system::error_code const&) { add(2); });
 
 	int connections = 0;
 	lt::session_proxy zombie;
-	sim::timer t_abort(sim, lt::seconds(8), [&](boost::system::error_code const&) {
+	sim::timer t_abort(sim, 8s, [&](boost::system::error_code const&) {
 		ran_to_completion = true;
 		// record before the stop-announces open their own connections
 		connections = http.accepted_connections();
@@ -418,11 +419,11 @@ void test_tracker_idle_keepalive(int const idle_timeout_ms)
 	TEST_EQUAL(announces, 3);
 	// idle keep-alive: 1st and 2nd share a connection, 3rd needs a new one.
 	// disabled: one connection per announce, as before.
-	TEST_EQUAL(connections, idle_timeout_ms > 0 ? 2 : 3);
+	TEST_EQUAL(connections, idle_timeout > 0ms ? 2 : 3);
 }
 
-TORRENT_TEST(tracker_idle_keepalive) { test_tracker_idle_keepalive(3000); }
-TORRENT_TEST(tracker_idle_keepalive_disabled) { test_tracker_idle_keepalive(0); }
+TORRENT_TEST(tracker_idle_keepalive) { test_tracker_idle_keepalive(3s); }
+TORRENT_TEST(tracker_idle_keepalive_disabled) { test_tracker_idle_keepalive(0ms); }
 
 TORRENT_TEST(tracker_coalesce_keepalive_after_error)
 {

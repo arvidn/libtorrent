@@ -34,6 +34,7 @@ see LICENSE file.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/string_util.hpp" // for is_i2p_url
 #include "libtorrent/aux_/session_settings.hpp"
+#include "libtorrent/aux_/scope_end.hpp"
 #include "libtorrent/time.hpp" // for milliseconds
 #include "libtorrent/aux_/resolver_interface.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp"
@@ -456,18 +457,21 @@ namespace libtorrent::aux {
 				return;
 			}
 
+			auto cl = aux::scope_end([this] { close(); });
+			if (m_man.has_queued_http() || m_man.is_stopping()) return;
+			if (!m_tracker_connection || !m_tracker_connection->reusable()) return;
+			if (m_mode != connection_mode_t::normal) return;
+
 			int const idle_ms =
 				m_man.settings().get_int(settings_pack::tracker_connection_idle_timeout);
-			int const cap =
+			if (idle_ms <= 0) return;
+
+			int const max_requests =
 				m_man.settings().get_int(settings_pack::max_tracker_connection_requests);
-			if (idle_ms > 0 && m_mode == connection_mode_t::normal && !m_man.is_stopping()
-				&& m_tracker_connection && m_tracker_connection->reusable()
-				&& (cap <= 0 || m_requests_sent < cap) && !m_man.has_queued_http())
-			{
-				enter_idle(idle_ms);
-				return;
-			}
-			close();
+			if (max_requests > 0 && m_requests_sent >= max_requests) return;
+
+			cl.disarm();
+			enter_idle(idle_ms);
 			return;
 		}
 
@@ -569,7 +573,6 @@ namespace libtorrent::aux {
 		// cancelled by queue_request() (a request arrived) or by close()
 		if (ec == boost::asio::error::operation_aborted || !m_idle)
 			return;
-		m_idle = false;
 		close();
 	}
 
