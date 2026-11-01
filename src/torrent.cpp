@@ -3676,6 +3676,8 @@ namespace {
 		TORRENT_UNUSED(tracker_ips);
 #endif
 
+		pex_flags_t flags = v == protocol_version::V2 ? pex_lt_v2 : pex_flags_t(0);
+
 		// for each of the peers we got from the tracker
 		for (auto const& i : resp.peers)
 		{
@@ -3692,14 +3694,14 @@ namespace {
 				{
 					ADD_OUTSTANDING_ASYNC("torrent::on_i2p_resolve");
 					r.i2pconn->async_name_lookup(i.hostname.c_str()
-						, [self = shared_from_this()] (error_code const& ec, char const* dest)
-						{ self->torrent::on_i2p_resolve(ec, dest); });
+						, [self = shared_from_this(), v] (error_code const& ec, char const* dest)
+						{ self->torrent::on_i2p_resolve(ec, dest, v); });
 				}
 				else
 				{
 					torrent_state st = get_peer_list_state();
 					need_peer_list();
-					if (m_peer_list->add_i2p_peer(i.hostname, peer_info::tracker, {}, &st))
+					if (m_peer_list->add_i2p_peer(i.hostname, peer_info::tracker, flags, &st))
 						state_updated();
 					peers_erased(st.erased);
 				}
@@ -3739,8 +3741,8 @@ namespace {
 
 				ADD_OUTSTANDING_ASYNC("torrent::on_i2p_resolve");
 				r.i2pconn->async_name_lookup(destination.c_str()
-					, [self = shared_from_this()] (error_code const& ec, char const* dest)
-					{ self->torrent::on_i2p_resolve(ec, dest); });
+					, [self = shared_from_this(), v] (error_code const& ec, char const* dest)
+					{ self->torrent::on_i2p_resolve(ec, dest, v); });
 			}
 		}
 #endif
@@ -3753,8 +3755,6 @@ namespace {
 		// 2. it might make sense to have a tracker extension in the future where
 		//    trackers records a peer's internal and external IP, and match up
 		//    peers on the same local network
-
-		pex_flags_t flags = v == protocol_version::V2 ? pex_lt_v2 : pex_flags_t(0);
 
 		bool need_update = false;
 		for (auto const& i : resp.peers4)
@@ -3977,7 +3977,8 @@ namespace {
 #endif
 
 #if TORRENT_USE_I2P
-	void torrent::on_i2p_resolve(error_code const& ec, char const* dest) try
+	void torrent::on_i2p_resolve(error_code const& ec, char const* dest
+		, protocol_version const v) try
 	{
 		TORRENT_ASSERT(is_single_thread());
 
@@ -3992,7 +3993,8 @@ namespace {
 
 		need_peer_list();
 		torrent_state st = get_peer_list_state();
-		if (m_peer_list->add_i2p_peer(dest, peer_info::tracker, {}, &st))
+		pex_flags_t const flags = v == protocol_version::V2 ? pex_lt_v2 : pex_flags_t(0);
+		if (m_peer_list->add_i2p_peer(dest, peer_info::tracker, flags, &st))
 			state_updated();
 		peers_erased(st.erased);
 

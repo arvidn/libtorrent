@@ -992,7 +992,8 @@ namespace libtorrent {
 		void completed();
 
 #if TORRENT_USE_I2P
-		void on_i2p_resolve(error_code const& ec, char const* dest);
+		void on_i2p_resolve(error_code const& ec, char const* dest
+			, protocol_version v);
 		bool is_i2p() const { return m_i2p; }
 
 		// returns true if this tracker URL is compatible with the torrent's
