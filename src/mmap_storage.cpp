@@ -747,10 +747,23 @@ mmap_storage::mmap_storage(
 
 			if (!handle->has_memory_map())
 			{
-				scratch.resize(std::size_t(buf.size()));
-				int const ret = aux::pread_all(handle->fd(), scratch, file_offset, ec.ec);
-				if (ec) return -1;
-				ph.update(scratch);
+				// pieces may be hundreds of MiB, bound the scratch buffer
+				std::ptrdiff_t constexpr max_chunk = 8 * 1024 * 1024;
+				scratch.resize(std::size_t(std::min(buf.size(), max_chunk)));
+				int ret = 0;
+				std::int64_t read_offset = file_offset;
+				std::ptrdiff_t left = buf.size();
+				while (left > 0)
+				{
+					span<char> const chunk = span<char>(scratch).first(std::min(left, max_chunk));
+					int const r = aux::pread_all(handle->fd(), chunk, read_offset, ec.ec);
+					if (ec)
+						return -1;
+					ph.update(chunk);
+					ret += r;
+					read_offset += r;
+					left -= r;
+				}
 				return ret;
 			}
 
