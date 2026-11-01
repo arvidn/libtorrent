@@ -147,5 +147,8 @@ jobs:
       run: |
         # Exporting SYSTEM_VERSION_COMPAT=0 helps pip allow install macos 11 tagged wheels. Ref https://github.com/pypa/packaging/issues/497
         export SYSTEM_VERSION_COMPAT=0
-        export PYTHON_INTERPRETER=$(brew --prefix)/opt/python@$PY_VER/bin/python3
-        tox -e py
+        # tox builds its env from the interpreter it runs under, so run it
+        # from brew's python, the one boost-python3 is linked against
+        "$(brew --prefix)/opt/python@$PY_VER/bin/python3" -m venv "$RUNNER_TEMP/tox"
+        "$RUNNER_TEMP/tox/bin/python" -m pip install tox
+        "$RUNNER_TEMP/tox/bin/tox" -e py
