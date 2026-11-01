@@ -34,6 +34,8 @@ see LICENSE file.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/aux_/string_util.hpp" // for is_i2p_url
 #include "libtorrent/aux_/session_settings.hpp"
+#include "libtorrent/aux_/scope_end.hpp"
+#include "libtorrent/time.hpp" // for milliseconds
 #include "libtorrent/aux_/resolver_interface.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp"
 #include "libtorrent/ip_filter.hpp"
@@ -89,6 +91,7 @@ namespace libtorrent::aux {
 		, std::weak_ptr<request_callback> c)
 		: tracker_connection(man, std::move(req), ios, std::move(c))
 		, m_ioc(ios)
+		, m_idle_timer(ios)
 	{}
 
 	void http_tracker_connection::start() { send_request(); }
@@ -424,6 +427,13 @@ namespace libtorrent::aux {
 		else
 			m_followers.emplace_back(std::move(req), std::move(c));
 		m_man.inc_queued_requests();
+
+		if (m_idle)
+		{
+			m_idle = false;
+			m_idle_timer.cancel();
+			next_request();
+		}
 	}
 
 	void http_tracker_connection::on_write_complete(aux::http_connection&)
@@ -446,7 +456,22 @@ namespace libtorrent::aux {
 				m_mode = connection_mode_t::flushing;
 				return;
 			}
-			close();
+
+			auto cl = aux::scope_end([this] { close(); });
+			if (m_man.has_queued_http() || m_man.is_stopping()) return;
+			if (!m_tracker_connection || !m_tracker_connection->reusable()) return;
+			if (m_mode != connection_mode_t::normal) return;
+
+			int const idle_ms =
+				m_man.settings().get_int(settings_pack::tracker_connection_idle_timeout);
+			if (idle_ms <= 0) return;
+
+			int const max_requests =
+				m_man.settings().get_int(settings_pack::max_tracker_connection_requests);
+			if (max_requests > 0 && m_requests_sent >= max_requests) return;
+
+			cl.disarm();
+			enter_idle(idle_ms);
 			return;
 		}
 
@@ -533,8 +558,29 @@ namespace libtorrent::aux {
 			m_followers.end());
 	}
 
+	void http_tracker_connection::enter_idle(int const idle_ms)
+	{
+		TORRENT_ASSERT(m_followers.empty());
+		TORRENT_ASSERT(!m_req_pending);
+		m_idle = true;
+		m_idle_timer.expires_after(milliseconds(idle_ms));
+		m_idle_timer.async_wait(std::bind(
+			&http_tracker_connection::on_idle_timeout, shared_from_this(), std::placeholders::_1));
+	}
+
+	void http_tracker_connection::on_idle_timeout(error_code const& ec)
+	{
+		// cancelled by queue_request() (a request arrived) or by close()
+		if (ec == boost::asio::error::operation_aborted || !m_idle)
+			return;
+		close();
+	}
+
 	void http_tracker_connection::close()
 	{
+		m_idle = false;
+		m_idle_timer.cancel();
+
 		// m_req itself (as opposed to m_followers, handled below) is only
 		// ever torn down here without its outcome having been reported when
 		// this connection is closed directly by the manager (e.g. aborting a

@@ -36,6 +36,7 @@ see LICENSE file.
 
 using namespace lt;
 using namespace sim;
+using namespace std::chrono_literals;
 
 using chrono::duration_cast;
 
@@ -353,6 +354,76 @@ void test_tracker_coalesce_keepalive(bool const disable_reuse)
 
 TORRENT_TEST(tracker_coalesce_keepalive) { test_tracker_coalesce_keepalive(false); }
 TORRENT_TEST(tracker_coalesce_keepalive_disabled) { test_tracker_coalesce_keepalive(true); }
+
+// settings_pack::tracker_connection_idle_timeout keeps a tracker connection
+// open for a while after its last coalesced request was answered, so an
+// announce arriving within that window reuses it. Three torrents share one
+// tracker: the second is added while the first's connection is idle (inside
+// the window), the third after the window has expired. With the timeout set,
+// that is 2 connections for 3 announces; with it at 0 (i.e. the previous
+// behaviour) every announce gets its own connection.
+void test_tracker_idle_keepalive(lt::milliseconds const idle_timeout)
+{
+	using sim::asio::ip::address_v4;
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+	sim::asio::io_context ios0{sim, make_address_v4("10.0.0.1")};
+	sim::asio::io_context web_server{sim, make_address_v4("2.2.2.2")};
+	sim::http_server http(web_server, 8080);
+
+	bool ran_to_completion = false;
+	int announces = 0;
+	http.register_handler("/announce",
+		[&](std::string /* method */, std::string /* req */, std::map<std::string, std::string>&) {
+			if (!ran_to_completion)
+				++announces;
+			std::string const body = "d8:intervali1800e5:peers0:e";
+			return sim::send_response(200, "OK", int(body.size())) + body;
+		});
+
+	lt::settings_pack pack = settings();
+	pack.set_str(settings_pack::listen_interfaces, "10.0.0.1:6881");
+	pack.set_int(settings_pack::tracker_connection_idle_timeout, int(idle_timeout.count()));
+	pack.set_int(settings_pack::torrent_connect_boost, 0);
+
+	auto ses = std::make_shared<lt::session>(pack, ios0);
+
+	auto const add = [&](int const idx) {
+		lt::add_torrent_params params = ::create_torrent(idx, true, 9, lt::create_torrent::v1_only);
+		params.flags &= ~lt::torrent_flags::auto_managed;
+		params.flags &= ~lt::torrent_flags::paused;
+		params.trackers.push_back("http://2.2.2.2:8080/announce");
+		ses->async_add_torrent(std::move(params));
+	};
+
+	// t=0: first torrent announces; its connection then idles (or closes)
+	add(0);
+	// t=1s: well inside a 3s idle window, long after the first response
+	sim::timer t_second(sim, 1s, [&](boost::system::error_code const&) { add(1); });
+	// t=6s: after the idle window has expired
+	sim::timer t_third(sim, 6s, [&](boost::system::error_code const&) { add(2); });
+
+	int connections = 0;
+	lt::session_proxy zombie;
+	sim::timer t_abort(sim, 8s, [&](boost::system::error_code const&) {
+		ran_to_completion = true;
+		// record before the stop-announces open their own connections
+		connections = http.accepted_connections();
+		zombie = ses->abort();
+		ses.reset();
+	});
+
+	sim.run();
+
+	TEST_CHECK(ran_to_completion);
+	TEST_EQUAL(announces, 3);
+	// idle keep-alive: 1st and 2nd share a connection, 3rd needs a new one.
+	// disabled: one connection per announce, as before.
+	TEST_EQUAL(connections, idle_timeout > 0ms ? 2 : 3);
+}
+
+TORRENT_TEST(tracker_idle_keepalive) { test_tracker_idle_keepalive(3s); }
+TORRENT_TEST(tracker_idle_keepalive_disabled) { test_tracker_idle_keepalive(0ms); }
 
 TORRENT_TEST(tracker_coalesce_keepalive_after_error)
 {

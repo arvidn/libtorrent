@@ -21,6 +21,7 @@ see LICENSE file.
 #include "libtorrent/peer_id.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/tracker_manager.hpp" // for tracker_connection
+#include "libtorrent/aux_/deadline_timer.hpp"
 
 namespace libtorrent {
 
@@ -90,6 +91,13 @@ namespace libtorrent::aux {
 
 		void on_timeout(error_code const&) override {}
 
+		// keep the connection and its pool entry open for
+		// settings_pack::tracker_connection_idle_timeout after the follower
+		// queue drained, so that a request arriving in that window is issued
+		// over the same socket.
+		void enter_idle(int idle_ms);
+		void on_idle_timeout(error_code const& ec);
+
 		std::shared_ptr<aux::http_connection> m_tracker_connection;
 		address m_tracker_ip;
 		io_context& m_ioc;
@@ -135,6 +143,9 @@ namespace libtorrent::aux {
 		// first dispatch by a tick (see send_request()), so it only ever
 		// defers once and does not loop.
 		bool m_first_dispatch_deferred = false;
+
+		aux::deadline_timer m_idle_timer;
+		bool m_idle = false;
 	};
 
 	TORRENT_EXTRA_EXPORT tracker_response parse_tracker_response(
