@@ -684,14 +684,15 @@ private:
 		if (!ec && dest != nullptr)
 		{
 			m_i2p_local_endpoint = dest;
-		}
-		else
-		{
-			m_i2p_local_endpoint.clear();
-			drop_session(ec ? ec : error_code(errors::no_i2p_router));
+			h(ec);
+			return;
 		}
 
-		h(ec);
+		// the session is unusable without our destination
+		error_code const err = ec ? ec : error_code(errors::no_i2p_router);
+		m_i2p_local_endpoint.clear();
+		drop_session(err);
+		h(err);
 	}
 
 	// to talk to i2p SAM bridge
