@@ -4347,11 +4347,18 @@ class torrent_handle(metaclass=_BoostBaseClass):
         clear_piece_deadlines( (torrent_handle)index) -> None :
         """
 
+    @overload
     def connect_peer(
         self, _endpoint: tuple[str, int], source: int = 0, flags: int = 13
     ) -> None:
         """
         connect_peer( (torrent_handle)arg1, (object)endpoint [, (object)source=0 [, (object)flags=13]]) -> None :
+        """
+
+    @overload
+    def connect_peer(self, i2p_dest: sha256_hash, source: int = 0) -> None:
+        """
+        connect_peer( (torrent_handle)arg1, (sha256_hash)i2p_dest [, (object)source=0]) -> None :
         """
 
     def download_limit(self) -> int:

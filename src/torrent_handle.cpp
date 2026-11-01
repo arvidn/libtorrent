@@ -1182,6 +1182,17 @@ namespace libtorrent {
 		async_call(&aux::torrent::add_peer, adr, source, flags);
 	}
 
+	void torrent_handle::connect_peer(
+		sha256_hash const& i2p_dest, peer_source_flags_t const source) const
+	{
+#if TORRENT_USE_I2P
+		async_call(&aux::torrent::add_i2p_peer, i2p_dest, source);
+#else
+		TORRENT_UNUSED(i2p_dest);
+		TORRENT_UNUSED(source);
+#endif
+	}
+
 	void torrent_handle::clear_peers()
 	{
 		async_call(&aux::torrent::clear_peers);

@@ -1309,6 +1309,16 @@ namespace aux {
 		void connect_peer(tcp::endpoint const& adr, peer_source_flags_t source = {}
 			, pex_flags_t flags = pex_encryption | pex_utp | pex_holepunch) const;
 
+		// Connect to an i2p peer, identified by the SHA-256 hash of its i2p
+		// destination (the same form as peer_info::i2p_destination()). The
+		// destination is resolved via the SAM bridge before connecting, so this
+		// requires a SAM bridge to be configured (see
+		// settings_pack::i2p_hostname). If the SAM connection is not
+		// established yet, the request is queued until it is. If no SAM bridge
+		// is configured, or libtorrent was built without i2p support, this call
+		// has no effect.
+		void connect_peer(sha256_hash const& i2p_dest, peer_source_flags_t source = {}) const;
+
 		// This will disconnect all peers and clear the peer list for this
 		// torrent. New peers will have to be acquired before resuming, from
 		// trackers, DHT or local service discovery, for example.
