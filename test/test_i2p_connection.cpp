@@ -22,6 +22,11 @@ see LICENSE file.
 #include <functional>
 #include <memory>
 #include <string>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <cstdio>
+#include <cstdlib>
 
 using namespace lt;
 using namespace std::chrono_literals;
@@ -42,27 +47,102 @@ auto record(std::shared_ptr<lookup_result> r)
 	};
 }
 
-// a hang must fail the test, not time out the whole test run
-void run_to_completion(io_context& ios)
+// TEMPORARY: diagnostics for a hang on windows CI. stderr is not redirected
+// by the test runner, and exiting before b2's time limit makes b2 print it
+struct hang_watchdog
 {
+	hang_watchdog()
+		: m_thread([this] {
+			std::unique_lock<std::mutex> l(m_mutex);
+			while (!m_quit)
+			{
+				m_cond.wait_for(l, 1s);
+				if (std::chrono::steady_clock::now() - m_last > 60s)
+				{
+					std::fprintf(stderr, "HANG DETECTED in phase: %s\n", m_phase.c_str());
+					std::fflush(stderr);
+					std::_Exit(1);
+				}
+			}
+		})
+	{}
+
+	~hang_watchdog()
+	{
+		{
+			std::lock_guard<std::mutex> l(m_mutex);
+			m_quit = true;
+		}
+		m_cond.notify_all();
+		m_thread.join();
+	}
+
+	void phase(std::string p)
+	{
+		std::lock_guard<std::mutex> l(m_mutex);
+		auto const now = std::chrono::steady_clock::now();
+		std::fprintf(stderr, "[%7.3f] %s\n"
+			, std::chrono::duration<double>(now - m_start).count(), p.c_str());
+		std::fflush(stderr);
+		m_phase = std::move(p);
+		m_last = now;
+	}
+
+private:
+	std::mutex m_mutex;
+	std::condition_variable m_cond;
+	std::chrono::steady_clock::time_point const m_start = std::chrono::steady_clock::now();
+	std::chrono::steady_clock::time_point m_last = m_start;
+	std::string m_phase = "init";
+	bool m_quit = false;
+	std::thread m_thread;
+};
+
+hang_watchdog g_watchdog;
+
+// declared right after the io_context, so its destructor marks the start of
+// ~io_context
+struct phase_marker
+{
+	explicit phase_marker(char const* name) : m_name(name)
+	{ g_watchdog.phase(m_name + ": start"); }
+	~phase_marker() { g_watchdog.phase(m_name + ": ~io_context"); }
+	std::string m_name;
+};
+
+// a hang must fail the test, not time out the whole test run
+void run_to_completion(io_context& ios, int const line)
+{
+	g_watchdog.phase("run_to_completion line " + std::to_string(line));
+	auto const start = std::chrono::steady_clock::now();
 	ios.restart();
 	ios.run_for(10s);
+	g_watchdog.phase("  returned after "
+		+ std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(
+			std::chrono::steady_clock::now() - start).count())
+		+ " ms, stopped: " + std::to_string(ios.stopped()));
 	TEST_CHECK(ios.stopped());
 }
 
-void run_until(io_context& ios, bool const& done)
+void run_until(io_context& ios, bool const& done, int const line)
 {
+	g_watchdog.phase("run_until line " + std::to_string(line));
 	auto const deadline = std::chrono::steady_clock::now() + 10s;
 	while (!done && ios.run_one_until(deadline))
 	{}
+	g_watchdog.phase("  done: " + std::to_string(done));
 	TEST_CHECK(done);
 }
+
+#define run_to_completion(ios) run_to_completion(ios, __LINE__)
+#define run_until(ios, done) run_until(ios, done, __LINE__)
 
 }
 
 TORRENT_TEST(name_lookup_without_session)
 {
 	io_context ios;
+	phase_marker const marker("name_lookup_without_session");
 	i2p_connection conn(ios);
 
 	auto const r = std::make_shared<lookup_result>();
@@ -77,6 +157,7 @@ TORRENT_TEST(name_lookup_without_session)
 TORRENT_TEST(close_aborts_queued_name_lookups)
 {
 	io_context ios;
+	phase_marker const marker("close_aborts_queued_name_lookups");
 
 	// a SAM bridge that never answers keeps the session connecting
 	tcp::acceptor sam(ios, tcp::endpoint(make_address_v4("127.0.0.1"), 0), false);
@@ -126,6 +207,7 @@ TORRENT_TEST(close_aborts_queued_name_lookups)
 TORRENT_TEST(failed_sam_connect_aborts_queued_name_lookups)
 {
 	io_context ios;
+	phase_marker const marker("failed_sam_connect_aborts_queued_name_lookups");
 
 	tcp::acceptor sam(ios, tcp::endpoint(make_address_v4("127.0.0.1"), 0), false);
 	tcp::socket sam_conn(ios);
@@ -161,6 +243,7 @@ TORRENT_TEST(failed_sam_connect_aborts_queued_name_lookups)
 TORRENT_TEST(open_closes_replaced_session)
 {
 	io_context ios;
+	phase_marker const marker("open_closes_replaced_session");
 
 	// the first SAM bridge never answers, reading is only to detect the
 	// client closing the connection
@@ -216,6 +299,7 @@ TORRENT_TEST(open_closes_replaced_session)
 TORRENT_TEST(sam_error_reply_drops_session)
 {
 	io_context ios;
+	phase_marker const marker("sam_error_reply_drops_session");
 
 	// a SAM bridge that rejects HELLO but leaves its end of the connection
 	// open, reading on is only to detect the client closing it
@@ -295,6 +379,7 @@ TORRENT_TEST(sam_error_reply_drops_session)
 TORRENT_TEST(closed_sam_socket_fails_name_lookups)
 {
 	io_context ios;
+	phase_marker const marker("closed_sam_socket_fails_name_lookups");
 
 	// a SAM bridge that sets up the session, then drops the connection on the
 	// first name lookup
@@ -377,6 +462,7 @@ TORRENT_TEST(closed_sam_socket_fails_name_lookups)
 TORRENT_TEST(oversized_name_lookup_fails_queued_name_lookups)
 {
 	io_context ios;
+	phase_marker const marker("oversized_name_lookup_fails_queued_name_lookups");
 
 	// a SAM bridge that sets up the session and then only reads, to detect
 	// the client closing the connection
