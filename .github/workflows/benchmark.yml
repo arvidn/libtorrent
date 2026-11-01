@@ -1,9 +1,6 @@
 name: Benchmark
 
-on:
-   push:
-      branches: [ RC_2_1, master ]
-   pull_request:
+on: workflow_dispatch
 
 concurrency:
    group: ${{ github.ref }}-${{ github.workflow }}-${{ github.event_name }}

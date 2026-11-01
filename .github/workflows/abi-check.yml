@@ -6,9 +6,7 @@ name: ABI check
 # branches, whenever a new RC_* branch is cut. master intentionally has no
 # baseline, since ABI-breaking changes are expected to land there.
 
-on:
-   pull_request:
-      branches: [ RC_2_1 ]
+on: workflow_dispatch
 
 concurrency:
    group: ${{ github.ref }}-${{ github.workflow }}-${{ github.event_name }}
