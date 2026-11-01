@@ -1864,33 +1864,30 @@ TORRENT_TEST(write_torrent_file_identical_files)
 	add_torrent_params const atp = load_test_torrent("v2_identical_files.torrent", data);
 	file_storage const& fs = atp.ti->files();
 	TEST_EQUAL(fs.num_files(), 3);
-	TEST_CHECK(fs.root(file_index_t{0}) == fs.root(file_index_t{1}));
-	TEST_CHECK(fs.root(file_index_t{0}) == fs.root(file_index_t{2}));
+	TEST_CHECK(fs.root(0_file) == fs.root(1_file));
+	TEST_CHECK(fs.root(0_file) == fs.root(2_file));
 
 	auto const write = [&](std::initializer_list<file_index_t> const keep
 		, write_torrent_flags_t const flags)
 	{ return write_torrent_file_buf(keep_merkle_trees(atp, keep), flags); };
 
 	auto const allow = write_flags::allow_missing_piece_layer;
-	file_index_t const f0{0};
-	file_index_t const f1{1};
-	file_index_t const f2{2};
 
 	TEST_CHECK(write_torrent_file_buf(atp, {}) == data);
 	TEST_CHECK(write_torrent_file_buf(atp, allow) == data);
 
-	TEST_CHECK(write({f0}, {}) == data);
-	TEST_CHECK(write({f0, f1}, {}) == data);
-	TEST_CHECK(write({f0, f2}, {}) == data);
-	TEST_THROW(write({f1}, {}));
-	TEST_THROW(write({f2}, {}));
-	TEST_THROW(write({f1, f2}, {}));
+	TEST_CHECK(write({0_file}, {}) == data);
+	TEST_CHECK(write({0_file, 1_file}, {}) == data);
+	TEST_CHECK(write({0_file, 2_file}, {}) == data);
+	TEST_THROW(write({1_file}, {}));
+	TEST_THROW(write({2_file}, {}));
+	TEST_THROW(write({1_file, 2_file}, {}));
 	TEST_THROW(write({}, {}));
 
-	TEST_CHECK(write({f0}, allow) == data);
-	TEST_CHECK(write({f1}, allow) == data);
-	TEST_CHECK(write({f2}, allow) == data);
-	TEST_CHECK(write({f1, f2}, allow) == data);
+	TEST_CHECK(write({0_file}, allow) == data);
+	TEST_CHECK(write({1_file}, allow) == data);
+	TEST_CHECK(write({2_file}, allow) == data);
+	TEST_CHECK(write({1_file, 2_file}, allow) == data);
 
 	entry const e = write_torrent_file(keep_merkle_trees(atp, {}), allow);
 	TEST_CHECK(e["piece layers"].dict().empty());

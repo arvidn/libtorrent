@@ -80,6 +80,7 @@ TORRENT_TEST(error_code)
 	TEST_CHECK(error_code(errors::blocked_by_idna).message() == "blocked by IDNA ban");
 
 	TEST_CHECK(error_code(errors::torrent_inconsistent_hashes).message() == "v1 and v2 hashes do not describe the same data");
+	TEST_CHECK(error_code(errors::torrent_inconsistent_file_roots).message() == "files with the same root hash have different sizes");
 
 	TEST_CHECK(error_code(errors::unauthorized, http_category()).message()
 		== "401 Unauthorized");
