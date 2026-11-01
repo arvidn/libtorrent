@@ -5200,8 +5200,14 @@ namespace {
 				{
 					peer_id const pid = p->connection
 						? p->connection->pid() : peer_id();
-					m_ses.alerts().emplace_alert<peer_ban_alert>(
-						get_handle(), p->ip(), pid);
+#if TORRENT_USE_I2P
+					peer_endpoint_t const ep = p->is_i2p_addr
+						? peer_endpoint_t(i2p_destination_hash(p->dest()))
+						: peer_endpoint_t(p->ip());
+#else
+					peer_endpoint_t const ep = p->ip();
+#endif
+					m_ses.alerts().emplace_alert<peer_ban_alert>(get_handle(), ep, pid);
 				}
 
 				// mark the peer as banned
