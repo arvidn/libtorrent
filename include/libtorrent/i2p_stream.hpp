@@ -311,6 +311,7 @@ private:
 		{ handle_error(invalid_response, h); return; }
 
 		int result = 0;
+		bool has_value = false;
 
 		for(;;)
 		{
@@ -357,6 +358,7 @@ private:
 			else if ("VALUE"_sv == name)
 			{
 				m_name_lookup = value;
+				has_value = !value.empty();
 			}
 			else if ("DESTINATION"_sv == name)
 			{
@@ -368,6 +370,14 @@ private:
 		if (ec)
 		{
 			std::forward<Handler>(h)(ec);
+			return;
+		}
+
+		// m_name_lookup still holds the name that was looked up, it must not be
+		// mistaken for the destination
+		if (m_state == read_name_lookup_response && !has_value)
+		{
+			handle_error(invalid_response, h);
 			return;
 		}
 
@@ -682,17 +692,19 @@ private:
 			return;
 		}
 
-		if (!ec && dest != nullptr)
-		{
-			m_i2p_local_endpoint = dest;
-		}
-		else
+		error_code const e = (!ec && (dest == nullptr || *dest == '\0'))
+			? error_code(i2p_error::parse_failed, i2p_category())
+			: ec;
+
+		if (e || dest == nullptr)
 		{
 			m_i2p_local_endpoint.clear();
-			drop_session(ec ? ec : error_code(errors::no_i2p_router));
+			drop_session(e);
 		}
+		else
+			m_i2p_local_endpoint = dest;
 
-		h(ec);
+		h(e);
 	}
 
 	// to talk to i2p SAM bridge

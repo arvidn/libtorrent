@@ -3937,6 +3937,9 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 #endif
 
 		pex_flags_t flags = v == protocol_version::V2 ? pex_lt_v2 : pex_flags_t(0);
+		// a v2-only torrent has no v1 info hash to connect with
+		if (!torrent_file().info_hashes().has_v1())
+			flags |= pex_lt_v2;
 
 		// for each of the peers we got from the tracker
 		for (auto const& i : resp.peers)
@@ -4318,10 +4321,8 @@ namespace {
 			});
 	}
 
-	void torrent::on_i2p_resolve(error_code const& ec,
-		char const* dest,
-		peer_source_flags_t const source,
-		pex_flags_t const flags)
+	void torrent::on_i2p_resolve(
+		error_code const& ec, char const* dest, peer_source_flags_t const source, pex_flags_t flags)
 	try
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -4335,6 +4336,9 @@ namespace {
 #endif
 		if (ec || m_abort || m_ses.is_aborted()) return;
 
+		// a v2-only torrent has no v1 info hash to connect with
+		if (!torrent_file().info_hashes().has_v1())
+			flags |= pex_lt_v2;
 		need_peer_list();
 		torrent_state st = get_peer_list_state();
 		if (m_peer_list->add_i2p_peer(dest, source, flags, &st))
