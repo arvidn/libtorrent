@@ -165,8 +165,8 @@ namespace libtorrent::aux {
 		if (t.alerts().should_post<picker_log_alert>()
 			&& !interesting_pieces.empty())
 		{
-			t.alerts().emplace_alert<picker_log_alert>(t.get_handle(), c.remote()
-				, c.pid(), flags, interesting_pieces);
+			t.alerts().emplace_alert<picker_log_alert>(
+				t.get_handle(), c.remote_endpoint(), c.pid(), flags, interesting_pieces);
 		}
 		c.peer_log(peer_log_alert::info, peer_log_alert::piece_picker
 			, "prefer_contiguous: %d picked: %d"

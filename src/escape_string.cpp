@@ -27,6 +27,7 @@ see LICENSE file.
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/parse_url.hpp"
+#include "libtorrent/hasher.hpp"
 
 #include "libtorrent/aux_/utf8.hpp"
 #include "libtorrent/aux_/escape_string.hpp"
@@ -327,6 +328,11 @@ namespace {
 				ret.push_back(tmp[2]);
 		}
 		return ret;
+	}
+
+	sha256_hash i2p_destination_hash(string_view const dest)
+	{
+		return hasher256(base64decode_i2p(dest)).final();
 	}
 
 	std::string base32encode_i2p(span<char const> s)

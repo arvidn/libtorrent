@@ -482,7 +482,7 @@ namespace {
 			{
 				try
 				{
-					sha256_hash const b32_addr = hasher256(base64decode_i2p(pi->dest())).final();
+					sha256_hash const b32_addr = i2p_destination_hash(pi->dest());
 					p.set_i2p_destination(b32_addr);
 				}
 				catch (lt::system_error const&)
