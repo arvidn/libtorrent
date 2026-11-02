@@ -14,12 +14,23 @@ see LICENSE file.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/create_torrent.hpp"
+#include "libtorrent/settings_pack.hpp"
+#include "libtorrent/session_params.hpp" // for disk_io_constructor_type
+#include "libtorrent/session.hpp" // for default_disk_io_constructor
+#include "libtorrent/mmap_disk_io.hpp"
+#include "libtorrent/pread_disk_io.hpp"
+#include "libtorrent/posix_disk_io.hpp"
+#include "libtorrent/string_view.hpp"
 
+#include <chrono>
+#include <cinttypes>
 #include <functional>
+#include <numeric>
 #include <cstdio>
 #include <sstream>
 #include <fstream>
 #include <iostream>
+#include <thread>
 
 #ifdef TORRENT_WINDOWS
 #include <direct.h> // for _getcwd
@@ -28,6 +39,8 @@ see LICENSE file.
 namespace {
 
 using namespace std::placeholders;
+using namespace std::literals::chrono_literals;
+using lt::operator""_sv;
 
 std::vector<char> load_file(std::string const& filename)
 {
@@ -121,8 +134,15 @@ OPTIONS:
 -L collection add a collection name to this torrent. Other torrents
               in the same collection is expected to share files
               with this one.
+-1            Only generate V1 metadata
 -2            Only generate V2 metadata
 -T            Include file timestamps in the .torrent file.
+-i backend    disk I/O backend used for hashing: mmap | pread | posix
+              (default: compiled-in default)
+-a threads    number of disk I/O threads (settings_pack::aio_threads)
+-H threads    number of hashing threads, at least 1 (settings_pack::hashing_threads)
+-p seconds    sleep this long before hashing starts (not counted in the
+              reported hash rate), so an external profiler has time to attach
 )";
 	std::exit(1);
 }
@@ -144,6 +164,9 @@ int main(int argc_, char const* argv_[]) try
 	int piece_size = 0;
 	lt::create_flags_t flags = {};
 	std::string root_cert;
+	lt::disk_io_constructor_type disk_io = lt::default_disk_io_constructor;
+	lt::settings_pack sett;
+	int start_delay = 0;
 
 	std::string outfile;
 #ifdef TORRENT_WINDOWS
@@ -165,6 +188,9 @@ int main(int argc_, char const* argv_[]) try
 			case 'l':
 				flags |= lt::create_torrent::symlinks;
 				continue;
+			case '1':
+				flags |= lt::create_torrent::v1_only;
+				continue;
 			case '2':
 				flags |= lt::create_torrent::v2_only;
 				continue;
@@ -185,6 +211,41 @@ int main(int argc_, char const* argv_[]) try
 			case 'c': comment_str = args[1]; break;
 			case 'r': root_cert = args[1]; break;
 			case 'L': collections.push_back(args[1]); break;
+			case 'a':
+				sett.set_int(lt::settings_pack::aio_threads, atoi(args[1]));
+				break;
+			case 'H': {
+				int const hashing_threads = atoi(args[1]);
+				if (hashing_threads < 1)
+				{
+					std::cerr << "-H must be at least 1\n";
+					return 1;
+				}
+				sett.set_int(lt::settings_pack::hashing_threads, hashing_threads);
+				break;
+			}
+			case 'p':
+				start_delay = atoi(args[1]);
+				break;
+			case 'i': {
+				lt::string_view const backend = args[1];
+				if (backend == "posix"_sv)
+					disk_io = lt::posix_disk_io_constructor;
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
+				else if (backend == "mmap"_sv)
+					disk_io = lt::mmap_disk_io_constructor;
+#endif
+#if TORRENT_HAVE_PREAD || defined TORRENT_WINDOWS
+				else if (backend == "pread"_sv)
+					disk_io = lt::pread_disk_io_constructor;
+#endif
+				else
+				{
+					std::cerr << "unknown disk-io backend: \"" << args[1] << "\"\n";
+					return 1;
+				}
+				break;
+			}
 			case 'S': {
 				if (strlen(args[1]) != 40) {
 					std::cerr << "invalid info-hash for -S. "
@@ -235,12 +296,24 @@ int main(int argc_, char const* argv_[]) try
 #endif
 	}
 
+	if ((flags & lt::create_torrent::v1_only) && (flags & lt::create_torrent::v2_only))
+	{
+		std::cerr << "-1 and -2 are mutually exclusive\n";
+		return 1;
+	}
+
 	std::vector<lt::create_file_entry> fs
 		= lt::list_files(full_path, file_filter, flags);
 	if (fs.empty()) {
 		std::cerr << "no files specified.\n";
 		return 1;
 	}
+
+	// excludes the pad files create_torrent inserts, since those are never read
+	std::int64_t const bytes_hashed = std::accumulate(fs.begin(),
+		fs.end(),
+		std::int64_t{0},
+		[](std::int64_t const acc, lt::create_file_entry const& fe) { return acc + fe.size; });
 
 	lt::create_torrent t(std::move(fs), piece_size, flags);
 	int tier = 0;
@@ -258,13 +331,38 @@ int main(int argc_, char const* argv_[]) try
 	for (lt::sha1_hash const& s : similar)
 		t.add_similar_torrent(s);
 
-	auto const num = t.num_pieces();
-	lt::set_piece_hashes(t, branch_path(full_path)
-		, [num] (lt::piece_index_t const p) {
-			std::cerr << "\r" << p << "/" << num;
-		});
+	if (start_delay > 0)
+		std::this_thread::sleep_for(start_delay * 1s);
 
-	std::cerr << "\n";
+	auto const num = t.num_pieces();
+	auto const start = std::chrono::steady_clock::now();
+
+	lt::error_code ec;
+	lt::set_piece_hashes(
+		t,
+		branch_path(full_path),
+		sett,
+		disk_io,
+		[num](lt::piece_index_t const p) { std::cerr << "\r" << p << "/" << num; },
+		ec);
+	auto const end = std::chrono::steady_clock::now();
+
+	if (ec)
+	{
+		std::cerr << "\nERROR: " << ec.message() << "\n";
+		return 1;
+	}
+
+	auto const elapsed_ms =
+		std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+	// MB is 10^6 bytes, matching connection_tester's rate convention
+	double const rate = elapsed_ms > 0 ? double(bytes_hashed) / double(elapsed_ms) / 1000.0 : 0.0;
+	std::fprintf(stderr,
+		"\nhash rate: %.2f MB/s (%" PRId64 " bytes in %" PRId64 " ms)\n",
+		rate,
+		bytes_hashed,
+		std::int64_t(elapsed_ms));
+
 	t.set_creator(creator_str.c_str());
 	if (!comment_str.empty()) {
 		t.set_comment(comment_str.c_str());

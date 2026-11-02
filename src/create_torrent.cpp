@@ -584,7 +584,10 @@ namespace {
 		}
 
 		counters cnt;
-		int const num_threads = sett.get_int(settings_pack::hashing_threads);
+		// with no dedicated hashing threads, hash jobs run on the aio threads
+		int const hashing_threads = sett.get_int(settings_pack::hashing_threads);
+		int const num_threads =
+			hashing_threads > 0 ? hashing_threads : sett.get_int(settings_pack::aio_threads);
 		std::unique_ptr<disk_interface> disk_thread = disk_io(ios, sett, cnt);
 		disk_aborter da(*disk_thread);
 
@@ -609,8 +612,8 @@ namespace {
 
 		// have 4 outstanding hash requests per thread, and no less than 1 MiB
 		int const jobs_per_thread = 4;
-		int const piece_read_ahead = std::max(num_threads * jobs_per_thread
-			, 1 * 1024 * 1024 / t.piece_length());
+		int const piece_read_ahead = std::max(
+			num_threads * jobs_per_thread, aux::ceil_div(1 * 1024 * 1024, t.piece_length()));
 
 		hash_state st = { fs, t, std::move(storage), *disk_thread, piece_index_t(0), piece_index_t(0), f, ec };
 		for (piece_index_t i(0); i < piece_index_t(piece_read_ahead); ++i)
