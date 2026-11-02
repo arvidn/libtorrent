@@ -119,6 +119,18 @@ namespace libtorrent { namespace aux {
 	constexpr std::size_t openssl_write_cost = 0;
 #endif
 
+#if defined(BOOST_ASIO_HAS_IO_URING_AS_DEFAULT) && BOOST_ASIO_HAS_IO_URING_AS_DEFAULT == 1
+	constexpr std::size_t io_uring_read_cost = 48;
+	constexpr std::size_t io_uring_write_cost = 952;
+	constexpr std::size_t io_uring_udp_cost = 16;
+	constexpr std::size_t io_uring_utp_cost = 16;
+#else
+	constexpr std::size_t io_uring_read_cost = 0;
+	constexpr std::size_t io_uring_write_cost = 0;
+	constexpr std::size_t io_uring_udp_cost = 0;
+	constexpr std::size_t io_uring_utp_cost = 0;
+#endif
+
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
 	constexpr std::size_t fuzzer_write_cost = 32;
 	constexpr std::size_t fuzzer_read_cost = 80;
@@ -126,10 +138,11 @@ namespace libtorrent { namespace aux {
 	constexpr std::size_t fuzzer_write_cost = 0;
 	constexpr std::size_t fuzzer_read_cost = 0;
 #endif
-	constexpr std::size_t write_handler_max_size = tracking + debug_write_iter + openssl_write_cost + fuzzer_write_cost + 176;
-	constexpr std::size_t read_handler_max_size = tracking + debug_read_iter + openssl_read_cost + fuzzer_read_cost + 176;
-	constexpr std::size_t udp_handler_max_size = tracking + 168;
-	constexpr std::size_t utp_handler_max_size = tracking + 192;
+
+	constexpr std::size_t write_handler_max_size = tracking + debug_write_iter + openssl_write_cost + io_uring_write_cost + fuzzer_write_cost + 176;
+	constexpr std::size_t read_handler_max_size = tracking + debug_read_iter + openssl_read_cost + io_uring_read_cost + fuzzer_read_cost + 176;
+	constexpr std::size_t udp_handler_max_size = tracking + io_uring_udp_cost + 168;
+	constexpr std::size_t utp_handler_max_size = tracking + io_uring_utp_cost + 192;
 	constexpr std::size_t abort_handler_max_size = tracking + 72;
 	constexpr std::size_t submit_handler_max_size = tracking + 72;
 	constexpr std::size_t deferred_handler_max_size = tracking + 80;
