@@ -114,7 +114,7 @@ struct TORRENT_EXTRA_EXPORT http_connection
 #if TORRENT_USE_I2P
 		, i2p_connection* i2p_conn = nullptr
 #endif
-		);
+		, bool tls_origination = false);
 
 	void close(bool force = false);
 
@@ -255,6 +255,8 @@ private:
 
 	// true if the connection is using ssl
 	bool m_ssl = false;
+
+	bool m_tls_origination = false;
 
 	bool m_abort = false;
 

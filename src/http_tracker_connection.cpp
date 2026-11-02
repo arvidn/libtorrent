@@ -374,6 +374,8 @@ namespace libtorrent::aux {
 		bool const keep_alive = !reuse_disabled && (!write_only || !m_followers.empty());
 
 		aux::proxy_settings ps(settings);
+		if (tracker_req().kind & tracker_request::ssl_torrent)
+			ps.tls_origination = false;
 		m_tracker_connection->get(url,
 			seconds(timeout),
 			ps.proxy_tracker_connections ? &ps : nullptr,
