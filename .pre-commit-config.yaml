@@ -44,7 +44,6 @@ repos:
           (?x)^(
             # Enable these later, avoid bloating this PR
             docs/gen_reference_doc.py|
-            examples/run_benchmarks.py|
             fuzzers/tools/generate_initial_corpus.py|
             fuzzers/tools/unify_corpus_names.py|
             test/socks.py|
@@ -77,7 +76,6 @@ repos:
                docs/gen_stats_doc.py|
                docs/gen_todo.py|
                docs/join_rst.py|
-               examples/run_benchmarks.py|
                fuzzers/tools/generate_initial_corpus.py|
                fuzzers/tools/unify_corpus_names.py|
                test/http_proxy.py|
@@ -116,7 +114,6 @@ repos:
               docs/gen_reference_doc.py|
               docs/gen_stats_doc.py|
               docs/gen_todo.py|
-              examples/run_benchmarks.py|
               fuzzers/tools/generate_initial_corpus.py|
               setup.py|
               test/http_proxy.py|
@@ -165,7 +162,6 @@ repos:
             docs/gen_todo.py|
             docs/gen_reference_doc.py|
             docs/gen_stats_doc.py|
-            examples/run_benchmarks.py|
             fuzzers/tools/generate_initial_corpus.py|
             test/socks.py|
             test/websocket_server.py|
