@@ -15,6 +15,7 @@ import parse_piece_downloads
 import disk_latency
 from pathlib import Path
 from argparse import ArgumentParser
+from collections.abc import Iterator
 
 from vmstat import capture_sample, plot_output, print_output_to_file
 
@@ -179,7 +180,7 @@ def drop_file_cache(path: Path) -> None:
         return
 
 
-def _walk_files(root: Path):
+def _walk_files(root: Path) -> Iterator[Path]:
     if root.is_file():
         yield root
         return
@@ -478,7 +479,7 @@ def render_chart(
     ax.legend(title="variant")
     fig.tight_layout()
     plot_png.save_png(fig, out_path)
-    width = round(fig.get_figwidth() * plot_png.DISPLAY_DPI)
+    width = int(round(fig.get_figwidth() * plot_png.DISPLAY_DPI))
     plt.close(fig)
     return width
 
@@ -662,7 +663,7 @@ def check_perf_environment() -> None:
     if platform.system() != "Linux":
         return
 
-    def read_sysctl(name):
+    def read_sysctl(name: str) -> str | None:
         try:
             return Path(f"/proc/sys/{name.replace('.', '/')}").read_text().strip()
         except OSError:
@@ -772,7 +773,10 @@ def suggest_dirty_limit_if_high_ram() -> None:
     cur_bg_bytes = read_int("dirty_background_bytes")
 
     # the user already applied the recommended cap -- nothing to suggest
-    if cur_bytes > 0 and cur_bytes <= dirty and cur_bg_bytes > 0 and cur_bg_bytes <= bg:
+    if (
+        cur_bytes is not None and 0 < cur_bytes <= dirty
+        and cur_bg_bytes is not None and 0 < cur_bg_bytes <= bg
+    ):
         return
 
     # vm.dirty_bytes and vm.dirty_ratio are mutually exclusive: setting one
@@ -1317,8 +1321,8 @@ def run_test(
             profiler.wait()
 
         stats_filename = output_dir / "memory_stats.log"
-        keys = print_output_to_file(out, stats_filename)
-        plot_output(stats_filename, keys)
+        keys = print_output_to_file(out, str(stats_filename))
+        plot_output(str(stats_filename), keys)
 
         if action is not None:
             t.wait()
