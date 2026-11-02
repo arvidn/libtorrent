@@ -62,6 +62,18 @@ namespace libtorrent {
 			return {address_v4(addr.v4), port};
 	}
 
+	namespace {
+
+	// a strong reference locked outside of the network thread may end up
+	// being the last one, but the torrent must be destructed on the network
+	// thread
+	void release_torrent(std::shared_ptr<aux::torrent> t)
+	{
+		auto& ses = t->session();
+		post(ses.get_context(), [p = std::move(t)] {});
+	}
+	}
+
 #ifndef BOOST_NO_EXCEPTIONS
 	[[noreturn]] void throw_invalid_handle()
 	{
@@ -546,13 +558,21 @@ namespace libtorrent {
 	sha1_hash torrent_handle::info_hash() const
 	{
 		auto t = m_torrent.lock();
-		return t ? t->info_hash().get_best() : sha1_hash{};
+		if (!t)
+			return {};
+		sha1_hash const ret = t->info_hash().get_best();
+		release_torrent(std::move(t));
+		return ret;
 	}
 
 	info_hash_t torrent_handle::info_hashes() const
 	{
 		auto t = m_torrent.lock();
-		return t ? t->info_hash() : info_hash_t();
+		if (!t)
+			return {};
+		info_hash_t const ret = t->info_hash();
+		release_torrent(std::move(t));
+		return ret;
 	}
 
 	int torrent_handle::max_uploads() const
@@ -1117,7 +1137,9 @@ namespace libtorrent {
 	{
 		auto t = m_torrent.lock();
 		if (!t) return {};
-		return t->get_torrent_file_external();
+		auto ret = t->get_torrent_file_external();
+		release_torrent(std::move(t));
+		return ret;
 	}
 
 	renamed_files torrent_handle::get_renamed_files() const
@@ -1211,9 +1233,14 @@ namespace libtorrent {
 		status.clear();
 
 		auto t = m_torrent.lock();
-		if (!t || !t->has_storage()) return;
-		auto& ses = static_cast<session_impl&>(t->session());
-		status = ses.disk_thread().get_status(t->storage());
+		if (!t)
+			return;
+		if (t->has_storage())
+		{
+			auto& ses = static_cast<session_impl&>(t->session());
+			status = ses.disk_thread().get_status(t->storage());
+		}
+		release_torrent(std::move(t));
 	}
 #endif
 
@@ -1248,9 +1275,16 @@ namespace libtorrent {
 	std::vector<open_file_state> torrent_handle::file_status() const
 	{
 		auto t = m_torrent.lock();
-		if (!t || !t->has_storage()) return {};
-		auto& ses = static_cast<session_impl&>(t->session());
-		return ses.disk_thread().get_status(t->storage());
+		if (!t)
+			return {};
+		std::vector<open_file_state> ret;
+		if (t->has_storage())
+		{
+			auto& ses = static_cast<session_impl&>(t->session());
+			ret = ses.disk_thread().get_status(t->storage());
+		}
+		release_torrent(std::move(t));
+		return ret;
 	}
 
 	void torrent_handle::post_file_status() const
@@ -1361,7 +1395,11 @@ namespace libtorrent {
 	client_data_t torrent_handle::userdata() const
 	{
 		auto t = m_torrent.lock();
-		return t ? t->get_userdata() : client_data_t{};
+		if (!t)
+			return {};
+		client_data_t const ret = t->get_userdata();
+		release_torrent(std::move(t));
+		return ret;
 	}
 
 	bool torrent_handle::in_session() const
