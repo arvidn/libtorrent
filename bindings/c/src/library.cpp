@@ -39,19 +39,10 @@ lt::torrent_handle get_handle(int i)
 
 int add_handle(lt::torrent_handle const& h)
 {
-	std::vector<lt::torrent_handle>::iterator i = std::find_if(handles.begin()
-		, handles.end()
-		, [](lt::torrent_handle const& h) { return !h.is_valid(); });
-	if (i != handles.end())
-	{
-		*i = h;
-		return i - handles.begin();
-	}
-
 	if (free_handle_slots.empty())
 	{
 		handles.push_back(h);
-		return handles.size() - 1;
+		return int(handles.size()) - 1;
 	}
 
 	int const ret = free_handle_slots.back();
@@ -60,17 +51,12 @@ int add_handle(lt::torrent_handle const& h)
 	return ret;
 }
 
+// the table never shrinks, since that would leave indices in
+// free_handle_slots pointing past the end
 void remove_handle(int const h)
 {
 	handles[h] = lt::torrent_handle{};
-	if (h == int(handles.size() - 1))
-	{
-		handles.pop_back();
-	}
-	else
-	{
-		free_handle_slots.push_back(h);
-	}
+	free_handle_slots.push_back(h);
 }
 
 int set_int_value(void* dst, int* size, int val)
