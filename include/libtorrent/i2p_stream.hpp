@@ -265,8 +265,9 @@ private:
 			// this is the line containing the destination
 			// of the incoming connection in an accept call
 			m_dest = &m_buffer[0];
-			h(e);
+			// the handler may issue the next command into m_buffer
 			std::vector<char>().swap(m_buffer);
+			h(e);
 			return;
 		}
 
@@ -387,15 +388,15 @@ private:
 				case cmd_none:
 				case cmd_name_lookup:
 				case cmd_incoming:
-					std::forward<Handler>(h)(ec);
 					std::vector<char>().swap(m_buffer);
+					std::forward<Handler>(h)(ec);
 			}
 			break;
 		case read_connect_response:
 		case read_session_create_response:
 		case read_name_lookup_response:
-			std::forward<Handler>(h)(ec);
 			std::vector<char>().swap(m_buffer);
+			std::forward<Handler>(h)(ec);
 			break;
 		case read_accept_response:
 			// the SAM bridge is waiting for an incoming
