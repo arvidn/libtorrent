@@ -109,6 +109,7 @@ repos:
   rev: v1.20.2
   hooks:
     - id: mypy
+      additional_dependencies: [types-docutils]
       # Avoiding PR bloat
       exclude: |
           (?x)^(
@@ -134,7 +135,6 @@ repos:
               tools/parse_sample.py|
               tools/parse_session_stats.py|
               tools/parse_utp_log.py|
-              tools/run_benchmark.py|
               tools/update_copyright.py
           )$
 - repo: local
