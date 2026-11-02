@@ -162,6 +162,12 @@ def gen_report(
     if data.shape[0] == 0:
         return False
 
+    # the log's own per-sample timestamp, in seconds; samples aren't
+    # necessarily taken on a fixed cadence (e.g. once per piece hashed,
+    # rather than once a second), so this can't be assumed from the sample
+    # index
+    x = data[:, 0]
+
     series: list[tuple[str, np.ndarray]] = []
     for k in lines:
         if k not in keys:
@@ -189,6 +195,16 @@ def gen_report(
             (k, np.divide(y, den, out=np.full_like(y, np.nan), where=den != 0))
             for k, y in series
         ]
+    elif options.get("cumulative"):
+        # turn the per-sample delta into a per-second rate using the actual
+        # elapsed time between samples; two samples sharing a timestamp
+        # (millisecond resolution) have no meaningful rate, so count as no
+        # data rather than guessing
+        dt = np.diff(x, prepend=x[0])
+        series = [
+            (k, np.divide(y, dt, out=np.full_like(y, np.nan), where=dt != 0))
+            for k, y in series
+        ]
 
     # converts the counter's native unit into the base unit in short_unit, so
     # that matplotlib can pick the SI prefix
@@ -200,7 +216,6 @@ def gen_report(
         colors = gradient_colors(options["gradient"])
     series_colors = [colors[i % len(colors)] for i in range(len(series))]
 
-    x = data[:, 0]
     fig = Figure(figsize=(12, 7))
     ax = fig.subplots()
 
@@ -352,6 +367,12 @@ def write_generation(path: Path, rows: list[str]) -> None:
         f.writelines(rows)
 
 
+# wall-clock span of one plot, in seconds; a new generation starts once a
+# sample's timestamp has drifted this far from its generation's first
+# sample, regardless of how many samples that took
+GENERATION_SPAN_SECONDS = 3600
+
+
 def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
     pool = Pool(num_threads)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -371,17 +392,24 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
         keys = line.split("session stats header:")[1].strip().split(", ")
 
         rows: list[str] = []
+        generation_start_s: float | None = None
         for line in stat:
             if "session stats (" not in line:
                 continue
+            # every line is written as "[<ms>] session stats (...", so the
+            # timestamp is just the leading bracketed number
+            timestamp_s = int(line[1 : line.index("]")]) / 1000.0
+            if generation_start_s is None:
+                generation_start_s = timestamp_s
             rows.append(
-                f"{len(rows)}\t" + line.split(" values): ")[1].strip().replace(", ", "\t")
+                f"{timestamp_s}\t" + line.split(" values): ")[1].strip().replace(", ", "\t")
                 + "\n"
             )
-            if len(rows) >= 3600:
+            if timestamp_s - generation_start_s >= GENERATION_SPAN_SECONDS:
                 write_generation(output_dir / f"counters.{g:04}.dat", rows)
                 g += 1
                 rows = []
+                generation_start_s = None
 
     # an input without samples still gets one (empty) generation
     if rows or g == 0:
