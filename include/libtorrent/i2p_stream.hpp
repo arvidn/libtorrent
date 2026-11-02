@@ -89,7 +89,7 @@ struct i2p_session_options
 	int m_outbound_length_variance = 0;
 };
 
-struct i2p_stream : aux::proxy_base
+struct TORRENT_EXTRA_EXPORT i2p_stream : aux::proxy_base
 {
 	explicit i2p_stream(io_context& io_context);
 	i2p_stream(i2p_stream&&) noexcept = default;
@@ -265,8 +265,9 @@ private:
 			// this is the line containing the destination
 			// of the incoming connection in an accept call
 			m_dest = &m_buffer[0];
-			h(e);
+			// the handler may issue the next command into m_buffer
 			std::vector<char>().swap(m_buffer);
+			h(e);
 			return;
 		}
 
@@ -310,6 +311,7 @@ private:
 		{ handle_error(invalid_response, h); return; }
 
 		int result = 0;
+		bool has_value = false;
 
 		for(;;)
 		{
@@ -356,6 +358,7 @@ private:
 			else if ("VALUE"_sv == name)
 			{
 				m_name_lookup = value;
+				has_value = !value.empty();
 			}
 			else if ("DESTINATION"_sv == name)
 			{
@@ -367,6 +370,14 @@ private:
 		if (ec)
 		{
 			std::forward<Handler>(h)(ec);
+			return;
+		}
+
+		// m_name_lookup still holds the name that was looked up, it must not be
+		// mistaken for the destination
+		if (m_state == read_name_lookup_response && !has_value)
+		{
+			handle_error(invalid_response, h);
 			return;
 		}
 
@@ -387,15 +398,15 @@ private:
 				case cmd_none:
 				case cmd_name_lookup:
 				case cmd_incoming:
-					std::forward<Handler>(h)(ec);
 					std::vector<char>().swap(m_buffer);
+					std::forward<Handler>(h)(ec);
 			}
 			break;
 		case read_connect_response:
 		case read_session_create_response:
 		case read_name_lookup_response:
-			std::forward<Handler>(h)(ec);
 			std::vector<char>().swap(m_buffer);
+			std::forward<Handler>(h)(ec);
 			break;
 		case read_accept_response:
 			// the SAM bridge is waiting for an incoming
@@ -537,6 +548,13 @@ public:
 
 		if (m_hostname.empty()) return;
 
+		// late completions of the replaced session must not affect the new one
+		if (m_sam_socket)
+		{
+			error_code ignore;
+			m_sam_socket->close(ignore);
+		}
+
 		m_state = sam_connecting;
 
 		char tmp[20];
@@ -565,6 +583,14 @@ public:
 	template <typename Handler>
 	void async_name_lookup(char const* name, Handler handler)
 	{
+		// without a SAM session nothing would ever drain the queue
+		if (!m_sam_socket)
+		{
+			post(m_io_service, [h = std::move(handler)]() mutable {
+				h(error_code(errors::no_i2p_router), nullptr);
+			});
+			return;
+		}
 		if (m_state == sam_idle && m_name_lookup.empty() && is_open())
 			do_name_lookup(name, std::move(handler));
 		else
@@ -573,15 +599,25 @@ public:
 	}
 
 private:
-
 	template <typename Handler>
-	void on_sam_connect(error_code const& ec, std::shared_ptr<i2p_stream>, Handler h)
+	void on_sam_connect(error_code const& ec, std::shared_ptr<i2p_stream> const& s, Handler h)
 	{
 		COMPLETE_ASYNC("i2p_stream::on_sam_connect");
+
+		// this SAM session was closed or replaced
+		if (s != m_sam_socket)
+		{
+			h(error_code(boost::asio::error::operation_aborted));
+			return;
+		}
+
 		m_state = sam_idle;
 
 		if (ec)
 		{
+			// a SAM error reply leaves the socket open, the session must not be
+			// reused for lookups or prevent open() from reconnecting
+			drop_session(ec);
 			h(ec);
 			return;
 		}
@@ -593,6 +629,9 @@ private:
 	}
 
 	using name_lookup_handler = std::function<void(error_code const&, char const*)>;
+
+	void abort_name_lookups(error_code const& ec);
+	void drop_session(error_code const& ec);
 
 	template <typename Handler>
 	void do_name_lookup(std::string const& name, Handler handler)
@@ -607,37 +646,65 @@ private:
 	}
 
 	template <typename Handler>
-	void on_name_lookup(error_code const& ec, std::shared_ptr<i2p_stream>, Handler handler)
+	void on_name_lookup(error_code const& ec, std::shared_ptr<i2p_stream> const& s, Handler handler)
 	{
-		m_state = sam_idle;
-
-		std::string name = m_sam_socket->name_lookup();
-		if (!m_name_lookup.empty())
+		// this SAM session was closed or replaced
+		if (s != m_sam_socket)
 		{
-			std::pair<std::string, name_lookup_handler>& nl = m_name_lookup.front();
-			do_name_lookup(nl.first, std::move(nl.second));
-			m_name_lookup.pop_front();
-		}
-
-		if (ec)
-		{
-			handler(ec, nullptr);
+			handler(error_code(boost::asio::error::operation_aborted), nullptr);
 			return;
 		}
 
-		handler(ec, name.c_str());
+		m_state = sam_idle;
+
+		std::string const name = m_sam_socket->name_lookup();
+
+		// a transport error closes the SAM socket, nothing would answer the
+		// queued lookups
+		if (ec && !s->is_open())
+			drop_session(ec);
+
+		if (ec)
+			handler(ec, nullptr);
+		else
+			handler(ec, name.c_str());
+
+		// the handler may have dropped the session, failing the queued lookups
+		// with its error, or started a lookup of its own
+		if (s != m_sam_socket || m_state != sam_idle || m_name_lookup.empty())
+			return;
+
+		// do_name_lookup() may complete synchronously and re-enter, the entry
+		// must not be left in the queue
+		auto nl = std::move(m_name_lookup.front());
+		m_name_lookup.pop_front();
+		do_name_lookup(nl.first, std::move(nl.second));
 	}
 
 
 	template <typename Handler>
 	void set_local_endpoint(error_code const& ec, char const* dest, Handler h)
 	{
-		if (!ec && dest != nullptr)
-			m_i2p_local_endpoint = dest;
-		else
-			m_i2p_local_endpoint.clear();
+		// the endpoint and queue belong to the session that replaced this one
+		if (ec == boost::asio::error::operation_aborted)
+		{
+			h(ec);
+			return;
+		}
 
-		h(ec);
+		error_code const e = (!ec && (dest == nullptr || *dest == '\0'))
+			? error_code(i2p_error::parse_failed, i2p_category())
+			: ec;
+
+		if (e || dest == nullptr)
+		{
+			m_i2p_local_endpoint.clear();
+			drop_session(e);
+		}
+		else
+			m_i2p_local_endpoint = dest;
+
+		h(e);
 	}
 
 	// to talk to i2p SAM bridge

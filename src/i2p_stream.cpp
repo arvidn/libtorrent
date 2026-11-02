@@ -76,6 +76,28 @@ namespace libtorrent {
 	void i2p_connection::close(error_code& e)
 	{
 		if (m_sam_socket) m_sam_socket->close(e);
+		drop_session(boost::asio::error::operation_aborted);
+		m_i2p_local_endpoint.clear();
+	}
+
+	void i2p_connection::drop_session(error_code const& ec)
+	{
+		if (m_sam_socket)
+		{
+			error_code ignore;
+			m_sam_socket->close(ignore);
+		}
+		m_sam_socket.reset();
+		m_state = sam_idle;
+		abort_name_lookups(ec);
+	}
+
+	void i2p_connection::abort_name_lookups(error_code const& ec)
+	{
+		// the handlers may keep their owners alive
+		for (auto& nl : m_name_lookup)
+			post(m_io_service, [h = std::move(nl.second), ec] { h(ec, nullptr); });
+		m_name_lookup.clear();
 	}
 
 	aux::proxy_settings i2p_connection::proxy() const

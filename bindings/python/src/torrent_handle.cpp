@@ -516,6 +516,11 @@ void bind_torrent_handle()
 	std::vector<open_file_state> (torrent_handle::*file_status0)() const =
 		&torrent_handle::file_status;
 
+	void (torrent_handle::*connect_peer0)(tcp::endpoint const&, peer_source_flags_t, pex_flags_t)
+		const = &torrent_handle::connect_peer;
+	void (torrent_handle::*connect_peer1)(sha256_hash const&, peer_source_flags_t) const =
+		&torrent_handle::connect_peer;
+
 #define _ allow_threads
 
 	enum_<move_flags_t>("move_flags_t")
@@ -546,11 +551,9 @@ void bind_torrent_handle()
 				.def("get_download_queue", get_download_queue)
 				.def("post_download_queue", &torrent_handle::post_download_queue)
 				.def("file_progress", file_progress, arg("flags") = file_progress_flags_t{})
-				.def(
-					"post_file_progress",
+				.def("post_file_progress",
 					&torrent_handle::post_file_progress,
-					arg("flags") = file_progress_flags_t{}
-				)
+					arg("flags") = file_progress_flags_t{})
 				.def("trackers", trackers)
 				.def("post_trackers", &torrent_handle::post_trackers)
 				.def("replace_trackers", replace_trackers)
@@ -579,19 +582,15 @@ void bind_torrent_handle()
 				.def("add_piece", add_piece_bytes)
 				.def("read_piece", _(&torrent_handle::read_piece))
 				.def("have_piece", _(&torrent_handle::have_piece))
-				.def(
-					"set_piece_deadline",
+				.def("set_piece_deadline",
 					_(&torrent_handle::set_piece_deadline),
-					(arg("index"), arg("deadline"), arg("flags") = 0)
-				)
-				.def(
-					"reset_piece_deadline", _(&torrent_handle::reset_piece_deadline), (arg("index"))
-				)
-				.def(
-					"clear_piece_deadlines",
+					(arg("index"), arg("deadline"), arg("flags") = 0))
+				.def("reset_piece_deadline",
+					_(&torrent_handle::reset_piece_deadline),
+					(arg("index")))
+				.def("clear_piece_deadlines",
 					_(&torrent_handle::clear_piece_deadlines),
-					(arg("index"))
-				)
+					(arg("index")))
 				.def("piece_availability", &piece_availability)
 				.def("post_piece_availability", &torrent_handle::post_piece_availability)
 				.def("piece_priority", _(piece_priority0))
@@ -606,21 +605,15 @@ void bind_torrent_handle()
 				.def("save_resume_data", _(&torrent_handle::save_resume_data), arg("flags") = 0)
 				.def("need_save_resume_data", _(need_save_resume_data0))
 				.def("need_save_resume_data", _(need_save_resume_data1), arg("flags"))
-				.def(
-					"force_reannounce",
+				.def("force_reannounce",
 					_(force_reannounce0),
-					(arg("seconds"), arg("tracker_idx"), arg("flags") = reannounce_flags_t{})
-				)
-				.def(
-					"force_reannounce",
+					(arg("seconds"), arg("tracker_idx"), arg("flags") = reannounce_flags_t{}))
+				.def("force_reannounce",
 					_(force_reannounce1),
-					(arg("seconds"), arg("url"), arg("flags") = reannounce_flags_t{})
-				)
-				.def(
-					"force_reannounce",
+					(arg("seconds"), arg("url"), arg("flags") = reannounce_flags_t{}))
+				.def("force_reannounce",
 					_(force_reannounce3),
-					(arg("seconds") = 0, arg("flags") = reannounce_flags_t{})
-				)
+					(arg("seconds") = 0, arg("flags") = reannounce_flags_t{}))
 #ifndef TORRENT_DISABLE_DHT
 				.def("force_dht_announce", _(&torrent_handle::force_dht_announce))
 #endif
@@ -632,36 +625,29 @@ void bind_torrent_handle()
 				.def("upload_limit", _(&torrent_handle::upload_limit))
 				.def("set_download_limit", _(&torrent_handle::set_download_limit))
 				.def("download_limit", _(&torrent_handle::download_limit))
-				.def(
-					"connect_peer",
-					&torrent_handle::connect_peer,
-					(arg("endpoint"), arg("source") = 0, arg("flags") = 0xd)
-				)
+				.def("connect_peer",
+					connect_peer0,
+					(arg("endpoint"), arg("source") = 0, arg("flags") = 0xd))
+				.def("connect_peer", connect_peer1, (arg("i2p_dest"), arg("source") = 0))
 				.def("set_max_uploads", &torrent_handle_set_max_uploads)
 				.def("max_uploads", _(&torrent_handle::max_uploads))
 				.def("set_max_connections", &torrent_handle_set_max_connections)
 				.def("max_connections", _(&torrent_handle::max_connections))
-				.def(
-					"move_storage",
+				.def("move_storage",
 					_(move_storage0),
-					(arg("path"), arg("flags") = move_flags_t::always_replace_files)
-				)
+					(arg("path"), arg("flags") = move_flags_t::always_replace_files))
 				.def("info_hash", _(&torrent_handle::info_hash))
 				.def("info_hashes", _(&torrent_handle::info_hashes))
 				.def("force_recheck", _(&torrent_handle::force_recheck))
 				.def("get_renamed_files", _(&torrent_handle::get_renamed_files))
 				.def("rename_file", &rename_file0)
 				.def("rename_file", &rename_file1)
-				.def(
-					"set_ssl_certificate_buffer",
+				.def("set_ssl_certificate_buffer",
 					&torrent_handle::set_ssl_certificate_buffer,
-					(arg("cert"), arg("private_key"), arg("dh_params"))
-				)
-				.def(
-					"set_ssl_certificate",
+					(arg("cert"), arg("private_key"), arg("dh_params")))
+				.def("set_ssl_certificate",
 					&torrent_handle::set_ssl_certificate,
-					(arg("cert"), arg("private_key"), arg("dh_params"), arg("passphrase") = "")
-				)
+					(arg("cert"), arg("private_key"), arg("dh_params"), arg("passphrase") = ""))
 				.def("flags", _(&torrent_handle::flags))
 				.def("set_flags", _(set_flags0))
 				.def("set_flags", _(set_flags1))

@@ -259,6 +259,7 @@ run test_lsd.cpp ;
 explicit test_lsd ;
 run test_hasher.cpp ;
 explicit test_hasher ;
+run test_i2p_connection.cpp ;
 run test_hasher512.cpp ;
 explicit test_hasher512 ;
 
@@ -292,6 +293,7 @@ alias deterministic-tests :
 	test_hash_picker
 	test_heterogeneous_queue
 	test_http_parser
+	test_i2p_connection
 	test_identify_client
 	test_info_hash
 	test_io

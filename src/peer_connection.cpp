@@ -445,7 +445,7 @@ namespace {
 		if (t && m_alerts.should_post<peer_connect_alert>())
 		{
 			m_alerts.emplace_alert<peer_connect_alert>(t->get_handle(),
-				remote(),
+				remote_endpoint(),
 				pid(),
 				socket_type_idx(m_socket),
 				peer_connect_alert::direction_t::out);
@@ -1207,7 +1207,7 @@ namespace {
 		{
 			// TODO: store the sah256 hash of the destination in the
 			// i2p_peer struct, so we don't have to recompute it every time
-			return hasher256(base64decode_i2p(s->destination())).final();
+			return i2p_destination_hash(s->destination());
 		}
 #endif
 		return m_remote;
@@ -2864,7 +2864,7 @@ namespace {
 			if (m_alerts.should_post<peer_error_alert>())
 			{
 				m_alerts.emplace_alert<peer_error_alert>(t->get_handle(),
-					m_remote,
+					remote_endpoint(),
 					m_peer_id,
 					operation_t::bittorrent,
 					errors::peer_sent_empty_piece);
@@ -2909,7 +2909,7 @@ namespace {
 			if (m_alerts.should_post<unwanted_block_alert>())
 			{
 				m_alerts.emplace_alert<unwanted_block_alert>(t->get_handle(),
-					m_remote,
+					remote_endpoint(),
 					m_peer_id,
 					block_finished.block_index,
 					block_finished.piece_index);
@@ -2985,7 +2985,8 @@ namespace {
 			m_snubbed = false;
 			if (m_alerts.should_post<peer_unsnubbed_alert>())
 			{
-				m_alerts.emplace_alert<peer_unsnubbed_alert>(t->get_handle(), m_remote, m_peer_id);
+				m_alerts.emplace_alert<peer_unsnubbed_alert>(
+					t->get_handle(), remote_endpoint(), m_peer_id);
 			}
 		}
 
@@ -3235,7 +3236,7 @@ namespace {
 		if (m_alerts.should_post<block_finished_alert>())
 		{
 			m_alerts.emplace_alert<block_finished_alert>(t->get_handle(),
-				remote(),
+				remote_endpoint(),
 				pid(),
 				block_finished.block_index,
 				block_finished.piece_index);
@@ -3658,7 +3659,7 @@ namespace {
 		if (m_alerts.should_post<block_downloading_alert>())
 		{
 			m_alerts.emplace_alert<block_downloading_alert>(
-				t->get_handle(), remote(), pid(), block.block_index, block.piece_index);
+				t->get_handle(), remote_endpoint(), pid(), block.block_index, block.piece_index);
 		}
 
 		pending_block pb(block);
@@ -4441,13 +4442,18 @@ namespace {
 			if ((error > failure || ec.category() == socks_category())
 				&& m_alerts.should_post<peer_error_alert>())
 			{
-				m_alerts.emplace_alert<peer_error_alert>(handle, remote(), pid(), op, ec);
+				m_alerts.emplace_alert<peer_error_alert>(handle, remote_endpoint(), pid(), op, ec);
 			}
 
 			if (error <= failure && m_alerts.should_post<peer_disconnected_alert>())
 			{
-				m_alerts.emplace_alert<peer_disconnected_alert>(
-					handle, remote(), pid(), op, socket_type_idx(m_socket), ec, close_reason);
+				m_alerts.emplace_alert<peer_disconnected_alert>(handle,
+					remote_endpoint(),
+					pid(),
+					op,
+					socket_type_idx(m_socket),
+					ec,
+					close_reason);
 			}
 		}
 
@@ -5135,7 +5141,8 @@ namespace {
 			m_slow_start = false;
 			if (m_alerts.should_post<peer_snubbed_alert>())
 			{
-				m_alerts.emplace_alert<peer_snubbed_alert>(t->get_handle(), m_remote, m_peer_id);
+				m_alerts.emplace_alert<peer_snubbed_alert>(
+					t->get_handle(), remote_endpoint(), m_peer_id);
 			}
 		}
 		m_desired_queue_size = 1;
@@ -5190,8 +5197,11 @@ namespace {
 
 			if (m_alerts.should_post<block_timeout_alert>())
 			{
-				m_alerts.emplace_alert<block_timeout_alert>(
-					t->get_handle(), remote(), pid(), qe.block.block_index, qe.block.piece_index);
+				m_alerts.emplace_alert<block_timeout_alert>(t->get_handle(),
+					remote_endpoint(),
+					pid(),
+					qe.block.block_index,
+					qe.block.piece_index);
 			}
 
 			// request a new block before removing the previous

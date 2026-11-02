@@ -253,3 +253,18 @@ TORRENT_TEST(no_keepalive)
 {
 	run_suite("http", settings_pack::none, 0);
 }
+
+#if TORRENT_USE_I2P
+TORRENT_TEST(i2p_http_requires_sam_even_with_http_proxy)
+{
+	for (auto const proxy_type : {settings_pack::none, settings_pack::http, settings_pack::http_pw})
+	{
+		aux::proxy_settings ps;
+		ps.type = proxy_type;
+		ps.hostname = "127.0.0.1";
+		ps.port = 1;
+		ps.proxy_hostnames = true;
+		run_test("http://tracker.i2p/announce", 0, -1, 0, error_code(errors::no_i2p_router), ps);
+	}
+}
+#endif
