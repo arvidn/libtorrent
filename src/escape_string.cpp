@@ -300,7 +300,13 @@ namespace {
 		int bit_offset = 18;
 		for (auto const c : s)
 		{
-			if (c == '=') break;
+			if (c == '=')
+			{
+				auto const pad = s.substr(s.find('='));
+				if (pad.find_first_not_of('=') != string_view::npos)
+					throw system_error(error_code(lt::errors::invalid_escaped_string));
+				break;
+			}
 			output |= map_base64_char(c) << bit_offset;
 			if (bit_offset == 0)
 			{
@@ -330,9 +336,45 @@ namespace {
 		return ret;
 	}
 
+	namespace {
+	// a 256 byte public key, a 128 byte signing key and a certificate. The
+	// certificate is a type byte and a big-endian 2 byte payload length
+	bool valid_i2p_destination(span<char const> const d)
+	{
+		constexpr std::ptrdiff_t cert_offset = 384;
+		if (d.size() < cert_offset + 3)
+			return false;
+		auto const cert_len = (std::ptrdiff_t(std::uint8_t(d[cert_offset + 1])) << 8)
+			| std::uint8_t(d[cert_offset + 2]);
+		return d.size() == cert_offset + 3 + cert_len;
+	}
+	}
+
+	bool is_valid_i2p_destination(string_view const dest)
+	{
+		try
+		{
+			return valid_i2p_destination(base64decode_i2p(dest));
+		}
+		catch (system_error const&)
+		{
+			return false;
+		}
+	}
+
 	sha256_hash i2p_destination_hash(string_view const dest)
 	{
-		return hasher256(base64decode_i2p(dest)).final();
+		try
+		{
+			std::vector<char> const decoded = base64decode_i2p(dest);
+			TORRENT_ASSERT(valid_i2p_destination(decoded));
+			return hasher256(decoded).final();
+		}
+		catch (system_error const&)
+		{
+			TORRENT_ASSERT_FAIL();
+			return {};
+		}
 	}
 
 	std::string base32encode_i2p(span<char const> s)

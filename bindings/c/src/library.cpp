@@ -17,18 +17,20 @@ see LICENSE file.
 
 #include <libtorrent.h>
 #include <stdarg.h>
+#include <unordered_map>
 
 namespace {
 
 std::vector<lt::torrent_handle> handles;
 std::vector<int> free_handle_slots;
+std::unordered_map<lt::torrent_handle, int> handle_index;
 
-int find_handle(lt::torrent_handle h)
+int find_handle(lt::torrent_handle const& h)
 {
-	std::vector<lt::torrent_handle>::const_iterator i
-		= std::find(handles.begin(), handles.end(), h);
-	if (i == handles.end()) return -1;
-	return i - handles.begin();
+	auto const i = handle_index.find(h);
+	if (i == handle_index.end())
+		return -1;
+	return i->second;
 }
 
 lt::torrent_handle get_handle(int i)
@@ -39,38 +41,29 @@ lt::torrent_handle get_handle(int i)
 
 int add_handle(lt::torrent_handle const& h)
 {
-	std::vector<lt::torrent_handle>::iterator i = std::find_if(handles.begin()
-		, handles.end()
-		, [](lt::torrent_handle const& h) { return !h.is_valid(); });
-	if (i != handles.end())
-	{
-		*i = h;
-		return i - handles.begin();
-	}
-
+	int ret = 0;
 	if (free_handle_slots.empty())
 	{
+		ret = int(handles.size());
 		handles.push_back(h);
-		return handles.size() - 1;
-	}
-
-	int const ret = free_handle_slots.back();
-	free_handle_slots.pop_back();
-	handles[ret] = h;
-	return ret;
-}
-
-void remove_handle(int const h)
-{
-	handles[h] = lt::torrent_handle{};
-	if (h == int(handles.size() - 1))
-	{
-		handles.pop_back();
 	}
 	else
 	{
-		free_handle_slots.push_back(h);
+		ret = free_handle_slots.back();
+		free_handle_slots.pop_back();
+		handles[ret] = h;
 	}
+	handle_index.emplace(h, ret);
+	return ret;
+}
+
+// the table never shrinks, since that would leave indices in
+// free_handle_slots pointing past the end
+void remove_handle(int const h)
+{
+	handle_index.erase(handles[h]);
+	handles[h] = lt::torrent_handle{};
+	free_handle_slots.push_back(h);
 }
 
 int set_int_value(void* dst, int* size, int val)
