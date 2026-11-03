@@ -48,8 +48,9 @@ namespace libtorrent {
 	// encodes a string using the base32 scheme
 	TORRENT_EXTRA_EXPORT std::string base32encode_i2p(span<char const> s);
 	TORRENT_EXTRA_EXPORT std::vector<char> base64decode_i2p(string_view s);
+	TORRENT_EXTRA_EXPORT bool is_valid_i2p_destination(string_view dest);
 	// the sha256 of the decoded destination, i.e. the identity of the
-	// b32.i2p address
+	// b32.i2p address. dest must be a valid destination
 	TORRENT_EXTRA_EXPORT sha256_hash i2p_destination_hash(string_view dest);
 #endif
 	TORRENT_EXTRA_EXPORT std::string base32decode(string_view s);

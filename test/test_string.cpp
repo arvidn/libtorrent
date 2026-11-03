@@ -15,6 +15,7 @@ see LICENSE file.
 #include "test.hpp"
 #include "libtorrent/aux_/escape_string.hpp"
 #include "libtorrent/hex.hpp"
+#include "libtorrent/hasher.hpp"
 #include "libtorrent/aux_/string_util.hpp"
 #include "libtorrent/aux_/string_ptr.hpp"
 #include <iostream>
@@ -279,6 +280,32 @@ TORRENT_TEST(base64)
 	TEST_CHECK(base64decode_i2p(transcode_alphabet(base64encode(to_str(test)))) == test);
 #endif
 }
+
+#if TORRENT_USE_I2P
+TORRENT_TEST(i2p_destination)
+{
+	// 384 bytes of keys and an empty certificate
+	std::string const keys(512, 'A');
+	std::string const dest = keys + "AAAA";
+	TEST_CHECK(is_valid_i2p_destination(dest));
+	TEST_CHECK(i2p_destination_hash(dest) == hasher256(std::vector<char>(387, 0)).final());
+	TEST_CHECK(is_valid_i2p_destination(std::string(508, 'A') + "~-~-AAAA"));
+	// certificate with a 1 byte payload
+	TEST_CHECK(is_valid_i2p_destination(keys + "AAABAA=="));
+	TEST_CHECK(!is_valid_i2p_destination(keys + "AAAB"));
+	TEST_CHECK(!is_valid_i2p_destination(dest + "AA=="));
+	TEST_CHECK(!is_valid_i2p_destination(dest.substr(1)));
+	TEST_CHECK(!is_valid_i2p_destination(keys));
+	TEST_CHECK(!is_valid_i2p_destination("Zm9v"));
+	TEST_CHECK(!is_valid_i2p_destination(""));
+	TEST_CHECK(!is_valid_i2p_destination(keys + "Zm+v"));
+	TEST_CHECK(!is_valid_i2p_destination(keys + "Zm/v"));
+	TEST_CHECK(!is_valid_i2p_destination("1.2.3.4"));
+	TEST_CHECK(!is_valid_i2p_destination(keys + "AAABAA==A"));
+	TEST_CHECK(!is_valid_i2p_destination(dest + "=\nfoo"));
+	TEST_CHECK(!is_valid_i2p_destination(keys + "AAABAA= ="));
+}
+#endif
 
 TORRENT_TEST(base32)
 {

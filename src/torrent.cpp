@@ -8655,11 +8655,11 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log())
 			{
-				debug_log("CLOSING CONNECTION \"%s\" peer list full "
-					"connections: %d limit: %d"
-					, print_endpoint(p->remote()).c_str()
-					, num_peers()
-					, m_max_connections);
+				debug_log("CLOSING CONNECTION \"%s\" rejected by peer list "
+						  "connections: %d limit: %d",
+					print_endpoint(p->remote()).c_str(),
+					num_peers(),
+					m_max_connections);
 			}
 #endif
 			p->disconnect(errors::too_many_connections, operation_t::bittorrent);

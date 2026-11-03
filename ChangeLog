@@ -1,5 +1,6 @@
 2.1.3 not released
 
+	* ignore i2p peers with invalid destinations
 	* fix out of bounds write in the C binding's torrent handle table after removing torrents
 	* fix use-after-free reading a UPnP response body after the HTTP receive buffer grew
 	* fix i2p endpoints in alerts
