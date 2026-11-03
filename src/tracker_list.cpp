@@ -122,6 +122,8 @@ void tracker_list::prioritize_udp_trackers()
 			if (hostname != udp_hostname) continue;
 			auto* ae1 = &*i;
 			auto* ae2 = &*j;
+			// swap the tiers too, to keep the list sorted by tier
+			std::swap(ae1->tier, ae2->tier);
 			i = m_trackers.erase(i);
 			m_trackers.insert(j, *ae1);
 			j = m_trackers.erase(j);

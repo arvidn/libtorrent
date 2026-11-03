@@ -13,6 +13,8 @@ see LICENSE file.
 #include "libtorrent/announce_entry.hpp"
 #include "test.hpp"
 
+#include <algorithm>
+
 using namespace libtorrent::aux;
 
 TORRENT_TEST(test_initial_state)
@@ -250,13 +252,50 @@ TORRENT_TEST(test_prioritize_udp_tier)
 
 	tl.prioritize_udp_trackers();
 
-	// trackers are also re-ordered across tiers
+	// trackers are also re-ordered across tiers, and swap tiers to keep the
+	// list sorted
 	i = tl.begin();
 	TEST_EQUAL(i->url, "udp://example1.com/announce");
+	TEST_EQUAL(i->tier, 0);
+	++i;
+	TEST_EQUAL(i->url, "http://example1.com/announce");
+	TEST_EQUAL(i->tier, 2);
+	++i;
+	TEST_CHECK(i == tl.end());
+}
+
+TORRENT_TEST(test_prioritize_udp_tier_sorted)
+{
+	tracker_list tl;
+
+	std::vector<lt::announce_entry> trackers;
+	trackers.emplace_back("http://example1.com/announce");
+	trackers.emplace_back("http://example2.com/announce");
+	trackers.back().tier = 1;
+	trackers.emplace_back("http://example3.com/announce");
+	trackers.back().tier = 2;
+	trackers.emplace_back("udp://example1.com/announce");
+	trackers.back().tier = 3;
+
+	tl.replace(trackers);
+	tl.prioritize_udp_trackers();
+
+	auto i = tl.begin();
+	TEST_EQUAL(i->url, "udp://example1.com/announce");
+	++i;
+	TEST_EQUAL(i->url, "http://example2.com/announce");
+	++i;
+	TEST_EQUAL(i->url, "http://example3.com/announce");
 	++i;
 	TEST_EQUAL(i->url, "http://example1.com/announce");
 	++i;
 	TEST_CHECK(i == tl.end());
+
+	// announce_with_tracker() and update_tracker_timer() rely on the list
+	// being sorted by tier
+	TEST_CHECK(std::is_sorted(tl.begin(), tl.end()
+		, [](lt::aux::announce_entry const& lhs, lt::aux::announce_entry const& rhs)
+		{ return lhs.tier < rhs.tier; }));
 }
 
 TORRENT_TEST(test_replace_find_tracker)
