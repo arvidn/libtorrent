@@ -155,8 +155,7 @@ struct mock_torrent
 	std::vector<std::shared_ptr<mock_peer_connection>> m_connections;
 };
 
-void mock_peer_connection::disconnect(error_code const&
-	, operation_t, disconnect_severity_t)
+void mock_peer_connection::disconnect(error_code const&, operation_t, disconnect_severity_t)
 {
 	m_torrent.m_p->connection_closed(*this, 0, m_torrent.m_state);
 	auto const i = std::find(m_torrent.m_connections.begin(), m_torrent.m_connections.end()
@@ -197,6 +196,9 @@ torrent_peer* add_peer(peer_list& p, torrent_state& st, tcp::endpoint const& ep)
 }
 
 #if TORRENT_USE_I2P
+// 384 bytes of keys followed by an empty certificate
+std::string i2p_dest(char const c) { return std::string(512, c) + "AAAA"; }
+
 torrent_peer* add_i2p_peer(peer_list& p, torrent_state& st, std::string const& destination)
 {
 	int cc = p.num_connect_candidates();
@@ -963,15 +965,15 @@ TORRENT_TEST(self_connection_i2p)
 	t.m_p = &p;
 
 	// add and connect peer
-	torrent_peer* peer = add_i2p_peer(p, st, "foobar");
+	torrent_peer* peer = add_i2p_peer(p, st, i2p_dest('c'));
 	connect_peer(p, t, st);
 
 	auto con_out = shared_from_this(peer->connection);
-	con_out->m_i2p_destination = "foobar";
-	con_out->m_local_i2p_endpoint = "foobar";
+	con_out->m_i2p_destination = i2p_dest('c');
+	con_out->m_local_i2p_endpoint = i2p_dest('c');
 
-	auto con_in = std::make_shared<mock_peer_connection>(&t, false, "foobar");
-	con_in->m_local_i2p_endpoint = "foobar";
+	auto con_in = std::make_shared<mock_peer_connection>(&t, false, i2p_dest('c'));
+	con_in->m_local_i2p_endpoint = i2p_dest('c');
 
 	p.new_connection(*con_in, 0, &st);
 
@@ -984,6 +986,39 @@ TORRENT_TEST(self_connection_i2p)
 	TEST_EQUAL(con_in->was_disconnected(), true);
 }
 
+TORRENT_TEST(invalid_i2p_destination)
+{
+	torrent_state st = init_state();
+	mock_torrent t(&st);
+	peer_list p(allocator);
+	t.m_p = &p;
+
+	std::string const long_cert = std::string(512, 'A') + "AAAB";
+	for (string_view const dest :
+		{""_sv, "1.2.3.4"_sv, "abc+def"_sv, "abc/def"_sv, "localhost"_sv, string_view(long_cert)})
+	{
+		TEST_CHECK(p.add_i2p_peer(dest, {}, {}, &st) == nullptr);
+	}
+	TEST_EQUAL(p.num_peers(), 0);
+}
+
+// an invalid destination must not evict peers from a full peer list
+TORRENT_TEST(invalid_i2p_destination_full_list)
+{
+	torrent_state st = init_state();
+	st.max_peerlist_size = 2;
+	mock_torrent t(&st);
+	peer_list p(allocator);
+	t.m_p = &p;
+
+	TEST_CHECK(add_i2p_peer(p, st, i2p_dest('f')));
+	TEST_CHECK(add_i2p_peer(p, st, i2p_dest('b')));
+	TEST_EQUAL(p.num_peers(), 2);
+
+	TEST_CHECK(p.add_i2p_peer("1.2.3.4", {}, {}, &st) == nullptr);
+	TEST_EQUAL(p.num_peers(), 2);
+}
+
 // test double i2p connection (both incoming)
 TORRENT_TEST(double_connection_i2p)
 {
@@ -993,17 +1028,17 @@ TORRENT_TEST(double_connection_i2p)
 	peer_list p(allocator);
 	t.m_p = &p;
 
-	// we are "foo" and the other peer is "bar"
+	// we are "fff..." and the other peer is "bbb..."
 
 	// first incoming connection
-	auto con1 = std::make_shared<mock_peer_connection>(&t, false, "bar");
-	con1->m_local_i2p_endpoint = "foo";
+	auto con1 = std::make_shared<mock_peer_connection>(&t, false, i2p_dest('b'));
+	con1->m_local_i2p_endpoint = i2p_dest('f');
 
 	p.new_connection(*con1, 0, &st);
 
 	// the second incoming connection
-	auto con2 = std::make_shared<mock_peer_connection>(&t, false, "bar");
-	con2->m_local_i2p_endpoint = "foo";
+	auto con2 = std::make_shared<mock_peer_connection>(&t, false, i2p_dest('b'));
+	con2->m_local_i2p_endpoint = i2p_dest('f');
 
 	p.new_connection(*con2, 0, &st);
 
@@ -1021,18 +1056,18 @@ TORRENT_TEST(double_connection_loose_i2p)
 	peer_list p(allocator);
 	t.m_p = &p;
 
-	// we are "foo" and the other peer is "bar"
+	// we are "fff..." and the other peer is "bbb..."
 
 	// our outgoing connection
-	torrent_peer* peer = add_i2p_peer(p, st, "bar");
+	torrent_peer* peer = add_i2p_peer(p, st, i2p_dest('b'));
 	connect_peer(p, t, st);
 
 	auto con_out = shared_from_this(peer->connection);
-	con_out->m_local_i2p_endpoint = "foo";
+	con_out->m_local_i2p_endpoint = i2p_dest('f');
 
 	// and the incoming connection
-	auto con_in = std::make_shared<mock_peer_connection>(&t, false, "bar");
-	con_in->m_local_i2p_endpoint = "foo";
+	auto con_in = std::make_shared<mock_peer_connection>(&t, false, i2p_dest('b'));
+	con_in->m_local_i2p_endpoint = i2p_dest('f');
 
 	p.new_connection(*con_in, 0, &st);
 
@@ -1050,19 +1085,19 @@ TORRENT_TEST(double_connection_win_i2p)
 	peer_list p(allocator);
 	t.m_p = &p;
 
-	// we are "bar" and the other peer is "foo"
-	// "bar" < "foo", so we gets to make the outgoing connection
+	// we are "bbb..." and the other peer is "fff..."
+	// "bbb..." < "fff...", so we get to make the outgoing connection
 
 	// our outgoing connection
-	torrent_peer* peer = add_i2p_peer(p, st, "foo");
+	torrent_peer* peer = add_i2p_peer(p, st, i2p_dest('f'));
 	connect_peer(p, t, st);
 
 	auto con_out = shared_from_this(peer->connection);
-	con_out->m_local_i2p_endpoint = "bar";
+	con_out->m_local_i2p_endpoint = i2p_dest('b');
 
 	//and the incoming connection
-	auto con_in = std::make_shared<mock_peer_connection>(&t, false, "foo");
-	con_in->m_local_i2p_endpoint = "bar";
+	auto con_in = std::make_shared<mock_peer_connection>(&t, false, i2p_dest('f'));
+	con_in->m_local_i2p_endpoint = i2p_dest('b');
 
 	p.new_connection(*con_in, 0, &st);
 

@@ -30,6 +30,7 @@ see LICENSE file.
 #include "libtorrent/aux_/torrent_peer_allocator.hpp"
 #include "libtorrent/aux_/ip_voter.hpp" // for external_ip
 #include "libtorrent/aux_/ip_helpers.hpp" // for is_v6
+#include "libtorrent/aux_/escape_string.hpp" // for is_valid_i2p_destination
 
 #if TORRENT_USE_ASSERTS
 #include "libtorrent/aux_/socket_io.hpp" // for print_endpoint
@@ -594,6 +595,7 @@ namespace libtorrent::aux {
 
 #if TORRENT_USE_I2P
 		std::string const i2p_dest = c.destination();
+		TORRENT_ASSERT(i2p_dest.empty() || is_valid_i2p_destination(i2p_dest));
 #else
 		std::string const i2p_dest;
 #endif
@@ -832,6 +834,8 @@ namespace libtorrent::aux {
 			if (!i2p_dest.empty())
 			{
 				i = add_i2p_peer(i2p_dest, peer_info::incoming, {}, state);
+				if (i == nullptr)
+					return false;
 				// we're about to attach the new connection to this torrent_peer
 				if (is_connect_candidate(*i))
 					update_connect_candidates(-1);
@@ -1131,6 +1135,11 @@ namespace libtorrent::aux {
 			update_peer(*iter, src, flags, tcp::endpoint());
 			return *iter;
 		}
+
+		// trackers may send arbitrary strings as destinations. Everything
+		// downstream assumes the destination is valid
+		if (!is_valid_i2p_destination(destination))
+			return nullptr;
 
 		// we don't have any info about this peer.
 		// add a new entry

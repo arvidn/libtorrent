@@ -1198,8 +1198,6 @@ namespace {
 #if TORRENT_USE_I2P
 		if (auto s = std::get_if<i2p_stream>(&m_socket))
 		{
-			// TODO: store the sah256 hash of the destination in the
-			// i2p_peer struct, so we don't have to recompute it every time
 			return i2p_destination_hash(s->destination());
 		}
 #endif

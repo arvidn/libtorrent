@@ -478,22 +478,7 @@ namespace {
 		{
 			p.flags |= peer_info::i2p_socket;
 			auto const* pi = peer_info_struct();
-			if (pi != nullptr)
-			{
-				try
-				{
-					sha256_hash const b32_addr = i2p_destination_hash(pi->dest());
-					p.set_i2p_destination(b32_addr);
-				}
-				catch (lt::system_error const&)
-				{
-					p.set_i2p_destination(sha256_hash());
-				}
-			}
-			else
-			{
-				p.set_i2p_destination(sha256_hash());
-			}
+			p.set_i2p_destination(pi != nullptr ? i2p_destination_hash(pi->dest()) : sha256_hash());
 		}
 #endif
 		if (is_utp(get_socket())) p.flags |= peer_info::utp_socket;

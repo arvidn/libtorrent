@@ -205,7 +205,7 @@ namespace libtorrent {
 
 			 // i2p errors
 			 "no i2p router is set up",
-			 "",
+			 "i2p acceptor not available yet",
 			 "",
 			 "",
 			 "",

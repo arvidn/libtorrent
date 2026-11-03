@@ -51,6 +51,7 @@ TORRENT_TEST(error_code)
 		== "unsupported protocol version");
 #endif
 	TEST_CHECK(error_code(errors::no_i2p_router).message() == "no i2p router is set up");
+	TEST_CHECK(error_code(errors::no_i2p_endpoint).message() == "i2p acceptor not available yet");
 	TEST_CHECK(error_code(errors::http_parse_error).message() == "Invalid HTTP header");
 	TEST_CHECK(error_code(errors::error_code_max).message() == "Unknown error");
 	TEST_CHECK(error_code(errors::ssrf_mitigation).message() == "blocked by SSRF mitigation");
