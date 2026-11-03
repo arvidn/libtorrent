@@ -2460,6 +2460,33 @@ TORRENT_TEST(write_failed_clear_piece)
 	TEST_EQUAL(stat.downloading, 0);
 }
 
+TORRENT_TEST(write_failed_restore_remark_requested_blocks)
+{
+	auto p = setup_picker("1111111", "* *    ", "1101111", "");
+
+	p->mark_as_downloading({1_piece, 1}, &tmp1);
+	p->mark_as_writing({1_piece, 0}, &tmp2);
+	p->write_failed({1_piece, 0});
+	p->restore_piece(1_piece);
+
+	// tmp1 still has block 1 in its download queue, the torrent registers it
+	// with the picker again (mark_queued_blocks_downloading())
+	TEST_CHECK(!p->is_requested({1_piece, 1}));
+	p->mark_as_downloading({1_piece, 1}, &tmp1);
+
+	TEST_CHECK(p->is_requested({1_piece, 1}));
+	TEST_EQUAL(p->num_peers({1_piece, 1}), 1);
+	TEST_CHECK(!p->is_downloaded({1_piece, 0}));
+
+	auto const picked = pick_pieces(p, " *     ", blocks_per_piece, 0, &tmp3);
+	TEST_EQUAL(int(picked.size()), blocks_per_piece - 1);
+	for (auto const& b : picked)
+		TEST_CHECK(b != piece_block(1_piece, 1));
+
+	p->abort_download({1_piece, 1}, &tmp1);
+	TEST_CHECK(!p->is_requested({1_piece, 1}));
+}
+
 TORRENT_TEST(mark_as_canceled)
 {
 	auto p = setup_picker("1111111", "* *    ", "1101111", "");
