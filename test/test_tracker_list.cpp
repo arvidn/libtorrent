@@ -13,6 +13,8 @@ see LICENSE file.
 #include "libtorrent/announce_entry.hpp"
 #include "test.hpp"
 
+#include <algorithm>
+
 using namespace libtorrent::aux;
 
 TORRENT_TEST(test_initial_state)
@@ -250,13 +252,55 @@ TORRENT_TEST(test_prioritize_udp_tier)
 
 	tl.prioritize_udp_trackers();
 
-	// trackers are also re-ordered across tiers
+	// trackers are not re-ordered across tiers
 	i = tl.begin();
-	TEST_EQUAL(i->url, "udp://example1.com/announce");
-	++i;
 	TEST_EQUAL(i->url, "http://example1.com/announce");
+	TEST_EQUAL(i->tier, 0);
+	++i;
+	TEST_EQUAL(i->url, "udp://example1.com/announce");
+	TEST_EQUAL(i->tier, 2);
 	++i;
 	TEST_CHECK(i == tl.end());
+}
+
+TORRENT_TEST(test_prioritize_udp_keeps_tier_order)
+{
+	tracker_list tl;
+
+	std::vector<lt::announce_entry> trackers;
+	trackers.emplace_back("http://example1.com/announce");
+	trackers.emplace_back("udp://example1.com/announce");
+	trackers.emplace_back("http://example2.com/announce");
+	trackers.back().tier = 1;
+	trackers.emplace_back("udp://example2.com/announce");
+	trackers.back().tier = 2;
+
+	tl.replace(trackers);
+	tl.prioritize_udp_trackers();
+
+	// within a tier, the udp tracker is moved first. The udp tracker in tier 2
+	// stays behind the http tracker in tier 1, since every tracker in a tier
+	// must be tried before moving on to the next one
+	auto i = tl.begin();
+	TEST_EQUAL(i->url, "udp://example1.com/announce");
+	TEST_EQUAL(i->tier, 0);
+	++i;
+	TEST_EQUAL(i->url, "http://example1.com/announce");
+	TEST_EQUAL(i->tier, 0);
+	++i;
+	TEST_EQUAL(i->url, "http://example2.com/announce");
+	TEST_EQUAL(i->tier, 1);
+	++i;
+	TEST_EQUAL(i->url, "udp://example2.com/announce");
+	TEST_EQUAL(i->tier, 2);
+	++i;
+	TEST_CHECK(i == tl.end());
+
+	TEST_CHECK(std::is_sorted(tl.begin(),
+		tl.end(),
+		[](lt::aux::announce_entry const& lhs, lt::aux::announce_entry const& rhs) {
+			return lhs.tier < rhs.tier;
+		}));
 }
 
 TORRENT_TEST(test_replace_find_tracker)

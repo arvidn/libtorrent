@@ -8,6 +8,7 @@ see LICENSE file.
 */
 
 
+#include <algorithm>
 #include <utility> // for swap()
 
 #include "libtorrent/aux_/tracker_list.hpp"
@@ -115,6 +116,10 @@ void tracker_list::prioritize_udp_trackers()
 			= parse_url_components(i->url, ec);
 		for (auto j = m_trackers.begin(); j != i; ++j)
 		{
+			// moving a tracker into a different tier would change its
+			// priority relative to the other trackers
+			if (j->tier != i->tier)
+				continue;
 			if (j->url.substr(0, 6) == "udp://") continue;
 			std::string hostname;
 			std::tie(ignore, ignore, hostname, ignore, ignore)
@@ -266,6 +271,13 @@ void tracker_list::check_invariant() const
 		TORRENT_ASSERT(i != m_url_index.end());
 		TORRENT_ASSERT(i->second == &ae);
 	}
+
+	// the announce logic relies on the list being ordered by tier
+	TORRENT_ASSERT(std::is_sorted(m_trackers.begin(),
+		m_trackers.end(),
+		[](aux::announce_entry const& lhs, aux::announce_entry const& rhs) {
+			return lhs.tier < rhs.tier;
+		}));
 
 	TORRENT_ASSERT(m_url_index.size() == m_trackers.size());
 	TORRENT_ASSERT(m_last_working_tracker == nullptr || m_storage.is_from(m_last_working_tracker));
