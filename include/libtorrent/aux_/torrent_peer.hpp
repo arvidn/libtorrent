@@ -111,6 +111,9 @@ namespace libtorrent::aux {
 		// when the session time reaches 18 hours, it jumps back by
 		// 9 hours, and all peers' times are updated to be
 		// relative to that new time offset
+		//
+		// this is kept across connections, so a reconnecting peer keeps its
+		// place in the optimistic unchoke queue
 		std::uint16_t last_optimistically_unchoked = 0;
 
 		// the time when the torrent_peer connected to us
@@ -155,27 +158,20 @@ namespace libtorrent::aux {
 		// we have a listen port for will be assumed to be.
 		static constexpr torrent_peer_flags_t connectable = 0_bit;
 
-		// set if this torrent_peer currently is unchoked
-		// because of an optimistic unchoke.
-		// when the optimistic unchoke is moved to
-		// another torrent_peer, this torrent_peer will be choked
-		// if this is set
-		static constexpr torrent_peer_flags_t optimistically_unchoked = 1_bit;
-
 		// set if the torrent_peer is a seed, and we know for sure
 		// because we have connected to it and it told us it was a seed
-		static constexpr torrent_peer_flags_t seed = 2_bit;
+		static constexpr torrent_peer_flags_t seed = 1_bit;
 
 		// this peer confirmed via BEP-21 (LTEP upload_only=1) that it will
 		// not download any more. A seed is upload_only by implication,
 		// but a partial seed can be upload_only without being a seed, so
 		// this is tracked separately from seed.
-		static constexpr torrent_peer_flags_t upload_only = 3_bit;
+		static constexpr torrent_peer_flags_t upload_only = 2_bit;
 
 		// we've been told that this peer is upload-only, but we don't know for
 		// sure because we haven't connected to it yet. If we are finished, we
 		// will de-prioritize peers that may be seeds
-		static constexpr torrent_peer_flags_t maybe_upload_only = 4_bit;
+		static constexpr torrent_peer_flags_t maybe_upload_only = 3_bit;
 
 		// if set, the torrent_peer has repeatedly
 		// participated in pieces that failed the piece
@@ -184,28 +180,28 @@ namespace libtorrent::aux {
 		// that was partially requested from this torrent_peer it
 		// will leave parole mode and continue download
 		// pieces as normal peers.
-		static constexpr torrent_peer_flags_t on_parole = 5_bit;
+		static constexpr torrent_peer_flags_t on_parole = 4_bit;
 
 		// set if this torrent_peer has been banned
-		static constexpr torrent_peer_flags_t banned = 6_bit;
+		static constexpr torrent_peer_flags_t banned = 5_bit;
 
 		// we think this torrent_peer supports uTP; assumed until proven otherwise
-		static constexpr torrent_peer_flags_t supports_utp = 7_bit;
+		static constexpr torrent_peer_flags_t supports_utp = 6_bit;
 
 		// we have been connected via uTP at least once
-		static constexpr torrent_peer_flags_t confirmed_supports_utp = 8_bit;
+		static constexpr torrent_peer_flags_t confirmed_supports_utp = 7_bit;
 
-		static constexpr torrent_peer_flags_t supports_holepunch = 9_bit;
+		static constexpr torrent_peer_flags_t supports_holepunch = 8_bit;
 
 		// this is set for web seeds. Web seeds
 		// are not stored in the policy m_peers list,
 		// and are exempt from connect candidate bookkeeping
 		// so, any torrent_peer with the web_seed bit set, is
 		// never considered a connect candidate
-		static constexpr torrent_peer_flags_t web_seed = 10_bit;
+		static constexpr torrent_peer_flags_t web_seed = 9_bit;
 
 		// this peer supports protocol version 2
-		static constexpr torrent_peer_flags_t protocol_v2 = 11_bit;
+		static constexpr torrent_peer_flags_t protocol_v2 = 10_bit;
 
 #if !defined TORRENT_DISABLE_ENCRYPTION
 		// Hints encryption support of torrent_peer. Only effective
@@ -219,7 +215,7 @@ namespace libtorrent::aux {
 		// encrypted or non-encrypted handshake fails.
 		// defaults to cleared (assume no support) to prefer opening
 		// non-encrypted connections first
-		static constexpr torrent_peer_flags_t pe_support = 12_bit;
+		static constexpr torrent_peer_flags_t pe_support = 11_bit;
 #endif
 
 #if TORRENT_USE_ASSERTS

@@ -4350,7 +4350,7 @@ retry:
 
 		// collect the currently optimistically unchoked peers here, so we can
 		// choke them when we've found new optimistic unchoke candidates.
-		std::vector<torrent_peer*> prev_opt_unchoke;
+		std::vector<peer_connection*> prev_opt_unchoke;
 
 		// TODO: 3 it would probably make sense to have a separate list of peers
 		// that are eligible for optimistic unchoke, similar to the torrents
@@ -4363,15 +4363,14 @@ retry:
 		{
 			peer_connection* const p = i.get();
 			TORRENT_ASSERT(p);
+
+			if (p->is_optimistically_unchoked())
+				prev_opt_unchoke.push_back(p);
+
 			torrent_peer* pi = p->peer_info_struct();
 			if (!pi) continue;
 			if (pi->flags & torrent_peer::web_seed)
 				continue;
-
-			if (pi->flags & torrent_peer::optimistically_unchoked)
-			{
-				prev_opt_unchoke.push_back(pi);
-			}
 
 			torrent const* t = p->associated_torrent().lock().get();
 			if (!t) continue;
@@ -4381,8 +4380,7 @@ retry:
 			if (t->is_paused()) continue;
 
 			if (!p->is_connecting() && !p->is_disconnecting() && p->is_peer_interested()
-				&& t->free_upload_slots()
-				&& (p->is_choked() || pi->flags & torrent_peer::optimistically_unchoked)
+				&& t->free_upload_slots() && (p->is_choked() || p->is_optimistically_unchoked())
 				&& !p->ignore_unchoke_slots() && t->valid_metadata())
 			{
 				opt_unchoke.emplace_back(&i);
@@ -4416,21 +4414,22 @@ retry:
 
 		for (auto i = opt_unchoke.begin(); i != opt_unchoke_end; ++i)
 		{
-			torrent_peer* pi = (*i->peer)->peer_info_struct();
-			auto* const p = static_cast<peer_connection*>(pi->connection);
-			if (pi->flags & torrent_peer::optimistically_unchoked)
+			peer_connection* const p = i->peer->get();
+			torrent_peer* const pi = p->peer_info_struct();
+			if (p->is_optimistically_unchoked())
 			{
 #ifndef TORRENT_DISABLE_LOGGING
-					p->peer_log(peer_log_alert::info, peer_log_alert::optimistic_unchoke
-						, "already unchoked | session-time: %d"
-						, pi->last_optimistically_unchoked);
+				p->peer_log(peer_log_alert::info,
+					peer_log_alert::optimistic_unchoke,
+					"already unchoked | session-time: %d",
+					pi->last_optimistically_unchoked);
 #endif
-				TORRENT_ASSERT(!pi->connection->is_choked());
+				TORRENT_ASSERT(!p->is_choked());
 				// remove this peer from prev_opt_unchoke, to prevent us from
 				// choking it later. This peer gets another round of optimistic
 				// unchoke
 				auto const existing =
-					std::find(prev_opt_unchoke.begin(), prev_opt_unchoke.end(), pi);
+					std::find(prev_opt_unchoke.begin(), prev_opt_unchoke.end(), p);
 				TORRENT_ASSERT(existing != prev_opt_unchoke.end());
 				prev_opt_unchoke.erase(existing);
 			}
@@ -4442,7 +4441,7 @@ retry:
 				TORRENT_ASSERT(ret);
 				if (ret)
 				{
-					pi->flags |= torrent_peer::optimistically_unchoked;
+					p->set_optimistically_unchoked(true);
 					m_stats_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic);
 					pi->last_optimistically_unchoked = std::uint16_t(session_time());
 #ifndef TORRENT_DISABLE_LOGGING
@@ -4454,13 +4453,17 @@ retry:
 		}
 
 		// now, choke all the previous optimistically unchoked peers
-		for (torrent_peer* pi : prev_opt_unchoke)
+		// TODO: 2 ignore_unchoke_slots() depends on the peer's and torrent's
+		// peer classes, which may change while a peer is unchoked. That isn't
+		// handled. A peer that starts ignoring unchoke slots while
+		// optimistically unchoked ends up here, and choke_peer() asserts it
+		// doesn't. Regularly unchoked peers have the same problem with the
+		// m_num_uploads and num_peers_up_unchoked accounting, in both
+		// directions
+		for (peer_connection* p : prev_opt_unchoke)
 		{
-			TORRENT_ASSERT(pi->flags & torrent_peer::optimistically_unchoked);
-			auto* const p = static_cast<peer_connection*>(pi->connection);
+			TORRENT_ASSERT(p->is_optimistically_unchoked());
 			std::shared_ptr<torrent> t = p->associated_torrent().lock();
-			pi->flags &= ~torrent_peer::optimistically_unchoked;
-			m_stats_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic, -1);
 			t->choke_peer(*p);
 		}
 
@@ -4648,15 +4651,11 @@ retry:
 					p->reset_choke_counters();
 					continue;
 				}
-				if (pi && pi->flags & torrent_peer::optimistically_unchoked)
-				{
-					m_stats_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic, -1);
-					pi->flags &= ~torrent_peer::optimistically_unchoked;
-					// force a new optimistic unchoke
+				// force a new optimistic unchoke
+				// TODO: post a message to have this happen
+				// immediately instead of waiting for the next tick
+				if (p->is_optimistically_unchoked())
 					m_optimistic_unchoke_time_scaler = 0;
-					// TODO: post a message to have this happen
-					// immediately instead of waiting for the next tick
-				}
 				t->choke_peer(*p);
 				p->reset_choke_counters();
 				continue;
@@ -4722,23 +4721,20 @@ retry:
 
 				--unchoke_set_size;
 
-				TORRENT_ASSERT(p->peer_info_struct());
-				if (p->peer_info_struct()->flags & torrent_peer::optimistically_unchoked)
+				if (p->is_optimistically_unchoked())
 				{
 					// force a new optimistic unchoke
 					// since this one just got promoted into the
 					// proper unchoke set
 					m_optimistic_unchoke_time_scaler = 0;
-					p->peer_info_struct()->flags &= ~torrent_peer::optimistically_unchoked;
+					p->set_optimistically_unchoked(false);
 					m_stats_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic, -1);
 				}
 			}
 			else
 			{
 				// no, this peer should be choked
-				TORRENT_ASSERT(p->peer_info_struct());
-				if (!p->is_choked()
-					&& !(p->peer_info_struct()->flags & torrent_peer::optimistically_unchoked))
+				if (!p->is_choked() && !p->is_optimistically_unchoked())
 					t->choke_peer(*p);
 			}
 		}
@@ -7484,8 +7480,7 @@ retry:
 				++unchokes_all;
 			}
 
-			if (p->peer_info_struct()
-				&& p->peer_info_struct()->flags & torrent_peer::optimistically_unchoked)
+			if (p->is_optimistically_unchoked())
 			{
 				++num_optimistic;
 				TORRENT_ASSERT(!p->is_choked());
@@ -7505,8 +7500,7 @@ retry:
 				++unchokes;
 			}
 
-			if (p->peer_info_struct()
-				&& p->peer_info_struct()->flags & torrent_peer::optimistically_unchoked)
+			if (p->is_optimistically_unchoked())
 			{
 				++num_optimistic;
 				TORRENT_ASSERT(!p->is_choked());

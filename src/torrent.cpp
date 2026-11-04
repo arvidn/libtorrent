@@ -6775,16 +6775,15 @@ namespace {
 			trigger_unchoke();
 		}
 
+		if (p->is_optimistically_unchoked())
+		{
+			p->set_optimistically_unchoked(false);
+			m_stats_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic, -1);
+			trigger_optimistic_unchoke();
+		}
+
 		if (pp)
 		{
-			if (pp->flags & torrent_peer::optimistically_unchoked)
-			{
-				pp->flags &= ~torrent_peer::optimistically_unchoked;
-				m_stats_counters.inc_stats_counter(
-					counters::num_peers_up_unchoked_optimistic, -1);
-				trigger_optimistic_unchoke();
-			}
-
 			TORRENT_ASSERT(pp->prev_amount_upload == 0);
 			TORRENT_ASSERT(pp->prev_amount_download == 0);
 			pp->prev_amount_download += aux::numeric_cast<std::uint32_t>(p->statistics().total_payload_download() / 1024);

@@ -254,6 +254,11 @@ namespace libtorrent::aux {
 		// we have choked the upload to the peer
 		bool m_choked:1;
 
+		// we have unchoked the upload to the peer because of an optimistic
+		// unchoke. It's choked again when the optimistic unchoke slot moves
+		// on to another peer
+		bool m_optimistically_unchoked:1 = false;
+
 		// when this is set, the transfer stats for this connection
 		// is not included in the torrent or session stats
 		bool m_ignore_stats:1;
@@ -436,6 +441,8 @@ namespace libtorrent::aux {
 
 		bool is_interesting() const { return m_interesting; }
 		bool is_choked() const override { return m_choked; }
+		bool is_optimistically_unchoked() const { return m_optimistically_unchoked; }
+		void set_optimistically_unchoked(bool const v) { m_optimistically_unchoked = v; }
 
 		bool is_peer_interested() const { return m_peer_interested; }
 		bool has_peer_choked() const { return m_peer_choked; }
