@@ -291,16 +291,6 @@ namespace libtorrent::aux {
 		// its files the same way regardless of later library upgrades.
 		path_sanitize_flags_t m_sanitize_flags = path_sanitize_flags::default_flags;
 
-		// helper: set or clear `bit` in m_flags based on `value`.
-		void set_flag(torrent_flags_t const bit, bool const value)
-		{
-			if (value)
-				m_flags |= bit;
-			else
-				m_flags &= ~bit;
-		}
-
-
 		// the piece picker. This is allocated lazily. When we don't
 		// have anything in the torrent (for instance, if it hasn't
 		// been started yet) or if we have everything, there is no
@@ -603,12 +593,18 @@ namespace libtorrent::aux {
 
 		void set_session_paused(bool b);
 		void set_paused(bool b, pause_flags_t flags = {});
-		void set_announce_to_dht(bool b) { set_flag(torrent_internal_flags::announce_to_dht, b); }
+		void set_announce_to_dht(bool b)
+		{
+			m_flags.set(torrent_internal_flags::announce_to_dht, b);
+		}
 		void set_announce_to_trackers(bool b)
 		{
-			set_flag(torrent_internal_flags::announce_to_trackers, b);
+			m_flags.set(torrent_internal_flags::announce_to_trackers, b);
 		}
-		void set_announce_to_lsd(bool b) { set_flag(torrent_internal_flags::announce_to_lsd, b); }
+		void set_announce_to_lsd(bool b)
+		{
+			m_flags.set(torrent_internal_flags::announce_to_lsd, b);
+		}
 
 		void stop_when_ready(bool b);
 

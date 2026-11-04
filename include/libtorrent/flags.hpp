@@ -81,6 +81,17 @@ struct bitfield_flag
 		return *this;
 	}
 
+	// sets the bits in ``f`` if ``value`` is true, otherwise clears them.
+	// Other bits are left unchanged.
+	bitfield_flag& set(bitfield_flag const f, bool const value) & noexcept
+	{
+		if (value)
+			m_val |= f.m_val;
+		else
+			m_val &= static_cast<UnderlyingType>(~f.m_val);
+		return *this;
+	}
+
 	constexpr friend bitfield_flag operator|(bitfield_flag const lhs, bitfield_flag const rhs) noexcept
 	{
 		return bitfield_flag(lhs.m_val | rhs.m_val);
