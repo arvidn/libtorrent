@@ -236,3 +236,12 @@ TORRENT_TEST(flag_disable_pex)
 	test_set_after_add(torrent_flags::disable_pex);
 	test_unset_after_add(torrent_flags::disable_pex);
 }
+
+TORRENT_TEST(bitfield_flag_set)
+{
+	torrent_flags_t f = torrent_flags::paused;
+	f.set(torrent_flags::seed_mode | torrent_flags::upload_mode, true);
+	TEST_EQUAL(f, torrent_flags::paused | torrent_flags::seed_mode | torrent_flags::upload_mode);
+	f.set(torrent_flags::paused | torrent_flags::seed_mode, false);
+	TEST_EQUAL(f, torrent_flags::upload_mode);
+}

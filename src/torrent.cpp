@@ -250,7 +250,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		// This is stored in 2 bits
 		TORRENT_ASSERT_PRECOND(static_cast<std::uint8_t>(p.storage_mode) < 4);
 
-		set_flag(torrent_internal_flags::disable_hash_checks,
+		m_flags.set(torrent_internal_flags::disable_hash_checks,
 			settings().get_bool(settings_pack::disable_hash_checks));
 
 		if (p.flags & torrent_flags::need_save_resume)
@@ -378,7 +378,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			// so assume the seed mode flag is not intended and don't enable it in
 			// that case. Also, if the resume data says we're missing a piece, we
 			// can't be in seed-mode.
-			set_flag(torrent_flags::seed_mode,
+			m_flags.set(torrent_flags::seed_mode,
 				(p.flags & torrent_flags::seed_mode)
 					&& std::find(p.file_priorities.begin(), p.file_priorities.end(), dont_download)
 						== p.file_priorities.end()
@@ -738,7 +738,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 		set_need_save_resume(torrent_handle::if_config_changed);
 
-		set_flag(torrent_flags::apply_ip_filter, b);
+		m_flags.set(torrent_flags::apply_ip_filter, b);
 		ip_filter_updated();
 		state_updated();
 	}
@@ -948,7 +948,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 	{
 		if (mask & torrent_flags::i2p_torrent)
 		{
-			set_flag(torrent_flags::i2p_torrent, bool(flags & torrent_flags::i2p_torrent));
+			m_flags.set(torrent_flags::i2p_torrent, bool(flags & torrent_flags::i2p_torrent));
 		}
 		if ((mask & torrent_flags::seed_mode)
 			&& !(flags & torrent_flags::seed_mode))
@@ -985,21 +985,21 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			bool const new_value = bool(flags & torrent_flags::disable_dht);
 			if (new_value != bool(m_flags & torrent_flags::disable_dht))
 				set_need_save_resume(torrent_handle::if_config_changed);
-			set_flag(torrent_flags::disable_dht, new_value);
+			m_flags.set(torrent_flags::disable_dht, new_value);
 		}
 		if (mask & torrent_flags::disable_lsd)
 		{
 			bool const new_value = bool(flags & torrent_flags::disable_lsd);
 			if (new_value != bool(m_flags & torrent_flags::disable_lsd))
 				set_need_save_resume(torrent_handle::if_config_changed);
-			set_flag(torrent_flags::disable_lsd, new_value);
+			m_flags.set(torrent_flags::disable_lsd, new_value);
 		}
 		if (mask & torrent_flags::disable_pex)
 		{
 			bool const new_value = bool(flags & torrent_flags::disable_pex);
 			if (new_value != bool(m_flags & torrent_flags::disable_pex))
 				set_need_save_resume(torrent_handle::if_config_changed);
-			set_flag(torrent_flags::disable_pex, new_value);
+			m_flags.set(torrent_flags::disable_pex, new_value);
 		}
 	}
 
@@ -1008,7 +1008,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 	{
 		if (s == bool(m_flags & torrent_flags::share_mode)) return;
 
-		set_flag(torrent_flags::share_mode, s);
+		m_flags.set(torrent_flags::share_mode, s);
 		set_need_save_resume(torrent_handle::if_config_changed);
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("*** set-share-mode: %d", s);
@@ -1029,7 +1029,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 	{
 		if (b == bool(m_flags & torrent_flags::upload_mode)) return;
 
-		set_flag(torrent_flags::upload_mode, b);
+		m_flags.set(torrent_flags::upload_mode, b);
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("*** set-upload-mode: %d", b);
 #endif
@@ -1925,7 +1925,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		// lock in the v2-only mode at storage-construction time so that a later
 		// change to the disable_v1_hashes setting doesn't cause a mismatch
 		// between the storage (set up as v2-only) and the engine's block-sizing.
-		set_flag(torrent_flags::disable_v1_hashes,
+		m_flags.set(torrent_flags::disable_v1_hashes,
 			(m_flags & torrent_flags::disable_v1_hashes) && m_torrent_file->v2());
 		storage_params params{m_torrent_file->files_impl(),
 			m_renamed_files,
@@ -4164,7 +4164,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		// (for performance)
 		int const downloaders = num_downloaders();
 		int const seeds = num_seeds();
-		set_flag(torrent_internal_flags::auto_sequential, downloaders * 10 <= seeds && seeds > 9);
+		m_flags.set(
+			torrent_internal_flags::auto_sequential, downloaders * 10 <= seeds && seeds > 9);
 	}
 
 	void torrent::do_connect_boost()
@@ -5562,7 +5563,7 @@ namespace {
 	{
 		if (on == bool(m_flags & torrent_flags::super_seeding)) return;
 
-		set_flag(torrent_flags::super_seeding, on);
+		m_flags.set(torrent_flags::super_seeding, on);
 		set_need_save_resume(torrent_handle::if_state_changed);
 		state_updated();
 
@@ -8383,7 +8384,7 @@ namespace {
 		}
 
 #if TORRENT_ABI_VERSION < 4
-		set_flag(torrent_internal_flags::v2_piece_layers_validated, valid);
+		m_flags.set(torrent_internal_flags::v2_piece_layers_validated, valid);
 
 		m_torrent_file->free_piece_layers();
 #endif
@@ -9220,7 +9221,7 @@ namespace {
 	{
 		if (bool(m_flags & torrent_internal_flags::have_all) == b)
 			return;
-		set_flag(torrent_internal_flags::have_all, b);
+		m_flags.set(torrent_internal_flags::have_all, b);
 		update_state_timers();
 	}
 
@@ -9861,7 +9862,7 @@ namespace {
 		TORRENT_ASSERT(is_single_thread());
 		if (bool(m_flags & torrent_flags::sequential_download) == sd) return;
 		if (!sd && m_picker) m_picker->set_sequential_range(piece_index_t(0), m_torrent_file->last_piece());
-		set_flag(torrent_flags::sequential_download, sd);
+		m_flags.set(torrent_flags::sequential_download, sd);
 #ifndef TORRENT_DISABLE_LOGGING
 		debug_log("*** set-sequential-download: %d", sd);
 #endif
@@ -10108,7 +10109,7 @@ namespace {
 
 		if (bool(m_flags & torrent_flags::auto_managed) == a) return;
 		bool const checking_files = should_check_files();
-		set_flag(torrent_flags::auto_managed, a);
+		m_flags.set(torrent_flags::auto_managed, a);
 		update_gauge();
 		update_want_scrape();
 		update_state_list();
@@ -10526,7 +10527,7 @@ namespace {
 	{
 		if (bool(m_flags & torrent_internal_flags::session_paused) == b) return;
 		bool const paused_before = is_paused();
-		set_flag(torrent_internal_flags::session_paused, b);
+		m_flags.set(torrent_internal_flags::session_paused, b);
 
 		if (paused_before == is_paused()) return;
 
@@ -10564,13 +10565,13 @@ namespace {
 
 		bool const paused_before = is_paused();
 
-		set_flag(torrent_flags::paused, b);
+		m_flags.set(torrent_flags::paused, b);
 
 		// the session may still be paused, in which case
 		// the effective state of the torrent did not change
 		if (paused_before == is_paused()) return;
 
-		set_flag(
+		m_flags.set(
 			torrent_internal_flags::graceful_pause, bool(flags & torrent_handle::graceful_pause));
 
 		if (b) do_pause();
@@ -11116,7 +11117,7 @@ namespace {
 		bool const is_inactive = is_inactive_internal();
 		if (is_inactive == bool(m_flags & torrent_internal_flags::inactive)) return;
 
-		set_flag(torrent_internal_flags::inactive, is_inactive);
+		m_flags.set(torrent_internal_flags::inactive, is_inactive);
 
 		update_state_list();
 		update_want_tick();
@@ -12414,7 +12415,7 @@ namespace {
 
 	void torrent::stop_when_ready(bool const b)
 	{
-		set_flag(torrent_flags::stop_when_ready, b);
+		m_flags.set(torrent_flags::stop_when_ready, b);
 
 		// to avoid race condition, if we're already in a downloading state,
 		// trigger the stop-when-ready logic immediately.
