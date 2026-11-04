@@ -1960,9 +1960,9 @@ namespace {
 		auto t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
-		if (m_peer_info && m_peer_info->flags & torrent_peer::optimistically_unchoked)
+		if (m_optimistically_unchoked)
 		{
-			m_peer_info->flags &= ~torrent_peer::optimistically_unchoked;
+			m_optimistically_unchoked = false;
 			m_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic, -1);
 			t->trigger_optimistic_unchoke();
 		}
@@ -3791,14 +3791,13 @@ namespace {
 
 		if (m_choked)
 		{
-			TORRENT_ASSERT(m_peer_info == nullptr
-				|| !(m_peer_info->flags & torrent_peer::optimistically_unchoked));
+			TORRENT_ASSERT(!m_optimistically_unchoked);
 			return false;
 		}
 
-		if (m_peer_info && m_peer_info->flags & torrent_peer::optimistically_unchoked)
+		if (m_optimistically_unchoked)
 		{
-			m_peer_info->flags &= ~torrent_peer::optimistically_unchoked;
+			m_optimistically_unchoked = false;
 			m_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic, -1);
 		}
 
@@ -4650,6 +4649,8 @@ namespace {
 		if (upload_only()) p.flags |= peer_info::upload_only;
 		if (m_endgame_mode) p.flags |= peer_info::endgame_mode;
 		if (m_holepunch_mode) p.flags |= peer_info::holepunched;
+		if (m_optimistically_unchoked)
+			p.flags |= peer_info::optimistic_unchoke;
 		if (peer_info_struct())
 		{
 			aux::torrent_peer* pi = peer_info_struct();
@@ -4659,8 +4660,6 @@ namespace {
 			p.num_hashfails = pi->hashfails;
 			if (pi->flags & torrent_peer::on_parole)
 				p.flags |= peer_info::on_parole;
-			if (pi->flags & torrent_peer::optimistically_unchoked)
-				p.flags |= peer_info::optimistic_unchoke;
 			if (pi->flags & torrent_peer::seed)
 				p.flags |= peer_info::seed;
 		}
@@ -6618,12 +6617,10 @@ namespace {
 		{
 			TORRENT_ASSERT(m_peer_info->prev_amount_upload == 0);
 			TORRENT_ASSERT(m_peer_info->prev_amount_download == 0);
-			TORRENT_ASSERT(m_peer_info->connection == this
-				|| m_peer_info->connection == nullptr);
-
-			if (m_peer_info->flags & torrent_peer::optimistically_unchoked)
-				TORRENT_ASSERT(!is_choked());
+			TORRENT_ASSERT(m_peer_info->connection == this || m_peer_info->connection == nullptr);
 		}
+
+		TORRENT_ASSERT(!m_optimistically_unchoked || !is_choked());
 
 		TORRENT_ASSERT(m_have_piece.count() == m_num_pieces);
 

@@ -1453,7 +1453,6 @@ namespace libtorrent::aux {
 		TORRENT_ASSERT(!is_connect_candidate(*p));
 
 		p->connection = nullptr;
-		p->flags &= ~torrent_peer::optimistically_unchoked;
 
 		// if fast reconnect is true, we won't
 		// update the timestamp, and it will remain
@@ -1562,11 +1561,6 @@ namespace libtorrent::aux {
 			if (!p.connection)
 			{
 				continue;
-			}
-			if (p.flags & torrent_peer::optimistically_unchoked)
-			{
-				TORRENT_ASSERT(p.connection);
-				TORRENT_ASSERT(!p.connection->is_choked());
 			}
 			TORRENT_ASSERT(p.connection->peer_info_struct() == nullptr
 				|| p.connection->peer_info_struct() == &p);
