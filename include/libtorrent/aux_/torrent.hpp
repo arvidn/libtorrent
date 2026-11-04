@@ -1352,13 +1352,14 @@ namespace libtorrent::aux {
 		void inc_num_connecting(torrent_peer* pp)
 		{
 			++m_num_connecting;
-			if (pp->seed) ++m_num_connecting_seeds;
+			if (pp->flags & torrent_peer::seed)
+				++m_num_connecting_seeds;
 		}
 		void dec_num_connecting(torrent_peer* pp)
 		{
 			TORRENT_ASSERT(m_num_connecting > 0);
 			--m_num_connecting;
-			if (pp->seed)
+			if (pp->flags & torrent_peer::seed)
 			{
 				TORRENT_ASSERT(m_num_connecting_seeds > 0);
 				--m_num_connecting_seeds;

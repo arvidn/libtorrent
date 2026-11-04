@@ -70,7 +70,7 @@ namespace libtorrent::aux {
 	{
 		TORRENT_ASSERT(m_in_use);
 		TORRENT_ASSERT(p->in_use);
-		if (p->is_v6_addr)
+		if (p->address_type() == peer_address_type::ipv6)
 		{
 			TORRENT_ASSERT(m_ipv6_peer_pool.is_from(static_cast<ipv6_peer*>(p)));
 			static_cast<ipv6_peer*>(p)->~ipv6_peer();
@@ -82,7 +82,7 @@ namespace libtorrent::aux {
 			return;
 		}
 #if TORRENT_USE_I2P
-		if (p->is_i2p_addr)
+		if (p->address_type() == peer_address_type::i2p)
 		{
 			TORRENT_ASSERT(m_i2p_peer_pool.is_from(static_cast<i2p_peer*>(p)));
 			static_cast<i2p_peer*>(p)->~i2p_peer();
@@ -95,17 +95,17 @@ namespace libtorrent::aux {
 		}
 #endif
 #if TORRENT_USE_RTC
-        if (p->is_rtc_addr)
-        {
-            TORRENT_ASSERT(m_rtc_peer_pool.is_from(static_cast<rtc_peer*>(p)));
-            static_cast<rtc_peer*>(p)->~rtc_peer();
-            m_rtc_peer_pool.free(p);
-            TORRENT_ASSERT(m_live_bytes >= int(sizeof(rtc_peer)));
-            m_live_bytes -= int(sizeof(rtc_peer));
-            TORRENT_ASSERT(m_live_allocations > 0);
-            --m_live_allocations;
-            return;
-        }
+		if (p->address_type() == peer_address_type::rtc)
+		{
+			TORRENT_ASSERT(m_rtc_peer_pool.is_from(static_cast<rtc_peer*>(p)));
+			static_cast<rtc_peer*>(p)->~rtc_peer();
+			m_rtc_peer_pool.free(p);
+			TORRENT_ASSERT(m_live_bytes >= int(sizeof(rtc_peer)));
+			m_live_bytes -= int(sizeof(rtc_peer));
+			TORRENT_ASSERT(m_live_allocations > 0);
+			--m_live_allocations;
+			return;
+		}
 #endif
 		TORRENT_ASSERT(m_ipv4_peer_pool.is_from(static_cast<ipv4_peer*>(p)));
 		static_cast<ipv4_peer*>(p)->~ipv4_peer();

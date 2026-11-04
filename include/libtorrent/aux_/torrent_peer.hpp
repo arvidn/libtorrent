@@ -20,6 +20,7 @@ see LICENSE file.
 #include "libtorrent/info_hash.hpp"
 #include "libtorrent/aux_/string_ptr.hpp"
 #include "libtorrent/string_view.hpp"
+#include "libtorrent/flags.hpp"
 
 namespace libtorrent { struct peer_connection_interface; }
 
@@ -33,9 +34,25 @@ namespace libtorrent::aux {
 	TORRENT_EXTRA_EXPORT std::uint32_t peer_priority(
 		tcp::endpoint e1, tcp::endpoint e2);
 
+	using torrent_peer_flags_t = flags::bitfield_flag<std::uint16_t, struct torrent_peer_flags_tag>;
+
+	// determines which torrent_peer subclass an object is
+	enum class peer_address_type : std::uint8_t
+	{
+		ipv4,
+		ipv6,
+#if TORRENT_USE_I2P
+		i2p,
+#endif
+#if TORRENT_USE_RTC
+		rtc,
+#endif
+	};
+
 	struct TORRENT_EXTRA_EXPORT torrent_peer
 	{
-		torrent_peer(std::uint16_t port, bool connectable, peer_source_flags_t src);
+		torrent_peer(
+			peer_address_type type, std::uint16_t port, bool connectable, peer_source_flags_t src);
 #if TORRENT_USE_ASSERTS
 		torrent_peer(torrent_peer const&) = default;
 		torrent_peer& operator=(torrent_peer const&) & = default;
@@ -47,6 +64,8 @@ namespace libtorrent::aux {
 
 		std::uint32_t rank(aux::external_ip const& external, int external_port) const;
 
+		peer_address_type address_type() const { return static_cast<peer_address_type>(addr_type); }
+
 		libtorrent::address address() const;
 		string_view dest() const;
 
@@ -56,7 +75,10 @@ namespace libtorrent::aux {
 		std::string to_string() const;
 #endif
 
-		protocol_version protocol() { return protocol_v2 ? protocol_version::V2 : protocol_version::V1; }
+		protocol_version protocol() const
+		{
+			return (flags & protocol_v2) ? protocol_version::V2 : protocol_version::V1;
+		}
 
 		// this is the accumulated amount of
 		// uploaded and downloaded data to this
@@ -99,6 +121,8 @@ namespace libtorrent::aux {
 		// the port this torrent_peer is or was connected on
 		std::uint16_t port;
 
+		torrent_peer_flags_t flags = supports_utp;
+
 		// the number of times this torrent_peer has been
 		// part of a piece that failed the hash check
 		std::uint8_t hashfails = 0;
@@ -106,33 +130,6 @@ namespace libtorrent::aux {
 		// the number of failed connection attempts
 		// this torrent_peer has
 		std::uint32_t failcount:5 = 0; // [0, 31]
-
-		// incoming peers (that don't advertise their listen port)
-		// will not be considered connectable. Peers that
-		// we have a listen port for will be assumed to be.
-		std::uint32_t connectable:1;
-
-		// true if this torrent_peer currently is unchoked
-		// because of an optimistic unchoke.
-		// when the optimistic unchoke is moved to
-		// another torrent_peer, this torrent_peer will be choked
-		// if this is true
-		std::uint32_t optimistically_unchoked:1 = false;
-
-		// this is true if the torrent_peer is a seed, and we know for sure
-		// because we have connected to it and it told us it was a seed
-		std::uint32_t seed:1 = false;
-
-		// this peer confirmed via BEP-21 (LTEP upload_only=1) that it will
-		// not download any more. A seed is upload_only by implication,
-		// but a partial seed can be upload_only without being a seed, so
-		// this is tracked separately from seed:1.
-		std::uint32_t upload_only:1 = false;
-
-		// we've been told that this peer is upload-only, but we don't know for
-		// sure because we haven't connected to it yet. If we are finished, we
-		// will de-prioritize peers that may be seeds
-		std::uint32_t maybe_upload_only:1 = false;
 
 		// the number of times we have allowed a fast
 		// reconnect for this torrent_peer.
@@ -142,8 +139,73 @@ namespace libtorrent::aux {
 		// from peer_info.
 		std::uint32_t source:6;
 
-		peer_source_flags_t peer_source() const
-		{ return peer_source_flags_t(source); }
+		// newer peers added in the same IPv6 /56, saturating. An entry is
+		// evicted by the newest once this saturates, which bounds how much
+		// of the peer list one prefix can take over
+		std::uint32_t duplicate_prefix:4 = 0;
+		static constexpr int max_duplicate_prefix = (1 << 4) - 1;
+
+		// a peer_address_type
+		std::uint32_t addr_type:2;
+
+		peer_source_flags_t peer_source() const { return peer_source_flags_t(source); }
+
+		// incoming peers (that don't advertise their listen port)
+		// will not be considered connectable. Peers that
+		// we have a listen port for will be assumed to be.
+		static constexpr torrent_peer_flags_t connectable = 0_bit;
+
+		// set if this torrent_peer currently is unchoked
+		// because of an optimistic unchoke.
+		// when the optimistic unchoke is moved to
+		// another torrent_peer, this torrent_peer will be choked
+		// if this is set
+		static constexpr torrent_peer_flags_t optimistically_unchoked = 1_bit;
+
+		// set if the torrent_peer is a seed, and we know for sure
+		// because we have connected to it and it told us it was a seed
+		static constexpr torrent_peer_flags_t seed = 2_bit;
+
+		// this peer confirmed via BEP-21 (LTEP upload_only=1) that it will
+		// not download any more. A seed is upload_only by implication,
+		// but a partial seed can be upload_only without being a seed, so
+		// this is tracked separately from seed.
+		static constexpr torrent_peer_flags_t upload_only = 3_bit;
+
+		// we've been told that this peer is upload-only, but we don't know for
+		// sure because we haven't connected to it yet. If we are finished, we
+		// will de-prioritize peers that may be seeds
+		static constexpr torrent_peer_flags_t maybe_upload_only = 4_bit;
+
+		// if set, the torrent_peer has repeatedly
+		// participated in pieces that failed the piece
+		// hash check. This will put the torrent_peer on parole
+		// and only request entire pieces. If a piece pass
+		// that was partially requested from this torrent_peer it
+		// will leave parole mode and continue download
+		// pieces as normal peers.
+		static constexpr torrent_peer_flags_t on_parole = 5_bit;
+
+		// set if this torrent_peer has been banned
+		static constexpr torrent_peer_flags_t banned = 6_bit;
+
+		// we think this torrent_peer supports uTP; assumed until proven otherwise
+		static constexpr torrent_peer_flags_t supports_utp = 7_bit;
+
+		// we have been connected via uTP at least once
+		static constexpr torrent_peer_flags_t confirmed_supports_utp = 8_bit;
+
+		static constexpr torrent_peer_flags_t supports_holepunch = 9_bit;
+
+		// this is set for web seeds. Web seeds
+		// are not stored in the policy m_peers list,
+		// and are exempt from connect candidate bookkeeping
+		// so, any torrent_peer with the web_seed bit set, is
+		// never considered a connect candidate
+		static constexpr torrent_peer_flags_t web_seed = 10_bit;
+
+		// this peer supports protocol version 2
+		static constexpr torrent_peer_flags_t protocol_v2 = 11_bit;
 
 #if !defined TORRENT_DISABLE_ENCRYPTION
 		// Hints encryption support of torrent_peer. Only effective
@@ -152,58 +214,16 @@ namespace libtorrent::aux {
 		// connections (pe_settings::out_enc_policy
 		// == enabled). The initial state of this flag
 		// determines the initial connection attempt
-		// type (true = encrypted, false = standard).
+		// type (set = encrypted, cleared = standard).
 		// This will be toggled everytime either an
 		// encrypted or non-encrypted handshake fails.
-		// defaults to false (assume no support) to prefer opening
+		// defaults to cleared (assume no support) to prefer opening
 		// non-encrypted connections first
-		std::uint32_t pe_support:1 = false;
+		static constexpr torrent_peer_flags_t pe_support = 12_bit;
 #endif
 
-		// this is true if the v6 union member in addr is
-		// the one to use, false if it's the v4 one
-		std::uint32_t is_v6_addr:1 = false;
-#if TORRENT_USE_I2P
-		// set if the i2p_destination is in use in the addr union
-		std::uint32_t is_i2p_addr:1 = false;
-#endif
-#if TORRENT_USE_RTC
-		std::uint32_t is_rtc_addr:1 = false;
-#endif
-
-		// if this is true, the torrent_peer has repeatedly
-		// participated in pieces that failed the piece
-		// hash check. This will put the torrent_peer on parole
-		// and only request entire pieces. If a piece pass
-		// that was partially requested from this torrent_peer it
-		// will leave parole mode and continue download
-		// pieces as normal peers.
-		std::uint32_t on_parole:1 = false;
-
-		// is set to true if this torrent_peer has been banned
-		std::uint32_t banned:1 = false;
-
-		// we think this torrent_peer supports uTP; assumed true until proven otherwise
-		std::uint32_t supports_utp:1 = true;
-		// we have been connected via uTP at least once
-		std::uint32_t confirmed_supports_utp:1 = false;
-		std::uint32_t supports_holepunch:1 = false;
-		// this is set to one for web seeds. Web seeds
-		// are not stored in the policy m_peers list,
-		// and are exempt from connect candidate bookkeeping
-		// so, any torrent_peer with the web_seed bit set, is
-		// never considered a connect candidate
-		std::uint32_t web_seed:1 = false;
-		// this peer supports protocol version 2
-		std::uint32_t protocol_v2:1 = false;
-
-		// newer peers added in the same IPv6 /56, saturating. An entry is
-		// evicted by the newest once this saturates, which bounds how much
-		// of the peer list one prefix can take over
-		std::uint32_t duplicate_prefix:4 = 0;
-		static constexpr int max_duplicate_prefix = (1 << 4) - 1;
 #if TORRENT_USE_ASSERTS
-		std::uint32_t in_use:1 {true};
+		bool in_use = true;
 #endif
 	};
 
@@ -259,7 +279,8 @@ namespace libtorrent::aux {
 		bool operator()(torrent_peer const* lhs, address const& rhs) const
 		{
 #if TORRENT_USE_I2P
-			if (lhs->is_i2p_addr) return false;
+			if (lhs->address_type() == peer_address_type::i2p)
+				return false;
 #endif
 			return lhs->address() < rhs;
 		}
@@ -267,7 +288,8 @@ namespace libtorrent::aux {
 		bool operator()(address const& lhs, torrent_peer const* rhs) const
 		{
 #if TORRENT_USE_I2P
-			if (rhs->is_i2p_addr) return true;
+			if (rhs->address_type() == peer_address_type::i2p)
+				return true;
 #endif
 			return lhs < rhs->address();
 		}
@@ -275,13 +297,15 @@ namespace libtorrent::aux {
 #if TORRENT_USE_I2P
 		bool operator()(torrent_peer const* lhs, string_view rhs) const
 		{
-			if (!lhs->is_i2p_addr) return true;
+			if (lhs->address_type() != peer_address_type::i2p)
+				return true;
 			return lhs->dest() < rhs;
 		}
 
 		bool operator()(string_view lhs, torrent_peer const* rhs) const
 		{
-			if (!rhs->is_i2p_addr) return false;
+			if (rhs->address_type() != peer_address_type::i2p)
+				return false;
 			return lhs < rhs->dest();
 		}
 #endif
@@ -289,10 +313,12 @@ namespace libtorrent::aux {
 		bool operator()(torrent_peer const* lhs, torrent_peer const* rhs) const
 		{
 #if TORRENT_USE_I2P
-			if (lhs->is_i2p_addr != rhs->is_i2p_addr)
-				return lhs->is_i2p_addr < rhs->is_i2p_addr;
+			bool const lhs_i2p = lhs->address_type() == peer_address_type::i2p;
+			bool const rhs_i2p = rhs->address_type() == peer_address_type::i2p;
+			if (lhs_i2p != rhs_i2p)
+				return lhs_i2p < rhs_i2p;
 
-			if (lhs->is_i2p_addr)
+			if (lhs_i2p)
 				return lhs->dest() < rhs->dest();
 #endif
 			return lhs->address() < rhs->address();
@@ -302,10 +328,12 @@ namespace libtorrent::aux {
 	inline bool torrent_peer_equal(torrent_peer const* lhs, torrent_peer const* rhs)
 	{
 #if TORRENT_USE_I2P
-		if (lhs->is_i2p_addr != rhs->is_i2p_addr)
+		bool const lhs_i2p = lhs->address_type() == peer_address_type::i2p;
+		bool const rhs_i2p = rhs->address_type() == peer_address_type::i2p;
+		if (lhs_i2p != rhs_i2p)
 			return false;
 
-		if (lhs->is_i2p_addr)
+		if (lhs_i2p)
 			return lhs->dest() == rhs->dest();
 #endif
 		return lhs->address() == rhs->address()
