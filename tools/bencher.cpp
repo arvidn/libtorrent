@@ -555,8 +555,13 @@ struct bench_peer_connection final : lt::peer_connection_interface
 	{}
 
 #if TORRENT_USE_I2P
-	std::string const& destination() const override { return m_i2p_dest; }
-	std::string const& local_i2p_endpoint() const override { return m_i2p_dest; }
+	lt::span<char const> destination() const override { return {}; }
+	lt::sha256_hash destination_hash() const override { return {}; }
+	lt::sha256_hash const& local_i2p_endpoint() const override
+	{
+		static lt::sha256_hash const empty;
+		return empty;
+	}
 #endif
 	lt::tcp::endpoint const& remote() const override { return m_remote; }
 	lt::tcp::endpoint local_endpoint() const override { return {}; }
@@ -586,9 +591,6 @@ struct bench_peer_connection final : lt::peer_connection_interface
 	lt::peer_id m_id{};
 	torrent_peer* m_tp = nullptr;
 	lt::aux::stat m_stat;
-#if TORRENT_USE_I2P
-	std::string m_i2p_dest;
-#endif
 };
 
 // +1 so index 0 doesn't map to the unspecified (0.0.0.0) address, which

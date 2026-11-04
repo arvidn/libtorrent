@@ -21,8 +21,10 @@ see LICENSE file.
 #include "libtorrent/aux_/resolver.hpp"
 #include "libtorrent/aux_/storage_utils.hpp"
 #include "libtorrent/aux_/random.hpp"
+#include "libtorrent/i2p_stream.hpp"
 
 #include <algorithm>
+#include <array>
 #include <iostream>
 #include <optional>
 
@@ -327,5 +329,185 @@ TORRENT_TEST(i2p_http_requires_sam_even_with_http_proxy)
 		ps.proxy_hostnames = true;
 		run_test("http://tracker.i2p/announce", 0, -1, 0, error_code(errors::no_i2p_router), ps);
 	}
+}
+
+namespace {
+
+// records every command it receives. It accepts the session, answers name
+// lookups with lookup_value and drops stream connections
+struct mock_sam_bridge
+{
+	mock_sam_bridge(io_context& ioc, std::string value)
+		: lookup_value(std::move(value))
+		, m_ios(ioc)
+		, m_acceptor(ioc, tcp::endpoint(make_address_v4("127.0.0.1"), 0), false)
+	{
+		accept();
+	}
+
+	int port() const { return m_acceptor.local_endpoint().port(); }
+
+	void close()
+	{
+		error_code ec;
+		m_acceptor.close(ec);
+		for (auto& c : m_conns)
+			c->sock.close(ec);
+	}
+
+	bool received(std::string const& prefix) const
+	{
+		return std::any_of(commands.begin(), commands.end(), [&](std::string const& c) {
+			return c.starts_with(prefix);
+		});
+	}
+
+	std::string const lookup_value;
+	std::vector<std::string> commands;
+
+private:
+	struct conn
+	{
+		explicit conn(io_context& ioc)
+			: sock(ioc)
+		{}
+		tcp::socket sock;
+		std::array<char, 2048> buf;
+		std::string line;
+		std::string out;
+	};
+
+	void accept()
+	{
+		auto c = std::make_shared<conn>(m_ios);
+		m_acceptor.async_accept(c->sock, [this, c](error_code const& ec) {
+			if (ec)
+				return;
+			m_conns.push_back(c);
+			read(c);
+			accept();
+		});
+	}
+
+	void read(std::shared_ptr<conn> c)
+	{
+		c->sock.async_read_some(
+			boost::asio::buffer(c->buf), [this, c](error_code const& ec, std::size_t const len) {
+				if (ec)
+					return;
+				c->out.clear();
+				for (char const ch : span<char const>(c->buf.data(), int(len)))
+				{
+					if (ch != '\n')
+					{
+						c->line += ch;
+						continue;
+					}
+					commands.push_back(c->line);
+					std::string const cmd = std::move(c->line);
+					c->line.clear();
+					if (cmd.starts_with("HELLO"))
+						c->out += "HELLO REPLY RESULT=OK\n";
+					else if (cmd.starts_with("SESSION CREATE"))
+						c->out += "SESSION STATUS RESULT=OK\n";
+					else if (cmd.starts_with("NAMING LOOKUP NAME=ME"))
+						c->out += "NAMING REPLY RESULT=OK NAME=ME VALUE=" + local_dest() + "\n";
+					else if (cmd.starts_with("NAMING LOOKUP"))
+						c->out += "NAMING REPLY RESULT=OK NAME=x VALUE=" + lookup_value + "\n";
+					else
+					{
+						error_code ignore;
+						c->sock.close(ignore);
+						return;
+					}
+				}
+				if (c->out.empty())
+					return read(c);
+				boost::asio::async_write(c->sock,
+					boost::asio::buffer(c->out),
+					[this, c](error_code const& e, std::size_t) {
+						if (!e)
+							read(c);
+					});
+			});
+	}
+
+	static std::string local_dest() { return std::string(516, 'A'); }
+
+	io_context& m_ios;
+	tcp::acceptor m_acceptor;
+	std::vector<std::shared_ptr<conn>> m_conns;
+};
+
+error_code run_i2p_tracker_request(mock_sam_bridge& sam, std::string const& host)
+{
+	i2p_connection i2p(ios);
+	i2p.open("127.0.0.1", sam.port(), i2p_session_options{}, [](error_code const&) {});
+
+	int called = 0;
+	error_code result;
+	auto const h = std::make_shared<aux::http_connection>(
+		ios,
+		res,
+		[&](error_code const& ec,
+			aux::http_parser const&,
+			span<char const>,
+			aux::http_connection&) {
+			++called;
+			result = ec;
+			sam.close();
+			error_code ignore;
+			i2p.close(ignore);
+		},
+		1024 * 1024,
+		aux::http_connect_handler(),
+		aux::http_filter_handler(),
+		aux::hostname_filter_handler()
+#if TORRENT_USE_SSL
+			,
+		nullptr
+#endif
+	);
+	h->get("http://" + host + "/announce",
+		seconds(5),
+		nullptr,
+		5,
+		"",
+		std::nullopt,
+		aux::resolver_flags{},
+		"",
+		&i2p);
+	ios.restart();
+	ios.run_for(seconds(10));
+	TEST_EQUAL(called, 1);
+	return result;
+}
+
+}
+
+TORRENT_TEST(i2p_tracker_connects_to_looked_up_destination)
+{
+	// a valid destination: arbitrary key material and a null certificate
+	std::string dest;
+	std::string_view const alphabet = "AZaz09-~";
+	for (std::size_t i = 0; i < 512; ++i)
+		dest += alphabet[i % alphabet.size()];
+	dest += "AAAA";
+
+	mock_sam_bridge sam(ios, dest);
+	run_i2p_tracker_request(sam, "tracker.i2p");
+	TEST_CHECK(sam.received("NAMING LOOKUP NAME=tracker.i2p"));
+	TEST_CHECK(std::any_of(sam.commands.begin(), sam.commands.end(), [&](std::string const& c) {
+		return c.starts_with("STREAM CONNECT ") && c.ends_with(" DESTINATION=" + dest);
+	}));
+}
+
+TORRENT_TEST(i2p_tracker_invalid_looked_up_destination)
+{
+	// the certificate length doesn't match
+	mock_sam_bridge sam(ios, std::string(520, 'A'));
+	TEST_EQUAL(run_i2p_tracker_request(sam, "tracker.i2p"), error_code(i2p_error::parse_failed));
+	TEST_CHECK(sam.received("NAMING LOOKUP NAME=tracker.i2p"));
+	TEST_CHECK(!sam.received("STREAM CONNECT"));
 }
 #endif

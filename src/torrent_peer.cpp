@@ -18,6 +18,9 @@ see LICENSE file.
 #include "libtorrent/aux_/ip_voter.hpp"
 #include "libtorrent/aux_/io_bytes.hpp" // for write_uint16
 #include "libtorrent/aux_/ip_helpers.hpp"
+#include "libtorrent/aux_/escape_string.hpp" // for base64encode_i2p
+
+#include <limits>
 
 namespace libtorrent::aux {
 
@@ -155,7 +158,7 @@ namespace libtorrent::aux {
 		TORRENT_ASSERT(in_use);
 #if TORRENT_USE_I2P
 		if (address_type() == peer_address_type::i2p)
-			return std::string(dest());
+			return base64encode_i2p(dest());
 #endif
 		return address().to_string();
 	}
@@ -198,10 +201,16 @@ namespace libtorrent::aux {
 	ipv4_peer& ipv4_peer::operator=(ipv4_peer const& p) & = default;
 
 #if TORRENT_USE_I2P
-	i2p_peer::i2p_peer(string_view dest, bool connectable_, peer_source_flags_t const src)
+	i2p_peer::i2p_peer(
+		span<char const> const dest, bool connectable_, peer_source_flags_t const src)
 		: torrent_peer(peer_address_type::i2p, 0, connectable_, src)
-		, destination(dest)
-	{}
+		, destination(std::make_unique_for_overwrite<char[]>(std::size_t(dest.size()) + 2))
+	{
+		TORRENT_ASSERT(dest.size() <= std::numeric_limits<std::uint16_t>::max());
+		char* ptr = destination.get();
+		aux::write_uint16(dest.size(), ptr);
+		std::ranges::copy(dest, ptr);
+	}
 #endif // TORRENT_USE_I2P
 
 #if TORRENT_USE_RTC
@@ -219,12 +228,13 @@ namespace libtorrent::aux {
 	ipv6_peer::ipv6_peer(ipv6_peer const&) = default;
 
 #if TORRENT_USE_I2P
-	string_view torrent_peer::dest() const
+	span<char const> torrent_peer::dest() const
 	{
-		if (address_type() == peer_address_type::i2p)
-			return *static_cast<i2p_peer const*>(this)->destination;
-		else
-			return "";
+		if (address_type() != peer_address_type::i2p)
+			return {};
+		char const* ptr = static_cast<i2p_peer const*>(this)->destination.get();
+		auto const size = aux::read_uint16(ptr);
+		return {ptr, size};
 	}
 #endif
 

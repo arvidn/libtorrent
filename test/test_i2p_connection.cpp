@@ -42,6 +42,9 @@ auto record(std::shared_ptr<lookup_result> r)
 	};
 }
 
+// our own destination must be valid for the session to open
+std::string const local_dest = std::string(512, 'A') + "AAAA";
+
 // a hang must fail the test, not time out the whole test run
 void run_to_completion(io_context& ios)
 {
@@ -303,7 +306,7 @@ TORRENT_TEST(closed_sam_socket_fails_name_lookups)
 	std::array<char, 1024> buf;
 	std::array<std::string, 3> const replies{{"HELLO REPLY RESULT=OK\n",
 		"SESSION STATUS RESULT=OK\n",
-		"NAMING REPLY RESULT=OK NAME=ME VALUE=local-dest\n"}};
+		"NAMING REPLY RESULT=OK NAME=ME VALUE=" + local_dest + "\n"}};
 	std::size_t next_reply = 0;
 	std::string pending;
 	std::function<void(error_code const&, std::size_t)> const serve = [&](error_code const& ec,
@@ -357,7 +360,7 @@ TORRENT_TEST(closed_sam_socket_fails_name_lookups)
 
 	TEST_EQUAL(next_reply, replies.size());
 	TEST_CHECK(!open_ec);
-	TEST_EQUAL(conn.local_endpoint(), "local-dest");
+	TEST_EQUAL(conn.local_endpoint(), local_dest);
 	TEST_CHECK(!conn.is_open());
 	TEST_CHECK(r1->called);
 	TEST_CHECK(r2->called);
@@ -385,7 +388,7 @@ TORRENT_TEST(oversized_name_lookup_fails_queued_name_lookups)
 	std::array<char, 1024> buf;
 	std::array<std::string, 3> const replies{{"HELLO REPLY RESULT=OK\n",
 		"SESSION STATUS RESULT=OK\n",
-		"NAMING REPLY RESULT=OK NAME=ME VALUE=local-dest\n"}};
+		"NAMING REPLY RESULT=OK NAME=ME VALUE=" + local_dest + "\n"}};
 	std::size_t next_reply = 0;
 	std::string pending;
 	std::function<void(error_code const&, std::size_t)> const serve = [&](error_code const& ec,
@@ -424,7 +427,7 @@ TORRENT_TEST(oversized_name_lookup_fails_queued_name_lookups)
 		});
 
 	// doesn't fit in a SAM command, failing without any I/O
-	std::string const long_name(2000, 'a');
+	std::string const long_name(3000, 'a');
 	auto const r1 = std::make_shared<lookup_result>();
 	auto const r2 = std::make_shared<lookup_result>();
 	conn.async_name_lookup(long_name.c_str(), record(r1));

@@ -17,6 +17,8 @@ see LICENSE file.
 #include "libtorrent/alert_types.hpp"
 #include "libtorrent/operations.hpp" // for operation_t enum
 #include "libtorrent/units.hpp"
+#include "libtorrent/span.hpp"
+#include "libtorrent/sha1_hash.hpp"
 
 namespace libtorrent {
 
@@ -46,8 +48,12 @@ namespace libtorrent {
 		static inline constexpr disconnect_severity_t peer_error{2};
 
 #if TORRENT_USE_I2P
-		virtual std::string const& destination() const = 0;
-		virtual std::string const& local_i2p_endpoint() const = 0;
+		// the binary destination of the remote end
+		virtual span<char const> destination() const = 0;
+		// the sha256 of the remote destination
+		virtual sha256_hash destination_hash() const = 0;
+		// the sha256 of our own destination
+		virtual sha256_hash const& local_i2p_endpoint() const = 0;
 #endif
 		virtual tcp::endpoint const& remote() const = 0;
 		virtual tcp::endpoint local_endpoint() const = 0;

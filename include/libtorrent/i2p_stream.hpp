@@ -32,6 +32,8 @@ see LICENSE file.
 #include "libtorrent/aux_/random.hpp"
 #include "libtorrent/hex.hpp" // for to_hex
 #include "libtorrent/aux_/debug.hpp"
+#include "libtorrent/sha1_hash.hpp"
+#include "libtorrent/span.hpp"
 
 namespace libtorrent {
 
@@ -115,10 +117,13 @@ struct TORRENT_EXTRA_EXPORT i2p_stream : aux::proxy_base
 
 	void set_session_id(char const* id) { m_id = id; }
 
-	void set_local_i2p_endpoint(string_view d) { m_local = d; }
-	std::string const& local_i2p_endpoint() const { return m_local; }
-	void set_destination(string_view d) { m_dest = d; }
-	std::string const& destination() const { return m_dest; }
+	// the binary destination to connect to, it must be valid
+	void set_destination(span<char const> d);
+
+	// the binary destination of the remote end. For an accepted connection
+	// it's empty if the SAM bridge reported an invalid destination
+	span<char const> destination() const { return m_dest; }
+	sha256_hash const& destination_hash() const { return m_dest_hash; }
 
 	template <class Handler>
 	void async_connect(endpoint_type const&, Handler h)
@@ -161,6 +166,10 @@ struct TORRENT_EXTRA_EXPORT i2p_stream : aux::proxy_base
 	}
 
 private:
+	// decodes and validates the base64 destination of an incoming connection
+	void set_incoming_destination(string_view d);
+	bool format_connect_command();
+
 	// formats a SAM command into m_buffer, ready to be handed to async_write().
 	// The command has to live in a member, and not in a local buffer, since it
 	// must stay valid until the asynchronous write completes, which is after
@@ -169,7 +178,9 @@ private:
 	// the SAM bridge can't parse.
 	bool format_command(char const* fmt, ...) TORRENT_FORMAT(2, 3)
 	{
-		int const capacity = 1024;
+		// STREAM CONNECT with the largest accepted destination (1024 bytes,
+		// 1368 base64 characters) is 1440 characters
+		int const capacity = 2048;
 		m_buffer.resize(capacity);
 		std::va_list args;
 		va_start(args, fmt);
@@ -264,7 +275,7 @@ private:
 		{
 			// this is the line containing the destination
 			// of the incoming connection in an accept call
-			m_dest = &m_buffer[0];
+			set_incoming_destination(m_buffer.data());
 			// the handler may issue the next command into m_buffer
 			std::vector<char>().swap(m_buffer);
 			h(e);
@@ -360,10 +371,6 @@ private:
 				m_name_lookup = value;
 				has_value = !value.empty();
 			}
-			else if ("DESTINATION"_sv == name)
-			{
-				m_dest = value;
-			}
 		}
 
 		error_code ec(result, i2p_category());
@@ -429,7 +436,7 @@ private:
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
 		m_state = read_connect_response;
-		if (!format_command("STREAM CONNECT ID=%s DESTINATION=%s\n", m_id, m_dest.c_str()))
+		if (!format_connect_command())
 		{
 			handle_error(boost::asio::error::message_size, h);
 			return;
@@ -498,8 +505,8 @@ private:
 	// send and receive buffer
 	aux::vector<char> m_buffer;
 	char const* m_id = nullptr;
-	std::string m_dest;
-	std::string m_local;
+	std::vector<char> m_dest;
+	sha256_hash m_dest_hash;
 	std::string m_name_lookup;
 
 	i2p_session_options m_session_options;
@@ -578,7 +585,9 @@ public:
 
 	// TODO: make this a string_view
 	char const* session_id() const { return m_session_id.c_str(); }
+	// our own base64 destination
 	std::string const& local_endpoint() const { return m_i2p_local_endpoint; }
+	sha256_hash const& local_destination_hash() const { return m_local_dest_hash; }
 
 	template <typename Handler>
 	void async_name_lookup(char const* name, Handler handler)
@@ -629,6 +638,9 @@ private:
 	}
 
 	using name_lookup_handler = std::function<void(error_code const&, char const*)>;
+
+	// returns false if dest is not a valid base64 destination
+	bool set_local_destination(string_view dest);
 
 	void abort_name_lookups(error_code const& ec);
 	void drop_session(error_code const& ec);
@@ -692,17 +704,16 @@ private:
 			return;
 		}
 
-		error_code const e = (!ec && (dest == nullptr || *dest == '\0'))
-			? error_code(i2p_error::parse_failed, i2p_category())
-			: ec;
+		error_code e = ec;
+		if (!e && (dest == nullptr || !set_local_destination(dest)))
+			e = error_code(i2p_error::parse_failed, i2p_category());
 
-		if (e || dest == nullptr)
+		if (e)
 		{
 			m_i2p_local_endpoint.clear();
+			m_local_dest_hash.clear();
 			drop_session(e);
 		}
-		else
-			m_i2p_local_endpoint = dest;
 
 		h(e);
 	}
@@ -714,6 +725,7 @@ private:
 
 	// our i2p endpoint key
 	std::string m_i2p_local_endpoint;
+	sha256_hash m_local_dest_hash;
 	std::string m_session_id;
 
 	std::list<std::pair<std::string, name_lookup_handler>> m_name_lookup;

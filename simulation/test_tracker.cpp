@@ -29,6 +29,7 @@ see LICENSE file.
 #include "libtorrent/aux_/ip_helpers.hpp" // for is_v4
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/string_util.hpp" // for string_ends_with
+#include "libtorrent/aux_/escape_string.hpp" // for base64encode_i2p
 #include "libtorrent/flags.hpp"
 
 #include <boost/optional.hpp>
@@ -3540,6 +3541,105 @@ TORRENT_TEST(tracker_i2p_kind_not_leaked_to_regular_tracker)
 
 	TEST_CHECK(regular_announces > 0);
 	TEST_EQUAL(max_reported_peers, num_compact_peers);
+}
+
+namespace {
+
+// 384 bytes of keys and an empty certificate
+std::string valid_i2p_dest(char const c) { return std::string(511, 'A') + c + "AAAA"; }
+
+std::vector<std::string> invalid_i2p_dests()
+{
+	// well formed, but larger than any defined key type allows
+	std::vector<char> big(1025, 0);
+	big[385] = char((1025 - 387) >> 8);
+	big[386] = char((1025 - 387) & 0xff);
+	return {"1.2.3.4",
+		"abc+def",
+		"abc/def",
+		"localhost",
+		std::string(512, 'A') + "AAAB",
+		lt::base64encode_i2p(big)};
+}
+
+// announces to a regular tracker returning the destinations as peers, with
+// i2p enabled. Returns the size of the peer list after the announce
+int announce_i2p_destinations(std::vector<std::string> const& dests, int const max_peerlist_size)
+{
+	sim_config network_cfg;
+	sim::simulation sim{network_cfg};
+
+	sim::asio::io_context tracker_ios(sim, addr("3.0.0.1"));
+	sim::http_server http(tracker_ios, 8080);
+
+	int announces = 0;
+	http.register_handler(
+		"/announce", [&](std::string, std::string, std::map<std::string, std::string>&) {
+			++announces;
+			std::string body = "d8:intervali1800e5:peersl";
+			for (auto const& d : dests)
+				body += "d2:ip" + std::to_string(d.size()) + ":" + d + "4:porti6881ee";
+			body += "ee";
+			return sim::send_response(200, "OK", int(body.size())) + body;
+		});
+
+	lt::session_proxy zombie;
+	asio::io_context ios(sim, {addr("50.0.0.1")});
+	settings_pack pack = settings();
+	pack.set_str(settings_pack::listen_interfaces, "50.0.0.1:6881");
+	// there is no SAM bridge, destinations from trackers are added to the
+	// peer list without one
+	pack.set_str(settings_pack::i2p_hostname, "60.0.0.1");
+	pack.set_int(settings_pack::i2p_port, 7656);
+	pack.set_int(settings_pack::max_peerlist_size, max_peerlist_size);
+
+	auto ses = std::make_shared<lt::session>(pack, ios);
+
+	int list_peers = -1;
+	ses->set_alert_notify([&] {
+		post(ios, [&] {
+			std::vector<lt::alert*> alerts;
+			ses->pop_alerts(&alerts);
+			for (lt::alert* a : alerts)
+			{
+				if (auto* tr = alert_cast<tracker_reply_alert>(a))
+					list_peers = tr->handle.status().list_peers;
+			}
+		});
+	});
+
+	lt::add_torrent_params params = ::create_torrent(1);
+	params.flags &= ~lt::torrent_flags::auto_managed;
+	params.flags &= ~lt::torrent_flags::paused;
+	params.trackers.push_back("http://3.0.0.1:8080/announce");
+	params.save_path = save_path(0);
+	ses->async_add_torrent(params);
+
+	sim::timer t(sim, lt::seconds(10), [&](boost::system::error_code const&) {
+		zombie = ses->abort();
+		ses.reset();
+	});
+	sim.run();
+
+	TEST_CHECK(announces > 0);
+	return list_peers;
+}
+
+}
+
+TORRENT_TEST(tracker_invalid_i2p_destination)
+{
+	TEST_EQUAL(announce_i2p_destinations(invalid_i2p_dests(), 1000), 0);
+	TEST_EQUAL(announce_i2p_destinations({valid_i2p_dest('B')}, 1000), 1);
+}
+
+// an invalid destination must not evict peers from a full peer list
+TORRENT_TEST(tracker_invalid_i2p_destination_full_list)
+{
+	std::vector<std::string> dests{valid_i2p_dest('B'), valid_i2p_dest('C')};
+	for (auto& d : invalid_i2p_dests())
+		dests.push_back(std::move(d));
+	TEST_EQUAL(announce_i2p_destinations(dests, 2), 2);
 }
 
 // regression test: a udp:// tracker with a .i2p hostname has no way to

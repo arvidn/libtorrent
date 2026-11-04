@@ -50,14 +50,10 @@ struct mock_peer_connection final : peer_connection_interface
 		, char const*, char const*, ...) const noexcept override TORRENT_FORMAT(4, 5) {}
 #endif
 #if TORRENT_USE_I2P
-	std::string const& destination() const override
+	span<char const> destination() const override { return {}; }
+	sha256_hash const& local_i2p_endpoint() const override
 	{
-		static std::string const empty;
-		return empty;
-	}
-	std::string const& local_i2p_endpoint() const override
-	{
-		static std::string const empty;
+		static sha256_hash const empty;
 		return empty;
 	}
 #endif
