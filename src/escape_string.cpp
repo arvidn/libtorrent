@@ -27,7 +27,6 @@ see LICENSE file.
 
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/parse_url.hpp"
-#include "libtorrent/hasher.hpp"
 
 #include "libtorrent/aux_/utf8.hpp"
 #include "libtorrent/aux_/escape_string.hpp"
@@ -336,13 +335,26 @@ namespace {
 		return ret;
 	}
 
+	std::string base64encode_i2p(span<char const> const s)
+	{
+		std::string ret = base64encode(std::string(s.begin(), s.end()));
+		std::replace(ret.begin(), ret.end(), '+', '-');
+		std::replace(ret.begin(), ret.end(), '/', '~');
+		return ret;
+	}
+
 	namespace {
+	constexpr std::ptrdiff_t cert_offset = 384;
+	constexpr std::ptrdiff_t min_destination_size = cert_offset + 3;
+	// the format has no upper bound, but the largest defined key types make a
+	// 775 byte destination
+	constexpr std::ptrdiff_t max_destination_size = 1024;
+
 	// a 256 byte public key, a 128 byte signing key and a certificate. The
 	// certificate is a type byte and a big-endian 2 byte payload length
 	bool valid_i2p_destination(span<char const> const d)
 	{
-		constexpr std::ptrdiff_t cert_offset = 384;
-		if (d.size() < cert_offset + 3)
+		if (d.size() < min_destination_size || d.size() > max_destination_size)
 			return false;
 		auto const cert_len = (std::ptrdiff_t(std::uint8_t(d[cert_offset + 1])) << 8)
 			| std::uint8_t(d[cert_offset + 2]);
@@ -350,29 +362,22 @@ namespace {
 	}
 	}
 
-	bool is_valid_i2p_destination(string_view const dest)
+	std::vector<char> decode_i2p_destination(string_view const dest)
 	{
+		// destinations come from untrusted sources, don't decode arbitrarily
+		// large strings
+		if (dest.size() < std::size_t(min_destination_size + 2) / 3 * 4
+			|| dest.size() > std::size_t(max_destination_size + 2) / 3 * 4)
+			return {};
 		try
 		{
-			return valid_i2p_destination(base64decode_i2p(dest));
+			std::vector<char> ret = base64decode_i2p(dest);
+			if (!valid_i2p_destination(ret))
+				ret.clear();
+			return ret;
 		}
 		catch (system_error const&)
 		{
-			return false;
-		}
-	}
-
-	sha256_hash i2p_destination_hash(string_view const dest)
-	{
-		try
-		{
-			std::vector<char> const decoded = base64decode_i2p(dest);
-			TORRENT_ASSERT(valid_i2p_destination(decoded));
-			return hasher256(decoded).final();
-		}
-		catch (system_error const&)
-		{
-			TORRENT_ASSERT_FAIL();
 			return {};
 		}
 	}

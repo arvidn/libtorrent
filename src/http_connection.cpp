@@ -396,14 +396,9 @@ void http_connection::start(std::string const& hostname, int port
 #if TORRENT_USE_I2P
 		if (is_i2p)
 		{
-			if (hostname.length() < 516) // Base64 encoded  destination with optional .i2p
-			{
-				ADD_OUTSTANDING_ASYNC("http_connection::on_i2p_resolve");
-				i2p_conn->async_name_lookup(hostname.c_str(), std::bind(&http_connection::on_i2p_resolve
-					, me, _1, _2));
-			}
-			else
-				connect_i2p_tracker(hostname.c_str());
+			ADD_OUTSTANDING_ASYNC("http_connection::on_i2p_resolve");
+			i2p_conn->async_name_lookup(
+				hostname.c_str(), std::bind(&http_connection::on_i2p_resolve, me, _1, _2));
 		}
 		else
 #endif
@@ -525,22 +520,6 @@ void http_connection::close(bool force)
 }
 
 #if TORRENT_USE_I2P
-void http_connection::connect_i2p_tracker(char const* destination)
-{
-	TORRENT_ASSERT(std::get_if<i2p_stream>(&*m_sock));
-#if TORRENT_USE_SSL
-	TORRENT_ASSERT(m_ssl == false);
-#endif
-	std::get<i2p_stream>(*m_sock).set_destination(destination);
-	std::get<i2p_stream>(*m_sock).set_command(i2p_stream::cmd_connect);
-	std::get<i2p_stream>(*m_sock).set_session_id(m_i2p_conn->session_id());
-	ADD_OUTSTANDING_ASYNC("http_connection::on_connect");
-	TORRENT_ASSERT(!m_connecting);
-	m_connecting = true;
-	m_sock->async_connect(tcp::endpoint(), std::bind(&http_connection::on_connect
-		, shared_from_this(), _1));
-}
-
 void http_connection::on_i2p_resolve(error_code const& e, char const* destination)
 {
 	COMPLETE_ASYNC("http_connection::on_i2p_resolve");
@@ -549,7 +528,28 @@ void http_connection::on_i2p_resolve(error_code const& e, char const* destinatio
 		callback(e);
 		return;
 	}
-	connect_i2p_tracker(destination);
+
+	if (m_abort)
+		return;
+
+	std::vector<char> const dest = decode_i2p_destination(destination);
+	if (dest.empty())
+	{
+		callback(error_code(i2p_error::parse_failed));
+		return;
+	}
+	TORRENT_ASSERT(std::get_if<i2p_stream>(&*m_sock));
+#if TORRENT_USE_SSL
+	TORRENT_ASSERT(m_ssl == false);
+#endif
+	std::get<i2p_stream>(*m_sock).set_destination(dest);
+	std::get<i2p_stream>(*m_sock).set_command(i2p_stream::cmd_connect);
+	std::get<i2p_stream>(*m_sock).set_session_id(m_i2p_conn->session_id());
+	ADD_OUTSTANDING_ASYNC("http_connection::on_connect");
+	TORRENT_ASSERT(!m_connecting);
+	m_connecting = true;
+	m_sock->async_connect(tcp::endpoint(), std::bind(&http_connection::on_connect
+		, shared_from_this(), _1));
 }
 #endif
 

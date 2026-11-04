@@ -28,14 +28,6 @@ namespace sim {
 
 namespace {
 
-std::string base64encode_i2p(lt::span<char const> s)
-{
-	std::string ret = lt::base64encode(std::string(s.begin(), s.end()));
-	std::replace(ret.begin(), ret.end(), '+', '-');
-	std::replace(ret.begin(), ret.end(), '/', '~');
-	return ret;
-}
-
 std::pair<std::string_view, std::string_view> split(std::string_view s, char const delim)
 {
 	auto const pos = s.find(delim);
@@ -257,7 +249,7 @@ void sam_connection::session_create(std::string_view const id)
 	std::copy(key_cert.begin(), key_cert.end(), raw.begin() + 384);
 
 	sam_session& s = m_state->sessions[std::string(id)];
-	s.destination = base64encode_i2p(raw);
+	s.destination = lt::base64encode_i2p(raw);
 	s.dest_hash = lt::hasher256(raw).final();
 	s.b32_name = lt::base32encode_i2p(s.dest_hash) + ".b32.i2p";
 	s.client = m_socket.remote_endpoint().address();

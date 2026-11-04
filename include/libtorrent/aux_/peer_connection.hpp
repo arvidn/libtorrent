@@ -497,8 +497,9 @@ namespace libtorrent::aux {
 		peer_endpoint_t remote_endpoint() const;
 
 #if TORRENT_USE_I2P
-		std::string const& destination() const override;
-		std::string const& local_i2p_endpoint() const override;
+		span<char const> destination() const override;
+		sha256_hash destination_hash() const override;
+		sha256_hash const& local_i2p_endpoint() const override;
 #endif
 
 		typed_bitfield<piece_index_t> const& get_bitfield() const;

@@ -90,9 +90,11 @@ namespace libtorrent::aux {
 		peer_list& operator=(peer_list const&) = delete;
 
 #if TORRENT_USE_I2P
-		torrent_peer* add_i2p_peer(string_view destination
-			, peer_source_flags_t src, pex_flags_t flags
-			, torrent_state* state);
+		// destination is the binary destination and must be valid
+		torrent_peer* add_i2p_peer(span<char const> destination,
+			peer_source_flags_t src,
+			pex_flags_t flags,
+			torrent_state* state);
 #endif
 
 #if TORRENT_USE_RTC

@@ -17,7 +17,6 @@ see LICENSE file.
 #include "libtorrent/aux_/array.hpp"
 #include "libtorrent/peer_connection_handle.hpp"
 #include "libtorrent/bencode.hpp"
-#include "libtorrent/aux_/escape_string.hpp" // for i2p_destination_hash
 #include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/aux_/socket_io.hpp"
@@ -110,9 +109,9 @@ namespace libtorrent { namespace {
 			{
 				if (!include_peer(*peer)) continue;
 
-				auto const* pi = peer->peer_info_struct();
-				if (pi == nullptr) continue;
-				sha256_hash const remote = i2p_destination_hash(pi->dest());
+				sha256_hash const remote = peer->destination_hash();
+				if (remote.is_all_zeros())
+					continue;
 				m_old_peers.insert(remote);
 
 				auto const di = dropped.find(remote);
@@ -357,9 +356,9 @@ namespace libtorrent { namespace {
 				// don't write too big of a package
 				if (num_added >= max_peer_entries) break;
 
-				auto const* pi = peer->peer_info_struct();
-				if (pi == nullptr) continue;
-				sha256_hash const remote = i2p_destination_hash(pi->dest());
+				sha256_hash const remote = peer->destination_hash();
+				if (remote.is_all_zeros())
+					continue;
 
 				std::copy(remote.begin(), remote.end(), pla_out);
 				aux::write_uint8(0, plf_out);

@@ -20,7 +20,6 @@ see LICENSE file.
 #if TORRENT_USE_I2P
 #include <vector>
 #include "libtorrent/span.hpp"
-#include "libtorrent/sha1_hash.hpp"
 #endif
 
 namespace libtorrent {
@@ -47,11 +46,11 @@ namespace libtorrent {
 #if TORRENT_USE_I2P
 	// encodes a string using the base32 scheme
 	TORRENT_EXTRA_EXPORT std::string base32encode_i2p(span<char const> s);
+	TORRENT_EXTRA_EXPORT std::string base64encode_i2p(span<char const> s);
 	TORRENT_EXTRA_EXPORT std::vector<char> base64decode_i2p(string_view s);
-	TORRENT_EXTRA_EXPORT bool is_valid_i2p_destination(string_view dest);
-	// the sha256 of the decoded destination, i.e. the identity of the
-	// b32.i2p address. dest must be a valid destination
-	TORRENT_EXTRA_EXPORT sha256_hash i2p_destination_hash(string_view dest);
+	// decodes a base64 destination. Returns an empty vector if it's invalid or
+	// larger than 1024 bytes
+	TORRENT_EXTRA_EXPORT std::vector<char> decode_i2p_destination(string_view dest);
 #endif
 	TORRENT_EXTRA_EXPORT std::string base32decode(string_view s);
 

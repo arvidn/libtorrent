@@ -20,6 +20,8 @@ see LICENSE file.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/settings_pack.hpp"
 #include "libtorrent/aux_/array.hpp"
+#include "libtorrent/aux_/escape_string.hpp"
+#include "libtorrent/hasher.hpp"
 
 namespace libtorrent {
 
@@ -78,6 +80,7 @@ namespace libtorrent {
 		if (m_sam_socket) m_sam_socket->close(e);
 		drop_session(boost::asio::error::operation_aborted);
 		m_i2p_local_endpoint.clear();
+		m_local_dest_hash.clear();
 	}
 
 	void i2p_connection::drop_session(error_code const& ec)
@@ -100,6 +103,16 @@ namespace libtorrent {
 		m_name_lookup.clear();
 	}
 
+	bool i2p_connection::set_local_destination(string_view const dest)
+	{
+		std::vector<char> const decoded = decode_i2p_destination(dest);
+		if (decoded.empty())
+			return false;
+		m_i2p_local_endpoint = dest;
+		m_local_dest_hash = hasher256(decoded).final();
+		return true;
+	}
+
 	aux::proxy_settings i2p_connection::proxy() const
 	{
 		aux::proxy_settings ret;
@@ -114,6 +127,28 @@ namespace libtorrent {
 		, m_command(cmd_create_session)
 		, m_state(read_hello_response)
 	{}
+
+	void i2p_stream::set_destination(span<char const> const d)
+	{
+		TORRENT_ASSERT(!d.empty());
+		m_dest.assign(d.begin(), d.end());
+		m_dest_hash = hasher256(d).final();
+	}
+
+	void i2p_stream::set_incoming_destination(string_view const d)
+	{
+		m_dest = decode_i2p_destination(d);
+		if (m_dest.empty())
+			m_dest_hash.clear();
+		else
+			m_dest_hash = hasher256(m_dest).final();
+	}
+
+	bool i2p_stream::format_connect_command()
+	{
+		std::string const dest = base64encode_i2p(m_dest);
+		return format_command("STREAM CONNECT ID=%s DESTINATION=%s\n", m_id, dest.c_str());
+	}
 
 	static_assert(std::is_nothrow_move_constructible<i2p_stream>::value
 		, "should be nothrow move constructible");

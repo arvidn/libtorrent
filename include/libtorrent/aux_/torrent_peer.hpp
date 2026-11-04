@@ -18,9 +18,11 @@ see LICENSE file.
 #include "libtorrent/socket.hpp"
 #include "libtorrent/peer_info.hpp" // for peer_source_flags_t
 #include "libtorrent/info_hash.hpp"
-#include "libtorrent/aux_/string_ptr.hpp"
-#include "libtorrent/string_view.hpp"
 #include "libtorrent/flags.hpp"
+#include "libtorrent/span.hpp"
+
+#include <algorithm>
+#include <memory>
 
 namespace libtorrent { struct peer_connection_interface; }
 
@@ -67,7 +69,10 @@ namespace libtorrent::aux {
 		peer_address_type address_type() const { return static_cast<peer_address_type>(addr_type); }
 
 		libtorrent::address address() const;
-		string_view dest() const;
+#if TORRENT_USE_I2P
+		// the binary (not base64 encoded) i2p destination
+		span<char const> dest() const;
+#endif
 
 		tcp::endpoint ip() const { return tcp::endpoint(address(), port); }
 
@@ -235,16 +240,18 @@ namespace libtorrent::aux {
 #if TORRENT_USE_I2P
 	struct TORRENT_EXTRA_EXPORT i2p_peer : torrent_peer
 	{
-		i2p_peer(string_view dest, bool connectable, peer_source_flags_t src);
+		// dest is the binary destination and must be valid
+		i2p_peer(span<char const> dest, bool connectable, peer_source_flags_t src);
 		i2p_peer(i2p_peer const&) = delete;
 		i2p_peer& operator=(i2p_peer const&) = delete;
 		i2p_peer(i2p_peer&&) = default;
 		i2p_peer& operator=(i2p_peer&&) & = default;
 
-		// TODO: This destination should probably be kept in binary form (rather than
-		// base64). The peers should primarily be handled by their sha256 hash
-		// of the destination, that should be kept in here as well.
-		aux::string_ptr destination;
+		// TODO: The peers should primarily be handled by the sha256 hash of
+		// their destination, that should be kept in here as well.
+
+		// a big-endian uint16 size followed by the destination
+		std::unique_ptr<char[]> destination;
 	};
 #endif
 
@@ -291,18 +298,18 @@ namespace libtorrent::aux {
 		}
 
 #if TORRENT_USE_I2P
-		bool operator()(torrent_peer const* lhs, string_view rhs) const
+		bool operator()(torrent_peer const* lhs, span<char const> rhs) const
 		{
 			if (lhs->address_type() != peer_address_type::i2p)
 				return true;
-			return lhs->dest() < rhs;
+			return dest_less(lhs->dest(), rhs);
 		}
 
-		bool operator()(string_view lhs, torrent_peer const* rhs) const
+		bool operator()(span<char const> lhs, torrent_peer const* rhs) const
 		{
 			if (rhs->address_type() != peer_address_type::i2p)
 				return false;
-			return lhs < rhs->dest();
+			return dest_less(lhs, rhs->dest());
 		}
 #endif
 
@@ -315,10 +322,19 @@ namespace libtorrent::aux {
 				return lhs_i2p < rhs_i2p;
 
 			if (lhs_i2p)
-				return lhs->dest() < rhs->dest();
+				return dest_less(lhs->dest(), rhs->dest());
 #endif
 			return lhs->address() < rhs->address();
 		}
+
+#if TORRENT_USE_I2P
+	private:
+		static bool dest_less(span<char const> lhs, span<char const> rhs)
+		{
+			auto const as_byte = [](char const c) { return std::uint8_t(c); };
+			return std::ranges::lexicographical_compare(lhs, rhs, {}, as_byte, as_byte);
+		}
+#endif
 	};
 
 	inline bool torrent_peer_equal(torrent_peer const* lhs, torrent_peer const* rhs)

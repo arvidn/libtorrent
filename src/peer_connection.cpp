@@ -1208,25 +1208,28 @@ namespace {
 #if TORRENT_USE_I2P
 		if (auto s = std::get_if<i2p_stream>(&m_socket))
 		{
-			return i2p_destination_hash(s->destination());
+			return s->destination_hash();
 		}
 #endif
 		return m_remote;
 	}
 
 #if TORRENT_USE_I2P
-	std::string const& peer_connection::destination() const
+	span<char const> peer_connection::destination() const
 	{
-		static std::string const empty;
-		auto s = std::get_if<i2p_stream>(&m_socket);
-		return s ? s->destination() : empty;
+		auto const* s = std::get_if<i2p_stream>(&m_socket);
+		return s ? s->destination() : span<char const>{};
 	}
 
-	std::string const& peer_connection::local_i2p_endpoint() const
+	sha256_hash peer_connection::destination_hash() const
 	{
-		static std::string const empty;
-		auto s = std::get_if<i2p_stream>(&m_socket);
-		return s ? s->local_i2p_endpoint() : empty;
+		auto const* s = std::get_if<i2p_stream>(&m_socket);
+		return s ? s->destination_hash() : sha256_hash{};
+	}
+
+	sha256_hash const& peer_connection::local_i2p_endpoint() const
+	{
+		return m_ses.local_i2p_endpoint();
 	}
 #endif
 
