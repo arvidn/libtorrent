@@ -152,7 +152,7 @@ namespace {
 		// valid; once metadata is valid it must agree with whether the
 		// torrent actually has a v2 info hash
 		TORRENT_ASSERT(!t || !t->valid_metadata() || m_ti->info_hashes().has_v2()
-			|| !m_peer_info->protocol_v2);
+			|| !(m_peer_info->flags & torrent_peer::protocol_v2));
 
 		if (m_connected)
 			m_counters.inc_stats_counter(counters::num_peers_connected);
@@ -169,7 +169,7 @@ namespace {
 		m_quota[0] = 0;
 		m_quota[1] = 0;
 
-		TORRENT_ASSERT(pack.peerinfo == nullptr || pack.peerinfo->banned == false);
+		TORRENT_ASSERT(pack.peerinfo == nullptr || !(pack.peerinfo->flags & torrent_peer::banned));
 #ifndef TORRENT_DISABLE_LOGGING
 		if (should_log(m_outgoing ? peer_log_alert::outgoing : peer_log_alert::incoming))
 		{
@@ -177,14 +177,14 @@ namespace {
 			TORRENT_ASSERT(m_socket.remote_endpoint(ec) == m_remote || ec);
 			tcp::endpoint local_ep = m_socket.local_endpoint(ec);
 
-			peer_log(m_outgoing ? peer_log_alert::outgoing : peer_log_alert::incoming
-				, peer_log_alert::connection
-				, "ep: %s type: %s seed: %d p: %p local: %s"
-				, print_endpoint(m_remote).c_str()
-				, socket_type_name(m_socket)
-				, m_peer_info ? m_peer_info->seed : 0
-				, static_cast<void*>(m_peer_info)
-				, print_endpoint(local_ep).c_str());
+			peer_log(m_outgoing ? peer_log_alert::outgoing : peer_log_alert::incoming,
+				peer_log_alert::connection,
+				"ep: %s type: %s seed: %d p: %p local: %s",
+				print_endpoint(m_remote).c_str(),
+				socket_type_name(m_socket),
+				m_peer_info ? bool(m_peer_info->flags & torrent_peer::seed) : false,
+				static_cast<void*>(m_peer_info),
+				print_endpoint(local_ep).c_str());
 		}
 #endif
 
@@ -237,7 +237,7 @@ namespace {
 		TORRENT_ASSERT(is_single_thread());
 		int ret = m_settings.get_int(settings_pack::peer_timeout);
 #if TORRENT_USE_I2P
-		if (m_peer_info && m_peer_info->is_i2p_addr)
+		if (m_peer_info && m_peer_info->address_type() == peer_address_type::i2p)
 		{
 			// quadruple the timeout for i2p peers
 			ret *= 4;
@@ -891,7 +891,9 @@ namespace {
 	}
 
 	bool peer_connection::on_parole() const
-	{ return peer_info_struct() && peer_info_struct()->on_parole; }
+	{
+		return peer_info_struct() && peer_info_struct()->flags & torrent_peer::on_parole;
+	}
 
 	picker_options_t peer_connection::picker_options() const
 	{
@@ -1116,9 +1118,10 @@ namespace {
 #if TORRENT_USE_ASSERTS
 		auto t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
-		TORRENT_ASSERT(!t->valid_metadata() || ih.has_v2() || !peer_info_struct()->protocol_v2);
+		TORRENT_ASSERT(!t->valid_metadata() || ih.has_v2()
+			|| !(peer_info_struct()->flags & torrent_peer::protocol_v2));
 #endif
-		bool const v2 = ih.has_v2() && peer_info_struct()->protocol_v2;
+		bool const v2 = ih.has_v2() && peer_info_struct()->flags & torrent_peer::protocol_v2;
 		return ih.get(v2 ? protocol_version::V2 : protocol_version::V1);
 	}
 
@@ -1354,7 +1357,7 @@ namespace {
 
 		// if this peer supports v2 and metadata is valid, this better be a v2 torrent
 		TORRENT_ASSERT(!t->valid_metadata() || m_ti->info_hashes().has_v2()
-			|| !(peer_info_struct() && peer_info_struct()->protocol_v2));
+			|| !(peer_info_struct() && peer_info_struct()->flags & torrent_peer::protocol_v2));
 
 #ifndef TORRENT_DISABLE_LOGGING
 		if (delay_loaded && should_log(peer_log_alert::info))
@@ -1368,7 +1371,7 @@ namespace {
 
 		// if this peer supports v2, this better be a v2 torrent
 		TORRENT_ASSERT(m_ti->info_hashes().has_v2()
-			|| !(peer_info_struct() && peer_info_struct()->protocol_v2));
+			|| !(peer_info_struct() && peer_info_struct()->flags & torrent_peer::protocol_v2));
 
 		if (t->is_paused() && (t->flags() & torrent_flags::auto_managed)
 			&& m_settings.get_bool(settings_pack::incoming_starts_queued_torrents)
@@ -1432,7 +1435,7 @@ namespace {
 		auto const& tih = m_ti->info_hashes();
 		if (tih.has_v2() && (tih.get(protocol_version::V2) == ih.v1 || tih.v2 == ih.v2))
 		{
-			peer_info_struct()->protocol_v2 = true;
+			peer_info_struct()->flags |= torrent_peer::protocol_v2;
 			TORRENT_ASSERT(tih.has_v2());
 		}
 
@@ -1571,7 +1574,7 @@ namespace {
 		}
 
 		// clear the requests that haven't been sent yet
-		if (peer_info_struct() == nullptr || !peer_info_struct()->on_parole)
+		if (peer_info_struct() == nullptr || !(peer_info_struct()->flags & torrent_peer::on_parole))
 		{
 			// if the peer is not in parole mode, clear the queued
 			// up block requests
@@ -1662,7 +1665,7 @@ namespace {
 				m_counters.inc_stats_counter(counters::num_peers_down_requests, -1);
 
 			// if the peer is in parole mode, keep the request
-			if (peer_info_struct() && peer_info_struct()->on_parole)
+			if (peer_info_struct() && peer_info_struct()->flags & torrent_peer::on_parole)
 			{
 				// we should only add it if the block is marked as
 				// busy in the piece-picker
@@ -1957,9 +1960,9 @@ namespace {
 		auto t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 
-		if (m_peer_info && m_peer_info->optimistically_unchoked)
+		if (m_peer_info && m_peer_info->flags & torrent_peer::optimistically_unchoked)
 		{
-			m_peer_info->optimistically_unchoked = false;
+			m_peer_info->flags &= ~torrent_peer::optimistically_unchoked;
 			m_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic, -1);
 			t->trigger_optimistic_unchoke();
 		}
@@ -3789,13 +3792,13 @@ namespace {
 		if (m_choked)
 		{
 			TORRENT_ASSERT(m_peer_info == nullptr
-				|| m_peer_info->optimistically_unchoked == false);
+				|| !(m_peer_info->flags & torrent_peer::optimistically_unchoked));
 			return false;
 		}
 
-		if (m_peer_info && m_peer_info->optimistically_unchoked)
+		if (m_peer_info && m_peer_info->flags & torrent_peer::optimistically_unchoked)
 		{
-			m_peer_info->optimistically_unchoked = false;
+			m_peer_info->flags &= ~torrent_peer::optimistically_unchoked;
 			m_counters.inc_stats_counter(counters::num_peers_up_unchoked_optimistic, -1);
 		}
 
@@ -4186,12 +4189,10 @@ namespace {
 		// a connection attempt using uTP just failed
 		// mark this peer as not supporting uTP
 		// we'll never try it again (unless we're trying holepunch)
-		if (is_utp(m_socket)
-			&& m_peer_info
-			&& m_peer_info->supports_utp
+		if (is_utp(m_socket) && m_peer_info && (m_peer_info->flags & torrent_peer::supports_utp)
 			&& !m_holepunch_mode)
 		{
-			m_peer_info->supports_utp = false;
+			m_peer_info->flags &= ~torrent_peer::supports_utp;
 			// reconnect immediately using TCP
 			fast_reconnect(true);
 			disconnect(e, operation_t::connect, normal);
@@ -4221,10 +4222,8 @@ namespace {
 			fast_reconnect(true);
 
 #ifndef TORRENT_DISABLE_EXTENSIONS
-		if ((!is_utp(m_socket)
-				|| !m_settings.get_bool(settings_pack::enable_outgoing_tcp))
-			&& m_peer_info
-			&& m_peer_info->supports_holepunch
+		if ((!is_utp(m_socket) || !m_settings.get_bool(settings_pack::enable_outgoing_tcp))
+			&& m_peer_info && (m_peer_info->flags & torrent_peer::supports_holepunch)
 			&& !m_holepunch_mode)
 		{
 			// see if we can try a holepunch
@@ -4658,9 +4657,12 @@ namespace {
 			p.source = peer_source_flags_t(pi->source);
 			p.failcount = pi->failcount;
 			p.num_hashfails = pi->hashfails;
-			if (pi->on_parole) p.flags |= peer_info::on_parole;
-			if (pi->optimistically_unchoked) p.flags |= peer_info::optimistic_unchoke;
-			if (pi->seed) p.flags |= peer_info::seed;
+			if (pi->flags & torrent_peer::on_parole)
+				p.flags |= peer_info::on_parole;
+			if (pi->flags & torrent_peer::optimistically_unchoked)
+				p.flags |= peer_info::optimistic_unchoke;
+			if (pi->flags & torrent_peer::seed)
+				p.flags |= peer_info::seed;
 		}
 		else
 		{
@@ -6325,8 +6327,8 @@ namespace {
 
 		if (is_utp(m_socket) && m_peer_info)
 		{
-			m_peer_info->confirmed_supports_utp = true;
-			m_peer_info->supports_utp = false;
+			m_peer_info->flags |= torrent_peer::confirmed_supports_utp;
+			m_peer_info->flags &= ~torrent_peer::supports_utp;
 		}
 
 		// this means the connection just succeeded
@@ -6619,7 +6621,7 @@ namespace {
 			TORRENT_ASSERT(m_peer_info->connection == this
 				|| m_peer_info->connection == nullptr);
 
-			if (m_peer_info->optimistically_unchoked)
+			if (m_peer_info->flags & torrent_peer::optimistically_unchoked)
 				TORRENT_ASSERT(!is_choked());
 		}
 
@@ -6637,7 +6639,8 @@ namespace {
 
 		auto const& ih = m_ti->info_hashes();
 		// see the comment in associated_info_hash()
-		if (t->valid_metadata() && peer_info_struct() && peer_info_struct()->protocol_v2)
+		if (t->valid_metadata() && peer_info_struct()
+			&& peer_info_struct()->flags & torrent_peer::protocol_v2)
 			TORRENT_ASSERT(ih.has_v2());
 
 		if (m_ti->is_valid() && m_initialized)

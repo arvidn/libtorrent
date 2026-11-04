@@ -183,7 +183,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 	web_seed_t::web_seed_t(web_seed_entry const& wse)
 		: web_seed_entry(wse)
 	{
-		peer_info.web_seed = true;
+		peer_info.flags |= torrent_peer::web_seed;
 	}
 
 	web_seed_t::web_seed_t(std::string const& url_
@@ -191,7 +191,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		, web_seed_entry::headers_t const& extra_headers_)
 		: web_seed_entry(url_, auth_, extra_headers_)
 	{
-		peer_info.web_seed = true;
+		peer_info.flags |= torrent_peer::web_seed;
 	}
 
 	torrent_hot_members::torrent_hot_members(
@@ -5064,7 +5064,7 @@ namespace {
 			TORRENT_ASSERT(p != nullptr);
 			if (p == nullptr) continue;
 			TORRENT_ASSERT(p->in_use);
-			p->on_parole = false;
+			p->flags &= ~torrent_peer::on_parole;
 			if (p->connection)
 			{
 				auto* peer = static_cast<peer_connection*>(p->connection);
@@ -5241,7 +5241,7 @@ namespace {
 				constexpr int parole_threshold = 3;
 				if (p->hashfails >= parole_threshold)
 				{
-					p->on_parole = true;
+					p->flags |= torrent_peer::on_parole;
 					p->hashfails = 0;
 				}
 			}
@@ -5271,7 +5271,7 @@ namespace {
 			{
 				peer_id const pid = p->connection ? p->connection->pid() : peer_id();
 #if TORRENT_USE_I2P
-				peer_endpoint_t const ep = p->is_i2p_addr
+				peer_endpoint_t const ep = (p->address_type() == peer_address_type::i2p)
 					? peer_endpoint_t(i2p_destination_hash(p->dest()))
 					: peer_endpoint_t(p->ip());
 #else
@@ -6777,9 +6777,9 @@ namespace {
 
 		if (pp)
 		{
-			if (pp->optimistically_unchoked)
+			if (pp->flags & torrent_peer::optimistically_unchoked)
 			{
-				pp->optimistically_unchoked = false;
+				pp->flags &= ~torrent_peer::optimistically_unchoked;
 				m_stats_counters.inc_stats_counter(
 					counters::num_peers_up_unchoked_optimistic, -1);
 				trigger_optimistic_unchoke();
@@ -6792,7 +6792,7 @@ namespace {
 
 			// only decrement the seed count if the peer completed attaching to the torrent
 			// otherwise the seed count did not get incremented for this peer
-			if (is_attached && pp->seed)
+			if (is_attached && pp->flags & torrent_peer::seed)
 			{
 				TORRENT_ASSERT(m_num_seeds > 0);
 				--m_num_seeds;
@@ -6946,7 +6946,7 @@ namespace {
 			return;
 		}
 
-		if (web->peer_info.banned)
+		if (web->peer_info.flags & torrent_peer::banned)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			debug_log("banned web seed: %s", web->url.c_str());
@@ -7437,7 +7437,7 @@ namespace {
 		update_want_tick();
 		m_ses.insert_peer(c);
 
-		if (web->peer_info.seed)
+		if (web->peer_info.flags & torrent_peer::seed)
 		{
 			TORRENT_ASSERT(m_num_seeds < 0xffff);
 			++m_num_seeds;
@@ -7789,9 +7789,10 @@ namespace {
 			for (auto* p : *m_peer_list)
 			{
 #if TORRENT_USE_I2P
-				if (p->is_i2p_addr) continue;
+				if (p->address_type() == peer_address_type::i2p)
+					continue;
 #endif
-				if (p->banned)
+				if (p->flags & torrent_peer::banned)
 				{
 					ret.banned_peers.push_back(p->ip());
 					continue;
@@ -7804,7 +7805,8 @@ namespace {
 				// so, if the peer is not connectable (i.e. we
 				// don't know its listen port) or if it has
 				// been banned, don't save it.
-				if (!p->connectable) continue;
+				if (!(p->flags & torrent_peer::connectable))
+					continue;
 
 				// don't save peers that don't work
 				if (int(p->failcount) > 0) continue;
@@ -7927,7 +7929,7 @@ namespace {
 		{
 			peer_list_entry e;
 			e.ip = p->ip();
-			e.flags = p->banned ? peer_list_entry::banned : 0;
+			e.flags = (p->flags & torrent_peer::banned) ? peer_list_entry::banned : 0;
 			e.failcount = p->failcount;
 			e.source = p->source;
 			v->push_back(e);
@@ -8124,7 +8126,7 @@ namespace {
 		TORRENT_ASSERT(peerinfo->connection == nullptr);
 
 #if TORRENT_USE_RTC
-		if (peerinfo->is_rtc_addr)
+		if (peerinfo->address_type() == peer_address_type::rtc)
 		{
 			// unsolicited connection is not possible
 			TORRENT_ASSERT_FAIL();
@@ -8138,7 +8140,7 @@ namespace {
 #if TORRENT_USE_ASSERTS
 		if (!settings().get_bool(settings_pack::allow_multiple_connections_per_ip)
 #if TORRENT_USE_I2P
-			&& !peerinfo->is_i2p_addr
+			&& peerinfo->address_type() != peer_address_type::i2p
 #endif
 		)
 		{
@@ -8168,7 +8170,7 @@ namespace {
 		aux::utp_socket_manager* sm = nullptr;
 
 #if TORRENT_USE_I2P
-		if (peerinfo->is_i2p_addr)
+		if (peerinfo->address_type() == peer_address_type::i2p)
 		{
 			if (settings().get_str(settings_pack::i2p_hostname).empty())
 			{
@@ -8184,8 +8186,8 @@ namespace {
 		{
 			if (settings().get_bool(settings_pack::enable_outgoing_utp)
 				&& (!settings().get_bool(settings_pack::enable_outgoing_tcp)
-					|| peerinfo->supports_utp
-					|| peerinfo->confirmed_supports_utp))
+					|| peerinfo->flags
+						& (torrent_peer::supports_utp | torrent_peer::confirmed_supports_utp)))
 			{
 				sm = m_ses.utp_socket_manager();
 			}
@@ -8197,8 +8199,9 @@ namespace {
 				if (should_log())
 				{
 					debug_log("discarding peer \"%s\": TCP connections disabled "
-						"[ supports-utp: %d ]", peerinfo->to_string().c_str()
-						, peerinfo->supports_utp);
+							  "[ supports-utp: %d ]",
+						peerinfo->to_string().c_str(),
+						bool(peerinfo->flags & torrent_peer::supports_utp));
 				}
 #endif
 				return false;
@@ -8210,56 +8213,57 @@ namespace {
 		aux::socket_type s = [&] {
 
 #if TORRENT_USE_I2P
-		if (peerinfo->is_i2p_addr)
-		{
-			// It's not entirely obvious why this peer connection is not marked as
-			// one. The main feature of a peer connection is that whether or not we
-			// proxy it is configurable. When we use i2p, we want to always prox
-			// everything via i2p.
-
-			aux::proxy_settings proxy;
-			proxy.hostname = settings().get_str(settings_pack::i2p_hostname);
-			proxy.port = std::uint16_t(settings().get_int(settings_pack::i2p_port));
-			proxy.type = settings_pack::i2p_proxy;
-
-			aux::socket_type ret = instantiate_connection(m_ses.get_context()
-				, proxy, nullptr, nullptr, false, false);
-			auto& str = std::get<i2p_stream>(ret);
-			str.set_local_i2p_endpoint(m_ses.local_i2p_endpoint());
-			str.set_destination(static_cast<i2p_peer*>(peerinfo)->dest());
-			str.set_command(i2p_stream::cmd_connect);
-			str.set_session_id(m_ses.i2p_session());
-			return ret;
-		}
-		else
-#endif
-		{
-			void* userdata = nullptr;
-#ifdef TORRENT_SSL_PEERS
-			if (is_ssl_torrent())
+			if (peerinfo->address_type() == peer_address_type::i2p)
 			{
-				userdata = m_ssl_ctx.get();
-				// if we're creating a uTP socket, since this is SSL now, make sure
-				// to pass in the corresponding utp socket manager
-				if (sm) sm = m_ses.ssl_utp_socket_manager();
+				// It's not entirely obvious why this peer connection is not marked as
+				// one. The main feature of a peer connection is that whether or not we
+				// proxy it is configurable. When we use i2p, we want to always prox
+				// everything via i2p.
+
+				aux::proxy_settings proxy;
+				proxy.hostname = settings().get_str(settings_pack::i2p_hostname);
+				proxy.port = std::uint16_t(settings().get_int(settings_pack::i2p_port));
+				proxy.type = settings_pack::i2p_proxy;
+
+				aux::socket_type ret = instantiate_connection(
+					m_ses.get_context(), proxy, nullptr, nullptr, false, false);
+				auto& str = std::get<i2p_stream>(ret);
+				str.set_local_i2p_endpoint(m_ses.local_i2p_endpoint());
+				str.set_destination(static_cast<i2p_peer*>(peerinfo)->dest());
+				str.set_command(i2p_stream::cmd_connect);
+				str.set_session_id(m_ses.i2p_session());
+				return ret;
 			}
+			else
+#endif
+			{
+				void* userdata = nullptr;
+#ifdef TORRENT_SSL_PEERS
+				if (is_ssl_torrent())
+				{
+					userdata = m_ssl_ctx.get();
+					// if we're creating a uTP socket, since this is SSL now, make sure
+					// to pass in the corresponding utp socket manager
+					if (sm)
+						sm = m_ses.ssl_utp_socket_manager();
+				}
 #endif
 
-			aux::socket_type ret = instantiate_connection(m_ses.get_context()
-				, m_ses.proxy(), userdata, sm, true, false);
+				aux::socket_type ret = instantiate_connection(
+					m_ses.get_context(), m_ses.proxy(), userdata, sm, true, false);
 
 #if defined TORRENT_SSL_PEERS
-			if (is_ssl_torrent())
-			{
-				// for ssl sockets, set the hostname
-				std::string const host_name = aux::to_hex(
-					m_torrent_file->info_hashes().get(peerinfo->protocol()));
+				if (is_ssl_torrent())
+				{
+					// for ssl sockets, set the hostname
+					std::string const host_name =
+						aux::to_hex(m_torrent_file->info_hashes().get(peerinfo->protocol()));
 
-				std::visit(hostname_visitor{host_name}, ret.var());
-			}
+					std::visit(hostname_visitor{host_name}, ret.var());
+				}
 #endif
-			return ret;
-		}
+				return ret;
+			}
 		}();
 
 		if(!create_peer_connection(peerinfo, std::move(s), std::move(a)))
@@ -8319,7 +8323,7 @@ namespace {
 			m_ses.insert_peer(c);
 			need_peer_list();
 			m_peer_list->set_connection(peerinfo, c.get());
-			if (peerinfo->seed)
+			if (peerinfo->flags & torrent_peer::seed)
 			{
 				TORRENT_ASSERT(m_num_seeds < 0xffff);
 				++m_num_seeds;
@@ -8547,7 +8551,7 @@ namespace {
 		if (!m_info_hash.has_v2() && m_peer_list)
 		{
 			for (auto* pp : *m_peer_list)
-				pp->protocol_v2 = false;
+				pp->flags &= ~torrent_peer::protocol_v2;
 		}
 
 		m_size_on_disk = m_torrent_file->layout().size_on_disk();
@@ -8828,7 +8832,7 @@ namespace {
 		update_want_peers();
 		update_want_tick();
 
-		if (p->peer_info_struct() && p->peer_info_struct()->seed)
+		if (p->peer_info_struct() && p->peer_info_struct()->flags & torrent_peer::seed)
 		{
 			TORRENT_ASSERT(m_num_seeds < 0xffff);
 			++m_num_seeds;
@@ -9663,12 +9667,12 @@ namespace {
 
 			if (p.is_connecting()) ++num_connecting;
 
-			if (p.is_connecting() && p.peer_info_struct()->seed)
+			if (p.is_connecting() && p.peer_info_struct()->flags & torrent_peer::seed)
 				++num_connecting_seeds;
 
 			if (p.peer_info_struct())
 			{
-				if (p.peer_info_struct()->seed)
+				if (p.peer_info_struct()->flags & torrent_peer::seed)
 				{
 					++seeds;
 				}
@@ -11849,7 +11853,8 @@ namespace {
 		std::set<std::string> ret;
 		for (auto const& s : m_web_seeds)
 		{
-			if (s.peer_info.banned) continue;
+			if (s.peer_info.flags & torrent_peer::banned)
+				continue;
 			if (s.removed) continue;
 			ret.insert(s.url);
 		}
@@ -12036,7 +12041,8 @@ namespace {
 
 	bool torrent::ban_peer(torrent_peer* tp)
 	{
-		if (!settings().get_bool(settings_pack::ban_web_seeds) && tp->web_seed)
+		if (!settings().get_bool(settings_pack::ban_web_seeds)
+			&& tp->flags & torrent_peer::web_seed)
 			return false;
 
 		need_peer_list();
@@ -12049,7 +12055,8 @@ namespace {
 
 	void torrent::set_seed(torrent_peer* p, bool const s)
 	{
-		if (bool(p->seed) == s) return;
+		if (bool(p->flags & torrent_peer::seed) == s)
+			return;
 		if (s)
 		{
 			TORRENT_ASSERT(m_num_seeds < 0xffff);

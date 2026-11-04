@@ -580,7 +580,7 @@ TORRENT_TEST(ban_peers)
 	// now, ban the peer
 	bool ok = p.ban_peer(c->peer_info_struct());
 	TEST_EQUAL(ok, true);
-	TEST_EQUAL(bool(peer1->banned), true);
+	TEST_EQUAL(bool(peer1->flags & aux::torrent_peer::banned), true);
 	// we still have it in the list
 	TEST_EQUAL(p.num_peers(), 1);
 	// it's just not a connect candidate, nor allowed to receive incoming connections
@@ -1399,7 +1399,7 @@ TORRENT_TEST(ipv6_prefix_connect_candidates)
 	std::array<unsigned char, 7> const flood_prefix{{0x20, 0x01, 0x0d, 0xb8, 0xff, 0xff, 0x00}};
 
 	auto const in_flood = [&flood_prefix](torrent_peer const* tp) {
-		return tp->is_v6_addr
+		return (tp->address_type() == aux::peer_address_type::ipv6)
 			&& std::equal(flood_prefix.begin(),
 				flood_prefix.end(),
 				static_cast<ipv6_peer const*>(tp)->addr.begin());

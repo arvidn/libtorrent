@@ -504,8 +504,7 @@ namespace {
 			bencode(std::back_inserter(p.resume_data), resume_data);
 		}
 		p.storage_mode = storage_mode;
-		if (add_paused) p.flags |= add_torrent_params::flag_paused;
-		else p.flags &= ~add_torrent_params::flag_paused;
+		p.flags.set(add_torrent_params::flag_paused, add_paused);
 		return add_torrent(p);
 	}
 
@@ -532,8 +531,7 @@ namespace {
 		p.save_path = save_path;
 		p.storage_mode = storage_mode;
 
-		if (add_paused) p.flags |= add_torrent_params::flag_paused;
-		else p.flags &= ~add_torrent_params::flag_paused;
+		p.flags.set(add_torrent_params::flag_paused, add_paused);
 
 		p.userdata = userdata;
 		p.name = name;

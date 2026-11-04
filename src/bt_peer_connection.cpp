@@ -203,7 +203,7 @@ namespace {
 #if TORRENT_USE_RTC
 		// never try an encrypted connection over WebRTC (which is already encrypted)
 		if (torrent_peer *pi = peer_info_struct())
-			if (pi->is_rtc_addr)
+			if (pi->address_type() == peer_address_type::rtc)
 				out_policy = settings_pack::pe_disabled;
 #endif
 #ifndef TORRENT_DISABLE_LOGGING
@@ -230,12 +230,12 @@ namespace {
 			TORRENT_ASSERT(peer_info_struct());
 
 			torrent_peer* pi = peer_info_struct();
-			if (pi->pe_support == true)
+			if (pi->flags & torrent_peer::pe_support)
 			{
-				// toggle encryption support flag, toggled back to
-				// true if encrypted portion of the handshake
-				// completes correctly
-				pi->pe_support = false;
+				// clear encryption support flag, set again if
+				// encrypted portion of the handshake completes
+				// correctly
+				pi->flags &= ~torrent_peer::pe_support;
 
 				// if this fails, we need to reconnect
 				// fast.
@@ -247,11 +247,11 @@ namespace {
 				m_recv_buffer.reset(dh_key_len);
 				setup_receive();
 			}
-			else // pi->pe_support == false
+			else // no pe_support
 			{
-				// toggled back to false if standard handshake
+				// cleared again if standard handshake
 				// completes correctly (without encryption)
-				pi->pe_support = true;
+				pi->flags |= torrent_peer::pe_support;
 
 				write_handshake();
 				m_recv_buffer.reset(20);
@@ -737,7 +737,8 @@ namespace {
 
 		// this is a v1 peer in a hybrid torrent
 		// indicate that we support upgrading to v2
-		if (!peer_info_struct()->protocol_v2 && m_ti->info_hashes().has_v2())
+		if (!(peer_info_struct()->flags & torrent_peer::protocol_v2)
+			&& m_ti->info_hashes().has_v2())
 		{
 			*(ptr + 7) |= 0x10;
 		}
@@ -1133,7 +1134,7 @@ namespace {
 		TORRENT_ASSERT(received >= 0);
 		received_bytes(0, received);
 
-		if (!peer_info_struct()->protocol_v2)
+		if (!(peer_info_struct()->flags & torrent_peer::protocol_v2))
 		{
 			disconnect(errors::invalid_message, operation_t::bittorrent, peer_error);
 			return;
@@ -1206,7 +1207,7 @@ namespace {
 		TORRENT_ASSERT(received >= 0);
 		received_bytes(0, received);
 
-		if (!peer_info_struct()->protocol_v2)
+		if (!(peer_info_struct()->flags & torrent_peer::protocol_v2))
 		{
 			disconnect(errors::invalid_message, operation_t::bittorrent, peer_error);
 			return;
@@ -1302,7 +1303,7 @@ namespace {
 		TORRENT_ASSERT(received >= 0);
 		received_bytes(0, received);
 
-		if (!peer_info_struct()->protocol_v2)
+		if (!(peer_info_struct()->flags & torrent_peer::protocol_v2))
 		{
 			disconnect(errors::invalid_message, operation_t::bittorrent, peer_error);
 			return;
@@ -1642,7 +1643,7 @@ namespace {
 					// already connected. Just ignore the connect message
 					break;
 				}
-				if (p->banned)
+				if (p->flags & torrent_peer::banned)
 				{
 #ifndef TORRENT_DISABLE_LOGGING
 					if (should_log(peer_log_alert::incoming_message))
@@ -1655,7 +1656,7 @@ namespace {
 					break;
 				}
 				// to make sure we use the uTP protocol
-				p->supports_utp = true;
+				p->flags |= torrent_peer::supports_utp;
 				// #error make sure we make this a connection candidate
 				// in case it has too many failures for instance
 				t->connect_to_peer(p, true);
@@ -1874,7 +1875,8 @@ namespace {
 	void bt_peer_connection::maybe_send_hash_request()
 	{
 		if (is_disconnecting() || m_hash_requests.size() > 1) return;
-		if (!peer_info_struct()->protocol_v2) return;
+		if (!(peer_info_struct()->flags & torrent_peer::protocol_v2))
+			return;
 
 		auto t = associated_torrent().lock();
 		TORRENT_ASSERT(t);
@@ -2786,8 +2788,8 @@ namespace {
 		}
 		m_rc4.reset();
 
-		// encrypted portion of handshake completed, toggle
-		// peer_info pe_support flag back to true
+		// encrypted portion of handshake completed, set
+		// peer_info pe_support flag again
 		if (is_outgoing() &&
 			m_settings.get_int(settings_pack::out_enc_policy)
 				== settings_pack::pe_enabled)
@@ -2795,7 +2797,7 @@ namespace {
 			torrent_peer* pi = peer_info_struct();
 			TORRENT_ASSERT(pi);
 
-			pi->pe_support = true;
+			pi->flags |= torrent_peer::pe_support;
 		}
 	}
 #endif
@@ -3001,7 +3003,8 @@ namespace {
 					hasher h(req2);
 					h.update(tih);
 					if (h.final() == oih)
-						peer_info_struct()->protocol_v2 = v == protocol_version::V2;
+						peer_info_struct()->flags.set(
+							torrent_peer::protocol_v2, v == protocol_version::V2);
 				});
 
 				m_rc4 = init_pe_rc4_handler(m_dh_key_exchange->get_secret()
@@ -3468,7 +3471,7 @@ namespace {
 						disconnect(errors::invalid_info_hash, operation_t::bittorrent);
 						return;
 					}
-					peer_info_struct()->protocol_v2 = true;
+					peer_info_struct()->flags |= torrent_peer::protocol_v2;
 				}
 			}
 			else
@@ -3482,7 +3485,7 @@ namespace {
 						m_ti->info_hashes().get(protocol_version::V2).data())
 					&& m_ti->info_hashes().has_v2())
 				{
-					peer_info_struct()->protocol_v2 = true;
+					peer_info_struct()->flags |= torrent_peer::protocol_v2;
 				}
 				else if (!std::equal(recv_buffer.begin() + 8, recv_buffer.begin() + 28
 						, associated_info_hash().data())
@@ -3612,7 +3615,7 @@ namespace {
 				t->clear_failcount(peer_info_struct());
 
 #if !defined TORRENT_DISABLE_ENCRYPTION
-			// Toggle pe_support back to false if this is a
+			// clear pe_support again if this is a
 			// standard successful connection
 			if (is_outgoing() && !m_encrypted &&
 				m_settings.get_int(settings_pack::out_enc_policy)
@@ -3621,7 +3624,7 @@ namespace {
 				torrent_peer* pi = peer_info_struct();
 				TORRENT_ASSERT(pi);
 
-				pi->pe_support = false;
+				pi->flags &= ~torrent_peer::pe_support;
 			}
 #endif
 

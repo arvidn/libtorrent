@@ -252,8 +252,7 @@ namespace libtorrent {
 		params.storage_mode = storage_mode;
 		params.save_path = save_path;
 
-		if (paused) params.flags |= add_torrent_params::flag_paused;
-		else params.flags &= ~add_torrent_params::flag_paused;
+		params.flags.set(add_torrent_params::flag_paused, paused);
 
 		return ses.add_torrent(std::move(params));
 	}

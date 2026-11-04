@@ -23,6 +23,7 @@ see LICENSE file.
 #include "libtorrent/extensions.hpp"
 #include "libtorrent/torrent_handle.hpp"
 #include "libtorrent/client_data.hpp"
+#include "libtorrent/hex.hpp"
 #endif
 
 #include <algorithm>
@@ -278,7 +279,7 @@ void smart_ban::ban_mismatched_peer(
 	TORRENT_UNUSED(hash1);
 	TORRENT_UNUSED(hash2);
 
-	if (peer->banned)
+	if (peer->flags & torrent_peer::banned)
 		return;
 
 #ifndef TORRENT_DISABLE_LOGGING
