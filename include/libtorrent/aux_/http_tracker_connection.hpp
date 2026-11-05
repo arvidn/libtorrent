@@ -61,6 +61,11 @@ namespace libtorrent::aux {
 		// dropped. Used by tracker_manager::abort_all_requests.
 		void prune_followers(bool keep_stopped);
 
+		// true while the connection is kept open with no request in flight
+		// and none queued, waiting for another one to reuse it (see
+		// settings_pack::tracker_connection_idle_timeout).
+		bool is_idle() const { return m_idle; }
+
 	private:
 
 		std::shared_ptr<http_tracker_connection> shared_from_this()

@@ -2277,9 +2277,12 @@ namespace aux {
 			// to 0 to close the connection as soon as its request queue is
 			// empty, which was the behaviour before this setting existed. An
 			// idle connection still counts towards max_concurrent_http_announces
-			// and max_tracker_connection_requests, and is closed by the
-			// server-side keep-alive timeout, in which case the next request
-			// transparently reconnects.
+			// and max_tracker_connection_requests, but it is closed early when
+			// a request to another tracker would otherwise have to wait for a
+			// free connection, and when the session is paused or shut down. If
+			// the server closes it first (its own keep-alive timeout), the next
+			// request transparently reconnects. This setting has no effect when
+			// disable_tracker_connection_reuse is enabled.
 			tracker_connection_idle_timeout,
 
 			max_int_setting_internal

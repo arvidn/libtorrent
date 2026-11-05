@@ -425,6 +425,220 @@ void test_tracker_idle_keepalive(lt::milliseconds const idle_timeout)
 TORRENT_TEST(tracker_idle_keepalive) { test_tracker_idle_keepalive(3s); }
 TORRENT_TEST(tracker_idle_keepalive_disabled) { test_tracker_idle_keepalive(0ms); }
 
+// settings_pack::disable_tracker_connection_reuse gives every request a
+// connection of its own, so an idle connection would have nothing to wait for.
+// It must be closed as soon as its request has been answered, even when the
+// tracker leaves the socket open. Here the tracker ignores the
+// "Connection: close" header such a request carries. sim::http_server only
+// serves one connection at a time, so the second torrent's announce can only
+// get through once the first torrent's connection is gone.
+TORRENT_TEST(tracker_idle_keepalive_reuse_disabled)
+{
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+	sim::asio::io_context ios0{sim, make_address_v4("10.0.0.1")};
+	sim::asio::io_context web_server{sim, make_address_v4("2.2.2.2")};
+	sim::http_server http(web_server, 8080);
+
+	bool ran_to_completion = false;
+	int announces = 0;
+	http.register_handler("/announce",
+		[&](std::string, std::string, std::map<std::string, std::string>& headers) {
+			if (!ran_to_completion)
+				++announces;
+			// hide the request for the connection to be closed from the
+			// server, so that it is left open after the response
+			headers.erase("connection");
+			std::string const body = "d8:intervali1800e5:peers0:e";
+			return sim::send_response(200, "OK", int(body.size())) + body;
+		});
+
+	lt::settings_pack pack = settings();
+	pack.set_str(settings_pack::listen_interfaces, "10.0.0.1:6881");
+	pack.set_bool(settings_pack::disable_tracker_connection_reuse, true);
+	// far longer than this test runs for
+	pack.set_int(settings_pack::tracker_connection_idle_timeout, 60000);
+	pack.set_int(settings_pack::torrent_connect_boost, 0);
+
+	auto ses = std::make_shared<lt::session>(pack, ios0);
+
+	auto const add = [&](int const idx) {
+		lt::add_torrent_params params = ::create_torrent(idx, true, 9, lt::create_torrent::v1_only);
+		params.flags &= ~lt::torrent_flags::auto_managed;
+		params.flags &= ~lt::torrent_flags::paused;
+		params.trackers.push_back("http://2.2.2.2:8080/announce");
+		ses->async_add_torrent(std::move(params));
+	};
+
+	add(0);
+	sim::timer t_second(sim, 1s, [&](boost::system::error_code const&) { add(1); });
+
+	int connections = 0;
+	lt::session_proxy zombie;
+	sim::timer t_abort(sim, 4s, [&](boost::system::error_code const&) {
+		ran_to_completion = true;
+		// record before the stop-announces open their own connections
+		connections = http.accepted_connections();
+		zombie = ses->abort();
+		ses.reset();
+	});
+
+	sim.run();
+
+	TEST_CHECK(ran_to_completion);
+	// the second announce was not held up by the first one's connection
+	TEST_EQUAL(announces, 2);
+	TEST_EQUAL(connections, 2);
+}
+
+// pausing the session (tracker_manager::abort_all_requests()) closes idle
+// tracker connections, including one whose last request was a stop announce.
+// A connection with a stop announce still in flight is left alone, but an idle
+// one has nothing in flight. The first torrent is paused, which sends its stop
+// announce over the connection that has been idle since its first announce,
+// and leaves it idle again. The session is then paused and resumed and a
+// second torrent added, all well within the idle timeout. Its announce must
+// not find the old connection still around to reuse.
+TORRENT_TEST(tracker_idle_connection_closed_on_pause)
+{
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+	sim::asio::io_context ios0{sim, make_address_v4("10.0.0.1")};
+	sim::asio::io_context web_server{sim, make_address_v4("2.2.2.2")};
+	sim::http_server http(web_server, 8080);
+
+	bool ran_to_completion = false;
+	int announces = 0;
+	http.register_handler("/announce",
+		[&](std::string /* method */, std::string /* req */, std::map<std::string, std::string>&) {
+			if (!ran_to_completion)
+				++announces;
+			std::string const body = "d8:intervali1800e5:peers0:e";
+			return sim::send_response(200, "OK", int(body.size())) + body;
+		});
+
+	lt::settings_pack pack = settings();
+	pack.set_str(settings_pack::listen_interfaces, "10.0.0.1:6881");
+	// far longer than this test runs for
+	pack.set_int(settings_pack::tracker_connection_idle_timeout, 60000);
+	pack.set_int(settings_pack::torrent_connect_boost, 0);
+
+	auto ses = std::make_shared<lt::session>(pack, ios0);
+
+	auto const add = [&](int const idx) {
+		lt::add_torrent_params params = ::create_torrent(idx, true, 9, lt::create_torrent::v1_only);
+		params.flags &= ~lt::torrent_flags::auto_managed;
+		params.flags &= ~lt::torrent_flags::paused;
+		params.trackers.push_back("http://2.2.2.2:8080/announce");
+		ses->async_add_torrent(std::move(params));
+	};
+
+	// t=0: the first torrent announces and its connection goes idle
+	add(0);
+	// t=1s: its stop announce reuses that connection, which goes idle again
+	sim::timer t_stop(sim, 1s, [&](boost::system::error_code const&) {
+		for (lt::torrent_handle const& h : ses->get_torrents())
+			h.pause();
+	});
+	// t=2s: pausing the session closes the idle connection
+	sim::timer t_pause(sim, 2s, [&](boost::system::error_code const&) {
+		TEST_EQUAL(announces, 2);
+		TEST_EQUAL(http.accepted_connections(), 1);
+		ses->pause();
+	});
+	// t=3s: so the second torrent's announce needs a new one
+	sim::timer t_resume(sim, 3s, [&](boost::system::error_code const&) {
+		ses->resume();
+		add(1);
+	});
+
+	int connections = 0;
+	lt::session_proxy zombie;
+	sim::timer t_abort(sim, 5s, [&](boost::system::error_code const&) {
+		ran_to_completion = true;
+		// record before the stop-announces open their own connections
+		connections = http.accepted_connections();
+		zombie = ses->abort();
+		ses.reset();
+	});
+
+	sim.run();
+
+	TEST_CHECK(ran_to_completion);
+	TEST_EQUAL(announces, 3);
+	TEST_EQUAL(connections, 2);
+}
+
+// an idle tracker connection still occupies one of the
+// max_concurrent_http_announces slots. It must give it up as soon as a request
+// to another tracker needs it, rather than make that request wait for the idle
+// timeout to expire.
+TORRENT_TEST(tracker_idle_connection_yields_slot)
+{
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+	sim::asio::io_context ios0{sim, make_address_v4("10.0.0.1")};
+	sim::asio::io_context web_server1{sim, make_address_v4("2.2.2.2")};
+	sim::asio::io_context web_server2{sim, make_address_v4("3.3.3.3")};
+	sim::http_server http1(web_server1, 8080);
+	sim::http_server http2(web_server2, 8080);
+
+	int announces1 = 0;
+	int announces2 = 0;
+	http1.register_handler("/announce",
+		[&](std::string /* method */, std::string /* req */, std::map<std::string, std::string>&) {
+			++announces1;
+			std::string const body = "d8:intervali1800e5:peers0:e";
+			return sim::send_response(200, "OK", int(body.size())) + body;
+		});
+	http2.register_handler("/announce",
+		[&](std::string /* method */, std::string /* req */, std::map<std::string, std::string>&) {
+			++announces2;
+			std::string const body = "d8:intervali1800e5:peers0:e";
+			return sim::send_response(200, "OK", int(body.size())) + body;
+		});
+
+	lt::settings_pack pack = settings();
+	pack.set_str(settings_pack::listen_interfaces, "10.0.0.1:6881");
+	pack.set_int(settings_pack::max_concurrent_http_announces, 1);
+	// far longer than this test runs for
+	pack.set_int(settings_pack::tracker_connection_idle_timeout, 60000);
+	pack.set_int(settings_pack::torrent_connect_boost, 0);
+
+	auto ses = std::make_shared<lt::session>(pack, ios0);
+
+	auto const add = [&](int const idx, char const* url) {
+		lt::add_torrent_params params = ::create_torrent(idx, true, 9, lt::create_torrent::v1_only);
+		params.flags &= ~lt::torrent_flags::auto_managed;
+		params.flags &= ~lt::torrent_flags::paused;
+		params.trackers.push_back(url);
+		ses->async_add_torrent(std::move(params));
+	};
+
+	// t=0: the first tracker's connection takes the only slot and, once its
+	// announce has been answered, sits idle in it
+	add(0, "http://2.2.2.2:8080/announce");
+	// t=1s: an announce to the second tracker needs that slot
+	sim::timer t_second(sim, 1s, [&](boost::system::error_code const&) {
+		TEST_EQUAL(announces1, 1);
+		add(1, "http://3.3.3.3:8080/announce");
+	});
+
+	// t=3s: and has been given it, long before the idle timeout. Recorded
+	// before the stop-announces of the shutdown below
+	int announces2_seen = 0;
+	lt::session_proxy zombie;
+	sim::timer t_abort(sim, 3s, [&](boost::system::error_code const&) {
+		announces2_seen = announces2;
+		zombie = ses->abort();
+		ses.reset();
+	});
+
+	sim.run();
+
+	TEST_EQUAL(announces2_seen, 1);
+}
+
 TORRENT_TEST(tracker_coalesce_keepalive_after_error)
 {
 	// a per-response error (a complete HTTP response with a non-200 status) on

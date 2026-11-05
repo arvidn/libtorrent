@@ -323,6 +323,20 @@ bool is_tracker_protocol_supported(string_view const url)
 			seq.begin(), seq.end(), [](http_pool_entry const& e) { return !e.started; });
 	}
 
+	void tracker_manager::close_idle_http()
+	{
+		auto const& seq = m_http_conns.get<0>();
+		auto const i = std::find_if(
+			seq.begin(), seq.end(), [](http_pool_entry const& e) { return e.conn->is_idle(); });
+		if (i == seq.end())
+			return;
+
+		// close() removes the connection from m_http_conns (see
+		// remove_request()), so hold on to it for the duration of the call
+		std::shared_ptr<aux::http_tracker_connection> const c = i->conn;
+		c->close();
+	}
+
 	void tracker_manager::start_next_queued()
 	{
 		if (m_num_started_http >= m_settings.get_int(settings_pack::max_concurrent_http_announces))
@@ -444,8 +458,15 @@ bool is_tracker_protocol_supported(string_view const url)
 			}
 
 			auto con = std::make_shared<aux::http_tracker_connection>(ios, *this, std::move(req), c);
-			bool const start_now =
-				m_num_started_http < sett.get_int(settings_pack::max_concurrent_http_announces);
+			int const max_started = sett.get_int(settings_pack::max_concurrent_http_announces);
+
+			// an idle connection only holds on to its slot in case another
+			// request for the same tracker shows up. Don't make this request
+			// wait for its idle timeout, close it and take the slot instead.
+			if (m_num_started_http >= max_started)
+				close_idle_http();
+
+			bool const start_now = m_num_started_http < max_started;
 
 			auto& seq = m_http_conns.get<0>();
 			if (start_now)
@@ -684,8 +705,11 @@ bool is_tracker_protocol_supported(string_view const url)
 			// non-stop followers during shutdown.
 			e.conn->prune_followers(!all);
 
+			// an idle connection has no request in flight, its tracker_req() is
+			// the last one it completed. If that was a stop announce there is
+			// nothing left to protect, so it is closed like any other.
 			tracker_request const& req = e.conn->tracker_req();
-			if (req.event == event_t::stopped && !all)
+			if (req.event == event_t::stopped && !all && !e.conn->is_idle())
 				continue;
 
 			(e.started ? close_http_started : close_http_queued).push_back(e.conn);

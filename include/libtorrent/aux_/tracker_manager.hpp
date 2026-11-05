@@ -505,6 +505,11 @@ namespace libtorrent::aux {
 		// concurrency limit.
 		void start_next_queued();
 
+		// close one idle connection, if there is any (see
+		// http_tracker_connection::is_idle()), to free up its slot under the
+		// concurrency limit.
+		void close_idle_http();
+
 		// all HTTP tracker connections, both started (open socket) and queued.
 		// At most one entry per server (host key); same-server requests coalesce
 		// onto a single connection.

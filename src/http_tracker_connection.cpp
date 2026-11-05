@@ -458,17 +458,28 @@ namespace libtorrent::aux {
 			}
 
 			auto cl = aux::scope_end([this] { close(); });
-			if (m_man.has_queued_http() || m_man.is_stopping()) return;
-			if (!m_tracker_connection || !m_tracker_connection->reusable()) return;
-			if (m_mode != connection_mode_t::normal) return;
+			if (m_man.has_queued_http() || m_man.is_stopping())
+				return;
+			if (!m_tracker_connection || !m_tracker_connection->reusable())
+				return;
+			if (m_mode != connection_mode_t::normal)
+				return;
+
+			// with reuse disabled every request gets a connection of its own
+			// (see tracker_manager::make_pool_key()), so nothing could ever be
+			// coalesced onto this one while it idles.
+			if (m_man.settings().get_bool(settings_pack::disable_tracker_connection_reuse))
+				return;
 
 			int const idle_ms =
 				m_man.settings().get_int(settings_pack::tracker_connection_idle_timeout);
-			if (idle_ms <= 0) return;
+			if (idle_ms <= 0)
+				return;
 
 			int const max_requests =
 				m_man.settings().get_int(settings_pack::max_tracker_connection_requests);
-			if (max_requests > 0 && m_requests_sent >= max_requests) return;
+			if (max_requests > 0 && m_requests_sent >= max_requests)
+				return;
 
 			cl.disarm();
 			enter_idle(idle_ms);
