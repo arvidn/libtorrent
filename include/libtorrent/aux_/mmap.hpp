@@ -69,6 +69,9 @@ namespace aux {
 
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE
 		void flush();
+#else
+		// throws storage_error
+		void extend_to_mapping();
 #endif
 
 		// non-copyable
