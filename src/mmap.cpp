@@ -186,6 +186,12 @@ file_mapping::file_mapping(file_handle file, open_mode_t const mode, std::int64_
 #endif
 }
 
+void file_mapping::extend_to_mapping()
+{
+	if (m_file.get_size() < m_size)
+		m_file.set_size(m_size);
+}
+
 void file_mapping::close()
 {
 	if (m_mapping == nullptr) return;

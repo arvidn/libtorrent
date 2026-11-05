@@ -94,6 +94,10 @@ namespace libtorrent::aux {
 
 		std::int64_t get_size() const;
 
+#ifndef TORRENT_WINDOWS
+		void set_size(std::int64_t size);
+#endif
+
 		bool has_memory_map() const { return false; }
 
 		handle_type fd() const { return m_fd; }
