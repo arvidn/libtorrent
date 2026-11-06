@@ -12,11 +12,17 @@
 .. image:: https://github.com/arvidn/libtorrent/actions/workflows/python.yml/badge.svg
     :target: https://github.com/arvidn/libtorrent/actions/workflows/python.yml
 
+.. image:: https://github.com/arvidn/libtorrent/actions/workflows/android.yml/badge.svg
+    :target: https://github.com/arvidn/libtorrent/actions/workflows/android.yml
+
+.. image:: https://github.com/arvidn/libtorrent/actions/workflows/codeql.yml/badge.svg
+    :target: https://github.com/arvidn/libtorrent/actions/workflows/codeql.yml
+
 .. image:: https://oss-fuzz-build-logs.storage.googleapis.com/badges/libtorrent.svg
     :target: https://bugs.chromium.org/p/oss-fuzz/issues/list?sort=-opened&q=proj%3Alibtorrent&can=1
 
-.. image:: https://codecov.io/github/arvidn/libtorrent/coverage.svg?branch=RC_2_0
-    :target: https://codecov.io/github/arvidn/libtorrent?branch=RC_2_0&view=all#sort=missing&dir=desc
+.. image:: https://codecov.io/github/arvidn/libtorrent/coverage.svg?branch=RC_2_1
+    :target: https://codecov.io/github/arvidn/libtorrent?branch=RC_2_1&view=all#sort=missing&dir=desc
 
 .. image:: https://www.openhub.net/p/rasterbar-libtorrent/widgets/project_thin_badge.gif
     :target: https://www.openhub.net/p/rasterbar-libtorrent
@@ -35,12 +41,22 @@ See `libtorrent.org`__ for more detailed build and usage instructions.
 
 .. __: https://libtorrent.org
 
-To build with boost-build, make sure boost and boost-build is installed and run:
+To build with boost-build, make sure boost and boost-build is installed and run::
 
    b2
 
 In the libtorrent root. To build the examples, run ``b2`` in the ``examples``
 directory.
+
+To build with CMake::
+
+   mkdir build && cd build
+   cmake ..
+   cmake --build .
+
+To install the Python bindings via pip::
+
+   pip install libtorrent
 
 See `building.html`__ for more details on how to build and which configuration
 options are available. For python bindings, see `the python docs`__.
