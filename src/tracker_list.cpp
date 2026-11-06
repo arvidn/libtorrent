@@ -9,12 +9,14 @@ see LICENSE file.
 
 
 #include <algorithm>
+#include <iterator> // for next()
 #include <utility> // for swap()
 
 #include "libtorrent/aux_/tracker_list.hpp"
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/aux_/parse_url.hpp"
 #include "libtorrent/aux_/invariant_check.hpp"
+#include "libtorrent/aux_/string_util.hpp"
 
 namespace libtorrent::aux {
 
@@ -102,9 +104,13 @@ void tracker_list::prioritize_udp_trackers()
 {
 	INVARIANT_CHECK;
 
-	// look for udp-trackers
+	// trackers are only reordered within their tier, so the search for a
+	// matching http tracker is limited to the start of the current tier
+	auto tier_begin = m_trackers.begin();
 	for (auto i = m_trackers.begin(), end(m_trackers.end()); i != end; ++i)
 	{
+		if (i->tier != tier_begin->tier)
+			tier_begin = i;
 		if (i->url.substr(0, 6) != "udp://") continue;
 		// now, look for trackers with the same hostname
 		// that is has higher priority than this one
@@ -114,23 +120,22 @@ void tracker_list::prioritize_udp_trackers()
 		using std::ignore;
 		std::tie(ignore, ignore, udp_hostname, ignore, ignore)
 			= parse_url_components(i->url, ec);
-		for (auto j = m_trackers.begin(); j != i; ++j)
+		for (auto j = tier_begin; j != i; ++j)
 		{
-			// moving a tracker into a different tier would change its
-			// priority relative to the other trackers
-			if (j->tier != i->tier)
-				continue;
 			if (j->url.substr(0, 6) == "udp://") continue;
 			std::string hostname;
 			std::tie(ignore, ignore, hostname, ignore, ignore)
 				= parse_url_components(j->url, ec);
-			if (hostname != udp_hostname) continue;
-			auto* ae1 = &*i;
-			auto* ae2 = &*j;
-			i = m_trackers.erase(i);
-			m_trackers.insert(j, *ae1);
-			j = m_trackers.erase(j);
-			m_trackers.insert(i, *ae2);
+			if (!string_equal_no_case(hostname, udp_hostname))
+				continue;
+			auto const next = std::next(i);
+			m_trackers.splice(j, m_trackers, i);
+			m_trackers.splice(next, m_trackers, j);
+			if (tier_begin == j)
+				tier_begin = i;
+			// the http tracker now occupies the slot the udp tracker was
+			// taken from, resume the scan after it
+			i = j;
 			break;
 		}
 	}
