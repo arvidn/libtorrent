@@ -450,6 +450,55 @@ TORRENT_TEST(http_parser)
 	TEST_CHECK(ec == error_code(errors::invalid_hostname));
 	ec.clear();
 
+	// the scheme delimiter ("://") must appear before any of '/', '?' or '#'.
+	// a string that merely contains "://" somewhere past such a character is
+	// not a valid absolute URL
+	parse_url_components("next?url=http://cdn.example.com/x", ec);
+	TEST_CHECK(ec == error_code(errors::unsupported_url_protocol));
+	ec.clear();
+
+	parse_url_components("/next?url=http://cdn.example.com/x", ec);
+	TEST_CHECK(ec == error_code(errors::unsupported_url_protocol));
+	ec.clear();
+
+	parse_url_components("?next=http://cdn.example.com/x", ec);
+	TEST_CHECK(ec == error_code(errors::unsupported_url_protocol));
+	ec.clear();
+
+	parse_url_components("#next=http://cdn.example.com/x", ec);
+	TEST_CHECK(ec == error_code(errors::unsupported_url_protocol));
+	ec.clear();
+
+	// the scheme name itself must not be empty
+	parse_url_components("://host.com/path", ec);
+	TEST_CHECK(ec == error_code(errors::unsupported_url_protocol));
+	ec.clear();
+
+	// userinfo is only marked by a leading '@' in the authority, not by an
+	// internal ':'; "user@host" with no password must still be recognized
+	// as userinfo rather than becoming part of the hostname
+	TEST_CHECK(parse_url_components("http://user@host.com/path", ec)
+		== std::make_tuple("http", "user", "host.com", -1, "/path"));
+
+	TEST_CHECK(parse_url_components("http://user@host.com:80/path", ec)
+		== std::make_tuple("http", "user", "host.com", 80, "/path"));
+
+	// the port must fit in the 16 bit TCP port range
+	TEST_CHECK(parse_url_components("http://host.com:65535/path", ec)
+		== std::make_tuple("http", "", "host.com", 65535, "/path"));
+
+	parse_url_components("http://host.com:0/path", ec);
+	TEST_CHECK(ec == error_code(errors::invalid_port));
+	ec.clear();
+
+	parse_url_components("http://host.com:65536/path", ec);
+	TEST_CHECK(ec == error_code(errors::invalid_port));
+	ec.clear();
+
+	parse_url_components("http://host.com:99999999999999999999/path", ec);
+	TEST_CHECK(ec == error_code(errors::invalid_port));
+	ec.clear();
+
 	// test split_url
 
 	TEST_CHECK(split_url("http://foo:bar@host.com:80/path/to/file", ec)
@@ -494,6 +543,47 @@ TORRENT_TEST(http_parser)
 	ec.clear();
 	TEST_CHECK(split_url("//host.com/path?foo:bar@foo:", ec)
 		== std::make_tuple("//host.com/path?foo:bar@foo:", ""));
+	TEST_CHECK(ec == error_code(errors::unsupported_url_protocol));
+
+	// the base/path boundary must be the first '/', '?' or '#' following the
+	// authority. a query (or fragment) with no path component still ends the
+	// base URL, even if it embeds a "scheme://"-looking substring later on
+	ec.clear();
+	TEST_CHECK(split_url("http://evil.com?x=http://good.com/y", ec)
+		== std::make_tuple("http://evil.com", "?x=http://good.com/y"));
+	TEST_CHECK(!ec);
+
+	ec.clear();
+	TEST_CHECK(split_url("http://evil.com#x=http://good.com/y", ec)
+		== std::make_tuple("http://evil.com", "#x=http://good.com/y"));
+	TEST_CHECK(!ec);
+
+	// the scheme delimiter (':') must appear before any of '/', '?' or '#',
+	// just like parse_url_components(); a relative reference with an
+	// embedded "scheme://" substring must not be mistaken for an absolute URL
+	ec.clear();
+	TEST_CHECK(split_url("/next?url=http://cdn.example.com/x", ec)
+		== std::make_tuple("/next?url=http://cdn.example.com/x", ""));
+	TEST_CHECK(ec == error_code(errors::unsupported_url_protocol));
+
+	ec.clear();
+	TEST_CHECK(split_url("?next=http://cdn.example.com/x", ec)
+		== std::make_tuple("?next=http://cdn.example.com/x", ""));
+	TEST_CHECK(ec == error_code(errors::unsupported_url_protocol));
+
+	ec.clear();
+	TEST_CHECK(split_url("#next=http://cdn.example.com/x", ec)
+		== std::make_tuple("#next=http://cdn.example.com/x", ""));
+	TEST_CHECK(ec == error_code(errors::unsupported_url_protocol));
+
+	ec.clear();
+	TEST_CHECK(split_url("next?url=http://cdn.example.com/x", ec)
+		== std::make_tuple("next?url=http://cdn.example.com/x", ""));
+	TEST_CHECK(ec == error_code(errors::unsupported_url_protocol));
+
+	// the scheme name itself must not be empty
+	ec.clear();
+	TEST_CHECK(split_url("://host.com/path", ec) == std::make_tuple("://host.com/path", ""));
 	TEST_CHECK(ec == error_code(errors::unsupported_url_protocol));
 
 	// test is_valid_tracker_url
@@ -588,6 +678,34 @@ TORRENT_TEST(http_parser)
 
 	TEST_EQUAL(aux::resolve_redirect_location("http://example.com/a/b?old=1#old", "#new/path"),
 		"http://example.com/a/b?old=1#new/path");
+
+	// a query or fragment reference containing an embedded "scheme://" is
+	// still a relative reference, not an absolute URL
+
+	TEST_EQUAL(
+		aux::resolve_redirect_location("http://example.com/a/b", "?next=http://cdn.example.com/x"),
+		"http://example.com/a/b?next=http://cdn.example.com/x");
+
+	TEST_EQUAL(
+		aux::resolve_redirect_location("http://example.com/a/b", "#next=http://cdn.example.com/x"),
+		"http://example.com/a/b#next=http://cdn.example.com/x");
+
+	// a relative-path reference containing an embedded "scheme://" is still
+	// relative, and merges with the referrer's path like any other
+	// relative-path reference
+
+	TEST_EQUAL(aux::resolve_redirect_location(
+				   "http://example.com/a/b", "next?url=http://cdn.example.com/x"),
+		"http://example.com/a/next?url=http://cdn.example.com/x");
+
+	// an absolute URL is returned verbatim even when some component of it
+	// (here, the port) would be rejected by parse_url_components(); whether
+	// location resolves to something connectable is a separate concern from
+	// reference resolution
+
+	TEST_EQUAL(
+		aux::resolve_redirect_location("http://example.com/a/b", "http://cdn.example.com:99999/x"),
+		"http://cdn.example.com:99999/x");
 
 	// if the referrer is invalid, just respond the verbatim location
 

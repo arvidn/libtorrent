@@ -22,35 +22,41 @@ see LICENSE file.
 
 namespace libtorrent::aux {
 
-	// returns protocol, auth, hostname, port, path
-	TORRENT_EXTRA_EXPORT std::tuple<std::string, std::string
-		, std::string, int, std::string>
-		parse_url_components(string_view url, error_code& ec);
+// returns the offset just past "://" if s begins with an absolute URI
+// scheme, i.e. a ':' appears before any of '/', '?' or '#' and is
+// followed by "//". otherwise returns string_view::npos. this is a pure
+// shape check; it says nothing about whether the rest of s is a valid,
+// connectable URL
+TORRENT_EXTRA_EXPORT std::size_t find_scheme_end(string_view s);
 
-	// split a URL in its base and path parts
-	TORRENT_EXTRA_EXPORT std::tuple<std::string, std::string>
-		split_url(std::string url, error_code& ec);
+// returns protocol, auth, hostname, port, path
+TORRENT_EXTRA_EXPORT std::tuple<std::string, std::string, std::string, int, std::string>
+parse_url_components(string_view url, error_code& ec);
 
-	// returns true if the hostname contains any IDNA (internationalized domain
-	// name) labels.
-	TORRENT_EXTRA_EXPORT bool is_idna(string_view hostname);
+// split a URL in its base and path parts
+TORRENT_EXTRA_EXPORT std::tuple<std::string, std::string> split_url(
+	std::string url, error_code& ec);
 
-	// the query string is the part of the URL immediately following "?", i.e.
-	// the query string arguments. This function returns true if any of the
-	// arguments are "info_hash", "port", "key", "event", "uploaded",
-	// "downloaded", "left" or "corrupt".
-	TORRENT_EXTRA_EXPORT bool has_tracker_query_string(string_view query_string);
+// returns true if the hostname contains any IDNA (internationalized domain
+// name) labels.
+TORRENT_EXTRA_EXPORT bool is_idna(string_view hostname);
 
-	// returns true if the url is a valid tracker url (http, https, udp, ws, wss)
-	TORRENT_EXTRA_EXPORT bool is_valid_tracker_url(string_view url);
+// the query string is the part of the URL immediately following "?", i.e.
+// the query string arguments. This function returns true if any of the
+// arguments are "info_hash", "port", "key", "event", "uploaded",
+// "downloaded", "left" or "corrupt".
+TORRENT_EXTRA_EXPORT bool has_tracker_query_string(string_view query_string);
 
-	// returns true if the two URLs have the same origin, i.e. the same scheme,
-	// host and (effective) port. Scheme and host are compared
-	// case-insensitively. This helper is intended for http/https URLs: a
-	// missing port is treated as 443 for "https" and 80 otherwise. Returns
-	// false if either URL fails to parse. Used to decide whether credentials
-	// may be forwarded across an HTTP redirect.
-	TORRENT_EXTRA_EXPORT bool same_origin(std::string const& a, std::string const& b);
+// returns true if the url is a valid tracker url (http, https, udp, ws, wss)
+TORRENT_EXTRA_EXPORT bool is_valid_tracker_url(string_view url);
+
+// returns true if the two URLs have the same origin, i.e. the same scheme,
+// host and (effective) port. Scheme and host are compared
+// case-insensitively. This helper is intended for http/https URLs: a
+// missing port is treated as 443 for "https" and 80 otherwise. Returns
+// false if either URL fails to parse. Used to decide whether credentials
+// may be forwarded across an HTTP redirect.
+TORRENT_EXTRA_EXPORT bool same_origin(std::string const& a, std::string const& b);
 }
 
 #endif

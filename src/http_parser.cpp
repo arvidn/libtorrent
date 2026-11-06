@@ -19,9 +19,9 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/http_parser.hpp"
+#include "libtorrent/aux_/parse_url.hpp"
 #include "libtorrent/hex.hpp" // for hex_to_int
 #include "libtorrent/assert.hpp"
-#include "libtorrent/aux_/parse_url.hpp" // for parse_url_components
 #include "libtorrent/aux_/string_util.hpp" // for ensure_trailing_slash, to_lower
 #include "libtorrent/aux_/escape_string.hpp" // for read_until
 #include "libtorrent/time.hpp" // for seconds32
@@ -55,13 +55,14 @@ namespace libtorrent::aux {
 		if (location.empty()) return referrer;
 
 		bool const network_path = location.size() > 1 && location[0] == '/' && location[1] == '/';
-		error_code ec;
-		using std::ignore;
-		std::tie(ignore, ignore, ignore, ignore, ignore)
-			= parse_url_components(location, ec);
 
-		// if location is a full URL, just return it
-		if (location[0] != '/' && !ec)
+		// location is an absolute URI reference exactly when it begins with
+		// an absolute URI scheme; whether the rest of it forms a valid,
+		// connectable URL is unrelated to reference resolution, so this
+		// deliberately doesn't reuse parse_url_components() here
+		bool const is_absolute = find_scheme_end(location) != string_view::npos;
+
+		if (is_absolute)
 			return location;
 
 		// otherwise it's likely to be just the path, or a relative path

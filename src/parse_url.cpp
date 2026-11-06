@@ -9,12 +9,26 @@ see LICENSE file.
 */
 
 #include <algorithm>
+#include <cstdint>
+#include <limits>
 
 #include "libtorrent/aux_/parse_url.hpp"
 #include "libtorrent/aux_/string_util.hpp"
 #include "libtorrent/string_view.hpp"
 
 namespace libtorrent::aux {
+
+// the scheme delimiter (':') must appear before any of '/', '?' or '#'.
+// otherwise this is a relative reference, not an absolute URL, even if
+// it happens to contain an embedded "scheme://" substring further in
+std::size_t find_scheme_end(string_view s)
+{
+	auto const delim = s.find_first_of(":/?#");
+	if (delim == string_view::npos || delim == 0 || s[delim] != ':' || s.size() < delim + 3
+		|| s[delim + 1] != '/' || s[delim + 2] != '/')
+		return string_view::npos;
+	return delim + 3;
+}
 
 	// returns protocol, auth, hostname, port, path
 	std::tuple<std::string, std::string, std::string, int, std::string>
@@ -26,8 +40,8 @@ namespace libtorrent::aux {
 		int port = -1;
 
 		string_view::iterator at;
-		string_view::iterator colon;
 		string_view::iterator port_pos;
+		string_view::iterator end;
 		bool ipv6_literal = false;
 
 		// PARSE URL
@@ -35,41 +49,26 @@ namespace libtorrent::aux {
 		// remove white spaces in front of the url
 		while (start != url.end() && aux::is_space(*start))
 			++start;
-		auto end = std::find(url.begin(), url.end(), ':');
-		protocol.assign(start, end);
-
-		if (end == url.end())
+		auto const rel_end = find_scheme_end(url.substr(std::size_t(start - url.begin())));
+		if (rel_end == string_view::npos)
 		{
 			ec = errors::unsupported_url_protocol;
 			goto exit;
 		}
-		++end;
-		if (end == url.end() || *end != '/')
-		{
-			ec = errors::unsupported_url_protocol;
-			goto exit;
-		}
-		++end;
-		if (end == url.end() || *end != '/')
-		{
-			ec = errors::unsupported_url_protocol;
-			goto exit;
-		}
-		++end;
+		end = start + std::ptrdiff_t(rel_end);
+		protocol.assign(start, end - 3);
 		start = end;
 
 		at = std::find(start, url.end(), '@');
-		colon = std::find(start, url.end(), ':');
 		end = std::min({
 			std::find(start, url.end(), '/')
 			, std::find(start, url.end(), '?')
 			, std::find(start, url.end(), '#')
 			});
 
-		if (at != url.end()
-			&& colon != url.end()
-			&& colon < at
-			&& at < end)
+		// the presence of '@' before the host/port marks userinfo, regardless
+		// of whether it contains its own ':'
+		if (at != url.end() && at < end)
 		{
 			auth.assign(start, at);
 			start = at;
@@ -126,7 +125,8 @@ namespace libtorrent::aux {
 			}
 			auto const port_num = parse_decimal(
 				url.substr(std::size_t(port_pos - url.begin()), std::size_t(end - port_pos)));
-			if (!port_num)
+			if (!port_num || *port_num <= 0
+				|| *port_num > std::numeric_limits<std::uint16_t>::max())
 			{
 				ec = errors::invalid_port;
 				goto exit;
@@ -159,17 +159,20 @@ exit:
 		std::string path;
 
 		// PARSE URL
-		auto pos = std::find(url.begin(), url.end(), ':');
-
-		if (pos == url.end() || url.end() - pos < 3
-			|| *(pos + 1) != '/' || *(pos + 2) != '/')
+		auto const scheme_len = find_scheme_end(url);
+		if (scheme_len == string_view::npos)
 		{
 			ec = errors::unsupported_url_protocol;
 			return std::make_tuple(std::move(url), std::move(path));
 		}
-		pos += 3; // skip "://"
+		auto pos = url.begin() + std::ptrdiff_t(scheme_len);
 
-		pos = std::find(pos, url.end(), '/');
+		// the path starts at the first '/', '?' or '#' following the
+		// authority; a query or fragment with no path component is still the
+		// boundary between the base URL and the path
+		auto const path_delim = url.find_first_of("/?#", std::size_t(pos - url.begin()));
+		pos =
+			path_delim == std::string::npos ? url.end() : url.begin() + std::ptrdiff_t(path_delim);
 		if (pos == url.end())
 		{
 			return std::make_tuple(std::move(url), std::move(path));
