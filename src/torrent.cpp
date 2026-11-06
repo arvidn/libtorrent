@@ -10685,16 +10685,15 @@ namespace {
 
 					if (t.tier > state.tier)
 					{
-						if (!announce_to_all_tiers) break;
+						// only stop at a higher tier once this one has a
+						// working tracker, the same as announce_with_tracker()
+						if (!announce_to_all_tiers && state.found_working)
+							break;
 						state.found_working = false;
 					}
 					state.tier = t.tier;
 					if (a.fails >= t.fail_limit && t.fail_limit != 0) continue;
-					if (a.updating)
-					{
-						state.found_working = true;
-					}
-					else if (a.next_announce != time_point32::min())
+					if (!a.updating && a.next_announce != time_point32::min())
 					{
 						// defensive: announce_with_tracker() always
 						// advances next_announce for trackers it would
