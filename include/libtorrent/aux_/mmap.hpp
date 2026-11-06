@@ -94,6 +94,10 @@ namespace aux {
 		// anytime soon
 		void dont_need(span<byte const> range);
 
+		// hint the kernel that we will probably need this part of the file
+		// soon, for speculative read-ahead
+		void will_need(span<byte const> range);
+
 		// hint the kernel that the given (dirty) range of pages should be
 		// flushed to disk
 		void page_out(span<byte const> range);

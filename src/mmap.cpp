@@ -290,6 +290,19 @@ void file_mapping::dont_need(span<byte const> range)
 #endif
 }
 
+void file_mapping::will_need(span<byte const> range)
+{
+	auto* const start = const_cast<byte*>(range.data());
+	auto const size = static_cast<std::size_t>(range.size());
+
+#if TORRENT_USE_MADVISE && defined MADV_WILLNEED
+	::madvise(start, size, MADV_WILLNEED);
+#else
+	TORRENT_UNUSED(start);
+	TORRENT_UNUSED(size);
+#endif
+}
+
 void file_mapping::page_out(span<byte const> range)
 {
 #if TORRENT_HAVE_MAP_VIEW_OF_FILE

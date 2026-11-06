@@ -143,9 +143,11 @@ struct temp_disk_io final : lt::disk_interface
 
 	void abort(bool) override {}
 
-	void async_read(lt::storage_index_t storage, lt::peer_request const& r
-		, std::function<void(lt::disk_buffer_holder block, lt::storage_error const& se)> handler
-		, lt::disk_job_flags_t) override
+	void async_read(lt::storage_index_t storage,
+		lt::peer_request const& r,
+		std::function<void(lt::disk_buffer_holder block, lt::storage_error const& se)> handler,
+		lt::disk_job_flags_t,
+		int = 0) override
 	{
 		// this buffer is owned by the storage. It will remain valid for as
 		// long as the torrent remains in the session. We don't need any lifetime

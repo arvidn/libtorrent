@@ -14,6 +14,7 @@ see LICENSE file.
 
 #include "libtorrent/aux_/storage_utils.hpp"
 #include "libtorrent/file_storage.hpp"
+#include "libtorrent/piece_block.hpp" // for torrent_byte_offset
 #include "libtorrent/aux_/alloca.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/session.hpp" // for session::delete_files
@@ -525,6 +526,38 @@ void clear_missing_pieces(filenames const& fs,
 		pieces.clear_bit(p);
 }
 
+}
+
+std::optional<read_ahead_range> get_read_ahead_range(file_storage const& fs,
+	aux::vector<download_priority_t, file_index_t> const& file_priority,
+	std::function<bool(file_index_t)> const& use_partfile,
+	piece_index_t const piece,
+	int const piece_offset,
+	int const read_ahead_blocks)
+{
+	int const read_ahead_bytes = read_ahead_blocks * default_block_size;
+	if (read_ahead_bytes <= 0)
+		return std::nullopt;
+
+	std::int64_t const torrent_offset = torrent_byte_offset(piece, piece_offset, fs.piece_length());
+	file_index_t const file_index = fs.file_index_at_offset(torrent_offset);
+
+	// pad files have no real content to advise on, and files served from
+	// the part file (skipped, zero-priority files) have no corresponding
+	// on-disk data at this location either
+	if (fs.pad_file_at(file_index))
+		return std::nullopt;
+	if (file_index < file_priority.end_index() && file_priority[file_index] == dont_download
+		&& use_partfile(file_index))
+		return std::nullopt;
+
+	std::int64_t const file_offset = torrent_offset - fs.file_offset(file_index);
+	std::int64_t const file_bytes_left = fs.file_size(file_index) - file_offset;
+	std::int64_t const len = std::min<std::int64_t>(read_ahead_bytes, file_bytes_left);
+	if (len <= 0)
+		return std::nullopt;
+
+	return read_ahead_range{file_index, file_offset, len};
 }
 
 typed_bitfield<piece_index_t> check_pieces(filenames const& fs,
