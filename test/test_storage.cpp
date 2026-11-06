@@ -1218,7 +1218,18 @@ TORRENT_TEST_DISK_IO(has_any_file_partfile_only) { test_has_any_file_partfile_on
 TORRENT_TEST(test_pre_allocate_mmap) { test_pre_allocate<mmap_storage>(); }
 #endif
 
-#if TORRENT_HAVE_MMAP
+#if defined __SANITIZE_THREAD__
+#define TEST_THREAD_SANITIZER 1
+#elif defined __has_feature
+#if __has_feature(thread_sanitizer)
+#define TEST_THREAD_SANITIZER 1
+#endif
+#endif
+
+// _FORTIFY_SOURCE turns try_signal's siglongjmp() into __longjmp_chk(), which
+// TSan doesn't intercept. TSan would then consider the thread to never leave
+// the SIGBUS handler, and report every subsequent allocation
+#if TORRENT_HAVE_MMAP && !(defined TEST_THREAD_SANITIZER && defined _FORTIFY_SOURCE)
 // a file that was deleted or truncated after mmap_storage created it is
 // shorter than its write mapping, writing to it must resize it rather than
 // fail with SIGBUS
