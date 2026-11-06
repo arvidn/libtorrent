@@ -2386,6 +2386,43 @@ TORRENT_TEST(tracker_tiers_retry_all_multiple_trackers_per_tier)
 	}));
 }
 
+// the tier 0 tracker keeps failing, so the torrent falls back to the tier 1
+// tracker. The tier 1 tracker must be re-announced to when its interval
+// expires, not only when the failing tracker is retried
+TORRENT_TEST(tracker_tiers_reannounce_fallback_tier)
+{
+	settings_pack pack = settings();
+	pack.set_bool(settings_pack::announce_to_all_tiers, false);
+	pack.set_bool(settings_pack::announce_to_all_trackers, false);
+	// the torrent is a hybrid torrent, so it will announce twice, once for v1
+	// and once for v2
+	test_tracker_tiers(
+		pack,
+		{addr("50.0.0.1")},
+		{{"3.0.0.5", 0}, {"3.0.0.1", 1}},
+		[](int(&a)[7]) {
+			TEST_EQUAL(a[0], 2);
+			TEST_EQUAL(a[1], 0);
+			TEST_EQUAL(a[2], 0);
+			TEST_EQUAL(a[3], 0);
+			TEST_EQUAL(a[4], 0);
+			TEST_EQUAL(a[5], 0);
+			// the failing tracker is retried 17 seconds later
+			TEST_EQUAL(a[6], 4);
+		},
+		std::function<void(int(&)[7])>([](int(&a)[7]) {
+			// this is 31 minutes later
+			// the fallback tracker is re-announced once, since interval is 1800
+			TEST_EQUAL(a[0], 2);
+			TEST_EQUAL(a[1], 0);
+			TEST_EQUAL(a[2], 0);
+			TEST_EQUAL(a[3], 0);
+			TEST_EQUAL(a[4], 0);
+			TEST_EQUAL(a[5], 0);
+			TEST_EQUAL(a[6], 12);
+		}));
+}
+
 // TODO: test external IP
 // TODO: test with different queuing settings
 // TODO: test when a torrent transitions from downloading to finished and
