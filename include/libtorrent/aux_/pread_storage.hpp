@@ -163,6 +163,20 @@ namespace libtorrent::aux {
 		// helper function to open a file in the file pool with the right mode
 		std::shared_ptr<aux::file_handle> open_file(settings_interface const&, file_index_t
 			, aux::open_mode_t, storage_error&) const;
+		int pread_reopen(settings_interface const&,
+			file_index_t,
+			aux::open_mode_t,
+			std::shared_ptr<aux::file_handle>&,
+			span<char>,
+			std::int64_t,
+			storage_error&) const;
+		int pread_reopen(settings_interface const&,
+			file_index_t,
+			aux::open_mode_t,
+			std::shared_ptr<aux::file_handle>&,
+			span<span<char> const>,
+			std::int64_t,
+			storage_error&) const;
 		std::shared_ptr<aux::file_handle> open_file_impl(settings_interface const&
 			, file_index_t, aux::open_mode_t, storage_error&) const;
 

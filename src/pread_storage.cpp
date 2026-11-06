@@ -454,7 +454,7 @@ pread_storage::pread_storage(
 			// short reads as errors
 			ec.operation = operation_t::file_read;
 
-			int const ret = pread_all(handle->fd(), buf, file_offset, ec.ec);
+			int const ret = pread_reopen(sett, file_index, mode, handle, buf, file_offset, ec);
 			if (ec.ec) {
 				ec.file(file_index);
 				return ret;
@@ -531,7 +531,7 @@ pread_storage::pread_storage(
 				// short reads as errors
 				ec.operation = operation_t::file_read;
 
-				int const ret = preadv_all(handle->fd(), vec, file_offset, ec.ec);
+				int const ret = pread_reopen(sett, file_index, mode, handle, vec, file_offset, ec);
 				if (ec.ec)
 				{
 					ec.file(file_index);
@@ -719,7 +719,7 @@ pread_storage::pread_storage(
 			if (ec) return -1;
 
 			scratch_buffer.resize(std::size_t(buf.size()));
-			int ret = pread_all(handle->fd(), scratch_buffer, file_offset, ec.ec);
+			int ret = pread_reopen(sett, file_index, mode, handle, scratch_buffer, file_offset, ec);
 			if (ec.ec)
 			{
 				ec.file(file_index);
@@ -776,7 +776,7 @@ pread_storage::pread_storage(
 
 		std::unique_ptr<char[]> scratch_buffer(new char[std::size_t(len)]);
 		span<char> b = {scratch_buffer.get(), len};
-		int const ret = pread_all(handle->fd(), b, file_offset, error.ec);
+		int const ret = pread_reopen(sett, file_index, mode, handle, b, file_offset, error);
 		if (error.ec)
 		{
 			error.operation = operation_t::file_read;
@@ -788,6 +788,37 @@ pread_storage::pread_storage(
 			advise_dont_need(handle->fd(), file_offset, len);
 
 		return static_cast<int>(len);
+	}
+
+	// reads buf at file_offset with pread, and on EIO again through a new open (see
+	// file_pool_impl::pread_reopen)
+	int pread_storage::pread_reopen(settings_interface const& sett,
+		file_index_t const file_index,
+		open_mode_t const mode,
+		std::shared_ptr<file_handle>& handle,
+		span<char> const buf,
+		std::int64_t const file_offset,
+		storage_error& ec) const
+	{
+		return m_pool.pread_reopen(
+			storage_index(), file_index, handle, buf, file_offset, ec, [&](storage_error& e) {
+				return open_file(sett, file_index, mode, e);
+			});
+	}
+
+	// the same with preadv, for readv()
+	int pread_storage::pread_reopen(settings_interface const& sett,
+		file_index_t const file_index,
+		open_mode_t const mode,
+		std::shared_ptr<file_handle>& handle,
+		span<span<char> const> const bufs,
+		std::int64_t const file_offset,
+		storage_error& ec) const
+	{
+		return m_pool.pread_reopen(
+			storage_index(), file_index, handle, bufs, file_offset, ec, [&](storage_error& e) {
+				return open_file(sett, file_index, mode, e);
+			});
 	}
 
 	// a wrapper around open_file_impl that, if it fails, makes sure the
