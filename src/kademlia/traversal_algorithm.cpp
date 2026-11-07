@@ -136,6 +136,9 @@ void traversal_algorithm::add_entry(node_id const& id
 	INVARIANT_CHECK;
 	if (m_done) return;
 
+	// don't send requests to ourself
+	if (id == m_node.nid()) return;
+
 	TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(find_data_observer));
 	auto o = new_observer(addr, id);
 	if (!o)
