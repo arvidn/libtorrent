@@ -48,13 +48,16 @@ install stage_disk_io_stress_test : disk_io_stress_test : <location>. ;
 explicit stage_disk_io_stress_test ;
 exe gen_torture_torrent : gen_torture_torrent.cpp ;
 exe benchmark_load_torrent : benchmark_load_torrent.cpp ;
+exe read_ahead_trace : read_ahead_trace.cpp ;
+install stage_read_ahead_trace : read_ahead_trace : <location>. ;
+explicit stage_read_ahead_trace ;
 # bencher uses do_not_optimize(), which relies on GNU inline asm and is
 # not supported by MSVC.
 exe bencher : bencher.cpp : <toolset>msvc:<build>no ;
 
 install stage
 	: dht dht-sample session_log_alerts disk_io_stress_test
-	  gen_torture_torrent benchmark_load_torrent
+	  gen_torture_torrent benchmark_load_torrent read_ahead_trace
 	  bencher
 	: <location>.
 	;
