@@ -21,6 +21,8 @@ see LICENSE file.
 #include <libtorrent/alert_types.hpp> // for dht_lookup
 #include <libtorrent/aux_/time.hpp>
 
+#include <array>
+
 #ifndef TORRENT_DISABLE_LOGGING
 #include <libtorrent/hex.hpp> // to_hex
 #endif
@@ -717,12 +719,16 @@ void traversal_observer::reply(msg const& m)
 	dht_observer* logger = get_observer();
 	if (logger != nullptr && logger->should_log(dht_logger::traversal))
 	{
-		char hex_id[41];
-		aux::to_hex({id.string_ptr(), 20}, hex_id);
-		logger->log(dht_logger::traversal
-			, "[%u] RESPONSE id: %s invoke-count: %d addr: %s type: %s"
-			, algorithm()->id(), hex_id, algorithm()->invoke_count()
-			, aux::print_endpoint(target_ep()).c_str(), algorithm()->name());
+		std::array<char, 41> hex_id;
+		aux::to_hex({id.string_ptr(), 20}, hex_id.data());
+		hex_id.back() = '\0';
+		logger->log(dht_logger::traversal,
+			"[%u] RESPONSE id: %s invoke-count: %d addr: %s type: %s",
+			algorithm()->id(),
+			hex_id.data(),
+			algorithm()->invoke_count(),
+			aux::print_endpoint(target_ep()).c_str(),
+			algorithm()->name());
 	}
 #endif
 

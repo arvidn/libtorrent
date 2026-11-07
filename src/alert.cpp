@@ -20,6 +20,7 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
+#include <array>
 #include <string>
 #include <cstdio> // for snprintf
 #include <cinttypes> // for PRId64 et.al.
@@ -1744,14 +1745,18 @@ namespace {
 		return {};
 #else
 		char msg[600];
-		char info_hash[41];
-		char const* torrent_name = info_hash;
+		std::array<char, 41> info_hash;
+		char const* torrent_name = info_hash.data();
 		if (params.ti) torrent_name = params.ti->name().c_str();
 		else if (!params.name.empty()) torrent_name = params.name.c_str();
 #if TORRENT_ABI_VERSION == 1
 		else if (!params.url.empty()) torrent_name = params.url.c_str();
 #endif
-		else aux::to_hex(params.info_hashes.get_best(), info_hash);
+		else
+		{
+			aux::to_hex(params.info_hashes.get_best(), info_hash.data());
+			info_hash.back() = '\0';
+		}
 
 		if (error)
 		{

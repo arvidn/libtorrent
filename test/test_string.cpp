@@ -18,6 +18,7 @@ see LICENSE file.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/aux_/string_util.hpp"
 #include "libtorrent/aux_/string_ptr.hpp"
+#include <array>
 #include <iostream>
 #include <cstring> // for strcmp
 #include "libtorrent/aux_/escape_string.hpp" // for trim
@@ -39,11 +40,14 @@ TORRENT_TEST(maybe_url_encode)
 TORRENT_TEST(hex)
 {
 	static char const str[] = "0123456789012345678901234567890123456789";
-	char bin[20];
-	TEST_CHECK(aux::from_hex({str, 40}, bin));
-	char hex[41];
-	aux::to_hex(bin, hex);
-	TEST_CHECK(std::strcmp(hex, str) == 0);
+	std::array<char, 20> bin;
+	TEST_CHECK(aux::from_hex({str, 40}, bin.data()));
+	std::array<char, 41> hex;
+	hex.back() = 'x';
+	aux::to_hex(bin, hex.data());
+	TEST_CHECK(hex.back() == 'x');
+	hex.back() = '\0';
+	TEST_CHECK(std::strcmp(hex.data(), str) == 0);
 
 	TEST_CHECK(aux::to_hex({"\x55\x73",2}) == "5573");
 	TEST_CHECK(aux::to_hex({"\xaB\xd0",2}) == "abd0");
