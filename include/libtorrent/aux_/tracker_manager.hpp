@@ -395,6 +395,11 @@ namespace libtorrent::aux {
 		void inc_queued_requests();
 		void dec_queued_requests();
 
+		// true if any HTTP(S) tracker connection is waiting for a slot under
+		// max_concurrent_http_announces. Used by http_tracker_connection to
+		// avoid idling on a slot somebody else needs.
+		bool has_queued_http() const;
+
 		void incoming_error(error_code const& ec, udp::endpoint const& ep);
 		bool incoming_packet(udp::endpoint const& ep, span<char const> buf);
 
@@ -499,6 +504,11 @@ namespace libtorrent::aux {
 		// start the oldest not-yet-started queued connection, if below the
 		// concurrency limit.
 		void start_next_queued();
+
+		// close one idle connection, if there is any (see
+		// http_tracker_connection::is_idle()), to free up its slot under the
+		// concurrency limit.
+		void close_idle_http();
 
 		// all HTTP tracker connections, both started (open socket) and queued.
 		// At most one entry per server (host key); same-server requests coalesce
