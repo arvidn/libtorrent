@@ -502,9 +502,10 @@ void node::get_item(public_key const& pk, std::string const& salt
 #ifndef TORRENT_DISABLE_LOGGING
 	if (m_observer != nullptr && m_observer->should_log(dht_logger::node))
 	{
-		char hex_key[65];
-		aux::to_hex(pk.bytes, hex_key);
-		m_observer->log(dht_logger::node, "starting get for [ key: %s ]", hex_key);
+		std::array<char, 65> hex_key;
+		aux::to_hex(pk.bytes, hex_key.data());
+		hex_key.back() = '\0';
+		m_observer->log(dht_logger::node, "starting get for [ key: %s ]", hex_key.data());
 	}
 #endif
 
@@ -564,9 +565,10 @@ void node::put_item(public_key const& pk, std::string const& salt
 #ifndef TORRENT_DISABLE_LOGGING
 	if (m_observer != nullptr && m_observer->should_log(dht_logger::node))
 	{
-		char hex_key[65];
-		aux::to_hex(pk.bytes, hex_key);
-		m_observer->log(dht_logger::node, "starting put for [ key: %s ]", hex_key);
+		std::array<char, 65> hex_key;
+		aux::to_hex(pk.bytes, hex_key.data());
+		hex_key.back() = '\0';
+		m_observer->log(dht_logger::node, "starting put for [ key: %s ]", hex_key.data());
 	}
 #endif
 

@@ -30,15 +30,14 @@ namespace aux {
 #define TORRENT_CONDITIONAL_EXPORT TORRENT_EXTRA_EXPORT
 #endif
 
-	// The overload taking a ``std::string`` converts (binary) the string ``s``
-	// to hexadecimal representation and returns it.
-	// The overload taking a ``char const*`` and a length converts the binary
-	// buffer [``in``, ``in`` + len) to hexadecimal and prints it to the buffer
-	// ``out``. The caller is responsible for making sure the buffer pointed to
-	// by ``out`` is large enough, i.e. has at least len * 2 bytes of space.
+	// The overload returning a ``std::string`` converts the binary buffer
+	// ``in`` to hexadecimal representation and returns it.
+	// The overload taking ``out`` converts the binary buffer ``in`` to
+	// hexadecimal and writes it to the buffer pointed to by ``out``. Exactly
+	// 2 * size bytes are written, no null terminator. The caller is
+	// responsible for making sure ``out`` has at least that much space.
 	TORRENT_CONDITIONAL_EXPORT std::string to_hex(span<char const> in);
 	TORRENT_CONDITIONAL_EXPORT void to_hex(span<char const> in, char* out);
-	TORRENT_CONDITIONAL_EXPORT void to_hex(char const* in, int len, char* out);
 
 	// converts the buffer [``in``, ``in`` + len) from hexadecimal to
 	// binary. The binary output is written to the buffer pointed to
@@ -55,10 +54,15 @@ namespace aux {
 
 #include "libtorrent/aux_/disable_deprecation_warnings_push.hpp"
 
-	// deprecated in 1.2
-	TORRENT_DEPRECATED
-	inline void to_hex(char const* in, int len, char* out)
-	{ aux::to_hex({in, len}, out); }
+// deprecated in 1.2
+// writes len * 2 hex digits followed by a null terminator, i.e. ``out``
+// must have space for len * 2 + 1 bytes.
+TORRENT_DEPRECATED
+inline void to_hex(char const* in, int len, char* out)
+{
+	aux::to_hex({in, len}, out);
+	out[len * 2] = '\0';
+}
 	TORRENT_DEPRECATED
 	inline std::string to_hex(std::string const& s)
 	{ return aux::to_hex(s); }
