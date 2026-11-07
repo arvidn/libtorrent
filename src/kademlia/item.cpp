@@ -41,6 +41,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstdio> // for snprintf
 #include <cinttypes> // for PRId64 et.al.
 #include <algorithm> // for copy
+#include <vector>
+#include <iterator> // for back_inserter
 
 #if TORRENT_USE_ASSERTS
 #include "libtorrent/bdecode.hpp"
@@ -159,11 +161,10 @@ void item::assign(entry v)
 void item::assign(entry v, span<char const> salt
 	, sequence_number const seq, public_key const& pk, secret_key const& sk)
 {
-	std::array<char, 1000> buffer;
-	int const bsize = bencode(buffer.begin(), v);
-	TORRENT_ASSERT(bsize <= 1000);
-	m_sig = sign_mutable_item(span<char const>(buffer).first(bsize)
-		, salt, seq, pk, sk);
+	std::vector<char> buffer;
+	bencode(std::back_inserter(buffer), v);
+	TORRENT_ASSERT(buffer.size() <= 1000);
+	m_sig = sign_mutable_item(buffer, salt, seq, pk, sk);
 	m_salt.assign(salt.data(), static_cast<std::size_t>(salt.size()));
 	m_pk = pk;
 	m_seq = seq;
