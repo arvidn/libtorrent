@@ -869,6 +869,8 @@ namespace {
 		m_connected = false;
 		if (!m_download_queue.empty())
 			m_counters.inc_stats_counter(counters::num_peers_down_requests, -1);
+		if (!m_requests.empty())
+			m_counters.inc_stats_counter(counters::num_peers_up_requests, -1);
 
 		// defensive
 		auto t = m_torrent.lock();
@@ -4532,6 +4534,9 @@ namespace {
 				}
 			}
 
+			if (!m_download_queue.empty())
+				m_counters.inc_stats_counter(counters::num_peers_down_requests, -1);
+
 			if (t->has_picker())
 			{
 				clear_download_queue();
@@ -5342,6 +5347,8 @@ namespace {
 #endif
 			for (peer_request const& r : m_requests)
 				write_reject_request(r);
+			if (!m_requests.empty())
+				m_counters.inc_stats_counter(counters::num_peers_up_requests, -1);
 			m_requests.clear();
 			return;
 		}
