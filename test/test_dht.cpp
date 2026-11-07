@@ -3135,6 +3135,51 @@ TORRENT_TEST(routing_table_for_each)
 	TEST_EQUAL(v.size(), 8);
 }
 
+TORRENT_TEST(routing_table_split_keeps_replacements)
+{
+	auto sett = test_settings();
+	obs observer;
+
+	sett.set_bool(settings_pack::dht_extended_routing_table, false);
+	sett.set_bool(settings_pack::dht_prefer_verified_node_ids, false);
+	sett.set_bool(settings_pack::dht_restrict_routing_ips, false);
+	node_id const id = to_hash("0100000000000000000000000000000000000000");
+	node_id const replacement = to_hash("2000000000000000000000000000000000000000");
+	udp::endpoint const shared(addr4("3.3.3.3"), 1);
+
+	routing_table tbl(id, udp::v4(), 2, sett, &observer);
+
+	// fill the only bucket with nodes from the far half
+	tbl.node_seen(to_hash("8000000000000000000000000000000000000000")
+		, udp::endpoint(addr4("1.1.1.1"), 1), 10);
+	tbl.node_seen(to_hash("9000000000000000000000000000000000000000")
+		, shared, 10);
+
+	// a node with an unknown ID behind the same endpoint, and a replacement
+	// from the near half
+	tbl.heard_about(node_id(), shared);
+	tbl.heard_about(replacement, udp::endpoint(addr4("4.4.4.4"), 1));
+
+	// a node from the near half splits the bucket, moving the replacement to
+	// the new bucket, but is itself rejected for changing the ID of the node at
+	// the shared endpoint. The new bucket has no live nodes, but it must keep
+	// its replacement
+	tbl.node_seen(to_hash("3000000000000000000000000000000000000000"), shared, 10);
+
+	int nodes;
+	int replacements;
+	std::tie(nodes, replacements, std::ignore) = tbl.size();
+	TEST_EQUAL(nodes, 1);
+	TEST_EQUAL(replacements, 1);
+
+	std::vector<node_entry> v;
+	tbl.for_each_node(nullptr, [&](node_entry const& e) { v.push_back(e); });
+	TEST_EQUAL(v.size(), 1);
+	if (v.size() == 1) TEST_CHECK(v[0].id == replacement);
+
+	print_state(std::cout, tbl);
+}
+
 TORRENT_TEST(node_set_id)
 {
 	dht_test_setup t(udp::endpoint(rand_v4(), 20));
