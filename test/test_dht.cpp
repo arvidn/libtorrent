@@ -1422,6 +1422,39 @@ void test_put(address(&rand_addr)())
 			TEST_ERROR(t.error_string);
 		}
 
+		// a put with a key but no signature or sequence number is not a
+		// mutable put, it must not be stored under the mutable item's target
+		std::printf("PUT key without signature\n");
+
+		send_dht_request(t.dht_node, "put", t.source, &response
+			, msg_args()
+				.token(token)
+				.value(items[1].ent)
+				.key(pk)
+				.salt(salt));
+
+		ret = verify_message(response, desc_error, desc_error_keys, t.error_string);
+		if (ret)
+		{
+			std::printf("put response: %s\n", print_entry(response).c_str());
+			TEST_EQUAL(desc_error_keys[1].string_value(), "e");
+		}
+		else
+		{
+			std::printf("   invalid put response: %s\n%s\n"
+				, t.error_string, print_entry(response).c_str());
+			TEST_ERROR(t.error_string);
+		}
+
+		send_dht_request(t.dht_node, "get", t.source, &response
+			, msg_args().target(target_id));
+
+		{
+			bdecode_node const r = response.dict_find_dict("r");
+			TEST_CHECK(r.dict_find("sig"));
+			TEST_EQUAL(r.dict_find_int_value("seq"), seq.value);
+		}
+
 		// === test conditional get ===
 
 		send_dht_request(t.dht_node, "get", t.source, &response
