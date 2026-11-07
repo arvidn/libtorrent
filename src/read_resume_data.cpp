@@ -237,8 +237,10 @@ namespace {
 					}
 					else
 					{
+						// mask has a bit per tree node and verified a bit per
+						// block, neither is bounded by the piece count.
 						ret.verified_leaf_hashes.push_back(
-							bitfield_from_resume(str, std::int64_t(piece_limit) * 2, ec));
+							bitfield_from_resume(str, std::numeric_limits<int>::max(), ec));
 						if (ec)
 							return ret;
 					}
@@ -263,7 +265,7 @@ namespace {
 					else
 					{
 						ret.merkle_tree_mask.push_back(
-							bitfield_from_resume(str, std::int64_t(piece_limit) * 2, ec));
+							bitfield_from_resume(str, std::numeric_limits<int>::max(), ec));
 						if (ec)
 							return ret;
 					}
