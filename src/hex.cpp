@@ -56,31 +56,20 @@ namespace libtorrent {
 		'0', '1', '2', '3', '4', '5', '6', '7',
 		'8', '9', 'a', 'b', 'c', 'd', 'e', 'f'
 	}};
-	void to_hex(char const* in, int const len, char* out)
+	void to_hex(span<char const> in, char* out)
 	{
-		int idx = 0;
-		for (int i = 0; i < len; ++i)
+		for (char const c : in)
 		{
-			out[idx++] = hex_chars[std::uint8_t(in[i]) >> 4];
-			out[idx++] = hex_chars[std::uint8_t(in[i]) & 0xf];
+			*out++ = hex_chars[std::uint8_t(c) >> 4];
+			*out++ = hex_chars[std::uint8_t(c) & 0xf];
 		}
 	}
 
 	std::string to_hex(span<char const> in)
 	{
-		std::string ret;
-		if (!in.empty())
-		{
-			ret.resize(std::size_t(in.size() * 2));
-			to_hex(in.data(), int(in.size()), &ret[0]);
-		}
+		std::string ret(std::size_t(in.size() * 2), '\0');
+		to_hex(in, ret.data());
 		return ret;
-	}
-
-	void to_hex(span<char const> in, char* out)
-	{
-		to_hex(in.data(), int(in.size()), out);
-		out[in.size() * 2] = '\0';
 	}
 
 	} // aux namespace
