@@ -357,7 +357,12 @@ void traversal_algorithm::failed(observer_ptr o, traversal_flags_t const flags)
 	if (!(o->flags & observer::flag_no_id))
 		m_node.m_table.node_failed(o->id(), o->target_ep());
 
-	if (m_results.empty()) return;
+	if (m_results.empty())
+	{
+		// make sure the rpc_manager doesn't report the short timeout again
+		if (flags & short_timeout) o->flags |= observer::flag_short_timeout;
+		return;
+	}
 
 	bool decrement_branch_factor = false;
 

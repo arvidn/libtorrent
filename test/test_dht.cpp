@@ -3306,6 +3306,42 @@ TORRENT_TEST(rpc_reply_ignores_wrong_port)
 	TEST_EQUAL(nid, response_id);
 }
 
+// a request that's not part of a traversal's results (like the pings sent to
+// refresh the routing table) must only report its short timeout once
+TORRENT_TEST(rpc_short_timeout_once)
+{
+	dht_test_setup t(udp::endpoint(addr("10.0.0.1"), 20));
+
+	node_id const id = generate_next();
+	udp::endpoint const ep(addr("10.0.0.2"), 21);
+	t.dht_node.m_table.add_node(node_entry{id, ep, 10, true});
+
+	entry req;
+	req["q"] = "ping";
+
+	g_sent_packets.clear();
+	auto algo = std::make_shared<dht::traversal_algorithm>(t.dht_node, node_id());
+	auto o = t.dht_node.m_rpc.allocate_observer<null_observer>(std::move(algo), ep, id);
+#if TORRENT_USE_ASSERTS
+	o->m_in_constructor = false;
+#endif
+	o->flags |= observer::flag_queried;
+	TEST_CHECK(t.dht_node.m_rpc.invoke(req, ep, o));
+
+	// past the short timeout, but not the full timeout
+	std::this_thread::sleep_for(milliseconds(1100));
+	for (int i = 0; i < 3; ++i)
+		t.dht_node.connection_timeout();
+
+	int fail_count = -1;
+	t.dht_node.m_table.for_each_node([&](node_entry const& e)
+	{
+		if (e.id == id) fail_count = e.fail_count();
+	});
+	std::printf("fail count: %d\n", fail_count);
+	TEST_EQUAL(fail_count, 1);
+}
+
 #ifndef TORRENT_DISABLE_LOGGING
 // these tests rely on logging being enabled
 
