@@ -981,11 +981,10 @@ TORRENT_TEST(sanitize_path)
 	sanitize_append_path_element(path, "//\\");
 	TEST_EQUAL(path, "");
 
-	// make sure suspicious unicode characters are filtered out
+	// U+200E LEFT-TO-RIGHT MARK is retained because it is meaningful in text.
 	path.clear();
-	// that's utf-8 for U+200e LEFT-TO-RIGHT MARK
 	sanitize_append_path_element(path, "foo\xe2\x80\x8e" "bar");
-	TEST_EQUAL(path, "foobar");
+	TEST_EQUAL(path, "foo\xe2\x80\x8e" "bar");
 
 	// make sure suspicious unicode characters are filtered out
 	path.clear();
@@ -1023,68 +1022,55 @@ TORRENT_TEST(sanitize_path_control_chars)
 TORRENT_TEST(sanitize_path_format_chars)
 {
 	using lt::aux::sanitize_append_path_element;
-
-	// zero-width space U+200B (utf-8: e2 80 8b) is silently dropped
 	std::string path;
-	sanitize_append_path_element(path,
-		"foo\xe2\x80\x8b"
-		"bar");
+
+	// U+200A-200F carry meaningful spacing, joining and directional marks.
+	sanitize_append_path_element(path, "foo\xe2\x80\x8a" "bar");
+	TEST_EQUAL(path, "foo\xe2\x80\x8a" "bar");
+
+	path.clear();
+	sanitize_append_path_element(path, "foo\xe2\x80\x8b" "bar"); // ZWSP
+	TEST_EQUAL(path, "foo\xe2\x80\x8b" "bar");
+
+	path.clear();
+	sanitize_append_path_element(path, "foo\xe2\x80\x8c" "bar"); // ZWNJ
+	TEST_EQUAL(path, "foo\xe2\x80\x8c" "bar");
+
+	path.clear();
+	sanitize_append_path_element(path, "foo\xe2\x80\x8d" "bar"); // ZWJ
+	TEST_EQUAL(path, "foo\xe2\x80\x8d" "bar");
+
+	path.clear();
+	sanitize_append_path_element(path, "foo\xe2\x80\x8e" "bar"); // LRM
+	TEST_EQUAL(path, "foo\xe2\x80\x8e" "bar");
+
+	path.clear();
+	sanitize_append_path_element(path, "foo\xe2\x80\x8f" "bar"); // RLM
+	TEST_EQUAL(path, "foo\xe2\x80\x8f" "bar");
+
+	// Other formatting controls remain filtered.
+	path.clear();
+	sanitize_append_path_element(path, "foo\xe2\x81\xa0" "bar"); // word joiner
 	TEST_EQUAL(path, "foobar");
 
-	// zero-width non-joiner U+200C (utf-8: e2 80 8c) is dropped
 	path.clear();
-	sanitize_append_path_element(path,
-		"foo\xe2\x80\x8c"
-		"bar");
+	sanitize_append_path_element(path, "foo\xe2\x81\xa2" "bar"); // invisible times
 	TEST_EQUAL(path, "foobar");
 
-	// zero-width joiner U+200D (utf-8: e2 80 8d) is dropped
 	path.clear();
-	sanitize_append_path_element(path,
-		"foo\xe2\x80\x8d"
-		"bar");
+	sanitize_append_path_element(path, "foo\xe2\x81\xa6" "bar"); // LRI
 	TEST_EQUAL(path, "foobar");
 
-	// word joiner U+2060 (utf-8: e2 81 a0) is dropped
 	path.clear();
-	sanitize_append_path_element(path,
-		"foo\xe2\x81\xa0"
-		"bar");
+	sanitize_append_path_element(path, "foo\xe2\x81\xa9" "bar"); // PDI
 	TEST_EQUAL(path, "foobar");
 
-	// invisible times U+2062 (utf-8: e2 81 a2) is dropped
 	path.clear();
-	sanitize_append_path_element(path,
-		"foo\xe2\x81\xa2"
-		"bar");
+	sanitize_append_path_element(path, "foo\xd8\x9c" "bar"); // Arabic letter mark
 	TEST_EQUAL(path, "foobar");
 
-	// LRI U+2066 (utf-8: e2 81 a6) is dropped
 	path.clear();
-	sanitize_append_path_element(path,
-		"foo\xe2\x81\xa6"
-		"bar");
-	TEST_EQUAL(path, "foobar");
-
-	// PDI U+2069 (utf-8: e2 81 a9) is dropped
-	path.clear();
-	sanitize_append_path_element(path,
-		"foo\xe2\x81\xa9"
-		"bar");
-	TEST_EQUAL(path, "foobar");
-
-	// Arabic letter mark U+061C (utf-8: d8 9c) is dropped
-	path.clear();
-	sanitize_append_path_element(path,
-		"foo\xd8\x9c"
-		"bar");
-	TEST_EQUAL(path, "foobar");
-
-	// BOM / zero-width no-break space U+FEFF (utf-8: ef bb bf) is dropped
-	path.clear();
-	sanitize_append_path_element(path,
-		"foo\xef\xbb\xbf"
-		"bar");
+	sanitize_append_path_element(path, "foo\xef\xbb\xbf" "bar"); // BOM / ZWNBSP
 	TEST_EQUAL(path, "foobar");
 }
 
@@ -1263,11 +1249,10 @@ TORRENT_TEST(sanitize_path_force)
 	sanitize_append_path_element(path, "//\\", true);
 	TEST_EQUAL(path, "_");
 
-	// make sure suspicious unicode characters are filtered out
+	// U+200E LEFT-TO-RIGHT MARK is retained because it is meaningful in text.
 	path.clear();
-	// that's utf-8 for U+200e LEFT-TO-RIGHT MARK
 	sanitize_append_path_element(path, "foo\xe2\x80\x8e" "bar", true);
-	TEST_EQUAL(path, "foobar");
+	TEST_EQUAL(path, "foo\xe2\x80\x8e" "bar");
 
 	// make sure suspicious unicode characters are filtered out
 	path.clear();
