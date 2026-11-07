@@ -570,34 +570,51 @@ TORRENT_TEST(have_pieces_too_large)
 	TEST_EQUAL(ec, error_code(errors::too_many_pieces_in_torrent));
 }
 
-TORRENT_TEST(merkle_tree_bitfield_too_large)
+namespace {
+std::vector<char> make_merkle_resume(std::size_t const mask_bytes, std::size_t const verified_bytes)
 {
-	auto const make = [](int const mask_bytes) {
-		entry rd;
-		rd["file-format"] = "libtorrent resume file";
-		rd["file-version"] = 2;
-		rd["info-hash2"] = "01234567890123456789012345678901";
-		auto& tree = rd["trees"].list();
-		tree.emplace_back(entry::dictionary_t);
-		auto& file = tree.back().dict();
-		file["hashes"] = std::string();
-		file["mask"] = std::string(std::size_t(mask_bytes), '\xff');
-		return bencode(rd);
-	};
+	entry rd;
+	rd["file-format"] = "libtorrent resume file";
+	rd["file-version"] = 2;
+	rd["info-hash2"] = "01234567890123456789012345678901";
+	auto& tree = rd["trees"].list();
+	tree.emplace_back(entry::dictionary_t);
+	auto& file = tree.back().dict();
+	file["hashes"] = std::string();
+	file["mask"] = std::string(mask_bytes, '\xff');
+	file["verified"] = std::string(verified_bytes, '\xff');
+	return bencode(rd);
+}
+} // anonymous namespace
 
-	// 64-piece limit means a 64-bit piece limit and a doubled 128-bit (16 byte)
-	// merkle-tree limit.
+// the merkle tree bitfields count tree nodes and blocks, not pieces. a file
+// over 32 GiB has a mask larger than twice the default piece limit.
+TORRENT_TEST(merkle_tree_bitfield_large)
+{
 	load_torrent_limits cfg;
 	cfg.max_pieces = 64;
 
-	// 12 bytes = 96 bits: past the 64-bit piece limit but within the doubled
-	// merkle limit, so it's accepted.
 	error_code ec;
-	read_resume_data(make(12), ec, cfg);
+	auto const atp = read_resume_data(make_merkle_resume(1024, 512), ec, cfg);
 	TEST_EQUAL(ec, error_code());
+	TEST_EQUAL(atp.merkle_tree_mask.size(), 1);
+	TEST_EQUAL(atp.merkle_tree_mask[file_index_t{0}].size(), 1024 * 8);
+	TEST_EQUAL(atp.verified_leaf_hashes.size(), 1);
+	TEST_EQUAL(atp.verified_leaf_hashes[file_index_t{0}].size(), 512 * 8);
+}
 
-	// 20 bytes = 160 bits: past the doubled merkle limit, so it's rejected.
-	read_resume_data(make(20), ec, cfg);
+// a >= 256 MiB string would overflow the int bit-count
+TORRENT_TEST(merkle_tree_mask_overflow)
+{
+	error_code ec;
+	read_resume_data(make_merkle_resume(std::size_t(1) << 28, 0), ec);
+	TEST_EQUAL(ec, error_code(errors::too_many_pieces_in_torrent));
+}
+
+TORRENT_TEST(merkle_tree_verified_overflow)
+{
+	error_code ec;
+	read_resume_data(make_merkle_resume(0, std::size_t(1) << 28), ec);
 	TEST_EQUAL(ec, error_code(errors::too_many_pieces_in_torrent));
 }
 
