@@ -2,6 +2,9 @@
 
 include(FeatureSummary)
 
+# use CONFIG mode first in find_package
+set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
+
 # macro for issuing option() and add_feature_info() in a single call.
 # Synopsis:
 # feature_option(<option_and_feature_name> <option_and_feature_description> <default_option_value>)
