@@ -84,6 +84,9 @@ std::vector<char> generate_resume_data(torrent_info const* ti
 	rd["last_upload"] = time(nullptr) - 1351;
 	rd["finished_time"] = 1352;
 	rd["last_seen_complete"] = 1353;
+	rd["num_complete"] = 1354;
+	rd["num_incomplete"] = 1355;
+	rd["num_downloaded"] = 1356;
 	if (file_priorities && file_priorities[0])
 	{
 		entry::list_type& file_prio = rd["file_priority"].list();
@@ -223,6 +226,8 @@ void default_tests(torrent_status const& s, lt::time_point const time_now)
 	TEST_CHECK(s.last_upload >= now - lt::seconds(1351 + 2));
 
 	TEST_EQUAL(s.last_seen_complete, 1353);
+	TEST_EQUAL(s.num_complete, 1354);
+	TEST_EQUAL(s.num_incomplete, 1355);
 }
 
 void test_piece_priorities(bool test_deprecated = false)
@@ -1489,6 +1494,59 @@ TORRENT_TEST(resume_save_load)
 	TEST_EQUAL(l[0], 1_pri);
 	TEST_EQUAL(l[1], 2_pri);
 	TEST_EQUAL(l[2], 3_pri);
+}
+
+TORRENT_TEST(resume_scrape_data)
+{
+	lt::session ses(settings());
+	torrent_handle h = test_resume_flags(ses, {}, "", "");
+
+	h.save_resume_data();
+
+	save_resume_data_alert const* a = alert_cast<save_resume_data_alert>(
+		wait_for_alert(ses, save_resume_data_alert::alert_type, "resume_scrape_data"));
+
+	TEST_CHECK(a);
+	if (a == nullptr)
+		return;
+
+	TEST_EQUAL(a->params.num_complete, 1354);
+	TEST_EQUAL(a->params.num_incomplete, 1355);
+	TEST_EQUAL(a->params.num_downloaded, 1356);
+}
+
+TORRENT_TEST(resume_scrape_data_unknown)
+{
+	lt::session ses(settings());
+	add_torrent_params p = generate_torrent();
+	p.save_path = ".";
+	torrent_handle h = ses.add_torrent(p);
+
+	torrent_status const s = h.status();
+	TEST_EQUAL(s.num_complete, -1);
+	TEST_EQUAL(s.num_incomplete, -1);
+
+	h.save_resume_data();
+
+	save_resume_data_alert const* a = alert_cast<save_resume_data_alert>(
+		wait_for_alert(ses, save_resume_data_alert::alert_type, "resume_scrape_data_unknown"));
+
+	TEST_CHECK(a);
+	if (a == nullptr)
+		return;
+
+	TEST_EQUAL(a->params.num_complete, -1);
+	TEST_EQUAL(a->params.num_incomplete, -1);
+	TEST_EQUAL(a->params.num_downloaded, -1);
+
+	// the unknown sentinel must be encoded as -1 in the resume file
+	std::vector<char> const resume_data = write_resume_data_buf(a->params);
+	error_code ec;
+	bdecode_node const rd = bdecode(resume_data, ec);
+	TEST_CHECK(!ec);
+	TEST_EQUAL(rd.dict_find_int_value("num_complete", 0), -1);
+	TEST_EQUAL(rd.dict_find_int_value("num_incomplete", 0), -1);
+	TEST_EQUAL(rd.dict_find_int_value("num_downloaded", 0), -1);
 }
 
 TORRENT_TEST(resume_save_load_resume)
