@@ -121,6 +121,17 @@ using namespace std::placeholders;
 namespace libtorrent::aux {
 namespace {
 
+// the scrape counters are 24-bit fields, where all bits set means unknown.
+// the public API uses -1 for unknown
+constexpr std::uint32_t unknown_scrape = 0xffffff;
+
+std::uint32_t to_scrape_field(int const v)
+{
+	return (v < 0 || v >= int(unknown_scrape)) ? unknown_scrape : std::uint32_t(v);
+}
+
+int from_scrape_field(std::uint32_t const v) { return v == unknown_scrape ? -1 : int(v); }
+
 bool is_downloading_state(int const st)
 {
 	switch (st)
@@ -192,10 +203,10 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		peer_info.web_seed = true;
 	}
 
-	torrent_hot_members::torrent_hot_members(aux::session_interface& ses
-		, add_torrent_params const& p, bool const session_paused)
+	torrent_hot_members::torrent_hot_members(
+		aux::session_interface& ses, add_torrent_params const& p, bool const session_paused)
 		: m_ses(ses)
-		, m_complete(0xffffff)
+		, m_complete(to_scrape_field(p.num_complete))
 		, m_upload_mode(bool(p.flags & torrent_flags::upload_mode))
 		, m_connections_initialized(false)
 		, m_abort(false)
@@ -261,7 +272,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 #endif
 		, m_connect_boost_counter(
 			  static_cast<std::uint8_t>(settings().get_int(settings_pack::torrent_connect_boost)))
-		, m_incomplete(0xffffff)
+		, m_incomplete(to_scrape_field(p.num_incomplete))
 		, m_announce_to_dht(!(p.flags & torrent_flags::paused))
 		, m_ssl_torrent(false)
 		, m_deleted(false)
@@ -272,7 +283,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		, m_current_gauge_state(static_cast<std::uint32_t>(no_gauge_state))
 		, m_moving_storage(false)
 		, m_inactive(false)
-		, m_downloaded(0xffffff)
+		, m_downloaded(to_scrape_field(p.num_downloaded))
 		, m_progress_ppm(0)
 		, m_torrent_initialized(false)
 		, m_outstanding_file_priority(false)
@@ -3820,19 +3831,28 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			}
 		}
 
-		if ((complete >= 0 && int(m_complete) != complete)
-			|| (incomplete >= 0 && int(m_incomplete) != incomplete)
-			|| (downloaded >= 0 && int(m_downloaded) != downloaded))
-			state_updated();
-
-		if (int(m_complete) != complete
-			|| int(m_incomplete) != incomplete
-			|| int(m_downloaded) != downloaded)
+		// a field no tracker knows about must not clobber a known value, such
+		// as one restored from resume data
+		bool changed = false;
+		if (complete >= 0 && m_complete != to_scrape_field(complete))
 		{
-			m_complete = std::uint32_t(complete);
-			m_incomplete = std::uint32_t(incomplete);
-			m_downloaded = std::uint32_t(downloaded);
+			m_complete = to_scrape_field(complete);
+			changed = true;
+		}
+		if (incomplete >= 0 && m_incomplete != to_scrape_field(incomplete))
+		{
+			m_incomplete = to_scrape_field(incomplete);
+			changed = true;
+		}
+		if (downloaded >= 0 && m_downloaded != to_scrape_field(downloaded))
+		{
+			m_downloaded = to_scrape_field(downloaded);
+			changed = true;
+		}
 
+		if (changed)
+		{
+			state_updated();
 			update_auto_sequential();
 
 			// these numbers are cached in the resume data
@@ -7595,9 +7615,9 @@ namespace {
 		ret.last_upload = aux::to_time_t(m_last_upload);
 		ret.last_download = aux::to_time_t(m_last_download);
 
-		ret.num_complete = m_complete;
-		ret.num_incomplete = m_incomplete;
-		ret.num_downloaded = m_downloaded;
+		ret.num_complete = from_scrape_field(m_complete);
+		ret.num_incomplete = from_scrape_field(m_incomplete);
+		ret.num_downloaded = from_scrape_field(m_downloaded);
 
 		ret.flags = this->flags();
 
@@ -12601,8 +12621,8 @@ namespace {
 
 		st->storage_mode = static_cast<storage_mode_t>(m_storage_mode);
 
-		st->num_complete = (m_complete == 0xffffff) ? -1 : m_complete;
-		st->num_incomplete = (m_incomplete == 0xffffff) ? -1 : m_incomplete;
+		st->num_complete = from_scrape_field(m_complete);
+		st->num_incomplete = from_scrape_field(m_incomplete);
 #if TORRENT_ABI_VERSION == 1
 		st->paused = is_torrent_paused();
 		st->auto_managed = m_auto_managed;
