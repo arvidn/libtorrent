@@ -13,6 +13,11 @@ see LICENSE file.
 #include "libtorrent/announce_entry.hpp"
 #include "test.hpp"
 
+#include <algorithm>
+#include <cstdio>
+#include <string>
+#include <vector>
+
 using namespace libtorrent::aux;
 
 TORRENT_TEST(test_initial_state)
@@ -250,11 +255,187 @@ TORRENT_TEST(test_prioritize_udp_tier)
 
 	tl.prioritize_udp_trackers();
 
-	// trackers are also re-ordered across tiers
+	// trackers are not re-ordered across tiers
 	i = tl.begin();
+	TEST_EQUAL(i->url, "http://example1.com/announce");
+	TEST_EQUAL(i->tier, 0);
+	++i;
 	TEST_EQUAL(i->url, "udp://example1.com/announce");
+	TEST_EQUAL(i->tier, 2);
+	++i;
+	TEST_CHECK(i == tl.end());
+}
+
+TORRENT_TEST(test_prioritize_udp_keeps_tier_order)
+{
+	tracker_list tl;
+
+	std::vector<lt::announce_entry> trackers;
+	trackers.emplace_back("http://example1.com/announce");
+	trackers.emplace_back("udp://example1.com/announce");
+	trackers.emplace_back("http://example2.com/announce");
+	trackers.back().tier = 1;
+	trackers.emplace_back("udp://example2.com/announce");
+	trackers.back().tier = 2;
+
+	tl.replace(trackers);
+	tl.prioritize_udp_trackers();
+
+	// within a tier, the udp tracker is moved first. The udp tracker in tier 2
+	// stays behind the http tracker in tier 1, since every tracker in a tier
+	// must be tried before moving on to the next one
+	auto i = tl.begin();
+	TEST_EQUAL(i->url, "udp://example1.com/announce");
+	TEST_EQUAL(i->tier, 0);
 	++i;
 	TEST_EQUAL(i->url, "http://example1.com/announce");
+	TEST_EQUAL(i->tier, 0);
+	++i;
+	TEST_EQUAL(i->url, "http://example2.com/announce");
+	TEST_EQUAL(i->tier, 1);
+	++i;
+	TEST_EQUAL(i->url, "udp://example2.com/announce");
+	TEST_EQUAL(i->tier, 2);
+	++i;
+	TEST_CHECK(i == tl.end());
+
+	TEST_CHECK(std::is_sorted(tl.begin(),
+		tl.end(),
+		[](lt::aux::announce_entry const& lhs, lt::aux::announce_entry const& rhs) {
+			return lhs.tier < rhs.tier;
+		}));
+}
+
+namespace {
+
+void check_order(tracker_list const& tl, std::vector<std::string> const& expected)
+{
+	std::vector<std::string> actual;
+	for (auto const& ae : tl)
+		actual.push_back(ae.url);
+	TEST_CHECK(actual == expected);
+	if (actual != expected)
+	{
+		for (auto const& u : actual)
+			std::printf("  %s\n", u.c_str());
+	}
+}
+
+} // anonymous namespace
+
+TORRENT_TEST(test_prioritize_udp_adjacent)
+{
+	tracker_list tl;
+
+	std::vector<lt::announce_entry> trackers;
+	trackers.emplace_back("http://example1.com/announce");
+	trackers.emplace_back("http://example2.com/announce");
+	trackers.emplace_back("udp://example1.com/announce");
+	trackers.emplace_back("udp://example2.com/announce");
+
+	tl.replace(trackers);
+	tl.prioritize_udp_trackers();
+
+	// both udp trackers must be moved ahead of their http counterpart, also
+	// the one immediately following a tracker that was just moved
+	check_order(tl,
+		{"udp://example1.com/announce",
+			"udp://example2.com/announce",
+			"http://example1.com/announce",
+			"http://example2.com/announce"});
+}
+
+TORRENT_TEST(test_prioritize_udp_adjacent_reverse)
+{
+	tracker_list tl;
+
+	std::vector<lt::announce_entry> trackers;
+	trackers.emplace_back("http://example1.com/announce");
+	trackers.emplace_back("http://example2.com/announce");
+	trackers.emplace_back("udp://example2.com/announce");
+	trackers.emplace_back("udp://example1.com/announce");
+
+	tl.replace(trackers);
+	tl.prioritize_udp_trackers();
+
+	check_order(tl,
+		{"udp://example1.com/announce",
+			"udp://example2.com/announce",
+			"http://example2.com/announce",
+			"http://example1.com/announce"});
+}
+
+TORRENT_TEST(test_prioritize_udp_multiple_same_host)
+{
+	tracker_list tl;
+
+	std::vector<lt::announce_entry> trackers;
+	trackers.emplace_back("http://example1.com/announce");
+	trackers.emplace_back("udp://example1.com/announce");
+	trackers.emplace_back("udp://example1.com:6969/announce");
+
+	tl.replace(trackers);
+	tl.prioritize_udp_trackers();
+
+	// every udp tracker for the hostname goes ahead of the http tracker
+	check_order(tl,
+		{"udp://example1.com/announce",
+			"udp://example1.com:6969/announce",
+			"http://example1.com/announce"});
+}
+
+TORRENT_TEST(test_prioritize_udp_case_insensitive)
+{
+	tracker_list tl;
+
+	std::vector<lt::announce_entry> trackers;
+	trackers.emplace_back("http://Example1.COM/announce");
+	trackers.emplace_back("udp://example1.com/announce");
+
+	tl.replace(trackers);
+	tl.prioritize_udp_trackers();
+
+	// hostnames are case insensitive
+	check_order(tl, {"udp://example1.com/announce", "http://Example1.COM/announce"});
+}
+
+TORRENT_TEST(test_prioritize_udp_same_host_multiple_tiers)
+{
+	tracker_list tl;
+
+	std::vector<lt::announce_entry> trackers;
+	trackers.emplace_back("http://example1.com/announce");
+	trackers.emplace_back("http://example1.com:8080/announce");
+	trackers.back().tier = 1;
+	trackers.emplace_back("udp://example1.com/announce");
+	trackers.back().tier = 1;
+	trackers.emplace_back("http://example1.com:8081/announce");
+	trackers.back().tier = 2;
+	trackers.emplace_back("udp://example1.com:6969/announce");
+	trackers.back().tier = 2;
+
+	tl.replace(trackers);
+	tl.prioritize_udp_trackers();
+
+	// the udp trackers are moved ahead of the http tracker in their own tier
+	// only, not ahead of the same hostname in an earlier tier
+	check_order(tl,
+		{"http://example1.com/announce",
+			"udp://example1.com/announce",
+			"http://example1.com:8080/announce",
+			"udp://example1.com:6969/announce",
+			"http://example1.com:8081/announce"});
+
+	auto i = tl.begin();
+	TEST_EQUAL(i->tier, 0);
+	++i;
+	TEST_EQUAL(i->tier, 1);
+	++i;
+	TEST_EQUAL(i->tier, 1);
+	++i;
+	TEST_EQUAL(i->tier, 2);
+	++i;
+	TEST_EQUAL(i->tier, 2);
 	++i;
 	TEST_CHECK(i == tl.end());
 }

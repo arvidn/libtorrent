@@ -791,6 +791,12 @@ file_handle::file_handle(string_view name, std::int64_t const size
 	}
 #endif
 }
+
+void file_handle::set_size(std::int64_t const size)
+{
+	if (ftruncate(m_fd, static_cast<off_t>(size)) < 0)
+		throw_ex<storage_error>(error_code(errno, system_category()), operation_t::file_truncate);
+}
 #endif
 
 void file_handle::close()

@@ -1213,6 +1213,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			// unlock the piece and restore it, as if no block was
 			// ever downloaded for it.
 			m_picker->restore_piece(piece);
+			mark_queued_blocks_downloading(piece, {});
 		}
 
 		update_gauge();
@@ -5342,8 +5343,16 @@ namespace {
 		// and mark it as being interesting for download
 		TORRENT_ASSERT(!m_picker->have_piece(piece));
 
-		// loop over all peers and re-request potential duplicate
-		// blocks to this piece
+		mark_queued_blocks_downloading(piece, blocks);
+	}
+	catch (...)
+	{
+		handle_exception();
+	}
+
+	void torrent::mark_queued_blocks_downloading(
+		piece_index_t const piece, span<int const> const blocks)
+	{
 		for (auto* p : m_connections)
 		{
 			TORRENT_INCREMENT(m_iterating_connections);
@@ -5368,7 +5377,6 @@ namespace {
 			}
 		}
 	}
-	catch (...) { handle_exception(); }
 
 	void torrent::peer_has(piece_index_t const index, peer_connection const* peer)
 	{
@@ -10778,16 +10786,15 @@ namespace {
 
 					if (t.tier > state.tier)
 					{
-						if (!announce_to_all_tiers) break;
+						// only stop at a higher tier once this one has a
+						// working tracker, the same as announce_with_tracker()
+						if (!announce_to_all_tiers && state.found_working)
+							break;
 						state.found_working = false;
 					}
 					state.tier = t.tier;
 					if (a.fails >= t.fail_limit && t.fail_limit != 0) continue;
-					if (a.updating)
-					{
-						state.found_working = true;
-					}
-					else if (a.next_announce != time_point32::min())
+					if (!a.updating && a.next_announce != time_point32::min())
 					{
 						// defensive: announce_with_tracker() always
 						// advances next_announce for trackers it would

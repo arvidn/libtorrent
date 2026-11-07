@@ -1149,6 +1149,12 @@ namespace libtorrent::aux {
 		// this is the handler for write failure piece synchronization
 		void on_piece_fail_sync(piece_index_t piece, piece_block b);
 
+		// restore_piece() drops requests that peers still have outstanding.
+		// Register them with the picker again, otherwise a later
+		// abort_download() from those peers would hit blocks they aren't
+		// registered on. An empty blocks list means all blocks
+		void mark_queued_blocks_downloading(piece_index_t piece, span<int const> blocks);
+
 		void add_redundant_bytes(int b, waste_reason reason);
 		void add_failed_bytes(int b);
 
