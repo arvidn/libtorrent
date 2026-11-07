@@ -2987,6 +2987,30 @@ TORRENT_TEST(routing_table_uniform)
 	print_state(std::cout, tbl);
 }
 
+TORRENT_TEST(routing_table_depth)
+{
+	auto sett = test_settings();
+	obs observer;
+
+	sett.set_bool(settings_pack::dht_extended_routing_table, false);
+	sett.set_bool(settings_pack::dht_prefer_verified_node_ids, false);
+	node_id id = to_hash("1234876923549721020394873245098347598635");
+
+	routing_table tbl(id, udp::v4(), 8, sett, &observer);
+
+	// asking for the depth of the empty table must not prevent it from
+	// growing once nodes are added
+	TEST_EQUAL(tbl.depth(), -1);
+
+	for (int i = 255; i >= 0; --i)
+	{
+		id[0] ^= i;
+		tbl.node_seen(id, rand_udp_ep(), 20 + (id[19] & 0xff));
+		id[0] ^= i;
+	}
+	TEST_CHECK(tbl.depth() > 0);
+}
+
 TORRENT_TEST(routing_table_balance)
 {
 	auto sett = test_settings();
