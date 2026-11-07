@@ -1027,7 +1027,7 @@ void node::incoming_request(msg const& m, entry& e)
 			return;
 		}
 
-		sha1_hash const target = pub_key
+		sha1_hash const target = mutable_put
 			? item_target_id(salt, public_key(pub_key))
 			: item_target_id(buf);
 
