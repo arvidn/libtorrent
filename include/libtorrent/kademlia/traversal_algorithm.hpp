@@ -133,6 +133,10 @@ protected:
 
 private:
 
+	// undo the increment made on a short timeout. The increment saturates, so
+	// the decrement must saturate too, at the configured branch factor
+	void restore_branch_factor();
+
 	node_id const m_target;
 	std::int8_t m_invoke_count = 0;
 	std::int8_t m_branch_factor = 3;
