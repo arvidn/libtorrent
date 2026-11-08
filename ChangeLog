@@ -1,5 +1,6 @@
 2.0.16 not released
 
+	* fix a few DHT routing table and storage bugs
 	* fix DHT traversals sending requests to our own node ID
 	* fix DHT put with a public key but no signature being stored under the mutable item's target
 	* fix outgoing i2p connections on v2-only torrents
