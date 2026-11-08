@@ -392,9 +392,9 @@ TORRENT_TEST(get_peers_uniform)
 	sett.set_int(settings_pack::dht_max_peers_reply, 1);
 	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
 
-	address addr = rand_v4();
-	s->announce_peer(n1, tcp::endpoint(addr, 0), "torrent_name", false);
-	s->announce_peer(n1, tcp::endpoint(addr, 1), "torrent_name", false);
+	address const peer_addr = rand_v4();
+	s->announce_peer(n1, tcp::endpoint(peer_addr, 0), "torrent_name", false);
+	s->announce_peer(n1, tcp::endpoint(peer_addr, 1), "torrent_name", false);
 
 	int first = 0;
 	for (int i = 0; i < 10000; ++i)
@@ -548,7 +548,7 @@ TORRENT_TEST(infohashes_sample_uniform)
 	for (int i = 0; i < 10000; ++i)
 	{
 		entry item;
-		int r = s->get_infohashes_sample(item);
+		int const r = s->get_infohashes_sample(item);
 		TEST_EQUAL(r, 1);
 		if (sha1_hash(item["samples"].string()) == n1)
 			++first;

@@ -3413,7 +3413,8 @@ TORRENT_TEST(rpc_reply_ignores_wrong_port)
 }
 
 // a request that's not part of a traversal's results (like the pings sent to
-// refresh the routing table) must only report its short timeout once
+// refresh the routing table) must only report its short timeout once, and the
+// short timeout must not count as a failure
 TORRENT_TEST(rpc_short_timeout_once)
 {
 	dht_test_setup t(udp::endpoint(addr("10.0.0.1"), 20));
@@ -3445,7 +3446,8 @@ TORRENT_TEST(rpc_short_timeout_once)
 		if (e.id == id) fail_count = e.fail_count();
 	});
 	std::printf("fail count: %d\n", fail_count);
-	TEST_EQUAL(fail_count, 1);
+	TEST_EQUAL(fail_count, 0);
+	TEST_CHECK(o->has_short_timeout());
 }
 
 #ifndef TORRENT_DISABLE_LOGGING
