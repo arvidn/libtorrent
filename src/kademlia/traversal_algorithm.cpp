@@ -111,6 +111,10 @@ void traversal_algorithm::add_entry(node_id const& id
 	INVARIANT_CHECK;
 	if (m_done) return;
 
+	// don't send requests to ourself
+	if (id == m_node.nid())
+		return;
+
 	TORRENT_ASSERT(m_node.m_rpc.allocation_size() >= sizeof(find_data_observer));
 	auto o = new_observer(addr, id);
 	if (!o)
@@ -340,9 +344,10 @@ void traversal_algorithm::finished(observer_ptr o)
 // So, if this is true, don't make another request
 void traversal_algorithm::failed(observer_ptr o, traversal_flags_t const flags)
 {
-	// don't tell the routing table about
-	// node ids that we just generated ourself
-	if (!(o->flags & observer::flag_no_id))
+	// only the final timeout counts as a failure, the short timeout just
+	// opens up the slot. Don't tell the routing table about node ids that we
+	// just generated ourself
+	if (!(flags & short_timeout) && !(o->flags & observer::flag_no_id))
 		m_node.m_table.node_failed(o->id(), o->target_ep());
 
 	if (m_results.empty()) return;
@@ -358,12 +363,11 @@ void traversal_algorithm::failed(observer_ptr o, traversal_flags_t const flags)
 		// we do get a late response, keep the handler
 		// around for some more, but open up the slot
 		// by increasing the branch factor
-		if (!(o->flags & observer::flag_short_timeout)
-			&& m_branch_factor < std::numeric_limits<std::int8_t>::max())
-		{
+		TORRENT_ASSERT(o->flags & observer::flag_short_timeout);
+		// saturating, the flag stays set either way so the short timeout is
+		// not reported again
+		if (m_branch_factor < std::numeric_limits<std::int8_t>::max())
 			++m_branch_factor;
-			o->flags |= observer::flag_short_timeout;
-		}
 #ifndef TORRENT_DISABLE_LOGGING
 		log_timeout(o, "1ST_");
 #endif
@@ -670,7 +674,8 @@ void traversal_algorithm::check_invariant() const
 	if (m_initialized)
 	{
 		int const default_branch_factor = aux::numeric_cast<std::int8_t>(m_node.branch_factor());
-		TORRENT_ASSERT(outstanding_short_timeout + default_branch_factor == m_branch_factor);
+		// the branch factor saturates, so it may fall behind the count
+		TORRENT_ASSERT(outstanding_short_timeout + default_branch_factor >= m_branch_factor);
 	}
 	TORRENT_ASSERT(outstanding_requests == m_invoke_count);
 }

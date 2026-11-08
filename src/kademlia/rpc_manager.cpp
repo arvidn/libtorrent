@@ -96,6 +96,7 @@ void observer::done()
 void observer::short_timeout()
 {
 	if (flags & flag_short_timeout) return;
+	flags |= flag_short_timeout;
 	m_algorithm->failed(self(), traversal_algorithm::short_timeout);
 }
 

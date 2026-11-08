@@ -1564,6 +1564,8 @@ namespace {
 		auto t = m_torrent.lock();
 		piece_picker& picker = t->picker();
 		aux::torrent_peer* self_peer = peer_info_struct();
+		if (!m_download_queue.empty())
+			m_counters.inc_stats_counter(counters::num_peers_down_requests, -1);
 		while (!m_download_queue.empty())
 		{
 			pending_block& qe = m_download_queue.back();
@@ -4532,6 +4534,12 @@ namespace {
 				}
 			}
 
+			if (!m_requests.empty())
+			{
+				m_counters.inc_stats_counter(counters::num_peers_up_requests, -1);
+				m_requests.clear();
+			}
+
 			if (t->has_picker())
 			{
 				clear_download_queue();
@@ -4546,7 +4554,11 @@ namespace {
 			}
 			else
 			{
-				m_download_queue.clear();
+				if (!m_download_queue.empty())
+				{
+					m_counters.inc_stats_counter(counters::num_peers_down_requests, -1);
+					m_download_queue.clear();
+				}
 				m_request_queue.clear();
 				m_outstanding_bytes = 0;
 			}
@@ -5340,8 +5352,10 @@ namespace {
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::info, peer_log_alert::torrent_aborted);
 #endif
+			TORRENT_ASSERT(!m_requests.empty());
 			for (peer_request const& r : m_requests)
 				write_reject_request(r);
+			m_counters.inc_stats_counter(counters::num_peers_up_requests, -1);
 			m_requests.clear();
 			return;
 		}

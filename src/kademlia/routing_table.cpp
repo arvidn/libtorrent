@@ -337,10 +337,11 @@ std::int64_t routing_table::num_global_nodes() const
 
 int routing_table::depth() const
 {
+	if (m_buckets.empty())
+		return -1;
+
 	if (m_depth >= int(m_buckets.size()))
 		m_depth = int(m_buckets.size()) - 1;
-
-	if (m_depth < 0) return m_depth;
 
 	// maybe the table is deeper now?
 	while (m_depth < int(m_buckets.size()) - 1
@@ -562,7 +563,7 @@ bool routing_table::add_node(node_entry const& e)
 		// we just split the last bucket and tried to insert a new node. If none
 		// of the nodes in the split bucket, nor the new node ended up in the new
 		// bucket, erase it
-		if (m_buckets.back().live_nodes.empty())
+		if (m_buckets.back().live_nodes.empty() && m_buckets.back().replacements.empty())
 		{
 			m_buckets.erase(m_buckets.end() - 1);
 			// we just split, trying to add the node again should not request

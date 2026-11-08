@@ -791,6 +791,58 @@ TORRENT_TEST(reject_predictive_piece_requests)
 	TEST_EQUAL(counters.at("peer.num_peers_up_requests"), 0);
 	s.close();
 }
+
+TORRENT_TEST(disconnect_with_pending_requests)
+{
+	std::cout << "\n === test disconnect with pending requests ===\n" << std::endl;
+
+	info_hash_t ih;
+	torrent_handle th;
+	std::shared_ptr<lt::session> ses;
+	io_context ios;
+	tcp::socket s(ios);
+	setup_peer(s, ios, ih, ses, true, false, false, torrent_flags_t{}, &th);
+
+	char recv_buffer[1000];
+	do_handshake(s, ih, recv_buffer);
+	print_session_log(*ses);
+
+	post_torrent(*ses, th, [](aux::torrent& tor) { tor.predicted_have_piece(0_piece, 0ms); });
+	get_counters(*ses);
+
+	send_interested(s);
+	if (!wait_for_counter(*ses, "ses.num_outgoing_unchoke", 1))
+	{
+		TEST_ERROR("expected unchoke message");
+		s.close();
+		return;
+	}
+
+	peer_request req;
+	req.piece = 0_piece;
+	req.start = 0;
+	req.length = 0x4000;
+	send_request(s, req);
+	send_request(s, req);
+
+	if (!wait_for_counter(*ses, "peer.piece_requests", 2))
+	{
+		TEST_ERROR("expected two piece requests");
+		s.close();
+		return;
+	}
+
+	TEST_EQUAL(get_counters(*ses).at("peer.num_peers_up_requests"), 1);
+
+	s.close();
+	if (!wait_for_counter(*ses, "peer.disconnected_peers", 1))
+	{
+		TEST_ERROR("expected peer to disconnect");
+		return;
+	}
+
+	TEST_EQUAL(get_counters(*ses).at("peer.num_peers_up_requests"), 0);
+}
 #endif
 
 TORRENT_TEST(invalid_suggest)

@@ -89,13 +89,13 @@ struct TORRENT_EXTRA_EXPORT observer
 	static inline constexpr observer_flags_t flag_queried = 0_bit;
 	static inline constexpr observer_flags_t flag_initial = 1_bit;
 	static inline constexpr observer_flags_t flag_no_id = 2_bit;
-	// after a short timeout, we may increase the branch factor and set
-	// this flag. We still wait for the full timeout for a response.
-	// Incrementing the branch factor is a middle-ground of no longer
-	// having much faith in this node responding (so we allow another query
-	// to use its "slot"). When the request completes (either by receiving
-	// a response or timing out), we need to restore the branch factor by
-	// decrementing it.
+	// set when the short timeout is reported to the traversal algorithm,
+	// which increases its branch factor in response. We still wait for the
+	// full timeout for a response. Incrementing the branch factor is a
+	// middle-ground of no longer having much faith in this node responding
+	// (so we allow another query to use its "slot"). When the request
+	// completes (either by receiving a response or timing out), we need to
+	// restore the branch factor by decrementing it.
 	static inline constexpr observer_flags_t flag_short_timeout = 3_bit;
 	// a node
 	static inline constexpr observer_flags_t flag_failed = 4_bit;

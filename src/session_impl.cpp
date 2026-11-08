@@ -7495,6 +7495,8 @@ retry:
 		int unchokes_all = 0;
 		int num_optimistic = 0;
 		int disk_queue[2] = {0, 0};
+		int peers_up_requests = 0;
+		int peers_down_requests = 0;
 		for (auto const& p : m_connections)
 		{
 			TORRENT_ASSERT(p);
@@ -7506,6 +7508,11 @@ retry:
 
 			if (p->m_channel_state[0] & peer_info::bw_disk) ++disk_queue[0];
 			if (p->m_channel_state[1] & peer_info::bw_disk) ++disk_queue[1];
+
+			if (!p->upload_queue().empty())
+				++peers_up_requests;
+			if (!p->download_queue().empty())
+				++peers_down_requests;
 
 			if (p->ignore_unchoke_slots())
 			{
@@ -7528,6 +7535,11 @@ retry:
 
 		for (auto const& p : m_undead_peers)
 		{
+			// disconnected peers have released their requests and stopped
+			// contributing to the request gauges
+			TORRENT_ASSERT(p->upload_queue().empty());
+			TORRENT_ASSERT(p->download_queue().empty());
+
 			if (p->ignore_unchoke_slots())
 			{
 				if (!p->is_choked()) ++unchokes_all;
@@ -7551,6 +7563,11 @@ retry:
 			== m_stats_counters[counters::num_peers_down_disk]);
 		TORRENT_ASSERT(disk_queue[peer_connection::upload_channel]
 			== m_stats_counters[counters::num_peers_up_disk]);
+		TORRENT_ASSERT_VAL(peers_up_requests == m_stats_counters[counters::num_peers_up_requests],
+			peers_up_requests);
+		TORRENT_ASSERT_VAL(
+			peers_down_requests == m_stats_counters[counters::num_peers_down_requests],
+			peers_down_requests);
 
 		if (m_settings.get_int(settings_pack::num_optimistic_unchoke_slots))
 		{

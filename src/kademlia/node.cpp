@@ -1018,15 +1018,14 @@ void node::incoming_request(msg const& m, entry& e)
 			return;
 		}
 
-		sha1_hash const target = pub_key
-			? item_target_id(salt, public_key(pub_key))
-			: item_target_id(buf);
+		sha1_hash const target =
+			mutable_put ? item_target_id(salt, public_key(pub_key)) : item_target_id(buf);
 
-//		std::fprintf(stderr, "%s PUT target: %s salt: %s key: %s\n"
-//			, mutable_put ? "mutable":"immutable"
-//			, aux::to_hex(target).c_str()
-//			, salt.second > 0 ? std::string(salt.first, salt.second).c_str() : ""
-//			, pk ? aux::to_hex(pk).c_str() : "");
+		//		std::fprintf(stderr, "%s PUT target: %s salt: %s key: %s\n"
+		//			, mutable_put ? "mutable":"immutable"
+		//			, aux::to_hex(target).c_str()
+		//			, salt.second > 0 ? std::string(salt.first, salt.second).c_str() : ""
+		//			, pk ? aux::to_hex(pk).c_str() : "");
 
 		// verify the write-token. tokens are only valid to write to
 		// specific target hashes. it must match the one we got a "get" for

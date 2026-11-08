@@ -85,6 +85,10 @@
 
 2.0.16 not released
 
+	* only count the final timeout of a DHT request as a node failure, not the short timeout
+	* fix a few DHT routing table and storage bugs
+	* fix DHT traversals sending requests to our own node ID
+	* fix DHT put with a public key but no signature being stored under the mutable item's target
 	* fix outgoing i2p connections on v2-only torrents
 	* reject loading v2 torrents where files of different sizes share a pieces root
 	* fix byte counts of a seed's re-created piece picker leaving out pad bytes (a v2 torrent rechecked after a skipped file was deleted stayed below 100%)
