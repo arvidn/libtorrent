@@ -1838,14 +1838,18 @@ void test_bootstrap(address(&rand_addr)())
 	}
 
 	udp::endpoint found_node(rand_addr(), 2235);
+	// the response also lists our own node ID, which must not be queried
+	udp::endpoint self_node(rand_addr(), 2236);
 	std::vector<node_entry> nodes;
 	nodes.push_back(node_entry{found_node});
+	nodes.push_back(node_entry{t.dht_node.nid(), self_node});
 	g_sent_packets.clear();
 	if (aux::is_v4(initial_node))
 		send_dht_response(t.dht_node, response, initial_node, msg_args().nodes(nodes));
 	else
 		send_dht_response(t.dht_node, response, initial_node, msg_args().nodes6(nodes));
 
+	TEST_CHECK(find_packet(self_node) == g_sent_packets.end());
 	TEST_EQUAL(g_sent_packets.size(), 1);
 	if (g_sent_packets.empty()) return;
 	TEST_EQUAL(g_sent_packets.front().first, found_node);
