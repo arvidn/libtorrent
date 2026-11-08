@@ -3024,6 +3024,30 @@ TORRENT_TEST(routing_table_uniform)
 	print_state(std::cout, tbl);
 }
 
+TORRENT_TEST(routing_table_depth)
+{
+	auto sett = test_settings();
+	obs observer;
+
+	sett.set_bool(settings_pack::dht_extended_routing_table, false);
+	sett.set_bool(settings_pack::dht_prefer_verified_node_ids, false);
+	node_id id = to_hash("1234876923549721020394873245098347598635");
+
+	routing_table tbl(id, udp::v4(), 8, sett, &observer);
+
+	// asking for the depth of the empty table must not prevent it from
+	// growing once nodes are added
+	TEST_EQUAL(tbl.depth(), -1);
+
+	for (int i = 255; i >= 0; --i)
+	{
+		id[0] ^= i;
+		tbl.node_seen(id, rand_udp_ep(), 20 + (id[19] & 0xff));
+		id[0] ^= i;
+	}
+	TEST_CHECK(tbl.depth() > 0);
+}
+
 TORRENT_TEST(routing_table_balance)
 {
 	auto sett = test_settings();
@@ -3170,6 +3194,51 @@ TORRENT_TEST(routing_table_for_each)
 	v.clear();
 	tbl.for_each_node([&](node_entry const& e) { v.push_back(e); });
 	TEST_EQUAL(v.size(), 8);
+}
+
+TORRENT_TEST(routing_table_split_keeps_replacements)
+{
+	auto sett = test_settings();
+	obs observer;
+
+	sett.set_bool(settings_pack::dht_extended_routing_table, false);
+	sett.set_bool(settings_pack::dht_prefer_verified_node_ids, false);
+	sett.set_bool(settings_pack::dht_restrict_routing_ips, false);
+	node_id const id = to_hash("0100000000000000000000000000000000000000");
+	node_id const replacement = to_hash("2000000000000000000000000000000000000000");
+	udp::endpoint const shared(addr4("3.3.3.3"), 1);
+
+	routing_table tbl(id, udp::v4(), 2, sett, &observer);
+
+	// fill the only bucket with nodes from the far half
+	tbl.node_seen(to_hash("8000000000000000000000000000000000000000")
+		, udp::endpoint(addr4("1.1.1.1"), 1), 10);
+	tbl.node_seen(to_hash("9000000000000000000000000000000000000000")
+		, shared, 10);
+
+	// a node with an unknown ID behind the same endpoint, and a replacement
+	// from the near half
+	tbl.heard_about(node_id(), shared);
+	tbl.heard_about(replacement, udp::endpoint(addr4("4.4.4.4"), 1));
+
+	// a node from the near half splits the bucket, moving the replacement to
+	// the new bucket, but is itself rejected for changing the ID of the node at
+	// the shared endpoint. The new bucket has no live nodes, but it must keep
+	// its replacement
+	tbl.node_seen(to_hash("3000000000000000000000000000000000000000"), shared, 10);
+
+	int nodes;
+	int replacements;
+	std::tie(nodes, replacements, std::ignore) = tbl.size();
+	TEST_EQUAL(nodes, 1);
+	TEST_EQUAL(replacements, 1);
+
+	std::vector<node_entry> v;
+	tbl.for_each_node(nullptr, [&](node_entry const& e) { v.push_back(e); });
+	TEST_EQUAL(v.size(), 1);
+	if (v.size() == 1) TEST_CHECK(v[0].id == replacement);
+
+	print_state(std::cout, tbl);
 }
 
 TORRENT_TEST(node_set_id)
@@ -3341,6 +3410,42 @@ TORRENT_TEST(rpc_reply_ignores_wrong_port)
 
 	incoming_rpc_message(rpc, response, source, &nid);
 	TEST_EQUAL(nid, response_id);
+}
+
+// a request that's not part of a traversal's results (like the pings sent to
+// refresh the routing table) must only report its short timeout once
+TORRENT_TEST(rpc_short_timeout_once)
+{
+	dht_test_setup t(udp::endpoint(addr("10.0.0.1"), 20));
+
+	node_id const id = generate_next();
+	udp::endpoint const ep(addr("10.0.0.2"), 21);
+	t.dht_node.m_table.add_node(node_entry{id, ep, 10, true});
+
+	entry req;
+	req["q"] = "ping";
+
+	g_sent_packets.clear();
+	auto algo = std::make_shared<dht::traversal_algorithm>(t.dht_node, node_id());
+	auto o = t.dht_node.m_rpc.allocate_observer<null_observer>(std::move(algo), ep, id);
+#if TORRENT_USE_ASSERTS
+	o->m_in_constructor = false;
+#endif
+	o->flags |= observer::flag_queried;
+	TEST_CHECK(t.dht_node.m_rpc.invoke(req, ep, o));
+
+	// past the short timeout, but not the full timeout
+	std::this_thread::sleep_for(milliseconds(1100));
+	for (int i = 0; i < 3; ++i)
+		t.dht_node.connection_timeout();
+
+	int fail_count = -1;
+	t.dht_node.m_table.for_each_node([&](node_entry const& e)
+	{
+		if (e.id == id) fail_count = e.fail_count();
+	});
+	std::printf("fail count: %d\n", fail_count);
+	TEST_EQUAL(fail_count, 1);
 }
 
 #ifndef TORRENT_DISABLE_LOGGING
