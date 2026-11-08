@@ -9,7 +9,26 @@ inputs:
 runs:
   using: "composite"
   steps:
+    # the runner image ships a 64-bit OpenSSL (the slproweb installer) in
+    # C:\Program Files\OpenSSL. Its lib directory holds DLL import libraries,
+    # the static libraries live in per-CRT subdirectories under names b2 does
+    # not look for. Putting them in place of the import libraries lets every
+    # workflow keep pointing at the same lib directory. MD matches b2's default
+    # runtime-link=shared. There is no 32-bit OpenSSL on the image, so x86 is
+    # built with vcpkg.
+    - name: Use bundled OpenSSL
+      if: inputs.architecture == 'x64' && inputs.linking == 'static'
+      shell: pwsh
+      run: |
+        $Lib = "C:\Program Files\OpenSSL\lib"
+        dir "$Lib\VC\x64\MD"
+        Copy-Item "$Lib\VC\x64\MD\libcrypto_static.lib" "$Lib\libcrypto.lib" -Force
+        Copy-Item "$Lib\VC\x64\MD\libssl_static.lib" "$Lib\libssl.lib" -Force
+        # without the DLLs, an accidental dynamic link fails at test time
+        # instead of passing silently
+        Remove-Item "C:\Program Files\OpenSSL\bin" -Recurse -Force
     - name: Check vcpkg.json
+      if: inputs.architecture == 'x86'
       shell: pwsh
       run: |
         $f = [System.IO.File]::Exists("tools\vcpkg.json")
@@ -17,12 +36,29 @@ runs:
           throw "Could not find 'tools/vcpkg.json'. Did you forget to checkout libtorrent?"
         }
     - name: Remove Default OpenSSL
+      if: inputs.architecture == 'x86'
       shell: cmd
       run: |
         rmdir "C:\Program Files\OpenSSL\lib" /S /Q
         rmdir "C:\Program Files\OpenSSL\bin" /S /Q
-    - name: Compile OpenSSL
-      if: steps.cache-openssl.outputs.cache-hit != 'true'
+    - name: Record runner image version
+      if: inputs.architecture == 'x86'
+      shell: pwsh
+      run: echo "IMAGE_VERSION=$env:ImageVersion" >> $env:GITHUB_ENV
+    # a hit in vcpkg's binary cache skips both the source download and the
+    # build. The runner image version is part of the key because the package
+    # ABI depends on the compiler and vcpkg revision it ships.
+    - name: Cache vcpkg binaries
+      if: inputs.architecture == 'x86'
+      uses: actions/cache@v5
+      id: cache-openssl
+      with:
+        path: ~\AppData\Local\vcpkg\archives
+        key: vcpkg-openssl-${{ inputs.architecture }}-${{ inputs.linking }}-${{ env.IMAGE_VERSION }}-${{ hashFiles('tools/vcpkg.json') }}
+        restore-keys: |
+          vcpkg-openssl-${{ inputs.architecture }}-${{ inputs.linking }}-
+    - name: Install OpenSSL with vcpkg
+      if: inputs.architecture == 'x86'
       shell: pwsh
       run: |
         cd tools
