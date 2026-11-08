@@ -1,5 +1,6 @@
 2.1.3 not released
 
+	* fix announce_to_all_tiers and announce_to_all_trackers names being swapped
 	* fix restoring scrape counters from resume data, and save unknown counters as -1
 	* ignore i2p peers with invalid destinations
 	* fix out of bounds write in the C binding's torrent handle table after removing torrents
