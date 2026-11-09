@@ -333,6 +333,8 @@ namespace libtorrent { namespace aux {
 				? file_open_mode::read_write : file_open_mode::read_only)
 			| ((mode & open_mode::no_atime)
 				? file_open_mode::no_atime : file_open_mode::read_only)
+			| ((mode & open_mode::sequential_access)
+				? file_open_mode_t{} : file_open_mode::random_access)
 			| (has_mapping ? file_open_mode::mmapped : file_open_mode_t{})
 			;
 	}
