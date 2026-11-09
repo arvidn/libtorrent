@@ -115,10 +115,24 @@ namespace {
 				metadata();
 		}
 
+		// called when a peer announces the size of the metadata in its
+		// extension handshake
 		void metadata_size(int const size)
 		{
-			if (m_torrent.valid_metadata()) return;
-			if (size <= 0 || size > 4 * 1024 * 1024) return;
+			if (m_torrent.valid_metadata())
+				return;
+
+			// the size we have is not replaced by what another peer (or the
+			// same peer again) claims. That would let any peer make us
+			// disagree with everybody else about the size, and reject the
+			// pieces they send us. See received_metadata() for when the
+			// size is changed
+			if (!m_metadata.empty())
+				return;
+
+			if (size <= 0
+				|| size > m_torrent.session().settings().get_int(settings_pack::max_metadata_size))
+				return;
 			m_metadata.resize(size);
 			m_requested_metadata.resize(aux::ceil_div(size, 16 * 1024));
 		}
@@ -507,6 +521,19 @@ namespace {
 			return false;
 		}
 
+		// the size we have may be one that a peer claimed in its extension
+		// handshake. As long as nobody has backed that size up with an actual
+		// piece of metadata, trust the peer that just sent us one instead
+		if (!m_metadata.empty() && total_size != m_metadata.end_index()
+			&& std::none_of(m_requested_metadata.begin(),
+				m_requested_metadata.end(),
+				[](metadata_piece const& mp) {
+					return mp.num_requests == std::numeric_limits<int>::max();
+				}))
+		{
+			m_metadata.clear();
+		}
+
 		if (m_metadata.empty())
 		{
 			// verify the total_size
@@ -580,6 +607,10 @@ namespace {
 
 					peer->failed_hash_check(single_peer ? now + minutes(5) : now);
 				}
+
+				// the size may have been wrong too. Forget it, to pick it up
+				// from the next piece or extension handshake
+				m_metadata.clear();
 			}
 			return false;
 		}
