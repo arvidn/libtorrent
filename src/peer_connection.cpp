@@ -4597,6 +4597,7 @@ namespace {
 		{
 			TORRENT_ASSERT(m_download_queue.empty());
 			TORRENT_ASSERT(m_request_queue.empty());
+			TORRENT_ASSERT(m_requests.empty());
 			m_ses.close_connection(this);
 		}
 

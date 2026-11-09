@@ -49,36 +49,37 @@ bool verify_message_impl(bdecode_node const& message, span<key_desc_t const> des
 		//		std::fprintf(stderr, "looking for %s in %s\n", k.name, print_entry(*msg).c_str());
 
 		ret[i] = msg.dict_find(k.name);
-		// none_t means any type
-		if (ret[i] && ret[i].type() != k.type && k.type != bdecode_node::none_t)
-			ret[i].clear();
-		if (!ret[i] && (k.flags & key_desc_t::optional) == 0)
+		if (ret[i])
 		{
-			// the key was not found, and it's not an optional key
-			std::snprintf(error.data(), static_cast<std::size_t>(error.size()), "missing '%s' key", k.name);
-			return false;
-		}
+			// none_t means any type
+			bool invalid = k.type != bdecode_node::none_t && ret[i].type() != k.type;
 
-		if (k.size > 0
-			&& ret[i]
-			&& k.type == bdecode_node::string_t)
-		{
-			bool const invalid = (k.flags & key_desc_t::size_divisible)
-				? (ret[i].string_length() % k.size) != 0
-				: ret[i].string_length() != k.size;
+			if (!invalid && k.size > 0 && k.type == bdecode_node::string_t)
+			{
+				invalid = (k.flags & key_desc_t::size_divisible)
+					? (ret[i].string_length() % k.size) != 0
+					: ret[i].string_length() != k.size;
+			}
 
 			if (invalid)
 			{
-				// the string was not of the required size
-				ret[i].clear();
-				if ((k.flags & key_desc_t::optional) == 0)
+				if ((k.flags & key_desc_t::optional) == 0 || (k.flags & key_desc_t::reject_invalid))
 				{
 					std::snprintf(error.data(), static_cast<std::size_t>(error.size())
 						, "invalid value for '%s'", k.name);
 					return false;
 				}
+				// a malformed optional key is treated as absent
+				ret[i].clear();
 			}
 		}
+		else if ((k.flags & key_desc_t::optional) == 0)
+		{
+			std::snprintf(
+				error.data(), static_cast<std::size_t>(error.size()), "missing '%s' key", k.name);
+			return false;
+		}
+
 		if (k.flags & key_desc_t::parse_children)
 		{
 			TORRENT_ASSERT(k.type == bdecode_node::dict_t);
