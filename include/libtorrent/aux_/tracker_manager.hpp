@@ -26,6 +26,7 @@ see LICENSE file.
 #include <memory>
 #include <unordered_map>
 #include <deque>
+#include <algorithm> // for clamp
 
 #include "libtorrent/flags.hpp"
 #include "libtorrent/socket.hpp"
@@ -140,6 +141,19 @@ namespace libtorrent::aux {
 		std::vector<aux::rtc_offer> offers;
 #endif
 	};
+
+	// the longest announce interval we accept from a tracker. The intervals
+	// are 32 bit second counts that are added to the current time. Without
+	// an upper limit that addition can overflow
+	constexpr seconds32 max_tracker_interval{7 * 24 * 60 * 60};
+
+	// turn an interval (in seconds) from a tracker response into a
+	// seconds32, limited to max_tracker_interval
+	inline seconds32 clamp_tracker_interval(std::int64_t const s)
+	{
+		return seconds32{std::int32_t(std::clamp(s, std::int64_t(0)
+			, std::int64_t(max_tracker_interval.count())))};
+	}
 
 	struct tracker_response
 	{

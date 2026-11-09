@@ -543,8 +543,8 @@ namespace libtorrent::aux {
 		}
 
 		// if no interval is specified, default to 30 minutes
-		resp.interval = seconds32{e.dict_find_int_value("interval", 1800)};
-		resp.min_interval = seconds32{e.dict_find_int_value("min interval", 30)};
+		resp.interval = clamp_tracker_interval(e.dict_find_int_value("interval", 1800));
+		resp.min_interval = clamp_tracker_interval(e.dict_find_int_value("min interval", 30));
 
 		bdecode_node const tracker_id = e.dict_find_string("tracker id");
 		if (tracker_id)

@@ -648,12 +648,12 @@ parse_websocket_tracker_response(span<char const> message, error_code& ec) try
 		tracker_response& resp = response.resp.emplace();
 
 		if (auto it = payload.find("interval"); it != payload.end())
-			resp.interval = seconds32{it->value().as_int64()};
+			resp.interval = clamp_tracker_interval(it->value().as_int64());
 		else
 			resp.interval = seconds32{120};
 
 		if (auto it = payload.find("min_interval"); it != payload.end())
-			resp.min_interval = seconds32{it->value().as_int64()};
+			resp.min_interval = clamp_tracker_interval(it->value().as_int64());
 		else
 			resp.min_interval = seconds32{60};
 
