@@ -1322,21 +1322,24 @@ TORRENT_TEST(out_of_range_extension_id)
 	for (;;)
 	{
 		error_code ec;
-		boost::asio::read(s, boost::asio::buffer(recv_buffer, 4)
-			, boost::asio::transfer_all(), ec);
-		if (ec) break;
+		boost::asio::read(s, boost::asio::buffer(recv_buffer, 4), boost::asio::transfer_all(), ec);
+		if (ec)
+			break;
 		char const* ptr = recv_buffer;
 		int const len = read_int32(ptr);
 		TEST_CHECK(len <= int(sizeof(recv_buffer)));
-		if (len > int(sizeof(recv_buffer))) break;
-		boost::asio::read(s, boost::asio::buffer(recv_buffer, std::size_t(len))
-			, boost::asio::transfer_all(), ec);
-		if (ec) break;
+		if (len > int(sizeof(recv_buffer)))
+			break;
+		boost::asio::read(
+			s, boost::asio::buffer(recv_buffer, std::size_t(len)), boost::asio::transfer_all(), ec);
+		if (ec)
+			break;
 		auto const buffer = span<char const>(recv_buffer).first(len);
 		print_message(buffer);
 
 		// the only extension message we expect is the handshake
-		if (len >= 2 && buffer[0] == 20) TEST_EQUAL(int(buffer[1]), 0);
+		if (len >= 2 && buffer[0] == 20)
+			TEST_EQUAL(int(buffer[1]), 0);
 	}
 
 	print_session_log(*ses);

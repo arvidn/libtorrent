@@ -234,7 +234,8 @@ namespace libtorrent { namespace {
 
 			// extension message IDs are a single byte on the wire
 			std::int64_t const index = messages.dict_find_int_value(extension_name, -1);
-			if (index < 0 || index > 255) return false;
+			if (index < 0 || index > 255)
+				return false;
 			m_message_index = int(index);
 			return true;
 		}

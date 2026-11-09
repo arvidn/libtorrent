@@ -184,7 +184,8 @@ namespace {
 
 			// extension message IDs are a single byte on the wire
 			std::int64_t const index = messages.dict_find_int_value("ut_metadata", -1);
-			if (index < 0 || index > 255) return false;
+			if (index < 0 || index > 255)
+				return false;
 			m_message_index = int(index);
 
 			int metadata_size = int(h.dict_find_int_value("metadata_size"));

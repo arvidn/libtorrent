@@ -2065,8 +2065,7 @@ namespace {
 		{
 			// extension message IDs are a single byte on the wire. An ID
 			// that doesn't fit is treated as the extension being disabled
-			auto const ext_id = [&m](string_view const name)
-			{
+			auto const ext_id = [&m](string_view const name) {
 				std::int64_t const id = m.dict_find_int_value(name, 0);
 				return (id > 0 && id <= 255) ? std::uint8_t(id) : std::uint8_t(0);
 			};
