@@ -370,11 +370,12 @@ time to seeding time ratio) and a seed-time (the absolute time to be seeding a
 torrent). Until all those targets are hit, the torrent will be prioritized for
 seeding.
 
-Among torrents that have met their seed target, torrents where we don't know of
-any other seed take strict priority.
+Among torrents that have met their seed target, torrents that were resumed less
+than 30 minutes ago take strict priority to keep seeding. This avoids flapping,
+and gives a newly started seed time to be classified as inactive (see
+settings_pack::dont_count_slow_torrents).
 
-In order to avoid flapping, torrents that were started less than 30 minutes ago
-also have priority to keep seeding.
+Next, torrents where we don't know of any other seed have priority.
 
 Finally, for torrents where none of the above apply, they are prioritized based
 on the download to seed ratio.
