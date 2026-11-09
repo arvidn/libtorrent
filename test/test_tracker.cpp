@@ -268,8 +268,7 @@ TORRENT_TEST(parse_interval_out_of_range)
 	// 2^32 + 1 and INT_MAX
 	char const response[] = "d8:intervali4294967297e12:min intervali2147483647e5:peers0:e";
 	error_code ec;
-	aux::tracker_response resp = aux::parse_tracker_response(response
-		, ec, {}, sha1_hash());
+	aux::tracker_response resp = aux::parse_tracker_response(response, ec, {}, sha1_hash());
 
 	TEST_EQUAL(ec, error_code());
 	TEST_EQUAL(resp.interval.count(), aux::max_tracker_interval.count());
@@ -280,8 +279,7 @@ TORRENT_TEST(parse_negative_interval)
 {
 	char const response[] = "d8:intervali-1e12:min intervali-4294967297e5:peers0:e";
 	error_code ec;
-	aux::tracker_response resp = aux::parse_tracker_response(response
-		, ec, {}, sha1_hash());
+	aux::tracker_response resp = aux::parse_tracker_response(response, ec, {}, sha1_hash());
 
 	TEST_EQUAL(ec, error_code());
 	TEST_EQUAL(resp.interval.count(), 0);
@@ -635,8 +633,7 @@ TORRENT_TEST(http_peers)
 // added to the current time, leaving min_announce in the past
 TORRENT_TEST(http_min_interval_overflow)
 {
-	int const http_port = start_web_server(false, false, true
-		, std::numeric_limits<int>::max());
+	int const http_port = start_web_server(false, false, true, std::numeric_limits<int>::max());
 
 	settings_pack pack = settings();
 	pack.set_int(settings_pack::tracker_completion_timeout, 2);
@@ -653,8 +650,7 @@ TORRENT_TEST(http_min_interval_overflow)
 	file.close();
 
 	char tracker_url[200];
-	std::snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce"
-		, http_port);
+	std::snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce", http_port);
 	addp.trackers.push_back(tracker_url);
 
 	addp.flags &= ~torrent_flags::paused;
@@ -675,8 +671,7 @@ TORRENT_TEST(http_min_interval_overflow)
 			for (auto const& ih : aep.info_hashes)
 			{
 				// only look at the announces that have received a response
-				if (ih.updating || ih.fails != 0
-					|| ih.min_announce == (time_point32::min)())
+				if (ih.updating || ih.fails != 0 || ih.min_announce == (time_point32::min)())
 					continue;
 				++num_announced;
 				TEST_CHECK(ih.min_announce > now);
@@ -777,18 +772,21 @@ TORRENT_TEST(parse_websocket_tracker_response)
 TORRENT_TEST(parse_websocket_tracker_interval_out_of_range)
 {
 	// 2^32 + 1 and INT_MAX
-	char const response[] = R"({"action":"announce","interval":4294967297,"min_interval":2147483647,"info_hash":"xxxxxxxxxxxxxxxxxxxx"})";
+	char const response[] =
+		R"({"action":"announce","interval":4294967297,"min_interval":2147483647,"info_hash":"xxxxxxxxxxxxxxxxxxxx"})";
 
 	error_code ec;
 	auto ret = aux::parse_websocket_tracker_response(string_view(response), ec);
 
 	TEST_EQUAL(ec, error_code{});
 	TEST_CHECK(std::holds_alternative<aux::websocket_tracker_response>(ret));
-	if (!std::holds_alternative<aux::websocket_tracker_response>(ret)) return;
+	if (!std::holds_alternative<aux::websocket_tracker_response>(ret))
+		return;
 
 	auto const parsed = std::get<aux::websocket_tracker_response>(ret);
 	TEST_CHECK(parsed.resp);
-	if (!parsed.resp) return;
+	if (!parsed.resp)
+		return;
 
 	TEST_EQUAL(parsed.resp->interval.count(), aux::max_tracker_interval.count());
 	TEST_EQUAL(parsed.resp->min_interval.count(), aux::max_tracker_interval.count());

@@ -151,8 +151,8 @@ namespace libtorrent::aux {
 	// seconds32, limited to max_tracker_interval
 	inline seconds32 clamp_tracker_interval(std::int64_t const s)
 	{
-		return seconds32{std::int32_t(std::clamp(s, std::int64_t(0)
-			, std::int64_t(max_tracker_interval.count())))};
+		return seconds32{std::int32_t(
+			std::clamp(s, std::int64_t(0), std::int64_t(max_tracker_interval.count())))};
 	}
 
 	struct tracker_response
