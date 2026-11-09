@@ -92,7 +92,7 @@ jobs:
       run: |
         python -m pip install --upgrade setuptools
 
-    - name: install openssl:x64-windows-static (windows)
+    - name: install openssl (windows)
       if: runner.os == 'Windows'
       uses: ./.github/actions/win_install_openssl
       with:

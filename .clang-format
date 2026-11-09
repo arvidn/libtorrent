@@ -128,3 +128,6 @@ Cpp11BracedListStyle:                true
 MaxEmptyLinesToKeep:             2
 EmptyLineBeforeAccessModifier:   LogicalBlock
 ...
+
+---
+Language: Json

@@ -123,6 +123,17 @@ using namespace std::placeholders;
 namespace libtorrent::aux {
 namespace {
 
+// the scrape counters are 24-bit fields, where all bits set means unknown.
+// the public API uses -1 for unknown
+constexpr std::uint32_t unknown_scrape = 0xffffff;
+
+std::uint32_t to_scrape_field(int const v)
+{
+	return (v < 0 || v >= int(unknown_scrape)) ? unknown_scrape : std::uint32_t(v);
+}
+
+int from_scrape_field(std::uint32_t const v) { return v == unknown_scrape ? -1 : int(v); }
+
 bool is_downloading_state(int const st)
 {
 	switch (st)
@@ -200,7 +211,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			  | (session_paused ? torrent_internal_flags::session_paused : torrent_flags_t{}))
 		, m_sanitize_flags(p.sanitize_flags)
 		, m_ses(ses)
-		, m_complete(0xffffff)
+		, m_complete(to_scrape_field(p.num_complete))
 		, m_max_connections(0xffffff)
 		, m_state(torrent_status::checking_resume_data)
 	{}
@@ -233,12 +244,12 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		, m_num_uploads(0)
 		, m_connect_boost_counter(
 			  static_cast<std::uint8_t>(settings().get_int(settings_pack::torrent_connect_boost)))
-		, m_incomplete(0xffffff)
+		, m_incomplete(to_scrape_field(p.num_incomplete))
 		, m_last_download(aux::from_time_t(p.last_download))
 		, m_last_upload(aux::from_time_t(p.last_upload))
 		, m_userdata(p.userdata)
 		, m_current_gauge_state(static_cast<std::uint32_t>(no_gauge_state))
-		, m_downloaded(0xffffff)
+		, m_downloaded(to_scrape_field(p.num_downloaded))
 		, m_progress_ppm(0)
 	{
 		if (!(p.flags & torrent_flags::paused))
@@ -3893,19 +3904,28 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			}
 		}
 
-		if ((complete >= 0 && int(m_complete) != complete)
-			|| (incomplete >= 0 && int(m_incomplete) != incomplete)
-			|| (downloaded >= 0 && int(m_downloaded) != downloaded))
-			state_updated();
-
-		if (int(m_complete) != complete
-			|| int(m_incomplete) != incomplete
-			|| int(m_downloaded) != downloaded)
+		// a field no tracker knows about must not clobber a known value, such
+		// as one restored from resume data
+		bool changed = false;
+		if (complete >= 0 && m_complete != to_scrape_field(complete))
 		{
-			m_complete = std::uint32_t(complete);
-			m_incomplete = std::uint32_t(incomplete);
-			m_downloaded = std::uint32_t(downloaded);
+			m_complete = to_scrape_field(complete);
+			changed = true;
+		}
+		if (incomplete >= 0 && m_incomplete != to_scrape_field(incomplete))
+		{
+			m_incomplete = to_scrape_field(incomplete);
+			changed = true;
+		}
+		if (downloaded >= 0 && m_downloaded != to_scrape_field(downloaded))
+		{
+			m_downloaded = to_scrape_field(downloaded);
+			changed = true;
+		}
 
+		if (changed)
+		{
+			state_updated();
 			update_auto_sequential();
 
 			// these numbers are cached in the resume data
@@ -7678,9 +7698,9 @@ namespace {
 		ret.last_upload = aux::to_time_t(m_last_upload);
 		ret.last_download = aux::to_time_t(m_last_download);
 
-		ret.num_complete = m_complete;
-		ret.num_incomplete = m_incomplete;
-		ret.num_downloaded = m_downloaded;
+		ret.num_complete = from_scrape_field(m_complete);
+		ret.num_incomplete = from_scrape_field(m_incomplete);
+		ret.num_downloaded = from_scrape_field(m_downloaded);
 
 		// mask off engine-internal bits before exposing to the user
 		ret.flags = m_flags & torrent_flags::public_flags & ~torrent_flags::input_only_flags;
@@ -10180,9 +10200,9 @@ namespace {
 		enum flags
 		{
 			seed_ratio_not_met = 0x40000000,
-			no_seeds           = 0x20000000,
-			recently_started   = 0x10000000,
-			prio_mask          = 0x0fffffff
+			recently_started = 0x20000000,
+			no_seeds = 0x10000000,
+			prio_mask = 0x0fffffff
 		};
 
 		if (!is_finished()) return 0;
@@ -10201,16 +10221,21 @@ namespace {
 		// flag. That will make this seed prioritized
 		// downloaded may be 0 if the torrent is 0-sized
 		std::int64_t const downloaded = std::max(m_total_downloaded, m_torrent_file->total_size());
+		// the seed time limit may be set high enough for the product to
+		// overflow 32 bits
 		if (fin_time < seconds(s.get_int(settings_pack::seed_time_limit))
 			&& (download_time.count() > 1
-				&& fin_time * 100 / download_time < s.get_int(settings_pack::seed_time_ratio_limit))
+				&& std::int64_t(fin_time.count()) * 100 / download_time.count()
+					< s.get_int(settings_pack::seed_time_ratio_limit))
 			&& downloaded > 0
 			&& m_total_uploaded * 100 / downloaded < s.get_int(settings_pack::share_ratio_limit))
 			ret |= seed_ratio_not_met;
 
-		// if this torrent is running, and it was started less
-		// than 30 minutes ago, give it priority, to avoid oscillation
-		if (!is_paused() && act_time < minutes(30))
+		// a torrent resumed less than 30 minutes ago keeps its slot, to avoid
+		// oscillation and to give it time to be classified as inactive (see
+		// dont_count_slow_torrents). This outranks no_seeds, since queued
+		// torrents without scrape data look like they have no seeds
+		if (!is_paused() && m_active_timer.live_for(now) < minutes(30))
 			ret |= recently_started;
 
 		// if we have any scrape data, use it to calculate
@@ -10235,7 +10260,10 @@ namespace {
 		}
 		else
 		{
-			ret |= ((1 + downloaders) * scale / seeds) & prio_mask;
+			// the scrape counters are 24 bits wide, so the product does not
+			// fit in an int
+			ret |= int(
+				std::min(std::int64_t(prio_mask), (1 + std::int64_t(downloaders)) * scale / seeds));
 		}
 
 		return ret;
@@ -12675,8 +12703,8 @@ namespace {
 
 		st->storage_mode = static_cast<storage_mode_t>(m_storage_mode);
 
-		st->num_complete = (m_complete == 0xffffff) ? -1 : m_complete;
-		st->num_incomplete = (m_incomplete == 0xffffff) ? -1 : m_incomplete;
+		st->num_complete = from_scrape_field(m_complete);
+		st->num_incomplete = from_scrape_field(m_incomplete);
 #if TORRENT_ABI_VERSION == 1
 		st->paused = is_torrent_paused();
 		st->auto_managed = bool(m_flags & torrent_flags::auto_managed);

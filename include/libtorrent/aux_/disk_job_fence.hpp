@@ -13,6 +13,7 @@ see LICENSE file.
 
 #include "libtorrent/config.hpp"
 #include "libtorrent/aux_/tailqueue.hpp"
+#include "libtorrent/aux_/disk_job.hpp" // for job_action_t
 
 #include <atomic>
 #include <functional>
@@ -26,6 +27,8 @@ struct counters;
 namespace libtorrent::aux {
 
 	struct disk_job;
+
+	TORRENT_EXTRA_EXPORT int fenced_job_counter(job_action_t action);
 
 	// implements the disk I/O job fence used by the default_storage
 	// to provide to the disk thread. Whenever a disk job needs

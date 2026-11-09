@@ -51,6 +51,9 @@ TORRENT_TEST(read_resume)
 	rd["completed_time"] = 1348;
 	rd["finished_time"] = 1352;
 	rd["last_seen_complete"] = 1353;
+	rd["num_complete"] = 1354;
+	rd["num_incomplete"] = 1355;
+	rd["num_downloaded"] = 1356;
 
 	rd["piece_priority"] = "\x01\x02\x03\x04\x05\x06";
 	rd["auto_managed"] = 0;
@@ -85,6 +88,9 @@ TORRENT_TEST(read_resume)
 	TEST_EQUAL(atp.completed_time, 1348);
 	TEST_EQUAL(atp.finished_time, 1352);
 	TEST_EQUAL(atp.last_seen_complete, 1353);
+	TEST_EQUAL(atp.num_complete, 1354);
+	TEST_EQUAL(atp.num_incomplete, 1355);
+	TEST_EQUAL(atp.num_downloaded, 1356);
 
 	TEST_EQUAL(atp.piece_priorities.size(), 6);
 	TEST_EQUAL(atp.piece_priorities[0], 1_pri);
@@ -93,6 +99,44 @@ TORRENT_TEST(read_resume)
 	TEST_EQUAL(atp.piece_priorities[3], 4_pri);
 	TEST_EQUAL(atp.piece_priorities[4], 5_pri);
 	TEST_EQUAL(atp.piece_priorities[5], 6_pri);
+}
+
+TORRENT_TEST(read_resume_scrape_unknown)
+{
+	entry rd;
+	rd["file-format"] = "libtorrent resume file";
+	rd["file-version"] = 1;
+	rd["info-hash"] = "abcdefghijklmnopqrst";
+
+	// missing keys
+	{
+		add_torrent_params const atp = read_resume_data(bencode(rd));
+		TEST_EQUAL(atp.num_complete, -1);
+		TEST_EQUAL(atp.num_incomplete, -1);
+		TEST_EQUAL(atp.num_downloaded, -1);
+	}
+
+	// -1 means unknown
+	rd["num_complete"] = -1;
+	rd["num_incomplete"] = -1;
+	rd["num_downloaded"] = -1;
+	{
+		add_torrent_params const atp = read_resume_data(bencode(rd));
+		TEST_EQUAL(atp.num_complete, -1);
+		TEST_EQUAL(atp.num_incomplete, -1);
+		TEST_EQUAL(atp.num_downloaded, -1);
+	}
+
+	// older versions wrote the internal sentinel verbatim
+	rd["num_complete"] = 0xffffff;
+	rd["num_incomplete"] = 0xffffff;
+	rd["num_downloaded"] = 0xffffff;
+	{
+		add_torrent_params const atp = read_resume_data(bencode(rd));
+		TEST_EQUAL(atp.num_complete, -1);
+		TEST_EQUAL(atp.num_incomplete, -1);
+		TEST_EQUAL(atp.num_downloaded, -1);
+	}
 }
 
 TORRENT_TEST(read_resume_missing_info_hash)
@@ -259,6 +303,9 @@ void test_roundtrip(add_torrent_params input)
 	TEST_CHECK(input.renamed_files == output.renamed_files);
 	TEST_CHECK(input.comment == output.comment);
 	TEST_CHECK(input.created_by == output.created_by);
+	TEST_CHECK(input.num_complete == output.num_complete);
+	TEST_CHECK(input.num_incomplete == output.num_incomplete);
+	TEST_CHECK(input.num_downloaded == output.num_downloaded);
 
 	auto const compare = write_resume_data_buf(output);
 	TEST_CHECK(compare == b);
@@ -325,6 +372,15 @@ TORRENT_TEST(round_trip_last_seen_complete)
 {
 	add_torrent_params atp;
 	atp.last_seen_complete = 42;
+	test_roundtrip(atp);
+}
+
+TORRENT_TEST(round_trip_scrape_data)
+{
+	add_torrent_params atp;
+	atp.num_complete = 42;
+	atp.num_incomplete = 43;
+	atp.num_downloaded = 44;
 	test_roundtrip(atp);
 }
 

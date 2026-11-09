@@ -1769,7 +1769,7 @@ void pread_disk_io::add_fence_job(aux::pread_disk_job* j, bool const user_add)
 		, j->storage->num_outstanding_jobs());
 
 	TORRENT_ASSERT(j->storage);
-	m_stats_counters.inc_stats_counter(counters::num_fenced_read + static_cast<int>(j->get_type()));
+	m_stats_counters.inc_stats_counter(aux::fenced_job_counter(j->get_type()));
 
 	int const ret = j->storage->raise_fence(j, m_stats_counters);
 
@@ -2439,8 +2439,7 @@ void pread_disk_io::add_completed_jobs_impl(
 
 		if (j->state & aux::disk_job::fence)
 		{
-			m_stats_counters.inc_stats_counter(
-				counters::num_fenced_read + static_cast<int>(j->get_type()), -1);
+			m_stats_counters.inc_stats_counter(aux::fenced_job_counter(j->get_type()), -1);
 		}
 
 		if (j->state & aux::disk_job::in_progress)

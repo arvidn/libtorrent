@@ -20,6 +20,8 @@
 
 2.1.3 not released
 
+	* fix auto managed seeds being paused before they can be classified as inactive
+	* fix restoring scrape counters from resume data, and save unknown counters as -1
 	* ignore i2p peers with invalid destinations
 	* fix out of bounds write in the C binding's torrent handle table after removing torrents
 	* fix use-after-free reading a UPnP response body after the HTTP receive buffer grew
@@ -104,6 +106,11 @@
 
 2.0.16 not released
 
+	* fix announce_to_all_tiers and announce_to_all_trackers names being swapped
+	* only count the final timeout of a DHT request as a node failure, not the short timeout
+	* fix a few DHT routing table and storage bugs
+	* fix DHT traversals sending requests to our own node ID
+	* fix DHT put with a public key but no signature being stored under the mutable item's target
 	* fix outgoing i2p connections on v2-only torrents
 	* reject loading v2 torrents where files of different sizes share a pieces root
 	* fix byte counts of a seed's re-created piece picker leaving out pad bytes (a v2 torrent rechecked after a skipped file was deleted stayed below 100%)

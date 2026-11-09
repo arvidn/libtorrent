@@ -276,7 +276,7 @@ namespace {
 
 					// pick this peer with probability
 					// <peers left to pick> / <peers left in the set>
-					if (aux::random(std::uint32_t(candidates--)) > std::uint32_t(to_pick))
+					if (aux::random(std::uint32_t(--candidates)) >= std::uint32_t(to_pick))
 						continue;
 
 					pe.emplace_back();
@@ -626,7 +626,7 @@ namespace {
 
 				// pick this key with probability
 				// <keys left to pick> / <keys left in the set>
-				if (aux::random(std::uint32_t(candidates--)) > std::uint32_t(to_pick))
+				if (aux::random(std::uint32_t(--candidates)) >= std::uint32_t(to_pick))
 					continue;
 
 				samples.push_back(t.first);

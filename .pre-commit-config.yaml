@@ -20,6 +20,8 @@ repos:
     -   id: trailing-whitespace
     #-   id: end-of-file-fixer
     -   id: check-yaml
+        # .clang-format holds one document per language
+        args: [--allow-multiple-documents]
     -   id: check-case-conflict
     -   id: check-executables-have-shebangs
     -   id: check-xml
