@@ -512,7 +512,16 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 					}
 				}
 			}
-			if (piece_iter->flushed_cursor == piece_iter->blocks_in_piece())
+			// another disk thread may be flushing this piece right now (the
+			// lock is released while it writes). flushed_cursor is only
+			// refreshed when that flush completes, so it can claim the piece
+			// is fully flushed while new write jobs sit in it. Erasing it then
+			// leaves the flusher with a dangling iterator. Leave such pieces
+			// to flush_to_disk(), which evicts them once they're idle (we just
+			// set force_flush_flag).
+			if (piece_iter->flushed_cursor == piece_iter->blocks_in_piece()
+				&& !(piece_iter->flags & cached_piece_entry::flushing_flag)
+				&& piece_iter->num_jobs == 0 && piece_iter->clear_piece == nullptr)
 			{
 				free_piece(*piece_iter);
 				view.erase(piece_iter);
@@ -867,16 +876,26 @@ void disk_cache::drain_v2_hash_queue(Fun store,
 						[&](cached_piece_entry& e) { j = std::exchange(e.hash_job, nullptr); });
 					posted.push_back(j);
 				}
-				if (piece_iter->clear_piece != nullptr)
+				// a clear parked by try_clear_piece() because the piece was
+				// flushing has not run clear_piece_impl yet. If it's still
+				// flushing, flush_piece_impl() will clear it and post the job
+				// once the flush is done (v2_pending is 0 now). Completing it
+				// here would let the torrent re-download into a stale entry.
+				if (piece_iter->clear_piece != nullptr
+					&& !(piece_iter->flags & cached_piece_entry::flushing_flag))
 				{
+					jobqueue_t aborted;
 					disk_job* clear_piece = nullptr;
+					bool const hashing = bool(piece_iter->flags & cached_piece_entry::hashing_flag);
 					view.modify(piece_iter, [&](cached_piece_entry& e) {
+						// clear_piece_impl is idempotent when it already ran
+						// (flush_piece_impl's deferred-clear branch). Don't
+						// touch the blocks while a hasher is reading them.
+						if (!hashing)
+							clear_piece_impl(e, aborted);
 						clear_piece = std::exchange(e.clear_piece, nullptr);
 					});
-					// clear_piece_impl already ran when the clear was parked;
-					// any aborted writes were dispatched at that point. We
-					// only need to post the clear job's completion now.
-					clear_piece_fun({}, clear_piece);
+					clear_piece_fun(std::move(aborted), clear_piece);
 				}
 			}
 			m_back_pressure.check_buffer_level(buffer_level());
