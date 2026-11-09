@@ -472,6 +472,11 @@ namespace libtorrent::aux {
 #endif
 
 		typed_bitfield<piece_index_t> const& get_bitfield() const;
+
+		// the max number of pieces we keep track of that the peer has
+		// allowed us to request while choked (the allowed-fast set). A peer
+		// is expected to allow a handful of pieces
+		static inline constexpr int max_allowed_fast_pieces = 100;
 		std::vector<piece_index_t> const& allowed_fast();
 		std::vector<piece_index_t> const& suggested_pieces() const { return m_suggested_pieces; }
 
@@ -972,7 +977,8 @@ namespace libtorrent::aux {
 		aux::vector<std::uint16_t> m_accept_fast_piece_cnt;
 
 		// the pieces the peer will send us if
-		// requested (regardless of choke state)
+		// requested (regardless of choke state). There are no duplicates
+		// in here and it's limited to max_allowed_fast_pieces
 		std::vector<piece_index_t> m_allowed_fast;
 
 		// pieces that has been suggested to be downloaded from this peer

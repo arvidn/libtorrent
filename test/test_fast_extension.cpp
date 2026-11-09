@@ -28,10 +28,12 @@ see LICENSE file.
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_params.hpp"
 #include "libtorrent/aux_/torrent.hpp"
+#include "libtorrent/aux_/peer_connection.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 
 #include <cstring>
 #include <functional>
+#include <future>
 #include <iostream>
 #include <fstream>
 #include <cstdarg>
@@ -579,6 +581,21 @@ bool wait_for_counter(lt::session& ses, char const* name, std::int64_t const val
 	return false;
 }
 
+#ifndef TORRENT_DISABLE_EXTENSIONS
+// returns the number of pieces the (single) peer has allowed us to request
+// while choked, or -1 if there is no peer
+int num_allowed_fast(lt::session& ses, torrent_handle const& th)
+{
+	auto const tor = th.native_handle();
+	std::promise<int> ret;
+	post(ses.native_handle()->get_context(), [tor, &ret] {
+		ret.set_value(
+			tor->begin() == tor->end() ? -1 : int((*tor->begin())->allowed_fast().size()));
+	});
+	return ret.get_future().get();
+}
+#endif // TORRENT_DISABLE_EXTENSIONS
+
 } // anonymous namespace
 
 // makes sure that pieces that are allowed and then
@@ -694,6 +711,76 @@ TORRENT_TEST(allowed_fast_survives_metadata)
 	TEST_EQUAL(read_request_piece(s, recv_buffer), allowed_piece);
 	s.close();
 }
+
+#ifndef TORRENT_DISABLE_EXTENSIONS
+// the allowed-fast set a peer sends us is not allowed to grow without bound.
+// Before we have the metadata any piece index is accepted
+TORRENT_TEST(allowed_fast_limit)
+{
+	info_hash_t ih;
+	torrent_handle th;
+	std::shared_ptr<lt::session> ses;
+	io_context ios;
+	tcp::socket s(ios);
+	setup_peer(s, ios, ih, ses, true, true, false, torrent_flags_t{}, &th);
+
+	char recv_buffer[1000];
+	do_handshake(s, ih, recv_buffer);
+	send_have_all(s);
+
+	entry extensions;
+	extensions["m"]["ut_metadata"] = 1;
+	send_extension_handshake(s, extensions);
+	extensions = read_extension_handshake(s, recv_buffer);
+	int const ut_metadata = int(extensions["m"]["ut_metadata"].integer());
+
+	int const num_messages = 10 * aux::peer_connection::max_allowed_fast_pieces;
+	for (int i = 0; i < num_messages; ++i)
+		send_allow_fast(s, i);
+
+	// once we have a response to this, we know all the allowed-fast messages
+	// have been handled
+	send_ut_metadata_msg(s, ut_metadata, 0, 0);
+	read_ut_metadata_msg(s, recv_buffer);
+
+	TEST_EQUAL(num_allowed_fast(*ses, th), aux::peer_connection::max_allowed_fast_pieces);
+	s.close();
+}
+
+// allowing the same piece over and over is not supposed to add it to the
+// allowed-fast set more than once
+TORRENT_TEST(allowed_fast_duplicates)
+{
+	info_hash_t ih;
+	torrent_handle th;
+	std::shared_ptr<lt::session> ses;
+	io_context ios;
+	tcp::socket s(ios);
+	setup_peer(s, ios, ih, ses, true, false, false, torrent_flags_t{}, &th);
+
+	char recv_buffer[1000];
+	do_handshake(s, ih, recv_buffer);
+	send_have_all(s);
+
+	entry extensions;
+	extensions["m"]["ut_metadata"] = 1;
+	send_extension_handshake(s, extensions);
+	extensions = read_extension_handshake(s, recv_buffer);
+	int const ut_metadata = int(extensions["m"]["ut_metadata"].integer());
+
+	int const num_messages = 500;
+	for (int i = 0; i < num_messages; ++i)
+		send_allow_fast(s, i % 2);
+
+	// once we have a response to this, we know all the allowed-fast messages
+	// have been handled
+	send_ut_metadata_msg(s, ut_metadata, 0, 0);
+	read_ut_metadata_msg(s, recv_buffer);
+
+	TEST_EQUAL(num_allowed_fast(*ses, th), 2);
+	s.close();
+}
+#endif // TORRENT_DISABLE_EXTENSIONS
 
 TORRENT_TEST(suggested_piece_survives_metadata)
 {
