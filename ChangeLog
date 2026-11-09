@@ -1,5 +1,6 @@
 2.1.3 not released
 
+	* fix extension message IDs outside of 1-255 in a peer's extension handshake being truncated to a byte
 	* fix auto managed seeds being paused before they can be classified as inactive
 	* fix restoring scrape counters from resume data, and save unknown counters as -1
 	* ignore i2p peers with invalid destinations
