@@ -245,8 +245,8 @@ namespace libtorrent { namespace {
 			{
 				// limit the number of peers we accept from a single message.
 				// every one of them results in a name lookup
-				int const num_peers = std::min(p.string_length() / 32
-					, m_torrent.settings().get_int(settings_pack::max_pex_peers));
+				int const num_peers = std::min(p.string_length() / 32,
+					m_torrent.settings().get_int(settings_pack::max_pex_peers));
 				char const* in = p.string_ptr();
 
 #ifndef TORRENT_DISABLE_LOGGING

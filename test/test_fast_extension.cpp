@@ -1441,7 +1441,8 @@ std::string read_sam_line(tcp::socket& s)
 		char c;
 		error_code ec;
 		boost::asio::read(s, boost::asio::buffer(&c, 1), ec);
-		if (ec || c == '\n') return ret;
+		if (ec || c == '\n')
+			return ret;
 		ret += c;
 	}
 }
@@ -1450,7 +1451,8 @@ void write_sam_line(tcp::socket& s, std::string const& line)
 {
 	error_code ec;
 	boost::asio::write(s, boost::asio::buffer(line), ec);
-	if (ec) TEST_ERROR(ec.message());
+	if (ec)
+		TEST_ERROR(ec.message());
 }
 
 } // anonymous namespace
@@ -1555,7 +1557,8 @@ TORRENT_TEST(i2p_pex_max_peers)
 	write_uint8(i2p_pex, ptr);
 	log("==> i2p_pex [ added: %d ]", num_peers);
 	boost::asio::write(s, boost::asio::buffer(buf), ec);
-	if (ec) TEST_ERROR(ec.message());
+	if (ec)
+		TEST_ERROR(ec.message());
 
 	// request a metadata piece. Once we have the response, we know the pex
 	// message has been handled
@@ -1573,8 +1576,9 @@ TORRENT_TEST(i2p_pex_max_peers)
 	// there should not be any more name lookups
 	bool another_lookup = false;
 	char c;
-	boost::asio::async_read(ctrl, boost::asio::buffer(&c, 1)
-		, [&](error_code const& e, std::size_t) { another_lookup = !e; });
+	boost::asio::async_read(ctrl,
+		boost::asio::buffer(&c, 1),
+		[&](error_code const& e, std::size_t) { another_lookup = !e; });
 	ios.restart();
 	ios.run_for(std::chrono::milliseconds(500));
 	TEST_CHECK(!another_lookup);
@@ -1587,7 +1591,8 @@ TORRENT_TEST(i2p_pex_max_peers)
 	for (int i = 0; i < 50; ++i)
 	{
 		list_peers = th.status().list_peers;
-		if (list_peers > max_pex_peers) break;
+		if (list_peers > max_pex_peers)
+			break;
 		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
 	print_session_log(ses);
