@@ -10098,9 +10098,9 @@ namespace {
 		enum flags
 		{
 			seed_ratio_not_met = 0x40000000,
-			no_seeds           = 0x20000000,
-			recently_started   = 0x10000000,
-			prio_mask          = 0x0fffffff
+			recently_started = 0x20000000,
+			no_seeds = 0x10000000,
+			prio_mask = 0x0fffffff
 		};
 
 		if (!is_finished()) return 0;
@@ -10126,9 +10126,11 @@ namespace {
 			&& m_total_uploaded * 100 / downloaded < s.get_int(settings_pack::share_ratio_limit))
 			ret |= seed_ratio_not_met;
 
-		// if this torrent is running, and it was started less
-		// than 30 minutes ago, give it priority, to avoid oscillation
-		if (!is_paused() && act_time < minutes(30))
+		// a torrent resumed less than 30 minutes ago keeps its slot, to avoid
+		// oscillation and to give it time to be classified as inactive (see
+		// dont_count_slow_torrents). This outranks no_seeds, since queued
+		// torrents without scrape data look like they have no seeds
+		if (!is_paused() && m_active_timer.live_for(now) < minutes(30))
 			ret |= recently_started;
 
 		// if we have any scrape data, use it to calculate

@@ -739,6 +739,49 @@ TORRENT_TEST(test_read_piece_out_of_range)
 	}
 }
 
+// a seed that was just resumed must keep its slot in the auto manager long
+// enough to be classified as inactive, even when it has accumulated a lot of
+// active time in earlier sessions and the tracker reports other seeds. A
+// queued torrent without any scrape data ranks as if it had no other seeds,
+// which must not outrank the recently started one
+TORRENT_TEST(seed_rank_recently_started)
+{
+	lt::session ses(settings());
+	int const piece_size = 0x8000;
+
+	static std::array<const int, 1> const running_sizes{{100000}};
+	add_torrent_params running = make_torrent(create_random_files(".", running_sizes), piece_size);
+	running.save_path = ".";
+	running.flags |= torrent_flags::seed_mode;
+	running.flags &= ~torrent_flags::paused;
+	running.flags &= ~torrent_flags::auto_managed;
+	// the seed targets have been met in earlier sessions
+	running.active_time = 100000;
+	running.finished_time = 90000;
+	running.seeding_time = 90000;
+	running.total_uploaded = 10000000;
+	running.num_complete = 5;
+	running.num_incomplete = 1;
+	torrent_handle const h_running = ses.add_torrent(std::move(running));
+
+	static std::array<const int, 1> const queued_sizes{{200000}};
+	add_torrent_params queued = make_torrent(create_random_files(".", queued_sizes), piece_size);
+	queued.save_path = ".";
+	queued.flags |= torrent_flags::seed_mode;
+	queued.flags |= torrent_flags::paused;
+	queued.flags &= ~torrent_flags::auto_managed;
+	torrent_handle const h_queued = ses.add_torrent(std::move(queued));
+
+	for (int i = 0; i < 100 && h_running.status().state != torrent_status::seeding; ++i)
+		std::this_thread::sleep_for(100ms);
+	TEST_EQUAL(h_running.status().state, torrent_status::seeding);
+
+	int const running_rank = h_running.status().seed_rank;
+	int const queued_rank = h_queued.status().seed_rank;
+	std::printf("running: %d queued: %d\n", running_rank, queued_rank);
+	TEST_CHECK(running_rank > queued_rank);
+}
+
 // want_peers_finished()/want_peers_download() are derived from the
 // connect-candidate count, while a torrent's membership in
 // session_impl::m_torrent_lists[torrent_want_peers_*] is a separately

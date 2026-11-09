@@ -245,6 +245,13 @@ namespace libtorrent::aux {
 			return m_live ? m_total + duration_cast<seconds32>(now - m_anchor) : m_total;
 		}
 
+		// the duration of the current live segment only, excluding
+		// previously accumulated time
+		seconds32 live_for(time_point32 const now) const
+		{
+			return m_live ? duration_cast<seconds32>(now - m_anchor) : seconds32(0);
+		}
+
 		void set_live(bool const live, time_point32 const now)
 		{
 			if (live == m_live)
