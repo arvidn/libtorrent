@@ -10119,9 +10119,12 @@ namespace {
 		// flag. That will make this seed prioritized
 		// downloaded may be 0 if the torrent is 0-sized
 		std::int64_t const downloaded = std::max(m_total_downloaded, m_torrent_file->total_size());
+		// the seed time limit may be set high enough for the product to
+		// overflow 32 bits
 		if (fin_time < seconds(s.get_int(settings_pack::seed_time_limit))
 			&& (download_time.count() > 1
-				&& fin_time * 100 / download_time < s.get_int(settings_pack::seed_time_ratio_limit))
+				&& std::int64_t(fin_time.count()) * 100 / download_time.count()
+					< s.get_int(settings_pack::seed_time_ratio_limit))
 			&& downloaded > 0
 			&& m_total_uploaded * 100 / downloaded < s.get_int(settings_pack::share_ratio_limit))
 			ret |= seed_ratio_not_met;
@@ -10155,7 +10158,10 @@ namespace {
 		}
 		else
 		{
-			ret |= ((1 + downloaders) * scale / seeds) & prio_mask;
+			// the scrape counters are 24 bits wide, so the product does not
+			// fit in an int
+			ret |= int(
+				std::min(std::int64_t(prio_mask), (1 + std::int64_t(downloaders)) * scale / seeds));
 		}
 
 		return ret;
