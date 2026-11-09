@@ -1659,15 +1659,7 @@ class DhtAlertTest(PeerAlertTest):
         )
         # We will ping our routers during bootstrap, so make sure we wait for
         # the peer to be done bootstrapping before we bootstrap ourselves
-        for _ in lib.loop_until_timeout(5, msg="dht_bootstrap_alert"):
-            self.peer.wait_for_alert(100)
-            alerts = self.peer.pop_alerts()
-            done = any(isinstance(a, lt.dht_bootstrap_alert) for a in alerts)
-            for a in alerts:
-                logging.debug("peer: %s: %s", a.what(), a.message())
-            del alerts
-            if done:
-                break
+        self.wait_for_peer(lt.dht_bootstrap_alert, timeout=5)
 
         alert_mask = self.session.get_settings()["alert_mask"]
         self.session.apply_settings(
@@ -1679,6 +1671,19 @@ class DhtAlertTest(PeerAlertTest):
         )
         # DHT functions won't work until our bootstrap is done
         self.bootstrap_alert = self.wait_for(lt.dht_bootstrap_alert, timeout=5)
+
+    def wait_for_peer(self, alert_type: Type[_A], *, timeout: float) -> _A:
+        # Like wait_for(), but on self.peer. Alerts of other types are
+        # discarded.
+        for _ in lib.loop_until_timeout(timeout, msg=alert_type.__name__):
+            self.peer.wait_for_alert(100)
+            alerts = self.peer.pop_alerts()
+            for a in alerts:
+                logging.debug("peer: %s: %s", a.what(), a.message())
+            for a in alerts:
+                if isinstance(a, alert_type):
+                    return a
+        raise AssertionError("unreachable")
 
 
 class DhtReplyAlertTest(DhtAlertTest):
@@ -2342,8 +2347,8 @@ class DhtGetPeersReplyAlertTest(DhtAlertTest):
 
     def test_get_peers_dht_reply_alert(self) -> None:
         self.session.add_torrent(self.atp)
-        # Wait for the peer to reflect the announce back to us
-        self.wait_for(lt.dht_announce_alert, timeout=5)
+        # Wait for our announce to land on the peer
+        self.wait_for_peer(lt.dht_announce_alert, timeout=5)
         self.session.dht_get_peers(self.torrent.sha1_hash)
 
         alert = self.wait_for(lt.dht_get_peers_reply_alert, timeout=5)
@@ -2444,8 +2449,8 @@ class DhtSampleInfohashesAlertTest(DhtAlertTest):
 
     def test_dht_sample_infohashes_alert(self) -> None:
         self.session.add_torrent(self.peer_atp)
-        # Wait for the peer to reflect the announce back to us
-        self.wait_for(lt.dht_announce_alert, timeout=5)
+        # Wait for our announce to land on the peer
+        self.wait_for_peer(lt.dht_announce_alert, timeout=5)
         self.session.dht_sample_infohashes(self.peer_endpoint, lt.sha1_hash())
 
         alert = self.wait_for(lt.dht_sample_infohashes_alert, timeout=5)
