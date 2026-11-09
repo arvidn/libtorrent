@@ -28,6 +28,7 @@ see LICENSE file.
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_params.hpp"
 #include "libtorrent/aux_/torrent.hpp"
+#include "libtorrent/aux_/bt_peer_connection.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 
 #include <cstring>
@@ -1285,6 +1286,91 @@ TORRENT_TEST(invalid_metadata_request)
 
 	print_session_log(*ses);
 }
+
+namespace {
+
+// sends 100 holepunch connect messages, for different endpoints, to a
+// session with the specified connection limit. Returns the number of
+// connections it's attempting as a result
+int holepunch_connect_flood(int const connections_limit)
+{
+	using namespace lt::aux;
+
+	info_hash_t ih;
+	torrent_handle th;
+	std::shared_ptr<lt::session> ses;
+	io_context ios;
+	tcp::socket s(ios);
+	setup_peer(s, ios, ih, ses, true, false, false, torrent_flags_t{}, &th);
+
+	settings_pack pack;
+	pack.set_int(settings_pack::connections_limit, connections_limit);
+	pack.set_bool(settings_pack::enable_outgoing_utp, true);
+	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
+	ses->apply_settings(pack);
+
+	char recv_buffer[1000];
+	do_handshake(s, ih, recv_buffer);
+	send_have_all(s);
+
+	entry extensions;
+	extensions["m"]["ut_metadata"] = 1;
+	extensions["m"]["ut_holepunch"] = 2;
+	send_extension_handshake(s, extensions);
+	extensions = read_extension_handshake(s, recv_buffer);
+	int const ut_holepunch = int(extensions["m"]["ut_holepunch"].integer());
+	int const ut_metadata = int(extensions["m"]["ut_metadata"].integer());
+
+	auto const before = get_counters(*ses);
+
+	for (int i = 0; i < 100; ++i)
+	{
+		// uint32: packet-length
+		//  uint8: 20 (extension message)
+		//  uint8: <ut_holepunch>
+		//  uint8: 1 (connect)
+		//  uint8: 0 (IPv4)
+		// uint32: address
+		// uint16: port
+		char msg[14];
+		char* ptr = msg;
+		write_uint32(10, ptr);
+		write_uint8(20, ptr);
+		write_uint8(ut_holepunch, ptr);
+		write_uint8(1, ptr);
+		write_uint8(0, ptr);
+		// since we're connecting from a local address, we're allowed to
+		// introduce local addresses
+		write_uint32(0x7f000001, ptr);
+		write_uint16(20000 + i, ptr);
+		error_code ec;
+		boost::asio::write(s, boost::asio::buffer(msg), ec);
+		if (ec)
+			TEST_ERROR(ec.message());
+	}
+
+	// once we have a response to this, we know the connect messages have
+	// been handled
+	send_ut_metadata_msg(s, ut_metadata, 0, 0);
+	read_ut_metadata_msg(s, recv_buffer);
+
+	auto const after = get_counters(*ses);
+	TEST_CHECK(after.at("utp.num_utp_syn_sent") > before.at("utp.num_utp_syn_sent"));
+	return int(after.at("peer.num_peers_half_open") - before.at("peer.num_peers_half_open"));
+}
+
+} // anonymous namespace
+
+// a holepunch connect message makes us connect to the endpoint in it. There's
+// a limit to how many of those we act on from a single peer
+TORRENT_TEST(holepunch_connect_rate_limit)
+{
+	TEST_CHECK(holepunch_connect_flood(200) <= aux::bt_peer_connection::max_holepunch_connects);
+}
+
+// and they are not allowed to exceed the connection limit. One connection is
+// used by the peer sending the messages
+TORRENT_TEST(holepunch_connect_connections_limit) { TEST_CHECK(holepunch_connect_flood(10) <= 9); }
 #endif // TORRENT_DISABLE_EXTENSIONS
 
 

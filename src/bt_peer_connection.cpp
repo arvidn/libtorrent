@@ -1544,9 +1544,9 @@ namespace {
 			return; // unknown address type
 		}
 
-#ifndef TORRENT_DISABLE_LOGGING
 		if (msg_type > hp_message::failed)
 		{
+#ifndef TORRENT_DISABLE_LOGGING
 			if (should_log(peer_log_alert::incoming_message))
 			{
 				peer_log(peer_log_alert::incoming_message, peer_log_alert::holepunch
@@ -1554,9 +1554,9 @@ namespace {
 					, static_cast<int>(msg_type)
 					, print_address(ep.address()).c_str());
 			}
+#endif
 			return;
 		}
-#endif
 
 		auto t = associated_torrent().lock();
 		if (!t) return;
@@ -1628,6 +1628,32 @@ namespace {
 					break;
 				}
 
+				// a connect message makes us connect to an endpoint of the
+				// peer's choosing, whether we asked to be introduced to it
+				// or not. Limit how often a peer can do that, and don't
+				// exceed the connection limit
+				time_point32 const now = aux::time_now32();
+				if (now - m_holepunch_connect_window >= minutes32(1))
+				{
+					m_holepunch_connect_window = now;
+					m_holepunch_connects = 0;
+				}
+				if (m_holepunch_connects >= max_holepunch_connects
+					|| m_ses.num_connections()
+						>= m_settings.get_int(settings_pack::connections_limit))
+				{
+#ifndef TORRENT_DISABLE_LOGGING
+					if (should_log(peer_log_alert::incoming_message))
+					{
+						peer_log(peer_log_alert::incoming_message,
+							peer_log_alert::holepunch,
+							"msg:connect to: %s ERROR: too many connections",
+							print_address(ep.address()).c_str());
+					}
+#endif
+					break;
+				}
+
 				// add or find the peer with this endpoint
 				torrent_peer* p = t->add_peer(ep, peer_info::pex);
 				if (p == nullptr || p->connection)
@@ -1656,6 +1682,8 @@ namespace {
 					// this peer is banned, don't connect to it
 					break;
 				}
+				++m_holepunch_connects;
+
 				// to make sure we use the uTP protocol
 				p->supports_utp = true;
 				// #error make sure we make this a connection candidate

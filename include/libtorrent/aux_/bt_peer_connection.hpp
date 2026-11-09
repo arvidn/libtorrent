@@ -135,6 +135,10 @@ namespace libtorrent::aux {
 			num_supported_messages
 		};
 
+		// the max number of holepunch connect messages we act on, from a
+		// single peer, per minute
+		static inline constexpr int max_holepunch_connects = 20;
+
 		enum class hp_message : std::uint8_t
 		{
 			// msg_types
@@ -488,6 +492,12 @@ namespace libtorrent::aux {
 
 		// the message ID for holepunch messages
 		std::uint8_t m_holepunch_id = 0;
+
+		// the number of holepunch connect messages we've acted on from this
+		// peer since m_holepunch_connect_window. Every one of them makes us
+		// connect to an endpoint the peer picks
+		std::uint8_t m_holepunch_connects = 0;
+		time_point32 m_holepunch_connect_window = aux::time_now32();
 
 		// the message ID for don't-have message
 		std::uint8_t m_dont_have_id = 0;
