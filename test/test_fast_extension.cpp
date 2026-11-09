@@ -581,6 +581,58 @@ bool wait_for_counter(lt::session& ses, char const* name, std::int64_t const val
 
 } // anonymous namespace
 
+// the incoming fast extension messages are supposed to be counted by their
+// own session stats counters. They used to be added to counters further down
+// the list, for outgoing messages
+TORRENT_TEST(fast_extension_counters)
+{
+	info_hash_t ih;
+	std::shared_ptr<lt::session> ses;
+	io_context ios;
+	tcp::socket s(ios);
+	setup_peer(s, ios, ih, ses);
+
+	auto const before = get_counters(*ses);
+
+	char recv_buffer[1000];
+	do_handshake(s, ih, recv_buffer);
+	send_have_all(s);
+	send_allow_fast(s, 0);
+	send_allow_fast(s, 1);
+	send_suggest_piece(s, 0);
+
+	// once we get the reject message, we know the messages before it have
+	// been handled too
+	peer_request req;
+	req.piece = 0_piece;
+	req.start = 0;
+	req.length = 0x4000;
+	send_request(s, req);
+	for (;;)
+	{
+		int const len = read_message(s, recv_buffer);
+		if (len == -1)
+			break;
+		if (len == 13 && recv_buffer[0] == 0x10)
+			break;
+	}
+
+	auto const after = get_counters(*ses);
+	auto const diff = [&](char const* name) { return after.at(name) - before.at(name); };
+
+	TEST_EQUAL(diff("ses.num_incoming_have_all"), 1);
+	TEST_EQUAL(diff("ses.num_incoming_allowed_fast"), 2);
+	TEST_EQUAL(diff("ses.num_incoming_suggest"), 1);
+	TEST_EQUAL(diff("ses.num_incoming_request"), 1);
+
+	// we only sent the handshake and a reject
+	TEST_EQUAL(diff("ses.num_outgoing_reject"), 1);
+	TEST_EQUAL(diff("ses.num_outgoing_piece"), 0);
+	TEST_EQUAL(diff("ses.num_outgoing_not_interested"), 0);
+	TEST_EQUAL(diff("ses.num_outgoing_have"), 0);
+	s.close();
+}
+
 // makes sure that pieces that are allowed and then
 // rejected aren't requested again
 TORRENT_TEST(reject_fast)
