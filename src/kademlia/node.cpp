@@ -965,12 +965,20 @@ void node::incoming_request(msg const& m, entry& e)
 		static key_desc_t const msg_desc[] = {
 			{"token", bdecode_node::string_t, 0, 0},
 			{"v", bdecode_node::none_t, 0, 0},
-			{"seq", bdecode_node::int_t, 0, key_desc_t::optional},
+			// a malformed mutable field must not turn the message into an
+			// immutable put, nor silently disable the CAS check
+			{"seq", bdecode_node::int_t, 0, key_desc_t::optional | key_desc_t::reject_invalid},
 			// public key
-			{"k", bdecode_node::string_t, public_key::len, key_desc_t::optional},
-			{"sig", bdecode_node::string_t, signature::len, key_desc_t::optional},
-			{"cas", bdecode_node::int_t, 0, key_desc_t::optional},
-			{"salt", bdecode_node::string_t, 0, key_desc_t::optional},
+			{"k",
+				bdecode_node::string_t,
+				public_key::len,
+				key_desc_t::optional | key_desc_t::reject_invalid},
+			{"sig",
+				bdecode_node::string_t,
+				signature::len,
+				key_desc_t::optional | key_desc_t::reject_invalid},
+			{"cas", bdecode_node::int_t, 0, key_desc_t::optional | key_desc_t::reject_invalid},
+			{"salt", bdecode_node::string_t, 0, key_desc_t::optional | key_desc_t::reject_invalid},
 		};
 
 		// attempt to parse the message
@@ -990,6 +998,16 @@ void node::incoming_request(msg const& m, entry& e)
 
 		// is this a mutable put?
 		bool const mutable_put = (msg_keys[2] && msg_keys[3] && msg_keys[4]);
+
+		// a message carrying only some of the mutable fields is neither a
+		// valid mutable nor immutable put. Treating it as immutable would
+		// silently drop the key and signature
+		if (!mutable_put && (msg_keys[2] || msg_keys[3] || msg_keys[4]))
+		{
+			m_counters.inc_stats_counter(counters::dht_invalid_put);
+			incoming_error(e, "incomplete mutable put");
+			return;
+		}
 
 		// public key (only set if it's a mutable put)
 		char const* pub_key = nullptr;

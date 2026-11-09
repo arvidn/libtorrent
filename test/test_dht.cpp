@@ -40,6 +40,7 @@ see LICENSE file.
 #include "libtorrent/kademlia/dht_observer.hpp"
 #include "libtorrent/kademlia/dht_tracker.hpp"
 
+#include <array>
 #include <limits>
 #include <numeric>
 #include <cstdarg>
@@ -227,6 +228,12 @@ struct msg_args
 
 	msg_args& sig(signature const& s)
 	{ a["sig"] = s.bytes; return *this; }
+
+	msg_args& raw_sig(std::string s)
+	{
+		a["sig"] = std::move(s);
+		return *this;
+	}
 
 	msg_args& seq(sequence_number s)
 	{ a["seq"] = s.value; return *this; }
@@ -1203,6 +1210,33 @@ namespace {
 
 span<char const> const empty_salt;
 
+// a rejected put is answered with an error message carrying the given code
+void expect_put_error(bdecode_node const& response, int const code)
+{
+	key_desc_t const desc_error[] = {
+		{"e", bdecode_node::list_t, 2, 0},
+		{"y", bdecode_node::string_t, 1, 0},
+	};
+	bdecode_node desc_error_keys[2];
+	std::array<char, 200> error_string;
+
+	bool const ret = verify_message(response, desc_error, desc_error_keys, error_string);
+	if (ret)
+	{
+		std::printf("put response: %s\n", print_entry(response).c_str());
+		TEST_EQUAL(desc_error_keys[1].string_value(), "e");
+		TEST_EQUAL(desc_error_keys[0].list_int_value_at(0), code);
+	}
+	else
+	{
+		std::printf("   invalid put response: %s\n%s\nexpected error %d\n",
+			error_string.data(),
+			print_entry(response).c_str(),
+			code);
+		TEST_ERROR(error_string.data());
+	}
+}
+
 // TODO: 3 split this up into smaller tests
 void test_put(address(&rand_addr)())
 {
@@ -1226,14 +1260,6 @@ void test_put(address(&rand_addr)())
 	};
 
 	bdecode_node desc2_keys[1];
-
-	key_desc_t const desc_error[] =
-	{
-		{ "e", bdecode_node::list_t, 2, 0 },
-		{ "y", bdecode_node::string_t, 1, 0},
-	};
-
-	bdecode_node desc_error_keys[2];
 
 	// ==== get / put mutable items ===
 
@@ -1389,23 +1415,12 @@ void test_put(address(&rand_addr)())
 				.seq(seq)
 				.salt(salt));
 
-		ret = verify_message(response, desc_error, desc_error_keys, t.error_string);
-		if (ret)
-		{
-			std::printf("put response: %s\n", print_entry(response).c_str());
-			TEST_EQUAL(desc_error_keys[1].string_value(), "e");
-			// 206 is the code for invalid signature
-			TEST_EQUAL(desc_error_keys[0].list_int_value_at(0), 206);
-		}
-		else
-		{
-			std::printf("   invalid put response: %s\n%s\n"
-				, t.error_string, print_entry(response).c_str());
-			TEST_ERROR(t.error_string);
-		}
+		// 206 is the code for invalid signature
+		expect_put_error(response, 206);
 
-		// a put with a key but no signature or sequence number is not a
-		// mutable put, it must not be stored under the mutable item's target
+		// a put with only some of seq, k and sig is neither a mutable nor an
+		// immutable put. It must be rejected as a protocol error rather than
+		// stored as an immutable item with the key and signature ignored
 		std::printf("PUT key without signature\n");
 
 		send_dht_request(t.dht_node,
@@ -1414,17 +1429,71 @@ void test_put(address(&rand_addr)())
 			&response,
 			msg_args().token(token).value(items[1].ent).key(pk).salt(salt));
 
-		ret = verify_message(response, desc_error, desc_error_keys, t.error_string);
-		if (ret)
+		expect_put_error(response, 203);
+
+		send_dht_request(t.dht_node, "get", t.source, &response, msg_args().target(target_id));
+		// the same with a token issued for the immutable target, which is
+		// what would have stored it as an immutable item. Use a value that is
+		// not among the items announced during setup, so its immutable target
+		// is known to be empty regardless of which of those items were evicted
+		std::printf("PUT key and seq without signature\n");
+
 		{
-			std::printf("put response: %s\n", print_entry(response).c_str());
-			TEST_EQUAL(desc_error_keys[1].string_value(), "e");
-		}
-		else
-		{
-			std::printf(
-				"   invalid put response: %s\n%s\n", t.error_string, print_entry(response).c_str());
-			TEST_ERROR(t.error_string);
+			entry unstored_value;
+			unstored_value["unstored"] = "value";
+
+			std::array<char, 1020> value_buf;
+			span<char const> const immutable_v =
+				span<char const>(value_buf).first(bencode(value_buf.begin(), unstored_value));
+			sha1_hash const immutable_target = item_target_id(immutable_v);
+
+			send_dht_request(
+				t.dht_node, "get", t.source, &response, msg_args().target(immutable_target));
+
+			bdecode_node const r = response.dict_find_dict("r");
+			TEST_CHECK(!r.dict_find("v"));
+			std::string const immutable_token(r.dict_find_string_value("token"));
+
+			send_dht_request(t.dht_node,
+				"put",
+				t.source,
+				&response,
+				msg_args()
+					.token(immutable_token)
+					.value(unstored_value)
+					.key(pk)
+					.seq(seq)
+					.salt(salt));
+
+			expect_put_error(response, 203);
+
+			send_dht_request(
+				t.dht_node, "get", t.source, &response, msg_args().target(immutable_target));
+
+			TEST_CHECK(!response.dict_find_dict("r").dict_find("v"));
+
+			// a signature of the wrong length must be rejected by the message
+			// parser rather than turn the message into an immutable put
+			std::printf("PUT with truncated signature\n");
+
+			send_dht_request(t.dht_node,
+				"put",
+				t.source,
+				&response,
+				msg_args()
+					.token(immutable_token)
+					.value(unstored_value)
+					.key(pk)
+					.seq(seq)
+					.raw_sig(std::string(signature::len - 1, 'x'))
+					.salt(salt));
+
+			expect_put_error(response, 203);
+
+			send_dht_request(
+				t.dht_node, "get", t.source, &response, msg_args().target(immutable_target));
+
+			TEST_CHECK(!response.dict_find_dict("r").dict_find("v"));
 		}
 
 		send_dht_request(t.dht_node, "get", t.source, &response, msg_args().target(target_id));
@@ -1512,21 +1581,8 @@ void test_put(address(&rand_addr)())
 				.cas(cas)
 				.salt(salt));
 
-		ret = verify_message(response, desc_error, desc_error_keys, t.error_string);
-		if (ret)
-		{
-			std::printf("put response: %s\n"
-				, print_entry(response).c_str());
-			TEST_EQUAL(desc_error_keys[1].string_value(), "e");
-			// 301 is the error code for CAS hash mismatch
-			TEST_EQUAL(desc_error_keys[0].list_int_value_at(0), 301);
-		}
-		else
-		{
-			std::printf("   invalid put response: %s\n%s\nExpected failure 301 (CAS hash mismatch)\n"
-				, t.error_string, print_entry(response).c_str());
-			TEST_ERROR(t.error_string);
-		}
+		// 301 is the error code for CAS hash mismatch
+		expect_put_error(response, 301);
 	}
 }
 
@@ -2965,6 +3021,60 @@ TORRENT_TEST(verify_message)
 	TEST_CHECK(!ret);
 	std::printf("%s\n", error_string);
 	TEST_EQUAL(error_string, std::string("missing 'C2' key"));
+
+	// an optional key with the wrong type is treated as absent
+	char const test_msg5b[] = "d1:A4:test1:C3:fooe";
+	bdecode(test_msg5b, test_msg5b + sizeof(test_msg5b) - 1, ent, ec);
+	std::printf("%s\n", print_entry(ent).c_str());
+
+	ret = verify_message(ent, msg_desc, msg_keys, error_string);
+	TEST_CHECK(ret);
+	TEST_CHECK(msg_keys[0]);
+	TEST_CHECK(!msg_keys[4]);
+	TEST_CHECK(!msg_keys[5]);
+	TEST_CHECK(!msg_keys[6]);
+
+	{
+		static std::array<key_desc_t, 2> const opt_desc{{
+			{"A", bdecode_node::string_t, 4, key_desc_t::optional},
+			{"B", bdecode_node::int_t, 0, key_desc_t::optional},
+		}};
+		static std::array<key_desc_t, 2> const strict_desc{{
+			{"A", bdecode_node::string_t, 4, key_desc_t::optional | key_desc_t::reject_invalid},
+			{"B", bdecode_node::int_t, 0, key_desc_t::optional | key_desc_t::reject_invalid},
+		}};
+		std::array<bdecode_node, 2> opt_keys;
+
+		// wrong size
+		char const test_msg5c[] = "d1:A3:fooe";
+		bdecode(test_msg5c, test_msg5c + sizeof(test_msg5c) - 1, ent, ec);
+		ret = verify_message_impl(ent, opt_desc, opt_keys, error_string);
+		TEST_CHECK(ret);
+		TEST_CHECK(!opt_keys[0]);
+
+		ret = verify_message_impl(ent, strict_desc, opt_keys, error_string);
+		TEST_CHECK(!ret);
+		TEST_EQUAL(error_string, std::string("invalid value for 'A'"));
+
+		// wrong type
+		char const test_msg5d[] = "d1:B3:fooe";
+		bdecode(test_msg5d, test_msg5d + sizeof(test_msg5d) - 1, ent, ec);
+		ret = verify_message_impl(ent, opt_desc, opt_keys, error_string);
+		TEST_CHECK(ret);
+		TEST_CHECK(!opt_keys[1]);
+
+		ret = verify_message_impl(ent, strict_desc, opt_keys, error_string);
+		TEST_CHECK(!ret);
+		TEST_EQUAL(error_string, std::string("invalid value for 'B'"));
+
+		// absent is fine either way
+		char const test_msg5e[] = "d1:C3:fooe";
+		bdecode(test_msg5e, test_msg5e + sizeof(test_msg5e) - 1, ent, ec);
+		ret = verify_message_impl(ent, strict_desc, opt_keys, error_string);
+		TEST_CHECK(ret);
+		TEST_CHECK(!opt_keys[0]);
+		TEST_CHECK(!opt_keys[1]);
+	}
 
 	// test empty strings [ { "":1 }, "" ]
 	char const test_msg6[] = "ld0:i1ee0:e";

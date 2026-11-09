@@ -43,9 +43,12 @@ struct key_desc_t
 	int size;
 	int flags;
 
-	enum {
+	enum
+	{
 		// this argument is optional, parsing will not
-		// fail if it's not present
+		// fail if it's not present. If it is present
+		// but has the wrong type or size, it is treated
+		// as absent, unless reject_invalid is also set
 		optional = 1,
 		// for dictionaries, the following entries refer
 		// to child nodes to this node, up until and including
@@ -57,7 +60,11 @@ struct key_desc_t
 		// the size argument refers to that the size
 		// has to be divisible by the number, instead
 		// of having that exact size
-		size_divisible = 8
+		size_divisible = 8,
+		// an optional key that is present but has the
+		// wrong type or size fails parsing instead of
+		// being treated as absent
+		reject_invalid = 16
 	};
 };
 
