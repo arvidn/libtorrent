@@ -2879,6 +2879,26 @@ TORRENT_TEST(signing_test3)
 	TEST_EQUAL(aux::to_hex(target_id), "e5f96f6f38320f0f33959cb4d3d656452117aadb");
 }
 
+// values larger than 1000 bytes are invalid and trip an assert in debug builds,
+// but release builds must not overflow
+#if !TORRENT_USE_ASSERTS
+TORRENT_TEST(signing_large_item)
+{
+	public_key pk;
+	secret_key sk;
+	get_test_keypair(pk, sk);
+
+	// a value that bencodes to more than 1000 bytes
+	entry const value(std::string(1100, 'x'));
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), value);
+	TEST_CHECK(buf.size() > 1000);
+
+	item const i(value, empty_salt, sequence_number(1), pk, sk);
+	TEST_CHECK(verify_mutable_item(buf, empty_salt, sequence_number(1), pk, i.sig()));
+}
+#endif
+
 // TODO: 2 split this up into smaller test cases
 TORRENT_TEST(verify_message)
 {

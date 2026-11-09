@@ -1,5 +1,6 @@
 2.0.16 not released
 
+	* fix stack buffer overflow signing a mutable DHT item whose value bencodes to more than 1000 bytes
 	* fix announce_to_all_tiers and announce_to_all_trackers names being swapped
 	* only count the final timeout of a DHT request as a node failure, not the short timeout
 	* fix a few DHT routing table and storage bugs
