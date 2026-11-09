@@ -139,6 +139,33 @@ namespace {
 
 #endif // DEBUG_DISK_THREAD
 
+	// the num_fenced_* gauges are not in the same order as job_action_t,
+	// and their indices are part of the session stats API, so they cannot
+	// be rearranged to match. jobs that have no gauge of their own are
+	// counted under the closest matching one
+	int fenced_job_counter(aux::job_action_t const action)
+	{
+		switch (action)
+		{
+			case aux::job_action_t::read: return counters::num_fenced_read;
+			case aux::job_action_t::write: return counters::num_fenced_write;
+			case aux::job_action_t::hash: return counters::num_fenced_hash;
+			case aux::job_action_t::hash2: return counters::num_fenced_hash;
+			case aux::job_action_t::move_storage: return counters::num_fenced_move_storage;
+			case aux::job_action_t::release_files: return counters::num_fenced_release_files;
+			case aux::job_action_t::delete_files: return counters::num_fenced_delete_files;
+			case aux::job_action_t::check_fastresume: return counters::num_fenced_check_fastresume;
+			case aux::job_action_t::rename_file: return counters::num_fenced_rename_file;
+			case aux::job_action_t::stop_torrent: return counters::num_fenced_stop_torrent;
+			case aux::job_action_t::file_priority: return counters::num_fenced_file_priority;
+			case aux::job_action_t::clear_piece: return counters::num_fenced_clear_piece;
+			case aux::job_action_t::partial_read: return counters::num_fenced_read;
+			case aux::job_action_t::num_job_ids: break;
+		}
+		TORRENT_ASSERT_FAIL();
+		return counters::num_fenced_read;
+	}
+
 	aux::open_mode_t file_mode_for_job(aux::mmap_disk_job* j)
 	{
 		aux::open_mode_t ret = aux::open_mode::read_only;
@@ -1358,7 +1385,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			, j->storage->num_outstanding_jobs());
 
 		TORRENT_ASSERT(j->storage);
-		m_stats_counters.inc_stats_counter(counters::num_fenced_read + static_cast<int>(j->action));
+		m_stats_counters.inc_stats_counter(fenced_job_counter(j->action));
 
 		int ret = j->storage->raise_fence(j, m_stats_counters);
 		if (ret == aux::disk_job_fence::fence_post_fence)
@@ -1724,8 +1751,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 			if (j->flags & aux::mmap_disk_job::fence)
 			{
-				m_stats_counters.inc_stats_counter(
-					counters::num_fenced_read + static_cast<int>(j->action), -1);
+				m_stats_counters.inc_stats_counter(fenced_job_counter(j->action), -1);
 			}
 
 			TORRENT_ASSERT(j->storage);
