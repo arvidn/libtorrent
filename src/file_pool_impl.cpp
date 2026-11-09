@@ -314,12 +314,11 @@ namespace libtorrent::aux {
 
 	file_open_mode_t to_file_open_mode(open_mode_t const mode, bool const has_mapping)
 	{
-		return ((mode & open_mode::write)
-				? file_open_mode::read_write : file_open_mode::read_only)
-			| ((mode & open_mode::no_atime)
-				? file_open_mode::no_atime : file_open_mode::read_only)
-			| (has_mapping ? file_open_mode::mmapped : file_open_mode_t{})
-			;
+		return ((mode & open_mode::write) ? file_open_mode::read_write : file_open_mode::read_only)
+			| ((mode & open_mode::no_atime) ? file_open_mode::no_atime : file_open_mode::read_only)
+			| ((mode & open_mode::sequential_access) ? file_open_mode_t{}
+													 : file_open_mode::random_access)
+			| (has_mapping ? file_open_mode::mmapped : file_open_mode_t{});
 	}
 
 	template <typename FileEntry>

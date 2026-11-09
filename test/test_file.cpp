@@ -765,9 +765,19 @@ TORRENT_TEST(unc_paths)
 
 TORRENT_TEST(to_file_open_mode)
 {
-	TEST_CHECK(aux::to_file_open_mode(aux::open_mode::write, false) == file_open_mode::read_write);
-	TEST_CHECK(aux::to_file_open_mode({}, false) == file_open_mode::read_only);
-	TEST_CHECK(aux::to_file_open_mode(aux::open_mode::no_atime, false) == (file_open_mode::read_only | file_open_mode::no_atime));
-	TEST_CHECK(aux::to_file_open_mode(aux::open_mode::write | aux::open_mode::no_atime, false) == (file_open_mode::read_write | file_open_mode::no_atime));
-	TEST_CHECK(aux::to_file_open_mode(aux::open_mode::write, true) == (file_open_mode::read_write | file_open_mode::mmapped));
+	TEST_CHECK(aux::to_file_open_mode(aux::open_mode::write, false)
+		== (file_open_mode::read_write | file_open_mode::random_access));
+	TEST_CHECK(aux::to_file_open_mode({}, false)
+		== (file_open_mode::read_only | file_open_mode::random_access));
+	TEST_CHECK(aux::to_file_open_mode(aux::open_mode::no_atime, false)
+		== (file_open_mode::read_only | file_open_mode::no_atime | file_open_mode::random_access));
+	TEST_CHECK(aux::to_file_open_mode(aux::open_mode::write | aux::open_mode::no_atime, false)
+		== (file_open_mode::read_write | file_open_mode::no_atime | file_open_mode::random_access));
+	TEST_CHECK(aux::to_file_open_mode(aux::open_mode::write, true)
+		== (file_open_mode::read_write | file_open_mode::random_access | file_open_mode::mmapped));
+	TEST_CHECK(aux::to_file_open_mode(aux::open_mode::sequential_access, false)
+		== file_open_mode::read_only);
+	TEST_CHECK(
+		aux::to_file_open_mode(aux::open_mode::write | aux::open_mode::sequential_access, false)
+		== file_open_mode::read_write);
 }

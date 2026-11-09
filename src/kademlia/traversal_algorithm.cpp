@@ -246,10 +246,7 @@ void traversal_algorithm::add_entry(node_id const& id
 				--m_invoke_count;
 
 				if (ptr->flags & observer::flag_short_timeout)
-				{
-					TORRENT_ASSERT(m_branch_factor > 0);
-					--m_branch_factor;
-				}
+					restore_branch_factor();
 			}
 
 #if TORRENT_USE_ASSERTS
@@ -321,10 +318,7 @@ void traversal_algorithm::finished(observer_ptr o)
 	// if this flag is set, it means we increased the
 	// branch factor for it, and we should restore it
 	if (o->flags & observer::flag_short_timeout)
-	{
-		TORRENT_ASSERT(m_branch_factor > 0);
-		--m_branch_factor;
-	}
+		restore_branch_factor();
 
 	TORRENT_ASSERT((o->flags & (observer::flag_queried
 		| observer::flag_alive
@@ -389,14 +383,17 @@ void traversal_algorithm::failed(observer_ptr o, traversal_flags_t const flags)
 	}
 
 	if (decrement_branch_factor)
-	{
-		TORRENT_ASSERT(m_branch_factor > 1);
-		--m_branch_factor;
-		if (m_branch_factor <= 0) m_branch_factor = 1;
-	}
+		restore_branch_factor();
 
 	bool const is_done = add_requests();
 	if (is_done) done();
+}
+
+void traversal_algorithm::restore_branch_factor()
+{
+	TORRENT_ASSERT(m_branch_factor > 0);
+	if (m_branch_factor > m_node.branch_factor())
+		--m_branch_factor;
 }
 
 #ifndef TORRENT_DISABLE_LOGGING
@@ -435,8 +432,7 @@ void traversal_algorithm::done()
 			| observer::flag_short_timeout))
 			== (observer::flag_queried | observer::flag_short_timeout))
 		{
-			TORRENT_ASSERT(m_branch_factor > 0);
-			--m_branch_factor;
+			restore_branch_factor();
 		}
 
 		if ((o->flags & (observer::flag_queried | observer::flag_failed)) == observer::flag_queried)

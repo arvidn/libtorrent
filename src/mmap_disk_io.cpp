@@ -1248,7 +1248,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			, j->storage->num_outstanding_jobs());
 
 		TORRENT_ASSERT(j->storage);
-		m_stats_counters.inc_stats_counter(counters::num_fenced_read + static_cast<int>(j->get_type()));
+		m_stats_counters.inc_stats_counter(aux::fenced_job_counter(j->get_type()));
 
 		int ret = j->storage->raise_fence(j, m_stats_counters);
 		if (ret == aux::disk_job_fence::fence_post_fence)
@@ -1512,8 +1512,7 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 			if (j->flags & aux::disk_job::fence)
 			{
-				m_stats_counters.inc_stats_counter(
-					counters::num_fenced_read + static_cast<int>(j->get_type()), -1);
+				m_stats_counters.inc_stats_counter(aux::fenced_job_counter(j->get_type()), -1);
 			}
 
 			TORRENT_ASSERT(j->storage);

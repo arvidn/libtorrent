@@ -326,7 +326,7 @@ TORRENT_TEST(ec_add_torrent)
 
 TORRENT_TEST(add_torrent_scrape_data)
 {
-	int constexpr no_seeds = 0x20000000;
+	int constexpr no_seeds = 0x10000000;
 	int constexpr prio_mask = 0x0fffffff;
 	// the scrape counters are stored in 24 bit fields, with the all-ones value
 	// reserved for "unknown"

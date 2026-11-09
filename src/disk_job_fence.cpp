@@ -208,5 +208,45 @@ namespace aux {
 		return fence_post_none;
 	}
 
+	// the num_fenced_* gauges are not in the same order as job_action_t,
+	// and their indices are part of the session stats API, so they cannot
+	// be rearranged to match. jobs that have no gauge of their own are
+	// counted under the closest matching one
+	int fenced_job_counter(job_action_t const action)
+	{
+		switch (action)
+		{
+			case job_action_t::read:
+				return counters::num_fenced_read;
+			case job_action_t::write:
+				return counters::num_fenced_write;
+			case job_action_t::hash:
+				return counters::num_fenced_hash;
+			case job_action_t::hash2:
+				return counters::num_fenced_hash;
+			case job_action_t::move_storage:
+				return counters::num_fenced_move_storage;
+			case job_action_t::release_files:
+				return counters::num_fenced_release_files;
+			case job_action_t::delete_files:
+				return counters::num_fenced_delete_files;
+			case job_action_t::check_fastresume:
+				return counters::num_fenced_check_fastresume;
+			case job_action_t::rename_file:
+				return counters::num_fenced_rename_file;
+			case job_action_t::stop_torrent:
+				return counters::num_fenced_stop_torrent;
+			case job_action_t::file_priority:
+				return counters::num_fenced_file_priority;
+			case job_action_t::clear_piece:
+				return counters::num_fenced_clear_piece;
+			case job_action_t::partial_read:
+				return counters::num_fenced_read;
+			case job_action_t::num_job_ids:
+				break;
+		}
+		TORRENT_ASSERT_FAIL();
+		return counters::num_fenced_read;
+	}
 }
 }
