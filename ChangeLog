@@ -1,5 +1,6 @@
 2.1.3 not released
 
+	* fix web seeds not being used after 3 redirects, and limit the number of redirects followed from a web seed to 5
 	* fix auto managed seeds being paused before they can be classified as inactive
 	* fix restoring scrape counters from resume data, and save unknown counters as -1
 	* ignore i2p peers with invalid destinations

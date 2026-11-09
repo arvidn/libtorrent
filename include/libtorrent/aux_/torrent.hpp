@@ -180,6 +180,11 @@ namespace libtorrent::aux {
 		// web seed from resolving to any local network IPs.
 		bool no_local_ips = false;
 
+		// the number of redirects that led to this web seed. 0 for the web
+		// seeds that weren't created by a redirect. There's a limit to how
+		// long a chain of redirects we follow
+		std::uint8_t redirect_depth = 0;
+
 		// This means we want to preserve the web seed in resume data, but not
 		// use it for the remainder of this session. For example:
 		// this web seed maye have responded with a redirect. The redirected
@@ -219,6 +224,7 @@ namespace libtorrent::aux {
 			removed = std::move(rhs.removed);
 			ephemeral = std::move(rhs.ephemeral);
 			no_local_ips = std::move(rhs.no_local_ips);
+			redirect_depth = std::move(rhs.redirect_depth);
 			disabled = std::move(rhs.disabled);
 			restart_request = std::move(rhs.restart_request);
 			restart_piece = std::move(rhs.restart_piece);

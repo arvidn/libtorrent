@@ -10461,7 +10461,7 @@ namespace {
 		m_web_seeds.emplace_back(std::move(ent));
 
 		// ephemeral web seeds are not saved in the resume data
-		if (!ent.ephemeral)
+		if (!m_web_seeds.back().ephemeral)
 			set_need_save_resume(torrent_handle::if_metadata_changed);
 
 		update_want_tick();
@@ -11098,6 +11098,12 @@ namespace {
 		{
 			auto const w = i++;
 			if (w->disabled || w->removed || w->retry > now || !w->interesting)
+				continue;
+
+			// this web seed has redirected all its files to other URLs. We
+			// won't connect to it again, and it's not supposed to keep the
+			// web seeds it redirected to from being connected
+			if (!w->have_files.empty() && w->have_files.none_set())
 				continue;
 
 			--limit;
