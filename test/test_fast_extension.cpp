@@ -28,10 +28,13 @@ see LICENSE file.
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_params.hpp"
 #include "libtorrent/aux_/torrent.hpp"
+#include "libtorrent/aux_/peer_connection.hpp"
+#include "libtorrent/aux_/torrent_peer.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 
 #include <cstring>
 #include <functional>
+#include <future>
 #include <iostream>
 #include <fstream>
 #include <cstdarg>
@@ -1284,6 +1287,65 @@ TORRENT_TEST(invalid_metadata_request)
 	TEST_EQUAL(ut_metadata_msg["piece"].integer(), 0);
 
 	print_session_log(*ses);
+}
+
+namespace {
+
+// announces the specified listen port in the extension handshake and returns
+// the port of the peer, in the peer list, once the handshake has been handled
+int announce_listen_port(std::int64_t const listen_port, bool const no_privileged_ports)
+{
+	info_hash_t ih;
+	torrent_handle th;
+	std::shared_ptr<lt::session> ses;
+	io_context ios;
+	tcp::socket s(ios);
+	setup_peer(s, ios, ih, ses, true, false, false, torrent_flags_t{}, &th);
+
+	settings_pack pack;
+	pack.set_bool(settings_pack::no_connect_privileged_ports, no_privileged_ports);
+	ses->apply_settings(pack);
+
+	char recv_buffer[1000];
+	do_handshake(s, ih, recv_buffer);
+	send_have_all(s);
+
+	entry extensions;
+	extensions["m"]["ut_metadata"] = 1;
+	extensions["p"] = listen_port;
+	send_extension_handshake(s, extensions);
+	extensions = read_extension_handshake(s, recv_buffer);
+
+	// once we have a response to this, we know the extension handshake has
+	// been handled
+	send_ut_metadata_msg(s, int(extensions["m"]["ut_metadata"].integer()), 0, 0);
+	read_ut_metadata_msg(s, recv_buffer);
+
+	auto const tor = th.native_handle();
+	std::promise<int> ret;
+	post(ses->native_handle()->get_context(), [tor, &ret] {
+		ret.set_value(
+			tor->begin() == tor->end() ? -1 : int((*tor->begin())->peer_info_struct()->port));
+	});
+	int const port = ret.get_future().get();
+	TEST_CHECK(port == listen_port || port == s.local_endpoint().port());
+	return port;
+}
+
+} // anonymous namespace
+
+// the listen port a peer announces in its extension handshake replaces the
+// port we have for it. A port that doesn't fit in 16 bits used to be
+// truncated (65558 turns into 22), and privileged ports were not rejected
+TORRENT_TEST(extension_handshake_listen_port)
+{
+	TEST_EQUAL(announce_listen_port(6881, true), 6881);
+	TEST_EQUAL(announce_listen_port(22, false), 22);
+
+	// these are ignored, we keep the port the peer connected from
+	TEST_CHECK(announce_listen_port(65558, false) != 22);
+	TEST_CHECK(announce_listen_port(0x100000016, false) != 22);
+	TEST_CHECK(announce_listen_port(22, true) != 22);
 }
 #endif // TORRENT_DISABLE_EXTENSIONS
 
