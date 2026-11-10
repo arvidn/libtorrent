@@ -110,19 +110,6 @@ class http_handler(BaseHTTPRequestHandler):
             self.send_header("Location", "/infinite_redirect")
             self.send_header("Connection", "close")
             self.end_headers()
-        elif self.path.startswith('/redirect_chain/'):
-            # every URL redirects to a new one, never arriving at a file
-            self.send_response(301)
-            self.send_header("Location", "/redirect_chain/%d" % (int(self.path.split('/')[-1]) + 1))
-            self.send_header("Connection", "close")
-            self.end_headers()
-        elif self.path.startswith('/redirect_hops/'):
-            # /redirect_hops/<n> takes n more redirects to arrive at the file
-            hops = int(self.path.split('/')[-1])
-            self.send_response(301)
-            self.send_header("Location", "/redirect_hops/%d" % (hops - 1) if hops > 0 else "/test_file")
-            self.send_header("Connection", "close")
-            self.end_headers()
         elif self.path == '/relative/redirect':
             self.send_response(301)
             self.send_header("Location", "../test_file")

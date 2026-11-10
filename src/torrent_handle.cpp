@@ -451,11 +451,13 @@ namespace libtorrent {
 		std::string const&,
 		std::string,
 		web_seed_entry::headers_t,
-		aux::web_seed_flag_t>(decltype(&aux::torrent::add_web_seed),
+		aux::web_seed_flag_t,
+		int>(decltype(&aux::torrent::add_web_seed),
 		std::string const&,
 		std::string&&,
 		web_seed_entry::headers_t&&,
-		aux::web_seed_flag_t&&) const;
+		aux::web_seed_flag_t&&,
+		int&&) const;
 	template TORRENT_EXPORT void
 	torrent_handle::async_call<decltype(&aux::torrent::remove_web_seed), std::string const&>(
 		decltype(&aux::torrent::remove_web_seed), std::string const&) const;
@@ -1061,8 +1063,12 @@ namespace libtorrent {
 
 	void torrent_handle::add_url_seed(std::string const& url) const
 	{
-		async_call(&aux::torrent::add_web_seed, url
-			, std::string(), web_seed_entry::headers_t(), aux::web_seed_flag_t{});
+		async_call(&aux::torrent::add_web_seed,
+			url,
+			std::string(),
+			web_seed_entry::headers_t(),
+			aux::web_seed_flag_t{},
+			0);
 	}
 
 	void torrent_handle::remove_url_seed(std::string const& url) const

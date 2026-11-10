@@ -10436,14 +10436,16 @@ namespace {
 
 	// add or remove a url that will be attempted for
 	// finding the file(s) in this torrent.
-	web_seed_t* torrent::add_web_seed(std::string const& url
-		, std::string const& auth
-		, web_seed_entry::headers_t const& extra_headers
-		, web_seed_flag_t const flags)
+	web_seed_t* torrent::add_web_seed(std::string const& url,
+		std::string const& auth,
+		web_seed_entry::headers_t const& extra_headers,
+		web_seed_flag_t const flags,
+		int const redirect_depth)
 	{
 		web_seed_t ent(url, auth, extra_headers);
 		ent.ephemeral = bool(flags & ephemeral);
 		ent.no_local_ips = bool(flags & no_local_ips);
+		ent.redirect_depth = std::uint8_t(redirect_depth);
 
 		// don't add duplicates
 		auto const it = std::find(m_web_seeds.begin(), m_web_seeds.end(), ent);
@@ -12052,14 +12054,25 @@ namespace {
 		return m_peer_list->find_peers(a);
 	}
 
-	void torrent::update_peer_port(int const port, torrent_peer* p
-		, peer_source_flags_t const src)
+	bool torrent::update_peer_port(int const port, torrent_peer* p, peer_source_flags_t const src)
 	{
+		// the port comes from the peer itself. It's held to the same rules as
+		// the port of a peer we learn about some other way (see add_peer())
+		if (port <= 0 || port > 65535)
+			return false;
+
+		if (m_ses.get_port_filter().access(std::uint16_t(port)) & port_filter::blocked)
+			return false;
+
+		if (settings().get_bool(settings_pack::no_connect_privileged_ports) && port < 1024)
+			return false;
+
 		need_peer_list();
 		torrent_state st = get_peer_list_state();
 		m_peer_list->update_peer_port(port, p, src, &st);
 		peers_erased(st.erased);
 		update_want_peers();
+		return true;
 	}
 
 	// verify piece is used when checking resume data or when the user
