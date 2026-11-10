@@ -1346,6 +1346,8 @@ TORRENT_TEST(out_of_range_extension_id)
 	}
 
 	print_session_log(*ses);
+}
+
 namespace {
 
 // announces the specified listen port in the extension handshake and returns
