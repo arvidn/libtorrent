@@ -112,6 +112,7 @@ fuzzer pe_conn ;
 fuzzer ut_metadata ;
 fuzzer ut_pex ;
 fuzzer web_seed ;
+fuzzer i2p_stream_handshake ;
 
 local LARGE_TARGETS =
 	torrent_info
@@ -143,6 +144,7 @@ local LARGE_TARGETS =
 	ut_metadata
 	ut_pex
 	web_seed
+	i2p_stream_handshake
 	;
 
 install stage : $(TARGETS) : <install-type>EXE <location>fuzzers ;

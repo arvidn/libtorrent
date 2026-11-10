@@ -212,3 +212,68 @@ for m in messages:
     f = open('corpus/peer_conn/%s' % hashlib.sha1(m).hexdigest(), 'wb+')
     f.write(add_reserved(m))
     f.close()
+
+# ---------------------------------------------------------------------------
+# i2p_stream_handshake: SAM bridge response transcripts.
+# Byte 0 is the fuzzer mode (0: i2p_connection open flow, 1: open + queued
+# name lookup, 2: raw cmd_create_session, 3: raw cmd_connect, 4: raw
+# cmd_accept). The rest is the mock SAM bridge's response transcript, one
+# '\n'-terminated line at a time.
+
+os.makedirs(os.path.join('corpus', 'i2p_stream_handshake'), exist_ok=True)
+
+hello_ok = b'HELLO REPLY RESULT=OK VERSION=3.1\n'
+session_ok = b'SESSION STATUS RESULT=OK\n'
+stream_ok = b'STREAM STATUS RESULT=OK\n'
+naming_me_ok = b'NAMING REPLY RESULT=OK NAME=ME VALUE=fuzzdest~abcdefgh\n'
+
+i2p_transcripts = [
+    # 0: happy i2p_connection::open() flow
+    bytes([0]) + hello_ok + session_ok + naming_me_ok,
+    # 0: hello-level error
+    bytes([0]) + b'HELLO REPLY RESULT=CANT_REACH_PEER\n',
+    # 0: malformed hello (wrong first token)
+    bytes([0]) + b'FOO BAR RESULT=OK\nSESSION STATUS RESULT=OK\n',
+    # 0: session-level error, with MESSAGE field
+    bytes([0]) + hello_ok + b'SESSION STATUS RESULT=I2P_ERROR MESSAGE="bad id"\n',
+    # 0: unknown RESULT code (maps to num_errors)
+    bytes([0]) + hello_ok + b'SESSION STATUS RESULT=WHATEVER\n',
+    # 0: name lookup reply without VALUE (parse_failed in set_local_endpoint)
+    bytes([0]) + hello_ok + session_ok + b'NAMING REPLY RESULT=OK NAME=ME\n',
+    # 0: quoted VALUE with spaces
+    bytes([0]) + hello_ok + session_ok
+    + b'NAMING REPLY RESULT=OK NAME=ME VALUE="a b c~d e"\n',
+    # 0: DESTINATION field alongside VALUE
+    bytes([0]) + hello_ok + session_ok
+    + b'NAMING REPLY RESULT=OK NAME=ME DESTINATION=other~dest VALUE=me~dest\n',
+    # 0: empty line between replies
+    bytes([0]) + hello_ok + b'\n' + session_ok + naming_me_ok,
+    # 0: truncated final line (no '\n', EOF error path)
+    bytes([0]) + hello_ok + session_ok + b'NAMING REPLY RESULT=OK NAME=M',
+    # 1: open flow + queued lookup succeeding
+    bytes([1]) + hello_ok + session_ok + naming_me_ok
+    + b'NAMING REPLY RESULT=OK NAME=target VALUE=targetdest~1234\n',
+    # 1: queued lookup failing with KEY_NOT_FOUND
+    bytes([1]) + hello_ok + session_ok + naming_me_ok
+    + b'NAMING REPLY RESULT=KEY_NOT_FOUND NAME=target\n',
+    # 2: raw create session
+    bytes([2]) + hello_ok + session_ok,
+    # 2: empty first line then hello
+    bytes([2]) + b'\n' + hello_ok + session_ok,
+    # 3: raw connect
+    bytes([3]) + hello_ok + stream_ok,
+    # 3: connect rejected
+    bytes([3]) + hello_ok + b'STREAM STATUS RESULT=CANT_REACH_PEER\n',
+    # 4: raw accept, including the cmd_incoming destination line
+    bytes([4]) + hello_ok + stream_ok + b'remotedest~wxyz\n',
+    # 4: accept with a long destination line
+    bytes([4]) + hello_ok + stream_ok + b'x' * 900 + b'\n',
+    # 4: accept with an empty destination line
+    bytes([4]) + hello_ok + stream_ok + b'\n',
+]
+
+for t in i2p_transcripts:
+    name = hashlib.sha1(t).hexdigest()
+    with open(os.path.join('corpus', 'i2p_stream_handshake', name), 'wb+') as f:
+        f.write(t)
+
