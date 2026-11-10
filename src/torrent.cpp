@@ -10436,7 +10436,15 @@ namespace {
 
 	// add or remove a url that will be attempted for
 	// finding the file(s) in this torrent.
-	web_seed_t* torrent::add_web_seed(std::string const& url,
+	web_seed_t* torrent::add_web_seed(std::string const& url
+		, std::string const& auth
+		, web_seed_entry::headers_t const& extra_headers
+		, web_seed_flag_t const flags)
+	{
+		return add_web_seed_redirect(url, auth, extra_headers, flags, 0);
+	}
+
+	web_seed_t* torrent::add_web_seed_redirect(std::string const& url,
 		std::string const& auth,
 		web_seed_entry::headers_t const& extra_headers,
 		web_seed_flag_t const flags,

@@ -738,11 +738,18 @@ namespace libtorrent::aux {
 
 		// add_web_seed won't add duplicates. If we have already added an entry
 		// with this URL, we'll get back the existing entry
-		web_seed_t* add_web_seed(std::string const& url,
-			std::string const& auth = std::string(),
-			web_seed_t::headers_t const& extra_headers = web_seed_entry::headers_t(),
-			web_seed_flag_t flags = {},
-			int redirect_depth = 0);
+		web_seed_t* add_web_seed(std::string const& url
+			, std::string const& auth = std::string()
+			, web_seed_t::headers_t const& extra_headers = web_seed_entry::headers_t()
+			, web_seed_flag_t flags = {});
+
+		// same as add_web_seed(), for a URL another web seed redirected to.
+		// redirect_depth is the number of redirects that led to it
+		web_seed_t* add_web_seed_redirect(std::string const& url,
+			std::string const& auth,
+			web_seed_t::headers_t const& extra_headers,
+			web_seed_flag_t flags,
+			int redirect_depth);
 
 		void remove_web_seed(std::string const& url);
 

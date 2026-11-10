@@ -731,7 +731,7 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		// with base url=="http://example2.com/" and redirects[0]=="/subpath/file2").
 		// If we try to load resume with such "web_seed_t" then "web_peer_connection" will send
 		// request with wrong path "http://example2.com/file1" (cause "redirects" map is not serialized in resume)
-		web_seed_t* web = t->add_web_seed(
+		web_seed_t* web = t->add_web_seed_redirect(
 			redirect_base, auth, m_extra_headers, web_seed_flags, m_web->redirect_depth + 1);
 		web->have_files.resize(t->torrent_file().num_files(), false);
 
@@ -785,7 +785,8 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		// that any user-supplied m_extra_headers are still forwarded -- see the
 		// warning on web_seed_entry::extra_headers.
 		std::string const auth = same_origin(m_url, location) ? m_external_auth : std::string();
-		t->add_web_seed(location, auth, m_extra_headers, web_seed_flags, m_web->redirect_depth + 1);
+		t->add_web_seed_redirect(
+			location, auth, m_extra_headers, web_seed_flags, m_web->redirect_depth + 1);
 
 		// this web seed doesn't have any files. Don't try to request from it
 		// again this session
