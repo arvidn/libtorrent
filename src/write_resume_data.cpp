@@ -104,6 +104,7 @@ namespace {
 
 		ret["sanitize_flags"] =
 			static_cast<std::int64_t>(static_cast<std::uint32_t>(atp.sanitize_flags));
+		ret["sanitize_flags_version"] = 1;
 
 		ret["added_time"] = atp.added_time;
 		ret["completed_time"] = atp.completed_time;

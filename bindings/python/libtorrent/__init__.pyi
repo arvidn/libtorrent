@@ -2228,6 +2228,7 @@ class path_sanitize_flags(metaclass=_BoostBaseClass):
     deduplicate_per_directory: int
     filter_dos_reserved_names: int
     filter_unicode_formatting_chars: int
+    filter_directional_marks: int
     libtorrent_2_0: int
     libtorrent_2_1: int
     libtorrent_2_2: int

@@ -56,7 +56,7 @@ constexpr path_sanitize_flags_t sanitize_invalid_chars_android = 4_bit;
 // (Arabic letter mark, ZWSP/ZWNJ/ZWJ, word joiner, invisible math
 // operators, bidi isolates, byte order mark) that can be used to spoof
 // filenames, on top of the bidi override/embedding controls and
-// LRM/RLM marks that are always filtered. Part of ``default_flags`` and
+// LRM/RLM marks controlled by ``filter_directional_marks``. Part of ``default_flags`` and
 // ``libtorrent_2_1``/``libtorrent_2_2`` on every platform (see
 // ``default_flags``); clear it for torrents where these extra
 // characters need to survive sanitization.
@@ -101,6 +101,11 @@ constexpr path_sanitize_flags_t deduplicate_full_path = 7_bit;
 //   other's data.
 constexpr path_sanitize_flags_t case_insensitive_deduplication = 8_bit;
 
+// Filter U+200E LEFT-TO-RIGHT MARK and U+200F RIGHT-TO-LEFT MARK. These
+// invisible marks can spoof filenames. Clearing this bit preserves them;
+// bidi embedding and override controls remain filtered independently.
+constexpr path_sanitize_flags_t filter_directional_marks = 9_bit;
+
 // all bits combined
 constexpr path_sanitize_flags_t all = path_sanitize_flags_t::all();
 
@@ -110,6 +115,7 @@ constexpr path_sanitize_flags_t all = path_sanitize_flags_t::all();
 // ``filter_unicode_formatting_chars`` covers.
 constexpr path_sanitize_flags_t libtorrent_2_0 = path_sanitize_flags::deduplicate_full_path
 	| path_sanitize_flags::case_insensitive_deduplication
+	| path_sanitize_flags::filter_directional_marks
 #ifdef TORRENT_WINDOWS
 	| path_sanitize_flags::limit_unicode_characters
 	| path_sanitize_flags::trim_trailing_spaces_and_dots

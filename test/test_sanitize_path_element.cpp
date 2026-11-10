@@ -534,7 +534,7 @@ TORRENT_TEST(sanitize_path_colon)
 
 TORRENT_TEST(sanitize_path_unicode_formatting_chars)
 {
-	// the bidi marks/overrides (U+200E/F, U+202A-E) are always filtered;
+	// bidi marks are filtered by default; overrides remain filtered;
 	// path_sanitize_flags::filter_unicode_formatting_chars additionally
 	// filters other zero-width/invisible characters, e.g. U+200B (ZWSP)
 	// here, which some users need to disable
@@ -544,8 +544,14 @@ TORRENT_TEST(sanitize_path_unicode_formatting_chars)
 	TEST_EQUAL(sanitize("foo\xe2\x80\x8e"
 						"bar",
 				   false,
-				   lt::path_sanitize_flags_t{}),
+				   lt::path_sanitize_flags::filter_directional_marks),
 		"foobar");
+	lt::path_sanitize_flags_t const allow{};
+	TEST_EQUAL(sanitize("foo\xe2\x80\x8e" "bar", false, allow), "foo\xe2\x80\x8e" "bar");
+	TEST_EQUAL(sanitize("foo\xe2\x80\x8f" "bar", false, allow), "foo\xe2\x80\x8f" "bar");
+	TEST_EQUAL(sanitize("foo\xe2\x80\xaa" "bar", false, allow), "foobar");
+	TEST_EQUAL(sanitize("foo\xe2\x80\x8e" "bar", false,
+		lt::path_sanitize_flags::default_flags), "foobar");
 
 	TEST_EQUAL(sanitize("foo\xe2\x80\x8b"
 						"bar",
