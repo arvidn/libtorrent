@@ -1630,24 +1630,17 @@ namespace {
 
 				// a connect message makes us connect to an endpoint of the
 				// peer's choosing, whether we asked to be introduced to it
-				// or not. Limit how often a peer can do that, and don't
-				// exceed the connection limit
-				time_point32 const now = aux::time_now32();
-				if (now - m_holepunch_connect_window >= minutes32(1))
-				{
-					m_holepunch_connect_window = now;
-					m_holepunch_connects = 0;
-				}
-				if (m_holepunch_connects >= max_holepunch_connects
-					|| m_ses.num_connections()
-						>= m_settings.get_int(settings_pack::connections_limit))
+				// or not. The number of them we act on is limited by how long
+				// we've been connected to the peer
+				if (m_holepunch_connects
+					>= 10 + total_seconds(aux::time_now() - connected_time()) / 3)
 				{
 #ifndef TORRENT_DISABLE_LOGGING
 					if (should_log(peer_log_alert::incoming_message))
 					{
 						peer_log(peer_log_alert::incoming_message,
 							peer_log_alert::holepunch,
-							"msg:connect to: %s ERROR: too many connections",
+							"msg:connect to: %s ERROR: too many connect messages",
 							print_address(ep.address()).c_str());
 					}
 #endif
@@ -2097,10 +2090,10 @@ namespace {
 		}
 
 		// there is supposed to be a remote listen port
-		int const listen_port = int(root.dict_find_int_value("p"));
-		if (listen_port > 0 && peer_info_struct() != nullptr)
+		std::int64_t const listen_port = root.dict_find_int_value("p");
+		if (listen_port > 0 && listen_port <= 65535 && peer_info_struct() != nullptr
+			&& t->update_peer_port(int(listen_port), peer_info_struct(), peer_info::incoming))
 		{
-			t->update_peer_port(listen_port, peer_info_struct(), peer_info::incoming);
 			received_listen_port();
 			if (is_disconnecting()) return;
 		}

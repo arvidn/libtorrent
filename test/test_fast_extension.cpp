@@ -28,11 +28,13 @@ see LICENSE file.
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_params.hpp"
 #include "libtorrent/aux_/torrent.hpp"
-#include "libtorrent/aux_/bt_peer_connection.hpp"
+#include "libtorrent/aux_/peer_connection.hpp"
+#include "libtorrent/aux_/torrent_peer.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 
 #include <cstring>
 #include <functional>
+#include <future>
 #include <iostream>
 #include <fstream>
 #include <cstdarg>
@@ -1289,13 +1291,10 @@ TORRENT_TEST(invalid_metadata_request)
 
 namespace {
 
-// sends 100 holepunch connect messages, for different endpoints, to a
-// session with the specified connection limit. Returns the number of
-// connections it's attempting as a result
-int holepunch_connect_flood(int const connections_limit)
+// announces the specified listen port in the extension handshake and returns
+// the port of the peer, in the peer list, once the handshake has been handled
+int announce_listen_port(std::int64_t const listen_port, bool const no_privileged_ports)
 {
-	using namespace lt::aux;
-
 	info_hash_t ih;
 	torrent_handle th;
 	std::shared_ptr<lt::session> ses;
@@ -1304,9 +1303,7 @@ int holepunch_connect_flood(int const connections_limit)
 	setup_peer(s, ios, ih, ses, true, false, false, torrent_flags_t{}, &th);
 
 	settings_pack pack;
-	pack.set_int(settings_pack::connections_limit, connections_limit);
-	pack.set_bool(settings_pack::enable_outgoing_utp, true);
-	pack.set_bool(settings_pack::allow_multiple_connections_per_ip, true);
+	pack.set_bool(settings_pack::no_connect_privileged_ports, no_privileged_ports);
 	ses->apply_settings(pack);
 
 	char recv_buffer[1000];
@@ -1315,62 +1312,41 @@ int holepunch_connect_flood(int const connections_limit)
 
 	entry extensions;
 	extensions["m"]["ut_metadata"] = 1;
-	extensions["m"]["ut_holepunch"] = 2;
+	extensions["p"] = listen_port;
 	send_extension_handshake(s, extensions);
 	extensions = read_extension_handshake(s, recv_buffer);
-	int const ut_holepunch = int(extensions["m"]["ut_holepunch"].integer());
-	int const ut_metadata = int(extensions["m"]["ut_metadata"].integer());
 
-	auto const before = get_counters(*ses);
-
-	for (int i = 0; i < 100; ++i)
-	{
-		// uint32: packet-length
-		//  uint8: 20 (extension message)
-		//  uint8: <ut_holepunch>
-		//  uint8: 1 (connect)
-		//  uint8: 0 (IPv4)
-		// uint32: address
-		// uint16: port
-		char msg[14];
-		char* ptr = msg;
-		write_uint32(10, ptr);
-		write_uint8(20, ptr);
-		write_uint8(ut_holepunch, ptr);
-		write_uint8(1, ptr);
-		write_uint8(0, ptr);
-		// since we're connecting from a local address, we're allowed to
-		// introduce local addresses
-		write_uint32(0x7f000001, ptr);
-		write_uint16(20000 + i, ptr);
-		error_code ec;
-		boost::asio::write(s, boost::asio::buffer(msg), ec);
-		if (ec)
-			TEST_ERROR(ec.message());
-	}
-
-	// once we have a response to this, we know the connect messages have
+	// once we have a response to this, we know the extension handshake has
 	// been handled
-	send_ut_metadata_msg(s, ut_metadata, 0, 0);
+	send_ut_metadata_msg(s, int(extensions["m"]["ut_metadata"].integer()), 0, 0);
 	read_ut_metadata_msg(s, recv_buffer);
 
-	auto const after = get_counters(*ses);
-	TEST_CHECK(after.at("utp.num_utp_syn_sent") > before.at("utp.num_utp_syn_sent"));
-	return int(after.at("peer.num_peers_half_open") - before.at("peer.num_peers_half_open"));
+	auto const tor = th.native_handle();
+	std::promise<int> ret;
+	post(ses->native_handle()->get_context(), [tor, &ret] {
+		ret.set_value(
+			tor->begin() == tor->end() ? -1 : int((*tor->begin())->peer_info_struct()->port));
+	});
+	int const port = ret.get_future().get();
+	TEST_CHECK(port == listen_port || port == s.local_endpoint().port());
+	return port;
 }
 
 } // anonymous namespace
 
-// a holepunch connect message makes us connect to the endpoint in it. There's
-// a limit to how many of those we act on from a single peer
-TORRENT_TEST(holepunch_connect_rate_limit)
+// the listen port a peer announces in its extension handshake replaces the
+// port we have for it. A port that doesn't fit in 16 bits used to be
+// truncated (65558 turns into 22), and privileged ports were not rejected
+TORRENT_TEST(extension_handshake_listen_port)
 {
-	TEST_CHECK(holepunch_connect_flood(200) <= aux::bt_peer_connection::max_holepunch_connects);
-}
+	TEST_EQUAL(announce_listen_port(6881, true), 6881);
+	TEST_EQUAL(announce_listen_port(22, false), 22);
 
-// and they are not allowed to exceed the connection limit. One connection is
-// used by the peer sending the messages
-TORRENT_TEST(holepunch_connect_connections_limit) { TEST_CHECK(holepunch_connect_flood(10) <= 9); }
+	// these are ignored, we keep the port the peer connected from
+	TEST_CHECK(announce_listen_port(65558, false) != 22);
+	TEST_CHECK(announce_listen_port(0x100000016, false) != 22);
+	TEST_CHECK(announce_listen_port(22, true) != 22);
+}
 #endif // TORRENT_DISABLE_EXTENSIONS
 
 
