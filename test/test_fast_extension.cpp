@@ -28,10 +28,13 @@ see LICENSE file.
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_params.hpp"
 #include "libtorrent/aux_/torrent.hpp"
+#include "libtorrent/aux_/peer_connection.hpp"
+#include "libtorrent/aux_/torrent_peer.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 
 #include <cstring>
 #include <functional>
+#include <future>
 #include <iostream>
 #include <fstream>
 #include <cstdarg>
@@ -288,7 +291,7 @@ void send_bitfield(tcp::socket& s, char const* bits)
 	if (ec) TEST_ERROR(ec.message());
 }
 
-void do_handshake(tcp::socket& s, info_hash_t const& ih, char* buffer, char const peer_id = 'a')
+void do_handshake(tcp::socket& s, info_hash_t const& ih, char* buffer)
 {
 	char handshake[] = "\x13" "BitTorrent protocol\0\0\0\0\0\x10\0\x04"
 		"                    " // space for info-hash
@@ -296,7 +299,6 @@ void do_handshake(tcp::socket& s, info_hash_t const& ih, char* buffer, char cons
 	log("==> handshake");
 	error_code ec;
 	std::memcpy(handshake + 28, ih.v1.data(), 20);
-	std::memset(handshake + 48, peer_id, 20);
 	boost::asio::write(s, boost::asio::buffer(handshake, sizeof(handshake) - 1)
 		, boost::asio::transfer_all(), ec);
 	if (ec)
@@ -1289,114 +1291,62 @@ TORRENT_TEST(invalid_metadata_request)
 
 namespace {
 
-void send_ut_metadata_piece(tcp::socket& s,
-	int const ut_metadata_msg,
-	int const total_size,
-	span<char const> const metadata)
-{
-	// uint32: packet-length
-	//  uint8: 20 (extension message)
-	//  uint8: <ut_metadata_msg> (ut_metadata)
-	std::vector<char> buf(4 + 1 + 1);
-
-	entry e;
-	e["msg_type"] = 1;
-	e["piece"] = 0;
-	e["total_size"] = total_size;
-	bencode(std::back_inserter(buf), e);
-	buf.insert(buf.end(), metadata.begin(), metadata.end());
-
-	using namespace lt::aux;
-
-	char* ptr = buf.data();
-	write_uint32(int(buf.size()) - 4, ptr);
-	write_uint8(20, ptr);
-	write_uint8(ut_metadata_msg, ptr);
-
-	log("==> ut_metadata [ type: 1 piece: 0 total_size: %d ]", total_size);
-
-	error_code ec;
-	boost::asio::write(s, boost::asio::buffer(buf), boost::asio::transfer_all(), ec);
-	if (ec)
-		TEST_ERROR(ec.message());
-}
-
-// performs the extension handshake, announcing the specified metadata size.
-// Returns the other end's ut_metadata message ID, once it has requested the
-// first metadata piece from us. At that point we know it has handled our
-// extension handshake.
-int announce_metadata_size(tcp::socket& s, int const metadata_size)
-{
-	char recv_buffer[1000];
-	entry extensions;
-	extensions["m"]["ut_metadata"] = 1;
-	extensions["metadata_size"] = metadata_size;
-	send_extension_handshake(s, extensions);
-	extensions = read_extension_handshake(s, recv_buffer);
-
-	entry const request = read_ut_metadata_msg(s, recv_buffer);
-	TEST_EQUAL(request["msg_type"].integer(), 0);
-	TEST_EQUAL(request["piece"].integer(), 0);
-	return int(extensions["m"]["ut_metadata"].integer());
-}
-
-// one peer announces the wrong metadata size in its extension handshake, and
-// never sends any metadata. This is not supposed to stop us from receiving
-// the metadata from another peer.
-void test_wrong_metadata_size(bool const wrong_size_first)
+// announces the specified listen port in the extension handshake and returns
+// the port of the peer, in the peer list, once the handshake has been handled
+int announce_listen_port(std::int64_t const listen_port, bool const no_privileged_ports)
 {
 	info_hash_t ih;
 	torrent_handle th;
 	std::shared_ptr<lt::session> ses;
 	io_context ios;
-	tcp::socket s1(ios);
-	tcp::socket s2(ios);
-	auto const ti = setup_peer(s1, ios, ih, ses, true, true, false, torrent_flags_t{}, &th);
-	error_code ec;
-	s2.connect(ep("127.0.0.1", ses->listen_port()), ec);
-	if (ec)
-		TEST_ERROR(ec.message());
+	tcp::socket s(ios);
+	setup_peer(s, ios, ih, ses, true, false, false, torrent_flags_t{}, &th);
+
+	settings_pack pack;
+	pack.set_bool(settings_pack::no_connect_privileged_ports, no_privileged_ports);
+	ses->apply_settings(pack);
 
 	char recv_buffer[1000];
-	do_handshake(s1, ih, recv_buffer);
-	send_have_all(s1);
-	do_handshake(s2, ih, recv_buffer, 'b');
-	send_have_all(s2);
+	do_handshake(s, ih, recv_buffer);
+	send_have_all(s);
 
-	span<char const> const metadata = ti->info_section();
-	int const size = int(metadata.size());
-	int const wrong_size = size + 1000;
+	entry extensions;
+	extensions["m"]["ut_metadata"] = 1;
+	extensions["p"] = listen_port;
+	send_extension_handshake(s, extensions);
+	extensions = read_extension_handshake(s, recv_buffer);
 
-	int ut_metadata = 0;
-	if (wrong_size_first)
-	{
-		announce_metadata_size(s2, wrong_size);
-		ut_metadata = announce_metadata_size(s1, size);
-	}
-	else
-	{
-		ut_metadata = announce_metadata_size(s1, size);
-		announce_metadata_size(s2, wrong_size);
-	}
+	// once we have a response to this, we know the extension handshake has
+	// been handled
+	send_ut_metadata_msg(s, int(extensions["m"]["ut_metadata"].integer()), 0, 0);
+	read_ut_metadata_msg(s, recv_buffer);
 
-	send_ut_metadata_piece(s1, ut_metadata, size, metadata);
-
-	bool has_metadata = false;
-	for (int i = 0; i < 50 && !has_metadata; ++i)
-	{
-		has_metadata = th.status().has_metadata;
-		if (!has_metadata)
-			std::this_thread::sleep_for(100ms);
-	}
-	print_session_log(*ses);
-	TEST_CHECK(has_metadata);
+	auto const tor = th.native_handle();
+	std::promise<int> ret;
+	post(ses->native_handle()->get_context(), [tor, &ret] {
+		ret.set_value(
+			tor->begin() == tor->end() ? -1 : int((*tor->begin())->peer_info_struct()->port));
+	});
+	int const port = ret.get_future().get();
+	TEST_CHECK(port == listen_port || port == s.local_endpoint().port());
+	return port;
 }
 
 } // anonymous namespace
 
-TORRENT_TEST(wrong_metadata_size_announced_first) { test_wrong_metadata_size(true); }
+// the listen port a peer announces in its extension handshake replaces the
+// port we have for it. A port that doesn't fit in 16 bits used to be
+// truncated (65558 turns into 22), and privileged ports were not rejected
+TORRENT_TEST(extension_handshake_listen_port)
+{
+	TEST_EQUAL(announce_listen_port(6881, true), 6881);
+	TEST_EQUAL(announce_listen_port(22, false), 22);
 
-TORRENT_TEST(wrong_metadata_size_announced_last) { test_wrong_metadata_size(false); }
+	// these are ignored, we keep the port the peer connected from
+	TEST_CHECK(announce_listen_port(65558, false) != 22);
+	TEST_CHECK(announce_listen_port(0x100000016, false) != 22);
+	TEST_CHECK(announce_listen_port(22, true) != 22);
+}
 #endif // TORRENT_DISABLE_EXTENSIONS
 
 

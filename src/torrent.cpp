@@ -12046,14 +12046,25 @@ namespace {
 		return m_peer_list->find_peers(a);
 	}
 
-	void torrent::update_peer_port(int const port, torrent_peer* p
-		, peer_source_flags_t const src)
+	bool torrent::update_peer_port(int const port, torrent_peer* p, peer_source_flags_t const src)
 	{
+		// the port comes from the peer itself. It's held to the same rules as
+		// the port of a peer we learn about some other way (see add_peer())
+		if (port <= 0 || port > 65535)
+			return false;
+
+		if (m_ses.get_port_filter().access(std::uint16_t(port)) & port_filter::blocked)
+			return false;
+
+		if (settings().get_bool(settings_pack::no_connect_privileged_ports) && port < 1024)
+			return false;
+
 		need_peer_list();
 		torrent_state st = get_peer_list_state();
 		m_peer_list->update_peer_port(port, p, src, &st);
 		peers_erased(st.erased);
 		update_want_peers();
+		return true;
 	}
 
 	// verify piece is used when checking resume data or when the user
