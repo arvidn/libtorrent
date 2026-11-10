@@ -1368,6 +1368,28 @@ TORRENT_TEST(sanitize_flags_roundtrip)
 	TEST_CHECK(atp.sanitize_flags == path_sanitize_flags::default_flags);
 }
 
+TORRENT_TEST(sanitize_directional_flags_resume_compatibility)
+{
+	add_torrent_params p = generate_torrent();
+	p.sanitize_flags = path_sanitize_flags_t{};
+	error_code ec;
+	auto const modern = read_resume_data(write_resume_data_buf(p), ec);
+	TEST_CHECK(!ec);
+	TEST_CHECK(modern.sanitize_flags == path_sanitize_flags_t{});
+
+	// Before the version marker existed, even a zero mask filtered LRM/RLM.
+	entry legacy;
+	legacy["file-format"] = "libtorrent resume file";
+	legacy["name"] = p.ti->name();
+	legacy["info-hash"] = p.ti->info_hashes().v1;
+	legacy["info"] = bdecode(p.ti->info_section());
+	legacy["sanitize_flags"] = 0;
+	std::vector<char> const legacy_data = bencode(legacy);
+	auto const old = read_resume_data(legacy_data, ec);
+	TEST_CHECK(!ec);
+	TEST_CHECK(old.sanitize_flags == path_sanitize_flags::filter_directional_marks);
+}
+
 TORRENT_TEST(sanitize_flags_pinned_through_save_resume_data)
 {
 	// the sanitize_flags ruleset pinned on a live torrent at add-time must
