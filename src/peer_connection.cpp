@@ -3562,13 +3562,9 @@ namespace {
 				return;
 		}
 
-		// the same piece may be allowed more than once
-		if (std::find(m_allowed_fast.begin(), m_allowed_fast.end(), index) != m_allowed_fast.end())
-			return;
-
 		// the peer decides how many pieces it allows us to request while
 		// choked, but there's a limit to how many of them we keep track of
-		if (int(m_allowed_fast.size()) >= max_allowed_fast_pieces)
+		if (int(m_allowed_fast.size()) >= 30)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			peer_log(peer_log_alert::incoming_message,

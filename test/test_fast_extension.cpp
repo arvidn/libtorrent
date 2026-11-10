@@ -29,6 +29,7 @@ see LICENSE file.
 #include "libtorrent/session_params.hpp"
 #include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/aux_/peer_connection.hpp"
+#include "libtorrent/aux_/torrent_peer.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 
 #include <cstring>
@@ -581,20 +582,6 @@ bool wait_for_counter(lt::session& ses, char const* name, std::int64_t const val
 	return false;
 }
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
-// returns the number of pieces the (single) peer has allowed us to request
-// while choked, or -1 if there is no peer
-int num_allowed_fast(lt::session& ses, torrent_handle const& th)
-{
-	auto const tor = th.native_handle();
-	std::promise<int> ret;
-	post(ses.native_handle()->get_context(), [tor, &ret] {
-		ret.set_value(
-			tor->begin() == tor->end() ? -1 : int((*tor->begin())->allowed_fast().size()));
-	});
-	return ret.get_future().get();
-}
-#endif // TORRENT_DISABLE_EXTENSIONS
 
 } // anonymous namespace
 
@@ -712,17 +699,16 @@ TORRENT_TEST(allowed_fast_survives_metadata)
 	s.close();
 }
 
-#ifndef TORRENT_DISABLE_EXTENSIONS
+#if !defined TORRENT_DISABLE_EXTENSIONS && !defined TORRENT_DISABLE_LOGGING
 // the allowed-fast set a peer sends us is not allowed to grow without bound.
 // Before we have the metadata any piece index is accepted
 TORRENT_TEST(allowed_fast_limit)
 {
 	info_hash_t ih;
-	torrent_handle th;
 	std::shared_ptr<lt::session> ses;
 	io_context ios;
 	tcp::socket s(ios);
-	setup_peer(s, ios, ih, ses, true, true, false, torrent_flags_t{}, &th);
+	setup_peer(s, ios, ih, ses, true, true);
 
 	char recv_buffer[1000];
 	do_handshake(s, ih, recv_buffer);
@@ -734,53 +720,32 @@ TORRENT_TEST(allowed_fast_limit)
 	extensions = read_extension_handshake(s, recv_buffer);
 	int const ut_metadata = int(extensions["m"]["ut_metadata"].integer());
 
-	int const num_messages = 10 * aux::peer_connection::max_allowed_fast_pieces;
-	for (int i = 0; i < num_messages; ++i)
+	// the first 30 pieces are kept, the rest are ignored
+	int const num_ignored = 10;
+	for (int i = 0; i < 30 + num_ignored; ++i)
 		send_allow_fast(s, i);
 
 	// once we have a response to this, we know all the allowed-fast messages
-	// have been handled
+	// have been handled. Since the torrent doesn't have any metadata, the
+	// response is a reject (2). We'll also receive requests (0) for the
+	// metadata.
 	send_ut_metadata_msg(s, ut_metadata, 0, 0);
-	read_ut_metadata_msg(s, recv_buffer);
+	while (read_ut_metadata_msg(s, recv_buffer)["msg_type"].integer() != 2)
+		;
 
-	TEST_EQUAL(num_allowed_fast(*ses, th), aux::peer_connection::max_allowed_fast_pieces);
+	int ignored = 0;
+	std::vector<alert*> alerts;
+	ses->pop_alerts(&alerts);
+	for (alert const* a : alerts)
+	{
+		auto const* pl = alert_cast<peer_log_alert>(a);
+		if (pl && pl->event_type == peer_log_alert::invalid_allowed_fast)
+			++ignored;
+	}
+	TEST_EQUAL(ignored, num_ignored);
 	s.close();
 }
-
-// allowing the same piece over and over is not supposed to add it to the
-// allowed-fast set more than once
-TORRENT_TEST(allowed_fast_duplicates)
-{
-	info_hash_t ih;
-	torrent_handle th;
-	std::shared_ptr<lt::session> ses;
-	io_context ios;
-	tcp::socket s(ios);
-	setup_peer(s, ios, ih, ses, true, false, false, torrent_flags_t{}, &th);
-
-	char recv_buffer[1000];
-	do_handshake(s, ih, recv_buffer);
-	send_have_all(s);
-
-	entry extensions;
-	extensions["m"]["ut_metadata"] = 1;
-	send_extension_handshake(s, extensions);
-	extensions = read_extension_handshake(s, recv_buffer);
-	int const ut_metadata = int(extensions["m"]["ut_metadata"].integer());
-
-	int const num_messages = 500;
-	for (int i = 0; i < num_messages; ++i)
-		send_allow_fast(s, i % 2);
-
-	// once we have a response to this, we know all the allowed-fast messages
-	// have been handled
-	send_ut_metadata_msg(s, ut_metadata, 0, 0);
-	read_ut_metadata_msg(s, recv_buffer);
-
-	TEST_EQUAL(num_allowed_fast(*ses, th), 2);
-	s.close();
-}
-#endif // TORRENT_DISABLE_EXTENSIONS
+#endif
 
 TORRENT_TEST(suggested_piece_survives_metadata)
 {
@@ -1371,6 +1336,65 @@ TORRENT_TEST(invalid_metadata_request)
 	TEST_EQUAL(ut_metadata_msg["piece"].integer(), 0);
 
 	print_session_log(*ses);
+}
+
+namespace {
+
+// announces the specified listen port in the extension handshake and returns
+// the port of the peer, in the peer list, once the handshake has been handled
+int announce_listen_port(std::int64_t const listen_port, bool const no_privileged_ports)
+{
+	info_hash_t ih;
+	torrent_handle th;
+	std::shared_ptr<lt::session> ses;
+	io_context ios;
+	tcp::socket s(ios);
+	setup_peer(s, ios, ih, ses, true, false, false, torrent_flags_t{}, &th);
+
+	settings_pack pack;
+	pack.set_bool(settings_pack::no_connect_privileged_ports, no_privileged_ports);
+	ses->apply_settings(pack);
+
+	char recv_buffer[1000];
+	do_handshake(s, ih, recv_buffer);
+	send_have_all(s);
+
+	entry extensions;
+	extensions["m"]["ut_metadata"] = 1;
+	extensions["p"] = listen_port;
+	send_extension_handshake(s, extensions);
+	extensions = read_extension_handshake(s, recv_buffer);
+
+	// once we have a response to this, we know the extension handshake has
+	// been handled
+	send_ut_metadata_msg(s, int(extensions["m"]["ut_metadata"].integer()), 0, 0);
+	read_ut_metadata_msg(s, recv_buffer);
+
+	auto const tor = th.native_handle();
+	std::promise<int> ret;
+	post(ses->native_handle()->get_context(), [tor, &ret] {
+		ret.set_value(
+			tor->begin() == tor->end() ? -1 : int((*tor->begin())->peer_info_struct()->port));
+	});
+	int const port = ret.get_future().get();
+	TEST_CHECK(port == listen_port || port == s.local_endpoint().port());
+	return port;
+}
+
+} // anonymous namespace
+
+// the listen port a peer announces in its extension handshake replaces the
+// port we have for it. A port that doesn't fit in 16 bits used to be
+// truncated (65558 turns into 22), and privileged ports were not rejected
+TORRENT_TEST(extension_handshake_listen_port)
+{
+	TEST_EQUAL(announce_listen_port(6881, true), 6881);
+	TEST_EQUAL(announce_listen_port(22, false), 22);
+
+	// these are ignored, we keep the port the peer connected from
+	TEST_CHECK(announce_listen_port(65558, false) != 22);
+	TEST_CHECK(announce_listen_port(0x100000016, false) != 22);
+	TEST_CHECK(announce_listen_port(22, true) != 22);
 }
 #endif // TORRENT_DISABLE_EXTENSIONS
 
