@@ -2069,10 +2069,10 @@ namespace {
 		}
 
 		// there is supposed to be a remote listen port
-		int const listen_port = int(root.dict_find_int_value("p"));
-		if (listen_port > 0 && peer_info_struct() != nullptr)
+		std::int64_t const listen_port = root.dict_find_int_value("p");
+		if (listen_port > 0 && listen_port <= 65535 && peer_info_struct() != nullptr
+			&& t->update_peer_port(int(listen_port), peer_info_struct(), peer_info::incoming))
 		{
-			t->update_peer_port(listen_port, peer_info_struct(), peer_info::incoming);
 			received_listen_port();
 			if (is_disconnecting()) return;
 		}
