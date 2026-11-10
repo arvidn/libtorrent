@@ -1,5 +1,6 @@
 2.2.0 not released
 
+	* reuse tracker connections via idle socket, toggled with tracker_connection_idle_timeout setting (default 1000ms)
 	* mitigate peer list flooding from a single IPv6 prefix
 	* restrict sharing files across SSL torrents
 	* add versioned path-sanitization
