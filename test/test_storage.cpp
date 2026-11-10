@@ -1344,6 +1344,95 @@ TORRENT_TEST_DISK_IO(has_any_file_partfile_only) { test_has_any_file_partfile_on
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 TORRENT_TEST(test_pre_allocate_mmap) { test_pre_allocate<mmap_storage>(); }
 #endif
+
+#if defined __SANITIZE_THREAD__
+#define TEST_THREAD_SANITIZER 1
+#elif defined __has_feature
+#if __has_feature(thread_sanitizer)
+#define TEST_THREAD_SANITIZER 1
+#endif
+#endif
+
+// _FORTIFY_SOURCE turns try_signal's siglongjmp() into __longjmp_chk(), which
+// TSan doesn't intercept. TSan would then consider the thread to never leave
+// the SIGBUS handler, and report every subsequent allocation
+#if TORRENT_HAVE_MMAP && !(defined TEST_THREAD_SANITIZER && defined _FORTIFY_SOURCE)
+// a file that was deleted or truncated after mmap_storage created it is
+// shorter than its write mapping, writing to it must resize it rather than
+// fail with SIGBUS
+TORRENT_TEST(mmap_write_to_shrunk_file)
+{
+	std::string const test_path = absolute("mmap_shrunk_file_test_path");
+	delete_dirs(combine_path(test_path, "temp_storage"));
+	auto const cleanup =
+		lt::aux::scope_end([&] { delete_dirs(combine_path(test_path, "temp_storage")); });
+
+	aux::session_settings set;
+	set.set_int(settings_pack::mmap_file_size_cutoff, 0);
+	set.set_int(settings_pack::disk_write_mode, settings_pack::always_mmap_write);
+
+	std::vector<char> buf;
+	aux::file_view_pool fp;
+	auto const storage = setup_torrent<mmap_storage>(fp, buf, test_path, set);
+	auto const& s = storage.first;
+	file_storage const& fs = storage.second->layout();
+	std::string const path = combine_path(test_path, fs.file_path(0_file));
+	std::int64_t const size = fs.file_size(0_file);
+	TEST_CHECK(fs.piece_length() < size);
+
+	std::vector<char> piece0 = new_piece(std::size_t(fs.piece_length()));
+	std::vector<char> piece1 = new_piece(std::size_t(fs.piece_length()));
+
+	auto const check_file = [&] {
+		file_status st;
+		error_code ec;
+		stat_file(path, &st, ec);
+		TEST_CHECK(!ec);
+		TEST_EQUAL(st.file_size, size);
+
+		std::vector<char> out(piece1.size());
+		storage_error se;
+		int const ret = read(s, set, out, 1_piece, 0, aux::open_mode::read_only, se);
+		if (se)
+			print_error("read", ret, se);
+		TEST_EQUAL(ret, int(out.size()));
+		TEST_CHECK(out == piece1);
+	};
+
+	storage_error se;
+	int ret = write(s, set, piece0, 0_piece, 0, aux::open_mode::write, se);
+	if (se)
+		print_error("write", ret, se);
+	TEST_EQUAL(ret, int(piece0.size()));
+
+	// deleted while closed. Recreating it on open won't resize it
+	release_files(s, se);
+	error_code ec;
+	remove(path, ec);
+	TEST_CHECK(!ec);
+
+	ret = write(s, set, piece1, 1_piece, 0, aux::open_mode::write, se);
+	if (se)
+		print_error("write", ret, se);
+	TEST_EQUAL(ret, int(piece1.size()));
+	TEST_CHECK(!se);
+	check_file();
+
+	// truncated while the mapping is still open
+	ret = write(s, set, piece1, 1_piece, 0, aux::open_mode::write, se);
+	TEST_EQUAL(ret, int(piece1.size()));
+	std::ofstream(path, std::ios::binary | std::ios::trunc);
+
+	ret = write(s, set, piece1, 1_piece, 0, aux::open_mode::write, se);
+	if (se)
+		print_error("write", ret, se);
+	TEST_EQUAL(ret, int(piece1.size()));
+	TEST_CHECK(!se);
+	check_file();
+
+	release_files(s, se);
+}
+#endif
 #ifndef TORRENT_WINDOWS
 TORRENT_TEST(test_pre_allocate_pread) { test_pre_allocate<pread_storage>(); }
 #endif

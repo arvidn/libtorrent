@@ -69,7 +69,6 @@ see LICENSE file.
 #include "libtorrent/kademlia/node_entry.hpp"
 #endif
 #include "libtorrent/aux_/enum_net.hpp"
-#include "libtorrent/aux_/escape_string.hpp" // for is_valid_i2p_destination
 #include "libtorrent/upnp.hpp"
 #include "libtorrent/natpmp.hpp"
 #include "libtorrent/aux_/lsd.hpp"
@@ -2468,7 +2467,7 @@ retry:
 
 		// reject before a peer_connection exists, so an invalid destination
 		// cannot trigger the torrent's connection limit eviction
-		if (!is_valid_i2p_destination(std::get<i2p_stream>(*m_i2p_listen_socket).destination()))
+		if (std::get<i2p_stream>(*m_i2p_listen_socket).destination().empty())
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log())

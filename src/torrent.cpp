@@ -1213,6 +1213,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			// unlock the piece and restore it, as if no block was
 			// ever downloaded for it.
 			m_picker->restore_piece(piece);
+			mark_queued_blocks_downloading(piece, {});
 		}
 
 		update_gauge();
@@ -4036,12 +4037,13 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 				}
 				else
 				{
-					// TODO: the destination string should be base64 decoded and
-					// sha256 hashed to form the destination address and store
-					// that in the i2p_peer object directly
+					// trackers may send arbitrary strings as destinations
+					std::vector<char> const dest = decode_i2p_destination(i.hostname);
+					if (dest.empty())
+						continue;
 					torrent_state st = get_peer_list_state();
 					need_peer_list();
-					if (m_peer_list->add_i2p_peer(i.hostname, peer_info::tracker, flags, &st))
+					if (m_peer_list->add_i2p_peer(dest, peer_info::tracker, flags, &st))
 						state_updated();
 					peers_erased(st.erased);
 				}
@@ -4390,11 +4392,6 @@ namespace {
 	void torrent::add_i2p_peer(
 		sha256_hash const& dest, peer_source_flags_t const source, pex_flags_t const flags)
 	{
-		// TODO: store i2p addresses as a 32 byte sha256 hash in the
-		// i2p_peer object, rather than resolving it into the full vase64
-		// destination. We should keep the full destination as a cache in the
-		// i2p_peer object still.
-
 		// i2p_connection queues lookups until the SAM session is up
 		if (settings().get_str(settings_pack::i2p_hostname).empty())
 			return;
@@ -4425,12 +4422,22 @@ namespace {
 #endif
 		if (ec || (m_flags & torrent_internal_flags::torrent_aborted) || m_ses.is_aborted()) return;
 
+		std::vector<char> const decoded = decode_i2p_destination(dest);
+		if (decoded.empty())
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			if (should_log())
+				debug_log("i2p_resolve: invalid destination");
+#endif
+			return;
+		}
+
 		// a v2-only torrent has no v1 info hash to connect with
 		if (!torrent_file().info_hashes().has_v1())
 			flags |= pex_lt_v2;
 		need_peer_list();
 		torrent_state st = get_peer_list_state();
-		if (m_peer_list->add_i2p_peer(dest, source, flags, &st))
+		if (m_peer_list->add_i2p_peer(decoded, source, flags, &st))
 			state_updated();
 		peers_erased(st.erased);
 
@@ -5272,7 +5279,7 @@ namespace {
 				peer_id const pid = p->connection ? p->connection->pid() : peer_id();
 #if TORRENT_USE_I2P
 				peer_endpoint_t const ep = (p->address_type() == peer_address_type::i2p)
-					? peer_endpoint_t(i2p_destination_hash(p->dest()))
+					? peer_endpoint_t(hasher256(p->dest()).final())
 					: peer_endpoint_t(p->ip());
 #else
 				peer_endpoint_t const ep = p->ip();
@@ -5336,8 +5343,16 @@ namespace {
 		// and mark it as being interesting for download
 		TORRENT_ASSERT(!m_picker->have_piece(piece));
 
-		// loop over all peers and re-request potential duplicate
-		// blocks to this piece
+		mark_queued_blocks_downloading(piece, blocks);
+	}
+	catch (...)
+	{
+		handle_exception();
+	}
+
+	void torrent::mark_queued_blocks_downloading(
+		piece_index_t const piece, span<int const> const blocks)
+	{
 		for (auto* p : m_connections)
 		{
 			TORRENT_INCREMENT(m_iterating_connections);
@@ -5362,7 +5377,6 @@ namespace {
 			}
 		}
 	}
-	catch (...) { handle_exception(); }
 
 	void torrent::peer_has(piece_index_t const index, peer_connection const* peer)
 	{
@@ -8227,8 +8241,7 @@ namespace {
 				aux::socket_type ret = instantiate_connection(
 					m_ses.get_context(), proxy, nullptr, nullptr, false, false);
 				auto& str = std::get<i2p_stream>(ret);
-				str.set_local_i2p_endpoint(m_ses.local_i2p_endpoint());
-				str.set_destination(static_cast<i2p_peer*>(peerinfo)->dest());
+				str.set_destination(peerinfo->dest());
 				str.set_command(i2p_stream::cmd_connect);
 				str.set_session_id(m_ses.i2p_session());
 				return ret;
@@ -10773,16 +10786,15 @@ namespace {
 
 					if (t.tier > state.tier)
 					{
-						if (!announce_to_all_tiers) break;
+						// only stop at a higher tier once this one has a
+						// working tracker, the same as announce_with_tracker()
+						if (!announce_to_all_tiers && state.found_working)
+							break;
 						state.found_working = false;
 					}
 					state.tier = t.tier;
 					if (a.fails >= t.fail_limit && t.fail_limit != 0) continue;
-					if (a.updating)
-					{
-						state.found_working = true;
-					}
-					else if (a.next_announce != time_point32::min())
+					if (!a.updating && a.next_announce != time_point32::min())
 					{
 						// defensive: announce_with_tracker() always
 						// advances next_announce for trackers it would

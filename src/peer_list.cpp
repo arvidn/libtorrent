@@ -30,7 +30,8 @@ see LICENSE file.
 #include "libtorrent/aux_/torrent_peer_allocator.hpp"
 #include "libtorrent/aux_/ip_voter.hpp" // for external_ip
 #include "libtorrent/aux_/ip_helpers.hpp" // for is_v6
-#include "libtorrent/aux_/escape_string.hpp" // for is_valid_i2p_destination
+#include "libtorrent/aux_/escape_string.hpp" // for base64encode_i2p
+#include "libtorrent/hex.hpp" // for to_hex
 
 #if TORRENT_USE_ASSERTS
 #include "libtorrent/aux_/socket_io.hpp" // for print_endpoint
@@ -620,10 +621,9 @@ namespace libtorrent::aux {
 		torrent_peer* i = nullptr;
 
 #if TORRENT_USE_I2P
-		std::string const i2p_dest = c.destination();
-		TORRENT_ASSERT(i2p_dest.empty() || is_valid_i2p_destination(i2p_dest));
+		span<char const> const i2p_dest = c.destination();
 #else
-		std::string const i2p_dest;
+		span<char const> const i2p_dest;
 #endif
 
 		bool found = false;
@@ -647,9 +647,7 @@ namespace libtorrent::aux {
 			if (!i2p_dest.empty())
 			{
 				iter = std::lower_bound(
-					m_peers.begin(), m_peers.end()
-					, i2p_dest, peer_address_compare()
-					);
+					m_peers.begin(), m_peers.end(), i2p_dest, peer_address_compare());
 
 				if (iter != m_peers.end() && (*iter)->address_type() == peer_address_type::i2p
 					&& (*iter)->dest() == i2p_dest)
@@ -694,8 +692,10 @@ namespace libtorrent::aux {
 #if TORRENT_USE_I2P
 				if (!i2p_dest.empty())
 				{
-					c.peer_log(peer_log_alert::info, peer_log_alert::duplicate_peer, "destination: \"%s\""
-						, i2p_dest.c_str());
+					c.peer_log(peer_log_alert::info,
+						peer_log_alert::duplicate_peer,
+						"destination: \"%s\"",
+						base64encode_i2p(i2p_dest).c_str());
 				}
 				else
 #endif
@@ -718,7 +718,7 @@ namespace libtorrent::aux {
 #if TORRENT_USE_I2P
 				if (!i2p_dest.empty())
 				{
-					self_connection = i->connection->local_i2p_endpoint() == i2p_dest;
+					self_connection = c.local_i2p_endpoint() == c.destination_hash();
 				}
 				else
 #endif
@@ -746,28 +746,44 @@ namespace libtorrent::aux {
 					c.disconnect(errors::duplicate_peer_id, operation_t::bittorrent);
 					return false;
 				}
+				else if (i->connection->failed())
+				{
+					// the existing connection is going away, keep the new one
+					TORRENT_ASSERT(m_locked_peer == nullptr);
+					m_locked_peer = i;
+					i->connection->disconnect(errors::duplicate_peer_id, operation_t::bittorrent);
+					m_locked_peer = nullptr;
+				}
 #if TORRENT_USE_I2P
 				else if (!i2p_dest.empty())
 				{
 					// duplicate connection resolution for i2p connections is
-					// simple. The smaller address takes priority for making the
-					// outgoing connection
+					// simple. The end with the smaller destination hash keeps its
+					// outgoing connection. Both ends compute the same hashes, so
+					// they agree on which connection to close
 
-					std::string const& other_dest = i->connection->destination();
+					sha256_hash const& our_hash = c.local_i2p_endpoint();
+					sha256_hash const other_hash = c.destination_hash();
 
-					// decide which peer connection to disconnect
-					// if the ports are equal, pick on at random
-					bool disconnect1 = c.is_outgoing() && i2p_dest > other_dest;
+					bool const disconnect1 = c.is_outgoing() == (other_hash < our_hash);
 
 #ifndef TORRENT_DISABLE_LOGGING
 					if (c.should_log(peer_log_alert::info))
 					{
-						c.peer_log(peer_log_alert::info, peer_log_alert::duplicate_peer_resolution
-							, "our: %s other: %s disconnecting: %s"
-							, i2p_dest.c_str(), other_dest.c_str(), disconnect1 ? "yes" : "no");
-						i->connection->peer_log(peer_log_alert::info, peer_log_alert::duplicate_peer_resolution
-							, "our: %s other: %s disconnecting: %s"
-							, other_dest.c_str(), i2p_dest.c_str(), disconnect1 ? "no" : "yes");
+						std::string const our_hex = aux::to_hex(our_hash);
+						std::string const other_hex = aux::to_hex(other_hash);
+						c.peer_log(peer_log_alert::info,
+							peer_log_alert::duplicate_peer_resolution,
+							"our: %s other: %s disconnecting: %s",
+							our_hex.c_str(),
+							other_hex.c_str(),
+							disconnect1 ? "yes" : "no");
+						i->connection->peer_log(peer_log_alert::info,
+							peer_log_alert::duplicate_peer_resolution,
+							"our: %s other: %s disconnecting: %s",
+							our_hex.c_str(),
+							other_hex.c_str(),
+							disconnect1 ? "no" : "yes");
 					}
 #endif
 
@@ -803,10 +819,9 @@ namespace libtorrent::aux {
 
 					// decide which peer connection to disconnect
 					// if the ports are equal, pick on at random
-					bool disconnect1 = ((our_port < other_port) && !outgoing1)
+					bool const disconnect1 = ((our_port < other_port) && !outgoing1)
 						|| ((our_port > other_port) && outgoing1)
 						|| ((our_port == other_port) && random(1));
-					disconnect1 &= !i->connection->failed();
 
 #ifndef TORRENT_DISABLE_LOGGING
 					if (c.should_log(peer_log_alert::info))
@@ -1216,26 +1231,24 @@ namespace libtorrent::aux {
 	}
 
 #if TORRENT_USE_I2P
-	torrent_peer* peer_list::add_i2p_peer(string_view const destination
-		, peer_source_flags_t const src, pex_flags_t const flags
-		, torrent_state* state)
+	torrent_peer* peer_list::add_i2p_peer(span<char const> const destination,
+		peer_source_flags_t const src,
+		pex_flags_t const flags,
+		torrent_state* state)
 	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 
-		auto iter = std::lower_bound(m_peers.begin(), m_peers.end()
-			, destination, peer_address_compare());
+		TORRENT_ASSERT(!destination.empty());
+
+		auto iter =
+			std::lower_bound(m_peers.begin(), m_peers.end(), destination, peer_address_compare());
 
 		if (iter != m_peers.end() && (*iter)->dest() == destination)
 		{
 			update_peer(*iter, src, flags, tcp::endpoint());
 			return *iter;
 		}
-
-		// trackers may send arbitrary strings as destinations. Everything
-		// downstream assumes the destination is valid
-		if (!is_valid_i2p_destination(destination))
-			return nullptr;
 
 		// we don't have any info about this peer.
 		// add a new entry

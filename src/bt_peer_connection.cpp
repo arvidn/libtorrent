@@ -479,8 +479,7 @@ namespace {
 		if (is_i2p(get_socket()))
 		{
 			p.flags |= peer_info::i2p_socket;
-			auto const* pi = peer_info_struct();
-			p.set_i2p_destination(pi != nullptr ? i2p_destination_hash(pi->dest()) : sha256_hash());
+			p.set_i2p_destination(destination_hash());
 		}
 #endif
 		if (is_utp(get_socket())) p.flags |= peer_info::utp_socket;

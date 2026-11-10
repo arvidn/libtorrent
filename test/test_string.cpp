@@ -18,6 +18,7 @@ see LICENSE file.
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/aux_/string_util.hpp"
 #include "libtorrent/aux_/string_ptr.hpp"
+#include <array>
 #include <iostream>
 #include <cstring> // for strcmp
 #include "libtorrent/aux_/escape_string.hpp" // for trim
@@ -39,11 +40,14 @@ TORRENT_TEST(maybe_url_encode)
 TORRENT_TEST(hex)
 {
 	static char const str[] = "0123456789012345678901234567890123456789";
-	char bin[20];
-	TEST_CHECK(aux::from_hex({str, 40}, bin));
-	char hex[41];
-	aux::to_hex(bin, hex);
-	TEST_CHECK(std::strcmp(hex, str) == 0);
+	std::array<char, 20> bin;
+	TEST_CHECK(aux::from_hex({str, 40}, bin.data()));
+	std::array<char, 41> hex;
+	hex.back() = 'x';
+	aux::to_hex(bin, hex.data());
+	TEST_CHECK(hex.back() == 'x');
+	hex.back() = '\0';
+	TEST_CHECK(std::strcmp(hex.data(), str) == 0);
 
 	TEST_CHECK(aux::to_hex({"\x55\x73",2}) == "5573");
 	TEST_CHECK(aux::to_hex({"\xaB\xd0",2}) == "abd0");
@@ -308,13 +312,19 @@ TORRENT_TEST(base64)
 }
 
 #if TORRENT_USE_I2P
+namespace {
+bool is_valid_i2p_destination(string_view const dest)
+{
+	return !decode_i2p_destination(dest).empty();
+}
+}
+
 TORRENT_TEST(i2p_destination)
 {
 	// 384 bytes of keys and an empty certificate
 	std::string const keys(512, 'A');
 	std::string const dest = keys + "AAAA";
 	TEST_CHECK(is_valid_i2p_destination(dest));
-	TEST_CHECK(i2p_destination_hash(dest) == hasher256(std::vector<char>(387, 0)).final());
 	TEST_CHECK(is_valid_i2p_destination(std::string(508, 'A') + "~-~-AAAA"));
 	// certificate with a 1 byte payload
 	TEST_CHECK(is_valid_i2p_destination(keys + "AAABAA=="));
@@ -330,6 +340,36 @@ TORRENT_TEST(i2p_destination)
 	TEST_CHECK(!is_valid_i2p_destination(keys + "AAABAA==A"));
 	TEST_CHECK(!is_valid_i2p_destination(dest + "=\nfoo"));
 	TEST_CHECK(!is_valid_i2p_destination(keys + "AAABAA= ="));
+
+	TEST_CHECK(decode_i2p_destination(dest) == std::vector<char>(387, 0));
+	TEST_CHECK(decode_i2p_destination(keys + "AAABAA==").size() == 388);
+	TEST_CHECK(decode_i2p_destination(keys + "AAAB").empty());
+	TEST_CHECK(decode_i2p_destination("1.2.3.4").empty());
+
+	// well formed, but larger than any defined key type allows
+	std::vector<char> big(1025, 0);
+	big[385] = char((1025 - 387) >> 8);
+	big[386] = char((1025 - 387) & 0xff);
+	TEST_CHECK(decode_i2p_destination(base64encode_i2p(big)).empty());
+	big.resize(1024);
+	big[385] = char((1024 - 387) >> 8);
+	big[386] = char((1024 - 387) & 0xff);
+	TEST_CHECK(decode_i2p_destination(base64encode_i2p(big)) == big);
+}
+
+TORRENT_TEST(base64encode_i2p)
+{
+	TEST_EQUAL(base64encode_i2p(""_sv), "");
+	TEST_EQUAL(base64encode_i2p("foobar"_sv), "Zm9vYmFy");
+	TEST_EQUAL(base64encode_i2p("\xfb\xff"_sv), "-~8=");
+
+	std::vector<char> test;
+	for (int i = 0; i < 255; ++i)
+		test.push_back(char(i));
+	TEST_CHECK(base64decode_i2p(base64encode_i2p(test)) == test);
+
+	std::string const dest = std::string(508, 'A') + "~-~-AAAA";
+	TEST_EQUAL(base64encode_i2p(decode_i2p_destination(dest)), dest);
 }
 #endif
 

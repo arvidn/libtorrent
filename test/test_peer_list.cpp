@@ -18,6 +18,8 @@ see LICENSE file.
 #include "libtorrent/peer_info.hpp"
 #include "libtorrent/aux_/random.hpp"
 #include "libtorrent/aux_/socket_io.hpp"
+#include "libtorrent/aux_/escape_string.hpp"
+#include "libtorrent/hasher.hpp"
 
 #include "test.hpp"
 #include "setup_transfer.hpp"
@@ -56,7 +58,7 @@ struct mock_peer_connection
 	}
 
 #if TORRENT_USE_I2P
-	mock_peer_connection(mock_torrent* tor, bool out, std::string remote)
+	mock_peer_connection(mock_torrent* tor, bool out, std::vector<char> remote)
 		: mock_peer_connection(tor, out)
 	{
 		m_i2p_destination = std::move(remote);
@@ -96,23 +98,22 @@ struct mock_peer_connection
 	tcp::endpoint m_remote;
 	tcp::endpoint m_local;
 #if TORRENT_USE_I2P
-	std::string m_i2p_destination;
-	std::string m_local_i2p_endpoint;
+	std::vector<char> m_i2p_destination;
+	sha256_hash m_local_i2p_endpoint;
 #endif
 	peer_id m_id;
 	peer_id m_our_id;
 	bool m_disconnect_called;
+	bool m_failed = false;
 	mock_torrent& m_torrent;
 
 #if TORRENT_USE_I2P
-	std::string const& destination() const override
+	span<char const> destination() const override { return m_i2p_destination; }
+	sha256_hash destination_hash() const override
 	{
-		return m_i2p_destination;
+		return m_i2p_destination.empty() ? sha256_hash{} : hasher256(m_i2p_destination).final();
 	}
-	std::string const& local_i2p_endpoint() const override
-	{
-		return m_local_i2p_endpoint;
-	}
+	sha256_hash const& local_i2p_endpoint() const override { return m_local_i2p_endpoint; }
 #endif
 
 	void get_peer_info(peer_info&) const override {}
@@ -130,7 +131,7 @@ struct mock_peer_connection
 	{ m_stat.add_stat(downloaded, uploaded); }
 	bool fast_reconnect() const override { return true; }
 	bool is_choked() const override { return m_choked; }
-	bool failed() const override { return false; }
+	bool failed() const override { return m_failed; }
 	aux::stat const& statistics() const override { return m_stat; }
 };
 
@@ -145,6 +146,13 @@ struct mock_torrent
 		if (peerinfo->connection) return false;
 		auto c = std::make_shared<mock_peer_connection>(this, true, peerinfo->ip());
 		c->set_peer_info(peerinfo);
+#if TORRENT_USE_I2P
+		if (peerinfo->address_type() == peer_address_type::i2p)
+		{
+			auto const dest = peerinfo->dest();
+			c->m_i2p_destination.assign(dest.begin(), dest.end());
+		}
+#endif
 
 		m_connections.push_back(c);
 		m_p->set_connection(peerinfo, c.get());
@@ -198,16 +206,21 @@ torrent_peer* add_peer(peer_list& p, torrent_state& st, tcp::endpoint const& ep)
 
 #if TORRENT_USE_I2P
 // 384 bytes of keys followed by an empty certificate
-std::string i2p_dest(char const c) { return std::string(512, c) + "AAAA"; }
+std::vector<char> i2p_dest(char const c)
+{
+	return decode_i2p_destination(std::string(512, c) + "AAAA");
+}
 
-torrent_peer* add_i2p_peer(peer_list& p, torrent_state& st, std::string const& destination)
+sha256_hash i2p_hash(char const c) { return hasher256(i2p_dest(c)).final(); }
+
+torrent_peer* add_i2p_peer(peer_list& p, torrent_state& st, std::vector<char> const& destination)
 {
 	int cc = p.num_connect_candidates();
 	torrent_peer* peer = p.add_i2p_peer(destination, {}, {}, &st);
 	if (peer)
 	{
 		TEST_EQUAL(p.num_connect_candidates(), cc + 1);
-		TEST_EQUAL(peer->dest(), destination);
+		TEST_CHECK(peer->dest() == span<char const>(destination));
 	}
 	st.erased.clear();
 	return peer;
@@ -1046,11 +1059,10 @@ TORRENT_TEST(self_connection_i2p)
 	connect_peer(p, t, st);
 
 	auto con_out = shared_from_this(peer->connection);
-	con_out->m_i2p_destination = i2p_dest('c');
-	con_out->m_local_i2p_endpoint = i2p_dest('c');
+	con_out->m_local_i2p_endpoint = i2p_hash('c');
 
 	auto con_in = std::make_shared<mock_peer_connection>(&t, false, i2p_dest('c'));
-	con_in->m_local_i2p_endpoint = i2p_dest('c');
+	con_in->m_local_i2p_endpoint = i2p_hash('c');
 
 	p.new_connection(*con_in, 0, &st);
 
@@ -1061,39 +1073,6 @@ TORRENT_TEST(self_connection_i2p)
 	// to ourself and disconnect it
 	TEST_EQUAL(con_out->was_disconnected(), true);
 	TEST_EQUAL(con_in->was_disconnected(), true);
-}
-
-TORRENT_TEST(invalid_i2p_destination)
-{
-	torrent_state st = init_state();
-	mock_torrent t(&st);
-	peer_list p(allocator);
-	t.m_p = &p;
-
-	std::string const long_cert = std::string(512, 'A') + "AAAB";
-	for (string_view const dest :
-		{""_sv, "1.2.3.4"_sv, "abc+def"_sv, "abc/def"_sv, "localhost"_sv, string_view(long_cert)})
-	{
-		TEST_CHECK(p.add_i2p_peer(dest, {}, {}, &st) == nullptr);
-	}
-	TEST_EQUAL(p.num_peers(), 0);
-}
-
-// an invalid destination must not evict peers from a full peer list
-TORRENT_TEST(invalid_i2p_destination_full_list)
-{
-	torrent_state st = init_state();
-	st.max_peerlist_size = 2;
-	mock_torrent t(&st);
-	peer_list p(allocator);
-	t.m_p = &p;
-
-	TEST_CHECK(add_i2p_peer(p, st, i2p_dest('f')));
-	TEST_CHECK(add_i2p_peer(p, st, i2p_dest('b')));
-	TEST_EQUAL(p.num_peers(), 2);
-
-	TEST_CHECK(p.add_i2p_peer("1.2.3.4", {}, {}, &st) == nullptr);
-	TEST_EQUAL(p.num_peers(), 2);
 }
 
 // test double i2p connection (both incoming)
@@ -1109,19 +1088,28 @@ TORRENT_TEST(double_connection_i2p)
 
 	// first incoming connection
 	auto con1 = std::make_shared<mock_peer_connection>(&t, false, i2p_dest('b'));
-	con1->m_local_i2p_endpoint = i2p_dest('f');
+	con1->m_local_i2p_endpoint = i2p_hash('f');
 
 	p.new_connection(*con1, 0, &st);
 
 	// the second incoming connection
 	auto con2 = std::make_shared<mock_peer_connection>(&t, false, i2p_dest('b'));
-	con2->m_local_i2p_endpoint = i2p_dest('f');
+	con2->m_local_i2p_endpoint = i2p_hash('f');
 
 	p.new_connection(*con2, 0, &st);
 
 	// the second incoming connection should be closed
 	TEST_EQUAL(con1->was_disconnected(), false);
 	TEST_EQUAL(con2->was_disconnected(), true);
+}
+
+namespace {
+// the destination with the smaller hash keeps its outgoing connection.
+// Returns the two test destinations ordered by hash
+std::pair<char, char> i2p_by_hash(char const a, char const b)
+{
+	return i2p_hash(a) < i2p_hash(b) ? std::pair(a, b) : std::pair(b, a);
+}
 }
 
 // test double connection (we loose)
@@ -1133,22 +1121,21 @@ TORRENT_TEST(double_connection_loose_i2p)
 	peer_list p(allocator);
 	t.m_p = &p;
 
-	// we are "fff..." and the other peer is "bbb..."
+	auto const [them, us] = i2p_by_hash('b', 'f');
 
 	// our outgoing connection
-	torrent_peer* peer = add_i2p_peer(p, st, i2p_dest('b'));
+	torrent_peer* peer = add_i2p_peer(p, st, i2p_dest(them));
 	connect_peer(p, t, st);
 
 	auto con_out = shared_from_this(peer->connection);
-	con_out->m_local_i2p_endpoint = i2p_dest('f');
+	con_out->m_local_i2p_endpoint = i2p_hash(us);
 
 	// and the incoming connection
-	auto con_in = std::make_shared<mock_peer_connection>(&t, false, i2p_dest('b'));
-	con_in->m_local_i2p_endpoint = i2p_dest('f');
+	auto con_in = std::make_shared<mock_peer_connection>(&t, false, i2p_dest(them));
+	con_in->m_local_i2p_endpoint = i2p_hash(us);
 
 	p.new_connection(*con_in, 0, &st);
 
-	// the rules are documented in peer_list.cpp
 	TEST_EQUAL(con_out->was_disconnected(), true);
 	TEST_EQUAL(con_in->was_disconnected(), false);
 }
@@ -1162,25 +1149,80 @@ TORRENT_TEST(double_connection_win_i2p)
 	peer_list p(allocator);
 	t.m_p = &p;
 
-	// we are "bbb..." and the other peer is "fff..."
-	// "bbb..." < "fff...", so we get to make the outgoing connection
+	auto const [us, them] = i2p_by_hash('b', 'f');
 
 	// our outgoing connection
-	torrent_peer* peer = add_i2p_peer(p, st, i2p_dest('f'));
+	torrent_peer* peer = add_i2p_peer(p, st, i2p_dest(them));
 	connect_peer(p, t, st);
 
 	auto con_out = shared_from_this(peer->connection);
-	con_out->m_local_i2p_endpoint = i2p_dest('b');
+	con_out->m_local_i2p_endpoint = i2p_hash(us);
 
-	//and the incoming connection
-	auto con_in = std::make_shared<mock_peer_connection>(&t, false, i2p_dest('f'));
-	con_in->m_local_i2p_endpoint = i2p_dest('b');
+	// and the incoming connection
+	auto con_in = std::make_shared<mock_peer_connection>(&t, false, i2p_dest(them));
+	con_in->m_local_i2p_endpoint = i2p_hash(us);
 
 	p.new_connection(*con_in, 0, &st);
 
-	// the rules are documented in peer_list.cpp
+	TEST_EQUAL(con_out->was_disconnected(), false);
+	TEST_EQUAL(con_in->was_disconnected(), true);
+}
+
+// we would keep our outgoing connection, but it has already failed
+TORRENT_TEST(double_connection_win_failed_i2p)
+{
+	torrent_state st = init_state();
+	mock_torrent t(&st);
+	st.allow_multiple_connections_per_ip = false;
+	peer_list p(allocator);
+	t.m_p = &p;
+
+	auto const [us, them] = i2p_by_hash('b', 'f');
+
+	torrent_peer* peer = add_i2p_peer(p, st, i2p_dest(them));
+	connect_peer(p, t, st);
+
+	auto const con_out = shared_from_this(peer->connection);
+	con_out->m_local_i2p_endpoint = i2p_hash(us);
+	con_out->m_failed = true;
+
+	auto const con_in = std::make_shared<mock_peer_connection>(&t, false, i2p_dest(them));
+	con_in->m_local_i2p_endpoint = i2p_hash(us);
+
+	p.new_connection(*con_in, 0, &st);
+
 	TEST_EQUAL(con_out->was_disconnected(), true);
 	TEST_EQUAL(con_in->was_disconnected(), false);
+}
+
+// both ends must agree on which connection to close
+TORRENT_TEST(double_connection_i2p_symmetric)
+{
+	auto const [a, b] = i2p_by_hash('b', 'f');
+
+	// returns true if the end with destination "local" closes its outgoing
+	// connection to "remote"
+	auto const closes_outgoing = [](char const local, char const remote) {
+		torrent_state st = init_state();
+		mock_torrent t(&st);
+		peer_list p(allocator);
+		t.m_p = &p;
+
+		torrent_peer* peer = add_i2p_peer(p, st, i2p_dest(remote));
+		connect_peer(p, t, st);
+		auto con_out = shared_from_this(peer->connection);
+		con_out->m_local_i2p_endpoint = i2p_hash(local);
+
+		auto con_in = std::make_shared<mock_peer_connection>(&t, false, i2p_dest(remote));
+		con_in->m_local_i2p_endpoint = i2p_hash(local);
+		p.new_connection(*con_in, 0, &st);
+		TEST_CHECK(con_out->was_disconnected() != con_in->was_disconnected());
+		return con_out->was_disconnected();
+	};
+
+	// a's outgoing connection is b's incoming one. If a keeps its outgoing
+	// connection, b must close its outgoing one
+	TEST_CHECK(closes_outgoing(a, b) != closes_outgoing(b, a));
 }
 #endif
 
@@ -1484,8 +1526,10 @@ TORRENT_TEST(peer_info_comparison)
 	TEST_CHECK(!cmp( addr("100.1.1.1"), &ip_low));
 
 #if TORRENT_USE_I2P
-	i2p_peer const i2p_low("aaaaaa", true, {});
-	i2p_peer const i2p_high("zzzzzz", true, {});
+	std::vector<char> const dest_low = i2p_dest('a');
+	std::vector<char> const dest_high = i2p_dest('z');
+	i2p_peer const i2p_low(dest_low, true, {});
+	i2p_peer const i2p_high(dest_high, true, {});
 
 	// noremal IPs always sort before i2p addresses
 	TEST_CHECK(cmp(&ip_low, &i2p_high));
@@ -1517,17 +1561,22 @@ TORRENT_TEST(peer_info_comparison)
 	TEST_CHECK(!cmp(&i2p_high, &i2p_high));
 	TEST_CHECK(!cmp(&i2p_low, &i2p_low));
 
-	TEST_CHECK(cmp(&i2p_low, "zzzzzz"));
-	TEST_CHECK(!cmp(&i2p_high, "aaaaaa"));
-	TEST_CHECK(!cmp(&i2p_high, "zzzzzz"));
-	TEST_CHECK(!cmp(&i2p_low, "aaaaaa"));
-	TEST_CHECK(cmp(&i2p_low, "aaaaab"));
+	std::vector<char> dest_after_low = dest_low;
+	++dest_after_low[100];
+	std::vector<char> dest_before_high = dest_high;
+	--dest_before_high[100];
 
-	TEST_CHECK(cmp("aaaaaa", &i2p_high));
-	TEST_CHECK(!cmp("zzzzzz", &i2p_low));
-	TEST_CHECK(!cmp("zzzzzz", &i2p_high));
-	TEST_CHECK(cmp("zzzzzy", &i2p_high));
-	TEST_CHECK(!cmp("aaaaaa", &i2p_low));
+	TEST_CHECK(cmp(&i2p_low, dest_high));
+	TEST_CHECK(!cmp(&i2p_high, dest_low));
+	TEST_CHECK(!cmp(&i2p_high, dest_high));
+	TEST_CHECK(!cmp(&i2p_low, dest_low));
+	TEST_CHECK(cmp(&i2p_low, dest_after_low));
+
+	TEST_CHECK(cmp(dest_low, &i2p_high));
+	TEST_CHECK(!cmp(dest_high, &i2p_low));
+	TEST_CHECK(!cmp(dest_high, &i2p_high));
+	TEST_CHECK(cmp(dest_before_high, &i2p_high));
+	TEST_CHECK(!cmp(dest_low, &i2p_low));
 #endif
 }
 
