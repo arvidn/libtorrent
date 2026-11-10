@@ -1455,8 +1455,6 @@ void write_sam_line(tcp::socket& s, std::string const& line)
 		TEST_ERROR(ec.message());
 }
 
-} // anonymous namespace
-
 // returns the i2p destination number i, in base64. 384 bytes of keys and an
 // empty certificate
 std::string i2p_dest(int const i)
@@ -1466,6 +1464,8 @@ std::string i2p_dest(int const i)
 	ret[1] = char('A' + (i / 26) % 26);
 	return ret;
 }
+
+} // anonymous namespace
 
 // the number of peers we accept from a single i2p_pex message is limited by
 // max_pex_peers. Every peer in the message causes a name lookup with the SAM
