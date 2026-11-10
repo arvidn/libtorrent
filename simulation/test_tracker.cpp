@@ -1210,6 +1210,32 @@ TORRENT_TEST(test_interval)
 		});
 }
 
+// the intervals from the tracker are added to the current time. Very large
+// ones used to be accepted as-is, and overflow once the clock is past 0
+TORRENT_TEST(test_large_interval)
+{
+	announce_entry_test(
+		[](std::string, std::string, std::map<std::string, std::string>&) {
+			char response[500];
+			int const size = std::snprintf(response,
+				sizeof(response),
+				"d8:intervali2147483647e12:min intervali2147483647e5:peers0:e");
+			return sim::send_response(200, "OK", size) + response;
+		},
+		[](announce_entry const& ae) {
+			time_point32 const now = time_point_cast<seconds32>(lt::clock_type::now());
+			for (auto const& aep : ae.endpoints)
+			{
+				auto const& ih = aep.info_hashes[protocol_version::V1];
+				TEST_EQUAL(ih.fails, 0);
+				TEST_CHECK(ih.next_announce > now);
+				TEST_CHECK(ih.next_announce <= now + lt::hours(24 * 7));
+				TEST_CHECK(ih.min_announce > now);
+				TEST_CHECK(ih.min_announce <= now + lt::hours(24 * 7));
+			}
+		});
+}
+
 TORRENT_TEST(test_invalid_bencoding)
 {
 	announce_entry_test(

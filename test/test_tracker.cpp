@@ -32,7 +32,6 @@ see LICENSE file.
 #include "libtorrent/announce_entry.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/aux_/socket_io.hpp"
-#include "libtorrent/aux_/time.hpp" // for time_now32
 
 #include <array>
 #include <iostream>
@@ -627,62 +626,6 @@ TORRENT_TEST(http_peers)
 	std::printf("stop_web_server\n");
 	stop_web_server();
 	std::printf("done\n");
-}
-
-// a tracker responding with a min interval of INT_MAX used to overflow when
-// added to the current time, leaving min_announce in the past
-TORRENT_TEST(http_min_interval_overflow)
-{
-	int const http_port = start_web_server(false, false, true, std::numeric_limits<int>::max());
-
-	settings_pack pack = settings();
-	pack.set_int(settings_pack::tracker_completion_timeout, 2);
-	pack.set_int(settings_pack::tracker_receive_timeout, 1);
-	pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
-
-	auto s = std::make_unique<lt::session>(pack);
-
-	error_code ec;
-	remove_all("tmp4_tracker", ec);
-	create_directory("tmp4_tracker", ec);
-	ofstream file(combine_path("tmp4_tracker", "temporary").c_str());
-	add_torrent_params addp = ::create_torrent(&file, "temporary", 16 * 1024, 13, false);
-	file.close();
-
-	char tracker_url[200];
-	std::snprintf(tracker_url, sizeof(tracker_url), "http://127.0.0.1:%d/announce", http_port);
-	addp.trackers.push_back(tracker_url);
-
-	addp.flags &= ~torrent_flags::paused;
-	addp.flags &= ~torrent_flags::auto_managed;
-	addp.flags |= torrent_flags::seed_mode;
-	addp.save_path = "tmp4_tracker";
-	torrent_handle h = s->add_torrent(addp);
-
-	// wait to hit the tracker
-	wait_for_alert(*s, tracker_reply_alert::alert_type, "s");
-
-	time_point32 const now = aux::time_now32();
-	int num_announced = 0;
-	for (auto const& ae : h.trackers())
-	{
-		for (auto const& aep : ae.endpoints)
-		{
-			for (auto const& ih : aep.info_hashes)
-			{
-				// only look at the announces that have received a response
-				if (ih.updating || ih.fails != 0 || ih.min_announce == (time_point32::min)())
-					continue;
-				++num_announced;
-				TEST_CHECK(ih.min_announce > now);
-				TEST_CHECK(ih.min_announce <= now + aux::max_tracker_interval);
-			}
-		}
-	}
-	TEST_CHECK(num_announced > 0);
-
-	s.reset();
-	stop_web_server();
 }
 
 TORRENT_TEST(current_tracker)
