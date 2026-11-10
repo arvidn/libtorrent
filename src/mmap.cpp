@@ -182,6 +182,13 @@ file_mapping::file_mapping(file_handle file, open_mode_t const mode, std::int64_
 		;
 		if (advise != 0)
 			::madvise(m_mapping, static_cast<std::size_t>(m_size), advise);
+
+#if defined __APPLE__ && defined MADV_RANDOM
+		// page faults through the mapping don't honor the descriptor's
+		// F_RDAHEAD setting, so the hint has to be given on the mapping too
+		if (!(mode & open_mode::sequential_access))
+			::madvise(m_mapping, static_cast<std::size_t>(m_size), MADV_RANDOM);
+#endif
 	}
 #endif
 }
