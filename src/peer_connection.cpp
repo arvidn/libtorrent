@@ -3562,6 +3562,19 @@ namespace {
 				return;
 		}
 
+		// the peer decides how many pieces it allows us to request while
+		// choked, but there's a limit to how many of them we keep track of
+		if (int(m_allowed_fast.size()) >= 30)
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			peer_log(peer_log_alert::incoming_message,
+				peer_log_alert::invalid_allowed_fast,
+				"%d (too many pieces)",
+				static_cast<int>(index));
+#endif
+			return;
+		}
+
 		// if we don't have the metadata, we'll verify
 		// this piece index later
 		m_allowed_fast.push_back(index);
