@@ -364,7 +364,7 @@ void upnp::delete_mapping(port_mapping_t const mapping)
 {
 	TORRENT_ASSERT(is_single_thread());
 
-	if (mapping >= m_mappings.end_index()) return;
+	if (mapping >= m_mappings.end_index() || mapping < port_mapping_t{0}) return;
 
 	global_mapping_t const& m = m_mappings[mapping];
 
