@@ -582,6 +582,7 @@ bool wait_for_counter(lt::session& ses, char const* name, std::int64_t const val
 	return false;
 }
 
+
 } // anonymous namespace
 
 // makes sure that pieces that are allowed and then
@@ -697,6 +698,54 @@ TORRENT_TEST(allowed_fast_survives_metadata)
 	TEST_EQUAL(read_request_piece(s, recv_buffer), allowed_piece);
 	s.close();
 }
+
+#if !defined TORRENT_DISABLE_EXTENSIONS && !defined TORRENT_DISABLE_LOGGING
+// the allowed-fast set a peer sends us is not allowed to grow without bound.
+// Before we have the metadata any piece index is accepted
+TORRENT_TEST(allowed_fast_limit)
+{
+	info_hash_t ih;
+	std::shared_ptr<lt::session> ses;
+	io_context ios;
+	tcp::socket s(ios);
+	setup_peer(s, ios, ih, ses, true, true);
+
+	char recv_buffer[1000];
+	do_handshake(s, ih, recv_buffer);
+	send_have_all(s);
+
+	entry extensions;
+	extensions["m"]["ut_metadata"] = 1;
+	send_extension_handshake(s, extensions);
+	extensions = read_extension_handshake(s, recv_buffer);
+	int const ut_metadata = int(extensions["m"]["ut_metadata"].integer());
+
+	// the first 30 pieces are kept, the rest are ignored
+	int const num_ignored = 10;
+	for (int i = 0; i < 30 + num_ignored; ++i)
+		send_allow_fast(s, i);
+
+	// once we have a response to this, we know all the allowed-fast messages
+	// have been handled. Since the torrent doesn't have any metadata, the
+	// response is a reject (2). We'll also receive requests (0) for the
+	// metadata.
+	send_ut_metadata_msg(s, ut_metadata, 0, 0);
+	while (read_ut_metadata_msg(s, recv_buffer)["msg_type"].integer() != 2)
+		;
+
+	int ignored = 0;
+	std::vector<alert*> alerts;
+	ses->pop_alerts(&alerts);
+	for (alert const* a : alerts)
+	{
+		auto const* pl = alert_cast<peer_log_alert>(a);
+		if (pl && pl->event_type == peer_log_alert::invalid_allowed_fast)
+			++ignored;
+	}
+	TEST_EQUAL(ignored, num_ignored);
+	s.close();
+}
+#endif
 
 TORRENT_TEST(suggested_piece_survives_metadata)
 {
