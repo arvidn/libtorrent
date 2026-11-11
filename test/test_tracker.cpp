@@ -261,7 +261,7 @@ TORRENT_TEST(parse_interval)
 
 // the intervals are 32 bit second counts, which are added to the current
 // time. Values that don't fit, or that would overflow that addition, are
-// expected to be limited to max_tracker_interval
+// expected to be limited to a week
 TORRENT_TEST(parse_interval_out_of_range)
 {
 	// 2^32 + 1 and INT_MAX
@@ -270,8 +270,8 @@ TORRENT_TEST(parse_interval_out_of_range)
 	aux::tracker_response resp = aux::parse_tracker_response(response, ec, {}, sha1_hash());
 
 	TEST_EQUAL(ec, error_code());
-	TEST_EQUAL(resp.interval.count(), aux::max_tracker_interval.count());
-	TEST_EQUAL(resp.min_interval.count(), aux::max_tracker_interval.count());
+	TEST_EQUAL(resp.interval.count(), 7 * 24 * 60 * 60);
+	TEST_EQUAL(resp.min_interval.count(), 7 * 24 * 60 * 60);
 }
 
 TORRENT_TEST(parse_negative_interval)
@@ -731,8 +731,8 @@ TORRENT_TEST(parse_websocket_tracker_interval_out_of_range)
 	if (!parsed.resp)
 		return;
 
-	TEST_EQUAL(parsed.resp->interval.count(), aux::max_tracker_interval.count());
-	TEST_EQUAL(parsed.resp->min_interval.count(), aux::max_tracker_interval.count());
+	TEST_EQUAL(parsed.resp->interval.count(), 7 * 24 * 60 * 60);
+	TEST_EQUAL(parsed.resp->min_interval.count(), 7 * 24 * 60 * 60);
 }
 
 TORRENT_TEST(parse_websocket_tracker_response_offer)
