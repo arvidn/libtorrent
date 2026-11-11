@@ -1,5 +1,6 @@
 2.1.3 not released
 
+	* limit the size of the allowed-fast set received from a peer
 	* validate the listen port in a peer's extension handshake (range, port filter and no_connect_privileged_ports)
 	* fix auto managed seeds being paused before they can be classified as inactive
 	* fix restoring scrape counters from resume data, and save unknown counters as -1
