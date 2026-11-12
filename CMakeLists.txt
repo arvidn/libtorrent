@@ -599,6 +599,8 @@ if(CMAKE_CXX_COMPILER_ID MATCHES Clang)
 	target_compile_options(torrent-rasterbar PRIVATE
 		-Weverything
 		-Wno-documentation
+		-Wno-thread-safety
+		-Wno-thread-safety-negative
 		-Wno-c++98-compat-pedantic
 		-Wno-c++11-compat-pedantic
 		-Wno-padded
