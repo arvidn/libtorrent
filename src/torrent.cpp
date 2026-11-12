@@ -10441,9 +10441,19 @@ namespace {
 		, web_seed_entry::headers_t const& extra_headers
 		, web_seed_flag_t const flags)
 	{
+		return add_web_seed_redirect(url, auth, extra_headers, flags, 0);
+	}
+
+	web_seed_t* torrent::add_web_seed_redirect(std::string const& url,
+		std::string const& auth,
+		web_seed_entry::headers_t const& extra_headers,
+		web_seed_flag_t const flags,
+		int const redirect_depth)
+	{
 		web_seed_t ent(url, auth, extra_headers);
 		ent.ephemeral = bool(flags & ephemeral);
 		ent.no_local_ips = bool(flags & no_local_ips);
+		ent.redirect_depth = std::uint8_t(redirect_depth);
 
 		// don't add duplicates
 		auto const it = std::find(m_web_seeds.begin(), m_web_seeds.end(), ent);
@@ -10461,7 +10471,7 @@ namespace {
 		m_web_seeds.emplace_back(std::move(ent));
 
 		// ephemeral web seeds are not saved in the resume data
-		if (!ent.ephemeral)
+		if (!m_web_seeds.back().ephemeral)
 			set_need_save_resume(torrent_handle::if_metadata_changed);
 
 		update_want_tick();
@@ -11098,6 +11108,12 @@ namespace {
 		{
 			auto const w = i++;
 			if (w->disabled || w->removed || w->retry > now || !w->interesting)
+				continue;
+
+			// this web seed has redirected all its files to other URLs. We
+			// won't connect to it again, and it's not supposed to keep the
+			// web seeds it redirected to from being connected
+			if (!w->have_files.empty() && w->have_files.none_set())
 				continue;
 
 			--limit;

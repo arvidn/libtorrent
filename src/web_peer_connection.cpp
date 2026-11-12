@@ -42,6 +42,10 @@ namespace libtorrent::aux {
 
 constexpr int request_size_overhead = 5000;
 
+// the max number of consecutive redirects we follow from a web seed. It's the
+// same limit http_connection uses, for tracker requests
+constexpr int max_redirect_depth = 5;
+
 std::string escape_file_path(file_storage const& storage, file_index_t index);
 
 web_peer_connection::web_peer_connection(peer_connection_args& pack
@@ -661,6 +665,14 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		return;
 	}
 
+	// every redirect to a new URL adds a web seed to the torrent. Don't follow
+	// redirects indefinitely
+	if (m_web->redirect_depth >= max_redirect_depth)
+	{
+		disable(errors::invalid_redirection);
+		return;
+	}
+
 	bool const single_file_request = !m_path.empty()
 		&& m_path[m_path.size() - 1] != '/';
 
@@ -719,7 +731,8 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		// with base url=="http://example2.com/" and redirects[0]=="/subpath/file2").
 		// If we try to load resume with such "web_seed_t" then "web_peer_connection" will send
 		// request with wrong path "http://example2.com/file1" (cause "redirects" map is not serialized in resume)
-		web_seed_t* web = t->add_web_seed(redirect_base, auth, m_extra_headers, web_seed_flags);
+		web_seed_t* web = t->add_web_seed_redirect(
+			redirect_base, auth, m_extra_headers, web_seed_flags, m_web->redirect_depth + 1);
 		web->have_files.resize(t->torrent_file().num_files(), false);
 
 		// the new web seed we're adding only has this file for now
@@ -772,7 +785,8 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		// that any user-supplied m_extra_headers are still forwarded -- see the
 		// warning on web_seed_entry::extra_headers.
 		std::string const auth = same_origin(m_url, location) ? m_external_auth : std::string();
-		t->add_web_seed(location, auth, m_extra_headers, web_seed_flags);
+		t->add_web_seed_redirect(
+			location, auth, m_extra_headers, web_seed_flags, m_web->redirect_depth + 1);
 
 		// this web seed doesn't have any files. Don't try to request from it
 		// again this session

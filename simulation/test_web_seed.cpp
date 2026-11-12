@@ -292,6 +292,75 @@ TORRENT_TEST(unaligned_file_redirect)
 	TEST_EQUAL(seeding, true);
 }
 
+namespace {
+
+// the web seed redirects num_redirects times, to a new URL on the same server
+// each time, before arriving at the file. Returns whether the torrent
+// completed, and sets num_requests to the number of redirects the server
+// sent
+bool test_redirect_chain(int const num_redirects, int& num_requests)
+{
+	using namespace lt;
+	std::vector<lt::create_file_entry> files;
+	files.emplace_back("1", 0xc030);
+	lt::add_torrent_params params = ::create_torrent(std::move(files));
+	params.url_seeds.push_back("http://2.2.2.2:8080/redirect0");
+
+	bool seeding = false;
+	num_requests = 0;
+
+	lt::file_storage const& fs = params.ti->layout();
+
+	run_test([&params](lt::session& ses) { ses.async_add_torrent(params); },
+		[&](lt::session&, lt::alert const* alert) {
+			if (lt::alert_cast<lt::torrent_finished_alert>(alert))
+				seeding = true;
+		},
+		[&](sim::simulation& sim, lt::session&) {
+			sim::asio::io_context web_server(sim, make_address_v4("2.2.2.2"));
+			sim::http_server http(web_server, 8080);
+			for (int i = 0; i < num_redirects; ++i)
+			{
+				std::string const target = (i + 1 < num_redirects)
+					? "http://2.2.2.2:8080/redirect" + std::to_string(i + 1)
+					: "http://2.2.2.2:8080/file";
+				http.register_handler("/redirect" + std::to_string(i),
+					[target, &num_requests](
+						std::string, std::string, std::map<std::string, std::string>&) {
+						++num_requests;
+						std::string const header = "Location: " + target + "\r\n";
+						char const* extra_headers[4] = {header.c_str(), "", "", ""};
+						return sim::send_response(301, "Moved Permanently", 0, extra_headers);
+					});
+			}
+			serve_content_for(http, "/file", fs, file_index_t(0));
+
+			sim.run();
+		});
+
+	return seeding;
+}
+
+} // anonymous namespace
+
+// every redirect leaves a web seed behind, with no files. Those are not
+// supposed to count against max_web_seed_connections (3 by default), keeping
+// the web seed at the end of the chain from being used
+TORRENT_TEST(redirect_chain)
+{
+	int num_requests = 0;
+	TEST_CHECK(test_redirect_chain(4, num_requests));
+	TEST_EQUAL(num_requests, 4);
+}
+
+// there's a limit to how many redirects we follow from a web seed
+TORRENT_TEST(redirect_chain_limit)
+{
+	int num_requests = 0;
+	TEST_CHECK(!test_redirect_chain(20, num_requests));
+	TEST_EQUAL(num_requests, 6);
+}
+
 // test redirecting *unaligned* but padded files to separate servers
 TORRENT_TEST(multi_file_redirect_pad_files)
 {
