@@ -916,6 +916,13 @@ void web_peer_connection::on_receive(error_code const& error
 			}
 #endif
 
+			// if the status code is 429 (Too Many Requests) - retry
+			if (m_parser.status_code() == 429)
+			{
+				handle_error(int(recv_buffer.size()));
+				return;
+			}
+
 			// if the status code is not one of the accepted ones, abort
 			if (!aux::is_ok_status(m_parser.status_code()))
 			{
