@@ -2232,7 +2232,7 @@ namespace {
 			int const counter = (packet_type <= msg_dht_port)
 				? counters::num_incoming_choke + packet_type
 				: (packet_type <= msg_allowed_fast)
-				? counters::num_incoming_suggest + packet_type
+				? counters::num_incoming_suggest + packet_type - msg_suggest_piece
 				: counters::num_incoming_extended;
 
 			stats_counters().inc_stats_counter(counter);
