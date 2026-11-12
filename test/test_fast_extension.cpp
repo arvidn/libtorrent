@@ -585,6 +585,58 @@ bool wait_for_counter(lt::session& ses, char const* name, std::int64_t const val
 
 } // anonymous namespace
 
+// the incoming fast extension messages are supposed to be counted by their
+// own session stats counters. They used to be added to counters further down
+// the list, for outgoing messages
+TORRENT_TEST(fast_extension_counters)
+{
+	info_hash_t ih;
+	std::shared_ptr<lt::session> ses;
+	io_context ios;
+	tcp::socket s(ios);
+	setup_peer(s, ios, ih, ses);
+
+	auto const before = get_counters(*ses);
+
+	char recv_buffer[1000];
+	do_handshake(s, ih, recv_buffer);
+	send_have_all(s);
+	send_allow_fast(s, 0);
+	send_allow_fast(s, 1);
+	send_suggest_piece(s, 0);
+
+	// once we get the reject message, we know the messages before it have
+	// been handled too
+	peer_request req;
+	req.piece = 0_piece;
+	req.start = 0;
+	req.length = 0x4000;
+	send_request(s, req);
+	for (;;)
+	{
+		int const len = read_message(s, recv_buffer);
+		if (len == -1)
+			break;
+		if (len == 13 && recv_buffer[0] == 0x10)
+			break;
+	}
+
+	auto const after = get_counters(*ses);
+	auto const diff = [&](char const* name) { return after.at(name) - before.at(name); };
+
+	TEST_EQUAL(diff("ses.num_incoming_have_all"), 1);
+	TEST_EQUAL(diff("ses.num_incoming_allowed_fast"), 2);
+	TEST_EQUAL(diff("ses.num_incoming_suggest"), 1);
+	TEST_EQUAL(diff("ses.num_incoming_request"), 1);
+
+	// we only sent the handshake and a reject
+	TEST_EQUAL(diff("ses.num_outgoing_reject"), 1);
+	TEST_EQUAL(diff("ses.num_outgoing_piece"), 0);
+	TEST_EQUAL(diff("ses.num_outgoing_not_interested"), 0);
+	TEST_EQUAL(diff("ses.num_outgoing_have"), 0);
+	s.close();
+}
+
 // makes sure that pieces that are allowed and then
 // rejected aren't requested again
 TORRENT_TEST(reject_fast)
@@ -1334,6 +1386,65 @@ TORRENT_TEST(invalid_metadata_request)
 	// the second response should be the payload
 	TEST_EQUAL(ut_metadata_msg["msg_type"].integer(), 1);
 	TEST_EQUAL(ut_metadata_msg["piece"].integer(), 0);
+
+	print_session_log(*ses);
+}
+
+// extension message IDs are a single byte on the wire. A peer announcing an
+// ID that doesn't fit used to have it truncated (300 turns into 44), and
+// trigger an assert when writing it
+TORRENT_TEST(out_of_range_extension_id)
+{
+	using namespace lt::aux;
+
+	info_hash_t ih;
+	std::shared_ptr<lt::session> ses;
+	io_context ios;
+	tcp::socket s(ios);
+	setup_peer(s, ios, ih, ses);
+
+	char recv_buffer[1000];
+	do_handshake(s, ih, recv_buffer);
+	print_session_log(*ses);
+	send_have_none(s);
+	print_session_log(*ses);
+
+	entry extensions;
+	extensions["m"]["ut_metadata"] = 300;
+	send_extension_handshake(s, extensions);
+
+	extensions = read_extension_handshake(s, recv_buffer);
+
+	int const ut_metadata = int(extensions["m"]["ut_metadata"].integer());
+
+	// request the first metadata piece. Since the ut_metadata ID we announced
+	// is invalid, we don't support the extension as far as the other end is
+	// concerned. It's expected to disconnect us, without sending a response
+	// to some other ID
+	send_ut_metadata_msg(s, ut_metadata, 0, 0);
+
+	for (;;)
+	{
+		error_code ec;
+		boost::asio::read(s, boost::asio::buffer(recv_buffer, 4), boost::asio::transfer_all(), ec);
+		if (ec)
+			break;
+		char const* ptr = recv_buffer;
+		int const len = read_int32(ptr);
+		TEST_CHECK(len <= int(sizeof(recv_buffer)));
+		if (len > int(sizeof(recv_buffer)))
+			break;
+		boost::asio::read(
+			s, boost::asio::buffer(recv_buffer, std::size_t(len)), boost::asio::transfer_all(), ec);
+		if (ec)
+			break;
+		auto const buffer = span<char const>(recv_buffer).first(len);
+		print_message(buffer);
+
+		// the only extension message we expect is the handshake
+		if (len >= 2 && buffer[0] == 20)
+			TEST_EQUAL(int(buffer[1]), 0);
+	}
 
 	print_session_log(*ses);
 }

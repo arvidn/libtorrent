@@ -186,9 +186,11 @@ namespace libtorrent { namespace {
 			bdecode_node const messages = h.dict_find_dict("m");
 			if (!messages) return false;
 
-			int const index = int(messages.dict_find_int_value(extension_name, -1));
-			if (index == -1) return false;
-			m_message_index = index;
+			// extension message IDs are a single byte on the wire
+			std::int64_t const index = messages.dict_find_int_value(extension_name, -1);
+			if (index < 0 || index > 255)
+				return false;
+			m_message_index = int(index);
 			return true;
 		}
 
