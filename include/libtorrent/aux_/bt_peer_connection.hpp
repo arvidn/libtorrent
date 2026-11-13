@@ -489,6 +489,10 @@ namespace libtorrent::aux {
 		// the message ID for holepunch messages
 		std::uint8_t m_holepunch_id = 0;
 
+		// the number of holepunch connect messages from this peer we've
+		// acted on
+		int m_holepunch_connects = 0;
+
 		// the message ID for don't-have message
 		std::uint8_t m_dont_have_id = 0;
 
