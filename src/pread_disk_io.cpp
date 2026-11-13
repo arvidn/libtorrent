@@ -617,9 +617,6 @@ void pread_disk_io::execute_read_batch(jobqueue_t jobs)
 	status_t const ret = translate_error(j0, [&] {
 		TORRENT_ALLOCA(iovec, span<char>, count);
 		int i = 0;
-		// the union of the jobs' hints, as [first, end) block indices
-		int hint_first = std::numeric_limits<int>::max();
-		int hint_end = 0;
 		for (auto it = jobs.iterate(); it.get(); it.next(), ++i)
 		{
 			auto& a = std::get<aux::job::read>(static_cast<aux::pread_disk_job*>(it.get())->action);
@@ -632,18 +629,11 @@ void pread_disk_io::execute_read_batch(jobqueue_t jobs)
 				return disk_status::fatal_disk_error;
 			}
 			iovec[i] = span<char>(a.buf.data(), std::ptrdiff_t(a.buffer_size));
-
-			if (a.read_ahead.num_blocks > 0)
-			{
-				hint_first = std::min(hint_first, a.read_ahead.first_block);
-				hint_end = std::max(hint_end, a.read_ahead.first_block + a.read_ahead.num_blocks);
-			}
 		}
 
 		auto& a0 = std::get<aux::job::read>(j0->action);
 		auto const start_time = aux::steady_clock::now();
-		read_ahead_hint const read_ahead =
-			hint_end > 0 ? read_ahead_hint{hint_first, hint_end - hint_first} : read_ahead_hint{};
+		read_ahead_hint const read_ahead = aux::batch_read_ahead(jobs);
 
 		int const r = j0->storage->readv(m_settings,
 			iovec,

@@ -31,6 +31,7 @@ see LICENSE file.
 
 #include <set>
 #include <algorithm>
+#include <limits>
 
 namespace libtorrent { namespace aux {
 
@@ -929,4 +930,27 @@ typed_bitfield<piece_index_t> check_pieces(filenames const& fs,
 			se.operation = operation_t::file_rename;
 	}
 
+	read_ahead_hint batch_read_ahead(jobqueue_t const& batch)
+	{
+		TORRENT_ASSERT(!batch.empty());
+		int hint_first = std::numeric_limits<int>::max();
+		int hint_end = 0;
+		int batch_end = 0;
+		for (auto it = batch.iterate(); it.get(); it.next())
+		{
+			auto const& a = std::get<job::read>(it.get()->action);
+			batch_end = a.offset + int(a.buffer_size);
+			if (a.read_ahead.num_blocks <= 0)
+				continue;
+			hint_first = std::min(hint_first, a.read_ahead.first_block);
+			hint_end = std::max(hint_end, a.read_ahead.first_block + a.read_ahead.num_blocks);
+		}
+		// the batch is contiguous and in ascending offset order, so the last
+		// job ends it
+		hint_first =
+			std::max(hint_first, (batch_end + default_block_size - 1) / default_block_size);
+		if (hint_end <= hint_first)
+			return {};
+		return {hint_first, hint_end - hint_first};
+	}
 }}

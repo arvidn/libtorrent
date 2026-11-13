@@ -178,6 +178,12 @@ namespace libtorrent::aux {
 			return true;
 		});
 	}
+
+	// the union of the read_ahead hints of a batch built by
+	// collect_read_batch(), minus the blocks the batch itself reads. Those are
+	// resident once the read returns, and advising them again would eat into
+	// the kernel's per-call read-ahead cap.
+	TORRENT_EXTRA_EXPORT read_ahead_hint batch_read_ahead(jobqueue_t const& batch);
 }
 
 #endif
