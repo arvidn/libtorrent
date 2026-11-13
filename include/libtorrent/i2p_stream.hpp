@@ -174,7 +174,8 @@ private:
 	// the SAM bridge can't parse.
 	bool format_command(char const* fmt, ...) TORRENT_FORMAT(2, 3)
 	{
-		int const capacity = 1024;
+		// fits a STREAM CONNECT to the largest valid destination
+		int const capacity = 2048;
 		m_buffer.resize(capacity);
 		std::va_list args;
 		va_start(args, fmt);

@@ -424,7 +424,7 @@ TORRENT_TEST(oversized_name_lookup_fails_queued_name_lookups)
 		});
 
 	// doesn't fit in a SAM command, failing without any I/O
-	std::string const long_name(2000, 'a');
+	std::string const long_name(4000, 'a');
 	auto const r1 = std::make_shared<lookup_result>();
 	auto const r2 = std::make_shared<lookup_result>();
 	conn.async_name_lookup(long_name.c_str(), record(r1));

@@ -291,58 +291,74 @@ namespace {
 	}
 }
 
-	// this decodes the i2p alphabet
-	std::vector<char> base64decode_i2p(string_view s)
-	{
-		std::uint32_t output = 0;
+// this decodes the i2p alphabet. Only the canonical encoding is accepted, so
+// a destination can't be spelled in more than one way
+std::vector<char> base64decode_i2p(string_view s)
+{
+	if (s.size() % 4 != 0)
+		throw system_error(error_code(lt::errors::invalid_escaped_string));
 
-		std::vector<char> ret;
-		int bit_offset = 18;
-		for (auto const c : s)
+	std::uint32_t output = 0;
+
+	std::vector<char> ret;
+	int bit_offset = 18;
+	for (auto const c : s)
+	{
+		if (c == '=')
 		{
-			if (c == '=')
-			{
-				auto const pad = s.substr(s.find('='));
-				if (pad.find_first_not_of('=') != string_view::npos)
-					throw system_error(error_code(lt::errors::invalid_escaped_string));
-				break;
-			}
-			output |= map_base64_char(c) << bit_offset;
-			if (bit_offset == 0)
-			{
-				output = aux::host_to_network(output);
-				aux::array<char, 4> tmp;
-				std::memcpy(tmp.data(), &output, 4);
-				ret.push_back(tmp[1]);
-				ret.push_back(tmp[2]);
-				ret.push_back(tmp[3]);
-				output = 0;
-				bit_offset = 18;
-			}
-			else
-			{
-				bit_offset -= 6;
-			}
+			auto const pad = s.substr(s.find('='));
+			if (pad.size() > 2 || pad.find_first_not_of('=') != string_view::npos)
+				throw system_error(error_code(lt::errors::invalid_escaped_string));
+			break;
 		}
-		if (bit_offset < 18)
+		output |= map_base64_char(c) << bit_offset;
+		if (bit_offset == 0)
 		{
 			output = aux::host_to_network(output);
 			aux::array<char, 4> tmp;
 			std::memcpy(tmp.data(), &output, 4);
 			ret.push_back(tmp[1]);
-			if (bit_offset < 6)
-				ret.push_back(tmp[2]);
+			ret.push_back(tmp[2]);
+			ret.push_back(tmp[3]);
+			output = 0;
+			bit_offset = 18;
 		}
-		return ret;
+		else
+		{
+			bit_offset -= 6;
+		}
 	}
+	if (bit_offset < 18)
+	{
+		// the bits past the last byte must be zero
+		TORRENT_ASSERT(bit_offset == 6 || bit_offset == 0);
+		std::uint32_t const unused_bits = bit_offset == 6 ? 0xffff : 0xff;
+		if (output & unused_bits)
+			throw system_error(error_code(lt::errors::invalid_escaped_string));
+		output = aux::host_to_network(output);
+		aux::array<char, 4> tmp;
+		std::memcpy(tmp.data(), &output, 4);
+		ret.push_back(tmp[1]);
+		if (bit_offset < 6)
+			ret.push_back(tmp[2]);
+	}
+	return ret;
+}
 
 	namespace {
+
+	// the largest destination in use is 775 bytes (RSA-4096 signing key). The
+	// SAM command buffer in i2p_stream must fit this, base64 encoded
+	constexpr std::ptrdiff_t max_destination_size = 1024;
+	constexpr std::size_t max_destination_base64_size =
+		std::size_t((max_destination_size + 2) / 3 * 4);
+
 	// a 256 byte public key, a 128 byte signing key and a certificate. The
 	// certificate is a type byte and a big-endian 2 byte payload length
 	bool valid_i2p_destination(span<char const> const d)
 	{
 		constexpr std::ptrdiff_t cert_offset = 384;
-		if (d.size() < cert_offset + 3)
+		if (d.size() < cert_offset + 3 || d.size() > max_destination_size)
 			return false;
 		auto const cert_len = (std::ptrdiff_t(std::uint8_t(d[cert_offset + 1])) << 8)
 			| std::uint8_t(d[cert_offset + 2]);
@@ -352,6 +368,9 @@ namespace {
 
 	bool is_valid_i2p_destination(string_view const dest)
 	{
+		if (dest.size() > max_destination_base64_size)
+			return false;
+
 		try
 		{
 			return valid_i2p_destination(base64decode_i2p(dest));
