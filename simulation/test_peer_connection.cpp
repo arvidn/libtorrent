@@ -448,6 +448,72 @@ void run_metadata_edge_case(bool const hybrid_torrent,
 	TEST_EQUAL(peer_error, expect_peer_error);
 }
 
+// peers don't necessarily agree on the size of the metadata. One announcing
+// the wrong size must not prevent us from downloading the metadata from
+// another one
+TORRENT_TEST(metadata_size_disagreement)
+{
+	built_torrent const bt = build_torrent(false);
+	std::string const size = std::to_string(bt.metadata.size());
+	std::string const wrong_size = std::to_string(bt.metadata.size() + 1);
+
+	sim::default_config cfg;
+	sim::simulation sim{cfg};
+	auto ios = std::make_unique<sim::asio::io_context>(sim, lt::make_address_v4("50.0.0.1"));
+	lt::session_proxy zombie;
+
+	lt::session_params sp;
+	sp.settings = settings();
+	sp.disk_io_constructor = lt::disabled_disk_io_constructor;
+	std::shared_ptr<lt::session> ses = std::make_shared<lt::session>(sp, *ios);
+
+	fake_peer honest(sim, "60.0.0.1");
+	fake_peer liar(sim, "60.0.0.2");
+
+	lt::add_torrent_params params;
+	params.info_hashes = bt.hashes;
+	params.save_path = ".";
+	params.flags &= ~lt::torrent_flags::auto_managed;
+	params.flags &= ~lt::torrent_flags::paused;
+	ses->async_add_torrent(std::move(params));
+
+	bool metadata_received = false;
+	print_alerts(*ses, [&](lt::session&, lt::alert const* a) {
+		if (lt::alert_cast<lt::metadata_received_alert>(a))
+			metadata_received = true;
+	});
+
+	// we request the metadata from this peer
+	sim::timer t1(sim, lt::seconds(1), [&](boost::system::error_code const&) {
+		honest.set_reserved_bits(no_v2_claim_reserved);
+		honest.send_extended(0, "d1:md11:ut_metadatai2ee13:metadata_sizei" + size + "ee");
+		honest.connect_to(ep("50.0.0.1", 6881), bt.hashes.get_best());
+	});
+
+	// before it responds, another peer says the metadata has a different size
+	sim::timer t2(sim, lt::seconds(2), [&](boost::system::error_code const&) {
+		liar.set_reserved_bits(no_v2_claim_reserved);
+		liar.send_extended(0, "d1:md11:ut_metadatai2ee13:metadata_sizei" + wrong_size + "ee");
+		liar.connect_to(ep("50.0.0.1", 6881), bt.hashes.get_best());
+	});
+
+	sim::timer t3(sim, lt::seconds(3), [&](boost::system::error_code const&) {
+		std::string piece = "d8:msg_typei1e5:piecei0e10:total_sizei" + size + "ee";
+		piece.insert(piece.end(), bt.metadata.begin(), bt.metadata.end());
+		honest.send_extended(2, piece);
+		honest.flush_send_buffer();
+	});
+
+	sim::timer t4(sim, lt::seconds(10), [&](boost::system::error_code const&) {
+		zombie = ses->abort();
+		ses.reset();
+	});
+
+	sim.run();
+
+	TEST_CHECK(metadata_received);
+}
+
 // v1-only torrent, peer falsely claims v2 support: the claim is recorded
 // speculatively (see above) and must not survive metadata resolving to
 // v1-only.

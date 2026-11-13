@@ -17,6 +17,7 @@ see LICENSE file.
 
 #include <functional>
 #include <vector>
+#include <map>
 #include <utility>
 #include <numeric>
 #include <cstdio>
@@ -78,7 +79,6 @@ namespace {
 
 		span<char const> metadata() const
 		{
-			if (!m_metadata.empty()) return m_metadata;
 			if (!m_torrent.valid_metadata()) return {};
 
 			auto const ret = m_torrent.torrent_file().info_section();
@@ -103,9 +103,10 @@ namespace {
 			, span<char const> buf, int piece, int total_size);
 
 		// returns a piece of the metadata that
-		// we should request.
+		// we should request, from a peer saying the metadata is
+		// size bytes (0 if it didn't say).
 		// returns -1 if we should hold off the request
-		int metadata_request(bool has_metadata);
+		int metadata_request(int size, bool has_metadata);
 
 		void on_piece_pass(piece_index_t) override
 		{
@@ -115,12 +116,28 @@ namespace {
 				metadata();
 		}
 
-		void metadata_size(int const size)
+		// a peer told us the metadata is size bytes. Returns false if
+		// that's not a size we would download
+		bool add_peer(int const size)
 		{
-			if (m_torrent.valid_metadata()) return;
-			if (size <= 0 || size > 4 * 1024 * 1024) return;
-			m_metadata.resize(size);
-			m_requested_metadata.resize(aux::ceil_div(size, 16 * 1024));
+			if (m_torrent.valid_metadata())
+				return false;
+			if (size <= 0
+				|| size > m_torrent.session().settings().get_int(settings_pack::max_metadata_size))
+				return false;
+			++m_downloads[size].num_peers;
+			return true;
+		}
+
+		// free the metadata we have downloaded so far, once the last peer
+		// saying it's this size is gone
+		void remove_peer(int const size)
+		{
+			auto const i = m_downloads.find(size);
+			if (i == m_downloads.end())
+				return;
+			if (--i->second.num_peers == 0)
+				m_downloads.erase(i);
 		}
 
 		// explicitly disallow assignment, to silence msvc warning
@@ -128,12 +145,6 @@ namespace {
 
 	private:
 		aux::torrent& m_torrent;
-
-		// this buffer is filled with the info-section of
-		// the metadata file while downloading it from
-		// peers. Once we have metadata, we seed it directly from the
-		// torrent_info of the underlying torrent
-		aux::vector<char> m_metadata;
 
 		struct metadata_piece
 		{
@@ -145,10 +156,30 @@ namespace {
 			{ return num_requests < rhs.num_requests; }
 		};
 
-		// this vector keeps track of how many times each metadata
-		// block has been requested and who we ended up getting it from
-		// std::numeric_limits<int>::max() means we have the piece
-		aux::vector<metadata_piece> m_requested_metadata;
+		struct metadata_download
+		{
+			// this buffer is filled with the info-section of
+			// the metadata file while downloading it from
+			// peers. It grows as pieces are received. Once we have metadata,
+			// we seed it directly from the torrent_info of the underlying
+			// torrent
+			aux::vector<char> buffer;
+
+			// this vector keeps track of how many times each metadata
+			// block has been requested and who we ended up getting it from
+			// std::numeric_limits<int>::max() means we have the piece
+			aux::vector<metadata_piece> requested;
+
+			// the number of peers saying the metadata is this size
+			int num_peers = 0;
+		};
+
+		// peers don't necessarily agree on the size of the metadata, and we
+		// only know who was right once we have all of it and can compare it
+		// against the info-hash. Peers saying it's the same size share a
+		// download, the key is that size. Requests to peers that didn't
+		// say are tracked under 0
+		std::map<int, metadata_download> m_downloads;
 	};
 
 
@@ -188,11 +219,11 @@ namespace {
 				return false;
 			m_message_index = int(index);
 
-			int metadata_size = int(h.dict_find_int_value("metadata_size"));
-			if (metadata_size > 0)
-				m_tp.metadata_size(metadata_size);
-			else
+			int const metadata_size = int(h.dict_find_int_value("metadata_size"));
+			if (metadata_size <= 0)
 				m_pc.set_has_metadata(false);
+			else if (m_metadata_size == 0 && m_tp.add_peer(metadata_size))
+				m_metadata_size = metadata_size;
 
 			maybe_send_request();
 			return true;
@@ -381,6 +412,14 @@ namespace {
 			return true;
 		}
 
+		void on_disconnect(error_code const&) override
+		{
+			if (m_metadata_size == 0)
+				return;
+			m_tp.remove_peer(m_metadata_size);
+			m_metadata_size = 0;
+		}
+
 		void tick() override
 		{
 			maybe_send_request();
@@ -406,7 +445,7 @@ namespace {
 				&& m_sent_requests.size() < 2
 				&& has_metadata())
 			{
-				int const piece = m_tp.metadata_request(m_pc.has_metadata());
+				int const piece = m_tp.metadata_request(m_metadata_size, m_pc.has_metadata());
 				if (piece == -1) return;
 
 				m_sent_requests.push_back(piece);
@@ -439,6 +478,10 @@ namespace {
 		// we receive metadata that fails the info hash check
 		time_point m_request_limit;
 
+		// the size of the metadata, according to this peer. 0 if we don't
+		// know yet
+		int m_metadata_size = 0;
+
 		// request queues
 		std::vector<int> m_sent_requests;
 		std::vector<int> m_incoming_requests;
@@ -460,38 +503,34 @@ namespace {
 	// has_metadata is false if the peer making the request has not announced
 	// that it has metadata. In this case, it shouldn't prevent other peers
 	// from requesting this block by setting a timeout on it.
-	int ut_metadata_plugin::metadata_request(bool const has_metadata)
+	int ut_metadata_plugin::metadata_request(int const size, bool const has_metadata)
 	{
-		auto i = std::min_element(
-			m_requested_metadata.begin(), m_requested_metadata.end());
+		auto& requested = m_downloads[size].requested;
 
-		if (m_requested_metadata.empty())
-		{
-			// if we don't know how many pieces there are
-			// just ask for piece 0
-			m_requested_metadata.resize(1);
-			i = m_requested_metadata.begin();
-		}
+		// if we don't know how many pieces there are
+		// just ask for piece 0
+		if (requested.empty())
+			requested.resize(size == 0 ? 1 : aux::ceil_div(size, 16 * 1024));
 
-		int const piece = int(i - m_requested_metadata.begin());
+		auto const i = std::min_element(requested.begin(), requested.end());
+		int const piece = int(i - requested.begin());
 
 		// don't request the same block more than once every 3 seconds
 		// unless the source is disconnected
-		auto source = m_requested_metadata[piece].source.lock();
+		auto source = requested[piece].source.lock();
 		time_point const now = aux::time_now();
-		if (m_requested_metadata[piece].last_request != min_time()
-			&& source
+		if (requested[piece].last_request != min_time() && source
 			&& !source->m_pc.is_disconnecting()
-			&& total_seconds(now - m_requested_metadata[piece].last_request) < 3)
+			&& total_seconds(now - requested[piece].last_request) < 3)
 			return -1;
 
-		++m_requested_metadata[piece].num_requests;
+		++requested[piece].num_requests;
 
 		// only set the timeout on this block, only if the peer
 		// has metadata. This is to prevent peers with no metadata
 		// to starve out sending requests to peers with metadata
 		if (has_metadata)
-			m_requested_metadata[piece].last_request = now;
+			requested[piece].last_request = now;
 
 		return piece;
 	}
@@ -509,62 +548,81 @@ namespace {
 			return false;
 		}
 
-		if (m_metadata.empty())
+		// verify the total_size
+		if (total_size <= 0
+			|| total_size
+				> m_torrent.session().settings().get_int(settings_pack::max_metadata_size))
 		{
-			// verify the total_size
-			if (total_size <= 0 || total_size > m_torrent.session().settings().get_int(settings_pack::max_metadata_size))
-			{
 #ifndef TORRENT_DISABLE_LOGGING
-				source.m_pc.peer_log(peer_log_alert::info, peer_log_alert::ut_metadata
-					, "metadata size too big: %d", total_size);
+			source.m_pc.peer_log(peer_log_alert::info,
+				peer_log_alert::ut_metadata,
+				"metadata size too big: %d",
+				total_size);
 #endif
 // #error post alert
-				return false;
-			}
-
-			m_metadata.resize(total_size);
-			m_requested_metadata.resize(aux::ceil_div(total_size, 16 * 1024));
+return false;
 		}
 
-		if (piece < 0 || piece >= m_requested_metadata.end_index())
-		{
-#ifndef TORRENT_DISABLE_LOGGING
-			source.m_pc.peer_log(peer_log_alert::info, peer_log_alert::ut_metadata
-				, "piece: %d INVALID", piece);
-#endif
-			return false;
-		}
+		// the first piece from a peer that didn't say how large the metadata
+		// is in its handshake tells us
+		if (source.m_metadata_size == 0 && add_peer(total_size))
+			source.m_metadata_size = total_size;
 
-		if (total_size != m_metadata.end_index())
+		if (total_size != source.m_metadata_size)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
-			source.m_pc.peer_log(peer_log_alert::info, peer_log_alert::ut_metadata
-				, "total_size: %d INCONSISTENT WITH: %d"
-				, total_size, int(metadata().size()));
+			source.m_pc.peer_log(peer_log_alert::info,
+				peer_log_alert::ut_metadata,
+				"total_size: %d INCONSISTENT WITH: %d",
+				total_size,
+				source.m_metadata_size);
 #endif
 			// they disagree about the size!
 			return false;
 		}
 
-		if (piece * 16 * 1024 + buf.size() > metadata().size())
+		metadata_download& d = m_downloads[total_size];
+		if (d.requested.empty())
+			d.requested.resize(aux::ceil_div(total_size, 16 * 1024));
+
+		if (piece < 0 || piece >= d.requested.end_index())
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			source.m_pc.peer_log(
+				peer_log_alert::info, peer_log_alert::ut_metadata, "piece: %d INVALID", piece);
+#endif
+			return false;
+		}
+
+		int const offset = piece * 16 * 1024;
+		if (buf.size() != std::min(total_size - offset, 16 * 1024))
 		{
 			// this piece is invalid
 			return false;
 		}
 
-		std::memcpy(&m_metadata[piece * 16 * 1024], buf.data(), aux::numeric_cast<std::size_t>(buf.size()));
+		if (d.buffer.end_index() < offset + int(buf.size()))
+			d.buffer.resize(offset + int(buf.size()));
+		std::memcpy(&d.buffer[offset], buf.data(), aux::numeric_cast<std::size_t>(buf.size()));
 		// mark this piece has 'have'
-		m_requested_metadata[piece].num_requests = std::numeric_limits<int>::max();
-		m_requested_metadata[piece].source = source.shared_from_this();
+		d.requested[piece].num_requests = std::numeric_limits<int>::max();
+		d.requested[piece].source = source.shared_from_this();
 
-		bool have_all = std::all_of(m_requested_metadata.begin(), m_requested_metadata.end()
-			, [](metadata_piece const& mp) { return mp.num_requests == std::numeric_limits<int>::max(); });
+		bool have_all =
+			std::all_of(d.requested.begin(), d.requested.end(), [](metadata_piece const& mp) {
+				return mp.num_requests == std::numeric_limits<int>::max();
+			});
 
 		if (!have_all) return false;
 
-		if (!m_torrent.set_metadata(m_metadata))
+		// set_metadata() may disconnect peers, which may free this download
+		aux::vector<char> const metadata = std::move(d.buffer);
+		d.buffer.clear();
+
+		if (!m_torrent.set_metadata(metadata))
 		{
-			if (!m_torrent.valid_metadata())
+			auto const dl = m_downloads.find(total_size);
+			if (!m_torrent.valid_metadata() && dl != m_downloads.end())
 			{
 				time_point const now = aux::time_now();
 				// any peer that we downloaded metadata from gets a random time
@@ -573,8 +631,8 @@ namespace {
 				// of which peers we use)
 				// if we only have one block, and thus requested it from a single
 				// peer, we bump up the retry time a lot more to try other peers
-				bool single_peer = m_requested_metadata.size() == 1;
-				for (auto& mp : m_requested_metadata)
+				bool single_peer = dl->second.requested.size() == 1;
+				for (auto& mp : dl->second.requested)
 				{
 					mp.num_requests = 0;
 					auto peer = mp.source.lock();
@@ -586,15 +644,9 @@ namespace {
 			return false;
 		}
 
-		// free our copy of the metadata and get a reference
-		// to the torrent's copy instead. No need to keep two
-		// identical copies around
-		m_metadata.clear();
-		m_metadata.shrink_to_fit();
-
-		// clear the storage for the bitfield
-		m_requested_metadata.clear();
-		m_requested_metadata.shrink_to_fit();
+		// free our copies of the metadata. From now on we use the torrent's
+		// copy
+		m_downloads.clear();
 
 		return true;
 	}
