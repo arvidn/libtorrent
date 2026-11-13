@@ -278,6 +278,21 @@ TORRENT_TEST(base64)
 	for (int i = 0; i < 255; ++i)
 		test.push_back(char(i));
 	TEST_CHECK(base64decode_i2p(transcode_alphabet(base64encode(to_str(test)))) == test);
+
+	// non-canonical encodings
+	// unused bits set
+	TEST_THROW(base64decode_i2p("Zh=="));
+	TEST_THROW(base64decode_i2p("Zm9="));
+	// missing padding
+	TEST_THROW(base64decode_i2p("Zg"));
+	TEST_THROW(base64decode_i2p("Zg="));
+	TEST_THROW(base64decode_i2p("Zm8"));
+	// too much padding
+	TEST_THROW(base64decode_i2p("Zg==="));
+	TEST_THROW(base64decode_i2p("Z==="));
+	TEST_THROW(base64decode_i2p("===="));
+	// a lone trailing character
+	TEST_THROW(base64decode_i2p("Zm9vY"));
 #endif
 }
 
@@ -304,6 +319,25 @@ TORRENT_TEST(i2p_destination)
 	TEST_CHECK(!is_valid_i2p_destination(keys + "AAABAA==A"));
 	TEST_CHECK(!is_valid_i2p_destination(dest + "=\nfoo"));
 	TEST_CHECK(!is_valid_i2p_destination(keys + "AAABAA= ="));
+
+	// other spellings of a valid destination
+	TEST_CHECK(!is_valid_i2p_destination(keys + "AAABAB=="));
+	TEST_CHECK(!is_valid_i2p_destination(keys + "AAABAA="));
+	TEST_CHECK(!is_valid_i2p_destination(keys + "AAABAA"));
+	TEST_CHECK(!is_valid_i2p_destination(keys + "AAABAA==="));
+
+	auto const make_dest = [](int const cert_len) {
+		std::vector<char> d(384 + 3 + std::size_t(cert_len), 0);
+		d[385] = char(cert_len >> 8);
+		d[386] = char(cert_len & 0xff);
+		return transcode_alphabet(base64encode(to_str(d)));
+	};
+	// the largest destination in use, with an RSA-4096 signing key
+	TEST_CHECK(is_valid_i2p_destination(make_dest(388)));
+	// the size limit is 1024 bytes
+	TEST_CHECK(is_valid_i2p_destination(make_dest(1024 - 387)));
+	TEST_CHECK(!is_valid_i2p_destination(make_dest(1024 - 387 + 1)));
+	TEST_CHECK(!is_valid_i2p_destination(make_dest(0xffff)));
 }
 #endif
 

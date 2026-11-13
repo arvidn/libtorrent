@@ -68,6 +68,7 @@ namespace libtorrent {
 	i2p_connection::i2p_connection(io_context& ios)
 		: m_port(0)
 		, m_state(sam_idle)
+		, m_timeout(ios)
 		, m_io_service(ios)
 	{}
 
@@ -77,11 +78,13 @@ namespace libtorrent {
 	{
 		if (m_sam_socket) m_sam_socket->close(e);
 		drop_session(boost::asio::error::operation_aborted);
+		m_timed_out = false;
 		m_i2p_local_endpoint.clear();
 	}
 
 	void i2p_connection::drop_session(error_code const& ec)
 	{
+		cancel_timeout();
 		if (m_sam_socket)
 		{
 			error_code ignore;
@@ -90,6 +93,38 @@ namespace libtorrent {
 		m_sam_socket.reset();
 		m_state = sam_idle;
 		abort_name_lookups(ec);
+	}
+
+	void i2p_connection::arm_timeout(time_duration const d)
+	{
+		m_timed_out = false;
+		// also cancels a pending wait
+		m_timeout.expires_after(d);
+		ADD_OUTSTANDING_ASYNC("i2p_connection::on_timeout");
+		m_timeout.async_wait([this](error_code const& ec) { on_timeout(ec); });
+	}
+
+	void i2p_connection::cancel_timeout()
+	{
+		// a handler that already expired sees this and returns
+		m_timeout.expires_at(time_point::max());
+	}
+
+	void i2p_connection::on_timeout(error_code const& ec)
+	{
+		COMPLETE_ASYNC("i2p_connection::on_timeout");
+		if (ec)
+			return;
+
+		// cancelled or re-armed after expiring
+		if (m_timeout.expiry() > clock_type::now())
+			return;
+		if (!m_sam_socket)
+			return;
+
+		m_timed_out = true;
+		error_code ignore;
+		m_sam_socket->close(ignore);
 	}
 
 	void i2p_connection::abort_name_lookups(error_code const& ec)

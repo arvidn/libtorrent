@@ -424,7 +424,7 @@ TORRENT_TEST(oversized_name_lookup_fails_queued_name_lookups)
 		});
 
 	// doesn't fit in a SAM command, failing without any I/O
-	std::string const long_name(2000, 'a');
+	std::string const long_name(4000, 'a');
 	auto const r1 = std::make_shared<lookup_result>();
 	auto const r2 = std::make_shared<lookup_result>();
 	conn.async_name_lookup(long_name.c_str(), record(r1));
@@ -440,6 +440,201 @@ TORRENT_TEST(oversized_name_lookup_fails_queued_name_lookups)
 	TEST_CHECK(r2->called);
 	TEST_EQUAL(r1->ec, size_error);
 	TEST_EQUAL(r2->ec, size_error);
+	TEST_EQUAL(r1.use_count(), 1);
+	TEST_EQUAL(r2.use_count(), 1);
+}
+
+TORRENT_TEST(unterminated_sam_reply_fails_open)
+{
+	io_context ios;
+
+	// a SAM bridge whose HELLO reply never ends
+	tcp::acceptor sam(ios, tcp::endpoint(make_address_v4("127.0.0.1"), 0), false);
+	tcp::socket sam_conn(ios);
+	std::array<char, 1024> buf;
+	bool closed = false;
+	std::function<void(error_code const&, std::size_t)> const drain = [&](error_code const& ec,
+																		  std::size_t) {
+		if (ec)
+		{
+			closed = true;
+			error_code ignore;
+			sam_conn.close(ignore);
+			return;
+		}
+		sam_conn.async_read_some(boost::asio::buffer(buf), drain);
+	};
+	std::string const reply(100000, 'A');
+	sam.async_accept(sam_conn, [&](error_code const& ec) {
+		if (ec)
+			return;
+		// the client's HELLO is a single short write
+		sam_conn.async_read_some(boost::asio::buffer(buf), [&](error_code const& e, std::size_t) {
+			if (e)
+				return drain(e, 0);
+			boost::asio::async_write(sam_conn, boost::asio::buffer(reply), drain);
+		});
+	});
+
+	i2p_connection conn(ios);
+	error_code open_ec;
+	conn.open(
+		"127.0.0.1", sam.local_endpoint().port(), i2p_session_options{}, [&](error_code const& ec) {
+			open_ec = ec;
+		});
+
+	auto const r1 = std::make_shared<lookup_result>();
+	conn.async_name_lookup("foo.i2p", record(r1));
+
+	run_to_completion(ios);
+
+	error_code const parse_error(i2p_error::parse_failed, i2p_category());
+	TEST_EQUAL(open_ec, parse_error);
+	TEST_CHECK(closed);
+	TEST_CHECK(!conn.is_open());
+	TEST_CHECK(r1->called);
+	TEST_EQUAL(r1->ec, parse_error);
+	TEST_EQUAL(r1.use_count(), 1);
+}
+
+TORRENT_TEST(session_create_timeout)
+{
+	io_context ios;
+
+	// a SAM bridge that never answers
+	tcp::acceptor sam(ios, tcp::endpoint(make_address_v4("127.0.0.1"), 0), false);
+	tcp::socket sam_conn(ios);
+	std::array<char, 1024> buf;
+	int accepted = 0;
+	int closed = 0;
+	std::function<void(error_code const&, std::size_t)> const drain = [&](error_code const& ec,
+																		  std::size_t) {
+		if (ec)
+		{
+			++closed;
+			error_code ignore;
+			sam_conn.close(ignore);
+			return;
+		}
+		sam_conn.async_read_some(boost::asio::buffer(buf), drain);
+	};
+	auto const serve = [&] {
+		sam.async_accept(sam_conn, [&](error_code const& ec) {
+			if (ec)
+				return;
+			++accepted;
+			drain({}, 0);
+		});
+	};
+	serve();
+
+	i2p_connection conn(ios);
+	conn.set_timeouts(200ms, 200ms);
+	error_code open_ec;
+	auto const open = [&] {
+		conn.open("127.0.0.1",
+			sam.local_endpoint().port(),
+			i2p_session_options{},
+			[&](error_code const& ec) { open_ec = ec; });
+	};
+	open();
+
+	auto const r1 = std::make_shared<lookup_result>();
+	conn.async_name_lookup("foo.i2p", record(r1));
+
+	run_to_completion(ios);
+
+	error_code const timed_out(boost::asio::error::timed_out);
+	TEST_EQUAL(open_ec, timed_out);
+	TEST_EQUAL(accepted, 1);
+	TEST_EQUAL(closed, 1);
+	TEST_CHECK(!conn.is_open());
+	TEST_CHECK(r1->called);
+	TEST_EQUAL(r1->ec, timed_out);
+	TEST_EQUAL(r1.use_count(), 1);
+
+	// the timed out session must not prevent connecting again
+	open_ec.clear();
+	serve();
+	open();
+	run_to_completion(ios);
+	TEST_EQUAL(accepted, 2);
+	TEST_EQUAL(closed, 2);
+	TEST_EQUAL(open_ec, timed_out);
+}
+
+TORRENT_TEST(name_lookup_timeout)
+{
+	io_context ios;
+
+	// a SAM bridge that sets up the session, then never answers a name lookup
+	tcp::acceptor sam(ios, tcp::endpoint(make_address_v4("127.0.0.1"), 0), false);
+	tcp::socket sam_conn(ios);
+	std::array<char, 1024> buf;
+	std::array<std::string, 3> const replies{{"HELLO REPLY RESULT=OK\n",
+		"SESSION STATUS RESULT=OK\n",
+		"NAMING REPLY RESULT=OK NAME=ME VALUE=local-dest\n"}};
+	std::size_t next_reply = 0;
+	bool closed = false;
+	std::string pending;
+	std::function<void(error_code const&, std::size_t)> const serve = [&](error_code const& ec,
+																		  std::size_t const len) {
+		if (ec)
+		{
+			closed = true;
+			error_code ignore;
+			sam_conn.close(ignore);
+			return;
+		}
+		pending.clear();
+		for (char const c : span<char const>(buf.data(), int(len)))
+		{
+			if (c == '\n' && next_reply < replies.size())
+				pending += replies[next_reply++];
+		}
+		if (pending.empty())
+		{
+			sam_conn.async_read_some(boost::asio::buffer(buf), serve);
+			return;
+		}
+		boost::asio::async_write(
+			sam_conn, boost::asio::buffer(pending), [&](error_code const& e, std::size_t) {
+				if (e)
+					return serve(e, 0);
+				sam_conn.async_read_some(boost::asio::buffer(buf), serve);
+			});
+	};
+	sam.async_accept(sam_conn, [&](error_code const& ec) {
+		if (ec)
+			return;
+		sam_conn.async_read_some(boost::asio::buffer(buf), serve);
+	});
+
+	i2p_connection conn(ios);
+	conn.set_timeouts(10s, 200ms);
+	error_code open_ec;
+	conn.open(
+		"127.0.0.1", sam.local_endpoint().port(), i2p_session_options{}, [&](error_code const& ec) {
+			open_ec = ec;
+		});
+
+	auto const r1 = std::make_shared<lookup_result>();
+	auto const r2 = std::make_shared<lookup_result>();
+	conn.async_name_lookup("foo.i2p", record(r1));
+	conn.async_name_lookup("bar.i2p", record(r2));
+
+	run_to_completion(ios);
+
+	error_code const timed_out(boost::asio::error::timed_out);
+	TEST_EQUAL(next_reply, replies.size());
+	TEST_CHECK(!open_ec);
+	TEST_EQUAL(conn.local_endpoint(), "local-dest");
+	TEST_CHECK(closed);
+	TEST_CHECK(!conn.is_open());
+	TEST_CHECK(r1->called);
+	TEST_CHECK(r2->called);
+	TEST_EQUAL(r1->ec, timed_out);
+	TEST_EQUAL(r2->ec, timed_out);
 	TEST_EQUAL(r1.use_count(), 1);
 	TEST_EQUAL(r2.use_count(), 1);
 }
