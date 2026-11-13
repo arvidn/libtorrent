@@ -314,10 +314,13 @@ namespace aux {
 		, int const piece_length
 		, bool const backwards_compatible)
 	{
-		// sort files by path/name
-		std::sort(files.begin(), files.end()
-			, [](create_file_entry const& lhs, create_file_entry const& rhs)
-			{ return lhs.filename < rhs.filename; });
+		// sort files by path, one path element at a time, the same order as
+		// the v2 file tree
+		std::sort(files.begin(),
+			files.end(),
+			[](create_file_entry const& lhs, create_file_entry const& rhs) {
+				return path_compare(lhs.filename, {}, rhs.filename, {}) < 0;
+			});
 
 		std::int64_t off = 0;
 
@@ -987,9 +990,13 @@ TORRENT_VERSION_NAMESPACE_4
 						sorted_files.push_back(i);
 					}
 
-					std::sort(sorted_files.begin(), sorted_files.end()
-						, [&](file_index_t lhs, file_index_t rhs)
-						{ return m_files[lhs].filename < m_files[rhs].filename; });
+					std::sort(sorted_files.begin(),
+						sorted_files.end(),
+						[&](file_index_t lhs, file_index_t rhs) {
+							return path_compare(
+									   m_files[lhs].filename, {}, m_files[rhs].filename, {})
+								< 0;
+						});
 
 					std::vector<string_view> current_path;
 					for (file_index_t i : sorted_files)
