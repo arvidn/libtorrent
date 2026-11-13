@@ -444,6 +444,59 @@ TORRENT_TEST(oversized_name_lookup_fails_queued_name_lookups)
 	TEST_EQUAL(r2.use_count(), 1);
 }
 
+TORRENT_TEST(unterminated_sam_reply_fails_open)
+{
+	io_context ios;
+
+	// a SAM bridge whose HELLO reply never ends
+	tcp::acceptor sam(ios, tcp::endpoint(make_address_v4("127.0.0.1"), 0), false);
+	tcp::socket sam_conn(ios);
+	std::array<char, 1024> buf;
+	bool closed = false;
+	std::function<void(error_code const&, std::size_t)> const drain = [&](error_code const& ec,
+																		  std::size_t) {
+		if (ec)
+		{
+			closed = true;
+			error_code ignore;
+			sam_conn.close(ignore);
+			return;
+		}
+		sam_conn.async_read_some(boost::asio::buffer(buf), drain);
+	};
+	std::string const reply(100000, 'A');
+	sam.async_accept(sam_conn, [&](error_code const& ec) {
+		if (ec)
+			return;
+		// the client's HELLO is a single short write
+		sam_conn.async_read_some(boost::asio::buffer(buf), [&](error_code const& e, std::size_t) {
+			if (e)
+				return drain(e, 0);
+			boost::asio::async_write(sam_conn, boost::asio::buffer(reply), drain);
+		});
+	});
+
+	i2p_connection conn(ios);
+	error_code open_ec;
+	conn.open(
+		"127.0.0.1", sam.local_endpoint().port(), i2p_session_options{}, [&](error_code const& ec) {
+			open_ec = ec;
+		});
+
+	auto const r1 = std::make_shared<lookup_result>();
+	conn.async_name_lookup("foo.i2p", record(r1));
+
+	run_to_completion(ios);
+
+	error_code const parse_error(i2p_error::parse_failed, i2p_category());
+	TEST_EQUAL(open_ec, parse_error);
+	TEST_CHECK(closed);
+	TEST_CHECK(!conn.is_open());
+	TEST_CHECK(r1->called);
+	TEST_EQUAL(r1->ec, parse_error);
+	TEST_EQUAL(r1.use_count(), 1);
+}
+
 #else
 TORRENT_TEST(dummy) {}
 #endif
