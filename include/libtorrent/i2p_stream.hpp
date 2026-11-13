@@ -32,6 +32,8 @@ see LICENSE file.
 #include "libtorrent/aux_/random.hpp"
 #include "libtorrent/hex.hpp" // for to_hex
 #include "libtorrent/aux_/debug.hpp"
+#include "libtorrent/aux_/deadline_timer.hpp"
+#include "libtorrent/time.hpp"
 
 namespace libtorrent {
 
@@ -576,6 +578,9 @@ public:
 		m_sam_socket->set_session_id(m_session_id.c_str());
 		m_sam_socket->set_session_options(session_options);
 
+		// covers connecting, HELLO and SESSION CREATE
+		arm_timeout(m_session_create_timeout);
+
 		ADD_OUTSTANDING_ASYNC("i2p_stream::on_sam_connect");
 		m_sam_socket->async_connect(tcp::endpoint(), aux::wrap_allocator(
 			[this,s=m_sam_socket](error_code const& ec, Handler hn) {
@@ -583,6 +588,13 @@ public:
 			}, std::move(handler)));
 	}
 	void close(error_code&);
+
+	// for tests
+	void set_timeouts(time_duration const session_create, time_duration const name_lookup)
+	{
+		m_session_create_timeout = session_create;
+		m_name_lookup_timeout = name_lookup;
+	}
 
 	// TODO: make this a string_view
 	char const* session_id() const { return m_session_id.c_str(); }
@@ -608,7 +620,7 @@ public:
 
 private:
 	template <typename Handler>
-	void on_sam_connect(error_code const& ec, std::shared_ptr<i2p_stream> const& s, Handler h)
+	void on_sam_connect(error_code const& e, std::shared_ptr<i2p_stream> const& s, Handler h)
 	{
 		COMPLETE_ASYNC("i2p_stream::on_sam_connect");
 
@@ -619,6 +631,8 @@ private:
 			return;
 		}
 
+		error_code const ec = translate_timeout(e);
+		cancel_timeout();
 		m_state = sam_idle;
 
 		if (ec)
@@ -641,11 +655,26 @@ private:
 	void abort_name_lookups(error_code const& ec);
 	void drop_session(error_code const& ec);
 
+	// a late reply would be read as the answer to the next command, so a
+	// timeout closes the session socket
+	void arm_timeout(time_duration d);
+	void cancel_timeout();
+	void on_timeout(error_code const& ec);
+
+	// closing the socket on timeout aborts the command in flight
+	error_code translate_timeout(error_code const& ec) const
+	{
+		if (m_timed_out && ec == boost::asio::error::operation_aborted)
+			return boost::asio::error::timed_out;
+		return ec;
+	}
+
 	template <typename Handler>
 	void do_name_lookup(std::string const& name, Handler handler)
 	{
 		TORRENT_ASSERT(m_state == sam_idle);
 		m_state = sam_name_lookup;
+		arm_timeout(m_name_lookup_timeout);
 		m_sam_socket->set_name_lookup(name.c_str());
 		m_sam_socket->send_name_lookup(aux::wrap_allocator(
 			[this,s=m_sam_socket](error_code const& ec, Handler hn) {
@@ -654,7 +683,7 @@ private:
 	}
 
 	template <typename Handler>
-	void on_name_lookup(error_code const& ec, std::shared_ptr<i2p_stream> const& s, Handler handler)
+	void on_name_lookup(error_code const& e, std::shared_ptr<i2p_stream> const& s, Handler handler)
 	{
 		// this SAM session was closed or replaced
 		if (s != m_sam_socket)
@@ -663,6 +692,8 @@ private:
 			return;
 		}
 
+		error_code const ec = translate_timeout(e);
+		cancel_timeout();
 		m_state = sam_idle;
 
 		std::string const name = m_sam_socket->name_lookup();
@@ -734,6 +765,16 @@ private:
 	};
 
 	state_t m_state;
+
+	// SESSION CREATE waits for tunnels, which is slow on a freshly started
+	// router
+	time_duration m_session_create_timeout = minutes(5);
+	time_duration m_name_lookup_timeout = minutes(3);
+
+	aux::deadline_timer m_timeout;
+
+	// set when m_timeout closed m_sam_socket
+	bool m_timed_out = false;
 
 	io_context& m_io_service;
 };
