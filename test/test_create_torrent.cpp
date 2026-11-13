@@ -1212,6 +1212,40 @@ TORRENT_TEST(canonicalize_path)
 	TEST_EQUAL(fs.file_path(3_file), combine_path("b", combine_path("3", "a")));
 }
 
+// a directory sorts before a file whose name starts with the directory's name.
+// the v1 file list must have the same order as the v2 file tree
+TORRENT_TEST(canonicalize_path_prefix)
+{
+	std::vector<lt::create_file_entry> files;
+	files.emplace_back("test/Stems.zip", 0x3000);
+	files.emplace_back("test/Stems/a", 0x3000);
+
+	lt::create_torrent ct(std::move(files), 0x4000);
+	for (lt::piece_index_t i : ct.piece_range())
+		ct.set_hash(i, lt::sha1_hash::max());
+	for (auto const f : ct.file_range())
+		if (!(ct.file_at(f).flags & lt::file_storage::flag_pad_file))
+			for (auto const p : ct.file_piece_range(f))
+				ct.set_hash2(f, p, lt::sha256_hash::max());
+
+	std::vector<char> const buf = lt::bencode(ct.generate());
+	auto const ti = lt::load_torrent_buffer(buf).ti;
+	lt::file_storage const& fs = ti->layout();
+
+	TEST_CHECK(ti->info_hashes().has_v1());
+	TEST_CHECK(ti->info_hashes().has_v2());
+	TEST_EQUAL(fs.num_files(), 4);
+
+	using lt::combine_path;
+
+	TEST_EQUAL(fs.file_path(0_file), combine_path("test", combine_path("Stems", "a")));
+	TEST_EQUAL(fs.pad_file_at(1_file), true);
+	TEST_EQUAL(fs.file_path(2_file), combine_path("test", "Stems.zip"));
+	TEST_EQUAL(fs.pad_file_at(3_file), true);
+
+	TEST_CHECK(buf == ct.generate_buf());
+}
+
 TORRENT_TEST(file_num_blocks)
 {
 	std::vector<lt::create_file_entry> files;
