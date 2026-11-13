@@ -29,6 +29,7 @@ see LICENSE file.
 #if TORRENT_HAVE_MMAP
 #include <sys/mman.h> // for mmap
 #include <sys/stat.h>
+#include <unistd.h> // for sysconf
 #include <fcntl.h> // for open
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -322,7 +323,12 @@ void file_mapping::will_need(span<byte const> range)
 	auto const size = static_cast<std::size_t>(range.size());
 
 #if TORRENT_USE_MADVISE && defined MADV_WILLNEED
-	::madvise(start, size, MADV_WILLNEED);
+	// madvise() requires a page aligned address. The mapping is page aligned,
+	// so rounding down never leaves it. madvise() rounds the end up itself
+	static auto const page_size = static_cast<std::uintptr_t>(::sysconf(_SC_PAGESIZE));
+	auto const misalignment =
+		static_cast<std::size_t>(reinterpret_cast<std::uintptr_t>(start) % page_size);
+	::madvise(start - misalignment, size + misalignment, MADV_WILLNEED);
 #else
 	TORRENT_UNUSED(start);
 	TORRENT_UNUSED(size);
