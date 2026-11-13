@@ -704,6 +704,10 @@ namespace libtorrent::aux {
 		void connect_to_url_seed(std::list<web_seed_t>::iterator);
 		bool connect_to_peer(torrent_peer*, bool ignore_limit = false);
 		bool create_peer_connection(torrent_peer* peerinfo, aux::socket_type socket, tcp::endpoint endpoint);
+		// target is the endpoint to connect to, which may differ from the
+		// peer's listen port, e.g. the NAT mapping named by a holepunch
+		// rendezvous
+		bool connect_to_peer(torrent_peer*, tcp::endpoint const& target, bool ignore_limit);
 
 		int priority() const;
 #if TORRENT_ABI_VERSION == 1
