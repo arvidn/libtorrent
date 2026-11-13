@@ -1914,7 +1914,7 @@ void pread_disk_io::add_job(aux::pread_disk_job* j, add_job_flags_t const flags)
 
 	auto& q = pool_for_job(j);
 	if (flags & add_job_flags::priority)
-		q.push_front(j);
+		q.push_priority(j);
 	else
 		q.push_back(j);
 	l.unlock();

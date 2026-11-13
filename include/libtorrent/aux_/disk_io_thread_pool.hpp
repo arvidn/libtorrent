@@ -112,14 +112,25 @@ namespace libtorrent::aux {
 
 		// for jobs that should be serviced ahead of whatever's already
 		// queued, e.g. a speculative read-ahead hint that only pays off if
-		// it beats the job it's hinting ahead of.
+		// it beats the job it's hinting ahead of. Priority jobs are serviced
+		// in the order they were pushed.
 		// precondition: the job mutex must be held when this is called
-		void push_front(aux::disk_job* j) { m_queued_jobs.push_front(j); }
+		void push_priority(aux::disk_job* j)
+		{
+			if (m_last_priority == nullptr)
+				m_queued_jobs.push_front(j);
+			else
+				m_queued_jobs.insert_after(m_last_priority, j);
+			m_last_priority = j;
+		}
 
 		// precondition: the job mutex must be held when this is called
 		aux::disk_job* pop_front()
 		{
-			return m_queued_jobs.pop_front();
+			aux::disk_job* const j = m_queued_jobs.pop_front();
+			if (j == m_last_priority)
+				m_last_priority = nullptr;
+			return j;
 		}
 
 		// precondition: the job mutex must be held when this is called
@@ -144,6 +155,8 @@ namespace libtorrent::aux {
 					m_queued_jobs.push_front(j);
 					break;
 				}
+				if (j == m_last_priority)
+					m_last_priority = nullptr;
 				out.push_back(j);
 				++matched;
 			}
@@ -218,6 +231,10 @@ namespace libtorrent::aux {
 
 		// jobs queued for servicing
 		jobqueue_t m_queued_jobs;
+
+		// priority jobs form a prefix of m_queued_jobs, this is the last one
+		// of them, or nullptr if there are none
+		aux::disk_job* m_last_priority = nullptr;
 
 		// when this is set, one thread is interrupted and wait_for_job() will
 		// return even if the queue is empty (with the interrupt result)
