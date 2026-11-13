@@ -648,12 +648,16 @@ parse_websocket_tracker_response(span<char const> message, error_code& ec) try
 		tracker_response& resp = response.resp.emplace();
 
 		if (auto it = payload.find("interval"); it != payload.end())
-			resp.interval = seconds32{it->value().as_int64()};
+			// the intervals are 32 bit second counts that are added to the
+			// current time. Limit them to a week, to not overflow
+			resp.interval = seconds32{std::clamp(
+				it->value().as_int64(), std::int64_t(0), std::int64_t(7 * 24 * 60 * 60))};
 		else
 			resp.interval = seconds32{120};
 
 		if (auto it = payload.find("min_interval"); it != payload.end())
-			resp.min_interval = seconds32{it->value().as_int64()};
+			resp.min_interval = seconds32{std::clamp(
+				it->value().as_int64(), std::int64_t(0), std::int64_t(7 * 24 * 60 * 60))};
 		else
 			resp.min_interval = seconds32{60};
 
