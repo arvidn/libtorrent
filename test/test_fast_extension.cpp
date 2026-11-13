@@ -1650,3 +1650,174 @@ TORRENT_TEST(dht_port_no_support)
 }
 // TODO: test sending invalid requests (out of bound piece index, offsets and
 // sizes)
+
+#if TORRENT_USE_I2P && !defined TORRENT_DISABLE_EXTENSIONS
+namespace {
+
+// reads one line of a SAM command, without the newline
+std::string read_sam_line(tcp::socket& s)
+{
+	std::string ret;
+	for (;;)
+	{
+		char c;
+		error_code ec;
+		boost::asio::read(s, boost::asio::buffer(&c, 1), ec);
+		if (ec || c == '\n')
+			return ret;
+		ret += c;
+	}
+}
+
+void write_sam_line(tcp::socket& s, std::string const& line)
+{
+	error_code ec;
+	boost::asio::write(s, boost::asio::buffer(line), ec);
+	if (ec)
+		TEST_ERROR(ec.message());
+}
+
+// returns the i2p destination number i, in base64. 384 bytes of keys and an
+// empty certificate
+std::string i2p_dest(int const i)
+{
+	std::string ret(516, 'A');
+	ret[0] = char('A' + i % 26);
+	ret[1] = char('A' + (i / 26) % 26);
+	return ret;
+}
+
+} // anonymous namespace
+
+// the number of peers we accept from a single i2p_pex message is limited by
+// max_pex_peers. Every peer in the message causes a name lookup with the SAM
+// bridge, before it's added to the peer list. To have an i2p peer connection,
+// this test plays the role of the SAM bridge as well as the peer.
+TORRENT_TEST(i2p_pex_max_peers)
+{
+	using namespace lt::aux;
+
+	io_context ios;
+	tcp::acceptor sam(ios, tcp::endpoint(make_address_v4("127.0.0.1"), 0));
+
+	settings_pack sett = settings();
+	sett.set_str(settings_pack::listen_interfaces, test_listen_interface());
+	sett.set_bool(settings_pack::enable_upnp, false);
+	sett.set_bool(settings_pack::enable_natpmp, false);
+	sett.set_bool(settings_pack::enable_lsd, false);
+	sett.set_bool(settings_pack::enable_dht, false);
+	sett.set_int(settings_pack::in_enc_policy, settings_pack::pe_disabled);
+	sett.set_int(settings_pack::out_enc_policy, settings_pack::pe_disabled);
+	sett.set_str(settings_pack::i2p_hostname, "127.0.0.1");
+	sett.set_int(settings_pack::i2p_port, sam.local_endpoint().port());
+	int const max_pex_peers = sett.get_int(settings_pack::max_pex_peers);
+	lt::session ses(sett);
+
+	error_code ec;
+	remove(combine_path("tmp1_fast", "temporary").c_str(), ec);
+	add_torrent_params p = ::create_torrent(nullptr);
+	info_hash_t const ih = p.ti->info_hashes();
+	p.flags &= ~torrent_flags::paused;
+	p.flags &= ~torrent_flags::auto_managed;
+	p.flags |= torrent_flags::i2p_torrent;
+	p.save_path = "tmp1_fast";
+	torrent_handle th = ses.add_torrent(p);
+
+	// the first connection is the SAM session
+	tcp::socket ctrl(ios);
+	sam.accept(ctrl);
+	TEST_CHECK(read_sam_line(ctrl).substr(0, 5) == "HELLO");
+	write_sam_line(ctrl, "HELLO REPLY RESULT=OK VERSION=3.1\n");
+	TEST_CHECK(read_sam_line(ctrl).substr(0, 14) == "SESSION CREATE");
+	write_sam_line(ctrl, "SESSION STATUS RESULT=OK DESTINATION=" + i2p_dest(0) + "\n");
+	TEST_CHECK(read_sam_line(ctrl).substr(0, 13) == "NAMING LOOKUP");
+	write_sam_line(ctrl, "NAMING REPLY RESULT=OK NAME=ME VALUE=" + i2p_dest(0) + "\n");
+
+	// the second connection is waiting for an incoming peer. The SAM bridge
+	// sends the destination of the peer, from there on it's the peer
+	// connection
+	tcp::socket s(ios);
+	sam.accept(s);
+	TEST_CHECK(read_sam_line(s).substr(0, 5) == "HELLO");
+	write_sam_line(s, "HELLO REPLY RESULT=OK VERSION=3.1\n");
+	TEST_CHECK(read_sam_line(s).substr(0, 13) == "STREAM ACCEPT");
+	write_sam_line(s, "STREAM STATUS RESULT=OK\n");
+	write_sam_line(s, i2p_dest(1) + "\n");
+
+	char recv_buffer[1000];
+	do_handshake(s, ih, recv_buffer);
+	print_session_log(ses);
+	send_have_none(s);
+
+	entry extensions;
+	extensions["m"]["ut_metadata"] = 1;
+	extensions["m"]["i2p_pex"] = 2;
+	send_extension_handshake(s, extensions);
+	extensions = read_extension_handshake(s, recv_buffer);
+	int const ut_metadata = int(extensions["m"]["ut_metadata"].integer());
+	int const i2p_pex = int(extensions["m"]["i2p_pex"].integer());
+	TEST_CHECK(i2p_pex != 0);
+
+	// introduce a lot more peers than max_pex_peers
+	int const num_peers = max_pex_peers * 20;
+	std::string added;
+	for (int i = 0; i < num_peers; ++i)
+	{
+		char destination[32];
+		std::memset(destination, 0, sizeof(destination));
+		char* ptr = destination;
+		write_uint32(i + 1, ptr);
+		added.append(destination, sizeof(destination));
+	}
+	entry pex;
+	pex["added"] = added;
+	std::vector<char> buf(6);
+	bencode(std::back_inserter(buf), pex);
+	char* ptr = buf.data();
+	write_uint32(int(buf.size()) - 4, ptr);
+	write_uint8(20, ptr);
+	write_uint8(i2p_pex, ptr);
+	log("==> i2p_pex [ added: %d ]", num_peers);
+	boost::asio::write(s, boost::asio::buffer(buf), ec);
+	if (ec)
+		TEST_ERROR(ec.message());
+
+	// request a metadata piece. Once we have the response, we know the pex
+	// message has been handled
+	send_ut_metadata_msg(s, ut_metadata, 0, 0);
+	read_ut_metadata_msg(s, recv_buffer);
+	print_session_log(ses);
+
+	// the name lookups are made one at a time
+	for (int i = 0; i < max_pex_peers; ++i)
+	{
+		TEST_CHECK(read_sam_line(ctrl).substr(0, 13) == "NAMING LOOKUP");
+		write_sam_line(ctrl, "NAMING REPLY RESULT=OK NAME=x VALUE=" + i2p_dest(i + 2) + "\n");
+	}
+
+	// there should not be any more name lookups
+	bool another_lookup = false;
+	char c;
+	boost::asio::async_read(ctrl,
+		boost::asio::buffer(&c, 1),
+		[&](error_code const& e, std::size_t) { another_lookup = !e; });
+	ios.restart();
+	ios.run_for(std::chrono::milliseconds(500));
+	TEST_CHECK(!another_lookup);
+	ctrl.cancel(ec);
+	ios.restart();
+	ios.poll();
+
+	// the peer list also contains the peer we're connected to
+	int list_peers = 0;
+	for (int i = 0; i < 50; ++i)
+	{
+		list_peers = th.status().list_peers;
+		if (list_peers > max_pex_peers)
+			break;
+		std::this_thread::sleep_for(lt::milliseconds(100));
+	}
+	print_session_log(ses);
+	TEST_EQUAL(list_peers, max_pex_peers + 1);
+}
+#endif // TORRENT_USE_I2P
