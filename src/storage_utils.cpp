@@ -16,6 +16,7 @@ see LICENSE file.
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/piece_block.hpp" // for torrent_byte_offset
 #include "libtorrent/aux_/alloca.hpp"
+#include "libtorrent/aux_/ceil_div.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/session.hpp" // for session::delete_files
 #include "libtorrent/aux_/stat_cache.hpp"
@@ -947,8 +948,7 @@ typed_bitfield<piece_index_t> check_pieces(filenames const& fs,
 		}
 		// the batch is contiguous and in ascending offset order, so the last
 		// job ends it
-		hint_first =
-			std::max(hint_first, (batch_end + default_block_size - 1) / default_block_size);
+		hint_first = std::max(hint_first, ceil_div(batch_end, default_block_size));
 		if (hint_end <= hint_first)
 			return {};
 		return {hint_first, hint_end - hint_first};
