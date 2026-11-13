@@ -171,6 +171,10 @@ struct TORRENT_EXTRA_EXPORT i2p_stream : aux::proxy_base
 	}
 
 private:
+	// a NAMING REPLY or an incoming connection's destination line carries a
+	// whole destination, plus some protocol text
+	static constexpr int max_line_length = int(aux::max_i2p_destination_len) + 512;
+
 	// formats a SAM command into m_buffer, ready to be handed to async_write().
 	// The command has to live in a member, and not in a local buffer, since it
 	// must stay valid until the asynchronous write completes, which is after
@@ -260,6 +264,11 @@ private:
 		// look for \n which means end of the response
 		if (m_buffer[read_pos - 1] != '\n')
 		{
+			if (read_pos >= max_line_length)
+			{
+				handle_error(error_code(i2p_error::parse_failed, i2p_category()), h);
+				return;
+			}
 			ADD_OUTSTANDING_ASYNC("i2p_stream::read_line");
 			// read another byte from the socket
 			m_buffer.resize(read_pos + 1);
