@@ -20,6 +20,7 @@ see LICENSE file.
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/aux_/debug.hpp"
 #include "libtorrent/units.hpp"
+#include "libtorrent/flags.hpp"
 #include "libtorrent/hasher.hpp"
 #include "libtorrent/aux_/platform_util.hpp" // for set_thread_name
 #include "libtorrent/aux_/disk_job_pool.hpp"
@@ -99,6 +100,17 @@ status_t translate_error(aux::disk_job* j, Fun f)
 		j->error.operation = operation_t::exception;
 		return disk_status::fatal_disk_error;
 	}
+}
+
+using add_job_flags_t = flags::bitfield_flag<std::uint8_t, struct add_job_flags_tag>;
+
+namespace add_job_flags {
+// called from outside pread_disk_io. With no disk threads, only the top level
+// add_job() call drains the queue inline.
+constexpr add_job_flags_t user_add = 0_bit;
+// jump ahead of whatever's already queued (but behind anything already
+// executing). See job::willneed.
+constexpr add_job_flags_t priority = 1_bit;
 }
 
 } // anonymous namespace
@@ -242,11 +254,9 @@ private:
 
 	void perform_job(aux::pread_disk_job* j, jobqueue_t& completed_jobs);
 
-	// this queues up another job to be submitted. priority jumps it ahead
-	// of whatever's already queued (but behind anything already executing);
-	// see job::willneed, the only user of it so far.
-	void add_job(aux::pread_disk_job* j, bool user_add = true, bool priority = false);
-	void add_fence_job(aux::pread_disk_job* j, bool user_add = true);
+	// this queues up another job to be submitted
+	void add_job(aux::pread_disk_job* j, add_job_flags_t flags = add_job_flags::user_add);
+	void add_fence_job(aux::pread_disk_job* j, add_job_flags_t flags = add_job_flags::user_add);
 
 	void execute_job(aux::pread_disk_job* j);
 	void immediate_execute();
@@ -724,7 +734,7 @@ void pread_disk_io::async_read(storage_index_t storage,
 		// anything already executing) is what makes the head start real.
 		aux::pread_disk_job* hint_job = m_job_pool.allocate_job<aux::job::willneed>(
 			disk_job_flags_t{}, m_torrents[storage]->shared_from_this(), r.piece, read_ahead);
-		add_job(hint_job, true, true);
+		add_job(hint_job, add_job_flags::user_add | add_job_flags::priority);
 	}
 	// the hint job already covers the window, so the read must not advise
 	// it a second time
@@ -1789,8 +1799,11 @@ status_t pread_disk_io::do_job(aux::job::willneed& a, aux::pread_disk_job* j)
 	return {};
 }
 
-void pread_disk_io::add_fence_job(aux::pread_disk_job* j, bool const user_add)
+void pread_disk_io::add_fence_job(aux::pread_disk_job* j, add_job_flags_t const flags)
 {
+	// a fence job can't jump the queue, it has to wait for the outstanding jobs
+	TORRENT_ASSERT(!(flags & add_job_flags::priority));
+
 	// if this happens, it means we started to shut down
 	// the disk threads too early. We have to post all jobs
 	// before the disk threads are shut down
@@ -1835,10 +1848,11 @@ void pread_disk_io::add_fence_job(aux::pread_disk_job* j, bool const user_add)
 	// immediate_execute() below). Gate on the generic pool being empty, not on
 	// num_threads(): with hash threads but no generic threads, interrupt() above
 	// is a no-op and nothing would ever flush the storage, deadlocking the fence.
-	if (m_generic_threads.max_threads() == 0 && user_add) immediate_execute();
+	if (m_generic_threads.max_threads() == 0 && (flags & add_job_flags::user_add))
+		immediate_execute();
 }
 
-void pread_disk_io::add_job(aux::pread_disk_job* j, bool const user_add, bool const priority)
+void pread_disk_io::add_job(aux::pread_disk_job* j, add_job_flags_t const flags)
 {
 	TORRENT_ASSERT(!j->storage || j->storage->files().is_valid());
 	TORRENT_ASSERT(j->next == nullptr);
@@ -1899,7 +1913,7 @@ void pread_disk_io::add_job(aux::pread_disk_job* j, bool const user_add, bool co
 	TORRENT_ASSERT((j->state & aux::disk_job::in_progress) || !j->storage);
 
 	auto& q = pool_for_job(j);
-	if (priority)
+	if (flags & add_job_flags::priority)
 		q.push_front(j);
 	else
 		q.push_back(j);
@@ -1908,7 +1922,7 @@ void pread_disk_io::add_job(aux::pread_disk_job* j, bool const user_add, bool co
 	// immediately. If add job is called internally by the pread_disk_io,
 	// we need to defer executing it. We only want the top level to loop
 	// over the job queue (as is done below)
-	if (q.max_threads() == 0 && user_add)
+	if (q.max_threads() == 0 && (flags & add_job_flags::user_add))
 		immediate_execute();
 }
 
