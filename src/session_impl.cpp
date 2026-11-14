@@ -5066,14 +5066,26 @@ namespace {
 		}
 
 #ifndef TORRENT_DISABLE_DHT
-		// add params.dht_nodes to the DHT, if enabled
-		for (auto const& n : params.dht_nodes)
-			add_dht_node_name(n);
-
-		if (params.ti)
+#if TORRENT_USE_I2P
+		// pinging nodes supplied by the torrent's creator would reveal our
+		// IP to them, deanonymizing us for an i2p torrent
+		bool const skip_dht_nodes = !m_settings.get_bool(settings_pack::allow_i2p_mixed)
+			&& ((params.flags & torrent_flags::i2p_torrent)
+				|| (params.ti && params.ti->is_i2p()));
+#else
+		bool const skip_dht_nodes = false;
+#endif
+		if (!skip_dht_nodes)
 		{
-			for (auto const& n : params.ti->nodes())
+			// add params.dht_nodes to the DHT, if enabled
+			for (auto const& n : params.dht_nodes)
 				add_dht_node_name(n);
+
+			if (params.ti)
+			{
+				for (auto const& n : params.ti->nodes())
+					add_dht_node_name(n);
+			}
 		}
 #endif
 
