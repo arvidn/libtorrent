@@ -450,7 +450,10 @@ namespace libtorrent {
 		error_code ec;
 		std::tie(ignore, ignore, hostname, ignore, ignore)
 			= parse_url_components(url, ec);
-		return string_ends_with(hostname, ".i2p");
+		// an IPv6 literal with a zone ID can be crafted to end in ".i2p", a
+		// colon can never appear in an i2p hostname
+		return hostname.find(':') == std::string::npos
+			&& string_ends_with(hostname, ".i2p");
 	}
 
 #endif
