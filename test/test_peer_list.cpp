@@ -339,7 +339,7 @@ TORRENT_TEST(multiple_ips_disallowed2)
 	torrent_peer* peer2 = p.add_peer(ep("10.0.0.2", 9020), {}, {}, &st);
 	TEST_EQUAL(p.num_peers(), 1);
 	TEST_EQUAL(peer2->port, 9020);
-		TEST_CHECK(peer1 == peer2);
+	TEST_CHECK(peer1 == peer2);
 	TEST_EQUAL(p.num_connect_candidates(), 0);
 	st.erased.clear();
 }
@@ -396,6 +396,139 @@ TORRENT_TEST(update_peer_port_collide)
 	TEST_EQUAL(p.num_peers(), 1);
 	TEST_EQUAL(c->peer_info_struct()->port, 4000);
 	st.erased.clear();
+}
+
+// pex and DHT may not change a listen port we already hold, any other
+// source may
+TORRENT_TEST(update_port_by_source)
+{
+	torrent_state st = init_state();
+	mock_torrent t(&st);
+	st.allow_multiple_connections_per_ip = false;
+	peer_list p(allocator);
+	t.m_p = &p;
+
+	torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), peer_info::pex, {}, &st);
+	TEST_CHECK(peer1);
+	TEST_EQUAL(peer1->port, 3000);
+
+	TEST_EQUAL(p.add_peer(ep("10.0.0.2", 9020), peer_info::pex, {}, &st), peer1);
+	TEST_EQUAL(peer1->port, 3000);
+	TEST_EQUAL(
+		p.add_peer(ep("10.0.0.2", 9020), peer_info::tracker | peer_info::pex, {}, &st), peer1);
+	TEST_EQUAL(peer1->port, 3000);
+	TEST_EQUAL(p.add_peer(ep("10.0.0.2", 9020), peer_info::dht, {}, &st), peer1);
+	TEST_EQUAL(peer1->port, 3000);
+	TEST_EQUAL(
+		p.add_peer(ep("10.0.0.2", 9020), peer_info::tracker | peer_info::dht, {}, &st), peer1);
+	TEST_EQUAL(peer1->port, 3000);
+
+	int port = 4000;
+	for (peer_source_flags_t const src :
+		{peer_info::tracker, peer_info::lsd, peer_info::resume_data, peer_source_flags_t{}})
+	{
+		TEST_EQUAL(p.add_peer(ep("10.0.0.2", std::uint16_t(port)), src, {}, &st), peer1);
+		TEST_EQUAL(peer1->port, port);
+		++port;
+	}
+	TEST_EQUAL(p.num_peers(), 1);
+	TEST_EQUAL(p.num_connect_candidates(), 1);
+}
+
+// once the port we hold has failed enough to give up on, pex may replace it
+// and the peer gets a fresh start
+TORRENT_TEST(pex_updates_port_after_giving_up)
+{
+	torrent_state st = init_state();
+	mock_torrent t(&st);
+	st.allow_multiple_connections_per_ip = false;
+	peer_list p(allocator);
+	t.m_p = &p;
+
+	torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), peer_info::tracker, {}, &st);
+	TEST_CHECK(peer1);
+	TEST_EQUAL(p.num_connect_candidates(), 1);
+
+	p.set_failcount(peer1, st.max_failcount - 1);
+	TEST_EQUAL(p.num_connect_candidates(), 1);
+	TEST_EQUAL(p.add_peer(ep("10.0.0.2", 9020), peer_info::pex, {}, &st), peer1);
+	TEST_EQUAL(peer1->port, 3000);
+	TEST_EQUAL(int(peer1->failcount), st.max_failcount - 1);
+
+	p.set_failcount(peer1, st.max_failcount);
+	TEST_EQUAL(p.num_connect_candidates(), 0);
+
+	// the same port is still not a fresh start
+	TEST_EQUAL(p.add_peer(ep("10.0.0.2", 3000), peer_info::pex, {}, &st), peer1);
+	TEST_EQUAL(int(peer1->failcount), st.max_failcount);
+	TEST_EQUAL(p.num_connect_candidates(), 0);
+
+	TEST_EQUAL(p.add_peer(ep("10.0.0.2", 9020), peer_info::pex, {}, &st), peer1);
+	TEST_EQUAL(peer1->port, 9020);
+	TEST_EQUAL(int(peer1->failcount), 0);
+	TEST_EQUAL(p.num_peers(), 1);
+	TEST_EQUAL(p.num_connect_candidates(), 1);
+}
+
+// gossip about a peer we already know may only add holepunch support, the
+// other flags are learned by connecting to it
+TORRENT_TEST(pex_flags_on_known_peer)
+{
+	torrent_state st = init_state();
+	mock_torrent t(&st);
+	st.allow_multiple_connections_per_ip = false;
+	peer_list p(allocator);
+	t.m_p = &p;
+
+	torrent_peer* peer1 = p.add_peer(ep("10.0.0.2", 3000), peer_info::tracker, {}, &st);
+	TEST_CHECK(peer1);
+	TEST_CHECK(!peer1->maybe_upload_only);
+	TEST_CHECK(!peer1->supports_holepunch);
+	TEST_CHECK(!peer1->protocol_v2);
+	peer1->supports_utp = false;
+
+	TEST_EQUAL(p.add_peer(ep("10.0.0.2", 3000),
+				   peer_info::pex,
+				   pex_seed | pex_utp | pex_holepunch | pex_lt_v2,
+				   &st),
+		peer1);
+	TEST_CHECK(!peer1->maybe_upload_only);
+	TEST_CHECK(!peer1->supports_utp);
+	TEST_CHECK(peer1->supports_holepunch);
+	TEST_CHECK(!peer1->protocol_v2);
+
+	// a new peer takes all of them
+	torrent_peer* peer2 = p.add_peer(
+		ep("10.0.0.3", 3000), peer_info::pex, pex_seed | pex_utp | pex_holepunch | pex_lt_v2, &st);
+	TEST_CHECK(peer2);
+	TEST_CHECK(peer2->maybe_upload_only);
+	TEST_CHECK(peer2->supports_utp);
+	TEST_CHECK(peer2->supports_holepunch);
+	TEST_CHECK(peer2->protocol_v2);
+	TEST_EQUAL(p.num_peers(), 2);
+}
+
+// an incoming peer that never advertised its listen port may have it
+// filled in by any source
+TORRENT_TEST(pex_fills_in_unknown_port)
+{
+	torrent_state st = init_state();
+	mock_torrent t(&st);
+	st.allow_multiple_connections_per_ip = false;
+	peer_list p(allocator);
+	t.m_p = &p;
+
+	auto c = std::make_shared<mock_peer_connection>(&t, false, ep("10.0.0.1", 8080));
+	p.new_connection(*c, 0, &st);
+	TEST_EQUAL(p.num_peers(), 1);
+	torrent_peer* peer1 = c->peer_info_struct();
+	TEST_CHECK(!peer1->connectable);
+	TEST_EQUAL(peer1->port, 8080);
+
+	TEST_EQUAL(p.add_peer(ep("10.0.0.1", 4000), peer_info::pex, {}, &st), peer1);
+	TEST_CHECK(peer1->connectable);
+	TEST_EQUAL(peer1->port, 4000);
+	TEST_EQUAL(p.num_peers(), 1);
 }
 
 namespace {
