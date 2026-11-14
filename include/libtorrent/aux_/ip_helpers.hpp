@@ -26,6 +26,7 @@ namespace aux {
 	TORRENT_EXTRA_EXPORT bool is_link_local(address const& addr);
 	TORRENT_EXTRA_EXPORT bool is_teredo(address const& addr);
 	TORRENT_EXTRA_EXPORT bool is_ip_address(std::string const& host);
+	TORRENT_EXTRA_EXPORT bool in_cidr_list(address const& addr, string_view cidrs);
 
 	// whether two IPv6 addresses share a /56, the unit used to bound how many
 	// peer list entries one network can claim
