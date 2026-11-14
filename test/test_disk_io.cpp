@@ -1624,3 +1624,50 @@ TORRENT_TEST(pread_disk_io_collect_read_batch)
 		TEST_CHECK(pool.empty());
 	}
 }
+
+// a job's hint usually names the blocks the jobs batched behind it read, and
+// those are resident once the batched read returns
+TORRENT_TEST(pread_disk_io_batch_read_ahead)
+{
+	auto const run = [](std::vector<std::pair<int, lt::read_ahead_hint>> const& jobs) {
+		std::vector<lt::aux::pread_disk_job> storage(jobs.size());
+		lt::jobqueue_t batch;
+		for (std::size_t i = 0; i < jobs.size(); ++i)
+		{
+			set_read_job(storage[i],
+				{},
+				lt::piece_index_t(0),
+				jobs[i].first * lt::default_block_size,
+				lt::default_block_size);
+			std::get<lt::aux::job::read>(storage[i].action).read_ahead = jobs[i].second;
+			batch.push_back(&storage[i]);
+		}
+		auto const ret = lt::aux::batch_read_ahead(batch);
+		while (!batch.empty())
+			batch.pop_front();
+		return ret;
+	};
+
+	// blocks 0-3, the first job hinting 1-8: only 4-8 are left to advise
+	auto h = run({{0, {1, 8}}, {1, {}}, {2, {}}, {3, {}}});
+	TEST_EQUAL(h.first_block, 4);
+	TEST_EQUAL(h.num_blocks, 5);
+
+	// disjoint hints from several jobs are merged
+	h = run({{0, {1, 4}}, {1, {}}, {2, {5, 4}}});
+	TEST_EQUAL(h.first_block, 3);
+	TEST_EQUAL(h.num_blocks, 6);
+
+	// a hint entirely inside the batch is dropped
+	h = run({{0, {1, 2}}, {1, {}}, {2, {}}});
+	TEST_EQUAL(h.num_blocks, 0);
+
+	// a hint past the batch is kept as is
+	h = run({{0, {4, 4}}, {1, {}}});
+	TEST_EQUAL(h.first_block, 4);
+	TEST_EQUAL(h.num_blocks, 4);
+
+	// no hints
+	h = run({{0, {}}, {1, {}}});
+	TEST_EQUAL(h.num_blocks, 0);
+}

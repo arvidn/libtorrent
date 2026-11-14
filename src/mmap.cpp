@@ -29,6 +29,7 @@ see LICENSE file.
 #if TORRENT_HAVE_MMAP
 #include <sys/mman.h> // for mmap
 #include <sys/stat.h>
+#include <unistd.h> // for sysconf
 #include <fcntl.h> // for open
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
@@ -294,6 +295,45 @@ void file_mapping::dont_need(span<byte const> range)
 	TORRENT_UNUSED(start);
 	TORRENT_UNUSED(size);
 #endif
+}
+
+void file_mapping::will_need(span<byte const> range)
+{
+#if TORRENT_HAVE_MAP_VIEW_OF_FILE
+	// PrefetchVirtualMemory() requires Windows 8. It's resolved at runtime so
+	// builds targeting older versions still load, and the hint degrades to a
+	// no-op there. The struct mirrors WIN32_MEMORY_RANGE_ENTRY, which is not
+	// declared when _WIN32_WINNT targets an older version
+	struct memory_range_entry
+	{
+		PVOID VirtualAddress;
+		SIZE_T NumberOfBytes;
+	};
+	using PrefetchVirtualMemory_t = BOOL(WINAPI*)(HANDLE, ULONG_PTR, memory_range_entry*, ULONG);
+	static auto const PrefetchVirtualMemory =
+		aux::get_library_procedure<aux::kernel32, PrefetchVirtualMemory_t>("PrefetchVirtualMemory");
+	if (PrefetchVirtualMemory == nullptr)
+		return;
+
+	memory_range_entry entry{const_cast<byte*>(range.data()), static_cast<SIZE_T>(range.size())};
+	// best-effort, ignore errors
+	PrefetchVirtualMemory(GetCurrentProcess(), 1, &entry, 0);
+#else
+	auto* const start = const_cast<byte*>(range.data());
+	auto const size = static_cast<std::size_t>(range.size());
+
+#if TORRENT_USE_MADVISE && defined MADV_WILLNEED
+	// madvise() requires a page aligned address. The mapping is page aligned,
+	// so rounding down never leaves it. madvise() rounds the end up itself
+	static auto const page_size = static_cast<std::uintptr_t>(::sysconf(_SC_PAGESIZE));
+	auto const misalignment =
+		static_cast<std::size_t>(reinterpret_cast<std::uintptr_t>(start) % page_size);
+	::madvise(start - misalignment, size + misalignment, MADV_WILLNEED);
+#else
+	TORRENT_UNUSED(start);
+	TORRENT_UNUSED(size);
+#endif
+#endif // MAP_VIEW_OF_FILE
 }
 
 void file_mapping::page_out(span<byte const> range)

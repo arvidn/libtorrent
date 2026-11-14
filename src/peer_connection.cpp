@@ -19,6 +19,7 @@ see LICENSE file.
 #include <vector>
 #include <functional>
 #include <cstdint>
+#include <utility>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/logic/tribool.hpp>
@@ -4437,6 +4438,7 @@ namespace {
 		}
 
 		m_disconnecting = true;
+		m_read_ahead.leave_piece(m_counters);
 
 		if (ec)
 		{
@@ -5403,10 +5405,34 @@ namespace {
 					flags |= disk_interface::volatile_read;
 
 				auto const issue_time = clock_type::now();
-				m_disk_thread.async_read(t->storage(), r
-					, [conn = self(), r, issue_time](disk_buffer_holder buf, storage_error const& ec)
-					{ conn->wrap(&peer_connection::on_disk_read_complete, std::move(buf), ec, r, issue_time); }
-					, flags);
+				auto const [read_ahead, new_piece] =
+					m_settings.get_bool(settings_pack::enable_read_ahead)
+					? m_read_ahead.on_request(r.piece,
+						  r.start / block_size(),
+						  aux::ceil_div(t->piece_size_for_req(r.piece), block_size()),
+						  issue_time,
+						  m_counters)
+					: std::pair<read_ahead_hint, bool>{{}, false};
+
+				// let a disk backend that supports it get a head start on the
+				// piece transition instead of waiting its ordinary place in
+				// the disk job queue
+				if (read_ahead.num_blocks >= 8 && new_piece)
+					flags |= disk_interface::new_piece_hint;
+
+				m_disk_thread.async_read(
+					t->storage(),
+					r,
+					[conn = self(), r, issue_time](
+						disk_buffer_holder buf, storage_error const& ec) {
+						conn->wrap(&peer_connection::on_disk_read_complete,
+							std::move(buf),
+							ec,
+							r,
+							issue_time);
+					},
+					flags,
+					read_ahead);
 			}
 			m_last_sent_payload.set(m_connect, clock_type::now());
 		}

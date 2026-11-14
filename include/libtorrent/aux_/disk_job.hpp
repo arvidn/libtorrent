@@ -29,24 +29,25 @@ see LICENSE file.
 
 namespace libtorrent::aux {
 
-	// internal
-	enum class job_action_t : std::uint8_t
-	{
-		read
-		, write
-		, hash
-		, hash2
-		, move_storage
-		, release_files
-		, delete_files
-		, check_fastresume
-		, rename_file
-		, stop_torrent
-		, file_priority
-		, clear_piece
-		, partial_read
-		, num_job_ids
-	};
+// internal
+enum class job_action_t : std::uint8_t
+{
+	read,
+	write,
+	hash,
+	hash2,
+	move_storage,
+	release_files,
+	delete_files,
+	check_fastresume,
+	rename_file,
+	stop_torrent,
+	file_priority,
+	clear_piece,
+	partial_read,
+	willneed,
+	num_job_ids
+};
 
 namespace job {
 
@@ -102,6 +103,10 @@ namespace job {
 		// the range of blocks a hash jobs holds references
 		// to is always the last block in the piece.
 		std::int32_t offset;
+
+		// passed in
+		// blocks of the piece to speculatively read ahead
+		read_ahead_hint read_ahead;
 	};
 
 	// write jobs write one block (16 kiB) to a piece. These are always aligned
@@ -247,6 +252,18 @@ namespace job {
 		piece_index_t piece;
 	};
 
+	// a speculative posix_fadvise(WILLNEED) hint, carrying no data and
+	// expecting no reply; see disk_interface::new_piece_hint. Queued ahead
+	// of whatever else is pending, since it only pays off if it beats the
+	// read job it's hinting ahead of.
+	struct willneed
+	{
+		// the piece to advise into
+		piece_index_t piece;
+
+		// blocks of the piece to advise
+		read_ahead_hint read_ahead;
+	};
 }
 
 // state the disk subsystem keeps on a job while it's in flight. Kept
@@ -305,7 +322,8 @@ struct TORRENT_EXTRA_EXPORT disk_job : tailqueue_node<disk_job>
 		job::stop_torrent,
 		job::file_priority,
 		job::clear_piece,
-		job::partial_read>
+		job::partial_read,
+		job::willneed>
 		action;
 
 	// the type of job this is

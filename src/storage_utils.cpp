@@ -14,7 +14,9 @@ see LICENSE file.
 
 #include "libtorrent/aux_/storage_utils.hpp"
 #include "libtorrent/file_storage.hpp"
+#include "libtorrent/piece_block.hpp" // for torrent_byte_offset
 #include "libtorrent/aux_/alloca.hpp"
+#include "libtorrent/aux_/ceil_div.hpp"
 #include "libtorrent/aux_/path.hpp"
 #include "libtorrent/session.hpp" // for session::delete_files
 #include "libtorrent/aux_/stat_cache.hpp"
@@ -30,6 +32,7 @@ see LICENSE file.
 
 #include <set>
 #include <algorithm>
+#include <limits>
 
 namespace libtorrent { namespace aux {
 
@@ -527,6 +530,35 @@ void clear_missing_pieces(filenames const& fs,
 
 }
 
+std::optional<file_slice> get_read_ahead_range(file_storage const& fs,
+	aux::vector<download_priority_t, file_index_t> const& file_priority,
+	std::function<bool(file_index_t)> const& use_partfile,
+	piece_index_t const piece,
+	read_ahead_hint const read_ahead)
+{
+	TORRENT_ASSERT(read_ahead.num_blocks > 0);
+	std::int64_t const torrent_offset =
+		torrent_byte_offset(piece, read_ahead.first_block * default_block_size, fs.piece_length());
+	if (torrent_offset >= fs.total_size())
+		return std::nullopt;
+	file_index_t const file_index = fs.file_index_at_offset(torrent_offset);
+
+	// pad files have no real content to advise on, and files served from
+	// the part file (skipped, zero-priority files) have no corresponding
+	// on-disk data at this location either
+	if (fs.pad_file_at(file_index))
+		return std::nullopt;
+	if (file_index < file_priority.end_index() && file_priority[file_index] == dont_download
+		&& use_partfile(file_index))
+		return std::nullopt;
+
+	std::int64_t const file_offset = torrent_offset - fs.file_offset(file_index);
+	std::int64_t const file_bytes_left = fs.file_size(file_index) - file_offset;
+	std::int64_t const len = std::min<std::int64_t>(
+		std::int64_t(read_ahead.num_blocks) * default_block_size, file_bytes_left);
+	return file_slice{file_index, file_offset, len};
+}
+
 typed_bitfield<piece_index_t> check_pieces(filenames const& fs,
 	aux::vector<download_priority_t, file_index_t> const& file_priority,
 	stat_cache& stat,
@@ -899,4 +931,26 @@ typed_bitfield<piece_index_t> check_pieces(filenames const& fs,
 			se.operation = operation_t::file_rename;
 	}
 
+	read_ahead_hint batch_read_ahead(jobqueue_t const& batch)
+	{
+		TORRENT_ASSERT(!batch.empty());
+		int hint_first = std::numeric_limits<int>::max();
+		int hint_end = 0;
+		int batch_end = 0;
+		for (auto it = batch.iterate(); it.get(); it.next())
+		{
+			auto const& a = std::get<job::read>(it.get()->action);
+			batch_end = a.offset + int(a.buffer_size);
+			if (a.read_ahead.num_blocks <= 0)
+				continue;
+			hint_first = std::min(hint_first, a.read_ahead.first_block);
+			hint_end = std::max(hint_end, a.read_ahead.first_block + a.read_ahead.num_blocks);
+		}
+		// the batch is contiguous and in ascending offset order, so the last
+		// job ends it
+		hint_first = std::max(hint_first, ceil_div(batch_end, default_block_size));
+		if (hint_end <= hint_first)
+			return {};
+		return {hint_first, hint_end - hint_first};
+	}
 }}

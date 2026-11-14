@@ -97,6 +97,9 @@ namespace {
 			j.handler(std::move(j.buf), m_job.error);
 		}
 
+		// no reply expected; see job::willneed
+		void operator()(job::willneed&) const {}
+
 	private:
 		disk_job& m_job;
 	};

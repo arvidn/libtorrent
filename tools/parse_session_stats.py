@@ -1063,6 +1063,38 @@ def main(input_file: Path, num_threads: int, output_dir: Path) -> None:
             ["disk.num_blocks_written"],
             {"category": "disk", "cumulative": 1, "normalize": "disk.num_write_ops"},
         ),
+        (
+            "read ahead hot rate",
+            "num",
+            "",
+            "block requests for data already handed to the disk backend "
+            "as a read-ahead hint (hot) versus data that wasn't (cold); "
+            "the hot share of the stack is how often read-ahead paid off",
+            ["disk.num_read_ahead_hot_blocks", "disk.num_read_ahead_cold_blocks"],
+            {"category": "disk", "type": stacked, "cumulative": 1},
+        ),
+        (
+            "read ahead issued",
+            "blocks/s",
+            "",
+            "rate of blocks speculatively issued for read-ahead",
+            ["disk.num_read_ahead_issued_blocks"],
+            {"category": "disk", "cumulative": 1},
+        ),
+        (
+            "read ahead waste",
+            "% of read-ahead blocks wasted",
+            "%",
+            "of the blocks speculatively issued for read-ahead, the "
+            "fraction never subsequently requested before being evicted",
+            ["disk.num_read_ahead_wasted_blocks"],
+            {
+                "category": "disk",
+                "cumulative": 1,
+                "normalize": "disk.num_read_ahead_issued_blocks",
+                "scale": 100,
+            },
+        ),
     ]
 
     print("generating graphs")

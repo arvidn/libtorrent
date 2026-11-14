@@ -70,11 +70,10 @@ namespace {
 #if TORRENT_USE_ASSERTS
 	bool valid_flags(disk_job_flags_t const flags)
 	{
-		return (flags & ~(disk_interface::force_copy
-				| disk_interface::sequential_access
-				| disk_interface::volatile_read
-				| disk_interface::v1_hash
-				| disk_interface::flush_piece))
+		return (flags
+				   & ~(disk_interface::force_copy | disk_interface::sequential_access
+					   | disk_interface::volatile_read | disk_interface::v1_hash
+					   | disk_interface::flush_piece | disk_interface::new_piece_hint))
 			== disk_job_flags_t{};
 	}
 #endif
@@ -97,9 +96,11 @@ struct TORRENT_EXTRA_EXPORT mmap_disk_io final
 
 	void abort(bool wait) override;
 
-	void async_read(storage_index_t storage, peer_request const& r
-		, std::function<void(disk_buffer_holder, storage_error const&)> handler
-		, disk_job_flags_t flags = {}) override;
+	void async_read(storage_index_t storage,
+		peer_request const& r,
+		std::function<void(disk_buffer_holder, storage_error const&)> handler,
+		disk_job_flags_t flags = {},
+		read_ahead_hint read_ahead = {}) override;
 	bool async_write(storage_index_t storage, peer_request const& r
 		, char const* buf, std::shared_ptr<disk_observer> o
 		, std::function<void(storage_error const&)> handler
@@ -153,6 +154,7 @@ struct TORRENT_EXTRA_EXPORT mmap_disk_io final
 	status_t do_job(aux::job::stop_torrent& a, aux::mmap_disk_job* j);
 	status_t do_job(aux::job::file_priority& a, aux::mmap_disk_job* j);
 	status_t do_job(aux::job::clear_piece& a, aux::mmap_disk_job* j);
+	status_t do_job(aux::job::willneed& a, aux::mmap_disk_job* j);
 
 private:
 
@@ -439,8 +441,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 		span<char> const b = {a.buf.data() + a.buffer_offset, a.buffer_size};
 
-		int const ret = j->storage->read(m_settings, b
-			, a.piece, a.offset, file_mode_for_job(j), j->flags, j->error);
+		int const ret = j->storage->read(
+			m_settings, b, a.piece, a.offset, file_mode_for_job(j), j->flags, {}, j->error);
 
 		TORRENT_ASSERT(ret >= 0 || j->error.ec);
 		TORRENT_UNUSED(ret);
@@ -474,8 +476,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		aux::open_mode_t const file_mode = file_mode_for_job(j);
 		span<char> const b = {a.buf.data(), a.buffer_size};
 
-		int const ret = j->storage->read(m_settings, b
-			, a.piece, a.offset, file_mode, j->flags, j->error);
+		int const ret = j->storage->read(
+			m_settings, b, a.piece, a.offset, file_mode, j->flags, a.read_ahead, j->error);
 
 		TORRENT_ASSERT(ret >= 0 || j->error.ec);
 		TORRENT_UNUSED(ret);
@@ -559,9 +561,11 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			? disk_status::fatal_disk_error : status_t{};
 	}
 
-	void mmap_disk_io::async_read(storage_index_t storage, peer_request const& r
-		, std::function<void(disk_buffer_holder, storage_error const&)> handler
-		, disk_job_flags_t const flags)
+	void mmap_disk_io::async_read(storage_index_t storage,
+		peer_request const& r,
+		std::function<void(disk_buffer_holder, storage_error const&)> handler,
+		disk_job_flags_t const flags,
+		read_ahead_hint const read_ahead)
 	{
 		TORRENT_ASSERT(valid_flags(flags));
 		TORRENT_ASSERT(r.length <= default_block_size);
@@ -676,15 +680,14 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 			}
 		}
 
-		aux::mmap_disk_job* j = m_job_pool.allocate_job<aux::job::read>(
-			flags,
+		aux::mmap_disk_job* j = m_job_pool.allocate_job<aux::job::read>(flags,
 			m_torrents[storage]->shared_from_this(),
 			std::move(handler),
 			disk_buffer_holder{},
 			std::uint16_t(r.length), // buffer_size
 			r.piece,
-			r.start // offset
-		);
+			r.start, // offset
+			read_ahead);
 		add_job(j);
 	}
 
@@ -1245,6 +1248,13 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		// completed since this is a fence job; drop any precomputed block
 		// hashes for the cleared piece so a re-download starts fresh
 		j->storage->drop_precomputed_v2(a.piece);
+		return {};
+	}
+
+	status_t mmap_disk_io::do_job(aux::job::willneed&, aux::mmap_disk_job*)
+	{
+		// mmap_disk_io never constructs a willneed job
+		TORRENT_ASSERT_FAIL();
 		return {};
 	}
 
