@@ -137,15 +137,14 @@ std::pair<read_ahead_hint, bool> read_ahead_predictor::on_request(piece_index_t 
 
 	// refill once the advised runway drops to half the window, not once
 	// it's exhausted: a hint with no lead time left stalls the pipeline at
-	// every window boundary. the outstanding half is re-advised each time.
-	// judged against the clamped window: at the end of the piece the
-	// runway can only shrink, and an unclamped window would re-advise the
-	// tail on every remaining request
+	// every window boundary. judged against the clamped window: at the end
+	// of the piece the runway can only shrink, and an unclamped window would
+	// re-advise the tail on every remaining request
 	if (ctx.advised_until - block_index > clamped / 2)
 		return {{}, new_piece};
 
 	// only the blocks past the outstanding runway, so the hint never
-	// overlaps one already issued
+	// overlaps one already issued for this visit to the piece
 	int const first = std::max(ctx.advised_until, block_index) + 1;
 	ctx.advised_until = block_index + clamped;
 	int const count = ctx.advised_until - first + 1;
