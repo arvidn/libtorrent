@@ -156,7 +156,8 @@ namespace {
 		SET(peer_fingerprint, "-LT2120-", nullptr),
 		SET(dht_bootstrap_nodes, "dht.libtorrent.org:25401", &session_impl::update_dht_bootstrap_nodes),
 		SET(natpmp_gateway, "", nullptr),
-		SET(webtorrent_stun_server, "stun.l.google.com:19302", nullptr)
+		SET(webtorrent_stun_server, "stun.l.google.com:19302", nullptr),
+		SET(proxy_trusted_cidrs, "127.0.0.0/8,::1/128", nullptr)
 	}});
 
 	CONSTEXPR_SETTINGS
@@ -252,6 +253,7 @@ namespace {
 		SET(disable_tracker_connection_reuse, false, nullptr),
 		SET(enable_smart_ban, true, nullptr),
 		SET(enforce_torrent_trust_domain, true, nullptr),
+		SET(proxy_trusted_tls_origination, false, nullptr),
 	}});
 
 	CONSTEXPR_SETTINGS

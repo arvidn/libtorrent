@@ -105,6 +105,8 @@ namespace libtorrent::aux {
 		// the front of the pending queue if we are at capacity.
 		static constexpr tracker_request_flags_t high_priority = 2_bit;
 
+		static constexpr tracker_request_flags_t ssl_torrent = 3_bit;
+
 		std::string url;
 		std::string trackerid;
 #if TORRENT_ABI_VERSION == 1

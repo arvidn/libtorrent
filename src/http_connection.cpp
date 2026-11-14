@@ -161,7 +161,7 @@ void http_connection::get(std::string const& url,
 		return;
 	}
 
-	bool const ssl = (protocol == "https");
+	bool ssl = (protocol == "https");
 
 #if TORRENT_USE_I2P
 	// Keep .i2p requests on SAM, not the configured HTTP proxy.
@@ -177,13 +177,19 @@ void http_connection::get(std::string const& url,
 
 	std::stringstream request;
 
-	// exclude ssl here, because SSL assumes CONNECT support in the
-	// proxy and is handled at the lower layer
-	if (ps && (ps->type == settings_pack::http || ps->type == settings_pack::http_pw) && !ssl
+	bool const http_proxy = ps && (ps->type == settings_pack::http
+		|| ps->type == settings_pack::http_pw)
 #if TORRENT_USE_I2P
 		&& !i2p
 #endif
-	)
+		;
+
+	bool const tls_origination = http_proxy && ssl && ps->tls_origination;
+	if (tls_origination) ssl = false;
+
+	// exclude ssl here, because SSL assumes CONNECT support in the
+	// proxy and is handled at the lower layer
+	if (http_proxy && !ssl)
 	{
 		// if we're using an http proxy and not an ssl
 		// connection, just do a regular http proxy request
@@ -226,7 +232,7 @@ void http_connection::get(std::string const& url,
 #if TORRENT_USE_I2P
 		, i2p_conn
 #endif
-		);
+		, tls_origination);
 }
 
 namespace {
@@ -239,7 +245,9 @@ namespace {
 		return lhs.type == rhs.type && lhs.port == rhs.port && lhs.hostname == rhs.hostname
 			&& lhs.username == rhs.username && lhs.password == rhs.password
 			&& lhs.proxy_hostnames == rhs.proxy_hostnames
-			&& lhs.send_host_in_connect == rhs.send_host_in_connect;
+			&& lhs.send_host_in_connect == rhs.send_host_in_connect
+			&& lhs.tls_origination == rhs.tls_origination
+			&& lhs.trusted_cidrs == rhs.trusted_cidrs;
 	}
 }
 
@@ -251,7 +259,7 @@ void http_connection::start(std::string const& hostname, int port
 #if TORRENT_USE_I2P
 	, i2p_connection* i2p_conn
 #endif
-	)
+	, bool const tls_origination)
 {
 	m_redirects = handle_redirects;
 	m_resolve_flags = resolve_flags;
@@ -288,7 +296,8 @@ void http_connection::start(std::string const& hostname, int port
 	// set again only when the next request completes, so a failed reused
 	// request won't be retried on a stale socket.
 	bool const reuse_connection = m_sock && m_sock->is_open() && m_reusable && proxy_matches
-		&& m_hostname == hostname && m_port == port && m_ssl == ssl && m_bind_addr == bind_addr;
+		&& m_hostname == hostname && m_port == port && m_ssl == ssl && m_bind_addr == bind_addr
+		&& m_tls_origination == tls_origination;
 	m_reusable = false;
 
 	if (reuse_connection)
@@ -307,6 +316,7 @@ void http_connection::start(std::string const& hostname, int port
 	{
 		m_reused_socket = false;
 		m_ssl = ssl;
+		m_tls_origination = tls_origination;
 		m_bind_addr = bind_addr;
 		error_code err;
 		if (m_sock && m_sock->is_open()) m_sock->close(err);
@@ -580,6 +590,20 @@ void http_connection::on_resolve(error_code const& e
 		callback(error_code(boost::system::errc::host_unreachable, generic_category()));
 		close();
 		return;
+	}
+
+	if (m_tls_origination)
+	{
+		auto const new_end = std::remove_if(m_endpoints.begin(), m_endpoints.end()
+			, [&](tcp::endpoint const& ep) { return !aux::in_cidr_list(ep.address(), m_proxy.trusted_cidrs); });
+
+		m_endpoints.erase(new_end, m_endpoints.end());
+		if (m_endpoints.empty())
+		{
+			callback(error_code(boost::system::errc::permission_denied, generic_category()));
+			close();
+			return;
+		}
 	}
 
 	aux::random_shuffle(m_endpoints);
