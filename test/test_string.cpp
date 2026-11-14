@@ -546,6 +546,11 @@ TORRENT_TEST(i2p_url)
 	TEST_CHECK(!is_i2p_url("http://a.I2P/a"));
 	TEST_CHECK(!is_i2p_url("http://c.i3p"));
 	TEST_CHECK(!is_i2p_url("http://i2p/foo bar"));
+	TEST_CHECK(!is_i2p_url("http://[::ffff:1.2.3.4%.i2p]/a"));
+	TEST_CHECK(!is_i2p_url("http://[fe80::1%eth0.i2p]/a"));
+	TEST_CHECK(!is_i2p_url("http://[::1%25eth0.i2p]:8080/a"));
+	TEST_CHECK(!is_i2p_url("http://[::.i2p]/a"));
+	TEST_CHECK(is_i2p_url("http://user:pass@a.i2p:8080/a"));
 }
 #endif
 
