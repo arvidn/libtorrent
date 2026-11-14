@@ -416,6 +416,26 @@ TORRENT_TEST(mutable_item_limit)
 	TEST_EQUAL(cnt.mutable_data, 42);
 }
 
+TORRENT_TEST(item_limit_zero)
+{
+	// with no room for items, a put must not evict from an empty table
+	auto sett = test_settings();
+	sett.set_int(settings_pack::dht_max_dht_items, 0);
+	std::unique_ptr<dht_storage_interface> s(create_default_dht_storage(sett));
+
+	public_key pk;
+	signature sig;
+	for (int i = 0; i < 2; ++i)
+	{
+		s->put_immutable_item(rand_hash(), {"123", 3}, rand_v4());
+		s->put_mutable_item(
+			rand_hash(), {"123", 3}, sig, sequence_number(1), pk, {"salt", 4}, rand_v4());
+	}
+	dht_storage_counters cnt = s->counters();
+	TEST_EQUAL(cnt.immutable_data, 1);
+	TEST_EQUAL(cnt.mutable_data, 1);
+}
+
 TORRENT_TEST(get_peers_dist)
 {
 	// test that get_peers returns reasonably disjoint sets of peers with each call

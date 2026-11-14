@@ -346,6 +346,16 @@ TORRENT_TEST(upnp_max_mappings)
 
 		TEST_CHECK(mapping != port_mapping_t{-1});
 	}
+
+	auto const mapping =
+		upnp_handler->add_mapping(portmap_protocol::tcp, 550, ep("127.0.0.1", 550), "");
+	TEST_EQUAL(mapping, port_mapping_t{-1});
+
+	// The precondition assert fires for the negative mapping in assert builds.
+#if !TORRENT_USE_ASSERTS
+	upnp_handler->delete_mapping(mapping);
+#endif
+	upnp_handler->delete_mapping(port_mapping_t{100});
 }
 
 TORRENT_TEST(upnp_content_type)
