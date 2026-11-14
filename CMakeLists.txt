@@ -863,6 +863,11 @@ else()
 	target_compile_definitions(torrent-rasterbar PUBLIC TORRENT_DISABLE_DHT)
 endif()
 
+feature_option(SYSTEM_LIBDATACHANNEL "use system LibDataChannel" OFF)
+if (SYSTEM_LIBDATACHANNEL)
+	find_package(LibDataChannel 0.24.1 REQUIRED)
+endif()
+
 if (webtorrent)
 	option(NO_WEBSOCKET "Disable WebSocket support in libdatachannel" ON)
 	option(NO_MEDIA "Disable media transport support in libdatachannel" ON)
@@ -872,7 +877,9 @@ if (webtorrent)
 		option(USE_GNUTLS "Use GnuTLS instead of OpenSSL for libdatachannel" OFF)
 	endif()
 
-    set(LIBDATACHANNEL_STATIC ON CACHE BOOL "" FORCE)
+	if (NOT SYSTEM_LIBDATACHANNEL)
+		set(LIBDATACHANNEL_STATIC ON CACHE BOOL "" FORCE)
+	endif()
     set(LIBDATACHANNEL_EXPORT OFF CACHE BOOL "" FORCE)
     set(LIBDATACHANNEL_INSTALL OFF CACHE BOOL "" FORCE)
     set(PLOG_INSTALL OFF CACHE BOOL "" FORCE)
@@ -880,14 +887,16 @@ if (webtorrent)
     set(NO_EXAMPLES ON CACHE BOOL "" FORCE)
     set(NO_TESTS ON CACHE BOOL "" FORCE)
 
-	add_subdirectory(deps/libdatachannel EXCLUDE_FROM_ALL)
-	set_target_properties(datachannel-static PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    	if (NOT SYSTEM_LIBDATACHANNEL)
+		add_subdirectory(deps/libdatachannel EXCLUDE_FROM_ALL)
+		set_target_properties(datachannel-static PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-	if(CMAKE_CXX_COMPILER_ID MATCHES Clang|GNU)
-		target_compile_options(datachannel-static PRIVATE
-			-Wno-pedantic
-			-Wno-unused-parameter
-			-Wno-unused-variable)
+		if(CMAKE_CXX_COMPILER_ID MATCHES Clang|GNU)
+			target_compile_options(datachannel-static PRIVATE
+				-Wno-pedantic
+				-Wno-unused-parameter
+				-Wno-unused-variable)
+		endif()
 	endif()
 endif()
 
@@ -978,17 +987,27 @@ include(CheckCXXCompilerFlag)
 add_subdirectory(bindings)
 
 if(webtorrent)
-    set(USRSCTP_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/libdatachannel/deps/usrsctp/usrsctplib")
-    target_include_directories(datachannel-static PRIVATE "${USRSCTP_INCLUDE_DIR}")
-    target_include_directories(torrent-rasterbar PRIVATE
-        "${USRSCTP_INCLUDE_DIR}"
-        deps/libdatachannel/include
-        deps/libdatachannel/include/rtc
-    )
+    if (NOT SYSTEM_LIBDATACHANNEL)
+	    set(USRSCTP_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/libdatachannel/deps/usrsctp/usrsctplib")
+	    target_include_directories(datachannel-static PRIVATE "${USRSCTP_INCLUDE_DIR}")
+	    target_include_directories(torrent-rasterbar PRIVATE
+	        "${USRSCTP_INCLUDE_DIR}"
+	        deps/libdatachannel/include
+	        deps/libdatachannel/include/rtc
+	    )
+    endif()
     if (BUILD_SHARED_LIBS)
-        target_link_libraries(torrent-rasterbar PRIVATE datachannel-static)
+	if (NOT SYSTEM_LIBDATACHANNEL)
+        	target_link_libraries(torrent-rasterbar PRIVATE datachannel-static)
+	else()
+		target_link_libraries(torrent-rasterbar PRIVATE LibDataChannel::LibDataChannel)
+	endif()
     else()
-        target_link_libraries(torrent-rasterbar PUBLIC datachannel-static)
+	if (NOT SYSTEMLIBDATACHANNEL)
+        	target_link_libraries(torrent-rasterbar PUBLIC datachannel-static)
+	else()
+		target_link_libraries(torrent-rasterbar PUBLIC LibDataChannel::LibDataChannel)
+	endif()
     endif()
     target_compile_definitions(torrent-rasterbar PRIVATE BOOST_JSON_HEADER_ONLY)
 endif()
@@ -999,14 +1018,18 @@ endif()
 
 set(LIBTORRENT_EXPORT_TARGETS torrent-rasterbar)
 if (webtorrent AND NOT BUILD_SHARED_LIBS)
-    # these are only linked PUBLIC (and therefore need to be installed and
-    # part of the export set) when torrent-rasterbar itself is static; for a
-    # shared build they're linked PRIVATE and are already embedded in
-    # libtorrent-rasterbar.so, so consumers never need them
-    list(APPEND LIBTORRENT_EXPORT_TARGETS datachannel-static juice-static plog usrsctp)
+    if (NOT SYSTEM_LIBDATACHANNEL)
+    	# these are only linked PUBLIC (and therefore need to be installed and
+    	# part of the export set) when torrent-rasterbar itself is static; for a
+    	# shared build they're linked PRIVATE and are already embedded in
+    	# libtorrent-rasterbar.so, so consumers never need them
+    	list(APPEND LIBTORRENT_EXPORT_TARGETS datachannel-static juice-static plog usrsctp)
 	if (TARGET usrsctp)
-        set_target_properties(usrsctp PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "")
-    endif()
+        	set_target_properties(usrsctp PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "")
+    	endif()
+     else()
+	     list(APPEND LIBTORRENT_EXPORT_TARGETS LibDataChannel::LibDataChannel)
+     endif()
 endif()
 
 install(TARGETS ${LIBTORRENT_EXPORT_TARGETS}
