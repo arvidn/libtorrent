@@ -722,8 +722,11 @@ void pread_disk_io::async_read(storage_index_t storage,
 		return;
 	}
 
-	bool const issued_hint_job =
-		read_ahead.num_blocks > 0 && bool(flags & disk_interface::new_piece_hint);
+	// a hint job parked behind a fence is reposted in order, just ahead of
+	// its read, so it would gain nothing. Leave the hint on the read instead.
+	// A fence is only raised on this thread, so has_fence() can't miss one
+	bool const issued_hint_job = read_ahead.num_blocks > 0
+		&& bool(flags & disk_interface::new_piece_hint) && !m_torrents[storage]->has_fence();
 	if (issued_hint_job)
 	{
 		// gives the kernel a head start on the piece transition without
