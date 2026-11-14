@@ -790,6 +790,12 @@ file_handle::file_handle(string_view name, std::int64_t const size
 		::posix_fadvise(m_fd, 0, 0, POSIX_FADV_SEQUENTIAL);
 	}
 #endif
+
+#if defined __APPLE__ && defined F_RDAHEAD
+	// read-ahead is on by default, turn it off for files accessed randomly
+	if (!(mode & aux::open_mode::sequential_access))
+		::fcntl(m_fd, F_RDAHEAD, 0);
+#endif
 }
 
 void file_handle::set_size(std::int64_t const size)

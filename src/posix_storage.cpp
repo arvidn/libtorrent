@@ -22,6 +22,10 @@ see LICENSE file.
 
 #include <functional>
 
+#ifndef TORRENT_WINDOWS
+#include <fcntl.h> // for F_RDAHEAD
+#endif
+
 #if defined TORRENT_SIMULATE_SLOW_READ || defined TORRENT_SIMULATE_SLOW_WRITE
 #include <thread>
 #endif
@@ -505,6 +509,12 @@ posix_storage::~posix_storage()
 				return file_pointer{};
 			}
 		}
+
+#if defined __APPLE__ && defined F_RDAHEAD
+		// read-ahead is on by default, turn it off for files accessed randomly
+		if (!(mode & open_mode::sequential_access))
+			::fcntl(::fileno(f), F_RDAHEAD, 0);
+#endif
 
 		return file_pointer{f};
 	}
