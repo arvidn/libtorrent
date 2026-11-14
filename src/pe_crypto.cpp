@@ -294,13 +294,16 @@ namespace libtorrent::aux {
 
 		int to_process = m_send_barriers.front().next;
 
+		// only needed when there's a barrier ahead, but bufs may refer to it for
+		// the rest of this function, so it must live at function scope
+		// alloca(0) is implementation-defined
+		std::ptrdiff_t const abufs_size = (to_process != INT_MAX) ? iovec.size() : 1;
+		TORRENT_ALLOCA(abufs, span<char>, abufs_size);
+
 		span<span<char>> bufs;
-		bool need_destruct = false;
 		if (to_process != INT_MAX)
 		{
-			TORRENT_ALLOCA(abufs, span<char>, iovec.size());
 			bufs = abufs;
-			need_destruct = true;
 			int num_bufs = 0;
 			for (int i = 0; to_process > 0 && i < iovec.size(); ++i)
 			{
@@ -308,13 +311,12 @@ namespace libtorrent::aux {
 				int const size = int(iovec[i].size());
 				if (to_process < size)
 				{
-					new (&bufs[i]) span<char>(
-						iovec[i].data(), to_process);
+					bufs[i] = span<char>(iovec[i].data(), to_process);
 					to_process = 0;
 				}
 				else
 				{
-					new (&bufs[i]) span<char>(iovec[i]);
+					bufs[i] = iovec[i];
 					to_process -= size;
 				}
 			}
@@ -367,11 +369,6 @@ namespace libtorrent::aux {
 			TORRENT_ASSERT(overhead + payload == next_barrier);
 		}
 #endif
-		if (need_destruct)
-		{
-			for (auto buf : bufs)
-				buf.~span<char>();
-		}
 		return std::make_tuple(next_barrier, out_iovec);
 	}
 

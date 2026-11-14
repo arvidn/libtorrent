@@ -12,6 +12,7 @@ see LICENSE file.
 
 #include <algorithm>
 #include <array>
+#include <climits>
 #include <cstdint>
 #include <cstring>
 #include <iostream>
@@ -263,6 +264,47 @@ TORRENT_TEST(rc4_rfc6229_vectors)
 			TEST_CHECK(buf == expected_4096);
 		}
 	}
+}
+
+// the whole send buffer is passed to encrypt(), which may be a lot more than
+// what's left to the next barrier. Only the bytes ahead of the barrier may be
+// encrypted
+TORRENT_TEST(send_barrier_many_buffers)
+{
+	using namespace lt;
+
+	sha1_hash const key = hasher("test1_key", 8).final();
+	auto rc4 = std::make_shared<aux::rc4_handler>();
+	rc4->set_incoming_key(key);
+	rc4->set_outgoing_key(key);
+
+	// encrypt the next 68 bytes, then go back to plaintext. This is what an
+	// outgoing connection does to send its handshake
+	aux::encryption_handler enc;
+	TEST_CHECK(enc.switch_send_crypto(rc4, 0));
+	TEST_CHECK(!enc.switch_send_crypto(nullptr, 68));
+	TEST_CHECK(enc.is_send_plaintext());
+
+	// more buffers than TORRENT_ALLOCA() keeps on the stack
+	int const num_bufs = 1000;
+	int const buf_size = 17;
+	std::vector<char> data(std::size_t(num_bufs * buf_size), 'a');
+	std::vector<span<char>> iovec;
+	for (int i = 0; i < num_bufs; ++i)
+		iovec.emplace_back(data.data() + i * buf_size, buf_size);
+
+	int next_barrier;
+	span<span<char const>> out_iovec;
+	std::tie(next_barrier, out_iovec) = enc.encrypt(iovec);
+	TEST_EQUAL(next_barrier, INT_MAX);
+	TEST_CHECK(out_iovec.empty());
+
+	TEST_CHECK(std::count(data.begin(), data.begin() + 68, 'a') < 68);
+	TEST_EQUAL(std::count(data.begin() + 68, data.end(), 'a'), int(data.size()) - 68);
+
+	span<char> encrypted(data.data(), 68);
+	rc4->decrypt(encrypted);
+	TEST_EQUAL(std::count(data.begin(), data.end(), 'a'), int(data.size()));
 }
 
 #else

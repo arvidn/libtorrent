@@ -23,6 +23,7 @@ see LICENSE file.
 #include "simulator/http_proxy.hpp"
 #include "settings.hpp"
 #include "libtorrent/create_torrent.hpp"
+#include "libtorrent/load_torrent.hpp"
 #include "simulator/simulator.hpp"
 #include "setup_swarm.hpp"
 #include "utils.hpp"
@@ -1162,3 +1163,122 @@ TORRENT_TEST(ssrf_mitigation_redirect)
 	TEST_CHECK(test_ssrf("http://192.168.1.14:8080/1", "http://192.168.1.13:8080/1?query_string=1", false));
 	TEST_CHECK(!test_ssrf("http://192.168.1.14:8080/1", "http://local-network.com:8080/1?query_string=1", true));
 }
+
+#if TORRENT_USE_I2P
+namespace {
+
+// tracker and web seed are embedded in the .torrent file itself
+lt::add_torrent_params with_url_seed(char const* tracker)
+{
+	std::vector<lt::create_file_entry> files;
+	files.emplace_back("file1", 1);
+	lt::create_torrent ct(std::move(files));
+	ct.add_tracker(tracker);
+	ct.add_url_seed("http://2.2.2.2:8080/");
+	ct.set_hash(lt::piece_index_t(0), lt::sha1_hash::max());
+	lt::add_torrent_params ret = lt::load_torrent_buffer(lt::bencode(ct.generate()));
+	ret.flags &= ~lt::torrent_flags::auto_managed;
+	ret.flags &= ~lt::torrent_flags::paused;
+	ret.save_path = ".";
+	return ret;
+}
+
+// returns whether the web seed at 2.2.2.2 received a request
+bool test_i2p_web_seed(lt::add_torrent_params params,
+	bool const allow_i2p_mixed,
+	bool const add_url_seed_later = false)
+{
+	bool requested = false;
+	run_test(
+		[&](lt::session& ses) {
+			settings_pack pack;
+			pack.set_bool(settings_pack::allow_i2p_mixed, allow_i2p_mixed);
+			ses.apply_settings(pack);
+			ses.async_add_torrent(params);
+		},
+		[&](lt::session&, lt::alert const* a) {
+			if (!add_url_seed_later)
+				return;
+			if (auto const* at = lt::alert_cast<lt::add_torrent_alert>(a))
+				at->handle.add_url_seed("http://2.2.2.2:8080/");
+		},
+		[&](sim::simulation& sim, lt::session&) {
+			sim::asio::io_context web_server(sim, make_address_v4("2.2.2.2"));
+			sim::http_server http(web_server, 8080);
+			http.register_handler(
+				"/file1", [&](std::string, std::string, std::map<std::string, std::string>&) {
+					requested = true;
+					return sim::send_response(404, "Not Found", 0);
+				});
+			sim.run();
+		},
+		lt::seconds(15));
+	return requested;
+}
+
+lt::add_torrent_params i2p_web_seed_torrent()
+{
+	std::vector<lt::create_file_entry> files;
+	files.emplace_back("file1", 1);
+	return ::create_torrent(std::move(files));
+}
+
+} // anonymous namespace
+
+TORRENT_TEST(web_seed_in_torrent_regular)
+{
+	auto params = with_url_seed("http://tracker.com:8080/announce");
+	TEST_CHECK(test_i2p_web_seed(params, false));
+}
+
+TORRENT_TEST(web_seed_in_torrent_i2p_tracker)
+{
+	auto params = with_url_seed("http://tracker.i2p/announce");
+	TEST_CHECK(params.flags & lt::torrent_flags::i2p_torrent);
+	TEST_CHECK(!test_i2p_web_seed(params, false));
+}
+
+TORRENT_TEST(web_seed_in_torrent_i2p_tracker_mixed)
+{
+	auto params = with_url_seed("http://tracker.i2p/announce");
+	TEST_CHECK(test_i2p_web_seed(params, true));
+}
+
+TORRENT_TEST(web_seed_in_torrent_i2p_flag)
+{
+	// the i2p_torrent flag alone, the torrent file has a regular tracker
+	auto params = with_url_seed("http://tracker.com:8080/announce");
+	TEST_CHECK(!(params.flags & lt::torrent_flags::i2p_torrent));
+	params.flags |= lt::torrent_flags::i2p_torrent;
+	TEST_CHECK(!test_i2p_web_seed(params, false));
+}
+
+TORRENT_TEST(web_seed_in_atp_i2p_flag)
+{
+	auto params = i2p_web_seed_torrent();
+	params.url_seeds.push_back("http://2.2.2.2:8080/");
+	params.flags |= lt::torrent_flags::i2p_torrent;
+	TEST_CHECK(!test_i2p_web_seed(params, false));
+}
+
+TORRENT_TEST(web_seed_in_atp_i2p_flag_mixed)
+{
+	auto params = i2p_web_seed_torrent();
+	params.url_seeds.push_back("http://2.2.2.2:8080/");
+	params.flags |= lt::torrent_flags::i2p_torrent;
+	TEST_CHECK(test_i2p_web_seed(params, true));
+}
+
+TORRENT_TEST(web_seed_added_later_i2p_flag)
+{
+	auto params = i2p_web_seed_torrent();
+	params.flags |= lt::torrent_flags::i2p_torrent;
+	TEST_CHECK(!test_i2p_web_seed(params, false, true));
+}
+
+TORRENT_TEST(web_seed_added_later_regular)
+{
+	auto params = i2p_web_seed_torrent();
+	TEST_CHECK(test_i2p_web_seed(params, false, true));
+}
+#endif // TORRENT_USE_I2P

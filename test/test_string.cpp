@@ -581,6 +581,28 @@ TORRENT_TEST(i2p_url)
 	TEST_CHECK(!is_i2p_url("http://a.I2P/a"));
 	TEST_CHECK(!is_i2p_url("http://c.i3p"));
 	TEST_CHECK(!is_i2p_url("http://i2p/foo bar"));
+	TEST_CHECK(!is_i2p_url("http://[::ffff:1.2.3.4%.i2p]/a"));
+	TEST_CHECK(!is_i2p_url("http://[fe80::1%eth0.i2p]/a"));
+	TEST_CHECK(!is_i2p_url("http://[::1%25eth0.i2p]:8080/a"));
+	TEST_CHECK(!is_i2p_url("http://[::.i2p]/a"));
+	TEST_CHECK(is_i2p_url("http://user:pass@a.i2p:8080/a"));
+}
+
+TORRENT_TEST(valid_i2p_name)
+{
+	TEST_CHECK(is_valid_i2p_name("ME"));
+	TEST_CHECK(is_valid_i2p_name("forum.i2p"));
+	TEST_CHECK(is_valid_i2p_name("my-site.i2p"));
+	TEST_CHECK(is_valid_i2p_name("ukeu3k5oycgaauneqgtnvselmt4yemvoilkln7jpvamvfx7dnkdq.b32.i2p"));
+	TEST_CHECK(is_valid_i2p_name("AAAA~-AAAA=="));
+
+	TEST_CHECK(!is_valid_i2p_name(""));
+	TEST_CHECK(!is_valid_i2p_name("fe80::1%eth0.i2p"));
+	TEST_CHECK(!is_valid_i2p_name("a.i2p\nSTREAM ACCEPT ID=foo"));
+	TEST_CHECK(!is_valid_i2p_name("a.i2p FROM_PORT=1"));
+	TEST_CHECK(!is_valid_i2p_name("a.i2p\r"));
+	TEST_CHECK(!is_valid_i2p_name(string_view("a\0b.i2p", 7)));
+	TEST_CHECK(!is_valid_i2p_name("a/b.i2p"));
 }
 #endif
 
