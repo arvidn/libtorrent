@@ -572,7 +572,7 @@ pread_storage::pread_storage(storage_params const& params, file_pool& pool)
 			return;
 
 		storage_error ec;
-		auto handle = open_file(sett, range->file_index, mode, ec);
+		auto const handle = open_file(sett, range->file_index, mode, ec);
 		if (ec)
 			return;
 

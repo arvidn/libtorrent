@@ -5404,12 +5404,13 @@ namespace {
 					flags |= disk_interface::volatile_read;
 
 				auto const issue_time = clock_type::now();
-				int const blocks_in_piece =
-					aux::ceil_div(t->piece_size_for_req(r.piece), block_size());
 				auto const [read_ahead, new_piece] =
 					m_settings.get_bool(settings_pack::enable_read_ahead)
-					? m_read_ahead.on_request(
-						  r.piece, r.start / block_size(), blocks_in_piece, issue_time, m_counters)
+					? m_read_ahead.on_request(r.piece,
+						  r.start / block_size(),
+						  aux::ceil_div(t->piece_size_for_req(r.piece), block_size()),
+						  issue_time,
+						  m_counters)
 					: std::pair<read_ahead_hint, bool>{{}, false};
 
 				// let a disk backend that supports it get a head start on the

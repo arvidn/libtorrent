@@ -735,7 +735,7 @@ void pread_disk_io::async_read(storage_index_t storage,
 		// runs as its own job on a disk thread rather than inline here on
 		// the network thread; jumping the queue (but not the fence, nor
 		// anything already executing) is what makes the head start real.
-		aux::pread_disk_job* hint_job = m_job_pool.allocate_job<aux::job::willneed>(
+		aux::pread_disk_job* const hint_job = m_job_pool.allocate_job<aux::job::willneed>(
 			disk_job_flags_t{}, m_torrents[storage]->shared_from_this(), r.piece, read_ahead);
 		add_job(hint_job, add_job_flags::user_add | add_job_flags::priority);
 	}
