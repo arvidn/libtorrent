@@ -35,6 +35,7 @@ void read_ahead_predictor::leave_piece(counters& stats)
 	int const wasted = m_context->advised_until - m_context->max_block_requested;
 	if (wasted > 0)
 		stats.inc_stats_counter(counters::num_read_ahead_wasted_blocks, wasted);
+	m_context.reset();
 }
 
 std::pair<read_ahead_hint, bool> read_ahead_predictor::on_request(piece_index_t const piece,
@@ -46,7 +47,6 @@ std::pair<read_ahead_hint, bool> read_ahead_predictor::on_request(piece_index_t 
 	if (m_context && now - m_last_request_time > idle_reset)
 	{
 		leave_piece(stats);
-		m_context.reset();
 		m_confidence = 0;
 		m_interval = {};
 	}
@@ -121,6 +121,12 @@ std::pair<read_ahead_hint, bool> read_ahead_predictor::on_request(piece_index_t 
 	else if (!hot && rate_ok)
 		// a slow miss has already paid once above
 		m_confidence /= 2;
+
+	// advised blocks skipped over are counted as wasted right away. a peer
+	// rarely comes back for them
+	int const skipped = std::min(block_index - 1, ctx.advised_until) - ctx.max_block_requested;
+	if (skipped > 0)
+		stats.inc_stats_counter(counters::num_read_ahead_wasted_blocks, skipped);
 
 	if (!new_piece)
 		ctx.gap.add_sample(block_index - ctx.max_block_requested);

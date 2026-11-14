@@ -4438,6 +4438,7 @@ namespace {
 		}
 
 		m_disconnecting = true;
+		m_read_ahead.leave_piece(m_counters);
 
 		if (ec)
 		{

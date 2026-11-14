@@ -279,6 +279,8 @@ TORRENT_TEST(skip_onto_an_advised_block_is_neutral)
 	t += 10ms;
 	check_hint(p.on_request(piece_a, 4, 1000, t, stats).first, 5, 2); // confidence still 2
 	TEST_EQUAL(p.confidence(), 2);
+	// the skipped block 3 was advised, so it's wasted
+	TEST_EQUAL(stats[counters::num_read_ahead_wasted_blocks], 1);
 
 	// the next back-to-back request grows from the same confidence (2)
 	// the skip left untouched, not from whatever it would have reached
@@ -521,4 +523,27 @@ TORRENT_TEST(short_idle_halves_confidence)
 	t += 29s;
 	TEST_EQUAL(p.on_request(piece_a, 32, 64, t, stats).first.num_blocks, 0);
 	TEST_EQUAL(p.confidence(), 15);
+}
+
+// closing the connection mid-piece counts the outstanding runway as wasted
+TORRENT_TEST(leaving_mid_piece_counts_runway_as_wasted)
+{
+	aux::read_ahead_predictor p;
+	time_point t = clock_type::now();
+	counters stats;
+
+	p.on_request(piece_a, 0, 1000, t, stats);
+	t += 10ms;
+	p.on_request(piece_a, 1, 1000, t, stats);
+	t += 10ms;
+	p.on_request(piece_a, 2, 1000, t, stats); // advised through block 4
+	TEST_EQUAL(stats[counters::num_read_ahead_wasted_blocks], 0);
+
+	p.leave_piece(stats);
+	TEST_EQUAL(stats[counters::num_read_ahead_wasted_blocks], 2);
+	TEST_EQUAL(p.advised_until(), -1);
+
+	// leaving again has nothing left to count
+	p.leave_piece(stats);
+	TEST_EQUAL(stats[counters::num_read_ahead_wasted_blocks], 2);
 }

@@ -64,6 +64,11 @@ struct TORRENT_EXTRA_EXPORT read_ahead_predictor
 	std::pair<read_ahead_hint, bool> on_request(
 		piece_index_t piece, int block_index, int blocks_in_piece, time_point now, counters& stats);
 
+	// counts advised blocks past the last request as wasted and forgets the
+	// piece. called when the connection closes, so its outstanding runway
+	// is accounted for
+	void leave_piece(counters& stats);
+
 	// current state, for instrumentation (tools/read_ahead_trace.cpp)
 	int confidence() const { return m_confidence; }
 	int advised_until() const { return m_context ? m_context->advised_until : -1; }
@@ -89,9 +94,6 @@ private:
 		// block-index gap
 		aux::sliding_average<int, 8> gap;
 	};
-
-	// counts advised blocks the piece being left never consumed as wasted
-	void leave_piece(counters& stats);
 
 	std::optional<piece_context> m_context;
 
