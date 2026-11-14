@@ -10641,6 +10641,12 @@ namespace {
 			return;
 		}
 
+#if TORRENT_USE_I2P
+		// web seeds don't support i2p
+		if (is_i2p() && !settings().get_bool(settings_pack::allow_i2p_mixed))
+			return;
+#endif
+
 		// when set to unlimited, use 100 as the limit
 		int limit = zero_or(settings().get_int(settings_pack::max_web_seed_connections)
 			, 100);
