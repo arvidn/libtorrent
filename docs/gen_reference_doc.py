@@ -882,6 +882,7 @@ def trim_define(line):
             .replace('TORRENT_ABI_VERSION <= 2', '') \
             .replace('TORRENT_ABI_VERSION < 3', '') \
             .replace('TORRENT_ABI_VERSION < 4', '') \
+            .replace('TORRENT_ABI_VERSION < 5', '') \
             .replace('||', '').replace('&&', '').replace('(', '').replace(')', '') \
             .replace('!', '').replace('\\', '').strip()
 
@@ -913,7 +914,8 @@ def consume_ifdef(lno, lines, warn_on_ifdefs=False):
             line == '#if TORRENT_ABI_VERSION == 1' or
             line == '#if TORRENT_ABI_VERSION <= 2' or
             line == '#if TORRENT_ABI_VERSION < 3' or
-            line == '#if TORRENT_ABI_VERSION < 4'):
+            line == '#if TORRENT_ABI_VERSION < 4' or
+            line == '#if TORRENT_ABI_VERSION < 5'):
         while lno < len(lines):
             line = lines[lno].strip()
             lno += 1
