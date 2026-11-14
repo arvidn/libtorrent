@@ -130,13 +130,15 @@ constexpr path_sanitize_flags_t libtorrent_2_0 = path_sanitize_flags::deduplicat
 // plus ``filter_unicode_formatting_chars``, unconditionally on every
 // platform.
 constexpr path_sanitize_flags_t libtorrent_2_1 =
-	path_sanitize_flags::libtorrent_2_0 | path_sanitize_flags::filter_unicode_formatting_chars;
+	path_sanitize_flags::libtorrent_2_0 | path_sanitize_flags::filter_unicode_formatting_chars
+	| path_sanitize_flags::filter_directional_marks;
 
 // the ruleset introduced in libtorrent 2.2: ``libtorrent_2_1`` plus
 // ``filter_dos_reserved_names`` on Windows, plus
 // ``deduplicate_per_directory`` on every platform.
 constexpr path_sanitize_flags_t libtorrent_2_2 = path_sanitize_flags::libtorrent_2_1
 	| path_sanitize_flags::deduplicate_per_directory
+	| path_sanitize_flags::filter_directional_marks
 #ifdef TORRENT_WINDOWS
 	| path_sanitize_flags::filter_dos_reserved_names
 #endif
