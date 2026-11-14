@@ -112,6 +112,7 @@ fuzzer pe_conn ;
 fuzzer ut_metadata ;
 fuzzer ut_pex ;
 fuzzer web_seed ;
+fuzzer ed25519 ;
 
 local LARGE_TARGETS =
 	torrent_info
@@ -143,6 +144,7 @@ local LARGE_TARGETS =
 	ut_metadata
 	ut_pex
 	web_seed
+	ed25519
 	;
 
 install stage : $(TARGETS) : <install-type>EXE <location>fuzzers ;

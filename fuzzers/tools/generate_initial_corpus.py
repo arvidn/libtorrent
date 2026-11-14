@@ -212,3 +212,50 @@ for m in messages:
     f = open('corpus/peer_conn/%s' % hashlib.sha1(m).hexdigest(), 'wb+')
     f.write(add_reserved(m))
     f.close()
+
+# ---------------------------------------------------------------------------
+# ed25519: raw primitive inputs (mode, seed, pk, signature, scalar, message).
+# Byte 0 selects the operation (mod 8): 0 sign+verify round trip, 1 verify with
+# an arbitrary signature, 2 verify with arbitrary signature AND public key,
+# 3 add_scalar on the public key, 4 add_scalar on the secret key, 5 key
+# exchange against a foreign public key, 6 sign with a foreign public key,
+# 7 chained operations. Field layout follows the harness header comment.
+
+os.makedirs(os.path.join('corpus', 'ed25519'), exist_ok=True)
+
+seed32 = bytes(range(32))
+pk32 = bytes((i * 7 + 3) & 0xff for i in range(32))
+sig64 = bytes((i * 13 + 11) & 0xff for i in range(64))
+scalar32 = bytes((i * 5 + 1) & 0xff for i in range(32))
+msg_short = b'x'
+msg_long = bytes((i * 31 + 7) & 0xff for i in range(1024))
+
+def ed25519_input(mode, seed=seed32, pk=pk32, sig=sig64, scalar=scalar32, msg=msg_short):
+	return bytes([mode]) + seed + pk + sig + scalar + msg
+
+ed25519_inputs = [
+    ed25519_input(0),
+    ed25519_input(0, msg=b''),
+    ed25519_input(0, msg=msg_long),
+    ed25519_input(1),
+    ed25519_input(1, pk=b'\0' * 32),
+    ed25519_input(2),
+    ed25519_input(2, pk=b'\xff' * 32),
+    ed25519_input(2, sig=b'\0' * 64),
+    ed25519_input(2, pk=b'\xc3' * 32, sig=b'\x10' * 64),
+    ed25519_input(3),
+    ed25519_input(3, scalar=b'\xff' * 32),
+    ed25519_input(4),
+    ed25519_input(4, scalar=seed32),
+    ed25519_input(5),
+    ed25519_input(5, pk=b'\x7f' * 32),
+    ed25519_input(6),
+    ed25519_input(7, msg=msg_long),
+    ed25519_input(7, seed=b'\0' * 32, scalar=b'\0' * 32),
+]
+
+for t in ed25519_inputs:
+    name = hashlib.sha1(t).hexdigest()
+    with open(os.path.join('corpus', 'ed25519', name), 'wb+') as f:
+        f.write(t)
+
