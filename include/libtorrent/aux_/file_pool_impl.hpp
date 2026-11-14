@@ -19,12 +19,15 @@ see LICENSE file.
 #include <vector>
 #include <memory>
 #include <condition_variable>
+#include <chrono>
+#include <thread>
 
 #include "libtorrent/aux_/time.hpp"
 #include "libtorrent/units.hpp"
 #include "libtorrent/storage_defs.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/open_mode.hpp"
+#include "libtorrent/aux_/file.hpp" // for pread_all, preadv_all
 #include "libtorrent/disk_interface.hpp" // for file_open_mode_t
 #include "libtorrent/fwd.hpp"
 
@@ -89,6 +92,58 @@ namespace libtorrent::aux {
 		void release();
 		void release(storage_index_t st);
 		void release(storage_index_t st, file_index_t file_index);
+
+		// reads ``buf`` (one buffer, or several with preadv) at ``file_offset`` from
+		// ``h``, the file at ``file_index`` in storage ``st``. On EIO, the file is released and read again through a new
+		// open, ``reopen(storage_error&)``, after growing waits (about a second in
+		// all) for other threads to drop the old handle. An I/O error can belong to
+		// the open file rather than to the file: a FUSE file system using
+		// passthrough (Linux 6.9) binds an open to a backing file, and gives a new
+		// open a healthy one once the old ones are closed.
+		template <typename Buffer, typename Reopen>
+		int pread_reopen(storage_index_t const st,
+			file_index_t const file_index,
+			FileHandle& h,
+			Buffer const buf,
+			std::int64_t const file_offset,
+			storage_error& ec,
+			Reopen reopen)
+		{
+			int ret = read_at(h->fd(), buf, file_offset, ec.ec);
+			for (int wait_ms = 1; ec.ec == boost::system::errc::io_error && wait_ms <= 512;
+				 wait_ms *= 2)
+			{
+				h.reset();
+				release(st, file_index);
+				std::this_thread::sleep_for(std::chrono::milliseconds(wait_ms));
+				storage_error open_ec;
+				h = reopen(open_ec);
+				if (open_ec)
+				{
+					ec = open_ec;
+					return -1;
+				}
+				ec.ec.clear();
+				ret = read_at(h->fd(), buf, file_offset, ec.ec);
+			}
+			return ret;
+		}
+
+		static int read_at(handle_type const fd,
+			span<char> const buf,
+			std::int64_t const file_offset,
+			error_code& ec)
+		{
+			return pread_all(fd, buf, file_offset, ec);
+		}
+
+		static int read_at(handle_type const fd,
+			span<span<char> const> const bufs,
+			std::int64_t const file_offset,
+			error_code& ec)
+		{
+			return preadv_all(fd, bufs, file_offset, ec);
+		}
 
 		// update the allowed number of open file handles to ``size``.
 		void resize(int size);
