@@ -33,7 +33,6 @@ see LICENSE file.
 #include "libtorrent/aux_/escape_string.hpp"
 #include "libtorrent/aux_/string_util.hpp" // for to_string
 #include "libtorrent/aux_/array.hpp"
-#include "libtorrent/aux_/byteswap.hpp"
 
 namespace libtorrent {
 
@@ -291,48 +290,45 @@ namespace {
 	}
 }
 
-	// this decodes the i2p alphabet
 	std::vector<char> base64decode_i2p(string_view s)
 	{
-		std::uint32_t output = 0;
+		// the encoding is always a whole number of 4-character groups, which
+		// rejects both missing and excessive padding
+		if (s.size() % 4 != 0)
+			throw system_error(error_code(lt::errors::invalid_escaped_string));
+
+		// a single sextet cannot encode a whole byte, so at most two padding
+		// characters are meaningful. A '=' anywhere else in the string fails
+		// the alphabet lookup below. If the string is all '=', npos + 1 wraps to
+		// 0, which is the intended data length
+		std::size_t const data_len = s.find_last_not_of('=') + 1;
+		if (s.size() - data_len > 2)
+			throw system_error(error_code(lt::errors::invalid_escaped_string));
+		s = s.substr(0, data_len);
 
 		std::vector<char> ret;
-		int bit_offset = 18;
-		for (auto const c : s)
+		ret.reserve(s.size() * 3 / 4);
+
+		std::uint32_t pending = 0;
+		int pending_bits = 0;
+		for (char const c : s)
 		{
-			if (c == '=')
+			pending = (pending << 6) | map_base64_char(c);
+			pending_bits += 6;
+			if (pending_bits >= 8)
 			{
-				auto const pad = s.substr(s.find('='));
-				if (pad.find_first_not_of('=') != string_view::npos)
-					throw system_error(error_code(lt::errors::invalid_escaped_string));
-				break;
-			}
-			output |= map_base64_char(c) << bit_offset;
-			if (bit_offset == 0)
-			{
-				output = aux::host_to_network(output);
-				aux::array<char, 4> tmp;
-				std::memcpy(tmp.data(), &output, 4);
-				ret.push_back(tmp[1]);
-				ret.push_back(tmp[2]);
-				ret.push_back(tmp[3]);
-				output = 0;
-				bit_offset = 18;
-			}
-			else
-			{
-				bit_offset -= 6;
+				pending_bits -= 8;
+				ret.push_back(char((pending >> pending_bits) & 0xff));
+				pending &= (1u << pending_bits) - 1;
 			}
 		}
-		if (bit_offset < 18)
-		{
-			output = aux::host_to_network(output);
-			aux::array<char, 4> tmp;
-			std::memcpy(tmp.data(), &output, 4);
-			ret.push_back(tmp[1]);
-			if (bit_offset < 6)
-				ret.push_back(tmp[2]);
-		}
+
+		// the bits of the last sextet that don't belong to any byte are required
+		// to be zero, otherwise multiple encodings would decode to the same
+		// bytes
+		if (pending != 0)
+			throw system_error(error_code(lt::errors::invalid_escaped_string));
+
 		return ret;
 	}
 
