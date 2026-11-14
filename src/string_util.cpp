@@ -456,5 +456,15 @@ namespace libtorrent {
 			&& string_ends_with(hostname, ".i2p");
 	}
 
+	bool is_valid_i2p_name(string_view const name)
+	{
+		// the union of the i2p hostname alphabet and the i2p base64 alphabet.
+		// Anything else, like whitespace or newlines, could inject arguments or
+		// commands into the SAM protocol
+		return !name.empty() && std::all_of(name.begin(), name.end()
+			, [](char const c) { return is_alpha(c) || is_digit(c)
+				|| c == '.' || c == '-' || c == '~' || c == '='; });
+	}
+
 #endif
 }

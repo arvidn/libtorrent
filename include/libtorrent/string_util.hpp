@@ -162,6 +162,10 @@ namespace libtorrent {
 
 	TORRENT_EXTRA_EXPORT bool is_i2p_url(std::string const& url);
 
+	// returns true if name only contains characters valid in an i2p hostname
+	// or an i2p base64 destination, and is safe to embed in a SAM command
+	TORRENT_EXTRA_EXPORT bool is_valid_i2p_name(string_view name);
+
 #endif
 }
 
