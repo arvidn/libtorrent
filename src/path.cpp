@@ -73,7 +73,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <cstring>
 #include <vector>
 
-#include "libtorrent/aux_/escape_string.hpp" // for convert_to_native
+#include "libtorrent/aux_/escape_string.hpp" // for convert_to_wstring
 #include "libtorrent/assert.hpp"
 #include "libtorrent/aux_/throw.hpp"
 
@@ -125,7 +125,7 @@ namespace libtorrent {
 		return convert_from_wstring(s);
 	}
 #else
-	std::string convert_from_native_path(char const* s) { return convert_from_native(s); }
+	std::string convert_from_native_path(char const* s) { return s; }
 #endif
 
 namespace {
@@ -208,7 +208,8 @@ namespace {
 		return convert_to_wstring(path);
 #endif
 #else // TORRENT_WINDOWS
-		return convert_to_native(path);
+		// filenames are passed through as UTF-8, independent of the locale
+		return path;
 #endif
 	}
 
