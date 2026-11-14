@@ -343,6 +343,11 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 		auto i = view.find(loc);
 		if (i == view.end()) return false;
 
+		// in a v2 torrent, the last piece of a file is short. The pad space
+		// following it can still be read, but it's not held by the cache
+		if (block_idx >= i->blocks_in_piece())
+			return false;
+
 		if (i->blocks[block_idx].data())
 		{
 			// TODO: it would be nice if this could be called without holding
@@ -535,8 +540,11 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 		auto i = view.find(loc);
 		if (i == view.end()) return 0;
 
-		char const* buf1 = i->blocks[block_idx].data();
-		char const* buf2 = i->blocks[block_idx + 1].data();
+		// in a v2 torrent, the last piece of a file is short. The pad space
+		// following it can still be read, but it's not held by the cache
+		int const num_blocks = i->blocks_in_piece();
+		char const* buf1 = block_idx < num_blocks ? i->blocks[block_idx].data() : nullptr;
+		char const* buf2 = block_idx + 1 < num_blocks ? i->blocks[block_idx + 1].data() : nullptr;
 
 		if (buf1 == nullptr && buf2 == nullptr)
 			return 0;

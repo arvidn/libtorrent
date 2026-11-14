@@ -742,6 +742,117 @@ static void unaligned_cross_block_read_impl(
 	drive([&] { return drained < num_test_pieces; }, "timeout (drain)");
 }
 
+// In a v2 torrent the last piece of a file is short, and so is its last block.
+// Peers may request the pad space following the file, which must read as zeros
+// also while the piece is in the disk cache (pread_disk_io) or store buffer
+// (mmap_disk_io), which only hold the short piece. With aio_threads=0,
+// pread_disk_io has no thread to flush the cache, but mmap_disk_io executes
+// writes immediately, so it only keeps them in the store buffer with a thread.
+static void read_pad_space_impl(lt::disk_io_constructor_type disk_io, int const disk_threads)
+{
+	lt::io_context ios;
+	lt::counters cnt;
+	lt::settings_pack sett = lt::default_settings();
+	sett.set_int(lt::settings_pack::hashing_threads, 0);
+	sett.set_int(lt::settings_pack::aio_threads, disk_threads);
+	std::unique_ptr<lt::disk_interface> disk_thread = disk_io(ios, sett, cnt);
+
+	int const block_size = lt::default_block_size;
+	int const piece_size = 4 * block_size;
+	int const file_size = block_size + 17;
+
+	lt::file_storage fs;
+	fs.set_piece_length(piece_size);
+	fs.add_file("read_pad_space_torrent/file-0", file_size, {});
+	fs.add_file("read_pad_space_torrent/.pad/" + std::to_string(piece_size - file_size),
+		piece_size - file_size,
+		lt::file_storage::flag_pad_file);
+	fs.add_file("read_pad_space_torrent/file-1", piece_size, {});
+	fs.set_num_pieces(2);
+
+	lt::storage_holder storage =
+		add_test_torrent(*disk_thread, fs, "read_pad_space_store", false /*v1*/, true /*v2*/);
+
+	auto const drive = [&ios](auto cond, char const* what) {
+		auto const start = lt::aux::time_now();
+		while (cond())
+		{
+			// without a disk thread holding an executor_work_guard, the
+			// io_context stops every time it runs out of work
+			ios.restart();
+			ios.run_for(5ms);
+			if (lt::aux::time_now() - start > 20s)
+			{
+				TEST_ERROR(what);
+				break;
+			}
+		}
+	};
+
+	auto const write_piece = [&](lt::piece_index_t const p) {
+		// async_write() copies the buffer, so it need not outlive the call
+		std::vector<char> buffer = generate_piece(p, fs.piece_size2(p));
+		for (int off = 0; off < int(buffer.size()); off += block_size)
+		{
+			disk_thread->async_write(
+				storage,
+				lt::peer_request{p, off, std::min(block_size, int(buffer.size()) - off)},
+				buffer.data() + off,
+				std::shared_ptr<lt::disk_observer>(),
+				[](lt::storage_error const&) {},
+				lt::disk_job_flags_t{});
+		}
+		return buffer;
+	};
+
+	int cleared = 0;
+	auto const clear_piece = [&](lt::piece_index_t const p) {
+		int const expect = cleared + 1;
+		disk_thread->async_clear_piece(storage, p, [&cleared](lt::piece_index_t) { ++cleared; });
+		disk_thread->submit_jobs();
+		drive([&] { return cleared < expect; }, "timeout (clear)");
+	};
+
+	// make the pad space of the short block not read as zeros by chance
+	write_piece(lt::piece_index_t{1});
+	clear_piece(lt::piece_index_t{1});
+
+	lt::piece_index_t const piece{0};
+	std::vector<char> expected = write_piece(piece);
+	expected.resize(std::size_t(piece_size), 0);
+
+	int reads_done = 0;
+	int reads_expected = 0;
+	for (int const start : {
+			 block_size / 2, // the full block and the short block
+			 block_size, // the short block
+			 block_size + 8, // the short block and the one following it
+			 block_size + 17, // starts at the end of the file
+			 2 * block_size, // past the last block of the piece
+			 2 * block_size + 8,
+			 3 * block_size,
+		 })
+	{
+		disk_thread->async_read(storage,
+			lt::peer_request{piece, start, block_size},
+			[&, start](lt::disk_buffer_holder b, lt::storage_error const& e) {
+				TEST_CHECK(!e.ec);
+				char const* const want = expected.data() + start;
+				TEST_CHECK(std::memcmp(b.data(), want, std::size_t(block_size)) == 0);
+				++reads_done;
+			});
+		++reads_expected;
+	}
+	disk_thread->submit_jobs();
+	drive([&] { return reads_done < reads_expected; }, "timeout (read)");
+	TEST_EQUAL(reads_done, reads_expected);
+
+	// drain the cached blocks so the destructor's empty-cache assert holds
+	clear_piece(piece);
+
+	disk_thread->abort(true);
+}
+
 #ifdef TORRENT_SIMULATE_SLOW_WRITE
 // Regression test for a self-deadlock in pread_disk_io. When an
 // async_clear_piece arrives while its piece is mid-flush, the clear is parked
@@ -928,6 +1039,12 @@ TORRENT_TEST(test_disk_io_mmap_cutoff)
 TORRENT_TEST_DISK_IO(test_pread_disk_io_fence) { disk_io_test_suite(disk_io, 3, true); }
 
 TORRENT_TEST_DISK_IO(test_disk_io_hash2_before_flush) { hash2_before_flush_suite(disk_io); }
+
+TORRENT_TEST_DISK_IO(test_disk_io_read_pad_space)
+{
+	for (int const disk_threads : {0, 1})
+		read_pad_space_impl(disk_io, disk_threads);
+}
 
 // a flush pass completes the writes of each piece it flushes, not only the
 // ones of the whole pass when it ends. Each write takes 100 ms under
