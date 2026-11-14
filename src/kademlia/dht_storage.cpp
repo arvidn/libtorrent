@@ -397,7 +397,9 @@ namespace {
 			if (i == m_immutable_table.end())
 			{
 				// make sure we don't add too many items
-				if (int(m_immutable_table.size()) >= m_settings.get_int(settings_pack::dht_max_dht_items))
+				if (!m_immutable_table.empty()
+					&& int(m_immutable_table.size())
+						>= m_settings.get_int(settings_pack::dht_max_dht_items))
 				{
 					auto const j = pick_least_important_item(m_node_ids
 						, m_immutable_table);
@@ -462,7 +464,9 @@ namespace {
 			{
 				// this is the case where we don't have an item in this slot
 				// make sure we don't add too many items
-				if (int(m_mutable_table.size()) >= m_settings.get_int(settings_pack::dht_max_dht_items))
+				if (!m_mutable_table.empty()
+					&& int(m_mutable_table.size())
+						>= m_settings.get_int(settings_pack::dht_max_dht_items))
 				{
 					auto const j = pick_least_important_item(m_node_ids
 						, m_mutable_table);

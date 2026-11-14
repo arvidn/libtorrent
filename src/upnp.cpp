@@ -354,8 +354,10 @@ port_mapping_t upnp::add_mapping(portmap_protocol const p, int const external_po
 void upnp::delete_mapping(port_mapping_t const mapping)
 {
 	TORRENT_ASSERT(is_single_thread());
+	TORRENT_ASSERT_PRECOND(mapping >= port_mapping_t{0});
 
-	if (mapping >= m_mappings.end_index()) return;
+	if (mapping >= m_mappings.end_index() || mapping < port_mapping_t{0})
+		return;
 
 	global_mapping_t const& m = m_mappings[mapping];
 

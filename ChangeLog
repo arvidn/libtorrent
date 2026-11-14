@@ -89,6 +89,7 @@
 
 2.0.16 not released
 
+	* fix DHT put of an item erasing from an empty table when dht_max_dht_items is 0
 	* fix announce_to_all_tiers and announce_to_all_trackers names being swapped
 	* only count the final timeout of a DHT request as a node failure, not the short timeout
 	* fix a few DHT routing table and storage bugs
