@@ -78,6 +78,15 @@ namespace libtorrent::aux {
 	// so they can never disagree about which trackers are dispatchable.
 	TORRENT_EXTRA_EXPORT bool is_tracker_protocol_supported(string_view url);
 
+#if TORRENT_USE_RTC
+	TORRENT_EXTRA_EXPORT bool is_websocket_tracker_url(string_view url);
+
+	// neither WebRTC nor websocket tracker connections can be carried by any
+	// of the supported proxies, so both are disabled when either peer or
+	// tracker connections are proxied
+	TORRENT_EXTRA_EXPORT bool webrtc_allowed(session_settings const& sett);
+#endif
+
 	using tracker_request_flags_t =
 		flags::bitfield_flag<std::uint8_t, struct tracker_request_flags_tag>;
 

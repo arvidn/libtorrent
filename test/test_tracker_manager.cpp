@@ -8,11 +8,16 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
+#include <functional>
+
 #include "test.hpp"
 #include "libtorrent/aux_/tracker_manager.hpp"
 #include "libtorrent/aux_/session_interface.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/aux_/resolver.hpp"
+#if TORRENT_USE_RTC
+#include "libtorrent/aux_/websocket_stream.hpp"
+#endif
 
 using namespace lt;
 using namespace lt::aux;
@@ -83,17 +88,23 @@ struct ws_request_callback : request_callback
 		, address const&
 		, std::list<address> const&
 		, struct tracker_response const&) override {}
-	void tracker_request_error(
-		tracker_request const&
-		, error_code const&
-		, operation_t
-		, const std::string&
-		, seconds32) override {}
+	void tracker_request_error(tracker_request const&,
+		error_code const& ec,
+		operation_t,
+		const std::string&,
+		seconds32) override
+	{
+		last_error = ec;
+	}
 #if TORRENT_USE_RTC
 	void generate_rtc_offers(int
 		, std::function<void(error_code const&, std::vector<aux::rtc_offer>)> handler) override
 	{
-		handler(error_code(), {});
+		++num_offer_requests;
+		if (defer_offers)
+			pending_offers = std::move(handler);
+		else
+			handler(offer_error, {});
 	}
 	void on_rtc_offer(aux::rtc_offer const&) override {}
 	void on_rtc_answer(aux::rtc_answer const&) override {}
@@ -102,6 +113,13 @@ struct ws_request_callback : request_callback
 	bool should_log() const override { return false; }
 	void debug_log(const char*, ...) const noexcept override TORRENT_FORMAT(2,3) {}
 #endif
+	error_code last_error;
+	error_code offer_error;
+	bool defer_offers = false;
+#if TORRENT_USE_RTC
+	std::function<void(error_code const&, std::vector<aux::rtc_offer>)> pending_offers;
+#endif
+	int num_offer_requests = 0;
 };
 
 TORRENT_TEST(tracker_protocol_supported)
@@ -198,3 +216,144 @@ TORRENT_TEST(empty_and_num_requests)
 #endif
 	}
 }
+
+#if TORRENT_USE_RTC
+TORRENT_TEST(is_websocket_tracker_url)
+{
+	TEST_CHECK(is_websocket_tracker_url("ws://tracker.com/announce"));
+	TEST_CHECK(is_websocket_tracker_url("wss://tracker.com/announce"));
+	TEST_CHECK(!is_websocket_tracker_url("http://tracker.com/announce"));
+	TEST_CHECK(!is_websocket_tracker_url("https://tracker.com/announce"));
+	TEST_CHECK(!is_websocket_tracker_url("udp://tracker.com:80/announce"));
+	TEST_CHECK(!is_websocket_tracker_url("wsx://tracker.com/announce"));
+	TEST_CHECK(!is_websocket_tracker_url(""));
+}
+
+TORRENT_TEST(webrtc_allowed)
+{
+	aux::session_settings sett;
+	TEST_CHECK(webrtc_allowed(sett));
+
+	sett.set_int(settings_pack::proxy_type, settings_pack::socks5);
+	TEST_CHECK(!webrtc_allowed(sett));
+
+	sett.set_int(settings_pack::proxy_type, settings_pack::http);
+	TEST_CHECK(!webrtc_allowed(sett));
+
+	sett.set_bool(settings_pack::proxy_peer_connections, false);
+	TEST_CHECK(!webrtc_allowed(sett));
+
+	sett.set_bool(settings_pack::proxy_tracker_connections, false);
+	TEST_CHECK(webrtc_allowed(sett));
+
+	sett.set_bool(settings_pack::proxy_peer_connections, true);
+	TEST_CHECK(!webrtc_allowed(sett));
+
+	sett.set_int(settings_pack::proxy_type, settings_pack::none);
+	sett.set_bool(settings_pack::proxy_tracker_connections, true);
+	TEST_CHECK(webrtc_allowed(sett));
+}
+
+TORRENT_TEST(websocket_tracker_refused_with_proxy)
+{
+	io_context ios;
+	aux::session_settings sett;
+	sett.set_int(settings_pack::proxy_type, settings_pack::socks5);
+	sett.set_str(settings_pack::proxy_hostname, "127.0.0.1");
+	sett.set_int(settings_pack::proxy_port, 1);
+
+	tracker_manager_handler h{ios, sett};
+
+	tracker_request r;
+	r.url = "ws://tracker.com";
+	r.num_want = 1;
+	auto cb = std::make_shared<ws_request_callback>();
+	h.m_tracker_manager.queue_request(ios, std::move(r), sett, cb);
+	ios.poll();
+
+	TEST_CHECK(h.m_tracker_manager.empty());
+	TEST_EQUAL(cb->num_offer_requests, 0);
+	TEST_EQUAL(
+		cb->last_error, error_code(boost::system::errc::permission_denied, generic_category()));
+}
+
+// e.g. an i2p torrent with allow_i2p_mixed disabled
+TORRENT_TEST(websocket_tracker_refused_rtc_offers)
+{
+	io_context ios;
+	aux::session_settings sett;
+	tracker_manager_handler h{ios, sett};
+
+	tracker_request r;
+	r.url = "ws://tracker.com";
+	r.num_want = 1;
+	auto cb = std::make_shared<ws_request_callback>();
+	cb->offer_error = boost::asio::error::operation_not_supported;
+	h.m_tracker_manager.queue_request(ios, std::move(r), sett, cb);
+	ios.poll();
+
+	TEST_CHECK(h.m_tracker_manager.empty());
+	TEST_EQUAL(cb->num_offer_requests, 1);
+	TEST_EQUAL(cb->last_error, error_code(boost::asio::error::operation_not_supported));
+}
+
+TORRENT_TEST(websocket_tracker_proxy_enabled_during_offers)
+{
+	io_context ios;
+	aux::session_settings sett;
+	tracker_manager_handler h{ios, sett};
+
+	tracker_request r;
+	r.url = "ws://tracker.com";
+	r.num_want = 1;
+	auto cb = std::make_shared<ws_request_callback>();
+	cb->defer_offers = true;
+	h.m_tracker_manager.queue_request(ios, std::move(r), sett, cb);
+	TEST_EQUAL(cb->num_offer_requests, 1);
+	TEST_CHECK(cb->pending_offers);
+
+	sett.set_int(settings_pack::proxy_type, settings_pack::socks5);
+	sett.set_str(settings_pack::proxy_hostname, "127.0.0.1");
+	sett.set_int(settings_pack::proxy_port, 1);
+	cb->pending_offers(error_code(), {});
+	ios.poll();
+
+	TEST_CHECK(h.m_tracker_manager.empty());
+	TEST_EQUAL(
+		cb->last_error, error_code(boost::system::errc::permission_denied, generic_category()));
+}
+
+#if TORRENT_USE_I2P
+namespace {
+struct recording_resolver final : aux::resolver_interface
+{
+	void async_resolve(std::string const& host, aux::resolver_flags, callback_t) override
+	{
+		hosts.push_back(host);
+	}
+	void abort() override {}
+	void set_cache_timeout(seconds) override {}
+	std::vector<std::string> hosts;
+};
+}
+
+TORRENT_TEST(websocket_stream_i2p_not_resolved)
+{
+	io_context ios;
+	recording_resolver resolver;
+	auto ws = std::make_shared<aux::websocket_stream>(ios, resolver, nullptr);
+
+	error_code result;
+	bool called = false;
+	ws->async_connect("ws://tracker.i2p/announce", [&](error_code const& ec) {
+		called = true;
+		result = ec;
+	});
+	ios.poll();
+
+	TEST_CHECK(called);
+	TEST_EQUAL(result, error_code(errors::unsupported_url_protocol));
+	TEST_CHECK(resolver.hosts.empty());
+}
+#endif
+#endif

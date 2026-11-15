@@ -455,7 +455,9 @@ void rtc_signaling::offer_batch::add(error_code const& ec, rtc_offer offer)
 	if (!ec) m_offers.push_back(std::move(offer));
 	else --m_count;
 
-	if (is_complete()) m_handler(ec, m_offers);
+	// a partially failed batch still carries usable offers
+	if (is_complete())
+		m_handler(m_offers.empty() ? ec : error_code(), m_offers);
 }
 
 bool rtc_signaling::offer_batch::is_complete() const
