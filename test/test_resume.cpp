@@ -390,6 +390,15 @@ TORRENT_TEST(unloaded_files_resume_clears_seed_mode)
 	if (!loaded.unloaded_files.empty()) TEST_CHECK(loaded.unloaded_files[0]);
 }
 
+TORRENT_TEST(contains_resume_data_requires_unloaded_file)
+{
+	add_torrent_params p;
+	p.unloaded_files.assign(2, false);
+	TEST_CHECK(!aux::contains_resume_data(p));
+	p.unloaded_files[1] = true;
+	TEST_CHECK(aux::contains_resume_data(p));
+}
+
 TORRENT_TEST(test_non_metadata)
 {
 	lt::session ses(settings());

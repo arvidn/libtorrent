@@ -1572,6 +1572,10 @@ namespace libtorrent::aux {
 		// unload requests queued behind an in-flight file priority job
 		std::set<file_index_t> m_deferred_unloads;
 
+		// save_resume_data() requests queued behind an in-flight file priority
+		// job, so the resume data reflects the committed unloaded state
+		std::optional<resume_data_flags_t> m_deferred_save_resume_data;
+
 		// any file priority updates attempted while another file priority update
 		// is in-progress/outstanding with the disk I/O thread, are queued up in
 		// this dictionary. Once the outstanding update comes back, all of these

@@ -1213,7 +1213,9 @@ namespace aux {
 		//
 		// This is asynchronous. On success a ``file_prio_alert`` is posted. On
 		// failure a ``file_error_alert`` is posted and the file and its priority
-		// are left unchanged.
+		// are left unchanged; the torrent is also paused and set to the error.
+		// Unloading a file that is already unloaded is a no-op that posts
+		// ``file_prio_alert``.
 		//
 		// The unloaded state is saved in resume data. Loading such resume data
 		// keeps using the part file and will not recreate the file, also not on a

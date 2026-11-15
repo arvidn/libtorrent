@@ -4542,7 +4542,10 @@ namespace {
 		if (!valid_metadata()) return {};
 		TORRENT_ASSERT(m_torrent_file->num_pieces() > 0);
 		if (m_flags & torrent_flags::seed_mode) return std::int64_t(0);
-		if (!has_picker()) return is_seed() ? std::int64_t(0) : m_torrent_file->total_size();
+		// a torrent that stays a seed after a file was unloaded still has a
+		// picker; its dropped pieces must not count as bytes left
+		if (is_seed()) return std::int64_t(0);
+		if (!has_picker()) return m_torrent_file->total_size();
 
 		piece_count const pc = m_picker->have();
 		std::int64_t left
@@ -4598,7 +4601,7 @@ namespace {
 		TORRENT_ASSERT(!valid_metadata() || m_torrent_file->num_pieces() > 0);
 		if (!valid_metadata()) return;
 
-		if ((m_flags & torrent_flags::seed_mode) || is_seed())
+		if ((m_flags & torrent_flags::seed_mode) || (is_seed() && !has_picker()))
 		{
 			// once we're a seed and remove the piece picker, we stop tracking
 			// piece- and file priority. We consider everything as being
@@ -6297,7 +6300,26 @@ namespace {
 				leave_seed_mode(seed_mode_t::skip_checking);
 			if (was_have_all) set_have_all(false);
 
+			// cancel outstanding block requests before removing the pieces from
+			// the picker; cancel_request() consults the picker. Do this before
+			// filtering anything, since filtering may make the torrent look
+			// finished while it is still in the downloading list. Blocks that
+			// still arrive are discarded in peer_connection::incoming_piece()
+			for (file_index_t const f : newly_unloaded.range())
+			{
+				if (!newly_unloaded[f]) continue;
+				for (piece_index_t const p : aux::file_piece_range_exclusive(fs, f))
+				{
+					if (!m_picker->is_downloading(p)) continue;
+					for (int b = 0; b < m_picker->blocks_in_piece(p); ++b)
+						cancel_block(piece_block(p, b));
+				}
+			}
+
+			bool const was_finished = is_finished();
 			bool dropped_piece = false;
+			bool filter_updated = false;
+			std::vector<piece_index_t> dropped;
 			for (file_index_t const f : newly_unloaded.range())
 			{
 				if (!newly_unloaded[f]) continue;
@@ -6305,26 +6327,36 @@ namespace {
 				for (piece_index_t const p : aux::file_piece_range_exclusive(fs, f))
 				{
 					bool const have = have_piece(p);
+
+					// a piece of this file may still have a nonzero piece priority
+					// (share mode, an explicit piece priority or a streaming deadline).
+					// The file priority may be 0 already, in which case it was never
+					// re-applied above. Force the piece out of the wanted set here.
+					if (m_picker->set_piece_priority(p, dont_download))
+					{
+						filter_updated = true;
+#ifndef TORRENT_DISABLE_STREAMING
+						remove_time_critical_piece(p);
+#endif
+					}
+
 					// the file is gone, so any partially downloaded blocks of an
 					// incomplete piece are too
 					m_picker->we_dont_have(p);
 					if (!have) continue;
 
 					if (!m_file_progress.empty()) m_file_progress.remove_piece(fs, p);
-
-					for (auto* c : m_connections)
-					{
-						auto peer = c->self();
-						if (peer->is_disconnecting()) continue;
-						peer->write_dont_have(p);
-					}
+					dropped.push_back(p);
 					dropped_piece = true;
 				}
 			}
 
-			if (dropped_piece)
+			if (dropped_piece || filter_updated)
 			{
 				update_gauge();
+				// update peer interest before telling them we no longer have the
+				// pieces; filtering may have just made the torrent finished
+				update_peer_interest(was_finished);
 				// only a real transition into finished changes state. A torrent
 				// that is already seeding (or finished) stays there.
 				if (m_state != torrent_status::finished
@@ -6336,7 +6368,19 @@ namespace {
 					state_updated();
 					update_want_tick();
 				}
-				set_need_save_resume(torrent_handle::if_download_progress);
+
+				for (piece_index_t const p : dropped)
+				{
+					for (auto* c : m_connections)
+					{
+						auto peer = c->self();
+						if (peer->is_disconnecting()) continue;
+						peer->write_dont_have(p);
+					}
+				}
+
+				if (dropped_piece)
+					set_need_save_resume(torrent_handle::if_download_progress);
 			}
 		}
 
@@ -6394,6 +6438,15 @@ namespace {
 			m_deferred_unloads.clear();
 			dispatch_file_priority(std::move(new_priority)
 				, std::move(new_unloaded), include_have);
+		}
+
+		// a save requested while the file priority job was in flight is done now,
+		// with the committed priority and unloaded state.
+		if (m_deferred_save_resume_data && !(m_flags & torrent_internal_flags::torrent_aborted))
+		{
+			auto const flags = *m_deferred_save_resume_data;
+			m_deferred_save_resume_data.reset();
+			save_resume_data(flags);
 		}
 	}
 
@@ -6507,7 +6560,13 @@ namespace {
 				, operation_t::unknown);
 			return;
 		}
-		if (index < m_unloaded_files.end_index() && m_unloaded_files[index]) return;
+		if (index < m_unloaded_files.end_index() && m_unloaded_files[index])
+		{
+			// already unloaded; report success
+			if (alerts().should_post<file_prio_alert>())
+				alerts().emplace_alert<file_prio_alert>(get_handle());
+			return;
+		}
 
 		if (m_flags & torrent_internal_flags::torrent_aborted)
 		{
@@ -10528,6 +10587,14 @@ namespace {
 			return;
 		}
 
+		if (m_flags & torrent_internal_flags::outstanding_file_priority)
+		{
+			// the in-flight job may unload a file; defer writing until it commits
+			m_deferred_save_resume_data =
+				m_deferred_save_resume_data.value_or(resume_data_flags_t{}) | flags;
+			return;
+		}
+
 		m_need_save_resume_data = resume_data_flags_t{};
 		state_updated();
 
@@ -12556,10 +12623,10 @@ namespace {
 			return;
 		}
 
-		// if we're a seed, we don't have an m_file_progress anyway
-		// since we don't need one. We know we have all files
+		// if we're a seed without a picker, we don't have an m_file_progress
+		// anyway since we don't need one. We know we have all files
 		// just fill in the full file sizes as a shortcut
-		if (is_seed())
+		if (is_seed() && !has_picker())
 		{
 			fp.resize(m_torrent_file->num_files());
 			file_storage const& fs = m_torrent_file->layout();

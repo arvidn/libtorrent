@@ -2945,8 +2945,12 @@ namespace {
 		TORRENT_ASSERT_VAL(m_received_in_piece == p.length, m_received_in_piece);
 		m_received_in_piece = 0;
 #endif
-		// if the block we got is already finished, then ignore it
-		if (picker.is_downloaded(block_finished))
+		// if the block we got is already finished, then ignore it. Also ignore
+		// blocks for pieces that were dropped from the picker after the request
+		// was sent (e.g. the piece's file was unloaded); re-adding the piece
+		// would resurrect data the disk was told to remove.
+		if (picker.is_downloaded(block_finished)
+			|| (!picker.is_requested(block_finished) && !picker.have_piece(p.piece)))
 		{
 			aux::waste_reason const reason
 				= (b->timed_out) ? aux::waste_reason::piece_timed_out

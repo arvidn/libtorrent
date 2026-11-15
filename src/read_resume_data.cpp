@@ -399,12 +399,16 @@ namespace {
 		bdecode_node const unloaded_list = rd.dict_find_list("unloaded");
 		if (unloaded_list)
 		{
+			// a single integer must not be able to drive an unbounded allocation
+			std::size_t const max_files = (std::max)(ret.file_priorities.size()
+				, std::size_t(0x100000));
 			for (bdecode_node const item : unloaded_list.list_items())
 			{
 				if (item.type() != bdecode_node::int_t) continue;
 				std::int64_t const idx = item.int_value();
 				if (idx < 0 || idx > std::numeric_limits<int>::max()) continue;
 				auto const i = aux::numeric_cast<std::size_t>(idx);
+				if (i >= max_files) continue;
 				if (ret.unloaded_files.size() <= i)
 					ret.unloaded_files.resize(i + 1, false);
 				ret.unloaded_files[i] = true;

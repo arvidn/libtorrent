@@ -4146,6 +4146,71 @@ void test_unload_zero_size_file(std::string const& test_path)
 	TEST_CHECK(pieces[1_piece]);
 }
 
+// a file with the same name on disk must not be used while the file is marked
+// as unloaded; its data lives in the part file
+template <typename StorageType>
+void test_unload_file_existing_file(std::string const& test_path)
+{
+	delete_dirs(test_path);
+	std::vector<char> buf;
+	auto const info = setup_unload_torrent(buf);
+	file_storage const& fs = info->layout();
+	typename file_pool_type<StorageType>::type fp;
+	aux::session_settings set;
+
+	aux::vector<download_priority_t, file_index_t> priorities;
+	priorities.resize(std::size_t(fs.num_files()), default_priority);
+	aux::vector<bool, file_index_t> unloaded(std::size_t(fs.num_files()), false);
+	renamed_files rf;
+	storage_params p{fs, rf, test_path, {}, storage_mode_sparse, priorities
+		, unloaded, sha1_hash{}, info->v1(), info->v2()};
+	auto s = make_storage<StorageType>(p, fp);
+
+	storage_error se;
+	s->initialize(set, se);
+	TEST_CHECK(!se.ec);
+
+	for (piece_index_t const i : fs.piece_range())
+	{
+		std::vector<char> data = make_unload_piece(static_cast<int>(i), fs.piece_size(i));
+		TEST_EQUAL(write(s, set, span<char>(data.data(), int(data.size())), i, 0
+			, aux::open_mode::write, se), int(data.size()));
+		TEST_CHECK(!se.ec);
+	}
+
+	typed_bitfield<piece_index_t> have;
+	have.resize(fs.num_pieces(), true);
+	priorities[0_file] = dont_download;
+	unloaded[0_file] = true;
+	s->set_file_priority(set, priorities, unloaded, have, se);
+	TEST_CHECK(!se.ec);
+
+	// recreate the file at its expected path, with garbage
+	std::vector<char> const garbage(std::size_t(fs.file_size(0_file)), 'x');
+	std::ofstream(combine_path(test_path, fs.file_path(0_file))
+		, std::ios::binary | std::ios::trunc)
+		.write(garbage.data(), std::streamsize(garbage.size()));
+
+	// a fresh storage with the persisted state must ignore it and read the
+	// shared piece from the part file instead
+	auto s2 = make_storage<StorageType>(p, fp);
+	s2->initialize(set, se);
+	TEST_CHECK(!se.ec);
+
+	typed_bitfield<piece_index_t> const pieces = s2->check_pieces();
+	TEST_CHECK(!pieces[0_piece]);
+	TEST_CHECK(pieces[2_piece]);
+
+	int const n2 = fs.piece_size(2_piece);
+	std::vector<char> read_back(static_cast<std::size_t>(n2));
+	TEST_EQUAL(read(s2, set, span<char>(read_back.data(), n2), 2_piece, 0
+		, aux::open_mode::read_only, se), n2);
+	TEST_CHECK(!se.ec);
+	TEST_CHECK(read_back == make_unload_piece(2, n2));
+
+	delete_dirs(test_path);
+}
+
 } // anonymous namespace
 
 TORRENT_TEST(unload_file_posix)
@@ -4182,6 +4247,23 @@ TORRENT_TEST(unload_file_no_data)
 {
 	test_unload_file_no_data("unload_no_data");
 }
+
+TORRENT_TEST(unload_file_posix_existing_file)
+{
+	test_unload_file_existing_file<posix_storage>("unload_posix_existing");
+}
+
+TORRENT_TEST(unload_file_pread_existing_file)
+{
+	test_unload_file_existing_file<pread_storage>("unload_pread_existing");
+}
+
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
+TORRENT_TEST(unload_file_mmap_existing_file)
+{
+	test_unload_file_existing_file<mmap_storage>("unload_mmap_existing");
+}
+#endif
 
 #if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
 TORRENT_TEST(unload_file_mmap)

@@ -10,6 +10,8 @@ see LICENSE file.
 
 #include "libtorrent/add_torrent_params.hpp"
 
+#include <algorithm>
+
 namespace libtorrent {
 
 	add_torrent_params::add_torrent_params() = default;
@@ -39,7 +41,8 @@ namespace aux {
 	bool contains_resume_data(add_torrent_params const& atp)
 	{
 		return !atp.have_pieces.empty()
-			|| !atp.unloaded_files.empty()
+			|| std::find(atp.unloaded_files.begin(), atp.unloaded_files.end(), true)
+				!= atp.unloaded_files.end()
 			|| (atp.flags & torrent_flags::seed_mode);
 	}
 }
