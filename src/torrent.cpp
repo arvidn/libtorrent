@@ -6114,7 +6114,9 @@ namespace {
 
 		// this call is only valid on torrents with metadata
 		TORRENT_ASSERT(valid_metadata());
-		if (is_seed()) return;
+		// a seed without a picker has no priorities to update, but one with a
+		// picker (e.g. while unloading a file) does
+		if (is_seed() && !has_picker()) return;
 
 		if (!valid_metadata())
 		{
@@ -6294,6 +6296,10 @@ namespace {
 				leave_seed_mode(seed_mode_t::skip_checking);
 			if (was_have_all) set_have_all(false);
 
+			// the earlier priority update happened while this was still a seed
+			// without a picker, so apply the priorities to the new picker now
+			update_piece_priorities(m_file_priority);
+
 			bool dropped_piece = false;
 			for (file_index_t const f : newly_unloaded.range())
 			{
@@ -6320,9 +6326,10 @@ namespace {
 			if (dropped_piece)
 			{
 				update_gauge();
-				// dropping pieces can end a seeding state. finished() recomputes
-				// the state without treating the torrent as a seed anymore
-				if (m_state != torrent_status::finished && is_finished())
+				// only a real transition into finished changes state. A torrent
+				// that is already seeding (or finished) stays there.
+				if (m_state != torrent_status::finished
+					&& m_state != torrent_status::seeding && is_finished())
 					finished();
 				else
 				{
@@ -6469,22 +6476,46 @@ namespace {
 	{
 		INVARIANT_CHECK;
 
+		auto const reject = [this, index](error_code const ec, operation_t const op)
+		{
+			if (!alerts().should_post<file_error_alert>()) return;
+			alerts().emplace_alert<file_error_alert>(ec
+				, index >= file_index_t(0) ? resolve_filename(index) : std::string()
+				, op, get_handle());
+		};
+
 		if (index < file_index_t(0)
 			|| (valid_metadata() && index >= m_torrent_file->layout().end_file()))
 		{
+			reject(error_code(boost::system::errc::invalid_argument, generic_category())
+				, operation_t::file_stat);
 			return;
 		}
 
-		if (valid_metadata() && m_torrent_file->layout().pad_file_at(index)) return;
+		if (valid_metadata() && m_torrent_file->layout().pad_file_at(index))
+		{
+			reject(error_code(boost::system::errc::invalid_argument, generic_category())
+				, operation_t::file_stat);
+			return;
+		}
 		if (index < m_unloaded_files.end_index() && m_unloaded_files[index]) return;
 
+		if (m_flags & torrent_internal_flags::torrent_aborted)
+		{
+			reject(error_code(boost::system::errc::operation_canceled, generic_category())
+				, operation_t::file_stat);
+			return;
+		}
+
 		// a running check or move would race the unlink and the storage state
-		if (m_flags & (torrent_internal_flags::torrent_aborted
-			| torrent_internal_flags::moving_storage))
-			return;
-		if (state() == torrent_status::checking_files
+		if (m_flags & torrent_internal_flags::moving_storage
+			|| state() == torrent_status::checking_files
 			|| state() == torrent_status::checking_resume_data)
+		{
+			reject(error_code(boost::system::errc::operation_in_progress, generic_category())
+				, operation_t::file_stat);
 			return;
+		}
 
 		if (m_flags & torrent_internal_flags::outstanding_file_priority)
 		{
