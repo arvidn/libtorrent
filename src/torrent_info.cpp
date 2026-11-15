@@ -512,9 +512,6 @@ namespace {
 			filename = { info_buffer + (p.string_offset() - info_offset)
 				, static_cast<std::size_t>(p.string_length())};
 
-			while (!filename.empty() && filename.front() == TORRENT_SEPARATOR)
-				filename.remove_prefix(1);
-
 			aux::sanitize_append_path_element(path, p.string_value());
 			if (path.empty())
 			{
@@ -540,8 +537,6 @@ namespace {
 					{
 						filename = {info_buffer + (e.string_offset() - info_offset)
 							, static_cast<std::size_t>(e.string_length()) };
-						while (!filename.empty() && filename.front() == TORRENT_SEPARATOR)
-							filename.remove_prefix(1);
 					}
 					aux::sanitize_append_path_element(path, e.string_value(), true);
 				}
@@ -593,8 +588,7 @@ namespace {
 			// directory we haven't parsed yet
 		}
 
-		if (filename.size() > path.length()
-			|| path.substr(path.size() - filename.size()) != filename)
+		if (rsplit_path(path).second != filename)
 		{
 			// if the filename was sanitized and differ, clear it to just use path
 			filename = {};
@@ -637,8 +631,6 @@ namespace {
 
 			string_view filename = { info_buffer + (e.first.string_offset() - info_offset)
 				, static_cast<size_t>(e.first.string_length()) };
-			while (!filename.empty() && filename.front() == TORRENT_SEPARATOR)
-				filename.remove_prefix(1);
 
 			bool const leaf_node = e.second.dict_size() == 1 && e.second.dict_at(0).first.empty();
 			bool const single_file = leaf_node && !has_files && tree.dict_size() == 1;
@@ -648,8 +640,7 @@ namespace {
 
 			if (leaf_node)
 			{
-				if (filename.size() > path.length()
-					|| path.substr(path.size() - filename.size()) != filename)
+				if (rsplit_path(path).second != filename)
 				{
 					// if the filename was sanitized and differ, clear it to just use path
 					filename = {};
