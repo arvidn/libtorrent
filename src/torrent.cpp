@@ -6291,14 +6291,15 @@ namespace {
 
 			// a finished torrent has no picker. Materialize one while have_all
 			// is still set, then clear have_all, before dropping pieces.
-			if (was_have_all && !has_picker()) need_picker(true);
+			bool const had_picker = has_picker();
+			if (!had_picker) need_picker(true);
 			if (m_flags & torrent_flags::seed_mode)
 				leave_seed_mode(seed_mode_t::skip_checking);
 			if (was_have_all) set_have_all(false);
 
-			// the earlier priority update happened while this was still a seed
-			// without a picker, so apply the priorities to the new picker now
-			update_piece_priorities(m_file_priority);
+			// the earlier priority update happened without a picker, so apply
+			// the priorities to the new picker now
+			if (!had_picker) update_piece_priorities(m_file_priority);
 
 			bool dropped_piece = false;
 			for (file_index_t const f : newly_unloaded.range())
@@ -6479,23 +6480,33 @@ namespace {
 		auto const reject = [this, index](error_code const ec, operation_t const op)
 		{
 			if (!alerts().should_post<file_error_alert>()) return;
-			alerts().emplace_alert<file_error_alert>(ec
-				, index >= file_index_t(0) ? resolve_filename(index) : std::string()
-				, op, get_handle());
+			std::string filename;
+			if (valid_metadata() && index >= file_index_t(0)
+				&& index < m_torrent_file->layout().end_file())
+				filename = resolve_filename(index);
+			alerts().emplace_alert<file_error_alert>(ec, filename, op, get_handle());
 		};
 
-		if (index < file_index_t(0)
-			|| (valid_metadata() && index >= m_torrent_file->layout().end_file()))
+		// no metadata means no storage, so there is no file to unload
+		if (!valid_metadata())
 		{
-			reject(error_code(boost::system::errc::invalid_argument, generic_category())
-				, operation_t::file_stat);
+			reject(error_code(boost::system::errc::operation_not_supported, generic_category())
+				, operation_t::unknown);
 			return;
 		}
 
-		if (valid_metadata() && m_torrent_file->layout().pad_file_at(index))
+		if (index < file_index_t(0)
+			|| index >= m_torrent_file->layout().end_file())
 		{
 			reject(error_code(boost::system::errc::invalid_argument, generic_category())
-				, operation_t::file_stat);
+				, operation_t::unknown);
+			return;
+		}
+
+		if (m_torrent_file->layout().pad_file_at(index))
+		{
+			reject(error_code(boost::system::errc::invalid_argument, generic_category())
+				, operation_t::unknown);
 			return;
 		}
 		if (index < m_unloaded_files.end_index() && m_unloaded_files[index]) return;
@@ -6503,7 +6514,7 @@ namespace {
 		if (m_flags & torrent_internal_flags::torrent_aborted)
 		{
 			reject(error_code(boost::system::errc::operation_canceled, generic_category())
-				, operation_t::file_stat);
+				, operation_t::unknown);
 			return;
 		}
 
@@ -6513,7 +6524,7 @@ namespace {
 			|| state() == torrent_status::checking_resume_data)
 		{
 			reject(error_code(boost::system::errc::operation_in_progress, generic_category())
-				, operation_t::file_stat);
+				, operation_t::unknown);
 			return;
 		}
 
@@ -8007,7 +8018,7 @@ namespace {
 		TORRENT_ASSERT(ret.have_pieces.empty());
 		if (max_piece > piece_index_t(0))
 		{
-			if (is_seed())
+			if (is_seed() && !has_picker())
 			{
 				ret.have_pieces.resize(static_cast<int>(max_piece), true);
 			}
