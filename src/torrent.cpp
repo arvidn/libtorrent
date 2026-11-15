@@ -6297,10 +6297,6 @@ namespace {
 				leave_seed_mode(seed_mode_t::skip_checking);
 			if (was_have_all) set_have_all(false);
 
-			// the earlier priority update happened without a picker, so apply
-			// the priorities to the new picker now
-			if (!had_picker) update_piece_priorities(m_file_priority);
-
 			bool dropped_piece = false;
 			for (file_index_t const f : newly_unloaded.range())
 			{
@@ -6308,10 +6304,12 @@ namespace {
 
 				for (piece_index_t const p : aux::file_piece_range_exclusive(fs, f))
 				{
-					if (!have_piece(p)) continue;
-
-					if (!has_picker()) need_picker();
+					bool const have = have_piece(p);
+					// the file is gone, so any partially downloaded blocks of an
+					// incomplete piece are too
 					m_picker->we_dont_have(p);
+					if (!have) continue;
+
 					if (!m_file_progress.empty()) m_file_progress.remove_piece(fs, p);
 
 					for (auto* c : m_connections)
@@ -9661,7 +9659,10 @@ namespace {
 		if (m_flags & torrent_flags::seed_mode) return true;
 		if (m_flags & torrent_internal_flags::have_all) return true;
 		if (m_picker && m_picker->is_seeding()) return true;
-		return m_state == torrent_status::seeding;
+		// the seeding state is sticky, unless a picker created after we became a
+		// seed wants pieces again (an unloaded file was re-enabled)
+		return m_state == torrent_status::seeding
+			&& (!has_picker() || m_picker->is_finished());
 	}
 
 	bool torrent::is_finished() const

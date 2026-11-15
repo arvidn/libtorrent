@@ -709,23 +709,16 @@ The benefits of this mode are:
 unloading files
 ---------------
 
-Setting a file's priority to 0 stops downloading it, but leaves any data already
-on disk in place. To also remove the file from disk, call
-torrent_handle::unload_file(). This is asynchronous; on success the file's
-priority becomes 0 and a ``file_prio_alert`` is posted. On failure a
-``file_error_alert`` is posted and the file is left untouched.
+A file with priority 0 is no longer downloaded, but its data stays on disk.
+``torrent_handle::unload_file()`` also removes it, which is the supported way to
+reclaim the space without removing the torrent or its other files. Pieces the
+file shares with other files keep their bytes, in the part file, so the torrent
+can still seed them; the rest of the file is dropped.
 
-Pieces entirely contained in the unloaded file are dropped from the torrent;
-peers are told via ``lt_donthave``. Pieces shared with other files are kept, and
-the unloaded file's share of those pieces is moved into the part file, so the
-remaining files can still be seeded. Only the shared boundary pieces are copied,
-not the whole file, so the extra disk space needed is at most the number of
-shared pieces times the piece length.
-
-The unloaded state is stored in resume data, so restarting or force-rechecking
-the torrent will not recreate the file or re-download the shared boundary
-pieces. Setting a file's priority above 0 again reloads the boundary bytes from
-the part file and downloads the rest of the file normally.
+The unloaded state is part of the resume data, so restarting, moving or
+rechecking the torrent does not recreate the file. Setting the file's priority
+above 0 again writes the preserved bytes back into it and downloads the rest.
+See unload_file() for the details and the alerts it posts.
 
 HTTP seeding
 ============

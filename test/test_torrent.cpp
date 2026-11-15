@@ -35,6 +35,7 @@ see LICENSE file.
 #include "settings.hpp"
 #include <tuple>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <atomic>
 #include <memory>
@@ -1214,6 +1215,13 @@ bool has_part_file(std::string const& dir)
 	return false;
 }
 
+std::vector<char> read_file(std::string const& path)
+{
+	std::ifstream f(path, std::ios::binary);
+	return std::vector<char>(std::istreambuf_iterator<char>(f)
+		, std::istreambuf_iterator<char>());
+}
+
 void wait_until_checked(lt::session& ses, torrent_handle const& h)
 {
 	for (int i = 0; i < 100; ++i)
@@ -1349,6 +1357,28 @@ TORRENT_TEST(unload_file_rejects_without_metadata)
 			, generic_category()));
 		TEST_CHECK(fe->op == operation_t::unknown);
 	}
+}
+
+TORRENT_TEST(unload_file_rejects_while_checking)
+{
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(unload_test_torrent());
+	wait_for_seed(ses, h);
+
+	// force_recheck() enters the checking state synchronously
+	h.force_recheck();
+	h.unload_file(0_file);
+	alert const* const a = wait_for_alert(ses, file_error_alert::alert_type
+		, "unload while checking");
+	auto const* fe = alert_cast<file_error_alert>(a);
+	TEST_CHECK(fe != nullptr);
+	if (fe)
+	{
+		TEST_EQUAL(fe->error, error_code(boost::system::errc::operation_in_progress
+			, generic_category()));
+		TEST_CHECK(fe->op == operation_t::unknown);
+	}
+	TEST_CHECK(exists("unload_test/file0"));
 }
 
 // a seed that unloads a file must not request the dropped pieces from a peer
@@ -1602,4 +1632,156 @@ TORRENT_TEST(unload_file_restart_and_recheck)
 	}
 	TEST_CHECK(!h2.have_piece(0_piece));
 	TEST_EQUAL(h2.status().total_payload_download, before);
+}
+
+// re-enabling an unloaded file must export its boundary bytes from the part
+// file and download the rest
+TORRENT_TEST(unload_file_then_reenable)
+{
+	std::filesystem::remove_all("unload_reenable");
+	std::filesystem::remove_all("unload_reenable_seed");
+
+	lt::add_torrent_params atp = unload_test_atp();
+	generate_files(*atp.ti, "unload_reenable");
+	generate_files(*atp.ti, "unload_reenable_seed");
+	atp.save_path = "unload_reenable";
+
+	settings_pack pack = settings();
+	pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
+	lt::session ses(pack);
+	torrent_handle h = ses.add_torrent(atp);
+	wait_for_seed(ses, h);
+	TEST_CHECK(h.status().is_seeding);
+
+	settings_pack seed_pack = settings();
+	seed_pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
+	lt::session seed_ses(seed_pack);
+	lt::add_torrent_params seed_atp = unload_test_atp();
+	seed_atp.save_path = "unload_reenable_seed";
+	torrent_handle seeder = seed_ses.add_torrent(seed_atp);
+	wait_for_seed(seed_ses, seeder);
+	TEST_CHECK(seeder.status().is_seeding);
+
+	h.unload_file(0_file);
+	wait_for_alert(ses, file_prio_alert::alert_type, "unload");
+	TEST_CHECK(!exists("unload_reenable/unload_test/file0"));
+
+	h.file_priority(0_file, default_priority);
+	wait_for_alert(ses, file_prio_alert::alert_type, "reenable");
+	TEST_CHECK(exists("unload_reenable/unload_test/file0"));
+	TEST_CHECK(!h.get_unloaded_files()[0]);
+
+	h.connect_peer(ep("127.0.0.1", seed_ses.listen_port()));
+	for (int i = 0; i < 300 && !(h.status().is_seeding && h.have_piece(0_piece)); ++i)
+	{
+		print_alerts(ses, "ses");
+		print_alerts(seed_ses, "seed");
+		std::this_thread::sleep_for(lt::milliseconds(100));
+	}
+
+	TEST_CHECK(h.status().is_seeding);
+	TEST_CHECK(h.have_piece(0_piece));
+	std::vector<char> const downloaded = read_file("unload_reenable/unload_test/file0");
+	std::vector<char> const original = read_file("unload_reenable_seed/unload_test/file0");
+	TEST_EQUAL(downloaded.size(), original.size());
+	TEST_CHECK(downloaded == original);
+
+	// the resume data no longer marks the file as unloaded
+	h.save_resume_data();
+	alert const* const a = wait_for_alert(ses, save_resume_data_alert::alert_type
+		, "save resume");
+	auto const* ra = alert_cast<save_resume_data_alert>(a);
+	TEST_CHECK(ra != nullptr);
+	if (!ra) return;
+	add_torrent_params const rd = read_resume_data(write_resume_data_buf(ra->params));
+	TEST_CHECK(rd.unloaded_files.empty() || !rd.unloaded_files[0]);
+}
+
+TORRENT_TEST(unload_file_all_files)
+{
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(unload_test_torrent());
+	wait_for_seed(ses, h);
+	TEST_CHECK(h.status().is_seeding);
+
+	h.unload_file(0_file);
+	wait_for_alert(ses, file_prio_alert::alert_type, "unload 0");
+	h.unload_file(1_file);
+	wait_for_alert(ses, file_prio_alert::alert_type, "unload 1");
+
+	TEST_CHECK(!exists("unload_test/file0"));
+	TEST_CHECK(!exists("unload_test/file1"));
+	auto const unloaded = h.get_unloaded_files();
+	TEST_CHECK(unloaded.size() >= 2);
+	if (unloaded.size() >= 2)
+	{
+		TEST_CHECK(unloaded[0]);
+		TEST_CHECK(unloaded[1]);
+	}
+	TEST_CHECK(!h.status().errc);
+	TEST_CHECK(!h.have_piece(0_piece));
+	TEST_CHECK(h.status().total_wanted_done == h.status().total_wanted);
+
+	// both files stay unloaded across a resume round-trip
+	h.save_resume_data();
+	alert const* const a = wait_for_alert(ses, save_resume_data_alert::alert_type
+		, "save resume");
+	auto const* ra = alert_cast<save_resume_data_alert>(a);
+	TEST_CHECK(ra != nullptr);
+	if (!ra) return;
+	add_torrent_params const rd = read_resume_data(write_resume_data_buf(ra->params));
+	TEST_CHECK(rd.unloaded_files.size() >= 2);
+	if (rd.unloaded_files.size() < 2) return;
+	TEST_CHECK(rd.unloaded_files[0]);
+	TEST_CHECK(rd.unloaded_files[1]);
+}
+
+// an unload commit and a resume save in flight at the same time must not
+// produce resume data that claims a file is unloaded but still wanted
+TORRENT_TEST(unload_file_in_flight_resume_save)
+{
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(unload_test_torrent());
+	wait_for_seed(ses, h);
+
+	h.save_resume_data();
+	h.unload_file(0_file);
+
+	std::vector<char> resume_buf;
+	bool saw_unload = false;
+	bool const got_both = wait_for_alert(ses, "unload + save resume"
+		, [&](alert const* a)
+		{
+			if (auto const* ra = alert_cast<save_resume_data_alert>(a))
+				resume_buf = write_resume_data_buf(ra->params);
+			if (alert_cast<file_prio_alert>(a)) saw_unload = true;
+			return saw_unload && !resume_buf.empty();
+		}, seconds(10));
+	TEST_CHECK(got_both);
+	if (!got_both) return;
+
+	// whichever side committed first, the resume data must not claim a file is
+	// unloaded while it still has a priority
+	add_torrent_params const rd = read_resume_data(resume_buf);
+	for (std::size_t i = 0; i < rd.unloaded_files.size(); ++i)
+	{
+		if (!rd.unloaded_files[i]) continue;
+		TEST_CHECK(i >= rd.file_priorities.size()
+			|| rd.file_priorities[i] == dont_download);
+	}
+
+	// a save after the unload committed reflects the unloaded file
+	h.save_resume_data();
+	alert const* const a = wait_for_alert(ses, save_resume_data_alert::alert_type
+		, "save resume after unload");
+	auto const* ra = alert_cast<save_resume_data_alert>(a);
+	TEST_CHECK(ra != nullptr);
+	if (!ra) return;
+	add_torrent_params const rd2 = read_resume_data(write_resume_data_buf(ra->params));
+	TEST_CHECK(!rd2.unloaded_files.empty());
+	if (rd2.unloaded_files.empty()) return;
+	TEST_CHECK(rd2.unloaded_files[0]);
+	TEST_CHECK(!rd2.file_priorities.empty());
+	if (!rd2.file_priorities.empty())
+		TEST_EQUAL(rd2.file_priorities[0], dont_download);
 }

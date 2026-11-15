@@ -686,10 +686,15 @@ TORRENT_TEST(unload_file_transfer)
 	address const peer1 = addr("50.0.0.2");
 
 	// file 0: two interior pieces + half of the shared boundary piece
-	// file 1: the other half of the boundary piece + one interior piece
-	lt::add_torrent_params const atp = test_torrent(make_files(
-		{{2 * 0x4000 + 0x2000, false}, {0x4000 + 0x2000, false}})
-		, 0x4000, lt::create_torrent::v1_only);
+	// file 1: the other half of the boundary piece + one interior piece.
+	// The seed uses the real disk, so the files exist and the hashes are
+	// calculated from them.
+	static std::array<int, 2> const unload_sizes{{2 * 0x4000 + 0x2000, 0x4000 + 0x2000}};
+	std::vector<lt::create_file_entry> const files = create_random_files(
+		"unload_seed", unload_sizes);
+	lt::create_torrent ct(files, 0x4000, lt::create_torrent::v1_only);
+	set_piece_hashes(ct, ".");
+	lt::add_torrent_params const atp = lt::load_torrent_buffer(lt::bencode(ct.generate()));
 
 	std::string const downloader_path = "unload_downloader";
 

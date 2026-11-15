@@ -374,6 +374,22 @@ TORRENT_TEST(unloaded_files_resume_round_trip)
 		TEST_EQUAL(loaded.file_priorities[0], dont_download);
 }
 
+TORRENT_TEST(unloaded_files_resume_clears_seed_mode)
+{
+	add_torrent_params const atp = generate_torrent();
+	add_torrent_params p;
+	p.ti = atp.ti;
+	p.flags |= torrent_flags::seed_mode;
+	p.unloaded_files.resize(std::size_t(p.ti->num_files()), false);
+	p.unloaded_files[0] = true;
+
+	add_torrent_params const loaded = read_resume_data(write_resume_data_buf(p));
+
+	TEST_CHECK(!(loaded.flags & torrent_flags::seed_mode));
+	TEST_CHECK(loaded.unloaded_files.size() > 0);
+	if (!loaded.unloaded_files.empty()) TEST_CHECK(loaded.unloaded_files[0]);
+}
+
 TORRENT_TEST(test_non_metadata)
 {
 	lt::session ses(settings());
