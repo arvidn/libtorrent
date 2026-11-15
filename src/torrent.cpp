@@ -2064,14 +2064,15 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 				}
 			}
 
-			std::vector<resolve_links::link_t> const& l = res.get_links();
+			auto const& l = res.get_links();
 			if (!l.empty())
 			{
 				links.resize(m_torrent_file->files().num_files());
-				for (auto const& i : l)
+				for (auto const f : m_torrent_file->files().file_range())
 				{
+					auto const& i = l[f];
 					if (!i.ti) continue;
-					links[i.file_idx] = combine_path(i.save_path
+					links[f] = combine_path(i.save_path
 						, i.ti->files().file_path(i.file_idx));
 				}
 			}
@@ -2644,9 +2645,17 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 			// if the v1 hash failed the check, don't add the v2 hashes to the
 			// merkle tree. They are most likely invalid.
-			if (torrent_file().info_hashes().has_v2() && !bool(hash_passed[0] == false))
+			// Unless the piece hash is already known, then nothing is stored on
+			// failure. A v2 pass means the v1 and v2 hashes are inconsistent,
+			// which is an error, not a missing piece
+			if (torrent_file().info_hashes().has_v2())
 			{
-				hash_passed[1] = on_blocks_hashed(piece, block_hashes);
+				need_hash_picker();
+				if (!bool(hash_passed[0] == false)
+					|| get_hash_picker().have_hash(piece))
+				{
+					hash_passed[1] = on_blocks_hashed(piece, block_hashes);
+				}
 			}
 		}
 		else
