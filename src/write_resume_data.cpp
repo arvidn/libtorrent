@@ -269,6 +269,13 @@ namespace {
 				prio.emplace_back(static_cast<std::uint8_t>(p));
 		}
 
+		if (!atp.unloaded_files.empty())
+		{
+			entry::list_type& unloaded = ret["unloaded"].list();
+			for (std::size_t i = 0; i < atp.unloaded_files.size(); ++i)
+				if (atp.unloaded_files[i]) unloaded.emplace_back(static_cast<int>(i));
+		}
+
 		if (!atp.piece_priorities.empty())
 		{
 			// write piece priorities

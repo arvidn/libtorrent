@@ -408,6 +408,10 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 		TORRENT_ASSERT(is_single_thread());
 		m_file_priority.assign(p.file_priorities.begin(), p.file_priorities.end());
+		m_unloaded_files.assign(p.unloaded_files.begin(), p.unloaded_files.end());
+		if (std::find(m_unloaded_files.begin(), m_unloaded_files.end(), true)
+			!= m_unloaded_files.end())
+			m_flags &= ~torrent_flags::seed_mode;
 
 		if (m_flags & torrent_flags::seed_mode)
 		{
@@ -1334,7 +1338,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		set_sequential_range(first_piece, last_piece);
 	}
 
-	void torrent::need_picker()
+	void torrent::need_picker(bool const for_unload)
 	{
 		if (m_picker) return;
 
@@ -1344,8 +1348,9 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		INVARIANT_CHECK;
 
 		// if we have all pieces we should not have a picker
-		// unless we're in suggest mode
-		TORRENT_ASSERT(!(m_flags & torrent_internal_flags::have_all)
+		// unless we're in suggest mode or materializing one to unload a file
+		TORRENT_ASSERT(for_unload
+			|| !(m_flags & torrent_internal_flags::have_all)
 			|| settings().get_int(settings_pack::suggest_mode)
 				== settings_pack::suggest_read_cache);
 
@@ -1945,6 +1950,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			m_part_file_dir,
 			static_cast<storage_mode_t>(m_storage_mode),
 			m_file_priority,
+			m_unloaded_files,
 			m_info_hash.get_best(),
 			m_torrent_file->v1() && !(m_flags & torrent_flags::disable_v1_hashes),
 			m_torrent_file->v2(),
@@ -2000,6 +2006,16 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			m_file_priority.resize(m_torrent_file->num_files());
 		else if (m_flags & torrent_flags::default_dont_download)
 			m_file_priority.resize(m_torrent_file->num_files(), dont_download);
+
+		if (int(m_unloaded_files.size()) > m_torrent_file->num_files())
+			m_unloaded_files.resize(m_torrent_file->num_files());
+		for (file_index_t const i : m_unloaded_files.range())
+		{
+			if (!m_unloaded_files[i]) continue;
+			if (m_file_priority.end_index() <= i)
+				m_file_priority.resize(static_cast<int>(i) + 1, default_priority);
+			m_file_priority[i] = dont_download;
+		}
 
 		std::string_view cert = !m_add_torrent_params->root_certificate.empty()
 			? m_add_torrent_params->root_certificate
@@ -6182,11 +6198,73 @@ namespace {
 		}
 	}
 
+	void torrent::dispatch_file_priority(aux::vector<download_priority_t, file_index_t> prios
+		, aux::vector<bool, file_index_t> unloaded, bool const include_have)
+	{
+		INVARIANT_CHECK;
+
+		if (!m_storage)
+		{
+			m_file_priority = std::move(prios);
+			m_unloaded_files = std::move(unloaded);
+			set_need_save_resume(torrent_handle::if_config_changed);
+			return;
+		}
+
+		typed_bitfield<piece_index_t> have;
+		if (include_have && valid_metadata())
+		{
+			int const num_pieces = m_torrent_file->num_pieces();
+			if (m_flags & torrent_internal_flags::have_all)
+			{
+				have.resize(num_pieces, true);
+			}
+			else if (has_picker())
+			{
+				have.resize(num_pieces, false);
+				for (piece_index_t const p : m_torrent_file->piece_range())
+					if (m_picker->have_piece(p)) have.set_bit(p);
+			}
+			else
+			{
+				have.resize(num_pieces, false);
+			}
+		}
+
+		m_flags |= torrent_internal_flags::outstanding_file_priority;
+		ADD_OUTSTANDING_ASYNC("file_priority");
+		m_ses.disk_thread().async_set_file_priority(m_storage
+			, std::move(prios)
+			, std::move(unloaded)
+			, std::move(have)
+			, [self = shared_from_this()] (storage_error const& ec
+				, aux::vector<download_priority_t, file_index_t> p
+				, aux::vector<bool, file_index_t> u)
+			{ self->on_file_priority(ec, std::move(p), std::move(u)); });
+		m_ses.deferred_submit_jobs();
+	}
+
 	void torrent::on_file_priority(storage_error const& err
-		, aux::vector<download_priority_t, file_index_t> prios)
+		, aux::vector<download_priority_t, file_index_t> prios
+		, aux::vector<bool, file_index_t> unloaded)
 	{
 		m_flags &= ~torrent_internal_flags::outstanding_file_priority;
 		COMPLETE_ASYNC("file_priority");
+
+		aux::vector<bool, file_index_t> newly_unloaded;
+		if (valid_metadata())
+		{
+			int const num_files = (std::max)(int(prios.size()), int(unloaded.size()));
+			for (int idx = 0; idx < num_files; ++idx)
+			{
+				file_index_t const i(idx);
+				bool const was_unloaded = i < m_unloaded_files.end_index() && m_unloaded_files[i];
+				bool const is_unloaded = i < unloaded.end_index() && unloaded[i];
+				if (was_unloaded || !is_unloaded) continue;
+				if (newly_unloaded.empty()) newly_unloaded.resize(num_files, false);
+				newly_unloaded[i] = true;
+			}
+		}
 
 		if (m_file_priority != prios)
 		{
@@ -6196,6 +6274,64 @@ namespace {
 #ifndef TORRENT_DISABLE_SHARE_MODE
 			if (m_flags & torrent_flags::share_mode) recalc_share_mode();
 #endif
+		}
+
+		if (m_unloaded_files != unloaded)
+		{
+			m_unloaded_files = std::move(unloaded);
+			set_need_save_resume(torrent_handle::if_config_changed);
+		}
+
+		if (!newly_unloaded.empty())
+		{
+			file_storage const& fs = m_torrent_file->layout();
+			bool const was_have_all = bool(m_flags & torrent_internal_flags::have_all);
+
+			// a finished torrent has no picker. Materialize one while have_all
+			// is still set, then clear have_all, before dropping pieces.
+			if (was_have_all && !has_picker()) need_picker(true);
+			if (m_flags & torrent_flags::seed_mode)
+				leave_seed_mode(seed_mode_t::skip_checking);
+			if (was_have_all) set_have_all(false);
+
+			bool dropped_piece = false;
+			for (file_index_t const f : newly_unloaded.range())
+			{
+				if (!newly_unloaded[f]) continue;
+
+				for (piece_index_t const p : aux::file_piece_range_exclusive(fs, f))
+				{
+					if (!have_piece(p)) continue;
+
+					if (!has_picker()) need_picker();
+					m_picker->we_dont_have(p);
+					if (!m_file_progress.empty()) m_file_progress.remove_piece(fs, p);
+
+					for (auto* c : m_connections)
+					{
+						auto peer = c->self();
+						if (peer->is_disconnecting()) continue;
+						peer->write_dont_have(p);
+					}
+					dropped_piece = true;
+				}
+			}
+
+			if (dropped_piece)
+			{
+				update_gauge();
+				// dropping pieces can end a seeding state. finished() recomputes
+				// the state without treating the torrent as a seed anymore
+				if (m_state != torrent_status::finished && is_finished())
+					finished();
+				else
+				{
+					update_state_timers();
+					state_updated();
+					update_want_tick();
+				}
+				set_need_save_resume(torrent_handle::if_download_progress);
+			}
 		}
 
 		if (err)
@@ -6215,25 +6351,43 @@ namespace {
 
 		// apply queued priorities even on failure; m_file_priority reflects
 		// the storage's actual state, and m_storage stays valid after pause()
-		if (!m_deferred_file_priorities.empty()
+		if ((!m_deferred_file_priorities.empty() || !m_deferred_unloads.empty())
 			&& !(m_flags & torrent_internal_flags::torrent_aborted))
 		{
 			auto new_priority = m_file_priority;
-			// resize the vector if we have to. The last item in the map has the
-			// highest file index.
-			auto const max_idx = std::prev(m_deferred_file_priorities.end())->first;
-			if (new_priority.end_index() <= max_idx)
-			{
-				// any unallocated slot is assumed to have the default priority
-				new_priority.resize(static_cast<int>(max_idx) + 1, default_priority);
-			}
+			auto new_unloaded = m_unloaded_files;
+
+			int max_idx = -1;
+			for (auto const& p : m_deferred_file_priorities)
+				max_idx = (std::max)(max_idx, static_cast<int>(p.first));
+			for (file_index_t const f : m_deferred_unloads)
+				max_idx = (std::max)(max_idx, static_cast<int>(f));
+			if (new_priority.end_index() <= file_index_t(max_idx))
+				new_priority.resize(max_idx + 1, default_priority);
+			if (new_unloaded.end_index() <= file_index_t(max_idx))
+				new_unloaded.resize(max_idx + 1, false);
+
 			for (auto const& p : m_deferred_file_priorities)
 			{
-				file_index_t const index = p.first;
-				download_priority_t const prio = p.second;
-				new_priority[index] = prio;
+				new_priority[p.first] = p.second;
+				if (p.second != dont_download) new_unloaded[p.first] = false;
 			}
-			prioritize_files(std::move(new_priority));
+
+			bool include_have = false;
+			for (file_index_t const f : m_deferred_unloads)
+			{
+				new_priority[f] = dont_download;
+				if (f >= m_unloaded_files.end_index() || !m_unloaded_files[f])
+				{
+					new_unloaded[f] = true;
+					include_have = true;
+				}
+			}
+
+			m_deferred_file_priorities.clear();
+			m_deferred_unloads.clear();
+			dispatch_file_priority(std::move(new_priority)
+				, std::move(new_unloaded), include_have);
 		}
 	}
 
@@ -6243,6 +6397,14 @@ namespace {
 
 		auto new_priority = fix_priorities(std::move(files)
 			, valid_metadata() ? &m_torrent_file->layout() : nullptr);
+
+		auto new_unloaded = m_unloaded_files;
+		for (file_index_t const i : new_priority.range())
+		{
+			if (new_priority[i] == dont_download) continue;
+			if (i < new_unloaded.end_index()) new_unloaded[i] = false;
+			m_deferred_unloads.erase(i);
+		}
 
 		// if a file_priority disk job is already in flight, don't queue up
 		// another one behind it. Merge into the deferred priorities instead,
@@ -6258,27 +6420,7 @@ namespace {
 		m_deferred_file_priorities.clear();
 
 		// storage may be NULL during shutdown
-		if (m_storage)
-		{
-			// the update of m_file_priority is deferred until the disk job comes
-			// back, but to preserve sanity and consistency, the piece priorities are
-			// updated immediately. If, on the off-chance, there's a disk failure, the
-			// piece priorities still stay the same, but the file priorities are
-			// possibly not fully updated.
-
-			m_flags |= torrent_internal_flags::outstanding_file_priority;
-			ADD_OUTSTANDING_ASYNC("file_priority");
-			m_ses.disk_thread().async_set_file_priority(m_storage
-				, std::move(new_priority)
-				, [self = shared_from_this()] (storage_error const& ec, aux::vector<download_priority_t, file_index_t> p)
-				{ self->on_file_priority(ec, std::move(p)); });
-			m_ses.deferred_submit_jobs();
-		}
-		else
-		{
-			m_file_priority = std::move(new_priority);
-			set_need_save_resume(torrent_handle::if_config_changed);
-		}
+		dispatch_file_priority(std::move(new_priority), std::move(new_unloaded), false);
 	}
 
 	void torrent::set_file_priority(file_index_t const index
@@ -6300,6 +6442,7 @@ namespace {
 		if (m_flags & torrent_internal_flags::outstanding_file_priority)
 		{
 			m_deferred_file_priorities[index] = prio;
+			if (prio != dont_download) m_deferred_unloads.erase(index);
 			return;
 		}
 
@@ -6312,22 +6455,61 @@ namespace {
 
 		new_priority[index] = prio;
 
-		// storage may be nullptr during shutdown
-		if (m_storage)
+		auto new_unloaded = m_unloaded_files;
+		if (prio != dont_download)
 		{
-			m_flags |= torrent_internal_flags::outstanding_file_priority;
-			ADD_OUTSTANDING_ASYNC("file_priority");
-			m_ses.disk_thread().async_set_file_priority(m_storage
-				, std::move(new_priority)
-				, [self = shared_from_this()] (storage_error const& ec, aux::vector<download_priority_t, file_index_t> p)
-				{ self->on_file_priority(ec, std::move(p)); });
-			m_ses.deferred_submit_jobs();
+			if (index < new_unloaded.end_index()) new_unloaded[index] = false;
+			m_deferred_unloads.erase(index);
 		}
-		else
+
+		dispatch_file_priority(std::move(new_priority), std::move(new_unloaded), false);
+	}
+
+	void torrent::unload_file(file_index_t const index)
+	{
+		INVARIANT_CHECK;
+
+		if (index < file_index_t(0)
+			|| (valid_metadata() && index >= m_torrent_file->layout().end_file()))
 		{
-			m_file_priority = std::move(new_priority);
-			set_need_save_resume(torrent_handle::if_config_changed);
+			return;
 		}
+
+		if (valid_metadata() && m_torrent_file->layout().pad_file_at(index)) return;
+		if (index < m_unloaded_files.end_index() && m_unloaded_files[index]) return;
+
+		// a running check or move would race the unlink and the storage state
+		if (m_flags & (torrent_internal_flags::torrent_aborted
+			| torrent_internal_flags::moving_storage))
+			return;
+		if (state() == torrent_status::checking_files
+			|| state() == torrent_status::checking_resume_data)
+			return;
+
+		if (m_flags & torrent_internal_flags::outstanding_file_priority)
+		{
+			m_deferred_unloads.insert(index);
+			return;
+		}
+
+		auto new_priority = m_file_priority;
+		if (new_priority.end_index() <= index)
+			new_priority.resize(static_cast<int>(index) + 1, default_priority);
+		new_priority[index] = dont_download;
+
+		auto new_unloaded = m_unloaded_files;
+		if (new_unloaded.end_index() <= index)
+			new_unloaded.resize(static_cast<int>(index) + 1, false);
+		new_unloaded[index] = true;
+
+		dispatch_file_priority(std::move(new_priority), std::move(new_unloaded), true);
+	}
+
+	void torrent::unloaded_files(aux::vector<bool, file_index_t>* files) const
+	{
+		INVARIANT_CHECK;
+		files->assign(m_unloaded_files.begin(), m_unloaded_files.end());
+		if (valid_metadata()) files->resize(m_torrent_file->num_files(), false);
 	}
 
 	download_priority_t torrent::file_priority(file_index_t const index) const
@@ -7883,6 +8065,9 @@ namespace {
 			// write file priorities
 			ret.file_priorities = m_file_priority;
 		}
+
+		if (!m_unloaded_files.empty())
+			ret.unloaded_files.assign(m_unloaded_files.begin(), m_unloaded_files.end());
 
 		if (valid_metadata() && has_picker())
 		{

@@ -191,6 +191,13 @@ TORRENT_VERSION_NAMESPACE_3
 		// setting the default_dont_download torrent_flag.
 		std::vector<download_priority_t> file_priorities;
 
+		// files that have been unloaded. An unloaded file has its contents
+		// removed from disk; only bytes of pieces shared with other files are
+		// kept in the part file. A set element implies the file's priority is
+		// ``dont_download``. The vector is indexed by file index and may be
+		// shorter than the number of files.
+		std::vector<bool> unloaded_files;
+
 		// torrent extension construction functions can be added to this vector
 		// to have them be added immediately when the torrent is constructed.
 		// This may be desired over the torrent_handle::add_extension() in order

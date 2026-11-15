@@ -529,6 +529,9 @@ The file format is a bencoded dictionary containing the following fields:
 | ``file_priority``        | list of integers. One entry per file in the torrent. Each    |
 |                          | entry is the priority of the file with the same index.       |
 +--------------------------+--------------------------------------------------------------+
+| ``unloaded``             | list of integers. File indices whose contents have been      |
+|                          | unloaded with torrent_handle::unload_file().                 |
++--------------------------+--------------------------------------------------------------+
 | ``piece_priority``       | string of bytes. Each byte is interpreted as an integer and  |
 |                          | is the priority of that piece.                               |
 +--------------------------+--------------------------------------------------------------+
@@ -702,6 +705,27 @@ The benefits of this mode are:
 
  * No risk of a download failing because of a full disk during download, once
    all files have been created.
+
+unloading files
+---------------
+
+Setting a file's priority to 0 stops downloading it, but leaves any data already
+on disk in place. To also remove the file from disk, call
+torrent_handle::unload_file(). This is asynchronous; on success the file's
+priority becomes 0 and a ``file_prio_alert`` is posted. On failure a
+``file_error_alert`` is posted and the file is left untouched.
+
+Pieces entirely contained in the unloaded file are dropped from the torrent;
+peers are told via ``lt_donthave``. Pieces shared with other files are kept, and
+the unloaded file's share of those pieces is moved into the part file, so the
+remaining files can still be seeded. Only the shared boundary pieces are copied,
+not the whole file, so the extra disk space needed is at most the number of
+shared pieces times the piece length.
+
+The unloaded state is stored in resume data, so restarting or force-rechecking
+the torrent will not recreate the file or re-download the shared boundary
+pieces. Setting a file's priority above 0 again reloads the boundary bytes from
+the part file and downloads the rest of the file normally.
 
 HTTP seeding
 ============

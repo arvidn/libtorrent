@@ -1197,13 +1197,32 @@ namespace aux {
 		// both. When loading the resume data, the file priorities will be applied
 		// first, then the piece priorities.
 		//
-		// Moving data from a file into the part file is currently not
-		// supported. If a file has its priority set to 0 *after* it has already
-		// been created, it will not be moved into the partfile.
+		// Setting a file's priority to 0 leaves its downloaded data on disk.
+		// Use ``unload_file()`` to also remove the file from disk.
 		void file_priority(file_index_t index, download_priority_t priority) const;
 		download_priority_t file_priority(file_index_t index) const;
 		void prioritize_files(std::vector<download_priority_t> const& files) const;
 		std::vector<download_priority_t> get_file_priorities() const;
+
+		// Removes file ``index`` from disk and marks it as unloaded. The file's
+		// priority becomes ``dont_download``. Bytes belonging to pieces shared
+		// with other files are preserved in the part file; pieces entirely
+		// contained in this file are dropped and peers are told via
+		// ``lt_donthave``. Pieces shared with other files remain available for
+		// seeding.
+		//
+		// This is asynchronous. On success a ``file_prio_alert`` is posted. On
+		// failure a ``file_error_alert`` is posted and the file and its priority
+		// are left unchanged.
+		//
+		// The unloaded state is saved in resume data. Loading such resume data
+		// keeps using the part file and will not recreate the file, also not on a
+		// forced recheck.
+		void unload_file(file_index_t index) const;
+
+		// Returns one element per file; a set element means the file has been
+		// unloaded with ``unload_file()``.
+		std::vector<bool> get_unloaded_files() const;
 
 		// ``post_file_priorities()`` will trigger a file_priorities_alert to be
 		// posted, containing the download priority of each file in the torrent.

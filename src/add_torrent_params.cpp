@@ -39,6 +39,7 @@ namespace aux {
 	bool contains_resume_data(add_torrent_params const& atp)
 	{
 		return !atp.have_pieces.empty()
+			|| !atp.unloaded_files.empty()
 			|| (atp.flags & torrent_flags::seed_mode);
 	}
 }

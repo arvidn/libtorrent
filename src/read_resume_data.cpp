@@ -396,6 +396,25 @@ namespace {
 			}
 		}
 
+		bdecode_node const unloaded_list = rd.dict_find_list("unloaded");
+		if (unloaded_list)
+		{
+			for (bdecode_node const item : unloaded_list.list_items())
+			{
+				if (item.type() != bdecode_node::int_t) continue;
+				std::int64_t const idx = item.int_value();
+				if (idx < 0 || idx > std::numeric_limits<int>::max()) continue;
+				auto const i = aux::numeric_cast<std::size_t>(idx);
+				if (ret.unloaded_files.size() <= i)
+					ret.unloaded_files.resize(i + 1, false);
+				ret.unloaded_files[i] = true;
+				if (ret.file_priorities.size() <= i)
+					ret.file_priorities.resize(i + 1, default_priority);
+				ret.file_priorities[i] = dont_download;
+				ret.flags &= ~torrent_flags::seed_mode;
+			}
+		}
+
 		bdecode_node const trackers = rd.dict_find_list("trackers");
 		if (trackers)
 		{
