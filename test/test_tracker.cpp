@@ -1126,6 +1126,81 @@ TORRENT_TEST(websocket_tracker_bare_failure_keeps_connection)
 	}
 	stop_websocket_server();
 }
+
+namespace {
+
+lt::settings_pack websocket_tracker_proxy_settings(
+	bool const proxy_peers, bool const proxy_trackers)
+{
+	settings_pack pack = websocket_tracker_settings();
+	// nothing listens here, these tests don't need a working proxy
+	pack.set_int(settings_pack::proxy_type, settings_pack::socks5);
+	pack.set_str(settings_pack::proxy_hostname, "127.0.0.1");
+	pack.set_int(settings_pack::proxy_port, 1);
+	pack.set_bool(settings_pack::proxy_peer_connections, proxy_peers);
+	pack.set_bool(settings_pack::proxy_tracker_connections, proxy_trackers);
+	return pack;
+}
+
+void test_websocket_tracker_skipped_with_proxy(bool const proxy_peers, bool const proxy_trackers)
+{
+	int const port = start_websocket_server();
+	{
+		lt::session s(websocket_tracker_proxy_settings(proxy_peers, proxy_trackers));
+		torrent_handle const h =
+			add_websocket_tracker_torrent(s, "tmp_ws_proxy_tracker", websocket_tracker_url(port));
+
+		auto const counts = count_tracker_alerts(s, seconds(3));
+		TEST_EQUAL(counts.replies, 0);
+		TEST_EQUAL(counts.errors, 0);
+		TEST_CHECK(h.status().current_tracker.empty());
+	}
+	stop_websocket_server();
+}
+
+} // anonymous namespace
+
+TORRENT_TEST(websocket_tracker_skipped_with_peer_proxy)
+{
+	test_websocket_tracker_skipped_with_proxy(true, false);
+}
+
+TORRENT_TEST(websocket_tracker_skipped_with_tracker_proxy)
+{
+	test_websocket_tracker_skipped_with_proxy(false, true);
+}
+
+#if TORRENT_USE_I2P
+// a websocket tracker on an i2p destination is skipped, rather than attempted
+// and failed
+TORRENT_TEST(websocket_tracker_i2p_skipped)
+{
+	lt::session s(websocket_tracker_settings());
+	torrent_handle const h =
+		add_websocket_tracker_torrent(s, "tmp_ws_i2p_tracker", "ws://tracker.i2p/announce");
+
+	auto const counts = count_tracker_alerts(s, seconds(3));
+	TEST_EQUAL(counts.replies, 0);
+	TEST_EQUAL(counts.errors, 0);
+	TEST_CHECK(h.status().current_tracker.empty());
+}
+#endif
+
+// a configured proxy that's used for neither peers nor trackers doesn't
+// disable websocket trackers
+TORRENT_TEST(websocket_tracker_used_with_unused_proxy)
+{
+	int const port = start_websocket_server();
+	{
+		lt::session s(websocket_tracker_proxy_settings(false, false));
+		add_websocket_tracker_torrent(s, "tmp_ws_noproxy_tracker", websocket_tracker_url(port));
+
+		auto const counts = count_tracker_alerts(s, seconds(3));
+		TEST_EQUAL(counts.replies, 2);
+		TEST_EQUAL(counts.errors, 0);
+	}
+	stop_websocket_server();
+}
 #endif
 
 namespace {
