@@ -82,7 +82,7 @@ namespace {
 		void operator()(job::file_priority& j) const
 		{
 			if (!j.handler) return;
-			j.handler(m_job.error, std::move(j.prio));
+			j.handler(m_job.error, std::move(j.prio), std::move(j.unloaded));
 		}
 
 		void operator()(job::clear_piece& j) const

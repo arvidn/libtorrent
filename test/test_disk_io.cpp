@@ -70,6 +70,7 @@ static lt::storage_holder add_test_torrent(lt::disk_interface& disk,
 	bool const disable_hash_checks = false)
 {
 	lt::aux::vector<lt::download_priority_t, lt::file_index_t> priorities;
+	lt::aux::vector<bool, lt::file_index_t> unloaded;
 	lt::renamed_files rf;
 	lt::storage_params const params{
 		fs,
@@ -78,6 +79,7 @@ static lt::storage_holder add_test_torrent(lt::disk_interface& disk,
 		{},
 		lt::storage_mode_t::storage_mode_sparse,
 		priorities,
+		unloaded,
 		lt::sha1_hash{},
 		v1,
 		v2,
@@ -785,6 +787,7 @@ static void clear_during_flush_impl(
 	lt::aux::vector<lt::download_priority_t, lt::file_index_t> priorities;
 	std::string const name = "clear_during_flush_store";
 	lt::renamed_files rf;
+	lt::aux::vector<bool, lt::file_index_t> unloaded;
 	lt::storage_params params{
 		fs,
 		rf,
@@ -792,6 +795,7 @@ static void clear_during_flush_impl(
 		{},
 		lt::storage_mode_t::storage_mode_sparse,
 		priorities,
+		unloaded,
 		lt::sha1_hash{},
 		bool(flags & test_mode::v1),
 		bool(flags & test_mode::v2),
@@ -1499,6 +1503,7 @@ TORRENT_TEST(pread_disk_io_collect_read_batch)
 	fs.set_num_pieces(1);
 
 	lt::aux::vector<lt::download_priority_t, lt::file_index_t> priorities;
+	lt::aux::vector<bool, lt::file_index_t> unloaded;
 	lt::renamed_files rf;
 	lt::storage_params const params{
 		fs,
@@ -1507,6 +1512,7 @@ TORRENT_TEST(pread_disk_io_collect_read_batch)
 		{},
 		lt::storage_mode_t::storage_mode_sparse,
 		priorities,
+		unloaded,
 		lt::sha1_hash{},
 		true,
 		false,

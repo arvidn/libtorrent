@@ -342,10 +342,21 @@ namespace file_open_mode {
 		// ``prio`` is a vector of the file priority for all files. If it's
 		// shorter than the total number of files in the torrent, they are
 		// assumed to be set to the default priority.
+		//
+		// ``unloaded`` is a per-file flag. A file transitioning to unloaded has
+		// its contents removed from disk, moving only the bytes of pieces shared
+		// with other files into the part file. Such a file always has priority
+		// ``dont_download``. ``have`` tells the storage which pieces actually
+		// contain data, so it does not need to copy pieces that are not
+		// downloaded. Both vectors are returned reflecting the state actually
+		// committed; on error the affected entries are reverted.
 		virtual void async_set_file_priority(storage_index_t storage
 			, aux::vector<download_priority_t, file_index_t> prio
+			, aux::vector<bool, file_index_t> unloaded
+			, typed_bitfield<piece_index_t> have
 			, std::function<void(storage_error const&
-				, aux::vector<download_priority_t, file_index_t>)> handler) = 0;
+				, aux::vector<download_priority_t, file_index_t>
+				, aux::vector<bool, file_index_t>)> handler) = 0;
 
 		// This is called when a piece fails the hash check, to ensure there are
 		// no outstanding disk operations to the piece before blocks are

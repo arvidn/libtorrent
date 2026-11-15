@@ -54,6 +54,9 @@ namespace libtorrent::aux {
 		void update(file_storage const& fs, piece_index_t index
 			, std::function<void(file_index_t)> const& completed_cb);
 
+		// remove the bytes of a piece we no longer have
+		void remove_piece(file_storage const& fs, piece_index_t index);
+
 #if TORRENT_USE_INVARIANT_CHECKS
 		bool have_piece(piece_index_t index) const
 		{

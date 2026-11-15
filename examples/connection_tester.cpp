@@ -1683,6 +1683,7 @@ void generate_data(std::string const path, torrent_info const& ti)
 	file_storage const& fs = ti.layout();
 
 	aux::vector<download_priority_t, file_index_t> priorities;
+	aux::vector<bool, file_index_t> unloaded;
 	sha1_hash info_hash;
 	renamed_files rf;
 	storage_params params{
@@ -1692,6 +1693,7 @@ void generate_data(std::string const path, torrent_info const& ti)
 		{},
 		storage_mode_sparse,
 		priorities,
+		unloaded,
 		info_hash,
 		ti.v1(),
 		ti.v2(),

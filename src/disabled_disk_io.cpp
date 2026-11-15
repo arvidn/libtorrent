@@ -136,11 +136,15 @@ struct TORRENT_EXTRA_EXPORT disabled_disk_io final
 
 	void async_set_file_priority(storage_index_t
 		, aux::vector<download_priority_t, file_index_t> prio
+		, aux::vector<bool, file_index_t> unloaded
+		, typed_bitfield<piece_index_t>
 		, std::function<void(storage_error const&
-			, aux::vector<download_priority_t, file_index_t>)> handler) override
+			, aux::vector<download_priority_t, file_index_t>
+			, aux::vector<bool, file_index_t>)> handler) override
 	{
-		post(m_ios, [h = std::move(handler), p = std::move(prio)] () mutable
-			{ h(storage_error{}, std::move(p)); });
+		post(m_ios, [h = std::move(handler), p = std::move(prio)
+			, u = std::move(unloaded)] () mutable
+			{ h(storage_error{}, std::move(p), std::move(u)); });
 	}
 
 	void async_clear_piece(storage_index_t

@@ -148,6 +148,7 @@ void generate_files(lt::torrent_info const& ti, std::string const& path
 {
 	aux::vector<download_priority_t, file_index_t> priorities;
 	renamed_files rf;
+	aux::vector<bool, file_index_t> unloaded;
 	storage_params params{
 		ti.layout(),
 		rf,
@@ -155,6 +156,7 @@ void generate_files(lt::torrent_info const& ti, std::string const& path
 		{},
 		storage_mode_t::storage_mode_sparse,
 		priorities,
+		unloaded,
 		sha1_hash{},
 		true, // v1-hashes
 		true // v2-hashes

@@ -111,6 +111,7 @@ void hash_job_retry_test(lt::disk_io_constructor_type disk_io
 
 	lt::aux::vector<lt::download_priority_t, lt::file_index_t> priorities;
 	lt::renamed_files rf;
+	lt::aux::vector<bool, lt::file_index_t> unloaded;
 	lt::storage_params params{
 		fs,
 		rf,
@@ -118,6 +119,7 @@ void hash_job_retry_test(lt::disk_io_constructor_type disk_io
 		{},
 		lt::storage_mode_t::storage_mode_sparse,
 		priorities,
+		unloaded,
 		lt::sha1_hash{},
 		true,  // v1
 		false, // v2

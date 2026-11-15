@@ -49,6 +49,7 @@ posix_storage::posix_storage(storage_params const& p)
 	, m_save_path(p.path)
 	, m_part_file_dir(p.part_file_dir)
 	, m_file_priority(p.priorities)
+	, m_unloaded(p.unloaded_files)
 	, m_part_file_name("." + to_hex(p.info_hash) + ".parts")
 {}
 
@@ -69,14 +70,20 @@ posix_storage::~posix_storage()
 			, files().num_pieces(), files().piece_length());
 	}
 
-	void posix_storage::set_file_priority(settings_interface const&
+	void posix_storage::set_file_priority(settings_interface const& sett
 		, aux::vector<download_priority_t, file_index_t>& prio
+		, aux::vector<bool, file_index_t>& unloaded
+		, typed_bitfield<piece_index_t> const& have_pieces
 		, storage_error& ec)
 	{
 		// extend our file priorities in case it's truncated
 		// the default assumed priority is 4 (the default)
 		if (prio.size() > m_file_priority.size())
 			m_file_priority.resize(prio.size(), default_priority);
+		if (prio.size() > m_unloaded.size())
+			m_unloaded.resize(prio.size(), false);
+		if (prio.size() > unloaded.size())
+			unloaded.resize(prio.size(), false);
 
 		filenames const& fs = m_filenames;
 		for (file_index_t i : prio.range())
@@ -86,13 +93,83 @@ posix_storage::~posix_storage()
 
 			download_priority_t const old_prio = m_file_priority[i];
 			download_priority_t new_prio = prio[i];
+			bool const was_unloaded = m_unloaded[i];
+			bool const is_unloaded = unloaded[i];
+
+			if (is_unloaded)
+			{
+				new_prio = dont_download;
+				prio[i] = new_prio;
+			}
+
+			if (is_unloaded && !was_unloaded)
+			{
+				// read() routes on the old priority and use_partfile, so migrate
+				// first and only then commit the new priority/use_partfile state
+				need_partfile();
+				aux::unload_file(fs, i, have_pieces
+					, [this, &sett, &ec](piece_index_t const piece, int const offset, span<char> buf)
+					{
+						read(sett, buf, piece, offset, ec);
+						return ec ? -1 : int(buf.size());
+					}
+					, [this](piece_index_t const piece)
+					{
+						if (m_part_file) m_part_file->free_piece(piece);
+					}
+					, [this, &ec](piece_index_t const piece, int const offset, span<char> buf)
+					{
+						error_code err;
+						int const r = m_part_file->write(buf, piece, offset, err);
+						if (err)
+						{
+							ec.ec = err;
+							ec.operation = operation_t::partfile_write;
+						}
+						return r;
+					}
+					, [this](storage_error& e)
+					{
+						error_code err;
+						m_part_file->flush_metadata(err);
+						if (err)
+						{
+							e.ec = err;
+							e.operation = operation_t::partfile_write;
+						}
+					}
+					, [this](file_index_t)
+					{
+						m_stat_cache.clear();
+					}
+					, [this, &fs](file_index_t const file, storage_error& e)
+					{
+						aux::delete_one_file(fs.file_path(file, m_save_path), e.ec);
+						if (e.ec) e.operation = operation_t::file_remove;
+					}
+					, ec);
+
+				if (ec)
+				{
+					prio = m_file_priority;
+					unloaded = m_unloaded;
+					return;
+				}
+
+				use_partfile(i, true);
+				m_unloaded[i] = true;
+				m_file_priority[i] = new_prio;
+				ec.ec.clear();
+				continue;
+			}
+
 			if (old_prio == dont_download && new_prio != dont_download)
 			{
+				// move stuff out of the part file
 				if (m_part_file && use_partfile(i))
 				{
 					m_part_file->export_file([this, i, &ec](std::int64_t file_offset, span<char> buf)
 					{
-						// move stuff out of the part file
 						file_pointer const f = open_file(i, open_mode::write, file_offset, ec);
 						if (ec) return;
 						int const r = static_cast<int>(std::fwrite(buf.data(), 1
@@ -110,16 +187,13 @@ posix_storage::~posix_storage()
 						ec.file(i);
 						ec.operation = operation_t::partfile_write;
 						prio = m_file_priority;
+						unloaded = m_unloaded;
 						return;
 					}
 				}
 			}
 			else if (old_prio != dont_download && new_prio == dont_download)
 			{
-				// move stuff into the part file
-				// this is not implemented yet.
-				// so we just don't use a partfile for this file
-
 				std::string const fp = fs.file_path(i, m_save_path);
 				bool const file_exists = exists(fp, ec.ec);
 				if (ec.ec)
@@ -127,12 +201,14 @@ posix_storage::~posix_storage()
 					ec.file(i);
 					ec.operation = operation_t::file_stat;
 					prio = m_file_priority;
+					unloaded = m_unloaded;
 					return;
 				}
 				use_partfile(i, !file_exists);
 			}
 			ec.ec.clear();
 			m_file_priority[i] = new_prio;
+			m_unloaded[i] = is_unloaded;
 
 			if (m_file_priority[i] == dont_download && use_partfile(i))
 			{
@@ -396,6 +472,15 @@ posix_storage::~posix_storage()
 		{
 			if (m_file_priority[i] != dont_download || fs.pad_file_at(i))
 				continue;
+
+			// an unloaded file's data is in the part file, even if a file with
+			// the same name exists on disk
+			if (i < m_unloaded.end_index() && m_unloaded[i])
+			{
+				use_partfile(i, true);
+				need_partfile();
+				continue;
+			}
 
 			error_code err;
 			auto const size = m_stat_cache.get_filesize(i, fs, m_save_path, err);

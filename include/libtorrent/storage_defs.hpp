@@ -103,6 +103,7 @@ namespace libtorrent {
 			string_view pfd,
 			storage_mode_t const sm,
 			aux::vector<download_priority_t, file_index_t> const& prio,
+			aux::vector<bool, file_index_t> const& unloaded,
 			sha1_hash const& ih,
 			bool v1_torrent,
 			bool v2_torrent,
@@ -113,6 +114,7 @@ namespace libtorrent {
 			, part_file_dir(pfd)
 			, mode(sm)
 			, priorities(prio)
+			, unloaded_files(unloaded)
 			, info_hash(ih)
 			, v1(v1_torrent)
 			, v2(v2_torrent)
@@ -138,6 +140,10 @@ namespace libtorrent {
 
 		// per-file download priorities, indexed by file index
 		aux::vector<download_priority_t, file_index_t> const& priorities;
+
+		// files whose contents have been unloaded; these use the part file
+		// even if a file with the same name exists on disk
+		aux::vector<bool, file_index_t> const& unloaded_files;
 
 		// the SHA-1 info-hash of the torrent (zero for v2-only
 		// torrents)

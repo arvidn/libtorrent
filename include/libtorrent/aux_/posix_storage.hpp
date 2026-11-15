@@ -51,6 +51,8 @@ namespace aux {
 		bool has_any_file(storage_error& error);
 		void set_file_priority(settings_interface const&
 			, aux::vector<download_priority_t, file_index_t>& prio
+			, aux::vector<bool, file_index_t>& unloaded
+			, typed_bitfield<piece_index_t> const& have_pieces
 			, storage_error& ec);
 		bool verify_resume_data(add_torrent_params const& rd
 			, aux::vector<std::string, file_index_t> const& links
@@ -92,6 +94,8 @@ namespace aux {
 		stat_cache m_stat_cache;
 
 		aux::vector<download_priority_t, file_index_t> m_file_priority;
+
+		aux::vector<bool, file_index_t> m_unloaded;
 
 		// this this is an array indexed by file-index. Each slot represents
 		// whether this file has the part-file enabled for it. This is used for

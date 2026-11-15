@@ -234,9 +234,15 @@ namespace job {
 
 	struct file_priority
 	{
-		std::function<void(storage_error const&, aux::vector<download_priority_t, file_index_t>)> handler;
+		std::function<void(storage_error const&
+			, aux::vector<download_priority_t, file_index_t>
+			, aux::vector<bool, file_index_t>)> handler;
 		// passed in/out
 		aux::vector<download_priority_t, file_index_t> prio;
+		// passed in/out
+		aux::vector<bool, file_index_t> unloaded;
+		// passed in
+		typed_bitfield<piece_index_t> have;
 	};
 
 	struct clear_piece

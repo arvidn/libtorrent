@@ -803,13 +803,19 @@ struct test_disk_io final : lt::disk_interface
 
 	void async_set_file_priority(lt::storage_index_t
 		, lt::aux::vector<lt::download_priority_t, lt::file_index_t> prio
+		, lt::aux::vector<bool, lt::file_index_t> unloaded
+		, lt::typed_bitfield<lt::piece_index_t>
 		, std::function<void(lt::storage_error const&
-			, lt::aux::vector<lt::download_priority_t, lt::file_index_t>)> handler) override
+			, lt::aux::vector<lt::download_priority_t, lt::file_index_t>
+			, lt::aux::vector<bool, lt::file_index_t>)> handler) override
 	{
 		TORRENT_ASSERT(m_files);
 		post(m_ioc, [=]{
+			// nothing was committed
+			for (auto&& u : unloaded) u = false;
 			handler(lt::storage_error(lt::error_code(
-				boost::system::errc::operation_not_supported, lt::system_category())), std::move(prio));
+				boost::system::errc::operation_not_supported, lt::system_category()))
+				, std::move(prio), std::move(unloaded));
 		});
 	}
 

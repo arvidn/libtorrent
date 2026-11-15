@@ -162,6 +162,41 @@ namespace libtorrent::aux {
 		}
 	}
 
+	void file_progress::remove_piece(file_storage const& fs, piece_index_t const index)
+	{
+		INVARIANT_CHECK;
+		if (m_file_progress.empty()) return;
+
+#if TORRENT_USE_INVARIANT_CHECKS
+		TORRENT_ASSERT(m_have_pieces.get_bit(index));
+		m_have_pieces.clear_bit(index);
+#endif
+
+		int const piece_size = fs.piece_length();
+		std::int64_t off = std::int64_t(static_cast<int>(index)) * piece_size;
+		file_index_t file_index = fs.file_index_at_offset(off);
+		std::int64_t size = fs.piece_size(index);
+		for (; size > 0; ++file_index)
+		{
+			std::int64_t const file_offset = off - fs.file_offset(file_index);
+			TORRENT_ASSERT(file_index != fs.end_file());
+			TORRENT_ASSERT(file_offset <= fs.file_size(file_index));
+			std::int64_t const sub = std::min(fs.file_size(file_index)
+				- file_offset, size);
+
+			bool const is_pad_file = fs.pad_file_at(file_index);
+			if (!is_pad_file)
+				m_total_on_disk -= sub;
+
+			m_file_progress[file_index] -= sub;
+			TORRENT_ASSERT(m_file_progress[file_index] >= 0);
+
+			size -= sub;
+			off += sub;
+			TORRENT_ASSERT(size >= 0);
+		}
+	}
+
 #if TORRENT_USE_INVARIANT_CHECKS
 	void file_progress::check_invariant() const
 	{
