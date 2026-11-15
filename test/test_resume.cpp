@@ -354,6 +354,26 @@ TORRENT_TEST(renamed_path_elements_resume_round_trip)
 	TEST_EQUAL(names.file_name(file_index_t(0)), "renamed-element");
 }
 
+TORRENT_TEST(unloaded_files_resume_round_trip)
+{
+	add_torrent_params const atp = generate_torrent();
+	add_torrent_params p;
+	p.ti = atp.ti;
+	p.file_priorities.resize(std::size_t(p.ti->num_files()), default_priority);
+	p.unloaded_files.resize(std::size_t(p.ti->num_files()), false);
+	p.file_priorities[0] = dont_download;
+	p.unloaded_files[0] = true;
+
+	std::vector<char> const resume_data = write_resume_data_buf(p);
+	add_torrent_params const loaded = read_resume_data(resume_data);
+
+	TEST_CHECK(!loaded.unloaded_files.empty());
+	if (!loaded.unloaded_files.empty()) TEST_CHECK(loaded.unloaded_files[0]);
+	TEST_CHECK(!loaded.file_priorities.empty());
+	if (!loaded.file_priorities.empty())
+		TEST_EQUAL(loaded.file_priorities[0], dont_download);
+}
+
 TORRENT_TEST(test_non_metadata)
 {
 	lt::session ses(settings());

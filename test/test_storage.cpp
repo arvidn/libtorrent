@@ -236,6 +236,7 @@ setup_torrent(
 	auto info = setup_torrent_info(buf);
 
 	aux::vector<download_priority_t, file_index_t> priorities;
+	aux::vector<bool, file_index_t> unloaded;
 	renamed_files rf;
 	storage_params p{
 		info->layout(),
@@ -244,6 +245,7 @@ setup_torrent(
 		{},
 		storage_mode_allocate,
 		priorities,
+		unloaded,
 		sha1_hash{},
 		info->v1(),
 		info->v2()
@@ -379,6 +381,7 @@ void run_storage_tests(std::shared_ptr<torrent_info const> info
 	typename file_pool_type<StorageType>::type fp;
 	boost::asio::io_context ios;
 	aux::vector<download_priority_t, file_index_t> priorities;
+	aux::vector<bool, file_index_t> unloaded;
 	std::string const cwd = current_path();
 	renamed_files rf;
 	storage_params p{
@@ -388,6 +391,7 @@ void run_storage_tests(std::shared_ptr<torrent_info const> info
 		{},
 		storage_mode,
 		priorities,
+		unloaded,
 		sha1_hash{},
 		info->v1(),
 		info->v2(),
@@ -589,6 +593,7 @@ void test_rename_to_existing(
 	// ~pread_disk_io asserts that abort() has been called
 	auto const abort_guard = lt::aux::scope_end([&] { disk_io->abort(true); });
 	aux::vector<download_priority_t, file_index_t> priorities;
+	aux::vector<bool, file_index_t> unloaded;
 	renamed_files renamed;
 	storage_params params{fs,
 		renamed,
@@ -596,6 +601,7 @@ void test_rename_to_existing(
 		{},
 		storage_mode_allocate,
 		priorities,
+		unloaded,
 		sha1_hash{},
 		info->v1(),
 		info->v2()};
@@ -696,6 +702,8 @@ void test_pre_allocate()
 		lt::default_priority,
 		lt::default_priority,
 	};
+	aux::vector<bool, file_index_t> unloaded;
+	typed_bitfield<piece_index_t> have;
 	renamed_files rf;
 	storage_params p{
 		info->layout(),
@@ -704,6 +712,7 @@ void test_pre_allocate()
 		{},
 		storage_mode_allocate,
 		priorities,
+		unloaded,
 		sha1_hash{},
 		info->v1(),
 		info->v2()
@@ -763,7 +772,7 @@ void test_pre_allocate()
 	std::cerr << "set file priority" << std::endl;
 	// set priority of file 0 to non-zero, and make sure we create the file now
 	priorities[0_file] = lt::default_priority;
-	s->set_file_priority(set, priorities, se);
+	s->set_file_priority(set, priorities, unloaded, have, se);
 	TEST_CHECK(!se.ec);
 
 	for (auto i : fs.file_range())
@@ -847,6 +856,7 @@ void test_check_files(check_files_flag_t const flags,
 	if (flags & zero_prio)
 		priorities.resize(std::size_t(info->num_files()), download_priority_t{});
 
+	aux::vector<bool, file_index_t> unloaded;
 	renamed_files rf;
 	storage_params p{
 		info->layout(),
@@ -855,6 +865,7 @@ void test_check_files(check_files_flag_t const flags,
 		{},
 		(flags & sparse) ? storage_mode_sparse : storage_mode_allocate,
 		priorities,
+		unloaded,
 		sha1_hash{},
 		info->v1(),
 		info->v2()
@@ -1061,6 +1072,7 @@ namespace {
 		priorities[1_file] = dont_download; // "middle"
 		priorities[3_file] = dont_download; // "soloprio"
 
+		aux::vector<bool, file_index_t> unloaded;
 		renamed_files rf;
 		storage_params p{info->layout(),
 			rf,
@@ -1068,6 +1080,7 @@ namespace {
 			{},
 			storage_mode_sparse,
 			priorities,
+			unloaded,
 			sha1_hash{},
 			info->v1(),
 			info->v2()};
@@ -1157,6 +1170,7 @@ void seed_partfile_piece(lt::disk_io_constructor_type const disk_constructor,
 	// ~pread_disk_io asserts that abort() has been called
 	auto const abort_guard = lt::aux::scope_end([&] { io->abort(true); });
 
+	aux::vector<bool, file_index_t> unloaded;
 	renamed_files rf;
 	storage_params p{info->layout(),
 		rf,
@@ -1164,6 +1178,7 @@ void seed_partfile_piece(lt::disk_io_constructor_type const disk_constructor,
 		{},
 		storage_mode_sparse,
 		priorities,
+		unloaded,
 		sha1_hash{},
 		info->v1(),
 		info->v2()};
@@ -1233,6 +1248,7 @@ void test_read_dont_download_empty_placeholder(lt::disk_io_constructor_type cons
 	// below still has to stay, since the files have to be closed before
 	// delete_dirs() removes them
 	auto const abort_guard = lt::aux::scope_end([&] { io->abort(true); });
+	aux::vector<bool, file_index_t> unloaded;
 	renamed_files rf;
 	storage_params p{info->layout(),
 		rf,
@@ -1240,6 +1256,7 @@ void test_read_dont_download_empty_placeholder(lt::disk_io_constructor_type cons
 		{},
 		storage_mode_sparse,
 		priorities,
+		unloaded,
 		sha1_hash{},
 		info->v1(),
 		info->v2()};
@@ -1312,6 +1329,7 @@ void test_has_any_file_partfile_only(lt::disk_io_constructor_type const disk_con
 	// below still has to stay, since the files have to be closed before
 	// delete_dirs() removes them
 	auto const abort_guard = lt::aux::scope_end([&] { io->abort(true); });
+	aux::vector<bool, file_index_t> unloaded;
 	renamed_files rf;
 	storage_params p{info->layout(),
 		rf,
@@ -1319,6 +1337,7 @@ void test_has_any_file_partfile_only(lt::disk_io_constructor_type const disk_con
 		{},
 		storage_mode_sparse,
 		priorities,
+		unloaded,
 		sha1_hash{},
 		info->v1(),
 		info->v2()};
@@ -1477,6 +1496,8 @@ void test_tick_partfile_race(std::string const& test_path)
 
 	// a skipped file that doesn't exist on disk makes the storage use a part file
 	aux::vector<download_priority_t, file_index_t> priorities{lt::dont_download};
+	aux::vector<bool, file_index_t> unloaded;
+	typed_bitfield<piece_index_t> have;
 	renamed_files rf;
 	storage_params p{info->layout(),
 		rf,
@@ -1484,6 +1505,7 @@ void test_tick_partfile_race(std::string const& test_path)
 		{},
 		storage_mode_sparse,
 		priorities,
+		unloaded,
 		sha1_hash{},
 		info->v1(),
 		info->v2()};
@@ -1503,7 +1525,7 @@ void test_tick_partfile_race(std::string const& test_path)
 	for (int i = 0; i < 200; ++i)
 	{
 		s->delete_files(session::delete_files, se);
-		s->set_file_priority(set, priorities, se);
+		s->set_file_priority(set, priorities, unloaded, have, se);
 		TEST_CHECK(!se.ec);
 	}
 	done = true;
@@ -1543,12 +1565,14 @@ lt::storage_holder add_symlink_torrent(disk_interface& io,
 	rf.import_filenames(atp.ti->layout(), atp.renamed_files);
 	rf.import_path_elements(atp.ti->layout(), atp.renamed_path_elements);
 	aux::vector<download_priority_t, file_index_t> priorities;
+	aux::vector<bool, file_index_t> unloaded;
 	storage_params p{atp.ti->layout(),
 		rf,
 		test_path,
 		{},
 		storage_mode_sparse,
 		priorities,
+		unloaded,
 		sha1_hash{},
 		atp.ti->v1(),
 		atp.ti->v2()};
@@ -3248,6 +3272,7 @@ void test_unaligned_read(lt::disk_io_constructor_type constructor, Fun fun)
 	delete_dirs(combine_path(save_path, "test"));
 
 	lt::aux::vector<lt::download_priority_t, lt::file_index_t> prios;
+	lt::aux::vector<bool, lt::file_index_t> unloaded;
 	lt::renamed_files rf;
 	lt::storage_params params(fs
 		, rf
@@ -3255,6 +3280,7 @@ void test_unaligned_read(lt::disk_io_constructor_type constructor, Fun fun)
 		, {}
 		, lt::storage_mode_sparse
 		, prios
+		, unloaded
 		, lt::sha1_hash("01234567890123456789")
 		, true // v1-hashes
 		, true // v2-hashes
@@ -3490,6 +3516,7 @@ void test_part_file(lt::storage_mode_t const storage_mode, part_file_flag_t cons
 	std::string const part_file_dir = combine_path(download_dir, "part_file_dir");
 	++test_index;
 
+	aux::vector<bool, file_index_t> unloaded;
 	renamed_files rf;
 	storage_params p(
 		info->layout(),
@@ -3498,6 +3525,7 @@ void test_part_file(lt::storage_mode_t const storage_mode, part_file_flag_t cons
 		(flags & custom_path) ? "part_file_dir" : "",
 		storage_mode,
 		priorities,
+		unloaded,
 		sha1_hash{},
 		info->v1(),
 		info->v2()
@@ -3662,6 +3690,7 @@ static void test_write_vec_partfile(
 	std::string const cwd = current_path();
 	std::string const download_dir = combine_path(cwd, "pread_vec_partfile_test");
 	delete_dirs(download_dir);
+	aux::vector<bool, file_index_t> unloaded;
 	renamed_files rf;
 	storage_params p(
 		info->layout(),
@@ -3670,6 +3699,7 @@ static void test_write_vec_partfile(
 		{},
 		storage_mode,
 		priorities,
+		unloaded,
 		sha1_hash{},
 		info->v1(),
 		info->v2()
@@ -3718,3 +3748,207 @@ TORRENT_TEST(pread_write_vec_partfile_multi_buf)
 		test_write_vec_partfile({{1, 1_pri}, {2, 0_pri}, {1, 1_pri}}, sm);
 	}
 }
+
+namespace {
+
+std::shared_ptr<torrent_info const> setup_unload_torrent(std::vector<char>& buf)
+{
+	std::vector<create_file_entry> fs;
+	// two interior pieces in file 0, one shared boundary piece, one interior
+	// piece in file 1
+	fs.emplace_back(combine_path("unload_test", "file0.bin"), 2 * 0x4000 + 0x2000);
+	fs.emplace_back(combine_path("unload_test", "file1.bin"), 0x4000 + 0x2000);
+	lt::create_torrent t(std::move(fs), 0x4000, lt::create_torrent::v1_only);
+
+	sha1_hash const h = hasher(std::vector<char>(0x4000, 0)).final();
+	for (piece_index_t i(0); i < 4_piece; ++i) t.set_hash(i, h);
+
+	buf = bencode(t.generate());
+	return load_torrent_buffer(buf).ti;
+}
+
+std::vector<char> make_unload_piece(int const piece, int const size)
+{
+	std::vector<char> ret(static_cast<std::size_t>(size));
+	for (int i = 0; i < size; ++i)
+		ret[std::size_t(i)] = static_cast<char>((piece * 31 + i) & 0xff);
+	return ret;
+}
+
+std::string unload_part_file(storage_params const& p)
+{
+	return combine_path(std::string(p.path), "." + aux::to_hex(p.info_hash) + ".parts");
+}
+
+template <typename StorageType>
+void test_unload_file(std::string const& test_path)
+{
+	delete_dirs(test_path);
+	std::vector<char> buf;
+	std::shared_ptr<torrent_info const> info = setup_unload_torrent(buf);
+	file_storage const& fs = info->layout();
+	typename file_pool_type<StorageType>::type fp;
+	aux::session_settings set;
+
+	aux::vector<download_priority_t, file_index_t> priorities;
+	priorities.resize(std::size_t(fs.num_files()), default_priority);
+	aux::vector<bool, file_index_t> unloaded;
+	unloaded.resize(std::size_t(fs.num_files()), false);
+	renamed_files rf;
+	storage_params p{fs, rf, test_path, {}, storage_mode_sparse, priorities
+		, unloaded, sha1_hash{}, info->v1(), info->v2()};
+	auto s = make_storage<StorageType>(p, fp);
+
+	storage_error se;
+	s->initialize(set, se);
+	TEST_CHECK(!se.ec);
+
+	for (piece_index_t const i : fs.piece_range())
+	{
+		std::vector<char> data = make_unload_piece(static_cast<int>(i), fs.piece_size(i));
+		int const ret = write(s, set, span<char>(data.data(), int(data.size())), i, 0, aux::open_mode::write, se);
+		TEST_EQUAL(ret, int(data.size()));
+		TEST_CHECK(!se.ec);
+	}
+
+	TEST_CHECK(exists(fs.file_path(0_file, test_path)));
+	TEST_CHECK(exists(fs.file_path(1_file, test_path)));
+
+	typed_bitfield<piece_index_t> have;
+	have.resize(fs.num_pieces(), true);
+	priorities[0_file] = dont_download;
+	unloaded[0_file] = true;
+	s->set_file_priority(set, priorities, unloaded, have, se);
+	if (se) print_error("unload_file", 0, se);
+	TEST_CHECK(!se.ec);
+
+	TEST_CHECK(!exists(fs.file_path(0_file, test_path)));
+	TEST_CHECK(exists(fs.file_path(1_file, test_path)));
+
+	// the shared boundary piece must still read correctly. Its file 0 half
+	// comes from the part file now
+	std::vector<char> read_back(0x4000);
+	int const n2 = fs.piece_size(2_piece);
+	int const r2 = read(s, set, span<char>(read_back.data(), n2), 2_piece, 0
+		, aux::open_mode::read_only, se);
+	TEST_EQUAL(r2, n2);
+	TEST_CHECK(!se.ec);
+	TEST_CHECK(read_back == make_unload_piece(2, n2));
+
+	// the other file's interior piece is untouched
+	std::vector<char> const p3 = make_unload_piece(3, fs.piece_size(3_piece));
+	int const r3 = read(s, set, span<char>(read_back.data(), int(p3.size())), 3_piece, 0
+		, aux::open_mode::read_only, se);
+	TEST_EQUAL(r3, int(p3.size()));
+	TEST_CHECK(!se.ec);
+	TEST_CHECK(span<char const>(read_back).first(p3.size()) == span<char const>(p3));
+
+	// only the one boundary piece has a slot in the part file
+	std::string const part_file = unload_part_file(p);
+	file_status st;
+	error_code ec;
+	stat_file(part_file, &st, ec);
+	TEST_CHECK(!ec);
+	if (!ec)
+	{
+		int const header = ((2 + fs.num_pieces()) * 4 + 1023) & ~1023;
+		TEST_CHECK(st.file_size <= header + 0x4000);
+	}
+
+	// a fresh storage with the persisted unloaded state (what a restart does)
+	// must not recreate the file and must see the same pieces
+	auto s2 = make_storage<StorageType>(p, fp);
+	storage_error se2;
+	s2->initialize(set, se2);
+	TEST_CHECK(!se2.ec);
+	TEST_CHECK(!exists(fs.file_path(0_file, test_path)));
+	TEST_CHECK(exists(fs.file_path(1_file, test_path)));
+
+	typed_bitfield<piece_index_t> const pieces = s2->check_pieces();
+	TEST_CHECK(!pieces[0_piece]);
+	TEST_CHECK(!pieces[1_piece]);
+	TEST_CHECK(pieces[2_piece]);
+	TEST_CHECK(pieces[3_piece]);
+}
+
+template <typename StorageType>
+void test_unload_file_write_error(std::string const& test_path)
+{
+	delete_dirs(test_path);
+	std::vector<char> buf;
+	std::shared_ptr<torrent_info const> info = setup_unload_torrent(buf);
+	file_storage const& fs = info->layout();
+	typename file_pool_type<StorageType>::type fp;
+	aux::session_settings set;
+
+	aux::vector<download_priority_t, file_index_t> priorities;
+	priorities.resize(std::size_t(fs.num_files()), default_priority);
+	aux::vector<bool, file_index_t> unloaded;
+	unloaded.resize(std::size_t(fs.num_files()), false);
+	renamed_files rf;
+	storage_params p{fs, rf, test_path, {}, storage_mode_sparse, priorities
+		, unloaded, sha1_hash{}, info->v1(), info->v2()};
+	auto s = make_storage<StorageType>(p, fp);
+
+	storage_error se;
+	s->initialize(set, se);
+	TEST_CHECK(!se.ec);
+
+	for (piece_index_t const i : fs.piece_range())
+	{
+		std::vector<char> data = make_unload_piece(static_cast<int>(i), fs.piece_size(i));
+		write(s, set, span<char>(data.data(), int(data.size())), i, 0, aux::open_mode::write, se);
+		TEST_CHECK(!se.ec);
+	}
+
+	// make the part file path unusable, forcing the part-file write to fail
+	error_code ec;
+	create_directory(unload_part_file(p), ec);
+	TEST_CHECK(!ec);
+
+	typed_bitfield<piece_index_t> have;
+	have.resize(fs.num_pieces(), true);
+	priorities[0_file] = dont_download;
+	unloaded[0_file] = true;
+	s->set_file_priority(set, priorities, unloaded, have, se);
+
+	TEST_CHECK(se.ec);
+	// the file is untouched and the priority was rolled back
+	TEST_CHECK(exists(fs.file_path(0_file, test_path)));
+	TEST_EQUAL(priorities[0_file], default_priority);
+	TEST_CHECK(!unloaded[0_file]);
+}
+
+} // anonymous namespace
+
+TORRENT_TEST(unload_file_posix)
+{
+	test_unload_file<posix_storage>("unload_posix");
+}
+
+TORRENT_TEST(unload_file_posix_write_error)
+{
+	test_unload_file_write_error<posix_storage>("unload_posix_error");
+}
+
+TORRENT_TEST(unload_file_pread)
+{
+	test_unload_file<pread_storage>("unload_pread");
+}
+
+TORRENT_TEST(unload_file_pread_write_error)
+{
+	test_unload_file_write_error<pread_storage>("unload_pread_error");
+}
+
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
+TORRENT_TEST(unload_file_mmap)
+{
+	test_unload_file<mmap_storage>("unload_mmap");
+}
+
+TORRENT_TEST(unload_file_mmap_write_error)
+{
+	test_unload_file_write_error<mmap_storage>("unload_mmap_error");
+}
+#endif

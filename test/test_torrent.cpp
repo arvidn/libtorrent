@@ -34,6 +34,7 @@ see LICENSE file.
 #include "libtorrent/ip_filter.hpp"
 #include "settings.hpp"
 #include <tuple>
+#include <filesystem>
 #include <iostream>
 #include <atomic>
 #include <memory>
@@ -41,6 +42,7 @@ see LICENSE file.
 #include "test.hpp"
 #include "test_utils.hpp"
 #include "setup_transfer.hpp"
+#include "make_torrent.hpp"
 
 using namespace lt;
 using namespace std::chrono_literals;
@@ -1168,4 +1170,132 @@ TORRENT_TEST(web_seed_ssrf_query_string)
 {
 	TEST_CHECK(web_seed_ssrf_blocked("http://127.0.0.1:1/file?x=1"));
 	TEST_CHECK(web_seed_ssrf_blocked("http://[::1]:1/file?x=1"));
+}
+
+namespace {
+
+void wait_for_seed(lt::session& ses, torrent_handle const& h)
+{
+	for (int i = 0; i < 100; ++i)
+	{
+		print_alerts(ses, "ses");
+		if (h.status().is_seeding) return;
+		std::this_thread::sleep_for(lt::milliseconds(100));
+	}
+}
+
+lt::add_torrent_params unload_test_torrent()
+{
+	std::filesystem::remove_all("unload_test");
+
+	torrent_args args;
+	args.name("unload_test");
+	args.file("40960,name=file0");
+	args.file("24576,name=file1");
+
+	lt::add_torrent_params atp = make_test_torrent(args);
+	atp.save_path = ".";
+	generate_files(*atp.ti, ".");
+	atp.flags &= ~torrent_flags::paused;
+	atp.flags &= ~torrent_flags::auto_managed;
+	return atp;
+}
+
+void check_unloaded_state(torrent_handle const& h, int const piece_size)
+{
+	auto const unloaded = h.get_unloaded_files();
+	TEST_CHECK(unloaded.size() >= 2);
+	if (unloaded.size() < 2) return;
+	TEST_CHECK(unloaded[0]);
+	TEST_CHECK(!unloaded[1]);
+
+	TEST_CHECK(!h.have_piece(0_piece));
+	TEST_CHECK(h.have_piece(1_piece));
+	TEST_EQUAL(h.status().total_done, piece_size);
+}
+
+} // anonymous namespace
+
+TORRENT_TEST(unload_file_from_finished_torrent)
+{
+	int const piece_size = 0x8000;
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(unload_test_torrent());
+	wait_for_seed(ses, h);
+	TEST_CHECK(h.status().is_seeding);
+
+	h.unload_file(0_file);
+	wait_for_alert(ses, file_prio_alert::alert_type, "unload");
+
+	TEST_CHECK(!exists("unload_test/file0"));
+	TEST_CHECK(exists("unload_test/file1"));
+	TEST_CHECK(!h.status().is_seeding);
+	check_unloaded_state(h, piece_size);
+}
+
+TORRENT_TEST(unload_file_from_paused_torrent)
+{
+	int const piece_size = 0x8000;
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(unload_test_torrent());
+	wait_for_seed(ses, h);
+	TEST_CHECK(h.status().is_seeding);
+	h.pause();
+
+	h.unload_file(0_file);
+	wait_for_alert(ses, file_prio_alert::alert_type, "unload");
+
+	TEST_CHECK(!exists("unload_test/file0"));
+	TEST_CHECK(exists("unload_test/file1"));
+	check_unloaded_state(h, piece_size);
+}
+
+TORRENT_TEST(unload_file_from_seed_mode_torrent)
+{
+	int const piece_size = 0x8000;
+	lt::session ses(settings());
+	lt::add_torrent_params atp = unload_test_torrent();
+	atp.flags |= torrent_flags::seed_mode;
+	torrent_handle h = ses.add_torrent(atp);
+	wait_for_seed(ses, h);
+	TEST_CHECK(h.status().is_seeding);
+
+	h.unload_file(0_file);
+	wait_for_alert(ses, file_prio_alert::alert_type, "unload");
+
+	TEST_CHECK(!exists("unload_test/file0"));
+	TEST_CHECK(exists("unload_test/file1"));
+	TEST_CHECK(!(h.flags() & torrent_flags::seed_mode));
+	TEST_CHECK(!h.status().is_seeding);
+	check_unloaded_state(h, piece_size);
+}
+
+// two unload requests queued behind a priority job are dispatched together.
+// The first file commits, the second fails because its data was removed, and
+// the first must still be fully dropped from the torrent state.
+TORRENT_TEST(unload_file_partial_batch_failure)
+{
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(unload_test_torrent());
+	wait_for_seed(ses, h);
+	TEST_CHECK(h.status().is_seeding);
+
+	std::filesystem::remove("unload_test/file1");
+
+	h.file_priority(0_file, low_priority);
+	h.unload_file(0_file);
+	h.unload_file(1_file);
+
+	wait_for_alert(ses, file_error_alert::alert_type, "unload");
+
+	TEST_CHECK(!exists("unload_test/file0"));
+	auto const unloaded = h.get_unloaded_files();
+	TEST_CHECK(unloaded.size() >= 2);
+	if (unloaded.size() >= 2)
+	{
+		TEST_CHECK(unloaded[0]);
+		TEST_CHECK(!unloaded[1]);
+	}
+	TEST_CHECK(!h.have_piece(0_piece));
+	TEST_CHECK(h.have_piece(1_piece));
 }

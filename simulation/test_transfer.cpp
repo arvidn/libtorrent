@@ -9,6 +9,7 @@ see LICENSE file.
 
 #include "transfer_sim.hpp"
 #include "libtorrent/load_torrent.hpp"
+#include "libtorrent/posix_disk_io.hpp"
 
 #include <functional>
 #include <set>
@@ -676,6 +677,132 @@ TORRENT_TEST(empty_file)
 {
 	run_torrent_test(test_torrent(make_files(
 		{{0x3000, false}, {0, false}, {0x8000, false}}), 0x4000, {}));
+}
+
+TORRENT_TEST(unload_file_transfer)
+{
+	using asio::ip::address;
+	address const peer0 = addr("50.0.0.1");
+	address const peer1 = addr("50.0.0.2");
+
+	// file 0: two interior pieces + half of the shared boundary piece
+	// file 1: the other half of the boundary piece + one interior piece
+	lt::add_torrent_params const atp = test_torrent(make_files(
+		{{2 * 0x4000 + 0x2000, false}, {0x4000 + 0x2000, false}})
+		, 0x4000, lt::create_torrent::v1_only);
+
+	std::string const downloader_path = "unload_downloader";
+
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+	sim::asio::io_context ios0 { sim, peer0 };
+	sim::asio::io_context ios1 { sim, peer1 };
+
+	lt::session_proxy zombie[2];
+
+	lt::session_params params;
+	params.settings = settings();
+	params.settings.set_bool(settings_pack::disable_hash_checks, false);
+	params.settings.set_bool(settings_pack::enable_outgoing_utp, false);
+	params.settings.set_bool(settings_pack::enable_incoming_utp, false);
+	params.settings.set_int(settings_pack::in_enc_policy, settings_pack::pe_disabled);
+	params.settings.set_int(settings_pack::out_enc_policy, settings_pack::pe_disabled);
+	params.settings.set_int(settings_pack::allowed_enc_level, settings_pack::pe_plaintext);
+	params.settings.set_str(settings_pack::listen_interfaces, "50.0.0.1:6881");
+	params.disk_io_constructor = lt::posix_disk_io_constructor;
+
+	std::shared_ptr<lt::session> ses[2];
+	ses[0] = std::make_shared<lt::session>(params, ios0);
+
+	params.settings.set_str(settings_pack::listen_interfaces, "50.0.0.2:6881");
+	ses[1] = std::make_shared<lt::session>(params, ios1);
+
+	print_alerts(*ses[0], [&](lt::session&, lt::alert const* a) {
+		if (auto const* ta = alert_cast<lt::add_torrent_alert>(a))
+			ta->handle.connect_peer(lt::tcp::endpoint(peer1, 6881));
+	}, 0);
+	print_alerts(*ses[1], [](lt::session&, lt::alert const*) {}, 1);
+
+	lt::add_torrent_params seed_atp = atp;
+	seed_atp.save_path = ".";
+	seed_atp.flags &= ~lt::torrent_flags::auto_managed;
+	seed_atp.flags &= ~lt::torrent_flags::paused;
+	ses[1]->async_add_torrent(seed_atp);
+
+	lt::add_torrent_params dl_atp = atp;
+	dl_atp.save_path = downloader_path;
+	dl_atp.flags &= ~lt::torrent_flags::auto_managed;
+	dl_atp.flags &= ~lt::torrent_flags::paused;
+	ses[0]->async_add_torrent(dl_atp);
+
+	file_storage const& fs = atp.ti->layout();
+	std::string const file0 = combine_path(downloader_path, fs.file_path(0_file));
+	std::string const file1 = combine_path(downloader_path, fs.file_path(1_file));
+
+	sim::timer unload_timer(sim, lt::seconds(15), [&](boost::system::error_code const&) {
+		auto const torrents = ses[0]->get_torrents();
+		TEST_EQUAL(torrents.size(), 1);
+		if (torrents.empty()) return;
+		TEST_CHECK(torrents[0].status().is_seeding);
+		TEST_CHECK(exists(file0));
+		TEST_CHECK(exists(file1));
+		torrents[0].unload_file(0_file);
+	});
+
+	sim::timer check_timer(sim, lt::seconds(20), [&](boost::system::error_code const&) {
+		auto const torrents = ses[0]->get_torrents();
+		TEST_EQUAL(torrents.size(), 1);
+		if (torrents.empty()) return;
+		auto const h = torrents[0];
+
+		TEST_CHECK(!exists(file0));
+		TEST_CHECK(exists(file1));
+		TEST_CHECK(h.get_unloaded_files()[0]);
+
+		// interior pieces of the unloaded file are gone, the shared boundary
+		// piece and the other file's interior piece are still seeding
+		TEST_CHECK(!h.have_piece(0_piece));
+		TEST_CHECK(!h.have_piece(1_piece));
+		TEST_CHECK(h.have_piece(2_piece));
+		TEST_CHECK(h.have_piece(3_piece));
+
+		h.force_recheck();
+	});
+
+	sim::timer recheck_timer(sim, lt::seconds(35), [&](boost::system::error_code const&) {
+		auto const torrents = ses[0]->get_torrents();
+		TEST_EQUAL(torrents.size(), 1);
+		if (torrents.empty()) return;
+		auto const h = torrents[0];
+
+		// a recheck must not recreate the file or bring back the dropped
+		// interior pieces, nor re-download the boundary bytes
+		TEST_CHECK(!exists(file0));
+		TEST_CHECK(exists(file1));
+		TEST_CHECK(!h.have_piece(0_piece));
+		TEST_CHECK(!h.have_piece(1_piece));
+		TEST_CHECK(h.have_piece(2_piece));
+		TEST_CHECK(h.have_piece(3_piece));
+
+		int idx = 0;
+		for (auto& s : ses)
+		{
+			zombie[idx++] = s->abort();
+			s.reset();
+		}
+	});
+
+	sim::timer shutdown_timer(sim, lt::seconds(60), [&](boost::system::error_code const&) {
+		int idx = 0;
+		for (auto& s : ses)
+		{
+			if (!s) continue;
+			zombie[idx++] = s->abort();
+			s.reset();
+		}
+	});
+
+	sim.run();
 }
 
 #ifndef TORRENT_DISABLE_STREAMING
