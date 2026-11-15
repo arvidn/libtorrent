@@ -1824,6 +1824,64 @@ TORRENT_TEST(unload_file_all_files)
 	TEST_CHECK(rd.unloaded_files[1]);
 }
 
+// a shared boundary piece with no other wanted file must be dropped from the
+// wanted set even when the unloaded file's priority was already 0 (so the
+// per-file priority update does not run)
+TORRENT_TEST(unload_file_boundary_piece_without_wanted_file)
+{
+	std::filesystem::remove_all("unload_boundary_one");
+
+	lt::session ses(settings());
+	lt::add_torrent_params atp = unload_test_atp();
+	atp.save_path = "unload_boundary_one";
+	atp.file_priorities = {dont_download, dont_download};
+	torrent_handle h = ses.add_torrent(atp);
+	wait_until_checked(ses, h);
+
+	// piece 1 is shared by file 0 and file 1, but neither file is wanted
+	h.piece_priority(1_piece, default_priority);
+	TEST_EQUAL(h.status().total_wanted, 32768);
+
+	h.unload_file(0_file);
+	wait_for_alert(ses, file_prio_alert::alert_type, "unload 0");
+
+	TEST_CHECK(!exists("unload_boundary_one/unload_test/file0"));
+	TEST_EQUAL(h.piece_priority(1_piece), dont_download);
+	TEST_EQUAL(h.status().total_wanted, 0);
+}
+
+// unloading every file also drops a shared boundary piece that was kept
+// wanted by an explicit piece priority
+TORRENT_TEST(unload_file_boundary_piece_all_files)
+{
+	std::filesystem::remove_all("unload_boundary_all");
+
+	lt::session ses(settings());
+	lt::add_torrent_params atp = unload_test_atp();
+	atp.save_path = "unload_boundary_all";
+	atp.file_priorities = {dont_download, dont_download};
+	torrent_handle h = ses.add_torrent(atp);
+	wait_until_checked(ses, h);
+
+	h.piece_priority(1_piece, default_priority);
+	TEST_EQUAL(h.status().total_wanted, 32768);
+
+	h.unload_file(0_file);
+	wait_for_alert(ses, file_prio_alert::alert_type, "unload 0");
+	h.unload_file(1_file);
+	wait_for_alert(ses, file_prio_alert::alert_type, "unload 1");
+
+	auto const unloaded = h.get_unloaded_files();
+	TEST_CHECK(unloaded.size() >= 2);
+	if (unloaded.size() >= 2)
+	{
+		TEST_CHECK(unloaded[0]);
+		TEST_CHECK(unloaded[1]);
+	}
+	TEST_EQUAL(h.piece_priority(1_piece), dont_download);
+	TEST_EQUAL(h.status().total_wanted, 0);
+}
+
 // a resume save requested while the unload job is in flight is deferred until
 // the unload commits, so it includes the unloaded file
 TORRENT_TEST(unload_file_in_flight_resume_save)
@@ -1833,7 +1891,7 @@ TORRENT_TEST(unload_file_in_flight_resume_save)
 	wait_for_seed(ses, h);
 
 	h.unload_file(0_file);
-	h.save_resume_data();
+	h.save_resume_data(torrent_handle::save_info_dict);
 
 	std::vector<char> resume_buf;
 	bool saw_unload = false;
@@ -1849,11 +1907,29 @@ TORRENT_TEST(unload_file_in_flight_resume_save)
 	if (!got_both) return;
 
 	// the save was deferred until the unload committed, so it must include it
-	add_torrent_params const rd = read_resume_data(resume_buf);
+	add_torrent_params rd = read_resume_data(resume_buf);
 	TEST_CHECK(!rd.unloaded_files.empty());
 	if (rd.unloaded_files.empty()) return;
 	TEST_CHECK(rd.unloaded_files[0]);
 	TEST_CHECK(!rd.file_priorities.empty());
 	if (!rd.file_priorities.empty())
 		TEST_EQUAL(rd.file_priorities[0], dont_download);
+
+	// loading the resume data in a fresh session must not recreate or
+	// re-download the unloaded file
+	ses.remove_torrent(h);
+	wait_for_alert(ses, torrent_removed_alert::alert_type, "remove");
+
+	settings_pack pack = settings();
+	pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
+	lt::session ses2(pack);
+	rd.save_path = ".";
+	torrent_handle h2 = ses2.add_torrent(rd);
+	wait_until_checked(ses2, h2);
+
+	TEST_CHECK(!exists("unload_test/file0"));
+	TEST_CHECK(exists("unload_test/file1"));
+	TEST_CHECK(h2.get_unloaded_files()[0]);
+	TEST_CHECK(!h2.have_piece(0_piece));
+	TEST_CHECK(h2.have_piece(1_piece));
 }

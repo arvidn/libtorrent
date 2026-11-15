@@ -6351,6 +6351,45 @@ namespace {
 				}
 			}
 
+			// A shared boundary piece is only wanted while another wanted file
+			// overlaps it. If the unloaded file was already priority 0,
+			// update_piece_priorities() did not run, so a stale explicit piece
+			// priority could keep the boundary wanted. In share mode piece
+			// priorities are chosen directly, leave them alone.
+			if (!(m_flags & torrent_flags::share_mode))
+			{
+				for (file_index_t const f : newly_unloaded.range())
+				{
+					if (!newly_unloaded[f]) continue;
+					for (piece_index_t const p : aux::file_piece_range_inclusive(fs, f))
+					{
+						if (m_picker->piece_priority(p) == dont_download) continue;
+
+						bool wanted = false;
+						for (file_index_t g = fs.file_index_at_piece(p)
+							, end = fs.last_file_index_at_piece(p); g <= end; ++g)
+						{
+							if (g == f) continue;
+							download_priority_t const prio = g < m_file_priority.end_index()
+								? m_file_priority[g] : default_priority;
+							if (prio == dont_download) continue;
+							if (g < m_unloaded_files.end_index() && m_unloaded_files[g]) continue;
+							wanted = true;
+							break;
+						}
+						if (wanted) continue;
+
+						if (m_picker->set_piece_priority(p, dont_download))
+						{
+							filter_updated = true;
+#ifndef TORRENT_DISABLE_STREAMING
+							remove_time_critical_piece(p);
+#endif
+						}
+					}
+				}
+			}
+
 			if (dropped_piece || filter_updated)
 			{
 				update_gauge();
@@ -6572,6 +6611,15 @@ namespace {
 		{
 			reject(error_code(boost::system::errc::operation_canceled, generic_category())
 				, operation_t::unknown);
+			return;
+		}
+
+		// storage is only null while shutting down; without it nothing can be
+		// removed, so do not commit the unloaded state
+		if (!m_storage)
+		{
+			reject(error_code(boost::system::errc::operation_not_supported
+				, generic_category()), operation_t::unknown);
 			return;
 		}
 

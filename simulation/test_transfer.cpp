@@ -8,9 +8,11 @@ see LICENSE file.
 */
 
 #include "transfer_sim.hpp"
+#include "fake_peer.hpp"
 #include "libtorrent/load_torrent.hpp"
 #include "libtorrent/posix_disk_io.hpp"
 
+#include <filesystem>
 #include <functional>
 #include <set>
 #include <string_view>
@@ -805,6 +807,130 @@ TORRENT_TEST(unload_file_transfer)
 			zombie[idx++] = s->abort();
 			s.reset();
 		}
+	});
+
+	sim.run();
+}
+
+// A block for an exclusive piece may still arrive after the file was unloaded
+// and the request was cancelled. It must be discarded: no picker entry, no
+// have bit and no part-file slot for the dropped piece.
+TORRENT_TEST(unload_file_late_block)
+{
+	using asio::ip::address;
+	address const peer = addr("50.0.0.1");
+
+	// file 0: pieces 0 and 1 plus half of the shared piece 2
+	// file 1: the other half of piece 2 plus piece 3
+	static std::array<int, 2> const sizes{{2 * 0x4000 + 0x2000, 0x4000 + 0x2000}};
+	std::filesystem::remove_all("unload_late_seed");
+	std::filesystem::remove_all("unload_late_downloader");
+	std::vector<lt::create_file_entry> const files = create_random_files(
+		"unload_late_seed", sizes);
+	lt::create_torrent ct(files, 0x4000, lt::create_torrent::v1_only);
+	set_piece_hashes(ct, ".");
+	lt::add_torrent_params const atp = lt::load_torrent_buffer(lt::bencode(ct.generate()));
+	file_storage const& fs = atp.ti->layout();
+	index_range<piece_index_t> const exclusive
+		= lt::aux::file_piece_range_exclusive(fs, 0_file);
+
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+	sim::asio::io_context ios { sim, peer };
+	lt::session_proxy zombie;
+
+	lt::session_params params;
+	params.settings = settings();
+	params.settings.set_str(settings_pack::listen_interfaces, "50.0.0.1:6881");
+	params.disk_io_constructor = lt::posix_disk_io_constructor;
+	auto ses = std::make_shared<lt::session>(params, ios);
+
+	// the peer advertises the whole torrent but never sends a block until the
+	// unload has committed
+	fake_peer fake(sim, "60.0.0.1");
+
+	lt::torrent_handle h;
+	lt::piece_block late_block;
+	bool have_late = false;
+	bool unloaded = false;
+	std::int64_t part_size = -1;
+
+	auto part_file_size = [&]() -> std::int64_t {
+		error_code ec;
+		for (auto const& e : std::filesystem::directory_iterator(
+			"unload_late_downloader", ec))
+		{
+			if (e.path().extension() == ".parts")
+				return std::filesystem::file_size(e.path(), ec);
+		}
+		return -1;
+	};
+
+	print_alerts(*ses, [&](lt::session&, lt::alert const* a) {
+		if (auto const* at = alert_cast<lt::add_torrent_alert>(a))
+		{
+			h = at->handle;
+			fake.send_have_all();
+			fake.send_unchoke();
+			fake.connect_to(ep("50.0.0.1", 6881), atp.ti->info_hash());
+		}
+		else if (alert_cast<file_prio_alert>(a) && have_late && !unloaded)
+		{
+			unloaded = true;
+			part_size = part_file_size();
+			fake.send_piece(late_block.piece_index, late_block.block_index * 0x4000);
+			fake.flush_send_buffer();
+		}
+	});
+
+	lt::add_torrent_params dl_atp = atp;
+	dl_atp.save_path = "unload_late_downloader";
+	dl_atp.flags &= ~lt::torrent_flags::auto_managed;
+	dl_atp.flags &= ~lt::torrent_flags::paused;
+	ses->async_add_torrent(dl_atp);
+
+	std::function<void(boost::system::error_code const&)> try_unload
+		= [&](boost::system::error_code const&)
+	{
+		if (have_late || !h.is_valid()) return;
+		for (auto const& entry : h.get_download_queue())
+		{
+			if (entry.piece_index < exclusive._begin || entry.piece_index >= exclusive._end)
+				continue;
+			for (int i = 0; i < entry.blocks_in_piece; ++i)
+			{
+				have_late = true;
+				late_block = lt::piece_block(entry.piece_index, i);
+				break;
+			}
+			if (have_late) break;
+		}
+		if (have_late) h.unload_file(0_file);
+	};
+
+	sim::timer unload_timer1(sim, lt::seconds(1), try_unload);
+	sim::timer unload_timer2(sim, lt::seconds(2), try_unload);
+	sim::timer unload_timer3(sim, lt::seconds(3), try_unload);
+	sim::timer unload_timer4(sim, lt::seconds(4), try_unload);
+
+	sim::timer check_timer(sim, lt::seconds(10), [&](boost::system::error_code const&) {
+		TEST_CHECK(have_late);
+		TEST_CHECK(unloaded);
+		if (!have_late || !unloaded) return;
+
+		TEST_CHECK(!exists("unload_late_downloader/unload_late_seed/test_dir0/test0"));
+		TEST_CHECK(!h.have_piece(late_block.piece_index));
+
+		for (auto const& entry : h.get_download_queue())
+			TEST_CHECK(entry.piece_index != late_block.piece_index);
+
+		// the late block must not have allocated a part-file slot
+		TEST_EQUAL(part_file_size(), part_size);
+	});
+
+	sim::timer shutdown_timer(sim, lt::seconds(20), [&](boost::system::error_code const&) {
+		zombie = ses->abort();
+		ses.reset();
 	});
 
 	sim.run();

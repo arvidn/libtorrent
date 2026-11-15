@@ -552,6 +552,37 @@ class PrioritiesTest(TorrentHandleTest):
                 self.handle.set_priority(0)
 
 
+class UnloadFileTest(TorrentHandleTest):
+    def test_unload_file(self) -> None:
+        path = pathlib.Path(self.dir.name) / os.fsdecode(self.torrent.files[0].path)
+        path.write_bytes(self.torrent.files[0].data)
+        self.handle.force_recheck()
+        for _ in lib.loop_until_timeout(5, msg="complete"):
+            if self.handle.status().progress == 1.0:
+                break
+
+        self.session.apply_settings({"alert_mask": lt.alert_category.storage})
+        self.assertEqual(self.handle.get_unloaded_files(), [False])
+        self.handle.unload_file(0)
+        alert = self.wait_for(lt.file_prio_alert, timeout=5)
+        self.assertIsInstance(alert, lt.file_prio_alert)
+        self.assertEqual(self.handle.get_unloaded_files(), [True])
+        self.assertFalse(path.exists())
+
+        # unloading an already unloaded file reports success again
+        self.handle.unload_file(0)
+        alert = self.wait_for(lt.file_prio_alert, timeout=5)
+        self.assertIsInstance(alert, lt.file_prio_alert)
+
+    def wait_for(self, alert_type: type, timeout: float):
+        for _ in lib.loop_until_timeout(timeout, msg=alert_type.__name__):
+            self.session.wait_for_alert(100)
+            for alert in self.session.pop_alerts():
+                if isinstance(alert, alert_type):
+                    return alert
+        raise AssertionError("unreachable")
+
+
 class FileStatusTest(TorrentHandleTest):
     def test_file_status(self) -> None:
         # TODO: how do we force this to be tested?

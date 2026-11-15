@@ -124,10 +124,24 @@ struct fake_peer
 			lt::aux::write_uint8(b, ptr);
 	}
 
+	void send_unchoke() { send_simple_msg(1); }
 	void send_interested() { send_simple_msg(2); }
 	void send_not_interested() { send_simple_msg(3); }
 	void send_have_all() { send_simple_msg(0xe); }
 	void send_have_none() { send_simple_msg(0xf); }
+
+	// send a block of zeroes for a piece; the content is irrelevant to the
+	// tests that use this to exercise the receiving path
+	void send_piece(lt::piece_index_t const piece, int const start
+		, int const length = 0x4000)
+	{
+		std::vector<char> payload(12 + std::size_t(length), 0);
+		char* ptr = payload.data();
+		lt::aux::write_uint32(static_cast<int>(piece), ptr);
+		lt::aux::write_uint32(start, ptr);
+		lt::aux::write_uint32(length, ptr);
+		send_message(7, lt::span<char const>(payload.data(), payload.size()));
+	}
 	void send_invalid_message() { send_simple_msg(0xff); }
 
 	// send an arbitrary message with the standard 4-byte length prefix

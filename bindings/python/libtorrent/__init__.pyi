@@ -4424,6 +4424,11 @@ class torrent_handle(metaclass=_BoostBaseClass):
         get_file_priorities( (torrent_handle)arg1) -> list :
         """
 
+    def get_unloaded_files(self) -> list[bool]:
+        """
+        get_unloaded_files( (torrent_handle)arg1) -> list :
+        """
+
     def get_peer_info(self) -> list[peer_info]:
         """
         get_peer_info( (torrent_handle)arg1) -> list :
@@ -4808,6 +4813,11 @@ class torrent_handle(metaclass=_BoostBaseClass):
     def unset_flags(self, _flags: int) -> None:
         """
         unset_flags( (torrent_handle)arg1, (object)arg2) -> None :
+        """
+
+    def unload_file(self, index: int) -> None:
+        """
+        unload_file( (torrent_handle)arg1, (int)index) -> None :
         """
 
     def upload_limit(self) -> int:

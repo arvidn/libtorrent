@@ -177,6 +177,14 @@ list file_priorities(torrent_handle& handle)
 	return ret;
 }
 
+list unloaded_files(torrent_handle& handle)
+{
+	list ret;
+	for (bool const u : handle.get_unloaded_files())
+		ret.append(u);
+	return ret;
+}
+
 download_priority_t file_priority0(torrent_handle& h, file_index_t index)
 {
 	return h.file_priority(index);
@@ -601,6 +609,8 @@ void bind_torrent_handle()
 				.def("get_file_priorities", &file_priorities)
 				.def("file_priority", &file_priority0)
 				.def("file_priority", &file_priority1)
+				.def("unload_file", _(&torrent_handle::unload_file), arg("index"))
+				.def("get_unloaded_files", &unloaded_files)
 				.def("file_status", _(file_status0))
 				.def("save_resume_data", _(&torrent_handle::save_resume_data), arg("flags") = 0)
 				.def("need_save_resume_data", _(need_save_resume_data0))
