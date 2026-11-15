@@ -3,10 +3,11 @@ import shutil
 import hashlib
 import struct
 import random
+import base64
 
 corpus_dirs = [
     'torrent_info', 'upnp', 'gzip', 'base32decode', 'base32encode',
-    'base64encode', 'bdecode_node', 'convert_from_native', 'convert_to_native',
+    'base64encode', 'base64decode_i2p', 'bdecode_node', 'convert_from_native', 'convert_to_native',
     'dht_node', 'escape_path', 'escape_string', 'file_storage_add_file',
     'http_parser', 'lazy_bdecode', 'parse_int', 'parse_magnet_uri', 'resume_data',
     'sanitize_path', 'utf8_codepoint', 'utp',
@@ -116,6 +117,32 @@ resume_data_seeds = {
 for name, data in resume_data_seeds.items():
     with open(os.path.join('corpus', 'resume_data', name), 'wb+') as f:
         f.write(data)
+
+def b64_i2p(data):
+    return base64.b64encode(data, altchars=b'-~').decode('ascii')
+
+
+# RFC 4648 test vectors, in the i2p alphabet
+b64_inputs = [b64_i2p(v) for v in [b'', b'f', b'fo', b'foo', b'foob', b'fooba', b'foobar']]
+
+# every padding shape, and the sizes of i2p destinations. 387 bytes is a
+# destination with a null certificate, 391 is a destination with a key
+# certificate
+for n in list(range(1, 13)) + [32, 387, 391]:
+    b64_inputs.append(b64_i2p(bytes(random.getrandbits(8) for k in range(n))))
+
+# all 64 alphabet characters in one input
+b64_inputs.append(b64_i2p(bytes(range(256))))
+
+# near-misses of the canonical form, to seed the reject paths
+b64_inputs += [
+    'Zg', 'Zm8', 'Zh==', 'Zm9=', 'Zg=', 'Zg===', '====', 'Zm9v+Zm9v',
+    'Zm9v/Zm9v', 'Zm9v Zm9v', 'Zm9v\n', 'Zm9=v', '=m9v']
+
+counter = 0
+for i in b64_inputs:
+    open(os.path.join('corpus', 'base64decode_i2p', '%d' % counter), 'w+').write(i)
+    counter += 1
 
 counter = 0
 tracker_fields = ['interval', 'min interval', 'tracker id', 'failure reason',

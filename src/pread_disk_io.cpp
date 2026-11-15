@@ -797,10 +797,13 @@ bool pread_disk_io::prepare_read(aux::pread_disk_job* j)
 
 	// an aligned read request for one block.
 	if (!m_cache.get(loc, block_idx, [&](span<char const> buf) {
-			TORRENT_ASSERT_VAL(read_offset + int(a.buffer_size) <= buf.size(), read_offset);
+			// the read may extend past the end of buf, into the pad space
+			// following a file. async_write() zero-fills the rest of the block
+			TORRENT_ASSERT_VAL(read_offset + int(a.buffer_size) <= default_block_size, read_offset);
 			buffer = disk_buffer_holder(
 				m_buffer_pool, m_buffer_pool.allocate_buffer("send buffer"), true);
-			if (!buffer) return;
+			if (!buffer)
+				return;
 			std::memcpy(buffer.data(), buf.data() + read_offset, std::size_t(a.buffer_size));
 		}))
 		return false;
@@ -831,6 +834,10 @@ bool pread_disk_io::async_write(storage_index_t const storage, peer_request cons
 	disk_buffer_holder buffer(m_buffer_pool, m_buffer_pool.allocate_buffer("receive buffer"));
 	if (!buffer) aux::throw_ex<std::bad_alloc>();
 	std::memcpy(buffer.data(), buf, aux::numeric_cast<std::size_t>(r.length));
+	// the last block of a file in a v2 torrent is short, but a read may extend
+	// into the pad space following it, which must read as zeros
+	std::memset(
+		buffer.data() + r.length, 0, aux::numeric_cast<std::size_t>(default_block_size - r.length));
 
 	TORRENT_ASSERT(r.start % default_block_size == 0);
 	TORRENT_ASSERT(r.length <= default_block_size);

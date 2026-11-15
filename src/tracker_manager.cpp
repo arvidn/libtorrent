@@ -50,50 +50,61 @@ bool is_tracker_protocol_supported(string_view const url)
 	if (protocol == "udp")
 		return true;
 #if TORRENT_USE_RTC
-	if (protocol == "ws" || protocol == "wss")
+	if (is_websocket_tracker_url(url))
 		return true;
 #endif
 	return false;
 }
 
-	timeout_handler::timeout_handler(io_context& ios)
-		: m_start_time(clock_type::now())
-		, m_read_time(m_start_time)
-		, m_timeout(ios)
-	{}
+#if TORRENT_USE_RTC
+bool is_websocket_tracker_url(string_view const url)
+{
+	string_view const protocol = url.substr(0, url.find(':'));
+	return protocol == "ws" || protocol == "wss";
+}
 
-	timeout_handler::~timeout_handler()
+bool webrtc_allowed(session_settings const& sett)
+{
+	return sett.get_int(settings_pack::proxy_type) == settings_pack::none
+		|| (!sett.get_bool(settings_pack::proxy_peer_connections)
+			&& !sett.get_bool(settings_pack::proxy_tracker_connections));
+}
+#endif
+
+timeout_handler::timeout_handler(io_context& ios)
+	: m_start_time(clock_type::now())
+	, m_read_time(m_start_time)
+	, m_timeout(ios)
+{}
+
+timeout_handler::~timeout_handler() { TORRENT_ASSERT(m_outstanding_timer_wait == 0); }
+
+void timeout_handler::set_timeout(int completion_timeout, int read_timeout)
+{
+	m_completion_timeout = completion_timeout;
+	m_read_timeout = read_timeout;
+	m_start_time = m_read_time = clock_type::now();
+
+	TORRENT_ASSERT(completion_timeout > 0 || read_timeout > 0);
+
+	if (m_abort)
+		return;
+
+	int timeout = 0;
+	if (m_read_timeout > 0)
+		timeout = m_read_timeout;
+	if (m_completion_timeout > 0)
 	{
-		TORRENT_ASSERT(m_outstanding_timer_wait == 0);
+		timeout = timeout == 0 ? m_completion_timeout : std::min(m_completion_timeout, timeout);
 	}
 
-	void timeout_handler::set_timeout(int completion_timeout, int read_timeout)
-	{
-		m_completion_timeout = completion_timeout;
-		m_read_timeout = read_timeout;
-		m_start_time = m_read_time = clock_type::now();
-
-		TORRENT_ASSERT(completion_timeout > 0 || read_timeout > 0);
-
-		if (m_abort) return;
-
-		int timeout = 0;
-		if (m_read_timeout > 0) timeout = m_read_timeout;
-		if (m_completion_timeout > 0)
-		{
-			timeout = timeout == 0
-				? m_completion_timeout
-				: std::min(m_completion_timeout, timeout);
-		}
-
-		ADD_OUTSTANDING_ASYNC("timeout_handler::timeout_callback");
-		m_timeout.expires_at(m_read_time + seconds(timeout));
-		m_timeout.async_wait(std::bind(
-			&timeout_handler::timeout_callback, shared_from_this(), _1));
+	ADD_OUTSTANDING_ASYNC("timeout_handler::timeout_callback");
+	m_timeout.expires_at(m_read_time + seconds(timeout));
+	m_timeout.async_wait(std::bind(&timeout_handler::timeout_callback, shared_from_this(), _1));
 #if TORRENT_USE_ASSERTS
 		++m_outstanding_timer_wait;
 #endif
-	}
+}
 
 	void timeout_handler::restart_read_timeout()
 	{
@@ -466,10 +477,23 @@ bool is_tracker_protocol_supported(string_view const url)
 			return;
         }
 #if TORRENT_USE_RTC
-        else if (protocol == "ws" || protocol == "wss")
-        {
+		else if (is_websocket_tracker_url(req.url))
+		{
 			std::shared_ptr<request_callback> cb = c.lock();
 			if (!cb) return;
+
+			if (!webrtc_allowed(sett))
+			{
+				post(ios,
+					std::bind(&request_callback::tracker_request_error,
+						cb,
+						std::move(req),
+						error_code(boost::system::errc::permission_denied, generic_category()),
+						operation_t::connect,
+						"",
+						seconds32(0)));
+				return;
+			}
 
 			int const max_offers = std::max(sett.get_int(settings_pack::max_webtorrent_offers), 0);
 			req.num_want = std::min(req.num_want, max_offers);
@@ -484,44 +508,59 @@ bool is_tracker_protocol_supported(string_view const url)
 					, "", seconds32(0)));
 				return;
 			}
-			cb->generate_rtc_offers(req.num_want
-				, [this, &ios, request = std::move(req), c](error_code const& ec
-					, std::vector<aux::rtc_offer> offers) mutable
-			{
-				if (!ec) request.offers = std::move(offers);
+			cb->generate_rtc_offers(req.num_want,
+				[this, &ios, request = std::move(req), c](
+					error_code const& ec, std::vector<aux::rtc_offer> offers) mutable {
+					auto const fail = [&](error_code const& err) {
+						if (auto rc = c.lock())
+							post(ios,
+								std::bind(&request_callback::tracker_request_error,
+									rc,
+									std::move(request),
+									err,
+									operation_t::connect,
+									"",
+									seconds32(0)));
+					};
 
-				// m_abort may have been set (session shutdown) while this
-				// offer generation was in flight; the guard at the top of
-				// queue_request() only protects requests queued before
-				// m_abort was set, so re-check here before (re-)establishing
-				// a persistent connection, for the same reason the
-				// num_want==0 branch above avoids doing so during shutdown.
-				if (m_abort && request.event != event_t::stopped)
-				{
-					if (auto rc = c.lock())
-						post(ios,
-							std::bind(&request_callback::tracker_request_error,
-								rc,
-								std::move(request),
-								errors::torrent_aborted,
-								operation_t::connect,
-								"",
-								seconds32(0)));
-					return;
-				}
+					// the torrent refused to create RTC peers, connecting to the
+					// tracker anyway would bypass that policy
+					if (ec == boost::asio::error::operation_not_supported)
+						return fail(ec);
 
-				auto it = m_websocket_conns.find(request.url);
-				if (it != m_websocket_conns.end() && it->second->is_started()) {
-					it->second->queue_request(std::move(request), c);
-				} else {
-					auto con = std::make_shared<aux::websocket_tracker_connection>(
+					// a proxy may have been enabled while the offers were being
+					// generated
+					if (!webrtc_allowed(m_settings))
+						return fail(
+							error_code(boost::system::errc::permission_denied, generic_category()));
+
+					if (!ec)
+						request.offers = std::move(offers);
+
+					// m_abort may have been set (session shutdown) while this
+					// offer generation was in flight; the guard at the top of
+					// queue_request() only protects requests queued before
+					// m_abort was set, so re-check here before (re-)establishing
+					// a persistent connection, for the same reason the
+					// num_want==0 branch above avoids doing so during shutdown.
+					if (m_abort && request.event != event_t::stopped)
+						return fail(errors::torrent_aborted);
+
+					auto it = m_websocket_conns.find(request.url);
+					if (it != m_websocket_conns.end() && it->second->is_started())
+					{
+						it->second->queue_request(std::move(request), c);
+					}
+					else
+					{
+						auto con = std::make_shared<aux::websocket_tracker_connection>(
 							ios, *this, std::move(request), c);
-					con->start();
-					m_websocket_conns[request.url] = con;
-				}
-			});
+						con->start();
+						m_websocket_conns[request.url] = con;
+					}
+				});
 			return;
-        }
+		}
 #endif
 		else
 		{

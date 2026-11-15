@@ -261,6 +261,32 @@ TORRENT_TEST(parse_interval)
 	TEST_EQUAL(resp.min_interval.count(), 10);
 }
 
+// the intervals are 32 bit second counts, which are added to the current
+// time. Values that don't fit, or that would overflow that addition, are
+// expected to be limited to a week
+TORRENT_TEST(parse_interval_out_of_range)
+{
+	// 2^32 + 1 and INT_MAX
+	char const response[] = "d8:intervali4294967297e12:min intervali2147483647e5:peers0:e";
+	error_code ec;
+	aux::tracker_response resp = aux::parse_tracker_response(response, ec, {}, sha1_hash());
+
+	TEST_EQUAL(ec, error_code());
+	TEST_EQUAL(resp.interval.count(), 7 * 24 * 60 * 60);
+	TEST_EQUAL(resp.min_interval.count(), 7 * 24 * 60 * 60);
+}
+
+TORRENT_TEST(parse_negative_interval)
+{
+	char const response[] = "d8:intervali-1e12:min intervali-4294967297e5:peers0:e";
+	error_code ec;
+	aux::tracker_response resp = aux::parse_tracker_response(response, ec, {}, sha1_hash());
+
+	TEST_EQUAL(ec, error_code());
+	TEST_EQUAL(resp.interval.count(), 0);
+	TEST_EQUAL(resp.min_interval.count(), 0);
+}
+
 TORRENT_TEST(parse_warning)
 {
 	char const response[] = "d5:peers0:15:warning message12:test messagee";
@@ -688,6 +714,29 @@ TORRENT_TEST(parse_websocket_tracker_response)
 	}
 }
 
+TORRENT_TEST(parse_websocket_tracker_interval_out_of_range)
+{
+	// 2^32 + 1 and INT_MAX
+	char const response[] =
+		R"({"action":"announce","interval":4294967297,"min_interval":2147483647,"info_hash":"xxxxxxxxxxxxxxxxxxxx"})";
+
+	error_code ec;
+	auto ret = aux::parse_websocket_tracker_response(string_view(response), ec);
+
+	TEST_EQUAL(ec, error_code{});
+	TEST_CHECK(std::holds_alternative<aux::websocket_tracker_response>(ret));
+	if (!std::holds_alternative<aux::websocket_tracker_response>(ret))
+		return;
+
+	auto const parsed = std::get<aux::websocket_tracker_response>(ret);
+	TEST_CHECK(parsed.resp);
+	if (!parsed.resp)
+		return;
+
+	TEST_EQUAL(parsed.resp->interval.count(), 7 * 24 * 60 * 60);
+	TEST_EQUAL(parsed.resp->min_interval.count(), 7 * 24 * 60 * 60);
+}
+
 TORRENT_TEST(parse_websocket_tracker_response_offer)
 {
 	char const response[] =
@@ -1074,6 +1123,81 @@ TORRENT_TEST(websocket_tracker_bare_failure_keeps_connection)
 
 		// The hybrid torrent produces two announces and should receive
 		// a normal response for each after the uncorrelated failure.
+		TEST_EQUAL(counts.replies, 2);
+		TEST_EQUAL(counts.errors, 0);
+	}
+	stop_websocket_server();
+}
+
+namespace {
+
+lt::settings_pack websocket_tracker_proxy_settings(
+	bool const proxy_peers, bool const proxy_trackers)
+{
+	settings_pack pack = websocket_tracker_settings();
+	// nothing listens here, these tests don't need a working proxy
+	pack.set_int(settings_pack::proxy_type, settings_pack::socks5);
+	pack.set_str(settings_pack::proxy_hostname, "127.0.0.1");
+	pack.set_int(settings_pack::proxy_port, 1);
+	pack.set_bool(settings_pack::proxy_peer_connections, proxy_peers);
+	pack.set_bool(settings_pack::proxy_tracker_connections, proxy_trackers);
+	return pack;
+}
+
+void test_websocket_tracker_skipped_with_proxy(bool const proxy_peers, bool const proxy_trackers)
+{
+	int const port = start_websocket_server();
+	{
+		lt::session s(websocket_tracker_proxy_settings(proxy_peers, proxy_trackers));
+		torrent_handle const h =
+			add_websocket_tracker_torrent(s, "tmp_ws_proxy_tracker", websocket_tracker_url(port));
+
+		auto const counts = count_tracker_alerts(s, seconds(3));
+		TEST_EQUAL(counts.replies, 0);
+		TEST_EQUAL(counts.errors, 0);
+		TEST_CHECK(h.status().current_tracker.empty());
+	}
+	stop_websocket_server();
+}
+
+} // anonymous namespace
+
+TORRENT_TEST(websocket_tracker_skipped_with_peer_proxy)
+{
+	test_websocket_tracker_skipped_with_proxy(true, false);
+}
+
+TORRENT_TEST(websocket_tracker_skipped_with_tracker_proxy)
+{
+	test_websocket_tracker_skipped_with_proxy(false, true);
+}
+
+#if TORRENT_USE_I2P
+// a websocket tracker on an i2p destination is skipped, rather than attempted
+// and failed
+TORRENT_TEST(websocket_tracker_i2p_skipped)
+{
+	lt::session s(websocket_tracker_settings());
+	torrent_handle const h =
+		add_websocket_tracker_torrent(s, "tmp_ws_i2p_tracker", "ws://tracker.i2p/announce");
+
+	auto const counts = count_tracker_alerts(s, seconds(3));
+	TEST_EQUAL(counts.replies, 0);
+	TEST_EQUAL(counts.errors, 0);
+	TEST_CHECK(h.status().current_tracker.empty());
+}
+#endif
+
+// a configured proxy that's used for neither peers nor trackers doesn't
+// disable websocket trackers
+TORRENT_TEST(websocket_tracker_used_with_unused_proxy)
+{
+	int const port = start_websocket_server();
+	{
+		lt::session s(websocket_tracker_proxy_settings(false, false));
+		add_websocket_tracker_torrent(s, "tmp_ws_noproxy_tracker", websocket_tracker_url(port));
+
+		auto const counts = count_tracker_alerts(s, seconds(3));
 		TEST_EQUAL(counts.replies, 2);
 		TEST_EQUAL(counts.errors, 0);
 	}

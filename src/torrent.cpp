@@ -3227,6 +3227,18 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		if (!i2p_compatible_tracker(ae))
 			return false;
 #endif
+#if TORRENT_USE_RTC
+		if (aux::is_websocket_tracker_url(ae.url))
+		{
+			if (!rtc_allowed())
+				return false;
+#if TORRENT_USE_I2P
+			// WebRTC can't be carried over i2p
+			if (ae.i2p)
+				return false;
+#endif
+		}
+#endif
 		return aux::is_tracker_protocol_supported(ae.url);
 	}
 
@@ -6677,6 +6689,12 @@ namespace {
 	void torrent::generate_rtc_offers(int const count
 		, std::function<void(error_code const&, std::vector<aux::rtc_offer>)> handler)
 	{
+		if (!rtc_allowed())
+		{
+			handler(boost::asio::error::operation_not_supported, {});
+			return;
+		}
+
 		// rtc_signaling is created lazily
 		if (!m_rtc_signaling)
 		{
@@ -6689,14 +6707,29 @@ namespace {
 		m_rtc_signaling->generate_offers(count, std::move(handler));
 	}
 
+	bool torrent::rtc_allowed() const
+	{
+		if (!aux::webrtc_allowed(settings()))
+			return false;
+#if TORRENT_USE_I2P
+		if (is_i2p() && !settings().get_bool(settings_pack::allow_i2p_mixed))
+			return false;
+#endif
+		return true;
+	}
+
 	void torrent::on_rtc_offer(aux::rtc_offer const& offer)
 	{
+		if (!rtc_allowed())
+			return;
 		TORRENT_ASSERT(m_rtc_signaling);
 		if(m_rtc_signaling) m_rtc_signaling->process_offer(offer);
 	}
 
 	void torrent::on_rtc_answer(aux::rtc_answer const& answer)
 	{
+		if (!rtc_allowed())
+			return;
 		TORRENT_ASSERT(m_rtc_signaling);
 		if(m_rtc_signaling) m_rtc_signaling->process_answer(answer);
 	}
@@ -8151,6 +8184,12 @@ namespace {
 
 	bool torrent::connect_to_peer(torrent_peer* peerinfo, bool const ignore_limit)
 	{
+		return connect_to_peer(peerinfo, peerinfo->ip(), ignore_limit);
+	}
+
+	bool torrent::connect_to_peer(
+		torrent_peer* peerinfo, tcp::endpoint const& target, bool const ignore_limit)
+	{
 		TORRENT_ASSERT(is_single_thread());
 		INVARIANT_CHECK;
 		TORRENT_UNUSED(ignore_limit);
@@ -8178,10 +8217,9 @@ namespace {
 		)
 		{
 			// this asserts that we don't have duplicates in the peer_list's peer list
-			peer_iterator i_ = std::find_if(m_connections.begin(), m_connections.end()
-				, [peerinfo] (peer_connection const* p)
-				{
-					return !p->is_disconnecting() && p->remote() == peerinfo->ip();
+			peer_iterator i_ = std::find_if(
+				m_connections.begin(), m_connections.end(), [&target](peer_connection const* p) {
+					return !p->is_disconnecting() && p->remote() == target;
 				});
 
 			TORRENT_ASSERT(i_ == m_connections.end()
@@ -8193,7 +8231,7 @@ namespace {
 		TORRENT_ASSERT(m_ses.num_connections()
 			< settings().get_int(settings_pack::connections_limit) || ignore_limit);
 
-		tcp::endpoint a(peerinfo->ip());
+		TORRENT_ASSERT(target.address() == peerinfo->address());
 		TORRENT_ASSERT(!(m_flags & torrent_flags::apply_ip_filter) || !m_ip_filter
 			|| (m_ip_filter->access(peerinfo->address()) & ip_filter::blocked) == 0);
 
@@ -8298,7 +8336,7 @@ namespace {
 			}
 		}();
 
-		if(!create_peer_connection(peerinfo, std::move(s), std::move(a)))
+		if (!create_peer_connection(peerinfo, std::move(s), target))
 			return false;
 
 		return peerinfo->connection != nullptr;
@@ -10540,9 +10578,19 @@ namespace {
 		, web_seed_entry::headers_t const& extra_headers
 		, web_seed_flag_t const flags)
 	{
+		return add_web_seed_redirect(url, auth, extra_headers, flags, 0);
+	}
+
+	web_seed_t* torrent::add_web_seed_redirect(std::string const& url,
+		std::string const& auth,
+		web_seed_entry::headers_t const& extra_headers,
+		web_seed_flag_t const flags,
+		int const redirect_depth)
+	{
 		web_seed_t ent(url, auth, extra_headers);
 		ent.ephemeral = bool(flags & ephemeral);
 		ent.no_local_ips = bool(flags & no_local_ips);
+		ent.redirect_depth = std::uint8_t(redirect_depth);
 
 		// don't add duplicates
 		auto const it = std::find(m_web_seeds.begin(), m_web_seeds.end(), ent);
@@ -10560,7 +10608,7 @@ namespace {
 		m_web_seeds.emplace_back(std::move(ent));
 
 		// ephemeral web seeds are not saved in the resume data
-		if (!ent.ephemeral)
+		if (!m_web_seeds.back().ephemeral)
 			set_need_save_resume(torrent_handle::if_metadata_changed);
 
 		update_want_tick();
@@ -11188,6 +11236,12 @@ namespace {
 			return;
 		}
 
+#if TORRENT_USE_I2P
+		// web seeds don't support i2p
+		if (is_i2p() && !settings().get_bool(settings_pack::allow_i2p_mixed))
+			return;
+#endif
+
 		// when set to unlimited, use 100 as the limit
 		int limit = zero_or(settings().get_int(settings_pack::max_web_seed_connections)
 			, 100);
@@ -11200,6 +11254,12 @@ namespace {
 		{
 			auto const w = i++;
 			if (w->disabled || w->removed || w->retry > now || !w->interesting)
+				continue;
+
+			// this web seed has redirected all its files to other URLs. We
+			// won't connect to it again, and it's not supposed to keep the
+			// web seeds it redirected to from being connected
+			if (!w->have_files.empty() && w->have_files.none_set())
 				continue;
 
 			--limit;
@@ -12133,14 +12193,25 @@ namespace {
 		return m_peer_list->find_peers(a);
 	}
 
-	void torrent::update_peer_port(int const port, torrent_peer* p
-		, peer_source_flags_t const src)
+	bool torrent::update_peer_port(int const port, torrent_peer* p, peer_source_flags_t const src)
 	{
+		// the port comes from the peer itself. It's held to the same rules as
+		// the port of a peer we learn about some other way (see add_peer())
+		if (port <= 0 || port > 65535)
+			return false;
+
+		if (m_ses.get_port_filter().access(std::uint16_t(port)) & port_filter::blocked)
+			return false;
+
+		if (settings().get_bool(settings_pack::no_connect_privileged_ports) && port < 1024)
+			return false;
+
 		need_peer_list();
 		torrent_state st = get_peer_list_state();
 		m_peer_list->update_peer_port(port, p, src, &st);
 		peers_erased(st.erased);
 		update_want_peers();
+		return true;
 	}
 
 	// verify piece is used when checking resume data or when the user

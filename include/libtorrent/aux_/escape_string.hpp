@@ -47,6 +47,9 @@ namespace libtorrent {
 	// encodes a string using the base32 scheme
 	TORRENT_EXTRA_EXPORT std::string base32encode_i2p(span<char const> s);
 	TORRENT_EXTRA_EXPORT std::string base64encode_i2p(span<char const> s);
+	// decodes the i2p base64 alphabet, where '-' and '~' replace '+' and '/'.
+	// Only the canonical, padded encoding is accepted. Any other input throws
+	// system_error with errors::invalid_escaped_string
 	TORRENT_EXTRA_EXPORT std::vector<char> base64decode_i2p(string_view s);
 	// decodes a base64 destination. Returns an empty vector if it's invalid or
 	// larger than 1024 bytes

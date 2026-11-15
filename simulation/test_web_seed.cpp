@@ -24,6 +24,7 @@ see LICENSE file.
 #include "simulator/http_proxy.hpp"
 #include "settings.hpp"
 #include "libtorrent/create_torrent.hpp"
+#include "libtorrent/load_torrent.hpp"
 #include "simulator/simulator.hpp"
 #include "setup_swarm.hpp"
 #include "utils.hpp"
@@ -255,6 +256,75 @@ std::vector<file_index_t> non_pad_files(file_storage const& fs)
 		if (!fs.pad_file_at(i))
 			ret.push_back(i);
 	return ret;
+}
+
+namespace {
+
+// the web seed redirects num_redirects times, to a new URL on the same server
+// each time, before arriving at the file. Returns whether the torrent
+// completed, and sets num_requests to the number of redirects the server
+// sent
+bool test_redirect_chain(int const num_redirects, int& num_requests)
+{
+	using namespace lt;
+	std::vector<lt::create_file_entry> files;
+	files.emplace_back("1", 0xc030);
+	lt::add_torrent_params params = ::create_torrent(std::move(files));
+	params.url_seeds.push_back("http://2.2.2.2:8080/redirect0");
+
+	bool seeding = false;
+	num_requests = 0;
+
+	lt::file_storage const& fs = params.ti->layout();
+
+	run_test([&params](lt::session& ses) { ses.async_add_torrent(params); },
+		[&](lt::session&, lt::alert const* alert) {
+			if (lt::alert_cast<lt::torrent_finished_alert>(alert))
+				seeding = true;
+		},
+		[&](sim::simulation& sim, lt::session&) {
+			sim::asio::io_context web_server(sim, make_address_v4("2.2.2.2"));
+			sim::http_server http(web_server, 8080);
+			for (int i = 0; i < num_redirects; ++i)
+			{
+				std::string const target = (i + 1 < num_redirects)
+					? "http://2.2.2.2:8080/redirect" + std::to_string(i + 1)
+					: "http://2.2.2.2:8080/file";
+				http.register_handler("/redirect" + std::to_string(i),
+					[target, &num_requests](
+						std::string, std::string, std::map<std::string, std::string>&) {
+						++num_requests;
+						std::string const header = "Location: " + target + "\r\n";
+						char const* extra_headers[4] = {header.c_str(), "", "", ""};
+						return sim::send_response(301, "Moved Permanently", 0, extra_headers);
+					});
+			}
+			serve_content_for(http, "/file", fs, file_index_t(0));
+
+			sim.run();
+		});
+
+	return seeding;
+}
+
+} // anonymous namespace
+
+// every redirect leaves a web seed behind, with no files. Those are not
+// supposed to count against max_web_seed_connections (3 by default), keeping
+// the web seed at the end of the chain from being used
+TORRENT_TEST(redirect_chain)
+{
+	int num_requests = 0;
+	TEST_CHECK(test_redirect_chain(4, num_requests));
+	TEST_EQUAL(num_requests, 4);
+}
+
+// there's a limit to how many redirects we follow from a web seed
+TORRENT_TEST(redirect_chain_limit)
+{
+	int num_requests = 0;
+	TEST_CHECK(!test_redirect_chain(20, num_requests));
+	TEST_EQUAL(num_requests, 6);
 }
 
 using transfer_test_flags_t =
@@ -1130,3 +1200,122 @@ TORRENT_TEST(ssrf_mitigation_redirect)
 	TEST_CHECK(test_ssrf("http://192.168.1.14:8080/1", "http://192.168.1.13:8080/1?query_string=1", false));
 	TEST_CHECK(!test_ssrf("http://192.168.1.14:8080/1", "http://local-network.com:8080/1?query_string=1", true));
 }
+
+#if TORRENT_USE_I2P
+namespace {
+
+// tracker and web seed are embedded in the .torrent file itself
+lt::add_torrent_params with_url_seed(char const* tracker)
+{
+	std::vector<lt::create_file_entry> files;
+	files.emplace_back("file1", 1);
+	lt::create_torrent ct(std::move(files));
+	ct.add_tracker(tracker);
+	ct.add_url_seed("http://2.2.2.2:8080/");
+	ct.set_hash(lt::piece_index_t(0), lt::sha1_hash::max());
+	lt::add_torrent_params ret = lt::load_torrent_buffer(lt::bencode(ct.generate()));
+	ret.flags &= ~lt::torrent_flags::auto_managed;
+	ret.flags &= ~lt::torrent_flags::paused;
+	ret.save_path = ".";
+	return ret;
+}
+
+// returns whether the web seed at 2.2.2.2 received a request
+bool test_i2p_web_seed(lt::add_torrent_params params,
+	bool const allow_i2p_mixed,
+	bool const add_url_seed_later = false)
+{
+	bool requested = false;
+	run_test(
+		[&](lt::session& ses) {
+			settings_pack pack;
+			pack.set_bool(settings_pack::allow_i2p_mixed, allow_i2p_mixed);
+			ses.apply_settings(pack);
+			ses.async_add_torrent(params);
+		},
+		[&](lt::session&, lt::alert const* a) {
+			if (!add_url_seed_later)
+				return;
+			if (auto const* at = lt::alert_cast<lt::add_torrent_alert>(a))
+				at->handle.add_url_seed("http://2.2.2.2:8080/");
+		},
+		[&](sim::simulation& sim, lt::session&) {
+			sim::asio::io_context web_server(sim, make_address_v4("2.2.2.2"));
+			sim::http_server http(web_server, 8080);
+			http.register_handler(
+				"/file1", [&](std::string, std::string, std::map<std::string, std::string>&) {
+					requested = true;
+					return sim::send_response(404, "Not Found", 0);
+				});
+			sim.run();
+		},
+		lt::seconds(15));
+	return requested;
+}
+
+lt::add_torrent_params i2p_web_seed_torrent()
+{
+	std::vector<lt::create_file_entry> files;
+	files.emplace_back("file1", 1);
+	return ::create_torrent(std::move(files));
+}
+
+} // anonymous namespace
+
+TORRENT_TEST(web_seed_in_torrent_regular)
+{
+	auto params = with_url_seed("http://tracker.com:8080/announce");
+	TEST_CHECK(test_i2p_web_seed(params, false));
+}
+
+TORRENT_TEST(web_seed_in_torrent_i2p_tracker)
+{
+	auto params = with_url_seed("http://tracker.i2p/announce");
+	TEST_CHECK(params.flags & lt::torrent_flags::i2p_torrent);
+	TEST_CHECK(!test_i2p_web_seed(params, false));
+}
+
+TORRENT_TEST(web_seed_in_torrent_i2p_tracker_mixed)
+{
+	auto params = with_url_seed("http://tracker.i2p/announce");
+	TEST_CHECK(test_i2p_web_seed(params, true));
+}
+
+TORRENT_TEST(web_seed_in_torrent_i2p_flag)
+{
+	// the i2p_torrent flag alone, the torrent file has a regular tracker
+	auto params = with_url_seed("http://tracker.com:8080/announce");
+	TEST_CHECK(!(params.flags & lt::torrent_flags::i2p_torrent));
+	params.flags |= lt::torrent_flags::i2p_torrent;
+	TEST_CHECK(!test_i2p_web_seed(params, false));
+}
+
+TORRENT_TEST(web_seed_in_atp_i2p_flag)
+{
+	auto params = i2p_web_seed_torrent();
+	params.url_seeds.push_back("http://2.2.2.2:8080/");
+	params.flags |= lt::torrent_flags::i2p_torrent;
+	TEST_CHECK(!test_i2p_web_seed(params, false));
+}
+
+TORRENT_TEST(web_seed_in_atp_i2p_flag_mixed)
+{
+	auto params = i2p_web_seed_torrent();
+	params.url_seeds.push_back("http://2.2.2.2:8080/");
+	params.flags |= lt::torrent_flags::i2p_torrent;
+	TEST_CHECK(test_i2p_web_seed(params, true));
+}
+
+TORRENT_TEST(web_seed_added_later_i2p_flag)
+{
+	auto params = i2p_web_seed_torrent();
+	params.flags |= lt::torrent_flags::i2p_torrent;
+	TEST_CHECK(!test_i2p_web_seed(params, false, true));
+}
+
+TORRENT_TEST(web_seed_added_later_regular)
+{
+	auto params = i2p_web_seed_torrent();
+	TEST_CHECK(test_i2p_web_seed(params, false, true));
+}
+#endif // TORRENT_USE_I2P

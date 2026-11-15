@@ -20,6 +20,8 @@ see LICENSE file.
 #include "libtorrent/time.hpp"
 #include "libtorrent/aux_/parse_url.hpp"
 #include "libtorrent/aux_/random.hpp"
+#include "libtorrent/aux_/string_util.hpp" // for is_i2p_url
+#include "libtorrent/error_code.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/asio/connect.hpp>
@@ -102,6 +104,17 @@ void websocket_stream::do_connect(std::string url)
 			post(m_io_service, std::bind(std::move(handler), ec));
 		return;
 	}
+
+#if TORRENT_USE_I2P
+	// i2p destinations must not be looked up via DNS
+	if (is_i2p_url(m_url))
+	{
+		if (auto handler = std::exchange(m_connect_handler, nullptr))
+			post(m_io_service,
+				std::bind(std::move(handler), error_code(errors::unsupported_url_protocol)));
+		return;
+	}
+#endif
 
 	if (protocol == "ws")
 	{

@@ -73,6 +73,7 @@ fuzzer natpmp ;
 fuzzer base32decode ;
 fuzzer base32encode ;
 fuzzer base64encode ;
+fuzzer base64decode_i2p ;
 fuzzer escape_string ;
 fuzzer identify_client ;
 fuzzer lsd ;

@@ -1658,7 +1658,11 @@ namespace {
 				p->flags |= torrent_peer::supports_utp;
 				// #error make sure we make this a connection candidate
 				// in case it has too many failures for instance
-				t->connect_to_peer(p, true);
+
+				// ep is the NAT mapping the introducer sees, which is neither
+				// the peer's listen port nor trustworthy enough to store, so
+				// connect to it without touching the entry's port
+				t->connect_to_peer(p, ep, true);
 				// mark this connection to be in holepunch mode
 				// so that it will retry faster and stick to uTP while it's
 				// retrying
@@ -2062,16 +2066,22 @@ namespace {
 		// upload_only
 		if (bdecode_node const m = root.dict_find_dict("m"))
 		{
-			m_upload_only_id = std::uint8_t(m.dict_find_int_value("upload_only", 0));
-			m_holepunch_id = std::uint8_t(m.dict_find_int_value("ut_holepunch", 0));
-			m_dont_have_id = std::uint8_t(m.dict_find_int_value("lt_donthave", 0));
+			// extension message IDs are a single byte on the wire. An ID
+			// that doesn't fit is treated as the extension being disabled
+			auto const ext_id = [&m](string_view const name) {
+				std::int64_t const id = m.dict_find_int_value(name, 0);
+				return (id > 0 && id <= 255) ? std::uint8_t(id) : std::uint8_t(0);
+			};
+			m_upload_only_id = ext_id("upload_only");
+			m_holepunch_id = ext_id("ut_holepunch");
+			m_dont_have_id = ext_id("lt_donthave");
 		}
 
 		// there is supposed to be a remote listen port
-		int const listen_port = int(root.dict_find_int_value("p"));
-		if (listen_port > 0 && peer_info_struct() != nullptr)
+		std::int64_t const listen_port = root.dict_find_int_value("p");
+		if (listen_port > 0 && listen_port <= 65535 && peer_info_struct() != nullptr
+			&& t->update_peer_port(int(listen_port), peer_info_struct(), peer_info::incoming))
 		{
-			t->update_peer_port(listen_port, peer_info_struct(), peer_info::incoming);
 			received_listen_port();
 			if (is_disconnecting()) return;
 		}
@@ -2219,7 +2229,7 @@ namespace {
 			int const counter = (packet_type <= msg_dht_port)
 				? counters::num_incoming_choke + packet_type
 				: (packet_type <= msg_allowed_fast)
-				? counters::num_incoming_suggest + packet_type
+				? counters::num_incoming_suggest + packet_type - msg_suggest_piece
 				: counters::num_incoming_extended;
 
 			stats_counters().inc_stats_counter(counter);
@@ -3444,24 +3454,23 @@ namespace {
 
 			t = associated_torrent().lock();
 
+			sha1_hash const peer_hash(recv_buffer.subspan(8, 20));
+
 			// ok, now we have got enough of the handshake. Is this connection
 			// attached to a torrent?
 			if (!t)
 			{
 				// now, we have to see if there's a torrent with the
 				// info_hash we got from the peer
-				sha1_hash info_hash;
-				std::copy(recv_buffer.begin() + 8, recv_buffer.begin() + 28
-					, info_hash.data());
-
-				attach_to_torrent(info_hash_t(info_hash));
+				attach_to_torrent(info_hash_t(peer_hash));
 				if (is_disconnecting()) return;
 
 				t = associated_torrent().lock();
 				TORRENT_ASSERT(t);
 
 				// this must go after the connection is attached to a torrent because that is what
-				// adds the peer info for incoming connections
+				// adds the peer info for incoming connections. The peer's own
+				// handshake overrides whatever gossip claimed about v2 support
 				if (recv_buffer[7] & 0x10)
 				{
 					if (m_ti->is_valid() && !m_ti->info_hashes().has_v2())
@@ -3472,6 +3481,11 @@ namespace {
 					}
 					peer_info_struct()->flags |= torrent_peer::protocol_v2;
 				}
+				else if (!m_ti->info_hashes().has_v2()
+					|| peer_hash != m_ti->info_hashes().get(protocol_version::V2))
+				{
+					peer_info_struct()->flags &= ~torrent_peer::protocol_v2;
+				}
 			}
 			else
 			{
@@ -3479,15 +3493,12 @@ namespace {
 				// also check for all zero info hash in the torrent to make sure
 				// the client isn't attempting to use a protocol version the torrent
 				// doesn't support
-				if (std::equal(recv_buffer.begin() + 8,
-						recv_buffer.begin() + 28,
-						m_ti->info_hashes().get(protocol_version::V2).data())
-					&& m_ti->info_hashes().has_v2())
+				if (m_ti->info_hashes().has_v2()
+					&& peer_hash == m_ti->info_hashes().get(protocol_version::V2))
 				{
 					peer_info_struct()->flags |= torrent_peer::protocol_v2;
 				}
-				else if (!std::equal(recv_buffer.begin() + 8, recv_buffer.begin() + 28
-						, associated_info_hash().data())
+				else if (peer_hash != associated_info_hash()
 					|| associated_info_hash().is_all_zeros())
 				{
 #ifndef TORRENT_DISABLE_LOGGING
@@ -3495,6 +3506,12 @@ namespace {
 #endif
 					disconnect(errors::invalid_info_hash, operation_t::bittorrent, failure);
 					return;
+				}
+				else
+				{
+					// the peer answered with the v1 hash, so whatever gossip
+					// claimed about v2 support was wrong
+					peer_info_struct()->flags &= ~torrent_peer::protocol_v2;
 				}
 
 #ifndef TORRENT_DISABLE_LOGGING

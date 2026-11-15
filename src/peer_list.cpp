@@ -1187,10 +1187,23 @@ namespace libtorrent::aux {
 		bool const was_conn_cand = is_connect_candidate(*p);
 
 		TORRENT_ASSERT(p->in_use);
-		p->flags |= torrent_peer::connectable;
-
 		TORRENT_ASSERT(p->address() == remote.address());
-		p->port = remote.port();
+
+		// pex and DHT are sources where a third party names the port, so they
+		// must not overwrite a listen port we already hold, since any peer or
+		// DHT node could otherwise poison the port of every peer in the
+		// swarm. Once we have given up on the port we hold there is nothing
+		// left to poison, so any source may replace it
+		bool const gave_up = int(p->failcount) >= m_max_failcount;
+		bool const untrusted = bool(src & (peer_info::pex | peer_info::dht));
+		if (!(p->flags & torrent_peer::connectable) || !untrusted || gave_up)
+		{
+			// the failures were against the old port
+			if (gave_up && p->port != remote.port())
+				p->failcount = 0;
+			p->port = remote.port();
+			p->flags |= torrent_peer::connectable;
+		}
 		p->source |= static_cast<std::uint8_t>(src);
 
 		// if this peer has failed before, decrease the
@@ -1200,17 +1213,12 @@ namespace libtorrent::aux {
 		if (p->failcount > 0 && src == peer_info::tracker)
 			--p->failcount;
 
-		// if we're connected to this peer
-		// we already know if it's a seed or not
-		// so we don't have to trust this source
-		if ((flags & pex_seed) && !p->connection)
-			p->flags |= torrent_peer::maybe_upload_only;
-		if (flags & pex_utp)
-			p->flags |= torrent_peer::supports_utp;
+		// the seed, uTP and v2 flags are learned from connecting to the peer,
+		// so gossip is only honored when the peer is first added. Holepunch
+		// support is only ever gossiped, and a false claim just costs a
+		// rendezvous message to the peer that made it
 		if (flags & pex_holepunch)
 			p->flags |= torrent_peer::supports_holepunch;
-		if (flags & pex_lt_v2)
-			p->flags |= torrent_peer::protocol_v2;
 
 		if (was_conn_cand != is_connect_candidate(*p))
 		{

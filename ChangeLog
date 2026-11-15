@@ -20,6 +20,10 @@
 
 2.1.3 not released
 
+	* fix file order when creating hybrid torrents
+	* fix web seed redirects
+	* limit the size of the allowed-fast set received from a peer
+	* validate the listen port in a peer's extension handshake (range, port filter and no_connect_privileged_ports)
 	* fix auto managed seeds being paused before they can be classified as inactive
 	* fix restoring scrape counters from resume data, and save unknown counters as -1
 	* ignore i2p peers with invalid destinations
@@ -106,6 +110,8 @@
 
 2.0.16 not released
 
+	* fix is_i2p_url() treating IPv6 literals with a crafted zone ID as i2p URLs
+	* fix DHT put of an item erasing from an empty table when dht_max_dht_items is 0
 	* fix announce_to_all_tiers and announce_to_all_trackers names being swapped
 	* only count the final timeout of a DHT request as a node failure, not the short timeout
 	* fix a few DHT routing table and storage bugs

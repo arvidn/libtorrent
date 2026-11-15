@@ -91,6 +91,12 @@ struct i2p_session_options
 	int m_outbound_length_variance = 0;
 };
 
+namespace aux {
+// i2p hostnames are at most 67 characters, this leaves room for b32 and
+// b33 addresses
+constexpr std::size_t max_i2p_name_len = 255;
+}
+
 struct TORRENT_EXTRA_EXPORT i2p_stream : aux::proxy_base
 {
 	explicit i2p_stream(io_context& io_context);
@@ -597,6 +603,16 @@ public:
 		{
 			post(m_io_service, [h = std::move(handler)]() mutable {
 				h(error_code(errors::no_i2p_router), nullptr);
+			});
+			return;
+		}
+		// lookups share the session's SAM control socket, failing them there
+		// would tear down the whole i2p session
+		string_view const n(name);
+		if (n.size() > aux::max_i2p_name_len || !aux::is_valid_i2p_name(n))
+		{
+			post(m_io_service, [h = std::move(handler)]() mutable {
+				h(error_code(i2p_error::invalid_key), nullptr);
 			});
 			return;
 		}

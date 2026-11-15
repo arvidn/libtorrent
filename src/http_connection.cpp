@@ -994,6 +994,14 @@ void http_connection::on_read(error_code const& e
 
 			std::string url = aux::resolve_redirect_location(m_url, location);
 
+#if TORRENT_USE_I2P
+			if (m_i2p_conn && !aux::is_i2p_url(url))
+			{
+				callback(error_code(errors::invalid_redirection));
+				return;
+			}
+#endif
+
 			// Don't forward Authorization credentials to a different
 			// origin. The redirect target may be a third party server
 			// that should not see our basic-auth credentials.

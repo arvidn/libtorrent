@@ -28,10 +28,13 @@ see LICENSE file.
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_params.hpp"
 #include "libtorrent/aux_/torrent.hpp"
+#include "libtorrent/aux_/peer_connection.hpp"
+#include "libtorrent/aux_/torrent_peer.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 
 #include <cstring>
 #include <functional>
+#include <future>
 #include <iostream>
 #include <fstream>
 #include <cstdarg>
@@ -560,7 +563,60 @@ bool wait_for_counter(lt::session& ses, char const* name, std::int64_t const val
 	return false;
 }
 
+
 } // anonymous namespace
+
+// the incoming fast extension messages are supposed to be counted by their
+// own session stats counters. They used to be added to counters further down
+// the list, for outgoing messages
+TORRENT_TEST(fast_extension_counters)
+{
+	info_hash_t ih;
+	std::shared_ptr<lt::session> ses;
+	io_context ios;
+	tcp::socket s(ios);
+	setup_peer(s, ios, ih, ses);
+
+	auto const before = get_counters(*ses);
+
+	char recv_buffer[1000];
+	do_handshake(s, ih, recv_buffer);
+	send_have_all(s);
+	send_allow_fast(s, 0);
+	send_allow_fast(s, 1);
+	send_suggest_piece(s, 0);
+
+	// once we get the reject message, we know the messages before it have
+	// been handled too
+	peer_request req;
+	req.piece = 0_piece;
+	req.start = 0;
+	req.length = 0x4000;
+	send_request(s, req);
+	for (;;)
+	{
+		int const len = read_message(s, recv_buffer);
+		if (len == -1)
+			break;
+		if (len == 13 && recv_buffer[0] == 0x10)
+			break;
+	}
+
+	auto const after = get_counters(*ses);
+	auto const diff = [&](char const* name) { return after.at(name) - before.at(name); };
+
+	TEST_EQUAL(diff("ses.num_incoming_have_all"), 1);
+	TEST_EQUAL(diff("ses.num_incoming_allowed_fast"), 2);
+	TEST_EQUAL(diff("ses.num_incoming_suggest"), 1);
+	TEST_EQUAL(diff("ses.num_incoming_request"), 1);
+
+	// we only sent the handshake and a reject
+	TEST_EQUAL(diff("ses.num_outgoing_reject"), 1);
+	TEST_EQUAL(diff("ses.num_outgoing_piece"), 0);
+	TEST_EQUAL(diff("ses.num_outgoing_not_interested"), 0);
+	TEST_EQUAL(diff("ses.num_outgoing_have"), 0);
+	s.close();
+}
 
 // makes sure that pieces that are allowed and then
 // rejected aren't requested again
@@ -675,6 +731,54 @@ TORRENT_TEST(allowed_fast_survives_metadata)
 	TEST_EQUAL(read_request_piece(s, recv_buffer), allowed_piece);
 	s.close();
 }
+
+#if !defined TORRENT_DISABLE_EXTENSIONS && !defined TORRENT_DISABLE_LOGGING
+// the allowed-fast set a peer sends us is not allowed to grow without bound.
+// Before we have the metadata any piece index is accepted
+TORRENT_TEST(allowed_fast_limit)
+{
+	info_hash_t ih;
+	std::shared_ptr<lt::session> ses;
+	io_context ios;
+	tcp::socket s(ios);
+	setup_peer(s, ios, ih, ses, true, true);
+
+	char recv_buffer[1000];
+	do_handshake(s, ih, recv_buffer);
+	send_have_all(s);
+
+	entry extensions;
+	extensions["m"]["ut_metadata"] = 1;
+	send_extension_handshake(s, extensions);
+	extensions = read_extension_handshake(s, recv_buffer);
+	int const ut_metadata = int(extensions["m"]["ut_metadata"].integer());
+
+	// the first 30 pieces are kept, the rest are ignored
+	int const num_ignored = 10;
+	for (int i = 0; i < 30 + num_ignored; ++i)
+		send_allow_fast(s, i);
+
+	// once we have a response to this, we know all the allowed-fast messages
+	// have been handled. Since the torrent doesn't have any metadata, the
+	// response is a reject (2). We'll also receive requests (0) for the
+	// metadata.
+	send_ut_metadata_msg(s, ut_metadata, 0, 0);
+	while (read_ut_metadata_msg(s, recv_buffer)["msg_type"].integer() != 2)
+		;
+
+	int ignored = 0;
+	std::vector<alert*> alerts;
+	ses->pop_alerts(&alerts);
+	for (alert const* a : alerts)
+	{
+		auto const* pl = alert_cast<peer_log_alert>(a);
+		if (pl && pl->event_type == peer_log_alert::invalid_allowed_fast)
+			++ignored;
+	}
+	TEST_EQUAL(ignored, num_ignored);
+	s.close();
+}
+#endif
 
 TORRENT_TEST(suggested_piece_survives_metadata)
 {
@@ -1158,6 +1262,124 @@ TORRENT_TEST(invalid_metadata_request)
 	TEST_EQUAL(ut_metadata_msg["piece"].integer(), 0);
 
 	print_session_log(*ses);
+}
+
+// extension message IDs are a single byte on the wire. A peer announcing an
+// ID that doesn't fit used to have it truncated (300 turns into 44), and
+// trigger an assert when writing it
+TORRENT_TEST(out_of_range_extension_id)
+{
+	using namespace lt::aux;
+
+	info_hash_t ih;
+	std::shared_ptr<lt::session> ses;
+	io_context ios;
+	tcp::socket s(ios);
+	setup_peer(s, ios, ih, ses);
+
+	char recv_buffer[1000];
+	do_handshake(s, ih, recv_buffer);
+	print_session_log(*ses);
+	send_have_none(s);
+	print_session_log(*ses);
+
+	entry extensions;
+	extensions["m"]["ut_metadata"] = 300;
+	send_extension_handshake(s, extensions);
+
+	extensions = read_extension_handshake(s, recv_buffer);
+
+	int const ut_metadata = int(extensions["m"]["ut_metadata"].integer());
+
+	// request the first metadata piece. Since the ut_metadata ID we announced
+	// is invalid, we don't support the extension as far as the other end is
+	// concerned. It's expected to disconnect us, without sending a response
+	// to some other ID
+	send_ut_metadata_msg(s, ut_metadata, 0, 0);
+
+	for (;;)
+	{
+		error_code ec;
+		boost::asio::read(s, boost::asio::buffer(recv_buffer, 4), boost::asio::transfer_all(), ec);
+		if (ec)
+			break;
+		char const* ptr = recv_buffer;
+		int const len = read_int32(ptr);
+		TEST_CHECK(len <= int(sizeof(recv_buffer)));
+		if (len > int(sizeof(recv_buffer)))
+			break;
+		boost::asio::read(
+			s, boost::asio::buffer(recv_buffer, std::size_t(len)), boost::asio::transfer_all(), ec);
+		if (ec)
+			break;
+		auto const buffer = span<char const>(recv_buffer).first(len);
+		print_message(buffer);
+
+		// the only extension message we expect is the handshake
+		if (len >= 2 && buffer[0] == 20)
+			TEST_EQUAL(int(buffer[1]), 0);
+	}
+
+	print_session_log(*ses);
+}
+
+namespace {
+
+// announces the specified listen port in the extension handshake and returns
+// the port of the peer, in the peer list, once the handshake has been handled
+int announce_listen_port(std::int64_t const listen_port, bool const no_privileged_ports)
+{
+	info_hash_t ih;
+	torrent_handle th;
+	std::shared_ptr<lt::session> ses;
+	io_context ios;
+	tcp::socket s(ios);
+	setup_peer(s, ios, ih, ses, true, false, false, torrent_flags_t{}, &th);
+
+	settings_pack pack;
+	pack.set_bool(settings_pack::no_connect_privileged_ports, no_privileged_ports);
+	ses->apply_settings(pack);
+
+	char recv_buffer[1000];
+	do_handshake(s, ih, recv_buffer);
+	send_have_all(s);
+
+	entry extensions;
+	extensions["m"]["ut_metadata"] = 1;
+	extensions["p"] = listen_port;
+	send_extension_handshake(s, extensions);
+	extensions = read_extension_handshake(s, recv_buffer);
+
+	// once we have a response to this, we know the extension handshake has
+	// been handled
+	send_ut_metadata_msg(s, int(extensions["m"]["ut_metadata"].integer()), 0, 0);
+	read_ut_metadata_msg(s, recv_buffer);
+
+	auto const tor = th.native_handle();
+	std::promise<int> ret;
+	post(ses->native_handle()->get_context(), [tor, &ret] {
+		auto const peers = tor->peers();
+		ret.set_value(peers.empty() ? -1 : int(peers.front()->peer_info_struct()->port));
+	});
+	int const port = ret.get_future().get();
+	TEST_CHECK(port == listen_port || port == s.local_endpoint().port());
+	return port;
+}
+
+} // anonymous namespace
+
+// the listen port a peer announces in its extension handshake replaces the
+// port we have for it. A port that doesn't fit in 16 bits used to be
+// truncated (65558 turns into 22), and privileged ports were not rejected
+TORRENT_TEST(extension_handshake_listen_port)
+{
+	TEST_EQUAL(announce_listen_port(6881, true), 6881);
+	TEST_EQUAL(announce_listen_port(22, false), 22);
+
+	// these are ignored, we keep the port the peer connected from
+	TEST_CHECK(announce_listen_port(65558, false) != 22);
+	TEST_CHECK(announce_listen_port(0x100000016, false) != 22);
+	TEST_CHECK(announce_listen_port(22, true) != 22);
 }
 #endif // TORRENT_DISABLE_EXTENSIONS
 
