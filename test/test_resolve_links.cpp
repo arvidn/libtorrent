@@ -49,6 +49,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "setup_transfer.hpp" // for wait_for_seeding
 #include "settings.hpp"
 
+#include <array>
 #include <functional>
 
 using namespace lt;
@@ -76,21 +77,22 @@ static test_torrent_t test_torrents[] = {
 	{ "test3", "test1_pad_files", 0},
 	{ "test2", "test1_single", 0},
 
-	// these are all padded. The first small file will accidentally also
-	// match, even though it's not tail padded, the following file is identical
-	{ "test2_pad_files", "test1_pad_files", 2},
-	{ "test3_pad_files", "test1_pad_files", 2},
-	{ "test3_pad_files", "test2_pad_files", 2},
-	{ "test1_pad_files", "test2_pad_files", 2},
-	{ "test1_pad_files", "test3_pad_files", 2},
-	{ "test2_pad_files", "test3_pad_files", 2},
+	// these are all padded. The first small file is aligned but not tail
+	// padded, so its piece hash also covers the following file
+	{ "test2_pad_files", "test1_pad_files", 1},
+	{ "test3_pad_files", "test1_pad_files", 1},
+	{ "test3_pad_files", "test2_pad_files", 1},
+	{ "test1_pad_files", "test2_pad_files", 1},
+	{ "test1_pad_files", "test3_pad_files", 1},
+	{ "test2_pad_files", "test3_pad_files", 1},
 
 	// one might expect this to work, but since the tail of the single file
 	// torrent is not padded, the last piece hash won't match
 	{ "test1_pad_files", "test1_single", 0},
 
-	// if it's padded on the other hand, it will work
-	{ "test1_pad_files", "test1_single_padded", 1},
+	// the last piece of the single file is short, while it's padded in
+	// test1_pad_files. The same hash can't be correct for both
+	{ "test1_pad_files", "test1_single_padded", 0},
 
 	// TODO: test files with different piece size (negative test)
 };
@@ -199,6 +201,37 @@ std::shared_ptr<torrent_info> make_v2_single_file(std::int64_t const size
 	return std::make_shared<torrent_info>(buf, from_span);
 }
 
+std::shared_ptr<torrent_info> make_v1(std::vector<std::int64_t> const& sizes
+	, bool const pad)
+{
+	file_storage fs;
+	int idx = 0;
+	for (auto const s : sizes)
+		fs.add_file("test_resolve_links_dir/" + std::to_string(idx++), s);
+	lt::create_torrent t(fs, 16 * 1024, lt::create_torrent::v1_only
+		| (pad ? create_torrent::canonical_files : lt::create_flags_t{}));
+	for (piece_index_t p : t.piece_range())
+		t.set_hash(p, sha1_hash("01234567890123456789"));
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), t.generate());
+	return std::make_shared<torrent_info>(buf, from_span);
+}
+
+std::shared_ptr<torrent_info> make_single_file(lt::create_flags_t const flags
+	, sha1_hash const& hash, sha256_hash const& root)
+{
+	file_storage fs;
+	fs.add_file("test_resolve_links_dir/file", 16 * 1024);
+	lt::create_torrent t(fs, 16 * 1024, flags);
+	if (!(flags & create_torrent::v2_only))
+		t.set_hash(0_piece, hash);
+	if (!(flags & create_torrent::v1_only))
+		t.set_hash2(file_index_t{0}, piece_index_t::diff_type{0}, root);
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), t.generate());
+	return std::make_shared<torrent_info>(buf, from_span);
+}
+
 int count_links(resolve_links const& l)
 {
 	auto const& links = l.get_links();
@@ -233,6 +266,148 @@ TORRENT_TEST(v2_match_root_and_size)
 		l.match(make_v2_single_file(16 * 1024
 			, sha256_hash("98765432109876543210987654321098")), ".");
 		TEST_EQUAL(count_links(l), 0);
+	}
+}
+
+TORRENT_TEST(v2_empty_file)
+{
+	auto const make = []
+	{
+		file_storage fs;
+		fs.add_file("test_resolve_links_dir/a", 16 * 1024);
+		fs.add_file("test_resolve_links_dir/b", 0);
+		lt::create_torrent t(fs, 16 * 1024, lt::create_torrent::v2_only);
+		t.set_hash2(file_index_t{0}, piece_index_t::diff_type{0}
+			, sha256_hash("01234567890123456789012345678901"));
+		std::vector<char> buf;
+		bencode(std::back_inserter(buf), t.generate());
+		return std::make_shared<torrent_info>(buf, from_span);
+	};
+
+	resolve_links l(make());
+	l.match(make(), ".");
+	// empty files aren't linked
+	TEST_EQUAL(count_links(l), 1);
+}
+
+// every kind of hash the new torrent has must be compared against the seed
+TORRENT_TEST(match_torrent_kind)
+{
+	lt::create_flags_t const v1 = create_torrent::v1_only;
+	lt::create_flags_t const v2 = create_torrent::v2_only;
+	lt::create_flags_t const hybrid{};
+	sha1_hash const hash("01234567890123456789");
+	sha1_hash const other_hash("98765432109876543210");
+	sha256_hash const root("01234567890123456789012345678901");
+	sha256_hash const other_root("98765432109876543210987654321098");
+
+	struct test_case_t
+	{
+		lt::create_flags_t ours;
+		lt::create_flags_t theirs;
+		sha1_hash const* their_hash;
+		sha256_hash const* their_root;
+		int expected_links;
+	};
+
+	std::array<test_case_t, 11> const test_cases{{
+		{v1, v1, &hash, &root, 1},
+		{v2, v2, &hash, &root, 1},
+		{hybrid, hybrid, &hash, &root, 1},
+		{hybrid, hybrid, &other_hash, &root, 0},
+		{hybrid, hybrid, &hash, &other_root, 0},
+		{hybrid, v1, &hash, &root, 0},
+		{hybrid, v2, &hash, &root, 0},
+		{v1, hybrid, &hash, &root, 1},
+		{v2, hybrid, &hash, &root, 1},
+		{v1, v2, &hash, &root, 0},
+		{v2, v1, &hash, &root, 0},
+	}};
+
+	for (auto const& c : test_cases)
+	{
+		resolve_links l(make_single_file(c.ours, hash, root));
+		l.match(make_single_file(c.theirs, *c.their_hash, *c.their_root), ".");
+		TEST_EQUAL(count_links(l), c.expected_links);
+	}
+}
+
+// the last piece of a v1 file that isn't followed by a pad file also covers
+// the next file, so its hash doesn't establish that the file is identical
+TORRENT_TEST(v1_tail_padding)
+{
+	struct test_case_t
+	{
+		std::vector<std::int64_t> ours;
+		bool ours_padded;
+		std::vector<std::int64_t> theirs;
+		bool theirs_padded;
+		int expected_links;
+	};
+
+	// all piece hashes are identical, only the layout determines the outcome
+	std::array<test_case_t, 8> const test_cases{{
+		// the second file isn't piece aligned
+		{{20000, 1000}, false, {20000, 1000}, false, 0},
+		{{20000, 1000}, true, {20000, 1000}, true, 2},
+		// the last piece is short in one torrent and padded in the other
+		{{20000}, false, {20000, 1000}, true, 0},
+		{{20000, 1000}, true, {20000}, false, 0},
+		{{20000}, false, {20000}, false, 1},
+		// a file that ends on a piece boundary doesn't need a pad file
+		{{32768, 1000}, false, {32768, 1000}, false, 2},
+		{{32768, 1000, 1000}, false, {32768, 1000, 1000}, false, 1},
+		// empty files aren't linked
+		{{32768, 0}, false, {32768, 0}, false, 1},
+	}};
+
+	for (auto const& c : test_cases)
+	{
+		resolve_links l(make_v1(c.ours, c.ours_padded));
+		l.match(make_v1(c.theirs, c.theirs_padded), ".");
+		TEST_EQUAL(count_links(l), c.expected_links);
+	}
+}
+
+TORRENT_TEST(piece_aligned)
+{
+	struct file_t
+	{
+		std::int64_t size;
+		bool pad;
+		// ignored for pad files
+		bool expected_aligned;
+	};
+
+	std::array<std::vector<file_t>, 7> const test_cases{{
+		{{20000, false, true}},
+		{{20000, false, false}, {1000, false, false}},
+		{{20000, false, true}, {12768, true, false}, {1000, false, true}},
+		{{16384, false, true}, {1000, false, true}},
+		// the pad file doesn't reach the piece boundary
+		{{20000, false, false}, {1000, true, false}, {1000, false, false}},
+		{{20000, false, true}, {12768, true, false}},
+		// split pad files aren't supported
+		{{20000, false, false}, {6384, true, false}, {6384, true, false}, {1000, false, true}},
+	}};
+
+	for (auto const& files : test_cases)
+	{
+		file_storage fs;
+		int idx = 0;
+		for (auto const& f : files)
+		{
+			fs.add_file("t/" + std::to_string(idx++), f.size
+				, f.pad ? file_storage::flag_pad_file : file_flags_t{});
+		}
+		fs.set_piece_length(16 * 1024);
+		fs.set_num_pieces(aux::calc_num_pieces(fs));
+
+		for (file_index_t const i : fs.file_range())
+		{
+			if (fs.pad_file_at(i)) continue;
+			TEST_EQUAL(aux::piece_aligned(fs, i), files[std::size_t(static_cast<int>(i))].expected_aligned);
+		}
 	}
 }
 

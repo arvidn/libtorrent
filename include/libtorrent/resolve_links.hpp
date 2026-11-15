@@ -53,6 +53,13 @@ POSSIBILITY OF SUCH DAMAGE.
 namespace libtorrent {
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
+namespace aux {
+
+	// returns true if every piece overlapping file ``f`` contains only bytes
+	// of that file and pad files
+	TORRENT_EXTRA_EXPORT bool piece_aligned(file_storage const& fs, file_index_t f);
+}
+
 	// this class is used for mutable torrents, to discover identical files
 	// in other torrents.
 	struct TORRENT_EXTRA_EXPORT resolve_links
