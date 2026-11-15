@@ -6228,7 +6228,15 @@ namespace {
 			{
 				have.resize(num_pieces, false);
 				for (piece_index_t const p : m_torrent_file->piece_range())
-					if (m_picker->have_piece(p)) have.set_bit(p);
+				{
+					// include pieces whose blocks have all been received. Their
+					// writes are done or queued ahead of this fence job, so the
+					// data is on disk by the time the storage runs. This matters
+					// for boundary pieces whose hash completion has not reached
+					// the torrent yet.
+					if (m_picker->have_piece(p) || m_picker->is_piece_finished(p))
+						have.set_bit(p);
+				}
 			}
 			else
 			{
@@ -6236,28 +6244,33 @@ namespace {
 			}
 		}
 
+		std::uint8_t const picker_gen = m_picker_generation;
 		m_flags |= torrent_internal_flags::outstanding_file_priority;
 		ADD_OUTSTANDING_ASYNC("file_priority");
 		m_ses.disk_thread().async_set_file_priority(m_storage
 			, std::move(prios)
 			, std::move(unloaded)
 			, std::move(have)
-			, [self = shared_from_this()] (storage_error const& ec
+			, [self = shared_from_this(), picker_gen] (storage_error const& ec
 				, aux::vector<download_priority_t, file_index_t> p
 				, aux::vector<bool, file_index_t> u)
-			{ self->on_file_priority(ec, std::move(p), std::move(u)); });
+			{ self->on_file_priority(ec, std::move(p), std::move(u), picker_gen); });
 		m_ses.deferred_submit_jobs();
 	}
 
 	void torrent::on_file_priority(storage_error const& err
 		, aux::vector<download_priority_t, file_index_t> prios
-		, aux::vector<bool, file_index_t> unloaded)
+		, aux::vector<bool, file_index_t> unloaded
+		, std::uint8_t const picker_gen)
 	{
 		m_flags &= ~torrent_internal_flags::outstanding_file_priority;
 		COMPLETE_ASYNC("file_priority");
 
 		aux::vector<bool, file_index_t> newly_unloaded;
-		if (valid_metadata())
+		// a force_recheck() started after this job was dispatched reset the
+		// picker; the running check will pick up the deleted file. Don't apply
+		// the drop to the fresh picker.
+		if (valid_metadata() && picker_gen == m_picker_generation)
 		{
 			int const num_files = (std::max)(int(prios.size()), int(unloaded.size()));
 			for (int idx = 0; idx < num_files; ++idx)
@@ -11643,8 +11656,24 @@ namespace {
 
 		int const num_pieces = m_torrent_file->num_pieces();
 		int rarest_rarity = INT_MAX;
+		file_storage const& fs = m_torrent_file->layout();
 		for (piece_index_t i(0); i < piece_index_t(num_pieces); ++i)
 		{
+			// don't re-enable pieces made up only of unloaded files; share
+			// mode picks piece priorities directly, so file priorities don't
+			// filter them
+			bool all_unloaded = true;
+			for (file_index_t f = fs.file_index_at_piece(i)
+				, end = fs.last_file_index_at_piece(i); f <= end; ++f)
+			{
+				if (f >= m_unloaded_files.end_index() || !m_unloaded_files[f])
+				{
+					all_unloaded = false;
+					break;
+				}
+			}
+			if (all_unloaded) continue;
+
 			piece_picker::piece_stats_t ps = m_picker->piece_stats(i);
 			if (ps.peer_count == 0) continue;
 			if (ps.priority == 0 && (ps.flushed || ps.downloading))

@@ -575,6 +575,7 @@ typed_bitfield<piece_index_t> check_pieces(filenames const& fs,
 		{
 			release_file(file);
 			remove_file(file, ec);
+			if (ec) ec.file(file);
 			return;
 		}
 
@@ -597,7 +598,7 @@ typed_bitfield<piece_index_t> check_pieces(filenames const& fs,
 				continue;
 			}
 
-			if (!have_pieces[piece]) continue;
+			if (piece >= have_pieces.end_index() || !have_pieces[piece]) continue;
 
 			std::int64_t const segment_start = std::max(piece_start, file_start);
 			std::int64_t const segment_end = std::min(piece_end, file_end);
@@ -638,6 +639,7 @@ typed_bitfield<piece_index_t> check_pieces(filenames const& fs,
 		// delete files that are still open or mapped
 		release_file(file);
 		remove_file(file, ec);
+		if (ec) ec.file(file);
 	}
 
 	bool verify_resume_data(add_torrent_params const& rd

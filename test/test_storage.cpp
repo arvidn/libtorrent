@@ -4276,3 +4276,54 @@ TORRENT_TEST(unload_file_mmap_write_error)
 	test_unload_file_write_error<mmap_storage>("unload_mmap_error");
 }
 #endif
+
+// a failure to unlink the file must roll the unloaded state and priority back
+TORRENT_TEST(unload_file_unlink_error)
+{
+	std::string const test_path = "unload_unlink_error";
+	delete_dirs(test_path);
+	std::vector<char> buf;
+	auto const info = setup_unload_torrent(buf, {{"file0.bin", 0x4000}});
+	file_storage const& fs = info->layout();
+	aux::session_settings set;
+
+	aux::vector<download_priority_t, file_index_t> priorities(
+		std::size_t(fs.num_files()), default_priority);
+	aux::vector<bool, file_index_t> unloaded(std::size_t(fs.num_files()), false);
+	renamed_files rf;
+	storage_params p{fs, rf, test_path, {}, storage_mode_sparse, priorities
+		, unloaded, sha1_hash{}, info->v1(), info->v2()};
+	auto s = std::make_shared<posix_storage>(p);
+
+	storage_error se;
+	s->initialize(set, se);
+	TEST_CHECK(!se.ec);
+
+	std::vector<char> const data = make_unload_piece(0, fs.piece_size(0_piece));
+	TEST_EQUAL(write(s, set, span<char>(const_cast<char*>(data.data())
+		, int(data.size())), 0_piece, 0, aux::open_mode::write, se), int(data.size()));
+	TEST_CHECK(!se.ec);
+
+	// replace the file with a non-empty directory, so removing it fails
+	error_code ec;
+	remove(fs.file_path(0_file, test_path), ec);
+	TEST_CHECK(!ec);
+	create_directory(fs.file_path(0_file, test_path), ec);
+	TEST_CHECK(!ec);
+	std::ofstream(combine_path(fs.file_path(0_file, test_path), "blocker"))
+		<< "x";
+
+	typed_bitfield<piece_index_t> have;
+	have.resize(fs.num_pieces(), true);
+	priorities[0_file] = dont_download;
+	unloaded[0_file] = true;
+	s->set_file_priority(set, priorities, unloaded, have, se);
+
+	TEST_CHECK(se.ec);
+	TEST_EQUAL(se.file(), file_index_t(0));
+	TEST_EQUAL(priorities[0_file], default_priority);
+	TEST_CHECK(!unloaded[0_file]);
+	TEST_CHECK(exists(fs.file_path(0_file, test_path)));
+
+	filesystem::remove_all(test_path);
+}

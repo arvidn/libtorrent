@@ -1211,9 +1211,12 @@ namespace aux {
 		// ``lt_donthave``. Pieces shared with other files remain available for
 		// seeding.
 		//
-		// This is asynchronous. On success a ``file_prio_alert`` is posted. On
-		// failure a ``file_error_alert`` is posted and the file and its priority
-		// are left unchanged; the torrent is also paused and set to the error.
+		// This is asynchronous. On success a ``file_prio_alert`` is posted. If
+		// the unload fails (e.g. the file cannot be removed), a
+		// ``file_error_alert`` is posted and the file and its priority are left
+		// unchanged; the torrent is also paused and set to the error. Unloading
+		// is rejected while the torrent is checking its files or moving its
+		// storage.
 		// Unloading a file that is already unloaded is a no-op that posts
 		// ``file_prio_alert``.
 		//

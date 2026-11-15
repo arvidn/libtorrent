@@ -711,9 +711,9 @@ unloading files
 
 A file with priority 0 is no longer downloaded, but its data stays on disk.
 ``torrent_handle::unload_file()`` also removes it, which is the supported way to
-reclaim the space without removing the torrent or its other files. Pieces the
-file shares with other files keep their bytes, in the part file, so the torrent
-can still seed them; the rest of the file is dropped.
+reclaim the space without removing the torrent or its other files. The bytes
+of pieces the file shares with other files are moved into the part file, so the
+torrent can still seed those pieces; the rest of the file is dropped.
 
 The unloaded state is part of the resume data, so restarting, moving or
 rechecking the torrent does not recreate the file. Setting the file's priority

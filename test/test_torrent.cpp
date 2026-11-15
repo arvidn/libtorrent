@@ -1570,12 +1570,22 @@ TORRENT_TEST(unload_file_move_storage)
 	lt::session ses(settings());
 	torrent_handle h = ses.add_torrent(atp);
 	wait_for_seed(ses, h);
-	h.unload_file(0_file);
-	wait_for_alert(ses, file_prio_alert::alert_type, "unload");
-	TEST_CHECK(has_part_file("unload_move"));
 
+	// move while the unload is still in flight; the move job is queued behind
+	// the unload job on the disk thread
+	h.unload_file(0_file);
 	h.move_storage("unload_move_new");
-	wait_for_alert(ses, storage_moved_alert::alert_type, "move");
+
+	bool moved = false;
+	bool unloaded = false;
+	TEST_CHECK(wait_for_alert(ses, "unload + move", [&](alert const* a)
+	{
+		if (alert_cast<storage_moved_alert>(a)) moved = true;
+		if (alert_cast<file_prio_alert>(a)) unloaded = true;
+		return moved && unloaded;
+	}, seconds(10)));
+	TEST_CHECK(moved);
+	TEST_CHECK(unloaded);
 
 	TEST_CHECK(!exists("unload_move_new/unload_test/file0"));
 	TEST_CHECK(exists("unload_move_new/unload_test/file1"));
@@ -1890,21 +1900,24 @@ TORRENT_TEST(unload_file_in_flight_resume_save)
 	torrent_handle h = ses.add_torrent(unload_test_torrent());
 	wait_for_seed(ses, h);
 
+	// queue the unload behind an in-flight priority update, then ask for the
+	// resume data as well. Both have to be deferred, and the save must see the
+	// committed unloaded state.
+	h.file_priority(1_file, low_priority);
 	h.unload_file(0_file);
 	h.save_resume_data(torrent_handle::save_info_dict);
 
 	std::vector<char> resume_buf;
-	bool saw_unload = false;
-	bool const got_both = wait_for_alert(ses, "unload + save resume"
+	bool const got_resume = wait_for_alert(ses, "unload + save resume"
 		, [&](alert const* a)
 		{
 			if (auto const* ra = alert_cast<save_resume_data_alert>(a))
 				resume_buf = write_resume_data_buf(ra->params);
-			if (alert_cast<file_prio_alert>(a)) saw_unload = true;
-			return saw_unload && !resume_buf.empty();
+			return !resume_buf.empty();
 		}, seconds(10));
-	TEST_CHECK(got_both);
-	if (!got_both) return;
+	TEST_CHECK(got_resume);
+	if (!got_resume) return;
+	TEST_CHECK(h.get_unloaded_files()[0]);
 
 	// the save was deferred until the unload committed, so it must include it
 	add_torrent_params rd = read_resume_data(resume_buf);
@@ -1932,4 +1945,96 @@ TORRENT_TEST(unload_file_in_flight_resume_save)
 	TEST_CHECK(h2.get_unloaded_files()[0]);
 	TEST_CHECK(!h2.have_piece(0_piece));
 	TEST_CHECK(h2.have_piece(1_piece));
+}
+
+// a peer connected before the unload must learn that the dropped pieces are
+// gone, rather than keeping a stale bitfield
+TORRENT_TEST(unload_file_sends_lt_donthave)
+{
+	lt::add_torrent_params const seed_atp = unload_test_torrent();
+
+	settings_pack seed_pack = settings();
+	seed_pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
+	lt::session seed_ses(seed_pack);
+	torrent_handle seed = seed_ses.add_torrent(seed_atp);
+	wait_for_seed(seed_ses, seed);
+	TEST_CHECK(seed.status().is_seeding);
+
+	std::filesystem::remove_all("unload_donthave_dl");
+	std::filesystem::create_directories("unload_donthave_dl");
+
+	settings_pack dl_pack = settings();
+	dl_pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
+	// keep the connection even after the wanted file completes
+	dl_pack.set_bool(settings_pack::close_redundant_connections, false);
+	lt::session dl_ses(dl_pack);
+	lt::add_torrent_params dl_atp = unload_test_atp();
+	dl_atp.save_path = "unload_donthave_dl";
+	dl_atp.file_priorities = {dont_download, default_priority};
+	torrent_handle dl = dl_ses.add_torrent(dl_atp);
+	dl.connect_peer(ep("127.0.0.1", seed_ses.listen_port()));
+
+	std::vector<peer_info> pi;
+	for (int i = 0; i < 100; ++i)
+	{
+		print_alerts(dl_ses, "dl");
+		dl.get_peer_info(pi);
+		if (!pi.empty() && (pi[0].flags & peer_info::seed)) break;
+		std::this_thread::sleep_for(lt::milliseconds(100));
+	}
+	TEST_CHECK(!pi.empty());
+	if (pi.empty()) return;
+	TEST_CHECK(pi[0].pieces[0_piece]);
+	TEST_CHECK(pi[0].pieces[1_piece]);
+
+	seed.unload_file(0_file);
+	wait_for_alert(seed_ses, file_prio_alert::alert_type, "unload");
+
+	for (int i = 0; i < 100 && !pi.empty() && pi[0].pieces[0_piece]; ++i)
+	{
+		print_alerts(dl_ses, "dl");
+		dl.get_peer_info(pi);
+		std::this_thread::sleep_for(lt::milliseconds(100));
+	}
+
+	TEST_EQUAL(pi.size(), std::size_t(1));
+	if (pi.size() != 1) return;
+	TEST_CHECK(!pi[0].pieces[0_piece]);
+	TEST_CHECK(pi[0].pieces[1_piece]);
+	TEST_CHECK(!(pi[0].flags & peer_info::seed));
+}
+
+TORRENT_TEST(unload_file_share_mode)
+{
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(unload_test_torrent());
+	wait_for_seed(ses, h);
+
+	h.set_flags(torrent_flags::share_mode);
+	wait_for_alert(ses, file_prio_alert::alert_type, "share mode");
+
+	h.unload_file(0_file);
+	wait_for_alert(ses, file_prio_alert::alert_type, "unload");
+
+	TEST_CHECK(!exists("unload_test/file0"));
+	TEST_CHECK(!h.have_piece(0_piece));
+	TEST_CHECK(h.have_piece(1_piece));
+}
+
+TORRENT_TEST(unload_file_reenable_prioritize_files)
+{
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(unload_test_torrent());
+	wait_for_seed(ses, h);
+
+	h.unload_file(0_file);
+	wait_for_alert(ses, file_prio_alert::alert_type, "unload");
+	TEST_CHECK(!exists("unload_test/file0"));
+
+	h.prioritize_files({default_priority, default_priority});
+	wait_for_alert(ses, file_prio_alert::alert_type, "reenable");
+
+	TEST_CHECK(exists("unload_test/file0"));
+	TEST_CHECK(!h.get_unloaded_files()[0]);
+	TEST_EQUAL(h.file_priority(0_file), default_priority);
 }

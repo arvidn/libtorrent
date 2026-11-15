@@ -681,7 +681,8 @@ namespace libtorrent::aux {
 			, aux::vector<bool, file_index_t> unloaded, bool include_have);
 		void on_file_priority(storage_error const& err
 			, aux::vector<download_priority_t, file_index_t> prios
-			, aux::vector<bool, file_index_t> unloaded);
+			, aux::vector<bool, file_index_t> unloaded
+			, std::uint8_t picker_gen);
 		void prioritize_files(aux::vector<download_priority_t, file_index_t> files);
 		void file_priorities(aux::vector<download_priority_t, file_index_t>*) const;
 		void post_file_priorities();
@@ -1565,8 +1566,9 @@ namespace libtorrent::aux {
 		// TODO: this wastes 5 bits per file
 		aux::vector<download_priority_t, file_index_t> m_file_priority;
 
-		// files whose contents were unloaded; their data is only in the part
-		// file. The corresponding entry in m_file_priority must be 0.
+		// files whose contents were unloaded. Bytes of pieces shared with
+		// other files are in the part file; the rest was discarded. The
+		// corresponding entry in m_file_priority must be 0.
 		aux::vector<bool, file_index_t> m_unloaded_files;
 
 		// unload requests queued behind an in-flight file priority job

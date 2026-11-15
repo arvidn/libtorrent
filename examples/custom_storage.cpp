@@ -238,7 +238,7 @@ struct temp_disk_io final : lt::disk_interface
 			, lt::aux::vector<lt::download_priority_t, lt::file_index_t>
 			, lt::aux::vector<bool, lt::file_index_t>)> handler) override
 	{
-		post(m_ioc, [=]{
+		post(m_ioc, [=]() mutable {
 			// this backend never unloads files, so nothing was committed
 			for (auto&& u : unloaded) u = false;
 			handler(lt::storage_error(lt::error_code(

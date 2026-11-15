@@ -3104,8 +3104,9 @@ TORRENT_VERSION_NAMESPACE_4
 		aux::noexcept_movable<tcp::endpoint> ip;
 	};
 
-	// posted when a prioritize_files() or file_priority() update of the file
-	// priorities complete, which requires a round-trip to the disk thread.
+	// posted when a prioritize_files(), file_priority() or unload_file()
+	// update of the file priorities complete, which requires a round-trip to
+	// the disk thread.
 	//
 	// If the disk operation fails this alert won't be posted, but a
 	// file_error_alert is posted instead, and the torrent is stopped.

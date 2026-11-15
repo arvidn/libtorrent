@@ -936,6 +936,192 @@ TORRENT_TEST(unload_file_late_block)
 	sim.run();
 }
 
+// the simulation disk I/O does not support unloading. A failed unload must
+// not commit the unloaded state or drop any pieces.
+TORRENT_TEST(unload_file_unsupported_backend)
+{
+	using asio::ip::address;
+	address const peer = addr("50.0.0.1");
+
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+	sim::asio::io_context ios { sim, peer };
+	lt::session_proxy zombie;
+
+	lt::session_params params;
+	params.settings = settings();
+	params.settings.set_str(settings_pack::listen_interfaces, "50.0.0.1:6881");
+	params.disk_io_constructor = test_disk().set_seed();
+	auto ses = std::make_shared<lt::session>(params, ios);
+
+	lt::add_torrent_params atp = ::create_torrent(0, true);
+	atp.flags |= lt::torrent_flags::seed_mode;
+	atp.flags &= ~lt::torrent_flags::paused;
+	atp.flags &= ~lt::torrent_flags::auto_managed;
+
+	lt::torrent_handle h;
+	bool got_error = false;
+	print_alerts(*ses, [&](lt::session&, lt::alert const* a) {
+		if (auto const* at = alert_cast<lt::add_torrent_alert>(a))
+			h = at->handle;
+		else if (alert_cast<file_error_alert>(a))
+			got_error = true;
+	});
+
+	ses->async_add_torrent(atp);
+
+	sim::timer unload_timer(sim, lt::seconds(1), [&](boost::system::error_code const&) {
+		TEST_CHECK(h.is_valid());
+		if (!h.is_valid()) return;
+		TEST_CHECK(h.have_piece(0_piece));
+		h.unload_file(0_file);
+	});
+
+	sim::timer check_timer(sim, lt::seconds(3), [&](boost::system::error_code const&) {
+		TEST_CHECK(got_error);
+		TEST_CHECK(h.is_valid());
+		if (!h.is_valid()) return;
+		auto const unloaded = h.get_unloaded_files();
+		TEST_CHECK(unloaded.empty() || !unloaded[0]);
+		TEST_CHECK(h.flags() & torrent_flags::seed_mode);
+		TEST_CHECK(h.have_piece(0_piece));
+		TEST_CHECK(h.flags() & torrent_flags::paused);
+		TEST_CHECK(h.status().errc);
+		zombie = ses->abort();
+		ses.reset();
+	});
+
+	sim.run();
+}
+
+// A block may still be in a peer's request queue when the picker drops the
+// piece (end-game duplicate request). Sending that block after the unload must
+// not re-add the piece or allocate a part-file slot for it.
+TORRENT_TEST(unload_file_duplicate_late_block)
+{
+	using asio::ip::address;
+	address const peer0 = addr("50.0.0.1");
+
+	std::filesystem::remove_all("unload_dup_dl");
+
+	// one piece of zeroes, so the fake peer can serve it verbatim
+	std::vector<lt::create_file_entry> files;
+	files.emplace_back("file0.bin", 0x4000);
+	lt::create_torrent ct(files, 0x4000, lt::create_torrent::v1_only);
+	lt::sha1_hash const piece_hash = lt::hasher(std::vector<char>(0x4000, 0)).final();
+	ct.set_hash(0_piece, piece_hash);
+	lt::add_torrent_params const atp = lt::load_torrent_buffer(lt::bencode(ct.generate()));
+
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+	sim::asio::io_context ios { sim, peer0 };
+	lt::session_proxy zombie;
+
+	lt::session_params params;
+	params.settings = settings();
+	params.settings.set_bool(settings_pack::strict_end_game_mode, false);
+	params.settings.set_bool(settings_pack::close_redundant_connections, false);
+	params.settings.set_str(settings_pack::listen_interfaces, "50.0.0.1:6881");
+	params.disk_io_constructor = lt::posix_disk_io_constructor;
+	auto ses = std::make_shared<lt::session>(params, ios);
+
+	fake_peer a(sim, "60.0.0.1");
+	fake_peer b(sim, "60.0.0.2");
+
+	bool requested_a = false;
+	bool requested_b = false;
+	auto const on_message = [](bool& requested) {
+		return [&requested](std::uint8_t const msg, lt::span<char const> const payload) {
+			if (msg != 6 || payload.size() < 12) return;
+			char const* ptr = payload.data();
+			if (lt::aux::read_uint32(ptr) == 0 && lt::aux::read_uint32(ptr) == 0)
+				requested = true;
+		};
+	};
+	a.set_message_handler(on_message(requested_a));
+	b.set_message_handler(on_message(requested_b));
+
+	lt::torrent_handle h;
+	bool unloaded = false;
+	print_alerts(*ses, [&](lt::session&, lt::alert const* al) {
+		if (auto const* at = alert_cast<lt::add_torrent_alert>(al))
+		{
+			h = at->handle;
+			for (fake_peer* p : {&a, &b})
+			{
+				p->send_have_all();
+				p->send_unchoke();
+				p->connect_to(ep("50.0.0.1", 6881), atp.ti->info_hash());
+			}
+		}
+		else if (alert_cast<file_prio_alert>(al))
+		{
+			unloaded = true;
+		}
+	});
+
+	auto part_file_size = []() -> std::int64_t {
+		error_code ec;
+		for (auto const& e : std::filesystem::directory_iterator("unload_dup_dl", ec))
+			if (e.path().extension() == ".parts")
+				return std::filesystem::file_size(e.path(), ec);
+		return -1;
+	};
+
+	lt::add_torrent_params dl_atp = atp;
+	dl_atp.save_path = "unload_dup_dl";
+	dl_atp.flags &= ~torrent_flags::paused;
+	dl_atp.flags &= ~torrent_flags::auto_managed;
+	ses->async_add_torrent(dl_atp);
+
+	bool sent_a = false;
+	bool sent_b = false;
+	std::int64_t part_size = -1;
+
+	sim::timer send_a(sim, lt::seconds(2), [&](boost::system::error_code const&) {
+		TEST_CHECK(requested_a);
+		TEST_CHECK(requested_b);
+		if (!requested_a || !requested_b) return;
+		a.send_piece(0_piece, 0);
+		a.flush_send_buffer();
+		sent_a = true;
+	});
+
+	sim::timer unload_timer(sim, lt::seconds(3), [&](boost::system::error_code const&) {
+		TEST_CHECK(sent_a);
+		TEST_CHECK(h.is_valid());
+		if (!sent_a || !h.is_valid()) return;
+		TEST_CHECK(h.have_piece(0_piece));
+		if (!h.have_piece(0_piece)) return;
+		h.unload_file(0_file);
+	});
+
+	auto const send_b = [&](boost::system::error_code const&) {
+		if (!unloaded || sent_b) return;
+		part_size = part_file_size();
+		b.send_piece(0_piece, 0);
+		b.flush_send_buffer();
+		sent_b = true;
+	};
+	sim::timer send_b1(sim, lt::seconds(4), send_b);
+	sim::timer send_b2(sim, lt::seconds(5), send_b);
+
+	sim::timer check_timer(sim, lt::seconds(8), [&](boost::system::error_code const&) {
+		TEST_CHECK(unloaded);
+		TEST_CHECK(sent_b);
+		TEST_CHECK(h.is_valid());
+		if (!h.is_valid()) return;
+		TEST_CHECK(!h.have_piece(0_piece));
+		for (auto const& entry : h.get_download_queue())
+			TEST_CHECK(entry.piece_index != 0_piece);
+		TEST_EQUAL(part_file_size(), part_size);
+		zombie = ses->abort();
+		ses.reset();
+	});
+
+	sim.run();
+}
+
 #ifndef TORRENT_DISABLE_STREAMING
 // Deadline downloads must still complete with the corrected queue estimates
 // and the existing two-second scheduling limit.
