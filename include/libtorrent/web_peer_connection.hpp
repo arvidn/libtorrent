@@ -46,8 +46,21 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/piece_block_progress.hpp"
 #include "libtorrent/operations.hpp" // for operation_t enum
 #include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/bitfield.hpp"
+#include "libtorrent/units.hpp"
 
 namespace libtorrent {
+
+	class file_storage;
+
+namespace aux {
+
+	// clears pieces whose request, with one GET per file the piece spans,
+	// each carrying the URL and file path, would be too large relative to
+	// the piece length
+	TORRENT_EXTRA_EXPORT void clear_expensive_pieces(file_storage const& fs
+		, int url_size, typed_bitfield<piece_index_t>& have);
+}
 
 	class TORRENT_EXTRA_EXPORT web_peer_connection
 		: public web_connection_base

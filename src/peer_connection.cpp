@@ -41,6 +41,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <vector>
 #include <functional>
 #include <cstdint>
+#include <limits>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/logic/tribool.hpp>
@@ -6050,6 +6051,15 @@ namespace libtorrent {
 	void peer_connection::send_buffer(span<char const> buf)
 	{
 		TORRENT_ASSERT(is_single_thread());
+
+		// the send buffer tracks sizes as int. This buffer, the current
+		// capacity and the minimum 128 byte allocation below must all fit
+		if (std::int64_t(buf.size()) + m_send_buffer.capacity() + 128
+			> std::numeric_limits<int>::max())
+		{
+			disconnect(errors::packet_too_large, operation_t::alloc_sndbuf, failure);
+			return;
+		}
 
 		int const free_space = std::min(
 			m_send_buffer.space_in_last_buffer(), int(buf.size()));
