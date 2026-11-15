@@ -256,32 +256,6 @@ mmap_storage::mmap_storage(storage_params const& params, aux::file_view_pool& po
 					return;
 				}
 				use_partfile(i, !file_exists);
-/*
-				auto f = open_file(sett, i, aux::open_mode::read_only, ec);
-				if (ec.ec != boost::system::errc::no_such_file_or_directory)
-				{
-					if (ec) return;
-
-					need_partfile();
-
-					m_part_file->import_file(*f, fs.file_offset(i), fs.file_size(i), ec.ec);
-					if (ec)
-					{
-						ec.file(i);
-						ec.operation = operation_t::partfile_read;
-						return;
-					}
-					// remove the file
-					std::string const p = fs.file_path(i, m_save_path);
-					delete_one_file(p, ec.ec);
-					if (ec)
-					{
-						ec.file(i);
-						ec.operation = operation_t::file_remove;
-						return;
-					}
-				}
-*/
 			}
 			ec.ec.clear();
 			restore_prio.disarm();
