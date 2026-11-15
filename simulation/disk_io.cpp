@@ -811,7 +811,7 @@ struct test_disk_io final : lt::disk_interface
 	{
 		TORRENT_ASSERT(m_files);
 		post(m_ioc, [=]{
-			// nothing was committed
+			// this backend never unloads files, so nothing was committed
 			for (auto&& u : unloaded) u = false;
 			handler(lt::storage_error(lt::error_code(
 				boost::system::errc::operation_not_supported, lt::system_category()))

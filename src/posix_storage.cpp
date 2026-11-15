@@ -104,8 +104,6 @@ posix_storage::~posix_storage()
 
 			if (is_unloaded && !was_unloaded)
 			{
-				// read() routes on the old priority and use_partfile, so migrate
-				// first and only then commit the new priority/use_partfile state
 				need_partfile();
 				aux::unload_file(fs, i, have_pieces
 					, [this, &sett, &ec](piece_index_t const piece, int const offset, span<char> buf)

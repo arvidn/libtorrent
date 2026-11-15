@@ -110,7 +110,9 @@ namespace libtorrent::aux {
 	// into the part file, then releases and removes the file. Pieces entirely
 	// contained in ``file`` are dropped. ``have_pieces`` limits the work (and the
 	// part file slots written) to pieces with data. On error the file is left
-	// untouched and the caller must not commit the unload.
+	// untouched and the caller must not commit the unload. The caller must do the
+	// migration before committing a new priority or part-file setting, because
+	// read() routes on those.
 	TORRENT_EXTRA_EXPORT void unload_file(
 		filenames const& fs
 		, file_index_t file

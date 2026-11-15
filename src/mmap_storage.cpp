@@ -198,8 +198,6 @@ mmap_storage::mmap_storage(storage_params const& params, aux::file_view_pool& po
 
 			if (is_unloaded && !was_unloaded)
 			{
-				// read() routes on the old priority and use_partfile, so migrate
-				// first and only then commit the new priority/use_partfile state
 				need_partfile();
 				aux::unload_file(fs, i, have_pieces
 					, [this, &sett, &ec](piece_index_t const piece, int const offset, span<char> buf)
@@ -319,9 +317,6 @@ mmap_storage::mmap_storage(storage_params const& params, aux::file_view_pool& po
 			}
 			else if (old_prio != dont_download && new_prio == dont_download)
 			{
-				// a plain priority change leaves the file on disk; only
-				// unload_file() moves data into the part file and removes it
-
 				std::string const fp = fs.file_path(i, m_save_path);
 				bool const file_exists = exists(fp, ec.ec);
 				if (ec.ec)
