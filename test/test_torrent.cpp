@@ -1184,24 +1184,29 @@ void wait_for_seed(lt::session& ses, torrent_handle const& h)
 	}
 }
 
-lt::add_torrent_params unload_test_torrent()
+lt::add_torrent_params unload_test_atp()
 {
-	std::filesystem::remove_all("unload_test");
-
 	torrent_args args;
 	args.name("unload_test");
 	args.file("40960,name=file0");
 	args.file("24576,name=file1");
 
 	lt::add_torrent_params atp = make_test_torrent(args);
-	atp.save_path = ".";
-	generate_files(*atp.ti, ".");
 	atp.flags &= ~torrent_flags::paused;
 	atp.flags &= ~torrent_flags::auto_managed;
 	return atp;
 }
 
-void check_unloaded_state(torrent_handle const& h, int const piece_size)
+lt::add_torrent_params unload_test_torrent()
+{
+	std::filesystem::remove_all("unload_test");
+	lt::add_torrent_params atp = unload_test_atp();
+	atp.save_path = ".";
+	generate_files(*atp.ti, ".");
+	return atp;
+}
+
+void check_unloaded_state(torrent_handle const& h)
 {
 	auto const unloaded = h.get_unloaded_files();
 	TEST_CHECK(unloaded.size() >= 2);
@@ -1211,14 +1216,15 @@ void check_unloaded_state(torrent_handle const& h, int const piece_size)
 
 	TEST_CHECK(!h.have_piece(0_piece));
 	TEST_CHECK(h.have_piece(1_piece));
-	TEST_EQUAL(h.status().total_done, piece_size);
+	TEST_EQUAL(h.status().state, torrent_status::seeding);
+	TEST_CHECK(h.status().is_seeding);
+	TEST_EQUAL(h.status().total_wanted_done, h.status().total_wanted);
 }
 
 } // anonymous namespace
 
 TORRENT_TEST(unload_file_from_finished_torrent)
 {
-	int const piece_size = 0x8000;
 	lt::session ses(settings());
 	torrent_handle h = ses.add_torrent(unload_test_torrent());
 	wait_for_seed(ses, h);
@@ -1229,13 +1235,22 @@ TORRENT_TEST(unload_file_from_finished_torrent)
 
 	TEST_CHECK(!exists("unload_test/file0"));
 	TEST_CHECK(exists("unload_test/file1"));
-	TEST_CHECK(!h.status().is_seeding);
-	check_unloaded_state(h, piece_size);
+	check_unloaded_state(h);
+
+	// unloading must not be treated as the torrent finishing
+	std::this_thread::sleep_for(lt::milliseconds(500));
+	std::vector<alert*> alerts;
+	ses.pop_alerts(&alerts);
+	for (alert const* a : alerts)
+		TEST_CHECK(!alert_cast<torrent_finished_alert>(a));
+
+	// state and wanted-byte accounting stay stable over several ticks
+	check_unloaded_state(h);
+	TEST_EQUAL(h.status().state, torrent_status::seeding);
 }
 
 TORRENT_TEST(unload_file_from_paused_torrent)
 {
-	int const piece_size = 0x8000;
 	lt::session ses(settings());
 	torrent_handle h = ses.add_torrent(unload_test_torrent());
 	wait_for_seed(ses, h);
@@ -1247,12 +1262,11 @@ TORRENT_TEST(unload_file_from_paused_torrent)
 
 	TEST_CHECK(!exists("unload_test/file0"));
 	TEST_CHECK(exists("unload_test/file1"));
-	check_unloaded_state(h, piece_size);
+	check_unloaded_state(h);
 }
 
 TORRENT_TEST(unload_file_from_seed_mode_torrent)
 {
-	int const piece_size = 0x8000;
 	lt::session ses(settings());
 	lt::add_torrent_params atp = unload_test_torrent();
 	atp.flags |= torrent_flags::seed_mode;
@@ -1266,8 +1280,102 @@ TORRENT_TEST(unload_file_from_seed_mode_torrent)
 	TEST_CHECK(!exists("unload_test/file0"));
 	TEST_CHECK(exists("unload_test/file1"));
 	TEST_CHECK(!(h.flags() & torrent_flags::seed_mode));
-	TEST_CHECK(!h.status().is_seeding);
-	check_unloaded_state(h, piece_size);
+	check_unloaded_state(h);
+}
+
+// a seed that unloads a file must not request the dropped pieces from a peer
+TORRENT_TEST(unload_file_from_seed_does_not_redownload)
+{
+	unload_test_torrent();
+
+	settings_pack seed_pack = settings();
+	seed_pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
+	lt::session seed_ses(seed_pack);
+	lt::add_torrent_params seed_atp = unload_test_atp();
+	seed_atp.save_path = ".";
+	torrent_handle seed = seed_ses.add_torrent(seed_atp);
+	wait_for_seed(seed_ses, seed);
+	TEST_CHECK(seed.status().is_seeding);
+
+	settings_pack dl_pack = settings();
+	dl_pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
+	lt::session dl_ses(dl_pack);
+	std::filesystem::remove_all("unload_downloader");
+	std::filesystem::create_directories("unload_downloader");
+	lt::add_torrent_params dl_atp = unload_test_atp();
+	dl_atp.save_path = "unload_downloader";
+	torrent_handle dl = dl_ses.add_torrent(dl_atp);
+	dl.connect_peer(ep("127.0.0.1", seed_ses.listen_port()));
+	wait_for_seed(dl_ses, dl);
+	TEST_CHECK(dl.status().is_seeding);
+
+	std::this_thread::sleep_for(lt::milliseconds(300));
+	std::int64_t const dl_upload = dl.status().total_payload_upload;
+	std::int64_t const seed_download = seed.status().total_payload_download;
+
+	seed.unload_file(0_file);
+	wait_for_alert(seed_ses, file_prio_alert::alert_type, "unload");
+	check_unloaded_state(seed);
+
+	for (int i = 0; i < 20; ++i)
+	{
+		print_alerts(seed_ses, "seed");
+		print_alerts(dl_ses, "dl");
+		std::this_thread::sleep_for(lt::milliseconds(100));
+	}
+
+	TEST_CHECK(!seed.have_piece(0_piece));
+	check_unloaded_state(seed);
+	TEST_EQUAL(seed.status().total_payload_download, seed_download);
+	TEST_EQUAL(dl.status().total_payload_upload, dl_upload);
+}
+
+// unloading a file before it has been downloaded must remove its pieces from
+// the wanted set, so they are never requested from the peer
+TORRENT_TEST(unload_file_while_downloading_drops_wanted_bytes)
+{
+	unload_test_torrent();
+
+	settings_pack seed_pack = settings();
+	seed_pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
+	lt::session seed_ses(seed_pack);
+	lt::add_torrent_params seed_atp = unload_test_atp();
+	seed_atp.save_path = ".";
+	torrent_handle seed = seed_ses.add_torrent(seed_atp);
+	wait_for_seed(seed_ses, seed);
+
+	settings_pack dl_pack = settings();
+	dl_pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
+	lt::session dl_ses(dl_pack);
+	std::filesystem::remove_all("unload_downloader2");
+	std::filesystem::create_directories("unload_downloader2");
+	lt::add_torrent_params dl_atp = unload_test_atp();
+	dl_atp.save_path = "unload_downloader2";
+	torrent_handle dl = dl_ses.add_torrent(dl_atp);
+
+	for (int i = 0; i < 100; ++i)
+	{
+		auto const st = dl.status().state;
+		if (st != torrent_status::checking_files
+			&& st != torrent_status::checking_resume_data)
+			break;
+		std::this_thread::sleep_for(lt::milliseconds(100));
+	}
+
+	dl.unload_file(0_file);
+	wait_for_alert(dl_ses, file_prio_alert::alert_type, "unload");
+	TEST_EQUAL(dl.status().total_wanted, 32768);
+
+	dl.connect_peer(ep("127.0.0.1", seed_ses.listen_port()));
+	for (int i = 0; i < 200 && dl.status().total_wanted_done < dl.status().total_wanted; ++i)
+	{
+		print_alerts(dl_ses, "dl");
+		std::this_thread::sleep_for(lt::milliseconds(100));
+	}
+
+	TEST_CHECK(!dl.have_piece(0_piece));
+	TEST_EQUAL(dl.status().total_wanted, 32768);
+	TEST_CHECK(dl.status().total_payload_download <= 32768);
 }
 
 // two unload requests queued behind a priority job are dispatched together.
@@ -1298,4 +1406,16 @@ TORRENT_TEST(unload_file_partial_batch_failure)
 	}
 	TEST_CHECK(!h.have_piece(0_piece));
 	TEST_CHECK(h.have_piece(1_piece));
+
+	// the committed file stays unloaded across a resume round-trip
+	h.save_resume_data();
+	alert const* const a = wait_for_alert(ses, save_resume_data_alert::alert_type
+		, "save resume");
+	if (auto const* ra = alert_cast<save_resume_data_alert>(a))
+	{
+		std::vector<char> const buf = write_resume_data_buf(ra->params);
+		add_torrent_params const loaded = read_resume_data(buf);
+		TEST_CHECK(!loaded.unloaded_files.empty());
+		if (!loaded.unloaded_files.empty()) TEST_CHECK(loaded.unloaded_files[0]);
+	}
 }
