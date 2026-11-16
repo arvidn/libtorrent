@@ -1657,6 +1657,76 @@ TORRENT_TEST(unload_file_delete_files)
 	TEST_CHECK(!exists("unload_delete/unload_test/file1"));
 }
 
+// the file priority job dispatched by unload_file() can complete after the
+// torrent was removed. Its completion handler must leave the aborted torrent's
+// state alone, rather than dropping the file's pieces and treating the torrent
+// as finished.
+TORRENT_TEST(unload_file_on_removed_torrent)
+{
+	std::filesystem::remove_all("unload_removed");
+
+	// file0 covers piece 0, file1 piece 1, so the check can verify the wanted
+	// file independently of the file to unload
+	torrent_args args;
+	args.name("unload_removed");
+	args.file("32768,name=file0");
+	args.file("16384,name=file1");
+	lt::add_torrent_params atp = make_test_torrent(args);
+	generate_files(*atp.ti, "unload_removed");
+	atp.save_path = "unload_removed";
+	atp.flags &= ~torrent_flags::paused;
+	atp.flags &= ~torrent_flags::auto_managed;
+
+	// corrupt file0, so the torrent stays downloading with file1 as the only
+	// wanted-and-done file. Dropping file0's pieces would finish it.
+	{
+		std::ofstream f("unload_removed/unload_removed/file0", std::ios::binary);
+		f << std::string(32768, '\xff');
+	}
+
+	lt::session ses(settings());
+	torrent_handle const h = ses.add_torrent(atp);
+	wait_until_checked(ses, h);
+	TEST_EQUAL(h.status().state, torrent_status::downloading);
+	TEST_EQUAL(h.status().total_done, 16384);
+	TEST_EQUAL(h.status().total_wanted, 49152);
+
+	auto tor = h.native_handle();
+
+	// dispatch the unload and remove the torrent from one handler on the
+	// network thread, so the disk job cannot complete in between
+	post(ses.get_context(), [tor, h, impl = ses.native_handle()] {
+		tor->unload_file(0_file);
+		impl->remove_torrent(h, {});
+	});
+
+	bool saw_finished = false;
+	bool saw_removed = false;
+	for (int i = 0; i < 100 && !saw_removed; ++i)
+	{
+		std::vector<alert*> alerts;
+		ses.pop_alerts(&alerts);
+		for (alert const* a : alerts)
+		{
+			if (alert_cast<torrent_finished_alert>(a)) saw_finished = true;
+			if (alert_cast<torrent_removed_alert>(a)) saw_removed = true;
+		}
+		if (!saw_removed) std::this_thread::sleep_for(lt::milliseconds(100));
+	}
+	TEST_CHECK(saw_removed);
+	TEST_CHECK(!saw_finished);
+
+	// the caller asked for the unload, so the storage job unlinks the file, but
+	// the torrent's wanted-piece accounting is left untouched
+	TEST_CHECK(!exists("unload_removed/unload_removed/file0"));
+	TEST_CHECK(!tor->is_finished());
+
+	// release our reference on the network thread, which is where a torrent
+	// must be destructed
+	post(ses.get_context(), [tor] {});
+	tor.reset();
+}
+
 // unloaded_files is per-file state, not information about which pieces are on
 // disk. Adding a torrent with it set and no resume data must still run the
 // initial file check, or every file already on disk would be re-downloaded.

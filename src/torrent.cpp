@@ -6275,6 +6275,11 @@ namespace {
 		m_flags &= ~torrent_internal_flags::outstanding_file_priority;
 		COMPLETE_ASYNC("file_priority");
 
+		// the torrent was removed while the job was in flight. There's no state
+		// left to update, and abort() already answered a deferred
+		// save_resume_data()
+		if (m_flags & torrent_internal_flags::torrent_aborted) return;
+
 		aux::vector<bool, file_index_t> newly_unloaded;
 		// a force_recheck() started after this job was dispatched reset the
 		// picker; the running check will pick up the deleted file. Don't apply
