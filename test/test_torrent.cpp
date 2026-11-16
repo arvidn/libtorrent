@@ -1423,6 +1423,48 @@ void test_unloaded_merkle_state(lt::create_flags_t const flags, char const* cons
 	std::filesystem::remove_all(dir);
 }
 
+// a restart from resume data must keep the unloaded file unloaded and must not
+// resurrect its pieces during the initial check
+void test_unloaded_merkle_restart(lt::create_flags_t const flags, char const* const dir)
+{
+	lt::add_torrent_params atp = make_unload_merkle_atp(flags, dir);
+
+	error_code ec;
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(atp, ec);
+	TEST_CHECK(!ec);
+	TEST_CHECK(wait_for_alert(ses, torrent_checked_alert::alert_type
+		, "initial check", pop_alerts::pop_all, seconds(30)));
+	TEST_CHECK(h.status().is_seeding);
+
+	h.unload_file(0_file);
+	wait_for_alert(ses, file_prio_alert::alert_type, "unload");
+	TEST_CHECK(!exists(combine_path(dir, "test_dir0/test0")));
+
+	h.save_resume_data(torrent_handle::save_info_dict);
+	alert const* const a = wait_for_alert(ses, save_resume_data_alert::alert_type, "save resume");
+	auto const* ra = alert_cast<save_resume_data_alert>(a);
+	TEST_CHECK(ra != nullptr);
+	if (!ra) return;
+	std::vector<char> const resume_buf = write_resume_data_buf(ra->params);
+
+	ses.remove_torrent(h);
+	wait_for_alert(ses, torrent_removed_alert::alert_type, "remove");
+
+	add_torrent_params rd = read_resume_data(resume_buf);
+	rd.save_path = ".";
+	lt::session ses2(settings());
+	torrent_handle h2 = ses2.add_torrent(rd);
+	wait_until_checked(ses2, h2);
+
+	TEST_CHECK(h2.get_unloaded_files()[0]);
+	TEST_CHECK(!exists(combine_path(dir, "test_dir0/test0")));
+	TEST_CHECK(!h2.have_piece(0_piece));
+	TEST_CHECK(!h2.have_piece(1_piece));
+	TEST_CHECK(h2.have_piece(2_piece));
+	TEST_CHECK(probe_hashes(ses2, h2).empty());
+}
+
 } // anonymous namespace
 
 TORRENT_TEST(unload_file_v2_merkle_state)
@@ -1433,6 +1475,16 @@ TORRENT_TEST(unload_file_v2_merkle_state)
 TORRENT_TEST(unload_file_hybrid_merkle_state)
 {
 	test_unloaded_merkle_state({}, "unload_merkle_hybrid");
+}
+
+TORRENT_TEST(unload_file_v2_merkle_restart)
+{
+	test_unloaded_merkle_restart(lt::create_torrent::v2_only, "unload_merkle_restart_v2");
+}
+
+TORRENT_TEST(unload_file_hybrid_merkle_restart)
+{
+	test_unloaded_merkle_restart({}, "unload_merkle_restart_hybrid");
 }
 
 TORRENT_TEST(unload_file_from_finished_torrent)
