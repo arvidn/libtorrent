@@ -1290,7 +1290,8 @@ TORRENT_VERSION_NAMESPACE_4
 	};
 
 	// If the storage fails to read or write files that it needs access to, this alert is
-	// generated and the torrent is paused.
+	// generated and the torrent is paused. A failed unload request is rolled back and
+	// leaves the torrent running instead.
 	struct TORRENT_EXPORT file_error_alert final : torrent_alert
 	{
 		// internal
