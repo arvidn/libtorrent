@@ -545,10 +545,11 @@ TORRENT_TEST(piece_range_file_ends_where_torrent_ends)
 	int const piece_size = 16;
 	file_storage fs;
 	fs.set_piece_length(piece_size);
-	// "0" covers bytes [0, 15), which is all of the last (short) piece of the
+	// "0" covers bytes [0, 14), which is all of the last (short) piece of the
 	// torrent. It is followed only by an empty file, so "0" owns that piece
-	// even though it doesn't end on a piece boundary
-	fs.add_file_borrow({}, combine_path("temp_storage", "0"), 15);
+	// even though it doesn't end on a piece boundary. 14 rather than 15 bytes,
+	// so the old (file_end + 1) / piece_size formula really excludes the piece.
+	fs.add_file_borrow({}, combine_path("temp_storage", "0"), 14);
 	fs.add_file_borrow({}, combine_path("temp_storage", "1"), 0);
 	fs.set_num_pieces(aux::calc_num_pieces(fs));
 	TEST_EQUAL(fs.num_pieces(), 1);
