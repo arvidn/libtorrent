@@ -126,6 +126,21 @@ TORRENT_TEST(recv_buffer_grow_limit)
 	printf("capacity: %d\n", b.capacity());
 }
 
+TORRENT_TEST(recv_buffer_grow_above_limit)
+{
+	receive_buffer b;
+	b.reset(10);
+	b.reserve(2000);
+	b.received(2000);
+	int const capacity = b.capacity();
+
+	// the buffer is already larger than the limit, and it's full. It must not
+	// be shrunk
+	b.grow(1000);
+	TEST_EQUAL(b.capacity(), capacity);
+	TEST_EQUAL(b.max_receive(), capacity - 2000);
+}
+
 TORRENT_TEST(recv_buffer_reserve_minimum_grow)
 {
 	receive_buffer b;
