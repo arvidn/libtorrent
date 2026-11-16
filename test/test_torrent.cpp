@@ -1638,6 +1638,76 @@ TORRENT_TEST(unload_file_drops_piece_priorities)
 	TEST_CHECK(!has_part_file("unload_piece_prio"));
 }
 
+// an explicit piece priority above dont_download on a piece of an unloaded
+// file is honoured: the piece is downloaded into the part file, while the
+// file stays unloaded and is not recreated on disk.
+TORRENT_TEST(unload_file_piece_priority_refetches_into_part_file)
+{
+	unload_test_torrent();
+
+	settings_pack seed_pack = settings();
+	seed_pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
+	lt::session seed_ses(seed_pack);
+	lt::add_torrent_params seed_atp = unload_test_atp();
+	seed_atp.save_path = ".";
+	torrent_handle seed = seed_ses.add_torrent(seed_atp);
+	wait_for_seed(seed_ses, seed);
+	TEST_CHECK(seed.status().is_seeding);
+
+	settings_pack dl_pack = settings();
+	dl_pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
+	lt::session dl_ses(dl_pack);
+	std::filesystem::remove_all("unload_piece_refetch");
+	std::filesystem::create_directories("unload_piece_refetch");
+	lt::add_torrent_params dl_atp = unload_test_atp();
+	dl_atp.save_path = "unload_piece_refetch";
+	torrent_handle dl = dl_ses.add_torrent(dl_atp);
+	wait_until_checked(dl_ses, dl);
+
+	dl.unload_file(0_file);
+	wait_for_alert(dl_ses, file_prio_alert::alert_type, "unload");
+	TEST_CHECK(!exists("unload_piece_refetch/unload_test/file0"));
+	TEST_CHECK(dl.get_unloaded_files()[0]);
+	TEST_CHECK(!dl.have_piece(0_piece));
+	TEST_EQUAL(dl.status().total_wanted, 32768);
+	TEST_EQUAL(dl.status().total_done, 0);
+
+	// piece 0 is entirely inside file0; while the torrent is still downloading,
+	// an explicit piece priority re-fetches it into the part file
+	dl.piece_priority(0_piece, top_priority);
+	TEST_EQUAL(dl.status().total_wanted, 65536);
+	dl.connect_peer(ep("127.0.0.1", seed_ses.listen_port()));
+
+	for (int i = 0; i < 200 && !dl.have_piece(0_piece); ++i)
+	{
+		print_alerts(dl_ses, "dl");
+		std::this_thread::sleep_for(lt::milliseconds(100));
+	}
+	TEST_CHECK(dl.have_piece(0_piece));
+	TEST_EQUAL(dl.status().total_done, 65536);
+	TEST_CHECK(!exists("unload_piece_refetch/unload_test/file0"));
+	TEST_CHECK(dl.get_unloaded_files()[0]);
+
+	// reading the piece back goes through the part file
+	int const piece_size = dl.torrent_file()->piece_size(0_piece);
+	dl.read_piece(0_piece);
+	alert const* const a = wait_for_alert(dl_ses, read_piece_alert::alert_type, "read piece");
+	auto const* rpa = alert_cast<read_piece_alert>(a);
+	TEST_CHECK(rpa != nullptr);
+	if (rpa)
+	{
+		TEST_CHECK(!rpa->error);
+		TEST_CHECK(rpa->buffer);
+		TEST_EQUAL(rpa->size, piece_size);
+		if (rpa->buffer)
+		{
+			std::vector<char> const expected(std::size_t(piece_size), '\0');
+			TEST_CHECK(std::memcmp(rpa->buffer.get(), expected.data()
+				, std::size_t(piece_size)) == 0);
+		}
+	}
+}
+
 // two unload requests queued behind a priority job are dispatched together.
 // The first file commits, the second fails because its boundary bytes cannot
 // be read from the removed file, and the first must still be fully dropped

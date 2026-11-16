@@ -1213,6 +1213,11 @@ namespace aux {
 		// ``lt_donthave``. Pieces shared with other files remain available for
 		// seeding.
 		//
+		// While the torrent is downloading, an explicit piece priority above
+		// ``dont_download`` on a piece of an unloaded file is honoured: the piece
+		// is downloaded into the part file, while the file stays unloaded and its
+		// bytes stay off disk.
+		//
 		// This is asynchronous. On success a ``file_prio_alert`` is posted. If
 		// the unload fails (e.g. the file cannot be removed), a
 		// ``file_error_alert`` is posted; the file and its priority are left
