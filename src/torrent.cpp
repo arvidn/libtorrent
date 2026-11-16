@@ -6251,17 +6251,17 @@ namespace {
 			, std::move(prios)
 			, std::move(unloaded)
 			, std::move(have)
-			, [self = shared_from_this(), picker_gen] (storage_error const& ec
+			, [self = shared_from_this(), picker_gen, include_have] (storage_error const& ec
 				, aux::vector<download_priority_t, file_index_t> p
 				, aux::vector<bool, file_index_t> u)
-			{ self->on_file_priority(ec, std::move(p), std::move(u), picker_gen); });
+			{ self->on_file_priority(ec, std::move(p), std::move(u), picker_gen, include_have); });
 		m_ses.deferred_submit_jobs();
 	}
 
 	void torrent::on_file_priority(storage_error const& err
 		, aux::vector<download_priority_t, file_index_t> prios
 		, aux::vector<bool, file_index_t> unloaded
-		, std::uint8_t const picker_gen)
+		, std::uint8_t const picker_gen, bool const unload_job)
 	{
 		m_flags &= ~torrent_internal_flags::outstanding_file_priority;
 		COMPLETE_ASYNC("file_priority");
@@ -6461,8 +6461,14 @@ namespace {
 				alerts().emplace_alert<file_error_alert>(err.ec
 					, resolve_filename(err.file()), err.operation, get_handle());
 
-			set_error(err.ec, err.file());
-			pause();
+			// an unload job rolls every file back when it fails, leaving the
+			// torrent exactly as it was, so it must not stop the torrent. A
+			// priority update may have left storage half-applied.
+			if (!unload_job)
+			{
+				set_error(err.ec, err.file());
+				pause();
+			}
 		}
 		else if (alerts().should_post<file_prio_alert>())
 		{

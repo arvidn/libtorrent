@@ -17,6 +17,7 @@ see LICENSE file.
 #include "libtorrent/time.hpp"
 #include "libtorrent/load_torrent.hpp"
 #include "libtorrent/hasher.hpp"
+#include "libtorrent/hex.hpp"
 #include "libtorrent/read_resume_data.hpp"
 #include "libtorrent/write_resume_data.hpp"
 #include "libtorrent/create_torrent.hpp"
@@ -1556,6 +1557,43 @@ TORRENT_TEST(unload_file_partial_batch_failure)
 		TEST_CHECK(!loaded.unloaded_files.empty());
 		if (!loaded.unloaded_files.empty()) TEST_CHECK(loaded.unloaded_files[0]);
 	}
+}
+
+// a failed unload rolls every file back and leaves the torrent as it was, so
+// it must report the error without pausing the torrent
+TORRENT_TEST(unload_file_write_error_keeps_torrent_running)
+{
+	lt::add_torrent_params atp = unload_test_torrent();
+	std::string const part_file = combine_path("."
+		, "." + aux::to_hex(atp.ti->info_hashes().v1) + ".parts");
+
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(atp);
+	wait_for_seed(ses, h);
+
+	// make the part-file path unusable, forcing the boundary migration to fail
+	std::error_code ec;
+	std::filesystem::remove_all(part_file, ec);
+	TEST_CHECK(std::filesystem::create_directory(part_file, ec));
+	TEST_CHECK(!ec);
+
+	h.unload_file(0_file);
+	TEST_CHECK(wait_for_alert(ses, file_error_alert::alert_type
+		, "unload write error") != nullptr);
+
+	// the unload was rolled back and the torrent was left running
+	auto const st = h.status();
+	TEST_CHECK(!st.errc);
+	TEST_CHECK(!bool(h.flags() & torrent_flags::paused));
+	TEST_CHECK(!bool(h.flags() & torrent_flags::upload_mode));
+	auto const unloaded = h.get_unloaded_files();
+	TEST_CHECK(unloaded.empty() || !unloaded[0]);
+	TEST_EQUAL(h.file_priority(0_file), default_priority);
+	TEST_CHECK(exists("unload_test/file0"));
+	TEST_CHECK(h.have_piece(0_piece));
+	TEST_CHECK(h.have_piece(1_piece));
+
+	std::filesystem::remove_all(part_file, ec);
 }
 
 TORRENT_TEST(unload_file_move_storage)
