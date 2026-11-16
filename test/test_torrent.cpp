@@ -1559,8 +1559,8 @@ TORRENT_TEST(unload_file_partial_batch_failure)
 	}
 }
 
-// a failed unload rolls every file back and leaves the torrent as it was, so
-// it must report the error without pausing the torrent
+// a failed unload leaves the file and its priority unchanged, so it must
+// report the error without pausing the torrent
 TORRENT_TEST(unload_file_write_error_keeps_torrent_running)
 {
 	lt::add_torrent_params atp = unload_test_torrent();
@@ -1578,8 +1578,12 @@ TORRENT_TEST(unload_file_write_error_keeps_torrent_running)
 	TEST_CHECK(!ec);
 
 	h.unload_file(0_file);
-	TEST_CHECK(wait_for_alert(ses, file_error_alert::alert_type
-		, "unload write error") != nullptr);
+	alert const* const a = wait_for_alert(ses, file_error_alert::alert_type
+		, "unload write error");
+	auto const* fe = alert_cast<file_error_alert>(a);
+	TEST_CHECK(fe != nullptr);
+	// the failure is the part-file write, not an early reject of the unload
+	if (fe) TEST_CHECK(fe->op == operation_t::partfile_write);
 
 	// the unload was rolled back and the torrent was left running
 	auto const st = h.status();
