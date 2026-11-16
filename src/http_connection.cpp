@@ -734,6 +734,9 @@ void http_connection::callback(error_code e, span<char> data)
 
 			if (ec)
 			{
+				// regardless of m_handler, or on_timeout would keep acting on this request
+				m_called = true;
+				m_timer.cancel();
 				if (m_handler) m_handler(ec, m_parser, data, *this);
 				return;
 			}
