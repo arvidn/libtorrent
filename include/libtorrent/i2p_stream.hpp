@@ -89,16 +89,6 @@ struct i2p_session_options
 	int m_outbound_length_variance = 0;
 };
 
-namespace aux {
-// i2p hostnames are at most 67 characters, this leaves room for b32 and
-// b33 addresses
-constexpr std::size_t max_i2p_name_len = 255;
-
-// typical destinations are around 520 base64 characters, key certificates
-// may make them larger
-constexpr std::size_t max_i2p_destination_len = 4096;
-}
-
 struct TORRENT_EXTRA_EXPORT i2p_stream : aux::proxy_base
 {
 	explicit i2p_stream(io_context& io_context);

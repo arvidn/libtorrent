@@ -361,6 +361,20 @@ TORRENT_TEST(i2p_destination)
 	TEST_CHECK(!is_valid_i2p_destination(keys + "AAABAA==A"));
 	TEST_CHECK(!is_valid_i2p_destination(dest + "=\nfoo"));
 	TEST_CHECK(!is_valid_i2p_destination(keys + "AAABAA= ="));
+
+	auto const make_dest = [](int const cert_len) {
+		std::vector<char> d(384 + 3 + std::size_t(cert_len), 0);
+		d[385] = char(cert_len >> 8);
+		d[386] = char(cert_len & 0xff);
+		return base64encode_i2p(d);
+	};
+	// the largest destination in use, with an RSA-4096 signing key
+	TEST_CHECK(is_valid_i2p_destination(make_dest(388)));
+	// 3072 bytes encode to exactly max_i2p_destination_len characters
+	TEST_EQUAL(make_dest(3072 - 387).size(), aux::max_i2p_destination_len);
+	TEST_CHECK(is_valid_i2p_destination(make_dest(3072 - 387)));
+	TEST_CHECK(!is_valid_i2p_destination(make_dest(3072 - 387 + 1)));
+	TEST_CHECK(!is_valid_i2p_destination(make_dest(0xffff)));
 }
 #endif
 
