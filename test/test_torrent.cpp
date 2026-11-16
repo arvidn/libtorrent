@@ -1678,11 +1678,13 @@ TORRENT_TEST(unload_file_piece_priority_refetches_into_part_file)
 	TEST_EQUAL(dl.status().total_wanted, 65536);
 	dl.connect_peer(ep("127.0.0.1", seed_ses.listen_port()));
 
-	for (int i = 0; i < 200 && !dl.have_piece(0_piece); ++i)
+	for (int i = 0; i < 200
+		&& dl.status().total_wanted_done < dl.status().total_wanted; ++i)
 	{
 		print_alerts(dl_ses, "dl");
 		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
+	TEST_CHECK(dl.status().total_wanted_done == dl.status().total_wanted);
 	TEST_CHECK(dl.have_piece(0_piece));
 	TEST_EQUAL(dl.status().total_done, 65536);
 	TEST_CHECK(!exists("unload_piece_refetch/unload_test/file0"));
