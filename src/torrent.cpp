@@ -6396,6 +6396,28 @@ namespace {
 				}
 			}
 
+			// An unloaded file has no bytes left to hash. Reset its v2 merkle
+			// tree to the empty representation initialize_merkle_trees() uses
+			// (root only), so no hashes are served for it and resume data does
+			// not record stale verified leaves, while an explicit piece
+			// priority can still verify a piece re-downloaded to the part file.
+			if (!m_merkle_trees.empty())
+			{
+				for (file_index_t const f : newly_unloaded.range())
+				{
+					if (!newly_unloaded[f]) continue;
+					if (f >= m_merkle_trees.end_index()) continue;
+					if (fs.pad_file_at(f) || fs.file_size(f) == 0) continue;
+					m_merkle_trees[f] = aux::merkle_tree(fs.file_num_blocks(f)
+						, fs.blocks_per_piece(), fs.root_ptr(f));
+				}
+
+				// hash-picker state (requested piece layers, pending block-hash
+				// requests) cannot be dropped per file; drop the picker so it is
+				// rebuilt from the reset trees on demand
+				m_hash_picker.reset();
+			}
+
 			// A shared boundary piece is only wanted while another wanted file
 			// overlaps it. If the unloaded file was already priority 0,
 			// update_piece_priorities() did not run, so a stale explicit piece
@@ -7916,6 +7938,11 @@ namespace {
 		if (req.file < file_index_t{0} || req.file >= m_merkle_trees.end_index())
 			return {};
 
+		// an unloaded file has no bytes left, so there are no hashes to serve
+		// for it (not even the root of a single-block file)
+		if (req.file < m_unloaded_files.end_index() && m_unloaded_files[req.file])
+			return {};
+
 		auto const& f = m_merkle_trees[req.file];
 
 		return f.get_hashes(req.base, req.index, req.count, req.proof_layers);
@@ -8308,7 +8335,10 @@ namespace {
 			ret.verified_leaf_hashes.reserve(num_files);
 			for (auto i : m_merkle_trees.range())
 			{
-				if (valid_metadata() && m_torrent_file->layout().pad_file_at(i))
+				// an unloaded file has no hashes or verified leaves to save; use
+				// the same empty representation as pad files
+				if (valid_metadata() && (m_torrent_file->layout().pad_file_at(i)
+					|| (i < m_unloaded_files.end_index() && m_unloaded_files[i])))
 				{
 					ret.merkle_trees.emplace_back();
 					ret.merkle_tree_mask.emplace_back();

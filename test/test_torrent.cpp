@@ -1262,7 +1262,129 @@ void check_unloaded_state(torrent_handle const& h)
 	}
 }
 
+// v2 and hybrid torrents are piece aligned per file, so unloading a file
+// drops its pieces. Its v2 merkle tree and hash-picker state have to go with
+// them, or hashes for the deleted bytes are served and recorded as verified in
+// resume data.
+void test_unloaded_merkle_state(lt::create_flags_t const flags, char const* const dir)
+{
+	std::filesystem::remove_all(dir);
+	int const piece_size = 0x8000;
+	std::vector<int> const file_sizes{2 * piece_size, 2 * piece_size};
+	auto fs = create_random_files(dir, file_sizes);
+
+	error_code ec;
+	lt::create_torrent ct(std::move(fs), piece_size, flags);
+	set_piece_hashes(ct, ".", ec);
+	TEST_CHECK(!ec);
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), ct.generate());
+	lt::add_torrent_params atp = load_torrent_buffer(buf);
+	TEST_CHECK(atp.ti->is_valid());
+	// both files are piece aligned, so the v2 layout adds no pad files
+	TEST_EQUAL(atp.ti->layout().num_files(), 2);
+	atp.save_path = ".";
+	atp.flags &= ~torrent_flags::paused;
+	atp.flags &= ~torrent_flags::auto_managed;
+
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(atp, ec);
+	TEST_CHECK(!ec);
+	TEST_CHECK(wait_for_alert(ses, torrent_checked_alert::alert_type
+		, "initial check", pop_alerts::pop_all, seconds(30)));
+	TEST_CHECK(h.status().is_seeding);
+
+	auto const tor = h.native_handle();
+	struct merkle_probe
+	{
+		std::vector<sha256_hash> hashes;
+		bool has_picker = false;
+		bool picker_have_piece = true;
+		bool picker_downloading = true;
+		download_priority_t picker_prio = default_priority;
+	};
+	auto const probe_merkle = [&](std::shared_ptr<merkle_probe> const& probe)
+	{
+		auto const done = std::make_shared<std::atomic<bool>>(false);
+		post(ses.get_context(), [tor, probe, done] {
+			probe->hashes = tor->get_hashes({0_file, 0, 0, 4, 0});
+			probe->has_picker = tor->has_picker();
+			if (probe->has_picker)
+			{
+				probe->picker_have_piece = tor->picker().have_piece(0_piece);
+				probe->picker_downloading = tor->picker().is_downloading(0_piece);
+				probe->picker_prio = tor->picker().piece_priority(0_piece);
+			}
+			*done = true;
+		});
+		for (int i = 0; i < 100 && !done->load(); ++i)
+			std::this_thread::sleep_for(lt::milliseconds(10));
+		TEST_CHECK(done->load());
+	};
+
+	auto before = std::make_shared<merkle_probe>();
+	probe_merkle(before);
+	TEST_CHECK(!before->hashes.empty());
+
+	h.unload_file(0_file);
+	wait_for_alert(ses, file_prio_alert::alert_type, "unload");
+	TEST_CHECK(!exists(combine_path(dir, "test_dir0/test0")));
+	TEST_CHECK(!h.have_piece(0_piece));
+	TEST_CHECK(!h.have_piece(1_piece));
+	TEST_CHECK(h.have_piece(2_piece));
+
+	auto after = std::make_shared<merkle_probe>();
+	probe_merkle(after);
+	TEST_CHECK(after->hashes.empty());
+	TEST_CHECK(after->has_picker);
+	TEST_CHECK(!after->picker_have_piece);
+	TEST_CHECK(!after->picker_downloading);
+	TEST_EQUAL(after->picker_prio, dont_download);
+
+	// resume data must not carry the unloaded file's tree or verified leaves
+	h.save_resume_data();
+	alert const* const a = wait_for_alert(ses, save_resume_data_alert::alert_type, "save resume");
+	auto const* ra = alert_cast<save_resume_data_alert>(a);
+	TEST_CHECK(ra != nullptr);
+	if (ra)
+	{
+		error_code rec;
+		add_torrent_params const resumed = read_resume_data(write_resume_data_buf(ra->params), rec);
+		TEST_CHECK(!rec);
+		TEST_CHECK(resumed.unloaded_files.size() >= 1);
+		if (resumed.unloaded_files.size() >= 1) TEST_CHECK(resumed.unloaded_files[0]);
+		TEST_CHECK(resumed.merkle_trees.size() >= 1);
+		if (resumed.merkle_trees.size() >= 1)
+		{
+			TEST_CHECK(resumed.merkle_trees[0_file].empty());
+			TEST_CHECK(resumed.verified_leaf_hashes[0_file].empty());
+		}
+	}
+
+	// a recheck must not find the deleted bytes again
+	h.force_recheck();
+	TEST_CHECK(wait_for_alert(ses, torrent_checked_alert::alert_type
+		, "recheck", pop_alerts::pop_all, seconds(30)));
+	TEST_CHECK(!h.have_piece(0_piece));
+	TEST_CHECK(!h.have_piece(1_piece));
+	TEST_CHECK(h.have_piece(2_piece));
+	TEST_CHECK(h.get_unloaded_files()[0]);
+	TEST_CHECK(!exists(combine_path(dir, "test_dir0/test0")));
+
+	std::filesystem::remove_all(dir);
+}
+
 } // anonymous namespace
+
+TORRENT_TEST(unload_file_v2_merkle_state)
+{
+	test_unloaded_merkle_state(lt::create_torrent::v2_only, "unload_merkle_v2");
+}
+
+TORRENT_TEST(unload_file_hybrid_merkle_state)
+{
+	test_unloaded_merkle_state({}, "unload_merkle_hybrid");
+}
 
 TORRENT_TEST(unload_file_from_finished_torrent)
 {
