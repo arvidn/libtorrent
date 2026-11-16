@@ -574,6 +574,12 @@ class UnloadFileTest(TorrentHandleTest):
         alert = self.wait_for(lt.file_prio_alert, timeout=5)
         self.assertIsInstance(alert, lt.file_prio_alert)
 
+        # the unloaded state is part of the resume data
+        self.handle.save_resume_data()
+        alert = self.wait_for(lt.save_resume_data_alert, timeout=5)
+        self.assertEqual(list(alert.params.unloaded_files), [True])
+        self.assertEqual(list(alert.params.file_priorities), [0])
+
     def wait_for(self, alert_type: type, timeout: float):
         for _ in lib.loop_until_timeout(timeout, msg=alert_type.__name__):
             self.session.wait_for_alert(100)

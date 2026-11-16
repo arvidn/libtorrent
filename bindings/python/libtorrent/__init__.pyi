@@ -339,6 +339,7 @@ class AddTorrentParamsdict(TypedDict, total=False):
     trackerid: NotRequired[str]
     trackers: NotRequired[list[str]]
     unfinished_pieces: NotRequired[dict[int, list[bool]]]
+    unloaded_files: NotRequired[list[bool]]
     upload_limit: NotRequired[int]
     url: NotRequired[str]
     url_seeds: NotRequired[list[str]]
@@ -690,6 +691,7 @@ class add_torrent_params(metaclass=_BoostBaseClass):
     trackerid: str
     trackers: list[str]
     unfinished_pieces: dict[int, list[bool]]
+    unloaded_files: list[bool]
     upload_limit: int
     url: str
     url_seeds: list[str]
