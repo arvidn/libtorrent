@@ -937,7 +937,7 @@ TORRENT_TEST(unload_file_late_block)
 }
 
 // the simulation disk I/O does not support unloading. A failed unload must
-// not commit the unloaded state or drop any pieces.
+// not commit the unloaded state, drop any pieces or stop the torrent.
 TORRENT_TEST(unload_file_unsupported_backend)
 {
 	using asio::ip::address;
@@ -985,8 +985,8 @@ TORRENT_TEST(unload_file_unsupported_backend)
 		TEST_CHECK(unloaded.empty() || !unloaded[0]);
 		TEST_CHECK(h.flags() & torrent_flags::seed_mode);
 		TEST_CHECK(h.have_piece(0_piece));
-		TEST_CHECK(h.flags() & torrent_flags::paused);
-		TEST_CHECK(h.status().errc);
+		TEST_CHECK(!(h.flags() & torrent_flags::paused));
+		TEST_CHECK(!h.status().errc);
 		zombie = ses->abort();
 		ses.reset();
 	});
