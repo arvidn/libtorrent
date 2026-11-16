@@ -1865,6 +1865,78 @@ TORRENT_TEST(unload_file_all_files)
 	TEST_CHECK(rd.unloaded_files[1]);
 }
 
+TORRENT_TEST(unload_file_shares_last_byte_of_piece)
+{
+	std::filesystem::remove_all("unload_short_file");
+
+	// each file ends one byte before a piece boundary, so piece 0 is shared by
+	// both files and neither file owns it exclusively
+	torrent_args args;
+	args.name("unload_short");
+	args.file("32767,name=file0");
+	args.file("32767,name=file1");
+	lt::add_torrent_params atp = make_test_torrent(args);
+	generate_files(*atp.ti, "unload_short_file");
+	atp.save_path = "unload_short_file";
+	atp.flags &= ~torrent_flags::paused;
+	atp.flags &= ~torrent_flags::auto_managed;
+
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(atp);
+	wait_for_seed(ses, h);
+	TEST_CHECK(h.status().is_seeding);
+
+	h.unload_file(0_file);
+	wait_for_alert(ses, file_prio_alert::alert_type, "unload");
+
+	TEST_CHECK(!exists("unload_short_file/unload_short/file0"));
+	TEST_CHECK(exists("unload_short_file/unload_short/file1"));
+
+	// piece 0 is still wanted by file1, so it must stay available and the
+	// torrent must stay a complete seed
+	TEST_CHECK(h.have_piece(0_piece));
+	TEST_CHECK(h.have_piece(1_piece));
+	TEST_EQUAL(h.status().state, torrent_status::seeding);
+	TEST_CHECK(h.status().is_seeding);
+	TEST_EQUAL(h.status().total_done, h.status().total);
+	TEST_EQUAL(h.status().total_wanted_done, h.status().total_wanted);
+	TEST_CHECK(!h.status().errc);
+}
+
+TORRENT_TEST(unload_file_zero_size)
+{
+	std::filesystem::remove_all("unload_zero");
+
+	torrent_args args;
+	args.name("unload_zero");
+	args.file("32768,name=file0");
+	args.file("0,name=file1");
+	args.file("32768,name=file2");
+	lt::add_torrent_params atp = make_test_torrent(args);
+	generate_files(*atp.ti, "unload_zero");
+	atp.save_path = "unload_zero";
+	atp.flags &= ~torrent_flags::paused;
+	atp.flags &= ~torrent_flags::auto_managed;
+
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(atp);
+	wait_for_seed(ses, h);
+	TEST_CHECK(h.status().is_seeding);
+
+	// a zero-size file owns no piece, so its removal must not drop any
+	h.unload_file(1_file);
+	wait_for_alert(ses, file_prio_alert::alert_type, "unload zero-size");
+
+	auto const unloaded = h.get_unloaded_files();
+	TEST_EQUAL(unloaded.size(), std::size_t(3));
+	if (unloaded.size() == 3) TEST_CHECK(unloaded[1]);
+	TEST_CHECK(h.have_piece(0_piece));
+	TEST_CHECK(h.have_piece(1_piece));
+	TEST_EQUAL(h.status().state, torrent_status::seeding);
+	TEST_CHECK(h.status().is_seeding);
+	TEST_CHECK(!h.status().errc);
+}
+
 // a shared boundary piece with no other wanted file must be dropped from the
 // wanted set even when the unloaded file's priority was already 0 (so the
 // per-file priority update does not run)
