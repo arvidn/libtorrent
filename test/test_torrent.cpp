@@ -2022,6 +2022,78 @@ TORRENT_TEST(unload_file_on_removed_torrent)
 	tor.reset();
 }
 
+// a save_resume_data() requested while a file priority job is in flight is
+// deferred. Removing the torrent before that job completes must still answer
+// the request, exactly once, with torrent_removed.
+TORRENT_TEST(unload_file_deferred_resume_save_on_removal)
+{
+	std::filesystem::remove_all("unload_deferred_remove");
+
+	torrent_args args;
+	args.name("unload_deferred_remove");
+	args.file("32768,name=file0");
+	args.file("16384,name=file1");
+	lt::add_torrent_params atp = make_test_torrent(args);
+	generate_files(*atp.ti, "unload_deferred_remove");
+	atp.save_path = "unload_deferred_remove";
+	atp.flags &= ~torrent_flags::paused;
+	atp.flags &= ~torrent_flags::auto_managed;
+
+	lt::session ses(settings());
+	torrent_handle const h = ses.add_torrent(atp);
+	wait_until_checked(ses, h);
+
+	auto tor = h.native_handle();
+
+	// all three calls land in one network-thread handler, so the save is still
+	// deferred when the removal aborts the torrent
+	post(ses.get_context(), [tor, h, impl = ses.native_handle()] {
+		tor->unload_file(0_file);
+		tor->save_resume_data({});
+		impl->remove_torrent(h, {});
+	});
+
+	bool got_removed = false;
+	int failed = 0;
+	int saved = 0;
+	error_code failed_error;
+	auto const collect = [&] {
+		std::vector<alert*> alerts;
+		ses.pop_alerts(&alerts);
+		for (alert const* a : alerts)
+		{
+			if (alert_cast<torrent_removed_alert>(a)) got_removed = true;
+			if (auto const* f = alert_cast<save_resume_data_failed_alert>(a))
+			{
+				++failed;
+				failed_error = f->error;
+			}
+			if (alert_cast<save_resume_data_alert>(a)) ++saved;
+		}
+	};
+	for (int i = 0; i < 100 && !got_removed; ++i)
+	{
+		collect();
+		if (!got_removed) std::this_thread::sleep_for(lt::milliseconds(100));
+	}
+	TEST_CHECK(got_removed);
+
+	// let the in-flight job complete too, and catch any duplicate answer
+	for (int i = 0; i < 5; ++i)
+	{
+		std::this_thread::sleep_for(lt::milliseconds(100));
+		collect();
+	}
+	TEST_EQUAL(failed, 1);
+	TEST_CHECK(failed_error == errors::torrent_removed);
+	TEST_EQUAL(saved, 0);
+
+	// release our reference on the network thread, which is where a torrent
+	// must be destructed
+	post(ses.get_context(), [tor] {});
+	tor.reset();
+}
+
 // unloaded_files is per-file state, not information about which pieces are on
 // disk. Adding a torrent with it set and no resume data must still run the
 // initial file check, or every file already on disk would be re-downloaded.
