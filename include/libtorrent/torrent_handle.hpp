@@ -1216,10 +1216,19 @@ namespace aux {
 		// This is asynchronous. On success a ``file_prio_alert`` is posted. If
 		// the unload fails (e.g. the file cannot be removed), a
 		// ``file_error_alert`` is posted; the file and its priority are left
-		// unchanged and the torrent keeps running. Unloading is rejected while
-		// the torrent is checking its files or moving its storage.
+		// unchanged and the torrent keeps running. Files committed before the
+		// failing one in the same batch stay unloaded.
+		//
+		// The unload is rejected with a ``file_error_alert`` if the torrent has no
+		// metadata or no storage during shutdown (``operation_not_supported``),
+		// the index is out of range or refers to a pad file
+		// (``invalid_argument``), the torrent is being removed
+		// (``operation_canceled``), or it is checking its files or moving its
+		// storage (``operation_in_progress``).
+		//
 		// Unloading a file that is already unloaded is a no-op that posts
-		// ``file_prio_alert``.
+		// ``file_prio_alert`` without touching the storage, and is not subject to
+		// the checking and moving rejection above.
 		//
 		// The unloaded state is saved in resume data. Loading such resume data
 		// keeps using the part file and will not recreate the file, also not on a
