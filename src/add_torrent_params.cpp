@@ -10,8 +10,6 @@ see LICENSE file.
 
 #include "libtorrent/add_torrent_params.hpp"
 
-#include <algorithm>
-
 namespace libtorrent {
 
 	add_torrent_params::add_torrent_params() = default;
@@ -40,9 +38,9 @@ namespace aux {
 	// information about which pieces we have.
 	bool contains_resume_data(add_torrent_params const& atp)
 	{
+		// unloaded_files is per-file state, not information about the pieces on
+		// disk; on its own it must not suppress the initial file check
 		return !atp.have_pieces.empty()
-			|| std::find(atp.unloaded_files.begin(), atp.unloaded_files.end(), true)
-				!= atp.unloaded_files.end()
 			|| (atp.flags & torrent_flags::seed_mode);
 	}
 }

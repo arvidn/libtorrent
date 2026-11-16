@@ -390,12 +390,18 @@ TORRENT_TEST(unloaded_files_resume_clears_seed_mode)
 	if (!loaded.unloaded_files.empty()) TEST_CHECK(loaded.unloaded_files[0]);
 }
 
-TORRENT_TEST(contains_resume_data_requires_unloaded_file)
+TORRENT_TEST(unloaded_files_are_not_resume_data)
 {
 	add_torrent_params p;
 	p.unloaded_files.assign(2, false);
 	TEST_CHECK(!aux::contains_resume_data(p));
+	// the unloaded flag says nothing about which pieces are on disk, so it
+	// must not suppress the initial file check
 	p.unloaded_files[1] = true;
+	TEST_CHECK(!aux::contains_resume_data(p));
+
+	// resume data proper still counts
+	p.have_pieces.resize(1);
 	TEST_CHECK(aux::contains_resume_data(p));
 }
 

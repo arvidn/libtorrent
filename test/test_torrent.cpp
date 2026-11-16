@@ -1615,6 +1615,37 @@ TORRENT_TEST(unload_file_delete_files)
 	TEST_CHECK(!exists("unload_delete/unload_test/file1"));
 }
 
+// unloaded_files is per-file state, not information about which pieces are on
+// disk. Adding a torrent with it set and no resume data must still run the
+// initial file check, or every file already on disk would be re-downloaded.
+TORRENT_TEST(unloaded_files_do_not_skip_the_file_check)
+{
+	std::filesystem::remove_all("unload_check");
+
+	// file0 covers piece 0 on its own, file1 covers piece 1 on its own, so the
+	// check can verify the wanted file independently of the unloaded one
+	torrent_args args;
+	args.name("unload_check");
+	args.file("32768,name=file0");
+	args.file("24576,name=file1");
+	lt::add_torrent_params atp = make_test_torrent(args);
+	generate_files(*atp.ti, "unload_check");
+	atp.save_path = "unload_check";
+	atp.unloaded_files = {true, false};
+	atp.flags &= ~torrent_flags::paused;
+	atp.flags &= ~torrent_flags::auto_managed;
+
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(atp);
+	wait_until_checked(ses, h);
+
+	// the wanted file was found by the check, rather than re-downloaded
+	TEST_EQUAL(h.status().total_wanted, 24576);
+	TEST_CHECK(h.have_piece(1_piece));
+	TEST_CHECK(!h.have_piece(0_piece));
+	TEST_CHECK(h.get_unloaded_files()[0]);
+}
+
 TORRENT_TEST(unload_file_restart_and_recheck)
 {
 	std::filesystem::remove_all("unload_restart");
