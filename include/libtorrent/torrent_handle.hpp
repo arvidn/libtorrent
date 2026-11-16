@@ -1243,8 +1243,9 @@ namespace aux {
 		void unload_file(file_index_t index) const;
 
 		// Returns one element per file; a set element means the file has been
-		// unloaded with ``unload_file()``. An invalid or removed handle yields an
-		// empty vector.
+		// unloaded with ``unload_file()``. If the torrent_handle is invalid or the
+		// torrent has been removed, it will throw a system_error exception
+		// (``invalid_torrent_handle``).
 		std::vector<bool> get_unloaded_files() const;
 
 		// ``post_file_priorities()`` will trigger a file_priorities_alert to be
