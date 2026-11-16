@@ -519,6 +519,46 @@ TORRENT_TEST(piece_range_short_file_owns_no_piece)
 		== lt::index_range<piece_index_t>{2_piece, 3_piece}));
 }
 
+TORRENT_TEST(piece_range_file_ends_one_byte_short_of_piece)
+{
+	int const piece_size = 16;
+	file_storage fs;
+	fs.set_piece_length(piece_size);
+	// "0" covers bytes [0, 15) and ends one byte before the end of piece 0
+	// (which covers [0, 16)). The last byte of the piece belongs to "1", so
+	// piece 0 is shared and "0" owns no piece
+	fs.add_file_borrow({}, combine_path("temp_storage", "0"), 15);
+	fs.add_file_borrow({}, combine_path("temp_storage", "1"), 17);
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
+	TEST_EQUAL(fs.num_pieces(), 2);
+
+	TEST_CHECK((aux::file_piece_range_inclusive(fs, 0_file)
+		== lt::index_range<piece_index_t>{0_piece, 1_piece}));
+	TEST_CHECK((aux::file_piece_range_exclusive(fs, 0_file)
+		== lt::index_range<piece_index_t>{0_piece, 0_piece}));
+	TEST_CHECK((aux::file_piece_range_exclusive(fs, 1_file)
+		== lt::index_range<piece_index_t>{1_piece, 2_piece}));
+}
+
+TORRENT_TEST(piece_range_file_ends_where_torrent_ends)
+{
+	int const piece_size = 16;
+	file_storage fs;
+	fs.set_piece_length(piece_size);
+	// "0" covers bytes [0, 15), which is all of the last (short) piece of the
+	// torrent. It is followed only by an empty file, so "0" owns that piece
+	// even though it doesn't end on a piece boundary
+	fs.add_file_borrow({}, combine_path("temp_storage", "0"), 15);
+	fs.add_file_borrow({}, combine_path("temp_storage", "1"), 0);
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
+	TEST_EQUAL(fs.num_pieces(), 1);
+
+	TEST_CHECK((aux::file_piece_range_exclusive(fs, 0_file)
+		== lt::index_range<piece_index_t>{0_piece, 1_piece}));
+	TEST_CHECK((aux::file_piece_range_exclusive(fs, 1_file)
+		== lt::index_range<piece_index_t>{1_piece, 1_piece}));
+}
+
 TORRENT_TEST(piece_size_last_piece)
 {
 	file_storage fs;
