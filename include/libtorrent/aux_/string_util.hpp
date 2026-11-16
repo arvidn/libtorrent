@@ -147,6 +147,14 @@ namespace libtorrent::aux {
 
 #if TORRENT_USE_I2P
 
+	// i2p hostnames are at most 67 characters, this leaves room for b32 and
+	// b33 addresses
+	constexpr std::size_t max_i2p_name_len = 255;
+
+	// typical destinations are around 520 base64 characters, key certificates
+	// may make them larger
+	constexpr std::size_t max_i2p_destination_len = 4096;
+
 	TORRENT_EXTRA_EXPORT bool is_i2p_url(string_view url);
 
 	// returns true if name only contains characters valid in an i2p hostname

@@ -348,6 +348,11 @@ namespace {
 
 	bool is_valid_i2p_destination(string_view const dest)
 	{
+		// the certificate length allows destinations of almost 64 kiB, but we
+		// couldn't connect to one larger than this
+		if (dest.size() > aux::max_i2p_destination_len)
+			return false;
+
 		try
 		{
 			return valid_i2p_destination(base64decode_i2p(dest));
