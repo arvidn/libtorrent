@@ -1211,7 +1211,8 @@ namespace aux {
 		// with other files are preserved in the part file; pieces entirely
 		// contained in this file are dropped and peers are told via
 		// ``lt_donthave``. Pieces shared with other files remain available for
-		// seeding.
+		// seeding. A shared boundary piece that was only partially downloaded is
+		// restarted, so its remaining bytes are downloaded again after the unload.
 		//
 		// While the torrent is downloading, an explicit piece priority above
 		// ``dont_download`` on a piece of an unloaded file is honoured: the piece
