@@ -2179,6 +2179,41 @@ TORRENT_TEST(unload_file_connected_after_unload)
 	TEST_CHECK(pi[0].pieces[1_piece]);
 }
 
+// unloading a file while a re-enable of the same file is still in flight must
+// not report success for the old unloaded state and then let the re-enable win
+TORRENT_TEST(unload_file_during_reenable)
+{
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(unload_test_torrent());
+	wait_for_seed(ses, h);
+
+	h.unload_file(0_file);
+	wait_for_alert(ses, file_prio_alert::alert_type, "unload");
+	TEST_CHECK(!exists("unload_test/file0"));
+
+	// keep a file-priority job in flight, then queue a re-enable and an unload
+	// of the same file behind it
+	h.file_priority(1_file, low_priority);
+	h.file_priority(0_file, default_priority);
+	h.unload_file(0_file);
+
+	bool unloaded = false;
+	for (int i = 0; i < 20; ++i)
+	{
+		print_alerts(ses, "ses");
+		std::this_thread::sleep_for(lt::milliseconds(100));
+	}
+	{
+		auto const flags = h.get_unloaded_files();
+		unloaded = !exists("unload_test/file0") && !flags.empty() && flags[0];
+	}
+
+	TEST_CHECK(unloaded);
+	TEST_CHECK(!exists("unload_test/file0"));
+	TEST_CHECK(h.get_unloaded_files()[0]);
+	TEST_EQUAL(h.file_priority(0_file), dont_download);
+}
+
 TORRENT_TEST(unload_file_share_mode)
 {
 	lt::session ses(settings());

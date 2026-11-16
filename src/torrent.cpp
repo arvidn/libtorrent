@@ -6497,11 +6497,10 @@ namespace {
 			for (file_index_t const f : m_deferred_unloads)
 			{
 				new_priority[f] = dont_download;
-				if (f >= m_unloaded_files.end_index() || !m_unloaded_files[f])
-				{
-					new_unloaded[f] = true;
-					include_have = true;
-				}
+				// a deferred re-enable earlier in this batch may have cleared
+				// the flag, so go by the pending state, not the committed one
+				if (!new_unloaded[f]) include_have = true;
+				new_unloaded[f] = true;
 			}
 
 			m_deferred_file_priorities.clear();
@@ -6632,6 +6631,15 @@ namespace {
 		}
 		if (index < m_unloaded_files.end_index() && m_unloaded_files[index])
 		{
+			// an in-flight job may be re-enabling this file. Queue the unload
+			// behind it instead of reporting success for a state it is about
+			// to undo.
+			if (m_flags & torrent_internal_flags::outstanding_file_priority)
+			{
+				m_deferred_unloads.insert(index);
+				return;
+			}
+
 			// already unloaded; report success
 			if (alerts().should_post<file_prio_alert>())
 				alerts().emplace_alert<file_prio_alert>(get_handle());
