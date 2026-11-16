@@ -109,14 +109,11 @@ http_connection::http_connection(io_context& ios
 	, m_hostname_filter_handler(std::move(hfh))
 	, m_timer(ios)
 	, m_completion_timeout(seconds(5))
-	, m_limiter_timer(ios)
 	, m_last_receive(aux::time_now())
 	, m_start_time(aux::time_now())
 	, m_read_pos(0)
 	, m_redirects(5)
 	, m_max_bottled_buffer_size(max_bottled_buffer_size)
-	, m_rate_limit(0)
-	, m_download_quota(0)
 	, m_resolve_flags{}
 	, m_port(0)
 	, m_bottled(bottled)
@@ -515,8 +512,6 @@ void http_connection::close(bool force)
 	else
 		m_timer.cancel();
 
-	m_limiter_timer.cancel();
-
 	m_hostname.clear();
 	m_port = 0;
 	m_handler = nullptr;
@@ -789,19 +784,6 @@ void http_connection::on_write(error_code const& e)
 		callback(error_code(boost::system::errc::no_buffer_space, generic_category()));
 		return;
 	}
-	if (m_rate_limit > 0 && amount_to_read > m_download_quota)
-	{
-		amount_to_read = m_download_quota;
-		if (m_download_quota == 0)
-		{
-			if (!m_limiter_timer_active)
-			{
-				ADD_OUTSTANDING_ASYNC("http_connection::on_assign_bandwidth");
-				on_assign_bandwidth(error_code());
-			}
-			return;
-		}
-	}
 	ADD_OUTSTANDING_ASYNC("http_connection::on_read");
 	socket_op_started();
 	m_sock->async_read_some(boost::asio::buffer(m_recvbuffer.data() + m_read_pos
@@ -815,12 +797,6 @@ void http_connection::on_read(error_code const& e
 {
 	COMPLETE_ASYNC("http_connection::on_read");
 	socket_op_completed();
-
-	if (m_rate_limit)
-	{
-		m_download_quota -= int(bytes_transferred);
-		TORRENT_ASSERT(m_download_quota >= 0);
-	}
 
 	if (m_failover)
 	{
@@ -974,87 +950,12 @@ void http_connection::on_read(error_code const& e
 		callback(error_code(boost::system::errc::no_buffer_space, generic_category()));
 		return;
 	}
-	if (m_rate_limit > 0 && amount_to_read > m_download_quota)
-	{
-		amount_to_read = m_download_quota;
-		if (m_download_quota == 0)
-		{
-			if (!m_limiter_timer_active)
-			{
-				ADD_OUTSTANDING_ASYNC("http_connection::on_assign_bandwidth");
-				on_assign_bandwidth(error_code());
-			}
-			return;
-		}
-	}
 	ADD_OUTSTANDING_ASYNC("http_connection::on_read");
 	socket_op_started();
 	m_sock->async_read_some(boost::asio::buffer(m_recvbuffer.data() + m_read_pos
 		, std::size_t(amount_to_read))
 		, std::bind(&http_connection::on_read
 			, me, _1, _2));
-}
-
-void http_connection::on_assign_bandwidth(error_code const& e)
-{
-	COMPLETE_ASYNC("http_connection::on_assign_bandwidth");
-	if ((e == boost::asio::error::operation_aborted
-		&& m_limiter_timer_active)
-		|| !m_sock->is_open())
-	{
-		callback(boost::asio::error::eof);
-		return;
-	}
-	m_limiter_timer_active = false;
-	if (e) return;
-
-	if (m_abort) return;
-
-	if (m_download_quota > 0) return;
-
-	m_download_quota = m_rate_limit / 4;
-
-	int amount_to_read = int(m_recvbuffer.size()) - m_read_pos;
-	if (amount_to_read <= 0)
-	{
-		// whatever state m_read_pos was left in, never read past the end of
-		// m_recvbuffer
-		TORRENT_ASSERT_FAIL();
-		callback(error_code(boost::system::errc::no_buffer_space, generic_category()));
-		return;
-	}
-	if (amount_to_read > m_download_quota)
-		amount_to_read = m_download_quota;
-
-	if (!m_sock->is_open()) return;
-
-	ADD_OUTSTANDING_ASYNC("http_connection::on_read");
-	socket_op_started();
-	m_sock->async_read_some(boost::asio::buffer(m_recvbuffer.data() + m_read_pos
-		, std::size_t(amount_to_read))
-		, std::bind(&http_connection::on_read
-			, shared_from_this(), _1, _2));
-
-	m_limiter_timer_active = true;
-	m_limiter_timer.expires_after(milliseconds(250));
-	ADD_OUTSTANDING_ASYNC("http_connection::on_assign_bandwidth");
-	m_limiter_timer.async_wait(std::bind(&http_connection::on_assign_bandwidth
-		, shared_from_this(), _1));
-}
-
-void http_connection::rate_limit(int limit)
-{
-	if (!m_sock->is_open()) return;
-
-	if (!m_limiter_timer_active)
-	{
-		m_limiter_timer_active = true;
-		m_limiter_timer.expires_after(milliseconds(250));
-		ADD_OUTSTANDING_ASYNC("http_connection::on_assign_bandwidth");
-		m_limiter_timer.async_wait(std::bind(&http_connection::on_assign_bandwidth
-			, shared_from_this(), _1));
-	}
-	m_rate_limit = limit;
 }
 
 }
