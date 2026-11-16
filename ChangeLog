@@ -90,6 +90,7 @@
 
 2.0.16 not released
 
+	* on POSIX, pass filenames to the OS as UTF-8, independent of the locale
 	* fix is_i2p_url() treating IPv6 literals with a crafted zone ID as i2p URLs
 	* fix DHT put of an item erasing from an empty table when dht_max_dht_items is 0
 	* fix announce_to_all_tiers and announce_to_all_trackers names being swapped

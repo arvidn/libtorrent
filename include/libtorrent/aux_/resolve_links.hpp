@@ -30,56 +30,53 @@ see LICENSE file.
 namespace libtorrent::aux {
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
-	// this class is used for mutable torrents, to discover identical files
-	// in other torrents.
-	struct TORRENT_EXTRA_EXPORT resolve_links
+// returns true if every piece overlapping file ``f`` contains only bytes
+// of that file and pad files
+TORRENT_EXTRA_EXPORT bool piece_aligned(file_storage const& fs, file_index_t f);
+
+// this class is used for mutable torrents, to discover identical files
+// in other torrents.
+struct TORRENT_EXTRA_EXPORT resolve_links
+{
+	explicit resolve_links(std::shared_ptr<torrent_info const> ti);
+
+	// check to see if any files are shared with this torrent
+	void match(torrent_info const& ti, filenames const fs, std::string const& save_path);
+
+	aux::vector<std::string, file_index_t> const& get_links() const& { return m_links; }
+
+	aux::vector<std::string, file_index_t> get_links() && { return std::move(m_links); }
+
+private:
+	void match_v1(torrent_info const& ti, filenames const& fs, std::string const& save_path);
+	void match_v2(filenames const& fs, std::string const& save_path);
+
+	// this is the torrent we're trying to find files for.
+	std::shared_ptr<torrent_info const> m_torrent_file;
+
+	// each file in m_torrent_file has an entry in this vector. Any file
+	// that also exists somewhere else, is filled in with the corresponding
+	// torrent_info object and file index
+	aux::vector<std::string, file_index_t> m_links;
+
+	// maps file size to file index, in m_torrent_file
+	std::unordered_multimap<std::int64_t, file_index_t> m_file_sizes;
+
+	struct root_size_hash
 	{
-		explicit resolve_links(std::shared_ptr<torrent_info const> ti);
-
-		// check to see if any files are shared with this torrent
-		void match(
-			torrent_info const& ti
-			, filenames const fs
-			, std::string const& save_path);
-
-		aux::vector<std::string, file_index_t> const& get_links() const&
-		{ return m_links; }
-
-		aux::vector<std::string, file_index_t> get_links() &&
-		{ return std::move(m_links); }
-
-	private:
-
-		void match_v1(torrent_info const& ti, filenames const& fs
-			, std::string const& save_path);
-		void match_v2(filenames const& fs, std::string const& save_path);
-
-		// this is the torrent we're trying to find files for.
-		std::shared_ptr<torrent_info const> m_torrent_file;
-
-		// each file in m_torrent_file has an entry in this vector. Any file
-		// that also exists somewhere else, is filled in with the corresponding
-		// torrent_info object and file index
-		aux::vector<std::string, file_index_t> m_links;
-
-		// maps file size to file index, in m_torrent_file
-		std::unordered_multimap<std::int64_t, file_index_t> m_file_sizes;
-
-		struct root_size_hash
+		std::size_t operator()(std::pair<sha256_hash, std::int64_t> const& k) const
 		{
-			std::size_t operator()(std::pair<sha256_hash, std::int64_t> const& k) const
-			{
-				std::size_t ret = 0;
-				boost::hash_combine(ret, std::hash<sha256_hash>{}(k.first));
-				boost::hash_combine(ret, std::hash<std::int64_t>{}(k.second));
-				return ret;
-			}
-		};
-
-		// maps file root hash and size to file index, in m_torrent_file
-		std::unordered_multimap<std::pair<sha256_hash, std::int64_t>, file_index_t, root_size_hash>
-			m_file_roots;
+			std::size_t ret = 0;
+			boost::hash_combine(ret, std::hash<sha256_hash>{}(k.first));
+			boost::hash_combine(ret, std::hash<std::int64_t>{}(k.second));
+			return ret;
+		}
 	};
+
+	// maps file root hash and size to file index, in m_torrent_file
+	std::unordered_multimap<std::pair<sha256_hash, std::int64_t>, file_index_t, root_size_hash>
+		m_file_roots;
+};
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 
 }

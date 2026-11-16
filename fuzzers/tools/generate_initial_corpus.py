@@ -7,7 +7,7 @@ import base64
 
 corpus_dirs = [
     'torrent_info', 'upnp', 'gzip', 'base32decode', 'base32encode',
-    'base64encode', 'base64decode_i2p', 'bdecode_node', 'convert_from_native', 'convert_to_native',
+    'base64encode', 'base64decode_i2p', 'bdecode_node', 'convert_from_native',
     'dht_node', 'escape_path', 'escape_string', 'file_storage_add_file',
     'http_parser', 'lazy_bdecode', 'parse_int', 'parse_magnet_uri', 'resume_data',
     'sanitize_path', 'utf8_codepoint', 'utp',

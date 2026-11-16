@@ -70,10 +70,8 @@ namespace libtorrent {
 #endif
 
 #if TORRENT_NATIVE_UTF8
-	inline std::string const& convert_to_native(std::string const& s) { return s; }
 	inline std::string const& convert_from_native(std::string const& s) { return s; }
 #else
-	TORRENT_EXTRA_EXPORT std::string convert_to_native(std::string const& s);
 	TORRENT_EXTRA_EXPORT std::string convert_from_native(std::string const& s);
 #endif
 }

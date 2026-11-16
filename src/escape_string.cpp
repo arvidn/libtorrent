@@ -553,11 +553,6 @@ namespace {
 	}
 } // anonymous namespace
 
-	std::string convert_to_native(std::string const& s)
-	{
-		return convert_impl(s, CP_UTF8, CP_ACP);
-	}
-
 	std::string convert_from_native(std::string const& s)
 	{
 		return convert_impl(s, CP_ACP, CP_UTF8);
@@ -565,63 +560,10 @@ namespace {
 
 #else
 
-namespace {
-
-	bool ends_with(string_view s, string_view suffix)
-	{
-		return s.size() >= suffix.size()
-			&& s.substr(s.size() - suffix.size()) == suffix;
-	}
-
-	bool has_utf8_locale()
-	{
-		char const* lang = std::getenv("LANG");
-		if (lang == nullptr) return false;
-		return ends_with(lang, ".UTF-8");
-	}
-
-	bool need_conversion()
-	{
-		static bool const ret = has_utf8_locale();
-		return !ret;
-	}
-}
-
-	std::string convert_to_native(std::string const& s)
-	{
-		if (!need_conversion()) return s;
-
-		std::mbstate_t state{};
-		std::string ret;
-		string_view ptr = s;
-		while (!ptr.empty())
-		{
-			// decode a single utf-8 character
-			auto [codepoint, len] = aux::parse_utf8_codepoint(ptr);
-
-			if (codepoint == -1)
-				codepoint = '.';
-
-			ptr = ptr.substr(std::size_t(len));
-
-			char out[10];
-			std::size_t const size = std::wcrtomb(out, static_cast<wchar_t>(codepoint), &state);
-			if (size == static_cast<std::size_t>(-1))
-			{
-				ret += '.';
-				state = std::mbstate_t{};
-			}
-			else
-				for (std::size_t i = 0; i < size; ++i)
-					ret += out[i];
-		}
-		return ret;
-	}
-
+	// the message text is encoded according to the process locale, which is
+	// also what mbrtowc() decodes
 	std::string convert_from_native(std::string const& s)
 	{
-		if (!need_conversion()) return s;
-
 		std::mbstate_t state{};
 		std::string ret;
 		string_view ptr = s;
@@ -629,9 +571,9 @@ namespace {
 		{
 			wchar_t codepoint;
 			std::size_t const size = std::mbrtowc(&codepoint, ptr.data(), ptr.size(), &state);
-			if (size == static_cast<std::size_t>(-1))
+			if (size == static_cast<std::size_t>(-1) || size == static_cast<std::size_t>(-2))
 			{
-				ret.push_back('.');
+				ret.push_back('_');
 				state = std::mbstate_t{};
 				ptr = ptr.substr(1);
 			}
