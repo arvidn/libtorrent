@@ -2504,6 +2504,36 @@ TORRENT_TEST(unload_file_rejects_pad_file)
 	TEST_CHECK(!h.status().errc);
 }
 
+// unloaded_files is unvalidated input, as hand-written or corrupt resume data
+// could set it. A pad file index in it must not mark the pad file unloaded.
+TORRENT_TEST(unload_file_pad_file_index_from_resume_data)
+{
+	std::filesystem::remove_all("unload_pad_resume");
+	std::filesystem::create_directories("unload_pad_resume");
+
+	torrent_args args;
+	args.name("unload_pad_resume");
+	args.file("32768,name=file0");
+	args.file("16384,padfile,name=pad0");
+	lt::add_torrent_params atp = make_test_torrent(args);
+	TEST_CHECK(atp.ti->layout().pad_file_at(1_file));
+	atp.save_path = "unload_pad_resume";
+	atp.flags &= ~torrent_flags::paused;
+	atp.flags &= ~torrent_flags::auto_managed;
+	atp.unloaded_files = {false, true};
+
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(atp);
+	wait_until_checked(ses, h);
+
+	TEST_CHECK(!h.status().errc);
+	auto const unloaded = h.get_unloaded_files();
+	TEST_CHECK(unloaded.size() >= 2);
+	if (unloaded.size() < 2) return;
+	TEST_CHECK(!unloaded[0]);
+	TEST_CHECK(!unloaded[1]);
+}
+
 // a shared boundary piece with no other wanted file must be dropped from the
 // wanted set even when the unloaded file's priority was already 0 (so the
 // per-file priority update does not run)

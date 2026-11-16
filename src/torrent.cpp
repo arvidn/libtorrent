@@ -2012,6 +2012,13 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		for (file_index_t const i : m_unloaded_files.range())
 		{
 			if (!m_unloaded_files[i]) continue;
+			// unload_file() rejects pad files; don't let (hand-written or
+			// corrupt) resume data unload them either
+			if (m_torrent_file->layout().pad_file_at(i))
+			{
+				m_unloaded_files[i] = false;
+				continue;
+			}
 			if (m_file_priority.end_index() <= i)
 				m_file_priority.resize(static_cast<int>(i) + 1, default_priority);
 			m_file_priority[i] = dont_download;
