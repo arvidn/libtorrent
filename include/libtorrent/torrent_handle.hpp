@@ -773,7 +773,9 @@ namespace aux {
 		///
 		// ``save_resume_data()`` is asynchronous. It will return immediately
 		// and deliver the resume data is when it's done through a
-		// save_resume_data_alert.
+		// save_resume_data_alert. A call made while a file priority or unload
+		// job is in flight is coalesced with other pending calls and answered by
+		// a single alert.
 		//
 		// The operation will fail, and post a save_resume_data_failed_alert
 		// instead, in the following cases:
