@@ -559,6 +559,25 @@ TORRENT_TEST(piece_range_file_ends_where_torrent_ends)
 		== lt::index_range<piece_index_t>{1_piece, 1_piece}));
 }
 
+TORRENT_TEST(piece_range_zero_size_file)
+{
+	int const piece_size = 16;
+	file_storage fs;
+	fs.set_piece_length(piece_size);
+	// the empty file sits in the middle of piece 0, which belongs to the
+	// files on either side of it
+	fs.add_file_borrow({}, combine_path("temp_storage", "0"), 4);
+	fs.add_file_borrow({}, combine_path("temp_storage", "empty"), 0);
+	fs.add_file_borrow({}, combine_path("temp_storage", "2"), 28);
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
+	TEST_EQUAL(fs.num_pieces(), 2);
+
+	TEST_CHECK((aux::file_piece_range_inclusive(fs, 1_file)
+		== lt::index_range<piece_index_t>{0_piece, 0_piece}));
+	TEST_CHECK((aux::file_piece_range_exclusive(fs, 1_file)
+		== lt::index_range<piece_index_t>{1_piece, 1_piece}));
+}
+
 TORRENT_TEST(piece_size_last_piece)
 {
 	file_storage fs;

@@ -1821,6 +1821,8 @@ namespace aux {
 	{
 		peer_request const range = fs.map_file(file, 0, 1);
 		std::int64_t const file_size = fs.file_size(file);
+		// a zero-byte file covers no pieces, not the piece its offset falls in
+		if (file_size == 0) return {range.piece, range.piece};
 		int const piece_size = fs.piece_length();
 		piece_index_t const end_piece = piece_index_t(int(
 			(torrent_byte_offset(range.piece, range.start, piece_size) + file_size - 1) / piece_size
