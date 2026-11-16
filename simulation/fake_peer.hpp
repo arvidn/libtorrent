@@ -75,6 +75,7 @@ struct fake_peer
 	bool accepted() const { return m_accepted; }
 	bool connected() const { return m_connected; }
 	bool disconnected() const { return m_disconnected; }
+	bool writing() const { return m_writing; }
 
 	void send_request(lt::piece_index_t p, int block)
 	{

@@ -1122,6 +1122,188 @@ TORRENT_TEST(unload_file_duplicate_late_block)
 	sim.run();
 }
 
+// A piece shared with a file that is still wanted may be partially downloaded
+// when the other file is unloaded. Its received blocks were written to the
+// file that is deleted, and the storage only preserves complete pieces. The
+// piece has to be restarted, or the picker keeps the lost blocks as finished
+// and the piece hash fails against the part file once the rest arrives.
+TORRENT_TEST(unload_file_partial_boundary_piece)
+{
+	using asio::ip::address;
+	address const peer = addr("50.0.0.1");
+
+	std::filesystem::remove_all("unload_partial_dl");
+
+	// piece 0 lies inside file0. piece 1 (64 KiB) is shared: the last 32 KiB
+	// of file0 followed by all of file1. The content is zeroes, so the fake
+	// peer can serve any block of piece 1 verbatim.
+	std::vector<lt::create_file_entry> files;
+	files.emplace_back("unload_partial/file0.bin", 0x18000);
+	files.emplace_back("unload_partial/file1.bin", 0x8000);
+	lt::create_torrent ct(files, 0x10000, lt::create_torrent::v1_only);
+	lt::sha1_hash const piece_hash = lt::hasher(std::vector<char>(0x10000, 0)).final();
+	ct.set_hash(0_piece, piece_hash);
+	ct.set_hash(1_piece, piece_hash);
+	lt::add_torrent_params const atp = lt::load_torrent_buffer(lt::bencode(ct.generate()));
+
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+	sim::asio::io_context ios { sim, peer };
+	lt::session_proxy zombie;
+
+	lt::session_params params;
+	params.settings = settings();
+	// keep the connection after the wanted file completes
+	params.settings.set_bool(settings_pack::close_redundant_connections, false);
+	params.settings.set_str(settings_pack::listen_interfaces, "50.0.0.1:6881");
+	params.disk_io_constructor = lt::posix_disk_io_constructor;
+	auto ses = std::make_shared<lt::session>(params, ios);
+
+	fake_peer fake(sim, "60.0.0.1");
+
+	lt::torrent_handle h;
+	bool unload_sent = false;
+	bool got_unload = false;
+	bool got_error = false;
+	bool needs_flush = false;
+	// blocks of the shared piece the peer was asked for and has not sent yet
+	std::array<bool, 4> wanted{{false, false, false, false}};
+
+	fake.set_message_handler([&](std::uint8_t const msg, lt::span<char const> const payload)
+	{
+		if (msg != 6 || payload.size() < 12) return;
+		char const* ptr = payload.data();
+		lt::piece_index_t const piece(lt::aux::read_uint32(ptr));
+		int const start = lt::aux::read_uint32(ptr);
+		if (piece != 1_piece) return;
+		int const block = start / 0x4000;
+		if (block < 0 || block > 3) return;
+		wanted[std::size_t(block)] = true;
+	});
+
+	print_alerts(*ses, [&](lt::session&, lt::alert const* a) {
+		if (auto const* at = alert_cast<lt::add_torrent_alert>(a))
+		{
+			h = at->handle;
+			// only piece 1 (the shared one) is served, so the download queue
+			// is not filled with requests the test never answers
+			fake.send_bitfield({false, true});
+			fake.send_unchoke();
+			fake.connect_to(ep("50.0.0.1", 6881), atp.ti->info_hash());
+		}
+		else if (alert_cast<file_prio_alert>(a))
+		{
+			got_unload = true;
+		}
+		else if (alert_cast<file_error_alert>(a))
+		{
+			got_error = true;
+		}
+	});
+
+	lt::add_torrent_params dl_atp = atp;
+	dl_atp.save_path = "unload_partial_dl";
+	dl_atp.flags &= ~torrent_flags::paused;
+	dl_atp.flags &= ~torrent_flags::auto_managed;
+	ses->async_add_torrent(dl_atp);
+
+	std::string const file0 = "unload_partial_dl/unload_partial/file0.bin";
+	std::string const file1 = "unload_partial_dl/unload_partial/file1.bin";
+
+	int ticks = 0;
+	bool done = false;
+	sim::asio::high_resolution_timer tick(ios);
+	std::function<void(boost::system::error_code const&)> on_tick
+		= [&](boost::system::error_code const&)
+	{
+		++ticks;
+		if (done) return;
+
+		if (h.is_valid())
+		{
+			// serve the blocks of the shared piece the peer was asked for.
+			// The blocks of the other file are held back until the unload
+			// committed, so the piece is partially downloaded when the
+			// unload runs; they arrive afterwards and are discarded, which
+			// makes the torrent ask for the restarted piece again.
+			for (int b = 0; b < 4; ++b)
+			{
+				if (!wanted[std::size_t(b)]) continue;
+				if (b >= 2 && !got_unload) continue;
+				fake.send_piece(1_piece, b * 0x4000);
+				wanted[std::size_t(b)] = false;
+				needs_flush = true;
+			}
+
+			if (needs_flush && !fake.writing())
+			{
+				fake.flush_send_buffer();
+				needs_flush = false;
+			}
+
+			// unload once two blocks of the shared piece are in, so some of
+			// its data is on the file being deleted and some is not yet there
+			if (!unload_sent)
+			{
+				for (auto const& p : h.get_download_queue())
+				{
+					if (p.piece_index != 1_piece) continue;
+					if (p.finished + p.writing < 2) continue;
+					unload_sent = true;
+					h.unload_file(0_file);
+					break;
+				}
+			}
+		}
+
+		if (unload_sent && got_unload && h.is_valid() && h.have_piece(1_piece))
+		{
+			done = true;
+			TEST_CHECK(!got_error);
+			TEST_CHECK(!h.status().errc);
+			TEST_CHECK(!(h.flags() & torrent_flags::paused));
+			TEST_CHECK(!h.have_piece(0_piece));
+			TEST_CHECK(!exists(file0));
+			TEST_CHECK(exists(file1));
+			if (exists(file1))
+			{
+				error_code ec;
+				TEST_EQUAL(int(std::filesystem::file_size(file1, ec)), 0x8000);
+				TEST_CHECK(!ec);
+			}
+			zombie = ses->abort();
+			ses.reset();
+			return;
+		}
+
+		// give up after 30 seconds of simulated time
+		if (ticks >= 240)
+		{
+			done = true;
+			TEST_CHECK(unload_sent);
+			TEST_CHECK(got_unload);
+			TEST_CHECK(!got_error);
+			TEST_CHECK(h.is_valid());
+			if (h.is_valid())
+			{
+				TEST_CHECK(!h.status().errc);
+				TEST_CHECK(!(h.flags() & torrent_flags::paused));
+				TEST_CHECK(h.have_piece(1_piece));
+			}
+			zombie = ses->abort();
+			ses.reset();
+			return;
+		}
+
+		tick.expires_after(125ms);
+		tick.async_wait(on_tick);
+	};
+	tick.expires_after(125ms);
+	tick.async_wait(on_tick);
+
+	sim.run();
+}
+
 #ifndef TORRENT_DISABLE_STREAMING
 // Deadline downloads must still complete with the corrected queue estimates
 // and the existing two-second scheduling limit.

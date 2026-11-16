@@ -6321,11 +6321,29 @@ namespace {
 			for (file_index_t const f : newly_unloaded.range())
 			{
 				if (!newly_unloaded[f]) continue;
-				for (piece_index_t const p : aux::file_piece_range_exclusive(fs, f))
+				auto const exclusive = aux::file_piece_range_exclusive(fs, f);
+				for (piece_index_t const p : aux::file_piece_range_inclusive(fs, f))
 				{
 					if (!m_picker->is_downloading(p)) continue;
+
+					if (p >= exclusive._begin && p < exclusive._end)
+					{
+						for (int b = 0; b < m_picker->blocks_in_piece(p); ++b)
+							cancel_block(piece_block(p, b));
+						continue;
+					}
+
+					// A shared piece may be partially downloaded, with some of
+					// its blocks written to the file being removed. The storage
+					// only preserves complete pieces, so those blocks are gone.
+					// Cancel the requests in flight and restart the piece;
+					// otherwise the picker keeps them as finished, never asks
+					// for them again and the piece fails its hash against the
+					// part file.
+					if (m_picker->is_piece_finished(p)) continue;
 					for (int b = 0; b < m_picker->blocks_in_piece(p); ++b)
 						cancel_block(piece_block(p, b));
+					m_picker->restore_piece(p);
 				}
 			}
 
