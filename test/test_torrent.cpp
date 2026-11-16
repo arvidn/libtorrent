@@ -1263,10 +1263,11 @@ void check_unloaded_state(torrent_handle const& h)
 }
 
 // v2 and hybrid torrents are piece aligned per file, so unloading a file
-// drops its pieces. Its v2 merkle tree and hash-picker state have to go with
-// them, or hashes for the deleted bytes are served and recorded as verified in
-// resume data.
-void test_unloaded_merkle_state(lt::create_flags_t const flags, char const* const dir)
+// drops its pieces. The piece layer is public data from the original .torrent
+// and must survive, so the resume data can still be written as a .torrent
+// file. Only the claim that the bytes are verified goes away.
+lt::add_torrent_params make_unload_merkle_atp(lt::create_flags_t const flags
+	, char const* const dir)
 {
 	std::filesystem::remove_all(dir);
 	int const piece_size = 0x8000;
@@ -1281,12 +1282,36 @@ void test_unloaded_merkle_state(lt::create_flags_t const flags, char const* cons
 	bencode(std::back_inserter(buf), ct.generate());
 	lt::add_torrent_params atp = load_torrent_buffer(buf);
 	TEST_CHECK(atp.ti->is_valid());
-	// both files are piece aligned, so the v2 layout adds no pad files
-	TEST_EQUAL(atp.ti->layout().num_files(), 2);
 	atp.save_path = ".";
 	atp.flags &= ~torrent_flags::paused;
 	atp.flags &= ~torrent_flags::auto_managed;
+	return atp;
+}
 
+std::vector<sha256_hash> probe_hashes(lt::session& ses, torrent_handle const& h)
+{
+	auto const tor = h.native_handle();
+	auto const result = std::make_shared<std::vector<sha256_hash>>();
+	auto const done = std::make_shared<std::atomic<bool>>(false);
+	post(ses.get_context(), [tor, result, done] {
+		*result = tor->get_hashes({0_file, 0, 0, 4, 0});
+		*done = true;
+	});
+	for (int i = 0; i < 100 && !done->load(); ++i)
+		std::this_thread::sleep_for(lt::milliseconds(10));
+	TEST_CHECK(done->load());
+	return *result;
+}
+
+// the picker state after an unload, and the resume data / .torrent file it
+// produces
+void test_unloaded_merkle_state(lt::create_flags_t const flags, char const* const dir)
+{
+	lt::add_torrent_params atp = make_unload_merkle_atp(flags, dir);
+	// both files are piece aligned, so the v2 layout adds no pad files
+	TEST_EQUAL(atp.ti->layout().num_files(), 2);
+
+	error_code ec;
 	lt::session ses(settings());
 	torrent_handle h = ses.add_torrent(atp, ec);
 	TEST_CHECK(!ec);
@@ -1341,8 +1366,9 @@ void test_unloaded_merkle_state(lt::create_flags_t const flags, char const* cons
 	TEST_CHECK(!after->picker_downloading);
 	TEST_EQUAL(after->picker_prio, dont_download);
 
-	// resume data must not carry the unloaded file's tree or verified leaves
-	h.save_resume_data();
+	// the piece layer survives, so a .torrent file can still be written, but
+	// no verified leaves are recorded for the file whose bytes are gone
+	h.save_resume_data(torrent_handle::save_info_dict);
 	alert const* const a = wait_for_alert(ses, save_resume_data_alert::alert_type, "save resume");
 	auto const* ra = alert_cast<save_resume_data_alert>(a);
 	TEST_CHECK(ra != nullptr);
@@ -1356,8 +1382,31 @@ void test_unloaded_merkle_state(lt::create_flags_t const flags, char const* cons
 		TEST_CHECK(resumed.merkle_trees.size() >= 1);
 		if (resumed.merkle_trees.size() >= 1)
 		{
-			TEST_CHECK(resumed.merkle_trees[0_file].empty());
+			TEST_CHECK(!resumed.merkle_trees[0_file].empty());
 			TEST_CHECK(resumed.verified_leaf_hashes[0_file].empty());
+		}
+
+		std::vector<char> torrent_buf;
+		TEST_NOTHROW(torrent_buf = write_torrent_file_buf(ra->params, {}));
+		TEST_CHECK(!torrent_buf.empty());
+		if (!torrent_buf.empty())
+		{
+			// the written .torrent (not allow_missing_piece_layer) is complete
+			// enough to be added again, and the unloaded flag travels with it
+			add_torrent_params readded = load_torrent_buffer(torrent_buf);
+			TEST_CHECK(readded.ti && readded.ti->is_valid());
+			readded.unloaded_files = ra->params.unloaded_files;
+			readded.save_path = ".";
+			readded.flags &= ~torrent_flags::paused;
+			readded.flags &= ~torrent_flags::auto_managed;
+			lt::session ses2(settings());
+			torrent_handle h2 = ses2.add_torrent(readded);
+			wait_until_checked(ses2, h2);
+			TEST_CHECK(h2.get_unloaded_files()[0]);
+			TEST_CHECK(!exists(combine_path(dir, "test_dir0/test0")));
+			TEST_CHECK(probe_hashes(ses2, h2).empty());
+			ses2.remove_torrent(h2);
+			wait_for_alert(ses2, torrent_removed_alert::alert_type, "remove re-added");
 		}
 	}
 

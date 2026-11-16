@@ -6396,27 +6396,10 @@ namespace {
 				}
 			}
 
-			// An unloaded file has no bytes left to hash. Reset its v2 merkle
-			// tree to the empty representation initialize_merkle_trees() uses
-			// (root only), so no hashes are served for it and resume data does
-			// not record stale verified leaves, while an explicit piece
-			// priority can still verify a piece re-downloaded to the part file.
-			if (!m_merkle_trees.empty())
-			{
-				for (file_index_t const f : newly_unloaded.range())
-				{
-					if (!newly_unloaded[f]) continue;
-					if (f >= m_merkle_trees.end_index()) continue;
-					if (fs.pad_file_at(f) || fs.file_size(f) == 0) continue;
-					m_merkle_trees[f] = aux::merkle_tree(fs.file_num_blocks(f)
-						, fs.blocks_per_piece(), fs.root_ptr(f));
-				}
-
-				// hash-picker state (requested piece layers, pending block-hash
-				// requests) cannot be dropped per file; drop the picker so it is
-				// rebuilt from the reset trees on demand
-				m_hash_picker.reset();
-			}
+			// the hash picker may still hold piece-layer or block-hash
+			// requests for the unloaded file. There is no per-file API to
+			// drop them, so rebuild the picker from the (intact) trees.
+			m_hash_picker.reset();
 
 			// A shared boundary piece is only wanted while another wanted file
 			// overlaps it. If the unloaded file was already priority 0,
@@ -8335,10 +8318,7 @@ namespace {
 			ret.verified_leaf_hashes.reserve(num_files);
 			for (auto i : m_merkle_trees.range())
 			{
-				// an unloaded file has no hashes or verified leaves to save; use
-				// the same empty representation as pad files
-				if (valid_metadata() && (m_torrent_file->layout().pad_file_at(i)
-					|| (i < m_unloaded_files.end_index() && m_unloaded_files[i])))
+				if (valid_metadata() && m_torrent_file->layout().pad_file_at(i))
 				{
 					ret.merkle_trees.emplace_back();
 					ret.merkle_tree_mask.emplace_back();
@@ -8350,7 +8330,16 @@ namespace {
 				auto [sparse_tree, mask] = t.build_sparse_vector();
 				ret.merkle_trees.emplace_back(std::move(sparse_tree));
 				ret.merkle_tree_mask.emplace_back(std::move(mask));
-				ret.verified_leaf_hashes.emplace_back(t.verified_leafs());
+
+				// an unloaded file's piece layer is still public data from the
+				// .torrent, but none of its bytes are verified. Use the same
+				// empty verified-leaves representation as a file downloaded
+				// from zero.
+				if (valid_metadata() && i < m_unloaded_files.end_index()
+					&& m_unloaded_files[i])
+					ret.verified_leaf_hashes.emplace_back();
+				else
+					ret.verified_leaf_hashes.emplace_back(t.verified_leafs());
 			}
 
 			if (!has_hash_picker() && !(m_flags & torrent_internal_flags::have_all)
