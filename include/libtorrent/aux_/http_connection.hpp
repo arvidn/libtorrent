@@ -18,6 +18,7 @@ see LICENSE file.
 #include <vector>
 #include <string>
 #include <optional>
+#include <memory>
 
 #include "libtorrent/socket.hpp"
 #include "libtorrent/error_code.hpp"
@@ -140,7 +141,9 @@ private:
 	// endpoint with this index (in m_endpoints) next
 	int m_next_ep;
 
-	std::optional<aux::socket_type> m_sock;
+	// heap allocated so a replaced socket keeps its address until it is
+	// destroyed, see create_socket()
+	std::unique_ptr<aux::socket_type> m_sock;
 
 #if TORRENT_USE_SSL
 	ssl::context* m_ssl_ctx;

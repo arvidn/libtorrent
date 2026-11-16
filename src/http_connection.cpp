@@ -416,10 +416,18 @@ void http_connection::create_socket(std::string const& hostname, error_code& ec)
 		userdata = m_ssl_ctx;
 	}
 #endif
+	if (m_sock)
+	{
+		// we may be called from a completion handler of the old socket, and
+		// its stream layers (SSL, proxies) may still touch it after the
+		// handler returns
+		post(m_ios, [s = std::move(m_sock)] {});
+	}
 	// assume this is not a tracker connection. Tracker connections that
 	// shouldn't be subject to the proxy should pass in nullptr as the proxy
 	// pointer.
-	m_sock.emplace(instantiate_connection(m_ios, m_sock_proxy, userdata, nullptr, false, false));
+	m_sock = std::make_unique<aux::socket_type>(
+		instantiate_connection(m_ios, m_sock_proxy, userdata, nullptr, false, false));
 
 	if (m_bind_addr)
 	{
@@ -668,10 +676,7 @@ void http_connection::on_connect(error_code const& e)
 
 	if (m_failover)
 	{
-		// this is the last operation referencing the old socket. Replace it
-		// once the stream layers have unwound, they may still touch it after
-		// invoking this handler
-		post(m_ios, std::bind(&http_connection::reconnect, shared_from_this()));
+		reconnect();
 		return;
 	}
 
@@ -688,7 +693,7 @@ void http_connection::on_connect(error_code const& e)
 		// The connection failed. Try the next endpoint in the list.
 		error_code ec;
 		m_sock->close(ec);
-		post(m_ios, std::bind(&http_connection::reconnect, shared_from_this()));
+		reconnect();
 	}
 	else
 	{
@@ -738,7 +743,7 @@ void http_connection::on_write(error_code const& e)
 
 	if (m_failover)
 	{
-		post(m_ios, std::bind(&http_connection::reconnect, shared_from_this()));
+		reconnect();
 		return;
 	}
 
@@ -781,7 +786,7 @@ void http_connection::on_read(error_code const& e
 
 	if (m_failover)
 	{
-		post(m_ios, std::bind(&http_connection::reconnect, shared_from_this()));
+		reconnect();
 		return;
 	}
 
