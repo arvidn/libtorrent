@@ -4315,6 +4315,99 @@ TORRENT_TEST(unload_file_mmap_write_error)
 }
 #endif
 
+// a file that is already priority 0 but still on disk (the state a client
+// leaves behind when it unchecks a file without deleting the data). Its data
+// is read from the file itself, not the part file, so the boundary piece has
+// to be migrated from there before the file is deleted
+TORRENT_TEST(unload_file_already_dont_download)
+{
+	std::string const test_path = "unload_already_unchecked";
+	delete_dirs(test_path);
+	std::vector<char> buf;
+	auto const info = setup_unload_torrent(buf);
+	file_storage const& fs = info->layout();
+	aux::session_settings set;
+
+	aux::vector<download_priority_t, file_index_t> priorities(
+		std::size_t(fs.num_files()), default_priority);
+	aux::vector<bool, file_index_t> unloaded(std::size_t(fs.num_files()), false);
+	renamed_files rf;
+	storage_params p{fs, rf, test_path, {}, storage_mode_sparse, priorities
+		, unloaded, sha1_hash{}, info->v1(), info->v2()};
+
+	{
+		auto s = std::make_shared<posix_storage>(p);
+		storage_error se;
+		s->initialize(set, se);
+		TEST_CHECK(!se.ec);
+
+		for (piece_index_t const i : fs.piece_range())
+		{
+			std::vector<char> data = make_unload_piece(static_cast<int>(i), fs.piece_size(i));
+			TEST_EQUAL(write(s, set, span<char>(data.data(), int(data.size())), i, 0
+				, aux::open_mode::write, se), int(data.size()));
+			TEST_CHECK(!se.ec);
+		}
+	}
+
+	TEST_CHECK(exists(fs.file_path(0_file, test_path)));
+
+	// a fresh storage with the file unchecked: the file exists on disk, so it
+	// is not part-file backed
+	priorities[0_file] = dont_download;
+	auto s2 = std::make_shared<posix_storage>(p);
+	storage_error se;
+	s2->initialize(set, se);
+	TEST_CHECK(!se.ec);
+
+	typed_bitfield<piece_index_t> have;
+	have.resize(fs.num_pieces(), true);
+	unloaded[0_file] = true;
+	s2->set_file_priority(set, priorities, unloaded, have, se);
+	if (se) print_error("unload unchecked file", 0, se);
+	TEST_CHECK(!se.ec);
+	TEST_CHECK(unloaded[0_file]);
+	TEST_CHECK(!exists(fs.file_path(0_file, test_path)));
+	TEST_CHECK(exists(fs.file_path(1_file, test_path)));
+
+	// the boundary piece's file 0 half came from the file, and reads back
+	std::vector<char> read_back(0x4000);
+	int const n2 = fs.piece_size(2_piece);
+	TEST_EQUAL(read(s2, set, span<char>(read_back.data(), n2), 2_piece, 0
+		, aux::open_mode::read_only, se), n2);
+	TEST_CHECK(!se.ec);
+	TEST_CHECK(read_back == make_unload_piece(2, n2));
+
+	// unloading it again must not fail (nothing left to move or unlink)
+	s2->set_file_priority(set, priorities, unloaded, have, se);
+	TEST_CHECK(!se.ec);
+
+	// a file whose data was deleted by hand must unload without an error too
+	auto const info2_path = combine_path(test_path, "unload_test");
+	delete_dirs(info2_path);
+	{
+		std::vector<char> buf2;
+		auto const info2 = setup_unload_torrent(buf2);
+		file_storage const& fs2 = info2->layout();
+		aux::vector<bool, file_index_t> unloaded2(std::size_t(fs2.num_files()), false);
+		storage_params p2{fs2, rf, test_path, {}, storage_mode_sparse, priorities
+			, unloaded2, sha1_hash{}, info2->v1(), info2->v2()};
+		auto s3 = std::make_shared<posix_storage>(p2);
+		storage_error se3;
+		s3->initialize(set, se3);
+		TEST_CHECK(!se3.ec);
+		TEST_CHECK(!exists(fs2.file_path(0_file, test_path)));
+
+		unloaded2[0_file] = true;
+		s3->set_file_priority(set, priorities, unloaded2, have, se3);
+		if (se3) print_error("unload deleted file", 0, se3);
+		TEST_CHECK(!se3.ec);
+		TEST_CHECK(unloaded2[0_file]);
+	}
+
+	delete_dirs(test_path);
+}
+
 // a failure to unlink the file must roll the unloaded state and priority back
 TORRENT_TEST(unload_file_unlink_error)
 {
