@@ -107,11 +107,6 @@ struct TORRENT_EXTRA_EXPORT http_connection
 
 	virtual ~http_connection();
 
-	void rate_limit(int limit);
-
-	int rate_limit() const
-	{ return m_rate_limit; }
-
 	std::string m_sendbuffer;
 
 	void get(std::string const& url, time_duration timeout = seconds(30)
@@ -160,7 +155,6 @@ private:
 	void on_read(error_code const& e, std::size_t bytes_transferred);
 	static void on_timeout(std::weak_ptr<http_connection> p
 		, error_code const& e);
-	void on_assign_bandwidth(error_code const& e);
 
 	void callback(error_code e, span<char> data = {});
 
@@ -197,10 +191,6 @@ private:
 
 	time_duration m_completion_timeout;
 
-	// the timer fires every 250 millisecond as long
-	// as all the quota was used.
-	deadline_timer m_limiter_timer;
-
 	time_point m_last_receive;
 	time_point m_start_time;
 
@@ -231,13 +221,6 @@ private:
 	// maximum size of bottled buffer
 	int m_max_bottled_buffer_size;
 
-	// the current download limit, in bytes per second
-	// 0 is unlimited.
-	int m_rate_limit;
-
-	// the number of bytes we are allowed to receive
-	int m_download_quota;
-
 	// used for DNS lookups
 	aux::resolver_flags m_resolve_flags;
 
@@ -251,11 +234,6 @@ private:
 
 	// set to true the first time the handler is called
 	bool m_called = false;
-
-	// only hand out new quota 4 times a second if the
-	// quota is 0. If it isn't 0 wait for it to reach
-	// 0 and continue to hand out quota at that time.
-	bool m_limiter_timer_active = false;
 
 	// true if the connection is using ssl
 	bool m_ssl = false;
