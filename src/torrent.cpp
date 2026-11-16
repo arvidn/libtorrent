@@ -5504,7 +5504,6 @@ namespace {
 				, errors::torrent_removed);
 		}
 
-
 		m_flags &= ~torrent_flags::paused;
 
 		// flush the live segment into the accumulators and mark them all
