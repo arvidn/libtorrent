@@ -994,6 +994,60 @@ TORRENT_TEST(unload_file_unsupported_backend)
 	sim.run();
 }
 
+// a resume save requested while a file-priority job is outstanding is
+// deferred until the job commits. Removing the torrent before that must still
+// answer the request, or a client waiting for the alert never hears back.
+TORRENT_TEST(deferred_resume_save_before_remove)
+{
+	using asio::ip::address;
+	address const peer = addr("50.0.0.1");
+
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+	sim::asio::io_context ios { sim, peer };
+	lt::session_proxy zombie;
+
+	lt::session_params params;
+	params.settings = settings();
+	params.settings.set_str(settings_pack::listen_interfaces, "50.0.0.1:6881");
+	params.disk_io_constructor = test_disk().set_seed();
+	auto ses = std::make_shared<lt::session>(params, ios);
+
+	lt::add_torrent_params atp = ::create_torrent(0, true);
+	atp.flags |= lt::torrent_flags::seed_mode;
+	atp.flags &= ~lt::torrent_flags::paused;
+	atp.flags &= ~lt::torrent_flags::auto_managed;
+
+	lt::torrent_handle h;
+	bool got_failed = false;
+	print_alerts(*ses, [&](lt::session&, lt::alert const* a) {
+		if (auto const* at = alert_cast<lt::add_torrent_alert>(a))
+			h = at->handle;
+		else if (alert_cast<save_resume_data_failed_alert>(a))
+			got_failed = true;
+	});
+
+	ses->async_add_torrent(atp);
+
+	// all three calls are processed in order, so the save is still deferred
+	// when the removal aborts the torrent
+	sim::timer remove_timer(sim, lt::seconds(1), [&](boost::system::error_code const&) {
+		TEST_CHECK(h.is_valid());
+		if (!h.is_valid()) return;
+		h.file_priority(0_file, low_priority);
+		h.save_resume_data();
+		ses->remove_torrent(h);
+	});
+
+	sim::timer check_timer(sim, lt::seconds(3), [&](boost::system::error_code const&) {
+		TEST_CHECK(got_failed);
+		zombie = ses->abort();
+		ses.reset();
+	});
+
+	sim.run();
+}
+
 // A block may still be in a peer's request queue when the picker drops the
 // piece (end-game duplicate request). Sending that block after the unload must
 // not re-add the piece or allocate a part-file slot for it.

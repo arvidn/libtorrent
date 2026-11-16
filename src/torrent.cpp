@@ -5495,6 +5495,16 @@ namespace {
 
 		m_flags |= torrent_internal_flags::torrent_aborted;
 
+		// a deferred resume save will never run now; answer it the same way
+		// save_resume_data() answers a save on a removed torrent
+		if (m_deferred_save_resume_data)
+		{
+			m_deferred_save_resume_data.reset();
+			alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
+				, errors::torrent_removed);
+		}
+
+
 		m_flags &= ~torrent_flags::paused;
 
 		// flush the live segment into the accumulators and mark them all
