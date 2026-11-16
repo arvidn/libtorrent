@@ -10648,6 +10648,16 @@ namespace {
 			return;
 		}
 
+		if (m_flags & torrent_internal_flags::outstanding_file_priority)
+		{
+			// the in-flight job may unload a file; defer writing until it
+			// commits. The conditions are evaluated again at that point, since
+			// the job may be what makes them true.
+			m_deferred_save_resume_data =
+				m_deferred_save_resume_data.value_or(resume_data_flags_t{}) | flags;
+			return;
+		}
+
 		auto conditions = flags & (
 			torrent_handle::if_counters_changed
 			| torrent_handle::if_download_progress
@@ -10663,14 +10673,6 @@ namespace {
 			// save_resume_data()), we don't save it.
 			alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
 				, errors::resume_data_not_modified);
-			return;
-		}
-
-		if (m_flags & torrent_internal_flags::outstanding_file_priority)
-		{
-			// the in-flight job may unload a file; defer writing until it commits
-			m_deferred_save_resume_data =
-				m_deferred_save_resume_data.value_or(resume_data_flags_t{}) | flags;
 			return;
 		}
 
