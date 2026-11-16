@@ -6400,7 +6400,7 @@ namespace {
 						for (file_index_t g = fs.file_index_at_piece(p)
 							, end = fs.last_file_index_at_piece(p); g <= end; ++g)
 						{
-							if (g == f) continue;
+							if (g == f || fs.pad_file_at(g)) continue;
 							download_priority_t const prio = g < m_file_priority.end_index()
 								? m_file_priority[g] : default_priority;
 							if (prio == dont_download) continue;

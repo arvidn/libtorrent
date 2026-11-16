@@ -2213,3 +2213,40 @@ TORRENT_TEST(unload_file_reenable_prioritize_files)
 	TEST_CHECK(!h.get_unloaded_files()[0]);
 	TEST_EQUAL(h.file_priority(0_file), default_priority);
 }
+
+// a piece shared only with a pad file must be dropped when the real file is
+// unloaded, even if the pad file has no entry in the file priority vector
+TORRENT_TEST(unload_file_pad_file_boundary)
+{
+	std::filesystem::remove_all("unload_pad_boundary");
+	std::filesystem::create_directories("unload_pad_boundary");
+
+	torrent_args args;
+	args.name("unload_pad");
+	args.file("49152,name=file0");
+	args.file("16384,padfile,name=pad0");
+	lt::add_torrent_params atp = make_test_torrent(args);
+	TEST_CHECK(atp.ti->layout().pad_file_at(1_file));
+	atp.save_path = "unload_pad_boundary";
+	atp.flags &= ~torrent_flags::paused;
+	atp.flags &= ~torrent_flags::auto_managed;
+
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(atp);
+	wait_until_checked(ses, h);
+
+	// this leaves the priority vector shorter than the number of files, so the
+	// pad file falls back to the default priority when looking for other files
+	// that want the shared piece
+	h.file_priority(0_file, dont_download);
+	wait_for_alert(ses, file_prio_alert::alert_type, "file prio");
+	h.piece_priority(1_piece, top_priority);
+	TEST_EQUAL(h.piece_priority(1_piece), top_priority);
+	TEST_CHECK(h.status().total_wanted > 0);
+
+	h.unload_file(0_file);
+	wait_for_alert(ses, file_prio_alert::alert_type, "unload");
+
+	TEST_EQUAL(h.piece_priority(1_piece), dont_download);
+	TEST_EQUAL(h.status().total_wanted, 0);
+}
