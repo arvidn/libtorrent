@@ -3109,7 +3109,9 @@ TORRENT_VERSION_NAMESPACE_4
 	// the disk thread.
 	//
 	// If the disk operation fails this alert won't be posted, but a
-	// file_error_alert is posted instead, and the torrent is stopped.
+	// file_error_alert is posted instead. The torrent is paused and set to the
+	// error, unless the job was started by unload_file(), which leaves it
+	// running.
 	struct TORRENT_EXPORT file_prio_alert final : torrent_alert
 	{
 		// internal

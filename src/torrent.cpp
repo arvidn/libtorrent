@@ -6461,9 +6461,9 @@ namespace {
 				alerts().emplace_alert<file_error_alert>(err.ec
 					, resolve_filename(err.file()), err.operation, get_handle());
 
-			// an unload job rolls every file back when it fails, leaving the
-			// torrent exactly as it was, so it must not stop the torrent. A
-			// priority update may have left storage half-applied.
+			// a failed unload leaves the files it did commit unloaded and reverts
+			// the rest to what the storage reports, so the torrent is not in an
+			// unknown state. A job without an unload keeps pausing.
 			if (!unload_job)
 			{
 				set_error(err.ec, err.file());
