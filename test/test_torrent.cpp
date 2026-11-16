@@ -1983,6 +1983,43 @@ TORRENT_TEST(unload_file_ends_at_torrent_end)
 	TEST_CHECK(!h.status().errc);
 }
 
+// a pad file has no contents to remove and no priority to change
+TORRENT_TEST(unload_file_rejects_pad_file)
+{
+	std::filesystem::remove_all("unload_pad_reject");
+	std::filesystem::create_directories("unload_pad_reject");
+
+	torrent_args args;
+	args.name("unload_pad_reject");
+	args.file("32768,name=file0");
+	args.file("16384,padfile,name=pad0");
+	lt::add_torrent_params atp = make_test_torrent(args);
+	TEST_CHECK(atp.ti->layout().pad_file_at(1_file));
+	atp.save_path = "unload_pad_reject";
+	atp.flags &= ~torrent_flags::paused;
+	atp.flags &= ~torrent_flags::auto_managed;
+
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(atp);
+	wait_until_checked(ses, h);
+
+	h.unload_file(1_file);
+	alert const* const a = wait_for_alert(ses, file_error_alert::alert_type
+		, "unload pad file");
+	auto const* fe = alert_cast<file_error_alert>(a);
+	TEST_CHECK(fe != nullptr);
+	if (fe)
+	{
+		TEST_EQUAL(fe->error, error_code(boost::system::errc::invalid_argument
+			, generic_category()));
+		TEST_CHECK(fe->op == operation_t::unknown);
+	}
+
+	auto const unloaded = h.get_unloaded_files();
+	TEST_CHECK(unloaded.empty() || !unloaded[1]);
+	TEST_CHECK(!h.status().errc);
+}
+
 // a shared boundary piece with no other wanted file must be dropped from the
 // wanted set even when the unloaded file's priority was already 0 (so the
 // per-file priority update does not run)
