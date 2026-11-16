@@ -8342,7 +8342,8 @@ namespace {
 					ret.verified_leaf_hashes.emplace_back(t.verified_leafs());
 			}
 
-			if (!has_hash_picker() && !(m_flags & torrent_internal_flags::have_all)
+			if (ret.verified_leaf_hashes.empty()
+				&& !has_hash_picker() && !(m_flags & torrent_internal_flags::have_all)
 				&& valid_metadata())
 			{
 				file_storage const& fs = m_torrent_file->layout();

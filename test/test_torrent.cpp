@@ -1374,6 +1374,11 @@ void test_unloaded_merkle_state(lt::create_flags_t const flags, char const* cons
 	TEST_CHECK(ra != nullptr);
 	if (ra)
 	{
+		// the no-hash-picker fallback must not append a second entry per file
+		TEST_CHECK(!ra->params.verified_leaf_hashes.empty());
+		TEST_EQUAL(ra->params.verified_leaf_hashes.size()
+			, ra->params.merkle_trees.size());
+
 		error_code rec;
 		add_torrent_params const resumed = read_resume_data(write_resume_data_buf(ra->params), rec);
 		TEST_CHECK(!rec);
