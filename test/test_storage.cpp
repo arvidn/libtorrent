@@ -4327,3 +4327,60 @@ TORRENT_TEST(unload_file_unlink_error)
 
 	filesystem::remove_all(test_path);
 }
+
+// a failed unlink must not free part-file slots first: the file (and the
+// torrent) must keep reading the data after the unload is rolled back
+TORRENT_TEST(unload_file_unlink_error_keeps_partfile_data)
+{
+	std::string const test_path = "unload_unlink_error_partfile";
+	delete_dirs(test_path);
+	std::vector<char> buf;
+	auto const info = setup_unload_torrent(buf, {{"file0.bin", 0x4000}});
+	file_storage const& fs = info->layout();
+	aux::session_settings set;
+
+	aux::vector<download_priority_t, file_index_t> priorities(
+		std::size_t(fs.num_files()), dont_download);
+	aux::vector<bool, file_index_t> unloaded(std::size_t(fs.num_files()), false);
+	renamed_files rf;
+	storage_params p{fs, rf, test_path, {}, storage_mode_sparse, priorities
+		, unloaded, sha1_hash{}, info->v1(), info->v2()};
+	auto s = std::make_shared<posix_storage>(p);
+
+	// the missing priority-0 file is stored in the part file
+	storage_error se;
+	s->initialize(set, se);
+	TEST_CHECK(!se.ec);
+
+	std::vector<char> const data = make_unload_piece(0, fs.piece_size(0_piece));
+	TEST_EQUAL(write(s, set, span<char>(const_cast<char*>(data.data())
+		, int(data.size())), 0_piece, 0, aux::open_mode::write, se), int(data.size()));
+	TEST_CHECK(!se.ec);
+	TEST_CHECK(!exists(fs.file_path(0_file, test_path)));
+
+	// replace the file with a non-empty directory, so removing it fails
+	error_code ec;
+	create_directories(parent_path(fs.file_path(0_file, test_path)), ec);
+	TEST_CHECK(!ec);
+	create_directory(fs.file_path(0_file, test_path), ec);
+	TEST_CHECK(!ec);
+	std::ofstream(combine_path(fs.file_path(0_file, test_path), "blocker")) << "x";
+
+	typed_bitfield<piece_index_t> have;
+	have.resize(fs.num_pieces(), true);
+	unloaded[0_file] = true;
+	s->set_file_priority(set, priorities, unloaded, have, se);
+
+	TEST_CHECK(se.ec);
+	TEST_CHECK(!unloaded[0_file]);
+	se.ec.clear();
+
+	// the part-file slot must still serve the piece after the rollback
+	std::vector<char> out(std::size_t(fs.piece_size(0_piece)));
+	TEST_EQUAL(read(s, set, span<char>(out.data(), int(out.size())), 0_piece, 0
+		, aux::open_mode::read_only, se), int(out.size()));
+	TEST_CHECK(!se.ec);
+	TEST_CHECK(out == data);
+
+	filesystem::remove_all(test_path);
+}

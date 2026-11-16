@@ -629,9 +629,6 @@ typed_bitfield<piece_index_t> check_pieces(filenames const& fs,
 			}
 		}
 
-		for (piece_index_t const piece : drop_pieces)
-			free_partfile_piece(piece);
-
 		flush_partfile(ec);
 		if (ec) { ec.file(file); return; }
 
@@ -639,7 +636,12 @@ typed_bitfield<piece_index_t> check_pieces(filenames const& fs,
 		// delete files that are still open or mapped
 		release_file(file);
 		remove_file(file, ec);
-		if (ec) ec.file(file);
+		if (ec) { ec.file(file); return; }
+
+		// free the dropped pieces only after the unlink succeeded; on failure
+		// the file is still in use and the part file must keep serving it
+		for (piece_index_t const piece : drop_pieces)
+			free_partfile_piece(piece);
 	}
 
 	bool verify_resume_data(add_torrent_params const& rd
