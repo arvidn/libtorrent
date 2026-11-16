@@ -1978,6 +1978,28 @@ TORRENT_TEST(unload_file_in_flight_resume_save)
 	TEST_CHECK(h2.have_piece(1_piece));
 }
 
+// a conditional save requested while a file priority job is in flight must be
+// deferred, not rejected as unmodified: the job is what changes the config
+TORRENT_TEST(unload_file_deferred_conditional_resume_save)
+{
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(unload_test_torrent());
+	wait_for_seed(ses, h);
+
+	h.file_priority(1_file, low_priority);
+	h.save_resume_data(torrent_handle::if_config_changed);
+
+	alert const* const a = wait_for_alert(ses, save_resume_data_alert::alert_type
+		, "conditional save resume");
+	auto const* ra = alert_cast<save_resume_data_alert>(a);
+	TEST_CHECK(ra != nullptr);
+	if (!ra) return;
+	TEST_EQUAL(h.file_priority(1_file), low_priority);
+	TEST_CHECK(!ra->params.file_priorities.empty());
+	if (ra->params.file_priorities.size() > 1)
+		TEST_EQUAL(ra->params.file_priorities[1], low_priority);
+}
+
 // a peer connected before the unload must learn that the dropped pieces are
 // gone, rather than keeping a stale bitfield
 TORRENT_TEST(unload_file_sends_lt_donthave)
@@ -2033,6 +2055,56 @@ TORRENT_TEST(unload_file_sends_lt_donthave)
 	TEST_CHECK(!pi[0].pieces[0_piece]);
 	TEST_CHECK(pi[0].pieces[1_piece]);
 	TEST_CHECK(!(pi[0].flags & peer_info::seed));
+}
+
+// a peer that connects after the unload must not be told we have the
+// dropped pieces (the torrent is still in the seeding state)
+TORRENT_TEST(unload_file_connected_after_unload)
+{
+	lt::add_torrent_params const seed_atp = unload_test_torrent();
+
+	settings_pack seed_pack = settings();
+	seed_pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
+	lt::session seed_ses(seed_pack);
+	torrent_handle seed = seed_ses.add_torrent(seed_atp);
+	wait_for_seed(seed_ses, seed);
+	TEST_CHECK(seed.status().is_seeding);
+
+	seed.unload_file(0_file);
+	wait_for_alert(seed_ses, file_prio_alert::alert_type, "unload");
+	TEST_CHECK(!seed.have_piece(0_piece));
+	TEST_CHECK(seed.have_piece(1_piece));
+
+	std::filesystem::remove_all("unload_late_peer");
+	std::filesystem::create_directories("unload_late_peer");
+
+	settings_pack dl_pack = settings();
+	dl_pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
+	// keep the connection after the wanted file completes
+	dl_pack.set_bool(settings_pack::close_redundant_connections, false);
+	lt::session dl_ses(dl_pack);
+	lt::add_torrent_params dl_atp = unload_test_atp();
+	dl_atp.save_path = "unload_late_peer";
+	// only want file1, which is the second half of the shared piece
+	dl_atp.file_priorities = {dont_download, default_priority};
+	torrent_handle dl = dl_ses.add_torrent(dl_atp);
+	dl.connect_peer(ep("127.0.0.1", seed_ses.listen_port()));
+
+	std::vector<peer_info> pi;
+	for (int i = 0; i < 200 && !dl.have_piece(1_piece); ++i)
+	{
+		print_alerts(dl_ses, "dl");
+		dl.get_peer_info(pi);
+		std::this_thread::sleep_for(lt::milliseconds(100));
+	}
+
+	TEST_CHECK(dl.have_piece(1_piece));
+	dl.get_peer_info(pi);
+	TEST_EQUAL(pi.size(), std::size_t(1));
+	if (pi.size() != 1) return;
+	// the dropped piece must not be advertised, not even by have-all
+	TEST_CHECK(!pi[0].pieces[0_piece]);
+	TEST_CHECK(pi[0].pieces[1_piece]);
 }
 
 TORRENT_TEST(unload_file_share_mode)
