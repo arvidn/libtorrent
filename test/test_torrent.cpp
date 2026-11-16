@@ -1937,6 +1937,52 @@ TORRENT_TEST(unload_file_zero_size)
 	TEST_CHECK(!h.status().errc);
 }
 
+// a file that ends where the torrent ends, followed only by an empty file,
+// owns the short last piece exclusively. Unloading it must drop that piece
+// too, or the torrent keeps claiming to have data in a deleted file
+TORRENT_TEST(unload_file_ends_at_torrent_end)
+{
+	std::filesystem::remove_all("unload_ends_at_end");
+
+	torrent_args args;
+	args.name("unload_ends_at_end");
+	// 1.5 pieces of 32 KiB, so the second (short) piece lies entirely in file0
+	args.file("49152,name=file0");
+	args.file("0,name=file1");
+	lt::add_torrent_params atp = make_test_torrent(args);
+	generate_files(*atp.ti, "unload_ends_at_end");
+	atp.save_path = "unload_ends_at_end";
+	atp.flags &= ~torrent_flags::paused;
+	atp.flags &= ~torrent_flags::auto_managed;
+
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(atp);
+	wait_for_seed(ses, h);
+	TEST_CHECK(h.status().is_seeding);
+
+	h.unload_file(0_file);
+	wait_for_alert(ses, file_prio_alert::alert_type, "unload ends at end");
+
+	TEST_CHECK(!exists("unload_ends_at_end/unload_ends_at_end/file0"));
+	TEST_CHECK(exists("unload_ends_at_end/unload_ends_at_end/file1"));
+	TEST_CHECK(!h.have_piece(0_piece));
+	TEST_CHECK(!h.have_piece(1_piece));
+	TEST_EQUAL(h.status().total_done, 0);
+	TEST_EQUAL(h.status().total_wanted, 0);
+	TEST_CHECK(!h.status().errc);
+
+	// the trailing empty file covers no pieces, so unloading it drops nothing
+	// and just removes the (empty) file
+	h.unload_file(1_file);
+	wait_for_alert(ses, file_prio_alert::alert_type, "unload last empty");
+
+	TEST_CHECK(!exists("unload_ends_at_end/unload_ends_at_end/file1"));
+	TEST_CHECK(h.get_unloaded_files()[1]);
+	TEST_CHECK(!h.have_piece(0_piece));
+	TEST_EQUAL(h.status().total_wanted, 0);
+	TEST_CHECK(!h.status().errc);
+}
+
 // a shared boundary piece with no other wanted file must be dropped from the
 // wanted set even when the unloaded file's priority was already 0 (so the
 // per-file priority update does not run)

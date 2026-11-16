@@ -2325,6 +2325,44 @@ TORRENT_TEST(check_pieces_directory)
 	delete_dirs(save_path);
 }
 
+// a priority 0 file that ends where the torrent ends, followed only by an
+// empty file, owns the short last piece exclusively. If the part file has no
+// slot for it, the piece is known-absent and must be reported as such
+TORRENT_TEST(check_pieces_file_ends_at_torrent_end)
+{
+	int const piece_size_check = 0x4000;
+	std::string const save_path = absolute("temp_storage_check_pieces_ends_at_end");
+	delete_dirs(save_path);
+
+	file_storage fs;
+	fs.add_file_borrow({}, combine_path("test", "short"), piece_size_check * 3 / 2);
+	fs.add_file_borrow({}, combine_path("test", "empty"), 0);
+	fs.set_piece_length(piece_size_check);
+	fs.set_num_pieces(aux::calc_num_pieces(fs));
+	TEST_EQUAL(fs.num_pieces(), 2);
+
+	aux::vector<download_priority_t, file_index_t> priorities;
+	priorities.resize(std::size_t(fs.num_files()), dont_download);
+
+	error_code ec;
+	create_directories(combine_path(save_path, "test"), ec);
+	TEST_CHECK(!ec);
+
+	aux::stat_cache stat;
+	lt::renamed_files const rf;
+	lt::filenames const fn(fs, rf);
+
+	// the file is redirected to a part file that holds neither piece
+	typed_bitfield<piece_index_t> const pieces = aux::check_pieces(
+		fn, priorities, stat, save_path, partfile_true, [](piece_index_t) { return false; });
+
+	TEST_EQUAL(pieces.size(), 2);
+	TEST_CHECK(!pieces.get_bit(0_piece));
+	TEST_CHECK(!pieces.get_bit(1_piece));
+
+	delete_dirs(save_path);
+}
+
 TORRENT_TEST(has_any_file_directory)
 {
 	std::string const save_path = absolute("temp_storage_has_any_file_directory");
