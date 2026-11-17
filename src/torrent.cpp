@@ -4798,8 +4798,9 @@ namespace {
 		}
 		else if (!passed || !v2_passed)
 		{
-			// piece_failed() will restore the piece
-			piece_failed(piece);
+			// piece_failed() will restore the piece. A missing part-file piece
+			// has no guilty peer: its bytes were dropped by an unload
+			piece_failed(piece, std::vector<int>(), !partfile_missing);
 		}
 	}
 	catch (...) { handle_exception(); }
@@ -5159,7 +5160,8 @@ namespace {
 
 	// blocks may contain the block indices of the blocks that failed (if this is
 	// a v2 torrent).
-	void torrent::piece_failed(piece_index_t const index, std::vector<int> blocks)
+	void torrent::piece_failed(piece_index_t const index, std::vector<int> blocks
+		, bool const blame_peers)
 	{
 		// if the last piece fails the peer connection will still
 		// think that it has received all of it until this function
@@ -5212,7 +5214,11 @@ namespace {
 		// need to try to get higher fidelity hashes (yet)
 		bool const found_on_disk = peers.size() == 1 && peers.count(nullptr);
 
-		if (torrent_file().info_hashes().has_v2() && blocks.empty() && !found_on_disk)
+		// a failure that isn't the peers' doing (the part-file piece was
+		// dropped by an unload) must not be attributed to anyone
+		bool const blame = blame_peers && !found_on_disk;
+
+		if (torrent_file().info_hashes().has_v2() && blocks.empty() && blame)
 		{
 			// TODO: only do this if the piece size > 1 blocks
 			// This is a v2 torrent so we can request get block
@@ -5222,7 +5228,7 @@ namespace {
 
 		// the below code is penalizing peers that sent use bad data.
 		// increase the total amount of failed bytes
-		if (!found_on_disk)
+		if (blame)
 		{
 			if (blocks.empty())
 				add_failed_bytes(m_torrent_file->piece_size(index));

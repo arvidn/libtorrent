@@ -1895,7 +1895,8 @@ TORRENT_TEST(unload_file_piece_priority_refetches_into_part_file)
 // already complete while the part file has no slot for it. When the piece
 // completes, its hash reads that range through the part file and fails with
 // partfile_missing_piece. That must fail the piece and download it again, not
-// pause the torrent with a bogus disk error.
+// pause the torrent with a bogus disk error, and the peer that supplied the
+// piece must not be blamed: the bytes are missing because of the unload.
 TORRENT_TEST(unload_file_verify_missing_partfile_does_not_pause)
 {
 	std::filesystem::remove_all("unload_verify_seed");
@@ -1943,10 +1944,35 @@ TORRENT_TEST(unload_file_verify_missing_partfile_does_not_pause)
 	h.file_priority(1_file, default_priority);
 	TEST_CHECK(wait_for_alert(dl_ses, file_prio_alert::alert_type, "part file") != nullptr);
 
-	h.connect_peer(ep("127.0.0.1", seed_ses.listen_port()));
+	auto const seed_ep = ep("127.0.0.1", seed_ses.listen_port());
+	h.connect_peer(seed_ep);
+
+	// The production failure this models has the peer sending both blocks and
+	// the unload dropping file0 before the piece is hashed, so the whole piece
+	// is attributed to it. A resumed block carries no peer, and the public API
+	// cannot change that, so attribute the resumed block to the peer that was
+	// just added, before it connects (the connection is attempted on a later
+	// network tick). Its bytes are still absent from the part file, which is
+	// what makes the hash fail.
+	auto const tor = h.native_handle();
+	auto const attributed = std::make_shared<std::atomic<bool>>(false);
+	for (int i = 0; i < 100 && !attributed->load(); ++i)
+	{
+		post(dl_ses.get_context(), [tor, seed_ep, attributed] {
+			if (attributed->load()) return;
+			auto const peers = tor->find_peers(seed_ep.address());
+			if (peers.first == peers.second) return;
+			tor->picker().restore_piece(1_piece);
+			tor->picker().mark_as_finished(piece_block(1_piece, 0), *peers.first);
+			attributed->store(true);
+		});
+		std::this_thread::sleep_for(lt::milliseconds(10));
+	}
+	TEST_CHECK(attributed->load());
 
 	bool got_hash_failed = false;
 	bool got_error = false;
+	bool got_peer_ban = false;
 	for (int i = 0; i < 200 && !h.have_piece(1_piece); ++i)
 	{
 		std::vector<alert*> alerts;
@@ -1958,17 +1984,21 @@ TORRENT_TEST(unload_file_verify_missing_partfile_does_not_pause)
 				if (hf->piece_index == 1_piece) got_hash_failed = true;
 			}
 			if (alert_cast<file_error_alert>(a)) got_error = true;
+			if (alert_cast<peer_ban_alert>(a)) got_peer_ban = true;
 		}
 		print_alerts(seed_ses, "seed");
 		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
 
 	// the missing part-file slot was hit, and it did not pause the torrent
+	// nor blame the peer that supplied the piece
 	TEST_CHECK(got_hash_failed);
 	TEST_CHECK(!got_error);
+	TEST_CHECK(!got_peer_ban);
 	TEST_CHECK(!h.status().errc);
 	TEST_CHECK(!(h.status().flags & torrent_flags::paused));
-	// the piece was failed and requested again, then passed
+	// the piece was failed and requested again, then passed; the peer was not
+	// banned, or it could not have supplied the piece again
 	TEST_CHECK(h.have_piece(1_piece));
 }
 

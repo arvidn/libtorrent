@@ -1150,7 +1150,12 @@ namespace libtorrent::aux {
 		// for failures detected with v2 hashes the failing blocks(s)
 		// are specified in blocks
 		// *blocks must be sorted in ascending order*
-		void piece_failed(piece_index_t index, std::vector<int> blocks = std::vector<int>());
+		// if blame_peers is false the failure is not attributed to any peer
+		// (e.g. a missing part-file piece, whose bytes were dropped by an
+		// unload); the piece is restored without penalizing anyone
+		void piece_failed(piece_index_t index
+			, std::vector<int> blocks = std::vector<int>()
+			, bool blame_peers = true);
 
 		// the peers in "peers" participated in sending a bad piece. If
 		// "known_bad_peer" is true, we know for sure the peers are guilty,
