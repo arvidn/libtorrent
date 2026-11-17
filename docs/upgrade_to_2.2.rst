@@ -45,6 +45,27 @@ during a full check without a wasted hash attempt. A custom
 signature; passing a default-constructed (empty) bitfield reproduces the
 previous behavior exactly.
 
+disk_interface::async_set_file_priority() signature change
+==========================================================
+
+``disk_interface::async_set_file_priority()`` takes two new parameters next to
+the priorities: a per-file ``unloaded`` flag, and a ``have`` bitfield naming the
+pieces whose data is on disk. Its completion handler now also returns the
+``unloaded`` flags that were committed, next to the priorities it already
+returned. The flags reach the storage in ``storage_params::unloaded_files`` and
+in the storage backend's ``set_file_priority()``.
+
+A custom ``disk_interface`` implementation must update its override to the new
+signature. One that cannot unload a file reports every flag as false, which
+leaves the previous behavior unchanged; ``temp_disk_io`` in
+``examples/custom_storage.cpp`` does this. Reporting a file as unloaded means
+having moved the bytes of its pieces that are shared with other files into the
+part file, and removed the file from disk.
+
+The new ``unloaded`` parameter of the ``storage_params`` constructor is not
+trailing, so code constructing ``storage_params`` directly must be updated too,
+as must any backend implementing ``set_file_priority()``.
+
 storage_params carries disable_hash_checks
 ==========================================
 
