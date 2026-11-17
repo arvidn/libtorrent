@@ -2725,6 +2725,8 @@ TORRENT_TEST(unload_file_two_files_reenable_one)
 
 	std::string const path0 = atp.ti->layout().file_path(0_file);
 	std::string const path1 = atp.ti->layout().file_path(1_file);
+	std::vector<char> const file0_original = read_file(path0);
+	TEST_EQUAL(file0_original.size(), std::size_t(40960));
 	std::vector<char> const file1_original = read_file(path1);
 	TEST_EQUAL(file1_original.size(), std::size_t(24576));
 
@@ -2846,6 +2848,16 @@ TORRENT_TEST(unload_file_two_files_reenable_one)
 	if (rd.unloaded_files.size() != 1) return;
 	TEST_CHECK(rd.unloaded_files[0]);
 	TEST_CHECK(read_file(path1) == file1_original);
+
+	// re-enable file0 too: its 8192 migrated bytes have to be read back from
+	// the shared slot into the recreated file, which must match the original
+	h.file_priority(0_file, default_priority);
+	wait_for_alert(ses, file_prio_alert::alert_type, "reenable file0");
+	wait_for_seed(ses, h);
+	TEST_CHECK(h.status().is_seeding);
+	TEST_CHECK(exists(path0));
+	TEST_CHECK(read_file(path0) == file0_original);
+	TEST_CHECK(!h.get_unloaded_files()[0]);
 }
 
 TORRENT_TEST(unload_file_shares_last_byte_of_piece)
