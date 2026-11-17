@@ -2735,6 +2735,9 @@ TORRENT_TEST(unload_file_two_files_reenable_one)
 
 	settings_pack seed_pack = settings();
 	seed_pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
+	// keep the connection when both ends are seeds, so the peer check below
+	// observes the seed instead of a redundant-connection disconnect
+	seed_pack.set_bool(settings_pack::close_redundant_connections, false);
 	lt::session seed_ses(seed_pack);
 	lt::add_torrent_params seed_atp = atp;
 	seed_atp.save_path = "unload_two_seed";
@@ -2744,6 +2747,7 @@ TORRENT_TEST(unload_file_two_files_reenable_one)
 
 	settings_pack pack = settings();
 	pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
+	pack.set_bool(settings_pack::close_redundant_connections, false);
 	lt::session ses(pack);
 	torrent_handle h = ses.add_torrent(atp);
 	wait_for_seed(ses, h);
@@ -2802,6 +2806,7 @@ TORRENT_TEST(unload_file_two_files_reenable_one)
 		std::this_thread::sleep_for(lt::milliseconds(100));
 	}
 
+	TEST_CHECK(h.status().num_peers > 0);
 	torrent_status const st = h.status();
 	TEST_EQUAL(st.state, torrent_status::seeding);
 	TEST_CHECK(st.is_seeding);
