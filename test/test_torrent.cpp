@@ -1236,7 +1236,56 @@ void wait_until_checked(lt::session& ses, torrent_handle const& h)
 	}
 }
 
-void check_unloaded_state(torrent_handle const& h)
+// unload_file() is rejected with operation_in_progress while the initial check
+// is running. Retry only that documented transient; any other file_error_alert
+// is a failure. A file_prio_alert on its own does not prove the unload was
+// committed, so also require the live unloaded state to show the file gone.
+bool unload_and_wait(lt::session& ses, torrent_handle const& h, file_index_t const index)
+{
+	for (int i = 0; i < 20; ++i)
+	{
+		h.unload_file(index);
+		error_code error;
+		bool committed = false;
+		bool const got_alert = wait_for_alert(ses, "unload"
+			, [&](alert const* a)
+			{
+				if (auto const* fe = alert_cast<file_error_alert>(a))
+				{
+					if (fe->handle != h) return false;
+					error = fe->error;
+					return true;
+				}
+				if (!alert_cast<file_prio_alert>(a)) return false;
+				auto const unloaded = h.get_unloaded_files();
+				int const idx = static_cast<int>(index);
+				if (idx >= int(unloaded.size()) || !unloaded[idx]) return false;
+				committed = true;
+				return true;
+			}, seconds(10));
+
+		if (committed) return true;
+		if (!got_alert)
+		{
+			std::printf("unload: no alert for file %d\n", static_cast<int>(index));
+			return false;
+		}
+
+		if (error != error_code(boost::system::errc::operation_in_progress
+			, generic_category()))
+		{
+			std::printf("unload: file %d failed: %s\n"
+				, static_cast<int>(index), error.message().c_str());
+			return false;
+		}
+
+		// the check is still running; try again once it has settled
+		std::this_thread::sleep_for(lt::milliseconds(100));
+	}
+	return false;
+}
+
+void check_unloaded_state(lt::session& ses, torrent_handle const& h)
 {
 	auto const unloaded = h.get_unloaded_files();
 	TEST_CHECK(unloaded.size() >= 2);
@@ -1246,11 +1295,24 @@ void check_unloaded_state(torrent_handle const& h)
 
 	TEST_CHECK(!h.have_piece(0_piece));
 	TEST_CHECK(h.have_piece(1_piece));
-	TEST_EQUAL(h.status().state, torrent_status::seeding);
-	TEST_CHECK(h.status().is_seeding);
-	TEST_EQUAL(h.status().total_wanted, 32768);
-	TEST_EQUAL(h.status().total_done, 32768);
-	TEST_EQUAL(h.status().total_wanted_done, h.status().total_wanted);
+
+	// status() is a snapshot and may still hold the pre-unload accounting.
+	// Wait (bounded) until it agrees with the live file progress.
+	std::int64_t live_done = 0;
+	for (std::int64_t const p : h.file_progress()) live_done += p;
+	torrent_status st = h.status();
+	for (int i = 0; i < 100 && st.total_done != live_done; ++i)
+	{
+		print_alerts(ses, "ses");
+		std::this_thread::sleep_for(lt::milliseconds(50));
+		st = h.status();
+	}
+
+	TEST_EQUAL(st.state, torrent_status::seeding);
+	TEST_CHECK(st.is_seeding);
+	TEST_EQUAL(st.total_wanted, 32768);
+	TEST_EQUAL(st.total_done, 32768);
+	TEST_EQUAL(st.total_wanted_done, st.total_wanted);
 
 	// only the unloaded file's half of the shared piece is left on disk
 	std::vector<std::int64_t> const fp = h.file_progress();
@@ -1499,12 +1561,11 @@ TORRENT_TEST(unload_file_from_finished_torrent)
 	wait_for_seed(ses, h);
 	TEST_CHECK(h.status().is_seeding);
 
-	h.unload_file(0_file);
-	wait_for_alert(ses, file_prio_alert::alert_type, "unload");
+	TEST_CHECK(unload_and_wait(ses, h, 0_file));
 
 	TEST_CHECK(!exists("unload_test/file0"));
 	TEST_CHECK(exists("unload_test/file1"));
-	check_unloaded_state(h);
+	check_unloaded_state(ses, h);
 
 	// unloading must not be treated as the torrent finishing
 	std::this_thread::sleep_for(lt::milliseconds(500));
@@ -1514,7 +1575,7 @@ TORRENT_TEST(unload_file_from_finished_torrent)
 		TEST_CHECK(!alert_cast<torrent_finished_alert>(a));
 
 	// state and wanted-byte accounting stay stable over several ticks
-	check_unloaded_state(h);
+	check_unloaded_state(ses, h);
 	TEST_EQUAL(h.status().state, torrent_status::seeding);
 }
 
@@ -1526,12 +1587,11 @@ TORRENT_TEST(unload_file_from_paused_torrent)
 	TEST_CHECK(h.status().is_seeding);
 	h.pause();
 
-	h.unload_file(0_file);
-	wait_for_alert(ses, file_prio_alert::alert_type, "unload");
+	TEST_CHECK(unload_and_wait(ses, h, 0_file));
 
 	TEST_CHECK(!exists("unload_test/file0"));
 	TEST_CHECK(exists("unload_test/file1"));
-	check_unloaded_state(h);
+	check_unloaded_state(ses, h);
 }
 
 TORRENT_TEST(unload_file_from_seed_mode_torrent)
@@ -1540,16 +1600,18 @@ TORRENT_TEST(unload_file_from_seed_mode_torrent)
 	lt::add_torrent_params atp = unload_test_torrent();
 	atp.flags |= torrent_flags::seed_mode;
 	torrent_handle h = ses.add_torrent(atp);
-	wait_for_seed(ses, h);
+	// is_seeding is true in seed mode before the initial check has finished,
+	// so wait for the alert that proves the check is done.
+	TEST_CHECK(wait_for_alert(ses, torrent_checked_alert::alert_type
+		, "initial check", pop_alerts::pop_all, seconds(30)));
 	TEST_CHECK(h.status().is_seeding);
 
-	h.unload_file(0_file);
-	wait_for_alert(ses, file_prio_alert::alert_type, "unload");
+	TEST_CHECK(unload_and_wait(ses, h, 0_file));
 
 	TEST_CHECK(!exists("unload_test/file0"));
 	TEST_CHECK(exists("unload_test/file1"));
 	TEST_CHECK(!(h.flags() & torrent_flags::seed_mode));
-	check_unloaded_state(h);
+	check_unloaded_state(ses, h);
 }
 
 TORRENT_TEST(unload_file_rejects_invalid_index)
@@ -1651,9 +1713,8 @@ TORRENT_TEST(unload_file_from_seed_does_not_redownload)
 	std::int64_t const dl_upload = dl.status().total_payload_upload;
 	std::int64_t const seed_download = seed.status().total_payload_download;
 
-	seed.unload_file(0_file);
-	wait_for_alert(seed_ses, file_prio_alert::alert_type, "unload");
-	check_unloaded_state(seed);
+	TEST_CHECK(unload_and_wait(seed_ses, seed, 0_file));
+	check_unloaded_state(seed_ses, seed);
 
 	for (int i = 0; i < 20; ++i)
 	{
@@ -1663,7 +1724,7 @@ TORRENT_TEST(unload_file_from_seed_does_not_redownload)
 	}
 
 	TEST_CHECK(!seed.have_piece(0_piece));
-	check_unloaded_state(seed);
+	check_unloaded_state(seed_ses, seed);
 	TEST_EQUAL(seed.status().total_payload_download, seed_download);
 	TEST_EQUAL(dl.status().total_payload_upload, dl_upload);
 }
