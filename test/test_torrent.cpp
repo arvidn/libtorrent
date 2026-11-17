@@ -1959,7 +1959,38 @@ TORRENT_TEST(unload_file_partial_batch_failure)
 	h.unload_file(0_file);
 	h.unload_file(1_file);
 
-	wait_for_alert(ses, file_error_alert::alert_type, "unload");
+	// the failed batch answers the committed unload with a file_prio_alert in
+	// addition to the file_error_alert for the file that failed. The priority
+	// job in flight before the batch already posted its own success alert, so
+	// only count the ones after the error.
+	int prio_after_error = 0;
+	int error_alerts = 0;
+	for (int i = 0; i < 100 && error_alerts == 0; ++i)
+	{
+		std::vector<alert*> alerts;
+		ses.pop_alerts(&alerts);
+		for (alert const* a : alerts)
+		{
+			if (alert_cast<file_error_alert>(a)) ++error_alerts;
+			else if (error_alerts > 0 && alert_cast<file_prio_alert>(a)) ++prio_after_error;
+		}
+		if (error_alerts == 0) std::this_thread::sleep_for(100ms);
+	}
+	TEST_EQUAL(error_alerts, 1);
+
+	// the batch's file_prio_alert is posted right after its error alert
+	std::this_thread::sleep_for(100ms);
+	{
+		std::vector<alert*> alerts;
+		ses.pop_alerts(&alerts);
+		for (alert const* a : alerts)
+		{
+			if (alert_cast<file_error_alert>(a)) ++error_alerts;
+			else if (error_alerts > 0 && alert_cast<file_prio_alert>(a)) ++prio_after_error;
+		}
+	}
+	TEST_EQUAL(error_alerts, 1);
+	TEST_EQUAL(prio_after_error, 1);
 
 	TEST_CHECK(!exists("unload_test/file0"));
 	auto const unloaded = h.get_unloaded_files();

@@ -6325,6 +6325,20 @@ namespace {
 			}
 		}
 
+		// a requested unload may have committed before another request in the
+		// same batch failed, even if the picker was reset. That half of the
+		// batch is answered with a file_prio_alert below.
+		bool committed_unload = false;
+		for (file_index_t const f : requested_unloaded.range())
+		{
+			if (!requested_unloaded[f]) continue;
+			bool const was_unloaded = f < m_unloaded_files.end_index() && m_unloaded_files[f];
+			bool const is_unloaded = f < unloaded.end_index() && unloaded[f];
+			if (was_unloaded || !is_unloaded) continue;
+			committed_unload = true;
+			break;
+		}
+
 		if (m_file_priority != prios)
 		{
 			update_piece_priorities(prios);
@@ -6522,6 +6536,11 @@ namespace {
 						, resolve_filename(f), err.operation, get_handle());
 				}
 			}
+
+			// at least one requested unload committed before the failure; answer
+			// the success half of the batch too, with a single alert
+			if (committed_unload && alerts().should_post<file_prio_alert>())
+				alerts().emplace_alert<file_prio_alert>(get_handle());
 
 			// a failed unload leaves the files it did commit unloaded and reverts
 			// the rest to what the storage reports, so the torrent is not in an
