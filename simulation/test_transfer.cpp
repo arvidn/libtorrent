@@ -692,6 +692,8 @@ TORRENT_TEST(unload_file_transfer)
 	// The seed uses the real disk, so the files exist and the hashes are
 	// calculated from them.
 	static std::array<int, 2> const unload_sizes{{2 * 0x4000 + 0x2000, 0x4000 + 0x2000}};
+	std::filesystem::remove_all("unload_seed");
+	std::filesystem::remove_all("unload_downloader");
 	std::vector<lt::create_file_entry> const files = create_random_files(
 		"unload_seed", unload_sizes);
 	lt::create_torrent ct(files, 0x4000, lt::create_torrent::v1_only);
@@ -924,7 +926,9 @@ TORRENT_TEST(unload_file_late_block)
 		for (auto const& entry : h.get_download_queue())
 			TEST_CHECK(entry.piece_index != late_block.piece_index);
 
-		// the late block must not have allocated a part-file slot
+		// no part file existed when the file was unloaded, and the late block
+		// must not have allocated a slot in one
+		TEST_CHECK(part_size == -1);
 		TEST_EQUAL(part_file_size(), part_size);
 	});
 
@@ -1168,6 +1172,9 @@ TORRENT_TEST(unload_file_duplicate_late_block)
 		TEST_CHECK(!h.have_piece(0_piece));
 		for (auto const& entry : h.get_download_queue())
 			TEST_CHECK(entry.piece_index != 0_piece);
+		// no part file existed when the file was unloaded, and the duplicate
+		// block must not have allocated a slot in one
+		TEST_CHECK(part_size == -1);
 		TEST_EQUAL(part_file_size(), part_size);
 		zombie = ses->abort();
 		ses.reset();
