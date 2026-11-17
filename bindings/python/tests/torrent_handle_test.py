@@ -10,7 +10,9 @@ from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import Mapping
+from typing import Type
 from typing import TYPE_CHECKING
+from typing import TypeVar
 import unittest
 
 from typing_extensions import TypedDict
@@ -552,6 +554,9 @@ class PrioritiesTest(TorrentHandleTest):
                 self.handle.set_priority(0)
 
 
+_A = TypeVar("_A", bound=lt.alert)
+
+
 class UnloadFileTest(TorrentHandleTest):
     def test_unload_file(self) -> None:
         # torrent_checked_alert is a status alert, file_prio_alert a storage
@@ -588,23 +593,23 @@ class UnloadFileTest(TorrentHandleTest):
 
         self.assertEqual(self.handle.get_unloaded_files(), [False])
         self.handle.unload_file(0)
-        alert = self.wait_for(lt.file_prio_alert, timeout=5)
-        self.assertIsInstance(alert, lt.file_prio_alert)
+        prio_alert = self.wait_for(lt.file_prio_alert, timeout=5)
+        self.assertIsInstance(prio_alert, lt.file_prio_alert)
         self.assertEqual(self.handle.get_unloaded_files(), [True])
         self.assertFalse(path.exists())
 
         # unloading an already unloaded file reports success again
         self.handle.unload_file(0)
-        alert = self.wait_for(lt.file_prio_alert, timeout=5)
-        self.assertIsInstance(alert, lt.file_prio_alert)
+        prio_alert = self.wait_for(lt.file_prio_alert, timeout=5)
+        self.assertIsInstance(prio_alert, lt.file_prio_alert)
 
         # the unloaded state is part of the resume data
         self.handle.save_resume_data()
-        alert = self.wait_for(lt.save_resume_data_alert, timeout=5)
-        self.assertEqual(list(alert.params.unloaded_files), [True])
-        self.assertEqual(list(alert.params.file_priorities), [0])
+        resume_alert = self.wait_for(lt.save_resume_data_alert, timeout=5)
+        self.assertEqual(list(resume_alert.params.unloaded_files), [True])
+        self.assertEqual(list(resume_alert.params.file_priorities), [0])
 
-    def wait_for(self, alert_type: type, timeout: float):
+    def wait_for(self, alert_type: Type[_A], timeout: float) -> _A:
         for _ in lib.loop_until_timeout(timeout, msg=alert_type.__name__):
             self.session.wait_for_alert(100)
             for alert in self.session.pop_alerts():
