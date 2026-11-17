@@ -1187,9 +1187,10 @@ namespace aux {
 		// again for those pieces.
 		//
 		// You cannot set the file priorities on a torrent that does not yet have
-		// metadata or a torrent that is a seed. ``file_priority(int, int)`` and
-		// prioritize_files() are both no-ops for such torrents, except that
-		// raising the priority of an unloaded file loads it back (see
+		// metadata or on a seed that has no picker. ``file_priority(int, int)``
+		// and prioritize_files() are both no-ops for such torrents. A seed that
+		// has unloaded a file has a picker and does apply file priority changes,
+		// and raising the priority of an unloaded file loads it back (see
 		// ``unload_file()``).
 		//
 		// Since changing file priorities may involve disk operations (of moving
