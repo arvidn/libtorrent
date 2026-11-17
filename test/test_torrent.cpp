@@ -2842,10 +2842,9 @@ TORRENT_TEST(unload_file_two_files_reenable_one)
 	TEST_CHECK(ra != nullptr);
 	if (!ra) return;
 	add_torrent_params const rd = read_resume_data(write_resume_data_buf(ra->params));
-	TEST_CHECK(!rd.unloaded_files.empty());
-	if (rd.unloaded_files.empty()) return;
+	TEST_EQUAL(rd.unloaded_files.size(), std::size_t(1));
+	if (rd.unloaded_files.size() != 1) return;
 	TEST_CHECK(rd.unloaded_files[0]);
-	TEST_CHECK(rd.unloaded_files.size() < 2 || !rd.unloaded_files[1]);
 	TEST_CHECK(read_file(path1) == file1_original);
 }
 
