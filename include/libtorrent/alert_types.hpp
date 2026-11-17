@@ -3112,10 +3112,12 @@ TORRENT_VERSION_NAMESPACE_4
 	//
 	// If the disk operation fails, a file_error_alert is posted. The torrent is
 	// paused and set to the error, unless the job was started by unload_file(),
-	// which leaves it running. A batch that only partly succeeds posts both: a
-	// file_error_alert for the failing file and a single file_prio_alert for the
-	// files that were committed. Since this alert carries no file index, it means
-	// some file priorities or unloads were applied, not that all of them were.
+	// which leaves it running. A batch that contains unload requests and only
+	// partly succeeds posts both: a file_error_alert for the failing file and a
+	// single file_prio_alert for the files that were committed. A batch without
+	// unload requests posts only the file_error_alert. Since this alert carries
+	// no file index, it means some file priorities or unloads were applied, not
+	// that all of them were.
 	struct TORRENT_EXPORT file_prio_alert final : torrent_alert
 	{
 		// internal
