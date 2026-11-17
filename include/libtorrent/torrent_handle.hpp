@@ -1219,9 +1219,12 @@ namespace aux {
 		// ``dont_download`` on a piece of an unloaded file is honoured: the piece
 		// is downloaded into the part file, while the file stays unloaded and its
 		// bytes stay off disk. A torrent that keeps seeding after an unload
-		// ignores ``set_piece_priority()`` and ``set_piece_deadline()``, while
-		// ``prioritize_pieces()`` taking a full vector of priorities and raising
-		// the file's priority both load the file again.
+		// ignores ``set_piece_priority()`` and ``set_piece_deadline()`` as
+		// download requests; a deadline with ``alert_when_available`` still posts
+		// a ``read_piece_alert`` for the piece. The bulk ``prioritize_pieces()``
+		// overloads re-fetch the selected pieces into the part file, leaving the
+		// file unloaded and absent from disk; only raising the file's priority
+		// recreates the file.
 		//
 		// This is asynchronous. On success a ``file_prio_alert`` is posted. If
 		// the unload fails (e.g. the file cannot be removed), a
