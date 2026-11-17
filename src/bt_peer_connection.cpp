@@ -2357,7 +2357,10 @@ namespace {
 		}
 		else
 #endif
-			if (m_supports_fast && t->is_seed())
+			// a torrent can be in the seeding state without having all pieces,
+			// if some files were unloaded. Only send have-all when we really
+			// have every piece
+			if (m_supports_fast && t->num_have() == m_ti->num_pieces())
 		{
 			write_have_all();
 			return;
@@ -2392,7 +2395,7 @@ namespace {
 		aux::write_int32(packet_size - 4, ptr);
 		aux::write_uint8(msg_bitfield, ptr);
 
-		if (t->is_seed())
+		if (t->num_have() == num_pieces)
 		{
 			std::fill_n(ptr, packet_size - 5, std::uint8_t{0xff});
 
@@ -2643,8 +2646,11 @@ namespace {
 
 		if (in_handshake()) return;
 
+		// if we haven't sent the bitfield yet, the dropped piece is excluded
+		// from it instead
+		if (!m_sent_bitfield) return;
+
 		TORRENT_ASSERT(m_sent_handshake);
-		TORRENT_ASSERT(m_sent_bitfield);
 
 		if (!m_supports_extensions || m_dont_have_id == 0) return;
 

@@ -75,6 +75,7 @@ struct fake_peer
 	bool accepted() const { return m_accepted; }
 	bool connected() const { return m_connected; }
 	bool disconnected() const { return m_disconnected; }
+	bool writing() const { return m_writing; }
 
 	void send_request(lt::piece_index_t p, int block)
 	{
@@ -124,11 +125,29 @@ struct fake_peer
 			lt::aux::write_uint8(b, ptr);
 	}
 
+	void send_unchoke() { send_simple_msg(1); }
 	void send_interested() { send_simple_msg(2); }
 	void send_not_interested() { send_simple_msg(3); }
 	void send_have_all() { send_simple_msg(0xe); }
 	void send_have_none() { send_simple_msg(0xf); }
+
+	// send a block of zeroes for a piece; the content is irrelevant to the
+	// tests that use this to exercise the receiving path
+	void send_piece(lt::piece_index_t const piece, int const start
+		, int const length = 0x4000)
+	{
+		// piece message: <id=7><index><begin><block>
+		std::vector<char> payload(8 + std::size_t(length), 0);
+		char* ptr = payload.data();
+		lt::aux::write_uint32(static_cast<int>(piece), ptr);
+		lt::aux::write_uint32(start, ptr);
+		send_message(7, lt::span<char const>(payload.data(), payload.size()));
+	}
 	void send_invalid_message() { send_simple_msg(0xff); }
+
+	// called for every message received after the handshake
+	void set_message_handler(std::function<void(std::uint8_t, lt::span<char const>)> f)
+	{ m_message_handler = std::move(f); }
 
 	// send an arbitrary message with the standard 4-byte length prefix
 	void send_message(std::uint8_t const msg_id, lt::span<char const> const payload = {})
@@ -280,7 +299,7 @@ private:
 		m_connected = true;
 
 		// keep reading until we receie EOF, then set m_disconnected = true
-		m_socket.async_read_some(asio::buffer(m_out_buffer)
+		m_socket.async_read_some(asio::buffer(m_read_buffer)
 			, std::bind(&fake_peer::on_read, this, _1, _2));
 	}
 
@@ -298,8 +317,39 @@ private:
 			return;
 		}
 
-		m_socket.async_read_some(asio::buffer(m_out_buffer)
-			, std::bind(&fake_peer::on_read, this, _1, _2));
+		m_recv_buffer.insert(m_recv_buffer.end(), m_read_buffer.begin()
+			, m_read_buffer.begin() + std::ptrdiff_t(bytes_transferred));
+		parse_messages();
+
+		if (m_socket.is_open())
+			m_socket.async_read_some(asio::buffer(m_read_buffer)
+				, std::bind(&fake_peer::on_read, this, _1, _2));
+	}
+
+	void parse_messages()
+	{
+		std::size_t off = 0;
+		while (m_recv_buffer.size() - off >= 4)
+		{
+			char const* ptr = m_recv_buffer.data() + off;
+			std::uint32_t const len = lt::aux::read_uint32(ptr);
+			if (len > 10 * 1024 * 1024)
+			{
+				m_socket.close();
+				return;
+			}
+			if (m_recv_buffer.size() - off < 4 + len) break;
+			if (len > 0 && m_message_handler)
+			{
+				m_message_handler(std::uint8_t(m_recv_buffer[off + 4])
+					, lt::span<char const>(m_recv_buffer.data() + off + 5
+						, int(len) - 1));
+			}
+			off += 4 + len;
+		}
+		if (off > 0)
+			m_recv_buffer.erase(m_recv_buffer.begin()
+				, m_recv_buffer.begin() + std::ptrdiff_t(off));
 	}
 
 	void write_send_buffer(boost::system::error_code const& ec
@@ -319,6 +369,9 @@ private:
 	}
 
 	std::array<char, 300> m_out_buffer;
+	std::array<char, 512> m_read_buffer;
+	std::vector<char> m_recv_buffer;
+	std::function<void(std::uint8_t, lt::span<char const>)> m_message_handler;
 
 	asio::io_context m_ioc;
 	asio::ip::tcp::acceptor m_acceptor{m_ioc};

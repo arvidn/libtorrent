@@ -10,7 +10,9 @@ from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import Mapping
+from typing import Type
 from typing import TYPE_CHECKING
+from typing import TypeVar
 import unittest
 
 from typing_extensions import TypedDict
@@ -550,6 +552,70 @@ class PrioritiesTest(TorrentHandleTest):
         if lt.api_version < 2:
             with self.assertWarns(DeprecationWarning):
                 self.handle.set_priority(0)
+
+
+_A = TypeVar("_A", bound=lt.alert)
+
+
+class UnloadFileTest(TorrentHandleTest):
+    def test_unload_file(self) -> None:
+        # torrent_checked_alert is a status alert, file_prio_alert a storage
+        # alert, so both categories have to be enabled before either is posted
+        self.session.apply_settings(
+            {"alert_mask": lt.alert_category.storage | lt.alert_category.status}
+        )
+
+        # The fixture adds the torrent paused and auto-managed, leaving it to
+        # the queue manager to decide whether and when the torrent runs. Take it
+        # off the queue and start it, so the checks below happen when we ask.
+        self.handle.unset_flags(lt.torrent_flags.auto_managed)
+        self.handle.resume()
+
+        # The check kicked off when the torrent was added must be over before
+        # force_recheck() does anything, otherwise the recheck below is a no-op.
+        # Its alert can't tell us that, it may have been posted before the alert
+        # mask changed, so wait for the state and drop any alert left over.
+        for _ in lib.loop_until_timeout(5, msg="initial check"):
+            self.session.wait_for_alert(100)
+            if self.handle.status().state not in (
+                lt.torrent_status.checking_files,
+                lt.torrent_status.checking_resume_data,
+            ):
+                break
+        self.session.pop_alerts()
+
+        path = pathlib.Path(self.dir.name) / os.fsdecode(self.torrent.files[0].path)
+        path.write_bytes(self.torrent.files[0].data)
+        self.handle.force_recheck()
+        # the alert, not the progress, is what tells us the check has finished
+        self.wait_for(lt.torrent_checked_alert, timeout=5)
+        self.assertEqual(self.handle.status().progress, 1.0)
+
+        self.assertEqual(self.handle.get_unloaded_files(), [False])
+        self.handle.unload_file(0)
+        prio_alert = self.wait_for(lt.file_prio_alert, timeout=5)
+        self.assertIsInstance(prio_alert, lt.file_prio_alert)
+        self.assertEqual(self.handle.get_unloaded_files(), [True])
+        self.assertFalse(path.exists())
+
+        # unloading an already unloaded file reports success again
+        self.handle.unload_file(0)
+        prio_alert = self.wait_for(lt.file_prio_alert, timeout=5)
+        self.assertIsInstance(prio_alert, lt.file_prio_alert)
+
+        # the unloaded state is part of the resume data
+        self.handle.save_resume_data()
+        resume_alert = self.wait_for(lt.save_resume_data_alert, timeout=5)
+        self.assertEqual(list(resume_alert.params.unloaded_files), [True])
+        self.assertEqual(list(resume_alert.params.file_priorities), [0])
+
+    def wait_for(self, alert_type: Type[_A], timeout: float) -> _A:
+        for _ in lib.loop_until_timeout(timeout, msg=alert_type.__name__):
+            self.session.wait_for_alert(100)
+            for alert in self.session.pop_alerts():
+                if isinstance(alert, alert_type):
+                    return alert
+        raise AssertionError("unreachable")
 
 
 class FileStatusTest(TorrentHandleTest):

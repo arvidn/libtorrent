@@ -628,6 +628,19 @@ namespace libtorrent {
 		return TORRENT_RVO(ret);
 	}
 
+	void torrent_handle::unload_file(file_index_t const index) const
+	{
+		async_call(&aux::torrent::unload_file, index);
+	}
+
+	std::vector<bool> torrent_handle::get_unloaded_files() const
+	{
+		aux::vector<bool, file_index_t> ret;
+		auto* const retp = &ret;
+		sync_call(&aux::torrent::unloaded_files, retp);
+		return std::vector<bool>(ret.begin(), ret.end());
+	}
+
 #if TORRENT_ABI_VERSION == 1
 
 // ============ start deprecation ===============

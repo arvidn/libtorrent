@@ -45,6 +45,7 @@ pread_storage::pread_storage(storage_params const& params, file_pool& pool)
 	, m_renamed_files(params.renamed_files)
 	, m_filenames(m_files, m_renamed_files)
 	, m_file_priority(params.priorities)
+	, m_unloaded(params.unloaded_files)
 	, m_save_path(absolute(params.path))
 	, m_part_file_dir(params.part_file_dir)
 	, m_part_file_name("." + to_hex(params.info_hash) + ".parts")
@@ -106,12 +107,18 @@ pread_storage::pread_storage(storage_params const& params, file_pool& pool)
 
 	void pread_storage::set_file_priority(settings_interface const& sett
 		, vector<download_priority_t, file_index_t>& prio
+		, vector<bool, file_index_t>& unloaded
+		, typed_bitfield<piece_index_t> const& have_pieces
 		, storage_error& ec)
 	{
 		// extend our file priorities in case it's truncated
 		// the default assumed priority is 4 (the default)
 		if (prio.size() > m_file_priority.size())
 			m_file_priority.resize(prio.size(), default_priority);
+		if (prio.size() > m_unloaded.size())
+			m_unloaded.resize(prio.size(), false);
+		if (prio.size() > unloaded.size())
+			unloaded.resize(prio.size(), false);
 
 		filenames const& fs = m_filenames;
 		for (file_index_t i : prio.range())
@@ -121,23 +128,89 @@ pread_storage::pread_storage(storage_params const& params, file_pool& pool)
 
 			download_priority_t const old_prio = m_file_priority[i];
 			download_priority_t new_prio = prio[i];
-
-			m_file_priority[i] = new_prio;
+			bool const was_unloaded = m_unloaded[i];
+			bool const is_unloaded = unloaded[i];
 
 			// in case there's an error, we make sure m_file_priority is only
 			// updated for the successful files. By leaving failed files as
 			// priority 0, we allow re-trying them.
 			auto restore_prio = aux::scope_end([&] {
 				m_file_priority[i] = old_prio;
+				m_unloaded[i] = was_unloaded;
 				prio = m_file_priority;
+				unloaded = m_unloaded;
 			});
+
+			if (is_unloaded)
+			{
+				new_prio = dont_download;
+				prio[i] = new_prio;
+			}
+
+			if (is_unloaded && !was_unloaded)
+			{
+				need_partfile();
+				aux::unload_file(fs, i, have_pieces
+					, [this, &sett, &ec](piece_index_t const piece, int const offset, span<char> buf)
+					{
+						read(sett, buf, piece, offset, open_mode::read_only, {}, ec);
+						return ec ? -1 : int(buf.size());
+					}
+					, [this](piece_index_t const piece)
+					{
+						if (m_part_file) m_part_file->free_piece(piece);
+					}
+					, [this, &ec](piece_index_t const piece, int const offset, span<char> buf)
+					{
+						error_code err;
+						int const r = m_part_file->write(buf, piece, offset, err);
+						if (err)
+						{
+							ec.ec = err;
+							ec.operation = operation_t::partfile_write;
+						}
+						return r;
+					}
+					, [this](storage_error& e)
+					{
+						error_code err;
+						m_part_file->flush_metadata(err);
+						if (err)
+						{
+							e.ec = err;
+							e.operation = operation_t::partfile_write;
+						}
+					}
+					, [this](file_index_t const file)
+					{
+						m_stat_cache.clear();
+						m_pool.release(storage_index(), file);
+					}
+					, [this, &fs](file_index_t const file, storage_error& e)
+					{
+						aux::delete_one_file(fs.file_path(file, m_save_path), e.ec);
+						if (e.ec) e.operation = operation_t::file_remove;
+					}
+					, ec);
+
+				if (ec) return;
+
+				use_partfile(i, true);
+				m_unloaded[i] = true;
+				m_file_priority[i] = new_prio;
+				ec.ec.clear();
+				restore_prio.disarm();
+				continue;
+			}
+
+			m_file_priority[i] = new_prio;
+			m_unloaded[i] = is_unloaded;
 
 			if (old_prio == dont_download && new_prio != dont_download)
 			{
 				// move stuff out of the part file
 				auto f = open_file(sett, i, open_mode::write, ec);
-				if (ec)
-					return;
+				if (ec) return;
 				TORRENT_ASSERT(f);
 
 				if (m_part_file && use_partfile(i))
@@ -173,10 +246,6 @@ pread_storage::pread_storage(storage_params const& params, file_pool& pool)
 			}
 			else if (old_prio != dont_download && new_prio == dont_download)
 			{
-				// move stuff into the part file
-				// this is not implemented yet.
-				// so we just don't use a partfile for this file
-
 				std::string const fp = fs.file_path(i, m_save_path);
 				bool const file_exists = exists(fp, ec.ec);
 				if (ec.ec)
@@ -253,6 +322,15 @@ pread_storage::pread_storage(storage_params const& params, file_pool& pool)
 		{
 			if (m_file_priority[i] != dont_download || fs.pad_file_at(i))
 				continue;
+
+			// an unloaded file's data is in the part file, even if a file with
+			// the same name exists on disk
+			if (i < m_unloaded.end_index() && m_unloaded[i])
+			{
+				use_partfile(i, true);
+				need_partfile();
+				continue;
+			}
 
 			error_code err;
 			auto const size = m_stat_cache.get_filesize(i, fs, m_save_path, err);

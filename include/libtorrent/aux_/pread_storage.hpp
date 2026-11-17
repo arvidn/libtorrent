@@ -54,6 +54,8 @@ namespace libtorrent::aux {
 		bool has_any_file(storage_error&);
 		void set_file_priority(settings_interface const&
 			, aux::vector<download_priority_t, file_index_t>& prio
+			, aux::vector<bool, file_index_t>& unloaded
+			, typed_bitfield<piece_index_t> const& have_pieces
 			, storage_error&);
 		void rename_file(file_index_t index, std::string const& new_filename
 			, storage_error&);
@@ -174,6 +176,8 @@ namespace libtorrent::aux {
 		void use_partfile(file_index_t index, bool b);
 
 		aux::vector<download_priority_t, file_index_t> m_file_priority;
+
+		aux::vector<bool, file_index_t> m_unloaded;
 		std::string m_save_path;
 		std::string m_part_file_dir;
 		std::string m_part_file_name;

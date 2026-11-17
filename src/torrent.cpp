@@ -408,6 +408,22 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 		TORRENT_ASSERT(is_single_thread());
 		m_file_priority.assign(p.file_priorities.begin(), p.file_priorities.end());
+		m_unloaded_files.assign(p.unloaded_files.begin(), p.unloaded_files.end());
+		// a pad-file index is cleared below without unloading anything, so it
+		// must not cost a seed its seed mode and require a full check
+		if ((m_flags & torrent_flags::seed_mode) && m_torrent_file->is_valid())
+		{
+			file_storage const& unload_fs = m_torrent_file->layout();
+			bool unloaded_real_file = false;
+			for (file_index_t const i : m_unloaded_files.range())
+			{
+				if (!m_unloaded_files[i]) continue;
+				if (i >= unload_fs.end_file() || unload_fs.pad_file_at(i)) continue;
+				unloaded_real_file = true;
+				break;
+			}
+			if (unloaded_real_file) m_flags &= ~torrent_flags::seed_mode;
+		}
 
 		if (m_flags & torrent_flags::seed_mode)
 		{
@@ -1334,7 +1350,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		set_sequential_range(first_piece, last_piece);
 	}
 
-	void torrent::need_picker()
+	void torrent::need_picker(bool const for_unload)
 	{
 		if (m_picker) return;
 
@@ -1344,8 +1360,9 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		INVARIANT_CHECK;
 
 		// if we have all pieces we should not have a picker
-		// unless we're in suggest mode
-		TORRENT_ASSERT(!(m_flags & torrent_internal_flags::have_all)
+		// unless we're in suggest mode or materializing one to unload a file
+		TORRENT_ASSERT(for_unload
+			|| !(m_flags & torrent_internal_flags::have_all)
 			|| settings().get_int(settings_pack::suggest_mode)
 				== settings_pack::suggest_read_cache);
 
@@ -1945,6 +1962,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			m_part_file_dir,
 			static_cast<storage_mode_t>(m_storage_mode),
 			m_file_priority,
+			m_unloaded_files,
 			m_info_hash.get_best(),
 			m_torrent_file->v1() && !(m_flags & torrent_flags::disable_v1_hashes),
 			m_torrent_file->v2(),
@@ -2000,6 +2018,23 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			m_file_priority.resize(m_torrent_file->num_files());
 		else if (m_flags & torrent_flags::default_dont_download)
 			m_file_priority.resize(m_torrent_file->num_files(), dont_download);
+
+		if (int(m_unloaded_files.size()) > m_torrent_file->num_files())
+			m_unloaded_files.resize(m_torrent_file->num_files());
+		for (file_index_t const i : m_unloaded_files.range())
+		{
+			if (!m_unloaded_files[i]) continue;
+			// unload_file() rejects pad files; don't let (hand-written or
+			// corrupt) resume data unload them either
+			if (m_torrent_file->layout().pad_file_at(i))
+			{
+				m_unloaded_files[i] = false;
+				continue;
+			}
+			if (m_file_priority.end_index() <= i)
+				m_file_priority.resize(static_cast<int>(i) + 1, default_priority);
+			m_file_priority[i] = dont_download;
+		}
 
 		std::string_view cert = !m_add_torrent_params->root_certificate.empty()
 			? m_add_torrent_params->root_certificate
@@ -4538,7 +4573,10 @@ namespace {
 		if (!valid_metadata()) return {};
 		TORRENT_ASSERT(m_torrent_file->num_pieces() > 0);
 		if (m_flags & torrent_flags::seed_mode) return std::int64_t(0);
-		if (!has_picker()) return is_seed() ? std::int64_t(0) : m_torrent_file->total_size();
+		// a torrent that stays a seed after a file was unloaded still has a
+		// picker; its dropped pieces must not count as bytes left
+		if (is_seed()) return std::int64_t(0);
+		if (!has_picker()) return m_torrent_file->total_size();
 
 		piece_count const pc = m_picker->have();
 		std::int64_t left
@@ -4594,7 +4632,7 @@ namespace {
 		TORRENT_ASSERT(!valid_metadata() || m_torrent_file->num_pieces() > 0);
 		if (!valid_metadata()) return;
 
-		if ((m_flags & torrent_flags::seed_mode) || is_seed())
+		if ((m_flags & torrent_flags::seed_mode) || (is_seed() && !has_picker()))
 		{
 			// once we're a seed and remove the piece picker, we stop tracking
 			// piece- and file priority. We consider everything as being
@@ -4714,7 +4752,13 @@ namespace {
 			return;
 		}
 
-		bool const disk_error = (!passed || !v2_passed) && error;
+		// The file this piece was read from may have been unloaded after the
+		// piece was dispatched. The storage only migrates the pieces the
+		// torrent listed as have at dispatch, so this range is expected to be
+		// missing. Fail the piece so it is downloaded again; this is not a
+		// disk failure and must not pause the torrent.
+		bool const partfile_missing = error.ec == errors::partfile_missing_piece;
+		bool const disk_error = (!passed || !v2_passed) && error && !partfile_missing;
 
 		if (disk_error) handle_disk_error("piece_verified", error);
 
@@ -4766,8 +4810,9 @@ namespace {
 		}
 		else if (!passed || !v2_passed)
 		{
-			// piece_failed() will restore the piece
-			piece_failed(piece);
+			// piece_failed() will restore the piece. A missing part-file piece
+			// has no guilty peer: its bytes were dropped by an unload
+			piece_failed(piece, std::vector<int>(), !partfile_missing);
 		}
 	}
 	catch (...) { handle_exception(); }
@@ -5127,7 +5172,8 @@ namespace {
 
 	// blocks may contain the block indices of the blocks that failed (if this is
 	// a v2 torrent).
-	void torrent::piece_failed(piece_index_t const index, std::vector<int> blocks)
+	void torrent::piece_failed(piece_index_t const index, std::vector<int> blocks
+		, bool const blame_peers)
 	{
 		// if the last piece fails the peer connection will still
 		// think that it has received all of it until this function
@@ -5180,7 +5226,11 @@ namespace {
 		// need to try to get higher fidelity hashes (yet)
 		bool const found_on_disk = peers.size() == 1 && peers.count(nullptr);
 
-		if (torrent_file().info_hashes().has_v2() && blocks.empty() && !found_on_disk)
+		// a failure that isn't the peers' doing (the part-file piece was
+		// dropped by an unload) must not be attributed to anyone
+		bool const blame = blame_peers && !found_on_disk;
+
+		if (torrent_file().info_hashes().has_v2() && blocks.empty() && blame)
 		{
 			// TODO: only do this if the piece size > 1 blocks
 			// This is a v2 torrent so we can request get block
@@ -5190,7 +5240,7 @@ namespace {
 
 		// the below code is penalizing peers that sent use bad data.
 		// increase the total amount of failed bytes
-		if (!found_on_disk)
+		if (blame)
 		{
 			if (blocks.empty())
 				add_failed_bytes(m_torrent_file->piece_size(index));
@@ -5487,6 +5537,15 @@ namespace {
 		if (m_flags & torrent_internal_flags::torrent_aborted) return;
 
 		m_flags |= torrent_internal_flags::torrent_aborted;
+
+		// a deferred resume save will never run now; answer it the same way
+		// save_resume_data() answers a save on a removed torrent
+		if (m_deferred_save_resume_data)
+		{
+			m_deferred_save_resume_data.reset();
+			alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
+				, errors::torrent_removed);
+		}
 
 		m_flags &= ~torrent_flags::paused;
 
@@ -6067,7 +6126,9 @@ namespace {
 
 		// this call is only valid on torrents with metadata
 		TORRENT_ASSERT(valid_metadata());
-		if (is_seed()) return;
+		// a seed without a picker has no priorities to update, but one with a
+		// picker (e.g. while unloading a file) does
+		if (is_seed() && !has_picker()) return;
 
 		need_picker();
 
@@ -6110,7 +6171,9 @@ namespace {
 
 		// this call is only valid on torrents with metadata
 		TORRENT_ASSERT(valid_metadata());
-		if (is_seed()) return;
+		// a seed without a picker has no priorities to update, but one with a
+		// picker (e.g. while unloading a file) does
+		if (is_seed() && !has_picker()) return;
 
 		if (!valid_metadata())
 		{
@@ -6194,11 +6257,114 @@ namespace {
 		}
 	}
 
+	void torrent::dispatch_file_priority(aux::vector<download_priority_t, file_index_t> prios
+		, aux::vector<bool, file_index_t> unloaded, bool const unload_job
+		, aux::vector<bool, file_index_t> repeated_unloads)
+	{
+		INVARIANT_CHECK;
+
+		if (!m_storage)
+		{
+			m_file_priority = std::move(prios);
+			m_unloaded_files = std::move(unloaded);
+			set_need_save_resume(torrent_handle::if_config_changed);
+			return;
+		}
+
+		typed_bitfield<piece_index_t> have;
+		if (unload_job && valid_metadata())
+		{
+			int const num_pieces = m_torrent_file->num_pieces();
+			if (m_flags & torrent_internal_flags::have_all)
+			{
+				have.resize(num_pieces, true);
+			}
+			else if (has_picker())
+			{
+				have.resize(num_pieces, false);
+				for (piece_index_t const p : m_torrent_file->piece_range())
+				{
+					// include pieces whose blocks have all been received. Their
+					// writes are done or queued ahead of this fence job, so the
+					// data is on disk by the time the storage runs. This matters
+					// for boundary pieces whose hash completion has not reached
+					// the torrent yet.
+					if (m_picker->have_piece(p) || m_picker->is_piece_finished(p))
+						have.set_bit(p);
+				}
+			}
+			else
+			{
+				have.resize(num_pieces, false);
+			}
+		}
+
+		std::uint8_t const picker_gen = m_picker_generation;
+		m_flags |= torrent_internal_flags::outstanding_file_priority;
+		ADD_OUTSTANDING_ASYNC("file_priority");
+		// the storage rewrites the vectors it gets back on failure, so keep
+		// the requested unloaded state to answer a dropped unload request
+		auto requested_unloaded = unloaded;
+		m_ses.disk_thread().async_set_file_priority(m_storage
+			, std::move(prios)
+			, std::move(unloaded)
+			, std::move(have)
+			, [self = shared_from_this(), picker_gen, unload_job
+				, requested_unloaded = std::move(requested_unloaded)
+				, repeated_unloads = std::move(repeated_unloads)] (storage_error const& ec
+				, aux::vector<download_priority_t, file_index_t> p
+				, aux::vector<bool, file_index_t> u)
+			{ self->on_file_priority(ec, std::move(p), std::move(u)
+				, requested_unloaded, repeated_unloads, picker_gen, unload_job); });
+		m_ses.deferred_submit_jobs();
+	}
+
 	void torrent::on_file_priority(storage_error const& err
-		, aux::vector<download_priority_t, file_index_t> prios)
+		, aux::vector<download_priority_t, file_index_t> prios
+		, aux::vector<bool, file_index_t> unloaded
+		, aux::vector<bool, file_index_t> const& requested_unloaded
+		, aux::vector<bool, file_index_t> const& repeated_unloads
+		, std::uint8_t const picker_gen, bool const unload_job)
 	{
 		m_flags &= ~torrent_internal_flags::outstanding_file_priority;
 		COMPLETE_ASYNC("file_priority");
+
+		// the torrent was removed while the job was in flight. There's no state
+		// left to update, and abort() already answered a deferred
+		// save_resume_data()
+		if (m_flags & torrent_internal_flags::torrent_aborted) return;
+
+		aux::vector<bool, file_index_t> newly_unloaded;
+		// a force_recheck() started after this job was dispatched reset the
+		// picker; the running check will pick up the deleted file. Don't apply
+		// the drop to the fresh picker.
+		if (valid_metadata() && picker_gen == m_picker_generation)
+		{
+			int const num_files = (std::max)(int(prios.size()), int(unloaded.size()));
+			for (int idx = 0; idx < num_files; ++idx)
+			{
+				file_index_t const i(idx);
+				bool const was_unloaded = i < m_unloaded_files.end_index() && m_unloaded_files[i];
+				bool const is_unloaded = i < unloaded.end_index() && unloaded[i];
+				if (was_unloaded || !is_unloaded) continue;
+				if (newly_unloaded.empty()) newly_unloaded.resize(num_files, false);
+				newly_unloaded[i] = true;
+			}
+		}
+
+		// a requested unload may have committed before another request in the
+		// same batch failed, even if the picker was reset. That half of the
+		// batch is answered with a file_prio_alert below.
+		bool committed_unload = false;
+		for (file_index_t const f : requested_unloaded.range())
+		{
+			if (!requested_unloaded[f]) continue;
+			bool const was_unloaded = f < m_unloaded_files.end_index() && m_unloaded_files[f];
+			bool const is_unloaded = f < unloaded.end_index() && unloaded[f];
+			if (was_unloaded || !is_unloaded) continue;
+			committed_unload = true;
+			break;
+		}
 
 		if (m_file_priority != prios)
 		{
@@ -6210,15 +6376,219 @@ namespace {
 #endif
 		}
 
+		if (m_unloaded_files != unloaded)
+		{
+			m_unloaded_files = std::move(unloaded);
+			set_need_save_resume(torrent_handle::if_config_changed);
+		}
+
+		if (!newly_unloaded.empty())
+		{
+			file_storage const& fs = m_torrent_file->layout();
+			bool const was_have_all = bool(m_flags & torrent_internal_flags::have_all);
+
+			// a finished torrent has no picker. Materialize one while have_all
+			// is still set, then clear have_all, before dropping pieces.
+			bool const had_picker = has_picker();
+			if (!had_picker) need_picker(true);
+			if (m_flags & torrent_flags::seed_mode)
+				leave_seed_mode(seed_mode_t::skip_checking);
+			if (was_have_all) set_have_all(false);
+
+			// cancel outstanding block requests before removing the pieces from
+			// the picker; cancel_request() consults the picker. Do this before
+			// filtering anything, since filtering may make the torrent look
+			// finished while it is still in the downloading list. Blocks that
+			// still arrive are discarded in peer_connection::incoming_piece()
+			for (file_index_t const f : newly_unloaded.range())
+			{
+				if (!newly_unloaded[f]) continue;
+				auto const exclusive = aux::file_piece_range_exclusive(fs, f);
+				for (piece_index_t const p : aux::file_piece_range_inclusive(fs, f))
+				{
+					if (!m_picker->is_downloading(p)) continue;
+
+					if (p >= exclusive._begin && p < exclusive._end)
+					{
+						for (int b = 0; b < m_picker->blocks_in_piece(p); ++b)
+							cancel_block(piece_block(p, b));
+						continue;
+					}
+
+					// A shared piece may be partially downloaded, with some of
+					// its blocks written to the file being removed. The storage
+					// only preserves complete pieces, so those blocks are gone.
+					// Cancel the requests in flight and restart the piece;
+					// otherwise the picker keeps them as finished, never asks
+					// for them again and the piece fails its hash against the
+					// part file.
+					if (m_picker->is_piece_finished(p)) continue;
+					for (int b = 0; b < m_picker->blocks_in_piece(p); ++b)
+						cancel_block(piece_block(p, b));
+					m_picker->restore_piece(p);
+				}
+			}
+
+			bool const was_finished = is_finished();
+			bool dropped_piece = false;
+			bool filter_updated = false;
+			std::vector<piece_index_t> dropped;
+			for (file_index_t const f : newly_unloaded.range())
+			{
+				if (!newly_unloaded[f]) continue;
+
+				for (piece_index_t const p : aux::file_piece_range_exclusive(fs, f))
+				{
+					bool const have = have_piece(p);
+
+					// a piece of this file may still have a nonzero piece priority
+					// (share mode, an explicit piece priority or a streaming deadline).
+					// The file priority may be 0 already, in which case it was never
+					// re-applied above. Force the piece out of the wanted set here.
+#ifndef TORRENT_DISABLE_STREAMING
+					// remove_time_critical_piece() resets the piece to low_priority,
+					// so it has to run before filtering it
+					remove_time_critical_piece(p);
+#endif
+					if (m_picker->set_piece_priority(p, dont_download))
+						filter_updated = true;
+
+					// the file is gone, so any partially downloaded blocks of an
+					// incomplete piece are too
+					m_picker->we_dont_have(p);
+					if (!have) continue;
+
+					if (!m_file_progress.empty()) m_file_progress.remove_piece(fs, p);
+					dropped.push_back(p);
+					dropped_piece = true;
+				}
+			}
+
+			// the hash picker may still hold piece-layer or block-hash
+			// requests for the unloaded file. There is no per-file API to
+			// drop them, so rebuild the picker from the (intact) trees.
+			m_hash_picker.reset();
+
+			// A shared boundary piece is only wanted while another wanted file
+			// overlaps it. If the unloaded file was already priority 0,
+			// update_piece_priorities() did not run, so a stale explicit piece
+			// priority could keep the boundary wanted. In share mode piece
+			// priorities are chosen directly, leave them alone.
+			if (!(m_flags & torrent_flags::share_mode))
+			{
+				for (file_index_t const f : newly_unloaded.range())
+				{
+					if (!newly_unloaded[f]) continue;
+					for (piece_index_t const p : aux::file_piece_range_inclusive(fs, f))
+					{
+						if (m_picker->piece_priority(p) == dont_download) continue;
+
+						bool wanted = false;
+						for (file_index_t g = fs.file_index_at_piece(p)
+							, end = fs.last_file_index_at_piece(p); g <= end; ++g)
+						{
+							if (g == f || fs.pad_file_at(g)) continue;
+							download_priority_t const prio = g < m_file_priority.end_index()
+								? m_file_priority[g] : default_priority;
+							if (prio == dont_download) continue;
+							if (g < m_unloaded_files.end_index() && m_unloaded_files[g]) continue;
+							wanted = true;
+							break;
+						}
+						if (wanted) continue;
+
+#ifndef TORRENT_DISABLE_STREAMING
+						// remove_time_critical_piece() resets the piece to low_priority,
+						// so it has to run before filtering it
+						remove_time_critical_piece(p);
+#endif
+						if (m_picker->set_piece_priority(p, dont_download))
+							filter_updated = true;
+					}
+				}
+			}
+
+			if (dropped_piece || filter_updated)
+			{
+				update_gauge();
+				// update peer interest before telling them we no longer have the
+				// pieces; filtering may have just made the torrent finished
+				update_peer_interest(was_finished);
+				// only a real transition into finished changes state. A torrent
+				// that is already seeding (or finished) stays there.
+				if (m_state != torrent_status::finished
+					&& m_state != torrent_status::seeding && is_finished())
+					finished();
+				else
+				{
+					update_state_timers();
+					state_updated();
+					update_want_tick();
+				}
+
+				for (piece_index_t const p : dropped)
+				{
+					for (auto* c : m_connections)
+					{
+						auto peer = c->self();
+						if (peer->is_disconnecting()) continue;
+						peer->write_dont_have(p);
+					}
+				}
+
+				if (dropped_piece)
+					set_need_save_resume(torrent_handle::if_download_progress);
+			}
+		}
+
 		if (err)
 		{
 			// in this case, some file priorities failed to get set
 			if (alerts().should_post<file_error_alert>())
+			{
 				alerts().emplace_alert<file_error_alert>(err.ec
 					, resolve_filename(err.file()), err.operation, get_handle());
 
-			set_error(err.ec, err.file());
-			pause();
+				// the storage stops at the first failed unload, so the requests
+				// queued behind it in this batch were dropped without an error
+				// of their own. Answer each one, so no client waiting on its
+				// file_prio_alert hangs. The committed entries are now in
+				// m_unloaded_files.
+				for (file_index_t const f : requested_unloaded.range())
+				{
+					if (!requested_unloaded[f]) continue;
+					if (f == err.file()) continue;
+					if (f < m_unloaded_files.end_index() && m_unloaded_files[f]) continue;
+					alerts().emplace_alert<file_error_alert>(err.ec
+						, resolve_filename(f), err.operation, get_handle());
+				}
+			}
+
+			// a queued re-unload of a file that was already unloaded at dispatch is
+			// not answered by the per-file loop above, since the file is still
+			// unloaded. Answer it here, unless it is the file that failed.
+			bool repeated_unload = false;
+			for (file_index_t const f : repeated_unloads.range())
+			{
+				if (!repeated_unloads[f]) continue;
+				if (f == err.file()) continue;
+				repeated_unload = true;
+				break;
+			}
+
+			// the success half of the batch is answered too, with a single alert
+			if ((committed_unload || repeated_unload)
+				&& alerts().should_post<file_prio_alert>())
+				alerts().emplace_alert<file_prio_alert>(get_handle());
+
+			// a failed unload leaves the files it did commit unloaded and reverts
+			// the rest to what the storage reports, so the torrent is not in an
+			// unknown state. A job without an unload keeps pausing.
+			if (!unload_job)
+			{
+				set_error(err.ec, err.file());
+				pause();
+			}
 		}
 		else if (alerts().should_post<file_prio_alert>())
 		{
@@ -6227,25 +6597,60 @@ namespace {
 
 		// apply queued priorities even on failure; m_file_priority reflects
 		// the storage's actual state, and m_storage stays valid after pause()
-		if (!m_deferred_file_priorities.empty()
+		if ((!m_deferred_file_priorities.empty() || !m_deferred_unloads.empty())
 			&& !(m_flags & torrent_internal_flags::torrent_aborted))
 		{
 			auto new_priority = m_file_priority;
-			// resize the vector if we have to. The last item in the map has the
-			// highest file index.
-			auto const max_idx = std::prev(m_deferred_file_priorities.end())->first;
-			if (new_priority.end_index() <= max_idx)
-			{
-				// any unallocated slot is assumed to have the default priority
-				new_priority.resize(static_cast<int>(max_idx) + 1, default_priority);
-			}
+			auto new_unloaded = m_unloaded_files;
+
+			int max_idx = -1;
+			for (auto const& p : m_deferred_file_priorities)
+				max_idx = (std::max)(max_idx, static_cast<int>(p.first));
+			for (file_index_t const f : m_deferred_unloads)
+				max_idx = (std::max)(max_idx, static_cast<int>(f));
+			if (new_priority.end_index() <= file_index_t(max_idx))
+				new_priority.resize(max_idx + 1, default_priority);
+			if (new_unloaded.end_index() <= file_index_t(max_idx))
+				new_unloaded.resize(max_idx + 1, false);
+
 			for (auto const& p : m_deferred_file_priorities)
 			{
-				file_index_t const index = p.first;
-				download_priority_t const prio = p.second;
-				new_priority[index] = prio;
+				new_priority[p.first] = p.second;
+				if (p.second != dont_download) new_unloaded[p.first] = false;
 			}
-			prioritize_files(std::move(new_priority));
+
+			aux::vector<bool, file_index_t> repeated_unloads;
+			for (file_index_t const f : m_deferred_unloads)
+			{
+				new_priority[f] = dont_download;
+				// a deferred re-enable earlier in this batch may have cleared
+				// the flag, so go by the pending state, not the committed one
+				if (new_unloaded[f])
+				{
+					// already unloaded at dispatch: a no-op re-unload that still
+					// needs an answer if this batch fails on another file
+					if (repeated_unloads.end_index() <= f)
+						repeated_unloads.resize(static_cast<int>(f) + 1, false);
+					repeated_unloads[f] = true;
+				}
+				new_unloaded[f] = true;
+			}
+
+			bool const deferred_batch_is_unload = !m_deferred_unloads.empty();
+			m_deferred_file_priorities.clear();
+			m_deferred_unloads.clear();
+			dispatch_file_priority(std::move(new_priority)
+				, std::move(new_unloaded), deferred_batch_is_unload
+				, std::move(repeated_unloads));
+		}
+
+		// a save requested while the file priority job was in flight is done now,
+		// with the committed priority and unloaded state.
+		if (m_deferred_save_resume_data && !(m_flags & torrent_internal_flags::torrent_aborted))
+		{
+			auto const flags = *m_deferred_save_resume_data;
+			m_deferred_save_resume_data.reset();
+			save_resume_data(flags);
 		}
 	}
 
@@ -6255,6 +6660,14 @@ namespace {
 
 		auto new_priority = fix_priorities(std::move(files)
 			, valid_metadata() ? &m_torrent_file->layout() : nullptr);
+
+		auto new_unloaded = m_unloaded_files;
+		for (file_index_t const i : new_priority.range())
+		{
+			if (new_priority[i] == dont_download) continue;
+			if (i < new_unloaded.end_index()) new_unloaded[i] = false;
+			m_deferred_unloads.erase(i);
+		}
 
 		// if a file_priority disk job is already in flight, don't queue up
 		// another one behind it. Merge into the deferred priorities instead,
@@ -6270,27 +6683,7 @@ namespace {
 		m_deferred_file_priorities.clear();
 
 		// storage may be NULL during shutdown
-		if (m_storage)
-		{
-			// the update of m_file_priority is deferred until the disk job comes
-			// back, but to preserve sanity and consistency, the piece priorities are
-			// updated immediately. If, on the off-chance, there's a disk failure, the
-			// piece priorities still stay the same, but the file priorities are
-			// possibly not fully updated.
-
-			m_flags |= torrent_internal_flags::outstanding_file_priority;
-			ADD_OUTSTANDING_ASYNC("file_priority");
-			m_ses.disk_thread().async_set_file_priority(m_storage
-				, std::move(new_priority)
-				, [self = shared_from_this()] (storage_error const& ec, aux::vector<download_priority_t, file_index_t> p)
-				{ self->on_file_priority(ec, std::move(p)); });
-			m_ses.deferred_submit_jobs();
-		}
-		else
-		{
-			m_file_priority = std::move(new_priority);
-			set_need_save_resume(torrent_handle::if_config_changed);
-		}
+		dispatch_file_priority(std::move(new_priority), std::move(new_unloaded), false, {});
 	}
 
 	void torrent::set_file_priority(file_index_t const index
@@ -6312,6 +6705,7 @@ namespace {
 		if (m_flags & torrent_internal_flags::outstanding_file_priority)
 		{
 			m_deferred_file_priorities[index] = prio;
+			if (prio != dont_download) m_deferred_unloads.erase(index);
 			return;
 		}
 
@@ -6324,22 +6718,119 @@ namespace {
 
 		new_priority[index] = prio;
 
-		// storage may be nullptr during shutdown
-		if (m_storage)
+		auto new_unloaded = m_unloaded_files;
+		if (prio != dont_download)
 		{
-			m_flags |= torrent_internal_flags::outstanding_file_priority;
-			ADD_OUTSTANDING_ASYNC("file_priority");
-			m_ses.disk_thread().async_set_file_priority(m_storage
-				, std::move(new_priority)
-				, [self = shared_from_this()] (storage_error const& ec, aux::vector<download_priority_t, file_index_t> p)
-				{ self->on_file_priority(ec, std::move(p)); });
-			m_ses.deferred_submit_jobs();
+			if (index < new_unloaded.end_index()) new_unloaded[index] = false;
+			m_deferred_unloads.erase(index);
 		}
-		else
+
+		dispatch_file_priority(std::move(new_priority), std::move(new_unloaded), false, {});
+	}
+
+	void torrent::unload_file(file_index_t const index)
+	{
+		INVARIANT_CHECK;
+
+		auto const reject = [this, index](error_code const ec, operation_t const op)
 		{
-			m_file_priority = std::move(new_priority);
-			set_need_save_resume(torrent_handle::if_config_changed);
+			if (!alerts().should_post<file_error_alert>()) return;
+			std::string filename;
+			if (valid_metadata() && index >= file_index_t(0)
+				&& index < m_torrent_file->layout().end_file())
+				filename = resolve_filename(index);
+			alerts().emplace_alert<file_error_alert>(ec, filename, op, get_handle());
+		};
+
+		// no metadata means no storage, so there is no file to unload
+		if (!valid_metadata())
+		{
+			reject(error_code(boost::system::errc::operation_not_supported, generic_category())
+				, operation_t::unknown);
+			return;
 		}
+
+		if (index < file_index_t(0)
+			|| index >= m_torrent_file->layout().end_file())
+		{
+			reject(error_code(boost::system::errc::invalid_argument, generic_category())
+				, operation_t::unknown);
+			return;
+		}
+
+		if (m_torrent_file->layout().pad_file_at(index))
+		{
+			reject(error_code(boost::system::errc::invalid_argument, generic_category())
+				, operation_t::unknown);
+			return;
+		}
+		if (index < m_unloaded_files.end_index() && m_unloaded_files[index])
+		{
+			// an in-flight job may be re-enabling this file. Queue the unload
+			// behind it instead of reporting success for a state it is about
+			// to undo.
+			if (m_flags & torrent_internal_flags::outstanding_file_priority)
+			{
+				m_deferred_unloads.insert(index);
+				return;
+			}
+
+			// already unloaded; report success
+			if (alerts().should_post<file_prio_alert>())
+				alerts().emplace_alert<file_prio_alert>(get_handle());
+			return;
+		}
+
+		if (m_flags & torrent_internal_flags::torrent_aborted)
+		{
+			reject(error_code(boost::system::errc::operation_canceled, generic_category())
+				, operation_t::unknown);
+			return;
+		}
+
+		// storage is only null while shutting down; without it nothing can be
+		// removed, so do not commit the unloaded state
+		if (!m_storage)
+		{
+			reject(error_code(boost::system::errc::operation_not_supported
+				, generic_category()), operation_t::unknown);
+			return;
+		}
+
+		// a running check or move would race the unlink and the storage state
+		if (m_flags & torrent_internal_flags::moving_storage
+			|| state() == torrent_status::checking_files
+			|| state() == torrent_status::checking_resume_data)
+		{
+			reject(error_code(boost::system::errc::operation_in_progress, generic_category())
+				, operation_t::unknown);
+			return;
+		}
+
+		if (m_flags & torrent_internal_flags::outstanding_file_priority)
+		{
+			m_deferred_unloads.insert(index);
+			return;
+		}
+
+		auto new_priority = m_file_priority;
+		if (new_priority.end_index() <= index)
+			new_priority.resize(static_cast<int>(index) + 1, default_priority);
+		new_priority[index] = dont_download;
+
+		auto new_unloaded = m_unloaded_files;
+		if (new_unloaded.end_index() <= index)
+			new_unloaded.resize(static_cast<int>(index) + 1, false);
+		new_unloaded[index] = true;
+
+		dispatch_file_priority(std::move(new_priority), std::move(new_unloaded), true, {});
+	}
+
+	void torrent::unloaded_files(aux::vector<bool, file_index_t>* files) const
+	{
+		INVARIANT_CHECK;
+		files->assign(m_unloaded_files.begin(), m_unloaded_files.end());
+		if (valid_metadata()) files->resize(m_torrent_file->num_files(), false);
 	}
 
 	download_priority_t torrent::file_priority(file_index_t const index) const
@@ -7561,6 +8052,11 @@ namespace {
 		if (req.file < file_index_t{0} || req.file >= m_merkle_trees.end_index())
 			return {};
 
+		// an unloaded file has no bytes left, so there are no hashes to serve
+		// for it (not even the root of a single-block file)
+		if (req.file < m_unloaded_files.end_index() && m_unloaded_files[req.file])
+			return {};
+
 		auto const& f = m_merkle_trees[req.file];
 
 		return f.get_hashes(req.base, req.index, req.count, req.proof_layers);
@@ -7827,7 +8323,7 @@ namespace {
 		TORRENT_ASSERT(ret.have_pieces.empty());
 		if (max_piece > piece_index_t(0))
 		{
-			if (is_seed())
+			if (is_seed() && !has_picker())
 			{
 				ret.have_pieces.resize(static_cast<int>(max_piece), true);
 			}
@@ -7917,6 +8413,9 @@ namespace {
 			ret.file_priorities = m_file_priority;
 		}
 
+		if (!m_unloaded_files.empty())
+			ret.unloaded_files.assign(m_unloaded_files.begin(), m_unloaded_files.end());
+
 		if (valid_metadata() && has_picker())
 		{
 			// write piece priorities
@@ -7962,10 +8461,20 @@ namespace {
 				auto [sparse_tree, mask] = t.build_sparse_vector();
 				ret.merkle_trees.emplace_back(std::move(sparse_tree));
 				ret.merkle_tree_mask.emplace_back(std::move(mask));
-				ret.verified_leaf_hashes.emplace_back(t.verified_leafs());
+
+				// an unloaded file's piece layer is still public data from the
+				// .torrent, but none of its bytes are verified. Use the same
+				// empty verified-leaves representation as a file downloaded
+				// from zero.
+				if (valid_metadata() && i < m_unloaded_files.end_index()
+					&& m_unloaded_files[i])
+					ret.verified_leaf_hashes.emplace_back();
+				else
+					ret.verified_leaf_hashes.emplace_back(t.verified_leafs());
 			}
 
-			if (!has_hash_picker() && !(m_flags & torrent_internal_flags::have_all)
+			if (ret.verified_leaf_hashes.empty()
+				&& !has_hash_picker() && !(m_flags & torrent_internal_flags::have_all)
 				&& valid_metadata())
 			{
 				file_storage const& fs = m_torrent_file->layout();
@@ -9472,7 +9981,10 @@ namespace {
 		if (m_flags & torrent_flags::seed_mode) return true;
 		if (m_flags & torrent_internal_flags::have_all) return true;
 		if (m_picker && m_picker->is_seeding()) return true;
-		return m_state == torrent_status::seeding;
+		// the seeding state is sticky, unless a picker created after we became a
+		// seed wants pieces again (an unloaded file was re-enabled)
+		return m_state == torrent_status::seeding
+			&& (!has_picker() || m_picker->is_finished());
 	}
 
 	bool torrent::is_finished() const
@@ -10317,6 +10829,16 @@ namespace {
 		{
 			alerts().emplace_alert<save_resume_data_failed_alert>(get_handle()
 				, errors::torrent_removed);
+			return;
+		}
+
+		if (m_flags & torrent_internal_flags::outstanding_file_priority)
+		{
+			// the in-flight job may unload a file; defer writing until it
+			// commits. The conditions are evaluated again at that point, since
+			// the job may be what makes them true.
+			m_deferred_save_resume_data =
+				m_deferred_save_resume_data.value_or(resume_data_flags_t{}) | flags;
 			return;
 		}
 
@@ -11360,8 +11882,24 @@ namespace {
 
 		int const num_pieces = m_torrent_file->num_pieces();
 		int rarest_rarity = INT_MAX;
+		file_storage const& fs = m_torrent_file->layout();
 		for (piece_index_t i(0); i < piece_index_t(num_pieces); ++i)
 		{
+			// don't re-enable pieces made up only of unloaded files; share
+			// mode picks piece priorities directly, so file priorities don't
+			// filter them
+			bool all_unloaded = true;
+			for (file_index_t f = fs.file_index_at_piece(i)
+				, end = fs.last_file_index_at_piece(i); f <= end; ++f)
+			{
+				if (f >= m_unloaded_files.end_index() || !m_unloaded_files[f])
+				{
+					all_unloaded = false;
+					break;
+				}
+			}
+			if (all_unloaded) continue;
+
 			piece_picker::piece_stats_t ps = m_picker->piece_stats(i);
 			if (ps.peer_count == 0) continue;
 			if (ps.priority == 0 && (ps.flushed || ps.downloading))
@@ -12399,10 +12937,10 @@ namespace {
 			return;
 		}
 
-		// if we're a seed, we don't have an m_file_progress anyway
-		// since we don't need one. We know we have all files
+		// if we're a seed without a picker, we don't have an m_file_progress
+		// anyway since we don't need one. We know we have all files
 		// just fill in the full file sizes as a shortcut
-		if (is_seed())
+		if (is_seed() && !has_picker())
 		{
 			fp.resize(m_torrent_file->num_files());
 			file_storage const& fs = m_torrent_file->layout();

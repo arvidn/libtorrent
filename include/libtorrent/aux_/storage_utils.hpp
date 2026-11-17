@@ -51,6 +51,9 @@ namespace libtorrent::aux {
 		, std::function<void(std::string const&, lt::error_code&)> const& move_partfile
 		, move_flags_t flags, storage_error& ec);
 
+	// removes one file, treating a missing file as success
+	TORRENT_EXTRA_EXPORT void delete_one_file(std::string const& p, error_code& ec);
+
 	// deletes the files on fs from save_path according to options. Options may
 	// opt to only delete the partfile
 	TORRENT_EXTRA_EXPORT void
@@ -102,6 +105,25 @@ namespace libtorrent::aux {
 	TORRENT_EXTRA_EXPORT int read_zeroes(span<char> bufs);
 
 	TORRENT_EXTRA_EXPORT int hash_zeroes(hasher& ph, std::int64_t size);
+
+	// Moves the bytes of ``file`` that belong to pieces shared with other files
+	// into the part file, then releases and removes the file. Pieces entirely
+	// contained in ``file`` are dropped. ``have_pieces`` limits the work (and the
+	// part file slots written) to pieces with data. On error the file is left
+	// untouched and the caller must not commit the unload. The caller must do the
+	// migration before committing a new priority or part-file setting, because
+	// read() routes on those.
+	TORRENT_EXTRA_EXPORT void unload_file(
+		filenames const& fs
+		, file_index_t file
+		, typed_bitfield<piece_index_t> const& have_pieces
+		, std::function<int(piece_index_t, int, span<char>)> const& read_segment
+		, std::function<void(piece_index_t)> const& free_partfile_piece
+		, std::function<int(piece_index_t, int, span<char>)> const& write_partfile
+		, std::function<void(storage_error&)> const& flush_partfile
+		, std::function<void(file_index_t)> const& release_file
+		, std::function<void(file_index_t, storage_error&)> const& remove_file
+		, storage_error& ec);
 
 	TORRENT_EXTRA_EXPORT void initialize_storage(
 		filenames const& fs

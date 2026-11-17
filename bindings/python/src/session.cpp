@@ -422,6 +422,10 @@ void dict_to_add_torrent_params(dict params, add_torrent_params& p)
 		{
 			p.file_priorities = extract<std::vector<download_priority_t>>(value);
 		}
+		else if (key == "unloaded_files")
+		{
+			p.unloaded_files = extract<std::vector<bool>>(value);
+		}
 		else if (key == "root_certificate")
 		{
 			p.root_certificate = extract<std::string>(value);
@@ -1023,6 +1027,7 @@ void bind_session()
 		.def_readwrite("storage_mode", &add_torrent_params::storage_mode)
 		//        .def_readwrite("storage", &add_torrent_params::storage)
 		.add_property("file_priorities", PROP(&add_torrent_params::file_priorities))
+		.add_property("unloaded_files", PROP(&add_torrent_params::unloaded_files))
 		.def_readwrite("trackerid", &add_torrent_params::trackerid)
 		.add_property("flags", PROP(&add_torrent_params::flags))
 		.def_readwrite("max_uploads", &add_torrent_params::max_uploads)

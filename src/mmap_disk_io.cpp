@@ -126,8 +126,11 @@ struct TORRENT_EXTRA_EXPORT mmap_disk_io final
 		, std::function<void()> handler) override;
 	void async_set_file_priority(storage_index_t storage
 		, aux::vector<download_priority_t, file_index_t> prio
+		, aux::vector<bool, file_index_t> unloaded
+		, typed_bitfield<piece_index_t> have
 		, std::function<void(storage_error const&
-			, aux::vector<download_priority_t, file_index_t>)> handler) override;
+			, aux::vector<download_priority_t, file_index_t>
+			, aux::vector<bool, file_index_t>)> handler) override;
 
 	void async_clear_piece(storage_index_t storage, piece_index_t index
 		, std::function<void(piece_index_t)> handler) override;
@@ -866,14 +869,19 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 
 	void mmap_disk_io::async_set_file_priority(storage_index_t const storage
 		, aux::vector<download_priority_t, file_index_t> prios
+		, aux::vector<bool, file_index_t> unloaded
+		, typed_bitfield<piece_index_t> have
 		, std::function<void(storage_error const&
-			, aux::vector<download_priority_t, file_index_t>)> handler)
+			, aux::vector<download_priority_t, file_index_t>
+			, aux::vector<bool, file_index_t>)> handler)
 	{
 		aux::mmap_disk_job* j = m_job_pool.allocate_job<aux::job::file_priority>(
 			{},
 			m_torrents[storage]->shared_from_this(),
 			std::move(handler),
-			std::move(prios)
+			std::move(prios),
+			std::move(unloaded),
+			std::move(have)
 		);
 
 		add_fence_job(j);
@@ -1237,6 +1245,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 	{
 		j->storage->set_file_priority(m_settings
 			, a.prio
+			, a.unloaded
+			, a.have
 			, j->error);
 		return {};
 	}

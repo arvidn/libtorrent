@@ -339,6 +339,7 @@ class AddTorrentParamsdict(TypedDict, total=False):
     trackerid: NotRequired[str]
     trackers: NotRequired[list[str]]
     unfinished_pieces: NotRequired[dict[int, list[bool]]]
+    unloaded_files: NotRequired[list[bool]]
     upload_limit: NotRequired[int]
     url: NotRequired[str]
     url_seeds: NotRequired[list[str]]
@@ -690,6 +691,7 @@ class add_torrent_params(metaclass=_BoostBaseClass):
     trackerid: str
     trackers: list[str]
     unfinished_pieces: dict[int, list[bool]]
+    unloaded_files: list[bool]
     upload_limit: int
     url: str
     url_seeds: list[str]
@@ -4444,6 +4446,11 @@ class torrent_handle(metaclass=_BoostBaseClass):
         get_torrent_info( (torrent_handle)arg1) -> torrent_info :
         """
 
+    def get_unloaded_files(self) -> list[bool]:
+        """
+        get_unloaded_files( (torrent_handle)arg1) -> list :
+        """
+
     def has_metadata(self) -> bool:
         """
         has_metadata( (torrent_handle)arg1) -> bool :
@@ -4808,6 +4815,11 @@ class torrent_handle(metaclass=_BoostBaseClass):
     def unset_flags(self, _flags: int) -> None:
         """
         unset_flags( (torrent_handle)arg1, (object)arg2) -> None :
+        """
+
+    def unload_file(self, index: int) -> None:
+        """
+        unload_file( (torrent_handle)arg1, (int)index) -> None :
         """
 
     def upload_limit(self) -> int:

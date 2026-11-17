@@ -38,6 +38,8 @@ namespace aux {
 	// information about which pieces we have.
 	bool contains_resume_data(add_torrent_params const& atp)
 	{
+		// unloaded_files is per-file state, not information about the pieces on
+		// disk; on its own it must not suppress the initial file check
 		return !atp.have_pieces.empty()
 			|| (atp.flags & torrent_flags::seed_mode);
 	}

@@ -769,11 +769,15 @@ namespace aux {
 		//
 		// ``get_resume_data()`` is synchronous and will block the calling
 		// thread until the resume data is ready and returned from the
-		// libtorrent main thread.
+		// libtorrent main thread. It does not wait for an in-flight file
+		// priority or unload job, so it may return the previous priority and
+		// unloaded state; use ``save_resume_data()`` for the committed state.
 		///
 		// ``save_resume_data()`` is asynchronous. It will return immediately
 		// and deliver the resume data is when it's done through a
-		// save_resume_data_alert.
+		// save_resume_data_alert. A call made while a file priority or unload
+		// job is in flight is coalesced with other pending calls and answered by
+		// a single alert.
 		//
 		// The operation will fail, and post a save_resume_data_failed_alert
 		// instead, in the following cases:
@@ -1183,8 +1187,11 @@ namespace aux {
 		// again for those pieces.
 		//
 		// You cannot set the file priorities on a torrent that does not yet have
-		// metadata or a torrent that is a seed. ``file_priority(int, int)`` and
-		// prioritize_files() are both no-ops for such torrents.
+		// metadata or on a seed that has no picker. ``file_priority(int, int)``
+		// and prioritize_files() are both no-ops for such torrents. A seed that
+		// has unloaded a file has a picker and does apply file priority changes,
+		// and raising the priority of an unloaded file loads it back (see
+		// ``unload_file()``).
 		//
 		// Since changing file priorities may involve disk operations (of moving
 		// files in- and out of the part file), the internal accounting of file
@@ -1197,13 +1204,64 @@ namespace aux {
 		// both. When loading the resume data, the file priorities will be applied
 		// first, then the piece priorities.
 		//
-		// Moving data from a file into the part file is currently not
-		// supported. If a file has its priority set to 0 *after* it has already
-		// been created, it will not be moved into the partfile.
+		// Setting a file's priority to 0 leaves its downloaded data on disk.
+		// Use ``unload_file()`` to also remove the file from disk.
 		void file_priority(file_index_t index, download_priority_t priority) const;
 		download_priority_t file_priority(file_index_t index) const;
 		void prioritize_files(std::vector<download_priority_t> const& files) const;
 		std::vector<download_priority_t> get_file_priorities() const;
+
+		// Removes file ``index`` from disk and marks it as unloaded. The file's
+		// priority becomes ``dont_download``. Bytes belonging to pieces shared
+		// with other files are preserved in the part file; pieces entirely
+		// contained in this file are dropped and peers are told via
+		// ``lt_donthave``. Pieces shared with other files remain available for
+		// seeding. A shared boundary piece that was only partially downloaded is
+		// restarted from the beginning, so blocks of the neighbouring file that
+		// were already on disk are downloaded again too.
+		//
+		// While the torrent is downloading, an explicit piece priority above
+		// ``dont_download`` on a piece of an unloaded file is honoured: the piece
+		// is downloaded into the part file, while the file stays unloaded and is
+		// not recreated on disk. A torrent that keeps seeding after an unload
+		// ignores ``set_piece_priority()`` and ``set_piece_deadline()`` as
+		// download requests; a deadline with ``alert_when_available`` still posts
+		// a ``read_piece_alert`` for the piece. The bulk ``prioritize_pieces()``
+		// overloads re-fetch the selected pieces into the part file, leaving the
+		// file unloaded and absent from disk; only raising the file's priority
+		// recreates the file.
+		//
+		// This is asynchronous. On success a ``file_prio_alert`` is posted. If
+		// the unload fails (e.g. the file cannot be removed), a
+		// ``file_error_alert`` is posted; the file and its priority are left
+		// unchanged and the torrent keeps running. Files committed before the
+		// failing one in the same batch stay unloaded, and are answered by one
+		// ``file_prio_alert`` alongside the ``file_error_alert``. If the part file
+		// cannot be flushed after a file was removed, the unload still stands and
+		// the error is reported.
+		//
+		// The unload is rejected with a ``file_error_alert`` if the torrent has no
+		// metadata or no storage during shutdown (``operation_not_supported``),
+		// the index is out of range or refers to a pad file
+		// (``invalid_argument``), the torrent is being removed
+		// (``operation_canceled``), or it is checking its files or moving its
+		// storage (``operation_in_progress``).
+		//
+		// Unloading a file that is already unloaded is a no-op that posts
+		// ``file_prio_alert`` without touching the storage, unless a file priority
+		// job is in flight, in which case the unload is queued behind it. Either
+		// way it is not subject to the checking and moving rejection above.
+		//
+		// The unloaded state is saved in resume data. Loading such resume data
+		// keeps using the part file and will not recreate the file, also not on a
+		// forced recheck.
+		void unload_file(file_index_t index) const;
+
+		// Returns one element per file; a set element means the file has been
+		// unloaded with ``unload_file()``. If the torrent_handle is invalid (for
+		// example after the torrent has been removed), it throws a system_error
+		// exception (``invalid_torrent_handle``).
+		std::vector<bool> get_unloaded_files() const;
 
 		// ``post_file_priorities()`` will trigger a file_priorities_alert to be
 		// posted, containing the download priority of each file in the torrent.

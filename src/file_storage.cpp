@@ -1797,17 +1797,20 @@ namespace aux {
 		int const piece_size = fs.piece_length();
 		piece_index_t const begin_piece = range.start == 0 ? range.piece : piece_index_t(static_cast<int>(range.piece) + 1);
 		// the last piece is potentially smaller than the other pieces, so the
-		// generic logic doesn't really work. If this file is the last file, the
-		// last piece doesn't overlap with any other file and it's entirely
-		// contained within the last file.
+		// generic logic doesn't really work. If this file ends where the
+		// torrent ends, the last piece doesn't overlap with any other file and
+		// it's entirely contained within this file. This holds also for a file
+		// followed only by empty files.
 		// a file that starts mid-piece and doesn't reach that piece's end
 		// owns no piece exclusively; clamp rather than let end fall below
 		// begin, which would otherwise describe a backwards range.
-		piece_index_t const end_piece = (file == file_index_t(fs.num_files() - 1))
+		bool const ends_at_end = fs.map_file(file, file_size, 0).piece
+			>= piece_index_t(fs.num_pieces());
+		piece_index_t const end_piece = ends_at_end
 			? piece_index_t(fs.num_pieces())
 			: std::max(begin_piece,
 				  piece_index_t(int(
-					  (torrent_byte_offset(range.piece, range.start, piece_size) + file_size + 1)
+					  (torrent_byte_offset(range.piece, range.start, piece_size) + file_size)
 					  / piece_size)));
 		return {begin_piece, end_piece};
 	}
@@ -1818,6 +1821,8 @@ namespace aux {
 	{
 		peer_request const range = fs.map_file(file, 0, 1);
 		std::int64_t const file_size = fs.file_size(file);
+		// a zero-byte file covers no pieces, not the piece its offset falls in
+		if (file_size == 0) return {range.piece, range.piece};
 		int const piece_size = fs.piece_length();
 		piece_index_t const end_piece = piece_index_t(int(
 			(torrent_byte_offset(range.piece, range.start, piece_size) + file_size - 1) / piece_size

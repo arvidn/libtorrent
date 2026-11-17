@@ -341,6 +341,7 @@ namespace {
 		atp.have_pieces.swap(resume_data.have_pieces);
 		atp.verified_pieces.swap(resume_data.verified_pieces);
 		atp.piece_priorities.swap(resume_data.piece_priorities);
+		atp.unloaded_files.swap(resume_data.unloaded_files);
 
 		atp.renamed_files = std::move(resume_data.renamed_files);
 		atp.renamed_path_elements = std::move(resume_data.renamed_path_elements);

@@ -267,6 +267,7 @@ int run_test(test_case const& t)
 		// TODO: add test mode where some file priorities are 0
 
 		lt::aux::vector<lt::download_priority_t, lt::file_index_t> prios;
+		lt::aux::vector<bool, lt::file_index_t> unloaded;
 		std::string save_path = "./scratch-area";
 		lt::renamed_files rf;
 		lt::storage_params params(fs,
@@ -275,6 +276,7 @@ int run_test(test_case const& t)
 			{},
 			(t.flags & test_mode::sparse) ? lt::storage_mode_sparse : lt::storage_mode_allocate,
 			prios,
+			unloaded,
 			lt::sha1_hash("01234567890123456789"),
 			has_v1,
 			has_v2);

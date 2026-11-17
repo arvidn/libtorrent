@@ -598,6 +598,7 @@ namespace {
 		renamed_files rf;
 
 		aux::vector<download_priority_t, file_index_t> priorities;
+		aux::vector<bool, file_index_t> unloaded;
 		storage_params params{
 			fs,
 			rf,
@@ -605,6 +606,7 @@ namespace {
 			{},
 			storage_mode_t::storage_mode_sparse,
 			priorities,
+			unloaded,
 			sha1_hash{},
 			!t.is_v2_only(), // v1-hashes
 			!t.is_v1_only() // v2-hashes

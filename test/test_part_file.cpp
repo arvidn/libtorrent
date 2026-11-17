@@ -243,6 +243,80 @@ TORRENT_TEST(part_file)
 	}
 }
 
+// mirrors what unloading a file does to the part file: the interior piece is
+// freed while the shared boundary piece stays, then the freed slot is reused
+template <typename PartFile>
+void test_unload_slot_reuse(std::string const& test_dir)
+{
+	error_code ec;
+	std::string const path = combine_path(absolute("."), test_dir);
+	filesystem::remove_all(path, ec);
+	create_directory(path, ec);
+	TEST_CHECK(!ec);
+
+	int const piece_size = 0x4000;
+	int const num_pieces = 4;
+	PartFile pf(path, "partfile.parts", num_pieces, piece_size);
+
+	std::array<char, 0x2000> const boundary = []
+	{
+		std::array<char, 0x2000> b;
+		b.fill(char(0x5a));
+		return b;
+	}();
+	std::array<char, 0x4000> interior;
+	interior.fill(char(0x11));
+
+	// shared boundary piece: only the last half belongs to the unloaded file
+	TEST_EQUAL(pf.write(boundary, 2_piece, 0x2000, ec), 0x2000);
+	TEST_CHECK(!ec);
+	// interior piece, dropped by the unload
+	TEST_EQUAL(pf.write(interior, 0_piece, 0, ec), 0x4000);
+	TEST_CHECK(!ec);
+	pf.free_piece(0_piece);
+	TEST_CHECK(!pf.has_piece(0_piece));
+	TEST_CHECK(pf.has_piece(2_piece));
+
+	// the freed slot is reused by a new piece
+	TEST_EQUAL(pf.write(interior, 3_piece, 0, ec), 0x4000);
+	TEST_CHECK(!ec);
+	pf.flush_metadata(ec);
+	TEST_CHECK(!ec);
+
+	file_status st;
+	stat_file(combine_path(path, "partfile.parts"), &st, ec);
+	TEST_CHECK(!ec);
+	if (!ec) TEST_EQUAL(st.file_size, part_file_header_size(num_pieces) + 2 * piece_size);
+
+	std::array<char, 0x2000> out;
+	out.fill(0);
+	TEST_EQUAL(pf.read(out, 2_piece, 0x2000, ec), 0x2000);
+	TEST_CHECK(!ec);
+	TEST_CHECK(out == boundary);
+
+	bool exported = false;
+	pf.export_file([&](std::int64_t file_offset, span<char> buf)
+	{
+		TEST_EQUAL(file_offset, 0);
+		TEST_CHECK(span<char const>(buf) == span<char const>(boundary));
+		exported = true;
+	}, 2 * std::int64_t(piece_size) + 0x2000, 0x2000, ec);
+	TEST_CHECK(!ec);
+	TEST_CHECK(exported);
+
+	filesystem::remove_all(path);
+}
+
+TORRENT_TEST(part_file_unload_slot_reuse)
+{
+	test_unload_slot_reuse<aux::part_file>("partfile_unload_dir");
+}
+
+TORRENT_TEST(posix_part_file_unload_slot_reuse)
+{
+	test_unload_slot_reuse<aux::posix_part_file>("posix_partfile_unload_dir");
+}
+
 TORRENT_TEST(part_file_short_read) { test_short_read<aux::part_file>("partfile_short_read_dir"); }
 
 TORRENT_TEST(part_file_missing_piece)

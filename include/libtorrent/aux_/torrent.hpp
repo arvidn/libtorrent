@@ -680,7 +680,18 @@ namespace libtorrent::aux {
 		void set_file_priority(file_index_t index, download_priority_t priority);
 		download_priority_t file_priority(file_index_t index) const;
 
-		void on_file_priority(storage_error const& err, aux::vector<download_priority_t, file_index_t> prios);
+		void unload_file(file_index_t index);
+		void unloaded_files(aux::vector<bool, file_index_t>*) const;
+
+		void dispatch_file_priority(aux::vector<download_priority_t, file_index_t> prios
+			, aux::vector<bool, file_index_t> unloaded, bool unload_job
+			, aux::vector<bool, file_index_t> repeated_unloads);
+		void on_file_priority(storage_error const& err
+			, aux::vector<download_priority_t, file_index_t> prios
+			, aux::vector<bool, file_index_t> unloaded
+			, aux::vector<bool, file_index_t> const& requested_unloaded
+			, aux::vector<bool, file_index_t> const& repeated_unloads
+			, std::uint8_t picker_gen, bool unload_job);
 		void prioritize_files(aux::vector<download_priority_t, file_index_t> files);
 		void file_priorities(aux::vector<download_priority_t, file_index_t>*) const;
 		void post_file_priorities();
@@ -1162,7 +1173,12 @@ namespace libtorrent::aux {
 		// for failures detected with v2 hashes the failing blocks(s)
 		// are specified in blocks
 		// *blocks must be sorted in ascending order*
-		void piece_failed(piece_index_t index, std::vector<int> blocks = std::vector<int>());
+		// if blame_peers is false the failure is not attributed to any peer
+		// (e.g. a missing part-file piece, whose bytes were dropped by an
+		// unload); the piece is restored without penalizing anyone
+		void piece_failed(piece_index_t index
+			, std::vector<int> blocks = std::vector<int>()
+			, bool blame_peers = true);
 
 		// the peers in "peers" participated in sending a bad piece. If
 		// "known_bad_peer" is true, we know for sure the peers are guilty,
@@ -1209,7 +1225,9 @@ namespace libtorrent::aux {
 			TORRENT_ASSERT(m_picker.get());
 			return *m_picker;
 		}
-		void need_picker();
+		// ``for_unload`` allows materializing a picker while have_all is set,
+		// so a seed can transition to not having every piece
+		void need_picker(bool for_unload = false);
 		bool has_picker() const
 		{
 			return m_picker.get() != nullptr;
@@ -1578,6 +1596,18 @@ namespace libtorrent::aux {
 		// implicitly means the file has priority 4.
 		// TODO: this wastes 5 bits per file
 		aux::vector<download_priority_t, file_index_t> m_file_priority;
+
+		// files whose contents were unloaded. Bytes of pieces shared with
+		// other files are in the part file; the rest was discarded. The
+		// corresponding entry in m_file_priority must be 0.
+		aux::vector<bool, file_index_t> m_unloaded_files;
+
+		// unload requests queued behind an in-flight file priority job
+		std::set<file_index_t> m_deferred_unloads;
+
+		// save_resume_data() requests queued behind an in-flight file priority
+		// job, so the resume data reflects the committed unloaded state
+		std::optional<resume_data_flags_t> m_deferred_save_resume_data;
 
 		// any file priority updates attempted while another file priority update
 		// is in-progress/outstanding with the disk I/O thread, are queued up in

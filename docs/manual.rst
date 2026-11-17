@@ -529,6 +529,9 @@ The file format is a bencoded dictionary containing the following fields:
 | ``file_priority``        | list of integers. One entry per file in the torrent. Each    |
 |                          | entry is the priority of the file with the same index.       |
 +--------------------------+--------------------------------------------------------------+
+| ``unloaded``             | list of integers. File indices whose contents have been      |
+|                          | unloaded with torrent_handle::unload_file().                 |
++--------------------------+--------------------------------------------------------------+
 | ``piece_priority``       | string of bytes. Each byte is interpreted as an integer and  |
 |                          | is the priority of that piece.                               |
 +--------------------------+--------------------------------------------------------------+
@@ -702,6 +705,20 @@ The benefits of this mode are:
 
  * No risk of a download failing because of a full disk during download, once
    all files have been created.
+
+unloading files
+---------------
+
+A file with priority 0 is no longer downloaded, but its data stays on disk.
+``torrent_handle::unload_file()`` also removes it, which is the supported way to
+reclaim the space without removing the torrent or its other files. The bytes
+of pieces the file shares with other files are moved into the part file, so the
+torrent can still seed those pieces; the rest of the file is dropped.
+
+The unloaded state is part of the resume data, so restarting, moving or
+rechecking the torrent does not recreate the file. Setting the file's priority
+above 0 again writes the preserved bytes back into it and downloads the rest.
+See unload_file() for the details and the alerts it posts.
 
 HTTP seeding
 ============

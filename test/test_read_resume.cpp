@@ -695,6 +695,21 @@ TORRENT_TEST(unfinished_bitmask_overflow)
 	TEST_EQUAL(ec, error_code(errors::too_many_pieces_in_torrent));
 }
 
+TORRENT_TEST(unloaded_index_too_large)
+{
+	entry rd;
+	rd["file-format"] = "libtorrent resume file";
+	rd["file-version"] = 1;
+	rd["info-hash"] = "                    ";
+	rd["unloaded"].list().emplace_back(2000000);
+
+	error_code ec;
+	add_torrent_params const atp = read_resume_data(bencode(rd), ec);
+	TEST_CHECK(!ec);
+	// a single index must not drive an unbounded allocation
+	TEST_CHECK(atp.unloaded_files.empty());
+}
+
 TORRENT_TEST(read_resume_banned_peers)
 {
 	add_torrent_params atp;

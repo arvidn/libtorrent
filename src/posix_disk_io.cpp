@@ -408,14 +408,18 @@ namespace {
 
 		void async_set_file_priority(storage_index_t const storage
 			, aux::vector<download_priority_t, file_index_t> prio
+			, aux::vector<bool, file_index_t> unloaded
+			, typed_bitfield<piece_index_t> have
 			, std::function<void(storage_error const&
-				, aux::vector<download_priority_t, file_index_t>)> handler) override
+				, aux::vector<download_priority_t, file_index_t>
+				, aux::vector<bool, file_index_t>)> handler) override
 		{
 			posix_storage* st = m_torrents[storage].get();
 			storage_error error;
-			st->set_file_priority(m_settings, prio, error);
-			post(m_ios, [p = std::move(prio), h = std::move(handler), error] () mutable
-				{ h(error, std::move(p)); });
+			st->set_file_priority(m_settings, prio, unloaded, have, error);
+			post(m_ios, [p = std::move(prio), u = std::move(unloaded)
+				, h = std::move(handler), error] () mutable
+				{ h(error, std::move(p), std::move(u)); });
 		}
 
 		void async_clear_piece(storage_index_t, piece_index_t index

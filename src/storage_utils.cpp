@@ -273,16 +273,12 @@ namespace libtorrent { namespace aux {
 		return { ret, new_save_path };
 	}
 
-	namespace {
-
 	void delete_one_file(std::string const& p, error_code& ec)
 	{
 		remove(p, ec);
 
 		if (ec == boost::system::errc::no_such_file_or_directory)
 			ec.clear();
-	}
-
 	}
 
 	void delete_files(filenames const& fs, std::string const& save_path
@@ -559,6 +555,94 @@ typed_bitfield<piece_index_t> check_pieces(filenames const& fs,
 	}
 	return pieces;
 }
+
+	void unload_file(filenames const& fs, file_index_t const file
+		, typed_bitfield<piece_index_t> const& have_pieces
+		, std::function<int(piece_index_t, int, span<char>)> const& read_segment
+		, std::function<void(piece_index_t)> const& free_partfile_piece
+		, std::function<int(piece_index_t, int, span<char>)> const& write_partfile
+		, std::function<void(storage_error&)> const& flush_partfile
+		, std::function<void(file_index_t)> const& release_file
+		, std::function<void(file_index_t, storage_error&)> const& remove_file
+		, storage_error& ec)
+	{
+		if (file < file_index_t(0) || file >= fs.end_file() || fs.pad_file_at(file))
+			return;
+
+		std::int64_t const file_start = fs.file_offset(file);
+		std::int64_t const file_end = file_start + fs.file_size(file);
+		if (file_end <= file_start)
+		{
+			release_file(file);
+			remove_file(file, ec);
+			if (ec) ec.file(file);
+			return;
+		}
+
+		int const piece_size = fs.piece_length();
+		std::int64_t const total_size = fs.files().total_size();
+		std::vector<char> buffer(static_cast<std::size_t>(piece_size));
+		std::vector<piece_index_t> drop_pieces;
+
+		for (piece_index_t const piece : aux::file_piece_range_inclusive(fs, file))
+		{
+			std::int64_t const piece_start
+				= std::int64_t(static_cast<int>(piece)) * piece_size;
+			std::int64_t const piece_end = std::min(piece_start + piece_size, total_size);
+			bool const contained = piece_start >= file_start && piece_end <= file_end;
+
+			if (contained)
+			{
+				// no one else needs these bytes
+				drop_pieces.push_back(piece);
+				continue;
+			}
+
+			if (piece >= have_pieces.end_index() || !have_pieces[piece]) continue;
+
+			std::int64_t const segment_start = std::max(piece_start, file_start);
+			std::int64_t const segment_end = std::min(piece_end, file_end);
+			if (segment_start >= segment_end) continue;
+
+			int const piece_offset = static_cast<int>(segment_start - piece_start);
+			int const length = static_cast<int>(segment_end - segment_start);
+			span<char> buf(buffer.data(), length);
+
+			int const r = read_segment(piece, piece_offset, buf);
+			if (ec) { ec.file(file); return; }
+			if (r != length)
+			{
+				ec.ec = errors::file_too_short;
+				ec.file(file);
+				ec.operation = operation_t::file_read;
+				return;
+			}
+
+			int const w = write_partfile(piece, piece_offset, buf);
+			if (ec) { ec.file(file); return; }
+			if (w != length)
+			{
+				ec.ec = errors::file_too_short;
+				ec.file(file);
+				ec.operation = operation_t::partfile_write;
+				return;
+			}
+		}
+
+		flush_partfile(ec);
+		if (ec) { ec.file(file); return; }
+
+		// close handles and mappings before unlinking; Windows refuses to
+		// delete files that are still open or mapped
+		release_file(file);
+		remove_file(file, ec);
+		if (ec) { ec.file(file); return; }
+
+		// free the dropped pieces only after the unlink succeeded; on failure
+		// the file is still in use and the part file must keep serving it
+		for (piece_index_t const piece : drop_pieces)
+			free_partfile_piece(piece);
+	}
 
 	bool verify_resume_data(add_torrent_params const& rd
 		, aux::vector<std::string, file_index_t> const& links
