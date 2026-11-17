@@ -4382,30 +4382,72 @@ TORRENT_TEST(unload_file_already_dont_download)
 	s2->set_file_priority(set, priorities, unloaded, have, se);
 	TEST_CHECK(!se.ec);
 
-	// a file whose data was deleted by hand must unload without an error too
-	auto const info2_path = combine_path(test_path, "unload_test");
-	delete_dirs(info2_path);
+	// a file whose data was deleted by hand is rejected, not silently
+	// unloaded: its half of the shared boundary piece only existed in that file,
+	// and dropping it would corrupt the still-wanted neighbour. Give this phase
+	// its own save path so no part file left by the phases above can supply the
+	// piece.
+	std::string const deleted_path = "unload_already_unchecked_deleted";
+	delete_dirs(deleted_path);
 	{
 		std::vector<char> buf2;
 		auto const info2 = setup_unload_torrent(buf2);
 		file_storage const& fs2 = info2->layout();
+		aux::vector<download_priority_t, file_index_t> priorities2(
+			std::size_t(fs2.num_files()), default_priority);
 		aux::vector<bool, file_index_t> unloaded2(std::size_t(fs2.num_files()), false);
-		storage_params p2{fs2, rf, test_path, {}, storage_mode_sparse, priorities
+		storage_params p2{fs2, rf, deleted_path, {}, storage_mode_sparse, priorities2
 			, unloaded2, sha1_hash{}, info2->v1(), info2->v2()};
 		auto s3 = std::make_shared<posix_storage>(p2);
 		storage_error se3;
 		s3->initialize(set, se3);
 		TEST_CHECK(!se3.ec);
-		TEST_CHECK(!exists(fs2.file_path(0_file, test_path)));
 
-		unloaded2[0_file] = true;
-		s3->set_file_priority(set, priorities, unloaded2, have, se3);
-		if (se3) print_error("unload deleted file", 0, se3);
+		for (piece_index_t const i : fs2.piece_range())
+		{
+			std::vector<char> data = make_unload_piece(static_cast<int>(i), fs2.piece_size(i));
+			TEST_EQUAL(write(s3, set, span<char>(data.data(), int(data.size())), i, 0
+				, aux::open_mode::write, se3), int(data.size()));
+			TEST_CHECK(!se3.ec);
+		}
+
+		// delete file0 by hand; file1 keeps the shared boundary piece
+		error_code ec;
+		filesystem::remove(fs2.file_path(0_file, deleted_path), ec);
+		TEST_CHECK(!ec);
+		TEST_CHECK(!exists(fs2.file_path(0_file, deleted_path)));
+		TEST_CHECK(exists(fs2.file_path(1_file, deleted_path)));
+
+		// unchecking it first makes the storage look for the data on disk, find
+		// it gone, and fall back to the (empty) part file
+		priorities2[0_file] = dont_download;
+		s3->set_file_priority(set, priorities2, unloaded2, have, se3);
 		TEST_CHECK(!se3.ec);
-		TEST_CHECK(unloaded2[0_file]);
+
+		// the unload is rejected with a part-file error: there is nothing to
+		// migrate the boundary segment from
+		unloaded2[0_file] = true;
+		s3->set_file_priority(set, priorities2, unloaded2, have, se3);
+		if (se3) print_error("unload deleted file", 0, se3);
+		TEST_EQUAL(se3.ec, errors::partfile_missing_piece);
+		TEST_CHECK(se3.operation == operation_t::partfile_read);
+		// the rejection leaves priority and unloaded state untouched
+		TEST_CHECK(priorities2[0_file] == dont_download);
+		TEST_CHECK(!unloaded2[0_file]);
+		TEST_CHECK(!exists(fs2.file_path(0_file, deleted_path)));
+
+		// file1 still has its half of the shared boundary piece on disk
+		std::ifstream f(fs2.file_path(1_file, deleted_path), std::ios::binary);
+		TEST_CHECK(bool(f));
+		std::vector<char> boundary(0x2000);
+		f.read(boundary.data(), std::streamsize(boundary.size()));
+		TEST_CHECK(f.gcount() == std::streamsize(boundary.size()));
+		std::vector<char> const piece2 = make_unload_piece(2, fs2.piece_size(2_piece));
+		TEST_CHECK(boundary == std::vector<char>(piece2.begin() + 0x2000, piece2.end()));
 	}
 
 	delete_dirs(test_path);
+	delete_dirs(deleted_path);
 }
 
 // a failure to unlink the file must roll the unloaded state and priority back

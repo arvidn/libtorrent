@@ -1240,7 +1240,11 @@ void wait_until_checked(lt::session& ses, torrent_handle const& h)
 // is running. Retry only that documented transient; any other file_error_alert
 // is a failure. A file_prio_alert on its own does not prove the unload was
 // committed, so also require the live unloaded state to show the file gone.
-bool unload_and_wait(lt::session& ses, torrent_handle const& h, file_index_t const index)
+// Alerts popped while waiting are gone from the session, so a caller that cares
+// about some other alert type must ask for it via saw_finished rather than
+// re-popping afterwards.
+bool unload_and_wait(lt::session& ses, torrent_handle const& h, file_index_t const index
+	, bool* const saw_finished = nullptr)
 {
 	for (int i = 0; i < 20; ++i)
 	{
@@ -1250,6 +1254,8 @@ bool unload_and_wait(lt::session& ses, torrent_handle const& h, file_index_t con
 		bool const got_alert = wait_for_alert(ses, "unload"
 			, [&](alert const* a)
 			{
+				if (saw_finished && alert_cast<torrent_finished_alert>(a))
+					*saw_finished = true;
 				if (auto const* fe = alert_cast<file_error_alert>(a))
 				{
 					if (fe->handle != h) return false;
@@ -1558,16 +1564,24 @@ TORRENT_TEST(unload_file_from_finished_torrent)
 {
 	lt::session ses(settings());
 	torrent_handle h = ses.add_torrent(unload_test_torrent());
-	wait_for_seed(ses, h);
+	// wait for the check kicked off by add_torrent to finish and drain its
+	// alerts, so a torrent_finished_alert seen during the unload below can only
+	// come from the unload itself
+	TEST_CHECK(wait_for_alert(ses, torrent_checked_alert::alert_type
+		, "initial check", pop_alerts::pop_all, seconds(30)));
 	TEST_CHECK(h.status().is_seeding);
 
-	TEST_CHECK(unload_and_wait(ses, h, 0_file));
+	bool saw_finished = false;
+	TEST_CHECK(unload_and_wait(ses, h, 0_file, &saw_finished));
 
 	TEST_CHECK(!exists("unload_test/file0"));
 	TEST_CHECK(exists("unload_test/file1"));
 	check_unloaded_state(ses, h);
 
-	// unloading must not be treated as the torrent finishing
+	// unloading must not be treated as the torrent finishing. The flag covers
+	// a finished alert consumed by unload_and_wait()'s own alert draining; the
+	// pop below covers one posted after it returned.
+	TEST_CHECK(!saw_finished);
 	std::this_thread::sleep_for(lt::milliseconds(500));
 	std::vector<alert*> alerts;
 	ses.pop_alerts(&alerts);
