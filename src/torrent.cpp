@@ -6277,20 +6277,26 @@ namespace {
 		std::uint8_t const picker_gen = m_picker_generation;
 		m_flags |= torrent_internal_flags::outstanding_file_priority;
 		ADD_OUTSTANDING_ASYNC("file_priority");
+		// the storage rewrites the vectors it gets back on failure, so keep
+		// the requested unloaded state to answer a dropped unload request
+		auto requested_unloaded = unloaded;
 		m_ses.disk_thread().async_set_file_priority(m_storage
 			, std::move(prios)
 			, std::move(unloaded)
 			, std::move(have)
-			, [self = shared_from_this(), picker_gen, include_have] (storage_error const& ec
+			, [self = shared_from_this(), picker_gen, include_have
+				, requested_unloaded = std::move(requested_unloaded)] (storage_error const& ec
 				, aux::vector<download_priority_t, file_index_t> p
 				, aux::vector<bool, file_index_t> u)
-			{ self->on_file_priority(ec, std::move(p), std::move(u), picker_gen, include_have); });
+			{ self->on_file_priority(ec, std::move(p), std::move(u)
+				, requested_unloaded, picker_gen, include_have); });
 		m_ses.deferred_submit_jobs();
 	}
 
 	void torrent::on_file_priority(storage_error const& err
 		, aux::vector<download_priority_t, file_index_t> prios
 		, aux::vector<bool, file_index_t> unloaded
+		, aux::vector<bool, file_index_t> const& requested_unloaded
 		, std::uint8_t const picker_gen, bool const unload_job)
 	{
 		m_flags &= ~torrent_internal_flags::outstanding_file_priority;
@@ -6498,8 +6504,24 @@ namespace {
 		{
 			// in this case, some file priorities failed to get set
 			if (alerts().should_post<file_error_alert>())
+			{
 				alerts().emplace_alert<file_error_alert>(err.ec
 					, resolve_filename(err.file()), err.operation, get_handle());
+
+				// the storage stops at the first failed unload, so the requests
+				// queued behind it in this batch were dropped without an error
+				// of their own. Answer each one, so no client waiting on its
+				// file_prio_alert hangs. The committed entries are now in
+				// m_unloaded_files.
+				for (file_index_t const f : requested_unloaded.range())
+				{
+					if (!requested_unloaded[f]) continue;
+					if (f == err.file()) continue;
+					if (f < m_unloaded_files.end_index() && m_unloaded_files[f]) continue;
+					alerts().emplace_alert<file_error_alert>(err.ec
+						, resolve_filename(f), err.operation, get_handle());
+				}
+			}
 
 			// a failed unload leaves the files it did commit unloaded and reverts
 			// the rest to what the storage reports, so the torrent is not in an

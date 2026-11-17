@@ -1985,6 +1985,58 @@ TORRENT_TEST(unload_file_partial_batch_failure)
 	}
 }
 
+// a batch of unload requests fails at the first file. The storage stops there,
+// so the requests queued behind it must each get their own file_error_alert,
+// and the failed batch must not post a file_prio_alert.
+TORRENT_TEST(unload_file_batch_error_answers_every_unload)
+{
+	lt::add_torrent_params atp = unload_test_torrent();
+	std::string const part_file = combine_path("."
+		, "." + aux::to_hex(atp.ti->info_hashes().v1) + ".parts");
+
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(atp);
+	wait_for_seed(ses, h);
+	TEST_CHECK(h.status().is_seeding);
+
+	// make the part-file path unusable, forcing file0's boundary migration to
+	// fail
+	std::error_code ec;
+	std::filesystem::remove_all(part_file, ec);
+	TEST_CHECK(std::filesystem::create_directory(part_file, ec));
+	TEST_CHECK(!ec);
+
+	// run all three calls in one handler, so the priority job is still in
+	// flight when the unload requests are made and they are queued into one
+	// follow-up dispatch
+	auto const tor = h.native_handle();
+	post(ses.get_context(), [tor] {
+		tor->set_file_priority(0_file, low_priority);
+		tor->unload_file(0_file);
+		tor->unload_file(1_file);
+	});
+
+	// the priority job that was already in flight alerts success; the failed
+	// unload batch must not
+	int prio_alerts = 0;
+	int error_alerts = 0;
+	for (int i = 0; i < 100 && error_alerts < 2; ++i)
+	{
+		std::vector<alert*> alerts;
+		ses.pop_alerts(&alerts);
+		for (alert const* a : alerts)
+		{
+			if (alert_cast<file_prio_alert>(a)) ++prio_alerts;
+			if (alert_cast<file_error_alert>(a)) ++error_alerts;
+		}
+		if (error_alerts < 2) std::this_thread::sleep_for(100ms);
+	}
+	TEST_EQUAL(error_alerts, 2);
+	TEST_EQUAL(prio_alerts, 1);
+
+	std::filesystem::remove_all(part_file, ec);
+}
+
 // a failed unload leaves the file and its priority unchanged, so it must
 // report the error without pausing the torrent
 TORRENT_TEST(unload_file_write_error_keeps_torrent_running)

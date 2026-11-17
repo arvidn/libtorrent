@@ -682,6 +682,7 @@ namespace libtorrent::aux {
 		void on_file_priority(storage_error const& err
 			, aux::vector<download_priority_t, file_index_t> prios
 			, aux::vector<bool, file_index_t> unloaded
+			, aux::vector<bool, file_index_t> const& requested_unloaded
 			, std::uint8_t picker_gen, bool unload_job);
 		void prioritize_files(aux::vector<download_priority_t, file_index_t> files);
 		void file_priorities(aux::vector<download_priority_t, file_index_t>*) const;
