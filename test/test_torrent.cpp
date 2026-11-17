@@ -2534,6 +2534,41 @@ TORRENT_TEST(unload_file_pad_file_index_from_resume_data)
 	TEST_CHECK(!unloaded[1]);
 }
 
+// a pad-file index in unloaded_files must not leave seed mode either: nothing
+// is unloaded, so the seed keeps its seed mode and skips the full check
+TORRENT_TEST(unload_file_pad_file_index_keeps_seed_mode)
+{
+	std::filesystem::remove_all("unload_pad_seed_mode");
+	std::filesystem::create_directories("unload_pad_seed_mode");
+
+	torrent_args args;
+	args.name("unload_pad_seed_mode");
+	args.file("32768,name=file0");
+	args.file("16384,padfile,name=pad0");
+	lt::add_torrent_params atp = make_test_torrent(args);
+	TEST_CHECK(atp.ti->layout().pad_file_at(1_file));
+	atp.save_path = "unload_pad_seed_mode";
+	atp.flags &= ~torrent_flags::paused;
+	atp.flags &= ~torrent_flags::auto_managed;
+	atp.flags |= torrent_flags::seed_mode;
+	atp.unloaded_files = {false, true};
+	generate_files(*atp.ti, "unload_pad_seed_mode");
+	// the seed-mode resume check only looks at file sizes. Corrupt file0 so a
+	// full check would notice, proving seed mode did not fall back to one
+	{
+		std::ofstream f("unload_pad_seed_mode/unload_pad_seed_mode/file0", std::ios::binary);
+		f << std::string(32768, '\xff');
+	}
+
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(atp);
+	wait_for_seed(ses, h);
+
+	TEST_CHECK(!h.status().errc);
+	TEST_CHECK(h.flags() & torrent_flags::seed_mode);
+	TEST_CHECK(h.status().is_seeding);
+}
+
 // a shared boundary piece with no other wanted file must be dropped from the
 // wanted set even when the unloaded file's priority was already 0 (so the
 // per-file priority update does not run)

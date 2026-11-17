@@ -409,9 +409,21 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		TORRENT_ASSERT(is_single_thread());
 		m_file_priority.assign(p.file_priorities.begin(), p.file_priorities.end());
 		m_unloaded_files.assign(p.unloaded_files.begin(), p.unloaded_files.end());
-		if (std::find(m_unloaded_files.begin(), m_unloaded_files.end(), true)
-			!= m_unloaded_files.end())
-			m_flags &= ~torrent_flags::seed_mode;
+		// a pad-file index is cleared below without unloading anything, so it
+		// must not cost a seed its seed mode and require a full check
+		if (m_flags & torrent_flags::seed_mode)
+		{
+			file_storage const& unload_fs = m_torrent_file->layout();
+			bool unloaded_real_file = false;
+			for (file_index_t const i : m_unloaded_files.range())
+			{
+				if (!m_unloaded_files[i]) continue;
+				if (i >= unload_fs.end_file() || unload_fs.pad_file_at(i)) continue;
+				unloaded_real_file = true;
+				break;
+			}
+			if (unloaded_real_file) m_flags &= ~torrent_flags::seed_mode;
+		}
 
 		if (m_flags & torrent_flags::seed_mode)
 		{
