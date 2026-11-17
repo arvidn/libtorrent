@@ -1232,7 +1232,9 @@ namespace aux {
 		// the unload fails (e.g. the file cannot be removed), a
 		// ``file_error_alert`` is posted; the file and its priority are left
 		// unchanged and the torrent keeps running. Files committed before the
-		// failing one in the same batch stay unloaded.
+		// failing one in the same batch stay unloaded. If the part file cannot
+		// be flushed after a file was removed, the unload still stands and the
+		// error is reported.
 		//
 		// The unload is rejected with a ``file_error_alert`` if the torrent has no
 		// metadata or no storage during shutdown (``operation_not_supported``),
