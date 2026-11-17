@@ -769,7 +769,9 @@ namespace aux {
 		//
 		// ``get_resume_data()`` is synchronous and will block the calling
 		// thread until the resume data is ready and returned from the
-		// libtorrent main thread.
+		// libtorrent main thread. It does not wait for an in-flight file
+		// priority or unload job, so it may return the previous priority and
+		// unloaded state; use ``save_resume_data()`` for the committed state.
 		///
 		// ``save_resume_data()`` is asynchronous. It will return immediately
 		// and deliver the resume data is when it's done through a
