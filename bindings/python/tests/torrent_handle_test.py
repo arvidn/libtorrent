@@ -554,14 +554,38 @@ class PrioritiesTest(TorrentHandleTest):
 
 class UnloadFileTest(TorrentHandleTest):
     def test_unload_file(self) -> None:
+        # torrent_checked_alert is a status alert, file_prio_alert a storage
+        # alert, so both categories have to be enabled before either is posted
+        self.session.apply_settings(
+            {"alert_mask": lt.alert_category.storage | lt.alert_category.status}
+        )
+
+        # The fixture adds the torrent paused and auto-managed, leaving it to
+        # the queue manager to decide whether and when the torrent runs. Take it
+        # off the queue and start it, so the checks below happen when we ask.
+        self.handle.unset_flags(lt.torrent_flags.auto_managed)
+        self.handle.resume()
+
+        # The check kicked off when the torrent was added must be over before
+        # force_recheck() does anything, otherwise the recheck below is a no-op.
+        # Its alert can't tell us that, it may have been posted before the alert
+        # mask changed, so wait for the state and drop any alert left over.
+        for _ in lib.loop_until_timeout(5, msg="initial check"):
+            self.session.wait_for_alert(100)
+            if self.handle.status().state not in (
+                lt.torrent_status.checking_files,
+                lt.torrent_status.checking_resume_data,
+            ):
+                break
+        self.session.pop_alerts()
+
         path = pathlib.Path(self.dir.name) / os.fsdecode(self.torrent.files[0].path)
         path.write_bytes(self.torrent.files[0].data)
         self.handle.force_recheck()
-        for _ in lib.loop_until_timeout(5, msg="complete"):
-            if self.handle.status().progress == 1.0:
-                break
+        # the alert, not the progress, is what tells us the check has finished
+        self.wait_for(lt.torrent_checked_alert, timeout=5)
+        self.assertEqual(self.handle.status().progress, 1.0)
 
-        self.session.apply_settings({"alert_mask": lt.alert_category.storage})
         self.assertEqual(self.handle.get_unloaded_files(), [False])
         self.handle.unload_file(0)
         alert = self.wait_for(lt.file_prio_alert, timeout=5)
