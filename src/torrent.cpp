@@ -6235,7 +6235,7 @@ namespace {
 
 	void torrent::dispatch_file_priority(aux::vector<download_priority_t, file_index_t> prios
 		, aux::vector<bool, file_index_t> unloaded, bool const include_have
-		, bool const unload_job)
+		, bool const unload_job, aux::vector<bool, file_index_t> repeated_unloads)
 	{
 		INVARIANT_CHECK;
 
@@ -6286,11 +6286,12 @@ namespace {
 			, std::move(unloaded)
 			, std::move(have)
 			, [self = shared_from_this(), picker_gen, unload_job
-				, requested_unloaded = std::move(requested_unloaded)] (storage_error const& ec
+				, requested_unloaded = std::move(requested_unloaded)
+				, repeated_unloads = std::move(repeated_unloads)] (storage_error const& ec
 				, aux::vector<download_priority_t, file_index_t> p
 				, aux::vector<bool, file_index_t> u)
 			{ self->on_file_priority(ec, std::move(p), std::move(u)
-				, requested_unloaded, picker_gen, unload_job); });
+				, requested_unloaded, repeated_unloads, picker_gen, unload_job); });
 		m_ses.deferred_submit_jobs();
 	}
 
@@ -6298,6 +6299,7 @@ namespace {
 		, aux::vector<download_priority_t, file_index_t> prios
 		, aux::vector<bool, file_index_t> unloaded
 		, aux::vector<bool, file_index_t> const& requested_unloaded
+		, aux::vector<bool, file_index_t> const& repeated_unloads
 		, std::uint8_t const picker_gen, bool const unload_job)
 	{
 		m_flags &= ~torrent_internal_flags::outstanding_file_priority;
@@ -6538,9 +6540,21 @@ namespace {
 				}
 			}
 
-			// at least one requested unload committed before the failure; answer
-			// the success half of the batch too, with a single alert
-			if (committed_unload && alerts().should_post<file_prio_alert>())
+			// a queued re-unload of a file that was already unloaded at dispatch is
+			// not answered by the per-file loop above, since the file is still
+			// unloaded. Answer it here, unless it is the file that failed.
+			bool repeated_unload = false;
+			for (file_index_t const f : repeated_unloads.range())
+			{
+				if (!repeated_unloads[f]) continue;
+				if (f == err.file()) continue;
+				repeated_unload = true;
+				break;
+			}
+
+			// the success half of the batch is answered too, with a single alert
+			if ((committed_unload || repeated_unload)
+				&& alerts().should_post<file_prio_alert>())
 				alerts().emplace_alert<file_prio_alert>(get_handle());
 
 			// a failed unload leaves the files it did commit unloaded and reverts
@@ -6581,6 +6595,7 @@ namespace {
 				if (p.second != dont_download) new_unloaded[p.first] = false;
 			}
 
+			aux::vector<bool, file_index_t> repeated_unloads;
 			bool include_have = false;
 			for (file_index_t const f : m_deferred_unloads)
 			{
@@ -6588,6 +6603,14 @@ namespace {
 				// a deferred re-enable earlier in this batch may have cleared
 				// the flag, so go by the pending state, not the committed one
 				if (!new_unloaded[f]) include_have = true;
+				else
+				{
+					// already unloaded at dispatch: a no-op re-unload that still
+					// needs an answer if this batch fails on another file
+					if (repeated_unloads.end_index() <= f)
+						repeated_unloads.resize(static_cast<int>(f) + 1, false);
+					repeated_unloads[f] = true;
+				}
 				new_unloaded[f] = true;
 			}
 
@@ -6595,7 +6618,8 @@ namespace {
 			m_deferred_file_priorities.clear();
 			m_deferred_unloads.clear();
 			dispatch_file_priority(std::move(new_priority)
-				, std::move(new_unloaded), include_have, unload_job);
+				, std::move(new_unloaded), include_have, unload_job
+				, std::move(repeated_unloads));
 		}
 
 		// a save requested while the file priority job was in flight is done now,
@@ -6637,7 +6661,7 @@ namespace {
 		m_deferred_file_priorities.clear();
 
 		// storage may be NULL during shutdown
-		dispatch_file_priority(std::move(new_priority), std::move(new_unloaded), false, false);
+		dispatch_file_priority(std::move(new_priority), std::move(new_unloaded), false, false, {});
 	}
 
 	void torrent::set_file_priority(file_index_t const index
@@ -6679,7 +6703,7 @@ namespace {
 			m_deferred_unloads.erase(index);
 		}
 
-		dispatch_file_priority(std::move(new_priority), std::move(new_unloaded), false, false);
+		dispatch_file_priority(std::move(new_priority), std::move(new_unloaded), false, false, {});
 	}
 
 	void torrent::unload_file(file_index_t const index)
@@ -6777,7 +6801,7 @@ namespace {
 			new_unloaded.resize(static_cast<int>(index) + 1, false);
 		new_unloaded[index] = true;
 
-		dispatch_file_priority(std::move(new_priority), std::move(new_unloaded), true, true);
+		dispatch_file_priority(std::move(new_priority), std::move(new_unloaded), true, true, {});
 	}
 
 	void torrent::unloaded_files(aux::vector<bool, file_index_t>* files) const
