@@ -6396,13 +6396,13 @@ namespace {
 					// (share mode, an explicit piece priority or a streaming deadline).
 					// The file priority may be 0 already, in which case it was never
 					// re-applied above. Force the piece out of the wanted set here.
-					if (m_picker->set_piece_priority(p, dont_download))
-					{
-						filter_updated = true;
 #ifndef TORRENT_DISABLE_STREAMING
-						remove_time_critical_piece(p);
+					// remove_time_critical_piece() resets the piece to low_priority,
+					// so it has to run before filtering it
+					remove_time_critical_piece(p);
 #endif
-					}
+					if (m_picker->set_piece_priority(p, dont_download))
+						filter_updated = true;
 
 					// the file is gone, so any partially downloaded blocks of an
 					// incomplete piece are too
@@ -6448,13 +6448,13 @@ namespace {
 						}
 						if (wanted) continue;
 
-						if (m_picker->set_piece_priority(p, dont_download))
-						{
-							filter_updated = true;
 #ifndef TORRENT_DISABLE_STREAMING
-							remove_time_critical_piece(p);
+						// remove_time_critical_piece() resets the piece to low_priority,
+						// so it has to run before filtering it
+						remove_time_critical_piece(p);
 #endif
-						}
+						if (m_picker->set_piece_priority(p, dont_download))
+							filter_updated = true;
 					}
 				}
 			}

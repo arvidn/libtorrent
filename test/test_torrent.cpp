@@ -2595,6 +2595,33 @@ TORRENT_TEST(unload_file_boundary_piece_without_wanted_file)
 	TEST_EQUAL(h.status().total_wanted, 0);
 }
 
+// same as above, but the piece is wanted by a streaming deadline. Cancelling
+// the deadline must not put the piece back in the wanted set after it was
+// filtered, or the torrent is dragged back to downloading
+TORRENT_TEST(unload_file_boundary_piece_deadline)
+{
+	std::filesystem::remove_all("unload_boundary_deadline");
+
+	lt::session ses(settings());
+	lt::add_torrent_params atp = unload_test_atp();
+	atp.save_path = "unload_boundary_deadline";
+	atp.file_priorities = {dont_download, dont_download};
+	torrent_handle h = ses.add_torrent(atp);
+	wait_until_checked(ses, h);
+
+	// piece 1 is shared by file 0 and file 1, but neither file is wanted. The
+	// deadline puts it back in the wanted set without touching file priorities.
+	h.set_piece_deadline(1_piece, 1000);
+	TEST_EQUAL(h.status().total_wanted, 32768);
+
+	h.unload_file(0_file);
+	wait_for_alert(ses, file_prio_alert::alert_type, "unload 0");
+
+	TEST_EQUAL(h.piece_priority(1_piece), dont_download);
+	TEST_EQUAL(h.status().total_wanted, 0);
+	TEST_EQUAL(h.status().state, torrent_status::finished);
+}
+
 // unloading every file also drops a shared boundary piece that was kept
 // wanted by an explicit piece priority
 TORRENT_TEST(unload_file_boundary_piece_all_files)
