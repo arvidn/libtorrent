@@ -1881,6 +1881,67 @@ TORRENT_TEST(unload_file_prioritize_pieces_refetches_on_seed)
 	TEST_CHECK(h.get_unloaded_files()[0]);
 }
 
+// the pair-list overload must not be ignored on a seed that has a picker,
+// unlike the single-piece calls
+TORRENT_TEST(unload_file_prioritize_piece_list_refetches_on_seed)
+{
+	std::filesystem::remove_all("unload_list_refetch");
+	std::filesystem::remove_all("unload_list_refetch_seed");
+
+	lt::add_torrent_params atp = unload_test_atp();
+	generate_files(*atp.ti, "unload_list_refetch");
+	generate_files(*atp.ti, "unload_list_refetch_seed");
+	atp.save_path = "unload_list_refetch";
+
+	settings_pack pack = settings();
+	pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
+	lt::session ses(pack);
+	torrent_handle h = ses.add_torrent(atp);
+	wait_for_seed(ses, h);
+	TEST_CHECK(h.status().is_seeding);
+
+	lt::add_torrent_params seed_atp = unload_test_atp();
+	seed_atp.save_path = "unload_list_refetch_seed";
+	lt::session seed_ses(pack);
+	torrent_handle seed = seed_ses.add_torrent(seed_atp);
+	wait_for_seed(seed_ses, seed);
+	TEST_CHECK(seed.status().is_seeding);
+
+	// unloading file0 leaves file1 downloaded, so the torrent keeps seeding
+	h.unload_file(0_file);
+	wait_for_alert(ses, file_prio_alert::alert_type, "unload");
+	TEST_CHECK(h.status().is_seeding);
+	TEST_CHECK(!exists("unload_list_refetch/unload_test/file0"));
+	auto const unloaded = h.get_unloaded_files();
+	TEST_CHECK(unloaded.size() >= 2);
+	if (unloaded.size() >= 2) TEST_CHECK(unloaded[0]);
+	TEST_CHECK(!h.have_piece(0_piece));
+	TEST_EQUAL(h.status().total_wanted, 32768);
+
+	// piece 0 is entirely inside file0; the list overload is not ignored for
+	// a seed that has a picker, unlike the single-piece calls
+	h.prioritize_pieces(std::vector<std::pair<piece_index_t, download_priority_t>>{
+		{0_piece, top_priority}});
+
+	TEST_EQUAL(h.status().total_wanted, 65536);
+	TEST_CHECK(!h.status().is_seeding);
+
+	h.connect_peer(ep("127.0.0.1", seed_ses.listen_port()));
+	for (int i = 0; i < 200
+		&& h.status().total_wanted_done < h.status().total_wanted; ++i)
+	{
+		print_alerts(ses, "ses");
+		print_alerts(seed_ses, "seed");
+		std::this_thread::sleep_for(lt::milliseconds(100));
+	}
+
+	TEST_CHECK(h.status().total_wanted_done == h.status().total_wanted);
+	TEST_CHECK(h.have_piece(0_piece));
+	TEST_EQUAL(h.status().total_done, 65536);
+	TEST_CHECK(!exists("unload_list_refetch/unload_test/file0"));
+	TEST_CHECK(h.get_unloaded_files()[0]);
+}
+
 // two unload requests queued behind a priority job are dispatched together.
 // The first file commits, the second fails because its boundary bytes cannot
 // be read from the removed file, and the first must still be fully dropped

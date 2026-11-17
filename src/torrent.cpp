@@ -6102,7 +6102,9 @@ namespace {
 
 		// this call is only valid on torrents with metadata
 		TORRENT_ASSERT(valid_metadata());
-		if (is_seed()) return;
+		// a seed without a picker has no priorities to update, but one with a
+		// picker (e.g. while unloading a file) does
+		if (is_seed() && !has_picker()) return;
 
 		need_picker();
 
