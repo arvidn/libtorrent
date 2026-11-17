@@ -2694,6 +2694,156 @@ TORRENT_TEST(unload_file_all_files)
 	TEST_CHECK(rd.unloaded_files[1]);
 }
 
+// two unloaded files share the part-file slot of their boundary piece. A
+// re-enable of one of them must export exactly that file's bytes out of the
+// shared slot and leave the other file unloaded and absent, with nothing of
+// the exported file needing to be fetched again.
+TORRENT_TEST(unload_file_two_files_reenable_one)
+{
+	std::filesystem::remove_all("unload_two");
+	std::filesystem::remove_all("unload_two_seed");
+
+	// file0 ends inside piece 1, which file1 starts in. The two files share
+	// piece 1 and each owns a different part of it, so exporting the wrong
+	// segment of the shared slot cannot go unnoticed
+	std::vector<int> const file_sizes{40960, 24576};
+	auto files = create_random_files("unload_two", file_sizes);
+	lt::create_torrent ct(std::move(files), 0x8000, lt::create_torrent::v1_only);
+	error_code ec;
+	set_piece_hashes(ct, ".", ec);
+	TEST_CHECK(!ec);
+	std::vector<char> torrent;
+	bencode(std::back_inserter(torrent), ct.generate());
+	lt::add_torrent_params atp = load_torrent_buffer(torrent);
+	TEST_CHECK(atp.ti->is_valid());
+	atp.flags &= ~torrent_flags::paused;
+	atp.flags &= ~torrent_flags::auto_managed;
+	atp.save_path = ".";
+	TEST_EQUAL(atp.ti->num_pieces(), 2);
+	TEST_EQUAL(atp.ti->map_file(0_file, 32768, 1).piece, 1_piece);
+	TEST_EQUAL(atp.ti->map_file(1_file, 0, 1).piece, 1_piece);
+
+	std::string const path0 = atp.ti->layout().file_path(0_file);
+	std::string const path1 = atp.ti->layout().file_path(1_file);
+	std::vector<char> const file1_original = read_file(path1);
+	TEST_EQUAL(file1_original.size(), std::size_t(24576));
+
+	// the seed holds the same bytes behind another save path
+	std::filesystem::create_directory("unload_two_seed");
+	std::filesystem::copy("unload_two", "unload_two_seed/unload_two"
+		, std::filesystem::copy_options::recursive);
+
+	settings_pack seed_pack = settings();
+	seed_pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
+	lt::session seed_ses(seed_pack);
+	lt::add_torrent_params seed_atp = atp;
+	seed_atp.save_path = "unload_two_seed";
+	torrent_handle seeder = seed_ses.add_torrent(seed_atp);
+	wait_for_seed(seed_ses, seeder);
+	TEST_CHECK(seeder.status().is_seeding);
+
+	settings_pack pack = settings();
+	pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
+	lt::session ses(pack);
+	torrent_handle h = ses.add_torrent(atp);
+	wait_for_seed(ses, h);
+	TEST_CHECK(h.status().is_seeding);
+	TEST_CHECK(h.have_piece(0_piece));
+	TEST_CHECK(h.have_piece(1_piece));
+
+	TEST_CHECK(unload_and_wait(ses, h, 0_file));
+	TEST_CHECK(unload_and_wait(ses, h, 1_file));
+
+	TEST_CHECK(!exists(path0));
+	TEST_CHECK(!exists(path1));
+	auto const unloaded = h.get_unloaded_files();
+	TEST_EQUAL(unloaded.size(), 2);
+	if (unloaded.size() != 2) return;
+	TEST_CHECK(unloaded[0]);
+	TEST_CHECK(unloaded[1]);
+
+	// piece 0 belonged to file0 only, so it is gone. Piece 1 is shared: its
+	// bytes for both files are in the part file, so both are still "have"
+	TEST_CHECK(!h.have_piece(0_piece));
+	TEST_CHECK(h.have_piece(1_piece));
+	TEST_CHECK(has_part_file("."));
+	TEST_EQUAL(h.status().total_wanted, 0);
+
+	// re-enable file1 only. Its 24576 bytes are the tail of piece 1, so the
+	// export frees no slot: file0's segment of the same piece has to survive
+	h.file_priority(1_file, default_priority);
+	wait_for_alert(ses, file_prio_alert::alert_type, "reenable");
+
+	TEST_CHECK(!exists(path0));
+	TEST_CHECK(exists(path1));
+	TEST_CHECK(read_file(path1) == file1_original);
+	auto const after = h.get_unloaded_files();
+	TEST_EQUAL(after.size(), 2);
+	if (after.size() != 2) return;
+	TEST_CHECK(after[0]);
+	TEST_CHECK(!after[1]);
+	// file0's 8192 bytes of the shared piece are still in the part file the
+	// export of file1 left behind, since file1's range is not a whole piece
+	TEST_CHECK(has_part_file("."));
+	// the piece file1 starts in also holds file0's tail, so the whole 32768
+	// byte shared piece is what has to be wanted
+	TEST_EQUAL(h.status().total_wanted, 32768);
+
+	// the whole shared piece is still have, so nothing of the re-enabled file
+	// needs fetching. Connect to the seed and require the payload download to
+	// stay at zero: the bytes on disk must be the exported ones, not a
+	// re-download that repaired them
+	std::int64_t const before_download = h.status().total_payload_download;
+	h.connect_peer(ep("127.0.0.1", seed_ses.listen_port()));
+	for (int i = 0; i < 20; ++i)
+	{
+		print_alerts(ses, "ses");
+		print_alerts(seed_ses, "seed");
+		std::this_thread::sleep_for(lt::milliseconds(100));
+	}
+
+	torrent_status const st = h.status();
+	TEST_EQUAL(st.state, torrent_status::seeding);
+	TEST_CHECK(st.is_seeding);
+	TEST_EQUAL(st.total_wanted, 32768);
+	TEST_EQUAL(st.total_wanted_done, st.total_wanted);
+	// piece 1 is the only piece left, and it covers file0's 8192 bytes too
+	TEST_EQUAL(st.total_done, 32768);
+	TEST_CHECK(!h.have_piece(0_piece));
+	TEST_CHECK(h.have_piece(1_piece));
+	TEST_CHECK(!st.errc);
+	TEST_EQUAL(st.total_payload_download, before_download);
+
+	// the re-enabled file on disk is still the original data, so the shared
+	// slot was exported correctly
+	TEST_CHECK(read_file(path1) == file1_original);
+	TEST_CHECK(!exists(path0));
+
+	std::vector<std::int64_t> const fp = h.file_progress();
+	TEST_EQUAL(fp.size(), std::size_t(2));
+	if (fp.size() == 2)
+	{
+		// file1 is complete, file0 has only its segment of the shared piece
+		// left (the rest of it was dropped with piece 0)
+		TEST_EQUAL(fp[0], 8192);
+		TEST_EQUAL(fp[1], 24576);
+	}
+
+	// the unloaded file stays absent across a resume round-trip
+	h.save_resume_data();
+	alert const* const a = wait_for_alert(ses, save_resume_data_alert::alert_type
+		, "save resume");
+	auto const* ra = alert_cast<save_resume_data_alert>(a);
+	TEST_CHECK(ra != nullptr);
+	if (!ra) return;
+	add_torrent_params const rd = read_resume_data(write_resume_data_buf(ra->params));
+	TEST_CHECK(!rd.unloaded_files.empty());
+	if (rd.unloaded_files.empty()) return;
+	TEST_CHECK(rd.unloaded_files[0]);
+	TEST_CHECK(rd.unloaded_files.size() < 2 || !rd.unloaded_files[1]);
+	TEST_CHECK(read_file(path1) == file1_original);
+}
+
 TORRENT_TEST(unload_file_shares_last_byte_of_piece)
 {
 	std::filesystem::remove_all("unload_short_file");
