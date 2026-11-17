@@ -2622,6 +2622,42 @@ TORRENT_TEST(unload_file_boundary_piece_deadline)
 	TEST_EQUAL(h.status().state, torrent_status::finished);
 }
 
+// a piece wholly inside the unloaded file may still be in the time critical
+// set (a streaming deadline). Cancelling the deadline resets the piece to
+// low_priority, so it has to be cancelled before the piece is filtered, or the
+// unload puts the piece back in the wanted set. In a normal torrent the
+// shared-piece sweep covers the same piece and re-filters it, so the order is
+// only observable in share mode, where that sweep is skipped.
+TORRENT_TEST(unload_file_exclusive_piece_deadline)
+{
+	std::filesystem::remove_all("unload_exclusive_deadline");
+
+	lt::session ses(settings());
+	lt::add_torrent_params atp = unload_test_atp();
+	atp.save_path = "unload_exclusive_deadline";
+	// neither file is wanted, so the file priority update does not run and the
+	// deadline survives to the sweep. Share mode turns off the shared-piece
+	// sweep, which would otherwise re-filter piece 0 after the exclusive sweep.
+	atp.file_priorities = {dont_download, dont_download};
+	atp.flags |= torrent_flags::share_mode;
+	torrent_handle h = ses.add_torrent(atp);
+	wait_until_checked(ses, h);
+
+	// piece 0 lies wholly inside file 0. The deadline puts it in the wanted set
+	// without touching file priorities. Seeding is not a case worth checking:
+	// set_piece_deadline() returns early for a seed, so a seeding torrent never
+	// holds a deadline on this piece.
+	h.set_piece_deadline(0_piece, 1000);
+	TEST_EQUAL(h.status().total_wanted, 32768);
+
+	h.unload_file(0_file);
+	TEST_CHECK(wait_for_alert(ses, file_prio_alert::alert_type, "unload 0"));
+
+	TEST_EQUAL(h.piece_priority(0_piece), dont_download);
+	TEST_EQUAL(h.status().total_wanted, 0);
+	TEST_EQUAL(h.status().state, torrent_status::finished);
+}
+
 // unloading every file also drops a shared boundary piece that was kept
 // wanted by an explicit piece priority
 TORRENT_TEST(unload_file_boundary_piece_all_files)
