@@ -411,7 +411,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		m_unloaded_files.assign(p.unloaded_files.begin(), p.unloaded_files.end());
 		// a pad-file index is cleared below without unloading anything, so it
 		// must not cost a seed its seed mode and require a full check
-		if (m_flags & torrent_flags::seed_mode)
+		if ((m_flags & torrent_flags::seed_mode) && m_torrent_file->is_valid())
 		{
 			file_storage const& unload_fs = m_torrent_file->layout();
 			bool unloaded_real_file = false;
