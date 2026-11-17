@@ -17,6 +17,7 @@
 	* improve support for mapped v4 addresses
 	* reuse tracker connections when announcing multiple torrents
 	* remove predictive pieces feature
+	* add torrent_handle::unload_file() to discard a file's data while keeping bytes shared with other files in the part file
 
 2.1.3 not released
 
