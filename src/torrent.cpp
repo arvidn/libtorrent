@@ -6614,11 +6614,11 @@ namespace {
 				new_unloaded[f] = true;
 			}
 
-			bool const unload_job = !m_deferred_unloads.empty();
+			bool const deferred_batch_is_unload = !m_deferred_unloads.empty();
 			m_deferred_file_priorities.clear();
 			m_deferred_unloads.clear();
 			dispatch_file_priority(std::move(new_priority)
-				, std::move(new_unloaded), include_have, unload_job
+				, std::move(new_unloaded), include_have, deferred_batch_is_unload
 				, std::move(repeated_unloads));
 		}
 
