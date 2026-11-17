@@ -421,6 +421,7 @@ struct test_disk_io final : lt::disk_interface
 		m_files = &fs;
 		m_v1 = params.v1;
 		m_v2 = params.v2;
+		m_unloaded = params.unloaded_files;
 		m_blocks_per_piece = fs.piece_length() / lt::default_block_size;
 		m_pad_bytes = compute_pad_bytes(fs);
 
@@ -810,10 +811,14 @@ struct test_disk_io final : lt::disk_interface
 			, lt::aux::vector<bool, lt::file_index_t>)> handler) override
 	{
 		TORRENT_ASSERT(m_files);
-		post(m_ioc, [=]() mutable {
-			// this backend never unloads files, so nothing was committed
-			for (auto&& u : unloaded) u = false;
-			handler(lt::storage_error(lt::error_code(
+		post(m_ioc, [this, prio = std::move(prio), unloaded = std::move(unloaded)
+			, h = std::move(handler)]() mutable {
+			// this backend never unloads files. Report the unloaded state it has
+			// committed (the one it was created with) instead of clearing the
+			// entries it never touched.
+			m_unloaded.resize(static_cast<int>(unloaded.size()), false);
+			unloaded = m_unloaded;
+			h(lt::storage_error(lt::error_code(
 				boost::system::errc::operation_not_supported, lt::system_category()))
 				, std::move(prio), std::move(unloaded));
 		});
@@ -970,6 +975,7 @@ private:
 
 	// we only support a single torrent. This is set if it has been added
 	lt::file_storage const* m_files = nullptr;
+	lt::aux::vector<bool, lt::file_index_t> m_unloaded;
 	bool m_v1 = false;
 	bool m_v2 = false;
 
