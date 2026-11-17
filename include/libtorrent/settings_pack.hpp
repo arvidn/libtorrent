@@ -1000,7 +1000,8 @@ namespace aux {
 			// must have the request path start with "/announce". This is the
 			// conventional bittorrent tracker request. Any other HTTP(S)
 			// tracker request to loopback will be rejected. This applies to
-			// trackers that redirect to loopback as well.
+			// trackers that redirect to loopback as well. The same applies to
+			// WebSocket trackers, which are also allowed the root path ("/").
 			//
 			// Web seeds that end up on the client's local network (i.e. in a
 			// private IP address range) may not include query string arguments.

@@ -165,6 +165,18 @@ void websocket_stream::on_resolve(error_code const& ec, std::vector<address> con
 	for (auto const& addr : addresses)
 		endpoints.emplace_back(addr, m_port);
 
+	if (m_endpoint_filter)
+	{
+		error_code const filter_ec = m_endpoint_filter(endpoints);
+		if (filter_ec)
+		{
+			if (auto handler = std::exchange(m_connect_handler, nullptr))
+				post(m_io_service, std::bind(std::move(handler), filter_ec));
+			return;
+		}
+		TORRENT_ASSERT(!endpoints.empty());
+	}
+
 	do_tcp_connect(std::move(endpoints));
 }
 

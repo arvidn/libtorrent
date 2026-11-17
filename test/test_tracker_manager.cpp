@@ -15,6 +15,7 @@ see LICENSE file.
 #include "libtorrent/aux_/session_interface.hpp"
 #include "libtorrent/performance_counters.hpp"
 #include "libtorrent/aux_/resolver.hpp"
+#include "libtorrent/ip_filter.hpp"
 #if TORRENT_USE_RTC
 #include "libtorrent/aux_/websocket_stream.hpp"
 #endif
@@ -321,6 +322,76 @@ TORRENT_TEST(websocket_tracker_proxy_enabled_during_offers)
 	TEST_CHECK(h.m_tracker_manager.empty());
 	TEST_EQUAL(
 		cb->last_error, error_code(boost::system::errc::permission_denied, generic_category()));
+}
+
+namespace {
+
+// queue a websocket tracker request for path on a loopback listener and
+// return whether the tracker connection reached the listener. failed is set
+// if the request failed before it was aborted
+bool websocket_tracker_connects(
+	std::string const& path, bool& failed, std::shared_ptr<ip_filter const> filter = {})
+{
+	io_context ios;
+	aux::session_settings sett;
+	TEST_CHECK(sett.get_bool(settings_pack::ssrf_mitigation));
+
+	lt::tcp::acceptor acceptor(ios, lt::tcp::endpoint(make_address_v4("127.0.0.1"), 0));
+	int const port = acceptor.local_endpoint().port();
+	lt::tcp::socket incoming(ios);
+	bool accepted = false;
+	acceptor.async_accept(incoming, [&](error_code const& ec) { accepted = !ec; });
+
+	tracker_manager_handler h{ios, sett};
+
+	tracker_request r;
+	r.url = "ws://127.0.0.1:" + std::to_string(port) + path;
+	r.num_want = 1;
+	r.filter = std::move(filter);
+	auto cb = std::make_shared<ws_request_callback>();
+	h.m_tracker_manager.queue_request(ios, std::move(r), sett, cb);
+
+	for (int i = 0; i < 50 && !accepted && !cb->last_error; ++i)
+		ios.run_for(milliseconds(100));
+	failed = bool(cb->last_error);
+
+	h.m_tracker_manager.abort_all_requests(true);
+	h.m_tracker_manager.stop();
+	acceptor.close();
+	incoming.close();
+	ios.run_for(milliseconds(100));
+
+	return accepted;
+}
+
+}
+
+// with ssrf_mitigation enabled, a websocket tracker on loopback may only be
+// sent the conventional tracker request path, same as HTTP trackers
+TORRENT_TEST(websocket_tracker_ssrf_mitigation)
+{
+	bool failed = false;
+	TEST_CHECK(!websocket_tracker_connects("/admin/delete?id=1", failed));
+	TEST_CHECK(failed);
+
+	TEST_CHECK(!websocket_tracker_connects("/announce/../admin", failed));
+	TEST_CHECK(failed);
+
+	TEST_CHECK(websocket_tracker_connects("/announce", failed));
+	TEST_CHECK(websocket_tracker_connects("/", failed));
+}
+
+// websocket trackers are subject to the IP filter, same as HTTP and UDP
+// trackers
+TORRENT_TEST(websocket_tracker_ip_filter)
+{
+	auto filter = std::make_shared<ip_filter>();
+	filter->add_rule(
+		make_address_v4("127.0.0.1"), make_address_v4("127.0.0.1"), ip_filter::blocked);
+
+	bool failed = false;
+	TEST_CHECK(!websocket_tracker_connects("/announce", failed, filter));
+	TEST_CHECK(failed);
 }
 
 #if TORRENT_USE_I2P
