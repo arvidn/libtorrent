@@ -1188,7 +1188,9 @@ namespace aux {
 		//
 		// You cannot set the file priorities on a torrent that does not yet have
 		// metadata or a torrent that is a seed. ``file_priority(int, int)`` and
-		// prioritize_files() are both no-ops for such torrents.
+		// prioritize_files() are both no-ops for such torrents, except that
+		// raising the priority of an unloaded file loads it back (see
+		// ``unload_file()``).
 		//
 		// Since changing file priorities may involve disk operations (of moving
 		// files in- and out of the part file), the internal accounting of file
@@ -1219,8 +1221,8 @@ namespace aux {
 		//
 		// While the torrent is downloading, an explicit piece priority above
 		// ``dont_download`` on a piece of an unloaded file is honoured: the piece
-		// is downloaded into the part file, while the file stays unloaded and its
-		// bytes stay off disk. A torrent that keeps seeding after an unload
+		// is downloaded into the part file, while the file stays unloaded and is
+		// not recreated on disk. A torrent that keeps seeding after an unload
 		// ignores ``set_piece_priority()`` and ``set_piece_deadline()`` as
 		// download requests; a deadline with ``alert_when_available`` still posts
 		// a ``read_piece_alert`` for the piece. The bulk ``prioritize_pieces()``
@@ -1232,9 +1234,10 @@ namespace aux {
 		// the unload fails (e.g. the file cannot be removed), a
 		// ``file_error_alert`` is posted; the file and its priority are left
 		// unchanged and the torrent keeps running. Files committed before the
-		// failing one in the same batch stay unloaded. If the part file cannot
-		// be flushed after a file was removed, the unload still stands and the
-		// error is reported.
+		// failing one in the same batch stay unloaded, and are answered by one
+		// ``file_prio_alert`` alongside the ``file_error_alert``. If the part file
+		// cannot be flushed after a file was removed, the unload still stands and
+		// the error is reported.
 		//
 		// The unload is rejected with a ``file_error_alert`` if the torrent has no
 		// metadata or no storage during shutdown (``operation_not_supported``),
@@ -1244,8 +1247,9 @@ namespace aux {
 		// storage (``operation_in_progress``).
 		//
 		// Unloading a file that is already unloaded is a no-op that posts
-		// ``file_prio_alert`` without touching the storage, and is not subject to
-		// the checking and moving rejection above.
+		// ``file_prio_alert`` without touching the storage, unless a file priority
+		// job is in flight, in which case the unload is queued behind it. Either
+		// way it is not subject to the checking and moving rejection above.
 		//
 		// The unloaded state is saved in resume data. Loading such resume data
 		// keeps using the part file and will not recreate the file, also not on a

@@ -1290,8 +1290,9 @@ TORRENT_VERSION_NAMESPACE_4
 	};
 
 	// If the storage fails to read or write files that it needs access to, this alert is
-	// generated and the torrent is paused. A failed unload request is rolled back and
-	// leaves the torrent running instead.
+	// generated and the torrent is paused. A failed unload request leaves the torrent
+	// running instead; the file and its priority are rolled back, unless the file was
+	// already removed (see torrent_handle::unload_file()).
 	struct TORRENT_EXPORT file_error_alert final : torrent_alert
 	{
 		// internal
@@ -3109,10 +3110,12 @@ TORRENT_VERSION_NAMESPACE_4
 	// update of the file priorities complete, which requires a round-trip to
 	// the disk thread.
 	//
-	// If the disk operation fails this alert won't be posted, but a
-	// file_error_alert is posted instead. The torrent is paused and set to the
-	// error, unless the job was started by unload_file(), which leaves it
-	// running.
+	// If the disk operation fails, a file_error_alert is posted. The torrent is
+	// paused and set to the error, unless the job was started by unload_file(),
+	// which leaves it running. A batch that only partly succeeds posts both: a
+	// file_error_alert for the failing file and a single file_prio_alert for the
+	// files that were committed. Since this alert carries no file index, it means
+	// some file priorities or unloads were applied, not that all of them were.
 	struct TORRENT_EXPORT file_prio_alert final : torrent_alert
 	{
 		// internal
