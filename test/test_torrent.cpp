@@ -1891,6 +1891,87 @@ TORRENT_TEST(unload_file_piece_priority_refetches_into_part_file)
 	}
 }
 
+// A resumed torrent can have a boundary piece whose unloaded-file side is
+// already complete while the part file has no slot for it. When the piece
+// completes, its hash reads that range through the part file and fails with
+// partfile_missing_piece. That must fail the piece and download it again, not
+// pause the torrent with a bogus disk error.
+TORRENT_TEST(unload_file_verify_missing_partfile_does_not_pause)
+{
+	std::filesystem::remove_all("unload_verify_seed");
+	std::filesystem::remove_all("unload_verify_dl");
+
+	// piece 0 is inside file0. piece 1 starts with a block in file0 and ends
+	// with a block in file1
+	torrent_args args;
+	args.name("unload_verify");
+	args.file("49152,name=file0");
+	args.file("16384,name=file1");
+	lt::add_torrent_params atp = make_test_torrent(args);
+
+	settings_pack seed_pack = settings();
+	seed_pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
+	settings_pack dl_pack = settings();
+	dl_pack.set_str(settings_pack::listen_interfaces, test_listen_interface());
+
+	lt::add_torrent_params seed_atp = atp;
+	seed_atp.save_path = "unload_verify_seed";
+	generate_files(*seed_atp.ti, seed_atp.save_path);
+	seed_atp.flags &= ~torrent_flags::paused;
+	seed_atp.flags &= ~torrent_flags::auto_managed;
+	lt::session seed_ses(seed_pack);
+	torrent_handle seed = seed_ses.add_torrent(seed_atp);
+	wait_for_seed(seed_ses, seed);
+
+	lt::add_torrent_params dl_atp = atp;
+	dl_atp.save_path = "unload_verify_dl";
+	dl_atp.unloaded_files.assign(2, false);
+	dl_atp.unloaded_files[0] = true;
+	// file0's side of piece 1 was downloaded before file0 was unloaded; the
+	// part file has no slot for it. Only the last block, which lives in file1,
+	// is still missing
+	dl_atp.unfinished_pieces[1_piece] = bitfield(2);
+	dl_atp.unfinished_pieces[1_piece].set_bit(0);
+	dl_atp.flags &= ~torrent_flags::paused;
+	dl_atp.flags &= ~torrent_flags::auto_managed;
+
+	lt::session dl_ses(dl_pack);
+	torrent_handle h = dl_ses.add_torrent(dl_atp);
+
+	// dispatch a file priority job so the storage creates the part file for
+	// the already-unloaded file before the piece is ever hashed
+	h.file_priority(1_file, default_priority);
+	TEST_CHECK(wait_for_alert(dl_ses, file_prio_alert::alert_type, "part file") != nullptr);
+
+	h.connect_peer(ep("127.0.0.1", seed_ses.listen_port()));
+
+	bool got_hash_failed = false;
+	bool got_error = false;
+	for (int i = 0; i < 200 && !h.have_piece(1_piece); ++i)
+	{
+		std::vector<alert*> alerts;
+		dl_ses.pop_alerts(&alerts);
+		for (alert const* a : alerts)
+		{
+			if (auto const* hf = alert_cast<hash_failed_alert>(a))
+			{
+				if (hf->piece_index == 1_piece) got_hash_failed = true;
+			}
+			if (alert_cast<file_error_alert>(a)) got_error = true;
+		}
+		print_alerts(seed_ses, "seed");
+		std::this_thread::sleep_for(lt::milliseconds(100));
+	}
+
+	// the missing part-file slot was hit, and it did not pause the torrent
+	TEST_CHECK(got_hash_failed);
+	TEST_CHECK(!got_error);
+	TEST_CHECK(!h.status().errc);
+	TEST_CHECK(!(h.status().flags & torrent_flags::paused));
+	// the piece was failed and requested again, then passed
+	TEST_CHECK(h.have_piece(1_piece));
+}
+
 // the bulk piece-priority call is not ignored for a torrent that keeps seeding
 // after an unload: the piece is re-fetched into the part file while the file
 // stays unloaded and absent from disk

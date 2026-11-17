@@ -4740,7 +4740,13 @@ namespace {
 			return;
 		}
 
-		bool const disk_error = (!passed || !v2_passed) && error;
+		// The file this piece was read from may have been unloaded after the
+		// piece was dispatched. The storage only migrates the pieces the
+		// torrent listed as have at dispatch, so this range is expected to be
+		// missing. Fail the piece so it is downloaded again; this is not a
+		// disk failure and must not pause the torrent.
+		bool const partfile_missing = error.ec == errors::partfile_missing_piece;
+		bool const disk_error = (!passed || !v2_passed) && error && !partfile_missing;
 
 		if (disk_error) handle_disk_error("piece_verified", error);
 
