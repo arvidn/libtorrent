@@ -6234,7 +6234,8 @@ namespace {
 	}
 
 	void torrent::dispatch_file_priority(aux::vector<download_priority_t, file_index_t> prios
-		, aux::vector<bool, file_index_t> unloaded, bool const include_have)
+		, aux::vector<bool, file_index_t> unloaded, bool const include_have
+		, bool const unload_job)
 	{
 		INVARIANT_CHECK;
 
@@ -6284,12 +6285,12 @@ namespace {
 			, std::move(prios)
 			, std::move(unloaded)
 			, std::move(have)
-			, [self = shared_from_this(), picker_gen, include_have
+			, [self = shared_from_this(), picker_gen, unload_job
 				, requested_unloaded = std::move(requested_unloaded)] (storage_error const& ec
 				, aux::vector<download_priority_t, file_index_t> p
 				, aux::vector<bool, file_index_t> u)
 			{ self->on_file_priority(ec, std::move(p), std::move(u)
-				, requested_unloaded, picker_gen, include_have); });
+				, requested_unloaded, picker_gen, unload_job); });
 		m_ses.deferred_submit_jobs();
 	}
 
@@ -6590,10 +6591,11 @@ namespace {
 				new_unloaded[f] = true;
 			}
 
+			bool const unload_job = !m_deferred_unloads.empty();
 			m_deferred_file_priorities.clear();
 			m_deferred_unloads.clear();
 			dispatch_file_priority(std::move(new_priority)
-				, std::move(new_unloaded), include_have);
+				, std::move(new_unloaded), include_have, unload_job);
 		}
 
 		// a save requested while the file priority job was in flight is done now,
@@ -6635,7 +6637,7 @@ namespace {
 		m_deferred_file_priorities.clear();
 
 		// storage may be NULL during shutdown
-		dispatch_file_priority(std::move(new_priority), std::move(new_unloaded), false);
+		dispatch_file_priority(std::move(new_priority), std::move(new_unloaded), false, false);
 	}
 
 	void torrent::set_file_priority(file_index_t const index
@@ -6677,7 +6679,7 @@ namespace {
 			m_deferred_unloads.erase(index);
 		}
 
-		dispatch_file_priority(std::move(new_priority), std::move(new_unloaded), false);
+		dispatch_file_priority(std::move(new_priority), std::move(new_unloaded), false, false);
 	}
 
 	void torrent::unload_file(file_index_t const index)
@@ -6775,7 +6777,7 @@ namespace {
 			new_unloaded.resize(static_cast<int>(index) + 1, false);
 		new_unloaded[index] = true;
 
-		dispatch_file_priority(std::move(new_priority), std::move(new_unloaded), true);
+		dispatch_file_priority(std::move(new_priority), std::move(new_unloaded), true, true);
 	}
 
 	void torrent::unloaded_files(aux::vector<bool, file_index_t>* files) const

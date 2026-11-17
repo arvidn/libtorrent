@@ -678,7 +678,8 @@ namespace libtorrent::aux {
 		void unloaded_files(aux::vector<bool, file_index_t>*) const;
 
 		void dispatch_file_priority(aux::vector<download_priority_t, file_index_t> prios
-			, aux::vector<bool, file_index_t> unloaded, bool include_have);
+			, aux::vector<bool, file_index_t> unloaded, bool include_have
+			, bool unload_job);
 		void on_file_priority(storage_error const& err
 			, aux::vector<download_priority_t, file_index_t> prios
 			, aux::vector<bool, file_index_t> unloaded
