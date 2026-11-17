@@ -15,6 +15,8 @@ see LICENSE file.
 #if TORRENT_USE_RTC
 
 #include "libtorrent/aux_/escape_string.hpp"
+#include "libtorrent/aux_/parse_url.hpp"
+#include "libtorrent/error.hpp"
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/aux_/websocket_tracker_connection.hpp"
 #include "libtorrent/aux_/utf8.hpp"
@@ -43,6 +45,7 @@ see LICENSE file.
 #include <locale>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <type_traits>
 #include <vector>
 
@@ -69,6 +72,53 @@ void report_error(std::weak_ptr<request_callback> const& cb,
 {
 	if (auto c = cb.lock())
 		c->tracker_request_error(req, ec, op, ec.message(), seconds32(120));
+}
+
+// the websocket handshake is an HTTP GET request for the tracker URL's path
+// and query string, so websocket trackers are subject to the same
+// restrictions as HTTP trackers (see http_tracker_connection::on_filter()).
+// With ssrf_mitigation enabled, a tracker on loopback may only be sent the
+// conventional tracker path. Websocket trackers are conventionally served at
+// the root as well, so "/" is also allowed
+aux::websocket_stream::endpoint_filter make_endpoint_filter(
+	tracker_request const& req, aux::session_settings const& settings)
+{
+	bool loopback_allowed = true;
+	if (settings.get_bool(settings_pack::ssrf_mitigation))
+	{
+		error_code ec;
+		std::string path;
+		std::tie(std::ignore, std::ignore, std::ignore, std::ignore, path) =
+			parse_url_components(req.url, ec);
+		loopback_allowed = !ec
+			&& (path.empty() || path == "/"
+				|| (path.substr(0, 9) == "/announce"
+					&& path.find_first_of("/\\%", 9) >= path.find_first_of("?#")));
+	}
+
+	return [loopback_allowed, filter = req.filter](std::vector<tcp::endpoint>& endpoints) {
+		auto const remove = [&](auto pred) {
+			endpoints.erase(
+				std::remove_if(endpoints.begin(), endpoints.end(), pred), endpoints.end());
+		};
+
+		if (!loopback_allowed)
+		{
+			remove([](tcp::endpoint const& ep) { return ep.address().is_loopback(); });
+			if (endpoints.empty())
+				return error_code(errors::ssrf_mitigation);
+		}
+
+		if (filter)
+		{
+			remove([&](tcp::endpoint const& ep) {
+				return filter->access(ep.address()) == ip_filter::blocked;
+			});
+			if (endpoints.empty())
+				return error_code(errors::banned_by_ip_filter);
+		}
+		return error_code();
+	};
 }
 }
 
@@ -100,6 +150,7 @@ void websocket_tracker_connection::start()
 	std::string const user_agent = settings.get_bool(settings_pack::anonymous_mode)
 			&& !req.private_torrent ? "" : settings.get_str(settings_pack::user_agent);
 	m_websocket->set_user_agent(user_agent);
+	m_websocket->set_endpoint_filter(make_endpoint_filter(req, settings));
 
 #ifndef TORRENT_DISABLE_LOGGING
 	if (auto cb = requester())
