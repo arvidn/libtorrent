@@ -349,7 +349,9 @@ namespace file_open_mode {
 		// ``dont_download``. ``have`` tells the storage which pieces actually
 		// contain data, so it does not need to copy pieces that are not
 		// downloaded. Both vectors are returned reflecting the state actually
-		// committed; on error the affected entries are reverted.
+		// committed; on error the affected entries are reverted, except that a
+		// failure after the files were removed (for example flushing the part
+		// file) does not revert the committed unload.
 		virtual void async_set_file_priority(storage_index_t storage
 			, aux::vector<download_priority_t, file_index_t> prio
 			, aux::vector<bool, file_index_t> unloaded
