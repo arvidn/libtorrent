@@ -172,9 +172,9 @@ struct TORRENT_EXTRA_EXPORT cached_piece_entry
 	// the last block, we should post this
 	disk_job* hash_job = nullptr;
 
-	// if the piece has been requested to be cleared, but it was locked
-	// (flushing) at the time. We hang this job here to complete it once the
-	// thread currently flushing is done with it
+	// a clear_piece job that could not complete when it was issued, because a
+	// thread was flushing or hashing the piece, or a v2 drain batch still owed
+	// it hashes
 	disk_job* clear_piece = nullptr;
 	// the exact v2 size of this piece (respecting file boundaries).
 	// Used for bytes_left computation in kick_hasher's v2 path.
@@ -512,8 +512,16 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 					}
 				}
 			}
+			// a clear_piece is a fence job, and the fence waits for this hash
+			// job
+			TORRENT_ASSERT(piece_iter->clear_piece == nullptr);
 			if (piece_iter->flushed_cursor == piece_iter->blocks_in_piece())
 			{
+				// insert() only fills blocks at or past flushed_cursor, and a
+				// flush only starts on a piece with write jobs, so no thread is
+				// flushing this piece
+				TORRENT_ASSERT(!(piece_iter->flags & cached_piece_entry::flushing_flag));
+				TORRENT_ASSERT(piece_iter->num_jobs == 0);
 				free_piece(*piece_iter);
 				view.erase(piece_iter);
 			}
@@ -615,8 +623,12 @@ struct TORRENT_EXTRA_EXPORT disk_cache
 	// Returns true if force_flush_flag was set on any piece, meaning a generic
 	// thread should be woken to flush those pieces to disk.
 	// Jobs hung on a piece that stops hashing early are extracted and placed in
-	// retry_jobs so the caller can re-submit them.
-	bool kick_pending_hashers(jobqueue_t& completed_jobs, jobqueue_t& retry_jobs);
+	// retry_jobs so the caller can re-submit them. `clear_piece_fun` is invoked
+	// for clear_piece jobs that were waiting for the hasher (see
+	// try_clear_piece).
+	bool kick_pending_hashers(jobqueue_t& completed_jobs,
+		jobqueue_t& retry_jobs,
+		std::function<void(jobqueue_t, disk_job*)> const& clear_piece_fun);
 
 	// Drains the queue: pops entries in batches, hashes each batch outside
 	// the cache lock, and forwards results via
@@ -684,6 +696,32 @@ private:
 
 	// this requires the mutex to be locked
 	void clear_piece_impl(cached_piece_entry& cpe, jobqueue_t& aborted);
+
+	// requires the mutex. The blocks may only be cleared once no thread holds
+	// pointers into them, and the clear may only be posted once no drain batch
+	// can still store a precomputed v2 hash for the piece. clear_piece_impl()
+	// is idempotent, so clearing early and posting later is fine.
+	template <typename View, typename Iter>
+	void finish_parked_clear(View& view,
+		Iter piece_iter,
+		std::function<void(jobqueue_t, disk_job*)> const& clear_piece_fun)
+	{
+		if (piece_iter->clear_piece == nullptr)
+			return;
+		if (piece_iter->flags
+			& (cached_piece_entry::flushing_flag | cached_piece_entry::hashing_flag))
+			return;
+
+		jobqueue_t aborted;
+		disk_job* clear_piece = nullptr;
+		view.modify(piece_iter, [&](cached_piece_entry& e) {
+			clear_piece_impl(e, aborted);
+			if (e.v2_pending == 0)
+				clear_piece = std::exchange(e.clear_piece, nullptr);
+		});
+		if (clear_piece != nullptr || !aborted.empty())
+			clear_piece_fun(std::move(aborted), clear_piece);
+	}
 
 	template <typename Iter, typename View>
 	Iter flush_piece_impl(View& view,
@@ -853,9 +891,7 @@ void disk_cache::drain_v2_hash_queue(Fun store,
 				++m_blocks;
 			}
 			// post any hash_job parked on the cpe by try_hash_piece's
-			// v2-pending defer branch or wait_for_v2_queue, and finish any
-			// clear_piece job try_clear_piece (or flush_piece_impl's deferred-
-			// clear branch) parked on the cpe -- all gated on v2_pending == 0.
+			// v2-pending defer branch or wait_for_v2_queue
 			for (auto piece_iter : piece_iters)
 			{
 				if (piece_iter == view.end()) continue;
@@ -867,17 +903,7 @@ void disk_cache::drain_v2_hash_queue(Fun store,
 						[&](cached_piece_entry& e) { j = std::exchange(e.hash_job, nullptr); });
 					posted.push_back(j);
 				}
-				if (piece_iter->clear_piece != nullptr)
-				{
-					disk_job* clear_piece = nullptr;
-					view.modify(piece_iter, [&](cached_piece_entry& e) {
-						clear_piece = std::exchange(e.clear_piece, nullptr);
-					});
-					// clear_piece_impl already ran when the clear was parked;
-					// any aborted writes were dispatched at that point. We
-					// only need to post the clear job's completion now.
-					clear_piece_fun({}, clear_piece);
-				}
+				finish_parked_clear(view, piece_iter, clear_piece_fun);
 			}
 			m_back_pressure.check_buffer_level(buffer_level());
 		}

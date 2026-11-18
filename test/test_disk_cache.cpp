@@ -14,6 +14,7 @@ see LICENSE file.
 #include <mutex>
 #include <condition_variable>
 #include <chrono>
+#include <optional>
 #include "test.hpp"
 #include "test_utils.hpp"
 #include "disk_cache_test_utils.hpp"
@@ -23,6 +24,9 @@ using namespace lt;
 using namespace lt::aux;
 
 namespace {
+
+// none of these tests park a clear_piece on a piece being hashed
+void no_clear(jobqueue_t, disk_job*) { TEST_ERROR("unexpected clear_piece"); }
 
 struct tbe
 {
@@ -371,7 +375,7 @@ TORRENT_TEST(v2_hash2_from_cache)
 
 	// Let the hasher compute SHA256 for block 0.
 	jobqueue_t completed, retry;
-	f.cache.kick_pending_hashers(completed, retry);
+	f.cache.kick_pending_hashers(completed, retry, no_clear);
 
 	bool fallback_called = false;
 	sha256_hash h = f.cache.hash2(f.loc(0_piece), 0, [&]() -> sha256_hash {
@@ -424,7 +428,7 @@ TORRENT_TEST(hash_failure_clear)
 	f.insert(0_piece, 1);
 
 	jobqueue_t completed, retry;
-	f.cache.kick_pending_hashers(completed, retry);
+	f.cache.kick_pending_hashers(completed, retry, no_clear);
 
 	auto hash_job = std::make_unique<pread_disk_job>();
 	hash_job->action = job::hash{{}, 0_piece, span<sha256_hash>{}, sha1_hash{}};
@@ -449,7 +453,7 @@ TORRENT_TEST(clear_piece_partially_flushed)
 	f.insert(0_piece, 0);
 	{
 		jobqueue_t completed, retry;
-		f.cache.kick_pending_hashers(completed, retry);
+		f.cache.kick_pending_hashers(completed, retry, no_clear);
 	}
 
 	// Flush block 0 (cheap: already hashed).
@@ -668,6 +672,57 @@ TORRENT_TEST(deferred_clear_via_kick_hashers_v2)
 TORRENT_TEST(deferred_clear_via_kick_hashers_hybrid)
 {
 	test_deferred_clear_via_kick_hashers(test_mode::v1 | test_mode::v2);
+}
+
+namespace {
+
+// A clear parked because the piece was flushing must not complete when the
+// drain brings v2_pending to zero while that flush is still running. The
+// blocks haven't been cleared yet, so the flush completes it instead.
+void test_deferred_clear_drain_during_flush(test_mode_t const mode)
+{
+	cache_fixture f(1, mode);
+	f.insert(0_piece, 0);
+
+	auto clear_job = std::make_unique<pread_disk_job>();
+	clear_job->action = job::clear_piece{{}, 0_piece};
+
+	std::optional<held_flush> flush;
+	jobqueue_t cb_aborted;
+	bool cb_immediate = true;
+	f.drain_store_hook = [&] {
+		if (flush)
+			return;
+		flush.emplace(f);
+		cb_immediate = f.cache.try_clear_piece(f.loc(0_piece), clear_job.get(), cb_aborted);
+	};
+
+	f.kick_hashers();
+
+	TEST_CHECK(!cb_immediate);
+	TEST_CHECK(cb_aborted.empty());
+	TEST_CHECK(f.cleared_jobs.empty());
+
+	flush->release();
+
+	TEST_EQUAL(f.cleared_jobs.size(), 1);
+	if (!f.cleared_jobs.empty())
+		TEST_EQUAL(f.cleared_jobs[0], clear_job.get());
+	// the flush took the write job, nothing is left to abort
+	TEST_CHECK(f.aborted_jobs.empty());
+	TEST_EQUAL(int(f.cache.size()), 0);
+	TEST_EQUAL(f.alloc.live, 0);
+}
+
+}
+
+TORRENT_TEST(deferred_clear_drain_during_flush_v2)
+{
+	test_deferred_clear_drain_during_flush(test_mode::v2);
+}
+TORRENT_TEST(deferred_clear_drain_during_flush_hybrid)
+{
+	test_deferred_clear_drain_during_flush(test_mode::v1 | test_mode::v2);
 }
 
 // try_hash_piece's v2-pending defer branch parks the hash_job on the cpe;

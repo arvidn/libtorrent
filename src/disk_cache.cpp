@@ -198,10 +198,8 @@ disk_cache::disk_cache(io_context& ios)
 // thread, clear it: abort all write jobs (returned in `aborted`), drop any
 // v2 hash queue entries, and reset cursors/flags. Returns true when the
 // caller can post the clear_piece job as complete now. Returns false if the
-// clear must be deferred -- the clear_piece job is parked on the cpe and
-// will be dispatched by whichever path eventually releases the gate that
-// blocked us (flush_piece_impl's scope_end for flushing_flag, or
-// drain_v2_hash_queue for v2_pending).
+// clear must be deferred, in which case j is parked on the cpe and posted by
+// finish_parked_clear().
 bool disk_cache::try_clear_piece(piece_location const loc, disk_job* j, jobqueue_t& aborted)
 {
 	std::unique_lock<std::mutex> l(m_mutex);
@@ -221,10 +219,8 @@ bool disk_cache::try_clear_piece(piece_location const loc, disk_job* j, jobqueue
 
 	// clear_piece is also issued on a disk write failure (peer_connection.cpp's
 	// on_disk_write_complete error path), and that can race with a hasher that
-	// was already kicked for earlier blocks of the same piece. Park the clear;
-	// flush_piece_impl's scope_end will dispatch it the next time a flush
-	// touches this piece (the hasher's Path 2/3 exit sets force_flush_flag so
-	// the next optimistic flush picks it up).
+	// was already kicked for earlier blocks of the same piece. Hasher kicks are
+	// not disk jobs, so the fence doesn't wait for them.
 	if (i->flags & cached_piece_entry::hashing_flag)
 	{
 		view.modify(i, [&](cached_piece_entry& e) { e.clear_piece = j; });
@@ -693,7 +689,9 @@ keep_going:
 
 // returns true if any piece finished hashing, and is ready to be flushed to
 // disk. Any such piece will also have had the force_flush_flag set.
-bool disk_cache::kick_pending_hashers(jobqueue_t& completed_jobs, jobqueue_t& retry_jobs)
+bool disk_cache::kick_pending_hashers(jobqueue_t& completed_jobs,
+	jobqueue_t& retry_jobs,
+	std::function<void(jobqueue_t, disk_job*)> const& clear_piece_fun)
 {
 	bool needs_flush = false;
 	std::unique_lock<std::mutex> l(m_mutex);
@@ -721,6 +719,7 @@ bool disk_cache::kick_pending_hashers(jobqueue_t& completed_jobs, jobqueue_t& re
 		});
 
 		needs_flush |= kick_hasher(it, l, completed_jobs, retry_jobs);
+		finish_parked_clear(view, it, clear_piece_fun);
 	}
 	return needs_flush;
 }
@@ -861,21 +860,7 @@ Iter disk_cache::flush_piece_impl(View& view,
 	DLOG("flush_piece_impl: piece: %d flushed_cursor: %d force_flush: %d\n"
 		, static_cast<int>(piece_iter->piece.piece), piece_iter->flushed_cursor, bool(piece_iter->flags & cached_piece_entry::force_flush_flag));
 	TORRENT_ASSERT(count <= blocks.size());
-	if (piece_iter->clear_piece)
-	{
-		jobqueue_t aborted;
-		disk_job* clear_piece = nullptr;
-		view.modify(piece_iter, [&](cached_piece_entry& e) {
-			clear_piece_impl(e, aborted);
-			// if a v2 drain still owes us a callback, leave e.clear_piece
-			// armed so drain_v2_hash_queue finishes the clear once
-			// v2_pending hits zero (the late store_precomputed_v2() must
-			// land before drop_precomputed_v2()).
-			if (e.v2_pending == 0) clear_piece = std::exchange(e.clear_piece, nullptr);
-		});
-		if (clear_piece != nullptr || !aborted.empty())
-			clear_piece_fun(std::move(aborted), clear_piece);
-	}
+	finish_parked_clear(view, piece_iter, clear_piece_fun);
 
 	return next_iter;
 }
