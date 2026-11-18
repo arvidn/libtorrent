@@ -22,10 +22,13 @@ see LICENSE file.
 #include "libtorrent/span.hpp"
 #include "libtorrent/sha1_hash.hpp"
 #include "libtorrent/units.hpp"
+#include <atomic>
+#include <chrono>
 #include <cstring>
 #include <functional>
 #include <map>
 #include <memory>
+#include <thread>
 #include <vector>
 
 using test_mode_t = lt::flags::bitfield_flag<std::uint8_t, struct test_mode_tag>;
@@ -175,8 +178,7 @@ struct cache_fixture
 	// (indexed by piece, then block) so tests can verify them without a real
 	// pread_storage.
 	std::map<std::pair<lt::piece_index_t, int>, lt::sha256_hash> v2_hashes;
-	// captured by the kick_hashers() clear-piece callback so tests can
-	// observe deferred clear_piece completions dispatched by the drain.
+	// lets tests observe deferred clear_piece completions
 	std::vector<lt::aux::disk_job*> cleared_jobs;
 	std::vector<lt::aux::disk_job*> aborted_jobs;
 	// captured by the kick_hashers() drain so tests can observe parked
@@ -187,24 +189,32 @@ struct cache_fixture
 	// decremented. lets tests inject try_clear_piece / try_hash_piece into
 	// the drain's unlocked window without bypassing kick_hashers().
 	std::function<void()> drain_store_hook;
+
+	std::function<void(lt::jobqueue_t, lt::aux::disk_job*)> capture_clear()
+	{
+		return [this](lt::jobqueue_t aborted, lt::aux::disk_job* clear) {
+			if (clear)
+				cleared_jobs.push_back(clear);
+			while (!aborted.empty())
+				aborted_jobs.push_back(aborted.pop_front());
+		};
+	}
+
 	void kick_hashers()
 	{
 		lt::jobqueue_t completed;
-		cache.kick_pending_hashers(completed, posted_jobs);
+		cache.kick_pending_hashers(completed, posted_jobs, capture_clear());
 		cache.drain_v2_hash_queue(
 			[this](std::shared_ptr<lt::aux::pread_storage> const&,
 				lt::piece_index_t const piece,
 				int const block,
 				lt::sha256_hash const& h) {
 				v2_hashes[{piece, block}] = h;
-				if (drain_store_hook) drain_store_hook();
+				if (drain_store_hook)
+					drain_store_hook();
 			},
 			posted_jobs,
-			[this](lt::jobqueue_t aborted, lt::aux::disk_job* clear) {
-				cleared_jobs.push_back(clear);
-				while (!aborted.empty())
-					aborted_jobs.push_back(aborted.pop_front());
-			});
+			capture_clear());
 	}
 
 	// Simulate flush_storage(): marks every block with a write_job as flushed.
@@ -233,6 +243,53 @@ struct cache_fixture
 		cache.remove_storage(storage, aborted);
 		return aborted;
 	}
+};
+
+// runs flush_storage(), like the flush a fence raised over pending writes
+// triggers, on a thread and stalls it inside the flush callback until
+// release(). The piece being flushed keeps flushing_flag set (with the cache
+// mutex released) in between. Parked clear_piece completions go to the
+// fixture's capture_clear().
+struct held_flush
+{
+	explicit held_flush(cache_fixture& f)
+		: m_thread([this, &f] {
+			f.cache.flush_storage(
+				[this](lt::bitfield& flushed, lt::span<lt::aux::disk_job* const> blocks) {
+					m_in_flush = true;
+					while (!m_release)
+						std::this_thread::sleep_for(std::chrono::milliseconds(1));
+					int count = 0;
+					for (int i = 0; i < int(blocks.size()); ++i)
+					{
+						if (!blocks[i])
+							continue;
+						flushed.set_bit(i);
+						++count;
+					}
+					return count;
+				},
+				lt::storage_index_t{0},
+				f.capture_clear());
+		})
+	{
+		while (!m_in_flush)
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	}
+
+	void release()
+	{
+		m_release = true;
+		if (m_thread.joinable())
+			m_thread.join();
+	}
+
+	~held_flush() { release(); }
+
+private:
+	std::atomic<bool> m_in_flush{false};
+	std::atomic<bool> m_release{false};
+	std::thread m_thread;
 };
 
 #endif // TORRENT_DISK_CACHE_TEST_UTILS_HPP_INCLUDED
