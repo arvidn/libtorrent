@@ -6696,6 +6696,17 @@ namespace {
 			return;
 		}
 
+		// WebRTC peers don't pass through incoming_connection(), attach_peer()
+		// or add_peer(), so the IP filter has to be applied here
+		if (m_apply_ip_filter && m_ip_filter
+			&& m_ip_filter->access(endpoint.address()) & ip_filter::blocked)
+		{
+			if (alerts().should_post<peer_blocked_alert>())
+				alerts().emplace_alert<peer_blocked_alert>(
+					get_handle(), endpoint, peer_blocked_alert::ip_filter);
+			return;
+		}
+
 		need_peer_list();
 		torrent_state st = get_peer_list_state();
 		if(torrent_peer* peerinfo = m_peer_list->add_rtc_peer(endpoint, peer_source_flags_t{}, {}, &st))
