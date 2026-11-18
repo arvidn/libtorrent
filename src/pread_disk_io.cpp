@@ -267,9 +267,9 @@ private:
 
 	// set to true once we start shutting down. Guarded by m_job_mutex: it's
 	// written, and read by the disk threads, under the mutex. The lock-free
-	// reads (in add_job(), add_fence_job() and the destructor) only run on the
-	// network thread (the only writer's thread) or after the disk threads have
-	// exited, so they don't race with the write.
+	// reads (in admit_job(), async_write(), add_fence_job() and the
+	// destructor) only run on the network thread (the only writer's thread) or
+	// after the disk threads have exited, so they don't race with the write.
 	bool m_abort = false;
 
 	// this is a counter of how many threads are currently running.
@@ -937,18 +937,20 @@ void pread_disk_io::kick_write_hashers()
 
 	jobqueue_t completed;
 	jobqueue_t retry;
-	m_cache.kick_pending_hashers(completed, retry);
+	auto const on_clear = [&](jobqueue_t aborted, aux::disk_job* clear) {
+		clear_piece_jobs(std::move(aborted), clear, completed);
+	};
+	m_cache.kick_pending_hashers(completed, retry, on_clear);
 	m_cache.drain_v2_hash_queue(
 		[](std::shared_ptr<aux::pread_storage> const& st,
 			piece_index_t const p,
 			int const block,
 			sha256_hash const& h) {
-			if (st) st->store_precomputed_v2(p, block, h);
+			if (st)
+				st->store_precomputed_v2(p, block, h);
 		},
 		retry,
-		[&](jobqueue_t aborted, aux::disk_job* clear) {
-			clear_piece_jobs(std::move(aborted), clear, completed);
-		});
+		on_clear);
 	if (!completed.empty()) add_completed_jobs(std::move(completed));
 	while (!retry.empty())
 	{
@@ -2196,19 +2198,21 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 			l.unlock();
 			jobqueue_t completed;
 			jobqueue_t retry;
-			bool const needs_flush = m_cache.kick_pending_hashers(completed, retry);
+			auto const on_clear = [&](jobqueue_t aborted, aux::disk_job* clear) {
+				clear_piece_jobs(std::move(aborted), clear, completed);
+			};
+			bool const needs_flush = m_cache.kick_pending_hashers(completed, retry, on_clear);
 
 			m_cache.drain_v2_hash_queue(
 				[](std::shared_ptr<aux::pread_storage> const& st,
 					piece_index_t const piece,
 					int const block,
 					sha256_hash const& h) {
-					if (st) st->store_precomputed_v2(piece, block, h);
+					if (st)
+						st->store_precomputed_v2(piece, block, h);
 				},
 				retry,
-				[&](jobqueue_t aborted, aux::disk_job* clear) {
-					clear_piece_jobs(std::move(aborted), clear, completed);
-				});
+				on_clear);
 			add_completed_jobs(std::move(completed));
 
 			l.lock();
