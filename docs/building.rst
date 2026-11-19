@@ -13,7 +13,7 @@ __ https://github.com/arvidn/libtorrent
 
 The build systems supported "out of the box" in libtorrent are boost-build
 cmake. If you still can't build after following these instructions, you can
-usually get help in the ``#libtorrent`` IRC channel on ``irc.freenode.net``.
+usually get help in the ``#libtorrent`` IRC channel on ``irc.libera.chat``.
 
 .. warning::
 
