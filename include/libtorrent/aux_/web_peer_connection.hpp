@@ -26,11 +26,20 @@ see LICENSE file.
 #include "libtorrent/aux_/piece_block_progress.hpp"
 #include "libtorrent/operations.hpp" // for operation_t enum
 #include "libtorrent/aux_/vector.hpp"
+#include "libtorrent/bitfield.hpp"
+#include "libtorrent/units.hpp"
+#include "libtorrent/fwd.hpp"
 
 namespace libtorrent::aux {
 
-	class TORRENT_EXTRA_EXPORT web_peer_connection : public peer_connection
-	{
+// clears pieces whose request, with one GET per file the piece spans,
+// each carrying the URL and file path, would be too large relative to
+// the piece length
+TORRENT_EXTRA_EXPORT void clear_expensive_pieces(
+	file_storage const& fs, int url_size, typed_bitfield<piece_index_t>& have);
+
+class TORRENT_EXTRA_EXPORT web_peer_connection : public peer_connection
+{
 	friend struct invariant_access;
 	public:
 
@@ -186,7 +195,7 @@ namespace libtorrent::aux {
 		// the number of responses we've received so far on
 		// this connection
 		int m_num_responses = 0;
-	};
+};
 }
 
 #endif // TORRENT_WEB_PEER_CONNECTION_HPP_INCLUDED

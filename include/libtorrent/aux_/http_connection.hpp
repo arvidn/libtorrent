@@ -18,6 +18,7 @@ see LICENSE file.
 #include <vector>
 #include <string>
 #include <optional>
+#include <memory>
 
 #include "libtorrent/socket.hpp"
 #include "libtorrent/error_code.hpp"
@@ -77,11 +78,6 @@ struct TORRENT_EXTRA_EXPORT http_connection
 
 	virtual ~http_connection();
 
-	void rate_limit(int limit);
-
-	int rate_limit() const
-	{ return m_rate_limit; }
-
 	std::string m_sendbuffer;
 
 	void get(std::string const& url,
@@ -131,6 +127,10 @@ private:
 #endif
 	void on_resolve(error_code const& e, std::vector<address> const& addresses);
 	void connect();
+	void create_socket(std::string const& hostname, error_code& ec);
+	void reconnect();
+	void socket_op_started();
+	void socket_op_completed();
 	void on_connect(error_code const& e);
 	void on_write(error_code const& e);
 	void on_read(error_code const& e, std::size_t bytes_transferred);
@@ -151,9 +151,7 @@ private:
 	// get() again with write_only=true on the same object, and must not
 	// have its in-progress state clobbered back to the start.
 	void set_write_only(bool enable);
-	static void on_timeout(std::weak_ptr<http_connection> p
-		, error_code const& e);
-	void on_assign_bandwidth(error_code const& e);
+	static void on_timeout(std::weak_ptr<http_connection> p, error_code const& e);
 
 	// a reused socket turned out to be dead (the peer may have closed it
 	// without us noticing. Close it and re-issue the same request on a fresh
@@ -182,7 +180,9 @@ private:
 	// endpoint with this index (in m_endpoints) next
 	int m_next_ep;
 
-	std::optional<aux::socket_type> m_sock;
+	// heap allocated so a replaced socket keeps its address until it is
+	// destroyed, see create_socket()
+	std::unique_ptr<aux::socket_type> m_sock;
 
 #if TORRENT_USE_SSL
 	ssl::context* m_ssl_ctx;
@@ -205,16 +205,16 @@ private:
 
 	time_duration m_completion_timeout;
 
-	// the timer fires every 250 millisecond as long
-	// as all the quota was used.
-	deadline_timer m_limiter_timer;
-
 	time_point m_last_receive;
 	time_point m_start_time;
 
 	// specifies whether or not the connection is
 	// configured to use a proxy
 	aux::proxy_settings m_proxy;
+
+	// the proxy the socket is instantiated with, which may differ from
+	// m_proxy (e.g. for i2p, or HTTP proxies without SSL)
+	aux::proxy_settings m_sock_proxy;
 
 	// the address and/or device to bind to. unset means do not bind
 	std::optional<bind_info_t> m_bind_addr;
@@ -228,15 +228,12 @@ private:
 	// the number of redirects to follow (in sequence)
 	int m_redirects;
 
+	// m_redirects as passed to start(), restored when failing over to the
+	// next endpoint
+	int m_max_redirects = 5;
+
 	// maximum size of bottled buffer
 	int m_max_bottled_buffer_size;
-
-	// the current download limit, in bytes per second
-	// 0 is unlimited.
-	int m_rate_limit;
-
-	// the number of bytes we are allowed to receive
-	int m_download_quota;
 
 	// used for DNS lookups
 	aux::resolver_flags m_resolve_flags;
@@ -246,11 +243,6 @@ private:
 	// set to true the first time the handler is called
 	bool m_called = false;
 
-	// only hand out new quota 4 times a second if the
-	// quota is 0. If it isn't 0 wait for it to reach
-	// 0 and continue to hand out quota at that time.
-	bool m_limiter_timer_active = false;
-
 	// true if the connection is using ssl
 	bool m_ssl = false;
 
@@ -258,6 +250,14 @@ private:
 
 	// true while waiting for an async_connect
 	bool m_connecting = false;
+
+	// set when the current endpoint timed out. The completion handler of
+	// the outstanding socket operation moves on to the next endpoint
+	bool m_failover = false;
+
+#if TORRENT_USE_ASSERTS
+	int m_socket_ops = 0;
+#endif
 
 	// true while resolving hostname
 	bool m_resolving_host = false;

@@ -20,11 +20,15 @@ see LICENSE file.
 #include "libtorrent/bencode.hpp"
 #include "libtorrent/load_torrent.hpp"
 
+#include <string>
+#include <vector>
+
 namespace filesystem = std::filesystem;
 
 namespace {
 
 using lt::operator""_bit;
+using lt::operator""_sv;
 using similar_test_t = lt::flags::bitfield_flag<std::uint32_t, struct similar_test_type_tag>;
 
 namespace st
@@ -35,7 +39,30 @@ namespace st
 	constexpr similar_test_t alt_a = 3_bit;
 	constexpr similar_test_t magnet = 4_bit;
 	constexpr similar_test_t collection = 5_bit;
-}
+	// files only in the first torrent, before the shared ones
+	constexpr similar_test_t seed_extra = 6_bit;
+	// files only in the second torrent, before the shared ones
+	constexpr similar_test_t our_extra = 7_bit;
+	}
+
+	// these sort before "A" and "B", so they shift the shared files' indices even
+	// with canonical file order
+	void add_extra_files(
+		std::string const& dir, int const num, std::vector<lt::create_file_entry>& fs)
+	{
+		for (int i = 0; i < num; ++i)
+		{
+			// a multiple of the piece size, to keep the following files aligned
+			std::vector<char> buf(0x4000);
+			lt::aux::random_bytes(buf);
+			std::string const path = dir + "/" + std::to_string(i);
+			{
+				ofstream f(path.c_str());
+				f.write(buf.data(), int(buf.size()));
+			}
+			fs.emplace_back(path, std::int64_t(buf.size()));
+		}
+	}
 
 std::array<bool, 2> test(
 	 similar_test_t const sflags
@@ -68,6 +95,8 @@ std::array<bool, 2> test(
 
 	auto t1 = [&] {
 		std::vector<lt::create_file_entry> fs;
+		if (sflags & st::seed_extra)
+			add_extra_files("test-torrent-1", 1, fs);
 		fs.emplace_back("test-torrent-1/A", std::int64_t(A.size()));
 		fs.emplace_back("test-torrent-1/B", std::int64_t(B.size()));
 		lt::create_torrent t(std::move(fs), 0, cflags1);
@@ -104,6 +133,10 @@ std::array<bool, 2> test(
 
 	auto t2 = [&] {
 		std::vector<lt::create_file_entry> fs;
+		// a different number than seed_extra, for the indices to differ when
+		// both are set
+		if (sflags & st::our_extra)
+			add_extra_files("test-torrent-2", 2, fs);
 		fs.emplace_back("test-torrent-2/A", std::int64_t(A.size()));
 		fs.emplace_back("test-torrent-2/B", std::int64_t(B.size()));
 		lt::create_torrent t(std::move(fs), 0, cflags2);
@@ -179,8 +212,15 @@ std::array<bool, 2> test(
 				}
 				if (auto const* fc = lt::alert_cast<lt::file_completed_alert>(al))
 				{
-					if (fc->handle == h2)
-						completed_files[std::size_t(static_cast<int>(fc->index))] = true;
+					if (fc->handle != h2)
+						return false;
+					// index into completed_files by name, since extra files and
+					// canonical file order shift the indices
+					auto const name = t2->layout().file_name(fc->index);
+					if (name == "A"_sv)
+						completed_files[0] = true;
+					else if (name == "B"_sv)
+						completed_files[1] = true;
 				}
 				return false;
 			}, false);
@@ -319,4 +359,50 @@ TORRENT_TEST(shared_files_hybrid)
 TORRENT_TEST(shared_files_hybrid_v2)
 {
 	TEST_CHECK(test({}, {}, v2) == bools({true, true}));
+}
+
+// the shared files are at different indices in the two torrents
+TORRENT_TEST(shared_files_v1_seed_extra)
+{
+	TEST_CHECK(test(st::seed_extra, v1 | canon, v1 | canon) == bools({true, true}));
+}
+
+TORRENT_TEST(shared_files_v1_our_extra)
+{
+	TEST_CHECK(test(st::our_extra, v1 | canon, v1 | canon) == bools({true, true}));
+}
+
+TORRENT_TEST(shared_files_v1_both_extra)
+{
+	TEST_CHECK(test(st::seed_extra | st::our_extra, v1 | canon, v1 | canon) == bools({true, true}));
+}
+
+TORRENT_TEST(shared_files_v2_seed_extra)
+{
+	TEST_CHECK(test(st::seed_extra, v2, v2) == bools({true, true}));
+}
+
+TORRENT_TEST(shared_files_v2_our_extra)
+{
+	TEST_CHECK(test(st::our_extra, v2, v2) == bools({true, true}));
+}
+
+TORRENT_TEST(shared_files_v2_both_extra)
+{
+	TEST_CHECK(test(st::seed_extra | st::our_extra, v2, v2) == bools({true, true}));
+}
+
+TORRENT_TEST(shared_files_hybrid_seed_extra)
+{
+	TEST_CHECK(test(st::seed_extra, {}, {}) == bools({true, true}));
+}
+
+TORRENT_TEST(shared_files_hybrid_our_extra)
+{
+	TEST_CHECK(test(st::our_extra, {}, {}) == bools({true, true}));
+}
+
+TORRENT_TEST(shared_files_hybrid_both_extra)
+{
+	TEST_CHECK(test(st::seed_extra | st::our_extra, {}, {}) == bools({true, true}));
 }

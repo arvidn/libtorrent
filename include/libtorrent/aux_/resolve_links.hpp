@@ -30,73 +30,73 @@ see LICENSE file.
 namespace libtorrent::aux {
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
-	// this class is used for mutable torrents, to discover identical files
-	// in other torrents.
-	struct TORRENT_EXTRA_EXPORT resolve_links
+// returns true if every piece overlapping file ``f`` contains only bytes
+// of that file and pad files
+TORRENT_EXTRA_EXPORT bool piece_aligned(file_storage const& fs, file_index_t f);
+
+// this class is used for mutable torrents, to discover identical files
+// in other torrents.
+struct TORRENT_EXTRA_EXPORT resolve_links
+{
+	// trust_domain is this torrent's trust domain (see
+	// torrent::trust_domain()), an all-zero hash for torrents that
+	// aren't SSL torrents. The caller is responsible for not
+	// constructing a resolve_links, and not calling match(), for a
+	// torrent for which torrent::resolve_links_disabled() is true.
+	explicit resolve_links(std::shared_ptr<torrent_info const> ti,
+		bool enforce_trust_domain = true,
+		sha256_hash const& trust_domain = sha256_hash());
+
+	// check to see if any files are shared with this torrent.
+	// trust_domain is ti's owning torrent's trust domain, following the
+	// same convention as the constructor's.
+	void match(torrent_info const& ti,
+		filenames const& fs,
+		std::string const& save_path,
+		sha256_hash const& trust_domain = sha256_hash());
+
+	aux::vector<std::string, file_index_t> const& get_links() const& { return m_links; }
+
+	aux::vector<std::string, file_index_t> get_links() && { return std::move(m_links); }
+
+private:
+	void match_v1(torrent_info const& ti, filenames const& fs, std::string const& save_path);
+	void match_v2(filenames const& fs, std::string const& save_path);
+
+	// this is the torrent we're trying to find files for.
+	std::shared_ptr<torrent_info const> m_torrent_file;
+
+	// each file in m_torrent_file has an entry in this vector. Any file
+	// that also exists somewhere else, is filled in with the corresponding
+	// torrent_info object and file index
+	aux::vector<std::string, file_index_t> m_links;
+
+	// maps file size to file index, in m_torrent_file
+	std::unordered_multimap<std::int64_t, file_index_t> m_file_sizes;
+
+	struct root_size_hash
 	{
-		// trust_domain is this torrent's trust domain (see
-		// torrent::trust_domain()), an all-zero hash for torrents that
-		// aren't SSL torrents. The caller is responsible for not
-		// constructing a resolve_links, and not calling match(), for a
-		// torrent for which torrent::resolve_links_disabled() is true.
-		explicit resolve_links(std::shared_ptr<torrent_info const> ti,
-			bool enforce_trust_domain = true,
-			sha256_hash const& trust_domain = sha256_hash());
-
-		// check to see if any files are shared with this torrent.
-		// trust_domain is ti's owning torrent's trust domain, following the
-		// same convention as the constructor's.
-		void match(torrent_info const& ti,
-			filenames const& fs,
-			std::string const& save_path,
-			sha256_hash const& trust_domain = sha256_hash());
-
-		aux::vector<std::string, file_index_t> const& get_links() const&
-		{ return m_links; }
-
-		aux::vector<std::string, file_index_t> get_links() &&
-		{ return std::move(m_links); }
-
-	private:
-
-		void match_v1(torrent_info const& ti, filenames const& fs
-			, std::string const& save_path);
-		void match_v2(filenames const& fs, std::string const& save_path);
-
-		// this is the torrent we're trying to find files for.
-		std::shared_ptr<torrent_info const> m_torrent_file;
-
-		// each file in m_torrent_file has an entry in this vector. Any file
-		// that also exists somewhere else, is filled in with the corresponding
-		// torrent_info object and file index
-		aux::vector<std::string, file_index_t> m_links;
-
-		// maps file size to file index, in m_torrent_file
-		std::unordered_multimap<std::int64_t, file_index_t> m_file_sizes;
-
-		struct root_size_hash
+		std::size_t operator()(std::pair<sha256_hash, std::int64_t> const& k) const
 		{
-			std::size_t operator()(std::pair<sha256_hash, std::int64_t> const& k) const
-			{
-				std::size_t ret = 0;
-				boost::hash_combine(ret, std::hash<sha256_hash>{}(k.first));
-				boost::hash_combine(ret, std::hash<std::int64_t>{}(k.second));
-				return ret;
-			}
-		};
-
-		// maps file root hash and size to file index, in m_torrent_file
-		std::unordered_multimap<std::pair<sha256_hash, std::int64_t>, file_index_t, root_size_hash>
-			m_file_roots;
-
-		// when true, match() refuses to link files across a trust-domain
-		// boundary. Set from settings_pack::enforce_torrent_trust_domain
-		// by the caller.
-		bool m_enforce_trust_domain = true;
-
-		// this torrent's trust domain (see the constructor's documentation)
-		sha256_hash m_trust_domain;
+			std::size_t ret = 0;
+			boost::hash_combine(ret, std::hash<sha256_hash>{}(k.first));
+			boost::hash_combine(ret, std::hash<std::int64_t>{}(k.second));
+			return ret;
+		}
 	};
+
+	// maps file root hash and size to file index, in m_torrent_file
+	std::unordered_multimap<std::pair<sha256_hash, std::int64_t>, file_index_t, root_size_hash>
+		m_file_roots;
+
+	// when true, match() refuses to link files across a trust-domain
+	// boundary. Set from settings_pack::enforce_torrent_trust_domain
+	// by the caller.
+	bool m_enforce_trust_domain = true;
+
+	// this torrent's trust domain (see the constructor's documentation)
+	sha256_hash m_trust_domain;
+};
 #endif // TORRENT_DISABLE_MUTABLE_TORRENTS
 
 }

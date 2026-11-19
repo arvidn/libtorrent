@@ -599,3 +599,34 @@ TORRENT_TEST_DISK_IO(recheck_deleted_file_after_download)
 	filesystem::remove_all(src_dir);
 	filesystem::remove_all(dst_dir);
 }
+
+// data that passes a hybrid torrent's v2 hashes but not its v1 hashes is an
+// error, not a missing piece
+TORRENT_TEST(inconsistent_hybrid_hashes)
+{
+	using namespace lt;
+
+	static char const* const test_dir = "test_torrent_dir_inconsistent_hybrid";
+	int const piece_size = 0x4000;
+	static std::array<int const, 1> const file_sizes{{2 * piece_size + 3000}};
+
+	auto fs = create_random_files(test_dir, file_sizes);
+
+	error_code ec;
+	lt::create_torrent ct(std::move(fs), piece_size);
+	set_piece_hashes(ct, ".", ec);
+	TEST_CHECK(!ec);
+	ct.set_hash(0_piece, sha1_hash("01234567890123456789"));
+
+	add_torrent_params p = load_torrent_buffer(bencode(ct.generate()));
+	p.save_path = ".";
+
+	session ses(settings());
+	torrent_handle h = ses.add_torrent(p, ec);
+	TEST_CHECK(!ec);
+	TEST_CHECK(wait_for_alert(
+		ses, torrent_error_alert::alert_type, "check", pop_alerts::pop_all, seconds(30)));
+	TEST_EQUAL(h.status().errc, error_code(errors::torrent_inconsistent_hashes));
+
+	filesystem::remove_all(test_dir);
+}

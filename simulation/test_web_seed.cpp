@@ -902,6 +902,75 @@ TORRENT_TEST(urlseed_timeout)
 	TEST_EQUAL(timeout, true);
 }
 
+// a response header larger than max_peer_recv_buffer_size fails the
+// connection
+TORRENT_TEST(large_response_header)
+{
+	bool too_large = false;
+	run_test(
+		[](lt::session& ses) {
+			std::vector<lt::create_file_entry> files;
+			files.emplace_back("large_header", 0x8000);
+			lt::add_torrent_params params = ::create_torrent(std::move(files));
+			params.url_seeds.push_back("http://2.2.2.2:8080/");
+			ses.async_add_torrent(params);
+		},
+		[&too_large](lt::session&, lt::alert const* alert) {
+			auto const* pe = lt::alert_cast<lt::peer_error_alert>(alert);
+			if (pe && pe->error == errors::packet_too_large)
+				too_large = true;
+		},
+		[](sim::simulation& sim, lt::session&) {
+			sim::asio::io_context web_server(sim, make_address_v4("2.2.2.2"));
+			sim::http_server http(web_server, 8080);
+
+			http.register_handler(
+				"/large_header", [](std::string, std::string, std::map<std::string, std::string>&) {
+					return "HTTP/1.1 200 OK\r\nX-Pad: " + std::string(3 * 1024 * 1024, 'A');
+				});
+			sim.run();
+		});
+	TEST_CHECK(too_large);
+}
+
+// a chunk header larger than max_peer_recv_buffer_size fails the connection
+TORRENT_TEST(large_chunk_header)
+{
+	bool too_large = false;
+	run_test(
+		[](lt::session& ses) {
+			lt::settings_pack pack;
+			pack.set_int(settings_pack::max_peer_recv_buffer_size, 100000);
+			ses.apply_settings(pack);
+
+			std::vector<lt::create_file_entry> files;
+			files.emplace_back("large_chunk", 0x4000);
+			lt::add_torrent_params params = ::create_torrent(std::move(files));
+			params.url_seeds.push_back("http://2.2.2.2:8080/");
+			ses.async_add_torrent(params);
+		},
+		[&too_large](lt::session&, lt::alert const* alert) {
+			auto const* pe = lt::alert_cast<lt::peer_error_alert>(alert);
+			if (pe && pe->error == errors::packet_too_large)
+				too_large = true;
+		},
+		[](sim::simulation& sim, lt::session&) {
+			sim::asio::io_context web_server(sim, make_address_v4("2.2.2.2"));
+			sim::http_server http(web_server, 8080);
+
+			http.register_handler(
+				"/large_chunk", [](std::string, std::string, std::map<std::string, std::string>&) {
+					return "HTTP/1.1 206 Partial Content\r\n"
+						   "Content-Range: bytes 0-16383/16384\r\n"
+						   "Transfer-Encoding: chunked\r\n\r\n"
+						   "4000;"
+						+ std::string(400000, 'A');
+				});
+			sim.run();
+		});
+	TEST_CHECK(too_large);
+}
+
 // check for correct handle of unexpected http status response.
 // with disabled "close_redundant_connections" alive web server connection
 // may be closed in such manner.
