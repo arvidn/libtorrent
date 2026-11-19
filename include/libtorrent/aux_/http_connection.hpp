@@ -118,6 +118,10 @@ struct TORRENT_EXTRA_EXPORT http_connection
 
 	void close(bool force = false);
 
+	// true if the previous request left the socket open and the server
+	// allowed keep-alive, i.e. the next get() would reuse the socket
+	bool reusable() const { return m_reusable && m_sock && m_sock->is_open(); }
+
 	aux::socket_type const& socket() const { return *m_sock; }
 
 	std::vector<tcp::endpoint> const& endpoints() const { return m_endpoints; }
