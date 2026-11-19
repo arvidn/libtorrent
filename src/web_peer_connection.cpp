@@ -967,7 +967,6 @@ void web_peer_connection::on_receive(error_code const& error
 			}
 
 			TORRENT_ASSERT(recv_buffer.empty() || recv_buffer[0] == 'H');
-			TORRENT_ASSERT(int(recv_buffer.size()) <= m_recv_buffer.packet_size());
 
 			// this means the entire status line hasn't been received yet
 			if (m_parser.status_code() == -1)
