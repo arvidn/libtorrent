@@ -82,6 +82,7 @@ private:
 	void do_read();
 	void on_timeout(error_code const& ec) override;
 	void on_connect(error_code const& ec);
+	error_code on_filter(std::vector<tcp::endpoint>& endpoints);
 	void on_read(error_code ec, std::size_t bytes_read);
 	void on_write(error_code const& ec, std::size_t bytes_written);
 	// wraps tracker_connection::fail
