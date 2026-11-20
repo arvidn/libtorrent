@@ -1,5 +1,6 @@
 2.1.3 not released
 
+	* apply ssrf_mitigation and the IP filter to websocket trackers
 	* fix file order when creating hybrid torrents
 	* fix web seed redirects
 	* limit the size of the allowed-fast set received from a peer
