@@ -89,6 +89,16 @@ struct i2p_session_options
 	int m_outbound_length_variance = 0;
 };
 
+namespace aux {
+// i2p hostnames are at most 67 characters, this leaves room for b32 and
+// b33 addresses
+constexpr std::size_t max_i2p_name_len = 255;
+
+// typical destinations are around 520 base64 characters, key certificates
+// may make them larger
+constexpr std::size_t max_i2p_destination_len = 4096;
+}
+
 struct TORRENT_EXTRA_EXPORT i2p_stream : aux::proxy_base
 {
 	explicit i2p_stream(io_context& io_context);
@@ -169,7 +179,8 @@ private:
 	// the SAM bridge can't parse.
 	bool format_command(char const* fmt, ...) TORRENT_FORMAT(2, 3)
 	{
-		int const capacity = 1024;
+		// fits STREAM CONNECT with the longest destination we accept
+		int const capacity = int(aux::max_i2p_destination_len) + 512;
 		m_buffer.resize(capacity);
 		std::va_list args;
 		va_start(args, fmt);
@@ -429,6 +440,11 @@ private:
 	{
 		TORRENT_ASSERT(m_magic == 0x1337);
 		m_state = read_connect_response;
+		if (m_dest.size() > aux::max_i2p_destination_len || !aux::is_valid_i2p_name(m_dest))
+		{
+			handle_error(i2p_error::invalid_key, h);
+			return;
+		}
 		if (!format_command("STREAM CONNECT ID=%s DESTINATION=%s\n", m_id, m_dest.c_str()))
 		{
 			handle_error(boost::asio::error::message_size, h);
@@ -588,6 +604,16 @@ public:
 		{
 			post(m_io_service, [h = std::move(handler)]() mutable {
 				h(error_code(errors::no_i2p_router), nullptr);
+			});
+			return;
+		}
+		// lookups share the session's SAM control socket, failing them there
+		// would tear down the whole i2p session
+		string_view const n(name);
+		if (n.size() > aux::max_i2p_name_len || !aux::is_valid_i2p_name(n))
+		{
+			post(m_io_service, [h = std::move(handler)]() mutable {
+				h(error_code(i2p_error::invalid_key), nullptr);
 			});
 			return;
 		}

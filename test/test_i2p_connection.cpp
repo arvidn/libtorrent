@@ -374,18 +374,18 @@ TORRENT_TEST(closed_sam_socket_fails_name_lookups)
 	TEST_EQUAL(r3.use_count(), 1);
 }
 
-TORRENT_TEST(oversized_name_lookup_fails_queued_name_lookups)
+TORRENT_TEST(invalid_name_lookup_keeps_session)
 {
 	io_context ios;
 
-	// a SAM bridge that sets up the session and then only reads, to detect
-	// the client closing the connection
+	// a SAM bridge that sets up the session and answers one name lookup
 	tcp::acceptor sam(ios, tcp::endpoint(make_address_v4("127.0.0.1"), 0), false);
 	tcp::socket sam_conn(ios);
 	std::array<char, 1024> buf;
-	std::array<std::string, 3> const replies{{"HELLO REPLY RESULT=OK\n",
+	std::array<std::string, 4> const replies{{"HELLO REPLY RESULT=OK\n",
 		"SESSION STATUS RESULT=OK\n",
-		"NAMING REPLY RESULT=OK NAME=ME VALUE=local-dest\n"}};
+		"NAMING REPLY RESULT=OK NAME=ME VALUE=local-dest\n",
+		"NAMING REPLY RESULT=OK NAME=bar.i2p VALUE=bar-dest\n"}};
 	std::size_t next_reply = 0;
 	std::string pending;
 	std::function<void(error_code const&, std::size_t)> const serve = [&](error_code const& ec,
@@ -423,27 +423,36 @@ TORRENT_TEST(oversized_name_lookup_fails_queued_name_lookups)
 			open_ec = ec;
 		});
 
-	// doesn't fit in a SAM command, failing without any I/O
+	// rejected without any I/O, the session must survive for later lookups
 	std::string const long_name(2000, 'a');
 	auto const r1 = std::make_shared<lookup_result>();
 	auto const r2 = std::make_shared<lookup_result>();
+	auto const r3 = std::make_shared<lookup_result>();
 	conn.async_name_lookup(long_name.c_str(), record(r1));
-	conn.async_name_lookup("bar.i2p", record(r2));
+	conn.async_name_lookup("a.i2p\nSTREAM ACCEPT ID=foo", record(r2));
+	conn.async_name_lookup("bar.i2p", record(r3));
 
-	run_to_completion(ios);
+	run_until(ios, r3->called);
 
-	error_code const size_error(boost::asio::error::message_size);
+	error_code const invalid_name(i2p_error::invalid_key);
 	TEST_EQUAL(next_reply, replies.size());
 	TEST_CHECK(!open_ec);
-	TEST_CHECK(!conn.is_open());
+	TEST_CHECK(conn.is_open());
 	TEST_CHECK(r1->called);
 	TEST_CHECK(r2->called);
-	TEST_EQUAL(r1->ec, size_error);
-	TEST_EQUAL(r2->ec, size_error);
+	TEST_EQUAL(r1->ec, invalid_name);
+	TEST_EQUAL(r2->ec, invalid_name);
+	TEST_CHECK(!r3->ec);
 	TEST_EQUAL(r1.use_count(), 1);
 	TEST_EQUAL(r2.use_count(), 1);
+	TEST_EQUAL(r3.use_count(), 1);
+
+	error_code ignore;
+	conn.close(ignore);
+	sam_conn.close(ignore);
+	sam.close(ignore);
+	run_to_completion(ios);
 }
 
-#else
 TORRENT_TEST(dummy) {}
 #endif

@@ -19,6 +19,7 @@ see LICENSE file.
 #include <vector>
 #include <functional>
 #include <cstdint>
+#include <limits>
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/logic/tribool.hpp>
@@ -6105,7 +6106,8 @@ namespace {
 		int const quota_left = m_quota[download_channel];
 		int const max_receive = std::min(buffer_size, quota_left);
 
-		if (max_receive == 0) return;
+		if (max_receive <= 0)
+			return;
 
 		span<char> const vec = m_recv_buffer.reserve(max_receive);
 		TORRENT_ASSERT(!(m_channel_state[download_channel] & peer_info::bw_network));
@@ -6141,6 +6143,15 @@ namespace {
 	void peer_connection::send_buffer(span<char const> buf)
 	{
 		TORRENT_ASSERT(is_single_thread());
+
+		// the send buffer tracks sizes as int. This buffer, the current
+		// capacity and the minimum 128 byte allocation below must all fit
+		if (std::int64_t(buf.size()) + m_send_buffer.capacity() + 128
+			> std::numeric_limits<int>::max())
+		{
+			disconnect(errors::packet_too_large, operation_t::alloc_sndbuf, failure);
+			return;
+		}
 
 		int const free_space = std::min(
 			m_send_buffer.space_in_last_buffer(), int(buf.size()));
@@ -6276,6 +6287,11 @@ namespace {
 				, "%d bytes", buffer_size);
 #endif
 
+			// the buffer is full, so reserve() grows it by buffer_size
+			buffer_size = std::min(buffer_size,
+				m_settings.get_int(settings_pack::max_peer_recv_buffer_size)
+					- m_recv_buffer.capacity());
+
 			request_bandwidth(download_channel, buffer_size);
 
 			int const quota_left = m_quota[download_channel];
@@ -6334,7 +6350,7 @@ namespace {
 			? 100 : 0;
 		m_recv_buffer.normalize(force_shrink);
 
-		if (m_recv_buffer.max_receive() == 0)
+		if (m_recv_buffer.max_receive() <= 0)
 		{
 			// the message we're receiving is larger than our receive
 			// buffer, we must grow.
@@ -6345,6 +6361,15 @@ namespace {
 			peer_log(peer_log_alert::incoming, peer_log_alert::grow_buffer, "%d bytes"
 				, m_recv_buffer.capacity());
 #endif
+
+			if (m_recv_buffer.max_receive() <= 0)
+			{
+				// the buffer has reached its limit, it's full, and the upper
+				// layer needs more data before it can consume any of it. We
+				// would never read from this socket again
+				disconnect(errors::packet_too_large, operation_t::bittorrent, peer_error);
+				return;
+			}
 		}
 
 		TORRENT_ASSERT(m_recv_buffer.pos_at_end());

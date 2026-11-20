@@ -234,24 +234,21 @@ std::vector<char> to_vec(char const (&str)[N])
 	return std::vector<char>(&str[0], &str[N - 1]);
 }
 
-#if TORRENT_USE_I2P
-std::string to_str(std::vector<char> const& v)
+// the i2p alphabet is the standard one with '+' and '/' replaced by '-' and
+// '~', so the standard encoder serves as a reference i2p encoder
+std::string base64encode_i2p(span<char const> in)
 {
-	return std::string(v.begin(), v.end());
-}
-
-// convert the standard base64 alphabet to the i2p alphabet
-std::string transcode_alphabet(std::string in)
-{
+	std::string const standard = base64encode(std::string(in.begin(), in.end()));
 	std::string ret;
-	std::transform(in.begin(), in.end(), std::back_inserter(ret), [](char const c) {
-		if (c == '+') return '-';
-		if (c == '/') return '~';
+	std::transform(standard.begin(), standard.end(), std::back_inserter(ret), [](char const c) {
+		if (c == '+')
+			return '-';
+		if (c == '/')
+			return '~';
 		return c;
 	});
 	return ret;
 }
-#endif
 }
 #endif
 
@@ -274,10 +271,70 @@ TORRENT_TEST(base64)
 	TEST_CHECK(base64decode_i2p("Zm9vYmE=") == to_vec("fooba"));
 	TEST_CHECK(base64decode_i2p("Zm9vYmFy") == to_vec("foobar"));
 
+	// the two characters that differ from the standard alphabet
+	TEST_CHECK(base64decode_i2p("-~8=") == to_vec("\xfb\xff"));
+	TEST_THROW(base64decode_i2p("+~8="));
+	TEST_THROW(base64decode_i2p("-/8="));
+
+	// invalid characters
+	TEST_THROW(base64decode_i2p("Zm v"));
+	TEST_THROW(base64decode_i2p("Zm9\n"));
+	TEST_THROW(base64decode_i2p("Zm9.Zm9v"));
+	TEST_THROW(base64decode_i2p("Zm9v\0\0\0\0"_sv));
+
+	// non-canonical padding
+	TEST_THROW(base64decode_i2p("Zg"));
+	TEST_THROW(base64decode_i2p("Zg="));
+	TEST_THROW(base64decode_i2p("Zg==="));
+	TEST_THROW(base64decode_i2p("Zm8"));
+	TEST_THROW(base64decode_i2p("Zm8=="));
+	TEST_THROW(base64decode_i2p("Zm9v="));
+	TEST_THROW(base64decode_i2p("Zm9v===="));
+	TEST_THROW(base64decode_i2p("Z==="));
+	TEST_THROW(base64decode_i2p("===="));
+	TEST_THROW(base64decode_i2p("Zg==Zm9v"));
+	TEST_NOTHROW(base64decode_i2p("Zm9vZg=="));
+	TEST_THROW(base64decode_i2p("Zg==Zm9vYmFy"));
+
+	// non-zero bits in the last sextet, not belonging to any byte
+	TEST_THROW(base64decode_i2p("Zh=="));
+	TEST_THROW(base64decode_i2p("Zm9="));
+	TEST_CHECK(base64decode_i2p("Zm8=") == to_vec("fo"));
+
 	std::vector<char> test;
-	for (int i = 0; i < 255; ++i)
+	for (int i = 0; i < 256; ++i)
 		test.push_back(char(i));
-	TEST_CHECK(base64decode_i2p(transcode_alphabet(base64encode(to_str(test)))) == test);
+	TEST_CHECK(base64decode_i2p(base64encode_i2p(test)) == test);
+
+	// in an otherwise valid encoding of 1 or 2 bytes, the sextet straddling
+	// the end of the data is the only degree of freedom. Every alternative
+	// whose unused low bits are non-zero must be rejected, so that encodings
+	// map 1:1 to byte strings
+	string_view const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-~";
+	for (int i = 0; i < 256; ++i)
+	{
+		std::string encoded = base64encode_i2p(std::vector<char>{char(i)});
+		for (int v = 0; v < 64; ++v)
+		{
+			encoded[1] = alphabet[std::size_t(v)];
+			if ((v & 0xf) == 0)
+				TEST_EQUAL(base64encode_i2p(base64decode_i2p(encoded)), encoded);
+			else
+				TEST_THROW(base64decode_i2p(encoded));
+		}
+	}
+	for (int i = 0; i < 65536; i += 251)
+	{
+		std::string encoded = base64encode_i2p(std::vector<char>{char(i >> 8), char(i & 0xff)});
+		for (int v = 0; v < 64; ++v)
+		{
+			encoded[2] = alphabet[std::size_t(v)];
+			if ((v & 0x3) == 0)
+				TEST_EQUAL(base64encode_i2p(base64decode_i2p(encoded)), encoded);
+			else
+				TEST_THROW(base64decode_i2p(encoded));
+		}
+	}
 #endif
 }
 
@@ -322,7 +379,7 @@ TORRENT_TEST(base32)
 	TEST_CHECK(base32encode_i2p("foobar"_sv) == "mzxw6ytboi");
 
 	std::string test;
-	for (int i = 0; i < 255; ++i)
+	for (int i = 0; i < 256; ++i)
 		test += char(i);
 
 	TEST_CHECK(base32decode(base32encode_i2p(test)) == test);
@@ -552,13 +609,9 @@ TORRENT_TEST(split_string)
 
 TORRENT_TEST(convert_from_native)
 {
-	TEST_EQUAL(std::string("foobar"), convert_from_native(convert_to_native("foobar")));
-	TEST_EQUAL(std::string("foobar")
-		, convert_from_native(convert_to_native("foo"))
-		+ convert_from_native(convert_to_native("bar")));
-
-	TEST_EQUAL(convert_to_native("foobar")
-		, convert_to_native("foo") + convert_to_native("bar"));
+	TEST_EQUAL(std::string("foobar"), convert_from_native("foobar"));
+	TEST_EQUAL(
+		convert_from_native("foobar"), convert_from_native("foo") + convert_from_native("bar"));
 }
 
 TORRENT_TEST(trim)
@@ -581,6 +634,28 @@ TORRENT_TEST(i2p_url)
 	TEST_CHECK(!is_i2p_url("http://a.I2P/a"));
 	TEST_CHECK(!is_i2p_url("http://c.i3p"));
 	TEST_CHECK(!is_i2p_url("http://i2p/foo bar"));
+	TEST_CHECK(!is_i2p_url("http://[::ffff:1.2.3.4%.i2p]/a"));
+	TEST_CHECK(!is_i2p_url("http://[fe80::1%eth0.i2p]/a"));
+	TEST_CHECK(!is_i2p_url("http://[::1%25eth0.i2p]:8080/a"));
+	TEST_CHECK(!is_i2p_url("http://[::.i2p]/a"));
+	TEST_CHECK(is_i2p_url("http://user:pass@a.i2p:8080/a"));
+}
+
+TORRENT_TEST(valid_i2p_name)
+{
+	TEST_CHECK(is_valid_i2p_name("ME"));
+	TEST_CHECK(is_valid_i2p_name("forum.i2p"));
+	TEST_CHECK(is_valid_i2p_name("my-site.i2p"));
+	TEST_CHECK(is_valid_i2p_name("ukeu3k5oycgaauneqgtnvselmt4yemvoilkln7jpvamvfx7dnkdq.b32.i2p"));
+	TEST_CHECK(is_valid_i2p_name("AAAA~-AAAA=="));
+
+	TEST_CHECK(!is_valid_i2p_name(""));
+	TEST_CHECK(!is_valid_i2p_name("fe80::1%eth0.i2p"));
+	TEST_CHECK(!is_valid_i2p_name("a.i2p\nSTREAM ACCEPT ID=foo"));
+	TEST_CHECK(!is_valid_i2p_name("a.i2p FROM_PORT=1"));
+	TEST_CHECK(!is_valid_i2p_name("a.i2p\r"));
+	TEST_CHECK(!is_valid_i2p_name(string_view("a\0b.i2p", 7)));
+	TEST_CHECK(!is_valid_i2p_name("a/b.i2p"));
 }
 #endif
 

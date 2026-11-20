@@ -840,6 +840,10 @@ namespace libtorrent::aux {
 			, std::function<void(error_code const&, std::vector<aux::rtc_offer>)> handler) override;
 		void on_rtc_offer(aux::rtc_offer const& offer) override;
 		void on_rtc_answer(aux::rtc_answer const& answer) override;
+
+		// false if the proxy or i2p settings don't permit WebRTC
+		bool rtc_allowed() const;
+
 		void on_rtc_stream(aux::rtc_stream_init stream_init);
 #endif
 		void remove_connection(peer_connection const* p);

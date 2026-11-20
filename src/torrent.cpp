@@ -2791,9 +2791,16 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 			// if the v1 hash failed the check, don't add the v2 hashes to the
 			// merkle tree. They are most likely invalid.
-			if (torrent_file().info_hashes().has_v2() && !bool(hash_passed[0] == false))
+			// Unless the piece hash is already known, then nothing is stored on
+			// failure. A v2 pass means the v1 and v2 hashes are inconsistent,
+			// which is an error, not a missing piece
+			if (torrent_file().info_hashes().has_v2())
 			{
-				hash_passed[1] = on_blocks_hashed(piece, block_hashes);
+				need_hash_picker();
+				if (!bool(hash_passed[0] == false) || get_hash_picker().have_hash(piece))
+				{
+					hash_passed[1] = on_blocks_hashed(piece, block_hashes);
+				}
 			}
 		}
 		else
@@ -3159,6 +3166,18 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 #if TORRENT_USE_I2P
 		if (!i2p_compatible_tracker(ae))
 			return false;
+#endif
+#if TORRENT_USE_RTC
+		if (aux::is_websocket_tracker_url(ae.url))
+		{
+			if (!rtc_allowed())
+				return false;
+#if TORRENT_USE_I2P
+			// WebRTC can't be carried over i2p
+			if (ae.i2p)
+				return false;
+#endif
+		}
 #endif
 		return aux::is_tracker_protocol_supported(ae.url);
 	}
@@ -6617,6 +6636,12 @@ namespace {
 	void torrent::generate_rtc_offers(int const count
 		, std::function<void(error_code const&, std::vector<aux::rtc_offer>)> handler)
 	{
+		if (!rtc_allowed())
+		{
+			handler(boost::asio::error::operation_not_supported, {});
+			return;
+		}
+
 		// rtc_signaling is created lazily
 		if (!m_rtc_signaling)
 		{
@@ -6629,14 +6654,29 @@ namespace {
 		m_rtc_signaling->generate_offers(count, std::move(handler));
 	}
 
+	bool torrent::rtc_allowed() const
+	{
+		if (!aux::webrtc_allowed(settings()))
+			return false;
+#if TORRENT_USE_I2P
+		if (is_i2p() && !settings().get_bool(settings_pack::allow_i2p_mixed))
+			return false;
+#endif
+		return true;
+	}
+
 	void torrent::on_rtc_offer(aux::rtc_offer const& offer)
 	{
+		if (!rtc_allowed())
+			return;
 		TORRENT_ASSERT(m_rtc_signaling);
 		if(m_rtc_signaling) m_rtc_signaling->process_offer(offer);
 	}
 
 	void torrent::on_rtc_answer(aux::rtc_answer const& answer)
 	{
+		if (!rtc_allowed())
+			return;
 		TORRENT_ASSERT(m_rtc_signaling);
 		if(m_rtc_signaling) m_rtc_signaling->process_answer(answer);
 	}
@@ -11100,6 +11140,12 @@ namespace {
 		{
 			return;
 		}
+
+#if TORRENT_USE_I2P
+		// web seeds don't support i2p
+		if (is_i2p() && !settings().get_bool(settings_pack::allow_i2p_mixed))
+			return;
+#endif
 
 		// when set to unlimited, use 100 as the limit
 		int limit = zero_or(settings().get_int(settings_pack::max_web_seed_connections)

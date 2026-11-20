@@ -47,6 +47,9 @@ namespace libtorrent {
 #if TORRENT_USE_I2P
 	// encodes a string using the base32 scheme
 	TORRENT_EXTRA_EXPORT std::string base32encode_i2p(span<char const> s);
+	// decodes the i2p base64 alphabet, where '-' and '~' replace '+' and '/'.
+	// Only the canonical, padded encoding is accepted. Any other input throws
+	// system_error with errors::invalid_escaped_string
 	TORRENT_EXTRA_EXPORT std::vector<char> base64decode_i2p(string_view s);
 	TORRENT_EXTRA_EXPORT bool is_valid_i2p_destination(string_view dest);
 	// the sha256 of the decoded destination, i.e. the identity of the
@@ -67,10 +70,8 @@ namespace libtorrent {
 #endif
 
 #if TORRENT_NATIVE_UTF8
-	inline std::string const& convert_to_native(std::string const& s) { return s; }
 	inline std::string const& convert_from_native(std::string const& s) { return s; }
 #else
-	TORRENT_EXTRA_EXPORT std::string convert_to_native(std::string const& s);
 	TORRENT_EXTRA_EXPORT std::string convert_from_native(std::string const& s);
 #endif
 }

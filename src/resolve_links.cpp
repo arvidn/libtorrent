@@ -16,6 +16,22 @@ see LICENSE file.
 namespace libtorrent::aux {
 
 #ifndef TORRENT_DISABLE_MUTABLE_TORRENTS
+
+// piece hashes can only be compared between torrents if they don't also
+// cover bytes of other files
+bool piece_aligned(file_storage const& fs, file_index_t f)
+{
+	std::int64_t const piece_size = fs.piece_length();
+	if ((fs.file_offset(f) % piece_size) != 0)
+		return false;
+	if (((fs.file_offset(f) + fs.file_size(f)) % piece_size) == 0)
+		return true;
+	++f;
+	if (f == fs.end_file())
+		return true;
+	return fs.pad_file_at(f) && ((fs.file_offset(f) + fs.file_size(f)) % piece_size) == 0;
+}
+
 resolve_links::resolve_links(std::shared_ptr<torrent_info const> ti)
 	: m_torrent_file(std::move(ti))
 {
@@ -34,12 +50,14 @@ resolve_links::resolve_links(std::shared_ptr<torrent_info const> ti)
 		// pieces. Files are matched by comparing piece hashes, so pieces must
 		// be aligned and the same size
 		if (fs.pad_file_at(i)) continue;
+		if (fs.file_size(i) == 0)
+			continue;
 		if ((fs.file_offset(i) % piece_size) != 0) continue;
 
-		if (v1)
+		if (v1 && piece_aligned(fs, i))
 			m_file_sizes.insert({fs.file_size(i), i});
 
-		if (v2)
+		if (v2 && !v1)
 			m_file_roots.insert({{fs.root(i), fs.file_size(i)}, i});
 	}
 
@@ -48,15 +66,18 @@ resolve_links::resolve_links(std::shared_ptr<torrent_info const> ti)
 
 void resolve_links::match(torrent_info const& ti, filenames const fs, std::string const& save_path)
 {
-	if (m_torrent_file->v2() && ti.v2())
-	{
-		match_v2(fs, save_path);
-	}
+	// a linked file must pass m_torrent_file's hash check, so every kind of
+	// hash it has must be compared. ti is a seed, its data is known to match
+	// all of its hashes
+	if (m_torrent_file->v1() && !ti.v1())
+		return;
+	if (m_torrent_file->v2() && !ti.v2())
+		return;
 
-	if (m_torrent_file->v1() && ti.v1())
-	{
+	if (m_torrent_file->v1())
 		match_v1(ti, fs, save_path);
-	}
+	else
+		match_v2(fs, save_path);
 }
 
 void resolve_links::match_v1(
@@ -68,6 +89,7 @@ void resolve_links::match_v1(
 	if (fs.piece_length() != m_torrent_file->piece_length()) return;
 
 	int const piece_size = fs.piece_length();
+	file_storage const& their_layout = ti.layout();
 
 	for (auto const i : fs.file_range())
 	{
@@ -76,7 +98,8 @@ void resolve_links::match_v1(
 
 		// if the file base is not aligned to pieces, we're not going to match
 		// it anyway (we only compare piece hashes)
-		if ((fs.file_offset(i) % piece_size) != 0) continue;
+		if (!piece_aligned(their_layout, i))
+			continue;
 		if (fs.pad_file_at(i)) continue;
 
 		std::int64_t const file_size = fs.file_size(i);
@@ -92,6 +115,11 @@ void resolve_links::match_v1(
 			// to keep looking
 			if (!m_links[idx].empty()) continue;
 
+			// a hybrid torrent's v1 and v2 hashes aren't known to agree until
+			// its data is checked, so both must match
+			if (m_torrent_file->v2() && fs.root(i) != m_torrent_file->layout().root(idx))
+				continue;
+
 			// files are aligned and have the same size, now start comparing
 			// piece hashes, to see if the files are identical
 
@@ -103,6 +131,14 @@ void resolve_links::match_v1(
 
 			int const num_pieces =
 				static_cast<int>(aux::ceil_div(file_size, std::int64_t(piece_size)));
+
+			// the last piece may be padded in one torrent and end the other,
+			// matching hashes can't be correct for both
+			piece_index_t::diff_type const last(num_pieces - 1);
+			if (num_pieces > 0
+				&& m_torrent_file->layout().piece_size(our_piece + last)
+					!= their_layout.piece_size(their_piece + last))
+				continue;
 
 			bool match = true;
 			for (int p = 0; p < num_pieces; ++p, ++their_piece, ++our_piece)

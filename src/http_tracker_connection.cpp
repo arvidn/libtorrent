@@ -543,8 +543,14 @@ namespace libtorrent::aux {
 		}
 
 		// if no interval is specified, default to 30 minutes
-		resp.interval = seconds32{e.dict_find_int_value("interval", 1800)};
-		resp.min_interval = seconds32{e.dict_find_int_value("min interval", 30)};
+		// the intervals are 32 bit second counts that are added to the current
+		// time. Limit them to a week, to not overflow
+		resp.interval = seconds32{std::clamp(e.dict_find_int_value("interval", 1800),
+			std::int64_t(0),
+			std::int64_t(7 * 24 * 60 * 60))};
+		resp.min_interval = seconds32{std::clamp(e.dict_find_int_value("min interval", 30),
+			std::int64_t(0),
+			std::int64_t(7 * 24 * 60 * 60))};
 
 		bdecode_node const tracker_id = e.dict_find_string("tracker id");
 		if (tracker_id)
