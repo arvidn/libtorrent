@@ -73,53 +73,6 @@ void report_error(std::weak_ptr<request_callback> const& cb,
 	if (auto c = cb.lock())
 		c->tracker_request_error(req, ec, op, ec.message(), seconds32(120));
 }
-
-// the websocket handshake is an HTTP GET request for the tracker URL's path
-// and query string, so websocket trackers are subject to the same
-// restrictions as HTTP trackers (see http_tracker_connection::on_filter()).
-// With ssrf_mitigation enabled, a tracker on loopback may only be sent the
-// conventional tracker path. Websocket trackers are conventionally served at
-// the root as well, so "/" is also allowed
-aux::websocket_stream::endpoint_filter make_endpoint_filter(
-	tracker_request const& req, aux::session_settings const& settings)
-{
-	bool loopback_allowed = true;
-	if (settings.get_bool(settings_pack::ssrf_mitigation))
-	{
-		error_code ec;
-		std::string path;
-		std::tie(std::ignore, std::ignore, std::ignore, std::ignore, path) =
-			parse_url_components(req.url, ec);
-		loopback_allowed = !ec
-			&& (path.empty() || path == "/"
-				|| (path.substr(0, 9) == "/announce"
-					&& path.find_first_of("/\\%", 9) >= path.find_first_of("?#")));
-	}
-
-	return [loopback_allowed, filter = req.filter](std::vector<tcp::endpoint>& endpoints) {
-		auto const remove = [&](auto pred) {
-			endpoints.erase(
-				std::remove_if(endpoints.begin(), endpoints.end(), pred), endpoints.end());
-		};
-
-		if (!loopback_allowed)
-		{
-			remove([](tcp::endpoint const& ep) { return ep.address().is_loopback(); });
-			if (endpoints.empty())
-				return error_code(errors::ssrf_mitigation);
-		}
-
-		if (filter)
-		{
-			remove([&](tcp::endpoint const& ep) {
-				return filter->access(ep.address()) == ip_filter::blocked;
-			});
-			if (endpoints.empty())
-				return error_code(errors::banned_by_ip_filter);
-		}
-		return error_code();
-	};
-}
 }
 
 websocket_tracker_connection::websocket_tracker_connection(
@@ -150,7 +103,8 @@ void websocket_tracker_connection::start()
 	std::string const user_agent = settings.get_bool(settings_pack::anonymous_mode)
 			&& !req.private_torrent ? "" : settings.get_str(settings_pack::user_agent);
 	m_websocket->set_user_agent(user_agent);
-	m_websocket->set_endpoint_filter(make_endpoint_filter(req, settings));
+	m_websocket->set_endpoint_filter(
+		std::bind(&websocket_tracker_connection::on_filter, shared_from_this(), _1));
 
 #ifndef TORRENT_DISABLE_LOGGING
 	if (auto cb = requester())
@@ -160,6 +114,55 @@ void websocket_tracker_connection::start()
 	ADD_OUTSTANDING_ASYNC("websocket_tracker_connection::on_connect");
 	m_websocket->async_connect(req.url, std::bind(&websocket_tracker_connection::on_connect
 			, shared_from_this(), _1));
+}
+
+// the websocket handshake is an HTTP GET request for the tracker URL's path
+// and query string, so websocket trackers are subject to the same
+// restrictions as HTTP trackers (see http_tracker_connection::on_filter()).
+// With ssrf_mitigation enabled, a tracker on loopback may only be sent the
+// conventional tracker path. Websocket trackers are conventionally served at
+// the root as well, so "/" is also allowed
+error_code websocket_tracker_connection::on_filter(std::vector<tcp::endpoint>& endpoints)
+{
+	auto const& req = tracker_req();
+	if (m_man.settings().get_bool(settings_pack::ssrf_mitigation)
+		&& std::any_of(endpoints.begin(), endpoints.end(), [](tcp::endpoint const& ep) {
+			   return ep.address().is_loopback();
+		   }))
+	{
+		error_code ec;
+		std::string path;
+		std::tie(std::ignore, std::ignore, std::ignore, std::ignore, path) =
+			parse_url_components(req.url, ec);
+		if (ec)
+			return ec;
+
+		if (!path.empty() && path != "/"
+			&& (path.substr(0, 9) != "/announce"
+				|| path.find_first_of("/\\%", 9) < path.find_first_of("?#")))
+		{
+			endpoints.erase(std::remove_if(endpoints.begin(),
+								endpoints.end(),
+								[](tcp::endpoint const& ep) { return ep.address().is_loopback(); }),
+				endpoints.end());
+			if (endpoints.empty())
+				return errors::ssrf_mitigation;
+		}
+	}
+
+	if (req.filter)
+	{
+		endpoints.erase(std::remove_if(endpoints.begin(),
+							endpoints.end(),
+							[&](tcp::endpoint const& ep) {
+								return req.filter->access(ep.address()) == ip_filter::blocked;
+							}),
+			endpoints.end());
+	}
+
+	// if every endpoint was removed, websocket_stream fails the connection
+	// with banned_by_ip_filter
+	return {};
 }
 
 void websocket_tracker_connection::close()
