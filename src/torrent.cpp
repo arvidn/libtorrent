@@ -7215,6 +7215,13 @@ namespace {
 			// local IP
 			if (web->no_local_ips && !aux::is_global(addr)) continue;
 
+			// connecting to the unspecified address reaches the local host on
+			// Linux and some other systems, and connect_web_seed() would
+			// mistake it for the placeholder used for hostnames resolved by the
+			// proxy, skipping the IP filter and the SSRF mitigation
+			if (addr.is_unspecified())
+				continue;
+
 			// fill in the peer struct's address field
 			web->endpoints.emplace_back(addr, std::uint16_t(port));
 
