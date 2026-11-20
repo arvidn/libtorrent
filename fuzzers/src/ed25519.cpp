@@ -1,6 +1,6 @@
 /*
 
-Copyright (c) 2026, Arvid Norberg
+Copyright (c) 2026, Arthur SC Chan
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,
@@ -40,14 +40,14 @@ see LICENSE file.
 //   bytes 129..160: scalar   (zero-padded)
 //   remaining bytes: message (may be empty)
 
-#include <algorithm>
 #include <array>
-#include <cstddef>
 #include <cstdint>
-#include <cstring>
-#include <vector>
 
 #include "libtorrent/aux_/ed25519.hpp"
+#include "libtorrent/span.hpp"
+#include "dht_reply_session.hpp"
+
+using namespace lt;
 
 namespace {
 
@@ -55,40 +55,46 @@ constexpr std::size_t key_len = 32;   // public key / seed / scalar
 constexpr std::size_t sig_len = 64;   // signature
 constexpr std::size_t priv_len = 64;  // private key
 
-// copies the next `len` bytes of the input into out (which is zero-filled
-// first), advancing the cursor; zero-pads when the input is exhausted
+// ed25519 always reads a full fixed-width field. Prefer a view into the
+// fuzz input (no copy) when enough bytes remain; otherwise zero-pad via
+// dht_fuzz::take_padded.
 template <std::size_t N>
-void take(std::array<std::uint8_t, N>& out, std::uint8_t const*& cursor
-	, std::uint8_t const* end)
+unsigned char const* take_field(span<std::uint8_t const>& in
+	, std::array<char, N>& storage)
 {
-	out.fill(0);
-	std::size_t const n = std::min<std::size_t>(N, std::size_t(end - cursor));
-	std::memcpy(out.data(), cursor, n);
-	cursor += n;
+	if (in.size() >= static_cast<std::ptrdiff_t>(N))
+	{
+		span<std::uint8_t const> const chunk = dht_fuzz::take(in
+			, static_cast<std::ptrdiff_t>(N));
+		return reinterpret_cast<unsigned char const*>(chunk.data());
+	}
+	storage = dht_fuzz::take_padded<N>(in);
+	return reinterpret_cast<unsigned char const*>(storage.data());
 }
 
 } // anonymous namespace
 
 extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, std::size_t size)
 {
-	if (size == 0) return 0;
-	int const mode = data[0] % 8;
-	std::uint8_t const* cursor = data + 1;
-	std::uint8_t const* const end = data + size;
+	span<std::uint8_t const> in(data, static_cast<std::ptrdiff_t>(size));
+	if (in.empty()) return 0;
+	int const mode = in[0] % 8;
+	in = in.subspan(1);
 
-	std::array<std::uint8_t, key_len> seed;
-	take(seed, cursor, end);
-	std::array<std::uint8_t, key_len> pk_fuzz;
-	take(pk_fuzz, cursor, end);
-	std::array<std::uint8_t, sig_len> sig_fuzz;
-	take(sig_fuzz, cursor, end);
-	std::array<std::uint8_t, key_len> scalar;
-	take(scalar, cursor, end);
-	// the primitives hash the message via hasher512::update(), which has a
-	// documented precondition of non-empty input (TORRENT_ASSERT(data.size()
-	// > 0)); libtorrent's own callers never sign or verify empty buffers
-	std::vector<std::uint8_t> message(cursor, end);
-	if (message.empty()) message.push_back(0);
+	std::array<char, key_len> seed_storage;
+	std::array<char, key_len> pk_fuzz_storage;
+	std::array<char, sig_len> sig_fuzz_storage;
+	std::array<char, key_len> scalar_storage;
+
+	unsigned char const* const seed = take_field(in, seed_storage);
+	unsigned char const* const pk_fuzz = take_field(in, pk_fuzz_storage);
+	unsigned char const* const sig_fuzz = take_field(in, sig_fuzz_storage);
+	unsigned char const* const scalar = take_field(in, scalar_storage);
+
+	// remaining bytes are the message; hasher512::update() requires non-empty
+	std::uint8_t empty_byte = 0;
+	span<std::uint8_t const> message = in;
+	if (message.empty()) message = {&empty_byte, 1};
 
 	std::array<unsigned char, key_len> pk{};
 	std::array<unsigned char, priv_len> sk{};
@@ -97,47 +103,47 @@ extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, std::size_t size
 	std::array<unsigned char, key_len> pk_out{};
 	std::array<unsigned char, priv_len> sk_out{};
 
-	libtorrent::aux::ed25519_create_keypair(pk.data(), sk.data(), seed.data());
+	aux::ed25519_create_keypair(pk.data(), sk.data(), seed);
 
 	int verify_result = -1;
 
 	switch (mode)
 	{
 		case 0:
-			libtorrent::aux::ed25519_sign(sig.data(), message.data()
-				, std::ptrdiff_t(message.size()), pk.data(), sk.data());
-			verify_result = libtorrent::aux::ed25519_verify(sig.data(), message.data()
-				, std::ptrdiff_t(message.size()), pk.data());
+			aux::ed25519_sign(sig.data(), message.data()
+				, message.size(), pk.data(), sk.data());
+			verify_result = aux::ed25519_verify(sig.data(), message.data()
+				, message.size(), pk.data());
 			break;
 		case 1:
-			verify_result = libtorrent::aux::ed25519_verify(sig_fuzz.data(), message.data()
-				, std::ptrdiff_t(message.size()), pk.data());
+			verify_result = aux::ed25519_verify(sig_fuzz, message.data()
+				, message.size(), pk.data());
 			break;
 		case 2:
-			verify_result = libtorrent::aux::ed25519_verify(sig_fuzz.data(), message.data()
-				, std::ptrdiff_t(message.size()), pk_fuzz.data());
+			verify_result = aux::ed25519_verify(sig_fuzz, message.data()
+				, message.size(), pk_fuzz);
 			break;
 		case 3:
-			libtorrent::aux::ed25519_add_scalar(pk_out.data(), nullptr, scalar.data());
+			aux::ed25519_add_scalar(pk_out.data(), nullptr, scalar);
 			break;
 		case 4:
-			libtorrent::aux::ed25519_add_scalar(nullptr, sk_out.data(), scalar.data());
+			aux::ed25519_add_scalar(nullptr, sk_out.data(), scalar);
 			break;
 		case 5:
-			libtorrent::aux::ed25519_key_exchange(shared.data(), pk_fuzz.data(), sk.data());
+			aux::ed25519_key_exchange(shared.data(), pk_fuzz, sk.data());
 			break;
 		case 6:
-			libtorrent::aux::ed25519_sign(sig.data(), message.data()
-				, std::ptrdiff_t(message.size()), pk_fuzz.data(), sk.data());
+			aux::ed25519_sign(sig.data(), message.data()
+				, message.size(), pk_fuzz, sk.data());
 			break;
 		default:
-			libtorrent::aux::ed25519_sign(sig.data(), message.data()
-				, std::ptrdiff_t(message.size()), pk.data(), sk.data());
-			verify_result = libtorrent::aux::ed25519_verify(sig.data(), message.data()
-				, std::ptrdiff_t(message.size()), pk.data());
-			libtorrent::aux::ed25519_add_scalar(pk_out.data(), nullptr, scalar.data());
-			libtorrent::aux::ed25519_add_scalar(nullptr, sk_out.data(), scalar.data());
-			libtorrent::aux::ed25519_key_exchange(shared.data(), pk_out.data(), sk_out.data());
+			aux::ed25519_sign(sig.data(), message.data()
+				, message.size(), pk.data(), sk.data());
+			verify_result = aux::ed25519_verify(sig.data(), message.data()
+				, message.size(), pk.data());
+			aux::ed25519_add_scalar(pk_out.data(), nullptr, scalar);
+			aux::ed25519_add_scalar(nullptr, sk_out.data(), scalar);
+			aux::ed25519_key_exchange(shared.data(), pk_out.data(), sk_out.data());
 			break;
 	}
 
