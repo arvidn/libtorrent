@@ -1187,6 +1187,7 @@ void bind_session()
 			lt::path_sanitize_flags::sanitize_invalid_chars_android;
 		s.attr("filter_unicode_formatting_chars") =
 			lt::path_sanitize_flags::filter_unicode_formatting_chars;
+		s.attr("filter_directional_marks") = lt::path_sanitize_flags::filter_directional_marks;
 		s.attr("deduplicate_per_directory") = lt::path_sanitize_flags::deduplicate_per_directory;
 		s.attr("deduplicate_full_path") = lt::path_sanitize_flags::deduplicate_full_path;
 		s.attr("case_insensitive_deduplication") =
