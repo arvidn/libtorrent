@@ -79,7 +79,7 @@ jobs:
       - name: checkout
         uses: actions/checkout@v6
         with:
-           submodules: true
+           submodules: recursive
            fetch-depth: 1
            filter: tree:0
 
@@ -98,8 +98,7 @@ jobs:
       - name: build and run simulations
         run: |
           cd simulation
-          b2 -l400 debug-iterators=on invariant-checks=full asserts=on openssl-include="$OPENSSL_ROOT/include" openssl-lib="$OPENSSL_ROOT/lib"
-
+          b2 -l400 debug-iterators=on invariant-checks=full asserts=on crypto=openssl openssl-include="$OPENSSL_ROOT/include" openssl-lib="$OPENSSL_ROOT/lib"
 
    build:
       name: Build

@@ -29,27 +29,28 @@ see LICENSE file.
 #include <string>
 #include <vector>
 
-// a minimal, single-connection WebSocket "tracker" used to drive
-// websocket_tracker_connection through a multiplexing scenario that can't
-// otherwise be triggered deterministically: several torrents' announces in
-// flight on one shared connection at once. Only handles the exact protocol
-// shape websocket_tracker_connection::do_send() produces; it is not a
-// general-purpose WebSocket server. Driven entirely by the simulator's
-// deterministic event loop rather than a background thread.
+// a minimal, single-connection WebSocket tracker for multiplexing and
+// proxy tests, driven by the simulator's deterministic event loop.
+// Only handles the protocol shape of websocket_tracker_connection::do_send().
 struct sim_ws_tracker
 {
 	using sim_tcp = sim::asio::ip::tcp;
 
-	sim_ws_tracker(sim::asio::io_context& ios, int port);
+	sim_ws_tracker(sim::asio::io_context& ios,
+		int port,
+		int announces_before_reply = 3,
+		bool keep_alive = false);
+
+	std::vector<sim::asio::ip::address> const& connections() const { return m_connections; }
+	int announces() const { return int(m_received.size()); }
+	bool closed() const { return m_closed; }
 
 private:
 	static std::string extract_info_hash(std::string const& msg);
 
-	// reads up to 3 announces, answering only the first one received, then
-	// tears the connection down without ever answering the other two --
-	// this exercises both the on_read() success path (for the one we
-	// answer, once a later request has become the connection's "current"
-	// one) and the close() error path (for the two left hanging).
+	// waits for m_announces_before_reply announces, then answers the first
+	// and closes the connection, or answers the latest and keeps reading
+	// if m_keep_alive is set.
 	void read_next();
 
 	sim_tcp::acceptor m_acceptor;
@@ -57,6 +58,10 @@ private:
 	boost::beast::flat_buffer m_buffer;
 	std::vector<std::string> m_received;
 	std::string m_response;
+	std::vector<sim::asio::ip::address> m_connections;
+	int const m_announces_before_reply;
+	bool const m_keep_alive;
+	bool m_closed = false;
 };
 
 #endif // TORRENT_USE_RTC

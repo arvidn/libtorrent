@@ -82,7 +82,7 @@ jobs:
       - name: checkout
         uses: actions/checkout@v6
         with:
-           submodules: true
+           submodules: recursive
            fetch-depth: 1
            filter: tree:0
 
@@ -102,19 +102,27 @@ jobs:
           echo "BOOST_ROOT=$(pwd)/boost" >> $env:GITHUB_ENV
           echo "$(pwd)/boost" >> $env:GITHUB_PATH
 
+      - name: install openssl:x64-windows-static
+        uses: ./.github/actions/win_install_openssl
+        with:
+          architecture: x64
+          linking: static
+
+      - name: setup msbuild
+        uses: microsoft/setup-msbuild@v2
+
   # debug iterators are turned off here because msvc has issues with noexcept
   # specifiers when debug iterators are enabled. Specifically, constructors that
   # allocate memory are still marked as noexcept. That results in program
   # termination
   # the IOCP backend in asio appears to have an issue where it hangs under
   # certain unexpected terminations (through exceptions)
-  # crypto=built-in avoids OpenSSL, in case an OpenSSL-touching code path hits that same hang
       - name: build sims
         run: |
           echo %BOOST_ROOT%
           echo %PATH%
           cd simulation
-          b2 --hash release msvc-version-macro=on address-model=64 link=static crypto=built-in debug-iterators=off invariant-checks=on define=BOOST_ASIO_DISABLE_IOCP asserts=on testing.execute=off
+          b2 --hash release msvc-version-macro=on address-model=64 link=static crypto=openssl debug-iterators=off invariant-checks=on define=BOOST_ASIO_DISABLE_IOCP asserts=on openssl-include="C:/Program Files/OpenSSL/include" openssl-lib="C:/Program Files/OpenSSL/lib" testing.execute=off
 
       - name: run sims
         uses: nick-fields/retry@v4
@@ -123,7 +131,7 @@ jobs:
           timeout_minutes: 120
           command: |
             cd simulation
-            b2 --hash -l800 release msvc-version-macro=on address-model=64 link=static crypto=built-in debug-iterators=off invariant-checks=on define=BOOST_ASIO_DISABLE_IOCP asserts=on
+            b2 --hash -l800 release msvc-version-macro=on address-model=64 link=static crypto=openssl debug-iterators=off invariant-checks=on define=BOOST_ASIO_DISABLE_IOCP asserts=on openssl-include="C:/Program Files/OpenSSL/include" openssl-lib="C:/Program Files/OpenSSL/lib"
 
    build:
       name: Build

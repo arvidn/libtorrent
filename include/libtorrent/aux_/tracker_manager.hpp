@@ -90,9 +90,8 @@ namespace libtorrent::aux {
 #if TORRENT_USE_RTC
 	TORRENT_EXTRA_EXPORT bool is_websocket_tracker_url(string_view url);
 
-	// neither WebRTC nor websocket tracker connections can be carried by any
-	// of the supported proxies, so both are disabled when either peer or
-	// tracker connections are proxied
+	// WebRTC peers cannot use the configured proxy. WebSocket trackers may
+	// use the tracker proxy independently when peer proxying is disabled.
 	TORRENT_EXTRA_EXPORT bool webrtc_allowed(session_settings const& sett);
 #endif
 
@@ -389,6 +388,7 @@ namespace libtorrent::aux {
 		void remove_request(aux::udp_tracker_connection const* c);
 #if TORRENT_USE_RTC
 		void remove_request(aux::websocket_tracker_connection const* c);
+		void close_websocket_connections();
 #endif
 		bool empty() const;
 		int num_requests() const;
