@@ -178,8 +178,8 @@ static void test_webtorrent_ip_filter(bool const filter_offerer)
 	session_proxy p1;
 	session_proxy p2;
 
-	settings_pack pack = settings();
-	session_params sp(pack);
+	settings_pack const pack = settings();
+	session_params const sp(pack);
 	lt::session ses1(sp);
 	lt::session ses2(sp);
 
@@ -205,35 +205,44 @@ static void test_webtorrent_ip_filter(bool const filter_offerer)
 		make_address_v6("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"),
 		ip_filter::blocked);
 	lt::session& filtered = filter_offerer ? ses1 : ses2;
+	lt::torrent_handle const& filtered_tor = filter_offerer ? tor1 : tor2;
 	filtered.set_ip_filter(filter);
 
 	connect_rtc_peers(ses1, tor1, ses2, tor2);
 
-	// only the session with the filter can block the peer
-	bool blocked = false;
-	auto const check_blocked = [&](alert const* a) {
-		if (auto const* pb = alert_cast<peer_blocked_alert>(a))
-		{
-			if (pb->reason == peer_blocked_alert::ip_filter)
-				blocked = true;
-		}
-		return false;
+	// track each session's peer_blocked_alert separately, to make sure it's
+	// the session with the filter that blocks the peer
+	bool blocked1 = false;
+	bool blocked2 = false;
+	auto const check_blocked = [](bool& flag) {
+		return [&flag](alert const* a) {
+			if (auto const* pb = alert_cast<peer_blocked_alert>(a))
+			{
+				if (pb->reason == peer_blocked_alert::ip_filter)
+					flag = true;
+			}
+			return false;
+		};
 	};
+	bool const& blocked = filter_offerer ? blocked1 : blocked2;
+	bool const& unfiltered_blocked = filter_offerer ? blocked2 : blocked1;
 
 	auto const start_time = lt::clock_type::now();
 	while (lt::clock_type::now() - start_time < 10s)
 	{
 		ses2.wait_for_alert(200ms);
 
-		print_alerts(ses1, "ses1", false, false, check_blocked);
-		print_alerts(ses2, "ses2", false, false, check_blocked);
+		print_alerts(ses1, "ses1", false, false, check_blocked(blocked1));
+		print_alerts(ses2, "ses2", false, false, check_blocked(blocked2));
 
 		if (blocked || tor2.status().is_seeding)
 			break;
 	}
 
 	TEST_CHECK(blocked);
+	TEST_CHECK(!unfiltered_blocked);
 	TEST_CHECK(!tor2.status().is_seeding);
+	TEST_CHECK(filtered_tor.status().num_peers == 0);
 
 	p1 = ses1.abort();
 	p2 = ses2.abort();
