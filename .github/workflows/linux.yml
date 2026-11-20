@@ -384,7 +384,7 @@ jobs:
       - name: checkout
         uses: actions/checkout@v6
         with:
-           submodules: true
+           submodules: recursive
            fetch-depth: 1
            filter: tree:0
 
@@ -403,7 +403,7 @@ jobs:
 
       - name: install boost
         run: |
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libboost-tools-dev libboost-dev libboost-system-dev
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libboost-tools-dev libboost-dev libboost-system-dev libboost-json-dev
           echo "using gcc ;" >>~/user-config.jam
 
       - name: build and run simulations
@@ -415,7 +415,6 @@ jobs:
         run: |
           cd simulation
           b2 testing.execute=off deprecated-functions=off
-
 
    disk-stress:
       name: disk I/O stress (smoke)

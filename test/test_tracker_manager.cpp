@@ -240,8 +240,9 @@ TORRENT_TEST(webrtc_allowed)
 	sett.set_int(settings_pack::proxy_type, settings_pack::http);
 	TEST_CHECK(!webrtc_allowed(sett));
 
+	// Tracker-only proxying is permitted; WebRTC peers remain direct.
 	sett.set_bool(settings_pack::proxy_peer_connections, false);
-	TEST_CHECK(!webrtc_allowed(sett));
+	TEST_CHECK(webrtc_allowed(sett));
 
 	sett.set_bool(settings_pack::proxy_tracker_connections, false);
 	TEST_CHECK(webrtc_allowed(sett));
@@ -295,6 +296,35 @@ TORRENT_TEST(websocket_tracker_refused_rtc_offers)
 	TEST_CHECK(h.m_tracker_manager.empty());
 	TEST_EQUAL(cb->num_offer_requests, 1);
 	TEST_EQUAL(cb->last_error, error_code(boost::asio::error::operation_not_supported));
+}
+
+TORRENT_TEST(websocket_tracker_proxy_update_closes_connections)
+{
+	io_context ios;
+	aux::session_settings sett;
+	tracker_manager_handler h{ios, sett};
+
+	auto cb1 = std::make_shared<ws_request_callback>();
+	auto cb2 = std::make_shared<ws_request_callback>();
+	auto cb3 = std::make_shared<ws_request_callback>();
+
+	tracker_request r;
+	r.url = "ws://127.0.0.1:1/announce";
+	r.num_want = 1;
+	h.m_tracker_manager.queue_request(ios, tracker_request(r), sett, cb1);
+	h.m_tracker_manager.queue_request(ios, tracker_request(r), sett, cb2);
+	r.url = "ws://127.0.0.1:2/announce";
+	h.m_tracker_manager.queue_request(ios, std::move(r), sett, cb3);
+	TEST_EQUAL(h.m_tracker_manager.num_requests(), 2);
+
+	h.m_tracker_manager.close_websocket_connections();
+	TEST_CHECK(h.m_tracker_manager.empty());
+	TEST_EQUAL(cb1->last_error, error_code(errors::announce_skipped));
+	TEST_EQUAL(cb2->last_error, error_code(errors::announce_skipped));
+	TEST_EQUAL(cb3->last_error, error_code(errors::announce_skipped));
+
+	ios.poll();
+	TEST_CHECK(h.m_tracker_manager.empty());
 }
 
 TORRENT_TEST(websocket_tracker_proxy_enabled_during_offers)

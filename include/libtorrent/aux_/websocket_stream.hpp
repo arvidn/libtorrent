@@ -22,6 +22,8 @@ see LICENSE file.
 #include "libtorrent/aux_/io_bytes.hpp"
 #include "libtorrent/io_context.hpp"
 #include "libtorrent/aux_/resolver_interface.hpp"
+#include "libtorrent/aux_/proxy_settings.hpp"
+#include "libtorrent/aux_/socket_type.hpp"
 #include "libtorrent/aux_/ssl.hpp"
 #include "libtorrent/aux_/ssl_stream.hpp"
 #include "libtorrent/time.hpp"
@@ -30,6 +32,7 @@ see LICENSE file.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/post.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
@@ -37,7 +40,33 @@ see LICENSE file.
 #include <functional>
 #include <vector>
 #include <string>
-#include <variant>
+#include <optional>
+#include <type_traits>
+
+namespace libtorrent::aux {
+
+using websocket_socket_type = polymorphic_socket<tcp::socket,
+	socks5_stream,
+	http_stream
+#if TORRENT_USE_SSL
+	,
+	ssl_stream<tcp::socket>,
+	ssl_stream<socks5_stream>,
+	ssl_stream<http_stream>
+#endif
+	>;
+
+} // namespace libtorrent::aux
+
+namespace libtorrent::aux {
+
+inline void beast_close_socket(websocket_socket_type& socket)
+{
+	lt::error_code ec;
+	socket.close(ec);
+}
+
+} // namespace libtorrent::aux
 
 namespace boost {
 namespace beast {
@@ -62,6 +91,66 @@ void async_teardown(role_type
     stream.async_shutdown(std::forward<Handler>(handler));
 }
 
+#if TORRENT_USE_SSL
+template <class Stream>
+void teardown(role_type, lt::aux::ssl_stream<Stream>& stream, error_code& ec)
+{
+	stream.shutdown(ec);
+}
+
+template <class Stream, class Handler>
+void async_teardown(role_type, lt::aux::ssl_stream<Stream>& stream, Handler&& handler)
+{
+	stream.async_shutdown(std::forward<Handler>(handler));
+}
+#endif
+
+template <typename T>
+struct is_libtorrent_ssl_stream : std::false_type
+{};
+
+#if TORRENT_USE_SSL
+template <typename T>
+struct is_libtorrent_ssl_stream<lt::aux::ssl_stream<T>> : std::true_type
+{};
+#endif
+
+inline void teardown(role_type, lt::aux::websocket_socket_type& stream, error_code& ec)
+{
+	std::visit(
+		[&](auto& s) {
+			using stream_type = std::decay_t<decltype(s)>;
+			if constexpr (is_libtorrent_ssl_stream<stream_type>::value)
+				s.shutdown(ec);
+			else
+				s.close(ec);
+		},
+		stream.var());
+}
+
+template <class Handler>
+void async_teardown(role_type, lt::aux::websocket_socket_type& stream, Handler&& handler)
+{
+	std::visit(
+		[&](auto& s) {
+			using stream_type = std::decay_t<decltype(s)>;
+			if constexpr (is_libtorrent_ssl_stream<stream_type>::value)
+			{
+				s.async_shutdown(std::forward<Handler>(handler));
+			}
+			else
+			{
+				error_code ec;
+				s.close(ec);
+				boost::asio::post(stream.get_executor(),
+					[completion_handler = std::forward<Handler>(handler), ec]() mutable {
+						completion_handler(ec);
+					});
+			}
+		},
+		stream.var());
+}
+
 } // websocket
 } // beast
 } // boost
@@ -72,10 +161,8 @@ namespace websocket = boost::beast::websocket;
 
 #if defined TORRENT_BUILD_SIMULATOR
 namespace asio = sim::asio;
-using tcp = sim::asio::ip::tcp;
 #else
 namespace asio = boost::asio;
-using tcp = boost::asio::ip::tcp;
 #endif
 
 struct TORRENT_EXTRA_EXPORT websocket_stream
@@ -85,10 +172,9 @@ struct TORRENT_EXTRA_EXPORT websocket_stream
 	using read_handler = std::function<void(error_code const&, std::size_t)>;
 	using write_handler = std::function<void(error_code const&, std::size_t)>;
 
-	websocket_stream(io_context& ios
-		, resolver_interface& resolver
-		, ssl::context* ssl_ctx
-	);
+	websocket_stream(io_context& ios, resolver_interface& resolver, ssl::context* ssl_ctx);
+	websocket_stream(
+		io_context& ios, resolver_interface& resolver, ssl::context* ssl_ctx, proxy_settings proxy);
 
 	~websocket_stream() = default;
 	websocket_stream& operator=(websocket_stream const&) = delete;
@@ -133,14 +219,12 @@ struct TORRENT_EXTRA_EXPORT websocket_stream
 		}
 
 		ADD_OUTSTANDING_ASYNC("websocket_stream::on_read");
-		std::visit([&](auto &stream)
-		{
-			stream.async_read(buffer, std::bind(&websocket_stream::on_read
-					, shared_from_this()
-					, _1, _2
-					, read_handler(std::forward<Handler>(handler))));
-		}
-		, m_stream);
+		m_stream->async_read(buffer,
+			std::bind(&websocket_stream::on_read,
+				shared_from_this(),
+				_1,
+				_2,
+				read_handler(std::forward<Handler>(handler))));
 	}
 
 	template <class Const_Buffer, class Handler>
@@ -159,14 +243,12 @@ struct TORRENT_EXTRA_EXPORT websocket_stream
 		m_keepalive_timer.cancel();
 
 		ADD_OUTSTANDING_ASYNC("websocket_stream::on_write");
-		std::visit([&](auto &stream)
-		{
-			stream.async_write(buffer, std::bind(&websocket_stream::on_write
-					, shared_from_this()
-					, _1 , _2
-					, write_handler(std::forward<Handler>(handler))));
-		}
-		, m_stream);
+		m_stream->async_write(buffer,
+			std::bind(&websocket_stream::on_write,
+				shared_from_this(),
+				_1,
+				_2,
+				write_handler(std::forward<Handler>(handler))));
 	}
 
 private:
@@ -174,9 +256,8 @@ private:
 	void do_resolve(std::string hostname, std::uint16_t port);
 	void on_resolve(error_code const& ec, std::vector<address> const& addresses);
 	void do_tcp_connect(std::vector<tcp::endpoint> endpoints);
+	void connect_endpoint();
 	void on_tcp_connect(error_code const& ec);
-	void do_ssl_handshake();
-	void on_ssl_handshake(error_code const& ec);
 	void do_handshake();
 	void on_handshake(error_code const& ec);
 	void on_read(error_code ec, std::size_t bytes_read, read_handler handler);
@@ -185,14 +266,15 @@ private:
 	void on_keepalive(error_code ec);
 	void on_ping(error_code ec);
 	void arm_keepalive();
+	void terminate_socket();
 
 	io_context& m_io_service;
 	resolver_interface& m_resolver;
 	ssl::context* m_ssl_context;
+	proxy_settings m_proxy;
 
-	using stream_type = websocket::stream<tcp::socket>;
-	using ssl_stream_type = websocket::stream<ssl::stream<tcp::socket>>;
-	std::variant<stream_type, ssl_stream_type> m_stream;
+	using stream_type = websocket::stream<websocket_socket_type>;
+	std::optional<stream_type> m_stream;
 
 	std::string m_url;
 	std::string m_hostname;
@@ -200,6 +282,8 @@ private:
 	std::string m_target;
 	std::string m_user_agent;
 	std::vector<tcp::endpoint> m_endpoints;
+	std::size_t m_endpoint_index = 0;
+	bool m_remote_dns = false;
 
 	connect_handler m_connect_handler;
 

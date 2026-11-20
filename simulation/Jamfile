@@ -31,7 +31,7 @@ project
 	<asserts>on
 	<picker-debugging>on
 	<cxxstd>20
-	<webtorrent>off
+	<webtorrent>on
 	;
 
 run test_pause.cpp ;
