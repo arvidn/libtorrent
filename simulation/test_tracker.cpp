@@ -1856,6 +1856,54 @@ TORRENT_TEST(ssrf_IPv6)
 	TEST_CHECK(test_ssrf("/unusual-announce-path", false, "http://[::1]:8080/unusual-announce-path"));
 }
 
+// returns true if the announce to tracker_url was rejected by the SSRF
+// mitigation on any of the session's listen sockets
+bool ssrf_tracker_blocked(bool const feature_on, char const* tracker_url)
+{
+	bool blocked = false;
+	tracker_test(
+		[&](lt::add_torrent_params& p, lt::session& ses) {
+			settings_pack pack;
+			pack.set_bool(settings_pack::ssrf_mitigation, feature_on);
+			ses.apply_settings(pack);
+			p.trackers.emplace_back(tracker_url);
+			return 60;
+		},
+		[&](std::string method, std::string req, std::map<std::string, std::string>& headers) {
+			return sim::send_response(200, "OK", 11) + "d5:peers0:e";
+		},
+		[&](torrent_handle h) {
+			std::vector<announce_entry> const tr = h.trackers();
+			TEST_EQUAL(tr.size(), 1);
+			for (auto const& ae : tr)
+			{
+				for (auto const& aep : ae.endpoints)
+				{
+					if (aep.info_hashes[protocol_version::V1].last_error == errors::ssrf_mitigation)
+						blocked = true;
+				}
+			}
+		},
+		[](torrent_handle h) {},
+		"/short");
+	return blocked;
+}
+
+TORRENT_TEST(ssrf_unspecified_address)
+{
+	// connecting to the unspecified address reaches the local host on Linux
+	// and some other systems, so it must be subject to the same restrictions
+	// as loopback
+	TEST_CHECK(ssrf_tracker_blocked(true, "http://0.0.0.0:8080/short"));
+	TEST_CHECK(ssrf_tracker_blocked(true, "http://[::]:8080/short"));
+
+	TEST_CHECK(!ssrf_tracker_blocked(false, "http://0.0.0.0:8080/short"));
+	TEST_CHECK(!ssrf_tracker_blocked(false, "http://[::]:8080/short"));
+
+	// a standard announce path is still allowed
+	TEST_CHECK(!ssrf_tracker_blocked(true, "http://0.0.0.0:8080/announce"));
+}
+
 TORRENT_TEST(ssrf_query_string)
 {
 	// tracker URLs that come pre-baked with query string arguments will be

@@ -309,10 +309,17 @@ namespace libtorrent::aux {
 			return;
 		}
 
+		// connecting to the unspecified address (0.0.0.0 or ::) reaches the
+		// local host on Linux and some other systems, so it is treated like
+		// loopback here
+		auto const is_local_host = [](tcp::endpoint const& ep) {
+			return ep.address().is_loopback() || ep.address().is_unspecified();
+		};
+
 		aux::session_settings const& settings = m_man.settings();
 		bool const ssrf_mitigation = settings.get_bool(settings_pack::ssrf_mitigation);
-		if (ssrf_mitigation && std::find_if(endpoints.begin(), endpoints.end()
-			, [](tcp::endpoint const& ep) { return ep.address().is_loopback(); }) != endpoints.end())
+		if (ssrf_mitigation
+			&& std::find_if(endpoints.begin(), endpoints.end(), is_local_host) != endpoints.end())
 		{
 			// there is at least one loopback address in here. If the request
 			// path for this tracker is not /announce. filter all loopback
@@ -339,7 +346,7 @@ namespace libtorrent::aux {
 			{
 				for (auto i = endpoints.begin(); i != endpoints.end();)
 				{
-					if (i->address().is_loopback())
+					if (is_local_host(*i))
 						i = endpoints.erase(i);
 					else
 						++i;
