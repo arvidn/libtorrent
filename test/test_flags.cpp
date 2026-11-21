@@ -50,7 +50,7 @@ void test_add_and_get_flags(torrent_flags_t const flags)
 	session ses(settings());
 	add_torrent_params p = load_torrent_file(file("base.torrent"));
 	p.save_path = ".";
-	if (flags & (torrent_flags::seed_mode | torrent_flags::super_seeding))
+	if (flags & torrent_flags::seed_mode)
 	{
 		std::vector<char> temp(425);
 		ofstream("temp").write(temp.data(), std::streamsize(temp.size()));
@@ -89,6 +89,20 @@ void test_unset_after_add(torrent_flags_t const flags)
 	TEST_EQUAL(h.flags() & flags, torrent_flags_t{});
 	print_alerts(ses);
 }
+
+#ifndef TORRENT_DISABLE_SUPERSEEDING
+bool wait_for_state(lt::session& ses, torrent_status::state_t const state)
+{
+	return wait_for_alert(
+		ses,
+		"wait_for_state",
+		[state](lt::alert const* a) {
+			auto const* sc = alert_cast<state_changed_alert>(a);
+			return sc && sc->state == state;
+		},
+		30s);
+}
+#endif
 
 } // anonymous namespace
 
@@ -142,18 +156,44 @@ TORRENT_TEST(flag_auto_managed)
 	test_unset_after_add(torrent_flags::auto_managed);
 }
 
-// super seeding mode is automatically turned off if we're not a seed
-// since the posix_disk_io is not threaded, this will happen immediately
-#if TORRENT_HAVE_MMAP
 #ifndef TORRENT_DISABLE_SUPERSEEDING
-TORRENT_TEST(flag_super_seeding)
+// a paused torrent doesn't start the full check, so super-seeding is preserved
+TORRENT_TEST(flag_super_seeding_paused)
 {
-	// super-seeding
-	test_add_and_get_flags(torrent_flags::super_seeding);
-	test_unset_after_add(torrent_flags::super_seeding);
-	test_set_after_add(torrent_flags::super_seeding);
+	// without a file the torrent skips checking_files and goes straight to
+	// files_checked(), which clears super-seeding even when paused
+	std::vector<char> const temp(425);
+	ofstream("temp").write(temp.data(), std::streamsize(temp.size()));
+
+	session ses(settings());
+	add_torrent_params p = load_torrent_file(file("base.torrent"));
+	p.save_path = ".";
+	p.flags = torrent_flags::super_seeding | torrent_flags::paused;
+	const torrent_handle h = ses.add_torrent(p);
+	TEST_CHECK(h.is_valid());
+	TEST_CHECK(wait_for_state(ses, torrent_status::checking_files));
+	TEST_EQUAL(h.flags() & torrent_flags::super_seeding, torrent_flags::super_seeding);
+
+	h.unset_flags(torrent_flags::super_seeding);
+	TEST_EQUAL(h.flags() & torrent_flags::super_seeding, torrent_flags_t{});
+	h.set_flags(torrent_flags::super_seeding);
+	TEST_EQUAL(h.flags() & torrent_flags::super_seeding, torrent_flags::super_seeding);
+	print_alerts(ses);
 }
-#endif
+
+// super-seeding is cleared when checking completes and we're not a seed
+TORRENT_TEST(flag_super_seeding_not_seed)
+{
+	session ses(settings());
+	add_torrent_params p = load_torrent_file(file("base.torrent"));
+	p.save_path = ".";
+	p.flags = torrent_flags::super_seeding;
+	const torrent_handle h = ses.add_torrent(p);
+	TEST_CHECK(h.is_valid());
+	TEST_CHECK(wait_for_state(ses, torrent_status::downloading));
+	TEST_EQUAL(h.flags() & torrent_flags::super_seeding, torrent_flags_t{});
+	print_alerts(ses);
+}
 #endif
 
 TORRENT_TEST(flag_sequential_download)

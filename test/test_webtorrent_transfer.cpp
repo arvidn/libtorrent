@@ -16,6 +16,7 @@ see LICENSE file.
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_params.hpp"
 #include "libtorrent/alert_types.hpp"
+#include "libtorrent/ip_filter.hpp"
 #include "libtorrent/aux_/torrent.hpp"
 #include "libtorrent/aux_/session_impl.hpp"
 #include "libtorrent/aux_/path.hpp"
@@ -162,9 +163,98 @@ static void test_webtorrent_transfer(bool const use_metadata_transfer)
 	p2 = ses2.abort();
 }
 
+// a peer connected over WebRTC must be subject to the IP filter, just like
+// TCP and uTP peers. filter_offerer selects which side has the filter: the
+// one that generated the offer (and receives the answer), or the one that
+// receives the offer (and generates the answer).
+static void test_webtorrent_ip_filter(bool const filter_offerer)
+{
+	std::string const suffix = filter_offerer ? "_webtorrent_filter1" : "_webtorrent_filter2";
+
+	error_code ec;
+	remove_all("tmp1" + suffix, ec);
+	remove_all("tmp2" + suffix, ec);
+
+	session_proxy p1;
+	session_proxy p2;
+
+	settings_pack const pack = settings();
+	session_params const sp(pack);
+	lt::session ses1(sp);
+	lt::session ses2(sp);
+
+	int const piece_size = 16 * 1024;
+
+	create_directory("tmp1" + suffix, ec);
+	std::ofstream file(combine_path("tmp1" + suffix, "temporary"));
+	add_torrent_params atp = ::create_torrent(&file, "temporary", piece_size, 9, false);
+	file.close();
+
+	atp.flags &= ~torrent_flags::paused;
+	atp.flags &= ~torrent_flags::auto_managed;
+
+	torrent_handle tor1;
+	torrent_handle tor2;
+	std::tie(tor1, tor2, std::ignore) =
+		setup_transfer(&ses1, &ses2, nullptr, true, false, false, suffix, piece_size, &atp);
+
+	ip_filter filter;
+	filter.add_rule(
+		make_address_v4("0.0.0.0"), make_address_v4("255.255.255.255"), ip_filter::blocked);
+	filter.add_rule(make_address_v6("::"),
+		make_address_v6("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"),
+		ip_filter::blocked);
+	lt::session& filtered = filter_offerer ? ses1 : ses2;
+	lt::torrent_handle const& filtered_tor = filter_offerer ? tor1 : tor2;
+	filtered.set_ip_filter(filter);
+
+	connect_rtc_peers(ses1, tor1, ses2, tor2);
+
+	// track each session's peer_blocked_alert separately, to make sure it's
+	// the session with the filter that blocks the peer
+	bool blocked1 = false;
+	bool blocked2 = false;
+	auto const check_blocked = [](bool& flag) {
+		return [&flag](alert const* a) {
+			if (auto const* pb = alert_cast<peer_blocked_alert>(a))
+			{
+				if (pb->reason == peer_blocked_alert::ip_filter)
+					flag = true;
+			}
+			return false;
+		};
+	};
+	bool const& blocked = filter_offerer ? blocked1 : blocked2;
+	bool const& unfiltered_blocked = filter_offerer ? blocked2 : blocked1;
+
+	auto const start_time = lt::clock_type::now();
+	while (lt::clock_type::now() - start_time < 10s)
+	{
+		ses2.wait_for_alert(200ms);
+
+		print_alerts(ses1, "ses1", false, false, check_blocked(blocked1));
+		print_alerts(ses2, "ses2", false, false, check_blocked(blocked2));
+
+		if (blocked || tor2.status().is_seeding)
+			break;
+	}
+
+	TEST_CHECK(blocked);
+	TEST_CHECK(!unfiltered_blocked);
+	TEST_CHECK(!tor2.status().is_seeding);
+	TEST_CHECK(filtered_tor.status().num_peers == 0);
+
+	p1 = ses1.abort();
+	p2 = ses2.abort();
+}
+
 TORRENT_TEST(webtorrent_transfer) { test_webtorrent_transfer(false); }
 
 TORRENT_TEST(webtorrent_transfer_metadata) { test_webtorrent_transfer(true); }
+
+TORRENT_TEST(webtorrent_ip_filter_offerer) { test_webtorrent_ip_filter(true); }
+
+TORRENT_TEST(webtorrent_ip_filter_answerer) { test_webtorrent_ip_filter(false); }
 
 #else
 
