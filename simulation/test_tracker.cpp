@@ -46,6 +46,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/file_storage.hpp"
 #include "libtorrent/torrent_info.hpp"
 #include "libtorrent/aux_/ip_helpers.hpp" // for is_v4
+#include "libtorrent/aux_/escape_string.hpp"
 #include "libtorrent/string_util.hpp" // for string_ends_with
 #include "libtorrent/flags.hpp"
 
@@ -1838,9 +1839,8 @@ TORRENT_TEST(tracker_timer_stale_endpoint)
 		tier1_working = true;
 	});
 
-	// replacing the listen socket leaves the tier 2 tracker's endpoint
-	// referring to the old one, since the tier 1 tracker is working, the tier 2
-	// tracker is never visited (and refreshed) again
+	// the tier 1 tracker is working, so announces no longer reach the tier 2
+	// tracker. Its endpoint on the replaced listen socket must not be scheduled
 	sim::timer t2(sim, lt::minutes(5), [&](boost::system::error_code const&)
 	{
 		before_switch = received_announce;
@@ -2378,6 +2378,92 @@ TORRENT_TEST(tracker_tiers_reannounce_fallback_tier)
 			TEST_EQUAL(a[5], 0);
 			TEST_EQUAL(a[6], 12);
 		}));
+}
+
+// with announce_to_all_trackers, the tier 0 tracker only works for v1, so v2
+// falls back to the tier 1 tracker. The tier 1 tracker's v2 interval must
+// drive the tracker timer, even though v1 stops at tier 0
+TORRENT_TEST(tracker_timer_v2_fallback_tier)
+{
+	using namespace std::chrono_literals;
+
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+	sim::asio::io_context ios0{sim, addr("50.0.0.1")};
+
+	sim::asio::io_context tracker1(sim, addr("3.0.0.1"));
+	sim::asio::io_context tracker2(sim, addr("3.0.0.2"));
+	sim::http_server http1(tracker1, 8080);
+	sim::http_server http2(tracker2, 8080);
+
+	lt::add_torrent_params params = ::create_torrent(1);
+	params.flags &= ~lt::torrent_flags::auto_managed;
+	params.flags |= lt::torrent_flags::paused;
+	params.save_path = save_path(0);
+	params.ti->clear_trackers();
+
+	std::string const v1_query = "info_hash="
+		+ lt::escape_string(lt::string_view(params.ti->info_hashes().v1.data(), 20));
+
+	std::array<int, 2> v1_announces{};
+	std::array<int, 2> v2_announces{};
+
+	auto const respond = [&](std::size_t const idx, std::string const& req
+		, bool const v2_ok, int const interval)
+	{
+		bool const v1 = req.find(v1_query) != std::string::npos;
+		++(v1 ? v1_announces : v2_announces)[idx];
+		if (!v1 && !v2_ok) return sim::send_response(404, "Not Found", 0);
+		std::string const ret = "d8:intervali" + std::to_string(interval) + "e5:peers0:e";
+		return sim::send_response(200, "OK", static_cast<int>(ret.size())) + ret;
+	};
+
+	http1.register_handler("/announce"
+		, [&](std::string, std::string req, std::map<std::string, std::string>&)
+		{ return respond(0, req, false, 1800); });
+	http2.register_handler("/announce"
+		, [&](std::string, std::string req, std::map<std::string, std::string>&)
+		{ return respond(1, req, true, 60); });
+
+	settings_pack pack = settings();
+	pack.set_bool(settings_pack::announce_to_all_tiers, false);
+	pack.set_bool(settings_pack::announce_to_all_trackers, true);
+	pack.set_int(settings_pack::min_announce_interval, 60);
+	pack.set_str(settings_pack::listen_interfaces, "50.0.0.1:6881");
+
+	lt::session_proxy zombie;
+	auto ses = std::make_shared<lt::session>(pack, ios0);
+
+	print_alerts(*ses, [&](lt::session&, lt::alert const* a) {
+		auto const* at = alert_cast<add_torrent_alert>(a);
+		if (at == nullptr) return;
+		// a fail limit of 1 stops the tier 0 tracker's v2 retries from
+		// driving the timer
+		announce_entry tier0("http://3.0.0.1:8080/announce");
+		tier0.tier = 0;
+		tier0.fail_limit = 1;
+		announce_entry tier1("http://3.0.0.2:8080/announce");
+		tier1.tier = 1;
+		at->handle.replace_trackers({tier0, tier1});
+		at->handle.resume();
+	});
+
+	ses->async_add_torrent(params);
+
+	sim::timer t(sim, 10min, [&](boost::system::error_code const&)
+	{
+		zombie = ses->abort();
+		ses.reset();
+	});
+
+	sim.run();
+
+	// only the tier 1 tracker's v2 interval is due within the test. The
+	// tier 0 tracker's second v1 announce is event=stopped
+	TEST_EQUAL(v1_announces[0], 2);
+	TEST_EQUAL(v2_announces[0], 1);
+	TEST_EQUAL(v1_announces[1], 0);
+	TEST_CHECK(v2_announces[1] >= 8);
 }
 
 // TODO: test external IP
