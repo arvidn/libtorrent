@@ -1755,6 +1755,118 @@ TORRENT_TEST(tracker_idna_redirect)
 	TEST_EQUAL(test_idna("http://redirector.com:8080/announce", "http://xn--tracker-.com:8080/announce", false), false);
 }
 
+// a dead tier 0 tracker, a working tier 1 tracker and a tier 2 tracker that
+// was announced to on a listen socket that has since been replaced. Once the
+// tier 2 tracker's stale endpoint is due, the tracker timer must not keep
+// firing immediately without announcing anything.
+TORRENT_TEST(tracker_timer_stale_endpoint)
+{
+	using namespace libtorrent;
+
+	sim::default_config network_cfg;
+	sim::simulation sim{network_cfg};
+	sim::asio::io_context ios0{sim, {addr("50.0.0.1"), addr("50.0.0.2")}};
+
+	sim::asio::io_context tracker1(sim, addr("3.0.0.1"));
+	sim::asio::io_context tracker2(sim, addr("3.0.0.2"));
+	sim::asio::io_context tracker3(sim, addr("3.0.0.3"));
+	sim::http_server http1(tracker1, 8080);
+	sim::http_server http2(tracker2, 8080);
+	sim::http_server http3(tracker3, 8080);
+
+	std::array<int, 3> received_announce{};
+	bool tier1_working = false;
+
+	auto const respond = [&](int const idx, bool const ok)
+	{
+		++received_announce[std::size_t(idx)];
+		if (!ok) return sim::send_response(404, "Not Found", 0);
+		std::string const ret = "d8:intervali1800e5:peers0:e";
+		return sim::send_response(200, "OK", static_cast<int>(ret.size())) + ret;
+	};
+
+	http1.register_handler("/announce"
+		, [&](std::string, std::string, std::map<std::string, std::string>&)
+		{ return respond(0, false); });
+	http2.register_handler("/announce"
+		, [&](std::string, std::string, std::map<std::string, std::string>&)
+		{ return respond(1, tier1_working); });
+	http3.register_handler("/announce"
+		, [&](std::string, std::string, std::map<std::string, std::string>&)
+		{ return respond(2, true); });
+
+	settings_pack pack = settings();
+	pack.set_int(settings_pack::alert_mask, alert_category::error
+		| alert_category::status
+		| alert_category::torrent_log);
+	pack.set_str(settings_pack::listen_interfaces, "50.0.0.1:6881");
+
+	lt::session_proxy zombie;
+	auto ses = std::make_shared<lt::session>(pack, ios0);
+
+	int immediate_timer = 0;
+	bool spinning = false;
+	print_alerts(*ses, [&](lt::session& s, lt::alert const* a) {
+		auto const* la = alert_cast<torrent_log_alert>(a);
+		if (la == nullptr) return;
+		if (string_view(la->log_message()).substr(0, 40)
+			!= "*** update tracker timer: before_now: 1 "_sv)
+			return;
+		if (++immediate_timer < 1000 || spinning) return;
+		spinning = true;
+		// break the loop, otherwise simulation time never advances
+		s.pause();
+	});
+
+	lt::add_torrent_params params = ::create_torrent(1);
+	params.flags &= ~lt::torrent_flags::auto_managed;
+	params.flags &= ~lt::torrent_flags::paused;
+	params.ti->add_tracker("http://3.0.0.1:8080/announce", 0);
+	params.ti->add_tracker("http://3.0.0.2:8080/announce", 1);
+	params.ti->add_tracker("http://3.0.0.3:8080/announce", 2);
+	params.save_path = save_path(0);
+	ses->async_add_torrent(params);
+
+	std::array<int, 3> before_switch{};
+
+	// by now, the tier 2 tracker has been announced to, since tier 0 and 1
+	// both failed. The torrent is hybrid, so every announce is sent twice,
+	// once for v1 and once for v2
+	sim::timer t1(sim, lt::seconds(5), [&](boost::system::error_code const&)
+	{
+		TEST_EQUAL(received_announce[2], 2);
+		tier1_working = true;
+	});
+
+	// replacing the listen socket leaves the tier 2 tracker's endpoint
+	// referring to the old one, since the tier 1 tracker is working, the tier 2
+	// tracker is never visited (and refreshed) again
+	sim::timer t2(sim, lt::minutes(5), [&](boost::system::error_code const&)
+	{
+		before_switch = received_announce;
+		settings_pack p;
+		p.set_str(settings_pack::listen_interfaces, "50.0.0.2:6881");
+		ses->apply_settings(std::move(p));
+	});
+
+	// the tier 2 tracker's 1800 seconds interval has expired
+	sim::timer t3(sim, lt::minutes(40), [&](boost::system::error_code const&)
+	{
+		zombie = ses->abort();
+		ses.reset();
+	});
+
+	sim.run();
+
+	// the tier 1 tracker must have taken over before the listen socket switch
+	TEST_CHECK(before_switch[1] > 2);
+	TEST_EQUAL(before_switch[2], 2);
+	// and after it, on the new listen socket
+	TEST_CHECK(received_announce[1] > before_switch[1]);
+	TEST_EQUAL(received_announce[2], 2);
+	TEST_CHECK(!spinning);
+}
+
 // This test sets up two peers, one seed an one downloader. The downloader has
 // two trackers, both in tier 0. The behavior we expect is that it picks one of
 // the trackers at random and announces to it. Since both trackers are working,
