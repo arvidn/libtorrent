@@ -69,6 +69,9 @@ namespace libtorrent {
 
 namespace {
 
+	// redirects to URLs longer than this are rejected
+	constexpr std::size_t max_redirect_url_size = 4096;
+
 	// true when an HTTP-type proxy is expected to resolve "hostname" itself,
 	// via the hostname embedded in the CONNECT request. This only applies to
 	// SSL; the plaintext case doesn't use a CONNECT tunnel at all, so the
@@ -878,6 +881,11 @@ void http_connection::on_read(error_code const& e
 				m_sock->close(ec);
 
 				std::string url = resolve_redirect_location(m_url, location);
+				if (url.size() > max_redirect_url_size)
+				{
+					callback(error_code(errors::invalid_redirection));
+					return;
+				}
 
 #if TORRENT_USE_I2P
 				if (m_i2p_conn && !is_i2p_url(url))
