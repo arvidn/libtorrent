@@ -24,7 +24,6 @@ see LICENSE file.
 #include "setup_transfer.hpp"
 
 using namespace libtorrent;
-using namespace std::chrono_literals;
 namespace lt = libtorrent;
 
 namespace {
@@ -89,20 +88,6 @@ void test_unset_after_add(torrent_flags_t const flags)
 	TEST_EQUAL(h.flags() & flags, torrent_flags_t{});
 	print_alerts(ses);
 }
-
-#ifndef TORRENT_DISABLE_SUPERSEEDING
-bool wait_for_state(lt::session& ses, torrent_status::state_t const state)
-{
-	return wait_for_alert(
-		ses,
-		"wait_for_state",
-		[state](lt::alert const* a) {
-			auto const* sc = alert_cast<state_changed_alert>(a);
-			return sc && sc->state == state;
-		},
-		30s);
-}
-#endif
 
 } // anonymous namespace
 
@@ -171,7 +156,7 @@ TORRENT_TEST(flag_super_seeding_paused)
 	p.flags = torrent_flags::super_seeding | torrent_flags::paused;
 	const torrent_handle h = ses.add_torrent(p);
 	TEST_CHECK(h.is_valid());
-	TEST_CHECK(wait_for_state(ses, torrent_status::checking_files));
+	TEST_CHECK(wait_for_state(ses, "flag_super_seeding_paused", torrent_status::checking_files));
 	TEST_EQUAL(h.flags() & torrent_flags::super_seeding, torrent_flags::super_seeding);
 
 	h.unset_flags(torrent_flags::super_seeding);
@@ -190,7 +175,7 @@ TORRENT_TEST(flag_super_seeding_not_seed)
 	p.flags = torrent_flags::super_seeding;
 	const torrent_handle h = ses.add_torrent(p);
 	TEST_CHECK(h.is_valid());
-	TEST_CHECK(wait_for_state(ses, torrent_status::downloading));
+	TEST_CHECK(wait_for_state(ses, "flag_super_seeding_not_seed", torrent_status::downloading));
 	TEST_EQUAL(h.flags() & torrent_flags::super_seeding, torrent_flags_t{});
 	print_alerts(ses);
 }
@@ -238,15 +223,7 @@ TORRENT_TEST(flag_stop_when_ready)
 	// that transition on the network thread, so by the time we read it the
 	// torrent has been force-stopped: paused and no longer auto-managed, in a
 	// downloading state, with stop_when_ready cleared.
-	const bool ready = wait_for_alert(
-		ses,
-		"flag_stop_when_ready",
-		[](lt::alert const* a) {
-			auto const* sc = alert_cast<state_changed_alert>(a);
-			return sc && sc->state == torrent_status::downloading;
-		},
-		30s);
-	TEST_CHECK(ready);
+	TEST_CHECK(wait_for_state(ses, "flag_stop_when_ready", torrent_status::downloading));
 
 	const torrent_status st = h.status();
 	TEST_EQUAL(st.flags & torrent_flags::stop_when_ready, torrent_flags_t{});
