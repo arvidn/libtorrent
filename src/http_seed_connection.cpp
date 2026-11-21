@@ -49,6 +49,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+namespace {
+	// redirects to URLs longer than this are rejected
+	constexpr std::size_t max_redirect_url_size = 4096;
+}
+
 	http_seed_connection::http_seed_connection(peer_connection_args& pack
 		, web_seed_t& web)
 		: web_connection_base(pack, web)
@@ -335,6 +340,12 @@ namespace libtorrent {
 					{
 						// we should not try this server again.
 						disable(errors::missing_location);
+						return;
+					}
+
+					if (location.size() > max_redirect_url_size)
+					{
+						disable(errors::invalid_redirection);
 						return;
 					}
 

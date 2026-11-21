@@ -64,6 +64,11 @@ POSSIBILITY OF SUCH DAMAGE.
 
 namespace libtorrent {
 
+namespace {
+	// redirects to URLs longer than this are rejected
+	constexpr std::size_t max_redirect_url_size = 4096;
+}
+
 constexpr int request_size_overhead = 5000;
 
 // sanity limit on the size of a single HTTP request (possibly consisting of
@@ -772,6 +777,16 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		return;
 	}
 
+	location = resolve_redirect_location(m_url, location);
+	if (location.size() > max_redirect_url_size)
+	{
+		disable(errors::invalid_redirection);
+		return;
+	}
+#ifndef TORRENT_DISABLE_LOGGING
+	peer_log(peer_log_alert::info, "LOCATION", "%s", location.c_str());
+#endif
+
 	bool const single_file_request = !m_path.empty()
 		&& m_path[m_path.size() - 1] != '/';
 
@@ -793,10 +808,6 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 		}
 		file_index_t const file_index = m_file_requests.front().file_index;
 
-		location = resolve_redirect_location(m_url, location);
-#ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::info, "LOCATION", "%s", location.c_str());
-#endif
 		// TODO: 3 this could be made more efficient for the case when we use an
 		// HTTP proxy. Then we wouldn't need to add new web seeds to the torrent,
 		// we could just make the redirect table contain full URLs.
@@ -872,10 +883,6 @@ void web_peer_connection::handle_redirect(int const bytes_left)
 	}
 	else
 	{
-		location = resolve_redirect_location(m_url, location);
-#ifndef TORRENT_DISABLE_LOGGING
-		peer_log(peer_log_alert::info, "LOCATION", "%s", location.c_str());
-#endif
 		// Don't forward our credentials (the web_seed_entry::auth value, sent
 		// as the Authorization header) to a different origin. The redirect
 		// target may be a third party server that should not see them. Note
