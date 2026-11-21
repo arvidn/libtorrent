@@ -413,7 +413,7 @@ namespace {
 		// new location, copy_file() follows it from the original location
 		if (!(attr.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT))
 		{
-			BOOL ret = CreateHardLinkW(n_link.c_str(), n_exist.c_str(), nullptr);
+			BOOL const ret = CreateHardLinkW(n_link.c_str(), n_exist.c_str(), nullptr);
 			if (ret)
 			{
 				ec.clear();
@@ -425,7 +425,7 @@ namespace {
 			{
 				// it's possible CreateHardLink will copy the file internally too,
 				// if the filesystem does not support it.
-				ec.assign(GetLastError(), system_category());
+				ec.assign(error, system_category());
 				return;
 			}
 		}
