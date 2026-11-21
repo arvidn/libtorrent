@@ -2327,7 +2327,7 @@ namespace {
 		// it was disabled at. This change would affect the ABI in 1.2, so
 		// should be done in 2.0 or later
 		for (auto& t : m_torrents)
-			t->enable_all_trackers();
+			t->on_listen_sockets_changed();
 	}
 
 	void session_impl::reopen_network_sockets(reopen_network_flags_t const options)
