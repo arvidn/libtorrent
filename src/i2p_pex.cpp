@@ -27,6 +27,8 @@ see LICENSE file.
 #include "libtorrent/extensions/i2p_pex.hpp"
 #include "libtorrent/aux_/time.hpp"
 
+#include <algorithm> // for min
+
 namespace libtorrent { namespace {
 
 	const char extension_name[] = "i2p_pex";
@@ -243,7 +245,10 @@ namespace libtorrent { namespace {
 #endif
 			if (p)
 			{
-				int const num_peers = p.string_length() / 32;
+				// limit the number of peers we accept from a single message.
+				// every one of them results in a name lookup
+				int const num_peers = std::min(p.string_length() / 32,
+					m_torrent.settings().get_int(settings_pack::max_pex_peers));
 				char const* in = p.string_ptr();
 
 #ifndef TORRENT_DISABLE_LOGGING
