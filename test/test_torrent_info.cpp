@@ -52,6 +52,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/session.hpp"
 #include "libtorrent/alert_types.hpp"
 
+#include <array>
 #include <iostream>
 
 using namespace lt;
@@ -1570,6 +1571,122 @@ TORRENT_TEST(empty_file2)
 	catch (system_error const& e)
 	{
 		std::printf("Expected error: %s\n", e.code().message().c_str());
+	}
+}
+
+namespace {
+entry::list_type deep_path(int const depth)
+{
+	entry::list_type path;
+	for (int i = 0; i < depth; ++i) path.emplace_back("d");
+	path.emplace_back("file");
+	return path;
+}
+
+error_code load_torrent(entry const& info)
+{
+	entry torrent;
+	torrent["info"] = info;
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), torrent);
+
+	error_code ec;
+	torrent_info ti(buf, ec, from_span);
+	return ec;
+}
+
+entry v1_info(char const* name_key, entry::list_type files)
+{
+	entry info;
+	info[name_key] = "test";
+	info["piece length"] = 16384;
+	info["pieces"] = std::string(20, '\0');
+	info["files"] = std::move(files);
+	return info;
+}
+
+error_code load_v1_with_path_depth(char const* name_key, char const* path_key
+	, int const depth)
+{
+	entry file;
+	file["length"] = 1;
+	file[path_key] = deep_path(depth);
+	return load_torrent(v1_info(name_key, {file}));
+}
+
+error_code load_v1_with_symlink_depth(char const* name_key, int const depth)
+{
+	entry file;
+	file["length"] = 1;
+	file["path"] = entry::list_type{entry("file")};
+
+	entry link;
+	link["length"] = 0;
+	link["attr"] = "l";
+	link["path"] = entry::list_type{entry("link")};
+	link["symlink path"] = deep_path(depth);
+	return load_torrent(v1_info(name_key, {file, link}));
+}
+
+error_code load_v2_with_symlink_depth(char const* name_key, int const depth)
+{
+	entry info;
+	info[name_key] = "test";
+	info["piece length"] = 16384;
+	info["meta version"] = 2;
+	auto& file = info["file tree"]["file"][""];
+	file["length"] = 1;
+	file["pieces root"] = std::string(32, '\x01');
+	auto& link = info["file tree"]["link"][""];
+	link["length"] = 0;
+	link["attr"] = "l";
+	link["symlink path"] = deep_path(depth);
+	return load_torrent(info);
+}
+
+std::array<char const*, 2> const name_keys{{"name", "name.utf-8"}};
+}
+
+TORRENT_TEST(v1_directory_depth)
+{
+	for (char const* name_key : name_keys)
+	{
+		for (char const* path_key : {"path", "path.utf-8"})
+		{
+			TEST_EQUAL(load_v1_with_path_depth(name_key, path_key, 100), error_code());
+			TEST_EQUAL(load_v1_with_path_depth(name_key, path_key, 101)
+				, error_code(errors::torrent_file_parse_failed));
+		}
+	}
+}
+
+// the limit applies to path.utf-8 when present, regardless of path
+TORRENT_TEST(v1_directory_depth_utf8_preferred)
+{
+	entry deep;
+	deep["length"] = 1;
+	deep["path"] = deep_path(1);
+	deep["path.utf-8"] = deep_path(101);
+	TEST_EQUAL(load_torrent(v1_info("name", {deep}))
+		, error_code(errors::torrent_file_parse_failed));
+
+	entry shallow;
+	shallow["length"] = 1;
+	shallow["path"] = deep_path(101);
+	shallow["path.utf-8"] = deep_path(1);
+	TEST_EQUAL(load_torrent(v1_info("name", {shallow})), error_code());
+}
+
+TORRENT_TEST(symlink_directory_depth)
+{
+	for (char const* name_key : name_keys)
+	{
+		TEST_EQUAL(load_v1_with_symlink_depth(name_key, 100), error_code());
+		TEST_EQUAL(load_v1_with_symlink_depth(name_key, 101)
+			, error_code(errors::torrent_file_parse_failed));
+		TEST_EQUAL(load_v2_with_symlink_depth(name_key, 100), error_code());
+		TEST_EQUAL(load_v2_with_symlink_depth(name_key, 101)
+			, error_code(errors::torrent_file_parse_failed));
 	}
 }
 

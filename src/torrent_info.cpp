@@ -366,6 +366,10 @@ namespace {
 		return file_flags;
 	}
 
+	// the number of directories a file may be nested in, below the torrent's
+	// root directory
+	constexpr int max_directory_depth = 100;
+
 	// iterates an array of strings and returns the sum of the lengths of all
 	// strings + one additional character per entry (to account for the presumed
 	// forward- or backslash to separate directory entries)
@@ -426,6 +430,11 @@ namespace {
 		{
 			if (bdecode_node const s_p = dict.dict_find_list("symlink path"))
 			{
+				if (s_p.list_size() > max_directory_depth + 1)
+				{
+					ec = errors::torrent_file_parse_failed;
+					return false;
+				}
 				auto const preallocate = static_cast<std::size_t>(path_length(s_p, ec));
 				if (ec) return false;
 				symlink_path.reserve(preallocate);
@@ -526,6 +535,12 @@ namespace {
 
 			if (p && p.list_size() > 0)
 			{
+				// creating a directory tree is quadratic in its depth
+				if (p.list_size() > max_directory_depth + 1)
+				{
+					ec = errors::torrent_file_parse_failed;
+					return false;
+				}
 				std::size_t const preallocate = path.size() + std::size_t(path_length(p, ec));
 				if (ec) return false;
 				path.reserve(preallocate);
@@ -570,6 +585,11 @@ namespace {
 		{
 			if (bdecode_node const s_p = dict.dict_find_list("symlink path"))
 			{
+				if (s_p.list_size() > max_directory_depth + 1)
+				{
+					ec = errors::torrent_file_parse_failed;
+					return false;
+				}
 				auto const preallocate = static_cast<std::size_t>(path_length(s_p, ec));
 				if (ec) return false;
 				symlink_path.reserve(preallocate);
@@ -611,10 +631,9 @@ namespace {
 		}
 
 		// since we're parsing this recursively, we have to be careful not to blow
-		// up the stack. 100 levels of sub directories should be enough. This
-		// could be improved by an iterative parser, keeping the state on a more
-		// compact side-stack
-		if (depth > 100)
+		// up the stack. This could be improved by an iterative parser, keeping
+		// the state on a more compact side-stack
+		if (depth > max_directory_depth)
 		{
 			ec = errors::torrent_file_parse_failed;
 			return false;
