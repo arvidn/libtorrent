@@ -1,6 +1,7 @@
 /*
 
 Copyright (c) 2026, Arthur SC Chan
+Copyright (c) 2026, Arvid Norberg
 All rights reserved.
 
 You may use, distribute and modify this code under the terms of the BSD license,
@@ -34,11 +35,12 @@ see LICENSE file.
 //     6: sign(fuzzed pk, seed-derived sk, msg)          - sign with foreign pk
 //     7: chain: keypair; sign; verify; add_scalar(pk); add_scalar(sk);
 //        key_exchange
-//   bytes 1..32:   seed      (zero-padded when short)
-//   bytes 33..64:  pk        (zero-padded)
-//   bytes 65..128: signature (zero-padded)
-//   bytes 129..160: scalar   (zero-padded)
+//   bytes 1..32:   seed
+//   bytes 33..64:  pk
+//   bytes 65..128: signature
+//   bytes 129..160: scalar
 //   remaining bytes: message (may be empty)
+// Inputs shorter than 161 bytes are rejected.
 
 #include <array>
 #include <cstdint>
@@ -54,41 +56,23 @@ namespace {
 constexpr std::size_t key_len = 32; // public key / seed / scalar
 constexpr std::size_t sig_len = 64; // signature
 constexpr std::size_t priv_len = 64; // private key
-
-// ed25519 always reads a full fixed-width field. Prefer a view into the
-// fuzz input (no copy) when enough bytes remain; otherwise zero-pad via
-// dht_fuzz::take_padded.
-template <std::size_t N>
-unsigned char const* take_field(span<std::uint8_t const>& in, std::array<char, N>& storage)
-{
-	if (in.size() >= static_cast<std::ptrdiff_t>(N))
-	{
-		span<std::uint8_t const> const chunk = dht_fuzz::take(in, static_cast<std::ptrdiff_t>(N));
-		return reinterpret_cast<unsigned char const*>(chunk.data());
-	}
-	storage = dht_fuzz::take_padded<N>(in);
-	return reinterpret_cast<unsigned char const*>(storage.data());
-}
+constexpr std::size_t header_len = 1 + key_len + key_len + sig_len + key_len;
 
 } // anonymous namespace
 
 extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, std::size_t size)
 {
+	// ed25519 always reads full fixed-width fields
+	if (size < header_len)
+		return -1;
 	span<std::uint8_t const> in(data, static_cast<std::ptrdiff_t>(size));
-	if (in.empty())
-		return 0;
 	int const mode = in[0] % 8;
 	in = in.subspan(1);
 
-	std::array<char, key_len> seed_storage;
-	std::array<char, key_len> pk_fuzz_storage;
-	std::array<char, sig_len> sig_fuzz_storage;
-	std::array<char, key_len> scalar_storage;
-
-	unsigned char const* const seed = take_field(in, seed_storage);
-	unsigned char const* const pk_fuzz = take_field(in, pk_fuzz_storage);
-	unsigned char const* const sig_fuzz = take_field(in, sig_fuzz_storage);
-	unsigned char const* const scalar = take_field(in, scalar_storage);
+	auto const seed = dht_fuzz::take(in, std::ptrdiff_t(key_len));
+	auto const pk_fuzz = dht_fuzz::take(in, std::ptrdiff_t(key_len));
+	auto const sig_fuzz = dht_fuzz::take(in, std::ptrdiff_t(sig_len));
+	auto const scalar = dht_fuzz::take(in, std::ptrdiff_t(key_len));
 
 	// remaining bytes are the message; hasher512::update() requires non-empty
 	std::uint8_t empty_byte = 0;
@@ -96,14 +80,14 @@ extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, std::size_t size
 	if (message.empty())
 		message = {&empty_byte, 1};
 
-	std::array<unsigned char, key_len> pk{};
-	std::array<unsigned char, priv_len> sk{};
-	std::array<unsigned char, sig_len> sig{};
-	std::array<unsigned char, key_len> shared{};
-	std::array<unsigned char, key_len> pk_out{};
-	std::array<unsigned char, priv_len> sk_out{};
+	std::array<std::uint8_t, key_len> pk{};
+	std::array<std::uint8_t, priv_len> sk{};
+	std::array<std::uint8_t, sig_len> sig{};
+	std::array<std::uint8_t, key_len> shared{};
+	std::array<std::uint8_t, key_len> pk_out{};
+	std::array<std::uint8_t, priv_len> sk_out{};
 
-	aux::ed25519_create_keypair(pk.data(), sk.data(), seed);
+	aux::ed25519_create_keypair(pk.data(), sk.data(), seed.data());
 
 	int verify_result = -1;
 
@@ -116,29 +100,31 @@ extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, std::size_t size
 			break;
 		case 1:
 			verify_result =
-				aux::ed25519_verify(sig_fuzz, message.data(), message.size(), pk.data());
+				aux::ed25519_verify(sig_fuzz.data(), message.data(), message.size(), pk.data());
 			break;
 		case 2:
-			verify_result = aux::ed25519_verify(sig_fuzz, message.data(), message.size(), pk_fuzz);
+			verify_result = aux::ed25519_verify(
+				sig_fuzz.data(), message.data(), message.size(), pk_fuzz.data());
 			break;
 		case 3:
-			aux::ed25519_add_scalar(pk_out.data(), nullptr, scalar);
+			aux::ed25519_add_scalar(pk_out.data(), nullptr, scalar.data());
 			break;
 		case 4:
-			aux::ed25519_add_scalar(nullptr, sk_out.data(), scalar);
+			aux::ed25519_add_scalar(nullptr, sk_out.data(), scalar.data());
 			break;
 		case 5:
-			aux::ed25519_key_exchange(shared.data(), pk_fuzz, sk.data());
+			aux::ed25519_key_exchange(shared.data(), pk_fuzz.data(), sk.data());
 			break;
 		case 6:
-			aux::ed25519_sign(sig.data(), message.data(), message.size(), pk_fuzz, sk.data());
+			aux::ed25519_sign(
+				sig.data(), message.data(), message.size(), pk_fuzz.data(), sk.data());
 			break;
 		default:
 			aux::ed25519_sign(sig.data(), message.data(), message.size(), pk.data(), sk.data());
 			verify_result =
 				aux::ed25519_verify(sig.data(), message.data(), message.size(), pk.data());
-			aux::ed25519_add_scalar(pk_out.data(), nullptr, scalar);
-			aux::ed25519_add_scalar(nullptr, sk_out.data(), scalar);
+			aux::ed25519_add_scalar(pk_out.data(), nullptr, scalar.data());
+			aux::ed25519_add_scalar(nullptr, sk_out.data(), scalar.data());
 			aux::ed25519_key_exchange(shared.data(), pk_out.data(), sk_out.data());
 			break;
 	}
