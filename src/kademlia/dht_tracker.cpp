@@ -56,6 +56,8 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <libtorrent/hex.hpp> // to_hex
 #endif
 
+#include <algorithm> // for min
+
 using namespace std::placeholders;
 
 namespace libtorrent { namespace dht {
@@ -686,9 +688,9 @@ namespace {
 		TORRENT_ASSERT(m_nodes.find(s) != m_nodes.end());
 
 		static_assert(lt::version_minor < 16, "version number not supported by DHT");
-		static_assert(lt::version_tiny < 16, "version number not supported by DHT");
+		// tiny only has 4 bits, saturate rather than overflow into minor
 		static char const ver[] = {'L', 'T'
-			, lt::version_major, (lt::version_minor << 4) | lt::version_tiny};
+			, lt::version_major, char((lt::version_minor << 4) | std::min(lt::version_tiny, 15))};
 		e["v"] = std::string(ver, ver+ 4);
 
 		m_send_buf.clear();
