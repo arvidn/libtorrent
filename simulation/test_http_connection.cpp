@@ -206,6 +206,7 @@ enum expect_counters
 	inf_redirect_req = 5,
 	chunked_req = 6,
 	test_file_gz_req = 7,
+	long_redirect_req = 8,
 
 	num_counters
 };
@@ -225,6 +226,13 @@ void run_suite(lt::aux::proxy_settings ps)
 
 	run_test(ps, url_base + "/infinite/redirect", 0, 301
 		, error_condition(asio::error::eof, asio::error::get_misc_category()), {6, 1, 0, 0, 0, 6});
+
+	run_test(ps,
+		url_base + "/long/redirect",
+		-1,
+		301,
+		error_condition(lt::errors::invalid_redirection, lt::libtorrent_category()),
+		{1, 1, 0, 0, 0, 0, 0, 0, 1});
 
 	run_test(ps, url_base + "/chunked_encoding", 1337, 200, error_condition(), { 1, 1, 0, 0, 0, 0, 1});
 
@@ -402,6 +410,17 @@ void run_test(lt::aux::proxy_settings ps, std::string url, int expect_size, int 
 			"Location: /infinite/redirect\r\n"
 			"\r\n";
 	});
+
+	http.register_handler("/long/redirect",
+		[&counters](std::string method, std::string req, std::map<std::string, std::string>&) {
+			++counters[long_redirect_req];
+			TEST_EQUAL(method, "GET");
+			return "HTTP/1.1 301 Moved Temporarily\r\n"
+				   "Location: /"
+				+ std::string(4096, 'a')
+				+ "\r\n"
+				  "\r\n";
+		});
 
 	auto c = test_request(ios, res, url, data_buffer, expect_size
 		, expect_status, expect_error, ps, &counters[connect_handler]

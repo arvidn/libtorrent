@@ -206,6 +206,7 @@ see LICENSE file.
 #if __ANDROID_API__ < 21
 #define TORRENT_HAS_FALLOCATE 0
 #define TORRENT_HAS_FADVISE 0
+#define TORRENT_HAS_LINKAT 0
 #endif // API < 21
 
 // android 32 bits has real problems with fseeko
@@ -454,6 +455,10 @@ see LICENSE file.
 
 #ifndef TORRENT_HAS_FADVISE
 #define TORRENT_HAS_FADVISE 1
+#endif
+
+#ifndef TORRENT_HAS_LINKAT
+#define TORRENT_HAS_LINKAT 1
 #endif
 
 #ifndef TORRENT_HAS_FSEEKO
