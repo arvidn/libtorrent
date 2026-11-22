@@ -500,7 +500,7 @@ namespace libtorrent::aux {
 		bool upload_mode() const { return m_upload_mode || m_graceful_pause_mode; }
 		bool is_upload_only() const { return is_finished() || upload_mode(); }
 
-		int seed_rank(aux::session_settings const& s) const;
+		int seed_rank(aux::session_settings const& s, time_point32 now) const;
 
 		void add_piece(piece_index_t piece, char const* data, add_piece_flags_t flags);
 		void add_piece_async(piece_index_t piece, std::vector<char> data, add_piece_flags_t flags);
