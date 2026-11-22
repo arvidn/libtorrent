@@ -1,4 +1,4 @@
-2.0.16 not released
+2.0.16 released
 
 	* harden HTTP redirects
 	* on POSIX, pass filenames to the OS as UTF-8, independent of the locale
