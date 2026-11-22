@@ -4275,10 +4275,13 @@ retry:
 				, [](torrent const* lhs, torrent const* rhs)
 				{ return lhs->sequence_number() < rhs->sequence_number(); });
 
-			std::partial_sort(seeds.begin(), seeds.begin() +
-				std::min(hard_limit, int(seeds.size())), seeds.end()
-				, [this](torrent const* lhs, torrent const* rhs)
-				{ return lhs->seed_rank(m_settings) > rhs->seed_rank(m_settings); });
+			time_point32 const now = aux::time_now32();
+			std::partial_sort(seeds.begin(),
+				seeds.begin() + std::min(hard_limit, int(seeds.size())),
+				seeds.end(),
+				[this, now](torrent const* lhs, torrent const* rhs) {
+					return lhs->seed_rank(m_settings, now) > rhs->seed_rank(m_settings, now);
+				});
 		}
 
 		auto_manage_checking_torrents(checking, checking_limit);
