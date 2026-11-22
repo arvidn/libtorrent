@@ -69,6 +69,10 @@ EXPORT bool wait_for_alert(lt::session& ses,
 	std::function<bool(lt::alert const*)> predicate,
 	lt::time_duration timeout);
 
+// waits up to 30 seconds for a state_changed_alert transitioning into 'state'.
+// returns whether it was received.
+EXPORT bool wait_for_state(lt::session& ses, char const* name, lt::torrent_status::state_t state);
+
 EXPORT void wait_for_listen(lt::session& ses, char const* name);
 EXPORT void wait_for_downloading(lt::session& ses, char const* name);
 EXPORT void wait_for_seeding(lt::session& ses, char const* name);

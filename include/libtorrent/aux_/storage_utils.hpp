@@ -28,6 +28,7 @@ see LICENSE file.
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/disk_job.hpp"
 #include "libtorrent/aux_/disk_io_thread_pool.hpp"
+#include "libtorrent/string_view.hpp"
 
 namespace libtorrent::aux {
 
@@ -133,6 +134,13 @@ namespace libtorrent::aux {
 		std::string const& target
 		, std::string const& link
 		, storage_error& ec);
+
+#if TORRENT_HAS_SYMLINK
+	// each leading ".." of target steps out of one directory of the link's
+	// path. The target only resolves as intended if none of those directories
+	// is a symlink on disk
+	TORRENT_EXTRA_EXPORT bool target_traverses_symlink(string_view target, string_view link);
+#endif
 
 	TORRENT_EXTRA_EXPORT void move_file(
 		std::string const& f, std::string const& newf, storage_error& se);

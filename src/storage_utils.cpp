@@ -28,6 +28,8 @@ see LICENSE file.
 
 #if TORRENT_HAS_SYMLINK
 #include <unistd.h> // for symlink()
+#include <fcntl.h> // for openat()
+#include "libtorrent/aux_/file_descriptor.hpp"
 #endif
 
 #include <set>
@@ -839,6 +841,10 @@ typed_bitfield<piece_index_t> check_pieces(filenames const& fs,
 					std::string const target = lexically_relative(
 						parent_path(fs.file_path(file_index)), fs.symlink(file_index));
 					create_link(target, path, ec);
+					// create_symlink() refuses links whose target would not
+					// resolve to the intended file. Skip it, rather than failing
+					if (ec.ec == boost::system::errc::too_many_symbolic_link_levels)
+						ec = storage_error();
 					if (ec.ec)
 					{
 						ec.file(file_index);
@@ -862,14 +868,69 @@ typed_bitfield<piece_index_t> check_pieces(filenames const& fs,
 		}
 	}
 
+#if TORRENT_HAS_SYMLINK
+	bool target_traverses_symlink(string_view const target, string_view const link)
+	{
+		string_view const link_dir = rsplit_path(link).first;
+		string_view top = link_dir;
+		auto t = lsplit_path(target);
+		for (; t.first == ".."; t = lsplit_path(t.second))
+		{
+			if (top.empty())
+				return true;
+			top = rsplit_path(top).first;
+		}
+#if TORRENT_USE_ASSERTS
+		// symlink paths are sanitized and never contain "..", the only ones
+		// are the leading ones that make the target relative to the link
+		for (; !t.first.empty(); t = lsplit_path(t.second))
+			TORRENT_ASSERT(t.first != "..");
+#endif
+		if (top.size() == link_dir.size())
+			return false;
+
+		// opening each directory relative to its parent resolves one path
+		// element per level, stat() on each level would resolve the whole path
+		std::string const base = !top.empty() ? std::string(top)
+			: link_dir.front() == '/'		  ? std::string("/")
+											  : std::string(".");
+		file_descriptor dir = ::open(base.c_str(), O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+		if (dir.fd() < 0)
+			return true;
+
+		string_view rest = link_dir.substr(top.size());
+		while (!rest.empty())
+		{
+			string_view name;
+			std::tie(name, rest) = lsplit_path(rest);
+			if (name.empty())
+				continue;
+			dir = ::openat(dir.fd(),
+				std::string(name).c_str(),
+				O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
+			if (dir.fd() < 0)
+				return true;
+		}
+		return false;
+	}
+#endif
+
 	void create_symlink(std::string const& target, std::string const& link, storage_error& ec)
 	{
 #if TORRENT_HAS_SYMLINK
 		create_directories(parent_path(link), ec.ec);
 		if (ec)
 		{
-			ec.ec = error_code(errno, generic_category());
 			ec.operation = operation_t::mkdir;
+			return;
+		}
+		// this must run after creating the directories, to check the ones the
+		// link will actually be created in
+		if (target_traverses_symlink(target, link))
+		{
+			ec.ec = boost::system::errc::make_error_code(
+				boost::system::errc::too_many_symbolic_link_levels);
+			ec.operation = operation_t::symlink;
 			return;
 		}
 		if (::symlink(target.c_str(), link.c_str()) != 0)

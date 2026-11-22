@@ -685,6 +685,48 @@ TORRENT_TEST(web_seed_http_proxy_hostnames_bogon_filter)
 	test_web_seed_http_proxy_hostnames(proxy_hostnames | block_bogon_range);
 }
 
+void test_redirect_length(std::size_t const url_size, bool const expect_follow)
+{
+	using namespace lt;
+	std::vector<lt::create_file_entry> files;
+	files.emplace_back("file1", 0xc000);
+	lt::add_torrent_params params = ::create_torrent(std::move(files));
+	params.url_seeds.push_back("http://2.2.2.2:8080/");
+
+	std::string const base = "http://3.3.3.3:4444";
+	std::string const path = "/" + std::string(url_size - base.size() - 1, 'a');
+
+	bool rejected = false;
+	int followed = 0;
+	run_test([&params](lt::session& ses) { ses.async_add_torrent(params); },
+		[&rejected](lt::session&, lt::alert const* alert) {
+			auto const* pe = lt::alert_cast<lt::peer_error_alert>(alert);
+			if (pe && pe->error == errors::invalid_redirection)
+				rejected = true;
+		},
+		[&](sim::simulation& sim, lt::session&) {
+			sim::asio::io_context web_server1(sim, make_address_v4("2.2.2.2"));
+			sim::http_server http1(web_server1, 8080);
+			http1.register_redirect("/file1", base + path);
+
+			sim::asio::io_context web_server2(sim, make_address_v4("3.3.3.3"));
+			sim::http_server http2(web_server2, 4444);
+			http2.register_handler(
+				path, [&followed](std::string, std::string, std::map<std::string, std::string>&) {
+					++followed;
+					return sim::send_response(404, "Not Found", 0);
+				});
+
+			sim.run();
+		});
+	TEST_EQUAL(rejected, !expect_follow);
+	TEST_EQUAL(followed > 0, expect_follow);
+}
+
+TORRENT_TEST(redirect_max_url_length) { test_redirect_length(4096, true); }
+
+TORRENT_TEST(redirect_url_too_long) { test_redirect_length(4097, false); }
+
 // TODO: web seed banning isn't covered anywhere in this file.
 // test/test_web_seed_ban.cpp points a torrent at a web seed serving
 // content that doesn't match the torrent's hashes and checks that

@@ -51,6 +51,9 @@ using namespace std::chrono_literals;
 
 namespace {
 
+// for kicks that must not complete a parked clear_piece
+void no_clear(jobqueue_t, disk_job*) { TEST_ERROR("unexpected clear_piece"); }
+
 // Exercise the retry path in the disk I/O thread loop: when kick_hasher stalls
 // mid-piece (block 1 absent from cache) while a hash job is parked on the piece
 // with in_progress set, the job must be re-queued directly — not via add_job(),
@@ -300,7 +303,7 @@ void test_hash_job_dispatched_by_hasher(test_mode_t const mode)
 	// too. Call try_hash_piece after a short sleep so the hasher is
 	// reliably mid-run.
 	std::jthread t([&]() {
-		f.cache.kick_pending_hashers(completed, retry);
+		f.cache.kick_pending_hashers(completed, retry, no_clear);
 		f.cache.drain_v2_hash_queue(
 			[&block_hashes](std::shared_ptr<lt::aux::pread_storage> const&,
 				lt::piece_index_t,
@@ -369,7 +372,7 @@ void test_hash_job_retry_when_piece_incomplete(test_mode_t const mode)
 	// on the same thread, park the hash job while hashing_flag is set, then
 	// let the hasher finish.
 	std::jthread t([&]() {
-		f.cache.kick_pending_hashers(completed, retry);
+		f.cache.kick_pending_hashers(completed, retry, no_clear);
 		f.cache.drain_v2_hash_queue(
 			[&block_hashes](std::shared_ptr<lt::aux::pread_storage> const&,
 				lt::piece_index_t,
@@ -447,7 +450,7 @@ void test_drop_held_alive_buffers(test_mode_t const mode)
 
 	jobqueue_t completed, retry;
 
-	std::jthread hasher_thread([&]() { f.cache.kick_pending_hashers(completed, retry); });
+	std::jthread hasher_thread([&]() { f.cache.kick_pending_hashers(completed, retry, no_clear); });
 	// Wait until kick_hasher has released the mutex inside its slow hash
 	// update. The 50ms is comfortably inside the ~1.6s slow-hash window.
 	std::this_thread::sleep_for(std::chrono::milliseconds(50));
@@ -478,11 +481,9 @@ void test_drop_held_alive_buffers(test_mode_t const mode)
 }
 
 // try_clear_piece() arrives while a hasher thread holds hashing_flag (mutex
-// released mid-hash) -- the disk-write-failure path can race with kick_hasher
-// on the same piece. try_clear_piece must park the clear on the cpe (not run
-// clear_piece_impl while ph/hasher_cursor are in use). When kick_hasher
-// finishes via Path 2 it sets force_flush_flag; the next flush sees the
-// parked clear in flush_piece_impl's scope_end and dispatches it.
+// released mid-hash), as on the disk-write-failure path. The clear must be
+// parked rather than run clear_piece_impl() under the hasher, and the hasher
+// completes it once it drops hashing_flag.
 void test_clear_piece_during_hashing(test_mode_t const mode)
 {
 	if (!(mode & test_mode::v1)) return; // v2-only has no hashing_flag
@@ -495,7 +496,8 @@ void test_clear_piece_during_hashing(test_mode_t const mode)
 	clear_job->action = job::clear_piece{{}, 0_piece};
 
 	jobqueue_t completed, retry;
-	std::jthread hasher_thread([&]() { f.cache.kick_pending_hashers(completed, retry); });
+	std::jthread hasher_thread(
+		[&]() { f.cache.kick_pending_hashers(completed, retry, f.capture_clear()); });
 
 	// Give the hasher time to set hashing_flag and release the mutex inside
 	// its slow-hash update. The window is ~1.6s per block; 50ms is well inside.
@@ -503,42 +505,67 @@ void test_clear_piece_during_hashing(test_mode_t const mode)
 
 	jobqueue_t cb_aborted;
 	bool const cb_immediate = f.cache.try_clear_piece(f.loc(0_piece), clear_job.get(), cb_aborted);
-	// hashing_flag was set -- try_clear_piece parked the clear and returned false.
 	TEST_CHECK(!cb_immediate);
 	TEST_CHECK(cb_aborted.empty());
 
 	hasher_thread.join();
-	// kick_hasher's Path 2 (all blocks hashed, no hash_job) cleared
-	// hashing_flag and set force_flush_flag.
 
-	// Run a flush. Pass 1 picks up the piece (force_flush_flag), flushes its
-	// write_jobs, then flush_piece_impl's scope_end sees cpe.clear_piece set
-	// and dispatches the parked clear via clear_piece_fun.
-	jobqueue_t deferred_aborted;
-	disk_job* deferred_clear = nullptr;
-	f.cache.flush_to_disk(
-		[&](bitfield& flushed, span<disk_job* const> blocks) -> int {
-			int count = 0;
-			for (int i = 0; i < int(blocks.size()); ++i)
-			{
-				if (!blocks[i]) continue;
-				flushed.set_bit(i);
-				++count;
-			}
-			return count;
-		},
-		0,
-		[&](jobqueue_t aborted, disk_job* clear) {
-			while (!aborted.empty())
-				deferred_aborted.push_back(aborted.pop_front());
-			if (clear) deferred_clear = clear;
-		},
-		false);
+	TEST_EQUAL(f.cleared_jobs.size(), 1);
+	if (!f.cleared_jobs.empty())
+		TEST_EQUAL(f.cleared_jobs[0], clear_job.get());
+	// neither block was flushed, so the clear aborts both write jobs
+	TEST_EQUAL(f.aborted_jobs.size(), 2);
+	TEST_EQUAL(int(f.cache.size()), 0);
+	TEST_EQUAL(f.flush(), 0);
+}
 
-	// Both write_jobs were already taken by the flush, so the deferred clear's
-	// aborted is empty. The clear job itself was dispatched.
-	TEST_CHECK(deferred_aborted.empty());
-	TEST_EQUAL(deferred_clear, clear_job.get());
+// A clear parked because the piece was flushing must not run when that flush
+// ends while a hasher is still reading the piece's buffers. The hasher
+// completes it instead.
+void test_clear_piece_flush_ends_during_hashing(test_mode_t const mode)
+{
+	if (!(mode & test_mode::v1))
+		return; // v2-only has no hashing_flag
+
+	cache_fixture f(2, mode);
+	f.insert(0_piece, 0);
+	f.insert(0_piece, 1);
+
+	auto const clear_job = std::make_unique<pread_disk_job>();
+	clear_job->action = job::clear_piece{{}, 0_piece};
+
+	// the hasher gets its own sink, the fixture's is written by the flush
+	// thread and is only safe to read once that has been joined
+	std::vector<disk_job*> hasher_cleared;
+	jobqueue_t hasher_aborted;
+	jobqueue_t completed, retry;
+	std::jthread hasher_thread([&]() {
+		f.cache.kick_pending_hashers(completed, retry, [&](jobqueue_t aborted, disk_job* clear) {
+			if (clear)
+				hasher_cleared.push_back(clear);
+			hasher_aborted.append(std::move(aborted));
+		});
+	});
+	std::this_thread::sleep_for(50ms);
+
+	held_flush flush(f);
+
+	jobqueue_t cb_aborted;
+	bool const cb_immediate = f.cache.try_clear_piece(f.loc(0_piece), clear_job.get(), cb_aborted);
+	TEST_CHECK(!cb_immediate);
+	TEST_CHECK(cb_aborted.empty());
+
+	flush.release();
+	TEST_CHECK(f.cleared_jobs.empty());
+	TEST_CHECK(f.aborted_jobs.empty());
+
+	hasher_thread.join();
+
+	TEST_EQUAL(hasher_cleared.size(), 1);
+	if (!hasher_cleared.empty())
+		TEST_EQUAL(hasher_cleared[0], clear_job.get());
+	// the flush took both write jobs, nothing is left to abort
+	TEST_CHECK(hasher_aborted.empty());
 	TEST_EQUAL(int(f.cache.size()), 0);
 	TEST_EQUAL(f.alloc.live, 0);
 }
@@ -567,7 +594,7 @@ void test_flush_storage_during_hashing(test_mode_t const mode)
 
 	// With slow hashing each block takes ~1.6 s. Run the hasher in a
 	// background thread so flush_storage() races with it.
-	std::jthread hasher_thread([&]() { f.cache.kick_pending_hashers(completed, retry); });
+	std::jthread hasher_thread([&]() { f.cache.kick_pending_hashers(completed, retry, no_clear); });
 
 	// Give the hasher time to set hashing_flag and release the mutex.
 	std::this_thread::sleep_for(std::chrono::milliseconds(50));
@@ -606,7 +633,7 @@ void test_kick_hasher_keep_going_fills_hole(test_mode_t const mode)
 	f.insert(0_piece, 2);
 
 	jobqueue_t completed, retry;
-	std::jthread hasher_thread([&]() { f.cache.kick_pending_hashers(completed, retry); });
+	std::jthread hasher_thread([&]() { f.cache.kick_pending_hashers(completed, retry, no_clear); });
 
 	// Wait until kick_hasher has released the mutex inside its slow-hash
 	// update on block 0. 50ms is comfortably inside the ~1.6s slow window.
@@ -659,6 +686,15 @@ TORRENT_TEST(flush_storage_during_hashing_hybrid)
 	TORRENT_TEST(clear_piece_during_hashing_hybrid)
 	{
 		test_clear_piece_during_hashing(test_mode::v1 | test_mode::v2);
+	}
+
+	TORRENT_TEST(clear_piece_flush_ends_during_hashing_v1)
+	{
+		test_clear_piece_flush_ends_during_hashing(test_mode::v1);
+	}
+	TORRENT_TEST(clear_piece_flush_ends_during_hashing_hybrid)
+	{
+		test_clear_piece_flush_ends_during_hashing(test_mode::v1 | test_mode::v2);
 	}
 
 	TORRENT_TEST(drop_held_alive_v1) { test_drop_held_alive_buffers(test_mode::v1); }

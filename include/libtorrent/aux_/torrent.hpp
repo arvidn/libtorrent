@@ -500,7 +500,7 @@ namespace libtorrent::aux {
 			return is_finished() || bool(m_flags & torrent_internal_flags::effective_upload_mode);
 		}
 
-		int seed_rank(aux::session_settings const& s) const;
+		int seed_rank(aux::session_settings const& s, time_point32 now) const;
 
 		void add_piece(piece_index_t piece, char const* data, add_piece_flags_t flags);
 		void add_piece_async(piece_index_t piece, std::vector<char> data, add_piece_flags_t flags);

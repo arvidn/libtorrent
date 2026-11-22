@@ -273,6 +273,8 @@ private:
 
 	// this queues up another job to be submitted
 	void add_job(aux::pread_disk_job* j, add_job_flags_t flags = add_job_flags::user_add);
+	bool admit_job(aux::pread_disk_job* j);
+	void queue_job(aux::pread_disk_job* j, add_job_flags_t flags = add_job_flags::user_add);
 	void add_fence_job(aux::pread_disk_job* j, add_job_flags_t flags = add_job_flags::user_add);
 
 	void execute_job(aux::pread_disk_job* j);
@@ -298,9 +300,9 @@ private:
 
 	// set to true once we start shutting down. Guarded by m_job_mutex: it's
 	// written, and read by the disk threads, under the mutex. The lock-free
-	// reads (in add_job(), add_fence_job() and the destructor) only run on the
-	// network thread (the only writer's thread) or after the disk threads have
-	// exited, so they don't race with the write.
+	// reads (in admit_job(), async_write(), add_fence_job() and the
+	// destructor) only run on the network thread (the only writer's thread) or
+	// after the disk threads have exited, so they don't race with the write.
 	bool m_abort = false;
 
 	// this is a counter of how many threads are currently running.
@@ -998,30 +1000,29 @@ void pread_disk_io::kick_write_hashers()
 
 	jobqueue_t completed;
 	jobqueue_t retry;
-	m_cache.kick_pending_hashers(completed, retry);
+	auto const on_clear = [&](jobqueue_t aborted, aux::disk_job* clear) {
+		clear_piece_jobs(std::move(aborted), clear, completed);
+	};
+	m_cache.kick_pending_hashers(completed, retry, on_clear);
 	m_cache.drain_v2_hash_queue(
 		[](std::shared_ptr<aux::pread_storage> const& st,
 			piece_index_t const p,
 			int const block,
 			sha256_hash const& h) {
-			if (st) st->store_precomputed_v2(p, block, h);
+			if (st)
+				st->store_precomputed_v2(p, block, h);
 		},
 		retry,
-		[&](jobqueue_t aborted, aux::disk_job* clear) {
-			clear_piece_jobs(std::move(aborted), clear, completed);
-		});
+		on_clear);
 	if (!completed.empty()) add_completed_jobs(std::move(completed));
 	while (!retry.empty())
 	{
 		auto* j = static_cast<aux::pread_disk_job*>(retry.pop_front());
-		// a retry hash job that already went through is_blocked() (in_progress is
-		// set, e.g. it arrived from the fence backlog) must not be re-registered
-		// with the fence -- run it directly. With no hash threads everything runs
-		// inline here anyway. Otherwise it's a fresh job; add_job() handles it.
-		if (j->state & aux::disk_job::in_progress)
-			execute_job(j);
-		else
-			add_job(j);
+		// a job hung on a piece already passed the fence gate in async_hash() or
+		// do_job(hash), so it is counted and must not be re-registered with the
+		// fence
+		TORRENT_ASSERT(j->state & aux::disk_job::in_progress);
+		queue_job(j);
 	}
 }
 
@@ -1096,6 +1097,14 @@ void pread_disk_io::async_hash(storage_index_t const storage
 		sha1_hash{}
 	);
 
+	// pass the fence gate before consulting the cache. try_hash_piece() may
+	// hang the job on the cached_piece_entry for the hasher thread to post
+	// later; that job must count as outstanding on the storage like any other,
+	// or a stop_torrent fence could run (and the storage be removed) while the
+	// job is still parked in the cache, to be revived by the hasher afterwards.
+	if (!admit_job(j))
+		return;
+
 	aux::disk_cache::hash_result const ret = m_cache.try_hash_piece({j->storage->storage_index(), piece}, j);
 
 	// if we have already computed the piece hash, just post the completion
@@ -1125,7 +1134,7 @@ void pread_disk_io::async_hash(storage_index_t const storage
 		if (need_disk_fallback)
 		{
 			DLOG("async_hash: v2 hashes incomplete, falling back to do_job(hash)\n");
-			add_job(j);
+			queue_job(j);
 			return;
 		}
 
@@ -1144,7 +1153,7 @@ void pread_disk_io::async_hash(storage_index_t const storage
 	if (ret == aux::disk_cache::job_queued)
 		return;
 
-	add_job(j);
+	queue_job(j);
 }
 
 void pread_disk_io::async_hash2(storage_index_t const storage
@@ -1880,7 +1889,10 @@ void pread_disk_io::add_fence_job(aux::pread_disk_job* j, add_job_flags_t const 
 		immediate_execute();
 }
 
-void pread_disk_io::add_job(aux::pread_disk_job* j, add_job_flags_t const flags)
+// true if j passed the fence gate and is counted as outstanding on its
+// storage. Otherwise j was aborted or parked behind a fence, and is no longer
+// owned by the caller.
+bool pread_disk_io::admit_job(aux::pread_disk_job* j)
 {
 	TORRENT_ASSERT(!j->storage || j->storage->files().is_valid());
 	TORRENT_ASSERT(j->next == nullptr);
@@ -1893,11 +1905,12 @@ void pread_disk_io::add_job(aux::pread_disk_job* j, add_job_flags_t const flags)
 #endif
 	// if this happens, it means we started to shut down
 	// the disk threads too early. We have to post all jobs
-	// before the disk threads are shut down
+	// before the disk threads are shut down. is_blocked() has not run, so j is
+	// not in_progress and must not be job_complete()d, abort it directly.
 	if (m_abort)
 	{
 		m_completed_jobs.abort_job(m_ios, j);
-		return;
+		return false;
 	}
 
 	TORRENT_ASSERT(!(j->state & aux::disk_job::in_progress));
@@ -1916,8 +1929,15 @@ void pread_disk_io::add_job(aux::pread_disk_job* j, add_job_flags_t const flags)
 		DLOG("blocked job: %s (torrent: %d total: %d)\n"
 			, print_job(*j).c_str(), j->storage ? j->storage->num_blocked() : 0
 			, int(m_stats_counters[counters::blocked_disk_jobs]));
-		return;
+		return false;
 	}
+	return true;
+}
+
+void pread_disk_io::add_job(aux::pread_disk_job* j, add_job_flags_t const flags)
+{
+	if (!admit_job(j))
+		return;
 
 	// is_blocked() returned false, so the fence (if there was one) is down. The
 	// fence is only lowered after job_complete() has reposted every blocked job
@@ -1936,6 +1956,13 @@ void pread_disk_io::add_job(aux::pread_disk_job* j, add_job_flags_t const flags)
 		return;
 	}
 
+	queue_job(j, flags);
+}
+
+// enqueue a job that has already passed the fence gate (is_blocked() returned
+// false, or the job carries no storage)
+void pread_disk_io::queue_job(aux::pread_disk_job* j, add_job_flags_t const flags)
+{
 	std::unique_lock<std::mutex> l(m_job_mutex);
 
 	TORRENT_ASSERT((j->state & aux::disk_job::in_progress) || !j->storage);
@@ -2257,19 +2284,21 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 			l.unlock();
 			jobqueue_t completed;
 			jobqueue_t retry;
-			bool const needs_flush = m_cache.kick_pending_hashers(completed, retry);
+			auto const on_clear = [&](jobqueue_t aborted, aux::disk_job* clear) {
+				clear_piece_jobs(std::move(aborted), clear, completed);
+			};
+			bool const needs_flush = m_cache.kick_pending_hashers(completed, retry, on_clear);
 
 			m_cache.drain_v2_hash_queue(
 				[](std::shared_ptr<aux::pread_storage> const& st,
 					piece_index_t const piece,
 					int const block,
 					sha256_hash const& h) {
-					if (st) st->store_precomputed_v2(piece, block, h);
+					if (st)
+						st->store_precomputed_v2(piece, block, h);
 				},
 				retry,
-				[&](jobqueue_t aborted, aux::disk_job* clear) {
-					clear_piece_jobs(std::move(aborted), clear, completed);
-				});
+				on_clear);
 			add_completed_jobs(std::move(completed));
 
 			l.lock();
@@ -2283,20 +2312,11 @@ void pread_disk_io::thread_fun(aux::disk_io_thread_pool& pool
 					, print_job(*j).c_str()
 					, j->storage ? j->storage->num_outstanding_jobs() : 0);
 
-				// Only register with the fence if this job hasn't already gone
-				// through is_blocked() (i.e. it arrived via try_hash_piece() ->
-				// job_queued, not via hash_piece() -> deferred where in_progress
-				// is already set). Calling is_blocked() on a job that already has
-				// in_progress set would double-increment m_outstanding_jobs and
-				// would deadlock any pending fence.
-				if (j->storage && !(j->state & aux::disk_job::in_progress)
-					&& j->storage->is_blocked(j, m_stats_counters))
-				{
-					DLOG("blocked job: %s (torrent: %d total: %d)\n"
-						, print_job(*j).c_str(), j->storage ? j->storage->num_blocked() : 0
-						, int(m_stats_counters[counters::blocked_disk_jobs]));
-					continue;
-				}
+				// a job hung on a piece already passed the fence gate in
+				// async_hash() or do_job(hash), so it is counted. Calling
+				// is_blocked() again would double-count it and deadlock any
+				// pending fence.
+				TORRENT_ASSERT(j->state & aux::disk_job::in_progress);
 				m_hash_threads.push_back(j);
 			}
 

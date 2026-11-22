@@ -91,12 +91,6 @@ struct i2p_session_options
 	int m_outbound_length_variance = 0;
 };
 
-namespace aux {
-// i2p hostnames are at most 67 characters, this leaves room for b32 and
-// b33 addresses
-constexpr std::size_t max_i2p_name_len = 255;
-}
-
 struct TORRENT_EXTRA_EXPORT i2p_stream : aux::proxy_base
 {
 	explicit i2p_stream(io_context& io_context);
@@ -172,6 +166,10 @@ struct TORRENT_EXTRA_EXPORT i2p_stream : aux::proxy_base
 	}
 
 private:
+	// a NAMING REPLY or an incoming connection's destination line carries a
+	// whole destination, plus some protocol text
+	static constexpr int max_line_length = int(aux::max_i2p_destination_len) + 512;
+
 	// decodes and validates the base64 destination of an incoming connection
 	void set_incoming_destination(string_view d);
 	bool format_connect_command();
@@ -266,6 +264,11 @@ private:
 		// look for \n which means end of the response
 		if (m_buffer[read_pos - 1] != '\n')
 		{
+			if (read_pos >= max_line_length)
+			{
+				handle_error(error_code(i2p_error::parse_failed, i2p_category()), h);
+				return;
+			}
 			ADD_OUTSTANDING_ASYNC("i2p_stream::read_line");
 			// read another byte from the socket
 			m_buffer.resize(read_pos + 1);

@@ -375,49 +375,84 @@ namespace {
 		native_path_string n_link = convert_to_native_path_string(link);
 #ifdef TORRENT_WINDOWS
 #ifndef TORRENT_WINRT
-
-		BOOL ret = CreateHardLinkW(n_link.c_str(), n_exist.c_str(), nullptr);
-		if (ret)
+		WIN32_FILE_ATTRIBUTE_DATA attr{};
+		if (!GetFileAttributesExW(n_exist.c_str(), GetFileExInfoStandard, &attr))
 		{
-			ec.clear();
-			return;
-		}
-		// something failed. Does the filesystem not support hard links?
-		DWORD const error = GetLastError();
-		if (error != ERROR_INVALID_FUNCTION)
-		{
-			// it's possible CreateHardLink will copy the file internally too,
-			// if the filesystem does not support it.
 			ec.assign(GetLastError(), system_category());
 			return;
+		}
+		// a hard link to a symlink would resolve its relative target from the
+		// new location, copy_file() follows it from the original location
+		if (!(attr.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT))
+		{
+			BOOL const ret = CreateHardLinkW(n_link.c_str(), n_exist.c_str(), nullptr);
+			if (ret)
+			{
+				ec.clear();
+				return;
+			}
+			// something failed. Does the filesystem not support hard links?
+			DWORD const error = GetLastError();
+			if (error != ERROR_INVALID_FUNCTION)
+			{
+				// it's possible CreateHardLink will copy the file internally too,
+				// if the filesystem does not support it.
+				ec.assign(error, system_category());
+				return;
+			}
 		}
 
 		// fall back to making a copy
 #endif
 #else
-		// assume posix's link() function exists
-		int ret = ::link(n_exist.c_str(), n_link.c_str());
 
-		if (ret == 0)
+#if TORRENT_HAS_LINKAT && defined AT_SYMLINK_FOLLOW
+		bool const try_link = true;
+#else
+		struct ::stat st
+		{};
+		if (::lstat(n_exist.c_str(), &st) < 0)
 		{
-			ec.clear();
-			return;
-		}
-
-		// most errors are passed through, except for the ones that indicate that
-		// hard links are not supported and require a copy.
-		// TODO: 2 test this on a FAT volume to see what error we get!
-		if (errno != EMLINK
-			&& errno != EXDEV
-#ifdef TORRENT_BEOS
-			// haiku returns EPERM when the filesystem doesn't support hard link
-			&& errno != EPERM
-#endif
-			)
-		{
-			// some error happened, report up to the caller
 			ec.assign(errno, system_category());
 			return;
+		}
+		// link() may create a link to the symlink itself, whose relative target
+		// would resolve from the new location, copy_file() follows it from the
+		// original location
+		bool const try_link = S_ISREG(st.st_mode);
+#endif
+
+		if (try_link)
+		{
+#if TORRENT_HAS_LINKAT && defined AT_SYMLINK_FOLLOW
+			int const ret =
+				::linkat(AT_FDCWD, n_exist.c_str(), AT_FDCWD, n_link.c_str(), AT_SYMLINK_FOLLOW);
+#else
+			// assume posix's link() function exists
+			int const ret = ::link(n_exist.c_str(), n_link.c_str());
+#endif
+
+			if (ret == 0)
+			{
+				ec.clear();
+				return;
+			}
+
+			// most errors are passed through, except for the ones that indicate that
+			// hard links are not supported and require a copy.
+			// TODO: 2 test this on a FAT volume to see what error we get!
+			if (errno != EMLINK
+				&& errno != EXDEV
+#ifdef TORRENT_BEOS
+				// haiku returns EPERM when the filesystem doesn't support hard link
+				&& errno != EPERM
+#endif
+			)
+			{
+				// some error happened, report up to the caller
+				ec.assign(errno, system_category());
+				return;
+			}
 		}
 
 		// fall back to making a copy

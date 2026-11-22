@@ -3824,3 +3824,166 @@ TORRENT_TEST(read_ahead_range_end_of_torrent)
 		TEST_EQUAL(mid->size, 0x2000);
 	}
 }
+
+#if TORRENT_HAS_SYMLINK
+namespace {
+
+bool exists_no_follow(std::string const& p)
+{
+	file_status s;
+	error_code ec;
+	stat_file(p, &s, ec, dont_follow_links);
+	return !ec;
+}
+
+}
+
+TORRENT_TEST(target_traverses_symlink)
+{
+	std::string const root = absolute("traverses_symlink");
+	delete_dirs(root);
+
+	error_code ec;
+	create_directories(combine_path(root, "real/sub"), ec);
+	TEST_CHECK(!ec);
+	create_directories(combine_path(root, "t/sub"), ec);
+	TEST_CHECK(!ec);
+	std::string const real = combine_path(root, "real");
+	std::string const link_dir = combine_path(root, "link-dir");
+	storage_error se;
+	aux::create_symlink("t", link_dir, se);
+	TEST_CHECK(!se);
+
+	std::string const link = combine_path(link_dir, "link");
+	std::string const sub_link = combine_path(link_dir, "sub/link");
+	std::string const real_sub_link = combine_path(real, "sub/link");
+
+	// only directories the target steps out of are checked
+	TEST_CHECK(!aux::target_traverses_symlink("", link));
+	TEST_CHECK(!aux::target_traverses_symlink("file", link));
+	TEST_CHECK(!aux::target_traverses_symlink("sub/file", link));
+	TEST_CHECK(!aux::target_traverses_symlink("../file", sub_link));
+
+	// real directories
+	TEST_CHECK(!aux::target_traverses_symlink("../file", real_sub_link));
+	TEST_CHECK(!aux::target_traverses_symlink("../../file", real_sub_link));
+	TEST_CHECK(!aux::target_traverses_symlink("../../real/file", real_sub_link));
+
+	// stepping out of the symlink
+	TEST_CHECK(aux::target_traverses_symlink("../file", link));
+	TEST_CHECK(aux::target_traverses_symlink("../../file", sub_link));
+	TEST_CHECK(aux::target_traverses_symlink("../t/file", link));
+
+	// a directory that can't be inspected is assumed to be a symlink
+	TEST_CHECK(aux::target_traverses_symlink("../file", combine_path(root, "missing/link")));
+}
+
+// the target of a symlink is relative to the lexical path of the link. If one
+// of the directories the target steps out of (with "..") is a symlink on disk,
+// the link would point somewhere else
+TORRENT_TEST(create_symlink_through_symlink)
+{
+	std::string const root = absolute("symlink_through_symlink");
+	delete_dirs(root);
+
+	error_code ec;
+	create_directories(combine_path(root, "t"), ec);
+	TEST_CHECK(!ec);
+
+	std::string const dir = combine_path(root, "a/b");
+	storage_error se;
+	aux::create_symlink("../../t", combine_path(dir, "link-dir"), se);
+	TEST_CHECK(!se);
+
+	// this would be created as "t/link"
+	aux::create_symlink("../../../file", combine_path(dir, "link-dir/link"), se);
+	TEST_CHECK(se.ec == boost::system::errc::too_many_symbolic_link_levels);
+	TEST_CHECK(se.operation == operation_t::symlink);
+	TEST_CHECK(!exists_no_follow(combine_path(root, "t/link")));
+
+	// the same is true one directory further down
+	se = storage_error();
+	aux::create_symlink("../../../../file", combine_path(dir, "link-dir/sub/link"), se);
+	TEST_CHECK(se.ec == boost::system::errc::too_many_symbolic_link_levels);
+	TEST_CHECK(!exists_no_follow(combine_path(root, "t/sub/link")));
+
+	// targets that don't step out of the symlinked directory are not affected
+	se = storage_error();
+	aux::create_symlink("file", combine_path(dir, "link-dir/link"), se);
+	TEST_CHECK(!se);
+	aux::create_symlink("../file", combine_path(dir, "link-dir/sub/link"), se);
+	TEST_CHECK(!se);
+
+	// and neither are links in actual directories
+	aux::create_symlink("../../../file", combine_path(dir, "dir/link"), se);
+	TEST_CHECK(!se);
+}
+
+// In the first torrent "a/b/L" is a symlink to a directory closer to the root.
+// In the second torrent, with the same name, it's a directory containing a
+// symlink. Both are valid on their own
+template <typename StorageType>
+void test_symlink_through_other_torrents_symlink()
+{
+	std::string const test_path = absolute("symlink_overlap");
+	delete_dirs(test_path);
+
+	file_storage fs1;
+	fs1.set_piece_length(0x4000);
+	fs1.add_file_borrow({}, "test/data", 0x4000);
+	// an empty file is created up-front, along with its directory
+	fs1.add_file_borrow({}, "test/t/empty", 0);
+	fs1.add_file_borrow({}, "test/a/b/L", 0, file_storage::flag_symlink, 0, "t");
+	fs1.set_num_pieces(1);
+
+	file_storage fs2;
+	fs2.set_piece_length(0x4000);
+	fs2.add_file_borrow({}, "test/data", 0x4000);
+	fs2.add_file_borrow({}, "test/a/b/L/link", 0, file_storage::flag_symlink, 0, "data");
+	fs2.set_num_pieces(1);
+
+	typename file_pool_type<StorageType>::type fp;
+	aux::session_settings set;
+	aux::vector<download_priority_t, file_index_t> priorities;
+	renamed_files rf1;
+	renamed_files rf2;
+
+	storage_params p1{
+		fs1, rf1, test_path, {}, storage_mode_sparse, priorities, sha1_hash{}, true, false};
+	auto s1 = make_storage<StorageType>(p1, fp);
+	storage_error se;
+	s1->initialize(set, se);
+	TEST_CHECK(!se);
+
+	error_code ec;
+	TEST_CHECK(is_directory(combine_path(test_path, "test/a/b/L"), ec));
+
+	storage_params p2{
+		fs2, rf2, test_path, {}, storage_mode_sparse, priorities, sha1_hash{}, true, false};
+	auto s2 = make_storage<StorageType>(p2, fp);
+	s2->initialize(set, se);
+	TEST_CHECK(!se);
+
+	// the link would have been created in "test/t", where its target resolves
+	// to a different file
+	TEST_CHECK(!exists_no_follow(combine_path(test_path, "test/t/link")));
+	TEST_CHECK(!exists_no_follow(combine_path(test_path, "test/a/b/L/link")));
+}
+
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
+TORRENT_TEST(symlink_through_other_torrents_symlink_mmap)
+{
+	test_symlink_through_other_torrents_symlink<mmap_storage>();
+}
+#endif
+
+TORRENT_TEST(symlink_through_other_torrents_symlink_posix)
+{
+	test_symlink_through_other_torrents_symlink<posix_storage>();
+}
+
+TORRENT_TEST(symlink_through_other_torrents_symlink_pread)
+{
+	test_symlink_through_other_torrents_symlink<pread_storage>();
+}
+#endif // TORRENT_HAS_SYMLINK

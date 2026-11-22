@@ -422,6 +422,18 @@ bool wait_for_alert(lt::session& ses,
 	}
 }
 
+bool wait_for_state(lt::session& ses, char const* name, torrent_status::state_t const state)
+{
+	return wait_for_alert(
+		ses,
+		name,
+		[state](lt::alert const* al) {
+			state_changed_alert const* sc = alert_cast<state_changed_alert>(al);
+			return sc && sc->state == state;
+		},
+		30s);
+}
+
 void wait_for_listen(lt::session& ses, char const* name)
 {
 	bool const listen_done = wait_for_alert(
@@ -438,14 +450,7 @@ void wait_for_listen(lt::session& ses, char const* name)
 void wait_for_downloading(lt::session& ses, char const* name)
 {
 	time_point const start = clock_type::now();
-	bool const downloading_done = wait_for_alert(
-		ses,
-		name,
-		[](lt::alert const* al) {
-			state_changed_alert const* sc = alert_cast<state_changed_alert>(al);
-			return sc && sc->state == torrent_status::downloading;
-		},
-		30s);
+	bool const downloading_done = wait_for_state(ses, name, torrent_status::downloading);
 	if (!downloading_done)
 	{
 		std::printf("%s: did not receive a state_changed_alert indicating "
@@ -475,14 +480,7 @@ void wait_for_disconnect(lt::session& ses, char const* name)
 void wait_for_seeding(lt::session& ses, char const* name)
 {
 	time_point const start = clock_type::now();
-	bool const seeding = wait_for_alert(
-		ses,
-		name,
-		[](lt::alert const* al) {
-			state_changed_alert const* sc = alert_cast<state_changed_alert>(al);
-			return sc && sc->state == torrent_status::seeding;
-		},
-		30s);
+	bool const seeding = wait_for_state(ses, name, torrent_status::seeding);
 	if (!seeding)
 	{
 		std::printf("%s: did not receive a state_changed_alert indicating "

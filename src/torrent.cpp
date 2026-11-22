@@ -6756,6 +6756,17 @@ namespace {
 			return;
 		}
 
+		// WebRTC peers don't pass through incoming_connection(), attach_peer()
+		// or add_peer(), so the IP filter has to be applied here
+		if ((m_flags & torrent_flags::apply_ip_filter) && m_ip_filter
+			&& m_ip_filter->access(endpoint.address()) & ip_filter::blocked)
+		{
+			if (alerts().should_post<peer_blocked_alert>())
+				alerts().emplace_alert<peer_blocked_alert>(
+					get_handle(), endpoint, peer_blocked_alert::ip_filter);
+			return;
+		}
+
 		need_peer_list();
 		torrent_state st = get_peer_list_state();
 		if(torrent_peer* peerinfo = m_peer_list->add_rtc_peer(endpoint, peer_source_flags_t{}, {}, &st))
@@ -10239,7 +10250,7 @@ namespace {
 	}
 
 	// the higher seed rank, the more important to seed
-	int torrent::seed_rank(aux::session_settings const& s) const
+	int torrent::seed_rank(aux::session_settings const& s, time_point32 const now) const
 	{
 		TORRENT_ASSERT(is_single_thread());
 		enum flags
@@ -10257,7 +10268,6 @@ namespace {
 
 		int ret = 0;
 
-		time_point32 const now = aux::time_now32();
 		seconds32 const act_time = active_time(now);
 		seconds32 const fin_time = finished_time(now);
 		seconds32 const download_time = act_time - fin_time;
@@ -12753,7 +12763,7 @@ namespace {
 		st->list_seeds = m_peer_list ? m_peer_list->num_seeds() : 0;
 		st->connect_candidates = m_peer_list ? m_peer_list->num_connect_candidates() : 0;
 		TORRENT_ASSERT(st->connect_candidates >= 0);
-		st->seed_rank = seed_rank(settings());
+		st->seed_rank = seed_rank(settings(), now);
 
 		st->all_time_upload = m_total_uploaded;
 		st->all_time_download = m_total_downloaded;

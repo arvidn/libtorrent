@@ -29,6 +29,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #define TORRENT_FILE_DESCRIPTOR_HPP_INCLUDED
 
 #include <unistd.h>
+#include <utility> // for swap
 
 namespace libtorrent {
 namespace aux {
@@ -47,6 +48,11 @@ struct file_descriptor
 		: m_fd(rhs.m_fd)
 	{
 		rhs.m_fd = -1;
+	}
+	file_descriptor& operator=(file_descriptor&& rhs) &
+	{
+		std::swap(m_fd, rhs.m_fd);
+		return *this;
 	}
 	int fd() const { return m_fd; }
 private:
