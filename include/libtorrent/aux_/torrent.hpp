@@ -1270,9 +1270,9 @@ namespace libtorrent::aux {
 		void post_trackers();
 		std::vector<lt::announce_entry> trackers() const;
 
-		// this sets all the "enabled" states on all trackers, giving them
-		// all one more chance of being tried
-		void enable_all_trackers();
+		// refreshes all trackers' endpoints and re-enables them, giving
+		// disabled ones one more chance of being tried
+		void on_listen_sockets_changed();
 
 		void replace_trackers(std::vector<lt::announce_entry> const& urls);
 
