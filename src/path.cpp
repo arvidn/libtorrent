@@ -100,6 +100,7 @@ POSSIBILITY OF SUCH DAMAGE.
 // posix part
 
 #include <unistd.h>
+#include <fcntl.h> // for AT_FDCWD, AT_SYMLINK_FOLLOW
 #include <sys/types.h>
 #include <cerrno>
 #include <dirent.h>
