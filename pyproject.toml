@@ -1,9 +1,13 @@
 [project]
 name = "libtorrent"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 version = "2.0.15"
 
 [tool.cibuildwheel]
+manylinux-aarch64-image = "manylinux2014"
+# the before-all scripts expect CentOS 7 (yum, devtoolset), and it keeps
+# glibc 2.17 compatibility
+manylinux-x86_64-image = "manylinux2014"
 skip = "{pp*,}"
 
 [tool.cibuildwheel.macos]

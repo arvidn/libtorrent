@@ -30,7 +30,7 @@ install the build prerequisites on your system:
    boost libraries and ``b2``, and your building toolchain (``gcc``, visual
    studio, etc).
 2. Boost.Python, if not otherwise included in your boost installation
-3. Python 3.7+. Older versions may work, but are not tested.
+3. Python 3.10+. Older versions may work, but are not tested.
 
 .. __: building.html
 
