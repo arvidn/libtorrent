@@ -39,27 +39,27 @@ POSSIBILITY OF SUCH DAMAGE.
 
 #define LIBTORRENT_VERSION_MAJOR 2
 #define LIBTORRENT_VERSION_MINOR 0
-#define LIBTORRENT_VERSION_TINY 15
+#define LIBTORRENT_VERSION_TINY 16
 
 // the format of this version is: MMmmtt
 // M = Major version, m = minor version, t = tiny version
 #define LIBTORRENT_VERSION_NUM ((LIBTORRENT_VERSION_MAJOR * 10000) + (LIBTORRENT_VERSION_MINOR * 100) + LIBTORRENT_VERSION_TINY)
 
-#define LIBTORRENT_VERSION "2.0.15.0"
-#define LIBTORRENT_REVISION "485467b33"
+#define LIBTORRENT_VERSION "2.0.16.0"
+#define LIBTORRENT_REVISION "668e2e04f"
 
 namespace libtorrent {
 
 	// the major, minor and tiny versions of libtorrent
 	constexpr int version_major = 2;
 	constexpr int version_minor = 0;
-	constexpr int version_tiny = 15;
+	constexpr int version_tiny = 16;
 
 	// the libtorrent version in string form
-	constexpr char const* version_str = "2.0.15.0";
+	constexpr char const* version_str = "2.0.16.0";
 
 	// the git commit of this libtorrent version
-	constexpr std::uint64_t version_revision = 0x485467b33;
+	constexpr std::uint64_t version_revision = 0x668e2e04f;
 
 	// returns the libtorrent version as string form in this format:
 	// "<major>.<minor>.<tiny>.<tag>"
