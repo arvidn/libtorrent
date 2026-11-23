@@ -29,8 +29,8 @@ see LICENSE file.
 //     0: keypair(seed); sign(pk, sk, msg); verify(sig, msg, pk)
 //     1: keypair(seed); verify(fuzzed sig, msg, pk)     - arbitrary signature
 //     2: verify(fuzzed sig, msg, fuzzed pk)             - arbitrary pk + sig
-//     3: keypair(seed); add_scalar(pk out, nullptr, scalar)
-//     4: keypair(seed); add_scalar(nullptr, sk out, scalar)
+//     3: keypair(seed); add_scalar(pk, nullptr, scalar)
+//     4: keypair(seed); add_scalar(nullptr, sk, scalar)
 //     5: keypair(seed); key_exchange(shared, fuzzed pk, sk)
 //     6: sign(fuzzed pk, seed-derived sk, msg)          - sign with foreign pk
 //     7: chain: keypair; sign; verify; add_scalar(pk); add_scalar(sk);
@@ -84,8 +84,6 @@ extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, std::size_t size
 	std::array<std::uint8_t, priv_len> sk{};
 	std::array<std::uint8_t, sig_len> sig{};
 	std::array<std::uint8_t, key_len> shared{};
-	std::array<std::uint8_t, key_len> pk_out{};
-	std::array<std::uint8_t, priv_len> sk_out{};
 
 	aux::ed25519_create_keypair(pk.data(), sk.data(), seed.data());
 
@@ -107,10 +105,10 @@ extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, std::size_t size
 				sig_fuzz.data(), message.data(), message.size(), pk_fuzz.data());
 			break;
 		case 3:
-			aux::ed25519_add_scalar(pk_out.data(), nullptr, scalar.data());
+			aux::ed25519_add_scalar(pk.data(), nullptr, scalar.data());
 			break;
 		case 4:
-			aux::ed25519_add_scalar(nullptr, sk_out.data(), scalar.data());
+			aux::ed25519_add_scalar(nullptr, sk.data(), scalar.data());
 			break;
 		case 5:
 			aux::ed25519_key_exchange(shared.data(), pk_fuzz.data(), sk.data());
@@ -123,15 +121,15 @@ extern "C" int LLVMFuzzerTestOneInput(std::uint8_t const* data, std::size_t size
 			aux::ed25519_sign(sig.data(), message.data(), message.size(), pk.data(), sk.data());
 			verify_result =
 				aux::ed25519_verify(sig.data(), message.data(), message.size(), pk.data());
-			aux::ed25519_add_scalar(pk_out.data(), nullptr, scalar.data());
-			aux::ed25519_add_scalar(nullptr, sk_out.data(), scalar.data());
-			aux::ed25519_key_exchange(shared.data(), pk_out.data(), sk_out.data());
+			aux::ed25519_add_scalar(pk.data(), nullptr, scalar.data());
+			aux::ed25519_add_scalar(nullptr, sk.data(), scalar.data());
+			aux::ed25519_key_exchange(shared.data(), pk.data(), sk.data());
 			break;
 	}
 
 	// keep the results observable so the operations cannot be optimized away
 	volatile int const sink =
-		verify_result + int(sig[0]) + int(shared[0]) + int(pk_out[0]) + int(sk_out[0]);
+		verify_result + int(sig[0]) + int(shared[0]) + int(pk[0]) + int(sk[0]);
 	(void)sink;
 	return 0;
 }
