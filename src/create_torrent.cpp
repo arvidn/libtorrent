@@ -81,8 +81,16 @@ namespace {
 		if (!pred(f)) return;
 		error_code ec;
 		file_status s;
-		stat_file(f, &s, ec, (flags & create_torrent::symlinks) ? dont_follow_links : file_status_flag_t{});
+		stat_file(f, &s, ec, dont_follow_links);
 		if (ec) return;
+
+		if ((s.mode & file_status::symlink) && !(flags & create_torrent::symlinks))
+		{
+			// following directory symlinks may recurse forever
+			stat_file(f, &s, ec);
+			if (ec || (s.mode & file_status::directory))
+				return;
+		}
 
 		// recurse into directories
 		bool recurse = bool(s.mode & file_status::directory);
@@ -150,9 +158,16 @@ namespace {
 		if (!pred(f)) return;
 		error_code ec;
 		file_status s;
-		stat_file(f, &s, ec, (flags & create_torrent::symlinks)
-			? dont_follow_links : file_status_flag_t{});
+		stat_file(f, &s, ec, dont_follow_links);
 		if (ec) return;
+
+		if ((s.mode & file_status::symlink) && !(flags & create_torrent::symlinks))
+		{
+			// following directory symlinks may recurse forever
+			stat_file(f, &s, ec);
+			if (ec || (s.mode & file_status::directory))
+				return;
+		}
 
 		// recurse into directories
 		bool recurse = bool(s.mode & file_status::directory);
