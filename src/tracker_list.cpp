@@ -180,14 +180,6 @@ void tracker_list::replace(std::vector<lt::announce_entry> const& aes)
 	m_last_working_tracker = nullptr;
 }
 
-void tracker_list::enable_all()
-{
-	INVARIANT_CHECK;
-	for (aux::announce_entry& ae : m_trackers)
-		for (aux::announce_endpoint& aep : ae.endpoints)
-			aep.enabled = true;
-}
-
 void tracker_list::completed(time_point32 const now)
 {
 	INVARIANT_CHECK;

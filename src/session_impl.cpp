@@ -2125,7 +2125,6 @@ retry:
 			listen_endpoint_t ep(address_v4::any(), port, {}
 				, transport::plaintext, listen_socket_t::proxy);
 			eps.emplace_back(ep);
-			++m_listen_socket_version;
 		}
 		else
 		{
@@ -2189,7 +2188,10 @@ retry:
 
 		auto remove_iter = partition_listen_sockets(eps, m_listen_sockets);
 
-		if (remove_iter != m_listen_sockets.end() || !eps.empty())
+		// bumped even when the set of sockets is unchanged, since torrents also
+		// re-enable failed tracker endpoints on a version change. 0 is skipped,
+		// it's the version of trackers that have never been refreshed
+		if (++m_listen_socket_version == 0)
 			++m_listen_socket_version;
 
 		while (remove_iter != m_listen_sockets.end())
@@ -2353,16 +2355,6 @@ retry:
 #if TORRENT_USE_I2P
 		open_new_incoming_i2p_connection();
 #endif
-
-		// trackers that were not reachable, may have become reachable now.
-		// so clear the "disabled" flags to let them be tried one more time
-		// TODO: it would probably be better to do this by having a
-		// listen-socket "version" number that gets bumped. And instead of
-		// setting a bool to disable a tracker, we set the version number that
-		// it was disabled at. This change would affect the ABI in 1.2, so
-		// should be done in 2.0 or later
-		for (auto& t : m_torrents)
-			t->on_listen_sockets_changed();
 	}
 
 	void session_impl::reopen_network_sockets(reopen_network_flags_t const options)
