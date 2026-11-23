@@ -1934,11 +1934,21 @@ TORRENT_TEST(tracker_idna_redirect)
 	TEST_EQUAL(test_idna("http://redirector.com:8080/announce", "http://xn--tracker-.com:8080/announce", false), false);
 }
 
+namespace {
+
+struct listen_switch
+{
+	lt::seconds when{0};
+	std::string interfaces;
+};
+
 // a dead tier 0 tracker, a working tier 1 tracker and a tier 2 tracker that
 // was announced to on a listen socket that has since been replaced. Once the
 // tier 2 tracker's stale endpoint is due, the tracker timer must not keep
-// firing immediately without announcing anything.
-TORRENT_TEST(tracker_timer_stale_endpoint)
+// firing immediately without announcing anything. Returns the number of
+// announces each tracker received before each switch and at the end.
+std::vector<std::array<int, 3>> test_tracker_timer_stale_endpoint(
+	std::vector<listen_switch> const& switches)
 {
 	using namespace libtorrent;
 
@@ -2013,7 +2023,7 @@ TORRENT_TEST(tracker_timer_stale_endpoint)
 	params.save_path = save_path(0);
 	ses->async_add_torrent(params);
 
-	std::array<int, 3> before_switch{};
+	std::vector<std::array<int, 3>> ret;
 
 	// by now, the tier 2 tracker has been announced to, since tier 0 and 1
 	// both failed. The torrent is hybrid, so every announce is sent twice,
@@ -2023,14 +2033,20 @@ TORRENT_TEST(tracker_timer_stale_endpoint)
 		tier1_working = true;
 	});
 
-	// the tier 1 tracker is working, so announces no longer reach the tier 2
-	// tracker. Its endpoint on the replaced listen socket must not be scheduled
-	sim::timer t2(sim, lt::minutes(5), [&](boost::system::error_code const&) {
-		before_switch = received_announce;
-		settings_pack p;
-		p.set_str(settings_pack::listen_interfaces, "50.0.0.2:6881");
-		ses->apply_settings(std::move(p));
-	});
+	// once the tier 1 tracker is working, announces no longer reach the tier
+	// 2 tracker. Its endpoint on the replaced listen socket must not be
+	// scheduled
+	std::vector<std::unique_ptr<sim::timer>> switch_timers;
+	for (auto const& sw : switches)
+	{
+		switch_timers.push_back(
+			std::make_unique<sim::timer>(sim, sw.when, [&](boost::system::error_code const&) {
+				ret.push_back(received_announce);
+				settings_pack p;
+				p.set_str(settings_pack::listen_interfaces, sw.interfaces);
+				ses->apply_settings(std::move(p));
+			}));
+	}
 
 	// the tier 2 tracker's 1800 seconds interval has expired
 	sim::timer t3(sim, lt::minutes(40), [&](boost::system::error_code const&) {
@@ -2040,13 +2056,39 @@ TORRENT_TEST(tracker_timer_stale_endpoint)
 
 	sim.run();
 
-	// the tier 1 tracker must have taken over before the listen socket switch
-	TEST_CHECK(before_switch[1] > 2);
-	TEST_EQUAL(before_switch[2], 2);
-	// and after it, on the new listen socket
-	TEST_CHECK(received_announce[1] > before_switch[1]);
-	TEST_EQUAL(received_announce[2], 2);
+	ret.push_back(received_announce);
 	TEST_CHECK(!spinning);
+	return ret;
+}
+
+} // anonymous namespace
+
+TORRENT_TEST(tracker_timer_stale_endpoint)
+{
+	auto const r = test_tracker_timer_stale_endpoint({{lt::minutes(5), "50.0.0.2:6881"}});
+
+	// the tier 1 tracker must have taken over before the listen socket switch
+	TEST_CHECK(r[0][1] > 2);
+	TEST_EQUAL(r[0][2], 2);
+	// and after it, on the new listen socket
+	TEST_CHECK(r[1][1] > r[0][1]);
+	TEST_EQUAL(r[1][2], 2);
+}
+
+// switching to an address the node doesn't have leaves no listen socket at
+// all. Once a listen socket can be opened again, the trackers must be
+// announced to on it, even though nothing announces the change to torrents.
+TORRENT_TEST(tracker_timer_stale_endpoint_no_sockets)
+{
+	auto const r = test_tracker_timer_stale_endpoint(
+		{{lt::minutes(5), "50.0.0.3:6881"}, {lt::minutes(35), "50.0.0.2:6881"}});
+
+	TEST_CHECK(r[0][1] > 2);
+	TEST_EQUAL(r[0][2], 2);
+	// nothing can be announced without a listen socket
+	TEST_CHECK(r[1] == r[0]);
+	TEST_CHECK(r[2][1] > r[1][1]);
+	TEST_EQUAL(r[2][2], 2);
 }
 
 // This test sets up two peers, one seed an one downloader. The downloader has

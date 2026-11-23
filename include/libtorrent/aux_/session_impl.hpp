@@ -1061,8 +1061,9 @@ namespace aux {
 			// peer connection; only as fresh as the last reopen_listen_sockets().
 			std::vector<ip_interface> m_cached_interfaces;
 
-			// increment every time we change which sockets we're listening on
-			std::uint32_t m_listen_socket_version = 0;
+			// incremented every time listen sockets are reopened. Starts at 1
+			// so it never matches a tracker that has not been refreshed yet
+			std::uint32_t m_listen_socket_version = 1;
 
 #if TORRENT_USE_I2P
 			i2p_connection m_i2p_conn;

@@ -620,31 +620,6 @@ TORRENT_TEST(complete_sent)
 				TEST_EQUAL(a.complete_sent, true);
 }
 
-TORRENT_TEST(enable_all)
-{
-	tracker_list tl;
-	tl.add_tracker(announce_entry("http://a.com/announce"));
-	tl.add_tracker(announce_entry("http://b.com/announce"));
-	tl.add_tracker(announce_entry("http://c.com/announce"));
-
-	listen_socket_handle s;
-	for (auto& ae : tl)
-		ae.endpoints.emplace_back(s, false);
-
-	for (auto& ae : tl)
-		for (auto& aep : ae.endpoints)
-		{
-			TEST_EQUAL(aep.enabled, true);
-			aep.enabled = false;
-		}
-
-	tl.enable_all();
-
-	for (auto const& ae : tl)
-		for (auto const& aep : ae.endpoints)
-			TEST_EQUAL(aep.enabled, true);
-}
-
 // TODO: reset
 // TODO: completed
 // TODO: dont_try_again
