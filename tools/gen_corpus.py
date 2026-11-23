@@ -3647,6 +3647,67 @@ def generate_dht_put_item_request(outdir: str) -> None:
     print(f"Generated {c.count} dht_put_item_request corpus files in {outdir}")
 
 
+def generate_ed25519(outdir: str) -> None:
+    """Seed corpus for fuzzers/src/ed25519.cpp.
+
+    Wire format: [1 byte mode][32 bytes seed][32 bytes pk][64 bytes sig]
+    [32 bytes scalar][message (may be empty)]. The harness rejects inputs
+    shorter than the 161-byte header. Mode (mod 8):
+      0  sign + verify round trip
+      1  verify an arbitrary signature against the seed-derived pk
+      2  verify an arbitrary signature against an arbitrary pk
+      3  add_scalar on a public key
+      4  add_scalar on a private key
+      5  key exchange against an arbitrary pk
+      6  sign with an arbitrary (foreign) pk
+      7  chained operations
+    """
+    c = Corpus(outdir)
+
+    seed32 = bytes(range(32))
+    pk32 = bytes((i * 7 + 3) & 0xFF for i in range(32))
+    sig64 = bytes((i * 13 + 11) & 0xFF for i in range(64))
+    scalar32 = bytes((i * 5 + 1) & 0xFF for i in range(32))
+    msg_short = b"x"
+    msg_long = bytes((i * 31 + 7) & 0xFF for i in range(1024))
+
+    def add(
+        name: str,
+        mode: int,
+        seed: bytes = seed32,
+        pk: bytes = pk32,
+        sig: bytes = sig64,
+        scalar: bytes = scalar32,
+        msg: bytes = msg_short,
+    ) -> None:
+        assert len(seed) == 32
+        assert len(pk) == 32
+        assert len(sig) == 64
+        assert len(scalar) == 32
+        c.add(name, bytes([mode]), seed, pk, sig, scalar, msg)
+
+    add("sign_verify", 0)
+    add("sign_verify_empty_msg", 0, msg=b"")
+    add("sign_verify_long_msg", 0, msg=msg_long)
+    add("verify_fuzzed_sig", 1)
+    add("verify_zero_sig", 1, sig=b"\0" * 64)
+    add("verify_fuzzed_pk_sig", 2)
+    add("verify_ff_pk", 2, pk=b"\xff" * 32)
+    add("verify_fuzzed_pk_zero_sig", 2, sig=b"\0" * 64)
+    add("verify_c3_pk_10_sig", 2, pk=b"\xc3" * 32, sig=b"\x10" * 64)
+    add("add_scalar_pk", 3)
+    add("add_scalar_pk_ff", 3, scalar=b"\xff" * 32)
+    add("add_scalar_sk", 4)
+    add("add_scalar_sk_seed", 4, scalar=seed32)
+    add("key_exchange", 5)
+    add("key_exchange_7f_pk", 5, pk=b"\x7f" * 32)
+    add("sign_foreign_pk", 6)
+    add("chain_long_msg", 7, msg=msg_long)
+    add("chain_zero_seed_scalar", 7, seed=b"\0" * 32, scalar=b"\0" * 32)
+
+    print(f"Generated {c.count} ed25519 corpus files in {outdir}")
+
+
 def main() -> None:
     # Anchor output to the repo's fuzzers/corpus directory regardless of the
     # current working directory. This script lives in tools/, so the repo root
@@ -3678,6 +3739,7 @@ def main() -> None:
     generate_dht_get_item_reply(corpus("dht_get_item_reply"))
     generate_dht_sample_infohashes_reply(corpus("dht_sample_infohashes_reply"))
     generate_dht_put_item_request(corpus("dht_put_item_request"))
+    generate_ed25519(corpus("ed25519"))
 
 
 if __name__ == "__main__":

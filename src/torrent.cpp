@@ -7729,8 +7729,14 @@ namespace {
 		return ret;
 	}
 
-	void torrent::enable_all_trackers()
+	void torrent::on_listen_sockets_changed()
 	{
+		// announce_with_tracker() only refreshes the trackers it reaches.
+		// Endpoints of closed listen sockets left on the others would make
+		// update_tracker_timer() schedule announces that are never sent
+		for (aux::announce_entry& ae : m_trackers)
+			refresh_endpoint_list(
+				m_ses, is_ssl_torrent(), bool(m_flags & torrent_internal_flags::complete_sent), ae);
 		m_trackers.enable_all();
 	}
 
@@ -10882,18 +10888,19 @@ namespace {
 						// only stop at a higher tier once this one has a
 						// working tracker, the same as announce_with_tracker()
 						if (!announce_to_all_tiers && state.found_working)
-							break;
+							continue;
 						state.found_working = false;
 					}
 					state.tier = t.tier;
 					if (a.fails >= t.fail_limit && t.fail_limit != 0) continue;
 					if (!a.updating && a.next_announce != time_point32::min())
 					{
-						// defensive: announce_with_tracker() always
-						// advances next_announce for trackers it would
-						// actually contact, so a leftover min() means
-						// something filtered this tracker upstream. Don't let
-						// it snap the timer to "now" and re-fire endlessly.
+						// min() means either an endpoint that has not been
+						// announced on yet (e.g. created for a new listen
+						// socket) or a tracker announce_with_tracker()
+						// filtered out. The latter would never advance
+						// next_announce, so letting min() snap the timer to
+						// "now" would re-fire it endlessly.
 						time_point32 const next_tracker_announce = std::max(a.next_announce, a.min_announce);
 						if (next_tracker_announce < next_announce)
 							next_announce = next_tracker_announce;

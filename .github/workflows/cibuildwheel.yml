@@ -181,7 +181,7 @@ jobs:
 
   check_wheel_type_exposure:
     needs: build_wheels
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: needs.build_wheels.result == 'success'
 
     steps:

@@ -35,6 +35,8 @@ see LICENSE file.
 #include <utility>
 #include <vector>
 
+#include <time.h>
+
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/aux_/pe_crypto.hpp"
 #include "libtorrent/aux_/peer_list.hpp"
@@ -55,7 +57,29 @@ see LICENSE file.
 namespace fs = std::filesystem;
 using namespace std::chrono_literals;
 
-using clock_type = std::chrono::steady_clock;
+#if defined CLOCK_THREAD_CPUTIME_ID
+// CPU time (user + system) consumed by the calling thread. Unlike wall-clock
+// time it doesn't advance while the thread is preempted, so measurements are
+// less sensitive to other load on the machine
+struct thread_cpu_clock
+{
+	using rep = std::int64_t;
+	using period = std::nano;
+	using duration = std::chrono::duration<rep, period>;
+	using time_point = std::chrono::time_point<thread_cpu_clock>;
+	static constexpr bool is_steady = true;
+
+	static time_point now()
+	{
+		::timespec ts{};
+		if (::clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts) != 0)
+			throw std::runtime_error("clock_gettime(CLOCK_THREAD_CPUTIME_ID) failed");
+		return time_point(std::chrono::seconds(ts.tv_sec) + std::chrono::nanoseconds(ts.tv_nsec));
+	}
+};
+#else
+using thread_cpu_clock = std::chrono::steady_clock;
+#endif
 
 // prevents the compiler from proving `value` is unused and eliding the
 // computation that produced it. The empty asm block with an input
@@ -75,34 +99,55 @@ struct stats
 };
 
 // calls fun() repeatedly, for at least 10 samples and at least 500ms of
-// wall-clock time, and returns the mean and standard deviation of the
-// per-call latency, in nanoseconds. Samples are folded into the running
-// mean and variance as they're taken (Welford's online algorithm), so this
-// doesn't need to keep every sample around just to analyze them afterwards.
+// thread CPU time, and returns the mean and standard deviation of the
+// per-call latency, in nanoseconds. Each sample times a batch of calls and
+// is the per-call average over that batch, so for batched benchmarks the
+// standard deviation is that of the batch averages. Samples are folded into
+// the running mean and variance as they're taken (Welford's online
+// algorithm), so this doesn't need to keep every sample around just to
+// analyze them afterwards.
 template <typename Fun>
 stats analyze(Fun fun)
 {
 	int const min_samples = 10;
 	auto const min_duration = 500ms;
+	// reading the thread CPU clock is a syscall costing hundreds of
+	// nanoseconds, so fast operations are timed in batches long enough to
+	// make that overhead negligible
+	auto const min_batch_duration = 100us;
 
 	// warm up, e.g. to avoid attributing first-touch page faults to a
 	// real sample
 	for (int i = 0; i < 3; ++i)
 		fun();
 
+	int batch = 1;
+	for (;;)
+	{
+		auto const start = thread_cpu_clock::now();
+		for (int i = 0; i < batch; ++i)
+			fun();
+		if (thread_cpu_clock::now() - start >= min_batch_duration)
+			break;
+		batch *= 2;
+	}
+
 	int count = 0;
 	double mean_ns = 0.0;
 	double m2 = 0.0;
-	auto const deadline = clock_type::now() + min_duration;
-	while (count < min_samples || clock_type::now() < deadline)
+	auto const deadline = thread_cpu_clock::now() + min_duration;
+	auto end = thread_cpu_clock::now();
+	while (count < min_samples || end < deadline)
 	{
-		auto const start = clock_type::now();
-		fun();
-		auto const end = clock_type::now();
+		auto const start = thread_cpu_clock::now();
+		for (int i = 0; i < batch; ++i)
+			fun();
+		end = thread_cpu_clock::now();
 		// prevents the compiler from reordering or eliding memory writes
 		// across this point
 		asm volatile("" : : : "memory");
-		double const sample_ns = std::chrono::duration<double, std::nano>(end - start).count();
+		double const sample_ns =
+			std::chrono::duration<double, std::nano>(end - start).count() / batch;
 
 		++count;
 		double const delta = sample_ns - mean_ns;
