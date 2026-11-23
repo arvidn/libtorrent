@@ -1,4 +1,4 @@
-2.1.3 not released
+2.1.3 released
 
 	* apply the IP filter to WebRTC peers
 	* fix pread_disk_io use-after-free when a cached piece is evicted while another thread flushes it
