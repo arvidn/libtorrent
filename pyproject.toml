@@ -4,8 +4,9 @@ requires-python = ">=3.9"
 version = "2.1.3"
 
 [tool.cibuildwheel]
-manylinux-i686-image = "manylinux2014"
-manylinux-x86_64-image = "manylinux2014"
+manylinux-aarch64-image = "manylinux_2_28"
+manylinux-i686-image = "manylinux_2_28"
+manylinux-x86_64-image = "manylinux_2_28"
 skip = "{pp*,cp311-*}"
 test-requires = [
   "mypy",
@@ -35,7 +36,7 @@ before-all = [
   "./tools/cibuildwheel/setup_boost.sh $BOOST_VERSION $BOOST_ROOT",
   "./tools/cibuildwheel/setup_ccache_on_manylinux.sh",
   "./tools/cibuildwheel/setup_openssl.sh",
-  "yum install -y glibc-static" # needed for libutil.a and libdl.a
+  "yum install -y --enablerepo=powertools glibc-static" # needed for libutil.a and libdl.a
 ]
 before-test = "ccache -s"
 select = "*-manylinux_*"
