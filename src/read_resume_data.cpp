@@ -31,6 +31,8 @@ POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include <cstdint>
+#include <climits> // for CHAR_BIT
+#include <limits>
 
 #include "libtorrent/bdecode.hpp"
 #include "libtorrent/read_resume_data.hpp"
@@ -60,6 +62,17 @@ namespace {
 		}
 	}
 
+	bool assign_bitfield(bitfield& bf, string_view const str, error_code& ec)
+	{
+		if (str.size() > std::size_t(std::numeric_limits<int>::max() / CHAR_BIT))
+		{
+			ec = errors::too_many_pieces_in_torrent;
+			return false;
+		}
+		bf.assign(str.data(), int(str.size()) * CHAR_BIT);
+		return true;
+	}
+
 } // anonyous namespace
 
 	add_torrent_params read_resume_data(bdecode_node const& rd, error_code& ec)
@@ -80,6 +93,14 @@ namespace {
 
 		if (rd.dict_find_string_value("file-format")
 			!= "libtorrent resume file")
+		{
+			ec = errors::invalid_file_tag;
+			return ret;
+		}
+
+		std::int64_t const file_version = rd.dict_find_int_value("file-version", 1);
+
+		if (file_version != 1 && file_version != 2)
 		{
 			ec = errors::invalid_file_tag;
 			return ret;
@@ -283,20 +304,36 @@ namespace {
 		// some sanity checking. Maybe we shouldn't be in seed mode anymore
 		if (bdecode_node const pieces = rd.dict_find_string("pieces"))
 		{
-			char const* pieces_str = pieces.string_ptr();
-			int const pieces_len = pieces.string_length();
-			ret.have_pieces.resize(pieces_len);
-			ret.verified_pieces.resize(pieces_len);
-			for (piece_index_t i(0); i < ret.verified_pieces.end_index(); ++i)
+			if (file_version == 1)
 			{
-				// being in seed mode and missing a piece is not compatible.
-				// Leave seed mode if that happens
-				if (pieces_str[static_cast<int>(i)] & 1) ret.have_pieces.set_bit(i);
-				else ret.have_pieces.clear_bit(i);
+				char const* pieces_str = pieces.string_ptr();
+				int const pieces_len = pieces.string_length();
+				ret.have_pieces.resize(pieces_len);
+				ret.verified_pieces.resize(pieces_len);
+				for (piece_index_t i(0); i < ret.verified_pieces.end_index(); ++i)
+				{
+					// being in seed mode and missing a piece is not compatible.
+					// Leave seed mode if that happens
+					if (pieces_str[static_cast<int>(i)] & 1) ret.have_pieces.set_bit(i);
+					else ret.have_pieces.clear_bit(i);
 
-				if (pieces_str[static_cast<int>(i)] & 2) ret.verified_pieces.set_bit(i);
-				else ret.verified_pieces.clear_bit(i);
+					if (pieces_str[static_cast<int>(i)] & 2) ret.verified_pieces.set_bit(i);
+					else ret.verified_pieces.clear_bit(i);
+				}
 			}
+			else if (file_version == 2)
+			{
+				// one bit per piece, most significant bit first. The verified
+				// bits are stored in a separate "verified" field
+				if (!assign_bitfield(ret.have_pieces, pieces.string_value(), ec))
+					return ret;
+			}
+		}
+
+		if (bdecode_node const verified = rd.dict_find_string("verified"))
+		{
+			if (!assign_bitfield(ret.verified_pieces, verified.string_value(), ec))
+				return ret;
 		}
 
 		if (bdecode_node const piece_priority = rd.dict_find_string("piece_priority"))
@@ -355,8 +392,8 @@ namespace {
 
 				bdecode_node const bitmask = e.dict_find_string("bitmask");
 				if (!bitmask || bitmask.string_length() == 0) continue;
-				ret.unfinished_pieces[piece].assign(
-					bitmask.string_ptr(), bitmask.string_length() * CHAR_BIT);
+				if (!assign_bitfield(ret.unfinished_pieces[piece], bitmask.string_value(), ec))
+					return ret;
 			}
 		}
 

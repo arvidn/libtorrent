@@ -34,6 +34,10 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "test_utils.hpp"
 
 #include <vector>
+#include <cstring> // for strlen
+#include <climits> // for CHAR_BIT
+#include <limits>
+#include <string>
 
 #include "libtorrent/entry.hpp"
 #include "libtorrent/torrent_info.hpp"
@@ -215,6 +219,150 @@ TORRENT_TEST(read_resume_torrent)
 
 	TEST_EQUAL(atp.ti->info_hash(), ti->info_hash());
 	TEST_EQUAL(atp.ti->name(), ti->name());
+}
+
+TORRENT_TEST(invalid_resume_version)
+{
+	entry ret;
+	ret["file-format"] = "libtorrent resume file";
+	ret["info-hash"] = "                    ";
+
+	for (int const v : {0, 3, 42, -1})
+	{
+		ret["file-version"] = v;
+		std::vector<char> resume_data;
+		bencode(std::back_inserter(resume_data), ret);
+		TEST_THROW(read_resume_data(resume_data));
+
+		error_code ec;
+		read_resume_data(resume_data, ec);
+		TEST_EQUAL(ec, error_code(errors::invalid_file_tag));
+	}
+}
+
+TORRENT_TEST(missing_resume_version)
+{
+	// no file-version means version 1: one byte per piece
+	entry ret;
+	ret["file-format"] = "libtorrent resume file";
+	ret["info-hash"] = "                    ";
+	ret["pieces"] = std::string("\x01\x03\x00\x02", 4);
+	std::vector<char> resume_data;
+	bencode(std::back_inserter(resume_data), ret);
+	add_torrent_params const atp = read_resume_data(resume_data);
+
+	TEST_EQUAL(atp.have_pieces.size(), 4);
+	TEST_EQUAL(atp.have_pieces.get_bit(piece_index_t(0)), true);
+	TEST_EQUAL(atp.have_pieces.get_bit(piece_index_t(1)), true);
+	TEST_EQUAL(atp.have_pieces.get_bit(piece_index_t(2)), false);
+	TEST_EQUAL(atp.have_pieces.get_bit(piece_index_t(3)), false);
+
+	TEST_EQUAL(atp.verified_pieces.size(), 4);
+	TEST_EQUAL(atp.verified_pieces.get_bit(piece_index_t(0)), false);
+	TEST_EQUAL(atp.verified_pieces.get_bit(piece_index_t(1)), true);
+	TEST_EQUAL(atp.verified_pieces.get_bit(piece_index_t(2)), false);
+	TEST_EQUAL(atp.verified_pieces.get_bit(piece_index_t(3)), true);
+}
+
+TORRENT_TEST(v2_pieces_field)
+{
+	entry ret;
+	ret["file-format"] = "libtorrent resume file";
+	ret["file-version"] = 2;
+	ret["info-hash"] = "                    ";
+	ret["pieces"] = std::string("\x05\xc0", 2);
+	ret["verified"] = std::string("\xc6\x80", 2);
+	std::vector<char> resume_data;
+	bencode(std::back_inserter(resume_data), ret);
+	add_torrent_params const atp = read_resume_data(resume_data);
+
+	TEST_EQUAL(atp.have_pieces.size(), 16);
+	TEST_EQUAL(atp.have_pieces.get_bit(piece_index_t(0)), false);
+	TEST_EQUAL(atp.have_pieces.get_bit(piece_index_t(1)), false);
+	TEST_EQUAL(atp.have_pieces.get_bit(piece_index_t(2)), false);
+	TEST_EQUAL(atp.have_pieces.get_bit(piece_index_t(3)), false);
+	TEST_EQUAL(atp.have_pieces.get_bit(piece_index_t(4)), false);
+	TEST_EQUAL(atp.have_pieces.get_bit(piece_index_t(5)), true);
+	TEST_EQUAL(atp.have_pieces.get_bit(piece_index_t(6)), false);
+	TEST_EQUAL(atp.have_pieces.get_bit(piece_index_t(7)), true);
+	TEST_EQUAL(atp.have_pieces.get_bit(piece_index_t(8)), true);
+	TEST_EQUAL(atp.have_pieces.get_bit(piece_index_t(9)), true);
+
+	TEST_EQUAL(atp.verified_pieces.size(), 16);
+	TEST_EQUAL(atp.verified_pieces.get_bit(piece_index_t(0)), true);
+	TEST_EQUAL(atp.verified_pieces.get_bit(piece_index_t(1)), true);
+	TEST_EQUAL(atp.verified_pieces.get_bit(piece_index_t(2)), false);
+	TEST_EQUAL(atp.verified_pieces.get_bit(piece_index_t(3)), false);
+	TEST_EQUAL(atp.verified_pieces.get_bit(piece_index_t(4)), false);
+	TEST_EQUAL(atp.verified_pieces.get_bit(piece_index_t(5)), true);
+	TEST_EQUAL(atp.verified_pieces.get_bit(piece_index_t(6)), true);
+	TEST_EQUAL(atp.verified_pieces.get_bit(piece_index_t(7)), false);
+	TEST_EQUAL(atp.verified_pieces.get_bit(piece_index_t(8)), true);
+	TEST_EQUAL(atp.verified_pieces.get_bit(piece_index_t(9)), false);
+}
+
+TORRENT_TEST(v2_pieces_seed)
+{
+	// a complete torrent, as written by libtorrent 2.1. The last byte of
+	// "pieces" has padding bits
+	std::shared_ptr<torrent_info> ti = generate_torrent();
+	int const num_pieces = ti->num_pieces();
+	TEST_CHECK(num_pieces % 8 != 0);
+
+	typed_bitfield<piece_index_t> have;
+	have.resize(num_pieces, true);
+
+	entry ret;
+	ret["file-format"] = "libtorrent resume file";
+	ret["file-version"] = 2;
+	ret["info-hash"] = ti->info_hash().to_string();
+	ret["info"] = bdecode({ti->metadata().get(), ti->metadata_size()});
+	ret["pieces"] = std::string(have.data(), std::size_t(num_pieces + 7) / 8);
+	std::vector<char> resume_data;
+	bencode(std::back_inserter(resume_data), ret);
+	add_torrent_params const atp = read_resume_data(resume_data);
+
+	TEST_CHECK(atp.ti);
+	TEST_EQUAL(atp.have_pieces.size(), (num_pieces + 7) / 8 * 8);
+	TEST_EQUAL(atp.have_pieces.count(), num_pieces);
+	for (auto const i : ti->piece_range())
+		TEST_EQUAL(atp.have_pieces.get_bit(i), true);
+	TEST_CHECK(atp.verified_pieces.empty());
+}
+
+namespace {
+
+// builds the resume data in place, since the string is too large to
+// conveniently go through an entry
+std::vector<char> resume_with_large_string(char const* key
+	, char const* suffix)
+{
+	std::size_t const len = std::size_t(std::numeric_limits<int>::max() / CHAR_BIT) + 1;
+	std::string const head = std::string("d11:file-format22:libtorrent resume file"
+		"12:file-versioni2e9:info-hash20:                    ") + key
+		+ std::to_string(len) + ":";
+	std::vector<char> ret(head.begin(), head.end());
+	ret.resize(ret.size() + len, '\0');
+	ret.insert(ret.end(), suffix, suffix + std::strlen(suffix));
+	return ret;
+}
+
+void test_large_string(char const* key, char const* suffix)
+{
+	std::vector<char> const resume_data = resume_with_large_string(key, suffix);
+	error_code ec;
+	read_resume_data(resume_data, ec);
+	TEST_EQUAL(ec, error_code(errors::too_many_pieces_in_torrent));
+	TEST_THROW(read_resume_data(resume_data));
+}
+
+} // anonymous namespace
+
+TORRENT_TEST(v2_bitfields_too_large)
+{
+	test_large_string("6:pieces", "e");
+	test_large_string("8:verified", "e");
+	test_large_string("10:unfinishedld7:bitmask", "5:piecei0eeee");
 }
 
 namespace {

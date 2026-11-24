@@ -420,6 +420,12 @@ The file format is a bencoded dictionary containing the following fields:
 | ``file-format``          | string: "libtorrent resume file"                             |
 |                          |                                                              |
 +--------------------------+--------------------------------------------------------------+
+| ``file-version``         | integer: 1. Version 2 (written by libtorrent 2.1) can also   |
+|                          | be loaded. In version 2, ``pieces`` has one bit per piece    |
+|                          | and the verified bits are stored in a separate ``verified``  |
+|                          | field.                                                       |
+|                          |                                                              |
++--------------------------+--------------------------------------------------------------+
 | ``info-hash``            | string, the info hash of the torrent this data is saved for. |
 |                          |                                                              |
 +--------------------------+--------------------------------------------------------------+
