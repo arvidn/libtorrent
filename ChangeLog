@@ -1,3 +1,7 @@
+2.0.17 not released
+
+	* improve validation of metadata against info-hashes
+
 2.0.16 released
 
 	* harden HTTP redirects

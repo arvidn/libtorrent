@@ -7928,31 +7928,16 @@ namespace {
 
 		if (m_torrent_file->is_valid()) return false;
 
-		if (m_torrent_file->info_hashes().has_v1())
 		{
-			sha1_hash const info_hash = hasher(metadata_buf).final();
-			if (info_hash != m_torrent_file->info_hashes().v1)
-			{
-				// check if the v1 hash is a truncated v2 hash
-				sha256_hash const info_hash2 = hasher256(metadata_buf).final();
-				if (sha1_hash(info_hash2.data()) != m_torrent_file->info_hashes().v1)
-				{
-					if (alerts().should_post<metadata_failed_alert>())
-					{
-						alerts().emplace_alert<metadata_failed_alert>(get_handle()
-							, errors::mismatching_info_hash);
-					}
-					return false;
-				}
-			}
-		}
-		if (m_torrent_file->info_hashes().has_v2())
-		{
-			// we don't have to worry about computing the v2 hash twice because
-			// if the v1 hash was a truncated v2 hash then the torrent_file should
-			// not have a v2 hash and we shouldn't get here
-			sha256_hash const info_hash = hasher256(metadata_buf).final();
-			if (info_hash != m_torrent_file->info_hashes().v2)
+			info_hash_t const& ih = m_torrent_file->info_hashes();
+			info_hash_t buf_ih;
+			if (ih.has_v1())
+				buf_ih.v1 = hasher(metadata_buf).final();
+			// the v1 hash may be a truncated v2 hash
+			if (ih.has_v2() || buf_ih.v1 != ih.v1)
+				buf_ih.v2 = hasher256(metadata_buf).final();
+
+			if (!buf_ih.contains(ih))
 			{
 				if (alerts().should_post<metadata_failed_alert>())
 				{
@@ -7973,6 +7958,12 @@ namespace {
 		bdecode_node const metadata = bdecode(metadata_buf, ec, &pos, 200
 			, settings().get_int(settings_pack::metadata_token_limit));
 
+		// bdecode() stops at the end of the top-level item. Trailing bytes
+		// are covered by the hash we verified, but not by the info dict, so
+		// that hash isn't the info-hash of this metadata
+		if (!ec && metadata.data_section().size() != metadata_buf.size())
+			ec = errors::mismatching_info_hash;
+
 		auto info = std::make_shared<torrent_info>(*m_torrent_file);
 		if (!ec)
 		{
@@ -7983,12 +7974,16 @@ namespace {
 			}
 		}
 
+		if (!ec && !info->info_hashes().contains(old_ih))
+			ec = errors::mismatching_info_hash;
+
 		if (ec)
 		{
 			update_gauge();
 			// this means the metadata is correct, since we
 			// verified it against the info-hash, but we
-			// failed to parse it. Pause the torrent
+			// failed to parse it (or it's not a torrent with
+			// the info-hash we were added with). Pause the torrent
 			if (alerts().should_post<metadata_failed_alert>())
 			{
 				alerts().emplace_alert<metadata_failed_alert>(get_handle(), ec);
