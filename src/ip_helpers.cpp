@@ -23,6 +23,13 @@ bool same_v6_prefix(address_v6::bytes_type const& a, address_v6::bytes_type cons
 	return std::equal(a.begin(), a.begin() + 7, b.begin());
 }
 
+address normalize_address(address const& a)
+{
+	if (a.is_v6() && a.to_v6().is_v4_mapped())
+		return make_address_v4(v4_mapped, a.to_v6());
+	return a;
+}
+
 	bool is_ip_address(std::string const& host)
 	{
 		error_code ec;
@@ -45,6 +52,8 @@ bool same_v6_prefix(address_v6::bytes_type const& a, address_v6::bytes_type cons
 		}
 	}
 
+	bool is_loopback(address const& addr) { return normalize_address(addr).is_loopback(); }
+
 	bool is_link_local(address const& a)
 	{
 		if (a.is_v6())
@@ -58,10 +67,11 @@ bool same_v6_prefix(address_v6::bytes_type const& a, address_v6::bytes_type cons
 		return (ip & 0xffff0000) == 0xa9fe0000; // 169.254.x.x
 	}
 
-	bool is_local(address const& a)
+	bool is_local(address const& addr)
 	{
 		try
 		{
+			address const a = normalize_address(addr);
 			if (a.is_v6())
 			{
 				// NOTE: site local is deprecated but by
