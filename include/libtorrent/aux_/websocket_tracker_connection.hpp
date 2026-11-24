@@ -123,6 +123,7 @@ private:
 	std::map<sha1_hash, callback_entry> m_callbacks;
 	std::map<sha1_hash, int> m_offer_quota;
 
+	// set while a write is outstanding on m_websocket
 	bool m_sending = false;
 };
 

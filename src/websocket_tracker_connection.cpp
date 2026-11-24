@@ -87,7 +87,12 @@ websocket_tracker_connection::websocket_tracker_connection(
 
 void websocket_tracker_connection::start()
 {
-	if (is_started()) return;
+	// at most one stream is opened per connection, so the buffers can't be
+	// shared with a previous stream's outstanding operations. Once close() has
+	// run, tracker_manager creates a new connection instead
+	TORRENT_ASSERT(!cancelled() && !m_websocket);
+	if (cancelled() || m_websocket)
+		return;
 
 	auto const& settings = m_man.settings();
 	auto const& req = tracker_req();
@@ -107,8 +112,8 @@ void websocket_tracker_connection::start()
 #endif
 
 	ADD_OUTSTANDING_ASYNC("websocket_tracker_connection::on_connect");
-	m_websocket->async_connect(req.url, std::bind(&websocket_tracker_connection::on_connect
-			, shared_from_this(), _1));
+	m_websocket->async_connect(
+		req.url, std::bind(&websocket_tracker_connection::on_connect, shared_from_this(), _1));
 }
 
 void websocket_tracker_connection::close()
@@ -119,6 +124,11 @@ void websocket_tracker_connection::close()
 
 void websocket_tracker_connection::close(error_code const& ec, operation_t const op)
 {
+	// fail_impl() follows up with another close()
+	if (cancelled())
+		return;
+	cancel();
+
 	if (m_websocket)
 	{
 		m_websocket->close();
@@ -216,12 +226,17 @@ bool websocket_tracker_connection::prune_non_stopped_requests()
 
 void websocket_tracker_connection::queue_request(tracker_request req, std::weak_ptr<request_callback> cb)
 {
+	// close() removes this connection from tracker_manager, so no more
+	// requests are routed to it
+	TORRENT_ASSERT(!cancelled());
 	m_pending.emplace_back(tracker_message{std::move(req)}, cb);
 	if (is_open()) send_pending();
 }
 
 void websocket_tracker_connection::queue_answer(tracker_answer ans)
 {
+	if (cancelled())
+		return;
 	m_pending.emplace_back(tracker_message{std::move(ans)}, std::weak_ptr<request_callback>{});
 	if (is_open()) send_pending();
 }
@@ -301,17 +316,18 @@ void websocket_tracker_connection::do_send(tracker_request const& req)
 		offers_array.emplace_back(std::move(payload_offer));
 	}
 
-	std::string const data = json::serialize(payload);
-	m_write_data.assign(data.begin(), data.end());
+	m_write_data = json::serialize(payload);
 
 #ifndef TORRENT_DISABLE_LOGGING
 	if (auto cb = requester())
-		cb->debug_log("*** WEBSOCKET_TRACKER_WRITE [ size: %ld, data: %s ]", long(m_write_data.size()), m_write_data.c_str());
+		cb->debug_log("*** WEBSOCKET_TRACKER_WRITE [ size: %ld, data: %s ]",
+			long(m_write_data.size()),
+			m_write_data.c_str());
 #endif
 
 	ADD_OUTSTANDING_ASYNC("websocket_tracker_connection::on_write");
-	m_websocket->async_write(boost::asio::const_buffer(m_write_data.data(), m_write_data.size())
-			, std::bind(&websocket_tracker_connection::on_write, shared_from_this(), _1, _2));
+	m_websocket->async_write(boost::asio::const_buffer(m_write_data.data(), m_write_data.size()),
+		std::bind(&websocket_tracker_connection::on_write, shared_from_this(), _1, _2));
 }
 
 void websocket_tracker_connection::do_send(tracker_answer const& ans)
@@ -328,18 +344,18 @@ void websocket_tracker_connection::do_send(tracker_answer const& ans)
 	obj["type"] = "answer";
 	obj["sdp"] = ans.answer.sdp;
 
-	std::string const data = json::serialize(payload);
-	m_write_data.assign(data.begin(), data.end());
+	m_write_data = json::serialize(payload);
 
 #ifndef TORRENT_DISABLE_LOGGING
 	if (auto cb = requester())
-		cb->debug_log("*** WEBSOCKET_TRACKER_WRITE [ size: %ld, data: %s ]"
-				, long(m_write_data.size()), m_write_data.c_str());
+		cb->debug_log("*** WEBSOCKET_TRACKER_WRITE [ size: %ld, data: %s ]",
+			long(m_write_data.size()),
+			m_write_data.c_str());
 #endif
 
 	ADD_OUTSTANDING_ASYNC("websocket_tracker_connection::on_write");
-	m_websocket->async_write(boost::asio::const_buffer(m_write_data.data(), m_write_data.size())
-			, std::bind(&websocket_tracker_connection::on_write, shared_from_this(), _1, _2));
+	m_websocket->async_write(boost::asio::const_buffer(m_write_data.data(), m_write_data.size()),
+		std::bind(&websocket_tracker_connection::on_write, shared_from_this(), _1, _2));
 }
 
 void websocket_tracker_connection::do_read()
@@ -347,11 +363,12 @@ void websocket_tracker_connection::do_read()
 	if (!is_open()) return;
 
 	// Can be replaced by m_read_buffer.clear() with boost 1.70+
-	if (m_read_buffer.size() > 0) m_read_buffer.consume(m_read_buffer.size());
+	if (m_read_buffer.size() > 0)
+		m_read_buffer.consume(m_read_buffer.size());
 
 	ADD_OUTSTANDING_ASYNC("websocket_tracker_connection::on_read");
-	m_websocket->async_read(m_read_buffer
-			, std::bind(&websocket_tracker_connection::on_read, shared_from_this(), _1, _2));
+	m_websocket->async_read(m_read_buffer,
+		std::bind(&websocket_tracker_connection::on_read, shared_from_this(), _1, _2));
 }
 
 void websocket_tracker_connection::on_timeout(error_code const& ec)
@@ -375,6 +392,9 @@ void websocket_tracker_connection::on_timeout(error_code const& ec)
 void websocket_tracker_connection::on_connect(error_code const& ec)
 {
 	COMPLETE_ASYNC("websocket_tracker_connection::on_connect");
+	if (cancelled())
+		return;
+
 	if (ec)
 	{
 		fail(ec, operation_t::connect);
@@ -389,6 +409,9 @@ void websocket_tracker_connection::on_connect(error_code const& ec)
 void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_read */)
 {
 	COMPLETE_ASYNC("websocket_tracker_connection::on_read");
+	if (cancelled())
+		return;
+
 	auto reissue_read = aux::scope_end([this] { do_read(); });
 	if (ec)
 	{
@@ -494,7 +517,6 @@ void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_r
 												  peer_id const& local_pid,
 												  aux::rtc_answer const& answer) {
 				self->queue_answer({std::move(hash), std::move(local_pid), std::move(answer)});
-				self->start();
 			};
 
 			cb->on_rtc_offer(*response.offer);
@@ -523,6 +545,9 @@ void websocket_tracker_connection::on_read(error_code ec, std::size_t /* bytes_r
 void websocket_tracker_connection::on_write(error_code const& ec, std::size_t /* bytes_written */)
 {
 	COMPLETE_ASYNC("websocket_tracker_connection::on_write");
+	if (cancelled())
+		return;
+
 	m_write_data.clear();
 	m_sending = false;
 	if (ec)
