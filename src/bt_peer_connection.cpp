@@ -322,6 +322,13 @@ namespace {
 	void bt_peer_connection::write_dht_port()
 	{
 #ifndef TORRENT_DISABLE_DHT
+#if TORRENT_USE_I2P
+		// our DHT node lives on the regular internet. Its port is of no use
+		// to an i2p peer, other than to help find the IP address behind our
+		// i2p destination
+		if (is_i2p(get_socket()))
+			return;
+#endif
 		if (m_supports_dht_port && m_ses.has_dht())
 		{
 			int const port = m_ses.external_udp_port(local_endpoint().address());
@@ -724,8 +731,12 @@ namespace {
 		std::memset(ptr, 0, 8);
 
 #ifndef TORRENT_DISABLE_DHT
-		// indicate that we support the DHT messages
-		*(ptr + 7) |= 0x01;
+		// indicate that we support the DHT messages. Not over i2p, where we
+		// neither send nor can use the DHT port message
+#if TORRENT_USE_I2P
+		if (!is_i2p(get_socket()))
+#endif
+			*(ptr + 7) |= 0x01;
 #endif
 
 		// we support extensions
@@ -2466,8 +2477,12 @@ namespace {
 		TORRENT_ASSERT(t);
 
 		// if we're using a proxy, our listen port won't be useful
-		// anyway.
-		if (is_outgoing())
+		// anyway. Over i2p it isn't useful either, and must not be disclosed
+		if (is_outgoing()
+#if TORRENT_USE_I2P
+			&& !is_i2p(get_socket())
+#endif
+		)
 		{
 			auto const port = m_ses.listen_port(
 				t->is_ssl_torrent() ? aux::transport::ssl : aux::transport::plaintext
