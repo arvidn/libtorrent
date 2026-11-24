@@ -603,7 +603,9 @@ std::int64_t get_filesize(stat_cache& stat, file_index_t const file_index
 
 		// parse have bitmask. Verify that the files we expect to have
 		// actually do exist
-		for (piece_index_t i(0); i < rd.have_pieces.end_index(); ++i)
+		piece_index_t const end_piece = std::min(rd.have_pieces.end_index()
+			, fs.end_piece());
+		for (piece_index_t i(0); i < end_piece; ++i)
 		{
 			if (rd.have_pieces.get_bit(i) == false) continue;
 

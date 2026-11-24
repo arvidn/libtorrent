@@ -573,6 +573,43 @@ TORRENT_TEST(piece_slots_seed_suggest_cache)
 	test_piece_slots_seed(sett);
 }
 
+TORRENT_TEST(piece_slots_past_end)
+{
+	// the have-bitfield may be longer than the torrent, for instance
+	// "pieces" in version 2 of the resume data format is rounded up to whole
+	// bytes. Bits past the last piece must be ignored
+	std::shared_ptr<torrent_info> ti = generate_torrent();
+
+	error_code ec;
+	create_directories(combine_path("add_torrent_params_test", "test_resume"), ec);
+	{
+		std::vector<char> a(128 * 1024 * 8);
+		std::vector<char> b(128 * 1024);
+		std::ofstream("add_torrent_params_test" SEP "test_resume" SEP "tmp1").write(a.data(), std::streamsize(a.size()));
+		std::ofstream("add_torrent_params_test" SEP "test_resume" SEP "tmp2").write(b.data(), std::streamsize(b.size()));
+		std::ofstream("add_torrent_params_test" SEP "test_resume" SEP "tmp3").write(b.data(), std::streamsize(b.size()));
+	}
+
+	add_torrent_params p;
+	p.ti = ti;
+	p.save_path = "add_torrent_params_test";
+
+	p.have_pieces.resize(ti->num_pieces() + 8, false);
+	p.have_pieces.set_bit(piece_index_t{0});
+	p.have_pieces.set_bit(piece_index_t{ti->num_pieces() + 3});
+
+	lt::session ses(settings());
+	torrent_handle h = ses.add_torrent(p);
+
+	wait_for_alert(ses, torrent_checked_alert::alert_type, "piece_slots_past_end");
+
+	torrent_status s = h.status();
+	print_alerts(ses, "ses");
+	TEST_EQUAL(s.pieces.size(), ti->num_pieces());
+	TEST_EQUAL(s.pieces.count(), 1);
+	TEST_EQUAL(s.pieces[piece_index_t{0}], true);
+}
+
 // TODO: test what happens when loading a resume file with both piece priorities
 // and file priorities (file prio should take precedence)
 
