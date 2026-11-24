@@ -162,3 +162,44 @@ TORRENT_TEST(std_hash)
 
 	TEST_EQUAL(test.size(), 16);
 }
+
+TORRENT_TEST(contains)
+{
+	lt::info_hash_t const hybrid{ones1, twos2};
+	lt::info_hash_t const v1_only{ones1, none2};
+	lt::info_hash_t const v2_only{none1, twos2};
+
+	TEST_CHECK(hybrid.contains(hybrid));
+	TEST_CHECK(hybrid.contains(v1_only));
+	TEST_CHECK(hybrid.contains(v2_only));
+	TEST_CHECK(hybrid.contains(lt::info_hash_t{}));
+
+	TEST_CHECK(!v1_only.contains(hybrid));
+	TEST_CHECK(!v2_only.contains(hybrid));
+	TEST_CHECK(!v1_only.contains(v2_only));
+	TEST_CHECK(!v2_only.contains(v1_only));
+	TEST_CHECK(lt::info_hash_t{}.contains(lt::info_hash_t{}));
+	TEST_CHECK(!lt::info_hash_t{}.contains(v1_only));
+	TEST_CHECK(!lt::info_hash_t{}.contains(v2_only));
+
+	lt::info_hash_t const wrong_v2{none1, ones2};
+	lt::info_hash_t const right_v1_wrong_v2{ones1, ones2};
+	lt::info_hash_t const wrong_v1_right_v2{zeroes1, twos2};
+	TEST_CHECK(!hybrid.contains(wrong_v2));
+	TEST_CHECK(!hybrid.contains(right_v1_wrong_v2));
+	TEST_CHECK(!hybrid.contains(wrong_v1_right_v2));
+	TEST_CHECK(!v2_only.contains(wrong_v1_right_v2));
+
+	// a v1 hash may be a truncated v2 hash
+	lt::info_hash_t const truncated{twos1, none2};
+	lt::info_hash_t const truncated_and_v2{twos1, twos2};
+	lt::info_hash_t const swapped{twos1, ones2};
+	TEST_CHECK(hybrid.contains(truncated));
+	TEST_CHECK(v2_only.contains(truncated));
+	TEST_CHECK(hybrid.contains(truncated_and_v2));
+	TEST_CHECK(v2_only.contains(truncated_and_v2));
+	TEST_CHECK(swapped.contains(v1_only));
+	TEST_CHECK(swapped.contains(right_v1_wrong_v2));
+	TEST_CHECK(!v1_only.contains(truncated));
+	TEST_CHECK(!v1_only.contains(truncated_and_v2));
+}

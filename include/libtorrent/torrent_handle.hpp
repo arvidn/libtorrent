@@ -585,7 +585,9 @@ namespace aux {
 		// a ``metadata_received_alert`` is generated. The function returns true
 		// if the metadata is successfully set on the torrent, and false
 		// otherwise. If the torrent already has metadata, this function will not
-		// affect the torrent, and false will be returned.
+		// affect the torrent, and false will be returned. If the buffer matches
+		// the info-hash but isn't valid metadata for the torrent, the torrent is
+		// put in an error state and paused.
 		bool set_metadata(span<char const> metadata) const;
 
 #if TORRENT_ABI_VERSION == 1

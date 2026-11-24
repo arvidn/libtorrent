@@ -741,6 +741,14 @@ class test_info_hash(unittest.TestCase):
         self.assertEqual(hash(ih2), hash(lt.info_hash_t(s2)))
         self.assertEqual(hash(ih12), hash(lt.info_hash_t(s1, s2)))
 
+        self.assertTrue(ih12.contains(ih1))
+        self.assertTrue(ih12.contains(ih2))
+        self.assertTrue(ih12.contains(ih12))
+        self.assertFalse(ih1.contains(ih12))
+        self.assertFalse(ih2.contains(ih1))
+        # a v1 hash may be a truncated v2 hash
+        self.assertTrue(ih2.contains(lt.info_hash_t(lt.sha1_hash(b'b' * 20))))
+
 class test_magnet_link(unittest.TestCase):
 
     def test_parse_magnet_uri(self):

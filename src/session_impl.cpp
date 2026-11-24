@@ -5056,10 +5056,7 @@ namespace {
 			return ret_t{ptr_t(), params.info_hashes, false};
 		}
 
-		if (params.ti
-			&& ((params.info_hashes.has_v1() && params.info_hashes.v1 != params.ti->info_hashes().v1)
-				|| (params.info_hashes.has_v2() && params.info_hashes.v2 != params.ti->info_hashes().v2)
-			))
+		if (params.ti && !params.ti->info_hashes().contains(params.info_hashes))
 		{
 			ec = errors::mismatching_info_hash;
 			return ret_t{ptr_t(), params.info_hashes, false};
