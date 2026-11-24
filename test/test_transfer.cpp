@@ -180,17 +180,28 @@ void test_transfer(int const proxy_type, settings_pack const& sett
 	torrent_handle tor2;
 
 	int piece_size = 32 * 1024;
+	int num_create_pieces = 13;
 	int timeout = 10;
 	if (flags & large_piece_size)
 	{
 		piece_size = 1024 * 1024;
 		timeout = 90;
+#ifdef TORRENT_ADDRESS_SANITIZER
+		// 13 MiB takes close to the timeout under ASAN
+		num_create_pieces = 4;
+#endif
 	}
 
 	create_directory("tmp1_transfer", ec);
 	std::ofstream file("tmp1_transfer/temporary");
-	add_torrent_params atp = ::create_torrent(&file, "temporary", piece_size, 13, false
-		, {}, "", bool(flags & bad_v1_hashes));
+	add_torrent_params atp = ::create_torrent(&file,
+		"temporary",
+		piece_size,
+		num_create_pieces,
+		false,
+		{},
+		"",
+		bool(flags & bad_v1_hashes));
 	file.close();
 
 	if (flags & disable_v1_hashes)
