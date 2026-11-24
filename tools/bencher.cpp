@@ -7,9 +7,12 @@ You may use, distribute and modify this code under the terms of the BSD license,
 see LICENSE file.
 */
 
-// bencher - runs libtorrent's small, no-argument benchmarks and prints the
-// results as Bencher Metric Format (BMF) JSON on stdout, for use with
-// `bencher run --adapter json`. Named "bencher"
+// bencher - runs libtorrent's small, no-argument benchmarks under callgrind,
+// dumping instruction and simulated cache/branch event counts for each one.
+// Counting simulated events rather than timing makes the results independent
+// of the machine and of other load on it. It's not meant to be run directly,
+// run_bencher.py runs it under valgrind and turns the dumps into Bencher
+// Metric Format (BMF) JSON for `bencher run --adapter json`.
 // Expects to be run with tools/ as the working directory (this is how
 // it's invoked from CI, which cd's into tools/ before running it).
 
@@ -23,24 +26,22 @@ see LICENSE file.
 
 #include <algorithm>
 #include <array>
-#include <chrono>
-#include <cmath>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
-#include <iomanip>
 #include <iostream>
 #include <limits>
 #include <stdexcept>
 #include <utility>
 #include <vector>
 
-#include <time.h>
+#include <valgrind/callgrind.h>
 
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/aux_/pe_crypto.hpp"
 #include "libtorrent/aux_/peer_list.hpp"
 #include "libtorrent/aux_/piece_picker.hpp"
+#include "libtorrent/aux_/random.hpp"
 #include "libtorrent/aux_/stat.hpp"
 #include "libtorrent/aux_/torrent_peer.hpp"
 #include "libtorrent/aux_/torrent_peer_allocator.hpp"
@@ -55,31 +56,6 @@ see LICENSE file.
 #include "libtorrent/span.hpp"
 
 namespace fs = std::filesystem;
-using namespace std::chrono_literals;
-
-#if defined CLOCK_THREAD_CPUTIME_ID
-// CPU time (user + system) consumed by the calling thread. Unlike wall-clock
-// time it doesn't advance while the thread is preempted, so measurements are
-// less sensitive to other load on the machine
-struct thread_cpu_clock
-{
-	using rep = std::int64_t;
-	using period = std::nano;
-	using duration = std::chrono::duration<rep, period>;
-	using time_point = std::chrono::time_point<thread_cpu_clock>;
-	static constexpr bool is_steady = true;
-
-	static time_point now()
-	{
-		::timespec ts{};
-		if (::clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts) != 0)
-			throw std::runtime_error("clock_gettime(CLOCK_THREAD_CPUTIME_ID) failed");
-		return time_point(std::chrono::seconds(ts.tv_sec) + std::chrono::nanoseconds(ts.tv_nsec));
-	}
-};
-#else
-using thread_cpu_clock = std::chrono::steady_clock;
-#endif
 
 // prevents the compiler from proving `value` is unused and eliding the
 // computation that produced it. The empty asm block with an input
@@ -92,98 +68,61 @@ inline void do_not_optimize(T const& value)
 	asm volatile("" : : "r,m"(value) : "memory");
 }
 
-struct stats
+// identifies the callgrind dump holding a benchmark's event counts
+struct measurement
 {
-	double mean_ns;
-	double stddev_ns;
+	int dump = 0;
+	int iterations = 0;
 };
 
-// calls fun() repeatedly, for at least 10 samples and at least 500ms of
-// thread CPU time, and returns the mean and standard deviation of the
-// per-call latency, in nanoseconds. Each sample times a batch of calls and
-// is the per-call average over that batch, so for batched benchmarks the
-// standard deviation is that of the batch averages. Samples are folded into
-// the running mean and variance as they're taken (Welford's online
-// algorithm), so this doesn't need to keep every sample around just to
-// analyze them afterwards.
-template <typename Fun>
-stats analyze(Fun fun)
-{
-	int const min_samples = 10;
-	auto const min_duration = 500ms;
-	// reading the thread CPU clock is a syscall costing hundreds of
-	// nanoseconds, so fast operations are timed in batches long enough to
-	// make that overhead negligible
-	auto const min_batch_duration = 100us;
+// callgrind numbers its dumps from 1
+int next_dump = 1;
 
-	// warm up, e.g. to avoid attributing first-touch page faults to a
-	// real sample
+// the DH cost depends on the random secret, and piece_picker and peer_list
+// eviction pick random positions. Reseeding before and after every benchmark
+// keeps each benchmark, and the setup that follows it, independent of which
+// benchmarks ran before it
+void reseed_rng() { lt::aux::random_engine().seed(0x6c7b1d3e); }
+
+// runs fun() under callgrind's event collection and dumps the counts. The
+// counts are deterministic, so a handful of iterations is enough. More than
+// one is still measured so that operations with amortized costs report their
+// average rather than whichever side of the amortization cycle a single
+// call lands on. Collection is off during the warm-up, but the cache
+// simulation still runs, so the measured calls start with warm caches.
+template <typename Fun>
+measurement analyze(Fun fun)
+{
+	int const iterations = 16;
+
+	reseed_rng();
 	for (int i = 0; i < 3; ++i)
 		fun();
 
-	int batch = 1;
-	for (;;)
-	{
-		auto const start = thread_cpu_clock::now();
-		for (int i = 0; i < batch; ++i)
-			fun();
-		if (thread_cpu_clock::now() - start >= min_batch_duration)
-			break;
-		batch *= 2;
-	}
-
-	int count = 0;
-	double mean_ns = 0.0;
-	double m2 = 0.0;
-	auto const deadline = thread_cpu_clock::now() + min_duration;
-	auto end = thread_cpu_clock::now();
-	while (count < min_samples || end < deadline)
-	{
-		auto const start = thread_cpu_clock::now();
-		for (int i = 0; i < batch; ++i)
-			fun();
-		end = thread_cpu_clock::now();
-		// prevents the compiler from reordering or eliding memory writes
-		// across this point
-		asm volatile("" : : : "memory");
-		double const sample_ns =
-			std::chrono::duration<double, std::nano>(end - start).count() / batch;
-
-		++count;
-		double const delta = sample_ns - mean_ns;
-		mean_ns += delta / count;
-		m2 += delta * (sample_ns - mean_ns);
-	}
-	return {mean_ns, std::sqrt(m2 / count)};
+	CALLGRIND_ZERO_STATS;
+	CALLGRIND_TOGGLE_COLLECT;
+	for (int i = 0; i < iterations; ++i)
+		fun();
+	CALLGRIND_TOGGLE_COLLECT;
+	CALLGRIND_DUMP_STATS;
+	reseed_rng();
+	return {next_dump++, iterations};
 }
 
-// prints a set of named benchmarks as a Bencher Metric Format (BMF)
-// JSON document on stdout, for use with `bencher run --adapter json`
-void print_bmf(lt::span<std::pair<char const*, stats> const> benchmarks)
+// prints which callgrind dump belongs to which benchmark, as JSON on stdout.
+// run_bencher.py combines this with the dumps to produce Bencher Metric
+// Format (BMF)
+void print_manifest(lt::span<std::pair<char const*, measurement> const> benchmarks)
 {
-	std::cout << std::fixed << std::setprecision(3);
-
-	std::cout << "{\n";
+	std::cout << "[\n";
 	for (int i = 0; i < int(benchmarks.size()); ++i)
 	{
-		auto const& [name, s] = benchmarks[i];
-		std::cout << "  \"" << name
-				  << "\": {\n"
-					 "    \"latency\": {\n"
-					 "      \"value\": "
-				  << s.mean_ns
-				  << ",\n"
-					 "      \"lower_value\": "
-				  << (s.mean_ns - s.stddev_ns)
-				  << ",\n"
-					 "      \"upper_value\": "
-				  << (s.mean_ns + s.stddev_ns)
-				  << "\n"
-					 "    }\n"
-					 "  }"
+		auto const& [name, m] = benchmarks[i];
+		std::cout << "  {\"name\": \"" << name << "\", \"dump\": " << m.dump
+				  << ", \"iterations\": " << m.iterations << "}"
 				  << (i + 1 == int(benchmarks.size()) ? "\n" : ",\n");
 	}
-	std::cout << "}\n";
+	std::cout << "]\n";
 }
 
 std::vector<char> read_file(fs::path filename)
@@ -247,7 +186,7 @@ namespace pp_bench {
 		return bm;
 	}
 
-	void run(std::vector<std::pair<char const*, stats>>& results)
+	void run(std::vector<std::pair<char const*, measurement>>& results)
 	{
 		counters pc;
 		std::vector<piece_index_t> const empty_suggested;
@@ -650,7 +589,7 @@ torrent_state make_state()
 	return st;
 }
 
-void run(std::vector<std::pair<char const*, stats>>& results)
+void run(std::vector<std::pair<char const*, measurement>>& results)
 {
 	static torrent_peer_allocator allocator;
 
@@ -757,7 +696,7 @@ namespace ipf_bench {
 		return f;
 	}
 
-	void run(std::vector<std::pair<char const*, stats>>& results)
+	void run(std::vector<std::pair<char const*, measurement>>& results)
 	{
 		ip_filter const f = make_filter();
 
@@ -833,7 +772,7 @@ namespace merkle_bench {
 		return nodes;
 	}
 
-	void run(std::vector<std::pair<char const*, stats>>& results)
+	void run(std::vector<std::pair<char const*, measurement>>& results)
 	{
 		std::vector<sha256_hash> const leaves = make_leaves();
 		std::vector<sha256_hash> const tree = make_tree(leaves);
@@ -870,7 +809,12 @@ namespace merkle_bench {
 int main()
 try
 {
-	std::vector<std::pair<char const*, stats>> results;
+	if (!RUNNING_ON_VALGRIND)
+		throw std::runtime_error("must be run under callgrind, see run_bencher.py");
+
+	reseed_rng();
+
+	std::vector<std::pair<char const*, measurement>> results;
 
 #if !defined TORRENT_DISABLE_ENCRYPTION
 	using namespace lt::aux;
@@ -919,7 +863,7 @@ try
 	for (char const* filename : benchmark_cases)
 	{
 		std::vector<char> const buf = read_file(fs::path("bench-torrents") / filename);
-		stats const s = analyze([&] {
+		measurement const s = analyze([&] {
 			auto const atp = lt::load_torrent_buffer(buf);
 			do_not_optimize(atp);
 		});
@@ -931,7 +875,7 @@ try
 	ipf_bench::run(results);
 	merkle_bench::run(results);
 
-	print_bmf(results);
+	print_manifest(results);
 }
 catch (std::exception const& e)
 {

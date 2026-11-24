@@ -50,13 +50,16 @@ exe checking_benchmark : checking_benchmark.cpp ;
 exe gen_torture_torrent : gen_torture_torrent.cpp ;
 exe benchmark_load_torrent : benchmark_load_torrent.cpp ;
 # bencher uses do_not_optimize(), which relies on GNU inline asm and is
-# not supported by MSVC.
+# not supported by MSVC. It's only built on request, since it needs the
+# valgrind headers and is only useful under callgrind.
 exe bencher : bencher.cpp : <toolset>msvc:<build>no ;
+explicit bencher ;
+install stage_bencher : bencher : <location>. ;
+explicit stage_bencher ;
 
 install stage
 	: dht dht-sample session_log_alerts disk_io_stress_test
 	  checking_benchmark gen_torture_torrent benchmark_load_torrent
-	  bencher
 	: <location>.
 	;
 explicit stage ;
