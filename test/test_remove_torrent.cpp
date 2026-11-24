@@ -133,8 +133,20 @@ void test_remove_torrent(remove_flags_t const remove_options
 
 	if (test == double_remove)
 	{
-		ses2.remove_torrent(tor2, remove_options);
-		ses1.remove_torrent(tor1, remove_options);
+		// the first removal may already have completed and released the
+		// torrent, in which case remove_torrent() throws on the invalid handle
+		auto const remove_again = [&](lt::session& ses, torrent_handle const& h) {
+			try
+			{
+				ses.remove_torrent(h, remove_options);
+			}
+			catch (lt::system_error const& e)
+			{
+				TEST_EQUAL(e.code(), error_code(errors::invalid_torrent_handle));
+			}
+		};
+		remove_again(ses2, tor2);
+		remove_again(ses1, tor1);
 	}
 
 	std::cerr << "removed" << std::endl;
