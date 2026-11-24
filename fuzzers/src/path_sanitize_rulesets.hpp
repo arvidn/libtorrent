@@ -20,15 +20,15 @@ namespace fuzzers {
 // (default_flags, same as libtorrent_2_2), one of the historical
 // per-version rulesets a resume-data upgrade might pin, or the two
 // extremes. Not every bit combination, since the path itself, not the
-// flag combination, is the interesting search space.
+// flag combination, is the interesting search space. ignore_symlinks is
+// left out of the strict extreme, since it would skip all symlink parsing.
 constexpr std::array<lt::path_sanitize_flags_t, 5> path_sanitize_rulesets{{
 	lt::path_sanitize_flags_t{},
-	lt::path_sanitize_flags::all,
+	lt::path_sanitize_flags::all & ~lt::path_sanitize_flags::ignore_symlinks,
 	lt::path_sanitize_flags::libtorrent_2_0,
 	lt::path_sanitize_flags::libtorrent_2_1,
 	lt::path_sanitize_flags::libtorrent_2_2,
 }};
-
 }
 
 #endif

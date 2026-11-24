@@ -576,6 +576,9 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 		// the torrent payload space
 		std::int64_t const file_size =
 			(file_flags & file_storage::flag_symlink) ? 0 : node_int_value(f.length, -1);
+		// after the size, since a symlink's "length" occupies no payload space
+		if (cfg.sanitize_flags & path_sanitize_flags::ignore_symlinks)
+			file_flags &= ~file_storage::flag_symlink;
 
 		// if a file is too big, it will cause integer overflow in our
 		// calculations of the size of the merkle tree (which is all 'int'
@@ -671,6 +674,9 @@ bool parse_symlink_path(bdecode_node const& symlink_path_node,
 		// the torrent payload space
 		std::int64_t const file_size =
 			(file_flags & file_storage::flag_symlink) ? 0 : node_int_value(f.length, -1);
+		// after the size, since a symlink's "length" occupies no payload space
+		if (cfg.sanitize_flags & path_sanitize_flags::ignore_symlinks)
+			file_flags &= ~file_storage::flag_symlink;
 
 		// if a file is too big, it will cause integer overflow in our
 		// calculations of the size of the merkle tree (which is all 'int'

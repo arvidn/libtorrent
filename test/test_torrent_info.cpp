@@ -917,6 +917,99 @@ TORRENT_TEST(symlink_count_limit)
 	TEST_EQUAL(atp2.ti->num_files(), 5);
 }
 
+namespace {
+int count_symlinks(file_storage const& fs)
+{
+	int ret = 0;
+	for (auto const i : fs.file_range())
+	{
+		if (fs.file_flags(i) & file_storage::flag_symlink)
+			++ret;
+	}
+	return ret;
+}
+}
+
+TORRENT_TEST(ignore_symlinks)
+{
+	std::string const root_dir = parent_path(current_path());
+	load_torrent_limits ignore;
+	ignore.sanitize_flags |= path_sanitize_flags::ignore_symlinks;
+
+	for (char const* const name : {"symlink1.torrent",
+			 "symlink2.torrent",
+			 "symlink_zero_size.torrent",
+			 "symlink_filtered_path.torrent",
+			 "overlapping_symlinks.torrent",
+			 "symlink_hop_limit.torrent",
+			 "v2_symlinks.torrent"})
+	{
+		std::printf("%s\n", name);
+		std::string const filename = combine_path(combine_path(root_dir, "test_torrents"), name);
+		auto const ref = load_torrent_file(filename);
+		auto const atp = load_torrent_file(filename, ignore);
+		TEST_CHECK(atp.sanitize_flags & path_sanitize_flags::ignore_symlinks);
+
+		file_storage const& ref_fs = ref.ti->layout();
+		file_storage const& fs = atp.ti->layout();
+		TEST_CHECK(count_symlinks(ref_fs) > 0);
+		TEST_EQUAL(count_symlinks(fs), 0);
+		TEST_CHECK(atp.ti->info_hashes() == ref.ti->info_hashes());
+		TEST_EQUAL(fs.total_size(), ref_fs.total_size());
+		TEST_EQUAL(fs.num_pieces(), ref_fs.num_pieces());
+		TEST_EQUAL(fs.num_files(), ref_fs.num_files());
+		for (auto const i : fs.file_range())
+		{
+			TEST_EQUAL(fs.file_path(i), ref_fs.file_path(i));
+			TEST_EQUAL(fs.file_offset(i), ref_fs.file_offset(i));
+			TEST_EQUAL(fs.file_size(i), ref_fs.file_size(i));
+		}
+	}
+}
+
+// "symlink path" is never parsed, so neither its validation nor
+// max_symlinks applies
+TORRENT_TEST(ignore_symlinks_skips_symlink_parsing)
+{
+	entry info;
+	info["name"] = "temp";
+	info["piece length"] = 0x4000;
+	info["pieces"] = std::string(20, '\0');
+	entry::list_type& files = info["files"].list();
+	entry data;
+	data["length"] = 0x4000;
+	data["path"].list().emplace_back("data");
+	files.push_back(data);
+	entry link;
+	link["attr"] = "l";
+	link["path"].list().emplace_back("link");
+	// a "symlink path" component that isn't a string
+	link["symlink path"].list().emplace_back(4);
+	files.push_back(link);
+	entry torrent;
+	torrent["info"] = info;
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), torrent);
+
+	error_code ec;
+	load_torrent_buffer(buf, ec, load_torrent_limits{});
+	TEST_EQUAL(ec, errors::torrent_invalid_name);
+
+	load_torrent_limits ignore;
+	ignore.sanitize_flags |= path_sanitize_flags::ignore_symlinks;
+	ignore.max_symlinks = 0;
+	ec.clear();
+	auto const atp = load_torrent_buffer(buf, ec, ignore);
+	TEST_CHECK(!ec);
+	if (!atp.ti)
+		return;
+	file_storage const& fs = atp.ti->layout();
+	TEST_EQUAL(count_symlinks(fs), 0);
+	TEST_EQUAL(fs.num_files(), 2);
+	TEST_EQUAL(fs.file_size(1_file), 0);
+	TEST_EQUAL(fs.total_size(), 0x4000);
+}
+
 TORRENT_TEST(symlink_empty_target)
 {
 	// a "symlink path" that's present but resolves to no real components

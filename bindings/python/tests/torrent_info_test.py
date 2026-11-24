@@ -311,6 +311,54 @@ class ConstructorWithLimitsTest(unittest.TestCase):
         )
         self.assertEqual(sensitive.renamed_files, {})
 
+    def test_ignore_symlinks_flag(self) -> None:
+        flags = lt.path_sanitize_flags
+        self.assertFalse(flags.default_flags & flags.ignore_symlinks)
+        self.assertFalse(flags.libtorrent_2_2 & flags.ignore_symlinks)
+
+        entry = TorrentFileDict(
+            {
+                b"info": {
+                    b"name": b"test",
+                    b"piece length": 16 * 1024,
+                    b"pieces": lib.get_random_bytes(20),
+                    b"files": [
+                        {b"length": 1024, b"path": [b"a.txt"]},
+                        {
+                            b"length": 0,
+                            b"path": [b"link"],
+                            b"attr": b"l",
+                            b"symlink path": [b"a.txt"],
+                        },
+                    ],
+                }
+            }
+        )
+        buf = lt.bencode(entry)
+
+        with_links = lt.load_torrent_buffer(
+            buf, load_torrent_limits({"sanitize_flags": flags.default_flags})
+        )
+        assert with_links.ti is not None
+        fs = with_links.ti.files()
+        self.assertTrue(fs.file_flags(1) & lt.file_flags_t.flag_symlink)
+        self.assertEqual(fs.symlink(1), os.path.join("test", "a.txt"))
+
+        no_links = lt.load_torrent_buffer(
+            buf,
+            load_torrent_limits(
+                {"sanitize_flags": flags.default_flags | flags.ignore_symlinks}
+            ),
+        )
+        assert no_links.ti is not None
+        fs = no_links.ti.files()
+        self.assertFalse(fs.file_flags(1) & lt.file_flags_t.flag_symlink)
+        self.assertEqual(fs.file_size(1), 0)
+        self.assertEqual(fs.file_path(1), os.path.join("test", "link"))
+        self.assertEqual(
+            no_links.sanitize_flags, flags.default_flags | flags.ignore_symlinks
+        )
+
 
 class FieldTest(unittest.TestCase):
     def setUp(self) -> None:
