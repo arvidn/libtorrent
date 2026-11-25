@@ -402,6 +402,11 @@ namespace aux {
 			// traversal for WebRTC. It must have the format ``hostname:port``.
 			webtorrent_stun_server,
 
+			// a comma separated list of CIDRs. When proxy_trusted_tls_origination
+			// is enabled, the proxy must resolve to an address in one of these
+			// networks. Defaults to loopback only.
+			proxy_trusted_cidrs,
+
 			max_string_setting_internal
 		};
 
@@ -1141,6 +1146,14 @@ namespace aux {
 			// this to false disables the prediction entirely; peers are
 			// always hinted 0 blocks of read-ahead.
 			enable_read_ahead,
+
+			// if true, tracker requests over an HTTP proxy are sent to the proxy
+			// in plain text, and the proxy is expected to originate TLS to the
+			// tracker. The proxy is trusted completely and libtorrent does not
+			// verify the tracker's certificate. Peer connections and the trackers
+			// of SSL torrents are not affected. The proxy must resolve to an
+			// address in proxy_trusted_cidrs.
+			proxy_trusted_tls_origination,
 
 			max_bool_setting_internal
 		};
