@@ -1,6 +1,7 @@
 2.0.17 not released
 
-	* ifix edge cases with creating empty files when changing priority
+	* fix piece picker bug when losing a partially downloaded piece
+	* fix edge cases with creating empty files when changing priority
 	* improve validation of metadata against info-hashes
 
 2.0.16 released
