@@ -36,6 +36,15 @@ namespace aux {
 		using send_buffer_size = typename first_socket::send_buffer_size;
 
 		using executor_type = typename first_socket::executor_type;
+		using lowest_layer_type = typename first_socket::lowest_layer_type;
+
+		executor_type get_executor() { TORRENT_FWD_CALL(get_executor()); }
+
+		lowest_layer_type& lowest_layer()
+		{
+			return std::visit(
+				[](auto& s) -> lowest_layer_type& { return s.lowest_layer(); }, this->var());
+		}
 
 		base& var() { return static_cast<base&>(*this); }
 		base const& var() const { return static_cast<base const&>(*this); }

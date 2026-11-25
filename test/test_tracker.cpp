@@ -1013,7 +1013,10 @@ struct tracker_alert_counts
 };
 
 // collects the tracker reply and error alerts posted during d
-tracker_alert_counts count_tracker_alerts(lt::session& s, lt::time_duration const d)
+tracker_alert_counts count_tracker_alerts(lt::session& s,
+	lt::time_duration const d,
+	int const expected_replies = 0,
+	bool const stop_on_error = false)
 {
 	tracker_alert_counts ret;
 	auto const end = clock_type::now() + d;
@@ -1034,6 +1037,9 @@ tracker_alert_counts count_tracker_alerts(lt::session& s, lt::time_duration cons
 				ret.last_failure_reason = te->failure_reason();
 			}
 		}
+		if ((expected_replies > 0 && ret.replies >= expected_replies)
+			|| (stop_on_error && ret.errors > 0))
+			break;
 	}
 	return ret;
 }
@@ -1167,9 +1173,9 @@ TORRENT_TEST(websocket_tracker_skipped_with_peer_proxy)
 	test_websocket_tracker_skipped_with_proxy(true, false);
 }
 
-TORRENT_TEST(websocket_tracker_skipped_with_tracker_proxy)
+TORRENT_TEST(websocket_tracker_skipped_with_peer_and_tracker_proxy)
 {
-	test_websocket_tracker_skipped_with_proxy(false, true);
+	test_websocket_tracker_skipped_with_proxy(true, true);
 }
 
 #if TORRENT_USE_I2P
@@ -1203,6 +1209,176 @@ TORRENT_TEST(websocket_tracker_used_with_unused_proxy)
 	}
 	stop_websocket_server();
 }
+
+namespace {
+
+void test_websocket_tracker_proxy(
+	bool const proxy_trackers, bool const use_ssl, settings_pack::proxy_type_t const proxy_type)
+{
+	int const port = start_websocket_server(use_ssl);
+	settings_pack pack = websocket_tracker_settings();
+	pack.set_str(settings_pack::proxy_hostname, "127.0.0.1");
+	pack.set_int(settings_pack::proxy_type, proxy_type);
+	pack.set_int(settings_pack::proxy_port, 1);
+	pack.set_bool(settings_pack::proxy_tracker_connections, proxy_trackers);
+	// This test covers tracker routing only. Keep WebRTC peer connections
+	// direct so their ICE setup doesn't try the deliberately unavailable proxy.
+	pack.set_bool(settings_pack::proxy_peer_connections, false);
+
+	if (!proxy_trackers && use_ssl)
+		pack.set_bool(settings_pack::validate_https_trackers, false);
+
+	{
+		lt::session s(pack);
+		std::string const scheme = use_ssl ? "wss://" : "ws://";
+		// This test checks routing and fallback only, not hostname resolution.
+		std::string const url = scheme + "127.0.0.1:" + std::to_string(port) + "/announce";
+		add_websocket_tracker_torrent(s, "tmp_websocket_tracker_proxy", url);
+		auto const counts = proxy_trackers ? count_tracker_alerts(s, seconds(2))
+										   : count_tracker_alerts(s, seconds(5), 2);
+
+		if (proxy_trackers)
+		{
+			// The proxy endpoint deliberately refuses connections. The tracker
+			// must not be reached directly as a fallback.
+			TEST_EQUAL(counts.replies, 0);
+			TEST_CHECK(counts.errors >= 1);
+		}
+		else
+		{
+			// With tracker proxying disabled, WSS connects directly.
+			TEST_EQUAL(counts.replies, 2);
+			TEST_EQUAL(counts.errors, 0);
+		}
+	}
+	stop_websocket_server();
+}
+
+} // anonymous namespace
+
+TORRENT_TEST(websocket_tracker_proxy)
+{
+#if TORRENT_USE_SSL
+	test_websocket_tracker_proxy(false, true, settings_pack::socks5);
+	test_websocket_tracker_proxy(true, true, settings_pack::socks5);
+	test_websocket_tracker_proxy(true, true, settings_pack::http);
+#endif
+}
+
+namespace {
+
+void test_websocket_tracker_proxy_success(bool const use_ssl,
+	settings_pack::proxy_type_t const proxy_type,
+	char const* const tracker_host = "127.0.0.1",
+	bool const proxy_hostnames = false,
+	bool const send_host_in_connect = false)
+{
+	int const tracker_port = start_websocket_server(use_ssl);
+	int const proxy_port = start_proxy(proxy_type);
+
+	settings_pack pack = websocket_tracker_settings();
+	pack.set_str(settings_pack::proxy_hostname, "127.0.0.1");
+	pack.set_int(settings_pack::proxy_type, proxy_type);
+	pack.set_int(settings_pack::proxy_port, proxy_port);
+	pack.set_bool(settings_pack::proxy_tracker_connections, true);
+	pack.set_bool(settings_pack::proxy_peer_connections, false);
+	pack.set_bool(settings_pack::proxy_hostnames, proxy_hostnames);
+	pack.set_bool(settings_pack::proxy_send_host_in_connect, send_host_in_connect);
+	if (proxy_type == settings_pack::socks5_pw || proxy_type == settings_pack::http_pw)
+	{
+		pack.set_str(settings_pack::proxy_username, "testuser");
+		pack.set_str(settings_pack::proxy_password, "testpass");
+	}
+	// The ordinary success tests isolate proxy tunnelling. Certificate checks
+	// are covered separately using the same self-signed test certificate.
+	pack.set_bool(settings_pack::validate_https_trackers, false);
+
+	{
+		lt::session s(pack);
+		std::string const scheme = use_ssl ? "wss://" : "ws://";
+		std::string const url =
+			scheme + std::string(tracker_host) + ":" + std::to_string(tracker_port) + "/announce";
+		add_websocket_tracker_torrent(s, "tmp_websocket_tracker_proxy_success", url);
+		auto const counts = count_tracker_alerts(s, seconds(6), 2);
+		TEST_EQUAL(counts.replies, 2);
+		TEST_EQUAL(counts.errors, 0);
+	}
+
+	stop_proxy(proxy_port);
+	stop_websocket_server();
+}
+
+} // anonymous namespace
+
+TORRENT_TEST(websocket_tracker_proxy_success)
+{
+	// Exercise TLS tunnelling and HTTP hostname handling.
+#if TORRENT_USE_SSL
+	test_websocket_tracker_proxy_success(true, settings_pack::socks5);
+	test_websocket_tracker_proxy_success(true, settings_pack::http);
+	test_websocket_tracker_proxy_success(true, settings_pack::http, "localhost", true);
+	test_websocket_tracker_proxy_success(true, settings_pack::http, "localhost", false, true);
+#endif
+
+	// SOCKS5 username/password and HTTP Basic authentication.
+	test_websocket_tracker_proxy_success(false, settings_pack::socks5_pw);
+	test_websocket_tracker_proxy_success(false, settings_pack::http_pw);
+#if TORRENT_USE_SSL
+	test_websocket_tracker_proxy_success(true, settings_pack::http_pw);
+	test_websocket_tracker_proxy_success(true, settings_pack::socks5_pw);
+#endif
+}
+
+// Enabling tracker proxying must invalidate an existing direct WebSocket.
+TORRENT_TEST(websocket_tracker_proxy_change_reconnects)
+{
+	int const tracker_port = start_websocket_server();
+	settings_pack pack = websocket_tracker_settings();
+	pack.set_int(settings_pack::proxy_type, settings_pack::socks5);
+	pack.set_str(settings_pack::proxy_hostname, "127.0.0.1");
+	pack.set_int(settings_pack::proxy_port, 1);
+	pack.set_bool(settings_pack::proxy_peer_connections, false);
+	pack.set_bool(settings_pack::proxy_tracker_connections, false);
+	{
+		lt::session s(pack);
+		auto h = add_websocket_tracker_torrent(
+			s, "tmp_ws_proxy_change", websocket_tracker_url(tracker_port));
+		auto const direct = count_tracker_alerts(s, seconds(5), 2);
+		TEST_EQUAL(direct.replies, 2);
+		TEST_EQUAL(direct.errors, 0);
+
+		settings_pack updated;
+		updated.set_bool(settings_pack::proxy_tracker_connections, true);
+		s.apply_settings(updated);
+		h.force_reannounce(0, lt::torrent_handle::ignore_min_interval);
+
+		auto const proxied = count_tracker_alerts(s, seconds(6), 0, true);
+		TEST_EQUAL(proxied.replies, 0);
+		TEST_CHECK(proxied.errors >= 1);
+	}
+	stop_websocket_server();
+}
+
+#if TORRENT_USE_SSL
+// The bundled test certificate is self-signed. Validation must reject it
+// instead of silently accepting the TLS connection.
+TORRENT_TEST(websocket_tracker_certificate_validation)
+{
+	int const port = start_websocket_server(true);
+	settings_pack pack = websocket_tracker_settings();
+	pack.set_bool(settings_pack::validate_https_trackers, true);
+	{
+		lt::session s(pack);
+		add_websocket_tracker_torrent(s,
+			"tmp_websocket_tracker_certificate_validation",
+			"wss://localhost:" + std::to_string(port) + "/announce");
+		auto const counts = count_tracker_alerts(s, seconds(6), 0, true);
+		TEST_EQUAL(counts.replies, 0);
+		TEST_CHECK(counts.errors >= 1);
+	}
+	stop_websocket_server();
+}
+#endif
 #endif
 
 namespace {

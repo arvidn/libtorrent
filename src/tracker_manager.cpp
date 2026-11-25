@@ -66,8 +66,7 @@ bool is_websocket_tracker_url(string_view const url)
 bool webrtc_allowed(session_settings const& sett)
 {
 	return sett.get_int(settings_pack::proxy_type) == settings_pack::none
-		|| (!sett.get_bool(settings_pack::proxy_peer_connections)
-			&& !sett.get_bool(settings_pack::proxy_tracker_connections));
+		|| !sett.get_bool(settings_pack::proxy_peer_connections);
 }
 #endif
 
@@ -378,6 +377,16 @@ void timeout_handler::set_timeout(int completion_timeout, int read_timeout)
 	}
 
 #if TORRENT_USE_RTC
+	void tracker_manager::close_websocket_connections()
+	{
+		TORRENT_ASSERT(is_single_thread());
+		// Detach the connections before notifying their requesters.
+		decltype(m_websocket_conns) connections;
+		connections.swap(m_websocket_conns);
+		for (auto const& c : connections)
+			c.second->close(errors::announce_skipped, operation_t::bittorrent);
+	}
+
 	void tracker_manager::remove_request(aux::websocket_tracker_connection const* c)
 	{
 		TORRENT_ASSERT(is_single_thread());
@@ -528,8 +537,7 @@ void timeout_handler::set_timeout(int completion_timeout, int read_timeout)
 					if (ec == boost::asio::error::operation_not_supported)
 						return fail(ec);
 
-					// a proxy may have been enabled while the offers were being
-					// generated
+					// peer proxying may have been enabled while the offers were generated
 					if (!webrtc_allowed(m_settings))
 						return fail(
 							error_code(boost::system::errc::permission_denied, generic_category()));
@@ -556,7 +564,7 @@ void timeout_handler::set_timeout(int completion_timeout, int read_timeout)
 						auto con = std::make_shared<aux::websocket_tracker_connection>(
 							ios, *this, std::move(request), c);
 						con->start();
-						m_websocket_conns[request.url] = con;
+						m_websocket_conns[con->tracker_req().url] = con;
 					}
 				});
 			return;

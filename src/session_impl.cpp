@@ -5655,6 +5655,15 @@ retry:
 		for (auto& i : m_listen_sockets)
 			i->udp_sock->sock.set_proxy_settings(proxy(), m_alerts, get_resolver()
 				, settings().get_bool(settings_pack::socks5_udp_send_local_ep));
+
+		update_websocket_trackers();
+	}
+
+	void session_impl::update_websocket_trackers()
+	{
+#if TORRENT_USE_RTC
+		m_tracker_manager.close_websocket_connections();
+#endif
 	}
 
 	void session_impl::update_ip_notifier()

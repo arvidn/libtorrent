@@ -902,6 +902,8 @@ namespace aux {
 			// peer connections are considered "peer connections". Anything
 			// transporting actual torrent payload (trackers and DHT traffic are
 			// not considered peer connections).
+			// WebRTC peer connections do not support proxies. WebTorrent is
+			// disabled when peer connections must use a proxy.
 			proxy_peer_connections,
 
 			// if this setting is true, torrents with a very high availability of
