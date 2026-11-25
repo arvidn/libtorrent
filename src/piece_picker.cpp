@@ -1647,6 +1647,7 @@ namespace libtorrent {
 			<< index << ")" << std::endl;
 #endif
 
+		int const prev_priority = p.priority(this);
 		bool have_piece = p.have();
 		if (!have_piece)
 		{
@@ -1675,10 +1676,14 @@ namespace libtorrent {
 			}
 		}
 
-		p.set_not_have();
+		// unless we have the piece, p.index is its position in the piece list
+		if (p.have()) p.set_not_have();
 
 		if (m_dirty) return;
-		if (p.priority(this) >= 0) add(index);
+		int const new_priority = p.priority(this);
+		if (new_priority == prev_priority) return;
+		if (prev_priority == -1) add(index);
+		else update(prev_priority, p.index);
 	}
 
 	// this is used to indicate that we successfully have
