@@ -730,7 +730,7 @@ TORRENT_TEST(sanitize_path)
 
 	path.clear();
 	sanitize_append_path_element(path, "dev:");
-#ifdef TORRENT_WINDOWS
+#if defined TORRENT_WINDOWS || defined __APPLE__
 	TEST_EQUAL(path, "dev_");
 #else
 	TEST_EQUAL(path, "dev:");
@@ -739,7 +739,7 @@ TORRENT_TEST(sanitize_path)
 	path.clear();
 	sanitize_append_path_element(path, "c:");
 	sanitize_append_path_element(path, "b");
-#ifdef TORRENT_WINDOWS
+#if defined TORRENT_WINDOWS || defined __APPLE__
 	TEST_EQUAL(path, "c_" SEPARATOR "b");
 #else
 	TEST_EQUAL(path, "c:" SEPARATOR "b");
@@ -749,7 +749,7 @@ TORRENT_TEST(sanitize_path)
 	sanitize_append_path_element(path, "c:");
 	sanitize_append_path_element(path, ".");
 	sanitize_append_path_element(path, "c");
-#ifdef TORRENT_WINDOWS
+#if defined TORRENT_WINDOWS || defined __APPLE__
 	TEST_EQUAL(path, "c_" SEPARATOR "c");
 #else
 	TEST_EQUAL(path, "c:" SEPARATOR "c");
@@ -918,7 +918,7 @@ TORRENT_TEST(sanitize_path_force)
 
 	path.clear();
 	sanitize_append_path_element(path, "dev:", true);
-#ifdef TORRENT_WINDOWS
+#if defined TORRENT_WINDOWS || defined __APPLE__
 	TEST_EQUAL(path, "dev_");
 #else
 	TEST_EQUAL(path, "dev:");
@@ -927,7 +927,7 @@ TORRENT_TEST(sanitize_path_force)
 	path.clear();
 	sanitize_append_path_element(path, "c:", true);
 	sanitize_append_path_element(path, "b", true);
-#ifdef TORRENT_WINDOWS
+#if defined TORRENT_WINDOWS || defined __APPLE__
 	TEST_EQUAL(path, "c_" SEPARATOR "b");
 #else
 	TEST_EQUAL(path, "c:" SEPARATOR "b");
@@ -937,7 +937,7 @@ TORRENT_TEST(sanitize_path_force)
 	sanitize_append_path_element(path, "c:", true);
 	sanitize_append_path_element(path, ".", true);
 	sanitize_append_path_element(path, "c", true);
-#ifdef TORRENT_WINDOWS
+#if defined TORRENT_WINDOWS || defined __APPLE__
 	TEST_EQUAL(path, "c_" SEPARATOR "_" SEPARATOR "c");
 #else
 	TEST_EQUAL(path, "c:" SEPARATOR "_" SEPARATOR "c");
@@ -1087,7 +1087,7 @@ TORRENT_TEST(sanitize_path_colon)
 	using lt::aux::sanitize_append_path_element;
 	std::string path;
 	sanitize_append_path_element(path, "foo:bar");
-#ifdef TORRENT_WINDOWS
+#if defined TORRENT_WINDOWS || defined __APPLE__
 	TEST_EQUAL(path, "foo_bar");
 #else
 	TEST_EQUAL(path, "foo:bar");
