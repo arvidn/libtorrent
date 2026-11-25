@@ -111,9 +111,15 @@ namespace aux {
 		, std::string const& save_path
 		, stat_cache& sc
 		, aux::vector<download_priority_t, file_index_t> const& file_priority
-		, std::function<void(file_index_t, storage_error&)> create_file
-		, std::function<void(std::string const&, std::string const&, storage_error&)> create_link
+		, std::function<void(file_index_t, storage_error&)> create_empty
 		, std::function<void(file_index_t, std::int64_t)> oversized_file
+		, storage_error& ec);
+
+	// creates the symlink or empty file for a zero-sized entry, unless
+	// something already exists at its path
+	TORRENT_EXTRA_EXPORT void create_empty_entry(file_storage const& fs
+		, file_index_t file_index
+		, std::string const& save_path
 		, storage_error& ec);
 
 	TORRENT_EXTRA_EXPORT void create_symlink(
