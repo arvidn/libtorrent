@@ -282,16 +282,28 @@ namespace torrent_flags {
 	// (dont_download).
 	constexpr torrent_flags_t default_dont_download = 23_bit;
 
-	// this flag makes the torrent be considered an "i2p torrent" for purposes
-	// of the allow_i2p_mixed setting. When mixing regular peers and i2p peers
-	// is disabled, i2p torrents won't add normal peers to its peer list.
-	// Note that non i2p torrents may still allow i2p peers (on the off-chance
-	// that a tracker return them and the session is configured with a SAM
+	// marks the torrent as an "i2p torrent". It is used to decide which
+	// peers are allowed when neither allow_i2p_peers nor
+	// allow_clearnet_peers is set.
+	// In that case, an i2p torrent only uses i2p peers, unless the
+	// allow_i2p_mixed setting is enabled, and a torrent without this flag
+	// uses both i2p and clearnet peers (i2p peers on the off-chance that a
+	// tracker returns them and the session is configured with a SAM
 	// connection).
+	//
+	// To control which peers a torrent may use, prefer setting
+	// allow_i2p_peers and allow_clearnet_peers, which take precedence over
+	// this flag and allow_i2p_mixed.
+	//
+	// Changing this flag on a running torrent does not disconnect or remove
+	// peers that are already connected or in the peer list. Whether the
+	// ut_pex and i2p_pex extensions are enabled, and whether the DHT nodes
+	// from the .torrent file are pinged, is decided when the torrent is added.
+	//
 	// This flag is set automatically when adding a torrent that has at least
-	// one tracker whose hostname ends with .i2p.
-	// It's also set by parse_magnet_uri() if the tracker list contains such
-	// URL.
+	// one tracker whose hostname ends with .i2p. It's also set by
+	// parse_magnet_uri(), load_torrent_file() and friends, and
+	// read_resume_data() if the tracker list contains such URL.
 	constexpr torrent_flags_t i2p_torrent = 24_bit;
 
 	// For hybrid (v1+v2) torrents, skip SHA-1 (v1) piece hash validation and
@@ -300,6 +312,33 @@ namespace torrent_flags {
 	// validation alone is sufficient. Has no effect on v1-only or v2-only
 	// torrents. Cannot be changed after the torrent is added.
 	constexpr torrent_flags_t disable_v1_hashes = 25_bit;
+
+	// allow_i2p_peers and allow_clearnet_peers select which networks the
+	// torrent may use to find and connect to peers. Clearnet covers
+	// everything that isn't i2p: TCP, uTP, WebRTC, web seeds, the DHT, local
+	// service discovery and non-i2p trackers.
+	//
+	// ========= ============== ============================================
+	// i2p       clearnet       peers
+	// ========= ============== ============================================
+	// not set   not set        determined by i2p_torrent and allow_i2p_mixed
+	// set       not set        i2p only
+	// not set   set            clearnet only
+	// set       set            both i2p and clearnet (mixed)
+	// ========= ============== ============================================
+	//
+	// When neither flag is set (the default), an i2p torrent (see
+	// i2p_torrent) only uses i2p peers, unless the allow_i2p_mixed setting
+	// is enabled. Other torrents use both i2p and clearnet peers. When either
+	// flag is set, the flags take precedence over i2p_torrent and
+	// allow_i2p_mixed. Mixing i2p and clearnet peers requires setting both
+	// flags.
+	//
+	// These flags cannot be changed after the torrent is added. To change
+	// them, remove the torrent and add it back with the new flags (and its
+	// resume data).
+	constexpr torrent_flags_t allow_i2p_peers = 26_bit;
+	constexpr torrent_flags_t allow_clearnet_peers = 27_bit;
 
 	// all torrent flags combined. Can conveniently be used when creating masks
 	// for flags

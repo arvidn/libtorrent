@@ -290,6 +290,8 @@ namespace {
 		apply_flag(ret.flags, rd, "disable_lsd", torrent_flags::disable_lsd);
 		apply_flag(ret.flags, rd, "disable_pex", torrent_flags::disable_pex);
 		apply_flag(ret.flags, rd, "disable_v1_hashes", torrent_flags::disable_v1_hashes);
+		apply_flag(ret.flags, rd, "allow_i2p_peers", torrent_flags::allow_i2p_peers);
+		apply_flag(ret.flags, rd, "allow_clearnet_peers", torrent_flags::allow_clearnet_peers);
 
 		ret.save_path = rd.dict_find_string_value("save_path");
 		ret.part_file_dir = rd.dict_find_string_value("part_file_dir");

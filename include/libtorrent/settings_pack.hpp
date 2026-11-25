@@ -563,11 +563,19 @@ namespace aux {
 			// Changing it later does not affect such torrents.
 			disable_hash_checks,
 
-			// if this is true, i2p torrents are allowed to also get peers from
-			// other sources than the tracker, and connect to regular IPs, not
-			// providing any anonymization. This may be useful if the user is not
-			// interested in the anonymization of i2p, but still wants to be able
-			// to connect to i2p peers.
+			// if this is true, i2p torrents (see torrent_flags::i2p_torrent)
+			// are allowed to also get peers from other sources than i2p
+			// trackers, and connect to regular IPs, not providing any
+			// anonymization. This may be useful if the user is not interested
+			// in the anonymization of i2p, but still wants to be able to
+			// connect to i2p peers.
+			//
+			// This setting only applies to torrents that have neither the
+			// torrent_flags::allow_i2p_peers nor the
+			// torrent_flags::allow_clearnet_peers flag set. Prefer setting
+			// those flags to control which peers each torrent may use. Disabling
+			// this setting does not disconnect clearnet peers that are already
+			// connected.
 			allow_i2p_mixed,
 
 #if TORRENT_ABI_VERSION == 1

@@ -429,8 +429,7 @@ namespace libtorrent {
 	std::shared_ptr<torrent_plugin> create_i2p_pex_plugin(torrent_handle const& th, client_data_t)
 	{
 		aux::torrent* t = th.native_handle().get();
-		// only add extension to i2p torrents
-		if (t->torrent_file().priv() || !t->is_i2p())
+		if (t->torrent_file().priv() || !t->allow_i2p_peers())
 			return {};
 		return std::make_shared<i2p_pex_plugin>(*t);
 	}

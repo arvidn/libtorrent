@@ -1137,6 +1137,9 @@ void bind_session()
 		s.attr("disable_pex") = torrent_flags::disable_pex;
 		s.attr("no_verify_files") = torrent_flags::no_verify_files;
 		s.attr("default_dont_download") = torrent_flags::default_dont_download;
+		s.attr("i2p_torrent") = torrent_flags::i2p_torrent;
+		s.attr("allow_i2p_peers") = torrent_flags::allow_i2p_peers;
+		s.attr("allow_clearnet_peers") = torrent_flags::allow_clearnet_peers;
 		s.attr("default_flags") = torrent_flags::default_flags;
 	}
 

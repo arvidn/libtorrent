@@ -1,3 +1,6 @@
+	* add allow_i2p_peers and allow_clearnet_peers torrent flags, to control peer networks per torrent
+	* enable i2p_pex on any torrent that allows i2p peers, not just i2p torrents
+
 2.1.3 released
 
 	* apply the IP filter to WebRTC peers

@@ -101,6 +101,8 @@ namespace {
 		ret["disable_lsd"] = bool(atp.flags & torrent_flags::disable_lsd);
 		ret["disable_pex"] = bool(atp.flags & torrent_flags::disable_pex);
 		ret["disable_v1_hashes"] = bool(atp.flags & torrent_flags::disable_v1_hashes);
+		ret["allow_i2p_peers"] = bool(atp.flags & torrent_flags::allow_i2p_peers);
+		ret["allow_clearnet_peers"] = bool(atp.flags & torrent_flags::allow_clearnet_peers);
 
 		ret["added_time"] = atp.added_time;
 		ret["completed_time"] = atp.completed_time;

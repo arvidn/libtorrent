@@ -4105,6 +4105,8 @@ class torrent_finished_alert(torrent_alert): ...
 
 class torrent_flags(metaclass=_BoostBaseClass):
     __instance_size__: int
+    allow_clearnet_peers: int
+    allow_i2p_peers: int
     apply_ip_filter: int
     auto_managed: int
     default_dont_download: int
@@ -4113,6 +4115,7 @@ class torrent_flags(metaclass=_BoostBaseClass):
     disable_lsd: int
     disable_pex: int
     duplicate_is_error: int
+    i2p_torrent: int
     no_verify_files: int
     override_trackers: int
     override_web_seeds: int

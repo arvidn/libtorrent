@@ -1263,7 +1263,8 @@ namespace {
 	{
 		req.listen_port = 0;
 #if TORRENT_USE_I2P
-		if (!m_settings.get_str(settings_pack::i2p_hostname).empty())
+		if ((req.kind & tracker_request::i2p)
+			&& !m_settings.get_str(settings_pack::i2p_hostname).empty())
 		{
 			req.i2pconn = &m_i2p_conn;
 		}
@@ -5282,13 +5283,15 @@ retry:
 
 #ifndef TORRENT_DISABLE_DHT
 #if TORRENT_USE_I2P
-		// pinging nodes supplied by the torrent's creator would reveal our
-		// IP to them, deanonymizing us for an i2p torrent
-		bool const skip_dht_nodes = !m_settings.get_bool(settings_pack::allow_i2p_mixed)
-			&& ((params.flags & torrent_flags::i2p_torrent) || (params.ti && params.ti->is_i2p()));
+		bool const i2p_torrent =
+			(params.flags & torrent_flags::i2p_torrent) || (params.ti && params.ti->is_i2p());
 #else
-		bool const skip_dht_nodes = false;
+		bool const i2p_torrent = false;
 #endif
+		// pinging nodes supplied by the torrent's creator would reveal our
+		// IP to them, deanonymizing us when only i2p peers are allowed
+		bool const skip_dht_nodes = !aux::clearnet_peers_allowed(
+			params.flags, i2p_torrent, m_settings.get_bool(settings_pack::allow_i2p_mixed));
 		if (!skip_dht_nodes)
 		{
 			// add params.dht_nodes to the DHT, if enabled
@@ -5905,8 +5908,8 @@ retry:
 		std::shared_ptr<torrent> t = find_torrent(info_hash_t(ih)).lock();
 		if (!t) return;
 		// don't add peers from lsd to private torrents
-		if (t->torrent_file().priv() || (t->is_i2p()
-			&& !m_settings.get_bool(settings_pack::allow_i2p_mixed))) return;
+		if (t->torrent_file().priv() || !t->allow_clearnet_peers())
+			return;
 
 		protocol_version const v = ih == t->torrent_file().info_hashes().v1
 			? protocol_version::V1 : protocol_version::V2;

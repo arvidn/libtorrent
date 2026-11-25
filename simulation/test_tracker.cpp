@@ -2973,6 +2973,7 @@ using peer_hostname_flags_t = flags::bitfield_flag<std::uint32_t, struct peer_ho
 constexpr peer_hostname_flags_t proxy_hostnames = 0_bit;
 constexpr peer_hostname_flags_t no_proxy_configured = 1_bit;
 constexpr peer_hostname_flags_t configure_proxy = 2_bit;
+constexpr peer_hostname_flags_t configure_sam = 3_bit;
 
 // a non-compact tracker peer list can carry a hostname (rather than a raw
 // IP) in the "ip" field. Regular bittorrent peer connections have no
@@ -3023,6 +3024,13 @@ void test_peer_hostname_resolve(peer_hostname_flags_t const flags)
 		pack.set_str(settings_pack::proxy_hostname, "60.0.0.1");
 		pack.set_int(settings_pack::proxy_port, 4444);
 	}
+#if TORRENT_USE_I2P
+	if (flags & configure_sam)
+	{
+		pack.set_str(settings_pack::i2p_hostname, "60.0.0.2");
+		pack.set_int(settings_pack::i2p_port, 7656);
+	}
+#endif
 
 	auto ses = std::make_shared<lt::session>(pack, ios);
 
@@ -3063,3 +3071,12 @@ TORRENT_TEST(peer_hostname_resolved_with_default_settings)
 {
 	test_peer_hostname_resolve(no_proxy_configured);
 }
+
+#if TORRENT_USE_I2P
+// a configured SAM bridge must not make peers from a regular tracker be
+// treated as i2p destinations
+TORRENT_TEST(peer_hostname_resolved_with_sam_configured)
+{
+	test_peer_hostname_resolve(no_proxy_configured | configure_sam);
+}
+#endif
