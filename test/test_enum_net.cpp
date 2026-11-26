@@ -56,6 +56,37 @@ TORRENT_TEST(is_local)
 	TEST_CHECK(!ec);
 }
 
+TORRENT_TEST(is_local_host)
+{
+	// loopback
+	TEST_CHECK(is_local_host(make_address("127.0.0.1")));
+	TEST_CHECK(is_local_host(make_address("127.1.2.3")));
+	TEST_CHECK(is_local_host(make_address("::1")));
+
+	// the unspecified address connects to the local host
+	TEST_CHECK(is_local_host(make_address("0.0.0.0")));
+	TEST_CHECK(is_local_host(make_address("::")));
+
+	// IPv4-mapped IPv6 addresses are classified by the wrapped IPv4 address
+	TEST_CHECK(is_local_host(make_address("::ffff:127.0.0.1")));
+	TEST_CHECK(is_local_host(make_address("::ffff:127.1.2.3")));
+	TEST_CHECK(is_local_host(make_address("::ffff:0.0.0.0")));
+
+	// private and link-local addresses are not the local host
+	TEST_CHECK(!is_local_host(make_address("192.168.0.1")));
+	TEST_CHECK(!is_local_host(make_address("10.1.1.56")));
+	TEST_CHECK(!is_local_host(make_address("169.254.1.1")));
+	TEST_CHECK(!is_local_host(make_address("fe80::1")));
+	TEST_CHECK(!is_local_host(make_address("fc00::1")));
+	TEST_CHECK(!is_local_host(make_address("::ffff:192.168.0.1")));
+	TEST_CHECK(!is_local_host(make_address("::ffff:169.254.1.1")));
+
+	// global addresses
+	TEST_CHECK(!is_local_host(make_address("14.14.251.63")));
+	TEST_CHECK(!is_local_host(make_address("2001:db8::1")));
+	TEST_CHECK(!is_local_host(make_address("::ffff:14.14.251.63")));
+}
+
 TORRENT_TEST(match_addr_mask)
 {
 	TEST_CHECK(match_addr_mask(

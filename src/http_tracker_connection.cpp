@@ -36,6 +36,7 @@ see LICENSE file.
 #include "libtorrent/aux_/session_settings.hpp"
 #include "libtorrent/aux_/resolver_interface.hpp"
 #include "libtorrent/ip_filter.hpp"
+#include "libtorrent/aux_/ip_helpers.hpp"
 #include "libtorrent/aux_/parse_url.hpp"
 #include "libtorrent/aux_/array.hpp"
 
@@ -311,8 +312,11 @@ namespace libtorrent::aux {
 
 		aux::session_settings const& settings = m_man.settings();
 		bool const ssrf_mitigation = settings.get_bool(settings_pack::ssrf_mitigation);
-		if (ssrf_mitigation && std::find_if(endpoints.begin(), endpoints.end()
-			, [](tcp::endpoint const& ep) { return ep.address().is_loopback(); }) != endpoints.end())
+		if (ssrf_mitigation
+			&& std::find_if(endpoints.begin(),
+				   endpoints.end(),
+				   [](tcp::endpoint const& ep) { return aux::is_local_host(ep.address()); })
+				!= endpoints.end())
 		{
 			// there is at least one loopback address in here. If the request
 			// path for this tracker is not /announce. filter all loopback
@@ -339,7 +343,7 @@ namespace libtorrent::aux {
 			{
 				for (auto i = endpoints.begin(); i != endpoints.end();)
 				{
-					if (i->address().is_loopback())
+					if (aux::is_local_host(i->address()))
 						i = endpoints.erase(i);
 					else
 						++i;

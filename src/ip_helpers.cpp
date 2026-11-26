@@ -54,6 +54,14 @@ address normalize_address(address const& a)
 
 	bool is_loopback(address const& addr) { return normalize_address(addr).is_loopback(); }
 
+	bool is_local_host(address const& addr)
+	{
+		// connecting to the unspecified address reaches the local host on
+		// Linux and some other systems
+		address const a = normalize_address(addr);
+		return a.is_loopback() || a.is_unspecified();
+	}
+
 	bool is_link_local(address const& a)
 	{
 		if (a.is_v6())
