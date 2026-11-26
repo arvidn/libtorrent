@@ -1102,3 +1102,37 @@ TORRENT_TEST(web_seed_ssrf_query_string)
 	TEST_CHECK(web_seed_ssrf_blocked("http://127.0.0.1:1/file?x=1"));
 	TEST_CHECK(web_seed_ssrf_blocked("http://[::1]:1/file?x=1"));
 }
+
+namespace {
+
+// returns true if the web seed was dropped after resolving its hostname,
+// without attempting to connect to it
+bool web_seed_unspecified_rejected(std::string const& url)
+{
+	lt::session ses(settings());
+
+	add_torrent_params p = make_torrent(make_files({{100000, false}}), 0x8000);
+	p.save_path = "unspecified_web_seed";
+	p.url_seeds.push_back(url);
+	ses.add_torrent(std::move(p));
+
+	return wait_for_alert(
+		ses,
+		"ses",
+		[&](lt::alert const* a) {
+			auto const* usa = alert_cast<url_seed_alert>(a);
+			return usa && usa->error == lt::errors::banned_by_ip_filter;
+		},
+		lt::seconds(5));
+}
+
+} // anonymous namespace
+
+// connecting to the unspecified address reaches the local host, it must not be
+// mistaken for the placeholder address used when the proxy resolves hostnames
+TORRENT_TEST(web_seed_unspecified_address)
+{
+	TEST_CHECK(web_seed_unspecified_rejected("http://0.0.0.0:1/file?x=1"));
+	TEST_CHECK(web_seed_unspecified_rejected("http://[::]:1/file?x=1"));
+	TEST_CHECK(web_seed_unspecified_rejected("http://[::ffff:0.0.0.0]:1/file?x=1"));
+}

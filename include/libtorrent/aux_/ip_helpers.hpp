@@ -27,6 +27,12 @@ TORRENT_EXTRA_EXPORT bool is_link_local(address const& addr);
 TORRENT_EXTRA_EXPORT bool is_teredo(address const& addr);
 TORRENT_EXTRA_EXPORT bool is_ip_address(std::string const& host);
 
+// returns true if connecting to this address reaches the local host. This is
+// the case for loopback addresses as well as the unspecified address (0.0.0.0
+// or ::), which connect() treats as the local host on Linux and some other
+// systems
+TORRENT_EXTRA_EXPORT bool is_local_host(address const& a);
+
 // whether two IPv6 addresses share a /56, the unit used to bound how many
 // peer list entries one network can claim
 TORRENT_EXTRA_EXPORT bool same_v6_prefix(
