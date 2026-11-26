@@ -12,6 +12,8 @@
 import argparse
 import json
 import os
+import platform
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -62,9 +64,21 @@ def main() -> int:
 
     with tempfile.TemporaryDirectory() as out_dir:
         out_file = os.path.join(out_dir, "callgrind.out")
+        valgrind = shutil.which("valgrind")
+        if valgrind is None:
+            print("valgrind not found", file=sys.stderr)
+            return 1
+        # the simulated cache and branch predictor are indexed by virtual
+        # address, so ASLR and the size of the environment (which shifts the
+        # initial stack) would otherwise make the miss counts vary between runs
         proc = subprocess.run(
             [
-                "valgrind",
+                "setarch",
+                platform.machine(),
+                "-R",
+                "env",
+                "-i",
+                valgrind,
                 *VALGRIND_ARGS,
                 f"--callgrind-out-file={out_file}",
                 "./bencher",
