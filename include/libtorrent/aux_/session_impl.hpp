@@ -260,13 +260,7 @@ namespace aux {
 		bool incoming_connection = false;
 
 	private:
-		// non-atomic is fine: listen_socket_t is only ever constructed on
-		// the network thread.
-		static std::uint32_t next_id()
-		{
-			static std::uint32_t next = 0;
-			return ++next;
-		}
+		static std::uint32_t next_id();
 	};
 
 		struct TORRENT_EXTRA_EXPORT listen_endpoint_t

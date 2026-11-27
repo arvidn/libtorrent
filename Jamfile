@@ -320,6 +320,10 @@ rule warnings ( properties * )
 
 		result += <cxxflags>-Wno-thread-safety-negative ;
 		result += <cxxflags>-Wno-nrvo ;
+
+# adjacent bit-fields of different storage sizes are not packed under the
+# Microsoft ABI, silently growing objects on Windows
+		result += <cxxflags>-Wms-bitfield-padding ;
 	}
 
 	if <toolset>gcc in $(properties)
