@@ -58,6 +58,7 @@ void websocket_stream::close()
 		post(m_io_service, std::bind(std::move(handler), error::operation_aborted));
 
 	m_keepalive_timer.cancel();
+	m_awaiting_pong = false;
 	m_open = false;
 
 	// beast's closing handshake can deadlock with an outstanding read, and
@@ -122,6 +123,8 @@ void websocket_stream::do_connect(std::string url)
 		return;
 	}
 
+	set_control_callback();
+
 	if (port <= 0) port = protocol == "ws" ? 80 : 443;
 
 	if (!target.empty()) m_target = std::move(target);
@@ -129,6 +132,25 @@ void websocket_stream::do_connect(std::string url)
 
 	do_resolve(hostname, std::uint16_t(port));
 }
+
+void websocket_stream::set_control_callback()
+{
+	auto weak_self = std::weak_ptr<websocket_stream>(shared_from_this());
+
+	std::visit(
+		[&](auto& stream) {
+			stream.control_callback([weak_self](websocket::frame_type const kind, auto const&) {
+				if (kind != websocket::frame_type::pong)
+					return;
+
+				if (auto self = weak_self.lock())
+					self->on_pong();
+			});
+		},
+		m_stream);
+}
+
+void websocket_stream::on_pong() { m_awaiting_pong = false; }
 
 void websocket_stream::do_resolve(std::string hostname, std::uint16_t port)
 {
@@ -274,6 +296,7 @@ void websocket_stream::on_handshake(error_code const& ec)
 	}
 
 	m_open = true;
+	m_awaiting_pong = false;
 	arm_keepalive();
 
 	if (handler) post(m_io_service, std::bind(std::move(handler), ec));
@@ -285,6 +308,8 @@ void websocket_stream::on_read(error_code ec, std::size_t bytes_read, read_handl
 	COMPLETE_ASYNC("websocket_stream::on_read");
 
 	if (ec) m_open = false;
+	else
+		m_awaiting_pong = false;
 
 	post(m_io_service, std::bind(std::move(handler), ec, bytes_read));
 }
@@ -304,6 +329,13 @@ void websocket_stream::on_write(error_code ec, std::size_t bytes_written, write_
 void websocket_stream::on_keepalive(error_code ec)
 {
 	if (ec || !m_open) return;
+
+	if (m_awaiting_pong)
+	{
+		close();
+		return;
+	}
+	m_awaiting_pong = true;
 
 	ADD_OUTSTANDING_ASYNC("websocket_stream::on_ping");
 	std::visit([&](auto& stream)
