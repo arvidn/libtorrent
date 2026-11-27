@@ -2966,11 +2966,10 @@ get_out:
 
 		downloading_piece cmp;
 		cmp.index = index;
-		auto const i = std::lower_bound(
-			m_downloads[queue].begin(), m_downloads[queue].end(), cmp);
-		if (i == m_downloads[queue].end()) return i;
-		if (i->index == index) return i;
-		return m_downloads[queue].end();
+		auto i = std::lower_bound(m_downloads[queue].begin(), m_downloads[queue].end(), cmp);
+		if (i != m_downloads[queue].end() && i->index != index)
+			i = m_downloads[queue].end();
+		return i;
 	}
 
 	std::vector<piece_picker::downloading_piece>::const_iterator piece_picker::find_dl_piece(

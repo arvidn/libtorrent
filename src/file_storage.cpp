@@ -189,7 +189,9 @@ TORRENT_VERSION_NAMESPACE_4
 				&& m_path_elements[dir].depth >= std::numeric_limits<std::uint16_t>::max() - 1)
 			{
 				ec = errors::torrent_directory_too_deep;
-				return {};
+				// return the named object on every path, to allow NRVO
+				dir = path_index_t{};
+				return dir;
 			}
 			auto [component, rest] = lsplit_path(branch_path);
 			dir = make_directory(dir, component, false);

@@ -150,7 +150,9 @@ namespace {
 			if (bucket_scan_cost > max_bucket_scan)
 			{
 				ec = errors::too_many_duplicate_filenames;
-				return {};
+				// return the named object on every path, to allow NRVO
+				ret.clear();
+				return ret;
 			}
 
 			std::string const this_name = fs.file_path(i);
@@ -199,7 +201,9 @@ namespace {
 				if (num_collisions > max_duplicate_filenames)
 				{
 					ec = errors::too_many_duplicate_filenames;
-					return {};
+					// return the named object on every path, to allow NRVO
+					ret.clear();
+					return ret;
 				}
 			}
 			ret.insert({i, filename});
@@ -384,7 +388,11 @@ namespace {
 				auto candidate =
 					next_dedup_candidate(base, ext, cnt, num_collisions, cfg, already_exists, ec);
 				if (!candidate)
-					return {};
+				{
+					// return the named object on every path, to allow NRVO
+					ret.clear();
+					return ret;
+				}
 				ret.emplace(entries[k].self, *std::move(candidate));
 			}
 		}

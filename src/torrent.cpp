@@ -4934,7 +4934,12 @@ namespace {
 		{
 			// if there was an enoent or eof error the block hashes array may be incomplete
 			// bail if we've hit the end of the valid hashes
-			if (block_hashes[i].is_all_zeros()) return false;
+			if (block_hashes[i].is_all_zeros())
+			{
+				// return the named object on every path, to allow NRVO
+				ret = false;
+				return ret;
+			}
 
 			auto const result = get_hash_picker().set_block_hash(piece
 				, i * default_block_size, block_hashes[i]);
@@ -7707,7 +7712,12 @@ namespace {
 				{
 					// we're missing a piece layer. We can't return a valid
 					// torrent
-					if (h.is_all_zeros()) return {};
+					if (h.is_all_zeros())
+					{
+						// return the named object on every path, to allow NRVO
+						ret.reset();
+						return ret;
+					}
 					out_layer.insert(out_layer.end(), h.data(), h.data() + sha256_hash::size());
 				}
 				v2_hashes.emplace_back(std::move(out_layer));

@@ -312,7 +312,12 @@ std::vector<sha256_hash> get_hashes_for_request(file_merkle_tree const& ft,
 		if (i >= base_tree_layers)
 		{
 			int const sibling = merkle_get_sibling(proof_idx);
-			if (sibling < 0 || sibling >= int(ft.tree.size())) return {};
+			if (sibling < 0 || sibling >= int(ft.tree.size()))
+			{
+				// return the named object on every path, to allow NRVO
+				ret.clear();
+				return ret;
+			}
 			ret.push_back(ft.tree[sibling]);
 		}
 	}

@@ -1186,19 +1186,19 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 #endif
 	{
 		ec = error_code(errno, system_category());
-		return std::vector<ip_route>();
+		return ret;
 	}
 
 	if (needed == 0)
 	{
-		return std::vector<ip_route>();
+		return ret;
 	}
 
 	std::unique_ptr<char[]> buf(new (std::nothrow) char[needed]);
 	if (buf == nullptr)
 	{
 		ec = boost::asio::error::no_memory;
-		return std::vector<ip_route>();
+		return ret;
 	}
 
 #ifdef TORRENT_OS2
@@ -1208,7 +1208,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 #endif
 	{
 		ec = error_code(errno, system_category());
-		return std::vector<ip_route>();
+		return ret;
 	}
 
 	char* end = buf.get() + needed;
@@ -1217,7 +1217,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 	if (s < 0)
 	{
 		ec = error_code(errno, system_category());
-		return std::vector<ip_route>();
+		return ret;
 	}
 	socket_closer c1(s);
 	rt_msghdr* rtm;
@@ -1235,7 +1235,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		if (parse_route(s, rtm, &r)) ret.push_back(r);
 	}
 #elif TORRENT_USE_GETIPFORWARDTABLE
-/*
+		/*
 	move this to enum_net_interfaces
 		// Get GetAdaptersInfo() pointer
 		using GetAdaptersInfo_t = DWORD (WINAPI*)(PIP_ADAPTER_INFO, PULONG);
@@ -1243,7 +1243,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		if (GetAdaptersInfo == nullptr)
 		{
 			ec = boost::asio::error::operation_not_supported;
-			return std::vector<ip_route>();
+			return ret;
 		}
 
 		PIP_ADAPTER_INFO adapter_info = 0;
@@ -1251,14 +1251,14 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		if (GetAdaptersInfo(adapter_info, &out_buf_size) != ERROR_BUFFER_OVERFLOW)
 		{
 			ec = boost::asio::error::operation_not_supported;
-			return std::vector<ip_route>();
+			return ret;
 		}
 
 		adapter_info = (IP_ADAPTER_INFO*)malloc(out_buf_size);
 		if (!adapter_info)
 		{
 			ec = boost::asio::error::no_memory;
-			return std::vector<ip_route>();
+			return ret;
 		}
 
 		if (GetAdaptersInfo(adapter_info, &out_buf_size) == NO_ERROR)
@@ -1294,7 +1294,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		if (GetIfEntry == nullptr)
 		{
 			ec = boost::asio::error::operation_not_supported;
-			return std::vector<ip_route>();
+			return ret;
 		}
 
 #if _WIN32_WINNT >= 0x0600
@@ -1357,7 +1357,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		if (GetIpForwardTable == nullptr)
 		{
 			ec = boost::asio::error::operation_not_supported;
-			return std::vector<ip_route>();
+			return ret;
 		}
 
 		MIB_IPFORWARDTABLE* routes = nullptr;
@@ -1365,14 +1365,14 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		if (GetIpForwardTable(routes, &out_buf_size, FALSE) != ERROR_INSUFFICIENT_BUFFER)
 		{
 			ec = boost::asio::error::operation_not_supported;
-			return std::vector<ip_route>();
+			return ret;
 		}
 
 		routes = (MIB_IPFORWARDTABLE*)malloc(out_buf_size);
 		if (!routes)
 		{
 			ec = boost::asio::error::no_memory;
-			return std::vector<ip_route>();
+			return ret;
 		}
 
 		if (GetIpForwardTable(routes, &out_buf_size, FALSE) == NO_ERROR)
@@ -1402,7 +1402,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		if (sock < 0)
 		{
 			ec = error_code(errno, system_category());
-			return {};
+			return ret;
 		}
 		socket_closer c1(sock);
 
@@ -1410,7 +1410,7 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 		if (dgram_sock < 0)
 		{
 			ec = error_code(errno, system_category());
-			return {};
+			return ret;
 		}
 		socket_closer c2(dgram_sock);
 
@@ -1430,7 +1430,9 @@ int _System __libsocket_sysctl(int* mib, u_int namelen, void *oldp, size_t *oldl
 			}) != 0)
 		{
 			ec = error_code(errno, system_category());
-			return {};
+			// return the named object on every path, to allow NRVO
+			ret.clear();
+			return ret;
 		}
 #elif TORRENT_USE_GRTTABLE
 

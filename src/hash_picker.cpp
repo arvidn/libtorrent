@@ -275,9 +275,6 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		if (base_layer_idx <= 0)
 			return add_hashes_result(false);
 
-		add_hashes_result ret(true);
-		ret.block_request = valid_block_request;
-
 		auto& dst_tree = m_merkle_trees[req.file];
 		int const dest_start_idx = merkle_to_flat_index(base_layer_idx, req.index);
 		auto const file_piece_offset = m_files.piece_index_at_file(req.file) - piece_index_t{0};
@@ -289,6 +286,8 @@ bool validate_hash_request(hash_request const& hr, file_storage const& fs)
 		if (!results)
 			return add_hashes_result(false);
 
+		add_hashes_result ret(true);
+		ret.block_request = valid_block_request;
 		ret.hash_failed = std::move(results->failed);
 		ret.hash_passed = std::move(results->passed);
 

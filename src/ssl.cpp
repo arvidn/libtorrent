@@ -73,7 +73,8 @@ sha256_hash set_trust_certificate(native_context_type nc, string_view pem, error
 	if (X509_digest(cert, EVP_sha256(), md.data(), &md_len) != 1)
 	{
 		ec = error_code(int(ERR_get_error()), error::get_ssl_category());
-		return {};
+		// return the named object on every path, to allow NRVO
+		return fingerprint;
 	}
 	TORRENT_ASSERT(md_len == static_cast<unsigned int>(sha256_hash::size()));
 	fingerprint.assign(reinterpret_cast<char const*>(md.data()));

@@ -5434,10 +5434,13 @@ retry:
 			if (match)
 			{
 				impl->m_sock = match;
-				return match->local_endpoint;
+				bind_ep = match->local_endpoint;
+				return bind_ep;
 			}
 			ec.assign(boost::system::errc::not_supported, generic_category());
-			return {};
+			// return the named object on every path, to allow NRVO
+			bind_ep = tcp::endpoint{};
+			return bind_ep;
 		}
 
 		if (!m_outgoing_interfaces.empty())

@@ -21,8 +21,8 @@ namespace libtorrent::aux {
 		-> decltype(container.begin())
 	{
 		auto i = std::lower_bound(container.begin(), container.end(), v);
-		if (i == container.end()) return container.end();
-		if (*i != v) return container.end();
+		if (i != container.end() && *i != v)
+			i = container.end();
 		return i;
 	}
 

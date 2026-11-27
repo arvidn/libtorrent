@@ -131,7 +131,9 @@ namespace libtorrent {
 		if (first)
 		{
 			// if we couldn't find any info-hashes, we can't make a magnet link
-			return {};
+			// return the named object on every path, to allow NRVO
+			ret.clear();
+			return ret;
 		}
 
 		if (!atp.name.empty())
