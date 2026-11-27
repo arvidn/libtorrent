@@ -5282,16 +5282,11 @@ retry:
 		}
 
 #ifndef TORRENT_DISABLE_DHT
-#if TORRENT_USE_I2P
-		bool const i2p_torrent =
-			(params.flags & torrent_flags::i2p_torrent) || (params.ti && params.ti->is_i2p());
-#else
-		bool const i2p_torrent = false;
-#endif
 		// pinging nodes supplied by the torrent's creator would reveal our
 		// IP to them, deanonymizing us when only i2p peers are allowed
-		bool const skip_dht_nodes = !aux::clearnet_peers_allowed(
-			params.flags, i2p_torrent, m_settings.get_bool(settings_pack::allow_i2p_mixed));
+		bool const skip_dht_nodes = !aux::clearnet_peers_allowed(params.flags,
+			aux::is_i2p_torrent(params),
+			m_settings.get_bool(settings_pack::allow_i2p_mixed));
 		if (!skip_dht_nodes)
 		{
 			// add params.dht_nodes to the DHT, if enabled

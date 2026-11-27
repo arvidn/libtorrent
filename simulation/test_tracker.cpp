@@ -2760,16 +2760,15 @@ i2p_tracker_case const i2p_tracker_cases[] = {
 		false,
 		{0, 0, 0, 0, 0, 0, 0}},
 
-	// non-i2p torrent (no flag) that happens to list an i2p tracker URL.
-	// is_i2p() is false so the policy doesn't apply; regular trackers are
-	// announced normally and the i2p one just fails DNS.
-	{"non_i2p_torrent_with_i2p_url",
+	// no i2p_torrent flag, but an i2p tracker URL makes it an i2p torrent,
+	// so the regular trackers must not be contacted
+	{"i2p_url_implies_i2p_torrent",
 		false,
 		false,
 		false,
 		false,
 		{{"tracker.i2p", 0}, {"3.0.0.1", 0}, {"3.0.0.2", 0}},
-		true,
+		false,
 		{0, 0, 0, 0, 0, 0, 0}},
 
 	// only i2p trackers: the all-i2p case must also not spin or contact a

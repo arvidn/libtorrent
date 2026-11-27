@@ -113,6 +113,11 @@ namespace libtorrent::aux {
 		return !i2p_torrent || allow_i2p_mixed;
 	}
 
+	// whether the torrent described by p is an i2p torrent, for automatic
+	// mode. A tracker URL on i2p is enough, so a caller that only fills in
+	// trackers doesn't get a torrent that talks to clearnet peers
+	TORRENT_EXTRA_EXPORT bool is_i2p_torrent(add_torrent_params const& p);
+
 	// internal
 	enum class waste_reason
 	{

@@ -102,6 +102,7 @@ see LICENSE file.
 #include "libtorrent/mmap_disk_io.hpp" // for hasher_thread_divisor
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/aux_/path.hpp"
+#include "libtorrent/aux_/string_util.hpp" // for is_i2p_url
 #include "libtorrent/aux_/generate_peer_id.hpp"
 #include "libtorrent/aux_/announce_entry.hpp"
 #include "libtorrent/aux_/ssl.hpp"
@@ -189,6 +190,21 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 }
 } // anonymous namespace
 
+bool is_i2p_torrent(add_torrent_params const& p)
+{
+	if (p.flags & torrent_flags::i2p_torrent)
+		return true;
+#if TORRENT_USE_I2P
+	if (p.ti && p.ti->is_i2p())
+		return true;
+	return std::any_of(p.trackers.begin(), p.trackers.end(), [](std::string const& url) {
+		return is_i2p_url(url);
+	});
+#else
+	return false;
+#endif
+}
+
 	web_seed_t::web_seed_t(web_seed_entry const& wse)
 		: web_seed_entry(wse)
 	{
@@ -259,7 +275,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		, m_stop_when_ready(p.flags & torrent_flags::stop_when_ready)
 		, m_enable_dht(!bool(p.flags & torrent_flags::disable_dht))
 		, m_enable_lsd(!bool(p.flags & torrent_flags::disable_lsd))
-		, m_i2p(bool(p.flags & torrent_flags::i2p_torrent))
+		, m_i2p(is_i2p_torrent(p))
 		, m_allow_i2p_peers_flag(bool(p.flags & torrent_flags::allow_i2p_peers))
 		, m_allow_clearnet_peers_flag(bool(p.flags & torrent_flags::allow_clearnet_peers))
 		, m_disable_v1_hashes(false)
@@ -325,11 +341,6 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			std::lock_guard<std::mutex> l(m_torrent_file_mutex);
 			m_torrent_file_external = m_torrent_file;
 		}
-
-#if TORRENT_USE_I2P
-		if (m_torrent_file->is_i2p())
-			m_i2p = true;
-#endif
 
 		if (m_torrent_file->is_valid())
 		{

@@ -1249,6 +1249,16 @@ TORRENT_TEST(i2p_torrent_explicit_i2p_only)
 	TEST_CHECK(
 		!t.connect(t.add(torrent_flags::i2p_torrent | torrent_flags::allow_i2p_peers), "1.2.3.4"));
 }
+
+TORRENT_TEST(i2p_tracker_implies_i2p_torrent)
+{
+	network_test t;
+	add_torrent_params p = network_test::params({});
+	p.trackers.push_back("http://tracker.i2p/announce");
+	torrent_handle const h = t.ses->add_torrent(std::move(p));
+	TEST_CHECK(h.flags() & torrent_flags::i2p_torrent);
+	TEST_CHECK(!t.connect(h, "1.2.3.4"));
+}
 #endif
 
 #if TORRENT_USE_I2P && !defined TORRENT_DISABLE_EXTENSIONS
