@@ -103,7 +103,15 @@ namespace
     {
         std::vector<sha1_hash> h;
         for (int i = 0, e = int(len(hashes)); i < e; ++i)
-            h.push_back(sha1_hash(bytes(extract<bytes>(hashes[i])).arr.data()));
+        {
+            bytes const b = extract<bytes>(hashes[i]);
+            if (b.arr.size() != std::size_t(sha1_hash::size()))
+            {
+                PyErr_SetString(PyExc_ValueError, "invalid size of merkle tree hash");
+                throw_error_already_set();
+            }
+            h.push_back(sha1_hash(lt::span<char const>(b.arr)));
+        }
 
         ti.set_merkle_tree(h);
     }

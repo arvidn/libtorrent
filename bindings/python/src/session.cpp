@@ -310,7 +310,7 @@ namespace
             {
                 if (boost::python::len(value) == sha1_hash::size())
                 {
-                    p.info_hash = sha1_hash(bytes(extract<bytes>(value)).arr.data());
+                    p.info_hash = sha1_hash(lt::span<char const>(extract<bytes>(value)().arr));
                 }
             }
 #endif
@@ -319,12 +319,12 @@ namespace
                 if (boost::python::len(value) == sha1_hash::size())
                 {
                     p.info_hashes = info_hash_t(sha1_hash(
-                            bytes(extract<bytes>(value)).arr.data()));
+                            lt::span<char const>(extract<bytes>(value)().arr)));
                 }
                 else if (boost::python::len(value) == sha256_hash::size())
                 {
                     p.info_hashes = info_hash_t(sha256_hash(
-                            bytes(extract<bytes>(value)).arr.data()));
+                            lt::span<char const>(extract<bytes>(value)().arr)));
                 }
                 else
                 {
