@@ -99,6 +99,13 @@ struct TORRENT_EXTRA_EXPORT websocket_stream
 
 	void set_user_agent(std::string user_agent);
 
+	// called once with the endpoints the hostname resolved to, before
+	// connecting. It may remove endpoints from the list. If it returns an
+	// error, the connection fails with that error. If it removes all
+	// endpoints, the connection fails with banned_by_ip_filter
+	using endpoint_filter = std::function<error_code(std::vector<tcp::endpoint>&)>;
+	void set_endpoint_filter(endpoint_filter f) { m_endpoint_filter = std::move(f); }
+
 	template <class Handler>
 	void async_connect(const std::string &url, Handler&& handler)
 	{
@@ -196,6 +203,7 @@ private:
 	std::vector<tcp::endpoint> m_endpoints;
 
 	connect_handler m_connect_handler;
+	endpoint_filter m_endpoint_filter;
 
 	bool m_open;
 	deadline_timer m_keepalive_timer;
