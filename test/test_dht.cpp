@@ -3926,6 +3926,50 @@ TORRENT_TEST(sample_infohashes)
 	TEST_CHECK(g_sent_packets.empty());
 }
 
+TORRENT_TEST(sample_infohashes_invalid_samples)
+{
+	init_rand_address();
+
+	dht_test_setup t(rand_udp_ep());
+	bdecode_node response;
+
+	g_sent_packets.clear();
+
+	udp::endpoint initial_node = rand_udp_ep();
+	t.dht_node.m_table.add_node(node_entry{initial_node});
+
+	t.dht_node.sample_infohashes(initial_node, items[0].target,
+		[](node_id const&, time_duration, int, std::vector<sha1_hash>
+			, std::vector<std::pair<sha1_hash, udp::endpoint>> const&)
+	{
+		TEST_ERROR("invalid response should not invoke the callback");
+	});
+
+	TEST_EQUAL(g_sent_packets.size(), 1);
+	if (g_sent_packets.empty()) return;
+	TEST_EQUAL(g_sent_packets.front().first, initial_node);
+
+	node_from_entry(g_sent_packets.front().second, response);
+
+	std::vector<node_entry> nodes;
+	nodes.emplace_back(rand_hash(), rand_udp_ep(rand_v4));
+	nodes.emplace_back(rand_hash(), rand_udp_ep(rand_v4));
+
+	// the length of "samples" is not a multiple of 20
+	msg_args args;
+	args.nid(generate_random_id()).interval(seconds(10)).num(2).nodes(nodes);
+	args.a["samples"] = std::string(19, 'a');
+
+	g_sent_packets.clear();
+	send_dht_response(t.dht_node, response, initial_node, args);
+
+	TEST_CHECK(g_sent_packets.empty());
+
+	// this is not an actual traversal. The nodes in the response must not be
+	// added to it, since they would never be released
+	TEST_EQUAL(std::get<2>(t.dht_node.get_stats_counters()), 0);
+}
+
 namespace {
 node_entry fake_node(bool verified, int rtt = 0)
 {

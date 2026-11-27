@@ -149,10 +149,13 @@ void sample_infohashes_observer::reply(msg const& m)
 			, algorithm()->id());
 #endif
 		timeout();
+		return;
 	}
 
-	// we deliberately do not call
-	traversal_observer::reply(m);
+	// we deliberately do not call traversal_observer::reply(m). This is not an
+	// actual traversal, it would add the nodes from the response to it, and
+	// they would never be serviced nor released
+
 	// this is necessary to play nice with
 	// observer::abort(), observer::done() and observer::timeout()
 	flags |= flag_done;
