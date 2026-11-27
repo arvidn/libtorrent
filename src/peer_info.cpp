@@ -47,8 +47,8 @@ namespace libtorrent {
 #if TORRENT_USE_I2P
 	sha256_hash peer_info::i2p_destination() const
 	{
-		sha256_hash ret;
-		if (!(flags & i2p_socket)) return ret;
+		if (!(flags & i2p_socket))
+			return {};
 		TORRENT_ASSERT(std::holds_alternative<sha256_hash>(m_endpoint));
 		return std::get<sha256_hash>(m_endpoint);
 	}

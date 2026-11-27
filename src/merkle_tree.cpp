@@ -1068,7 +1068,11 @@ namespace {
 				// the request
 				if ((base != 0 || i < m_num_blocks + layer_start_idx - index)
 					&& !has_node(i))
-					return {};
+				{
+					// return the named object on every path, to allow NRVO
+					ret.clear();
+					return ret;
+				}
 				ret.push_back(get_impl(i, scratch_space, h));
 			}
 		}
@@ -1118,7 +1122,11 @@ namespace {
 				i > 0 || base != 0 || sibling < m_num_blocks + layer_start_idx - index;
 
 			if (!has_node(proof_idx) || (sibling_is_real && !has_node(sibling)))
-				return {};
+			{
+				// return the named object on every path, to allow NRVO
+				ret.clear();
+				return ret;
+			}
 
 			ret.push_back(sibling_is_real ? get_impl(sibling, scratch_space, h) : sha256_hash{});
 		}

@@ -37,7 +37,7 @@ std::string sanitize(string_view const element,
 	if (unchanged)
 	{
 		TEST_CHECK(path.empty());
-		return std::string(element);
+		path.assign(element);
 	}
 	return path;
 }

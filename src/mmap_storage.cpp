@@ -998,7 +998,9 @@ mmap_storage::mmap_storage(storage_params const& params, aux::file_view_pool& po
 		if (ec.ec)
 		{
 			ec.file(file);
-			return {};
+			// return the named object on every path, to allow NRVO
+			h.reset();
+			return h;
 		}
 		TORRENT_ASSERT(h);
 

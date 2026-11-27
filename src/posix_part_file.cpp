@@ -294,7 +294,8 @@ namespace aux {
 			ec.clear();
 			create_directories(m_path, ec);
 
-			if (ec) return {};
+			if (ec)
+				return ret;
 
 #ifdef TORRENT_WINDOWS
 			ret = file_pointer(::_wfopen(convert_to_native_path_string(fn).c_str(), L"wb+"));
@@ -304,7 +305,9 @@ namespace aux {
 			if (ret.file() == nullptr)
 				ec.assign(errno, generic_category());
 		}
-		if (ec) return {};
+		// return the named object on every path, to allow NRVO
+		if (ec)
+			ret = file_pointer{};
 		return ret;
 	}
 

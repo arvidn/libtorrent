@@ -172,7 +172,8 @@ namespace libtorrent::aux {
 	address external_ip::external_address(address const& ip) const
 	{
 		address ext = m_addresses[aux::is_local(ip)][ip.is_v6()];
-		if (ip.is_v6() && ext == address_v4()) return address_v6();
+		if (ip.is_v6() && ext == address_v4())
+			ext = address_v6();
 		return ext;
 	}
 }

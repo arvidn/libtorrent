@@ -1144,8 +1144,12 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		TORRENT_ASSERT(j->storage->files().piece_length() > 0);
 
 		// always initialize the storage
-		auto const ret_flag = j->storage->initialize(m_settings, j->error);
-		if (j->error) return disk_status::fatal_disk_error | ret_flag;
+		auto ret_flag = j->storage->initialize(m_settings, j->error);
+		if (j->error)
+		{
+			ret_flag |= disk_status::fatal_disk_error;
+			return ret_flag;
+		}
 
 		// we must call verify_resume_data() unconditionally of the setting below, in
 		// order to set up the links (if present)
@@ -1185,7 +1189,8 @@ TORRENT_EXPORT std::unique_ptr<disk_interface> mmap_disk_io_constructor(
 		if (need_check & (disk_status::need_full_check | disk_status::partial_check))
 			a.checked_pieces = j->storage->check_pieces();
 
-		return need_check | ret_flag;
+		ret_flag |= need_check;
+		return ret_flag;
 	}
 
 	status_t mmap_disk_io::do_job(aux::job::rename_file& a, aux::mmap_disk_job* j)

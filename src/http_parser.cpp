@@ -65,22 +65,21 @@ namespace libtorrent::aux {
 			return location;
 
 		// otherwise it's likely to be just the path, or a relative path
-		std::string url = referrer;
-		std::size_t const scheme_end = url.find("://");
+		std::size_t const scheme_end = referrer.find("://");
 
 		// the referrer is not a valid full URL
 		if (scheme_end == std::string::npos)
 			return location;
 
 		std::size_t const authority_start = scheme_end + 3;
-		std::size_t const suffix = url.find_first_of("?#", authority_start);
-		std::size_t const path_end = suffix == std::string::npos ? url.size() : suffix;
+		std::size_t const suffix = referrer.find_first_of("?#", authority_start);
+		std::size_t const path_end = suffix == std::string::npos ? referrer.size() : suffix;
 
 		if (network_path)
 		{
 			// a network-path reference preserves only the referrer's scheme
-			url.resize(scheme_end + 1);
-			url += location;
+			referrer.resize(scheme_end + 1);
+			referrer += location;
 		}
 		else if (location[0] == '/')
 		{
@@ -89,24 +88,24 @@ namespace libtorrent::aux {
 
 			// find the end of the authority without considering slashes in the
 			// query string or fragment
-			std::size_t const path_start = url.find('/', authority_start);
-			url.resize(std::min(path_start, path_end));
+			std::size_t const path_start = referrer.find('/', authority_start);
+			referrer.resize(std::min(path_start, path_end));
 
-			url += location;
+			referrer += location;
 		}
 		else if (location[0] == '?')
 		{
 			// a query reference replaces the current query and fragment
-			url.resize(path_end);
-			url += location;
+			referrer.resize(path_end);
+			referrer += location;
 		}
 		else if (location[0] == '#')
 		{
 			// a fragment reference preserves the current path and query
-			std::size_t const fragment = url.find('#', authority_start);
+			std::size_t const fragment = referrer.find('#', authority_start);
 			if (fragment != std::string::npos)
-				url.resize(fragment);
-			url += location;
+				referrer.resize(fragment);
+			referrer += location;
 		}
 		else
 		{
@@ -115,9 +114,9 @@ namespace libtorrent::aux {
 
 			// remove the query string and fragment before finding the leaf
 			// filename
-			url.resize(path_end);
+			referrer.resize(path_end);
 
-			std::size_t end = url.find_last_of('/');
+			std::size_t end = referrer.find_last_of('/');
 			// if the / we find is part of the scheme, there is no / in the path
 			// component or hostname.
 			if (end <= scheme_end + 2)
@@ -126,15 +125,15 @@ namespace libtorrent::aux {
 			// if this fails, the referrer is just url-scheme and hostname. We can
 			// just append the location to it.
 			if (end != std::string::npos)
-				url.resize(end);
+				referrer.resize(end);
 
 			// however, we may still need to insert a '/' in case neither side
 			// has one. We know the location doesn't start with a / already.
 			// so, if the referrer doesn't end with one, add it.
-			ensure_trailing_slash(url);
-			url += location;
+			ensure_trailing_slash(referrer);
+			referrer += location;
 		}
-		return url;
+		return referrer;
 	}
 
 	std::string const& http_parser::header(string_view const key) const

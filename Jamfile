@@ -319,7 +319,6 @@ rule warnings ( properties * )
 		result += <cxxflags>-Wno-switch-default ;
 
 		result += <cxxflags>-Wno-thread-safety-negative ;
-		result += <cxxflags>-Wno-nrvo ;
 
 # adjacent bit-fields of different storage sizes are not packed under the
 # Microsoft ABI, silently growing objects on Windows

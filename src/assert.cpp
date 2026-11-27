@@ -84,10 +84,12 @@ std::string demangle(char const* name)
 	size_t len;
 	int status;
 	char* unmangled = ::abi::__cxa_demangle(in.c_str(), nullptr, &len, &status);
-	if (unmangled == nullptr) return in;
-	std::string ret(unmangled);
-	::free(unmangled);
-	return ret;
+	if (unmangled != nullptr)
+	{
+		in.assign(unmangled);
+		::free(unmangled);
+	}
+	return in;
 }
 
 #ifdef __clang__

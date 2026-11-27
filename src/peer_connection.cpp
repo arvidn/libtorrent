@@ -900,11 +900,11 @@ namespace {
 	picker_options_t peer_connection::picker_options() const
 	{
 		TORRENT_ASSERT(is_single_thread());
-		picker_options_t ret = m_picker_options;
-
 		auto t = m_torrent.lock();
 		TORRENT_ASSERT(t);
 		if (!t) return {};
+
+		picker_options_t ret = m_picker_options;
 
 		if (t->flags() & torrent_internal_flags::effective_sequential)
 		{

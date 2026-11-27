@@ -861,7 +861,9 @@ pread_storage::pread_storage(storage_params const& params, file_pool& pool)
 		if (ec.ec)
 		{
 			ec.file(file);
-			return {};
+			// return the named object on every path, to allow NRVO
+			h.reset();
+			return h;
 		}
 		TORRENT_ASSERT(h);
 

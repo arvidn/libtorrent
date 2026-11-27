@@ -186,7 +186,12 @@ namespace aux {
 		}
 
 		auto ti = std::make_shared<torrent_info>(info, ec, cfg, from_info_section);
-		if (ec) return {};
+		if (ec)
+		{
+			// return the named object on every path, to allow NRVO
+			ti.reset();
+			return ti;
+		}
 
 		if (ti->v2())
 		{
@@ -197,7 +202,12 @@ namespace aux {
 			if (e)
 			{
 				parse_piece_layers(e, ti->layout(), ec, out);
-				if (ec) return{};
+				if (ec)
+				{
+					// return the named object on every path, to allow NRVO
+					ti.reset();
+					return ti;
+				}
 			}
 		}
 
@@ -361,9 +371,7 @@ namespace aux {
 		std::vector<char> buf;
 		load_file(filename, buf, ec, cfg.max_buffer_size);
 		if (ec) return {};
-		add_torrent_params ret = load_torrent_buffer(buf, ec, cfg);
-		if (ec) return {};
-		return ret;
+		return load_torrent_buffer(buf, ec, cfg);
 	}
 
 	add_torrent_params load_torrent_file(std::string const& filename, load_torrent_limits const& cfg)
@@ -380,9 +388,7 @@ namespace aux {
 		bdecode_node e = bdecode(buffer, ec, nullptr, cfg.max_decode_depth
 			, cfg.max_decode_tokens);
 		if (ec) return {};
-		add_torrent_params ret = load_torrent_parsed(e, ec, cfg);
-		if (ec) return {};
-		return ret;
+		return load_torrent_parsed(e, ec, cfg);
 	}
 
 	add_torrent_params load_torrent_buffer(span<char const> buffer, load_torrent_limits const& cfg)
@@ -399,36 +405,38 @@ namespace aux {
 		add_torrent_params ret;
 		ret.sanitize_flags = cfg.sanitize_flags;
 		std::shared_ptr<torrent_info> ti = aux::parse_torrent_file(torrent_file, ec, cfg, ret);
-		if (ec) return {};
-		if (ti && (cfg.sanitize_flags & path_sanitize_flags::deduplicate_per_directory))
+		if (!ec && ti && (cfg.sanitize_flags & path_sanitize_flags::deduplicate_per_directory))
 		{
 			ret.renamed_path_elements = aux::resolve_directory_duplicates(ti->layout(), cfg, ec);
-			if (ec)
-				return {};
 #if TORRENT_ABI_VERSION < 4
 			// for backwards compatibility, make sure the file_storage
 			// returned by the deprecated files() has updated filenames
 			// as well.
-			ti->internal_rename_path_elements(ret.renamed_path_elements);
+			if (!ec)
+				ti->internal_rename_path_elements(ret.renamed_path_elements);
 #endif
 		}
-		else if (ti && (cfg.sanitize_flags & path_sanitize_flags::deduplicate_full_path))
+		else if (!ec && ti && (cfg.sanitize_flags & path_sanitize_flags::deduplicate_full_path))
 		{
 			ret.renamed_files = aux::resolve_duplicate_filenames(ti->layout(), cfg, ec);
-			if (ec) return {};
 #if TORRENT_ABI_VERSION < 4
 			// For backwards compatibility, make sure the file_storage has updated
 			// filenames as well
-			for (auto const& entry : ret.renamed_files)
+			if (!ec)
 			{
-				ti->rename_file(entry.first, entry.second);
+				for (auto const& entry : ret.renamed_files)
+					ti->rename_file(entry.first, entry.second);
 			}
 #endif
 		}
-		if (ti)
+		if (ec)
 		{
-			ret.ti = std::move(ti);
+			// return the named object on every path, to allow NRVO
+			ret = add_torrent_params{};
+			return ret;
 		}
+		if (ti)
+			ret.ti = std::move(ti);
 		return ret;
 	}
 

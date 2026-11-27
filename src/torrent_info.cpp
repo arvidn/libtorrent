@@ -114,7 +114,7 @@ std::string sanitize_encoding(string_view const source)
 
 	// the common case: the source was already valid utf-8, just copy it
 	if (valid_encoding)
-		return std::string(source);
+		ret.assign(source);
 	return ret;
 }
 }

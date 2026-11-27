@@ -703,7 +703,7 @@ spawned_process async_run(char const* cmdline)
 	if (!CreatePipe(&read_end, &write_end, &sa, 0))
 	{
 		std::printf("ERROR: CreatePipe failed (%d)\n", int(GetLastError()));
-		return {};
+		return proc;
 	}
 	// the parent's end of the pipe must not be inherited by the child
 	SetHandleInformation(read_end, HANDLE_FLAG_INHERIT, 0);
@@ -724,7 +724,7 @@ spawned_process async_run(char const* cmdline)
 		int const error = GetLastError();
 		std::printf("ERROR: (%d) %s\n", error, error_code(error, system_category()).message().c_str());
 		CloseHandle(read_end);
-		return {};
+		return proc;
 	}
 
 	DWORD len = sizeof(buf);
@@ -765,7 +765,7 @@ spawned_process async_run(char const* cmdline)
 	if (::pipe(pipefd) != 0)
 	{
 		std::printf("ERROR (%d) %s\n", errno, strerror(errno));
-		return {};
+		return proc;
 	}
 	native_handle const read_end = pipefd[0];
 	native_handle const write_end = pipefd[1];
@@ -784,7 +784,7 @@ spawned_process async_run(char const* cmdline)
 	{
 		std::printf("ERROR (%d) %s\n", errno, strerror(errno));
 		::close(read_end);
-		return {};
+		return proc;
 	}
 
 	proc.pid = pid;
