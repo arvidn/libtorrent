@@ -181,6 +181,8 @@ private:
 	void on_keepalive(error_code ec);
 	void on_ping(error_code ec);
 	void arm_keepalive();
+	void set_control_callback();
+	void on_pong();
 
 	io_context& m_io_service;
 	resolver_interface& m_resolver;
@@ -200,6 +202,7 @@ private:
 	connect_handler m_connect_handler;
 
 	bool m_open;
+	bool m_awaiting_pong = false;
 	deadline_timer m_keepalive_timer;
 };
 
