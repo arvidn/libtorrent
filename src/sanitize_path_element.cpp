@@ -57,10 +57,7 @@ bool valid_path_character(std::int32_t const c, string_view const invalid_chars)
 	return invalid_chars.find_first_of(static_cast<char>(c)) == string_view::npos;
 }
 
-// "filter_extra_formatting_chars" mirrors
-// path_sanitize_flags::filter_unicode_formatting_chars, precomputed once
-// by the caller (see valid_path_character() above).
-bool filter_path_character(std::int32_t const c, bool const filter_extra_formatting_chars)
+bool filter_path_character(std::int32_t const c, path_sanitize_flags_t const flags)
 {
 	// Unicode directional marks and bidi embedding/override controls,
 	// used to spoof filenames so they appear identical to legitimate
@@ -68,10 +65,11 @@ bool filter_path_character(std::int32_t const c, bool const filter_extra_formatt
 	// https://security.stackexchange.com/questions/158802/how-can-this-executable-have-an-avi-extension
 	// - U+200E-200F: LRM, RLM
 	// - U+202A-202E: LRE, RLE, PDF, LRO, RLO (bidi embedding/override)
-	if ((c >= 0x200e && c <= 0x200f) || (c >= 0x202a && c <= 0x202e))
+	if (((flags & path_sanitize_flags::filter_directional_marks) && c >= 0x200e && c <= 0x200f)
+		|| (c >= 0x202a && c <= 0x202e))
 		return true;
 
-	if (filter_extra_formatting_chars)
+	if (flags & path_sanitize_flags::filter_unicode_formatting_chars)
 	{
 		// further zero-width or invisible formatting characters, usable
 		// for the same kind of spoofing as above
@@ -162,8 +160,6 @@ bool sanitize_path_element(std::string& path,
 		bool(sanitize_flags & path_sanitize_flags::limit_unicode_characters);
 	bool const trim_trailing =
 		bool(sanitize_flags & path_sanitize_flags::trim_trailing_spaces_and_dots);
-	bool const filter_extra_formatting_chars =
-		bool(sanitize_flags & path_sanitize_flags::filter_unicode_formatting_chars);
 
 	// on windows, both the filesystem and the operating system impose
 	// restrictions. The Android kernel probably has similar restrictions
@@ -220,7 +216,7 @@ bool sanitize_path_element(std::string& path,
 		std::int32_t code_point;
 		std::tie(code_point, seq_len) = parse_utf8_codepoint(element.substr(i));
 
-		if (code_point >= 0 && filter_path_character(code_point, filter_extra_formatting_chars))
+		if (code_point >= 0 && filter_path_character(code_point, sanitize_flags))
 		{
 			materialize(i);
 			continue;

@@ -147,6 +147,10 @@ namespace {
 		if (bdecode_node const n = rd.dict_find_int("sanitize_flags"))
 		{
 			ret.sanitize_flags = path_sanitize_flags_t(static_cast<std::uint32_t>(n.int_value()));
+			// Earlier writers always filtered directional marks, including when
+			// their stored flag mask was zero. Preserve those on-disk names.
+			if (rd.dict_find_int_value("sanitize_flags_version", 0) == 0)
+				ret.sanitize_flags |= path_sanitize_flags::filter_directional_marks;
 		}
 		else
 		{
