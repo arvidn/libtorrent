@@ -1489,7 +1489,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		int const piece_size = piece_size_for_req(piece);
 		int const blocks_in_piece = aux::ceil_div(piece_size, block_size());
 
-		if (m_deleted) return;
+		if (m_abort || m_deleted)
+			return;
 
 		// avoid crash trying to access the picker when there is none
 		if (m_have_all && !has_picker()) return;
@@ -2516,6 +2517,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 	{
 		INVARIANT_CHECK;
 
+		if (m_abort)
+			return;
 		if (!valid_metadata()) return;
 
 		// if the torrent is already queued to check its files
@@ -3997,7 +4000,14 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 				{
 					ADD_OUTSTANDING_ASYNC("torrent::on_i2p_resolve");
 					r.i2pconn->async_name_lookup(i.hostname.c_str(),
-						[self = shared_from_this(), flags](error_code const& ec, char const* dest) {
+						[weak_self = weak_from_this(), flags](
+							error_code const& ec, char const* dest) {
+							auto const self = weak_self.lock();
+							if (!self)
+							{
+								COMPLETE_ASYNC("torrent::on_i2p_resolve");
+								return;
+							}
 							self->torrent::on_i2p_resolve(ec, dest, peer_info::tracker, flags);
 						});
 				}
@@ -4031,8 +4041,16 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 					ADD_OUTSTANDING_ASYNC("torrent::on_peer_name_lookup");
 					m_ses.get_resolver().async_resolve(i.hostname,
 						aux::resolver_interface::abort_on_shutdown,
-						std::bind(
-							&torrent::on_peer_name_lookup, shared_from_this(), _1, _2, i.port, v));
+						[weak_self = weak_from_this(), port = i.port, v](
+							error_code const& e, std::vector<address> const& addrs) {
+							auto const self = weak_self.lock();
+							if (!self)
+							{
+								COMPLETE_ASYNC("torrent::on_peer_name_lookup");
+								return;
+							}
+							self->on_peer_name_lookup(e, addrs, port, v);
+						});
 				}
 			}
 		}
@@ -4356,7 +4374,13 @@ namespace {
 
 		ADD_OUTSTANDING_ASYNC("torrent::on_i2p_resolve");
 		i2pconn.async_name_lookup(destination.c_str(),
-			[self = shared_from_this(), source, flags](error_code const& ec, char const* d) {
+			[weak_self = weak_from_this(), source, flags](error_code const& ec, char const* d) {
+				auto const self = weak_self.lock();
+				if (!self)
+				{
+					COMPLETE_ASYNC("torrent::on_i2p_resolve");
+					return;
+				}
 				self->torrent::on_i2p_resolve(ec, d, source, flags);
 			});
 	}
@@ -5523,8 +5547,11 @@ namespace {
 		}
 
 #if TORRENT_USE_RTC
-		if(m_rtc_signaling)
+		if (m_rtc_signaling)
+		{
 			m_rtc_signaling->close();
+			m_rtc_signaling.reset();
+		}
 #endif
 	}
 
@@ -6642,6 +6669,13 @@ namespace {
 			return;
 		}
 
+		// abort() released m_rtc_signaling, don't recreate it
+		if (m_abort)
+		{
+			handler(boost::asio::error::operation_aborted, {});
+			return;
+		}
+
 		// rtc_signaling is created lazily
 		if (!m_rtc_signaling)
 		{
@@ -6669,6 +6703,8 @@ namespace {
 	{
 		if (!rtc_allowed())
 			return;
+		if (m_abort)
+			return;
 		TORRENT_ASSERT(m_rtc_signaling);
 		if(m_rtc_signaling) m_rtc_signaling->process_offer(offer);
 	}
@@ -6677,12 +6713,16 @@ namespace {
 	{
 		if (!rtc_allowed())
 			return;
+		if (m_abort)
+			return;
 		TORRENT_ASSERT(m_rtc_signaling);
 		if(m_rtc_signaling) m_rtc_signaling->process_answer(answer);
 	}
 
 	void torrent::on_rtc_stream(aux::rtc_stream_init stream_init)
 	{
+		if (m_abort)
+			return;
 		aux::socket_type s(aux::rtc_stream(m_ses.get_context(), stream_init));
 
 		error_code ec;
@@ -7056,9 +7096,13 @@ namespace {
 
 			// use proxy
 			web->resolving = true;
-			m_ses.get_resolver().async_resolve(ps.hostname, aux::resolver_interface::abort_on_shutdown
-				, [self = shared_from_this(), web, proxy_port](error_code const& e, std::vector<address> const& addrs)
-				{ self->wrap(&torrent::on_proxy_name_lookup, e, addrs, web, proxy_port); });
+			m_ses.get_resolver().async_resolve(ps.hostname,
+				aux::resolver_interface::abort_on_shutdown,
+				[weak_self = weak_from_this(), web, proxy_port](
+					error_code const& e, std::vector<address> const& addrs) {
+					if (auto const self = weak_self.lock())
+						self->wrap(&torrent::on_proxy_name_lookup, e, addrs, web, proxy_port);
+				});
 		}
 		else if (web_seed_hostname_via_proxy(ps, hostname))
 		{
@@ -7072,13 +7116,14 @@ namespace {
 			debug_log("resolving web seed: \"%s\" %s", hostname.c_str(), web->url.c_str());
 #endif
 
-			auto self = shared_from_this();
 			web->resolving = true;
 
-			m_ses.get_resolver().async_resolve(hostname, aux::resolver_interface::abort_on_shutdown
-				, [self, web, port](error_code const& e, std::vector<address> const& addrs)
-				{
-					self->wrap(&torrent::on_name_lookup, e, addrs, port, web);
+			m_ses.get_resolver().async_resolve(hostname,
+				aux::resolver_interface::abort_on_shutdown,
+				[weak_self = weak_from_this(), web, port](
+					error_code const& e, std::vector<address> const& addrs) {
+					if (auto const self = weak_self.lock())
+						self->wrap(&torrent::on_name_lookup, e, addrs, port, web);
 				});
 		}
 	}
@@ -7167,12 +7212,13 @@ namespace {
 			return;
 		}
 
-		auto self = shared_from_this();
 		web->resolving = true;
-		m_ses.get_resolver().async_resolve(hostname, aux::resolver_interface::abort_on_shutdown
-			, [self, web, port](error_code const& err, std::vector<address> const& addr)
-			{
-				self->wrap(&torrent::on_name_lookup, err, addr, port, web);
+		m_ses.get_resolver().async_resolve(hostname,
+			aux::resolver_interface::abort_on_shutdown,
+			[weak_self = weak_from_this(), web, port](
+				error_code const& err, std::vector<address> const& addr) {
+				if (auto const self = weak_self.lock())
+					self->wrap(&torrent::on_name_lookup, err, addr, port, web);
 			});
 	}
 	catch (...) { handle_exception(); }
