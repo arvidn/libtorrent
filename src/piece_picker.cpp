@@ -821,6 +821,15 @@ namespace libtorrent::aux {
 		TORRENT_ASSERT(int(m_priority_boundaries.size()) >= priority);
 
 		auto const range = priority_range(priority);
+		// a corrupt bucket would turn into an out-of-bounds index below.
+		// Rebuilding the piece list from m_piece_map recovers from it
+		TORRENT_ASSERT(range.first <= range.second);
+		TORRENT_ASSERT(range.second <= m_pieces.end_index());
+		if (range.first > range.second || range.second > m_pieces.end_index())
+		{
+			m_dirty = true;
+			return;
+		}
 		prio_index_t new_index = (range.second == range.first)
 			? range.first
 			: prio_index_t(
@@ -1043,6 +1052,15 @@ namespace libtorrent::aux {
 		TORRENT_ASSERT(m_piece_map[m_pieces[elem_index]].priority(this) == priority);
 
 		auto const range = priority_range(priority);
+		TORRENT_ASSERT(range.first <= elem_index);
+		TORRENT_ASSERT(elem_index < range.second);
+		TORRENT_ASSERT(range.second <= m_pieces.end_index());
+		if (elem_index < range.first || elem_index >= range.second
+			|| range.second > m_pieces.end_index())
+		{
+			m_dirty = true;
+			return;
+		}
 		prio_index_t const other_index(
 			int(random(aux::numeric_cast<std::uint32_t>(static_cast<int>(range.second - range.first) - 1)))
 			+ static_cast<int>(range.first));
