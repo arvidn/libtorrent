@@ -131,7 +131,7 @@ namespace libtorrent::aux {
 
 		// TODO: it would be nice to be able to export to a fixed width field, so
 		// we wouldn't have to shift it later
-		if (len < 96)
+		if (len >= 0 && len < 96)
 		{
 			std::memmove(begin + 96 - len, begin, aux::numeric_cast<std::size_t>(len));
 			std::memset(begin, 0, aux::numeric_cast<std::size_t>(96 - len));
