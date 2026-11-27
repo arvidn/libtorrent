@@ -23,8 +23,8 @@ struct piece_byte
 
 struct expect_calls
 {
-	expect_calls(std::vector<piece_byte> const& calls)
-		: m_calls(calls)
+	explicit expect_calls(std::vector<piece_byte> calls)
+		: m_calls(std::move(calls))
 	{}
 
 	void operator()(piece_index_t const piece, int const bytes)
