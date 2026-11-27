@@ -1887,3 +1887,35 @@ TORRENT_TEST(removed)
 	alert const* a = wait_for_alert(ses, save_resume_data_failed_alert::alert_type);
 	TEST_CHECK(a != nullptr);
 }
+
+#if TORRENT_ABI_VERSION == 1 && TORRENT_USE_I2P
+namespace {
+// adds a torrent through the deprecated add_torrent_params::resume_data
+// field, with resume data saved from a torrent with resume_flags
+torrent_flags_t legacy_resume_flags(
+	torrent_flags_t const resume_flags, torrent_flags_t const atp_flags)
+{
+	lt::session ses(settings());
+	add_torrent_params saved;
+	saved.ti = generate_torrent();
+	saved.info_hashes = saved.ti->info_hashes();
+	saved.save_path = ".";
+	saved.flags = resume_flags;
+
+	add_torrent_params p;
+	p.ti = saved.ti;
+	p.save_path = ".";
+	p.flags = atp_flags;
+	p.resume_data = write_resume_data_buf(saved);
+	return ses.add_torrent(std::move(p)).flags();
+}
+} // anonymous namespace
+
+TORRENT_TEST(legacy_resume_i2p_torrent)
+{
+	TEST_CHECK(legacy_resume_flags(torrent_flags::i2p_torrent, {}) & torrent_flags::i2p_torrent);
+	TEST_CHECK(legacy_resume_flags(
+				   torrent_flags::i2p_torrent, add_torrent_params::flag_override_resume_data)
+		& torrent_flags::i2p_torrent);
+}
+#endif

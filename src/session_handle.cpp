@@ -395,6 +395,10 @@ namespace {
 				atp.file_priorities = resume_data.file_priorities;
 		}
 
+		// this only restricts which peers the torrent talks to, dropping it
+		// would expose an i2p torrent to clearnet peers
+		atp.flags |= resume_data.flags & torrent_flags::i2p_torrent;
+
 		if (atp.info_hash.is_all_zeros()
 			&& string_begins_no_case("magnet:", atp.url.c_str()))
 		{
