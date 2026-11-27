@@ -3621,6 +3621,54 @@ TORRENT_TEST(empty_file_priority_posix) { test_empty_file_priority<posix_storage
 
 TORRENT_TEST(empty_file_priority_pread) { test_empty_file_priority<pread_storage>(true); }
 
+template <typename StorageType>
+void test_empty_file_attributes()
+{
+	std::string const test_path = complete("empty_file_attributes");
+	delete_dirs(test_path);
+
+	file_storage fs;
+	fs.set_piece_length(0x4000);
+	fs.add_file("test/data", 0x4000);
+	fs.add_file("test/exec", 0, file_storage::flag_executable);
+	fs.add_file("test/hidden", 0, file_storage::flag_hidden);
+	fs.set_num_pieces(1);
+
+	aux::vector<download_priority_t, file_index_t> priorities(
+		std::size_t(fs.num_files()), default_priority);
+	renamed_files rf;
+	storage_params p{
+		fs, rf, test_path, {}, storage_mode_sparse, priorities, sha1_hash{}, true, false};
+	typename file_pool_type<StorageType>::type fp;
+	auto s = make_storage<StorageType>(p, fp);
+	aux::session_settings set;
+	storage_error se;
+	s->initialize(set, se);
+	TEST_CHECK(!se);
+
+	error_code ec;
+	file_status st;
+	stat_file(combine_path(test_path, "test/exec"), &st, ec);
+	TEST_CHECK(!ec);
+#ifndef TORRENT_WINDOWS
+	TEST_CHECK(bool(st.mode & file_status::executable));
+#endif
+
+	stat_file(combine_path(test_path, "test/hidden"), &st, ec);
+	TEST_CHECK(!ec);
+#ifdef TORRENT_WINDOWS
+	TEST_CHECK(bool(st.mode & file_status::hidden));
+#endif
+}
+
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
+TORRENT_TEST(empty_file_attributes_mmap) { test_empty_file_attributes<mmap_storage>(); }
+#endif
+
+TORRENT_TEST(empty_file_attributes_posix) { test_empty_file_attributes<posix_storage>(); }
+
+TORRENT_TEST(empty_file_attributes_pread) { test_empty_file_attributes<pread_storage>(); }
+
 #if TORRENT_HAS_SYMLINK
 // a session with symlink support may have left symlinks where a later session
 // without it expects empty files. Neither the link nor its target may be

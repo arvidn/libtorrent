@@ -370,24 +370,28 @@ namespace {
 #endif
 	}
 
-	void create_empty_file(std::string const& f, error_code& ec)
+	void create_empty_file(std::string const& f, aux::open_mode_t const mode, error_code& ec)
 	{
 		ec.clear();
 		native_path_string const n = convert_to_native_path_string(f);
 #ifdef TORRENT_WINDOWS
+		DWORD const attributes =
+			(mode & aux::open_mode::hidden) ? FILE_ATTRIBUTE_HIDDEN : FILE_ATTRIBUTE_NORMAL;
 #ifdef TORRENT_WINRT
+		CREATEFILE2_EXTENDED_PARAMETERS extended{
+			sizeof(CREATEFILE2_EXTENDED_PARAMETERS), attributes, FILE_FLAG_OPEN_REPARSE_POINT};
 		HANDLE const h = CreateFile2(n.c_str(),
 			GENERIC_WRITE,
 			FILE_SHARE_WRITE | FILE_SHARE_READ | FILE_SHARE_DELETE,
 			CREATE_NEW,
-			nullptr);
+			&extended);
 #else
 		HANDLE const h = CreateFileW(n.c_str(),
 			GENERIC_WRITE,
 			FILE_SHARE_WRITE | FILE_SHARE_READ | FILE_SHARE_DELETE,
 			nullptr,
 			CREATE_NEW,
-			FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT,
+			attributes | FILE_FLAG_OPEN_REPARSE_POINT,
 			nullptr);
 #endif
 		if (h == INVALID_HANDLE_VALUE)
@@ -406,7 +410,8 @@ namespace {
 				| O_CLOEXEC
 #endif
 			,
-			S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+			S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH
+				| ((mode & aux::open_mode::executable) ? (S_IXUSR | S_IXGRP | S_IXOTH) : 0));
 		if (fd < 0)
 		{
 			if (errno != EEXIST)

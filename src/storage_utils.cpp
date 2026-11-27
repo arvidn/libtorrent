@@ -773,7 +773,13 @@ std::int64_t get_filesize(stat_cache& stat, file_index_t const file_index
 			ec.operation = operation_t::mkdir;
 			return;
 		}
-		create_empty_file(path, ec.ec);
+		file_flags_t const flags = fs.file_flags(file_index);
+		open_mode_t mode{};
+		if (flags & file_storage::flag_executable)
+			mode |= open_mode::executable;
+		if (flags & file_storage::flag_hidden)
+			mode |= open_mode::hidden;
+		create_empty_file(path, mode, ec.ec);
 		if (ec)
 		{
 			ec.file(file_index);
