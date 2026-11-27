@@ -66,7 +66,7 @@ jobs:
             --key '${{ secrets.BENCHER_API_KEY }}' \
             --branch '${{ github.ref_name }}' \
             --testbed ubuntu-24.04 \
-            --threshold-measure estimated-cycles \
+            --threshold-measure cycles \
             --threshold-test percentage \
             --threshold-max-sample-size 8 \
             --threshold-upper-boundary 0.05 \
@@ -90,9 +90,10 @@ jobs:
             --file details.json
 
    # compares PR benchmark results against their target branch. Skipped for
-   # forked PRs, since they don't have access to the secrets below. Never
-   # fails the PR: alerts are surfaced via the GitHub check/PR comment (see
-   # --github-actions) but --error-on-alert is intentionally omitted.
+   # forked PRs, since they don't have access to the secrets below.
+   # Regressions never fail the PR: alerts are surfaced via the GitHub
+   # check/PR comment (see --github-actions) but --error-on-alert is
+   # intentionally omitted. A benchmark that's too small does fail it.
    tools-pr:
       name: tools (PR)
       if: >
