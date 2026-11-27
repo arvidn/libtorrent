@@ -1112,6 +1112,176 @@ TORRENT_TEST(fastresume_spanning_piece_missing_file)
 
 namespace {
 
+// each unit test runs in its own empty directory
+std::string const has_any_file_save_path = ".";
+
+void write_test_file(file_storage const& fs, file_index_t const file, int const size)
+{
+	std::string const path = fs.file_path(file, has_any_file_save_path);
+	error_code ec;
+	create_directories(parent_path(path), ec);
+	TEST_CHECK(!ec);
+	ofstream(path.c_str()).write(std::string(std::size_t(size), 'x').data(), size);
+}
+
+// windows reports most unusable paths as "not found", so a stat failure that
+// isn't is injected through the cache instead
+void make_unstatable(stat_cache& cache, file_index_t const file)
+{
+	cache.set_error(file, error_code(boost::system::errc::permission_denied
+		, boost::system::generic_category()));
+}
+
+std::string const test_part_file = combine_path(has_any_file_save_path, ".test.parts");
+
+bool has_any_file(file_storage const& fs, stat_cache& cache, storage_error& se)
+{
+	return aux::has_any_file(fs, has_any_file_save_path, test_part_file, cache, se);
+}
+
+bool has_any_file(file_storage const& fs, storage_error& se)
+{
+	stat_cache cache;
+	return has_any_file(fs, cache, se);
+}
+
+} // anonymous namespace
+
+TORRENT_TEST(has_any_file_none)
+{
+	file_storage const fs = make_files({{0x4000, false}, {0x4000, false}}, 0x4000);
+	storage_error se;
+	TEST_CHECK(!has_any_file(fs, se));
+	TEST_CHECK(!se);
+}
+
+TORRENT_TEST(has_any_file_last)
+{
+	file_storage const fs = make_files({{0x4000, false}, {0x4000, false}, {0x4000, false}}, 0x4000);
+	write_test_file(fs, 2_file, 1);
+	storage_error se;
+	TEST_CHECK(has_any_file(fs, se));
+	TEST_CHECK(!se);
+}
+
+TORRENT_TEST(has_any_file_empty_file)
+{
+	file_storage const fs = make_files({{0x4000, false}}, 0x4000);
+	write_test_file(fs, 0_file, 0);
+	storage_error se;
+	TEST_CHECK(!has_any_file(fs, se));
+	TEST_CHECK(!se);
+}
+
+TORRENT_TEST(has_any_file_ignore_pad_file)
+{
+	file_storage const fs = make_files({{0x2000, false}, {0x2000, true}, {0x4000, false}}, 0x4000);
+	// pad files are never stored on disk, so something at its path must not count
+	write_test_file(fs, 1_file, 1);
+	storage_error se;
+	TEST_CHECK(!has_any_file(fs, se));
+	TEST_CHECK(!se);
+}
+
+TORRENT_TEST(has_any_file_pad_file_skipped)
+{
+	file_storage const fs = make_files({{0x2000, false}, {0x2000, true}, {0x4000, false}}, 0x4000);
+	stat_cache cache;
+	make_unstatable(cache, 1_file);
+	storage_error se;
+	TEST_CHECK(!has_any_file(fs, cache, se));
+	TEST_CHECK(!se);
+}
+
+TORRENT_TEST(has_any_file_stat_error_then_file)
+{
+	file_storage const fs = make_files({{0x4000, false}, {0x4000, false}}, 0x4000);
+	stat_cache cache;
+	make_unstatable(cache, 0_file);
+	write_test_file(fs, 1_file, 1);
+	storage_error se;
+	TEST_CHECK(has_any_file(fs, cache, se));
+	TEST_CHECK(!se);
+}
+
+TORRENT_TEST(has_any_file_stat_error_reported)
+{
+	file_storage const fs = make_files({{0x4000, false}, {0x4000, false}
+		, {0x4000, false}, {0x4000, false}}, 0x4000);
+	stat_cache cache;
+	make_unstatable(cache, 1_file);
+	make_unstatable(cache, 3_file);
+	storage_error se;
+	TEST_CHECK(!has_any_file(fs, cache, se));
+	TEST_CHECK(se);
+	TEST_CHECK(se.ec != boost::system::errc::no_such_file_or_directory);
+	TEST_EQUAL(se.file(), 1_file);
+	TEST_CHECK(se.operation == operation_t::file_stat);
+}
+
+TORRENT_TEST(has_any_file_no_part_file)
+{
+	file_storage const fs = make_files({{0x4000, false}, {0x4000, false}}, 0x4000);
+	storage_error se;
+	TEST_CHECK(!has_any_file(fs, se));
+	TEST_CHECK(!se);
+}
+
+TORRENT_TEST(has_any_file_part_file_only)
+{
+	file_storage const fs = make_files({{0x4000, false}, {0x4000, false}}, 0x4000);
+	ofstream(test_part_file.c_str()).write("x", 1);
+	storage_error se;
+	TEST_CHECK(has_any_file(fs, se));
+	TEST_CHECK(!se);
+}
+
+TORRENT_TEST(has_any_file_part_file_and_stat_error)
+{
+	file_storage const fs = make_files({{0x4000, false}, {0x4000, false}}, 0x4000);
+	stat_cache cache;
+	make_unstatable(cache, 0_file);
+	ofstream(test_part_file.c_str()).write("x", 1);
+	// failing to stat a file must not hide the part file
+	storage_error se;
+	TEST_CHECK(has_any_file(fs, cache, se));
+	TEST_CHECK(!se);
+}
+
+TORRENT_TEST(has_any_file_no_part_file_stat_error)
+{
+	file_storage const fs = make_files({{0x4000, false}, {0x4000, false}}, 0x4000);
+	stat_cache cache;
+	make_unstatable(cache, 1_file);
+	storage_error se;
+	TEST_CHECK(!has_any_file(fs, cache, se));
+	TEST_CHECK(se);
+	TEST_EQUAL(se.file(), 1_file);
+	TEST_CHECK(se.operation == operation_t::file_stat);
+}
+
+// the part file isn't stat'ed through the cache, so this needs a path stat
+// really fails on, other than with "not found". Windows has none
+#ifndef TORRENT_WINDOWS
+TORRENT_TEST(has_any_file_part_file_stat_error)
+{
+	// longer than PATH_MAX
+	std::string part_file = "t";
+	for (int i = 0; i < 25; ++i)
+		part_file = combine_path(part_file, std::string(200, 'x'));
+
+	file_storage const fs = make_files({{0x4000, false}, {0x4000, false}}, 0x4000);
+	stat_cache cache;
+	storage_error se;
+	TEST_CHECK(!aux::has_any_file(fs, has_any_file_save_path, part_file, cache, se));
+	TEST_CHECK(se);
+	TEST_EQUAL(se.file(), torrent_status::error_file_partfile);
+	TEST_CHECK(se.operation == operation_t::file_stat);
+}
+#endif
+
+namespace {
+
 bool got_file_rename_alert(alert const* a)
 {
 	return alert_cast<lt::file_renamed_alert>(a)

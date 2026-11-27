@@ -95,10 +95,14 @@ namespace aux {
 		, storage_error& ec);
 
 	// given the save_path, stat all files on file_storage until one exists. If a
-	// file exists, return true, otherwise return false.
+	// file or the part file (part_file_path) exists, return true, otherwise
+	// return false. Pad files are ignored. A file that can't be stat'ed does not
+	// end the search. The first such error is reported in ec, if no file was
+	// found.
 	TORRENT_EXTRA_EXPORT bool has_any_file(
 		file_storage const& fs
 		, std::string const& save_path
+		, std::string const& part_file_path
 		, stat_cache& cache
 		, storage_error& ec);
 

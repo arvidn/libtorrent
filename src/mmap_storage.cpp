@@ -387,26 +387,8 @@ error_code translate_error(std::error_code const& err, bool const write)
 	bool mmap_storage::has_any_file(storage_error& ec)
 	{
 		m_stat_cache.reserve(files().num_files());
-
-		if (aux::has_any_file(files(), m_save_path, m_stat_cache, ec))
-			return true;
-
-		if (ec) return false;
-
-		file_status s;
-		stat_file(combine_path(m_save_path, m_part_file_name), &s, ec.ec);
-		if (!ec) return true;
-
-		// the part file not existing is expected
-		if (ec.ec == boost::system::errc::no_such_file_or_directory)
-			ec.ec.clear();
-
-		if (ec)
-		{
-			ec.file(torrent_status::error_file_partfile);
-			ec.operation = operation_t::file_stat;
-		}
-		return false;
+		return aux::has_any_file(files(), m_save_path
+			, combine_path(m_save_path, m_part_file_name), m_stat_cache, ec);
 	}
 
 	void mmap_storage::rename_file(file_index_t const index, std::string const& new_filename
