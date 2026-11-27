@@ -1845,6 +1845,11 @@ class info_hash_t(metaclass=_BoostBaseClass):
         __init__( (object)arg1, (sha1_hash)sha1_hash, (sha256_hash)sha256_hash) -> None :
         """
 
+    def contains(self, _ih: info_hash_t) -> bool:
+        """
+        contains( (info_hash_t)arg1, (info_hash_t)arg2) -> bool :
+        """
+
     def get(self, _v: protocol_version | int) -> sha1_hash:
         """
         get( (info_hash_t)arg1, (protocol_version)arg2) -> sha1_hash :

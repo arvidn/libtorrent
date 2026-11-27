@@ -188,30 +188,49 @@ mmap_storage::mmap_storage(
 
 			if (old_prio == dont_download && new_prio != dont_download)
 			{
-				// move stuff out of the part file
-				std::shared_ptr<aux::file_mapping> f = open_file(sett, i, aux::open_mode::write, ec);
-				if (ec) return;
-
-				if (m_part_file && use_partfile(i))
+				if (fs.file_size(i) == 0)
 				{
+					// initialize_storage() skipped this file while it had
+					// priority 0
+					create_empty_entry(i, ec);
+					if (ec)
+						return;
+				}
+				else if (m_part_file && use_partfile(i))
+				{
+					// move stuff out of the part file. The file is opened lazily
+					// to not create files that have nothing in the part file
+					std::shared_ptr<aux::file_mapping> f;
 					try
 					{
-						m_part_file->export_file([&f](std::int64_t file_offset, span<char> buf) {
-							if (!f->has_memory_map())
-							{
-								lt::error_code err;
-								aux::pwrite_all(f->fd(), buf, file_offset, err);
-								if (err) throw lt::system_error(err);
-								return;
-							}
+						m_part_file->export_file(
+							[&](std::int64_t file_offset, span<char> buf) {
+								if (!f)
+								{
+									f = open_file(sett, i, aux::open_mode::write, ec);
+									if (ec)
+										throw lt::system_error(ec.ec);
+								}
+								if (!f->has_memory_map())
+								{
+									lt::error_code err;
+									aux::pwrite_all(f->fd(), buf, file_offset, err);
+									if (err)
+										throw lt::system_error(err);
+									return;
+								}
 
-							auto file_range = f->range().subspan(std::ptrdiff_t(file_offset));
-							TORRENT_ASSERT(file_range.size() >= buf.size());
-							sig::try_signal([&]{
-								std::memcpy(const_cast<char*>(file_range.data()), buf.data()
-									, static_cast<std::size_t>(buf.size()));
+								auto file_range = f->range().subspan(std::ptrdiff_t(file_offset));
+								TORRENT_ASSERT(file_range.size() >= buf.size());
+								sig::try_signal([&] {
+									std::memcpy(const_cast<char*>(file_range.data()),
+										buf.data(),
+										static_cast<std::size_t>(buf.size()));
 								});
-						}, fs.file_offset(i), fs.file_size(i), ec.ec);
+							},
+							fs.file_offset(i),
+							fs.file_size(i),
+							ec.ec);
 
 						if (ec)
 						{
@@ -379,12 +398,16 @@ mmap_storage::mmap_storage(
 			}
 		}
 
-		aux::initialize_storage(fs, m_save_path, m_stat_cache, m_file_priority
-			, [&sett, this](file_index_t const file_index, storage_error& e)
-			{ open_file(sett, file_index, aux::open_mode::write, e); }
-			, aux::create_symlink
-			, [&ret](file_index_t, std::int64_t) { ret |= disk_status::oversized_file; }
-			, ec);
+		aux::initialize_storage(
+			fs,
+			m_save_path,
+			m_stat_cache,
+			m_file_priority,
+			[this](file_index_t const file_index, storage_error& e) {
+				create_empty_entry(file_index, e);
+			},
+			[&ret](file_index_t, std::int64_t) { ret |= disk_status::oversized_file; },
+			ec);
 
 		// close files that were opened in write mode
 		m_pool.release(storage_index());
@@ -916,6 +939,24 @@ mmap_storage::mmap_storage(
 		}
 
 		return static_cast<int>(file_range.size());
+	}
+
+	void mmap_storage::create_empty_entry(file_index_t const file, storage_error& ec)
+	{
+		{
+			std::unique_lock<std::mutex> l(m_file_created_mutex);
+			if (m_file_created.size() != files().num_files())
+				m_file_created.resize(files().num_files(), false);
+			if (m_file_created.get_bit(file))
+				return;
+			m_file_created.set_bit(file);
+		}
+		aux::create_empty_entry(names(), file, m_save_path, ec);
+		if (ec)
+		{
+			std::unique_lock<std::mutex> l(m_file_created_mutex);
+			m_file_created.clear_bit(file);
+		}
 	}
 
 	// a wrapper around open_file_impl that, if it fails, makes sure the

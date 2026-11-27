@@ -685,14 +685,13 @@ std::int64_t get_filesize(stat_cache& stat, file_index_t const file_index
 		return int(size);
 	}
 
-	void initialize_storage(filenames const& fs
-		, std::string const& save_path
-		, stat_cache& sc
-		, aux::vector<download_priority_t, file_index_t> const& file_priority
-		, std::function<void(file_index_t, storage_error&)> create_file
-		, std::function<void(std::string const&, std::string const&, storage_error&)> create_link
-		, std::function<void(file_index_t, std::int64_t)> oversized_file
-		, storage_error& ec)
+	void initialize_storage(filenames const& fs,
+		std::string const& save_path,
+		stat_cache& sc,
+		aux::vector<download_priority_t, file_index_t> const& file_priority,
+		std::function<void(file_index_t, storage_error&)> create_empty,
+		std::function<void(file_index_t, std::int64_t)> oversized_file,
+		storage_error& ec)
 	{
 		// create zero-sized files
 		for (auto const file_index : fs.file_range())
@@ -732,39 +731,53 @@ std::int64_t get_filesize(stat_cache& stat, file_index_t const file_index
 			// never truncate it to 0.
 			if (fs_file_size == 0)
 			{
-				// create symlinks
-				if (fs.file_flags(file_index) & file_storage::flag_symlink)
-				{
-#if TORRENT_HAS_SYMLINK
-					std::string const path = fs.file_path(file_index, save_path);
-					// we make the symlink target relative to the link itself
-					std::string const target = lexically_relative(
-						parent_path(fs.file_path(file_index)), fs.symlink(file_index));
-					create_link(target, path, ec);
-					// create_symlink() refuses links whose target would not
-					// resolve to the intended file. Skip it, rather than failing
-					if (ec.ec == boost::system::errc::too_many_symbolic_link_levels)
-						ec = storage_error();
-					if (ec.ec)
-					{
-						ec.file(file_index);
-						return;
-					}
-#else
-					TORRENT_UNUSED(create_link);
-#endif
-				}
-				else if (err == boost::system::errc::no_such_file_or_directory)
-				{
-					// just creating the file is enough to make it zero-sized. If
-					// there's a race here and some other process truncates the file,
-					// it's not a problem, we won't access empty files ever again
-					ec.ec.clear();
-					create_file(file_index, ec);
-					if (ec) return;
-				}
+				create_empty(file_index, ec);
+				if (ec)
+					return;
 			}
 			ec.ec.clear();
+		}
+	}
+
+	void create_empty_entry(filenames const& fs,
+		file_index_t const file_index,
+		std::string const& save_path,
+		storage_error& ec)
+	{
+		TORRENT_ASSERT(fs.file_size(file_index) == 0);
+		std::string const path = fs.file_path(file_index, save_path);
+		if (fs.file_flags(file_index) & file_storage::flag_symlink)
+		{
+#if TORRENT_HAS_SYMLINK
+			// we make the symlink target relative to the link itself
+			std::string const target =
+				lexically_relative(parent_path(fs.file_path(file_index)), fs.symlink(file_index));
+			create_symlink(target, path, ec);
+			// create_symlink() refuses links whose target would not
+			// resolve to the intended file. Skip it, rather than failing
+			if (ec.ec == boost::system::errc::too_many_symbolic_link_levels)
+				ec = storage_error();
+			if (ec)
+				ec.file(file_index);
+#endif
+			return;
+		}
+
+		// whatever is at the path may be a symlink from a session with symlink
+		// support, or an unrelated file. Never truncate it or anything it
+		// points to
+		create_directories(parent_path(path), ec.ec);
+		if (ec)
+		{
+			ec.file(file_index);
+			ec.operation = operation_t::mkdir;
+			return;
+		}
+		create_empty_file(path, ec.ec);
+		if (ec)
+		{
+			ec.file(file_index);
+			ec.operation = operation_t::file_open;
 		}
 	}
 

@@ -82,6 +82,10 @@ namespace libtorrent {
 	TORRENT_EXTRA_EXPORT bool is_directory(std::string const& f
 		, error_code& ec);
 
+	// creates an empty file at f. If anything already exists at f, including a
+	// dangling symlink, it's left untouched and this is not an error
+	TORRENT_EXTRA_EXPORT void create_empty_file(std::string const& f, error_code& ec);
+
 	// file is expected to exist, link will be created to point to it. If hard
 	// links are not supported by the filesystem or OS, the file will be copied.
 	TORRENT_EXTRA_EXPORT void hard_link(std::string const& file

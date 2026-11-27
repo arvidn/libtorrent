@@ -169,6 +169,8 @@ namespace libtorrent::aux {
 		bool use_partfile(file_index_t index) const;
 		void use_partfile(file_index_t index, bool b);
 
+		void create_empty_entry(file_index_t file, storage_error& ec);
+
 		aux::vector<download_priority_t, file_index_t> m_file_priority;
 		std::string m_save_path;
 		std::string m_part_file_dir;
@@ -199,7 +201,8 @@ namespace libtorrent::aux {
 		// we've written to that file previously. If we do write to a file
 		// whose bit is 0, we set the file size, to make the file allocated
 		// on disk (in full allocation mode) and just sparsely allocated in
-		// case of sparse allocation mode
+		// case of sparse allocation mode. For zero-sized files and symlinks it
+		// means they have been created
 		mutable std::mutex m_file_created_mutex;
 		mutable typed_bitfield<file_index_t> m_file_created;
 

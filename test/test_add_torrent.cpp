@@ -17,6 +17,7 @@ see LICENSE file.
 #include "libtorrent/session.hpp"
 #include "libtorrent/error_code.hpp"
 #include "libtorrent/aux_/path.hpp"
+#include "libtorrent/hasher.hpp"
 #include "libtorrent/load_torrent.hpp"
 #include "libtorrent/torrent_flags.hpp"
 #include "libtorrent/torrent_handle.hpp"
@@ -45,6 +46,12 @@ add_torrent_test_flag_t const set_invalid_info_hash = 6_bit;
 #endif
 add_torrent_test_flag_t const set_invalid_info_hash_v1 = 7_bit;
 add_torrent_test_flag_t const set_invalid_info_hash_v2 = 8_bit;
+// these set the info-hash to the specified hash of the info-section, regardless
+// of whether the torrent has an info-hash of that kind
+add_torrent_test_flag_t const set_sha1_info_hash = 9_bit;
+add_torrent_test_flag_t const set_sha256_info_hash = 10_bit;
+add_torrent_test_flag_t const set_truncated_sha256_info_hash = 11_bit;
+add_torrent_test_flag_t const trailing_garbage = 12_bit;
 
 std::string test_torrent_path(std::string const& file)
 {
@@ -87,14 +94,20 @@ lt::error_code test_add_torrent(std::string file, add_torrent_test_flag_t const 
 	if (flags & set_invalid_info_hash_v1) atp.info_hashes.v1 = lt::sha1_hash("abababababababababab");
 	if (flags & set_invalid_info_hash_v2) atp.info_hashes.v2 = lt::sha256_hash("abababababababababababababababab");
 
-	std::vector<char> info_section;
+	auto const is = atp.ti->info_section();
+	std::vector<char> info_section(is.begin(), is.end());
+
+	if (flags & trailing_garbage)
+		info_section.push_back('e');
+	if (flags & set_sha1_info_hash)
+		atp.info_hashes.v1 = lt::hasher(info_section).final();
+	if (flags & set_sha256_info_hash)
+		atp.info_hashes.v2 = lt::hasher256(info_section).final();
+	if (flags & set_truncated_sha256_info_hash)
+		atp.info_hashes.v1 = lt::sha1_hash(lt::hasher256(info_section).final().data());
 
 	if (flags & magnet_link)
-	{
-		auto const is = atp.ti->info_section();
-		info_section.assign(is.begin(), is.end());
 		atp.ti.reset();
-	}
 
 	lt::session ses(test_session_params());
 	try
@@ -164,7 +177,8 @@ lt::error_code test_add_torrent(std::string file, add_torrent_test_flag_t const 
 		}
 	}
 
-	return lt::error_code();
+	// success must be signalled by an alert, not by the absence of an error
+	return boost::asio::error::timed_out;
 }
 
 lt::torrent_status add_torrent_with_scrape(
@@ -201,6 +215,7 @@ struct test_case_t
 };
 
 auto const v2 = "v2.torrent";
+auto const v2_only = "v2_only.torrent";
 auto const hybrid = "v2_hybrid.torrent";
 auto const v1 = "base.torrent";
 
@@ -237,6 +252,19 @@ test_case_t const add_torrent_test_cases[] = {
 	{v1, set_invalid_info_hash, {}},
 #endif
 
+	// the info-hashes in add_torrent_params are checked against the
+	// torrent_info the same way as against metadata received for a magnet link
+	{v1, set_sha256_info_hash, lt::errors::mismatching_info_hash},
+	{v1, set_truncated_sha256_info_hash, lt::errors::mismatching_info_hash},
+	{v2_only, set_sha1_info_hash, lt::errors::mismatching_info_hash},
+	{v2_only, set_sha256_info_hash, {}},
+	{v2_only, set_truncated_sha256_info_hash, {}},
+	{v2_only, set_truncated_sha256_info_hash | set_sha256_info_hash, {}},
+	{hybrid, set_truncated_sha256_info_hash, {}},
+	{hybrid, set_truncated_sha256_info_hash | set_sha256_info_hash, {}},
+	{hybrid, set_sha1_info_hash | set_sha256_info_hash, {}},
+	{v2_only, trailing_garbage | set_sha256_info_hash, lt::errors::mismatching_info_hash},
+
 	// magnet links
 	{v2, magnet_link, lt::errors::missing_info_hash_in_uri},
 	{v2, magnet_link | set_info_hashes_v1, {}},
@@ -269,6 +297,41 @@ test_case_t const add_torrent_test_cases[] = {
 	{v1, magnet_link | set_info_hashes_v1, {}},
 	{v1, magnet_link | set_invalid_info_hash_v1, lt::errors::mismatching_info_hash},
 	{v1, magnet_link | set_invalid_info_hash_v2, lt::errors::mismatching_info_hash},
+
+	// the metadata must have the info-hash the magnet link was added with. A
+	// hash of the right bytes, but of a kind the torrent doesn't have, is not
+	// its info-hash
+	{v1, magnet_link | set_sha1_info_hash, {}},
+	{v1, magnet_link | set_sha256_info_hash, lt::errors::mismatching_info_hash},
+	{v1, magnet_link | set_truncated_sha256_info_hash, lt::errors::mismatching_info_hash},
+	{v2_only, magnet_link | set_sha1_info_hash, lt::errors::mismatching_info_hash},
+	{v2_only, magnet_link | set_sha256_info_hash, {}},
+	{v2_only, magnet_link | set_truncated_sha256_info_hash, {}},
+	{hybrid, magnet_link | set_sha1_info_hash, {}},
+	{hybrid, magnet_link | set_sha256_info_hash, {}},
+	{hybrid, magnet_link | set_truncated_sha256_info_hash, {}},
+	{v1,
+		magnet_link | set_sha1_info_hash | set_sha256_info_hash,
+		lt::errors::mismatching_info_hash},
+	{v2_only,
+		magnet_link | set_sha1_info_hash | set_sha256_info_hash,
+		lt::errors::mismatching_info_hash},
+	{hybrid, magnet_link | set_sha1_info_hash | set_sha256_info_hash, {}},
+	// some clients put the truncated v2 hash in btih alongside btmh
+	{v2_only, magnet_link | set_truncated_sha256_info_hash | set_sha256_info_hash, {}},
+	{hybrid, magnet_link | set_truncated_sha256_info_hash | set_sha256_info_hash, {}},
+
+	// the info-hash only covers the info-dictionary itself
+	{v1, magnet_link | trailing_garbage | set_sha1_info_hash, lt::errors::mismatching_info_hash},
+	{v2_only,
+		magnet_link | trailing_garbage | set_sha256_info_hash,
+		lt::errors::mismatching_info_hash},
+	{v2_only,
+		magnet_link | trailing_garbage | set_truncated_sha256_info_hash,
+		lt::errors::mismatching_info_hash},
+	{hybrid,
+		magnet_link | trailing_garbage | set_sha1_info_hash | set_sha256_info_hash,
+		lt::errors::mismatching_info_hash},
 };
 
 }

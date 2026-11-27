@@ -2390,6 +2390,67 @@ TORRENT_TEST(dont_have_but_passed_hash_check)
 	TEST_EQUAL(p->is_piece_flushed(1_piece), false);
 }
 
+TORRENT_TEST(dont_have_downloading_piece)
+{
+	// piece 1 has one finished block, the rest are open, so it's in the
+	// downloading state and still listed in the picker. Its higher
+	// availability keeps it out of the first slot of the piece list
+	auto p = setup_picker("1211111", "       ", "", "0100000");
+
+	TEST_EQUAL(p->have_piece(1_piece), false);
+	TEST_EQUAL(p->is_downloaded({1_piece, 0}), true);
+
+	// picking rebuilds the piece list, clearing the dirty flag
+	pick_pieces(p, "*******", 1, 0, nullptr, options, empty_vector);
+
+	p->we_dont_have(1_piece);
+
+	TEST_EQUAL(p->is_downloaded({1_piece, 0}), false);
+	TEST_EQUAL(p->num_have(), 0);
+
+	// a piece listed twice would have its blocks picked twice
+	auto const all =
+		pick_pieces(p, "*******", 8 * blocks_per_piece, 0, nullptr, options, empty_vector);
+	TEST_EQUAL(int(all.size()), 7 * blocks_per_piece);
+
+	// filtering removes the piece from wherever p.index says it is. If that's
+	// the wrong slot, another piece goes missing and piece 1 stays pickable
+	p->set_piece_priority(1_piece, dont_download);
+	auto const picked =
+		pick_pieces(p, "*******", 7 * blocks_per_piece, 0, nullptr, options, empty_vector);
+	TEST_EQUAL(int(picked.size()), 6 * blocks_per_piece);
+	for (auto const& b : picked)
+		TEST_CHECK(b.piece_index != 1_piece);
+}
+
+TORRENT_TEST(dont_have_requested_piece)
+{
+	// the higher availability keeps piece 2 out of the first slot of the
+	// piece list
+	auto p = setup_picker("1121111", "       ", "", "");
+
+	TEST_CHECK(p->mark_as_downloading({2_piece, 0}, &tmp1));
+	TEST_CHECK(p->mark_as_downloading({2_piece, 1}, &tmp1));
+
+	pick_pieces(p, "*******", 1, 0, nullptr, options, empty_vector);
+
+	p->we_dont_have(2_piece);
+
+	TEST_EQUAL(p->is_requested({2_piece, 0}), false);
+	TEST_EQUAL(p->is_requested({2_piece, 1}), false);
+
+	auto const all =
+		pick_pieces(p, "*******", 8 * blocks_per_piece, 0, nullptr, options, empty_vector);
+	TEST_EQUAL(int(all.size()), 7 * blocks_per_piece);
+
+	p->set_piece_priority(2_piece, dont_download);
+	auto const picked =
+		pick_pieces(p, "*******", 7 * blocks_per_piece, 0, nullptr, options, empty_vector);
+	TEST_EQUAL(int(picked.size()), 6 * blocks_per_piece);
+	for (auto const& b : picked)
+		TEST_CHECK(b.piece_index != 2_piece);
+}
+
 TORRENT_TEST(write_failed)
 {
 	auto p = setup_picker("1111111", "* *    ", "1101111", "0200000");
