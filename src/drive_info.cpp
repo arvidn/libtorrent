@@ -135,7 +135,7 @@ drive_info get_drive_info(std::string const& path)
 		return def;
 
 	char device_id[50];
-	std::snprintf(device_id, sizeof(device_id), "%d:%d\n", major(st.st_dev), minor(st.st_dev));
+	std::snprintf(device_id, sizeof(device_id), "%u:%u\n", major(st.st_dev), minor(st.st_dev));
 
 	directory dir(opendir("/sys/block"));
 	if (dir.dir() == nullptr)

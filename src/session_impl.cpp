@@ -340,6 +340,15 @@ void apply_deprecated_dht_settings(settings_pack& sett, bdecode_node const& s)
 		}
 	}
 
+	// defined out of line so the counter is unique across shared library
+	// boundaries. non-atomic is fine: listen_socket_t is only ever
+	// constructed on the network thread.
+	std::uint32_t listen_socket_t::next_id()
+	{
+		static std::uint32_t next = 0;
+		return ++next;
+	}
+
 	bool listen_socket_t::can_route(address const& addr) const
 	{
 		// if this is a proxy, we assume it can reach everything
