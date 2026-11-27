@@ -21,6 +21,7 @@ see LICENSE file.
 #include <limits>
 
 #include "libtorrent/address.hpp"
+#include "libtorrent/aux_/io_bytes.hpp"
 
 namespace libtorrent {
 
@@ -66,6 +67,29 @@ namespace aux {
 	inline std::uint16_t max_addr<std::uint16_t>()
 	{ return (std::numeric_limits<std::uint16_t>::max)(); }
 
+	// orders addresses the same way as comparing the arrays, since they are in
+	// network byte order. Comparing std::arrays of bytes is an out-of-line
+	// call to memcmp() with GCC, which is expensive relative to a lookup
+	inline bool addr_less(address_v4::bytes_type const& lhs, address_v4::bytes_type const& rhs)
+	{
+		auto l = lhs.begin();
+		auto r = rhs.begin();
+		return read_uint32(l) < read_uint32(r);
+	}
+
+	inline bool addr_less(address_v6::bytes_type const& lhs, address_v6::bytes_type const& rhs)
+	{
+		auto l = lhs.begin();
+		auto r = rhs.begin();
+		std::uint64_t const l_high = read_uint64(l);
+		std::uint64_t const r_high = read_uint64(r);
+		if (l_high != r_high)
+			return l_high < r_high;
+		return read_uint64(l) < read_uint64(r);
+	}
+
+	inline bool addr_less(std::uint16_t const lhs, std::uint16_t const rhs) { return lhs < rhs; }
+
 	// this is the generic implementation of
 	// a filter for a specific address type.
 	// it works with IPv4 and IPv6
@@ -86,8 +110,7 @@ namespace aux {
 		struct range
 		{
 			range(Addr addr, std::uint32_t a = 0) : start(addr), access(a) {} // NOLINT
-			bool operator<(range const& r) const { return start < r.start; }
-			bool operator<(Addr const& a) const { return start < a; }
+			bool operator<(range const& r) const { return addr_less(start, r.start); }
 			Addr start;
 			// the end of the range is implicit
 			// and given by the next entry in the set

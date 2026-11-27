@@ -32,11 +32,13 @@ see LICENSE file.
 #include <iostream>
 #include <limits>
 #include <stdexcept>
+#include <string>
 #include <utility>
 #include <vector>
 
 #include <valgrind/callgrind.h>
 
+#include "libtorrent/aux_/io_bytes.hpp"
 #include "libtorrent/aux_/merkle.hpp"
 #include "libtorrent/aux_/pe_crypto.hpp"
 #include "libtorrent/aux_/peer_list.hpp"
@@ -85,24 +87,36 @@ int next_dump = 1;
 void reseed_rng() { lt::aux::random_engine().seed(0x6c7b1d3e); }
 
 // runs fun() under callgrind's event collection and dumps the counts. The
-// counts are deterministic, so a handful of iterations is enough. More than
-// one is still measured so that operations with amortized costs report their
-// average rather than whichever side of the amortization cycle a single
-// call lands on. Collection is off during the warm-up, but the cache
-// simulation still runs, so the measured calls start with warm caches.
+// counts are deterministic, and once warmed up, most operations cost the same
+// on every call, so one measured call is enough. Operations whose cost varies
+// between calls, because their state evolves or they draw random numbers,
+// pass more iterations to report their average. Collection is off during the
+// warm-up, but the cache simulation still runs, so the measured calls start
+// with warm caches. Operations that are cheap enough for a few simulated
+// cache or branch misses to dominate them, which depend on where code and
+// data happen to land, are repeated within fun(). run_bencher.py enforces a
+// minimum cost per call.
+constexpr int varying_cost_iterations = 16;
+
 template <typename Fun>
-measurement analyze(Fun fun)
+measurement analyze(Fun fun, int const iterations = 1)
 {
-	int const iterations = 16;
+	int const warmup = 3;
 
 	reseed_rng();
-	for (int i = 0; i < 3; ++i)
+	// one loop for both the warm-up and the measured calls, since fun() is
+	// inlined into it. Separate loops would each have a copy of fun(), and
+	// the measured copy would pay for cold code and an untrained branch
+	// predictor
+	for (int i = 0; i < warmup + iterations; ++i)
+	{
+		if (i == warmup)
+		{
+			CALLGRIND_ZERO_STATS;
+			CALLGRIND_TOGGLE_COLLECT;
+		}
 		fun();
-
-	CALLGRIND_ZERO_STATS;
-	CALLGRIND_TOGGLE_COLLECT;
-	for (int i = 0; i < iterations; ++i)
-		fun();
+	}
 	CALLGRIND_TOGGLE_COLLECT;
 	CALLGRIND_DUMP_STATS;
 	reseed_rng();
@@ -294,9 +308,12 @@ namespace pp_bench {
 				do_not_optimize(picked);
 			}));
 
-			results.emplace_back("piece picker: pick pieces, dense peer", analyze([&] {
-				pick(p, dense_peer, 4, picked);
-				do_not_optimize(picked);
+			results.emplace_back("piece picker: pick pieces 16 times, dense peer", analyze([&] {
+				for (int i = 0; i < 16; ++i)
+				{
+					pick(p, dense_peer, 4, picked);
+					do_not_optimize(picked);
+				}
 			}));
 		}
 
@@ -308,9 +325,11 @@ namespace pp_bench {
 		// that's actually complete.
 		{
 			piece_picker p = make_picker();
-			results.emplace_back("piece picker: add/remove seed", analyze([&] {
-				p.inc_refcount_all(nullptr);
-				p.dec_refcount_all(nullptr);
+			results.emplace_back("piece picker: add/remove 64 seeds", analyze([&] {
+				for (int i = 0; i < 64; ++i)
+					p.inc_refcount_all(nullptr);
+				for (int i = 0; i < 64; ++i)
+					p.dec_refcount_all(nullptr);
 			}));
 
 			typed_bitfield<piece_index_t> near_seed(num_pieces, true);
@@ -353,9 +372,12 @@ namespace pp_bench {
 			std::vector<piece_block> picked;
 			pick(p_clean, all_pieces, 1, picked); // warm up: build m_pieces once
 
-			results.emplace_back("piece picker: pick pieces, clean", analyze([&] {
-				pick(p_clean, all_pieces, 1, picked);
-				do_not_optimize(picked);
+			results.emplace_back("piece picker: pick pieces 16 times, clean", analyze([&] {
+				for (int i = 0; i < 16; ++i)
+				{
+					pick(p_clean, all_pieces, 1, picked);
+					do_not_optimize(picked);
+				}
 			}));
 
 			piece_picker p_dirty = make_picker();
@@ -388,10 +410,15 @@ namespace pp_bench {
 				p.abort_download(piece_block(piece_index_t(0), 0), nullptr);
 			}));
 
-			results.emplace_back("piece picker: mark as downloading, high index", analyze([&] {
-				p.mark_as_downloading(piece_block(piece_index_t(open_pieces + 1), 0), nullptr);
-				p.abort_download(piece_block(piece_index_t(open_pieces + 1), 0), nullptr);
-			}));
+			piece_block const high_block(piece_index_t(open_pieces + 1), 0);
+			results.emplace_back(
+				"piece picker: mark as downloading 8 times, high index", analyze([&] {
+					for (int i = 0; i < 8; ++i)
+					{
+						p.mark_as_downloading(high_block, nullptr);
+						p.abort_download(high_block, nullptr);
+					}
+				}));
 		}
 
 		// scenario 7: get_availability() and piece_priorities() copy one entry
@@ -630,9 +657,12 @@ void run(std::vector<std::pair<char const*, measurement>>& results)
 		c.set_peer_info(tp);
 		p.set_connection(tp, &c);
 
-		results.emplace_back("peer_list: disconnect peer", analyze([&] {
-			p.connection_closed(c, 0, &st);
-			p.set_connection(tp, &c);
+		results.emplace_back("peer_list: disconnect peer 32 times", analyze([&] {
+			for (int i = 0; i < 32; ++i)
+			{
+				p.connection_closed(c, 0, &st);
+				p.set_connection(tp, &c);
+			}
 		}));
 	}
 
@@ -653,68 +683,161 @@ void run(std::vector<std::pair<char const*, measurement>>& results)
 		st.erased.clear();
 
 		std::uint32_t next_addr = num_peers;
-		results.emplace_back("peer_list: evict peers", analyze([&] {
+		auto const evict = [&] {
 			torrent_peer* const tp = p.add_peer(addr(next_addr++), {}, {}, &st);
 			do_not_optimize(tp);
 			if (tp != nullptr)
 				p.set_failcount(tp, 3);
 			st.erased.clear();
-		}));
+		};
+		results.emplace_back("peer_list: evict peers", analyze(evict, varying_cost_iterations));
 	}
 }
 
 } // namespace pl_bench
 
-// ip_filter benchmark. access() resolves an address against a std::set of
+// ip_filter benchmarks. access() resolves an address against a std::set of
 // non-overlapping ranges (O(log n) in the number of ranges), so its cost
 // depends on how many rules the filter holds rather than on where the
 // looked-up address falls. A filter with many blocked ranges, alternating
 // with allowed ranges across the whole address space, stands in for a
-// moderately large user-supplied blocklist.
+// moderately large user-supplied blocklist. IPv4 and IPv6 rules are kept in
+// separate sets, so they are measured separately. IPv6 is also measured with
+// all ranges inside a single /64, where the lower 64 bits decide every
+// comparison.
 namespace ipf_bench {
 
-	using lt::address_v4;
-	using lt::ip_filter;
-	using lt::make_address_v4;
+using lt::address;
+using lt::address_v6;
+using lt::ip_filter;
+using lt::make_address_v4;
 
-	constexpr int num_blocked_ranges = 5000;
+constexpr int num_blocked_ranges = 5000;
 
-	// the address space is split into 2 * num_blocked_ranges equal segments,
-	// alternating allowed and blocked, starting with an allowed segment
-	constexpr std::uint32_t segment =
-		(std::numeric_limits<std::uint32_t>::max)() / (2 * num_blocked_ranges);
+// the IPv4 address space, and the upper or lower 64 bits of the IPv6 address
+// space, are split into 2 * num_blocked_ranges equal segments, alternating
+// allowed and blocked, starting with an allowed segment
+constexpr std::uint32_t segment4 =
+	(std::numeric_limits<std::uint32_t>::max)() / (2 * num_blocked_ranges);
+constexpr std::uint64_t segment6 =
+	(std::numeric_limits<std::uint64_t>::max)() / (2 * num_blocked_ranges);
 
-	ip_filter make_filter()
+// the upper 64 bits of every address in the single /64 benchmarks
+constexpr std::uint64_t prefix64 = 0x20010db800000000;
+
+enum class family
+{
+	v4,
+	v6,
+	v6_in_64,
+};
+
+address_v6 make_address_v6(std::uint64_t const high, std::uint64_t const low)
+{
+	address_v6::bytes_type bytes;
+	auto it = bytes.begin();
+	lt::aux::write_uint64(high, it);
+	lt::aux::write_uint64(low, it);
+	return address_v6(bytes);
+}
+
+ip_filter make_filter()
+{
+	ip_filter f;
+	for (std::uint32_t i = 0; i < num_blocked_ranges; ++i)
 	{
-		ip_filter f;
-		for (std::uint32_t i = 0; i < num_blocked_ranges; ++i)
+		std::uint32_t const first4 = (2 * i + 1) * segment4;
+		f.add_rule(
+			make_address_v4(first4), make_address_v4(first4 + segment4 - 1), ip_filter::blocked);
+
+		std::uint64_t const first6 = (2 * i + 1) * segment6;
+		f.add_rule(make_address_v6(first6, 0),
+			make_address_v6(first6 + segment6 - 1, (std::numeric_limits<std::uint64_t>::max)()),
+			ip_filter::blocked);
+	}
+	return f;
+}
+
+ip_filter make_filter_in_64()
+{
+	ip_filter f;
+	for (std::uint32_t i = 0; i < num_blocked_ranges; ++i)
+	{
+		std::uint64_t const first = (2 * i + 1) * segment6;
+		f.add_rule(make_address_v6(prefix64, first),
+			make_address_v6(prefix64, first + segment6 - 1),
+			ip_filter::blocked);
+	}
+	return f;
+}
+
+constexpr std::uint32_t num_lookups = 1024;
+
+// midpoints of segments spread evenly across the address space, so the
+// lookups take different paths through the set
+std::vector<address> lookup_addresses(family const fam, bool const blocked)
+{
+	std::vector<address> ret;
+	ret.reserve(num_lookups);
+	for (std::uint32_t i = 0; i < num_lookups; ++i)
+	{
+		std::uint32_t const range = i * num_blocked_ranges / num_lookups;
+		std::uint32_t const seg = 2 * range + (blocked ? 1 : 0);
+		switch (fam)
 		{
-			std::uint32_t const first = (2 * i + 1) * segment;
-			std::uint32_t const last = first + segment - 1;
-			f.add_rule(make_address_v4(first), make_address_v4(last), ip_filter::blocked);
+			case family::v4:
+				ret.emplace_back(make_address_v4(seg * segment4 + segment4 / 2));
+				break;
+			case family::v6:
+				ret.emplace_back(
+					make_address_v6(seg * segment6 + segment6 / 2, 0x0123456789abcdef));
+				break;
+			case family::v6_in_64:
+				ret.emplace_back(make_address_v6(prefix64, seg * segment6 + segment6 / 2));
+				break;
 		}
-		return f;
 	}
+	return ret;
+}
 
-	void run(std::vector<std::pair<char const*, measurement>>& results)
+void run(std::vector<std::pair<char const*, measurement>>& results)
+{
+	ip_filter const spread = make_filter();
+	ip_filter const in_64 = make_filter_in_64();
+
+	struct ipf_case
 	{
-		ip_filter const f = make_filter();
-
-		// midpoint of the first blocked segment: [segment, 2 * segment - 1]
-		address_v4 const blocked_addr = make_address_v4(segment + segment / 2);
-		// midpoint of the first allowed segment: [0, segment - 1]
-		address_v4 const allowed_addr = make_address_v4(segment / 2);
-
-		results.emplace_back("ip_filter: access, hit", analyze([&] {
-			auto const ret = f.access(blocked_addr);
-			do_not_optimize(ret);
-		}));
-
-		results.emplace_back("ip_filter: access, miss", analyze([&] {
-			auto const ret = f.access(allowed_addr);
-			do_not_optimize(ret);
+		char const* name;
+		family fam;
+		bool blocked;
+	};
+	std::array<ipf_case, 6> const cases{{
+		{"ip_filter: 1024 IPv4 lookups, hit", family::v4, true},
+		{"ip_filter: 1024 IPv4 lookups, miss", family::v4, false},
+		{"ip_filter: 1024 IPv6 lookups, hit", family::v6, true},
+		{"ip_filter: 1024 IPv6 lookups, miss", family::v6, false},
+		{"ip_filter: 1024 IPv6 lookups in a /64, hit", family::v6_in_64, true},
+		{"ip_filter: 1024 IPv6 lookups in a /64, miss", family::v6_in_64, false},
+	}};
+	for (auto const& c : cases)
+	{
+		ip_filter const& f = c.fam == family::v6_in_64 ? in_64 : spread;
+		std::vector<address> const addrs = lookup_addresses(c.fam, c.blocked);
+		std::uint32_t const expected = c.blocked ? ip_filter::blocked : 0;
+		for (address const& a : addrs)
+		{
+			if (f.access(a) != expected)
+				throw std::runtime_error(std::string(c.name) + ": unexpected access result");
+		}
+		results.emplace_back(c.name, analyze([&] {
+			for (address const& a : addrs)
+			{
+				auto const ret = f.access(a);
+				do_not_optimize(ret);
+			}
 		}));
 	}
+}
 
 } // namespace ipf_bench
 
@@ -820,7 +943,8 @@ try
 	using namespace lt::aux;
 
 	// key generation: random secret + (2 ^ secret) % prime
-	results.emplace_back("dh_key_exchange", analyze([] { dh_key_exchange const dh; }));
+	results.emplace_back(
+		"dh_key_exchange", analyze([] { dh_key_exchange const dh; }, varying_cost_iterations));
 
 	// a peer's public key to react to, exported the same way it would
 	// arrive off the wire
@@ -838,10 +962,11 @@ try
 	// the total DH cost incurred by one side of a PE handshake: generate
 	// a local key pair, then compute the shared secret from the peer's
 	// key
-	results.emplace_back("dh_handshake", analyze([&] {
+	auto const handshake = [&] {
 		dh_key_exchange local;
 		local.compute_secret(reinterpret_cast<std::uint8_t const*>(peer_key.data()));
-	}));
+	};
+	results.emplace_back("dh_handshake", analyze(handshake, varying_cost_iterations));
 
 	// RC4 stream cipher throughput, encrypting a single 16 kiB buffer (the
 	// size of one block, the unit of transfer in the BitTorrent protocol).

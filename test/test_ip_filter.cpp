@@ -18,16 +18,6 @@ see LICENSE file.
 #include "libtorrent/session.hpp"
 #include "libtorrent/session_params.hpp"
 
-/*
-
-Currently this test only tests that the filter can handle
-IPv4 addresses. Maybe it should be extended to IPv6 as well,
-but the actual code is just a template, so it is probably
-pretty safe to assume that as long as it works for IPv4 it
-also works for IPv6.
-
-*/
-
 using namespace lt;
 
 template <class T>
@@ -188,6 +178,63 @@ TORRENT_TEST(ipv6)
 	test_rules_invariant(rangev6, f);
 
 	TEST_CHECK(rangev6 == expected2);
+}
+
+// addresses that differ only in the lower 64 bits rely on the tie-break in
+// the IPv6 comparison
+TORRENT_TEST(ipv6_low_half)
+{
+	ip_filter f;
+	f.add_rule(addr("2001:db8::10"), addr("2001:db8::20"), ip_filter::blocked);
+	f.add_rule(addr("2001:db8::1:0"), addr("2001:db8::1:ffff"), ip_filter::blocked);
+
+	TEST_CHECK(f.access(addr("2001:db8::f")) == 0);
+	TEST_CHECK(f.access(addr("2001:db8::10")) == ip_filter::blocked);
+	TEST_CHECK(f.access(addr("2001:db8::18")) == ip_filter::blocked);
+	TEST_CHECK(f.access(addr("2001:db8::20")) == ip_filter::blocked);
+	TEST_CHECK(f.access(addr("2001:db8::21")) == 0);
+	TEST_CHECK(f.access(addr("2001:db8::ffff")) == 0);
+	TEST_CHECK(f.access(addr("2001:db8::1:0")) == ip_filter::blocked);
+	TEST_CHECK(f.access(addr("2001:db8::1:ffff")) == ip_filter::blocked);
+	TEST_CHECK(f.access(addr("2001:db8::2:0")) == 0);
+	TEST_CHECK(f.access(addr("2001:db9::10")) == 0);
+
+	test_rules_invariant(std::get<1>(f.export_filter()), f);
+}
+
+namespace {
+
+// addr_less() must order addresses the same way as comparing their bytes
+// lexicographically, which is what makes ranges of addresses contiguous
+template <typename Bytes>
+void test_addr_less()
+{
+	Bytes a;
+	a.fill(0x80);
+	TEST_CHECK(!aux::addr_less(a, a));
+	for (std::size_t i = 0; i < a.size(); ++i)
+	{
+		Bytes b = a;
+		b[i] = 0x81;
+		TEST_CHECK(aux::addr_less(a, b));
+		TEST_CHECK(!aux::addr_less(b, a));
+
+		// an earlier byte outweighs any later byte
+		if (i + 1 < a.size())
+		{
+			b[i + 1] = 0;
+			TEST_CHECK(aux::addr_less(a, b));
+			TEST_CHECK(!aux::addr_less(b, a));
+		}
+	}
+}
+
+} // anonymous namespace
+
+TORRENT_TEST(addr_less)
+{
+	test_addr_less<address_v4::bytes_type>();
+	test_addr_less<address_v6::bytes_type>();
 }
 
 TORRENT_TEST(default_empty)

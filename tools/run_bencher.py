@@ -12,7 +12,6 @@
 import argparse
 import json
 import os
-import platform
 import shutil
 import subprocess
 import sys
@@ -53,7 +52,13 @@ def parse_dump(path: str) -> dict[str, int]:
     return dict(zip(events, totals))
 
 
-PRIMARY_MEASURES = {"estimated-cycles"}
+PRIMARY_MEASURES = {"cycles"}
+
+# a benchmark this cheap per iteration is dominated by a handful of simulated
+# cache and branch misses, which depend on where code and data happen to
+# land, rather than on the code being measured. Such benchmarks should do
+# more work per iteration
+MIN_CYCLES = 1000
 
 
 def main() -> int:
@@ -69,13 +74,10 @@ def main() -> int:
             print("valgrind not found", file=sys.stderr)
             return 1
         # the simulated cache and branch predictor are indexed by virtual
-        # address, so ASLR and the size of the environment (which shifts the
-        # initial stack) would otherwise make the miss counts vary between runs
+        # address, and the size of the environment shifts the initial stack.
+        # valgrind places the program itself, so ASLR doesn't apply
         proc = subprocess.run(
             [
-                "setarch",
-                platform.machine(),
-                "-R",
                 "env",
                 "-i",
                 valgrind,
@@ -109,12 +111,26 @@ def main() -> int:
             + BRANCH_MISS_COST * branch_misses
         )
         bmf[entry["name"]] = {
-            "estimated-cycles": {"value": cycles / n},
+            "cycles": {"value": cycles / n},
             "instructions": {"value": instructions / n},
             "l1-misses": {"value": l1_misses / n},
             "ll-misses": {"value": ll_misses / n},
             "branch-misses": {"value": branch_misses / n},
         }
+
+    too_small = [
+        (name, ms["cycles"]["value"])
+        for name, ms in bmf.items()
+        if ms["cycles"]["value"] < MIN_CYCLES
+    ]
+    for name, cycles in too_small:
+        print(
+            f"benchmark too small: {name}: {cycles:.0f} cycles per"
+            f" iteration, the minimum is {MIN_CYCLES}",
+            file=sys.stderr,
+        )
+    if too_small:
+        return 1
 
     for path, primary in ((args.primary, True), (args.details, False)):
         subset = {
