@@ -2760,16 +2760,15 @@ i2p_tracker_case const i2p_tracker_cases[] = {
 		false,
 		{0, 0, 0, 0, 0, 0, 0}},
 
-	// non-i2p torrent (no flag) that happens to list an i2p tracker URL.
-	// is_i2p() is false so the policy doesn't apply; regular trackers are
-	// announced normally and the i2p one just fails DNS.
-	{"non_i2p_torrent_with_i2p_url",
+	// no i2p_torrent flag, but an i2p tracker URL makes it an i2p torrent,
+	// so the regular trackers must not be contacted
+	{"i2p_url_implies_i2p_torrent",
 		false,
 		false,
 		false,
 		false,
 		{{"tracker.i2p", 0}, {"3.0.0.1", 0}, {"3.0.0.2", 0}},
-		true,
+		false,
 		{0, 0, 0, 0, 0, 0, 0}},
 
 	// only i2p trackers: the all-i2p case must also not spin or contact a
@@ -2973,6 +2972,7 @@ using peer_hostname_flags_t = flags::bitfield_flag<std::uint32_t, struct peer_ho
 constexpr peer_hostname_flags_t proxy_hostnames = 0_bit;
 constexpr peer_hostname_flags_t no_proxy_configured = 1_bit;
 constexpr peer_hostname_flags_t configure_proxy = 2_bit;
+constexpr peer_hostname_flags_t configure_sam = 3_bit;
 
 // a non-compact tracker peer list can carry a hostname (rather than a raw
 // IP) in the "ip" field. Regular bittorrent peer connections have no
@@ -3023,6 +3023,13 @@ void test_peer_hostname_resolve(peer_hostname_flags_t const flags)
 		pack.set_str(settings_pack::proxy_hostname, "60.0.0.1");
 		pack.set_int(settings_pack::proxy_port, 4444);
 	}
+#if TORRENT_USE_I2P
+	if (flags & configure_sam)
+	{
+		pack.set_str(settings_pack::i2p_hostname, "60.0.0.2");
+		pack.set_int(settings_pack::i2p_port, 7656);
+	}
+#endif
 
 	auto ses = std::make_shared<lt::session>(pack, ios);
 
@@ -3063,3 +3070,12 @@ TORRENT_TEST(peer_hostname_resolved_with_default_settings)
 {
 	test_peer_hostname_resolve(no_proxy_configured);
 }
+
+#if TORRENT_USE_I2P
+// a configured SAM bridge must not make peers from a regular tracker be
+// treated as i2p destinations
+TORRENT_TEST(peer_hostname_resolved_with_sam_configured)
+{
+	test_peer_hostname_resolve(no_proxy_configured | configure_sam);
+}
+#endif

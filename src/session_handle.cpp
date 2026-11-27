@@ -339,12 +339,27 @@ namespace {
 
 			atp.flags &= ~mask;
 			atp.flags |= resume_data.flags & mask;
+
+			// resume data without either flag is in automatic mode, which must
+			// not loosen a policy the caller set explicitly. The two flags are
+			// one setting, OR-ing them could turn i2p-only into mixed mode
+			torrent_flags_t const network_mask =
+				torrent_flags::allow_i2p_peers | torrent_flags::allow_clearnet_peers;
+			if (resume_data.flags & network_mask)
+			{
+				atp.flags &= ~network_mask;
+				atp.flags |= resume_data.flags & network_mask;
+			}
 		}
 		else
 		{
 			if (atp.file_priorities.empty())
 				atp.file_priorities = resume_data.file_priorities;
 		}
+
+		// this only restricts which peers the torrent talks to, dropping it
+		// would expose an i2p torrent to clearnet peers
+		atp.flags |= resume_data.flags & torrent_flags::i2p_torrent;
 
 		if (atp.info_hash.is_all_zeros()
 			&& aux::string_begins_no_case("magnet:", atp.url))

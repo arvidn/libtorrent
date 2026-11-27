@@ -674,6 +674,10 @@ namespace aux {
 		// The `seed_mode` flag is special, it can only be cleared once the
 		// torrent has been added, and it can only be set as part of the
 		// add_torrent_params flags, when adding the torrent.
+		//
+		// The `disable_v1_hashes`, `allow_i2p_peers` and `allow_clearnet_peers`
+		// flags can only be set in add_torrent_params when adding the
+		// torrent. ``set_flags()`` and ``unset_flags()`` leave them unchanged.
 		torrent_flags_t flags() const;
 		void set_flags(torrent_flags_t flags, torrent_flags_t mask) const;
 		void set_flags(torrent_flags_t flags) const;

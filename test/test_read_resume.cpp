@@ -444,6 +444,9 @@ TORRENT_TEST(round_trip_flags)
 #if TORRENT_USE_I2P
 		torrent_flags::i2p_torrent,
 #endif
+		torrent_flags::allow_i2p_peers,
+		torrent_flags::allow_clearnet_peers,
+		torrent_flags::allow_i2p_peers | torrent_flags::allow_clearnet_peers,
 	};
 
 	for (auto const& f : flags)
@@ -452,6 +455,38 @@ TORRENT_TEST(round_trip_flags)
 		atp.flags = f;
 		test_roundtrip(atp);
 	}
+}
+
+TORRENT_TEST(peer_network_flags)
+{
+	auto const network_flags = torrent_flags::allow_i2p_peers | torrent_flags::allow_clearnet_peers;
+	for (auto const f : {torrent_flags_t{},
+			 torrent_flags::allow_i2p_peers,
+			 torrent_flags::allow_clearnet_peers,
+			 network_flags})
+	{
+		add_torrent_params atp;
+		atp.flags = f;
+		auto const buf = write_resume_data_buf(atp);
+		error_code ec;
+		auto const out = read_resume_data(buf, ec);
+		TEST_CHECK(!ec);
+		TEST_CHECK((out.flags & network_flags) == f);
+	}
+
+	// resume data without the keys leaves the torrent in automatic mode,
+	// which falls back to the i2p_torrent flag and allow_i2p_mixed
+	entry rd;
+	rd["file-format"] = "libtorrent resume file";
+	rd["file-version"] = 1;
+	rd["info-hash"] = "abcdefghijklmnopqrst";
+	rd["i2p"] = 1;
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), rd);
+	error_code ec;
+	auto const out = read_resume_data(buf, ec);
+	TEST_CHECK(!ec);
+	TEST_CHECK(!(out.flags & network_flags));
 }
 
 TORRENT_TEST(round_trip_info_hash)

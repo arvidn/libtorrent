@@ -32,6 +32,7 @@ see LICENSE file.
 #include "libtorrent/session_params.hpp"
 #include "libtorrent/aux_/random.hpp"
 #include "libtorrent/ip_filter.hpp"
+#include "libtorrent/extensions/i2p_pex.hpp"
 #include "settings.hpp"
 #include <tuple>
 #include <iostream>
@@ -1102,3 +1103,189 @@ TORRENT_TEST(web_seed_ssrf_query_string)
 	TEST_CHECK(web_seed_ssrf_blocked("http://127.0.0.1:1/file?x=1"));
 	TEST_CHECK(web_seed_ssrf_blocked("http://[::1]:1/file?x=1"));
 }
+
+TORRENT_TEST(peer_network_policy)
+{
+	auto const i2p = torrent_flags::allow_i2p_peers;
+	auto const clearnet = torrent_flags::allow_clearnet_peers;
+
+	for (bool const i2p_torrent : {false, true})
+	{
+		for (bool const mixed : {false, true})
+		{
+			// explicit flags override i2p_torrent and allow_i2p_mixed
+			TEST_CHECK(aux::i2p_peers_allowed(i2p));
+			TEST_CHECK(!aux::clearnet_peers_allowed(i2p, i2p_torrent, mixed));
+			TEST_CHECK(!aux::i2p_peers_allowed(clearnet));
+			TEST_CHECK(aux::clearnet_peers_allowed(clearnet, i2p_torrent, mixed));
+			TEST_CHECK(aux::i2p_peers_allowed(i2p | clearnet));
+			TEST_CHECK(aux::clearnet_peers_allowed(i2p | clearnet, i2p_torrent, mixed));
+
+			// automatic mode
+			TEST_CHECK(aux::i2p_peers_allowed({}));
+			TEST_EQUAL(aux::clearnet_peers_allowed({}, i2p_torrent, mixed), !i2p_torrent || mixed);
+		}
+	}
+}
+
+namespace {
+
+struct network_test
+{
+	explicit network_test(bool const allow_i2p_mixed = false)
+	{
+		settings_pack sett = settings();
+		// keeps connect-candidates from being consumed by connection attempts
+		sett.set_int(settings_pack::connection_speed, 0);
+		sett.set_bool(settings_pack::allow_i2p_mixed, allow_i2p_mixed);
+		ses = std::make_unique<lt::session>(sett);
+	}
+
+	static add_torrent_params params(torrent_flags_t const flags)
+	{
+		static std::array<const int, 1> const file_sizes{{100000}};
+		auto files = create_random_files(".", file_sizes);
+		add_torrent_params p = make_torrent(std::move(files), 0x8000);
+		p.save_path = ".";
+		p.flags |= torrent_flags::seed_mode | flags;
+		p.flags &= ~(torrent_flags::paused | torrent_flags::auto_managed);
+		return p;
+	}
+
+	torrent_handle add(torrent_flags_t const flags) { return ses->add_torrent(params(flags)); }
+
+	// returns whether the peer made it into the peer list
+	bool connect(torrent_handle const& h, char const* ip)
+	{
+		int const before = h.status().list_peers;
+		h.connect_peer(ep(ip, 6881));
+		// status() runs on the network thread after connect_peer() has been
+		// handled, so the peer list is up to date
+		bool const added = h.status().list_peers > before;
+		if (!added)
+		{
+			TEST_CHECK(wait_for_alert(
+				*ses,
+				"network_test",
+				[](alert const* a) {
+					auto const* pb = alert_cast<peer_blocked_alert>(a);
+					return pb && pb->reason == peer_blocked_alert::i2p_mixed;
+				},
+				10s));
+		}
+		return added;
+	}
+
+	std::unique_ptr<lt::session> ses;
+};
+
+} // anonymous namespace
+
+TORRENT_TEST(peer_networks_flags)
+{
+	network_test t;
+	auto const network_flags = torrent_flags::allow_i2p_peers | torrent_flags::allow_clearnet_peers;
+	torrent_handle h = t.add(torrent_flags::allow_i2p_peers);
+	TEST_CHECK((h.flags() & network_flags) == torrent_flags::allow_i2p_peers);
+
+	// the network flags are fixed when the torrent is added
+	h.set_flags(torrent_flags::allow_clearnet_peers, network_flags);
+	TEST_CHECK((h.flags() & network_flags) == torrent_flags::allow_i2p_peers);
+
+	h.unset_flags(network_flags);
+	TEST_CHECK((h.flags() & network_flags) == torrent_flags::allow_i2p_peers);
+	TEST_CHECK(!t.connect(h, "1.2.3.4"));
+}
+
+TORRENT_TEST(clearnet_peers_default)
+{
+	network_test t;
+	TEST_CHECK(t.connect(t.add({}), "1.2.3.4"));
+}
+
+TORRENT_TEST(clearnet_peers_explicit)
+{
+	network_test t;
+	TEST_CHECK(t.connect(t.add(torrent_flags::allow_clearnet_peers), "1.2.3.4"));
+}
+
+TORRENT_TEST(i2p_only_blocks_clearnet)
+{
+	network_test t;
+	TEST_CHECK(!t.connect(t.add(torrent_flags::allow_i2p_peers), "1.2.3.4"));
+}
+
+TORRENT_TEST(i2p_only_overrides_allow_i2p_mixed)
+{
+	network_test t(true);
+	TEST_CHECK(!t.connect(t.add(torrent_flags::allow_i2p_peers), "1.2.3.4"));
+}
+
+#if TORRENT_USE_I2P
+TORRENT_TEST(i2p_torrent_blocks_clearnet)
+{
+	network_test t;
+	TEST_CHECK(!t.connect(t.add(torrent_flags::i2p_torrent), "1.2.3.4"));
+}
+
+TORRENT_TEST(i2p_torrent_allow_i2p_mixed)
+{
+	network_test t(true);
+	TEST_CHECK(t.connect(t.add(torrent_flags::i2p_torrent), "1.2.3.4"));
+}
+
+TORRENT_TEST(i2p_torrent_explicit_mixed)
+{
+	network_test t;
+	TEST_CHECK(t.connect(t.add(torrent_flags::i2p_torrent | torrent_flags::allow_i2p_peers
+							 | torrent_flags::allow_clearnet_peers),
+		"1.2.3.4"));
+}
+
+TORRENT_TEST(i2p_torrent_explicit_i2p_only)
+{
+	// setting only allow_i2p_peers must not be weakened by allow_i2p_mixed
+	network_test t(true);
+	TEST_CHECK(
+		!t.connect(t.add(torrent_flags::i2p_torrent | torrent_flags::allow_i2p_peers), "1.2.3.4"));
+}
+
+TORRENT_TEST(i2p_tracker_implies_i2p_torrent)
+{
+	network_test t;
+	add_torrent_params p = network_test::params({});
+	p.trackers.push_back("http://tracker.i2p/announce");
+	torrent_handle const h = t.ses->add_torrent(std::move(p));
+	TEST_CHECK(h.flags() & torrent_flags::i2p_torrent);
+	TEST_CHECK(!t.connect(h, "1.2.3.4"));
+}
+#endif
+
+#if TORRENT_USE_I2P && !defined TORRENT_DISABLE_EXTENSIONS
+namespace {
+bool has_i2p_pex(torrent_flags_t const flags)
+{
+	network_test t;
+	bool created = false;
+	add_torrent_params p = network_test::params(flags);
+	p.extensions.push_back([&created](torrent_handle const& h, client_data_t const ud) {
+		auto ret = create_i2p_pex_plugin(h, ud);
+		created = bool(ret);
+		return ret;
+	});
+	// add_torrent() returns after the extension factories have run
+	t.ses->add_torrent(std::move(p));
+	return created;
+}
+} // anonymous namespace
+
+TORRENT_TEST(i2p_pex_follows_allow_i2p_peers)
+{
+	TEST_CHECK(has_i2p_pex({}));
+	TEST_CHECK(has_i2p_pex(torrent_flags::allow_i2p_peers));
+	TEST_CHECK(has_i2p_pex(torrent_flags::allow_i2p_peers | torrent_flags::allow_clearnet_peers));
+	TEST_CHECK(has_i2p_pex(torrent_flags::i2p_torrent));
+	TEST_CHECK(!has_i2p_pex(torrent_flags::allow_clearnet_peers));
+	TEST_CHECK(!has_i2p_pex(torrent_flags::i2p_torrent | torrent_flags::allow_clearnet_peers));
+}
+#endif

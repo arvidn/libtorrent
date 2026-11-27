@@ -75,6 +75,7 @@ see LICENSE file.
 #include "libtorrent/aux_/ssl.hpp"
 #include "libtorrent/aux_/tracker_list.hpp"
 #include "libtorrent/web_seed_entry.hpp"
+#include "libtorrent/torrent_flags.hpp"
 
 #if TORRENT_USE_RTC
     #include "libtorrent/aux_/rtc_signaling.hpp"
@@ -93,6 +94,29 @@ namespace libtorrent::aux {
 	struct bt_peer_connection;
 
 	using web_seed_flag_t = flags::bitfield_flag<std::uint8_t, struct web_seed_flag_tag>;
+
+	// these are free functions, rather than torrent members, so that the
+	// policy can be evaluated from add_torrent_params before the torrent
+	// exists. See torrent_flags::allow_i2p_peers.
+	inline bool i2p_peers_allowed(torrent_flags_t const flags)
+	{
+		if (flags & (torrent_flags::allow_i2p_peers | torrent_flags::allow_clearnet_peers))
+			return bool(flags & torrent_flags::allow_i2p_peers);
+		return true;
+	}
+
+	inline bool clearnet_peers_allowed(
+		torrent_flags_t const flags, bool const i2p_torrent, bool const allow_i2p_mixed)
+	{
+		if (flags & (torrent_flags::allow_i2p_peers | torrent_flags::allow_clearnet_peers))
+			return bool(flags & torrent_flags::allow_clearnet_peers);
+		return !i2p_torrent || allow_i2p_mixed;
+	}
+
+	// whether the torrent described by p is an i2p torrent, for automatic
+	// mode. A tracker URL on i2p is enough, so a caller that only fills in
+	// trackers doesn't get a torrent that talks to clearnet peers
+	TORRENT_EXTRA_EXPORT bool is_i2p_torrent(add_torrent_params const& p);
 
 	// internal
 	enum class waste_reason
@@ -1078,19 +1102,15 @@ namespace libtorrent::aux {
 			error_code const& ec, char const* dest, peer_source_flags_t source, pex_flags_t flags);
 		void add_i2p_peer(sha256_hash const& dest, peer_source_flags_t source, pex_flags_t flags);
 		bool is_i2p() const { return m_i2p; }
-
-		// returns true if this tracker is compatible with the torrent's
-		// i2p mode. Used to keep announce_with_tracker() and
-		// update_tracker_timer() in sync about which trackers will be
-		// contacted. If they disagree, the timer may schedule an immediate
-		// re-announce for a tracker that announce_with_tracker() will then
-		// skip, causing a CPU spin.
-		bool i2p_compatible_tracker(aux::announce_entry const& ae) const;
 #else
 		bool is_i2p() const { return false; }
 #endif
 
-		// combines i2p-mixing policy (when enabled) with URL-scheme
+		// the effective peer network policy. See torrent_flags::allow_i2p_peers
+		bool allow_i2p_peers() const;
+		bool allow_clearnet_peers() const;
+
+		// combines the peer network policy with URL-scheme
 		// support. update_tracker_timer() and announce_with_tracker() must
 		// agree on this, or a tracker that's always skipped can still pull
 		// the timer back to "now", spinning the CPU.
@@ -1822,6 +1842,12 @@ namespace libtorrent::aux {
 		bool m_enable_lsd:1;
 
 		bool m_i2p:1;
+
+		// the explicit torrent_flags::allow_i2p_peers and
+		// allow_clearnet_peers flags, fixed when the torrent is added. When
+		// both are false the policy is derived from m_i2p and allow_i2p_mixed.
+		bool m_allow_i2p_peers_flag:1;
+		bool m_allow_clearnet_peers_flag:1;
 
 		// set once at construct_storage() time when disable_v1_hashes is
 		// enabled. locked in at that point so that changing the setting later

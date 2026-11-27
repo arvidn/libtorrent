@@ -102,6 +102,7 @@ see LICENSE file.
 #include "libtorrent/mmap_disk_io.hpp" // for hasher_thread_divisor
 #include "libtorrent/aux_/numeric_cast.hpp"
 #include "libtorrent/aux_/path.hpp"
+#include "libtorrent/aux_/string_util.hpp" // for is_i2p_url
 #include "libtorrent/aux_/generate_peer_id.hpp"
 #include "libtorrent/aux_/announce_entry.hpp"
 #include "libtorrent/aux_/ssl.hpp"
@@ -189,6 +190,21 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 }
 } // anonymous namespace
 
+bool is_i2p_torrent(add_torrent_params const& p)
+{
+	if (p.flags & torrent_flags::i2p_torrent)
+		return true;
+#if TORRENT_USE_I2P
+	if (p.ti && p.ti->is_i2p())
+		return true;
+	return std::any_of(p.trackers.begin(), p.trackers.end(), [](std::string const& url) {
+		return is_i2p_url(url);
+	});
+#else
+	return false;
+#endif
+}
+
 	web_seed_t::web_seed_t(web_seed_entry const& wse)
 		: web_seed_entry(wse)
 	{
@@ -259,7 +275,9 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		, m_stop_when_ready(p.flags & torrent_flags::stop_when_ready)
 		, m_enable_dht(!bool(p.flags & torrent_flags::disable_dht))
 		, m_enable_lsd(!bool(p.flags & torrent_flags::disable_lsd))
-		, m_i2p(bool(p.flags & torrent_flags::i2p_torrent))
+		, m_i2p(is_i2p_torrent(p))
+		, m_allow_i2p_peers_flag(bool(p.flags & torrent_flags::allow_i2p_peers))
+		, m_allow_clearnet_peers_flag(bool(p.flags & torrent_flags::allow_clearnet_peers))
 		, m_disable_v1_hashes(false)
 		, m_disable_hash_checks(false)
 		, m_max_uploads((1 << 24) - 1)
@@ -323,11 +341,6 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			std::lock_guard<std::mutex> l(m_torrent_file_mutex);
 			m_torrent_file_external = m_torrent_file;
 		}
-
-#if TORRENT_USE_I2P
-		if (m_torrent_file->is_i2p())
-			m_i2p = true;
-#endif
 
 		if (m_torrent_file->is_valid())
 		{
@@ -764,12 +777,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		if (!m_enable_dht) return false;
 		if (!m_ses.announce_dht()) return false;
 
-#if TORRENT_USE_I2P
-		// i2p torrents don't announced on the DHT
-		// unless we allow mixed swarms
-		if (is_i2p() && !settings().get_bool(settings_pack::allow_i2p_mixed))
+		if (!allow_clearnet_peers())
 			return false;
-#endif
 
 		if (!m_ses.dht()) return false;
 		if (m_torrent_file->is_valid() && !m_files_checked) return false;
@@ -979,6 +988,10 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			ret |= torrent_flags::disable_pex;
 		if (m_i2p)
 			ret |= torrent_flags::i2p_torrent;
+		if (m_allow_i2p_peers_flag)
+			ret |= torrent_flags::allow_i2p_peers;
+		if (m_allow_clearnet_peers_flag)
+			ret |= torrent_flags::allow_clearnet_peers;
 		if (m_disable_v1_hashes)
 			ret |= torrent_flags::disable_v1_hashes;
 		return ret;
@@ -2982,12 +2995,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		// private torrents are never announced on LSD
 		if (m_torrent_file->is_valid() && m_torrent_file->priv()) return;
 
-#if TORRENT_USE_I2P
-		// i2p torrents are also never announced on LSD
-		// unless we allow mixed swarms
-		if (is_i2p() && !settings().get_bool(settings_pack::allow_i2p_mixed))
+		if (!allow_clearnet_peers())
 			return;
-#endif
 
 		if (is_paused()) return;
 
@@ -3026,10 +3035,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 #ifndef TORRENT_DISABLE_LOGGING
 			if (should_log())
 			{
-#if TORRENT_USE_I2P
-				if (is_i2p() && !settings().get_bool(settings_pack::allow_i2p_mixed))
-					debug_log("DHT: i2p torrent (and mixed peers not allowed)");
-#endif
+				if (!allow_clearnet_peers())
+					debug_log("DHT: clearnet peers not allowed");
 				if (!m_ses.announce_dht())
 					debug_log("DHT: no listen sockets");
 
@@ -3122,9 +3129,8 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 				get_handle(), int(peers.size()));
 		}
 
-#if TORRENT_USE_I2P
-		if (is_i2p() && !settings().get_bool(settings_pack::allow_i2p_mixed)) return;
-#endif
+		if (!allow_clearnet_peers())
+			return;
 
 		if (torrent_file().priv()) return;
 
@@ -3154,19 +3160,41 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 #endif
 
-#if TORRENT_USE_I2P
-	bool torrent::i2p_compatible_tracker(aux::announce_entry const& ae) const
+	namespace {
+	torrent_flags_t peer_network_flags(bool const allow_i2p, bool const allow_clearnet)
 	{
-		return ae.i2p || !is_i2p() || settings().get_bool(settings_pack::allow_i2p_mixed);
+		torrent_flags_t ret{};
+		if (allow_i2p)
+			ret |= torrent_flags::allow_i2p_peers;
+		if (allow_clearnet)
+			ret |= torrent_flags::allow_clearnet_peers;
+		return ret;
 	}
-#endif
+	}
+
+	bool torrent::allow_i2p_peers() const
+	{
+		return aux::i2p_peers_allowed(
+			peer_network_flags(m_allow_i2p_peers_flag, m_allow_clearnet_peers_flag));
+	}
+
+	bool torrent::allow_clearnet_peers() const
+	{
+		return aux::clearnet_peers_allowed(
+			peer_network_flags(m_allow_i2p_peers_flag, m_allow_clearnet_peers_flag),
+			is_i2p(),
+			settings().get_bool(settings_pack::allow_i2p_mixed));
+	}
 
 	bool torrent::tracker_supported(aux::announce_entry const& ae) const
 	{
 #if TORRENT_USE_I2P
-		if (!i2p_compatible_tracker(ae))
-			return false;
+		bool const i2p = ae.i2p;
+#else
+		bool const i2p = false;
 #endif
+		if (!(i2p ? allow_i2p_peers() : allow_clearnet_peers()))
+			return false;
 #if TORRENT_USE_RTC
 		if (aux::is_websocket_tracker_url(ae.url))
 		{
@@ -3989,8 +4017,10 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 				continue;
 
 #if TORRENT_USE_I2P
-			if (r.i2pconn)
+			if (r.kind & tracker_request::i2p)
 			{
+				if (!allow_i2p_peers() || r.i2pconn == nullptr)
+					continue;
 				// this is an i2p name, we need to use the SAM connection
 				// to do the name lookup
 				if (string_ends_with(i.hostname, ".i2p"))
@@ -4038,7 +4068,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		}
 
 #if TORRENT_USE_I2P
-		if (r.i2pconn)
+		if (r.kind & tracker_request::i2p)
 		{
 			for (auto const& i : resp.i2p_peers)
 			{
@@ -4346,6 +4376,9 @@ namespace {
 		// destination. We should keep the full destination as a cache in the
 		// i2p_peer object still.
 
+		if (!allow_i2p_peers())
+			return;
+
 		// i2p_connection queues lookups until the SAM session is up
 		if (settings().get_str(settings_pack::i2p_hostname).empty())
 			return;
@@ -4375,6 +4408,11 @@ namespace {
 			debug_log("i2p_resolve error: %s", ec.message().c_str());
 #endif
 		if (ec || m_abort || m_ses.is_aborted()) return;
+		// add_i2p_peer() filters on this, and the flags are fixed when the
+		// torrent is added
+		TORRENT_ASSERT(allow_i2p_peers());
+		if (!allow_i2p_peers())
+			return;
 
 		// a v2-only torrent has no v1 info hash to connect with
 		if (!torrent_file().info_hashes().has_v1())
@@ -6658,11 +6696,7 @@ namespace {
 	{
 		if (!aux::webrtc_allowed(settings()))
 			return false;
-#if TORRENT_USE_I2P
-		if (is_i2p() && !settings().get_bool(settings_pack::allow_i2p_mixed))
-			return false;
-#endif
-		return true;
+		return allow_clearnet_peers();
 	}
 
 	void torrent::on_rtc_offer(aux::rtc_offer const& offer)
@@ -8142,6 +8176,18 @@ namespace {
 			return false;
 		}
 #endif
+
+#if TORRENT_USE_I2P
+		bool const i2p = peerinfo->is_i2p_addr;
+#else
+		bool const i2p = false;
+#endif
+		// peers are filtered before entering the peer_list. This is a last
+		// line of defense against leaking an i2p torrent to clearnet peers
+		bool const allowed = i2p ? allow_i2p_peers() : allow_clearnet_peers();
+		TORRENT_ASSERT(allowed);
+		if (!allowed)
+			return false;
 
 		if (m_abort) return false;
 
@@ -11157,11 +11203,9 @@ namespace {
 			return;
 		}
 
-#if TORRENT_USE_I2P
 		// web seeds don't support i2p
-		if (is_i2p() && !settings().get_bool(settings_pack::allow_i2p_mixed))
+		if (!allow_clearnet_peers())
 			return;
-#endif
 
 		// when set to unlimited, use 100 as the limit
 		int limit = zero_or(settings().get_int(settings_pack::max_web_seed_connections)
@@ -12013,17 +12057,13 @@ namespace {
 			return nullptr;
 		}
 
-#if TORRENT_USE_I2P
-		// if this is an i2p torrent, and we don't allow mixed mode
-		// no regular peers should ever be added!
-		if (!settings().get_bool(settings_pack::allow_i2p_mixed) && is_i2p())
+		if (!allow_clearnet_peers())
 		{
 			if (alerts().should_post<peer_blocked_alert>())
 				alerts().emplace_alert<peer_blocked_alert>(get_handle()
 					, adr, peer_blocked_alert::i2p_mixed);
 			return nullptr;
 		}
-#endif
 
 		if (settings().get_bool(settings_pack::no_connect_privileged_ports) && adr.port() < 1024)
 		{

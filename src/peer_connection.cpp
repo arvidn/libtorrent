@@ -1349,6 +1349,23 @@ namespace {
 		TORRENT_ASSERT(!t->valid_metadata() || t->info_hash().has_v2()
 			|| !(peer_info_struct() && peer_info_struct()->protocol_v2));
 
+#if TORRENT_USE_I2P
+		bool const i2p = aux::is_i2p(m_socket);
+#else
+		bool const i2p = false;
+#endif
+		if (i2p ? !t->allow_i2p_peers() : !t->allow_clearnet_peers())
+		{
+#ifndef TORRENT_DISABLE_LOGGING
+			peer_log(peer_log_alert::info,
+				peer_log_alert::attach,
+				i2p ? "rejected i2p connection to torrent not allowing i2p peers"
+					: "rejected regular connection to torrent not allowing clearnet peers");
+#endif
+			disconnect(errors::peer_banned, operation_t::bittorrent, peer_error);
+			return;
+		}
+
 		if (t->is_paused()
 			&& t->is_auto_managed()
 			&& m_settings.get_bool(settings_pack::incoming_starts_queued_torrents)
@@ -1370,21 +1387,6 @@ namespace {
 			disconnect(errors::torrent_paused, operation_t::bittorrent, peer_error);
 			return;
 		}
-
-#if TORRENT_USE_I2P
-		if (!aux::is_i2p(m_socket)
-			&& t->is_i2p()
-			&& !m_settings.get_bool(settings_pack::allow_i2p_mixed))
-		{
-			// the torrent is an i2p torrent, the peer is a regular peer
-			// and we don't allow mixed mode. Disconnect the peer.
-#ifndef TORRENT_DISABLE_LOGGING
-			peer_log(peer_log_alert::info, peer_log_alert::attach, "rejected regular connection to i2p torrent");
-#endif
-			disconnect(errors::peer_banned, operation_t::bittorrent, peer_error);
-			return;
-		}
-#endif // TORRENT_USE_I2P
 
 		TORRENT_ASSERT(m_torrent.expired());
 

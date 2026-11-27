@@ -23,8 +23,11 @@ namespace libtorrent {
 	struct torrent_handle;
 	struct client_data_t;
 
-	// The i2p_pex extension gossips i2p peer addresses, only on i2p torrents.
-	// The extension will not activate for non-i2p torrents.
+	// The i2p_pex extension gossips i2p peer addresses with i2p peers. It
+	// activates for non-private torrents that allow i2p peers (see
+	// torrent_flags::allow_i2p_peers), which includes torrents that allow
+	// both i2p and clearnet peers. Only i2p connections take part in the
+	// exchange.
 	//
 	// This can either be passed in the add_torrent_params::extensions field, or
 	// via torrent_handle::add_extension().
