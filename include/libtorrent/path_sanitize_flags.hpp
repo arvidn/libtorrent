@@ -101,6 +101,13 @@ constexpr path_sanitize_flags_t deduplicate_full_path = 7_bit;
 //   other's data.
 constexpr path_sanitize_flags_t case_insensitive_deduplication = 8_bit;
 
+// treat every file with the symlink attribute (BEP 47) as a regular,
+// empty file. Its "symlink path" is never parsed or resolved, and no
+// symlink is ever created on disk. File indices and the torrent's payload
+// layout are unaffected, since a symlink occupies no payload space. This
+// is an opt-in escape hatch, not part of any ``libtorrent_M_N`` ruleset.
+constexpr path_sanitize_flags_t ignore_symlinks = 9_bit;
+
 // all bits combined
 constexpr path_sanitize_flags_t all = path_sanitize_flags_t::all();
 

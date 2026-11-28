@@ -1,5 +1,6 @@
 2.2.0 not released
 
+	* add path_sanitize_flags::ignore_symlinks to load symlinks as empty files
 	* mitigate peer list flooding from a single IPv6 prefix
 	* restrict sharing files across SSL torrents
 	* add versioned path-sanitization
