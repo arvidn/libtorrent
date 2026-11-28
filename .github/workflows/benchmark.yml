@@ -41,17 +41,22 @@ jobs:
           ccache_options: |
             max_size=500M
 
-      - name: install boost
+      - name: install boost and valgrind
         run: |
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libboost-tools-dev libboost-dev libboost-system-dev
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libboost-tools-dev libboost-dev libboost-system-dev valgrind
           echo "using gcc ;" >>~/user-config.jam
 
       - name: build benchmark tools
         run: |
           cd tools
-          b2 release warnings-as-errors=on stage
+          b2 release warnings-as-errors=on stage_bencher
 
       - uses: bencherdev/bencher@v0.6.8
+
+      - name: run benchmarks
+        run: |
+          cd tools
+          python3 run_bencher.py --primary primary.json --details details.json
 
       - name: track benchmarks
         run: |
@@ -61,20 +66,34 @@ jobs:
             --key '${{ secrets.BENCHER_API_KEY }}' \
             --branch '${{ github.ref_name }}' \
             --testbed ubuntu-24.04 \
-            --threshold-measure latency \
-            --threshold-test t_test \
-            --threshold-max-sample-size 64 \
-            --threshold-upper-boundary 0.99 \
+            --threshold-measure cycles \
+            --threshold-test percentage \
+            --threshold-max-sample-size 8 \
+            --threshold-upper-boundary 0.05 \
             --thresholds-reset \
             --adapter json \
             --error-on-alert \
             --github-actions '${{ secrets.GITHUB_TOKEN }}' \
-            ./bencher
+            --file primary.json
+
+      # reporting these to GitHub as well would exceed the size limit of a
+      # GitHub check, and they don't have thresholds
+      - name: upload detailed counters
+        run: |
+          cd tools
+          bencher run \
+            --project libtorrent \
+            --key '${{ secrets.BENCHER_API_KEY }}' \
+            --branch '${{ github.ref_name }}' \
+            --testbed ubuntu-24.04 \
+            --adapter json \
+            --file details.json
 
    # compares PR benchmark results against their target branch. Skipped for
-   # forked PRs, since they don't have access to the secrets below. Never
-   # fails the PR: alerts are surfaced via the GitHub check/PR comment (see
-   # --github-actions) but --error-on-alert is intentionally omitted.
+   # forked PRs, since they don't have access to the secrets below.
+   # Regressions never fail the PR: alerts are surfaced via the GitHub
+   # check/PR comment (see --github-actions) but --error-on-alert is
+   # intentionally omitted. A benchmark that's too small does fail it.
    tools-pr:
       name: tools (PR)
       if: >
@@ -107,17 +126,22 @@ jobs:
           ccache_options: |
             max_size=500M
 
-      - name: install boost
+      - name: install boost and valgrind
         run: |
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libboost-tools-dev libboost-dev libboost-system-dev
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libboost-tools-dev libboost-dev libboost-system-dev valgrind
           echo "using gcc ;" >>~/user-config.jam
 
       - name: build benchmark tools
         run: |
           cd tools
-          b2 release warnings-as-errors=on stage
+          b2 release warnings-as-errors=on stage_bencher
 
       - uses: bencherdev/bencher@v0.6.8
+
+      - name: run benchmarks
+        run: |
+          cd tools
+          python3 run_bencher.py --primary primary.json --details details.json
 
       - name: track benchmarks
         run: |
@@ -133,4 +157,17 @@ jobs:
             --testbed ubuntu-24.04 \
             --adapter json \
             --github-actions '${{ secrets.GITHUB_TOKEN }}' \
-            ./bencher
+            --file primary.json
+
+      # the branch was already reset to its start point by the previous step,
+      # resetting it again would discard that step's report
+      - name: upload detailed counters
+        run: |
+          cd tools
+          bencher run \
+            --project libtorrent \
+            --key '${{ secrets.BENCHER_API_KEY }}' \
+            --branch '${{ github.head_ref }}' \
+            --testbed ubuntu-24.04 \
+            --adapter json \
+            --file details.json

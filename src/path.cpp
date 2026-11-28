@@ -370,6 +370,58 @@ namespace {
 #endif
 	}
 
+	void create_empty_file(std::string const& f, aux::open_mode_t const mode, error_code& ec)
+	{
+		ec.clear();
+		native_path_string const n = convert_to_native_path_string(f);
+#ifdef TORRENT_WINDOWS
+		DWORD const attributes =
+			(mode & aux::open_mode::hidden) ? FILE_ATTRIBUTE_HIDDEN : FILE_ATTRIBUTE_NORMAL;
+#ifdef TORRENT_WINRT
+		CREATEFILE2_EXTENDED_PARAMETERS extended{
+			sizeof(CREATEFILE2_EXTENDED_PARAMETERS), attributes, FILE_FLAG_OPEN_REPARSE_POINT};
+		HANDLE const h = CreateFile2(n.c_str(),
+			GENERIC_WRITE,
+			FILE_SHARE_WRITE | FILE_SHARE_READ | FILE_SHARE_DELETE,
+			CREATE_NEW,
+			&extended);
+#else
+		HANDLE const h = CreateFileW(n.c_str(),
+			GENERIC_WRITE,
+			FILE_SHARE_WRITE | FILE_SHARE_READ | FILE_SHARE_DELETE,
+			nullptr,
+			CREATE_NEW,
+			attributes | FILE_FLAG_OPEN_REPARSE_POINT,
+			nullptr);
+#endif
+		if (h == INVALID_HANDLE_VALUE)
+		{
+			DWORD const error = GetLastError();
+			if (error != ERROR_FILE_EXISTS && error != ERROR_ALREADY_EXISTS)
+				ec.assign(error, system_category());
+			return;
+		}
+		CloseHandle(h);
+#else
+		// O_EXCL also refuses to follow a symlink at f, dangling or not
+		int const fd = ::open(n.c_str(),
+			O_WRONLY | O_CREAT | O_EXCL
+#ifdef O_CLOEXEC
+				| O_CLOEXEC
+#endif
+			,
+			S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH
+				| ((mode & aux::open_mode::executable) ? (S_IXUSR | S_IXGRP | S_IXOTH) : 0));
+		if (fd < 0)
+		{
+			if (errno != EEXIST)
+				ec.assign(errno, system_category());
+			return;
+		}
+		::close(fd);
+#endif
+	}
+
 	void create_hard_link(std::string const& file, std::string const& link, error_code& ec)
 	{
 		native_path_string n_exist = convert_to_native_path_string(file);

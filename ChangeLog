@@ -111,6 +111,12 @@
 	* added support for WebTorrent
 	* removed support for BEP 17 web seeds (in favor of BEP 19)
 
+2.0.17 not released
+
+	* fix piece picker bug when losing a partially downloaded piece
+	* fix edge cases with creating empty files when changing priority
+	* improve validation of metadata against info-hashes
+
 2.0.16 released
 
 	* harden HTTP redirects

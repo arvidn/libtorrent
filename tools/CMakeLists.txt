@@ -17,8 +17,11 @@ add_executable(read_ahead_trace read_ahead_trace.cpp)
 target_link_libraries(read_ahead_trace PRIVATE torrent-rasterbar)
 
 # bencher uses do_not_optimize(), which relies on GNU inline asm and is
-# not supported by MSVC.
-if (NOT MSVC)
+# not supported by MSVC. It also needs the valgrind headers, since it's only
+# useful under callgrind.
+include(CheckIncludeFileCXX)
+check_include_file_cxx(valgrind/callgrind.h HAVE_VALGRIND_CALLGRIND_H)
+if (NOT MSVC AND HAVE_VALGRIND_CALLGRIND_H)
 	add_executable(bencher bencher.cpp)
 	target_link_libraries(bencher PRIVATE torrent-rasterbar)
 endif()

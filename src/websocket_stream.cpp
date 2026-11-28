@@ -25,7 +25,6 @@ see LICENSE file.
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 #include <boost/asio/connect.hpp>
-#include <rtc/rtc.hpp> // for overloaded
 #include "libtorrent/aux_/disable_warnings_pop.hpp"
 
 #include <algorithm>
@@ -59,19 +58,12 @@ void websocket_stream::close()
 		post(m_io_service, std::bind(std::move(handler), error::operation_aborted));
 
 	m_keepalive_timer.cancel();
+	m_open = false;
 
-	if (m_open)
-	{
-		m_open = false;
-
-		ADD_OUTSTANDING_ASYNC("websocket_stream::on_close");
-		std::visit([&](auto& stream)
-			{
-				stream.async_close(websocket::close_code::none
-					, std::bind(&websocket_stream::on_close, shared_from_this(), _1));
-			}
-			, m_stream);
-	}
+	// beast's closing handshake can deadlock with an outstanding read, and
+	// would make shutdown depend on the tracker responding
+	error_code ec;
+	std::visit([&](auto& stream) { boost::beast::get_lowest_layer(stream).close(ec); }, m_stream);
 }
 
 close_reason_t websocket_stream::get_close_reason()
@@ -152,10 +144,13 @@ void websocket_stream::do_resolve(std::string hostname, std::uint16_t port)
 void websocket_stream::on_resolve(error_code const& ec, std::vector<address> const& addresses)
 {
 	COMPLETE_ASYNC("websocket_stream::on_resolve");
+	// close() can't cancel the lookup, but it clears the handler
+	if (!m_connect_handler)
+		return;
+
 	if (ec)
 	{
-		if (auto handler = std::exchange(m_connect_handler, nullptr))
-			post(m_io_service, std::bind(std::move(handler), ec));
+		post(m_io_service, std::bind(std::exchange(m_connect_handler, nullptr), ec));
 		return;
 	}
 
@@ -173,9 +168,7 @@ void websocket_stream::do_tcp_connect(std::vector<tcp::endpoint> endpoints)
 	m_endpoints = std::move(endpoints);
 
 	auto* tcp_stream =
-		std::visit(rtc::overloaded{[&](stream_type& stream) { return &stream.next_layer(); },
-					   [&](ssl_stream_type& stream) { return &stream.next_layer().next_layer(); }},
-			m_stream);
+		std::visit([](auto& stream) { return &boost::beast::get_lowest_layer(stream); }, m_stream);
 
 	ADD_OUTSTANDING_ASYNC("websocket_stream::on_tcp_connect");
 	asio::async_connect(*tcp_stream,
@@ -300,14 +293,12 @@ void websocket_stream::on_write(error_code ec, std::size_t bytes_written, write_
 {
 	COMPLETE_ASYNC("websocket_stream::on_write");
 
-	if (!ec) arm_keepalive();
+	if (ec)
+		m_open = false;
+	else if (m_open)
+		arm_keepalive();
 
 	post(m_io_service, std::bind(std::move(handler), ec, bytes_written));
-}
-
-void websocket_stream::on_close(error_code)
-{
-	COMPLETE_ASYNC("websocket_stream::on_close");
 }
 
 void websocket_stream::on_keepalive(error_code ec)
@@ -328,7 +319,8 @@ void websocket_stream::on_ping(error_code ec)
 {
 	COMPLETE_ASYNC("websocket_stream::on_ping");
 
-	if (ec) return;
+	if (ec || !m_open)
+		return;
 
 	arm_keepalive();
 }

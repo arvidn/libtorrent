@@ -245,7 +245,7 @@ private:
 		if (handle_error(e, h)) return;
 
 		ADD_OUTSTANDING_ASYNC("i2p_stream::read_line");
-		m_buffer.resize(1);
+		m_buffer.assign(1, '\0');
 		async_read(m_sock, boost::asio::buffer(m_buffer), aux::wrap_allocator(
 			[this](error_code const& ec, std::size_t, Handler hn) {
 				read_line(ec, std::move(hn));

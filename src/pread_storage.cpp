@@ -134,27 +134,44 @@ pread_storage::pread_storage(storage_params const& params, file_pool& pool)
 
 			if (old_prio == dont_download && new_prio != dont_download)
 			{
-				// move stuff out of the part file
-				auto f = open_file(sett, i, open_mode::write, ec);
-				if (ec)
-					return;
-				TORRENT_ASSERT(f);
-
-				if (m_part_file && use_partfile(i))
+				if (fs.file_size(i) == 0)
 				{
+					// initialize_storage() skipped this file while it had
+					// priority 0
+					create_empty_entry(i, ec);
+					if (ec)
+						return;
+				}
+				else if (m_part_file && use_partfile(i))
+				{
+					// move stuff out of the part file. The file is opened lazily
+					// to not create files that have nothing in the part file
+					std::shared_ptr<file_handle> f;
 					try
 					{
-						m_part_file->export_file([&f](std::int64_t file_offset, span<char> buf)
-						{
-							do {
-								error_code err;
-								int const r = pwrite_all(f->fd(), buf, file_offset, err);
-								if (err)
-									throw_ex<lt::system_error>(err);
-								buf = buf.subspan(r);
-								file_offset += r;
-							} while (buf.size() > 0);
-						}, fs.file_offset(i), fs.file_size(i), ec.ec);
+						m_part_file->export_file(
+							[&](std::int64_t file_offset, span<char> buf) {
+								if (!f)
+								{
+									f = open_file(sett, i, open_mode::write, ec);
+									if (ec)
+										throw_ex<lt::system_error>(ec.ec);
+									TORRENT_ASSERT(f);
+								}
+								do
+								{
+									error_code err;
+									int const r = pwrite_all(f->fd(), buf, file_offset, err);
+									if (err)
+										throw_ex<lt::system_error>(err);
+									buf = buf.subspan(r);
+									file_offset += r;
+								}
+								while (buf.size() > 0);
+							},
+							fs.file_offset(i),
+							fs.file_size(i),
+							ec.ec);
 						if (ec)
 						{
 							ec.file(i);
@@ -222,7 +239,7 @@ pread_storage::pread_storage(storage_params const& params, file_pool& pool)
 		m_use_partfile[index] = b;
 	}
 
-	status_t pread_storage::initialize(settings_interface const& sett, storage_error& ec)
+	status_t pread_storage::initialize(settings_interface const&, storage_error& ec)
 	{
 		m_stat_cache.reserve(files().num_files());
 
@@ -272,12 +289,16 @@ pread_storage::pread_storage(storage_params const& params, file_pool& pool)
 			}
 		}
 
-		initialize_storage(fs, m_save_path, m_stat_cache, m_file_priority
-			, [&sett, this](file_index_t const file_index, storage_error& e)
-			{ open_file(sett, file_index, open_mode::write, e); }
-			, create_symlink
-			, [&ret](file_index_t, std::int64_t) { ret = ret | disk_status::oversized_file; }
-			, ec);
+		initialize_storage(
+			fs,
+			m_save_path,
+			m_stat_cache,
+			m_file_priority,
+			[this](file_index_t const file_index, storage_error& e) {
+				create_empty_entry(file_index, e);
+			},
+			[&ret](file_index_t, std::int64_t) { ret = ret | disk_status::oversized_file; },
+			ec);
 
 		// close files that were opened in write mode
 		m_pool.release(storage_index());
@@ -824,6 +845,24 @@ pread_storage::pread_storage(storage_params const& params, file_pool& pool)
 			advise_dont_need(handle->fd(), file_offset, len);
 
 		return static_cast<int>(len);
+	}
+
+	void pread_storage::create_empty_entry(file_index_t const file, storage_error& ec)
+	{
+		{
+			std::unique_lock<std::mutex> l(m_file_created_mutex);
+			if (m_file_created.size() != files().num_files())
+				m_file_created.resize(files().num_files(), false);
+			if (m_file_created.get_bit(file))
+				return;
+			m_file_created.set_bit(file);
+		}
+		aux::create_empty_entry(m_filenames, file, m_save_path, ec);
+		if (ec)
+		{
+			std::unique_lock<std::mutex> l(m_file_created_mutex);
+			m_file_created.clear_bit(file);
+		}
 	}
 
 	// a wrapper around open_file_impl that, if it fails, makes sure the

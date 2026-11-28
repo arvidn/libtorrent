@@ -96,6 +96,9 @@ struct TORRENT_EXTRA_EXPORT websocket_stream
 	websocket_stream& operator=(websocket_stream&&) noexcept = delete;
 	websocket_stream(websocket_stream&&) noexcept = delete;
 
+	// closes the socket without a closing handshake. Operations still waiting
+	// on the socket complete with operation_aborted, completions that are
+	// already queued are still delivered as they were
 	void close();
 	void close(error_code const&) { close(); }
 	close_reason_t get_close_reason();
@@ -181,7 +184,6 @@ private:
 	void on_handshake(error_code const& ec);
 	void on_read(error_code ec, std::size_t bytes_read, read_handler handler);
 	void on_write(error_code ec, std::size_t bytes_written, write_handler handler);
-	void on_close(error_code ec);
 	void on_keepalive(error_code ec);
 	void on_ping(error_code ec);
 	void arm_keepalive();

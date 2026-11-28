@@ -18,6 +18,7 @@ see LICENSE file.
 #include "libtorrent/config.hpp"
 #include "libtorrent/string_view.hpp"
 #include "libtorrent/span.hpp"
+#include "libtorrent/aux_/open_mode.hpp"
 
 #include "libtorrent/aux_/disable_warnings_push.hpp"
 
@@ -81,6 +82,12 @@ namespace libtorrent {
 		std::string const& f, error_code& ec, file_status_flag_t flags = {});
 	TORRENT_EXTRA_EXPORT bool is_directory(std::string const& f
 		, error_code& ec);
+
+	// creates an empty file at f. If anything already exists at f, including a
+	// dangling symlink, it's left untouched and this is not an error. Only the
+	// executable and hidden bits of mode are used
+	TORRENT_EXTRA_EXPORT void create_empty_file(
+		std::string const& f, aux::open_mode_t mode, error_code& ec);
 
 	// file is expected to exist, link will be created to point to it. If hard
 	// links are not supported by the filesystem or OS, the file will be copied.

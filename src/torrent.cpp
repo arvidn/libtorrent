@@ -3250,11 +3250,21 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 	}
 
 	namespace {
-		void refresh_endpoint_list(aux::session_interface& ses,
-			bool const is_ssl,
-			bool const complete_sent,
-			aux::announce_entry& ae)
-		{
+	void refresh_endpoint_list(aux::session_interface& ses,
+		std::uint32_t const ver,
+		bool const is_ssl,
+		bool const complete_sent,
+		aux::announce_entry& ae)
+	{
+		if (ver == ae.listen_socket_version)
+			return;
+		ae.listen_socket_version = ver;
+
+		// endpoints that failed may be reachable with the new set of listen
+		// sockets, give them one more chance
+		for (auto& aep : ae.endpoints)
+			aep.enabled = true;
+
 #if TORRENT_USE_I2P
 		if (ae.i2p)
 		{
@@ -3269,10 +3279,6 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 			return;
 		}
 #endif
-
-		auto const ver = ses.listen_socket_version();
-		if (ver == ae.listen_socket_version)
-			return;
 
 		// update the endpoint list by adding entries for new listen sockets
 		// and removing entries for non-existent ones
@@ -3307,8 +3313,7 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 		TORRENT_ASSERT(valid_endpoints <= ae.endpoints.size());
 		ae.endpoints.erase(ae.endpoints.begin() + int(valid_endpoints), ae.endpoints.end());
-		ae.listen_socket_version = ver;
-		}
+	}
 	}
 
 	namespace
@@ -3429,13 +3434,17 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 		// TODO: it would be nice to raise the abstraction level of the
 		// tracker_list or trackers a bit here
+		auto const listen_ver = m_ses.listen_socket_version();
 		for (auto& ae : m_trackers)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			++idx;
 #endif
-			refresh_endpoint_list(
-				m_ses, is_ssl_torrent(), bool(m_flags & torrent_internal_flags::complete_sent), ae);
+			refresh_endpoint_list(m_ses,
+				listen_ver,
+				is_ssl_torrent(),
+				bool(m_flags & torrent_internal_flags::complete_sent),
+				ae);
 
 			// if trackerid is not specified for tracker use default one, probably set explicitly
 			req.trackerid = ae.trackerid.empty() ? m_trackerid : ae.trackerid;
@@ -3729,8 +3738,11 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 		tracker_request req = build_tracker_request(e);
 		time_point32 const now = aux::time_now32();
 
-		refresh_endpoint_list(
-			m_ses, is_ssl_torrent(), bool(m_flags & torrent_internal_flags::complete_sent), ae);
+		refresh_endpoint_list(m_ses,
+			m_ses.listen_socket_version(),
+			is_ssl_torrent(),
+			bool(m_flags & torrent_internal_flags::complete_sent),
+			ae);
 		req.trackerid = ae.trackerid.empty() ? m_trackerid : ae.trackerid;
 		req.url = ae.url;
 
@@ -3813,8 +3825,11 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 #if TORRENT_USE_I2P
 		if (ae.i2p) req.kind |= tracker_request::i2p;
 #endif
-		refresh_endpoint_list(
-			m_ses, is_ssl_torrent(), bool(m_flags & torrent_internal_flags::complete_sent), ae);
+		refresh_endpoint_list(m_ses,
+			m_ses.listen_socket_version(),
+			is_ssl_torrent(),
+			bool(m_flags & torrent_internal_flags::complete_sent),
+			ae);
 		req.url = ae.url;
 		req.private_torrent = m_torrent_file && m_torrent_file->priv();
 #if TORRENT_ABI_VERSION == 1
@@ -4272,37 +4287,38 @@ aux::vector<download_priority_t, piece_index_t> file_to_piece_prio(
 
 namespace {
 
-	bool trigger_announce(aux::session_interface& ses
-		, bool const is_ssl
-		, bool const complete_sent
-		, reannounce_flags_t const flags
-		, time_point const t
-		, aux::announce_entry& e)
+bool trigger_announce(aux::session_interface& ses,
+	std::uint32_t const listen_ver,
+	bool const is_ssl,
+	bool const complete_sent,
+	reannounce_flags_t const flags,
+	time_point const t,
+	aux::announce_entry& e)
+{
+	bool ret = false;
+	// make sure we check for new endpoints from the listen sockets
+	refresh_endpoint_list(ses, listen_ver, is_ssl, complete_sent, e);
+	for (auto& aep : e.endpoints)
 	{
-		bool ret = false;
-		// make sure we check for new endpoints from the listen sockets
-		refresh_endpoint_list(ses, is_ssl, complete_sent, e);
-		for (auto& aep : e.endpoints)
+		for (auto& a : aep.info_hashes)
 		{
-			for (auto& a : aep.info_hashes)
-			{
-				a.next_announce = (flags & torrent_handle::ignore_min_interval)
-					? time_point_cast<seconds32>(t) + seconds32(1)
-					: std::max(time_point_cast<seconds32>(t), a.min_announce) + seconds32(1);
-				// ignore_min_interval means the caller explicitly wants to
-				// bypass the tracker's requested minimum interval, so clear
-				// it. Otherwise leave it as-is (e.g. reflecting a real
-				// interval requested by the tracker) rather than pushing it
-				// a second into the future, which would make can_announce()
-				// falsely report this endpoint as not yet eligible.
-				if (flags & torrent_handle::ignore_min_interval)
-					a.min_announce = (time_point32::min)();
-				a.triggered_manually = true;
-				ret = true;
-			}
+			a.next_announce = (flags & torrent_handle::ignore_min_interval)
+				? time_point_cast<seconds32>(t) + seconds32(1)
+				: std::max(time_point_cast<seconds32>(t), a.min_announce) + seconds32(1);
+			// ignore_min_interval means the caller explicitly wants to
+			// bypass the tracker's requested minimum interval, so clear
+			// it. Otherwise leave it as-is (e.g. reflecting a real
+			// interval requested by the tracker) rather than pushing it
+			// a second into the future, which would make can_announce()
+			// falsely report this endpoint as not yet eligible.
+			if (flags & torrent_handle::ignore_min_interval)
+				a.min_announce = (time_point32::min)();
+			a.triggered_manually = true;
+			ret = true;
 		}
-		return ret;
 	}
+	return ret;
+}
 }
 
 	// this is the entry point for the client to force a re-announce. It's
@@ -4320,14 +4336,11 @@ namespace {
 		if (tracker_idx == -1)
 		{
 			bool found_one = false;
+			auto const listen_ver = m_ses.listen_socket_version();
 			for (auto& e : m_trackers)
 			{
-				// make sure we check for new endpoints from the listen sockets
-				refresh_endpoint_list(m_ses,
-					is_ssl_torrent(),
-					bool(m_flags & torrent_internal_flags::complete_sent),
-					e);
 				found_one |= trigger_announce(m_ses,
+					listen_ver,
 					is_ssl_torrent(),
 					bool(m_flags & torrent_internal_flags::complete_sent),
 					flags,
@@ -4358,6 +4371,7 @@ namespace {
 		auto* e = m_trackers.find(tracker_idx);
 		if (e == nullptr) return;
 		bool const found_one = trigger_announce(m_ses,
+			m_ses.listen_socket_version(),
 			is_ssl_torrent(),
 			bool(m_flags & torrent_internal_flags::complete_sent),
 			flags,
@@ -4397,6 +4411,7 @@ namespace {
 		}
 
 		bool const found = trigger_announce(m_ses,
+			m_ses.listen_socket_version(),
 			is_ssl_torrent(),
 			bool(m_flags & torrent_internal_flags::complete_sent),
 			flags,
@@ -6457,6 +6472,8 @@ namespace {
 		m_ses.alerts().emplace_alert<tracker_list_alert>(get_handle(), std::move(t));
 	}
 
+	// TODO: the endpoints may be stale if the listen sockets have changed
+	// since the last announce
 	std::vector<lt::announce_entry> torrent::trackers() const
 	{
 		std::vector<lt::announce_entry> ret;
@@ -7290,6 +7307,13 @@ namespace {
 			// local IP
 			if (web->no_local_ips && !aux::is_global(addr)) continue;
 
+			// connecting to the unspecified address reaches the local host on
+			// Linux and some other systems, and connect_web_seed() would
+			// mistake it for the placeholder used for hostnames resolved by the
+			// proxy, skipping the IP filter and the SSRF mitigation
+			if (aux::normalize_address(addr).is_unspecified())
+				continue;
+
 			// fill in the peer struct's address field
 			web->endpoints.emplace_back(addr, std::uint16_t(port));
 
@@ -7737,17 +7761,6 @@ namespace {
 		for (auto const& tree : m_merkle_trees)
 			ret.emplace_back(tree.get_piece_layer(scratch_space, h));
 		return ret;
-	}
-
-	void torrent::on_listen_sockets_changed()
-	{
-		// announce_with_tracker() only refreshes the trackers it reaches.
-		// Endpoints of closed listen sockets left on the others would make
-		// update_tracker_timer() schedule announces that are never sent
-		for (aux::announce_entry& ae : m_trackers)
-			refresh_endpoint_list(
-				m_ses, is_ssl_torrent(), bool(m_flags & torrent_internal_flags::complete_sent), ae);
-		m_trackers.enable_all();
 	}
 
 	void torrent::write_resume_data(resume_data_flags_t const flags, add_torrent_params& ret) const
@@ -8506,31 +8519,16 @@ namespace {
 
 		if (m_torrent_file->is_valid()) return false;
 
-		if (m_torrent_file->info_hashes().has_v1())
 		{
-			sha1_hash const info_hash = hasher(metadata_buf).final();
-			if (info_hash != m_torrent_file->info_hashes().v1)
-			{
-				// check if the v1 hash is a truncated v2 hash
-				sha256_hash const info_hash2 = hasher256(metadata_buf).final();
-				if (sha1_hash(info_hash2.data()) != m_torrent_file->info_hashes().v1)
-				{
-					if (alerts().should_post<metadata_failed_alert>())
-					{
-						alerts().emplace_alert<metadata_failed_alert>(get_handle()
-							, errors::mismatching_info_hash);
-					}
-					return false;
-				}
-			}
-		}
-		if (m_torrent_file->info_hashes().has_v2())
-		{
-			// we don't have to worry about computing the v2 hash twice because
-			// if the v1 hash was a truncated v2 hash then the torrent_file should
-			// not have a v2 hash and we shouldn't get here
-			sha256_hash const info_hash = hasher256(metadata_buf).final();
-			if (info_hash != m_torrent_file->info_hashes().v2)
+			info_hash_t const& ih = m_torrent_file->info_hashes();
+			info_hash_t buf_ih;
+			if (ih.has_v1())
+				buf_ih.v1 = hasher(metadata_buf).final();
+			// the v1 hash may be a truncated v2 hash
+			if (ih.has_v2() || buf_ih.v1 != ih.v1)
+				buf_ih.v2 = hasher256(metadata_buf).final();
+
+			if (!buf_ih.contains(ih))
 			{
 				if (alerts().should_post<metadata_failed_alert>())
 				{
@@ -8551,6 +8549,12 @@ namespace {
 		auto const& sett = settings();
 		bdecode_node const metadata = bdecode(metadata_buf, ec, &pos, 200
 			, sett.get_int(settings_pack::metadata_token_limit));
+
+		// bdecode() stops at the end of the top-level item. Trailing bytes
+		// are covered by the hash we verified, but not by the info dict, so
+		// that hash isn't the info-hash of this metadata
+		if (!ec && metadata.data_section().size() != metadata_buf.size())
+			ec = errors::mismatching_info_hash;
 
 		std::shared_ptr<torrent_info> info;
 		std::map<file_index_t, std::string> whole_tree_renames;
@@ -8589,12 +8593,16 @@ namespace {
 			}
 		}
 
+		if (!ec && !info->info_hashes().contains(old_ih))
+			ec = errors::mismatching_info_hash;
+
 		if (ec)
 		{
 			update_gauge();
 			// this means the metadata is correct, since we
 			// verified it against the info-hash, but we
-			// failed to parse it. Pause the torrent
+			// failed to parse it (or it's not a torrent with
+			// the info-hash we were added with). Pause the torrent
 			if (alerts().should_post<metadata_failed_alert>())
 			{
 				alerts().emplace_alert<metadata_failed_alert>(get_handle(), ec);
@@ -9374,6 +9382,16 @@ namespace {
 		update_state_timers();
 
 		if (!(m_flags & torrent_internal_flags::announcing)) return;
+
+		// completed() skips disabled endpoints, refreshing re-enables the ones
+		// that failed before the listen sockets changed
+		auto const listen_ver = m_ses.listen_socket_version();
+		for (auto& t : m_trackers)
+			refresh_endpoint_list(m_ses,
+				listen_ver,
+				is_ssl_torrent(),
+				bool(m_flags & torrent_internal_flags::complete_sent),
+				t);
 
 		m_trackers.completed(aux::time_now32());
 		announce_with_tracker();
@@ -10840,11 +10858,22 @@ namespace {
 				, int(m_trackers.size()));
 		}
 #endif
-		for (auto const& t : m_trackers)
+		auto const listen_ver = m_ses.listen_socket_version();
+		for (auto& t : m_trackers)
 		{
 #ifndef TORRENT_DISABLE_LOGGING
 			++idx;
 #endif
+			// announce_with_tracker() stops at the first tracker that satisfies
+			// every listen socket, so the ones after it may still have
+			// endpoints for closed sockets. Scheduling those would fire
+			// announces that are never sent
+			refresh_endpoint_list(m_ses,
+				listen_ver,
+				is_ssl_torrent(),
+				bool(m_flags & torrent_internal_flags::complete_sent),
+				t);
+
 			// Skip trackers that announce_with_tracker() will skip too.
 			// Without this, those trackers' default next_announce
 			// (time_point32::min()) drives the timer to fire immediately,

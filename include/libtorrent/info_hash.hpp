@@ -77,6 +77,18 @@ namespace {
 			return v == protocol_version::V1 ? has_v1() : has_v2();
 		}
 
+		// returns true if every hash present in ``ih`` is also present, and
+		// equal, in this object. The v1 hash of ``ih`` is also considered
+		// present if it matches this object's truncated v2 hash.
+		bool contains(info_hash_t const& ih) const
+		{
+			if (ih.has_v2() && ih.v2 != v2)
+				return false;
+			if (ih.has_v1() && ih.v1 != v1 && ih.v1 != sha1_hash(v2.data()))
+				return false;
+			return true;
+		}
+
 		// returns the has for the specified protocol version
 		sha1_hash get(protocol_version v) const
 		{

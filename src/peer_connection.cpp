@@ -239,7 +239,7 @@ namespace {
 		TORRENT_ASSERT(is_single_thread());
 		int ret = m_settings.get_int(settings_pack::peer_timeout);
 #if TORRENT_USE_I2P
-		if (m_peer_info && m_peer_info->address_type() == peer_address_type::i2p)
+		if (is_i2p(m_socket))
 		{
 			// quadruple the timeout for i2p peers
 			ret *= 4;
@@ -3336,6 +3336,12 @@ namespace {
 		peer_log(peer_log_alert::incoming_message, peer_log_alert::dht_port, "p: %d", listen_port);
 #endif
 #ifndef TORRENT_DISABLE_DHT
+#if TORRENT_USE_I2P
+		// we don't know the IP address of an i2p peer. m_remote is the SAM
+		// bridge, which isn't running a DHT node
+		if (is_i2p(m_socket))
+			return;
+#endif
 		m_ses.add_dht_node({m_remote.address(), std::uint16_t(listen_port)});
 #else
 		TORRENT_UNUSED(listen_port);
