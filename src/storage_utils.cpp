@@ -599,28 +599,55 @@ std::int64_t get_filesize(stat_cache& stat, file_index_t const file_index
 	bool has_any_file(
 		file_storage const& fs
 		, std::string const& save_path
+		, std::string const& part_file_path
 		, stat_cache& cache
 		, storage_error& ec)
 	{
+		storage_error first_error;
 		for (auto const i : fs.file_range())
 		{
-			std::int64_t const sz = cache.get_filesize(
-				i, fs, save_path, ec.ec);
+			// pad files are never stored on disk
+			if (fs.pad_file_at(i)) continue;
 
-			if (sz < 0)
-			{
-				if (ec && ec.ec != boost::system::errc::no_such_file_or_directory)
-				{
-					ec.file(i);
-					ec.operation = operation_t::file_stat;
-					cache.clear();
-					return false;
-				}
-				// some files not existing is expected and not an error
-				ec.ec.clear();
-			}
+			error_code err;
+			std::int64_t const sz = cache.get_filesize(
+				i, fs, save_path, err);
 
 			if (sz > 0) return true;
+
+			// some files not existing is expected and not an error. Failing to
+			// stat a file doesn't say anything about the other files, so keep
+			// looking. The caller takes "false" to mean there's nothing on
+			// disk to check
+			if (sz < 0 && !first_error
+				&& err != boost::system::errc::no_such_file_or_directory)
+			{
+				first_error.ec = err;
+				first_error.file(i);
+				first_error.operation = operation_t::file_stat;
+			}
+		}
+
+		// the part file holds pieces overlapping priority-0 files, so it may be
+		// the only data on disk
+		error_code part_error;
+		file_status s;
+		stat_file(part_file_path, &s, part_error);
+		if (!part_error) return true;
+
+		if (!first_error
+			&& part_error != boost::system::errc::no_such_file_or_directory)
+		{
+			first_error.ec = part_error;
+			first_error.file(torrent_status::error_file_partfile);
+			first_error.operation = operation_t::file_stat;
+		}
+
+		// the error is only reported if we didn't find any file
+		if (first_error)
+		{
+			ec = first_error;
+			cache.clear();
 		}
 		return false;
 	}

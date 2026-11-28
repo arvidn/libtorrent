@@ -299,7 +299,8 @@ namespace aux {
 	bool posix_storage::has_any_file(storage_error& error)
 	{
 		m_stat_cache.reserve(files().num_files());
-		return aux::has_any_file(files(), m_save_path, m_stat_cache, error);
+		return aux::has_any_file(files(), m_save_path
+			, combine_path(m_save_path, m_part_file_name), m_stat_cache, error);
 	}
 
 	bool posix_storage::verify_resume_data(add_torrent_params const& rd

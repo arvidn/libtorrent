@@ -44,6 +44,12 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "libtorrent/hex.hpp" // to_hex
 #include "libtorrent/create_torrent.hpp"
 #include "libtorrent/session.hpp"
+#include "libtorrent/session_params.hpp"
+#include "libtorrent/alert_types.hpp"
+#include "libtorrent/bencode.hpp"
+#include "libtorrent/load_torrent.hpp"
+#include "libtorrent/mmap_disk_io.hpp"
+#include "libtorrent/posix_disk_io.hpp"
 
 #include "make_torrent.hpp"
 #include "setup_transfer.hpp" // for wait_for_seeding
@@ -451,6 +457,92 @@ TORRENT_TEST(pick_up_existing_file)
 	std::vector<std::int64_t> file_progress;
 	handle.file_progress(file_progress);
 	TEST_EQUAL(file_progress[2], 9000000);
+}
+
+namespace {
+
+// pad files are not stored on disk, so their path must not affect whether the
+// files picked up from another torrent are found and checked
+void test_pick_up_existing_file_pad_path(lt::disk_io_constructor_type const disk_io)
+{
+	lt::session_params sp(settings());
+	sp.disk_io_constructor = disk_io;
+	lt::session ses(std::move(sp));
+
+	auto seed = make_test_torrent(torrent_args()
+		.file("300001,name=a")
+		.name("test-1")
+		.multi_file());
+	generate_files(*seed, ".");
+
+	lt::add_torrent_params atp;
+	atp.ti = seed;
+	atp.save_path = ".";
+	ses.add_torrent(atp);
+	wait_for_seeding(ses, "add-seed");
+
+	entry::list_type files;
+	{
+		// a path that can't be stat'ed
+		entry f;
+		f["attr"] = "p";
+		f["length"] = 0;
+		f["path"] = entry::list_type(21, entry(std::string(200, 'p')));
+		files.push_back(std::move(f));
+	}
+	{
+		entry f;
+		f["length"] = seed->total_size();
+		f["path"] = entry::list_type(1, entry("b"));
+		files.push_back(std::move(f));
+	}
+
+	std::string pieces;
+	for (auto const p : seed->piece_range())
+		pieces += seed->hash_for_piece(p).to_string();
+
+	entry torrent;
+	entry& info = torrent["info"];
+	info["name"] = "test-2";
+	info["piece length"] = seed->piece_length();
+	info["pieces"] = pieces;
+	info["files"] = std::move(files);
+	info["similar"] = entry::list_type(1
+		, entry(seed->info_hashes().v1.to_string()));
+
+	std::vector<char> buf;
+	bencode(std::back_inserter(buf), torrent);
+	atp = load_torrent_buffer(buf);
+	atp.save_path = ".";
+	torrent_handle const h = ses.add_torrent(atp);
+
+	// the seed's torrent_checked_alert may still be queued
+	for (;;)
+	{
+		alert const* a = wait_for_alert(ses, torrent_checked_alert::alert_type
+			, "add-test-2", pop_alerts::cache_alerts);
+		TEST_CHECK(a);
+		if (a == nullptr) return;
+		if (static_cast<torrent_alert const*>(a)->handle == h) break;
+	}
+
+	torrent_status const st = h.status();
+	TEST_CHECK(st.is_seeding);
+	TEST_EQUAL(st.num_pieces, seed->num_pieces());
+}
+
+} // anonymous namespace
+
+#if TORRENT_HAVE_MMAP || TORRENT_HAVE_MAP_VIEW_OF_FILE
+TORRENT_TEST(pick_up_existing_file_pad_path_mmap)
+{
+	test_pick_up_existing_file_pad_path(lt::mmap_disk_io_constructor);
+}
+#endif
+
+TORRENT_TEST(pick_up_existing_file_pad_path_posix)
+{
+	test_pick_up_existing_file_pad_path(lt::posix_disk_io_constructor);
 }
 
 #else
