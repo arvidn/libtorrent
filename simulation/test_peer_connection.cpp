@@ -182,6 +182,48 @@ struct invalid_requests
 using vec = std::vector<lt::error_code>;
 using reqs = std::vector<lt::peer_request>;
 
+#ifndef TORRENT_DISABLE_LOGGING
+// a holepunch connect message makes us connect to the endpoint in it. The
+// number of them we act on is limited by how long we've been connected to
+// the peer sending them
+TORRENT_TEST(holepunch_connect_limit)
+{
+	int connects = 0;
+	int ignored = 0;
+	test_peer(
+		{},
+		[](fake_peer& p, int) {
+			// the extension protocol and the fast extension
+			p.set_reserved_bits({{0, 0, 0, 0, 0, 0x10, 0, 0x04}});
+			p.send_have_all();
+			p.send_extended(0, lt::string_view("d1:md12:ut_holepunchi1eee"));
+			for (int i = 0; i < 100; ++i)
+			{
+				// msg_type: connect (1), addr_type: IPv4 (0), address, port
+				char const msg[] = {1, 0, 70, 0, 0, char(i + 1), 0x1a, char(0xe1)};
+				p.send_extended(4, msg);
+			}
+		},
+		[&](lt::alert const* a) {
+			auto const* pl = lt::alert_cast<lt::peer_log_alert>(a);
+			if (!pl || pl->event_type != lt::peer_log_alert::holepunch
+				|| pl->direction != lt::peer_log_alert::incoming_message)
+				return;
+			lt::string_view const msg = pl->log_message();
+			if (msg.substr(0, 15) != "msg:connect to:")
+				return;
+			if (msg.find("ERROR") == lt::string_view::npos)
+				++connects;
+			else
+				++ignored;
+		});
+
+	// all of the messages arrive right after connecting
+	TEST_EQUAL(connects, 10);
+	TEST_EQUAL(ignored, 90);
+}
+#endif
+
 TORRENT_TEST(alternate_have_all_have_none)
 {
 	peer_disconnects d;
